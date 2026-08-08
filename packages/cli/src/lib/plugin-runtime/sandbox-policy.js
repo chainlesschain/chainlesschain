@@ -20,6 +20,28 @@ const SUPPORTED_BOUNDARIES = new Set(PLUGIN_SANDBOX_BOUNDARIES);
 const PLUGIN_WORKSPACE_AUTHORITY_KIND = "trusted-plugin-workspace";
 const pluginWorkspaceAuthorities = new WeakMap();
 
+function directoryGeneration(stat) {
+  return stat.birthtimeNs > 0n
+    ? `birth:${stat.birthtimeNs.toString()}`
+    : `ctime:${stat.ctimeNs.toString()}`;
+}
+
+function directoryIdentity(stat) {
+  return Object.freeze({
+    device: stat.dev,
+    inode: stat.ino,
+    generation: directoryGeneration(stat),
+  });
+}
+
+function sameDirectoryIdentity(left, right) {
+  return (
+    left.device === right.dev &&
+    left.inode === right.ino &&
+    left.generation === directoryGeneration(right)
+  );
+}
+
 function invalidPolicy(message) {
   const error = new Error(message);
   error.code = "ERR_PLUGIN_SANDBOX_POLICY_INVALID";
@@ -69,7 +91,7 @@ export function issuePluginWorkspaceAuthority(value = {}) {
   try {
     const implementation = fs.realpathSync.native || fs.realpathSync;
     canonicalRoot = implementation.call(fs.realpathSync, requestedRoot);
-    stat = fs.statSync(canonicalRoot);
+    stat = fs.statSync(canonicalRoot, { bigint: true });
   } catch {
     throw invalidPolicy("trusted plugin workspace root is unavailable");
   }
@@ -92,7 +114,11 @@ export function issuePluginWorkspaceAuthority(value = {}) {
   });
   pluginWorkspaceAuthorities.set(
     authority,
-    Object.freeze({ root: canonicalRoot, provenance }),
+    Object.freeze({
+      root: canonicalRoot,
+      identity: directoryIdentity(stat),
+      provenance,
+    }),
   );
   return authority;
 }
@@ -115,6 +141,20 @@ export function resolvePluginWorkspaceAuthority(authority, provenance = {}) {
     !binding ||
     !sameProvenance(binding.provenance, normalizedProvenance(provenance))
   ) {
+    return null;
+  }
+  try {
+    const implementation = fs.realpathSync.native || fs.realpathSync;
+    const currentRoot = implementation.call(fs.realpathSync, binding.root);
+    const currentStat = fs.statSync(currentRoot, { bigint: true });
+    if (
+      currentRoot !== binding.root ||
+      !currentStat.isDirectory() ||
+      !sameDirectoryIdentity(binding.identity, currentStat)
+    ) {
+      return null;
+    }
+  } catch {
     return null;
   }
   return binding.root;

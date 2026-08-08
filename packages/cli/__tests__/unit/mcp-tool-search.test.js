@@ -14,7 +14,7 @@
  *   7. describeMcpToolContext — /context accounting + advice.
  */
 
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect } from "vitest";
 import fs from "fs";
 import os from "os";
 import path from "path";
@@ -89,12 +89,25 @@ function fakeMcp(defs, { instructionsByServer } = {}) {
 }
 
 const ENV_OFF = { CC_TOOL_SEARCH: "" };
+const tempDirectories = [];
+
+function makeTempDirectory() {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "cc-ts-"));
+  tempDirectories.push(directory);
+  return directory;
+}
+
+afterEach(() => {
+  for (const directory of tempDirectories.splice(0)) {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
 
 // ─── config ─────────────────────────────────────────────────────────────────
 
 describe("resolveToolSearchConfig", () => {
   it("defaults to auto with 10% threshold", () => {
-    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "cc-ts-"));
+    const cwd = makeTempDirectory();
     const cfg = resolveToolSearchConfig({ env: ENV_OFF, cwd });
     expect(cfg.enabled).toBe("auto");
     expect(cfg.thresholdRatio).toBe(TOOL_SEARCH_DEFAULTS.thresholdRatio);
@@ -103,7 +116,7 @@ describe("resolveToolSearchConfig", () => {
   });
 
   it("reads settings mcp.toolSearch (explicit file = closest layer)", () => {
-    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "cc-ts-"));
+    const cwd = makeTempDirectory();
     const file = path.join(cwd, "settings.json");
     fs.writeFileSync(
       file,
@@ -131,7 +144,7 @@ describe("resolveToolSearchConfig", () => {
   });
 
   it("ignores invalid values (fail-to-defaults)", () => {
-    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "cc-ts-"));
+    const cwd = makeTempDirectory();
     const file = path.join(cwd, "settings.json");
     fs.writeFileSync(
       file,
@@ -159,7 +172,7 @@ describe("resolveToolSearchConfig", () => {
   });
 
   it("CC_TOOL_SEARCH env overrides settings", () => {
-    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "cc-ts-"));
+    const cwd = makeTempDirectory();
     const file = path.join(cwd, "settings.json");
     fs.writeFileSync(
       file,

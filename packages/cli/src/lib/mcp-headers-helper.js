@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { isProxy } from "node:util/types";
 import executionBroker from "./process-execution-broker/index.js";
 import hookShellCommand from "./hook-shell-command.cjs";
 import {
@@ -9,6 +10,7 @@ import {
 import { checkLocalMcpHeadersHelperTrust } from "./mcp-headers-helper-trust.js";
 import { resolvePluginWorkspaceAuthority } from "./plugin-runtime/sandbox-policy.js";
 import { resolveProjectMcpWorkspaceAuthority } from "./project-mcp-trust.js";
+import { normalizeMcpSandboxPolicy } from "./mcp-sandbox-policy.js";
 
 const { buildExplicitHookShellInvocation } = hookShellCommand;
 
@@ -40,6 +42,45 @@ function helperError(code, message) {
   const error = new Error(message);
   error.code = code;
   return error;
+}
+
+function declaredSandboxPolicy(config) {
+  if (!config || typeof config !== "object" || isProxy(config)) {
+    throw helperError(
+      "CC_MCP_SANDBOX_POLICY_INVALID",
+      "MCP headersHelper sandbox policy owner must be a non-Proxy object",
+    );
+  }
+  const descriptor = Object.getOwnPropertyDescriptor(config, "sandboxPolicy");
+  if (!descriptor) return null;
+  if (!("value" in descriptor)) {
+    throw helperError(
+      "CC_MCP_SANDBOX_POLICY_INVALID",
+      "MCP headersHelper sandboxPolicy must be an own data property",
+    );
+  }
+  return normalizeMcpSandboxPolicy(descriptor.value, {
+    label: "MCP headersHelper sandboxPolicy",
+  });
+}
+
+function sandboxExecution(config, sandboxPolicy, fallbackOrigin) {
+  if (!sandboxPolicy) return null;
+  return Object.freeze({
+    origin:
+      typeof config.origin === "string" && config.origin.length > 0
+        ? config.origin
+        : fallbackOrigin,
+    policy:
+      typeof config.policy === "string" && config.policy.length > 0
+        ? config.policy
+        : "allow",
+    scope:
+      typeof config.scope === "string" && config.scope.length > 0
+        ? config.scope
+        : "mcp",
+    sandboxPolicy,
+  });
 }
 
 function normalizeHelperCommand(value) {
@@ -89,6 +130,16 @@ function canonicalHelperCwd(value, realpath = fs.realpathSync.native) {
   return canonical;
 }
 
+function hasInvalidHeaderValueCharacter(value) {
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code <= 0x08 || (code >= 0x0a && code <= 0x1f) || code === 0x7f) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function normalizeHeaderMap(value, source) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw helperError(
@@ -108,7 +159,7 @@ function normalizeHeaderMap(value, source) {
     if (
       !HEADER_NAME.test(name) ||
       typeof headerValue !== "string" ||
-      /[\0-\x08\x0a-\x1f\x7f]/.test(headerValue) ||
+      hasInvalidHeaderValueCharacter(headerValue) ||
       Buffer.byteLength(headerValue, "utf8") > MAX_HEADER_VALUE_BYTES ||
       (source === "dynamic" && TRANSPORT_OWNED_HEADERS.has(name.toLowerCase()))
     ) {
@@ -138,6 +189,7 @@ function isPathInside(root, candidate) {
  * plugin configs must carry the collector-issued opaque plugin authority.
  */
 export function resolveMcpHeadersHelperContext(config = {}, deps = {}) {
+  const sandboxPolicy = declaredSandboxPolicy(config);
   if (config.origin === "plugin:mcp") {
     const resolvePlugin =
       deps.resolvePluginWorkspaceAuthority || resolvePluginWorkspaceAuthority;
@@ -156,17 +208,15 @@ export function resolveMcpHeadersHelperContext(config = {}, deps = {}) {
     return {
       cwd: pluginRoot,
       pluginRoot,
-      execution: {
+      execution: Object.freeze({
         origin: config.origin,
         policy: config.policy || "allow",
         scope: config.scope || "mcp",
         pluginId: config.pluginId,
         pluginVersion: config.pluginVersion,
         pluginSource: config.pluginSource,
-        ...(config.sandboxPolicy
-          ? { sandboxPolicy: config.sandboxPolicy }
-          : {}),
-      },
+        ...(sandboxPolicy ? { sandboxPolicy } : {}),
+      }),
     };
   }
 
@@ -253,12 +303,30 @@ export function resolveMcpHeadersHelperContext(config = {}, deps = {}) {
         );
       }
     }
-    return { cwd: binding.workspaceRoot, pluginRoot: null, execution: null };
+    return {
+      cwd: binding.workspaceRoot,
+      pluginRoot: null,
+      execution: sandboxExecution(
+        config,
+        sandboxPolicy,
+        `mcp:headers-helper:${scope}`,
+      ),
+    };
+  }
+  if (sandboxPolicy && !binding?.workspaceRoot) {
+    throw helperError(
+      "CC_MCP_HEADERS_HELPER_UNTRUSTED_WORKSPACE",
+      "Policy-bearing MCP headersHelper requires a trusted host workspace",
+    );
   }
   return {
     cwd: binding?.workspaceRoot || path.resolve(deps.cwd || process.cwd()),
     pluginRoot: null,
-    execution: null,
+    execution: sandboxExecution(
+      config,
+      sandboxPolicy,
+      `mcp:headers-helper:${scope}`,
+    ),
   };
 }
 

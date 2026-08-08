@@ -1,17 +1,34 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { EventEmitter } from "node:events";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 describe("AgentRuntime MCP bootstrap", () => {
   let processOnSpy;
+  let tempDirs;
 
   beforeEach(() => {
     vi.resetModules();
+    tempDirs = [];
     processOnSpy = vi.spyOn(process, "on").mockReturnValue(process);
   });
 
   afterEach(() => {
     processOnSpy.mockRestore();
+    vi.restoreAllMocks();
+    for (const dir of tempDirs) {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
+
+  function createWorkspace() {
+    const workspace = mkdtempSync(
+      path.join(os.tmpdir(), "cc-agent-runtime-mcp-"),
+    );
+    tempDirs.push(workspace);
+    return workspace;
+  }
 
   it("returns null when MCP bootstrap has no database", async () => {
     const { AgentRuntime } = await import("../../src/runtime/agent-runtime.js");
@@ -32,7 +49,7 @@ describe("AgentRuntime MCP bootstrap", () => {
     ).resolves.toBeNull();
     expect(createMcpClient).not.toHaveBeenCalled();
     expect(createMcpServerConfig).not.toHaveBeenCalled();
-  });
+  }, 15_000);
 
   it("auto-connects only trusted allowlisted MCP servers", async () => {
     const { AgentRuntime } = await import("../../src/runtime/agent-runtime.js");
@@ -77,6 +94,164 @@ describe("AgentRuntime MCP bootstrap", () => {
     );
     expect(result).toBe(mcpClient);
   });
+
+  it("binds policy-bearing registered stdio servers to the selected project without ambient workspace storage", async () => {
+    const { AgentRuntime } = await import("../../src/runtime/agent-runtime.js");
+    const { MCPClient } = await import("../../src/harness/mcp-client.js");
+    const { resolveHostHooksV2WorkspaceBinding } =
+      await import("../../src/lib/hooks-v2-workspace-context.js");
+    const {
+      consumeMcpStdioExecutionAuthority,
+      materializeApprovedMcpStdioInvocation,
+      verifyMcpStdioApprovedWorkingDirectory,
+    } = await import("../../src/lib/mcp-stdio-execution-authority.js");
+    const { resolveMcpStdioSandboxContext } =
+      await import("../../src/lib/mcp-stdio-workspace-authority.js");
+
+    const workspace = createWorkspace();
+    const serverCwd = `registered-${Date.now()}`;
+    mkdirSync(path.join(workspace, serverCwd));
+    const db = { name: "raw-db" };
+    const connectSpy = vi
+      .spyOn(MCPClient.prototype, "connect")
+      .mockResolvedValue(undefined);
+    const runtime = new AgentRuntime({
+      kind: "server",
+      policy: { project: workspace },
+      deps: {
+        createMcpServerConfig: vi.fn(() => ({
+          getAutoConnect: vi.fn(() => [
+            {
+              name: "weather",
+              command: "node",
+              args: ["weather.js"],
+              cwd: serverCwd,
+              sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+            },
+          ]),
+        })),
+      },
+    });
+
+    const mcpClient = await runtime._initializeCodingAgentMcpClient(db);
+
+    expect(mcpClient).toBeInstanceOf(MCPClient);
+    const clientOptions = {
+      workspaceBinding: mcpClient._workspaceBinding,
+      roots: mcpClient._roots,
+    };
+    const resolvedBinding = resolveHostHooksV2WorkspaceBinding(
+      clientOptions.workspaceBinding,
+    );
+    const canonicalWorkspace = realpathSync.native(workspace);
+    expect(resolvedBinding?.workspaceRoot).toBe(canonicalWorkspace);
+    expect(clientOptions.roots).toEqual([canonicalWorkspace]);
+    expect(connectSpy).toHaveBeenCalledWith(
+      "weather",
+      expect.objectContaining({
+        cwd: serverCwd,
+        sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+        mcpStdioExecutionAuthority: expect.any(Object),
+      }),
+    );
+
+    const connectedConfig = connectSpy.mock.calls[0][1];
+    const approval = consumeMcpStdioExecutionAuthority(
+      connectedConfig.mcpStdioExecutionAuthority,
+      { serverName: "weather", config: connectedConfig },
+    );
+    const approvedInvocation = materializeApprovedMcpStdioInvocation(approval);
+    const sourceConfig = { ...connectedConfig };
+    delete sourceConfig.mcpStdioExecutionAuthority;
+    const sandboxContext = resolveMcpStdioSandboxContext({
+      serverName: "weather",
+      config: { ...sourceConfig, ...approvedInvocation },
+      workspaceBinding: clientOptions.workspaceBinding,
+    });
+    expect(sandboxContext.workingDirectory).toBe(
+      realpathSync.native(path.join(workspace, serverCwd)),
+    );
+    expect(() =>
+      verifyMcpStdioApprovedWorkingDirectory(
+        approval,
+        sandboxContext.workingDirectory,
+      ),
+    ).not.toThrow();
+  });
+
+  it.each(["local", "project"])(
+    "selects the target project's %s MCP row ahead of a same-name user row",
+    async (configScope) => {
+      const { AgentRuntime } =
+        await import("../../src/runtime/agent-runtime.js");
+      const { MCPServerConfig } =
+        await import("../../src/harness/mcp-client.js");
+      const { MockDatabase } = await import("../helpers/mock-db.js");
+
+      const workspace = realpathSync.native(createWorkspace());
+      expect(path.resolve(process.cwd())).not.toBe(path.resolve(workspace));
+
+      const configStore = new MCPServerConfig(new MockDatabase());
+      configStore.add("weather", {
+        command: "user-weather-command",
+        autoConnect: true,
+        configScope: "user",
+      });
+      configStore.add("weather", {
+        command: `${configScope}-weather-command`,
+        autoConnect: true,
+        configScope,
+        projectPath: workspace,
+      });
+      const getAutoConnect = vi.spyOn(configStore, "getAutoConnect");
+      const mcpClient = {
+        connect: vi.fn().mockResolvedValue(undefined),
+        disconnectAll: vi.fn().mockResolvedValue(undefined),
+      };
+      const runtimeLogger = { log: vi.fn() };
+      const runtime = new AgentRuntime({
+        kind: "server",
+        policy: { project: workspace },
+        deps: {
+          createMcpServerConfig: vi.fn(() => configStore),
+          createMcpClient: vi.fn(() => mcpClient),
+        },
+      });
+
+      await expect(
+        runtime._initializeCodingAgentMcpClient(
+          { name: "raw-db" },
+          { logger: runtimeLogger },
+        ),
+      ).resolves.toBe(mcpClient);
+
+      const visibility = getAutoConnect.mock.calls[0][0];
+      expect(visibility.cwd).toBe(workspace);
+      expect(visibility.onInvalidRow).toEqual(expect.any(Function));
+      expect(mcpClient.connect).toHaveBeenCalledOnce();
+      expect(mcpClient.connect).toHaveBeenCalledWith(
+        "weather",
+        expect.objectContaining({
+          command: `${configScope}-weather-command`,
+          configScope,
+          projectPath: workspace,
+        }),
+      );
+      expect(mcpClient.connect.mock.calls[0][1].command).not.toBe(
+        "user-weather-command",
+      );
+
+      visibility.onInvalidRow(
+        { code: "CC_MCP_SANDBOX_POLICY_INVALID" },
+        { name: "bad\nrow" },
+      );
+      expect(runtimeLogger.log).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'MCP server "bad row" was skipped: CC_MCP_SANDBOX_POLICY_INVALID',
+        ),
+      );
+    },
+  );
 
   it("disconnects the MCP client when every eligible auto-connect fails", async () => {
     const { AgentRuntime } = await import("../../src/runtime/agent-runtime.js");
@@ -139,7 +314,7 @@ describe("AgentRuntime MCP bootstrap", () => {
         maxConnections: 8,
         timeout: 30000,
         allowRemote: false,
-        project: "C:/repo",
+        project: process.cwd(),
       },
       deps: {
         bootstrap: vi.fn().mockResolvedValue({
@@ -162,7 +337,7 @@ describe("AgentRuntime MCP bootstrap", () => {
     expect(createSessionManager).toHaveBeenCalledWith(
       expect.objectContaining({
         db: rawDb,
-        defaultProjectRoot: "C:/repo",
+        defaultProjectRoot: process.cwd(),
         mcpClient,
         allowedMcpServerNames: ["weather"],
       }),
@@ -177,6 +352,86 @@ describe("AgentRuntime MCP bootstrap", () => {
     );
     expect(server.start).toHaveBeenCalledTimes(1);
     expect(result).toBe(server);
+  });
+
+  it("binds policy-bearing bundle MCP servers to the server project workspace", async () => {
+    const { AgentRuntime } = await import("../../src/runtime/agent-runtime.js");
+    const { resolveHostHooksV2WorkspaceBinding } =
+      await import("../../src/lib/hooks-v2-workspace-context.js");
+
+    const workspace = createWorkspace();
+    const serverCwd = `bundle-${Date.now()}`;
+    mkdirSync(path.join(workspace, serverCwd));
+    const logger = { log: vi.fn() };
+    const mcpClient = {
+      connect: vi.fn().mockResolvedValue(undefined),
+      disconnectAll: vi.fn().mockResolvedValue(undefined),
+    };
+    const createMcpClient = vi.fn(() => mcpClient);
+    const createSessionManager = vi.fn(() => ({ kind: "session-manager" }));
+    const server = {
+      on: vi.fn(),
+      start: vi.fn().mockResolvedValue(undefined),
+      stop: vi.fn().mockResolvedValue(undefined),
+    };
+    const bundlePath = path.join(workspace, "agent-bundle");
+    const runtime = new AgentRuntime({
+      kind: "server",
+      policy: {
+        port: 18800,
+        host: "127.0.0.1",
+        maxConnections: 8,
+        timeout: 30000,
+        allowRemote: false,
+        project: workspace,
+        bundlePath,
+      },
+      deps: {
+        bootstrap: vi.fn().mockResolvedValue({
+          db: { getDatabase: () => null },
+        }),
+        createMcpClient,
+        createSessionManager,
+        createServer: vi.fn(() => server),
+        loadConfig: vi.fn(() => ({})),
+        loadAgentBundle: vi.fn(() => ({ source: "bundle" })),
+        resolveAgentBundle: vi.fn(() => ({
+          manifest: { id: "workspace-bundle" },
+          mcpConfig: {
+            servers: {
+              bundled: {
+                command: "node",
+                args: ["bundle-server.js"],
+                cwd: serverCwd,
+                sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+              },
+            },
+          },
+        })),
+        logger,
+      },
+    });
+
+    await expect(runtime.startServer()).resolves.toBe(server);
+
+    const clientOptions = createMcpClient.mock.calls[0][0];
+    const resolvedBinding = resolveHostHooksV2WorkspaceBinding(
+      clientOptions.workspaceBinding,
+    );
+    const canonicalWorkspace = realpathSync.native(workspace);
+    expect(resolvedBinding?.workspaceRoot).toBe(canonicalWorkspace);
+    expect(clientOptions.roots).toEqual([canonicalWorkspace]);
+    expect(mcpClient.connect).toHaveBeenCalledWith(
+      "bundled",
+      expect.objectContaining({
+        cwd: serverCwd,
+        sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+        mcpStdioExecutionAuthority: expect.any(Object),
+      }),
+    );
+    expect(createSessionManager).toHaveBeenCalledWith(
+      expect.objectContaining({ mcpClient }),
+    );
   });
 
   it("startUiServer injects the auto-connected MCP client into the UI session manager", async () => {

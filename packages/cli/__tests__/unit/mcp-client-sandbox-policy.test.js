@@ -1,11 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EventEmitter } from "node:events";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { MCPClient, _deps } from "../../src/lib/mcp-client.js";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
 import {
   issuePluginWorkspaceAuthority,
   resolvePluginWorkspaceAuthority,
 } from "../../src/lib/plugin-runtime/sandbox-policy.js";
+import {
+  registerHostHooksV2Workspace,
+  releaseRegisteredHostHooksV2Workspace,
+} from "../../src/lib/hooks-v2-workspace-context.js";
 
 function makeFakeMcpProcess() {
   const proc = new EventEmitter();
@@ -47,6 +54,8 @@ const originalSpawn = _deps.spawn;
 const originalConsume = _deps.consumeMcpStdioExecutionAuthority;
 const originalMaterialize = _deps.materializeApprovedMcpStdioInvocation;
 const originalPrepareIdentity = _deps.prepareMcpStdioExecutableIdentity;
+const originalVerifyWorkingDirectory =
+  _deps.verifyMcpStdioApprovedWorkingDirectory;
 
 beforeEach(() => {
   _deps.consumeMcpStdioExecutionAuthority = () => ({
@@ -60,6 +69,7 @@ beforeEach(() => {
     identity: null,
     authority: Object.freeze({}),
   });
+  _deps.verifyMcpStdioApprovedWorkingDirectory = () => true;
 });
 
 afterEach(() => {
@@ -67,6 +77,7 @@ afterEach(() => {
   _deps.consumeMcpStdioExecutionAuthority = originalConsume;
   _deps.materializeApprovedMcpStdioInvocation = originalMaterialize;
   _deps.prepareMcpStdioExecutableIdentity = originalPrepareIdentity;
+  _deps.verifyMcpStdioApprovedWorkingDirectory = originalVerifyWorkingDirectory;
   vi.restoreAllMocks();
 });
 
@@ -90,7 +101,9 @@ describe("MCPClient plugin sandbox policy", () => {
       executionBroker,
       "issueLinuxWorkspaceSandboxExecutionContract",
     );
-    const client = new MCPClient();
+    const client = new MCPClient({
+      workspaceBinding: registerHostHooksV2Workspace(process.cwd()),
+    });
 
     await client.connect("materialized-package", {
       command: "npx",
@@ -129,14 +142,15 @@ describe("MCPClient plugin sandbox policy", () => {
       workingDirectory: "C:\\capsule",
       sandboxExecutionContract: contract,
     });
-    const client = new MCPClient();
+    const client = new MCPClient({
+      workspaceBinding: registerHostHooksV2Workspace(process.cwd()),
+    });
 
     await client.connect("strict-materialized-package", {
       command: "npx",
       args: ["server@1.0.0"],
       origin: "mcp:configured",
       sandboxPolicy: {
-        profile: "strict",
         requiredBoundaries: ["filesystem", "network"],
       },
     });
@@ -147,7 +161,6 @@ describe("MCPClient plugin sandbox policy", () => {
       expect.objectContaining({
         requiredBoundaries: expect.arrayContaining(["code-snapshot"]),
         sandboxPolicy: {
-          profile: "strict",
           requiredBoundaries: ["filesystem", "network"],
         },
         sandboxExecutionContract: contract,
@@ -219,6 +232,62 @@ describe("MCPClient plugin sandbox policy", () => {
       trustedRoot,
     );
     await client.disconnectAll();
+  });
+
+  it("binds public strict policy and cwd to the host workspace before identity preparation", async () => {
+    const root = fs.realpathSync.native(
+      fs.mkdtempSync(path.join(os.tmpdir(), "cc-mcp-client-workspace-")),
+    );
+    const nested = path.join(root, "packages", "server");
+    fs.mkdirSync(nested, { recursive: true });
+    const workspaceBinding = registerHostHooksV2Workspace(root);
+    const proc = makeFakeMcpProcess();
+    _deps.spawn = vi.fn(() => proc);
+    const prepare = vi.fn(({ config, cwd }) => ({
+      command: config.command,
+      args: config.args || [],
+      identity: null,
+      authority: Object.freeze({}),
+      workingDirectory: cwd,
+    }));
+    _deps.prepareMcpStdioExecutableIdentity = prepare;
+    vi.spyOn(
+      executionBroker,
+      "issueLinuxWorkspaceSandboxExecutionContract",
+    ).mockReturnValue(Object.freeze({ kind: "test-workspace-contract" }));
+    const client = new MCPClient({ workspaceBinding });
+
+    try {
+      await client.connect("strict-public", {
+        command: "strict-mcp",
+        cwd: path.join("packages", "server"),
+        configScope: "managed",
+        sandboxPolicy: {
+          requiredBoundaries: ["network", "filesystem", "network"],
+        },
+      });
+
+      expect(prepare).toHaveBeenCalledWith(
+        expect.objectContaining({ cwd: fs.realpathSync.native(nested) }),
+      );
+      expect(_deps.spawn).toHaveBeenCalledWith(
+        "strict-mcp",
+        [],
+        expect.objectContaining({
+          cwd: fs.realpathSync.native(nested),
+          sandboxPolicy: {
+            requiredBoundaries: ["filesystem", "network"],
+          },
+        }),
+      );
+      expect(Object.isFrozen(_deps.spawn.mock.calls[0][2].sandboxPolicy)).toBe(
+        true,
+      );
+    } finally {
+      await client.disconnectAll();
+      releaseRegisteredHostHooksV2Workspace(workspaceBinding.bindingId);
+      fs.rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("rejects a lookalike manifest authority before spawning a strict plugin server", async () => {

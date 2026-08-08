@@ -1,4 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import {
   MCPClient,
   _deps as clientDeps,
@@ -8,6 +11,7 @@ import {
   issueMcpStdioExecutionAuthority,
   materializeApprovedMcpStdioInvocation,
   renewMcpStdioExecutionAuthority,
+  verifyMcpStdioApprovedWorkingDirectory,
   MCP_STDIO_EXECUTION_AUTHORITY_REPLAYED_CODE,
   MCP_STDIO_EXECUTION_AUTHORITY_STALE_CODE,
   MCP_STDIO_LOCAL_CODE_TRUST_REQUIRED_CODE,
@@ -131,8 +135,87 @@ describe("MCP stdio local-code execution authority", () => {
     );
   });
 
+  it("binds the declared working directory into the one-shot approval", () => {
+    const approved = config({ cwd: "C:/approved/workspace" });
+    const token = issue("cwd-bound", approved);
+    approved.cwd = "C:/replacement/workspace";
+
+    expect(() =>
+      consumeMcpStdioExecutionAuthority(token, {
+        serverName: "cwd-bound",
+        config: approved,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: MCP_STDIO_EXECUTION_AUTHORITY_STALE_CODE,
+      }),
+    );
+  });
+
+  it("invalidates a strict approval when the approved cwd directory is replaced", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-mcp-approved-cwd-"));
+    const approvedCwd = path.join(root, "work");
+    const movedCwd = path.join(root, "work-old");
+    fs.mkdirSync(approvedCwd);
+    const approved = config({
+      cwd: approvedCwd,
+      sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+    });
+    const token = issue("cwd-identity", approved);
+
+    try {
+      fs.renameSync(approvedCwd, movedCwd);
+      fs.mkdirSync(approvedCwd);
+      expect(() =>
+        consumeMcpStdioExecutionAuthority(token, {
+          serverName: "cwd-identity",
+          config: approved,
+        }),
+      ).toThrow(
+        expect.objectContaining({
+          code: MCP_STDIO_EXECUTION_AUTHORITY_STALE_CODE,
+        }),
+      );
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("requires the materialized strict cwd to match the approved directory identity", () => {
+    const root = fs.mkdtempSync(
+      path.join(os.tmpdir(), "cc-mcp-materialized-cwd-"),
+    );
+    const approvedCwd = path.join(root, "approved");
+    const expandedCwd = path.join(root, "expanded");
+    fs.mkdirSync(approvedCwd);
+    fs.mkdirSync(expandedCwd);
+    const approved = config({
+      cwd: approvedCwd,
+      sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+    });
+
+    try {
+      const approval = consumeMcpStdioExecutionAuthority(
+        issue("cwd-materialized", approved),
+        { serverName: "cwd-materialized", config: approved },
+      );
+      expect(() =>
+        verifyMcpStdioApprovedWorkingDirectory(approval, expandedCwd),
+      ).toThrow(
+        expect.objectContaining({
+          code: MCP_STDIO_EXECUTION_AUTHORITY_STALE_CODE,
+        }),
+      );
+      expect(
+        verifyMcpStdioApprovedWorkingDirectory(approval, approvedCwd),
+      ).toBe(true);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("renews the same approved invocation for reconnect but rejects drift", () => {
-    const approved = config();
+    const approved = config({ cwd: "C:/approved/workspace" });
     const approval = consumeMcpStdioExecutionAuthority(
       issue("reconnect", approved),
       { serverName: "reconnect", config: approved },
@@ -162,7 +245,7 @@ describe("MCP stdio local-code execution authority", () => {
   });
 
   it("materializes detached launch arguments and environment from the approved snapshot", () => {
-    const approved = config();
+    const approved = config({ cwd: "C:/approved/workspace" });
     const approval = consumeMcpStdioExecutionAuthority(
       issue("detached", approved),
       { serverName: "detached", config: approved },
@@ -175,6 +258,7 @@ describe("MCP stdio local-code execution authority", () => {
       args: ["server.mjs"],
       env: { MODE: "test" },
       runtimeKind: null,
+      cwd: "C:/approved/workspace",
     });
   });
 

@@ -16,6 +16,7 @@
 
 import fs from "fs";
 import path from "path";
+import { isProxy } from "node:util/types";
 import {
   MCPClient,
   inferTransport,
@@ -45,12 +46,65 @@ import {
   isMcpToolMetadataError,
 } from "../lib/mcp-tool-metadata.js";
 import { issueMcpStdioExecutionAuthority } from "../lib/mcp-stdio-execution-authority.js";
+import {
+  MCP_SANDBOX_POLICY_INVALID_CODE,
+  normalizeMcpSandboxPolicy,
+  readMcpStdioCwd,
+} from "../lib/mcp-sandbox-policy.js";
+
+function invalidSandboxPolicy(message) {
+  const error = new TypeError(message);
+  error.code = MCP_SANDBOX_POLICY_INVALID_CODE;
+  return error;
+}
+
+function sandboxPolicyFromConfig(config, label) {
+  if (!config || typeof config !== "object" || isProxy(config)) {
+    throw invalidSandboxPolicy(`${label} must be a non-Proxy object`);
+  }
+  const descriptor = Object.getOwnPropertyDescriptor(config, "sandboxPolicy");
+  if (!descriptor) return null;
+  if (!("value" in descriptor)) {
+    throw invalidSandboxPolicy(
+      `${label}.sandboxPolicy must be an own data property`,
+    );
+  }
+  return normalizeMcpSandboxPolicy(descriptor.value, {
+    label: `${label}.sandboxPolicy`,
+  });
+}
+
+function mcpServerNameReservations(deps = {}) {
+  if (deps.mcpServerNameReservations instanceof Set) {
+    return deps.mcpServerNameReservations;
+  }
+  if (deps.into?._mcpServerNameReservations instanceof Set) {
+    return deps.into._mcpServerNameReservations;
+  }
+  return new Set();
+}
+
+function reserveMcpServerNames(reservations, names) {
+  for (const name of names || []) {
+    if (typeof name === "string" && name.length > 0) reservations.add(name);
+  }
+}
+
+function rawMcpServerNames(raw) {
+  const block =
+    raw && typeof raw === "object" && !Array.isArray(raw)
+      ? raw.mcpServers || raw.servers || raw
+      : null;
+  return block && typeof block === "object" && !Array.isArray(block)
+    ? Object.keys(block)
+    : [];
+}
 
 function authorizeStdioServers(
   servers,
   approvalKind,
   sourceForServer,
-  { writeErr = () => {}, failFast = false } = {},
+  { writeErr = () => {}, failFast = false, nameReservations = null } = {},
 ) {
   for (const [name, config] of Object.entries(servers || {})) {
     if (!config || typeof config !== "object") continue;
@@ -65,6 +119,7 @@ function authorizeStdioServers(
     } catch (error) {
       if (failFast) throw error;
       delete servers[name];
+      nameReservations?.add?.(name);
       writeErr(
         `  mcp: SKIPPING stdio server "${name}" because its local-code execution authority could not be issued.\n`,
       );
@@ -92,6 +147,8 @@ export function parseMcpServers(raw) {
   const out = {};
   for (const [name, cfg] of Object.entries(block)) {
     if (!cfg || typeof cfg !== "object") continue;
+    const sandboxPolicy = sandboxPolicyFromConfig(cfg, `mcpServers.${name}`);
+    const { cwd } = readMcpStdioCwd(cfg, { label: `mcpServers.${name}` });
     out[name] = {
       command: cfg.command,
       args: Array.isArray(cfg.args) ? cfg.args : [],
@@ -99,6 +156,8 @@ export function parseMcpServers(raw) {
       ...(typeof cfg.runtimeKind === "string"
         ? { runtimeKind: cfg.runtimeKind }
         : {}),
+      ...(cwd ? { cwd } : {}),
+      ...(sandboxPolicy ? { sandboxPolicy } : {}),
       url: cfg.url,
       transport: cfg.transport,
       headers:
@@ -163,6 +222,7 @@ export async function loadManagedMcp(settings, deps = {}) {
     return deps.into || null;
   }
   const servers = parseMcpServers({ mcpServers: block });
+  const nameReservations = mcpServerNameReservations(deps);
   for (const config of Object.values(servers)) {
     config.configScope = "managed";
     config.configSource = deps.managedFile || "managed-settings";
@@ -171,13 +231,19 @@ export async function loadManagedMcp(settings, deps = {}) {
     servers,
     "managed-settings",
     (_name, config) => config.configSource,
-    { writeErr: deps.writeErr },
+    {
+      writeErr: deps.writeErr,
+      nameReservations,
+    },
   );
   if (Object.keys(servers).length === 0) return deps.into || null;
   (deps.writeErr || (() => {}))(
     `  mcp: ${Object.keys(servers).length} managed server(s) from ${deps.managedFile || "managed settings"}\n`,
   );
-  return setupMcpFromConfig(servers, deps);
+  return setupMcpFromConfig(servers, {
+    ...deps,
+    mcpServerNameReservations: nameReservations,
+  });
 }
 
 function managedServerNames(value) {
@@ -275,6 +341,8 @@ export async function setupMcpFromConfig(servers, deps = {}) {
     (() =>
       new MCPClient({ eventRuntimeStore: deps.eventRuntimeStore || null }));
   servers = filterMcpServersByPolicy(servers, deps.mcpPolicy, writeErr);
+  const nameReservations = mcpServerNameReservations(deps);
+  const previouslyReservedNames = new Set(nameReservations);
 
   // `deps.into` lets a second batch (e.g. registered servers) accumulate into
   // the SAME client + channel objects as a first batch (e.g. --mcp-config), so
@@ -288,6 +356,12 @@ export async function setupMcpFromConfig(servers, deps = {}) {
     resources: [],
     prompts: [],
   };
+  if (!(result._mcpServerNameReservations instanceof Set)) {
+    Object.defineProperty(result, "_mcpServerNameReservations", {
+      value: nameReservations,
+      configurable: true,
+    });
+  }
   // Back-fill the resource/prompt accumulators when an older `deps.into` object
   // (created before this field existed) is passed in.
   if (!Array.isArray(result.resources)) result.resources = [];
@@ -329,7 +403,14 @@ export async function setupMcpFromConfig(servers, deps = {}) {
   for (const [name, cfg] of Object.entries(servers)) {
     // Skip a name already connected — an earlier batch (ad-hoc --mcp-config)
     // wins over a later one (registered) on a clash.
-    if (mcpClient.servers?.has?.(name)) continue;
+    if (mcpClient.servers?.has?.(name)) {
+      nameReservations.add(name);
+      continue;
+    }
+    if (previouslyReservedNames.has(name)) continue;
+    // Precedence is selected before authorization/connect. A failed higher
+    // source must never release its name for a lower source in this run.
+    nameReservations.add(name);
     // Inject a stored OAuth bearer token for remote servers (`cc mcp login`),
     // unless the config already supplies an Authorization header. Best-effort:
     // no token / a refresh failure just connects unauthenticated.
@@ -652,6 +733,7 @@ export async function loadMcpConfig(filePath, deps = {}) {
  */
 export async function loadRegisteredMcp(rawDb, deps = {}) {
   if (!rawDb) return deps.into || null;
+  const nameReservations = mcpServerNameReservations(deps);
   let rows;
   try {
     let make = deps.makeServerConfig;
@@ -660,19 +742,79 @@ export async function loadRegisteredMcp(rawDb, deps = {}) {
       make = (db) => new MCPServerConfig(db);
     }
     const cfg = make(rawDb);
-    const visibility = { cwd: deps.cwd || process.cwd() };
+    const writeErr = deps.writeErr || (() => {});
+    const visibility = {
+      cwd: deps.cwd || process.cwd(),
+      onInvalidRow: (error, row) => {
+        const rawName = row?.display_name || row?.name || "unknown";
+        const safeName = String(rawName).replace(/[\r\n]/g, " ");
+        if (typeof rawName === "string" && rawName.length > 0) {
+          nameReservations.add(rawName);
+        }
+        const reason = String(
+          error?.code || error?.message || "unknown error",
+        ).replace(/[\r\n]/g, " ");
+        writeErr(
+          `  mcp: SKIPPING stored server "${safeName}" because its configuration is invalid (${reason}).\n`,
+        );
+      },
+    };
     if (deps.scope) visibility.scope = deps.scope;
-    rows = deps.all ? cfg.list(visibility) : cfg.getAutoConnect(visibility);
+    if (typeof cfg.list === "function") {
+      const visibleRows = cfg.list(visibility);
+      if (deps.all) {
+        rows = visibleRows;
+      } else {
+        reserveMcpServerNames(
+          nameReservations,
+          visibleRows
+            .filter((row) => row?.autoConnect !== true)
+            .map((row) => row?.name),
+        );
+        rows =
+          typeof cfg.getAutoConnect === "function"
+            ? cfg.getAutoConnect({ ...visibility, onInvalidRow: undefined })
+            : visibleRows.filter((row) => row?.autoConnect === true);
+      }
+    } else {
+      rows = deps.all ? [] : cfg.getAutoConnect(visibility);
+    }
   } catch {
     return deps.into || null; // registry unavailable — non-fatal
   }
   const servers = {};
   for (const r of rows || []) {
     if (!r || !r.name) continue;
+    if (nameReservations.has(r.name)) continue;
+    let sandboxPolicy;
+    let cwd;
+    try {
+      sandboxPolicy = sandboxPolicyFromConfig(
+        r,
+        `registered MCP server ${r.name}`,
+      );
+      ({ cwd } = readMcpStdioCwd(r, {
+        label: `registered MCP server ${r.name}`,
+      }));
+    } catch (error) {
+      nameReservations.add(r.name);
+      const reason = String(
+        error?.code || error?.message || "unknown error",
+      ).replace(/[\r\n]/g, " ");
+      (deps.writeErr || (() => {}))(
+        `  mcp: SKIPPING registered server "${String(r.name).replace(/[\r\n]/g, " ")}" because its configuration is invalid (${reason}).\n`,
+      );
+      continue;
+    }
     servers[r.name] = {
       command: r.command,
       args: r.args,
       env: r.env,
+      ...(typeof r.runtimeKind === "string"
+        ? { runtimeKind: r.runtimeKind }
+        : {}),
+      ...(cwd ? { cwd } : {}),
+      ...(sandboxPolicy ? { sandboxPolicy } : {}),
       url: r.url,
       transport: r.transport,
       headers: r.headers,
@@ -688,9 +830,12 @@ export async function loadRegisteredMcp(rawDb, deps = {}) {
     "registered-config",
     (name, config) =>
       `${config.configScope || "user"}:${config.configSource || "user-database"}:${name}`,
-    { writeErr: deps.writeErr },
+    { writeErr: deps.writeErr, nameReservations },
   );
-  return setupMcpFromConfig(servers, deps);
+  return setupMcpFromConfig(servers, {
+    ...deps,
+    mcpServerNameReservations: nameReservations,
+  });
 }
 
 /**
@@ -717,6 +862,9 @@ export async function loadIdeMcp(opts = {}, deps = {}) {
         `skipping IDE auto-discovery\n`,
     );
     return deps.into;
+  }
+  if (mcpServerNameReservations(deps).has("ide")) {
+    return deps.into || null;
   }
   const cfg = toCfg(lock);
   if (!cfg) return deps.into || null;
@@ -766,6 +914,9 @@ export async function loadPdhMcp(opts = {}, deps = {}) {
     );
     return deps.into;
   }
+  if (mcpServerNameReservations(deps).has("pdh")) {
+    return deps.into || null;
+  }
   const cfg = toCfg(lock);
   if (!cfg) return deps.into || null;
   const out = await setupMcpFromConfig({ pdh: cfg }, deps);
@@ -807,6 +958,9 @@ export async function loadJetbrainsMcp(opts = {}, deps = {}) {
         `skipping IDEA built-in MCP auto-connect\n`,
     );
     return deps.into;
+  }
+  if (mcpServerNameReservations(deps).has("idea")) {
+    return deps.into || null;
   }
   const cfg = toCfg(found);
   if (!cfg) return deps.into || null;
@@ -868,15 +1022,17 @@ export async function loadProjectMcp(opts = {}, deps = {}) {
   const trust =
     deps.projectMcpTrust ||
     (await import("../lib/project-mcp-trust.js").catch(() => null));
-  if (!trust) {
-    writeErr(
-      "  mcp: SKIPPING project .mcp.json — project trust service is unavailable.\n",
-    );
-    return deps.into || null;
-  }
-
+  const nameReservations = mcpServerNameReservations(deps);
   const servers = {};
   const seenFiles = [];
+  const blockedProjectNames = new Set();
+  const blockProjectNames = (names) => {
+    for (const name of names || []) {
+      if (typeof name !== "string" || name.length === 0) continue;
+      blockedProjectNames.add(name);
+      delete servers[name];
+    }
+  };
   for (const file of files) {
     if (!fileExists(file)) continue;
     let content;
@@ -888,6 +1044,14 @@ export async function loadProjectMcp(opts = {}, deps = {}) {
       writeErr(`  mcp: ignoring malformed ${file} (${err.message})\n`);
       continue;
     }
+    const rawServerNames = rawMcpServerNames(raw);
+    if (!trust) {
+      blockProjectNames(rawServerNames);
+      writeErr(
+        `  mcp: SKIPPING ${file} — project trust service is unavailable.\n`,
+      );
+      continue;
+    }
     try {
       const check = trust.checkProjectMcpTrust(file, content);
       if (check.status === "changed") {
@@ -897,6 +1061,7 @@ export async function loadProjectMcp(opts = {}, deps = {}) {
           }
           writeErr(`  mcp: ${file} re-trusted (CC_PROJECT_MCP_TRUST).\n`);
         } else {
+          blockProjectNames(rawServerNames);
           writeErr(
             `  mcp: SKIPPING ${file} — its content changed since it was last trusted. ` +
               `Review the diff, then re-trust with CC_PROJECT_MCP_TRUST=1 or \`cc mcp trust-project\`.\n`,
@@ -909,13 +1074,25 @@ export async function loadProjectMcp(opts = {}, deps = {}) {
         }
       }
     } catch (err) {
+      blockProjectNames(rawServerNames);
       writeErr(
         `  mcp: SKIPPING ${file} — project trust state is unavailable ` +
           `(${err?.message || "unknown error"}).\n`,
       );
       continue;
     }
-    const parsed = parseMcpServers(raw);
+    let parsed;
+    try {
+      parsed = parseMcpServers(raw);
+    } catch (error) {
+      blockProjectNames(rawServerNames);
+      writeErr(
+        `  mcp: SKIPPING ${file} because its server sandbox policy is invalid (${error?.message || "unknown error"}).\n`,
+      );
+      continue;
+    }
+    const parsedNames = new Set(Object.keys(parsed));
+    blockProjectNames(rawServerNames.filter((name) => !parsedNames.has(name)));
     if (Object.keys(parsed).length > 0) {
       for (const [name, config] of Object.entries(parsed)) {
         config.configScope = "project";
@@ -927,23 +1104,38 @@ export async function loadProjectMcp(opts = {}, deps = {}) {
           needsExecutionAuthority &&
           typeof trust.issueProjectMcpWorkspaceAuthority !== "function"
         ) {
+          blockProjectNames([name]);
           delete parsed[name];
           continue;
         }
         if (needsExecutionAuthority) {
-          config.projectMcpWorkspaceAuthority =
-            trust.issueProjectMcpWorkspaceAuthority({
-              file,
-              content,
-              workspaceRoot: path.dirname(file),
-              serverName: name,
-              config,
-            });
+          try {
+            config.projectMcpWorkspaceAuthority =
+              trust.issueProjectMcpWorkspaceAuthority({
+                file,
+                content,
+                workspaceRoot: path.dirname(file),
+                serverName: name,
+                config,
+              });
+          } catch (error) {
+            blockProjectNames([name]);
+            delete parsed[name];
+            writeErr(
+              `  mcp: SKIPPING project server "${name}" because its workspace authority could not be issued (${error?.message || "unknown error"}).\n`,
+            );
+            continue;
+          }
         }
+        blockedProjectNames.delete(name);
       }
       Object.assign(servers, parsed); // later file (cwd) overrides earlier (root)
       seenFiles.push(file);
     }
+  }
+  reserveMcpServerNames(nameReservations, blockedProjectNames);
+  for (const name of Object.keys(servers)) {
+    if (nameReservations.has(name)) delete servers[name];
   }
   if (Object.keys(servers).length === 0) return deps.into || null;
   writeErr(
@@ -954,9 +1146,12 @@ export async function loadProjectMcp(opts = {}, deps = {}) {
     servers,
     "project-config",
     (name, config) => `${config.configSource}:${name}`,
-    { writeErr },
+    { writeErr, nameReservations },
   );
-  return setupMcpFromConfig(servers, deps);
+  return setupMcpFromConfig(servers, {
+    ...deps,
+    mcpServerNameReservations: nameReservations,
+  });
 }
 
 /**
@@ -994,6 +1189,10 @@ export async function loadPluginMcp(opts = {}, deps = {}) {
       return [name, { ...rest, ...headersHelperField(config.headersHelper) }];
     }),
   );
+  const nameReservations = mcpServerNameReservations(deps);
+  for (const name of Object.keys(servers)) {
+    if (nameReservations.has(name)) delete servers[name];
+  }
   const names = Object.keys(servers || {});
   if (names.length === 0) return deps.into || null;
   writeErr(
@@ -1004,9 +1203,12 @@ export async function loadPluginMcp(opts = {}, deps = {}) {
     "trusted-plugin",
     (name, config) =>
       `${config.pluginId || "plugin"}@${config.pluginVersion || "unknown"}:${config.pluginSource || "unknown"}:${name}`,
-    { writeErr },
+    { writeErr, nameReservations },
   );
-  return setupMcpFromConfig(servers, deps);
+  return setupMcpFromConfig(servers, {
+    ...deps,
+    mcpServerNameReservations: nameReservations,
+  });
 }
 
 /**
@@ -1042,6 +1244,10 @@ export async function resolveAgentMcp(args = {}, deps = {}) {
     (runtimeEnv.CC_EVENT_RUNTIME_DURABLE === "1"
       ? new EventRuntimeStore()
       : null);
+  const serverNameReservations =
+    deps.mcpServerNameReservations instanceof Set
+      ? deps.mcpServerNameReservations
+      : new Set();
   // Thread the agent session id down to setupMcpFromConfig so spawned stdio MCP
   // servers get CC_SESSION_ID / CLAUDE_CODE_SESSION_ID (Claude-Code parity).
   let mcpPolicy = deps.mcpPolicy || null;
@@ -1063,6 +1269,7 @@ export async function resolveAgentMcp(args = {}, deps = {}) {
     ...(args.sessionId != null ? { sessionId: args.sessionId } : {}),
     ...(eventRuntimeStore ? { eventRuntimeStore } : {}),
     mcpPolicy,
+    mcpServerNameReservations: serverNameReservations,
   };
   let result = await doManaged(managedLoaded.settings, {
     ...fwd,

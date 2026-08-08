@@ -252,6 +252,114 @@ describe("MCP headersHelper runner", () => {
     );
   });
 
+  it("preserves normalized sandbox policy for public helper scopes", () => {
+    const projectRoot = workspace();
+    const nested = path.join(projectRoot, "packages", "app");
+    const declared = {
+      requiredBoundaries: ["network", "filesystem", "network"],
+    };
+    const local = resolveMcpHeadersHelperContext(
+      {
+        configScope: "local",
+        projectPath: projectRoot,
+        sandboxPolicy: declared,
+      },
+      {
+        currentWorkspaceBinding: () => ({ workspaceRoot: nested }),
+        resolveHostWorkspaceBinding: (binding) => binding,
+        checkLocalMcpHeadersHelperTrust: () => ({ status: "trusted" }),
+      },
+    );
+
+    expect(local).toMatchObject({
+      cwd: nested,
+      pluginRoot: null,
+      execution: {
+        origin: "mcp:headers-helper:local",
+        policy: "allow",
+        scope: "mcp",
+        sandboxPolicy: {
+          requiredBoundaries: ["filesystem", "network"],
+        },
+      },
+    });
+    expect(Object.isFrozen(local.execution)).toBe(true);
+    expect(Object.isFrozen(local.execution.sandboxPolicy)).toBe(true);
+    expect(
+      Object.isFrozen(local.execution.sandboxPolicy.requiredBoundaries),
+    ).toBe(true);
+
+    for (const configScope of ["user", "managed"]) {
+      expect(
+        resolveMcpHeadersHelperContext(
+          { configScope, sandboxPolicy: declared },
+          {
+            currentWorkspaceBinding: () => ({ workspaceRoot: nested }),
+            resolveHostWorkspaceBinding: (binding) => binding,
+          },
+        ),
+      ).toMatchObject({
+        cwd: nested,
+        execution: {
+          origin: `mcp:headers-helper:${configScope}`,
+          sandboxPolicy: {
+            requiredBoundaries: ["filesystem", "network"],
+          },
+        },
+      });
+    }
+  });
+
+  it("rejects policy-bearing public helpers without trusted workspace authority", () => {
+    expect(() =>
+      resolveMcpHeadersHelperContext(
+        {
+          configScope: "managed",
+          sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+        },
+        { currentWorkspaceBinding: null },
+      ),
+    ).toThrow(
+      expect.objectContaining({
+        code: "CC_MCP_HEADERS_HELPER_UNTRUSTED_WORKSPACE",
+      }),
+    );
+  });
+
+  it("does not execute a sandboxPolicy accessor or Proxy trap", () => {
+    let getterCalls = 0;
+    const accessor = { configScope: "user" };
+    Object.defineProperty(accessor, "sandboxPolicy", {
+      enumerable: true,
+      get() {
+        getterCalls += 1;
+        return { requiredBoundaries: ["filesystem"] };
+      },
+    });
+    expect(() => resolveMcpHeadersHelperContext(accessor)).toThrow(
+      expect.objectContaining({ code: "CC_MCP_SANDBOX_POLICY_INVALID" }),
+    );
+    expect(getterCalls).toBe(0);
+
+    let proxyCalls = 0;
+    const proxy = new Proxy(
+      {
+        configScope: "user",
+        sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+      },
+      {
+        get() {
+          proxyCalls += 1;
+          return undefined;
+        },
+      },
+    );
+    expect(() => resolveMcpHeadersHelperContext(proxy)).toThrow(
+      expect.objectContaining({ code: "CC_MCP_SANDBOX_POLICY_INVALID" }),
+    );
+    expect(proxyCalls).toBe(0);
+  });
+
   it("preserves trusted plugin provenance and sandbox policy", async () => {
     const pluginRoot = workspace();
     const sandboxPolicy = { requiredBoundaries: ["filesystem", "network"] };

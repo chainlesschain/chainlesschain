@@ -23,6 +23,9 @@ describe("managed MCP configuration scope", () => {
           corporate: {
             transport: "https",
             url: "https://mcp.example.test/api",
+            sandboxPolicy: {
+              requiredBoundaries: ["network", "filesystem", "network"],
+            },
           },
         },
       },
@@ -36,6 +39,9 @@ describe("managed MCP configuration scope", () => {
       expect.objectContaining({
         configScope: "managed",
         configSource: "/etc/chainlesschain/managed-settings.json",
+        sandboxPolicy: {
+          requiredBoundaries: ["filesystem", "network"],
+        },
       }),
     );
     expect(result.connected).toEqual([
@@ -45,5 +51,23 @@ describe("managed MCP configuration scope", () => {
 
   it("does nothing when managed settings contain no server block", async () => {
     await expect(loadManagedMcp({}, {})).resolves.toBeNull();
+  });
+
+  it("fails closed on an invalid managed server policy", async () => {
+    const connect = vi.fn();
+    await expect(
+      loadManagedMcp(
+        {
+          managedMcpServers: {
+            unsafe: {
+              command: "node",
+              sandboxPolicy: { profile: "strict" },
+            },
+          },
+        },
+        { createClient: () => ({ connect }) },
+      ),
+    ).rejects.toMatchObject({ code: "CC_MCP_SANDBOX_POLICY_INVALID" });
+    expect(connect).not.toHaveBeenCalled();
   });
 });

@@ -465,6 +465,7 @@ export async function runCoworkTask(options = {}) {
 
   // Mount template-declared MCP servers (best-effort, failures are tolerated)
   const mcp = await mountTemplateMcpTools(template, {
+    workspaceRoot: cwd,
     approveLocalCodeExecution: approveMcpLocalCodeExecution,
     onWarn: (msg) => {
       if (onProgress) onProgress({ type: "mcp-warning", message: msg });

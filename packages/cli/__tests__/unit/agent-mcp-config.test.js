@@ -192,6 +192,88 @@ describe("parseMcpServers", () => {
       expect(out.textual).not.toHaveProperty(key);
     }
   });
+
+  it("preserves cwd and a canonical frozen sandbox policy", () => {
+    const out = parseMcpServers({
+      mcpServers: {
+        strict: {
+          command: "custom-node",
+          cwd: "C:/repo/service",
+          sandboxPolicy: {
+            requiredBoundaries: ["network", "filesystem", "network"],
+          },
+        },
+      },
+    });
+
+    expect(out.strict.cwd).toBe("C:/repo/service");
+    expect(out.strict.sandboxPolicy).toEqual({
+      requiredBoundaries: ["filesystem", "network"],
+    });
+    expect(Object.isFrozen(out.strict.sandboxPolicy)).toBe(true);
+    expect(Object.isFrozen(out.strict.sandboxPolicy.requiredBoundaries)).toBe(
+      true,
+    );
+  });
+
+  it("rejects invalid cwd instead of widening an explicit strict server", () => {
+    expect(() =>
+      parseMcpServers({
+        mcpServers: {
+          strict: {
+            command: "node",
+            cwd: { intended: "services/narrow" },
+            sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+          },
+        },
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: "CC_MCP_STDIO_SANDBOX_CWD_INVALID" }),
+    );
+  });
+
+  it("rejects invalid, accessor, and Proxy sandbox policies without invoking traps", () => {
+    expect(() =>
+      parseMcpServers({
+        mcpServers: {
+          bad: {
+            command: "node",
+            sandboxPolicy: {
+              requiredBoundaries: ["process-tree"],
+            },
+          },
+        },
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: "CC_MCP_SANDBOX_POLICY_INVALID" }),
+    );
+
+    const getter = vi.fn(() => ({ requiredBoundaries: ["network"] }));
+    const accessorConfig = { command: "node" };
+    Object.defineProperty(accessorConfig, "sandboxPolicy", {
+      enumerable: true,
+      get: getter,
+    });
+    expect(() =>
+      parseMcpServers({ mcpServers: { accessor: accessorConfig } }),
+    ).toThrow(
+      expect.objectContaining({ code: "CC_MCP_SANDBOX_POLICY_INVALID" }),
+    );
+    expect(getter).not.toHaveBeenCalled();
+
+    const get = vi.fn(() => {
+      throw new Error("must not run");
+    });
+    const policy = new Proxy({}, { get });
+    expect(() =>
+      parseMcpServers({
+        mcpServers: { proxied: { command: "node", sandboxPolicy: policy } },
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: "CC_MCP_SANDBOX_POLICY_INVALID" }),
+    );
+    expect(get).not.toHaveBeenCalled();
+  });
 });
 
 describe("mcpToolName", () => {
@@ -583,13 +665,48 @@ describe("loadMcpConfig", () => {
     const client = fakeClient({ weather: [{ name: "get" }] });
     const res = await loadMcpConfig("x.json", {
       readFile: () =>
-        JSON.stringify({ mcpServers: { weather: { command: "npx" } } }),
+        JSON.stringify({
+          mcpServers: {
+            weather: {
+              command: "npx",
+              cwd: process.cwd(),
+              sandboxPolicy: {
+                requiredBoundaries: ["network", "filesystem"],
+              },
+            },
+          },
+        }),
       createClient: () => client,
     });
     expect(client.calls.connect[0].name).toBe("weather");
+    expect(client.calls.connect[0].config).toMatchObject({
+      cwd: process.cwd(),
+      sandboxPolicy: {
+        requiredBoundaries: ["filesystem", "network"],
+      },
+    });
     expect(res.externalToolExecutors["mcp__weather__get"].serverName).toBe(
       "weather",
     );
+  });
+
+  it("fails fast on an invalid explicit sandbox policy", async () => {
+    const client = fakeClient();
+    await expect(
+      loadMcpConfig("x.json", {
+        readFile: () =>
+          JSON.stringify({
+            mcpServers: {
+              unsafe: {
+                command: "node",
+                sandboxPolicy: { profile: "strict" },
+              },
+            },
+          }),
+        createClient: () => client,
+      }),
+    ).rejects.toMatchObject({ code: "CC_MCP_SANDBOX_POLICY_INVALID" });
+    expect(client.calls.connect).toEqual([]);
   });
 });
 
@@ -1050,6 +1167,8 @@ import {
   loadRegisteredMcp,
   resolveAgentMcp,
 } from "../../src/runtime/mcp-config.js";
+import { MCPServerConfig } from "../../src/harness/mcp-client.js";
+import { MockDatabase } from "../helpers/mock-db.js";
 
 // A fake MCP client that tracks connected servers (so skip-existing works) and
 // returns one tool per server.
@@ -1071,6 +1190,47 @@ function regClient() {
 describe("loadRegisteredMcp", () => {
   it("returns null without a db", async () => {
     expect(await loadRegisteredMcp(null)).toBeNull();
+  });
+
+  it("skips one corrupt stored policy without disabling healthy servers", async () => {
+    const db = new MockDatabase();
+    const stored = new MCPServerConfig(db);
+    stored.add("healthy", { command: "node", autoConnect: true });
+    stored.add("corrupt", {
+      command: "node",
+      autoConnect: true,
+      sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+    });
+    stored.add("invalid-cwd", {
+      command: "node",
+      autoConnect: true,
+      cwd: "services/narrow",
+      sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+    });
+    const corruptRow = db.data
+      .get("mcp_servers")
+      .find((row) => row.display_name === "corrupt");
+    corruptRow.sandbox_policy = "{not-json";
+    const invalidCwdRow = db.data
+      .get("mcp_servers")
+      .find((row) => row.display_name === "invalid-cwd");
+    invalidCwdRow.cwd = Buffer.from("services/narrow");
+    const client = regClient();
+    const warnings = [];
+
+    const result = await loadRegisteredMcp(db, {
+      createClient: () => client,
+      writeErr: (message) => warnings.push(message),
+    });
+
+    expect(result.connected).toEqual([
+      expect.objectContaining({ server: "healthy" }),
+    ]);
+    expect(client.servers.has("healthy")).toBe(true);
+    expect(client.servers.has("corrupt")).toBe(false);
+    expect(client.servers.has("invalid-cwd")).toBe(false);
+    expect(warnings.join(" ")).toMatch(/SKIPPING stored server "corrupt"/);
+    expect(warnings.join(" ")).toMatch(/SKIPPING stored server "invalid-cwd"/);
   });
 
   it("connects auto-connect servers and builds the channels", async () => {
@@ -1110,6 +1270,95 @@ describe("loadRegisteredMcp", () => {
     ).toBe("local:C:/repo");
   });
 
+  it("retains registered cwd/runtime semantics and sandbox policy", async () => {
+    const client = regClient();
+    await loadRegisteredMcp(
+      {},
+      {
+        createClient: () => client,
+        makeServerConfig: () => ({
+          getAutoConnect: () => [
+            {
+              name: "strict",
+              command: "custom-node",
+              args: ["server.mjs"],
+              env: {},
+              runtimeKind: "node",
+              cwd: process.cwd(),
+              sandboxPolicy: {
+                requiredBoundaries: ["network", "filesystem", "network"],
+              },
+            },
+          ],
+        }),
+      },
+    );
+
+    expect(client.servers.get("strict")).toMatchObject({
+      runtimeKind: "node",
+      cwd: process.cwd(),
+      sandboxPolicy: {
+        requiredBoundaries: ["filesystem", "network"],
+      },
+    });
+  });
+
+  it("warns and refuses a registered server with an invalid policy", async () => {
+    const client = regClient();
+    const warnings = [];
+    const result = await loadRegisteredMcp(
+      {},
+      {
+        createClient: () => client,
+        writeErr: (message) => warnings.push(message),
+        makeServerConfig: () => ({
+          getAutoConnect: () => [
+            {
+              name: "unsafe",
+              command: "node",
+              sandboxPolicy: { profile: "strict" },
+            },
+          ],
+        }),
+      },
+    );
+
+    expect(result).toBeNull();
+    expect(client.servers.size).toBe(0);
+    expect(warnings.join(" ")).toMatch(/SKIPPING registered server "unsafe"/);
+  });
+
+  it("skips a custom registered row with invalid cwd without widening it", async () => {
+    const client = regClient();
+    const warnings = [];
+    const result = await loadRegisteredMcp(
+      {},
+      {
+        createClient: () => client,
+        writeErr: (message) => warnings.push(message),
+        makeServerConfig: () => ({
+          getAutoConnect: () => [
+            { name: "healthy", command: "node" },
+            {
+              name: "unsafe-cwd",
+              command: "node",
+              cwd: { intended: "services/narrow" },
+              sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+            },
+          ],
+        }),
+      },
+    );
+
+    expect(result.connected).toEqual([
+      expect.objectContaining({ server: "healthy" }),
+    ]);
+    expect(client.servers.has("unsafe-cwd")).toBe(false);
+    expect(warnings.join(" ")).toMatch(
+      /SKIPPING registered server "unsafe-cwd".*configuration is invalid/,
+    );
+  });
+
   it("forwards an explicit scope to the persistent config query", async () => {
     const getAutoConnect = vi.fn(() => []);
     await loadRegisteredMcp(
@@ -1120,10 +1369,13 @@ describe("loadRegisteredMcp", () => {
         makeServerConfig: () => ({ getAutoConnect }),
       },
     );
-    expect(getAutoConnect).toHaveBeenCalledWith({
-      cwd: "C:/repo/packages/app",
-      scope: "project",
-    });
+    expect(getAutoConnect).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cwd: "C:/repo/packages/app",
+        scope: "project",
+        onInvalidRow: expect.any(Function),
+      }),
+    );
   });
 
   it("uses list() (all servers) when all:true", async () => {
@@ -1335,6 +1587,206 @@ describe("resolveAgentMcp", () => {
     expect(client.servers.get("db-project-wins").command).toBe("DB_PROJECT");
     expect(client.servers.get("user-only").command).toBe("USER");
   });
+
+  it("does not fall back to lower sources after a selected local server fails to connect", async () => {
+    const attempts = [];
+    const client = regClient();
+    client.connect = vi.fn(async (name, config) => {
+      attempts.push(config.command);
+      if (config.command === "LOCAL_FAILS") {
+        throw new Error("local connect failed");
+      }
+      client.servers.set(name, config);
+      return { tools: [] };
+    });
+    const rowsByScope = {
+      local: [{ name: "same", command: "LOCAL_FAILS" }],
+      project: [{ name: "same", command: "PROJECT_DB" }],
+      user: [{ name: "same", command: "USER" }],
+    };
+
+    const result = await resolveAgentMcp(
+      { db: {}, projectMcp: true },
+      {
+        ...noAutoDetectDeps,
+        mcpPolicy: {},
+        createClient: () => client,
+        makeServerConfig: () => ({
+          getAutoConnect: ({ scope }) => rowsByScope[scope] || [],
+        }),
+        loadProjectMcp: async (_opts, deps) =>
+          setupMcpFromConfig({ same: { command: "PROJECT_FILE" } }, deps),
+        loadPluginMcp: async (_opts, deps) =>
+          setupMcpFromConfig({ same: { command: "PLUGIN" } }, deps),
+      },
+    );
+
+    expect(attempts).toEqual(["LOCAL_FAILS"]);
+    expect(client.servers.has("same")).toBe(false);
+    expect(result.connected).toEqual([]);
+  });
+
+  it("does not fall back after a selected local server fails execution-authority issuance", async () => {
+    const client = regClient();
+    const rowsByScope = {
+      local: [{ name: "same", command: "" }],
+      user: [{ name: "same", command: "USER" }],
+    };
+
+    const result = await resolveAgentMcp(
+      { db: {}, projectMcp: true },
+      {
+        ...noAutoDetectDeps,
+        mcpPolicy: {},
+        createClient: () => client,
+        makeServerConfig: () => ({
+          getAutoConnect: ({ scope }) => rowsByScope[scope] || [],
+        }),
+        loadProjectMcp: async (_opts, deps) =>
+          setupMcpFromConfig({ same: { command: "PROJECT_FILE" } }, deps),
+        loadPluginMcp: async (_opts, deps) =>
+          setupMcpFromConfig({ same: { command: "PLUGIN" } }, deps),
+      },
+    );
+
+    expect(client.servers.has("same")).toBe(false);
+    expect(result.connected).toEqual([]);
+  });
+
+  it("does not retain failed name reservations across independent resolves that reuse deps", async () => {
+    let firstRun = true;
+    const client = regClient();
+    const sharedDeps = {
+      ...noAutoDetectDeps,
+      mcpPolicy: {},
+      createClient: () => client,
+      makeServerConfig: () => ({
+        getAutoConnect: ({ scope }) => {
+          if (scope === "local" && firstRun) {
+            return [{ name: "same", command: "" }];
+          }
+          if (scope === "user") {
+            return [{ name: "same", command: "USER" }];
+          }
+          return [];
+        },
+      }),
+    };
+
+    const first = await resolveAgentMcp(
+      {
+        db: {},
+        projectMcp: false,
+        pluginMcp: false,
+      },
+      sharedDeps,
+    );
+    expect(first.connected).toEqual([]);
+    expect(client.servers.has("same")).toBe(false);
+
+    firstRun = false;
+    const second = await resolveAgentMcp(
+      {
+        db: {},
+        projectMcp: false,
+        pluginMcp: false,
+      },
+      sharedDeps,
+    );
+    expect(second.connected).toEqual([
+      expect.objectContaining({ server: "same" }),
+    ]);
+    expect(client.servers.get("same")?.command).toBe("USER");
+  });
+
+  it("keeps a rejected plugin name from falling through to IDE discovery", async () => {
+    const client = regClient();
+    const ideServerToMcpConfig = vi.fn(() => ({
+      url: "http://127.0.0.1:18765/mcp",
+      transport: "http",
+    }));
+
+    const result = await resolveAgentMcp(
+      {
+        includeRegistered: false,
+        projectMcp: false,
+        pluginMcp: true,
+        ide: true,
+      },
+      {
+        mcpPolicy: {},
+        createClient: () => client,
+        collect: () => ({ servers: { ide: { command: "" } } }),
+        discoverIdeServer: () => ({ port: 18765 }),
+        ideServerToMcpConfig,
+        isInPdhTerminal: () => false,
+        isInJetbrainsContext: () => false,
+      },
+    );
+
+    expect(client.servers.has("ide")).toBe(false);
+    expect(ideServerToMcpConfig).not.toHaveBeenCalled();
+    expect(result.connected).toEqual([]);
+  });
+
+  it.each([
+    ["disabled", false],
+    ["corrupt", true],
+  ])(
+    "keeps a %s visible local row from enabling a same-name user auto-connect",
+    async (_case, corrupt) => {
+      const db = new MockDatabase();
+      const stored = new MCPServerConfig(db);
+      stored.add("same", {
+        command: "USER",
+        autoConnect: true,
+        configScope: "user",
+      });
+      stored.add("same", {
+        command: "LOCAL",
+        autoConnect: corrupt,
+        configScope: "local",
+        projectPath: process.cwd(),
+        ...(corrupt
+          ? {
+              cwd: process.cwd(),
+              sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+            }
+          : {}),
+      });
+      stored.add("healthy", {
+        command: "HEALTHY",
+        autoConnect: true,
+        configScope: "user",
+      });
+      if (corrupt) {
+        const localRow = db.data
+          .get("mcp_servers")
+          .find(
+            (row) =>
+              row.display_name === "same" && row.config_scope === "local",
+          );
+        localRow.cwd = Buffer.from(process.cwd());
+      }
+      const client = regClient();
+
+      const result = await resolveAgentMcp(
+        { db, cwd: process.cwd(), projectMcp: false },
+        {
+          ...noAutoDetectDeps,
+          mcpPolicy: {},
+          createClient: () => client,
+          loadPluginMcp: async (_opts, deps) => deps.into || null,
+        },
+      );
+
+      expect(client.servers.has("same")).toBe(false);
+      expect(client.servers.get("healthy")?.command).toBe("HEALTHY");
+      expect(result.connected.map((entry) => entry.server)).toEqual([
+        "healthy",
+      ]);
+    },
+  );
 
   it("includeRegistered:false skips the registry (file only)", async () => {
     const res = await resolveAgentMcp(
