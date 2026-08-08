@@ -121,7 +121,7 @@ Activity Bar → **ChainlessChain IDE → Chat**:不开终端直接和 agent 对
 
 ```bash
 npm i -g chainlesschain
-cc --version          # 生产推荐 0.163.0；该桥接路径最低 0.162.39
+cc --version          # 生产推荐 0.163.1；该桥接路径最低 0.162.39
 cc ide --help         # 确认有 ide 子命令
 ```
 

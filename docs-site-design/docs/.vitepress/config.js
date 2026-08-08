@@ -9,7 +9,7 @@ export default defineConfig({
   transformPageData(pageData) {
     if (pageData.relativePath === "index.md" && pageData.frontmatter.hero) {
       pageData.frontmatter.hero.tagline =
-        "v5.0.3.135 · 推荐 CLI 0.162.189 · 源码 0.162.194 · PDH 0.4.57｜Canonical Session · Checkpoint Restore Saga · IDE CLI-owned Delivery/Rewind";
+        "v5.0.3.135 · CLI 0.163.1 · PDH 0.4.57 · Open VSX 0.37.45 · JetBrains 0.4.81｜Bounded Sessions · Atomic MCP · Reproducible Web Panel";
     }
   },
 
@@ -874,7 +874,7 @@ export default defineConfig({
               link: "/modules/m78-cli-agent-runtime",
             },
             {
-              text: "CLI Runtime 当前实现核对 (0.162.189) ⭐NEW",
+              text: "CLI Runtime 当前实现核对 (0.163.1) ⭐NEW",
               link: "/cli-runtime-current",
             },
             {

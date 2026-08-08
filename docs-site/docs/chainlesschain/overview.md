@@ -1,8 +1,8 @@
 # ChainlessChain 系统概述
 
-> **当前版本（2026-08-08）：v5.0.3.135 | CLI 0.163.0（npm latest / 生产推荐一致；源码 HEAD 为 0.163.1 候选）| PDH 0.4.57（92 个采集契约 / 18 类来源）| Agent SDK 0.1.7 | Open VSX 0.37.45 | JetBrains Marketplace 0.4.81 | Android versionCode 503135 | iOS build 135**
+> **当前版本（2026-08-08）：v5.0.3.135 | CLI 0.163.1（npm latest / 源码包元数据 / 生产推荐一致）| PDH 0.4.57（92 个采集契约 / 18 类来源）| Agent SDK 0.1.7 | Open VSX 0.37.45 | JetBrains Marketplace 0.4.81 | Android versionCode 503135 | iOS build 135**
 >
-> **当前能力与发布边界**：CLI `0.163.0` 已公开 canonical session authority、固定 MCP npm 执行 capsule、原生更新恢复、macOS PTY helper 修复与匹配架构的原生宿主验证。`cc checkpoint recovery` 只结算验证通过的恢复状态，外部副作用仍不在文件回滚保证内。生产安装建议固定 `chainlesschain@0.163.0`；HEAD `0.163.1` 的 CLI CI 与 Strict Sandbox 已通过，但发布 workflow 仅为 dry-run，未生成 tag、制品或 registry 版本，因此其会话尾部竞态修复、有界压缩、Windows MCP 原子启动、扩展可靠性探针与原生凭据 preflight 仍不属于生产安装契约。
+> **当前能力与发布边界**：CLI `0.163.1` 已公开 canonical session authority、固定 MCP npm 执行 capsule、原生更新恢复、macOS PTY helper 修复、会话尾部 durable-witness 竞态加固、有界长会话压缩、Windows MCP 原子启动、可复现 Web Panel 构建与 Node 22 standalone 基座。`cc checkpoint recovery` 只结算验证通过的恢复状态，外部副作用仍不在文件回滚保证内。生产安装建议固定 `chainlesschain@0.163.1`；同一精确 SHA 的三平台 CLI/Strict、unsigned 六目标 native validation、两小时可靠性门与 npm 发布均成功，但 unsigned native 证据不等于签名 Desktop/native 发行。
 >
 > **v5.0.3.127–130 QQ空间一键采集 + 微信朋友圈采集 + §8.3 学习层备份上设备 + 个人助手 UX 收口（2026-06-24）**：QQ空间（Qzone）本地无库走 API——新增 `pdh/lib/forensics/qzone-collect.js`（`g_tk`=bkn hash over qzone 域 `p_skey`；说说/留言板/相册 → EVENT）+ `cc hub collect-qzone` + Android「QQ空间」一键采集卡（内嵌 WebView ptlogin2 登录 → 抓 cookie → in-APK 采集，真机 404 事件）；微信朋友圈 `SnsMicroMsg.db` 明文采集（`parseSnsEvents`，真机 2824 条）；§8.3 学习层备份命令上设备（`cc memory/instinct/learning export/import` → vault + 记忆 + 习惯 + 自进化轨迹全资产端到端备份）；个人助手 UX——卡死静默看门狗（20s 安抚/120s 友好超时+重试/进程退出自动重启）+ 待裁决信任卡固定（sticky）可见不再被消息流滚走。`pdh` 0.4.33→**0.4.36** + `chainlesschain` 0.162.101→**0.162.117** 已发 npm；Android cc bundle `internal-binaries-android-v20260624`（USR_VERSION 58）。
 >

@@ -9,8 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed — cc CLI 0.163.1: bounded long sessions and reliability gates
 
-> `chainlesschain` **0.163.0 → 0.163.1** (release candidate,
-> 2026-08-08). CLI-only release metadata;
+> `chainlesschain` **0.163.0 → 0.163.1** (published from exact SHA
+> `e3f56b11e27ae1bd5d19ad8638434843c244aa68`, 2026-08-08). CLI-only release;
 > `@chainlesschain/personal-data-hub` remains **0.4.57** and
 > `@chainlesschain/agent-sdk` remains **0.1.7**.
 
@@ -43,17 +43,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   refuses to build a release until Linux signing, Windows Authenticode, macOS
   signing/notarization, and updater keys are all configured. This npm release
   does not claim the separate native distribution chain is complete.
-- **Release status**: exact source commit `a29eb4203d` passed the complete Linux,
-  Windows, and macOS `CLI CI` and `CLI Strict Sandbox` matrices. The dedicated
-  release workflow then ran in dry-run mode, with the exact-SHA, artifact, and
-  publish jobs skipped; neither `v-npm-0-163-1` nor registry version `0.163.1`
-  exists. The two-hour reliability matrix is recorded separately as product
-  evidence and cannot be replaced by local smoke tests.
+- **Reproducible embedded Web Panel**: the CLI pack path now builds from a clean,
+  lockfile-driven Web Panel dependency graph, pins the Vite/Rollup/Intlify runtime
+  chain, bounds Rollup file concurrency, and keeps Node 22 standalone bases
+  deterministic across Linux, Windows, macOS, x64, and ARM64 validation hosts.
+- **Release status**: immutable tag `v-npm-0-163-1` resolves to exact source
+  commit `e3f56b11e27ae1bd5d19ad8638434843c244aa68`. That SHA passed the complete
+  Linux, Windows, and macOS `CLI CI` and `CLI Strict Sandbox` matrices, the
+  unsigned six-target native validation, and the three-OS two-hour reliability
+  gate. The dedicated npm release completed its exact-SHA gate, immutable
+  tarball/CycloneDX SBOM, Trusted Publishing, SLSA provenance, registry readback,
+  and npmmirror synchronization. The public registry tarball is byte-identical
+  to the workflow artifact (SHA-256
+  `d9e09e25c6086e0777e97a670105649e3a7e5fb1c2816e1834557da32157cbee`).
 
 ### Fixed — cc CLI 0.163.0: macOS PTY launch and native host validation
 
-> `chainlesschain` **0.162.200 → 0.163.0** (release candidate,
-> 2026-08-08). CLI-only release metadata;
+> `chainlesschain` **0.162.200 → 0.163.0** (published from exact SHA
+> `aed0a3ae5327917ce0490a5decbddd777f66f33b`, 2026-08-08). CLI-only release;
 > `@chainlesschain/personal-data-hub` remains **0.4.57** and
 > `@chainlesschain/agent-sdk` remains **0.1.7**.
 
@@ -73,10 +80,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   release cycle for lifecycle telemetry. All 25 deprecated compatibility
   aliases remain retained because representative opt-in collector coverage,
   per-command sample floors, and the `0.164.0` removal floor are not yet met.
-- **Pre-release evidence**: implementation SHA `38cd849ed16f` passed
-  [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31202334570)
-  on Ubuntu, Windows, and macOS. This final version commit must independently
-  pass exact-SHA `CLI CI` and `CLI Strict Sandbox` before publication.
+- **Release evidence**: tag `v-npm-0-163-0` resolves to exact SHA
+  `aed0a3ae5327917ce0490a5decbddd777f66f33b`. Its
+  [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31205224902),
+  [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31205231874),
+  and [dedicated npm release](https://github.com/chainlesschain/chainlesschain/actions/runs/31209345410)
+  completed the three-OS matrices, immutable tarball/SBOM, provenance, registry
+  readback, and npmmirror synchronization before `0.163.1` superseded it.
 
 ### Fixed — cc CLI 0.162.200: release-gate isolation and carried reliability fixes
 

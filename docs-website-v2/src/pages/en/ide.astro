@@ -39,7 +39,7 @@ const OPEN_VSX_DOWNLOADS = releaseStatus.openVsxDownloadsMilestone;
           VS Code <strong class="text-ink">{VSCODE_VERSION}</strong> is publicly listed on Open VSX with more than <strong class="text-ink">{OPEN_VSX_DOWNLOADS}</strong> downloads; JetBrains <strong class="text-ink">{JETBRAINS_VERSION}</strong> is public on Marketplace. Use them with fully gated CLI <strong class="text-ink">{CLI_VERSION}</strong>. Both tagged workflows passed real three-OS hosts, artifact verification, publication, and registry readback. No Microsoft VS Code Marketplace build is published.
         </p>
         <p class="mt-3 text-sm text-muted">
-          IDE source and public stable versions align: VS Code <strong class="text-ink">{VSCODE_SOURCE_VERSION}</strong> and JetBrains <strong class="text-ink">{JETBRAINS_SOURCE_VERSION}</strong>. CLI source package metadata is <strong class="text-ink">{SOURCE_CLI_VERSION}</strong>, but HEAD contains post-release hardening, so the fully gated tag remains the stable pairing. Inline chat, the CLI-owned Sessions Workbench, resumable delivery, canonical rewind, and five-session reply/artifact/PR/restart recovery are public-install capabilities.
+          IDE source and public stable versions align: VS Code <strong class="text-ink">{VSCODE_SOURCE_VERSION}</strong> and JetBrains <strong class="text-ink">{JETBRAINS_SOURCE_VERSION}</strong>. CLI source package metadata <strong class="text-ink">{SOURCE_CLI_VERSION}</strong> also matches the fully gated public build, while immutable tag evidence remains the stable authority. Inline chat, the CLI-owned Sessions Workbench, resumable delivery, canonical rewind, and five-session reply/artifact/PR/restart recovery are public-install capabilities.
         </p>
       </div>
     </div>
@@ -64,7 +64,7 @@ const OPEN_VSX_DOWNLOADS = releaseStatus.openVsxDownloadsMilestone;
           ['Sessions', 'CLI-owned Sessions Workbench', 'Public 0.37.45 / 0.4.81 read immutable session projections produced by the CLI. Five session kinds cover Dispatch, needs_input, Reply, artifact/PR, and second-process restart recovery; stale actions fail closed.'],
           ['Delivery', 'Resumable delivery and rewind', 'The public build covers GitHub, Gitee, configured remotes, and manual handoff. Each step verifies result/effect digests; rewind binds session, workspace, repository head, checkpoint revision, and manifest digest.'],
           ['Inline', 'Ask and edit beside a selection', 'VS Code 0.37.45 provides isolated inline sessions, streaming replies, code-block copy/insert/replace, and a stable/minimum × three-OS multi-window isolation gate. Explain / Refactor / Fix / Docs / Tests are public on Open VSX.'],
-          ['Sync', 'CLI version-sync', 'Activation checks cc --version. Stable installation is pinned to npm i -g chainlesschain@0.163.0, aligned with the npm latest that completed the full release gate.'],
+          ['Sync', 'CLI version-sync', 'Activation checks cc --version. Stable installation is pinned to npm i -g chainlesschain@0.163.1, aligned with the npm latest that completed the full release gate.'],
           ['Complete', '@ files / live slash commands', '@-path TAB completion ranks editor-open files first; @-completion offers @selection / @diagnostics / @terminal; /status /doctor /mcp /hooks /permissions /agents /tasks /memory inspect the active session, alongside /new /plan /approve /reject /stop /expand.'],
         ].map(([tag, title, desc]) => (
           <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">

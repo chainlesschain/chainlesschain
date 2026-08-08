@@ -1,12 +1,13 @@
-# CLI Runtime 当前实现核对（稳定版 0.163.0）
+# CLI Runtime 当前实现核对（稳定版 0.163.1）
 
-> 更新时间：2026-08-08。本文同时记录当前代码与正式发布证据。npm `latest` 与最后完整门禁通过的公开基线为 `0.163.0`；当前 HEAD 的包元数据为 `0.163.1`，但仍是发布后候选，不能据此声称它进入了公开 tarball。发布能力仍绑定精确 tag SHA，而不是仅凭版本字符串判断。路线图与实验性设计仍以各自计划文档为准。
+> 更新时间：2026-08-08。本文同时记录当前代码与正式发布证据。npm `latest`、生产推荐版与当前源码包元数据均为 `0.163.1`；公开能力绑定不可变 tag `v-npm-0-163-1` 的精确 SHA `e3f56b11e27ae1bd5d19ad8638434843c244aa68`，而不是仅凭版本字符串判断。路线图与实验性设计仍以各自计划文档为准。
 
 ## 版本与证据边界
 
-- `0.163.0` 是当前生产推荐基线。`v-npm-0-163-0` 精确指向 `aed0a3ae5327917ce0490a5decbddd777f66f33b`；同一 SHA 的 `CLI CI`、`CLI Strict Sandbox`、专用 npm 发布、exact-SHA gate、不可变 tarball/CycloneDX SBOM、Trusted Publishing、SLSA provenance、registry 回读与 npmmirror 同步均成功。
+- `0.163.1` 是当前生产推荐基线。`v-npm-0-163-1` 精确指向 `e3f56b11e27ae1bd5d19ad8638434843c244aa68`；同一 SHA 的 `CLI CI`、`CLI Strict Sandbox`、专用 npm 发布、exact-SHA gate、不可变 tarball/CycloneDX SBOM、Trusted Publishing、SLSA provenance、registry 回读与 npmmirror 同步均成功。公开 registry tarball 与 workflow artifact 逐字节一致，SHA-256 为 `d9e09e25c6086e0777e97a670105649e3a7e5fb1c2816e1834557da32157cbee`。
+- `0.163.0` 是上一完整门禁基线。`v-npm-0-163-0` 精确指向 `aed0a3ae5327917ce0490a5decbddd777f66f33b`；其三平台门禁与发布链已闭环，现由 `0.163.1` 取代。
 - `0.162.200` 是上一完整门禁基线，并完整承接上传前失败的 `0.162.199` 候选；`v-npm-0-162-199` 保持不可变，不移动或伪造成已发布版本。`0.162.193` 继续作为非权威发布历史审计记录保留。
-- 当前树的包元数据为 `0.163.1`，HEAD 为 `a29eb4203d`。其中长会话压缩、live session tail 竞态修复、Windows MCP 原子启动、跨平台可靠性探针和原生发行凭据 preflight 不改变 `aed0a3ae53` 已发布 CLI 的能力。该 SHA 的 CLI CI `31219886076` 与 CLI Strict Sandbox `31219890201` 已通过，但发布 workflow `31221549835` 只运行 dry-run，未执行 exact-SHA、制品或 publish job。
+- `0.163.1` 完整承接 `0.163.0`，并公开长会话有界压缩、live session tail durable-witness 竞态修复、Windows MCP 原子启动、可复现 Web Panel 构建、Node 22 standalone 基座、跨平台可靠性探针和原生发行凭据 preflight。unsigned 六目标原生验证与三系统两小时可靠性门均绑定同一精确 SHA；这仍不等于签名 Desktop/native 发行完成。
 - IDE 当前公开与源码版本为 Open VSX `0.37.45`、JetBrains Marketplace `0.4.81`。VS Code tag 指向 `aed0a3ae53`，完成 stable/minimum × 三平台六格宿主、多根/多窗口、制品、发布与回读；JetBrains tag 保持指向 `b5177f13c9`，完成 2024.2/2025.2 三平台宿主、上传与回读。微软 VS Code Marketplace 仍未发布。
 
 ## 当前边界
@@ -40,7 +41,7 @@ cc entry
   └─ session hooks (Setup / Notification / lifecycle)
 ```
 
-## 0.162.198 → 0.163.0 发布增量
+## 0.162.198 → 0.163.1 发布增量
 
 - **交互输出与发布可移植性**：REPL、headless streaming、provider pacing 与 TTY writer 在输出饱和时等待 drain，并在完成、中断和会话切换时清理监听器；Windows path alias、状态路径、Skill metadata、POSIX executable bit 与兼容 shim 夹具已对齐三平台 CLI CI / Strict Sandbox。
 - **Canonical Workbench 路由**：CLI-owned session projection 与有界 reply/action route 支持 VS Code / JetBrains Workbench 和 rewind journey，同时保持所有持久 mutation 的 CLI authority。
@@ -57,14 +58,16 @@ cc entry
 - **Checkpoint restore saga**：直接恢复与 timeline restore 共享 workspace prestate binding、生命周期锁、Git/copy 不可变目标、安全 checkpoint、hash-chained CAS journal 和 transaction-fenced settlement。`cc checkpoint recovery list|show|abort|resume|rollback|release` 只允许 live owner 或已验证 owner absence 加 exact seq/head fence 后的 eligible 动作；`resume` 仅结算已完成状态，`rollback` 仅反转已验证的部分文件变更。
 - **边界**：checkpoint recovery 不是通用多资源原子事务、断电证明或 checkpoint GA。网络、数据库、消息、部署、支付等外部副作用仍需各自幂等键、事务日志与结果核验。
 
-## 2026-08-08 源码 HEAD `0.163.1` 候选
+## 2026-08-08 `0.163.1` 发布闭环
 
 - **有界长会话压缩**：既有 durable summary 和 compacted tool record 会折入下一份摘要，不再作为永久累积的 system message；2,000 turn 回归验证状态有界，同时保留 checkpoint 等可信 host provenance。
 - **live session tail 竞态失败闭合**：transcript 在路径检查与异步 `stat` / `open` 之间被删除或恢复时，follow 操作通过 durable session witness 重新分类为受治理的 deleted / unverified-transcript 错误，不再向上泄漏平台相关的原始 `ENOENT`。
 - **Windows MCP 原子启动**：严格沙箱从挂起进程 image 创建起持有已验证 runtime/entry identity，恢复执行前再次复核；真实路径替换竞态在不可信 entry code 执行前失败闭合。
 - **真实跨平台可靠性探针**：正式矩阵加入 EROFS/ENOSPC session、bounded pipe consumer、原生 TTY screen-reader、多语言键盘、Windows/macOS Unicode 剪贴板、localhost SSH 断线、超大 MCP 输出、并发 Agent 与两小时资源核算。
 - **Native 凭据 preflight**：六目标原生 workflow 在 Linux signing、Windows Authenticode、macOS signing/notarization 或 updater key 缺失时拒绝构建；这不等于相关原生发行链已完成。
-- **发布边界不变**：这些提交发生在 `v-npm-0-163-0` 之后，只属于源码候选。`a29eb4203d` 已完成 Linux、Windows、macOS 的 CLI CI 与 CLI Strict Sandbox，但 dry-run 不会生成不可变制品、SBOM、provenance、tag 或 registry 回读；`v-npm-0-163-1` 不存在，registry 查询 `0.163.1` 返回 404。单独的两小时可靠性 evidence 也不能替代正式发布链。
+- **可复现 Web Panel 与 standalone 基座**：CLI pack 从干净、lockfile 驱动的 Web Panel 依赖图构建；Vite/Rollup/Intlify 运行链固定，Rollup 文件并发有界，Node 22 standalone 基座在 Linux、Windows、macOS 的 x64/ARM64 验证宿主上保持确定性。
+- **发布闭环**：`v-npm-0-163-1` 精确指向 `e3f56b11e27ae1bd5d19ad8638434843c244aa68`。同 SHA 的 CLI CI `31240892299`、CLI Strict Sandbox `31240892177`、unsigned 六目标原生验证 `31240927257`、三系统两小时可靠性门 `31240943985` 与 npm release `31246063305` 均成功；正式发布完成 immutable tarball、CycloneDX SBOM、Trusted Publishing、SLSA provenance、registry bytes 与 npmmirror 回读。
+- **原生边界不变**：六目标 validation 固定记录 `signed=false`、`releaseEligible=false`。Windows Authenticode、macOS signing/notarization、updater key、公开 fresh install/upgrade/rollback 回读与 IDE ARM64 仍未闭环，npm 发布成功不能替代这些证据。
 
 ## 已落地能力
 
@@ -198,8 +201,8 @@ npm run test:integration
 npm run test:e2e
 ```
 
-`0.163.0` 的精确正式发布提交为 [`aed0a3ae5327917ce0490a5decbddd777f66f33b`](https://github.com/chainlesschain/chainlesschain/commit/aed0a3ae5327917ce0490a5decbddd777f66f33b)。该提交的 [CLI CI run 31205224902](https://github.com/chainlesschain/chainlesschain/actions/runs/31205224902)、[CLI Strict Sandbox run 31205231874](https://github.com/chainlesschain/chainlesschain/actions/runs/31205231874) 与 [npm publish run 31209345410](https://github.com/chainlesschain/chainlesschain/actions/runs/31209345410) 均成功；CLI CI 含 Ubuntu、Windows、macOS 的 unit/integration/E2E 分片、打包与全局安装验证，Strict Sandbox 三平台全绿，发布 workflow 的 `exact-sha-gate`、immutable package、CycloneDX SBOM、Trusted Publishing、SLSA provenance 与公开 registry 回读全绿。
+`0.163.1` 的精确正式发布提交为 [`e3f56b11e27ae1bd5d19ad8638434843c244aa68`](https://github.com/chainlesschain/chainlesschain/commit/e3f56b11e27ae1bd5d19ad8638434843c244aa68)。该提交的 [CLI CI run 31240892299](https://github.com/chainlesschain/chainlesschain/actions/runs/31240892299)、[CLI Strict Sandbox run 31240892177](https://github.com/chainlesschain/chainlesschain/actions/runs/31240892177) 与 [npm publish run 31246063305](https://github.com/chainlesschain/chainlesschain/actions/runs/31246063305) 均成功；CLI CI 含 Ubuntu、Windows、macOS 的 unit/integration/E2E 分片、打包与全局安装验证，Strict Sandbox 三平台全绿，发布 workflow 的 `exact-sha-gate`、immutable package、CycloneDX SBOM、Trusted Publishing、SLSA provenance 与公开 registry 回读全绿。
 
-正式 npm workflow 已从 registry 下载 `0.163.0` 并核对不可变 artifact bytes、签名 provenance 与授权 workflow identity；npm `latest` 与 npmmirror 均已回读。`0.162.199` 的上传前失败 tag、`0.162.193` 的历史非权威记录及更早失败 tag 都保持不可变。后续版本仍必须在各自 final exact SHA 上重新完成全部权威门，本地测试只作补充。
+正式 npm workflow 已从 registry 下载 `0.163.1` 并核对不可变 artifact bytes、签名 provenance 与授权 workflow identity；npm `latest` 与 npmmirror 均已回读。`0.162.199` 的上传前失败 tag、`0.162.193` 的历史非权威记录及更早失败 tag 都保持不可变。后续版本仍必须在各自 final exact SHA 上重新完成全部权威门，本地测试只作补充。
 
 平台专项还应覆盖 Linux bubblewrap 的 fd 绑定、private mount topology、静态 ELF/架构/segment/栈校验、通用后台/PTY 强边界与网络隔离，以及 Windows `.cmd` 启动、AppContainer 目标句柄/策略摘要、后台 attach、停止自 PID 记录、hook 输出清理和进程树能力探测。P2-14 专项必须区分 `full` / `partial` / `none`，验证 crash recovery 在证据不足时进入 `recovery_required`；P2-16 专项必须分别覆盖单进程规模测试、真实跨进程短门和三平台长期 soak。Hooks 专项需覆盖 stdin `EPIPE` 的 status 0/2 协议、单一 CredentialTransport listener 与 teardown 后 FD 零增长。TCP attach 需要运行对应的 IPC/transport 回归测试。真实系统能力不可用时，测试必须明确跳过并由注入测试补齐，不得把权限拒绝伪装成功。

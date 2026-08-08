@@ -1,10 +1,10 @@
 # IDE 插件使用指南（VS Code / JetBrains）
 
-> **当前推荐组合（2026-08-08）：CLI `0.163.0` + VS Code 扩展 `0.37.45`（Open VSX）+ JetBrains 插件 `0.4.81`（JetBrains Marketplace）。IDE 源码版本与公开稳定版对齐；CLI HEAD 为 `0.163.1` 候选，稳定契约仍以 `v-npm-0-163-0` 为准。**
+> **当前推荐组合（2026-08-08）：CLI `0.163.1` + VS Code 扩展 `0.37.45`（Open VSX）+ JetBrains 插件 `0.4.81`（JetBrains Marketplace）。IDE 源码版本与公开稳定版对齐；CLI 的稳定契约以 `v-npm-0-163-1` 的精确 SHA 为准。**
 >
 > 把 ChainlessChain 的 `cc` agent 变成**编辑器里的一等公民**：侧边栏 Chat 面板直接对话、计划以可编辑 Markdown 文档审阅、文件改动走编辑器原生 diff 评审（可逐块接受、可行级批注）、代理自动感知你的选区与诊断。VS Code 与 JetBrains 双端同一套协议、同一套功能面，会话还能跨 IDE 互相续接。
 >
-> **发布提示**：Open VSX `0.37.45` 累计下载已突破 **2 万**，stable/minimum × Windows/macOS/Linux 的多根与多窗口真实宿主、不可变 VSIX、发布和精确回读均成功。JetBrains Marketplace `0.4.81` 已审核、列出并公开。npm `latest` CLI `0.163.0` 也已完成 exact-SHA 三平台发布门。
+> **发布提示**：Open VSX `0.37.45` 累计下载已突破 **2 万**，stable/minimum × Windows/macOS/Linux 的多根与多窗口真实宿主、不可变 VSIX、发布和精确回读均成功。JetBrains Marketplace `0.4.81` 已审核、列出并公开。npm `latest` CLI `0.163.1` 也已完成 exact-SHA 三平台发布门。
 
 ## 概述
 
@@ -22,7 +22,7 @@ ChainlessChain IDE 插件是 `cc` CLI 在编辑器内的完整工作台，由两
 ### 1. 安装 / 升级 `cc` CLI
 
 ```bash
-npm i -g chainlesschain@0.163.0  # 需要 Node ≥ 22.12.0；当前完整门禁基线
+npm i -g chainlesschain@0.163.1  # 需要 Node ≥ 22.12.0；当前完整门禁基线
 cc --version                # 建议 ≥ 0.162.157
 cc ide --help               # 确认有 ide 子命令
 ```

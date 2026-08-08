@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: "v5.0.3.135 | 87+ 模块设计 | CLI 推荐 0.162.189 / 源码 0.162.194 | Open VSX 0.37.38 / JetBrains 0.4.76 | Canonical Session · Restore Saga · IDE Delivery/Rewind"
+  tagline: "v5.0.3.135 | 87+ 模块设计 | CLI 0.163.1 | Open VSX 0.37.45 / JetBrains 0.4.81 | Bounded Sessions · Atomic MCP · Reproducible Web Panel"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -45,7 +45,7 @@ features:
     details: RBAC权限、SOC2合规、SCIM用户配置、DLP数据防泄漏、SIEM安全信息管理
 ---
 
-> **2026-08-04 设计核对**：当前产品源码 `5.0.3.135`，CLI 源码候选 `0.162.194`；最近完整权威门禁通过版仍为 `0.162.189`。npm `latest` `0.162.193` 缺少专用 tag、exact-SHA attestation 与 immutable tarball/SBOM handoff，且同 SHA CLI CI 失败，不能作为权威发布。主线增加 canonical session/budget、MCP `ws/wss` 与不确定结果恢复、受控 Skill 子 Agent、签名更新恢复，以及 direct/timeline 共用的 checkpoint restore saga 和保守 recovery CLI。Open VSX 当前公开 `0.37.38`（registry public，tagged workflow 未完整成功），JetBrains Marketplace 当前公开 `0.4.76`；源码分别为 `0.37.40` / `0.4.78`，包含 CLI-owned Sessions Workbench、可恢复交付、canonical rewind/branch timeline 与 VS Code 内联聊天候选。详见[运行时实现核对](/cli-runtime-current)、[CLI 对标与 P2 收口](/CLAUDE_CODE_CLI_PARITY_OPTIMIZATION_PLAN)及[IDE 桥接设计](/modules/m98-ide-bridge)。
+> **2026-08-08 设计核对**：当前产品源码 `5.0.3.135`，npm `latest`、生产推荐 CLI 与源码包元数据均为 `0.163.1`。不可变 tag `v-npm-0-163-1` 精确指向 `e3f56b11e2`；同 SHA 的三平台 CLI CI、Strict Sandbox、unsigned 六目标原生验证、三系统两小时可靠性门与 npm 发布均成功，并完成不可变 tarball/CycloneDX SBOM、Trusted Publishing、SLSA provenance、registry 与 npmmirror 回读。主线公开 canonical session/budget、固定 MCP capsule、checkpoint restore saga、live session tail durable-witness 竞态加固、有界长会话压缩、Windows MCP 原子启动、可复现 Web Panel 构建与 Node 22 standalone 基座。原生 validation 固定 `signed=false`、`releaseEligible=false`，不代表签名 Desktop/native 发行。Open VSX 当前公开 `0.37.45`，JetBrains Marketplace 当前公开 `0.4.81`。详见[运行时实现核对](/cli-runtime-current)、[CLI 对标与 P2 收口](/CLAUDE_CODE_CLI_PARITY_OPTIMIZATION_PLAN)及[IDE 桥接设计](/modules/m98-ide-bridge)。
 
 ## 快速导航
 
@@ -88,6 +88,7 @@ features:
 | **v5.0.3.4**                          | —       | **Web Panel i18n M3 全覆盖 + V6 LanguageSwitcher + web-shell opt-out + projects folder picker**：i18n M3 一波收 ~25 个视图（Speech/Analytics/Cron/Security/Templates/Search/Audit/McpTools/Backup/Tokens/Mtc/WebAuthn/Community/Wallet/Inference/Organization/Recommend/Federation/Reputation/AIOps/Projects 等），全部接入 vue-i18n 中英双语字典；V6 preview topbar 接入 `LanguageSwitcher`（commit `645b19f30`）；web-shell 加 `--no-web-shell` dev opt-out + settings-authoritative precedence（`9119bdec1`）；projects 加 folder picker 走 `cc init --cwd` 完成"打开已有文件夹"流（`c935a95d4`）。CLI 0.160.1                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | **v5.0.3.135（P2-14 / P2-16 收口）**  | —       | **CLI 0.162.189 + IDE 协作控制正式发布**：P2-14 在 Process Broker 管理的声明 workspace writer 范围内提供持久 checkpoint、分层 coverage 与失败/取消/超时后的 fenced rollback/recovery；P2-16 完成本地 v6 authority、分布式 queue v1、团队预算、lease/CAS fencing、wall lifecycle fence、两阶段 worktree 清理、交互式裁决/安全恢复及三平台长期 soak。VS Code 0.37.37 与 JetBrains 0.4.76 以只读投影呈现 Agent Team 状态，所有权威变更继续由 CLI 执行。CLI release SHA `2607af0dad`；IDE release SHA `33e4d512d3`。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | **2026-08-04 源码候选**                 | —       | **CLI 0.162.194 / VS Code 0.37.40 / JetBrains 0.4.78（均未发布）**：canonical session 与资源预算、MCP recovery adjudication、受控 Skill 子 Agent、签名 updater recovery、checkpoint restore saga/recovery CLI、IDE Sessions Workbench、resumable delivery、canonical rewind/branch timeline 与 VS Code inline chat。公开 registry 仍分别按推荐 CLI 0.162.189、Open VSX 0.37.38、JetBrains 0.4.76 说明；不把候选源码或失败 workflow 表述为稳定发布。 |
+| **2026-08-08 正式发布**                 | —       | **CLI 0.163.1 / Open VSX 0.37.45 / JetBrains 0.4.81**：CLI 在 exact SHA `e3f56b11e2` 完成三平台 CI/Strict、unsigned 六目标 native validation、三系统两小时可靠性门、immutable tarball/SBOM、Trusted Publishing、SLSA provenance 与 registry/npmmirror 回读；公开 durable-witness 会话竞态加固、有界长会话、Windows MCP 原子启动、可复现 Web Panel 与 Node 22 standalone 基座。unsigned native 证据不替代签名 Desktop/native 发行。 |
 
 ---
 

@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.135 | CLI 0.163.0 | Open VSX 0.37.45 · JetBrains 0.4.81 | 可恢复会话、MCP Capsule 与 Restore Saga"
+  tagline: "v5.0.3.135 | CLI 0.163.1 | Open VSX 0.37.45 · JetBrains 0.4.81 | 有界长会话、原子 MCP 与可复现 Web Panel"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -37,10 +37,10 @@ features:
     details: 92 个采集契约覆盖 18 类来源，支持事务化事实归并、显式游标、有界分页与部分结果失败闭合。
   - icon: 🧪
     title: 发布证据分层
-    details: CLI 0.163.0 已完成 exact-SHA 三平台 CLI CI、Strict Sandbox、不可变制品、SBOM、provenance 与 registry 回读；源码 0.163.1 仍按候选版标注。
+    details: CLI 0.163.1 已完成 exact-SHA 三平台 CLI CI、Strict Sandbox、两小时可靠性门、不可变制品、SBOM、provenance 与 registry 回读。
 ---
 
-> **2026-08-08 当前主线快照**：桌面、Android 与 iOS 源码版本保持 `5.0.3.135`；npm `latest` 与生产推荐 CLI 为 `0.163.0`。精确发布提交 `aed0a3ae53` 的三平台 CLI CI、CLI Strict Sandbox、专用 npm 发布、exact-SHA gate、不可变 tarball/CycloneDX SBOM、Trusted Publishing、SLSA provenance、registry 回读与 npmmirror 同步均成功。当前源码包元数据为 `0.163.1`，HEAD `a29eb4203d` 新增 live session tail 竞态失败闭合，并包含有界长会话压缩、Windows MCP 原子启动与扩展可靠性探针；该 SHA 的 CLI CI 与 Strict Sandbox 已成功，但发布 workflow 仅运行 dry-run，未生成 tag、制品或 registry 版本，以上仍是候选能力。Open VSX `0.37.45` 已从同一 SHA 完成 stable/minimum × 三平台、多根/多窗口、制品、发布与精确回读；JetBrains Marketplace `0.4.81` 保持公开。详细入口：[CLI Runtime 当前实现](/chainlesschain/cli-runtime-current)、[检查点恢复](/chainlesschain/checkpoint)、[IDE 插件使用指南](/chainlesschain/ide-plugin)、[个人数据中台](/chainlesschain/personal-data-hub)与[更新日志](/changelog)。
+> **2026-08-08 当前主线快照**：桌面、Android 与 iOS 源码版本保持 `5.0.3.135`；npm `latest`、生产推荐 CLI 与当前源码包元数据均为 `0.163.1`。不可变 tag `v-npm-0-163-1` 精确指向提交 `e3f56b11e2`；同一 SHA 的三平台 CLI CI、CLI Strict Sandbox、unsigned 六目标原生验证、三系统两小时可靠性门和专用 npm 发布均成功，发布链完成 exact-SHA gate、不可变 tarball/CycloneDX SBOM、Trusted Publishing、SLSA provenance、registry 回读与 npmmirror 同步。该版本公开 live session tail durable-witness 竞态加固、有界长会话压缩、Windows MCP 原子启动、可复现 Web Panel 构建与 Node 22 standalone 基座。原生 validation 固定 `signed=false`、`releaseEligible=false`，不代表 Desktop/native 签名发行闭环。Open VSX `0.37.45` 已完成 stable/minimum × 三平台、多根/多窗口、制品、发布与精确回读；JetBrains Marketplace `0.4.81` 保持公开。详细入口：[CLI Runtime 当前实现](/chainlesschain/cli-runtime-current)、[检查点恢复](/chainlesschain/checkpoint)、[IDE 插件使用指南](/chainlesschain/ide-plugin)、[个人数据中台](/chainlesschain/personal-data-hub)与[更新日志](/changelog)。
 
 > 2026-04-08 更新：文档站已对齐 CLI Agent Runtime 重构、统一 runtime event、session record、后台任务增强、Worktree 合并助手、压缩观测、会话迁移，以及 **Coding Agent Phase 5 最小 Harness + 真实 interrupt**。
 >

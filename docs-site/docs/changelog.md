@@ -5,15 +5,17 @@
 
 ## [Unreleased]
 
-#### Fixed — CLI 0.163.1 源码候选：会话尾部竞态、有界长会话、Windows MCP 原子启动与可靠性门
+#### Fixed — CLI 0.163.1 正式发布：有界长会话、原子 MCP、可复现 Web Panel 与可靠性门
 
-> 当前源码包元数据为 `chainlesschain@0.163.1`，HEAD 为 [`a29eb4203d`](https://github.com/chainlesschain/chainlesschain/commit/a29eb4203d333756fc258b493b0c43af4fc36759)。该 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31219886076) 与 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31219890201) 已成功，但[发布 workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/31221549835)只运行 dry-run，exact-SHA、制品与 publish job 均跳过；`v-npm-0-163-1` 和 registry `0.163.1` 均不存在，生产安装继续固定 `0.163.0`。
+> `chainlesschain@0.163.1` 已成为 npm `latest` 与生产推荐版。不可变 tag `v-npm-0-163-1` 精确指向 [`e3f56b11e2`](https://github.com/chainlesschain/chainlesschain/commit/e3f56b11e27ae1bd5d19ad8638434843c244aa68)；该 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31240892299)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31240892177)、[unsigned 六目标原生验证](https://github.com/chainlesschain/chainlesschain/actions/runs/31240927257)、[三系统两小时可靠性门](https://github.com/chainlesschain/chainlesschain/actions/runs/31240943985)与[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/31246063305)均成功。公开 registry tarball 与 workflow artifact 逐字节一致，SHA-256 为 `d9e09e25c6086e0777e97a670105649e3a7e5fb1c2816e1834557da32157cbee`。
 
 - **有界长会话压缩**：既有 durable summary 与 compacted tool record 折入下一份摘要；2,000 turn 回归验证状态有界，同时保留 checkpoint 等可信 host provenance。
 - **会话尾部竞态**：transcript 在路径检查与异步 `stat` / `open` 之间被删除或恢复时，follow 操作经 durable session witness 重新分类并失败闭合，不再泄漏平台相关的原始 `ENOENT`。
 - **Windows MCP 原子启动**：严格沙箱从挂起进程 image 创建起持有 runtime/entry identity，恢复前再次复核；真实路径替换竞态在不可信 entry code 执行前失败闭合。
 - **真实可靠性探针**：矩阵新增 EROFS/ENOSPC、bounded pipe、原生 TTY screen-reader、多语言键盘、Unicode 剪贴板、localhost SSH 断线、超大 MCP 输出、并发 Agent 与两小时资源核算。
 - **原生发行凭据**：Linux signing、Windows Authenticode、macOS signing/notarization 与 updater key 缺失时，六目标 native workflow 启动前失败闭合；这不表示原生发行链已经完成。
+- **可复现 Web Panel**：CLI pack 从干净、lockfile 驱动的依赖图构建，固定 Vite/Rollup/Intlify 运行链并限制 Rollup 文件并发；Node 22 standalone 基座在六个目标宿主上保持确定性。
+- **原生边界**：六目标 validation 固定 `signed=false`、`releaseEligible=false`；npm 发布闭环不等于 Desktop/native 签名资产、公开 fresh install/upgrade/rollback 或 IDE ARM64 已完成。
 
 #### Fixed — CLI 0.163.0 正式发布：macOS PTY、原生宿主与第二观察周期
 
