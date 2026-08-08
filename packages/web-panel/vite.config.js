@@ -1,38 +1,38 @@
-import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
-import { resolve } from 'path'
-import { readFileSync } from 'fs'
+import { defineConfig } from "vite";
+import vue from "@vitejs/plugin-vue";
+import { resolve } from "path";
+import { readFileSync } from "fs";
 
 const rootPkg = JSON.parse(
-  readFileSync(resolve(process.cwd(), '../../package.json'), 'utf-8')
-)
+  readFileSync(resolve(process.cwd(), "../../package.json"), "utf-8"),
+);
 
 function manualChunks(id) {
-  const normalizedId = id.replace(/\\/g, '/')
+  const normalizedId = id.replace(/\\/g, "/");
 
-  if (!normalizedId.includes('/node_modules/')) return
+  if (!normalizedId.includes("/node_modules/")) return;
 
   if (
-    normalizedId.includes('/vue/') ||
-    normalizedId.includes('/vue-router/') ||
-    normalizedId.includes('/pinia/')
+    normalizedId.includes("/vue/") ||
+    normalizedId.includes("/vue-router/") ||
+    normalizedId.includes("/pinia/")
   ) {
-    return 'vendor'
+    return "vendor";
   }
 
   if (
-    normalizedId.includes('/marked/') ||
-    normalizedId.includes('/dompurify/') ||
-    normalizedId.includes('/highlight.js/')
+    normalizedId.includes("/marked/") ||
+    normalizedId.includes("/dompurify/") ||
+    normalizedId.includes("/highlight.js/")
   ) {
-    return 'markdown'
+    return "markdown";
   }
 
   if (
-    normalizedId.includes('/@ant-design/icons-vue/') ||
-    normalizedId.includes('/@ant-design/icons-svg/')
+    normalizedId.includes("/@ant-design/icons-vue/") ||
+    normalizedId.includes("/@ant-design/icons-svg/")
   ) {
-    return 'icons'
+    return "icons";
   }
 
   // Echarts is only consumed by KnowledgeGraph today, but bundling it
@@ -40,24 +40,24 @@ function manualChunks(id) {
   // it out keeps the visited route lean and lets the browser cache the
   // (large, rarely-changing) charting bundle independently.
   if (
-    normalizedId.includes('/echarts/') ||
-    normalizedId.includes('/vue-echarts/') ||
-    normalizedId.includes('/zrender/') ||
-    normalizedId.includes('/tslib/')
+    normalizedId.includes("/echarts/") ||
+    normalizedId.includes("/vue-echarts/") ||
+    normalizedId.includes("/zrender/") ||
+    normalizedId.includes("/tslib/")
   ) {
-    return 'echarts'
+    return "echarts";
   }
 }
 
 export default defineConfig({
   plugins: [vue()],
-  base: './',
+  base: "./",
   define: {
-    __PRODUCT_VERSION__: JSON.stringify(rootPkg.productVersion)
+    __PRODUCT_VERSION__: JSON.stringify(rootPkg.productVersion),
   },
   build: {
-    outDir: 'dist',
-    assetsDir: 'assets',
+    outDir: "dist",
+    assetsDir: "assets",
     rollupOptions: {
       output: {
         manualChunks,
@@ -66,18 +66,39 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': resolve(process.cwd(), 'src'),
+      "@": resolve(process.cwd(), "src"),
+      // Keep vue-i18n's runtime import deterministic across hosted runners.
+      // Linux and Windows native packaging have both observed Rollup failing
+      // to follow @intlify/shared's nested conditional export even though npm
+      // installed it and Node's preflight resolved it. The exact dependency is
+      // pinned in package.json, so bind Vite to that package's public ESM file.
+      "@intlify/shared": resolve(
+        process.cwd(),
+        "node_modules/@intlify/shared/dist/shared.mjs",
+      ),
       // Shared i18n catalog (M1 of the i18n migration). web-panel is
       // not a workspace member, so we thread the seed in via alias
       // rather than a node_modules link. desktop-app-vue will mirror
       // this alias when it adopts the catalog.
-      '@chainlesschain/locales': resolve(process.cwd(), '../locales/seed/index.js'),
-      '@chainlesschain/locales/zh-CN': resolve(process.cwd(), '../locales/seed/zh-CN.json'),
-      '@chainlesschain/locales/en': resolve(process.cwd(), '../locales/seed/en.json'),
+      "@chainlesschain/locales": resolve(
+        process.cwd(),
+        "../locales/seed/index.js",
+      ),
+      "@chainlesschain/locales/zh-CN": resolve(
+        process.cwd(),
+        "../locales/seed/zh-CN.json",
+      ),
+      "@chainlesschain/locales/en": resolve(
+        process.cwd(),
+        "../locales/seed/en.json",
+      ),
       // Agent SDK protocol contract (platform phase 3). Same non-workspace
       // threading as locales: alias straight to the TS source — Vite
       // compiles it, no build-order dependency on packages/agent-sdk/dist.
-      '@chainlesschain/agent-sdk/browser': resolve(process.cwd(), '../agent-sdk/src/browser.ts'),
-    }
-  }
-})
+      "@chainlesschain/agent-sdk/browser": resolve(
+        process.cwd(),
+        "../agent-sdk/src/browser.ts",
+      ),
+    },
+  },
+});

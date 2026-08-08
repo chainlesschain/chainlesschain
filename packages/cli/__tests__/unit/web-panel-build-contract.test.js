@@ -28,6 +28,10 @@ describe("web-panel isolated build contract", () => {
         "utf8",
       ),
     );
+    const viteConfig = fs.readFileSync(
+      path.join(repositoryRoot, "packages", "web-panel", "vite.config.js"),
+      "utf8",
+    );
 
     expect(script).toContain(
       "npm ci --include=dev --include=optional --legacy-peer-deps",
@@ -37,6 +41,10 @@ describe("web-panel isolated build contract", () => {
     expect(packageJson.dependencies["@intlify/shared"]).toBe("9.14.5");
     expect(packageLock.packages[""].dependencies["@intlify/shared"]).toBe(
       "9.14.5",
+    );
+    expect(viteConfig).toContain('"@intlify/shared": resolve(');
+    expect(viteConfig).toContain(
+      '"node_modules/@intlify/shared/dist/shared.mjs"',
     );
   });
 });
