@@ -14,7 +14,7 @@ const repoRoot = path.resolve(scriptDir, "../../..");
 const resultSchema = "chainlesschain.cli-mcp-security-soak.v1";
 const aggregateSchema = "chainlesschain.cli-mcp-security-soak-aggregate.v1";
 const innerEvidenceSchema =
-  "chainlesschain.ide-roadmap-mcp-security-evidence.v3";
+  "chainlesschain.ide-roadmap-mcp-security-evidence.v4";
 const releaseCommitPattern = /^[0-9a-f]{40}$/u;
 const expectedOperatingSystems = Object.freeze(["linux", "macos", "windows"]);
 
@@ -205,7 +205,59 @@ function validateInnerEvidence(value, { releaseCommit, operatingSystem }) {
     issues.push("inner approved or stale-policy probes");
   }
   const race = value?.codeSnapshotRaceProbe;
-  if (operatingSystem === "windows") {
+  if (operatingSystem === "linux") {
+    if (
+      race?.required !== true ||
+      race?.pass !== true ||
+      race?.backend !== "linux-fd-code-snapshot" ||
+      race?.mechanism !==
+        "verified-o_tmpfile-copy-inherited-fd-module-compile-v1" ||
+      race?.handleAtomic !== true ||
+      race?.entrySnapshotAtomic !== true ||
+      race?.runtimeLaunchAtomic !== true ||
+      race?.sharedLibraryClosure !== false ||
+      race?.requiredRuns !== 1 ||
+      race?.sampleCount !== 1 ||
+      race?.passCount !== 1 ||
+      race?.sourceReplacementObserved !== true ||
+      race?.originalSnapshotExecuted !== true ||
+      race?.maliciousPathExecuted !== false ||
+      race?.exitCode !== 0 ||
+      !Number.isSafeInteger(race?.stdoutBytes) ||
+      race.stdoutBytes <= 0 ||
+      race?.stderrBytes !== 0 ||
+      race?.samples?.length !== 1 ||
+      race.samples[0]?.id !== "code-snapshot-race-0" ||
+      race.samples[0]?.iteration !== 0 ||
+      race.samples[0]?.pass !== true ||
+      race.samples[0]?.sourceReplacementObserved !== true ||
+      race.samples[0]?.originalSnapshotExecuted !== true ||
+      race.samples[0]?.maliciousPathExecuted !== false ||
+      race.samples[0]?.exitCode !== 0 ||
+      race.samples[0]?.stdoutBytes !== race.stdoutBytes ||
+      race.samples[0]?.stderrBytes !== 0
+    ) {
+      issues.push("Linux entry snapshot race");
+    }
+  } else if (operatingSystem === "macos") {
+    if (
+      race?.required !== false ||
+      race?.pass !== true ||
+      race?.reason !== "macos-atomic-runtime-exec-unavailable-fail-closed" ||
+      race?.failClosed !== true ||
+      race?.candidateBackend !== "macos-fd-code-snapshot" ||
+      race?.adapterReason !== "macos_atomic_runtime_exec_unavailable" ||
+      race?.runtimeProbeReason !== "public_api_has_no_descriptor_bound_exec" ||
+      race?.entrySnapshotAtomic !== false ||
+      race?.runtimeLaunchAtomic !== false ||
+      race?.requiredRuns !== 0 ||
+      race?.sampleCount !== 0 ||
+      race?.passCount !== 0 ||
+      race?.samples?.length !== 0
+    ) {
+      issues.push("macOS fail-closed snapshot probe");
+    }
+  } else if (operatingSystem === "windows") {
     if (
       race?.required !== false ||
       race?.pass !== true ||
@@ -213,25 +265,11 @@ function validateInnerEvidence(value, { releaseCommit, operatingSystem }) {
       race?.sampleCount !== 0 ||
       race?.passCount !== 0 ||
       race?.samples?.length !== 0 ||
-      race?.reason !== "windows-atomic-launch-covered-by-filter-oplock-gate"
+      race?.reason !==
+        "windows-code-snapshot-covered-by-separate-strict-gate-not-evaluated"
     ) {
       issues.push("Windows race delegation");
     }
-  } else if (
-    race?.required !== true ||
-    race?.pass !== true ||
-    race?.requiredRuns !== 1 ||
-    race?.sampleCount !== 1 ||
-    race?.passCount !== 1 ||
-    race?.sharedLibraryClosure !== false ||
-    race?.sourceReplacementObserved !== true ||
-    race?.originalSnapshotExecuted !== true ||
-    race?.maliciousPathExecuted !== false ||
-    race?.samples?.length !== 1 ||
-    race.samples[0]?.pass !== true ||
-    race.samples[0]?.maliciousPathExecuted !== false
-  ) {
-    issues.push("POSIX entry snapshot race");
   }
   if (
     value?.invariants?.annotationsAreHintsOnly !== true ||
@@ -261,7 +299,8 @@ function expectedTotals(cycles, operatingSystem) {
     unapprovedLedgerWrites: 0,
     approvedMutationProbes: cycles,
     staleHostReadPolicySamples: cycles * 2,
-    codeSnapshotRaceSamples: operatingSystem === "windows" ? 0 : cycles,
+    codeSnapshotRaceSamples: operatingSystem === "linux" ? cycles : 0,
+    codeSnapshotFailClosedProbes: operatingSystem === "macos" ? cycles : 0,
     atomicPathReplacementEscapes: 0,
   });
 }
@@ -550,9 +589,14 @@ export function verifyMcpSecuritySoakEvidenceSet(options = {}) {
       (total, entry) => total + entry.value.totals.staleHostReadPolicySamples,
       0,
     ),
-    codeSnapshotRaceOperatingSystems: ["linux", "macos"],
+    codeSnapshotRaceOperatingSystems: ["linux"],
     codeSnapshotRaceSamples: entries.reduce(
       (total, entry) => total + entry.value.totals.codeSnapshotRaceSamples,
+      0,
+    ),
+    codeSnapshotFailClosedOperatingSystems: ["macos"],
+    codeSnapshotFailClosedProbes: entries.reduce(
+      (total, entry) => total + entry.value.totals.codeSnapshotFailClosedProbes,
       0,
     ),
     atomicPathReplacementEscapes: 0,
@@ -592,7 +636,7 @@ if (
     if (options.evidenceDir) {
       const aggregate = verifyMcpSecuritySoakEvidenceSet(options);
       process.stdout.write(
-        `verified MCP security soak ${aggregate.releaseCommit}: ${aggregate.hostCycles} host cycles, ${aggregate.unapprovedEffectSamples} unapproved effects, ${aggregate.codeSnapshotRaceSamples} POSIX races, zero escapes\n`,
+        `verified MCP security soak ${aggregate.releaseCommit}: ${aggregate.hostCycles} host cycles, ${aggregate.unapprovedEffectSamples} unapproved effects, ${aggregate.codeSnapshotRaceSamples} Linux races, ${aggregate.codeSnapshotFailClosedProbes} macOS fail-closed probes, zero escapes\n`,
       );
     } else {
       const evidence = await runMcpSecuritySoak(options);
