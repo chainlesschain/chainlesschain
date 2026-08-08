@@ -2,6 +2,17 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.47] - Deterministic native ARM64 release gate (2026-08-09)
+
+- Carry forward the 0.37.46 native ARM64 host certification after that
+  immutable tag was canceled before upload when the exact merge-commit matrix
+  exposed a JetBrains Stop/resume fixture race.
+- Require the shared Windows ARM64 journey to observe the fixture's in-flight
+  Stop response before exercising the second-click force-stop path, so restart
+  recovery is asserted from a deterministic persisted turn.
+- Retain the fail-closed stable/minimum VS Code host proof and the exact 11-cell
+  aggregate without moving or reusing the canceled 0.37.46 tag.
+
 ## [0.37.46] - Native ARM64 release-host certification (2026-08-08)
 
 - Validate the same architecture-neutral VSIX on native Linux, Windows, and

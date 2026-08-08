@@ -372,6 +372,10 @@ test("the ARM64 workflow binds exact hosts, versions, and aggregate evidence", (
     jetbrainsHostDriver,
     /clickStripe[\s\S]*?instanceof AbstractButton[\s\S]*?component\.doClick\(\)[\s\S]*?component\.click\(\)/u,
   );
+  assert.match(
+    jetbrainsHostDriver,
+    /send\(input, send, "journey:stop"\);[\s\S]*?"fixture stop waiting #5"[\s\S]*?clickButton\(stop\);\s*clickButton\(stop\);[\s\S]*?"fixture stream complete #6"/u,
+  );
 
   const vscodeHostRunner = fs.readFileSync(
     path.join(
