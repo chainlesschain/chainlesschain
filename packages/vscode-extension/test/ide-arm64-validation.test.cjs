@@ -291,6 +291,10 @@ test("the ARM64 workflow binds exact hosts, versions, and aggregate evidence", (
     workflow,
     /New-NetFirewallRule[\s\S]*?-Direction Inbound[\s\S]*?-Action Block/u,
   );
+  assert.match(
+    workflow,
+    /Suppress Windows ARM64 runner privacy OOBE[\s\S]*?if: runner\.os == 'Windows'[\s\S]*?DisablePrivacyExperience[\s\S]*?-Value 1[\s\S]*?Get-Process -Name WWAHost[\s\S]*?Stop-Process -Force[\s\S]*?SendKeys\('\{ESC\}'\)/u,
+  );
   assert.match(workflow, /verify-ide-arm64-evidence\.mjs\s+--evidence-dir/u);
   assert.match(workflow, /merge-multiple: true/u);
   assert.doesNotMatch(workflow, /continue-on-error/u);

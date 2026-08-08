@@ -222,6 +222,24 @@ jobs:
           --release-commit ${{ env.IDE_ARM64_RELEASE_COMMIT }}
           --expected-platform ${{ matrix.platform }} --expected-arch arm64
           --repository-root .
+      # The hosted windows-11-arm image can launch the first-logon privacy
+      # experience over GUI tests (actions/runner-images#14069). Apply the
+      # documented OOBE policy before starting the IDE and close only an
+      # already-running privacy host. Killing WWAHost can reveal the Start
+      # menu, so dismiss that shell surface without accepting privacy defaults.
+      - name: Suppress Windows ARM64 runner privacy OOBE
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $policyPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\OOBE'
+          New-Item -Path $policyPath -Force | Out-Null
+          New-ItemProperty -Path $policyPath -Name DisablePrivacyExperience `
+            -PropertyType DWord -Value 1 -Force | Out-Null
+          Get-Process -Name WWAHost -ErrorAction SilentlyContinue |
+            Stop-Process -Force
+          Start-Sleep -Seconds 2
+          (New-Object -ComObject WScript.Shell).SendKeys('{ESC}')
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
