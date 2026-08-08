@@ -94,11 +94,13 @@ runs:
         # Workaround for https://github.com/npm/cli/issues/4828 — npm sometimes
         # skips optional platform deps, leaving vite/vitest unable to resolve rollup.
         case "${RUNNER_OS}-${RUNNER_ARCH}" in
-          Linux-X64)   pkg="@rollup/rollup-linux-x64-gnu" ;;
-          Windows-X64) pkg="@rollup/rollup-win32-x64-msvc" ;;
-          macOS-ARM64) pkg="@rollup/rollup-darwin-arm64" ;;
-          macOS-X64)   pkg="@rollup/rollup-darwin-x64" ;;
-          *)           pkg="" ;;
+          Linux-X64)     pkg="@rollup/rollup-linux-x64-gnu" ;;
+          Linux-ARM64)   pkg="@rollup/rollup-linux-arm64-gnu" ;;
+          Windows-X64)   pkg="@rollup/rollup-win32-x64-msvc" ;;
+          Windows-ARM64) pkg="@rollup/rollup-win32-arm64-msvc" ;;
+          macOS-ARM64)   pkg="@rollup/rollup-darwin-arm64" ;;
+          macOS-X64)     pkg="@rollup/rollup-darwin-x64" ;;
+          *)             pkg="" ;;
         esac
         packages="$pkg $EXTRA_PACKAGES"
         packages=$(echo "$packages" | xargs) # trim
