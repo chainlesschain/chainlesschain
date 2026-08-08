@@ -240,6 +240,28 @@ jobs:
             Stop-Process -Force
           Start-Sleep -Seconds 2
           (New-Object -ComObject WScript.Shell).SendKeys('{ESC}')
+          # The desktop image also leaves its runner console in front of GUI
+          # applications. Preserve that process and minimize only windows whose
+          # title binds them to the exact GitHub HostedComputeAgent executable.
+          Add-Type -TypeDefinition @'
+          using System;
+          using System.Runtime.InteropServices;
+          public static class ChainlessChainCiWindow {
+              [DllImport("user32.dll")]
+              public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+          }
+          '@
+          $agentWindows = @(Get-Process -ErrorAction SilentlyContinue |
+            Where-Object {
+              $_.MainWindowHandle -ne 0 -and
+              $_.MainWindowTitle -like '*\GitHub\HostedComputeAgent\hosted-compute-agent*'
+            })
+          foreach ($agentWindow in $agentWindows) {
+            [ChainlessChainCiWindow]::ShowWindowAsync(
+              $agentWindow.MainWindowHandle,
+              6
+            ) | Out-Null
+          }
       - uses: actions/setup-java@v5
         with:
           distribution: temurin

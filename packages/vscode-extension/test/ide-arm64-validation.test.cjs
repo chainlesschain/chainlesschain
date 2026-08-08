@@ -293,7 +293,7 @@ test("the ARM64 workflow binds exact hosts, versions, and aggregate evidence", (
   );
   assert.match(
     workflow,
-    /Suppress Windows ARM64 runner privacy OOBE[\s\S]*?if: runner\.os == 'Windows'[\s\S]*?DisablePrivacyExperience[\s\S]*?-Value 1[\s\S]*?Get-Process -Name WWAHost[\s\S]*?Stop-Process -Force[\s\S]*?SendKeys\('\{ESC\}'\)/u,
+    /Suppress Windows ARM64 runner privacy OOBE[\s\S]*?if: runner\.os == 'Windows'[\s\S]*?DisablePrivacyExperience[\s\S]*?-Value 1[\s\S]*?Get-Process -Name WWAHost[\s\S]*?Stop-Process -Force[\s\S]*?SendKeys\('\{ESC\}'\)[\s\S]*?ShowWindowAsync[\s\S]*?MainWindowTitle -like '\*\\GitHub\\HostedComputeAgent\\hosted-compute-agent\*'[\s\S]*?MainWindowHandle[\s\S]*?6/u,
   );
   assert.match(workflow, /verify-ide-arm64-evidence\.mjs\s+--evidence-dir/u);
   assert.match(workflow, /merge-multiple: true/u);
