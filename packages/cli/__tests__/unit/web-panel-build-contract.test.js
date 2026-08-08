@@ -37,29 +37,29 @@ describe("web-panel isolated build contract", () => {
       "npm ci --include=dev --include=optional --legacy-peer-deps",
     );
     expect(script).toContain("fs.realpathSync.native(os.tmpdir())");
-    expect(script).toContain('"@ant-design/colors"');
-    expect(script).toContain('"@intlify/core-base"');
-    expect(script).toContain('"@intlify/message-compiler"');
-    expect(script).toContain('"@intlify/shared"');
     expect(script).toContain('execSync("npm run build:no-sync"');
-    expect(packageJson.dependencies["@ant-design/colors"]).toBe("6.0.0");
-    expect(packageJson.dependencies["@intlify/core-base"]).toBe("9.14.5");
-    expect(packageJson.dependencies["@intlify/message-compiler"]).toBe(
-      "9.14.5",
-    );
-    expect(packageJson.dependencies["@intlify/shared"]).toBe("9.14.5");
-    expect(packageLock.packages[""].dependencies["@ant-design/colors"]).toBe(
-      "6.0.0",
-    );
-    expect(packageLock.packages[""].dependencies["@intlify/core-base"]).toBe(
-      "9.14.5",
-    );
-    expect(
-      packageLock.packages[""].dependencies["@intlify/message-compiler"],
-    ).toBe("9.14.5");
-    expect(packageLock.packages[""].dependencies["@intlify/shared"]).toBe(
-      "9.14.5",
-    );
+    const pinnedRuntimePackages = {
+      "@ant-design/colors": "6.0.0",
+      "@ant-design/icons-svg": "4.4.2",
+      "@babel/runtime": "7.29.2",
+      "@ctrl/tinycolor": "3.6.1",
+      "@emotion/hash": "0.9.2",
+      "@emotion/unitless": "0.8.1",
+      "@intlify/core-base": "9.14.5",
+      "@intlify/message-compiler": "9.14.5",
+      "@intlify/shared": "9.14.5",
+      "@simonwep/pickr": "1.8.2",
+      "@vue/devtools-api": "6.6.4",
+    };
+    for (const [name, version] of Object.entries(pinnedRuntimePackages)) {
+      if (name === "@babel/runtime") {
+        expect(script).toContain('"@babel/runtime/helpers/extends"');
+      } else {
+        expect(script).toContain(`"${name}"`);
+      }
+      expect(packageJson.dependencies[name]).toBe(version);
+      expect(packageLock.packages[""].dependencies[name]).toBe(version);
+    }
     expect(viteConfig).toContain('"@intlify/shared": resolve(');
     expect(viteConfig).toContain('"@ant-design/colors": resolve(');
     expect(viteConfig).toContain(

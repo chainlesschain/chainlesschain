@@ -213,7 +213,7 @@ function runBuild() {
       [
         "--input-type=module",
         "--eval",
-        'for (const name of ["@ant-design/colors", "@intlify/core-base", "@intlify/message-compiler", "@intlify/shared", "@vitejs/plugin-vue", "vite"]) import.meta.resolve(name);',
+        'for (const name of ["@ant-design/colors", "@ant-design/icons-svg", "@babel/runtime/helpers/extends", "@ctrl/tinycolor", "@emotion/hash", "@emotion/unitless", "@intlify/core-base", "@intlify/message-compiler", "@intlify/shared", "@simonwep/pickr", "@vitejs/plugin-vue", "@vue/devtools-api", "vite"]) import.meta.resolve(name);',
       ],
       {
         cwd: tmpWp,
