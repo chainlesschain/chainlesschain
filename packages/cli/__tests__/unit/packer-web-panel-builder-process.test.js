@@ -49,6 +49,24 @@ describe("packer web panel process execution", () => {
     );
   });
 
+  it("rebuilds a clean-checkout placeholder before validating assets", () => {
+    const distDir = path.join(cliRoot, "src", "assets", "web-panel");
+    fs.mkdirSync(distDir, { recursive: true });
+    fs.writeFileSync(path.join(distDir, "index.html"), "<main></main>");
+
+    _deps.spawnSync.mockImplementation(() => {
+      fs.writeFileSync(path.join(distDir, "app.js"), "// bundle");
+      return { status: 0, stdout: "", stderr: "" };
+    });
+
+    expect(ensureWebPanel({ cliRoot, skipBuild: false })).toEqual({
+      distDir,
+      rebuilt: true,
+      assetCount: 2,
+    });
+    expect(_deps.spawnSync).toHaveBeenCalledOnce();
+  });
+
   it("surfaces npm startup errors", () => {
     _deps.spawnSync.mockReturnValue({
       status: null,
