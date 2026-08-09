@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 import { describe, it, expect, vi } from "vitest";
 
 vi.mock("../../utils/logger.js", () => ({
@@ -27,7 +29,7 @@ describe("generateOrderHTML escaping (XSS regression)", () => {
   it("escapes HTML/script in the free-text description", () => {
     const html = generateOrderHTML({
       ...baseOrder,
-      description: '<script>alert(1)</script>',
+      description: "<script>alert(1)</script>",
     });
     expect(html).not.toContain("<script>alert(1)</script>");
     expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
@@ -38,7 +40,7 @@ describe("generateOrderHTML escaping (XSS regression)", () => {
       ...baseOrder,
       description: '<img src=x onerror="steal()">',
     });
-    expect(html).not.toContain('<img src=x onerror=');
+    expect(html).not.toContain("<img src=x onerror=");
     expect(html).toContain("&lt;img src=x onerror=");
   });
 

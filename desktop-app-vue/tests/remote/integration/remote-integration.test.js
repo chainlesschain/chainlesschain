@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 /**
  * 远程控制集成测试
  *

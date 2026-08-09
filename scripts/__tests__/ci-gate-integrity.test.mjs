@@ -430,6 +430,25 @@ test("UKey smoke skips unsupported hosts and propagates real failures", () => {
   assert.doesNotMatch(script, /runTests\(\)\.catch\(console\.error\)/);
 });
 
+test("sharp-loading main-process tests stay out of the jsdom canvas process", () => {
+  const nodeEnvironmentTests = [
+    "desktop-app-vue/tests/unit/media/image-engine.test.js",
+    "desktop-app-vue/src/main/blockchain/__tests__/order-export.test.js",
+    "desktop-app-vue/src/main/ai-engine/__tests__/real-implementations-reminder.test.js",
+    "desktop-app-vue/src/main/remote/__tests__/remote-gateway.test.js",
+    "desktop-app-vue/tests/remote/integration/remote-integration.test.js",
+  ];
+
+  for (const relativePath of nodeEnvironmentTests) {
+    const source = fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
+    assert.match(
+      source,
+      /^\/\/ @vitest-environment node/m,
+      `${relativePath} must not load sharp in Vitest's jsdom/canvas process`,
+    );
+  }
+});
+
 test("auto-fix command is diagnostic-only and fails when no safe fix exists", async (t) => {
   const temporaryRoot = await fsp.mkdtemp(
     path.join(os.tmpdir(), "cc-ci-auto-fix-"),
