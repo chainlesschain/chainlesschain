@@ -48,6 +48,12 @@ export const MCP_STDIO_RUNTIME_KIND_INVALID_CODE =
 export const MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND =
   "strict-mcp-node-capsule";
 export const MCP_STDIO_CAPSULE_CODE_SNAPSHOT_BOUNDARY = "code-snapshot";
+export const MCP_STDIO_CAPSULE_REQUIRED_BOUNDARIES = Object.freeze([
+  MCP_STDIO_CAPSULE_CODE_SNAPSHOT_BOUNDARY,
+  "filesystem",
+  "network",
+  "process-tree",
+]);
 
 const STORE_LABEL = "MCP stdio executable identity";
 const WITNESS_LABEL = "MCP stdio executable identity anti-rollback witness";
@@ -859,6 +865,7 @@ function issueCapsuleSandboxExecutionContract({
       args: Object.freeze([...attestation.launchArgs]),
       cwd: capsuleRoot.realPath,
       identityDigest: attestation.identityDigest,
+      requiredBoundaries: MCP_STDIO_CAPSULE_REQUIRED_BOUNDARIES,
     }),
   );
   return contract;
@@ -886,7 +893,9 @@ export function consumeMcpStdioCapsuleSandboxExecutionContract(
     provenance.shell === false &&
     provenance.sync === false &&
     provenance.identityDigest === issued.identityDigest &&
-    requiredBoundaries.includes(MCP_STDIO_CAPSULE_CODE_SNAPSHOT_BOUNDARY) &&
+    issued.requiredBoundaries.every((boundary) =>
+      requiredBoundaries.includes(boundary),
+    ) &&
     args.length === issued.args.length &&
     args.every((value, index) => value === issued.args[index])
   );

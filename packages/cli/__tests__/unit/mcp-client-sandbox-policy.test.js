@@ -4,6 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { MCPClient, _deps } from "../../src/lib/mcp-client.js";
+import { MCP_STDIO_CAPSULE_REQUIRED_BOUNDARIES } from "../../src/lib/mcp-stdio-executable-identity.js";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
 import {
   issuePluginWorkspaceAuthority,
@@ -118,21 +119,39 @@ describe("MCPClient plugin sandbox policy", () => {
         cwd: "C:\\capsule",
         shell: false,
         env: { PATH: "trusted" },
-        requiredBoundaries: expect.arrayContaining(["code-snapshot"]),
+        requiredBoundaries: MCP_STDIO_CAPSULE_REQUIRED_BOUNDARIES,
+        sandboxPolicy: {
+          requiredBoundaries: ["filesystem", "network"],
+        },
         sandboxExecutionContract: contract,
         mcpStdioExecutableIdentityAuthority: identityAuthority,
         mcpStdioExecutableIdentityDigest: "a".repeat(64),
       }),
     );
+    const launchOptions = _deps.spawn.mock.calls[0][2];
+    expect(
+      new Set([
+        ...launchOptions.requiredBoundaries,
+        ...launchOptions.sandboxPolicy.requiredBoundaries,
+      ]),
+    ).toEqual(new Set(MCP_STDIO_CAPSULE_REQUIRED_BOUNDARIES));
+    expect(Object.isFrozen(launchOptions.requiredBoundaries)).toBe(true);
+    expect(Object.isFrozen(launchOptions.sandboxPolicy)).toBe(true);
+    expect(
+      Object.isFrozen(launchOptions.sandboxPolicy.requiredBoundaries),
+    ).toBe(true);
+    expect(
+      client.servers.get("materialized-package").config,
+    ).not.toHaveProperty("sandboxPolicy");
     expect(issueAuthority).not.toHaveBeenCalled();
     await client.disconnectAll();
   });
 
-  it("combines an explicit strict policy with the capsule snapshot boundary", async () => {
+  it("does not let an explicit policy subset weaken the capsule host floor", async () => {
     const proc = makeFakeMcpProcess();
     _deps.spawn = vi.fn(() => proc);
     const contract = Object.freeze({ kind: "strict-mcp-node-capsule" });
-    _deps.prepareMcpStdioExecutableIdentity = () => ({
+    const prepare = vi.fn(() => ({
       command: process.execPath,
       args: ["C:\\capsule\\server.cjs", "--stdio"],
       identity: Object.freeze({}),
@@ -141,7 +160,8 @@ describe("MCPClient plugin sandbox policy", () => {
       env: { PATH: "trusted" },
       workingDirectory: "C:\\capsule",
       sandboxExecutionContract: contract,
-    });
+    }));
+    _deps.prepareMcpStdioExecutableIdentity = prepare;
     const client = new MCPClient({
       workspaceBinding: registerHostHooksV2Workspace(process.cwd()),
     });
@@ -151,7 +171,7 @@ describe("MCPClient plugin sandbox policy", () => {
       args: ["server@1.0.0"],
       origin: "mcp:configured",
       sandboxPolicy: {
-        requiredBoundaries: ["filesystem", "network"],
+        requiredBoundaries: ["network"],
       },
     });
 
@@ -159,7 +179,7 @@ describe("MCPClient plugin sandbox policy", () => {
       process.execPath,
       ["C:\\capsule\\server.cjs", "--stdio"],
       expect.objectContaining({
-        requiredBoundaries: expect.arrayContaining(["code-snapshot"]),
+        requiredBoundaries: MCP_STDIO_CAPSULE_REQUIRED_BOUNDARIES,
         sandboxPolicy: {
           requiredBoundaries: ["filesystem", "network"],
         },
@@ -168,6 +188,22 @@ describe("MCPClient plugin sandbox policy", () => {
     );
     const launchOptions = _deps.spawn.mock.calls[0][2];
     const connection = client.servers.get("strict-materialized-package");
+    expect(prepare).toHaveBeenCalledWith(
+      expect.objectContaining({
+        config: expect.objectContaining({
+          sandboxPolicy: { requiredBoundaries: ["network"] },
+        }),
+      }),
+    );
+    expect(connection.config.sandboxPolicy).toEqual({
+      requiredBoundaries: ["network"],
+    });
+    expect(
+      new Set([
+        ...launchOptions.requiredBoundaries,
+        ...launchOptions.sandboxPolicy.requiredBoundaries,
+      ]),
+    ).toEqual(new Set(MCP_STDIO_CAPSULE_REQUIRED_BOUNDARIES));
     if (!["linux", "win32"].includes(process.platform)) {
       expect(launchOptions.detached).toBe(true);
       expect(connection._stdioTreeMode).toBe("posix-group");
@@ -221,6 +257,14 @@ describe("MCPClient plugin sandbox policy", () => {
         sandboxExecutionContract: contract,
       }),
     );
+    const launchOptions = _deps.spawn.mock.calls[0][2];
+    expect(launchOptions.requiredBoundaries || []).not.toContain(
+      "code-snapshot",
+    );
+    expect(launchOptions.sandboxPolicy.requiredBoundaries).toEqual([
+      "filesystem",
+      "network",
+    ]);
     expect(issueAuthority).toHaveBeenCalledWith(
       "strict-mcp",
       [],

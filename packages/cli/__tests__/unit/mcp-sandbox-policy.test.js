@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  enforceMcpStdioCapsuleHostSandboxPolicy,
   MCP_SANDBOX_POLICY_INVALID_CODE,
   MCP_STDIO_CWD_INVALID_CODE,
   normalizeMcpSandboxPolicy,
@@ -106,6 +107,33 @@ describe("normalizeMcpSandboxPolicy", () => {
     expect(() =>
       normalizeMcpSandboxPolicy("strict", { label: "server.sandboxPolicy" }),
     ).toThrow(/server\.sandboxPolicy/);
+  });
+});
+
+describe("enforceMcpStdioCapsuleHostSandboxPolicy", () => {
+  it("adds a deeply frozen filesystem and network floor that source policy cannot remove", () => {
+    const source = { requiredBoundaries: ["network"] };
+    const enforced = enforceMcpStdioCapsuleHostSandboxPolicy(source);
+
+    expect(enforced).toEqual({
+      requiredBoundaries: ["filesystem", "network"],
+    });
+    expect(Object.isFrozen(enforced)).toBe(true);
+    expect(Object.isFrozen(enforced.requiredBoundaries)).toBe(true);
+
+    source.requiredBoundaries.length = 0;
+    expect(enforced.requiredBoundaries).toEqual(["filesystem", "network"]);
+    expect(enforceMcpStdioCapsuleHostSandboxPolicy(null)).toEqual(enforced);
+  });
+
+  it("does not let source data declare host-only internal boundaries", () => {
+    expect(() =>
+      enforceMcpStdioCapsuleHostSandboxPolicy({
+        requiredBoundaries: ["process-tree"],
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: MCP_SANDBOX_POLICY_INVALID_CODE }),
+    );
   });
 });
 
