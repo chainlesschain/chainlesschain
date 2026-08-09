@@ -3,6 +3,8 @@ import { defineConfig, configDefaults } from "vitest/config";
 export default defineConfig({
   test: {
     globals: true,
+    globalSetup: ["./test/global-setup/windows-sandbox-adapter-temp-root.js"],
+    setupFiles: ["./test/setup/windows-sandbox-adapter-cleanup.js"],
     // e2e runs under its own config (vitest.e2e.config.js: singleFork → serial),
     // because e2e files spawn real `cc` children + bind real ports. Letting them
     // into this 2-fork parallel pool causes port collisions and shared-DB
