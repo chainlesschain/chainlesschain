@@ -24,6 +24,7 @@ import {
   SANDBOX_BOUNDARIES,
 } from "../../src/lib/process-execution-broker/platform-sandbox.js";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
+import { installWindowsSandboxAdapterTestRoot } from "../../test/helpers/windows-sandbox-adapter-temp-root.js";
 
 const windowsSandboxSource = readFileSync(
   new URL(
@@ -57,21 +58,45 @@ function createWindowsAdapterHarness({
   }),
   readFileSync: readFile = vi.fn(),
   preexistingPaths = [],
+  preexistingDirectories = ["C:\\temp"],
 } = {}) {
-  const files = new Set(preexistingPaths.map(String));
+  const normalizeWindowsPath = (value) => path.win32.resolve(String(value));
+  const files = new Set();
   const directories = new Set();
   const contents = new Map();
   const identities = new Map();
+  const realpaths = new Map();
   let nextFileIdentity = 100;
+  const addDirectoryWithAncestors = (value) => {
+    const directory = normalizeWindowsPath(value);
+    const volumeRoot = path.win32.parse(directory).root;
+    let current = volumeRoot;
+    directories.add(current);
+    const relative = path.win32.relative(volumeRoot, directory);
+    for (const segment of relative.split(path.win32.sep).filter(Boolean)) {
+      current = path.win32.join(current, segment);
+      directories.add(current);
+    }
+  };
+  for (const directory of preexistingDirectories) {
+    addDirectoryWithAncestors(directory);
+  }
+  for (const filePath of preexistingPaths) {
+    addDirectoryWithAncestors(path.win32.dirname(String(filePath)));
+  }
   const putFile = (value, content) => {
-    const filePath = String(value);
+    const filePath = normalizeWindowsPath(value);
     const identity = nextFileIdentity;
     nextFileIdentity += 1;
+    addDirectoryWithAncestors(path.win32.dirname(filePath));
     files.add(filePath);
     contents.set(filePath, Buffer.from(content));
     identities.set(filePath, identity);
   };
-  for (const filePath of files) {
+  for (const directory of directories) {
+    identities.set(directory, nextFileIdentity++);
+  }
+  for (const filePath of preexistingPaths) {
     putFile(filePath, `preexisting:${filePath}`);
   }
   const missingPathError = (filePath) => {
@@ -80,7 +105,7 @@ function createWindowsAdapterHarness({
     return error;
   };
   const statFile = (value) => {
-    const filePath = String(value);
+    const filePath = normalizeWindowsPath(value);
     if (!files.has(filePath) && !directories.has(filePath)) {
       throw missingPathError(filePath);
     }
@@ -91,7 +116,7 @@ function createWindowsAdapterHarness({
       dev: 1n,
       ino: identity,
       size,
-      mode: 33_206n,
+      mode: isFile ? 33_206n : 16_895n,
       birthtimeNs: identity * 1_000_000n,
       ctimeNs: identity * 1_000_000n,
       mtimeNs: identity * 1_000_000n,
@@ -100,9 +125,15 @@ function createWindowsAdapterHarness({
       isSymbolicLink: () => false,
     };
   };
+  const nativeRealpath = vi.fn((value) => {
+    const filePath = normalizeWindowsPath(value);
+    return realpaths.get(filePath) || filePath;
+  });
+  const realpathSync = vi.fn(nativeRealpath);
+  realpathSync.native = nativeRealpath;
   const fsRuntime = {
     existsSync: vi.fn((value) => {
-      const filePath = String(value);
+      const filePath = normalizeWindowsPath(value);
       return (
         filePath.toLowerCase().endsWith("\\powershell.exe") ||
         files.has(filePath) ||
@@ -110,7 +141,7 @@ function createWindowsAdapterHarness({
       );
     }),
     readFileSync: vi.fn((value, encoding) => {
-      const filePath = String(value);
+      const filePath = normalizeWindowsPath(value);
       if (files.has(filePath)) {
         const content = contents.get(filePath);
         return encoding ? content.toString(encoding) : Buffer.from(content);
@@ -118,7 +149,7 @@ function createWindowsAdapterHarness({
       return readFile(value, encoding);
     }),
     writeFileSync: vi.fn((value, _content, options) => {
-      const filePath = String(value);
+      const filePath = normalizeWindowsPath(value);
       if (options?.flag === "wx" && files.has(filePath)) {
         const error = new Error(`Path already exists: ${filePath}`);
         error.code = "EEXIST";
@@ -127,7 +158,7 @@ function createWindowsAdapterHarness({
       putFile(filePath, _content);
     }),
     mkdirSync: vi.fn((value) => {
-      const directory = String(value);
+      const directory = normalizeWindowsPath(value);
       if (files.has(directory) || directories.has(directory)) {
         const error = new Error(`Path already exists: ${directory}`);
         error.code = "EEXIST";
@@ -137,7 +168,7 @@ function createWindowsAdapterHarness({
       identities.set(directory, nextFileIdentity++);
     }),
     unlinkSync: vi.fn((value) => {
-      const filePath = String(value);
+      const filePath = normalizeWindowsPath(value);
       if (!files.delete(filePath)) {
         throw missingPathError(filePath);
       }
@@ -145,7 +176,17 @@ function createWindowsAdapterHarness({
       identities.delete(filePath);
     }),
     rmdirSync: vi.fn((value) => {
-      const directory = String(value);
+      const directory = normalizeWindowsPath(value);
+      const hasChildren = [...files, ...directories].some(
+        (candidate) =>
+          candidate !== directory &&
+          path.win32.dirname(candidate) === directory,
+      );
+      if (hasChildren) {
+        const error = new Error(`Directory is not empty: ${directory}`);
+        error.code = "ENOTEMPTY";
+        throw error;
+      }
       if (!directories.delete(directory)) {
         throw missingPathError(directory);
       }
@@ -153,6 +194,7 @@ function createWindowsAdapterHarness({
     }),
     lstatSync: vi.fn(statFile),
     statSync: vi.fn(statFile),
+    realpathSync,
   };
   const decodeInvocationPaths = (args) => {
     if (
@@ -246,6 +288,26 @@ function createWindowsAdapterHarness({
     decodeHelperArgs,
     decodeInvocationPaths,
     logicalCalls,
+    getPathIdentity: (value) =>
+      identities.get(normalizeWindowsPath(value)) ?? null,
+    setPathIdentity: (value, identity) => {
+      identities.set(normalizeWindowsPath(value), identity);
+    },
+    replacePathIdentity: (value) => {
+      const filePath = normalizeWindowsPath(value);
+      const previous = identities.get(filePath);
+      identities.set(filePath, nextFileIdentity++);
+      return previous;
+    },
+    redirectRealpath: (value, target) => {
+      realpaths.set(normalizeWindowsPath(value), normalizeWindowsPath(target));
+    },
+    materializeExternalFile: (value) => {
+      const filePath = normalizeWindowsPath(value);
+      if (files.has(filePath)) return;
+      const content = readFile(filePath, "utf8");
+      if (content !== undefined) putFile(filePath, content);
+    },
     replaceFile: putFile,
     spawnSync,
   };
@@ -256,7 +318,13 @@ function decodeWindowsLaunchSpec(harness, plan) {
   if (helperArgs.length !== 1) {
     throw new Error(`Expected one Windows launch payload: ${helperArgs}`);
   }
-  return JSON.parse(Buffer.from(helperArgs[0], "base64").toString("utf8"));
+  const launchSpec = JSON.parse(
+    Buffer.from(helperArgs[0], "base64").toString("utf8"),
+  );
+  if (launchSpec.identityPath) {
+    harness.materializeExternalFile(launchSpec.identityPath);
+  }
+  return launchSpec;
 }
 
 function createLinuxStaticElf64({
@@ -5371,6 +5439,7 @@ describe("platform sandbox adapter contract", () => {
         fs: harness.fsRuntime,
         windowsDir: () => "C:\\Windows",
         windowsAdapterContent: "param([string]$Payload)",
+        windowsAdapterIdleTtlMs: 60_000,
         tmpdir: () => "C:\\temp",
         randomBytes: (size) => Buffer.alloc(size, 7),
         joinPath: path.win32.join,
@@ -6467,7 +6536,11 @@ describe("platform sandbox adapter contract", () => {
       (value) => String(value) === modernHost || exists(value),
     );
     const realpathSync = vi.fn((value) => String(value));
-    realpathSync.native = vi.fn(() => "C:\\temp\\redirected-pwsh.exe");
+    realpathSync.native = vi.fn((value) =>
+      String(value) === modernHost
+        ? "C:\\temp\\redirected-pwsh.exe"
+        : String(value),
+    );
     harness.fsRuntime.realpathSync = realpathSync;
 
     const plan = applyWindowsSandbox(
@@ -6493,6 +6566,426 @@ describe("platform sandbox adapter contract", () => {
     expect(resetWindowsSandboxAdapterCache()).toBe(true);
   });
 
+  it("uses the dedicated Windows adapter temp root from the environment", () => {
+    const adapterRoot = "D:\\chainless-adapter-test";
+    const harness = createWindowsAdapterHarness({
+      preexistingDirectories: ["C:\\temp", adapterRoot],
+    });
+    vi.stubEnv("CC_WINDOWS_SANDBOX_ADAPTER_TEMP_ROOT", adapterRoot);
+    try {
+      const plan = applyWindowsSandbox(
+        "tool.exe",
+        [],
+        {},
+        { profileName: "default" },
+        {
+          platform: "win32",
+          fs: harness.fsRuntime,
+          windowsAdapterContent: "adapter-bytes",
+          windowsDir: () => "C:\\Windows",
+          randomBytes: (size) => Buffer.alloc(size, 0xa2),
+          joinPath: path.win32.join,
+          spawnSync: harness.spawnSync,
+        },
+      );
+
+      expect(plan.applied).toBe(true);
+      const { assemblyPath, payloadPath } = harness.decodeInvocationPaths(
+        plan.args,
+      );
+      expect(assemblyPath.startsWith(`${adapterRoot}\\`)).toBe(true);
+      expect(payloadPath.startsWith(`${adapterRoot}\\`)).toBe(true);
+      expect(plan.adapterTempRootAttestation).toMatchObject({
+        kind: "windows-adapter-temp-root-path-reattestation-v1",
+        localVolume: true,
+        nativeRealpathMatched: true,
+        ancestorReparsePointsRejected: true,
+        rootIdentityBound: true,
+        criticalOperationReattestation: true,
+        descriptorRelativeOperations: false,
+        handleAtomic: false,
+        residualHandling: "fail-closed-on-detected-path-or-identity-change",
+      });
+      plan.cleanup();
+      expect(resetWindowsSandboxAdapterCache()).toBe(true);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("prefers a runtime Windows adapter temp root over the environment", () => {
+    const environmentRoot = "D:\\chainless-adapter-env";
+    const runtimeRoot = "E:\\chainless-adapter-runtime";
+    const harness = createWindowsAdapterHarness({
+      preexistingDirectories: ["C:\\temp", environmentRoot, runtimeRoot],
+    });
+    vi.stubEnv("CC_WINDOWS_SANDBOX_ADAPTER_TEMP_ROOT", environmentRoot);
+    try {
+      const plan = applyWindowsSandbox(
+        "tool.exe",
+        [],
+        {},
+        { profileName: "default" },
+        {
+          platform: "win32",
+          fs: harness.fsRuntime,
+          windowsAdapterContent: "adapter-bytes",
+          windowsAdapterTempRoot: runtimeRoot,
+          windowsDir: () => "C:\\Windows",
+          randomBytes: (size) => Buffer.alloc(size, 0xa3),
+          joinPath: path.win32.join,
+          spawnSync: harness.spawnSync,
+        },
+      );
+
+      expect(plan.applied).toBe(true);
+      const { assemblyPath, payloadPath } = harness.decodeInvocationPaths(
+        plan.args,
+      );
+      expect(assemblyPath.startsWith(`${runtimeRoot}\\`)).toBe(true);
+      expect(payloadPath.startsWith(`${runtimeRoot}\\`)).toBe(true);
+      plan.cleanup();
+      expect(resetWindowsSandboxAdapterCache()).toBe(true);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("calls an explicit tmpdir hook once and pins every plan temp path to it", () => {
+    const environmentRoot = "D:\\chainless-adapter-env";
+    const runtimeRoot = "E:\\chainless-adapter-runtime";
+    const tmpdirRoot = "F:\\chainless-adapter-tmpdir";
+    const harness = createWindowsAdapterHarness({
+      preexistingDirectories: [
+        "C:\\temp",
+        environmentRoot,
+        runtimeRoot,
+        tmpdirRoot,
+      ],
+    });
+    const tmpdir = vi.fn(() => tmpdirRoot);
+    vi.stubEnv("CC_WINDOWS_SANDBOX_ADAPTER_TEMP_ROOT", environmentRoot);
+    try {
+      const plan = applyWindowsSandbox(
+        "tool.exe",
+        [],
+        { detached: true },
+        { profileName: "default" },
+        {
+          platform: "win32",
+          fs: harness.fsRuntime,
+          windowsAdapterContent: "adapter-bytes",
+          windowsAdapterTempRoot: runtimeRoot,
+          windowsDir: () => "C:\\Windows",
+          tmpdir,
+          randomBytes: (size) => Buffer.alloc(size, 0xa4),
+          joinPath: path.win32.join,
+          spawnSync: harness.spawnSync,
+        },
+      );
+
+      expect(plan.applied).toBe(true);
+      expect(tmpdir).toHaveBeenCalledTimes(1);
+      const { assemblyPath, payloadPath } = harness.decodeInvocationPaths(
+        plan.args,
+      );
+      const launchSpec = decodeWindowsLaunchSpec(harness, plan);
+      expect(assemblyPath.startsWith(`${tmpdirRoot}\\`)).toBe(true);
+      expect(payloadPath.startsWith(`${tmpdirRoot}\\`)).toBe(true);
+      expect(launchSpec.identityPath.startsWith(`${tmpdirRoot}\\`)).toBe(true);
+      plan.cleanup();
+      expect(resetWindowsSandboxAdapterCache()).toBe(true);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("resolves an explicit Windows tmpdir hook once through applySandbox", () => {
+    const adapterRoot = "G:\\chainless-adapter-unified";
+    const harness = createWindowsAdapterHarness({
+      preexistingDirectories: [adapterRoot],
+    });
+    const tmpdir = vi.fn(() => adapterRoot);
+    const plan = applySandbox("tool.exe", [], {}, "default", {
+      platform: "win32",
+      fs: harness.fsRuntime,
+      windowsAdapterContent: "adapter-bytes",
+      windowsDir: () => "C:\\Windows",
+      tmpdir,
+      randomBytes: (size) => Buffer.alloc(size, 0xa6),
+      joinPath: path.win32.join,
+      spawnSync: harness.spawnSync,
+    });
+
+    expect(plan.applied).toBe(true);
+    expect(tmpdir).toHaveBeenCalledTimes(1);
+    plan.cleanup();
+    expect(resetWindowsSandboxAdapterCache()).toBe(true);
+  });
+
+  it.each([
+    ["an embedded NUL", "C:\\bad\0root", null, null],
+    ["a relative path", "relative\\root", null, null],
+    ["a symlink", "C:\\adapter-link", "directory", "symlink"],
+    ["a reparse point", "C:\\adapter-reparse", "directory", "reparse"],
+    ["a non-directory", "C:\\adapter-file", "file", null],
+  ])(
+    "fails closed with one reason when the adapter temp root is %s",
+    (_label, adapterRoot, kind, special) => {
+      const harness = createWindowsAdapterHarness({
+        preexistingDirectories:
+          kind === "directory" ? ["C:\\temp", adapterRoot] : ["C:\\temp"],
+        preexistingPaths: kind === "file" ? [adapterRoot] : [],
+      });
+      if (special) {
+        const lstat = harness.fsRuntime.lstatSync.getMockImplementation();
+        harness.fsRuntime.lstatSync.mockImplementation((value) => {
+          const stat = lstat(value);
+          if (String(value) !== adapterRoot) return stat;
+          return {
+            ...stat,
+            ...(special === "symlink"
+              ? { isSymbolicLink: () => true }
+              : { reparsePoint: true }),
+          };
+        });
+      }
+
+      const plan = applyWindowsSandbox(
+        "tool.exe",
+        [],
+        {},
+        { profileName: "default" },
+        {
+          platform: "win32",
+          fs: harness.fsRuntime,
+          windowsAdapterContent: "adapter-bytes",
+          windowsAdapterTempRoot: adapterRoot,
+          windowsDir: () => "C:\\Windows",
+          randomBytes: (size) => Buffer.alloc(size, 0xa5),
+          joinPath: path.win32.join,
+          spawnSync: harness.spawnSync,
+        },
+      );
+
+      expect(plan).toMatchObject({
+        applied: false,
+        reason: "windows_adapter_temp_root_untrusted",
+      });
+      expect(harness.spawnSync).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects a junction or reparse point in an adapter-root ancestor", () => {
+    const adapterRoot = "C:\\adapter-owner\\temp";
+    const reparseAncestor = "C:\\adapter-owner";
+    const harness = createWindowsAdapterHarness({
+      preexistingDirectories: [adapterRoot],
+    });
+    const lstat = harness.fsRuntime.lstatSync.getMockImplementation();
+    harness.fsRuntime.lstatSync.mockImplementation((value, options) => {
+      const stat = lstat(value, options);
+      return path.win32.resolve(String(value)) === reparseAncestor
+        ? { ...stat, isReparsePoint: () => true }
+        : stat;
+    });
+
+    const plan = applyWindowsSandbox(
+      "tool.exe",
+      [],
+      {},
+      { profileName: "default" },
+      {
+        platform: "win32",
+        fs: harness.fsRuntime,
+        windowsAdapterContent: "adapter-bytes",
+        windowsAdapterTempRoot: adapterRoot,
+        windowsDir: () => "C:\\Windows",
+        randomBytes: (size) => Buffer.alloc(size, 0xa7),
+        joinPath: path.win32.join,
+        spawnSync: harness.spawnSync,
+      },
+    );
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "windows_adapter_temp_root_untrusted",
+    });
+    expect(harness.spawnSync).not.toHaveBeenCalled();
+  });
+
+  it("accepts a native 8.3 alias only when it resolves to the same directory identity", () => {
+    const adapterRoot =
+      "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\chainless-adapter";
+    const canonicalRoot =
+      "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\chainless-adapter";
+    const harness = createWindowsAdapterHarness({
+      preexistingDirectories: [adapterRoot, canonicalRoot],
+    });
+    harness.setPathIdentity(
+      canonicalRoot,
+      harness.getPathIdentity(adapterRoot),
+    );
+    harness.redirectRealpath(adapterRoot, canonicalRoot);
+
+    const plan = applyWindowsSandbox(
+      "tool.exe",
+      [],
+      {},
+      { profileName: "default" },
+      {
+        platform: "win32",
+        fs: harness.fsRuntime,
+        windowsAdapterContent: "adapter-bytes",
+        windowsAdapterTempRoot: adapterRoot,
+        windowsDir: () => "C:\\Windows",
+        randomBytes: (size) => Buffer.alloc(size, 0xa8),
+        joinPath: path.win32.join,
+        spawnSync: harness.spawnSync,
+      },
+    );
+
+    expect(plan.applied).toBe(true);
+    expect(plan.adapterTempRootAttestation).toMatchObject({
+      nativeRealpathMatched: true,
+      sourceAliasCanonicalized: true,
+      rootIdentityBound: true,
+      criticalOperationReattestation: true,
+    });
+    const { assemblyPath, payloadPath } = harness.decodeInvocationPaths(
+      plan.args,
+    );
+    expect(assemblyPath.startsWith(`${canonicalRoot}\\`)).toBe(true);
+    expect(payloadPath.startsWith(`${canonicalRoot}\\`)).toBe(true);
+    plan.cleanup();
+    expect(resetWindowsSandboxAdapterCache()).toBe(true);
+  });
+
+  it("rejects a native realpath target with a different leaf identity", () => {
+    const adapterRoot = "C:\\adapter-realpath";
+    const redirectedRoot = "C:\\redirected-adapter-root";
+    const harness = createWindowsAdapterHarness({
+      preexistingDirectories: [adapterRoot, redirectedRoot],
+    });
+    harness.redirectRealpath(adapterRoot, redirectedRoot);
+
+    const plan = applyWindowsSandbox(
+      "tool.exe",
+      [],
+      {},
+      { profileName: "default" },
+      {
+        platform: "win32",
+        fs: harness.fsRuntime,
+        windowsAdapterContent: "adapter-bytes",
+        windowsAdapterTempRoot: adapterRoot,
+        windowsDir: () => "C:\\Windows",
+        randomBytes: (size) => Buffer.alloc(size, 0xad),
+        joinPath: path.win32.join,
+        spawnSync: harness.spawnSync,
+      },
+    );
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "windows_adapter_temp_root_untrusted",
+    });
+  });
+
+  it("fails closed when the bound adapter root is replaced during helper creation", () => {
+    const adapterRoot = "C:\\adapter-replaced-during-create";
+    const harness = createWindowsAdapterHarness({
+      preexistingDirectories: [adapterRoot],
+    });
+    const originalRootIdentity = harness.getPathIdentity(adapterRoot);
+    const writeFile = harness.fsRuntime.writeFileSync.getMockImplementation();
+    harness.fsRuntime.writeFileSync.mockImplementation(
+      (value, content, options) => {
+        const result = writeFile(value, content, options);
+        if (String(value).endsWith("\\windows-sandbox-helper.exe")) {
+          harness.replacePathIdentity(adapterRoot);
+        }
+        return result;
+      },
+    );
+
+    const plan = applyWindowsSandbox(
+      "tool.exe",
+      [],
+      {},
+      { profileName: "default" },
+      {
+        platform: "win32",
+        fs: harness.fsRuntime,
+        windowsAdapterContent: "adapter-bytes",
+        windowsAdapterTempRoot: adapterRoot,
+        windowsDir: () => "C:\\Windows",
+        randomBytes: (size) => Buffer.alloc(size, 0xa9),
+        joinPath: path.win32.join,
+        spawnSync: harness.spawnSync,
+      },
+    );
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "windows_adapter_temp_root_changed",
+    });
+    expect(harness.fsRuntime.unlinkSync).not.toHaveBeenCalled();
+    harness.setPathIdentity(adapterRoot, originalRootIdentity);
+    const unownedPartialHelper = [...harness.files].find(
+      (candidate) =>
+        candidate.startsWith(`${adapterRoot}\\`) &&
+        candidate.endsWith("\\windows-sandbox-helper.exe"),
+    );
+    expect(unownedPartialHelper).toBeTruthy();
+    harness.fsRuntime.unlinkSync(unownedPartialHelper);
+    expect(resetWindowsSandboxAdapterCache()).toBe(true);
+  });
+
+  it("refuses cleanup after root replacement and succeeds after identity restoration", () => {
+    const adapterRoot = "C:\\adapter-replaced-before-delete";
+    const harness = createWindowsAdapterHarness({
+      preexistingDirectories: [adapterRoot],
+    });
+    const originalRootIdentity = harness.getPathIdentity(adapterRoot);
+    const warn = vi.fn();
+    const plan = applyWindowsSandbox(
+      "tool.exe",
+      [],
+      {},
+      { profileName: "default" },
+      {
+        platform: "win32",
+        fs: harness.fsRuntime,
+        windowsAdapterContent: "adapter-bytes",
+        windowsAdapterIdleTtlMs: 0,
+        windowsAdapterTempRoot: adapterRoot,
+        windowsDir: () => "C:\\Windows",
+        randomBytes: (size) => Buffer.alloc(size, 0xaa),
+        joinPath: path.win32.join,
+        spawnSync: harness.spawnSync,
+        warn,
+      },
+    );
+    const { assemblyPath, payloadPath } = harness.decodeInvocationPaths(
+      plan.args,
+    );
+    harness.fsRuntime.unlinkSync.mockClear();
+    harness.replacePathIdentity(adapterRoot);
+
+    expect(plan.cleanup()).toBe(false);
+    expect(harness.files.has(assemblyPath)).toBe(true);
+    expect(harness.files.has(payloadPath)).toBe(true);
+    expect(harness.fsRuntime.unlinkSync).not.toHaveBeenCalledWith(assemblyPath);
+    expect(harness.fsRuntime.unlinkSync).not.toHaveBeenCalledWith(payloadPath);
+    expect(warn).toHaveBeenCalledOnce();
+
+    harness.setPathIdentity(adapterRoot, originalRootIdentity);
+    expect(resetWindowsSandboxAdapterCache()).toBe(true);
+    expect(harness.files.has(assemblyPath)).toBe(false);
+    expect(harness.files.has(payloadPath)).toBe(false);
+  });
+
   it("materializes a random byte-loaded Windows helper and never trusts a prepositioned cache", () => {
     const oldHashAssembly =
       "C:\\temp\\chainless-win-sandbox-0123456789abcdef01234567\\windows-sandbox-helper.exe";
@@ -6508,6 +7001,7 @@ describe("platform sandbox adapter contract", () => {
         platform: "win32",
         fs: harness.fsRuntime,
         windowsAdapterContent: "param()",
+        windowsAdapterIdleTtlMs: 60_000,
         windowsDir: () => "C:\\Windows",
         tmpdir: () => "C:\\temp",
         randomBytes: (size) => Buffer.alloc(size, 0xa1),
@@ -6550,6 +7044,7 @@ describe("platform sandbox adapter contract", () => {
       platform: "win32",
       fs: harness.fsRuntime,
       windowsAdapterContent: "param()",
+      windowsAdapterIdleTtlMs: 60_000,
       windowsDir: () => "C:\\Windows",
       tmpdir: () => "C:\\temp",
       randomBytes: (size) => {
@@ -6633,6 +7128,332 @@ describe("platform sandbox adapter contract", () => {
     }
   });
 
+  it.each([
+    ["the process environment", undefined],
+    ["an explicit runtime override", 0],
+  ])(
+    "synchronously retires a released helper at zero TTL from %s",
+    (_label, explicitTtl) => {
+      vi.useFakeTimers();
+      vi.stubEnv(
+        "CC_WINDOWS_SANDBOX_ADAPTER_IDLE_TTL_MS",
+        explicitTtl === undefined ? "0" : "999999",
+      );
+      const harness = createWindowsAdapterHarness();
+      try {
+        const plan = applyWindowsSandbox(
+          "tool.exe",
+          [],
+          {},
+          { profileName: "default" },
+          {
+            platform: "win32",
+            fs: harness.fsRuntime,
+            windowsAdapterContent: "adapter-bytes",
+            windowsAdapterIdleTtlMs: explicitTtl,
+            windowsDir: () => "C:\\Windows",
+            tmpdir: () => "C:\\temp",
+            randomBytes: (size) => Buffer.alloc(size, 0xb4),
+            joinPath: path.win32.join,
+            spawnSync: harness.spawnSync,
+          },
+        );
+
+        const { assemblyPath } = harness.decodeInvocationPaths(plan.args);
+        const adapterDirectory = path.win32.dirname(assemblyPath);
+        expect(harness.files.has(assemblyPath)).toBe(true);
+        expect(harness.directories.has(adapterDirectory)).toBe(true);
+        const timerCountBeforeRelease = vi.getTimerCount();
+        plan.cleanup();
+        expect(harness.files.has(assemblyPath)).toBe(false);
+        expect(harness.directories.has(adapterDirectory)).toBe(false);
+        expect(vi.getTimerCount()).toBe(timerCountBeforeRelease);
+      } finally {
+        vi.unstubAllEnvs();
+        vi.useRealTimers();
+        expect(resetWindowsSandboxAdapterCache()).toBe(true);
+      }
+    },
+  );
+
+  it("does not reuse a 60-second helper lease for a new zero-TTL policy", () => {
+    vi.useFakeTimers();
+    const harness = createWindowsAdapterHarness();
+    let helperNonce = 0xbb;
+    const runtime = {
+      platform: "win32",
+      fs: harness.fsRuntime,
+      windowsAdapterContent: "adapter-bytes",
+      windowsDir: () => "C:\\Windows",
+      tmpdir: () => "C:\\temp",
+      randomBytes: (size) => Buffer.alloc(size, helperNonce++),
+      joinPath: path.win32.join,
+      spawnSync: harness.spawnSync,
+    };
+    try {
+      const longLived = applyWindowsSandbox(
+        "first.exe",
+        [],
+        {},
+        { profileName: "default" },
+        { ...runtime, windowsAdapterIdleTtlMs: 60_000 },
+      );
+      const firstAssembly = harness.decodeInvocationPaths(
+        longLived.args,
+      ).assemblyPath;
+      longLived.cleanup();
+      expect(harness.files.has(firstAssembly)).toBe(true);
+
+      const zeroTtl = applyWindowsSandbox(
+        "second.exe",
+        [],
+        {},
+        { profileName: "default" },
+        { ...runtime, windowsAdapterIdleTtlMs: 0 },
+      );
+      const secondAssembly = harness.decodeInvocationPaths(
+        zeroTtl.args,
+      ).assemblyPath;
+      expect(secondAssembly).not.toBe(firstAssembly);
+      expect(harness.files.has(firstAssembly)).toBe(false);
+      expect(
+        harness.logicalCalls.filter(
+          ({ args: helperArgs }) => helperArgs[0] === "--probe-helper",
+        ),
+      ).toHaveLength(2);
+
+      zeroTtl.cleanup();
+      expect(harness.files.has(secondAssembly)).toBe(false);
+    } finally {
+      vi.runOnlyPendingTimers();
+      vi.useRealTimers();
+      expect(resetWindowsSandboxAdapterCache()).toBe(true);
+    }
+  });
+
+  it("retries a strict non-recursive directory removal after the helper file is gone", () => {
+    vi.useFakeTimers();
+    const harness = createWindowsAdapterHarness();
+    const removeDirectory = harness.fsRuntime.rmdirSync.getMockImplementation();
+    let allowDirectoryRemoval = false;
+    harness.fsRuntime.rmdirSync.mockImplementation((value) => {
+      if (!allowDirectoryRemoval) {
+        const error = new Error(`Directory remains busy: ${value}`);
+        error.code = "EACCES";
+        throw error;
+      }
+      return removeDirectory(value);
+    });
+    try {
+      const plan = applyWindowsSandbox(
+        "tool.exe",
+        [],
+        {},
+        { profileName: "default" },
+        {
+          platform: "win32",
+          fs: harness.fsRuntime,
+          windowsAdapterContent: "adapter-bytes",
+          windowsAdapterIdleTtlMs: 0,
+          windowsDir: () => "C:\\Windows",
+          tmpdir: () => "C:\\temp",
+          randomBytes: (size) => Buffer.alloc(size, 0xb5),
+          joinPath: path.win32.join,
+          sleepSync: vi.fn(),
+          spawnSync: harness.spawnSync,
+        },
+      );
+      const { assemblyPath } = harness.decodeInvocationPaths(plan.args);
+      const adapterDirectory = path.win32.dirname(assemblyPath);
+
+      plan.cleanup();
+      expect(harness.files.has(assemblyPath)).toBe(false);
+      expect(harness.directories.has(adapterDirectory)).toBe(true);
+      expect(vi.getTimerCount()).toBe(1);
+
+      allowDirectoryRemoval = true;
+      vi.advanceTimersByTime(250);
+      expect(harness.directories.has(adapterDirectory)).toBe(false);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      allowDirectoryRemoval = true;
+      vi.runAllTimers();
+      vi.useRealTimers();
+      expect(resetWindowsSandboxAdapterCache()).toBe(true);
+    }
+  });
+
+  it("tracks the helper directory when a partial materialization cannot clean up immediately", () => {
+    const harness = createWindowsAdapterHarness();
+    const writeFile = harness.fsRuntime.writeFileSync.getMockImplementation();
+    const unlink = harness.fsRuntime.unlinkSync.getMockImplementation();
+    let helperBusy = true;
+    harness.fsRuntime.writeFileSync.mockImplementation(
+      (value, content, options) => {
+        const result = writeFile(value, content, options);
+        if (String(value).endsWith("\\windows-sandbox-helper.exe")) {
+          const error = new Error("partial helper write failed");
+          error.code = "EIO";
+          throw error;
+        }
+        return result;
+      },
+    );
+    harness.fsRuntime.unlinkSync.mockImplementation((value) => {
+      if (
+        helperBusy &&
+        String(value).endsWith("\\windows-sandbox-helper.exe")
+      ) {
+        const error = new Error("partial helper is temporarily busy");
+        error.code = "EACCES";
+        throw error;
+      }
+      return unlink(value);
+    });
+
+    const plan = applyWindowsSandbox(
+      "tool.exe",
+      [],
+      {},
+      { profileName: "default" },
+      {
+        platform: "win32",
+        fs: harness.fsRuntime,
+        windowsAdapterContent: "adapter-bytes",
+        windowsDir: () => "C:\\Windows",
+        tmpdir: () => "C:\\temp",
+        randomBytes: (size) => Buffer.alloc(size, 0xb8),
+        joinPath: path.win32.join,
+        sleepSync: vi.fn(),
+        spawnSync: harness.spawnSync,
+      },
+    );
+    const adapterDirectory =
+      "C:\\temp\\chainless-win-sandbox-" + "b8".repeat(24);
+    const assemblyPath = path.win32.join(
+      adapterDirectory,
+      "windows-sandbox-helper.exe",
+    );
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "windows_native_adapter_compile_cleanup_unverified",
+    });
+    expect(harness.files.has(assemblyPath)).toBe(true);
+    expect(harness.directories.has(adapterDirectory)).toBe(true);
+
+    helperBusy = false;
+    expect(resetWindowsSandboxAdapterCache()).toBe(true);
+    expect(harness.files.has(assemblyPath)).toBe(false);
+    expect(harness.directories.has(adapterDirectory)).toBe(false);
+  });
+
+  it("retires the cache entry when an unlink race leaves only a file backlog", () => {
+    vi.useFakeTimers();
+    const harness = createWindowsAdapterHarness();
+    const unlink = harness.fsRuntime.unlinkSync.getMockImplementation();
+    const removeDirectory = harness.fsRuntime.rmdirSync.getMockImplementation();
+    harness.fsRuntime.unlinkSync.mockImplementation((value) => {
+      const target = String(value);
+      if (
+        target.endsWith("\\windows-sandbox-helper.exe") &&
+        harness.files.has(target)
+      ) {
+        const error = new Error("helper is temporarily busy");
+        error.code = "EACCES";
+        throw error;
+      }
+      return unlink(value);
+    });
+    harness.fsRuntime.rmdirSync.mockImplementation((value) => {
+      const directory = String(value);
+      const helperPath = path.win32.join(
+        directory,
+        "windows-sandbox-helper.exe",
+      );
+      if (harness.files.has(helperPath)) unlink(helperPath);
+      return removeDirectory(value);
+    });
+    try {
+      const plan = applyWindowsSandbox(
+        "tool.exe",
+        [],
+        {},
+        { profileName: "default" },
+        {
+          platform: "win32",
+          fs: harness.fsRuntime,
+          windowsAdapterContent: "adapter-bytes",
+          windowsAdapterIdleTtlMs: 0,
+          windowsDir: () => "C:\\Windows",
+          tmpdir: () => "C:\\temp",
+          randomBytes: (size) => Buffer.alloc(size, 0xb6),
+          joinPath: path.win32.join,
+          sleepSync: vi.fn(),
+          spawnSync: harness.spawnSync,
+        },
+      );
+      const { assemblyPath } = harness.decodeInvocationPaths(plan.args);
+
+      plan.cleanup();
+      expect(harness.files.has(assemblyPath)).toBe(false);
+      expect(vi.getTimerCount()).toBe(1);
+      vi.advanceTimersByTime(250);
+      expect(vi.getTimerCount()).toBe(0);
+
+      harness.fsRuntime.unlinkSync.mockClear();
+      expect(resetWindowsSandboxAdapterCache()).toBe(true);
+      expect(harness.fsRuntime.unlinkSync).not.toHaveBeenCalledWith(
+        assemblyPath,
+      );
+    } finally {
+      vi.runAllTimers();
+      vi.useRealTimers();
+      expect(resetWindowsSandboxAdapterCache()).toBe(true);
+    }
+  });
+
+  it("reports reset success when an immediate retry clears transient backlogs", () => {
+    const harness = createWindowsAdapterHarness();
+    const plan = applyWindowsSandbox(
+      "tool.exe",
+      [],
+      {},
+      { profileName: "default" },
+      {
+        platform: "win32",
+        fs: harness.fsRuntime,
+        windowsAdapterContent: "adapter-bytes",
+        windowsAdapterIdleTtlMs: 60_000,
+        windowsDir: () => "C:\\Windows",
+        tmpdir: () => "C:\\temp",
+        randomBytes: (size) => Buffer.alloc(size, 0xb7),
+        joinPath: path.win32.join,
+        sleepSync: vi.fn(),
+        spawnSync: harness.spawnSync,
+      },
+    );
+    const { assemblyPath } = harness.decodeInvocationPaths(plan.args);
+    const adapterDirectory = path.win32.dirname(assemblyPath);
+    const unlink = harness.fsRuntime.unlinkSync.getMockImplementation();
+    let transientFailures = 100;
+    harness.fsRuntime.unlinkSync.mockImplementation((value) => {
+      if (String(value) === assemblyPath && transientFailures > 0) {
+        transientFailures -= 1;
+        const error = new Error("helper is temporarily busy");
+        error.code = "EACCES";
+        throw error;
+      }
+      return unlink(value);
+    });
+
+    plan.cleanup();
+    expect(resetWindowsSandboxAdapterCache()).toBe(true);
+    expect(transientFailures).toBe(0);
+    expect(harness.files.has(assemblyPath)).toBe(false);
+    expect(harness.directories.has(adapterDirectory)).toBe(false);
+  });
+
   it("rejects and rematerializes a cached helper when its digest or file identity changes", () => {
     const harness = createWindowsAdapterHarness();
     let helperNonce = 0xc0;
@@ -6640,6 +7461,7 @@ describe("platform sandbox adapter contract", () => {
       platform: "win32",
       fs: harness.fsRuntime,
       windowsAdapterContent: "param()",
+      windowsAdapterIdleTtlMs: 60_000,
       windowsDir: () => "C:\\Windows",
       tmpdir: () => "C:\\temp",
       randomBytes: (size) => {
@@ -6674,7 +7496,10 @@ describe("platform sandbox adapter contract", () => {
       second.args,
     ).assemblyPath;
     expect(secondAssembly).not.toBe(firstAssembly);
-    expect(harness.files.has(firstAssembly)).toBe(false);
+    // Product cleanup refuses to unlink a same-path replacement whose stable
+    // file identity no longer matches the helper it created.
+    expect(harness.files.has(firstAssembly)).toBe(true);
+    harness.fsRuntime.unlinkSync(firstAssembly);
     second.cleanup();
 
     // Byte-identical replacement still changes stable file identity.
@@ -6690,6 +7515,8 @@ describe("platform sandbox adapter contract", () => {
       third.args,
     ).assemblyPath;
     expect(thirdAssembly).not.toBe(secondAssembly);
+    expect(harness.files.has(secondAssembly)).toBe(true);
+    harness.fsRuntime.unlinkSync(secondAssembly);
     expect(
       harness.logicalCalls.filter(
         ({ args: helperArgs }) => helperArgs[0] === "--probe-helper",
@@ -7445,7 +8272,8 @@ describe("platform sandbox adapter contract", () => {
       initialAssembly,
     );
     expect(helperSpawnSync.mock.calls[1][1][0]).toBe("--delete-appcontainer");
-    expect(harness.files.has(initialAssembly)).toBe(false);
+    expect(harness.files.has(initialAssembly)).toBe(true);
+    harness.fsRuntime.unlinkSync(initialAssembly);
     expect(
       harness.logicalCalls.filter(
         ({ args: helperArgs }) => helperArgs[0] === "--probe-helper",
@@ -8169,6 +8997,13 @@ describe("platform sandbox adapter contract", () => {
   });
 
   it("reports Windows unavailable when its native host is missing", () => {
+    const harness = createWindowsAdapterHarness();
+    const exists = harness.fsRuntime.existsSync.getMockImplementation();
+    harness.fsRuntime.existsSync.mockImplementation((value) =>
+      String(value).toLowerCase().endsWith("\\powershell.exe")
+        ? false
+        : exists(value),
+    );
     const plan = applyWindowsSandbox(
       "tool.exe",
       [],
@@ -8176,21 +9011,19 @@ describe("platform sandbox adapter contract", () => {
       { profileName: "strict" },
       {
         platform: "win32",
-        fs: {
-          existsSync: vi.fn(() => false),
-          writeFileSync: vi.fn(),
-          unlinkSync: vi.fn(),
-        },
+        fs: harness.fsRuntime,
         windowsDir: () => "C:\\Windows",
         windowsAdapterContent: "param()",
         tmpdir: () => "C:\\temp",
         randomBytes: () => Buffer.alloc(12, 3),
+        joinPath: path.win32.join,
       },
     );
     expect(plan).toMatchObject({
       applied: false,
       reason: "windows_powershell_host_unavailable",
     });
+    expect(resetWindowsSandboxAdapterCache()).toBe(true);
   });
 
   it("retains a retryable cleanup record when a host-missing helper cannot be removed", () => {
@@ -8364,21 +9197,26 @@ describe.runIf(process.platform === "win32")(
       const workspace = fs.mkdtempSync(
         path.join(os.tmpdir(), "cc-windows-byte-helper-live-"),
       );
+      const adapterOwner = installWindowsSandboxAdapterTestRoot();
+      expect(adapterOwner.installed).toBe(true);
+      const adapterRoot = adapterOwner.rootPath;
+      const plantedSidecars = [
+        "mscoree.dll",
+        "mscoreei.dll",
+        "version.dll",
+      ].map((name) => path.join(adapterRoot, name));
       const trustedWindowsDirectory = fs.realpathSync.native(
         String.raw`\\?\GLOBALROOT\SystemRoot`,
       );
       const previousWindir = process.env.WINDIR;
       const previousSystemRoot = process.env.SystemRoot;
       let plan;
+      let helperConfigPath = null;
       try {
-        for (const plantedName of [
-          "mscoree.dll",
-          "mscoreei.dll",
-          "version.dll",
-        ]) {
+        for (const plantedPath of plantedSidecars) {
           fs.writeFileSync(
-            path.join(workspace, plantedName),
-            `untrusted-${plantedName}`,
+            plantedPath,
+            `untrusted-${path.basename(plantedPath)}`,
           );
         }
         process.env.WINDIR = workspace;
@@ -8395,7 +9233,7 @@ describe.runIf(process.platform === "win32")(
             env: process.env,
           },
           { profileName: "strict", sync: true },
-          { platform: "win32", tmpdir: () => workspace },
+          { platform: "win32", windowsAdapterTempRoot: adapterRoot },
         );
 
         expect(plan.applied, plan.reason).toBe(true);
@@ -8424,18 +9262,19 @@ describe.runIf(process.platform === "win32")(
           SystemRoot: trustedWindowsDirectory,
           WINDIR: trustedWindowsDirectory,
         });
-        const workspaceFiles = fs.readdirSync(workspace);
+        const adapterFiles = fs.readdirSync(adapterRoot);
         expect(
-          workspaceFiles.filter((name) =>
+          adapterFiles.filter((name) =>
             /^chainless-win-sandbox-[a-f0-9]+\.exe$/i.test(name),
           ),
         ).toEqual([]);
-        const helperNames = workspaceFiles.filter((name) =>
+        const helperNames = adapterFiles.filter((name) =>
           /^chainless-win-sandbox-[a-f0-9]+\.dll$/i.test(name),
         );
         expect(helperNames).toHaveLength(1);
+        helperConfigPath = path.join(adapterRoot, `${helperNames[0]}.config`);
         fs.writeFileSync(
-          path.join(workspace, `${helperNames[0]}.config`),
+          helperConfigPath,
           "<configuration><runtime>untrusted</runtime></configuration>",
         );
 
@@ -8464,7 +9303,12 @@ describe.runIf(process.platform === "win32")(
           try {
             cacheCleaned = resetWindowsSandboxAdapterCache();
           } finally {
+            for (const plantedPath of plantedSidecars) {
+              fs.rmSync(plantedPath, { force: true });
+            }
+            if (helperConfigPath) fs.rmSync(helperConfigPath, { force: true });
             fs.rmSync(workspace, { recursive: true, force: true });
+            adapterOwner.teardown();
           }
         }
         expect(cacheCleaned).toBe(true);
@@ -8475,8 +9319,12 @@ describe.runIf(process.platform === "win32")(
       const workspace = fs.mkdtempSync(
         path.join(os.tmpdir(), "cc-windows-byte-helper-tamper-"),
       );
+      const adapterOwner = installWindowsSandboxAdapterTestRoot();
+      expect(adapterOwner.installed).toBe(true);
+      const adapterRoot = adapterOwner.rootPath;
       const targetMarker = path.join(workspace, "target-ran.txt");
       let plan;
+      let tamperedHelperPath = null;
       try {
         expect(resetWindowsSandboxAdapterCache()).toBe(true);
         plan = applyWindowsSandbox(
@@ -8495,20 +9343,18 @@ describe.runIf(process.platform === "win32")(
             env: process.env,
           },
           { profileName: "strict", sync: true },
-          { platform: "win32", tmpdir: () => workspace },
+          { platform: "win32", windowsAdapterTempRoot: adapterRoot },
         );
 
         expect(plan.applied, plan.reason).toBe(true);
         const helperNames = fs
-          .readdirSync(workspace)
+          .readdirSync(adapterRoot)
           .filter((name) =>
             /^chainless-win-sandbox-[a-f0-9]+\.dll$/i.test(name),
           );
         expect(helperNames).toHaveLength(1);
-        fs.writeFileSync(
-          path.join(workspace, helperNames[0]),
-          "changed-after-attestation",
-        );
+        tamperedHelperPath = path.join(adapterRoot, helperNames[0]);
+        fs.writeFileSync(tamperedHelperPath, "changed-after-attestation");
 
         const result = nativeSpawnSync(plan.command, [...plan.args], {
           ...plan.options,
@@ -8525,9 +9371,13 @@ describe.runIf(process.platform === "win32")(
           plan?.cleanup?.();
         } finally {
           try {
+            if (tamperedHelperPath) {
+              fs.rmSync(tamperedHelperPath, { force: true });
+            }
             cacheCleaned = resetWindowsSandboxAdapterCache();
           } finally {
             fs.rmSync(workspace, { recursive: true, force: true });
+            adapterOwner.teardown();
           }
         }
         expect(cacheCleaned).toBe(true);
@@ -8538,6 +9388,9 @@ describe.runIf(process.platform === "win32")(
       const workspace = fs.mkdtempSync(
         path.join(os.tmpdir(), "cc-windows-local-path-live-"),
       );
+      const adapterOwner = installWindowsSandboxAdapterTestRoot();
+      expect(adapterOwner.installed).toBe(true);
+      const adapterRoot = adapterOwner.rootPath;
       const remotePath = String.raw`\\localhost\cc-sandbox-must-not-open`;
       let activePlan;
       try {
@@ -8565,7 +9418,7 @@ describe.runIf(process.platform === "win32")(
               env: process.env,
             },
             { profileName: "strict", sync: true },
-            { platform: "win32", tmpdir: () => workspace },
+            { platform: "win32", windowsAdapterTempRoot: adapterRoot },
           );
           expect(activePlan.applied, activePlan.reason).toBe(true);
 
@@ -8589,6 +9442,7 @@ describe.runIf(process.platform === "win32")(
             cacheCleaned = resetWindowsSandboxAdapterCache();
           } finally {
             fs.rmSync(workspace, { recursive: true, force: true });
+            adapterOwner.teardown();
           }
         }
         expect(cacheCleaned).toBe(true);
@@ -8603,6 +9457,9 @@ describe.runIf(process.platform === "win32")(
       let acknowledgeUnavailableCleanup = false;
       const runtime = {
         platform: "win32",
+        // This case deliberately retries a retained AppContainer cleanup
+        // record through the already-attested helper below.
+        windowsAdapterIdleTtlMs: 60_000,
         randomBytes: (size) =>
           size === 12 ? Buffer.alloc(size, 0x6a) : crypto.randomBytes(size),
         spawnSync: (...spawnArgs) =>

@@ -108,6 +108,13 @@ const WINDOWS_APPCONTAINER_BACKEND =
   "windows-appcontainer-job-restricted-token";
 const MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND = "strict-mcp-node-capsule";
 const WINDOWS_ADAPTER_IDLE_TTL_MS = 60_000;
+const WINDOWS_ADAPTER_HELPER_NAME = "windows-sandbox-helper.exe";
+const WINDOWS_ADAPTER_IDLE_TTL_ENV = "CC_WINDOWS_SANDBOX_ADAPTER_IDLE_TTL_MS";
+const WINDOWS_ADAPTER_TEMP_ROOT_ENV = "CC_WINDOWS_SANDBOX_ADAPTER_TEMP_ROOT";
+const WINDOWS_ADAPTER_TEMP_ROOT_UNTRUSTED_REASON =
+  "windows_adapter_temp_root_untrusted";
+const WINDOWS_ADAPTER_TEMP_ROOT_CHANGED_REASON =
+  "windows_adapter_temp_root_changed";
 // Every native helper operation starts a trusted System32 PowerShell host and
 // byte-loads the checked-in assembly. Hosted Windows runners can spend well
 // over ten seconds in that bootstrap before the managed operation begins.
@@ -309,6 +316,325 @@ let windowsAdapterExitCleanupRegistered = false;
 
 function resolveRuntime(overrides = {}) {
   return { ...DEFAULT_RUNTIME, ...overrides };
+}
+
+function windowsNativeRealpath(runtime, candidate) {
+  const nativeRealpath = runtime.fs.realpathSync?.native;
+  if (typeof nativeRealpath !== "function") {
+    throw new Error("Native Windows realpath is unavailable");
+  }
+  const nativePath = nativeRealpath.call(runtime.fs, candidate);
+  const withoutExtendedPrefix = String(nativePath).replace(
+    /^\\\\\?\\(?=[A-Za-z]:\\)/,
+    "",
+  );
+  return path.win32.resolve(withoutExtendedPrefix);
+}
+
+function windowsPathHasReparseSemantics(stat) {
+  return (
+    stat.isSymbolicLink?.() ||
+    stat.isReparsePoint?.() ||
+    stat.reparsePoint === true
+  );
+}
+
+function windowsLocalPathAncestors(candidate) {
+  const resolved = path.win32.resolve(candidate);
+  const volumeRoot = path.win32.parse(resolved).root;
+  if (!/^[A-Za-z]:\\$/.test(volumeRoot)) return null;
+  const relative = path.win32.relative(volumeRoot, resolved);
+  if (
+    path.win32.isAbsolute(relative) ||
+    relative === ".." ||
+    relative.startsWith(`..${path.win32.sep}`)
+  ) {
+    return null;
+  }
+  const ancestors = [volumeRoot];
+  let current = volumeRoot;
+  for (const segment of relative.split(path.win32.sep).filter(Boolean)) {
+    current = path.win32.join(current, segment);
+    ancestors.push(current);
+  }
+  return ancestors;
+}
+
+function windowsDirectoryIdentity(stat) {
+  const birthtimeNs =
+    stat.birthtimeNs !== undefined
+      ? String(stat.birthtimeNs)
+      : String(Math.trunc(Number(stat.birthtimeMs || 0) * 1_000_000));
+  if (
+    stat.dev === undefined ||
+    stat.ino === undefined ||
+    stat.mode === undefined
+  ) {
+    throw new Error("Windows directory identity is unavailable");
+  }
+  return Object.freeze({
+    dev: String(stat.dev),
+    ino: String(stat.ino),
+    mode: String(stat.mode),
+    birthtimeNs,
+  });
+}
+
+function sameWindowsDirectoryIdentity(left, right) {
+  return (
+    left?.dev === right?.dev &&
+    left?.ino === right?.ino &&
+    left?.mode === right?.mode &&
+    left?.birthtimeNs === right?.birthtimeNs
+  );
+}
+
+function inspectWindowsAdapterTempRoot(runtime, candidate) {
+  if (
+    typeof candidate !== "string" ||
+    candidate.length === 0 ||
+    candidate.includes("\0") ||
+    !path.win32.isAbsolute(candidate)
+  ) {
+    return null;
+  }
+  const sourcePath = path.win32.resolve(candidate);
+  const sourceAncestors = windowsLocalPathAncestors(sourcePath);
+  if (!sourceAncestors) return null;
+
+  try {
+    // Keep the caller-visible path in the trust decision even when Windows
+    // exposes it through a legitimate 8.3 alias (for example RUNNER~1 on a
+    // hosted runner). Every raw ancestor must be a plain directory before the
+    // native real path is accepted as the path used for mutations.
+    let sourceRootStat = null;
+    for (const ancestor of sourceAncestors) {
+      const stat = runtime.fs.lstatSync(ancestor, { bigint: true });
+      if (windowsPathHasReparseSemantics(stat) || !stat.isDirectory?.()) {
+        return null;
+      }
+      sourceRootStat = stat;
+    }
+
+    const rootPath = windowsNativeRealpath(runtime, sourcePath);
+    const rootAncestors = windowsLocalPathAncestors(rootPath);
+    if (!rootAncestors) return null;
+    let canonicalRootStat = null;
+    for (const ancestor of rootAncestors) {
+      const stat = runtime.fs.lstatSync(ancestor, { bigint: true });
+      if (windowsPathHasReparseSemantics(stat) || !stat.isDirectory?.()) {
+        return null;
+      }
+      canonicalRootStat = stat;
+    }
+
+    const sourceIdentity = windowsDirectoryIdentity(sourceRootStat);
+    const identity = windowsDirectoryIdentity(canonicalRootStat);
+    if (!sameWindowsDirectoryIdentity(sourceIdentity, identity)) return null;
+
+    const sourceAfter = runtime.fs.lstatSync(sourcePath, { bigint: true });
+    const rootAfter = runtime.fs.lstatSync(rootPath, { bigint: true });
+    if (
+      windowsPathHasReparseSemantics(sourceAfter) ||
+      !sourceAfter.isDirectory?.() ||
+      windowsPathHasReparseSemantics(rootAfter) ||
+      !rootAfter.isDirectory?.() ||
+      windowsCanonicalPathKey(windowsNativeRealpath(runtime, sourcePath)) !==
+        windowsCanonicalPathKey(rootPath) ||
+      windowsCanonicalPathKey(windowsNativeRealpath(runtime, rootPath)) !==
+        windowsCanonicalPathKey(rootPath) ||
+      !sameWindowsDirectoryIdentity(
+        sourceIdentity,
+        windowsDirectoryIdentity(sourceAfter),
+      ) ||
+      !sameWindowsDirectoryIdentity(
+        identity,
+        windowsDirectoryIdentity(rootAfter),
+      )
+    ) {
+      return null;
+    }
+    return Object.freeze({
+      sourcePath,
+      sourceCanonicalPathKey: windowsCanonicalPathKey(sourcePath),
+      rootPath,
+      canonicalPathKey: windowsCanonicalPathKey(rootPath),
+      volumeRoot: path.win32.parse(rootPath).root.toLowerCase(),
+      identity,
+      attestation: Object.freeze({
+        kind: "windows-adapter-temp-root-path-reattestation-v1",
+        localVolume: true,
+        nativeRealpathMatched: true,
+        sourceAliasCanonicalized:
+          windowsCanonicalPathKey(sourcePath) !==
+          windowsCanonicalPathKey(rootPath),
+        ancestorReparsePointsRejected: true,
+        rootIdentityBound: true,
+        criticalOperationReattestation: true,
+        descriptorRelativeOperations: false,
+        handleAtomic: false,
+        residualRace:
+          "same-principal-path-swap-between-reattestation-and-filesystem-call",
+        residualHandling: "fail-closed-on-detected-path-or-identity-change",
+      }),
+    });
+  } catch {
+    return null;
+  }
+}
+
+function sameWindowsAdapterTempRootBinding(left, right) {
+  return (
+    left?.sourceCanonicalPathKey === right?.sourceCanonicalPathKey &&
+    left?.canonicalPathKey === right?.canonicalPathKey &&
+    left?.volumeRoot === right?.volumeRoot &&
+    sameWindowsDirectoryIdentity(left?.identity, right?.identity)
+  );
+}
+
+function verifyWindowsAdapterTempRootBinding(runtime, binding) {
+  const current = inspectWindowsAdapterTempRoot(
+    runtime,
+    binding?.sourcePath || binding?.rootPath,
+  );
+  return Boolean(
+    current && sameWindowsAdapterTempRootBinding(binding, current),
+  );
+}
+
+function windowsAdapterTempRootChangedError() {
+  const error = new Error(
+    "Windows sandbox adapter temp root changed after attestation",
+  );
+  error.code = "ERR_WINDOWS_SANDBOX_ADAPTER_TEMP_ROOT_CHANGED";
+  error.adapterReason = WINDOWS_ADAPTER_TEMP_ROOT_CHANGED_REASON;
+  return error;
+}
+
+function assertWindowsAdapterTempRoot(runtime) {
+  const binding = runtime.windowsAdapterTempRootBinding;
+  if (!binding || !verifyWindowsAdapterTempRootBinding(runtime, binding)) {
+    throw windowsAdapterTempRootChangedError();
+  }
+  return binding;
+}
+
+function inspectWindowsAdapterBoundPath(
+  runtime,
+  targetPath,
+  expectedKind,
+  { allowMissing = false } = {},
+) {
+  const binding = assertWindowsAdapterTempRoot(runtime);
+  if (
+    typeof targetPath !== "string" ||
+    targetPath.includes("\0") ||
+    !path.win32.isAbsolute(targetPath)
+  ) {
+    throw windowsAdapterTempRootChangedError();
+  }
+  const resolved = path.win32.resolve(targetPath);
+  const relative = path.win32.relative(binding.rootPath, resolved);
+  if (
+    !relative ||
+    path.win32.isAbsolute(relative) ||
+    relative === ".." ||
+    relative.startsWith(`..${path.win32.sep}`)
+  ) {
+    throw windowsAdapterTempRootChangedError();
+  }
+
+  const segments = relative.split(path.win32.sep).filter(Boolean);
+  let current = binding.rootPath;
+  for (let index = 0; index < segments.length; index += 1) {
+    current = path.win32.join(current, segments[index]);
+    const isTarget = index === segments.length - 1;
+    let stat;
+    try {
+      stat = runtime.fs.lstatSync(current, { bigint: true });
+    } catch (error) {
+      if (isTarget && allowMissing && error?.code === "ENOENT") {
+        return Object.freeze({ exists: false, resolvedPath: resolved });
+      }
+      throw error;
+    }
+    if (
+      windowsPathHasReparseSemantics(stat) ||
+      windowsCanonicalPathKey(windowsNativeRealpath(runtime, current)) !==
+        windowsCanonicalPathKey(current)
+    ) {
+      throw windowsAdapterTempRootChangedError();
+    }
+    if (!isTarget && !stat.isDirectory?.()) {
+      throw windowsAdapterTempRootChangedError();
+    }
+    if (isTarget) {
+      if (
+        (expectedKind === "file" && !stat.isFile?.()) ||
+        (expectedKind === "directory" && !stat.isDirectory?.())
+      ) {
+        throw windowsAdapterTempRootChangedError();
+      }
+      return Object.freeze({
+        exists: true,
+        resolvedPath: resolved,
+        identity:
+          expectedKind === "directory"
+            ? windowsDirectoryIdentity(stat)
+            : windowsFileIdentity(stat),
+      });
+    }
+  }
+  throw windowsAdapterTempRootChangedError();
+}
+
+function assertWindowsAdapterBoundPathIdentity(
+  runtime,
+  targetPath,
+  expectedKind,
+  expectedIdentity,
+) {
+  const inspected = inspectWindowsAdapterBoundPath(
+    runtime,
+    targetPath,
+    expectedKind,
+  );
+  const matches =
+    expectedKind === "directory"
+      ? sameWindowsDirectoryIdentity(inspected.identity, expectedIdentity)
+      : sameWindowsFileIdentity(inspected.identity, expectedIdentity);
+  if (!matches) throw windowsAdapterTempRootChangedError();
+  return inspected;
+}
+
+function resolveWindowsAdapterTempRoot(runtime, runtimeOverrides = {}) {
+  const hasExplicitTmpdir = Object.prototype.hasOwnProperty.call(
+    runtimeOverrides,
+    "tmpdir",
+  );
+  const hasExplicitAdapterRoot = Object.prototype.hasOwnProperty.call(
+    runtimeOverrides,
+    "windowsAdapterTempRoot",
+  );
+  let candidate;
+  try {
+    if (hasExplicitTmpdir) {
+      if (typeof runtime.tmpdir !== "function") return null;
+      candidate = runtime.tmpdir();
+    } else if (hasExplicitAdapterRoot) {
+      candidate = runtimeOverrides.windowsAdapterTempRoot;
+    } else {
+      const environmentRoot =
+        runtime.env?.[WINDOWS_ADAPTER_TEMP_ROOT_ENV] ??
+        process.env[WINDOWS_ADAPTER_TEMP_ROOT_ENV];
+      candidate =
+        environmentRoot === undefined ? runtime.tmpdir() : environmentRoot;
+    }
+  } catch {
+    return null;
+  }
+
+  return inspectWindowsAdapterTempRoot(runtime, candidate);
 }
 
 function normalizeSandboxRequest(profileOrRequest, explicitRequest) {
@@ -788,14 +1114,42 @@ function cleanupWindowsTemporaryPath(
   targetPath,
   attempts = 100,
   delayMs = 10,
+  expectedIdentity = null,
 ) {
   if (!targetPath) return true;
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     try {
+      const inspected = inspectWindowsAdapterBoundPath(
+        runtime,
+        targetPath,
+        "file",
+        { allowMissing: true },
+      );
+      if (!inspected.exists) {
+        assertWindowsAdapterTempRoot(runtime);
+        return true;
+      }
+      if (
+        !expectedIdentity ||
+        !sameWindowsFileIdentity(inspected.identity, expectedIdentity)
+      ) {
+        return false;
+      }
       runtime.fs.unlinkSync(targetPath);
+      assertWindowsAdapterTempRoot(runtime);
       return true;
     } catch (error) {
-      if (error?.code === "ENOENT") return true;
+      if (error?.adapterReason === WINDOWS_ADAPTER_TEMP_ROOT_CHANGED_REASON) {
+        return false;
+      }
+      if (error?.code === "ENOENT") {
+        try {
+          assertWindowsAdapterTempRoot(runtime);
+          return true;
+        } catch {
+          return false;
+        }
+      }
     }
     if (attempt + 1 < attempts) runtime.sleepSync(delayMs);
   }
@@ -806,12 +1160,31 @@ function cleanupOrTrackWindowsTemporaryPath(
   runtime,
   targetPath,
   attempts = 100,
+  entry = null,
+  expectedIdentity = null,
 ) {
-  if (cleanupWindowsTemporaryPath(runtime, targetPath, attempts)) {
+  if (
+    cleanupWindowsTemporaryPath(
+      runtime,
+      targetPath,
+      attempts,
+      10,
+      expectedIdentity,
+    )
+  ) {
+    const residualEntries = new Set();
     for (const residual of [...windowsTemporaryCleanupBacklog]) {
-      if (residual.runtime === runtime && residual.targetPath === targetPath) {
+      if (
+        residual.kind === "file" &&
+        residual.runtime === runtime &&
+        residual.targetPath === targetPath
+      ) {
         windowsTemporaryCleanupBacklog.delete(residual);
+        if (residual.entry) residualEntries.add(residual.entry);
       }
+    }
+    for (const residualEntry of residualEntries) {
+      finalizeWindowsTemporaryCleanupEntry(residualEntry);
     }
     if (
       windowsTemporaryCleanupBacklog.size === 0 &&
@@ -822,13 +1195,25 @@ function cleanupOrTrackWindowsTemporaryPath(
     }
     return true;
   }
-  if (
-    ![...windowsTemporaryCleanupBacklog].some(
-      (residual) =>
-        residual.runtime === runtime && residual.targetPath === targetPath,
-    )
-  ) {
-    windowsTemporaryCleanupBacklog.add({ runtime, targetPath });
+  const existing = [...windowsTemporaryCleanupBacklog].find(
+    (residual) =>
+      residual.kind === "file" &&
+      residual.runtime === runtime &&
+      residual.targetPath === targetPath,
+  );
+  if (existing) {
+    if (entry) existing.entry = entry;
+    if (!existing.expectedIdentity && expectedIdentity) {
+      existing.expectedIdentity = expectedIdentity;
+    }
+  } else {
+    windowsTemporaryCleanupBacklog.add({
+      kind: "file",
+      runtime,
+      targetPath,
+      entry,
+      expectedIdentity,
+    });
   }
   registerWindowsAdapterExitCleanup();
   scheduleWindowsTemporaryCleanupRetry();
@@ -838,14 +1223,25 @@ function cleanupOrTrackWindowsTemporaryPath(
 function retryWindowsTemporaryCleanupBacklog(attempts = 100) {
   let cleaned = true;
   for (const residual of [...windowsTemporaryCleanupBacklog]) {
-    if (
-      cleanupWindowsTemporaryPath(
-        residual.runtime,
-        residual.targetPath,
-        attempts,
-      )
-    ) {
+    const residualCleaned =
+      residual.kind === "directory"
+        ? cleanupWindowsTemporaryDirectory(
+            residual.runtime,
+            residual.targetPath,
+            attempts,
+            10,
+            residual.expectedIdentity,
+          )
+        : cleanupWindowsTemporaryPath(
+            residual.runtime,
+            residual.targetPath,
+            attempts,
+            10,
+            residual.expectedIdentity,
+          );
+    if (residualCleaned) {
       windowsTemporaryCleanupBacklog.delete(residual);
+      if (residual.entry) finalizeWindowsTemporaryCleanupEntry(residual.entry);
     } else {
       cleaned = false;
     }
@@ -858,6 +1254,18 @@ function retryWindowsTemporaryCleanupBacklog(attempts = 100) {
     windowsTemporaryCleanupRetryTimer = null;
   }
   return cleaned;
+}
+
+function finalizeWindowsTemporaryCleanupEntry(entry) {
+  if (
+    [...windowsTemporaryCleanupBacklog].some(
+      (residual) => residual.entry === entry,
+    )
+  ) {
+    return;
+  }
+  entry.cleaned = true;
+  windowsAdapterCacheEntries.delete(entry);
 }
 
 function scheduleWindowsTemporaryCleanupRetry() {
@@ -882,17 +1290,109 @@ function cleanupWindowsTemporaryDirectory(
   targetPath,
   attempts = 100,
   delayMs = 10,
+  expectedIdentity = null,
 ) {
   if (!targetPath) return true;
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     try {
+      const inspected = inspectWindowsAdapterBoundPath(
+        runtime,
+        targetPath,
+        "directory",
+        { allowMissing: true },
+      );
+      if (!inspected.exists) {
+        assertWindowsAdapterTempRoot(runtime);
+        return true;
+      }
+      if (
+        !expectedIdentity ||
+        !sameWindowsDirectoryIdentity(inspected.identity, expectedIdentity)
+      ) {
+        return false;
+      }
       runtime.fs.rmdirSync(targetPath);
+      assertWindowsAdapterTempRoot(runtime);
       return true;
     } catch (error) {
-      if (error?.code === "ENOENT") return true;
+      if (error?.adapterReason === WINDOWS_ADAPTER_TEMP_ROOT_CHANGED_REASON) {
+        return false;
+      }
+      if (error?.code === "ENOENT") {
+        try {
+          assertWindowsAdapterTempRoot(runtime);
+          return true;
+        } catch {
+          return false;
+        }
+      }
     }
     if (attempt + 1 < attempts) runtime.sleepSync(delayMs);
   }
+  return false;
+}
+
+function cleanupOrTrackWindowsTemporaryDirectory(
+  runtime,
+  targetPath,
+  attempts = 100,
+  entry = null,
+  expectedIdentity = null,
+) {
+  if (
+    cleanupWindowsTemporaryDirectory(
+      runtime,
+      targetPath,
+      attempts,
+      10,
+      expectedIdentity,
+    )
+  ) {
+    const residualEntries = new Set();
+    for (const residual of [...windowsTemporaryCleanupBacklog]) {
+      if (
+        residual.kind === "directory" &&
+        residual.runtime === runtime &&
+        residual.targetPath === targetPath
+      ) {
+        windowsTemporaryCleanupBacklog.delete(residual);
+        if (residual.entry) residualEntries.add(residual.entry);
+      }
+    }
+    for (const residualEntry of residualEntries) {
+      finalizeWindowsTemporaryCleanupEntry(residualEntry);
+    }
+    if (
+      windowsTemporaryCleanupBacklog.size === 0 &&
+      windowsTemporaryCleanupRetryTimer
+    ) {
+      clearTimeout(windowsTemporaryCleanupRetryTimer);
+      windowsTemporaryCleanupRetryTimer = null;
+    }
+    return true;
+  }
+  const existing = [...windowsTemporaryCleanupBacklog].find(
+    (residual) =>
+      residual.kind === "directory" &&
+      residual.runtime === runtime &&
+      residual.targetPath === targetPath,
+  );
+  if (existing) {
+    if (entry) existing.entry = entry;
+    if (!existing.expectedIdentity && expectedIdentity) {
+      existing.expectedIdentity = expectedIdentity;
+    }
+  } else {
+    windowsTemporaryCleanupBacklog.add({
+      kind: "directory",
+      runtime,
+      targetPath,
+      entry,
+      expectedIdentity,
+    });
+  }
+  registerWindowsAdapterExitCleanup();
+  scheduleWindowsTemporaryCleanupRetry();
   return false;
 }
 
@@ -1143,15 +1643,11 @@ function sameWindowsFileIdentity(left, right) {
 }
 
 function inspectWindowsAdapterAssembly(runtime, assemblyPath) {
-  if (typeof runtime.fs.lstatSync === "function") {
-    const linkStat = runtime.fs.lstatSync(assemblyPath, { bigint: true });
-    if (
-      linkStat.isSymbolicLink?.() ||
-      (typeof linkStat.isFile === "function" && !linkStat.isFile())
-    ) {
-      throw new Error("Windows in-memory adapter is not a regular file");
-    }
-  }
+  const boundBefore = inspectWindowsAdapterBoundPath(
+    runtime,
+    assemblyPath,
+    "file",
+  );
   const before = runtime.fs.statSync(assemblyPath, { bigint: true });
   if (typeof before.isFile === "function" && !before.isFile()) {
     throw new Error("Windows in-memory adapter is not a regular file");
@@ -1164,6 +1660,15 @@ function inspectWindowsAdapterAssembly(runtime, assemblyPath) {
   if (!sameWindowsFileIdentity(beforeIdentity, afterIdentity)) {
     throw new Error("Windows in-memory adapter changed during attestation");
   }
+  const boundAfter = assertWindowsAdapterBoundPathIdentity(
+    runtime,
+    assemblyPath,
+    "file",
+    boundBefore.identity,
+  );
+  if (!sameWindowsFileIdentity(afterIdentity, boundAfter.identity)) {
+    throw new Error("Windows in-memory adapter changed during attestation");
+  }
   return { assemblyDigest, fileIdentity: afterIdentity };
 }
 
@@ -1173,6 +1678,11 @@ function verifyWindowsAdapterEntry(entry, runtime, source) {
     entry.cleaned ||
     entry.runtimeFs !== runtime.fs ||
     entry.tempDirectory !== source.tempDirectory ||
+    entry.idleTtlMs !== source.idleTtlMs ||
+    !sameWindowsAdapterTempRootBinding(
+      entry.tempRootBinding,
+      source.tempRootBinding,
+    ) ||
     entry.sourceDigest !== source.sourceDigest ||
     entry.sourceContractDigest !== source.sourceContractDigest ||
     entry.loaderMode !== source.loaderMode
@@ -1180,6 +1690,15 @@ function verifyWindowsAdapterEntry(entry, runtime, source) {
     return false;
   }
   try {
+    assertWindowsAdapterTempRoot(runtime);
+    if (entry.adapterDirectory) {
+      assertWindowsAdapterBoundPathIdentity(
+        runtime,
+        entry.adapterDirectory,
+        "directory",
+        entry.adapterDirectoryIdentity,
+      );
+    }
     const attestation = inspectWindowsAdapterAssembly(
       runtime,
       entry.assemblyPath,
@@ -1203,14 +1722,18 @@ function cleanupWindowsAdapterEntry(entry, attempts = 100) {
     entry.runtime,
     entry.assemblyPath,
     attempts,
+    entry,
+    entry.fileIdentity,
   );
-  const directoryDeleted =
-    deleted &&
-    cleanupWindowsTemporaryDirectory(
-      entry.runtime,
-      entry.adapterDirectory,
-      attempts,
-    );
+  const directoryDeleted = entry.adapterDirectory
+    ? cleanupOrTrackWindowsTemporaryDirectory(
+        entry.runtime,
+        entry.adapterDirectory,
+        attempts,
+        entry,
+        entry.adapterDirectoryIdentity,
+      )
+    : true;
   if (deleted && directoryDeleted) {
     entry.cleaned = true;
     windowsAdapterCacheEntries.delete(entry);
@@ -1253,15 +1776,35 @@ function registerWindowsAdapterExitCleanup() {
  * this hook at a known quiescent point to prove cleanup.
  */
 export function resetWindowsSandboxAdapterCache() {
-  let cleaned = retryWindowsAppContainerCleanupBacklog();
+  const appContainerCleaned = retryWindowsAppContainerCleanupBacklog();
   windowsAdapterCache = null;
   for (const entry of [...windowsAdapterCacheEntries]) {
     entry.retired = true;
     entry.refCount = 0;
-    if (!cleanupWindowsAdapterEntry(entry)) cleaned = false;
+    cleanupWindowsAdapterEntry(entry);
   }
-  if (!retryWindowsTemporaryCleanupBacklog()) cleaned = false;
-  return cleaned;
+  retryWindowsTemporaryCleanupBacklog();
+  return (
+    appContainerCleaned &&
+    windowsTemporaryCleanupBacklog.size === 0 &&
+    windowsAdapterCacheEntries.size === 0
+  );
+}
+
+function normalizeWindowsAdapterIdleTtlMs(runtime) {
+  const explicitTtl = runtime.windowsAdapterIdleTtlMs;
+  const environmentTtl =
+    runtime.env?.[WINDOWS_ADAPTER_IDLE_TTL_ENV] ??
+    process.env[WINDOWS_ADAPTER_IDLE_TTL_ENV];
+  const configuredTtl =
+    explicitTtl === undefined ? environmentTtl : explicitTtl;
+  const numericTtl =
+    configuredTtl === "" || configuredTtl === null
+      ? Number.NaN
+      : Number(configuredTtl);
+  return Number.isFinite(numericTtl) && numericTtl >= 0
+    ? numericTtl
+    : WINDOWS_ADAPTER_IDLE_TTL_MS;
 }
 
 function scheduleWindowsAdapterIdleCleanup(entry) {
@@ -1273,11 +1816,11 @@ function scheduleWindowsAdapterIdleCleanup(entry) {
   ) {
     return;
   }
-  const configuredTtl = Number(entry.runtime.windowsAdapterIdleTtlMs);
-  const idleTtlMs =
-    Number.isFinite(configuredTtl) && configuredTtl >= 0
-      ? configuredTtl
-      : WINDOWS_ADAPTER_IDLE_TTL_MS;
+  const idleTtlMs = entry.idleTtlMs;
+  if (idleTtlMs === 0) {
+    retireWindowsAdapterEntry(entry);
+    return;
+  }
   entry.idleTimer = setTimeout(() => {
     entry.idleTimer = null;
     if (
@@ -1293,6 +1836,7 @@ function scheduleWindowsAdapterIdleCleanup(entry) {
 }
 
 function loadWindowsAdapterSource(runtime, loaderMode) {
+  const tempRootBinding = assertWindowsAdapterTempRoot(runtime);
   const bundled = runtime.windowsAdapterContent === undefined;
   const content = bundled
     ? loaderMode === "managed-executable"
@@ -1307,7 +1851,10 @@ function loadWindowsAdapterSource(runtime, loaderMode) {
         : WINDOWS_SANDBOX_HELPER_ASSEMBLY_DIGEST
       : sha256(content),
     sourceContractDigest: bundled ? WINDOWS_SANDBOX_HELPER_SOURCE_DIGEST : null,
-    tempDirectory: runtime.tmpdir(),
+    tempDirectory: tempRootBinding.rootPath,
+    tempRootBinding,
+    tempRootAttestation: tempRootBinding.attestation,
+    idleTtlMs: runtime.windowsAdapterIdleTtlMs,
     loaderMode,
   };
 }
@@ -1329,54 +1876,121 @@ function materializeWindowsAdapter(runtime, source) {
   const assemblyPath = runtime.joinPath(
     adapterDirectory || source.tempDirectory,
     source.loaderMode === "managed-executable"
-      ? "windows-sandbox-helper.exe"
+      ? WINDOWS_ADAPTER_HELPER_NAME
       : `${adapterBaseName}.dll`,
   );
-  if (
-    (adapterDirectory && runtime.fs.existsSync(adapterDirectory)) ||
-    runtime.fs.existsSync(assemblyPath)
-  ) {
-    return { reason: "windows_native_adapter_random_path_collision" };
-  }
+  let adapterDirectoryIdentity = null;
+  let assemblyFileIdentity = null;
   try {
+    assertWindowsAdapterTempRoot(runtime);
     if (adapterDirectory) {
+      if (
+        inspectWindowsAdapterBoundPath(runtime, adapterDirectory, "directory", {
+          allowMissing: true,
+        }).exists
+      ) {
+        return { reason: "windows_native_adapter_random_path_collision" };
+      }
       runtime.fs.mkdirSync(adapterDirectory, {
         mode: 0o700,
         recursive: false,
       });
+      adapterDirectoryIdentity = inspectWindowsAdapterBoundPath(
+        runtime,
+        adapterDirectory,
+        "directory",
+      ).identity;
+    }
+    if (
+      inspectWindowsAdapterBoundPath(runtime, assemblyPath, "file", {
+        allowMissing: true,
+      }).exists
+    ) {
+      const collision = new Error(
+        "Windows native adapter random path collision",
+      );
+      collision.code = "EEXIST";
+      throw collision;
     }
     runtime.fs.writeFileSync(assemblyPath, source.content, {
       mode: adapterDirectory ? 0o500 : 0o600,
       flag: "wx",
     });
+    assemblyFileIdentity = inspectWindowsAdapterAssembly(
+      runtime,
+      assemblyPath,
+    ).fileIdentity;
   } catch (error) {
+    if (error?.code === "EEXIST") {
+      const directoryDeleted = cleanupOrTrackWindowsTemporaryDirectory(
+        runtime,
+        adapterDirectory,
+        100,
+        null,
+        adapterDirectoryIdentity,
+      );
+      return {
+        reason: directoryDeleted
+          ? "windows_native_adapter_random_path_collision"
+          : "windows_native_adapter_compile_cleanup_unverified",
+      };
+    }
+    if (!assemblyFileIdentity) {
+      try {
+        const inspected = inspectWindowsAdapterBoundPath(
+          runtime,
+          assemblyPath,
+          "file",
+          { allowMissing: true },
+        );
+        assemblyFileIdentity = inspected.exists ? inspected.identity : null;
+      } catch {
+        assemblyFileIdentity = null;
+      }
+    }
     const assemblyDeleted = cleanupOrTrackWindowsTemporaryPath(
       runtime,
       assemblyPath,
+      100,
+      null,
+      assemblyFileIdentity,
     );
-    const directoryDeleted =
-      assemblyDeleted &&
-      cleanupWindowsTemporaryDirectory(runtime, adapterDirectory);
+    const directoryDeleted = cleanupOrTrackWindowsTemporaryDirectory(
+      runtime,
+      adapterDirectory,
+      100,
+      null,
+      adapterDirectoryIdentity,
+    );
+    if (error?.adapterReason === WINDOWS_ADAPTER_TEMP_ROOT_CHANGED_REASON) {
+      return { reason: WINDOWS_ADAPTER_TEMP_ROOT_CHANGED_REASON };
+    }
     if (!assemblyDeleted || !directoryDeleted) {
       return { reason: "windows_native_adapter_compile_cleanup_unverified" };
-    }
-    if (error?.code === "EEXIST") {
-      return { reason: "windows_native_adapter_random_path_collision" };
     }
     return { reason: "windows_native_adapter_materialize_failed" };
   }
   return {
     adapterDirectory,
+    adapterDirectoryIdentity,
     assemblyPath,
+    assemblyFileIdentity,
     cleanupAssembly: () => {
       const assemblyDeleted = cleanupOrTrackWindowsTemporaryPath(
         runtime,
         assemblyPath,
+        100,
+        null,
+        assemblyFileIdentity,
       );
-      return (
-        assemblyDeleted &&
-        cleanupWindowsTemporaryDirectory(runtime, adapterDirectory)
+      const directoryDeleted = cleanupOrTrackWindowsTemporaryDirectory(
+        runtime,
+        adapterDirectory,
+        100,
+        null,
+        adapterDirectoryIdentity,
       );
+      return assemblyDeleted && directoryDeleted;
     },
   };
 }
@@ -1388,9 +2002,7 @@ function materializeWindowsAdapterInvocation(runtime, helperArgs) {
       .randomBytes(24)
       .toString("hex")}.json`,
   );
-  if (runtime.fs.existsSync(payloadPath)) {
-    return { reason: "windows_adapter_invocation_random_path_collision" };
-  }
+  let fileIdentity = null;
   let content;
   try {
     content = Buffer.from(
@@ -1410,16 +2022,57 @@ function materializeWindowsAdapterInvocation(runtime, helperArgs) {
     return { reason: "windows_adapter_invocation_too_large" };
   }
   try {
+    if (
+      inspectWindowsAdapterBoundPath(runtime, payloadPath, "file", {
+        allowMissing: true,
+      }).exists
+    ) {
+      return { reason: "windows_adapter_invocation_random_path_collision" };
+    }
     runtime.fs.writeFileSync(payloadPath, content, {
       mode: 0o600,
       flag: "wx",
     });
+    const inspected = inspectWindowsAdapterAssembly(runtime, payloadPath);
+    if (inspected.assemblyDigest !== sha256(content)) {
+      throw new Error("Windows adapter invocation changed after creation");
+    }
+    fileIdentity = inspected.fileIdentity;
   } catch (error) {
+    if (!fileIdentity) {
+      try {
+        const inspected = inspectWindowsAdapterBoundPath(
+          runtime,
+          payloadPath,
+          "file",
+          { allowMissing: true },
+        );
+        fileIdentity = inspected.exists ? inspected.identity : null;
+      } catch {
+        fileIdentity = null;
+      }
+    }
+    if (error?.adapterReason === WINDOWS_ADAPTER_TEMP_ROOT_CHANGED_REASON) {
+      cleanupOrTrackWindowsTemporaryPath(
+        runtime,
+        payloadPath,
+        100,
+        null,
+        fileIdentity,
+      );
+      return { reason: WINDOWS_ADAPTER_TEMP_ROOT_CHANGED_REASON };
+    }
     if (error?.code === "EEXIST") {
       return { reason: "windows_adapter_invocation_random_path_collision" };
     }
     return {
-      reason: cleanupOrTrackWindowsTemporaryPath(runtime, payloadPath)
+      reason: cleanupOrTrackWindowsTemporaryPath(
+        runtime,
+        payloadPath,
+        100,
+        null,
+        fileIdentity,
+      )
         ? "windows_adapter_invocation_materialize_failed"
         : "windows_adapter_invocation_cleanup_unverified",
     };
@@ -1427,7 +2080,24 @@ function materializeWindowsAdapterInvocation(runtime, helperArgs) {
   return {
     payloadPath,
     payloadDigest: sha256(content),
-    cleanup: () => cleanupOrTrackWindowsTemporaryPath(runtime, payloadPath),
+    fileIdentity,
+    verify: () => {
+      const inspected = assertWindowsAdapterBoundPathIdentity(
+        runtime,
+        payloadPath,
+        "file",
+        fileIdentity,
+      );
+      return inspected.exists;
+    },
+    cleanup: () =>
+      cleanupOrTrackWindowsTemporaryPath(
+        runtime,
+        payloadPath,
+        100,
+        null,
+        fileIdentity,
+      ),
   };
 }
 
@@ -1483,6 +2153,7 @@ function buildWindowsAdapterInvocation(entry, invocation) {
         invocation.payloadPath,
         invocation.payloadDigest,
       ],
+      verify: invocation.verify,
       cleanup: invocation.cleanup,
     };
   }
@@ -1497,6 +2168,7 @@ function buildWindowsAdapterInvocation(entry, invocation) {
       "-EncodedCommand",
       windowsPowerShellBootstrap(entry, invocation),
     ],
+    verify: invocation.verify,
     cleanup: invocation.cleanup,
   };
 }
@@ -1583,11 +2255,14 @@ function createFreshWindowsAdapter(runtime, source, hostEnvironment) {
     runtime,
     runtimeFs: runtime.fs,
     tempDirectory: source.tempDirectory,
+    tempRootBinding: source.tempRootBinding,
+    idleTtlMs: source.idleTtlMs,
     sourceDigest: source.sourceDigest,
     sourceContractDigest: source.sourceContractDigest,
     loaderMode: source.loaderMode,
     powershellPath: powershellHosts[0] || null,
     adapterDirectory: materialized.adapterDirectory,
+    adapterDirectoryIdentity: materialized.adapterDirectoryIdentity,
     assemblyPath: materialized.assemblyPath,
     assemblyDigest: attestation.assemblyDigest,
     fileIdentity: attestation.fileIdentity,
@@ -1743,7 +2418,9 @@ function createWindowsAdapterController(runtime, source, hostEnvironment) {
       error.adapterReason = payload.reason;
       throw error;
     }
-    return buildWindowsAdapterInvocation(entry, payload);
+    const invocation = buildWindowsAdapterInvocation(entry, payload);
+    invocation.verify();
+    return invocation;
   };
 
   return {
@@ -1754,6 +2431,7 @@ function createWindowsAdapterController(runtime, source, hostEnvironment) {
       let result;
       let failure;
       try {
+        invocation.verify();
         result = runtime.spawnSync(invocation.command, invocation.args, {
           ...options,
           cwd: runtime.joinPath(runtime.windowsDir(), "System32"),
@@ -1781,20 +2459,40 @@ function createWindowsAdapterController(runtime, source, hostEnvironment) {
   };
 }
 
+function readWindowsAdapterBoundFile(runtime, filePath, encoding = null) {
+  const before = inspectWindowsAdapterBoundPath(runtime, filePath, "file");
+  const content = runtime.fs.readFileSync(filePath, encoding || undefined);
+  const after = assertWindowsAdapterBoundPathIdentity(
+    runtime,
+    filePath,
+    "file",
+    before.identity,
+  );
+  if (!sameWindowsFileIdentity(before.identity, after.identity)) {
+    throw windowsAdapterTempRootChangedError();
+  }
+  return { content, fileIdentity: after.identity };
+}
+
 function waitForWindowsTargetIdentity(
   proc,
   identityPath,
   runtime,
   expectedAppContainer = null,
   timeoutMs = 30_000,
+  onIdentityFileAttested = null,
 ) {
   const deadline = runtime.now() + timeoutMs;
   let lastError;
   while (runtime.now() < deadline) {
     try {
-      const identity = JSON.parse(
-        runtime.fs.readFileSync(identityPath, "utf8"),
+      const identityFile = readWindowsAdapterBoundFile(
+        runtime,
+        identityPath,
+        "utf8",
       );
+      onIdentityFileAttested?.(identityFile.fileIdentity);
+      const identity = JSON.parse(identityFile.content);
       if (identity?.error) {
         throw new Error(
           `Windows sandbox helper rejected the target: ${identity.error}`,
@@ -2610,11 +3308,33 @@ export function applyWindowsSandbox(
   ) {
     return unavailablePlan("windows_git_nested_process_compatibility");
   }
+  const windowsAdapterTempRootBinding = resolveWindowsAdapterTempRoot(
+    runtime,
+    runtimeOverrides,
+  );
+  if (!windowsAdapterTempRootBinding) {
+    return unavailablePlan(WINDOWS_ADAPTER_TEMP_ROOT_UNTRUSTED_REASON);
+  }
+  const windowsAdapterIdleTtlMs = normalizeWindowsAdapterIdleTtlMs(runtime);
+  runtime = {
+    ...runtime,
+    windowsAdapterTempRoot: windowsAdapterTempRootBinding.rootPath,
+    windowsAdapterTempRootBinding,
+    windowsAdapterIdleTtlMs,
+    tmpdir: () => windowsAdapterTempRootBinding.rootPath,
+  };
   const loaderMode =
     profile !== "strict" && !requiresAppContainer && !entrySnapshot.locks
       ? "managed-executable"
       : "powershell-byte-assembly";
-  const adapterSource = loadWindowsAdapterSource(runtime, loaderMode);
+  let adapterSource;
+  try {
+    adapterSource = loadWindowsAdapterSource(runtime, loaderMode);
+  } catch (error) {
+    return unavailablePlan(
+      error?.adapterReason || WINDOWS_ADAPTER_TEMP_ROOT_CHANGED_REASON,
+    );
+  }
   if (!adapterSource.content) {
     return unavailablePlan(adapterSource.reason);
   }
@@ -2659,6 +3379,22 @@ export function applyWindowsSandbox(
             .toString("hex")}.json`,
         )
       : null;
+  let identityFileIdentity = null;
+  if (identityPath) {
+    try {
+      if (
+        inspectWindowsAdapterBoundPath(runtime, identityPath, "file", {
+          allowMissing: true,
+        }).exists
+      ) {
+        return unavailablePlan("windows_identity_random_path_collision");
+      }
+    } catch (error) {
+      return unavailablePlan(
+        error?.adapterReason || WINDOWS_ADAPTER_TEMP_ROOT_CHANGED_REASON,
+      );
+    }
+  }
   const launchSpec = {
     cpuSeconds: Number(limits.cpu || 0),
     processMemoryBytes: Number(
@@ -2699,7 +3435,13 @@ export function applyWindowsSandbox(
   if (identityPath) launchSpec.identityPath = identityPath;
   const cleanupIdentity = () => {
     if (!identityPath) return true;
-    return cleanupOrTrackWindowsTemporaryPath(runtime, identityPath);
+    return cleanupOrTrackWindowsTemporaryPath(
+      runtime,
+      identityPath,
+      100,
+      null,
+      identityFileIdentity,
+    );
   };
   const appContainerProfileName = requiresAppContainer
     ? `ChainlessChain.CliSandbox.${runtime.randomBytes(12).toString("hex")}`
@@ -2973,6 +3715,10 @@ export function applyWindowsSandbox(
               identityPath,
               runtime,
               appContainer,
+              30_000,
+              (fileIdentity) => {
+                identityFileIdentity = fileIdentity;
+              },
             );
             if (!cleanupIdentity()) {
               throw new Error(
@@ -3064,6 +3810,7 @@ export function applyWindowsSandbox(
     enforcement: backend,
     policyAttested: requiresAppContainer ? true : null,
     policyDigest: appContainerPolicyDigest,
+    adapterTempRootAttestation: adapterSource.tempRootAttestation,
     runtimeProbe: entrySnapshotRuntimeProbe,
     guarantees: [
       ...(requiresAppContainer
@@ -6983,12 +7730,17 @@ export function applySandbox(
     explicitRequest,
   );
   const profileName = sandboxRequest.profile;
+  // Windows does not consume the POSIX allow-write lists. Avoid invoking an
+  // embedding temp-directory hook while eagerly constructing three unused
+  // profiles; applyWindowsSandbox resolves and pins that hook exactly once.
+  const profileTempDirectory =
+    runtime.platform === "win32" ? null : runtime.tmpdir();
   const profiles = {
     default: {
       allowNetwork: false,
       allowExec: true,
       allowRead: [runtime.homedir(), "/tmp"],
-      allowWrite: [runtime.tmpdir()],
+      allowWrite: profileTempDirectory ? [profileTempDirectory] : [],
       limits: {
         // RLIMIT_NPROC is intentionally omitted. Linux applies it per real
         // user ID rather than to this child tree, so it can starve unrelated
@@ -7001,7 +7753,7 @@ export function applySandbox(
       allowNetwork: false,
       allowExec: false,
       allowRead: [],
-      allowWrite: [runtime.tmpdir()],
+      allowWrite: profileTempDirectory ? [profileTempDirectory] : [],
       limits: {
         cpu: 10,
         as: 256 * 1024 * 1024, // 256MB address space
@@ -7012,7 +7764,7 @@ export function applySandbox(
       allowNetwork: true,
       allowExec: true,
       allowRead: [runtime.homedir()],
-      allowWrite: [runtime.tmpdir()],
+      allowWrite: profileTempDirectory ? [profileTempDirectory] : [],
       limits: {
         cpu: 60,
         nofile: 512,
