@@ -8,7 +8,7 @@ const fs = require('fs').promises;
 const path = require('path');
 
 class TestRunner {
-  constructor() {
+  constructor(options = {}) {
     this.results = {
       unit: null,
       integration: null,
@@ -18,6 +18,19 @@ class TestRunner {
       ukey: null
     };
     this.startTime = Date.now();
+    this.cwd = options.cwd || process.cwd();
+    this.spawn = options.spawn || spawn;
+    this.reportSuffix =
+      options.reportSuffix !== undefined
+        ? options.reportSuffix
+        : process.env.TEST_REPORT_SUFFIX || '';
+    if (
+      typeof this.reportSuffix !== 'string' ||
+      (this.reportSuffix !== '' &&
+        !/^[A-Za-z0-9][A-Za-z0-9_-]*$/.test(this.reportSuffix))
+    ) {
+      throw new TypeError('reportSuffix must be empty or a safe filename token');
+    }
   }
 
   /**
@@ -30,13 +43,19 @@ class TestRunner {
 
     return new Promise((resolve) => {
       const startTime = Date.now();
-      const proc = spawn(command, args, {
-        cwd: process.cwd(),
+      const resultKey = name.toLowerCase().replace(/\s+/g, '');
+      let settled = false;
+      const proc = this.spawn(command, args, {
+        cwd: this.cwd,
         shell: true,
         stdio: 'inherit'
       });
 
       proc.on('close', (code) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
         const duration = Date.now() - startTime;
         const result = {
           name,
@@ -46,7 +65,7 @@ class TestRunner {
           timestamp: new Date().toISOString()
         };
 
-        this.results[name.toLowerCase().replace(' ', '')] = result;
+        this.results[resultKey] = result;
 
         if (code === 0) {
           console.log(`\n✓ ${name} tests PASSED (${(duration / 1000).toFixed(2)}s)`);
@@ -58,13 +77,21 @@ class TestRunner {
       });
 
       proc.on('error', (error) => {
-        console.error(`Failed to run ${name} tests:`, error);
-        resolve({
+        if (settled) {
+          return;
+        }
+        settled = true;
+        const result = {
           name,
           passed: false,
+          exitCode: null,
+          duration: Date.now() - startTime,
           error: error.message,
           timestamp: new Date().toISOString()
-        });
+        };
+        this.results[resultKey] = result;
+        console.error(`Failed to run ${name} tests:`, error);
+        resolve(result);
       });
     });
   }
@@ -100,7 +127,7 @@ class TestRunner {
     }
 
     // 生成报告
-    await this.generateReport();
+    return this.generateReport();
   }
 
   /**
@@ -142,29 +169,29 @@ class TestRunner {
       results: this.results
     };
 
-    const reportPath = path.join(process.cwd(), 'test-results');
+    const reportPath = path.join(this.cwd, 'test-results');
     await fs.mkdir(reportPath, { recursive: true });
 
-    const reportFile = path.join(reportPath, 'test-report.json');
+    const reportBase = this.reportSuffix
+      ? `test-report-${this.reportSuffix}`
+      : 'test-report';
+    const reportFile = path.join(reportPath, `${reportBase}.json`);
     await fs.writeFile(reportFile, JSON.stringify(report, null, 2));
 
     console.log(`\n报告已保存到: ${reportFile}`);
 
     // 生成HTML报告
-    await this.generateHTMLReport(report, reportPath);
+    await this.generateHTMLReport(report, reportPath, reportBase);
 
     console.log('='.repeat(60) + '\n');
 
-    // 如果有失败的测试,退出码为1
-    if (failedTests > 0) {
-      process.exit(1);
-    }
+    return failedTests > 0 ? 1 : 0;
   }
 
   /**
    * 生成HTML报告
    */
-  async generateHTMLReport(report, reportPath) {
+  async generateHTMLReport(report, reportPath, reportBase = 'test-report') {
     const html = `
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -323,7 +350,7 @@ class TestRunner {
 </html>
     `;
 
-    const htmlFile = path.join(reportPath, 'test-report.html');
+    const htmlFile = path.join(reportPath, `${reportBase}.html`);
     await fs.writeFile(htmlFile, html);
     console.log(`HTML报告已保存到: ${htmlFile}`);
   }
@@ -332,15 +359,19 @@ class TestRunner {
 // 主函数
 async function main() {
   const runner = new TestRunner();
-  await runner.runAll();
+  return runner.runAll();
 }
 
 // 运行
 if (require.main === module) {
-  main().catch(error => {
-    console.error('Test runner failed:', error);
-    process.exit(1);
-  });
+  main()
+    .then(exitCode => {
+      process.exitCode = exitCode;
+    })
+    .catch(error => {
+      console.error('Test runner failed:', error);
+      process.exitCode = 1;
+    });
 }
 
 module.exports = TestRunner;

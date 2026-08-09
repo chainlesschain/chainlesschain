@@ -1,4 +1,4 @@
-name: Full Test Automation with Auto-Fix
+name: Full Test Automation with Diagnostics
 
 on:
   push:
@@ -80,8 +80,31 @@ jobs:
             }
           done
 
+      - name: Verify CI gate integrity contracts
+        run: node --test scripts/__tests__/ci-gate-integrity.test.mjs
+
       - name: Run comprehensive test suite
+        id: primary-tests
         working-directory: ./desktop-app-vue
+        run: node scripts/test-runner.js
+        continue-on-error: true
+
+      - name: Collect failure diagnostics (non-mutating)
+        id: failure-diagnostics
+        if: steps.primary-tests.outcome == 'failure'
+        working-directory: ./desktop-app-vue
+        run: node scripts/auto-fix-runner.js
+        continue-on-error: true
+
+      # A retry may help reproduce or classify a transient failure, but it
+      # never turns a failed primary gate green. Its reports use a distinct
+      # suffix so the primary failure evidence remains immutable.
+      - name: Re-run tests for failure diagnosis
+        id: retry-tests
+        if: steps.primary-tests.outcome == 'failure'
+        working-directory: ./desktop-app-vue
+        env:
+          TEST_REPORT_SUFFIX: retry
         run: node scripts/test-runner.js
         continue-on-error: true
 
@@ -94,16 +117,13 @@ jobs:
             desktop-app-vue/test-results/
             desktop-app-vue/coverage/
 
-      - name: Attempt auto-fix on failure
-        if: failure()
-        working-directory: ./desktop-app-vue
-        run: node scripts/auto-fix-runner.js
-
-      - name: Retry tests after auto-fix
-        if: failure()
-        working-directory: ./desktop-app-vue
-        run: node scripts/test-runner.js
-        continue-on-error: true
+      - name: Enforce comprehensive test result
+        if: always()
+        env:
+          PRIMARY_TEST_OUTCOME: ${{ steps.primary-tests.outcome }}
+          RETRY_TEST_OUTCOME: ${{ steps.retry-tests.outcome }}
+        run: |
+          node -e "const primary=process.env.PRIMARY_TEST_OUTCOME; const retry=process.env.RETRY_TEST_OUTCOME; console.log('primary='+primary+', diagnostic-retry='+retry); if(primary!=='success'){console.error('The primary comprehensive test run did not pass; a diagnostic retry cannot replace it.'); process.exit(1)}"
 
   # 创建Issue如果测试失败
   create-issue-on-failure:
@@ -122,6 +142,6 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               title: `自动测试失败 - ${date}`,
-              body: `## 自动测试失败报告\n\n**工作流运行**: [查看详情](${workflowUrl})\n**分支**: ${context.ref}\n**提交**: ${context.sha}\n**触发者**: ${context.actor}\n\n部分测试失败且无法自动修复。请查看工作流日志获取详细信息。\n\n### 下一步行动\n1. 查看测试日志\n2. 本地运行 \`npm run test:all\`\n3. 尝试运行 \`node scripts/auto-fix-runner.js\`\n4. 修复问题后重新提交`,
+              body: `## 自动测试失败报告\n\n**工作流运行**: [查看详情](${workflowUrl})\n**分支**: ${context.ref}\n**提交**: ${context.sha}\n**触发者**: ${context.actor}\n\n首轮综合测试失败；无变更重跑只用于复现和诊断，不能替代首轮门禁。诊断器不会执行自动修复，请查看工作流日志和诊断报告。\n\n### 下一步行动\n1. 查看测试日志\n2. 查看 \`test-results/auto-fix-report.json\`（仅诊断）\n3. 对比 \`test-report.json\` 与 \`test-report-retry.json\`\n4. 本地运行 \`npm run test:all\`\n5. 修复问题后重新提交`,
               labels: ['bug', 'automated-detection', 'test-failure', 'needs-triage']
             });
