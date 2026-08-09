@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Command } from "commander";
-import { mkdtempSync, mkdirSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -47,6 +47,8 @@ vi.mock("../../src/lib/config-manager.js", () => ({
 }));
 
 import { registerAgentCommand } from "../../src/commands/agent.js";
+
+const canonicalPath = realpathSync.native || realpathSync;
 
 describe("cc agent background worktree dispatch", () => {
   let root;
@@ -196,11 +198,11 @@ describe("cc agent background worktree dispatch", () => {
     expect(launch.argv).not.toContain("--worktree");
     expect(launch.argv).not.toContain("--no-worktree");
     expect(launch.argv[launch.argv.indexOf("--add-dir") + 1]).toBe(
-      worktreePath,
+      canonicalPath(worktreePath),
     );
     expect(
       launch.followUpArgv[launch.followUpArgv.indexOf("--add-dir") + 1],
-    ).toBe(worktreePath);
+    ).toBe(canonicalPath(worktreePath));
     expect(process.cwd().replace(/^\/private\//, "/")).toBe(repoRoot);
     expect(worktreeMocks.finish).not.toHaveBeenCalled();
   });

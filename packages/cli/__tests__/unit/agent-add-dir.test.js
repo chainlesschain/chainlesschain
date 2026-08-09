@@ -21,6 +21,7 @@ const OPTION_SPECS = [
   { long: "--no-worktree" },
 ];
 const COMMAND_NAMES = ["agent", "a"];
+const canonicalPath = realpathSync.native || realpathSync;
 
 describe("resolveAddDirs — --add-dir resolution + validation", () => {
   let warnSpy;
@@ -34,7 +35,7 @@ describe("resolveAddDirs — --add-dir resolution + validation", () => {
     const b = mkdtempSync(join(tmpdir(), "cc-add-dir-b-"));
     try {
       const out = resolveAddDirs([a, b, a]); // duplicate a
-      expect(out).toEqual([a, b]); // deduped, order preserved
+      expect(out).toEqual([canonicalPath(a), canonicalPath(b)]); // canonical, deduped, order preserved
       expect(out.every((p) => p === join(p))).toBe(true); // already absolute
     } finally {
       rmSync(a, { recursive: true, force: true });
@@ -88,7 +89,7 @@ describe("resolveAddDirs — --add-dir resolution + validation", () => {
           worktree: { repoRoot, path: worktreePath },
           warnOnExternalShare: true,
         }),
-      ).toEqual([worktreeSource, external]);
+      ).toEqual([canonicalPath(worktreeSource), canonicalPath(external)]);
       expect(warnSpy).toHaveBeenCalledWith(
         expect.stringContaining("shared external root"),
       );
@@ -113,7 +114,7 @@ describe("resolveAddDirs — --add-dir resolution + validation", () => {
     symlinkSync(external, mappedAlias, linkType);
     symlinkSync(external, repoAlias, linkType);
     try {
-      const canonicalExternal = (realpathSync.native || realpathSync)(external);
+      const canonicalExternal = canonicalPath(external);
       expect(
         resolveAddDirs([source, repoAlias], {
           cwd: repoRoot,
