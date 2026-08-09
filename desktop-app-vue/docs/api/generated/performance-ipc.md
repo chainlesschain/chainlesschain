@@ -1,6 +1,6 @@
 # performance-ipc
 
-**Source**: `src\main\performance\performance-ipc.js`
+**Source**: `src/main/performance/performance-ipc.js`
 
 ---
 
@@ -10,6 +10,7 @@
 function registerPerformanceIPC()
 ```
 
-- 注册性能监控IPC处理器
+* 注册性能监控IPC处理器
 
 ---
+

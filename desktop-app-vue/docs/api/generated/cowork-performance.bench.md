@@ -1,6 +1,6 @@
 # cowork-performance.bench
 
-**Source**: `src\main\cowork\__tests__\benchmarks\cowork-performance.bench.js`
+**Source**: `src/main/cowork/__tests__/benchmarks/cowork-performance.bench.js`
 
 ---
 
@@ -10,15 +10,15 @@
 const Benchmark = require("benchmark");
 ```
 
-- Cowork Performance Benchmark Suite
--
-- Benchmarks critical operations and identifies performance bottlenecks.
-- Includes baseline measurements for regression detection.
--
-- Run with: npm run benchmark:cowork
--
-- @category Benchmarks
-- @module CoworkPerformance
+* Cowork Performance Benchmark Suite
+ *
+ * Benchmarks critical operations and identifies performance bottlenecks.
+ * Includes baseline measurements for regression detection.
+ *
+ * Run with: npm run benchmark:cowork
+ *
+ * @category Benchmarks
+ * @module CoworkPerformance
 
 ---
 
@@ -28,7 +28,7 @@ const Benchmark = require("benchmark");
 async function benchmarkTeamOperations()
 ```
 
-- Team Operations Benchmarks
+* Team Operations Benchmarks
 
 ---
 
@@ -38,7 +38,7 @@ async function benchmarkTeamOperations()
 async function benchmarkFileSandbox()
 ```
 
-- File Sandbox Benchmarks
+* File Sandbox Benchmarks
 
 ---
 
@@ -48,7 +48,7 @@ async function benchmarkFileSandbox()
 async function benchmarkSkillRegistry()
 ```
 
-- Skill Registry Benchmarks
+* Skill Registry Benchmarks
 
 ---
 
@@ -58,7 +58,7 @@ async function benchmarkSkillRegistry()
 async function benchmarkTaskExecution()
 ```
 
-- Task Execution Benchmarks
+* Task Execution Benchmarks
 
 ---
 
@@ -68,7 +68,7 @@ async function benchmarkTaskExecution()
 async function benchmarkOrchestrator()
 ```
 
-- Orchestrator Benchmarks
+* Orchestrator Benchmarks
 
 ---
 
@@ -78,7 +78,7 @@ async function benchmarkOrchestrator()
 async function benchmarkCollaboration()
 ```
 
-- Collaboration Benchmarks
+* Collaboration Benchmarks
 
 ---
 
@@ -88,7 +88,7 @@ async function benchmarkCollaboration()
 async function benchmarkScalability()
 ```
 
-- Scalability Benchmarks
+* Scalability Benchmarks
 
 ---
 
@@ -98,6 +98,7 @@ async function benchmarkScalability()
 async function analyzeMemoryUsage()
 ```
 
-- Memory Usage Analysis
+* Memory Usage Analysis
 
 ---
+

@@ -1,6 +1,6 @@
 # knowledge-sync-handler
 
-**Source**: `src\main\p2p\knowledge-sync-handler.js`
+**Source**: `src/main/p2p/knowledge-sync-handler.js`
 
 ---
 
@@ -10,14 +10,14 @@
 const
 ```
 
-- Knowledge Sync Handler - 知识库同步处理器
--
-- 功能：
-- - 处理移动端知识库查询请求
-- - 同步知识库笔记列表
-- - 同步笔记内容
-- - 搜索笔记
-- - 处理离线缓存
+* Knowledge Sync Handler - 知识库同步处理器
+ *
+ * 功能：
+ * - 处理移动端知识库查询请求
+ * - 同步知识库笔记列表
+ * - 同步笔记内容
+ * - 搜索笔记
+ * - 处理离线缓存
 
 ---
 
@@ -27,8 +27,8 @@ const
 function safeParseTags(raw)
 ```
 
-- 安全解析 note.tags（TEXT 列）。一条坏 tags 不应在 .map 里抛出而让整个
-- 列表/搜索响应失败（getTagCloud 在 line ~358 已用 per-row try/catch，此处对齐）。
+* 安全解析 note.tags（TEXT 列）。一条坏 tags 不应在 .map 里抛出而让整个
+ * 列表/搜索响应失败（getTagCloud 在 line ~358 已用 per-row try/catch，此处对齐）。
 
 ---
 
@@ -38,8 +38,8 @@ function safeParseTags(raw)
 async handleMessage(mobilePeerId, message)
 ```
 
-- 统一消息处理入口
-  - 由主进程的消息路由调用
+* 统一消息处理入口
+   * 由主进程的消息路由调用
 
 ---
 
@@ -49,7 +49,7 @@ async handleMessage(mobilePeerId, message)
 async handleListNotes(mobilePeerId, message)
 ```
 
-- 处理获取笔记列表请求
+* 处理获取笔记列表请求
 
 ---
 
@@ -59,7 +59,7 @@ async handleListNotes(mobilePeerId, message)
 async handleGetNote(mobilePeerId, message)
 ```
 
-- 处理获取笔记详情请求
+* 处理获取笔记详情请求
 
 ---
 
@@ -69,7 +69,7 @@ async handleGetNote(mobilePeerId, message)
 async handleSearch(mobilePeerId, message)
 ```
 
-- 处理搜索请求
+* 处理搜索请求
 
 ---
 
@@ -79,7 +79,7 @@ async handleSearch(mobilePeerId, message)
 async handleGetFolders(mobilePeerId, message)
 ```
 
-- 处理获取文件夹列表请求
+* 处理获取文件夹列表请求
 
 ---
 
@@ -89,17 +89,17 @@ async handleGetFolders(mobilePeerId, message)
 async handleGetTags(mobilePeerId, message)
 ```
 
-- 处理获取标签列表请求
+* 处理获取标签列表请求
 
 ---
 
 ## buildFolderTree(folders)
 
 ```javascript
-buildFolderTree(folders);
+buildFolderTree(folders)
 ```
 
-- 构建文件夹树形结构
+* 构建文件夹树形结构
 
 ---
 
@@ -109,7 +109,7 @@ buildFolderTree(folders);
 async sendToMobile(mobilePeerId, message)
 ```
 
-- 发送消息到移动端
+* 发送消息到移动端
 
 ---
 
@@ -119,16 +119,17 @@ async sendToMobile(mobilePeerId, message)
 async sendError(mobilePeerId, requestId, errorMessage)
 ```
 
-- 发送错误响应
+* 发送错误响应
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats();
+getStats()
 ```
 
-- 获取统计信息
+* 获取统计信息
 
 ---
+

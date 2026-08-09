@@ -1,6 +1,6 @@
 # server
 
-**Source**: `src\main\native-messaging\server.js`
+**Source**: `src/main/native-messaging/server.js`
 
 ---
 
@@ -10,20 +10,20 @@
 const
 ```
 
-- Native Messaging Server - 桌面应用端
--
-- 处理来自浏览器扩展的消息
-- 使用标准输入/输出进行通信
+* Native Messaging Server - 桌面应用端
+ *
+ * 处理来自浏览器扩展的消息
+ * 使用标准输入/输出进行通信
 
 ---
 
 ## start()
 
 ```javascript
-start();
+start()
 ```
 
-- 启动服务器
+* 启动服务器
 
 ---
 
@@ -33,57 +33,57 @@ start();
 async handleMessage(message)
 ```
 
-- 处理消息
+* 处理消息
 
 ---
 
 ## sendResponse(id, data)
 
 ```javascript
-sendResponse(id, data);
+sendResponse(id, data)
 ```
 
-- 发送响应
+* 发送响应
 
 ---
 
 ## sendError(id, error)
 
 ```javascript
-sendError(id, error);
+sendError(id, error)
 ```
 
-- 发送错误
+* 发送错误
 
 ---
 
 ## sendMessage(message)
 
 ```javascript
-sendMessage(message);
+sendMessage(message)
 ```
 
-- 发送消息
+* 发送消息
 
 ---
 
 ## registerHandler(action, handler)
 
 ```javascript
-registerHandler(action, handler);
+registerHandler(action, handler)
 ```
 
-- 注册消息处理器
+* 注册消息处理器
 
 ---
 
 ## registerDefaultHandlers()
 
 ```javascript
-registerDefaultHandlers();
+registerDefaultHandlers()
 ```
 
-- 注册默认处理器
+* 注册默认处理器
 
 ---
 
@@ -93,7 +93,7 @@ registerDefaultHandlers();
 async handleSaveClip(data)
 ```
 
-- 处理保存剪藏
+* 处理保存剪藏
 
 ---
 
@@ -103,7 +103,7 @@ async handleSaveClip(data)
 async handleGetTags()
 ```
 
-- 处理获取标签
+* 处理获取标签
 
 ---
 
@@ -113,7 +113,7 @@ async handleGetTags()
 async handleSearchKnowledge(data)
 ```
 
-- 处理搜索知识库
+* 处理搜索知识库
 
 ---
 
@@ -123,7 +123,7 @@ async handleSearchKnowledge(data)
 async handleGetRecentClips(data)
 ```
 
-- 处理获取最近剪藏
+* 处理获取最近剪藏
 
 ---
 
@@ -133,6 +133,7 @@ async handleGetRecentClips(data)
 async handleUploadImage(data)
 ```
 
-- 处理上传图片
+* 处理上传图片
 
 ---
+

@@ -1,6 +1,6 @@
 # tts-ipc
 
-**Source**: `src\main\speech\tts-ipc.js`
+**Source**: `src/main/speech/tts-ipc.js`
 
 ---
 
@@ -10,15 +10,15 @@
 const
 ```
 
-- Text-to-Speech IPC Handlers
--
-- Provides IPC interface for TTS:
-- - Speech synthesis
-- - Voice management
-- - Provider configuration
--
-- @module tts-ipc
-- @version 1.0.0
+* Text-to-Speech IPC Handlers
+ *
+ * Provides IPC interface for TTS:
+ * - Speech synthesis
+ * - Voice management
+ * - Provider configuration
+ *
+ * @module tts-ipc
+ * @version 1.0.0
 
 ---
 
@@ -28,11 +28,11 @@ const
 function registerTTSIPC(options =
 ```
 
-- Register TTS IPC handlers
-- @param {Object} options - Options
-- @param {TTSManager} options.ttsManager - TTS manager instance
-- @param {Object} [options.ipcMain] - Custom IPC main (for testing)
-- @returns {Object} Handler update functions
+* Register TTS IPC handlers
+ * @param {Object} options - Options
+ * @param {TTSManager} options.ttsManager - TTS manager instance
+ * @param {Object} [options.ipcMain] - Custom IPC main (for testing)
+ * @returns {Object} Handler update functions
 
 ---
 
@@ -42,7 +42,7 @@ function registerTTSIPC(options =
 ipc.handle('tts:check-status', async () =>
 ```
 
-- Check TTS status
+* Check TTS status
 
 ---
 
@@ -52,7 +52,7 @@ ipc.handle('tts:check-status', async () =>
 ipc.handle('tts:get-stats', async () =>
 ```
 
-- Get statistics
+* Get statistics
 
 ---
 
@@ -62,7 +62,7 @@ ipc.handle('tts:get-stats', async () =>
 ipc.handle('tts:synthesize', async (event,
 ```
 
-- Synthesize text to speech
+* Synthesize text to speech
 
 ---
 
@@ -72,7 +72,7 @@ ipc.handle('tts:synthesize', async (event,
 ipc.handle('tts:synthesize-edge', async (event,
 ```
 
-- Synthesize with Edge TTS specifically
+* Synthesize with Edge TTS specifically
 
 ---
 
@@ -82,7 +82,7 @@ ipc.handle('tts:synthesize-edge', async (event,
 ipc.handle('tts:synthesize-local', async (event,
 ```
 
-- Synthesize with Local TTS (Piper) specifically
+* Synthesize with Local TTS (Piper) specifically
 
 ---
 
@@ -92,7 +92,7 @@ ipc.handle('tts:synthesize-local', async (event,
 ipc.handle('tts:synthesize-to-file', async (event,
 ```
 
-- Synthesize to file
+* Synthesize to file
 
 ---
 
@@ -102,7 +102,7 @@ ipc.handle('tts:synthesize-to-file', async (event,
 ipc.handle('tts:get-voices', async (event,
 ```
 
-- Get available voices
+* Get available voices
 
 ---
 
@@ -112,7 +112,7 @@ ipc.handle('tts:get-voices', async (event,
 ipc.handle('tts:get-edge-voices', async (event,
 ```
 
-- Get Edge TTS voices
+* Get Edge TTS voices
 
 ---
 
@@ -122,7 +122,7 @@ ipc.handle('tts:get-edge-voices', async (event,
 ipc.handle('tts:get-local-models', async () =>
 ```
 
-- Get Local TTS (Piper) models
+* Get Local TTS (Piper) models
 
 ---
 
@@ -132,6 +132,7 @@ ipc.handle('tts:get-local-models', async () =>
 ipc.handle('tts:clear-cache', async () =>
 ```
 
-- Clear TTS cache
+* Clear TTS cache
 
 ---
+

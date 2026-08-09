@@ -1,6 +1,6 @@
 # org-knowledge-sync-manager
 
-**Source**: `src\main\collaboration\org-knowledge-sync-manager.js`
+**Source**: `src/main/collaboration/org-knowledge-sync-manager.js`
 
 ---
 
@@ -10,18 +10,18 @@
 const
 ```
 
-- Organization Knowledge Sync Manager
--
-- Manages knowledge base synchronization across organization members using P2P network.
-- Integrates with Yjs CRDT for real-time collaboration and conflict-free merging.
--
-- Features:
-- - P2P knowledge base synchronization
-- - Folder-based permissions
-- - Real-time knowledge updates
-- - Conflict resolution
-- - Activity tracking
-- - Offline support with sync queue
+* Organization Knowledge Sync Manager
+ *
+ * Manages knowledge base synchronization across organization members using P2P network.
+ * Integrates with Yjs CRDT for real-time collaboration and conflict-free merging.
+ *
+ * Features:
+ * - P2P knowledge base synchronization
+ * - Folder-based permissions
+ * - Real-time knowledge updates
+ * - Conflict resolution
+ * - Activity tracking
+ * - Offline support with sync queue
 
 ---
 
@@ -31,11 +31,11 @@ const
 function safeParsePermissions(raw)
 ```
 
-- Parse a stored permissions blob defensively. The `permissions` column is
-- free-form TEXT written from P2P-broadcast payloads, so one corrupt/legacy row
-- must not throw out of a list .map() and silently wipe the whole result.
-- @param {string} raw
-- @returns {Object} parsed object, or {} on failure
+* Parse a stored permissions blob defensively. The `permissions` column is
+ * free-form TEXT written from P2P-broadcast payloads, so one corrupt/legacy row
+ * must not throw out of a list .map() and silently wipe the whole result.
+ * @param {string} raw
+ * @returns {Object} parsed object, or {} on failure
 
 ---
 
@@ -45,20 +45,20 @@ function safeParsePermissions(raw)
 function safeParse(raw, fallback)
 ```
 
-- Generic tolerant JSON column parse with a caller-supplied fallback (sibling of
-- safeParsePermissions, for columns like activity metadata whose miss/corrupt
-- fallback is not {}). A corrupt row must not throw out of a .map and drop the
-- whole list. `x ? JSON.parse(x) : d` only guarded NULL, not a corrupt string.
+* Generic tolerant JSON column parse with a caller-supplied fallback (sibling of
+ * safeParsePermissions, for columns like activity metadata whose miss/corrupt
+ * fallback is not {}). A corrupt row must not throw out of a .map and drop the
+ * whole list. `x ? JSON.parse(x) : d` only guarded NULL, not a corrupt string.
 
 ---
 
 ## _initializeMessageHandlers()
 
 ```javascript
-_initializeMessageHandlers();
+_initializeMessageHandlers()
 ```
 
-- Initialize message handlers for knowledge sync
+* Initialize message handlers for knowledge sync
 
 ---
 
@@ -68,7 +68,7 @@ _initializeMessageHandlers();
 async initialize(orgId)
 ```
 
-- Initialize knowledge sync for an organization
+* Initialize knowledge sync for an organization
 
 ---
 
@@ -78,7 +78,7 @@ async initialize(orgId)
 async createFolder(orgId, folderData)
 ```
 
-- Create a shared folder in the organization
+* Create a shared folder in the organization
 
 ---
 
@@ -88,7 +88,7 @@ async createFolder(orgId, folderData)
 async shareKnowledge(orgId, knowledgeId, options =
 ```
 
-- Share a knowledge item with the organization
+* Share a knowledge item with the organization
 
 ---
 
@@ -98,7 +98,7 @@ async shareKnowledge(orgId, knowledgeId, options =
 async updateKnowledge(orgId, knowledgeId, updates)
 ```
 
-- Update shared knowledge
+* Update shared knowledge
 
 ---
 
@@ -108,7 +108,7 @@ async updateKnowledge(orgId, knowledgeId, updates)
 async deleteKnowledge(orgId, knowledgeId)
 ```
 
-- Delete shared knowledge
+* Delete shared knowledge
 
 ---
 
@@ -118,7 +118,7 @@ async deleteKnowledge(orgId, knowledgeId)
 async getOrganizationKnowledge(orgId, options =
 ```
 
-- Get all shared knowledge in organization
+* Get all shared knowledge in organization
 
 ---
 
@@ -128,7 +128,7 @@ async getOrganizationKnowledge(orgId, options =
 async getOrganizationFolders(orgId, parentFolderId = null)
 ```
 
-- Get organization folders
+* Get organization folders
 
 ---
 
@@ -138,7 +138,7 @@ async getOrganizationFolders(orgId, parentFolderId = null)
 async getActivityLog(orgId, options =
 ```
 
-- Get knowledge activity log
+* Get knowledge activity log
 
 ---
 
@@ -148,7 +148,7 @@ async getActivityLog(orgId, options =
 async _handleKnowledgeCreate(orgId, payload, from)
 ```
 
-- Handle incoming knowledge create message
+* Handle incoming knowledge create message
 
 ---
 
@@ -158,7 +158,7 @@ async _handleKnowledgeCreate(orgId, payload, from)
 async _handleKnowledgeUpdate(orgId, payload, from)
 ```
 
-- Handle incoming knowledge update message
+* Handle incoming knowledge update message
 
 ---
 
@@ -168,7 +168,7 @@ async _handleKnowledgeUpdate(orgId, payload, from)
 async _handleKnowledgeDelete(orgId, payload, from)
 ```
 
-- Handle incoming knowledge delete message
+* Handle incoming knowledge delete message
 
 ---
 
@@ -178,7 +178,7 @@ async _handleKnowledgeDelete(orgId, payload, from)
 async _handleFolderCreate(orgId, payload, from)
 ```
 
-- Handle incoming folder create message
+* Handle incoming folder create message
 
 ---
 
@@ -188,7 +188,7 @@ async _handleFolderCreate(orgId, payload, from)
 async _handleYjsUpdate(orgId, payload, from)
 ```
 
-- Handle Yjs update message
+* Handle Yjs update message
 
 ---
 
@@ -198,7 +198,7 @@ async _handleYjsUpdate(orgId, payload, from)
 async _handleYjsAwareness(orgId, payload, from)
 ```
 
-- Handle Yjs awareness message
+* Handle Yjs awareness message
 
 ---
 
@@ -208,7 +208,7 @@ async _handleYjsAwareness(orgId, payload, from)
 async _requestInitialSync(orgId)
 ```
 
-- Request initial sync from peers
+* Request initial sync from peers
 
 ---
 
@@ -218,7 +218,7 @@ async _requestInitialSync(orgId)
 async _handleSyncRequest(orgId, payload, from)
 ```
 
-- Handle sync request from peer
+* Handle sync request from peer
 
 ---
 
@@ -228,7 +228,7 @@ async _handleSyncRequest(orgId, payload, from)
 async _checkPermission(orgId, knowledgeId, action)
 ```
 
-- Check if user has permission for an action
+* Check if user has permission for an action
 
 ---
 
@@ -238,7 +238,7 @@ async _checkPermission(orgId, knowledgeId, action)
 async _logActivity(orgId, knowledgeId, activityType, metadata =
 ```
 
-- Log activity
+* Log activity
 
 ---
 
@@ -248,7 +248,7 @@ async _logActivity(orgId, knowledgeId, activityType, metadata =
 async _getUserDID()
 ```
 
-- Get current user's DID
+* Get current user's DID
 
 ---
 
@@ -258,16 +258,17 @@ async _getUserDID()
 async _getUserName()
 ```
 
-- Get current user's name
+* Get current user's name
 
 ---
 
 ## destroy()
 
 ```javascript
-destroy();
+destroy()
 ```
 
-- Clean up resources
+* Clean up resources
 
 ---
+

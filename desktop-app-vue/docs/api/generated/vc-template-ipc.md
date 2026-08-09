@@ -1,6 +1,6 @@
 # vc-template-ipc
 
-**Source**: `src\main\vc-template\vc-template-ipc.js`
+**Source**: `src/main/vc-template/vc-template-ipc.js`
 
 ---
 
@@ -10,13 +10,14 @@
 function registerVCTemplateIPC(vcTemplateManager)
 ```
 
-- 注册可验证凭证模板管理相关的IPC处理器
--
-- 功能：
-- - 模板CRUD操作（创建、读取、更新、删除）
-- - 模板填充与值管理
-- - 使用统计与计数
-- - 模板导入/导出
-- - 批量操作支持
+* 注册可验证凭证模板管理相关的IPC处理器
+ *
+ * 功能：
+ * - 模板CRUD操作（创建、读取、更新、删除）
+ * - 模板填充与值管理
+ * - 使用统计与计数
+ * - 模板导入/导出
+ * - 批量操作支持
 
 ---
+

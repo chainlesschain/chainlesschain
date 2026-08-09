@@ -1,6 +1,6 @@
 # office-skill.test
 
-**Source**: `src\main\ai-engine\cowork\__tests__\office-skill.test.js`
+**Source**: `src/main/ai-engine/cowork/__tests__/office-skill.test.js`
 
 ---
 
@@ -10,6 +10,7 @@
 const
 ```
 
-- OfficeSkill 单元测试
+* OfficeSkill 单元测试
 
 ---
+

@@ -1,6 +1,6 @@
 # context-associator
 
-**Source**: `src\main\memory\context-associator.js`
+**Source**: `src/main/memory/context-associator.js`
 
 ---
 
@@ -10,18 +10,18 @@
 const
 ```
 
-- ContextAssociator - Intelligent Context Association
--
-- Provides cross-session knowledge extraction and association:
-- - Knowledge extraction from sessions
-- - Session relationship detection
-- - Conversation context tracking
-- - Topic taxonomy management
-- - Knowledge graph building
--
-- @module context-associator
-- @version 1.0.0
-- @since 2026-01-18
+* ContextAssociator - Intelligent Context Association
+ *
+ * Provides cross-session knowledge extraction and association:
+ * - Knowledge extraction from sessions
+ * - Session relationship detection
+ * - Conversation context tracking
+ * - Topic taxonomy management
+ * - Knowledge graph building
+ *
+ * @module context-associator
+ * @version 1.0.0
+ * @since 2026-01-18
 
 ---
 
@@ -31,10 +31,10 @@ const
 function safeParse(raw, fallback)
 ```
 
-- Tolerant JSON column parse — a single corrupt row must not throw out of a
-- .map and drop the whole topics/knowledge list. The `x ? JSON.parse(x) : d`
-- form it replaces only guarded NULL, not a corrupt non-empty string.
-- (Distinct from looseParseJSON above, which parses untrusted LLM text.)
+* Tolerant JSON column parse — a single corrupt row must not throw out of a
+ * .map and drop the whole topics/knowledge list. The `x ? JSON.parse(x) : d`
+ * form it replaces only guarded NULL, not a corrupt non-empty string.
+ * (Distinct from looseParseJSON above, which parses untrusted LLM text.)
 
 ---
 
@@ -44,7 +44,7 @@ function safeParse(raw, fallback)
 class ContextAssociator extends EventEmitter
 ```
 
-- ContextAssociator class
+* ContextAssociator class
 
 ---
 
@@ -54,11 +54,11 @@ class ContextAssociator extends EventEmitter
 constructor(options =
 ```
 
-- Create a ContextAssociator instance
-  - @param {Object} options - Configuration options
-  - @param {Object} options.database - SQLite database instance
-  - @param {Object} [options.llmManager] - LLM Manager for AI extraction
-  - @param {Object} [options.sessionManager] - SessionManager for session data
+* Create a ContextAssociator instance
+   * @param {Object} options - Configuration options
+   * @param {Object} options.database - SQLite database instance
+   * @param {Object} [options.llmManager] - LLM Manager for AI extraction
+   * @param {Object} [options.sessionManager] - SessionManager for session data
 
 ---
 
@@ -68,7 +68,7 @@ constructor(options =
 async initialize()
 ```
 
-- Initialize the associator
+* Initialize the associator
 
 ---
 
@@ -78,8 +78,8 @@ async initialize()
 async _ensureTables()
 ```
 
-- Ensure database tables exist
-  - @private
+* Ensure database tables exist
+   * @private
 
 ---
 
@@ -89,10 +89,10 @@ async _ensureTables()
 async extractKnowledgeFromSession(sessionId, options =
 ```
 
-- Extract knowledge from a session
-  - @param {string} sessionId - Session ID
-  - @param {Object} options - Extraction options
-  - @returns {Promise<Array>} Extracted knowledge items
+* Extract knowledge from a session
+   * @param {string} sessionId - Session ID
+   * @param {Object} options - Extraction options
+   * @returns {Promise<Array>} Extracted knowledge items
 
 ---
 
@@ -102,8 +102,8 @@ async extractKnowledgeFromSession(sessionId, options =
 async _getSessionMessages(sessionId, limit)
 ```
 
-- Get session messages
-  - @private
+* Get session messages
+   * @private
 
 ---
 
@@ -113,19 +113,19 @@ async _getSessionMessages(sessionId, limit)
 async _extractWithLLM(sessionId, messages)
 ```
 
-- Extract knowledge using LLM
-  - @private
+* Extract knowledge using LLM
+   * @private
 
 ---
 
 ## _parseLLMResponse(response, sessionId)
 
 ```javascript
-_parseLLMResponse(response, sessionId);
+_parseLLMResponse(response, sessionId)
 ```
 
-- Parse LLM response into knowledge items
-  - @private
+* Parse LLM response into knowledge items
+   * @private
 
 ---
 
@@ -135,19 +135,19 @@ _parseLLMResponse(response, sessionId);
 async _extractWithRules(sessionId, messages)
 ```
 
-- Extract knowledge using rules
-  - @private
+* Extract knowledge using rules
+   * @private
 
 ---
 
 ## _extractTopics(text)
 
 ```javascript
-_extractTopics(text);
+_extractTopics(text)
 ```
 
-- Extract topics from text
-  - @private
+* Extract topics from text
+   * @private
 
 ---
 
@@ -157,8 +157,8 @@ _extractTopics(text);
 async _saveKnowledge(knowledge)
 ```
 
-- Save knowledge to database
-  - @private
+* Save knowledge to database
+   * @private
 
 ---
 
@@ -168,8 +168,8 @@ async _saveKnowledge(knowledge)
 async _updateConversationContext(sessionId, knowledge)
 ```
 
-- Update conversation context
-  - @private
+* Update conversation context
+   * @private
 
 ---
 
@@ -179,8 +179,8 @@ async _updateConversationContext(sessionId, knowledge)
 async _findAndCreateAssociations(sessionId, knowledge)
 ```
 
-- Find and create associations with other sessions
-  - @private
+* Find and create associations with other sessions
+   * @private
 
 ---
 
@@ -190,8 +190,8 @@ async _findAndCreateAssociations(sessionId, knowledge)
 async _createAssociation(
 ```
 
-- Create a session association
-  - @private
+* Create a session association
+   * @private
 
 ---
 
@@ -201,10 +201,10 @@ async _createAssociation(
 async findRelatedSessions(sessionId, options =
 ```
 
-- Find related sessions
-  - @param {string} sessionId - Session ID
-  - @param {Object} options - Query options
-  - @returns {Promise<Array>} Related sessions
+* Find related sessions
+   * @param {string} sessionId - Session ID
+   * @param {Object} options - Query options
+   * @returns {Promise<Array>} Related sessions
 
 ---
 
@@ -214,9 +214,9 @@ async findRelatedSessions(sessionId, options =
 async analyzeConversation(conversationId)
 ```
 
-- Analyze conversation context
-  - @param {string} conversationId - Conversation ID
-  - @returns {Promise<Object>} Conversation context
+* Analyze conversation context
+   * @param {string} conversationId - Conversation ID
+   * @returns {Promise<Object>} Conversation context
 
 ---
 
@@ -226,10 +226,10 @@ async analyzeConversation(conversationId)
 async searchKnowledge(query, options =
 ```
 
-- Search knowledge
-  - @param {string} query - Search query
-  - @param {Object} options - Search options
-  - @returns {Promise<Array>} Matching knowledge items
+* Search knowledge
+   * @param {string} query - Search query
+   * @param {Object} options - Search options
+   * @returns {Promise<Array>} Matching knowledge items
 
 ---
 
@@ -239,10 +239,10 @@ async searchKnowledge(query, options =
 async getSessionKnowledge(sessionId, options =
 ```
 
-- Get knowledge for a session
-  - @param {string} sessionId - Session ID
-  - @param {Object} options - Query options
-  - @returns {Promise<Array>} Knowledge items
+* Get knowledge for a session
+   * @param {string} sessionId - Session ID
+   * @param {Object} options - Query options
+   * @returns {Promise<Array>} Knowledge items
 
 ---
 
@@ -252,10 +252,10 @@ async getSessionKnowledge(sessionId, options =
 async getOrCreateTopic(topicName, options =
 ```
 
-- Get or create a topic
-  - @param {string} topicName - Topic name
-  - @param {Object} options - Options
-  - @returns {Promise<Object>} Topic
+* Get or create a topic
+   * @param {string} topicName - Topic name
+   * @param {Object} options - Options
+   * @returns {Promise<Object>} Topic
 
 ---
 
@@ -265,9 +265,9 @@ async getOrCreateTopic(topicName, options =
 async getPopularTopics(options =
 ```
 
-- Get popular topics
-  - @param {Object} options - Query options
-  - @returns {Promise<Array>} Popular topics
+* Get popular topics
+   * @param {Object} options - Query options
+   * @returns {Promise<Array>} Popular topics
 
 ---
 
@@ -277,7 +277,8 @@ async getPopularTopics(options =
 async getStats()
 ```
 
-- Get statistics
-  - @returns {Promise<Object>} Statistics
+* Get statistics
+   * @returns {Promise<Object>} Statistics
 
 ---
+

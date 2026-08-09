@@ -1,6 +1,6 @@
 # base-driver
 
-**Source**: `src\main\ukey\base-driver.js`
+**Source**: `src/main/ukey/base-driver.js`
 
 ---
 
@@ -10,9 +10,9 @@
 class BaseUKeyDriver
 ```
 
-- U盾驱动基类
--
-- 所有U盾驱动都必须实现这个基类的方法
+* U盾驱动基类
+ *
+ * 所有U盾驱动都必须实现这个基类的方法
 
 ---
 
@@ -22,8 +22,8 @@ class BaseUKeyDriver
 async initialize()
 ```
 
-- 初始化驱动
-  - @returns {Promise<boolean>}
+* 初始化驱动
+   * @returns {Promise<boolean>}
 
 ---
 
@@ -33,8 +33,8 @@ async initialize()
 async detect()
 ```
 
-- 检测U盾设备
-  - @returns {Promise<UKeyStatus>}
+* 检测U盾设备
+   * @returns {Promise<UKeyStatus>}
 
 ---
 
@@ -44,8 +44,8 @@ async detect()
 async verifyPIN(pin)
 ```
 
-- 验证PIN码
-  - @returns {Promise<UKeyVerifyResult>}
+* 验证PIN码
+   * @returns {Promise<UKeyVerifyResult>}
 
 ---
 
@@ -55,8 +55,8 @@ async verifyPIN(pin)
 async sign(data)
 ```
 
-- 数字签名
-  - @returns {Promise<string>} 签名结果（Base64）
+* 数字签名
+   * @returns {Promise<string>} 签名结果（Base64）
 
 ---
 
@@ -66,8 +66,8 @@ async sign(data)
 async verifySignature(data, signature)
 ```
 
-- 验证签名
-  - @returns {Promise<boolean>}
+* 验证签名
+   * @returns {Promise<boolean>}
 
 ---
 
@@ -77,8 +77,8 @@ async verifySignature(data, signature)
 async encrypt(data)
 ```
 
-- 加密数据
-  - @returns {Promise<string>} 加密结果（Base64）
+* 加密数据
+   * @returns {Promise<string>} 加密结果（Base64）
 
 ---
 
@@ -88,8 +88,8 @@ async encrypt(data)
 async decrypt(encryptedData)
 ```
 
-- 解密数据
-  - @returns {Promise<string>} 解密结果
+* 解密数据
+   * @returns {Promise<string>} 解密结果
 
 ---
 
@@ -99,8 +99,8 @@ async decrypt(encryptedData)
 async getPublicKey()
 ```
 
-- 获取公钥
-  - @returns {Promise<string>} 公钥（PEM格式）
+* 获取公钥
+   * @returns {Promise<string>} 公钥（PEM格式）
 
 ---
 
@@ -110,29 +110,29 @@ async getPublicKey()
 async getDeviceInfo()
 ```
 
-- 获取设备信息
-  - @returns {Promise<UKeyDeviceInfo>}
+* 获取设备信息
+   * @returns {Promise<UKeyDeviceInfo>}
 
 ---
 
 ## lock()
 
 ```javascript
-lock();
+lock()
 ```
 
-- 锁定U盾
+* 锁定U盾
 
 ---
 
 ## isDeviceUnlocked()
 
 ```javascript
-isDeviceUnlocked();
+isDeviceUnlocked()
 ```
 
-- 检查是否已解锁
-  - @returns {boolean}
+* 检查是否已解锁
+   * @returns {boolean}
 
 ---
 
@@ -142,29 +142,29 @@ isDeviceUnlocked();
 async close()
 ```
 
-- 关闭驱动
+* 关闭驱动
 
 ---
 
 ## getDriverName()
 
 ```javascript
-getDriverName();
+getDriverName()
 ```
 
-- 获取驱动名称
-  - @returns {string}
+* 获取驱动名称
+   * @returns {string}
 
 ---
 
 ## getDriverVersion()
 
 ```javascript
-getDriverVersion();
+getDriverVersion()
 ```
 
-- 获取驱动版本
-  - @returns {string}
+* 获取驱动版本
+   * @returns {string}
 
 ---
 
@@ -174,31 +174,32 @@ getDriverVersion();
 async deriveKeyAtPath(path)
 ```
 
-- Derive a key at the given BIP-32 path.
-  - Subclasses should override for hardware-backed derivation.
-  - @returns {Promise<Object>} Derived key info
+* Derive a key at the given BIP-32 path.
+   * Subclasses should override for hardware-backed derivation.
+   * @returns {Promise<Object>} Derived key info
 
 ---
 
 ## getTransportType()
 
 ```javascript
-getTransportType();
+getTransportType()
 ```
 
-- Get the transport type used by this driver.
-  - @returns {string} Transport type (e.g., 'koffi', 'usb', 'webusb', 'simulated')
+* Get the transport type used by this driver.
+   * @returns {string} Transport type (e.g., 'koffi', 'usb', 'webusb', 'simulated')
 
 ---
 
 ## sleep(ms)
 
 ```javascript
-sleep(ms);
+sleep(ms)
 ```
 
-- 辅助方法：延迟执行
-  - @param {number} ms - 延迟时间（毫秒）
-  - @returns {Promise<void>}
+* 辅助方法：延迟执行
+   * @param {number} ms - 延迟时间（毫秒）
+   * @returns {Promise<void>}
 
 ---
+

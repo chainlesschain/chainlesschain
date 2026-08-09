@@ -1,6 +1,6 @@
 # extended-tools-vision
 
-**Source**: `src\main\ai-engine\extended-tools-vision.js`
+**Source**: `src/main/ai-engine/extended-tools-vision.js`
 
 ---
 
@@ -10,12 +10,12 @@
 const
 ```
 
-- 视觉工具集
--
-- 提供图片分析、OCR、视觉问答等工具
--
-- @module extended-tools-vision
-- @version 1.0.0
+* 视觉工具集
+ *
+ * 提供图片分析、OCR、视觉问答等工具
+ *
+ * @module extended-tools-vision
+ * @version 1.0.0
 
 ---
 
@@ -25,29 +25,29 @@ const
 class VisionToolsHandler
 ```
 
-- Vision 工具处理器
+* Vision 工具处理器
 
 ---
 
 ## setVisionManager(visionManager)
 
 ```javascript
-setVisionManager(visionManager);
+setVisionManager(visionManager)
 ```
 
-- 设置 VisionManager 引用
-  - @param {Object} visionManager - VisionManager 实例
+* 设置 VisionManager 引用
+   * @param {Object} visionManager - VisionManager 实例
 
 ---
 
 ## register(functionCaller)
 
 ```javascript
-register(functionCaller);
+register(functionCaller)
 ```
 
-- 注册所有视觉工具
-  - @param {FunctionCaller} functionCaller - 函数调用器实例
+* 注册所有视觉工具
+   * @param {FunctionCaller} functionCaller - 函数调用器实例
 
 ---
 
@@ -57,7 +57,8 @@ register(functionCaller);
 function getVisionTools()
 ```
 
-- 获取 VisionToolsHandler 单例
-- @returns {VisionToolsHandler}
+* 获取 VisionToolsHandler 单例
+ * @returns {VisionToolsHandler}
 
 ---
+

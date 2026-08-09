@@ -1,6 +1,6 @@
 # subtitle-generator
 
-**Source**: `src\main\speech\subtitle-generator.js`
+**Source**: `src/main/speech/subtitle-generator.js`
 
 ---
 
@@ -10,10 +10,10 @@
 const
 ```
 
-- 字幕生成器
--
-- 支持生成 SRT 和 VTT 字幕文件
-- 用于音频/视频转录结果的字幕导出
+* 字幕生成器
+ *
+ * 支持生成 SRT 和 VTT 字幕文件
+ * 用于音频/视频转录结果的字幕导出
 
 ---
 
@@ -23,7 +23,7 @@ const
 class TimeFormatter
 ```
 
-- 时间格式化工具
+* 时间格式化工具
 
 ---
 
@@ -33,9 +33,9 @@ class TimeFormatter
 static toSRTTime(seconds)
 ```
 
-- 秒转 SRT 时间格式 (HH:MM:SS,mmm)
-  - @param {number} seconds - 秒数
-  - @returns {string}
+* 秒转 SRT 时间格式 (HH:MM:SS,mmm)
+   * @param {number} seconds - 秒数
+   * @returns {string}
 
 ---
 
@@ -45,9 +45,9 @@ static toSRTTime(seconds)
 static toVTTTime(seconds)
 ```
 
-- 秒转 VTT 时间格式 (HH:MM:SS.mmm)
-  - @param {number} seconds - 秒数
-  - @returns {string}
+* 秒转 VTT 时间格式 (HH:MM:SS.mmm)
+   * @param {number} seconds - 秒数
+   * @returns {string}
 
 ---
 
@@ -57,9 +57,9 @@ static toVTTTime(seconds)
 static parseSRTTime(timeString)
 ```
 
-- 解析 SRT 时间字符串
-  - @param {string} timeString - SRT 时间字符串
-  - @returns {number} 秒数
+* 解析 SRT 时间字符串
+   * @param {string} timeString - SRT 时间字符串
+   * @returns {number} 秒数
 
 ---
 
@@ -69,9 +69,9 @@ static parseSRTTime(timeString)
 static parseVTTTime(timeString)
 ```
 
-- 解析 VTT 时间字符串
-  - @param {string} timeString - VTT 时间字符串
-  - @returns {number} 秒数
+* 解析 VTT 时间字符串
+   * @param {string} timeString - VTT 时间字符串
+   * @returns {number} 秒数
 
 ---
 
@@ -81,29 +81,29 @@ static parseVTTTime(timeString)
 class SubtitleEntry
 ```
 
-- 字幕条目
+* 字幕条目
 
 ---
 
 ## toSRT()
 
 ```javascript
-toSRT();
+toSRT()
 ```
 
-- 转换为 SRT 格式
-  - @returns {string}
+* 转换为 SRT 格式
+   * @returns {string}
 
 ---
 
 ## toVTT()
 
 ```javascript
-toVTT();
+toVTT()
 ```
 
-- 转换为 VTT 格式
-  - @returns {string}
+* 转换为 VTT 格式
+   * @returns {string}
 
 ---
 
@@ -113,7 +113,7 @@ toVTT();
 class SubtitleGenerator
 ```
 
-- 字幕生成器类
+* 字幕生成器类
 
 ---
 
@@ -123,96 +123,96 @@ class SubtitleGenerator
 generateFromText(text, totalDuration, options =
 ```
 
-- 从纯文本生成字幕
-  - @param {string} text - 转录文本
-  - @param {number} totalDuration - 音频总时长（秒）
-  - @param {Object} options - 生成选项
-  - @returns {Array<SubtitleEntry>}
+* 从纯文本生成字幕
+   * @param {string} text - 转录文本
+   * @param {number} totalDuration - 音频总时长（秒）
+   * @param {Object} options - 生成选项
+   * @returns {Array<SubtitleEntry>}
 
 ---
 
 ## generateFromSegments(segments)
 
 ```javascript
-generateFromSegments(segments);
+generateFromSegments(segments)
 ```
 
-- 从带时间戳的转录数据生成字幕
-  - @param {Array} segments - 转录段落数据 [{text, start, end}]
-  - @returns {Array<SubtitleEntry>}
+* 从带时间戳的转录数据生成字幕
+   * @param {Array} segments - 转录段落数据 [{text, start, end}]
+   * @returns {Array<SubtitleEntry>}
 
 ---
 
 ## splitBySentences(text, punctuationMarks)
 
 ```javascript
-splitBySentences(text, punctuationMarks);
+splitBySentences(text, punctuationMarks)
 ```
 
-- 分割文本为句子
-  - @param {string} text - 文本
-  - @param {Array} punctuationMarks - 标点符号
-  - @returns {Array<string>}
+* 分割文本为句子
+   * @param {string} text - 文本
+   * @param {Array} punctuationMarks - 标点符号
+   * @returns {Array<string>}
 
 ---
 
 ## splitIntoLines(text)
 
 ```javascript
-splitIntoLines(text);
+splitIntoLines(text)
 ```
 
-- 将长文本分割为多行
-  - @param {string} text - 文本
-  - @returns {Array<string>}
+* 将长文本分割为多行
+   * @param {string} text - 文本
+   * @returns {Array<string>}
 
 ---
 
 ## toSRT(subtitles)
 
 ```javascript
-toSRT(subtitles);
+toSRT(subtitles)
 ```
 
-- 导出为 SRT 格式
-  - @param {Array<SubtitleEntry>} subtitles - 字幕条目列表
-  - @returns {string}
+* 导出为 SRT 格式
+   * @param {Array<SubtitleEntry>} subtitles - 字幕条目列表
+   * @returns {string}
 
 ---
 
 ## toVTT(subtitles)
 
 ```javascript
-toVTT(subtitles);
+toVTT(subtitles)
 ```
 
-- 导出为 VTT 格式
-  - @param {Array<SubtitleEntry>} subtitles - 字幕条目列表
-  - @returns {string}
+* 导出为 VTT 格式
+   * @param {Array<SubtitleEntry>} subtitles - 字幕条目列表
+   * @returns {string}
 
 ---
 
 ## parseSRT(srtText)
 
 ```javascript
-parseSRT(srtText);
+parseSRT(srtText)
 ```
 
-- 从 SRT 文本解析
-  - @param {string} srtText - SRT 文本
-  - @returns {Array<SubtitleEntry>}
+* 从 SRT 文本解析
+   * @param {string} srtText - SRT 文本
+   * @returns {Array<SubtitleEntry>}
 
 ---
 
 ## parseVTT(vttText)
 
 ```javascript
-parseVTT(vttText);
+parseVTT(vttText)
 ```
 
-- 从 VTT 文本解析
-  - @param {string} vttText - VTT 文本
-  - @returns {Array<SubtitleEntry>}
+* 从 VTT 文本解析
+   * @param {string} vttText - VTT 文本
+   * @returns {Array<SubtitleEntry>}
 
 ---
 
@@ -222,11 +222,11 @@ parseVTT(vttText);
 async saveSubtitleFile(subtitles, outputPath, format = "srt")
 ```
 
-- 保存字幕文件
-  - @param {Array<SubtitleEntry>} subtitles - 字幕条目
-  - @param {string} outputPath - 输出路径
-  - @param {string} format - 格式 (srt|vtt)
-  - @returns {Promise<Object>}
+* 保存字幕文件
+   * @param {Array<SubtitleEntry>} subtitles - 字幕条目
+   * @param {string} outputPath - 输出路径
+   * @param {string} format - 格式 (srt|vtt)
+   * @returns {Promise<Object>}
 
 ---
 
@@ -236,11 +236,11 @@ async saveSubtitleFile(subtitles, outputPath, format = "srt")
 async saveWhisperSubtitle(whisperResponse, outputPath, format = "srt")
 ```
 
-- 从 Whisper API 响应生成字幕
-  - @param {string} whisperResponse - Whisper API 返回的 SRT/VTT 内容
-  - @param {string} outputPath - 输出路径
-  - @param {string} format - 格式
-  - @returns {Promise<Object>}
+* 从 Whisper API 响应生成字幕
+   * @param {string} whisperResponse - Whisper API 返回的 SRT/VTT 内容
+   * @param {string} outputPath - 输出路径
+   * @param {string} format - 格式
+   * @returns {Promise<Object>}
 
 ---
 
@@ -250,11 +250,11 @@ async saveWhisperSubtitle(whisperResponse, outputPath, format = "srt")
 async batchGenerate(transcriptions, outputDir, format = "srt")
 ```
 
-- 批量生成字幕文件
-  - @param {Array} transcriptions - 转录结果列表
-  - @param {string} outputDir - 输出目录
-  - @param {string} format - 格式
-  - @returns {Promise<Array>}
+* 批量生成字幕文件
+   * @param {Array} transcriptions - 转录结果列表
+   * @param {string} outputDir - 输出目录
+   * @param {string} format - 格式
+   * @returns {Promise<Array>}
 
 ---
 
@@ -264,46 +264,47 @@ async batchGenerate(transcriptions, outputDir, format = "srt")
 async mergeSubtitles(subtitlePaths, outputPath)
 ```
 
-- 合并多个字幕文件
-  - @param {Array<string>} subtitlePaths - 字幕文件路径列表
-  - @param {string} outputPath - 输出路径
-  - @returns {Promise<Object>}
+* 合并多个字幕文件
+   * @param {Array<string>} subtitlePaths - 字幕文件路径列表
+   * @param {string} outputPath - 输出路径
+   * @returns {Promise<Object>}
 
 ---
 
 ## adjustTiming(subtitles, offset)
 
 ```javascript
-adjustTiming(subtitles, offset);
+adjustTiming(subtitles, offset)
 ```
 
-- 调整字幕时间轴
-  - @param {Array<SubtitleEntry>} subtitles - 字幕列表
-  - @param {number} offset - 时间偏移（秒，可为负数）
-  - @returns {Array<SubtitleEntry>}
+* 调整字幕时间轴
+   * @param {Array<SubtitleEntry>} subtitles - 字幕列表
+   * @param {number} offset - 时间偏移（秒，可为负数）
+   * @returns {Array<SubtitleEntry>}
 
 ---
 
 ## filterEmpty(subtitles)
 
 ```javascript
-filterEmpty(subtitles);
+filterEmpty(subtitles)
 ```
 
-- 过滤空白字幕
-  - @param {Array<SubtitleEntry>} subtitles - 字幕列表
-  - @returns {Array<SubtitleEntry>}
+* 过滤空白字幕
+   * @param {Array<SubtitleEntry>} subtitles - 字幕列表
+   * @returns {Array<SubtitleEntry>}
 
 ---
 
 ## reindex(subtitles)
 
 ```javascript
-reindex(subtitles);
+reindex(subtitles)
 ```
 
-- 重新编号字幕
-  - @param {Array<SubtitleEntry>} subtitles - 字幕列表
-  - @returns {Array<SubtitleEntry>}
+* 重新编号字幕
+   * @param {Array<SubtitleEntry>} subtitles - 字幕列表
+   * @returns {Array<SubtitleEntry>}
 
 ---
+

@@ -1,6 +1,6 @@
 # config-ipc
 
-**Source**: `src\main\config\config-ipc.js`
+**Source**: `src/main/config/config-ipc.js`
 
 ---
 
@@ -10,11 +10,11 @@
 const
 ```
 
-- 配置 IPC 处理器
-- 负责处理应用配置相关的前后端通信
--
-- @module config-ipc
-- @description 提供应用配置的读取和设置 IPC 接口
+* 配置 IPC 处理器
+ * 负责处理应用配置相关的前后端通信
+ *
+ * @module config-ipc
+ * @description 提供应用配置的读取和设置 IPC 接口
 
 ---
 
@@ -24,14 +24,14 @@ const
 const PROTECTED_CONFIG_NAMESPACES = ["database"];
 ```
 
-- config 写保护命名空间（IPC 安全发现 #4）。
-- 渲染层只合法写入少数 UI/项目配置项（如 project.rootPath / ui.useWebShellExperimental），
-- 从不写入数据库敏感配置。`database`（含 `database.sqlcipherKey` —— SQLCipher 主密钥）
-- 必须由主进程/keychain 管理，绝不接受渲染层经 config:set / config:update 写入/篡改
-- （防止被恶意或被攻陷的渲染帧改写加密密钥造成数据库不可解/篡改）。
--
-- 同时匹配「整命名空间」(`config:update` 传 key="database" + 整对象) 和「点分子键」
-- (`config:set` 传 "database.sqlcipherKey")。
+* config 写保护命名空间（IPC 安全发现 #4）。
+ * 渲染层只合法写入少数 UI/项目配置项（如 project.rootPath / ui.useWebShellExperimental），
+ * 从不写入数据库敏感配置。`database`（含 `database.sqlcipherKey` —— SQLCipher 主密钥）
+ * 必须由主进程/keychain 管理，绝不接受渲染层经 config:set / config:update 写入/篡改
+ * （防止被恶意或被攻陷的渲染帧改写加密密钥造成数据库不可解/篡改）。
+ *
+ * 同时匹配「整命名空间」(`config:update` 传 key="database" + 整对象) 和「点分子键」
+ * (`config:set` 传 "database.sqlcipherKey")。
 
 ---
 
@@ -41,10 +41,10 @@ const PROTECTED_CONFIG_NAMESPACES = ["database"];
 function registerConfigIPC(
 ```
 
-- 注册所有配置 IPC 处理器
-- @param {Object} dependencies - 依赖对象
-- @param {Object} dependencies.appConfig - 应用配置管理器实例
-- @param {Object} [dependencies.ipcMain] - IPC 主进程对象（可选，用于测试注入）
+* 注册所有配置 IPC 处理器
+ * @param {Object} dependencies - 依赖对象
+ * @param {Object} dependencies.appConfig - 应用配置管理器实例
+ * @param {Object} [dependencies.ipcMain] - IPC 主进程对象（可选，用于测试注入）
 
 ---
 
@@ -54,12 +54,12 @@ function registerConfigIPC(
 ipcMain.handle("config:get", async (_event, key, defaultValue = null) =>
 ```
 
-- 获取配置项
-  - Channel: 'config:get'
-  -
-  - @param {string} key - 配置键（支持点分隔符，如 'app.theme'）
-  - @param {any} defaultValue - 默认值（可选）
-  - @returns {Promise<any>} 配置值
+* 获取配置项
+   * Channel: 'config:get'
+   *
+   * @param {string} key - 配置键（支持点分隔符，如 'app.theme'）
+   * @param {any} defaultValue - 默认值（可选）
+   * @returns {Promise<any>} 配置值
 
 ---
 
@@ -69,12 +69,12 @@ ipcMain.handle("config:get", async (_event, key, defaultValue = null) =>
 ipcMain.handle("config:set", async (_event, key, value) =>
 ```
 
-- 设置配置项
-  - Channel: 'config:set'
-  -
-  - @param {string} key - 配置键
-  - @param {any} value - 配置值
-  - @returns {Promise<Object>} { success: boolean }
+* 设置配置项
+   * Channel: 'config:set'
+   *
+   * @param {string} key - 配置键
+   * @param {any} value - 配置值
+   * @returns {Promise<Object>} { success: boolean }
 
 ---
 
@@ -84,10 +84,10 @@ ipcMain.handle("config:set", async (_event, key, value) =>
 ipcMain.handle("config:get-all", async () =>
 ```
 
-- 获取全部配置
-  - Channel: 'config:get-all'
-  -
-  - @returns {Promise<Object>} 全部配置对象
+* 获取全部配置
+   * Channel: 'config:get-all'
+   *
+   * @returns {Promise<Object>} 全部配置对象
 
 ---
 
@@ -97,11 +97,11 @@ ipcMain.handle("config:get-all", async () =>
 ipcMain.handle("config:update", async (_event, config) =>
 ```
 
-- 更新配置（批量设置）
-  - Channel: 'config:update'
-  -
-  - @param {Object} config - 配置对象（可包含多个键值对）
-  - @returns {Promise<Object>} { success: boolean }
+* 更新配置（批量设置）
+   * Channel: 'config:update'
+   *
+   * @param {Object} config - 配置对象（可包含多个键值对）
+   * @returns {Promise<Object>} { success: boolean }
 
 ---
 
@@ -111,10 +111,10 @@ ipcMain.handle("config:update", async (_event, config) =>
 ipcMain.handle("config:reset", async () =>
 ```
 
-- 重置配置为默认值
-  - Channel: 'config:reset'
-  -
-  - @returns {Promise<Object>} { success: boolean }
+* 重置配置为默认值
+   * Channel: 'config:reset'
+   *
+   * @returns {Promise<Object>} { success: boolean }
 
 ---
 
@@ -124,9 +124,9 @@ ipcMain.handle("config:reset", async () =>
 ipcMain.handle("unified-config:get-summary", async () =>
 ```
 
-- 获取统一配置摘要
-  - Channel: 'unified-config:get-summary'
-  - @returns {Promise<Object>} 配置摘要
+* 获取统一配置摘要
+   * Channel: 'unified-config:get-summary'
+   * @returns {Promise<Object>} 配置摘要
 
 ---
 
@@ -136,9 +136,9 @@ ipcMain.handle("unified-config:get-summary", async () =>
 ipcMain.handle("unified-config:get-directory-stats", async () =>
 ```
 
-- 获取目录统计信息
-  - Channel: 'unified-config:get-directory-stats'
-  - @returns {Promise<Object>} 目录统计
+* 获取目录统计信息
+   * Channel: 'unified-config:get-directory-stats'
+   * @returns {Promise<Object>} 目录统计
 
 ---
 
@@ -148,9 +148,9 @@ ipcMain.handle("unified-config:get-directory-stats", async () =>
 ipcMain.handle("unified-config:get-paths", async () =>
 ```
 
-- 获取统一配置路径
-  - Channel: 'unified-config:get-paths'
-  - @returns {Promise<Object>} 路径配置
+* 获取统一配置路径
+   * Channel: 'unified-config:get-paths'
+   * @returns {Promise<Object>} 路径配置
 
 ---
 
@@ -160,10 +160,10 @@ ipcMain.handle("unified-config:get-paths", async () =>
 ipcMain.handle("unified-config:clear-cache", async (_event, type = "all") =>
 ```
 
-- 清理缓存
-  - Channel: 'unified-config:clear-cache'
-  - @param {string} type - 缓存类型：'all', 'embeddings', 'queryResults', 'modelOutputs'
-  - @returns {Promise<Object>} { success: boolean }
+* 清理缓存
+   * Channel: 'unified-config:clear-cache'
+   * @param {string} type - 缓存类型：'all', 'embeddings', 'queryResults', 'modelOutputs'
+   * @returns {Promise<Object>} { success: boolean }
 
 ---
 
@@ -173,9 +173,10 @@ ipcMain.handle("unified-config:clear-cache", async (_event, type = "all") =>
 ipcMain.handle(
 ```
 
-- 清理旧日志
-  - Channel: 'unified-config:clean-old-logs'
-  - @param {number} maxFiles - 保留的最大文件数
-  - @returns {Promise<Object>} { success: boolean, cleaned: number }
+* 清理旧日志
+   * Channel: 'unified-config:clean-old-logs'
+   * @param {number} maxFiles - 保留的最大文件数
+   * @returns {Promise<Object>} { success: boolean, cleaned: number }
 
 ---
+

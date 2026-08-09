@@ -1,6 +1,6 @@
 # settings-manager
 
-**Source**: `src\main\config\settings-manager.js`
+**Source**: `src/main/config/settings-manager.js`
 
 ---
 
@@ -10,168 +10,168 @@
 const
 ```
 
-- 应用设置管理器
-- 统一管理应用配置和用户偏好设置
+* 应用设置管理器
+ * 统一管理应用配置和用户偏好设置
 
 ---
 
 ## getDefaultSettings()
 
 ```javascript
-getDefaultSettings();
+getDefaultSettings()
 ```
 
-- 获取默认设置
+* 获取默认设置
 
 ---
 
 ## loadSettings()
 
 ```javascript
-loadSettings();
+loadSettings()
 ```
 
-- 加载设置
+* 加载设置
 
 ---
 
 ## saveSettings()
 
 ```javascript
-saveSettings();
+saveSettings()
 ```
 
-- 保存设置
+* 保存设置
 
 ---
 
 ## mergeSettings(defaults, loaded)
 
 ```javascript
-mergeSettings(defaults, loaded);
+mergeSettings(defaults, loaded)
 ```
 
-- 合并设置
+* 合并设置
 
 ---
 
 ## get(key, defaultValue = undefined)
 
 ```javascript
-get(key, (defaultValue = undefined));
+get(key, defaultValue = undefined)
 ```
 
-- 获取设置值
+* 获取设置值
 
 ---
 
 ## set(key, value)
 
 ```javascript
-set(key, value);
+set(key, value)
 ```
 
-- 设置值
+* 设置值
 
 ---
 
 ## delete(key)
 
 ```javascript
-delete key;
+delete(key)
 ```
 
-- 删除设置
+* 删除设置
 
 ---
 
 ## has(key)
 
 ```javascript
-has(key);
+has(key)
 ```
 
-- 检查设置是否存在
+* 检查设置是否存在
 
 ---
 
 ## getAll()
 
 ```javascript
-getAll();
+getAll()
 ```
 
-- 获取所有设置
+* 获取所有设置
 
 ---
 
 ## setMultiple(settings)
 
 ```javascript
-setMultiple(settings);
+setMultiple(settings)
 ```
 
-- 批量设置
+* 批量设置
 
 ---
 
 ## reset()
 
 ```javascript
-reset();
+reset()
 ```
 
-- 重置为默认设置
+* 重置为默认设置
 
 ---
 
 ## resetCategory(category)
 
 ```javascript
-resetCategory(category);
+resetCategory(category)
 ```
 
-- 重置特定分类
+* 重置特定分类
 
 ---
 
 ## watch(key, callback)
 
 ```javascript
-watch(key, callback);
+watch(key, callback)
 ```
 
-- 监听设置变化
+* 监听设置变化
 
 ---
 
 ## notifyWatchers(key, newValue, oldValue)
 
 ```javascript
-notifyWatchers(key, newValue, oldValue);
+notifyWatchers(key, newValue, oldValue)
 ```
 
-- 通知监听器
+* 通知监听器
 
 ---
 
 ## watchSettingsFile()
 
 ```javascript
-watchSettingsFile();
+watchSettingsFile()
 ```
 
-- 监听设置文件变化
+* 监听设置文件变化
 
 ---
 
 ## close()
 
 ```javascript
-close();
+close()
 ```
 
-- 关闭文件监听并清理资源（应用退出或销毁实例时调用，避免 FSWatcher 泄漏）
+* 关闭文件监听并清理资源（应用退出或销毁实例时调用，避免 FSWatcher 泄漏）
 
 ---
 
@@ -181,37 +181,37 @@ close();
 export(outputPath)
 ```
 
-- 导出设置
+* 导出设置
 
 ---
 
 ## import(inputPath)
 
 ```javascript
-import(inputPath);
+import(inputPath)
 ```
 
-- 导入设置
+* 导入设置
 
 ---
 
 ## validate()
 
 ```javascript
-validate();
+validate()
 ```
 
-- 验证设置
+* 验证设置
 
 ---
 
 ## getSummary()
 
 ```javascript
-getSummary();
+getSummary()
 ```
 
-- 获取设置摘要
+* 获取设置摘要
 
 ---
 
@@ -221,6 +221,7 @@ getSummary();
 function destroySettingsManager()
 ```
 
-- 关闭并释放全局实例（关闭文件监听），用于应用退出或测试清理
+* 关闭并释放全局实例（关闭文件监听），用于应用退出或测试清理
 
 ---
+

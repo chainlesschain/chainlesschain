@@ -1,6 +1,6 @@
 # sync-config
 
-**Source**: `src\main\sync\sync-config.js`
+**Source**: `src/main/sync/sync-config.js`
 
 ---
 
@@ -10,6 +10,7 @@
 module.exports =
 ```
 
-- 同步配置
+* 同步配置
 
 ---
+

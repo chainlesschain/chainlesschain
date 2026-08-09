@@ -1,6 +1,6 @@
 # enhanced-tray-manager
 
-**Source**: `src\main\system\enhanced-tray-manager.js`
+**Source**: `src/main/system/enhanced-tray-manager.js`
 
 ---
 
@@ -10,8 +10,8 @@
 const
 ```
 
-- 增强的系统托盘管理器
-- 提供丰富的托盘菜单和快捷操作
+* 增强的系统托盘管理器
+ * 提供丰富的托盘菜单和快捷操作
 
 ---
 
@@ -21,34 +21,34 @@ const
 constructor(mainWindow, options =
 ```
 
-- @param {BrowserWindow} mainWindow
-  - @param {Object} [options]
-  - @param {() => ({ broadcast: (frame: any) => void } | null)} [options.getWebShellHandle]
-  - Lazy getter for the web-shell handle. When the embedded web-panel is
-  - the loaded renderer (Phase 1.6 default), the V5/V6 IPC `tray:action`
-  - channel has no listener — dispatchTrayAction additionally broadcasts
-  - through this handle's ws-server so the SPA can route on it. Returns
-  - null when web-shell is disabled (V5/V6 shell active). v5.0.3.34.
+* @param {BrowserWindow} mainWindow
+   * @param {Object} [options]
+   * @param {() => ({ broadcast: (frame: any) => void } | null)} [options.getWebShellHandle]
+   *   Lazy getter for the web-shell handle. When the embedded web-panel is
+   *   the loaded renderer (Phase 1.6 default), the V5/V6 IPC `tray:action`
+   *   channel has no listener — dispatchTrayAction additionally broadcasts
+   *   through this handle's ws-server so the SPA can route on it. Returns
+   *   null when web-shell is disabled (V5/V6 shell active). v5.0.3.34.
 
 ---
 
 ## create()
 
 ```javascript
-create();
+create()
 ```
 
-- 创建托盘
+* 创建托盘
 
 ---
 
 ## getIconPath()
 
 ```javascript
-getIconPath();
+getIconPath()
 ```
 
-- 获取图标路径
+* 获取图标路径
 
 ---
 
@@ -58,152 +58,153 @@ getIconPath();
 updateContextMenu(options =
 ```
 
-- 更新上下文菜单
+* 更新上下文菜单
 
 ---
 
 ## toggleWindow()
 
 ```javascript
-toggleWindow();
+toggleWindow()
 ```
 
-- 切换窗口显示/隐藏
+* 切换窗口显示/隐藏
 
 ---
 
 ## showWindow()
 
 ```javascript
-showWindow();
+showWindow()
 ```
 
-- 显示窗口
+* 显示窗口
 
 ---
 
 ## hideWindow()
 
 ```javascript
-hideWindow();
+hideWindow()
 ```
 
-- 隐藏窗口
+* 隐藏窗口
 
 ---
 
 ## sendToRenderer(channel, ...args)
 
 ```javascript
-sendToRenderer(channel, ...args);
+sendToRenderer(channel, ...args)
 ```
 
-- 发送消息到渲染进程（legacy，per-channel）
+* 发送消息到渲染进程（legacy，per-channel）
 
 ---
 
 ## dispatchTrayAction(type, payload = null)
 
 ```javascript
-dispatchTrayAction(type, (payload = null));
+dispatchTrayAction(type, payload = null)
 ```
 
-- 统一通过 "tray:action" channel 派发托盘事件给渲染进程。
-  - Payload 形如 { type, payload }：renderer 监听单一 channel，按 type 分发。
-  - 之前每个菜单项各发一个独立 channel（quick-action / sync / show-notifications
-  - 等），renderer 一个都没监听，全部点了无效。统一通道后只要 App.vue 接住
-  - "tray:action" 一个即可处理所有菜单项。
+* 统一通过 "tray:action" channel 派发托盘事件给渲染进程。
+   * Payload 形如 { type, payload }：renderer 监听单一 channel，按 type 分发。
+   * 之前每个菜单项各发一个独立 channel（quick-action / sync / show-notifications
+   * 等），renderer 一个都没监听，全部点了无效。统一通道后只要 App.vue 接住
+   * "tray:action" 一个即可处理所有菜单项。
 
 ---
 
 ## showAboutDialog()
 
 ```javascript
-showAboutDialog();
+showAboutDialog()
 ```
 
-- "关于" 菜单 → 主进程原生 dialog（不需要 renderer 配合）。
+* "关于" 菜单 → 主进程原生 dialog（不需要 renderer 配合）。
 
 ---
 
 ## triggerCheckForUpdates()
 
 ```javascript
-triggerCheckForUpdates();
+triggerCheckForUpdates()
 ```
 
-- "检查更新" 菜单 → 调 auto-updater 单例。模块在 dev (NODE_ENV !==
-  - "production") 下 autoUpdater.checkForUpdates() 会返回 null/no-op，
-  - 所以这里给一个 fallback 提示，避免用户在 dev 模式下点了又是哑响。
+* "检查更新" 菜单 → 调 auto-updater 单例。模块在 dev (NODE_ENV !==
+   * "production") 下 autoUpdater.checkForUpdates() 会返回 null/no-op，
+   * 所以这里给一个 fallback 提示，避免用户在 dev 模式下点了又是哑响。
 
 ---
 
 ## setNotificationCount(count)
 
 ```javascript
-setNotificationCount(count);
+setNotificationCount(count)
 ```
 
-- 更新通知计数
+* 更新通知计数
 
 ---
 
 ## startFlashing()
 
 ```javascript
-startFlashing();
+startFlashing()
 ```
 
-- 开始闪烁托盘图标
+* 开始闪烁托盘图标
 
 ---
 
 ## stopFlashing()
 
 ```javascript
-stopFlashing();
+stopFlashing()
 ```
 
-- 停止闪烁托盘图标
+* 停止闪烁托盘图标
 
 ---
 
 ## displayBalloon(title, content, icon = null)
 
 ```javascript
-displayBalloon(title, content, (icon = null));
+displayBalloon(title, content, icon = null)
 ```
 
-- 显示气球通知（Windows）
+* 显示气球通知（Windows）
 
 ---
 
 ## updateSyncStatus(status)
 
 ```javascript
-updateSyncStatus(status);
+updateSyncStatus(status)
 ```
 
-- 更新同步状态
+* 更新同步状态
 
 ---
 
 ## updateMemoryUsage(usage)
 
 ```javascript
-updateMemoryUsage(usage);
+updateMemoryUsage(usage)
 ```
 
-- 更新内存使用
+* 更新内存使用
 
 ---
 
 ## destroy()
 
 ```javascript
-destroy();
+destroy()
 ```
 
-- 销毁托盘
+* 销毁托盘
 
 ---
+

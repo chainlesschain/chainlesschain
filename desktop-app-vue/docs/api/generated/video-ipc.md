@@ -1,6 +1,6 @@
 # video-ipc
 
-**Source**: `src\main\video\video-ipc.js`
+**Source**: `src/main/video/video-ipc.js`
 
 ---
 
@@ -10,11 +10,11 @@
 const
 ```
 
-- 视频处理 IPC
-- 处理视频导入、编辑、转码、分析等操作
--
-- @module video-ipc
-- @description 视频处理模块，提供视频导入、批量处理、编辑、转码、字幕处理等功能
+* 视频处理 IPC
+ * 处理视频导入、编辑、转码、分析等操作
+ *
+ * @module video-ipc
+ * @description 视频处理模块，提供视频导入、批量处理、编辑、转码、字幕处理等功能
 
 ---
 
@@ -24,11 +24,11 @@ const
 function registerVideoIPC(
 ```
 
-- 注册视频处理相关的 IPC 处理器
-- @param {Object} dependencies - 依赖对象
-- @param {Object} dependencies.videoImporter - 视频导入器实例
-- @param {Object} dependencies.mainWindow - 主窗口实例（用于进度通知）
-- @param {Object} dependencies.llmManager - LLM 管理器实例（用于AI视频处理）
+* 注册视频处理相关的 IPC 处理器
+ * @param {Object} dependencies - 依赖对象
+ * @param {Object} dependencies.videoImporter - 视频导入器实例
+ * @param {Object} dependencies.mainWindow - 主窗口实例（用于进度通知）
+ * @param {Object} dependencies.llmManager - LLM 管理器实例（用于AI视频处理）
 
 ---
 
@@ -38,7 +38,7 @@ function registerVideoIPC(
 ipcMain.handle("video:select-files", async () =>
 ```
 
-- 选择视频文件
+* 选择视频文件
 
 ---
 
@@ -48,7 +48,7 @@ ipcMain.handle("video:select-files", async () =>
 ipcMain.handle("video:import-file", async (_event, filePath, options) =>
 ```
 
-- 导入单个视频文件
+* 导入单个视频文件
 
 ---
 
@@ -58,7 +58,7 @@ ipcMain.handle("video:import-file", async (_event, filePath, options) =>
 ipcMain.handle("video:import-files", async (_event, filePaths, options) =>
 ```
 
-- 批量导入视频文件
+* 批量导入视频文件
 
 ---
 
@@ -68,7 +68,7 @@ ipcMain.handle("video:import-files", async (_event, filePaths, options) =>
 ipcMain.handle("video:get-video", async (_event, videoId) =>
 ```
 
-- 获取视频信息
+* 获取视频信息
 
 ---
 
@@ -78,7 +78,7 @@ ipcMain.handle("video:get-video", async (_event, videoId) =>
 ipcMain.handle("video:get-videos", async (_event, options) =>
 ```
 
-- 获取视频列表
+* 获取视频列表
 
 ---
 
@@ -88,7 +88,7 @@ ipcMain.handle("video:get-videos", async (_event, options) =>
 ipcMain.handle("video:get-analysis", async (_event, videoId) =>
 ```
 
-- 获取视频分析
+* 获取视频分析
 
 ---
 
@@ -98,7 +98,7 @@ ipcMain.handle("video:get-analysis", async (_event, videoId) =>
 ipcMain.handle("video:get-keyframes", async (_event, videoId) =>
 ```
 
-- 获取关键帧
+* 获取关键帧
 
 ---
 
@@ -108,7 +108,7 @@ ipcMain.handle("video:get-keyframes", async (_event, videoId) =>
 ipcMain.handle("video:delete-video", async (_event, videoId) =>
 ```
 
-- 删除视频
+* 删除视频
 
 ---
 
@@ -118,7 +118,7 @@ ipcMain.handle("video:delete-video", async (_event, videoId) =>
 ipcMain.handle("video:get-stats", async () =>
 ```
 
-- 获取统计信息
+* 获取统计信息
 
 ---
 
@@ -128,7 +128,7 @@ ipcMain.handle("video:get-stats", async () =>
 ipcMain.handle("video:convert", async (_event, params) =>
 ```
 
-- 转换视频格式
+* 转换视频格式
 
 ---
 
@@ -138,7 +138,7 @@ ipcMain.handle("video:convert", async (_event, params) =>
 ipcMain.handle("video:trim", async (_event, params) =>
 ```
 
-- 裁剪视频
+* 裁剪视频
 
 ---
 
@@ -148,7 +148,7 @@ ipcMain.handle("video:trim", async (_event, params) =>
 ipcMain.handle("video:merge", async (_event, params) =>
 ```
 
-- 合并视频
+* 合并视频
 
 ---
 
@@ -158,7 +158,7 @@ ipcMain.handle("video:merge", async (_event, params) =>
 ipcMain.handle("video:addSubtitles", async (_event, params) =>
 ```
 
-- 添加字幕
+* 添加字幕
 
 ---
 
@@ -168,7 +168,7 @@ ipcMain.handle("video:addSubtitles", async (_event, params) =>
 ipcMain.handle("video:generateSubtitles", async (_event, params) =>
 ```
 
-- 生成字幕
+* 生成字幕
 
 ---
 
@@ -178,7 +178,7 @@ ipcMain.handle("video:generateSubtitles", async (_event, params) =>
 ipcMain.handle("video:extractAudio", async (_event, params) =>
 ```
 
-- 提取音频
+* 提取音频
 
 ---
 
@@ -188,7 +188,7 @@ ipcMain.handle("video:extractAudio", async (_event, params) =>
 ipcMain.handle("video:generateThumbnail", async (_event, params) =>
 ```
 
-- 生成缩略图
+* 生成缩略图
 
 ---
 
@@ -198,7 +198,7 @@ ipcMain.handle("video:generateThumbnail", async (_event, params) =>
 ipcMain.handle("video:compress", async (_event, params) =>
 ```
 
-- 压缩视频
+* 压缩视频
 
 ---
 
@@ -208,7 +208,7 @@ ipcMain.handle("video:compress", async (_event, params) =>
 ipcMain.handle("video:getInfo", async (_event, videoPath) =>
 ```
 
-- 获取视频详细信息
+* 获取视频详细信息
 
 ---
 
@@ -218,7 +218,7 @@ ipcMain.handle("video:getInfo", async (_event, videoPath) =>
 ipcMain.handle("video:applyFilter", async (_event, params) =>
 ```
 
-- 应用单个滤镜
+* 应用单个滤镜
 
 ---
 
@@ -228,7 +228,7 @@ ipcMain.handle("video:applyFilter", async (_event, params) =>
 ipcMain.handle("video:applyFilterChain", async (_event, params) =>
 ```
 
-- 应用滤镜链
+* 应用滤镜链
 
 ---
 
@@ -238,7 +238,7 @@ ipcMain.handle("video:applyFilterChain", async (_event, params) =>
 ipcMain.handle("video:separateAudio", async (_event, params) =>
 ```
 
-- 分离音轨
+* 分离音轨
 
 ---
 
@@ -248,7 +248,7 @@ ipcMain.handle("video:separateAudio", async (_event, params) =>
 ipcMain.handle("video:replaceAudio", async (_event, params) =>
 ```
 
-- 替换音轨
+* 替换音轨
 
 ---
 
@@ -258,7 +258,7 @@ ipcMain.handle("video:replaceAudio", async (_event, params) =>
 ipcMain.handle("video:adjustVolume", async (_event, params) =>
 ```
 
-- 调节音量
+* 调节音量
 
 ---
 
@@ -268,7 +268,7 @@ ipcMain.handle("video:adjustVolume", async (_event, params) =>
 ipcMain.handle("video:addSubtitlesWithPreset", async (_event, params) =>
 ```
 
-- 使用预设样式添加字幕
+* 使用预设样式添加字幕
 
 ---
 
@@ -278,7 +278,8 @@ ipcMain.handle("video:addSubtitlesWithPreset", async (_event, params) =>
 ipcMain.handle("video:generate", async (_event, params) =>
 ```
 
-- 文生视频 — 调用 Volcengine Seedance 真实 API，取代此前的
-  - FFmpeg 纯色+drawtext 占位实现。
+* 文生视频 — 调用 Volcengine Seedance 真实 API，取代此前的
+   * FFmpeg 纯色+drawtext 占位实现。
 
 ---
+

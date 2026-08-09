@@ -1,18 +1,18 @@
 # contract-artifacts
 
-**Source**: `src\main\blockchain\contract-artifacts.js`
+**Source**: `src/main/blockchain/contract-artifacts.js`
 
 ---
 
 ## const path = require('path');
 
 ```javascript
-const path = require("path");
+const path = require('path');
 ```
 
-- 合约 Artifacts 加载器
--
-- 加载编译后的合约 ABI 和字节码
+* 合约 Artifacts 加载器
+ *
+ * 加载编译后的合约 ABI 和字节码
 
 ---
 
@@ -22,10 +22,10 @@ const path = require("path");
 function loadContractArtifact(contractPath, contractName)
 ```
 
-- 加载合约 artifact
-- @param {string} contractPath - 合约路径（相对于 contracts/）
-- @param {string} contractName - 合约名称
-- @returns {object} { abi, bytecode }
+* 加载合约 artifact
+ * @param {string} contractPath - 合约路径（相对于 contracts/）
+ * @param {string} contractName - 合约名称
+ * @returns {object} { abi, bytecode }
 
 ---
 
@@ -35,7 +35,7 @@ function loadContractArtifact(contractPath, contractName)
 function getChainlessTokenArtifact()
 ```
 
-- 获取 ChainlessToken (ERC-20) artifact
+* 获取 ChainlessToken (ERC-20) artifact
 
 ---
 
@@ -45,7 +45,7 @@ function getChainlessTokenArtifact()
 function getChainlessNFTArtifact()
 ```
 
-- 获取 ChainlessNFT (ERC-721) artifact
+* 获取 ChainlessNFT (ERC-721) artifact
 
 ---
 
@@ -55,7 +55,7 @@ function getChainlessNFTArtifact()
 function getEscrowContractArtifact()
 ```
 
-- 获取 EscrowContract artifact
+* 获取 EscrowContract artifact
 
 ---
 
@@ -65,7 +65,7 @@ function getEscrowContractArtifact()
 function getSubscriptionContractArtifact()
 ```
 
-- 获取 SubscriptionContract artifact
+* 获取 SubscriptionContract artifact
 
 ---
 
@@ -75,7 +75,7 @@ function getSubscriptionContractArtifact()
 function getBountyContractArtifact()
 ```
 
-- 获取 BountyContract artifact
+* 获取 BountyContract artifact
 
 ---
 
@@ -85,7 +85,7 @@ function getBountyContractArtifact()
 function getAssetBridgeArtifact()
 ```
 
-- 获取 AssetBridge artifact
+* 获取 AssetBridge artifact
 
 ---
 
@@ -95,7 +95,7 @@ function getAssetBridgeArtifact()
 function getERC20ABI()
 ```
 
-- 获取 ERC-20 标准 ABI (用于与任意 ERC-20 代币交互)
+* 获取 ERC-20 标准 ABI (用于与任意 ERC-20 代币交互)
 
 ---
 
@@ -105,6 +105,7 @@ function getERC20ABI()
 function getERC721ABI()
 ```
 
-- 获取 ERC-721 标准 ABI (用于与任意 NFT 交互)
+* 获取 ERC-721 标准 ABI (用于与任意 NFT 交互)
 
 ---
+

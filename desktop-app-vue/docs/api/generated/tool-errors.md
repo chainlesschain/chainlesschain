@@ -1,6 +1,6 @@
 # tool-errors
 
-**Source**: `src\main\skill-tool-system\tool-errors.js`
+**Source**: `src/main/skill-tool-system/tool-errors.js`
 
 ---
 
@@ -10,8 +10,8 @@
 class ToolError extends Error
 ```
 
-- 工具错误类定义
-- 提供统一的错误处理和分类
+* 工具错误类定义
+ * 提供统一的错误处理和分类
 
 ---
 
@@ -21,7 +21,7 @@ class ToolError extends Error
 class ToolError extends Error
 ```
 
-- 基础工具错误类
+* 基础工具错误类
 
 ---
 
@@ -31,7 +31,7 @@ class ToolError extends Error
 class ValidationError extends ToolError
 ```
 
-- 参数验证错误
+* 参数验证错误
 
 ---
 
@@ -41,7 +41,7 @@ class ValidationError extends ToolError
 class ExecutionError extends ToolError
 ```
 
-- 工具执行错误
+* 工具执行错误
 
 ---
 
@@ -51,7 +51,7 @@ class ExecutionError extends ToolError
 class ToolNotFoundError extends ToolError
 ```
 
-- 工具未找到错误
+* 工具未找到错误
 
 ---
 
@@ -61,7 +61,7 @@ class ToolNotFoundError extends ToolError
 class PermissionError extends ToolError
 ```
 
-- 权限错误
+* 权限错误
 
 ---
 
@@ -71,7 +71,7 @@ class PermissionError extends ToolError
 class TimeoutError extends ToolError
 ```
 
-- 超时错误
+* 超时错误
 
 ---
 
@@ -81,7 +81,7 @@ class TimeoutError extends ToolError
 class ConfigurationError extends ToolError
 ```
 
-- 配置错误
+* 配置错误
 
 ---
 
@@ -91,7 +91,7 @@ class ConfigurationError extends ToolError
 class DependencyError extends ToolError
 ```
 
-- 依赖错误（缺少必需的依赖）
+* 依赖错误（缺少必需的依赖）
 
 ---
 
@@ -101,7 +101,7 @@ class DependencyError extends ToolError
 class ResourceLimitError extends ToolError
 ```
 
-- 资源限制错误
+* 资源限制错误
 
 ---
 
@@ -111,7 +111,7 @@ class ResourceLimitError extends ToolError
 class ErrorHandler
 ```
 
-- 错误处理器
+* 错误处理器
 
 ---
 
@@ -121,66 +121,67 @@ class ErrorHandler
 async handleToolError(error, toolName, params)
 ```
 
-- 处理工具错误
+* 处理工具错误
 
 ---
 
 ## wrapHandler(handler, toolName, logger)
 
 ```javascript
-wrapHandler(handler, toolName, logger);
+wrapHandler(handler, toolName, logger)
 ```
 
-- 包装工具Handler，添加错误处理
+* 包装工具Handler，添加错误处理
 
 ---
 
 ## _validateParams(params, toolName)
 
 ```javascript
-_validateParams(params, toolName);
+_validateParams(params, toolName)
 ```
 
-- 验证参数
+* 验证参数
 
 ---
 
 ## _recordErrorStats(error, toolName)
 
 ```javascript
-_recordErrorStats(error, toolName);
+_recordErrorStats(error, toolName)
 ```
 
-- 记录错误统计
+* 记录错误统计
 
 ---
 
 ## getErrorStats()
 
 ```javascript
-getErrorStats();
+getErrorStats()
 ```
 
-- 获取错误统计
+* 获取错误统计
 
 ---
 
 ## clearErrorStats()
 
 ```javascript
-clearErrorStats();
+clearErrorStats()
 ```
 
-- 清除错误统计
+* 清除错误统计
 
 ---
 
 ## _sanitizeParams(params)
 
 ```javascript
-_sanitizeParams(params);
+_sanitizeParams(params)
 ```
 
-- 清理敏感参数
+* 清理敏感参数
 
 ---
+

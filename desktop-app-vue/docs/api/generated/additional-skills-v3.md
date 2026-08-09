@@ -1,6 +1,6 @@
 # additional-skills-v3
 
-**Source**: `src\main\skill-tool-system\additional-skills-v3.js`
+**Source**: `src/main/skill-tool-system/additional-skills-v3.js`
 
 ---
 
@@ -10,7 +10,8 @@
 const additionalSkillsV3 = [
 ```
 
-- 额外技能定义 V3 - 专业领域技能
-- 支持区块链、房地产、客户成功、变革管理、审计等专业场景
+* 额外技能定义 V3 - 专业领域技能
+ * 支持区块链、房地产、客户成功、变革管理、审计等专业场景
 
 ---
+

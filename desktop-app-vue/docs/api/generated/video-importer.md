@@ -1,6 +1,6 @@
 # video-importer
 
-**Source**: `src\main\video\video-importer.js`
+**Source**: `src/main/video/video-importer.js`
 
 ---
 
@@ -10,9 +10,9 @@
 const
 ```
 
-- 视频导入器
-- 负责视频文件的导入、元数据提取、缩略图生成和数据库存储
-- 使用 EventEmitter 模式发送进度和状态更新
+* 视频导入器
+ * 负责视频文件的导入、元数据提取、缩略图生成和数据库存储
+ * 使用 EventEmitter 模式发送进度和状态更新
 
 ---
 
@@ -22,18 +22,18 @@ const
 class VideoImporter extends EventEmitter
 ```
 
-- 视频导入器类
+* 视频导入器类
 
 ---
 
 ## constructor(database, userDataPath)
 
 ```javascript
-constructor(database, userDataPath);
+constructor(database, userDataPath)
 ```
 
-- @param {Object} database - 数据库实例
-  - @param {string} userDataPath - 用户数据路径
+* @param {Object} database - 数据库实例
+   * @param {string} userDataPath - 用户数据路径
 
 ---
 
@@ -43,8 +43,8 @@ constructor(database, userDataPath);
 async initializeStorageDirectories()
 ```
 
-- 初始化存储目录
-  - @returns {Promise<void>}
+* 初始化存储目录
+   * @returns {Promise<void>}
 
 ---
 
@@ -54,10 +54,10 @@ async initializeStorageDirectories()
 async importVideo(filePath, options =
 ```
 
-- 导入单个视频文件
-  - @param {string} filePath - 视频文件路径
-  - @param {Object} options - 导入选项
-  - @returns {Promise<Object>} 导入结果
+* 导入单个视频文件
+   * @param {string} filePath - 视频文件路径
+   * @param {Object} options - 导入选项
+   * @returns {Promise<Object>} 导入结果
 
 ---
 
@@ -67,10 +67,10 @@ async importVideo(filePath, options =
 async importVideoBatch(filePaths, options =
 ```
 
-- 批量导入视频文件
-  - @param {Array<string>} filePaths - 文件路径数组
-  - @param {Object} options - 导入选项
-  - @returns {Promise<Array>} 导入结果数组
+* 批量导入视频文件
+   * @param {Array<string>} filePaths - 文件路径数组
+   * @param {Object} options - 导入选项
+   * @returns {Promise<Array>} 导入结果数组
 
 ---
 
@@ -80,9 +80,9 @@ async importVideoBatch(filePaths, options =
 async validateFile(filePath)
 ```
 
-- 验证视频文件
-  - @param {string} filePath - 文件路径
-  - @returns {Promise<void>}
+* 验证视频文件
+   * @param {string} filePath - 文件路径
+   * @returns {Promise<void>}
 
 ---
 
@@ -92,21 +92,21 @@ async validateFile(filePath)
 async extractMetadata(filePath)
 ```
 
-- 提取视频元数据
-  - @param {string} filePath - 视频文件路径
-  - @returns {Promise<Object>} 元数据
+* 提取视频元数据
+   * @param {string} filePath - 视频文件路径
+   * @returns {Promise<Object>} 元数据
 
 ---
 
 ## parseFps(fpsString)
 
 ```javascript
-parseFps(fpsString);
+parseFps(fpsString)
 ```
 
-- 解析帧率字符串
-  - @param {string} fpsString - 帧率字符串 (如 "30/1")
-  - @returns {number}
+* 解析帧率字符串
+   * @param {string} fpsString - 帧率字符串 (如 "30/1")
+   * @returns {number}
 
 ---
 
@@ -116,9 +116,9 @@ parseFps(fpsString);
 async copyFileToStorage(sourceFilePath)
 ```
 
-- 复制文件到存储目录
-  - @param {string} sourceFilePath - 源文件路径
-  - @returns {Promise<string>} 目标文件路径
+* 复制文件到存储目录
+   * @param {string} sourceFilePath - 源文件路径
+   * @returns {Promise<string>} 目标文件路径
 
 ---
 
@@ -128,10 +128,10 @@ async copyFileToStorage(sourceFilePath)
 async generateThumbnail(filePath, taskId)
 ```
 
-- 生成缩略图
-  - @param {string} filePath - 视频文件路径
-  - @param {string} taskId - 任务ID
-  - @returns {Promise<string>} 缩略图路径
+* 生成缩略图
+   * @param {string} filePath - 视频文件路径
+   * @param {string} taskId - 任务ID
+   * @returns {Promise<string>} 缩略图路径
 
 ---
 
@@ -141,9 +141,9 @@ async generateThumbnail(filePath, taskId)
 async analyzeVideo(videoId)
 ```
 
-- 分析视频
-  - @param {string} videoId - 视频ID
-  - @returns {Promise<Object>} 分析结果
+* 分析视频
+   * @param {string} videoId - 视频ID
+   * @returns {Promise<Object>} 分析结果
 
 ---
 
@@ -153,9 +153,9 @@ async analyzeVideo(videoId)
 async extractAudio(video)
 ```
 
-- 提取音频
-  - @param {Object} video - 视频记录
-  - @returns {Promise<string>} 音频文件路径
+* 提取音频
+   * @param {Object} video - 视频记录
+   * @returns {Promise<string>} 音频文件路径
 
 ---
 
@@ -165,9 +165,9 @@ async extractAudio(video)
 async extractKeyframes(video)
 ```
 
-- 提取关键帧
-  - @param {Object} video - 视频记录
-  - @returns {Promise<Array>} 关键帧列表
+* 提取关键帧
+   * @param {Object} video - 视频记录
+   * @returns {Promise<Array>} 关键帧列表
 
 ---
 
@@ -177,9 +177,9 @@ async extractKeyframes(video)
 async detectScenes(video)
 ```
 
-- 检测场景
-  - @param {Object} video - 视频记录
-  - @returns {Promise<Array>} 场景列表
+* 检测场景
+   * @param {Object} video - 视频记录
+   * @returns {Promise<Array>} 场景列表
 
 ---
 
@@ -189,21 +189,21 @@ async detectScenes(video)
 async performOCR(video)
 ```
 
-- 执行 OCR 识别
-  - @param {Object} video - 视频记录
-  - @returns {Promise<string>} OCR 文本
+* 执行 OCR 识别
+   * @param {Object} video - 视频记录
+   * @returns {Promise<string>} OCR 文本
 
 ---
 
 ## formatTime(seconds)
 
 ```javascript
-formatTime(seconds);
+formatTime(seconds)
 ```
 
-- 格式化时间为 HH:MM:SS
-  - @param {number} seconds - 秒数
-  - @returns {string}
+* 格式化时间为 HH:MM:SS
+   * @param {number} seconds - 秒数
+   * @returns {string}
 
 ---
 
@@ -213,20 +213,21 @@ formatTime(seconds);
 async cancelImport(taskId)
 ```
 
-- 取消导入任务
-  - @param {string} taskId - 任务ID
-  - @returns {Promise<void>}
+* 取消导入任务
+   * @param {string} taskId - 任务ID
+   * @returns {Promise<void>}
 
 ---
 
 ## getImportProgress(taskId)
 
 ```javascript
-getImportProgress(taskId);
+getImportProgress(taskId)
 ```
 
-- 获取导入进度
-  - @param {string} taskId - 任务ID
-  - @returns {Object|null}
+* 获取导入进度
+   * @param {string} taskId - 任务ID
+   * @returns {Object|null}
 
 ---
+
