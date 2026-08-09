@@ -7,23 +7,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added — mainline MCP sandbox-policy propagation
+### Added — cc CLI 0.163.3: isolated background agents and policy-bound runtimes
 
-- **Policy-bearing MCP sources**: local, project, user, managed, Skill, and
-  Cowork stdio MCP definitions can carry a small declarative `sandboxPolicy`
-  with `filesystem` and/or `network` required boundaries plus a trusted `cwd`.
-  The policy is normalized as untrusted data, bound to workspace authority, and
-  passed to the Process Broker; a requested boundary that cannot be proved
-  fails closed.
-- **Precedence cannot downgrade policy**: an invalid higher-precedence MCP
-  definition reserves its server name instead of silently falling through to a
-  lower-precedence definition. Proxy/accessor objects, unknown policy fields,
-  unsupported boundaries, and out-of-authority working directories are
-  rejected without invoking user-controlled accessors.
-- **Release boundary**: this landed at mainline commit
-  `9fa5162e668fa9b457b0d70d54a0806773c363ab`, after the current immutable npm
-  release tag. It is source-mainline behavior until a later exact-SHA release
-  completes the required Linux, Windows, and macOS gates.
+> `chainlesschain` **0.163.2 → 0.163.3** (candidate; not yet published,
+> 2026-08-10).
+> CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.57**
+> and `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **Git background isolation by default**: non-`stream-json` `cc agent --bg`
+  runs started from a clean Git checkout now create a worktree at committed
+  `HEAD`; `--worktree` requests the same path and only `--no-worktree` opts into
+  the shared checkout. Foreground, `stream-json`, and non-Git runs retain their
+  prior behavior, while a dirty Git source is rejected instead of silently
+  omitting uncommitted changes.
+- **Generation- and token-fenced ownership**: locked atomic state, immutable
+  worktree/profile identity, worker-generation claims, terminal-absorbing
+  updates, durable turn intents, and stop/cleanup fences prevent stale
+  cooperative workers from reviving or deleting live work. Versioned,
+  secret-free launch profiles preserve compatible resume settings.
+- **Grammar-safe detached arguments**: new background launches preserve option
+  values and `--` literals, pass prompts as one `--print=<text>` token,
+  canonicalize resume/continue/fork to one session, and remap repository
+  `--add-dir` roots into the worktree. Canonical external roots remain shared
+  and produce a warning.
+- **Policy-bearing stdio MCP sources**: explicit `--mcp-config`, managed and
+  registered local/project/user sources, trusted project configuration, Skill,
+  and Cowork definitions propagate normalized `filesystem`/`network`
+  requirements plus separately validated working-directory/workspace authority
+  to the Process Broker. Unprovable requirements fail closed, and invalid named
+  higher-precedence entries do not fall through to a weaker source.
+- **Sealed Linux plugin file sets**: strict direct Plugin Node and supported
+  narrow native ELF launches snapshot every pinned regular plugin file into
+  sealed anonymous data-bind mounts. Dynamic native evidence covers only
+  `PT_INTERP` and direct `DT_NEEDED`; tree attestation remains per-file rather
+  than one atomic filesystem snapshot.
+- **Contained Windows adapter artifacts**: helper, cache, and test artifacts use
+  an attested non-reparse local temporary root, identity/content rechecks,
+  randomized materialization, and bounded retirement. Unknown or unverifiable
+  leftovers are preserved and make cleanup fail closed.
+- **Fail-closed CI routing**: the generic selector routes the defined Windows
+  helper-support paths to their CLI contract tests, supports multi-suite
+  execution, and cannot turn selected-test or primary-run failure into a
+  fallback/diagnostic pass. Full-suite workflows provision their required
+  dependencies explicitly; this routing does not replace the exact-SHA release
+  matrices.
+- **Known residuals**: non-Git, `stream-json`, `--no-worktree`, and external
+  `add-dir` roots are not worktree-isolated. Spawn-to-PID hard-crash recovery
+  and long-soak closure remain open; Linux native dependency evidence is
+  non-transitive and has no `dlopen` closure; Windows path operations are
+  re-attested but not handle-atomic. macOS atomic runtime execution, arbitrary
+  shared-library closure, remote revocation, signed native distribution, and
+  alias telemetry/removal remain out of scope, so this release does not claim
+  complete P1-2 closure.
+- **Release status**: final tag, exact source SHA, workflow run IDs, package
+  digest, provenance, and public registry readback are intentionally omitted
+  until the exact `0.163.3` release commit passes the required Linux, Windows,
+  and macOS `CLI CI` and `CLI Strict Sandbox` gates and the npm release/readback
+  workflows complete successfully.
 
 ### Fixed — cc CLI 0.163.2: fail-closed MCP capsule sandbox composition
 
