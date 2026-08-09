@@ -1695,6 +1695,16 @@ function createLinuxDynamicNativeRuntimeProbe(overrides = {}) {
     contentSnapshot: true,
     contentSnapshotScope: "plugin-entry-executable",
     contentSnapshotMechanism: "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1",
+    pluginTreeContentSnapshot: true,
+    pluginTreeContentSnapshotScope: "all-pinned-plugin-regular-files",
+    pluginTreeContentSnapshotMechanism:
+      "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1",
+    pluginTreeContentSnapshotFiles: 2,
+    pluginTreeContentSnapshotBytes: 50,
+    pluginTreeContentSnapshotDigest: "e".repeat(64),
+    pluginTreeSnapshotConsistency: "per-file-pin-to-launch",
+    pluginTreeSnapshotContractBound: false,
+    pluginTreeSnapshotAtomic: false,
     initialDynamicLoadClosureDescriptorBound: true,
     initialDynamicLoadClosureScope:
       "initial-pt_interp-and-direct-dt_needed-attested-system-set",
@@ -1704,6 +1714,21 @@ function createLinuxDynamicNativeRuntimeProbe(overrides = {}) {
     initialDynamicDependencyCount: 2,
     initialDynamicRuntimeFileCount: 3,
     initialDynamicLoadClosureDigest: "d".repeat(64),
+    ...overrides,
+  });
+}
+
+function createLinuxStaticNativeRuntimeProbe(overrides = {}) {
+  return createLinuxDynamicNativeRuntimeProbe({
+    kind: "linux-bwrap-plugin-native-static-elf-policy-v1",
+    targetRuntime: "native-static-elf",
+    initialDynamicLoadClosureDescriptorBound: undefined,
+    initialDynamicLoadClosureScope: undefined,
+    initialDynamicLoadClosureMechanism: undefined,
+    initialDynamicInterpreter: undefined,
+    initialDynamicDependencyCount: undefined,
+    initialDynamicRuntimeFileCount: undefined,
+    initialDynamicLoadClosureDigest: undefined,
     ...overrides,
   });
 }
@@ -3162,6 +3187,19 @@ describe("platform sandbox adapter contract", () => {
         contentSnapshotScope: "plugin-entry-executable",
         contentSnapshotMechanism:
           "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1",
+        pluginTreeContentSnapshot: true,
+        pluginTreeContentSnapshotScope: "all-pinned-plugin-regular-files",
+        pluginTreeContentSnapshotMechanism:
+          "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1",
+        pluginTreeContentSnapshotFiles: 2,
+        pluginTreeContentSnapshotBytes:
+          harness.contract.entryIdentity.bytes +
+          harness.files.get("/plugin/lib/value.cjs").length,
+        pluginTreeContentSnapshotDigest:
+          expect.stringMatching(/^[a-f0-9]{64}$/),
+        pluginTreeSnapshotConsistency: "per-file-pin-to-launch",
+        pluginTreeSnapshotContractBound: false,
+        pluginTreeSnapshotAtomic: false,
         supervisorDescriptorBound: true,
         supervisorDescriptorBindingMechanism:
           "pinned-child-fd3-file-consume-run-overmount-v1",
@@ -3182,7 +3220,11 @@ describe("platform sandbox adapter contract", () => {
       harness.bwrapInvocations[1].parentFd,
     );
     expect(harness.fdOffsets.get(plan.options.stdio[3])).toBe(0);
-    const entryDataIndex = plan.args.indexOf("--ro-bind-data");
+    const entryDataIndex = plan.args.findIndex(
+      (value, index) =>
+        value === "--ro-bind-data" &&
+        plan.args[index + 2] === "/opt/chainless/plugin/bin/tool",
+    );
     expect(plan.args.slice(entryDataIndex - 2, entryDataIndex + 3)).toEqual([
       "--perms",
       "0500",
@@ -3191,20 +3233,22 @@ describe("platform sandbox adapter contract", () => {
       "/opt/chainless/plugin/bin/tool",
     ]);
     const nativeMounts = linuxBwrapFileMounts(plan.args);
-    expect(nativeMounts.filter(({ mode }) => mode === "ro-bind-data")).toEqual([
-      {
-        mode: "ro-bind-data",
-        childFd: expect.any(Number),
-        destination: "/opt/chainless/plugin/bin/tool",
-        permissions: "0500",
-      },
-    ]);
-    expect(nativeMounts).toContainEqual({
-      mode: "ro-bind-fd",
-      childFd: expect.any(Number),
-      destination: "/opt/chainless/plugin/lib/value.cjs",
-      permissions: null,
-    });
+    expect(nativeMounts.filter(({ mode }) => mode === "ro-bind-data")).toEqual(
+      expect.arrayContaining([
+        {
+          mode: "ro-bind-data",
+          childFd: expect.any(Number),
+          destination: "/opt/chainless/plugin/bin/tool",
+          permissions: "0500",
+        },
+        {
+          mode: "ro-bind-data",
+          childFd: expect.any(Number),
+          destination: "/opt/chainless/plugin/lib/value.cjs",
+          permissions: "0400",
+        },
+      ]),
+    );
     expect(plan.args.slice(-4)).toEqual([
       "--",
       "/opt/chainless/plugin/bin/tool",
@@ -3226,8 +3270,11 @@ describe("platform sandbox adapter contract", () => {
         .slice(probeSeparator + 1)
         .includes("/opt/chainless/plugin/bin/tool"),
     ).toBe(false);
-    expect(harness.bwrapDataReads).toHaveLength(1);
-    const probeSnapshotRead = harness.bwrapDataReads[0];
+    expect(harness.bwrapDataReads).toHaveLength(2);
+    const probeSnapshotRead = harness.bwrapDataReads.find(
+      ({ stage, destination }) =>
+        stage === "probe" && destination === "/opt/chainless/plugin/bin/tool",
+    );
     expect(probeSnapshotRead).toMatchObject({
       destination: "/opt/chainless/plugin/bin/tool",
       offsetBefore: 0,
@@ -3267,8 +3314,13 @@ describe("platform sandbox adapter contract", () => {
       "probe",
       "final",
     ]);
-    expect(harness.bwrapDataReads).toHaveLength(2);
-    expect(harness.bwrapDataReads[1]).toMatchObject({
+    expect(harness.bwrapDataReads).toHaveLength(4);
+    expect(
+      harness.bwrapDataReads.find(
+        ({ stage, destination }) =>
+          stage === "final" && destination === "/opt/chainless/plugin/bin/tool",
+      ),
+    ).toMatchObject({
       parentFd: finalSnapshotFd,
       sourcePath: finalSnapshotPath,
       destination: "/opt/chainless/plugin/bin/tool",
@@ -3279,6 +3331,126 @@ describe("platform sandbox adapter contract", () => {
     });
 
     plan.cleanup();
+    plan.cleanup();
+    expect(harness.openFiles.size).toBe(0);
+    expect(harness.anonymousFiles.size).toBe(0);
+  });
+
+  it("materializes and seals every native plugin file before launch", () => {
+    const dependencyContents = Buffer.from("ORIGINAL_NATIVE_DATA\n");
+    const replacementContents = Buffer.from("REPLACEMENT_NATIVE_DATA\n");
+    const helperContents = Buffer.from("native helper bytes\n");
+    const harness = createLinuxStrongHarness({
+      entryRuntime: "native-static-elf",
+      nodeDependency: dependencyContents,
+      nodeDependencyMode: 0o100600,
+      additionalPluginFiles: [
+        {
+          path: "/plugin/assets/empty.dat",
+          contents: Buffer.alloc(0),
+          mode: 0o100444,
+        },
+        {
+          path: "/plugin/bin/helper",
+          contents: helperContents,
+          mode: 0o100010,
+        },
+      ],
+    });
+    const plan = applyLinuxStrongNativeHarness(harness);
+    const expectedBytes =
+      harness.contract.entryIdentity.bytes +
+      dependencyContents.length +
+      helperContents.length;
+
+    expect(plan).toMatchObject({
+      applied: true,
+      policyAttested: true,
+      runtimeProbe: {
+        runnable: true,
+        targetRuntime: "native-static-elf",
+        contentSnapshot: true,
+        pluginTreeContentSnapshot: true,
+        pluginTreeContentSnapshotScope: "all-pinned-plugin-regular-files",
+        pluginTreeContentSnapshotMechanism:
+          "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1",
+        pluginTreeContentSnapshotFiles: 4,
+        pluginTreeContentSnapshotBytes: expectedBytes,
+        pluginTreeContentSnapshotDigest:
+          expect.stringMatching(/^[a-f0-9]{64}$/),
+        pluginTreeSnapshotConsistency: "per-file-pin-to-launch",
+        pluginTreeSnapshotContractBound: false,
+        pluginTreeSnapshotAtomic: false,
+        handleAtomic: false,
+      },
+    });
+
+    expect(
+      linuxBwrapFileMounts(plan.args)
+        .filter(({ destination }) =>
+          destination.startsWith("/opt/chainless/plugin/"),
+        )
+        .map(({ mode, destination, permissions }) => ({
+          mode,
+          destination,
+          permissions,
+        }))
+        .sort((left, right) =>
+          left.destination.localeCompare(right.destination),
+        ),
+    ).toEqual([
+      {
+        mode: "ro-bind-data",
+        destination: "/opt/chainless/plugin/assets/empty.dat",
+        permissions: "0400",
+      },
+      {
+        mode: "ro-bind-data",
+        destination: "/opt/chainless/plugin/bin/helper",
+        permissions: "0500",
+      },
+      {
+        mode: "ro-bind-data",
+        destination: "/opt/chainless/plugin/bin/tool",
+        permissions: "0500",
+      },
+      {
+        mode: "ro-bind-data",
+        destination: "/opt/chainless/plugin/lib/value.cjs",
+        permissions: "0400",
+      },
+    ]);
+    expect(
+      harness.bwrapDataReads.filter(({ stage }) => stage === "probe"),
+    ).toHaveLength(4);
+
+    const mutation = harness.rewriteFileInPlace(
+      "/plugin/lib/value.cjs",
+      replacementContents,
+    );
+    expect(mutation.after.ino).toBe(mutation.before.ino);
+    expect(mutation.afterSha256).not.toBe(mutation.beforeSha256);
+
+    const result = harness.spawnSync(plan.command, plan.args, plan.options);
+    expect(result.status).toBe(0);
+    expect(
+      harness.bwrapDataReads.find(
+        ({ stage, destination }) =>
+          stage === "final" &&
+          destination === "/opt/chainless/plugin/lib/value.cjs",
+      ),
+    ).toMatchObject({
+      bytesRead: dependencyContents.length,
+      permissions: "0400",
+      sha256: crypto
+        .createHash("sha256")
+        .update(dependencyContents)
+        .digest("hex"),
+    });
+    expect([...harness.openFiles.values()]).not.toContain(
+      "/plugin/lib/value.cjs",
+    );
+
     plan.cleanup();
     expect(harness.openFiles.size).toBe(0);
     expect(harness.anonymousFiles.size).toBe(0);
@@ -3690,8 +3862,13 @@ describe("platform sandbox adapter contract", () => {
     );
 
     expect(finalResult.status).toBe(0);
-    expect(harness.bwrapDataReads).toHaveLength(2);
-    expect(harness.bwrapDataReads[1]).toMatchObject({
+    expect(harness.bwrapDataReads).toHaveLength(4);
+    expect(
+      harness.bwrapDataReads.find(
+        ({ stage, destination }) =>
+          stage === "final" && destination === "/opt/chainless/plugin/bin/tool",
+      ),
+    ).toMatchObject({
       offsetBefore: 0,
       bytesRead: originalBytes,
       sha256: originalSha256,
@@ -3744,10 +3921,13 @@ describe("platform sandbox adapter contract", () => {
       plan.options,
     );
     expect(finalResult.status).toBe(0);
-    expect(harness.bwrapDataReads).toHaveLength(2);
-    expect(harness.bwrapDataReads[1].sha256).toBe(
-      harness.contract.entryIdentity.sha256,
-    );
+    expect(harness.bwrapDataReads).toHaveLength(4);
+    expect(
+      harness.bwrapDataReads.find(
+        ({ stage, destination }) =>
+          stage === "final" && destination === "/opt/chainless/plugin/bin/tool",
+      ).sha256,
+    ).toBe(harness.contract.entryIdentity.sha256);
 
     plan.cleanup();
     expect(harness.openFiles.size).toBe(0);
@@ -3774,23 +3954,35 @@ describe("platform sandbox adapter contract", () => {
       entryRuntime: "native-static-elf",
       nativeEntry: changedEntry,
     });
+    const changedTree = createLinuxStrongHarness({
+      entryRuntime: "native-static-elf",
+      nodeDependency: Buffer.from("changed native plugin data\n"),
+    });
 
     const leftPlan = applyLinuxStrongNativeHarness(left);
     const rightPlan = applyLinuxStrongNativeHarness(right);
     const changedPlan = applyLinuxStrongNativeHarness(changed);
+    const changedTreePlan = applyLinuxStrongNativeHarness(changedTree);
 
     expect(leftPlan.applied).toBe(true);
     expect(rightPlan.applied).toBe(true);
     expect(changedPlan.applied).toBe(true);
+    expect(changedTreePlan.applied).toBe(true);
     expect(leftPlan.policyDigest).toBe(rightPlan.policyDigest);
     expect(changedPlan.policyDigest).not.toBe(leftPlan.policyDigest);
+    expect(changedTreePlan.policyDigest).not.toBe(leftPlan.policyDigest);
+    expect(
+      changedTreePlan.runtimeProbe.pluginTreeContentSnapshotDigest,
+    ).not.toBe(leftPlan.runtimeProbe.pluginTreeContentSnapshotDigest);
 
     leftPlan.cleanup();
     rightPlan.cleanup();
     changedPlan.cleanup();
+    changedTreePlan.cleanup();
     expect(left.openFiles.size).toBe(0);
     expect(right.openFiles.size).toBe(0);
     expect(changed.openFiles.size).toBe(0);
+    expect(changedTree.openFiles.size).toBe(0);
   });
 
   it("fails closed when a native entry loses execute mode before snapshot", () => {
@@ -3870,6 +4062,92 @@ describe("platform sandbox adapter contract", () => {
     expect(harness.anonymousFiles.size).toBe(0);
   });
 
+  it("fails closed and releases prior snapshots when a native tree member cannot be sealed", () => {
+    const failingContents = Buffer.from("native member reopen must fail\n");
+    const harness = createLinuxStrongHarness({
+      entryRuntime: "native-static-elf",
+      additionalPluginFiles: [
+        {
+          path: "/plugin/lib/a-first.dat",
+          contents: Buffer.from("first native member\n"),
+          mode: 0o100644,
+        },
+        {
+          path: "/plugin/lib/b-fail.dat",
+          contents: failingContents,
+          mode: 0o100755,
+        },
+      ],
+      failSnapshotReopenForContents: failingContents,
+    });
+    const plan = applyLinuxStrongNativeHarness(harness);
+
+    expect(plan).toMatchObject({
+      applied: false,
+      backend: null,
+      candidateBackend: "linux-bwrap",
+      policyAttested: false,
+      reason: "linux_bwrap_plugin_snapshot_unattested",
+      guarantees: [],
+      runtimeProbe: {
+        attempted: false,
+        runnable: false,
+        targetRuntime: "native-static-elf",
+        contentSnapshot: false,
+        handleAtomic: false,
+      },
+    });
+    expect(plan.runtimeProbe.reason).toMatch(/plugin_tree_snapshot.*reopen/);
+    expect(
+      harness.spawnSync.mock.calls.filter(([command]) =>
+        harness.isBwrapCommand(command),
+      ),
+    ).toHaveLength(0);
+    expect(harness.openFiles.size).toBe(0);
+    expect(harness.anonymousFiles.size).toBe(0);
+    const closedFds = harness.fsRuntime.closeSync.mock.calls.map(([fd]) => fd);
+    expect(new Set(closedFds).size).toBe(closedFds.length);
+  });
+
+  it("fails closed before snapshot allocation when a native plugin tree exceeds the file limit", () => {
+    const harness = createLinuxStrongHarness({
+      entryRuntime: "native-static-elf",
+      additionalPluginFiles: Array.from({ length: 255 }, (_, index) => ({
+        path: `/plugin/lib/native-count-${String(index).padStart(3, "0")}.dat`,
+        contents: Buffer.from([index % 251]),
+        mode: 0o100644,
+      })),
+    });
+    const plan = applyLinuxStrongNativeHarness(harness);
+
+    expect(plan).toMatchObject({
+      applied: false,
+      backend: null,
+      candidateBackend: "linux-bwrap",
+      policyAttested: false,
+      reason: "linux_bwrap_plugin_snapshot_unattested",
+      guarantees: [],
+      runtimeProbe: {
+        attempted: false,
+        runnable: false,
+        reason: "native_plugin_tree_snapshot_file_count_invalid",
+        targetRuntime: "native-static-elf",
+        contentSnapshot: false,
+        handleAtomic: false,
+      },
+    });
+    expect(
+      harness.fsRuntime.openSync.mock.calls.filter(
+        ([value, flags]) =>
+          value === "/tmp" &&
+          (Number(flags) & harness.fsRuntime.constants.O_TMPFILE) ===
+            harness.fsRuntime.constants.O_TMPFILE,
+      ),
+    ).toHaveLength(0);
+    expect(harness.openFiles.size).toBe(0);
+    expect(harness.anonymousFiles.size).toBe(0);
+  });
+
   it("fails closed when the native snapshot changes after the policy probe", () => {
     const harness = createLinuxStrongHarness({
       entryRuntime: "native-static-elf",
@@ -3894,7 +4172,7 @@ describe("platform sandbox adapter contract", () => {
         handleAtomic: false,
       },
     });
-    expect(harness.bwrapDataReads).toHaveLength(1);
+    expect(harness.bwrapDataReads).toHaveLength(2);
     expect(harness.openFiles.size).toBe(0);
     expect(harness.anonymousFiles.size).toBe(0);
   });
@@ -3916,7 +4194,7 @@ describe("platform sandbox adapter contract", () => {
         contentSnapshot: false,
       },
     });
-    expect(harness.bwrapDataReads).toHaveLength(1);
+    expect(harness.bwrapDataReads).toHaveLength(2);
     expect(harness.openFiles.size).toBe(0);
     expect(harness.anonymousFiles.size).toBe(0);
   });
@@ -9362,6 +9640,82 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
     );
   });
 
+  it("preserves complete static native plugin-tree evidence in the audit log", () => {
+    const child = createChild();
+    const nativeSpawn = vi.fn(() => child);
+    const runtimeProbe = createLinuxStaticNativeRuntimeProbe();
+    executionBroker._native = { spawn: nativeSpawn };
+    executionBroker._sandboxAdapter = {
+      applySandbox: vi.fn((command, args, options) =>
+        appliedLinuxBwrapPluginTreePlan(command, args, options, {
+          runtimeProbe,
+        }),
+      ),
+      postSpawnSandbox: vi.fn(),
+    };
+
+    const returned = executionBroker.spawn("tool", ["run"], {
+      origin: "test:static-native-tree-runtime-probe",
+      policy: "allow",
+    });
+
+    expect(returned).toBe(child);
+    expect(nativeSpawn).toHaveBeenCalledOnce();
+    expect(executionBroker.getAuditLog(1)[0].sandboxRuntimeProbe).toEqual(
+      runtimeProbe,
+    );
+  });
+
+  it.each([
+    [
+      "missing complete-tree evidence",
+      {
+        pluginTreeContentSnapshot: undefined,
+        pluginTreeContentSnapshotScope: undefined,
+        pluginTreeContentSnapshotMechanism: undefined,
+        pluginTreeContentSnapshotFiles: undefined,
+        pluginTreeContentSnapshotBytes: undefined,
+        pluginTreeContentSnapshotDigest: undefined,
+        pluginTreeSnapshotConsistency: undefined,
+        pluginTreeSnapshotContractBound: undefined,
+        pluginTreeSnapshotAtomic: undefined,
+      },
+      /requires a complete plugin tree snapshot/,
+    ],
+    [
+      "Node entry scope",
+      { pluginTreeContentSnapshotScope: "plugin-entry-source" },
+      /plugin tree snapshot evidence/,
+    ],
+  ])(
+    "rejects successful dynamic native evidence with %s before native spawn",
+    (_label, runtimeProbeOverrides, expectedError) => {
+      const nativeSpawn = vi.fn();
+      executionBroker._native = { spawn: nativeSpawn };
+      executionBroker._sandboxAdapter = {
+        applySandbox: vi.fn((command, args, options) =>
+          appliedLinuxBwrapDynamicNativePlan(command, args, options, {
+            runtimeProbe: createLinuxDynamicNativeRuntimeProbe(
+              runtimeProbeOverrides,
+            ),
+          }),
+        ),
+        postSpawnSandbox: vi.fn(),
+      };
+
+      expect(() =>
+        executionBroker.spawn("tool", ["run"], {
+          origin: `test:invalid-dynamic-native-tree-${_label}`,
+          policy: "allow",
+          sandboxPolicy: {
+            requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+          },
+        }),
+      ).toThrow(expectedError);
+      expect(nativeSpawn).not.toHaveBeenCalled();
+    },
+  );
+
   it.each([
     [
       "forged scope",
@@ -9417,18 +9771,21 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       {
         kind: "linux-bwrap-plugin-native-static-elf-policy-v1",
       },
+      /plugin tree snapshot evidence/,
     ],
     [
       "non-dynamic target runtime",
       {
         targetRuntime: "native-static-elf",
       },
+      /plugin tree snapshot evidence/,
     ],
     [
       "atomic handle claim",
       {
         handleAtomic: true,
       },
+      /plugin tree snapshot evidence/,
     ],
     [
       "without descriptor binding",
@@ -9438,7 +9795,7 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
     ],
   ])(
     "rejects dynamic ELF direct-system-set evidence with %s before native spawn",
-    (_label, runtimeProbeOverrides) => {
+    (_label, runtimeProbeOverrides, expectedError) => {
       const nativeSpawn = vi.fn();
       executionBroker._native = { spawn: nativeSpawn };
       executionBroker._sandboxAdapter = {
@@ -9460,7 +9817,10 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
             requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
           },
         }),
-      ).toThrow(/initialDynamicLoadClosure|initial dynamic direct system set/);
+      ).toThrow(
+        expectedError ||
+          /initialDynamicLoadClosure|initial dynamic direct system set/,
+      );
       expect(nativeSpawn).not.toHaveBeenCalled();
     },
   );

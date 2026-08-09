@@ -179,8 +179,8 @@ export const MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256 = crypto
   .digest("hex");
 const LINUX_NODE_ENTRY_SNAPSHOT_SCOPE = "plugin-entry-source";
 const LINUX_NATIVE_ENTRY_SNAPSHOT_SCOPE = "plugin-entry-executable";
-const LINUX_NODE_PLUGIN_TREE_SNAPSHOT_SCOPE = "all-pinned-plugin-regular-files";
-const LINUX_NODE_PLUGIN_TREE_SNAPSHOT_CONSISTENCY = "per-file-pin-to-launch";
+const LINUX_PLUGIN_TREE_SNAPSHOT_SCOPE = "all-pinned-plugin-regular-files";
+const LINUX_PLUGIN_TREE_SNAPSHOT_CONSISTENCY = "per-file-pin-to-launch";
 const LINUX_NODE_ENTRY_SNAPSHOT_TARGET_MODE = "0400";
 const LINUX_NATIVE_ENTRY_SNAPSHOT_TARGET_MODE = "0500";
 const LINUX_ELF64_HEADER_BYTES = 64;
@@ -3143,13 +3143,12 @@ function linuxBubblewrapProbe(
   const supervisorDescriptorBound =
     supervisorBinding?.mechanism === LINUX_BWRAP_SUPERVISOR_BINDING_MECHANISM;
   const pluginTreeContentSnapshot =
-    !native &&
     attempted &&
     snapshot &&
     runnable &&
     reason === null &&
     supervisorDescriptorBound &&
-    pluginTreeSnapshot?.scope === LINUX_NODE_PLUGIN_TREE_SNAPSHOT_SCOPE &&
+    pluginTreeSnapshot?.scope === LINUX_PLUGIN_TREE_SNAPSHOT_SCOPE &&
     pluginTreeSnapshot?.mechanism === LINUX_ENTRY_SNAPSHOT_MECHANISM &&
     Number.isSafeInteger(pluginTreeSnapshot?.files) &&
     pluginTreeSnapshot.files > 0 &&
@@ -3160,7 +3159,7 @@ function linuxBubblewrapProbe(
     typeof pluginTreeSnapshot?.digest === "string" &&
     /^[a-f0-9]{64}$/.test(pluginTreeSnapshot.digest) &&
     pluginTreeSnapshot?.consistency ===
-      LINUX_NODE_PLUGIN_TREE_SNAPSHOT_CONSISTENCY &&
+      LINUX_PLUGIN_TREE_SNAPSHOT_CONSISTENCY &&
     pluginTreeSnapshot?.contractBound === false &&
     pluginTreeSnapshot?.atomic === false;
   const initialDynamicLoadClosureDescriptorBound =
@@ -3775,16 +3774,20 @@ function linuxEntrySnapshotContract(targetRuntime) {
   throw new Error("entry_snapshot_runtime_unsupported");
 }
 
-function linuxNodePluginTreeFileSnapshotContract(sourceMode) {
+function linuxPluginTreeFileSnapshotContract(sourceMode, targetRuntime) {
+  const native = targetRuntime?.startsWith("native-");
+  const errorPrefix = native
+    ? "native_plugin_tree_snapshot"
+    : "node_plugin_tree_snapshot";
   if (!Number.isSafeInteger(sourceMode) || sourceMode < 0) {
-    throw new Error("node_plugin_tree_snapshot_source_mode_invalid");
+    throw new Error(`${errorPrefix}_source_mode_invalid`);
   }
   return {
-    scope: LINUX_NODE_PLUGIN_TREE_SNAPSHOT_SCOPE,
+    scope: LINUX_PLUGIN_TREE_SNAPSHOT_SCOPE,
     targetMode: (sourceMode & 0o111) !== 0 ? "0500" : "0400",
     sourceMode: LINUX_ENTRY_SNAPSHOT_SOURCE_MODE,
     minimumBytes: 0,
-    errorPrefix: "node_plugin_tree_snapshot",
+    errorPrefix,
   };
 }
 
@@ -3865,9 +3868,9 @@ function createLinuxRegularFileSnapshot(
       throw snapshotError("source_changed");
     }
     if (
-      snapshotContract.scope === LINUX_NODE_PLUGIN_TREE_SNAPSHOT_SCOPE &&
+      snapshotContract.scope === LINUX_PLUGIN_TREE_SNAPSHOT_SCOPE &&
       snapshotContract.targetMode !==
-        linuxNodePluginTreeFileSnapshotContract(sourceFileMode).targetMode
+        ((sourceFileMode & 0o111) !== 0 ? "0500" : "0400")
     ) {
       throw snapshotError("source_mode_changed");
     }
@@ -4328,7 +4331,21 @@ function applyLinuxMcpCapsuleCodeSnapshot(
   });
 }
 
-function buildLinuxNodePluginTreeSnapshotAttestation(mounts, entryDestination) {
+/**
+ * Bind the synthetic plugin tree to the anonymous content snapshots mounted
+ * for launch. Directory membership is fixed by pinLinuxPluginTree; contents
+ * are copied and sealed per file, so the evidence deliberately remains
+ * `atomic: false` rather than claiming one filesystem-wide transaction.
+ */
+function buildLinuxPluginTreeSnapshotAttestation(
+  mounts,
+  entryDestination,
+  targetRuntime,
+) {
+  const native = targetRuntime?.startsWith("native-");
+  const errorPrefix = native
+    ? "native_plugin_tree_snapshot"
+    : "node_plugin_tree_snapshot";
   const members = [];
   const destinations = new Set();
   for (const mount of mounts || []) {
@@ -4337,18 +4354,23 @@ function buildLinuxNodePluginTreeSnapshotAttestation(mounts, entryDestination) {
       path.posix.normalize(mount.destination) !== mount.destination ||
       destinations.has(mount.destination)
     ) {
-      throw new Error("node_plugin_tree_snapshot_destination_invalid");
+      throw new Error(`${errorPrefix}_destination_invalid`);
     }
     destinations.add(mount.destination);
     const snapshot = mount.contentSnapshot;
     const entry = mount.destination === entryDestination;
     const expectedScope = entry
-      ? LINUX_NODE_ENTRY_SNAPSHOT_SCOPE
-      : LINUX_NODE_PLUGIN_TREE_SNAPSHOT_SCOPE;
+      ? native
+        ? LINUX_NATIVE_ENTRY_SNAPSHOT_SCOPE
+        : LINUX_NODE_ENTRY_SNAPSHOT_SCOPE
+      : LINUX_PLUGIN_TREE_SNAPSHOT_SCOPE;
     const sourceMode = Number.parseInt(snapshot?.sourceFileMode, 8);
     const expectedTargetMode = entry
-      ? LINUX_NODE_ENTRY_SNAPSHOT_TARGET_MODE
-      : linuxNodePluginTreeFileSnapshotContract(sourceMode).targetMode;
+      ? native
+        ? LINUX_NATIVE_ENTRY_SNAPSHOT_TARGET_MODE
+        : LINUX_NODE_ENTRY_SNAPSHOT_TARGET_MODE
+      : linuxPluginTreeFileSnapshotContract(sourceMode, targetRuntime)
+          .targetMode;
     if (
       snapshot?.scope !== expectedScope ||
       snapshot?.mechanism !== LINUX_ENTRY_SNAPSHOT_MECHANISM ||
@@ -4371,7 +4393,7 @@ function buildLinuxNodePluginTreeSnapshotAttestation(mounts, entryDestination) {
       mount.mountMode !== "ro-bind-data" ||
       mount.mountPermissions !== expectedTargetMode
     ) {
-      throw new Error("node_plugin_tree_snapshot_member_invalid");
+      throw new Error(`${errorPrefix}_member_invalid`);
     }
     members.push({
       destination: mount.destination,
@@ -4398,58 +4420,66 @@ function buildLinuxNodePluginTreeSnapshotAttestation(mounts, entryDestination) {
     members.length > LINUX_PLUGIN_TREE_SNAPSHOT_MAX_FILES ||
     !members.some((member) => member.destination === entryDestination)
   ) {
-    throw new Error("node_plugin_tree_snapshot_file_count_invalid");
+    throw new Error(`${errorPrefix}_file_count_invalid`);
   }
   const bytes = members.reduce((total, member) => total + member.bytes, 0);
   if (
     !Number.isSafeInteger(bytes) ||
     bytes > LINUX_PLUGIN_TREE_SNAPSHOT_MAX_BYTES
   ) {
-    throw new Error("node_plugin_tree_snapshot_bytes_exceeded");
+    throw new Error(`${errorPrefix}_bytes_exceeded`);
   }
   const digest = crypto
     .createHash("sha256")
     .update(
       JSON.stringify({
         version: 1,
-        scope: LINUX_NODE_PLUGIN_TREE_SNAPSHOT_SCOPE,
-        consistency: LINUX_NODE_PLUGIN_TREE_SNAPSHOT_CONSISTENCY,
+        scope: LINUX_PLUGIN_TREE_SNAPSHOT_SCOPE,
+        ...(native ? { targetRuntime } : {}),
+        consistency: LINUX_PLUGIN_TREE_SNAPSHOT_CONSISTENCY,
         members,
       }),
     )
     .digest("hex");
   return Object.freeze({
-    scope: LINUX_NODE_PLUGIN_TREE_SNAPSHOT_SCOPE,
+    scope: LINUX_PLUGIN_TREE_SNAPSHOT_SCOPE,
     mechanism: LINUX_ENTRY_SNAPSHOT_MECHANISM,
     files: members.length,
     bytes,
     digest,
-    consistency: LINUX_NODE_PLUGIN_TREE_SNAPSHOT_CONSISTENCY,
+    consistency: LINUX_PLUGIN_TREE_SNAPSHOT_CONSISTENCY,
     contractBound: false,
     atomic: false,
   });
 }
 
-function attestLinuxNodePluginTreeSnapshot(
+function attestLinuxPluginTreeSnapshot(
   runtime,
   mounts,
   entryDestination,
+  targetRuntime,
   expected,
 ) {
+  const native = targetRuntime?.startsWith("native-");
+  const errorPrefix = native
+    ? "native_plugin_tree_snapshot"
+    : "node_plugin_tree_snapshot";
   for (const mount of mounts || []) {
     if (!linuxPathWithin("/opt/chainless/plugin", mount?.destination)) continue;
     const snapshot = mount.contentSnapshot;
     const contract =
       mount.destination === entryDestination
-        ? linuxEntrySnapshotContract("node")
-        : linuxNodePluginTreeFileSnapshotContract(
+        ? linuxEntrySnapshotContract(targetRuntime)
+        : linuxPluginTreeFileSnapshotContract(
             Number.parseInt(snapshot?.sourceFileMode, 8),
+            targetRuntime,
           );
     attestLinuxRegularFileSnapshot(runtime, mount, snapshot, contract);
   }
-  const actual = buildLinuxNodePluginTreeSnapshotAttestation(
+  const actual = buildLinuxPluginTreeSnapshotAttestation(
     mounts,
     entryDestination,
+    targetRuntime,
   );
   for (const field of [
     "scope",
@@ -4462,7 +4492,7 @@ function attestLinuxNodePluginTreeSnapshot(
     "atomic",
   ]) {
     if (actual[field] !== expected?.[field]) {
-      throw new Error("node_plugin_tree_snapshot_identity_changed");
+      throw new Error(`${errorPrefix}_identity_changed`);
     }
   }
 }
@@ -6360,30 +6390,33 @@ export function applyLinuxSandbox(
       const rawPluginMounts = pluginMountIndexes.map(
         (index) => pinnedMounts[index],
       );
-      if (validation.entryRuntime === "node") {
+      const pluginSnapshotErrorPrefix = validation.entryRuntime.startsWith(
+        "native-",
+      )
+        ? "native_plugin_tree_snapshot"
+        : "node_plugin_tree_snapshot";
+      if (
+        pluginMountIndexes.length < 1 ||
+        pluginMountIndexes.length > LINUX_PLUGIN_TREE_SNAPSHOT_MAX_FILES
+      ) {
+        throw new Error(`${pluginSnapshotErrorPrefix}_file_count_invalid`);
+      }
+      const pluginBytes = pluginMountIndexes.reduce((total, index) => {
+        const bytes = pinnedMounts[index]?.bytes;
         if (
-          pluginMountIndexes.length < 1 ||
-          pluginMountIndexes.length > LINUX_PLUGIN_TREE_SNAPSHOT_MAX_FILES
+          !Number.isSafeInteger(bytes) ||
+          bytes < 0 ||
+          bytes > LINUX_ATTESTED_FILE_MAX_BYTES
         ) {
-          throw new Error("node_plugin_tree_snapshot_file_count_invalid");
+          throw new Error(`${pluginSnapshotErrorPrefix}_member_size_invalid`);
         }
-        const pluginBytes = pluginMountIndexes.reduce((total, index) => {
-          const bytes = pinnedMounts[index]?.bytes;
-          if (
-            !Number.isSafeInteger(bytes) ||
-            bytes < 0 ||
-            bytes > LINUX_ATTESTED_FILE_MAX_BYTES
-          ) {
-            throw new Error("node_plugin_tree_snapshot_member_size_invalid");
-          }
-          return total + bytes;
-        }, 0);
-        if (
-          !Number.isSafeInteger(pluginBytes) ||
-          pluginBytes > LINUX_PLUGIN_TREE_SNAPSHOT_MAX_BYTES
-        ) {
-          throw new Error("node_plugin_tree_snapshot_bytes_exceeded");
-        }
+        return total + bytes;
+      }, 0);
+      if (
+        !Number.isSafeInteger(pluginBytes) ||
+        pluginBytes > LINUX_PLUGIN_TREE_SNAPSHOT_MAX_BYTES
+      ) {
+        throw new Error(`${pluginSnapshotErrorPrefix}_bytes_exceeded`);
       }
       const rawEntryMount = entryMount;
       const snapshot = createLinuxEntrySnapshot(
@@ -6397,37 +6430,36 @@ export function applyLinuxSandbox(
       finalMounts[entryIndex] = snapshot.finalMount;
       probeMounts[entryIndex] = snapshot.probeMount;
       entrySnapshot = snapshot;
-      if (validation.entryRuntime === "node") {
-        for (const index of pluginMountIndexes) {
-          if (index === entryIndex) continue;
-          const rawMount = pinnedMounts[index];
-          const source = runtime.fs.fstatSync(rawMount.fd);
-          const fileSnapshot = createLinuxRegularFileSnapshot(
-            runtime,
-            rawMount,
-            {
-              fileId: rawMount.fileId,
-              bytes: rawMount.bytes,
-              mtimeMs: rawMount.mtimeMs,
-            },
-            linuxNodePluginTreeFileSnapshotContract(Number(source.mode)),
-          );
-          pluginTreeFileSnapshots.push(fileSnapshot);
-          finalMounts[index] = fileSnapshot.finalMount;
-          probeMounts[index] = fileSnapshot.probeMount;
-        }
-        pluginTreeSnapshot = buildLinuxNodePluginTreeSnapshotAttestation(
-          finalMounts,
-          sandboxEntry,
+      for (const index of pluginMountIndexes) {
+        if (index === entryIndex) continue;
+        const rawMount = pinnedMounts[index];
+        const source = runtime.fs.fstatSync(rawMount.fd);
+        const fileSnapshot = createLinuxRegularFileSnapshot(
+          runtime,
+          rawMount,
+          {
+            fileId: rawMount.fileId,
+            bytes: rawMount.bytes,
+            mtimeMs: rawMount.mtimeMs,
+          },
+          linuxPluginTreeFileSnapshotContract(
+            Number(source.mode),
+            validation.entryRuntime,
+          ),
         );
+        pluginTreeFileSnapshots.push(fileSnapshot);
+        finalMounts[index] = fileSnapshot.finalMount;
+        probeMounts[index] = fileSnapshot.probeMount;
       }
+      pluginTreeSnapshot = buildLinuxPluginTreeSnapshotAttestation(
+        finalMounts,
+        sandboxEntry,
+        validation.entryRuntime,
+      );
       pinnedMounts = finalMounts;
       probePinnedMounts = probeMounts;
       entryMount = entrySnapshot.finalMount;
-      closeLinuxPinnedMounts(
-        runtime,
-        validation.entryRuntime === "node" ? rawPluginMounts : [rawEntryMount],
-      );
+      closeLinuxPinnedMounts(runtime, rawPluginMounts);
     } catch (error) {
       closeLinuxPinnedMounts(runtime, pinnedMounts);
       closeLinuxPinnedMounts(runtime, [
@@ -6607,7 +6639,7 @@ export function applyLinuxSandbox(
       .createHash("sha256")
       .update(
         JSON.stringify({
-          version: validation.entryRuntime === "node" ? 4 : 3,
+          version: 4,
           backend: LINUX_BWRAP_BACKEND,
           supervisor: supervisorPin.attestation,
           contract: {
@@ -6651,9 +6683,7 @@ export function applyLinuxSandbox(
           ...(nativeDynamicClosure
             ? { initialDynamicLoadClosure: nativeDynamicClosure }
             : {}),
-          ...(validation.entryRuntime === "node"
-            ? { pluginTreeContentSnapshot: pluginTreeSnapshot }
-            : {}),
+          pluginTreeContentSnapshot: pluginTreeSnapshot,
           seccomp: {
             arch: seccompFilter.arch,
             policy: seccompFilter.policy,
@@ -6726,21 +6756,13 @@ export function applyLinuxSandbox(
       });
     }
     try {
-      if (validation.entryRuntime === "node") {
-        attestLinuxNodePluginTreeSnapshot(
-          runtime,
-          pinnedMounts,
-          sandboxEntry,
-          pluginTreeSnapshot,
-        );
-      } else {
-        attestLinuxEntrySnapshot(
-          runtime,
-          entryMount,
-          entrySnapshot.attestation,
-          validation.entryRuntime,
-        );
-      }
+      attestLinuxPluginTreeSnapshot(
+        runtime,
+        pinnedMounts,
+        sandboxEntry,
+        validation.entryRuntime,
+        pluginTreeSnapshot,
+      );
     } catch (error) {
       closeStrongLinuxResources(supervisorPin, finalLaunch);
       return createSandboxPlan({
