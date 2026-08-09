@@ -854,7 +854,7 @@ describe('性能与负载测试', () => {
       for (let i = 0; i < 100; i++) {
         try {
           // 20% 的操作故意使用无效 ID 来触发错误
-          if (Math.random() < 0.2) {
+          if (i % 5 === 0) {
             await db.getProjectById('non-existent-id');
             // 这应该返回 null，不抛出错误
             errorCount++;
@@ -875,8 +875,8 @@ describe('性能与负载测试', () => {
       console.log(`  错误操作: ${errorCount}`);
 
       // 应该有大部分操作成功
-      expect(successCount).toBeGreaterThan(70);
-      expect(errorCount).toBeLessThan(30);
+      expect(successCount).toBe(80);
+      expect(errorCount).toBe(20);
 
       // 系统应该仍然可用
       const finalProjects = await db.getAllProjects();

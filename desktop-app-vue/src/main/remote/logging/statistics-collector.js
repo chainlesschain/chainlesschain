@@ -98,13 +98,13 @@ class StatisticsCollector extends EventEmitter {
       `);
 
       // 创建索引
-      this.database.run(
+      this.database.exec(
         "CREATE INDEX IF NOT EXISTS idx_stats_period ON remote_command_stats(period_type, period_start)",
       );
-      this.database.run(
+      this.database.exec(
         "CREATE INDEX IF NOT EXISTS idx_stats_device ON remote_command_stats(device_did)",
       );
-      this.database.run(
+      this.database.exec(
         "CREATE INDEX IF NOT EXISTS idx_stats_namespace ON remote_command_stats(command_namespace)",
       );
 
@@ -113,25 +113,39 @@ class StatisticsCollector extends EventEmitter {
       // 都新插重复行（getTrend 的 SUM 翻倍 + 表无限增长）。SQLite 视 NULL 为互异，
       // 故先把分组列的 NULL 归一为 ''，再按分组键去重（保留每组 MAX(id)），最后建唯一索引。
       // 全程幂等：干净数据上 UPDATE/DELETE 均为 no-op，索引 IF NOT EXISTS。
-      this.database.run(
-        "UPDATE remote_command_stats SET device_did = '' WHERE device_did IS NULL",
-      );
-      this.database.run(
-        "UPDATE remote_command_stats SET command_namespace = '' WHERE command_namespace IS NULL",
-      );
-      this.database.run(
-        "UPDATE remote_command_stats SET command_action = '' WHERE command_action IS NULL",
-      );
-      this.database.run(`
+      this.database
+        .prepare(
+          "UPDATE remote_command_stats SET device_did = '' WHERE device_did IS NULL",
+        )
+        .run();
+      this.database
+        .prepare(
+          "UPDATE remote_command_stats SET command_namespace = '' WHERE command_namespace IS NULL",
+        )
+        .run();
+      this.database
+        .prepare(
+          "UPDATE remote_command_stats SET command_action = '' WHERE command_action IS NULL",
+        )
+        .run();
+      this.database
+        .prepare(
+          `
         DELETE FROM remote_command_stats WHERE id NOT IN (
           SELECT MAX(id) FROM remote_command_stats
           GROUP BY period_type, period_start, device_did, command_namespace, command_action
         )
-      `);
-      this.database.run(`
+      `,
+        )
+        .run();
+      this.database
+        .prepare(
+          `
         CREATE UNIQUE INDEX IF NOT EXISTS idx_stats_unique
           ON remote_command_stats(period_type, period_start, device_did, command_namespace, command_action)
-      `);
+      `,
+        )
+        .run();
 
       logger.info("[StatisticsCollector] 统计表已初始化");
     } catch (error) {
