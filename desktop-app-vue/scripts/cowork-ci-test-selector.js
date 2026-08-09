@@ -1,542 +1,488 @@
 #!/usr/bin/env node
-/**
- * Cowork CI Intelligent Test Selector
- *
- * Optimized for GitHub Actions CI/CD environment
- * - Detects changed files in PR
- * - Maps changes to affected tests
- * - Always includes critical tests
- * - Dramatically reduces CI test execution time
- *
- * Performance: Run 10-30% of tests instead of 100%
- * Expected savings: 10-15 min per PR
- */
+"use strict";
 
-const { execSync } = require("child_process");
+const { spawnSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
-console.log("🧪 Cowork CI智能测试选择\n");
-console.log("=".repeat(60));
+const PROJECT_ROOT = path.resolve(__dirname, "..");
+const REPO_ROOT = path.resolve(PROJECT_ROOT, "..");
+const PROJECT_PREFIX = "desktop-app-vue/";
+const CI_VITEST_FLAGS = [
+  "--reporter=default",
+  "--silent=passed-only",
+  "--pool=threads",
+];
+const CRITICAL_TESTS = [
+  "tests/unit/llm/llm-service.test.js",
+  "tests/unit/did/did-manager.test.js",
+];
+const FULL_UNIT_TRIGGERS = new Set([
+  ".cowork/ci-test-config.json",
+  "package.json",
+  "package-lock.json",
+  "tests/setup.ts",
+  "vitest.config.js",
+  "vitest.config.mjs",
+  "vitest.config.ts",
+  "scripts/cowork-ci-test-selector.js",
+]);
 
-const stats = {
-  changedFiles: 0,
-  selectedTests: 0,
-  skippedTests: 0,
-  estimatedTimeSaved: 0,
-};
-
-/**
- * Get changed files from Git (CI environment)
- * Compares PR head against base branch
- */
-function getChangedFilesCI() {
-  try {
-    // CI environment: compare PR against base branch
-    const baseBranch = process.env.GITHUB_BASE_REF || "main";
-    const command = `git diff --name-only origin/${baseBranch}...HEAD --diff-filter=ACMR`;
-
-    console.log(`\n📂 Detecting changed files (base: origin/${baseBranch})...`);
-
-    const output = execSync(command, {
-      encoding: "utf-8",
-      cwd: process.cwd(),
-    });
-
-    const files = output
-      .trim()
-      .split("\n")
-      .filter(Boolean)
-      .map((file) => path.normalize(file));
-
-    return files;
-  } catch (error) {
-    console.error("⚠️  Could not get Git diff:", error.message);
-    console.error("Falling back to all tests...");
-    return [];
+class SelectionError extends Error {
+  constructor(code, message, details = {}) {
+    super(message);
+    this.name = "SelectionError";
+    this.code = code;
+    this.details = details;
   }
 }
 
-/**
- * Map source file to test files
- * Supports multiple test location patterns
- */
-function mapSourceToTests(sourceFile) {
-  const tests = [];
+function toPosix(filePath) {
+  return filePath.replace(/\\/g, "/").replace(/^\.\//, "");
+}
 
-  // Get file info
-  const ext = path.extname(sourceFile);
-  const basename = path.basename(sourceFile, ext);
-  const dirname = path.dirname(sourceFile);
-
-  // Pattern 1: Co-located test (same directory)
-  const colocatedTest = path.join(dirname, `${basename}.test${ext}`);
-  if (fs.existsSync(colocatedTest)) {
-    tests.push(colocatedTest);
-  }
-
-  // Pattern 2: __tests__ folder in same directory
-  const testsDir1 = path.join(dirname, "__tests__", `${basename}.test${ext}`);
-  if (fs.existsSync(testsDir1)) {
-    tests.push(testsDir1);
-  }
-
-  // Pattern 3: tests/unit/ mirror structure
-  // Handle both src/main and src/renderer paths
-  let relativePath = "";
-  if (dirname.includes("src/main")) {
-    relativePath = path.relative("src/main", dirname);
-  } else if (dirname.includes("src/renderer")) {
-    relativePath = path.relative("src/renderer", dirname);
-  } else if (dirname.includes("src")) {
-    relativePath = path.relative("src", dirname);
-  }
-
-  if (relativePath) {
-    const testsDir2 = path.join(
-      "tests",
-      "unit",
-      relativePath,
-      `${basename}.test${ext}`,
+function validateBaseRef(baseRef) {
+  if (
+    typeof baseRef !== "string" ||
+    !/^[A-Za-z0-9][A-Za-z0-9._/-]*$/.test(baseRef) ||
+    baseRef.includes("..") ||
+    baseRef.includes("@{") ||
+    baseRef.includes("//") ||
+    baseRef.endsWith("/") ||
+    baseRef.endsWith(".") ||
+    baseRef.endsWith(".lock")
+  ) {
+    throw new SelectionError(
+      "INVALID_BASE_REF",
+      `Unsafe or invalid base ref: ${JSON.stringify(baseRef)}`,
     );
-    if (fs.existsSync(testsDir2)) {
-      tests.push(testsDir2);
-    }
   }
 
-  // Pattern 4: Vitest convention (*.spec.js)
-  const specTest = path.join(dirname, `${basename}.spec${ext}`);
-  if (fs.existsSync(specTest)) {
-    tests.push(specTest);
-  }
-
-  return tests;
+  return baseRef;
 }
 
-/**
- * Find tests affected by changed files
- */
-function findAffectedTests(changedFiles) {
-  console.log("\n📂 Analyzing changed files...");
-
-  const affectedTests = new Set();
-  const testFiles = [];
-  const sourceFiles = [];
-
-  changedFiles.forEach((file) => {
-    // Skip non-code files
-    const ext = path.extname(file);
-    if (![".js", ".ts", ".jsx", ".tsx", ".vue"].includes(ext)) {
-      return;
-    }
-
-    // Skip workflow and config files
-    if (file.includes(".github/") || file.includes("node_modules/")) {
-      return;
-    }
-
-    // If it's already a test file, include it
-    if (
-      file.includes(".test.") ||
-      file.includes(".spec.") ||
-      file.includes("__tests__")
-    ) {
-      testFiles.push(file);
-      affectedTests.add(file);
-      return;
-    }
-
-    // It's a source file - find related tests
-    sourceFiles.push(file);
-    const relatedTests = mapSourceToTests(file);
-    relatedTests.forEach((test) => affectedTests.add(test));
-  });
-
-  console.log(`   Source files changed: ${sourceFiles.length}`);
-  console.log(`   Test files changed: ${testFiles.length}`);
-  console.log(
-    `   Related tests found: ${affectedTests.size - testFiles.length}`,
+function getChangedFilesCI({
+  baseRef = process.env.GITHUB_BASE_REF || "main",
+  repoRoot = REPO_ROOT,
+  spawn = spawnSync,
+} = {}) {
+  const validatedBase = validateBaseRef(baseRef);
+  const comparison = `origin/${validatedBase}...HEAD`;
+  const result = spawn(
+    "git",
+    ["diff", "--name-only", "--diff-filter=ACDMRTUXB", comparison, "--"],
+    {
+      cwd: repoRoot,
+      encoding: "utf8",
+      windowsHide: true,
+    },
   );
 
-  return Array.from(affectedTests);
-}
-
-/**
- * Get all test files for baseline
- */
-function getAllTestFiles() {
-  const testDirs = [
-    "tests/unit",
-    "tests/integration",
-    "src/main/**/__tests__",
-    "src/renderer/**/__tests__",
-  ];
-
-  const allTests = [];
-
-  testDirs.forEach((pattern) => {
-    try {
-      const files = findTestFilesRecursive(pattern);
-      allTests.push(...files);
-    } catch (error) {
-      // Directory might not exist
-    }
-  });
-
-  return allTests;
-}
-
-/**
- * Recursively find test files
- */
-function findTestFilesRecursive(dir) {
-  const tests = [];
-
-  if (!fs.existsSync(dir)) {
-    return tests;
+  if (result.error) {
+    throw new SelectionError(
+      "GIT_DIFF_SPAWN_FAILED",
+      `Unable to start git diff: ${result.error.message}`,
+    );
+  }
+  if (result.status !== 0) {
+    throw new SelectionError(
+      "GIT_DIFF_FAILED",
+      `git diff exited with ${String(result.status)}`,
+      { stderr: String(result.stderr || "").trim() },
+    );
   }
 
-  const items = fs.readdirSync(dir);
+  const changedFiles = String(result.stdout || "")
+    .split(/\r?\n/)
+    .map((file) => toPosix(file.trim()))
+    .filter(Boolean);
 
-  items.forEach((item) => {
-    const fullPath = path.join(dir, item);
-    const stat = fs.statSync(fullPath);
+  if (changedFiles.length === 0) {
+    throw new SelectionError(
+      "NO_CHANGED_FILES",
+      "The base comparison produced no changed files; refusing a no-op pass.",
+      { comparison },
+    );
+  }
 
-    if (stat.isDirectory()) {
-      tests.push(...findTestFilesRecursive(fullPath));
-    } else if (item.match(/\.(test|spec)\.(js|ts|jsx|tsx)$/)) {
-      tests.push(fullPath);
-    }
-  });
-
-  return tests;
+  return changedFiles;
 }
 
-/**
- * Add critical tests (always run in CI)
- */
-function addCriticalTests(selectedTests) {
-  console.log("\n🔒 Adding critical tests (always run in CI)...");
+function projectRelativePath(repoRelativePath) {
+  const normalized = toPosix(repoRelativePath);
+  if (
+    !normalized ||
+    path.posix.isAbsolute(normalized) ||
+    normalized.split("/").includes("..")
+  ) {
+    return null;
+  }
+  if (!normalized.startsWith(PROJECT_PREFIX)) {
+    return null;
+  }
+  return normalized.slice(PROJECT_PREFIX.length);
+}
 
-  const criticalPatterns = [
-    "tests/unit/database.test.js",
-    "tests/unit/config.test.js",
-    "tests/unit/llm/llm-service.test.js",
-    "tests/unit/rag/rag-engine.test.js",
-    "tests/unit/did/did-manager.test.js",
-  ];
+function isVitestFile(projectRelativeFile) {
+  return (
+    /^(tests\/unit|src)\/.*\.test\.(?:js|ts|jsx|tsx)$/.test(
+      projectRelativeFile,
+    ) && !projectRelativeFile.includes("/tests/e2e/")
+  );
+}
 
-  criticalPatterns.forEach((pattern) => {
-    if (fs.existsSync(pattern)) {
-      if (!selectedTests.includes(pattern)) {
-        selectedTests.push(pattern);
-        console.log(`   + ${pattern}`);
+function candidateTestsForSource(
+  projectRelativeFile,
+  { projectRoot = PROJECT_ROOT } = {},
+) {
+  const extension = path.posix.extname(projectRelativeFile);
+  if (![".js", ".ts", ".jsx", ".tsx", ".vue"].includes(extension)) {
+    return [];
+  }
+
+  const dirname = path.posix.dirname(projectRelativeFile);
+  const basename = path.posix.basename(projectRelativeFile, extension);
+  const testExtensions = extension === ".vue" ? [".js", ".ts"] : [extension];
+  const candidates = new Set();
+
+  for (const testExtension of testExtensions) {
+    candidates.add(`${dirname}/${basename}.test${testExtension}`);
+    candidates.add(`${dirname}/__tests__/${basename}.test${testExtension}`);
+  }
+
+  for (const sourcePrefix of ["src/main/", "src/renderer/", "src/shared/"]) {
+    if (!projectRelativeFile.startsWith(sourcePrefix)) {
+      continue;
+    }
+    const mirrored = projectRelativeFile.slice(sourcePrefix.length);
+    const mirrorDir = path.posix.dirname(mirrored);
+    for (const testExtension of testExtensions) {
+      candidates.add(
+        `tests/unit/${mirrorDir}/${basename}.test${testExtension}`,
+      );
+      candidates.add(
+        `tests/unit/${mirrorDir}/__tests__/${basename}.test${testExtension}`,
+      );
+    }
+  }
+
+  const candidateDirectories = new Set(
+    [...candidates].map((candidate) => path.posix.dirname(candidate)),
+  );
+  for (const directory of candidateDirectories) {
+    const absoluteDirectory = path.join(projectRoot, ...directory.split("/"));
+    if (!fs.existsSync(absoluteDirectory)) {
+      continue;
+    }
+
+    let entries;
+    try {
+      entries = fs.readdirSync(absoluteDirectory, { withFileTypes: true });
+    } catch (error) {
+      throw new SelectionError(
+        "TEST_DISCOVERY_FAILED",
+        `Unable to inspect related test directory ${JSON.stringify(directory)}: ${error.message}`,
+      );
+    }
+
+    for (const entry of entries) {
+      if (!entry.isFile()) {
+        continue;
+      }
+      const match = entry.name.match(/^(.*)\.test\.(?:js|ts|jsx|tsx)$/);
+      if (!match) {
+        continue;
+      }
+      const testStem = match[1];
+      if (
+        testStem === basename ||
+        testStem.startsWith(`${basename}-`) ||
+        testStem.startsWith(`${basename}.`)
+      ) {
+        candidates.add(`${directory}/${entry.name}`);
       }
     }
-  });
+  }
 
-  return selectedTests;
+  return [...candidates].sort();
 }
 
-/**
- * Load test exclusion config
- */
-function loadExclusionConfig() {
-  const configPath = path.join(process.cwd(), ".cowork", "ci-test-config.json");
+function createSelection(changedFiles, { projectRoot = PROJECT_ROOT } = {}) {
+  if (!Array.isArray(changedFiles) || changedFiles.length === 0) {
+    throw new SelectionError(
+      "NO_CHANGED_FILES",
+      "At least one changed file is required for test selection.",
+    );
+  }
 
-  if (fs.existsSync(configPath)) {
-    try {
-      const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-      return config.exclusions || [];
-    } catch (error) {
-      console.warn("⚠️  Could not load exclusion config:", error.message);
-      return [];
+  const selectedTests = new Set();
+  const mappings = [];
+  const unmappedFiles = [];
+  let fullUnit = false;
+
+  for (const changedFile of changedFiles) {
+    const normalized = toPosix(changedFile);
+    const relativeFile = projectRelativePath(normalized);
+
+    if (!relativeFile) {
+      unmappedFiles.push(normalized);
+      continue;
     }
-  }
 
-  // Fallback to hardcoded exclusions (same as test.yml)
-  return [
-    "**/media/ocr-service.test.js",
-    "**/mcp/**",
-    "**/p2p/**",
-    "**/ukey/**",
-    "**/blockchain/**",
-    "**/components/**",
-    "**/import/**",
-    "**/extended-tools*.test.js",
-    "**/*-ipc.test.js",
-    "**/llm/session-manager*.test.js",
-    "**/llm/llm-performance.test.js",
-    "**/tools/tool-manager.test.js",
-    "**/ai/skill-manager.test.js",
-    "**/document/word-engine.test.js",
-    "**/media/image-engine.test.js",
-    "**/did/did-invitation.test.js",
-    "**/core/ipc-guard.test.js",
-    "**/security/permission-system.test.js",
-    "**/api/**",
-    "**/pages/**",
-    "**/stores/**",
-    "**/sync/**",
-    "**/ai/builtin-tools.test.js",
-    "**/document/pdf-engine.test.js",
-    "**/document/ppt-engine.test.js",
-    "**/integration/p2p-sync-engine.test.js",
-    "**/components/planning-components.test.js",
-    "**/pages/PlanningView.test.js",
-    "**/core/function-caller.test.js",
-    "**/core/response-parser.test.js",
-    "**/media/speech-recognizer.test.js",
-    "**/planning/task-planner*.test.js",
-    "**/planning/taskPlanner.test.js",
-    "**/src/main/**/__tests__/**",
-    "**/src/renderer/**/__tests__/**",
-    "**/tests/integration/**",
-  ];
-}
+    if (FULL_UNIT_TRIGGERS.has(relativeFile)) {
+      fullUnit = true;
+      mappings.push({ file: normalized, suite: "desktop-unit", mode: "full" });
+      continue;
+    }
 
-/**
- * Apply test exclusions
- */
-function applyExclusions(selectedTests) {
-  const exclusions = loadExclusionConfig();
+    if (isVitestFile(relativeFile)) {
+      const absoluteTest = path.join(projectRoot, ...relativeFile.split("/"));
+      if (fs.existsSync(absoluteTest)) {
+        selectedTests.add(relativeFile);
+        mappings.push({
+          file: normalized,
+          suite: "desktop-unit",
+          tests: [relativeFile],
+        });
+      } else {
+        // A deleted or renamed test can invalidate more than itself.
+        fullUnit = true;
+        mappings.push({
+          file: normalized,
+          suite: "desktop-unit",
+          mode: "full",
+          reason: "changed-test-not-present",
+        });
+      }
+      continue;
+    }
 
-  if (exclusions.length === 0) {
-    return selectedTests;
-  }
-
-  console.log(`\n🚫 Applying ${exclusions.length} test exclusions...`);
-
-  const filtered = selectedTests.filter((test) => {
-    for (const pattern of exclusions) {
-      // Simple glob matching (simplified)
-      const regex = new RegExp(
-        pattern
-          .replace(/\*\*/g, ".*")
-          .replace(/\*/g, "[^/]*")
-          .replace(/\./g, "\\."),
+    if (relativeFile.startsWith("src/")) {
+      const relatedTests = candidateTestsForSource(relativeFile, {
+        projectRoot,
+      }).filter((testFile) =>
+        fs.existsSync(path.join(projectRoot, ...testFile.split("/"))),
       );
 
-      if (regex.test(test)) {
-        return false; // Exclude this test
+      if (relatedTests.length === 0) {
+        unmappedFiles.push(normalized);
+        continue;
       }
+
+      for (const testFile of relatedTests) {
+        selectedTests.add(testFile);
+      }
+      mappings.push({
+        file: normalized,
+        suite: "desktop-unit",
+        tests: relatedTests,
+      });
+      continue;
     }
-    return true; // Keep this test
-  });
 
-  const excluded = selectedTests.length - filtered.length;
-  console.log(`   Excluded: ${excluded} tests`);
-
-  return filtered;
-}
-
-/**
- * Generate test execution command
- */
-// CI flags for the long unit-test run. Vitest 4 made the worker→main
-// birpc heartbeat respect user-configured timeouts (vitest-dev/vitest#8297),
-// so the previous --pool=threads workaround is no longer load-bearing —
-// we keep it because threads remain materially faster on the 390-file
-// suite under maxForks=2, and because this script's invocations are
-// scoped to CI (vitest.config.ts keeps `pool: forks` for local). v4 also
-// dropped the legacy `basic` reporter; `default + silent=passed-only`
-// is the equivalent.
-const CI_VITEST_FLAGS =
-  "--reporter=default --silent=passed-only --pool=threads";
-
-function generateTestCommand(selectedTests) {
-  if (selectedTests.length === 0) {
-    console.log("\n⚠️  No tests selected. Running default test suite.");
-    return `npx vitest run tests/unit ${CI_VITEST_FLAGS}`;
+    // Non-source project changes can affect bundling, fixtures, or runtime
+    // discovery. Treat them as a full unit-suite trigger instead of a no-op.
+    fullUnit = true;
+    mappings.push({
+      file: normalized,
+      suite: "desktop-unit",
+      mode: "full",
+      reason: "project-support-file",
+    });
   }
 
-  // Build command with relative paths
-  const testPaths = selectedTests
-    .map((t) => path.relative(process.cwd(), t))
-    .map((t) => `"${t.replace(/\\/g, "/")}"`) // Use forward slashes for cross-platform
-    .join(" ");
+  if (unmappedFiles.length > 0) {
+    throw new SelectionError(
+      "UNMAPPED_CHANGED_FILES",
+      "One or more changed files could not be mapped safely; the workflow must run its fallback suite.",
+      { unmappedFiles, mappings },
+    );
+  }
 
-  return `npx vitest run ${CI_VITEST_FLAGS} ${testPaths}`;
-}
+  if (!fullUnit) {
+    for (const criticalTest of CRITICAL_TESTS) {
+      if (fs.existsSync(path.join(projectRoot, ...criticalTest.split("/")))) {
+        selectedTests.add(criticalTest);
+      }
+    }
+  }
 
-/**
- * Estimate time saved
- */
-function estimateTimeSaved(selectedTests, allTests) {
-  const avgTestTime = 0.5; // seconds per test (estimate)
-
-  const selectedTime = selectedTests.length * avgTestTime;
-  const totalTime = allTests.length * avgTestTime;
-  const timeSaved = totalTime - selectedTime;
-  const percentSaved =
-    allTests.length > 0 ? ((timeSaved / totalTime) * 100).toFixed(1) : 0;
-
-  stats.estimatedTimeSaved = timeSaved;
+  const tests = [...selectedTests].sort();
+  if (!fullUnit && tests.length === 0) {
+    throw new SelectionError(
+      "EMPTY_SELECTION",
+      "The selector produced no executable tests; refusing a no-op pass.",
+      { mappings },
+    );
+  }
 
   return {
-    selectedTime,
-    totalTime,
-    timeSaved,
-    percentSaved,
+    schemaVersion: 1,
+    status: "selected",
+    suite: "desktop-unit",
+    mode: fullUnit ? "full" : "targeted",
+    changedFiles: changedFiles.map(toPosix),
+    selectedTests: fullUnit ? ["tests/unit", "src"] : tests,
+    mappings,
   };
 }
 
-/**
- * Generate summary
- */
-function generateSummary(selectedTests, allTests, changedFiles) {
-  console.log("\n" + "=".repeat(60));
-  console.log("📊 CI Test Selection Summary");
-  console.log("=".repeat(60));
-
-  console.log(`\n📁 Changed Files: ${changedFiles.length}`);
-  console.log(`🧪 Selected Tests: ${selectedTests.length}`);
-  console.log(`📦 Total Tests Available: ${allTests.length}`);
-
-  const { selectedTime, totalTime, timeSaved, percentSaved } =
-    estimateTimeSaved(selectedTests, allTests);
-
-  console.log(`\n⏱️  Estimated Time:`);
-  console.log(`   Selected tests: ${selectedTime.toFixed(0)}s`);
-  console.log(`   Full test suite: ${totalTime.toFixed(0)}s`);
-  console.log(`   Time saved: ${timeSaved.toFixed(0)}s (${percentSaved}%)`);
-
-  if (selectedTests.length > 0 && selectedTests.length < 20) {
-    console.log(`\n📋 Selected Test Files:\n`);
-    selectedTests.forEach((test) => {
-      console.log(`   - ${path.relative(process.cwd(), test)}`);
-    });
-  } else if (selectedTests.length >= 20) {
-    console.log(`\n📋 Selected Test Files (first 15):\n`);
-    selectedTests.slice(0, 15).forEach((test) => {
-      console.log(`   - ${path.relative(process.cwd(), test)}`);
-    });
-    console.log(`   ... and ${selectedTests.length - 15} more`);
-  }
-
-  console.log("\n" + "=".repeat(60));
-}
-
-/**
- * Output for GitHub Actions
- */
-function setGitHubOutput(key, value) {
-  // GitHub Actions output format
-  if (process.env.GITHUB_OUTPUT) {
-    fs.appendFileSync(process.env.GITHUB_OUTPUT, `${key}=${value}\n`);
-  } else {
-    console.log(`::set-output name=${key}::${value}`);
-  }
-}
-
-/**
- * Main execution
- */
-async function main() {
-  try {
-    const args = process.argv.slice(2);
-    const dryRun = args.includes("--dry-run");
-
-    // Get changed files (CI mode)
-    const changedFiles = getChangedFilesCI();
-
-    if (changedFiles.length === 0) {
-      console.log("\n⚠️  No changed files detected.");
-      console.log("Running default stable test suite.\n");
-
-      // Output for GitHub Actions
-      setGitHubOutput("test-mode", "default");
-      setGitHubOutput("test-count", "0");
-
-      if (!dryRun) {
-        // Run default stable tests (same as test.yml)
-        const defaultCommand = `npx vitest run tests/unit ${CI_VITEST_FLAGS}`;
-        console.log(`🚀 Executing: ${defaultCommand}\n`);
-        execSync(defaultCommand, { stdio: "inherit", cwd: process.cwd() });
-      }
-
-      process.exit(0);
-    }
-
-    console.log(`Found ${changedFiles.length} changed file(s)\n`);
-    stats.changedFiles = changedFiles.length;
-
-    // Find affected tests
-    const affectedTests = findAffectedTests(changedFiles);
-
-    // Add critical tests
-    let selectedTests = addCriticalTests(affectedTests);
-
-    // Apply exclusions
-    selectedTests = applyExclusions(selectedTests);
-
-    stats.selectedTests = selectedTests.length;
-
-    // Get all tests for comparison
-    const allTests = getAllTestFiles();
-    stats.skippedTests = allTests.length - selectedTests.length;
-
-    // Generate summary
-    generateSummary(selectedTests, allTests, changedFiles);
-
-    // Generate command
-    const command = generateTestCommand(selectedTests);
-
-    // Output for GitHub Actions
-    setGitHubOutput("test-mode", "intelligent");
-    setGitHubOutput("test-count", selectedTests.length.toString());
-    setGitHubOutput("test-command", command);
-
-    if (command) {
-      console.log(`\n🚀 Test Command:\n${command}\n`);
-
-      if (!dryRun) {
-        try {
-          console.log("▶️  Running selected tests...\n");
-          execSync(command, { stdio: "inherit", cwd: process.cwd() });
-          console.log("\n✅ All selected tests passed!\n");
-          process.exit(0);
-        } catch (error) {
-          console.log("\n❌ Some tests failed.\n");
-          process.exit(1);
-        }
-      } else {
-        console.log("(Dry run - not executing)\n");
-        process.exit(0);
-      }
-    } else {
-      console.log("\n⚠️  No command generated. Exiting.\n");
-      process.exit(0);
-    }
-  } catch (error) {
-    console.error("\n❌ CI test selection failed:", error.message);
-    console.error(error.stack);
-
-    console.log("\n⚠️  Falling back to default test suite.\n");
-
-    // Fallback: run default tests
+function commandForSelection(selection, options = {}) {
+  let vitestEntrypoint =
+    options.vitestEntrypoint || process.env.COWORK_VITEST_ENTRYPOINT;
+  if (!vitestEntrypoint) {
     try {
-      setGitHubOutput("test-mode", "fallback");
-      setGitHubOutput("test-count", "0");
-
-      execSync(`npx vitest run tests/unit ${CI_VITEST_FLAGS}`, {
-        stdio: "inherit",
+      const vitestPackage = require.resolve("vitest/package.json", {
+        paths: [PROJECT_ROOT, REPO_ROOT],
       });
-      process.exit(0);
-    } catch (testError) {
-      process.exit(1);
+      vitestEntrypoint = path.join(path.dirname(vitestPackage), "vitest.mjs");
+    } catch {
+      // Keep dry-run planning dependency-free. A real invocation still starts
+      // Node with this explicit path and propagates its non-zero missing-module
+      // exit instead of falling back to a shell or reporting success.
+      vitestEntrypoint = path.join(
+        PROJECT_ROOT,
+        "node_modules",
+        "vitest",
+        "vitest.mjs",
+      );
     }
+  }
+  return {
+    executable: process.execPath,
+    args: [
+      vitestEntrypoint,
+      "run",
+      ...selection.selectedTests,
+      ...CI_VITEST_FLAGS,
+    ],
+  };
+}
+
+function appendGitHubOutput(key, value) {
+  if (!process.env.GITHUB_OUTPUT) {
+    return;
+  }
+  fs.appendFileSync(process.env.GITHUB_OUTPUT, `${key}=${value}\n`, "utf8");
+}
+
+function emitMachineResult(payload) {
+  const serialized = JSON.stringify(payload);
+  console.log(`COWORK_TEST_SELECTION_JSON=${serialized}`);
+  appendGitHubOutput("test-mode", payload.mode || "fail-closed");
+  appendGitHubOutput(
+    "test-count",
+    String(
+      Array.isArray(payload.selectedTests) ? payload.selectedTests.length : 0,
+    ),
+  );
+  appendGitHubOutput("selection-json", serialized);
+}
+
+function parseArgs(argv) {
+  const parsed = { changedFiles: [] };
+  for (let index = 0; index < argv.length; index += 1) {
+    const argument = argv[index];
+    if (argument === "--dry-run") {
+      parsed.dryRun = true;
+    } else if (argument === "--json") {
+      parsed.json = true;
+    } else if (argument === "--base") {
+      index += 1;
+      if (!argv[index]) {
+        throw new SelectionError("INVALID_ARGUMENT", "--base requires a value");
+      }
+      parsed.baseRef = argv[index];
+    } else if (argument === "--changed-file") {
+      index += 1;
+      if (!argv[index]) {
+        throw new SelectionError(
+          "INVALID_ARGUMENT",
+          "--changed-file requires a value",
+        );
+      }
+      parsed.changedFiles.push(argv[index]);
+    } else {
+      throw new SelectionError(
+        "INVALID_ARGUMENT",
+        `Unknown argument: ${argument}`,
+      );
+    }
+  }
+  return parsed;
+}
+
+function main(argv = process.argv.slice(2), dependencies = {}) {
+  const spawn = dependencies.spawn || spawnSync;
+
+  try {
+    const args = parseArgs(argv);
+    const changedFiles =
+      args.changedFiles.length > 0
+        ? args.changedFiles
+        : getChangedFilesCI({ baseRef: args.baseRef, spawn });
+    const selection = createSelection(changedFiles);
+    const command = commandForSelection(selection);
+    const selectedPayload = { ...selection, command };
+
+    if (!args.json) {
+      console.log(
+        `Selected ${selection.mode} ${selection.suite} coverage for ${selection.changedFiles.length} changed file(s).`,
+      );
+      console.log(`Command: ${command.executable} ${command.args.join(" ")}`);
+    }
+
+    if (args.dryRun) {
+      emitMachineResult({ ...selectedPayload, status: "dry-run" });
+      return 0;
+    }
+
+    const result = spawn(command.executable, command.args, {
+      cwd: PROJECT_ROOT,
+      stdio: "inherit",
+      windowsHide: true,
+    });
+    if (result.error) {
+      throw new SelectionError(
+        "TEST_SPAWN_FAILED",
+        `Unable to start selected test suite: ${result.error.message}`,
+      );
+    }
+
+    const exitCode = Number.isInteger(result.status) ? result.status : 1;
+    emitMachineResult({
+      ...selectedPayload,
+      status: exitCode === 0 ? "passed" : "failed",
+      exitCode,
+      signal: result.signal || null,
+    });
+    return exitCode;
+  } catch (error) {
+    const payload = {
+      schemaVersion: 1,
+      status: "fail-closed",
+      code: error.code || "SELECTION_FAILED",
+      message: error.message,
+      details: error.details || {},
+    };
+    console.error(`CI test selection failed closed: ${payload.message}`);
+    emitMachineResult(payload);
+    return 2;
   }
 }
 
-// Run if executed directly
 if (require.main === module) {
-  main();
+  process.exitCode = main();
 }
 
 module.exports = {
+  SelectionError,
+  candidateTestsForSource,
+  commandForSelection,
+  createSelection,
   getChangedFilesCI,
-  findAffectedTests,
-  generateTestCommand,
-  addCriticalTests,
+  main,
+  parseArgs,
+  projectRelativePath,
+  validateBaseRef,
 };

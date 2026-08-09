@@ -27,6 +27,9 @@ const {
 const {
   SessionStateManager,
 } = require("../../src/main/ai-engine/code-agent/session-state-manager.js");
+const {
+  installDesktopProcessBroker,
+} = require("../../src/main/process/desktop-process-broker.js");
 
 function makeTmp() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "cc-subrt-int-"));
@@ -41,9 +44,11 @@ function cleanup(root) {
 
 describe("SubRuntimePool — real spawn integration", () => {
   let projectRoot;
+  let desktopProcessBroker;
   const parentId = "int-parent";
 
   beforeEach(() => {
+    desktopProcessBroker = installDesktopProcessBroker({ auditSink: () => {} });
     projectRoot = makeTmp();
     const mgr = new SessionStateManager({ projectRoot });
     mgr.writeIntent(parentId, { goal: "real-spawn test" });
@@ -53,7 +58,11 @@ describe("SubRuntimePool — real spawn integration", () => {
     });
     mgr.approvePlan(parentId);
   });
-  afterEach(() => cleanup(projectRoot));
+  afterEach(() => {
+    cleanup(projectRoot);
+    desktopProcessBroker?.uninstall();
+    desktopProcessBroker = null;
+  });
 
   it("spawns 2 real sub-runtimes, each writes its own member progress.log", async () => {
     const pool = new SubRuntimePool({

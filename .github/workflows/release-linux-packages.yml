@@ -46,6 +46,17 @@ jobs:
           ln -s "$(pwd)/node_modules" desktop-app-vue/node_modules
           echo "Hoisted modules symlinked to desktop-app-vue"
 
+      - name: Install embedded web panel dependencies
+        working-directory: packages/web-panel
+        run: npm ci --legacy-peer-deps
+
+      # Forge vendors packages/web-panel/dist into the desktop Resources tree.
+      # A clean checkout contains only the HTML shell; build the hashed JS/CSS
+      # assets before packaging so this release path cannot upload a broken SPA.
+      - name: Build embedded web panel
+        working-directory: packages/web-panel
+        run: npm run build
+
       - name: Build main process
         working-directory: desktop-app-vue
         run: npm run build:main

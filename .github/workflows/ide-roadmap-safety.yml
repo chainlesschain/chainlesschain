@@ -9,6 +9,7 @@ on:
       - "package-lock.json"
       - "tests/fixtures/ide-roadmap/**"
       - "packages/cli/package.json"
+      - "packages/cli/scripts/verify-ide-roadmap-fixtures.mjs"
       - "packages/cli/scripts/ide-roadmap-safety-gate.mjs"
       - "packages/cli/scripts/ide-roadmap-mcp-security-gate.mjs"
       - "packages/cli/src/harness/mcp-client.js"
@@ -35,6 +36,7 @@ on:
       - "packages/cli/__tests__/unit/agent-core-mcp-scheduler.test.js"
       - "packages/cli/__tests__/unit/ide-roadmap-mcp-security-gate.test.js"
       - "packages/cli/__tests__/unit/mcp-stdio-package-materialization.test.js"
+      - "packages/cli/__tests__/unit/verify-ide-roadmap-fixtures.test.js"
       - "packages/cli/__tests__/unit/ide-roadmap-safety-gate.test.js"
   push:
     branches: [main]
@@ -45,6 +47,7 @@ on:
       - "package-lock.json"
       - "tests/fixtures/ide-roadmap/**"
       - "packages/cli/package.json"
+      - "packages/cli/scripts/verify-ide-roadmap-fixtures.mjs"
       - "packages/cli/scripts/ide-roadmap-safety-gate.mjs"
       - "packages/cli/scripts/ide-roadmap-mcp-security-gate.mjs"
       - "packages/cli/src/harness/mcp-client.js"
@@ -71,6 +74,7 @@ on:
       - "packages/cli/__tests__/unit/agent-core-mcp-scheduler.test.js"
       - "packages/cli/__tests__/unit/ide-roadmap-mcp-security-gate.test.js"
       - "packages/cli/__tests__/unit/mcp-stdio-package-materialization.test.js"
+      - "packages/cli/__tests__/unit/verify-ide-roadmap-fixtures.test.js"
   schedule:
     - cron: "17 2 * * 4"
   workflow_dispatch:
@@ -114,8 +118,11 @@ jobs:
 
       - uses: ./.github/actions/setup-node-deps
 
-      - name: Verify versioned roadmap fixtures
-        run: node packages/cli/scripts/verify-ide-roadmap-fixtures.mjs
+      - name: Verify roadmap manifest contract only
+        run: node packages/cli/scripts/verify-ide-roadmap-fixtures.mjs --contract-only
+
+      - name: Test fail-closed runtime evidence verifier
+        run: npm --prefix packages/cli test -- __tests__/unit/verify-ide-roadmap-fixtures.test.js
 
       - name: Run 100 independent injections per kill point and transport
         shell: bash

@@ -6,7 +6,7 @@
  * Slow: spawns Node.js subprocess + Vitest forks pool. Marked with a generous
  * timeout to tolerate cold-start on Windows.
  */
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import path from "path";
 import fs from "fs";
 
@@ -23,14 +23,22 @@ const cliExists = fs.existsSync(cliEntry);
 
 const bridgeModule = require("../../src/main/ai-engine/code-agent/coding-agent-bridge.js");
 const { CodingAgentBridge } = bridgeModule;
+const {
+  installDesktopProcessBroker,
+} = require("../../src/main/process/desktop-process-broker.js");
 
 describe.skipIf(!cliExists)("CodingAgentBridge ↔ real CLI server (e2e)", () => {
   let bridge;
+  let desktopProcessBroker;
 
   beforeAll(() => {
     if (!cliExists) {
       console.warn("[e2e] Skipping — CLI bin not found at", cliEntry);
     }
+  });
+
+  beforeEach(() => {
+    desktopProcessBroker = installDesktopProcessBroker({ auditSink: () => {} });
   });
 
   afterEach(async () => {
@@ -42,6 +50,8 @@ describe.skipIf(!cliExists)("CodingAgentBridge ↔ real CLI server (e2e)", () =>
       }
       bridge = null;
     }
+    desktopProcessBroker?.uninstall();
+    desktopProcessBroker = null;
   });
 
   it("starts CLI serve, creates a session, lists, then closes it", async () => {

@@ -35,7 +35,7 @@ function validateAppName(name) {
     throw new Error("Invalid application name");
   }
   // 允许字母、数字、空格、点、连字符、下划线、中文字符
-  if (!/^[\w\s.\-\u4e00-\u9fa5]+$/.test(name)) {
+  if (!/^[\w .\-\u4e00-\u9fa5]+$/.test(name)) {
     throw new Error("Invalid application name: contains disallowed characters");
   }
   return name;
@@ -82,7 +82,7 @@ function validateArgs(args) {
     throw new Error("Invalid args: must be an array");
   }
   for (const a of args) {
-    if (typeof a !== "string" || !/^[\w\s.\-/:=@,]*$/.test(a)) {
+    if (typeof a !== "string" || !/^[\w .\-/:=@,]*$/.test(a)) {
       throw new Error("Invalid args: contains disallowed characters");
     }
   }

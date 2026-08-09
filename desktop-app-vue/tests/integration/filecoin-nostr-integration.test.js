@@ -8,6 +8,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import crypto from "node:crypto";
 
 vi.mock("../../src/main/utils/logger.js", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
@@ -68,7 +69,10 @@ describe("Filecoin Storage Integration", () => {
       // Step 2: Verify storage proof
       const proofResult = await storage.verifyStorageProof(deal.id, {
         proofType: "porep",
-        proofData: "a]".repeat(20), // 40 chars > 32
+        proofData: crypto
+          .createHash("sha256")
+          .update(`${deal.cid}:porep:0`)
+          .digest("hex"),
       });
       expect(proofResult.valid).toBe(true);
 

@@ -26,6 +26,9 @@ import ptyManagerPkg from "../../src/main/terminal/PtyManager.js";
 
 const { createTerminalHandlers } = terminalHandlersPkg;
 const { PtyManager } = ptyManagerPkg;
+const {
+  installDesktopProcessBroker,
+} = require("../../src/main/process/desktop-process-broker.js");
 
 function makeFakeNodePty() {
   /** @type {{ data?: (s:string)=>void, exit?: (e:any)=>void } | null} */
@@ -119,8 +122,10 @@ function waitForFrame(ws, predicate, timeoutMs = 2000) {
 
 describe("Phase 1 smoke: terminal.* WS round-trip", () => {
   let ws, fakePty, ptyManager, terminal, server, wsClient;
+  let desktopProcessBroker;
 
   beforeEach(async () => {
+    desktopProcessBroker = installDesktopProcessBroker({ auditSink: () => {} });
     fakePty = makeFakeNodePty();
     ptyManager = new PtyManager({
       _deps: { loadNodePty: () => fakePty.mod },
@@ -154,6 +159,8 @@ describe("Phase 1 smoke: terminal.* WS round-trip", () => {
       /* ignore */
     }
     await server?.close();
+    desktopProcessBroker?.uninstall();
+    desktopProcessBroker = null;
   });
 
   it("terminal.create returns sessionId and pid", async () => {

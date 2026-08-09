@@ -15,11 +15,13 @@ import path from "path";
  * 创建标准的mock数据库对象
  */
 function createMockDatabase() {
+  const prepare = vi.fn(() => ({
+    run: vi.fn(() => ({ lastInsertRowid: 1 })),
+    get: vi.fn(() => null),
+  }));
   return {
-    prepare: vi.fn((sql) => ({
-      run: vi.fn(() => ({ lastInsertRowid: 1 })),
-      get: vi.fn(() => null),
-    })),
+    db: { prepare },
+    prepare,
     saveProject: vi.fn(async () => ({ success: true })),
     saveProjectFiles: vi.fn(async () => ({ success: true })),
     deleteProject: vi.fn(async () => ({ success: true })),

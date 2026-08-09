@@ -5,10 +5,10 @@
  * private/loopback hosts unless explicitly allowlisted.
  */
 
-import http from "http";
-import https from "https";
-import { lookup as dnsLookup } from "dns";
-import { URL } from "url";
+import http from "node:http";
+import https from "node:https";
+import { lookup as dnsLookup } from "node:dns";
+import { URL } from "node:url";
 
 const DEFAULT_MAX_BYTES = 2_000_000;
 const DEFAULT_TIMEOUT_MS = 15_000;

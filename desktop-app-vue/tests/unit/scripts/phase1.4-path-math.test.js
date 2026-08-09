@@ -116,7 +116,13 @@ describe("Phase 1.4 path math (loader REL ↔ vendor layout)", () => {
     );
     tempBuildPath = path.join(resourcesRoot, "app");
     fs.mkdirSync(tempBuildPath, { recursive: true });
-    vendorWebShellInto(resourcesRoot, { dryRun: false, log: () => {} });
+    // This contract verifies loader-to-source path arithmetic. The dedicated
+    // vendor test below exercises the much larger standalone dependency tree.
+    vendorWebShellInto(resourcesRoot, {
+      dryRun: false,
+      log: () => {},
+      includeRuntimeDependencies: false,
+    });
   }, 30000);
 
   afterAll(() => {

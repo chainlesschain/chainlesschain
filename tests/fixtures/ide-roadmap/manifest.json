@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "manifestVersion": "1.1.2",
+  "manifestVersion": "1.2.0",
   "baselineCommit": "eb0bc663b6eb794b1b62ba2bfc7a1267c699d25d",
   "releaseEvidence": {
     "commitSource": "git-head-at-run",
@@ -17,11 +17,19 @@
       "artifactDigests"
     ]
   },
+  "runtimeEvidence": {
+    "schema": "chainlesschain.ide-roadmap-runtime-evidence.v1",
+    "evidenceSource": "external-ci-artifacts",
+    "verificationScope": "structural-envelope-only",
+    "releaseReadiness": "unsupported-without-trusted-provenance"
+  },
   "cases": [
     {
       "id": "s0-plan-ceiling",
       "priority": "P0-S",
       "required": true,
+      "evidenceStatus": "external-evidence-required",
+      "evidenceNotes": "Manifest fixtures and unit tests define the contract only; exact-commit runtime envelopes from the declared matrix remain mandatory for release readiness.",
       "fixture": "tests/fixtures/ide-roadmap/s0-plan-ceiling.json",
       "fixtureDigest": "sha256:7639d4ff73c59a6183b14fc2e6dd01bfc9af7d6bfbea795c152b891fca36cd55",
       "seed": 2026080101,
@@ -50,6 +58,8 @@
       "id": "s0-authority-failures",
       "priority": "P0-S",
       "required": true,
+      "evidenceStatus": "external-evidence-required",
+      "evidenceNotes": "Authority behavior is implemented and tested, but release readiness still requires exact-commit runtime envelopes for every declared matrix cell.",
       "fixture": "tests/fixtures/ide-roadmap/s0-authority-failures.json",
       "fixtureDigest": "sha256:41de4d8171e9798dab6c9bd8bf06cf31d02f834b811be3399d93a32124d5ffa4",
       "seed": 2026080102,
@@ -78,6 +88,8 @@
       "id": "s0-skill-mcp",
       "priority": "P0-S",
       "required": true,
+      "evidenceStatus": "external-evidence-required",
+      "evidenceNotes": "MCP safety workflows produce their own scoped artifacts; they are not automatically interchangeable with this manifest's runtime evidence envelope.",
       "fixture": "tests/fixtures/ide-roadmap/s0-skill-mcp.json",
       "fixtureDigest": "sha256:a26d8980a8567c38d1968ca89d2c667bece38c0c84989a9c1f4c26e7948e8028",
       "seed": 2026080103,
@@ -124,6 +136,8 @@
       "id": "s0-subtree-preflight",
       "priority": "P0-S",
       "required": true,
+      "evidenceStatus": "external-evidence-required",
+      "evidenceNotes": "Subtree preflight tests establish implementation coverage, while the declared release matrix still requires external exact-commit runtime evidence.",
       "fixture": "tests/fixtures/ide-roadmap/s0-subtree-preflight.json",
       "fixtureDigest": "sha256:f67af92d9da505217099a0ad6d87d3df94636d535159f0c4f9318cd30dba7222",
       "seed": 2026080104,
@@ -151,6 +165,8 @@
       "id": "s0-persistence-replay",
       "priority": "P0-S",
       "required": true,
+      "evidenceStatus": "external-evidence-required",
+      "evidenceNotes": "The formal safety workflow emits persistence evidence externally; no checked-in fixture is treated as proof of 100 independent runs on each operating system and transport.",
       "fixture": "tests/fixtures/ide-roadmap/s0-persistence-replay.json",
       "fixtureDigest": "sha256:828a38d348278beaa100932fffbf7667f85ddba0275900c7f434f035faff8803",
       "seed": 2026080105,
@@ -181,6 +197,8 @@
       "id": "s0-semantic-handoff",
       "priority": "P0-S",
       "required": true,
+      "evidenceStatus": "external-evidence-required",
+      "evidenceNotes": "The formal safety workflow emits semantic handoff evidence externally; referenced tests alone do not satisfy the 100-run release matrix.",
       "fixture": "tests/fixtures/ide-roadmap/s0-semantic-handoff.json",
       "fixtureDigest": "sha256:db872cfb2c910e7b699632afbcf81b7ddeb510829f6c1b229c29cb256fab85e2",
       "seed": 2026080106,
@@ -207,17 +225,19 @@
       ]
     },
     {
-      "id": "p0-host-evidence",
+      "id": "p0-host-local-evidence",
       "priority": "P0",
       "required": true,
-      "fixture": "tests/fixtures/ide-roadmap/p0-host-evidence.json",
-      "fixtureDigest": "sha256:b89778987a362f19132f9143ee2ed87d2cbefc00ac694ff4e307b8a68eca4820",
+      "evidenceStatus": "external-evidence-required",
+      "evidenceNotes": "Existing real-host workflow runs are external facts; local host release readiness still requires complete exact-commit envelopes for every declared cell and run.",
+      "fixture": "tests/fixtures/ide-roadmap/p0-host-local-evidence.json",
+      "fixtureDigest": "sha256:337011faeec42d0e944f4720a3f246bdcb08034220a2889b35459ab84f2c57a0",
       "seed": 2026080107,
       "minimumIndependentRuns": 100,
       "matrix": {
         "hosts": ["vscode", "jetbrains"],
         "operatingSystems": ["windows", "linux", "macos"],
-        "transports": ["local-ide-bridge", "remote"]
+        "transports": ["local-ide-bridge"]
       },
       "expectedOutcome": {
         "missingRequiredArtifactsFail": true,
@@ -235,6 +255,42 @@
       "requiredArtifacts": [
         "exact-commit",
         "host-environment",
+        "redacted-diagnostics",
+        "artifact-digests",
+        "journey-evidence"
+      ]
+    },
+    {
+      "id": "p0-host-remote-evidence",
+      "priority": "P0",
+      "required": true,
+      "evidenceStatus": "pending",
+      "evidenceNotes": "No complete remote IDE runtime matrix is available. Unit-test or local-host file presence must never satisfy this release-blocking target.",
+      "fixture": "tests/fixtures/ide-roadmap/p0-host-remote-evidence.json",
+      "fixtureDigest": "sha256:a762014d17022fc51b252286100e7db2ebca49f57a63ead5d03f958b50fb7f8a",
+      "seed": 2026080108,
+      "minimumIndependentRuns": 100,
+      "matrix": {
+        "hosts": ["vscode", "jetbrains"],
+        "operatingSystems": ["windows", "linux", "macos"],
+        "transports": ["remote"]
+      },
+      "expectedOutcome": {
+        "missingRequiredArtifactsFail": true,
+        "credentialLeakCount": 0,
+        "wrongCommitBindingCount": 0,
+        "evidenceReplacementCount": 0,
+        "orderedWorkspaceRootsBound": true,
+        "workspaceRootCount": 2,
+        "remoteTransportExercised": true
+      },
+      "testFiles": [
+        "packages/cli/__tests__/unit/verify-ide-roadmap-fixtures.test.js"
+      ],
+      "requiredArtifacts": [
+        "exact-commit",
+        "host-environment",
+        "remote-environment",
         "redacted-diagnostics",
         "artifact-digests",
         "journey-evidence"

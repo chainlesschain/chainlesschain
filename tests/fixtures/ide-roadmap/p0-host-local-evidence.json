@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "case": "p0-host-local-evidence",
+  "description": "Local real-IDE journey evidence must cover every declared host and operating-system cell with independent exact-commit runs. Static fixture and test-file presence define only the contract.",
+  "inputs": {
+    "transport": "local-ide-bridge",
+    "minimumIndependentRunsPerCell": 100,
+    "evidenceSource": "external-ci-artifacts"
+  },
+  "expectedOutcome": {
+    "missingRequiredArtifactsFail": true,
+    "credentialLeakCount": 0,
+    "wrongCommitBindingCount": 0,
+    "evidenceReplacementCount": 0,
+    "orderedWorkspaceRootsBound": true,
+    "workspaceRootCount": 2
+  }
+}

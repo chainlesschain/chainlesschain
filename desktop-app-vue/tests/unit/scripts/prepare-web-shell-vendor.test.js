@@ -99,6 +99,18 @@ describe("vendorWebShellInto", () => {
         path.join(tempBuildPath, "packages", "web-panel", "dist", "index.html"),
       ),
     ).toBe(true);
+    expect(
+      fs.existsSync(
+        path.join(
+          tempBuildPath,
+          "packages",
+          "cli",
+          "node_modules",
+          "semver",
+          "package.json",
+        ),
+      ),
+    ).toBe(true);
 
     // Stats reported should match what's actually on disk. cli/src is
     // git-tracked source (always >50 files in fresh checkout). webPanel
@@ -109,11 +121,16 @@ describe("vendorWebShellInto", () => {
     // is built", that belongs in a CI build-step assertion, not a unit
     // test of the vendor script.
     expect(stats.cli.files).toBeGreaterThan(50);
+    expect(stats.cliNodeModules.files).toBeGreaterThan(0);
     expect(stats.webPanel.files).toBeGreaterThan(0);
-  });
+  }, 180000);
 
   it("excludes the assets/web-panel duplicate from the cli vendor", () => {
-    vendorWebShellInto(tempBuildPath, { dryRun: false, log: silentLog });
+    vendorWebShellInto(tempBuildPath, {
+      dryRun: false,
+      log: silentLog,
+      includeRuntimeDependencies: false,
+    });
     const excluded = path.join(
       tempBuildPath,
       "packages",
@@ -127,12 +144,17 @@ describe("vendorWebShellInto", () => {
     const stats = vendorWebShellInto(tempBuildPath, {
       dryRun: true,
       log: silentLog,
+      includeRuntimeDependencies: false,
     });
     expect(stats.cli.skipped).toBeGreaterThanOrEqual(1);
   });
 
   it("excludes any __tests__ subtree if one ever sneaks into cli/src", () => {
-    vendorWebShellInto(tempBuildPath, { dryRun: false, log: silentLog });
+    vendorWebShellInto(tempBuildPath, {
+      dryRun: false,
+      log: silentLog,
+      includeRuntimeDependencies: false,
+    });
     const cliDst = path.join(tempBuildPath, "packages", "cli", "src");
     function walkForExcluded(dir) {
       for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -153,10 +175,12 @@ describe("vendorWebShellInto", () => {
     const first = vendorWebShellInto(tempBuildPath, {
       dryRun: false,
       log: silentLog,
+      includeRuntimeDependencies: false,
     });
     const second = vendorWebShellInto(tempBuildPath, {
       dryRun: false,
       log: silentLog,
+      includeRuntimeDependencies: false,
     });
     expect(second.cli.files).toBe(first.cli.files);
     expect(second.webPanel.files).toBe(first.webPanel.files);

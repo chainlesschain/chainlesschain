@@ -19,16 +19,18 @@ const {
 } = require("../../../../../../packages/cli/src/runtime/coding-agent-contract-shared.cjs");
 
 describe("CodingAgentToolAdapter", () => {
-  it("exposes the ten core coding-agent tools with stable metadata", () => {
+  it("exposes the core coding-agent tools with stable metadata", () => {
     const adapter = new CodingAgentToolAdapter();
 
     const tools = adapter.listCoreTools();
 
-    // mvp tier: read_file, write_file, notebook_edit (Jupyter cell edits,
+    // The shared MVP contract is authoritative; this desktop adapter must not
+    // drift when a core tool is deliberately added there.
+    // Includes read_file, write_file, delete_file, move_file, notebook_edit,
     // Claude-Code NotebookEdit parity), edit_file, edit_file_hashed (Hashline
     // pattern, v5.0.2.9), run_shell, check_shell (background-shell polling),
     // git, search_files, list_dir
-    expect(tools).toHaveLength(10);
+    expect(tools).toHaveLength(CORE_CODING_AGENT_TOOLS.length);
     expect(tools.map((tool) => tool.name)).toEqual(
       CORE_CODING_AGENT_TOOLS.map((tool) => tool.name),
     );
@@ -166,9 +168,8 @@ describe("CodingAgentToolAdapter", () => {
 
     const tools = await adapter.listAvailableTools();
 
-    // 10 core (mvp tier incl. notebook_edit + edit_file_hashed + check_shell)
-    // + 1 allowlisted managed tool
-    expect(tools).toHaveLength(11);
+    // Shared MVP core + 1 allowlisted managed tool.
+    expect(tools).toHaveLength(CORE_CODING_AGENT_TOOLS.length + 1);
     expect(
       tools.find((tool) => tool.name === DEFAULT_ALLOWED_MANAGED_TOOL_NAMES[0]),
     ).toMatchObject({

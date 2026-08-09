@@ -57,6 +57,7 @@ describe("企业版服务器连接测试", () => {
     });
 
     it("应显示正确的延迟时间", async () => {
+      const simulatedLatencyMs = 200;
       // 模拟200ms延迟
       global.fetch.mockImplementationOnce(
         () =>
@@ -67,18 +68,21 @@ describe("企业版服务器连接测试", () => {
                 status: 200,
                 json: async () => ({}),
               });
-            }, 200);
+            }, simulatedLatencyMs);
           }),
       );
 
-      const startTime = Date.now();
+      // Use a monotonic clock and tolerate timer/scheduler granularity. A
+      // 200ms timeout can legitimately be observed as 199.xms when sampled
+      // with Date.now() on a hosted runner.
+      const startTime = performance.now();
       const response = await fetch("https://test.com/api/health");
-      const endTime = Date.now();
+      const endTime = performance.now();
       const latency = endTime - startTime;
 
       expect(response.ok).toBe(true);
-      expect(latency).toBeGreaterThanOrEqual(200);
-      expect(latency).toBeLessThan(300); // 允许一些误差
+      expect(latency).toBeGreaterThanOrEqual(simulatedLatencyMs - 10);
+      expect(latency).toBeLessThan(simulatedLatencyMs + 100);
     }, 15000); // 增加超时时间到15秒
   });
 

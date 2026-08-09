@@ -17,6 +17,9 @@ import ptyManagerPkg from "../../src/main/terminal/PtyManager.js";
 
 const { createTerminalHandlers } = terminalHandlersPkg;
 const { PtyManager } = ptyManagerPkg;
+const {
+  installDesktopProcessBroker,
+} = require("../../src/main/process/desktop-process-broker.js");
 
 let nodePtyAvailable = false;
 let nodePtyLoadError = null;
@@ -115,6 +118,7 @@ describe.skipIf(!nodePtyAvailable)(
   "real PTY smoke (node-pty actually loads)",
   () => {
     let server, wsClient, ptyManager;
+    let desktopProcessBroker;
 
     beforeAll(() => {
       if (!nodePtyAvailable) {
@@ -126,6 +130,9 @@ describe.skipIf(!nodePtyAvailable)(
     });
 
     beforeEach(async () => {
+      desktopProcessBroker = installDesktopProcessBroker({
+        auditSink: () => {},
+      });
       ptyManager = new PtyManager();
       const broadcastRef = { current: null };
       const terminal = createTerminalHandlers({
@@ -155,6 +162,8 @@ describe.skipIf(!nodePtyAvailable)(
         /* ignore */
       }
       await server?.close();
+      desktopProcessBroker?.uninstall();
+      desktopProcessBroker = null;
     });
 
     it("spawns a real shell and echoes a stdin command's output", async () => {
