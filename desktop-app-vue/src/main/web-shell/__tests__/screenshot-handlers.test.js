@@ -7,6 +7,9 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
+import fs from "fs";
+import os from "os";
+import path from "path";
 
 vi.mock("../../utils/logger.js", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
@@ -45,24 +48,26 @@ function makeStubInternal(overrides = {}) {
     }),
     recognize,
     recognizeWithLLM,
+    readScreenshotFile: vi.fn().mockResolvedValue(Buffer.from("stub")),
+    removeScreenshotFile: vi.fn().mockResolvedValue(true),
     // 与 screenshot-ipc.js _internal 同款的 dispatcher。测试侧拷贝逻辑而不是
     // 真的 require — 保持单测独立 + 不依赖 _internal 实现细节。
     recognizeDispatch: vi
       .fn()
-      .mockImplementation(async (filePath, opts = {}) => {
+      .mockImplementation(async (imageBuffer, opts = {}) => {
         const { engine = "auto", llmManager, lang = "eng+chi_sim" } = opts;
         const llmAvail = !!llmManager && llmManager.provider === "volcengine";
         if (engine === "tesseract") {
-          return await opts.tesseractImpl(filePath, lang);
+          return await opts.tesseractImpl(imageBuffer, lang);
         }
         if (engine === "llm") {
-          return await opts.llmImpl(filePath, llmManager);
+          return await opts.llmImpl(imageBuffer, llmManager);
         }
         if (llmAvail) {
           try {
-            return await opts.llmImpl(filePath, llmManager);
+            return await opts.llmImpl(imageBuffer, llmManager);
           } catch (err) {
-            const fb = await opts.tesseractImpl(filePath, lang);
+            const fb = await opts.tesseractImpl(imageBuffer, lang);
             return {
               ...fb,
               fallbackFrom: "llm",
@@ -70,7 +75,7 @@ function makeStubInternal(overrides = {}) {
             };
           }
         }
-        return await opts.tesseractImpl(filePath, lang);
+        return await opts.tesseractImpl(imageBuffer, lang);
       }),
     isInsideTmpDir: vi.fn((p) => /cc-screenshot-/.test(p)),
     tmpFilePath: vi.fn(() => "/tmp/cc-screenshot-stub.png"),
@@ -78,17 +83,8 @@ function makeStubInternal(overrides = {}) {
   };
 }
 
-function makeStubFs({ exists = true, unlinkOk = true } = {}) {
-  return {
-    existsSync: vi.fn(() => exists),
-    promises: {
-      unlink: vi.fn(async () => {
-        if (!unlinkOk) {
-          throw new Error("EACCES");
-        }
-      }),
-    },
-  };
+function makeStubFs() {
+  return { testMarker: "forwarded-fs-adapter" };
 }
 
 // ── capture ─────────────────────────────────────────────────────
@@ -160,13 +156,13 @@ describe("screenshot.ocr", () => {
     await handler({ path: "/tmp/cc-screenshot-x.png" });
     // engine='auto' + no llmManager → tesseract path
     expect(_internal.recognize).toHaveBeenLastCalledWith(
-      "/tmp/cc-screenshot-x.png",
+      Buffer.from("stub"),
       "eng+chi_sim",
     );
 
     await handler({ path: "/tmp/cc-screenshot-x.png", lang: "deu" });
     expect(_internal.recognize).toHaveBeenLastCalledWith(
-      "/tmp/cc-screenshot-x.png",
+      Buffer.from("stub"),
       "deu",
     );
   });
@@ -209,7 +205,7 @@ describe("screenshot.ocr", () => {
     expect(reply.engine).toBe("llm");
     expect(reply.model).toBe("doubao-1-5-vision-pro-240828");
     expect(_internal.recognizeWithLLM).toHaveBeenCalledWith(
-      "/tmp/cc-screenshot-x.png",
+      Buffer.from("stub"),
       llmManager,
     );
   });
@@ -281,6 +277,53 @@ describe("screenshot.ocr", () => {
     });
     expect(reply.engine).toBe("llm"); // app's volcengine wins
   });
+
+  it("uses production security helpers and reads an alias canonically", async () => {
+    const actual = require("../../screenshot/screenshot-ipc.js")._internal;
+    const name = `cc-screenshot-web-contract-${process.pid}-${Date.now()}.png`;
+    const target = path.join(os.tmpdir(), name);
+    const alias = path.join(
+      process.cwd(),
+      `.screenshot-web-contract-alias-${process.pid}-${Date.now()}`,
+    );
+    const recognizeDispatch = vi.fn(async (imageBuffer) => ({
+      text: imageBuffer.toString("utf8"),
+      confidence: 100,
+      language: "eng",
+      engine: "contract",
+    }));
+    fs.writeFileSync(target, Buffer.from("canonical"), { mode: 0o600 });
+    try {
+      fs.symlinkSync(
+        os.tmpdir(),
+        alias,
+        process.platform === "win32" ? "junction" : "dir",
+      );
+      const handler = createScreenshotOcrHandler({
+        _internal: { ...actual, recognizeDispatch },
+      });
+      const reply = await handler({ path: path.join(alias, name) });
+
+      expect(reply).toMatchObject({
+        success: true,
+        text: "canonical",
+        engine: "contract",
+      });
+      expect(recognizeDispatch).toHaveBeenCalledWith(
+        Buffer.from("canonical"),
+        expect.any(Object),
+      );
+    } finally {
+      if (fs.existsSync(alias)) {
+        if (process.platform === "win32") {
+          fs.rmdirSync(alias);
+        } else {
+          fs.unlinkSync(alias);
+        }
+      }
+      fs.rmSync(target, { force: true });
+    }
+  });
 });
 
 // ── cleanup ─────────────────────────────────────────────────────
@@ -305,36 +348,57 @@ describe("screenshot.cleanup", () => {
     const reply = await handler({ path: "/etc/passwd" });
     expect(reply.success).toBe(false);
     expect(reply.error).toMatch(/tmp 外/);
-    expect(fsStub.promises.unlink).not.toHaveBeenCalled();
+    expect(_internal.removeScreenshotFile).not.toHaveBeenCalled();
   });
 
   it("unlinks tmp file when it exists", async () => {
     const _internal = makeStubInternal();
-    const fsStub = makeStubFs({ exists: true });
+    const fsStub = makeStubFs();
     const handler = createScreenshotCleanupHandler({ _internal, fs: fsStub });
     const reply = await handler({ path: "/tmp/cc-screenshot-x.png" });
     expect(reply.success).toBe(true);
-    expect(fsStub.promises.unlink).toHaveBeenCalledWith(
+    expect(_internal.removeScreenshotFile).toHaveBeenCalledWith(
       "/tmp/cc-screenshot-x.png",
+      fsStub,
     );
   });
 
   it("succeeds silently when file does not exist", async () => {
-    const _internal = makeStubInternal();
-    const fsStub = makeStubFs({ exists: false });
+    const _internal = makeStubInternal({
+      removeScreenshotFile: vi.fn().mockResolvedValue(false),
+    });
+    const fsStub = makeStubFs();
     const handler = createScreenshotCleanupHandler({ _internal, fs: fsStub });
     const reply = await handler({ path: "/tmp/cc-screenshot-x.png" });
     expect(reply.success).toBe(true);
-    expect(fsStub.promises.unlink).not.toHaveBeenCalled();
+    expect(_internal.removeScreenshotFile).toHaveBeenCalledOnce();
   });
 
   it("returns error envelope when unlink fails", async () => {
-    const _internal = makeStubInternal();
-    const fsStub = makeStubFs({ exists: true, unlinkOk: false });
+    const _internal = makeStubInternal({
+      removeScreenshotFile: vi.fn().mockRejectedValue(new Error("EACCES")),
+    });
+    const fsStub = makeStubFs();
     const handler = createScreenshotCleanupHandler({ _internal, fs: fsStub });
     const reply = await handler({ path: "/tmp/cc-screenshot-x.png" });
     expect(reply.success).toBe(false);
     expect(reply.error).toMatch(/EACCES/);
+  });
+
+  it("loads the production cleanup helper and removes an empty file", async () => {
+    const filePath = path.join(
+      os.tmpdir(),
+      `cc-screenshot-web-empty-${process.pid}-${Date.now()}.png`,
+    );
+    fs.writeFileSync(filePath, Buffer.alloc(0), { mode: 0o600 });
+    try {
+      const handler = createScreenshotCleanupHandler();
+      const reply = await handler({ path: filePath });
+      expect(reply.success).toBe(true);
+      expect(fs.existsSync(filePath)).toBe(false);
+    } finally {
+      fs.rmSync(filePath, { force: true });
+    }
   });
 });
 

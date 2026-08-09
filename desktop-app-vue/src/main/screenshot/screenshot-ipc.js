@@ -19,13 +19,15 @@
  */
 
 const fs = require("fs");
-const fsp = require("fs").promises;
+const crypto = require("crypto");
 const os = require("os");
 const path = require("path");
 const { logger } = require("../utils/logger.js");
 
 const DEFAULT_LANG = "eng+chi_sim";
 const TMP_PREFIX = "cc-screenshot-";
+const TMP_NAME_PATTERN = /^cc-screenshot-[A-Za-z0-9_-]+\.png$/;
+const MAX_SCREENSHOT_BYTES = 64 * 1024 * 1024;
 
 // 纯 OCR prompt：只要原文，禁止任何添油加醋。说明换行保持是因为豆包默认
 // 会"理解性总结"，不点穿就会丢掉表格/代码片段的视觉结构。
@@ -40,21 +42,201 @@ const PURE_OCR_PROMPT =
 const VISION_CAPABLE_PROVIDERS = new Set(["volcengine"]);
 
 function tmpFilePath() {
-  const stamp = Date.now() + "-" + Math.random().toString(36).slice(2, 8);
-  return path.join(os.tmpdir(), `${TMP_PREFIX}${stamp}.png`);
+  return path.join(os.tmpdir(), `${TMP_PREFIX}${crypto.randomUUID()}.png`);
 }
 
-function isInsideTmpDir(filePath) {
+function realpathSyncWith(fsImpl, value) {
+  const realpath = fsImpl.realpathSync.native || fsImpl.realpathSync;
+  return realpath.call(fsImpl, value);
+}
+
+/**
+ * Resolve a screenshot to a canonical, direct child of the operating-system
+ * temp directory. Returning our own canonical path is important: callers must
+ * never perform I/O through a renderer-provided alias after validation.
+ */
+function resolveTmpScreenshotPath(filePath, fsImpl = fs) {
+  if (typeof filePath !== "string" || filePath.length === 0) {
+    throw new Error("Invalid screenshot path");
+  }
+
+  const resolved = path.resolve(filePath);
+  const fileName = path.basename(resolved);
+  if (!TMP_NAME_PATTERN.test(fileName)) {
+    throw new Error("Invalid screenshot filename");
+  }
+
+  const realTmp = realpathSyncWith(fsImpl, os.tmpdir());
+  const realParent = realpathSyncWith(fsImpl, path.dirname(resolved));
+  if (path.relative(realTmp, realParent) !== "") {
+    throw new Error("Screenshot path must be a direct tmp file");
+  }
+
+  return path.join(realTmp, fileName);
+}
+
+function isSafeScreenshotFileStat(stat) {
+  return (
+    !!stat &&
+    typeof stat.isFile === "function" &&
+    stat.isFile() &&
+    typeof stat.isSymbolicLink === "function" &&
+    !stat.isSymbolicLink() &&
+    (stat.nlink === 1 || stat.nlink === 1n)
+  );
+}
+
+function isReadableScreenshotStat(stat) {
+  const size = Number(stat?.size);
+  return (
+    isSafeScreenshotFileStat(stat) &&
+    Number.isSafeInteger(size) &&
+    size > 0 &&
+    size <= MAX_SCREENSHOT_BYTES
+  );
+}
+
+function sameFileIdentity(left, right) {
+  return (
+    isReadableScreenshotStat(left) &&
+    isReadableScreenshotStat(right) &&
+    left.dev === right.dev &&
+    left.ino === right.ino
+  );
+}
+
+function isInsideTmpDir(filePath, fsImpl = fs) {
   try {
-    const resolved = path.resolve(filePath);
-    const realTmp = fs.realpathSync(os.tmpdir());
-    return (
-      resolved.startsWith(path.resolve(realTmp)) &&
-      path.basename(resolved).startsWith(TMP_PREFIX)
-    );
+    const trustedPath = resolveTmpScreenshotPath(filePath, fsImpl);
+    try {
+      return isSafeScreenshotFileStat(
+        fsImpl.lstatSync(trustedPath, { bigint: true }),
+      );
+    } catch (error) {
+      // Cleanup is intentionally idempotent for an already-removed screenshot.
+      // lstat still observes dangling links, so they are rejected above rather
+      // than being mistaken for a missing leaf.
+      return error?.code === "ENOENT";
+    }
   } catch {
     return false;
   }
+}
+
+/**
+ * Read through an opened file handle and bind validation to that handle. This
+ * prevents a renderer from swapping the checked path for a symlink/junction
+ * before Tesseract or an LLM reads it.
+ */
+async function readScreenshotFile(filePath, fsImpl = fs) {
+  const trustedPath = resolveTmpScreenshotPath(filePath, fsImpl);
+  const promises = fsImpl.promises;
+  const before = await promises.lstat(trustedPath, { bigint: true });
+  if (!isReadableScreenshotStat(before)) {
+    throw new Error("Unsafe screenshot file");
+  }
+
+  const readOnly = fsImpl.constants?.O_RDONLY ?? fs.constants.O_RDONLY;
+  const noFollow = fsImpl.constants?.O_NOFOLLOW ?? fs.constants.O_NOFOLLOW ?? 0;
+  const handle = await promises.open(trustedPath, readOnly | noFollow);
+  try {
+    const opened = await handle.stat({ bigint: true });
+    if (!sameFileIdentity(before, opened)) {
+      throw new Error("Screenshot file changed during validation");
+    }
+    const buffer = Buffer.alloc(Number(opened.size));
+    let offset = 0;
+    while (offset < buffer.length) {
+      const { bytesRead } = await handle.read(
+        buffer,
+        offset,
+        buffer.length - offset,
+        offset,
+      );
+      if (bytesRead === 0) {
+        throw new Error("Screenshot file changed while reading");
+      }
+      offset += bytesRead;
+    }
+    return buffer;
+  } finally {
+    await handle.close();
+  }
+}
+
+async function removeScreenshotFile(filePath, fsImpl = fs) {
+  const trustedPath = resolveTmpScreenshotPath(filePath, fsImpl);
+  const promises = fsImpl.promises;
+  let stat;
+  try {
+    stat = await promises.lstat(trustedPath, { bigint: true });
+  } catch (error) {
+    if (error?.code === "ENOENT") {
+      return false;
+    }
+    throw error;
+  }
+  if (!isSafeScreenshotFileStat(stat)) {
+    throw new Error("Refused to delete unsafe screenshot file");
+  }
+  await promises.unlink(trustedPath);
+  return true;
+}
+
+/**
+ * Persist private screenshot bytes without ever following or truncating a
+ * pre-created filesystem entry. A collision simply gets a fresh random name.
+ */
+async function writeScreenshotFile(
+  imageBuffer,
+  { fsImpl = fs, pathFactory = tmpFilePath, maxAttempts = 3 } = {},
+) {
+  if (!Buffer.isBuffer(imageBuffer)) {
+    throw new Error("Screenshot image buffer is required");
+  }
+  if (imageBuffer.length === 0 || imageBuffer.length > MAX_SCREENSHOT_BYTES) {
+    throw new Error("Screenshot image size is invalid");
+  }
+
+  let collisionError;
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const trustedPath = resolveTmpScreenshotPath(pathFactory(), fsImpl);
+    let handle;
+    try {
+      handle = await fsImpl.promises.open(trustedPath, "wx", 0o600);
+    } catch (error) {
+      if (error?.code === "EEXIST") {
+        collisionError = error;
+        continue;
+      }
+      throw error;
+    }
+
+    try {
+      await handle.writeFile(imageBuffer);
+      await handle.close();
+      handle = null;
+      return trustedPath;
+    } catch (error) {
+      // Exclusive open succeeded, so this process owns the random leaf. Clean
+      // up a partial write without ever deleting a pre-existing collision.
+      try {
+        await handle?.close();
+      } catch {
+        // Continue to the unlink attempt.
+      }
+      try {
+        await fsImpl.promises.unlink(trustedPath);
+      } catch {
+        // Best effort; preserve the original write failure.
+      }
+      throw error;
+    }
+  }
+
+  throw new Error("Unable to allocate a unique screenshot file", {
+    cause: collisionError,
+  });
 }
 
 // Windows ships a security setting `NoDefaultCurrentDirectoryInExePath=1`
@@ -160,8 +342,7 @@ async function captureScreenshot(screenIndex = 0) {
   const idx = Math.max(0, Math.min(screenIndex, displays.length - 1));
   const buffer = await screenshot({ screen: displays[idx].id });
 
-  const filePath = tmpFilePath();
-  await fsp.writeFile(filePath, buffer);
+  const filePath = await writeScreenshotFile(buffer);
   return {
     path: filePath,
     dataUrl: `data:image/png;base64,${buffer.toString("base64")}`,
@@ -171,9 +352,9 @@ async function captureScreenshot(screenIndex = 0) {
   };
 }
 
-async function recognize(filePath, lang = DEFAULT_LANG) {
-  if (!fs.existsSync(filePath)) {
-    throw new Error("Screenshot file not found: " + filePath);
+async function recognize(imageBuffer, lang = DEFAULT_LANG) {
+  if (!Buffer.isBuffer(imageBuffer)) {
+    throw new Error("Screenshot image buffer is required");
   }
   const Tesseract = require("tesseract.js");
   const worker = await Tesseract.createWorker();
@@ -186,7 +367,7 @@ async function recognize(filePath, lang = DEFAULT_LANG) {
     }
     const {
       data: { text, confidence },
-    } = await worker.recognize(filePath);
+    } = await worker.recognize(imageBuffer);
     return {
       text: (text || "").trim(),
       confidence:
@@ -204,22 +385,21 @@ async function recognize(filePath, lang = DEFAULT_LANG) {
  * llmManager.chatWithImageProcess 内部会按 selectByScenario 自动挑模型
  * （seed-1.6-vision / vision-pro / vision-lite 三档按 budget 选）。
  *
- * @param {string} filePath - 截图绝对路径（必须落在 tmp 内，校验由调用方做）
+ * @param {Buffer} imageBuffer - 已安全读取并验证过的截图字节
  * @param {Object} llmManager - main 进程的 LLMManager 单例
  * @returns {Promise<{text:string, confidence:null, language:'auto', engine:'llm', model:string}>}
  */
-async function recognizeWithLLM(filePath, llmManager) {
+async function recognizeWithLLM(imageBuffer, llmManager) {
   // 注：可用性 / provider 校验在 recognizeDispatch 里集中做。这里只做
   // I/O 和 API 调用，方便测试侧用任意 stub 替换 llmImpl。
-  if (!fs.existsSync(filePath)) {
-    throw new Error("Screenshot file not found: " + filePath);
+  if (!Buffer.isBuffer(imageBuffer)) {
+    throw new Error("Screenshot image buffer is required");
   }
   if (typeof llmManager?.chatWithImageProcess !== "function") {
     throw new Error("LLMManager.chatWithImageProcess 不可用");
   }
 
-  const buffer = await fsp.readFile(filePath);
-  const dataUrl = `data:image/png;base64,${buffer.toString("base64")}`;
+  const dataUrl = `data:image/png;base64,${imageBuffer.toString("base64")}`;
 
   const messages = [
     {
@@ -250,7 +430,7 @@ async function recognizeWithLLM(filePath, llmManager) {
  * Engine 路由：tesseract / llm / auto。被 IPC handler 和 web-shell handler
  * 复用，所以单独抽出来 + 走 _internal 暴露便于注入测试。
  */
-async function recognizeDispatch(filePath, opts = {}) {
+async function recognizeDispatch(imageBuffer, opts = {}) {
   const {
     engine = "auto",
     lang = DEFAULT_LANG,
@@ -263,7 +443,7 @@ async function recognizeDispatch(filePath, opts = {}) {
     !!llmManager && VISION_CAPABLE_PROVIDERS.has(llmManager.provider);
 
   if (engine === "tesseract") {
-    return await tesseractImpl(filePath, lang);
+    return await tesseractImpl(imageBuffer, lang);
   }
   if (engine === "llm") {
     // 显式 'llm' 时强校验，给用户清晰的诊断而不是默默回落 / silent failure
@@ -275,23 +455,23 @@ async function recognizeDispatch(filePath, opts = {}) {
         `LLM OCR 当前仅支持火山引擎（current provider: ${llmManager.provider}）`,
       );
     }
-    return await llmImpl(filePath, llmManager);
+    return await llmImpl(imageBuffer, llmManager);
   }
   // auto
   if (llmAvailable) {
     try {
-      return await llmImpl(filePath, llmManager);
+      return await llmImpl(imageBuffer, llmManager);
     } catch (err) {
       logger.warn(
         "[Screenshot IPC] LLM OCR 失败，回落 Tesseract: " +
           (err?.message || err),
       );
       // 回落结果带 fallback 标记，UI 可以提示用户为何没用 LLM
-      const fallback = await tesseractImpl(filePath, lang);
+      const fallback = await tesseractImpl(imageBuffer, lang);
       return { ...fallback, fallbackFrom: "llm", fallbackReason: err?.message };
     }
   }
-  return await tesseractImpl(filePath, lang);
+  return await tesseractImpl(imageBuffer, lang);
 }
 
 function registerScreenshotIPC({
@@ -299,6 +479,8 @@ function registerScreenshotIPC({
   capture: injectedCapture,
   recognize: injectedRecognize,
   recognizeWithLLM: injectedRecognizeWithLLM,
+  readScreenshotFile: injectedReadScreenshotFile,
+  removeScreenshotFile: injectedRemoveScreenshotFile,
   llmManager: directLlmManager,
   // app 模式：image-ipc 同款晚绑定。LLM 初始化晚于 IPC 注册，所以在 handler
   // 里 lazy-read app.llmManager 才能拿到真实 manager（直接传 null/undefined
@@ -310,6 +492,9 @@ function registerScreenshotIPC({
   const captureImpl = injectedCapture || captureScreenshot;
   const tesseractImpl = injectedRecognize || recognize;
   const llmImpl = injectedRecognizeWithLLM || recognizeWithLLM;
+  const readScreenshotImpl = injectedReadScreenshotFile || readScreenshotFile;
+  const removeScreenshotImpl =
+    injectedRemoveScreenshotFile || removeScreenshotFile;
   const getLLM = () => app?.llmManager ?? directLlmManager ?? null;
 
   logger.info("[Screenshot IPC] Registering handlers...");
@@ -345,7 +530,8 @@ function registerScreenshotIPC({
         options.engine === "auto"
           ? options.engine
           : "auto";
-      const result = await recognizeDispatch(filePath, {
+      const imageBuffer = await readScreenshotImpl(filePath);
+      const result = await recognizeDispatch(imageBuffer, {
         engine,
         lang,
         llmManager: getLLM(),
@@ -368,9 +554,7 @@ function registerScreenshotIPC({
       if (!isInsideTmpDir(filePath)) {
         return { success: false, error: "Refused to delete non-tmp path" };
       }
-      if (fs.existsSync(filePath)) {
-        await fsp.unlink(filePath);
-      }
+      await removeScreenshotImpl(filePath);
       return { success: true };
     } catch (err) {
       logger.warn("[Screenshot IPC] cleanup failed:", err);
@@ -389,8 +573,14 @@ module.exports = {
     recognize,
     recognizeWithLLM,
     recognizeDispatch,
+    readScreenshotFile,
+    removeScreenshotFile,
+    writeScreenshotFile,
+    resolveTmpScreenshotPath,
+    sameFileIdentity,
     isInsideTmpDir,
     tmpFilePath,
+    MAX_SCREENSHOT_BYTES,
     PURE_OCR_PROMPT,
     VISION_CAPABLE_PROVIDERS,
   },
