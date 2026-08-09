@@ -314,6 +314,24 @@ describe("KnowledgeHandler — Phase 6.3 step 2 (versions + star/pin)", () => {
       expect(String(r.notes[1].id)).toBe(a);
     });
 
+    it("getRecentlyViewed has deterministic ordering for equal timestamps", async () => {
+      const a = await makeNote("A");
+      const b = await makeNote("B");
+      const tiedAt = 1700000000000;
+      dbInner
+        .prepare(
+          "UPDATE notes SET last_viewed_at = NULL, created_at = ?, updated_at = ? WHERE id IN (?, ?)",
+        )
+        .run(tiedAt, tiedAt, a, b);
+
+      const first = await handler.handle("getRecentlyViewed", {}, ctx);
+      const second = await handler.handle("getRecentlyViewed", {}, ctx);
+      const expectedIds = [b, a];
+
+      expect(first.notes.map((note) => String(note.id))).toEqual(expectedIds);
+      expect(second.notes.map((note) => String(note.id))).toEqual(expectedIds);
+    });
+
     it("getRecentlyViewed honors last_viewed_at when set", async () => {
       const a = await makeNote("A");
       const b = await makeNote("B");

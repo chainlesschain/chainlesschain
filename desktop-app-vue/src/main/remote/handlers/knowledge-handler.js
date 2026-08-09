@@ -826,14 +826,15 @@ class KnowledgeHandler {
   /**
    * Recently viewed = ORDER BY COALESCE(last_viewed_at, updated_at) DESC。
    * 没有 viewed 记录时 fallback 用 updated_at — 让方法初次调用就有结果，
-   * 不至于 last_viewed_at 全 NULL 返空。recordView 显式 method 留 v0.2 实现。
+   * 不至于 last_viewed_at 全 NULL 返空。created_at 和 id 是稳定的次级排序键，
+   * 避免毫秒级时间戳相同时分页顺序漂移。recordView 显式 method 留 v0.2 实现。
    */
   async getRecentlyViewed(params, _context) {
     const { limit = 20, offset = 0 } = params;
     const rows = await this.database.all(
       `SELECT id, title, content, tags, starred, pinned, folder_id, last_viewed_at, created_at, updated_at
        FROM notes
-       ORDER BY COALESCE(last_viewed_at, updated_at) DESC
+       ORDER BY COALESCE(last_viewed_at, updated_at) DESC, created_at DESC, id DESC
        LIMIT ? OFFSET ?`,
       [limit | 0, offset | 0],
     );
