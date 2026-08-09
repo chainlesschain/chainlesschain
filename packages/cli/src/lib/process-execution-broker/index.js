@@ -1320,6 +1320,20 @@ class ProcessExecutionBroker extends EventEmitter {
         "pluginTreeSnapshotContractBound",
         "pluginTreeSnapshotAtomic",
       ];
+      const nodePluginTreeSnapshotEvidence =
+        plan.runtimeProbe.kind === "linux-bwrap-plugin-node-policy-v1" &&
+        plan.runtimeProbe.targetRuntime === "node" &&
+        plan.runtimeProbe.contentSnapshotScope === "plugin-entry-source";
+      const nativePluginRuntimeEvidence =
+        (plan.runtimeProbe.kind ===
+          "linux-bwrap-plugin-native-static-elf-policy-v1" &&
+          plan.runtimeProbe.targetRuntime === "native-static-elf") ||
+        (plan.runtimeProbe.kind ===
+          "linux-bwrap-plugin-native-dynamic-elf-policy-v1" &&
+          plan.runtimeProbe.targetRuntime === "native-dynamic-elf");
+      const nativePluginTreeSnapshotEvidence =
+        nativePluginRuntimeEvidence &&
+        plan.runtimeProbe.contentSnapshotScope === "plugin-entry-executable";
       if (
         pluginTreeSnapshot &&
         (plan.applied !== true ||
@@ -1334,11 +1348,10 @@ class ProcessExecutionBroker extends EventEmitter {
           plan.runtimeProbe.attempted !== true ||
           plan.runtimeProbe.runnable !== true ||
           plan.runtimeProbe.reason !== null ||
-          plan.runtimeProbe.kind !== "linux-bwrap-plugin-node-policy-v1" ||
+          (!nodePluginTreeSnapshotEvidence &&
+            !nativePluginTreeSnapshotEvidence) ||
           plan.runtimeProbe.probeRuntime !== "node" ||
-          plan.runtimeProbe.targetRuntime !== "node" ||
           plan.runtimeProbe.contentSnapshot !== true ||
-          plan.runtimeProbe.contentSnapshotScope !== "plugin-entry-source" ||
           plan.runtimeProbe.contentSnapshotMechanism !==
             "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1" ||
           plan.runtimeProbe.handleAtomic !== false ||
@@ -1380,6 +1393,18 @@ class ProcessExecutionBroker extends EventEmitter {
         throw this._sandboxError(
           "invalid_sandbox_plan",
           "Sandbox runtime probe plugin tree snapshot evidence requires pluginTreeContentSnapshot",
+        );
+      }
+      const successfulNativeProbe =
+        plan.applied === true &&
+        plan.runtimeProbe.attempted === true &&
+        plan.runtimeProbe.runnable === true &&
+        plan.runtimeProbe.reason === null &&
+        nativePluginRuntimeEvidence;
+      if (successfulNativeProbe && !pluginTreeSnapshot) {
+        throw this._sandboxError(
+          "invalid_sandbox_plan",
+          "Successful Linux native plugin evidence requires a complete plugin tree snapshot",
         );
       }
       const supervisorStringFields = [

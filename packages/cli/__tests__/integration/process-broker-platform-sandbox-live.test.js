@@ -2650,7 +2650,12 @@ describe.runIf(LIVE && SUPPORTED)(
         const dynamicPieEntry = path.join(binDirectory, "dynamic-pie-native");
         const scriptEntry = path.join(binDirectory, "script-native");
         const replacementEntry = path.join(workspace, "replacement-native");
+        const replacementAllowedPath = path.join(
+          workspace,
+          "replacement-allowed.txt",
+        );
         const allowedPath = path.join(pluginRoot, "allowed.txt");
+        const sandboxAllowedPath = "/opt/chainless/plugin/allowed.txt";
         const secretPath = path.join(
           os.homedir(),
           `.cc-linux-native-secret-${nonce}`,
@@ -2707,6 +2712,11 @@ describe.runIf(LIVE && SUPPORTED)(
         try {
           fs.mkdirSync(binDirectory, { recursive: true });
           fs.writeFileSync(allowedPath, "allowed-native-data", "utf8");
+          fs.writeFileSync(
+            replacementAllowedPath,
+            "replacement-native-data",
+            "utf8",
+          );
           fs.writeFileSync(secretPath, "host-only-secret", { mode: 0o600 });
           fs.writeFileSync(
             path.join(pluginRoot, "plugin.json"),
@@ -2872,9 +2882,44 @@ describe.runIf(LIVE && SUPPORTED)(
             ["dynamic-native", dynamicEntry, "native-dynamic-elf"],
             ["dynamic-pie-native", dynamicPieEntry, "native-dynamic-elf"],
           ]) {
+            fs.writeFileSync(allowedPath, "allowed-native-data", "utf8");
             const destination = `/opt/chainless/plugin/bin/${path.basename(
               entryPath,
             )}`;
+            const pluginTreeSnapshotMembers = [
+              path.join(pluginRoot, "plugin.json"),
+              allowedPath,
+              staticEntry,
+              staticPieEntry,
+              dynamicEntry,
+              dynamicPieEntry,
+              scriptEntry,
+            ];
+            const expectedPluginTreeSnapshotBytes =
+              pluginTreeSnapshotMembers.reduce(
+                (total, member) => total + Number(fs.statSync(member).size),
+                0,
+              );
+            const expectedPluginFileBindings = pluginTreeSnapshotMembers
+              .map((member) => ({
+                destination: path.posix.join(
+                  "/opt/chainless/plugin",
+                  path.relative(pluginRoot, member).split(path.sep).join("/"),
+                ),
+                roBindData: [
+                  {
+                    childFd: expect.any(String),
+                    permissions:
+                      (fs.statSync(member).mode & 0o111) !== 0
+                        ? "0500"
+                        : "0400",
+                  },
+                ],
+                roBindFd: [],
+              }))
+              .sort((left, right) =>
+                left.destination.localeCompare(right.destination),
+              );
             const positive = nativeSpawnSync(
               process.execPath,
               [
@@ -2886,6 +2931,9 @@ describe.runIf(LIVE && SUPPORTED)(
                   entryPath,
                   replacementPath: replacementEntry,
                   destination,
+                  dependencyPath: allowedPath,
+                  dependencyReplacementPath: replacementAllowedPath,
+                  dependencyDestination: sandboxAllowedPath,
                 }),
               ],
               {
@@ -2973,6 +3021,30 @@ describe.runIf(LIVE && SUPPORTED)(
               ],
               roBindFd: [],
             });
+            expect(envelope.dependencyMutation).toMatchObject({
+              sameDevice: true,
+              sameInode: true,
+              afterSha256: envelope.dependencyMutation.replacementSha256,
+            });
+            expect(envelope.dependencyMutation.beforeSha256).not.toBe(
+              envelope.dependencyMutation.afterSha256,
+            );
+            expect(envelope.dependencyMutation.afterSha256).toBe(
+              fileSha256(replacementAllowedPath),
+            );
+            expect(envelope.dependencyBindings).toEqual({
+              destination: sandboxAllowedPath,
+              roBindData: [
+                {
+                  childFd: expect.any(String),
+                  permissions: "0400",
+                },
+              ],
+              roBindFd: [],
+            });
+            expect(envelope.pluginFileBindings).toEqual(
+              expectedPluginFileBindings,
+            );
             expect(envelope.audit).toMatchObject({
               permissionDecision: "allow",
               sandboxed: true,
@@ -2999,6 +3071,19 @@ describe.runIf(LIVE && SUPPORTED)(
                 contentSnapshotScope: "plugin-entry-executable",
                 contentSnapshotMechanism:
                   "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1",
+                pluginTreeContentSnapshot: true,
+                pluginTreeContentSnapshotScope:
+                  "all-pinned-plugin-regular-files",
+                pluginTreeContentSnapshotMechanism:
+                  "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1",
+                pluginTreeContentSnapshotFiles:
+                  pluginTreeSnapshotMembers.length,
+                pluginTreeContentSnapshotBytes: expectedPluginTreeSnapshotBytes,
+                pluginTreeContentSnapshotDigest:
+                  expect.stringMatching(/^[a-f0-9]{64}$/),
+                pluginTreeSnapshotConsistency: "per-file-pin-to-launch",
+                pluginTreeSnapshotContractBound: false,
+                pluginTreeSnapshotAtomic: false,
                 ...(targetRuntime === "native-dynamic-elf"
                   ? {
                       initialDynamicLoadClosureDescriptorBound: true,
@@ -3021,6 +3106,9 @@ describe.runIf(LIVE && SUPPORTED)(
             expectLinuxSupervisorAudit(envelope.audit, supervisorIdentity);
             expect(envelope.audit.sandboxPolicyDigest).toMatch(
               /^[a-f0-9]{64}$/,
+            );
+            expect(fs.readFileSync(allowedPath, "utf8")).toBe(
+              "replacement-native-data",
             );
 
             const replaced = nativeSpawnSync(entryPath, [], {
