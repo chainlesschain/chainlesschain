@@ -4,9 +4,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const IDE_ROADMAP_SCHEMA_VERSION = 1;
-export const IDE_ROADMAP_MANIFEST_VERSION = "1.1.2";
+export const IDE_ROADMAP_MANIFEST_VERSION = "1.2.0";
 export const IDE_ROADMAP_MANIFEST_PATH =
   "tests/fixtures/ide-roadmap/manifest.json";
+export const IDE_ROADMAP_RUNTIME_EVIDENCE_SCHEMA =
+  "chainlesschain.ide-roadmap-runtime-evidence.v1";
+export const IDE_ROADMAP_RUNTIME_EVIDENCE_SCHEMA_VERSION = 1;
 
 export const REQUIRED_RELEASE_EVIDENCE_FIELDS = Object.freeze([
   "manifestVersion",
@@ -30,6 +33,7 @@ const MATRIX_DIMENSIONS = Object.freeze([
 const SHA256_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const GIT_OID_PATTERN = /^[0-9a-f]{40}$/;
 const TEST_FILE_PATTERN = /\.(?:test|spec)\.(?:[cm]?[jt]sx?)$/;
+const EVIDENCE_STATUSES = new Set(["pending", "external-evidence-required"]);
 const DEFAULT_REPO_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../../..",
@@ -43,6 +47,18 @@ export class IdeRoadmapFixtureContractError extends Error {
         .join("\n")}`,
     );
     this.name = "IdeRoadmapFixtureContractError";
+    this.issues = Object.freeze([...issues]);
+  }
+}
+
+export class IdeRoadmapRuntimeEvidenceError extends Error {
+  constructor(issues) {
+    super(
+      `IDE roadmap runtime evidence verification failed:\n${issues
+        .map((issue) => `- ${issue}`)
+        .join("\n")}`,
+    );
+    this.name = "IdeRoadmapRuntimeEvidenceError";
     this.issues = Object.freeze([...issues]);
   }
 }
@@ -64,6 +80,28 @@ function isWithin(boundary, candidate) {
 function sha256File(filePath) {
   return `sha256:${createHash("sha256")
     .update(fs.readFileSync(filePath))
+    .digest("hex")}`;
+}
+
+function stableValue(value) {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, stableValue(value[key])]),
+    );
+  }
+  return value;
+}
+
+function canonicalJson(value) {
+  return JSON.stringify(stableValue(value));
+}
+
+function sha256Json(value) {
+  return `sha256:${createHash("sha256")
+    .update(canonicalJson(value))
     .digest("hex")}`;
 }
 
@@ -190,6 +228,36 @@ function validateReleaseEvidence(releaseEvidence, issues) {
   }
 }
 
+function validateRuntimeEvidenceContract(runtimeEvidence, issues) {
+  if (!isRecord(runtimeEvidence)) {
+    issues.push("runtimeEvidence must be an object");
+    return;
+  }
+  if (runtimeEvidence.schema !== IDE_ROADMAP_RUNTIME_EVIDENCE_SCHEMA) {
+    issues.push(
+      `runtimeEvidence.schema must equal ${JSON.stringify(IDE_ROADMAP_RUNTIME_EVIDENCE_SCHEMA)}`,
+    );
+  }
+  if (runtimeEvidence.evidenceSource !== "external-ci-artifacts") {
+    issues.push(
+      'runtimeEvidence.evidenceSource must equal "external-ci-artifacts"',
+    );
+  }
+  if (runtimeEvidence.verificationScope !== "structural-envelope-only") {
+    issues.push(
+      'runtimeEvidence.verificationScope must equal "structural-envelope-only"',
+    );
+  }
+  if (
+    runtimeEvidence.releaseReadiness !==
+    "unsupported-without-trusted-provenance"
+  ) {
+    issues.push(
+      'runtimeEvidence.releaseReadiness must equal "unsupported-without-trusted-provenance"',
+    );
+  }
+}
+
 function validateCase({
   entry,
   index,
@@ -217,6 +285,19 @@ function validateCase({
   }
   if (typeof entry.required !== "boolean") {
     issues.push(`${label}.required must be a boolean`);
+  }
+  if (!EVIDENCE_STATUSES.has(entry.evidenceStatus)) {
+    issues.push(
+      `${label}.evidenceStatus must be one of ${[...EVIDENCE_STATUSES]
+        .map((value) => JSON.stringify(value))
+        .join(", ")}`,
+    );
+  }
+  if (
+    typeof entry.evidenceNotes !== "string" ||
+    entry.evidenceNotes.trim() === ""
+  ) {
+    issues.push(`${label}.evidenceNotes must be a non-empty string`);
   }
   if (!Number.isSafeInteger(entry.seed) || entry.seed < 0) {
     issues.push(`${label}.seed must be a non-negative safe integer`);
@@ -309,7 +390,28 @@ function validateCase({
 
   return {
     id: entry.id,
+    priority: entry.priority,
+    required: entry.required,
+    evidenceStatus: entry.evidenceStatus,
+    evidenceNotes: entry.evidenceNotes,
     fixture: entry.fixture,
+    minimumIndependentRuns: entry.minimumIndependentRuns,
+    matrix: isRecord(entry.matrix)
+      ? Object.fromEntries(
+          MATRIX_DIMENSIONS.map((dimension) => [
+            dimension,
+            Array.isArray(entry.matrix[dimension])
+              ? [...entry.matrix[dimension]]
+              : [],
+          ]),
+        )
+      : null,
+    expectedOutcome: isRecord(entry.expectedOutcome)
+      ? structuredClone(entry.expectedOutcome)
+      : null,
+    requiredArtifacts: Array.isArray(entry.requiredArtifacts)
+      ? [...entry.requiredArtifacts]
+      : [],
     testFileCount: testFiles.length,
   };
 }
@@ -403,6 +505,7 @@ export function verifyIdeRoadmapFixtures({
     );
   }
   validateReleaseEvidence(manifest.releaseEvidence, issues);
+  validateRuntimeEvidenceContract(manifest.runtimeEvidence, issues);
 
   if (!Array.isArray(manifest.cases) || manifest.cases.length === 0) {
     issues.push("manifest.cases must be a non-empty array");
@@ -436,7 +539,458 @@ export function verifyIdeRoadmapFixtures({
     baselineCommit: manifest.baselineCommit,
     caseCount: cases.length,
     testFileCount: uniqueTestFiles.size,
-    cases: Object.freeze(cases.map((entry) => Object.freeze(entry))),
+    requiredCaseCount: cases.filter((entry) => entry.required).length,
+    releaseReadiness: Object.freeze({
+      status: "not-evaluated",
+      evidenceSchema: IDE_ROADMAP_RUNTIME_EVIDENCE_SCHEMA,
+    }),
+    cases: Object.freeze(
+      cases.map((entry) =>
+        Object.freeze({
+          ...entry,
+          matrix: entry.matrix
+            ? Object.freeze(
+                Object.fromEntries(
+                  Object.entries(entry.matrix).map(([key, value]) => [
+                    key,
+                    Object.freeze(value),
+                  ]),
+                ),
+              )
+            : null,
+          expectedOutcome: entry.expectedOutcome
+            ? Object.freeze(entry.expectedOutcome)
+            : null,
+          requiredArtifacts: Object.freeze(entry.requiredArtifacts),
+        }),
+      ),
+    ),
+  });
+}
+
+export function createIdeRoadmapRuntimeEvidenceDigest(evidence) {
+  if (!isRecord(evidence)) {
+    throw new TypeError("runtime evidence must be an object");
+  }
+  const { evidenceDigest: _ignored, ...core } = evidence;
+  return sha256Json(core);
+}
+
+function validateExactString(value, label, issues) {
+  if (
+    typeof value !== "string" ||
+    value.trim() === "" ||
+    value !== value.trim()
+  ) {
+    issues.push(
+      `${label} must be a non-empty string without surrounding whitespace`,
+    );
+    return null;
+  }
+  return value;
+}
+
+function validateTimestamp(value, label, issues) {
+  const exact = validateExactString(value, label, issues);
+  if (!exact) return null;
+  const milliseconds = Date.parse(exact);
+  if (
+    !Number.isFinite(milliseconds) ||
+    new Date(milliseconds).toISOString() !== exact
+  ) {
+    issues.push(`${label} must be an exact ISO-8601 UTC timestamp`);
+    return null;
+  }
+  return milliseconds;
+}
+
+function matrixCellKey(host, operatingSystem, transport) {
+  return `${host}\u0000${operatingSystem}\u0000${transport}`;
+}
+
+function matrixCellLabel(host, operatingSystem, transport) {
+  return `host=${JSON.stringify(host)}, operatingSystem=${JSON.stringify(
+    operatingSystem,
+  )}, transport=${JSON.stringify(transport)}`;
+}
+
+function expectedMatrixCells(entry) {
+  const cells = [];
+  for (const host of entry.matrix.hosts) {
+    for (const operatingSystem of entry.matrix.operatingSystems) {
+      for (const transport of entry.matrix.transports) {
+        cells.push({
+          host,
+          operatingSystem,
+          transport,
+          key: matrixCellKey(host, operatingSystem, transport),
+        });
+      }
+    }
+  }
+  return cells;
+}
+
+function listRuntimeEvidenceFiles(directory, issues) {
+  const root = path.resolve(directory);
+  if (!fs.existsSync(root)) {
+    issues.push(`runtime evidence directory does not exist: ${root}`);
+    return [];
+  }
+  if (!fs.statSync(root).isDirectory()) {
+    issues.push(`runtime evidence path must be a directory: ${root}`);
+    return [];
+  }
+  const realRoot = fs.realpathSync(root);
+  const files = [];
+  const visit = (current) => {
+    for (const entry of fs
+      .readdirSync(current, { withFileTypes: true })
+      .sort((left, right) => left.name.localeCompare(right.name))) {
+      const candidate = path.join(current, entry.name);
+      if (entry.isSymbolicLink()) {
+        issues.push(
+          `runtime evidence may not contain symbolic links: ${path.relative(root, candidate)}`,
+        );
+        continue;
+      }
+      if (entry.isDirectory()) {
+        const realDirectory = fs.realpathSync(candidate);
+        if (!isWithin(realRoot, realDirectory)) {
+          issues.push(
+            `runtime evidence directory escapes its root: ${path.relative(root, candidate)}`,
+          );
+          continue;
+        }
+        visit(candidate);
+      } else if (entry.isFile() && entry.name.endsWith(".json")) {
+        const realFile = fs.realpathSync(candidate);
+        if (!isWithin(realRoot, realFile)) {
+          issues.push(
+            `runtime evidence file escapes its root: ${path.relative(root, candidate)}`,
+          );
+          continue;
+        }
+        files.push(candidate);
+      }
+    }
+  };
+  visit(root);
+  return files;
+}
+
+function validateRuntimeRun({
+  run,
+  runIndex,
+  document,
+  documentLabel,
+  roadmapCase,
+  releaseCommit,
+  seenRunIds,
+  cellCounts,
+  issues,
+}) {
+  const label = `${documentLabel}.runs[${runIndex}]`;
+  if (!isRecord(run)) {
+    issues.push(`${label} must be an object`);
+    return;
+  }
+
+  const runId = validateExactString(run.runId, `${label}.runId`, issues);
+  if (runId) {
+    if (seenRunIds.has(runId)) {
+      issues.push(`${label}.runId duplicates ${JSON.stringify(runId)}`);
+    } else {
+      seenRunIds.add(runId);
+    }
+  }
+  if (run.caseId !== roadmapCase.id) {
+    issues.push(`${label}.caseId must equal ${JSON.stringify(roadmapCase.id)}`);
+  }
+  if (run.manifestVersion !== IDE_ROADMAP_MANIFEST_VERSION) {
+    issues.push(
+      `${label}.manifestVersion must equal ${JSON.stringify(IDE_ROADMAP_MANIFEST_VERSION)}`,
+    );
+  }
+  if (run.releaseCommit !== releaseCommit) {
+    issues.push(
+      `${label}.releaseCommit does not match the requested release commit`,
+    );
+  }
+  if (run.releaseCommit !== document.releaseCommit) {
+    issues.push(`${label}.releaseCommit does not match its evidence envelope`);
+  }
+  validateExactString(run.hostVersion, `${label}.hostVersion`, issues);
+  validateExactString(run.cliVersion, `${label}.cliVersion`, issues);
+
+  const host = validateExactString(run.host, `${label}.host`, issues);
+  const operatingSystem = validateExactString(
+    run.operatingSystem,
+    `${label}.operatingSystem`,
+    issues,
+  );
+  const transport = validateExactString(
+    run.transport,
+    `${label}.transport`,
+    issues,
+  );
+  const coordinateValid =
+    host &&
+    operatingSystem &&
+    transport &&
+    roadmapCase.matrix.hosts.includes(host) &&
+    roadmapCase.matrix.operatingSystems.includes(operatingSystem) &&
+    roadmapCase.matrix.transports.includes(transport);
+  if (host && !roadmapCase.matrix.hosts.includes(host)) {
+    issues.push(
+      `${label}.host is outside the declared matrix: ${JSON.stringify(host)}`,
+    );
+  }
+  if (
+    operatingSystem &&
+    !roadmapCase.matrix.operatingSystems.includes(operatingSystem)
+  ) {
+    issues.push(
+      `${label}.operatingSystem is outside the declared matrix: ${JSON.stringify(operatingSystem)}`,
+    );
+  }
+  if (transport && !roadmapCase.matrix.transports.includes(transport)) {
+    issues.push(
+      `${label}.transport is outside the declared matrix: ${JSON.stringify(transport)}`,
+    );
+  }
+  if (coordinateValid) {
+    const key = matrixCellKey(host, operatingSystem, transport);
+    cellCounts.set(key, (cellCounts.get(key) || 0) + 1);
+  }
+
+  const startedAt = validateTimestamp(
+    run.startedAt,
+    `${label}.startedAt`,
+    issues,
+  );
+  const finishedAt = validateTimestamp(
+    run.finishedAt,
+    `${label}.finishedAt`,
+    issues,
+  );
+  if (startedAt !== null && finishedAt !== null && finishedAt < startedAt) {
+    issues.push(`${label}.finishedAt must not precede startedAt`);
+  }
+  if (run.result !== "passed") {
+    issues.push(`${label}.result must equal "passed"`);
+  }
+  if (
+    canonicalJson(run.observedOutcome) !==
+    canonicalJson(roadmapCase.expectedOutcome)
+  ) {
+    issues.push(
+      `${label}.observedOutcome does not match manifest expectedOutcome`,
+    );
+  }
+
+  const artifacts = validateStringArray(
+    run.artifacts,
+    `${label}.artifacts`,
+    issues,
+  );
+  const artifactSet = new Set(artifacts);
+  if (!isRecord(run.artifactDigests)) {
+    issues.push(`${label}.artifactDigests must be an object`);
+  }
+  for (const artifact of artifacts) {
+    const digest = run.artifactDigests?.[artifact];
+    if (typeof digest !== "string" || !SHA256_PATTERN.test(digest)) {
+      issues.push(
+        `${label}.artifactDigests[${JSON.stringify(artifact)}] must be a lowercase SHA-256 digest`,
+      );
+    }
+  }
+  for (const requiredArtifact of roadmapCase.requiredArtifacts) {
+    if (!artifactSet.has(requiredArtifact)) {
+      issues.push(
+        `${label}.artifacts is missing required artifact ${JSON.stringify(requiredArtifact)}`,
+      );
+    }
+    const digest = run.artifactDigests?.[requiredArtifact];
+    if (typeof digest !== "string" || !SHA256_PATTERN.test(digest)) {
+      issues.push(
+        `${label}.artifactDigests is missing a valid digest for required artifact ${JSON.stringify(requiredArtifact)}`,
+      );
+    }
+  }
+}
+
+export function verifyIdeRoadmapRuntimeEvidence({
+  repoRoot = DEFAULT_REPO_ROOT,
+  manifestPath = IDE_ROADMAP_MANIFEST_PATH,
+  evidenceDir,
+  releaseCommit,
+  caseIds = [],
+  requireReleaseReady = false,
+} = {}) {
+  const contract = verifyIdeRoadmapFixtures({ repoRoot, manifestPath });
+  const issues = [];
+  if (requireReleaseReady) {
+    issues.push(
+      "release-readiness verification is unsupported until evidence is bound to trusted CI provenance, the checked-out release commit, and complete version/transport/hardware/network/sample dimensions",
+    );
+  }
+  const exactReleaseCommit =
+    typeof releaseCommit === "string" ? releaseCommit : "";
+  if (!GIT_OID_PATTERN.test(exactReleaseCommit)) {
+    issues.push(
+      "releaseCommit must be an exact lowercase 40-character Git OID",
+    );
+  }
+  if (!evidenceDir) {
+    issues.push("runtime evidence directory is required");
+  }
+
+  const caseMap = new Map(contract.cases.map((entry) => [entry.id, entry]));
+  let requestedIds = [];
+  if (!Array.isArray(caseIds)) {
+    issues.push("caseIds must be an array when provided");
+  } else if (caseIds.length > 0) {
+    requestedIds = validateStringArray(caseIds, "caseIds", issues);
+  }
+  for (const caseId of requestedIds) {
+    if (!caseMap.has(caseId)) {
+      issues.push(`unknown roadmap case ${JSON.stringify(caseId)}`);
+    }
+  }
+  const files = evidenceDir
+    ? listRuntimeEvidenceFiles(evidenceDir, issues)
+    : [];
+  const documents = [];
+  for (const filePath of files) {
+    const label = path.relative(path.resolve(evidenceDir), filePath);
+    const value = readJson(filePath, label, issues);
+    if (
+      isRecord(value) &&
+      value.schema === IDE_ROADMAP_RUNTIME_EVIDENCE_SCHEMA
+    ) {
+      documents.push({ filePath, label, value });
+    }
+  }
+  if (documents.length === 0) {
+    issues.push(
+      `no ${IDE_ROADMAP_RUNTIME_EVIDENCE_SCHEMA} documents were found`,
+    );
+  }
+
+  const discoveredIds = [
+    ...new Set(documents.map((entry) => entry.value.caseId).filter(Boolean)),
+  ];
+  const selectedIds = requestedIds.length > 0 ? requestedIds : discoveredIds;
+  const selectedSet = new Set(selectedIds);
+  const selectedCases = selectedIds
+    .map((caseId) => caseMap.get(caseId))
+    .filter(Boolean);
+  if (requestedIds.length === 0 && selectedCases.length === 0) {
+    issues.push("runtime evidence did not select any known roadmap case");
+  }
+
+  const seenRunIds = new Set();
+  const caseRunCounts = new Map(selectedCases.map((entry) => [entry.id, 0]));
+  const caseCellCounts = new Map(
+    selectedCases.map((entry) => [entry.id, new Map()]),
+  );
+  let selectedDocumentCount = 0;
+  for (const { label, value: document } of documents) {
+    if (!caseMap.has(document.caseId)) {
+      issues.push(`${label}.caseId is not declared by the manifest`);
+      continue;
+    }
+    if (!selectedSet.has(document.caseId)) continue;
+    selectedDocumentCount += 1;
+    const roadmapCase = caseMap.get(document.caseId);
+    if (
+      document.schemaVersion !== IDE_ROADMAP_RUNTIME_EVIDENCE_SCHEMA_VERSION
+    ) {
+      issues.push(
+        `${label}.schemaVersion must equal ${IDE_ROADMAP_RUNTIME_EVIDENCE_SCHEMA_VERSION}`,
+      );
+    }
+    if (document.manifestVersion !== IDE_ROADMAP_MANIFEST_VERSION) {
+      issues.push(
+        `${label}.manifestVersion must equal ${JSON.stringify(IDE_ROADMAP_MANIFEST_VERSION)}`,
+      );
+    }
+    if (document.releaseCommit !== exactReleaseCommit) {
+      issues.push(
+        `${label}.releaseCommit does not match the requested release commit`,
+      );
+    }
+    validateTimestamp(document.generatedAt, `${label}.generatedAt`, issues);
+    if (
+      typeof document.evidenceDigest !== "string" ||
+      !SHA256_PATTERN.test(document.evidenceDigest)
+    ) {
+      issues.push(`${label}.evidenceDigest must be a lowercase SHA-256 digest`);
+    } else {
+      const actualDigest = createIdeRoadmapRuntimeEvidenceDigest(document);
+      if (document.evidenceDigest !== actualDigest) {
+        issues.push(`${label}.evidenceDigest does not match its envelope`);
+      }
+    }
+    if (!Array.isArray(document.runs) || document.runs.length === 0) {
+      issues.push(`${label}.runs must be a non-empty array`);
+      continue;
+    }
+    caseRunCounts.set(
+      roadmapCase.id,
+      (caseRunCounts.get(roadmapCase.id) || 0) + document.runs.length,
+    );
+    for (const [runIndex, run] of document.runs.entries()) {
+      validateRuntimeRun({
+        run,
+        runIndex,
+        document,
+        documentLabel: label,
+        roadmapCase,
+        releaseCommit: exactReleaseCommit,
+        seenRunIds,
+        cellCounts: caseCellCounts.get(roadmapCase.id),
+        issues,
+      });
+    }
+  }
+
+  for (const roadmapCase of selectedCases) {
+    const counts = caseCellCounts.get(roadmapCase.id);
+    for (const cell of expectedMatrixCells(roadmapCase)) {
+      const actual = counts.get(cell.key) || 0;
+      if (actual < roadmapCase.minimumIndependentRuns) {
+        issues.push(
+          `${roadmapCase.id} matrix cell ${matrixCellLabel(
+            cell.host,
+            cell.operatingSystem,
+            cell.transport,
+          )} has ${actual}/${roadmapCase.minimumIndependentRuns} independent runs`,
+        );
+      }
+    }
+  }
+
+  if (issues.length > 0) {
+    throw new IdeRoadmapRuntimeEvidenceError(issues);
+  }
+
+  return Object.freeze({
+    schema: IDE_ROADMAP_RUNTIME_EVIDENCE_SCHEMA,
+    manifestVersion: contract.manifestVersion,
+    releaseCommit: exactReleaseCommit,
+    releaseCommitAuthority: "caller-asserted-unverified",
+    artifactDigestAuthority: "envelope-asserted-unverified",
+    scope: "selected-cases",
+    releaseReady: null,
+    selectedCaseIds: Object.freeze([...selectedIds]),
+    evidenceFileCount: selectedDocumentCount,
+    runCount: [...caseRunCounts.values()].reduce(
+      (total, count) => total + count,
+      0,
+    ),
   });
 }
 
@@ -445,13 +999,68 @@ function isDirectExecution() {
   return path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 }
 
+function parseCliArgs(argv) {
+  const options = {
+    contractOnly: false,
+    caseIds: [],
+    requireReleaseReady: false,
+  };
+  for (let index = 0; index < argv.length; index += 1) {
+    const argument = argv[index];
+    if (argument === "--contract-only") {
+      options.contractOnly = true;
+    } else if (argument === "--verify-runtime-evidence-dir") {
+      options.evidenceDir = argv[++index];
+      if (!options.evidenceDir) {
+        throw new Error("--verify-runtime-evidence-dir requires a path");
+      }
+    } else if (argument === "--release-commit") {
+      options.releaseCommit = argv[++index];
+      if (!options.releaseCommit) {
+        throw new Error("--release-commit requires a value");
+      }
+    } else if (argument === "--case") {
+      const caseId = argv[++index];
+      if (!caseId) throw new Error("--case requires a case identifier");
+      options.caseIds.push(caseId);
+    } else if (argument === "--require-release-ready") {
+      options.requireReleaseReady = true;
+    } else {
+      throw new Error(`unknown argument: ${argument}`);
+    }
+  }
+  const runtimeRequested =
+    Boolean(options.evidenceDir) ||
+    Boolean(options.releaseCommit) ||
+    options.caseIds.length > 0 ||
+    options.requireReleaseReady;
+  if (options.contractOnly && runtimeRequested) {
+    throw new Error(
+      "--contract-only may not be combined with runtime evidence options",
+    );
+  }
+  return { ...options, runtimeRequested };
+}
+
 if (isDirectExecution()) {
   try {
-    const result = verifyIdeRoadmapFixtures();
-    console.log(
-      `Verified IDE roadmap fixture contract ${result.manifestVersion}: ` +
-        `${result.caseCount} cases and ${result.testFileCount} referenced test files.`,
-    );
+    const options = parseCliArgs(process.argv.slice(2));
+    if (options.runtimeRequested) {
+      const result = verifyIdeRoadmapRuntimeEvidence(options);
+      console.log(
+        `Verified IDE roadmap runtime evidence ${result.manifestVersion} for ` +
+          `${result.selectedCaseIds.length} case(s), ${result.runCount} run(s), ` +
+          `caller-asserted release ${result.releaseCommit}. ` +
+          "Structural envelope audit only; trusted provenance and release readiness were not verified.",
+      );
+    } else {
+      const result = verifyIdeRoadmapFixtures();
+      console.log(
+        `Verified IDE roadmap manifest contract ${result.manifestVersion}: ` +
+          `${result.caseCount} cases and ${result.testFileCount} referenced test files. ` +
+          "Contract only; runtime evidence and release readiness were not evaluated.",
+      );
+    }
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;

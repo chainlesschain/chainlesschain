@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "case": "p0-host-remote-evidence",
+  "description": "Remote real-IDE coverage is a release-blocking pending target. It cannot be satisfied by local host runs, unit tests, or a checked-in passed fixture.",
+  "inputs": {
+    "transport": "remote",
+    "minimumIndependentRunsPerCell": 100,
+    "evidenceSource": "external-ci-artifacts",
+    "currentStatus": "pending"
+  },
+  "expectedOutcome": {
+    "missingRequiredArtifactsFail": true,
+    "credentialLeakCount": 0,
+    "wrongCommitBindingCount": 0,
+    "evidenceReplacementCount": 0,
+    "orderedWorkspaceRootsBound": true,
+    "workspaceRootCount": 2,
+    "remoteTransportExercised": true
+  }
+}
