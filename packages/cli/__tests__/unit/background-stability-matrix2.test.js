@@ -43,12 +43,15 @@ import {
   resumeBackgroundAgent,
   setBackgroundAgentPinned,
   statePath,
-  writeBackgroundAgentState,
+  writeBackgroundAgentState as persistBackgroundAgentState,
 } from "../../src/lib/background-agent-supervisor.js";
 import {
   formatBackgroundAgentDetails,
   formatBackgroundAgentLine,
 } from "../../src/commands/background-session.js";
+
+const writeBackgroundAgentState = (state) =>
+  persistBackgroundAgentState(state, { createIfMissing: true });
 
 let dir;
 const originalSpawn = _deps.spawn;
@@ -419,9 +422,9 @@ describe("6. phase / stale-correction never flips a live running session", () =>
     expect(effective.status).toBe("running");
     expect(effective.phase).toBe("turn");
     expect(effective.turnCount).toBe(3);
-    // identity pin: no correction object is minted for a live session
+    // no correction is persisted for a live session
     const raw = readBackgroundAgentState("bg-live-passthrough");
-    expect(effectiveBackgroundAgentState(raw)).toBe(raw);
+    expect(effectiveBackgroundAgentState(raw)).toStrictEqual(raw);
   });
 
   it("details view surfaces phase and turn count (needs-input UX contract)", () => {

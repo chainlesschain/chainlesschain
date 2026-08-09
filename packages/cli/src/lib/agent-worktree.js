@@ -164,18 +164,57 @@ function removeVerifiedAgentWorktree(info, deps, expectedBranchOid) {
 export function setupAgentWorktree({
   cwd = process.cwd(),
   now = new Date(),
+  requireCleanSource = false,
   deps = _deps,
 } = {}) {
   const repoRoot = findProjectRoot(cwd);
   if (!repoRoot) {
     throw new Error("--worktree requires running inside a git repository");
   }
+  if (requireCleanSource) {
+    const status = git(
+      [
+        "status",
+        "--porcelain=v1",
+        "--untracked-files=all",
+        "--ignore-submodules=none",
+        "--",
+        ".",
+        ":(exclude).worktrees",
+      ],
+      repoRoot,
+      deps,
+    ).trim();
+    if (status) {
+      throw new Error(
+        "Background worktree isolation requires a clean source checkout; commit/stash the current changes or pass --no-worktree explicitly.",
+      );
+    }
+  }
   const stamp = now.toISOString().slice(0, 19).replace(/[-:T]/g, "");
   const suffix = Math.random().toString(36).slice(2, 6);
   const branch = `cc-agent-${stamp}-${suffix}`;
   const info = (deps.createWorktree || createWorktree)(repoRoot, branch);
-  const baseSha = git(["rev-parse", "HEAD"], info.path, deps).trim();
-  return { ...info, repoRoot, baseSha };
+  try {
+    const baseSha = git(["rev-parse", "HEAD"], info.path, deps).trim();
+    return { ...info, repoRoot, baseSha };
+  } catch (error) {
+    // createWorktree is transactional internally, but ownership has already
+    // transferred to this wrapper when the follow-up base-SHA query runs. Roll
+    // that partial setup back here so callers never receive `_worktree = null`
+    // while a branch and linked checkout have already been created.
+    try {
+      (deps.removeWorktree || removeWorktree)(repoRoot, info.path, {
+        deleteBranch: true,
+        branchName: branch,
+        force: false,
+      });
+    } catch (cleanupError) {
+      error.retainedWorktree = { ...info, repoRoot, branch };
+      error.worktreeCleanupError = cleanupError;
+    }
+    throw error;
+  }
 }
 
 /**

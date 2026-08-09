@@ -593,6 +593,7 @@ export function captureBackgroundLaunchProfile({
       case "--bg":
       case "--background":
       case "--worktree":
+      case "--no-worktree":
       case "--ephemeral":
       case "--capabilities":
       case "--disable-slash-commands":

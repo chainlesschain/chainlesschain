@@ -49,6 +49,24 @@ describe("setupAgentWorktree", { timeout: 30_000 }, () => {
     expect(fs.readFileSync(path.join(info.path, "a.txt"), "utf-8")).toBe(
       "base",
     );
+    expect(git("status --porcelain --untracked-files=all").trim()).toBe("");
+    expect(
+      fs
+        .readFileSync(path.join(repo, ".git", "info", "exclude"), "utf8")
+        .split(/\r?\n/),
+    ).toContain("/.worktrees/");
+  });
+
+  it("fails a default background isolation request on a dirty source checkout", () => {
+    fs.writeFileSync(path.join(repo, "a.txt"), "dirty", "utf8");
+    fs.writeFileSync(path.join(repo, "untracked.txt"), "new", "utf8");
+
+    expect(() =>
+      setupAgentWorktree({ cwd: repo, requireCleanSource: true }),
+    ).toThrow(/requires a clean source checkout/i);
+    expect(git("worktree list --porcelain").match(/^worktree /gm)).toHaveLength(
+      1,
+    );
   });
 
   it("throws outside a git repository", () => {
@@ -58,6 +76,70 @@ describe("setupAgentWorktree", { timeout: 30_000 }, () => {
     } finally {
       fs.rmSync(plain, { recursive: true, force: true });
     }
+  });
+
+  it("rolls back a partially-created worktree when the base SHA query fails", () => {
+    const worktreePath = path.join(repo, ".worktrees", "partial-setup");
+    const queryError = new Error("rev-parse failed");
+    const removeWorktree = vi.fn();
+    const createWorktree = vi.fn((_repoRoot, branch) => ({
+      path: worktreePath,
+      branch,
+    }));
+
+    expect(() =>
+      setupAgentWorktree({
+        cwd: repo,
+        deps: {
+          createWorktree,
+          removeWorktree,
+          execFileSync: vi.fn(() => {
+            throw queryError;
+          }),
+        },
+      }),
+    ).toThrow(queryError);
+
+    const branch = createWorktree.mock.calls[0][1];
+    expect(removeWorktree).toHaveBeenCalledWith(repo, worktreePath, {
+      deleteBranch: true,
+      branchName: branch,
+      force: false,
+    });
+  });
+
+  it("attaches retained worktree evidence when partial-setup rollback fails", () => {
+    const worktreePath = path.join(repo, ".worktrees", "retained-setup");
+    const queryError = new Error("rev-parse failed");
+    const cleanupError = new Error("cleanup failed");
+    let caught = null;
+    try {
+      setupAgentWorktree({
+        cwd: repo,
+        deps: {
+          createWorktree: vi.fn((_repoRoot, branch) => ({
+            path: worktreePath,
+            branch,
+          })),
+          removeWorktree: vi.fn(() => {
+            throw cleanupError;
+          }),
+          execFileSync: vi.fn(() => {
+            throw queryError;
+          }),
+        },
+      });
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBe(queryError);
+    expect(caught.worktreeCleanupError).toBe(cleanupError);
+    expect(caught.retainedWorktree).toMatchObject({
+      path: worktreePath,
+      repoRoot: repo,
+      branch: expect.stringMatching(/^cc-agent-/),
+    });
   });
 });
 

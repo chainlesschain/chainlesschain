@@ -118,6 +118,12 @@ export function registerAgentsCommand(program) {
         if (options.json) console.log(JSON.stringify(state, null, 2));
         else if (state.stopped)
           logger.log(chalk.green(`Stopped background agent ${id}`));
+        else if (state.stopPending)
+          logger.log(
+            chalk.yellow(
+              `Stop pending for background agent ${id} (${state.stopPendingReason})`,
+            ),
+          );
         else logger.log(chalk.gray(`${id} is already ${state.status}`));
       } catch (error) {
         logger.error(chalk.red(error.message));

@@ -49,6 +49,22 @@ describe("createBackgroundPhaseReporter — disabled (non-background run)", () =
 });
 
 describe("createBackgroundPhaseReporter — pending window", () => {
+  it("does not create a missing production state record", () => {
+    const mutateState = vi.fn((_id, updater) => ({
+      applied: updater(null) !== null,
+      state: null,
+    }));
+    const reporter = createBackgroundPhaseReporter({
+      agentId: "bg-phase-missing",
+      mutateState,
+    });
+
+    reporter.beginApproval();
+
+    expect(mutateState).toHaveBeenCalledOnce();
+    expect(mutateState.mock.results[0].value.applied).toBe(false);
+  });
+
   it("writes waiting_permission on begin and restores turn on settle", () => {
     const store = makeStore({
       "bg-1": { id: "bg-1", status: "running", phase: "turn", turnCount: 3 },
@@ -111,6 +127,26 @@ describe("createBackgroundPhaseReporter — pending window", () => {
       status: "completed",
       exitCode: 0,
     });
+  });
+
+  it("never overwrites a durable stop fence", () => {
+    const fenced = {
+      id: "bg-1",
+      status: "running",
+      phase: "stop_failed",
+      stopRequestedAt: 123,
+      stopError: "kill denied",
+    };
+    const store = makeStore({ "bg-1": fenced });
+    const reporter = createBackgroundPhaseReporter({
+      agentId: "bg-1",
+      ...store,
+    });
+
+    reporter.beginApproval();
+    reporter.endApproval();
+
+    expect(store.states.get("bg-1")).toEqual(fenced);
   });
 
   it("survives state IO failures without breaking the approval", () => {

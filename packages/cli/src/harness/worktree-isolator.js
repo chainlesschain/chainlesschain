@@ -9,7 +9,9 @@
 
 import {
   existsSync,
+  appendFileSync,
   lstatSync,
+  readFileSync,
   realpathSync,
   rmdirSync,
   symlinkSync,
@@ -97,15 +99,34 @@ function gitRepositoryIdentity(repoDir) {
   const absoluteCommonDir = isAbsolute(commonDir)
     ? commonDir
     : resolve(repoDir, commonDir);
+  const commonDirPath = canonicalExistingPrefixPath(absoluteCommonDir);
   return {
     topLevel,
     topLevelIdentity: normalizeFilesystemPath(
       canonicalExistingPrefixPath(topLevel),
     ),
-    commonDirIdentity: normalizeFilesystemPath(
-      canonicalExistingPrefixPath(absoluteCommonDir),
-    ),
+    commonDirPath,
+    commonDirIdentity: normalizeFilesystemPath(commonDirPath),
   };
+}
+
+function ensureManagedWorktreeExcluded(context) {
+  const infoDir = resolve(context.repository.commonDirPath, "info");
+  const excludeFile = resolve(infoDir, "exclude");
+  mkdirSync(infoDir, { recursive: true });
+  try {
+    assertNotSymlink(infoDir, "git info directory");
+    assertNotSymlink(excludeFile, "git exclude file");
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+  const pattern = `/${WORKTREE_DIR}/`;
+  const current = existsSync(excludeFile)
+    ? readFileSync(excludeFile, "utf8")
+    : "";
+  if (current.split(/\r?\n/).includes(pattern)) return;
+  const separator = current.length > 0 && !/\r?\n$/.test(current) ? "\n" : "";
+  appendFileSync(excludeFile, `${separator}${pattern}\n`, "utf8");
 }
 
 function assertSameGitRepository(repoDir, expectedCommonDir, expectedRoot) {
@@ -381,6 +402,8 @@ export function createWorktree(repoDir, branchName, baseBranch, options = {}) {
     throw new Error("Not a git repository");
   }
 
+  const context = repositoryManagementContext(repoDir);
+  ensureManagedWorktreeExcluded(context);
   const worktreePath = assertManagedWorktreePath(
     repoDir,
     managedWorktreePath(repoDir, branchName),

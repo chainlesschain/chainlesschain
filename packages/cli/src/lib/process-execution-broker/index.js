@@ -2610,12 +2610,6 @@ class ProcessExecutionBroker extends EventEmitter {
   }
 
   _createWorkspaceProcessCloseFence(auditEntry, proc) {
-    if (
-      !Array.isArray(auditEntry.workspaceTransactionIds) ||
-      auditEntry.workspaceTransactionIds.length === 0
-    ) {
-      return null;
-    }
     return new Promise((resolve) => {
       if (typeof proc?.once === "function") {
         proc.once("close", (exitCode, signal) => {
@@ -2635,6 +2629,54 @@ class ProcessExecutionBroker extends EventEmitter {
       }
       resolve({ observed: false, exitCode: null, signal: null });
     });
+  }
+
+  _postSpawnOwnershipError(
+    error,
+    { proc, auditEntry, workspaceProcessClosed, cleanup },
+  ) {
+    let failure =
+      error instanceof Error
+        ? error
+        : new Error(String(error || "spawn failed"));
+    if (
+      failure.processTerminationRequested !== true &&
+      failure.workspaceTerminationRequested !== true
+    ) {
+      try {
+        if (typeof proc?.once === "function") proc.once("error", () => {});
+      } catch {
+        // Listener installation failure is itself post-spawn evidence.
+      }
+      try {
+        proc?.kill?.("SIGKILL");
+      } catch {
+        // The close fence remains the only settlement authority.
+      }
+    }
+    try {
+      cleanup?.();
+    } catch {
+      // Ownership evidence must survive cleanup reporting failures.
+    }
+    const attach = (target) => {
+      target.auditEntry = auditEntry;
+      target.spawnedProcess = proc;
+      target.workspaceProcessClosed = workspaceProcessClosed;
+      target.workspaceTerminationRequested = true;
+      return target;
+    };
+    try {
+      return attach(failure);
+    } catch {
+      const wrapped = new Error(failure.message || "post-spawn failure", {
+        cause: failure,
+      });
+      wrapped.name = failure.name || wrapped.name;
+      if (failure.code !== undefined) wrapped.code = failure.code;
+      failure = wrapped;
+      return attach(failure);
+    }
   }
 
   _runPostSpawnSandbox(proc, plan, auditEntry) {
@@ -3353,6 +3395,7 @@ class ProcessExecutionBroker extends EventEmitter {
     // Use native spawn from _native (set by patch-child-process.js)
     const nativeSpawnFn = this._native?.spawn || nativeSpawn;
     let proc;
+    let workspaceProcessClosed = null;
     try {
       if (mcpStdioExecutableIdentityAuthority !== undefined) {
         const admitted = consumeMcpStdioExecutableIdentityAuthority(
@@ -3366,16 +3409,20 @@ class ProcessExecutionBroker extends EventEmitter {
         auditEntry.mcpStdioExecutableIdentityDigest = admitted.identityDigest;
       }
       proc = nativeSpawnFn(command, args, optsForSpawn);
+      workspaceProcessClosed = this._createWorkspaceProcessCloseFence(
+        auditEntry,
+        proc,
+      );
       this._bindWorkspaceTransactionProcess(auditEntry, proc);
     } catch (spawnError) {
-      if (proc && typeof proc.kill === "function") {
-        try {
-          proc.kill("SIGKILL");
-        } catch {
-          // The transaction remains unsettled if shutdown cannot be proven.
-        }
-      }
-      if (!proc) {
+      if (proc) {
+        throw this._postSpawnOwnershipError(spawnError, {
+          proc,
+          auditEntry,
+          workspaceProcessClosed,
+          cleanup: sandboxPlan.cleanup,
+        });
+      } else {
         try {
           this._settleWorkspaceTransactionSpawn(auditEntry, {
             error: spawnError.message,
@@ -3388,102 +3435,105 @@ class ProcessExecutionBroker extends EventEmitter {
       throw spawnError;
     }
     auditEntry.pid = proc.pid;
-    const workspaceProcessClosed = this._createWorkspaceProcessCloseFence(
-      auditEntry,
-      proc,
-    );
-    const cleanupSandbox = this._scheduleSandboxCleanup(
-      proc,
-      sandboxPlan.cleanup,
-    );
-    if (
-      sandboxPlan.applied === true &&
-      (sandboxPlan.backend === "linux-bwrap-workspace" ||
-        sandboxPlan.backend === "linux-bwrap" ||
-        sandboxPlan.backend === "linux-fd-code-snapshot") &&
-      sandboxPlan.postSpawn.required === false
-    ) {
-      // child_process.spawn() has synchronously duplicated every stdio entry
-      // into the launched process before returning. The generic/direct bwrap
-      // backends and the MCP anonymous-code snapshot backend are complete
-      // pre-spawn plans with no parent-side enforcement handle. Retaining
-      // their pinned descriptors until a long-lived process exits would turn
-      // each child into an avoidable FD leak.
-      cleanupSandbox();
-    }
+    let cleanupSandbox = sandboxPlan.cleanup;
     try {
-      this._runPostSpawnSandbox(proc, sandboxPlan, auditEntry);
-      this._updateWorkspaceTransactionProcessGuarantees(auditEntry);
-      auditEntry.pid = proc.pid;
-      if (Number.isSafeInteger(proc.sandboxWrapperPid)) {
-        auditEntry.sandboxWrapperPid = proc.sandboxWrapperPid;
+      cleanupSandbox = this._scheduleSandboxCleanup(proc, sandboxPlan.cleanup);
+      if (
+        sandboxPlan.applied === true &&
+        (sandboxPlan.backend === "linux-bwrap-workspace" ||
+          sandboxPlan.backend === "linux-bwrap" ||
+          sandboxPlan.backend === "linux-fd-code-snapshot") &&
+        sandboxPlan.postSpawn.required === false
+      ) {
+        // child_process.spawn() has synchronously duplicated every stdio entry
+        // into the launched process before returning. The generic/direct bwrap
+        // backends and the MCP anonymous-code snapshot backend are complete
+        // pre-spawn plans with no parent-side enforcement handle. Retaining
+        // their pinned descriptors until a long-lived process exits would turn
+        // each child into an avoidable FD leak.
+        cleanupSandbox();
       }
-      if (Number.isSafeInteger(proc.sandboxTargetPid)) {
-        auditEntry.sandboxTargetPid = proc.sandboxTargetPid;
-      }
-    } catch (postSpawnError) {
-      if (postSpawnError.processTerminationRequested !== true) {
-        try {
-          proc.kill?.("SIGKILL");
-        } catch {
-          // The close fence remains pending and recovery stays fail-closed.
+      try {
+        this._runPostSpawnSandbox(proc, sandboxPlan, auditEntry);
+        this._updateWorkspaceTransactionProcessGuarantees(auditEntry);
+        auditEntry.pid = proc.pid;
+        if (Number.isSafeInteger(proc.sandboxWrapperPid)) {
+          auditEntry.sandboxWrapperPid = proc.sandboxWrapperPid;
         }
+        if (Number.isSafeInteger(proc.sandboxTargetPid)) {
+          auditEntry.sandboxTargetPid = proc.sandboxTargetPid;
+        }
+      } catch (postSpawnError) {
+        if (postSpawnError.processTerminationRequested !== true) {
+          try {
+            proc.kill?.("SIGKILL");
+          } catch {
+            // The close fence remains pending and recovery stays fail-closed.
+          }
+        }
+        cleanupSandbox();
+        this._recordSandboxDenial(auditEntry, postSpawnError, startTime);
+        postSpawnError.auditEntry = auditEntry;
+        postSpawnError.spawnedProcess = proc;
+        postSpawnError.workspaceProcessClosed = workspaceProcessClosed;
+        postSpawnError.workspaceTerminationRequested = true;
+        throw postSpawnError;
       }
-      cleanupSandbox();
-      this._recordSandboxDenial(auditEntry, postSpawnError, startTime);
-      postSpawnError.auditEntry = auditEntry;
-      postSpawnError.spawnedProcess = proc;
-      postSpawnError.workspaceProcessClosed = workspaceProcessClosed;
-      postSpawnError.workspaceTerminationRequested = true;
-      throw postSpawnError;
+
+      this._recordAudit(auditEntry);
+      this._writeRplEntry(auditEntry, "started");
+      this._emitHooksEvent("tool:start", {
+        executionId,
+        toolName: origin,
+        command,
+        args: [...auditEntry.args],
+        cwd,
+        pid: proc.pid,
+        component: origin,
+      });
+
+      proc.on("exit", (code, signal) => {
+        const endTime = Date.now();
+        auditEntry.exitCode = code;
+        auditEntry.signal = signal;
+        auditEntry.endTime = endTime;
+        auditEntry.durationMs = endTime - startTime;
+        this._writeRplEntry(auditEntry, "completed");
+        this._emitHooksEvent("tool:end", {
+          executionId,
+          success: code === 0,
+          exitCode: code,
+          signal,
+          durationMs: auditEntry.durationMs,
+          component: origin,
+        });
+        this.emit("exit", auditEntry);
+      });
+      proc.on("error", (err) => {
+        auditEntry.error = err.message;
+        auditEntry.endTime = Date.now();
+        auditEntry.durationMs = auditEntry.endTime - startTime;
+        this._writeRplEntry(auditEntry, "error", err);
+        this._emitHooksEvent("tool:end", {
+          executionId,
+          success: false,
+          error: err.message,
+          component: origin,
+        });
+        // EventEmitter treats an unhandled `error` event as an exception. A
+        // process ENOENT must reach the child-process listener/callback instead
+        // of crashing callers that did not subscribe to broker diagnostics.
+        if (this.listenerCount("error") > 0) this.emit("error", auditEntry);
+      });
+      return proc;
+    } catch (postNativeError) {
+      throw this._postSpawnOwnershipError(postNativeError, {
+        proc,
+        auditEntry,
+        workspaceProcessClosed,
+        cleanup: cleanupSandbox,
+      });
     }
-
-    this._recordAudit(auditEntry);
-    this._writeRplEntry(auditEntry, "started");
-    this._emitHooksEvent("tool:start", {
-      executionId,
-      toolName: origin,
-      command,
-      args: [...auditEntry.args],
-      cwd,
-      pid: proc.pid,
-      component: origin,
-    });
-
-    proc.on("exit", (code, signal) => {
-      const endTime = Date.now();
-      auditEntry.exitCode = code;
-      auditEntry.signal = signal;
-      auditEntry.endTime = endTime;
-      auditEntry.durationMs = endTime - startTime;
-      this._writeRplEntry(auditEntry, "completed");
-      this._emitHooksEvent("tool:end", {
-        executionId,
-        success: code === 0,
-        exitCode: code,
-        signal,
-        durationMs: auditEntry.durationMs,
-        component: origin,
-      });
-      this.emit("exit", auditEntry);
-    });
-    proc.on("error", (err) => {
-      auditEntry.error = err.message;
-      auditEntry.endTime = Date.now();
-      auditEntry.durationMs = auditEntry.endTime - startTime;
-      this._writeRplEntry(auditEntry, "error", err);
-      this._emitHooksEvent("tool:end", {
-        executionId,
-        success: false,
-        error: err.message,
-        component: origin,
-      });
-      // EventEmitter treats an unhandled `error` event as an exception. A
-      // process ENOENT must reach the child-process listener/callback instead
-      // of crashing callers that did not subscribe to broker diagnostics.
-      if (this.listenerCount("error") > 0) this.emit("error", auditEntry);
-    });
-    return proc;
   }
 
   spawnSync(command, args, options = {}) {

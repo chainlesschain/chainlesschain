@@ -24,9 +24,12 @@ import {
 import {
   _deps,
   logPath,
-  writeBackgroundAgentState,
+  writeBackgroundAgentState as persistBackgroundAgentState,
 } from "../../src/lib/background-agent-supervisor.js";
 import { startBackgroundSessionServer } from "../../src/lib/background-session-transport.js";
+
+const writeBackgroundAgentState = (state) =>
+  persistBackgroundAgentState(state, { createIfMissing: true });
 
 let dir;
 let servers;

@@ -364,12 +364,15 @@ describe("setBackgroundAgentPinned", () => {
       setBackgroundAgentPinned,
       readBackgroundAgentState,
     } = await import("../../src/lib/background-agent-supervisor.js");
-    writeBackgroundAgentState({
-      id: "bg-pin-1",
-      status: "completed",
-      startedAt: 1,
-      endedAt: 2,
-    });
+    writeBackgroundAgentState(
+      {
+        id: "bg-pin-1",
+        status: "completed",
+        startedAt: 1,
+        endedAt: 2,
+      },
+      { createIfMissing: true },
+    );
     const pinned = setBackgroundAgentPinned("bg-pin-1", true);
     expect(pinned.pinned).toBe(true);
     expect(readBackgroundAgentState("bg-pin-1").pinned).toBe(true);

@@ -31,6 +31,7 @@
  */
 
 import {
+  mutateBackgroundAgentState,
   readBackgroundAgentState,
   writeBackgroundAgentState,
 } from "./background-agent-supervisor.js";
@@ -43,6 +44,8 @@ import {
  *   `process.env.CC_BACKGROUND_AGENT_ID`. Falsy → disabled no-op reporter.
  * @param {(id:string)=>object|null} [opts.readState] injectable state reader
  * @param {(state:object)=>void} [opts.writeState] injectable state writer
+ * @param {(id:string, updater:Function)=>object} [opts.mutateState] injectable
+ *   atomic mutator; production defaults to the strict supervisor transaction
  */
 export function createBackgroundPhaseReporter(opts = {}) {
   const agentId =
@@ -51,16 +54,33 @@ export function createBackgroundPhaseReporter(opts = {}) {
       : process.env.CC_BACKGROUND_AGENT_ID;
   const readState = opts.readState || readBackgroundAgentState;
   const writeState = opts.writeState || writeBackgroundAgentState;
+  const mutateState =
+    opts.mutateState ||
+    (opts.readState || opts.writeState ? null : mutateBackgroundAgentState);
   const enabled = typeof agentId === "string" && agentId.trim() !== "";
   let pending = 0;
 
   function patch(fields) {
     if (!enabled) return false;
     try {
-      const current = readState(agentId) || { id: agentId };
+      if (mutateState) {
+        return mutateState(agentId, (current) => {
+          if (
+            !current ||
+            current.status !== "running" ||
+            current.stopRequestedAt
+          ) {
+            return null;
+          }
+          return { ...current, id: agentId, ...fields };
+        }).applied;
+      }
+      const current = readState(agentId);
       // Terminal states are owned by the worker/stopper — never write a
       // "waiting" phase over a completed/failed/stopped record.
-      if (current.status && current.status !== "running") return false;
+      if (!current || current.status !== "running" || current.stopRequestedAt) {
+        return false;
+      }
       writeState({ ...current, id: agentId, ...fields });
       return true;
     } catch {

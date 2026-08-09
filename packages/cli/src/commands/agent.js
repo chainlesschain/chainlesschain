@@ -22,24 +22,89 @@ import {
   enforceSandboxFailClosed,
 } from "../lib/agent-sandbox.js";
 import { appendSecurityAuditEvent } from "../lib/security-audit.js";
+import {
+  agentPrintArgument,
+  canonicalizeBackgroundSessionArgv,
+  captureCommandArgvGrammar,
+  transformBackgroundLaunchArgv,
+} from "../lib/background-command-argv.js";
 
 /**
  * Resolve + validate `--add-dir` values into absolute, existing, de-duped
- * directories. Invalid entries are skipped with a stderr warning rather than
- * aborting the run. Relative paths resolve against the process cwd.
+ * directories. Relative paths resolve against the invocation cwd. When the
+ * session owns a worktree, paths inside the original repository are remapped
+ * to the same repo-relative location in that worktree; explicit external roots
+ * remain shared and can be surfaced with a warning.
  *
  * @param {string[]} [rawDirs]
+ * @param {{cwd?:string, worktree?:object|null, warnOnExternalShare?:boolean}} [options]
  * @returns {string[]} absolute directory paths
  */
-export function resolveAddDirs(rawDirs) {
-  const out = [];
-  for (const d of rawDirs || []) {
-    const abs = path.resolve(process.cwd(), d);
+export function resolveAddDirs(rawDirs, options = {}) {
+  const cwd = options.cwd || process.cwd();
+  const worktree = options.worktree || null;
+  const realpath = fs.realpathSync.native || fs.realpathSync;
+  const within = (root, candidate) => {
+    const relative = path.relative(root, candidate);
+    return (
+      relative === "" ||
+      (relative !== ".." &&
+        !relative.startsWith(`..${path.sep}`) &&
+        !path.isAbsolute(relative))
+    );
+  };
+  let worktreeScope = null;
+  if (worktree) {
     try {
-      if (fs.existsSync(abs) && fs.statSync(abs).isDirectory()) {
-        if (!out.includes(abs)) out.push(abs);
-      } else {
+      worktreeScope = {
+        repoRoot: realpath(worktree.repoRoot),
+        path: realpath(worktree.path),
+      };
+    } catch (error) {
+      throw new Error(
+        `--add-dir: background worktree identity is unavailable (${error.message})`,
+      );
+    }
+  }
+  const out = [];
+  const seen = new Set();
+  for (const d of rawDirs || []) {
+    const abs = path.resolve(cwd, d);
+    try {
+      if (!fs.existsSync(abs) || !fs.statSync(abs).isDirectory()) {
         process.stderr.write(`--add-dir: skipping non-directory "${d}"\n`);
+        continue;
+      }
+      let target = realpath(abs);
+      let sharedExternal = false;
+      if (worktreeScope) {
+        const sourceReal = target;
+        if (within(worktreeScope.repoRoot, sourceReal)) {
+          const relative = path.relative(worktreeScope.repoRoot, sourceReal);
+          const mapped = path.resolve(worktree.path, relative);
+          if (!fs.existsSync(mapped) || !fs.statSync(mapped).isDirectory()) {
+            process.stderr.write(
+              `--add-dir: skipping "${d}" because its isolated worktree path does not exist\n`,
+            );
+            continue;
+          }
+          const mappedReal = realpath(mapped);
+          target = mappedReal;
+          sharedExternal = !within(worktreeScope.path, mappedReal);
+        } else {
+          sharedExternal = true;
+        }
+      }
+      if (sharedExternal && options.warnOnExternalShare) {
+        process.stderr.write(
+          `warning: --add-dir "${d}" remains a shared external root outside the background worktree.\n`,
+        );
+      }
+      const identity =
+        process.platform === "win32" ? target.toLowerCase() : target;
+      if (!seen.has(identity)) {
+        seen.add(identity);
+        out.push(target);
       }
     } catch {
       process.stderr.write(`--add-dir: skipping unreadable "${d}"\n`);
@@ -219,6 +284,10 @@ export function registerAgentCommand(program) {
     .option(
       "--worktree",
       "Run this session in a fresh git worktree (isolated branch; auto-removed when the session changes nothing)",
+    )
+    .option(
+      "--no-worktree",
+      "Background Git task: explicitly share the current work tree (intended for read-only tasks; writable runs are not isolated)",
     )
     .option(
       "--unattended",
@@ -554,6 +623,43 @@ export function registerAgentCommand(program) {
       if (options.projectMcp === true) {
         process.env.CC_PROJECT_MCP = "1";
       }
+      const backgroundRequested =
+        options.background === true || options.bg === true;
+      const invocationCwd = process.cwd();
+      let worktreeDecision = {
+        enabled: false,
+        source: "foreground-default",
+        reason: "worktree not requested",
+        repoRoot: null,
+      };
+      if (options.worktree !== undefined || backgroundRequested) {
+        try {
+          const { resolveBackgroundWorktreePolicy } =
+            await import("../lib/background-worktree-policy.js");
+          worktreeDecision = resolveBackgroundWorktreePolicy({
+            background: backgroundRequested,
+            worktree: options.worktree,
+            inputFormat: options.inputFormat,
+            permissionMode: options.permissionMode,
+            cwd: invocationCwd,
+          });
+        } catch (error) {
+          process.stderr.write(
+            `background worktree policy failed: ${error.message}\n`,
+          );
+          process.exit(1);
+          return;
+        }
+      }
+      if (
+        backgroundRequested &&
+        worktreeDecision.source === "explicit-disable" &&
+        String(options.inputFormat || "text").toLowerCase() !== "stream-json"
+      ) {
+        process.stderr.write(
+          "warning: --no-worktree shares the current work tree with a background agent; worktree isolation is disabled.\n",
+        );
+      }
       // --worktree (Claude-Code 2.1.171 parity): run THIS session in a fresh
       // git worktree — edits land on an isolated branch, the main working
       // tree (and parallel sessions) stay untouched. chdir BEFORE everything
@@ -567,19 +673,39 @@ export function registerAgentCommand(program) {
       // _finishWorktree(). Null unless --worktree is active + hooks loaded.
       let _worktreeSettingsHooks = null;
       let _worktreeAsyncSupervisor = null;
-      if (options.worktree) {
+      const _finishWorktreeSync = () => {
+        if (!_worktree || _worktreeFinished || _worktreeTransferred) {
+          return null;
+        }
+        _worktreeFinished = true;
+        try {
+          process.chdir(_worktree.repoRoot); // release the dir before removal
+          return _finishAgentWorktreeFn(_worktree);
+        } catch {
+          return null; // keep silently — never block exit/error reporting
+        }
+      };
+      if (worktreeDecision.enabled) {
         try {
           const { setupAgentWorktree, finishAgentWorktree } =
             await import("../lib/agent-worktree.js");
           _finishAgentWorktreeFn = finishAgentWorktree;
+          const detectedRepoRoot = worktreeDecision.repoRoot || invocationCwd;
           const worktreeCwd =
             process.platform === "darwin"
-              ? process.cwd().replace(/^\/private\//, "/")
-              : process.cwd();
-          _worktree = setupAgentWorktree({ cwd: worktreeCwd });
+              ? detectedRepoRoot.replace(/^\/private\//, "/")
+              : detectedRepoRoot;
+          _worktree = setupAgentWorktree({
+            cwd: worktreeCwd,
+            ...(backgroundRequested ? { requireCleanSource: true } : {}),
+          });
+          // Register cleanup immediately after creation. In particular,
+          // process.chdir() can fail on Windows when the new path is raced,
+          // locked, or denied; that must not leak the worktree + branch.
+          process.on("exit", _finishWorktreeSync);
           process.chdir(_worktree.path);
           process.stderr.write(
-            `worktree: ${_worktree.path} (branch ${_worktree.branch})\n`,
+            `${worktreeDecision.source === "background-git-default" ? "worktree (background default)" : "worktree"}: ${_worktree.path} (branch ${_worktree.branch})\n`,
           );
           // WorktreeCreate lifecycle hook (observe-only, best-effort): a fresh
           // isolated worktree just appeared — let automation react (register it
@@ -618,37 +744,28 @@ export function registerAgentCommand(program) {
           } catch {
             /* worktree lifecycle hooks are best-effort — never block */
           }
-          // The worktree is created BEFORE flag validation, and several
-          // `process.exit(1)` guards below (plus any future ones) would skip the
-          // normal cleanup and orphan an empty worktree + branch on disk. A sync
-          // exit handler guarantees the auto-removable worktree is cleaned up on
-          // EVERY exit path (finishAgentWorktree is synchronous). Deduped with
-          // the normal async _finishWorktree() via _worktreeFinished.
-          process.on("exit", () => {
-            if (!_worktree || _worktreeFinished || _worktreeTransferred) {
-              return;
-            }
-            _worktreeFinished = true;
-            try {
-              process.chdir(_worktree.repoRoot);
-              _finishAgentWorktreeFn(_worktree);
-            } catch {
-              /* never block exit */
-            }
-          });
         } catch (err) {
+          const fin = _finishWorktreeSync();
           process.stderr.write(`--worktree failed: ${err.message}\n`);
+          if (err.retainedWorktree?.path) {
+            process.stderr.write(
+              `worktree recovery required: retained ${err.retainedWorktree.path} ` +
+                `(branch ${err.retainedWorktree.branch || "unknown"}); ` +
+                `cleanup failed: ${err.worktreeCleanupError?.message || "unknown error"}. ` +
+                `Inspect it with git -C "${err.retainedWorktree.repoRoot}" worktree list before manual cleanup.\n`,
+            );
+          }
+          if (fin?.removed) {
+            process.stderr.write(`worktree removed (${fin.reason}).\n`);
+          }
           process.exit(1);
+          return;
         }
       }
       const _finishWorktree = async () => {
-        if (!_worktree || _worktreeFinished || _worktreeTransferred) {
-          return;
-        }
-        _worktreeFinished = true;
+        const fin = _finishWorktreeSync();
+        if (!fin) return;
         try {
-          process.chdir(_worktree.repoRoot); // release the dir before removal
-          const fin = _finishAgentWorktreeFn(_worktree);
           process.stderr.write(
             fin.removed
               ? `worktree removed (${fin.reason}).\n`
@@ -738,6 +855,7 @@ export function registerAgentCommand(program) {
           process.stderr.write(
             "No previous session to continue. Start one with `cc agent`.\n",
           );
+          await _finishWorktree();
           process.exit(1);
         }
       }
@@ -784,6 +902,7 @@ export function registerAgentCommand(program) {
         process.stderr.write(
           "--include-partial-messages requires --output-format stream-json.\n",
         );
+        await _finishWorktree();
         process.exit(1);
       }
 
@@ -885,8 +1004,22 @@ export function registerAgentCommand(program) {
         process.exit(6);
       }
 
-      // Extra workspace roots (--add-dir) 鈥?shared by headless + interactive.
-      const additionalDirectories = resolveAddDirs(options.addDir);
+      // Extra workspace roots (--add-dir) — shared by headless + interactive.
+      // Resolve against the invocation cwd (before chdir), then remap any path
+      // inside the original repository to the isolated worktree counterpart.
+      let additionalDirectories;
+      try {
+        additionalDirectories = resolveAddDirs(options.addDir, {
+          cwd: invocationCwd,
+          worktree: _worktree,
+          warnOnExternalShare: backgroundRequested && Boolean(_worktree),
+        });
+      } catch (error) {
+        process.stderr.write(`Error: ${error.message}\n`);
+        await _finishWorktree();
+        process.exit(1);
+        return;
+      }
 
       // --image <path> (repeatable): read into {mediaType, base64} for the
       // headless prompt's vision input. A bad extension fails loudly here
@@ -897,6 +1030,7 @@ export function registerAgentCommand(program) {
           images = resolveImages(options.image);
         } catch (err) {
           process.stderr.write(`Error: ${err.message}\n`);
+          await _finishWorktree();
           process.exit(1);
         }
       }
@@ -1137,6 +1271,7 @@ export function registerAgentCommand(program) {
         process.stderr.write(
           `Invalid --input-format "${options.inputFormat}". Expected: text | stream-json.\n`,
         );
+        await _finishWorktree();
         process.exit(1);
       }
 
@@ -1164,39 +1299,39 @@ export function registerAgentCommand(program) {
       // Commander canonicalizes the dual long-option declaration
       // `--bg, --background` to `options.background`; retain `options.bg` for
       // callers/tests that invoke the action with a pre-normalized object.
-      const background = options.background === true || options.bg === true;
+      const background = backgroundRequested;
       if (background && !prompt) {
         process.stderr.write(
           "--bg requires a task via positional text, -p, or piped stdin.\n",
         );
+        await _finishWorktree();
         process.exitCode = 1;
         return;
       }
 
       if (prompt) {
         if (background) {
-          const { launchBackgroundAgent, buildFollowUpArgv } =
-            await import("../lib/background-agent-supervisor.js");
-          const childArgv = process.argv.slice(2).filter(
-            (arg) =>
-              arg !== "--bg" &&
-              arg !== "--background" &&
-              // The parent already created the isolated checkout. Keeping
-              // this flag would make the worker child create a nested second
-              // worktree and later clean up the wrong owner.
-              arg !== "--worktree",
-          );
-          const hasSessionArg = childArgv.some(
-            (arg) =>
-              arg === "--session" ||
-              arg === "--resume" ||
-              arg === "--continue" ||
-              arg === "-c",
-          );
+          const {
+            launchBackgroundAgent,
+            buildFollowUpArgv,
+            insertArgumentsBeforeOptionTerminator,
+            isBackgroundWorkerStartedError,
+          } = await import("../lib/background-agent-supervisor.js");
+          const { optionSpecs, commandNames } =
+            captureCommandArgvGrammar(command);
+          let childArgv = transformBackgroundLaunchArgv(process.argv.slice(2), {
+            directories: additionalDirectories,
+            optionSpecs,
+            commandNames,
+          });
           const sessionId =
             options.session ||
             `session-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
-          if (!hasSessionArg) childArgv.push("--session", sessionId);
+          childArgv = canonicalizeBackgroundSessionArgv(childArgv, {
+            sessionId,
+            optionSpecs,
+            commandNames,
+          });
           // Follow-up template for interactive attach: same flags/session,
           // minus the first turn's prompt tokens (built BEFORE any piped
           // prompt is appended below). The worker appends -p <text> per turn.
@@ -1204,28 +1339,55 @@ export function registerAgentCommand(program) {
             positionalTokens: Array.isArray(task) ? task : [],
             printValue:
               typeof options.print === "string" ? options.print : null,
+            optionSpecs,
+            commandNames,
           });
           const promptWasPiped =
             positional.length === 0 &&
             !(typeof options.print === "string" && options.print.trim());
-          if (promptWasPiped) childArgv.push(prompt);
-          const state = launchBackgroundAgent({
-            argv: childArgv,
-            cwd: _worktree ? _worktree.path : process.cwd(),
-            sessionId,
-            title: prompt.slice(0, 100),
-            followUpArgv,
-            worktree: _worktree,
-            governance: {
-              permissionMode: options.permissionMode || "default",
-              resourceBudget: {
-                maxTurns: options.maxTurns
-                  ? parseInt(options.maxTurns, 10)
-                  : null,
-                maxCostUsd,
+          if (promptWasPiped) {
+            // A piped prompt beginning with `-` must remain data, never become
+            // a second-pass Commander option in the detached child.
+            childArgv = insertArgumentsBeforeOptionTerminator(followUpArgv, [
+              agentPrintArgument(prompt),
+            ]);
+          }
+          let state;
+          try {
+            state = launchBackgroundAgent({
+              argv: childArgv,
+              cwd: _worktree ? _worktree.path : process.cwd(),
+              sessionId,
+              title: prompt.slice(0, 100),
+              followUpArgv,
+              worktree: _worktree,
+              governance: {
+                permissionMode: options.permissionMode || "default",
+                resourceBudget: {
+                  maxTurns: options.maxTurns
+                    ? parseInt(options.maxTurns, 10)
+                    : null,
+                  maxCostUsd,
+                },
               },
-            },
-          });
+            });
+          } catch (error) {
+            if (_worktree && isBackgroundWorkerStartedError(error)) {
+              // Spawn succeeded: the worker may already have this path as cwd.
+              // Transfer ownership and retain it even though the launcher's
+              // final state write/listener setup failed.
+              _worktreeTransferred = true;
+              _worktreeFinished = true;
+              try {
+                process.chdir(_worktree.repoRoot);
+              } catch {
+                /* ownership is transferred; never race-delete a live cwd */
+              }
+            } else {
+              await _finishWorktree();
+            }
+            throw error;
+          }
           if (_worktree) {
             // Ownership moves to the persisted background session only after
             // the detached worker launched successfully. The parent exit hook

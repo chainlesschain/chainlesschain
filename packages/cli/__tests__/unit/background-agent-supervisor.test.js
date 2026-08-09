@@ -10,14 +10,22 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { spawn as nativeSpawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import {
   _deps,
   buildFollowUpArgv,
+  BackgroundWorkerStartedError,
+  cleanupBackgroundAgentWorktree,
+  claimBackgroundAgentHeartbeat,
   effectiveBackgroundAgentState,
   isSameProcess,
+  isBackgroundWorkerStartedError,
+  insertArgumentsBeforeOptionTerminator,
   launchBackgroundAgent,
   listBackgroundAgents,
   logPath,
+  mutateBackgroundAgentState,
   normalizeBackgroundAgentTitle,
   readBackgroundAgentLog,
   readBackgroundAgentState,
@@ -28,7 +36,7 @@ import {
   statePath,
   stopBackgroundAgent,
   stopBackgroundAgentChildTree,
-  writeBackgroundAgentState,
+  writeBackgroundAgentState as persistBackgroundAgentState,
 } from "../../src/lib/background-agent-supervisor.js";
 import {
   BACKGROUND_INTERACTION_JOURNAL_EVENT,
@@ -36,12 +44,16 @@ import {
 } from "../../src/lib/background-interaction-journal.js";
 import { existsSync } from "node:fs";
 
+const writeBackgroundAgentState = (state) =>
+  persistBackgroundAgentState(state, { createIfMissing: true });
+
 let dir;
 const originalSpawn = _deps.spawn;
 const originalSpawnSync = _deps.spawnSync;
 const originalReadStart = _deps.readProcessStartTimeMs;
 const originalKillTree = _deps.killProcessTree;
 const originalKill = _deps.kill;
+const originalTerminateOwnedProcessTree = _deps.terminateOwnedProcessTree;
 
 // Pids of processes REALLY spawned by a test (via the tracking wrapper installed
 // in beforeEach). Only state records that carry one of these pids are reaped in
@@ -205,6 +217,7 @@ afterEach(async () => {
   _deps.readProcessStartTimeMs = originalReadStart;
   _deps.killProcessTree = originalKillTree;
   _deps.kill = originalKill;
+  _deps.terminateOwnedProcessTree = originalTerminateOwnedProcessTree;
   // Reap real detached worker+agent trees BEFORE removing the state dir (raw
   // state files carry the pids — needed for agent GRANDCHILDREN a real worker
   // spawned itself), then every directly-tracked spawn (covers sleepers whose
@@ -305,6 +318,490 @@ describe("background agent supervisor", () => {
     }
   });
 
+  it("types launcher failures that occur after the detached worker started", () => {
+    const finalizeError = new Error("unref failed after spawn");
+    _deps.spawn = vi.fn(() => ({
+      pid: 43211,
+      on: vi.fn(),
+      unref: vi.fn(() => {
+        throw finalizeError;
+      }),
+    }));
+
+    let caught = null;
+    try {
+      launchBackgroundAgent({
+        argv: ["agent", "-p", "work"],
+        cwd: process.cwd(),
+        sessionId: "session-post-spawn-error",
+        title: "post spawn error",
+      });
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(BackgroundWorkerStartedError);
+    expect(isBackgroundWorkerStartedError(caught)).toBe(true);
+    expect(caught).toMatchObject({
+      code: "ERR_BACKGROUND_WORKER_STARTED",
+      workerPid: 43211,
+      cause: finalizeError,
+    });
+    expect(caught.backgroundAgentId).toMatch(/^bg-/);
+    expect(readBackgroundAgentState(caught.backgroundAgentId)).toMatchObject({
+      pid: 43211,
+      workerPid: 43211,
+      launchFinalizationUncertain: false,
+    });
+  });
+
+  it("retains job/state when the broker reports a post-spawn sandbox failure", () => {
+    let settleTermination;
+    _deps.terminateOwnedProcessTree = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          settleTermination = resolve;
+        }),
+    );
+    const brokerError = Object.assign(new Error("post-spawn sandbox failed"), {
+      spawnedProcess: { pid: 43212 },
+      workspaceTerminationRequested: true,
+    });
+    _deps.spawn = vi.fn(() => {
+      throw brokerError;
+    });
+
+    let caught = null;
+    try {
+      launchBackgroundAgent({
+        argv: ["agent", "-p", "work"],
+        cwd: process.cwd(),
+        sessionId: "session-broker-post-spawn-error",
+        title: "broker post spawn error",
+      });
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(isBackgroundWorkerStartedError(caught)).toBe(true);
+    expect(caught).toMatchObject({
+      workerPid: 43212,
+      cause: brokerError,
+    });
+    expect(readBackgroundAgentState(caught.backgroundAgentId)).toMatchObject({
+      pid: 43212,
+      workerPid: 43212,
+      launchFinalizationUncertain: true,
+    });
+    expect(
+      readdirSync(dir).some((name) =>
+        name.startsWith(`${caught.backgroundAgentId}.job.`),
+      ),
+    ).toBe(true);
+
+    settleTermination({
+      confirmed: true,
+      treeMode: process.platform === "win32" ? "windows-tree" : "posix-group",
+      closed: true,
+      treeTerminated: true,
+    });
+    return vi.waitFor(() => {
+      expect(readBackgroundAgentState(caught.backgroundAgentId)).toMatchObject({
+        status: "failed",
+        pid: 43212,
+        workerPid: 43212,
+        launchFinalizationUncertain: false,
+        launchTermination: {
+          confirmed: true,
+          closed: true,
+          treeTerminated: true,
+        },
+      });
+      expect(
+        readdirSync(dir).some((name) =>
+          name.startsWith(`${caught.backgroundAgentId}.job.`),
+        ),
+      ).toBe(false);
+    });
+  });
+
+  it("a worker that finds a terminal state never starts the first turn", async () => {
+    const id = "bg-terminal-before-claim";
+    const sessionId = "session-terminal-before-claim";
+    const marker = join(dir, "turn-started.txt");
+    const fakeCli = join(dir, "must-not-run.mjs");
+    const jobFile = join(dir, `${id}.job.test.json`);
+    const worker = fileURLToPath(
+      new URL("../../src/workers/background-agent-worker.js", import.meta.url),
+    );
+    writeFileSync(
+      fakeCli,
+      'import { writeFileSync } from "node:fs"; writeFileSync(process.argv[2], "ran");\n',
+    );
+    writeBackgroundAgentState({
+      id,
+      sessionId,
+      status: "stopped",
+      pid: null,
+      workerPid: null,
+      startedAt: Date.now(),
+      heartbeatAt: Date.now(),
+      launchFinalizationUncertain: true,
+    });
+    writeFileSync(
+      jobFile,
+      JSON.stringify({
+        id,
+        sessionId,
+        title: "terminal before claim",
+        cwd: dir,
+        argv: [marker],
+        cliEntry: fakeCli,
+        logFile: logPath(id),
+      }),
+    );
+
+    const child = nativeSpawn(process.execPath, [worker, jobFile], {
+      cwd: dir,
+      env: { ...process.env, CC_BACKGROUND_AGENTS_DIR: dir },
+      stdio: "ignore",
+      windowsHide: true,
+    });
+    const exitCode = await new Promise((resolve, reject) => {
+      child.once("error", reject);
+      child.once("exit", resolve);
+    });
+
+    expect(exitCode).toBe(0);
+    expect(existsSync(marker)).toBe(false);
+    expect(readBackgroundAgentState(id).status).toBe("stopped");
+  });
+
+  it("atomically refuses a heartbeat that lost to a terminal writer", () => {
+    const id = "bg-terminal-heartbeat-race";
+    writeBackgroundAgentState({
+      id,
+      status: "running",
+      pid: null,
+      workerPid: null,
+      workerGeneration: "generation-a",
+      startedAt: Date.now(),
+      heartbeatAt: Date.now(),
+      launchFinalizationUncertain: true,
+    });
+    persistBackgroundAgentState({
+      ...readBackgroundAgentState(id),
+      status: "stopped",
+      endedAt: Date.now(),
+      stoppedByUser: true,
+    });
+
+    const claim = claimBackgroundAgentHeartbeat(id, {
+      pid: 43210,
+      workerPid: 43210,
+      workerGeneration: "generation-a",
+    });
+
+    expect(claim.applied).toBe(false);
+    expect(claim.state.status).toBe("stopped");
+    expect(readBackgroundAgentState(id).status).toBe("stopped");
+  });
+
+  it("keeps terminal state absorbing when it linearizes after a heartbeat", () => {
+    const id = "bg-heartbeat-terminal-race";
+    writeBackgroundAgentState({
+      id,
+      status: "running",
+      pid: null,
+      workerPid: null,
+      workerGeneration: "generation-b",
+      startedAt: Date.now(),
+      heartbeatAt: Date.now(),
+      launchFinalizationUncertain: true,
+    });
+    const claim = claimBackgroundAgentHeartbeat(id, {
+      pid: 43211,
+      workerPid: 43211,
+      workerGeneration: "generation-b",
+    });
+    expect(claim.applied).toBe(true);
+
+    persistBackgroundAgentState({
+      ...claim.state,
+      status: "stopped",
+      endedAt: Date.now(),
+      stoppedByUser: true,
+    });
+    const staleHeartbeat = persistBackgroundAgentState({
+      ...claim.state,
+      status: "running",
+      heartbeatAt: Date.now() + 1,
+    });
+
+    expect(staleHeartbeat.status).toBe("stopped");
+    expect(readBackgroundAgentState(id).status).toBe("stopped");
+  });
+
+  it("rejects a different worker generation and a durable stop fence", () => {
+    const id = "bg-worker-generation-fence";
+    writeBackgroundAgentState({
+      id,
+      status: "running",
+      pid: null,
+      workerPid: null,
+      workerClaimedPid: null,
+      workerClaimedAt: null,
+      workerGeneration: "generation-owner",
+      startedAt: Date.now(),
+      heartbeatAt: Date.now(),
+      launchFinalizationUncertain: true,
+    });
+    expect(
+      claimBackgroundAgentHeartbeat(id, {
+        pid: 43212,
+        workerPid: 43212,
+        workerGeneration: "generation-other",
+      }).applied,
+    ).toBe(false);
+    expect(
+      claimBackgroundAgentHeartbeat(id, {
+        pid: 43212,
+        workerPid: 43212,
+        workerGeneration: "generation-owner",
+      }).applied,
+    ).toBe(true);
+    expect(readBackgroundAgentState(id)).toMatchObject({
+      workerClaimedPid: 43212,
+      workerClaimedAt: expect.any(Number),
+    });
+    expect(
+      claimBackgroundAgentHeartbeat(id, {
+        pid: 43213,
+        workerPid: 43213,
+        workerGeneration: "generation-owner",
+      }).applied,
+    ).toBe(false);
+    mutateBackgroundAgentState(id, (current) => ({
+      ...current,
+      stopRequestedAt: Date.now(),
+    }));
+    expect(
+      claimBackgroundAgentHeartbeat(id, {
+        pid: 43212,
+        workerPid: 43212,
+        workerGeneration: "generation-owner",
+      }).applied,
+    ).toBe(false);
+  });
+
+  it("keeps turn launch intent durable until its owner resolves the token", () => {
+    const id = "bg-turn-intent-monotonic";
+    const intent = {
+      token: "turn-token-a",
+      attempt: 1,
+      workerPid: 43212,
+      workerGeneration: "generation-owner",
+      preparedAt: Date.now(),
+    };
+    writeBackgroundAgentState({
+      id,
+      status: "running",
+      pid: 43212,
+      workerPid: 43212,
+      workerClaimedPid: 43212,
+      workerGeneration: "generation-owner",
+      startedAt: Date.now(),
+      heartbeatAt: Date.now(),
+      turnLaunchAttempt: 1,
+      turnLaunchIntent: intent,
+    });
+
+    persistBackgroundAgentState({
+      id,
+      status: "running",
+      pid: 43212,
+      workerPid: 43212,
+      workerGeneration: "generation-owner",
+      startedAt: 1,
+      heartbeatAt: Date.now() + 1,
+      turnLaunchAttempt: 0,
+      turnLaunchIntent: null,
+    });
+    expect(readBackgroundAgentState(id).turnLaunchIntent).toStrictEqual(intent);
+
+    persistBackgroundAgentState({
+      ...readBackgroundAgentState(id),
+      status: "stopped",
+      stopRequestedAt: Date.now(),
+      turnLaunchIntent: null,
+      turnLaunchResolution: {
+        token: intent.token,
+        attempt: intent.attempt,
+        outcome: "not-spawned",
+        resolvedAt: Date.now(),
+      },
+      turnLaunchFinalizationUncertain: false,
+      turnLaunchTermination: {
+        confirmed: true,
+        treeMode: "none",
+        closed: true,
+        treeTerminated: true,
+      },
+    });
+    expect(readBackgroundAgentState(id)).toMatchObject({
+      status: "stopped",
+      turnLaunchAttempt: 1,
+      turnLaunchIntent: null,
+      turnLaunchResolution: {
+        token: intent.token,
+        attempt: 1,
+        outcome: "not-spawned",
+      },
+      turnLaunchFinalizationUncertain: false,
+      turnLaunchTermination: { confirmed: true },
+    });
+
+    persistBackgroundAgentState({
+      ...readBackgroundAgentState(id),
+      turnLaunchIntent: intent,
+      turnLaunchFinalizationUncertain: true,
+      turnLaunchToken: intent.token,
+      turnLaunchError: "stale writer",
+      turnLaunchTermination: null,
+    });
+    expect(readBackgroundAgentState(id)).toMatchObject({
+      turnLaunchIntent: null,
+      turnLaunchFinalizationUncertain: false,
+      turnLaunchToken: null,
+      turnLaunchError: null,
+      turnLaunchTermination: { confirmed: true },
+    });
+  });
+
+  it("advances spawned turn evidence to terminated and never rolls it back", () => {
+    const id = "bg-turn-resolution-monotonic";
+    const token = "turn-token-termination";
+    writeBackgroundAgentState({
+      id,
+      status: "running",
+      pid: 43212,
+      workerPid: 43212,
+      workerClaimedPid: 43212,
+      workerGeneration: "generation-owner",
+      startedAt: Date.now(),
+      heartbeatAt: Date.now(),
+      turnLaunchAttempt: 1,
+      turnLaunchIntent: {
+        token,
+        attempt: 1,
+        workerPid: 43212,
+        workerGeneration: "generation-owner",
+        preparedAt: Date.now(),
+      },
+    });
+    persistBackgroundAgentState({
+      ...readBackgroundAgentState(id),
+      agentPid: 43214,
+      agentStartedAt: Date.now(),
+      turnLaunchIntent: null,
+      turnLaunchResolution: {
+        token,
+        attempt: 1,
+        outcome: "spawned",
+        agentPid: 43214,
+        resolvedAt: Date.now(),
+      },
+      turnLaunchFinalizationUncertain: true,
+      turnLaunchToken: token,
+    });
+    persistBackgroundAgentState({
+      ...readBackgroundAgentState(id),
+      status: "failed",
+      endedAt: Date.now(),
+      turnLaunchIntent: null,
+      turnLaunchResolution: {
+        token,
+        attempt: 1,
+        outcome: "terminated",
+        agentPid: 43214,
+        resolvedAt: Date.now(),
+      },
+      turnLaunchFinalizationUncertain: false,
+      turnLaunchToken: null,
+      turnLaunchTermination: {
+        confirmed: true,
+        treeMode: "windows-tree",
+        closed: true,
+        treeTerminated: true,
+      },
+    });
+    expect(readBackgroundAgentState(id)).toMatchObject({
+      status: "failed",
+      turnLaunchResolution: { token, attempt: 1, outcome: "terminated" },
+      turnLaunchFinalizationUncertain: false,
+      turnLaunchTermination: { confirmed: true },
+    });
+
+    persistBackgroundAgentState({
+      ...readBackgroundAgentState(id),
+      status: "running",
+      turnLaunchResolution: {
+        token,
+        attempt: 1,
+        outcome: "spawned",
+        agentPid: 43214,
+        resolvedAt: Date.now() + 1,
+      },
+      turnLaunchFinalizationUncertain: true,
+      turnLaunchTermination: null,
+    });
+    expect(readBackgroundAgentState(id)).toMatchObject({
+      status: "failed",
+      turnLaunchResolution: { outcome: "terminated" },
+      turnLaunchFinalizationUncertain: false,
+      turnLaunchTermination: { confirmed: true },
+    });
+  });
+
+  it("fences stop without signalling while a turn launch intent is unresolved", () => {
+    const id = "bg-stop-turn-intent";
+    const now = Date.now();
+    writeBackgroundAgentState({
+      id,
+      status: "running",
+      pid: process.pid,
+      workerPid: process.pid,
+      workerClaimedPid: process.pid,
+      workerGeneration: "generation-stop-intent",
+      startedAt: now,
+      heartbeatAt: now,
+      turnLaunchAttempt: 1,
+      turnLaunchIntent: {
+        token: "turn-token-stop",
+        attempt: 1,
+        workerPid: process.pid,
+        workerGeneration: "generation-stop-intent",
+        preparedAt: now,
+      },
+    });
+
+    const stopped = stopBackgroundAgent(id);
+
+    expect(stopped).toMatchObject({
+      stopped: false,
+      stopPending: true,
+      stopPendingReason: "turn-launch-intent",
+      phase: "stopping",
+    });
+    expect(stopped.stopRequestedAt).toEqual(expect.any(Number));
+    expect(_deps.kill).not.toHaveBeenCalled();
+    expect(readBackgroundAgentState(id)).toMatchObject({
+      status: "running",
+      stopRequestedAt: expect.any(Number),
+      turnLaunchIntent: { token: "turn-token-stop", attempt: 1 },
+    });
+  });
+
   it("stale state writers cannot drop the immutable launch profile", () => {
     _deps.spawn = vi.fn(() => ({ pid: 43210, unref: vi.fn() }));
     const launched = launchBackgroundAgent({
@@ -325,6 +822,41 @@ describe("background agent supervisor", () => {
     const persisted = readBackgroundAgentState(launched.id);
     expect(persisted.launchProfile.llm.model).toBe("pinned-model");
     expect(persisted.configFingerprint).toBe(launched.configFingerprint);
+  });
+
+  it("stale writers cannot retarget same-id session identity", () => {
+    const id = "bg-immutable-session-identity";
+    writeBackgroundAgentState({
+      id,
+      sessionId: "session-owner",
+      cwd: dir,
+      logFile: logPath(id),
+      status: "running",
+      pid: 43216,
+      workerPid: 43216,
+      startedAt: 123,
+      heartbeatAt: 456,
+    });
+
+    const written = persistBackgroundAgentState({
+      id,
+      sessionId: "session-attacker",
+      cwd: join(dir, "elsewhere"),
+      logFile: join(dir, "other.log"),
+      status: "running",
+      pid: 43216,
+      workerPid: 43216,
+      startedAt: 999,
+      heartbeatAt: 500,
+    });
+
+    expect(written).toMatchObject({
+      sessionId: "session-owner",
+      cwd: dir,
+      logFile: logPath(id),
+      startedAt: 123,
+      heartbeatAt: 500,
+    });
   });
 
   it("lists sessions newest first and filters terminal states", () => {
@@ -422,6 +954,107 @@ describe("background agent supervisor", () => {
     expect(state.status).toBe("lost");
     expect(state.lostReason).toBe("heartbeat-stale");
     expect(readBackgroundAgentState("bg-stale-abc").status).toBe("lost");
+  });
+
+  it("rechecks a stale snapshot under lock before persisting lost", () => {
+    const id = "bg-stale-recheck";
+    writeBackgroundAgentState({
+      id,
+      status: "running",
+      pid: process.pid,
+      workerPid: process.pid,
+      startedAt: 1_000,
+      heartbeatAt: 1_000,
+    });
+    const staleSnapshot = readBackgroundAgentState(id);
+    persistBackgroundAgentState({
+      ...staleSnapshot,
+      heartbeatAt: 2_000,
+    });
+
+    const effective = effectiveBackgroundAgentState(staleSnapshot, {
+      now: 2_050,
+      heartbeatStaleMs: 100,
+    });
+
+    expect(effective.status).toBe("running");
+    expect(effective.heartbeatAt).toBe(2_000);
+    expect(readBackgroundAgentState(id).status).toBe("running");
+  });
+
+  it("does not mark an uncertain launch lost during its bounded bootstrap grace", () => {
+    const state = writeBackgroundAgentState({
+      id: "bg-bootstrap-abc",
+      sessionId: "session-bootstrap-abc",
+      status: "running",
+      pid: null,
+      workerPid: null,
+      startedAt: 1000,
+      heartbeatAt: 1000,
+      launchFinalizationUncertain: true,
+    });
+
+    const effective = effectiveBackgroundAgentState(state, {
+      now: 1050,
+      heartbeatStaleMs: 100,
+    });
+    expect(effective).toStrictEqual(state);
+    expect(readBackgroundAgentState(state.id).status).toBe("running");
+
+    const expired = effectiveBackgroundAgentState(state, {
+      now: 1101,
+      heartbeatStaleMs: 100,
+      persist: false,
+    });
+    expect(expired).toMatchObject({
+      status: "lost",
+      lostReason: "heartbeat-stale",
+      launchFinalizationUncertain: true,
+    });
+  });
+
+  it("refuses worktree cleanup while launch ownership is uncertain", () => {
+    const worktreePath = join(dir, "uncertain-worktree");
+    mkdirSync(worktreePath);
+    expect(() =>
+      cleanupBackgroundAgentWorktree({
+        id: "bg-uncertain-worktree",
+        status: "lost",
+        pid: null,
+        repoRoot: dir,
+        worktreePath,
+        baseSha: "a".repeat(40),
+        branch: "cc-agent-uncertain",
+        launchFinalizationUncertain: true,
+      }),
+    ).toThrow(/launch finalization is uncertain/i);
+    expect(existsSync(worktreePath)).toBe(true);
+
+    expect(() =>
+      cleanupBackgroundAgentWorktree({
+        id: "bg-uncertain-turn-worktree",
+        status: "failed",
+        pid: null,
+        repoRoot: dir,
+        worktreePath,
+        baseSha: "a".repeat(40),
+        branch: "cc-agent-uncertain-turn",
+        turnLaunchFinalizationUncertain: true,
+      }),
+    ).toThrow(/turn launch finalization is uncertain/i);
+
+    expect(() =>
+      cleanupBackgroundAgentWorktree({
+        id: "bg-unresolved-turn-intent-worktree",
+        status: "stopped",
+        pid: null,
+        repoRoot: dir,
+        worktreePath,
+        baseSha: "a".repeat(40),
+        branch: "cc-agent-unresolved-turn-intent",
+        turnLaunchIntent: { token: "turn-token", attempt: 1 },
+      }),
+    ).toThrow(/turn launch intent is unresolved/i);
   });
 
   it("does not stop a stale-heartbeat session even if its pid is alive", () => {
@@ -540,37 +1173,62 @@ describe("background agent supervisor", () => {
   });
 
   it("buildFollowUpArgv strips the first turn's prompt tokens, keeps flags", () => {
+    const optionSpecs = [
+      { long: "--model", required: true },
+      { long: "--title", required: true },
+      { short: "-p", long: "--print", optional: true },
+      { long: "--session", required: true },
+    ];
     // positional prompt
     expect(
       buildFollowUpArgv(
         ["agent", "do", "the", "task", "--model", "m", "--session", "s"],
-        { positionalTokens: ["do", "the", "task"] },
+        { positionalTokens: ["do", "the", "task"], optionSpecs },
       ),
     ).toEqual(["agent", "--model", "m", "--session", "s"]);
     // -p <value> prompt
     expect(
       buildFollowUpArgv(["agent", "-p", "fix it", "--session", "s"], {
         printValue: "fix it",
+        optionSpecs,
       }),
     ).toEqual(["agent", "--session", "s"]);
     // bare -p (piped prompt) — flag dropped, no value to drop
     expect(
       buildFollowUpArgv(["agent", "-p", "--session", "s"], {
         printValue: null,
+        optionSpecs,
       }),
     ).toEqual(["agent", "--session", "s"]);
     // a flag value that happens to equal a positional token is not stripped
     expect(
       buildFollowUpArgv(["agent", "fix", "--title", "fix"], {
         positionalTokens: ["fix"],
+        optionSpecs,
       }),
     ).toEqual(["agent", "--title", "fix"]);
     // equals-form --print=<value> is stripped too
     expect(
       buildFollowUpArgv(["agent", "--print=fix it", "--session", "s"], {
         printValue: "fix it",
+        optionSpecs,
       }),
     ).toEqual(["agent", "--session", "s"]);
+    expect(
+      buildFollowUpArgv(
+        ["agent", "--model", "same", "same", "--session", "s"],
+        { positionalTokens: ["same"], optionSpecs },
+      ),
+    ).toEqual(["agent", "--model", "same", "--session", "s"]);
+
+    const terminated = buildFollowUpArgv(
+      ["agent", "--session", "s", "--", "literal task"],
+      { positionalTokens: ["literal task"], optionSpecs },
+    );
+    expect(terminated).toEqual(["agent", "--session", "s"]);
+    expect(
+      insertArgumentsBeforeOptionTerminator(terminated, ["-p", "next task"]),
+    ).toEqual(["agent", "--session", "s", "-p", "next task"]);
   });
 
   it("resumeBackgroundAgent relaunches a finished session on the same conversation", () => {
@@ -598,10 +1256,32 @@ describe("background agent supervisor", () => {
       "agent",
       "--session",
       "sess-42",
-      "-p",
-      "continue the work",
+      "--print=continue the work",
     ]);
     expect(job.followUpArgv).toEqual(["agent", "--session", "sess-42"]);
+  });
+
+  it.each([
+    ["bg-resume-option-help", "--help"],
+    ["bg-resume-option-worktree", "--no-worktree"],
+    ["bg-resume-option-bypass", "--dangerously-skip-permissions"],
+  ])("keeps an option-shaped resume prompt as data (%s)", (id, prompt) => {
+    writeBackgroundAgentState({
+      id,
+      status: "completed",
+      sessionId: `session-${id}`,
+      cwd: dir,
+      startedAt: 1,
+      endedAt: 2,
+    });
+    _deps.spawn = vi.fn(() => ({ pid: 778, unref: vi.fn() }));
+
+    resumeBackgroundAgent(id, prompt);
+    const jobFile = _deps.spawn.mock.calls.at(-1)[1][1];
+    const job = JSON.parse(readFileSync(jobFile, "utf8"));
+
+    expect(job.argv).toContain(`--print=${prompt}`);
+    expect(job.argv).not.toContain(prompt);
   });
 
   it("resumeBackgroundAgent rebuilds the persisted provider and policy profile", () => {
@@ -699,8 +1379,7 @@ describe("background agent supervisor", () => {
         "1.5",
         "--session",
         "sess-profile",
-        "-p",
-        "continue safely",
+        "--print=continue safely",
       ]),
     );
     expect(JSON.stringify(job)).not.toContain(
@@ -897,7 +1576,7 @@ describe("background agent supervisor", () => {
       true,
     );
     expect(turn2Ended).toBe(true);
-    expect(readBackgroundAgentLog(state.id)).toContain('"second task"');
+    expect(readBackgroundAgentLog(state.id)).toContain('"--print=second task"');
 
     // Detach while idle → the worker finalizes and clears the transport.
     conn.close();
@@ -1006,6 +1685,44 @@ describe("background agent supervisor", () => {
     expect(_deps.kill).not.toHaveBeenCalled();
     expect(_deps.spawnSync).not.toHaveBeenCalled();
   });
+
+  it("keeps a visible stop fence when process-tree termination fails", () => {
+    const sleeperPid = spawnSleeperPid();
+    writeBackgroundAgentState({
+      id: "bg-stop-failed-fence",
+      status: "running",
+      pid: sleeperPid,
+      workerPid: sleeperPid,
+      startedAt: Date.now(),
+      heartbeatAt: Date.now(),
+    });
+    if (process.platform === "win32") {
+      _deps.spawnSync = vi.fn(() => ({
+        status: 1,
+        error: new Error("taskkill denied"),
+      }));
+    } else {
+      _deps.kill = vi.fn(() => {
+        throw new Error("kill denied");
+      });
+    }
+
+    expect(() => stopBackgroundAgent("bg-stop-failed-fence")).toThrow();
+    const fenced = readBackgroundAgentState("bg-stop-failed-fence");
+    expect(fenced).toMatchObject({
+      status: "running",
+      phase: "stop_failed",
+      stopRequestedBy: "user",
+    });
+    expect(fenced.stopRequestedAt).toEqual(expect.any(Number));
+    expect(fenced.stopError).toMatch(/denied/i);
+    expect(
+      claimBackgroundAgentHeartbeat("bg-stop-failed-fence", {
+        pid: sleeperPid,
+        workerPid: sleeperPid,
+      }).applied,
+    ).toBe(false);
+  });
 });
 
 describe("removeBackgroundAgent (cc daemon rm, gap 2026-07-11)", () => {
@@ -1027,6 +1744,67 @@ describe("removeBackgroundAgent (cc daemon rm, gap 2026-07-11)", () => {
     expect(readBackgroundAgentState("bg-rm-done")).toBeNull();
   });
 
+  it("never lets a stale generic writer recreate a removed record", () => {
+    const id = "bg-rm-no-resurrection";
+    writeBackgroundAgentState({
+      id,
+      status: "completed",
+      startedAt: 1,
+      endedAt: 2,
+    });
+    const stale = readBackgroundAgentState(id);
+    removeBackgroundAgent(id);
+
+    const written = persistBackgroundAgentState({
+      ...stale,
+      status: "running",
+      heartbeatAt: Date.now(),
+    });
+
+    expect(written).toBeNull();
+    const claim = claimBackgroundAgentHeartbeat(id, {
+      pid: 43213,
+      workerPid: 43213,
+    });
+    expect(claim).toEqual({ applied: false, state: null, previous: null });
+    expect(readBackgroundAgentState(id)).toBeNull();
+  });
+
+  it("retains terminal records while turn ownership is uncertain", () => {
+    const id = "bg-rm-turn-uncertain";
+    writeBackgroundAgentState({
+      id,
+      status: "failed",
+      startedAt: 1,
+      endedAt: 2,
+      agentPid: 43215,
+      turnLaunchFinalizationUncertain: true,
+    });
+
+    expect(() => removeBackgroundAgent(id, { keepWorktree: true })).toThrow(
+      /state changed before removal/i,
+    );
+    expect(readBackgroundAgentState(id)).toMatchObject({
+      turnLaunchFinalizationUncertain: true,
+      agentPid: 43215,
+    });
+  });
+
+  it("fails closed when a heartbeat finds corrupt state", () => {
+    const id = "bg-corrupt-heartbeat";
+    writeFileSync(statePath(id), "{not-json", "utf8");
+
+    expect(() =>
+      claimBackgroundAgentHeartbeat(id, {
+        pid: 43214,
+        workerPid: 43214,
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: "BACKGROUND_AGENT_STATE_CORRUPT" }),
+    );
+    expect(readFileSync(statePath(id), "utf8")).toBe("{not-json");
+  });
+
   it("refuses a RUNNING session without --force", () => {
     writeBackgroundAgentState({
       id: "bg-rm-live",
@@ -1039,7 +1817,7 @@ describe("removeBackgroundAgent (cc daemon rm, gap 2026-07-11)", () => {
     expect(existsSync(statePath("bg-rm-live"))).toBe(true);
   });
 
-  it("--force stops the running session first, then removes", () => {
+  it("--force keeps the record when the mocked stop did not end the process", () => {
     // Fabricated (non-self) pid + fail-open identity probe → the stop path
     // really runs, but the signal lands in the _deps.kill spy / taskkill stub
     // instead of a live process. (The old fixture recorded pid=process.pid and
@@ -1054,9 +1832,10 @@ describe("removeBackgroundAgent (cc daemon rm, gap 2026-07-11)", () => {
       heartbeatAt: Date.now(),
     });
     _deps.spawnSync = vi.fn(() => ({ status: 0 })); // Windows taskkill stub
-    const result = removeBackgroundAgent("bg-rm-force", { force: true });
-    expect(result.removed).toBe(true);
-    expect(existsSync(statePath("bg-rm-force"))).toBe(false);
+    expect(() => removeBackgroundAgent("bg-rm-force", { force: true })).toThrow(
+      /state changed before removal/i,
+    );
+    expect(existsSync(statePath("bg-rm-force"))).toBe(true);
     if (process.platform !== "win32") {
       expect(_deps.kill).toHaveBeenCalledWith(-sleeperPid, "SIGTERM");
     }
@@ -1115,7 +1894,7 @@ describe("pid identity — reuse detection (Gap 1, supervisor gap 2026-07-11)", 
     _deps.readProcessStartTimeMs = vi.fn(() => null);
     const s = effectiveBackgroundAgentState(state, { now });
     expect(s.status).toBe("running");
-    expect(s).toBe(state); // passthrough, no correction minted
+    expect(s).toStrictEqual(state); // no correction minted
   });
 
   it("creation time at/before startedAt (within tolerance) is the same process", () => {

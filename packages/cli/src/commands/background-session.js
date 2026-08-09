@@ -10,6 +10,10 @@ import {
 import { readSessionHostResumeState } from "../lib/session-host-snapshot.js";
 import executionBroker from "../lib/process-execution-broker/index.js";
 
+export function buildBackgroundDispatchArgs(prompt) {
+  return ["agent", "--bg", `--print=${prompt}`];
+}
+
 function formatAge(ms) {
   const n = Math.max(0, Math.round(Number(ms || 0) / 1000));
   if (n < 60) return `${n}s`;
@@ -746,7 +750,7 @@ async function runDashboardView(options = {}) {
     dispatchAgent: async (text) => {
       const child = executionBroker.spawn(
         process.execPath,
-        [BIN_PATH, "agent", "--bg", "-p", text],
+        [BIN_PATH, ...buildBackgroundDispatchArgs(text)],
         {
           detached: true,
           stdio: "ignore",
@@ -1038,6 +1042,12 @@ export function registerBackgroundSessionCommands(program) {
         for (const result of results) {
           if (result.stopped) {
             logger.log(chalk.green(`Stopped background agent ${result.id}`));
+          } else if (result.stopPending) {
+            logger.log(
+              chalk.yellow(
+                `Stop pending for background agent ${result.id} (${result.stopPendingReason})`,
+              ),
+            );
           } else {
             logger.log(chalk.gray(`${result.id} is already ${result.status}`));
           }
