@@ -23,6 +23,16 @@ const TestRunner = require(path.join(desktopRoot, "scripts", "test-runner.js"));
 const AutoFixRunner = require(
   path.join(desktopRoot, "scripts", "auto-fix-runner.js"),
 );
+const cliWindowsSandboxContractChanges = [
+  "packages/cli/__tests__/unit/windows-sandbox-adapter-global-teardown-contract.test.js",
+  "packages/cli/__tests__/unit/windows-sandbox-adapter-temp-root.test.js",
+  "packages/cli/test/fixtures/windows-sandbox-global-teardown/contract-case.mjs",
+  "packages/cli/test/helpers/windows-sandbox-adapter-temp-root.js",
+];
+const cliWindowsSandboxContractTests = [
+  "__tests__/unit/windows-sandbox-adapter-global-teardown-contract.test.js",
+  "__tests__/unit/windows-sandbox-adapter-temp-root.test.js",
+];
 
 function extractNodeVerdict(workflow, stepName) {
   const escapedStepName = stepName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -134,6 +144,87 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
   assert.deepEqual(fullSelection.selectedTests, ["tests/unit", "src"]);
 });
 
+test("selector maps exact Windows sandbox support paths to CLI contracts", () => {
+  const selection = selector.createSelection(cliWindowsSandboxContractChanges);
+
+  assert.equal(selection.suite, "cli-unit");
+  assert.equal(selection.mode, "targeted");
+  assert.deepEqual(selection.selectedTests, cliWindowsSandboxContractTests);
+  assert.deepEqual(selection.testSuites, [
+    {
+      suite: "cli-unit",
+      runner: "vitest",
+      root: "packages/cli",
+      mode: "targeted",
+      selectedTests: cliWindowsSandboxContractTests,
+    },
+  ]);
+
+  const expectedTestsByChange = new Map([
+    [cliWindowsSandboxContractChanges[0], [cliWindowsSandboxContractTests[0]]],
+    [cliWindowsSandboxContractChanges[1], [cliWindowsSandboxContractTests[1]]],
+    [cliWindowsSandboxContractChanges[2], [cliWindowsSandboxContractTests[0]]],
+    [cliWindowsSandboxContractChanges[3], cliWindowsSandboxContractTests],
+  ]);
+  for (const mapping of selection.mappings) {
+    assert.equal(mapping.suite, "cli-unit");
+    assert.deepEqual(mapping.tests, expectedTestsByChange.get(mapping.file));
+  }
+
+  const command = selector.commandForSelection(selection, {
+    vitestEntrypoint: "C:/safe/vitest.mjs",
+  });
+  assert.equal(command.cwd, path.join(repoRoot, "packages", "cli"));
+  assert.equal(command.executable, process.execPath);
+  assert.deepEqual(command.args.slice(0, 2), ["C:/safe/vitest.mjs", "run"]);
+  assert.deepEqual(
+    command.args.filter((argument) => argument.endsWith(".test.js")),
+    cliWindowsSandboxContractTests,
+  );
+  assert.ok(!command.args.includes("--pool=threads"));
+});
+
+test("selector changes run integrity and CLI contracts without desktop fallback", () => {
+  const selection = selector.createSelection([
+    ...cliWindowsSandboxContractChanges,
+    "desktop-app-vue/scripts/cowork-ci-test-selector.js",
+    "scripts/__tests__/ci-gate-integrity.test.mjs",
+  ]);
+
+  assert.equal(selection.suite, "unit-matrix");
+  assert.equal(selection.mode, "targeted");
+  assert.deepEqual(
+    selection.testSuites.map((testSuite) => testSuite.suite),
+    ["ci-gate-integrity", "cli-unit"],
+  );
+  assert.ok(
+    selection.testSuites.every(
+      (testSuite) => testSuite.suite !== "desktop-unit",
+    ),
+  );
+
+  const commands = selector.commandsForSelection(selection, {
+    cliVitestEntrypoint: "C:/safe/cli-vitest.mjs",
+  });
+  assert.equal(commands.length, 2);
+  assert.deepEqual(commands[0], {
+    suite: "ci-gate-integrity",
+    cwd: repoRoot,
+    executable: process.execPath,
+    args: ["--test", "scripts/__tests__/ci-gate-integrity.test.mjs"],
+  });
+  assert.equal(commands[1].suite, "cli-unit");
+  assert.equal(commands[1].cwd, path.join(repoRoot, "packages", "cli"));
+  assert.deepEqual(commands[1].args.slice(0, 2), [
+    "C:/safe/cli-vitest.mjs",
+    "run",
+  ]);
+  assert.throws(
+    () => selector.commandForSelection(selection),
+    (error) => error.code === "MULTIPLE_TEST_COMMANDS",
+  );
+});
+
 test("selector fails closed for an unmapped change or failed detection", () => {
   assert.throws(
     () => selector.createSelection(["packages/cli/src/index.js"]),
@@ -190,6 +281,63 @@ test("selector CLI emits machine-readable output and non-zero fail-closed status
   );
   assert.equal(unknown.status, 2);
   assert.match(unknown.stdout, /"status":"fail-closed"/);
+});
+
+test("CLI suite spawn failures cannot downgrade to desktop fallback", (t) => {
+  const temporaryRoot = fs.mkdtempSync(
+    path.join(os.tmpdir(), "cc-selector-output-"),
+  );
+  t.after(() => fsp.rm(temporaryRoot, { recursive: true, force: true }));
+  const githubOutput = path.join(temporaryRoot, "github-output.txt");
+  const output = [];
+  const originalLog = console.log;
+  const originalGitHubOutput = process.env.GITHUB_OUTPUT;
+  console.log = (...values) => output.push(values.join(" "));
+  process.env.GITHUB_OUTPUT = githubOutput;
+
+  let exitCode;
+  let spawnOptions;
+  try {
+    exitCode = selector.main(
+      [
+        "--json",
+        "--changed-file",
+        "packages/cli/test/helpers/windows-sandbox-adapter-temp-root.js",
+      ],
+      {
+        spawn(_command, _args, options) {
+          spawnOptions = options;
+          return { error: new Error("spawn denied") };
+        },
+      },
+    );
+  } finally {
+    console.log = originalLog;
+    if (originalGitHubOutput === undefined) {
+      delete process.env.GITHUB_OUTPUT;
+    } else {
+      process.env.GITHUB_OUTPUT = originalGitHubOutput;
+    }
+  }
+
+  assert.equal(exitCode, 1);
+  const machineLine = output.find((line) =>
+    line.startsWith("COWORK_TEST_SELECTION_JSON="),
+  );
+  assert.ok(machineLine);
+  const payload = JSON.parse(
+    machineLine.slice("COWORK_TEST_SELECTION_JSON=".length),
+  );
+  assert.equal(payload.status, "failed");
+  assert.equal(payload.mode, "targeted");
+  assert.equal(payload.failedSuite, "cli-unit");
+  assert.equal(payload.code, "TEST_SPAWN_FAILED");
+  assert.equal(
+    Object.hasOwn(spawnOptions.env, "GITHUB_OUTPUT"),
+    false,
+    "nested tests must not overwrite the selector step outputs",
+  );
+  assert.match(fs.readFileSync(githubOutput, "utf8"), /test-mode=targeted/);
 });
 
 test("test runner records spawn failures and returns a failing aggregate code", async (t) => {
