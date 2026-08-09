@@ -247,7 +247,7 @@ describe("cc agent background worktree dispatch", () => {
 
     expect(worktreeMocks.setup).not.toHaveBeenCalled();
     const launch = supervisorMocks.launch.mock.calls[0][0];
-    expect(launch.cwd).toBe(repoRoot);
+    expect(canonicalPath(launch.cwd)).toBe(canonicalPath(repoRoot));
     expect(launch.worktree).toBeNull();
     expect(launch.argv).not.toContain("--worktree");
     expect(launch.argv).not.toContain("--no-worktree");
