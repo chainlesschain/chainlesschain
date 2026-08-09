@@ -1228,7 +1228,7 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 
 ### 16.17 2026-08-09 P1-2 默认隔离与后台所有权候选收口
 
-本节记录 `fix/cli-background-worktree-default` 工作树的**未提交候选**，用于修正第 16.16 节之后已经发生的实现变化，不回写或伪造当时的审计基线。正式状态仍是 **P1-2 部分完成 / 发布 NO-GO**：只有候选提交进入 PR，并在同一 exact SHA 上通过 GitHub Actions 和原条目的长期验收，才能把以下实现证据计为正式关闭。
+本节记录 `fix/cli-background-worktree-default` 的 [PR #131](https://github.com/chainlesschain/chainlesschain/pull/131) 候选，用于修正第 16.16 节之后已经发生的实现变化，不回写或伪造当时的审计基线。候选已提交、变基到当时最新 `github/main` 并推送；PR head 后续可能因文档或修复提交变化，必须以 GitHub 的当前 `headRefOid` 为准，不能引用旧 SHA 的结果。正式状态仍是 **P1-2 部分完成 / 发布 NO-GO**：只有 PR 最终 exact SHA 通过 GitHub Actions，并补齐原条目的长期验收，才能把以下实现证据计为正式关闭。
 
 候选实现已完成以下收口：
 
@@ -1244,13 +1244,13 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 
 仍未关闭的退出条件：
 
-- 候选尚未 commit/rebase/push，也没有 feature PR exact-SHA 的 `CLI CI` 与 `CLI Strict Sandbox` Linux/Windows/macOS 全矩阵；因此不能据本地绿色发布 npm 新版本。
+- PR #131 已创建，但其最终 exact-SHA `CLI CI` 与 `CLI Strict Sandbox` Linux/Windows/macOS 全矩阵尚未完成；任何后续 push 都会产生新 head，并使旧 SHA 的运行失去发布授权，因此不能据本地绿色或 superseded run 发布 npm 新版本。
 - 原 P1-2 的 20-Agent 并发、取消/重连、worktree 清理和长期 soak 尚未在该候选 exact SHA 上执行；P1-2 继续计为**部分完成**，第 16.16 节 **8 完成、6 部分、1 未完成（7 项未完全关闭）**不变。
 - 默认从仓库子目录启动时当前 cwd 落在 worktree 根，而不是对应子目录；worktree 仍位于仓库 `.worktrees/`，外部 managed root/descriptor identity、add-dir root-pivot/TOCTOU 加固列为 P2 follow-up。
 - Broker 的 launcher post-native-spawn 异常目前仍是一次异步 whole-tree settlement；termination 未确认或 confirmed 后持久化持续失败时会保留 `launchFinalizationUncertain`、job 与 worktree，没有独立长期 keeper。turn worker 的 settlement 会重试仍存活根的终止与确认落盘，但一旦根已 closed 而 descendants 尚未证明退出，就必须停止复用裸 PID/PGID，保留 uncertainty，避免 PID reuse 误杀无关进程。另有不可外推的 hard-crash 窗口：prepare intent 已落盘后，若第二事务在 native spawn 返回与 agent PID commit 之间遭遇 SIGKILL/OOM，POSIX detached child 可能存活，而磁盘只有 intent、没有可回收 PID；两阶段协议关闭的是 cooperative stop 与可捕获持久化失败，不是 crash-safe OS containment。这些 fail-closed 残留必须纳入磁盘/pipe/TTY/SSH/资源泄漏长期 soak 和显式 recovery 设计，不能在本节宣称全局资源泄漏清零或 P1-2 完成。
 - P2-4 调度内核未因本候选发生变化，仍按第 16.16 节估算为 **6～10 周（单工程师）/4～6 周（两人有效并行）**。
 
-发布线同时存在独立 selector follow-up PR `#129`；其 exact head 的 required checks、手动 `CLI CI` 与 `CLI Strict Sandbox` 必须分别核对。即使该 PR 全绿，也不能替代未来 feature/release exact SHA 的双工作流门禁；在新的 release commit 全平台绿色前，npm 已发布版本仍以 `0.163.2` 为准。
+独立 selector follow-up [PR #129](https://github.com/chainlesschain/chainlesschain/pull/129) 已以 `b67dcfbd9908a7915dcd0506dadfecbb33282e83` 合入 `main`；其 exact head `e25e3c37bebc84cf80275f89314e005c279711c8` 的 required checks 6/6、手动 `CLI CI` `31300868245` 与 `CLI Strict Sandbox` `31300868232` 均通过。该事实只证明 selector 修复本身，不能替代 PR #131 最终 head 或未来 release SHA 的双工作流门禁；在新的 release commit 全平台绿色前，npm 已发布版本仍以 `0.163.2` 为准。
 
 ## 17. 2026-08-06 `0.162.198` 发布闭环与继续执行边界
 
