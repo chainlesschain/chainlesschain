@@ -142,6 +142,28 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
   ]);
   assert.equal(fullSelection.mode, "full");
   assert.deepEqual(fullSelection.selectedTests, ["tests/unit", "src"]);
+
+  const ideSelection = selector.createSelection([
+    "packages/vscode-extension/package.json",
+    "packages/jetbrains-plugin/build.gradle.kts",
+  ]);
+  assert.equal(ideSelection.mode, "targeted");
+  assert.deepEqual(ideSelection.selectedTests, [
+    "tests/unit/did/did-manager.test.js",
+    "tests/unit/llm/llm-service.test.js",
+  ]);
+  assert.ok(
+    ideSelection.mappings.every(
+      (mapping) => mapping.reason === "covered-by-ide-dedicated-gates",
+    ),
+  );
+
+  const ideCommand = selector.commandForSelection(ideSelection, {
+    vitestEntrypoint: "C:/safe/vitest.mjs",
+  });
+  assert.ok(ideCommand.args.includes("--pool=forks"));
+  assert.ok(ideCommand.args.includes("--maxWorkers=2"));
+  assert.ok(!ideCommand.args.includes("--pool=threads"));
 });
 
 test("selector maps exact Windows sandbox support paths to CLI contracts", () => {
@@ -232,6 +254,17 @@ test("selector fails closed for an unmapped change or failed detection", () => {
       error.code === "UNMAPPED_CHANGED_FILES" &&
       error.details.unmappedFiles.includes("packages/cli/src/index.js"),
   );
+  assert.throws(
+    () =>
+      selector.createSelection([
+        "packages/vscode-extension/../../packages/cli/src/index.js",
+      ]),
+    (error) =>
+      error.code === "UNMAPPED_CHANGED_FILES" &&
+      error.details.unmappedFiles.includes(
+        "packages/vscode-extension/../../packages/cli/src/index.js",
+      ),
+  );
 
   assert.throws(
     () =>
@@ -242,6 +275,27 @@ test("selector fails closed for an unmapped change or failed detection", () => {
       }),
     (error) => error.code === "GIT_DIFF_FAILED",
   );
+});
+
+test("IDE selector delegation stays bound to both dedicated PR workflows", () => {
+  const workflowFiles = [
+    ".github/workflows/ide-extensions.yml",
+    ".github/workflows/ide-arm64-validation.yml",
+  ];
+  const delegatedPaths = [
+    '      - "packages/vscode-extension/**"',
+    '      - "packages/jetbrains-plugin/**"',
+  ];
+
+  for (const workflowFile of workflowFiles) {
+    const workflow = fs.readFileSync(path.join(repoRoot, workflowFile), "utf8");
+    for (const delegatedPath of delegatedPaths) {
+      assert.ok(
+        workflow.split(delegatedPath).length - 1 >= 2,
+        `${workflowFile} must cover ${delegatedPath.trim()} on push and pull_request`,
+      );
+    }
+  }
 });
 
 test("selector CLI emits machine-readable output and non-zero fail-closed status", () => {
@@ -406,6 +460,25 @@ test("UKey smoke skips unsupported hosts and propagates real failures", () => {
   assert.match(script, /assertSmoke\(\s*testValue === ["']testValue["']/);
   assert.ok((script.match(/throw error;/g) ?? []).length >= 4);
   assert.doesNotMatch(script, /runTests\(\)\.catch\(console\.error\)/);
+});
+
+test("sharp-loading main-process tests stay out of the jsdom canvas process", () => {
+  const nodeEnvironmentTests = [
+    "desktop-app-vue/tests/unit/media/image-engine.test.js",
+    "desktop-app-vue/src/main/blockchain/__tests__/order-export.test.js",
+    "desktop-app-vue/src/main/ai-engine/__tests__/real-implementations-reminder.test.js",
+    "desktop-app-vue/src/main/remote/__tests__/remote-gateway.test.js",
+    "desktop-app-vue/tests/remote/integration/remote-integration.test.js",
+  ];
+
+  for (const relativePath of nodeEnvironmentTests) {
+    const source = fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
+    assert.match(
+      source,
+      /^\/\/ @vitest-environment node/m,
+      `${relativePath} must not load sharp in Vitest's jsdom/canvas process`,
+    );
+  }
 });
 
 test("auto-fix command is diagnostic-only and fails when no safe fix exists", async (t) => {
@@ -575,7 +648,14 @@ test("unit workflow distinguishes selected-test failures from fail-closed fallba
     /id: fallback-tests\s+if: steps\.test-selector\.outcome == 'failure' && steps\.test-selector\.outputs\.test-mode == 'fail-closed'/,
   );
   assert.match(workflow, /npm exec --offline -- vitest run tests\/unit src/);
+  assert.match(workflow, /--pool=forks --maxWorkers=2/);
+  assert.doesNotMatch(workflow, /--pool=threads/);
   assert.doesNotMatch(workflow, /src\/main\/\*\*\/__tests__/);
+  const fullSuiteWorkflow = workflow.slice(workflow.indexOf("full-tests:"));
+  assert.match(
+    fullSuiteWorkflow,
+    /name: Install packages\/cli production dependencies standalone[\s\S]*?working-directory: \.\/packages\/cli[\s\S]*?name: Run all unit tests/,
+  );
   const verdict = extractNodeVerdict(
     workflow,
     "Enforce selector or fallback result",

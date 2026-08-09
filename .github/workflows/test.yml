@@ -92,7 +92,7 @@ jobs:
         run: |
           echo "⚠️  Intelligent test selection failed, running complete unit roots..."
           npm exec --offline -- vitest run tests/unit src \
-            --reporter=default --silent=passed-only --pool=threads
+            --reporter=default --silent=passed-only --pool=forks --maxWorkers=2
 
       - name: Enforce selector or fallback result
         if: always()
@@ -360,6 +360,17 @@ jobs:
         uses: ./.github/actions/setup-node-deps
         with:
           install-desktop-app-vue: "true"
+
+      # The vendor-layout unit test exercises the same standalone production
+      # dependency tree shipped under Resources/packages/cli. A workspace
+      # install may hoist semver (and other runtime packages), so prepare the
+      # real packaging topology before the complete unit suite.
+      - name: Install packages/cli production dependencies standalone
+        working-directory: ./packages/cli
+        shell: bash
+        run: |
+          bash "$GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh" \
+            npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps
 
       - name: Run all unit tests
         working-directory: ./desktop-app-vue

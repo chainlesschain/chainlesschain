@@ -6,19 +6,31 @@
 const { logger } = require("../utils/logger.js");
 const QRCode = require("qrcode");
 const jsQR = require("jsqr");
-let createCanvas, loadImage;
-try {
-  ({ createCanvas, loadImage } = require("canvas"));
-} catch (_err) {
-  // canvas may be unavailable in packaged builds
+let canvasModule;
+function getCanvasModule() {
+  if (canvasModule !== undefined) {
+    return canvasModule;
+  }
+  try {
+    canvasModule = require("canvas");
+  } catch (_err) {
+    canvasModule = null;
+  }
+  return canvasModule;
 }
 const archiver = require("archiver");
 const decompress = require("decompress");
-let sharp;
-try {
-  sharp = require("sharp");
-} catch (_err) {
-  // sharp may be unavailable in packaged builds
+let sharpModule;
+function getSharpModule() {
+  if (sharpModule !== undefined) {
+    return sharpModule;
+  }
+  try {
+    sharpModule = require("sharp");
+  } catch (_err) {
+    sharpModule = null;
+  }
+  return sharpModule;
 }
 const ffmpeg = require("fluent-ffmpeg");
 const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
@@ -71,6 +83,10 @@ async function generateQRCodeReal(params) {
     // 如果有logo，需要特殊处理
     if (style.logo_path) {
       try {
+        const { createCanvas, loadImage } = getCanvasModule() || {};
+        if (!createCanvas || !loadImage) {
+          throw new Error("canvas is unavailable");
+        }
         // 创建canvas
         const canvas = createCanvas(size, size);
         await QRCode.toCanvas(canvas, content, qrOptions);
@@ -135,6 +151,10 @@ async function scanQRCodeReal(params) {
   const { image_path, scan_type = "auto", multiple = false } = params;
 
   try {
+    const { createCanvas, loadImage } = getCanvasModule() || {};
+    if (!createCanvas || !loadImage) {
+      throw new Error("canvas is unavailable");
+    }
     // 加载图片
     const image = await loadImage(image_path);
     const canvas = createCanvas(image.width, image.height);
@@ -379,6 +399,10 @@ async function editImageReal(params) {
     const dir = path.dirname(output_path);
     await fsp.mkdir(dir, { recursive: true });
 
+    const sharp = getSharpModule();
+    if (!sharp) {
+      throw new Error("sharp is unavailable");
+    }
     // 创建Sharp实例
     let image = sharp(input_path);
 
@@ -488,6 +512,10 @@ async function filterImageReal(params) {
     const dir = path.dirname(output_path);
     await fsp.mkdir(dir, { recursive: true });
 
+    const sharp = getSharpModule();
+    if (!sharp) {
+      throw new Error("sharp is unavailable");
+    }
     // 创建Sharp实例
     let image = sharp(input_path);
 

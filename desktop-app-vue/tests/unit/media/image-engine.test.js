@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 /**
  * 图片引擎测试
  * 测试 AI文生图、图片处理、批量操作等功能

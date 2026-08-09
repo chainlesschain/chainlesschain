@@ -12,7 +12,8 @@ const PROJECT_PREFIX = "desktop-app-vue/";
 const CI_VITEST_FLAGS = [
   "--reporter=default",
   "--silent=passed-only",
-  "--pool=threads",
+  "--pool=forks",
+  "--maxWorkers=2",
 ];
 const CLI_CI_VITEST_FLAGS = ["--reporter=default", "--silent=passed-only"];
 const CRITICAL_TESTS = [
@@ -46,6 +47,10 @@ const CLI_WINDOWS_SANDBOX_CONTRACT_MAPPINGS = new Map([
     CLI_WINDOWS_SANDBOX_CONTRACT_TESTS,
   ],
 ]);
+const IDE_DEDICATED_GATE_PREFIXES = [
+  "packages/vscode-extension/",
+  "packages/jetbrains-plugin/",
+];
 const FULL_UNIT_TRIGGERS = new Set([
   ".cowork/ci-test-config.json",
   "package.json",
@@ -67,6 +72,18 @@ class SelectionError extends Error {
 
 function toPosix(filePath) {
   return filePath.replace(/\\/g, "/").replace(/^\.\//, "");
+}
+
+function isSafeRepositoryRelativePath(filePath) {
+  const normalized = toPosix(filePath);
+  return (
+    Boolean(normalized) &&
+    !path.posix.isAbsolute(normalized) &&
+    !/^[A-Za-z]:\//.test(normalized) &&
+    !normalized
+      .split("/")
+      .some((segment) => segment === "." || segment === "..")
+  );
 }
 
 function validateBaseRef(baseRef) {
@@ -138,11 +155,7 @@ function getChangedFilesCI({
 
 function projectRelativePath(repoRelativePath) {
   const normalized = toPosix(repoRelativePath);
-  if (
-    !normalized ||
-    path.posix.isAbsolute(normalized) ||
-    normalized.split("/").includes("..")
-  ) {
+  if (!isSafeRepositoryRelativePath(normalized)) {
     return null;
   }
   if (!normalized.startsWith(PROJECT_PREFIX)) {
@@ -256,7 +269,10 @@ function createSelection(
 
   for (const changedFile of changedFiles) {
     const normalized = toPosix(changedFile);
-
+    if (!isSafeRepositoryRelativePath(normalized)) {
+      unmappedFiles.push(normalized);
+      continue;
+    }
     if (CI_GATE_INTEGRITY_TRIGGERS.has(normalized)) {
       const absoluteTest = path.join(
         repoRoot,
@@ -303,6 +319,20 @@ function createSelection(
       continue;
     }
 
+    if (
+      IDE_DEDICATED_GATE_PREFIXES.some((prefix) =>
+        normalized.startsWith(prefix),
+      )
+    ) {
+      desktopMapped = true;
+      mappings.push({
+        file: normalized,
+        suite: "desktop-unit",
+        tests: [],
+        reason: "covered-by-ide-dedicated-gates",
+      });
+      continue;
+    }
     const relativeFile = projectRelativePath(normalized);
 
     if (!relativeFile) {

@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 /**
  * RemoteGateway 单元测试
  *
@@ -178,7 +180,9 @@ function setupSpiesAfterInit(gw) {
     vi.spyOn(gw.permissionGate, "setDevicePermissionLevel").mockResolvedValue({
       success: true,
     });
-    vi.spyOn(gw.permissionGate, "getDevicePermissionLevel").mockResolvedValue(2);
+    vi.spyOn(gw.permissionGate, "getDevicePermissionLevel").mockResolvedValue(
+      2,
+    );
     vi.spyOn(gw.permissionGate, "stopCleanup").mockImplementation(() => {});
     vi.spyOn(gw.permissionGate, "getAuditLogs").mockReturnValue([]);
     vi.spyOn(gw.permissionGate, "getStats").mockReturnValue({
@@ -469,7 +473,11 @@ describe("RemoteGateway", () => {
     it("P2P 未初始化时应该抛出错误", async () => {
       const noP2PGateway = new RemoteGateway(
         { ...mockDependencies, p2pManager: null },
-        { enableP2P: false, fileTransfer: testFileTransferOpts, browserExtension: { port: 0 } },
+        {
+          enableP2P: false,
+          fileTransfer: testFileTransferOpts,
+          browserExtension: { port: 0 },
+        },
       );
       await noP2PGateway.initialize();
       setupSpiesAfterInit(noP2PGateway);
@@ -499,7 +507,11 @@ describe("RemoteGateway", () => {
     it("P2P 未初始化时应该静默处理", async () => {
       const noP2PGateway = new RemoteGateway(
         { ...mockDependencies, p2pManager: null },
-        { enableP2P: false, fileTransfer: testFileTransferOpts, browserExtension: { port: 0 } },
+        {
+          enableP2P: false,
+          fileTransfer: testFileTransferOpts,
+          browserExtension: { port: 0 },
+        },
       );
       await noP2PGateway.initialize();
       setupSpiesAfterInit(noP2PGateway);
@@ -526,7 +538,11 @@ describe("RemoteGateway", () => {
     it("P2P 未初始化时应该返回空数组", async () => {
       const noP2PGateway = new RemoteGateway(
         { ...mockDependencies, p2pManager: null },
-        { enableP2P: false, fileTransfer: testFileTransferOpts, browserExtension: { port: 0 } },
+        {
+          enableP2P: false,
+          fileTransfer: testFileTransferOpts,
+          browserExtension: { port: 0 },
+        },
       );
       await noP2PGateway.initialize();
       setupSpiesAfterInit(noP2PGateway);

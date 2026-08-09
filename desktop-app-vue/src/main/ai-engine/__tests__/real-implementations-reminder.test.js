@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 /**
  * calculateNextTrigger — monthly reminder month-end drift regression.
  *
@@ -17,11 +19,35 @@ vi.mock("../../utils/logger.js", () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
 }));
 
-const { calculateNextTrigger } = require("../real-implementations.js");
+const Module = require("node:module");
+const nativeLoadRequests = [];
+const originalModuleLoad = Module._load;
+const nativeStubs = {
+  canvas: { createCanvas() {}, loadImage() {} },
+  sharp() {},
+};
+let calculateNextTrigger;
+
+Module._load = function trackNativeLoad(request, parent, isMain) {
+  if (Object.hasOwn(nativeStubs, request)) {
+    nativeLoadRequests.push(request);
+    return nativeStubs[request];
+  }
+  return originalModuleLoad.call(this, request, parent, isMain);
+};
+try {
+  ({ calculateNextTrigger } = require("../real-implementations.js"));
+} finally {
+  Module._load = originalModuleLoad;
+}
 
 describe("calculateNextTrigger monthly (month-end, no drift)", () => {
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it("does not load canvas or sharp for reminder-only imports", () => {
+    expect(nativeLoadRequests).toEqual([]);
   });
 
   it("keeps a day-31 monthly reminder anchored (no drift to day 3)", () => {
