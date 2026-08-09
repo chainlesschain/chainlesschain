@@ -39,6 +39,33 @@ describe("screenshot-ipc", () => {
       }
     });
 
+    it("accepts a filesystem alias that resolves to os.tmpdir()", () => {
+      const name = `cc-screenshot-alias-${process.pid}-${Date.now()}.png`;
+      const target = path.join(os.tmpdir(), name);
+      const alias = path.join(
+        process.cwd(),
+        `.screenshot-ipc-tmp-alias-${process.pid}-${Date.now()}`,
+      );
+      fs.writeFileSync(target, Buffer.from([0]));
+      try {
+        fs.symlinkSync(
+          os.tmpdir(),
+          alias,
+          process.platform === "win32" ? "junction" : "dir",
+        );
+        expect(_internal.isInsideTmpDir(path.join(alias, name))).toBe(true);
+      } finally {
+        if (fs.existsSync(alias)) {
+          if (process.platform === "win32") {
+            fs.rmdirSync(alias);
+          } else {
+            fs.unlinkSync(alias);
+          }
+        }
+        fs.rmSync(target, { force: true });
+      }
+    });
+
     it("rejects paths outside os.tmpdir()", () => {
       expect(_internal.isInsideTmpDir("/etc/passwd")).toBe(false);
       expect(_internal.isInsideTmpDir("C:/Windows/System32")).toBe(false);
@@ -52,6 +79,389 @@ describe("screenshot-ipc", () => {
       } finally {
         fs.unlinkSync(p);
       }
+    });
+
+    it("rejects a sibling whose name merely starts with the tmp path", () => {
+      const sibling = `${path.resolve(os.tmpdir())}-outside`;
+      expect(
+        _internal.isInsideTmpDir(
+          path.join(sibling, "cc-screenshot-prefix-confusion.png"),
+        ),
+      ).toBe(false);
+    });
+
+    it.skipIf(process.platform === "win32")(
+      "rejects a tmp symlink that resolves outside the tmp directory",
+      () => {
+        const outsideDir = fs.mkdtempSync(
+          path.join(process.cwd(), ".screenshot-ipc-outside-"),
+        );
+        const outsideFile = path.join(
+          outsideDir,
+          "cc-screenshot-outside-target.png",
+        );
+        const linkPath = path.join(
+          os.tmpdir(),
+          `cc-screenshot-link-${process.pid}-${Date.now()}.png`,
+        );
+        fs.writeFileSync(outsideFile, Buffer.from([0]));
+        try {
+          fs.symlinkSync(outsideFile, linkPath, "file");
+          expect(_internal.isInsideTmpDir(linkPath)).toBe(false);
+        } finally {
+          fs.rmSync(linkPath, { force: true });
+          fs.rmSync(outsideDir, { recursive: true, force: true });
+        }
+      },
+    );
+
+    it("rejects a directory junction used as a screenshot leaf", () => {
+      const outsideDir = fs.mkdtempSync(
+        path.join(process.cwd(), ".screenshot-ipc-junction-target-"),
+      );
+      const linkPath = path.join(
+        os.tmpdir(),
+        `cc-screenshot-junction-${process.pid}-${Date.now()}.png`,
+      );
+      try {
+        fs.symlinkSync(
+          outsideDir,
+          linkPath,
+          process.platform === "win32" ? "junction" : "dir",
+        );
+        expect(_internal.isInsideTmpDir(linkPath)).toBe(false);
+      } finally {
+        if (fs.existsSync(linkPath)) {
+          if (process.platform === "win32") {
+            fs.rmdirSync(linkPath);
+          } else {
+            fs.unlinkSync(linkPath);
+          }
+        }
+        fs.rmSync(outsideDir, { recursive: true, force: true });
+      }
+    });
+
+    it("rejects a hard-linked screenshot leaf", () => {
+      const nestedDir = fs.mkdtempSync(
+        path.join(os.tmpdir(), "screenshot-ipc-hardlink-target-"),
+      );
+      const target = path.join(nestedDir, "target.png");
+      const linkPath = path.join(
+        os.tmpdir(),
+        `cc-screenshot-hardlink-${process.pid}-${Date.now()}.png`,
+      );
+      fs.writeFileSync(target, Buffer.from([0]));
+      try {
+        fs.linkSync(target, linkPath);
+        expect(_internal.isInsideTmpDir(linkPath)).toBe(false);
+      } finally {
+        fs.rmSync(linkPath, { force: true });
+        fs.rmSync(nestedDir, { recursive: true, force: true });
+      }
+    });
+
+    it("rejects screenshots nested below the tmp root", () => {
+      const nestedDir = fs.mkdtempSync(
+        path.join(os.tmpdir(), "screenshot-ipc-nested-"),
+      );
+      const nestedFile = path.join(nestedDir, "cc-screenshot-nested.png");
+      fs.writeFileSync(nestedFile, Buffer.from([0]));
+      try {
+        expect(_internal.isInsideTmpDir(nestedFile)).toBe(false);
+      } finally {
+        fs.rmSync(nestedDir, { recursive: true, force: true });
+      }
+    });
+  });
+
+  describe("secure screenshot file I/O", () => {
+    it("uses a canonical tmp path instead of a caller-provided alias", async () => {
+      const name = "cc-screenshot-canonical-open.png";
+      const aliasParent = path.join(process.cwd(), "screenshot-tmp-alias");
+      const canonicalTmp = path.join(os.tmpdir(), "canonical-tmp-root");
+      const trustedPath = path.join(canonicalTmp, name);
+      const stat = {
+        dev: 1,
+        ino: 10,
+        nlink: 1,
+        size: 1,
+        isFile: () => true,
+        isSymbolicLink: () => false,
+      };
+      const handle = {
+        stat: vi.fn(async () => stat),
+        read: vi.fn(async (buffer, offset) => {
+          buffer[offset] = 42;
+          return { bytesRead: 1 };
+        }),
+        close: vi.fn(async () => {}),
+      };
+      const fakeFs = {
+        realpathSync: vi.fn((value) => {
+          const resolved = path.resolve(value);
+          if (
+            resolved === path.resolve(os.tmpdir()) ||
+            resolved === path.resolve(aliasParent)
+          ) {
+            return canonicalTmp;
+          }
+          throw new Error(`unexpected realpath: ${value}`);
+        }),
+        constants: fs.constants,
+        promises: {
+          lstat: vi.fn(async () => stat),
+          open: vi.fn(async () => handle),
+          unlink: vi.fn(async () => {}),
+        },
+      };
+
+      const result = await _internal.readScreenshotFile(
+        path.join(aliasParent, name),
+        fakeFs,
+      );
+
+      expect(result).toEqual(Buffer.from([42]));
+      expect(fakeFs.promises.lstat).toHaveBeenCalledWith(trustedPath, {
+        bigint: true,
+      });
+      expect(fakeFs.promises.open).toHaveBeenCalledWith(
+        trustedPath,
+        expect.any(Number),
+      );
+      expect(handle.close).toHaveBeenCalledOnce();
+
+      await expect(
+        _internal.removeScreenshotFile(path.join(aliasParent, name), fakeFs),
+      ).resolves.toBe(true);
+      expect(fakeFs.promises.unlink).toHaveBeenCalledWith(trustedPath);
+    });
+
+    it("rejects a file identity swap and closes the opened handle", async () => {
+      const safeStat = {
+        dev: 1,
+        ino: 10,
+        nlink: 1,
+        size: 1,
+        isFile: () => true,
+        isSymbolicLink: () => false,
+      };
+      const swappedStat = { ...safeStat, ino: 11 };
+      const handle = {
+        stat: vi.fn(async () => swappedStat),
+        read: vi.fn(async () => ({ bytesRead: 1 })),
+        close: vi.fn(async () => {}),
+      };
+      const fakeFs = {
+        realpathSync: vi.fn((value) => path.resolve(value)),
+        constants: fs.constants,
+        promises: {
+          lstat: vi.fn(async () => safeStat),
+          open: vi.fn(async () => handle),
+        },
+      };
+      const filePath = path.join(os.tmpdir(), "cc-screenshot-race.png");
+
+      await expect(
+        _internal.readScreenshotFile(filePath, fakeFs),
+      ).rejects.toThrow(/changed during validation/);
+      expect(handle.read).not.toHaveBeenCalled();
+      expect(handle.close).toHaveBeenCalledOnce();
+    });
+
+    it("reads short chunks to completion through the validated handle", async () => {
+      const stat = {
+        dev: 1,
+        ino: 10,
+        nlink: 1,
+        size: 3,
+        isFile: () => true,
+        isSymbolicLink: () => false,
+      };
+      const handle = {
+        stat: vi.fn(async () => stat),
+        read: vi.fn(async (buffer, offset) => {
+          buffer[offset] = offset + 1;
+          return { bytesRead: 1 };
+        }),
+        close: vi.fn(async () => {}),
+      };
+      const fakeFs = {
+        realpathSync: vi.fn((value) => path.resolve(value)),
+        constants: fs.constants,
+        promises: {
+          lstat: vi.fn(async () => stat),
+          open: vi.fn(async () => handle),
+        },
+      };
+
+      await expect(
+        _internal.readScreenshotFile(
+          path.join(os.tmpdir(), "cc-screenshot-short-read.png"),
+          fakeFs,
+        ),
+      ).resolves.toEqual(Buffer.from([1, 2, 3]));
+      expect(handle.read).toHaveBeenCalledTimes(3);
+      expect(handle.close).toHaveBeenCalledOnce();
+    });
+
+    it("closes the validated handle when a short read stops early", async () => {
+      const stat = {
+        dev: 1,
+        ino: 10,
+        nlink: 1,
+        size: 2,
+        isFile: () => true,
+        isSymbolicLink: () => false,
+      };
+      const handle = {
+        stat: vi.fn(async () => stat),
+        read: vi
+          .fn()
+          .mockResolvedValueOnce({ bytesRead: 1 })
+          .mockResolvedValueOnce({ bytesRead: 0 }),
+        close: vi.fn(async () => {}),
+      };
+      const fakeFs = {
+        realpathSync: vi.fn((value) => path.resolve(value)),
+        constants: fs.constants,
+        promises: {
+          lstat: vi.fn(async () => stat),
+          open: vi.fn(async () => handle),
+        },
+      };
+
+      await expect(
+        _internal.readScreenshotFile(
+          path.join(os.tmpdir(), "cc-screenshot-stopped-read.png"),
+          fakeFs,
+        ),
+      ).rejects.toThrow(/changed while reading/);
+      expect(handle.close).toHaveBeenCalledOnce();
+    });
+
+    it("cleans up empty and oversized regular screenshot files", async () => {
+      const emptyPath = path.join(
+        os.tmpdir(),
+        `cc-screenshot-empty-${process.pid}-${Date.now()}.png`,
+      );
+      const oversizedPath = path.join(
+        os.tmpdir(),
+        `cc-screenshot-oversized-${process.pid}-${Date.now()}.png`,
+      );
+      fs.writeFileSync(emptyPath, Buffer.alloc(0));
+      const fd = fs.openSync(oversizedPath, "w", 0o600);
+      fs.ftruncateSync(fd, _internal.MAX_SCREENSHOT_BYTES + 1);
+      fs.closeSync(fd);
+      try {
+        expect(_internal.isInsideTmpDir(emptyPath)).toBe(true);
+        expect(_internal.isInsideTmpDir(oversizedPath)).toBe(true);
+        await expect(_internal.readScreenshotFile(emptyPath)).rejects.toThrow(
+          /Unsafe screenshot file/,
+        );
+        await expect(
+          _internal.readScreenshotFile(oversizedPath),
+        ).rejects.toThrow(/Unsafe screenshot file/);
+        await expect(_internal.removeScreenshotFile(emptyPath)).resolves.toBe(
+          true,
+        );
+        await expect(
+          _internal.removeScreenshotFile(oversizedPath),
+        ).resolves.toBe(true);
+        expect(fs.existsSync(emptyPath)).toBe(false);
+        expect(fs.existsSync(oversizedPath)).toBe(false);
+      } finally {
+        fs.rmSync(emptyPath, { force: true });
+        fs.rmSync(oversizedPath, { force: true });
+      }
+    });
+
+    it("uses exclusive private writes and never truncates a collision", async () => {
+      const nestedDir = fs.mkdtempSync(
+        path.join(os.tmpdir(), "screenshot-ipc-write-target-"),
+      );
+      const target = path.join(nestedDir, "target.png");
+      const occupied = path.join(
+        os.tmpdir(),
+        `cc-screenshot-occupied-${process.pid}-${Date.now()}.png`,
+      );
+      const available = path.join(
+        os.tmpdir(),
+        `cc-screenshot-private-${process.pid}-${Date.now()}.png`,
+      );
+      fs.writeFileSync(target, Buffer.from("sensitive"), { mode: 0o600 });
+      fs.linkSync(target, occupied);
+      const pathFactory = vi
+        .fn()
+        .mockReturnValueOnce(occupied)
+        .mockReturnValueOnce(available);
+      let writtenPath;
+      try {
+        writtenPath = await _internal.writeScreenshotFile(
+          Buffer.from([1, 2, 3]),
+          { pathFactory, maxAttempts: 2 },
+        );
+        expect(pathFactory).toHaveBeenCalledTimes(2);
+        expect(fs.readFileSync(target, "utf8")).toBe("sensitive");
+        expect(fs.readFileSync(writtenPath)).toEqual(Buffer.from([1, 2, 3]));
+        if (process.platform !== "win32") {
+          expect(fs.statSync(writtenPath).mode & 0o777).toBe(0o600);
+        }
+      } finally {
+        fs.rmSync(occupied, { force: true });
+        if (writtenPath) {
+          fs.rmSync(writtenPath, { force: true });
+        }
+        fs.rmSync(available, { force: true });
+        fs.rmSync(nestedDir, { recursive: true, force: true });
+      }
+    });
+
+    it("rejects empty and oversized buffers before allocating a path", async () => {
+      const pathFactory = vi.fn();
+      await expect(
+        _internal.writeScreenshotFile(Buffer.alloc(0), { pathFactory }),
+      ).rejects.toThrow(/size is invalid/);
+      await expect(
+        _internal.writeScreenshotFile(
+          Buffer.allocUnsafe(_internal.MAX_SCREENSHOT_BYTES + 1),
+          { pathFactory },
+        ),
+      ).rejects.toThrow(/size is invalid/);
+      expect(pathFactory).not.toHaveBeenCalled();
+    });
+
+    it("closes and removes a file after a partial write failure", async () => {
+      const filePath = path.join(os.tmpdir(), "cc-screenshot-partial.png");
+      const handle = {
+        writeFile: vi.fn(async () => {
+          throw new Error("ENOSPC");
+        }),
+        close: vi.fn(async () => {}),
+      };
+      const fakeFs = {
+        realpathSync: vi.fn((value) => path.resolve(value)),
+        promises: {
+          open: vi.fn(async () => handle),
+          unlink: vi.fn(async () => {}),
+        },
+      };
+
+      await expect(
+        _internal.writeScreenshotFile(Buffer.from([1]), {
+          fsImpl: fakeFs,
+          pathFactory: () => filePath,
+        }),
+      ).rejects.toThrow(/ENOSPC/);
+      expect(fakeFs.promises.open).toHaveBeenCalledWith(
+        path.resolve(filePath),
+        "wx",
+        0o600,
+      );
+      expect(handle.close).toHaveBeenCalledOnce();
+      expect(fakeFs.promises.unlink).toHaveBeenCalledWith(
+        path.resolve(filePath),
+      );
     });
   });
 
@@ -127,6 +537,31 @@ describe("screenshot-ipc", () => {
       expect(stubRecognize).not.toHaveBeenCalled();
     });
 
+    it("screenshot:ocr never invokes OCR after a validation race", async () => {
+      const p = path.join(os.tmpdir(), "cc-screenshot-handler-race.png");
+      const readScreenshotFile = vi.fn(async () => {
+        throw new Error("Screenshot file changed during validation");
+      });
+      fs.writeFileSync(p, Buffer.from([0]));
+      try {
+        registerScreenshotIPC({
+          ipcMain,
+          capture: stubCapture,
+          recognize: stubRecognize,
+          recognizeWithLLM: stubRecognizeWithLLM,
+          readScreenshotFile,
+        });
+        const result = await ipcMain.invoke("screenshot:ocr", { path: p });
+        expect(result.success).toBe(false);
+        expect(result.error).toMatch(/changed during validation/);
+        expect(readScreenshotFile).toHaveBeenCalledWith(p);
+        expect(stubRecognize).not.toHaveBeenCalled();
+        expect(stubRecognizeWithLLM).not.toHaveBeenCalled();
+      } finally {
+        fs.rmSync(p, { force: true });
+      }
+    });
+
     it("screenshot:ocr accepts a tmp path and returns text (auto → tesseract when no llmManager)", async () => {
       const p = path.join(os.tmpdir(), "cc-screenshot-ocr-test.png");
       fs.writeFileSync(p, Buffer.from([0]));
@@ -139,7 +574,8 @@ describe("screenshot-ipc", () => {
         expect(result.text).toBe("hello world");
         expect(result.confidence).toBe(92.5);
         expect(result.engine).toBe("tesseract");
-        expect(stubRecognize).toHaveBeenCalledWith(p, "eng");
+        expect(stubRecognize).toHaveBeenCalledWith(expect.any(Buffer), "eng");
+        expect(stubRecognize.mock.calls[0][0]).toEqual(Buffer.from([0]));
         expect(stubRecognizeWithLLM).not.toHaveBeenCalled();
       } finally {
         if (fs.existsSync(p)) {
@@ -329,7 +765,7 @@ describe("screenshot-ipc", () => {
         engine: "llm",
         model: "x",
       }));
-      const result = await _internal.recognizeDispatch(tmpFile, {
+      const result = await _internal.recognizeDispatch(Buffer.from([0]), {
         engine: "auto",
         llmManager: { provider: "volcengine", chatWithImageProcess: vi.fn() },
         tesseractImpl,

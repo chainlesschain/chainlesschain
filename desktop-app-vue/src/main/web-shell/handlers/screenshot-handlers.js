@@ -24,9 +24,6 @@
  * 反馈出现，split 成独立 screenshot.preview topic 是机械改动。
  */
 
-const fs = require("fs");
-const fsp = require("fs").promises;
-
 function _loadInternal() {
   return require("../../screenshot/screenshot-ipc")._internal;
 }
@@ -69,7 +66,8 @@ function createScreenshotOcrHandler({
         : "auto";
     const llmManager = app?.llmManager ?? directLlmManager ?? null;
     try {
-      const result = await helpers.recognizeDispatch(filePath, {
+      const imageBuffer = await helpers.readScreenshotFile(filePath);
+      const result = await helpers.recognizeDispatch(imageBuffer, {
         engine,
         lang,
         llmManager,
@@ -94,11 +92,7 @@ function createScreenshotCleanupHandler({ _internal, fs: fsImpl } = {}) {
       return { success: false, error: "拒绝删除 tmp 外路径" };
     }
     try {
-      const fsLib = fsImpl || fs;
-      const fspLib = fsImpl?.promises || fsp;
-      if (fsLib.existsSync(filePath)) {
-        await fspLib.unlink(filePath);
-      }
+      await helpers.removeScreenshotFile(filePath, fsImpl);
       return { success: true };
     } catch (err) {
       return { success: false, error: err?.message || String(err) };
