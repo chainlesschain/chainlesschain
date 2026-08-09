@@ -1,6 +1,6 @@
 # collaboration-manager
 
-**Source**: `src\main\collaboration\collaboration-manager.js`
+**Source**: `src/main/collaboration/collaboration-manager.js`
 
 ---
 
@@ -10,9 +10,9 @@
 const
 ```
 
-- 协作管理器
-- 提供实时协作编辑功能，支持多用户同时编辑文档
-- 基于ShareDB实现OT (Operational Transformation) 算法
+* 协作管理器
+ * 提供实时协作编辑功能，支持多用户同时编辑文档
+ * 基于ShareDB实现OT (Operational Transformation) 算法
 
 ---
 
@@ -22,7 +22,7 @@ const
 async initialize(options =
 ```
 
-- 初始化协作管理器
+* 初始化协作管理器
 
 ---
 
@@ -32,7 +32,7 @@ async initialize(options =
 async createTables()
 ```
 
-- 创建数据库表
+* 创建数据库表
 
 ---
 
@@ -42,7 +42,7 @@ async createTables()
 async startServer()
 ```
 
-- 启动WebSocket服务器
+* 启动WebSocket服务器
 
 ---
 
@@ -52,7 +52,7 @@ async startServer()
 async stopServer()
 ```
 
-- 停止WebSocket服务器
+* 停止WebSocket服务器
 
 ---
 
@@ -62,7 +62,7 @@ async stopServer()
 async handleMessage(connectionId, message)
 ```
 
-- 处理消息
+* 处理消息
 
 ---
 
@@ -72,7 +72,7 @@ async handleMessage(connectionId, message)
 async handleJoin(connectionId, payload)
 ```
 
-- 处理加入文档
+* 处理加入文档
 
 ---
 
@@ -82,7 +82,7 @@ async handleJoin(connectionId, payload)
 async handleCursorUpdate(connectionId, payload)
 ```
 
-- 处理光标更新
+* 处理光标更新
 
 ---
 
@@ -92,7 +92,7 @@ async handleCursorUpdate(connectionId, payload)
 async handleSelectionUpdate(connectionId, payload)
 ```
 
-- 处理选区更新
+* 处理选区更新
 
 ---
 
@@ -102,28 +102,28 @@ async handleSelectionUpdate(connectionId, payload)
 async handlePresenceUpdate(connectionId, payload)
 ```
 
-- 处理在线状态更新
+* 处理在线状态更新
 
 ---
 
 ## handleDisconnect(connectionId)
 
 ```javascript
-handleDisconnect(connectionId);
+handleDisconnect(connectionId)
 ```
 
-- 处理断开连接
+* 处理断开连接
 
 ---
 
 ## _releaseDocumentIfIdle(documentId, excludeConn)
 
 ```javascript
-_releaseDocumentIfIdle(documentId, excludeConn);
+_releaseDocumentIfIdle(documentId, excludeConn)
 ```
 
-- 当某文档不再有任何活跃连接时，取消订阅并从内存映射中移除。
-  - @private
+* 当某文档不再有任何活跃连接时，取消订阅并从内存映射中移除。
+   * @private
 
 ---
 
@@ -133,7 +133,7 @@ _releaseDocumentIfIdle(documentId, excludeConn);
 async joinDocument(userId, userName, documentId)
 ```
 
-- 加入文档协作
+* 加入文档协作
 
 ---
 
@@ -143,87 +143,87 @@ async joinDocument(userId, userName, documentId)
 async submitOperation(documentId, userId, operation)
 ```
 
-- 提交操作
+* 提交操作
 
 ---
 
 ## onDocumentChange(documentId, callback)
 
 ```javascript
-onDocumentChange(documentId, callback);
+onDocumentChange(documentId, callback)
 ```
 
-- 监听文档变更
+* 监听文档变更
 
 ---
 
 ## broadcastToDocument(documentId, excludeUserId, message)
 
 ```javascript
-broadcastToDocument(documentId, excludeUserId, message);
+broadcastToDocument(documentId, excludeUserId, message)
 ```
 
-- 广播消息到文档的所有用户
+* 广播消息到文档的所有用户
 
 ---
 
 ## getOnlineUsers(documentId)
 
 ```javascript
-getOnlineUsers(documentId);
+getOnlineUsers(documentId)
 ```
 
-- 获取在线用户
+* 获取在线用户
 
 ---
 
 ## getOperationHistory(documentId, limit = 100)
 
 ```javascript
-getOperationHistory(documentId, (limit = 100));
+getOperationHistory(documentId, limit = 100)
 ```
 
-- 获取文档操作历史
+* 获取文档操作历史
 
 ---
 
 ## getSessionHistory(documentId, limit = 50)
 
 ```javascript
-getSessionHistory(documentId, (limit = 50));
+getSessionHistory(documentId, limit = 50)
 ```
 
-- 获取会话历史
+* 获取会话历史
 
 ---
 
 ## generateConnectionId()
 
 ```javascript
-generateConnectionId();
+generateConnectionId()
 ```
 
-- 生成连接ID
+* 生成连接ID
 
 ---
 
 ## getStatus()
 
 ```javascript
-getStatus();
+getStatus()
 ```
 
-- 获取服务器状态
+* 获取服务器状态
 
 ---
 
 ## getAllOnlineUsers()
 
 ```javascript
-getAllOnlineUsers();
+getAllOnlineUsers()
 ```
 
-- 获取所有在线用户
+* 获取所有在线用户
 
 ---
 
@@ -233,36 +233,36 @@ getAllOnlineUsers();
 async checkDocumentPermission(userDID, orgId, knowledgeId, action = "read")
 ```
 
-- 检查文档权限 (企业版功能)
-  - @param {string} userDID - 用户DID
-  - @param {string} orgId - 组织ID
-  - @param {string} knowledgeId - 知识库ID
-  - @param {string} action - 操作类型 (read/write/delete)
-  - @returns {Promise<boolean>} 是否有权限
+* 检查文档权限 (企业版功能)
+   * @param {string} userDID - 用户DID
+   * @param {string} orgId - 组织ID
+   * @param {string} knowledgeId - 知识库ID
+   * @param {string} action - 操作类型 (read/write/delete)
+   * @returns {Promise<boolean>} 是否有权限
 
 ---
 
 ## _getPermissionLevel(permission)
 
 ```javascript
-_getPermissionLevel(permission);
+_getPermissionLevel(permission)
 ```
 
-- 获取权限级别数值
-  - @param {string} permission - 权限名称
-  - @returns {number} 权限级别（数值越大权限越高）
-  - @private
+* 获取权限级别数值
+   * @param {string} permission - 权限名称
+   * @returns {number} 权限级别（数值越大权限越高）
+   * @private
 
 ---
 
 ## setOrganizationManager(organizationManager)
 
 ```javascript
-setOrganizationManager(organizationManager);
+setOrganizationManager(organizationManager)
 ```
 
-- 设置组织管理器引用
-  - @param {Object} organizationManager - 组织管理器实例
+* 设置组织管理器引用
+   * @param {Object} organizationManager - 组织管理器实例
 
 ---
 
@@ -272,7 +272,8 @@ setOrganizationManager(organizationManager);
 function getCollaborationManager()
 ```
 
-- 获取协作管理器实例
-- @returns {CollaborationManager}
+* 获取协作管理器实例
+ * @returns {CollaborationManager}
 
 ---
+

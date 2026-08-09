@@ -1,6 +1,6 @@
 # stats-cleaner
 
-**Source**: `src\main\skill-tool-system\stats-cleaner.js`
+**Source**: `src/main/skill-tool-system/stats-cleaner.js`
 
 ---
 
@@ -10,48 +10,48 @@
 const
 ```
 
-- 统计数据清理器
-- 定期清理过期的统计数据,优化数据库性能
+* 统计数据清理器
+ * 定期清理过期的统计数据,优化数据库性能
 
 ---
 
 ## initialize()
 
 ```javascript
-initialize();
+initialize()
 ```
 
-- 初始化并启动定时清理任务
+* 初始化并启动定时清理任务
 
 ---
 
 ## scheduleDailyCleanup()
 
 ```javascript
-scheduleDailyCleanup();
+scheduleDailyCleanup()
 ```
 
-- 每日清理任务
+* 每日清理任务
 
 ---
 
 ## scheduleWeeklyAggregation()
 
 ```javascript
-scheduleWeeklyAggregation();
+scheduleWeeklyAggregation()
 ```
 
-- 每周汇总任务
+* 每周汇总任务
 
 ---
 
 ## scheduleMonthlyCleanup()
 
 ```javascript
-scheduleMonthlyCleanup();
+scheduleMonthlyCleanup()
 ```
 
-- 每月清理任务
+* 每月清理任务
 
 ---
 
@@ -61,7 +61,7 @@ scheduleMonthlyCleanup();
 async cleanupUsageLogs()
 ```
 
-- 清理过期的使用日志
+* 清理过期的使用日志
 
 ---
 
@@ -71,7 +71,7 @@ async cleanupUsageLogs()
 async cleanupExecutionLogs()
 ```
 
-- 清理过期的执行日志
+* 清理过期的执行日志
 
 ---
 
@@ -81,7 +81,7 @@ async cleanupExecutionLogs()
 async aggregateDailyStats()
 ```
 
-- 汇总每日统计数据
+* 汇总每日统计数据
 
 ---
 
@@ -91,7 +91,7 @@ async aggregateDailyStats()
 async aggregateSkillStats(date)
 ```
 
-- 汇总技能统计
+* 汇总技能统计
 
 ---
 
@@ -101,7 +101,7 @@ async aggregateSkillStats(date)
 async aggregateToolStats(date)
 ```
 
-- 汇总工具统计
+* 汇总工具统计
 
 ---
 
@@ -111,7 +111,7 @@ async aggregateToolStats(date)
 async aggregateWeeklyStats()
 ```
 
-- 汇总每周统计数据
+* 汇总每周统计数据
 
 ---
 
@@ -121,7 +121,7 @@ async aggregateWeeklyStats()
 async cleanupOldStats()
 ```
 
-- 清理旧的统计数据
+* 清理旧的统计数据
 
 ---
 
@@ -131,7 +131,7 @@ async cleanupOldStats()
 async optimizeDatabase()
 ```
 
-- 优化数据库
+* 优化数据库
 
 ---
 
@@ -141,17 +141,17 @@ async optimizeDatabase()
 async vacuumDatabase()
 ```
 
-- 执行数据库VACUUM
+* 执行数据库VACUUM
 
 ---
 
 ## extractErrorType(errorMessage)
 
 ```javascript
-extractErrorType(errorMessage);
+extractErrorType(errorMessage)
 ```
 
-- 提取错误类型
+* 提取错误类型
 
 ---
 
@@ -161,7 +161,7 @@ extractErrorType(errorMessage);
 async manualCleanup()
 ```
 
-- 手动触发清理
+* 手动触发清理
 
 ---
 
@@ -171,26 +171,27 @@ async manualCleanup()
 async getCleanupStats()
 ```
 
-- 获取清理统计
+* 获取清理统计
 
 ---
 
 ## updateConfig(newConfig)
 
 ```javascript
-updateConfig(newConfig);
+updateConfig(newConfig)
 ```
 
-- 更新配置
+* 更新配置
 
 ---
 
 ## stopAll()
 
 ```javascript
-stopAll();
+stopAll()
 ```
 
-- 停止所有定时任务
+* 停止所有定时任务
 
 ---
+

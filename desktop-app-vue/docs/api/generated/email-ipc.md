@@ -1,6 +1,6 @@
 # email-ipc
 
-**Source**: `src\main\api\email-ipc.js`
+**Source**: `src/main/api/email-ipc.js`
 
 ---
 
@@ -10,20 +10,20 @@
 const
 ```
 
-- Email IPC Handlers
-- 处理邮件相关的 IPC 通信
--
-- v0.20.0: 新增邮件集成功能
+* Email IPC Handlers
+ * 处理邮件相关的 IPC 通信
+ *
+ * v0.20.0: 新增邮件集成功能
 
 ---
 
 ## getEmailClient(accountId)
 
 ```javascript
-getEmailClient(accountId);
+getEmailClient(accountId)
 ```
 
-- 获取或创建邮件客户端
+* 获取或创建邮件客户端
 
 ---
 
@@ -33,7 +33,7 @@ getEmailClient(accountId);
 async addAccount(config)
 ```
 
-- 添加邮件账户
+* 添加邮件账户
 
 ---
 
@@ -43,7 +43,7 @@ async addAccount(config)
 async removeAccount(accountId)
 ```
 
-- 删除邮件账户
+* 删除邮件账户
 
 ---
 
@@ -53,7 +53,7 @@ async removeAccount(accountId)
 async updateAccount(accountId, updates)
 ```
 
-- 更新邮件账户
+* 更新邮件账户
 
 ---
 
@@ -63,7 +63,7 @@ async updateAccount(accountId, updates)
 async getAccounts()
 ```
 
-- 获取账户列表
+* 获取账户列表
 
 ---
 
@@ -73,7 +73,7 @@ async getAccounts()
 async getAccount(accountId)
 ```
 
-- 获取单个账户
+* 获取单个账户
 
 ---
 
@@ -83,7 +83,7 @@ async getAccount(accountId)
 async testConnection(config)
 ```
 
-- 测试连接
+* 测试连接
 
 ---
 
@@ -93,7 +93,7 @@ async testConnection(config)
 async syncMailboxes(accountId)
 ```
 
-- 同步邮箱列表
+* 同步邮箱列表
 
 ---
 
@@ -103,7 +103,7 @@ async syncMailboxes(accountId)
 async getMailboxes(accountId)
 ```
 
-- 获取邮箱列表
+* 获取邮箱列表
 
 ---
 
@@ -113,7 +113,7 @@ async getMailboxes(accountId)
 async fetchEmails(accountId, options =
 ```
 
-- 获取邮件
+* 获取邮件
 
 ---
 
@@ -123,7 +123,7 @@ async fetchEmails(accountId, options =
 async saveEmails(accountId, mailboxName, emails)
 ```
 
-- 保存邮件到数据库
+* 保存邮件到数据库
 
 ---
 
@@ -133,7 +133,7 @@ async saveEmails(accountId, mailboxName, emails)
 async getEmails(options =
 ```
 
-- 获取邮件列表
+* 获取邮件列表
 
 ---
 
@@ -143,7 +143,7 @@ async getEmails(options =
 async getEmail(emailId)
 ```
 
-- 获取单封邮件
+* 获取单封邮件
 
 ---
 
@@ -153,7 +153,7 @@ async getEmail(emailId)
 async markAsRead(emailId)
 ```
 
-- 标记为已读
+* 标记为已读
 
 ---
 
@@ -163,7 +163,7 @@ async markAsRead(emailId)
 async markAsUnread(emailId)
 ```
 
-- 标记为未读
+* 标记为未读
 
 ---
 
@@ -173,7 +173,7 @@ async markAsUnread(emailId)
 async markAsStarred(emailId, starred = true)
 ```
 
-- 标记为收藏
+* 标记为收藏
 
 ---
 
@@ -183,7 +183,7 @@ async markAsStarred(emailId, starred = true)
 async archiveEmail(emailId)
 ```
 
-- 归档邮件
+* 归档邮件
 
 ---
 
@@ -193,7 +193,7 @@ async archiveEmail(emailId)
 async deleteEmail(emailId)
 ```
 
-- 删除邮件
+* 删除邮件
 
 ---
 
@@ -203,7 +203,7 @@ async deleteEmail(emailId)
 async sendEmail(accountId, mailOptions)
 ```
 
-- 发送邮件
+* 发送邮件
 
 ---
 
@@ -213,7 +213,7 @@ async sendEmail(accountId, mailOptions)
 async saveDraft(accountId, draftData)
 ```
 
-- 保存草稿
+* 保存草稿
 
 ---
 
@@ -223,7 +223,7 @@ async saveDraft(accountId, draftData)
 async getDrafts(accountId)
 ```
 
-- 获取草稿列表
+* 获取草稿列表
 
 ---
 
@@ -233,7 +233,7 @@ async getDrafts(accountId)
 async deleteDraft(draftId)
 ```
 
-- 删除草稿
+* 删除草稿
 
 ---
 
@@ -243,7 +243,7 @@ async deleteDraft(draftId)
 async saveToKnowledge(emailId)
 ```
 
-- 保存到知识库
+* 保存到知识库
 
 ---
 
@@ -253,7 +253,7 @@ async saveToKnowledge(emailId)
 async getAttachments(emailId)
 ```
 
-- 获取附件列表
+* 获取附件列表
 
 ---
 
@@ -263,7 +263,7 @@ async getAttachments(emailId)
 async downloadAttachment(attachmentId, savePath)
 ```
 
-- 下载附件
+* 下载附件
 
 ---
 
@@ -273,7 +273,7 @@ async downloadAttachment(attachmentId, savePath)
 async addLabel(name, options =
 ```
 
-- 添加标签
+* 添加标签
 
 ---
 
@@ -283,7 +283,7 @@ async addLabel(name, options =
 async getLabels()
 ```
 
-- 获取标签列表
+* 获取标签列表
 
 ---
 
@@ -293,7 +293,7 @@ async getLabels()
 async assignLabel(emailId, labelId)
 ```
 
-- 分配标签
+* 分配标签
 
 ---
 
@@ -303,36 +303,37 @@ async assignLabel(emailId, labelId)
 async removeLabel(emailId, labelId)
 ```
 
-- 移除标签
+* 移除标签
 
 ---
 
 ## startAutoSync(accountId)
 
 ```javascript
-startAutoSync(accountId);
+startAutoSync(accountId)
 ```
 
-- 启动自动同步
+* 启动自动同步
 
 ---
 
 ## stopAutoSync(accountId)
 
 ```javascript
-stopAutoSync(accountId);
+stopAutoSync(accountId)
 ```
 
-- 停止自动同步
+* 停止自动同步
 
 ---
 
 ## cleanup()
 
 ```javascript
-cleanup();
+cleanup()
 ```
 
-- 清理资源
+* 清理资源
 
 ---
+

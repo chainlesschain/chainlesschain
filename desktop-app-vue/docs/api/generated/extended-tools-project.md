@@ -1,6 +1,6 @@
 # extended-tools-project
 
-**Source**: `src\main\ai-engine\extended-tools-project.js`
+**Source**: `src/main/ai-engine/extended-tools-project.js`
 
 ---
 
@@ -10,8 +10,8 @@
 const
 ```
 
-- 项目初始化工具的handler实现
-- 提供NPM、Python、Docker等项目初始化功能
+* 项目初始化工具的handler实现
+ * 提供NPM、Python、Docker等项目初始化功能
 
 ---
 
@@ -21,7 +21,7 @@ const
 async tool_npm_project_setup(params)
 ```
 
-- NPM项目初始化
+* NPM项目初始化
 
 ---
 
@@ -31,7 +31,7 @@ async tool_npm_project_setup(params)
 async tool_package_json_builder(params)
 ```
 
-- package.json构建器
+* package.json构建器
 
 ---
 
@@ -41,7 +41,7 @@ async tool_package_json_builder(params)
 async tool_python_project_setup(params)
 ```
 
-- Python项目初始化
+* Python项目初始化
 
 ---
 
@@ -51,7 +51,7 @@ async tool_python_project_setup(params)
 async tool_requirements_generator(params)
 ```
 
-- requirements.txt生成器
+* requirements.txt生成器
 
 ---
 
@@ -61,7 +61,7 @@ async tool_requirements_generator(params)
 async tool_dockerfile_generator(params)
 ```
 
-- Dockerfile生成器
+* Dockerfile生成器
 
 ---
 
@@ -71,26 +71,27 @@ async tool_dockerfile_generator(params)
 async tool_gitignore_generator(params)
 ```
 
-- .gitignore生成器
+* .gitignore生成器
 
 ---
 
 ## getGitignoreTemplate(template)
 
 ```javascript
-getGitignoreTemplate(template);
+getGitignoreTemplate(template)
 ```
 
-- 获取gitignore模板
+* 获取gitignore模板
 
 ---
 
 ## register(functionCaller)
 
 ```javascript
-register(functionCaller);
+register(functionCaller)
 ```
 
-- 注册所有工具到FunctionCaller
+* 注册所有工具到FunctionCaller
 
 ---
+

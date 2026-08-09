@@ -1,6 +1,6 @@
 # knowledge-comments-manager
 
-**Source**: `src\main\knowledge\knowledge-comments-manager.js`
+**Source**: `src/main/knowledge/knowledge-comments-manager.js`
 
 ---
 
@@ -10,18 +10,18 @@
 const
 ```
 
-- Knowledge Comments Manager
--
-- Manages comments and annotations for knowledge base items.
-- Supports threaded discussions, inline comments, and mentions.
--
-- Features:
-- - Create/edit/delete comments
-- - Threaded replies
-- - Inline comments (position-based)
-- - @mentions
-- - Comment resolution
-- - Activity tracking
+* Knowledge Comments Manager
+ *
+ * Manages comments and annotations for knowledge base items.
+ * Supports threaded discussions, inline comments, and mentions.
+ *
+ * Features:
+ * - Create/edit/delete comments
+ * - Threaded replies
+ * - Inline comments (position-based)
+ * - @mentions
+ * - Comment resolution
+ * - Activity tracking
 
 ---
 
@@ -31,9 +31,9 @@ const
 async createComment(params)
 ```
 
-- Create a new comment
-  - @param {Object} params - Comment parameters
-  - @returns {Object} Created comment
+* Create a new comment
+   * @param {Object} params - Comment parameters
+   * @returns {Object} Created comment
 
 ---
 
@@ -43,10 +43,10 @@ async createComment(params)
 async getComments(knowledgeId, options =
 ```
 
-- Get comments for a knowledge item
-  - @param {string} knowledgeId - Knowledge item ID
-  - @param {Object} options - Query options
-  - @returns {Array} Comments
+* Get comments for a knowledge item
+   * @param {string} knowledgeId - Knowledge item ID
+   * @param {Object} options - Query options
+   * @returns {Array} Comments
 
 ---
 
@@ -56,10 +56,10 @@ async getComments(knowledgeId, options =
 async updateComment(commentId, updates)
 ```
 
-- Update a comment
-  - @param {string} commentId - Comment ID
-  - @param {Object} updates - Updates to apply
-  - @returns {Object} Updated comment
+* Update a comment
+   * @param {string} commentId - Comment ID
+   * @param {Object} updates - Updates to apply
+   * @returns {Object} Updated comment
 
 ---
 
@@ -69,8 +69,8 @@ async updateComment(commentId, updates)
 async deleteComment(commentId)
 ```
 
-- Delete a comment
-  - @param {string} commentId - Comment ID
+* Delete a comment
+   * @param {string} commentId - Comment ID
 
 ---
 
@@ -80,9 +80,9 @@ async deleteComment(commentId)
 async resolveComment(commentId, resolvedBy)
 ```
 
-- Resolve a comment thread
-  - @param {string} commentId - Comment ID
-  - @param {string} resolvedBy - User DID who resolved
+* Resolve a comment thread
+   * @param {string} commentId - Comment ID
+   * @param {string} resolvedBy - User DID who resolved
 
 ---
 
@@ -92,31 +92,31 @@ async resolveComment(commentId, resolvedBy)
 async getCommentStats(knowledgeId)
 ```
 
-- Get comment statistics
-  - @param {string} knowledgeId - Knowledge item ID
-  - @returns {Object} Statistics
+* Get comment statistics
+   * @param {string} knowledgeId - Knowledge item ID
+   * @returns {Object} Statistics
 
 ---
 
 ## _extractMentions(content)
 
 ```javascript
-_extractMentions(content);
+_extractMentions(content)
 ```
 
-- Extract @mentions from comment content
-  - @private
+* Extract @mentions from comment content
+   * @private
 
 ---
 
 ## _buildCommentTree(comments)
 
 ```javascript
-_buildCommentTree(comments);
+_buildCommentTree(comments)
 ```
 
-- Build comment tree structure
-  - @private
+* Build comment tree structure
+   * @private
 
 ---
 
@@ -126,8 +126,8 @@ _buildCommentTree(comments);
 async _logActivity(orgId, knowledgeId, userDid, activityType, resourceId)
 ```
 
-- Log activity
-  - @private
+* Log activity
+   * @private
 
 ---
 
@@ -137,8 +137,8 @@ async _logActivity(orgId, knowledgeId, userDid, activityType, resourceId)
 async _broadcastCommentEvent(knowledgeId, event)
 ```
 
-- Broadcast comment event to peers
-  - @private
+* Broadcast comment event to peers
+   * @private
 
 ---
 
@@ -148,7 +148,8 @@ async _broadcastCommentEvent(knowledgeId, event)
 async _notifyMentionedUsers(knowledgeId, mentions, authorName, content)
 ```
 
-- Notify mentioned users
-  - @private
+* Notify mentioned users
+   * @private
 
 ---
+

@@ -1,6 +1,6 @@
 # social
 
-**Source**: `src\main\ipc\domains\social.js`
+**Source**: `src/main/ipc/domains/social.js`
 
 ---
 
@@ -10,10 +10,11 @@
 const
 ```
 
-- @module ipc/domains/social
-- Social domain IPC handlers
-- Handles: DID identity, social forums, contacts, profiles
--
-- Phase 78 - IPC Registry Domain Split
+* @module ipc/domains/social
+ * Social domain IPC handlers
+ * Handles: DID identity, social forums, contacts, profiles
+ *
+ * Phase 78 - IPC Registry Domain Split
 
 ---
+

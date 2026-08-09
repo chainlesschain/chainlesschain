@@ -1,6 +1,6 @@
 # long-running-task-manager.test
 
-**Source**: `src\main\ai-engine\cowork\__tests__\long-running-task-manager.test.js`
+**Source**: `src/main/ai-engine/cowork/__tests__/long-running-task-manager.test.js`
 
 ---
 
@@ -10,6 +10,7 @@
 const
 ```
 
-- LongRunningTaskManager 单元测试
+* LongRunningTaskManager 单元测试
 
 ---
+

@@ -1,6 +1,6 @@
 # learned-pattern-manager-ipc
 
-**Source**: `src\main\memory\learned-pattern-manager-ipc.js`
+**Source**: `src/main/memory/learned-pattern-manager-ipc.js`
 
 ---
 
@@ -10,12 +10,12 @@
 const
 ```
 
-- LearnedPatternManager IPC Handlers
-- Handles IPC communication for learned pattern management
--
-- @module learned-pattern-manager-ipc
-- @version 1.0.0
-- @since 2026-01-17
+* LearnedPatternManager IPC Handlers
+ * Handles IPC communication for learned pattern management
+ *
+ * @module learned-pattern-manager-ipc
+ * @version 1.0.0
+ * @since 2026-01-17
 
 ---
 
@@ -25,10 +25,10 @@ const
 function registerLearnedPatternManagerIPC(
 ```
 
-- Register all LearnedPatternManager IPC handlers
-- @param {Object} dependencies - Dependencies
-- @param {Object} dependencies.learnedPatternManager - LearnedPatternManager instance
-- @param {Object} [dependencies.ipcMain] - IPC main object (for testing)
+* Register all LearnedPatternManager IPC handlers
+ * @param {Object} dependencies - Dependencies
+ * @param {Object} dependencies.learnedPatternManager - LearnedPatternManager instance
+ * @param {Object} [dependencies.ipcMain] - IPC main object (for testing)
 
 ---
 
@@ -38,8 +38,8 @@ function registerLearnedPatternManagerIPC(
 ipcMain.handle("pattern:record-prompt", async (_event, params) =>
 ```
 
-- Record a prompt pattern
-  - Channel: 'pattern:record-prompt'
+* Record a prompt pattern
+   * Channel: 'pattern:record-prompt'
 
 ---
 
@@ -49,8 +49,8 @@ ipcMain.handle("pattern:record-prompt", async (_event, params) =>
 ipcMain.handle(
 ```
 
-- Update prompt pattern usage
-  - Channel: 'pattern:update-prompt-usage'
+* Update prompt pattern usage
+   * Channel: 'pattern:update-prompt-usage'
 
 ---
 
@@ -60,8 +60,8 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- Get prompt suggestions
-  - Channel: 'pattern:get-prompt-suggestions'
+* Get prompt suggestions
+   * Channel: 'pattern:get-prompt-suggestions'
 
 ---
 
@@ -71,8 +71,8 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- Search prompt patterns
-  - Channel: 'pattern:search-prompts'
+* Search prompt patterns
+   * Channel: 'pattern:search-prompts'
 
 ---
 
@@ -82,8 +82,8 @@ ipcMain.handle(
 ipcMain.handle("pattern:record-error-fix", async (_event, params) =>
 ```
 
-- Record an error fix pattern
-  - Channel: 'pattern:record-error-fix'
+* Record an error fix pattern
+   * Channel: 'pattern:record-error-fix'
 
 ---
 
@@ -93,8 +93,8 @@ ipcMain.handle("pattern:record-error-fix", async (_event, params) =>
 ipcMain.handle(
 ```
 
-- Get error fix suggestions
-  - Channel: 'pattern:get-error-fix-suggestions'
+* Get error fix suggestions
+   * Channel: 'pattern:get-error-fix-suggestions'
 
 ---
 
@@ -104,8 +104,8 @@ ipcMain.handle(
 ipcMain.handle("pattern:save-snippet", async (_event, snippet) =>
 ```
 
-- Save a code snippet
-  - Channel: 'pattern:save-snippet'
+* Save a code snippet
+   * Channel: 'pattern:save-snippet'
 
 ---
 
@@ -115,8 +115,8 @@ ipcMain.handle("pattern:save-snippet", async (_event, snippet) =>
 ipcMain.handle("pattern:get-snippets", async (_event, options =
 ```
 
-- Get code snippets
-  - Channel: 'pattern:get-snippets'
+* Get code snippets
+   * Channel: 'pattern:get-snippets'
 
 ---
 
@@ -126,8 +126,8 @@ ipcMain.handle("pattern:get-snippets", async (_event, options =
 ipcMain.handle("pattern:use-snippet", async (_event, id) =>
 ```
 
-- Use a code snippet (increment use count)
-  - Channel: 'pattern:use-snippet'
+* Use a code snippet (increment use count)
+   * Channel: 'pattern:use-snippet'
 
 ---
 
@@ -137,8 +137,8 @@ ipcMain.handle("pattern:use-snippet", async (_event, id) =>
 ipcMain.handle("pattern:toggle-snippet-favorite", async (_event, id) =>
 ```
 
-- Toggle snippet favorite
-  - Channel: 'pattern:toggle-snippet-favorite'
+* Toggle snippet favorite
+   * Channel: 'pattern:toggle-snippet-favorite'
 
 ---
 
@@ -148,8 +148,8 @@ ipcMain.handle("pattern:toggle-snippet-favorite", async (_event, id) =>
 ipcMain.handle("pattern:delete-snippet", async (_event, id) =>
 ```
 
-- Delete a code snippet
-  - Channel: 'pattern:delete-snippet'
+* Delete a code snippet
+   * Channel: 'pattern:delete-snippet'
 
 ---
 
@@ -159,8 +159,8 @@ ipcMain.handle("pattern:delete-snippet", async (_event, id) =>
 ipcMain.handle("pattern:record-workflow", async (_event, workflow) =>
 ```
 
-- Record a workflow pattern
-  - Channel: 'pattern:record-workflow'
+* Record a workflow pattern
+   * Channel: 'pattern:record-workflow'
 
 ---
 
@@ -170,8 +170,8 @@ ipcMain.handle("pattern:record-workflow", async (_event, workflow) =>
 ipcMain.handle(
 ```
 
-- Get workflow suggestions
-  - Channel: 'pattern:get-workflow-suggestions'
+* Get workflow suggestions
+   * Channel: 'pattern:get-workflow-suggestions'
 
 ---
 
@@ -181,8 +181,8 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- Update workflow usage
-  - Channel: 'pattern:update-workflow-usage'
+* Update workflow usage
+   * Channel: 'pattern:update-workflow-usage'
 
 ---
 
@@ -192,8 +192,8 @@ ipcMain.handle(
 ipcMain.handle("pattern:get-stats", async () =>
 ```
 
-- Get statistics
-  - Channel: 'pattern:get-stats'
+* Get statistics
+   * Channel: 'pattern:get-stats'
 
 ---
 
@@ -203,8 +203,8 @@ ipcMain.handle("pattern:get-stats", async () =>
 ipcMain.handle("pattern:backup", async () =>
 ```
 
-- Backup patterns to files
-  - Channel: 'pattern:backup'
+* Backup patterns to files
+   * Channel: 'pattern:backup'
 
 ---
 
@@ -214,8 +214,8 @@ ipcMain.handle("pattern:backup", async () =>
 ipcMain.handle("pattern:cleanup", async (_event, options =
 ```
 
-- Cleanup old patterns
-  - Channel: 'pattern:cleanup'
+* Cleanup old patterns
+   * Channel: 'pattern:cleanup'
 
 ---
 
@@ -225,8 +225,9 @@ ipcMain.handle("pattern:cleanup", async (_event, options =
 function updateLearnedPatternManager(newManager)
 ```
 
-- Update LearnedPatternManager reference
-  - For hot-reload or reinitialization
-  - @param {LearnedPatternManager} newManager - New instance
+* Update LearnedPatternManager reference
+   * For hot-reload or reinitialization
+   * @param {LearnedPatternManager} newManager - New instance
 
 ---
+

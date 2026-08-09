@@ -1,6 +1,6 @@
 # benchmark-mcp-performance
 
-**Source**: `src\main\mcp\__tests__\benchmark-mcp-performance.js`
+**Source**: `src/main/mcp/__tests__/benchmark-mcp-performance.js`
 
 ---
 
@@ -10,10 +10,10 @@
 const
 ```
 
-- MCP Performance Benchmark
--
-- Measures performance of MCP operations and compares with direct calls.
-- Run with: node src/main/mcp/**tests**/benchmark-mcp-performance.js
+* MCP Performance Benchmark
+ *
+ * Measures performance of MCP operations and compares with direct calls.
+ * Run with: node src/main/mcp/__tests__/benchmark-mcp-performance.js
 
 ---
 
@@ -23,7 +23,7 @@ const
 async benchmarkConnection()
 ```
 
-- Benchmark 1: Connection time
+* Benchmark 1: Connection time
 
 ---
 
@@ -33,7 +33,7 @@ async benchmarkConnection()
 async benchmarkDirectFileRead()
 ```
 
-- Benchmark 2: Direct file read (baseline)
+* Benchmark 2: Direct file read (baseline)
 
 ---
 
@@ -43,27 +43,27 @@ async benchmarkDirectFileRead()
 async benchmarkMCPFileRead()
 ```
 
-- Benchmark 3: MCP file read
+* Benchmark 3: MCP file read
 
 ---
 
 ## calculateOverhead()
 
 ```javascript
-calculateOverhead();
+calculateOverhead()
 ```
 
-- Calculate overhead
+* Calculate overhead
 
 ---
 
 ## generateReport()
 
 ```javascript
-generateReport();
+generateReport()
 ```
 
-- Generate final report
+* Generate final report
 
 ---
 
@@ -73,6 +73,7 @@ generateReport();
 async run()
 ```
 
-- Run all benchmarks
+* Run all benchmarks
 
 ---
+

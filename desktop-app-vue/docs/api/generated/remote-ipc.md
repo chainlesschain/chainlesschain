@@ -1,6 +1,6 @@
 # remote-ipc
 
-**Source**: `src\main\remote\remote-ipc.js`
+**Source**: `src/main/remote/remote-ipc.js`
 
 ---
 
@@ -10,9 +10,9 @@
 const
 ```
 
-- 远程控制 IPC 处理器
--
-- 为渲染进程提供远程控制功能的 IPC 接口
+* 远程控制 IPC 处理器
+ *
+ * 为渲染进程提供远程控制功能的 IPC 接口
 
 ---
 
@@ -22,10 +22,10 @@ const
 function registerRemoteIPCHandlers(gateway, loggingManager = null)
 ```
 
-- 注册远程控制 IPC 处理器
--
-- @param {Object} gateway - 远程网关实例
-- @param {Object} loggingManager - 日志管理器实例（可选）
+* 注册远程控制 IPC 处理器
+ *
+ * @param {Object} gateway - 远程网关实例
+ * @param {Object} loggingManager - 日志管理器实例（可选）
 
 ---
 
@@ -35,6 +35,7 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null)
 function removeRemoteIPCHandlers()
 ```
 
-- 移除远程控制 IPC 处理器
+* 移除远程控制 IPC 处理器
 
 ---
+

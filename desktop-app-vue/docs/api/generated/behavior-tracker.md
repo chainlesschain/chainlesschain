@@ -1,6 +1,6 @@
 # behavior-tracker
 
-**Source**: `src\main\memory\behavior-tracker.js`
+**Source**: `src/main/memory/behavior-tracker.js`
 
 ---
 
@@ -10,18 +10,18 @@
 const
 ```
 
-- BehaviorTracker - Automatic Behavior Learning
--
-- Tracks and learns from user behavior patterns:
-- - Page visits and navigation patterns
-- - Feature usage and preferences
-- - LLM interaction patterns
-- - Time-based preferences
-- - Smart recommendations
--
-- @module behavior-tracker
-- @version 1.0.0
-- @since 2026-01-18
+* BehaviorTracker - Automatic Behavior Learning
+ *
+ * Tracks and learns from user behavior patterns:
+ * - Page visits and navigation patterns
+ * - Feature usage and preferences
+ * - LLM interaction patterns
+ * - Time-based preferences
+ * - Smart recommendations
+ *
+ * @module behavior-tracker
+ * @version 1.0.0
+ * @since 2026-01-18
 
 ---
 
@@ -31,9 +31,9 @@ const
 function safeParse(raw, fallback)
 ```
 
-- Tolerant JSON column parse — a single behavior row with a corrupt action_data
-- string must not throw out of the .map and drop the whole behavior list. The
-- `x ? JSON.parse(x) : d` form it replaces only guarded NULL, not corrupt.
+* Tolerant JSON column parse — a single behavior row with a corrupt action_data
+ * string must not throw out of the .map and drop the whole behavior list. The
+ * `x ? JSON.parse(x) : d` form it replaces only guarded NULL, not corrupt.
 
 ---
 
@@ -43,7 +43,7 @@ function safeParse(raw, fallback)
 class BehaviorTracker extends EventEmitter
 ```
 
-- BehaviorTracker class
+* BehaviorTracker class
 
 ---
 
@@ -53,11 +53,11 @@ class BehaviorTracker extends EventEmitter
 constructor(options =
 ```
 
-- Create a BehaviorTracker instance
-  - @param {Object} options - Configuration options
-  - @param {Object} options.database - SQLite database instance
-  - @param {string} options.patternsDir - Directory for pattern backups
-  - @param {Object} [options.llmManager] - LLM Manager for AI analysis
+* Create a BehaviorTracker instance
+   * @param {Object} options - Configuration options
+   * @param {Object} options.database - SQLite database instance
+   * @param {string} options.patternsDir - Directory for pattern backups
+   * @param {Object} [options.llmManager] - LLM Manager for AI analysis
 
 ---
 
@@ -67,7 +67,7 @@ constructor(options =
 async initialize()
 ```
 
-- Initialize the tracker
+* Initialize the tracker
 
 ---
 
@@ -77,29 +77,29 @@ async initialize()
 async _ensureTables()
 ```
 
-- Ensure database tables exist
-  - @private
+* Ensure database tables exist
+   * @private
 
 ---
 
 ## _startPeriodicAnalysis()
 
 ```javascript
-_startPeriodicAnalysis();
+_startPeriodicAnalysis()
 ```
 
-- Start periodic pattern analysis
-  - @private
+* Start periodic pattern analysis
+   * @private
 
 ---
 
 ## stopPeriodicAnalysis()
 
 ```javascript
-stopPeriodicAnalysis();
+stopPeriodicAnalysis()
 ```
 
-- Stop periodic analysis
+* Stop periodic analysis
 
 ---
 
@@ -109,10 +109,10 @@ stopPeriodicAnalysis();
 async trackPageVisit(pageName, options =
 ```
 
-- Track a page visit
-  - @param {string} pageName - Page name
-  - @param {Object} options - Additional options
-  - @returns {Promise<Object>} Tracked event
+* Track a page visit
+   * @param {string} pageName - Page name
+   * @param {Object} options - Additional options
+   * @returns {Promise<Object>} Tracked event
 
 ---
 
@@ -122,11 +122,11 @@ async trackPageVisit(pageName, options =
 async trackFeatureUse(featureName, action = "use", options =
 ```
 
-- Track feature usage
-  - @param {string} featureName - Feature name
-  - @param {string} action - Action performed
-  - @param {Object} options - Additional options
-  - @returns {Promise<Object>} Tracked event
+* Track feature usage
+   * @param {string} featureName - Feature name
+   * @param {string} action - Action performed
+   * @param {Object} options - Additional options
+   * @returns {Promise<Object>} Tracked event
 
 ---
 
@@ -136,9 +136,9 @@ async trackFeatureUse(featureName, action = "use", options =
 async trackLLMInteraction(params =
 ```
 
-- Track LLM interaction
-  - @param {Object} params - Interaction parameters
-  - @returns {Promise<Object>} Tracked event
+* Track LLM interaction
+   * @param {Object} params - Interaction parameters
+   * @returns {Promise<Object>} Tracked event
 
 ---
 
@@ -148,10 +148,10 @@ async trackLLMInteraction(params =
 async trackSearch(query, options =
 ```
 
-- Track search action
-  - @param {string} query - Search query
-  - @param {Object} options - Search options
-  - @returns {Promise<Object>} Tracked event
+* Track search action
+   * @param {string} query - Search query
+   * @param {Object} options - Search options
+   * @returns {Promise<Object>} Tracked event
 
 ---
 
@@ -161,10 +161,10 @@ async trackSearch(query, options =
 async trackError(errorType, options =
 ```
 
-- Track error
-  - @param {string} errorType - Error type
-  - @param {Object} options - Error options
-  - @returns {Promise<Object>} Tracked event
+* Track error
+   * @param {string} errorType - Error type
+   * @param {Object} options - Error options
+   * @returns {Promise<Object>} Tracked event
 
 ---
 
@@ -174,10 +174,10 @@ async trackError(errorType, options =
 async _trackEvent(event)
 ```
 
-- Internal event tracking
-  - @param {Object} event - Event to track
-  - @returns {Promise<Object>} Tracked event
-  - @private
+* Internal event tracking
+   * @param {Object} event - Event to track
+   * @returns {Promise<Object>} Tracked event
+   * @private
 
 ---
 
@@ -187,8 +187,8 @@ async _trackEvent(event)
 async analyzePatterns()
 ```
 
-- Analyze behavior patterns
-  - @returns {Promise<Object>} Analysis results
+* Analyze behavior patterns
+   * @returns {Promise<Object>} Analysis results
 
 ---
 
@@ -198,8 +198,8 @@ async analyzePatterns()
 async _detectSequences()
 ```
 
-- Detect feature usage sequences
-  - @private
+* Detect feature usage sequences
+   * @private
 
 ---
 
@@ -209,8 +209,8 @@ async _detectSequences()
 async _recordSequence(sequence, sequenceKey)
 ```
 
-- Record a feature sequence
-  - @private
+* Record a feature sequence
+   * @private
 
 ---
 
@@ -220,8 +220,8 @@ async _recordSequence(sequence, sequenceKey)
 async _analyzeFeatureSequences()
 ```
 
-- Analyze feature sequences for patterns
-  - @private
+* Analyze feature sequences for patterns
+   * @private
 
 ---
 
@@ -231,8 +231,8 @@ async _analyzeFeatureSequences()
 async _analyzeTimePreferences()
 ```
 
-- Analyze time preferences
-  - @private
+* Analyze time preferences
+   * @private
 
 ---
 
@@ -242,19 +242,19 @@ async _analyzeTimePreferences()
 async _generateSmartRecommendations()
 ```
 
-- Generate smart recommendations
-  - @private
+* Generate smart recommendations
+   * @private
 
 ---
 
 ## _createRecommendationFromPattern(pattern)
 
 ```javascript
-_createRecommendationFromPattern(pattern);
+_createRecommendationFromPattern(pattern)
 ```
 
-- Create recommendation from pattern
-  - @private
+* Create recommendation from pattern
+   * @private
 
 ---
 
@@ -264,8 +264,8 @@ _createRecommendationFromPattern(pattern);
 async _generateFeatureSuggestions()
 ```
 
-- Generate feature suggestions
-  - @private
+* Generate feature suggestions
+   * @private
 
 ---
 
@@ -275,8 +275,8 @@ async _generateFeatureSuggestions()
 async _updatePatternConfidence()
 ```
 
-- Update pattern confidence scores
-  - @private
+* Update pattern confidence scores
+   * @private
 
 ---
 
@@ -286,8 +286,8 @@ async _updatePatternConfidence()
 async _backupPatterns()
 ```
 
-- Backup patterns to file
-  - @private
+* Backup patterns to file
+   * @private
 
 ---
 
@@ -297,9 +297,9 @@ async _backupPatterns()
 async getRecommendations(context =
 ```
 
-- Get smart recommendations
-  - @param {Object} context - Current context
-  - @returns {Promise<Array>} Recommendations
+* Get smart recommendations
+   * @param {Object} context - Current context
+   * @returns {Promise<Array>} Recommendations
 
 ---
 
@@ -309,8 +309,8 @@ async getRecommendations(context =
 async markRecommendationShown(id)
 ```
 
-- Mark recommendation as shown
-  - @param {string} id - Recommendation ID
+* Mark recommendation as shown
+   * @param {string} id - Recommendation ID
 
 ---
 
@@ -320,8 +320,8 @@ async markRecommendationShown(id)
 async acceptRecommendation(id)
 ```
 
-- Accept recommendation
-  - @param {string} id - Recommendation ID
+* Accept recommendation
+   * @param {string} id - Recommendation ID
 
 ---
 
@@ -331,8 +331,8 @@ async acceptRecommendation(id)
 async dismissRecommendation(id)
 ```
 
-- Dismiss recommendation
-  - @param {string} id - Recommendation ID
+* Dismiss recommendation
+   * @param {string} id - Recommendation ID
 
 ---
 
@@ -342,18 +342,19 @@ async dismissRecommendation(id)
 async getStats()
 ```
 
-- Get behavior statistics
-  - @returns {Promise<Object>} Statistics
+* Get behavior statistics
+   * @returns {Promise<Object>} Statistics
 
 ---
 
 ## startNewSession()
 
 ```javascript
-startNewSession();
+startNewSession()
 ```
 
-- Start a new session
-  - @returns {string} New session ID
+* Start a new session
+   * @returns {string} New session ID
 
 ---
+

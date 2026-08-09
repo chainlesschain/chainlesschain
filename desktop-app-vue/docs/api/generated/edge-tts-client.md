@@ -1,6 +1,6 @@
 # edge-tts-client
 
-**Source**: `src\main\speech\edge-tts-client.js`
+**Source**: `src/main/speech/edge-tts-client.js`
 
 ---
 
@@ -10,13 +10,13 @@
 const EventEmitter = require("events");
 ```
 
-- Edge TTS Client
--
-- Uses Microsoft Edge's free TTS service for speech synthesis.
-- No API key required, supports multiple languages and voices.
--
-- @module edge-tts-client
-- @version 1.0.0
+* Edge TTS Client
+ *
+ * Uses Microsoft Edge's free TTS service for speech synthesis.
+ * No API key required, supports multiple languages and voices.
+ *
+ * @module edge-tts-client
+ * @version 1.0.0
 
 ---
 
@@ -26,7 +26,7 @@ const EventEmitter = require("events");
 const EDGE_VOICES =
 ```
 
-- Available Edge TTS voices (commonly used)
+* Available Edge TTS voices (commonly used)
 
 ---
 
@@ -36,7 +36,7 @@ const EDGE_VOICES =
 const DEFAULT_CONFIG =
 ```
 
-- Default configuration
+* Default configuration
 
 ---
 
@@ -46,7 +46,7 @@ const DEFAULT_CONFIG =
 class EdgeTTSClient extends EventEmitter
 ```
 
-- Edge TTS Client
+* Edge TTS Client
 
 ---
 
@@ -56,8 +56,8 @@ class EdgeTTSClient extends EventEmitter
 async initialize(options =
 ```
 
-- Initialize client
-  - @param {Object} options - Initialization options
+* Initialize client
+   * @param {Object} options - Initialization options
 
 ---
 
@@ -67,8 +67,8 @@ async initialize(options =
 async checkStatus()
 ```
 
-- Check if edge-tts is available
-  - @returns {Promise<Object>} Status object
+* Check if edge-tts is available
+   * @returns {Promise<Object>} Status object
 
 ---
 
@@ -78,10 +78,10 @@ async checkStatus()
 async synthesize(text, options =
 ```
 
-- Synthesize text to speech
-  - @param {string} text - Text to synthesize
-  - @param {Object} options - Synthesis options
-  - @returns {Promise<Object>} Audio data
+* Synthesize text to speech
+   * @param {string} text - Text to synthesize
+   * @param {Object} options - Synthesis options
+   * @returns {Promise<Object>} Audio data
 
 ---
 
@@ -91,65 +91,66 @@ async synthesize(text, options =
 async synthesizeToFile(text, outputPath, options =
 ```
 
-- Synthesize text to file
-  - @param {string} text - Text to synthesize
-  - @param {string} outputPath - Output file path
-  - @param {Object} options - Synthesis options
-  - @returns {Promise<Object>} Result
+* Synthesize text to file
+   * @param {string} text - Text to synthesize
+   * @param {string} outputPath - Output file path
+   * @param {Object} options - Synthesis options
+   * @returns {Promise<Object>} Result
 
 ---
 
 ## getVoices(language = null)
 
 ```javascript
-getVoices((language = null));
+getVoices(language = null)
 ```
 
-- Get available voices
-  - @param {string} language - Filter by language code (optional)
-  - @returns {Object} Available voices
+* Get available voices
+   * @param {string} language - Filter by language code (optional)
+   * @returns {Object} Available voices
 
 ---
 
 ## clearCache()
 
 ```javascript
-clearCache();
+clearCache()
 ```
 
-- Clear cache
+* Clear cache
 
 ---
 
 ## _runCommand(args)
 
 ```javascript
-_runCommand(args);
+_runCommand(args)
 ```
 
-- Run edge-tts command
-  - @private
+* Run edge-tts command
+   * @private
 
 ---
 
 ## _parseVoiceList(output)
 
 ```javascript
-_parseVoiceList(output);
+_parseVoiceList(output)
 ```
 
-- Parse voice list output
-  - @private
+* Parse voice list output
+   * @private
 
 ---
 
 ## _getCacheKey(text, options)
 
 ```javascript
-_getCacheKey(text, options);
+_getCacheKey(text, options)
 ```
 
-- Get cache key
-  - @private
+* Get cache key
+   * @private
 
 ---
+

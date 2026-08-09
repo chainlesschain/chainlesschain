@@ -1,6 +1,6 @@
 # file-transfer-manager
 
-**Source**: `src\main\p2p\file-transfer-manager.js`
+**Source**: `src/main/p2p/file-transfer-manager.js`
 
 ---
 
@@ -10,15 +10,15 @@
 const
 ```
 
-- 文件传输管理器 - 支持大文件分块传输和断点续传
--
-- 功能：
-- - 大文件分块传输
-- - 断点续传
-- - 传输进度跟踪
-- - 传输速度计算
-- - 文件完整性校验
-- - 并发传输控制
+* 文件传输管理器 - 支持大文件分块传输和断点续传
+ *
+ * 功能：
+ * - 大文件分块传输
+ * - 断点续传
+ * - 传输进度跟踪
+ * - 传输速度计算
+ * - 文件完整性校验
+ * - 并发传输控制
 
 ---
 
@@ -28,10 +28,10 @@ const
 async uploadFile(peerId, filePath, options =
 ```
 
-- 上传文件
-  - @param {string} peerId - 目标节点ID
-  - @param {string} filePath - 文件路径
-  - @param {Object} options - 上传选项
+* 上传文件
+   * @param {string} peerId - 目标节点ID
+   * @param {string} filePath - 文件路径
+   * @param {Object} options - 上传选项
 
 ---
 
@@ -41,10 +41,10 @@ async uploadFile(peerId, filePath, options =
 async downloadFile(peerId, transferId, savePath)
 ```
 
-- 下载文件
-  - @param {string} peerId - 源节点ID
-  - @param {string} transferId - 传输ID
-  - @param {string} savePath - 保存路径
+* 下载文件
+   * @param {string} peerId - 源节点ID
+   * @param {string} transferId - 传输ID
+   * @param {string} savePath - 保存路径
 
 ---
 
@@ -54,7 +54,7 @@ async downloadFile(peerId, transferId, savePath)
 async uploadChunks(uploadTask)
 ```
 
-- 上传分块
+* 上传分块
 
 ---
 
@@ -64,7 +64,7 @@ async uploadChunks(uploadTask)
 async sendChunk(uploadTask, chunkIndex, chunkData)
 ```
 
-- 发送分块
+* 发送分块
 
 ---
 
@@ -74,7 +74,7 @@ async sendChunk(uploadTask, chunkIndex, chunkData)
 async requestMissingChunks(downloadTask)
 ```
 
-- 请求缺失的分块
+* 请求缺失的分块
 
 ---
 
@@ -84,7 +84,7 @@ async requestMissingChunks(downloadTask)
 async assembleFile(downloadTask)
 ```
 
-- 组装文件
+* 组装文件
 
 ---
 
@@ -94,7 +94,7 @@ async assembleFile(downloadTask)
 async verifyFile(downloadTask)
 ```
 
-- 验证文件
+* 验证文件
 
 ---
 
@@ -104,17 +104,17 @@ async verifyFile(downloadTask)
 async calculateFileHash(filePath)
 ```
 
-- 计算文件哈希
+* 计算文件哈希
 
 ---
 
 ## generateTransferId()
 
 ```javascript
-generateTransferId();
+generateTransferId()
 ```
 
-- 生成传输ID
+* 生成传输ID
 
 ---
 
@@ -124,7 +124,7 @@ generateTransferId();
 async sendTransferRequest(peerId, metadata)
 ```
 
-- 发送传输请求
+* 发送传输请求
 
 ---
 
@@ -134,7 +134,7 @@ async sendTransferRequest(peerId, metadata)
 async waitForTransferAccept(transferId)
 ```
 
-- 等待传输接受
+* 等待传输接受
 
 ---
 
@@ -144,7 +144,7 @@ async waitForTransferAccept(transferId)
 async waitForTransferComplete(transferId)
 ```
 
-- 等待传输完成
+* 等待传输完成
 
 ---
 
@@ -154,17 +154,17 @@ async waitForTransferComplete(transferId)
 async waitForAllChunks(downloadTask)
 ```
 
-- 等待所有分块
+* 等待所有分块
 
 ---
 
 ## setupMessageHandlers()
 
 ```javascript
-setupMessageHandlers();
+setupMessageHandlers()
 ```
 
-- 设置消息处理器
+* 设置消息处理器
 
 ---
 
@@ -174,7 +174,7 @@ setupMessageHandlers();
 async handleTransferRequest(peerId, payload)
 ```
 
-- 处理传输请求
+* 处理传输请求
 
 ---
 
@@ -184,7 +184,7 @@ async handleTransferRequest(peerId, payload)
 async handleChunk(peerId, payload)
 ```
 
-- 处理分块
+* 处理分块
 
 ---
 
@@ -194,7 +194,7 @@ async handleChunk(peerId, payload)
 async handleRequestChunks(peerId, payload)
 ```
 
-- 处理请求分块
+* 处理请求分块
 
 ---
 
@@ -204,27 +204,27 @@ async handleRequestChunks(peerId, payload)
 async handleTransferComplete(peerId, payload)
 ```
 
-- 处理传输完成
+* 处理传输完成
 
 ---
 
 ## ensureTempDir()
 
 ```javascript
-ensureTempDir();
+ensureTempDir()
 ```
 
-- 确保临时目录存在
+* 确保临时目录存在
 
 ---
 
 ## getProgress(transferId)
 
 ```javascript
-getProgress(transferId);
+getProgress(transferId)
 ```
 
-- 获取传输进度
+* 获取传输进度
 
 ---
 
@@ -234,26 +234,27 @@ getProgress(transferId);
 async cancelTransfer(transferId)
 ```
 
-- 取消传输
+* 取消传输
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats();
+getStats()
 ```
 
-- 获取统计信息
+* 获取统计信息
 
 ---
 
 ## cleanup()
 
 ```javascript
-cleanup();
+cleanup()
 ```
 
-- 清理资源
+* 清理资源
 
 ---
+

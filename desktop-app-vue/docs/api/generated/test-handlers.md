@@ -1,6 +1,6 @@
 # test-handlers
 
-**Source**: `src\main\skill-tool-system\test-handlers.js`
+**Source**: `src/main/skill-tool-system/test-handlers.js`
 
 ---
 
@@ -10,18 +10,18 @@
 const
 ```
 
-- 测试Additional Tools V3 Handlers
-- 测试各个工具的Handler执行功能
+* 测试Additional Tools V3 Handlers
+ * 测试各个工具的Handler执行功能
 
 ---
 
 ## initialize()
 
 ```javascript
-initialize();
+initialize()
 ```
 
-- 初始化
+* 初始化
 
 ---
 
@@ -31,7 +31,7 @@ initialize();
 async testTool(toolName, params)
 ```
 
-- 测试单个工具
+* 测试单个工具
 
 ---
 
@@ -41,17 +41,17 @@ async testTool(toolName, params)
 async runAllTests()
 ```
 
-- 运行所有测试
+* 运行所有测试
 
 ---
 
 ## generateReport()
 
 ```javascript
-generateReport();
+generateReport()
 ```
 
-- 生成测试报告
+* 生成测试报告
 
 ---
 
@@ -61,6 +61,7 @@ generateReport();
 async run()
 ```
 
-- 运行测试流程
+* 运行测试流程
 
 ---
+

@@ -1,6 +1,6 @@
 # task-planner-enhanced
 
-**Source**: `src\main\ai-engine\task-planner-enhanced.js`
+**Source**: `src/main/ai-engine/task-planner-enhanced.js`
 
 ---
 
@@ -10,14 +10,14 @@
 const
 ```
 
-- AI任务智能拆解系统（增强版）
--
-- 核心功能：
-- 1.  使用LLM智能拆解用户需求为可执行的子任务
-- 2.  支持依赖关系解析和并行执行
-- 3.  实时执行和状态更新
-- 4.  与各种引擎集成（Web/Document/Data/PPT等）
-- 5.  持久化到数据库
+* AI任务智能拆解系统（增强版）
+ *
+ * 核心功能：
+ * 1. 使用LLM智能拆解用户需求为可执行的子任务
+ * 2. 支持依赖关系解析和并行执行
+ * 3. 实时执行和状态更新
+ * 4. 与各种引擎集成（Web/Document/Data/PPT等）
+ * 5. 持久化到数据库
 
 ---
 
@@ -37,8 +37,8 @@ Tolerant JSON column parse — a corrupt row must not abort a list-load loop.
 class QualityGateChecker
 ```
 
-- 质量门禁检查器
-- 在任务计划执行前进行并行质量检查
+* 质量门禁检查器
+ * 在任务计划执行前进行并行质量检查
 
 ---
 
@@ -48,7 +48,7 @@ class QualityGateChecker
 async runAllGates(taskPlan)
 ```
 
-- 执行所有质量门禁检查（并行）
+* 执行所有质量门禁检查（并行）
 
 ---
 
@@ -58,7 +58,7 @@ async runAllGates(taskPlan)
 async checkCyclicDependencies(taskPlan)
 ```
 
-- 门禁1: 检测循环依赖
+* 门禁1: 检测循环依赖
 
 ---
 
@@ -68,7 +68,7 @@ async checkCyclicDependencies(taskPlan)
 async checkResourceFeasibility(taskPlan)
 ```
 
-- 门禁2: 评估资源合理性
+* 门禁2: 评估资源合理性
 
 ---
 
@@ -78,7 +78,7 @@ async checkResourceFeasibility(taskPlan)
 async checkToolAvailability(taskPlan)
 ```
 
-- 门禁3: 验证工具可用性
+* 门禁3: 验证工具可用性
 
 ---
 
@@ -88,37 +88,37 @@ async checkToolAvailability(taskPlan)
 async checkParameterCompleteness(taskPlan)
 ```
 
-- 门禁4: 检查参数完整性
+* 门禁4: 检查参数完整性
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats();
+getStats()
 ```
 
-- 获取统计信息
+* 获取统计信息
 
 ---
 
 ## reset()
 
 ```javascript
-reset();
+reset()
 ```
 
-- 重置统计
+* 重置统计
 
 ---
 
 ## loadEngine(engineName)
 
 ```javascript
-loadEngine(engineName);
+loadEngine(engineName)
 ```
 
-- 加载引擎
+* 加载引擎
 
 ---
 
@@ -128,10 +128,10 @@ loadEngine(engineName);
 async decomposeTask(userRequest, projectContext =
 ```
 
-- 智能拆解任务
-  - @param {string} userRequest - 用户需求描述
-  - @param {Object} projectContext - 项目上下文
-  - @returns {Promise<Object>} 任务计划
+* 智能拆解任务
+   * @param {string} userRequest - 用户需求描述
+   * @param {Object} projectContext - 项目上下文
+   * @returns {Promise<Object>} 任务计划
 
 ---
 
@@ -141,7 +141,7 @@ async decomposeTask(userRequest, projectContext =
 async retrieveRAGContext(userRequest, projectContext)
 ```
 
-- 检索RAG上下文
+* 检索RAG上下文
 
 ---
 
@@ -151,49 +151,49 @@ async retrieveRAGContext(userRequest, projectContext)
 async buildDecomposePrompt(userRequest, projectContext, ragContext = null)
 ```
 
-- 构建任务拆解提示词
+* 构建任务拆解提示词
 
 ---
 
 ## normalizePlan(taskPlan, userRequest)
 
 ```javascript
-normalizePlan(taskPlan, userRequest);
+normalizePlan(taskPlan, userRequest)
 ```
 
-- 规范化任务计划
+* 规范化任务计划
 
 ---
 
 ## cleanAndFixJSON(jsonText)
 
 ```javascript
-cleanAndFixJSON(jsonText);
+cleanAndFixJSON(jsonText)
 ```
 
-- 创建降级方案（当LLM失败时）
+* 创建降级方案（当LLM失败时）
 
 ---
 
 ## cleanAndFixJSON(jsonText)
 
 ```javascript
-cleanAndFixJSON(jsonText);
+cleanAndFixJSON(jsonText)
 ```
 
-- ⚡ 优化2: JSON清理和修复
-  - 尝试修复常见的JSON格式错误
+* ⚡ 优化2: JSON清理和修复
+   * 尝试修复常见的JSON格式错误
 
 ---
 
 ## ruleBasedDecompose(userRequest, projectContext)
 
 ```javascript
-ruleBasedDecompose(userRequest, projectContext);
+ruleBasedDecompose(userRequest, projectContext)
 ```
 
-- ⚡ 优化2: 基于规则的任务分解
-  - 当所有LLM都失败时的最后降级方案
+* ⚡ 优化2: 基于规则的任务分解
+   * 当所有LLM都失败时的最后降级方案
 
 ---
 
@@ -203,7 +203,7 @@ ruleBasedDecompose(userRequest, projectContext);
 async saveTaskPlan(projectId, taskPlan)
 ```
 
-- 保存任务计划到数据库
+* 保存任务计划到数据库
 
 ---
 
@@ -213,7 +213,7 @@ async saveTaskPlan(projectId, taskPlan)
 async updateTaskPlan(taskPlanId, updates)
 ```
 
-- 更新任务计划状态
+* 更新任务计划状态
 
 ---
 
@@ -223,22 +223,22 @@ async updateTaskPlan(taskPlanId, updates)
 async executeTaskPlan(taskPlan, projectContext, progressCallback)
 ```
 
-- 执行任务计划
-  - @param {Object} taskPlan - 任务计划
-  - @param {Object} projectContext - 项目上下文
-  - @param {Function} progressCallback - 进度回调函数
-  - @returns {Promise<Object>} 执行结果
+* 执行任务计划
+   * @param {Object} taskPlan - 任务计划
+   * @param {Object} projectContext - 项目上下文
+   * @param {Function} progressCallback - 进度回调函数
+   * @returns {Promise<Object>} 执行结果
 
 ---
 
 ## resolveExecutionOrder(subtasks)
 
 ```javascript
-resolveExecutionOrder(subtasks);
+resolveExecutionOrder(subtasks)
 ```
 
-- 解析执行顺序（基于依赖关系）
-  - 使用拓扑排序算法
+* 解析执行顺序（基于依赖关系）
+   * 使用拓扑排序算法
 
 ---
 
@@ -248,7 +248,7 @@ resolveExecutionOrder(subtasks);
 async executeSubtask(subtask, projectContext, progressCallback)
 ```
 
-- 执行单个子任务
+* 执行单个子任务
 
 ---
 
@@ -258,7 +258,7 @@ async executeSubtask(subtask, projectContext, progressCallback)
 async executeWebEngineTask(subtask, projectContext, progressCallback)
 ```
 
-- 执行Web引擎任务
+* 执行Web引擎任务
 
 ---
 
@@ -268,7 +268,7 @@ async executeWebEngineTask(subtask, projectContext, progressCallback)
 async executeDocumentEngineTask(subtask, projectContext, progressCallback)
 ```
 
-- 执行文档引擎任务
+* 执行文档引擎任务
 
 ---
 
@@ -278,7 +278,7 @@ async executeDocumentEngineTask(subtask, projectContext, progressCallback)
 async executeDataEngineTask(subtask, projectContext, progressCallback)
 ```
 
-- 执行数据引擎任务
+* 执行数据引擎任务
 
 ---
 
@@ -288,7 +288,7 @@ async executeDataEngineTask(subtask, projectContext, progressCallback)
 async executePPTEngineTask(subtask, projectContext, progressCallback)
 ```
 
-- 执行PPT引擎任务
+* 执行PPT引擎任务
 
 ---
 
@@ -298,7 +298,7 @@ async executePPTEngineTask(subtask, projectContext, progressCallback)
 async executeWordEngineTask(subtask, projectContext, progressCallback)
 ```
 
-- 执行Word引擎任务
+* 执行Word引擎任务
 
 ---
 
@@ -308,7 +308,7 @@ async executeWordEngineTask(subtask, projectContext, progressCallback)
 async executeCodeEngineTask(subtask, projectContext, progressCallback)
 ```
 
-- 执行代码引擎任务
+* 执行代码引擎任务
 
 ---
 
@@ -318,7 +318,7 @@ async executeCodeEngineTask(subtask, projectContext, progressCallback)
 async executeImageEngineTask(subtask, projectContext, progressCallback)
 ```
 
-- 执行图像引擎任务
+* 执行图像引擎任务
 
 ---
 
@@ -328,7 +328,7 @@ async executeImageEngineTask(subtask, projectContext, progressCallback)
 async executeGenericTask(subtask, projectContext, progressCallback)
 ```
 
-- 执行通用任务（使用LLM）
+* 执行通用任务（使用LLM）
 
 ---
 
@@ -338,7 +338,7 @@ async executeGenericTask(subtask, projectContext, progressCallback)
 async getTaskPlanHistory(projectId, limit = 10)
 ```
 
-- 获取项目的任务计划历史
+* 获取项目的任务计划历史
 
 ---
 
@@ -348,7 +348,7 @@ async getTaskPlanHistory(projectId, limit = 10)
 async getTaskPlan(taskPlanId)
 ```
 
-- 获取单个任务计划
+* 获取单个任务计划
 
 ---
 
@@ -358,7 +358,7 @@ async getTaskPlan(taskPlanId)
 async queryBackendAI(prompt, options =
 ```
 
-- 查询后端AI服务（降级方案）
+* 查询后端AI服务（降级方案）
 
 ---
 
@@ -368,6 +368,7 @@ async queryBackendAI(prompt, options =
 async cancelTaskPlan(taskPlanId)
 ```
 
-- 取消任务计划
+* 取消任务计划
 
 ---
+

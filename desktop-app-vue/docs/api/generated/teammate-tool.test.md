@@ -1,6 +1,6 @@
 # teammate-tool.test
 
-**Source**: `src\main\ai-engine\cowork\__tests__\teammate-tool.test.js`
+**Source**: `src/main/ai-engine/cowork/__tests__/teammate-tool.test.js`
 
 ---
 
@@ -10,6 +10,7 @@
 const
 ```
 
-- TeammateTool 单元测试
+* TeammateTool 单元测试
 
 ---
+

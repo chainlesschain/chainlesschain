@@ -1,6 +1,6 @@
 # system-ipc
 
-**Source**: `src\main\system\system-ipc.js`
+**Source**: `src/main/system/system-ipc.js`
 
 ---
 
@@ -10,11 +10,11 @@
 const
 ```
 
-- 系统窗口控制 IPC 处理器
-- 负责处理窗口最大化、最小化、关闭等系统级操作
--
-- @module system-ipc
-- @description 提供系统窗口控制的 IPC 接口
+* 系统窗口控制 IPC 处理器
+ * 负责处理窗口最大化、最小化、关闭等系统级操作
+ *
+ * @module system-ipc
+ * @description 提供系统窗口控制的 IPC 接口
 
 ---
 
@@ -24,9 +24,9 @@ const
 function registerSystemIPC(
 ```
 
-- 注册所有系统 IPC 处理器
-- @param {Object} dependencies - 依赖对象
-- @param {Object} dependencies.mainWindow - 主窗口实例
+* 注册所有系统 IPC 处理器
+ * @param {Object} dependencies - 依赖对象
+ * @param {Object} dependencies.mainWindow - 主窗口实例
 
 ---
 
@@ -36,8 +36,8 @@ function registerSystemIPC(
 registerHandler("system:maximize", async () =>
 ```
 
-- 最大化窗口
-  - Channel: 'system:maximize'
+* 最大化窗口
+   * Channel: 'system:maximize'
 
 ---
 
@@ -47,8 +47,8 @@ registerHandler("system:maximize", async () =>
 registerHandler("system:minimize", async () =>
 ```
 
-- 最小化窗口
-  - Channel: 'system:minimize'
+* 最小化窗口
+   * Channel: 'system:minimize'
 
 ---
 
@@ -58,8 +58,8 @@ registerHandler("system:minimize", async () =>
 registerHandler("system:close", async () =>
 ```
 
-- 关闭窗口
-  - Channel: 'system:close'
+* 关闭窗口
+   * Channel: 'system:close'
 
 ---
 
@@ -69,8 +69,8 @@ registerHandler("system:close", async () =>
 registerHandler("system:restart", async () =>
 ```
 
-- 重启应用
-  - Channel: 'system:restart'
+* 重启应用
+   * Channel: 'system:restart'
 
 ---
 
@@ -80,8 +80,8 @@ registerHandler("system:restart", async () =>
 registerHandler("system:get-window-state", async () =>
 ```
 
-- 获取窗口状态
-  - Channel: 'system:get-window-state'
+* 获取窗口状态
+   * Channel: 'system:get-window-state'
 
 ---
 
@@ -91,8 +91,8 @@ registerHandler("system:get-window-state", async () =>
 registerHandler("system:set-always-on-top", async (_event, flag) =>
 ```
 
-- 设置窗口总在最前
-  - Channel: 'system:set-always-on-top'
+* 设置窗口总在最前
+   * Channel: 'system:set-always-on-top'
 
 ---
 
@@ -102,8 +102,8 @@ registerHandler("system:set-always-on-top", async (_event, flag) =>
 registerHandler("system:get-system-info", async () =>
 ```
 
-- 获取系统信息
-  - Channel: 'system:get-system-info'
+* 获取系统信息
+   * Channel: 'system:get-system-info'
 
 ---
 
@@ -113,8 +113,8 @@ registerHandler("system:get-system-info", async () =>
 registerHandler("system:get-app-info", async () =>
 ```
 
-- 获取应用信息
-  - Channel: 'system:get-app-info'
+* 获取应用信息
+   * Channel: 'system:get-app-info'
 
 ---
 
@@ -124,8 +124,8 @@ registerHandler("system:get-app-info", async () =>
 registerHandler("system:get-platform", async () =>
 ```
 
-- 获取平台信息
-  - Channel: 'system:get-platform'
+* 获取平台信息
+   * Channel: 'system:get-platform'
 
 ---
 
@@ -135,8 +135,8 @@ registerHandler("system:get-platform", async () =>
 registerHandler("system:get-version", async () =>
 ```
 
-- 获取版本信息
-  - Channel: 'system:get-version'
+* 获取版本信息
+   * Channel: 'system:get-version'
 
 ---
 
@@ -146,8 +146,8 @@ registerHandler("system:get-version", async () =>
 registerHandler("system:get-path", async (_event, name) =>
 ```
 
-- 获取路径
-  - Channel: 'system:get-path'
+* 获取路径
+   * Channel: 'system:get-path'
 
 ---
 
@@ -157,8 +157,8 @@ registerHandler("system:get-path", async (_event, name) =>
 registerHandler("system:open-external", async (_event, url) =>
 ```
 
-- 打开外部链接
-  - Channel: 'system:open-external'
+* 打开外部链接
+   * Channel: 'system:open-external'
 
 ---
 
@@ -168,8 +168,8 @@ registerHandler("system:open-external", async (_event, url) =>
 registerHandler("system:show-item-in-folder", async (_event, path) =>
 ```
 
-- 在文件夹中显示文件
-  - Channel: 'system:show-item-in-folder'
+* 在文件夹中显示文件
+   * Channel: 'system:show-item-in-folder'
 
 ---
 
@@ -179,8 +179,8 @@ registerHandler("system:show-item-in-folder", async (_event, path) =>
 registerHandler("system:select-directory", async () =>
 ```
 
-- 选择目录
-  - Channel: 'system:select-directory'
+* 选择目录
+   * Channel: 'system:select-directory'
 
 ---
 
@@ -190,8 +190,8 @@ registerHandler("system:select-directory", async () =>
 registerHandler("system:select-file", async (_event, options =
 ```
 
-- 选择文件
-  - Channel: 'system:select-file'
+* 选择文件
+   * Channel: 'system:select-file'
 
 ---
 
@@ -201,8 +201,8 @@ registerHandler("system:select-file", async (_event, options =
 registerHandler("system:quit", async () =>
 ```
 
-- 退出应用
-  - Channel: 'system:quit'
+* 退出应用
+   * Channel: 'system:quit'
 
 ---
 
@@ -212,8 +212,8 @@ registerHandler("system:quit", async () =>
 registerHandler("dialog:select-folder", async (_event, options =
 ```
 
-- 选择文件夹（通用对话框）
-  - Channel: 'dialog:select-folder'
+* 选择文件夹（通用对话框）
+   * Channel: 'dialog:select-folder'
 
 ---
 
@@ -223,8 +223,8 @@ registerHandler("dialog:select-folder", async (_event, options =
 registerHandler("dialog:showOpenDialog", async (_event, options =
 ```
 
-- 显示打开文件对话框
-  - Channel: 'dialog:showOpenDialog'
+* 显示打开文件对话框
+   * Channel: 'dialog:showOpenDialog'
 
 ---
 
@@ -234,8 +234,8 @@ registerHandler("dialog:showOpenDialog", async (_event, options =
 registerHandler("dialog:showSaveDialog", async (_event, options =
 ```
 
-- 显示保存文件对话框
-  - Channel: 'dialog:showSaveDialog'
+* 显示保存文件对话框
+   * Channel: 'dialog:showSaveDialog'
 
 ---
 
@@ -245,7 +245,8 @@ registerHandler("dialog:showSaveDialog", async (_event, options =
 registerHandler("dialog:showMessageBox", async (_event, options =
 ```
 
-- 显示消息框
-  - Channel: 'dialog:showMessageBox'
+* 显示消息框
+   * Channel: 'dialog:showMessageBox'
 
 ---
+

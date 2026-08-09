@@ -1,28 +1,28 @@
 # tts-manager
 
-**Source**: `src\main\speech\tts-manager.js`
+**Source**: `src/main/speech/tts-manager.js`
 
 ---
 
 ## const EventEmitter = require('events');
 
 ```javascript
-const EventEmitter = require("events");
+const EventEmitter = require('events');
 ```
 
-- Text-to-Speech Manager
--
-- Unified interface for TTS supporting:
-- - Edge TTS (Microsoft, free, requires internet)
-- - Piper (local, fast, offline)
--
-- Features:
-- - Provider auto-selection
-- - Fallback support
-- - Audio caching
--
-- @module tts-manager
-- @version 1.0.0
+* Text-to-Speech Manager
+ *
+ * Unified interface for TTS supporting:
+ * - Edge TTS (Microsoft, free, requires internet)
+ * - Piper (local, fast, offline)
+ *
+ * Features:
+ * - Provider auto-selection
+ * - Fallback support
+ * - Audio caching
+ *
+ * @module tts-manager
+ * @version 1.0.0
 
 ---
 
@@ -32,7 +32,7 @@ const EventEmitter = require("events");
 const TTSProvider =
 ```
 
-- TTS providers
+* TTS providers
 
 ---
 
@@ -42,7 +42,7 @@ const TTSProvider =
 const DEFAULT_CONFIG =
 ```
 
-- Default configuration
+* Default configuration
 
 ---
 
@@ -52,7 +52,7 @@ const DEFAULT_CONFIG =
 class TTSManager extends EventEmitter
 ```
 
-- TTS Manager
+* TTS Manager
 
 ---
 
@@ -62,8 +62,8 @@ class TTSManager extends EventEmitter
 async initialize(options =
 ```
 
-- Initialize the manager
-  - @param {Object} options - Initialization options
+* Initialize the manager
+   * @param {Object} options - Initialization options
 
 ---
 
@@ -73,8 +73,8 @@ async initialize(options =
 async checkProviders()
 ```
 
-- Check availability of all providers
-  - @returns {Promise<Object>} Provider status
+* Check availability of all providers
+   * @returns {Promise<Object>} Provider status
 
 ---
 
@@ -84,10 +84,10 @@ async checkProviders()
 async synthesize(text, options =
 ```
 
-- Synthesize text to speech
-  - @param {string} text - Text to synthesize
-  - @param {Object} options - Synthesis options
-  - @returns {Promise<Object>} Audio data
+* Synthesize text to speech
+   * @param {string} text - Text to synthesize
+   * @param {Object} options - Synthesis options
+   * @returns {Promise<Object>} Audio data
 
 ---
 
@@ -97,45 +97,45 @@ async synthesize(text, options =
 async synthesizeToFile(text, outputPath, options =
 ```
 
-- Synthesize text to file
-  - @param {string} text - Text to synthesize
-  - @param {string} outputPath - Output file path
-  - @param {Object} options - Synthesis options
-  - @returns {Promise<Object>} Result
+* Synthesize text to file
+   * @param {string} text - Text to synthesize
+   * @param {string} outputPath - Output file path
+   * @param {Object} options - Synthesis options
+   * @returns {Promise<Object>} Result
 
 ---
 
 ## getVoices(provider = null, language = null)
 
 ```javascript
-getVoices((provider = null), (language = null));
+getVoices(provider = null, language = null)
 ```
 
-- Get available voices
-  - @param {string} provider - Provider to get voices for
-  - @param {string} language - Filter by language (optional)
-  - @returns {Object} Available voices
+* Get available voices
+   * @param {string} provider - Provider to get voices for
+   * @param {string} language - Filter by language (optional)
+   * @returns {Object} Available voices
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats();
+getStats()
 ```
 
-- Get statistics
-  - @returns {Object} Statistics
+* Get statistics
+   * @returns {Object} Statistics
 
 ---
 
 ## clearCache()
 
 ```javascript
-clearCache();
+clearCache()
 ```
 
-- Clear all caches
+* Clear all caches
 
 ---
 
@@ -145,8 +145,8 @@ clearCache();
 async _synthesizeWithEdge(text, options)
 ```
 
-- Synthesize with Edge TTS
-  - @private
+* Synthesize with Edge TTS
+   * @private
 
 ---
 
@@ -156,41 +156,41 @@ async _synthesizeWithEdge(text, options)
 async _synthesizeWithLocal(text, options)
 ```
 
-- Synthesize with Local TTS
-  - @private
+* Synthesize with Local TTS
+   * @private
 
 ---
 
 ## _getPreferredProvider()
 
 ```javascript
-_getPreferredProvider();
+_getPreferredProvider()
 ```
 
-- Get preferred provider based on availability and config
-  - @private
+* Get preferred provider based on availability and config
+   * @private
 
 ---
 
 ## _getFallbackProvider(failedProvider)
 
 ```javascript
-_getFallbackProvider(failedProvider);
+_getFallbackProvider(failedProvider)
 ```
 
-- Get fallback provider
-  - @private
+* Get fallback provider
+   * @private
 
 ---
 
 ## _setupEventForwarding()
 
 ```javascript
-_setupEventForwarding();
+_setupEventForwarding()
 ```
 
-- Setup event forwarding from clients
-  - @private
+* Setup event forwarding from clients
+   * @private
 
 ---
 
@@ -200,8 +200,9 @@ _setupEventForwarding();
 function getTTSManager(config)
 ```
 
-- Get TTSManager singleton
-- @param {Object} config - Configuration
-- @returns {TTSManager}
+* Get TTSManager singleton
+ * @param {Object} config - Configuration
+ * @returns {TTSManager}
 
 ---
+

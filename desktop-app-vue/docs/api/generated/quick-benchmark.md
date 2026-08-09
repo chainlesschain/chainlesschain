@@ -1,6 +1,6 @@
 # quick-benchmark
 
-**Source**: `src\main\mcp\__tests__\quick-benchmark.js`
+**Source**: `src/main/mcp/__tests__/quick-benchmark.js`
 
 ---
 
@@ -10,6 +10,7 @@
 const
 ```
 
-- Quick MCP Benchmark - Reduced iterations for faster testing
+* Quick MCP Benchmark - Reduced iterations for faster testing
 
 ---
+

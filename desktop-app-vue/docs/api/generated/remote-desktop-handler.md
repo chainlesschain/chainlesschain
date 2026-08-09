@@ -1,6 +1,6 @@
 # remote-desktop-handler
 
-**Source**: `src\main\remote\handlers\remote-desktop-handler.js`
+**Source**: `src/main/remote/handlers/remote-desktop-handler.js`
 
 ---
 
@@ -10,17 +10,17 @@
 const
 ```
 
-- 远程桌面命令处理器
--
-- 处理远程桌面相关命令：
-- - desktop.startSession: 开始远程桌面会话
-- - desktop.stopSession: 停止远程桌面会话
-- - desktop.getFrame: 获取屏幕帧
-- - desktop.sendInput: 发送输入事件（鼠标/键盘）
-- - desktop.getDisplays: 获取显示器列表
-- - desktop.switchDisplay: 切换显示器
--
-- @module remote/handlers/remote-desktop-handler
+* 远程桌面命令处理器
+ *
+ * 处理远程桌面相关命令：
+ * - desktop.startSession: 开始远程桌面会话
+ * - desktop.stopSession: 停止远程桌面会话
+ * - desktop.getFrame: 获取屏幕帧
+ * - desktop.sendInput: 发送输入事件（鼠标/键盘）
+ * - desktop.getDisplays: 获取显示器列表
+ * - desktop.switchDisplay: 切换显示器
+ *
+ * @module remote/handlers/remote-desktop-handler
 
 ---
 
@@ -30,7 +30,7 @@ const
 class RemoteDesktopHandler extends EventEmitter
 ```
 
-- 远程桌面命令处理器类
+* 远程桌面命令处理器类
 
 ---
 
@@ -40,7 +40,7 @@ class RemoteDesktopHandler extends EventEmitter
 async handle(action, params, context)
 ```
 
-- 处理命令（统一入口）
+* 处理命令（统一入口）
 
 ---
 
@@ -50,7 +50,7 @@ async handle(action, params, context)
 async startSession(params, context)
 ```
 
-- 开始远程桌面会话
+* 开始远程桌面会话
 
 ---
 
@@ -60,7 +60,7 @@ async startSession(params, context)
 async stopSession(params, context)
 ```
 
-- 停止远程桌面会话
+* 停止远程桌面会话
 
 ---
 
@@ -70,7 +70,7 @@ async stopSession(params, context)
 async getFrame(params, context)
 ```
 
-- 获取屏幕帧
+* 获取屏幕帧
 
 ---
 
@@ -80,7 +80,7 @@ async getFrame(params, context)
 async sendInput(params, context)
 ```
 
-- 发送输入事件（鼠标/键盘）
+* 发送输入事件（鼠标/键盘）
 
 ---
 
@@ -90,7 +90,7 @@ async sendInput(params, context)
 async handleMouseMove(data)
 ```
 
-- 处理鼠标移动
+* 处理鼠标移动
 
 ---
 
@@ -100,7 +100,7 @@ async handleMouseMove(data)
 async handleMouseClick(data)
 ```
 
-- 处理鼠标点击
+* 处理鼠标点击
 
 ---
 
@@ -110,7 +110,7 @@ async handleMouseClick(data)
 async handleMouseScroll(data)
 ```
 
-- 处理鼠标滚动
+* 处理鼠标滚动
 
 ---
 
@@ -120,7 +120,7 @@ async handleMouseScroll(data)
 async handleKeyPress(data)
 ```
 
-- 处理按键
+* 处理按键
 
 ---
 
@@ -130,7 +130,7 @@ async handleKeyPress(data)
 async handleKeyType(data)
 ```
 
-- 处理文本输入
+* 处理文本输入
 
 ---
 
@@ -140,7 +140,7 @@ async handleKeyType(data)
 async getDisplays(params, context)
 ```
 
-- 获取显示器列表
+* 获取显示器列表
 
 ---
 
@@ -150,7 +150,7 @@ async getDisplays(params, context)
 async switchDisplay(params, context)
 ```
 
-- 切换显示器
+* 切换显示器
 
 ---
 
@@ -160,7 +160,7 @@ async switchDisplay(params, context)
 async getStats(params, context)
 ```
 
-- 获取性能统计
+* 获取性能统计
 
 ---
 
@@ -170,7 +170,7 @@ async getStats(params, context)
 async getAvailableDisplays()
 ```
 
-- 获取可用显示器列表
+* 获取可用显示器列表
 
 ---
 
@@ -180,6 +180,7 @@ async getAvailableDisplays()
 async cleanupExpiredSessions(maxAge = 60 * 60 * 1000)
 ```
 
-- 清理过期会话（可定期调用）
+* 清理过期会话（可定期调用）
 
 ---
+

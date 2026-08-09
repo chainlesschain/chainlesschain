@@ -1,6 +1,6 @@
 # behavior-tracker-ipc
 
-**Source**: `src\main\memory\behavior-tracker-ipc.js`
+**Source**: `src/main/memory/behavior-tracker-ipc.js`
 
 ---
 
@@ -10,12 +10,12 @@
 const
 ```
 
-- BehaviorTracker IPC Handlers
-- Handles IPC communication for behavior tracking
--
-- @module behavior-tracker-ipc
-- @version 1.0.0
-- @since 2026-01-18
+* BehaviorTracker IPC Handlers
+ * Handles IPC communication for behavior tracking
+ *
+ * @module behavior-tracker-ipc
+ * @version 1.0.0
+ * @since 2026-01-18
 
 ---
 
@@ -25,10 +25,10 @@ const
 function registerBehaviorTrackerIPC(
 ```
 
-- Register all BehaviorTracker IPC handlers
-- @param {Object} dependencies - Dependencies
-- @param {Object} dependencies.behaviorTracker - BehaviorTracker instance
-- @param {Object} [dependencies.ipcMain] - IPC main object (for testing)
+* Register all BehaviorTracker IPC handlers
+ * @param {Object} dependencies - Dependencies
+ * @param {Object} dependencies.behaviorTracker - BehaviorTracker instance
+ * @param {Object} [dependencies.ipcMain] - IPC main object (for testing)
 
 ---
 
@@ -38,8 +38,8 @@ function registerBehaviorTrackerIPC(
 ipcMain.handle(
 ```
 
-- Track page visit
-  - Channel: 'behavior:track-page'
+* Track page visit
+   * Channel: 'behavior:track-page'
 
 ---
 
@@ -49,8 +49,8 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- Track feature use
-  - Channel: 'behavior:track-feature'
+* Track feature use
+   * Channel: 'behavior:track-feature'
 
 ---
 
@@ -60,8 +60,8 @@ ipcMain.handle(
 ipcMain.handle("behavior:track-llm", async (_event, params) =>
 ```
 
-- Track LLM interaction
-  - Channel: 'behavior:track-llm'
+* Track LLM interaction
+   * Channel: 'behavior:track-llm'
 
 ---
 
@@ -71,8 +71,8 @@ ipcMain.handle("behavior:track-llm", async (_event, params) =>
 ipcMain.handle(
 ```
 
-- Track search
-  - Channel: 'behavior:track-search'
+* Track search
+   * Channel: 'behavior:track-search'
 
 ---
 
@@ -82,8 +82,8 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- Track error
-  - Channel: 'behavior:track-error'
+* Track error
+   * Channel: 'behavior:track-error'
 
 ---
 
@@ -93,8 +93,8 @@ ipcMain.handle(
 ipcMain.handle("behavior:analyze-now", async () =>
 ```
 
-- Trigger pattern analysis
-  - Channel: 'behavior:analyze-now'
+* Trigger pattern analysis
+   * Channel: 'behavior:analyze-now'
 
 ---
 
@@ -104,8 +104,8 @@ ipcMain.handle("behavior:analyze-now", async () =>
 ipcMain.handle(
 ```
 
-- Get recommendations
-  - Channel: 'behavior:get-recommendations'
+* Get recommendations
+   * Channel: 'behavior:get-recommendations'
 
 ---
 
@@ -115,8 +115,8 @@ ipcMain.handle(
 ipcMain.handle("behavior:recommendation-shown", async (_event, id) =>
 ```
 
-- Mark recommendation as shown
-  - Channel: 'behavior:recommendation-shown'
+* Mark recommendation as shown
+   * Channel: 'behavior:recommendation-shown'
 
 ---
 
@@ -126,8 +126,8 @@ ipcMain.handle("behavior:recommendation-shown", async (_event, id) =>
 ipcMain.handle("behavior:accept-recommendation", async (_event, id) =>
 ```
 
-- Accept recommendation
-  - Channel: 'behavior:accept-recommendation'
+* Accept recommendation
+   * Channel: 'behavior:accept-recommendation'
 
 ---
 
@@ -137,8 +137,8 @@ ipcMain.handle("behavior:accept-recommendation", async (_event, id) =>
 ipcMain.handle("behavior:dismiss-recommendation", async (_event, id) =>
 ```
 
-- Dismiss recommendation
-  - Channel: 'behavior:dismiss-recommendation'
+* Dismiss recommendation
+   * Channel: 'behavior:dismiss-recommendation'
 
 ---
 
@@ -148,8 +148,8 @@ ipcMain.handle("behavior:dismiss-recommendation", async (_event, id) =>
 ipcMain.handle("behavior:get-stats", async () =>
 ```
 
-- Get behavior statistics
-  - Channel: 'behavior:get-stats'
+* Get behavior statistics
+   * Channel: 'behavior:get-stats'
 
 ---
 
@@ -159,8 +159,8 @@ ipcMain.handle("behavior:get-stats", async () =>
 ipcMain.handle("behavior:start-session", async () =>
 ```
 
-- Start new session
-  - Channel: 'behavior:start-session'
+* Start new session
+   * Channel: 'behavior:start-session'
 
 ---
 
@@ -170,8 +170,9 @@ ipcMain.handle("behavior:start-session", async () =>
 function updateBehaviorTracker(newTracker)
 ```
 
-- Update BehaviorTracker reference
-  - For hot-reload or reinitialization
-  - @param {BehaviorTracker} newTracker - New instance
+* Update BehaviorTracker reference
+   * For hot-reload or reinitialization
+   * @param {BehaviorTracker} newTracker - New instance
 
 ---
+

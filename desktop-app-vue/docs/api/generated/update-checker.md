@@ -1,6 +1,6 @@
 # update-checker
 
-**Source**: `src\main\system\update-checker.js`
+**Source**: `src/main/system/update-checker.js`
 
 ---
 
@@ -10,8 +10,8 @@
 const
 ```
 
-- 应用更新检查器
-- 检查应用更新并提供下载功能
+* 应用更新检查器
+ * 检查应用更新并提供下载功能
 
 ---
 
@@ -21,27 +21,27 @@ const
 async checkForUpdates(showNoUpdateDialog = false)
 ```
 
-- 检查更新
+* 检查更新
 
 ---
 
 ## fetchLatestRelease()
 
 ```javascript
-fetchLatestRelease();
+fetchLatestRelease()
 ```
 
-- 获取最新发布版本
+* 获取最新发布版本
 
 ---
 
 ## compareVersions(v1, v2)
 
 ```javascript
-compareVersions(v1, v2);
+compareVersions(v1, v2)
 ```
 
-- 比较版本号
+* 比较版本号
 
 ---
 
@@ -51,7 +51,7 @@ compareVersions(v1, v2);
 async showUpdateDialog(release)
 ```
 
-- 显示更新对话框
+* 显示更新对话框
 
 ---
 
@@ -61,46 +61,47 @@ async showUpdateDialog(release)
 async downloadUpdate(release)
 ```
 
-- 下载更新
+* 下载更新
 
 ---
 
 ## findAssetForPlatform(assets)
 
 ```javascript
-findAssetForPlatform(assets);
+findAssetForPlatform(assets)
 ```
 
-- 查找适合当前平台的资源
+* 查找适合当前平台的资源
 
 ---
 
 ## startAutoCheck()
 
 ```javascript
-startAutoCheck();
+startAutoCheck()
 ```
 
-- 自动检查更新
+* 自动检查更新
 
 ---
 
 ## stopAutoCheck()
 
 ```javascript
-stopAutoCheck();
+stopAutoCheck()
 ```
 
-- 停止自动检查（清理定时器，避免泄漏 / 阻塞退出）
+* 停止自动检查（清理定时器，避免泄漏 / 阻塞退出）
 
 ---
 
 ## getUpdateInfo()
 
 ```javascript
-getUpdateInfo();
+getUpdateInfo()
 ```
 
-- 获取更新信息
+* 获取更新信息
 
 ---
+

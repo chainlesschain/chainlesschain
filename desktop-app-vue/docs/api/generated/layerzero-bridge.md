@@ -1,6 +1,6 @@
 # layerzero-bridge
 
-**Source**: `src\main\blockchain\bridges\layerzero-bridge.js`
+**Source**: `src/main/blockchain/bridges/layerzero-bridge.js`
 
 ---
 
@@ -10,16 +10,16 @@
 const
 ```
 
-- LayerZero Bridge Implementation
--
-- Production-ready cross-chain bridge using LayerZero protocol
--
-- Features:
-- - Omnichain asset transfers
-- - Message verification
-- - Fee estimation
-- - Transaction tracking
-- - Retry mechanism
+* LayerZero Bridge Implementation
+ *
+ * Production-ready cross-chain bridge using LayerZero protocol
+ *
+ * Features:
+ * - Omnichain asset transfers
+ * - Message verification
+ * - Fee estimation
+ * - Transaction tracking
+ * - Retry mechanism
 
 ---
 
@@ -29,8 +29,8 @@ const
 const LZ_CHAIN_IDS =
 ```
 
-- LayerZero Chain IDs
-- https://layerzero.gitbook.io/docs/technical-reference/mainnet/supported-chain-ids
+* LayerZero Chain IDs
+ * https://layerzero.gitbook.io/docs/technical-reference/mainnet/supported-chain-ids
 
 ---
 
@@ -40,7 +40,7 @@ const LZ_CHAIN_IDS =
 class LayerZeroBridge extends EventEmitter
 ```
 
-- LayerZero Bridge Class
+* LayerZero Bridge Class
 
 ---
 
@@ -50,7 +50,7 @@ class LayerZeroBridge extends EventEmitter
 async initialize()
 ```
 
-- Initialize bridge
+* Initialize bridge
 
 ---
 
@@ -60,7 +60,7 @@ async initialize()
 async loadContractABIs()
 ```
 
-- Load contract ABIs
+* Load contract ABIs
 
 ---
 
@@ -70,7 +70,7 @@ async loadContractABIs()
 async bridgeAsset(params)
 ```
 
-- Bridge asset to another chain
+* Bridge asset to another chain
 
 ---
 
@@ -80,7 +80,7 @@ async bridgeAsset(params)
 async estimateFee(params)
 ```
 
-- Estimate bridge fee
+* Estimate bridge fee
 
 ---
 
@@ -90,7 +90,7 @@ async estimateFee(params)
 async getStatus(txHash)
 ```
 
-- Get transaction status
+* Get transaction status
 
 ---
 
@@ -100,67 +100,67 @@ async getStatus(txHash)
 async monitorDestinationChain(requestId, chainId, recipient)
 ```
 
-- Monitor destination chain for asset receipt
+* Monitor destination chain for asset receipt
 
 ---
 
 ## validateBridgeParams(params)
 
 ```javascript
-validateBridgeParams(params);
+validateBridgeParams(params)
 ```
 
-- Validate bridge parameters
+* Validate bridge parameters
 
 ---
 
 ## extractRequestId(receipt)
 
 ```javascript
-extractRequestId(receipt);
+extractRequestId(receipt)
 ```
 
-- Extract request ID from transaction receipt
+* Extract request ID from transaction receipt
 
 ---
 
 ## trackTransaction(txHash, data)
 
 ```javascript
-trackTransaction(txHash, data);
+trackTransaction(txHash, data)
 ```
 
-- Track transaction
+* Track transaction
 
 ---
 
 ## updateTransaction(txHash, updates)
 
 ```javascript
-updateTransaction(txHash, updates);
+updateTransaction(txHash, updates)
 ```
 
-- Update transaction
+* Update transaction
 
 ---
 
 ## updateTransactionByRequestId(requestId, updates)
 
 ```javascript
-updateTransactionByRequestId(requestId, updates);
+updateTransactionByRequestId(requestId, updates)
 ```
 
-- Update transaction by request ID
+* Update transaction by request ID
 
 ---
 
 ## getSupportedChains()
 
 ```javascript
-getSupportedChains();
+getSupportedChains()
 ```
 
-- Get supported chains
+* Get supported chains
 
 ---
 
@@ -170,6 +170,7 @@ getSupportedChains();
 async close()
 ```
 
-- Close bridge
+* Close bridge
 
 ---
+

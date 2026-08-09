@@ -1,6 +1,6 @@
 # did-cache
 
-**Source**: `src\main\did\did-cache.js`
+**Source**: `src/main/did/did-cache.js`
 
 ---
 
@@ -10,15 +10,15 @@
 const
 ```
 
-- DID 缓存管理器
--
-- 提供DID文档的本地缓存功能，减少DHT网络请求，提升解析性能
--
-- 功能:
-- - LRU缓存策略
-- - TTL过期机制
-- - 缓存统计
-- - 持久化支持
+* DID 缓存管理器
+ *
+ * 提供DID文档的本地缓存功能，减少DHT网络请求，提升解析性能
+ *
+ * 功能:
+ * - LRU缓存策略
+ * - TTL过期机制
+ * - 缓存统计
+ * - 持久化支持
 
 ---
 
@@ -28,7 +28,7 @@ const
 const DEFAULT_CONFIG =
 ```
 
-- DID缓存配置
+* DID缓存配置
 
 ---
 
@@ -38,7 +38,7 @@ const DEFAULT_CONFIG =
 class DIDCache extends EventEmitter
 ```
 
-- DID缓存类
+* DID缓存类
 
 ---
 
@@ -48,7 +48,7 @@ class DIDCache extends EventEmitter
 async initialize()
 ```
 
-- 初始化缓存
+* 初始化缓存
 
 ---
 
@@ -58,7 +58,7 @@ async initialize()
 async ensureCacheTable()
 ```
 
-- 确保缓存表存在
+* 确保缓存表存在
 
 ---
 
@@ -68,7 +68,7 @@ async ensureCacheTable()
 async loadFromDatabase()
 ```
 
-- 从数据库加载缓存
+* 从数据库加载缓存
 
 ---
 
@@ -78,9 +78,9 @@ async loadFromDatabase()
 async get(did)
 ```
 
-- 获取缓存的DID文档
-  - @param {string} did - DID标识符
-  - @returns {Object|null} DID文档或null
+* 获取缓存的DID文档
+   * @param {string} did - DID标识符
+   * @returns {Object|null} DID文档或null
 
 ---
 
@@ -90,9 +90,9 @@ async get(did)
 async set(did, document)
 ```
 
-- 设置缓存
-  - @param {string} did - DID标识符
-  - @param {Object} document - DID文档
+* 设置缓存
+   * @param {string} did - DID标识符
+   * @param {Object} document - DID文档
 
 ---
 
@@ -102,59 +102,59 @@ async set(did, document)
 async clear(did)
 ```
 
-- 清除缓存
-  - @param {string} did - DID标识符 (可选，不传则清除所有)
+* 清除缓存
+   * @param {string} did - DID标识符 (可选，不传则清除所有)
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats();
+getStats()
 ```
 
-- 获取统计信息
-  - @returns {Object} 统计信息
+* 获取统计信息
+   * @returns {Object} 统计信息
 
 ---
 
 ## resetStats()
 
 ```javascript
-resetStats();
+resetStats()
 ```
 
-- 重置统计信息
+* 重置统计信息
 
 ---
 
 ## estimateMemoryUsage()
 
 ```javascript
-estimateMemoryUsage();
+estimateMemoryUsage()
 ```
 
-- 估算内存使用量 (字节)
+* 估算内存使用量 (字节)
 
 ---
 
 ## startCleanup()
 
 ```javascript
-startCleanup();
+startCleanup()
 ```
 
-- 启动定期清理
+* 启动定期清理
 
 ---
 
 ## stopCleanup()
 
 ```javascript
-stopCleanup();
+stopCleanup()
 ```
 
-- 停止定期清理
+* 停止定期清理
 
 ---
 
@@ -164,7 +164,7 @@ stopCleanup();
 async cleanup()
 ```
 
-- 清理过期缓存
+* 清理过期缓存
 
 ---
 
@@ -174,7 +174,7 @@ async cleanup()
 async saveToDatabase(did, document, cachedAt, expiresAt)
 ```
 
-- 保存到数据库
+* 保存到数据库
 
 ---
 
@@ -184,7 +184,7 @@ async saveToDatabase(did, document, cachedAt, expiresAt)
 async deleteFromDatabase(did)
 ```
 
-- 从数据库删除
+* 从数据库删除
 
 ---
 
@@ -194,7 +194,7 @@ async deleteFromDatabase(did)
 async updateAccessInDatabase(did, accessCount, lastAccessedAt)
 ```
 
-- 更新数据库访问记录
+* 更新数据库访问记录
 
 ---
 
@@ -204,6 +204,7 @@ async updateAccessInDatabase(did, accessCount, lastAccessedAt)
 async destroy()
 ```
 
-- 销毁缓存管理器
+* 销毁缓存管理器
 
 ---
+

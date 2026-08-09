@@ -1,6 +1,6 @@
 # marketplace-api
 
-**Source**: `src\main\plugins\marketplace-api.js`
+**Source**: `src/main/plugins/marketplace-api.js`
 
 ---
 
@@ -10,20 +10,20 @@
 const
 ```
 
-- 插件市场API客户端
--
-- 负责与插件市场后端服务通信
-- 支持插件发现、下载、评分、评论等功能
+* 插件市场API客户端
+ *
+ * 负责与插件市场后端服务通信
+ * 支持插件发现、下载、评分、评论等功能
 
 ---
 
 ## ensureCacheDir()
 
 ```javascript
-ensureCacheDir();
+ensureCacheDir()
 ```
 
-- 确保缓存目录存在
+* 确保缓存目录存在
 
 ---
 
@@ -33,37 +33,37 @@ ensureCacheDir();
 getCacheKey(endpoint, params =
 ```
 
-- 获取缓存键
+* 获取缓存键
 
 ---
 
 ## getFromCache(key)
 
 ```javascript
-getFromCache(key);
+getFromCache(key)
 ```
 
-- 从缓存读取
+* 从缓存读取
 
 ---
 
 ## setCache(key, data)
 
 ```javascript
-setCache(key, data);
+setCache(key, data)
 ```
 
-- 写入缓存
+* 写入缓存
 
 ---
 
 ## clearCache()
 
 ```javascript
-clearCache();
+clearCache()
 ```
 
-- 清除缓存
+* 清除缓存
 
 ---
 
@@ -73,7 +73,7 @@ clearCache();
 async listPlugins(options =
 ```
 
-- 获取插件列表
+* 获取插件列表
 
 ---
 
@@ -83,7 +83,7 @@ async listPlugins(options =
 async getPlugin(pluginId, useCache = true)
 ```
 
-- 获取插件详情
+* 获取插件详情
 
 ---
 
@@ -93,7 +93,7 @@ async getPlugin(pluginId, useCache = true)
 async downloadPlugin(pluginId, version = "latest")
 ```
 
-- 下载插件
+* 下载插件
 
 ---
 
@@ -103,7 +103,7 @@ async downloadPlugin(pluginId, version = "latest")
 async getPluginVersions(pluginId)
 ```
 
-- 获取插件版本列表
+* 获取插件版本列表
 
 ---
 
@@ -113,7 +113,7 @@ async getPluginVersions(pluginId)
 async checkUpdates(installedPlugins)
 ```
 
-- 检查插件更新
+* 检查插件更新
 
 ---
 
@@ -123,7 +123,7 @@ async checkUpdates(installedPlugins)
 async ratePlugin(pluginId, rating, comment = null)
 ```
 
-- 提交插件评分
+* 提交插件评分
 
 ---
 
@@ -133,7 +133,7 @@ async ratePlugin(pluginId, rating, comment = null)
 async getPluginReviews(pluginId, page = 1, pageSize = 10)
 ```
 
-- 获取插件评论
+* 获取插件评论
 
 ---
 
@@ -143,7 +143,7 @@ async getPluginReviews(pluginId, page = 1, pageSize = 10)
 async publishPlugin(pluginData, pluginFile)
 ```
 
-- 发布插件（开发者功能）
+* 发布插件（开发者功能）
 
 ---
 
@@ -153,7 +153,7 @@ async publishPlugin(pluginData, pluginFile)
 async updatePlugin(pluginId, version, pluginFile, changelog)
 ```
 
-- 更新插件（开发者功能）
+* 更新插件（开发者功能）
 
 ---
 
@@ -163,7 +163,7 @@ async updatePlugin(pluginId, version, pluginFile, changelog)
 async getCategories()
 ```
 
-- 获取分类列表
+* 获取分类列表
 
 ---
 
@@ -173,7 +173,7 @@ async getCategories()
 async searchPlugins(query, options =
 ```
 
-- 搜索插件
+* 搜索插件
 
 ---
 
@@ -183,7 +183,7 @@ async searchPlugins(query, options =
 async getFeaturedPlugins(limit = 10)
 ```
 
-- 获取推荐插件
+* 获取推荐插件
 
 ---
 
@@ -193,7 +193,7 @@ async getFeaturedPlugins(limit = 10)
 async reportPlugin(pluginId, reason, description)
 ```
 
-- 报告插件问题
+* 报告插件问题
 
 ---
 
@@ -203,6 +203,7 @@ async reportPlugin(pluginId, reason, description)
 async getPluginStats(pluginId)
 ```
 
-- 获取插件统计信息
+* 获取插件统计信息
 
 ---
+
