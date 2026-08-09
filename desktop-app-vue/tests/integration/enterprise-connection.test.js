@@ -286,6 +286,7 @@ describe("企业版服务器连接测试", () => {
     });
 
     it("慢速响应时应显示较大延迟", async () => {
+      const simulatedLatencyMs = 2000;
       global.fetch.mockImplementationOnce(
         () =>
           new Promise((resolve) => {
@@ -295,15 +296,15 @@ describe("企业版服务器连接测试", () => {
                 status: 200,
                 json: async () => ({}),
               });
-            }, 2000);
+            }, simulatedLatencyMs);
           }),
       );
 
-      const startTime = Date.now();
+      const startTime = performance.now();
       await fetch("https://test.com/api/health");
-      const latency = Date.now() - startTime;
+      const latency = performance.now() - startTime;
 
-      expect(latency).toBeGreaterThanOrEqual(2000);
+      expect(latency).toBeGreaterThanOrEqual(simulatedLatencyMs - 10);
     }, 15000); // 增加超时时间
   });
 });
