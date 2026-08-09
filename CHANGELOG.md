@@ -14,12 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.57**
 > and `@chainlesschain/agent-sdk` remains **0.1.7**.
 
-- **Git background isolation by default**: non-`stream-json` `cc agent --bg`
-  runs started from a clean Git checkout now create a worktree at committed
-  `HEAD`; `--worktree` requests the same path and only `--no-worktree` opts into
-  the shared checkout. Foreground, `stream-json`, and non-Git runs retain their
-  prior behavior, while a dirty Git source is rejected instead of silently
-  omitting uncommitted changes.
+- **Git background isolation by default**: `cc agent --bg` runs started from a
+  clean Git checkout and not using `--input-format stream-json` now create a
+  worktree at committed `HEAD`; `--worktree` requests the same path and only
+  `--no-worktree` opts into the shared checkout. Foreground runs, runs using
+  `--input-format stream-json`, and non-Git runs retain their prior behavior,
+  while a dirty Git source is rejected instead of silently omitting uncommitted
+  changes.
 - **Generation- and token-fenced ownership**: locked atomic state, immutable
   worktree/profile identity, worker-generation claims, terminal-absorbing
   updates, durable turn intents, and stop/cleanup fences prevent stale
@@ -51,10 +52,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fallback/diagnostic pass. Full-suite workflows provision their required
   dependencies explicitly; this routing does not replace the exact-SHA release
   matrices.
-- **Known residuals**: non-Git, `stream-json`, `--no-worktree`, and external
-  `add-dir` roots are not worktree-isolated. Spawn-to-PID hard-crash recovery
-  and long-soak closure remain open; Linux native dependency evidence is
-  non-transitive and has no `dlopen` closure; Windows path operations are
+- **Known residuals**: non-Git, `--input-format stream-json`, `--no-worktree`,
+  and external `add-dir` roots are not worktree-isolated. Spawn-to-PID
+  hard-crash recovery and long-soak closure remain open; Linux native
+  dependency evidence is non-transitive and has no `dlopen` closure; Windows
+  path operations are
   re-attested but not handle-atomic. macOS atomic runtime execution, arbitrary
   shared-library closure, remote revocation, signed native distribution, and
   alias telemetry/removal remain out of scope, so this release does not claim
