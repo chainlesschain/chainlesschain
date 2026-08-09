@@ -142,6 +142,28 @@ test("selector maps repository-root paths to executable desktop unit tests", () 
   ]);
   assert.equal(fullSelection.mode, "full");
   assert.deepEqual(fullSelection.selectedTests, ["tests/unit", "src"]);
+
+  const ideSelection = selector.createSelection([
+    "packages/vscode-extension/package.json",
+    "packages/jetbrains-plugin/build.gradle.kts",
+  ]);
+  assert.equal(ideSelection.mode, "targeted");
+  assert.deepEqual(ideSelection.selectedTests, [
+    "tests/unit/did/did-manager.test.js",
+    "tests/unit/llm/llm-service.test.js",
+  ]);
+  assert.ok(
+    ideSelection.mappings.every(
+      (mapping) => mapping.reason === "covered-by-ide-dedicated-gates",
+    ),
+  );
+
+  const ideCommand = selector.commandForSelection(ideSelection, {
+    vitestEntrypoint: "C:/safe/vitest.mjs",
+  });
+  assert.ok(ideCommand.args.includes("--pool=forks"));
+  assert.ok(ideCommand.args.includes("--maxWorkers=2"));
+  assert.ok(!ideCommand.args.includes("--pool=threads"));
 });
 
 test("selector maps exact Windows sandbox support paths to CLI contracts", () => {
@@ -575,7 +597,14 @@ test("unit workflow distinguishes selected-test failures from fail-closed fallba
     /id: fallback-tests\s+if: steps\.test-selector\.outcome == 'failure' && steps\.test-selector\.outputs\.test-mode == 'fail-closed'/,
   );
   assert.match(workflow, /npm exec --offline -- vitest run tests\/unit src/);
+  assert.match(workflow, /--pool=forks --maxWorkers=2/);
+  assert.doesNotMatch(workflow, /--pool=threads/);
   assert.doesNotMatch(workflow, /src\/main\/\*\*\/__tests__/);
+  const fullSuiteWorkflow = workflow.slice(workflow.indexOf("full-tests:"));
+  assert.match(
+    fullSuiteWorkflow,
+    /name: Install packages\/cli production dependencies standalone[\s\S]*?working-directory: \.\/packages\/cli[\s\S]*?name: Run all unit tests/,
+  );
   const verdict = extractNodeVerdict(
     workflow,
     "Enforce selector or fallback result",
