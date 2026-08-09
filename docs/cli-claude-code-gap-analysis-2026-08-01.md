@@ -1149,6 +1149,83 @@ clean implementation SHA 在 Windows x64 / Node `22.22.2` 上复跑全部 `mcp-c
 - 最终 npm release SHA `e3f56b11e27ae1bd5d19ad8638434843c244aa68` 的 [CLI Native Validation `31240927257`](https://github.com/chainlesschain/chainlesschain/actions/runs/31240927257) 已在 Linux x64/ARM64、Windows x64/ARM64、macOS x64/ARM64 六种匹配真实宿主上分别构建并执行 standalone binary，同时跑过 installer/updater transaction 回归；aggregate artifact ID `9017182712`、digest `sha256:768d0cf0ae22a94ee47dbd35ae98df27f8634f880ce90b71f4e97d14f8e34ab4`。每份 evidence 都固定声明 `signed=false`、`releaseEligible=false`，所以它关闭的是六目标无签名构建/执行缺口，不是第 16.8(4) 的公开发行链。`CLI Native Release` 现以 `blocked-pending-signing-and-public-distribution-evidence` 失败关闭，准确反映剩余前置条件：更新签名密钥、Windows Authenticode、macOS codesign/notarization、Sigstore、签名产物的 fresh install/upgrade/rollback、Homebrew/WinGet 实际发布与公开 asset 逐字节回读全部成功后才可改为 ready；当前第 4 项仍为 **NO-GO**。
 - 新增 content-free [`0.163.1` JSON 汇总](cli/evidence/command-lifecycle/0.163.1.json)与[逐命令审阅表](cli/evidence/command-lifecycle/0.163.1.md)。npm 公网时间把观察窗精确绑定为 `0.162.198` 的 `2026-08-06T07:47:36.861Z` 到 `0.163.1` 的 `2026-08-08T07:40:07.699Z`，报告已识别 `0.162`、`0.163` 两个 minor cycle，因而不再声称“第二个 minor 尚未发布”。但没有获批的代表性 Collector export，三平台 reporting installation、coverage、sample rate 和 accepted metric points 仍全部为 0，且 `0.164.0` removal floor 尚未到达；形式判定为 25/25 `insufficient-data`、0 `remove`，对应的 operational alias 决策仍是 **25 个全部保留、0 个删除**。第 16.8(5) 项继续 **NO-GO**，不能用版本号跨过两个 minor 代替真实 adoption evidence。
 
+### 16.15 2026-08-08 `0.163.2` CLI 发布回读、六项任务状态与 Windows helper 泄漏跟进
+
+- `chainlesschain@0.163.2` 的 CLI npm 子闭环已经完成。轻量 tag `v-npm-0-163-2` 精确指向 release SHA `2d6f19aea243ed4f054b585d4bc709d4209ff80d`；同 SHA 的 [CLI CI `31277578939`](https://github.com/chainlesschain/chainlesschain/actions/runs/31277578939) 与 [CLI Strict Sandbox `31277578889`](https://github.com/chainlesschain/chainlesschain/actions/runs/31277578889) 均完成并成功。正式 [npm release `31277578900`](https://github.com/chainlesschain/chainlesschain/actions/runs/31277578900) 与独立公网 [readback `31278310621`](https://github.com/chainlesschain/chainlesschain/actions/runs/31278310621) 成功；npm registry 当前 `latest=0.163.2`，公开 tarball 为 `https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.163.2.tgz`，SHA-1 为 `e12406b50e7aaaed481328015bd28819681ab615`，integrity 为 `sha512-JojaXMiE+UuFSAsuvEW8mjFClG8PxB9sPzMWiEJ4G5Pw+6RX+KfsfgXLgsqDWAYu1+3O+0YAT3BBHMX/3r5wZA==`。因此该精确版本的 **CLI npm 发布为 GO**；后续修复必须进入新版本，不能替换已发布的不可变 `0.163.2`。
+- MCP sandbox policy 已由 [PR #120](https://github.com/chainlesschain/chainlesschain/pull/120) 合入 `main`，merge commit 为 `9fa5162e668fa9b457b0d70d54a0806773c363ab`。其 exact head `c3da912f6fd5890ff723ca812b37b080837406fd` 的 [CLI CI `31282766025`](https://github.com/chainlesschain/chainlesschain/actions/runs/31282766025)、[CLI Strict Sandbox `31282765938`](https://github.com/chainlesschain/chainlesschain/actions/runs/31282765938) 与 [CI Tests `31282765927`](https://github.com/chainlesschain/chainlesschain/actions/runs/31282765927) 均成功。该批关闭的是显式 policy 向 MCP transport/Broker 的传播和失败关闭，不等于默认 Node capsule 已具备文件系统、网络、builtin 或任意 native/shared-library 的完整恶意代码隔离。
+
+按第 16.8 节六项任务的严格产品级验收口径，当前是 **3 项完成、3 项仍未完成**；此外有 1 个已完成项的测试基础设施 follow-up 正在收口：
+
+| 任务 | 当前状态 | 剩余边界与预计工作量 |
+| --- | --- | --- |
+| 1. 长会话规模与冷进程 SLO | **完成** | 已有正式矩阵，不再列为未完成任务。 |
+| 2. Session Host 一致性 | **完成** | 已正式关闭，不再列为未完成任务。 |
+| 3. Skill/MCP 真实恶意矩阵 | **部分完成 / NO-GO** | 当前 Linux native 插件只有 entry ELF 完整内容快照，非 entry 文件仍需全树封存；macOS runtime `exec/open` 原子绑定、任意 shared-library 递归闭包、远端 revoke/distributed authority、受信 Node builtin 的最终平台隔离与长期恶意 race 仍未关闭。Linux 全树快照窄切片约 2～4 工程日；整个任务取得可信 GO 预计仍需约 6～12 周，并依赖三平台实机/长期证据。 |
+| 4. 签名 native 公开发行 | **NO-GO / 外部前置阻断** | 六目标无签名构建执行已验证，但仓库没有更新签名 Ed25519 密钥、Windows Authenticode 证书、macOS Developer ID/notarization 凭据及对应公开渠道证据。凭据到位前无法给出可信完成日期；到位后仍须在同一 exact SHA 上完成签名、fresh install、upgrade、rollback、Homebrew/WinGet 与公开资产逐字节回读。 |
+| 5. 命令 telemetry 与 alias 决策 | **操作决策完成，正式观察项 NO-GO** | `0.163.1` 汇总仍为三平台 reporting installation、accepted points 与获批 Collector export 全部为 0，25/25 `insufficient-data`。当前决策是 **25 个 alias 全部保留、0 个删除**；只有达到 `0.164.0` removal floor 且取得代表性 cohort/coverage/抽样与逐命令 usage 数据后才能关闭，日历时间取决于真实数据而不是代码提交。`0.163.2` 仍属于同一 `0.163` minor，不改变结论。 |
+| 6. 磁盘/pipe/TTY/SSH/资源与长期 soak | **完成；测试 helper follow-up 进行中** | `0.163.1` exact-SHA 三平台两小时可靠性矩阵已经正式关闭产品级任务。随后审计发现 Windows Vitest sandbox helper 缓存目录未完全退休；这是测试基础设施磁盘泄漏，不推翻已完成的产品 runtime soak，但必须在下一提交修复并取得 exact-SHA CI。 |
+
+Windows helper follow-up 的当前审计事实与安全边界如下：
+
+- 初始检查在系统临时目录发现约 2,295 个 `chainless-win-sandbox-<48hex>` 测试 helper 目录，约 140 MiB。一个已否决的中间自动 scavenger 在测试过程中删除了 128 个历史 helper 缓存目录；这些目录只包含可重新生成的测试 helper，不含源码或 workspace，但删除不可恢复。该全局扫描方案因路径竞态/误删风险已完全移除，后续不得重新引入基于字符串路径的自动陈旧目录扫描。
+- 随后的完整无分片 Vitest 压测因资源竞争出现大量 60 秒超时，不能作为发布门；它同时新增 2 个 helper 目录，使保留的历史计数从 2,167 变为 2,169，证明 hard-killed worker/child 不能仅依赖进程内 `afterAll`。现有历史目录暂不自动删除，必须另行做精确、非递归、人工授权的安全清理。
+- 当前候选修复增加 `CC_WINDOWS_SANDBOX_ADAPTER_TEMP_ROOT`，按“显式 `tmpdir` > 显式 runtime root > 环境变量 > 系统默认”解析，并在每个 Windows plan 中只解析一次；只接受本地 DOS 盘绝对真实目录，NUL、相对路径、symlink/reparse、非目录或检查异常全部固定失败关闭为 `windows_adapter_temp_root_untrusted`。helper、invocation 与 identity 文件都绑定同一个已固定 root。测试层为每次 Vitest run 创建唯一 `cc-vitest-win-sandbox-*` 根，子 worker/CLI 继承该环境；global teardown 先完整预检，只允许精确 helper 目录/文件名和普通非链接文件，再用 `unlink`/`rmdir` 非递归删除，未知项、链接、特殊项或身份变化均失败并保留现场。
+- 当前本地证据为：平台 sandbox 完整 focused 单测 **262/262 passed**；清理器 self-test **6/6 passed**；原先会泄漏的四个文件组合 **4 files / 85 tests passed**，系统历史 helper 计数 `2169 -> 2169`、新增 0/删除 0，专用 `cc-vitest-win-sandbox-*` 根 `0 -> 0`；e2e 配置下清理器再次 **6/6 passed** 且两类目录均为 0 增量。Prettier、目标 ESLint、Node syntax 与 `git diff --check` 已通过。该结果是**本地候选 GO**，尚需独立安全复审、提交/PR 和该 exact SHA 的 GitHub Actions 门禁后才能标记正式完成；预计剩余约半个工程日加 CI 时间。
+- 随后的独立安全复审把上述“候选 GO”否决为新的中间快照，发现 **P0=1、P1=4、P2=3**。P0 是 Vitest 4 会捕获 global teardown rejection 后只记录错误，若清理遇到 locked/unknown/replaced 项，测试进程可能仍以 0 退出并留下 root；修复必须显式设置非零退出状态，并用真实子 Vitest 成功/失败契约验证。四个 P1 分别是：产品 temp root 只有 leaf `lstat` 和字符串复用，尚缺 canonical realpath、逐祖先 reparse 与稳定目录身份复验；teardown 仍是 `lstat/realpath -> chmod/unlink/rmdir` 的 path-based check-then-mutate，普通 hardlink 未拒且 `chmod` 可能在竞态下影响 root 外对象；显式 `tmpdir` 优先级使三个真实 Windows live tests 绕过 dedicated root；现有测试只证明环境继承与 mock cleanup，尚未证明“真实 helper materialize -> 强杀 child/worker -> outer cleanup -> helper/root/PID delta=0”。P2 包括 TTL policy 未进入 cache reuse 语义、统一 `applySandbox` 路径的 tmpdir 调用次数未覆盖，以及缺少真实 junction/hardlink/readonly/race 回归。因此 Windows helper follow-up 当前恢复为 **NO-GO / 不可提交**；只有关闭全部 P0/P1、补齐真实强杀与非零退出证据，再通过 PR exact-SHA CI 后才能更新为完成。
+
+因此截至本节，用户可直接执行且不会误导的结论是：CLI npm `0.163.2` 已发布；六项中严格未完成数为 **3**；任务 6 产品级可靠性已完成但 Windows 测试 helper follow-up 尚未正式合并；下一优先级是先合并该泄漏修复，再继续任务 3 的 Linux native 全树快照。任务 4 与任务 5 都受外部材料/真实数据约束，不能用本地测试或版本号代替。
+
+### 16.16 2026-08-09 P0/P1/P2 全量复核与 P2-4 调度内核判定
+
+本次只读复核以 `github/main=d9b40850cc8ea6c8348d447c30bb9010fbfd3038` 为代码基线，并同时复用本文已经登记的 exact-SHA GitHub Actions、npm 发布和公网回读证据。状态口径为：**完成**表示原条目的关键实现与验收边界均已关闭；**部分完成**表示已有可用实现，但原条目仍有明确退出条件未满足；**未完成**表示目标内核尚未形成。未提交的本地候选、旧 SHA、单平台测试和相邻任务的证据均不计为正式关闭。
+
+严格按第 5～7 节原始 15 项统计，当前为 **8 项完成、6 项部分完成、1 项未完成**，即仍有 **7 项未完全关闭**：
+
+| 层级 | 完成 | 部分完成 | 未完成 | 未完全关闭 |
+| --- | ---: | ---: | ---: | ---: |
+| P0 | 4 | 1 | 0 | 1 |
+| P1 | 3 | 3 | 0 | 3 |
+| P2 | 1 | 2 | 1 | 3 |
+| **合计** | **8** | **6** | **1** | **7** |
+
+逐项判定如下：
+
+| 项目 | 判定 | 证据与仍未关闭的边界 |
+| --- | --- | --- |
+| P0-1 lazy dispatch / 命令最多执行一次 | **完成** | 实现提交 `c42820ab13`；[`lazy-dispatch.js`](../packages/cli/src/lazy-dispatch.js) 已有 phase-0 分发，并把 action 的 `parseAsync()` 放在 eager fallback 错误边界之外；[`lazy-dispatch.test.js`](../packages/cli/__tests__/unit/lazy-dispatch.test.js) 覆盖“产生一次副作用后抛错”且不重跑。 |
+| P0-2 secret、文件权限与 Sandbox 安全默认值 | **完成** | 实现提交 `a4d1c05133`；schema secret、`set-secret`、get/list/export 统一脱敏、POSIX `0600/0700`、Windows owner-only ACL、`off/workspace-write/strict` 与 managed policy 禁止 off 均已接线并有安全测试。这里关闭的是**安全默认值**，不等于任意 Skill/MCP/native 代码已经获得完整恶意隔离。 |
+| P0-3 exact-SHA 发布门与可信更新链 | **部分完成 / NO-GO** | CLI npm 子链已完成：`0.163.2` release SHA `2d6f19aea243ed4f054b585d4bc709d4209ff80d` 的 CLI CI `31277578939`、CLI Strict Sandbox `31277578889`、publish `31277578900` 与 readback `31278310621` 成功。原条目还包含 native 可信更新链；`cli-native-release.yml` 仍以 `blocked-pending-signing-and-public-distribution-evidence` 关闭，validation 明示 `signed=false`、`releaseEligible=false`，因此不能由 npm 成功外推。 |
+| P0-4 MCP WebSocket 与 scope 契约 | **完成** | `392398a09d`、`0de8744151` 已进入 `main` 且是 `0.163.2` release SHA 的祖先；真实 WebSocket transport、结构化断线/取消/超时，以及 local/project/user/managed scope precedence 和 managed deny 均有生产实现与测试。这里关闭的是 transport/scope 契约，不替代完整恶意 MCP 隔离。 |
+| P0-5 canonical Session 与长会话存储 | **完成** | `CLI Session Scale` exact-SHA formal run `31085110318` 完成 20 writers × 1,000、10,000 sessions、1 GiB transcript、强杀/partial-record 和三平台 SLO；`CLI Session Host Consistency` run `31191709454` 又关闭 REPL/headless/background/WS 的一致性边界。 |
+| P1-1 命令面收敛 / Agent 默认入口 | **部分完成** | manifest v3 已设 `defaultCommand="agent"`，默认帮助为 10 个 core 入口，TTY/stdin 可直接进入 Agent；但当前仍注册 175 个入口、151 个 recommended 顶层入口，25 个 compatibility alias 尚未依据真实 usage 收敛。`0.163.1` lifecycle 汇总为 accepted points `0`、25/25 `insufficient-data`，所以兼容阶段可用，最终命令面收敛未完成。 |
+| P1-2 后台 Agent 恢复、隔离与预算取消 | **部分完成** | 脱敏 launch profile、持久 session budget、预算耗尽主动 abort descendant/owned process tree 已实现。关键缺口仍在默认隔离：[`agent.js`](../packages/cli/src/commands/agent.js) 只有显式 `--worktree`，仅在 `options.worktree` 为真时创建；仓库没有 `--no-worktree`，mutating background task 尚未默认进入 worktree，相关 20-Agent/取消/清理长期验收也不能据已有通用 soak 自动外推。 |
+| P1-3 `/btw` 与 OutputContext | **完成** | `316f7497b4`、`c42820ab13` 已实现即时 ephemeral、tool-free、单回答与 `--fork`；旧排队语义迁为 `/note-next`。[`program-base.js`](../packages/cli/src/program-base.js) 统一绑定 stdout/stderr、quiet/verbose/JSON 输出上下文。 |
+| P1-4 typed config schema | **完成** | `a4d1c05133` 已提供版本化 schema、类型/enum/default/secret/scope/managed lock、未知 key 默认拒绝、插件 namespace，以及 `validate/effective/explain`。 |
+| P1-5 官方 native 发行物与回滚升级 | **部分完成 / NO-GO** | 六目标 unsigned validation run `31240927257` 已完成真实构建/执行和 installer/updater 回归，但证据固定为 `signed=false`、`releaseEligible=false`。仍缺 updater Ed25519、Windows Authenticode、macOS Developer ID/notarization、签名后的 fresh install/upgrade/rollback、Homebrew/WinGet 实际发布和公开资产逐字节回读；该缺口与 P0-3 的 native 子范围重叠。 |
+| P1-6 长会话与运行时可靠性 SLO | **完成** | release SHA `e3f56b11e27ae1bd5d19ad8638434843c244aa68` 的三平台两小时 soak `31240943985` 已覆盖 1,000 turns、20 Agents、磁盘、pipe、TTY、SSH、screen reader、多语言输入、clipboard、超大 MCP output、FD/handle/orphan 退休。 |
+| P2-1 Provider-neutral Advisor / Critic | **完成** | 实现提交 `8e6e617373` 已接入 `/advisor on\|off\|once\|status`、方案/重复错误/完成前触发、provider/model/budget、managed allowlist、观测与 tool-free 建议，并包含生产 REPL 接线和测试。 |
+| P2-2 交互细节 | **部分完成** | `6845c4a6ac`、`0550d052e2` 已接入 suggestions、recap、外部编辑器、prompt stash、keybindings，并有真实终端、screen-reader、多语言和文本 clipboard 证据。系统剪贴板**图片**仍只有可选 host binding/路径 fallback：[`clipboard-image.js`](../packages/cli/src/repl/clipboard-image.js) 没有生产 `readImage` host adapter，因此原条目未完全关闭。 |
+| P2-3 MCP 可选协议面 | **部分完成** | [`mcp-client.js`](../packages/cli/src/harness/mcp-client.js) 已实现 resource templates、subscribe/unsubscribe、logging level 与 completion，[`mcp-client-optional-protocol.test.js`](../packages/cli/__tests__/unit/mcp-client-optional-protocol.test.js) 有协议测试；但没有生产调用方或基于代表性 server usage 的正式取舍报告，sampling 仍明确返回 `-32601`。这可以视为“已实现一批可选面”，不能写成整个条目完成。 |
+| P2-4 调度内核收敛 | **未完成** | 当前仍是 Agenda、Routine、Cowork Cron、Automation、Loop 五套独立 store/driver；没有 canonical scheduler schema/service、统一 timezone/DST 与 missed-run policy、跨入口幂等/fencing、共享权限/预算、统一 history 或迁移。自 2026-08-01 路线图提出后，`github/main` 没有调度收敛提交。 |
+
+#### P2-4 直接证据、目标范围与估算
+
+- Agenda 的 [`agent-schedule-store.js`](../packages/cli/src/lib/agent-schedule-store.js) 使用 `~/.chainlesschain/agent-schedule/*.jsonl`，命令入口直接创建自己的 store。
+- Routine 的 [`routine-store.js`](../packages/cli/src/lib/routine-store.js) 另存 `routines.json` 与 `runs.jsonl`，仍依赖外部 loop/system cron 驱动。
+- Cowork Cron 的 [`cowork-cron.js`](../packages/cli/src/lib/cowork-cron.js) 使用 workspace 内独立 `schedules.jsonl` 和自己的 scheduler；Automation 的 [`automation-engine.js`](../packages/cli/src/lib/automation-engine.js) 使用独立 SQLite `auto_flows`；[`loop.js`](../packages/cli/src/lib/loop.js) 继续由自身 `setTimeout` 驱动。
+- Agenda/Cowork cron 仍直接使用宿主本地 `Date` 字段，没有统一 IANA timezone/DST 模型；权限和预算主要只在 Agenda 路径完整存在。`EventRuntimeHost` 是 durable event queue worker，不具备 calendar scheduler 的 timezone、DST、missed-run 与 cron migration 契约，不能把它计作已统一的调度内核。
+
+建议交付拆分及单工程师粗估为：
+
+1. canonical schema/store、lease/fencing/history：约 **1.5～2 周**；
+2. IANA timezone、DST、missed-run 与 idempotency：约 **1.5～2 周**；
+3. Agenda/Routine/Cowork/Automation/Loop adapter 和兼容迁移：约 **2～3 周**；
+4. 三平台 kill/restart、双实例、DST 边界和长期验证：约 **1～2 周**。
+
+合计约 **6～10 周（单工程师）**，两人能真正并行时约 **4～6 周**。该估算包含设计、迁移和测试，不包含 CI 排队或发现历史数据异常后的额外处置；直接把其中一套 store 改名为“统一内核”不能缩短验收范围。
+
+最后必须区分两种计数：第 16.8 节“六项产品任务”的 **3 完成、3 未完成** 是后续选定的专项清单；本节的 **8 完成、6 部分、1 未完成** 是 P0-1～P2-4 原始 15 项全量复核。前者没有覆盖 P2-4，也没有重新验证 P1-2 的默认 worktree 条件，因此两组数字并不矛盾。第 16.15 节 Windows test helper follow-up 是测试基础设施收口，也不单列为这 15 项中的新任务；在其实现提交、PR 与 exact-SHA CI 完成前，仍只能引用为本地候选证据，但不推翻 P1-6 已正式关闭的产品级两小时可靠性门。
+
 ## 17. 2026-08-06 `0.162.198` 发布闭环与继续执行边界
 
 `0.162.198` 是第 16 节之后的 CLI-only 补丁发布，纳入 P0-1 canonical session workbench、P0-2 rewind/branch 宿主绑定、P0-3 发布可靠性跟进，以及 REPL/headless/provider/TTY 输出背压和跨平台 release fixture 修复。它不改变第 16.8 节产品级未完成项的授权边界。
