@@ -73,12 +73,18 @@ jobs:
         working-directory: ./desktop-app-vue
         shell: bash
         run: |
-          for i in 1 2 3; do
-            npm install --legacy-peer-deps && break || {
-              echo "npm install attempt $i failed, retrying in $((i*15))s..."
-              sleep $((i*15))
-            }
-          done
+          bash "$GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh" \
+            npm install --legacy-peer-deps
+
+      # Packaging and embedded web-shell tests intentionally require the CLI's
+      # standalone production dependency topology; a workspace-hoisted install
+      # is not equivalent to the files shipped under Resources/packages/cli.
+      - name: Install packages/cli production dependencies standalone
+        working-directory: ./packages/cli
+        shell: bash
+        run: |
+          bash "$GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh" \
+            npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps
 
       - name: Verify CI gate integrity contracts
         run: node --test scripts/__tests__/ci-gate-integrity.test.mjs

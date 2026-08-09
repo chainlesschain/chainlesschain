@@ -45,6 +45,16 @@ jobs:
         with:
           install-desktop-app-vue: "true"
 
+      # The fail-closed fallback exercises the real embedded CLI vendor path.
+      # A workspace-hoisted install does not create the dependency closure that
+      # is copied into Resources/packages/cli during desktop packaging.
+      - name: Install packages/cli production dependencies standalone
+        working-directory: ./packages/cli
+        shell: bash
+        run: |
+          bash "$GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh" \
+            npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps
+
       - name: Run TypeScript type check
         working-directory: ./desktop-app-vue
         # vue-tsc on 164k+ LOC trips macOS runner's 7GB RAM ceiling without
@@ -77,7 +87,7 @@ jobs:
         # they would make a successful fallback indistinguishable from a gap.
         run: |
           echo "⚠️  Intelligent test selection failed, running complete unit roots..."
-          node node_modules/vitest/vitest.mjs run tests/unit src \
+          npm exec --offline -- vitest run tests/unit src \
             --reporter=default --silent=passed-only --pool=threads
 
       - name: Enforce selector or fallback result

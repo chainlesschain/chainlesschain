@@ -237,6 +237,29 @@ test("test runner is wired to real suite commands", async () => {
   );
 });
 
+test("UKey smoke skips unsupported hosts and propagates real failures", () => {
+  const script = fs.readFileSync(
+    path.join(desktopRoot, "scripts", "test-ukey.js"),
+    "utf8",
+  );
+
+  assert.match(script, /process\.platform !== ["']win32["']/);
+  assert.match(script, /UKey hardware smoke SKIPPED/);
+  assert.match(script, /no XinJinKe device detected/);
+  assert.match(script, /catch \(error\)[\s\S]*?throw error/);
+  assert.match(script, /process\.exitCode = 1/);
+  assert.equal(
+    (script.match(/assertSmoke\(\s*verifyResult\.success/g) ?? []).length,
+    1,
+  );
+  assert.match(script, /assertSmoke\(\s*decrypted === testData/);
+  assert.match(script, /assertSmoke\(verified/);
+  assert.match(script, /assertSmoke\(!isUnlocked/);
+  assert.match(script, /assertSmoke\(\s*testValue === ["']testValue["']/);
+  assert.ok((script.match(/throw error;/g) ?? []).length >= 4);
+  assert.doesNotMatch(script, /runTests\(\)\.catch\(console\.error\)/);
+});
+
 test("auto-fix command is diagnostic-only and fails when no safe fix exists", async (t) => {
   const temporaryRoot = await fsp.mkdtemp(
     path.join(os.tmpdir(), "cc-ci-auto-fix-"),
@@ -315,6 +338,14 @@ test("workflow uses step outcomes and a final non-zero verdict", () => {
 
   assert.match(workflow, /^name: Full Test Automation with Diagnostics/m);
   assert.doesNotMatch(workflow, /Attempt auto-fix|无法自动修复|尝试运行/);
+  assert.match(
+    workflow,
+    /name: Install dependencies[\s\S]*?ci-npm-retry\.sh" \\\n\s+npm install --legacy-peer-deps/,
+  );
+  assert.match(
+    workflow,
+    /name: Install packages\/cli production dependencies standalone[\s\S]*?working-directory: \.\/packages\/cli[\s\S]*?npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps/,
+  );
   assert.match(workflow, /Re-run tests for failure diagnosis/);
   assert.match(workflow, /TEST_REPORT_SUFFIX: retry/);
   assert.ok(
@@ -385,12 +416,13 @@ test("unit workflow distinguishes selected-test failures from fail-closed fallba
   );
   assert.match(
     workflow,
-    /id: fallback-tests\s+if: steps\.test-selector\.outcome == 'failure' && steps\.test-selector\.outputs\.test-mode == 'fail-closed'/,
+    /name: Install packages\/cli production dependencies standalone[\s\S]*?working-directory: \.\/packages\/cli[\s\S]*?ci-npm-retry\.sh" \\\n\s+npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps/,
   );
   assert.match(
     workflow,
-    /node node_modules\/vitest\/vitest\.mjs run tests\/unit src/,
+    /id: fallback-tests\s+if: steps\.test-selector\.outcome == 'failure' && steps\.test-selector\.outputs\.test-mode == 'fail-closed'/,
   );
+  assert.match(workflow, /npm exec --offline -- vitest run tests\/unit src/);
   assert.doesNotMatch(workflow, /src\/main\/\*\*\/__tests__/);
   const verdict = extractNodeVerdict(
     workflow,
