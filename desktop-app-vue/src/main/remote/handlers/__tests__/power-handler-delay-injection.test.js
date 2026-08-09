@@ -8,15 +8,23 @@
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-const { execMock } = vi.hoisted(() => ({
-  execMock: vi.fn((cmd, cb) => cb(null, { stdout: "", stderr: "" })),
-}));
-vi.mock("child_process", () => ({ exec: execMock }));
 vi.mock("../../../utils/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
-const { PowerHandler } = require("../power-handler.js");
+const execMock = vi.fn((_cmd, callback) => callback(null, "", ""));
+const childProcess = require("child_process");
+const realExec = childProcess.exec;
+let PowerHandler;
+try {
+  // power-handler is CommonJS and captures promisify(exec) at module load, so
+  // an ESM vi.mock does not protect CI from a real shutdown command.
+  childProcess.exec = execMock;
+  delete require.cache[require.resolve("../power-handler.js")];
+  ({ PowerHandler } = require("../power-handler.js"));
+} finally {
+  childProcess.exec = realExec;
+}
 
 describe("PowerHandler delay injection guard", () => {
   let handler;
@@ -26,17 +34,30 @@ describe("PowerHandler delay injection guard", () => {
   });
 
   it("coerces a malicious shutdown delay so no second command reaches the shell", async () => {
-    await handler.shutdown({ delay: "0 & calc.exe", confirm: false });
+    const result = await handler.shutdown({
+      delay: "0 & calc.exe",
+      confirm: false,
+    });
     const cmd = execMock.mock.calls[0][0];
     expect(cmd).not.toMatch(/calc\.exe/);
-    // coerced to integer 0
-    expect(cmd).toMatch(/\/t 0\b/);
+    expect(cmd).not.toContain("&");
+    expect(result.delay).toBe(0);
+    if (process.platform === "win32") {
+      expect(cmd).toMatch(/\/t 0\b/);
+    }
   });
 
   it("coerces a malicious restart delay too", async () => {
-    await handler.restart({ delay: "5; rm -rf ~", confirm: false });
+    const result = await handler.restart({
+      delay: "5; rm -rf ~",
+      confirm: false,
+    });
     const cmd = execMock.mock.calls[0][0];
     expect(cmd).not.toMatch(/rm -rf/);
-    expect(cmd).toMatch(/\/t 5\b/);
+    expect(cmd).not.toContain(";");
+    expect(result.delay).toBe(5);
+    if (process.platform === "win32") {
+      expect(cmd).toMatch(/\/t 5\b/);
+    }
   });
 });

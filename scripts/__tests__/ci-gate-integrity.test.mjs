@@ -420,6 +420,10 @@ test("unit workflow distinguishes selected-test failures from fail-closed fallba
   );
   assert.match(
     workflow,
+    /name: Checkout code[\s\S]*?uses: actions\/checkout@v5[\s\S]*?fetch-depth: 0/,
+  );
+  assert.match(
+    workflow,
     /id: fallback-tests\s+if: steps\.test-selector\.outcome == 'failure' && steps\.test-selector\.outputs\.test-mode == 'fail-closed'/,
   );
   assert.match(workflow, /npm exec --offline -- vitest run tests\/unit src/);
@@ -451,4 +455,24 @@ test("unit workflow distinguishes selected-test failures from fail-closed fallba
     });
     assert.equal(fallbackDidNotPass.status, 1);
   }
+});
+
+test("legacy Linux release builds the embedded web panel before packaging", () => {
+  const workflow = fs.readFileSync(
+    path.join(repoRoot, ".github", "workflows", "release-linux-packages.yml"),
+    "utf8",
+  );
+  const installPanel = workflow.indexOf(
+    "name: Install embedded web panel dependencies",
+  );
+  const buildPanel = workflow.indexOf("name: Build embedded web panel");
+  const buildPackages = workflow.indexOf("name: Build Linux packages");
+
+  assert.ok(installPanel >= 0);
+  assert.ok(buildPanel > installPanel);
+  assert.ok(buildPackages > buildPanel);
+  assert.match(
+    workflow,
+    /name: Install embedded web panel dependencies[\s\S]*?working-directory: packages\/web-panel[\s\S]*?npm ci --legacy-peer-deps[\s\S]*?name: Build embedded web panel[\s\S]*?working-directory: packages\/web-panel[\s\S]*?npm run build/,
+  );
 });

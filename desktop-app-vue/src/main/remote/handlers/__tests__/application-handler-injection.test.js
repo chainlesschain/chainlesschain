@@ -11,18 +11,29 @@
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-vi.mock("child_process", () => ({
-  exec: vi.fn((cmd, cb) => cb(null, { stdout: "", stderr: "" })),
-}));
 vi.mock("../../../utils/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
-const { ApplicationHandler } = require("../application-handler.js");
+const execMock = vi.fn((_cmd, callback) => callback(null, "", ""));
+const childProcess = require("child_process");
+const realExec = childProcess.exec;
+let ApplicationHandler;
+try {
+  // application-handler is CommonJS and captures promisify(exec) at module
+  // load. Stub that exact dependency so a validation test can never signal a
+  // real process on the CI host.
+  childProcess.exec = execMock;
+  delete require.cache[require.resolve("../application-handler.js")];
+  ({ ApplicationHandler } = require("../application-handler.js"));
+} finally {
+  childProcess.exec = realExec;
+}
 
 describe("ApplicationHandler command-injection guards", () => {
   let handler;
   beforeEach(() => {
+    execMock.mockClear();
     handler = new ApplicationHandler();
   });
 
@@ -30,6 +41,16 @@ describe("ApplicationHandler command-injection guards", () => {
     await expect(
       handler.launch({ name: "Calc", args: ["&", "calc.exe"] }, {}),
     ).rejects.toThrow(/Invalid args/);
+  });
+
+  it("rejects CR/LF command separators in names and args", async () => {
+    await expect(
+      handler.launch({ name: "safe\ntouch tmp", args: [] }, {}),
+    ).rejects.toThrow(/Invalid application name/);
+    await expect(
+      handler.launch({ name: "safe", args: ["ok\r\ntouch tmp"] }, {}),
+    ).rejects.toThrow(/Invalid args/);
+    expect(execMock).not.toHaveBeenCalled();
   });
 
   it("rejects a non-integer pid in close", async () => {
@@ -50,8 +71,9 @@ describe("ApplicationHandler command-injection guards", () => {
     ).rejects.toThrow(/disallowed characters/);
   });
 
-  it("accepts a clean integer pid and benign args (no false reject)", () => {
-    // validators return without throwing for legitimate input
-    expect(() => handler.close({ pid: 4321 }, {})).not.toThrow();
+  it("accepts a clean integer pid and benign args (no false reject)", async () => {
+    const result = await handler.close({ pid: 4321 }, {});
+    expect(result).toMatchObject({ success: true, pid: 4321 });
+    expect(execMock).toHaveBeenCalledTimes(1);
   });
 });

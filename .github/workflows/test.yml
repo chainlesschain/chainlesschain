@@ -30,6 +30,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          # The selector diffs origin/<base>...HEAD. A depth-1 checkout plus a
+          # depth-1 base fetch contains both tips but no common ancestor.
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v5

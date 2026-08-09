@@ -11,12 +11,29 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { startWebUIServer } from "../web-ui-loader.js";
 
 describe("web-ui-loader (Phase 0 spike)", () => {
   let handle;
+  let fixtureRoot;
 
   beforeAll(async () => {
+    fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "cc-web-ui-loader-"));
+    const staticDir = path.join(fixtureRoot, "dist");
+    fs.mkdirSync(path.join(staticDir, "assets"), { recursive: true });
+    fs.writeFileSync(
+      path.join(staticDir, "index.html"),
+      `<!doctype html><html><head><script>window.__CC_CONFIG__ = __CC_CONFIG_PLACEHOLDER__;</script></head><body><div id="app"></div><script type="module" src="/assets/app.js"></script></body></html>`,
+      "utf8",
+    );
+    fs.writeFileSync(
+      path.join(staticDir, "assets", "app.js"),
+      "export const ready = true;\n",
+      "utf8",
+    );
     handle = await startWebUIServer({
       port: 0,
       host: "127.0.0.1",
@@ -24,6 +41,7 @@ describe("web-ui-loader (Phase 0 spike)", () => {
       wsHost: "127.0.0.1",
       mode: "global",
       uiMode: "full",
+      staticDir,
     });
   }, 20000);
 
@@ -31,6 +49,7 @@ describe("web-ui-loader (Phase 0 spike)", () => {
     if (handle) {
       await handle.close();
     }
+    fs.rmSync(fixtureRoot, { recursive: true, force: true });
   });
 
   it("listens on a real OS-assigned port", () => {
@@ -61,7 +80,7 @@ describe("web-ui-loader (Phase 0 spike)", () => {
     expect(html).toContain("window.__CC_CONFIG__");
   });
 
-  it("serves built JS assets with the right MIME and immutable cache", async () => {
+  it("serves JS assets with the right MIME and immutable cache", async () => {
     const indexHtml = await (await fetch(handle.url)).text();
     const match = indexHtml.match(/\/assets\/[A-Za-z0-9_.-]+\.js/);
     expect(

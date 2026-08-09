@@ -49,6 +49,15 @@ function makeMemFs(seed = {}) {
       }
       return files.get(p);
     },
+    renameSync: (from, to) => {
+      if (!files.has(from)) {
+        const e = new Error("ENOENT");
+        e.code = "ENOENT";
+        throw e;
+      }
+      files.set(to, files.get(from));
+      files.delete(from);
+    },
     unlinkSync: (p) => {
       if (!files.delete(p)) {
         const e = new Error("ENOENT");
