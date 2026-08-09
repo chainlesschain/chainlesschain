@@ -34,8 +34,11 @@ import {
   readBackgroundAgentState,
   resumeBackgroundAgent,
   statePath,
-  writeBackgroundAgentState,
+  writeBackgroundAgentState as persistBackgroundAgentState,
 } from "../../src/lib/background-agent-supervisor.js";
+
+const writeBackgroundAgentState = (state) =>
+  persistBackgroundAgentState(state, { createIfMissing: true });
 import { groupKey } from "../../src/repl/bg-dashboard.js";
 
 let dir;

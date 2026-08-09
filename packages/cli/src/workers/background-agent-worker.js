@@ -16,12 +16,15 @@ import { readFileSync, writeSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import {
   DEFAULT_HEARTBEAT_INTERVAL_MS,
+  DEFAULT_HEARTBEAT_STALE_MS,
   backgroundAgentsDir,
+  claimBackgroundAgentHeartbeat,
+  insertArgumentsBeforeOptionTerminator,
+  mutateBackgroundAgentState,
   openBackgroundLogFile,
   readBackgroundAgentState,
   removeJobFile,
   stopBackgroundAgentChildTree,
-  writeBackgroundAgentState,
 } from "../lib/background-agent-supervisor.js";
 import { startBackgroundSessionServer } from "../lib/background-session-transport.js";
 import { idlePhaseFor } from "../lib/background-agent-phase.js";
@@ -32,6 +35,11 @@ import {
   updateBackgroundInteractionJournal,
 } from "../lib/background-interaction-journal.js";
 import executionBroker from "../lib/process-execution-broker/index.js";
+import { agentPrintArgument } from "../lib/background-command-argv.js";
+import {
+  shouldRetryOwnedProcessTreeTermination,
+  terminateOwnedProcessTree,
+} from "../lib/process-tree-termination.js";
 
 const jobFile = process.argv[2];
 let job;
@@ -46,6 +54,8 @@ let lastExit = { code: 0, signal: null };
 let transportState = null;
 let detachInteractionHandler = null;
 let interactionJournal = null;
+let turnLaunchUncertainty = null;
+let turnLaunchSettlement = null;
 const promptQueue = [];
 // P0-2: 保存 pending 的交互请求，等 attach 客户端连接后转发
 const pendingInteractions = new Map();
@@ -75,51 +85,106 @@ function persistInteractionSettlement(requestId, binding, outcome) {
 }
 
 function mergeState(patch) {
-  const current = readBackgroundAgentState(job.id) || { id: job.id };
-  const next = { ...current, id: job.id, ...patch };
-  writeBackgroundAgentState(next);
-  return next;
+  return mutateBackgroundAgentState(job.id, (current) => {
+    if (!current || current.status !== "running" || current.stopRequestedAt) {
+      return null;
+    }
+    return { ...current, id: job.id, ...patch };
+  }).state;
 }
 
 function writeHeartbeat() {
-  const current = readBackgroundAgentState(job.id) || { id: job.id };
-  if (current.status && current.status !== "running") return false;
-  writeBackgroundAgentState({
-    ...current,
-    id: job.id,
+  const mutation = claimBackgroundAgentHeartbeat(job.id, {
+    workerGeneration: job.workerGeneration,
     pid: process.pid,
     workerPid: process.pid,
-    agentPid: child?.pid ?? current.agentPid ?? null,
-    status: "running",
+    ...(child?.pid ? { agentPid: child.pid } : {}),
+    ...(turnLaunchUncertainty || {}),
     heartbeatAt: Date.now(),
     // Re-assert the transport endpoint so a launcher write racing the
     // worker's initial merge self-heals within one heartbeat.
     ...(transportState ? { transport: transportState } : {}),
   });
-  return true;
+  const applied =
+    mutation.applied &&
+    mutation.state?.status === "running" &&
+    Number(mutation.state.workerPid) === process.pid &&
+    (!mutation.state.workerGeneration ||
+      mutation.state.workerGeneration === job.workerGeneration);
+  if (applied && turnLaunchSettlement?.termination?.confirmed === true) {
+    scheduleTurnLaunchSettlementPersistence(0);
+  }
+  return applied;
+}
+
+async function waitForLaunchFinalization() {
+  const deadline = Date.now() + DEFAULT_HEARTBEAT_STALE_MS;
+  for (;;) {
+    const current = readBackgroundAgentState(job.id);
+    if (!current) return "terminal";
+    if (current.status && current.status !== "running") return "terminal";
+    if (current.launchFinalizationUncertain !== true) return "ready";
+    if (Date.now() >= deadline) {
+      mergeState({
+        status: "failed",
+        endedAt: Date.now(),
+        exitCode: 1,
+        error: "background launcher did not finalize process ownership",
+        phase: null,
+        transport: null,
+        launchFinalizationUncertain: false,
+      });
+      return "timeout";
+    }
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
 }
 
 function finalize(code, signal, errorMessage) {
+  // A launch settlement owns the worker lifetime until its tree/no-spawn
+  // result is durably recorded. Transport detach, a queued prompt, or a fatal
+  // callback must not exit through finalize and strand that retry protocol.
+  if (turnLaunchSettlement) return;
   if (finalized) return;
   finalized = true;
   clearInterval(heartbeat);
-  const current = readBackgroundAgentState(job.id) || { id: job.id };
-  // An external `cc daemon stop` already recorded its own terminal status —
-  // don't overwrite it; just clear the dead transport endpoint.
-  if (!current.status || current.status === "running") {
-    writeBackgroundAgentState({
-      ...current,
-      id: job.id,
-      status: errorMessage ? "failed" : code === 0 ? "completed" : "failed",
-      endedAt: Date.now(),
-      exitCode: errorMessage ? (code ?? 1) : code,
-      signal: signal || null,
-      ...(errorMessage ? { error: errorMessage } : {}),
-      phase: null,
-      transport: null,
+  try {
+    mutateBackgroundAgentState(job.id, (current) => {
+      if (!current) return null;
+      const ownsRecord =
+        (!current.workerGeneration ||
+          current.workerGeneration === job.workerGeneration) &&
+        (Number(current.workerClaimedPid) === process.pid ||
+          (current.workerClaimedPid == null &&
+            Number(current.workerPid ?? current.pid) === process.pid));
+      if (!ownsRecord) return null;
+      // An external stop/remove owns an already-terminal or deleted record.
+      if (current.status !== "running") {
+        return { ...current, phase: null, transport: null };
+      }
+      return {
+        ...current,
+        id: job.id,
+        status: errorMessage ? "failed" : code === 0 ? "completed" : "failed",
+        endedAt: Date.now(),
+        exitCode: errorMessage ? (code ?? 1) : code,
+        signal: signal || null,
+        ...(errorMessage ? { error: errorMessage } : {}),
+        phase: null,
+        transport: null,
+      };
     });
-  } else {
-    writeBackgroundAgentState({ ...current, phase: null, transport: null });
+  } catch (error) {
+    try {
+      writeSync(
+        2,
+        `[background-agent-worker] final state persistence failed: ${
+          error?.message || String(error)
+        }\n`,
+      );
+    } catch {
+      /* inherited stderr may already be closed */
+    }
   }
   const done = () => {
     try {
@@ -137,43 +202,351 @@ function finalize(code, signal, errorMessage) {
   }
 }
 
-function startTurn(argv, promptText) {
-  phase = "turn";
-  turnCount++;
-  child = executionBroker.spawn(process.execPath, [job.cliEntry, ...argv], {
-    cwd: job.cwd,
-    env: { ...process.env, CC_BACKGROUND_AGENT_ID: job.id },
-    stdio: ["ignore", log.fd, log.fd, "ipc"], // P0-2: 开启 IPC 通道用于人机交互
-    windowsHide: true,
-    origin: "background-agent:turn",
-    policy: "allow",
-    scope: "background-agent",
-    shell: false,
-    // POSIX: give the agent child its own process group so an orphan reclaim
-    // (worker crashed → supervisor kills the recorded agentPid) or /stop can
-    // signal the WHOLE agent tree via -pid. Windows reaps via taskkill /T.
-    detached: process.platform !== "win32",
-  });
-  mergeState({
-    status: "running",
+function scheduleTurnLaunchSettlementRetry(context, delayMs = 250) {
+  if (
+    !context ||
+    turnLaunchSettlement !== context ||
+    context.retryTimer ||
+    (context.termination?.confirmed !== true &&
+      context.terminationRetryBlocked === true)
+  ) {
+    return;
+  }
+  context.retryTimer = setTimeout(
+    () => {
+      context.retryTimer = null;
+      if (turnLaunchSettlement !== context) return;
+      if (context.termination?.confirmed === true) {
+        persistConfirmedTurnLaunchSettlement(context);
+      } else {
+        void settleUncertainTurnLaunch(context);
+      }
+    },
+    Math.max(0, delayMs),
+  );
+}
+
+function scheduleTurnLaunchSettlementPersistence(delayMs = 100) {
+  const context = turnLaunchSettlement;
+  if (!context || context.termination?.confirmed !== true) return;
+  scheduleTurnLaunchSettlementRetry(context, delayMs);
+}
+
+function persistConfirmedTurnLaunchSettlement(context) {
+  try {
+    mutateBackgroundAgentState(job.id, (current) => {
+      const sameWorker =
+        current?.workerGeneration === job.workerGeneration &&
+        Number(current?.workerClaimedPid) === process.pid;
+      const tokenMatches =
+        current?.turnLaunchToken === context.turnLaunchToken ||
+        current?.turnLaunchIntent?.token === context.turnLaunchToken;
+      const ownedPid = Number(context.owned?.pid);
+      if (
+        !current ||
+        (!tokenMatches && !sameWorker) ||
+        (Number.isInteger(ownedPid) &&
+          ownedPid > 0 &&
+          current.agentPid != null &&
+          Number(current.agentPid) !== ownedPid)
+      ) {
+        return null;
+      }
+      return {
+        ...current,
+        status: current.stopRequestedAt ? "stopped" : "failed",
+        endedAt: current.endedAt || Date.now(),
+        exitCode: current.exitCode ?? 1,
+        error: `background turn launch failed after spawn: ${
+          context.error?.message || "unknown post-spawn failure"
+        }`,
+        phase: null,
+        transport: null,
+        turnLaunchIntent: null,
+        turnLaunchResolution: {
+          token: context.turnLaunchToken,
+          attempt: context.turnLaunchAttempt,
+          outcome: context.owned ? "terminated" : "not-spawned",
+          ...(context.owned ? { agentPid: ownedPid } : {}),
+          resolvedAt: Date.now(),
+        },
+        turnLaunchFinalizationUncertain: false,
+        turnLaunchToken: null,
+        turnLaunchError: null,
+        turnLaunchTermination: {
+          confirmed: true,
+          treeMode: context.termination.treeMode || null,
+          closed: context.termination.closed === true,
+          treeTerminated: context.termination.treeTerminated === true,
+          settledAt: Date.now(),
+        },
+      };
+    });
+    // A missing or incompatible record must not be recreated or retargeted.
+    // The owned tree is already confirmed gone, so it is safe for this worker
+    // to close even though the retained record (if any) stays fail-closed.
+    clearInterval(context.keeper);
+    turnLaunchUncertainty = null;
+    turnLaunchSettlement = null;
+    child = null;
+    finalize(
+      1,
+      null,
+      context.error?.message || "background turn launch failed",
+    );
+  } catch {
+    scheduleTurnLaunchSettlementPersistence();
+  }
+}
+
+async function settleUncertainTurnLaunch(context) {
+  if (!context || turnLaunchSettlement !== context || context.settling) return;
+  if (context.termination?.confirmed === true) {
+    persistConfirmedTurnLaunchSettlement(context);
+    return;
+  }
+  if (
+    !shouldRetryOwnedProcessTreeTermination(context.owned, context.termination)
+  ) {
+    context.terminationRetryBlocked = true;
+    return;
+  }
+  context.settling = true;
+  try {
+    context.termination = await terminateOwnedProcessTree(context.owned, {
+      treeMode: process.platform === "win32" ? "windows-tree" : "posix-group",
+    });
+  } catch (error) {
+    context.terminationError = error?.message || String(error);
+  } finally {
+    context.settling = false;
+  }
+  if (context.termination?.confirmed === true) {
+    persistConfirmedTurnLaunchSettlement(context);
+    return;
+  }
+  if (
+    !shouldRetryOwnedProcessTreeTermination(context.owned, context.termination)
+  ) {
+    // The root is closed but descendants were not proven gone. Its numeric
+    // pid/pgid can now be reused, so another taskkill/kill would risk an
+    // unrelated process tree. Retain the durable uncertainty and the keeper;
+    // only explicit recovery with stronger identity evidence may proceed.
+    context.terminationRetryBlocked = true;
+    return;
+  }
+  context.terminationAttempts = Number(context.terminationAttempts || 0) + 1;
+  const retryMs = Math.min(
+    5_000,
+    250 * 2 ** Math.min(context.terminationAttempts, 4),
+  );
+  scheduleTurnLaunchSettlementRetry(context, retryMs);
+}
+
+function beginTurnLaunchSettlement({
+  owned,
+  error,
+  turnLaunchToken,
+  turnLaunchAttempt,
+  agentStartedAt,
+}) {
+  child = owned || null;
+  phase = "turn_launch_uncertain";
+  const ownedPid = Number(owned?.pid);
+  turnLaunchUncertainty = {
+    ...(owned
+      ? { agentPid: ownedPid, agentStartedAt: agentStartedAt || Date.now() }
+      : {}),
     phase,
-    turnCount,
-    // A fresh turn has nothing pending; also clears a stale count left behind
-    // if the previous turn's child was hard-killed mid-approval (the child's
-    // phase reporter clears on settle, but SIGKILL never settles).
-    pendingApprovals: 0,
-    // The incoming prompt IS the user's reply to any parked question, and the
-    // uncertain-side-effect annotation only covers the verify turn it was
-    // raised in — both reset at the turn boundary.
-    pendingQuestion: null,
-    uncertainSideEffects: 0,
-    agentPid: child.pid,
-    // Identity anchor for the supervisor's orphan reclaim (Gap 2): pairs
-    // with agentPid the way startedAt pairs with the worker pid, so a
-    // pid-reusing stranger is never killed in the worker's name.
-    agentStartedAt: Date.now(),
-    heartbeatAt: Date.now(),
-  });
+    turnLaunchIntent: null,
+    turnLaunchResolution: {
+      token: turnLaunchToken,
+      attempt: turnLaunchAttempt,
+      outcome: owned ? "spawned" : "not-spawned",
+      ...(owned ? { agentPid: ownedPid } : {}),
+      resolvedAt: Date.now(),
+    },
+    turnLaunchFinalizationUncertain: true,
+    turnLaunchError: error?.message || String(error),
+    turnLaunchToken,
+  };
+  const settlement = {
+    owned,
+    error,
+    turnLaunchToken,
+    turnLaunchAttempt,
+    termination: owned
+      ? null
+      : {
+          confirmed: true,
+          treeMode: "none",
+          closed: true,
+          treeTerminated: true,
+        },
+    terminationAttempts: 0,
+    terminationRetryBlocked: false,
+    settling: false,
+    retryTimer: null,
+    keeper: null,
+  };
+  settlement.keeper = setInterval(() => {
+    if (turnLaunchSettlement !== settlement) return;
+    if (settlement.termination?.confirmed === true) {
+      scheduleTurnLaunchSettlementPersistence(0);
+    } else if (settlement.terminationRetryBlocked !== true) {
+      scheduleTurnLaunchSettlementRetry(settlement, 0);
+    }
+  }, 1_000);
+  turnLaunchSettlement = settlement;
+  try {
+    mutateBackgroundAgentState(job.id, (current) =>
+      current ? { ...current, ...turnLaunchUncertainty } : null,
+    );
+  } catch {
+    // The durable prepare record remains the stop/cleanup fence. Settlement
+    // retries both tree termination and the final confirmation write.
+  }
+  if (settlement.termination?.confirmed === true) {
+    persistConfirmedTurnLaunchSettlement(settlement);
+  } else {
+    void settleUncertainTurnLaunch(settlement);
+  }
+  return "uncertain";
+}
+
+function startTurn(argv, promptText) {
+  if (!writeHeartbeat()) return false;
+  const nextTurn = turnCount + 1;
+  const turnLaunchToken = randomBytes(16).toString("hex");
+  let turnLaunchAttempt = 0;
+  let prepared;
+  try {
+    prepared = mutateBackgroundAgentState(job.id, (current) => {
+      if (
+        !current ||
+        current.status !== "running" ||
+        current.stopRequestedAt ||
+        current.turnLaunchIntent ||
+        current.turnLaunchFinalizationUncertain === true ||
+        Number(current.workerPid) !== process.pid ||
+        Number(current.workerClaimedPid) !== process.pid ||
+        (current.workerGeneration &&
+          current.workerGeneration !== job.workerGeneration)
+      ) {
+        return null;
+      }
+      turnLaunchAttempt =
+        Math.max(0, Number(current.turnLaunchAttempt) || 0) + 1;
+      return {
+        ...current,
+        phase: "turn_launching",
+        turnLaunchAttempt,
+        turnLaunchIntent: {
+          token: turnLaunchToken,
+          attempt: turnLaunchAttempt,
+          workerPid: process.pid,
+          workerGeneration: job.workerGeneration,
+          preparedAt: Date.now(),
+        },
+        heartbeatAt: Date.now(),
+      };
+    });
+  } catch (error) {
+    if (turnLaunchAttempt > 0) {
+      // The atomic rename may have committed even when strict lock release
+      // reports ownership loss. Resolve that window as an explicit no-spawn
+      // attempt instead of exiting with a durable intent and no settlement.
+      return beginTurnLaunchSettlement({
+        owned: null,
+        error,
+        turnLaunchToken,
+        turnLaunchAttempt,
+        agentStartedAt: null,
+      });
+    }
+    throw error;
+  }
+  if (!prepared.applied) return false;
+
+  let spawned = null;
+  let agentStartedAt = null;
+  try {
+    const mutation = mutateBackgroundAgentState(job.id, (current) => {
+      if (
+        !current ||
+        current.status !== "running" ||
+        current.stopRequestedAt ||
+        current.turnLaunchIntent?.token !== turnLaunchToken ||
+        Number(current.turnLaunchIntent?.attempt) !== turnLaunchAttempt ||
+        Number(current.workerPid) !== process.pid ||
+        Number(current.workerClaimedPid) !== process.pid ||
+        (current.workerGeneration &&
+          current.workerGeneration !== job.workerGeneration)
+      ) {
+        return null;
+      }
+      // The prepare intent is already durable. Keep the second state lock
+      // through native spawn and pid commit so a stopper sees either the
+      // unresolved intent or the exact child identity it must reap.
+      agentStartedAt = Date.now();
+      spawned = executionBroker.spawn(
+        process.execPath,
+        [job.cliEntry, ...argv],
+        {
+          cwd: job.cwd,
+          env: { ...process.env, CC_BACKGROUND_AGENT_ID: job.id },
+          stdio: ["ignore", log.fd, log.fd, "ipc"],
+          windowsHide: true,
+          origin: "background-agent:turn",
+          policy: "allow",
+          scope: "background-agent",
+          shell: false,
+          detached: process.platform !== "win32",
+        },
+      );
+      return {
+        ...current,
+        status: "running",
+        phase: "turn",
+        turnCount: nextTurn,
+        pendingApprovals: 0,
+        pendingQuestion: null,
+        uncertainSideEffects: 0,
+        agentPid: spawned.pid,
+        agentStartedAt,
+        turnLaunchIntent: null,
+        turnLaunchResolution: {
+          token: turnLaunchToken,
+          attempt: turnLaunchAttempt,
+          outcome: "spawned",
+          agentPid: spawned.pid,
+          resolvedAt: Date.now(),
+        },
+        heartbeatAt: Date.now(),
+      };
+    });
+    if (!mutation.applied) {
+      return beginTurnLaunchSettlement({
+        owned: null,
+        error: new Error("background turn was stopped before native spawn"),
+        turnLaunchToken,
+        turnLaunchAttempt,
+        agentStartedAt: null,
+      });
+    }
+  } catch (error) {
+    const owned = spawned || error?.spawnedProcess;
+    return beginTurnLaunchSettlement({
+      owned,
+      error,
+      turnLaunchToken,
+      turnLaunchAttempt,
+      agentStartedAt,
+    });
+  }
+  child = spawned;
+  phase = "turn";
+  turnCount = nextTurn;
   server?.broadcast({
     type: "turn-started",
     turn: turnCount,
@@ -305,6 +678,7 @@ function startTurn(argv, promptText) {
     child = null;
     finalize(1, null, error.message);
   });
+  return true;
 }
 
 function maybeContinue() {
@@ -312,13 +686,22 @@ function maybeContinue() {
   // External stop marked the session terminal while a turn was in flight —
   // don't start another turn against a stopped session.
   const current = readBackgroundAgentState(job.id);
-  if (current?.status && current.status !== "running") {
+  if (!current || current.status !== "running") {
     finalize(lastExit.code, lastExit.signal);
     return;
   }
   if (promptQueue.length && Array.isArray(job.followUpArgv)) {
     const text = promptQueue.shift();
-    startTurn([...job.followUpArgv, "-p", text], text);
+    if (
+      !startTurn(
+        insertArgumentsBeforeOptionTerminator(job.followUpArgv, [
+          agentPrintArgument(text),
+        ]),
+        text,
+      )
+    ) {
+      finalize(lastExit.code, lastExit.signal);
+    }
     return;
   }
   if (server && server.clientCount() > 0) {
@@ -359,6 +742,13 @@ function getStatus() {
 
 async function main() {
   job = JSON.parse(readFileSync(jobFile, "utf8"));
+  // Claim before opening logs, recovering interactions or creating the pipe.
+  // A stopped/removed/differently-generated record must produce no worker
+  // side effects and must never be recreated by bootstrap merges.
+  if (!writeHeartbeat()) {
+    removeJobFile(jobFile);
+    return;
+  }
   removeJobFile(jobFile);
   log = openBackgroundLogFile(job.id);
   interactionJournal = loadBackgroundInteractionJournal(job.sessionId, job.id);
@@ -477,14 +867,34 @@ async function main() {
     server = null;
   }
 
-  writeHeartbeat();
+  if (!writeHeartbeat()) {
+    // A list/stop/remove writer may have terminalized the record before this
+    // worker claimed it. Never execute the task after losing ownership of the
+    // session id; close any best-effort transport and exit without rewriting
+    // the terminal status.
+    finalize(0, null);
+    return;
+  }
   heartbeat = setInterval(() => {
     try {
       if (!writeHeartbeat()) {
+        if (turnLaunchSettlement) {
+          // The owned tree is already in explicit settlement. Keep the worker
+          // alive until confirmed termination evidence is durably recorded;
+          // an external stopper may still terminate this worker directly.
+          return;
+        }
         clearInterval(heartbeat);
-        // External stop: the child tree is being killed by the stopper; make
-        // sure the worker itself never lingers holding the pipe.
-        if (!child) finalize(lastExit.code, lastExit.signal);
+        // External stop owns the terminal fence. Reap our current detached
+        // child as a second line of defence, then stop holding the pipe.
+        if (child?.pid) {
+          try {
+            stopBackgroundAgentChildTree(child.pid);
+          } catch {
+            /* the stopper may already have reaped it */
+          }
+        }
+        finalize(lastExit.code, lastExit.signal);
       }
     } catch {
       /* do not let heartbeat persistence kill the worker */
@@ -492,7 +902,18 @@ async function main() {
   }, DEFAULT_HEARTBEAT_INTERVAL_MS);
   heartbeat.unref?.();
 
-  startTurn(job.argv, null);
+  const launchReadiness = await waitForLaunchFinalization();
+  if (launchReadiness !== "ready") {
+    finalize(launchReadiness === "timeout" ? 1 : 0, null);
+    return;
+  }
+  // Launch finalization can take long enough for an external stop/remove to
+  // win after bootstrap. Re-claim immediately before the first native turn.
+  if (!writeHeartbeat()) {
+    finalize(0, null);
+    return;
+  }
+  if (!startTurn(job.argv, null)) finalize(0, null);
 }
 
 main().catch((error) => {

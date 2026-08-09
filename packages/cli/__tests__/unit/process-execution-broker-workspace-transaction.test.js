@@ -478,6 +478,88 @@ describe("ProcessExecutionBroker workspace transactions", () => {
     );
   });
 
+  it("preserves process ownership when transaction binding throws after native spawn", async () => {
+    const input = fixture();
+    useTestSandboxPlan();
+    const transaction = begin(input);
+    const proc = new EventEmitter();
+    proc.pid = 42_005;
+    proc.kill = vi.fn(() => {
+      queueMicrotask(() => proc.emit("close", null, "SIGKILL"));
+      return true;
+    });
+    executionBroker._native = {
+      ...(ORIGINAL_NATIVE || {}),
+      spawn: vi.fn(() => proc),
+    };
+    vi.spyOn(transaction.manager, "bindProcess").mockImplementation(() => {
+      throw new Error("transaction bind failed");
+    });
+
+    let failure;
+    try {
+      executionBroker.spawn("test-command", [], {
+        cwd: input.workspaceRoot,
+        origin: "team:test",
+        scope: "team",
+        policy: "allow",
+        shell: false,
+      });
+    } catch (error) {
+      failure = error;
+    }
+
+    expect(failure.message).toContain("transaction bind failed");
+    expect(failure.spawnedProcess).toBe(proc);
+    expect(failure.workspaceTerminationRequested).toBe(true);
+    expect(proc.kill).toHaveBeenCalledWith("SIGKILL");
+    await expect(failure.workspaceProcessClosed).resolves.toMatchObject({
+      observed: true,
+      signal: "SIGKILL",
+    });
+  });
+
+  it("preserves process ownership when a synchronous spawn audit listener throws", async () => {
+    const input = fixture();
+    useTestSandboxPlan();
+    const proc = new EventEmitter();
+    proc.pid = 42_006;
+    proc.kill = vi.fn(() => {
+      queueMicrotask(() => proc.emit("close", null, "SIGKILL"));
+      return true;
+    });
+    executionBroker._native = {
+      ...(ORIGINAL_NATIVE || {}),
+      spawn: vi.fn(() => proc),
+    };
+    const listenerError = new Error("spawn audit listener failed");
+    executionBroker.once("spawn", () => {
+      throw listenerError;
+    });
+
+    let failure;
+    try {
+      executionBroker.spawn("test-command", [], {
+        cwd: input.workspaceRoot,
+        origin: "team:test",
+        scope: "team",
+        policy: "allow",
+        shell: false,
+      });
+    } catch (error) {
+      failure = error;
+    }
+
+    expect(failure).toBe(listenerError);
+    expect(failure.spawnedProcess).toBe(proc);
+    expect(failure.workspaceTerminationRequested).toBe(true);
+    expect(proc.kill).toHaveBeenCalledWith("SIGKILL");
+    await expect(failure.workspaceProcessClosed).resolves.toMatchObject({
+      observed: true,
+      signal: "SIGKILL",
+    });
+  });
+
   it("rejects detached writers before invoking the native spawn", () => {
     const input = fixture();
     useTestSandboxPlan();

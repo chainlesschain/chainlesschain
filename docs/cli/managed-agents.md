@@ -73,7 +73,9 @@ cc agents logs <bg-id> -n 200
 cc agents stop <bg-id>
 ```
 
-后台 worker 与实际 Agent 进程独立，状态和日志保存在 `~/.chainlesschain/background-agents/`。状态文件不保存命令行参数，避免 `--api-key` 等凭据进入会话索引；启动 job 文件使用 `0600` 并由 worker 读取后立即删除。当前 `--bg` 不与 `--worktree` 同时使用，可以先进入目标 worktree 再启动后台 Agent。
+后台 worker 与实际 Agent 进程独立，状态和日志保存在 `~/.chainlesschain/background-agents/`。状态文件保存版本化、脱敏的 launch profile 与配置指纹，不保存原始命令行或 API key；启动 job 文件使用 `0600` 并由 worker 认领后立即删除。
+
+在 Git 仓库中，`--bg` 默认从已提交的 `HEAD` 创建隔离 worktree；显式 `--worktree` 使用同一安全路径。因为未提交修改不会进入该快照，源工作区存在 tracked 或 untracked 修改时会拒绝启动，请先 commit/stash，或明确使用 `--no-worktree` 共享当前 checkout（仅建议只读任务）。后台 worktree 会随会话状态保留，供 attach/resume 和故障检查使用；确认无活动进程、待审批、待输入或不确定副作用后，由显式的后台记录清理操作回收。
 
 ```bash
 chainlesschain agent -p "fix the bug in x.js"             # 单轮执行后退出
@@ -249,11 +251,11 @@ chainlesschain cost --limit 500            # 全局汇总最多扫描的会话�
 
 **流式韧性**(API 接受连接后中途静默 / 瞬态断流):
 
-| 行为 | 阈值(默认) | 调节 |
-|---|---|---|
-| 静默提示 "⏳ waiting for API response"(stderr,不中断) | 20s | agent:无单独 env(常量 `STREAM_STALL_MS`);chat:`CC_CHAT_STALL_HINT_MS` |
-| 硬不活动超时 → 取消 + **重试**(retryable 错) | 180s | agent:`config.llm.streamStallTimeoutMs`(0=关);chat:`CC_CHAT_STALL_MS` |
-| 瞬态连接 drop 自动重试(ECONNRESET / fetch failed / socket hangup 等) | 最多 2 次 | `CC_MAX_RETRIES`(原生)/ `CLAUDE_CODE_MAX_RETRIES`(平价),封顶 15 |
+| 行为                                                                 | 阈值(默认) | 调节                                                                  |
+| -------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------- |
+| 静默提示 "⏳ waiting for API response"(stderr,不中断)                | 20s        | agent:无单独 env(常量 `STREAM_STALL_MS`);chat:`CC_CHAT_STALL_HINT_MS` |
+| 硬不活动超时 → 取消 + **重试**(retryable 错)                         | 180s       | agent:`config.llm.streamStallTimeoutMs`(0=关);chat:`CC_CHAT_STALL_MS` |
+| 瞬态连接 drop 自动重试(ECONNRESET / fetch failed / socket hangup 等) | 最多 2 次  | `CC_MAX_RETRIES`(原生)/ `CLAUDE_CODE_MAX_RETRIES`(平价),封顶 15       |
 
 - **重试只在“零 token 已输出”时发生**——一旦有 token 流到用户,再发会重复可见输出,故改为保留 partial(agent)/原样抛(chat)。HTTP/auth 错(4xx/5xx)与 180s stall abort **不**重试。
 - **重试次数**:默认 2,可经 `CC_MAX_RETRIES` 或 `CLAUDE_CODE_MAX_RETRIES`(Claude-Code 2.1.186 平价)调节,**clamp 到 `[0, 15]`**(0=关重试;封顶防死端点变成多分钟指数退避挂起)。两值都设时 `CC_MAX_RETRIES` 胜;agent 与 chat 两路径同源。
@@ -812,13 +814,13 @@ print(x)
 
 **写**:`notebook_edit` 改单个单元——
 
-| 参数 | 说明 |
-|---|---|
-| `path` | `.ipynb` 路径(必填) |
-| `edit_mode` | `replace`(默认)/ `insert` / `delete` |
+| 参数                     | 说明                                     |
+| ------------------------ | ---------------------------------------- |
+| `path`                   | `.ipynb` 路径(必填)                      |
+| `edit_mode`              | `replace`(默认)/ `insert` / `delete`     |
 | `cell_id` / `cell_index` | 目标定位(cell_id 优先;从渲染清单里读 id) |
-| `cell_type` | `code` / `markdown`——`insert` 必填 |
-| `new_source` | 新单元源文本(replace/insert 必填) |
+| `cell_type`              | `code` / `markdown`——`insert` 必填       |
+| `new_source`             | 新单元源文本(replace/insert 必填)        |
 
 - **replace**:覆盖目标格 source;若是 code 格,顺带清空 `outputs` + `execution_count`(旧输出会误导)。
 - **insert**:在目标格**之后**插新格(无目标→插到**顶部**),自动生成 cell id。
@@ -970,15 +972,15 @@ risk-tier / ApprovalGate / plan-mode 逻辑)。引擎零依赖(自写 glob→reg
 裸 `Tool` 匹配该工具的所有调用;`Tool(pattern)` 按工具类型匹配实参。工具名两种写法
 都吃——Claude-Code 伞名或本 CLI 原名(双向别名):
 
-| 伞名        | 本 CLI 工具                      | `pattern` 匹配对象 | 例                                         |
-| ----------- | -------------------------------- | ------------------ | ------------------------------------------ |
-| `Bash`      | `run_shell`                      | 命令字符串         | `Bash(git push:*)`、`Bash(npm run test:*)` |
-| `Read`      | `read_file` / `list_dir`         | 解析后的绝对路径   | `Read(./src/**)`                           |
-| `Edit`      | `edit_file` / `edit_file_hashed` | 路径               | `Edit(//etc/**)`(`//`=绝对)                |
-| `Write`     | `write_file`                     | 路径               | `Write(./build/**)`                        |
-| `WebFetch`  | `web_fetch`                      | URL host           | `WebFetch(domain:example.com)`             |
-| `WebSearch` | `web_search`                     | —                  | `WebSearch`                               |
-| `Task`/`Agent` | `spawn_sub_agent`             | 子 agent 类型      | `Agent(explorer)`、`Agent(executor,design)` |
+| 伞名           | 本 CLI 工具                      | `pattern` 匹配对象 | 例                                          |
+| -------------- | -------------------------------- | ------------------ | ------------------------------------------- |
+| `Bash`         | `run_shell`                      | 命令字符串         | `Bash(git push:*)`、`Bash(npm run test:*)`  |
+| `Read`         | `read_file` / `list_dir`         | 解析后的绝对路径   | `Read(./src/**)`                            |
+| `Edit`         | `edit_file` / `edit_file_hashed` | 路径               | `Edit(//etc/**)`(`//`=绝对)                 |
+| `Write`        | `write_file`                     | 路径               | `Write(./build/**)`                         |
+| `WebFetch`     | `web_fetch`                      | URL host           | `WebFetch(domain:example.com)`              |
+| `WebSearch`    | `web_search`                     | —                  | `WebSearch`                                 |
+| `Task`/`Agent` | `spawn_sub_agent`                | 子 agent 类型      | `Agent(explorer)`、`Agent(executor,design)` |
 
 - **命令**:`prefix:*` 前缀语义(`Bash(git push:*)` 命中 `git push` 及其后任意参数);
   纯 `*` 当 glob;无 `*` 则精确匹配。

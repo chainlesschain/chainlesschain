@@ -140,7 +140,7 @@ describe("cc agenda", () => {
       expect(calls).toHaveLength(1);
       expect(calls[0][0]).toBe(process.execPath);
       expect(calls[0][1]).toEqual(
-        expect.arrayContaining(["agent", "-p", "broker wake"]),
+        expect.arrayContaining(["agent", "--print=broker wake"]),
       );
       expect(calls[0][2]).toEqual(
         expect.objectContaining({
@@ -593,15 +593,13 @@ describe("cc agenda", () => {
     it("buildAgentArgs denies unattended high-risk tools, then appends policy flags", () => {
       expect(buildAgentArgs("hi")).toEqual([
         "agent",
-        "-p",
-        "hi",
+        "--print=hi",
         ...DENY,
         ...UNATTENDED,
       ]);
       expect(buildAgentArgs("hi", null)).toEqual([
         "agent",
-        "-p",
-        "hi",
+        "--print=hi",
         ...DENY,
         ...UNATTENDED,
       ]);
@@ -613,8 +611,7 @@ describe("cc agenda", () => {
         }),
       ).toEqual([
         "agent",
-        "-p",
-        "hi",
+        "--print=hi",
         ...DENY,
         ...UNATTENDED,
         "--permission-mode",
@@ -631,8 +628,7 @@ describe("cc agenda", () => {
         buildAgentArgs("hi", { unattendedAllowlist: ["external_message"] }),
       ).toEqual([
         "agent",
-        "-p",
-        "hi",
+        "--print=hi",
         "--disallowed-tools",
         "publish_artifact",
         ...UNATTENDED,
@@ -646,8 +642,7 @@ describe("cc agenda", () => {
         }),
       ).toEqual([
         "agent",
-        "-p",
-        "hi",
+        "--print=hi",
         ...UNATTENDED,
         "--unattended-allow",
         "publish,external_message",
@@ -665,8 +660,7 @@ describe("cc agenda", () => {
         }),
       ).toEqual([
         "agent",
-        "-p",
-        "build",
+        "--print=build",
         ...DENY,
         ...UNATTENDED,
         "--goal-condition",
@@ -683,12 +677,20 @@ describe("cc agenda", () => {
       // no goal-condition → no goal flags even if budgets linger
       expect(buildAgentArgs("x", { goalMaxTokens: 999 })).toEqual([
         "agent",
-        "-p",
-        "x",
+        "--print=x",
         ...DENY,
         ...UNATTENDED,
       ]);
     });
+
+    it.each(["--help", "--no-worktree", "--dangerously-skip-permissions"])(
+      "keeps option-looking scheduled prompt %s inside --print",
+      (prompt) => {
+        const args = buildAgentArgs(prompt);
+        expect(args[1]).toBe(`--print=${prompt}`);
+        expect(args).not.toContain(prompt);
+      },
+    );
 
     it("passes a fired entry's runPolicy through to spawnAgent", async () => {
       store.scheduleWakeup({

@@ -152,6 +152,17 @@ describe("background launch profile", () => {
     }
   });
 
+  it("does not persist parent-only background worktree switches", () => {
+    for (const flag of ["--worktree", "--no-worktree"]) {
+      const profile = capture(["agent", "--background", flag, "-p", "do work"]);
+      expect(profile.omitted).not.toContain(`option:${flag.slice(2)}`);
+      const rebuilt = buildArgvFromBackgroundLaunchProfile(profile);
+      expect(rebuilt).not.toContain("--worktree");
+      expect(rebuilt).not.toContain("--no-worktree");
+      expect(rebuilt).not.toContain("--background");
+    }
+  });
+
   it("uses canonical JSON for stable fingerprints and changes on policy drift", () => {
     const first = capture([
       "agent",

@@ -23,6 +23,22 @@ function childHasClosed(child, observedClose) {
   );
 }
 
+/**
+ * Whether another PID/PGID based termination attempt is still identity-safe.
+ * Once the owned root is known closed, its numeric pid can be reused by an
+ * unrelated process tree. A caller may retain fail-closed uncertainty, but it
+ * must never send a later signal through that stale identity.
+ */
+export function shouldRetryOwnedProcessTreeTermination(child, result) {
+  if (result?.confirmed === true) return false;
+  if (result?.closed === true) return false;
+  if (child?.exitCode !== null && child?.exitCode !== undefined) return false;
+  if (child?.signalCode !== null && child?.signalCode !== undefined) {
+    return false;
+  }
+  return true;
+}
+
 function posixGroupIsGone(pid, kill) {
   try {
     kill(-pid, 0);
@@ -224,7 +240,7 @@ export async function terminateOwnedProcessTree(child, options = {}) {
       await waitForConfirmation(graceMs);
     }
 
-    if (!confirmed()) {
+    if (!confirmed() && !closed()) {
       escalated = true;
       const attempt = request(true);
       hardRequested = attempt.requested;

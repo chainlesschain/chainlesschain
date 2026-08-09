@@ -17,9 +17,12 @@ import {
   removeBackgroundAgent,
   resumeBackgroundAgent,
   statePath,
-  writeBackgroundAgentState,
+  writeBackgroundAgentState as persistBackgroundAgentState,
 } from "../../src/lib/background-agent-supervisor.js";
 import { setupAgentWorktree } from "../../src/lib/agent-worktree.js";
+
+const writeBackgroundAgentState = (state) =>
+  persistBackgroundAgentState(state, { createIfMissing: true });
 
 function git(args, cwd) {
   return execFileSync("git", args, {
@@ -193,8 +196,7 @@ describe("background agent worktree lifecycle", () => {
       "agent",
       "--session",
       "session-bg-wt-resume",
-      "-p",
-      "continue",
+      "--print=continue",
     ]);
     expect(resumed).toMatchObject({
       sessionId: "session-bg-wt-resume",

@@ -1156,14 +1156,14 @@ clean implementation SHA 在 Windows x64 / Node `22.22.2` 上复跑全部 `mcp-c
 
 按第 16.8 节六项任务的严格产品级验收口径，当前是 **3 项完成、3 项仍未完成**；此外有 1 个已完成项的测试基础设施 follow-up 正在收口：
 
-| 任务 | 当前状态 | 剩余边界与预计工作量 |
-| --- | --- | --- |
-| 1. 长会话规模与冷进程 SLO | **完成** | 已有正式矩阵，不再列为未完成任务。 |
-| 2. Session Host 一致性 | **完成** | 已正式关闭，不再列为未完成任务。 |
-| 3. Skill/MCP 真实恶意矩阵 | **部分完成 / NO-GO** | 当前 Linux native 插件只有 entry ELF 完整内容快照，非 entry 文件仍需全树封存；macOS runtime `exec/open` 原子绑定、任意 shared-library 递归闭包、远端 revoke/distributed authority、受信 Node builtin 的最终平台隔离与长期恶意 race 仍未关闭。Linux 全树快照窄切片约 2～4 工程日；整个任务取得可信 GO 预计仍需约 6～12 周，并依赖三平台实机/长期证据。 |
-| 4. 签名 native 公开发行 | **NO-GO / 外部前置阻断** | 六目标无签名构建执行已验证，但仓库没有更新签名 Ed25519 密钥、Windows Authenticode 证书、macOS Developer ID/notarization 凭据及对应公开渠道证据。凭据到位前无法给出可信完成日期；到位后仍须在同一 exact SHA 上完成签名、fresh install、upgrade、rollback、Homebrew/WinGet 与公开资产逐字节回读。 |
-| 5. 命令 telemetry 与 alias 决策 | **操作决策完成，正式观察项 NO-GO** | `0.163.1` 汇总仍为三平台 reporting installation、accepted points 与获批 Collector export 全部为 0，25/25 `insufficient-data`。当前决策是 **25 个 alias 全部保留、0 个删除**；只有达到 `0.164.0` removal floor 且取得代表性 cohort/coverage/抽样与逐命令 usage 数据后才能关闭，日历时间取决于真实数据而不是代码提交。`0.163.2` 仍属于同一 `0.163` minor，不改变结论。 |
-| 6. 磁盘/pipe/TTY/SSH/资源与长期 soak | **完成；测试 helper follow-up 进行中** | `0.163.1` exact-SHA 三平台两小时可靠性矩阵已经正式关闭产品级任务。随后审计发现 Windows Vitest sandbox helper 缓存目录未完全退休；这是测试基础设施磁盘泄漏，不推翻已完成的产品 runtime soak，但必须在下一提交修复并取得 exact-SHA CI。 |
+| 任务                                 | 当前状态                               | 剩余边界与预计工作量                                                                                                                                                                                                                                                                                                                                                 |
+| ------------------------------------ | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. 长会话规模与冷进程 SLO            | **完成**                               | 已有正式矩阵，不再列为未完成任务。                                                                                                                                                                                                                                                                                                                                   |
+| 2. Session Host 一致性               | **完成**                               | 已正式关闭，不再列为未完成任务。                                                                                                                                                                                                                                                                                                                                     |
+| 3. Skill/MCP 真实恶意矩阵            | **部分完成 / NO-GO**                   | 当前 Linux native 插件只有 entry ELF 完整内容快照，非 entry 文件仍需全树封存；macOS runtime `exec/open` 原子绑定、任意 shared-library 递归闭包、远端 revoke/distributed authority、受信 Node builtin 的最终平台隔离与长期恶意 race 仍未关闭。Linux 全树快照窄切片约 2～4 工程日；整个任务取得可信 GO 预计仍需约 6～12 周，并依赖三平台实机/长期证据。                |
+| 4. 签名 native 公开发行              | **NO-GO / 外部前置阻断**               | 六目标无签名构建执行已验证，但仓库没有更新签名 Ed25519 密钥、Windows Authenticode 证书、macOS Developer ID/notarization 凭据及对应公开渠道证据。凭据到位前无法给出可信完成日期；到位后仍须在同一 exact SHA 上完成签名、fresh install、upgrade、rollback、Homebrew/WinGet 与公开资产逐字节回读。                                                                      |
+| 5. 命令 telemetry 与 alias 决策      | **操作决策完成，正式观察项 NO-GO**     | `0.163.1` 汇总仍为三平台 reporting installation、accepted points 与获批 Collector export 全部为 0，25/25 `insufficient-data`。当前决策是 **25 个 alias 全部保留、0 个删除**；只有达到 `0.164.0` removal floor 且取得代表性 cohort/coverage/抽样与逐命令 usage 数据后才能关闭，日历时间取决于真实数据而不是代码提交。`0.163.2` 仍属于同一 `0.163` minor，不改变结论。 |
+| 6. 磁盘/pipe/TTY/SSH/资源与长期 soak | **完成；测试 helper follow-up 进行中** | `0.163.1` exact-SHA 三平台两小时可靠性矩阵已经正式关闭产品级任务。随后审计发现 Windows Vitest sandbox helper 缓存目录未完全退休；这是测试基础设施磁盘泄漏，不推翻已完成的产品 runtime soak，但必须在下一提交修复并取得 exact-SHA CI。                                                                                                                                |
 
 Windows helper follow-up 的当前审计事实与安全边界如下：
 
@@ -1181,32 +1181,32 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 
 严格按第 5～7 节原始 15 项统计，当前为 **8 项完成、6 项部分完成、1 项未完成**，即仍有 **7 项未完全关闭**：
 
-| 层级 | 完成 | 部分完成 | 未完成 | 未完全关闭 |
-| --- | ---: | ---: | ---: | ---: |
-| P0 | 4 | 1 | 0 | 1 |
-| P1 | 3 | 3 | 0 | 3 |
-| P2 | 1 | 2 | 1 | 3 |
-| **合计** | **8** | **6** | **1** | **7** |
+| 层级     |  完成 | 部分完成 | 未完成 | 未完全关闭 |
+| -------- | ----: | -------: | -----: | ---------: |
+| P0       |     4 |        1 |      0 |          1 |
+| P1       |     3 |        3 |      0 |          3 |
+| P2       |     1 |        2 |      1 |          3 |
+| **合计** | **8** |    **6** |  **1** |      **7** |
 
 逐项判定如下：
 
-| 项目 | 判定 | 证据与仍未关闭的边界 |
-| --- | --- | --- |
-| P0-1 lazy dispatch / 命令最多执行一次 | **完成** | 实现提交 `c42820ab13`；[`lazy-dispatch.js`](../packages/cli/src/lazy-dispatch.js) 已有 phase-0 分发，并把 action 的 `parseAsync()` 放在 eager fallback 错误边界之外；[`lazy-dispatch.test.js`](../packages/cli/__tests__/unit/lazy-dispatch.test.js) 覆盖“产生一次副作用后抛错”且不重跑。 |
-| P0-2 secret、文件权限与 Sandbox 安全默认值 | **完成** | 实现提交 `a4d1c05133`；schema secret、`set-secret`、get/list/export 统一脱敏、POSIX `0600/0700`、Windows owner-only ACL、`off/workspace-write/strict` 与 managed policy 禁止 off 均已接线并有安全测试。这里关闭的是**安全默认值**，不等于任意 Skill/MCP/native 代码已经获得完整恶意隔离。 |
-| P0-3 exact-SHA 发布门与可信更新链 | **部分完成 / NO-GO** | CLI npm 子链已完成：`0.163.2` release SHA `2d6f19aea243ed4f054b585d4bc709d4209ff80d` 的 CLI CI `31277578939`、CLI Strict Sandbox `31277578889`、publish `31277578900` 与 readback `31278310621` 成功。原条目还包含 native 可信更新链；`cli-native-release.yml` 仍以 `blocked-pending-signing-and-public-distribution-evidence` 关闭，validation 明示 `signed=false`、`releaseEligible=false`，因此不能由 npm 成功外推。 |
-| P0-4 MCP WebSocket 与 scope 契约 | **完成** | `392398a09d`、`0de8744151` 已进入 `main` 且是 `0.163.2` release SHA 的祖先；真实 WebSocket transport、结构化断线/取消/超时，以及 local/project/user/managed scope precedence 和 managed deny 均有生产实现与测试。这里关闭的是 transport/scope 契约，不替代完整恶意 MCP 隔离。 |
-| P0-5 canonical Session 与长会话存储 | **完成** | `CLI Session Scale` exact-SHA formal run `31085110318` 完成 20 writers × 1,000、10,000 sessions、1 GiB transcript、强杀/partial-record 和三平台 SLO；`CLI Session Host Consistency` run `31191709454` 又关闭 REPL/headless/background/WS 的一致性边界。 |
-| P1-1 命令面收敛 / Agent 默认入口 | **部分完成** | manifest v3 已设 `defaultCommand="agent"`，默认帮助为 10 个 core 入口，TTY/stdin 可直接进入 Agent；但当前仍注册 175 个入口、151 个 recommended 顶层入口，25 个 compatibility alias 尚未依据真实 usage 收敛。`0.163.1` lifecycle 汇总为 accepted points `0`、25/25 `insufficient-data`，所以兼容阶段可用，最终命令面收敛未完成。 |
-| P1-2 后台 Agent 恢复、隔离与预算取消 | **部分完成** | 脱敏 launch profile、持久 session budget、预算耗尽主动 abort descendant/owned process tree 已实现。关键缺口仍在默认隔离：[`agent.js`](../packages/cli/src/commands/agent.js) 只有显式 `--worktree`，仅在 `options.worktree` 为真时创建；仓库没有 `--no-worktree`，mutating background task 尚未默认进入 worktree，相关 20-Agent/取消/清理长期验收也不能据已有通用 soak 自动外推。 |
-| P1-3 `/btw` 与 OutputContext | **完成** | `316f7497b4`、`c42820ab13` 已实现即时 ephemeral、tool-free、单回答与 `--fork`；旧排队语义迁为 `/note-next`。[`program-base.js`](../packages/cli/src/program-base.js) 统一绑定 stdout/stderr、quiet/verbose/JSON 输出上下文。 |
-| P1-4 typed config schema | **完成** | `a4d1c05133` 已提供版本化 schema、类型/enum/default/secret/scope/managed lock、未知 key 默认拒绝、插件 namespace，以及 `validate/effective/explain`。 |
-| P1-5 官方 native 发行物与回滚升级 | **部分完成 / NO-GO** | 六目标 unsigned validation run `31240927257` 已完成真实构建/执行和 installer/updater 回归，但证据固定为 `signed=false`、`releaseEligible=false`。仍缺 updater Ed25519、Windows Authenticode、macOS Developer ID/notarization、签名后的 fresh install/upgrade/rollback、Homebrew/WinGet 实际发布和公开资产逐字节回读；该缺口与 P0-3 的 native 子范围重叠。 |
-| P1-6 长会话与运行时可靠性 SLO | **完成** | release SHA `e3f56b11e27ae1bd5d19ad8638434843c244aa68` 的三平台两小时 soak `31240943985` 已覆盖 1,000 turns、20 Agents、磁盘、pipe、TTY、SSH、screen reader、多语言输入、clipboard、超大 MCP output、FD/handle/orphan 退休。 |
-| P2-1 Provider-neutral Advisor / Critic | **完成** | 实现提交 `8e6e617373` 已接入 `/advisor on\|off\|once\|status`、方案/重复错误/完成前触发、provider/model/budget、managed allowlist、观测与 tool-free 建议，并包含生产 REPL 接线和测试。 |
-| P2-2 交互细节 | **部分完成** | `6845c4a6ac`、`0550d052e2` 已接入 suggestions、recap、外部编辑器、prompt stash、keybindings，并有真实终端、screen-reader、多语言和文本 clipboard 证据。系统剪贴板**图片**仍只有可选 host binding/路径 fallback：[`clipboard-image.js`](../packages/cli/src/repl/clipboard-image.js) 没有生产 `readImage` host adapter，因此原条目未完全关闭。 |
-| P2-3 MCP 可选协议面 | **部分完成** | [`mcp-client.js`](../packages/cli/src/harness/mcp-client.js) 已实现 resource templates、subscribe/unsubscribe、logging level 与 completion，[`mcp-client-optional-protocol.test.js`](../packages/cli/__tests__/unit/mcp-client-optional-protocol.test.js) 有协议测试；但没有生产调用方或基于代表性 server usage 的正式取舍报告，sampling 仍明确返回 `-32601`。这可以视为“已实现一批可选面”，不能写成整个条目完成。 |
-| P2-4 调度内核收敛 | **未完成** | 当前仍是 Agenda、Routine、Cowork Cron、Automation、Loop 五套独立 store/driver；没有 canonical scheduler schema/service、统一 timezone/DST 与 missed-run policy、跨入口幂等/fencing、共享权限/预算、统一 history 或迁移。自 2026-08-01 路线图提出后，`github/main` 没有调度收敛提交。 |
+| 项目                                       | 判定                 | 证据与仍未关闭的边界                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------------------------------------------ | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P0-1 lazy dispatch / 命令最多执行一次      | **完成**             | 实现提交 `c42820ab13`；[`lazy-dispatch.js`](../packages/cli/src/lazy-dispatch.js) 已有 phase-0 分发，并把 action 的 `parseAsync()` 放在 eager fallback 错误边界之外；[`lazy-dispatch.test.js`](../packages/cli/__tests__/unit/lazy-dispatch.test.js) 覆盖“产生一次副作用后抛错”且不重跑。                                                                                                                               |
+| P0-2 secret、文件权限与 Sandbox 安全默认值 | **完成**             | 实现提交 `a4d1c05133`；schema secret、`set-secret`、get/list/export 统一脱敏、POSIX `0600/0700`、Windows owner-only ACL、`off/workspace-write/strict` 与 managed policy 禁止 off 均已接线并有安全测试。这里关闭的是**安全默认值**，不等于任意 Skill/MCP/native 代码已经获得完整恶意隔离。                                                                                                                               |
+| P0-3 exact-SHA 发布门与可信更新链          | **部分完成 / NO-GO** | CLI npm 子链已完成：`0.163.2` release SHA `2d6f19aea243ed4f054b585d4bc709d4209ff80d` 的 CLI CI `31277578939`、CLI Strict Sandbox `31277578889`、publish `31277578900` 与 readback `31278310621` 成功。原条目还包含 native 可信更新链；`cli-native-release.yml` 仍以 `blocked-pending-signing-and-public-distribution-evidence` 关闭，validation 明示 `signed=false`、`releaseEligible=false`，因此不能由 npm 成功外推。 |
+| P0-4 MCP WebSocket 与 scope 契约           | **完成**             | `392398a09d`、`0de8744151` 已进入 `main` 且是 `0.163.2` release SHA 的祖先；真实 WebSocket transport、结构化断线/取消/超时，以及 local/project/user/managed scope precedence 和 managed deny 均有生产实现与测试。这里关闭的是 transport/scope 契约，不替代完整恶意 MCP 隔离。                                                                                                                                           |
+| P0-5 canonical Session 与长会话存储        | **完成**             | `CLI Session Scale` exact-SHA formal run `31085110318` 完成 20 writers × 1,000、10,000 sessions、1 GiB transcript、强杀/partial-record 和三平台 SLO；`CLI Session Host Consistency` run `31191709454` 又关闭 REPL/headless/background/WS 的一致性边界。                                                                                                                                                                 |
+| P1-1 命令面收敛 / Agent 默认入口           | **部分完成**         | manifest v3 已设 `defaultCommand="agent"`，默认帮助为 10 个 core 入口，TTY/stdin 可直接进入 Agent；但当前仍注册 175 个入口、151 个 recommended 顶层入口，25 个 compatibility alias 尚未依据真实 usage 收敛。`0.163.1` lifecycle 汇总为 accepted points `0`、25/25 `insufficient-data`，所以兼容阶段可用，最终命令面收敛未完成。                                                                                         |
+| P1-2 后台 Agent 恢复、隔离与预算取消       | **部分完成**         | 脱敏 launch profile、持久 session budget、预算耗尽主动 abort descendant/owned process tree 已实现。关键缺口仍在默认隔离：[`agent.js`](../packages/cli/src/commands/agent.js) 只有显式 `--worktree`，仅在 `options.worktree` 为真时创建；仓库没有 `--no-worktree`，mutating background task 尚未默认进入 worktree，相关 20-Agent/取消/清理长期验收也不能据已有通用 soak 自动外推。                                       |
+| P1-3 `/btw` 与 OutputContext               | **完成**             | `316f7497b4`、`c42820ab13` 已实现即时 ephemeral、tool-free、单回答与 `--fork`；旧排队语义迁为 `/note-next`。[`program-base.js`](../packages/cli/src/program-base.js) 统一绑定 stdout/stderr、quiet/verbose/JSON 输出上下文。                                                                                                                                                                                            |
+| P1-4 typed config schema                   | **完成**             | `a4d1c05133` 已提供版本化 schema、类型/enum/default/secret/scope/managed lock、未知 key 默认拒绝、插件 namespace，以及 `validate/effective/explain`。                                                                                                                                                                                                                                                                   |
+| P1-5 官方 native 发行物与回滚升级          | **部分完成 / NO-GO** | 六目标 unsigned validation run `31240927257` 已完成真实构建/执行和 installer/updater 回归，但证据固定为 `signed=false`、`releaseEligible=false`。仍缺 updater Ed25519、Windows Authenticode、macOS Developer ID/notarization、签名后的 fresh install/upgrade/rollback、Homebrew/WinGet 实际发布和公开资产逐字节回读；该缺口与 P0-3 的 native 子范围重叠。                                                               |
+| P1-6 长会话与运行时可靠性 SLO              | **完成**             | release SHA `e3f56b11e27ae1bd5d19ad8638434843c244aa68` 的三平台两小时 soak `31240943985` 已覆盖 1,000 turns、20 Agents、磁盘、pipe、TTY、SSH、screen reader、多语言输入、clipboard、超大 MCP output、FD/handle/orphan 退休。                                                                                                                                                                                            |
+| P2-1 Provider-neutral Advisor / Critic     | **完成**             | 实现提交 `8e6e617373` 已接入 `/advisor on\|off\|once\|status`、方案/重复错误/完成前触发、provider/model/budget、managed allowlist、观测与 tool-free 建议，并包含生产 REPL 接线和测试。                                                                                                                                                                                                                                  |
+| P2-2 交互细节                              | **部分完成**         | `6845c4a6ac`、`0550d052e2` 已接入 suggestions、recap、外部编辑器、prompt stash、keybindings，并有真实终端、screen-reader、多语言和文本 clipboard 证据。系统剪贴板**图片**仍只有可选 host binding/路径 fallback：[`clipboard-image.js`](../packages/cli/src/repl/clipboard-image.js) 没有生产 `readImage` host adapter，因此原条目未完全关闭。                                                                           |
+| P2-3 MCP 可选协议面                        | **部分完成**         | [`mcp-client.js`](../packages/cli/src/harness/mcp-client.js) 已实现 resource templates、subscribe/unsubscribe、logging level 与 completion，[`mcp-client-optional-protocol.test.js`](../packages/cli/__tests__/unit/mcp-client-optional-protocol.test.js) 有协议测试；但没有生产调用方或基于代表性 server usage 的正式取舍报告，sampling 仍明确返回 `-32601`。这可以视为“已实现一批可选面”，不能写成整个条目完成。      |
+| P2-4 调度内核收敛                          | **未完成**           | 当前仍是 Agenda、Routine、Cowork Cron、Automation、Loop 五套独立 store/driver；没有 canonical scheduler schema/service、统一 timezone/DST 与 missed-run policy、跨入口幂等/fencing、共享权限/预算、统一 history 或迁移。自 2026-08-01 路线图提出后，`github/main` 没有调度收敛提交。                                                                                                                                    |
 
 #### P2-4 直接证据、目标范围与估算
 
@@ -1225,6 +1225,32 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 合计约 **6～10 周（单工程师）**，两人能真正并行时约 **4～6 周**。该估算包含设计、迁移和测试，不包含 CI 排队或发现历史数据异常后的额外处置；直接把其中一套 store 改名为“统一内核”不能缩短验收范围。
 
 最后必须区分两种计数：第 16.8 节“六项产品任务”的 **3 完成、3 未完成** 是后续选定的专项清单；本节的 **8 完成、6 部分、1 未完成** 是 P0-1～P2-4 原始 15 项全量复核。前者没有覆盖 P2-4，也没有重新验证 P1-2 的默认 worktree 条件，因此两组数字并不矛盾。第 16.15 节 Windows test helper follow-up 是测试基础设施收口，也不单列为这 15 项中的新任务；在其实现提交、PR 与 exact-SHA CI 完成前，仍只能引用为本地候选证据，但不推翻 P1-6 已正式关闭的产品级两小时可靠性门。
+
+### 16.17 2026-08-09 P1-2 默认隔离与后台所有权候选收口
+
+本节记录 `fix/cli-background-worktree-default` 工作树的**未提交候选**，用于修正第 16.16 节之后已经发生的实现变化，不回写或伪造当时的审计基线。正式状态仍是 **P1-2 部分完成 / 发布 NO-GO**：只有候选提交进入 PR，并在同一 exact SHA 上通过 GitHub Actions 和原条目的长期验收，才能把以下实现证据计为正式关闭。
+
+候选实现已完成以下收口：
+
+1. Git 仓库中的后台任务默认创建隔离 worktree，`--worktree` 可显式要求，只有显式 `--no-worktree` 才共享当前 checkout；foreground 与 stream-json 行为不变。
+2. 仓库探测使用 canonical realpath 并逐级寻找 `.git`，非 `ENOENT` 错误 fail-closed；后台默认与后台显式 worktree 都要求源 checkout 干净，避免把未提交用户修改静默丢在 `HEAD` 快照之外。foreground 行为不由这条后台策略外推。
+3. worktree 建立、进入目录、后台 spawn、launcher 最终化和清理组成显式所有权事务；失败时要么同步回滚，要么保留 path/branch/错误证据供检查，`.worktrees/` 通过 `.git/info/exclude` 幂等忽略。
+4. 后台状态改为严格跨进程锁下的 read/mutate/atomic-rename；worker generation、真实 `applied` 认领结果、terminal absorbing、锁内 stale recheck 与停止 fence 关闭“终态后仍启动 turn”和“删除后旧 heartbeat 复活记录”。每次 turn 先持久化 token-bound prepare intent，再在第二个锁内完成 native spawn 与 agent PID commit，最后以同 token 单调推进 `spawned → terminated` 或记录 `not-spawned`；stop 遇到 unresolved intent/ownership uncertainty 只落 durable fence，由 owner 确认未 spawn 或整树终止后再收口，避免先杀 worker 后遗留 detached child。corrupt JSON、不同 generation、missing/deleted record 均 fail-closed。
+5. launch profile 持久化为脱敏、版本化数据并带 config fingerprint；resume 重新构造 provider/model/tool policy/sandbox/MCP/settings/bundle/budget，而不是只恢复 session id。
+6. 初始 piped prompt、attach follow-up、daemon resume、Agenda 和 dashboard dispatch 均使用单一 `--print=<text>` argv token；`--help`、`--no-worktree`、`--dangerously-skip-permissions` 等 option-shaped 文本只能作为 prompt 数据，不能在二次解析时扩大权限。
+7. `--add-dir` 从调用 cwd 解析，仓库内部路径映射到 worktree，外部 canonical 目录保留并提示；resume/continue/fork/session 参数通过 Commander grammar 归一为一个确定 session。
+
+当前本地去重聚焦证据为 **19 files / 295 passed / 1 skipped**，覆盖 supervisor、进程树终止、phase/reporter、状态/WS 稳定矩阵、argv grammar、默认 worktree、Agenda/dashboard、add-dir、launch profile、Broker workspace transaction 与真实 worktree cleanup E2E。Windows Git worktree 用例按 CLI 的 90 秒测试配置隔离复跑为 9/9，先前从仓库根误用 5 秒默认值产生的纯 timeout 不计作功能失败。最新 diff 的 Node syntax、command manifest/help-index/completions check、Prettier 与 `git diff --check` 均通过；目标 ESLint 为 **0 errors / 26 个既有 warnings**。仓库全量 lint 仍有本候选范围外的历史 errors，不能反向写成本候选回归。
+
+仍未关闭的退出条件：
+
+- 候选尚未 commit/rebase/push，也没有 feature PR exact-SHA 的 `CLI CI` 与 `CLI Strict Sandbox` Linux/Windows/macOS 全矩阵；因此不能据本地绿色发布 npm 新版本。
+- 原 P1-2 的 20-Agent 并发、取消/重连、worktree 清理和长期 soak 尚未在该候选 exact SHA 上执行；P1-2 继续计为**部分完成**，第 16.16 节 **8 完成、6 部分、1 未完成（7 项未完全关闭）**不变。
+- 默认从仓库子目录启动时当前 cwd 落在 worktree 根，而不是对应子目录；worktree 仍位于仓库 `.worktrees/`，外部 managed root/descriptor identity、add-dir root-pivot/TOCTOU 加固列为 P2 follow-up。
+- Broker 的 launcher post-native-spawn 异常目前仍是一次异步 whole-tree settlement；termination 未确认或 confirmed 后持久化持续失败时会保留 `launchFinalizationUncertain`、job 与 worktree，没有独立长期 keeper。turn worker 的 settlement 会重试仍存活根的终止与确认落盘，但一旦根已 closed 而 descendants 尚未证明退出，就必须停止复用裸 PID/PGID，保留 uncertainty，避免 PID reuse 误杀无关进程。另有不可外推的 hard-crash 窗口：prepare intent 已落盘后，若第二事务在 native spawn 返回与 agent PID commit 之间遭遇 SIGKILL/OOM，POSIX detached child 可能存活，而磁盘只有 intent、没有可回收 PID；两阶段协议关闭的是 cooperative stop 与可捕获持久化失败，不是 crash-safe OS containment。这些 fail-closed 残留必须纳入磁盘/pipe/TTY/SSH/资源泄漏长期 soak 和显式 recovery 设计，不能在本节宣称全局资源泄漏清零或 P1-2 完成。
+- P2-4 调度内核未因本候选发生变化，仍按第 16.16 节估算为 **6～10 周（单工程师）/4～6 周（两人有效并行）**。
+
+发布线同时存在独立 selector follow-up PR `#129`；其 exact head 的 required checks、手动 `CLI CI` 与 `CLI Strict Sandbox` 必须分别核对。即使该 PR 全绿，也不能替代未来 feature/release exact SHA 的双工作流门禁；在新的 release commit 全平台绿色前，npm 已发布版本仍以 `0.163.2` 为准。
 
 ## 17. 2026-08-06 `0.162.198` 发布闭环与继续执行边界
 

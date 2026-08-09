@@ -10,8 +10,8 @@
  *   cc agenda prune [--older-than N]  drop finished entries
  *
  * `run` for each due entry:
- *   - wakeup  → spawn `cc agent -p <prompt>`, mark fired
- *   - cron    → spawn `cc agent -p <prompt>`, advance to next fire time
+ *   - wakeup  → spawn `cc agent --print=<prompt>`, mark fired
+ *   - cron    → spawn `cc agent --print=<prompt>`, advance to next fire time
  *   - monitor → check its source (a shell <command>'s output, a <watchFile>'s
  *               content / appearance / modification, or a <watchUrl>'s response
  *               body / 2xx); if it matches stop_when, send the notification and
@@ -562,11 +562,12 @@ export async function runAgendaDaemon(options = {}, _deps = {}) {
 /**
  * Build the `cc agent` argv for a scheduled prompt, appending the entry's
  * per-task run policy as real `cc agent` flags. A missing / empty policy adds
- * nothing, so an unpolicied task spawns exactly `cc agent -p <prompt>` as
- * before (byte-identical). Exported for unit tests.
+ * nothing beyond the unattended defaults. The prompt uses Commander long-option
+ * equals form so values such as `--help` cannot be reinterpreted as options.
+ * Exported for unit tests.
  */
 export function buildAgentArgs(prompt, policy = null) {
-  const args = ["agent", "-p", prompt];
+  const args = ["agent", `--print=${prompt}`];
   // P1-8: a scheduled run is UNATTENDED — deny high-risk external tools
   // (publish_artifact / notify) by default so no timer-fired agent can publish
   // or message outward on its own. A task opts specific action classes back in

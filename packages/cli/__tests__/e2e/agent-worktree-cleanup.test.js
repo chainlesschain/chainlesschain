@@ -22,7 +22,7 @@ function git(cmd, cwd) {
   });
 }
 
-describe("cc agent --worktree cleanup on early-exit validation guard", () => {
+describe("cc agent worktree cleanup on early-exit validation guard", () => {
   let repo;
 
   beforeEach(() => {
@@ -67,5 +67,29 @@ describe("cc agent --worktree cleanup on early-exit validation guard", () => {
     expect(exitCode).toBe(1); // the validation guard fired
     const worktrees = git("worktree list", repo);
     expect(worktrees, childStderr).not.toContain("cc-agent-");
+  });
+
+  it("defaults a background Git task to a worktree and removes it on early exit", () => {
+    let exitCode = 0;
+    let childStderr = "";
+    try {
+      execSync(
+        `node "${BIN}" agent --bg --permission-prompt-tool foo -p "hi"`,
+        {
+          cwd: repo,
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "pipe"],
+          timeout: 90000,
+        },
+      );
+    } catch (err) {
+      exitCode = err.status ?? 1;
+      childStderr = String(err.stderr || "");
+    }
+
+    expect(exitCode).toBe(1);
+    expect(childStderr).toContain("worktree (background default):");
+    expect(childStderr).toContain("worktree removed (no changes)");
+    expect(git("worktree list", repo), childStderr).not.toContain("cc-agent-");
   });
 });

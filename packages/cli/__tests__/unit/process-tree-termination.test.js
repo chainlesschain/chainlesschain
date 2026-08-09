@@ -1,6 +1,9 @@
 import { EventEmitter } from "node:events";
 import { describe, expect, it, vi } from "vitest";
-import { terminateOwnedProcessTree } from "../../src/lib/process-tree-termination.js";
+import {
+  shouldRetryOwnedProcessTreeTermination,
+  terminateOwnedProcessTree,
+} from "../../src/lib/process-tree-termination.js";
 
 function makeChild(pid = 4123) {
   const child = new EventEmitter();
@@ -19,6 +22,32 @@ function esrch() {
 }
 
 describe("terminateOwnedProcessTree", () => {
+  it("never retries a stale numeric identity after the owned root closes", () => {
+    const child = makeChild();
+    expect(
+      shouldRetryOwnedProcessTreeTermination(child, {
+        closed: false,
+        confirmed: false,
+      }),
+    ).toBe(true);
+
+    expect(
+      shouldRetryOwnedProcessTreeTermination(child, {
+        closed: true,
+        treeTerminated: false,
+        confirmed: false,
+      }),
+    ).toBe(false);
+
+    child.signalCode = "SIGKILL";
+    expect(
+      shouldRetryOwnedProcessTreeTermination(child, {
+        closed: false,
+        confirmed: false,
+      }),
+    ).toBe(false);
+  });
+
   it("soft-terminates and verifies a POSIX process group", async () => {
     const child = makeChild();
     let groupAlive = true;
@@ -87,6 +116,35 @@ describe("terminateOwnedProcessTree", () => {
     });
     expect(kill).toHaveBeenCalledWith(-child.pid, "SIGTERM");
     expect(kill).toHaveBeenCalledWith(-child.pid, "SIGKILL");
+  });
+
+  it("does not hard-signal a reusable PID after the root closes", async () => {
+    const child = makeChild();
+    const kill = vi.fn((_pid, signal) => {
+      if (signal === "SIGTERM") {
+        child.exitCode = 0;
+        queueMicrotask(() => child.emit("close", 0, null));
+      }
+      // The process group intentionally remains observable after root close,
+      // so whole-tree termination cannot be claimed.
+    });
+
+    const result = await terminateOwnedProcessTree(child, {
+      platform: "linux",
+      treeMode: "posix-group",
+      kill,
+      cleanupTimeoutMs: 100,
+      graceMs: 25,
+    });
+
+    expect(result).toMatchObject({
+      closed: true,
+      treeTerminated: false,
+      confirmed: false,
+      hardRequested: false,
+    });
+    expect(kill).toHaveBeenCalledWith(-child.pid, "SIGTERM");
+    expect(kill).not.toHaveBeenCalledWith(-child.pid, "SIGKILL");
   });
 
   it("treats an observed managed-sandbox close as a complete tree fence", async () => {

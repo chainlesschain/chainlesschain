@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   LOG_TRUNCATION_NOTICE,
+  buildBackgroundDispatchArgs,
   formatBackgroundAgentDetails,
   formatBackgroundAgentLine,
   readLogFromOffset,
@@ -12,6 +13,15 @@ import {
 } from "../../src/commands/background-session.js";
 
 describe("background-session command helpers", () => {
+  it.each(["--help", "--no-worktree", "--dangerously-skip-permissions"])(
+    "keeps option-looking dashboard prompt %s inside --print",
+    (prompt) => {
+      const args = buildBackgroundDispatchArgs(prompt);
+      expect(args).toEqual(["agent", "--bg", `--print=${prompt}`]);
+      expect(args).not.toContain(prompt);
+    },
+  );
+
   it("formats background agent rows with stable status, age and cwd", () => {
     const line = formatBackgroundAgentLine(
       {
