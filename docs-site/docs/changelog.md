@@ -5,6 +5,30 @@
 
 ## [Unreleased]
 
+#### Added — 最新主线：MCP 沙箱策略从配置源贯通到 Process Broker
+
+> 该能力位于最新主线提交 [`9fa5162e66`](https://github.com/chainlesschain/chainlesschain/commit/9fa5162e668fa9b457b0d70d54a0806773c363ab)，晚于当前 npm 不可变发布 tag；在后续版本完成自身 exact-SHA 三平台门禁前，不把它写成已发布 npm 契约。
+
+- local / project / user / managed、Skill 与 Cowork 的 stdio MCP 定义现在可以携带 `sandboxPolicy.requiredBoundaries`（当前只接受 `filesystem` / `network`）和可信 `cwd`；策略会绑定 workspace authority 后传给 Process Broker，平台无法证明请求边界时失败闭合。
+- Proxy/accessor、未知字段、不支持的 boundary 与越出 authority 的工作目录都会被拒绝；失效的高优先级定义会保留 server name，避免静默回落到同名低优先级配置而削弱策略。
+
+#### Fixed — CLI 0.163.2 正式发布：失败闭合的 MCP 执行 capsule
+
+> `chainlesschain@0.163.2` 已成为 npm `latest` 与生产推荐版。不可变 tag `v-npm-0-163-2` 精确指向 [`2d6f19aea2`](https://github.com/chainlesschain/chainlesschain/commit/2d6f19aea243ed4f054b585d4bc709d4209ff80d)；该 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31277578939)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31277578889)、[三系统两小时可靠性 / 恶意 MCP 门](https://github.com/chainlesschain/chainlesschain/actions/runs/31271803404)、[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/31277578900)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/31278310621)均成功。公网 tarball 与 workflow artifact 逐字节一致，SHA-256 为 `394a755d52fca98e7527228859a78e1c57eae69abfdcaf77cc56e9b665b13fe1`。
+
+- **显式 runtime identity**：`cc mcp add --runtime-kind` 支持 `native`、`node`、`python`、`posix-shell`、`powershell`、`java`、`dotnet`；已识别 runtime 不可改标签，自定义或改名 runtime 必须声明语义。
+- **Linux descriptor-bound capsule**：固定 npm/Node MCP 的 runtime、entry 与透传参数一直绑定到启动；`bwrap` 文件系统/网络/进程树边界与 inherited-FD 路径均拒绝路径替换、路径穿越、混合证据和歧义分隔符。
+- **Windows 一次性 authority**：restricted-token / AppContainer 计划只由生产 adapter 签发、只由内建 Broker 消费，绑定原始 contract、helper payload、环境、stdio handle 与 post-spawn closure；重放或注入 adapter 在 native spawn 前拒绝。
+- **macOS 诚实边界**：公开 Darwin exec/spawn API 无法把已验证 descriptor 原子绑定到最终 image，因此严格 capsule 返回类型化失败闭合，而不是把 pathname snapshot 误报成原子代码身份。
+- **边界不扩大**：本版不宣称任意 native/shared-library closure、远程分布式撤销、完整恶意 Skill 矩阵或签名 Desktop/native 发布；25 个兼容 alias 继续保留。
+
+#### Added — IDE ARM64 公开认证：Open VSX 0.37.47 / JetBrains Marketplace 0.4.83
+
+> 双 tag `ide-vscode-v0.37.47` / `ide-jetbrains-v0.4.83` 精确指向 [`9db081c5a9`](https://github.com/chainlesschain/chainlesschain/commit/9db081c5a9b24d1c51952e86513b0520620feadd)。[11 格 ARM64 宿主聚合门](https://github.com/chainlesschain/chainlesschain/actions/runs/31269850865)、[VS Code 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/31271800174)与[JetBrains 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/31271800206)均成功；Open VSX `0.37.47` 与 JetBrains Marketplace `0.4.83` 已公开，微软 VS Code Marketplace 仍未发布。
+
+- VS Code 在 Linux / Windows / macOS ARM64 上覆盖 stable 与最低支持版 `1.85.2`；JetBrains 覆盖 Linux/macOS 的 2024.2、2025.2 与 Windows ARM64 精确版 2026.2.0.1，共享证据必须凑齐精确 11 格。
+- chat、Stop/force-stop、restart recovery、canonical rewind、Sessions Workbench 与 artifact 路径均走真实宿主；本次修复等待持久化的 in-flight Stop 响应后再执行第二次 force-stop，消除发布夹具竞态。
+
 #### Fixed — CLI 0.163.1 正式发布：有界长会话、原子 MCP、可复现 Web Panel 与可靠性门
 
 > `chainlesschain@0.163.1` 已成为 npm `latest` 与生产推荐版。不可变 tag `v-npm-0-163-1` 精确指向 [`e3f56b11e2`](https://github.com/chainlesschain/chainlesschain/commit/e3f56b11e27ae1bd5d19ad8638434843c244aa68)；该 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31240892299)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31240892177)、[unsigned 六目标原生验证](https://github.com/chainlesschain/chainlesschain/actions/runs/31240927257)、[三系统两小时可靠性门](https://github.com/chainlesschain/chainlesschain/actions/runs/31240943985)与[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/31246063305)均成功。公开 registry tarball 与 workflow artifact 逐字节一致，SHA-256 为 `d9e09e25c6086e0777e97a670105649e3a7e5fb1c2816e1834557da32157cbee`。

@@ -1,6 +1,6 @@
 # Personal Data Hub Architecture — 个人数据中台（让数据回归个人）
 
-> **状态**：持续迭代（2026-08-08）。当前导出并注册 **92 个采集契约**（+ 多个同形平台共享 base 工厂 `_bank-base` / `_reading-base` / `_python-sidecar-base` / `_local-im-db-reader` / `_local-im-pc-adapter` 等），发布包为 `@chainlesschain/personal-data-hub` **0.4.57**；当前 npm `latest` 为 `chainlesschain` CLI **0.163.1**，继续提供同一组采集入口。这里的 92 是能力面清单，不等同于 92 个默认实例都经过真实来源验证：其中同时包含真实本地/官方采集器、离线导入解析器、自定义 fetch seam 和实验性 schema reader。当前主线：
+> **状态**：持续迭代（2026-08-09）。当前导出并注册 **92 个采集契约**（+ 多个同形平台共享 base 工厂 `_bank-base` / `_reading-base` / `_python-sidecar-base` / `_local-im-db-reader` / `_local-im-pc-adapter` 等），发布包为 `@chainlesschain/personal-data-hub` **0.4.57**；当前 npm `latest` 为 `chainlesschain` CLI **0.163.2**，继续提供同一组采集入口。这里的 92 是能力面清单，不等同于 92 个默认实例都经过真实来源验证：其中同时包含真实本地/官方采集器、离线导入解析器、自定义 fetch seam 和实验性 schema reader。当前主线：
 >
 > **成熟度口径校准**：目录中的 `export` / `capability` 只证明契约和接线存在；只有经过来源发现、readiness、完整性水位、隐私边界与真实主机/设备验证的实现才称为“真实接通”。下文早期版本记录里的“真接通”“snapshot + cookie-api 双模”沿用当时的导出契约口径，其中一部分 cookie-api 实际是调用方注入 endpoint/fetch 的开发 seam，不应当作开箱即用的官方实时采集。
 >

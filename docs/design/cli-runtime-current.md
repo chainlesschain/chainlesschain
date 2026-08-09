@@ -1,14 +1,15 @@
-# CLI Runtime 当前实现核对（稳定版 0.163.1）
+# CLI Runtime 当前实现核对（稳定版 0.163.2）
 
-> 更新时间：2026-08-08。本文同时记录当前代码与正式发布证据。npm `latest`、生产推荐版与当前源码包元数据均为 `0.163.1`；公开能力绑定不可变 tag `v-npm-0-163-1` 的精确 SHA `e3f56b11e27ae1bd5d19ad8638434843c244aa68`，而不是仅凭版本字符串判断。路线图与实验性设计仍以各自计划文档为准。
+> 更新时间：2026-08-09。本文同时记录当前代码与正式发布证据。npm `latest`、生产推荐版与当前源码包元数据均为 `0.163.2`；公开能力绑定不可变 tag `v-npm-0-163-2` 的精确 SHA `2d6f19aea243ed4f054b585d4bc709d4209ff80d`，而不是仅凭版本字符串判断。最新主线 `9fa5162e668fa9b457b0d70d54a0806773c363ab` 晚于该 tag，其 MCP source-policy 接线单独标注为未发布。路线图与实验性设计仍以各自计划文档为准。
 
 ## 版本与证据边界
 
-- `0.163.1` 是当前生产推荐基线。`v-npm-0-163-1` 精确指向 `e3f56b11e27ae1bd5d19ad8638434843c244aa68`；同一 SHA 的 `CLI CI`、`CLI Strict Sandbox`、专用 npm 发布、exact-SHA gate、不可变 tarball/CycloneDX SBOM、Trusted Publishing、SLSA provenance、registry 回读与 npmmirror 同步均成功。公开 registry tarball 与 workflow artifact 逐字节一致，SHA-256 为 `d9e09e25c6086e0777e97a670105649e3a7e5fb1c2816e1834557da32157cbee`。
-- `0.163.0` 是上一完整门禁基线。`v-npm-0-163-0` 精确指向 `aed0a3ae5327917ce0490a5decbddd777f66f33b`；其三平台门禁与发布链已闭环，现由 `0.163.1` 取代。
+- `0.163.2` 是当前生产推荐基线。`v-npm-0-163-2` 精确指向 `2d6f19aea243ed4f054b585d4bc709d4209ff80d`；同一 SHA 的 `CLI CI`、`CLI Strict Sandbox`、两小时可靠性/恶意 MCP soak、专用 npm 发布、exact-SHA gate、不可变 tarball/CycloneDX SBOM、Trusted Publishing、SLSA provenance、registry 回读与 npmmirror 同步均成功。公开 registry tarball 与 workflow artifact 逐字节一致，SHA-256 为 `394a755d52fca98e7527228859a78e1c57eae69abfdcaf77cc56e9b665b13fe1`。
+- `0.163.1` 是上一完整门禁基线。`v-npm-0-163-1` 精确指向 `e3f56b11e27ae1bd5d19ad8638434843c244aa68`；其三平台门禁与发布链已闭环，现由 `0.163.2` 取代。
 - `0.162.200` 是上一完整门禁基线，并完整承接上传前失败的 `0.162.199` 候选；`v-npm-0-162-199` 保持不可变，不移动或伪造成已发布版本。`0.162.193` 继续作为非权威发布历史审计记录保留。
-- `0.163.1` 完整承接 `0.163.0`，并公开长会话有界压缩、live session tail durable-witness 竞态修复、Windows MCP 原子启动、可复现 Web Panel 构建、Node 22 standalone 基座、跨平台可靠性探针和原生发行凭据 preflight。unsigned 六目标原生验证与三系统两小时可靠性门均绑定同一精确 SHA；这仍不等于签名 Desktop/native 发行完成。
-- IDE 当前公开与源码版本为 Open VSX `0.37.45`、JetBrains Marketplace `0.4.81`。VS Code tag 指向 `aed0a3ae53`，完成 stable/minimum × 三平台六格宿主、多根/多窗口、制品、发布与回读；JetBrains tag 保持指向 `b5177f13c9`，完成 2024.2/2025.2 三平台宿主、上传与回读。微软 VS Code Marketplace 仍未发布。
+- `0.163.2` 完整承接 `0.163.1`，并公开显式 MCP runtime identity、Linux descriptor-bound 固定 npm/Node capsule、Windows 一次性 restricted-token/AppContainer authority、macOS 无法证明原子 image binding 时的类型化失败闭合，以及恶意宿主证据 v4。unsigned 六目标原生 validation 仍不等于签名 Desktop/native 发行完成。
+- 最新主线 `9fa5162e66` 进一步把 `sandboxPolicy.requiredBoundaries` 与可信 `cwd` 从 local/project/user/managed、Skill 和 Cowork 定义传到 Broker，并用 name reservation 阻止失效高优先级定义降级回落；该提交晚于 npm tag，尚非生产安装契约。
+- IDE 当前公开与源码版本为 Open VSX `0.37.47`、JetBrains Marketplace `0.4.83`。双 tag 指向 `9db081c5a9`，11 格 ARM64 聚合覆盖 VS Code stable/minimum × Linux/Windows/macOS 与 JetBrains Linux/macOS 2024.2/2025.2、Windows 2026.2.0.1；制品、发布与公开回读已完成。微软 VS Code Marketplace 仍未发布。
 
 ## 当前边界
 
@@ -36,18 +37,21 @@ cc entry
   │    └─ budget / lease / worktree / adjudication fences
   ├─ bounded usage + retry attribution
   ├─ MCP ws/wss + uncertain-outcome recovery authority
+  │    └─ stdio runtime identity + source policy/workspace authority → Broker
   ├─ Auto mode safety classifier
   ├─ OTLP traces + metrics exporter
   └─ session hooks (Setup / Notification / lifecycle)
 ```
 
-## 0.162.198 → 0.163.1 发布增量
+## 0.162.198 → 0.163.2 发布增量
 
 - **交互输出与发布可移植性**：REPL、headless streaming、provider pacing 与 TTY writer 在输出饱和时等待 drain，并在完成、中断和会话切换时清理监听器；Windows path alias、状态路径、Skill metadata、POSIX executable bit 与兼容 shim 夹具已对齐三平台 CLI CI / Strict Sandbox。
 - **Canonical Workbench 路由**：CLI-owned session projection 与有界 reply/action route 支持 VS Code / JetBrains Workbench 和 rewind journey，同时保持所有持久 mutation 的 CLI authority。
 - **观察基线**：`0.162.198` 是包含当前 OTLP 接线的首个明确公开命令生命周期观察基线。下面的配置、MCP、session/budget、native update 与 checkpoint 能力继承自 `0.162.197`，并随本版本继续公开。
 - **`0.162.200` 会话与 MCP 权威**：canonical session host lease、transcript witness、anti-rollback anchor、CAS 持久化与有界清理已经公开；npm-backed MCP launcher 固定到精确版本和完整传递闭包，物化为受守护、内容寻址的 Node capsule；Windows/POSIX 原生更新恢复保持 generation、锁与路径身份。
 - **`0.163.0` macOS PTY 与原生宿主**：postinstall 只对窄范围解析出的 regular-file `node-pty` helper 修复并验证执行位，拒绝 symlink；六个 Linux/Windows/macOS x64/ARM64 目标使用匹配架构 runner 并要求产物在自身架构执行。
+- **`0.163.1` 可靠性与打包**：公开有界长会话压缩、live session tail durable-witness 竞态修复、Windows MCP 原子启动、可复现 Web Panel 构建、Node 22 standalone 基座、跨平台可靠性探针和原生发行凭据 preflight。
+- **`0.163.2` MCP capsule**：stdio 配置显式声明 runtime kind；Linux descriptor-bound capsule、Windows 一次性 Broker-private authority 与 macOS typed fail-closed boundary 分别记录真实平台能力，不把 pathname snapshot 冒充原子 code identity。
 - **第二观察周期**：`0.163.0` 开启命令生命周期的第二个 minor cycle；由于仍缺代表性 opt-in collector cohort、三平台 coverage 与逐命令样本下限，25 个兼容 alias 全部保留，且不在 `0.164.0` removal floor 前删除。
 
 - **配置与 sandbox 默认值**：schema secret 不允许经普通 `config set` 写入，必须使用隐藏 TTY/stdin 与 OS store/owner-only fallback 的 `config set-secret`；显式 `workspace-write` / `strict` 以及 managed-required sandbox 在能力缺失时失败闭合。`mcp add` 默认 local scope，常规 `status` 使用有界 quick probe，完整 Docker Compose 细节改由 `--deep` 请求。
@@ -67,7 +71,16 @@ cc entry
 - **Native 凭据 preflight**：六目标原生 workflow 在 Linux signing、Windows Authenticode、macOS signing/notarization 或 updater key 缺失时拒绝构建；这不等于相关原生发行链已完成。
 - **可复现 Web Panel 与 standalone 基座**：CLI pack 从干净、lockfile 驱动的 Web Panel 依赖图构建；Vite/Rollup/Intlify 运行链固定，Rollup 文件并发有界，Node 22 standalone 基座在 Linux、Windows、macOS 的 x64/ARM64 验证宿主上保持确定性。
 - **发布闭环**：`v-npm-0-163-1` 精确指向 `e3f56b11e27ae1bd5d19ad8638434843c244aa68`。同 SHA 的 CLI CI `31240892299`、CLI Strict Sandbox `31240892177`、unsigned 六目标原生验证 `31240927257`、三系统两小时可靠性门 `31240943985` 与 npm release `31246063305` 均成功；正式发布完成 immutable tarball、CycloneDX SBOM、Trusted Publishing、SLSA provenance、registry bytes 与 npmmirror 回读。
-- **原生边界不变**：六目标 validation 固定记录 `signed=false`、`releaseEligible=false`。Windows Authenticode、macOS signing/notarization、updater key、公开 fresh install/upgrade/rollback 回读与 IDE ARM64 仍未闭环，npm 发布成功不能替代这些证据。
+- **原生边界不变**：六目标 validation 固定记录 `signed=false`、`releaseEligible=false`。Windows Authenticode、macOS signing/notarization、updater key 与公开 fresh install/upgrade/rollback 回读仍未闭环，npm 发布成功不能替代这些证据。IDE ARM64 在后续 `0.37.47` / `0.4.83` 的独立发布门中闭环，不属于 CLI native 签名发行。
+
+## 2026-08-09 `0.163.2` 发布闭环与发布后主线
+
+- **runtime identity**：`runtimeKind` 仅接受 `native`、`node`、`python`、`posix-shell`、`powershell`、`java`、`dotnet`。已识别 runtime 不能通过错误标签改变语义；改名或自定义 executable 必须先声明语义，字段贯穿 local/project/managed、Skill 与 Cowork 来源。
+- **Linux capsule**：固定 npm/Node server 的 runtime descriptor、entry descriptor 与 passthrough argv 绑定到同一次启动；direct inherited-FD 与 `bwrap` 路径都校验 exact runtime/entry/arguments，并拒绝路径穿越、歧义 separator、mixed evidence 与 pathname replacement。
+- **Windows capsule**：restricted-token/AppContainer plan 只由 production adapter 发行并只由内建 Broker 消费；一次性 capability 绑定 contract、helper payload、环境、stdio handles 与 post-spawn closure，验证/收尾均 delete-before-use，重放、注入 adapter 和废弃 plan 均失败闭合。
+- **macOS capsule**：公共 Darwin API 不能原子地把已验证 descriptor 绑定到最终 exec image，因此严格 MCP capsule 返回类型化 fail-closed；root-owned/signed broker 或等价 atomic exec 仍是独立路线图项。
+- **权威发布**：tag `v-npm-0-163-2`、CLI CI `31277578939`、CLI Strict Sandbox `31277578889`、两小时可靠性/恶意 MCP 门 `31271803404`、npm release `31277578900` 与公网 readback `31278310621` 均绑定 `2d6f19aea2` 并成功。
+- **发布后主线（未发布）**：`9fa5162e66` 新增 `mcp-sandbox-policy.js` 与 `mcp-stdio-workspace-authority.js`，把 `sandboxPolicy.requiredBoundaries`（仅 `filesystem` / `network`）和可信 `cwd` 贯通到 Broker。输入按不可信数据处理：Proxy、accessor、未知字段、非支持 boundary、越权 cwd 直接拒绝；高优先级无效定义保留名称，低层同名 source 不能绕过策略。平台不能证明请求边界时启动失败闭合。
 
 ## 已落地能力
 
@@ -151,10 +164,10 @@ cc entry
 - 插件管理面显示签名、SBOM、来源、托管策略及 registry/Git/local 元数据的脱敏摘要。来源字符串不会作为 shell 命令执行，工作区目录也不会参与可执行文件探测。
 - compact transcript 与 `cc session usage` 可按插件 id/version 归因 plugin-bin 和插件提供的 MCP 调用，并记录有界工具耗时、同轮观测重试与脱敏的流式 LLM retry 原因/实际 provider/model；不持久化工具参数、输出或凭据。
 - VS Code 与 JetBrains 通过 `cc-ide-quality/v1` 提供有界的测试、覆盖率和调试器快照，并携带 Context v2 freshness 元数据；Notebook 执行使用真实 notebook 上下文。
-- IDE `0.37.45` / `0.4.81` 只在插件升级结果为 `activated` 后重载 live session；capability widening 必须先展示新增能力并由用户显式批准，`rolled_back` 或不可读结果保持失败闭合。
+- IDE `0.37.47` / `0.4.83` 只在插件升级结果为 `activated` 后重载 live session；capability widening 必须先展示新增能力并由用户显式批准，`rolled_back` 或不可读结果保持失败闭合。
 - 两个 IDE 只读观察本地 Agent Team schema v6 与分布式 queue schema v1。takeover、managed checkpoint recovery 和 side-effect adjudication 必须携带精确 authority digest、lease/evidence fence，并通过解析出的 CLI 执行；文件监听与刷新只更新投影，不能绕开 CLI-owned compare-and-swap authority。
 - IDE 还把 CLI-owned session graph 投影到 Sessions Workbench，并提供受 projection revision 约束的 resume/attach、可恢复 GitHub/Gitee/remote/manual delivery，以及绑定 session/workspace/repository/checkpoint/manifest digest 的 rewind/branch timeline。过期按钮与 projection 必须失败闭合。
-- Open VSX 当前公开 `0.37.45`，JetBrains Marketplace 当前公开且审核通过 `0.4.81`。VS Code 在既有内联聊天、Sessions Workbench、可恢复交付、canonical rewind 与五类 session journey 上增加同一干净 profile 下的多窗口真实宿主隔离门；两个窗口必须具有不同 Extension Host PID、bridge port 与 token，并同时可连接。Microsoft VS Code Marketplace 仍未发布。
+- Open VSX 当前公开 `0.37.47`，JetBrains Marketplace 当前公开且审核通过 `0.4.83`。双端保留内联聊天、Sessions Workbench、可恢复交付、canonical rewind 与五类 session journey，并新增精确 11 格 native ARM64 真实宿主聚合：VS Code stable/minimum × Linux/Windows/macOS 六格，JetBrains Linux/macOS 2024.2/2025.2 四格与 Windows ARM64 2026.2.0.1 一格。Stop/force-stop fixture 必须先观察持久 in-flight Stop response，再验证 restart 从精确下一 turn 继续。Microsoft VS Code Marketplace 仍未发布。
 - Installation Doctor 同时报告 Node/Java、managed CLI 和插件 registry 的离线恢复状态；恢复建议不把不可信工作区加入命令搜索路径。
 
 ### 9. Auto mode 安全分类与标准 OTLP 出口
@@ -166,29 +179,30 @@ cc entry
 
 ## 关键入口
 
-| 领域           | 实现                                                                                                                                             |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 命令分发       | `packages/cli/src/lazy-dispatch.js`、`command-manifest.json`                                                                                     |
-| 后台监督       | `packages/cli/src/lib/background-agent-supervisor.js`                                                                                            |
-| 交互协议       | `packages/cli/src/lib/ipc-attach-protocol.js`、`background-session-transport.js`                                                                 |
-| 执行安全       | `packages/cli/src/lib/process-execution-broker/`                                                                                                 |
-| 受控事务与回滚 | `packages/cli/src/lib/process-execution-broker/workspace-transaction.js`、`commands/checkpoint-managed.js`                                       |
-| Restore saga   | `packages/cli/src/lib/checkpoint-restore-saga.js`、`checkpoint-restore-recovery*.js`、`commands/checkpoint-restore-recovery.js`                  |
-| 会话与资源预算 | `packages/cli/src/lib/session-*.js`、`session-resource-budget.js`、`session-host-runtime.js`                                                     |
-| MCP 恢复       | `packages/cli/src/lib/mcp-call-recovery*.js`、`harness/mcp-client.js`                                                                            |
-| Agent Team     | `packages/cli/src/lib/agent-team/`、`commands/team.js`、`commands/team-distributed.js`                                                           |
-| Auto 安全分类  | `packages/cli/src/lib/auto-mode-safety-classifier.js`、`lib/auto-mode-safety-eval.js`、`commands/auto-mode.js`                                   |
-| OTLP 出口      | `packages/cli/src/lib/otlp-exporter.js`、`lib/observability/otlp-exporter.js`                                                                    |
-| 插件沙箱策略   | `packages/cli/src/lib/plugin-runtime/sandbox-policy.js`                                                                                          |
-| 插件生命周期   | `packages/cli/src/lib/plugin-runtime/install.js`、`commands/plugin.js`                                                                           |
-| 插件用量归因   | `packages/cli/src/lib/plugin-usage-attribution.js`、`lib/session-usage.js`                                                                       |
-| 技能执行边界   | `packages/cli/src/lib/skill-loader.js`、`runtime/agent-core.js`                                                                                  |
-| 技能生成入口   | `packages/cli/src/lib/cli-anything-bridge.js`、`lib/skill-packs/generator.js`                                                                    |
-| 技能注入入口   | `packages/cli/src/commands/skill.js`、`runtime/agent-core.js`                                                                                    |
-| 路径契约       | `packages/cli/src/lib/paths.js`、`harness/jsonl-session-store.js`                                                                                |
-| 异步 hook 回收 | `packages/cli/src/lib/async-hook-supervisor.cjs`                                                                                                 |
-| hooks          | `packages/cli/src/lib/session-hooks.js`、`hook-manager.js`                                                                                       |
-| IDE 运行时接线 | `packages/vscode-extension/src/runtime-environment.js`、`packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/RuntimeEnvironment.java` |
+| 领域            | 实现                                                                                                                                             |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 命令分发        | `packages/cli/src/lazy-dispatch.js`、`command-manifest.json`                                                                                     |
+| 后台监督        | `packages/cli/src/lib/background-agent-supervisor.js`                                                                                            |
+| 交互协议        | `packages/cli/src/lib/ipc-attach-protocol.js`、`background-session-transport.js`                                                                 |
+| 执行安全        | `packages/cli/src/lib/process-execution-broker/`                                                                                                 |
+| 受控事务与回滚  | `packages/cli/src/lib/process-execution-broker/workspace-transaction.js`、`commands/checkpoint-managed.js`                                       |
+| Restore saga    | `packages/cli/src/lib/checkpoint-restore-saga.js`、`checkpoint-restore-recovery*.js`、`commands/checkpoint-restore-recovery.js`                  |
+| 会话与资源预算  | `packages/cli/src/lib/session-*.js`、`session-resource-budget.js`、`session-host-runtime.js`                                                     |
+| MCP 恢复        | `packages/cli/src/lib/mcp-call-recovery*.js`、`harness/mcp-client.js`                                                                            |
+| MCP source 策略 | `packages/cli/src/lib/mcp-sandbox-policy.js`、`mcp-stdio-workspace-authority.js`、`runtime/mcp-config.js`                                        |
+| Agent Team      | `packages/cli/src/lib/agent-team/`、`commands/team.js`、`commands/team-distributed.js`                                                           |
+| Auto 安全分类   | `packages/cli/src/lib/auto-mode-safety-classifier.js`、`lib/auto-mode-safety-eval.js`、`commands/auto-mode.js`                                   |
+| OTLP 出口       | `packages/cli/src/lib/otlp-exporter.js`、`lib/observability/otlp-exporter.js`                                                                    |
+| 插件沙箱策略    | `packages/cli/src/lib/plugin-runtime/sandbox-policy.js`                                                                                          |
+| 插件生命周期    | `packages/cli/src/lib/plugin-runtime/install.js`、`commands/plugin.js`                                                                           |
+| 插件用量归因    | `packages/cli/src/lib/plugin-usage-attribution.js`、`lib/session-usage.js`                                                                       |
+| 技能执行边界    | `packages/cli/src/lib/skill-loader.js`、`runtime/agent-core.js`                                                                                  |
+| 技能生成入口    | `packages/cli/src/lib/cli-anything-bridge.js`、`lib/skill-packs/generator.js`                                                                    |
+| 技能注入入口    | `packages/cli/src/commands/skill.js`、`runtime/agent-core.js`                                                                                    |
+| 路径契约        | `packages/cli/src/lib/paths.js`、`harness/jsonl-session-store.js`                                                                                |
+| 异步 hook 回收  | `packages/cli/src/lib/async-hook-supervisor.cjs`                                                                                                 |
+| hooks           | `packages/cli/src/lib/session-hooks.js`、`hook-manager.js`                                                                                       |
+| IDE 运行时接线  | `packages/vscode-extension/src/runtime-environment.js`、`packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/RuntimeEnvironment.java` |
 
 ## 验证口径
 
@@ -201,8 +215,8 @@ npm run test:integration
 npm run test:e2e
 ```
 
-`0.163.1` 的精确正式发布提交为 [`e3f56b11e27ae1bd5d19ad8638434843c244aa68`](https://github.com/chainlesschain/chainlesschain/commit/e3f56b11e27ae1bd5d19ad8638434843c244aa68)。该提交的 [CLI CI run 31240892299](https://github.com/chainlesschain/chainlesschain/actions/runs/31240892299)、[CLI Strict Sandbox run 31240892177](https://github.com/chainlesschain/chainlesschain/actions/runs/31240892177) 与 [npm publish run 31246063305](https://github.com/chainlesschain/chainlesschain/actions/runs/31246063305) 均成功；CLI CI 含 Ubuntu、Windows、macOS 的 unit/integration/E2E 分片、打包与全局安装验证，Strict Sandbox 三平台全绿，发布 workflow 的 `exact-sha-gate`、immutable package、CycloneDX SBOM、Trusted Publishing、SLSA provenance 与公开 registry 回读全绿。
+`0.163.2` 的精确正式发布提交为 [`2d6f19aea243ed4f054b585d4bc709d4209ff80d`](https://github.com/chainlesschain/chainlesschain/commit/2d6f19aea243ed4f054b585d4bc709d4209ff80d)。该提交的 [CLI CI run 31277578939](https://github.com/chainlesschain/chainlesschain/actions/runs/31277578939)、[CLI Strict Sandbox run 31277578889](https://github.com/chainlesschain/chainlesschain/actions/runs/31277578889)、[两小时可靠性/恶意 MCP run 31271803404](https://github.com/chainlesschain/chainlesschain/actions/runs/31271803404)、[npm publish run 31277578900](https://github.com/chainlesschain/chainlesschain/actions/runs/31277578900)与[独立公网回读 run 31278310621](https://github.com/chainlesschain/chainlesschain/actions/runs/31278310621)均成功；CLI CI 含 Ubuntu、Windows、macOS 的 unit/integration/E2E 分片、打包与全局安装验证，Strict Sandbox 三平台全绿，发布 workflow 的 `exact-sha-gate`、immutable package、CycloneDX SBOM、Trusted Publishing、SLSA provenance 与公开 registry 回读全绿。
 
-正式 npm workflow 已从 registry 下载 `0.163.1` 并核对不可变 artifact bytes、签名 provenance 与授权 workflow identity；npm `latest` 与 npmmirror 均已回读。`0.162.199` 的上传前失败 tag、`0.162.193` 的历史非权威记录及更早失败 tag 都保持不可变。后续版本仍必须在各自 final exact SHA 上重新完成全部权威门，本地测试只作补充。
+正式 npm workflow 与独立回读已从 registry 下载 `0.163.2` 并核对不可变 artifact bytes、签名 provenance 与授权 workflow identity；npm `latest` 与 npmmirror 均已回读。`0.162.199` 的上传前失败 tag、`0.162.193` 的历史非权威记录及更早失败 tag 都保持不可变。后续版本仍必须在各自 final exact SHA 上重新完成全部权威门，本地测试和 `9fa5162e66` 的主线测试只作补充。
 
 平台专项还应覆盖 Linux bubblewrap 的 fd 绑定、private mount topology、静态 ELF/架构/segment/栈校验、通用后台/PTY 强边界与网络隔离，以及 Windows `.cmd` 启动、AppContainer 目标句柄/策略摘要、后台 attach、停止自 PID 记录、hook 输出清理和进程树能力探测。P2-14 专项必须区分 `full` / `partial` / `none`，验证 crash recovery 在证据不足时进入 `recovery_required`；P2-16 专项必须分别覆盖单进程规模测试、真实跨进程短门和三平台长期 soak。Hooks 专项需覆盖 stdin `EPIPE` 的 status 0/2 协议、单一 CredentialTransport listener 与 teardown 后 FD 零增长。TCP attach 需要运行对应的 IPC/transport 回归测试。真实系统能力不可用时，测试必须明确跳过并由注入测试补齐，不得把权限拒绝伪装成功。

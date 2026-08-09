@@ -7,10 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — mainline MCP sandbox-policy propagation
+
+- **Policy-bearing MCP sources**: local, project, user, managed, Skill, and
+  Cowork stdio MCP definitions can carry a small declarative `sandboxPolicy`
+  with `filesystem` and/or `network` required boundaries plus a trusted `cwd`.
+  The policy is normalized as untrusted data, bound to workspace authority, and
+  passed to the Process Broker; a requested boundary that cannot be proved
+  fails closed.
+- **Precedence cannot downgrade policy**: an invalid higher-precedence MCP
+  definition reserves its server name instead of silently falling through to a
+  lower-precedence definition. Proxy/accessor objects, unknown policy fields,
+  unsupported boundaries, and out-of-authority working directories are
+  rejected without invoking user-controlled accessors.
+- **Release boundary**: this landed at mainline commit
+  `9fa5162e668fa9b457b0d70d54a0806773c363ab`, after the current immutable npm
+  release tag. It is source-mainline behavior until a later exact-SHA release
+  completes the required Linux, Windows, and macOS gates.
+
 ### Fixed — cc CLI 0.163.2: fail-closed MCP capsule sandbox composition
 
-> `chainlesschain` **0.163.1 → 0.163.2** (release candidate,
-> 2026-08-09). CLI-only release metadata;
+> `chainlesschain` **0.163.1 → 0.163.2** (published from exact SHA
+> `2d6f19aea243ed4f054b585d4bc709d4209ff80d`, 2026-08-09). CLI-only release;
 > `@chainlesschain/personal-data-hub` remains **0.4.57** and
 > `@chainlesschain/agent-sdk` remains **0.1.7**.
 
@@ -52,11 +70,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Node-builtin modes, the complete malicious Skill matrix, or signed native
   distribution. All 25 deprecated command aliases remain retained; the
   `0.164.0` removal floor and representative opt-in telemetry are still unmet.
-- **Release condition**: publication remains blocked until the exact release
-  SHA passes every configured Linux, Windows, and macOS job in `CLI CI` and the
-  `CLI Strict Sandbox` matrix. Because this patch changes MCP isolation, tag
-  `v-npm-0-163-2` additionally waits for exact-SHA three-platform safety and
-  formal two-hour reliability/malicious MCP soak evidence.
+- **Published release evidence**: immutable tag `v-npm-0-163-2` resolves to
+  exact source commit `2d6f19aea243ed4f054b585d4bc709d4209ff80d`.
+  Its Linux, Windows, and macOS `CLI CI` and `CLI Strict Sandbox` matrices,
+  formal two-hour reliability/malicious MCP soak, and dedicated npm release all
+  succeeded. The release workflow completed its exact-SHA gate, immutable
+  tarball/CycloneDX SBOM, Trusted Publishing, SLSA provenance, registry
+  readback, and npmmirror synchronization; the independent public readback
+  proved the registry tarball byte-identical to the workflow artifact. The
+  public tarball SHA-256 is
+  `394a755d52fca98e7527228859a78e1c57eae69abfdcaf77cc56e9b665b13fe1`.
 
 ### Fixed — cc CLI 0.163.1: bounded long sessions and reliability gates
 

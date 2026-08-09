@@ -1,6 +1,6 @@
 # Cowork 多智能体协作系统
 
-> **适用版本：CLI 0.163.1（npm latest、源码包元数据与生产推荐一致）| P2-16 Agent Teams 发布门已通过 | 状态：Cowork 命令可用，运行时测试持续维护**
+> **适用版本：CLI 0.163.2（npm latest、源码包元数据与生产推荐一致）| P2-16 Agent Teams 发布门已通过 | 状态：Cowork 命令可用，运行时测试持续维护**
 >
 > 本文同时说明当前 CLI 与历史桌面端 Cowork。日常使用请优先参考“快速开始”和 CLI 章节；桌面 IPC 数量、历史性能基线与模块行数仅用于回归和演进追踪，不代表当前 CLI 的服务等级。Cowork 与基于 DAG / lease / queue 的 `cc team` 是两个不同入口，大规模团队协作请参阅 [Agent Team 用户指南](./cli-team.md)。
 

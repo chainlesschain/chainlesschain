@@ -1,6 +1,6 @@
-# CLI Runtime 当前实现（0.163.1）
+# CLI Runtime 当前实现（0.163.2）
 
-> 更新时间：2026-08-08。npm `latest`、生产推荐版与当前源码包元数据均为 `0.163.1`。稳定能力以不可变 tag `v-npm-0-163-1` 的精确 SHA [`e3f56b11e2`](https://github.com/chainlesschain/chainlesschain/commit/e3f56b11e27ae1bd5d19ad8638434843c244aa68) 为准；该 SHA 的 CLI CI、CLI Strict Sandbox、专用发布、不可变制品、SBOM、provenance、registry 与 npmmirror 回读均已完成核验。后续版本仍不能只凭 registry 或 package.json 版本号判断发布权威。
+> 更新时间：2026-08-09。npm `latest`、生产推荐版与当前源码包元数据均为 `0.163.2`。稳定能力以不可变 tag `v-npm-0-163-2` 的精确 SHA [`2d6f19aea2`](https://github.com/chainlesschain/chainlesschain/commit/2d6f19aea243ed4f054b585d4bc709d4209ff80d) 为准；该 SHA 的 CLI CI、CLI Strict Sandbox、两小时可靠性/恶意 MCP 门、专用发布、不可变制品、SBOM、provenance、registry 与 npmmirror 回读均已核验。最新主线 `9fa5162e66` 晚于发布 tag，其 MCP source-policy 接线在本文明确标为未发布。
 
 ## 概述
 
@@ -8,19 +8,19 @@
 
 ## 安装版本怎么选
 
-| 用途                | 版本      | 说明                                                                                                                      |
-| ------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------- |
-| 生产 / 日常稳定使用 | `0.163.1` | `v-npm-0-163-1` 的同一 exact SHA 已完成 Linux、Windows、macOS CLI CI、Strict Sandbox、不可变制品、SBOM、provenance 与发布 |
-| npm `latest`        | `0.163.1` | registry、tag、attestation、tarball bytes 与授权 workflow 已交叉回读                                                      |
-| 源码开发 / 调试     | `0.163.1` | 当前源码包元数据与正式发布版一致；工作区后续提交仍需重新完成各自发布门，不能自动继承发布授权                              |
+| 用途                | 版本      | 说明                                                                                                                |
+| ------------------- | --------- | ------------------------------------------------------------------------------------------------------------------- |
+| 生产 / 日常稳定使用 | `0.163.2` | `v-npm-0-163-2` 的同一 exact SHA 已完成 Linux、Windows、macOS CLI CI、Strict Sandbox、可靠性/恶意 MCP、制品与发布门 |
+| npm `latest`        | `0.163.2` | registry、tag、attestation、tarball bytes 与授权 workflow 已交叉回读                                                |
+| 源码开发 / 调试     | `0.163.2` | package metadata 与正式版一致，但 `9fa5162e66` 的发布后主线能力不能继承该 tag 的发布授权                            |
 
 生产安装建议显式固定：
 
 ```bash
-npm i -g chainlesschain@0.163.1
+npm i -g chainlesschain@0.163.2
 ```
 
-已安装 `0.163.1` 的用户就是当前生产推荐版。`0.163.0` 是上一完整门禁基线；`0.162.200` 承接了上传前失败的 `0.162.199` 候选，失败 tag 保持不可变，不移动或复用。`0.162.193` 继续作为历史非权威记录保留。
+已安装 `0.163.2` 的用户就是当前生产推荐版。`0.163.1` 是上一完整门禁基线；`0.162.200` 承接了上传前失败的 `0.162.199` 候选，失败 tag 保持不可变，不移动或复用。`0.162.193` 继续作为历史非权威记录保留。
 
 ## 核心特性
 
@@ -36,6 +36,8 @@ npm i -g chainlesschain@0.163.1
 - `0.162.200` 会话与 MCP 权威：session host lease、anti-rollback witness、持久化失败分类与有界 cleanup 已公开；npm-backed MCP 固定精确版本和完整传递依赖闭包，物化为内容寻址的受守护 capsule；POSIX/Windows installer/OTA generation recovery 已进入稳定版。
 - `0.163.0` 安装与原生宿主：macOS postinstall 窄范围修复并验证 `node-pty` helper 执行位且拒绝 symlink；Linux、Windows、macOS x64/ARM64 六个目标改由匹配架构 runner 执行验证；命令生命周期进入第二个观察周期，25 个兼容 alias 继续保留。
 - `0.163.1` 可靠性与打包：live session tail 在 transcript 路径检查与异步 `stat` / `open` 之间遇到删除或恢复时，改由 durable session witness 重新分类并失败闭合；长会话摘要和 compacted tool record 改为有界折叠；Windows 严格沙箱在挂起创建到恢复前持有并复核 MCP runtime/entry identity；矩阵覆盖 EROFS/ENOSPC、原生 TTY、多语言键盘、Unicode 剪贴板、SSH 断线、超大 MCP 输出、并发 Agent与两小时资源核算。CLI pack 还从干净、lockfile 驱动的 Web Panel 依赖图构建，固定 Vite/Rollup/Intlify 运行链、限制 Rollup 文件并发，并使用 Node 22 standalone 基座。上述能力已随 `v-npm-0-163-1` 公开。
+- `0.163.2` MCP capsule：stdio MCP 可用 `--runtime-kind` 声明七类 runtime 语义；Linux 固定 npm/Node runtime、entry、参数以 descriptor 绑定到启动，Windows restricted-token/AppContainer plan 使用一次性内建 Broker authority，macOS 在公共 API 无法证明 atomic final-image binding 时类型化失败闭合。恶意宿主证据 v4 分别记录 Linux 路径替换、Windows strict gate 与 macOS fail-closed。
+- 发布后主线（未发布）：`9fa5162e66` 把 `sandboxPolicy.requiredBoundaries`（`filesystem` / `network`）与可信 `cwd` 从 local/project/user/managed、Skill 和 Cowork 定义传到 Broker；Proxy/accessor、未知字段、越权 cwd 或无法证明的边界直接拒绝，高优先级无效定义也不会静默回落到同名低层配置。
 - 原生发行边界：unsigned 六目标 native validation 与三系统两小时可靠性门已在同一精确 SHA 成功，但 validation 固定 `signed=false`、`releaseEligible=false`；Windows Authenticode、macOS signing/notarization、updater key 与公开原生 fresh install/upgrade/rollback 回读仍未完成。
 - 跨平台 sandbox 与 credential agent：前台、后台、hook、MCP、monitor、LSP、PTY 和插件 bin 都通过统一 broker 执行。
 - 强执行路径补齐：插件异步/后台进程、通用后台任务、CLI PTY 与桌面项目 PTY 共用失败闭合边界；未经证明的项目根和远端 metadata 不能获得本机 PTY 权限。
@@ -69,6 +71,7 @@ cc
  │    └─ isolated child → read_file / search_files / list_dir only
  ├─ durable event / interaction journal
  ├─ MCP ws/wss + uncertain-outcome recovery authority
+ │    └─ stdio runtime identity + source policy/workspace authority → Broker
  ├─ bounded usage / retry attribution
  ├─ async-hook supervisor (timeout + process-tree reap)
  └─ Hooks v2 + session hooks (Setup/Notification)
@@ -86,6 +89,7 @@ cc
 - `packages/cli/src/lib/checkpoint-restore-saga.js`、`checkpoint-restore-recovery*.js`：持久 restore saga、投影与恢复控制器。
 - `packages/cli/src/commands/checkpoint-restore-recovery.js`：保守的 `cc checkpoint recovery` 命令面。
 - `packages/cli/src/lib/mcp-call-recovery*.js`：MCP 不确定结果记录、核验与裁决。
+- `packages/cli/src/lib/mcp-sandbox-policy.js`、`mcp-stdio-workspace-authority.js`：MCP source policy 规范化、可信 cwd 与 workspace authority。
 - `packages/cli/src/lib/agent-team/`、`packages/cli/src/commands/team.js`：Agent Team、本地 authority、分布式 queue 与人工裁决。
 - `packages/cli/src/lib/plugin-runtime/`：插件安装、scope、来源与 sandbox 策略。
 - `packages/cli/src/lib/plugin-usage-attribution.js`：插件调用归因。
@@ -109,9 +113,38 @@ cc
 - 本地控制通道优先使用 NDJSON/TCP fallback，需要本地会话凭据。
 - 停止后台 Agent 时，supervisor 会校验 PID 与会话绑定关系，避免误杀。
 
+## MCP runtime identity 与沙箱策略
+
+已发布版可以在新增 stdio server 时显式声明 runtime：
+
+```bash
+cc mcp add my-server --command node --args ./server.mjs \
+  --runtime-kind node --auto-connect
+```
+
+最新主线还允许在 `.mcp.json`、managed settings、Skill 或 Cowork 定义中声明 source-required boundary：
+
+```json
+{
+  "mcpServers": {
+    "workspace-tools": {
+      "command": "node",
+      "args": ["./tools/server.mjs"],
+      "runtimeKind": "node",
+      "cwd": ".",
+      "sandboxPolicy": {
+        "requiredBoundaries": ["filesystem", "network"]
+      }
+    }
+  }
+}
+```
+
+`requiredBoundaries` 当前只接受 `filesystem` 和 `network`。这不是“尽力而为”提示：配置会绑定可信 workspace/cwd 后进入 Process Broker；当前平台无法证明所需边界时 server 不启动。此配置字段位于发布后主线，在后续 npm 版本完成自身门禁前不要把它作为 `0.163.2` 的生产契约。
+
 ## 在 IDE 中查看质量、插件、Worktree 与 Agent Teams
 
-Open VSX 当前公开 VS Code `0.37.45`，JetBrains Marketplace 当前公开 `0.4.81`；IDE 源码与公开版本一致。生产建议搭配 CLI `0.163.1`：
+Open VSX 当前公开 VS Code `0.37.47`，JetBrains Marketplace 当前公开 `0.4.83`；IDE 源码与公开版本一致。生产建议搭配 CLI `0.163.2`：
 
 - 质量上下文只发送有界的测试结果、覆盖率与调试器快照，并标注新鲜度；VS Code Notebook 使用当前 notebook 的真实执行上下文。
 - Installation Doctor 会同时检查 Node/Java、managed CLI 与插件 registry 离线恢复状态，不从工作区目录探测可执行文件。
@@ -120,7 +153,7 @@ Open VSX 当前公开 VS Code `0.37.45`，JetBrains Marketplace 当前公开 `0.
 - Team Monitor 只读观察本地 v6 或 queue v1 原始状态；takeover、managed checkpoint recovery 与 side-effect adjudication 通过解析出的 CLI 执行，并绑定精确 authority digest、lease 和 evidence fence。IDE 不直接改写权威 JSON。
 - 用量视图显示真实工具耗时、观测重试与实际 provider/model 的脱敏 retry 原因。
 - Sessions Workbench 只消费 CLI-owned session projection，并按 exact revision 决定 resume、attach、delivery 与 remote-control 动作；可恢复 delivery 覆盖 GitHub、Gitee、configured remote 与 manual handoff，rewind/branch timeline 绑定 session、workspace、repository head、checkpoint revision 与 manifest digest。
-- VS Code `0.37.45` / JetBrains `0.4.81` 公开版把 local/background/remote/team/workflow 五类 canonical session 走完 Dispatch → `needs_input` → Reply → done、artifact/PR 回读与独立 IDE 进程重启恢复。VS Code 继续提供编辑器内联聊天、选区上下文、流式回复和代码块复制/插入/替换，并新增 stable/minimum × 三平台的多窗口真实宿主隔离门；两个窗口的 Extension Host PID、bridge port 与 token 必须不同且同时可连接。
+- VS Code `0.37.47` / JetBrains `0.4.83` 公开版把 local/background/remote/team/workflow 五类 canonical session 走完 Dispatch → `needs_input` → Reply → done、artifact/PR 回读与独立 IDE 进程重启恢复。新增的 11 格 ARM64 聚合覆盖 VS Code stable/minimum × Linux/Windows/macOS，以及 JetBrains Linux/macOS 2024.2/2025.2 与 Windows 2026.2.0.1；Stop/force-stop fixture 先等待持久 in-flight response，再验证从精确下一 turn 恢复。
 
 ## 托管回滚与 Agent Team 边界
 
@@ -215,7 +248,7 @@ npm run test:integration
 npm run test:e2e
 ```
 
-`0.163.1` 的权威发布提交为 [`e3f56b11e27ae1bd5d19ad8638434843c244aa68`](https://github.com/chainlesschain/chainlesschain/commit/e3f56b11e27ae1bd5d19ad8638434843c244aa68)。同一 `head_sha` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31240892299)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31240892177)、[unsigned 六目标原生验证](https://github.com/chainlesschain/chainlesschain/actions/runs/31240927257)、[三系统两小时可靠性门](https://github.com/chainlesschain/chainlesschain/actions/runs/31240943985)与 [npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/31246063305) 均成功；正式 workflow 进一步核对 immutable tarball、CycloneDX SBOM、Trusted Publishing、SLSA provenance、registry bytes、授权 workflow identity 与 npmmirror 同步。Linux、Windows、macOS 的权威矩阵必须绑定精确提交；本地结果只能补充，不能替代发布门。
+`0.163.2` 的权威发布提交为 [`2d6f19aea243ed4f054b585d4bc709d4209ff80d`](https://github.com/chainlesschain/chainlesschain/commit/2d6f19aea243ed4f054b585d4bc709d4209ff80d)。同一 `head_sha` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31277578939)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31277578889)、[三系统两小时可靠性/恶意 MCP 门](https://github.com/chainlesschain/chainlesschain/actions/runs/31271803404)、[npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/31277578900)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/31278310621)均成功；正式 workflow 进一步核对 immutable tarball、CycloneDX SBOM、Trusted Publishing、SLSA provenance、registry bytes、授权 workflow identity 与 npmmirror 同步。Linux、Windows、macOS 的权威矩阵必须绑定精确提交；本地结果和发布后主线测试只能补充，不能替代发布门。
 
 ## 相关文档
 
