@@ -7,16 +7,45 @@ const path = require("path");
 
 const PROJECT_ROOT = path.resolve(__dirname, "..");
 const REPO_ROOT = path.resolve(PROJECT_ROOT, "..");
+const CLI_ROOT = path.join(REPO_ROOT, "packages", "cli");
 const PROJECT_PREFIX = "desktop-app-vue/";
 const CI_VITEST_FLAGS = [
   "--reporter=default",
   "--silent=passed-only",
   "--pool=threads",
 ];
+const CLI_CI_VITEST_FLAGS = ["--reporter=default", "--silent=passed-only"];
 const CRITICAL_TESTS = [
   "tests/unit/llm/llm-service.test.js",
   "tests/unit/did/did-manager.test.js",
 ];
+const CI_GATE_INTEGRITY_TEST = "scripts/__tests__/ci-gate-integrity.test.mjs";
+const CI_GATE_INTEGRITY_TRIGGERS = new Set([
+  "desktop-app-vue/scripts/cowork-ci-test-selector.js",
+  CI_GATE_INTEGRITY_TEST,
+]);
+const CLI_WINDOWS_SANDBOX_CONTRACT_TESTS = [
+  "__tests__/unit/windows-sandbox-adapter-global-teardown-contract.test.js",
+  "__tests__/unit/windows-sandbox-adapter-temp-root.test.js",
+];
+const CLI_WINDOWS_SANDBOX_CONTRACT_MAPPINGS = new Map([
+  [
+    "packages/cli/__tests__/unit/windows-sandbox-adapter-global-teardown-contract.test.js",
+    [CLI_WINDOWS_SANDBOX_CONTRACT_TESTS[0]],
+  ],
+  [
+    "packages/cli/__tests__/unit/windows-sandbox-adapter-temp-root.test.js",
+    [CLI_WINDOWS_SANDBOX_CONTRACT_TESTS[1]],
+  ],
+  [
+    "packages/cli/test/fixtures/windows-sandbox-global-teardown/contract-case.mjs",
+    [CLI_WINDOWS_SANDBOX_CONTRACT_TESTS[0]],
+  ],
+  [
+    "packages/cli/test/helpers/windows-sandbox-adapter-temp-root.js",
+    CLI_WINDOWS_SANDBOX_CONTRACT_TESTS,
+  ],
+]);
 const FULL_UNIT_TRIGGERS = new Set([
   ".cowork/ci-test-config.json",
   "package.json",
@@ -25,7 +54,6 @@ const FULL_UNIT_TRIGGERS = new Set([
   "vitest.config.js",
   "vitest.config.mjs",
   "vitest.config.ts",
-  "scripts/cowork-ci-test-selector.js",
 ]);
 
 class SelectionError extends Error {
@@ -207,7 +235,10 @@ function candidateTestsForSource(
   return [...candidates].sort();
 }
 
-function createSelection(changedFiles, { projectRoot = PROJECT_ROOT } = {}) {
+function createSelection(
+  changedFiles,
+  { projectRoot = PROJECT_ROOT, cliRoot = CLI_ROOT, repoRoot = REPO_ROOT } = {},
+) {
   if (!Array.isArray(changedFiles) || changedFiles.length === 0) {
     throw new SelectionError(
       "NO_CHANGED_FILES",
@@ -215,13 +246,63 @@ function createSelection(changedFiles, { projectRoot = PROJECT_ROOT } = {}) {
     );
   }
 
-  const selectedTests = new Set();
+  const selectedDesktopTests = new Set();
+  const selectedCliTests = new Set();
+  const selectedIntegrityTests = new Set();
   const mappings = [];
   const unmappedFiles = [];
-  let fullUnit = false;
+  let desktopMapped = false;
+  let fullDesktopUnit = false;
 
   for (const changedFile of changedFiles) {
     const normalized = toPosix(changedFile);
+
+    if (CI_GATE_INTEGRITY_TRIGGERS.has(normalized)) {
+      const absoluteTest = path.join(
+        repoRoot,
+        ...CI_GATE_INTEGRITY_TEST.split("/"),
+      );
+      if (!fs.existsSync(absoluteTest)) {
+        unmappedFiles.push(normalized);
+        continue;
+      }
+      selectedIntegrityTests.add(CI_GATE_INTEGRITY_TEST);
+      mappings.push({
+        file: normalized,
+        suite: "ci-gate-integrity",
+        tests: [CI_GATE_INTEGRITY_TEST],
+      });
+      continue;
+    }
+
+    const cliContractTests =
+      CLI_WINDOWS_SANDBOX_CONTRACT_MAPPINGS.get(normalized);
+    if (cliContractTests) {
+      const missingTests = cliContractTests.filter(
+        (testFile) =>
+          !fs.existsSync(path.join(cliRoot, ...testFile.split("/"))),
+      );
+      if (missingTests.length > 0) {
+        unmappedFiles.push(normalized);
+        mappings.push({
+          file: normalized,
+          suite: "cli-unit",
+          reason: "mapped-test-not-present",
+          missingTests,
+        });
+        continue;
+      }
+      for (const testFile of cliContractTests) {
+        selectedCliTests.add(testFile);
+      }
+      mappings.push({
+        file: normalized,
+        suite: "cli-unit",
+        tests: [...cliContractTests],
+      });
+      continue;
+    }
+
     const relativeFile = projectRelativePath(normalized);
 
     if (!relativeFile) {
@@ -229,8 +310,9 @@ function createSelection(changedFiles, { projectRoot = PROJECT_ROOT } = {}) {
       continue;
     }
 
+    desktopMapped = true;
     if (FULL_UNIT_TRIGGERS.has(relativeFile)) {
-      fullUnit = true;
+      fullDesktopUnit = true;
       mappings.push({ file: normalized, suite: "desktop-unit", mode: "full" });
       continue;
     }
@@ -238,7 +320,7 @@ function createSelection(changedFiles, { projectRoot = PROJECT_ROOT } = {}) {
     if (isVitestFile(relativeFile)) {
       const absoluteTest = path.join(projectRoot, ...relativeFile.split("/"));
       if (fs.existsSync(absoluteTest)) {
-        selectedTests.add(relativeFile);
+        selectedDesktopTests.add(relativeFile);
         mappings.push({
           file: normalized,
           suite: "desktop-unit",
@@ -246,7 +328,7 @@ function createSelection(changedFiles, { projectRoot = PROJECT_ROOT } = {}) {
         });
       } else {
         // A deleted or renamed test can invalidate more than itself.
-        fullUnit = true;
+        fullDesktopUnit = true;
         mappings.push({
           file: normalized,
           suite: "desktop-unit",
@@ -270,7 +352,7 @@ function createSelection(changedFiles, { projectRoot = PROJECT_ROOT } = {}) {
       }
 
       for (const testFile of relatedTests) {
-        selectedTests.add(testFile);
+        selectedDesktopTests.add(testFile);
       }
       mappings.push({
         file: normalized,
@@ -282,7 +364,7 @@ function createSelection(changedFiles, { projectRoot = PROJECT_ROOT } = {}) {
 
     // Non-source project changes can affect bundling, fixtures, or runtime
     // discovery. Treat them as a full unit-suite trigger instead of a no-op.
-    fullUnit = true;
+    fullDesktopUnit = true;
     mappings.push({
       file: normalized,
       suite: "desktop-unit",
@@ -299,16 +381,52 @@ function createSelection(changedFiles, { projectRoot = PROJECT_ROOT } = {}) {
     );
   }
 
-  if (!fullUnit) {
+  if (desktopMapped && !fullDesktopUnit) {
     for (const criticalTest of CRITICAL_TESTS) {
       if (fs.existsSync(path.join(projectRoot, ...criticalTest.split("/")))) {
-        selectedTests.add(criticalTest);
+        selectedDesktopTests.add(criticalTest);
       }
     }
   }
 
-  const tests = [...selectedTests].sort();
-  if (!fullUnit && tests.length === 0) {
+  const testSuites = [];
+  if (selectedIntegrityTests.size > 0) {
+    testSuites.push({
+      suite: "ci-gate-integrity",
+      runner: "node-test",
+      root: ".",
+      mode: "targeted",
+      selectedTests: [...selectedIntegrityTests].sort(),
+    });
+  }
+  if (selectedCliTests.size > 0) {
+    testSuites.push({
+      suite: "cli-unit",
+      runner: "vitest",
+      root: "packages/cli",
+      mode: "targeted",
+      selectedTests: [...selectedCliTests].sort(),
+    });
+  }
+  if (desktopMapped) {
+    testSuites.push({
+      suite: "desktop-unit",
+      runner: "vitest",
+      root: "desktop-app-vue",
+      mode: fullDesktopUnit ? "full" : "targeted",
+      selectedTests: fullDesktopUnit
+        ? ["tests/unit", "src"]
+        : [...selectedDesktopTests].sort(),
+    });
+  }
+
+  if (
+    testSuites.length === 0 ||
+    testSuites.some(
+      (testSuite) =>
+        testSuite.mode !== "full" && testSuite.selectedTests.length === 0,
+    )
+  ) {
     throw new SelectionError(
       "EMPTY_SELECTION",
       "The selector produced no executable tests; refusing a no-op pass.",
@@ -316,24 +434,37 @@ function createSelection(changedFiles, { projectRoot = PROJECT_ROOT } = {}) {
     );
   }
 
+  const isSingleSuite = testSuites.length === 1;
+  const selectedTests = isSingleSuite
+    ? testSuites[0].selectedTests
+    : testSuites
+        .flatMap((testSuite) =>
+          testSuite.selectedTests.map((testFile) =>
+            testSuite.root === "." ? testFile : `${testSuite.root}/${testFile}`,
+          ),
+        )
+        .sort();
+
   return {
     schemaVersion: 1,
     status: "selected",
-    suite: "desktop-unit",
-    mode: fullUnit ? "full" : "targeted",
+    suite: isSingleSuite ? testSuites[0].suite : "unit-matrix",
+    mode: testSuites.some((testSuite) => testSuite.mode === "full")
+      ? "full"
+      : "targeted",
     changedFiles: changedFiles.map(toPosix),
-    selectedTests: fullUnit ? ["tests/unit", "src"] : tests,
+    selectedTests,
+    testSuites,
     mappings,
   };
 }
 
-function commandForSelection(selection, options = {}) {
-  let vitestEntrypoint =
-    options.vitestEntrypoint || process.env.COWORK_VITEST_ENTRYPOINT;
+function resolveVitestEntrypoint({ explicit, searchRoots, fallbackRoot }) {
+  let vitestEntrypoint = explicit;
   if (!vitestEntrypoint) {
     try {
       const vitestPackage = require.resolve("vitest/package.json", {
-        paths: [PROJECT_ROOT, REPO_ROOT],
+        paths: searchRoots,
       });
       vitestEntrypoint = path.join(path.dirname(vitestPackage), "vitest.mjs");
     } catch {
@@ -341,22 +472,78 @@ function commandForSelection(selection, options = {}) {
       // Node with this explicit path and propagates its non-zero missing-module
       // exit instead of falling back to a shell or reporting success.
       vitestEntrypoint = path.join(
-        PROJECT_ROOT,
+        fallbackRoot,
         "node_modules",
         "vitest",
         "vitest.mjs",
       );
     }
   }
-  return {
-    executable: process.execPath,
-    args: [
-      vitestEntrypoint,
-      "run",
-      ...selection.selectedTests,
-      ...CI_VITEST_FLAGS,
-    ],
-  };
+  return vitestEntrypoint;
+}
+
+function commandsForSelection(selection, options = {}) {
+  const testSuites = Array.isArray(selection.testSuites)
+    ? selection.testSuites
+    : [
+        {
+          suite: selection.suite,
+          runner: "vitest",
+          root: "desktop-app-vue",
+          mode: selection.mode,
+          selectedTests: selection.selectedTests,
+        },
+      ];
+
+  return testSuites.map((testSuite) => {
+    if (testSuite.runner === "node-test") {
+      return {
+        suite: testSuite.suite,
+        cwd: REPO_ROOT,
+        executable: process.execPath,
+        args: ["--test", ...testSuite.selectedTests],
+      };
+    }
+
+    const isCliSuite = testSuite.suite === "cli-unit";
+    const suiteRoot = isCliSuite ? CLI_ROOT : PROJECT_ROOT;
+    const explicitEntrypoint = isCliSuite
+      ? options.cliVitestEntrypoint ||
+        process.env.COWORK_CLI_VITEST_ENTRYPOINT ||
+        options.vitestEntrypoint
+      : options.desktopVitestEntrypoint ||
+        process.env.COWORK_VITEST_ENTRYPOINT ||
+        options.vitestEntrypoint;
+    const vitestEntrypoint = resolveVitestEntrypoint({
+      explicit: explicitEntrypoint,
+      searchRoots: [suiteRoot, REPO_ROOT],
+      fallbackRoot: isCliSuite ? REPO_ROOT : PROJECT_ROOT,
+    });
+
+    return {
+      suite: testSuite.suite,
+      cwd: suiteRoot,
+      executable: process.execPath,
+      args: [
+        vitestEntrypoint,
+        "run",
+        ...testSuite.selectedTests,
+        ...(isCliSuite ? CLI_CI_VITEST_FLAGS : CI_VITEST_FLAGS),
+      ],
+    };
+  });
+}
+
+function commandForSelection(selection, options = {}) {
+  const commands = commandsForSelection(selection, options);
+  if (commands.length !== 1) {
+    throw new SelectionError(
+      "MULTIPLE_TEST_COMMANDS",
+      "The selection contains multiple suites; execute every planned command.",
+      { suites: commands.map((command) => command.suite) },
+    );
+  }
+  return commands[0];
 }
 
 function appendGitHubOutput(key, value) {
@@ -422,14 +609,22 @@ function main(argv = process.argv.slice(2), dependencies = {}) {
         ? args.changedFiles
         : getChangedFilesCI({ baseRef: args.baseRef, spawn });
     const selection = createSelection(changedFiles);
-    const command = commandForSelection(selection);
-    const selectedPayload = { ...selection, command };
+    const commands = commandsForSelection(selection);
+    const selectedPayload = {
+      ...selection,
+      commands,
+      ...(commands.length === 1 ? { command: commands[0] } : {}),
+    };
 
     if (!args.json) {
       console.log(
         `Selected ${selection.mode} ${selection.suite} coverage for ${selection.changedFiles.length} changed file(s).`,
       );
-      console.log(`Command: ${command.executable} ${command.args.join(" ")}`);
+      for (const command of commands) {
+        console.log(
+          `Command (${command.suite}): ${command.executable} ${command.args.join(" ")}`,
+        );
+      }
     }
 
     if (args.dryRun) {
@@ -437,26 +632,48 @@ function main(argv = process.argv.slice(2), dependencies = {}) {
       return 0;
     }
 
-    const result = spawn(command.executable, command.args, {
-      cwd: PROJECT_ROOT,
-      stdio: "inherit",
-      windowsHide: true,
-    });
-    if (result.error) {
-      throw new SelectionError(
-        "TEST_SPAWN_FAILED",
-        `Unable to start selected test suite: ${result.error.message}`,
-      );
+    const childEnvironment = { ...process.env };
+    delete childEnvironment.GITHUB_OUTPUT;
+    for (const command of commands) {
+      const result = spawn(command.executable, command.args, {
+        cwd: command.cwd,
+        env: childEnvironment,
+        stdio: "inherit",
+        windowsHide: true,
+      });
+      if (result.error) {
+        emitMachineResult({
+          ...selectedPayload,
+          status: "failed",
+          failedSuite: command.suite,
+          code: "TEST_SPAWN_FAILED",
+          message: `Unable to start selected ${command.suite} suite: ${result.error.message}`,
+          exitCode: 1,
+          signal: null,
+        });
+        return 1;
+      }
+
+      const exitCode = Number.isInteger(result.status) ? result.status : 1;
+      if (exitCode !== 0) {
+        emitMachineResult({
+          ...selectedPayload,
+          status: "failed",
+          failedSuite: command.suite,
+          exitCode,
+          signal: result.signal || null,
+        });
+        return exitCode;
+      }
     }
 
-    const exitCode = Number.isInteger(result.status) ? result.status : 1;
     emitMachineResult({
       ...selectedPayload,
-      status: exitCode === 0 ? "passed" : "failed",
-      exitCode,
-      signal: result.signal || null,
+      status: "passed",
+      exitCode: 0,
+      signal: null,
     });
-    return exitCode;
+    return 0;
   } catch (error) {
     const payload = {
       schemaVersion: 1,
@@ -479,6 +696,7 @@ module.exports = {
   SelectionError,
   candidateTestsForSource,
   commandForSelection,
+  commandsForSelection,
   createSelection,
   getChangedFilesCI,
   main,
