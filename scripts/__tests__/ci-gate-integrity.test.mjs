@@ -254,6 +254,17 @@ test("selector fails closed for an unmapped change or failed detection", () => {
       error.code === "UNMAPPED_CHANGED_FILES" &&
       error.details.unmappedFiles.includes("packages/cli/src/index.js"),
   );
+  assert.throws(
+    () =>
+      selector.createSelection([
+        "packages/vscode-extension/../../packages/cli/src/index.js",
+      ]),
+    (error) =>
+      error.code === "UNMAPPED_CHANGED_FILES" &&
+      error.details.unmappedFiles.includes(
+        "packages/vscode-extension/../../packages/cli/src/index.js",
+      ),
+  );
 
   assert.throws(
     () =>
@@ -264,6 +275,27 @@ test("selector fails closed for an unmapped change or failed detection", () => {
       }),
     (error) => error.code === "GIT_DIFF_FAILED",
   );
+});
+
+test("IDE selector delegation stays bound to both dedicated PR workflows", () => {
+  const workflowFiles = [
+    ".github/workflows/ide-extensions.yml",
+    ".github/workflows/ide-arm64-validation.yml",
+  ];
+  const delegatedPaths = [
+    '      - "packages/vscode-extension/**"',
+    '      - "packages/jetbrains-plugin/**"',
+  ];
+
+  for (const workflowFile of workflowFiles) {
+    const workflow = fs.readFileSync(path.join(repoRoot, workflowFile), "utf8");
+    for (const delegatedPath of delegatedPaths) {
+      assert.ok(
+        workflow.split(delegatedPath).length - 1 >= 2,
+        `${workflowFile} must cover ${delegatedPath.trim()} on push and pull_request`,
+      );
+    }
+  }
 });
 
 test("selector CLI emits machine-readable output and non-zero fail-closed status", () => {

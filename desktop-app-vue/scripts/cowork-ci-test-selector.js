@@ -74,6 +74,18 @@ function toPosix(filePath) {
   return filePath.replace(/\\/g, "/").replace(/^\.\//, "");
 }
 
+function isSafeRepositoryRelativePath(filePath) {
+  const normalized = toPosix(filePath);
+  return (
+    Boolean(normalized) &&
+    !path.posix.isAbsolute(normalized) &&
+    !/^[A-Za-z]:\//.test(normalized) &&
+    !normalized
+      .split("/")
+      .some((segment) => segment === "." || segment === "..")
+  );
+}
+
 function validateBaseRef(baseRef) {
   if (
     typeof baseRef !== "string" ||
@@ -143,11 +155,7 @@ function getChangedFilesCI({
 
 function projectRelativePath(repoRelativePath) {
   const normalized = toPosix(repoRelativePath);
-  if (
-    !normalized ||
-    path.posix.isAbsolute(normalized) ||
-    normalized.split("/").includes("..")
-  ) {
+  if (!isSafeRepositoryRelativePath(normalized)) {
     return null;
   }
   if (!normalized.startsWith(PROJECT_PREFIX)) {
@@ -261,6 +269,10 @@ function createSelection(
 
   for (const changedFile of changedFiles) {
     const normalized = toPosix(changedFile);
+    if (!isSafeRepositoryRelativePath(normalized)) {
+      unmappedFiles.push(normalized);
+      continue;
+    }
     if (CI_GATE_INTEGRITY_TRIGGERS.has(normalized)) {
       const absoluteTest = path.join(
         repoRoot,
