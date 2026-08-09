@@ -5,6 +5,7 @@ import { spawnSync } from "node:child_process";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   installWindowsSandboxAdapterTestRoot,
+  relativeCanonicalWindowsSandboxAdapterPath,
   wrapWindowsSandboxAdapterGlobalTeardown,
   WINDOWS_SANDBOX_ADAPTER_TEMP_ROOT_ENV,
 } from "../../test/helpers/windows-sandbox-adapter-temp-root.js";
@@ -67,6 +68,48 @@ afterEach(() => {
 });
 
 describe("Windows sandbox adapter Vitest dedicated temp root", () => {
+  it("uses the canonical root for a direct child reached through an 8.3 TEMP alias", () => {
+    const rawRootPath = String.raw`C:\Users\RUNNER~1\AppData\Local\Temp\cc-vitest-win-sandbox-Ab12_c`;
+    const rootRealPath = String.raw`C:\Users\runneradmin\AppData\Local\Temp\cc-vitest-win-sandbox-Ab12_c`;
+    const targetPath = path.win32.join(
+      rootRealPath,
+      "unknown-contract-artifact.txt",
+    );
+
+    expect(
+      relativeCanonicalWindowsSandboxAdapterPath({
+        rootRealPath,
+        targetPath,
+        pathApi: path.win32,
+      }),
+    ).toEqual(["unknown-contract-artifact.txt"]);
+    expect(() =>
+      relativeCanonicalWindowsSandboxAdapterPath({
+        rootRealPath: rawRootPath,
+        targetPath,
+        pathApi: path.win32,
+      }),
+    ).toThrow("target is outside the captured canonical root");
+  });
+
+  it("derives a nested helper path from the canonical root on every host", () => {
+    const rootRealPath = String.raw`C:\Users\runneradmin\AppData\Local\Temp\cc-vitest-win-sandbox-Ab12_c`;
+    const helperDirectory = `chainless-win-sandbox-${"a".repeat(48)}`;
+    const targetPath = path.win32.join(
+      rootRealPath,
+      helperDirectory,
+      "windows-sandbox-helper.exe",
+    );
+
+    expect(
+      relativeCanonicalWindowsSandboxAdapterPath({
+        rootRealPath,
+        targetPath,
+        pathApi: path.win32,
+      }),
+    ).toEqual([helperDirectory, "windows-sandbox-helper.exe"]);
+  });
+
   it("does nothing outside Windows", () => {
     const env = { [WINDOWS_SANDBOX_ADAPTER_TEMP_ROOT_ENV]: "preserve" };
     const fsApi = {

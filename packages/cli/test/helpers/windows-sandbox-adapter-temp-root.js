@@ -22,6 +22,26 @@ function fail(message) {
   throw new Error(`Windows sandbox Vitest temp root: ${message}`);
 }
 
+export function relativeCanonicalWindowsSandboxAdapterPath({
+  rootRealPath,
+  targetPath,
+  pathApi = path,
+}) {
+  const relativePath = pathApi.relative(
+    pathApi.resolve(rootRealPath),
+    pathApi.resolve(targetPath),
+  );
+  if (
+    !relativePath ||
+    pathApi.isAbsolute(relativePath) ||
+    relativePath === ".." ||
+    relativePath.startsWith(`..${pathApi.sep}`)
+  ) {
+    fail("target is outside the captured canonical root");
+  }
+  return relativePath.split(pathApi.sep);
+}
+
 function comparablePath(pathApi, platform, value) {
   const resolved = pathApi.resolve(String(value));
   return platform === "win32" ? resolved.toLowerCase() : resolved;
