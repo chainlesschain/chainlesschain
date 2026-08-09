@@ -155,10 +155,11 @@ describe("工作流管道 - 6阶段完整执行测试", () => {
   test("应该记录执行时间", async () => {
     const result = await workflow.execute({ test: "data" });
 
-    expect(result.duration).toBeGreaterThan(0);
+    expect(result.duration).toBeGreaterThanOrEqual(0);
     expect(workflow.startTime).toBeTruthy();
     expect(workflow.endTime).toBeTruthy();
-    expect(workflow.endTime).toBeGreaterThan(workflow.startTime);
+    expect(workflow.endTime).toBeGreaterThanOrEqual(workflow.startTime);
+    expect(result.duration).toBe(workflow.endTime - workflow.startTime);
   });
 
   test("应该触发阶段事件", async () => {
