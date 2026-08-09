@@ -4,6 +4,7 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { expect, test } from "vitest";
 import { applyWindowsSandbox } from "../../../src/lib/process-execution-broker/platform-sandbox.js";
+import { relativeCanonicalWindowsSandboxAdapterPath } from "../../helpers/windows-sandbox-adapter-temp-root.js";
 
 const mode = process.env.CC_WINDOWS_SANDBOX_CONTRACT_MODE;
 const resultPath = process.env.CC_WINDOWS_SANDBOX_CONTRACT_RESULT;
@@ -95,6 +96,7 @@ test("exercises the selected global teardown contract", async () => {
   expect(resultPath).toBeTruthy();
   expect(rootPath).toBeTruthy();
   expect(fs.lstatSync(rootPath).isDirectory()).toBe(true);
+  const rootRealPath = fs.realpathSync.native(rootPath);
 
   if (mode === "success") {
     const artifactPath = path.join(
@@ -152,9 +154,10 @@ test("exercises the selected global teardown contract", async () => {
   );
   expect(plan.applied, plan.reason).toBe(true);
   const helperPath = path.resolve(plan.command);
-  const helperRelativePath = path
-    .relative(rootPath, helperPath)
-    .split(path.sep);
+  const helperRelativePath = relativeCanonicalWindowsSandboxAdapterPath({
+    rootRealPath,
+    targetPath: helperPath,
+  });
   expect(helperRelativePath).toEqual([
     expect.stringMatching(/^chainless-win-sandbox-[0-9a-f]{48}$/),
     "windows-sandbox-helper.exe",

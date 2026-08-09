@@ -4,7 +4,10 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
-import { cleanupWindowsSandboxAdapterTestRoot } from "../../test/helpers/windows-sandbox-adapter-temp-root.js";
+import {
+  cleanupWindowsSandboxAdapterTestRoot,
+  relativeCanonicalWindowsSandboxAdapterPath,
+} from "../../test/helpers/windows-sandbox-adapter-temp-root.js";
 
 const testDirectory = path.dirname(fileURLToPath(import.meta.url));
 const cliRoot = path.resolve(testDirectory, "../..");
@@ -73,7 +76,7 @@ function isPidAlive(pid) {
   }
 }
 
-function removeExplicitUnknownFile(rootPath, unknownPath) {
+function removeExplicitUnknownFile(rootPath, rootRealPath, unknownPath) {
   if (!fs.existsSync(unknownPath)) return;
   expect(path.dirname(path.resolve(unknownPath))).toBe(path.resolve(rootPath));
   const rootStats = fs.lstatSync(rootPath, { bigint: true });
@@ -83,9 +86,12 @@ function removeExplicitUnknownFile(rootPath, unknownPath) {
   expect(fileStats.isFile()).toBe(true);
   expect(fileStats.isSymbolicLink()).toBe(false);
   expect(fileStats.nlink).toBe(1n);
-  expect(fs.realpathSync.native(unknownPath).toLowerCase()).toBe(
-    path.resolve(unknownPath).toLowerCase(),
-  );
+  expect(
+    relativeCanonicalWindowsSandboxAdapterPath({
+      rootRealPath,
+      targetPath: fs.realpathSync.native(unknownPath),
+    }),
+  ).toEqual([path.basename(unknownPath)]);
   fs.unlinkSync(unknownPath);
 }
 
@@ -175,6 +181,7 @@ describe.runIf(process.platform === "win32")(
           expect(ownerCapture?.rootPath).toBe(descriptor.rootPath);
           removeExplicitUnknownFile(
             descriptor.rootPath,
+            ownerCapture.rootRealPath,
             descriptor.unknownPath,
           );
         }
@@ -192,9 +199,10 @@ describe.runIf(process.platform === "win32")(
         expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
         expect(descriptor?.mode).toBe("hard-kill");
         expectOwnedContractRoot(descriptor, ownerCapture);
-        const helperRelativePath = path
-          .relative(descriptor.rootPath, descriptor.helperPath)
-          .split(path.sep);
+        const helperRelativePath = relativeCanonicalWindowsSandboxAdapterPath({
+          rootRealPath: ownerCapture.rootRealPath,
+          targetPath: descriptor.helperPath,
+        });
         expect(helperRelativePath).toEqual([
           expect.stringMatching(/^chainless-win-sandbox-[0-9a-f]{48}$/),
           "windows-sandbox-helper.exe",
