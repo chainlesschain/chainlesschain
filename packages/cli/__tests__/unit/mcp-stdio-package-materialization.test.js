@@ -12,7 +12,7 @@ import {
 } from "../../src/lib/mcp-stdio-execution-authority.js";
 import {
   consumeMcpStdioExecutableIdentityAuthority,
-  MCP_STDIO_CAPSULE_CODE_SNAPSHOT_BOUNDARY,
+  MCP_STDIO_CAPSULE_REQUIRED_BOUNDARIES,
   MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND,
   MCP_STDIO_EXECUTABLE_CHANGED_CODE,
   prepareMcpStdioExecutableIdentity,
@@ -345,7 +345,7 @@ describe("MCP stdio fixed npm package materialization", () => {
       shell: false,
       sync: false,
       identityDigest: prepared.identityDigest,
-      requiredBoundaries: [MCP_STDIO_CAPSULE_CODE_SNAPSHOT_BOUNDARY],
+      requiredBoundaries: MCP_STDIO_CAPSULE_REQUIRED_BOUNDARIES,
     };
     expect(
       executionBroker._normalizeSandboxExecutionContract(

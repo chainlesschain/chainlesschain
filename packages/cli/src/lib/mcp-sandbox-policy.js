@@ -153,3 +153,32 @@ export function normalizeMcpSandboxPolicy(value, options = {}) {
 
   return Object.freeze({ requiredBoundaries });
 }
+
+/**
+ * Add the host-owned isolation floor for an exact-package stdio capsule.
+ *
+ * Source configuration is normalized as untrusted data first and can only add
+ * requirements to this floor. The returned policy is a new deeply-frozen
+ * runtime value, so neither the source object nor later launch preparation can
+ * remove a host requirement. Callers must only attach this policy after the
+ * trusted executable-identity preparer has issued a capsule execution
+ * contract; legacy stdio sources intentionally retain their existing policy.
+ * There is deliberately no source-configured escape hatch: future workspace
+ * or egress access must be a separate host-issued, authority-bound capability.
+ *
+ * @param {unknown} value
+ * @param {{label?: string}} [options]
+ * @returns {{requiredBoundaries: readonly string[]}}
+ */
+export function enforceMcpStdioCapsuleHostSandboxPolicy(value, options = {}) {
+  const sourcePolicy = normalizeMcpSandboxPolicy(value, options);
+  const requiredBoundaries = Object.freeze(
+    [
+      ...new Set([
+        ...MCP_SANDBOX_BOUNDARIES,
+        ...(sourcePolicy?.requiredBoundaries || []),
+      ]),
+    ].sort(),
+  );
+  return Object.freeze({ requiredBoundaries });
+}
