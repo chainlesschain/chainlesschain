@@ -6,21 +6,20 @@ coordination, and a localhost IDE bridge.
 
 ## Current release
 
-| Component                 | Current status                                               |
-| ------------------------- | ------------------------------------------------------------ |
-| VS Code extension         | **0.37.45** in source and on Open VSX                        |
-| Recommended CLI           | **`chainlesschain@0.163.1`** (fully gated stable release)    |
-| Base bridge compatibility | `cc >= 0.162.47`; newer features can require a newer CLI     |
-| Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors          |
-| Distribution              | Open VSX; not published on the Microsoft VS Code Marketplace |
+| Component                 | Current status                                                        |
+| ------------------------- | --------------------------------------------------------------------- |
+| VS Code extension         | **0.37.48** source/package version; Open VSX publication is tag-gated |
+| Recommended CLI           | **`chainlesschain@0.163.2`** (fully gated stable release)             |
+| Base bridge compatibility | `cc >= 0.162.47`; newer features can require a newer CLI              |
+| Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors                   |
+| Distribution              | Open VSX; not published on the Microsoft VS Code Marketplace          |
 
 The immutable release tag
-[`ide-vscode-v0.37.45`](https://github.com/chainlesschain/chainlesschain/releases/tag/ide-vscode-v0.37.45)
-points to exact commit
-[`aed0a3ae5327917ce0490a5decbddd777f66f33b`](https://github.com/chainlesschain/chainlesschain/commit/aed0a3ae5327917ce0490a5decbddd777f66f33b).
-Its release workflow validated the packaged VSIX in stable and minimum VS Code
-hosts on Windows, Linux, and macOS, published it to Open VSX, and read the
-registry artifact back ([run 31207738786](https://github.com/chainlesschain/chainlesschain/actions/runs/31207738786)).
+[`ide-vscode-v0.37.48`](https://github.com/chainlesschain/chainlesschain/releases/tag/ide-vscode-v0.37.48)
+is the release authority for this version. Before tagging, the exact release
+commit must pass the native ARM64 aggregate. The tag workflow then validates
+the packaged VSIX in stable and minimum VS Code hosts on Windows, Linux, and
+macOS, publishes it to Open VSX, and reads the public registry artifact back.
 Changes to this README appear in the registry Overview only after a new
 immutable extension version is packaged, gated, and published.
 
@@ -58,11 +57,11 @@ immutable extension version is packaged, gated, and published.
 Node.js `>= 22.12.0` and npm `>= 10.0.0` are required.
 
 ```bash
-npm i -g chainlesschain@0.163.1
+npm i -g chainlesschain@0.163.2
 cc --version
 ```
 
-Using `@0.163.1` reproduces the currently documented and fully gated pairing.
+Using `@0.163.2` reproduces the currently documented and fully gated pairing.
 Use `@latest` only when you intentionally want a newer published CLI.
 
 ### 2. Install the extension
@@ -178,8 +177,8 @@ bridge tool map, and the CLI compatibility source.
 
 ## Release validation
 
-Version `0.37.45` closes the release-host journey added across the `0.37.38` to
-`0.37.45` line:
+Version `0.37.48` carries forward the release-host journey added across the
+`0.37.38` to `0.37.47` line:
 
 - an immutable packaged VSIX is exercised in real stable and minimum VS Code
   hosts on Windows, Linux, and macOS;
@@ -190,6 +189,8 @@ Version `0.37.45` closes the release-host journey added across the `0.37.38` to
 - publication is tied to the exact tag and followed by Open VSX registry
   readback. Microsoft Marketplace publishing remains a separate opt-in path
   and has not been performed.
+- native ARM64 VS Code and JetBrains evidence is bound into the same exact
+  11-cell aggregate before either paired version can be tagged.
 
 ## Build and verify from source
 
@@ -201,7 +202,7 @@ npm --prefix packages/vscode-extension run test:unit
 # Package the extension
 cd packages/vscode-extension
 npx @vscode/vsce package --no-dependencies
-node scripts/verify-vsix.mjs chainlesschain-ide-0.37.45.vsix
+node scripts/verify-vsix.mjs chainlesschain-ide-0.37.48.vsix
 ```
 
 The extension has no runtime npm dependencies; it uses Node.js and the VS Code

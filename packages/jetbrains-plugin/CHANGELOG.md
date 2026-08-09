@@ -1,5 +1,14 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.84] - Fail-closed maintenance certification (2026-08-09)
+
+- Publish a maintenance build with no intentional user-facing IDE behavior
+  changes from 0.4.83.
+- Re-certify the immutable plugin and its paired VSIX from the same latest-main
+  commit under the fail-closed cross-platform and native ARM64 release gates.
+- Preserve the 2024.2/2025.2 six-host compatibility matrix and exact 11-cell
+  aggregate as release-blocking evidence.
+
 ## [0.4.83] - Deterministic native ARM64 release gate (2026-08-09)
 
 - Carry forward the 0.4.82 native ARM64 host certification after that immutable

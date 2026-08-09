@@ -2,6 +2,16 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.48] - Fail-closed maintenance certification (2026-08-09)
+
+- Publish a maintenance build with no intentional user-facing IDE behavior
+  changes from 0.37.47.
+- Re-certify the immutable VSIX and its paired JetBrains artifact from the same
+  latest-main commit under the fail-closed cross-platform and native ARM64
+  release gates.
+- Refresh the packaged Marketplace overview and recommended stable CLI baseline
+  to `chainlesschain@0.163.2`.
+
 ## [0.37.47] - Deterministic native ARM64 release gate (2026-08-09)
 
 - Carry forward the 0.37.46 native ARM64 host certification after that
