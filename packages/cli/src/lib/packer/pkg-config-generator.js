@@ -23,23 +23,26 @@ import path from "node:path";
 
 function capsuleBuilderAssets(cliRoot) {
   const requireFromCli = createRequire(path.join(cliRoot, "package.json"));
+  const realpath = fs.realpathSync.native || fs.realpathSync;
   let packageJsonPath;
   try {
-    packageJsonPath = requireFromCli.resolve("esbuild-wasm/package.json");
+    packageJsonPath = realpath(
+      requireFromCli.resolve("esbuild-wasm/package.json"),
+    );
   } catch (cause) {
     throw new Error(
       `Cannot resolve the pinned esbuild-wasm package for pkg assets: ${cause.message}`,
     );
   }
   const packageRoot = path.dirname(packageJsonPath);
-  const assets = [
+  const sourceAssets = [
     packageJsonPath,
     path.join(packageRoot, "lib", "browser.js"),
     path.join(packageRoot, "esbuild.wasm"),
     path.join(cliRoot, "src", "lib", "mcp-stdio-capsule-builder-worker.cjs"),
     path.join(cliRoot, "src", "lib", "mcp-stdio-immutable-vfs-resolver.cjs"),
   ];
-  for (const asset of assets) {
+  for (const asset of sourceAssets) {
     const stat = fs.lstatSync(asset);
     if (stat.isSymbolicLink() || !stat.isFile()) {
       throw new Error(
@@ -47,7 +50,7 @@ function capsuleBuilderAssets(cliRoot) {
       );
     }
   }
-  return assets;
+  return sourceAssets.map((asset) => realpath(asset));
 }
 
 /**
