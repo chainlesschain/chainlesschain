@@ -415,12 +415,14 @@ describe("command lifecycle metrics", () => {
         name: "chainlesschain.cli.command.lifecycle.invocations",
         type: "sum",
         value: 1,
+        aggregationTemporality: 1,
       }),
       expect.objectContaining({
         name: "chainlesschain.cli.command.lifecycle.duration",
         type: "histogram",
         count: 1,
         sum: 12.5,
+        aggregationTemporality: 1,
       }),
     ]);
     expect(metrics[0].attributes).toEqual({
