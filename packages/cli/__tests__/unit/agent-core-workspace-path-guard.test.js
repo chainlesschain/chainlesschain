@@ -47,6 +47,11 @@ function makeDirectoryLink(target, link) {
   );
 }
 
+function canonicalRealpath(candidate) {
+  const realpath = fs.realpathSync.native || fs.realpathSync;
+  return path.resolve(realpath(candidate));
+}
+
 describe("agent workspace path guard", () => {
   let base;
   let workspace;
@@ -294,7 +299,7 @@ describe("agent workspace path guard", () => {
     fs.writeFileSync(path.join(sourceDir, "widget.js.bak"), "sibling", "utf8");
     const scope = {
       exact: true,
-      worktreeRoot: fs.realpathSync(workspace),
+      worktreeRoot: canonicalRealpath(workspace),
       allowedPaths: ["src/widget.js"],
     };
 
@@ -342,7 +347,7 @@ describe("agent workspace path guard", () => {
     const normalized = normalizeExactFileMutationScope(
       {
         exact: true,
-        worktreeRoot: fs.realpathSync(workspace),
+        worktreeRoot: canonicalRealpath(workspace),
         allowedPaths: ["apfs-directory-entry.txt"],
       },
       { cwd: workspace },
@@ -402,7 +407,7 @@ describe("agent workspace path guard", () => {
         cwd: workspace,
         fileMutationScope: {
           exact: true,
-          worktreeRoot: fs.realpathSync(workspace),
+          worktreeRoot: canonicalRealpath(workspace),
           allowedPaths: ["escape/created.txt"],
         },
       },
@@ -419,7 +424,7 @@ describe("agent workspace path guard", () => {
     const normalized = normalizeExactFileMutationScope(
       {
         exact: true,
-        worktreeRoot: fs.realpathSync(workspace),
+        worktreeRoot: canonicalRealpath(workspace),
         allowedPaths: ["stable/created.txt"],
       },
       { cwd: workspace },
@@ -455,7 +460,7 @@ describe("agent workspace path guard", () => {
         hermeticExecution: true,
         fileMutationScope: {
           exact: true,
-          worktreeRoot: fs.realpathSync(workspace),
+          worktreeRoot: canonicalRealpath(workspace),
           allowedPaths: ["linked-at-admission.txt"],
         },
       },
@@ -470,7 +475,7 @@ describe("agent workspace path guard", () => {
     const normalized = normalizeExactFileMutationScope(
       {
         exact: true,
-        worktreeRoot: fs.realpathSync(workspace),
+        worktreeRoot: canonicalRealpath(workspace),
         allowedPaths: ["swapped.txt"],
       },
       { cwd: workspace },
@@ -501,7 +506,7 @@ describe("agent workspace path guard", () => {
     const normalized = normalizeExactFileMutationScope(
       {
         exact: true,
-        worktreeRoot: fs.realpathSync(workspace),
+        worktreeRoot: canonicalRealpath(workspace),
         allowedPaths: ["race.txt"],
       },
       { cwd: workspace },
@@ -569,7 +574,7 @@ describe("agent workspace path guard", () => {
     const normalized = normalizeExactFileMutationScope(
       {
         exact: true,
-        worktreeRoot: fs.realpathSync(workspace),
+        worktreeRoot: canonicalRealpath(workspace),
         allowedPaths: ["stage-race.txt"],
       },
       { cwd: workspace },
@@ -624,7 +629,7 @@ describe("agent workspace path guard", () => {
     const normalized = normalizeExactFileMutationScope(
       {
         exact: true,
-        worktreeRoot: fs.realpathSync(workspace),
+        worktreeRoot: canonicalRealpath(workspace),
         allowedPaths: ["cleanup-race.txt"],
       },
       { cwd: workspace },
@@ -682,7 +687,7 @@ describe("agent workspace path guard", () => {
         hermeticExecution: true,
         fileMutationScope: {
           exact: true,
-          worktreeRoot: fs.realpathSync(workspace),
+          worktreeRoot: canonicalRealpath(workspace),
           allowedPaths: ["inside.txt:secret"],
         },
       },

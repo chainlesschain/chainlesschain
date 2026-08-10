@@ -6,6 +6,11 @@ import { agentLoop } from "../../src/runtime/agent-core.js";
 
 let tmp;
 
+function canonicalRealpath(candidate) {
+  const realpath = fs.realpathSync.native || fs.realpathSync;
+  return path.resolve(realpath(candidate));
+}
+
 beforeEach(() => {
   tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cc-tool-fence-"));
 });
@@ -173,7 +178,7 @@ describe("agent-loop execution-time tool capability fence", () => {
         hermeticExecution: true,
         fileMutationScope: {
           exact: true,
-          worktreeRoot: fs.realpathSync(tmp),
+          worktreeRoot: canonicalRealpath(tmp),
           allowedPaths: ["allowed.txt"],
         },
         autoCheckpoint: true,
@@ -245,7 +250,7 @@ describe("agent-loop execution-time tool capability fence", () => {
         hermeticExecution: true,
         fileMutationScope: {
           exact: true,
-          worktreeRoot: fs.realpathSync(tmp),
+          worktreeRoot: canonicalRealpath(tmp),
           allowedPaths: ["allowed.txt"],
         },
       },

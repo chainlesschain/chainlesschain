@@ -30,6 +30,11 @@ const NOW = "2026-08-10T00:00:00.000Z";
 
 const temporaryDirectories = [];
 
+function canonicalRealpath(candidate) {
+  const realpath = fs.realpathSync.native || fs.realpathSync;
+  return path.resolve(realpath(candidate));
+}
+
 afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) {
     fs.rmSync(directory, { recursive: true, force: true });
@@ -113,7 +118,7 @@ function createFixWorktree(prefix = "cc-delivery-fix-worktree-") {
   temporaryDirectories.push(directory);
   fs.mkdirSync(path.join(directory, "src"));
   fs.writeFileSync(path.join(directory, "src", "widget.js"), "export {};\n");
-  return fs.realpathSync(directory);
+  return canonicalRealpath(directory);
 }
 
 function success(stdout = "") {
@@ -282,9 +287,10 @@ describe("GitHubDeliveryProductionAdapter", () => {
       path.join(os.tmpdir(), "cc-delivery-production-adapter-"),
     );
     temporaryDirectories.push(directory);
-    const worktree = path.join(directory, "worktree");
+    const worktreeCandidate = path.join(directory, "worktree");
     const captureDirectory = path.join(directory, "captures");
-    fs.mkdirSync(worktree);
+    fs.mkdirSync(worktreeCandidate);
+    const worktree = canonicalRealpath(worktreeCandidate);
     fs.mkdirSync(path.join(worktree, "src"));
     fs.writeFileSync(path.join(worktree, "src", "widget.js"), "export {};\n");
     fs.mkdirSync(captureDirectory);
@@ -447,7 +453,7 @@ describe("GitHubDeliveryProductionAdapter", () => {
     });
     expect(fixerOptions.fileMutationScope).toEqual({
       exact: true,
-      worktreeRoot: fs.realpathSync(worktree),
+      worktreeRoot: canonicalRealpath(worktree),
       allowedPaths: ["src/widget.js"],
     });
     expect(Object.isFrozen(fixerOptions.fileMutationScope)).toBe(true);
