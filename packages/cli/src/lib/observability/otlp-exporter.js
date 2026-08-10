@@ -924,7 +924,7 @@ export class OtlpExporter {
         description: metric.description || "",
         unit: metric.unit || "1",
         histogram: {
-          aggregationTemporality: 2,
+          aggregationTemporality: metric.aggregationTemporality === 1 ? 1 : 2,
           dataPoints: [
             {
               ...point,
@@ -945,7 +945,7 @@ export class OtlpExporter {
           : { asDouble: Number(metric.value) || 0 };
     const data = { dataPoints: [{ ...point, ...number }] };
     if (metric.type === "sum" || metric.type === "counter") {
-      data.aggregationTemporality = 2;
+      data.aggregationTemporality = metric.aggregationTemporality === 1 ? 1 : 2;
       data.isMonotonic = metric.monotonic !== false;
       return {
         name: metric.name,

@@ -25,6 +25,7 @@
     "commands:manifest": "node scripts/gen-command-manifest.mjs",
     "commands:manifest:check": "node scripts/gen-command-manifest.mjs --check",
     "commands:lifecycle:report": "node scripts/command-lifecycle-report.mjs",
+    "commands:lifecycle:report:check": "vitest run __tests__/unit/command-lifecycle-report.test.js",
     "commands:help-index": "node scripts/gen-command-help-index.mjs",
     "commands:help-index:check": "node scripts/gen-command-help-index.mjs --check",
     "commands:completions": "node scripts/gen-shell-completions.mjs",

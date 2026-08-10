@@ -22,7 +22,13 @@ env:
 jobs:
   release-readiness:
     runs-on: ubuntu-latest
+    environment: native-production
     steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: chainlesschain/chainlesschain
+          ref: ${{ github.sha }}
+          persist-credentials: false
       - name: Require completed native host release evidence
         shell: bash
         env:
@@ -36,8 +42,32 @@ jobs:
           MAC_NOTARY_APPLE_ID: ${{ secrets.CLI_MACOS_NOTARY_APPLE_ID }}
           MAC_NOTARY_TEAM_ID: ${{ secrets.CLI_MACOS_NOTARY_TEAM_ID }}
           MAC_NOTARY_APP_PASSWORD: ${{ secrets.CLI_MACOS_NOTARY_APP_PASSWORD }}
+          WINDOWS_CERT_SHA256: ${{ vars.CLI_WINDOWS_SIGNING_CERT_SHA256 }}
+          WINDOWS_CERT_SUBJECT: ${{ vars.CLI_WINDOWS_SIGNING_CERT_SUBJECT }}
+          WINDOWS_CERT_PUBLISHER: ${{ vars.CLI_WINDOWS_SIGNING_PUBLISHER }}
+          WINDOWS_TIMESTAMP_SUBJECT: ${{ vars.CLI_WINDOWS_TIMESTAMP_SUBJECT }}
+          MAC_TEAM_IDENTIFIER: ${{ vars.CLI_MACOS_TEAM_IDENTIFIER }}
+          MAC_DEVELOPER_ID_AUTHORITY: ${{ vars.CLI_MACOS_DEVELOPER_ID_AUTHORITY }}
+          MAC_DESIGNATED_REQUIREMENT: ${{ vars.CLI_MACOS_DESIGNATED_REQUIREMENT }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
+          RELEASE_REF: ${{ github.ref }}
+          RELEASE_REF_PROTECTED: ${{ github.ref_protected }}
+          RELEASE_TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
+          if [ "$RELEASE_REPOSITORY" != "chainlesschain/chainlesschain" ] || \
+             [ "$RELEASE_REF_PROTECTED" != "true" ]; then
+            echo "Native CLI publication requires the trusted repository and a protected cli-v* tag ruleset." >&2
+            exit 1
+          fi
+          VERSION=$(node -p "require('./packages/cli/package.json').version")
+          node --input-type=module - "$RELEASE_TAG" "$VERSION" <<'NODE'
+          import { assertNativeReleaseIdentity } from "./packages/cli/scripts/native-release-contract.mjs";
+          assertNativeReleaseIdentity(process.argv[2], process.argv[3]);
+          if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u.test(process.argv[3])) {
+            throw new Error("native stable release tags must use x.y.z without prerelease/build metadata");
+          }
+          NODE
           if [ "$CLI_NATIVE_RELEASE_IMPLEMENTATION_STATUS" != "ready" ]; then
             echo "Native CLI publication is blocked pending signing credentials, notarization, signed install/upgrade/rollback, package-manager publication and public readback evidence." >&2
             exit 1
@@ -46,12 +76,17 @@ jobs:
             UPDATE_PUBLIC_KEY_B64 UPDATE_PRIVATE_KEY_B64 \
             WINDOWS_CERT_B64 WINDOWS_CERT_PASSWORD \
             MAC_CERT_B64 MAC_CERT_PASSWORD MAC_SIGNING_IDENTITY \
-            MAC_NOTARY_APPLE_ID MAC_NOTARY_TEAM_ID MAC_NOTARY_APP_PASSWORD; do
+            MAC_NOTARY_APPLE_ID MAC_NOTARY_TEAM_ID MAC_NOTARY_APP_PASSWORD \
+            WINDOWS_CERT_SHA256 WINDOWS_CERT_SUBJECT WINDOWS_CERT_PUBLISHER WINDOWS_TIMESTAMP_SUBJECT \
+            MAC_TEAM_IDENTIFIER MAC_DEVELOPER_ID_AUTHORITY MAC_DESIGNATED_REQUIREMENT; do
             if [ -z "${!name:-}" ]; then
               echo "Native CLI publication prerequisite is missing: $name" >&2
               exit 1
             fi
           done
+          [[ "$WINDOWS_CERT_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          [[ "$MAC_TEAM_IDENTIFIER" =~ ^[A-Z0-9]{10}$ ]]
+          test "$MAC_NOTARY_TEAM_ID" = "$MAC_TEAM_IDENTIFIER"
 
   exact-sha-gate:
     runs-on: ubuntu-latest
@@ -59,10 +94,12 @@ jobs:
       actions: read
       contents: read
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
+          repository: chainlesschain/chainlesschain
           ref: ${{ github.sha }}
-      - uses: actions/setup-node@v5
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "22.14.0"
       - name: Verify required three-platform workflows for exact SHA
@@ -72,7 +109,7 @@ jobs:
           CC_RELEASE_GATE_OUTPUT: cli-native-release-gate.json
           CC_RELEASE_GATE_WAIT_MS: "2700000"
           CC_RELEASE_GATE_POLL_MS: "30000"
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: cli-native-release-gate-${{ github.sha }}
           path: cli-native-release-gate.json
@@ -128,18 +165,24 @@ jobs:
             expected_platform: darwin
             expected_arch: arm64
     runs-on: ${{ matrix.os }}
+    environment: native-production
     permissions:
       contents: read
       id-token: write
     env:
       UPDATE_PUBLIC_KEY_B64: ${{ vars.CLI_UPDATE_ED25519_PUBLIC_KEY_B64 }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
+          repository: chainlesschain/chainlesschain
           ref: ${{ github.sha }}
-      - uses: actions/setup-node@v5
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "22.14.0"
+      - name: Install exact-lock CLI build dependencies
+        shell: bash
+        run: npm ci --workspace packages/cli --include-workspace-root=false --legacy-peer-deps --ignore-scripts --no-audit --no-fund
       - name: Verify real native target host
         shell: bash
         env:
@@ -159,8 +202,6 @@ jobs:
             `${EXPECTED_TARGET} host verified: ${process.platform}/${process.arch}\n`,
           );
           NODE
-      - name: Install workspace dependencies
-        run: npm install --legacy-peer-deps
       - name: Materialize trusted update public key
         shell: bash
         run: |
@@ -198,8 +239,15 @@ jobs:
         env:
           WINDOWS_CERT_B64: ${{ secrets.CLI_WINDOWS_SIGNING_CERT_PFX_B64 }}
           WINDOWS_CERT_PASSWORD: ${{ secrets.CLI_WINDOWS_SIGNING_CERT_PASSWORD }}
+          WINDOWS_CERT_SHA256: ${{ vars.CLI_WINDOWS_SIGNING_CERT_SHA256 }}
+          WINDOWS_CERT_SUBJECT: ${{ vars.CLI_WINDOWS_SIGNING_CERT_SUBJECT }}
+          WINDOWS_CERT_PUBLISHER: ${{ vars.CLI_WINDOWS_SIGNING_PUBLISHER }}
+          WINDOWS_TIMESTAMP_SUBJECT: ${{ vars.CLI_WINDOWS_TIMESTAMP_SUBJECT }}
         run: |
           if (-not $env:WINDOWS_CERT_B64) { throw "CLI_WINDOWS_SIGNING_CERT_PFX_B64 is required" }
+          if ($env:WINDOWS_CERT_SHA256 -notmatch '^[0-9a-f]{64}$' -or -not $env:WINDOWS_CERT_SUBJECT -or -not $env:WINDOWS_CERT_PUBLISHER -or -not $env:WINDOWS_TIMESTAMP_SUBJECT) {
+            throw "protected Windows signing policy is incomplete"
+          }
           $cert = Join-Path $env:RUNNER_TEMP "cli-signing.pfx"
           [IO.File]::WriteAllBytes($cert, [Convert]::FromBase64String($env:WINDOWS_CERT_B64))
           $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Filter signtool.exe -Recurse |
@@ -207,6 +255,18 @@ jobs:
           if (-not $signtool) { throw "signtool.exe not found" }
           & $signtool.FullName sign /fd SHA256 /td SHA256 /tr http://timestamp.digicert.com /f $cert /p $env:WINDOWS_CERT_PASSWORD "native-dist/${{ matrix.file }}"
           & $signtool.FullName verify /pa /v "native-dist/${{ matrix.file }}"
+          if ($LASTEXITCODE -ne 0) { throw "signtool verification failed" }
+          $signature = Get-AuthenticodeSignature -LiteralPath "native-dist/${{ matrix.file }}"
+          $sha256 = $signature.SignerCertificate.GetCertHashString([System.Security.Cryptography.HashAlgorithmName]::SHA256).ToLowerInvariant()
+          $publisher = $signature.SignerCertificate.GetNameInfo([System.Security.Cryptography.X509Certificates.X509NameType]::SimpleName, $false)
+          if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid -or
+              -not $signature.TimeStamperCertificate -or
+              $sha256 -cne $env:WINDOWS_CERT_SHA256 -or
+              $signature.SignerCertificate.Subject -cne $env:WINDOWS_CERT_SUBJECT -or
+              $publisher -cne $env:WINDOWS_CERT_PUBLISHER -or
+              $signature.TimeStamperCertificate.Subject -cne $env:WINDOWS_TIMESTAMP_SUBJECT) {
+            throw "Authenticode certificate/timestamp does not match protected policy"
+          }
 
       - name: Code-sign macOS executable
         if: runner.os == 'macOS'
@@ -215,10 +275,16 @@ jobs:
           MAC_CERT_B64: ${{ secrets.CLI_MACOS_SIGNING_CERT_P12_B64 }}
           MAC_CERT_PASSWORD: ${{ secrets.CLI_MACOS_SIGNING_CERT_PASSWORD }}
           MAC_SIGNING_IDENTITY: ${{ secrets.CLI_MACOS_SIGNING_IDENTITY }}
+          MAC_TEAM_IDENTIFIER: ${{ vars.CLI_MACOS_TEAM_IDENTIFIER }}
+          MAC_DEVELOPER_ID_AUTHORITY: ${{ vars.CLI_MACOS_DEVELOPER_ID_AUTHORITY }}
+          MAC_DESIGNATED_REQUIREMENT: ${{ vars.CLI_MACOS_DESIGNATED_REQUIREMENT }}
         run: |
           set -euo pipefail
           test -n "$MAC_CERT_B64"
           test -n "$MAC_SIGNING_IDENTITY"
+          test -n "$MAC_TEAM_IDENTIFIER"
+          test -n "$MAC_DEVELOPER_ID_AUTHORITY"
+          test -n "$MAC_DESIGNATED_REQUIREMENT"
           KEYCHAIN="$RUNNER_TEMP/cli-signing.keychain-db"
           node -e 'require("fs").writeFileSync(process.argv[1], Buffer.from(process.env.MAC_CERT_B64, "base64"))' "$RUNNER_TEMP/cli-signing.p12"
           security create-keychain -p temporary "$KEYCHAIN"
@@ -229,6 +295,13 @@ jobs:
           security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
           codesign --force --timestamp --options runtime --sign "$MAC_SIGNING_IDENTITY" "native-dist/${{ matrix.file }}"
           codesign --verify --strict --verbose=2 "native-dist/${{ matrix.file }}"
+          DETAILS=$(codesign -dvvv "native-dist/${{ matrix.file }}" 2>&1)
+          TEAM=$(printf '%s\n' "$DETAILS" | sed -n 's/^TeamIdentifier=//p')
+          AUTHORITY=$(printf '%s\n' "$DETAILS" | sed -n 's/^Authority=//p' | head -n 1)
+          REQUIREMENT=$(codesign -dr - "native-dist/${{ matrix.file }}" 2>&1 | sed -n 's/^designated => //p')
+          test "$TEAM" = "$MAC_TEAM_IDENTIFIER"
+          test "$AUTHORITY" = "$MAC_DEVELOPER_ID_AUTHORITY"
+          test "$REQUIREMENT" = "$MAC_DESIGNATED_REQUIREMENT"
 
       - name: Notarize and assess macOS executable
         if: runner.os == 'macOS'
@@ -270,7 +343,7 @@ jobs:
           spctl --assess --type execute --verbose=4 "$ARTIFACT"
           rm -f "$ARCHIVE"
 
-      - uses: sigstore/cosign-installer@v3
+      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
       - name: Attach keyless Sigstore signature
         shell: bash
         run: |
@@ -318,75 +391,81 @@ jobs:
           process.stdout.write(`${version}\n`);
           NODE
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: cli-native-${{ matrix.target }}-${{ github.sha }}
           path: native-dist/
           if-no-files-found: error
           retention-days: 90
 
-  publish:
+  publish-versioned:
     needs: [release-readiness, exact-sha-gate, build]
     runs-on: ubuntu-latest
+    environment: native-production
     permissions:
+      actions: read
       contents: write
       id-token: write
     env:
-      GH_TOKEN: ${{ github.token }}
-      UPDATE_PRIVATE_KEY_B64: ${{ secrets.CLI_UPDATE_ED25519_PRIVATE_KEY_B64 }}
       UPDATE_PUBLIC_KEY_B64: ${{ vars.CLI_UPDATE_ED25519_PUBLIC_KEY_B64 }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
+          repository: chainlesschain/chainlesschain
           ref: ${{ github.sha }}
           fetch-depth: 0
-      - uses: actions/setup-node@v5
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "22.14.0"
-      - uses: actions/download-artifact@v6
+      - name: Install exact-lock CLI release dependencies
+        run: npm ci --workspace packages/cli --include-workspace-root=false --legacy-peer-deps --ignore-scripts --no-audit --no-fund
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:
           pattern: cli-native-*-${{ github.sha }}
           path: native-assets
           merge-multiple: true
-      - uses: sigstore/cosign-installer@v3
+      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
 
       - name: Create and sign aggregate update manifest
         shell: bash
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          UPDATE_PRIVATE_KEY_B64: ${{ secrets.CLI_UPDATE_ED25519_PRIVATE_KEY_B64 }}
         run: |
           set -euo pipefail
-          TAG="${{ github.ref_name }}"
-          test -n "$TAG"
+          TAG="$RELEASE_TAG"
           VERSION=$(node -p "require('./packages/cli/package.json').version")
-          test "$TAG" = "cli-v$VERSION"
+          node --input-type=module - "$TAG" "$VERSION" <<'NODE'
+          import { assertNativeReleaseIdentity } from "./packages/cli/scripts/native-release-contract.mjs";
+          assertNativeReleaseIdentity(process.argv[2], process.argv[3]);
+          NODE
           test -n "$UPDATE_PRIVATE_KEY_B64"
           test -n "$UPDATE_PUBLIC_KEY_B64"
           test "$(find native-assets -name '*.pack-manifest.json' | wc -l)" -eq 6
           test "$(find native-assets -name '*.sigstore.json' | wc -l)" -eq 6
           BASE_URL="https://github.com/${{ github.repository }}/releases/download/$TAG"
           PUBLISHED_AT=$(git show -s --format=%cI "${{ github.sha }}")
-          npm sbom --package-lock-only --sbom-format cyclonedx > native-assets/chainlesschain-cli-sbom.cdx.json
-          # npm's CycloneDX writer emits a wall-clock timestamp and random UUID.
-          # Bind both to the exact commit before hashing so an exact-SHA rebuild
-          # can reproduce the same SBOM identity instead of looking malicious.
-          node --input-type=module - native-assets/chainlesschain-cli-sbom.cdx.json "${{ github.sha }}" "$PUBLISHED_AT" <<'NODE'
-          import fs from "node:fs";
-          const [file, commit, publishedAt] = process.argv.slice(2);
-          const sbom = JSON.parse(fs.readFileSync(file, "utf8"));
-          const uuid = Buffer.from(commit.slice(0, 32), "hex");
-          if (uuid.length !== 16) throw new Error("release SHA cannot derive SBOM UUID");
-          uuid[6] = (uuid[6] & 0x0f) | 0x50;
-          uuid[8] = (uuid[8] & 0x3f) | 0x80;
-          const hex = uuid.toString("hex");
-          sbom.serialNumber = `urn:uuid:${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
-          sbom.metadata ||= {};
-          sbom.metadata.timestamp = publishedAt;
-          fs.writeFileSync(file, `${JSON.stringify(sbom, null, 2)}\n`, "utf8");
-          NODE
+          # Derive a runtime-only CycloneDX graph from the exact repository
+          # lock used by npm ci. This path performs no registry resolution and
+          # excludes unreferenced dev/test dependencies by graph reachability.
+          SBOM_RESULT=$(node packages/cli/scripts/create-native-release-sbom.mjs \
+            package-lock.json packages/cli/package.json "${{ github.sha }}" "$PUBLISHED_AT" \
+            native-assets/chainlesschain-cli-sbom.cdx.json)
+          node packages/cli/scripts/create-native-release-sbom.mjs \
+            package-lock.json packages/cli/package.json "${{ github.sha }}" "$PUBLISHED_AT" \
+            "$RUNNER_TEMP/chainlesschain-cli-sbom-rebuild.cdx.json" >/dev/null
+          cmp native-assets/chainlesschain-cli-sbom.cdx.json \
+            "$RUNNER_TEMP/chainlesschain-cli-sbom-rebuild.cdx.json"
+          SBOM_LOCK_SHA256=$(node -e 'process.stdout.write(JSON.parse(process.argv[1]).lockSha256)' "$SBOM_RESULT")
+          SBOM_RUNTIME_REFS_SHA256=$(node -e 'process.stdout.write(JSON.parse(process.argv[1]).runtimeRefsSha256)' "$SBOM_RESULT")
           SBOM_SHA256=$(sha256sum native-assets/chainlesschain-cli-sbom.cdx.json | cut -d' ' -f1)
           CC_RELEASE_CHANNEL="stable" \
           CC_RELEASE_NOTES_URL="https://github.com/${{ github.repository }}/releases/tag/$TAG" \
           CC_RELEASE_SBOM_URL="$BASE_URL/chainlesschain-cli-sbom.cdx.json" \
           CC_RELEASE_SBOM_SHA256="$SBOM_SHA256" \
+          CC_RELEASE_SBOM_LOCK_SHA256="$SBOM_LOCK_SHA256" \
+          CC_RELEASE_SBOM_RUNTIME_REFS_SHA256="$SBOM_RUNTIME_REFS_SHA256" \
           CC_RELEASE_REQUIRED_TARGETS="node22-linux-x64,node22-linux-arm64,node22-win-x64,node22-win-arm64,node22-macos-x64,node22-macos-arm64" \
           node packages/cli/scripts/create-native-release-manifest.mjs \
             native-assets native-assets/chainlesschain-update.json "$BASE_URL"
@@ -404,6 +483,7 @@ jobs:
           node -e 'require("fs").writeFileSync(process.argv[1], Buffer.from(process.env.UPDATE_PUBLIC_KEY_B64, "base64"))' "native-assets/cli-update-public-key.pem"
           node packages/cli/scripts/sign-pack-update-manifest.mjs \
             native-assets/chainlesschain-update.json "$RUNNER_TEMP/cli-update-private.pem" native-assets/cli-update-public-key.pem
+          rm -f "$RUNNER_TEMP/cli-update-private.pem"
           cp packages/cli/install/install.sh native-assets/install.sh
           cp packages/cli/install/install.ps1 native-assets/install.ps1
           node packages/cli/scripts/generate-package-manager-manifests.mjs \
@@ -411,7 +491,7 @@ jobs:
           cosign sign-blob --yes \
             --bundle native-assets/chainlesschain-update.json.sigstore.json \
             native-assets/chainlesschain-update.json
-          for bootstrap in install.sh install.ps1 chainlesschain.rb ChainlessChain.ChainlessChainCLI.installer.yaml cli-update-public-key.pem chainlesschain-cli-sbom.cdx.json; do
+          for bootstrap in install.sh install.ps1 chainlesschain.rb ChainlessChain.ChainlessChainCLI.yaml ChainlessChain.ChainlessChainCLI.locale.en-US.yaml ChainlessChain.ChainlessChainCLI.installer.yaml cli-update-public-key.pem chainlesschain-cli-sbom.cdx.json; do
             cosign sign-blob --yes --bundle "native-assets/$bootstrap.sigstore.json" "native-assets/$bootstrap"
           done
           (cd native-assets && find . -maxdepth 1 -type f ! -name 'SHA256SUMS*' -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
@@ -419,9 +499,17 @@ jobs:
 
       - name: Publish only after every platform and signature succeeds
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          TAG="${{ github.ref_name }}"
+          TAG="$RELEASE_TAG"
+          VERSION=$(node -p "require('./packages/cli/package.json').version")
+          node --input-type=module - "$TAG" "$VERSION" <<'NODE'
+          import { assertNativeReleaseIdentity } from "./packages/cli/scripts/native-release-contract.mjs";
+          assertNativeReleaseIdentity(process.argv[2], process.argv[3]);
+          NODE
           if git rev-parse -q --verify "$TAG^{commit}" >/dev/null; then
             test "$(git rev-list -n 1 "$TAG")" = "${{ github.sha }}"
           elif gh release view "$TAG" >/dev/null 2>&1; then
@@ -447,8 +535,12 @@ jobs:
             gh release download "$TAG" --dir "$VERSIONED_ASSET_DIR"
             cosign verify-blob \
               --bundle "$VERSIONED_ASSET_DIR/chainlesschain-update.json.sigstore.json" \
-              --certificate-identity-regexp '^https://github.com/${{ github.repository }}/.github/workflows/cli-native-release.yml@refs/tags/cli-v' \
+              --certificate-identity "https://github.com/${{ github.repository }}/.github/workflows/cli-native-release.yml@refs/tags/$TAG" \
               --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+              --certificate-github-workflow-repository '${{ github.repository }}' \
+              --certificate-github-workflow-ref "refs/tags/$TAG" \
+              --certificate-github-workflow-sha '${{ github.sha }}' \
+              --certificate-github-workflow-trigger push \
               "$VERSIONED_ASSET_DIR/chainlesschain-update.json" >/dev/null
             VERSIONED_RESULT=$(node packages/cli/scripts/verify-stable-channel-promotion.mjs \
               "$VERSIONED_ASSET_DIR/chainlesschain-update.json" \
@@ -476,10 +568,68 @@ jobs:
           fi
           gh release edit "$TAG" --draft=false --latest=false
 
-      - name: Promote signed manifest to isolated stable channel
+      - name: Preserve the exact signed versioned asset set for gated stable promotion
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: cli-native-release-assets-${{ github.sha }}
+          path: native-assets/
+          if-no-files-found: error
+          retention-days: 90
+
+  versioned-public-readback-gate:
+    name: Required anonymous versioned readback before stable activation
+    needs: publish-versioned
+    permissions:
+      actions: read
+      attestations: write
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/cli-native-release-readback.yml
+    with:
+      tag: ${{ github.ref_name }}
+      expected_sha: ${{ github.sha }}
+      verify_stable: false
+
+  promote-stable:
+    name: Promote verified versioned bytes to the stable pointer
+    needs: versioned-public-readback-gate
+    runs-on: ubuntu-latest
+    environment: native-production
+    outputs:
+      mutation_started: ${{ steps.stable-activation.outputs.mutation_started }}
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: chainlesschain/chainlesschain
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.14.0"
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: cli-native-release-assets-${{ github.sha }}
+          path: native-assets
+      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
+
+      - name: Authenticate the previous stable pointer and plan promotion
+        id: stable-preflight
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
+          TAG="$RELEASE_TAG"
+          VERSION=$(node -p "require('./packages/cli/package.json').version")
+          node --input-type=module - "$TAG" "$VERSION" <<'NODE'
+          import { assertNativeReleaseIdentity } from "./packages/cli/scripts/native-release-contract.mjs";
+          assertNativeReleaseIdentity(process.argv[2], process.argv[3]);
+          NODE
           CHANNEL_TAG="cli-stable"
           CHANNEL_DIR="$RUNNER_TEMP/cli-stable-existing"
           CHANNEL_ASSET_DIR="$CHANNEL_DIR/assets"
@@ -487,49 +637,70 @@ jobs:
           ASSETS=""
           HAS_MANIFEST=0
           HAS_BUNDLE=0
+          CHANNEL_EXISTS=false
           PROMOTION_ACTION="initialize"
-          if gh release view "$CHANNEL_TAG" >/dev/null 2>&1; then
-            ASSETS=$(gh release view "$CHANNEL_TAG" --json assets --jq '.assets[].name')
+          CHANNEL_METADATA="$CHANNEL_DIR/release.json"
+          CHANNEL_LOOKUP_ERROR="$CHANNEL_DIR/release-lookup.err"
+          if gh api "repos/$GITHUB_REPOSITORY/releases/tags/$CHANNEL_TAG" \
+            > "$CHANNEL_METADATA" 2> "$CHANNEL_LOOKUP_ERROR"; then
+            CHANNEL_EXISTS=true
+            ASSETS=$(node -e 'const r=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")); const names=Array.isArray(r.assets)?r.assets.map((a)=>a?.name):[]; if(r.tag_name!==process.argv[2]||!Array.isArray(r.assets)||names.some((name)=>typeof name!=="string"||!/^[A-Za-z0-9][A-Za-z0-9._+-]*$/.test(name))||new Set(names).size!==names.length) throw new Error("stable release metadata is invalid"); process.stdout.write(names.join("\n"))' "$CHANNEL_METADATA" "$CHANNEL_TAG")
             HAS_MANIFEST=$(printf '%s\n' "$ASSETS" | grep -cx 'chainlesschain-update.json' || true)
             HAS_BUNDLE=$(printf '%s\n' "$ASSETS" | grep -cx 'chainlesschain-update.json.sigstore.json' || true)
-            # The recovery protocol publishes the bundle first and the
-            # manifest last, so bundle-only is an expected fail-closed state
-            # after interruption. Manifest-only can never be produced by this
-            # workflow and therefore requires operator investigation.
-            if [ "$HAS_MANIFEST" -eq 1 ] && [ "$HAS_BUNDLE" -ne 1 ]; then
-              echo "Stable channel has a manifest without its signature bundle" >&2
+            # Never infer an empty channel from an interrupted rolling update.
+            # Without a complete authenticated previous pointer there is no
+            # trusted version floor, so automatic retry could downgrade stable.
+            if [ "$HAS_MANIFEST" -ne 1 ] || [ "$HAS_BUNDLE" -ne 1 ]; then
+              echo "Existing stable channel lacks one complete signed manifest pair; restore or remove the cli-stable release under operator control before retrying" >&2
               exit 1
             fi
-            if [ "$HAS_MANIFEST" -eq 1 ] && [ "$HAS_BUNDLE" -eq 1 ]; then
-              gh release download "$CHANNEL_TAG" --dir "$CHANNEL_ASSET_DIR"
-              cosign verify-blob \
-                --bundle "$CHANNEL_ASSET_DIR/chainlesschain-update.json.sigstore.json" \
-                --certificate-identity-regexp '^https://github.com/${{ github.repository }}/.github/workflows/cli-native-release.yml@refs/tags/cli-v' \
-                --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
-                "$CHANNEL_ASSET_DIR/chainlesschain-update.json" >/dev/null
-              PROMOTION_RESULT=$(node packages/cli/scripts/verify-stable-channel-promotion.mjs \
-                "$CHANNEL_ASSET_DIR/chainlesschain-update.json" \
-                native-assets/chainlesschain-update.json)
-              printf '%s\n' "$PROMOTION_RESULT"
-              PROMOTION_ACTION=$(node -e 'process.stdout.write(JSON.parse(process.argv[1]).action)' "$PROMOTION_RESULT")
-            else
-              # No active manifest means clients fail closed with 404. This is
-              # either an empty channel or a recoverable interrupted promotion;
-              # all partial assets are purged below before retrying.
-              PROMOTION_RESULT=$(node packages/cli/scripts/verify-stable-channel-promotion.mjs \
-                - native-assets/chainlesschain-update.json)
-              printf '%s\n' "$PROMOTION_RESULT"
+            gh release download "$CHANNEL_TAG" --dir "$CHANNEL_ASSET_DIR"
+
+            # The previous stable manifest is only an identity selector until
+            # Cosign authenticates it. Bind that old bundle to its own stable
+            # version, remote tag commit, workflow ref/SHA, repository and push
+            # trigger; never reuse the candidate tag/SHA for old bytes.
+            OLD_IDENTITY_JSON=$(node packages/cli/scripts/verify-stable-channel-promotion.mjs \
+              --signing-identity "$CHANNEL_ASSET_DIR/chainlesschain-update.json")
+            OLD_REPOSITORY=$(node -e 'process.stdout.write(JSON.parse(process.argv[1]).repository)' "$OLD_IDENTITY_JSON")
+            OLD_TAG=$(node -e 'process.stdout.write(JSON.parse(process.argv[1]).tag)' "$OLD_IDENTITY_JSON")
+            OLD_REF=$(node -e 'process.stdout.write(JSON.parse(process.argv[1]).ref)' "$OLD_IDENTITY_JSON")
+            OLD_COMMIT=$(node -e 'process.stdout.write(JSON.parse(process.argv[1]).commit)' "$OLD_IDENTITY_JSON")
+            OLD_IDENTITY=$(node -e 'process.stdout.write(JSON.parse(process.argv[1]).identity)' "$OLD_IDENTITY_JSON")
+            test "$OLD_REPOSITORY" = "$GITHUB_REPOSITORY"
+            git fetch --no-tags --force "https://github.com/$OLD_REPOSITORY.git" "$OLD_REF"
+            REMOTE_OLD_COMMIT=$(git rev-parse "FETCH_HEAD^{commit}")
+            if [ "$REMOTE_OLD_COMMIT" != "$OLD_COMMIT" ]; then
+              echo "Existing stable manifest commit does not match remote $OLD_TAG" >&2
+              exit 1
             fi
+            cosign verify-blob \
+              --bundle "$CHANNEL_ASSET_DIR/chainlesschain-update.json.sigstore.json" \
+              --certificate-identity "$OLD_IDENTITY" \
+              --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+              --certificate-github-workflow-repository "$OLD_REPOSITORY" \
+              --certificate-github-workflow-ref "$OLD_REF" \
+              --certificate-github-workflow-sha "$OLD_COMMIT" \
+              --certificate-github-workflow-trigger push \
+              "$CHANNEL_ASSET_DIR/chainlesschain-update.json" >/dev/null
+            PROMOTION_RESULT=$(node packages/cli/scripts/verify-stable-channel-promotion.mjs \
+              "$CHANNEL_ASSET_DIR/chainlesschain-update.json" \
+              native-assets/chainlesschain-update.json)
+            printf '%s\n' "$PROMOTION_RESULT"
+            PROMOTION_ACTION=$(node -e 'process.stdout.write(JSON.parse(process.argv[1]).action)' "$PROMOTION_RESULT")
           else
-            gh release create "$CHANNEL_TAG" --target "${{ github.sha }}" \
-              --latest=false --title "ChainlessChain CLI stable channel" \
-              --notes "Rolling pointer to the latest verified cli-v* manifest. Versioned binaries remain immutable."
+            if ! grep -q 'HTTP 404' "$CHANNEL_LOOKUP_ERROR"; then
+              cat "$CHANNEL_LOOKUP_ERROR" >&2
+              echo "Stable channel lookup failed without an authoritative not-found response" >&2
+              exit 1
+            fi
             node packages/cli/scripts/verify-stable-channel-promotion.mjs \
               - native-assets/chainlesschain-update.json
           fi
+          printf '%s\n' "$ASSETS" | sed '/^$/d' > "$CHANNEL_DIR/assets-before.txt"
           if [ "$PROMOTION_ACTION" = "idempotent" ]; then
             : > "$CHANNEL_DIR/expected-assets.txt"
-            for asset in install.sh install.ps1 chainlesschain.rb ChainlessChain.ChainlessChainCLI.installer.yaml cli-update-public-key.pem chainlesschain-cli-sbom.cdx.json chainlesschain-update.json; do
+            for asset in install.sh install.ps1 chainlesschain.rb ChainlessChain.ChainlessChainCLI.yaml ChainlessChain.ChainlessChainCLI.locale.en-US.yaml ChainlessChain.ChainlessChainCLI.installer.yaml cli-update-public-key.pem chainlesschain-cli-sbom.cdx.json chainlesschain-update.json; do
               printf '%s\n%s\n' "$asset" "$asset.sigstore.json" >> "$CHANNEL_DIR/expected-assets.txt"
             done
             LC_ALL=C sort -o "$CHANNEL_DIR/expected-assets.txt" "$CHANNEL_DIR/expected-assets.txt"
@@ -546,30 +717,119 @@ jobs:
               fi
             done < "$CHANNEL_DIR/expected-assets.txt"
             echo "Stable channel already has the exact signed manifest identity; no rolling assets changed."
+            echo "action=idempotent" >> "$GITHUB_OUTPUT"
+            echo "channel_exists=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          gh release edit "$CHANNEL_TAG" --latest=false
+          echo "action=$PROMOTION_ACTION" >> "$GITHUB_OUTPUT"
+          echo "channel_exists=$CHANNEL_EXISTS" >> "$GITHUB_OUTPUT"
+
+      - name: Activate the preflighted stable pointer
+        id: stable-activation
+        if: steps.stable-preflight.outputs.action != 'idempotent'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_COMMIT: ${{ github.sha }}
+          PROMOTION_ACTION: ${{ steps.stable-preflight.outputs.action }}
+          CHANNEL_EXISTS: ${{ steps.stable-preflight.outputs.channel_exists }}
+        run: |
+          set -euo pipefail
+          CHANNEL_TAG="cli-stable"
+          CHANNEL_DIR="$RUNNER_TEMP/cli-stable-existing"
+          case "$PROMOTION_ACTION:$CHANNEL_EXISTS" in
+            initialize:false|promote:true) ;;
+            *) echo "Stable activation received an invalid preflight plan" >&2; exit 1 ;;
+          esac
+          # Persist this output before the first remote mutation. If any API
+          # call has an outcome-unknown failure, the containment job withdraws
+          # any active manifest before the workflow can terminate.
+          echo "mutation_started=true" >> "$GITHUB_OUTPUT"
+          if [ "$PROMOTION_ACTION" = "initialize" ]; then
+            gh release create "$CHANNEL_TAG" --target "$RELEASE_COMMIT" \
+              --latest=false --title "ChainlessChain CLI stable channel" \
+              --notes "Rolling pointer to the latest verified cli-v* manifest. Versioned binaries remain immutable."
+          else
+            gh release edit "$CHANNEL_TAG" --latest=false
+            gh release delete-asset "$CHANNEL_TAG" chainlesschain-update.json --yes
+          fi
 
           # GitHub release assets cannot be swapped atomically. Make the
-          # transition fail-closed and retryable: remove the active manifest
+          # transition fail-closed: remove the active manifest
           # first, purge every old/partial rolling asset, upload auxiliary
           # pairs without clobber, then activate with bundle-first/manifest-last.
           # Any interruption leaves the fixed manifest URL absent (or a lone
-          # bundle), never an old manifest mixed with new auxiliary assets.
-          if [ "$HAS_MANIFEST" -eq 1 ]; then
-            gh release delete-asset "$CHANNEL_TAG" chainlesschain-update.json --yes
-          fi
+          # bundle), never an old manifest mixed with new auxiliary assets. A
+          # subsequent run refuses that incomplete state until an operator
+          # restores a trusted pair or removes the rolling release explicitly.
           while IFS= read -r asset; do
             [ -n "$asset" ] || continue
             [ "$asset" = "chainlesschain-update.json" ] && continue
             gh release delete-asset "$CHANNEL_TAG" "$asset" --yes
-          done <<EOF
-          $ASSETS
-          EOF
-          for asset in install.sh install.ps1 chainlesschain.rb ChainlessChain.ChainlessChainCLI.installer.yaml cli-update-public-key.pem chainlesschain-cli-sbom.cdx.json; do
+          done < "$CHANNEL_DIR/assets-before.txt"
+          for asset in install.sh install.ps1 chainlesschain.rb ChainlessChain.ChainlessChainCLI.yaml ChainlessChain.ChainlessChainCLI.locale.en-US.yaml ChainlessChain.ChainlessChainCLI.installer.yaml cli-update-public-key.pem chainlesschain-cli-sbom.cdx.json; do
             gh release upload "$CHANNEL_TAG" "native-assets/$asset" "native-assets/$asset.sigstore.json"
           done
           gh release upload "$CHANNEL_TAG" \
             native-assets/chainlesschain-update.json.sigstore.json
           gh release upload "$CHANNEL_TAG" \
             native-assets/chainlesschain-update.json
+
+  stable-public-readback-gate:
+    name: Required anonymous stable readback after activation
+    needs: promote-stable
+    permissions:
+      actions: read
+      attestations: write
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/cli-native-release-readback.yml
+    with:
+      tag: ${{ github.ref_name }}
+      expected_sha: ${{ github.sha }}
+      verify_stable: true
+
+  stable-readback-failure-containment:
+    name: Withdraw active stable manifest when activation or readback fails
+    needs: [promote-stable, stable-public-readback-gate]
+    if: ${{ always() && needs.promote-stable.outputs.mutation_started == 'true' && (needs.promote-stable.result != 'success' || needs.stable-public-readback-gate.result != 'success') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Remove any potentially active unverified stable pointer and fail closed
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "chainlesschain/chainlesschain"
+          test "$GITHUB_REF_PROTECTED" = "true"
+          [[ "$GITHUB_REF" =~ ^refs/tags/cli-v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          RELEASE_TAG=${GITHUB_REF#refs/tags/}
+          CHANNEL_TAG="cli-stable"
+          if ! ASSETS=$(gh release view "$CHANNEL_TAG" --json assets --jq '.assets[].name'); then
+            echo "Stable activation/readback failed before a rolling release could be inspected; no active pointer is trusted." >&2
+            exit 1
+          fi
+          HAS_MANIFEST=$(printf '%s\n' "$ASSETS" | grep -cx 'chainlesschain-update.json' || true)
+          if [ "$HAS_MANIFEST" -eq 1 ]; then
+            mkdir -p "$RUNNER_TEMP/containment-versioned" "$RUNNER_TEMP/containment-stable"
+            gh release download "$RELEASE_TAG" --dir "$RUNNER_TEMP/containment-versioned" \
+              --pattern chainlesschain-update.json
+            gh release download "$CHANNEL_TAG" --dir "$RUNNER_TEMP/containment-stable" \
+              --pattern chainlesschain-update.json
+            if ! cmp -s \
+              "$RUNNER_TEMP/containment-versioned/chainlesschain-update.json" \
+              "$RUNNER_TEMP/containment-stable/chainlesschain-update.json"; then
+              echo "cli-stable changed outside this transaction; refusing to withdraw another release pointer" >&2
+              exit 1
+            fi
+            gh release delete-asset "$CHANNEL_TAG" chainlesschain-update.json --yes
+            echo "Stable activation/readback failed; the active cli-stable manifest was withdrawn." >&2
+          elif [ "$HAS_MANIFEST" -eq 0 ]; then
+            echo "Stable activation/readback failed; cli-stable already has no active manifest." >&2
+          else
+            echo "Stable activation/readback failed and cli-stable has an ambiguous manifest set." >&2
+          fi
+          exit 1
