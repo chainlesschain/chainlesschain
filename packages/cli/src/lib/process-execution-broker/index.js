@@ -73,7 +73,7 @@ const _ipcBus = null;
 function getTraceCtx() {
   if (!_traceCtx) {
     try {
-      _traceCtx = require("../execution-trace/trace-context.js");
+      _traceCtx = require("../execution-trace/trace-context.cjs");
     } catch {
       _traceCtx = null;
     }
@@ -2946,10 +2946,15 @@ class ProcessExecutionBroker extends EventEmitter {
 
   _getTraceContext() {
     const traceCtx = getTraceCtx();
-    if (traceCtx && traceCtx.activeContext) {
-      return traceCtx.activeContext.value || null;
-    }
-    return null;
+    const activeContext = traceCtx?.traceContext?.getCurrentContext?.() || null;
+    if (!activeContext) return null;
+    return {
+      ...activeContext,
+      traceparent: traceCtx.traceContext.formatTraceparent(
+        activeContext.traceId,
+        activeContext.spanId,
+      ),
+    };
   }
 
   _writeRplEntry(auditEntry, status = "started", error = null) {
