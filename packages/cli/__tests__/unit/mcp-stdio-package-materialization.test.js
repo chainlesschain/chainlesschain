@@ -575,6 +575,82 @@ describe("MCP stdio fixed npm package materialization", () => {
     ).toEqual({ identityDigest: prepared.identityDigest });
   }, 30_000);
 
+  it("rejects a source file above the immutable VFS per-file budget before Worker creation", async () => {
+    const workers = useScriptedWorker(() => {
+      throw new Error("oversized source must not reach the Worker");
+    });
+    const oversizedInstall = (input) => {
+      fakeInstall(input);
+      const oversized = path.join(input.directory, "oversized-source.js");
+      fs.writeFileSync(oversized, "", "utf8");
+      fs.truncateSync(oversized, 16 * 1024 * 1024 + 1);
+    };
+    const config = {
+      command: "npx",
+      args: ["@scope/mcp-server@1.2.3"],
+      transport: "stdio",
+    };
+    const authority = approved(config, "source-file-budget-server");
+
+    await expect(
+      materializeMcpStdioNpmPackage({
+        approvalRecord: authority.approvalRecord,
+        config: authority.invocation,
+        packageSpec: "@scope/mcp-server@1.2.3",
+        binName: "scope-mcp",
+        root: materializationRoot,
+        indexPath,
+        npmCli,
+        installRunner: oversizedInstall,
+      }),
+    ).rejects.toMatchObject({
+      code: MCP_STDIO_PACKAGE_MATERIALIZATION_FAILED_CODE,
+      cause: expect.objectContaining({
+        message: expect.stringContaining("exceeds the size limit"),
+      }),
+    });
+    expect(workers).toHaveLength(0);
+  });
+
+  it("rejects a near-limit aggregate source closure before Worker creation", async () => {
+    const workers = useScriptedWorker(() => {
+      throw new Error("oversized closure must not reach the Worker");
+    });
+    const aggregateInstall = (input) => {
+      fakeInstall(input);
+      for (let index = 0; index < 4; index += 1) {
+        const file = path.join(input.directory, `00-budget-${index}.js`);
+        fs.writeFileSync(file, "", "utf8");
+        fs.truncateSync(file, 16 * 1024 * 1024);
+      }
+    };
+    const config = {
+      command: "npx",
+      args: ["@scope/mcp-server@1.2.3"],
+      transport: "stdio",
+    };
+    const authority = approved(config, "source-aggregate-budget-server");
+
+    await expect(
+      materializeMcpStdioNpmPackage({
+        approvalRecord: authority.approvalRecord,
+        config: authority.invocation,
+        packageSpec: "@scope/mcp-server@1.2.3",
+        binName: "scope-mcp",
+        root: materializationRoot,
+        indexPath,
+        npmCli,
+        installRunner: aggregateInstall,
+      }),
+    ).rejects.toMatchObject({
+      code: MCP_STDIO_PACKAGE_MATERIALIZATION_FAILED_CODE,
+      cause: expect.objectContaining({
+        message: expect.stringContaining("exceeds its aggregate budget"),
+      }),
+    });
+    expect(workers).toHaveLength(0);
+  }, 30_000);
+
   it("accepts stable descriptor IDs across divergent Windows pathname stat projections", async () => {
     let divergentPathStats = 0;
     const shiftedStat = (stat) =>
@@ -675,16 +751,22 @@ describe("MCP stdio fixed npm package materialization", () => {
       "builder WASM identity is invalid",
     ],
     [
-      "path/descriptor identity",
-      () =>
-        createAssetTamperingFs({
+      "descriptor re-open identity",
+      () => {
+        let descriptorStats = 0;
+        return createAssetTamperingFs({
           matches: (file) =>
             file.endsWith(
               `${path.sep}esbuild-wasm${path.sep}lib${path.sep}browser.js`,
             ),
-          onPathStat: (_file, stat) =>
-            overrideStat(stat, { ino: stat.ino + 1n }),
-        }),
+          onDescriptorStat: (_file, stat) => {
+            descriptorStats += 1;
+            return descriptorStats === 2
+              ? overrideStat(stat, { ino: stat.ino + 1n })
+              : stat;
+          },
+        });
+      },
       "input identity changed before read",
     ],
   ])("rejects pinned builder %s tampering", async (_label, tamper, message) => {
@@ -1395,7 +1477,7 @@ describe("MCP stdio fixed npm package materialization", () => {
       worker.emit(
         "message",
         successfulWorkerResult(workerData, {
-          output: new Uint8Array(64 * 1024 * 1024 + 1),
+          output: new Uint8Array(32 * 1024 * 1024 + 1),
         }),
       );
       worker.emit("exit", 0);

@@ -53,7 +53,7 @@ const CAPSULE_RESOLVER_SCHEMA =
 const CAPSULE_WORKER_SCHEMA =
   "chainlesschain.mcp-stdio-capsule-builder-worker/v1";
 const CAPSULE_BUILD_TIMEOUT_MS = 120_000;
-const CAPSULE_WORKER_MAX_OLD_GENERATION_MB = 512;
+const CAPSULE_WORKER_MAX_OLD_GENERATION_MB = 256;
 const CAPSULE_BUILDER_WORKER_PATH = fileURLToPath(
   new URL("./mcp-stdio-capsule-builder-worker.cjs", import.meta.url),
 );
@@ -63,8 +63,8 @@ const CAPSULE_RESOLVER_PATH = fileURLToPath(
 // Updated with the checked-in source digest whenever either pinned host module
 // changes. The worker receives source bytes, never a pathname to execute.
 const CAPSULE_BUILDER_WORKER_SHA256 =
-  "6ffd80798d8d58c7aa0d9c7e8ed6eab305feeb4e3b53d01c0c93936eaf0f2c59";
-const CAPSULE_BUILDER_WORKER_BYTES = 14_863;
+  "1386f5ad51ba9e946fbf676d8aba4c8a11b3219916a413ac6fc24578d998ace1";
+const CAPSULE_BUILDER_WORKER_BYTES = 16_293;
 const CAPSULE_RESOLVER_SHA256 =
   "48e1fc27454e6dcfd3018849912699e6ef8417db1716d1c8eff2cd1072a786d2";
 const CAPSULE_RESOLVER_BYTES = 24_417;
@@ -73,8 +73,12 @@ const CAPSULE_STDIN_WRAPPER_SCHEMA =
 const INDEX_LABEL = "MCP stdio package materialization index";
 const MANIFEST_LABEL = "MCP stdio package materialization manifest";
 const MAX_FILES = 10_000;
-const MAX_TOTAL_BYTES = 256 * 1024 * 1024;
-const MAX_FILE_BYTES = 256 * 1024 * 1024;
+// Source bytes cross a Worker boundary and are copied into the immutable VFS
+// and browser realm. Keep the external-memory ceiling well below the V8 heap
+// limit because Worker resourceLimits do not bound ArrayBuffer/WASM memory.
+const MAX_TOTAL_BYTES = 64 * 1024 * 1024;
+const MAX_FILE_BYTES = 16 * 1024 * 1024;
+const MAX_CAPSULE_BYTES = 32 * 1024 * 1024;
 const MAX_DEPTH = 64;
 const HASH_CHUNK_BYTES = 1024 * 1024;
 const EXACT_VERSION =
@@ -568,7 +572,14 @@ function hashFile(file, expectedBytes) {
   }
 }
 
-function collectTree(root) {
+function collectTree(
+  root,
+  {
+    maxFiles = MAX_FILES,
+    maxTotalBytes = MAX_TOTAL_BYTES,
+    maxFileBytes = MAX_FILE_BYTES,
+  } = {},
+) {
   const files = [];
   let totalBytes = 0;
   const visit = (directory, depth) => {
@@ -597,13 +608,13 @@ function collectTree(root) {
         );
       }
       const stat = _deps.fs.statSync(absolute, { bigint: true });
-      if (stat.size < 0n || stat.size > BigInt(MAX_FILE_BYTES)) {
+      if (stat.size < 0n || stat.size > BigInt(maxFileBytes)) {
         throw new Error(
           `materialized file exceeds the size limit: ${relative}`,
         );
       }
       totalBytes += Number(stat.size);
-      if (files.length >= MAX_FILES || totalBytes > MAX_TOTAL_BYTES) {
+      if (files.length >= maxFiles || totalBytes > maxTotalBytes) {
         throw new Error(
           "materialized dependency tree exceeds its aggregate budget",
         );
@@ -945,7 +956,7 @@ async function runCapsuleBuilderWorker({
         entryPath,
         vfsRoot,
         banner,
-        maxOutputBytes: 64 * 1024 * 1024,
+        maxOutputBytes: MAX_CAPSULE_BYTES,
         maxMetafileBytes: 16 * 1024 * 1024,
       },
     });
@@ -1116,7 +1127,7 @@ async function buildCapsule({
   const vfsRoot = "/chainlesschain-source";
   const wrapperRelative = "__chainlesschain_capsule_entry__.cjs";
   const wrapperPath = `${vfsRoot}/${wrapperRelative}`;
-  const maxOutputBytes = 64 * 1024 * 1024;
+  const maxOutputBytes = MAX_CAPSULE_BYTES;
   const maxMetafileBytes = 16 * 1024 * 1024;
   _deps.fs.mkdirSync(capsuleRoot, { recursive: false, mode: 0o700 });
   const sourceEntrypoint = resolveContainedPath(
@@ -1344,7 +1355,11 @@ async function buildCapsule({
   ) {
     throw new Error("MCP package dependency closure changed during bundling");
   }
-  const capsuleClosure = collectTree(capsuleRoot);
+  const capsuleClosure = collectTree(capsuleRoot, {
+    maxFiles: 1,
+    maxTotalBytes: MAX_CAPSULE_BYTES,
+    maxFileBytes: MAX_CAPSULE_BYTES,
+  });
   if (
     capsuleClosure.fileCount !== 1 ||
     capsuleClosure.files[0]?.path !== path.basename(capsulePath)
@@ -1405,7 +1420,7 @@ function validateManifest(manifest) {
     !/^[a-f0-9]{64}$/.test(manifest.capsule.sha256) ||
     !Number.isSafeInteger(manifest.capsule?.bytes) ||
     manifest.capsule.bytes <= 0 ||
-    manifest.capsule.bytes > MAX_FILE_BYTES ||
+    manifest.capsule.bytes > MAX_CAPSULE_BYTES ||
     typeof manifest.capsule?.closureDigest !== "string" ||
     !/^[a-f0-9]{64}$/.test(manifest.capsule.closureDigest) ||
     manifest.capsule?.builder !== CAPSULE_BUILDER ||
@@ -1530,7 +1545,11 @@ function verifyPublishedGeneration(root, record, expectedFingerprint) {
   const capsuleRoot = path.dirname(entrypoint);
   let capsuleClosure;
   try {
-    capsuleClosure = collectTree(capsuleRoot);
+    capsuleClosure = collectTree(capsuleRoot, {
+      maxFiles: 1,
+      maxTotalBytes: MAX_CAPSULE_BYTES,
+      maxFileBytes: MAX_CAPSULE_BYTES,
+    });
   } catch (cause) {
     throw materializationError(
       MCP_STDIO_PACKAGE_MATERIALIZATION_CHANGED_CODE,

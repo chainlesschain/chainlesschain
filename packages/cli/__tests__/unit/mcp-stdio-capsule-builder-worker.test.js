@@ -31,29 +31,33 @@ function transferableCopy(input) {
   return copy;
 }
 
-test("constructor-escape self-test rejects a weakened browser VM", async () => {
-  const workerSource = fs.readFileSync(workerPath, "utf8");
-  const weakenedSource = workerSource.replace(
-    "codeGeneration: { strings: false, wasm: true }",
-    "codeGeneration: { strings: true, wasm: true }",
-  );
-  assert.notEqual(weakenedSource, workerSource);
+async function collectWorkerResult(worker) {
+  const messages = [];
+  worker.on("message", (message) => messages.push(message));
+  const exitCode = await new Promise((resolve, reject) => {
+    worker.once("error", reject);
+    worker.once("exit", resolve);
+  });
+  await worker.terminate();
+  return { exitCode, messages };
+}
 
+function createRealBuilderWorker(workerSource, nonce) {
   const wasmBytes = transferableCopy(
     fs.readFileSync(require.resolve("esbuild-wasm/esbuild.wasm")),
   );
   const entryBytes = transferableCopy('module.exports = "blocked";\n');
-  const worker = new Worker(weakenedSource, {
+  return new Worker(workerSource, {
     eval: true,
     resourceLimits: {
-      maxOldGenerationSizeMb: 512,
+      maxOldGenerationSizeMb: 256,
       maxYoungGenerationSizeMb: 64,
       stackSizeMb: 8,
     },
     transferList: [wasmBytes.buffer, entryBytes.buffer],
     workerData: {
       schema: "chainlesschain.mcp-stdio-capsule-builder-worker/v1",
-      nonce: "a".repeat(64),
+      nonce,
       browserApiSource: fs.readFileSync(
         require.resolve("esbuild-wasm/lib/browser.js"),
         "utf8",
@@ -71,17 +75,85 @@ test("constructor-escape self-test rejects a weakened browser VM", async () => {
       maxMetafileBytes: 1024 * 1024,
     },
   });
-  const messages = [];
-  worker.on("message", (message) => messages.push(message));
-  const exitCode = await new Promise((resolve, reject) => {
-    worker.once("error", reject);
-    worker.once("exit", resolve);
+}
+
+test("rejects a declared immutable VFS total above the external-memory budget", async () => {
+  const workerSource = fs.readFileSync(workerPath, "utf8");
+  const wasmBytes = transferableCopy([0]);
+  const entryBytes = transferableCopy("x");
+  const worker = new Worker(workerSource, {
+    eval: true,
+    transferList: [wasmBytes.buffer, entryBytes.buffer],
+    workerData: {
+      schema: "chainlesschain.mcp-stdio-capsule-builder-worker/v1",
+      nonce: "b".repeat(64),
+      browserApiSource: "invalid but unreachable",
+      resolverSource: "invalid but unreachable",
+      wasmBytes,
+      builderVersion: "0.28.1",
+      files: [["/tree/index.cjs", entryBytes]],
+      fileCount: 1,
+      totalBytes: 64 * 1024 * 1024 + 64 * 1024 + 1,
+      entryPath: "/tree/index.cjs",
+      vfsRoot: "/tree",
+      banner: "",
+      maxOutputBytes: 1024,
+      maxMetafileBytes: 1024,
+    },
   });
-  await worker.terminate();
+
+  const { exitCode, messages } = await collectWorkerResult(worker);
+  assert.equal(exitCode, 0);
+  assert.equal(messages.length, 1);
+  assert.equal(messages[0].ok, false);
+  assert.equal(messages[0].nonce, "b".repeat(64));
+  assert.match(messages[0].error.message, /Worker input is invalid/);
+});
+
+test("drops the transferred VFS container after the resolver owns private copies", () => {
+  const workerSource = fs.readFileSync(workerPath, "utf8");
+  assert.match(
+    workerSource,
+    /new ImmutableVfsResolver[\s\S]*files\.clear\(\);\s*workerData\.files\.length = 0;/,
+  );
+});
+
+test("constructor-escape self-test rejects a weakened browser VM", async () => {
+  const workerSource = fs.readFileSync(workerPath, "utf8");
+  const weakenedSource = workerSource.replace(
+    "codeGeneration: { strings: false, wasm: true }",
+    "codeGeneration: { strings: true, wasm: true }",
+  );
+  assert.notEqual(weakenedSource, workerSource);
+
+  const worker = createRealBuilderWorker(weakenedSource, "a".repeat(64));
+  const { exitCode, messages } = await collectWorkerResult(worker);
 
   assert.equal(exitCode, 0);
   assert.equal(messages.length, 1);
   assert.equal(messages[0].ok, false);
   assert.equal(messages[0].nonce, "a".repeat(64));
+  assert.match(messages[0].error.message, /browser context is not isolated/);
+}, 30_000);
+
+test("constructor-escape self-test rejects a host-realm bridge error", async () => {
+  const workerSource = fs.readFileSync(workerPath, "utf8");
+  const weakenedSource = workerSource.replace(
+    `try {
+           randomFillBridge(view);
+         } catch {
+           throw new Error("crypto.getRandomValues bridge failed");
+         }`,
+    "randomFillBridge(view);",
+  );
+  assert.notEqual(weakenedSource, workerSource);
+
+  const worker = createRealBuilderWorker(weakenedSource, "c".repeat(64));
+  const { exitCode, messages } = await collectWorkerResult(worker);
+
+  assert.equal(exitCode, 0);
+  assert.equal(messages.length, 1);
+  assert.equal(messages[0].ok, false);
+  assert.equal(messages[0].nonce, "c".repeat(64));
   assert.match(messages[0].error.message, /browser context is not isolated/);
 }, 30_000);

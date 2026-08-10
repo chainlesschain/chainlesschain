@@ -7,9 +7,12 @@ const { parentPort, workerData } = require("node:worker_threads");
 
 const WORKER_SCHEMA = "chainlesschain.mcp-stdio-capsule-builder-worker/v1";
 const NONCE = /^[a-f0-9]{64}$/;
-const MAX_OUTPUT_BYTES = 64 * 1024 * 1024;
+const MAX_OUTPUT_BYTES = 32 * 1024 * 1024;
 const MAX_METAFILE_BYTES = 16 * 1024 * 1024;
 const MAX_AUDIT_BYTES = 16 * 1024 * 1024;
+const MAX_VFS_FILES = 10_001;
+const MAX_VFS_TOTAL_BYTES = 64 * 1024 * 1024 + 64 * 1024;
+const MAX_VFS_FILE_BYTES = 16 * 1024 * 1024;
 const activeTimers = new Map();
 let nextTimerId = 1;
 let terminalSent = false;
@@ -83,6 +86,22 @@ function assertHardenedBrowserContext(context) {
         WebAssembly: () => WebAssembly.instantiate.constructor("return typeof process")(),
         wasmModule: () => __chainlessWasmModule.constructor.constructor("return typeof process")(),
         crypto: () => crypto.getRandomValues.constructor("return typeof process")(),
+        cryptoError: () => {
+          try {
+            crypto.getRandomValues(new Uint8Array(65_537));
+          } catch (error) {
+            return error.constructor.constructor("return typeof process")();
+          }
+          throw new Error("expected crypto.getRandomValues to reject an oversized view");
+        },
+        timerError: () => {
+          try {
+            setTimeout(() => {}, Symbol("invalid-delay"));
+          } catch (error) {
+            return error.constructor.constructor("return typeof process")();
+          }
+          throw new Error("expected setTimeout to reject a symbol delay");
+        },
         performance: () => performance.now.constructor("return typeof process")(),
         console: () => console.log.constructor("return typeof process")(),
         contextFunction: () => Function("return typeof process")(),
@@ -138,7 +157,11 @@ async function loadPinnedBrowserApi(source, filename, wasmBytes) {
   const installGlobals = vm.compileFunction(
     `class ChainlessTextEncoder {
        encode(value = "") {
-         return Uint8Array.from(encodeBridge(String(value)));
+         try {
+           return Uint8Array.from(encodeBridge(String(value)));
+         } catch {
+           throw new Error("TextEncoder bridge failed");
+         }
        }
      }
      class ChainlessTextDecoder {
@@ -151,24 +174,40 @@ async function loadPinnedBrowserApi(source, filename, wasmBytes) {
          } else {
            throw new TypeError("Expected an ArrayBuffer view");
          }
-         return decodeBridge(Array.from(view));
+         try {
+           return decodeBridge(Array.from(view));
+         } catch {
+           throw new Error("TextDecoder bridge failed");
+         }
        }
      }
      function safeSetTimeout(callback, delay, ...args) {
        if (typeof callback !== "function") {
          throw new TypeError("callback must be a function");
        }
-       return setTimerBridge(callback, delay, args);
+       try {
+         return setTimerBridge(callback, delay, args);
+       } catch {
+         throw new Error("setTimeout bridge failed");
+       }
      }
      function safeClearTimeout(id) {
-       clearTimerBridge(id);
+       try {
+         clearTimerBridge(id);
+       } catch {
+         throw new Error("clearTimeout bridge failed");
+       }
      }
      const safeCrypto = Object.freeze({
        getRandomValues(view) {
          if (!ArrayBuffer.isView(view)) {
            throw new TypeError("Expected an integer typed array");
          }
-         randomFillBridge(view);
+         try {
+           randomFillBridge(view);
+         } catch {
+           throw new Error("crypto.getRandomValues bridge failed");
+         }
          return view;
        },
      });
@@ -292,8 +331,10 @@ function assertWorkerInput(input) {
     typeof input.banner !== "string" ||
     !Number.isSafeInteger(input.fileCount) ||
     input.fileCount < 1 ||
+    input.fileCount > MAX_VFS_FILES ||
     !Number.isSafeInteger(input.totalBytes) ||
     input.totalBytes < 1 ||
+    input.totalBytes > MAX_VFS_TOTAL_BYTES ||
     !Number.isSafeInteger(input.maxOutputBytes) ||
     input.maxOutputBytes < 1 ||
     input.maxOutputBytes > MAX_OUTPUT_BYTES ||
@@ -351,6 +392,7 @@ async function main() {
       record.length !== 2 ||
       typeof record[0] !== "string" ||
       !(record[1] instanceof Uint8Array) ||
+      record[1].byteLength > MAX_VFS_FILE_BYTES ||
       files.has(record[0])
     ) {
       throw new TypeError("MCP capsule immutable VFS record is invalid");
@@ -369,6 +411,7 @@ async function main() {
   });
   // Drop the structured-clone container before the WASM build. The resolver
   // owns private copies and no callback outside this Worker can mutate them.
+  files.clear();
   workerData.files.length = 0;
 
   await esbuild.initialize({
