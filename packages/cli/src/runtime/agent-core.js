@@ -18,6 +18,7 @@ import fs from "fs";
 import path from "path";
 import broker from "../lib/process-execution-broker/index.js";
 import os from "os";
+import { randomUUID } from "node:crypto";
 import { isProxy } from "node:util/types";
 import sharedCodingAgentPolicy from "./coding-agent-policy.cjs";
 import sharedShellPolicy from "./coding-agent-shell-policy.cjs";
@@ -847,6 +848,22 @@ async function requestInteractivePermission(
   cwd,
   confirmArgs,
 ) {
+  if (context.hermeticExecution === true) {
+    // The coordinator-owned exact scope is itself the complete mutation
+    // authority for this hermetic run. It may authorize a sensitive *allowed*
+    // file, but it never authorizes credential reads or any tool outside the
+    // exact file-tool ceiling (those were rejected by the pure preflight).
+    if (
+      context.fileMutationScope != null &&
+      GUARDED_FILE_MUTATION_TOOLS.has(name)
+    ) {
+      return true;
+    }
+    const confirm = context.permissionConfirm || context.shellConfirm || null;
+    return typeof confirm === "function"
+      ? Boolean(await confirm(confirmArgs))
+      : false;
+  }
   const hooksV2 = await executeHooksV2Event(
     "PermissionRequest",
     {
@@ -1386,6 +1403,284 @@ const GUARDED_FILE_MUTATION_TOOLS = new Set([
   ...IDE_DIFF_EDIT_TOOLS,
   "notebook_edit",
 ]);
+const EXACT_FILE_MUTATION_SCOPE_TOOL_NAMES = new Set([
+  "read_file",
+  "list_dir",
+  "write_file",
+  "edit_file",
+  "edit_file_hashed",
+]);
+const NORMALIZED_EXACT_FILE_MUTATION_SCOPES = new WeakSet();
+const EXACT_FILE_MUTATION_SCOPE_STATES = new WeakMap();
+const WINDOWS_RESERVED_PATH_SEGMENT =
+  /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$/iu;
+
+function sameCanonicalPath(left, right) {
+  return (
+    typeof left === "string" &&
+    typeof right === "string" &&
+    path.relative(left, right) === "" &&
+    path.relative(right, left) === ""
+  );
+}
+
+function exactRepoRelativeFilePath(value) {
+  const segments = typeof value === "string" ? value.split("/") : [];
+  if (
+    typeof value !== "string" ||
+    value.length === 0 ||
+    value.includes("\0") ||
+    value.includes("\\") ||
+    path.posix.isAbsolute(value) ||
+    /^[A-Za-z]:/u.test(value) ||
+    path.posix.normalize(value) !== value ||
+    value === "." ||
+    value === ".." ||
+    value.startsWith("../") ||
+    segments.some(
+      (segment) =>
+        segment === "" ||
+        segment === "." ||
+        segment === ".." ||
+        /[<>:"|?*]/u.test(segment) ||
+        [...segment].some((character) => character.charCodeAt(0) <= 0x1f) ||
+        /[ .]$/u.test(segment) ||
+        WINDOWS_RESERVED_PATH_SEGMENT.test(segment),
+    )
+  ) {
+    throw new Error(
+      "path must be one portable canonical repo-relative file path",
+    );
+  }
+  return value;
+}
+
+function canonicalRealpath(candidate) {
+  const realpath = fs.realpathSync.native || fs.realpathSync;
+  return path.resolve(realpath(candidate));
+}
+
+function filesystemIdentity(stats) {
+  const mtimeNs =
+    stats.mtimeNs != null
+      ? String(stats.mtimeNs)
+      : String(Math.trunc(Number(stats.mtimeMs) * 1_000_000));
+  return Object.freeze({
+    dev: String(stats.dev),
+    ino: String(stats.ino),
+    type: stats.isFile() ? "file" : stats.isDirectory() ? "directory" : "other",
+    nlink: String(stats.nlink),
+    size: String(stats.size),
+    mtimeNs,
+  });
+}
+
+function sameFilesystemIdentity(left, right, { content = false } = {}) {
+  return Boolean(
+    left &&
+    right &&
+    left.dev === right.dev &&
+    left.ino === right.ino &&
+    left.type === right.type &&
+    left.nlink === right.nlink &&
+    (!content || (left.size === right.size && left.mtimeNs === right.mtimeNs)),
+  );
+}
+
+function lstatIdentity(candidate) {
+  const stats = fs.lstatSync(candidate, { bigint: true });
+  if (stats.isSymbolicLink()) {
+    throw new Error(`filesystem alias is not allowed: ${candidate}`);
+  }
+  return { stats, identity: filesystemIdentity(stats) };
+}
+
+function exactBindingState(canonicalRoot, relativePath, absolutePath) {
+  const ancestors = [];
+  let current = canonicalRoot;
+  const root = lstatIdentity(current);
+  if (!root.stats.isDirectory()) {
+    throw new Error("mutation scope worktree root must be a directory");
+  }
+  ancestors.push(Object.freeze({ path: current, identity: root.identity }));
+  const segments = relativePath.split("/");
+  for (const segment of segments.slice(0, -1)) {
+    current = path.join(current, segment);
+    const ancestor = lstatIdentity(current);
+    if (!ancestor.stats.isDirectory()) {
+      throw new Error(`mutation scope parent is not a directory: ${current}`);
+    }
+    ancestors.push(
+      Object.freeze({ path: current, identity: ancestor.identity }),
+    );
+  }
+  const target = lstatIdentity(absolutePath);
+  if (!target.stats.isFile()) {
+    throw new Error(
+      `mutation scope target must be an existing regular file: ${relativePath}`,
+    );
+  }
+  if (target.stats.nlink !== 1n) {
+    throw new Error(
+      `mutation scope target must not have hard links: ${relativePath}`,
+    );
+  }
+  return {
+    ancestors: Object.freeze(ancestors),
+    fileIdentity: target.identity,
+  };
+}
+
+function verifyExactScopeAncestors(state) {
+  for (const ancestor of state.ancestors) {
+    const current = lstatIdentity(ancestor.path);
+    if (
+      !current.stats.isDirectory() ||
+      !sameFilesystemIdentity(current.identity, ancestor.identity)
+    ) {
+      throw new Error(
+        `mutation scope ancestor changed identity: ${ancestor.path}`,
+      );
+    }
+  }
+}
+
+function verifyExactBindingState(scope, binding) {
+  const state = EXACT_FILE_MUTATION_SCOPE_STATES.get(scope)?.get(
+    binding.relativePath,
+  );
+  if (!state) {
+    throw new Error("mutation scope identity state is unavailable");
+  }
+  verifyExactScopeAncestors(state);
+  const current = lstatIdentity(binding.absolutePath);
+  if (
+    !current.stats.isFile() ||
+    current.stats.nlink !== 1n ||
+    !sameFilesystemIdentity(current.identity, state.fileIdentity, {
+      content: true,
+    })
+  ) {
+    throw new Error(
+      `mutation scope file changed identity or content: ${binding.relativePath}`,
+    );
+  }
+  return state;
+}
+
+/**
+ * Bind an exact mutation scope to one canonical worktree and a fixed set of
+ * repo-relative file identities. This is intentionally stricter than the
+ * general workspace guard: aliases through symlinks/junctions are rejected,
+ * even when they resolve to another location inside the same worktree.
+ */
+export function normalizeExactFileMutationScope(
+  scope,
+  { cwd = process.cwd() } = {},
+) {
+  if (scope == null) return null;
+  if (NORMALIZED_EXACT_FILE_MUTATION_SCOPES.has(scope)) {
+    const canonicalCwd = canonicalRealpath(cwd);
+    if (!sameCanonicalPath(canonicalCwd, scope.worktreeRoot)) {
+      throw new Error("mutation scope worktree does not match the run cwd");
+    }
+    return scope;
+  }
+  if (
+    !scope ||
+    typeof scope !== "object" ||
+    Array.isArray(scope) ||
+    scope.exact !== true
+  ) {
+    throw new Error("mutation scope must be an exact object");
+  }
+  if (
+    typeof scope.worktreeRoot !== "string" ||
+    scope.worktreeRoot.length === 0 ||
+    scope.worktreeRoot.includes("\0") ||
+    !path.isAbsolute(scope.worktreeRoot) ||
+    path.normalize(scope.worktreeRoot) !== scope.worktreeRoot
+  ) {
+    throw new Error(
+      "mutation scope worktree root must be canonical and absolute",
+    );
+  }
+  const canonicalRoot = canonicalRealpath(scope.worktreeRoot);
+  if (!sameCanonicalPath(canonicalRoot, scope.worktreeRoot)) {
+    throw new Error("mutation scope worktree root must be its real path");
+  }
+  if (!fs.statSync(canonicalRoot).isDirectory()) {
+    throw new Error("mutation scope worktree root must be a directory");
+  }
+  const canonicalCwd = canonicalRealpath(cwd);
+  if (!sameCanonicalPath(canonicalCwd, canonicalRoot)) {
+    throw new Error("mutation scope worktree does not match the run cwd");
+  }
+  if (!Array.isArray(scope.allowedPaths) || scope.allowedPaths.length === 0) {
+    throw new Error("mutation scope requires at least one allowed path");
+  }
+
+  const allowedPaths = scope.allowedPaths.map(exactRepoRelativeFilePath);
+  if (new Set(allowedPaths).size !== allowedPaths.length) {
+    throw new Error("mutation scope allowed paths must be unique");
+  }
+  const bindings = allowedPaths.map((relativePath) => {
+    const absolutePath = path.resolve(
+      canonicalRoot,
+      ...relativePath.split("/"),
+    );
+    const verdict = resolveSandboxPolicyPath(relativePath, {
+      access: "write",
+      cwd: canonicalRoot,
+      workspaceRoots: [canonicalRoot],
+      sandbox: null,
+    });
+    if (!verdict.ok) {
+      throw new Error(
+        `mutation scope path "${relativePath}" is unsafe: ${verdict.error}`,
+      );
+    }
+    if (
+      !sameCanonicalPath(verdict.path, absolutePath) ||
+      !sameCanonicalPath(verdict.canonicalPath, absolutePath)
+    ) {
+      throw new Error(
+        `mutation scope path "${relativePath}" traverses a filesystem alias`,
+      );
+    }
+    if (!fs.existsSync(absolutePath)) {
+      throw new Error(
+        `mutation scope target must already exist: ${relativePath}`,
+      );
+    }
+    return Object.freeze({
+      relativePath,
+      absolutePath,
+      canonicalPath: verdict.canonicalPath,
+    });
+  });
+  const normalized = Object.freeze({
+    exact: true,
+    worktreeRoot: canonicalRoot,
+    allowedPaths: Object.freeze([...allowedPaths]),
+    bindings: Object.freeze(bindings),
+  });
+  NORMALIZED_EXACT_FILE_MUTATION_SCOPES.add(normalized);
+  EXACT_FILE_MUTATION_SCOPE_STATES.set(
+    normalized,
+    new Map(
+      bindings.map((binding) => [
+        binding.relativePath,
+        exactBindingState(
+          canonicalRoot,
+          binding.relativePath,
+          binding.absolutePath,
+        ),
+      ]),
+    ),
+  );
+  return normalized;
+}
 
 function agentFileToolPathRequests(name, args = {}, workspaceRoots = []) {
   const one = (argument, access) =>
@@ -1475,6 +1770,129 @@ function fileMutationPaths(name, args = {}) {
     args.path,
     ...(name === "move_file" ? [args.target_path] : []),
   ].filter(Boolean);
+}
+
+function guardExactFileMutationScope(name, args, context, cwd) {
+  if (context.fileMutationScope == null) {
+    return null;
+  }
+
+  if (!EXACT_FILE_MUTATION_SCOPE_TOOL_NAMES.has(name)) {
+    return {
+      error: `[File Mutation Scope] Tool "${name}" is outside the hermetic file-tool ceiling.`,
+      policy: {
+        decision: "deny",
+        via: "exact-file-mutation-scope",
+        reason: "tool-not-allowed",
+      },
+    };
+  }
+  if (!GUARDED_FILE_MUTATION_TOOLS.has(name)) return null;
+
+  let scope;
+  try {
+    scope = normalizeExactFileMutationScope(context.fileMutationScope, { cwd });
+  } catch (error) {
+    return {
+      error: `[File Mutation Scope] Invalid exact scope: ${error.message}.`,
+      policy: {
+        decision: "deny",
+        via: "exact-file-mutation-scope",
+        reason: "invalid-scope",
+      },
+    };
+  }
+
+  const requestedPaths = fileMutationPaths(name, args);
+  if (requestedPaths.length === 0) {
+    return {
+      error: `[File Mutation Scope] ${name} did not provide a mutation path.`,
+      policy: {
+        decision: "deny",
+        via: "exact-file-mutation-scope",
+        reason: "invalid-path",
+      },
+    };
+  }
+
+  for (const requestedPath of requestedPaths) {
+    let relativePath;
+    try {
+      relativePath = exactRepoRelativeFilePath(requestedPath);
+    } catch (error) {
+      return {
+        error:
+          `[File Mutation Scope] ${name} path "${requestedPath}" was blocked: ` +
+          `${error.message}.`,
+        policy: {
+          decision: "deny",
+          via: "exact-file-mutation-scope",
+          reason: "non-canonical-path",
+        },
+      };
+    }
+    const binding = scope.bindings.find(
+      (candidate) => candidate.relativePath === relativePath,
+    );
+    if (!binding) {
+      return {
+        error: `[File Mutation Scope] ${name} path "${requestedPath}" is not in the exact allowed file set.`,
+        policy: {
+          decision: "deny",
+          via: "exact-file-mutation-scope",
+          reason: "path-not-allowed",
+        },
+      };
+    }
+    const verdict = resolveSandboxPolicyPath(relativePath, {
+      access: "write",
+      cwd: scope.worktreeRoot,
+      workspaceRoots: [scope.worktreeRoot],
+      sandbox: null,
+    });
+    if (
+      !verdict.ok ||
+      !sameCanonicalPath(verdict.path, binding.absolutePath) ||
+      !sameCanonicalPath(verdict.canonicalPath, binding.canonicalPath) ||
+      !sameCanonicalPath(verdict.canonicalPath, binding.absolutePath)
+    ) {
+      return {
+        error: `[File Mutation Scope] ${name} path "${requestedPath}" changed physical identity or escaped its exact binding.`,
+        policy: {
+          decision: "deny",
+          via: "exact-file-mutation-scope",
+          reason: verdict.ok ? "path-identity-changed" : verdict.reason,
+        },
+      };
+    }
+    try {
+      verifyExactBindingState(scope, binding);
+    } catch (error) {
+      return {
+        error: `[File Mutation Scope] ${name} path "${requestedPath}" was blocked: ${error.message}.`,
+        policy: {
+          decision: "deny",
+          via: "exact-file-mutation-scope",
+          reason: "path-identity-changed",
+        },
+      };
+    }
+  }
+  return null;
+}
+
+export function preflightToolExecutionAuthority(name, args, context = {}) {
+  const cwd = context.cwd || process.cwd();
+  if (
+    Array.isArray(context.effectiveAllowedToolNames) &&
+    !context.effectiveAllowedToolNames.includes(name)
+  ) {
+    return {
+      error: `[Tool Capability] Tool "${name}" is outside this run's effective tool set.`,
+      policy: { decision: "blocked", via: "effective-tool-set" },
+    };
+  }
+  return guardExactFileMutationScope(name, args, context, cwd);
 }
 
 /**
@@ -1795,19 +2213,14 @@ export async function executeTool(name, args, context = {}) {
   const skillLoader = context.skillLoader || _defaultSkillLoader;
   const cwd = context.cwd || process.cwd();
   const planManager = context.planManager || getPlanModeManager();
-  // The provider receives a filtered tool schema, but an untrusted/buggy model
-  // can still emit an arbitrary tool_call. Enforce the exact same immutable
-  // capability set again at execution time; null/absent preserves direct-call
-  // compatibility, while [] is an explicit deny-all ceiling.
-  if (
-    Array.isArray(context.effectiveAllowedToolNames) &&
-    !context.effectiveAllowedToolNames.includes(name)
-  ) {
-    return {
-      error: `[Tool Capability] Tool "${name}" is outside this run's effective tool set.`,
-      policy: { decision: "blocked", via: "effective-tool-set" },
-    };
-  }
+  // The provider receives a filtered schema, but an untrusted/buggy model can
+  // still emit an arbitrary tool_call. Reuse the same pure preflight that the
+  // outer loop runs before checkpoints or execution events.
+  const authorityDenial = preflightToolExecutionAuthority(name, args, {
+    ...context,
+    cwd,
+  });
+  if (authorityDenial) return authorityDenial;
   const localToolDescriptor =
     context.externalToolDescriptors &&
     typeof context.externalToolDescriptors === "object"
@@ -1936,7 +2349,8 @@ export async function executeTool(name, args, context = {}) {
   };
 
   // Persona toolsDisabled guard
-  const persona = _loadProjectPersona(cwd);
+  const persona =
+    context.hermeticExecution === true ? null : _loadProjectPersona(cwd);
   if (persona?.toolsDisabled?.includes(name)) {
     return {
       error: `Tool "${name}" is disabled by project persona configuration.`,
@@ -2320,7 +2734,7 @@ export async function executeTool(name, args, context = {}) {
   // capable: a `block` (exit 2 / {decision:block}) stops the tool here, an
   // `ask` routes to the confirmer. Runs after permission resolution so a
   // settings deny / host deny short-circuits before any hook process spawns.
-  if (!planReadOnlyFenceActive) {
+  if (!planReadOnlyFenceActive && context.hermeticExecution !== true) {
     const hooksV2Pre = await executeHooksV2Event(
       "PreToolUse",
       {
@@ -2427,6 +2841,7 @@ export async function executeTool(name, args, context = {}) {
       mcpHostClient: context.mcpHostClient || context.mcpClient || null,
       mcpCallLedger: context.mcpCallLedger || null,
       mcpConflictScheduler: context.mcpConflictScheduler || null,
+      mcpDispatchAdmission: context.mcpDispatchAdmission || null,
       subtreeInstructionScope:
         context.subtreeInstructionScope || context.sessionId || "__legacy__",
       shellPolicyOverrides: context.shellPolicyOverrides || null,
@@ -2453,9 +2868,15 @@ export async function executeTool(name, args, context = {}) {
       toolAdmission: context.toolAdmission || null,
       unattendedActionPolicy: context.unattendedActionPolicy || null,
       managedCheckpoint: context.managedCheckpoint === true,
+      fileMutationScope: context.fileMutationScope || null,
+      hermeticExecution: context.hermeticExecution === true,
     });
   } catch (err) {
-    if (hookDb && !planReadOnlyFenceActive) {
+    if (
+      hookDb &&
+      !planReadOnlyFenceActive &&
+      context.hermeticExecution !== true
+    ) {
       try {
         await executeHooks(hookDb, HookEvents.ToolError, {
           tool: name,
@@ -2486,7 +2907,11 @@ export async function executeTool(name, args, context = {}) {
   }
 
   // PostToolUse hook
-  if (hookDb && !planReadOnlyFenceActive) {
+  if (
+    hookDb &&
+    !planReadOnlyFenceActive &&
+    context.hermeticExecution !== true
+  ) {
     try {
       await executeHooks(hookDb, HookEvents.PostToolUse, {
         tool: name,
@@ -2506,6 +2931,7 @@ export async function executeTool(name, args, context = {}) {
   // reason is attached as `hookFeedback` to be surfaced back to the model.
   if (
     !planReadOnlyFenceActive &&
+    context.hermeticExecution !== true &&
     context.settingsHooks &&
     toolResult &&
     typeof toolResult === "object"
@@ -2689,6 +3115,169 @@ export function writeFileVerified(filePath, content, fsImpl = fs) {
     };
   }
   return { size: actual };
+}
+
+function writeFileVerifiedWithinExactScope(
+  fileMutationScope,
+  requestedPath,
+  content,
+  cwd,
+) {
+  let scope;
+  let relativePath;
+  let binding;
+  let state;
+  try {
+    scope = normalizeExactFileMutationScope(fileMutationScope, { cwd });
+    relativePath = exactRepoRelativeFilePath(requestedPath);
+    binding = scope.bindings.find(
+      (candidate) => candidate.relativePath === relativePath,
+    );
+    if (!binding) throw new Error("path is not in the exact allowed file set");
+    state = verifyExactBindingState(scope, binding);
+  } catch (error) {
+    return {
+      error: `[File Mutation Scope] Bound write refused: ${error.message}`,
+      policy: {
+        decision: "deny",
+        via: "exact-file-mutation-scope",
+        reason: "path-identity-changed",
+      },
+    };
+  }
+
+  const expected = Buffer.byteLength(content, "utf8");
+  let descriptor;
+  let temporaryPath;
+  let temporaryIdentity;
+  let replacementCommitted = false;
+  try {
+    // Never truncate the bound inode: it may be renamed outside the authorized
+    // worktree after the guard. Stage new bytes in the same verified directory
+    // and replace only the authorized pathname atomically. A concurrent rename
+    // can move the old inode, but cannot turn this write into a mutation of it.
+    const source = lstatIdentity(binding.absolutePath);
+    if (
+      !source.stats.isFile() ||
+      source.stats.nlink !== 1n ||
+      !sameFilesystemIdentity(source.identity, state.fileIdentity, {
+        content: true,
+      })
+    ) {
+      throw new Error("source file no longer matches the bound identity");
+    }
+
+    const directory = path.dirname(binding.absolutePath);
+    temporaryPath = path.join(
+      directory,
+      `.chainlesschain-fix-${process.pid}-${randomUUID()}.tmp`,
+    );
+    const noFollow = fs.constants.O_NOFOLLOW || 0;
+    descriptor = fs.openSync(
+      temporaryPath,
+      fs.constants.O_WRONLY |
+        fs.constants.O_CREAT |
+        fs.constants.O_EXCL |
+        noFollow,
+      Number(source.stats.mode & 0o777n),
+    );
+    const openedTemporary = fs.fstatSync(descriptor, { bigint: true });
+    temporaryIdentity = filesystemIdentity(openedTemporary);
+    if (!openedTemporary.isFile() || openedTemporary.nlink !== 1n) {
+      throw new Error("staged file did not open as one regular file");
+    }
+    if (process.platform !== "win32") {
+      fs.fchmodSync(descriptor, Number(source.stats.mode & 0o777n));
+    }
+    fs.writeFileSync(descriptor, content, { encoding: "utf8" });
+    fs.fsyncSync(descriptor);
+    const staged = fs.fstatSync(descriptor, { bigint: true });
+    const stagedIdentity = filesystemIdentity(staged);
+    if (
+      !staged.isFile() ||
+      staged.nlink !== 1n ||
+      !sameFilesystemIdentity(stagedIdentity, temporaryIdentity) ||
+      staged.size !== BigInt(expected)
+    ) {
+      throw new Error("staged write verification failed");
+    }
+
+    // Revalidate both the original binding and the staged pathname immediately
+    // before the atomic replacement. O_EXCL plus the descriptor/path identity
+    // comparison prevents a pre-created alias from being substituted here.
+    verifyExactBindingState(scope, binding);
+    const stagedPath = lstatIdentity(temporaryPath);
+    if (
+      !stagedPath.stats.isFile() ||
+      stagedPath.stats.nlink !== 1n ||
+      !sameFilesystemIdentity(stagedPath.identity, stagedIdentity, {
+        content: true,
+      })
+    ) {
+      throw new Error("staged file path changed identity or content");
+    }
+
+    fs.renameSync(temporaryPath, binding.absolutePath);
+    replacementCommitted = true;
+    temporaryPath = undefined;
+
+    const installed = lstatIdentity(binding.absolutePath);
+    verifyExactScopeAncestors(state);
+    if (
+      !installed.stats.isFile() ||
+      installed.stats.nlink !== 1n ||
+      !sameFilesystemIdentity(installed.identity, stagedIdentity, {
+        content: true,
+      }) ||
+      installed.stats.size !== BigInt(expected)
+    ) {
+      throw new Error("installed replacement failed identity verification");
+    }
+    state.fileIdentity = installed.identity;
+
+    // POSIX needs a directory fsync to durably publish the rename. Windows
+    // does not support fsync on directory handles through Node.
+    if (process.platform !== "win32") {
+      const directoryDescriptor = fs.openSync(directory, fs.constants.O_RDONLY);
+      try {
+        fs.fsyncSync(directoryDescriptor);
+      } finally {
+        fs.closeSync(directoryDescriptor);
+      }
+    }
+    return { size: Number(installed.stats.size) };
+  } catch (error) {
+    return {
+      error: `[File Mutation Scope] Bound write failed: ${error.message}`,
+      ...(replacementCommitted ? { outcomeUnknown: true } : {}),
+      ...(temporaryPath
+        ? {
+            cleanupRequired: true,
+            unsettledStage: path.basename(temporaryPath),
+          }
+        : {}),
+      policy: {
+        decision: "deny",
+        via: "exact-file-mutation-scope",
+        reason: replacementCommitted
+          ? "bound-write-outcome-unknown"
+          : "bound-write-failed",
+      },
+    };
+  } finally {
+    if (descriptor !== undefined) {
+      try {
+        fs.closeSync(descriptor);
+      } catch {
+        /* the write result already records the authoritative failure */
+      }
+    }
+    // Never unlink a failed staging pathname here. Another process can replace
+    // either that entry or its parent between any identity check and unlink;
+    // preserving an explicitly reported orphan is safer than deleting an
+    // unknown file. A separately authorized identity-aware maintenance pass
+    // may reconcile it later.
+  }
 }
 
 // ── Edit-concurrency (read-freshness) guard ──────────────────────────────
@@ -3592,8 +4181,10 @@ async function executeToolInner(
     externalToolExecutors,
     extraToolDefinitions = null,
     mcpClient,
+    mcpHostClient = mcpClient,
     mcpCallLedger = null,
     mcpConflictScheduler = null,
+    mcpDispatchAdmission = null,
     subtreeInstructionScope = "__legacy__",
     memoryDb = null,
     permanentMemory = null,
@@ -3618,6 +4209,8 @@ async function executeToolInner(
     toolAdmission = null,
     unattendedActionPolicy = null,
     managedCheckpoint = false,
+    fileMutationScope = null,
+    hermeticExecution = false,
     // Hook-envelope tracing: this run's trace id, threaded into child loops
     // (spawn_sub_agent / isolated run_skill) as their parent_id.
     hookTraceId = null,
@@ -3758,6 +4351,13 @@ async function executeToolInner(
     }
 
     case "write_file": {
+      const sinkDenial = guardExactFileMutationScope(
+        name,
+        args,
+        { fileMutationScope },
+        cwd,
+      );
+      if (sinkDenial) return attachDescriptor(sinkDenial);
       const filePath = path.resolve(cwd, args.path);
       const dir = path.dirname(filePath);
       // Overwriting an existing file: refuse if it changed on disk since the
@@ -3766,11 +4366,18 @@ async function executeToolInner(
         const stale = _checkFileFreshness(filePath);
         if (stale) return attachDescriptor({ error: stale });
       }
-      if (!fs.existsSync(dir)) {
+      if (!fileMutationScope && !fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
-      const wrote = writeFileVerified(filePath, args.content);
-      if (wrote.error) return attachDescriptor({ error: wrote.error });
+      const wrote = fileMutationScope
+        ? writeFileVerifiedWithinExactScope(
+            fileMutationScope,
+            args.path,
+            args.content,
+            cwd,
+          )
+        : writeFileVerified(filePath, args.content);
+      if (wrote.error) return attachDescriptor(wrote);
       _recordFileObservation(filePath);
       return attachDescriptor(
         await _withSubtreeInstructions(
@@ -3779,7 +4386,7 @@ async function executeToolInner(
             filePath,
             cwd,
             additionalDirectories,
-            managedCheckpoint,
+            managedCheckpoint || hermeticExecution,
           ),
           filePath,
           cwd,
@@ -3890,6 +4497,13 @@ async function executeToolInner(
     }
 
     case "edit_file": {
+      const sinkDenial = guardExactFileMutationScope(
+        name,
+        args,
+        { fileMutationScope },
+        cwd,
+      );
+      if (sinkDenial) return attachDescriptor(sinkDenial);
       const filePath = path.resolve(cwd, args.path);
       if (!fs.existsSync(filePath)) {
         return attachDescriptor({ error: `File not found: ${filePath}` });
@@ -3947,8 +4561,15 @@ async function executeToolInner(
           occurrences: count,
         });
       }
-      const wrote = writeFileVerified(filePath, newContent);
-      if (wrote.error) return attachDescriptor({ error: wrote.error });
+      const wrote = fileMutationScope
+        ? writeFileVerifiedWithinExactScope(
+            fileMutationScope,
+            args.path,
+            newContent,
+            cwd,
+          )
+        : writeFileVerified(filePath, newContent);
+      if (wrote.error) return attachDescriptor(wrote);
       _recordFileObservation(filePath);
       return attachDescriptor(
         await _withSubtreeInstructions(
@@ -3962,7 +4583,7 @@ async function executeToolInner(
             filePath,
             cwd,
             additionalDirectories,
-            managedCheckpoint,
+            managedCheckpoint || hermeticExecution,
           ),
           filePath,
           cwd,
@@ -3972,6 +4593,13 @@ async function executeToolInner(
     }
 
     case "edit_file_hashed": {
+      const sinkDenial = guardExactFileMutationScope(
+        name,
+        args,
+        { fileMutationScope },
+        cwd,
+      );
+      if (sinkDenial) return attachDescriptor(sinkDenial);
       // Hash-anchored edit (v5.0.2.9, inspired by oh-my-openagent).
       // Reference a line by its content hash rather than line number or
       // exact string — robust against whitespace drift and concurrent edits.
@@ -4012,8 +4640,15 @@ async function executeToolInner(
           ...(snippet && { current_snippet: snippet }),
         });
       }
-      const wrote = writeFileVerified(filePath, result.content);
-      if (wrote.error) return attachDescriptor({ error: wrote.error });
+      const wrote = fileMutationScope
+        ? writeFileVerifiedWithinExactScope(
+            fileMutationScope,
+            args.path,
+            result.content,
+            cwd,
+          )
+        : writeFileVerified(filePath, result.content);
+      if (wrote.error) return attachDescriptor(wrote);
       _recordFileObservation(filePath);
       return attachDescriptor(
         await _withSubtreeInstructions(
@@ -4028,7 +4663,7 @@ async function executeToolInner(
             filePath,
             cwd,
             additionalDirectories,
-            managedCheckpoint,
+            managedCheckpoint || hermeticExecution,
           ),
           filePath,
           cwd,
@@ -5014,8 +5649,10 @@ async function executeToolInner(
           // Parent MCP plumbing — a spawn can inherit these into the child,
           // filtered by the resolved contract's mcpServers allow-list.
           mcpClient,
+          mcpHostClient,
           mcpCallLedger,
           mcpConflictScheduler,
+          mcpDispatchAdmission,
           externalToolDescriptors,
           externalToolExecutors,
           extraToolDefinitions,
@@ -6174,6 +6811,21 @@ async function executeToolInner(
           });
         }
 
+        if (
+          mcpDispatchAdmission !== null &&
+          typeof mcpDispatchAdmission !== "function"
+        ) {
+          return attachDescriptor({
+            error:
+              "MCP tool blocked because the host dispatch authority is invalid",
+            policy: {
+              decision: "blocked",
+              via: "mcp-dispatch-admission",
+              code: "CC_MCP_DISPATCH_ADMISSION_INVALID",
+            },
+          });
+        }
+
         const schedulerScopes = mcpLedgerScopes(mcpWireInput);
         const ledgerEffectContract = mcpLedgerEffectContract(
           localToolDescriptor,
@@ -6233,9 +6885,12 @@ async function executeToolInner(
 
           const transportFailure = async (callError, phase = "call") => {
             const definitiveRpcFailure = isMcpRpcError(callError);
+            const definitelyNotDispatched =
+              safeMcpProperty(callError, "dispatched") === false;
             if (
               mcpTransportOutcomeIsUnsafe(ledgerEffectContract) &&
-              !definitiveRpcFailure
+              !definitiveRpcFailure &&
+              !definitelyNotDispatched
             ) {
               const resultAdmissionFailure =
                 isMcpToolResultAdmissionError(callError);
@@ -6281,7 +6936,14 @@ async function executeToolInner(
               localToolExecutor.toolName,
               mcpWireInput,
             ];
-            if (signal) callArguments.push({ signal });
+            if (signal || mcpDispatchAdmission) {
+              callArguments.push({
+                ...(signal ? { signal } : {}),
+                ...(mcpDispatchAdmission
+                  ? { dispatchAdmission: mcpDispatchAdmission }
+                  : {}),
+              });
+            }
             pendingResult = Reflect.apply(
               mcpClient.callTool,
               mcpClient,
@@ -7704,9 +8366,13 @@ async function _executeSpawnSubAgent(args, ctx) {
           externalToolDescriptors: inheritedMcp.externalToolDescriptors,
           externalToolExecutors: inheritedMcp.externalToolExecutors,
           mcpClient: inheritedMcp.mcpClient,
+          mcpHostClient: ctx.mcpHostClient || inheritedMcp.mcpClient,
           ...(ctx.mcpCallLedger ? { mcpCallLedger: ctx.mcpCallLedger } : {}),
           ...(ctx.mcpConflictScheduler
             ? { mcpConflictScheduler: ctx.mcpConflictScheduler }
+            : {}),
+          ...(ctx.mcpDispatchAdmission
+            ? { mcpDispatchAdmission: ctx.mcpDispatchAdmission }
             : {}),
         }
       : {}),
@@ -7997,7 +8663,10 @@ async function _executeSpawnSubAgent(args, ctx) {
 // ─── LLM chat with tools ─────────────────────────────────────────────────
 
 function getEffectiveToolDefinitions(options = {}) {
-  const persona = _loadProjectPersona(options.cwd);
+  const persona =
+    options.hermeticExecution === true
+      ? null
+      : _loadProjectPersona(options.cwd);
   // Merge every deny source before both schema projection and execution-time
   // enforcement. Keeping this in one helper prevents those two fences from
   // drifting apart.
@@ -9484,6 +10153,93 @@ function _compactionTokenUsage(stats) {
   };
 }
 
+function _sameMessageSnapshot(messages, expectedMessages) {
+  return (
+    messages.length === expectedMessages.length &&
+    messages.every((message, index) => message === expectedMessages[index])
+  );
+}
+
+function _compactionSettlementError(code, message, cause = null) {
+  const error = new Error(message, cause ? { cause } : undefined);
+  error.code = code;
+  return error;
+}
+
+/**
+ * Settle one automatic compaction candidate before changing the live array.
+ * Provider work has already completed when this runs. The actual canonical
+ * compare-and-append remains synchronous, so no JavaScript turn can interleave
+ * between the durable CAS and the in-memory replacement.
+ */
+async function _settleAutomaticCompaction({
+  messages,
+  liveExpectedMessages,
+  authorityExpectedMessages,
+  compacted,
+  stats,
+  options,
+}) {
+  if (!_sameMessageSnapshot(messages, liveExpectedMessages)) {
+    throw _compactionSettlementError(
+      "SESSION_REVISION_STALE",
+      "Session messages changed while automatic compaction was running",
+    );
+  }
+
+  let settlement = null;
+  if (typeof options.onCompaction === "function") {
+    if (options.onCompaction.constructor?.name === "AsyncFunction") {
+      throw _compactionSettlementError(
+        "CC_COMPACTION_SETTLEMENT_ASYNC",
+        "Automatic compaction settlement must be synchronous",
+      );
+    }
+    settlement = options.onCompaction(stats, compacted, {
+      expectedMessages: authorityExpectedMessages,
+      liveExpectedMessages,
+      trigger: "auto",
+    });
+  } else if (options.sessionId && options.persistCompaction !== false) {
+    const store = await import("../harness/jsonl-session-store.js");
+    if (!_sameMessageSnapshot(messages, liveExpectedMessages)) {
+      throw _compactionSettlementError(
+        "SESSION_REVISION_STALE",
+        "Session messages changed before automatic compaction settlement",
+      );
+    }
+    if (store.sessionExists(options.sessionId)) {
+      settlement = store.appendCompactEventIfMessagesMatch(
+        options.sessionId,
+        {
+          ...stats,
+          trigger: "auto",
+          messages: projectCanonicalResumeMessages(compacted, { strict: true }),
+        },
+        authorityExpectedMessages,
+      );
+    }
+  }
+
+  if (settlement && typeof settlement.then === "function") {
+    // Observe a late rejection but never await/retry an authority settlement
+    // whose commit state may already be unknown.
+    void Promise.resolve(settlement).catch(() => {});
+    throw _compactionSettlementError(
+      "CC_COMPACTION_SETTLEMENT_ASYNC",
+      "Automatic compaction settlement must be synchronous",
+    );
+  }
+  if (!_sameMessageSnapshot(messages, liveExpectedMessages)) {
+    throw _compactionSettlementError(
+      "CC_COMPACTION_LOCAL_STATE_CHANGED",
+      "Live messages changed after automatic compaction settlement",
+    );
+  }
+  messages.splice(0, messages.length, ...compacted);
+  return settlement;
+}
+
 /**
  * Run `fn` inside an OpenTelemetry span when `options.recorder` is attached,
  * else run it bare (zero overhead on the un-instrumented path). `onResult`
@@ -9590,10 +10346,44 @@ export async function* agentLoop(messages, options) {
   const runId =
     options.runId ||
     `run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  let automaticCompactionSettlementBlocked = false;
 
-  const effectiveAllowedToolNames = Object.freeze(
-    getEffectiveToolDefinitions(options).map((tool) => tool.function.name),
+  const fileMutationScope = normalizeExactFileMutationScope(
+    options.fileMutationScope,
+    { cwd: options.cwd || process.cwd() },
   );
+  const hermeticExecution = options.hermeticExecution === true;
+  if (
+    fileMutationScope &&
+    (options.exactToolNames !== true || !hermeticExecution)
+  ) {
+    throw new Error(
+      "exact file mutation scope requires exactToolNames=true and hermeticExecution=true",
+    );
+  }
+
+  const effectiveToolOptions = hermeticExecution
+    ? {
+        ...options,
+        hostManagedToolPolicy: null,
+        extraToolDefinitions: [],
+      }
+    : options;
+  const effectiveAllowedToolNames = Object.freeze(
+    getEffectiveToolDefinitions(effectiveToolOptions).map(
+      (tool) => tool.function.name,
+    ),
+  );
+  if (
+    fileMutationScope &&
+    effectiveAllowedToolNames.some(
+      (name) => !EXACT_FILE_MUTATION_SCOPE_TOOL_NAMES.has(name),
+    )
+  ) {
+    throw new Error(
+      "exact file mutation scope contains a tool outside the hermetic file-tool ceiling",
+    );
+  }
   const mcpCallLedger =
     options.mcpCallLedger ||
     createMcpCallLedger({ sink: options.mcpLedgerSink || null });
@@ -9601,7 +10391,7 @@ export async function* agentLoop(messages, options) {
     options.mcpConflictScheduler || createMcpConflictScheduler();
 
   const toolContext = {
-    hookDb: options.hookDb || null,
+    hookDb: hermeticExecution ? null : options.hookDb || null,
     skillLoader: options.skillLoader || _defaultSkillLoader,
     // Hook-envelope tracing (P2 unified event bus): every settings-hook payload
     // fired during this run carries trace_id = this run's id; a spawned child
@@ -9615,6 +10405,8 @@ export async function* agentLoop(messages, options) {
     // ids/dirNames. Set by the spawn path from the resolved subagent contract.
     skillAllowlist: options.skillAllowlist ?? null,
     effectiveAllowedToolNames,
+    fileMutationScope,
+    hermeticExecution,
     cwd: options.cwd || process.cwd(),
     planManager: options.planManager || null,
     sessionId: options.sessionId || null,
@@ -9622,23 +10414,38 @@ export async function* agentLoop(messages, options) {
     // several model/tool iterations. Hosts may supply their persisted turn id;
     // otherwise the run id is the stable in-process binding.
     turnId: options.turnId || runId,
-    hostManagedToolPolicy: options.hostManagedToolPolicy || null,
-    externalToolDescriptors: options.externalToolDescriptors || null,
-    externalToolExecutors: options.externalToolExecutors || null,
+    hostManagedToolPolicy: hermeticExecution
+      ? null
+      : options.hostManagedToolPolicy || null,
+    externalToolDescriptors: hermeticExecution
+      ? null
+      : options.externalToolDescriptors || null,
+    externalToolExecutors: hermeticExecution
+      ? null
+      : options.externalToolExecutors || null,
     // Optional session-level Extension Tier gate. Hosts that can provide
     // capability/policy/permission/budget/UI signals opt in with
     // { enforce: true }; omitting it preserves the CLI's existing per-call
     // permission pipeline for backwards compatibility.
-    toolAdmission: options.toolAdmission || null,
-    unattendedActionPolicy: options.unattendedActionPolicy || null,
+    toolAdmission: hermeticExecution ? null : options.toolAdmission || null,
+    unattendedActionPolicy: hermeticExecution
+      ? null
+      : options.unattendedActionPolicy || null,
     // MCP tool DEFINITIONS the LLM sees (mcp__server__tool). Threaded here so a
     // spawn can inherit the parent's MCP tools into the child (filtered by the
     // contract's mcpServers allow-list). Otherwise consumed only at agentLoop.
-    extraToolDefinitions: options.extraToolDefinitions || null,
-    mcpClient: options.mcpClient || null,
-    mcpHostClient: options.mcpHostClient || options.mcpClient || null,
+    extraToolDefinitions: hermeticExecution
+      ? null
+      : options.extraToolDefinitions || null,
+    mcpClient: hermeticExecution ? null : options.mcpClient || null,
+    mcpHostClient: hermeticExecution
+      ? null
+      : options.mcpHostClient || options.mcpClient || null,
     mcpCallLedger,
     mcpConflictScheduler,
+    mcpDispatchAdmission: hermeticExecution
+      ? null
+      : options.mcpDispatchAdmission || null,
     // A loop-local identity prevents one session's lazy instruction commits
     // from suppressing first-access delivery in another session at the same
     // cwd. Hosts may inject a stable identity across resumed turns.
@@ -9666,21 +10473,25 @@ export async function* agentLoop(messages, options) {
     // verification allowlist (npm test / rg / …) is classified through the
     // ApprovalGate instead of fast-pathed, so no shell command auto-runs.
     classifyAllShell: options.classifyAllShell || false,
-    approvalGate: options.approvalGate || null,
-    shellConfirm: options.shellConfirm || null,
+    approvalGate: hermeticExecution ? null : options.approvalGate || null,
+    shellConfirm: hermeticExecution ? null : options.shellConfirm || null,
     // Interactive sessions (the REPL) set this so run_code is gated through the
     // ApprovalGate like run_shell — a human can approve. Headless leaves it
     // false so run_code keeps its existing per-permission-mode behavior.
     interactiveApproval: options.interactiveApproval || false,
-    additionalDirectories: options.additionalDirectories || null,
+    additionalDirectories: hermeticExecution
+      ? null
+      : options.additionalDirectories || null,
     sandbox: options.sandbox || null,
-    permissionRules: options.permissionRules || null,
-    permissionConfirm: options.permissionConfirm || null,
-    settingsHooks: options.settingsHooks || null,
+    permissionRules: hermeticExecution ? null : options.permissionRules || null,
+    permissionConfirm: hermeticExecution
+      ? null
+      : options.permissionConfirm || null,
+    settingsHooks: hermeticExecution ? null : options.settingsHooks || null,
     // Async-hook supervisor (REPL-owned): lets PostToolUse `async:true` hooks
     // run fire-and-forget instead of blocking the tool loop. Optional — when
     // absent, async PostToolUse hooks are simply skipped (never run sync).
-    hookSupervisor: options.hookSupervisor || null,
+    hookSupervisor: hermeticExecution ? null : options.hookSupervisor || null,
     autoCheckpoint: options.autoCheckpoint || false,
     checkpointSession:
       options.checkpointSession || options.sessionId || "agent",
@@ -9730,6 +10541,7 @@ export async function* agentLoop(messages, options) {
   };
   const backgroundSubAgents = toolContext.backgroundSubAgents;
   const subAgentUsageSink = toolContext.subAgentUsageSink;
+  const lifecycleHookEmitter = hermeticExecution ? () => {} : emitHooksV2Event;
 
   throwIfAborted(signal);
 
@@ -9737,7 +10549,7 @@ export async function* agentLoop(messages, options) {
   // Before calling the LLM, check if the user's message matches a known
   // intent with missing required parameters. If so, interactively fill them
   // and append the gathered context to the user message.
-  if (options.slotFiller && options.interaction) {
+  if (!hermeticExecution && options.slotFiller && options.interaction) {
     const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
     if (lastUserMsg) {
       try {
@@ -9916,10 +10728,19 @@ export async function* agentLoop(messages, options) {
     // its full tool_call→tool_result cycle before we loop, so `messages` has no
     // dangling call; `preserveToolPairs` then guarantees compaction never
     // orphans a tool result. Best-effort — a failure never aborts the run.
-    if (options.autoCompact !== false && messages.length > 4) {
+    if (
+      options.autoCompact !== false &&
+      !automaticCompactionSettlementBlocked &&
+      messages.length > 4
+    ) {
       try {
         const compactor = await _getAutoCompactor(options);
         if (compactor && compactor.shouldAutoCompact(messages)) {
+          // This is the canonical pre-provider authority snapshot. A local
+          // micro-compact may change the working input, but the durable CAS must
+          // still compare against the transcript state that existed before any
+          // in-memory compaction happened.
+          const authorityExpectedMessages = [...messages];
           // Cheap surgical pre-pass (Claude-Code microcompact parity): trim old
           // large tool results IN PLACE before the disruptive full
           // summarization. If the trim brings the context back under threshold,
@@ -9945,7 +10766,7 @@ export async function* agentLoop(messages, options) {
           // right before the history would be compacted.
           let preCompactBlocked = false;
           let preCompactReason = null;
-          if (needFull && options.settingsHooks) {
+          if (!hermeticExecution && needFull && options.settingsHooks) {
             try {
               const pc = runObserveHooks(
                 options.settingsHooks,
@@ -9999,44 +10820,68 @@ export async function* agentLoop(messages, options) {
             };
           }
           if (stats.saved > 0 && compacted.length < messages.length) {
-            messages.splice(0, messages.length, ...compacted);
-            // Persist the compaction so a later --resume rebuilds from the
-            // shortened history. An explicit `onCompaction` hook (if a caller
-            // provides one) takes precedence; otherwise self-persist a `compact`
-            // event — but only when the session is already being persisted to
-            // disk (the JSONL file exists), so a one-shot `cc agent -p` (which
-            // never creates a session file) writes nothing. Opt out with
-            // `persistCompaction: false`. Best-effort throughout.
-            if (typeof options.onCompaction === "function") {
-              try {
-                options.onCompaction(stats, compacted);
-              } catch {
-                // persistence is best-effort
-              }
-            } else if (
-              options.sessionId &&
-              options.persistCompaction !== false
-            ) {
-              try {
-                const store = await import("../harness/jsonl-session-store.js");
-                if (store.sessionExists(options.sessionId)) {
-                  store.appendCompactEvent(options.sessionId, {
-                    ...stats,
-                    messages: compacted,
-                  });
-                }
-              } catch {
-                // self-persist is best-effort
-              }
+            if (stats.summaryUsageUnknown === true) {
+              automaticCompactionSettlementBlocked = true;
+              yield {
+                type: "compaction-usage-unknown",
+                runId,
+                provider: stats.summaryProvider || options.provider || null,
+                model: stats.summaryModel || options.model || null,
+                reason:
+                  stats.summaryUsageUnknownReason ||
+                  "provider_transport_outcome_unknown",
+                source: "semantic-compaction",
+              };
+              // Do not apply the fallback or start another paid model request.
+              // A transport failure may already have incurred unknown usage.
+              return;
             }
-            emitHooksV2Event("PostCompact", {
-              schema_version: 1,
-              trigger: "auto",
-              session_id: options.sessionId || null,
-              messages_after: messages.length,
-              stats,
-              cwd: options.cwd || process.cwd(),
-            });
+            const liveExpectedMessages = [...messages];
+            try {
+              await _settleAutomaticCompaction({
+                messages,
+                liveExpectedMessages,
+                authorityExpectedMessages,
+                compacted,
+                stats,
+                options,
+              });
+            } catch (error) {
+              automaticCompactionSettlementBlocked = true;
+              yield {
+                type: "compaction-degraded",
+                runId,
+                reason:
+                  error?.code === "SESSION_REVISION_STALE"
+                    ? "session_messages_changed_during_compaction"
+                    : "canonical_compaction_settlement_failed",
+                summaryMode: "none",
+                code: error?.code || "CC_COMPACTION_SETTLEMENT_FAILED",
+              };
+              if (compactionUsage) {
+                yield {
+                  type: "token-usage",
+                  provider: stats.summaryProvider || options.provider || null,
+                  model: stats.summaryModel || options.model || null,
+                  usage: compactionUsage,
+                  source: "semantic-compaction",
+                  runId,
+                };
+              }
+              // The paid summary call is never retried, and an unknown/stale
+              // canonical settlement cannot be followed by another model call.
+              return;
+            }
+            if (!hermeticExecution) {
+              emitHooksV2Event("PostCompact", {
+                schema_version: 1,
+                trigger: "auto",
+                session_id: options.sessionId || null,
+                messages_after: messages.length,
+                stats,
+                cwd: options.cwd || process.cwd(),
+              });
+            }
             yield { type: "compaction", stats, runId };
           }
           if (compactionUsage) {
@@ -10077,7 +10922,7 @@ export async function* agentLoop(messages, options) {
       )) {
         // SubagentStop fires at RESULT time for background spawns (the
         // spawn-time handle skips it); a block reason rides along as feedback.
-        if (options.settingsHooks) {
+        if (!hermeticExecution && options.settingsHooks) {
           try {
             const outcome = runObserveHooks(
               options.settingsHooks,
@@ -10118,7 +10963,7 @@ export async function* agentLoop(messages, options) {
     // prepareCall runs fresh each iteration and returns an ephemeral
     // system-message supplement that is NOT persisted to messages history.
     let callMessages = messages;
-    if (typeof options.prepareCall === "function") {
+    if (!hermeticExecution && typeof options.prepareCall === "function") {
       try {
         const hook = await options.prepareCall({
           iteration: budget.consumed,
@@ -10161,7 +11006,7 @@ export async function* agentLoop(messages, options) {
         "agent.iteration": budget.consumed,
         ...(modelIdAttrs || {}),
       },
-      () => llmCall(callMessages, options),
+      () => llmCall(callMessages, effectiveToolOptions),
       (span, r) => {
         const t = _usageTokens(r?.usage);
         if (t) {
@@ -10296,7 +11141,7 @@ export async function* agentLoop(messages, options) {
       // going instead of stopping — the reason is injected as a new instruction.
       // `stop_hook_active` lets the hook avoid an infinite loop; the iteration
       // budget is the hard backstop.
-      if (options.settingsHooks) {
+      if (!hermeticExecution && options.settingsHooks) {
         let stopOutcome = null;
         try {
           stopOutcome = runObserveHooks(
@@ -10441,6 +11286,7 @@ export async function* agentLoop(messages, options) {
           turnId,
           toolUseId: call.id,
           cwd: options.cwd || process.cwd(),
+          emit: lifecycleHookEmitter,
         });
         toolBatchRecords.push({
           tool: call.function.name,
@@ -10481,6 +11327,7 @@ export async function* agentLoop(messages, options) {
         turnId,
         cwd: options.cwd || process.cwd(),
         parallel: true,
+        emit: lifecycleHookEmitter,
       });
       continue; // all read results in place — back to the LLM call
     }
@@ -10509,6 +11356,7 @@ export async function* agentLoop(messages, options) {
           turnId,
           toolUseId: call?.id || null,
           cwd: options.cwd || process.cwd(),
+          emit: lifecycleHookEmitter,
         });
         toolBatchRecords.push({
           tool: "(unknown)",
@@ -10539,6 +11387,57 @@ export async function* agentLoop(messages, options) {
             : fn.arguments;
       } catch {
         toolArgs = {};
+      }
+
+      // Capability and exact-path authority must settle before any checkpoint,
+      // hook, or observationally stronger `tool-executing` event. The same
+      // preflight runs again inside executeTool to prevent call-site drift.
+      const earlyAuthorityDenial = preflightToolExecutionAuthority(
+        toolName,
+        toolArgs,
+        toolContext,
+      );
+      if (earlyAuthorityDenial) {
+        const resultStr = capToolResultString(
+          safeStringifyToolResult(earlyAuthorityDenial),
+        );
+        const decision = permissionDecision(
+          call.id,
+          toolName,
+          earlyAuthorityDenial,
+        );
+        yield {
+          type: "tool-result",
+          tool: toolName,
+          result: earlyAuthorityDenial,
+          error: earlyAuthorityDenial.error,
+          tool_use_id: call.id,
+          turn_id: `${runId}:t${budget.consumed}`,
+          permission_decision_id: decision?.id || null,
+          permission_decision: decision,
+        };
+        messages.push({
+          role: "tool",
+          content: resultStr,
+          tool_call_id: call.id,
+        });
+        const failed = emitToolHookLifecycle({
+          tool: toolName,
+          args: toolArgs,
+          result: earlyAuthorityDenial,
+          error: earlyAuthorityDenial.error,
+          sessionId: options.sessionId || null,
+          turnId,
+          toolUseId: call.id,
+          cwd: options.cwd || process.cwd(),
+          emit: lifecycleHookEmitter,
+        });
+        toolBatchRecords.push({
+          tool: toolName,
+          toolUseId: call.id,
+          failed,
+        });
+        continue;
       }
 
       // Auto-checkpoint the work tree before a mutating tool (opt-in), so the
@@ -10825,6 +11724,7 @@ export async function* agentLoop(messages, options) {
           turnId,
           toolUseId: call.id,
           cwd: options.cwd || process.cwd(),
+          emit: lifecycleHookEmitter,
         });
         toolBatchRecords.push({
           tool: toolName,
@@ -10865,6 +11765,7 @@ export async function* agentLoop(messages, options) {
       turnId,
       cwd: options.cwd || process.cwd(),
       parallel: false,
+      emit: lifecycleHookEmitter,
     });
   }
 

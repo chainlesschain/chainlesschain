@@ -45,6 +45,29 @@ describe("session persistence failure", () => {
     ).toMatchObject({ commitState: "committed", retryable: false });
   });
 
+  it("classifies fsync EIO as outcome-unknown and non-retryable", () => {
+    const cause = Object.assign(new Error("private device detail"), {
+      code: "EIO",
+    });
+    const error = createSessionPersistenceFailure(cause, {
+      operation: "transcript-settlement",
+      commitState: "unknown",
+    });
+
+    expect(error).toMatchObject({
+      code: "CC_SESSION_PERSISTENCE_FAILED",
+      fsCode: "EIO",
+      operation: "transcript-settlement",
+      commitState: "unknown",
+      retryable: false,
+    });
+    expect(projectSessionPersistenceFailure(error)).toMatchObject({
+      fs_code: "EIO",
+      commit_state: "unknown",
+      retryable: false,
+    });
+  });
+
   it("classifies raw EROFS as not committed and ignores unrelated failures", () => {
     const readOnly = Object.assign(new Error("read only"), { code: "EROFS" });
     const classified = createSessionPersistenceFailure(readOnly, {

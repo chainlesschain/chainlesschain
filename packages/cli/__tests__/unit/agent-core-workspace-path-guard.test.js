@@ -36,7 +36,8 @@ vi.mock("../../src/lib/hook-manager.js", () => ({
   },
 }));
 
-const { executeTool } = await import("../../src/runtime/agent-core.js");
+const { executeTool, normalizeExactFileMutationScope } =
+  await import("../../src/runtime/agent-core.js");
 
 function makeDirectoryLink(target, link) {
   fs.symlinkSync(
@@ -123,10 +124,7 @@ describe("agent workspace path guard", () => {
         "search_files",
         { pattern: "secret", directory: outside, content_search: true },
       ],
-      [
-        "code_intelligence",
-        { action: "document_symbols", file: outsideFile },
-      ],
+      ["code_intelligence", { action: "document_symbols", file: outsideFile }],
       ["publish_artifact", { path: outsideFile, title: "secret" }],
     ];
 
@@ -284,8 +282,364 @@ describe("agent workspace path guard", () => {
       reason: "denied-by-policy",
     });
     expect(write.success).toBe(true);
-    expect(fs.readFileSync(path.join(outside, "policy-write.txt"), "utf8")).toBe(
-      "ok",
+    expect(
+      fs.readFileSync(path.join(outside, "policy-write.txt"), "utf8"),
+    ).toBe("ok");
+  });
+
+  it("enforces an exact repo-relative file set before a mutation", async () => {
+    const sourceDir = path.join(workspace, "src");
+    fs.mkdirSync(sourceDir);
+    fs.writeFileSync(path.join(sourceDir, "widget.js"), "old", "utf8");
+    fs.writeFileSync(path.join(sourceDir, "widget.js.bak"), "sibling", "utf8");
+    const scope = {
+      exact: true,
+      worktreeRoot: fs.realpathSync(workspace),
+      allowedPaths: ["src/widget.js"],
+    };
+
+    const allowed = await executeTool(
+      "write_file",
+      { path: "src/widget.js", content: "updated" },
+      {
+        cwd: workspace,
+        fileMutationScope: scope,
+        hermeticExecution: true,
+      },
     );
+    expect(allowed.success).toBe(true);
+    expect(fs.readFileSync(path.join(sourceDir, "widget.js"), "utf8")).toBe(
+      "updated",
+    );
+
+    for (const requestedPath of [
+      "src/widget.js.bak",
+      "src/../src/widget.js",
+      outsideFile,
+    ]) {
+      const denied = await executeTool(
+        "write_file",
+        { path: requestedPath, content: "forbidden" },
+        {
+          cwd: workspace,
+          fileMutationScope: scope,
+          hermeticExecution: true,
+        },
+      );
+      expect(denied.policy?.via, requestedPath).toBe(
+        "exact-file-mutation-scope",
+      );
+    }
+    expect(fs.readFileSync(path.join(sourceDir, "widget.js.bak"), "utf8")).toBe(
+      "sibling",
+    );
+    expect(fs.readFileSync(outsideFile, "utf8")).toBe("outside-secret");
+  });
+
+  it("rejects filesystem aliases and detects a parent identity swap", async () => {
+    const escape = path.join(workspace, "escape");
+    makeDirectoryLink(outside, escape);
+    const unsafe = await executeTool(
+      "write_file",
+      { path: "escape/created.txt", content: "forbidden" },
+      {
+        cwd: workspace,
+        fileMutationScope: {
+          exact: true,
+          worktreeRoot: fs.realpathSync(workspace),
+          allowedPaths: ["escape/created.txt"],
+        },
+      },
+    );
+    expect(unsafe.policy).toMatchObject({
+      via: "exact-file-mutation-scope",
+      reason: "invalid-scope",
+    });
+    expect(fs.existsSync(path.join(outside, "created.txt"))).toBe(false);
+
+    const stableParent = path.join(workspace, "stable");
+    fs.mkdirSync(stableParent);
+    fs.writeFileSync(path.join(stableParent, "created.txt"), "stable", "utf8");
+    const normalized = normalizeExactFileMutationScope(
+      {
+        exact: true,
+        worktreeRoot: fs.realpathSync(workspace),
+        allowedPaths: ["stable/created.txt"],
+      },
+      { cwd: workspace },
+    );
+    fs.unlinkSync(path.join(stableParent, "created.txt"));
+    fs.rmdirSync(stableParent);
+    makeDirectoryLink(outside, stableParent);
+
+    const swapped = await executeTool(
+      "write_file",
+      { path: "stable/created.txt", content: "forbidden" },
+      {
+        cwd: workspace,
+        fileMutationScope: normalized,
+        hermeticExecution: true,
+      },
+    );
+    expect(swapped.policy).toMatchObject({
+      via: "exact-file-mutation-scope",
+      reason: "outside-workspace",
+    });
+    expect(fs.existsSync(path.join(outside, "created.txt"))).toBe(false);
+  });
+
+  it("rejects hard-linked targets before and after exact-scope binding", async () => {
+    const linkedAtAdmission = path.join(workspace, "linked-at-admission.txt");
+    fs.linkSync(outsideFile, linkedAtAdmission);
+    const staticResult = await executeTool(
+      "write_file",
+      { path: "linked-at-admission.txt", content: "forbidden" },
+      {
+        cwd: workspace,
+        hermeticExecution: true,
+        fileMutationScope: {
+          exact: true,
+          worktreeRoot: fs.realpathSync(workspace),
+          allowedPaths: ["linked-at-admission.txt"],
+        },
+      },
+    );
+    expect(staticResult.policy).toMatchObject({
+      via: "exact-file-mutation-scope",
+      reason: "invalid-scope",
+    });
+
+    const swappedPath = path.join(workspace, "swapped.txt");
+    fs.writeFileSync(swappedPath, "safe", "utf8");
+    const normalized = normalizeExactFileMutationScope(
+      {
+        exact: true,
+        worktreeRoot: fs.realpathSync(workspace),
+        allowedPaths: ["swapped.txt"],
+      },
+      { cwd: workspace },
+    );
+    fs.unlinkSync(swappedPath);
+    fs.linkSync(outsideFile, swappedPath);
+
+    const swappedResult = await executeTool(
+      "write_file",
+      { path: "swapped.txt", content: "forbidden" },
+      {
+        cwd: workspace,
+        hermeticExecution: true,
+        fileMutationScope: normalized,
+      },
+    );
+    expect(swappedResult.policy).toMatchObject({
+      via: "exact-file-mutation-scope",
+      reason: "path-identity-changed",
+    });
+    expect(fs.readFileSync(outsideFile, "utf8")).toBe("outside-secret");
+  });
+
+  it("never mutates a bound inode moved outside at the atomic replace boundary", async () => {
+    const target = path.join(workspace, "race.txt");
+    const relocated = path.join(outside, "relocated-race.txt");
+    fs.writeFileSync(target, "original", "utf8");
+    const normalized = normalizeExactFileMutationScope(
+      {
+        exact: true,
+        worktreeRoot: fs.realpathSync(workspace),
+        allowedPaths: ["race.txt"],
+      },
+      { cwd: workspace },
+    );
+
+    const originalRename = fs.renameSync.bind(fs);
+    let injected = false;
+    const renameSpy = vi
+      .spyOn(fs, "renameSync")
+      .mockImplementation((source, destination) => {
+        if (!injected && destination === target) {
+          injected = true;
+          originalRename(target, relocated);
+        }
+        return originalRename(source, destination);
+      });
+
+    try {
+      const result = await executeTool(
+        "write_file",
+        { path: "race.txt", content: "replacement" },
+        {
+          cwd: workspace,
+          hermeticExecution: true,
+          fileMutationScope: normalized,
+        },
+      );
+
+      expect(result.success).toBe(true);
+      expect(injected).toBe(true);
+      expect(fs.readFileSync(relocated, "utf8")).toBe("original");
+      expect(fs.readFileSync(target, "utf8")).toBe("replacement");
+
+      const followup = await executeTool(
+        "edit_file",
+        {
+          path: "race.txt",
+          old_string: "replacement",
+          new_string: "settled",
+        },
+        {
+          cwd: workspace,
+          hermeticExecution: true,
+          fileMutationScope: normalized,
+        },
+      );
+      expect(followup.success).toBe(true);
+      expect(fs.readFileSync(relocated, "utf8")).toBe("original");
+      expect(fs.readFileSync(target, "utf8")).toBe("settled");
+      expect(
+        fs
+          .readdirSync(workspace)
+          .some((name) => name.startsWith(".chainlesschain-fix-")),
+      ).toBe(false);
+    } finally {
+      renameSpy.mockRestore();
+    }
+  });
+
+  it("fails closed when the bound target moves while replacement bytes stage", async () => {
+    const target = path.join(workspace, "stage-race.txt");
+    const relocated = path.join(outside, "relocated-stage-race.txt");
+    fs.writeFileSync(target, "original", "utf8");
+    const normalized = normalizeExactFileMutationScope(
+      {
+        exact: true,
+        worktreeRoot: fs.realpathSync(workspace),
+        allowedPaths: ["stage-race.txt"],
+      },
+      { cwd: workspace },
+    );
+
+    const originalFstat = fs.fstatSync.bind(fs);
+    let injected = false;
+    const fstatSpy = vi.spyOn(fs, "fstatSync").mockImplementation((...args) => {
+      const stats = originalFstat(...args);
+      if (!injected) {
+        injected = true;
+        fs.renameSync(target, relocated);
+      }
+      return stats;
+    });
+
+    try {
+      const result = await executeTool(
+        "write_file",
+        { path: "stage-race.txt", content: "forbidden" },
+        {
+          cwd: workspace,
+          hermeticExecution: true,
+          fileMutationScope: normalized,
+        },
+      );
+
+      expect(result.policy).toMatchObject({
+        via: "exact-file-mutation-scope",
+        reason: "bound-write-failed",
+      });
+      expect(injected).toBe(true);
+      expect(fs.existsSync(target)).toBe(false);
+      expect(fs.readFileSync(relocated, "utf8")).toBe("original");
+      expect(result).toMatchObject({
+        cleanupRequired: true,
+        unsettledStage: expect.stringMatching(/^\.chainlesschain-fix-/),
+      });
+      expect(fs.existsSync(path.join(workspace, result.unsettledStage))).toBe(
+        true,
+      );
+    } finally {
+      fstatSpy.mockRestore();
+    }
+  });
+
+  it("does not unlink an unknown file substituted at the failed staging path", async () => {
+    const target = path.join(workspace, "cleanup-race.txt");
+    const relocatedStage = path.join(outside, "relocated-staging.tmp");
+    fs.writeFileSync(target, "original", "utf8");
+    const normalized = normalizeExactFileMutationScope(
+      {
+        exact: true,
+        worktreeRoot: fs.realpathSync(workspace),
+        allowedPaths: ["cleanup-race.txt"],
+      },
+      { cwd: workspace },
+    );
+
+    const originalRename = fs.renameSync.bind(fs);
+    let substitutedPath;
+    const renameSpy = vi
+      .spyOn(fs, "renameSync")
+      .mockImplementation((source, destination) => {
+        if (!substitutedPath && destination === target) {
+          substitutedPath = source;
+          originalRename(source, relocatedStage);
+          fs.linkSync(outsideFile, source);
+          throw new Error("injected rename failure");
+        }
+        return originalRename(source, destination);
+      });
+
+    try {
+      const result = await executeTool(
+        "write_file",
+        { path: "cleanup-race.txt", content: "replacement" },
+        {
+          cwd: workspace,
+          hermeticExecution: true,
+          fileMutationScope: normalized,
+        },
+      );
+
+      expect(result.policy).toMatchObject({
+        via: "exact-file-mutation-scope",
+        reason: "bound-write-failed",
+      });
+      expect(substitutedPath).toBeTruthy();
+      expect(fs.readFileSync(target, "utf8")).toBe("original");
+      expect(fs.readFileSync(outsideFile, "utf8")).toBe("outside-secret");
+      expect(fs.readFileSync(substitutedPath, "utf8")).toBe("outside-secret");
+    } finally {
+      renameSpy.mockRestore();
+      if (substitutedPath && fs.existsSync(substitutedPath)) {
+        fs.unlinkSync(substitutedPath);
+      }
+      if (fs.existsSync(relocatedStage)) fs.unlinkSync(relocatedStage);
+    }
+  });
+
+  it("rejects NTFS ADS and all other non-portable colon paths", async () => {
+    const result = await executeTool(
+      "write_file",
+      { path: "inside.txt:secret", content: "forbidden" },
+      {
+        cwd: workspace,
+        hermeticExecution: true,
+        fileMutationScope: {
+          exact: true,
+          worktreeRoot: fs.realpathSync(workspace),
+          allowedPaths: ["inside.txt:secret"],
+        },
+      },
+    );
+
+    expect(result.policy).toMatchObject({
+      via: "exact-file-mutation-scope",
+      reason: "invalid-scope",
+    });
+    expect(fs.readFileSync(path.join(workspace, "inside.txt"), "utf8")).toBe(
+      "inside",
+    );
+    if (process.platform !== "win32") {
+      expect(fs.existsSync(path.join(workspace, "inside.txt:secret"))).toBe(
+        false,
+      );
+    }
   });
 });

@@ -228,6 +228,107 @@ describe("agentLoop headless auto-compaction", () => {
       false,
     );
   });
+
+  it("settles against the pre-provider snapshot before replacing live messages", async () => {
+    const messages = seedLargeHistory();
+    const original = [...messages];
+    const onCompaction = vi.fn((_stats, _candidate, settlement) => {
+      expect(messages).toEqual(original);
+      expect(settlement.expectedMessages).toEqual(original);
+      return { hash: "compact-head" };
+    });
+
+    const events = await drain(
+      agentLoop(messages, {
+        chatFn: finalReplyChatFn(),
+        compactionLlmQuery: async () => ({
+          summary: structuredSummary(),
+          usage: { input_tokens: 10, output_tokens: 5 },
+        }),
+        onCompaction,
+        autoMicroCompact: false,
+      }),
+    );
+
+    expect(onCompaction).toHaveBeenCalledOnce();
+    expect(events.some((event) => event.type === "compaction")).toBe(true);
+    expect(messages.length).toBeLessThan(original.length);
+  });
+
+  it("does not apply or retry a paid candidate after stale CAS", async () => {
+    const messages = seedLargeHistory();
+    const original = [...messages];
+    const stale = Object.assign(new Error("external turn committed"), {
+      code: "SESSION_REVISION_STALE",
+    });
+    const compactionLlmQuery = vi.fn(async () => ({
+      summary: structuredSummary(),
+      usage: { input_tokens: 10, output_tokens: 5 },
+      provider: "mock-summary",
+      model: "summary-stale",
+    }));
+
+    const events = await drain(
+      agentLoop(messages, {
+        chatFn: finalReplyChatFn(),
+        compactionLlmQuery,
+        onCompaction: () => {
+          throw stale;
+        },
+        autoMicroCompact: false,
+      }),
+    );
+
+    expect(compactionLlmQuery).toHaveBeenCalledOnce();
+    expect(messages).toEqual(original);
+    expect(events.some((event) => event.type === "compaction")).toBe(false);
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "compaction-degraded",
+        reason: "session_messages_changed_during_compaction",
+        code: "SESSION_REVISION_STALE",
+      }),
+    );
+    expect(
+      events.filter(
+        (event) =>
+          event.type === "token-usage" &&
+          event.source === "semantic-compaction",
+      ),
+    ).toHaveLength(1);
+    expect(events.some((event) => event.type === "response-complete")).toBe(
+      false,
+    );
+  });
+
+  it("fails closed when provider transport usage is outcome-unknown", async () => {
+    const messages = seedLargeHistory();
+    const original = [...messages];
+    const onCompaction = vi.fn();
+
+    const events = await drain(
+      agentLoop(messages, {
+        chatFn: finalReplyChatFn(),
+        compactionLlmQuery: async () => {
+          throw new Error("connection reset after upload");
+        },
+        onCompaction,
+        autoMicroCompact: false,
+      }),
+    );
+
+    expect(onCompaction).not.toHaveBeenCalled();
+    expect(messages).toEqual(original);
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "compaction-usage-unknown",
+        reason: "provider_transport_outcome_unknown",
+      }),
+    );
+    expect(events.some((event) => event.type === "response-complete")).toBe(
+      false,
+    );
+  });
 });
 
 describe("agentLoop microcompact auto-trigger", () => {

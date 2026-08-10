@@ -46,8 +46,8 @@ export async function requireMcpRecoveryTypedChallenge(
       const { input } = await import("@inquirer/prompts");
       return input({
         message:
-          "First stop every active host for this session. " +
-          `Then type this operator attestation exactly:\n${expected}`,
+          "First stop the prior host, drain every already-dispatched MCP request, and verify its external outcome. Revocation fences future dispatches; it does not cancel a request already sent. " +
+          `Type this authorization exactly:\n${expected}`,
       });
     });
   const answer = await readChallenge(challenge);
@@ -171,7 +171,7 @@ export function registerSessionMcpRecoveryCommands(session, dependencies = {}) {
   recovery
     .command("adjudicate")
     .description(
-      "Attest hosts are stopped, then append one TTY-confirmed recovery decision",
+      "After host stop, MCP drain and outcome verification, revoke authority and record a decision",
     )
     .argument("<id>", "JSONL session ID or prefix")
     .requiredOption("--ledger-id <id>", "Started-only MCP ledger ID")
@@ -203,8 +203,8 @@ export function registerSessionMcpRecoveryCommands(session, dependencies = {}) {
           );
         }
         outputLogger.warn(
-          "Recorded authority is not adopted by any host until restart/resume. " +
-            "Keep every prior host stopped; if one remained active, stop it and inspect the transcript before any MCP call.",
+          "Prior host authority is durably revoked, fencing future MCP dispatches. " +
+            "Revocation does not cancel calls that were already dispatched; retain the stopped/drained/outcome evidence and restart/resume before new MCP calls.",
         );
       } catch (error) {
         outputLogger.error(

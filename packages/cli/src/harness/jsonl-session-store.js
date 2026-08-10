@@ -18,8 +18,9 @@ import fs, {
   readSync,
   writeSync,
   ftruncateSync,
+  fsyncSync,
 } from "node:fs";
-import { join, basename, resolve } from "node:path";
+import { join, basename, dirname, resolve } from "node:path";
 import { createHash, randomUUID } from "node:crypto";
 import { TextDecoder } from "node:util";
 import { getHomeDir } from "../lib/paths.js";
@@ -83,6 +84,10 @@ let securedSessionsDirIdentity = null;
 // keeps production behavior and ordinary tests on the exact same append path.
 export const _sessionScaleFaultHooks = Object.seal({
   beforeTranscriptAppend: null,
+  beforeTranscriptFsync: null,
+  afterTranscriptFsync: null,
+  beforeTranscriptDirectoryFsync: null,
+  afterTranscriptDirectoryFsync: null,
   afterTranscriptAppend: null,
   afterForkCopy: null,
   afterForkLineage: null,
@@ -981,6 +986,39 @@ function appendTranscriptEventAtPath({
       wroteBytes = true;
     }
     appendCompleted = true;
+    // The sidecar and independent anti-rollback witness are published after
+    // this function returns. Make the transcript bytes durable first so a
+    // power loss cannot preserve a newer authority head while losing the event
+    // that head authenticates. A full-write fsync failure is outcome-unknown:
+    // the caller must verify the transcript and must not advance either anchor.
+    runSessionScaleFaultHook("beforeTranscriptFsync", payload);
+    fsyncSync(fd);
+    runSessionScaleFaultHook("afterTranscriptFsync", payload);
+
+    // fsync(file) does not durably publish a newly-created directory entry on
+    // POSIX. Flush the sessions directory before any sidecar/external witness
+    // can advance. Windows does not expose a usable directory fsync through
+    // Node; FlushFileBuffers on the newly-created file is the available host
+    // durability boundary there.
+    if (expectedState === null && process.platform !== "win32") {
+      runSessionScaleFaultHook("beforeTranscriptDirectoryFsync", payload);
+      let directoryDescriptor = null;
+      try {
+        const directoryFlags =
+          fsConstants.O_RDONLY |
+          Number(fsConstants.O_DIRECTORY ?? 0) |
+          Number(fsConstants.O_NOFOLLOW ?? 0);
+        directoryDescriptor = openSync(dirname(filePath), directoryFlags);
+        const directoryStats = fstatSync(directoryDescriptor);
+        if (!directoryStats.isDirectory()) {
+          throw new Error("Session transcript parent is not a directory");
+        }
+        fsyncSync(directoryDescriptor);
+        runSessionScaleFaultHook("afterTranscriptDirectoryFsync", payload);
+      } finally {
+        if (directoryDescriptor !== null) closeSync(directoryDescriptor);
+      }
+    }
     runSessionScaleFaultHook("afterTranscriptAppend", payload);
     const descriptorStats = fstatSync(fd, { bigint: true });
     const descriptorState = physicalTranscriptStateFromStats(descriptorStats);

@@ -58,11 +58,7 @@ export function writeSecurityStore(filePath, label, store) {
 
   try {
     descriptor = fs.openSync(temporaryPath, "wx", 0o600);
-    fs.writeFileSync(
-      descriptor,
-      `${JSON.stringify(store, null, 2)}\n`,
-      "utf8",
-    );
+    fs.writeFileSync(descriptor, `${JSON.stringify(store, null, 2)}\n`, "utf8");
     fs.fsyncSync(descriptor);
     fs.closeSync(descriptor);
     descriptor = null;
@@ -92,7 +88,12 @@ export function writeSecurityStore(filePath, label, store) {
         // Best-effort orphan cleanup.
       }
     }
-    throw storeError(label, "write", filePath, cause);
+    const error = storeError(label, "write", filePath, cause);
+    // Before rename the authoritative path is unchanged. After rename, a
+    // directory-fsync failure leaves crash durability unknown even though an
+    // immediate read may observe the new generation.
+    error.commitState = renamed ? "unknown" : "not-committed";
+    throw error;
   }
 }
 
@@ -110,15 +111,26 @@ export function mutateSecurityStore(
     throw storeError(label, "prepare", filePath, cause);
   }
 
-  return lock(
-    filePath,
-    () => {
-      const current = readSecurityStore(filePath, label);
-      const draft = structuredClone(current);
-      const result = mutator(draft);
-      writeSecurityStore(filePath, label, draft);
-      return result;
-    },
-    { timeoutMs, staleMs, failIfUnavailable: true },
-  );
+  let writeCommitted = false;
+  try {
+    return lock(
+      filePath,
+      () => {
+        const current = readSecurityStore(filePath, label);
+        const draft = structuredClone(current);
+        const result = mutator(draft);
+        writeSecurityStore(filePath, label, draft);
+        writeCommitted = true;
+        return result;
+      },
+      { timeoutMs, staleMs, failIfUnavailable: true },
+    );
+  } catch (cause) {
+    if (cause && !cause.commitState) {
+      // If the durable replace completed and only lock cleanup failed, the
+      // exact state is committed even though the caller lost its response.
+      cause.commitState = writeCommitted ? "committed" : "not-committed";
+    }
+    throw cause;
+  }
 }

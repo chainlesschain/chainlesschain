@@ -1,10 +1,10 @@
-import { randomUUID as nodeRandomUUID } from "node:crypto";
 import { appendAuthorityEventIfHead as storeAppendAuthorityEventIfHead } from "../harness/jsonl-session-store.js";
 import {
   MCP_CALL_RECOVERY_ADJUDICATION_EVENT,
   MCP_CALL_RECOVERY_ADJUDICATION_SCHEMA_VERSION,
   MCP_CALL_RECOVERY_AUTHORITY,
   MCP_CALL_RECOVERY_CONFIRMATION,
+  MCP_CALL_RECOVERY_LEGACY_CONFIRMATION,
   McpCallRecoveryDecision,
   deriveMcpExactReplayDenies,
   loadMcpLedgerRecovery,
@@ -15,6 +15,7 @@ import {
   sha256PayloadDigest,
   snapshotMcpJsonRpcInput,
 } from "./mcp-call-ledger.js";
+import { revokeSessionHostAuthority as storeRevokeSessionHostAuthority } from "./session-host-lease.js";
 
 const PAYLOAD_DIGEST = /^sha256:[0-9a-f]{64}$/;
 const RAW_AUTHORITY_HASH = /^[0-9a-f]{64}$/;
@@ -32,6 +33,30 @@ const PUBLIC_REPLAY_DENY_FIELDS = new Set([
   "inputBytes",
   "replayDigest",
 ]);
+const PUBLIC_ADJUDICATION_FIELDS_V1 = new Set([
+  "schemaVersion",
+  "requestId",
+  "sessionId",
+  "ledgerId",
+  "decision",
+  "expectedHeadHash",
+  "expectedRecoveryDigest",
+  "authority",
+  "confirmation",
+  "reasonDigest",
+]);
+const PUBLIC_ADJUDICATION_FIELDS_V2 = new Set([
+  ...PUBLIC_ADJUDICATION_FIELDS_V1,
+  "hostRevocation",
+]);
+const PUBLIC_HOST_REVOCATION_FIELDS = new Set([
+  "requestId",
+  "revocationEpoch",
+  "targetLeaseId",
+  "targetFencingToken",
+  "targetOwnerPid",
+]);
+const HOST_LEASE_ID = /^lease-[0-9a-f-]{36}$/;
 
 export class McpRecoveryAdjudicationError extends Error {
   constructor(code, message, options = {}) {
@@ -40,6 +65,9 @@ export class McpRecoveryAdjudicationError extends Error {
     this.code = code;
     this.sessionId = options.sessionId || null;
     this.ledgerId = options.ledgerId || null;
+    this.hostRevocation = options.hostRevocation || null;
+    this.commitState = options.commitState || null;
+    this.outcomeUnknown = options.outcomeUnknown === true;
   }
 }
 
@@ -226,25 +254,70 @@ export function publicMcpRecoveryAuthority(sessionId, recovery) {
     });
   });
   const adjudications = snapshot.adjudications.map((entry) => {
+    const legacy = entry?.schemaVersion === 1;
+    const fields = Object.keys(entry || {});
+    const allowedFields = legacy
+      ? PUBLIC_ADJUDICATION_FIELDS_V1
+      : PUBLIC_ADJUDICATION_FIELDS_V2;
     const requestId = canonicalIdentifier(entry?.requestId);
     const ledgerId = canonicalLedgerId(entry?.ledgerId);
+    const confirmationIsValid =
+      (entry?.schemaVersion === 1 &&
+        entry?.confirmation === MCP_CALL_RECOVERY_LEGACY_CONFIRMATION) ||
+      (entry?.schemaVersion === MCP_CALL_RECOVERY_ADJUDICATION_SCHEMA_VERSION &&
+        entry?.confirmation === MCP_CALL_RECOVERY_CONFIRMATION);
+    const revocation = entry?.hostRevocation;
+    const revocationFields = Object.keys(revocation || {});
+    const targetIsNull = revocation?.targetLeaseId === null;
+    const revocationIsValid =
+      legacy ||
+      (revocationFields.length === PUBLIC_HOST_REVOCATION_FIELDS.size &&
+        revocationFields.every((field) =>
+          PUBLIC_HOST_REVOCATION_FIELDS.has(field),
+        ) &&
+        revocation?.requestId === requestId &&
+        Number.isSafeInteger(revocation?.revocationEpoch) &&
+        revocation.revocationEpoch >= 1 &&
+        (targetIsNull
+          ? revocation.targetFencingToken === null &&
+            revocation.targetOwnerPid === null
+          : HOST_LEASE_ID.test(String(revocation?.targetLeaseId || "")) &&
+            Number.isSafeInteger(revocation?.targetFencingToken) &&
+            revocation.targetFencingToken >= 1 &&
+            Number.isSafeInteger(revocation?.targetOwnerPid) &&
+            revocation.targetOwnerPid >= 1));
     if (
+      fields.length !== allowedFields.size ||
+      fields.some((field) => !allowedFields.has(field)) ||
       !requestId ||
       !ledgerId ||
       !Object.values(McpCallRecoveryDecision).includes(entry?.decision) ||
       entry?.authority !== MCP_CALL_RECOVERY_AUTHORITY ||
-      entry?.confirmation !== MCP_CALL_RECOVERY_CONFIRMATION ||
+      !confirmationIsValid ||
+      !revocationIsValid ||
       !PAYLOAD_DIGEST.test(String(entry?.reasonDigest || ""))
     ) {
       return invalidProjection();
     }
     return Object.freeze({
+      schemaVersion: entry.schemaVersion,
       requestId,
       ledgerId,
       decision: entry.decision,
       authority: entry.authority,
       confirmation: entry.confirmation,
       reasonDigest: entry.reasonDigest,
+      ...(legacy
+        ? {}
+        : {
+            hostRevocation: Object.freeze({
+              requestId: revocation.requestId,
+              revocationEpoch: revocation.revocationEpoch,
+              targetLeaseId: revocation.targetLeaseId,
+              targetFencingToken: revocation.targetFencingToken,
+              targetOwnerPid: revocation.targetOwnerPid,
+            }),
+          }),
     });
   });
   return Object.freeze({
@@ -286,14 +359,106 @@ export function buildMcpRecoveryAdjudicationChallenge({
     );
   }
   return (
-    `HOST STOPPED; ADJUDICATE ${canonicalSessionId} ${canonicalId} ` +
+    `HOST STOPPED AND MCP DISPATCH DRAINED; REVOKE HOST AUTHORITY; ADJUDICATE ${canonicalSessionId} ${canonicalId} ` +
     `${canonicalDecision} ${canonicalDigest}`
   );
 }
 
+function deterministicAdjudicationRequestId({
+  sessionId,
+  ledgerId,
+  decision,
+  expectedHeadHash,
+  expectedRecoveryDigest,
+  reasonDigest,
+}) {
+  const digest = sha256PayloadDigest({
+    schemaVersion: MCP_CALL_RECOVERY_ADJUDICATION_SCHEMA_VERSION,
+    sessionId,
+    ledgerId,
+    decision,
+    expectedHeadHash,
+    expectedRecoveryDigest,
+    reasonDigest,
+  });
+  return `mcp-recovery-${digest.slice("sha256:".length)}`;
+}
+
+function canonicalHostRevocation(value, requestId, context) {
+  let snapshot;
+  try {
+    snapshot = snapshotMcpJsonRpcInput(value);
+  } catch (cause) {
+    throw new McpRecoveryAdjudicationError(
+      "CC_MCP_RECOVERY_HOST_REVOCATION_FAILED",
+      "MCP recovery host revocation returned malformed authority",
+      { ...context, cause },
+    );
+  }
+  const targetIsNull = snapshot?.targetLeaseId === null;
+  if (
+    !snapshot ||
+    snapshot.requestId !== requestId ||
+    snapshot.reasonCode !== "mcp-recovery-adjudication" ||
+    !Number.isSafeInteger(snapshot.revocationEpoch) ||
+    snapshot.revocationEpoch < 1 ||
+    typeof snapshot.replayed !== "boolean" ||
+    (targetIsNull
+      ? snapshot.targetFencingToken !== null || snapshot.targetOwnerPid !== null
+      : !HOST_LEASE_ID.test(String(snapshot.targetLeaseId || "")) ||
+        !Number.isSafeInteger(snapshot.targetFencingToken) ||
+        snapshot.targetFencingToken < 1 ||
+        !Number.isSafeInteger(snapshot.targetOwnerPid) ||
+        snapshot.targetOwnerPid < 1)
+  ) {
+    throw new McpRecoveryAdjudicationError(
+      "CC_MCP_RECOVERY_HOST_REVOCATION_FAILED",
+      "MCP recovery host revocation returned malformed authority",
+      context,
+    );
+  }
+  return Object.freeze({
+    requestId: snapshot.requestId,
+    revocationEpoch: snapshot.revocationEpoch,
+    replayed: snapshot.replayed,
+    targetLeaseId: snapshot.targetLeaseId,
+    targetFencingToken: snapshot.targetFencingToken,
+    targetOwnerPid: snapshot.targetOwnerPid,
+  });
+}
+
+function persistedHostRevocation(hostRevocation) {
+  return Object.freeze({
+    requestId: hostRevocation.requestId,
+    revocationEpoch: hostRevocation.revocationEpoch,
+    targetLeaseId: hostRevocation.targetLeaseId,
+    targetFencingToken: hostRevocation.targetFencingToken,
+    targetOwnerPid: hostRevocation.targetOwnerPid,
+  });
+}
+
+function exactAdjudicationReadback(sessionId, data, dependencies) {
+  try {
+    const recovery = readMcpRecoveryAuthority(sessionId, dependencies);
+    const expected = sha256PayloadDigest(data);
+    const match = recovery.adjudications.find(
+      (entry) =>
+        entry?.requestId === data.requestId &&
+        sha256PayloadDigest(entry) === expected,
+    );
+    if (!match || !RAW_AUTHORITY_HASH.test(String(recovery.headHash || ""))) {
+      return null;
+    }
+    return Object.freeze({ hash: recovery.headHash, recovery });
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Append exactly one human adjudication authority event under a verified-head
- * CAS. A stale comparison is returned to the caller and is never retried.
+ * Durably revoke current host authority, then append exactly one human
+ * adjudication event under a verified-head CAS. A stale comparison is never
+ * retried; the capability-reducing revocation remains durable on append loss.
  */
 export async function adjudicateMcpRecovery(request, dependencies = {}) {
   let safeRequest;
@@ -364,15 +529,55 @@ export async function adjudicateMcpRecovery(request, dependencies = {}) {
   }
 
   const reasonDigest = sha256PayloadDigest(reason);
-  const randomUUID = dependencies.randomUUID || nodeRandomUUID;
   const requestId = canonicalIdentifier(
-    safeRequest.requestId || `mcp-recovery-${randomUUID()}`,
+    safeRequest.requestId ||
+      deterministicAdjudicationRequestId({
+        sessionId,
+        ledgerId,
+        decision,
+        expectedHeadHash: recovery.headHash,
+        expectedRecoveryDigest: recovery.recoveryDigest,
+        reasonDigest,
+      }),
   );
   if (!requestId) {
     throw new McpRecoveryAdjudicationError(
       "CC_MCP_RECOVERY_ADJUDICATION_INPUT_INVALID",
       "MCP recovery requestId is invalid",
       context,
+    );
+  }
+  const revokeSessionHostAuthority =
+    dependencies.revokeSessionHostAuthority || storeRevokeSessionHostAuthority;
+  let hostRevocation;
+  try {
+    hostRevocation = canonicalHostRevocation(
+      await revokeSessionHostAuthority(sessionId, {
+        requestId,
+        reasonCode: "mcp-recovery-adjudication",
+      }),
+      requestId,
+      context,
+    );
+  } catch (cause) {
+    if (cause instanceof McpRecoveryAdjudicationError) throw cause;
+    const commitState = cause?.commitState || "unknown";
+    if (commitState !== "not-committed") {
+      throw new McpRecoveryAdjudicationError(
+        "CC_MCP_RECOVERY_HOST_REVOCATION_OUTCOME_UNKNOWN",
+        "MCP recovery host revocation outcome is unknown; do not retry or adjudicate until exact authority readback succeeds",
+        {
+          ...context,
+          cause,
+          commitState,
+          outcomeUnknown: true,
+        },
+      );
+    }
+    throw new McpRecoveryAdjudicationError(
+      "CC_MCP_RECOVERY_HOST_REVOCATION_FAILED",
+      "MCP recovery host authority could not be durably revoked; no adjudication was appended",
+      { ...context, cause, commitState },
     );
   }
   const data = Object.freeze({
@@ -386,6 +591,7 @@ export async function adjudicateMcpRecovery(request, dependencies = {}) {
     authority: MCP_CALL_RECOVERY_AUTHORITY,
     confirmation: MCP_CALL_RECOVERY_CONFIRMATION,
     reasonDigest,
+    hostRevocation: persistedHostRevocation(hostRevocation),
   });
   const appendAuthorityEventIfHead =
     dependencies.appendAuthorityEventIfHead || storeAppendAuthorityEventIfHead;
@@ -403,22 +609,52 @@ export async function adjudicateMcpRecovery(request, dependencies = {}) {
     if (cause?.code === "SESSION_REVISION_STALE") {
       throw new McpRecoveryAdjudicationError(
         "CC_MCP_RECOVERY_ADJUDICATION_STALE",
-        "MCP recovery authority changed; run show again before adjudicating",
-        { ...context, cause },
+        "MCP recovery authority changed after host revocation; run show again before adjudicating",
+        { ...context, cause, hostRevocation },
       );
     }
-    throw new McpRecoveryAdjudicationError(
-      "CC_MCP_RECOVERY_ADJUDICATION_PERSIST_FAILED",
-      "MCP recovery adjudication was not persisted",
-      { ...context, cause },
-    );
+    const commitState = cause?.commitState || "unknown";
+    if (commitState !== "not-committed") {
+      const readback = exactAdjudicationReadback(sessionId, data, dependencies);
+      if (readback) {
+        appended = readback;
+      } else {
+        throw new McpRecoveryAdjudicationError(
+          "CC_MCP_RECOVERY_ADJUDICATION_OUTCOME_UNKNOWN",
+          "MCP recovery adjudication persistence outcome is unknown; host authority remains revoked and exact transcript reconciliation is required before retry",
+          {
+            ...context,
+            cause,
+            hostRevocation,
+            commitState,
+            outcomeUnknown: true,
+          },
+        );
+      }
+    } else {
+      throw new McpRecoveryAdjudicationError(
+        "CC_MCP_RECOVERY_ADJUDICATION_PERSIST_FAILED",
+        "MCP recovery adjudication was not persisted; host authority remains revoked",
+        { ...context, cause, hostRevocation, commitState },
+      );
+    }
   }
   if (!appended || !RAW_AUTHORITY_HASH.test(String(appended.hash || ""))) {
-    throw new McpRecoveryAdjudicationError(
-      "CC_MCP_RECOVERY_ADJUDICATION_PERSIST_FAILED",
-      "MCP recovery adjudication did not return a durable authority hash",
-      context,
-    );
+    const readback = exactAdjudicationReadback(sessionId, data, dependencies);
+    if (readback) {
+      appended = readback;
+    } else {
+      throw new McpRecoveryAdjudicationError(
+        "CC_MCP_RECOVERY_ADJUDICATION_OUTCOME_UNKNOWN",
+        "MCP recovery adjudication returned no durable authority hash; host authority remains revoked and exact transcript reconciliation is required",
+        {
+          ...context,
+          hostRevocation,
+          commitState: appended?.commitState || "unknown",
+          outcomeUnknown: true,
+        },
+      );
+    }
   }
 
   return Object.freeze({
@@ -437,6 +673,7 @@ export async function adjudicateMcpRecovery(request, dependencies = {}) {
         : [],
     ),
     replayDenied: decision === McpCallRecoveryDecision.CONFIRMED_APPLIED,
+    hostRevocation,
     runtimeReloadRequired: true,
     remediation: "restart_or_resume_before_mcp_calls",
   });

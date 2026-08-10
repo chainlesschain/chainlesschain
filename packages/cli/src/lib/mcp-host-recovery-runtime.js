@@ -98,6 +98,7 @@ export function createMcpHostRecoveryRuntime({
   recovery = null,
   recoveryError = null,
   controller = null,
+  dispatchAdmission = null,
 } = {}) {
   const admissionController = tightenRecoveryController(
     controller,
@@ -120,6 +121,7 @@ export function createMcpHostRecoveryRuntime({
           resolveEffect: (serverName, toolName) =>
             resolveHostMcpEffect(bundle, serverName, toolName),
           sessionId,
+          dispatchAdmission,
         })
       : rawClient;
   return Object.freeze({

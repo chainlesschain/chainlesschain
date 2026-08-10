@@ -612,6 +612,102 @@ function mcpTransportError(code, message, details = {}) {
   return error;
 }
 
+function dispatchMcpToolRequest(options, metadata, dispatch) {
+  const admission = options?.dispatchAdmission ?? null;
+  if (metadata.method !== "tools/call" || admission === null) {
+    return dispatch();
+  }
+  if (typeof admission !== "function") {
+    throw mcpTransportError(
+      "CC_MCP_DISPATCH_ADMISSION_INVALID",
+      "MCP tool dispatch authority is invalid",
+      {
+        transport: metadata.transport,
+        dispatched: false,
+        outcomeUnknown: false,
+      },
+    );
+  }
+
+  let admissionOpen = true;
+  let dispatched = false;
+  let dispatchResult;
+  const admittedDispatch = () => {
+    if (!admissionOpen || dispatched) {
+      throw mcpTransportError(
+        "CC_MCP_DISPATCH_ADMISSION_INVALID",
+        "MCP tool dispatch authority invoked its one-shot send outside the admission window",
+        { transport: metadata.transport },
+      );
+    }
+    dispatched = true;
+    dispatchResult = dispatch();
+    return dispatchResult;
+  };
+
+  try {
+    const admissionResult = admission(
+      Object.freeze({ ...metadata }),
+      admittedDispatch,
+    );
+    if (!dispatched) {
+      throw mcpTransportError(
+        "CC_MCP_DISPATCH_ADMISSION_REQUIRED",
+        "MCP tool dispatch authority did not synchronously admit the request",
+        { transport: metadata.transport },
+      );
+    }
+    if (admissionResult !== dispatchResult) {
+      throw mcpTransportError(
+        "CC_MCP_DISPATCH_AUTHORITY_OUTCOME_UNKNOWN",
+        "MCP tool dispatch started, but the host did not synchronously return the admitted send",
+        {
+          transport: metadata.transport,
+          dispatched: true,
+          outcomeUnknown: true,
+        },
+      );
+    }
+    return dispatchResult;
+  } catch (cause) {
+    if (!dispatched) {
+      if (safeRpcProperty(cause, "dispatched") === false) throw cause;
+      const causeCode = safeRpcProperty(cause, "code");
+      const error = mcpTransportError(
+        typeof causeCode === "string" && causeCode.startsWith("CC_")
+          ? causeCode
+          : "CC_MCP_DISPATCH_NOT_ADMITTED",
+        "MCP tool request was not dispatched because host authority denied admission",
+        {
+          transport: metadata.transport,
+          dispatched: false,
+          outcomeUnknown: false,
+        },
+      );
+      error.cause = cause;
+      throw error;
+    }
+    if (safeRpcProperty(cause, "outcomeUnknown") === true) {
+      throw cause;
+    }
+    const error = mcpTransportError(
+      "CC_MCP_DISPATCH_AUTHORITY_OUTCOME_UNKNOWN",
+      "MCP tool dispatch started, but the host could not durably confirm its dispatch authority",
+      {
+        transport: metadata.transport,
+        dispatched: true,
+        outcomeUnknown: true,
+      },
+    );
+    error.cause = cause;
+    throw error;
+  } finally {
+    // An admission callback must invoke the send before returning. This also
+    // prevents an async callback from retaining a usable dispatch capability.
+    admissionOpen = false;
+  }
+}
+
 function mcpWebSocketPayloadTooLargeError(
   serverName,
   { transport, url, limitBytes, closeCode = 1009 },
@@ -2907,7 +3003,7 @@ export class MCPClient extends EventEmitter {
    * @param {string} serverName - Server name
    * @param {string} toolName - Tool name
    * @param {object} args - Tool arguments
-   * @param {{signal?: AbortSignal}} options - Host-owned cancellation
+   * @param {{signal?: AbortSignal, dispatchAdmission?: Function}} options - Host-owned cancellation and dispatch authority
    */
   async callTool(serverName, toolName, args = {}, options = {}) {
     if (options?.signal?.aborted) {
@@ -3393,8 +3489,19 @@ export class MCPClient extends EventEmitter {
       }
 
       try {
-        dispatched = true;
-        entry.process.stdin.write(message + "\n");
+        dispatchMcpToolRequest(
+          options,
+          {
+            serverName,
+            method,
+            transport: entry.transportKind || "stdio",
+            requestId: id,
+          },
+          () => {
+            dispatched = true;
+            return entry.process.stdin.write(message + "\n");
+          },
+        );
       } catch (err) {
         settle(reject, err);
       }
@@ -3511,13 +3618,26 @@ export class MCPClient extends EventEmitter {
         );
       };
       try {
-        dispatched = true;
-        entry.socket.send(message, (cause) => {
-          if (!cause) return;
-          failDispatch();
-        });
-      } catch {
-        failDispatch();
+        dispatchMcpToolRequest(
+          options,
+          {
+            serverName,
+            method,
+            transport: entry.transportKind || "ws",
+            requestId: id,
+          },
+          () => {
+            dispatched = true;
+            return entry.socket.send(message, (cause) => {
+              if (!cause) return;
+              failDispatch();
+            });
+          },
+        );
+      } catch (error) {
+        if (error?.outcomeUnknown === true) settle(reject, error);
+        else if (!dispatched) settle(reject, error);
+        else failDispatch();
       }
     });
   }
@@ -3855,13 +3975,24 @@ export class MCPClient extends EventEmitter {
 
     try {
       throwIfAborted();
-      const responsePromise = _deps.fetch(entry.httpUrl, {
-        method: "POST",
-        headers,
-        body,
-        ...(controller ? { signal: controller.signal } : {}),
-      });
-      if (request) request.dispatched = true;
+      const responsePromise = dispatchMcpToolRequest(
+        options,
+        {
+          serverName,
+          method,
+          transport: entry.transportKind || "http",
+          requestId: id,
+        },
+        () => {
+          if (request) request.dispatched = true;
+          return _deps.fetch(entry.httpUrl, {
+            method: "POST",
+            headers,
+            body,
+            ...(controller ? { signal: controller.signal } : {}),
+          });
+        },
+      );
       const response = await responsePromise;
       if (request) request.response = response;
       throwIfAborted();
