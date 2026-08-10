@@ -9,11 +9,11 @@
  * Missing or ambiguous evidence can only retain a compatibility alias.
  */
 
-import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { realpathSync } from "node:fs";
 import path from "node:path";
 import { verifyPackUpdateManifest } from "./packer/pack-update-signature.js";
+import executionBroker from "./process-execution-broker/index.js";
 
 export const COMMAND_LIFECYCLE_REPORT_SCHEMA =
   "chainlesschain.command-lifecycle-report.v2";
@@ -240,6 +240,24 @@ function repositoryPathIdentity(value) {
   return process.platform === "win32" ? resolved.toLowerCase() : resolved;
 }
 
+function runRepositoryGit(args, cwd) {
+  try {
+    return executionBroker.spawnSync("git", args, {
+      cwd,
+      encoding: "utf8",
+      windowsHide: true,
+      origin: "command-lifecycle-report:generator-verification",
+      policy: "allow",
+      scope: "telemetry",
+      shell: false,
+      timeout: 10_000,
+      maxBuffer: 1024 * 1024,
+    });
+  } catch {
+    return { status: null, stdout: "", stderr: "" };
+  }
+}
+
 function verifyRepositoryGenerator(expectedSha) {
   if (!COMMIT_SHA.test(expectedSha || "")) {
     return { source: null, actualSha: null, verified: false };
@@ -249,13 +267,12 @@ function verifyRepositoryGenerator(expectedSha) {
   }
   const unavailable = { source: null, actualSha: null, verified: false };
   const packageRoot = path.resolve(import.meta.dirname, "../..");
-  const repository = spawnSync("git", ["rev-parse", "--show-toplevel"], {
-    cwd: packageRoot,
-    encoding: "utf8",
-    windowsHide: true,
-  });
+  const repository = runRepositoryGit(
+    ["rev-parse", "--show-toplevel"],
+    packageRoot,
+  );
   if (repository.status !== 0) return unavailable;
-  const repositoryRoot = repository.stdout.trim();
+  const repositoryRoot = String(repository.stdout || "").trim();
   try {
     if (
       repositoryPathIdentity(packageRoot) !==
@@ -266,15 +283,12 @@ function verifyRepositoryGenerator(expectedSha) {
   } catch {
     return unavailable;
   }
-  const head = spawnSync("git", ["rev-parse", "HEAD"], {
-    cwd: repositoryRoot,
-    encoding: "utf8",
-    windowsHide: true,
-  });
+  const head = runRepositoryGit(["rev-parse", "HEAD"], repositoryRoot);
   if (head.status !== 0) return unavailable;
-  const actualSha = head.stdout.trim().toLowerCase();
-  const status = spawnSync(
-    "git",
+  const actualSha = String(head.stdout || "")
+    .trim()
+    .toLowerCase();
+  const status = runRepositoryGit(
     [
       "status",
       "--porcelain",
@@ -283,15 +297,11 @@ function verifyRepositoryGenerator(expectedSha) {
       "packages/cli",
       "docs/cli/COMMAND_LIFECYCLE_TELEMETRY.md",
     ],
-    {
-      cwd: repositoryRoot,
-      encoding: "utf8",
-      windowsHide: true,
-    },
+    repositoryRoot,
   );
   const verified =
     status.status === 0 &&
-    status.stdout.trim().length === 0 &&
+    String(status.stdout || "").trim().length === 0 &&
     actualSha === expectedSha;
   const result = {
     source: verified ? "git-head-clean" : null,
