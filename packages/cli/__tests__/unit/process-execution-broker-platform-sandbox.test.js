@@ -1720,6 +1720,7 @@ function createLinuxSupervisorRuntimeProbe(overrides = {}) {
     reason: null,
     probeRuntime: "node",
     targetRuntime: "node",
+    runtimeDetachedChildSpawnVerified: true,
     contentSnapshot: false,
     handleAtomic: false,
     supervisorDescriptorBound: true,
@@ -2183,6 +2184,7 @@ describe("platform sandbox adapter contract", () => {
         runnable: true,
         reason: null,
         targetRuntime: "node",
+        runtimeDetachedChildSpawnVerified: true,
         contentSnapshot: true,
         contentSnapshotScope: "plugin-entry-source",
         contentSnapshotMechanism:
@@ -2276,6 +2278,29 @@ describe("platform sandbox adapter contract", () => {
       "/proc/self/fd/3",
     ]);
     expectLinuxBwrapSupervisorInvocations(harness, ["capability", "probe"]);
+    const policyProbeCall = harness.spawnSync.mock.calls.find(
+      ([command, probeArgs]) =>
+        harness.isBwrapCommand(command) && probeArgs?.[0] !== "--help",
+    );
+    const policyProbeSeparator = policyProbeCall[1].lastIndexOf("--");
+    const policyProbeSource = policyProbeCall[1][policyProbeSeparator + 3];
+    expect(
+      policyProbeCall[1].slice(
+        policyProbeSeparator + 1,
+        policyProbeSeparator + 3,
+      ),
+    ).toEqual(["/opt/chainless/runtime/node", "-e"]);
+    expect(policyProbeSource).toContain(
+      'spawnSync("/opt/chainless/runtime/node", ["-e"',
+    );
+    expect(policyProbeSource).toContain("detached: true");
+    expect(policyProbeSource).toContain("gid: process.getgid()");
+    expect(policyProbeSource).toContain("uid: process.getuid()");
+    expect(policyProbeSource).toContain("Number(fields[2]) !== pid");
+    expect(policyProbeSource).toContain("Number(fields[3]) !== pid");
+    expect(policyProbeSource).toContain(
+      "chainless-linux-bwrap-child-runtime-v1",
+    );
     expect(plan.options.stdio.length).toBeGreaterThan(3);
     expect(plan.options.stdio[3]).not.toBe(
       harness.bwrapInvocations[0].parentFd,
@@ -11361,6 +11386,47 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
         [sourceEntryPath, "--", "--stdio"],
         {
           origin: "test:forged-linux-bwrap-mcp-code-snapshot",
+          policy: "allow",
+          shell: false,
+          requiredBoundaries: [
+            SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+            SANDBOX_BOUNDARIES.FILESYSTEM,
+            SANDBOX_BOUNDARIES.NETWORK,
+          ],
+          sandboxExecutionContract: Object.freeze({}),
+        },
+      ),
+    ).toThrow(
+      "Code snapshot guarantee requires typed atomic MCP capsule evidence",
+    );
+    expect(nativeSpawn).toHaveBeenCalledOnce();
+
+    executionBroker._sandboxAdapter.applySandbox = vi.fn(
+      (_command, _args, options) =>
+        appliedLinuxBwrapPluginTreePlan(
+          runtimePath,
+          [entryPath, "--", "--stdio"],
+          options,
+          {
+            guarantees: [
+              SANDBOX_BOUNDARIES.FILESYSTEM,
+              SANDBOX_BOUNDARIES.NETWORK,
+              SANDBOX_BOUNDARIES.PROCESS_TREE,
+              SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+            ],
+            runtimeProbe: {
+              ...runtimeProbe,
+              runtimeDetachedChildSpawnVerified: false,
+            },
+          },
+        ),
+    );
+    expect(() =>
+      executionBroker.spawn(
+        sourceRuntimePath,
+        [sourceEntryPath, "--", "--stdio"],
+        {
+          origin: "test:unverified-linux-detached-runtime-child",
           policy: "allow",
           shell: false,
           requiredBoundaries: [

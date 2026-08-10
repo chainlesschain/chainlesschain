@@ -479,10 +479,12 @@ describe("MCP stdio fixed npm package materialization", () => {
     ).toEqual({ identityDigest: prepared.identityDigest });
   }, 30_000);
 
-  it("accepts stable Windows file IDs across divergent pathname and descriptor metadata", () => {
+  it("accepts stable descriptor IDs across divergent Windows pathname stat projections", () => {
     const shiftedStat = (stat) =>
       new Proxy(stat, {
         get(target, property) {
+          if (property === "dev") return target[property] + 10_000n;
+          if (property === "ino") return target[property] + 20_000n;
           if (property === "mtimeNs" || property === "ctimeNs") {
             return target[property] + 100n;
           }
@@ -526,6 +528,90 @@ describe("MCP stdio fixed npm package materialization", () => {
       schema: "chainlesschain.mcp-stdio-node-capsule/v1",
       inputCount: 3,
     });
+  });
+
+  it("rejects a pathname re-open that resolves to a different descriptor file ID", () => {
+    const activeTargetDescriptors = new Set();
+    const mismatchedDescriptors = new Set();
+    let sawVerifierReopen = false;
+    _deps.fs = new Proxy(fs, {
+      get(target, property) {
+        if (property === "openSync") {
+          return (file, flags, mode) => {
+            const descriptor = fs.openSync(file, flags, mode);
+            const normalized = String(file).replaceAll("\\", "/");
+            if (
+              normalized.includes(".capsule-source-") &&
+              normalized.endsWith("/node_modules/@scope/mcp-server/runtime.js")
+            ) {
+              if (activeTargetDescriptors.size > 0) {
+                mismatchedDescriptors.add(descriptor);
+                sawVerifierReopen = true;
+              }
+              activeTargetDescriptors.add(descriptor);
+            }
+            return descriptor;
+          };
+        }
+        if (property === "fstatSync") {
+          return (descriptor, options) => {
+            const stat = fs.fstatSync(descriptor, options);
+            if (options?.bigint && mismatchedDescriptors.has(descriptor)) {
+              return new Proxy(stat, {
+                get(statTarget, statProperty) {
+                  if (statProperty === "ino") return statTarget.ino + 1n;
+                  const value = Reflect.get(
+                    statTarget,
+                    statProperty,
+                    statTarget,
+                  );
+                  return typeof value === "function"
+                    ? value.bind(statTarget)
+                    : value;
+                },
+              });
+            }
+            return stat;
+          };
+        }
+        if (property === "closeSync") {
+          return (descriptor) => {
+            activeTargetDescriptors.delete(descriptor);
+            mismatchedDescriptors.delete(descriptor);
+            return fs.closeSync(descriptor);
+          };
+        }
+        return Reflect.get(target, property, target);
+      },
+    });
+    const config = {
+      command: "npx",
+      args: ["@scope/mcp-server@1.2.3"],
+      transport: "stdio",
+    };
+    const authority = approved(config, "descriptor-reopen-race-server");
+
+    expect(() =>
+      materializeMcpStdioNpmPackage({
+        approvalRecord: authority.approvalRecord,
+        config: authority.invocation,
+        packageSpec: "@scope/mcp-server@1.2.3",
+        binName: "scope-mcp",
+        root: materializationRoot,
+        indexPath,
+        npmCli,
+        installRunner: fakeInstall,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: MCP_STDIO_PACKAGE_MATERIALIZATION_FAILED_CODE,
+        message: expect.stringContaining(
+          "build input identity changed before read",
+        ),
+      }),
+    );
+    expect(sawVerifierReopen).toBe(true);
+    expect(fs.existsSync(indexPath)).toBe(false);
   });
 
   it("detects an added transitive file before the Broker can spawn", () => {

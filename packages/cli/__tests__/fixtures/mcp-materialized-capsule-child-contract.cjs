@@ -13,6 +13,24 @@ function resolveChildRuntimePath(
   return platform === "linux" ? LINUX_CHILD_RUNTIME_PATH : execPath;
 }
 
+function detachedChildSpawnIdentityOptions(platform, uid, gid) {
+  if (platform !== "linux") return Object.freeze({});
+  if (
+    !Number.isSafeInteger(uid) ||
+    uid < 0 ||
+    !Number.isSafeInteger(gid) ||
+    gid < 0
+  ) {
+    throw new Error("Linux detached child requires the current uid and gid");
+  }
+  // libuv's Linux POSIX_SPAWN_SETSID path can return EPERM inside the nested
+  // PID/user namespaces created by bubblewrap. Supplying the unchanged
+  // identity selects libuv's fork/exec path without changing privileges; the
+  // child report and live test independently prove that setsid still created
+  // a new process group and session.
+  return Object.freeze({ uid, gid });
+}
+
 function successfulChildReport(report, spawnedPid) {
   const payload =
     report && typeof report === "object" && !Array.isArray(report)
@@ -38,6 +56,7 @@ function successfulChildReport(report, spawnedPid) {
 }
 
 module.exports = {
+  detachedChildSpawnIdentityOptions,
   LINUX_CHILD_RUNTIME_PATH,
   resolveChildRuntimePath,
   successfulChildReport,

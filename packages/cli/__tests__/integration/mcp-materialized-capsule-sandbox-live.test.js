@@ -63,6 +63,7 @@ const childContractFixturePath = fileURLToPath(
 );
 const loadFixtureModule = createRequire(import.meta.url);
 const {
+  detachedChildSpawnIdentityOptions,
   LINUX_CHILD_RUNTIME_PATH,
   resolveChildRuntimePath,
   successfulChildReport,
@@ -1454,6 +1455,15 @@ describe("materialized MCP capsule host observer helpers", () => {
     expect(resolveChildRuntimePath("win32", "C:\\nodejs\\node.exe")).toBe(
       "C:\\nodejs\\node.exe",
     );
+    expect(detachedChildSpawnIdentityOptions("linux", 1_001, 1_002)).toEqual({
+      uid: 1_001,
+      gid: 1_002,
+    });
+    expect(detachedChildSpawnIdentityOptions("darwin", 501, 20)).toEqual({});
+    expect(detachedChildSpawnIdentityOptions("win32")).toEqual({});
+    expect(() =>
+      detachedChildSpawnIdentityOptions("linux", undefined, 1_002),
+    ).toThrow("Linux detached child requires the current uid and gid");
   });
 
   it("keeps child-report envelope fields parent-owned", () => {
@@ -2399,6 +2409,8 @@ describe.runIf(LIVE && SUPPORTED)(
           spawnDenied: false,
           reportReceived: true,
           runtimePath: LINUX_CHILD_RUNTIME_PATH,
+          processGroupPid: expect.any(Number),
+          sessionPid: expect.any(Number),
         });
       }
       if (report.child.spawnDenied) {
@@ -2439,6 +2451,10 @@ describe.runIf(LIVE && SUPPORTED)(
         });
         expect(report.child.namespacePid).toBeGreaterThan(0);
         expect(report.child.spawnPid).toBe(report.child.namespacePid);
+        if (process.platform === "linux") {
+          expect(report.child.processGroupPid).toBe(report.child.namespacePid);
+          expect(report.child.sessionPid).toBe(report.child.namespacePid);
+        }
         networkProbeEvidence.push(
           expectNetworkProbeResults(report.child.networks, networkTargets),
         );
@@ -2507,6 +2523,13 @@ describe.runIf(LIVE && SUPPORTED)(
           ? "linux-bwrap"
           : "windows-appcontainer-job-restricted-token",
       );
+      if (process.platform === "linux") {
+        expect(audit.sandboxRuntimeProbe).toMatchObject({
+          kind: "linux-bwrap-plugin-node-policy-v1",
+          runtimeDetachedChildSpawnVerified: true,
+          runtimeLaunchPath: LINUX_CHILD_RUNTIME_PATH,
+        });
+      }
       if (process.platform === "win32") {
         expect(audit.sandboxRuntimeProbe).toMatchObject({
           kind: "windows-appcontainer-launch-attestation-v1",

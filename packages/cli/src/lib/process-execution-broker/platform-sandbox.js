@@ -159,6 +159,8 @@ const LINUX_BWRAP_PATH = "/usr/bin/bwrap";
 const LINUX_LDD_PATH = "/usr/bin/ldd";
 const LINUX_BWRAP_BACKEND = "linux-bwrap";
 const LINUX_BWRAP_NODE_PROBE_SENTINEL = "chainless-linux-bwrap-plugin-node-v1";
+const LINUX_BWRAP_CHILD_RUNTIME_PROBE_SENTINEL =
+  "chainless-linux-bwrap-child-runtime-v1";
 const LINUX_BWRAP_MAX_PLUGIN_ENTRIES = 512;
 const LINUX_PLUGIN_TREE_SNAPSHOT_MAX_FILES = 256;
 const LINUX_PLUGIN_TREE_SNAPSHOT_MAX_BYTES = 256 * 1024 * 1024;
@@ -3879,6 +3881,7 @@ function linuxBubblewrapProbe(
   supervisorBinding = null,
   pluginTreeSnapshot = null,
   nativeDynamicClosure = null,
+  runtimeDetachedChildSpawnVerified = false,
 ) {
   const native =
     typeof targetRuntime === "string" && targetRuntime.startsWith("native-");
@@ -3944,6 +3947,7 @@ function linuxBubblewrapProbe(
     reason,
     probeRuntime: "node",
     targetRuntime,
+    runtimeDetachedChildSpawnVerified,
     contentSnapshot: snapshot,
     ...(snapshot
       ? {
@@ -6793,8 +6797,20 @@ function probeLinuxBubblewrapPolicy(
     ino: supervisorBinding.fileId.ino,
     bytes: supervisorBinding.bytes,
   });
+  const childProbeSource = [
+    'const fs = require("node:fs");',
+    'const raw = fs.readFileSync("/proc/self/stat", "utf8");',
+    'const close = raw.lastIndexOf(")");',
+    'const pid = Number(raw.slice(0, raw.indexOf(" ")));',
+    "const fields = raw.slice(close + 2).trim().split(/\\s+/);",
+    "if (Number(fields[2]) !== pid || Number(fields[3]) !== pid) process.exit(2);",
+    `process.stdout.write(${JSON.stringify(
+      LINUX_BWRAP_CHILD_RUNTIME_PROBE_SENTINEL,
+    )});`,
+  ].join("\n");
   const probeSource = [
     'const fs = require("node:fs");',
+    'const { spawnSync } = require("node:child_process");',
     `const expected = ${supervisorIdentity};`,
     'for (const name of fs.readdirSync("/proc/self/fd")) {',
     "  let current;",
@@ -6810,6 +6826,25 @@ function probeLinuxBubblewrapPolicy(
     '  throw new Error("bubblewrap supervisor staging path visible");',
     "} catch (error) {",
     '  if (error?.code !== "ENOENT") throw error;',
+    "}",
+    `const child = spawnSync("/opt/chainless/runtime/node", ["-e", ${JSON.stringify(
+      childProbeSource,
+    )}], {`,
+    '  cwd: "/",',
+    "  detached: true,",
+    '  encoding: "utf8",',
+    "  env: process.env,",
+    "  gid: process.getgid(),",
+    "  shell: false,",
+    '  stdio: ["ignore", "pipe", "pipe"],',
+    "  timeout: 5_000,",
+    "  uid: process.getuid(),",
+    "});",
+    "if (child.error || child.status !== 0 || child.signal !== null ||",
+    `    child.stdout !== ${JSON.stringify(
+      LINUX_BWRAP_CHILD_RUNTIME_PROBE_SENTINEL,
+    )} || child.stderr !== "") {`,
+    '  throw new Error("fixed child runtime is not executable");',
     "}",
     `process.stdout.write(${JSON.stringify(LINUX_BWRAP_NODE_PROBE_SENTINEL)});`,
   ].join("\n");
@@ -6871,6 +6906,9 @@ function probeLinuxBubblewrapPolicy(
     targetRuntime,
     contentSnapshot,
     supervisorBinding,
+    null,
+    null,
+    true,
   );
 }
 
@@ -7590,6 +7628,7 @@ export function applyLinuxSandbox(
       supervisorBinding,
       pluginTreeSnapshot,
       nativeDynamicClosure,
+      policyProbe.runtimeDetachedChildSpawnVerified === true,
     );
     const runtimeProbe = Object.freeze(
       capsuleContract

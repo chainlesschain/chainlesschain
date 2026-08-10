@@ -3,6 +3,7 @@ const net = require("node:net");
 const readline = require("node:readline");
 const { spawn } = require("node:child_process");
 const {
+  detachedChildSpawnIdentityOptions,
   resolveChildRuntimePath,
   successfulChildReport,
 } = require("./mcp-materialized-capsule-child-contract.cjs");
@@ -133,6 +134,14 @@ const childProgram = String.raw`
 const fs = require("node:fs");
 const net = require("node:net");
 const config = JSON.parse(process.argv[1]);
+const processIdentity = { processGroupPid: null, sessionPid: null };
+if (process.platform === "linux") {
+  const raw = fs.readFileSync("/proc/self/stat", "utf8");
+  const close = raw.lastIndexOf(")");
+  const fields = raw.slice(close + 2).trim().split(/\s+/);
+  processIdentity.processGroupPid = Number(fields[2]);
+  processIdentity.sessionPid = Number(fields[3]);
+}
 const filesystem = { readDenied: false, readError: null, canaryCandidate: null, writeDenied: false, writeError: null };
 try { filesystem.canaryCandidate = fs.readFileSync(config.secretPath, "utf8"); } catch (error) {
   filesystem.readDenied = true;
@@ -208,6 +217,7 @@ Promise.all(config.networkTargets.map((target) => probeNetwork(target))).then((n
   process.stdout.write(JSON.stringify({
     event: "child-ready",
     namespacePid: process.pid,
+    ...processIdentity,
     filesystem,
     networks,
   }) + "\\n");
@@ -217,6 +227,14 @@ Promise.all(config.networkTargets.map((target) => probeNetwork(target))).then((n
 
 function launchDetachedChildProbe() {
   const runtimePath = resolveChildRuntimePath();
+  const identityOptions =
+    process.platform === "linux"
+      ? detachedChildSpawnIdentityOptions(
+          process.platform,
+          process.getuid(),
+          process.getgid(),
+        )
+      : detachedChildSpawnIdentityOptions(process.platform);
   return new Promise((resolve) => {
     let child;
     let settled = false;
@@ -250,6 +268,7 @@ function launchDetachedChildProbe() {
         ],
         {
           detached: true,
+          ...identityOptions,
           windowsHide: true,
           stdio: ["ignore", "pipe", "ignore"],
         },

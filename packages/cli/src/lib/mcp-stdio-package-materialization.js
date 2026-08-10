@@ -794,14 +794,27 @@ function sameSnapshotFileIdentity(left, right) {
   );
 }
 
-function sameSnapshotFileObject(left, right) {
-  return Boolean(
-    left &&
-    right &&
-    left.dev === right.dev &&
-    left.ino === right.ino &&
-    left.size === right.size,
+function openSnapshotInputDescriptor(file) {
+  return _deps.fs.openSync(
+    file,
+    Number(_deps.fs.constants.O_RDONLY) |
+      Number(_deps.fs.constants.O_NOFOLLOW || 0) |
+      Number(_deps.fs.constants.O_NONBLOCK || 0),
   );
+}
+
+function snapshotIdentityThroughDescriptor(file) {
+  let descriptor;
+  try {
+    descriptor = openSnapshotInputDescriptor(file);
+    const stat = _deps.fs.fstatSync(descriptor, { bigint: true });
+    if (!stat.isFile()) {
+      throw new Error("MCP capsule build input descriptor is not regular");
+    }
+    return snapshotFileIdentity(stat);
+  } finally {
+    if (descriptor !== undefined) _deps.fs.closeSync(descriptor);
+  }
 }
 
 function readSnapshotInputAttestation(canonicalSnapshotRoot, inputRelative) {
@@ -830,24 +843,26 @@ function readSnapshotInputAttestation(canonicalSnapshotRoot, inputRelative) {
 
   let descriptor;
   try {
-    descriptor = _deps.fs.openSync(
-      canonicalPath,
-      Number(_deps.fs.constants.O_RDONLY) |
-        Number(_deps.fs.constants.O_NOFOLLOW || 0) |
-        Number(_deps.fs.constants.O_NONBLOCK || 0),
-    );
+    descriptor = openSnapshotInputDescriptor(canonicalPath);
     const descriptorBefore = _deps.fs.fstatSync(descriptor, { bigint: true });
     const pathIdentityBefore = snapshotFileIdentity(pathBefore);
     const descriptorIdentityBefore = snapshotFileIdentity(descriptorBefore);
+    // Node's Windows pathname and descriptor stat projections do not share a
+    // stable dev/ino namespace on every filesystem. Bind the pathname to the
+    // primary reader with a second descriptor instead: descriptor-to-
+    // descriptor identity is stable, while pathname metadata is checked only
+    // against the later pathname view. This retains file-ID binding without
+    // falling back to mutable size/timestamp comparisons.
+    const pathnameDescriptorIdentityBefore =
+      snapshotIdentityThroughDescriptor(canonicalPath);
     if (
       !descriptorBefore.isFile() ||
       descriptorBefore.size < 0n ||
       descriptorBefore.size > BigInt(MAX_FILE_BYTES) ||
-      // On Windows, pathname stat and descriptor stat can represent mode and
-      // timestamp fields differently. dev + ino is Node's volume/file ID
-      // binding; size is stable across both views. Mutable state is compared
-      // below only within the same stat family, before and after the read.
-      !sameSnapshotFileObject(pathIdentityBefore, descriptorIdentityBefore)
+      !sameSnapshotFileIdentity(
+        descriptorIdentityBefore,
+        pathnameDescriptorIdentityBefore,
+      )
     ) {
       throw new Error(
         `MCP capsule build input identity changed before read: ${inputRelative}`,
@@ -876,18 +891,29 @@ function readSnapshotInputAttestation(canonicalSnapshotRoot, inputRelative) {
     const descriptorAfter = _deps.fs.fstatSync(descriptor, { bigint: true });
     const pathAfter = _deps.fs.lstatSync(requested, { bigint: true });
     const canonicalPathAfter = realpath(requested);
-    const descriptorIdentityAfter = snapshotFileIdentity(descriptorAfter);
-    const pathIdentityAfter = snapshotFileIdentity(pathAfter);
     if (
       pathAfter.isSymbolicLink() ||
       !pathAfter.isFile() ||
-      canonicalPathAfter !== canonicalPath ||
+      canonicalPathAfter !== canonicalPath
+    ) {
+      throw new Error(
+        `MCP capsule build input changed during read: ${inputRelative}`,
+      );
+    }
+    const descriptorIdentityAfter = snapshotFileIdentity(descriptorAfter);
+    const pathIdentityAfter = snapshotFileIdentity(pathAfter);
+    const pathnameDescriptorIdentityAfter =
+      snapshotIdentityThroughDescriptor(canonicalPathAfter);
+    if (
       !sameSnapshotFileIdentity(
         descriptorIdentityBefore,
         descriptorIdentityAfter,
       ) ||
       !sameSnapshotFileIdentity(pathIdentityBefore, pathIdentityAfter) ||
-      !sameSnapshotFileObject(descriptorIdentityAfter, pathIdentityAfter)
+      !sameSnapshotFileIdentity(
+        descriptorIdentityAfter,
+        pathnameDescriptorIdentityAfter,
+      )
     ) {
       throw new Error(
         `MCP capsule build input changed during read: ${inputRelative}`,

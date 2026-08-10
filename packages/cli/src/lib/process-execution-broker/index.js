@@ -1250,6 +1250,7 @@ class ProcessExecutionBroker extends EventEmitter {
         "entrySnapshotAtomic",
         "runtimeLaunchAtomic",
         "mcpCapsuleCodeSnapshot",
+        "runtimeDetachedChildSpawnVerified",
       ]) {
         if (
           plan.runtimeProbe[field] !== undefined &&
@@ -1791,6 +1792,7 @@ class ProcessExecutionBroker extends EventEmitter {
           plan.runtimeProbe.runtimeLaunchAtomic === true &&
           plan.runtimeProbe.runtimeLaunchMechanism ===
             "bwrap-descriptor-mount-node-runtime-exec-v1" &&
+          plan.runtimeProbe.runtimeDetachedChildSpawnVerified === true &&
           plan.runtimeProbe.supervisorDescriptorBound === true &&
           plan.runtimeProbe.pluginTreeContentSnapshot === true &&
           plan.runtimeProbe.runtimeLaunchPath ===
@@ -2162,6 +2164,12 @@ class ProcessExecutionBroker extends EventEmitter {
           : {}),
         ...(plan.runtimeProbe.runtimeLaunchAtomic !== undefined
           ? { runtimeLaunchAtomic: plan.runtimeProbe.runtimeLaunchAtomic }
+          : {}),
+        ...(plan.runtimeProbe.runtimeDetachedChildSpawnVerified !== undefined
+          ? {
+              runtimeDetachedChildSpawnVerified:
+                plan.runtimeProbe.runtimeDetachedChildSpawnVerified,
+            }
           : {}),
         ...(plan.runtimeProbe.runtimeLaunchMechanism !== undefined
           ? {
