@@ -223,7 +223,7 @@ Promise.all(config.networkTargets.map((target) => probeNetwork(target))).then((n
     ...processIdentity,
     filesystem,
     networks,
-  }) + "\\n");
+  }) + String.fromCharCode(10));
   setInterval(() => {}, 1_000);
 });
 `;

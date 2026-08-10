@@ -1489,6 +1489,12 @@ describe("materialized MCP capsule host observer helpers", () => {
     ).toThrow("MCP capsule child report contains trailing bytes");
   });
 
+  it("emits an actual LF terminator from the inline live child program", () => {
+    const fixtureSource = fs.readFileSync(fixturePath, "utf8");
+    expect(fixtureSource).toContain("}) + String.fromCharCode(10));");
+    expect(fixtureSource).not.toContain('}) + "\\\\n");');
+  });
+
   it("keeps child-report envelope fields parent-owned", () => {
     expect(
       successfulChildReport(
