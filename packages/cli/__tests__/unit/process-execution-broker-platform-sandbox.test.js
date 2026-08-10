@@ -12371,6 +12371,53 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
     });
   });
 
+  it("runs host input attestation immediately around native spawnSync", () => {
+    const order = [];
+    const input = Buffer.from("attested input", "utf8");
+    const nativeSpawnSync = vi.fn((_command, _args, options) => {
+      order.push("spawn");
+      expect(options).not.toHaveProperty("hostInputAttestation");
+      return { status: 0 };
+    });
+    executionBroker._native = { spawnSync: nativeSpawnSync };
+    executionBroker._sandboxAdapter = {
+      applySandbox: (command, args, options) =>
+        appliedPlan(command, args, options),
+      postSpawnSandbox: vi.fn(),
+    };
+    const hostInputAttestation = {
+      kind: "chainlesschain.host-input-attestation/v1",
+      command: "tool",
+      args: ["run"],
+      cwd: process.cwd(),
+      inputBytes: input.length,
+      inputSha256: crypto.createHash("sha256").update(input).digest("hex"),
+      beforeSpawn: () => order.push("before"),
+      afterSpawn: () => order.push("after"),
+    };
+
+    executionBroker.spawnSync("tool", ["run"], {
+      cwd: process.cwd(),
+      input,
+      origin: "test:host-input-attestation",
+      policy: "allow",
+      hostInputAttestation,
+    });
+
+    expect(order).toEqual(["before", "spawn", "after"]);
+    expect(nativeSpawnSync).toHaveBeenCalledOnce();
+    expect(() =>
+      executionBroker.spawnSync("tool", ["tampered"], {
+        cwd: process.cwd(),
+        input,
+        origin: "test:host-input-attestation-drift",
+        policy: "allow",
+        hostInputAttestation,
+      }),
+    ).toThrow("Invalid host input attestation contract");
+    expect(nativeSpawnSync).toHaveBeenCalledOnce();
+  });
+
   it("honors CC_SANDBOX_DISABLE without calling the adapter", () => {
     process.env.CC_SANDBOX_DISABLE = "1";
     const child = createChild();

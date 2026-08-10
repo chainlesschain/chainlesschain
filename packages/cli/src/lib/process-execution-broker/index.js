@@ -623,6 +623,38 @@ class ProcessExecutionBroker extends EventEmitter {
     return safe;
   }
 
+  _normalizeHostInputAttestation(raw, command, args, options) {
+    if (raw === undefined) return null;
+    const input = options?.input;
+    const inputBytes = Buffer.isBuffer(input) ? input.length : -1;
+    const inputSha256 = Buffer.isBuffer(input)
+      ? crypto.createHash("sha256").update(input).digest("hex")
+      : null;
+    if (
+      !raw ||
+      typeof raw !== "object" ||
+      Array.isArray(raw) ||
+      raw.kind !== "chainlesschain.host-input-attestation/v1" ||
+      raw.command !== command ||
+      !Array.isArray(args) ||
+      !Array.isArray(raw.args) ||
+      raw.args.length !== args.length ||
+      !raw.args.every((argument, index) => argument === args[index]) ||
+      raw.cwd !== options?.cwd ||
+      raw.inputBytes !== inputBytes ||
+      raw.inputSha256 !== inputSha256 ||
+      typeof raw.beforeSpawn !== "function" ||
+      typeof raw.afterSpawn !== "function"
+    ) {
+      throw new TypeError("Invalid host input attestation contract");
+    }
+    return raw;
+  }
+
+  _stripHostInputAttestation(options) {
+    delete options.hostInputAttestation;
+  }
+
   _normalizePluginExecutableIdentity(raw) {
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
     const realPath =
@@ -3556,6 +3588,12 @@ class ProcessExecutionBroker extends EventEmitter {
     const executionId = crypto.randomUUID();
     const startTime = Date.now();
     const origin = options.origin || "unknown";
+    const hostInputAttestation = this._normalizeHostInputAttestation(
+      options.hostInputAttestation,
+      command,
+      args,
+      options,
+    );
     const requestedCwd = options.cwd || process.cwd();
     options = this._withWorkspaceTransactionBoundaries(options, requestedCwd, {
       command,
@@ -3643,6 +3681,7 @@ class ProcessExecutionBroker extends EventEmitter {
     this._stripPluginControlOptions(spawnOpts);
     this._stripWorkspaceTransactionOptions(spawnOpts);
     this._stripAuditControlOptions(spawnOpts);
+    this._stripHostInputAttestation(spawnOpts);
     if (traceCtx) {
       spawnOpts.env = { ...(spawnOpts.env || process.env) };
       spawnOpts.env.TRACEPARENT = traceCtx.traceparent;
@@ -3711,7 +3750,13 @@ class ProcessExecutionBroker extends EventEmitter {
 
     const nativeSpawnSyncFn = this._native?.spawnSync || nativeSpawnSync;
     try {
-      const result = nativeSpawnSyncFn(command, args, optsForSync);
+      hostInputAttestation?.beforeSpawn();
+      let result;
+      try {
+        result = nativeSpawnSyncFn(command, args, optsForSync);
+      } finally {
+        hostInputAttestation?.afterSpawn();
+      }
       this._settleWorkspaceTransactionSpawn(auditEntry, {
         exitCode: result.status,
         signal: result.signal,

@@ -117,6 +117,19 @@ function writeJson(file, value) {
   fs.writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
+function brokerSpawnSync(command, args, options) {
+  const attestation = options?.hostInputAttestation;
+  const spawnOptions = { ...options };
+  delete spawnOptions.hostInputAttestation;
+  if (!attestation) return spawnSync(command, args, spawnOptions);
+  attestation.beforeSpawn();
+  try {
+    return spawnSync(command, args, spawnOptions);
+  } finally {
+    attestation.afterSpawn();
+  }
+}
+
 function fakeInstall({ directory, packageSpec }) {
   expect(packageSpec).toBe("@scope/mcp-server@1.2.3");
   writeJson(path.join(directory, "package-lock.json"), {
@@ -191,10 +204,12 @@ describe("MCP stdio fixed npm package materialization", () => {
     npmCli = path.join(root, "npm-cli.js");
     storePath = path.join(root, "security", "executable-identities.json");
     fs.writeFileSync(npmCli, "// fixture npm cli\n", "utf8");
-    _deps.processBrokerRunSync = spawnSync;
+    _deps.fs = fs;
+    _deps.processBrokerRunSync = brokerSpawnSync;
   });
 
   afterEach(() => {
+    _deps.fs = fs;
     _deps.processBrokerRunSync = null;
     for (const directory of roots.splice(0)) {
       fs.rmSync(directory, { recursive: true, force: true });
@@ -284,7 +299,7 @@ describe("MCP stdio fixed npm package materialization", () => {
         cwdIsCanonical: options.cwd === realpath(options.cwd),
         inputSource: Buffer.from(options.input).toString("utf8"),
       });
-      return spawnSync(command, args, options);
+      return brokerSpawnSync(command, args, options);
     };
     const config = {
       command: "bunx",
@@ -463,6 +478,55 @@ describe("MCP stdio fixed npm package materialization", () => {
       }),
     ).toEqual({ identityDigest: prepared.identityDigest });
   }, 30_000);
+
+  it("accepts stable Windows file IDs across divergent pathname and descriptor metadata", () => {
+    const shiftedStat = (stat) =>
+      new Proxy(stat, {
+        get(target, property) {
+          if (property === "mtimeNs" || property === "ctimeNs") {
+            return target[property] + 100n;
+          }
+          if (property === "mode") return target[property] ^ 0o111n;
+          const value = Reflect.get(target, property, target);
+          return typeof value === "function" ? value.bind(target) : value;
+        },
+      });
+    _deps.fs = new Proxy(fs, {
+      get(target, property) {
+        if (property !== "lstatSync") {
+          return Reflect.get(target, property, target);
+        }
+        return (file, options) => {
+          const stat = fs.lstatSync(file, options);
+          return options?.bigint && String(file).includes(".capsule-source-")
+            ? shiftedStat(stat)
+            : stat;
+        };
+      },
+    });
+    const config = {
+      command: "npx",
+      args: ["@scope/mcp-server@1.2.3"],
+      transport: "stdio",
+    };
+    const authority = approved(config, "windows-stat-view-server");
+
+    const result = materializeMcpStdioNpmPackage({
+      approvalRecord: authority.approvalRecord,
+      config: authority.invocation,
+      packageSpec: "@scope/mcp-server@1.2.3",
+      binName: "scope-mcp",
+      root: materializationRoot,
+      indexPath,
+      npmCli,
+      installRunner: fakeInstall,
+    });
+
+    expect(result.identity.capsule).toMatchObject({
+      schema: "chainlesschain.mcp-stdio-node-capsule/v1",
+      inputCount: 3,
+    });
+  });
 
   it("detects an added transitive file before the Broker can spawn", () => {
     const config = {
@@ -668,6 +732,99 @@ describe("MCP stdio fixed npm package materialization", () => {
       expect(fs.existsSync(indexPath)).toBe(false);
     },
   );
+
+  it("rejects a temporary snapshot-root substitution around the build", () => {
+    const config = {
+      command: "npx",
+      args: ["@scope/mcp-server@1.2.3"],
+      transport: "stdio",
+    };
+    const authority = approved(config, "snapshot-root-swap");
+    const normalRunSync = _deps.processBrokerRunSync;
+    let substituted = false;
+    _deps.processBrokerRunSync = (command, args, options) => {
+      if (substituted) return normalRunSync(command, args, options);
+      substituted = true;
+      const attestedRoot = `${options.cwd}.attested`;
+      fs.renameSync(options.cwd, attestedRoot);
+      fs.cpSync(attestedRoot, options.cwd, {
+        recursive: true,
+        preserveTimestamps: true,
+      });
+      const runtimePath = path.join(
+        options.cwd,
+        "node_modules",
+        "@scope",
+        "mcp-server",
+        "runtime.js",
+      );
+      const originalRuntime = fs.readFileSync(runtimePath, "utf8");
+      const substitutedRuntime = originalRuntime.replace(
+        "answer === 42",
+        "answer !== 42",
+      );
+      expect(substitutedRuntime).toHaveLength(originalRuntime.length);
+      fs.writeFileSync(runtimePath, substitutedRuntime, "utf8");
+      try {
+        return normalRunSync(command, args, options);
+      } finally {
+        fs.rmSync(options.cwd, { recursive: true, force: true });
+        fs.renameSync(attestedRoot, options.cwd);
+      }
+    };
+
+    expect(() =>
+      materializeMcpStdioNpmPackage({
+        approvalRecord: authority.approvalRecord,
+        config: authority.invocation,
+        packageSpec: "@scope/mcp-server@1.2.3",
+        binName: "scope-mcp",
+        root: materializationRoot,
+        indexPath,
+        npmCli,
+        installRunner: fakeInstall,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: MCP_STDIO_PACKAGE_MATERIALIZATION_FAILED_CODE,
+        message: expect.stringContaining(
+          "build input changed during bundling at broker pre-spawn",
+        ),
+      }),
+    );
+    expect(fs.existsSync(indexPath)).toBe(false);
+  });
+
+  it("rejects a runner that omits the Broker spawn-boundary attestation", () => {
+    const config = {
+      command: "npx",
+      args: ["@scope/mcp-server@1.2.3"],
+      transport: "stdio",
+    };
+    const authority = approved(config, "missing-broker-boundary");
+    _deps.processBrokerRunSync = spawnSync;
+
+    expect(() =>
+      materializeMcpStdioNpmPackage({
+        approvalRecord: authority.approvalRecord,
+        config: authority.invocation,
+        packageSpec: "@scope/mcp-server@1.2.3",
+        binName: "scope-mcp",
+        root: materializationRoot,
+        indexPath,
+        npmCli,
+        installRunner: fakeInstall,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: MCP_STDIO_PACKAGE_MATERIALIZATION_FAILED_CODE,
+        message: expect.stringContaining(
+          "Process Broker omitted spawn-boundary input attestation",
+        ),
+      }),
+    );
+    expect(fs.existsSync(indexPath)).toBe(false);
+  });
 
   it.each([
     [

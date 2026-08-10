@@ -93,6 +93,7 @@ const MAX_TOTAL_BYTES = 1024 * 1024 * 1024;
 const MAX_FILE_BYTES = 256 * 1024 * 1024;
 const MAX_DEPTH = 64;
 const HASH_CHUNK_BYTES = 1024 * 1024;
+const HOST_INPUT_ATTESTATION_KIND = "chainlesschain.host-input-attestation/v1";
 const EXACT_VERSION =
   /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 const PACKAGE_NAME = /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/i;
@@ -793,6 +794,16 @@ function sameSnapshotFileIdentity(left, right) {
   );
 }
 
+function sameSnapshotFileObject(left, right) {
+  return Boolean(
+    left &&
+    right &&
+    left.dev === right.dev &&
+    left.ino === right.ino &&
+    left.size === right.size,
+  );
+}
+
 function readSnapshotInputAttestation(canonicalSnapshotRoot, inputRelative) {
   const realpath = _deps.fs.realpathSync.native || _deps.fs.realpathSync;
   const requested = resolveContainedPath(
@@ -826,14 +837,17 @@ function readSnapshotInputAttestation(canonicalSnapshotRoot, inputRelative) {
         Number(_deps.fs.constants.O_NONBLOCK || 0),
     );
     const descriptorBefore = _deps.fs.fstatSync(descriptor, { bigint: true });
+    const pathIdentityBefore = snapshotFileIdentity(pathBefore);
+    const descriptorIdentityBefore = snapshotFileIdentity(descriptorBefore);
     if (
       !descriptorBefore.isFile() ||
       descriptorBefore.size < 0n ||
       descriptorBefore.size > BigInt(MAX_FILE_BYTES) ||
-      !sameSnapshotFileIdentity(
-        snapshotFileIdentity(pathBefore),
-        snapshotFileIdentity(descriptorBefore),
-      )
+      // On Windows, pathname stat and descriptor stat can represent mode and
+      // timestamp fields differently. dev + ino is Node's volume/file ID
+      // binding; size is stable across both views. Mutable state is compared
+      // below only within the same stat family, before and after the read.
+      !sameSnapshotFileObject(pathIdentityBefore, descriptorIdentityBefore)
     ) {
       throw new Error(
         `MCP capsule build input identity changed before read: ${inputRelative}`,
@@ -862,14 +876,18 @@ function readSnapshotInputAttestation(canonicalSnapshotRoot, inputRelative) {
     const descriptorAfter = _deps.fs.fstatSync(descriptor, { bigint: true });
     const pathAfter = _deps.fs.lstatSync(requested, { bigint: true });
     const canonicalPathAfter = realpath(requested);
-    const beforeIdentity = snapshotFileIdentity(descriptorBefore);
-    const afterIdentity = snapshotFileIdentity(descriptorAfter);
+    const descriptorIdentityAfter = snapshotFileIdentity(descriptorAfter);
+    const pathIdentityAfter = snapshotFileIdentity(pathAfter);
     if (
       pathAfter.isSymbolicLink() ||
       !pathAfter.isFile() ||
       canonicalPathAfter !== canonicalPath ||
-      !sameSnapshotFileIdentity(beforeIdentity, afterIdentity) ||
-      !sameSnapshotFileIdentity(afterIdentity, snapshotFileIdentity(pathAfter))
+      !sameSnapshotFileIdentity(
+        descriptorIdentityBefore,
+        descriptorIdentityAfter,
+      ) ||
+      !sameSnapshotFileIdentity(pathIdentityBefore, pathIdentityAfter) ||
+      !sameSnapshotFileObject(descriptorIdentityAfter, pathIdentityAfter)
     ) {
       throw new Error(
         `MCP capsule build input changed during read: ${inputRelative}`,
@@ -880,7 +898,7 @@ function readSnapshotInputAttestation(canonicalSnapshotRoot, inputRelative) {
       canonicalPath,
       bytes,
       sha256: sha256(content),
-      identity: afterIdentity,
+      identity: descriptorIdentityAfter,
     });
   } finally {
     if (descriptor !== undefined) _deps.fs.closeSync(descriptor);
@@ -903,6 +921,98 @@ function normalizeEsbuildInputPath(input) {
     throw new Error(`MCP capsule build reported an unsafe input: ${input}`);
   }
   return normalizedSeparators;
+}
+
+function createSnapshotBuildBoundaryAttestation({
+  canonicalSnapshotRoot,
+  closure,
+  preBuildInputs,
+  builder,
+  builderArgs,
+  wrapperSource,
+}) {
+  let state = "pending";
+  const attest = (phase) => {
+    const observedBuilder = readSnapshotInputAttestation(
+      path.dirname(builder.binary),
+      path.basename(builder.binary),
+    );
+    if (
+      observedBuilder.canonicalPath !== builder.binary ||
+      observedBuilder.bytes !== builder.bytes ||
+      observedBuilder.sha256 !== builder.sha256 ||
+      !sameSnapshotFileIdentity(observedBuilder.identity, builder.identity)
+    ) {
+      throw new Error(
+        `MCP capsule builder changed during bundling at broker ${phase}`,
+      );
+    }
+    for (const record of closure.files) {
+      const expected = preBuildInputs.get(record.path);
+      const observed = readSnapshotInputAttestation(
+        canonicalSnapshotRoot,
+        record.path,
+      );
+      if (
+        !expected ||
+        observed.bytes !== record.bytes ||
+        observed.sha256 !== record.sha256 ||
+        Number(observed.identity.mode) !== record.mode ||
+        observed.canonicalPath !== expected.canonicalPath ||
+        !sameSnapshotFileIdentity(observed.identity, expected.identity)
+      ) {
+        throw new Error(
+          `MCP capsule build input changed during bundling at broker ${phase}: ${record.path}`,
+        );
+      }
+    }
+    const observedClosure = collectTree(canonicalSnapshotRoot);
+    if (
+      observedClosure.fileCount !== closure.fileCount ||
+      observedClosure.totalBytes !== closure.totalBytes ||
+      observedClosure.closureDigest !== closure.closureDigest ||
+      canonicalJson(observedClosure.files) !== canonicalJson(closure.files)
+    ) {
+      throw new Error(
+        `MCP capsule source snapshot changed during bundling at broker ${phase}`,
+      );
+    }
+  };
+  return Object.freeze({
+    hooks: Object.freeze({
+      kind: HOST_INPUT_ATTESTATION_KIND,
+      command: builder.binary,
+      args: Object.freeze([...builderArgs]),
+      cwd: canonicalSnapshotRoot,
+      inputBytes: wrapperSource.length,
+      inputSha256: sha256(wrapperSource),
+      beforeSpawn() {
+        if (state !== "pending") {
+          throw new Error(
+            "MCP capsule broker input attestation ran out of order",
+          );
+        }
+        attest("pre-spawn");
+        state = "spawned";
+      },
+      afterSpawn() {
+        if (state !== "spawned") {
+          throw new Error(
+            "MCP capsule broker input attestation ran out of order",
+          );
+        }
+        attest("post-spawn");
+        state = "complete";
+      },
+    }),
+    assertComplete() {
+      if (state !== "complete") {
+        throw new Error(
+          "MCP capsule Process Broker omitted spawn-boundary input attestation",
+        );
+      }
+    },
+  });
 }
 
 function resolveCapsuleBuilderBinary() {
@@ -931,13 +1041,14 @@ function resolveCapsuleBuilderBinary() {
   );
   const realpath = _deps.fs.realpathSync.native || _deps.fs.realpathSync;
   const binary = realpath(candidate);
-  const stat = _deps.fs.lstatSync(binary);
+  const observed = readSnapshotInputAttestation(
+    path.dirname(binary),
+    path.basename(binary),
+  );
   if (
-    stat.isSymbolicLink() ||
-    !stat.isFile() ||
-    stat.size <= 0 ||
-    stat.size > MAX_FILE_BYTES ||
-    hashFile(binary, stat.size) !== expected.sha256
+    observed.canonicalPath !== binary ||
+    observed.bytes <= 0 ||
+    observed.sha256 !== expected.sha256
   ) {
     throw new Error("MCP capsule builder binary identity is invalid");
   }
@@ -945,6 +1056,8 @@ function resolveCapsuleBuilderBinary() {
     binary,
     platform,
     sha256: expected.sha256,
+    bytes: observed.bytes,
+    identity: observed.identity,
   });
 }
 
@@ -1090,6 +1203,32 @@ function buildCapsule({
     );
     const wrapperSha256 = sha256(wrapperSource);
     const builder = resolveCapsuleBuilderBinary();
+    const builderArgs = Object.freeze([
+      "--bundle",
+      "--charset=utf8",
+      "--format=cjs",
+      "--legal-comments=none",
+      "--loader=js",
+      "--log-level=warning",
+      `--metafile=${metafilePath}`,
+      `--outfile=${capsulePath}`,
+      "--packages=bundle",
+      "--platform=node",
+      "--preserve-symlinks",
+      "--supported:dynamic-import=false",
+      `--sourcefile=${CAPSULE_STDIN_WRAPPER_SOURCEFILE}`,
+      "--target=node22",
+      "--tree-shaking=false",
+      `--banner:js=${capsuleRuntimeGuard()}`,
+    ]);
+    const buildBoundaryAttestation = createSnapshotBuildBoundaryAttestation({
+      canonicalSnapshotRoot,
+      closure,
+      preBuildInputs,
+      builder,
+      builderArgs,
+      wrapperSource,
+    });
     const runThroughProcessBroker =
       processBrokerRunSync || _deps.processBrokerRunSync;
     if (typeof runThroughProcessBroker !== "function") {
@@ -1097,36 +1236,17 @@ function buildCapsule({
         "MCP capsule construction requires a host-owned Process Broker runner",
       );
     }
-    const result = runThroughProcessBroker(
-      builder.binary,
-      [
-        "--bundle",
-        "--charset=utf8",
-        "--format=cjs",
-        "--legal-comments=none",
-        "--loader=js",
-        "--log-level=warning",
-        `--metafile=${metafilePath}`,
-        `--outfile=${capsulePath}`,
-        "--packages=bundle",
-        "--platform=node",
-        "--preserve-symlinks",
-        "--supported:dynamic-import=false",
-        `--sourcefile=${CAPSULE_STDIN_WRAPPER_SOURCEFILE}`,
-        "--target=node22",
-        "--tree-shaking=false",
-        `--banner:js=${capsuleRuntimeGuard()}`,
-      ],
-      {
-        cwd: canonicalSnapshotRoot,
-        env: sanitizeMcpStdioHostEnvironment(env),
-        encoding: "utf8",
-        input: wrapperSource,
-        shell: false,
-        windowsHide: true,
-        maxBuffer: 8 * 1024 * 1024,
-      },
-    );
+    const result = runThroughProcessBroker(builder.binary, builderArgs, {
+      cwd: canonicalSnapshotRoot,
+      env: sanitizeMcpStdioHostEnvironment(env),
+      encoding: "utf8",
+      input: wrapperSource,
+      shell: false,
+      windowsHide: true,
+      maxBuffer: 8 * 1024 * 1024,
+      hostInputAttestation: buildBoundaryAttestation.hooks,
+    });
+    buildBoundaryAttestation.assertComplete();
     const stderr = String(result?.stderr || "").trim();
     if (result?.error || result?.status !== 0 || stderr) {
       const detail = String(

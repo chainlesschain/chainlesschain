@@ -216,6 +216,7 @@ Promise.all(config.networkTargets.map((target) => probeNetwork(target))).then((n
 `;
 
 function launchDetachedChildProbe() {
+  const runtimePath = resolveChildRuntimePath();
   return new Promise((resolve) => {
     let child;
     let settled = false;
@@ -224,7 +225,9 @@ function launchDetachedChildProbe() {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      resolve(report);
+      // Keep the actual launch target in the parent-owned envelope so a CI
+      // failure cannot hide a stale descriptor or process.execPath fallback.
+      resolve({ ...report, runtimePath });
     };
     const timer = setTimeout(
       () =>
@@ -237,7 +240,7 @@ function launchDetachedChildProbe() {
     );
     try {
       child = spawn(
-        resolveChildRuntimePath(),
+        runtimePath,
         [
           "-e",
           childProgram,

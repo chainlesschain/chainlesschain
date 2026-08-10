@@ -25,6 +25,19 @@ function writeJson(file, value) {
   fs.writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
+function brokerSpawnSync(command, args, options) {
+  const attestation = options?.hostInputAttestation;
+  const spawnOptions = { ...options };
+  delete spawnOptions.hostInputAttestation;
+  if (!attestation) return spawnSync(command, args, spawnOptions);
+  attestation.beforeSpawn();
+  try {
+    return spawnSync(command, args, spawnOptions);
+  } finally {
+    attestation.afterSpawn();
+  }
+}
+
 function fakeInstall({ directory }) {
   writeJson(path.join(directory, "package-lock.json"), {
     name: "chainlesschain-mcp-materialization",
@@ -105,7 +118,7 @@ describe("MCP stdio capsule host boundary floor", () => {
       config: sourceConfig,
     });
     config = materializeApprovedMcpStdioInvocation(approval);
-    _deps.processBrokerRunSync = spawnSync;
+    _deps.processBrokerRunSync = brokerSpawnSync;
     materializeMcpStdioNpmPackage({
       approvalRecord: resolveMcpStdioExecutionApproval(approval),
       config,

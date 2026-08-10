@@ -77,6 +77,19 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function spawnSyncAtHostInputBoundary(command, args, options) {
+  const attestation = options?.hostInputAttestation;
+  const spawnOptions = { ...options };
+  delete spawnOptions.hostInputAttestation;
+  if (!attestation) return nativeSpawnSync(command, args, spawnOptions);
+  attestation.beforeSpawn();
+  try {
+    return nativeSpawnSync(command, args, spawnOptions);
+  } finally {
+    attestation.afterSpawn();
+  }
+}
+
 function commandDigest(commandLine) {
   return crypto
     .createHash("sha256")
@@ -1418,16 +1431,22 @@ function materializeProbe({
         nonce,
       }),
     // Materialization itself is not the subject of the live sandbox launch.
-    // It still performs the real esbuild capsule construction; using the
-    // native runner keeps the audit log scoped to Client -> Broker -> OS.
-    processBrokerRunSync: nativeSpawnSync,
+    // It still performs the real esbuild capsule construction. The local
+    // spawn-boundary adapter executes the same pre/post input attestation as
+    // the Process Broker while keeping the audit log scoped to the live
+    // Client -> Broker -> OS invocation under test.
+    processBrokerRunSync: spawnSyncAtHostInputBoundary,
   });
 }
 
 describe("materialized MCP capsule host observer helpers", () => {
-  it("re-executes Linux children through the live runtime image", () => {
+  it("re-executes Linux children through the exact Broker-mounted runtime", () => {
+    expect(LINUX_CHILD_RUNTIME_PATH).toBe("/opt/chainless/runtime/node");
     expect(resolveChildRuntimePath("linux", "/proc/self/fd/3")).toBe(
-      LINUX_CHILD_RUNTIME_PATH,
+      "/opt/chainless/runtime/node",
+    );
+    expect(resolveChildRuntimePath("linux", "/usr/bin/node")).toBe(
+      "/opt/chainless/runtime/node",
     );
     expect(resolveChildRuntimePath("darwin", "/usr/local/bin/node")).toBe(
       "/usr/local/bin/node",
@@ -2379,12 +2398,13 @@ describe.runIf(LIVE && SUPPORTED)(
         expect(report.child).toMatchObject({
           spawnDenied: false,
           reportReceived: true,
+          runtimePath: LINUX_CHILD_RUNTIME_PATH,
         });
       }
       if (report.child.spawnDenied) {
         // A zero-capability Windows AppContainer may reject child creation at
         // the OS boundary. Linux must execute the probe through the capsule's
-        // live /proc/self/exe runtime and cannot use denial here.
+        // fixed Broker-mounted runtime and cannot use denial here.
         expect(process.platform).toBe("win32");
         expect(report.child).toMatchObject({
           spawnDenied: true,

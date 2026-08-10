@@ -1,15 +1,15 @@
 "use strict";
 
-const LINUX_CHILD_RUNTIME_PATH = "/proc/self/exe";
+const LINUX_CHILD_RUNTIME_PATH = "/opt/chainless/runtime/node";
 
 function resolveChildRuntimePath(
   platform = process.platform,
   execPath = process.execPath,
 ) {
-  // The Linux capsule runtime is launched through a consumed descriptor such
-  // as /proc/self/fd/3. Re-executing that stale path reports ENOENT even though
-  // process creation is allowed. /proc/self/exe is the kernel-bound identity
-  // of the currently running runtime and remains executable after fd 3 closes.
+  // The Broker mounts its pinned runtime descriptor at this fixed read-only
+  // path inside the Linux capsule. Never fall back to process.execPath: the
+  // initial /proc/self/fd/N launcher is consumed, while /proc/self/exe is not
+  // an executable proof path in every hosted bubblewrap environment.
   return platform === "linux" ? LINUX_CHILD_RUNTIME_PATH : execPath;
 }
 
