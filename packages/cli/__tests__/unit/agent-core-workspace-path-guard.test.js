@@ -52,6 +52,35 @@ function canonicalRealpath(candidate) {
   return path.resolve(realpath(candidate));
 }
 
+async function withAffectedWindowsPathDeviceProjection(action) {
+  const versionsDescriptor = Object.getOwnPropertyDescriptor(
+    process,
+    "versions",
+  );
+  const originalLstat = fs.lstatSync.bind(fs);
+  Object.defineProperty(process, "versions", {
+    ...versionsDescriptor,
+    value: { ...process.versions, uv: "1.49.1" },
+  });
+  const lstatSpy = vi.spyOn(fs, "lstatSync").mockImplementation((...args) => {
+    const stats = originalLstat(...args);
+    if (typeof stats.dev !== "bigint") return stats;
+    return new Proxy(stats, {
+      get(current, property, receiver) {
+        if (property === "dev") return 0n;
+        const value = Reflect.get(current, property, receiver);
+        return typeof value === "function" ? value.bind(current) : value;
+      },
+    });
+  });
+  try {
+    return await action();
+  } finally {
+    lstatSpy.mockRestore();
+    Object.defineProperty(process, "versions", versionsDescriptor);
+  }
+}
+
 describe("agent workspace path guard", () => {
   let base;
   let workspace;
@@ -396,6 +425,112 @@ describe("agent workspace path guard", () => {
       lstatSpy.mockRestore();
     }
   });
+
+  it.runIf(process.platform === "win32")(
+    "accepts the affected Node 22.12 Windows pathname device projection",
+    async () => {
+      const target = path.join(workspace, "windows-device-projection.txt");
+      fs.writeFileSync(target, "old", "utf8");
+
+      const result = await withAffectedWindowsPathDeviceProjection(async () => {
+        const normalized = normalizeExactFileMutationScope(
+          {
+            exact: true,
+            worktreeRoot: canonicalRealpath(workspace),
+            allowedPaths: ["windows-device-projection.txt"],
+          },
+          { cwd: workspace },
+        );
+        return executeTool(
+          "write_file",
+          { path: "windows-device-projection.txt", content: "updated" },
+          {
+            cwd: workspace,
+            fileMutationScope: normalized,
+            hermeticExecution: true,
+          },
+        );
+      });
+
+      expect(result.success).toBe(true);
+      expect(fs.readFileSync(target, "utf8")).toBe("updated");
+    },
+  );
+
+  it.runIf(process.platform === "win32")(
+    "rejects a real staging-path replacement under the Windows projection bridge",
+    async () => {
+      const target = path.join(workspace, "windows-stage-race.txt");
+      const relocatedStage = path.join(outside, "windows-original-stage.tmp");
+      fs.writeFileSync(target, "original", "utf8");
+
+      let injected = false;
+      const result = await withAffectedWindowsPathDeviceProjection(async () => {
+        const normalized = normalizeExactFileMutationScope(
+          {
+            exact: true,
+            worktreeRoot: canonicalRealpath(workspace),
+            allowedPaths: ["windows-stage-race.txt"],
+          },
+          { cwd: workspace },
+        );
+        const originalOpen = fs.openSync.bind(fs);
+        const openSpy = vi
+          .spyOn(fs, "openSync")
+          .mockImplementation((candidate, flags, mode) => {
+            const accessFlags = Number(flags);
+            const isReadOnly =
+              (accessFlags &
+                (Number(fs.constants.O_WRONLY) |
+                  Number(fs.constants.O_RDWR))) ===
+              0;
+            if (
+              !injected &&
+              isReadOnly &&
+              path
+                .basename(path.resolve(String(candidate)))
+                .startsWith(".chainlesschain-fix-")
+            ) {
+              injected = true;
+              fs.renameSync(candidate, relocatedStage);
+              fs.writeFileSync(candidate, "attacker-replacement", "utf8");
+            }
+            return originalOpen(candidate, flags, mode);
+          });
+        try {
+          return await executeTool(
+            "write_file",
+            { path: "windows-stage-race.txt", content: "replacement" },
+            {
+              cwd: workspace,
+              fileMutationScope: normalized,
+              hermeticExecution: true,
+            },
+          );
+        } finally {
+          openSpy.mockRestore();
+        }
+      });
+
+      expect(injected).toBe(true);
+      expect(result).toMatchObject({
+        cleanupRequired: true,
+        unsettledStage: expect.stringMatching(/^\.chainlesschain-fix-/),
+        policy: {
+          via: "exact-file-mutation-scope",
+          reason: "bound-write-failed",
+        },
+      });
+      expect(result.error).toContain(
+        "staged file path changed identity or content",
+      );
+      expect(fs.readFileSync(target, "utf8")).toBe("original");
+      expect(fs.readFileSync(relocatedStage, "utf8")).toBe("replacement");
+      expect(
+        fs.readFileSync(path.join(workspace, result.unsettledStage), "utf8"),
+      ).toBe("attacker-replacement");
+    },
+  );
 
   it("rejects filesystem aliases and detects a parent identity swap", async () => {
     const escape = path.join(workspace, "escape");

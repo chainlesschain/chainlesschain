@@ -128,6 +128,10 @@ import {
 } from "../harness/structured-handoff.js";
 import { isMcpRpcError } from "../harness/mcp-client.js";
 import { projectCanonicalResumeMessages } from "../lib/session-message-provenance.js";
+import {
+  pathMatchesOpenedFileIdentitySync,
+  sameOpenedFileIdentity,
+} from "../lib/packer/file-identity.js";
 
 export { formatProviderHttpError };
 
@@ -1409,6 +1413,19 @@ const EXACT_FILE_MUTATION_SCOPE_TOOL_NAMES = new Set([
   "write_file",
   "edit_file",
   "edit_file_hashed",
+]);
+const EXACT_FILE_MUTATION_OPENED_STATE_FIELDS = Object.freeze([
+  "mode",
+  "nlink",
+  "size",
+  "mtimeNs",
+  "ctimeNs",
+]);
+const EXACT_FILE_MUTATION_RENAME_STABLE_STATE_FIELDS = Object.freeze([
+  "mode",
+  "nlink",
+  "size",
+  "mtimeNs",
 ]);
 const NORMALIZED_EXACT_FILE_MUTATION_SCOPES = new WeakSet();
 const EXACT_FILE_MUTATION_SCOPE_STATES = new WeakMap();
@@ -3216,12 +3233,18 @@ function writeFileVerifiedWithinExactScope(
     // comparison prevents a pre-created alias from being substituted here.
     verifyExactBindingState(scope, binding);
     const stagedPath = lstatIdentity(temporaryPath);
+    const stagedPathMatches =
+      process.platform === "win32"
+        ? pathMatchesOpenedFileIdentitySync(temporaryPath, staged, {
+            stateFields: EXACT_FILE_MUTATION_OPENED_STATE_FIELDS,
+          })
+        : sameFilesystemIdentity(stagedPath.identity, stagedIdentity, {
+            content: true,
+          });
     if (
       !stagedPath.stats.isFile() ||
       stagedPath.stats.nlink !== 1n ||
-      !sameFilesystemIdentity(stagedPath.identity, stagedIdentity, {
-        content: true,
-      })
+      !stagedPathMatches
     ) {
       throw new Error("staged file path changed identity or content");
     }
@@ -3232,12 +3255,33 @@ function writeFileVerifiedWithinExactScope(
 
     const installed = lstatIdentity(binding.absolutePath);
     verifyExactScopeAncestors(state);
+    const installedWriter =
+      process.platform === "win32"
+        ? fs.fstatSync(descriptor, { bigint: true })
+        : staged;
+    const installedPathMatches =
+      process.platform === "win32"
+        ? installedWriter.isFile() &&
+          installedWriter.nlink === 1n &&
+          sameOpenedFileIdentity(
+            staged,
+            installedWriter,
+            EXACT_FILE_MUTATION_RENAME_STABLE_STATE_FIELDS,
+          ) &&
+          pathMatchesOpenedFileIdentitySync(
+            binding.absolutePath,
+            installedWriter,
+            {
+              stateFields: EXACT_FILE_MUTATION_OPENED_STATE_FIELDS,
+            },
+          )
+        : sameFilesystemIdentity(installed.identity, stagedIdentity, {
+            content: true,
+          });
     if (
       !installed.stats.isFile() ||
       installed.stats.nlink !== 1n ||
-      !sameFilesystemIdentity(installed.identity, stagedIdentity, {
-        content: true,
-      }) ||
+      !installedPathMatches ||
       installed.stats.size !== BigInt(expected)
     ) {
       throw new Error("installed replacement failed identity verification");
