@@ -336,6 +336,62 @@ describe("agent workspace path guard", () => {
     expect(fs.readFileSync(outsideFile, "utf8")).toBe("outside-secret");
   });
 
+  it("keeps a bound ancestor valid when its directory link count changes", async () => {
+    const target = path.join(workspace, "apfs-directory-entry.txt");
+    fs.writeFileSync(target, "old", "utf8");
+    const normalized = normalizeExactFileMutationScope(
+      {
+        exact: true,
+        worktreeRoot: fs.realpathSync(workspace),
+        allowedPaths: ["apfs-directory-entry.txt"],
+      },
+      { cwd: workspace },
+    );
+
+    const originalLstat = fs.lstatSync.bind(fs);
+    let observedLinkCountDrift = false;
+    const lstatSpy = vi.spyOn(fs, "lstatSync").mockImplementation((...args) => {
+      const stats = originalLstat(...args);
+      const candidate = path.resolve(String(args[0]));
+      const stagingExists = fs
+        .readdirSync(normalized.worktreeRoot)
+        .some((name) => name.startsWith(".chainlesschain-fix-"));
+      if (
+        candidate !== normalized.worktreeRoot ||
+        !stats.isDirectory() ||
+        !stagingExists
+      ) {
+        return stats;
+      }
+      observedLinkCountDrift = true;
+      return new Proxy(stats, {
+        get(current, property, receiver) {
+          if (property === "nlink") return current.nlink + 1n;
+          const value = Reflect.get(current, property, receiver);
+          return typeof value === "function" ? value.bind(current) : value;
+        },
+      });
+    });
+
+    try {
+      const result = await executeTool(
+        "write_file",
+        { path: "apfs-directory-entry.txt", content: "updated" },
+        {
+          cwd: workspace,
+          fileMutationScope: normalized,
+          hermeticExecution: true,
+        },
+      );
+
+      expect(result.success).toBe(true);
+      expect(observedLinkCountDrift).toBe(true);
+      expect(fs.readFileSync(target, "utf8")).toBe("updated");
+    } finally {
+      lstatSpy.mockRestore();
+    }
+  });
+
   it("rejects filesystem aliases and detects a parent identity swap", async () => {
     const escape = path.join(workspace, "escape");
     makeDirectoryLink(outside, escape);
@@ -450,15 +506,16 @@ describe("agent workspace path guard", () => {
       },
       { cwd: workspace },
     );
+    const boundTarget = normalized.bindings[0].absolutePath;
 
     const originalRename = fs.renameSync.bind(fs);
     let injected = false;
     const renameSpy = vi
       .spyOn(fs, "renameSync")
       .mockImplementation((source, destination) => {
-        if (!injected && destination === target) {
+        if (!injected && destination === boundTarget) {
           injected = true;
-          originalRename(target, relocated);
+          originalRename(boundTarget, relocated);
         }
         return originalRename(source, destination);
       });
@@ -517,6 +574,7 @@ describe("agent workspace path guard", () => {
       },
       { cwd: workspace },
     );
+    const boundTarget = normalized.bindings[0].absolutePath;
 
     const originalFstat = fs.fstatSync.bind(fs);
     let injected = false;
@@ -524,7 +582,7 @@ describe("agent workspace path guard", () => {
       const stats = originalFstat(...args);
       if (!injected) {
         injected = true;
-        fs.renameSync(target, relocated);
+        fs.renameSync(boundTarget, relocated);
       }
       return stats;
     });
@@ -571,13 +629,14 @@ describe("agent workspace path guard", () => {
       },
       { cwd: workspace },
     );
+    const boundTarget = normalized.bindings[0].absolutePath;
 
     const originalRename = fs.renameSync.bind(fs);
     let substitutedPath;
     const renameSpy = vi
       .spyOn(fs, "renameSync")
       .mockImplementation((source, destination) => {
-        if (!substitutedPath && destination === target) {
+        if (!substitutedPath && destination === boundTarget) {
           substitutedPath = source;
           originalRename(source, relocatedStage);
           fs.linkSync(outsideFile, source);

@@ -1475,13 +1475,19 @@ function filesystemIdentity(stats) {
   });
 }
 
-function sameFilesystemIdentity(left, right, { content = false } = {}) {
+function sameFilesystemObjectIdentity(left, right) {
   return Boolean(
     left &&
     right &&
     left.dev === right.dev &&
     left.ino === right.ino &&
-    left.type === right.type &&
+    left.type === right.type,
+  );
+}
+
+function sameFilesystemIdentity(left, right, { content = false } = {}) {
+  return Boolean(
+    sameFilesystemObjectIdentity(left, right) &&
     left.nlink === right.nlink &&
     (!content || (left.size === right.size && left.mtimeNs === right.mtimeNs)),
   );
@@ -1534,9 +1540,12 @@ function exactBindingState(canonicalRoot, relativePath, absolutePath) {
 function verifyExactScopeAncestors(state) {
   for (const ancestor of state.ancestors) {
     const current = lstatIdentity(ancestor.path);
+    // Directory link counts are not portable identity fields. APFS counts all
+    // directory entries, so creating our own staging file legitimately changes
+    // nlink. Device + inode + directory type still fail closed on replacement.
     if (
       !current.stats.isDirectory() ||
-      !sameFilesystemIdentity(current.identity, ancestor.identity)
+      !sameFilesystemObjectIdentity(current.identity, ancestor.identity)
     ) {
       throw new Error(
         `mutation scope ancestor changed identity: ${ancestor.path}`,
