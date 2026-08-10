@@ -30,6 +30,7 @@ import {
   formatToolArgs,
   killAllBackgroundShellTasks,
   killAllBackgroundShellTasksSync,
+  normalizeExactFileMutationScope,
 } from "./agent-core.js";
 import {
   resolveAgentMcp,
@@ -151,6 +152,12 @@ const VALID_PERMISSION_MODES = Object.freeze([
 ]);
 
 const VALID_OUTPUT_FORMATS = Object.freeze(["text", "json", "stream-json"]);
+const HERMETIC_SKILL_LOADER = Object.freeze({
+  getAutoActivatedPersonas: () => [],
+  getResolvedSkills: () => [],
+  getCacheLedger: () => null,
+  getLimits: () => null,
+});
 
 // EPIPE guard for `cc agent -p … | head`. Lives in pipe-safety.js (shared with
 // the stream-json driver + REPL); re-exported here for existing importers.
@@ -658,50 +665,69 @@ async function runAgentHeadlessInWorkspace(
   const baseUrl = options.baseUrl || "http://localhost:11434";
   const apiKey = options.apiKey || null;
   const cwd = options.cwd || process.cwd();
+  const hermeticExecution = options.hermeticExecution === true;
+  if (
+    options.fileMutationScope != null &&
+    (options.exactToolNames !== true || !hermeticExecution)
+  ) {
+    throw new Error(
+      "exact file mutation scope requires exactToolNames=true and hermeticExecution=true",
+    );
+  }
+  const fileMutationScope = normalizeExactFileMutationScope(
+    options.fileMutationScope,
+    { cwd },
+  );
   // Extra workspace roots (--add-dir). Resolved/validated by the caller; we
   // just normalize to a clean string[] here.
-  const additionalDirectories = Array.isArray(options.additionalDirectories)
-    ? options.additionalDirectories.filter(Boolean)
-    : [];
+  const additionalDirectories = hermeticExecution
+    ? []
+    : Array.isArray(options.additionalDirectories)
+      ? options.additionalDirectories.filter(Boolean)
+      : [];
 
   // .claude/settings.json permission rules (deny > ask > allow). A `deny` hard-
   // blocks, an `allow` pre-authorizes (so a safe op isn't fail-closed headless),
   // an `ask` falls closed (no human to confirm in headless). No file → null →
   // every existing risk-tier / shell-policy layer runs unchanged.
-  let permissionRules = options.permissionRules || null;
+  let permissionRules = hermeticExecution
+    ? null
+    : options.permissionRules || null;
   let managedSettings = null;
   let settingsFiles = [];
-  try {
-    const { loadSettings, applyManagedPermissionPolicy } =
-      await import("../lib/settings-loader.cjs");
-    const loaded = loadSettings({
-      cwd,
-      settingsFile: options.settingsFile,
-      managedSettingsFile: options.managedSettingsFile,
-    });
-    managedSettings = loaded.managed;
-    settingsFiles = Array.isArray(loaded.files) ? loaded.files : [];
-    if (!permissionRules) {
-      const total =
-        loaded.rules.allow.length +
-        loaded.rules.ask.length +
-        loaded.rules.deny.length;
-      permissionRules = total > 0 ? loaded.rules : null;
-    } else if (managedSettings) {
-      permissionRules = applyManagedPermissionPolicy(
-        permissionRules,
-        managedSettings,
-      );
+  if (!hermeticExecution) {
+    try {
+      const { loadSettings, applyManagedPermissionPolicy } =
+        await import("../lib/settings-loader.cjs");
+      const loaded = loadSettings({
+        cwd,
+        settingsFile: options.settingsFile,
+        managedSettingsFile: options.managedSettingsFile,
+      });
+      managedSettings = loaded.managed;
+      settingsFiles = Array.isArray(loaded.files) ? loaded.files : [];
+      if (!permissionRules) {
+        const total =
+          loaded.rules.allow.length +
+          loaded.rules.ask.length +
+          loaded.rules.deny.length;
+        permissionRules = total > 0 ? loaded.rules : null;
+      } else if (managedSettings) {
+        permissionRules = applyManagedPermissionPolicy(
+          permissionRules,
+          managedSettings,
+        );
+      }
+    } catch (error) {
+      if (error?.code === "CC_MANAGED_SETTINGS_INVALID") throw error;
+      // Preserve caller-provided rules; absent settings keep legacy behavior.
     }
-  } catch (error) {
-    if (error?.code === "CC_MANAGED_SETTINGS_INVALID") throw error;
-    // Preserve caller-provided rules; absent settings keep legacy behavior.
   }
 
   // .claude/settings.json `hooks` block — decision-capable PreToolUse/
   // PostToolUse hooks (see settings-hooks/hook-runner). null = no hooks.
-  let settingsHooks = options.settingsHooks || null;
-  if (!settingsHooks) {
+  let settingsHooks = hermeticExecution ? null : options.settingsHooks || null;
+  if (!hermeticExecution && !settingsHooks) {
     try {
       const { loadHooks, projectHookTrustNotice, attachAuthorityErrors } =
         await import("../lib/settings-hooks.cjs");
@@ -748,28 +774,35 @@ async function runAgentHeadlessInWorkspace(
   // sandboxPolicy. Policy-bearing bins are excluded here and resolved as exact
   // direct Broker invocations by agent-core. The process exits at the end of
   // the run, so no explicit restore is needed.
-  try {
-    const { applyPluginBinPath } = await import("../lib/plugin-runtime/bin.js");
-    applyPluginBinPath({ cwd });
-  } catch {
-    /* best-effort — plugin bin PATH never blocks a headless run */
+  if (!hermeticExecution) {
+    try {
+      const { applyPluginBinPath } =
+        await import("../lib/plugin-runtime/bin.js");
+      applyPluginBinPath({ cwd });
+    } catch {
+      /* best-effort — plugin bin PATH never blocks a headless run */
+    }
   }
 
   // Apply trusted plugins' default env vars for this run (Phase 3.3o) — only for
   // keys not already set; the process exits at the end so no restore is needed.
-  try {
-    const { applyPluginSettingsEnv } =
-      await import("../lib/plugin-runtime/settings.js");
-    applyPluginSettingsEnv({ cwd });
-  } catch {
-    /* best-effort — plugin settings never block a headless run */
+  if (!hermeticExecution) {
+    try {
+      const { applyPluginSettingsEnv } =
+        await import("../lib/plugin-runtime/settings.js");
+      applyPluginSettingsEnv({ cwd });
+    } catch {
+      /* best-effort — plugin settings never block a headless run */
+    }
   }
 
   // autoMode.classifyAllShell (Claude-Code 2.1.193): route the built-in
   // verification allowlist through the shell-policy classifier instead of
   // fast-pathing it. Explicit option wins; otherwise read settings.json.
-  let classifyAllShell = options.classifyAllShell || false;
-  if (!classifyAllShell) {
+  let classifyAllShell = hermeticExecution
+    ? false
+    : options.classifyAllShell || false;
+  if (!hermeticExecution && !classifyAllShell) {
     try {
       const { readBooleanSetting } = await import("../lib/settings-loader.cjs");
       classifyAllShell =
@@ -784,7 +817,14 @@ async function runAgentHeadlessInWorkspace(
 
   const runLoop = deps.agentLoop || coreAgentLoop;
   const doBootstrap = deps.bootstrap || bootstrap;
-  const executeLifecycleHooks = deps.executeHooksV2Event || executeHooksV2Event;
+  const executeLifecycleHooks = hermeticExecution
+    ? async () => ({
+        success: true,
+        blocked: false,
+        decision: "continue",
+        results: [],
+      })
+    : deps.executeHooksV2Event || executeHooksV2Event;
   const getApprovalGate =
     deps.getApprovalGate ||
     (async () => {
@@ -918,7 +958,11 @@ async function runAgentHeadlessInWorkspace(
   // A matched command's `allowed-tools:` frontmatter scopes the run (parsed
   // below into enabledToolNames) the same way `cc command run` does.
   let macroAllowedTools = null;
-  if (options.slashMacros !== false && prompt.startsWith("/")) {
+  if (
+    !hermeticExecution &&
+    options.slashMacros !== false &&
+    prompt.startsWith("/")
+  ) {
     try {
       const doMacro =
         deps.resolveSlashMacro ||
@@ -959,7 +1003,11 @@ async function runAgentHeadlessInWorkspace(
   // a dir listing) so `cc agent -p "review @src/x.js"` works without a manual
   // cat-pipe. Opt out with `--no-file-refs` (options.expandFileRefs === false).
   // Skipped when a slash macro already expanded (expandCommand ran @refs).
-  if (!slashExpanded && options.expandFileRefs !== false) {
+  if (
+    !hermeticExecution &&
+    !slashExpanded &&
+    options.expandFileRefs !== false
+  ) {
     const doExpand = deps.expandFileRefs || expandFileRefsAsync;
     const expanded = await doExpand(prompt, { cwd });
     userContent = expanded.prompt;
@@ -987,13 +1035,15 @@ async function runAgentHeadlessInWorkspace(
 
   // ── Best-effort runtime bootstrap (DB optional, like startAgentRepl) ───
   let db = null;
-  try {
-    // Bootstrap logs db/config diagnostics via console.info (→ stdout); divert
-    // to stderr so text/JSON/NDJSON stdout payloads stay clean.
-    const ctx = await withQuietStdout(() => doBootstrap({ verbose: false }));
-    db = ctx.db || null;
-  } catch {
-    // Continue without DB — static-prompt fallback.
+  if (!hermeticExecution) {
+    try {
+      // Bootstrap logs db/config diagnostics via console.info (→ stdout); divert
+      // to stderr so text/JSON/NDJSON stdout payloads stay clean.
+      const ctx = await withQuietStdout(() => doBootstrap({ verbose: false }));
+      db = ctx.db || null;
+    } catch {
+      // Continue without DB — static-prompt fallback.
+    }
   }
 
   const setupHooks = await executeLifecycleHooks(
@@ -1093,8 +1143,14 @@ async function runAgentHeadlessInWorkspace(
   // here — before the resume reconcile below — so an UNKNOWN-outcome side
   // effect found on resume can be reported too. For every non-background run
   // this is a disabled no-op.
-  const _bgPhase =
-    deps.backgroundPhaseReporter || createBackgroundPhaseReporter();
+  const _bgPhase = hermeticExecution
+    ? Object.freeze({
+        enabled: false,
+        reportUncertainSideEffects: () => {},
+        reportQuestion: () => {},
+        wrapConfirmer: (confirmer) => confirmer,
+      })
+    : deps.backgroundPhaseReporter || createBackgroundPhaseReporter();
 
   const sideEffectRunNonce = String(deps.now ? deps.now() : Date.now());
   const _backgroundPolicyDigest = _bgPhase.enabled
@@ -1339,40 +1395,42 @@ async function runAgentHeadlessInWorkspace(
   // ── Wire the persistent ApprovalGate with our non-interactive confirmer
   // and force the session-policy tier dictated by --permission-mode. ──────
   let approvalGate = null;
-  try {
-    approvalGate = await getApprovalGate();
-    if (approvalGate && (options.permissionMode || "default") === "auto") {
-      // autoMode.decisions: user-configured riskLevel → allow/ask/deny
-      // classifier. Only wrap when settings actually customize the map so the
-      // unconfigured auto path keeps the byte-identical trusted-tier mapping.
-      try {
-        const {
-          loadAutoModeConfig,
-          resolveAutoModeDecisions,
-          createAutoModeApprovalGate,
-        } = await import("../lib/auto-mode-config.js");
-        const autoConfig = loadAutoModeConfig({
-          cwd,
-          settingsFile: options.settingsFile,
-        });
-        const resolved = resolveAutoModeDecisions(autoConfig.effective);
-        if (resolved.customized) {
-          approvalGate = createAutoModeApprovalGate(approvalGate, resolved);
+  if (!hermeticExecution) {
+    try {
+      approvalGate = await getApprovalGate();
+      if (approvalGate && (options.permissionMode || "default") === "auto") {
+        // autoMode.decisions: user-configured riskLevel → allow/ask/deny
+        // classifier. Only wrap when settings actually customize the map so the
+        // unconfigured auto path keeps the byte-identical trusted-tier mapping.
+        try {
+          const {
+            loadAutoModeConfig,
+            resolveAutoModeDecisions,
+            createAutoModeApprovalGate,
+          } = await import("../lib/auto-mode-config.js");
+          const autoConfig = loadAutoModeConfig({
+            cwd,
+            settingsFile: options.settingsFile,
+          });
+          const resolved = resolveAutoModeDecisions(autoConfig.effective);
+          if (resolved.customized) {
+            approvalGate = createAutoModeApprovalGate(approvalGate, resolved);
+          }
+        } catch {
+          // fail to the default trusted mapping — never block the run
         }
-      } catch {
-        // fail to the default trusted mapping — never block the run
       }
+      if (approvalGate) {
+        if (typeof approvalGate.setSessionPolicy === "function") {
+          approvalGate.setSessionPolicy(sessionId, perm.sessionPolicy);
+        }
+        if (typeof approvalGate.setConfirmer === "function") {
+          approvalGate.setConfirmer(perm.confirmer);
+        }
+      }
+    } catch {
+      approvalGate = null;
     }
-    if (approvalGate) {
-      if (typeof approvalGate.setSessionPolicy === "function") {
-        approvalGate.setSessionPolicy(sessionId, perm.sessionPolicy);
-      }
-      if (typeof approvalGate.setConfirmer === "function") {
-        approvalGate.setConfirmer(perm.confirmer);
-      }
-    }
-  } catch {
-    approvalGate = null;
   }
 
   const budget = Number.isFinite(options.maxTurns)
@@ -1386,26 +1444,29 @@ async function runAgentHeadlessInWorkspace(
   // --output-style (or settings.json `outputStyle`) → a persona appended to the
   // system prompt. Resolved best-effort; a missing style is ignored with a warn.
   let outputStyleBody = null;
-  try {
-    const { resolveOutputStyle } = await import("../lib/output-styles.js");
-    const st = resolveOutputStyle(options.outputStyle, cwd);
-    if (st && st.missing && options.outputStyle) {
-      writeErr(`  output-style: unknown style "${options.outputStyle}"\n`);
-    } else if (st && st.body) {
-      outputStyleBody = st.body;
+  if (!hermeticExecution) {
+    try {
+      const { resolveOutputStyle } = await import("../lib/output-styles.js");
+      const st = resolveOutputStyle(options.outputStyle, cwd);
+      if (st && st.missing && options.outputStyle) {
+        writeErr(`  output-style: unknown style "${options.outputStyle}"\n`);
+      } else if (st && st.body) {
+        outputStyleBody = st.body;
+      }
+    } catch {
+      outputStyleBody = null;
     }
-  } catch {
-    outputStyleBody = null;
   }
 
   // Large-monorepo context lever: `instructionExcludes` (settings.json or an
   // explicit caller/SDK option) suppresses cc.md/CLAUDE.md/AGENTS.md, path-scoped
   // rules, and @imports that resolve into legacy/vendor/generated subtrees.
   // Explicit option wins; otherwise union across the layered settings files.
-  let instructionExcludes = Array.isArray(options.instructionExcludes)
-    ? options.instructionExcludes
-    : null;
-  if (!instructionExcludes) {
+  let instructionExcludes =
+    !hermeticExecution && Array.isArray(options.instructionExcludes)
+      ? options.instructionExcludes
+      : null;
+  if (!hermeticExecution && !instructionExcludes) {
     try {
       const { readStringArraySetting } =
         await import("../lib/settings-loader.cjs");
@@ -1423,33 +1484,41 @@ async function runAgentHeadlessInWorkspace(
   // --no-project-memory (options.projectMemory === false): lean prompt — skip
   // rules.md (in buildSystemPrompt) + the cc.md/CLAUDE.md block. Absent flag
   // (undefined) leaves both paths byte-identical.
-  const _leanNoProjectMemory = options.projectMemory === false;
+  const _leanNoProjectMemory =
+    hermeticExecution || options.projectMemory === false;
   let _loadedInstructions = null;
   let _loadedPersonaSkills = [];
   let _skillCacheLedger = null;
-  const _runtimeSkillLoader = options.skillLoader || new CLISkillLoader();
-  const systemContent = composeSystemPrompt(
-    buildSystemPrompt(cwd, {
-      additionalDirectories,
-      projectMemory: options.projectMemory,
-      sessionId,
-      skillLoader: _runtimeSkillLoader,
-      onSkillsLoaded: (skills, cacheLedger) => {
-        _loadedPersonaSkills = Array.isArray(skills) ? skills : [];
-        _skillCacheLedger = cacheLedger || null;
-      },
-    }),
-    {
-      systemPrompt: options.systemPrompt,
-      appendSystemPrompt: options.appendSystemPrompt,
-      outputStyle: outputStyleBody,
-      instructionExcludes,
-      projectMemory: _leanNoProjectMemory ? false : undefined,
-      onInstructionsLoaded: (loaded) => {
-        _loadedInstructions = loaded;
-      },
-    },
-  );
+  const _runtimeSkillLoader = hermeticExecution
+    ? HERMETIC_SKILL_LOADER
+    : options.skillLoader || new CLISkillLoader();
+  const systemContent = hermeticExecution
+    ? composeSystemPrompt(
+        "You are a hermetic code fixer. Use only the exposed file tools, work only inside the current worktree, and mutate only the exact paths authorized in the user request. Do not invoke commands, plugins, hooks, IDE bridges, MCP servers, or sub-agents.",
+        { projectMemory: false },
+      )
+    : composeSystemPrompt(
+        buildSystemPrompt(cwd, {
+          additionalDirectories,
+          projectMemory: options.projectMemory,
+          sessionId,
+          skillLoader: _runtimeSkillLoader,
+          onSkillsLoaded: (skills, cacheLedger) => {
+            _loadedPersonaSkills = Array.isArray(skills) ? skills : [];
+            _skillCacheLedger = cacheLedger || null;
+          },
+        }),
+        {
+          systemPrompt: options.systemPrompt,
+          appendSystemPrompt: options.appendSystemPrompt,
+          outputStyle: outputStyleBody,
+          instructionExcludes,
+          projectMemory: _leanNoProjectMemory ? false : undefined,
+          onInstructionsLoaded: (loaded) => {
+            _loadedInstructions = loaded;
+          },
+        },
+      );
 
   // settings.json UserPromptSubmit hooks. block → abort the run; context → inject.
   if (settingsHooks) {
@@ -1654,7 +1723,13 @@ async function runAgentHeadlessInWorkspace(
   // tool to the LLM. A bad --mcp-config file fails fast; registered connects
   // are best-effort. --no-mcp disables the registered set (ad-hoc still loads).
   let mcp = null;
-  {
+  const exactToolCeilingExcludesMcp =
+    hermeticExecution ||
+    (options.exactToolNames === true &&
+      Array.isArray(enabledToolNames) &&
+      !enabledToolNames.some((name) => String(name).startsWith("mcp__")) &&
+      !options.permissionPromptTool);
+  if (!exactToolCeilingExcludesMcp) {
     const doResolve = deps.resolveAgentMcp || resolveAgentMcp;
     try {
       mcp = await doResolve(
@@ -1727,6 +1802,7 @@ async function runAgentHeadlessInWorkspace(
       : null,
     recovery: resumeMcpRecovery,
     recoveryError: resumeMcpRecoveryError,
+    dispatchAdmission: sessionHostLease?.admitMcpDispatch || null,
   });
   const hostMcp = mcp
     ? { ...mcp, mcpClient: mcpRecoveryRuntime.client || mcp.mcpClient }
@@ -1756,27 +1832,29 @@ async function runAgentHeadlessInWorkspace(
   // to the in-flight user message only — AFTER persistence — so a resumed
   // session replays the prompt, not a stale editor snapshot. Best-effort with
   // a short timeout; CC_IDE_CONTEXT=0 disables.
-  try {
-    const { buildIdePromptContext, appendTextToContent, expandIdeMentions } =
-      await import("../lib/ide-context.js");
-    const last = messages[messages.length - 1];
-    const ideCtx = await (deps.buildIdePromptContext || buildIdePromptContext)(
-      hostMcp,
-    );
-    if (ideCtx) {
-      last.content = appendTextToContent(last.content, ideCtx);
+  if (!hermeticExecution) {
+    try {
+      const { buildIdePromptContext, appendTextToContent, expandIdeMentions } =
+        await import("../lib/ide-context.js");
+      const last = messages[messages.length - 1];
+      const ideCtx = await (
+        deps.buildIdePromptContext || buildIdePromptContext
+      )(hostMcp);
+      if (ideCtx) {
+        last.content = appendTextToContent(last.content, ideCtx);
+      }
+      // Explicit @selection / @diagnostics mentions in the user's prompt
+      // (Claude-Code parity). Scan the ORIGINAL prompt so injected file-ref
+      // blocks can't spoof a mention; append the expansion to the in-flight
+      // message only (ephemeral, like the ambient block above).
+      const mentioned = await expandIdeMentions(prompt, hostMcp);
+      for (const w of mentioned.warnings) writeErr(`  @ide: ${w}\n`);
+      if (mentioned.block) {
+        last.content = appendTextToContent(last.content, mentioned.block);
+      }
+    } catch {
+      // IDE context is optional polish — never fail the run over it.
     }
-    // Explicit @selection / @diagnostics mentions in the user's prompt
-    // (Claude-Code parity). Scan the ORIGINAL prompt so injected file-ref
-    // blocks can't spoof a mention; append the expansion to the in-flight
-    // message only (ephemeral, like the ambient block above).
-    const mentioned = await expandIdeMentions(prompt, hostMcp);
-    for (const w of mentioned.warnings) writeErr(`  @ide: ${w}\n`);
-    if (mentioned.block) {
-      last.content = appendTextToContent(last.content, mentioned.block);
-    }
-  } catch {
-    // IDE context is optional polish — never fail the run over it.
   }
 
   // (`_bgPhase` — the background phase reporter — is created before the resume
@@ -1786,7 +1864,7 @@ async function runAgentHeadlessInWorkspace(
   // --permission-prompt-tool: route every CONFIRM-tier approval to an MCP tool
   // (loaded via --mcp-config) instead of headless fail-closed. Overrides the
   // permission-mode confirmer on the gate for this session.
-  if (options.permissionPromptTool) {
+  if (!hermeticExecution && options.permissionPromptTool) {
     let ppt;
     try {
       ppt = resolvePermissionPromptTool(mcp, options.permissionPromptTool);
@@ -1829,7 +1907,11 @@ async function runAgentHeadlessInWorkspace(
   // --permission-prompt-tool; that flag wins when both are given since it is
   // installed above and this block skips). Fail-closed on timeout.
   let _remoteApproval = null;
-  if (options.remoteControl && !options.permissionPromptTool) {
+  if (
+    !hermeticExecution &&
+    options.remoteControl &&
+    !options.permissionPromptTool
+  ) {
     try {
       const { startHeadlessRemoteApproval } =
         await import("../lib/remote-approval-bridge.js");
@@ -1858,14 +1940,16 @@ async function runAgentHeadlessInWorkspace(
   // same privacy-gated spans; the default path remains zero cost.
   let _otlpRecorder = null;
   let _collectorEnabled = false;
-  try {
-    const { isOtlpCollectorEnabled } =
-      await import("../lib/observability/index.js");
-    _collectorEnabled = isOtlpCollectorEnabled();
-  } catch {
-    _collectorEnabled = false;
+  if (!hermeticExecution) {
+    try {
+      const { isOtlpCollectorEnabled } =
+        await import("../lib/observability/index.js");
+      _collectorEnabled = isOtlpCollectorEnabled();
+    } catch {
+      _collectorEnabled = false;
+    }
   }
-  if (options.otlp || _collectorEnabled) {
+  if (!hermeticExecution && (options.otlp || _collectorEnabled)) {
     try {
       const { TelemetryRecorder } =
         await import("../lib/telemetry/span-recorder.js");
@@ -1901,8 +1985,8 @@ async function runAgentHeadlessInWorkspace(
 
   // Resolve auto-pin (flag > env > config > default-on). Config read is
   // best-effort — a broken config file must not take headless down.
-  let _autoPinResolved;
-  {
+  let _autoPinResolved = false;
+  if (!hermeticExecution) {
     const { resolveAutoPinOption } = await import("./auto-pin.js");
     let _autoPinCfg;
     try {
@@ -1995,10 +2079,10 @@ async function runAgentHeadlessInWorkspace(
     managedCheckpoint: options.managedCheckpoint === true,
     managedCheckpointStateDir: options.managedCheckpointStateDir || null,
     managedCheckpointExclusions: options.managedCheckpointExclusions || [],
-    hookDb: db,
-    approvalGate,
-    permissionRules,
-    settingsHooks,
+    hookDb: hermeticExecution ? null : db,
+    approvalGate: hermeticExecution ? null : approvalGate,
+    permissionRules: hermeticExecution ? null : permissionRules,
+    settingsHooks: hermeticExecution ? null : settingsHooks,
     // Seed the subagent-contract CEILING with this run's permission mode so a
     // spawned sub-agent inherits/tightens from it (tighten-only): a
     // `--permission-mode bypassPermissions` run can hand a child bypass (→ allow
@@ -2009,8 +2093,11 @@ async function runAgentHeadlessInWorkspace(
     classifyAllShell,
     enabledToolNames,
     disabledTools,
+    exactToolNames: options.exactToolNames === true,
+    fileMutationScope,
+    hermeticExecution,
     iterationBudget: budget,
-    toolAdmission: options.toolAdmission || null,
+    toolAdmission: hermeticExecution ? null : options.toolAdmission || null,
     // `ask_user_question` in a BACKGROUND turn child: send a bound request to
     // the worker over Node IPC and await the answer here. `executeTool` remains
     // suspended, so the model continues the SAME turn/tool call after the user
@@ -2060,6 +2147,9 @@ async function runAgentHeadlessInWorkspace(
     // Keep the guarded in-memory ledger when persistence is disabled so an
     // outcome-unknown call still latches UNSAFE for the rest of this process.
     mcpCallLedger: mcpRecoveryRuntime.ledger,
+    mcpDispatchAdmission: hermeticExecution
+      ? null
+      : sessionHostLease?.admitMcpDispatch || null,
     // chatFn passthrough lets tests drive the loop deterministically.
     chatFn: deps.chatFn || options.chatFn || undefined,
     signal: options.signal || undefined,
@@ -2414,10 +2504,12 @@ async function runAgentHeadlessInWorkspace(
   // race a competing handler. Removed in `finally` so a normal return leaves no
   // listener behind (runAgentHeadless can be called repeatedly in one process).
   const _onHardSignal = (sig) => {
-    try {
-      killAllBackgroundShellTasksSync();
-    } catch {
-      /* best-effort — never let cleanup throw during shutdown */
+    if (!hermeticExecution) {
+      try {
+        killAllBackgroundShellTasksSync();
+      } catch {
+        /* best-effort — never let cleanup throw during shutdown */
+      }
     }
     try {
       if (_hookSupervisor) _hookSupervisor.stopAll();
@@ -2927,9 +3019,11 @@ async function runAgentHeadlessInWorkspace(
     await cleanupDeadline.run("mcp", () => mcp?.mcpClient?.disconnectAll?.());
     // Kill any background run_shell tasks this run spawned so a backgrounded
     // command (e.g. a dev server) doesn't outlive the headless invocation.
-    await cleanupDeadline.run("background-shells", () =>
-      killAllBackgroundShellTasks(),
-    );
+    if (!hermeticExecution) {
+      await cleanupDeadline.run("background-shells", () =>
+        killAllBackgroundShellTasks(),
+      );
+    }
     // Tear down the --remote-control approval bridge + its self-hosted WS
     // server so the run's port/socket never outlives the invocation.
     await cleanupDeadline.run("remote-approval", () =>

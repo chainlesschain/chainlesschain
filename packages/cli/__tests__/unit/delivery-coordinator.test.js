@@ -310,6 +310,11 @@ describe("DeliveryCoordinator", () => {
       round: 1,
       commitSha: NEXT,
       diff: { headCommitSha: NEXT, digest: NEXT_DIGEST },
+      gateSelection: {
+        mode: "full",
+        fallback: true,
+        selectedGateIds: ["cli-ci"],
+      },
       failures: [],
     });
   });
@@ -616,6 +621,36 @@ describe("DeliveryCoordinator", () => {
       unmet: [],
     });
     expect(() => restoreDeliveryFlow(state)).not.toThrow();
+  });
+
+  it("does not let caller payload override coordinator-owned commit bindings", () => {
+    const initial = createDeliveryFlow(config(), { now: NOW });
+    const pending = requestDeliveryAction(
+      initial,
+      DELIVERY_ACTION.RUN_GATES,
+      {
+        commitSha: NEXT,
+        flowId: "forged-flow",
+        revision: 999,
+        baseCommitSha: "e".repeat(40),
+        changedFiles: ["forged.js"],
+        gateSelection: { selectedGateIds: [] },
+        requiredGates: [],
+        callerNote: "preserved",
+      },
+      { now: NOW },
+    );
+
+    expect(pending.pendingEffect.payload).toMatchObject({
+      flowId: initial.flowId,
+      revision: initial.revision,
+      commitSha: HEAD,
+      baseCommitSha: BASE,
+      changedFiles: ["src/widget.js"],
+      gateSelection: initial.gateSelection,
+      requiredGates: initial.requiredGates,
+      callerNote: "preserved",
+    });
   });
 
   it("rejects a mutated recovery snapshot", () => {

@@ -23,6 +23,8 @@ const { MCP_CALL_RECOVERY_ADJUDICATION_EVENT, createSessionMcpLedgerSink } =
   await import("../../src/lib/mcp-call-ledger-store.js");
 const { adjudicateMcpRecovery, readMcpRecoveryAuthority } =
   await import("../../src/lib/mcp-recovery-adjudication.js");
+const { readSessionHostAuthority } =
+  await import("../../src/lib/session-host-lease.js");
 
 async function createStartedOnlyCall(sessionId) {
   sessionStore.startSession(sessionId, { title: "MCP recovery test" });
@@ -74,6 +76,16 @@ describe("MCP recovery adjudication with the real JSONL authority store", () => 
     );
 
     expect(result.headHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(result.hostRevocation).toMatchObject({
+      requestId: "real-store-request-1",
+      revocationEpoch: 1,
+      replayed: false,
+    });
+    expect(readSessionHostAuthority(sessionId)).toMatchObject({
+      revocationEpoch: 1,
+      revocationCount: 1,
+      active: null,
+    });
     const events = sessionStore.readVerifiedEvents(sessionId);
     const persisted = events.at(-1);
     expect(persisted.type).toBe(MCP_CALL_RECOVERY_ADJUDICATION_EVENT);
@@ -90,6 +102,7 @@ describe("MCP recovery adjudication with the real JSONL authority store", () => 
         "authority",
         "confirmation",
         "reasonDigest",
+        "hostRevocation",
       ].sort(),
     );
     expect(JSON.stringify(persisted.data)).not.toContain("release registry");

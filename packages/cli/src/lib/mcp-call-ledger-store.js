@@ -34,13 +34,16 @@ export const MCP_CALL_LEDGER_EVENT = "mcp_call_ledger";
 export const MCP_CALL_LEDGER_EVENT_SCHEMA_VERSION = 1;
 export const MCP_CALL_RECOVERY_ADJUDICATION_EVENT =
   "mcp_call_recovery_adjudication";
-export const MCP_CALL_RECOVERY_ADJUDICATION_SCHEMA_VERSION = 1;
+export const MCP_CALL_RECOVERY_ADJUDICATION_SCHEMA_VERSION = 2;
 export const McpCallRecoveryDecision = Object.freeze({
   CONFIRMED_APPLIED: "confirmed_applied",
   CONFIRMED_NOT_APPLIED: "confirmed_not_applied",
 });
 export const MCP_CALL_RECOVERY_AUTHORITY = "local-cli-tty";
-export const MCP_CALL_RECOVERY_CONFIRMATION = "typed-digest-host-stopped";
+export const MCP_CALL_RECOVERY_CONFIRMATION =
+  "typed-digest-host-authority-revoke";
+export const MCP_CALL_RECOVERY_LEGACY_CONFIRMATION =
+  "typed-digest-host-stopped";
 
 const TERMINAL = new Set([
   McpCallStatus.COMPLETED,
@@ -86,7 +89,7 @@ const EFFECT_CONTRACT_FIELDS = new Set([
 ]);
 const OUTPUT_SUMMARY_FIELDS = new Set(["sha256", "bytes", "kind"]);
 const ERROR_SUMMARY_FIELDS = new Set(["name", "code", "messageDigest"]);
-const ADJUDICATION_FIELDS = new Set([
+const LEGACY_ADJUDICATION_FIELDS = new Set([
   "schemaVersion",
   "requestId",
   "sessionId",
@@ -98,6 +101,18 @@ const ADJUDICATION_FIELDS = new Set([
   "confirmation",
   "reasonDigest",
 ]);
+const ADJUDICATION_FIELDS = new Set([
+  ...LEGACY_ADJUDICATION_FIELDS,
+  "hostRevocation",
+]);
+const HOST_REVOCATION_FIELDS = new Set([
+  "requestId",
+  "revocationEpoch",
+  "targetLeaseId",
+  "targetFencingToken",
+  "targetOwnerPid",
+]);
+const HOST_LEASE_ID = /^lease-[0-9a-f-]{36}$/;
 const RECOVERY_PROJECTION_FIELDS = new Set([
   "sessionId",
   "records",
@@ -414,9 +429,32 @@ function stableSorted(values) {
 }
 
 function canonicalAdjudication(value) {
+  const legacy = value?.schemaVersion === 1;
+  const validConfirmation =
+    (legacy && value?.confirmation === MCP_CALL_RECOVERY_LEGACY_CONFIRMATION) ||
+    (value?.schemaVersion === MCP_CALL_RECOVERY_ADJUDICATION_SCHEMA_VERSION &&
+      value?.confirmation === MCP_CALL_RECOVERY_CONFIRMATION);
+  const fields = legacy ? LEGACY_ADJUDICATION_FIELDS : ADJUDICATION_FIELDS;
+  const revocation = value?.hostRevocation;
+  const targetIsNull = revocation?.targetLeaseId === null;
+  const validRevocation =
+    legacy ||
+    (hasExactFields(revocation, HOST_REVOCATION_FIELDS) &&
+      revocation.requestId === value?.requestId &&
+      Number.isSafeInteger(revocation.revocationEpoch) &&
+      revocation.revocationEpoch >= 1 &&
+      (targetIsNull
+        ? revocation.targetFencingToken === null &&
+          revocation.targetOwnerPid === null
+        : HOST_LEASE_ID.test(String(revocation.targetLeaseId || "")) &&
+          Number.isSafeInteger(revocation.targetFencingToken) &&
+          revocation.targetFencingToken >= 1 &&
+          Number.isSafeInteger(revocation.targetOwnerPid) &&
+          revocation.targetOwnerPid >= 1));
   if (
-    !hasExactFields(value, ADJUDICATION_FIELDS) ||
-    value.schemaVersion !== MCP_CALL_RECOVERY_ADJUDICATION_SCHEMA_VERSION ||
+    !hasExactFields(value, fields) ||
+    !validConfirmation ||
+    !validRevocation ||
     !isCanonicalProtocolText(
       value.requestId,
       MCP_CALL_LEDGER_PROTOCOL_LIMITS.identifier,
@@ -433,7 +471,6 @@ function canonicalAdjudication(value) {
     !RAW_AUTHORITY_HASH.test(String(value.expectedHeadHash || "")) ||
     !PAYLOAD_DIGEST.test(String(value.expectedRecoveryDigest || "")) ||
     value.authority !== MCP_CALL_RECOVERY_AUTHORITY ||
-    value.confirmation !== MCP_CALL_RECOVERY_CONFIRMATION ||
     !PAYLOAD_DIGEST.test(String(value.reasonDigest || ""))
   ) {
     return null;
@@ -449,6 +486,17 @@ function canonicalAdjudication(value) {
     authority: value.authority,
     confirmation: value.confirmation,
     reasonDigest: value.reasonDigest,
+    ...(legacy
+      ? {}
+      : {
+          hostRevocation: Object.freeze({
+            requestId: revocation.requestId,
+            revocationEpoch: revocation.revocationEpoch,
+            targetLeaseId: revocation.targetLeaseId,
+            targetFencingToken: revocation.targetFencingToken,
+            targetOwnerPid: revocation.targetOwnerPid,
+          }),
+        }),
   });
 }
 
@@ -546,6 +594,10 @@ export function computeMcpRecoveryFenceDigest(recovery = {}) {
         authority: entry?.authority || null,
         confirmation: entry?.confirmation || null,
         reasonDigest: entry?.reasonDigest || null,
+        ...(entry?.schemaVersion ===
+        MCP_CALL_RECOVERY_ADJUDICATION_SCHEMA_VERSION
+          ? { hostRevocation: entry?.hostRevocation || null }
+          : {}),
       })),
     ),
     replayDenied: stableSorted(

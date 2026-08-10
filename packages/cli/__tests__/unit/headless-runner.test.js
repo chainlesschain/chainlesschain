@@ -138,6 +138,83 @@ describe("headless-runner — pure helpers", () => {
   });
 });
 
+describe("headless-runner — exact delivery fixer authority", () => {
+  it("forwards the immutable exact tool and file mutation scope to agentLoop", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "cc-headless-mutation-scope-"));
+    const worktreeRoot = (realpathSync.native || realpathSync)(dir);
+    writeFileSync(join(worktreeRoot, "allowed.txt"), "allowed", "utf8");
+    const allowedTools = Object.freeze(["read_file", "write_file"]);
+    const allowedPaths = Object.freeze(["allowed.txt"]);
+    const fileMutationScope = Object.freeze({
+      exact: true,
+      worktreeRoot,
+      allowedPaths,
+    });
+    let captured = null;
+    const { deps } = makeDeps(replyText("done"));
+    deps.bootstrap = vi.fn(async () => ({ db: null }));
+    deps.getApprovalGate = vi.fn(async () => fakeGate());
+    deps.executeHooksV2Event = vi.fn(async () => ({
+      blocked: false,
+      decision: "continue",
+      results: [],
+    }));
+    deps.expandFileRefs = vi.fn(async (value) => ({
+      prompt: value,
+      warnings: [],
+    }));
+    deps.buildIdePromptContext = vi.fn(async () => "untrusted IDE context");
+    deps.resolveAgentMcp = vi.fn(async () => null);
+    deps.agentLoop = async function* (_messages, loopOptions) {
+      captured = loopOptions;
+      yield { type: "response-complete", content: "done" };
+    };
+
+    try {
+      const result = await runAgentHeadless(
+        {
+          prompt: "apply the bounded fix",
+          cwd: worktreeRoot,
+          permissionMode: "acceptEdits",
+          allowedTools,
+          exactToolNames: true,
+          fileMutationScope,
+          hermeticExecution: true,
+          additionalDirectories: [tmpdir()],
+          settingsHooks: { PreToolUse: [{ matcher: "*", hooks: [] }] },
+          toolAdmission: { enforce: true },
+        },
+        deps,
+      );
+      expect(result.exitCode).toBe(0);
+      expect(captured).toMatchObject({
+        enabledToolNames: ["read_file", "write_file"],
+        exactToolNames: true,
+        hermeticExecution: true,
+        fileMutationScope: {
+          exact: true,
+          worktreeRoot,
+          allowedPaths,
+        },
+        additionalDirectories: [],
+        hookDb: null,
+        approvalGate: null,
+        permissionRules: null,
+        settingsHooks: null,
+        toolAdmission: null,
+      });
+      expect(deps.bootstrap).not.toHaveBeenCalled();
+      expect(deps.getApprovalGate).not.toHaveBeenCalled();
+      expect(deps.executeHooksV2Event).not.toHaveBeenCalled();
+      expect(deps.expandFileRefs).not.toHaveBeenCalled();
+      expect(deps.buildIdePromptContext).not.toHaveBeenCalled();
+      expect(deps.resolveAgentMcp).not.toHaveBeenCalled();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }, 15_000);
+});
+
 describe("headless-runner — output formats", () => {
   it("routes EPIPE through the normal MCP cleanup before returning success", async () => {
     const previousExitCode = process.exitCode;
@@ -240,6 +317,7 @@ describe("headless-runner — output formats", () => {
       externalToolDescriptors: {},
     }));
     deps.agentLoop = async function* () {
+      yield* [];
       throw new Error("primary model failure");
     };
 

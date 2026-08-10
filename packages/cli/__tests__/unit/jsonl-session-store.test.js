@@ -83,8 +83,10 @@ const { computeEventHash } =
   await import("../../src/harness/transcript-integrity.js");
 const { readSessionHostResumeState } =
   await import("../../src/lib/session-host-snapshot.js");
-const { _registerTestScopedSessionAntiRollbackDirectory } =
-  await import("../../src/lib/session-anti-rollback-anchor.js");
+const {
+  _registerTestScopedSessionAntiRollbackDirectory,
+  readSessionAntiRollbackAnchor,
+} = await import("../../src/lib/session-anti-rollback-anchor.js");
 _registerTestScopedSessionAntiRollbackDirectory({
   homeDir: testDir,
   anchorBase: securityAnchorDir,
@@ -141,6 +143,10 @@ describe("jsonl-session-store", () => {
 
   afterEach(() => {
     _sessionScaleFaultHooks.beforeTranscriptAppend = null;
+    _sessionScaleFaultHooks.beforeTranscriptFsync = null;
+    _sessionScaleFaultHooks.afterTranscriptFsync = null;
+    _sessionScaleFaultHooks.beforeTranscriptDirectoryFsync = null;
+    _sessionScaleFaultHooks.afterTranscriptDirectoryFsync = null;
     _sessionScaleFaultHooks.afterTranscriptAppend = null;
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
@@ -151,6 +157,92 @@ describe("jsonl-session-store", () => {
   });
 
   describe("disk persistence commit state", () => {
+    it("does not advance metadata or the external witness when transcript fsync fails", () => {
+      const id = startSession("disk-fsync", { title: "disk" });
+      const metaFile = join(sessionsDir, `${id}.meta.json`);
+      const metaBefore = readFileSync(metaFile, "utf8");
+      const anchorBefore = readSessionAntiRollbackAnchor(id);
+      const previous = process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+      process.env.CC_SESSION_SCALE_FAULT_INJECTION = "1";
+      _sessionScaleFaultHooks.beforeTranscriptFsync = ({ type }) => {
+        if (type !== "assistant_message") return;
+        const error = new Error("injected transcript fsync failure");
+        error.code = "EIO";
+        throw error;
+      };
+
+      try {
+        expect(() => appendAssistantMessage(id, "durability unknown")).toThrow(
+          expect.objectContaining({
+            code: "CC_SESSION_PERSISTENCE_FAILED",
+            fsCode: "EIO",
+            operation: "transcript-settlement",
+            commitState: "unknown",
+            retryable: false,
+          }),
+        );
+      } finally {
+        _sessionScaleFaultHooks.beforeTranscriptFsync = null;
+        if (previous === undefined) {
+          delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+        } else {
+          process.env.CC_SESSION_SCALE_FAULT_INJECTION = previous;
+        }
+      }
+
+      expect(readFileSync(metaFile, "utf8")).toBe(metaBefore);
+      expect(readSessionAntiRollbackAnchor(id)).toEqual(anchorBefore);
+      expect(readEvents(id).map((event) => event.type)).toEqual([
+        "session_start",
+        "assistant_message",
+      ]);
+      expect(() => readVerifiedEvents(id)).toThrow(
+        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+      );
+    });
+
+    it.skipIf(process.platform === "win32")(
+      "does not publish first-generation authority when parent directory fsync fails",
+      () => {
+        const id = "disk-directory-fsync";
+        const previous = process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+        process.env.CC_SESSION_SCALE_FAULT_INJECTION = "1";
+        _sessionScaleFaultHooks.beforeTranscriptDirectoryFsync = ({ type }) => {
+          if (type !== "session_start") return;
+          const error = new Error(
+            "injected transcript directory fsync failure",
+          );
+          error.code = "EIO";
+          throw error;
+        };
+
+        try {
+          expect(() =>
+            appendEvent(id, "session_start", { title: "durability" }),
+          ).toThrow(
+            expect.objectContaining({
+              code: "CC_SESSION_PERSISTENCE_FAILED",
+              fsCode: "EIO",
+              operation: "transcript-settlement",
+              commitState: "unknown",
+              retryable: false,
+            }),
+          );
+        } finally {
+          _sessionScaleFaultHooks.beforeTranscriptDirectoryFsync = null;
+          if (previous === undefined) {
+            delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+          } else {
+            process.env.CC_SESSION_SCALE_FAULT_INJECTION = previous;
+          }
+        }
+
+        expect(existsSync(sessionPath(id))).toBe(true);
+        expect(existsSync(join(sessionsDir, `${id}.meta.json`))).toBe(false);
+        expect(readSessionAntiRollbackAnchor(id)).toBeNull();
+      },
+    );
+
     it("accepts a legacy physical witness and upgrades it on append", () => {
       const id = startSession("disk-legacy-witness", { title: "disk" });
       const metaFile = join(sessionsDir, `${id}.meta.json`);

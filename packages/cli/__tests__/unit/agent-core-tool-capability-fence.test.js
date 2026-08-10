@@ -6,6 +6,11 @@ import { agentLoop } from "../../src/runtime/agent-core.js";
 
 let tmp;
 
+function canonicalRealpath(candidate) {
+  const realpath = fs.realpathSync.native || fs.realpathSync;
+  return path.resolve(realpath(candidate));
+}
+
 beforeEach(() => {
   tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cc-tool-fence-"));
 });
@@ -143,5 +148,118 @@ describe("agent-loop execution-time tool capability fence", () => {
       policy: { decision: "blocked", via: "effective-tool-set" },
     });
     expect(mcpClient.callTool).not.toHaveBeenCalled();
+  });
+
+  it("denies an out-of-scope mutation before checkpoint or execution events", async () => {
+    fs.writeFileSync(path.join(tmp, "allowed.txt"), "allowed", "utf8");
+    fs.writeFileSync(path.join(tmp, "sibling.txt"), "sibling", "utf8");
+    const settingsHook = vi.fn();
+    const events = await drive(
+      {
+        id: "call-scoped-write",
+        type: "function",
+        function: {
+          name: "write_file",
+          arguments: JSON.stringify({
+            path: "sibling.txt",
+            content: "forbidden",
+          }),
+        },
+      },
+      {
+        enabledToolNames: [
+          "read_file",
+          "list_dir",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+        ],
+        exactToolNames: true,
+        hermeticExecution: true,
+        fileMutationScope: {
+          exact: true,
+          worktreeRoot: canonicalRealpath(tmp),
+          allowedPaths: ["allowed.txt"],
+        },
+        autoCheckpoint: true,
+        managedCheckpoint: true,
+        settingsHooks: {
+          PreToolUse: [{ matcher: "write_file", hooks: [settingsHook] }],
+        },
+      },
+    );
+
+    const result = events.find((event) => event.type === "tool-result")?.result;
+    expect(result).toMatchObject({
+      policy: {
+        decision: "deny",
+        via: "exact-file-mutation-scope",
+        reason: "path-not-allowed",
+      },
+    });
+    expect(
+      events.some((event) =>
+        [
+          "checkpoint",
+          "managed-checkpoint",
+          "managed-checkpoint-error",
+          "tool-executing",
+        ].includes(event.type),
+      ),
+    ).toBe(false);
+    expect(settingsHook).not.toHaveBeenCalled();
+    expect(fs.readFileSync(path.join(tmp, "allowed.txt"), "utf8")).toBe(
+      "allowed",
+    );
+    expect(fs.readFileSync(path.join(tmp, "sibling.txt"), "utf8")).toBe(
+      "sibling",
+    );
+  });
+
+  it("ignores ambient project persona policy in a hermetic exact-file run", async () => {
+    const configDir = path.join(tmp, ".chainlesschain");
+    fs.mkdirSync(configDir);
+    fs.writeFileSync(
+      path.join(configDir, "config.json"),
+      JSON.stringify({ persona: { toolsDisabled: ["write_file"] } }),
+      "utf8",
+    );
+    fs.writeFileSync(path.join(tmp, "allowed.txt"), "before", "utf8");
+
+    const events = await drive(
+      {
+        id: "call-hermetic-write",
+        type: "function",
+        function: {
+          name: "write_file",
+          arguments: JSON.stringify({
+            path: "allowed.txt",
+            content: "after",
+          }),
+        },
+      },
+      {
+        enabledToolNames: [
+          "read_file",
+          "list_dir",
+          "write_file",
+          "edit_file",
+          "edit_file_hashed",
+        ],
+        exactToolNames: true,
+        hermeticExecution: true,
+        fileMutationScope: {
+          exact: true,
+          worktreeRoot: canonicalRealpath(tmp),
+          allowedPaths: ["allowed.txt"],
+        },
+      },
+    );
+
+    const result = events.find((event) => event.type === "tool-result")?.result;
+    expect(result).toMatchObject({ success: true });
+    expect(fs.readFileSync(path.join(tmp, "allowed.txt"), "utf8")).toBe(
+      "after",
+    );
   });
 });

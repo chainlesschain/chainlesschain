@@ -2,7 +2,7 @@
 
 这是ChainlessChain项目的官方文档网站，使用VitePress构建。
 
-> 当前文档快照（2026-08-09）：产品源码 `v5.0.3.135`，npm `latest`、生产推荐 CLI 与当前源码包元数据均为 `0.163.2`。Open VSX 为 `0.37.47`，JetBrains Marketplace 为 `0.4.83`。CLI 与 IDE 均已核对 exact-SHA、三平台宿主/测试、不可变制品、发布及 registry 回读证据；最新主线晚于 npm tag 的 MCP source-policy 接线单独标为未发布，unsigned native validation 不冒充签名 Desktop/native 发行。
+> 当前文档快照（2026-08-10）：产品源码 `v5.0.3.135`，npm `latest`、生产推荐 CLI 与当前源码包元数据均为 `0.163.3`。Open VSX 为 `0.37.48`，JetBrains Marketplace 为 `0.4.84`。CLI 与 IDE 均已核对 exact-SHA、三平台宿主/测试、不可变制品、发布及 registry 回读证据；发布后安全提交 `d2fcbddc99` 的 MCP capsule 宿主沙箱地板单独标为未发布，unsigned native validation 不冒充签名 Desktop/native 发行。
 
 ## 📚 文档内容
 

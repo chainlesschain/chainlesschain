@@ -24,6 +24,7 @@ on:
       - "packages/cli/src/lib/mcp-host-recovery-runtime.js"
       - "packages/cli/src/lib/mcp-ledger-recovery-admission.js"
       - "packages/cli/src/lib/mcp-recovery-adjudication.js"
+      - "packages/cli/src/lib/session-host-lease.js"
       - "packages/cli/src/lib/mcp-sandbox-policy.js"
       - "packages/cli/src/lib/mcp-stdio-execution-authority.js"
       - "packages/cli/src/lib/mcp-stdio-environment.js"
@@ -93,6 +94,8 @@ on:
       - "packages/cli/__tests__/unit/mcp-ledger-recovery-admission.test.js"
       - "packages/cli/__tests__/unit/mcp-recovery-adjudication.test.js"
       - "packages/cli/__tests__/unit/mcp-recovery-adjudication-store.test.js"
+      - "packages/cli/__tests__/fixtures/session-host-lease-child.mjs"
+      - "packages/cli/__tests__/unit/session-host-lease.test.js"
       - "packages/cli/__tests__/unit/mcp-sandbox-policy.test.js"
       - "packages/cli/__tests__/unit/mcp-stdio-capsule-contract.test.js"
       - "packages/cli/__tests__/unit/mcp-stdio-execution-authority.test.js"
@@ -165,6 +168,7 @@ on:
       - "packages/cli/src/lib/mcp-host-recovery-runtime.js"
       - "packages/cli/src/lib/mcp-ledger-recovery-admission.js"
       - "packages/cli/src/lib/mcp-recovery-adjudication.js"
+      - "packages/cli/src/lib/session-host-lease.js"
       - "packages/cli/src/lib/mcp-sandbox-policy.js"
       - "packages/cli/src/lib/mcp-stdio-execution-authority.js"
       - "packages/cli/src/lib/mcp-stdio-environment.js"
@@ -234,6 +238,8 @@ on:
       - "packages/cli/__tests__/unit/mcp-ledger-recovery-admission.test.js"
       - "packages/cli/__tests__/unit/mcp-recovery-adjudication.test.js"
       - "packages/cli/__tests__/unit/mcp-recovery-adjudication-store.test.js"
+      - "packages/cli/__tests__/fixtures/session-host-lease-child.mjs"
+      - "packages/cli/__tests__/unit/session-host-lease.test.js"
       - "packages/cli/__tests__/unit/mcp-sandbox-policy.test.js"
       - "packages/cli/__tests__/unit/mcp-stdio-capsule-contract.test.js"
       - "packages/cli/__tests__/unit/mcp-stdio-execution-authority.test.js"
@@ -399,6 +405,7 @@ jobs:
           __tests__/unit/mcp-ledger-recovery-admission.test.js
           __tests__/unit/mcp-recovery-adjudication.test.js
           __tests__/unit/mcp-recovery-adjudication-store.test.js
+          __tests__/unit/session-host-lease.test.js
           __tests__/unit/mcp-sandbox-policy.test.js
           __tests__/unit/mcp-stdio-capsule-contract.test.js
           __tests__/unit/mcp-stdio-execution-authority.test.js

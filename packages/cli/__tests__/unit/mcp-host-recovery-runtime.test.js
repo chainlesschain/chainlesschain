@@ -61,6 +61,26 @@ describe("host-owned MCP recovery runtime", () => {
     expect(setRoots).toHaveBeenCalledWith(["file:///workspace"]);
   });
 
+  it("passes host-owned dispatch admission through auxiliary MCP calls", async () => {
+    const callTool = vi.fn(async () => ({ content: [] }));
+    const dispatchAdmission = vi.fn((_metadata, dispatch) => dispatch());
+    const runtime = createMcpHostRecoveryRuntime({
+      bundle: bundle({ callTool }),
+      sessionId: "session-dispatch-admission",
+      sink: vi.fn(async () => true),
+      recovery: { incidents: [], unsettled: [], replayDenied: [] },
+      dispatchAdmission,
+    });
+
+    await expect(
+      runtime.client.callTool("ide", "getSelection", {}),
+    ).resolves.toEqual({ content: [] });
+    expect(callTool).toHaveBeenCalledTimes(1);
+    expect(callTool.mock.calls[0][3]?.dispatchAdmission).toBe(
+      dispatchAdmission,
+    );
+  });
+
   it("never grants read authority from server names or declarations", () => {
     const mcp = bundle({ callTool: vi.fn() });
     expect(resolveHostMcpEffect(mcp, "ide", "getSelection")).toMatchObject({

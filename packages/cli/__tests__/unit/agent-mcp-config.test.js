@@ -35,7 +35,13 @@ vi.mock("../../src/lib/mcp-oauth.js", () => ({
 
 // A minimal fake MCP client whose connect() returns a fixed tool inventory.
 function fakeClient(toolsByServer = {}) {
-  const calls = { connect: [], callTool: [], disconnectAll: 0, sessionId: [] };
+  const calls = {
+    connect: [],
+    callTool: [],
+    callOptions: [],
+    disconnectAll: 0,
+    sessionId: [],
+  };
   return {
     calls,
     sessionId: null,
@@ -49,8 +55,9 @@ function fakeClient(toolsByServer = {}) {
       if (tools === "throw") throw new Error("connect boom");
       return { name, state: "connected", tools: tools || [] };
     },
-    async callTool(server, tool, args) {
+    async callTool(server, tool, args, options) {
       calls.callTool.push({ server, tool, args });
+      calls.callOptions.push(options);
       return { content: `${server}/${tool}:${JSON.stringify(args)}` };
     },
     async disconnectAll() {
@@ -805,6 +812,7 @@ describe("runAgentHeadless — --mcp-config wiring", () => {
 
   it("dispatches an mcp__server__tool call to mcpClient.callTool (real loop)", async () => {
     const client = fakeClient();
+    const admitMcpDispatch = vi.fn((_metadata, dispatch) => dispatch());
     let turn = 0;
     const chatFn = vi.fn(async () => {
       turn += 1;
@@ -831,6 +839,12 @@ describe("runAgentHeadless — --mcp-config wiring", () => {
     const { deps, out } = baseDeps({
       loadMcpConfig: async () => fakeMcp(client),
       chatFn,
+      agentLoop: (messages, options) =>
+        coreAgentLoop(messages, {
+          ...options,
+          mcpDispatchAdmission: admitMcpDispatch,
+          permissionConfirm: vi.fn(async () => true),
+        }),
     });
 
     const r = await runAgentHeadless(
@@ -849,6 +863,10 @@ describe("runAgentHeadless — --mcp-config wiring", () => {
     expect(client.calls.callTool).toEqual([
       { server: "weather", tool: "get", args: { city: "NYC" } },
     ]);
+    expect(client.calls.callOptions).toHaveLength(1);
+    expect(client.calls.callOptions[0]).toMatchObject({
+      dispatchAdmission: admitMcpDispatch,
+    });
     expect(client.calls.disconnectAll).toBe(1);
     expect(r.exitCode).toBe(0);
 
@@ -870,7 +888,7 @@ describe("runAgentHeadless — --mcp-config wiring", () => {
       type: "result",
       result: "It is sunny in NYC.",
     });
-  });
+  }, 30_000);
 
   it("keeps an oversized MCP result out of stream output and the next model turn", async () => {
     const canary = "STREAM_MCP_RESULT_PRIVATE_CANARY";

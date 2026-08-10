@@ -813,6 +813,7 @@ export function createRecoveryGuardedMcpClient({
   controller,
   resolveEffect = null,
   sessionId = null,
+  dispatchAdmission = null,
 } = {}) {
   if (!client || typeof client.callTool !== "function") {
     throw new TypeError("MCP client wrapper requires client.callTool()");
@@ -826,6 +827,9 @@ export function createRecoveryGuardedMcpClient({
   if (resolveEffect != null && typeof resolveEffect !== "function") {
     throw new TypeError("MCP client effect resolver must be a function");
   }
+  if (dispatchAdmission != null && typeof dispatchAdmission !== "function") {
+    throw new TypeError("MCP client dispatch admission must be a function");
+  }
 
   const existingGuard = GUARDED_MCP_CLIENTS.get(client);
   if (existingGuard) {
@@ -833,7 +837,8 @@ export function createRecoveryGuardedMcpClient({
       existingGuard.ledger === ledger &&
       existingGuard.controller === controller &&
       existingGuard.resolveEffect === resolveEffect &&
-      existingGuard.sessionId === sessionId
+      existingGuard.sessionId === sessionId &&
+      existingGuard.dispatchAdmission === dispatchAdmission
     ) {
       return client;
     }
@@ -850,6 +855,33 @@ export function createRecoveryGuardedMcpClient({
     // Snapshot before the first await. Admission, durable identity and the raw
     // transport all receive this exact deeply-frozen JSON value.
     const inputSnapshot = snapshotMcpJsonRpcInput(input);
+    let callOptions = rest;
+    if (dispatchAdmission) {
+      const supplied = rest[0];
+      if (
+        supplied != null &&
+        (typeof supplied !== "object" ||
+          Array.isArray(supplied) ||
+          isProxy(supplied))
+      ) {
+        throw new TypeError("MCP call options must be a plain object");
+      }
+      const merged = {};
+      if (supplied) {
+        for (const key of Reflect.ownKeys(supplied)) {
+          if (typeof key !== "string") {
+            throw new TypeError("MCP call options cannot contain symbols");
+          }
+          const descriptor = Object.getOwnPropertyDescriptor(supplied, key);
+          if (!descriptor || !("value" in descriptor)) {
+            throw new TypeError("MCP call options cannot contain accessors");
+          }
+          merged[key] = descriptor.value;
+        }
+      }
+      merged.dispatchAdmission = dispatchAdmission;
+      callOptions = [merged, ...rest.slice(1)];
+    }
     const effect = await resolveHostEffectContract(
       resolveEffect,
       client,
@@ -871,10 +903,13 @@ export function createRecoveryGuardedMcpClient({
         serverName,
         toolName,
         inputSnapshot,
-        ...rest,
+        ...callOptions,
       ]);
     } catch (callError) {
-      if (effect.effectContract.effect !== McpEffect.READ) {
+      if (
+        effect.effectContract.effect !== McpEffect.READ &&
+        safeProperty(callError, "dispatched") !== false
+      ) {
         throw outcomeUnknown(
           controller,
           ticket,
@@ -1060,6 +1095,7 @@ export function createRecoveryGuardedMcpClient({
     controller,
     resolveEffect,
     sessionId,
+    dispatchAdmission,
   });
   return wrappedClient;
 }

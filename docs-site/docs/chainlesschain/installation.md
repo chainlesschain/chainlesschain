@@ -2,7 +2,7 @@
 
 > **快速开始 | 支持 Windows / macOS / Linux | Electron + Vue3 桌面端 | Docker 后端服务**
 
-> **2026-08-09 发布提示**：生产环境请固定 `chainlesschain@0.163.2`。npm `latest`、源码包元数据与生产推荐版已经对齐；该版本在精确 tag SHA 上完整通过 Ubuntu / Windows / macOS 权威门禁、Strict Sandbox 与恶意 MCP 可靠性门，并完成不可变制品、SBOM、provenance 与 npm registry/npmmirror 回读。
+> **2026-08-10 发布提示**：生产环境请固定 `chainlesschain@0.163.3`。npm `latest`、源码包元数据与生产推荐版已经对齐；该版本在精确 tag SHA 上完整通过 Ubuntu / Windows / macOS 权威门禁、Strict Sandbox 与恶意 MCP 可靠性门，并完成不可变制品、SBOM、provenance 与 npm registry/npmmirror 回读。
 
 本指南将帮助您在不同平台上安装和配置ChainlessChain个人AI系统。
 
@@ -15,7 +15,7 @@
 - 🖥️ **多平台支持**: Windows / macOS / Linux 桌面端
 - 📱 **移动端**: Android APK 直装
 - 🐳 **Docker 服务**: 一键启动 Ollama / Qdrant / PostgreSQL / Redis
-- ⚡ **CLI 安装**: `npm install -g chainlesschain@0.163.2` 一行命令（支持 `cc` / `clc` / `clchain` 短命令别名）
+- ⚡ **CLI 安装**: `npm install -g chainlesschain@0.163.3` 一行命令（支持 `cc` / `clc` / `clchain` 短命令别名）
 - 🔧 **交互式向导**: `chainlesschain setup`（或 `cc setup`）引导完成配置
 - 🩺 **环境诊断**: `chainlesschain doctor`（或 `cc doctor`）自动检测问题
 
@@ -24,7 +24,7 @@
 ```
                    安装部署架构
 ┌─────────────────────────────────────────┐
-│  npm install -g chainlesschain@0.163.2  │  CLI 工具
+│  npm install -g chainlesschain@0.163.3  │  CLI 工具
 │         │                               │
 │         ▼                               │
 │  chainlesschain setup (交互式向导)       │

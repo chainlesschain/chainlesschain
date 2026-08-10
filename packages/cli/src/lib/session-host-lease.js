@@ -5,7 +5,8 @@
  * sandbox. Every process sharing CHAINLESSCHAIN_HOME observes the same strict
  * state file. A monotonically increasing fencing token prevents an expired or
  * crashed host from publishing through guarded session-store write paths after
- * a successor takes over.
+ * a successor takes over. A separate monotonic revocation epoch lets an
+ * operator fence a still-live host; every guarded transition re-reads it.
  */
 
 import fs from "node:fs";
@@ -22,13 +23,19 @@ export const SESSION_HOST_LEASE_HELD_CODE = "CC_SESSION_HOST_LEASE_HELD";
 export const SESSION_HOST_LEASE_FENCED_CODE = "CC_SESSION_HOST_LEASE_FENCED";
 export const SESSION_HOST_LEASE_UNAVAILABLE_CODE =
   "CC_SESSION_HOST_LEASE_UNAVAILABLE";
+export const SESSION_HOST_REVOCATION_CONFLICT_CODE =
+  "CC_SESSION_HOST_REVOCATION_CONFLICT";
 
-const STORE_VERSION = 1;
+const STORE_VERSION = 2;
+const LEGACY_STORE_VERSION = 1;
 const DEFAULT_TTL_MS = 30_000;
 const DEFAULT_HEARTBEAT_MS = 5_000;
 const MAX_SESSION_ID_BYTES = 1024;
+const MAX_REVOCATIONS = 1024;
 const HOST_KIND_PATTERN = /^[a-z0-9][a-z0-9._-]{0,63}$/;
 const LEASE_ID_PATTERN = /^lease-[0-9a-f-]{36}$/;
+const REVOCATION_REQUEST_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,255}$/;
+const REVOCATION_REASON_PATTERN = /^[a-z0-9][a-z0-9._-]{0,63}$/;
 
 function leaseError(code, message, details = {}, cause = null) {
   const error = new Error(message, cause ? { cause } : undefined);
@@ -58,6 +65,21 @@ function canonicalHostKind(value) {
   return kind;
 }
 
+function canonicalRevocationRequestId(value) {
+  if (typeof value !== "string" || !REVOCATION_REQUEST_ID_PATTERN.test(value)) {
+    throw new TypeError("session host revocation requestId is invalid");
+  }
+  return value;
+}
+
+function canonicalRevocationReason(value) {
+  const reason = String(value || "operator").toLowerCase();
+  if (!REVOCATION_REASON_PATTERN.test(reason)) {
+    throw new TypeError("session host revocation reasonCode is invalid");
+  }
+  return reason;
+}
+
 function positiveInteger(value, label) {
   const number = Number(value);
   if (!Number.isSafeInteger(number) || number < 1) {
@@ -66,7 +88,7 @@ function positiveInteger(value, label) {
   return number;
 }
 
-function normalizeActiveLease(value) {
+function normalizeActiveLease(value, fallbackRevocationEpoch = null) {
   if (value === null) return null;
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new TypeError("active session host lease must be an object or null");
@@ -76,6 +98,8 @@ function normalizeActiveLease(value) {
     !LEASE_ID_PATTERN.test(value.leaseId) ||
     !Number.isSafeInteger(value.fencingToken) ||
     value.fencingToken < 1 ||
+    !Number.isSafeInteger(value.revocationEpoch ?? fallbackRevocationEpoch) ||
+    (value.revocationEpoch ?? fallbackRevocationEpoch) < 0 ||
     !Number.isSafeInteger(value.ownerPid) ||
     value.ownerPid < 1 ||
     typeof value.hostKind !== "string" ||
@@ -92,11 +116,45 @@ function normalizeActiveLease(value) {
   return Object.freeze({
     leaseId: value.leaseId,
     fencingToken: value.fencingToken,
+    revocationEpoch: value.revocationEpoch ?? fallbackRevocationEpoch,
     ownerPid: value.ownerPid,
     hostKind: value.hostKind,
     acquiredAtMs: value.acquiredAtMs,
     renewedAtMs: value.renewedAtMs,
     expiresAtMs: value.expiresAtMs,
+  });
+}
+
+function normalizeRevocation(value, expectedEpoch) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new TypeError("session host revocation must be an object");
+  }
+  const targetIsNull = value.targetLeaseId === null;
+  if (
+    canonicalRevocationRequestId(value.requestId) !== value.requestId ||
+    canonicalRevocationReason(value.reasonCode) !== value.reasonCode ||
+    !Number.isSafeInteger(value.revocationEpoch) ||
+    value.revocationEpoch !== expectedEpoch ||
+    !Number.isSafeInteger(value.revokedAtMs) ||
+    value.revokedAtMs < 0 ||
+    (targetIsNull
+      ? value.targetFencingToken !== null || value.targetOwnerPid !== null
+      : !LEASE_ID_PATTERN.test(String(value.targetLeaseId || "")) ||
+        !Number.isSafeInteger(value.targetFencingToken) ||
+        value.targetFencingToken < 1 ||
+        !Number.isSafeInteger(value.targetOwnerPid) ||
+        value.targetOwnerPid < 1)
+  ) {
+    throw new TypeError("session host revocation is invalid");
+  }
+  return Object.freeze({
+    requestId: value.requestId,
+    revocationEpoch: value.revocationEpoch,
+    reasonCode: value.reasonCode,
+    revokedAtMs: value.revokedAtMs,
+    targetLeaseId: value.targetLeaseId,
+    targetFencingToken: value.targetFencingToken,
+    targetOwnerPid: value.targetOwnerPid,
   });
 }
 
@@ -106,25 +164,53 @@ function validateStore(value, sessionId, { missing = false } = {}) {
       version: STORE_VERSION,
       sessionId,
       lastFencingToken: 0,
+      revocationEpoch: 0,
+      revocations: Object.freeze([]),
       active: null,
     });
   }
+  const legacy = value?.version === LEGACY_STORE_VERSION;
   if (
-    value?.version !== STORE_VERSION ||
+    (!legacy && value?.version !== STORE_VERSION) ||
     value?.sessionId !== sessionId ||
     !Number.isSafeInteger(value?.lastFencingToken) ||
     value.lastFencingToken < 0
   ) {
     throw new TypeError("session host lease store is invalid");
   }
-  const active = normalizeActiveLease(value.active);
+  const revocationEpoch = legacy ? 0 : value.revocationEpoch;
+  const rawRevocations = legacy ? [] : value.revocations;
+  if (
+    !Number.isSafeInteger(revocationEpoch) ||
+    revocationEpoch < 0 ||
+    !Array.isArray(rawRevocations) ||
+    rawRevocations.length > MAX_REVOCATIONS ||
+    rawRevocations.length !== revocationEpoch
+  ) {
+    throw new TypeError("session host revocation authority is invalid");
+  }
+  const revocations = rawRevocations.map((record, index) =>
+    normalizeRevocation(record, index + 1),
+  );
+  if (
+    new Set(revocations.map((record) => record.requestId)).size !==
+    revocations.length
+  ) {
+    throw new TypeError("session host revocation requestIds must be unique");
+  }
+  const active = normalizeActiveLease(value.active, legacy ? 0 : null);
   if (active && active.fencingToken !== value.lastFencingToken) {
     throw new TypeError("active lease does not match the last fencing token");
+  }
+  if (active && active.revocationEpoch !== revocationEpoch) {
+    throw new TypeError("active lease predates the revocation authority");
   }
   return Object.freeze({
     version: STORE_VERSION,
     sessionId,
     lastFencingToken: value.lastFencingToken,
+    revocationEpoch,
+    revocations: Object.freeze(revocations),
     active,
   });
 }
@@ -152,6 +238,10 @@ function publicLease(active) {
   return Object.freeze({ ...active });
 }
 
+function publicRevocation(record, replayed) {
+  return Object.freeze({ ...record, replayed });
+}
+
 export function getSessionHostLeaseRoot() {
   return path.join(getStatePath(), "session-host-leases");
 }
@@ -177,6 +267,7 @@ export class SessionHostLeaseAuthority {
     this._clearInterval = clearIntervalFn;
     this._lock = lock;
     this._local = new Map();
+    this._fenced = new Map();
   }
 
   pathFor(sessionId) {
@@ -201,16 +292,20 @@ export class SessionHostLeaseAuthority {
   _unavailable(sessionId, filePath, cause) {
     if (
       cause?.code === SESSION_HOST_LEASE_HELD_CODE ||
-      cause?.code === SESSION_HOST_LEASE_FENCED_CODE
+      cause?.code === SESSION_HOST_LEASE_FENCED_CODE ||
+      cause?.code === SESSION_HOST_LEASE_UNAVAILABLE_CODE ||
+      cause?.code === SESSION_HOST_REVOCATION_CONFLICT_CODE
     ) {
       return cause;
     }
-    return leaseError(
+    const error = leaseError(
       SESSION_HOST_LEASE_UNAVAILABLE_CODE,
       `Session host lease authority is unavailable for ${sessionId}`,
       { sessionId, filePath },
       cause,
     );
+    if (cause?.commitState) error.commitState = cause.commitState;
+    return error;
   }
 
   _lose(record, cause) {
@@ -223,7 +318,16 @@ export class SessionHostLeaseAuthority {
       cause?.code === SESSION_HOST_LEASE_FENCED_CODE
         ? cause
         : this._unavailable(record.sessionId, record.filePath, cause);
+    this._fenced.set(record.key, reason);
     if (!record.controller.signal.aborted) record.controller.abort(reason);
+  }
+
+  _writeSnapshot(draft, snapshot) {
+    draft.version = STORE_VERSION;
+    draft.sessionId = snapshot.sessionId;
+    draft.lastFencingToken = snapshot.lastFencingToken;
+    draft.revocationEpoch = snapshot.revocationEpoch;
+    draft.revocations = snapshot.revocations.map((record) => ({ ...record }));
   }
 
   acquire(
@@ -243,6 +347,8 @@ export class SessionHostLeaseAuthority {
     );
     const filePath = this.pathFor(id);
     const key = this._key(id);
+    const priorFence = this._fenced.get(key);
+    if (priorFence) throw priorFence;
     if (this._local.has(key)) {
       throw leaseError(
         SESSION_HOST_LEASE_HELD_CODE,
@@ -282,6 +388,7 @@ export class SessionHostLeaseAuthority {
           const next = {
             leaseId: this._createLeaseId(),
             fencingToken,
+            revocationEpoch: snapshot.revocationEpoch,
             ownerPid: process.pid,
             hostKind: kind,
             acquiredAtMs: now,
@@ -289,8 +396,7 @@ export class SessionHostLeaseAuthority {
             expiresAtMs: now + ttl,
           };
           normalizeActiveLease(next);
-          draft.version = STORE_VERSION;
-          draft.sessionId = id;
+          this._writeSnapshot(draft, snapshot);
           draft.lastFencingToken = fencingToken;
           draft.active = next;
           return next;
@@ -329,7 +435,10 @@ export class SessionHostLeaseAuthority {
           "Session host lease authority",
           (draft) => {
             const snapshot = validateStore(draft, id);
-            if (!sameLease(snapshot.active, record.active)) {
+            if (
+              snapshot.revocationEpoch !== record.active.revocationEpoch ||
+              !sameLease(snapshot.active, record.active)
+            ) {
               throw leaseError(
                 SESSION_HOST_LEASE_FENCED_CODE,
                 `Session host lease was superseded for ${id}`,
@@ -337,6 +446,8 @@ export class SessionHostLeaseAuthority {
                   sessionId: id,
                   fencingToken: record.active.fencingToken,
                   activeFencingToken: snapshot.active?.fencingToken ?? null,
+                  localRevocationEpoch: record.active.revocationEpoch,
+                  activeRevocationEpoch: snapshot.revocationEpoch,
                 },
               );
             }
@@ -353,6 +464,7 @@ export class SessionHostLeaseAuthority {
               renewedAtMs: now,
               expiresAtMs: now + ttl,
             };
+            this._writeSnapshot(draft, snapshot);
             draft.active = next;
             return next;
           },
@@ -371,19 +483,27 @@ export class SessionHostLeaseAuthority {
       if (record.released) return false;
       if (record.timer) this._clearInterval(record.timer);
       record.timer = null;
-      let released = false;
+      let outcome = Object.freeze({ released: false, fenced: true });
       try {
-        released = mutateSecurityStore(
+        outcome = mutateSecurityStore(
           filePath,
           "Session host lease authority",
           (draft) => {
             const snapshot = validateStore(draft, id);
-            if (!sameLease(snapshot.active, record.active)) return false;
-            draft.version = STORE_VERSION;
-            draft.sessionId = id;
-            draft.lastFencingToken = snapshot.lastFencingToken;
+            if (
+              snapshot.revocationEpoch !== record.active.revocationEpoch ||
+              !sameLease(snapshot.active, record.active)
+            ) {
+              return Object.freeze({
+                released: false,
+                fenced: true,
+                activeFencingToken: snapshot.active?.fencingToken ?? null,
+                activeRevocationEpoch: snapshot.revocationEpoch,
+              });
+            }
+            this._writeSnapshot(draft, snapshot);
             draft.active = null;
-            return true;
+            return Object.freeze({ released: true, fenced: false });
           },
           { lock: this._lock, timeoutMs: 30_000, staleMs: 30_000 },
         );
@@ -392,9 +512,26 @@ export class SessionHostLeaseAuthority {
         this._lose(record, error);
         throw error;
       }
+      if (!outcome.released) {
+        this._lose(
+          record,
+          leaseError(
+            SESSION_HOST_LEASE_FENCED_CODE,
+            `Session host lease cannot be released after losing authority for ${id}`,
+            {
+              sessionId: id,
+              fencingToken: record.active.fencingToken,
+              activeFencingToken: outcome.activeFencingToken ?? null,
+              localRevocationEpoch: record.active.revocationEpoch,
+              activeRevocationEpoch: outcome.activeRevocationEpoch ?? null,
+            },
+          ),
+        );
+        return false;
+      }
       record.released = true;
       this._local.delete(key);
-      return released;
+      return true;
     };
 
     record.timer = this._setInterval(() => {
@@ -406,15 +543,198 @@ export class SessionHostLeaseAuthority {
     }, heartbeat);
     record.timer?.unref?.();
 
+    const admitMcpDispatch = (_metadata, dispatch) => {
+      if (typeof dispatch !== "function") {
+        throw new TypeError("session host MCP dispatch callback is required");
+      }
+      return this.withWriteAuthority(id, (authority) => {
+        // A lease-owned dispatch must never inherit the legacy no-lease write
+        // authority represented by null. Invoke the actual transport send
+        // while the authority lock is held, then return its response promise
+        // without awaiting it so the lock covers dispatch only.
+        if (!authority) {
+          throw leaseError(
+            SESSION_HOST_LEASE_FENCED_CODE,
+            `Session host MCP dispatch is fenced for ${id}`,
+            { sessionId: id, fencingToken: record.active.fencingToken },
+          );
+        }
+        return dispatch();
+      });
+    };
+
     return Object.freeze({
       sessionId: id,
       leaseId: record.active.leaseId,
       fencingToken: record.active.fencingToken,
+      revocationEpoch: record.active.revocationEpoch,
       signal: controller.signal,
       renew,
       assert: () => this.withWriteAuthority(id, (authority) => authority),
+      admitMcpDispatch,
       release,
     });
+  }
+
+  readAuthority(sessionId) {
+    const id = canonicalSessionId(sessionId);
+    const filePath = this.pathFor(id);
+    if (!fs.existsSync(filePath)) {
+      return Object.freeze({
+        version: STORE_VERSION,
+        sessionId: id,
+        lastFencingToken: 0,
+        revocationEpoch: 0,
+        revocationCount: 0,
+        latestRevocation: null,
+        active: null,
+      });
+    }
+    try {
+      return this._lock(
+        filePath,
+        () => {
+          const snapshot = this._read(filePath, id);
+          return Object.freeze({
+            version: STORE_VERSION,
+            sessionId: id,
+            lastFencingToken: snapshot.lastFencingToken,
+            revocationEpoch: snapshot.revocationEpoch,
+            revocationCount: snapshot.revocations.length,
+            latestRevocation:
+              snapshot.revocations.length > 0
+                ? publicRevocation(snapshot.revocations.at(-1), false)
+                : null,
+            active: snapshot.active ? publicLease(snapshot.active) : null,
+          });
+        },
+        {
+          timeoutMs: 30_000,
+          staleMs: 30_000,
+          retryMs: 1,
+          maxRetryMs: 8,
+          retryJitterMs: 4,
+          failIfUnavailable: true,
+        },
+      );
+    } catch (cause) {
+      throw this._unavailable(id, filePath, cause);
+    }
+  }
+
+  /**
+   * Durably revoke the current host generation. The request id is a permanent
+   * idempotency key: an exact replay returns the original record and never
+   * revokes a successor. The bounded journal fails closed at capacity rather
+   * than evicting replay authority.
+   */
+  revoke(sessionId, { requestId, reasonCode = "operator" } = {}) {
+    const id = canonicalSessionId(sessionId);
+    const canonicalRequestId = canonicalRevocationRequestId(requestId);
+    const canonicalReasonCode = canonicalRevocationReason(reasonCode);
+    const filePath = this.pathFor(id);
+    const key = this._key(id);
+    let result;
+    try {
+      result = mutateSecurityStore(
+        filePath,
+        "Session host lease authority",
+        (draft) => {
+          const snapshot = validateStore(draft, id, {
+            missing: !fs.existsSync(filePath),
+          });
+          const replay = snapshot.revocations.find(
+            (record) => record.requestId === canonicalRequestId,
+          );
+          if (replay) {
+            if (replay.reasonCode !== canonicalReasonCode) {
+              throw leaseError(
+                SESSION_HOST_REVOCATION_CONFLICT_CODE,
+                `Session host revocation requestId was reused with different authority: ${canonicalRequestId}`,
+                { sessionId: id, requestId: canonicalRequestId },
+              );
+            }
+            return publicRevocation(replay, true);
+          }
+          if (snapshot.revocations.length >= MAX_REVOCATIONS) {
+            throw new RangeError(
+              "session host revocation journal is full and requires explicit operator repair",
+            );
+          }
+          const revocationEpoch = snapshot.revocationEpoch + 1;
+          if (!Number.isSafeInteger(revocationEpoch)) {
+            throw new RangeError("session host revocation epoch is exhausted");
+          }
+          const active = snapshot.active;
+          const record = normalizeRevocation(
+            {
+              requestId: canonicalRequestId,
+              revocationEpoch,
+              reasonCode: canonicalReasonCode,
+              revokedAtMs: Math.trunc(this._now()),
+              targetLeaseId: active?.leaseId ?? null,
+              targetFencingToken: active?.fencingToken ?? null,
+              targetOwnerPid: active?.ownerPid ?? null,
+            },
+            revocationEpoch,
+          );
+          this._writeSnapshot(draft, snapshot);
+          draft.revocationEpoch = revocationEpoch;
+          draft.revocations = [
+            ...snapshot.revocations.map((entry) => ({ ...entry })),
+            { ...record },
+          ];
+          draft.active = null;
+          return publicRevocation(record, false);
+        },
+        { lock: this._lock, timeoutMs: 30_000, staleMs: 30_000 },
+      );
+    } catch (cause) {
+      const error = this._unavailable(id, filePath, cause);
+      if (["committed", "unknown"].includes(error.commitState)) {
+        try {
+          const latest = this.readAuthority(id).latestRevocation;
+          if (
+            latest?.requestId === canonicalRequestId &&
+            latest?.reasonCode === canonicalReasonCode
+          ) {
+            result = publicRevocation(latest, true);
+          }
+        } catch {
+          // The original classified write failure remains the authority when
+          // exact readback cannot prove this request's durable record.
+        }
+      }
+      if (!result) {
+        const local = this._local.get(key);
+        if (local) this._lose(local, error);
+        throw error;
+      }
+    }
+
+    const local = this._local.get(key);
+    if (
+      local &&
+      local.active.revocationEpoch < result.revocationEpoch &&
+      (!result.targetLeaseId || result.targetLeaseId === local.active.leaseId)
+    ) {
+      this._lose(
+        local,
+        leaseError(
+          SESSION_HOST_LEASE_FENCED_CODE,
+          `Session host authority was durably revoked for ${id}`,
+          {
+            sessionId: id,
+            requestId: result.requestId,
+            fencingToken: local.active.fencingToken,
+            localRevocationEpoch: local.active.revocationEpoch,
+            activeRevocationEpoch: result.revocationEpoch,
+            revoked: true,
+          },
+        ),
+      );
+    }
+    return result;
   }
 
   withWriteAuthority(sessionId, task) {
@@ -423,37 +743,81 @@ export class SessionHostLeaseAuthority {
     }
     const id = canonicalSessionId(sessionId);
     const filePath = this.pathFor(id);
-    if (!fs.existsSync(filePath)) return task(null);
+    const key = this._key(id);
+    let callbackError = null;
+    const invokeTask = (authority) => {
+      try {
+        return task(authority);
+      } catch (cause) {
+        callbackError = cause;
+        throw cause;
+      }
+    };
+    const priorFence = this._fenced.get(key);
+    if (priorFence) throw priorFence;
+    const local = this._local.get(key);
+    if (!fs.existsSync(filePath)) {
+      if (!local) return invokeTask(null);
+      const error = leaseError(
+        SESSION_HOST_LEASE_FENCED_CODE,
+        `Session host authority disappeared while locally held: ${id}`,
+        {
+          sessionId: id,
+          localFencingToken: local.active.fencingToken,
+          localRevocationEpoch: local.active.revocationEpoch,
+        },
+      );
+      this._lose(local, error);
+      throw error;
+    }
     try {
       return this._lock(
         filePath,
         () => {
           const snapshot = this._read(filePath, id);
-          if (!snapshot.active) return task(null);
-          const record = this._local.get(this._key(id));
+          const record = this._local.get(key);
           const now = Math.trunc(this._now());
           if (
-            !record ||
-            record.released ||
-            !sameLease(snapshot.active, record.active) ||
-            snapshot.active.expiresAtMs <= now
+            record &&
+            (record.released ||
+              record.active.revocationEpoch !== snapshot.revocationEpoch ||
+              !sameLease(snapshot.active, record.active) ||
+              snapshot.active.expiresAtMs <= now)
           ) {
             const error = leaseError(
               SESSION_HOST_LEASE_FENCED_CODE,
-              `Session write is fenced by another or expired host lease: ${id}`,
+              `Session write is fenced by a revocation, successor, or expired host lease: ${id}`,
+              {
+                sessionId: id,
+                activeFencingToken: snapshot.active?.fencingToken ?? null,
+                localFencingToken: record.active.fencingToken,
+                localRevocationEpoch: record.active.revocationEpoch,
+                activeRevocationEpoch: snapshot.revocationEpoch,
+                revoked:
+                  record.active.revocationEpoch !== snapshot.revocationEpoch,
+              },
+            );
+            this._lose(record, error);
+            throw error;
+          }
+          if (!record && snapshot.active) {
+            throw leaseError(
+              SESSION_HOST_LEASE_FENCED_CODE,
+              `Session write is fenced by another host lease: ${id}`,
               {
                 sessionId: id,
                 activeFencingToken: snapshot.active.fencingToken,
-                localFencingToken: record?.active?.fencingToken ?? null,
+                localFencingToken: null,
+                activeRevocationEpoch: snapshot.revocationEpoch,
               },
             );
-            if (record) this._lose(record, error);
-            throw error;
           }
-          return task(
+          if (!record) return invokeTask(null);
+          return invokeTask(
             Object.freeze({
               leaseId: snapshot.active.leaseId,
               fencingToken: snapshot.active.fencingToken,
+              revocationEpoch: snapshot.active.revocationEpoch,
               ownerPid: snapshot.active.ownerPid,
               hostKind: snapshot.active.hostKind,
             }),
@@ -469,6 +833,7 @@ export class SessionHostLeaseAuthority {
         },
       );
     } catch (cause) {
+      if (cause === callbackError) throw cause;
       throw this._unavailable(id, filePath, cause);
     }
   }
@@ -489,4 +854,12 @@ export function assertSessionHostWriteAuthority(sessionId) {
     sessionId,
     (authority) => authority,
   );
+}
+
+export function readSessionHostAuthority(sessionId) {
+  return defaultAuthority.readAuthority(sessionId);
+}
+
+export function revokeSessionHostAuthority(sessionId, options) {
+  return defaultAuthority.revoke(sessionId, options);
 }

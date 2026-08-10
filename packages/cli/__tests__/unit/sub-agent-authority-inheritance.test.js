@@ -134,4 +134,93 @@ describe("sub-agent parent authority inheritance", () => {
     expect(result.error).toBeUndefined();
     expect(fs.existsSync(target)).toBe(false);
   }, 30000);
+
+  it("inherits host MCP dispatch admission with an explicitly forked MCP client", async () => {
+    const dispatchAdmission = vi.fn((_metadata, dispatch) => dispatch());
+    const callTool = vi.fn(async () => ({
+      content: [{ type: "text", text: "cloudy" }],
+    }));
+    let calls = 0;
+    let toolMessage = null;
+    const chatFn = vi.fn(async (messages) => {
+      calls += 1;
+      if (calls === 1) {
+        return {
+          message: {
+            role: "assistant",
+            content: "",
+            tool_calls: [
+              {
+                id: "child-mcp",
+                type: "function",
+                function: {
+                  name: "mcp__weather__get",
+                  arguments: JSON.stringify({ city: "Shanghai" }),
+                },
+              },
+            ],
+          },
+          usage: {},
+        };
+      }
+      toolMessage = messages.find((message) => message.role === "tool") || null;
+      return {
+        message: { role: "assistant", content: "weather complete" },
+        usage: {},
+      };
+    });
+
+    const result = await executeTool(
+      "spawn_sub_agent",
+      {
+        role: "weather-worker",
+        task: "check weather",
+        contextMode: "fork",
+        permissionMode: "bypassPermissions",
+      },
+      {
+        cwd: tmp,
+        parentMessages: [],
+        llmOptions: { chatFn, runnableProviderFallback: false },
+        subAgentContract: {
+          context: "fork",
+          permissionMode: "bypassPermissions",
+          mcpServers: null,
+        },
+        mcpClient: { callTool },
+        mcpDispatchAdmission: dispatchAdmission,
+        extraToolDefinitions: [
+          {
+            type: "function",
+            function: {
+              name: "mcp__weather__get",
+              description: "Get weather",
+              parameters: { type: "object", properties: {} },
+            },
+          },
+        ],
+        externalToolDescriptors: {
+          mcp__weather__get: {
+            source: "weather",
+            effectContract: { declaredEffect: "read" },
+          },
+        },
+        externalToolExecutors: {
+          mcp__weather__get: {
+            kind: "mcp",
+            serverName: "weather",
+            toolName: "get",
+          },
+        },
+      },
+    );
+
+    expect(result.error).toBeUndefined();
+    expect(result.toolsUsed).toContain("mcp__weather__get");
+    expect(toolMessage?.content).not.toContain("error");
+    expect(callTool).toHaveBeenCalledTimes(1);
+    expect(callTool.mock.calls[0][3]?.dispatchAdmission).toBe(
+      dispatchAdmission,
+    );
+  }, 30000);
 });

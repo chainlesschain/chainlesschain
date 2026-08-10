@@ -101,10 +101,13 @@ import { runnableTaskModel, hasUsableKey } from "../lib/runnable-provider.js";
 import { CLIPermanentMemory } from "../lib/permanent-memory.js";
 import { CLIAutonomousAgent, GoalStatus } from "../lib/autonomous-agent.js";
 import {
+  estimateMessagesTokens,
   PromptCompressor,
   estimateTokens,
   getContextWindow,
 } from "../harness/prompt-compressor.js";
+import { compactConversationWithProvider } from "../harness/provider-backed-compaction.js";
+import { isAbortError } from "../lib/abort-utils.js";
 import {
   buildAutoPinPredicate,
   resolveAutoPinOption,
@@ -1303,6 +1306,7 @@ export function createReplCompactPersistence(
         canonicalPayload,
         persistedMessages,
       );
+      synchronousReplRecoveryValue(result, "REPL compact settlement result");
       replace(canonicalMessages);
       return result;
     },
@@ -1310,6 +1314,84 @@ export function createReplCompactPersistence(
       return snapshotReplMessages(persistedMessages);
     },
   });
+}
+
+/**
+ * Account one provider-backed REPL compaction and settle its canonical message
+ * checkpoint before changing the live array. Provider work must already be
+ * complete when this synchronous boundary is entered.
+ */
+export function settleReplCompactionCandidate({
+  messages,
+  expectedMessages,
+  compacted,
+  stats,
+  trigger,
+  useJsonl,
+  sessionId,
+  persistence,
+  usageEvent = null,
+  usageUnknownEvent = null,
+  costStore = null,
+  appendUsage = appendTokenUsage,
+}) {
+  if (usageUnknownEvent) {
+    return {
+      applied: false,
+      block: Object.freeze({
+        code: "CC_COMPACTION_USAGE_UNKNOWN",
+        reason:
+          usageUnknownEvent.reason || "provider_transport_outcome_unknown",
+        commitState: "provider-usage-unknown",
+        usageOutcome: "unknown",
+      }),
+    };
+  }
+
+  let usagePersistenceError = null;
+  if (usageEvent) {
+    addUsage(costStore, [usageEvent]);
+    if (useJsonl && sessionId) {
+      try {
+        appendUsage(sessionId, {
+          provider: usageEvent.provider,
+          model: usageEvent.model,
+          usage: usageEvent.usage,
+        });
+      } catch (error) {
+        // The paid request is accounted in-memory exactly once. Never retry an
+        // append whose durable commit state may be unknown.
+        usagePersistenceError = error;
+      }
+    }
+  }
+
+  const liveChanged =
+    messages.length !== expectedMessages.length ||
+    messages.some((message, index) => message !== expectedMessages[index]);
+  if (liveChanged) {
+    const error = new Error(
+      "REPL messages changed while provider compaction was running",
+    );
+    error.code = "CC_COMPACTION_LOCAL_STATE_CHANGED";
+    return { applied: false, error, usagePersistenceError };
+  }
+
+  if (useJsonl && sessionId && stats?.strategy !== "none") {
+    try {
+      persistence.persist(sessionId, {
+        ...stats,
+        trigger: trigger || "manual",
+        messages: compacted,
+      });
+    } catch (error) {
+      return { applied: false, error, usagePersistenceError };
+    }
+  }
+
+  messages.length = 0;
+  messages.push(...compacted);
+  return { applied: true, usagePersistenceError };
 }
 
 function validateRawReplReplayMessages(rebuiltMessages) {
@@ -1972,6 +2054,7 @@ export function createReplMcpHostRuntimeManager(dependencies = {}) {
     recovery = null,
     recoveryError = null,
     verifiedRecovery = false,
+    dispatchAdmission = null,
   } = {}) => {
     const bundle = adhocMcp?.mcpClient
       ? adhocMcp
@@ -1988,7 +2071,8 @@ export function createReplMcpHostRuntimeManager(dependencies = {}) {
       current.sessionId === sessionId &&
       current.persistent === persistLedger &&
       current.recovery === recovery &&
-      current.recoveryError === recoveryError
+      current.recoveryError === recoveryError &&
+      current.dispatchAdmission === dispatchAdmission
     ) {
       return current;
     }
@@ -2012,6 +2096,7 @@ export function createReplMcpHostRuntimeManager(dependencies = {}) {
       sink,
       recovery,
       recoveryError,
+      ...(dispatchAdmission ? { dispatchAdmission } : {}),
       ...(sharedController ? { controller: sharedController } : {}),
     });
     const candidate = Object.freeze({
@@ -2027,6 +2112,7 @@ export function createReplMcpHostRuntimeManager(dependencies = {}) {
       persistent: persistLedger,
       recovery,
       recoveryError,
+      dispatchAdmission,
       verifiedRecovery: Boolean(verifiedRecovery),
     });
     candidates.add(candidate);
@@ -2417,6 +2503,7 @@ async function startAgentReplInWorkspaceOwned(
   const _replCompactPersistence = createReplCompactPersistence(
     _startupJsonlResume?.ok ? _startupJsonlResume.rebuiltMessages : [],
   );
+  let _compactionUsageBlock = null;
 
   try {
     const ctx = await bootstrap({ verbose: false });
@@ -2438,6 +2525,7 @@ async function startAgentReplInWorkspaceOwned(
             model,
             baseUrl,
             apiKey,
+            signal: _sessionHostLeaseScope?.lease?.signal,
             enabledToolNames: [],
             extraToolDefinitions: [],
             maxOutputTokens: 2048,
@@ -3387,6 +3475,17 @@ async function startAgentReplInWorkspaceOwned(
   _persistReplContextSources();
 
   const _mcpHostRuntimeManager = createReplMcpHostRuntimeManager();
+  const _mcpDispatchAdmission = (metadata, dispatch) => {
+    const lease = _sessionHostLeaseScope?.lease || null;
+    if (!lease || typeof lease.admitMcpDispatch !== "function") {
+      const error = new Error(
+        "REPL session host authority is unavailable for MCP dispatch",
+      );
+      error.code = "CC_SESSION_HOST_LEASE_FENCED";
+      throw error;
+    }
+    return lease.admitMcpDispatch(metadata, dispatch);
+  };
   const _mcpRuntimeInputs = ({
     targetSessionId = sessionId,
     recovery = _mcpLedgerRecovery,
@@ -3398,6 +3497,8 @@ async function startAgentReplInWorkspaceOwned(
     persistent: useJsonl && Boolean(targetSessionId),
     recovery,
     recoveryError,
+    dispatchAdmission:
+      useJsonl && _sessionHostLeaseScope ? _mcpDispatchAdmission : null,
   });
   const _activateMcpHostRuntime = () =>
     _mcpHostRuntimeManager.activate(_mcpRuntimeInputs());
@@ -5960,13 +6061,73 @@ async function startAgentReplInWorkspaceOwned(
     }
 
     if (trimmed === "/compact") {
-      if (_compressor && messages.length > 3) {
-        const { messages: compacted, stats } = await _compressor.compress(
-          messages,
-          _compactOpts(messages),
+      if (_compactionUsageBlock) {
+        logger.error(
+          `Compaction blocked (${_compactionUsageBlock.code}): ${_compactionUsageBlock.reason}`,
         );
-        messages.length = 0;
-        messages.push(...compacted);
+        prompt();
+        return;
+      }
+
+      const expectedMessages = [...messages];
+      if (_compressor && messages.length > 3) {
+        let result;
+        try {
+          result = await compactConversationWithProvider(messages, {
+            compressor: _compressor,
+            preserveCompletedExchange: true,
+            ..._compactOpts(messages),
+          });
+        } catch (error) {
+          if (
+            isAbortError(error) ||
+            _sessionHostLeaseScope?.lease?.signal?.aborted
+          ) {
+            throw error;
+          }
+          logger.error(`Compaction failed: ${error.message}`);
+          prompt();
+          return;
+        }
+        const {
+          messages: compacted,
+          stats,
+          usageEvent,
+          usageUnknownEvent,
+        } = result;
+        const settlement = settleReplCompactionCandidate({
+          messages,
+          expectedMessages,
+          compacted,
+          stats,
+          trigger: "manual",
+          useJsonl,
+          sessionId,
+          persistence: _replCompactPersistence,
+          usageEvent,
+          usageUnknownEvent,
+          costStore: _costStore,
+        });
+        if (settlement.usagePersistenceError) {
+          logger.warn(
+            `Compaction usage was counted locally but not durably persisted: ${settlement.usagePersistenceError.message}`,
+          );
+        }
+        if (settlement.block) {
+          _compactionUsageBlock = settlement.block;
+          logger.error(
+            `Compaction usage is unknown (${settlement.block.code}); the paid compaction will not be retried.`,
+          );
+          prompt();
+          return;
+        }
+        if (!settlement.applied) {
+          logger.warn(
+            `Compaction was not applied: ${settlement.error?.message || "canonical settlement failed"}`,
+          );
+          prompt();
+          return;
+        }
         recordCompressionMetric(stats, {
           source: "manual-compact",
           provider,
@@ -5982,17 +6143,67 @@ async function startAgentReplInWorkspaceOwned(
         }
       } else if (contextEngine && messages.length > 5) {
         const compacted = contextEngine.smartCompact(messages);
-        messages.length = 0;
-        messages.push(...compacted);
-        logger.info(
-          `Compacted to ${messages.length} messages (importance-based)`,
-        );
+        const originalTokens = estimateMessagesTokens(messages);
+        const compressedTokens = estimateMessagesTokens(compacted);
+        const settlement = settleReplCompactionCandidate({
+          messages,
+          expectedMessages,
+          compacted,
+          stats: {
+            strategy: "importance",
+            originalMessages: messages.length,
+            compressedMessages: compacted.length,
+            originalTokens,
+            compressedTokens,
+            saved: originalTokens - compressedTokens,
+            ratio: originalTokens > 0 ? compressedTokens / originalTokens : 1,
+          },
+          trigger: "manual",
+          useJsonl,
+          sessionId,
+          persistence: _replCompactPersistence,
+          costStore: _costStore,
+        });
+        if (settlement.applied) {
+          logger.info(
+            `Compacted to ${messages.length} messages (importance-based)`,
+          );
+        } else {
+          logger.warn(
+            `Compaction was not applied: ${settlement.error?.message || "canonical settlement failed"}`,
+          );
+        }
       } else if (messages.length > 5) {
         const systemMsg = messages[0];
         const recent = messages.slice(-4);
-        messages.length = 0;
-        messages.push(systemMsg, ...recent);
-        logger.info("Compacted to last 4 messages");
+        const compacted = [systemMsg, ...recent];
+        const originalTokens = estimateMessagesTokens(messages);
+        const compressedTokens = estimateMessagesTokens(compacted);
+        const settlement = settleReplCompactionCandidate({
+          messages,
+          expectedMessages,
+          compacted,
+          stats: {
+            strategy: "truncate",
+            originalMessages: messages.length,
+            compressedMessages: compacted.length,
+            originalTokens,
+            compressedTokens,
+            saved: originalTokens - compressedTokens,
+            ratio: originalTokens > 0 ? compressedTokens / originalTokens : 1,
+          },
+          trigger: "manual",
+          useJsonl,
+          sessionId,
+          persistence: _replCompactPersistence,
+          costStore: _costStore,
+        });
+        if (settlement.applied) logger.info("Compacted to last 4 messages");
+        else {
+          logger.warn(
+            `Compaction was not applied: ${settlement.error?.message || "canonical settlement failed"}`,
+          );
+        }
       }
       prompt();
       return;
@@ -8212,6 +8423,8 @@ async function startAgentReplInWorkspaceOwned(
         // session has no durable sink. Otherwise an outcome-unknown call could
         // be retried in the same process after agent-core creates a plain ledger.
         mcpCallLedger: activeMcpRuntime.runtime.ledger,
+        mcpDispatchAdmission:
+          useJsonl && _sessionHostLeaseScope ? _mcpDispatchAdmission : null,
         chatFn: _fallbackChatFn,
       });
       _persistReplContextSources();
@@ -8427,39 +8640,73 @@ async function startAgentReplInWorkspaceOwned(
       if (
         feature("PROMPT_COMPRESSOR") &&
         _compressor &&
+        !_compactionUsageBlock &&
         _compressor.shouldAutoCompact(messages)
       ) {
         try {
-          const { messages: compacted, stats } = await _compressor.compress(
-            messages,
-            _compactOpts(messages),
-          );
-          messages.length = 0;
-          messages.push(...compacted);
-          recordCompressionMetric(stats, {
-            source: "auto-compact",
-            provider,
-            model: activeModel,
+          const expectedMessages = [...messages];
+          const {
+            messages: compacted,
+            stats,
+            usageEvent,
+            usageUnknownEvent,
+          } = await compactConversationWithProvider(messages, {
+            compressor: _compressor,
+            preserveCompletedExchange: true,
+            ..._compactOpts(messages),
           });
-          if (stats.saved > 0) {
-            logger.verbose(
-              `Auto-compacted: ${stats.strategy} (saved ${stats.saved} tokens)`,
+          const settlement = settleReplCompactionCandidate({
+            messages,
+            expectedMessages,
+            compacted,
+            stats,
+            trigger: "auto",
+            useJsonl,
+            sessionId,
+            persistence: _replCompactPersistence,
+            usageEvent,
+            usageUnknownEvent,
+            costStore: _costStore,
+          });
+          if (settlement.usagePersistenceError) {
+            logger.warn(
+              `Auto-compaction usage was counted locally but not durably persisted: ${settlement.usagePersistenceError.message}`,
             );
-            if (stats.degraded === true) {
-              logger.warn(
-                `Auto-compaction degraded to ${stats.summaryMode}: ${stats.degradedReason}`,
+          }
+          if (settlement.block) {
+            _compactionUsageBlock = settlement.block;
+            logger.error(
+              `Auto-compaction usage is unknown (${settlement.block.code}); the paid compaction will not be retried.`,
+            );
+          } else if (!settlement.applied) {
+            logger.warn(
+              `Auto-compaction was not applied: ${settlement.error?.message || "canonical settlement failed"}`,
+            );
+          } else {
+            recordCompressionMetric(stats, {
+              source: "auto-compact",
+              provider,
+              model: activeModel,
+            });
+            if (stats.saved > 0) {
+              logger.verbose(
+                `Auto-compacted: ${stats.strategy} (saved ${stats.saved} tokens)`,
               );
-            }
-            // Write compact checkpoint to JSONL for crash recovery
-            if (useJsonl && sessionId) {
-              _replCompactPersistence.persist(sessionId, {
-                ...stats,
-                messages: compacted,
-              });
+              if (stats.degraded === true) {
+                logger.warn(
+                  `Auto-compaction degraded to ${stats.summaryMode}: ${stats.degradedReason}`,
+                );
+              }
             }
           }
-        } catch (_e) {
-          logger.warn(`Auto-compaction failed: ${_e.message}`);
+        } catch (error) {
+          if (
+            isAbortError(error) ||
+            _sessionHostLeaseScope?.lease?.signal?.aborted
+          ) {
+            throw error;
+          }
+          logger.warn(`Auto-compaction failed: ${error.message}`);
         }
       }
 

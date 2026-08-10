@@ -22,6 +22,19 @@ const HEAD_2 = "2".repeat(64);
 const HEAD_3 = "3".repeat(64);
 const HEAD_4 = "4".repeat(64);
 
+function durableRevocation(_sessionId, request) {
+  return {
+    requestId: request.requestId,
+    revocationEpoch: 1,
+    reasonCode: request.reasonCode,
+    revokedAtMs: 1,
+    targetLeaseId: null,
+    targetFencingToken: null,
+    targetOwnerPid: null,
+    replayed: false,
+  };
+}
+
 function startedRecord(overrides = {}) {
   return {
     schemaVersion: 1,
@@ -150,6 +163,66 @@ describe("MCP recovery adjudication authority", () => {
     expect(recovery.unsettled).toEqual([]);
     expect(recovery.replayDenied).toEqual([]);
     expect(recovery.records[0].status).toBe(McpCallStatus.STARTED);
+  });
+
+  it("requires v2 adjudications to bind the exact host revocation while retaining v1", () => {
+    const started = startedEvent();
+    const before = reduceMcpLedgerEvents([started], {
+      sessionId: "session-1",
+      verified: true,
+    });
+    const validV2 = {
+      ...adjudicationEvent(
+        started,
+        McpCallRecoveryDecision.CONFIRMED_NOT_APPLIED,
+      ),
+      data: {
+        schemaVersion: 2,
+        requestId: "mcp-recovery-request-v2",
+        sessionId: "session-1",
+        ledgerId: "mcp-ledger-1",
+        decision: McpCallRecoveryDecision.CONFIRMED_NOT_APPLIED,
+        expectedHeadHash: HEAD_1,
+        expectedRecoveryDigest: before.recoveryDigest,
+        authority: "local-cli-tty",
+        confirmation: "typed-digest-host-authority-revoke",
+        reasonDigest: `sha256:${"b".repeat(64)}`,
+        hostRevocation: {
+          requestId: "mcp-recovery-request-v2",
+          revocationEpoch: 4,
+          targetLeaseId: null,
+          targetFencingToken: null,
+          targetOwnerPid: null,
+        },
+      },
+    };
+    expect(
+      reduceMcpLedgerEvents([started, validV2], {
+        sessionId: "session-1",
+        verified: true,
+      }).incidents,
+    ).toEqual([]);
+
+    const mismatched = {
+      ...validV2,
+      data: {
+        ...validV2.data,
+        hostRevocation: {
+          ...validV2.data.hostRevocation,
+          requestId: "different-revocation-request",
+        },
+      },
+    };
+    expect(
+      reduceMcpLedgerEvents([started, mismatched], {
+        sessionId: "session-1",
+        verified: true,
+      }).incidents,
+    ).toEqual([
+      expect.objectContaining({
+        code: "CC_MCP_RECOVERY_ADJUDICATION_CORRUPT",
+      }),
+    ]);
   });
 
   it.each([
@@ -536,6 +609,7 @@ describe("MCP recovery adjudication authority", () => {
       readVerifiedEvents: () => [started],
     });
     const appendAuthorityEventIfHead = vi.fn(() => ({ hash: HEAD_2 }));
+    const revokeSessionHostAuthority = vi.fn(durableRevocation);
 
     const result = await adjudicateMcpRecovery(
       {
@@ -549,11 +623,16 @@ describe("MCP recovery adjudication authority", () => {
       {
         readVerifiedEvents: () => [started],
         appendAuthorityEventIfHead,
+        revokeSessionHostAuthority,
         randomUUID: () => "request-uuid",
       },
     );
 
     expect(appendAuthorityEventIfHead).toHaveBeenCalledOnce();
+    expect(revokeSessionHostAuthority).toHaveBeenCalledOnce();
+    expect(revokeSessionHostAuthority.mock.invocationCallOrder[0]).toBeLessThan(
+      appendAuthorityEventIfHead.mock.invocationCallOrder[0],
+    );
     expect(appendAuthorityEventIfHead).toHaveBeenCalledWith(
       "session-1",
       MCP_CALL_RECOVERY_ADJUDICATION_EVENT,
@@ -561,6 +640,11 @@ describe("MCP recovery adjudication authority", () => {
       HEAD_1,
     );
     const persisted = appendAuthorityEventIfHead.mock.calls[0][2];
+    expect(persisted).toMatchObject({
+      schemaVersion: 2,
+      confirmation: "typed-digest-host-authority-revoke",
+      requestId: expect.stringMatching(/^mcp-recovery-[0-9a-f]{64}$/),
+    });
     expect(Object.keys(persisted).sort()).toEqual(
       [
         "schemaVersion",
@@ -573,6 +657,7 @@ describe("MCP recovery adjudication authority", () => {
         "authority",
         "confirmation",
         "reasonDigest",
+        "hostRevocation",
       ].sort(),
     );
     expect(JSON.stringify(persisted)).not.toContain("external system");
@@ -584,12 +669,191 @@ describe("MCP recovery adjudication authority", () => {
       previousHeadHash: HEAD_1,
       headHash: HEAD_2,
       runtimeReloadRequired: true,
+      hostRevocation: {
+        requestId: persisted.requestId,
+        revocationEpoch: 1,
+      },
       remediation: "restart_or_resume_before_mcp_calls",
       replayDigests: [
         computeMcpExactReplayDigest(startedRecord()),
         expectedReplayDigest(),
       ],
     });
+  });
+
+  it("reconciles an exact adjudication readback after an unknown append response", async () => {
+    const started = startedEvent();
+    const events = [started];
+    const recovery = readMcpRecoveryAuthority("session-1", {
+      readVerifiedEvents: () => events,
+    });
+    const appendAuthorityEventIfHead = vi.fn(
+      (_sessionId, type, data, expectedHeadHash) => {
+        events.push({
+          type,
+          timestamp: 2,
+          prevHash: expectedHeadHash,
+          hash: HEAD_2,
+          data,
+        });
+        throw Object.assign(new Error("response lost after append"), {
+          commitState: "unknown",
+        });
+      },
+    );
+
+    await expect(
+      adjudicateMcpRecovery(
+        {
+          sessionId: "session-1",
+          ledgerId: "mcp-ledger-1",
+          decision: McpCallRecoveryDecision.CONFIRMED_NOT_APPLIED,
+          expectedHeadHash: recovery.headHash,
+          expectedRecoveryDigest: recovery.recoveryDigest,
+          reason: "external outcome was verified absent after drain",
+        },
+        {
+          readVerifiedEvents: () => events,
+          appendAuthorityEventIfHead,
+          revokeSessionHostAuthority: durableRevocation,
+        },
+      ),
+    ).resolves.toMatchObject({
+      headHash: HEAD_2,
+      decision: McpCallRecoveryDecision.CONFIRMED_NOT_APPLIED,
+    });
+    expect(events).toHaveLength(2);
+  });
+
+  it("reports not-committed only when the append adapter proves it", async () => {
+    const started = startedEvent();
+    const recovery = readMcpRecoveryAuthority("session-1", {
+      readVerifiedEvents: () => [started],
+    });
+
+    await expect(
+      adjudicateMcpRecovery(
+        {
+          sessionId: "session-1",
+          ledgerId: "mcp-ledger-1",
+          decision: McpCallRecoveryDecision.CONFIRMED_NOT_APPLIED,
+          expectedHeadHash: recovery.headHash,
+          expectedRecoveryDigest: recovery.recoveryDigest,
+          reason: "external outcome was verified absent after drain",
+        },
+        {
+          readVerifiedEvents: () => [started],
+          appendAuthorityEventIfHead: () => {
+            throw Object.assign(new Error("append rejected before write"), {
+              commitState: "not-committed",
+            });
+          },
+          revokeSessionHostAuthority: durableRevocation,
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: "CC_MCP_RECOVERY_ADJUDICATION_PERSIST_FAILED",
+      commitState: "not-committed",
+      outcomeUnknown: false,
+    });
+  });
+
+  it("replays one deterministic host revocation after an interrupted append without widening successor authority", async () => {
+    const started = startedEvent();
+    const recovery = readMcpRecoveryAuthority("session-1", {
+      readVerifiedEvents: () => [started],
+    });
+    let durableRequestId = null;
+    const revokeSessionHostAuthority = vi.fn((_sessionId, request) => {
+      durableRequestId ||= request.requestId;
+      return {
+        ...durableRevocation(_sessionId, request),
+        revocationEpoch: 7,
+        replayed: revokeSessionHostAuthority.mock.calls.length > 1,
+      };
+    });
+    const appendAuthorityEventIfHead = vi
+      .fn()
+      .mockImplementationOnce(() => {
+        throw Object.assign(new Error("injected append interruption"), {
+          code: "EIO",
+        });
+      })
+      .mockImplementationOnce(() => ({ hash: HEAD_2 }));
+    const request = {
+      sessionId: "session-1",
+      ledgerId: "mcp-ledger-1",
+      decision: McpCallRecoveryDecision.CONFIRMED_NOT_APPLIED,
+      expectedHeadHash: recovery.headHash,
+      expectedRecoveryDigest: recovery.recoveryDigest,
+      reason: "verified absent in the external system",
+    };
+    const dependencies = {
+      readVerifiedEvents: () => [started],
+      revokeSessionHostAuthority,
+      appendAuthorityEventIfHead,
+    };
+
+    await expect(
+      adjudicateMcpRecovery(request, dependencies),
+    ).rejects.toMatchObject({
+      code: "CC_MCP_RECOVERY_ADJUDICATION_OUTCOME_UNKNOWN",
+      commitState: "unknown",
+      outcomeUnknown: true,
+      hostRevocation: {
+        revocationEpoch: 7,
+        replayed: false,
+      },
+    });
+    const retried = await adjudicateMcpRecovery(request, dependencies);
+
+    expect(revokeSessionHostAuthority).toHaveBeenCalledTimes(2);
+    expect(
+      revokeSessionHostAuthority.mock.calls.map((call) => call[1].requestId),
+    ).toEqual([durableRequestId, durableRequestId]);
+    expect(retried).toMatchObject({
+      requestId: durableRequestId,
+      hostRevocation: {
+        revocationEpoch: 7,
+        replayed: true,
+      },
+      headHash: HEAD_2,
+    });
+  });
+
+  it("never appends when durable host revocation cannot be proven", async () => {
+    const started = startedEvent();
+    const recovery = readMcpRecoveryAuthority("session-1", {
+      readVerifiedEvents: () => [started],
+    });
+    const appendAuthorityEventIfHead = vi.fn();
+
+    await expect(
+      adjudicateMcpRecovery(
+        {
+          sessionId: "session-1",
+          ledgerId: "mcp-ledger-1",
+          decision: McpCallRecoveryDecision.CONFIRMED_NOT_APPLIED,
+          expectedHeadHash: recovery.headHash,
+          expectedRecoveryDigest: recovery.recoveryDigest,
+          reason: "verified absent",
+        },
+        {
+          readVerifiedEvents: () => [started],
+          revokeSessionHostAuthority: () => {
+            throw Object.assign(new Error("injected durable write failure"), {
+              code: "EIO",
+            });
+          },
+          appendAuthorityEventIfHead,
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: "CC_MCP_RECOVERY_HOST_REVOCATION_OUTCOME_UNKNOWN",
+      commitState: "unknown",
+      outcomeUnknown: true,
+    });
+    expect(appendAuthorityEventIfHead).not.toHaveBeenCalled();
   });
 
   it("does not retry a stale CAS and never mutates unverified recovery", async () => {
@@ -616,11 +880,15 @@ describe("MCP recovery adjudication authority", () => {
         {
           readVerifiedEvents: () => [started],
           appendAuthorityEventIfHead,
+          revokeSessionHostAuthority: durableRevocation,
           randomUUID: () => "request-uuid",
         },
       ),
     ).rejects.toMatchObject({
       code: "CC_MCP_RECOVERY_ADJUDICATION_STALE",
+      hostRevocation: {
+        revocationEpoch: 1,
+      },
     });
     expect(appendAuthorityEventIfHead).toHaveBeenCalledOnce();
 
