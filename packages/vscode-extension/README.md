@@ -14,6 +14,12 @@ coordination, and a localhost IDE bridge.
 | Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors                   |
 | Distribution              | Open VSX; not published on the Microsoft VS Code Marketplace          |
 
+The recommended CLI `0.163.3` adds default clean-Git worktree isolation for
+eligible background agents, generation/token-fenced lifecycle ownership,
+grammar-safe detached arguments, and fail-closed MCP runtime policy
+propagation. These are companion CLI/runtime improvements; this maintenance
+extension release does not add new IDE UI behavior.
+
 The immutable release tag
 [`ide-vscode-v0.37.49`](https://github.com/chainlesschain/chainlesschain/releases/tag/ide-vscode-v0.37.49)
 is the release authority for this version. Before tagging, the exact release

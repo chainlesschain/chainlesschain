@@ -4,6 +4,10 @@
 
 - Publish a maintenance build with no intentional user-facing IDE behavior
   changes from 0.4.84.
+- Recommend companion CLI `0.163.3`, which adds default clean-Git worktree
+  isolation for eligible background agents, generation/token-fenced lifecycle
+  ownership, grammar-safe detached arguments, and fail-closed MCP runtime
+  policies.
 - Re-certify the immutable plugin and its paired VSIX from the same latest-main
   commit under the fail-closed cross-platform and native ARM64 release gates.
 - Preserve the IntelliJ IDEA 2024.2/2025.2 six-host compatibility matrix and

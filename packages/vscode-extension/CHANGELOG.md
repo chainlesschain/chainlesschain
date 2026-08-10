@@ -8,6 +8,9 @@ All notable changes to this extension are documented here.
   changes from 0.37.48.
 - Refresh the packaged Marketplace overview and recommended fully gated CLI
   baseline to `chainlesschain@0.163.3`.
+- Highlight the companion CLI's new default clean-Git worktree isolation for
+  eligible background agents, generation/token-fenced lifecycle ownership,
+  grammar-safe detached arguments, and fail-closed MCP runtime policies.
 - Re-certify the immutable VSIX and its paired JetBrains artifact from the same
   latest-main commit under the fail-closed cross-platform and native ARM64
   release gates.
