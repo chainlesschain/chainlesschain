@@ -3,9 +3,17 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  assertNativePackageManagerContract,
+  assertStrictSemver,
+  TRUSTED_NATIVE_RELEASE_REPOSITORY,
+} from "./native-release-contract.mjs";
 
 function stableVersion(value, label) {
-  const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(String(value || ""));
+  assertStrictSemver(value, `${label} version`);
+  const match = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u.exec(
+    String(value || ""),
+  );
   if (!match) throw new Error(`${label} must use a stable x.y.z version`);
   return match.slice(1).map((part) => BigInt(part));
 }
@@ -39,17 +47,41 @@ function isHttpsUrl(value) {
 }
 
 function isSha256(value) {
-  return /^[0-9a-f]{64}$/i.test(String(value || ""));
+  return /^[0-9a-f]{64}$/u.test(String(value || ""));
 }
 
 function isEd25519SignatureValue(value) {
   return /^[A-Za-z0-9+/]{86}==$/.test(String(value || ""));
 }
 
-function releaseIdentity(manifest, label) {
+export function resolveStableManifestSigningIdentity(manifest) {
   if (manifest?.schema !== 1 || manifest?.channel !== "stable") {
-    throw new Error(`${label} must be a schema-1 stable channel manifest`);
+    throw new Error(
+      "stable signing identity selector must be a schema-1 stable channel manifest",
+    );
   }
+  const version = String(manifest.latest?.cliVersion || "");
+  stableVersion(version, "stable signing identity selector");
+  const commit = String(manifest.latest?.commit || "");
+  if (!/^[0-9a-f]{40}$/u.test(commit)) {
+    throw new Error(
+      "stable signing identity selector must contain an exact lowercase 40-character commit",
+    );
+  }
+  const tag = `cli-v${version}`;
+  const ref = `refs/tags/${tag}`;
+  return {
+    repository: TRUSTED_NATIVE_RELEASE_REPOSITORY,
+    version,
+    tag,
+    ref,
+    commit,
+    identity: `https://github.com/${TRUSTED_NATIVE_RELEASE_REPOSITORY}/.github/workflows/cli-native-release.yml@${ref}`,
+  };
+}
+
+function releaseIdentity(manifest, label) {
+  const signingIdentity = resolveStableManifestSigningIdentity(manifest);
   if (
     !Number.isSafeInteger(manifest.minimumUpdaterSchema) ||
     manifest.minimumUpdaterSchema < 1
@@ -66,9 +98,6 @@ function releaseIdentity(manifest, label) {
     );
   }
   const latest = manifest.latest;
-  if (!latest || typeof latest.commit !== "string" || !latest.commit.trim()) {
-    throw new Error(`${label} must identify the exact release commit`);
-  }
   if (
     typeof latest.publishedAt !== "string" ||
     !Number.isFinite(Date.parse(latest.publishedAt))
@@ -82,11 +111,14 @@ function releaseIdentity(manifest, label) {
     !latest.sbom ||
     !isHttpsUrl(latest.sbom.url) ||
     !isSha256(latest.sbom.sha256) ||
+    !isSha256(latest.sbom.lockSha256) ||
+    !isSha256(latest.sbom.runtimeRefsSha256) ||
     typeof latest.sbom.format !== "string" ||
     !latest.sbom.format.trim()
   ) {
     throw new Error(`${label} must contain complete signed SBOM metadata`);
   }
+  assertNativePackageManagerContract(latest.packageManager);
   if (!Array.isArray(latest.artifacts) || latest.artifacts.length === 0) {
     throw new Error(`${label} must contain signed release artifacts`);
   }
@@ -123,9 +155,9 @@ function releaseIdentity(manifest, label) {
     throw new Error(`${label} contains duplicate artifact targets`);
   }
   return {
-    version: String(latest.cliVersion),
-    parsedVersion: stableVersion(latest.cliVersion, label),
-    commit: latest.commit,
+    version: signingIdentity.version,
+    parsedVersion: stableVersion(signingIdentity.version, label),
+    commit: signingIdentity.commit,
     manifestIdentity: canonicalManifestIdentity(manifest),
   };
 }
@@ -172,8 +204,21 @@ function readManifest(file, label) {
 }
 
 function main() {
-  const [currentPath, candidatePath] = process.argv.slice(2);
-  if (!currentPath || !candidatePath) {
+  const args = process.argv.slice(2);
+  if (args[0] === "--signing-identity") {
+    if (args.length !== 2) {
+      throw new Error(
+        "usage: verify-stable-channel-promotion.mjs --signing-identity <stable-manifest>",
+      );
+    }
+    const manifest = readManifest(args[1], "stable signing identity selector");
+    process.stdout.write(
+      `${JSON.stringify(resolveStableManifestSigningIdentity(manifest))}\n`,
+    );
+    return;
+  }
+  const [currentPath, candidatePath, ...extra] = args;
+  if (!currentPath || !candidatePath || extra.length) {
     throw new Error(
       "usage: verify-stable-channel-promotion.mjs <current-manifest|-> <candidate-manifest>",
     );

@@ -1,0 +1,1044 @@
+name: CLI Native Release Readback
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Immutable native release tag (cli-vX.Y.Z)"
+        required: true
+        type: string
+      expected_sha:
+        description: "Exact 40-character release commit"
+        required: true
+        type: string
+      verify_stable:
+        description: "Require cli-stable to be byte-identical to this release"
+        required: true
+        default: true
+        type: boolean
+  workflow_call:
+    inputs:
+      tag:
+        description: "Immutable native release tag (cli-vX.Y.Z)"
+        required: true
+        type: string
+      expected_sha:
+        description: "Exact 40-character release commit"
+        required: true
+        type: string
+      verify_stable:
+        description: "Require cli-stable to be byte-identical to this release"
+        required: false
+        default: true
+        type: boolean
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/cli-native-release.yml"
+      - ".github/workflows/cli-native-release-readback.yml"
+      - ".github/workflows/cli-ci.yml"
+      - "docs/cli/CLI_NATIVE_RELEASE_READBACK.md"
+      - "packages/cli/scripts/create-native-release-manifest.mjs"
+      - "packages/cli/scripts/create-native-release-sbom.mjs"
+      - "packages/cli/scripts/download-public-release-file.mjs"
+      - "packages/cli/scripts/finalize-native-artifact.mjs"
+      - "packages/cli/scripts/generate-package-manager-manifests.mjs"
+      - "packages/cli/scripts/native-release-contract.mjs"
+      - "packages/cli/scripts/sign-pack-update-manifest.mjs"
+      - "packages/cli/scripts/verify-native-release-readback.mjs"
+      - "packages/cli/scripts/verify-stable-channel-promotion.mjs"
+      - "packages/cli/src/lib/packer/pack-update-signature.js"
+      - "packages/cli/__tests__/unit/native-release-manifest.test.js"
+      - "packages/cli/__tests__/unit/native-release-readback.test.js"
+      - "packages/cli/__tests__/unit/native-release-sbom.test.js"
+      - "packages/cli/__tests__/unit/package-manager-manifests.test.js"
+      - "packages/cli/__tests__/unit/release-workflow-contract.test.js"
+      - "packages/cli/__tests__/unit/stable-channel-promotion.test.js"
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: cli-native-readback-${{ github.event.pull_request.number || inputs.tag || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  trusted-context:
+    name: Reject untrusted repository, ref, or reusable-workflow caller
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      workflow_ref: ${{ steps.context.outputs.workflow_ref }}
+      workflow_sha: ${{ steps.context.outputs.workflow_sha }}
+      run_id: ${{ steps.context.outputs.run_id }}
+      run_attempt: ${{ steps.context.outputs.run_attempt }}
+      event_name: ${{ steps.context.outputs.event_name }}
+      caller_workflow_ref: ${{ steps.context.outputs.caller_workflow_ref }}
+      caller_workflow_sha: ${{ steps.context.outputs.caller_workflow_sha }}
+    steps:
+      - name: Bind trusted readback workflow execution identity
+        id: context
+        shell: bash
+        env:
+          EXPECTED_REPOSITORY: chainlesschain/chainlesschain
+          ACTUAL_REPOSITORY: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          REF_PROTECTED: ${{ github.ref_protected }}
+          SHA: ${{ github.sha }}
+          JOB_CONTEXT: ${{ toJSON(job) }}
+          CALLER_WORKFLOW_REF: ${{ github.workflow_ref }}
+          CALLER_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          INPUT_TAG: ${{ inputs.tag }}
+          INPUT_SHA: ${{ inputs.expected_sha }}
+          PR_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          const env = process.env;
+          const job = JSON.parse(env.JOB_CONTEXT || "{}");
+          const readbackPrefix = `${env.EXPECTED_REPOSITORY}/.github/workflows/cli-native-release-readback.yml@`;
+          const releasePrefix = `${env.EXPECTED_REPOSITORY}/.github/workflows/cli-native-release.yml@`;
+          const fullSha = /^[0-9a-f]{40}$/u;
+          if (
+            env.ACTUAL_REPOSITORY !== env.EXPECTED_REPOSITORY ||
+            job.workflow_repository !== env.EXPECTED_REPOSITORY ||
+            job.workflow_file_path !== ".github/workflows/cli-native-release-readback.yml" ||
+            !String(job.workflow_ref || "").startsWith(readbackPrefix) ||
+            !fullSha.test(String(job.workflow_sha || "")) ||
+            !fullSha.test(env.CALLER_WORKFLOW_SHA) ||
+            !/^[1-9]\d*$/u.test(env.RUN_ID) ||
+            !/^[1-9]\d*$/u.test(env.RUN_ATTEMPT)
+          ) {
+            throw new Error("readback workflow repository or execution identity is untrusted");
+          }
+          if (env.EVENT_NAME === "workflow_dispatch") {
+            if (
+              env.REF !== "refs/heads/main" ||
+              env.REF_PROTECTED !== "true" ||
+              job.workflow_ref !== `${readbackPrefix}refs/heads/main` ||
+              job.workflow_sha !== env.SHA ||
+              env.CALLER_WORKFLOW_REF !== `${readbackPrefix}refs/heads/main` ||
+              env.CALLER_WORKFLOW_SHA !== env.SHA
+            ) {
+              throw new Error("manual readback must execute the trusted main workflow");
+            }
+          } else if (env.EVENT_NAME === "push") {
+            if (
+              env.REF !== `refs/tags/${env.INPUT_TAG}` ||
+              env.SHA !== env.INPUT_SHA ||
+              env.REF_PROTECTED !== "true" ||
+              job.workflow_ref !== `${readbackPrefix}${env.REF}` ||
+              job.workflow_sha !== env.SHA ||
+              env.CALLER_WORKFLOW_REF !== `${releasePrefix}${env.REF}` ||
+              env.CALLER_WORKFLOW_SHA !== env.SHA
+            ) {
+              throw new Error("reusable readback must inherit the same trusted release tag/SHA push");
+            }
+          } else if (env.EVENT_NAME === "pull_request") {
+            if (
+              env.PR_BASE_REF !== "main" ||
+              env.PR_HEAD_REPOSITORY !== env.EXPECTED_REPOSITORY ||
+              job.workflow_ref !== env.CALLER_WORKFLOW_REF ||
+              job.workflow_sha !== env.CALLER_WORKFLOW_SHA ||
+              !env.CALLER_WORKFLOW_REF.startsWith(readbackPrefix) ||
+              (!env.CALLER_WORKFLOW_REF.endsWith("@refs/heads/main") &&
+                !/@refs\/pull\/\d+\/merge$/u.test(env.CALLER_WORKFLOW_REF))
+            ) {
+              throw new Error("offline PR contract runs require a same-repository PR to main");
+            }
+          } else {
+            throw new Error(`unsupported readback trigger: ${env.EVENT_NAME}`);
+          }
+          const output = [
+            `workflow_ref=${job.workflow_ref}`,
+            `workflow_sha=${job.workflow_sha}`,
+            `run_id=${env.RUN_ID}`,
+            `run_attempt=${env.RUN_ATTEMPT}`,
+            `event_name=${env.EVENT_NAME}`,
+            `caller_workflow_ref=${env.CALLER_WORKFLOW_REF}`,
+            `caller_workflow_sha=${env.CALLER_WORKFLOW_SHA}`,
+          ].join("\n");
+          fs.appendFileSync(env.GITHUB_OUTPUT, `${output}\n`);
+          NODE
+
+  offline-contract:
+    name: Offline verifier and workflow contract
+    runs-on: ubuntu-latest
+    needs: trusted-context
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: chainlesschain/chainlesschain
+          ref: ${{ needs.trusted-context.outputs.workflow_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.14.0"
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install exact-lock readback dependencies
+        run: npm ci --workspace packages/cli --include-workspace-root=false --legacy-peer-deps --ignore-scripts --no-audit --no-fund
+      - name: Run native release readback contract tests
+        run: |
+          node node_modules/vitest/vitest.mjs run \
+            packages/cli/__tests__/unit/native-release-manifest.test.js \
+            packages/cli/__tests__/unit/native-release-sbom.test.js \
+            packages/cli/__tests__/unit/package-manager-manifests.test.js \
+            packages/cli/__tests__/unit/native-release-readback.test.js \
+            packages/cli/__tests__/unit/release-workflow-contract.test.js \
+            packages/cli/__tests__/unit/stable-channel-promotion.test.js \
+            --maxWorkers=1
+
+  identity:
+    name: Resolve immutable remote tag identity
+    if: github.event_name != 'pull_request'
+    needs: [trusted-context, offline-contract]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      tag: ${{ steps.identity.outputs.tag }}
+      version: ${{ steps.identity.outputs.version }}
+      commit: ${{ steps.identity.outputs.commit }}
+      verify_stable: ${{ steps.identity.outputs.verify_stable }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: chainlesschain/chainlesschain
+          ref: ${{ needs.trusted-context.outputs.workflow_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Bind requested tag, package version, and external expected SHA
+        id: identity
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          VERIFY_STABLE: ${{ inputs.verify_stable }}
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          TAG_SHA=$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")
+          test "$TAG_SHA" = "$EXPECTED_SHA"
+          VERSION=$(git show "$TAG_SHA:packages/cli/package.json" |
+            node -e 'let value=""; process.stdin.on("data", chunk => value += chunk); process.stdin.on("end", () => process.stdout.write(JSON.parse(value).version))')
+          node --input-type=module - "$RELEASE_TAG" "$VERSION" <<'NODE'
+          import { assertNativeReleaseIdentity } from "./packages/cli/scripts/native-release-contract.mjs";
+          assertNativeReleaseIdentity(process.argv[2], process.argv[3]);
+          NODE
+          case "$VERIFY_STABLE" in
+            true|false) ;;
+            *) echo "verify_stable must be true or false" >&2; exit 1 ;;
+          esac
+          node packages/cli/scripts/download-public-release-file.mjs \
+            metadata \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" \
+            "$RUNNER_TEMP/versioned-release.json" 8388608 \
+            > "$RUNNER_TEMP/versioned-release-download.json"
+          node --input-type=module - "$RUNNER_TEMP/versioned-release.json" "$RELEASE_TAG" "$EXPECTED_SHA" <<'NODE'
+          import fs from "node:fs";
+          const [file, tag, commit] = process.argv.slice(2);
+          const release = JSON.parse(fs.readFileSync(file, "utf8"));
+          if (
+            release.tag_name !== tag ||
+            release.target_commitish !== commit ||
+            release.draft !== false ||
+            release.prerelease !== false
+          ) {
+            throw new Error("public release metadata does not bind the requested tag and exact SHA");
+          }
+          NODE
+          {
+            echo "tag=$RELEASE_TAG"
+            echo "version=$VERSION"
+            echo "commit=$TAG_SHA"
+            echo "verify_stable=$VERIFY_STABLE"
+          } >> "$GITHUB_OUTPUT"
+
+  public-readback:
+    name: Anonymous public bytes, checksums, SBOM, and signatures
+    if: github.event_name != 'pull_request'
+    needs: [trusted-context, identity]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      RELEASE_TAG: ${{ needs.identity.outputs.tag }}
+      RELEASE_COMMIT: ${{ needs.identity.outputs.commit }}
+      VERIFY_STABLE: ${{ needs.identity.outputs.verify_stable }}
+      READBACK_WORKFLOW_REF: ${{ needs.trusted-context.outputs.workflow_ref }}
+      READBACK_WORKFLOW_SHA: ${{ needs.trusted-context.outputs.workflow_sha }}
+      READBACK_RUN_ID: ${{ needs.trusted-context.outputs.run_id }}
+      READBACK_RUN_ATTEMPT: ${{ needs.trusted-context.outputs.run_attempt }}
+      READBACK_EVENT_NAME: ${{ needs.trusted-context.outputs.event_name }}
+      CALLER_WORKFLOW_REF: ${{ needs.trusted-context.outputs.caller_workflow_ref }}
+      CALLER_WORKFLOW_SHA: ${{ needs.trusted-context.outputs.caller_workflow_sha }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: chainlesschain/chainlesschain
+          ref: ${{ needs.trusted-context.outputs.workflow_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.14.0"
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install exact-lock public verifier dependencies
+        run: npm ci --workspace packages/cli --include-workspace-root=false --legacy-peer-deps --ignore-scripts --no-audit --no-fund
+      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
+
+      - name: Download exact public release assets without an authorization header
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p public-versioned public-stable readback
+          download_public_metadata() {
+            local tag=$1
+            local output=$2
+            node packages/cli/scripts/download-public-release-file.mjs \
+              metadata \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/tags/$tag" \
+              "$output" 8388608 \
+              > "readback/$tag-metadata-download.json"
+          }
+
+          download_public_metadata "$RELEASE_TAG" readback/versioned-release.json
+          if [ "$VERIFY_STABLE" = "true" ]; then
+            download_public_metadata cli-stable readback/stable-release.json
+          fi
+
+          emit_downloads() {
+            local metadata=$1
+            local tag=$2
+            local output=$3
+            node --input-type=module - "$metadata" "$GITHUB_REPOSITORY" "$tag" <<'NODE' > "$output"
+          import fs from "node:fs";
+          import {
+            nativeStableReleaseAssetNames,
+            nativeVersionedReleaseAssetNames,
+          } from "./packages/cli/scripts/verify-native-release-readback.mjs";
+          const [file, repository, tag] = process.argv.slice(2);
+          const release = JSON.parse(fs.readFileSync(file, "utf8"));
+          if (release.tag_name !== tag || release.draft !== false || release.prerelease !== false) {
+            throw new Error(`release ${tag} is not a public immutable release`);
+          }
+          const names = new Set();
+          for (const asset of release.assets || []) {
+            if (!/^[A-Za-z0-9][A-Za-z0-9._+-]*$/u.test(asset.name) || names.has(asset.name)) {
+              throw new Error(`unsafe or duplicate release asset name: ${asset.name}`);
+            }
+            names.add(asset.name);
+            const expected = `https://github.com/${repository}/releases/download/${tag}/${encodeURIComponent(asset.name)}`;
+            if (asset.browser_download_url !== expected) {
+              throw new Error(`release asset URL is not the derived public URL: ${asset.name}`);
+            }
+            const maximum = asset.name.startsWith("chainlesschain-node22-") &&
+              !asset.name.includes(".pack-manifest.") &&
+              !asset.name.endsWith(".sigstore.json")
+              ? 268435456
+              : asset.name === "chainlesschain-cli-sbom.cdx.json"
+                ? 33554432
+                : 8388608;
+            if (!Number.isSafeInteger(asset.size) || asset.size < 1 || asset.size > maximum) {
+              throw new Error(`release asset exceeds its pre-download size policy: ${asset.name}`);
+            }
+            process.stdout.write(`${asset.name}\t${expected}\t${maximum}\n`);
+          }
+          const expectedNames =
+            tag === "cli-stable"
+              ? nativeStableReleaseAssetNames()
+              : nativeVersionedReleaseAssetNames();
+          const actualNames = [...names].sort();
+          if (
+            actualNames.length !== expectedNames.length ||
+            actualNames.some((name, index) => name !== expectedNames[index])
+          ) {
+            throw new Error(`release ${tag} asset set is incomplete or unexpected`);
+          }
+          NODE
+          }
+
+          download_public_assets() {
+            local list=$1
+            local directory=$2
+            local evidence_prefix=$3
+            while IFS=$'\t' read -r name url maximum; do
+              test -n "$name"
+              node packages/cli/scripts/download-public-release-file.mjs \
+                release "$url" "$directory/$name" "$maximum" \
+                > "readback/$evidence_prefix-$name.download.json"
+            done < "$list"
+          }
+
+          emit_downloads readback/versioned-release.json "$RELEASE_TAG" readback/versioned-downloads.tsv
+          download_public_assets readback/versioned-downloads.tsv public-versioned versioned
+          if [ "$VERIFY_STABLE" = "true" ]; then
+            emit_downloads readback/stable-release.json cli-stable readback/stable-downloads.tsv
+            download_public_assets readback/stable-downloads.tsv public-stable stable
+          fi
+
+      - name: Bind public bootstrap installers to the exact release commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git show "$RELEASE_COMMIT:packages/cli/install/install.sh" \
+            > "$RUNNER_TEMP/expected-install.sh"
+          git show "$RELEASE_COMMIT:packages/cli/install/install.ps1" \
+            > "$RUNNER_TEMP/expected-install.ps1"
+          cmp "$RUNNER_TEMP/expected-install.sh" public-versioned/install.sh
+          cmp "$RUNNER_TEMP/expected-install.ps1" public-versioned/install.ps1
+
+      - name: Verify every Sigstore pair against the publishing workflow identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          IDENTITY="https://github.com/$GITHUB_REPOSITORY/.github/workflows/cli-native-release.yml@refs/tags/$RELEASE_TAG"
+          verify_directory() {
+            local directory=$1
+            local output=$2
+            : > "$output"
+            while IFS= read -r bundle; do
+              primary=${bundle%.sigstore.json}
+              test -f "$primary"
+              cosign verify-blob \
+                --bundle "$bundle" \
+                --certificate-identity "$IDENTITY" \
+                --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+                --certificate-github-workflow-repository "$GITHUB_REPOSITORY" \
+                --certificate-github-workflow-ref "refs/tags/$RELEASE_TAG" \
+                --certificate-github-workflow-sha "$RELEASE_COMMIT" \
+                --certificate-github-workflow-trigger push \
+                "$primary" >/dev/null
+              basename "$primary" >> "$output"
+            done < <(find "$directory" -maxdepth 1 -type f -name '*.sigstore.json' -print | LC_ALL=C sort)
+          }
+          verify_directory public-versioned readback/versioned-cosign.txt
+          if [ "$VERIFY_STABLE" = "true" ]; then
+            verify_directory public-stable readback/stable-cosign.txt
+          else
+            : > readback/stable-cosign.txt
+          fi
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          const read = (file) => fs.readFileSync(file, "utf8").split(/\r?\n/u).filter(Boolean);
+          const repository = process.env.GITHUB_REPOSITORY;
+          const tag = process.env.RELEASE_TAG;
+          const evidence = {
+            schema: "chainlesschain.cli-native-cosign-readback.v1",
+            repository,
+            ref: `refs/tags/${tag}`,
+            workflowRepository: repository,
+            workflowRef: `refs/tags/${tag}`,
+            workflowSha: process.env.RELEASE_COMMIT,
+            workflowTrigger: "push",
+            issuer: "https://token.actions.githubusercontent.com",
+            identity: `https://github.com/${repository}/.github/workflows/cli-native-release.yml@refs/tags/${tag}`,
+            versioned: read("readback/versioned-cosign.txt"),
+            stable: read("readback/stable-cosign.txt"),
+            readbackExecution: {
+              workflowRef: process.env.READBACK_WORKFLOW_REF,
+              workflowSha: process.env.READBACK_WORKFLOW_SHA,
+              runId: process.env.READBACK_RUN_ID,
+              runAttempt: process.env.READBACK_RUN_ATTEMPT,
+              eventName: process.env.READBACK_EVENT_NAME,
+              callerWorkflowRef: process.env.CALLER_WORKFLOW_REF,
+              callerWorkflowSha: process.env.CALLER_WORKFLOW_SHA,
+            },
+          };
+          fs.writeFileSync("readback/cosign-evidence.json", `${JSON.stringify(evidence, null, 2)}\n`);
+          NODE
+
+      - name: Verify exact six-target public release contract
+        shell: bash
+        env:
+          CC_NATIVE_RELEASE_REPOSITORY: ${{ github.repository }}
+          CC_NATIVE_RELEASE_TAG: ${{ needs.identity.outputs.tag }}
+          CC_NATIVE_RELEASE_COMMIT: ${{ needs.identity.outputs.commit }}
+          CC_NATIVE_READBACK_WORKFLOW_REF: ${{ needs.trusted-context.outputs.workflow_ref }}
+          CC_NATIVE_READBACK_WORKFLOW_SHA: ${{ needs.trusted-context.outputs.workflow_sha }}
+          CC_NATIVE_READBACK_RUN_ID: ${{ needs.trusted-context.outputs.run_id }}
+          CC_NATIVE_READBACK_RUN_ATTEMPT: ${{ needs.trusted-context.outputs.run_attempt }}
+          CC_NATIVE_READBACK_EVENT_NAME: ${{ needs.trusted-context.outputs.event_name }}
+          CC_NATIVE_CALLER_WORKFLOW_REF: ${{ needs.trusted-context.outputs.caller_workflow_ref }}
+          CC_NATIVE_CALLER_WORKFLOW_SHA: ${{ needs.trusted-context.outputs.caller_workflow_sha }}
+          CC_NATIVE_READBACK_OUTPUT: readback/cli-native-public-readback.json
+        run: |
+          set -euo pipefail
+          git show "$RELEASE_COMMIT:package-lock.json" > readback/release-package-lock.json
+          git show "$RELEASE_COMMIT:packages/cli/package.json" > readback/release-package.json
+          PUBLISHED_AT=$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync("public-versioned/chainlesschain-update.json","utf8")).latest.publishedAt)')
+          node packages/cli/scripts/create-native-release-sbom.mjs \
+            readback/release-package-lock.json readback/release-package.json \
+            "$RELEASE_COMMIT" "$PUBLISHED_AT" readback/rebuilt-sbom.cdx.json >/dev/null
+          export CC_NATIVE_RELEASE_LOCK_SHA256
+          CC_NATIVE_RELEASE_LOCK_SHA256=$(sha256sum readback/release-package-lock.json | cut -d' ' -f1)
+          export CC_NATIVE_RELEASE_REBUILT_SBOM=readback/rebuilt-sbom.cdx.json
+          if [ "$VERIFY_STABLE" = "true" ]; then
+            STABLE_DIR=public-stable
+            STABLE_METADATA=readback/stable-release.json
+          else
+            STABLE_DIR=-
+            STABLE_METADATA=-
+          fi
+          node packages/cli/scripts/verify-native-release-readback.mjs \
+            public-versioned "$STABLE_DIR" \
+            readback/versioned-release.json "$STABLE_METADATA" \
+            readback/cosign-evidence.json
+          {
+            echo "## CLI native public readback"
+            echo ""
+            echo "- Tag: \`$RELEASE_TAG\`"
+            echo "- Exact commit: \`$RELEASE_COMMIT\`"
+            echo "- Six versioned targets, signed checksums, Ed25519 manifest, Sigstore identity, and CLI SBOM: verified"
+            echo "- Stable channel byte identity required: \`$VERIFY_STABLE\`"
+            echo "- Boundary: this does not claim signed install/upgrade/rollback or Homebrew/WinGet catalog publication"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: cli-native-readback-core-${{ needs.identity.outputs.verify_stable }}-${{ needs.identity.outputs.commit }}
+          path: |
+            readback/cli-native-public-readback.json
+            readback/cosign-evidence.json
+            readback/versioned-release.json
+            readback/stable-release.json
+            readback/*download.json
+            readback/rebuilt-sbom.cdx.json
+          if-no-files-found: error
+          retention-days: 90
+
+  winget-official-validation:
+    name: Official WinGet public manifest validation
+    if: github.event_name != 'pull_request'
+    needs: [trusted-context, identity, public-readback]
+    # Windows Server 2025 is the documented fixed hosted-runner family with
+    # WinGet support. The job still fails closed if the validator is absent and
+    # records the effective validator version for the exact release SHA.
+    runs-on: windows-2025
+    timeout-minutes: 15
+    env:
+      RELEASE_TAG: ${{ needs.identity.outputs.tag }}
+      RELEASE_COMMIT: ${{ needs.identity.outputs.commit }}
+      READBACK_WORKFLOW_REF: ${{ needs.trusted-context.outputs.workflow_ref }}
+      READBACK_WORKFLOW_SHA: ${{ needs.trusted-context.outputs.workflow_sha }}
+      READBACK_RUN_ID: ${{ needs.trusted-context.outputs.run_id }}
+      READBACK_RUN_ATTEMPT: ${{ needs.trusted-context.outputs.run_attempt }}
+      READBACK_EVENT_NAME: ${{ needs.trusted-context.outputs.event_name }}
+      CALLER_WORKFLOW_REF: ${{ needs.trusted-context.outputs.caller_workflow_ref }}
+      CALLER_WORKFLOW_SHA: ${{ needs.trusted-context.outputs.caller_workflow_sha }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: chainlesschain/chainlesschain
+          ref: ${{ needs.trusted-context.outputs.workflow_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.14.0"
+      - name: Download the three public WinGet manifests anonymously
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p winget-public winget-downloads
+          for name in \
+            ChainlessChain.ChainlessChainCLI.yaml \
+            ChainlessChain.ChainlessChainCLI.locale.en-US.yaml \
+            ChainlessChain.ChainlessChainCLI.installer.yaml; do
+            URL="https://github.com/$GITHUB_REPOSITORY/releases/download/$RELEASE_TAG/$name"
+            node packages/cli/scripts/download-public-release-file.mjs \
+              release "$URL" "winget-public/$name" 8388608 \
+              > "winget-downloads/$name.download.json"
+          done
+      - name: Run the official WinGet manifest validator
+        shell: pwsh
+        run: |
+          $command = Get-Command winget.exe -ErrorAction SilentlyContinue
+          if (-not $command) { throw "official winget.exe validator is unavailable" }
+          $version = (& $command.Source --version).Trim()
+          if ($version -notmatch '^v?\d+\.\d+\.\d+(?:\.\d+)?') {
+            throw "official winget.exe version is invalid: $version"
+          }
+          $version | Set-Content -LiteralPath winget-version.txt -Encoding utf8
+          & $command.Source validate --manifest winget-public --disable-interactivity
+          if ($LASTEXITCODE -ne 0) { throw "official WinGet manifest validation failed" }
+      - name: Record content-bound WinGet validation evidence
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import crypto from "node:crypto";
+          import fs from "node:fs";
+          const names = [
+            "ChainlessChain.ChainlessChainCLI.yaml",
+            "ChainlessChain.ChainlessChainCLI.locale.en-US.yaml",
+            "ChainlessChain.ChainlessChainCLI.installer.yaml",
+          ];
+          const manifests = names.map((name) => {
+            const bytes = fs.readFileSync(`winget-public/${name}`);
+            return {
+              name,
+              bytes: bytes.length,
+              sha256: crypto.createHash("sha256").update(bytes).digest("hex"),
+            };
+          });
+          const evidence = {
+            schema: "chainlesschain.cli-native-winget-validation.v1",
+            repository: process.env.GITHUB_REPOSITORY,
+            tag: process.env.RELEASE_TAG,
+            commit: process.env.RELEASE_COMMIT,
+            manifests,
+            officialValidator: "winget validate --manifest",
+            validatorVersion: fs
+              .readFileSync("winget-version.txt", "utf8")
+              .replace(/^\uFEFF/u, "")
+              .trim(),
+            validated: true,
+            readbackExecution: {
+              workflowRef: process.env.READBACK_WORKFLOW_REF,
+              workflowSha: process.env.READBACK_WORKFLOW_SHA,
+              runId: process.env.READBACK_RUN_ID,
+              runAttempt: process.env.READBACK_RUN_ATTEMPT,
+              eventName: process.env.READBACK_EVENT_NAME,
+              callerWorkflowRef: process.env.CALLER_WORKFLOW_REF,
+              callerWorkflowSha: process.env.CALLER_WORKFLOW_SHA,
+            },
+          };
+          fs.writeFileSync(
+            "winget-validation.json",
+            `${JSON.stringify(evidence, null, 2)}\n`,
+          );
+          NODE
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: cli-native-winget-validation-${{ needs.identity.outputs.verify_stable }}-${{ needs.identity.outputs.commit }}
+          path: winget-validation.json
+          if-no-files-found: error
+          retention-days: 90
+
+  platform-signature-readback:
+    name: ${{ matrix.target }} public platform signature
+    if: github.event_name != 'pull_request'
+    needs: [trusted-context, identity]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: node22-win-x64
+            artifact: chainlesschain-node22-win-x64.exe
+            signature: authenticode
+          - os: windows-latest
+            target: node22-win-arm64
+            artifact: chainlesschain-node22-win-arm64.exe
+            signature: authenticode
+          - os: macos-15
+            target: node22-macos-x64
+            artifact: chainlesschain-node22-macos-x64
+            signature: codesign+notarized
+          - os: macos-15
+            target: node22-macos-arm64
+            artifact: chainlesschain-node22-macos-arm64
+            signature: codesign+notarized
+    runs-on: ${{ matrix.os }}
+    environment: native-production
+    timeout-minutes: 15
+    env:
+      RELEASE_TAG: ${{ needs.identity.outputs.tag }}
+      RELEASE_COMMIT: ${{ needs.identity.outputs.commit }}
+      TARGET: ${{ matrix.target }}
+      ARTIFACT: ${{ matrix.artifact }}
+      SIGNATURE_KIND: ${{ matrix.signature }}
+      WINDOWS_CERT_SHA256: ${{ vars.CLI_WINDOWS_SIGNING_CERT_SHA256 }}
+      WINDOWS_CERT_SUBJECT: ${{ vars.CLI_WINDOWS_SIGNING_CERT_SUBJECT }}
+      WINDOWS_CERT_PUBLISHER: ${{ vars.CLI_WINDOWS_SIGNING_PUBLISHER }}
+      WINDOWS_TIMESTAMP_SUBJECT: ${{ vars.CLI_WINDOWS_TIMESTAMP_SUBJECT }}
+      MAC_TEAM_IDENTIFIER: ${{ vars.CLI_MACOS_TEAM_IDENTIFIER }}
+      MAC_DEVELOPER_ID_AUTHORITY: ${{ vars.CLI_MACOS_DEVELOPER_ID_AUTHORITY }}
+      MAC_DESIGNATED_REQUIREMENT: ${{ vars.CLI_MACOS_DESIGNATED_REQUIREMENT }}
+      READBACK_WORKFLOW_REF: ${{ needs.trusted-context.outputs.workflow_ref }}
+      READBACK_WORKFLOW_SHA: ${{ needs.trusted-context.outputs.workflow_sha }}
+      READBACK_RUN_ID: ${{ needs.trusted-context.outputs.run_id }}
+      READBACK_RUN_ATTEMPT: ${{ needs.trusted-context.outputs.run_attempt }}
+      READBACK_EVENT_NAME: ${{ needs.trusted-context.outputs.event_name }}
+      CALLER_WORKFLOW_REF: ${{ needs.trusted-context.outputs.caller_workflow_ref }}
+      CALLER_WORKFLOW_SHA: ${{ needs.trusted-context.outputs.caller_workflow_sha }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: chainlesschain/chainlesschain
+          ref: ${{ needs.trusted-context.outputs.workflow_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.14.0"
+      - name: Download exact public binary without an authorization header
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://github.com/$GITHUB_REPOSITORY/releases/download/$RELEASE_TAG/$ARTIFACT"
+          node packages/cli/scripts/download-public-release-file.mjs \
+            release "$URL" "$ARTIFACT" 268435456 \
+            > public-binary-download.json
+
+      - name: Verify public Authenticode signature
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if ($env:WINDOWS_CERT_SHA256 -notmatch '^[0-9a-f]{64}$' -or -not $env:WINDOWS_CERT_SUBJECT -or -not $env:WINDOWS_CERT_PUBLISHER -or -not $env:WINDOWS_TIMESTAMP_SUBJECT) {
+            throw "protected Windows signature policy is incomplete"
+          }
+          $signature = Get-AuthenticodeSignature -LiteralPath $env:ARTIFACT
+          if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) {
+            throw "Authenticode verification failed: $($signature.Status) $($signature.StatusMessage)"
+          }
+          if (-not $signature.SignerCertificate -or -not $signature.TimeStamperCertificate) {
+            throw "Authenticode signer or trusted timestamp evidence is missing"
+          }
+          $sha256 = $signature.SignerCertificate.GetCertHashString([System.Security.Cryptography.HashAlgorithmName]::SHA256).ToLowerInvariant()
+          $publisher = $signature.SignerCertificate.GetNameInfo([System.Security.Cryptography.X509Certificates.X509NameType]::SimpleName, $false)
+          if ($sha256 -cne $env:WINDOWS_CERT_SHA256 -or
+              $signature.SignerCertificate.Subject -cne $env:WINDOWS_CERT_SUBJECT -or
+              $publisher -cne $env:WINDOWS_CERT_PUBLISHER -or
+              $signature.TimeStamperCertificate.Subject -cne $env:WINDOWS_TIMESTAMP_SUBJECT) {
+            throw "public Authenticode signer/timestamp does not match protected policy"
+          }
+          New-Item -ItemType Directory -Force -Path platform-evidence | Out-Null
+          [ordered]@{
+            certificateSha256 = $sha256
+            subject = $signature.SignerCertificate.Subject
+            publisher = $publisher
+            timestampSubject = $signature.TimeStamperCertificate.Subject
+          } | ConvertTo-Json | Set-Content -LiteralPath platform-evidence/signature-policy.json -Encoding utf8
+
+      - name: Verify public macOS code signature and notarization assessment
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$MAC_TEAM_IDENTIFIER"
+          test -n "$MAC_DEVELOPER_ID_AUTHORITY"
+          test -n "$MAC_DESIGNATED_REQUIREMENT"
+          chmod 755 "$ARTIFACT"
+          codesign --verify --strict --verbose=4 "$ARTIFACT"
+          spctl --assess --type execute --verbose=4 "$ARTIFACT"
+          DETAILS=$(codesign -dvvv "$ARTIFACT" 2>&1)
+          TEAM=$(printf '%s\n' "$DETAILS" | sed -n 's/^TeamIdentifier=//p')
+          AUTHORITY=$(printf '%s\n' "$DETAILS" | sed -n 's/^Authority=//p' | head -n 1)
+          REQUIREMENT=$(codesign -dr - "$ARTIFACT" 2>&1 | sed -n 's/^designated => //p')
+          test "$TEAM" = "$MAC_TEAM_IDENTIFIER"
+          test "$AUTHORITY" = "$MAC_DEVELOPER_ID_AUTHORITY"
+          test "$REQUIREMENT" = "$MAC_DESIGNATED_REQUIREMENT"
+          mkdir -p platform-evidence
+          CC_TEAM="$TEAM" CC_AUTHORITY="$AUTHORITY" CC_REQUIREMENT="$REQUIREMENT" \
+            node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          fs.writeFileSync(
+            "platform-evidence/signature-policy.json",
+            `${JSON.stringify({
+              teamIdentifier: process.env.CC_TEAM,
+              authority: process.env.CC_AUTHORITY,
+              designatedRequirement: process.env.CC_REQUIREMENT,
+            }, null, 2)}\n`,
+          );
+          NODE
+
+      - name: Write content-bound platform signature evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p platform-evidence
+          node --input-type=module <<'NODE'
+          import crypto from "node:crypto";
+          import fs from "node:fs";
+          const policy = JSON.parse(
+            fs.readFileSync("platform-evidence/signature-policy.json", "utf8").replace(/^\uFEFF/u, ""),
+          );
+          const bytes = fs.readFileSync(process.env.ARTIFACT);
+          const evidence = {
+            schema: "chainlesschain.cli-native-platform-signature-readback.v1",
+            repository: process.env.GITHUB_REPOSITORY,
+            tag: process.env.RELEASE_TAG,
+            commit: process.env.RELEASE_COMMIT,
+            target: process.env.TARGET,
+            artifact: process.env.ARTIFACT,
+            bytes: bytes.length,
+            sha256: crypto.createHash("sha256").update(bytes).digest("hex"),
+            signature: process.env.SIGNATURE_KIND,
+            policy,
+            download: JSON.parse(fs.readFileSync("public-binary-download.json", "utf8")),
+            readbackExecution: {
+              workflowRef: process.env.READBACK_WORKFLOW_REF,
+              workflowSha: process.env.READBACK_WORKFLOW_SHA,
+              runId: process.env.READBACK_RUN_ID,
+              runAttempt: process.env.READBACK_RUN_ATTEMPT,
+              eventName: process.env.READBACK_EVENT_NAME,
+              callerWorkflowRef: process.env.CALLER_WORKFLOW_REF,
+              callerWorkflowSha: process.env.CALLER_WORKFLOW_SHA,
+            },
+            platformVerified: true,
+            notarizationAssessed: process.env.SIGNATURE_KIND.includes("notarized"),
+          };
+          fs.writeFileSync(
+            `platform-evidence/${evidence.target}.json`,
+            `${JSON.stringify(evidence, null, 2)}\n`,
+          );
+          NODE
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: cli-native-platform-readback-${{ matrix.target }}-${{ needs.identity.outputs.verify_stable }}-${{ needs.identity.outputs.commit }}
+          path: platform-evidence/${{ matrix.target }}.json
+          if-no-files-found: error
+          retention-days: 90
+
+  aggregate:
+    name: Aggregate public native readback evidence
+    if: github.event_name != 'pull_request'
+    needs:
+      [
+        trusted-context,
+        identity,
+        public-readback,
+        platform-signature-readback,
+        winget-official-validation,
+      ]
+    runs-on: ubuntu-latest
+    environment: native-production
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      attestations: write
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: cli-native-readback-core-${{ needs.identity.outputs.verify_stable }}-${{ needs.identity.outputs.commit }}
+          path: readback
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          pattern: cli-native-platform-readback-*-${{ needs.identity.outputs.verify_stable }}-${{ needs.identity.outputs.commit }}
+          path: platform-evidence
+          merge-multiple: true
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: cli-native-winget-validation-${{ needs.identity.outputs.verify_stable }}-${{ needs.identity.outputs.commit }}
+          path: winget-evidence
+      - name: Bind platform signatures to the core six-target byte evidence
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ needs.identity.outputs.tag }}
+          RELEASE_COMMIT: ${{ needs.identity.outputs.commit }}
+          VERIFY_STABLE: ${{ needs.identity.outputs.verify_stable }}
+          WINDOWS_CERT_SHA256: ${{ vars.CLI_WINDOWS_SIGNING_CERT_SHA256 }}
+          WINDOWS_CERT_SUBJECT: ${{ vars.CLI_WINDOWS_SIGNING_CERT_SUBJECT }}
+          WINDOWS_CERT_PUBLISHER: ${{ vars.CLI_WINDOWS_SIGNING_PUBLISHER }}
+          WINDOWS_TIMESTAMP_SUBJECT: ${{ vars.CLI_WINDOWS_TIMESTAMP_SUBJECT }}
+          MAC_TEAM_IDENTIFIER: ${{ vars.CLI_MACOS_TEAM_IDENTIFIER }}
+          MAC_DEVELOPER_ID_AUTHORITY: ${{ vars.CLI_MACOS_DEVELOPER_ID_AUTHORITY }}
+          MAC_DESIGNATED_REQUIREMENT: ${{ vars.CLI_MACOS_DESIGNATED_REQUIREMENT }}
+          READBACK_WORKFLOW_REF: ${{ needs.trusted-context.outputs.workflow_ref }}
+          READBACK_WORKFLOW_SHA: ${{ needs.trusted-context.outputs.workflow_sha }}
+          READBACK_RUN_ID: ${{ needs.trusted-context.outputs.run_id }}
+          READBACK_RUN_ATTEMPT: ${{ needs.trusted-context.outputs.run_attempt }}
+          READBACK_EVENT_NAME: ${{ needs.trusted-context.outputs.event_name }}
+          CALLER_WORKFLOW_REF: ${{ needs.trusted-context.outputs.caller_workflow_ref }}
+          CALLER_WORKFLOW_SHA: ${{ needs.trusted-context.outputs.caller_workflow_sha }}
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import crypto from "node:crypto";
+          import fs from "node:fs";
+          const coreBytes = fs.readFileSync(
+            "readback/cli-native-public-readback.json",
+          );
+          const coreEvidenceSha256 = crypto
+            .createHash("sha256")
+            .update(coreBytes)
+            .digest("hex");
+          const core = JSON.parse(coreBytes.toString("utf8"));
+          const readbackExecution = {
+            workflowRef: process.env.READBACK_WORKFLOW_REF,
+            workflowSha: process.env.READBACK_WORKFLOW_SHA,
+            runId: process.env.READBACK_RUN_ID,
+            runAttempt: process.env.READBACK_RUN_ATTEMPT,
+            eventName: process.env.READBACK_EVENT_NAME,
+            callerWorkflowRef: process.env.CALLER_WORKFLOW_REF,
+            callerWorkflowSha: process.env.CALLER_WORKFLOW_SHA,
+          };
+          const sameExecution = (value) =>
+            JSON.stringify(value) === JSON.stringify(readbackExecution);
+          const requiredCoreTargets = new Set([
+            "node22-linux-x64",
+            "node22-linux-arm64",
+            "node22-win-x64",
+            "node22-win-arm64",
+            "node22-macos-x64",
+            "node22-macos-arm64",
+          ]);
+          if (
+            core.schema !== "chainlesschain.cli-native-public-readback.v1" ||
+            core.repository !== process.env.GITHUB_REPOSITORY ||
+            core.tag !== process.env.RELEASE_TAG ||
+            core.commit !== process.env.RELEASE_COMMIT ||
+            core.publicReadbackVerified !== true ||
+            core.releaseEligible !== false ||
+            core.updateManifestEd25519Verified !== true ||
+            core.sbomVerified !== true ||
+            !sameExecution(core.readbackWorkflow) ||
+            !/^[0-9a-f]{64}$/u.test(core.sbom?.lockSha256 || "") ||
+            !/^[0-9a-f]{64}$/u.test(core.sbom?.runtimeRefsSha256 || "") ||
+            !Number.isSafeInteger(core.sbom?.runtimeRefsCount) ||
+            core.sbom.runtimeRefsCount < 1 ||
+            core.stableChannelVerified !== (process.env.VERIFY_STABLE === "true") ||
+            !Array.isArray(core.targets) ||
+            core.targets.length !== requiredCoreTargets.size ||
+            core.targets.some(
+              (target) =>
+                !requiredCoreTargets.delete(target.target) ||
+                target.sigstoreVerified !== true,
+            ) ||
+            requiredCoreTargets.size !== 0
+          ) {
+            throw new Error("core native public readback identity or status is invalid");
+          }
+          const expected = new Map([
+            ["node22-win-x64", "authenticode"],
+            ["node22-win-arm64", "authenticode"],
+            ["node22-macos-x64", "codesign+notarized"],
+            ["node22-macos-arm64", "codesign+notarized"],
+          ]);
+          const files = fs.readdirSync("platform-evidence").filter((name) => name.endsWith(".json"));
+          if (files.length !== expected.size) throw new Error(`expected 4 platform records, got ${files.length}`);
+          const records = files.map((name) =>
+            JSON.parse(fs.readFileSync(`platform-evidence/${name}`, "utf8")),
+          );
+          const coreTargets = new Map(core.targets.map((target) => [target.target, target]));
+          for (const record of records) {
+            if (record.schema !== "chainlesschain.cli-native-platform-signature-readback.v1") {
+              throw new Error("unexpected platform signature evidence schema");
+            }
+            if (
+              record.repository !== process.env.GITHUB_REPOSITORY ||
+              record.tag !== process.env.RELEASE_TAG ||
+              record.commit !== process.env.RELEASE_COMMIT
+            ) {
+              throw new Error(`platform signature identity mismatch: ${record.target}`);
+            }
+            const kind = expected.get(record.target);
+            const target = coreTargets.get(record.target);
+            if (
+              !kind ||
+              !target ||
+              record.signature !== kind ||
+              record.artifact !== target.artifact ||
+              record.platformVerified !== true ||
+              record.sha256 !== target.sha256 ||
+              record.bytes !== target.bytes ||
+              record.download?.schema !== "chainlesschain.public-download.v1" ||
+              record.download?.anonymous !== true ||
+              record.download?.sha256 !== target.sha256 ||
+              record.download?.bytes !== target.bytes ||
+              !sameExecution(record.readbackExecution) ||
+              (kind.includes("notarized") && record.notarizationAssessed !== true)
+            ) {
+              throw new Error(`platform signature bytes or status mismatch: ${record.target}`);
+            }
+            if (kind === "authenticode") {
+              if (
+                record.policy?.certificateSha256 !== process.env.WINDOWS_CERT_SHA256 ||
+                record.policy?.subject !== process.env.WINDOWS_CERT_SUBJECT ||
+                record.policy?.publisher !== process.env.WINDOWS_CERT_PUBLISHER ||
+                record.policy?.timestampSubject !== process.env.WINDOWS_TIMESTAMP_SUBJECT
+              ) {
+                throw new Error(`Windows signer policy mismatch: ${record.target}`);
+              }
+            } else if (
+              record.policy?.teamIdentifier !== process.env.MAC_TEAM_IDENTIFIER ||
+              record.policy?.authority !== process.env.MAC_DEVELOPER_ID_AUTHORITY ||
+              record.policy?.designatedRequirement !== process.env.MAC_DESIGNATED_REQUIREMENT
+            ) {
+              throw new Error(`Apple signer policy mismatch: ${record.target}`);
+            }
+            expected.delete(record.target);
+          }
+          if (expected.size) throw new Error(`missing platform signatures: ${[...expected.keys()].join(",")}`);
+          records.sort((left, right) => left.target.localeCompare(right.target));
+          const winget = JSON.parse(
+            fs.readFileSync("winget-evidence/winget-validation.json", "utf8"),
+          );
+          const expectedWingetNames = [
+            "ChainlessChain.ChainlessChainCLI.yaml",
+            "ChainlessChain.ChainlessChainCLI.locale.en-US.yaml",
+            "ChainlessChain.ChainlessChainCLI.installer.yaml",
+          ].sort();
+          const packageAssets = new Map(
+            (core.packageManagerAssets || []).map((asset) => [asset.artifact, asset]),
+          );
+          const wingetNames = Array.isArray(winget.manifests)
+            ? winget.manifests.map((manifest) => manifest.name).sort()
+            : [];
+          if (
+            winget.schema !== "chainlesschain.cli-native-winget-validation.v1" ||
+            winget.repository !== core.repository ||
+            winget.tag !== core.tag ||
+            winget.commit !== core.commit ||
+            winget.validated !== true ||
+            winget.officialValidator !== "winget validate --manifest" ||
+            !/^v?\d+\.\d+\.\d+(?:\.\d+)?/u.test(winget.validatorVersion || "") ||
+            !sameExecution(winget.readbackExecution) ||
+            wingetNames.length !== expectedWingetNames.length ||
+            wingetNames.some((name, index) => name !== expectedWingetNames[index]) ||
+            winget.manifests.some((manifest) => {
+              const asset = packageAssets.get(manifest.name);
+              return !asset || asset.sha256 !== manifest.sha256 || asset.bytes !== manifest.bytes;
+            })
+          ) {
+            throw new Error("official WinGet validation evidence is not bound to public bytes");
+          }
+          const aggregate = {
+            schema: "chainlesschain.cli-native-public-readback-aggregate.v1",
+            repository: core.repository,
+            tag: core.tag,
+            version: core.version,
+            commit: core.commit,
+            readbackExecution,
+            coreEvidenceSha256,
+            releaseUrl: core.releaseUrl,
+            stableChannelVerified: core.stableChannelVerified,
+            sixTargetSigstoreVerified: core.targets.length === 6 && core.targets.every((target) => target.sigstoreVerified),
+            targets: core.targets,
+            checksumEntries: core.checksumEntries,
+            githubDigestCoverage: core.githubDigestCoverage,
+            packageManagerAssets: core.packageManagerAssets,
+            updateManifestEd25519Verified: core.updateManifestEd25519Verified,
+            sbomVerified: core.sbomVerified,
+            sbom: core.sbom,
+            wingetOfficialValidation: winget,
+            platformSignatures: records,
+            publicReadbackVerified: true,
+            releaseEligible: false,
+            boundary:
+              "public signature/readback evidence only; signed fresh install, upgrade, rollback and Homebrew/WinGet catalog publication remain separate required gates",
+          };
+          fs.writeFileSync(
+            "cli-native-public-readback-aggregate.json",
+            `${JSON.stringify(aggregate, null, 2)}\n`,
+          );
+          NODE
+      - name: Attest aggregate evidence to this trusted workflow identity
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        with:
+          subject-path: cli-native-public-readback-aggregate.json
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: cli-native-public-readback-${{ needs.identity.outputs.verify_stable }}-${{ needs.identity.outputs.commit }}
+          path: cli-native-public-readback-aggregate.json
+          if-no-files-found: error
+          retention-days: 90

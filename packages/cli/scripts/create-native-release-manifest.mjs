@@ -4,6 +4,12 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  assertStrictSemver,
+  nativePackageManagerContract,
+} from "./native-release-contract.mjs";
+
+const SHA256_PATTERN = /^[0-9a-f]{64}$/u;
 
 function walk(dir) {
   const out = [];
@@ -33,6 +39,7 @@ export function createNativeReleaseManifest(options) {
   if (![...versions][0] || ![...commits][0]) {
     throw new Error("native artifacts require cliVersion and gitCommit");
   }
+  assertStrictSemver([...versions][0], "native artifact cliVersion");
   if (sidecars.some(({ value }) => value.gitDirty || !value.signed)) {
     throw new Error("native artifacts must be clean and signed");
   }
@@ -95,6 +102,17 @@ export function createNativeReleaseManifest(options) {
       `native release target matrix mismatch; missing: ${missingTargets.join(", ") || "none"}`,
     );
   }
+  if (options.sbomUrl) {
+    for (const [label, digest] of [
+      ["SBOM digest", options.sbomSha256],
+      ["SBOM repository lock digest", options.sbomLockSha256],
+      ["SBOM runtime refs digest", options.sbomRuntimeRefsSha256],
+    ]) {
+      if (!SHA256_PATTERN.test(String(digest || ""))) {
+        throw new Error(`${label} must be a lowercase SHA-256`);
+      }
+    }
+  }
   return {
     schema: 1,
     minimumUpdaterSchema: 1,
@@ -104,12 +122,15 @@ export function createNativeReleaseManifest(options) {
       publishedAt: options.publishedAt || new Date().toISOString(),
       releaseNotes: options.releaseNotes || null,
       commit,
+      packageManager: nativePackageManagerContract(),
       ...(options.sbomUrl
         ? {
             sbom: {
               url: options.sbomUrl,
               sha256: options.sbomSha256 || null,
               format: "cyclonedx-json",
+              lockSha256: options.sbomLockSha256,
+              runtimeRefsSha256: options.sbomRuntimeRefsSha256,
             },
           }
         : {}),
@@ -132,6 +153,9 @@ function main() {
     releaseNotes: process.env.CC_RELEASE_NOTES_URL || null,
     sbomUrl: process.env.CC_RELEASE_SBOM_URL || null,
     sbomSha256: process.env.CC_RELEASE_SBOM_SHA256 || null,
+    sbomLockSha256: process.env.CC_RELEASE_SBOM_LOCK_SHA256 || null,
+    sbomRuntimeRefsSha256:
+      process.env.CC_RELEASE_SBOM_RUNTIME_REFS_SHA256 || null,
     expectedCommit: process.env.GITHUB_SHA || null,
     requiredTargets: String(process.env.CC_RELEASE_REQUIRED_TARGETS || "")
       .split(",")
