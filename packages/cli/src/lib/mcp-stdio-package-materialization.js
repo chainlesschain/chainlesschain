@@ -837,6 +837,29 @@ function capsuleRuntimeGuard() {
 })();`;
 }
 
+export function esbuildRelativeEntrypointArg(entrypointRelative) {
+  if (
+    typeof entrypointRelative !== "string" ||
+    entrypointRelative.length === 0 ||
+    entrypointRelative.includes("\0") ||
+    entrypointRelative.includes("\\") ||
+    path.posix.isAbsolute(entrypointRelative) ||
+    /^[A-Za-z]:/.test(entrypointRelative) ||
+    path.posix.normalize(entrypointRelative) !== entrypointRelative ||
+    entrypointRelative === "." ||
+    entrypointRelative === ".." ||
+    entrypointRelative.startsWith("../")
+  ) {
+    throw new Error(
+      "MCP capsule entrypoint must be one canonical relative POSIX path",
+    );
+  }
+  // esbuild's CLI parses a Windows `.\\node_modules\\...` argument as a
+  // package path. A leading POSIX `./` is the cross-platform file-path marker
+  // even when esbuild.exe itself is running on Windows.
+  return `./${entrypointRelative}`;
+}
+
 function buildCapsule({
   treeRoot,
   entrypointRelative,
@@ -868,9 +891,7 @@ function buildCapsule({
     if (canonicalEntrypointRelative !== entrypointRelative) {
       throw new Error("MCP capsule entrypoint changed through a path alias");
     }
-    const builderEntrypoint = `.${path.sep}${entrypointRelative
-      .split("/")
-      .join(path.sep)}`;
+    const builderEntrypoint = esbuildRelativeEntrypointArg(entrypointRelative);
     const builder = resolveCapsuleBuilderBinary();
     const runThroughProcessBroker =
       processBrokerRunSync || _deps.processBrokerRunSync;

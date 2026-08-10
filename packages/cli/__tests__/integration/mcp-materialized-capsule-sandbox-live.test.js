@@ -38,6 +38,7 @@ const PACKAGE_SPEC = "@chainlesschain/mcp-live-probe@1.0.0";
 const SERVER_NAME = "materialized-capsule-live";
 const HOST_DESCENDANT_MARKER_PREFIX = "--cc-mcp-live-descendant=";
 const PROCESS_OBSERVER_TIMEOUT_MS = 20_000;
+const WINDOWS_PROCESS_START_DRAIN_MS = 2_000;
 const ALLOWED_OS_SPAWN_DENIAL_CODES = new Set(["EACCES", "EPERM"]);
 const WINDOWS_INDETERMINATE_NETWORK_ERRORS = new Set(["ETIMEDOUT", "timeout"]);
 const fixturePath = fileURLToPath(
@@ -105,14 +106,28 @@ function sameHostProcessIdentity(left, right) {
   );
 }
 
-function isTypedOsSpawnDenial(child) {
+function isTypedOsSpawnDenial(child, platform = process.platform) {
   return Boolean(
+    platform === "win32" &&
     child?.spawnDenied === true &&
     child.reportReceived === false &&
     child.errorType === "os-error-code" &&
     ALLOWED_OS_SPAWN_DENIAL_CODES.has(child.errorCode) &&
     child.error === child.errorCode &&
     child.error !== "child-report-timeout",
+  );
+}
+
+function isHostAttestedWindowsSpawnDenial(
+  child,
+  observedChildStarts,
+  platform = process.platform,
+) {
+  return Boolean(
+    platform === "win32" &&
+    isTypedOsSpawnDenial(child, platform) &&
+    Array.isArray(observedChildStarts) &&
+    observedChildStarts.length === 0,
   );
 }
 
@@ -302,167 +317,60 @@ function queryWindowsLoopbackExemptSids() {
   );
 }
 
-const windowsNativeProcessObserverSource = String.raw`
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Globalization;
-using System.IO;
-using System.Runtime.InteropServices;
-
-public static class ChainlessChainProcessStartObserver
-{
-    private const uint TH32CS_SNAPPROCESS = 0x00000002;
-    private const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
-
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    private struct PROCESSENTRY32
-    {
-        public uint dwSize;
-        public uint cntUsage;
-        public uint th32ProcessID;
-        public IntPtr th32DefaultHeapID;
-        public uint th32ModuleID;
-        public uint cntThreads;
-        public uint th32ParentProcessID;
-        public int pcPriClassBase;
-        public uint dwFlags;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
-        public string szExeFile;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct FILETIME
-    {
-        public uint Low;
-        public uint High;
-    }
-
-    private struct ProcessRow
-    {
-        public int ParentPid;
-        public long CreationTime;
-    }
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern IntPtr CreateToolhelp32Snapshot(uint flags, uint processId);
-
-    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool Process32FirstW(IntPtr snapshot, ref PROCESSENTRY32 entry);
-
-    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool Process32NextW(IntPtr snapshot, ref PROCESSENTRY32 entry);
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern IntPtr OpenProcess(uint access, bool inheritHandle, uint processId);
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool GetProcessTimes(
-        IntPtr process,
-        out FILETIME creation,
-        out FILETIME exit,
-        out FILETIME kernel,
-        out FILETIME user);
-
-    [DllImport("kernel32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool CloseHandle(IntPtr handle);
-
-    private static long CreationTime(uint processId)
-    {
-        IntPtr process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, processId);
-        if (process == IntPtr.Zero) return 0;
-        try
-        {
-            FILETIME creation;
-            FILETIME exit;
-            FILETIME kernel;
-            FILETIME user;
-            if (!GetProcessTimes(process, out creation, out exit, out kernel, out user)) return 0;
-            return ((long)creation.High << 32) | creation.Low;
-        }
-        finally
-        {
-            CloseHandle(process);
-        }
-    }
-
-    private static Dictionary<int, ProcessRow> Snapshot()
-    {
-        IntPtr snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-        if (snapshot == new IntPtr(-1))
-            throw new Win32Exception(Marshal.GetLastWin32Error());
-        try
-        {
-            var rows = new Dictionary<int, ProcessRow>();
-            var entry = new PROCESSENTRY32();
-            entry.dwSize = (uint)Marshal.SizeOf(typeof(PROCESSENTRY32));
-            if (!Process32FirstW(snapshot, ref entry)) return rows;
-            do
-            {
-                int pid = checked((int)entry.th32ProcessID);
-                if (pid > 0)
-                {
-                    rows[pid] = new ProcessRow
-                    {
-                        ParentPid = checked((int)entry.th32ParentProcessID),
-                        CreationTime = CreationTime(entry.th32ProcessID)
-                    };
-                }
-                entry.dwSize = (uint)Marshal.SizeOf(typeof(PROCESSENTRY32));
-            }
-            while (Process32NextW(snapshot, ref entry));
-            return rows;
-        }
-        finally
-        {
-            CloseHandle(snapshot);
-        }
-    }
-
-    private static void ObserveNew(
-        ref Dictionary<int, ProcessRow> previous,
-        ref long sequence)
-    {
-        Dictionary<int, ProcessRow> current = Snapshot();
-        foreach (KeyValuePair<int, ProcessRow> pair in current)
-        {
-            ProcessRow old;
-            if (!previous.TryGetValue(pair.Key, out old) ||
-                old.CreationTime != pair.Value.CreationTime)
-            {
-                Console.Out.WriteLine(
-                    "{\"event\":\"process-start\",\"pid\":" +
-                    pair.Key.ToString(CultureInfo.InvariantCulture) +
-                    ",\"parentPid\":" +
-                    pair.Value.ParentPid.ToString(CultureInfo.InvariantCulture) +
-                    ",\"creationMarker\":\"filetime:" +
-                    pair.Value.CreationTime.ToString(CultureInfo.InvariantCulture) +
-                    "\",\"sequence\":" +
-                    sequence.ToString(CultureInfo.InvariantCulture) + "}");
-                Console.Out.Flush();
-                sequence += 1;
-            }
-        }
-        previous = current;
-    }
-
-    public static void Run(string stopPath)
-    {
-        Dictionary<int, ProcessRow> previous = Snapshot();
-        long sequence = 0;
-        Console.Out.WriteLine("{\"event\":\"observer-ready\"}");
-        Console.Out.Flush();
-        while (!File.Exists(stopPath))
-            ObserveNew(ref previous, ref sequence);
-        for (int index = 0; index < 3; index += 1)
-            ObserveNew(ref previous, ref sequence);
-    }
+function windowsProcessStartObserverScript() {
+  return [
+    "$ErrorActionPreference = 'Stop'",
+    "Add-Type -AssemblyName System.Management",
+    "$stopPath = $env:CC_MCP_PROCESS_OBSERVER_STOP",
+    "$drainMs = [int]$env:CC_MCP_PROCESS_OBSERVER_DRAIN_MS",
+    "$scope = [System.Management.ManagementScope]::new('\\\\.\\root\\cimv2')",
+    "$query = [System.Management.WqlEventQuery]::new('SELECT * FROM Win32_ProcessStartTrace')",
+    "$options = [System.Management.EventWatcherOptions]::new()",
+    "$options.Timeout = [TimeSpan]::FromMilliseconds(100)",
+    "$watcher = [System.Management.ManagementEventWatcher]::new($scope, $query, $options)",
+    "$sequence = [long]0",
+    "function Write-NextObservedStart {",
+    "  param([System.Management.ManagementEventWatcher]$Watcher, [ref]$Sequence)",
+    "  try {",
+    "    $started = $Watcher.WaitForNextEvent()",
+    "  } catch [System.Management.ManagementException] {",
+    "    if ($_.Exception.ErrorCode -eq [System.Management.ManagementStatus]::Timedout) { return $false }",
+    "    throw",
+    "  }",
+    "  try {",
+    "    $json = [pscustomobject]@{",
+    "      event = 'process-start'",
+    "      pid = [int]$started['ProcessID']",
+    "      parentPid = [int]$started['ParentProcessID']",
+    "      processName = [string]$started['ProcessName']",
+    "      creationMarker = 'wmi-time-created:' + [string]$started['TIME_CREATED']",
+    "      sequence = [long]$Sequence.Value",
+    "    } | ConvertTo-Json -Compress",
+    "    [Console]::Out.WriteLine($json)",
+    "    [Console]::Out.Flush()",
+    "    $Sequence.Value = [long]$Sequence.Value + 1",
+    "    return $true",
+    "  } finally {",
+    "    $started.Dispose()",
+    "  }",
+    "}",
+    "$watcher.Start()",
+    "try {",
+    '  [Console]::Out.WriteLine(\'{"event":"observer-ready"}\')',
+    "  [Console]::Out.Flush()",
+    "  while (-not [IO.File]::Exists($stopPath)) {",
+    "    [void](Write-NextObservedStart -Watcher $watcher -Sequence ([ref]$sequence))",
+    "  }",
+    "  $drainUntil = [DateTime]::UtcNow.AddMilliseconds($drainMs)",
+    "  while ([DateTime]::UtcNow -lt $drainUntil) {",
+    "    [void](Write-NextObservedStart -Watcher $watcher -Sequence ([ref]$sequence))",
+    "  }",
+    "} finally {",
+    "  $watcher.Stop()",
+    "  $watcher.Dispose()",
+    "}",
+  ].join("\n");
 }
-`;
 
 async function startWindowsProcessStartObserver() {
   if (process.platform !== "win32") {
@@ -473,23 +381,16 @@ async function startWindowsProcessStartObserver() {
     `cc-mcp-process-start-${crypto.randomUUID()}.stop`,
   );
   fs.rmSync(stopPath, { force: true });
-  const script = [
-    "$ErrorActionPreference = 'Stop'",
-    "$stopPath = $env:CC_MCP_PROCESS_OBSERVER_STOP",
-    "$source = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($env:CC_MCP_PROCESS_OBSERVER_CSHARP))",
-    "Add-Type -TypeDefinition $source -Language CSharp",
-    "[ChainlessChainProcessStartObserver]::Run($stopPath)",
-  ].join("\n");
+  const script = windowsProcessStartObserverScript();
   const observer = nativeSpawn(
     "powershell.exe",
     ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", script],
     {
       env: {
         ...process.env,
-        CC_MCP_PROCESS_OBSERVER_CSHARP: Buffer.from(
-          windowsNativeProcessObserverSource,
-          "utf8",
-        ).toString("base64"),
+        CC_MCP_PROCESS_OBSERVER_DRAIN_MS: String(
+          WINDOWS_PROCESS_START_DRAIN_MS,
+        ),
         CC_MCP_PROCESS_OBSERVER_STOP: stopPath,
       },
       stdio: ["ignore", "pipe", "pipe"],
@@ -500,6 +401,8 @@ async function startWindowsProcessStartObserver() {
   let stderr = "";
   let stdout = "";
   let ready = false;
+  let protocolError = null;
+  let nextSequence = 0;
   let readyResolve;
   let readyReject;
   const readyPromise = new Promise((resolve, reject) => {
@@ -516,9 +419,19 @@ async function startWindowsProcessStartObserver() {
     try {
       message = JSON.parse(line);
     } catch {
+      protocolError ||= new Error(
+        `Windows process-start observer emitted invalid JSON: ${line}`,
+      );
+      if (!ready) readyReject(protocolError);
       return;
     }
     if (message?.event === "observer-ready") {
+      if (ready || events.length > 0) {
+        protocolError ||= new Error(
+          "Windows process-start observer emitted duplicate readiness",
+        );
+        return;
+      }
       ready = true;
       readyResolve();
       return;
@@ -526,16 +439,28 @@ async function startWindowsProcessStartObserver() {
     if (
       message?.event === "process-start" &&
       Number.isSafeInteger(Number(message.pid)) &&
-      Number.isSafeInteger(Number(message.parentPid))
+      Number(message.pid) > 0 &&
+      Number.isSafeInteger(Number(message.parentPid)) &&
+      Number(message.parentPid) >= 0 &&
+      typeof message.creationMarker === "string" &&
+      /^wmi-time-created:\d+$/.test(message.creationMarker) &&
+      Number.isSafeInteger(Number(message.sequence)) &&
+      Number(message.sequence) === nextSequence
     ) {
       events.push({
-        sequence: events.length,
+        sequence: nextSequence,
         pid: Number(message.pid),
         parentPid: Number(message.parentPid),
         processName: String(message.processName || ""),
-        creationMarker: String(message.creationMarker || ""),
+        creationMarker: message.creationMarker,
       });
+      nextSequence += 1;
+      return;
     }
+    protocolError ||= new Error(
+      `Windows process-start observer emitted an invalid event: ${line}`,
+    );
+    if (!ready) readyReject(protocolError);
   };
   observer.stdout.setEncoding("utf8");
   observer.stdout.on("data", (chunk) => {
@@ -611,6 +536,7 @@ async function startWindowsProcessStartObserver() {
             `Windows process-start observer failed: code=${outcome.code}; signal=${outcome.signal}; stderr=${stderr.trim()}`,
           );
         }
+        if (protocolError) throw protocolError;
         return [...events];
       } catch (error) {
         observer.kill();
@@ -1032,18 +958,28 @@ describe("materialized MCP capsule host observer helpers", () => {
 
   it("keeps child-report envelope fields parent-owned", () => {
     expect(
-      successfulChildReport({
-        event: "child-ready",
-        spawnDenied: true,
-        reportReceived: false,
-        detachedRequested: false,
-      }),
+      successfulChildReport(
+        {
+          event: "child-ready",
+          namespacePid: 707,
+          spawnPid: 999,
+          spawnDenied: true,
+          reportReceived: false,
+          detachedRequested: false,
+        },
+        707,
+      ),
     ).toEqual({
       event: "child-ready",
+      namespacePid: 707,
+      spawnPid: 707,
       spawnDenied: false,
       reportReceived: true,
       detachedRequested: true,
     });
+    expect(() => successfulChildReport({ namespacePid: 706 }, 707)).toThrow(
+      "MCP capsule child report PID does not match its spawn",
+    );
   });
 
   it("does not confuse a reused PID with the original process identity", () => {
@@ -1095,52 +1031,91 @@ describe("materialized MCP capsule host observer helpers", () => {
   });
 
   it("accepts only explicit permission child-spawn denials", () => {
+    const permissionDenial = {
+      spawnDenied: true,
+      reportReceived: false,
+      errorType: "os-error-code",
+      errorCode: "EPERM",
+      error: "EPERM",
+    };
+    expect(isTypedOsSpawnDenial(permissionDenial, "win32")).toBe(true);
     expect(
-      isTypedOsSpawnDenial({
-        spawnDenied: true,
-        reportReceived: false,
-        errorType: "os-error-code",
-        errorCode: "EPERM",
-        error: "EPERM",
-      }),
-    ).toBe(true);
-    expect(
-      isTypedOsSpawnDenial({
-        spawnDenied: true,
-        reportReceived: false,
-        errorType: "os-error-code",
-        errorCode: "EACCES",
-        error: "EACCES",
-      }),
-    ).toBe(true);
-    for (const errorCode of ["ENOENT", "ENOMEM", "EINVAL"]) {
-      expect(
-        isTypedOsSpawnDenial({
+      isTypedOsSpawnDenial(
+        {
           spawnDenied: true,
           reportReceived: false,
           errorType: "os-error-code",
-          errorCode,
-          error: errorCode,
-        }),
+          errorCode: "EACCES",
+          error: "EACCES",
+        },
+        "win32",
+      ),
+    ).toBe(true);
+    for (const errorCode of ["ENOENT", "ENOMEM", "EINVAL"]) {
+      expect(
+        isTypedOsSpawnDenial(
+          {
+            spawnDenied: true,
+            reportReceived: false,
+            errorType: "os-error-code",
+            errorCode,
+            error: errorCode,
+          },
+          "win32",
+        ),
       ).toBe(false);
     }
     expect(
-      isTypedOsSpawnDenial({
-        spawnDenied: false,
-        reportReceived: false,
-        errorType: "timeout",
-        errorCode: null,
-        error: "child-report-timeout",
-      }),
+      isTypedOsSpawnDenial(
+        {
+          spawnDenied: false,
+          reportReceived: false,
+          errorType: "timeout",
+          errorCode: null,
+          error: "child-report-timeout",
+        },
+        "win32",
+      ),
     ).toBe(false);
     expect(
-      isTypedOsSpawnDenial({
-        spawnDenied: true,
-        reportReceived: false,
-        errorType: "untyped-error",
-        errorCode: null,
-        error: "spawn-blocked-without-code",
-      }),
+      isTypedOsSpawnDenial(
+        {
+          spawnDenied: true,
+          reportReceived: false,
+          errorType: "untyped-error",
+          errorCode: null,
+          error: "spawn-blocked-without-code",
+        },
+        "win32",
+      ),
+    ).toBe(false);
+    expect(isTypedOsSpawnDenial(permissionDenial, "linux")).toBe(false);
+
+    expect(
+      isHostAttestedWindowsSpawnDenial(permissionDenial, [], "win32"),
+    ).toBe(true);
+    expect(
+      isHostAttestedWindowsSpawnDenial(
+        permissionDenial,
+        [{ pid: 707, parentPid: 606 }],
+        "win32",
+      ),
+    ).toBe(false);
+    expect(
+      isHostAttestedWindowsSpawnDenial(
+        {
+          spawnDenied: false,
+          reportReceived: false,
+          errorType: "timeout",
+          errorCode: null,
+          error: "child-report-timeout",
+        },
+        [],
+        "win32",
+      ),
+    ).toBe(false);
+    expect(
+      isHostAttestedWindowsSpawnDenial(permissionDenial, [], "linux"),
     ).toBe(false);
   });
 
@@ -1186,8 +1161,31 @@ describe("materialized MCP capsule host observer helpers", () => {
     ]).toEqual([first, second]);
   });
 
+  it("starts the Windows WMI event source before ready and drains before stop", () => {
+    const script = windowsProcessStartObserverScript();
+    expect(script).toContain("Add-Type -AssemblyName System.Management");
+    expect(script).toContain("System.Management.ManagementEventWatcher");
+    expect(script).toContain("Win32_ProcessStartTrace");
+    expect(script).toContain("WaitForNextEvent()");
+    expect(script).toContain("TIME_CREATED");
+    expect(script).toContain("sequence = [long]$Sequence.Value");
+    expect(script).not.toContain("CreateToolhelp32Snapshot");
+    const started = script.indexOf("$watcher.Start()");
+    const ready = script.indexOf('{"event":"observer-ready"}');
+    const stopObserved = script.indexOf(
+      "while (-not [IO.File]::Exists($stopPath))",
+    );
+    const drained = script.indexOf("$drainUntil =");
+    const stopped = script.indexOf("$watcher.Stop()");
+    expect(started).toBeGreaterThanOrEqual(0);
+    expect(ready).toBeGreaterThan(started);
+    expect(stopObserved).toBeGreaterThan(ready);
+    expect(drained).toBeGreaterThan(stopObserved);
+    expect(stopped).toBeGreaterThan(drained);
+  });
+
   it.runIf(LIVE && process.platform === "win32")(
-    "observes a nonce-bearing child that exits before a process snapshot",
+    "binds a nonce-bearing short-lived child start to its PID and parent",
     async () => {
       const observer = await startWindowsProcessStartObserver();
       let stopped = false;
@@ -1212,11 +1210,16 @@ describe("materialized MCP capsule host observer helpers", () => {
         );
         const events = await observer.stop();
         stopped = true;
-        expect(
-          selectObservedDescendantStarts(events, process.pid).some(
-            (event) => event.pid === childPid,
-          ),
-        ).toBe(true);
+        const matchingStarts = selectObservedDescendantStarts(
+          events,
+          process.pid,
+        ).filter((event) => event.pid === childPid);
+        expect(matchingStarts).toHaveLength(1);
+        expect(matchingStarts[0]).toMatchObject({
+          pid: childPid,
+          parentPid: process.pid,
+          creationMarker: expect.stringMatching(/^wmi-time-created:\d+$/),
+        });
       } finally {
         if (!stopped) await observer.stop();
       }
@@ -1494,13 +1497,17 @@ describe.runIf(LIVE && SUPPORTED)(
       const networkProbeEvidence = [
         expectNetworkProbeResults(report.root.networks, networkTargets),
       ];
+      if (process.platform === "linux") {
+        expect(report.child).toMatchObject({
+          spawnDenied: false,
+          reportReceived: true,
+        });
+      }
       if (report.child.spawnDenied) {
-        // A zero-capability sandbox may reject child creation at the OS
-        // boundary. Linux's deny-process seccomp policy and Windows's
-        // zero-capability AppContainer can both return a typed permission
-        // error before any child exists. Windows additionally has the
-        // continuous host-side process-start observer below.
-        expect(["linux", "win32"]).toContain(process.platform);
+        // A zero-capability Windows AppContainer may reject child creation at
+        // the OS boundary. Linux must execute the probe through the capsule's
+        // live /proc/self/exe runtime and cannot use denial here.
+        expect(process.platform).toBe("win32");
         expect(report.child).toMatchObject({
           spawnDenied: true,
           reportReceived: false,
@@ -1509,9 +1516,9 @@ describe.runIf(LIVE && SUPPORTED)(
           error: expect.any(String),
         });
         expect(isTypedOsSpawnDenial(report.child)).toBe(true);
-        if (process.platform === "win32") {
-          expect(observedChildStarts).toEqual([]);
-        }
+        expect(
+          isHostAttestedWindowsSpawnDenial(report.child, observedChildStarts),
+        ).toBe(true);
         expect(nonceProcessRows(enumerateHostProcesses(), probeNonce)).toEqual(
           [],
         );
@@ -1528,20 +1535,32 @@ describe.runIf(LIVE && SUPPORTED)(
           },
         });
         expect(report.child.namespacePid).toBeGreaterThan(0);
+        expect(report.child.spawnPid).toBe(report.child.namespacePid);
         networkProbeEvidence.push(
           expectNetworkProbeResults(report.child.networks, networkTargets),
         );
         if (process.platform === "win32") {
-          expect(
-            observedChildStarts.some(
-              (event) => event.pid === report.child.namespacePid,
-            ),
-          ).toBe(true);
+          const matchingStarts = observedChildStarts.filter(
+            (event) => event.pid === report.child.spawnPid,
+          );
+          expect(matchingStarts).toHaveLength(1);
+          expect(matchingStarts[0]).toMatchObject({
+            pid: report.child.spawnPid,
+            parentPid: entry.process.pid,
+            creationMarker: expect.stringMatching(/^wmi-time-created:\d+$/),
+          });
         }
         observedDescendantIdentities = await captureNonceDescendantIdentities(
           entry.process.pid,
           probeNonce,
         );
+        if (process.platform === "win32") {
+          expect(observedDescendantIdentities).toHaveLength(1);
+          expect(observedDescendantIdentities[0]).toMatchObject({
+            pid: report.child.spawnPid,
+            parentPid: entry.process.pid,
+          });
+        }
         const liveRows = enumerateHostProcesses();
         expect(
           observedDescendantIdentities.every((identity) =>

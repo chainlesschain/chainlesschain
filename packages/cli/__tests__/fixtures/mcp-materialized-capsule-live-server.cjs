@@ -262,12 +262,16 @@ function launchDetachedChildProbe() {
         const line = buffer.slice(0, newline);
         try {
           const report = JSON.parse(line);
-          finish(successfulChildReport(report));
-        } catch {
+          finish(successfulChildReport(report, child.pid));
+        } catch (error) {
           finish({
             spawnDenied: false,
             reportReceived: false,
-            error: "invalid-child-report",
+            error:
+              error?.message ===
+              "MCP capsule child report PID does not match its spawn"
+                ? "child-pid-mismatch"
+                : "invalid-child-report",
           });
         }
       });

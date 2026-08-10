@@ -19,6 +19,7 @@ import {
 } from "../../src/lib/mcp-stdio-executable-identity.js";
 import {
   _deps,
+  esbuildRelativeEntrypointArg,
   materializeMcpStdioNpmPackage,
   MCP_STDIO_PACKAGE_MATERIALIZATION_CHANGED_CODE,
   MCP_STDIO_PACKAGE_MATERIALIZATION_FAILED_CODE,
@@ -30,6 +31,29 @@ import {
 } from "../../src/lib/mcp-stdio-package-materialization.js";
 
 const roots = [];
+
+it("uses an explicit POSIX relative file argv for esbuild on every host", () => {
+  expect(
+    esbuildRelativeEntrypointArg(
+      "node_modules/@scope/mcp-server/bin/server.js",
+    ),
+  ).toBe("./node_modules/@scope/mcp-server/bin/server.js");
+  for (const unsafe of [
+    "",
+    ".",
+    "../outside.js",
+    "node_modules/../outside.js",
+    "./node_modules/package/server.js",
+    "node_modules\\package\\server.js",
+    "/node_modules/package/server.js",
+    "C:/node_modules/package/server.js",
+    "node_modules/package/server.js\0ignored",
+  ]) {
+    expect(() => esbuildRelativeEntrypointArg(unsafe)).toThrow(
+      "MCP capsule entrypoint must be one canonical relative POSIX path",
+    );
+  }
+});
 
 function createRoot() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-mcp-package-lock-"));
@@ -282,7 +306,7 @@ describe("MCP stdio fixed npm package materialization", () => {
       expect(invocation.cwdIsCanonical).toBe(true);
       expect(path.isAbsolute(invocation.args[0])).toBe(false);
       expect(invocation.args[0]).toBe(
-        `.${path.sep}node_modules${path.sep}@scope${path.sep}mcp-server${path.sep}bin${path.sep}server.js`,
+        "./node_modules/@scope/mcp-server/bin/server.js",
       );
     }
 
@@ -391,7 +415,7 @@ describe("MCP stdio fixed npm package materialization", () => {
         args: prepared.args,
       }),
     ).toEqual({ identityDigest: prepared.identityDigest });
-  });
+  }, 30_000);
 
   it("detects an added transitive file before the Broker can spawn", () => {
     const config = {

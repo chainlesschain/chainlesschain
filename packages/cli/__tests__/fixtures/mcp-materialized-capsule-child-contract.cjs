@@ -13,15 +13,24 @@ function resolveChildRuntimePath(
   return platform === "linux" ? LINUX_CHILD_RUNTIME_PATH : execPath;
 }
 
-function successfulChildReport(report) {
+function successfulChildReport(report, spawnedPid) {
   const payload =
     report && typeof report === "object" && !Array.isArray(report)
       ? report
       : {};
+  if (
+    !Number.isSafeInteger(spawnedPid) ||
+    spawnedPid <= 0 ||
+    payload.namespacePid !== spawnedPid
+  ) {
+    throw new Error("MCP capsule child report PID does not match its spawn");
+  }
   // These fields are trusted parent-envelope evidence. A child payload must
   // not turn a successful report into a synthetic denial (or vice versa).
   return {
     ...payload,
+    namespacePid: spawnedPid,
+    spawnPid: spawnedPid,
     spawnDenied: false,
     reportReceived: true,
     detachedRequested: true,
