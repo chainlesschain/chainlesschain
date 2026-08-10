@@ -32,7 +32,7 @@ import {
 
 const roots = [];
 
-it("uses a canonical contained absolute file argv for esbuild", () => {
+it("binds the canonical entrypoint to an esbuild stdin source label", () => {
   const snapshotRoot = path.resolve("capsule-snapshot-root");
   const canonicalEntrypoint = path.join(
     snapshotRoot,
@@ -48,7 +48,7 @@ it("uses a canonical contained absolute file argv for esbuild", () => {
       snapshotRoot,
       canonicalEntrypoint,
     ),
-  ).toBe(canonicalEntrypoint);
+  ).toBe("node_modules/@scope/mcp-server/bin/server.js");
   for (const unsafe of [
     "",
     ".",
@@ -282,12 +282,7 @@ describe("MCP stdio fixed npm package materialization", () => {
         args,
         cwd: options.cwd,
         cwdIsCanonical: options.cwd === realpath(options.cwd),
-        entrypointIsCanonical:
-          path.isAbsolute(args[0]) && args[0] === realpath(args[0]),
-        entrypointRelative: path
-          .relative(options.cwd, args[0])
-          .split(path.sep)
-          .join("/"),
+        inputSource: Buffer.from(options.input).toString("utf8"),
       });
       return spawnSync(command, args, options);
     };
@@ -323,6 +318,8 @@ describe("MCP stdio fixed npm package materialization", () => {
       builderVersion: "0.28.1",
       nodeTarget: "node22",
       inputCount: 3,
+      wrapperSchema: "chainlesschain.mcp-stdio-capsule-stdin-wrapper/v1",
+      wrapperSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
     });
     expect(result.identity.capsule.sha256).toMatch(/^[a-f0-9]{64}$/);
     const capsuleSource = fs.readFileSync(
@@ -346,11 +343,16 @@ describe("MCP stdio fixed npm package materialization", () => {
     expect(builderInvocations).toHaveLength(2);
     for (const invocation of builderInvocations) {
       expect(invocation.cwdIsCanonical).toBe(true);
-      expect(invocation.entrypointIsCanonical).toBe(true);
-      expect(path.isAbsolute(invocation.args[0])).toBe(true);
-      expect(invocation.entrypointRelative).toBe(
-        "node_modules/@scope/mcp-server/bin/server.js",
+      expect(invocation.inputSource).toBe(
+        '"use strict";\nrequire("./node_modules/@scope/mcp-server/bin/server.js");\n',
       );
+      expect(invocation.args.filter((arg) => !arg.startsWith("--"))).toEqual(
+        [],
+      );
+      expect(invocation.args).toContain(
+        "--sourcefile=chainlesschain-capsule-entry.cjs",
+      );
+      expect(invocation.args).toContain("--loader=js");
       expect(capsuleSource).not.toContain(invocation.cwd);
       expect(capsuleSource).not.toContain(invocation.cwd.replaceAll("\\", "/"));
     }

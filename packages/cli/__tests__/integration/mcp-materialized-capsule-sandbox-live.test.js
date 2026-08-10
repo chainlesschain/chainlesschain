@@ -317,59 +317,303 @@ function queryWindowsLoopbackExemptSids() {
   );
 }
 
-function windowsProcessStartObserverScript() {
+const windowsProcessStartObserverSource = String.raw`
+using System;
+using System.Collections.Concurrent;
+using System.Globalization;
+using System.IO;
+using System.Management;
+using System.Threading;
+
+public static class ChainlessChainProcessStartObserver
+{
+    private sealed class ProcessStartRecord
+    {
+        public int Pid;
+        public int ParentPid;
+        public ulong TimeCreated;
+    }
+
+    private sealed class ObserverState : IDisposable
+    {
+        public readonly ConcurrentQueue<ProcessStartRecord> Queue =
+            new ConcurrentQueue<ProcessStartRecord>();
+        public readonly AutoResetEvent Signal = new AutoResetEvent(false);
+        public Exception Failure;
+        public int InFlight;
+
+        public void Dispose()
+        {
+            Signal.Dispose();
+        }
+    }
+
+    private static void CaptureStart(
+        ObserverState state,
+        EventArrivedEventArgs eventArgs)
+    {
+        Interlocked.Increment(ref state.InFlight);
+        try
+        {
+            ManagementBaseObject started = eventArgs.NewEvent;
+            int pid = Convert.ToInt32(
+                started["ProcessID"], CultureInfo.InvariantCulture);
+            int parentPid = Convert.ToInt32(
+                started["ParentProcessID"], CultureInfo.InvariantCulture);
+            string rawTimeCreated = Convert.ToString(
+                started["TIME_CREATED"], CultureInfo.InvariantCulture);
+            ulong timeCreated;
+            if (pid <= 0 || parentPid < 0 ||
+                !UInt64.TryParse(
+                    rawTimeCreated,
+                    NumberStyles.None,
+                    CultureInfo.InvariantCulture,
+                    out timeCreated))
+            {
+                throw new InvalidDataException(
+                    "Win32_ProcessStartTrace emitted invalid identity data");
+            }
+            state.Queue.Enqueue(new ProcessStartRecord
+            {
+                Pid = pid,
+                ParentPid = parentPid,
+                TimeCreated = timeCreated
+            });
+        }
+        catch (Exception error)
+        {
+            Interlocked.CompareExchange(ref state.Failure, error, null);
+        }
+        finally
+        {
+            Interlocked.Decrement(ref state.InFlight);
+            state.Signal.Set();
+        }
+    }
+
+    private static void ThrowHandlerFailure(ObserverState state)
+    {
+        Exception failure = Interlocked.CompareExchange(
+            ref state.Failure, null, null);
+        if (failure != null)
+        {
+            throw new InvalidOperationException(
+                "Windows process-start observer callback failed", failure);
+        }
+    }
+
+    private static void DrainQueue(ObserverState state, ref long sequence)
+    {
+        ProcessStartRecord record;
+        while (state.Queue.TryDequeue(out record))
+        {
+            Console.Out.WriteLine(
+                "{\"event\":\"process-start\",\"pid\":" +
+                record.Pid.ToString(CultureInfo.InvariantCulture) +
+                ",\"parentPid\":" +
+                record.ParentPid.ToString(CultureInfo.InvariantCulture) +
+                ",\"creationMarker\":\"wmi-time-created:" +
+                record.TimeCreated.ToString(CultureInfo.InvariantCulture) +
+                "\",\"sequence\":" +
+                sequence.ToString(CultureInfo.InvariantCulture) + "}");
+            sequence = checked(sequence + 1);
+        }
+        Console.Out.Flush();
+    }
+
+    public static void Run(string stopPath, int drainMilliseconds)
+    {
+        if (String.IsNullOrEmpty(stopPath) ||
+            drainMilliseconds < 0 || drainMilliseconds > 10000)
+        {
+            throw new ArgumentException("Invalid observer stop contract");
+        }
+
+        var scope = new ManagementScope(@"\\.\root\cimv2");
+        var query = new WqlEventQuery(
+            "SELECT * FROM Win32_ProcessStartTrace");
+        var watcher = new ManagementEventWatcher(scope, query);
+        var state = new ObserverState();
+        EventArrivedEventHandler handler = delegate(
+            object sender, EventArrivedEventArgs eventArgs)
+        {
+            CaptureStart(state, eventArgs);
+        };
+        bool handlerRegistered = false;
+        bool watcherStarted = false;
+        long sequence = 0;
+
+        try
+        {
+            watcher.EventArrived += handler;
+            handlerRegistered = true;
+            watcher.Start();
+            watcherStarted = true;
+            Console.Out.WriteLine("{\"event\":\"observer-ready\"}");
+            Console.Out.Flush();
+
+            while (!File.Exists(stopPath))
+            {
+                ThrowHandlerFailure(state);
+                DrainQueue(state, ref sequence);
+                state.Signal.WaitOne(25);
+            }
+
+            DateTime drainUntil = DateTime.UtcNow.AddMilliseconds(
+                drainMilliseconds);
+            while (DateTime.UtcNow < drainUntil)
+            {
+                ThrowHandlerFailure(state);
+                DrainQueue(state, ref sequence);
+                state.Signal.WaitOne(25);
+            }
+
+            watcher.Stop();
+            watcherStarted = false;
+            watcher.EventArrived -= handler;
+            handlerRegistered = false;
+
+            DateTime callbacksUntil = DateTime.UtcNow.AddSeconds(1);
+            while (Volatile.Read(ref state.InFlight) != 0 &&
+                DateTime.UtcNow < callbacksUntil)
+            {
+                state.Signal.WaitOne(10);
+            }
+            if (Volatile.Read(ref state.InFlight) != 0)
+            {
+                throw new TimeoutException(
+                    "Windows process-start observer callback did not stop");
+            }
+            DrainQueue(state, ref sequence);
+            ThrowHandlerFailure(state);
+        }
+        finally
+        {
+            if (watcherStarted)
+            {
+                watcher.Stop();
+            }
+            if (handlerRegistered)
+            {
+                watcher.EventArrived -= handler;
+            }
+            watcher.Dispose();
+            state.Dispose();
+        }
+    }
+}
+`;
+
+function windowsProcessStartObserverCompilationScript() {
   return [
     "$ErrorActionPreference = 'Stop'",
     "Add-Type -AssemblyName System.Management",
+    "$source = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($env:CC_MCP_PROCESS_OBSERVER_CSHARP))",
+    "Add-Type -TypeDefinition $source -Language CSharp -ReferencedAssemblies 'System.Management.dll'",
+  ].join("\n");
+}
+
+function windowsProcessStartObserverScript() {
+  return [
+    windowsProcessStartObserverCompilationScript(),
     "$stopPath = $env:CC_MCP_PROCESS_OBSERVER_STOP",
     "$drainMs = [int]$env:CC_MCP_PROCESS_OBSERVER_DRAIN_MS",
-    "$scope = [System.Management.ManagementScope]::new('\\\\.\\root\\cimv2')",
-    "$query = [System.Management.WqlEventQuery]::new('SELECT * FROM Win32_ProcessStartTrace')",
-    "$options = [System.Management.EventWatcherOptions]::new()",
-    "$options.Timeout = [TimeSpan]::FromMilliseconds(100)",
-    "$watcher = [System.Management.ManagementEventWatcher]::new($scope, $query, $options)",
-    "$sequence = [long]0",
-    "function Write-NextObservedStart {",
-    "  param([System.Management.ManagementEventWatcher]$Watcher, [ref]$Sequence)",
-    "  try {",
-    "    $started = $Watcher.WaitForNextEvent()",
-    "  } catch [System.Management.ManagementException] {",
-    "    if ($_.Exception.ErrorCode -eq [System.Management.ManagementStatus]::Timedout) { return $false }",
-    "    throw",
-    "  }",
-    "  try {",
-    "    $json = [pscustomobject]@{",
-    "      event = 'process-start'",
-    "      pid = [int]$started['ProcessID']",
-    "      parentPid = [int]$started['ParentProcessID']",
-    "      processName = [string]$started['ProcessName']",
-    "      creationMarker = 'wmi-time-created:' + [string]$started['TIME_CREATED']",
-    "      sequence = [long]$Sequence.Value",
-    "    } | ConvertTo-Json -Compress",
-    "    [Console]::Out.WriteLine($json)",
-    "    [Console]::Out.Flush()",
-    "    $Sequence.Value = [long]$Sequence.Value + 1",
-    "    return $true",
-    "  } finally {",
-    "    $started.Dispose()",
-    "  }",
-    "}",
-    "$watcher.Start()",
-    "try {",
-    '  [Console]::Out.WriteLine(\'{"event":"observer-ready"}\')',
-    "  [Console]::Out.Flush()",
-    "  while (-not [IO.File]::Exists($stopPath)) {",
-    "    [void](Write-NextObservedStart -Watcher $watcher -Sequence ([ref]$sequence))",
-    "  }",
-    "  $drainUntil = [DateTime]::UtcNow.AddMilliseconds($drainMs)",
-    "  while ([DateTime]::UtcNow -lt $drainUntil) {",
-    "    [void](Write-NextObservedStart -Watcher $watcher -Sequence ([ref]$sequence))",
-    "  }",
-    "} finally {",
-    "  $watcher.Stop()",
-    "  $watcher.Dispose()",
-    "}",
+    "[ChainlessChainProcessStartObserver]::Run($stopPath, $drainMs)",
   ].join("\n");
+}
+
+function createWindowsProcessStartProtocol() {
+  const events = [];
+  let stdout = "";
+  let ready = false;
+  let protocolError = null;
+  let nextSequence = 0;
+  const fail = (message) => {
+    protocolError ||= new Error(message);
+  };
+  const consumeLine = (rawLine) => {
+    if (protocolError) return;
+    const line = rawLine.replace(/^\uFEFF/, "").trim();
+    if (!line) return;
+    let message;
+    try {
+      message = JSON.parse(line);
+    } catch {
+      fail(`Windows process-start observer emitted invalid JSON: ${line}`);
+      return;
+    }
+    if (message?.event === "observer-ready") {
+      if (ready || events.length > 0) {
+        fail("Windows process-start observer emitted duplicate readiness");
+        return;
+      }
+      ready = true;
+      return;
+    }
+    if (message?.event === "process-start" && !ready) {
+      fail("Windows process-start observer emitted an event before readiness");
+      return;
+    }
+    if (
+      message?.event === "process-start" &&
+      typeof message.pid === "number" &&
+      Number.isSafeInteger(message.pid) &&
+      message.pid > 0 &&
+      typeof message.parentPid === "number" &&
+      Number.isSafeInteger(message.parentPid) &&
+      message.parentPid >= 0 &&
+      typeof message.creationMarker === "string" &&
+      /^wmi-time-created:[1-9]\d*$/.test(message.creationMarker) &&
+      typeof message.sequence === "number" &&
+      Number.isSafeInteger(message.sequence) &&
+      message.sequence === nextSequence &&
+      (message.processName === undefined ||
+        typeof message.processName === "string")
+    ) {
+      events.push({
+        sequence: message.sequence,
+        pid: message.pid,
+        parentPid: message.parentPid,
+        processName: message.processName || "",
+        creationMarker: message.creationMarker,
+      });
+      nextSequence += 1;
+      return;
+    }
+    fail(`Windows process-start observer emitted an invalid event: ${line}`);
+  };
+  return {
+    events,
+    get error() {
+      return protocolError;
+    },
+    get ready() {
+      return ready;
+    },
+    push(chunk) {
+      if (typeof chunk !== "string") {
+        fail("Windows process-start observer emitted a non-string chunk");
+        return;
+      }
+      stdout += chunk;
+      let newline = stdout.indexOf("\n");
+      while (newline >= 0) {
+        consumeLine(stdout.slice(0, newline));
+        stdout = stdout.slice(newline + 1);
+        newline = stdout.indexOf("\n");
+      }
+    },
+    finish() {
+      const tail = stdout.replace(/^\uFEFF/, "");
+      stdout = "";
+      if (tail.trim()) {
+        fail(
+          `Windows process-start observer emitted an unterminated tail: ${tail.trim()}`,
+        );
+      }
+      return protocolError;
+    },
+  };
 }
 
 async function startWindowsProcessStartObserver() {
@@ -388,6 +632,10 @@ async function startWindowsProcessStartObserver() {
     {
       env: {
         ...process.env,
+        CC_MCP_PROCESS_OBSERVER_CSHARP: Buffer.from(
+          windowsProcessStartObserverSource,
+          "utf8",
+        ).toString("base64"),
         CC_MCP_PROCESS_OBSERVER_DRAIN_MS: String(
           WINDOWS_PROCESS_START_DRAIN_MS,
         ),
@@ -397,12 +645,10 @@ async function startWindowsProcessStartObserver() {
       windowsHide: true,
     },
   );
-  const events = [];
+  const protocol = createWindowsProcessStartProtocol();
+  const events = protocol.events;
   let stderr = "";
-  let stdout = "";
-  let ready = false;
-  let protocolError = null;
-  let nextSequence = 0;
+  let observerError = null;
   let readyResolve;
   let readyReject;
   const readyPromise = new Promise((resolve, reject) => {
@@ -410,77 +656,29 @@ async function startWindowsProcessStartObserver() {
     readyReject = reject;
   });
   const closePromise = new Promise((resolve) => {
-    observer.once("close", (code, signal) => resolve({ code, signal }));
+    observer.once("close", (code, signal) => {
+      protocol.finish();
+      if (protocol.error && !protocol.ready) readyReject(protocol.error);
+      resolve({ code, signal });
+    });
   });
-  const consumeLine = (rawLine) => {
-    const line = rawLine.replace(/^\uFEFF/, "").trim();
-    if (!line) return;
-    let message;
-    try {
-      message = JSON.parse(line);
-    } catch {
-      protocolError ||= new Error(
-        `Windows process-start observer emitted invalid JSON: ${line}`,
-      );
-      if (!ready) readyReject(protocolError);
-      return;
-    }
-    if (message?.event === "observer-ready") {
-      if (ready || events.length > 0) {
-        protocolError ||= new Error(
-          "Windows process-start observer emitted duplicate readiness",
-        );
-        return;
-      }
-      ready = true;
-      readyResolve();
-      return;
-    }
-    if (
-      message?.event === "process-start" &&
-      Number.isSafeInteger(Number(message.pid)) &&
-      Number(message.pid) > 0 &&
-      Number.isSafeInteger(Number(message.parentPid)) &&
-      Number(message.parentPid) >= 0 &&
-      typeof message.creationMarker === "string" &&
-      /^wmi-time-created:\d+$/.test(message.creationMarker) &&
-      Number.isSafeInteger(Number(message.sequence)) &&
-      Number(message.sequence) === nextSequence
-    ) {
-      events.push({
-        sequence: nextSequence,
-        pid: Number(message.pid),
-        parentPid: Number(message.parentPid),
-        processName: String(message.processName || ""),
-        creationMarker: message.creationMarker,
-      });
-      nextSequence += 1;
-      return;
-    }
-    protocolError ||= new Error(
-      `Windows process-start observer emitted an invalid event: ${line}`,
-    );
-    if (!ready) readyReject(protocolError);
-  };
   observer.stdout.setEncoding("utf8");
   observer.stdout.on("data", (chunk) => {
-    stdout += chunk;
-    let newline = stdout.indexOf("\n");
-    while (newline >= 0) {
-      consumeLine(stdout.slice(0, newline));
-      stdout = stdout.slice(newline + 1);
-      newline = stdout.indexOf("\n");
-    }
+    const wasReady = protocol.ready;
+    protocol.push(chunk);
+    if (!wasReady && protocol.ready) readyResolve();
+    if (protocol.error && !protocol.ready) readyReject(protocol.error);
   });
   observer.stderr.setEncoding("utf8");
   observer.stderr.on("data", (chunk) => {
     stderr += chunk;
   });
   observer.once("error", (error) => {
-    if (!ready) readyReject(error);
+    observerError = error;
+    if (!protocol.ready) readyReject(error);
   });
   closePromise.then(({ code, signal }) => {
-    if (!ready) {
+    if (!protocol.ready) {
       readyReject(
         new Error(
           `Windows process-start observer exited before readiness: code=${code}; signal=${signal}; stderr=${stderr.trim()}`,
@@ -536,7 +734,8 @@ async function startWindowsProcessStartObserver() {
             `Windows process-start observer failed: code=${outcome.code}; signal=${outcome.signal}; stderr=${stderr.trim()}`,
           );
         }
-        if (protocolError) throw protocolError;
+        if (observerError) throw observerError;
+        if (protocol.error) throw protocol.error;
         return [...events];
       } catch (error) {
         observer.kill();
@@ -1161,27 +1360,162 @@ describe("materialized MCP capsule host observer helpers", () => {
     ]).toEqual([first, second]);
   });
 
-  it("starts the Windows WMI event source before ready and drains before stop", () => {
+  it("registers one Windows WMI callback before ready and drains its queue", () => {
+    const source = windowsProcessStartObserverSource;
     const script = windowsProcessStartObserverScript();
     expect(script).toContain("Add-Type -AssemblyName System.Management");
-    expect(script).toContain("System.Management.ManagementEventWatcher");
-    expect(script).toContain("Win32_ProcessStartTrace");
-    expect(script).toContain("WaitForNextEvent()");
-    expect(script).toContain("TIME_CREATED");
-    expect(script).toContain("sequence = [long]$Sequence.Value");
-    expect(script).not.toContain("CreateToolhelp32Snapshot");
-    const started = script.indexOf("$watcher.Start()");
-    const ready = script.indexOf('{"event":"observer-ready"}');
-    const stopObserved = script.indexOf(
-      "while (-not [IO.File]::Exists($stopPath))",
+    expect(script).toContain("System.Management.dll");
+    expect(source).toContain("ConcurrentQueue<ProcessStartRecord>");
+    expect(source).toContain("Win32_ProcessStartTrace");
+    expect(source).toContain('started["TIME_CREATED"]');
+    expect(source).toContain("state.Queue.Enqueue");
+    expect(source).toContain("Interlocked.CompareExchange");
+    expect(source).not.toContain("WaitForNextEvent");
+    expect(source).not.toContain("CreateToolhelp32Snapshot");
+
+    const captureStart = source.indexOf("private static void CaptureStart");
+    const captureEnd = source.indexOf(
+      "private static void ThrowHandlerFailure",
     );
-    const drained = script.indexOf("$drainUntil =");
-    const stopped = script.indexOf("$watcher.Stop()");
-    expect(started).toBeGreaterThanOrEqual(0);
+    expect(source.slice(captureStart, captureEnd)).not.toContain("Console.Out");
+
+    const registered = source.indexOf("watcher.EventArrived += handler;");
+    const started = source.indexOf("watcher.Start();", registered);
+    const ready = source.indexOf("observer-ready", started);
+    const stopObserved = source.indexOf(
+      "while (!File.Exists(stopPath))",
+      ready,
+    );
+    const drained = source.indexOf("DateTime drainUntil", stopObserved);
+    const stopped = source.indexOf("watcher.Stop();", drained);
+    const unregistered = source.indexOf(
+      "watcher.EventArrived -= handler;",
+      stopped,
+    );
+    const finalDrain = source.indexOf(
+      "DrainQueue(state, ref sequence);",
+      unregistered,
+    );
+    expect(registered).toBeGreaterThanOrEqual(0);
+    expect(started).toBeGreaterThan(registered);
     expect(ready).toBeGreaterThan(started);
     expect(stopObserved).toBeGreaterThan(ready);
     expect(drained).toBeGreaterThan(stopObserved);
     expect(stopped).toBeGreaterThan(drained);
+    expect(unregistered).toBeGreaterThan(stopped);
+    expect(finalDrain).toBeGreaterThan(unregistered);
+  });
+
+  it.runIf(process.platform === "win32")(
+    "compiles the Windows WMI observer with PowerShell 5.1 assemblies",
+    () => {
+      const result = nativeSpawnSync(
+        "powershell.exe",
+        [
+          "-NoLogo",
+          "-NoProfile",
+          "-NonInteractive",
+          "-Command",
+          `${windowsProcessStartObserverCompilationScript()}\n[ChainlessChainProcessStartObserver] | Out-Null`,
+        ],
+        {
+          encoding: "utf8",
+          env: {
+            ...process.env,
+            CC_MCP_PROCESS_OBSERVER_CSHARP: Buffer.from(
+              windowsProcessStartObserverSource,
+              "utf8",
+            ).toString("base64"),
+          },
+          timeout: PROCESS_OBSERVER_TIMEOUT_MS,
+          windowsHide: true,
+        },
+      );
+      if (result.error || result.status !== 0) {
+        throw new Error(
+          `Windows WMI observer did not compile: ${result.error?.message || String(result.stderr || "").trim()}`,
+        );
+      }
+    },
+    30_000,
+  );
+
+  it("accepts only ordered native-number Windows observer events", () => {
+    const protocol = createWindowsProcessStartProtocol();
+    protocol.push('{"event":"observer-');
+    protocol.push('ready"}\r\n');
+    protocol.push(
+      `${JSON.stringify({
+        event: "process-start",
+        pid: 707,
+        parentPid: 606,
+        creationMarker: "wmi-time-created:123456",
+        sequence: 0,
+      })}\n${JSON.stringify({
+        event: "process-start",
+        pid: 808,
+        parentPid: 707,
+        processName: "node.exe",
+        creationMarker: "wmi-time-created:123457",
+        sequence: 1,
+      })}\n`,
+    );
+    expect(protocol.finish()).toBeNull();
+    expect(protocol.events).toEqual([
+      {
+        sequence: 0,
+        pid: 707,
+        parentPid: 606,
+        processName: "",
+        creationMarker: "wmi-time-created:123456",
+      },
+      {
+        sequence: 1,
+        pid: 808,
+        parentPid: 707,
+        processName: "node.exe",
+        creationMarker: "wmi-time-created:123457",
+      },
+    ]);
+  });
+
+  it("rejects malformed, pre-ready, skipped, coerced, and truncated events", () => {
+    const event = (overrides = {}) => ({
+      event: "process-start",
+      pid: 707,
+      parentPid: 606,
+      creationMarker: "wmi-time-created:123456",
+      sequence: 0,
+      ...overrides,
+    });
+
+    const malformed = createWindowsProcessStartProtocol();
+    malformed.push("{not-json}\n");
+    expect(malformed.error?.message).toContain("invalid JSON");
+
+    const preReady = createWindowsProcessStartProtocol();
+    preReady.push(`${JSON.stringify(event())}\n`);
+    expect(preReady.error?.message).toContain("before readiness");
+
+    const skipped = createWindowsProcessStartProtocol();
+    skipped.push('{"event":"observer-ready"}\n');
+    skipped.push(`${JSON.stringify(event({ sequence: 1 }))}\n`);
+    expect(skipped.error?.message).toContain("invalid event");
+
+    for (const field of ["pid", "parentPid", "sequence"]) {
+      const coerced = createWindowsProcessStartProtocol();
+      coerced.push('{"event":"observer-ready"}\n');
+      coerced.push(
+        `${JSON.stringify(event({ [field]: String(event()[field]) }))}\n`,
+      );
+      expect(coerced.error?.message).toContain("invalid event");
+    }
+
+    const truncated = createWindowsProcessStartProtocol();
+    truncated.push('{"event":"observer-ready"}\n');
+    truncated.push(JSON.stringify(event()));
+    expect(truncated.error).toBeNull();
+    expect(truncated.finish()?.message).toContain("unterminated tail");
   });
 
   it.runIf(LIVE && process.platform === "win32")(

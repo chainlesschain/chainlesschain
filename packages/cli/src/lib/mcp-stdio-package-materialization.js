@@ -40,6 +40,9 @@ const CAPSULE_SCHEMA = "chainlesschain.mcp-stdio-node-capsule/v1";
 const CAPSULE_RELATIVE_PATH = "capsule/server.cjs";
 const CAPSULE_BUILDER = "esbuild";
 const CAPSULE_BUILDER_VERSION = "0.28.1";
+const CAPSULE_STDIN_WRAPPER_SCHEMA =
+  "chainlesschain.mcp-stdio-capsule-stdin-wrapper/v1";
+const CAPSULE_STDIN_WRAPPER_SOURCEFILE = "chainlesschain-capsule-entry.cjs";
 const CAPSULE_BUILDER_BINARIES = Object.freeze({
   "darwin-arm64": Object.freeze({
     packageName: "@esbuild/darwin-arm64",
@@ -878,10 +881,10 @@ export function esbuildRelativeEntrypointArg(
   if (reboundRelative !== entrypointRelative) {
     throw new Error("MCP capsule entrypoint escaped its canonical snapshot");
   }
-  // esbuild's Windows CLI classifies a node_modules-looking relative argv as
-  // a package path and mechanically suggests another `./`. The realpath-bound
-  // absolute argv is unambiguously a file on every supported host.
-  return canonicalEntrypoint;
+  // This is a logical source label for esbuild's stdin mode, not a positional
+  // entrypoint. Positional node_modules paths are package-classified by the
+  // native Windows CLI even when they are absolute or repeatedly prefixed.
+  return entrypointRelative;
 }
 
 function buildCapsule({
@@ -916,11 +919,28 @@ function buildCapsule({
     if (canonicalEntrypointRelative !== entrypointRelative) {
       throw new Error("MCP capsule entrypoint changed through a path alias");
     }
-    const builderEntrypoint = esbuildRelativeEntrypointArg(
+    const boundEntrypointRelative = esbuildRelativeEntrypointArg(
       entrypointRelative,
       canonicalSnapshotRoot,
       canonicalEntrypoint,
     );
+    const entryRecord = closure.files.find(
+      (record) => record.path === entrypointRelative,
+    );
+    const entryInput = _deps.fs.readFileSync(canonicalEntrypoint);
+    if (
+      !entryRecord ||
+      entryInput.length !== entryRecord.bytes ||
+      sha256(entryInput) !== entryRecord.sha256
+    ) {
+      throw new Error("MCP capsule entrypoint changed before bundling");
+    }
+    const wrapperSpecifier = `./${boundEntrypointRelative}`;
+    const wrapperSource = Buffer.from(
+      `"use strict";\nrequire(${JSON.stringify(wrapperSpecifier)});\n`,
+      "utf8",
+    );
+    const wrapperSha256 = sha256(wrapperSource);
     const builder = resolveCapsuleBuilderBinary();
     const runThroughProcessBroker =
       processBrokerRunSync || _deps.processBrokerRunSync;
@@ -932,11 +952,11 @@ function buildCapsule({
     const result = runThroughProcessBroker(
       builder.binary,
       [
-        builderEntrypoint,
         "--bundle",
         "--charset=utf8",
         "--format=cjs",
         "--legal-comments=none",
+        "--loader=js",
         "--log-level=warning",
         `--metafile=${metafilePath}`,
         `--outfile=${capsulePath}`,
@@ -944,6 +964,7 @@ function buildCapsule({
         "--platform=node",
         "--preserve-symlinks",
         "--supported:dynamic-import=false",
+        `--sourcefile=${CAPSULE_STDIN_WRAPPER_SOURCEFILE}`,
         "--target=node22",
         "--tree-shaking=false",
         `--banner:js=${capsuleRuntimeGuard()}`,
@@ -952,6 +973,7 @@ function buildCapsule({
         cwd: canonicalSnapshotRoot,
         env: sanitizeMcpStdioHostEnvironment(env),
         encoding: "utf8",
+        input: wrapperSource,
         shell: false,
         windowsHide: true,
         maxBuffer: 8 * 1024 * 1024,
@@ -980,12 +1002,24 @@ function buildCapsule({
     const sourceByPath = new Map(
       closure.files.map((record) => [record.path, record]),
     );
+    const wrapperInput = metafile.inputs[CAPSULE_STDIN_WRAPPER_SOURCEFILE];
+    if (
+      !wrapperInput ||
+      wrapperInput.bytes !== wrapperSource.length ||
+      !Array.isArray(wrapperInput.imports) ||
+      wrapperInput.imports.length !== 1 ||
+      wrapperInput.imports[0]?.kind !== "require-call" ||
+      wrapperInput.imports[0]?.original !== wrapperSpecifier
+    ) {
+      throw new Error("MCP capsule build did not bind its stdin wrapper");
+    }
     const inputs = Object.keys(metafile.inputs)
       .map((input) => input.split(path.sep).join("/"))
+      .filter((input) => input !== CAPSULE_STDIN_WRAPPER_SOURCEFILE)
       .sort()
       .map((input) => {
         const absolute = realpath(
-          path.resolve(snapshotRoot, ...input.split("/")),
+          path.resolve(canonicalSnapshotRoot, ...input.split("/")),
         );
         const relative = path
           .relative(canonicalSnapshotRoot, absolute)
@@ -1049,6 +1083,8 @@ function buildCapsule({
       builderVersion: CAPSULE_BUILDER_VERSION,
       builderPlatform: builder.platform,
       builderBinarySha256: builder.sha256,
+      wrapperSchema: CAPSULE_STDIN_WRAPPER_SCHEMA,
+      wrapperSha256,
       nodeTarget: "node22",
       inputCount: inputs.length,
       inputDigest: sha256(canonicalJson(inputs)),
@@ -1101,6 +1137,9 @@ function validateManifest(manifest) {
     !CAPSULE_BUILDER_BINARIES[manifest.capsule.builderPlatform] ||
     manifest.capsule?.builderBinarySha256 !==
       CAPSULE_BUILDER_BINARIES[manifest.capsule.builderPlatform]?.sha256 ||
+    manifest.capsule?.wrapperSchema !== CAPSULE_STDIN_WRAPPER_SCHEMA ||
+    typeof manifest.capsule?.wrapperSha256 !== "string" ||
+    !/^[a-f0-9]{64}$/.test(manifest.capsule.wrapperSha256) ||
     manifest.capsule?.nodeTarget !== "node22" ||
     !Number.isSafeInteger(manifest.capsule?.inputCount) ||
     manifest.capsule.inputCount <= 0 ||
