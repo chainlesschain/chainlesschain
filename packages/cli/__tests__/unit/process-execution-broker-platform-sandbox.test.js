@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import crypto from "node:crypto";
 import os from "node:os";
 import path from "node:path";
+import { Script } from "node:vm";
 import {
   afterAll,
   afterEach,
@@ -2284,6 +2285,7 @@ describe("platform sandbox adapter contract", () => {
     );
     const policyProbeSeparator = policyProbeCall[1].lastIndexOf("--");
     const policyProbeSource = policyProbeCall[1][policyProbeSeparator + 3];
+    expect(() => new Script(policyProbeSource)).not.toThrow();
     expect(
       policyProbeCall[1].slice(
         policyProbeSeparator + 1,
@@ -2294,10 +2296,26 @@ describe("platform sandbox adapter contract", () => {
       'spawnSync("/opt/chainless/runtime/node", ["-e"',
     );
     expect(policyProbeSource).toContain("detached: true");
-    expect(policyProbeSource).toContain("gid: process.getgid()");
-    expect(policyProbeSource).toContain("uid: process.getuid()");
-    expect(policyProbeSource).toContain("Number(fields[2]) !== pid");
-    expect(policyProbeSource).toContain("Number(fields[3]) !== pid");
+    expect(policyProbeSource).toContain(
+      'fs.openSync(childReportPath, "wx+", 0o600)',
+    );
+    expect(policyProbeSource).toContain(
+      'stdio: ["ignore", reportFd, "ignore"]',
+    );
+    expect(policyProbeSource).toContain("fs.writeSync(1");
+    expect(policyProbeSource).toContain("fs.readSync(reportFd");
+    expect(policyProbeSource).toContain("crypto.randomBytes(16)");
+    expect(policyProbeSource).toContain("reportText === canonicalReport");
+    expect(policyProbeSource).toContain(
+      "report.processGroupPid === report.pid",
+    );
+    expect(policyProbeSource).toContain("report.sessionPid === report.pid");
+    expect(policyProbeSource).not.toContain('"pipe"');
+    expect(policyProbeSource).not.toContain("process.getuid()");
+    expect(policyProbeSource).not.toContain("process.getgid()");
+    expect(policyProbeSource).toContain(
+      "runtimeDetachedChildSpawnVerified = false",
+    );
     expect(policyProbeSource).toContain(
       "chainless-linux-bwrap-child-runtime-v1",
     );
@@ -3180,6 +3198,24 @@ describe("platform sandbox adapter contract", () => {
       },
     });
     expect(harness.bwrapDataReads).toHaveLength(2);
+    expect(harness.openFiles.size).toBe(0);
+    expect(harness.anonymousFiles.size).toBe(0);
+  });
+
+  it("classifies a failed detached child descriptor report without exposing stderr", () => {
+    const harness = createLinuxStrongHarness({ bwrapStatus: 86 });
+    const plan = applyLinuxStrongNodeHarness(harness);
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "linux_bwrap_policy_probe_failed",
+      runtimeProbe: {
+        attempted: true,
+        runnable: false,
+        reason: "detached_child_runtime_probe_failed",
+        runtimeDetachedChildSpawnVerified: false,
+      },
+    });
     expect(harness.openFiles.size).toBe(0);
     expect(harness.anonymousFiles.size).toBe(0);
   });

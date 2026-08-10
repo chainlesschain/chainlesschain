@@ -3,13 +3,16 @@ const net = require("node:net");
 const readline = require("node:readline");
 const { spawn } = require("node:child_process");
 const {
-  detachedChildSpawnIdentityOptions,
+  completeChildReportLine,
+  detachedChildSpawnStdio,
   resolveChildRuntimePath,
   successfulChildReport,
 } = require("./mcp-materialized-capsule-child-contract.cjs");
 const probeConfig = require("../probe-config.json");
 
 const descendants = new Set();
+const MAX_CHILD_REPORT_BYTES = 64 * 1024;
+let childProbeSequence = 0;
 
 function spawnFailureReport(error) {
   const errorCode =
@@ -214,7 +217,7 @@ const probeNetwork = (target) => new Promise((resolve) => {
 Promise.all(config.networkTargets.map((target) => probeNetwork(target))).then((networks) => {
   if (settled) return;
   settled = true;
-  process.stdout.write(JSON.stringify({
+  fs.writeSync(1, JSON.stringify({
     event: "child-ready",
     namespacePid: process.pid,
     ...processIdentity,
@@ -227,27 +230,64 @@ Promise.all(config.networkTargets.map((target) => probeNetwork(target))).then((n
 
 function launchDetachedChildProbe() {
   const runtimePath = resolveChildRuntimePath();
-  const identityOptions =
-    process.platform === "linux"
-      ? detachedChildSpawnIdentityOptions(
-          process.platform,
-          process.getuid(),
-          process.getgid(),
-        )
-      : detachedChildSpawnIdentityOptions(process.platform);
+  // This descriptor is a test-only observation channel for the trusted live
+  // fixture. Production admission relies on the Broker's independent runtime
+  // probe and audit evidence, never on a plugin self-report.
+  const descriptorReport = process.platform === "linux";
   return new Promise((resolve) => {
     let child;
     let settled = false;
     let buffer = "";
+    let reportDescriptor;
+    let reportPath;
+    let reportPoll;
+    let timer;
+    const cleanupReport = () => {
+      if (reportPoll) clearInterval(reportPoll);
+      reportPoll = null;
+      if (Number.isInteger(reportDescriptor)) {
+        try {
+          fs.closeSync(reportDescriptor);
+        } catch {
+          // Test-only observation cleanup; production probe cleanup is strict.
+        }
+      }
+      reportDescriptor = undefined;
+      if (reportPath) {
+        try {
+          fs.rmSync(reportPath, { force: true });
+        } catch {
+          // Test-only observation cleanup; production probe cleanup is strict.
+        }
+      }
+      reportPath = null;
+    };
     const finish = (report) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      cleanupReport();
       // Keep the actual launch target in the parent-owned envelope so a CI
       // failure cannot hide a stale descriptor or process.execPath fallback.
       resolve({ ...report, runtimePath });
     };
-    const timer = setTimeout(
+    const acceptReportLine = (line) => {
+      try {
+        const report = JSON.parse(line);
+        finish(successfulChildReport(report, child.pid));
+      } catch (error) {
+        finish({
+          spawnDenied: false,
+          reportReceived: false,
+          error:
+            error?.message ===
+            "MCP capsule child report PID does not match its spawn"
+              ? "child-pid-mismatch"
+              : "invalid-child-report",
+        });
+      }
+    };
+    timer = setTimeout(
       () =>
         finish({
           spawnDenied: false,
@@ -257,6 +297,10 @@ function launchDetachedChildProbe() {
       5_000,
     );
     try {
+      if (descriptorReport) {
+        reportPath = `/tmp/.chainless-mcp-child-report-${process.pid}-${++childProbeSequence}.json`;
+        reportDescriptor = fs.openSync(reportPath, "wx+", 0o600);
+      }
       child = spawn(
         runtimePath,
         [
@@ -268,35 +312,56 @@ function launchDetachedChildProbe() {
         ],
         {
           detached: true,
-          ...identityOptions,
           windowsHide: true,
-          stdio: ["ignore", "pipe", "ignore"],
+          stdio: detachedChildSpawnStdio(process.platform, reportDescriptor),
         },
       );
       descendants.add(child);
       child.once("close", () => descendants.delete(child));
       child.once("error", (error) => finish(spawnFailureReport(error)));
-      child.stdout.setEncoding("utf8");
-      child.stdout.on("data", (chunk) => {
-        buffer += chunk;
-        const newline = buffer.indexOf("\n");
-        if (newline < 0) return;
-        const line = buffer.slice(0, newline);
-        try {
-          const report = JSON.parse(line);
-          finish(successfulChildReport(report, child.pid));
-        } catch (error) {
-          finish({
-            spawnDenied: false,
-            reportReceived: false,
-            error:
-              error?.message ===
-              "MCP capsule child report PID does not match its spawn"
-                ? "child-pid-mismatch"
-                : "invalid-child-report",
-          });
-        }
-      });
+      if (descriptorReport) {
+        reportPoll = setInterval(() => {
+          try {
+            const stat = fs.fstatSync(reportDescriptor);
+            const bytes = Number(stat.size);
+            if (!stat.isFile() || !Number.isSafeInteger(bytes)) {
+              throw new Error("invalid child report descriptor");
+            }
+            if (bytes === 0) return;
+            if (bytes > MAX_CHILD_REPORT_BYTES) {
+              throw new Error("child report exceeds maximum bytes");
+            }
+            const content = Buffer.alloc(bytes);
+            const read = fs.readSync(reportDescriptor, content, 0, bytes, 0);
+            if (read !== bytes) return;
+            const line = completeChildReportLine(content);
+            if (line === null) return;
+            acceptReportLine(line);
+          } catch {
+            finish({
+              spawnDenied: false,
+              reportReceived: false,
+              error: "invalid-child-report",
+            });
+          }
+        }, 10);
+      } else {
+        child.stdout.setEncoding("utf8");
+        child.stdout.on("data", (chunk) => {
+          buffer += chunk;
+          try {
+            const line = completeChildReportLine(buffer);
+            if (line === null) return;
+            acceptReportLine(line);
+          } catch {
+            finish({
+              spawnDenied: false,
+              reportReceived: false,
+              error: "invalid-child-report",
+            });
+          }
+        });
+      }
     } catch (error) {
       finish(spawnFailureReport(error));
     }

@@ -63,7 +63,8 @@ const childContractFixturePath = fileURLToPath(
 );
 const loadFixtureModule = createRequire(import.meta.url);
 const {
-  detachedChildSpawnIdentityOptions,
+  completeChildReportLine,
+  detachedChildSpawnStdio,
   LINUX_CHILD_RUNTIME_PATH,
   resolveChildRuntimePath,
   successfulChildReport,
@@ -1455,15 +1456,37 @@ describe("materialized MCP capsule host observer helpers", () => {
     expect(resolveChildRuntimePath("win32", "C:\\nodejs\\node.exe")).toBe(
       "C:\\nodejs\\node.exe",
     );
-    expect(detachedChildSpawnIdentityOptions("linux", 1_001, 1_002)).toEqual({
-      uid: 1_001,
-      gid: 1_002,
-    });
-    expect(detachedChildSpawnIdentityOptions("darwin", 501, 20)).toEqual({});
-    expect(detachedChildSpawnIdentityOptions("win32")).toEqual({});
+    expect(detachedChildSpawnStdio("linux", 17)).toEqual([
+      "ignore",
+      17,
+      "ignore",
+    ]);
+    expect(detachedChildSpawnStdio("darwin")).toEqual([
+      "ignore",
+      "pipe",
+      "ignore",
+    ]);
+    expect(detachedChildSpawnStdio("win32")).toEqual([
+      "ignore",
+      "pipe",
+      "ignore",
+    ]);
+    expect(() => detachedChildSpawnStdio("linux", 2)).toThrow(
+      "Linux detached child requires a private report descriptor",
+    );
+  });
+
+  it("accepts exactly one complete child-report frame without trailing bytes", () => {
+    expect(completeChildReportLine(Buffer.from('{"event":"ready"}\n'))).toBe(
+      '{"event":"ready"}',
+    );
+    expect(completeChildReportLine('{"event":"ready"}')).toBeNull();
+    expect(() => completeChildReportLine('{"event":"ready"}\n\n')).toThrow(
+      "MCP capsule child report contains trailing bytes",
+    );
     expect(() =>
-      detachedChildSpawnIdentityOptions("linux", undefined, 1_002),
-    ).toThrow("Linux detached child requires the current uid and gid");
+      completeChildReportLine('{"event":"ready"}\nsecond-record'),
+    ).toThrow("MCP capsule child report contains trailing bytes");
   });
 
   it("keeps child-report envelope fields parent-owned", () => {

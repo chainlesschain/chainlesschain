@@ -13,22 +13,33 @@ function resolveChildRuntimePath(
   return platform === "linux" ? LINUX_CHILD_RUNTIME_PATH : execPath;
 }
 
-function detachedChildSpawnIdentityOptions(platform, uid, gid) {
-  if (platform !== "linux") return Object.freeze({});
-  if (
-    !Number.isSafeInteger(uid) ||
-    uid < 0 ||
-    !Number.isSafeInteger(gid) ||
-    gid < 0
-  ) {
-    throw new Error("Linux detached child requires the current uid and gid");
+function detachedChildSpawnStdio(platform, reportDescriptor) {
+  if (platform !== "linux") {
+    return Object.freeze(["ignore", "pipe", "ignore"]);
   }
-  // libuv's Linux POSIX_SPAWN_SETSID path can return EPERM inside the nested
-  // PID/user namespaces created by bubblewrap. Supplying the unchanged
-  // identity selects libuv's fork/exec path without changing privileges; the
-  // child report and live test independently prove that setsid still created
-  // a new process group and session.
-  return Object.freeze({ uid, gid });
+  if (!Number.isSafeInteger(reportDescriptor) || reportDescriptor < 3) {
+    throw new Error(
+      "Linux detached child requires a private report descriptor",
+    );
+  }
+  // The Linux capsule's network seccomp policy intentionally rejects
+  // socketpair(2). libuv implements UV_CREATE_PIPE with a socketpair on Unix,
+  // so inherit a pre-opened private tmpfs file instead. This keeps the network
+  // boundary intact while still carrying the child's setsid evidence.
+  return Object.freeze(["ignore", reportDescriptor, "ignore"]);
+}
+
+function completeChildReportLine(value) {
+  if (typeof value !== "string" && !Buffer.isBuffer(value)) {
+    throw new Error("MCP capsule child report frame must be bytes or text");
+  }
+  const text = Buffer.isBuffer(value) ? value.toString("utf8") : value;
+  const newline = text.indexOf("\n");
+  if (newline < 0) return null;
+  if (newline !== text.length - 1) {
+    throw new Error("MCP capsule child report contains trailing bytes");
+  }
+  return text.slice(0, newline);
 }
 
 function successfulChildReport(report, spawnedPid) {
@@ -56,7 +67,8 @@ function successfulChildReport(report, spawnedPid) {
 }
 
 module.exports = {
-  detachedChildSpawnIdentityOptions,
+  completeChildReportLine,
+  detachedChildSpawnStdio,
   LINUX_CHILD_RUNTIME_PATH,
   resolveChildRuntimePath,
   successfulChildReport,
