@@ -2104,6 +2104,9 @@ class ProcessExecutionBroker extends EventEmitter {
         ...(plan.runtimeProbe.targetRuntime !== undefined
           ? { targetRuntime: plan.runtimeProbe.targetRuntime }
           : {}),
+        ...(plan.runtimeProbe.capabilityCount !== undefined
+          ? { capabilityCount: plan.runtimeProbe.capabilityCount }
+          : {}),
         ...(plan.runtimeProbe.contentSnapshot !== undefined
           ? { contentSnapshot: plan.runtimeProbe.contentSnapshot }
           : {}),
