@@ -160,6 +160,29 @@ describe("published CLI OTLP lifecycle", () => {
       ]),
     );
     expect(metrics).toHaveLength(2);
+    expect(
+      metrics.every(
+        (metric) =>
+          metric.sum.aggregationTemporality === 1 &&
+          metric.sum.isMonotonic === true,
+      ),
+    ).toBe(true);
+    const durations = requests
+      .filter((item) => item.url === "/v1/metrics")
+      .flatMap(
+        (item) =>
+          item.body.resourceMetrics?.[0]?.scopeMetrics?.[0]?.metrics || [],
+      )
+      .filter(
+        (metric) =>
+          metric.name === "chainlesschain.cli.command.lifecycle.duration",
+      );
+    expect(durations).toHaveLength(2);
+    expect(
+      durations.every(
+        (metric) => metric.histogram.aggregationTemporality === 1,
+      ),
+    ).toBe(true);
     expect(JSON.stringify(requests)).not.toContain("config-v2");
   }, 30_000);
 });

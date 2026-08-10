@@ -8,6 +8,7 @@ on:
       - "cli-v*"
     paths:
       - "packages/cli/**"
+      - "docs/cli/COMMAND_LIFECYCLE_TELEMETRY.md"
       # 76+ vscode-ext-*.test.js suites in packages/cli/__tests__/unit import the
       # extension sources (and its manifest / l10n bundles) directly — an
       # extension-only commit must still run them.
@@ -25,6 +26,7 @@ on:
     branches: [main]
     paths:
       - "packages/cli/**"
+      - "docs/cli/COMMAND_LIFECYCLE_TELEMETRY.md"
       - "packages/vscode-extension/src/**"
       - "packages/vscode-extension/package.json"
       - "packages/vscode-extension/package.nls*.json"
@@ -85,6 +87,9 @@ jobs:
       - name: Verify command surface and top-level growth gate
         working-directory: packages/cli
         run: npm run commands:manifest:check
+      - name: Verify command lifecycle evidence contract
+        working-directory: packages/cli
+        run: npm run commands:lifecycle:report:check
       - name: Verify generated command help index
         working-directory: packages/cli
         run: npm run commands:help-index:check
