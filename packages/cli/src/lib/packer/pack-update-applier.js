@@ -46,6 +46,13 @@ export const _deps = {
   tmpdir: () => os.tmpdir(),
 };
 
+// A real Windows sidecar performs path, lock-token and digest checks before it
+// publishes the readiness marker. Loaded hosted runners have exceeded the old
+// 10 second allowance while still completing successfully. Keep the parent in
+// charge of the lock until the marker is verified, but give the safety
+// preflight a bounded budget that also covers heavily contended machines.
+export const WINDOWS_SIDECAR_READY_TIMEOUT_MS = 30_000;
+
 export async function scheduleReplace(ctx = {}) {
   const {
     newExePath,
@@ -778,7 +785,7 @@ function scheduleWindowsTransaction(ctx) {
           waitForReadyImpl({
             readyPath,
             transactionId,
-            timeoutMs: 10_000,
+            timeoutMs: WINDOWS_SIDECAR_READY_TIMEOUT_MS,
             child,
           }),
         ) && !childError;
