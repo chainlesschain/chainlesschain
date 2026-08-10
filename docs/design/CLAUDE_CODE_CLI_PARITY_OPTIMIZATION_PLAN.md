@@ -58,16 +58,16 @@ ChainlessChain CLI 已具备会话恢复、Checkpoint、上下文压缩、MCP、
 
 ### P2-14 / P2-16 发布状态校准（2026-07-31）
 
-> **当前稳定版补充（2026-08-09）**：`chainlesschain@0.163.2` 已取代
+> **当前稳定版补充（2026-08-10）**：`chainlesschain@0.163.3` 已取代
 > `0.162.189` 成为生产推荐版，精确 tag SHA 为
-> `2d6f19aea243ed4f054b585d4bc709d4209ff80d`。该 SHA 的
-> [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31277578939)、
-> [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31277578889)、
-> [两小时可靠性/恶意 MCP 门](https://github.com/chainlesschain/chainlesschain/actions/runs/31271803404)、
-> [专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/31277578900)与
-> [独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/31278310621)
+> `17fcf6aa7917dd0fcc83b3ab5204c196bbb81758`。该 SHA 的
+> [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31329476135)、
+> [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31329476020)、
+> [两小时可靠性/恶意 MCP 门](https://github.com/chainlesschain/chainlesschain/actions/runs/31329539092)、
+> [专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/31335579227)与
+> [独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/31336362525)
 > 均成功，覆盖三平台分层测试、exact-SHA gate、不可变 tarball/SBOM、Trusted Publishing、SLSA provenance 与 registry/npmmirror 回读。
-> `0.163.2` 继续包含本节 P2-14/P2-16 的限定能力和安全边界；版本升级不把受控
+> `0.163.3` 继续包含本节 P2-14/P2-16 的限定能力和安全边界；版本升级不把受控
 > workspace 回滚扩大为通用事务，也不把共享文件系统队列扩大为共识系统。
 
 > **正式发布补充（2026-08-01）**：下方 `7df6feced4670ac71d19548752d18ac4cc225025`

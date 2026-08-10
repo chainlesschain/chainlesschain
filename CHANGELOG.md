@@ -9,9 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added — cc CLI 0.163.3: isolated background agents and policy-bound runtimes
 
-> `chainlesschain` **0.163.2 → 0.163.3** (candidate; not yet published,
-> 2026-08-10).
-> CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.57**
+> `chainlesschain` **0.163.2 → 0.163.3** (published from exact SHA
+> `17fcf6aa7917dd0fcc83b3ab5204c196bbb81758`, 2026-08-10).
+> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.57**
 > and `@chainlesschain/agent-sdk` remains **0.1.7**.
 
 - **Git background isolation by default**: `cc agent --bg` runs started from a
@@ -61,11 +61,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   shared-library closure, remote revocation, signed native distribution, and
   alias telemetry/removal remain out of scope, so this release does not claim
   complete P1-2 closure.
-- **Release status**: final tag, exact source SHA, workflow run IDs, package
-  digest, provenance, and public registry readback are intentionally omitted
-  until the exact `0.163.3` release commit passes the required Linux, Windows,
-  and macOS `CLI CI` and `CLI Strict Sandbox` gates and the npm release/readback
-  workflows complete successfully.
+- **Published release evidence**: immutable tag `v-npm-0-163-3` resolves to
+  exact source commit `17fcf6aa7917dd0fcc83b3ab5204c196bbb81758`.
+  Its Linux, Windows, and macOS `CLI CI` (`31329476135`) and `CLI Strict
+Sandbox` (`31329476020`) matrices passed; the formal two-hour
+  reliability/malicious-MCP soak (`31329539092`) completed 7/7 jobs with 300
+  host cycles, 900 unapproved effects, 100 Linux races, 100 macOS fail-closed
+  probes, and zero escapes. The npm release (`31335579227`) and independent
+  public readback (`31336362525`) completed the exact-SHA gate, immutable
+  tarball/CycloneDX SBOM, Trusted Publishing, SLSA/Sigstore provenance,
+  registry byte comparison, and npmmirror synchronization. The public tarball
+  SHA-256 is
+  `68396c418029fc314403c9882c92fb9bef5ec6e9a61bb186333209884d410a92`.
 
 ### Fixed — cc CLI 0.163.2: fail-closed MCP capsule sandbox composition
 

@@ -5,12 +5,21 @@
 
 ## [Unreleased]
 
-#### Added — 最新主线：MCP 沙箱策略从配置源贯通到 Process Broker
+#### Fixed — 发布后源码：MCP capsule 强制宿主沙箱地板
 
-> 该能力位于最新主线提交 [`9fa5162e66`](https://github.com/chainlesschain/chainlesschain/commit/9fa5162e668fa9b457b0d70d54a0806773c363ab)，晚于当前 npm 不可变发布 tag；在后续版本完成自身 exact-SHA 三平台门禁前，不把它写成已发布 npm 契约。
+> 当前分支提交 `d2fcbddc99` 晚于不可变 `v-npm-0-163-3`；在后续版本完成自身 exact-SHA 三平台门禁前，不把它写成已发布 npm 契约。
 
-- local / project / user / managed、Skill 与 Cowork 的 stdio MCP 定义现在可以携带 `sandboxPolicy.requiredBoundaries`（当前只接受 `filesystem` / `network`）和可信 `cwd`；策略会绑定 workspace authority 后传给 Process Broker，平台无法证明请求边界时失败闭合。
-- Proxy/accessor、未知字段、不支持的 boundary 与越出 authority 的工作目录都会被拒绝；失效的高优先级定义会保留 server name，避免静默回落到同名低优先级配置而削弱策略。
+- exact-package stdio MCP capsule 只在 trusted executable-identity preparer 已发行 execution contract 后，强制叠加 `code-snapshot`、`filesystem`、`network`、`process-tree` 四个宿主边界。
+- source 配置先作为不可信数据规范化，只能增加要求，不能关闭宿主地板；CI selector 同步纳入 policy 与 capsule contract 测试。
+
+#### Added — CLI 0.163.3 正式发布：后台 Agent 默认隔离与策略化运行时
+
+> `chainlesschain@0.163.3` 已成为 npm `latest` 与生产推荐版。不可变 tag `v-npm-0-163-3` 精确指向 [`17fcf6aa79`](https://github.com/chainlesschain/chainlesschain/commit/17fcf6aa7917dd0fcc83b3ab5204c196bbb81758)；该 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31329476135)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31329476020)、[三系统两小时可靠性 / 恶意 MCP 门](https://github.com/chainlesschain/chainlesschain/actions/runs/31329539092)、[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/31335579227)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/31336362525)均成功。公网 tarball 与 workflow artifact 逐字节一致，SHA-256 为 `68396c418029fc314403c9882c92fb9bef5ec6e9a61bb186333209884d410a92`。
+
+- **后台 worktree 默认开启**：干净 Git checkout 的非 `stream-json` `cc agent --bg` 从 committed `HEAD` 创建隔离 worktree；`--worktree` 显式请求同一路径，只有 `--no-worktree` 共享 checkout，脏工作区拒绝启动。
+- **所有权与参数 fence**：generation/token-fenced 状态、durable turn intent、terminal-absorbing update 与 grammar-safe detached argv 防止 stale worker 复活、误删 live worktree 或把 prompt 重新解析为权限参数。
+- **策略与平台封存**：MCP source policy/cwd authority 贯通 Broker；Linux 插件树逐文件 sealed snapshot；Windows helper/cache/test artifact 绑定可信临时根并在身份不明时保留现场、失败闭合。
+- **剩余边界**：macOS atomic exec、任意 native/shared-library 递归闭包、远端 revoke/distributed authority、签名 native 发行和 hard-crash spawn-to-PID 窗口仍未关闭。
 
 #### Fixed — CLI 0.163.2 正式发布：失败闭合的 MCP 执行 capsule
 
@@ -22,9 +31,9 @@
 - **macOS 诚实边界**：公开 Darwin exec/spawn API 无法把已验证 descriptor 原子绑定到最终 image，因此严格 capsule 返回类型化失败闭合，而不是把 pathname snapshot 误报成原子代码身份。
 - **边界不扩大**：本版不宣称任意 native/shared-library closure、远程分布式撤销、完整恶意 Skill 矩阵或签名 Desktop/native 发布；25 个兼容 alias 继续保留。
 
-#### Added — IDE ARM64 公开认证：Open VSX 0.37.47 / JetBrains Marketplace 0.4.83
+#### Added — IDE 维护认证：Open VSX 0.37.48 / JetBrains Marketplace 0.4.84
 
-> 双 tag `ide-vscode-v0.37.47` / `ide-jetbrains-v0.4.83` 精确指向 [`9db081c5a9`](https://github.com/chainlesschain/chainlesschain/commit/9db081c5a9b24d1c51952e86513b0520620feadd)。[11 格 ARM64 宿主聚合门](https://github.com/chainlesschain/chainlesschain/actions/runs/31269850865)、[VS Code 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/31271800174)与[JetBrains 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/31271800206)均成功；Open VSX `0.37.47` 与 JetBrains Marketplace `0.4.83` 已公开，微软 VS Code Marketplace 仍未发布。
+> 双 tag `ide-vscode-v0.37.48` / `ide-jetbrains-v0.4.84` 精确指向 [`5c9506c73c`](https://github.com/chainlesschain/chainlesschain/commit/5c9506c73c7692edc48e0b528355035c7e018fc6)。[11 格 ARM64 宿主聚合门](https://github.com/chainlesschain/chainlesschain/actions/runs/31325856489)、[VS Code 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/31326880152)与[JetBrains 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/31327569046)均成功；Open VSX `0.37.48` 与 JetBrains Marketplace `0.4.84` 已公开，微软 VS Code Marketplace 仍未发布。
 
 - VS Code 在 Linux / Windows / macOS ARM64 上覆盖 stable 与最低支持版 `1.85.2`；JetBrains 覆盖 Linux/macOS 的 2024.2、2025.2 与 Windows ARM64 精确版 2026.2.0.1，共享证据必须凑齐精确 11 格。
 - chat、Stop/force-stop、restart recovery、canonical rewind、Sessions Workbench 与 artifact 路径均走真实宿主；本次修复等待持久化的 in-flight Stop 响应后再执行第二次 force-stop，消除发布夹具竞态。
