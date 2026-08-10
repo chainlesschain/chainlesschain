@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.163.4",
+      "cliVersions": ["0.163.3", "0.163.4"],
+      "date": "2026-08-11",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added — cc CLI 0.163.4: immutable MCP capsules and durable scheduler storage",
+          "body": "> `chainlesschain` **0.163.3 → 0.163.4** (candidate; not yet published,\n> 2026-08-11).\n> CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.57**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Immutable MCP capsule build inputs**: the capsule builder now executes in a\n  bounded worker against an in-memory WASM virtual filesystem populated from\n  verified bytes. Package sources and native builder assets are canonicalized,\n  identity-bound, and no longer reopened from mutable host paths during the\n  build.\n- **Platform-bound live capsule evidence**: materialized stdio MCP capsules are\n  exercised through the production Process Broker and child contract on Linux,\n  Windows, and macOS. Framed reports, exact asset identity, deferred host-path\n  resolution, and shared CJS/ESM trace context prevent warning or path-alias\n  drift from weakening the evidence chain.\n- **Bounded failure behavior**: worker memory, output, timeout, and cleanup are\n  bounded; partial or malformed child evidence, post-verification replacement,\n  unapproved effects, and unsupported strict boundaries fail closed.\n- **Command lifecycle evidence and alias decision**: report v2 binds exact\n  coverage, approval, scope, and repository evidence and summarizes command\n  telemetry without silently accepting zero-data input. All 25 deprecated\n  aliases remain retained until representative opt-in telemetry exists and the\n  documented `0.164.0` removal floor is reached.\n- **Scheduler kernel storage foundation**: a versioned SQLite store adds strict\n  schema verification, expected-revision CAS, logical-occurrence deduplication,\n  durable claims, and two-handle race coverage. This is the first P2-4 storage\n  milestone, not completion of the scheduling kernel or orchestration runtime.\n- **Delivery and recovery hardening**: production delivery adapters, durable\n  provider-backed compaction, MCP recovery admission, session ownership fences,\n  and exact Windows write checks close additional internal consistency gaps.\n- **Native release readback hardening**: release evidence now verifies public\n  bytes, checksums, manifests, signatures, and provenance contracts more\n  strictly. Signed native distribution is still blocked until real signed\n  artifacts and public package-manager readback are available.\n- **Known residuals**: full P2-4 scheduling orchestration, signed native\n  distribution, representative alias telemetry, and the remaining documented\n  long-soak/host-boundary follow-ups are not claimed by this release.\n- **Release status**: final tag, exact source SHA, workflow run IDs, package\n  digest, provenance, and public registry readback are intentionally omitted\n  until the exact `0.163.4` release commit passes the Linux, Windows, and macOS\n  `CLI CI` and `CLI Strict Sandbox` gates and the npm release/readback workflows\n  complete successfully."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.163.3",
       "cliVersions": ["0.163.2", "0.163.3"],
       "date": "2026-08-10",
