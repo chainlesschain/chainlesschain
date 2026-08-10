@@ -14,7 +14,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("../../src/harness/jsonl-session-store.js", () => ({
   sessionExists: vi.fn(() => true),
-  appendCompactEvent: vi.fn(),
+  appendCompactEventIfMessagesMatch: vi.fn(),
 }));
 
 const store = await import("../../src/harness/jsonl-session-store.js");
@@ -57,14 +57,18 @@ describe("agentLoop compaction self-persist", () => {
 
   it("persists a compact event for a persisted session (file exists)", async () => {
     const messages = seedLargeHistory();
+    const expectedMessages = messages.map((message) => ({ ...message }));
     await drain(
       agentLoop(messages, { chatFn: finalReplyChatFn(), sessionId: "s1" }),
     );
-    expect(store.appendCompactEvent).toHaveBeenCalledTimes(1);
-    const [sid, payload] = store.appendCompactEvent.mock.calls[0];
+    expect(store.appendCompactEventIfMessagesMatch).toHaveBeenCalledTimes(1);
+    const [sid, payload, authorityExpectedMessages] =
+      store.appendCompactEventIfMessagesMatch.mock.calls[0];
     expect(sid).toBe("s1");
+    expect(payload.trigger).toBe("auto");
     expect(Array.isArray(payload.messages)).toBe(true);
     expect(payload.compressedMessages).toBeLessThan(payload.originalMessages);
+    expect(authorityExpectedMessages).toEqual(expectedMessages);
   });
 
   it("does NOT persist when the session file does not exist (one-shot)", async () => {
@@ -73,13 +77,13 @@ describe("agentLoop compaction self-persist", () => {
     await drain(
       agentLoop(messages, { chatFn: finalReplyChatFn(), sessionId: "oneshot" }),
     );
-    expect(store.appendCompactEvent).not.toHaveBeenCalled();
+    expect(store.appendCompactEventIfMessagesMatch).not.toHaveBeenCalled();
   });
 
   it("does NOT persist when no sessionId is set", async () => {
     const messages = seedLargeHistory();
     await drain(agentLoop(messages, { chatFn: finalReplyChatFn() }));
-    expect(store.appendCompactEvent).not.toHaveBeenCalled();
+    expect(store.appendCompactEventIfMessagesMatch).not.toHaveBeenCalled();
   });
 
   it("lets an explicit onCompaction hook take precedence over self-persist", async () => {
@@ -93,7 +97,7 @@ describe("agentLoop compaction self-persist", () => {
       }),
     );
     expect(onCompaction).toHaveBeenCalledTimes(1);
-    expect(store.appendCompactEvent).not.toHaveBeenCalled();
+    expect(store.appendCompactEventIfMessagesMatch).not.toHaveBeenCalled();
   });
 
   it("respects persistCompaction:false", async () => {
@@ -105,6 +109,6 @@ describe("agentLoop compaction self-persist", () => {
         persistCompaction: false,
       }),
     );
-    expect(store.appendCompactEvent).not.toHaveBeenCalled();
+    expect(store.appendCompactEventIfMessagesMatch).not.toHaveBeenCalled();
   });
 });
