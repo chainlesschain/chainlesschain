@@ -1012,7 +1012,7 @@ export function registerMcpCommand(program) {
           approval,
         );
         const approvalRecord = resolveMcpStdioExecutionApproval(approval);
-        const materialized = materializeMcpStdioNpmPackage({
+        const materialized = await materializeMcpStdioNpmPackage({
           approvalRecord,
           config: invocation,
           packageSpec: exact.spec,

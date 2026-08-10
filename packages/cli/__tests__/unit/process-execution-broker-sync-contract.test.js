@@ -1,5 +1,9 @@
+import { createRequire } from "node:module";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { traceContext } from "../../src/lib/execution-trace/trace-context.js";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
+
+const require = createRequire(import.meta.url);
 
 const ORIGINAL_NATIVE = executionBroker._native;
 const ORIGINAL_SANDBOX = executionBroker._platformSandboxEnabled;
@@ -55,6 +59,52 @@ describe("ProcessExecutionBroker execFileSync contract", () => {
       permissionDecision: "allow",
       sync: true,
       exitCode: 0,
+    });
+  });
+
+  it("shares one trace singleton across CJS and ESM consumers", () => {
+    const cjsTraceContext = require("../../src/lib/execution-trace/trace-context.cjs");
+
+    expect(cjsTraceContext.traceContext).toBe(traceContext);
+  });
+
+  it("propagates the shared active trace to sync children and audit", async () => {
+    spawnSync.mockReturnValue({
+      status: 0,
+      signal: null,
+      stdout: "ok\n",
+      stderr: "",
+    });
+    const span = traceContext.startRootSpan("broker-sync-contract");
+    const traceparent = traceContext.formatTraceparent(
+      span.traceId,
+      span.spanId,
+    );
+
+    try {
+      await traceContext.runInContext(span, async () => {
+        executionBroker.execFileSync("tool", ["trace"], {
+          encoding: "utf8",
+          origin: "test:trace-context",
+          policy: "allow",
+          scope: "test",
+          shell: false,
+        });
+      });
+    } finally {
+      traceContext.endSpan(span);
+    }
+
+    expect(spawnSync).toHaveBeenCalledWith(
+      "tool",
+      ["trace"],
+      expect.objectContaining({
+        env: expect.objectContaining({ TRACEPARENT: traceparent }),
+      }),
+    );
+    expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
+      origin: "test:trace-context",
+      traceId: span.traceId,
     });
   });
 

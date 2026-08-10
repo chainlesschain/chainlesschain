@@ -73,7 +73,7 @@ const _ipcBus = null;
 function getTraceCtx() {
   if (!_traceCtx) {
     try {
-      _traceCtx = require("../execution-trace/trace-context.js");
+      _traceCtx = require("../execution-trace/trace-context.cjs");
     } catch {
       _traceCtx = null;
     }
@@ -1218,6 +1218,7 @@ class ProcessExecutionBroker extends EventEmitter {
         "entrySnapshotAtomic",
         "runtimeLaunchAtomic",
         "mcpCapsuleCodeSnapshot",
+        "runtimeDetachedChildSpawnVerified",
       ]) {
         if (
           plan.runtimeProbe[field] !== undefined &&
@@ -1237,6 +1238,7 @@ class ProcessExecutionBroker extends EventEmitter {
         "runtimeSnapshotBytes",
         "runtimeAttestedBytes",
         "entrySnapshotBytes",
+        "capabilityCount",
       ]) {
         if (
           plan.runtimeProbe[field] !== undefined &&
@@ -1758,6 +1760,7 @@ class ProcessExecutionBroker extends EventEmitter {
           plan.runtimeProbe.runtimeLaunchAtomic === true &&
           plan.runtimeProbe.runtimeLaunchMechanism ===
             "bwrap-descriptor-mount-node-runtime-exec-v1" &&
+          plan.runtimeProbe.runtimeDetachedChildSpawnVerified === true &&
           plan.runtimeProbe.supervisorDescriptorBound === true &&
           plan.runtimeProbe.pluginTreeContentSnapshot === true &&
           plan.runtimeProbe.runtimeLaunchPath ===
@@ -1794,6 +1797,7 @@ class ProcessExecutionBroker extends EventEmitter {
             (backend === "windows-appcontainer-job-restricted-token" &&
               plan.runtimeProbe.kind ===
                 "windows-appcontainer-launch-attestation-v1" &&
+              plan.runtimeProbe.capabilityCount === 0 &&
               policyAttested === true &&
               policyDigest !== null)) &&
           plan.runtimeProbe.contentSnapshotScope ===
@@ -1828,6 +1832,17 @@ class ProcessExecutionBroker extends EventEmitter {
             "Code snapshot guarantee requires typed atomic MCP capsule evidence",
           );
         }
+      }
+      if (
+        plan.runtimeProbe.kind ===
+          "windows-appcontainer-launch-attestation-v1" &&
+        plan.runtimeProbe.runnable === true &&
+        plan.runtimeProbe.capabilityCount !== 0
+      ) {
+        throw this._sandboxError(
+          "invalid_sandbox_plan",
+          "Windows AppContainer runtime evidence must attest zero capabilities",
+        );
       }
       const genericWorkspaceEvidenceFields = [
         "contractDigest",
@@ -2103,6 +2118,9 @@ class ProcessExecutionBroker extends EventEmitter {
         ...(plan.runtimeProbe.targetRuntime !== undefined
           ? { targetRuntime: plan.runtimeProbe.targetRuntime }
           : {}),
+        ...(plan.runtimeProbe.capabilityCount !== undefined
+          ? { capabilityCount: plan.runtimeProbe.capabilityCount }
+          : {}),
         ...(plan.runtimeProbe.contentSnapshot !== undefined
           ? { contentSnapshot: plan.runtimeProbe.contentSnapshot }
           : {}),
@@ -2114,6 +2132,12 @@ class ProcessExecutionBroker extends EventEmitter {
           : {}),
         ...(plan.runtimeProbe.runtimeLaunchAtomic !== undefined
           ? { runtimeLaunchAtomic: plan.runtimeProbe.runtimeLaunchAtomic }
+          : {}),
+        ...(plan.runtimeProbe.runtimeDetachedChildSpawnVerified !== undefined
+          ? {
+              runtimeDetachedChildSpawnVerified:
+                plan.runtimeProbe.runtimeDetachedChildSpawnVerified,
+            }
           : {}),
         ...(plan.runtimeProbe.runtimeLaunchMechanism !== undefined
           ? {
@@ -2922,10 +2946,15 @@ class ProcessExecutionBroker extends EventEmitter {
 
   _getTraceContext() {
     const traceCtx = getTraceCtx();
-    if (traceCtx && traceCtx.activeContext) {
-      return traceCtx.activeContext.value || null;
-    }
-    return null;
+    const activeContext = traceCtx?.traceContext?.getCurrentContext?.() || null;
+    if (!activeContext) return null;
+    return {
+      ...activeContext,
+      traceparent: traceCtx.traceContext.formatTraceparent(
+        activeContext.traceId,
+        activeContext.spanId,
+      ),
+    };
   }
 
   _writeRplEntry(auditEntry, status = "started", error = null) {

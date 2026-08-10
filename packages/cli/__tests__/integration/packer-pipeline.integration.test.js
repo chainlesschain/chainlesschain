@@ -45,9 +45,7 @@ function countFilesRecursive(dir) {
   }
   let count = 0;
   for (const e of entries) {
-    count += e.isDirectory()
-      ? countFilesRecursive(path.join(dir, e.name))
-      : 1;
+    count += e.isDirectory() ? countFilesRecursive(path.join(dir, e.name)) : 1;
   }
   return count;
 }
@@ -114,6 +112,30 @@ describe.skipIf(!WEB_PANEL_BUILT)("cc pack — full pipeline integration", () =>
       "// fake bin\n",
     );
     fs.mkdirSync(path.join(cliRoot, "node_modules"), { recursive: true });
+    const capsuleLib = path.join(cliRoot, "src", "lib");
+    fs.mkdirSync(capsuleLib, { recursive: true });
+    fs.writeFileSync(
+      path.join(capsuleLib, "mcp-stdio-capsule-builder-worker.cjs"),
+      "// pinned worker source",
+    );
+    fs.writeFileSync(
+      path.join(capsuleLib, "mcp-stdio-immutable-vfs-resolver.cjs"),
+      "// pinned resolver source",
+    );
+    const esbuildWasmRoot = path.join(cliRoot, "node_modules", "esbuild-wasm");
+    fs.mkdirSync(path.join(esbuildWasmRoot, "lib"), { recursive: true });
+    fs.writeFileSync(
+      path.join(esbuildWasmRoot, "package.json"),
+      JSON.stringify({ name: "esbuild-wasm", version: "0.28.1" }),
+    );
+    fs.writeFileSync(
+      path.join(esbuildWasmRoot, "lib", "browser.js"),
+      "// pinned browser API",
+    );
+    fs.writeFileSync(
+      path.join(esbuildWasmRoot, "esbuild.wasm"),
+      Buffer.from([0, 97, 115, 109]),
+    );
     // Pre-built web-panel dist so ensureWebPanel doesn't try to rebuild.
     const distDir = path.join(cliRoot, "src", "assets", "web-panel");
     fs.mkdirSync(distDir, { recursive: true });

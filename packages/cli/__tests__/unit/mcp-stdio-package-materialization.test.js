@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { EventEmitter } from "node:events";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
 import {
@@ -19,6 +20,7 @@ import {
 } from "../../src/lib/mcp-stdio-executable-identity.js";
 import {
   _deps,
+  esbuildRelativeEntrypointArg,
   materializeMcpStdioNpmPackage,
   MCP_STDIO_PACKAGE_MATERIALIZATION_CHANGED_CODE,
   MCP_STDIO_PACKAGE_MATERIALIZATION_FAILED_CODE,
@@ -30,6 +32,182 @@ import {
 } from "../../src/lib/mcp-stdio-package-materialization.js";
 
 const roots = [];
+const nativeWorker = _deps.Worker;
+
+function useScriptedWorker(script) {
+  const instances = [];
+  _deps.Worker = class ScriptedWorker extends EventEmitter {
+    constructor(source, options) {
+      super();
+      this.source = source;
+      this.options = options;
+      this.terminated = false;
+      instances.push(this);
+      queueMicrotask(() => script(this, options.workerData));
+    }
+
+    async terminate() {
+      this.terminated = true;
+      return 1;
+    }
+  };
+  return instances;
+}
+
+function successfulWorkerResult(workerData, overrides = {}) {
+  const loaded = workerData.files.map(([file]) => file).sort();
+  const inputs = Object.fromEntries(
+    workerData.files.map(([file, contents]) => [
+      `cc-immutable-vfs:${file}`,
+      { bytes: contents.byteLength, imports: [] },
+    ]),
+  );
+  return {
+    ok: true,
+    nonce: workerData.nonce,
+    output: new TextEncoder().encode('"use strict";\n'),
+    metafile: {
+      inputs,
+      outputs: {
+        "/chainlesschain-output/server.cjs": { imports: [] },
+      },
+    },
+    warnings: [],
+    audit: {
+      root: workerData.vfsRoot,
+      fileCount: workerData.fileCount,
+      loaded,
+      resolutions: [],
+    },
+    ...overrides,
+  };
+}
+
+function overrideStat(stat, overrides) {
+  return new Proxy(stat, {
+    get(target, property) {
+      if (Object.prototype.hasOwnProperty.call(overrides, property)) {
+        return overrides[property];
+      }
+      const value = Reflect.get(target, property, target);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+}
+
+function createAssetTamperingFs({
+  matches,
+  onRead,
+  onDescriptorStat,
+  onPathStat,
+}) {
+  const descriptors = new Map();
+  return new Proxy(fs, {
+    get(target, property) {
+      if (property === "openSync") {
+        return (file, ...args) => {
+          const descriptor = fs.openSync(file, ...args);
+          if (matches(String(file))) descriptors.set(descriptor, String(file));
+          return descriptor;
+        };
+      }
+      if (property === "closeSync") {
+        return (descriptor) => {
+          descriptors.delete(descriptor);
+          return fs.closeSync(descriptor);
+        };
+      }
+      if (property === "readSync") {
+        return (descriptor, buffer, offset, length, position) => {
+          const count = fs.readSync(
+            descriptor,
+            buffer,
+            offset,
+            length,
+            position,
+          );
+          const file = descriptors.get(descriptor);
+          if (file && onRead) {
+            onRead({ file, buffer, offset, count, position });
+          }
+          return count;
+        };
+      }
+      if (property === "fstatSync") {
+        return (descriptor, options) => {
+          const stat = fs.fstatSync(descriptor, options);
+          const file = descriptors.get(descriptor);
+          return file && onDescriptorStat ? onDescriptorStat(file, stat) : stat;
+        };
+      }
+      if (property === "lstatSync") {
+        return (file, options) => {
+          const stat = fs.lstatSync(file, options);
+          return matches(String(file)) && onPathStat
+            ? onPathStat(String(file), stat)
+            : stat;
+        };
+      }
+      return Reflect.get(target, property, target);
+    },
+  });
+}
+
+it("binds the canonical entrypoint to an esbuild stdin source label", () => {
+  const snapshotRoot = path.resolve("capsule-snapshot-root");
+  const canonicalEntrypoint = path.join(
+    snapshotRoot,
+    "node_modules",
+    "@scope",
+    "mcp-server",
+    "bin",
+    "server.js",
+  );
+  expect(
+    esbuildRelativeEntrypointArg(
+      "node_modules/@scope/mcp-server/bin/server.js",
+      snapshotRoot,
+      canonicalEntrypoint,
+    ),
+  ).toBe("node_modules/@scope/mcp-server/bin/server.js");
+  for (const unsafe of [
+    "",
+    ".",
+    "../outside.js",
+    "node_modules/../outside.js",
+    "./node_modules/package/server.js",
+    "node_modules\\package\\server.js",
+    "/node_modules/package/server.js",
+    "C:/node_modules/package/server.js",
+    "node_modules/package/server.js\0ignored",
+  ]) {
+    expect(() =>
+      esbuildRelativeEntrypointArg(unsafe, snapshotRoot, canonicalEntrypoint),
+    ).toThrow(
+      "MCP capsule entrypoint must be one canonical relative POSIX path",
+    );
+  }
+  for (const unsafeRoot of [
+    "relative-snapshot",
+    `${snapshotRoot}${path.sep}.`,
+    `${snapshotRoot}\0ignored`,
+  ]) {
+    expect(() =>
+      esbuildRelativeEntrypointArg(
+        "node_modules/@scope/mcp-server/bin/server.js",
+        unsafeRoot,
+        canonicalEntrypoint,
+      ),
+    ).toThrow("MCP capsule snapshot root must be canonical and absolute");
+  }
+  expect(() =>
+    esbuildRelativeEntrypointArg(
+      "node_modules/@scope/mcp-server/bin/server.js",
+      snapshotRoot,
+      path.join(snapshotRoot, "outside.js"),
+    ),
+  ).toThrow("MCP capsule entrypoint escaped its canonical snapshot");
+});
 
 function createRoot() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-mcp-package-lock-"));
@@ -58,6 +236,10 @@ function approved(config, serverName = "package-server") {
 function writeJson(file, value) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+}
+
+function brokerSpawnSync(command, args, options) {
+  return spawnSync(command, args, options);
 }
 
 function fakeInstall({ directory, packageSpec }) {
@@ -134,11 +316,15 @@ describe("MCP stdio fixed npm package materialization", () => {
     npmCli = path.join(root, "npm-cli.js");
     storePath = path.join(root, "security", "executable-identities.json");
     fs.writeFileSync(npmCli, "// fixture npm cli\n", "utf8");
-    _deps.processBrokerRunSync = spawnSync;
+    _deps.fs = fs;
+    _deps.processBrokerRunSync = brokerSpawnSync;
   });
 
   afterEach(() => {
+    _deps.fs = fs;
+    _deps.onVfsSnapshotCaptured = null;
     _deps.processBrokerRunSync = null;
+    _deps.Worker = nativeWorker;
     for (const directory of roots.splice(0)) {
       fs.rmSync(directory, { recursive: true, force: true });
     }
@@ -217,23 +403,14 @@ describe("MCP stdio fixed npm package materialization", () => {
     },
   );
 
-  it("locks the complete transitive tree and replaces a launcher with a direct Node entrypoint", () => {
-    const builderInvocations = [];
-    _deps.processBrokerRunSync = (command, args, options) => {
-      const realpath = fs.realpathSync.native || fs.realpathSync;
-      builderInvocations.push({
-        args,
-        cwdIsCanonical: options.cwd === realpath(options.cwd),
-      });
-      return spawnSync(command, args, options);
-    };
+  it("locks the complete transitive tree and replaces a launcher with a direct Node entrypoint", async () => {
     const config = {
       command: "bunx",
       args: ["--yes", "@scope/mcp-server@1.2.3", "--stdio"],
       transport: "stdio",
     };
     const authority = approved(config);
-    const result = materializeMcpStdioNpmPackage({
+    const result = await materializeMcpStdioNpmPackage({
       approvalRecord: authority.approvalRecord,
       config: authority.invocation,
       packageSpec: "@scope/mcp-server@1.2.3",
@@ -253,18 +430,29 @@ describe("MCP stdio fixed npm package materialization", () => {
     expect(result.identity.fileCount).toBeGreaterThanOrEqual(7);
     expect(result.identity.closureDigest).toMatch(/^[a-f0-9]{64}$/);
     expect(result.identity.capsule).toMatchObject({
-      schema: "chainlesschain.mcp-stdio-node-capsule/v1",
+      schema: "chainlesschain.mcp-stdio-node-capsule/v2",
       relativePath: "capsule/server.cjs",
-      builder: "esbuild",
+      builder: "esbuild-wasm",
       builderVersion: "0.28.1",
       nodeTarget: "node22",
       inputCount: 3,
+      resolverSchema: "chainlesschain.mcp-stdio-immutable-vfs-resolver/v1",
+      wrapperSchema: "chainlesschain.mcp-stdio-capsule-stdin-wrapper/v1",
+      wrapperSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
     });
+    expect(result.identity.capsule.builderWasmSha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(result.identity.capsule.builderApiSha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(result.identity.capsule.builderWorkerSha256).toMatch(
+      /^[a-f0-9]{64}$/,
+    );
+    expect(result.identity.capsule.resolverSha256).toMatch(/^[a-f0-9]{64}$/);
     expect(result.identity.capsule.sha256).toMatch(/^[a-f0-9]{64}$/);
-    expect(
-      fs.readFileSync(path.join(result.root, "capsule", "server.cjs"), "utf8"),
-    ).toContain("transitive-dependency/index.js");
-    const repeated = materializeMcpStdioNpmPackage({
+    const capsuleSource = fs.readFileSync(
+      path.join(result.root, "capsule", "server.cjs"),
+      "utf8",
+    );
+    expect(capsuleSource).toContain("transitive-dependency/index.js");
+    const repeated = await materializeMcpStdioNpmPackage({
       approvalRecord: authority.approvalRecord,
       config: authority.invocation,
       packageSpec: "@scope/mcp-server@1.2.3",
@@ -277,14 +465,8 @@ describe("MCP stdio fixed npm package materialization", () => {
     });
     expect(repeated.generation).toBe(result.generation);
     expect(repeated.manifestDigest).toBe(result.manifestDigest);
-    expect(builderInvocations).toHaveLength(2);
-    for (const invocation of builderInvocations) {
-      expect(invocation.cwdIsCanonical).toBe(true);
-      expect(path.isAbsolute(invocation.args[0])).toBe(false);
-      expect(invocation.args[0]).toBe(
-        `.${path.sep}node_modules${path.sep}@scope${path.sep}mcp-server${path.sep}bin${path.sep}server.js`,
-      );
-    }
+    expect(capsuleSource).not.toContain(result.root);
+    expect(capsuleSource).not.toContain(result.root.replaceAll("\\", "/"));
 
     const resolved = resolveMcpStdioPackageMaterialization({
       approvalRecord: authority.approvalRecord,
@@ -391,16 +573,443 @@ describe("MCP stdio fixed npm package materialization", () => {
         args: prepared.args,
       }),
     ).toEqual({ identityDigest: prepared.identityDigest });
+  }, 30_000);
+
+  it("rejects a source file above the immutable VFS per-file budget before Worker creation", async () => {
+    const workers = useScriptedWorker(() => {
+      throw new Error("oversized source must not reach the Worker");
+    });
+    const oversizedInstall = (input) => {
+      fakeInstall(input);
+      const oversized = path.join(input.directory, "oversized-source.js");
+      fs.writeFileSync(oversized, "", "utf8");
+      fs.truncateSync(oversized, 16 * 1024 * 1024 + 1);
+    };
+    const config = {
+      command: "npx",
+      args: ["@scope/mcp-server@1.2.3"],
+      transport: "stdio",
+    };
+    const authority = approved(config, "source-file-budget-server");
+
+    await expect(
+      materializeMcpStdioNpmPackage({
+        approvalRecord: authority.approvalRecord,
+        config: authority.invocation,
+        packageSpec: "@scope/mcp-server@1.2.3",
+        binName: "scope-mcp",
+        root: materializationRoot,
+        indexPath,
+        npmCli,
+        installRunner: oversizedInstall,
+      }),
+    ).rejects.toMatchObject({
+      code: MCP_STDIO_PACKAGE_MATERIALIZATION_FAILED_CODE,
+      cause: expect.objectContaining({
+        message: expect.stringContaining("exceeds the size limit"),
+      }),
+    });
+    expect(workers).toHaveLength(0);
   });
 
-  it("detects an added transitive file before the Broker can spawn", () => {
+  it("rejects a near-limit aggregate source closure before Worker creation", async () => {
+    const workers = useScriptedWorker(() => {
+      throw new Error("oversized closure must not reach the Worker");
+    });
+    const aggregateInstall = (input) => {
+      fakeInstall(input);
+      for (let index = 0; index < 4; index += 1) {
+        const file = path.join(input.directory, `00-budget-${index}.js`);
+        fs.writeFileSync(file, "", "utf8");
+        fs.truncateSync(file, 16 * 1024 * 1024);
+      }
+    };
+    const config = {
+      command: "npx",
+      args: ["@scope/mcp-server@1.2.3"],
+      transport: "stdio",
+    };
+    const authority = approved(config, "source-aggregate-budget-server");
+
+    await expect(
+      materializeMcpStdioNpmPackage({
+        approvalRecord: authority.approvalRecord,
+        config: authority.invocation,
+        packageSpec: "@scope/mcp-server@1.2.3",
+        binName: "scope-mcp",
+        root: materializationRoot,
+        indexPath,
+        npmCli,
+        installRunner: aggregateInstall,
+      }),
+    ).rejects.toMatchObject({
+      code: MCP_STDIO_PACKAGE_MATERIALIZATION_FAILED_CODE,
+      cause: expect.objectContaining({
+        message: expect.stringContaining("exceeds its aggregate budget"),
+      }),
+    });
+    expect(workers).toHaveLength(0);
+  }, 30_000);
+
+  it("accepts stable descriptor IDs across divergent Windows pathname stat projections", async () => {
+    let divergentPathStats = 0;
+    const shiftedStat = (stat) =>
+      new Proxy(stat, {
+        get(target, property) {
+          if (property === "dev") return target[property] + 10_000n;
+          if (property === "ino") return target[property] + 20_000n;
+          if (property === "mtimeNs" || property === "ctimeNs") {
+            return target[property] + 100n;
+          }
+          if (property === "mode") return target[property] ^ 0o111n;
+          const value = Reflect.get(target, property, target);
+          return typeof value === "function" ? value.bind(target) : value;
+        },
+      });
+    _deps.fs = new Proxy(fs, {
+      get(target, property) {
+        if (property !== "lstatSync") {
+          return Reflect.get(target, property, target);
+        }
+        return (file, options) => {
+          const stat = fs.lstatSync(file, options);
+          if (options?.bigint && String(file).includes(".staging-")) {
+            divergentPathStats += 1;
+            return shiftedStat(stat);
+          }
+          return stat;
+        };
+      },
+    });
+    const config = {
+      command: "npx",
+      args: ["@scope/mcp-server@1.2.3"],
+      transport: "stdio",
+    };
+    const authority = approved(config, "windows-stat-view-server");
+
+    const result = await materializeMcpStdioNpmPackage({
+      approvalRecord: authority.approvalRecord,
+      config: authority.invocation,
+      packageSpec: "@scope/mcp-server@1.2.3",
+      binName: "scope-mcp",
+      root: materializationRoot,
+      indexPath,
+      npmCli,
+      installRunner: fakeInstall,
+    });
+
+    expect(result.identity.capsule).toMatchObject({
+      schema: "chainlesschain.mcp-stdio-node-capsule/v2",
+      inputCount: 3,
+    });
+    expect(divergentPathStats).toBeGreaterThan(0);
+  }, 30_000);
+
+  it.each([
+    [
+      "package version",
+      () =>
+        createAssetTamperingFs({
+          matches: (file) =>
+            file.endsWith(`${path.sep}esbuild-wasm${path.sep}package.json`),
+          onRead: ({ buffer, offset, count }) => {
+            const view = buffer.subarray(offset, offset + count);
+            const versionOffset = view.indexOf(Buffer.from("0.28.1"));
+            if (versionOffset >= 0) {
+              Buffer.from("9.99.9").copy(view, versionOffset);
+            }
+          },
+        }),
+      "must be esbuild-wasm@0.28.1",
+    ],
+    [
+      "browser API hash",
+      () =>
+        createAssetTamperingFs({
+          matches: (file) =>
+            file.endsWith(
+              `${path.sep}esbuild-wasm${path.sep}lib${path.sep}browser.js`,
+            ),
+          onRead: ({ buffer, offset, count, position }) => {
+            if (position === 0 && count > 0) buffer[offset] ^= 1;
+          },
+        }),
+      "builder API identity is invalid",
+    ],
+    [
+      "WASM size",
+      () =>
+        createAssetTamperingFs({
+          matches: (file) =>
+            file.endsWith(`${path.sep}esbuild-wasm${path.sep}esbuild.wasm`),
+          onDescriptorStat: (_file, stat) =>
+            overrideStat(stat, { size: stat.size - 1n }),
+          onPathStat: (_file, stat) =>
+            overrideStat(stat, { size: stat.size - 1n }),
+        }),
+      "builder WASM identity is invalid",
+    ],
+    [
+      "descriptor re-open identity",
+      () => {
+        let descriptorStats = 0;
+        return createAssetTamperingFs({
+          matches: (file) =>
+            file.endsWith(
+              `${path.sep}esbuild-wasm${path.sep}lib${path.sep}browser.js`,
+            ),
+          onDescriptorStat: (_file, stat) => {
+            descriptorStats += 1;
+            return descriptorStats === 2
+              ? overrideStat(stat, { ino: stat.ino + 1n })
+              : stat;
+          },
+        });
+      },
+      "input identity changed before read",
+    ],
+  ])("rejects pinned builder %s tampering", async (_label, tamper, message) => {
+    const config = {
+      command: "npx",
+      args: ["@scope/mcp-server@1.2.3"],
+      transport: "stdio",
+    };
+    const authority = approved(config, `builder-tamper-${_label}`);
+    _deps.fs = tamper();
+
+    await expect(
+      materializeMcpStdioNpmPackage({
+        approvalRecord: authority.approvalRecord,
+        config: authority.invocation,
+        packageSpec: "@scope/mcp-server@1.2.3",
+        binName: "scope-mcp",
+        root: materializationRoot,
+        indexPath,
+        npmCli,
+        installRunner: fakeInstall,
+      }),
+    ).rejects.toThrow(
+      expect.objectContaining({
+        code: MCP_STDIO_PACKAGE_MATERIALIZATION_FAILED_CODE,
+        message: expect.stringContaining(message),
+      }),
+    );
+    expect(fs.existsSync(indexPath)).toBe(false);
+    expect(
+      fs
+        .readdirSync(materializationRoot)
+        .some((entry) => entry.startsWith(".staging-")),
+    ).toBe(false);
+  });
+
+  it("rejects a pathname re-open that resolves to a different descriptor file ID", async () => {
+    const activeTargetDescriptors = new Set();
+    const mismatchedDescriptors = new Set();
+    let sawVerifierReopen = false;
+    _deps.fs = new Proxy(fs, {
+      get(target, property) {
+        if (property === "openSync") {
+          return (file, flags, mode) => {
+            const descriptor = fs.openSync(file, flags, mode);
+            const normalized = String(file).replaceAll("\\", "/");
+            if (
+              normalized.includes(".staging-") &&
+              normalized.endsWith("/node_modules/@scope/mcp-server/runtime.js")
+            ) {
+              if (activeTargetDescriptors.size > 0) {
+                mismatchedDescriptors.add(descriptor);
+                sawVerifierReopen = true;
+              }
+              activeTargetDescriptors.add(descriptor);
+            }
+            return descriptor;
+          };
+        }
+        if (property === "fstatSync") {
+          return (descriptor, options) => {
+            const stat = fs.fstatSync(descriptor, options);
+            if (options?.bigint && mismatchedDescriptors.has(descriptor)) {
+              return new Proxy(stat, {
+                get(statTarget, statProperty) {
+                  if (statProperty === "ino") return statTarget.ino + 1n;
+                  const value = Reflect.get(
+                    statTarget,
+                    statProperty,
+                    statTarget,
+                  );
+                  return typeof value === "function"
+                    ? value.bind(statTarget)
+                    : value;
+                },
+              });
+            }
+            return stat;
+          };
+        }
+        if (property === "closeSync") {
+          return (descriptor) => {
+            activeTargetDescriptors.delete(descriptor);
+            mismatchedDescriptors.delete(descriptor);
+            return fs.closeSync(descriptor);
+          };
+        }
+        return Reflect.get(target, property, target);
+      },
+    });
+    const config = {
+      command: "npx",
+      args: ["@scope/mcp-server@1.2.3"],
+      transport: "stdio",
+    };
+    const authority = approved(config, "descriptor-reopen-race-server");
+
+    await expect(
+      materializeMcpStdioNpmPackage({
+        approvalRecord: authority.approvalRecord,
+        config: authority.invocation,
+        packageSpec: "@scope/mcp-server@1.2.3",
+        binName: "scope-mcp",
+        root: materializationRoot,
+        indexPath,
+        npmCli,
+        installRunner: fakeInstall,
+      }),
+    ).rejects.toThrow(
+      expect.objectContaining({
+        code: MCP_STDIO_PACKAGE_MATERIALIZATION_FAILED_CODE,
+        message: expect.stringContaining(
+          "build input identity changed before read",
+        ),
+      }),
+    );
+    expect(sawVerifierReopen).toBe(true);
+    expect(fs.existsSync(indexPath)).toBe(false);
+    expect(
+      fs
+        .readdirSync(materializationRoot)
+        .some((entry) => entry.startsWith(".staging-")),
+    ).toBe(false);
+  }, 30_000);
+
+  it("creates the capsule with O_EXCL and fsyncs it before publication", async () => {
+    let capsuleDescriptor;
+    let capsuleFlags;
+    let capsuleMode;
+    let capsuleFsynced = false;
+    _deps.fs = new Proxy(fs, {
+      get(target, property) {
+        if (property === "openSync") {
+          return (file, flags, mode) => {
+            const descriptor = fs.openSync(file, flags, mode);
+            if (
+              String(file).endsWith(
+                `${path.sep}capsule${path.sep}server.cjs`,
+              ) &&
+              (Number(flags) & Number(fs.constants.O_WRONLY)) !== 0
+            ) {
+              capsuleDescriptor = descriptor;
+              capsuleFlags = Number(flags);
+              capsuleMode = mode;
+            }
+            return descriptor;
+          };
+        }
+        if (property === "fsyncSync") {
+          return (descriptor) => {
+            if (descriptor === capsuleDescriptor) capsuleFsynced = true;
+            return fs.fsyncSync(descriptor);
+          };
+        }
+        return Reflect.get(target, property, target);
+      },
+    });
+    const config = {
+      command: "npx",
+      args: ["@scope/mcp-server@1.2.3"],
+      transport: "stdio",
+    };
+    const authority = approved(config, "capsule-exclusive-create");
+    await materializeMcpStdioNpmPackage({
+      approvalRecord: authority.approvalRecord,
+      config: authority.invocation,
+      packageSpec: "@scope/mcp-server@1.2.3",
+      binName: "scope-mcp",
+      root: materializationRoot,
+      indexPath,
+      npmCli,
+      installRunner: fakeInstall,
+    });
+
+    expect(capsuleDescriptor).toBeTypeOf("number");
+    expect(capsuleFlags & Number(fs.constants.O_EXCL)).not.toBe(0);
+    if (Number(fs.constants.O_NOFOLLOW || 0) !== 0) {
+      expect(capsuleFlags & Number(fs.constants.O_NOFOLLOW)).not.toBe(0);
+    }
+    expect(capsuleMode).toBe(0o600);
+    expect(capsuleFsynced).toBe(true);
+  }, 30_000);
+
+  it("fails O_EXCL output races and removes the unpublished staging tree", async () => {
+    let raced = false;
+    _deps.fs = new Proxy(fs, {
+      get(target, property) {
+        if (property !== "openSync") {
+          return Reflect.get(target, property, target);
+        }
+        return (file, flags, mode) => {
+          if (
+            !raced &&
+            String(file).endsWith(`${path.sep}capsule${path.sep}server.cjs`) &&
+            (Number(flags) & Number(fs.constants.O_WRONLY)) !== 0
+          ) {
+            raced = true;
+            fs.writeFileSync(file, "attacker-won-the-race", "utf8");
+          }
+          return fs.openSync(file, flags, mode);
+        };
+      },
+    });
+    const config = {
+      command: "npx",
+      args: ["@scope/mcp-server@1.2.3"],
+      transport: "stdio",
+    };
+    const authority = approved(config, "capsule-output-race");
+
+    await expect(
+      materializeMcpStdioNpmPackage({
+        approvalRecord: authority.approvalRecord,
+        config: authority.invocation,
+        packageSpec: "@scope/mcp-server@1.2.3",
+        binName: "scope-mcp",
+        root: materializationRoot,
+        indexPath,
+        npmCli,
+        installRunner: fakeInstall,
+      }),
+    ).rejects.toThrow(
+      expect.objectContaining({
+        code: MCP_STDIO_PACKAGE_MATERIALIZATION_FAILED_CODE,
+      }),
+    );
+    expect(raced).toBe(true);
+    expect(fs.existsSync(indexPath)).toBe(false);
+    expect(
+      fs
+        .readdirSync(materializationRoot)
+        .some((entry) => entry.startsWith(".staging-")),
+    ).toBe(false);
+  }, 30_000);
+
+  it("detects an added transitive file before the Broker can spawn", async () => {
     const config = {
       command: "npx",
       args: ["@scope/mcp-server@1.2.3"],
       transport: "stdio",
     };
     const authority = approved(config, "race-server");
-    const result = materializeMcpStdioNpmPackage({
+    const result = await materializeMcpStdioNpmPackage({
       approvalRecord: authority.approvalRecord,
       config: authority.invocation,
       packageSpec: "@scope/mcp-server@1.2.3",
@@ -435,16 +1044,16 @@ describe("MCP stdio fixed npm package materialization", () => {
         code: MCP_STDIO_PACKAGE_MATERIALIZATION_CHANGED_CODE,
       }),
     );
-  });
+  }, 30_000);
 
-  it("detects capsule replacement before the Broker can spawn", () => {
+  it("detects capsule replacement before the Broker can spawn", async () => {
     const config = {
       command: "npx",
       args: ["@scope/mcp-server@1.2.3"],
       transport: "stdio",
     };
     const authority = approved(config, "capsule-race-server");
-    const result = materializeMcpStdioNpmPackage({
+    const result = await materializeMcpStdioNpmPackage({
       approvalRecord: authority.approvalRecord,
       config: authority.invocation,
       packageSpec: "@scope/mcp-server@1.2.3",
@@ -479,9 +1088,9 @@ describe("MCP stdio fixed npm package materialization", () => {
         code: MCP_STDIO_PACKAGE_MATERIALIZATION_CHANGED_CODE,
       }),
     );
-  });
+  }, 30_000);
 
-  it("rejects source-tree mutation during capsule construction", () => {
+  it("rejects source-tree mutation after immutable VFS capture", async () => {
     const config = {
       command: "npx",
       args: ["@scope/mcp-server@1.2.3"],
@@ -499,21 +1108,15 @@ describe("MCP stdio fixed npm package materialization", () => {
         "runtime.js",
       );
     };
-    const normalRunSync = _deps.processBrokerRunSync;
-    let mutated = false;
-    _deps.processBrokerRunSync = (command, args, options) => {
-      if (!mutated) {
-        mutated = true;
-        fs.appendFileSync(
-          sourceToMutate,
-          "globalThis.compromised = true;\n",
-          "utf8",
-        );
-      }
-      return normalRunSync(command, args, options);
+    _deps.onVfsSnapshotCaptured = () => {
+      fs.appendFileSync(
+        sourceToMutate,
+        "globalThis.compromised = true;\n",
+        "utf8",
+      );
     };
 
-    expect(() =>
+    await expect(
       materializeMcpStdioNpmPackage({
         approvalRecord: authority.approvalRecord,
         config: authority.invocation,
@@ -524,7 +1127,7 @@ describe("MCP stdio fixed npm package materialization", () => {
         npmCli,
         installRunner: raceInstall,
       }),
-    ).toThrow(
+    ).rejects.toThrow(
       expect.objectContaining({
         code: MCP_STDIO_PACKAGE_MATERIALIZATION_FAILED_CODE,
         message: expect.stringContaining(
@@ -533,11 +1136,467 @@ describe("MCP stdio fixed npm package materialization", () => {
       }),
     );
     expect(fs.existsSync(indexPath)).toBe(false);
+  }, 30_000);
+
+  it.each([
+    ["entrypoint", "node_modules/@scope/mcp-server/bin/server.js"],
+    ["dependency", "node_modules/transitive-dependency/index.js"],
+  ])(
+    "rejects post-capture %s mutation without exposing it to esbuild",
+    async (_label, relativeInput) => {
+      const config = {
+        command: "npx",
+        args: ["@scope/mcp-server@1.2.3"],
+        transport: "stdio",
+      };
+      const authority = approved(config, `snapshot-race-${_label}`);
+      _deps.onVfsSnapshotCaptured = ({ treeRoot }) => {
+        fs.appendFileSync(
+          path.join(treeRoot, ...relativeInput.split("/")),
+          "\nglobalThis.snapshotCompromised = true;\n",
+          "utf8",
+        );
+      };
+
+      await expect(
+        materializeMcpStdioNpmPackage({
+          approvalRecord: authority.approvalRecord,
+          config: authority.invocation,
+          packageSpec: "@scope/mcp-server@1.2.3",
+          binName: "scope-mcp",
+          root: materializationRoot,
+          indexPath,
+          npmCli,
+          installRunner: fakeInstall,
+        }),
+      ).rejects.toThrow(
+        expect.objectContaining({
+          code: MCP_STDIO_PACKAGE_MATERIALIZATION_FAILED_CODE,
+          message: expect.stringContaining(
+            "dependency closure changed during bundling",
+          ),
+        }),
+      );
+      expect(fs.existsSync(indexPath)).toBe(false);
+    },
+    30_000,
+  );
+
+  it("rejects a changed snapshot-root substitution after VFS capture", async () => {
+    const config = {
+      command: "npx",
+      args: ["@scope/mcp-server@1.2.3"],
+      transport: "stdio",
+    };
+    const authority = approved(config, "snapshot-root-swap");
+    _deps.onVfsSnapshotCaptured = ({ treeRoot }) => {
+      const attestedRoot = `${treeRoot}.attested`;
+      fs.renameSync(treeRoot, attestedRoot);
+      fs.cpSync(attestedRoot, treeRoot, {
+        recursive: true,
+        preserveTimestamps: true,
+      });
+      const runtimePath = path.join(
+        treeRoot,
+        "node_modules",
+        "@scope",
+        "mcp-server",
+        "runtime.js",
+      );
+      const originalRuntime = fs.readFileSync(runtimePath, "utf8");
+      const substitutedRuntime = originalRuntime.replace(
+        "answer === 42",
+        "answer !== 42",
+      );
+      expect(substitutedRuntime).toHaveLength(originalRuntime.length);
+      fs.writeFileSync(runtimePath, substitutedRuntime, "utf8");
+    };
+
+    await expect(
+      materializeMcpStdioNpmPackage({
+        approvalRecord: authority.approvalRecord,
+        config: authority.invocation,
+        packageSpec: "@scope/mcp-server@1.2.3",
+        binName: "scope-mcp",
+        root: materializationRoot,
+        indexPath,
+        npmCli,
+        installRunner: fakeInstall,
+      }),
+    ).rejects.toThrow(
+      expect.objectContaining({
+        code: MCP_STDIO_PACKAGE_MATERIALIZATION_FAILED_CODE,
+        message: expect.stringContaining(
+          "dependency closure changed during bundling",
+        ),
+      }),
+    );
+    expect(fs.existsSync(indexPath)).toBe(false);
+  }, 30_000);
+
+  it("builds only captured bytes during a swap-build-restore attack", async () => {
+    const config = {
+      command: "npx",
+      args: ["@scope/mcp-server@1.2.3"],
+      transport: "stdio",
+    };
+    const authority = approved(config, "snapshot-swap-restore");
+    let restoreTree;
+    let maliciousRuntimePath;
+    let sawMaliciousTree = false;
+    _deps.onVfsSnapshotCaptured = ({ treeRoot }) => {
+      const originalRoot = `${treeRoot}.captured-original`;
+      fs.renameSync(treeRoot, originalRoot);
+      fs.cpSync(originalRoot, treeRoot, {
+        recursive: true,
+        preserveTimestamps: true,
+      });
+      maliciousRuntimePath = path.join(
+        treeRoot,
+        "node_modules",
+        "@scope",
+        "mcp-server",
+        "runtime.js",
+      );
+      const original = fs.readFileSync(maliciousRuntimePath, "utf8");
+      const malicious = original.replace("answer === 42", "answer !== 42");
+      expect(malicious).toHaveLength(original.length);
+      fs.writeFileSync(maliciousRuntimePath, malicious, "utf8");
+      restoreTree = () => {
+        if (!fs.existsSync(originalRoot)) return;
+        fs.rmSync(treeRoot, { recursive: true, force: true });
+        fs.renameSync(originalRoot, treeRoot);
+      };
+    };
+    _deps.Worker = class SwapRestoreWorker extends nativeWorker {
+      constructor(source, options) {
+        super(source, options);
+        sawMaliciousTree = fs
+          .readFileSync(maliciousRuntimePath, "utf8")
+          .includes("answer !== 42");
+        this.once("message", () => restoreTree());
+      }
+    };
+
+    const result = await materializeMcpStdioNpmPackage({
+      approvalRecord: authority.approvalRecord,
+      config: authority.invocation,
+      packageSpec: "@scope/mcp-server@1.2.3",
+      binName: "scope-mcp",
+      root: materializationRoot,
+      indexPath,
+      npmCli,
+      installRunner: fakeInstall,
+    });
+    expect(sawMaliciousTree).toBe(true);
+    const capsule = fs.readFileSync(
+      path.join(result.root, "capsule", "server.cjs"),
+      "utf8",
+    );
+    expect(capsule).toContain("transitive_dependency_default === 42");
+    expect(capsule).not.toContain("transitive_dependency_default !== 42");
+  }, 30_000);
+
+  it("fails closed when the capsule Worker exits without a result", async () => {
+    const config = {
+      command: "npx",
+      args: ["@scope/mcp-server@1.2.3"],
+      transport: "stdio",
+    };
+    const authority = approved(config, "worker-early-exit");
+    const workers = useScriptedWorker((worker) => worker.emit("exit", 0));
+
+    await expect(
+      materializeMcpStdioNpmPackage({
+        approvalRecord: authority.approvalRecord,
+        config: authority.invocation,
+        packageSpec: "@scope/mcp-server@1.2.3",
+        binName: "scope-mcp",
+        root: materializationRoot,
+        indexPath,
+        npmCli,
+        installRunner: fakeInstall,
+      }),
+    ).rejects.toThrow(
+      expect.objectContaining({
+        code: MCP_STDIO_PACKAGE_MATERIALIZATION_FAILED_CODE,
+        message: expect.stringContaining("Worker exited without a result"),
+      }),
+    );
+    expect(workers).toHaveLength(1);
+    expect(workers[0].terminated).toBe(true);
+    expect(fs.existsSync(indexPath)).toBe(false);
   });
 
-  it.each(["require(target);", "import(target);"])(
+  it.each([
+    [
+      "nonce mismatch",
+      (worker, workerData) =>
+        worker.emit("message", {
+          ...successfulWorkerResult(workerData),
+          nonce: "0".repeat(64),
+        }),
+      "nonce mismatch",
+    ],
+    [
+      "message cloning failure",
+      (worker) => worker.emit("messageerror", new Error("clone failed")),
+      "message was not cloneable",
+    ],
+    [
+      "uncaught Worker error",
+      (worker) => worker.emit("error", new Error("worker exploded")),
+      "worker exploded",
+    ],
+    [
+      "non-zero exit",
+      (worker) => worker.emit("exit", 9),
+      "exited with status 9",
+    ],
+    [
+      "double terminal message",
+      (worker, workerData) => {
+        const result = successfulWorkerResult(workerData);
+        worker.emit("message", result);
+        worker.emit("message", result);
+      },
+      "two terminal messages",
+    ],
+    [
+      "terminal failure",
+      (worker, workerData) => {
+        worker.emit("message", {
+          ok: false,
+          nonce: workerData.nonce,
+          error: { name: "Error", message: "pinned build failed" },
+        });
+        worker.emit("exit", 0);
+      },
+      "pinned build failed",
+    ],
+  ])("fails closed on capsule Worker %s", async (_label, script, message) => {
+    const config = {
+      command: "npx",
+      args: ["@scope/mcp-server@1.2.3"],
+      transport: "stdio",
+    };
+    const authority = approved(config, `worker-failure-${_label}`);
+    const workers = useScriptedWorker(script);
+
+    await expect(
+      materializeMcpStdioNpmPackage({
+        approvalRecord: authority.approvalRecord,
+        config: authority.invocation,
+        packageSpec: "@scope/mcp-server@1.2.3",
+        binName: "scope-mcp",
+        root: materializationRoot,
+        indexPath,
+        npmCli,
+        installRunner: fakeInstall,
+      }),
+    ).rejects.toThrow(
+      expect.objectContaining({
+        code: MCP_STDIO_PACKAGE_MATERIALIZATION_FAILED_CODE,
+        message: expect.stringContaining(message),
+      }),
+    );
+    expect(workers).toHaveLength(1);
+    expect(workers[0].terminated).toBe(true);
+    expect(fs.existsSync(indexPath)).toBe(false);
+  });
+
+  it.each([
+    [
+      "non-VFS metafile input",
+      (result) => {
+        result.metafile.inputs["C:/host/escape.js"] = {
+          bytes: 1,
+          imports: [],
+        };
+      },
+      "non-VFS input",
+    ],
+    [
+      "metafile/audit mismatch",
+      (result) => {
+        result.audit.loaded = result.audit.loaded.slice(1);
+      },
+      "metafile did not match immutable VFS loads",
+    ],
+    [
+      "non-builtin external",
+      (result) => {
+        result.metafile.outputs["/chainlesschain-output/server.cjs"].imports = [
+          { external: true, path: "left-pad" },
+        ];
+      },
+      "retained an external dependency",
+    ],
+  ])("rejects forged Worker output: %s", async (_label, forge, message) => {
+    const config = {
+      command: "npx",
+      args: ["@scope/mcp-server@1.2.3"],
+      transport: "stdio",
+    };
+    const authority = approved(config, `forged-worker-${_label}`);
+    useScriptedWorker((worker, workerData) => {
+      const result = successfulWorkerResult(workerData);
+      forge(result);
+      worker.emit("message", result);
+      worker.emit("exit", 0);
+    });
+
+    await expect(
+      materializeMcpStdioNpmPackage({
+        approvalRecord: authority.approvalRecord,
+        config: authority.invocation,
+        packageSpec: "@scope/mcp-server@1.2.3",
+        binName: "scope-mcp",
+        root: materializationRoot,
+        indexPath,
+        npmCli,
+        installRunner: fakeInstall,
+      }),
+    ).rejects.toThrow(
+      expect.objectContaining({
+        code: MCP_STDIO_PACKAGE_MATERIALIZATION_FAILED_CODE,
+        message: expect.stringContaining(message),
+      }),
+    );
+    expect(fs.existsSync(indexPath)).toBe(false);
+  });
+
+  it("rejects an oversized capsule Worker output", async () => {
+    const config = {
+      command: "npx",
+      args: ["@scope/mcp-server@1.2.3"],
+      transport: "stdio",
+    };
+    const authority = approved(config, "oversized-worker-output");
+    useScriptedWorker((worker, workerData) => {
+      worker.emit(
+        "message",
+        successfulWorkerResult(workerData, {
+          output: new Uint8Array(32 * 1024 * 1024 + 1),
+        }),
+      );
+      worker.emit("exit", 0);
+    });
+
+    await expect(
+      materializeMcpStdioNpmPackage({
+        approvalRecord: authority.approvalRecord,
+        config: authority.invocation,
+        packageSpec: "@scope/mcp-server@1.2.3",
+        binName: "scope-mcp",
+        root: materializationRoot,
+        indexPath,
+        npmCli,
+        installRunner: fakeInstall,
+      }),
+    ).rejects.toThrow(
+      expect.objectContaining({
+        code: MCP_STDIO_PACKAGE_MATERIALIZATION_FAILED_CODE,
+        message: expect.stringContaining("Worker result is invalid"),
+      }),
+    );
+  });
+
+  it("times out a silent capsule Worker and terminates it", async () => {
+    vi.useFakeTimers();
+    try {
+      const config = {
+        command: "npx",
+        args: ["@scope/mcp-server@1.2.3"],
+        transport: "stdio",
+      };
+      const authority = approved(config, "silent-worker-timeout");
+      const workers = useScriptedWorker(() => {});
+      const materialization = materializeMcpStdioNpmPackage({
+        approvalRecord: authority.approvalRecord,
+        config: authority.invocation,
+        packageSpec: "@scope/mcp-server@1.2.3",
+        binName: "scope-mcp",
+        root: materializationRoot,
+        indexPath,
+        npmCli,
+        installRunner: fakeInstall,
+      });
+      const rejection = expect(materialization).rejects.toThrow(
+        expect.objectContaining({
+          code: MCP_STDIO_PACKAGE_MATERIALIZATION_FAILED_CODE,
+          message: expect.stringContaining("Worker timed out"),
+        }),
+      );
+      await vi.advanceTimersByTimeAsync(120_001);
+      await rejection;
+      expect(workers).toHaveLength(1);
+      expect(workers[0].terminated).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("awaits capsule Worker termination before rejecting", async () => {
+    let instance;
+    let releaseTermination;
+    _deps.Worker = class DeferredTerminationWorker extends EventEmitter {
+      constructor(_source, options) {
+        super();
+        this.options = options;
+        this.terminationStarted = false;
+        instance = this;
+        queueMicrotask(() => this.emit("exit", 0));
+      }
+
+      terminate() {
+        this.terminationStarted = true;
+        return new Promise((resolve) => {
+          releaseTermination = resolve;
+        });
+      }
+    };
+    const config = {
+      command: "npx",
+      args: ["@scope/mcp-server@1.2.3"],
+      transport: "stdio",
+    };
+    const authority = approved(config, "await-worker-termination");
+    let settled = false;
+    const materialization = materializeMcpStdioNpmPackage({
+      approvalRecord: authority.approvalRecord,
+      config: authority.invocation,
+      packageSpec: "@scope/mcp-server@1.2.3",
+      binName: "scope-mcp",
+      root: materializationRoot,
+      indexPath,
+      npmCli,
+      installRunner: fakeInstall,
+    });
+    materialization.then(
+      () => {
+        settled = true;
+      },
+      () => {
+        settled = true;
+      },
+    );
+    await vi.waitFor(() => expect(instance?.terminationStarted).toBe(true));
+    expect(settled).toBe(false);
+    releaseTermination(1);
+    await expect(materialization).rejects.toThrow(
+      "Worker exited without a result",
+    );
+    expect(settled).toBe(true);
+  });
+
+  it.each([
+    ["require(target);", "external module loading"],
+    ["import(target);", "external module loading"],
+    ["require.resolve(target);", "external module resolution"],
+  ])(
     "blocks a dynamic external module retained by the bundle: %s",
-    (loadExpression) => {
+    async (loadExpression, blockedKind) => {
       const config = {
         command: "npx",
         args: ["@scope/mcp-server@1.2.3"],
@@ -565,7 +1624,7 @@ describe("MCP stdio fixed npm package materialization", () => {
 
       let result;
       try {
-        result = materializeMcpStdioNpmPackage({
+        result = await materializeMcpStdioNpmPackage({
           approvalRecord: authority.approvalRecord,
           config: authority.invocation,
           packageSpec: "@scope/mcp-server@1.2.3",
@@ -591,12 +1650,13 @@ describe("MCP stdio fixed npm package materialization", () => {
       );
       expect(execution.status).not.toBe(0);
       expect(execution.stderr).toContain(
-        "MCP stdio capsule blocked external module loading: ./late-external.js",
+        `MCP stdio capsule blocked ${blockedKind}: ./late-external.js`,
       );
     },
+    30_000,
   );
 
-  it("fails closed when the package depends on a native addon", () => {
+  it("fails closed when the package depends on a native addon", async () => {
     const config = {
       command: "npx",
       args: ["@scope/mcp-server@1.2.3"],
@@ -619,7 +1679,7 @@ describe("MCP stdio fixed npm package materialization", () => {
       fs.writeFileSync(path.join(packageRoot, "addon.node"), "not-native");
     };
 
-    expect(() =>
+    await expect(
       materializeMcpStdioNpmPackage({
         approvalRecord: authority.approvalRecord,
         config: authority.invocation,
@@ -630,15 +1690,15 @@ describe("MCP stdio fixed npm package materialization", () => {
         npmCli,
         installRunner: nativeInstall,
       }),
-    ).toThrow(
+    ).rejects.toThrow(
       expect.objectContaining({
         code: MCP_STDIO_PACKAGE_MATERIALIZATION_FAILED_CODE,
       }),
     );
     expect(fs.existsSync(indexPath)).toBe(false);
-  });
+  }, 30_000);
 
-  it("rejects a transitive lock entry without registry integrity", () => {
+  it("rejects a transitive lock entry without registry integrity", async () => {
     const config = {
       command: "npx",
       args: ["@scope/mcp-server@1.2.3"],
@@ -653,7 +1713,7 @@ describe("MCP stdio fixed npm package materialization", () => {
       writeJson(lockPath, lock);
     };
 
-    expect(() =>
+    await expect(
       materializeMcpStdioNpmPackage({
         approvalRecord: authority.approvalRecord,
         config: authority.invocation,
@@ -664,7 +1724,7 @@ describe("MCP stdio fixed npm package materialization", () => {
         npmCli,
         installRunner: invalidInstall,
       }),
-    ).toThrow(
+    ).rejects.toThrow(
       expect.objectContaining({
         code: MCP_STDIO_PACKAGE_MATERIALIZATION_INVALID_CODE,
       }),
@@ -672,14 +1732,14 @@ describe("MCP stdio fixed npm package materialization", () => {
     expect(fs.existsSync(indexPath)).toBe(false);
   });
 
-  it("cannot roll the materialization index back to a previously trusted closure", () => {
+  it("cannot roll the materialization index back to a previously trusted closure", async () => {
     const config = {
       command: "npx",
       args: ["@scope/mcp-server@1.2.3"],
       transport: "stdio",
     };
     const authority = approved(config, "index-rollback");
-    materializeMcpStdioNpmPackage({
+    await materializeMcpStdioNpmPackage({
       approvalRecord: authority.approvalRecord,
       config: authority.invocation,
       packageSpec: "@scope/mcp-server@1.2.3",
@@ -713,7 +1773,7 @@ describe("MCP stdio fixed npm package materialization", () => {
         "utf8",
       );
     };
-    materializeMcpStdioNpmPackage({
+    await materializeMcpStdioNpmPackage({
       approvalRecord: authority.approvalRecord,
       config: authority.invocation,
       packageSpec: "@scope/mcp-server@1.2.3",
@@ -746,9 +1806,9 @@ describe("MCP stdio fixed npm package materialization", () => {
     ).toThrow(
       expect.objectContaining({ code: MCP_STDIO_EXECUTABLE_CHANGED_CODE }),
     );
-  });
+  }, 30_000);
 
-  it("runs npm with lifecycle scripts disabled and an exact package spec", () => {
+  it("runs npm with lifecycle scripts disabled and an exact package spec", async () => {
     const config = {
       command: "npx",
       args: ["-y", "@scope/mcp-server@1.2.3"],
@@ -770,13 +1830,11 @@ describe("MCP stdio fixed npm package materialization", () => {
         });
         return { status: 0, stdout: "", stderr: "" };
       }
-      expect(path.basename(command)).toMatch(/^esbuild(?:\.exe)?$/);
-      expect(args).toContain("--bundle");
-      return originalProcessBrokerRunSync(command, args, options);
+      throw new Error(`Unexpected Broker command: ${command}`);
     });
     _deps.processBrokerRunSync = processBrokerRunSync;
     try {
-      materializeMcpStdioNpmPackage({
+      await materializeMcpStdioNpmPackage({
         approvalRecord: authority.approvalRecord,
         config: authority.invocation,
         packageSpec: "@scope/mcp-server@1.2.3",
@@ -790,9 +1848,9 @@ describe("MCP stdio fixed npm package materialization", () => {
           NPM_CONFIG_NODE_OPTIONS: "--require npm-evil.js",
         },
       });
-      expect(processBrokerRunSync).toHaveBeenCalledTimes(2);
+      expect(processBrokerRunSync).toHaveBeenCalledTimes(1);
     } finally {
       _deps.processBrokerRunSync = originalProcessBrokerRunSync;
     }
-  });
+  }, 30_000);
 });
