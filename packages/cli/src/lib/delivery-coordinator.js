@@ -719,34 +719,37 @@ export function createDeliveryFlow(config = {}, { now } = {}) {
 }
 
 function actionPayload(state, action, payload, now) {
+  const callerPayload = jsonClone(payload || {});
   const common = {
     flowId: state.flowId,
     revision: state.revision,
     commitSha: state.commitSha,
     diffDigest: state.diff?.digest || null,
+    baseCommitSha: state.diff?.baseCommitSha || null,
+    changedFiles: jsonClone(state.diff?.changedFiles || []),
   };
   if (action === DELIVERY_ACTION.RUN_GATES) {
     return {
+      ...callerPayload,
       ...common,
       gateSelection: state.gateSelection,
       requiredGates: state.requiredGates,
-      ...jsonClone(payload || {}),
     };
   }
   if (action === DELIVERY_ACTION.RUN_PREVIEW) {
     return {
+      ...callerPayload,
       ...common,
       changedFiles: state.diff?.changedFiles || [],
-      ...jsonClone(payload || {}),
     };
   }
   if (action === DELIVERY_ACTION.APPLY_FIX) {
     return {
+      ...callerPayload,
       ...common,
       round: state.round + 1,
       failures: state.failures,
       review: state.review?.report || null,
-      ...jsonClone(payload || {}),
     };
   }
   if (action === DELIVERY_ACTION.PUBLISH_EVIDENCE) {
@@ -754,13 +757,26 @@ function actionPayload(state, action, payload, now) {
       now: isoNow(now),
     });
     return {
+      ...callerPayload,
       ...common,
       record,
       readiness: assessDeliveryEvidence(record),
-      ...jsonClone(payload || {}),
     };
   }
-  return { ...common, ...jsonClone(payload || {}) };
+  if (action === DELIVERY_ACTION.MERGE) {
+    return {
+      ...callerPayload,
+      ...common,
+      pr: jsonClone(state.pr),
+      evidence: state.evidence
+        ? {
+            recordDigest: state.evidence.record?.recordDigest || null,
+            artifact: jsonClone(state.evidence.artifact),
+          }
+        : null,
+    };
+  }
+  return { ...callerPayload, ...common };
 }
 
 export function requestDeliveryAction(
@@ -941,6 +957,15 @@ function settleFix(state, result) {
       ? jsonClone(result.changedFiles)
       : state.diff.changedFiles,
   };
+  // A fixer can touch files outside the original analyzer corpus. Until a new
+  // complete impact analysis is supplied, reruns conservatively expand to the
+  // authoritative full required-gate matrix instead of reusing stale impact
+  // selection evidence.
+  state.gateSelection = selectImpactedGates({
+    changedFiles: state.diff.changedFiles,
+    requiredGates: state.requiredGates,
+    analysis: {},
+  });
   state.gateResults = [];
   state.previewArtifacts = [];
   state.review = null;
