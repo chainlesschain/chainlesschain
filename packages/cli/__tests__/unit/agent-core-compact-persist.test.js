@@ -11,6 +11,7 @@
  * The session store is mocked (real compressor runs); no disk is touched.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { projectCanonicalResumeMessages } from "../../src/lib/session-message-provenance.js";
 
 vi.mock("../../src/harness/jsonl-session-store.js", () => ({
   sessionExists: vi.fn(() => true),
@@ -105,6 +106,8 @@ describe("agentLoop compaction self-persist", () => {
   it("persists a microcompact checkpoint before replacing live messages", async () => {
     const messages = seedTokenBloat();
     const expectedMessages = messages.map((message) => ({ ...message }));
+    const expectedPersistedMessages =
+      projectCanonicalResumeMessages(expectedMessages);
     const compactor = tokenBloatCompactor();
 
     const events = await drain(
@@ -125,7 +128,10 @@ describe("agentLoop compaction self-persist", () => {
       strategy: "microcompact",
       trimmed: 1,
     });
-    expect(payload.messages).toHaveLength(expectedMessages.length);
+    expect(payload.messages).toHaveLength(expectedPersistedMessages.length);
+    expect(payload.messages.some((message) => message.role === "system")).toBe(
+      false,
+    );
     expect(
       payload.messages.find((message) => message.role === "tool").content,
     ).toHaveLength(400);

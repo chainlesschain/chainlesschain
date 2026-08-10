@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { MockDatabase } from "../helpers/mock-db.js";
 
 import {
@@ -295,11 +295,16 @@ describe("privacy-computing", () => {
 
   describe("dpPublish", () => {
     it("publishes scalar with noise", () => {
-      const r = dpPublish(db, { data: 100, epsilon: 1.0 });
-      expect(r.published).toBe(true);
-      expect(r.data).not.toBe(100); // noise added
-      expect(typeof r.data).toBe("number");
-      expect(r.budgetSpent).toBeGreaterThan(0);
+      const random = vi.spyOn(Math, "random").mockReturnValue(0.75);
+      try {
+        const r = dpPublish(db, { data: 100, epsilon: 1.0 });
+        expect(r.published).toBe(true);
+        expect(r.data).not.toBe(100); // noise added
+        expect(typeof r.data).toBe("number");
+        expect(r.budgetSpent).toBeGreaterThan(0);
+      } finally {
+        random.mockRestore();
+      }
     });
 
     it("publishes array with noise", () => {

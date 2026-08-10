@@ -3306,7 +3306,7 @@ class ProcessExecutionBroker extends EventEmitter {
     delete spawnOpts.mcpStdioExecutableIdentityDigest;
     if (traceCtx) {
       spawnOpts.env = { ...(spawnOpts.env || process.env) };
-      spawnOpts.env.TRACEPARENT = traceCtx.traceparent;
+      Object.assign(spawnOpts.env, traceContext.getPropagationEnv());
     }
 
     // P0-1: Credential filtering (default-on) — strip secrets from env/args
@@ -3610,7 +3610,7 @@ class ProcessExecutionBroker extends EventEmitter {
     this._stripAuditControlOptions(spawnOpts);
     if (traceCtx) {
       spawnOpts.env = { ...(spawnOpts.env || process.env) };
-      spawnOpts.env.TRACEPARENT = traceCtx.traceparent;
+      Object.assign(spawnOpts.env, traceContext.getPropagationEnv());
     }
 
     // P0-1: Credential filtering agent — strip secrets from env/args before spawn

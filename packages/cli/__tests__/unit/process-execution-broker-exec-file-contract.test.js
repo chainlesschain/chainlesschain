@@ -1,6 +1,7 @@
 import { EventEmitter } from "node:events";
 import { PassThrough } from "node:stream";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { traceContext } from "../../src/lib/execution-trace/trace-context.js";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
 
 const ORIGINAL_NATIVE = executionBroker._native;
@@ -110,6 +111,45 @@ describe("ProcessExecutionBroker execFile contract", () => {
       [],
       expect.objectContaining({ encoding: "buffer", policy: "allow" }),
     );
+  });
+
+  it("propagates the active W3C trace context without ESM loader warnings", async () => {
+    const context = traceContext.startRootSpan("broker-test");
+    context.tracestate = "vendor=value";
+    context.baggage = { tenant: "test" };
+
+    try {
+      await traceContext.runInContext(context, async () => {
+        const completed = new Promise((resolve) => {
+          executionBroker.execFile(
+            "tool",
+            [],
+            { encoding: "utf8", policy: "allow" },
+            (error) => resolve(error),
+          );
+        });
+
+        expect(spawn).toHaveBeenCalledWith(
+          "tool",
+          [],
+          expect.objectContaining({
+            env: expect.objectContaining({
+              TRACEPARENT: traceContext.formatTraceparent(
+                context.traceId,
+                context.spanId,
+              ),
+              TRACESTATE: "vendor=value",
+              BAGGAGE: "tenant=test",
+            }),
+          }),
+        );
+
+        closeChild(child);
+        await expect(completed).resolves.toBeNull();
+      });
+    } finally {
+      traceContext.endSpan(context);
+    }
   });
 
   it("returns stdout and stderr on a non-zero exit", async () => {
