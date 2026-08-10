@@ -353,6 +353,47 @@ describe("CLI release workflow contracts", () => {
     }
   });
 
+  it("runs the materialized MCP capsule live chain in the strict gate", () => {
+    const text = workflow("cli-strict-sandbox.yml");
+    const jobsStart = text.indexOf("\njobs:");
+    expect(jobsStart).toBeGreaterThan(0);
+    const triggers = text.slice(0, jobsStart);
+    const pullRequestStart = triggers.indexOf("\n  pull_request:");
+    const dispatchStart = triggers.indexOf("\n  workflow_dispatch:");
+    expect(pullRequestStart).toBeGreaterThan(0);
+    expect(dispatchStart).toBeGreaterThan(pullRequestStart);
+    const pushTriggers = triggers.slice(0, pullRequestStart);
+    const pullRequestTriggers = triggers.slice(pullRequestStart, dispatchStart);
+
+    for (const source of [
+      "packages/cli/__tests__/integration/mcp-materialized-capsule-sandbox-live.test.js",
+      "packages/cli/__tests__/fixtures/mcp-materialized-capsule-live-server.cjs",
+      "packages/cli/__tests__/fixtures/mcp-materialized-capsule-child-contract.cjs",
+    ]) {
+      expect(pushTriggers.split(`- "${source}"`).length - 1).toBe(1);
+      expect(pullRequestTriggers.split(`- "${source}"`).length - 1).toBe(1);
+    }
+
+    const strictJobStart = text.indexOf("\n  strict-platform:", jobsStart);
+    expect(strictJobStart).toBeGreaterThan(jobsStart);
+    const strictJob = text.slice(strictJobStart);
+    expect(strictJob).toContain("os: [ubuntu-24.04, macos-15, windows-latest]");
+    const stepStart = strictJob.indexOf(
+      "\n      - name: Run native ProcessExecutionBroker strict boundary",
+    );
+    expect(stepStart).toBeGreaterThan(0);
+    const nextStepStart = strictJob.indexOf("\n      - name:", stepStart + 1);
+    expect(nextStepStart).toBeGreaterThan(stepStart);
+    const liveStep = strictJob.slice(stepStart, nextStepStart);
+    expect(liveStep).toContain("id: strict-native-boundary");
+    expect(liveStep).toContain("working-directory: packages/cli");
+    expect(liveStep).toContain('CC_SANDBOX_LIVE: "1"');
+    expect(liveStep).not.toMatch(/^\s+if:/m);
+    expect(liveStep).toContain(
+      "__tests__/integration/mcp-materialized-capsule-sandbox-live.test.js",
+    );
+  });
+
   it("runs the session resource budget authority in the strict gate", () => {
     const text = workflow("cli-strict-sandbox.yml");
     const jobsStart = text.indexOf("\njobs:");

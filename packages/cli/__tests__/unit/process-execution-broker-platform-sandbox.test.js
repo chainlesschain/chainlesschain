@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import crypto from "node:crypto";
 import os from "node:os";
 import path from "node:path";
+import { Script } from "node:vm";
 import {
   afterAll,
   afterEach,
@@ -1720,6 +1721,7 @@ function createLinuxSupervisorRuntimeProbe(overrides = {}) {
     reason: null,
     probeRuntime: "node",
     targetRuntime: "node",
+    runtimeDetachedChildSpawnVerified: true,
     contentSnapshot: false,
     handleAtomic: false,
     supervisorDescriptorBound: true,
@@ -2183,6 +2185,7 @@ describe("platform sandbox adapter contract", () => {
         runnable: true,
         reason: null,
         targetRuntime: "node",
+        runtimeDetachedChildSpawnVerified: true,
         contentSnapshot: true,
         contentSnapshotScope: "plugin-entry-source",
         contentSnapshotMechanism:
@@ -2276,6 +2279,46 @@ describe("platform sandbox adapter contract", () => {
       "/proc/self/fd/3",
     ]);
     expectLinuxBwrapSupervisorInvocations(harness, ["capability", "probe"]);
+    const policyProbeCall = harness.spawnSync.mock.calls.find(
+      ([command, probeArgs]) =>
+        harness.isBwrapCommand(command) && probeArgs?.[0] !== "--help",
+    );
+    const policyProbeSeparator = policyProbeCall[1].lastIndexOf("--");
+    const policyProbeSource = policyProbeCall[1][policyProbeSeparator + 3];
+    expect(() => new Script(policyProbeSource)).not.toThrow();
+    expect(
+      policyProbeCall[1].slice(
+        policyProbeSeparator + 1,
+        policyProbeSeparator + 3,
+      ),
+    ).toEqual(["/opt/chainless/runtime/node", "-e"]);
+    expect(policyProbeSource).toContain(
+      'spawnSync("/opt/chainless/runtime/node", ["-e"',
+    );
+    expect(policyProbeSource).toContain("detached: true");
+    expect(policyProbeSource).toContain(
+      'fs.openSync(childReportPath, "wx+", 0o600)',
+    );
+    expect(policyProbeSource).toContain(
+      'stdio: ["ignore", reportFd, "ignore"]',
+    );
+    expect(policyProbeSource).toContain("fs.writeSync(1");
+    expect(policyProbeSource).toContain("fs.readSync(reportFd");
+    expect(policyProbeSource).toContain("crypto.randomBytes(16)");
+    expect(policyProbeSource).toContain("reportText === canonicalReport");
+    expect(policyProbeSource).toContain(
+      "report.processGroupPid === report.pid",
+    );
+    expect(policyProbeSource).toContain("report.sessionPid === report.pid");
+    expect(policyProbeSource).not.toContain('"pipe"');
+    expect(policyProbeSource).not.toContain("process.getuid()");
+    expect(policyProbeSource).not.toContain("process.getgid()");
+    expect(policyProbeSource).toContain(
+      "runtimeDetachedChildSpawnVerified = false",
+    );
+    expect(policyProbeSource).toContain(
+      "chainless-linux-bwrap-child-runtime-v1",
+    );
     expect(plan.options.stdio.length).toBeGreaterThan(3);
     expect(plan.options.stdio[3]).not.toBe(
       harness.bwrapInvocations[0].parentFd,
@@ -3155,6 +3198,24 @@ describe("platform sandbox adapter contract", () => {
       },
     });
     expect(harness.bwrapDataReads).toHaveLength(2);
+    expect(harness.openFiles.size).toBe(0);
+    expect(harness.anonymousFiles.size).toBe(0);
+  });
+
+  it("classifies a failed detached child descriptor report without exposing stderr", () => {
+    const harness = createLinuxStrongHarness({ bwrapStatus: 86 });
+    const plan = applyLinuxStrongNodeHarness(harness);
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "linux_bwrap_policy_probe_failed",
+      runtimeProbe: {
+        attempted: true,
+        runnable: false,
+        reason: "detached_child_runtime_probe_failed",
+        runtimeDetachedChildSpawnVerified: false,
+      },
+    });
     expect(harness.openFiles.size).toBe(0);
     expect(harness.anonymousFiles.size).toBe(0);
   });
@@ -5727,6 +5788,7 @@ describe("platform sandbox adapter contract", () => {
         attempted: true,
         runnable: true,
         reason: null,
+        capabilityCount: 0,
         probeRuntime: "node",
         targetRuntime: "node",
         contentSnapshot: true,
@@ -8441,6 +8503,7 @@ describe("platform sandbox adapter contract", () => {
       sandboxAppContainerProfile:
         "ChainlessChain.CliSandbox.080808080808080808080808",
       sandboxAppContainerSid: appContainerSid,
+      sandboxAppContainerCapabilityCount: 0,
     });
     expect(identityPath).toBe(payload.identityPath);
     const { assemblyPath } = harness.decodeInvocationPaths(plan.args);
@@ -10497,6 +10560,81 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
     );
   });
 
+  it("preserves a zero-capability runtime attestation through plan validation", () => {
+    const plan = appliedPlan(
+      "sandbox-helper",
+      ["payload"],
+      {},
+      {
+        backend: "test-sandbox",
+        guarantees: [],
+        runtimeProbe: {
+          kind: "windows-appcontainer-launch-attestation-v1",
+          attempted: true,
+          runnable: true,
+          reason: null,
+          capabilityCount: 0,
+        },
+      },
+    );
+
+    expect(executionBroker._validateSandboxPlan(plan).runtimeProbe).toEqual(
+      plan.runtimeProbe,
+    );
+  });
+
+  it.each([
+    ["missing", undefined],
+    ["nonzero", 1],
+  ])(
+    "rejects %s capability evidence for a Windows AppContainer runtime attestation",
+    (_label, capabilityCount) => {
+      const runtimeProbe = {
+        kind: "windows-appcontainer-launch-attestation-v1",
+        attempted: true,
+        runnable: true,
+        reason: null,
+        ...(capabilityCount === undefined ? {} : { capabilityCount }),
+      };
+      const plan = appliedPlan(
+        "sandbox-helper",
+        ["payload"],
+        {},
+        {
+          backend: "test-sandbox",
+          guarantees: [],
+          runtimeProbe,
+        },
+      );
+
+      expect(() => executionBroker._validateSandboxPlan(plan)).toThrow(
+        "Windows AppContainer runtime evidence must attest zero capabilities",
+      );
+    },
+  );
+
+  it("does not fabricate capability evidence for a failed AppContainer probe", () => {
+    const plan = appliedPlan(
+      "sandbox-helper",
+      ["payload"],
+      {},
+      {
+        backend: "test-sandbox",
+        guarantees: [],
+        runtimeProbe: {
+          kind: "windows-appcontainer-launch-attestation-v1",
+          attempted: true,
+          runnable: false,
+          reason: "probe_failed",
+        },
+      },
+    );
+
+    expect(executionBroker._validateSandboxPlan(plan).runtimeProbe).toEqual(
+      plan.runtimeProbe,
+    );
+  });
+
   it("preserves complete static native plugin-tree evidence in the audit log", () => {
     const child = createChild();
     const nativeSpawn = vi.fn(() => child);
@@ -11284,6 +11422,47 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
         [sourceEntryPath, "--", "--stdio"],
         {
           origin: "test:forged-linux-bwrap-mcp-code-snapshot",
+          policy: "allow",
+          shell: false,
+          requiredBoundaries: [
+            SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+            SANDBOX_BOUNDARIES.FILESYSTEM,
+            SANDBOX_BOUNDARIES.NETWORK,
+          ],
+          sandboxExecutionContract: Object.freeze({}),
+        },
+      ),
+    ).toThrow(
+      "Code snapshot guarantee requires typed atomic MCP capsule evidence",
+    );
+    expect(nativeSpawn).toHaveBeenCalledOnce();
+
+    executionBroker._sandboxAdapter.applySandbox = vi.fn(
+      (_command, _args, options) =>
+        appliedLinuxBwrapPluginTreePlan(
+          runtimePath,
+          [entryPath, "--", "--stdio"],
+          options,
+          {
+            guarantees: [
+              SANDBOX_BOUNDARIES.FILESYSTEM,
+              SANDBOX_BOUNDARIES.NETWORK,
+              SANDBOX_BOUNDARIES.PROCESS_TREE,
+              SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+            ],
+            runtimeProbe: {
+              ...runtimeProbe,
+              runtimeDetachedChildSpawnVerified: false,
+            },
+          },
+        ),
+    );
+    expect(() =>
+      executionBroker.spawn(
+        sourceRuntimePath,
+        [sourceEntryPath, "--", "--stdio"],
+        {
+          origin: "test:unverified-linux-detached-runtime-child",
           policy: "allow",
           shell: false,
           requiredBoundaries: [
