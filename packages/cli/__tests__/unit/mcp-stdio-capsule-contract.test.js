@@ -12,6 +12,7 @@ import {
 import {
   consumeMcpStdioCapsuleSandboxExecutionContract,
   MCP_STDIO_CAPSULE_REQUIRED_BOUNDARIES,
+  nanosecondsToSafeMilliseconds,
   prepareMcpStdioExecutableIdentity,
 } from "../../src/lib/mcp-stdio-executable-identity.js";
 import {
@@ -55,6 +56,22 @@ function fakeInstall({ directory }) {
     "utf8",
   );
 }
+
+it("rejects nanosecond timestamps just outside the safe millisecond boundary", () => {
+  const maximumSafeNanoseconds = BigInt(Number.MAX_SAFE_INTEGER) * 1_000_000n;
+  expect(nanosecondsToSafeMilliseconds(maximumSafeNanoseconds)).toBe(
+    Number.MAX_SAFE_INTEGER,
+  );
+  expect(nanosecondsToSafeMilliseconds(-maximumSafeNanoseconds)).toBe(
+    -Number.MAX_SAFE_INTEGER,
+  );
+  expect(() =>
+    nanosecondsToSafeMilliseconds(maximumSafeNanoseconds + 1n),
+  ).toThrow(RangeError);
+  expect(() =>
+    nanosecondsToSafeMilliseconds(-maximumSafeNanoseconds - 1n),
+  ).toThrow(RangeError);
+});
 
 describe("MCP stdio capsule host boundary floor", () => {
   let root;

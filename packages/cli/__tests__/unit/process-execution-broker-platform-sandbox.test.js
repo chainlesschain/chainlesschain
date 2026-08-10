@@ -5727,6 +5727,7 @@ describe("platform sandbox adapter contract", () => {
         attempted: true,
         runnable: true,
         reason: null,
+        capabilityCount: 0,
         probeRuntime: "node",
         targetRuntime: "node",
         contentSnapshot: true,
@@ -8441,6 +8442,7 @@ describe("platform sandbox adapter contract", () => {
       sandboxAppContainerProfile:
         "ChainlessChain.CliSandbox.080808080808080808080808",
       sandboxAppContainerSid: appContainerSid,
+      sandboxAppContainerCapabilityCount: 0,
     });
     expect(identityPath).toBe(payload.identityPath);
     const { assemblyPath } = harness.decodeInvocationPaths(plan.args);

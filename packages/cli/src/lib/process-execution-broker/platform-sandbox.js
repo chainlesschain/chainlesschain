@@ -2544,6 +2544,7 @@ function waitForWindowsTargetIdentity(
         proc.sandboxAppContainerProfile =
           expectedAppContainer.appContainerProfileName;
         proc.sandboxAppContainerSid = expectedAppContainer.appContainerSid;
+        proc.sandboxAppContainerCapabilityCount = identity.capabilityCount;
       }
       // ChildProcess.pid is a writable data property. The native ChildProcess
       // handle still points at the helper, so kill()/ref()/unref() retain Job
@@ -2747,6 +2748,7 @@ function appContainerReadinessResult(
       ...runtimeProbe,
       runnable: true,
       reason: null,
+      capabilityCount: readiness.capabilityCount,
       ...(targetRuntime
         ? {
             probeRuntime: targetRuntime,

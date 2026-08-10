@@ -324,6 +324,7 @@ describe("CLI release workflow contracts", () => {
     for (const source of [
       "packages/cli/__tests__/integration/mcp-materialized-capsule-sandbox-live.test.js",
       "packages/cli/__tests__/fixtures/mcp-materialized-capsule-live-server.cjs",
+      "packages/cli/__tests__/fixtures/mcp-materialized-capsule-child-contract.cjs",
     ]) {
       expect(pushTriggers.split(`- "${source}"`).length - 1).toBe(1);
       expect(pullRequestTriggers.split(`- "${source}"`).length - 1).toBe(1);

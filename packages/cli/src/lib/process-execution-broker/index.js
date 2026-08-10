@@ -1237,6 +1237,7 @@ class ProcessExecutionBroker extends EventEmitter {
         "runtimeSnapshotBytes",
         "runtimeAttestedBytes",
         "entrySnapshotBytes",
+        "capabilityCount",
       ]) {
         if (
           plan.runtimeProbe[field] !== undefined &&

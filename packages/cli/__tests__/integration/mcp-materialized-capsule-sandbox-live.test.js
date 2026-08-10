@@ -4,9 +4,14 @@
  * native kernel/AppContainer effects, not adapter-shaped mocks.
  */
 
-import { spawnSync as nativeSpawnSync } from "node:child_process";
+import {
+  spawn as nativeSpawn,
+  spawnSync as nativeSpawnSync,
+} from "node:child_process";
 import crypto from "node:crypto";
+import { once } from "node:events";
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
@@ -33,12 +38,26 @@ const PACKAGE_SPEC = "@chainlesschain/mcp-live-probe@1.0.0";
 const SERVER_NAME = "materialized-capsule-live";
 const HOST_DESCENDANT_MARKER_PREFIX = "--cc-mcp-live-descendant=";
 const PROCESS_OBSERVER_TIMEOUT_MS = 20_000;
+const ALLOWED_OS_SPAWN_DENIAL_CODES = new Set(["EACCES", "EPERM"]);
+const WINDOWS_INDETERMINATE_NETWORK_ERRORS = new Set(["ETIMEDOUT", "timeout"]);
 const fixturePath = fileURLToPath(
   new URL(
     "../fixtures/mcp-materialized-capsule-live-server.cjs",
     import.meta.url,
   ),
 );
+const childContractFixturePath = fileURLToPath(
+  new URL(
+    "../fixtures/mcp-materialized-capsule-child-contract.cjs",
+    import.meta.url,
+  ),
+);
+const loadFixtureModule = createRequire(import.meta.url);
+const {
+  LINUX_CHILD_RUNTIME_PATH,
+  resolveChildRuntimePath,
+  successfulChildReport,
+} = loadFixtureModule(childContractFixturePath);
 
 function writeJson(file, value) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -91,21 +110,50 @@ function isTypedOsSpawnDenial(child) {
     child?.spawnDenied === true &&
     child.reportReceived === false &&
     child.errorType === "os-error-code" &&
-    typeof child.errorCode === "string" &&
-    /^[A-Z][A-Z0-9_]*$/.test(child.errorCode) &&
+    ALLOWED_OS_SPAWN_DENIAL_CODES.has(child.errorCode) &&
     child.error === child.errorCode &&
     child.error !== "child-report-timeout",
   );
 }
 
-function isTypedWindowsNetworkDrop(result, platform = process.platform) {
+function isWindowsNetworkProbeIndeterminate(
+  result,
+  platform = process.platform,
+) {
   return Boolean(
     platform === "win32" &&
     result?.state === "indeterminate" &&
     result.networkDenied === false &&
-    result.networkError === "ETIMEDOUT" &&
+    WINDOWS_INDETERMINATE_NETWORK_ERRORS.has(result.networkError) &&
     result.canaryPayloadAttempted === false,
   );
+}
+
+function selectObservedDescendantStarts(events, rootPid) {
+  const descendants = new Set([rootPid]);
+  const selected = [];
+  const pending = [...events];
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (let index = pending.length - 1; index >= 0; index -= 1) {
+      const event = pending[index];
+      if (
+        !Number.isSafeInteger(event?.pid) ||
+        event.pid <= 0 ||
+        !Number.isSafeInteger(event?.parentPid) ||
+        event.parentPid <= 0 ||
+        !descendants.has(event.parentPid)
+      ) {
+        continue;
+      }
+      descendants.add(event.pid);
+      selected.push(event);
+      pending.splice(index, 1);
+      changed = true;
+    }
+  }
+  return selected.sort((left, right) => left.sequence - right.sequence);
 }
 
 function isTransitiveDescendant(row, rootPid, rowsByPid) {
@@ -212,6 +260,367 @@ function enumerateWindowsProcesses() {
     creationMarker: String(row.creationMarker || ""),
     commandLine: String(row.commandLine || ""),
   }));
+}
+
+function parseWindowsLoopbackExemptSids(output) {
+  return new Set(
+    [...String(output || "").matchAll(/\bS-1-15-2(?:-\d+){7}\b/gi)].map(
+      (match) => match[0].toUpperCase(),
+    ),
+  );
+}
+
+function queryWindowsLoopbackExemptSids() {
+  if (process.platform !== "win32") {
+    throw new Error("Windows loopback exemption query requires Windows");
+  }
+  const windowsRoot = process.env.SystemRoot || process.env.WINDIR;
+  if (!windowsRoot || !path.win32.isAbsolute(windowsRoot)) {
+    throw new Error("Windows loopback exemption query has no trusted root");
+  }
+  const result = nativeSpawnSync(
+    path.win32.join(
+      path.win32.resolve(windowsRoot),
+      "System32",
+      "CheckNetIsolation.exe",
+    ),
+    ["LoopbackExempt", "-s"],
+    {
+      encoding: "utf8",
+      timeout: PROCESS_OBSERVER_TIMEOUT_MS,
+      windowsHide: true,
+    },
+  );
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(
+      `Windows loopback exemption query failed: status=${result.status}; stderr=${String(result.stderr || "").trim()}`,
+    );
+  }
+  return parseWindowsLoopbackExemptSids(
+    `${String(result.stdout || "")}\n${String(result.stderr || "")}`,
+  );
+}
+
+const windowsNativeProcessObserverSource = String.raw`
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Globalization;
+using System.IO;
+using System.Runtime.InteropServices;
+
+public static class ChainlessChainProcessStartObserver
+{
+    private const uint TH32CS_SNAPPROCESS = 0x00000002;
+    private const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct PROCESSENTRY32
+    {
+        public uint dwSize;
+        public uint cntUsage;
+        public uint th32ProcessID;
+        public IntPtr th32DefaultHeapID;
+        public uint th32ModuleID;
+        public uint cntThreads;
+        public uint th32ParentProcessID;
+        public int pcPriClassBase;
+        public uint dwFlags;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+        public string szExeFile;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct FILETIME
+    {
+        public uint Low;
+        public uint High;
+    }
+
+    private struct ProcessRow
+    {
+        public int ParentPid;
+        public long CreationTime;
+    }
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr CreateToolhelp32Snapshot(uint flags, uint processId);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool Process32FirstW(IntPtr snapshot, ref PROCESSENTRY32 entry);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool Process32NextW(IntPtr snapshot, ref PROCESSENTRY32 entry);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr OpenProcess(uint access, bool inheritHandle, uint processId);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetProcessTimes(
+        IntPtr process,
+        out FILETIME creation,
+        out FILETIME exit,
+        out FILETIME kernel,
+        out FILETIME user);
+
+    [DllImport("kernel32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool CloseHandle(IntPtr handle);
+
+    private static long CreationTime(uint processId)
+    {
+        IntPtr process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, processId);
+        if (process == IntPtr.Zero) return 0;
+        try
+        {
+            FILETIME creation;
+            FILETIME exit;
+            FILETIME kernel;
+            FILETIME user;
+            if (!GetProcessTimes(process, out creation, out exit, out kernel, out user)) return 0;
+            return ((long)creation.High << 32) | creation.Low;
+        }
+        finally
+        {
+            CloseHandle(process);
+        }
+    }
+
+    private static Dictionary<int, ProcessRow> Snapshot()
+    {
+        IntPtr snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+        if (snapshot == new IntPtr(-1))
+            throw new Win32Exception(Marshal.GetLastWin32Error());
+        try
+        {
+            var rows = new Dictionary<int, ProcessRow>();
+            var entry = new PROCESSENTRY32();
+            entry.dwSize = (uint)Marshal.SizeOf(typeof(PROCESSENTRY32));
+            if (!Process32FirstW(snapshot, ref entry)) return rows;
+            do
+            {
+                int pid = checked((int)entry.th32ProcessID);
+                if (pid > 0)
+                {
+                    rows[pid] = new ProcessRow
+                    {
+                        ParentPid = checked((int)entry.th32ParentProcessID),
+                        CreationTime = CreationTime(entry.th32ProcessID)
+                    };
+                }
+                entry.dwSize = (uint)Marshal.SizeOf(typeof(PROCESSENTRY32));
+            }
+            while (Process32NextW(snapshot, ref entry));
+            return rows;
+        }
+        finally
+        {
+            CloseHandle(snapshot);
+        }
+    }
+
+    private static void ObserveNew(
+        ref Dictionary<int, ProcessRow> previous,
+        ref long sequence)
+    {
+        Dictionary<int, ProcessRow> current = Snapshot();
+        foreach (KeyValuePair<int, ProcessRow> pair in current)
+        {
+            ProcessRow old;
+            if (!previous.TryGetValue(pair.Key, out old) ||
+                old.CreationTime != pair.Value.CreationTime)
+            {
+                Console.Out.WriteLine(
+                    "{\"event\":\"process-start\",\"pid\":" +
+                    pair.Key.ToString(CultureInfo.InvariantCulture) +
+                    ",\"parentPid\":" +
+                    pair.Value.ParentPid.ToString(CultureInfo.InvariantCulture) +
+                    ",\"creationMarker\":\"filetime:" +
+                    pair.Value.CreationTime.ToString(CultureInfo.InvariantCulture) +
+                    "\",\"sequence\":" +
+                    sequence.ToString(CultureInfo.InvariantCulture) + "}");
+                Console.Out.Flush();
+                sequence += 1;
+            }
+        }
+        previous = current;
+    }
+
+    public static void Run(string stopPath)
+    {
+        Dictionary<int, ProcessRow> previous = Snapshot();
+        long sequence = 0;
+        Console.Out.WriteLine("{\"event\":\"observer-ready\"}");
+        Console.Out.Flush();
+        while (!File.Exists(stopPath))
+            ObserveNew(ref previous, ref sequence);
+        for (int index = 0; index < 3; index += 1)
+            ObserveNew(ref previous, ref sequence);
+    }
+}
+`;
+
+async function startWindowsProcessStartObserver() {
+  if (process.platform !== "win32") {
+    throw new Error("Windows process-start observer requires Windows");
+  }
+  const stopPath = path.join(
+    os.tmpdir(),
+    `cc-mcp-process-start-${crypto.randomUUID()}.stop`,
+  );
+  fs.rmSync(stopPath, { force: true });
+  const script = [
+    "$ErrorActionPreference = 'Stop'",
+    "$stopPath = $env:CC_MCP_PROCESS_OBSERVER_STOP",
+    "$source = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($env:CC_MCP_PROCESS_OBSERVER_CSHARP))",
+    "Add-Type -TypeDefinition $source -Language CSharp",
+    "[ChainlessChainProcessStartObserver]::Run($stopPath)",
+  ].join("\n");
+  const observer = nativeSpawn(
+    "powershell.exe",
+    ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", script],
+    {
+      env: {
+        ...process.env,
+        CC_MCP_PROCESS_OBSERVER_CSHARP: Buffer.from(
+          windowsNativeProcessObserverSource,
+          "utf8",
+        ).toString("base64"),
+        CC_MCP_PROCESS_OBSERVER_STOP: stopPath,
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+      windowsHide: true,
+    },
+  );
+  const events = [];
+  let stderr = "";
+  let stdout = "";
+  let ready = false;
+  let readyResolve;
+  let readyReject;
+  const readyPromise = new Promise((resolve, reject) => {
+    readyResolve = resolve;
+    readyReject = reject;
+  });
+  const closePromise = new Promise((resolve) => {
+    observer.once("close", (code, signal) => resolve({ code, signal }));
+  });
+  const consumeLine = (rawLine) => {
+    const line = rawLine.replace(/^\uFEFF/, "").trim();
+    if (!line) return;
+    let message;
+    try {
+      message = JSON.parse(line);
+    } catch {
+      return;
+    }
+    if (message?.event === "observer-ready") {
+      ready = true;
+      readyResolve();
+      return;
+    }
+    if (
+      message?.event === "process-start" &&
+      Number.isSafeInteger(Number(message.pid)) &&
+      Number.isSafeInteger(Number(message.parentPid))
+    ) {
+      events.push({
+        sequence: events.length,
+        pid: Number(message.pid),
+        parentPid: Number(message.parentPid),
+        processName: String(message.processName || ""),
+        creationMarker: String(message.creationMarker || ""),
+      });
+    }
+  };
+  observer.stdout.setEncoding("utf8");
+  observer.stdout.on("data", (chunk) => {
+    stdout += chunk;
+    let newline = stdout.indexOf("\n");
+    while (newline >= 0) {
+      consumeLine(stdout.slice(0, newline));
+      stdout = stdout.slice(newline + 1);
+      newline = stdout.indexOf("\n");
+    }
+  });
+  observer.stderr.setEncoding("utf8");
+  observer.stderr.on("data", (chunk) => {
+    stderr += chunk;
+  });
+  observer.once("error", (error) => {
+    if (!ready) readyReject(error);
+  });
+  closePromise.then(({ code, signal }) => {
+    if (!ready) {
+      readyReject(
+        new Error(
+          `Windows process-start observer exited before readiness: code=${code}; signal=${signal}; stderr=${stderr.trim()}`,
+        ),
+      );
+    }
+  });
+
+  const readinessTimer = setTimeout(
+    () =>
+      readyReject(
+        new Error(
+          `Timed out waiting for Windows process-start observer: ${stderr.trim()}`,
+        ),
+      ),
+    PROCESS_OBSERVER_TIMEOUT_MS,
+  );
+  try {
+    await readyPromise;
+  } catch (error) {
+    observer.kill();
+    fs.rmSync(stopPath, { force: true });
+    throw error;
+  } finally {
+    clearTimeout(readinessTimer);
+  }
+
+  let stopped = false;
+  return {
+    events,
+    async stop() {
+      if (stopped) return [...events];
+      stopped = true;
+      fs.writeFileSync(stopPath, "stop\n", "utf8");
+      let timeout;
+      try {
+        const outcome = await Promise.race([
+          closePromise,
+          new Promise((_, reject) => {
+            timeout = setTimeout(
+              () =>
+                reject(
+                  new Error(
+                    "Timed out stopping Windows process-start observer",
+                  ),
+                ),
+              PROCESS_OBSERVER_TIMEOUT_MS,
+            );
+          }),
+        ]);
+        if (outcome.code !== 0) {
+          throw new Error(
+            `Windows process-start observer failed: code=${outcome.code}; signal=${outcome.signal}; stderr=${stderr.trim()}`,
+          );
+        }
+        return [...events];
+      } catch (error) {
+        observer.kill();
+        throw error;
+      } finally {
+        clearTimeout(timeout);
+        fs.rmSync(stopPath, { force: true });
+      }
+    },
+  };
 }
 
 function enumerateDarwinProcesses() {
@@ -465,27 +874,29 @@ async function closeServer(server) {
   await closed;
 }
 
-function expectIsolatedNetworkResults(networks, networkTargets) {
+function expectNetworkProbeResults(networks, networkTargets) {
   expect(networks.map((item) => item.label).sort()).toEqual(
     networkTargets.map((item) => item.label).sort(),
   );
+  const indeterminate = [];
   for (const result of networks) {
-    const denied =
+    const explicitlyDenied =
       result.state === "denied" &&
       result.networkDenied === true &&
       result.canaryPayloadAttempted === false &&
       result.networkError !== "timeout";
-    // A Windows AppContainer without network capabilities can surface its
-    // kernel drop as the typed Winsock ETIMEDOUT error. This result is accepted
-    // only in this live test, where the host endpoint was independently proven
-    // reachable and the assertions below also require no sandbox connection,
-    // an attested AppContainer backend, and the network guarantee. The
-    // harness-generated untyped `timeout` remains indeterminate and fails.
+    if (explicitlyDenied) continue;
+    // Any Windows timeout/error that lacks an explicit denial code remains
+    // indeterminate. It is never relabelled as an OS denial; the Windows branch
+    // separately requires native zero-capability target attestation and no
+    // host-visible connection.
     expect(
-      denied || isTypedWindowsNetworkDrop(result),
+      isWindowsNetworkProbeIndeterminate(result),
       JSON.stringify(result),
     ).toBe(true);
+    indeterminate.push(result);
   }
+  return { indeterminate };
 }
 
 function issueApproval(config) {
@@ -560,6 +971,14 @@ function installProbePackage({
   });
   fs.mkdirSync(path.join(packageRoot, "bin"), { recursive: true });
   fs.copyFileSync(fixturePath, path.join(packageRoot, "bin", "server.cjs"));
+  fs.copyFileSync(
+    childContractFixturePath,
+    path.join(
+      packageRoot,
+      "bin",
+      "mcp-materialized-capsule-child-contract.cjs",
+    ),
+  );
 }
 
 function materializeProbe({
@@ -599,6 +1018,34 @@ function materializeProbe({
 }
 
 describe("materialized MCP capsule host observer helpers", () => {
+  it("re-executes Linux children through the live runtime image", () => {
+    expect(resolveChildRuntimePath("linux", "/proc/self/fd/3")).toBe(
+      LINUX_CHILD_RUNTIME_PATH,
+    );
+    expect(resolveChildRuntimePath("darwin", "/usr/local/bin/node")).toBe(
+      "/usr/local/bin/node",
+    );
+    expect(resolveChildRuntimePath("win32", "C:\\nodejs\\node.exe")).toBe(
+      "C:\\nodejs\\node.exe",
+    );
+  });
+
+  it("keeps child-report envelope fields parent-owned", () => {
+    expect(
+      successfulChildReport({
+        event: "child-ready",
+        spawnDenied: true,
+        reportReceived: false,
+        detachedRequested: false,
+      }),
+    ).toEqual({
+      event: "child-ready",
+      spawnDenied: false,
+      reportReceived: true,
+      detachedRequested: true,
+    });
+  });
+
   it("does not confuse a reused PID with the original process identity", () => {
     const original = {
       platform: "win32",
@@ -647,7 +1094,7 @@ describe("materialized MCP capsule host observer helpers", () => {
     ).toEqual([120]);
   });
 
-  it("accepts only a typed OS child-spawn denial and never a timeout", () => {
+  it("accepts only explicit permission child-spawn denials", () => {
     expect(
       isTypedOsSpawnDenial({
         spawnDenied: true,
@@ -657,6 +1104,26 @@ describe("materialized MCP capsule host observer helpers", () => {
         error: "EPERM",
       }),
     ).toBe(true);
+    expect(
+      isTypedOsSpawnDenial({
+        spawnDenied: true,
+        reportReceived: false,
+        errorType: "os-error-code",
+        errorCode: "EACCES",
+        error: "EACCES",
+      }),
+    ).toBe(true);
+    for (const errorCode of ["ENOENT", "ENOMEM", "EINVAL"]) {
+      expect(
+        isTypedOsSpawnDenial({
+          spawnDenied: true,
+          reportReceived: false,
+          errorType: "os-error-code",
+          errorCode,
+          error: errorCode,
+        }),
+      ).toBe(false);
+    }
     expect(
       isTypedOsSpawnDenial({
         spawnDenied: false,
@@ -677,30 +1144,85 @@ describe("materialized MCP capsule host observer helpers", () => {
     ).toBe(false);
   });
 
-  it("distinguishes a typed Windows network drop from a harness timeout", () => {
-    expect(
-      isTypedWindowsNetworkDrop(
-        {
-          state: "indeterminate",
-          networkDenied: false,
-          networkError: "ETIMEDOUT",
-          canaryPayloadAttempted: false,
-        },
-        "win32",
-      ),
-    ).toBe(true);
-    expect(
-      isTypedWindowsNetworkDrop(
-        {
-          state: "indeterminate",
-          networkDenied: false,
-          networkError: "timeout",
-          canaryPayloadAttempted: false,
-        },
-        "win32",
-      ),
-    ).toBe(false);
+  it("never relabels Windows ETIMEDOUT or a harness timeout as denied", () => {
+    for (const networkError of ["ETIMEDOUT", "timeout"]) {
+      const result = {
+        state: "indeterminate",
+        networkDenied: false,
+        networkError,
+        canaryPayloadAttempted: false,
+      };
+      expect(isWindowsNetworkProbeIndeterminate(result, "win32")).toBe(true);
+      expect(result).toMatchObject({
+        state: "indeterminate",
+        networkDenied: false,
+      });
+    }
   });
+
+  it("selects short-lived descendant starts even when events arrive out of order", () => {
+    const events = [
+      { sequence: 0, pid: 303, parentPid: 202 },
+      { sequence: 1, pid: 404, parentPid: 999 },
+      { sequence: 2, pid: 202, parentPid: 101 },
+    ];
+    expect(
+      selectObservedDescendantStarts(events, 101).map((event) => event.pid),
+    ).toEqual([303, 202]);
+  });
+
+  it("parses only AppContainer package SIDs from loopback exemptions", () => {
+    const first = "S-1-15-2-1-2-3-4-5-6-7";
+    const second = "S-1-15-2-11-12-13-14-15-16-17";
+    expect([
+      ...parseWindowsLoopbackExemptSids(`
+        Name: first
+        SID: ${first}
+        Capability: S-1-15-3-1
+        SID: ${second}
+        malformed: S-1-15-2-1-2-3
+        duplicate: ${first}
+      `),
+    ]).toEqual([first, second]);
+  });
+
+  it.runIf(LIVE && process.platform === "win32")(
+    "observes a nonce-bearing child that exits before a process snapshot",
+    async () => {
+      const observer = await startWindowsProcessStartObserver();
+      let stopped = false;
+      const nonce = crypto.randomBytes(16).toString("hex");
+      const child = nativeSpawn(
+        process.execPath,
+        ["-e", "", "--", markerForNonce(nonce)],
+        { stdio: "ignore", windowsHide: true },
+      );
+      const childPid = child.pid;
+      try {
+        const [code, signal] = await once(child, "close");
+        expect({ code, signal }).toEqual({ code: 0, signal: null });
+        await waitForValue(
+          () =>
+            observer.events.some(
+              (event) =>
+                event.pid === childPid && event.parentPid === process.pid,
+            ),
+          "a short-lived Windows process-start event",
+          PROCESS_OBSERVER_TIMEOUT_MS,
+        );
+        const events = await observer.stop();
+        stopped = true;
+        expect(
+          selectObservedDescendantStarts(events, process.pid).some(
+            (event) => event.pid === childPid,
+          ),
+        ).toBe(true);
+      } finally {
+        if (!stopped) await observer.stop();
+      }
+    },
+    40_000,
+  );
 });
 
 describe.runIf(LIVE && SUPPORTED)(
@@ -724,6 +1246,7 @@ describe.runIf(LIVE && SUPPORTED)(
     let networkRecords;
     let observedSandboxRootIdentity;
     let observedDescendantIdentities;
+    let windowsProcessStartObserver;
 
     beforeEach(() => {
       root = fs.realpathSync.native(
@@ -782,14 +1305,21 @@ describe.runIf(LIVE && SUPPORTED)(
       networkRecords = [];
       observedSandboxRootIdentity = null;
       observedDescendantIdentities = [];
+      windowsProcessStartObserver = null;
     });
 
     afterEach(async () => {
       let cleanupError;
       try {
-        await client?.disconnectAll();
+        await windowsProcessStartObserver?.stop();
+        windowsProcessStartObserver = null;
       } catch (error) {
         cleanupError = error;
+      }
+      try {
+        await client?.disconnectAll();
+      } catch (error) {
+        cleanupError ||= error;
       }
       try {
         // This nonce-scoped reaper is only a test-harness safety net. Every
@@ -818,7 +1348,7 @@ describe.runIf(LIVE && SUPPORTED)(
         if (root) fs.rmSync(root, { recursive: true, force: true });
       }
       if (cleanupError) throw cleanupError;
-    });
+    }, 60_000);
 
     async function createControlledNetworkTargets() {
       server = net.createServer((socket) => {
@@ -840,6 +1370,7 @@ describe.runIf(LIVE && SUPPORTED)(
 
     it("denies host effects through the real Client -> Broker -> OS path or fails closed on macOS", async () => {
       const networkTargets = await createControlledNetworkTargets();
+      const hostControlConnectionCount = networkRecords.length;
       const config = {
         command: "npx",
         args: ["--yes", PACKAGE_SPEC, "--stdio"],
@@ -904,7 +1435,7 @@ describe.runIf(LIVE && SUPPORTED)(
         expect([...audit.sandboxRequired].sort()).toEqual(
           [...MCP_STDIO_CAPSULE_REQUIRED_BOUNDARIES].sort(),
         );
-        expect(networkRecords).toHaveLength(networkTargets.length);
+        expect(networkRecords).toHaveLength(hostControlConnectionCount);
         expect(nonceProcessRows(enumerateHostProcesses(), probeNonce)).toEqual(
           [],
         );
@@ -930,10 +1461,26 @@ describe.runIf(LIVE && SUPPORTED)(
         entry.process.pid,
       );
 
-      const toolResult = await client.callTool(
-        SERVER_NAME,
-        "probe_sandbox_effects",
-        {},
+      let processStartEvents = [];
+      if (process.platform === "win32") {
+        windowsProcessStartObserver = await startWindowsProcessStartObserver();
+      }
+      let toolResult;
+      try {
+        toolResult = await client.callTool(
+          SERVER_NAME,
+          "probe_sandbox_effects",
+          {},
+        );
+      } finally {
+        if (windowsProcessStartObserver) {
+          processStartEvents = await windowsProcessStartObserver.stop();
+          windowsProcessStartObserver = null;
+        }
+      }
+      const observedChildStarts = selectObservedDescendantStarts(
+        processStartEvents,
+        entry.process.pid,
       );
       const text = toolResult?.content?.find(
         (item) => item?.type === "text",
@@ -944,19 +1491,29 @@ describe.runIf(LIVE && SUPPORTED)(
         canaryCandidate: null,
         writeDenied: true,
       });
-      expectIsolatedNetworkResults(report.root.networks, networkTargets);
+      const networkProbeEvidence = [
+        expectNetworkProbeResults(report.root.networks, networkTargets),
+      ];
+      if (process.platform === "linux") {
+        expect(report.child, JSON.stringify(report.child)).toMatchObject({
+          spawnDenied: false,
+          reportReceived: true,
+        });
+      }
       if (report.child.spawnDenied) {
         // A zero-capability sandbox may reject child creation at the OS
-        // boundary. That is stronger than confining a created child, provided
-        // the rejection is typed and no nonce process ever exists.
+        // boundary on Windows. The permission code and continuous host-side
+        // process-start observer must both agree that no child was created.
+        expect(process.platform).toBe("win32");
         expect(report.child).toMatchObject({
           spawnDenied: true,
           reportReceived: false,
           errorType: "os-error-code",
-          errorCode: expect.stringMatching(/^[A-Z][A-Z0-9_]*$/),
+          errorCode: expect.stringMatching(/^(?:EACCES|EPERM)$/),
           error: expect.any(String),
         });
         expect(isTypedOsSpawnDenial(report.child)).toBe(true);
+        expect(observedChildStarts).toEqual([]);
         expect(nonceProcessRows(enumerateHostProcesses(), probeNonce)).toEqual(
           [],
         );
@@ -973,7 +1530,16 @@ describe.runIf(LIVE && SUPPORTED)(
           },
         });
         expect(report.child.namespacePid).toBeGreaterThan(0);
-        expectIsolatedNetworkResults(report.child.networks, networkTargets);
+        networkProbeEvidence.push(
+          expectNetworkProbeResults(report.child.networks, networkTargets),
+        );
+        if (process.platform === "win32") {
+          expect(
+            observedChildStarts.some(
+              (event) => event.pid === report.child.namespacePid,
+            ),
+          ).toBe(true);
+        }
         observedDescendantIdentities = await captureNonceDescendantIdentities(
           entry.process.pid,
           probeNonce,
@@ -985,7 +1551,8 @@ describe.runIf(LIVE && SUPPORTED)(
           ),
         ).toBe(true);
       }
-      expect(networkRecords).toHaveLength(networkTargets.length);
+      await delay(250);
+      expect(networkRecords).toHaveLength(hostControlConnectionCount);
       expect(fs.readFileSync(secretPath, "utf8") === secretCanary).toBe(true);
       expect(fs.existsSync(markerPath)).toBe(false);
       expect(fs.existsSync(childMarkerPath)).toBe(false);
@@ -1020,6 +1587,38 @@ describe.runIf(LIVE && SUPPORTED)(
           ? "linux-bwrap"
           : "windows-appcontainer-job-restricted-token",
       );
+      if (process.platform === "win32") {
+        expect(audit.sandboxRuntimeProbe).toMatchObject({
+          kind: "windows-appcontainer-launch-attestation-v1",
+          runnable: true,
+          capabilityCount: 0,
+        });
+        expect(entry.process).toMatchObject({
+          sandboxAppContainerSid: expect.stringMatching(
+            /^S-1-15-2(?:-\d+){7}$/,
+          ),
+          sandboxAppContainerCapabilityCount: 0,
+        });
+        const targetAppContainerSid =
+          entry.process.sandboxAppContainerSid.toUpperCase();
+        expect(
+          queryWindowsLoopbackExemptSids().has(targetAppContainerSid),
+        ).toBe(false);
+        // ETIMEDOUT remains nondiagnostic probe output. Isolation authority is
+        // the native zero-capability readiness + actual-target attestations,
+        // the required network guarantee, and the unchanged controlled host
+        // endpoint record set. Harness `timeout` stays indeterminate here.
+        for (const result of networkProbeEvidence.flatMap(
+          (evidence) => evidence.indeterminate,
+        )) {
+          expect(result).toMatchObject({
+            state: "indeterminate",
+            networkDenied: false,
+            canaryPayloadAttempted: false,
+          });
+        }
+        expect(networkRecords).toHaveLength(hostControlConnectionCount);
+      }
       // This is an explicit read -> MCP result / socket-payload probe. It is
       // evidence for these paths, not a claim of generic noninterference.
       expect(

@@ -2,6 +2,10 @@ const fs = require("node:fs");
 const net = require("node:net");
 const readline = require("node:readline");
 const { spawn } = require("node:child_process");
+const {
+  resolveChildRuntimePath,
+  successfulChildReport,
+} = require("./mcp-materialized-capsule-child-contract.cjs");
 const probeConfig = require("../probe-config.json");
 
 const descendants = new Set();
@@ -233,10 +237,11 @@ function launchDetachedChildProbe() {
     );
     try {
       child = spawn(
-        process.execPath,
+        resolveChildRuntimePath(),
         [
           "-e",
           childProgram,
+          "--",
           JSON.stringify(probeConfig),
           `--cc-mcp-live-descendant=${probeConfig.nonce}`,
         ],
@@ -257,12 +262,7 @@ function launchDetachedChildProbe() {
         const line = buffer.slice(0, newline);
         try {
           const report = JSON.parse(line);
-          finish({
-            spawnDenied: false,
-            reportReceived: true,
-            detachedRequested: true,
-            ...report,
-          });
+          finish(successfulChildReport(report));
         } catch {
           finish({
             spawnDenied: false,
