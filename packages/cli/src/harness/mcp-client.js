@@ -16,6 +16,7 @@ import { isProxy } from "node:util/types";
 import WebSocket from "ws";
 import { safeJsonParse } from "../lib/safe-json.js";
 import {
+  enforceMcpStdioCapsuleHostSandboxPolicy,
   MCP_SANDBOX_POLICY_INVALID_CODE,
   normalizeMcpSandboxPolicy,
   readMcpStdioCwd,
@@ -40,7 +41,7 @@ import {
   verifyMcpStdioApprovedWorkingDirectory,
 } from "../lib/mcp-stdio-execution-authority.js";
 import {
-  MCP_STDIO_CAPSULE_CODE_SNAPSHOT_BOUNDARY,
+  MCP_STDIO_CAPSULE_REQUIRED_BOUNDARIES,
   prepareMcpStdioExecutableIdentity,
 } from "../lib/mcp-stdio-executable-identity.js";
 import { resolveMcpStdioSandboxContext } from "../lib/mcp-stdio-workspace-authority.js";
@@ -1973,6 +1974,17 @@ export class MCPClient extends EventEmitter {
       stdioExecutableIdentityDigest = prepared.identityDigest;
       stdioCapsuleSandboxExecutionContract =
         prepared.sandboxExecutionContract || null;
+      if (stdioCapsuleSandboxExecutionContract) {
+        runtimeConfig = {
+          ...runtimeConfig,
+          sandboxPolicy: enforceMcpStdioCapsuleHostSandboxPolicy(
+            sourceConfig.sandboxPolicy,
+            {
+              label: `MCP stdio server "${name}" capsule sandboxPolicy`,
+            },
+          ),
+        };
+      }
     }
     const connectionHeaders = await this._connectionHeaders(
       name,
@@ -2394,17 +2406,13 @@ export class MCPClient extends EventEmitter {
           // Broker's Job Object boundary so an unexpectedly exiting MCP root
           // cannot orphan grandchildren before taskkill can enumerate them.
           detached: process.platform !== "win32",
-          ...(process.platform === "win32" ||
-          stdioCapsuleSandboxExecutionContract
+          ...(stdioCapsuleSandboxExecutionContract
             ? {
-                requiredBoundaries: [
-                  ...(process.platform === "win32" ? ["process-tree"] : []),
-                  ...(stdioCapsuleSandboxExecutionContract
-                    ? [MCP_STDIO_CAPSULE_CODE_SNAPSHOT_BOUNDARY]
-                    : []),
-                ],
+                requiredBoundaries: MCP_STDIO_CAPSULE_REQUIRED_BOUNDARIES,
               }
-            : {}),
+            : process.platform === "win32"
+              ? { requiredBoundaries: ["process-tree"] }
+              : {}),
           pluginId: config.pluginId,
           pluginVersion: config.pluginVersion,
           pluginSource: config.pluginSource,
@@ -2427,11 +2435,15 @@ export class MCPClient extends EventEmitter {
                   process.cwd(),
               )
             : null);
+        const effectiveRuntimeSandboxBoundaries = new Set([
+          ...(spawnOptions.requiredBoundaries || []),
+          ...(config.sandboxPolicy?.requiredBoundaries || []),
+        ]);
         const capsuleUsesLinuxProcessTreeSandbox =
           Boolean(stdioCapsuleSandboxExecutionContract) &&
           process.platform === "linux" &&
-          sourceConfig.sandboxPolicy?.requiredBoundaries?.some((boundary) =>
-            ["filesystem", "network", "process-tree"].includes(boundary),
+          MCP_STDIO_CAPSULE_REQUIRED_BOUNDARIES.every((boundary) =>
+            effectiveRuntimeSandboxBoundaries.has(boundary),
           );
         const capsuleUsesPosixProcessGroup =
           Boolean(stdioCapsuleSandboxExecutionContract) &&

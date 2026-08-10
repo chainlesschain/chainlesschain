@@ -28,6 +28,7 @@ import {
   rollbackLastKnownGood,
   writeWindowsSidecar,
   ApplyError,
+  WINDOWS_SIDECAR_READY_TIMEOUT_MS,
   _deps,
 } from "../../src/lib/packer/pack-update-applier.js";
 import {
@@ -1373,6 +1374,29 @@ describe("scheduleReplace – Windows branch (sidecar cmd)", () => {
     ).rejects.toMatchObject({ code: "SIDECAR_NOT_READY" });
     expect(child.kill).toHaveBeenCalledOnce();
     expect(fs.existsSync(`${target}.update.lock`)).toBe(true);
+  });
+
+  it("uses the bounded production readiness budget on loaded Windows hosts", async () => {
+    let observedTimeoutMs = null;
+    const result = await scheduleReplace(
+      applyFixture({
+        newExePath: newExe,
+        targetExePath: target,
+        platform: "win32",
+        spawnImpl: fakeSpawn,
+        waitForReadyImpl: (input) => {
+          observedTimeoutMs = input.timeoutMs;
+          return fakeWaitForReady(input);
+        },
+      }),
+    );
+
+    try {
+      expect(WINDOWS_SIDECAR_READY_TIMEOUT_MS).toBe(30_000);
+      expect(observedTimeoutMs).toBe(WINDOWS_SIDECAR_READY_TIMEOUT_MS);
+    } finally {
+      fs.unlinkSync(result.sidecarPath);
+    }
   });
 
   it.runIf(process.platform === "win32")(
