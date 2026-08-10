@@ -86,6 +86,18 @@ function sameHostProcessIdentity(left, right) {
   );
 }
 
+function isTypedOsSpawnDenial(child) {
+  return Boolean(
+    child?.spawnDenied === true &&
+    child.reportReceived === false &&
+    child.errorType === "os-error-code" &&
+    typeof child.errorCode === "string" &&
+    /^[A-Z][A-Z0-9_]*$/.test(child.errorCode) &&
+    child.error === child.errorCode &&
+    child.error !== "child-report-timeout",
+  );
+}
+
 function isTransitiveDescendant(row, rootPid, rowsByPid) {
   const visited = new Set([row.pid]);
   let parentPid = row.parentPid;
@@ -443,6 +455,20 @@ async function closeServer(server) {
   await closed;
 }
 
+function expectDeniedNetworkResults(networks, networkTargets) {
+  expect(networks.map((item) => item.label).sort()).toEqual(
+    networkTargets.map((item) => item.label).sort(),
+  );
+  for (const result of networks) {
+    expect(result).toMatchObject({
+      state: "denied",
+      networkDenied: true,
+      canaryPayloadAttempted: false,
+    });
+    expect(result.networkError).not.toBe("timeout");
+  }
+}
+
 function issueApproval(config) {
   const token = issueMcpStdioExecutionAuthority({
     serverName: SERVER_NAME,
@@ -600,6 +626,36 @@ describe("materialized MCP capsule host observer helpers", () => {
     expect(
       selectNonceDescendants(rows, 100, nonce).map((row) => row.pid),
     ).toEqual([120]);
+  });
+
+  it("accepts only a typed OS child-spawn denial and never a timeout", () => {
+    expect(
+      isTypedOsSpawnDenial({
+        spawnDenied: true,
+        reportReceived: false,
+        errorType: "os-error-code",
+        errorCode: "EPERM",
+        error: "EPERM",
+      }),
+    ).toBe(true);
+    expect(
+      isTypedOsSpawnDenial({
+        spawnDenied: false,
+        reportReceived: false,
+        errorType: "timeout",
+        errorCode: null,
+        error: "child-report-timeout",
+      }),
+    ).toBe(false);
+    expect(
+      isTypedOsSpawnDenial({
+        spawnDenied: true,
+        reportReceived: false,
+        errorType: "untyped-error",
+        errorCode: null,
+        error: "spawn-blocked-without-code",
+      }),
+    ).toBe(false);
   });
 });
 
@@ -844,46 +900,57 @@ describe.runIf(LIVE && SUPPORTED)(
         canaryCandidate: null,
         writeDenied: true,
       });
-      expect(report.child).toMatchObject({
-        spawnDenied: false,
-        reportReceived: true,
-        detachedRequested: true,
-        event: "child-ready",
-        filesystem: {
-          readDenied: true,
-          canaryCandidate: null,
-          writeDenied: true,
-        },
-      });
-      expect(report.child.namespacePid).toBeGreaterThan(0);
-      for (const networks of [report.root.networks, report.child.networks]) {
-        expect(networks.map((item) => item.label).sort()).toEqual(
-          networkTargets.map((item) => item.label).sort(),
+      expectDeniedNetworkResults(report.root.networks, networkTargets);
+      if (process.platform === "linux") {
+        // Linux bubblewrap must permit a child inside the namespace so the
+        // independent host observer can prove that its whole tree retires.
+        expect(report.child.spawnDenied).toBe(false);
+      }
+      if (report.child.spawnDenied) {
+        // A zero-capability Windows AppContainer may reject child creation at
+        // the OS boundary. That is stronger than confining a created child,
+        // provided the rejection is typed and no nonce process ever exists.
+        expect(process.platform).toBe("win32");
+        expect(report.child).toMatchObject({
+          spawnDenied: true,
+          reportReceived: false,
+          errorType: "os-error-code",
+          errorCode: expect.stringMatching(/^[A-Z][A-Z0-9_]*$/),
+          error: expect.any(String),
+        });
+        expect(isTypedOsSpawnDenial(report.child)).toBe(true);
+        expect(nonceProcessRows(enumerateHostProcesses(), probeNonce)).toEqual(
+          [],
         );
-        for (const result of networks) {
-          expect(result).toMatchObject({
-            state: "denied",
-            networkDenied: true,
-            canaryPayloadAttempted: false,
-          });
-          expect(result.networkError).not.toBe("timeout");
-        }
+      } else {
+        expect(report.child).toMatchObject({
+          spawnDenied: false,
+          reportReceived: true,
+          detachedRequested: true,
+          event: "child-ready",
+          filesystem: {
+            readDenied: true,
+            canaryCandidate: null,
+            writeDenied: true,
+          },
+        });
+        expect(report.child.namespacePid).toBeGreaterThan(0);
+        expectDeniedNetworkResults(report.child.networks, networkTargets);
+        observedDescendantIdentities = await captureNonceDescendantIdentities(
+          entry.process.pid,
+          probeNonce,
+        );
+        const liveRows = enumerateHostProcesses();
+        expect(
+          observedDescendantIdentities.every((identity) =>
+            identityIsAlive(identity, liveRows),
+          ),
+        ).toBe(true);
       }
       expect(networkRecords).toHaveLength(networkTargets.length);
       expect(fs.readFileSync(secretPath, "utf8") === secretCanary).toBe(true);
       expect(fs.existsSync(markerPath)).toBe(false);
       expect(fs.existsSync(childMarkerPath)).toBe(false);
-
-      observedDescendantIdentities = await captureNonceDescendantIdentities(
-        entry.process.pid,
-        probeNonce,
-      );
-      const liveRows = enumerateHostProcesses();
-      expect(
-        observedDescendantIdentities.every((identity) =>
-          identityIsAlive(identity, liveRows),
-        ),
-      ).toBe(true);
 
       const auditLog = executionBroker.getAuditLog();
       const audit = auditLog.find(

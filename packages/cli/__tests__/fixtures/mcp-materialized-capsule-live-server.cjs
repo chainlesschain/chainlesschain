@@ -6,6 +6,20 @@ const probeConfig = require("../probe-config.json");
 
 const descendants = new Set();
 
+function spawnFailureReport(error) {
+  const errorCode =
+    typeof error?.code === "string" && error.code.trim()
+      ? error.code.trim()
+      : null;
+  return {
+    spawnDenied: true,
+    reportReceived: false,
+    errorType: errorCode ? "os-error-code" : "untyped-error",
+    errorCode,
+    error: errorCode || "spawn-blocked-without-code",
+  };
+}
+
 function send(id, result) {
   process.stdout.write(`${JSON.stringify({ jsonrpc: "2.0", id, result })}\n`);
 }
@@ -234,13 +248,7 @@ function launchDetachedChildProbe() {
       );
       descendants.add(child);
       child.once("close", () => descendants.delete(child));
-      child.once("error", (error) =>
-        finish({
-          spawnDenied: true,
-          reportReceived: false,
-          error: error?.code || "spawn-blocked-without-code",
-        }),
-      );
+      child.once("error", (error) => finish(spawnFailureReport(error)));
       child.stdout.setEncoding("utf8");
       child.stdout.on("data", (chunk) => {
         buffer += chunk;
@@ -264,11 +272,7 @@ function launchDetachedChildProbe() {
         }
       });
     } catch (error) {
-      finish({
-        spawnDenied: true,
-        reportReceived: false,
-        error: error?.code || "spawn-blocked-without-code",
-      });
+      finish(spawnFailureReport(error));
     }
   });
 }

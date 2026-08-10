@@ -146,15 +146,22 @@ describe("MCP stdio capsule host boundary floor", () => {
       accepted,
       MCP_STDIO_CAPSULE_REQUIRED_BOUNDARIES,
     );
+    const acceptedContract = accepted.sandboxExecutionContract;
+    expect(acceptedContract.entryIdentity.mtimeMs).toBe(
+      fs.statSync(acceptedContract.entryIdentity.realPath).mtimeMs,
+    );
+    expect(acceptedContract.runtimeIdentity.mtimeMs).toBe(
+      fs.statSync(acceptedContract.runtimeIdentity.realPath).mtimeMs,
+    );
     expect(
       consumeMcpStdioCapsuleSandboxExecutionContract(
-        accepted.sandboxExecutionContract,
+        acceptedContract,
         acceptedProvenance,
       ),
     ).toBe(true);
     expect(
       consumeMcpStdioCapsuleSandboxExecutionContract(
-        accepted.sandboxExecutionContract,
+        acceptedContract,
         acceptedProvenance,
       ),
     ).toBe(false);
