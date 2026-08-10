@@ -6216,11 +6216,30 @@ async function startAgentReplInWorkspaceOwned(
       const { microCompact } = await import("../lib/micro-compact.js");
       const { messages: mc, stats } = microCompact(messages);
       if (stats.trimmed > 0) {
-        messages.length = 0;
-        messages.push(...mc);
-        logger.info(
-          `Micro-compacted: trimmed ${stats.trimmed} old tool result(s), ~${stats.saved} chars freed (recent messages kept).`,
-        );
+        const settlement = settleReplCompactionCandidate({
+          messages,
+          expectedMessages: [...messages],
+          compacted: mc,
+          stats: {
+            ...stats,
+            strategy: "microcompact",
+            originalMessages: messages.length,
+            compressedMessages: mc.length,
+          },
+          trigger: "manual",
+          useJsonl,
+          sessionId,
+          persistence: _replCompactPersistence,
+        });
+        if (settlement.applied) {
+          logger.info(
+            `Micro-compacted: trimmed ${stats.trimmed} old tool result(s), ~${stats.saved} chars freed (recent messages kept).`,
+          );
+        } else {
+          logger.warn(
+            `Micro-compaction was not applied: ${settlement.error?.message || "canonical settlement failed"}`,
+          );
+        }
       } else {
         logger.info(
           "Nothing to micro-compact — no large old tool results in context.",

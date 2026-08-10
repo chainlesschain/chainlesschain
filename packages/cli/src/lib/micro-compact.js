@@ -23,10 +23,10 @@ export function microCompact(messages, opts = {}) {
     return { messages, stats: { trimmed: 0, saved: 0, kept: 0 } };
   }
   const keepRecent = Number.isFinite(opts.keepRecent)
-    ? opts.keepRecent
+    ? Math.max(0, Math.trunc(opts.keepRecent))
     : DEFAULT_KEEP_RECENT;
   const maxChars = Number.isFinite(opts.maxToolChars)
-    ? opts.maxToolChars
+    ? Math.max(0, Math.trunc(opts.maxToolChars))
     : DEFAULT_MAX_TOOL_CHARS;
   // messages at index >= cutoff are "recent" and never touched.
   const cutoff = Math.max(0, messages.length - keepRecent);
@@ -38,12 +38,18 @@ export function microCompact(messages, opts = {}) {
     if (!m || m.role !== "tool") return m; // only old tool results
     const content = typeof m.content === "string" ? m.content : "";
     if (content.length <= maxChars) return m; // small enough already
+    const fullMarker = `\n… [tool result trimmed — ${content.length} chars]`;
+    const marker =
+      fullMarker.length <= maxChars
+        ? fullMarker
+        : "…[trimmed]".slice(0, maxChars);
+    const head = content.slice(0, Math.max(0, maxChars - marker.length));
+    const compactedContent = `${head}${marker}`;
     trimmed += 1;
-    saved += content.length - maxChars;
-    const head = content.slice(0, maxChars);
+    saved += content.length - compactedContent.length;
     return {
       ...m,
-      content: `${head}\n… [tool result trimmed — ${content.length} chars; older context dropped to save space]`,
+      content: compactedContent,
       _microCompacted: true,
     };
   });

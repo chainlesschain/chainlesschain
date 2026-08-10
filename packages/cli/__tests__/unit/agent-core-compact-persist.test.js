@@ -43,6 +43,37 @@ function seedLargeHistory() {
   return msgs;
 }
 
+function seedTokenBloat() {
+  const messages = [
+    { role: "system", content: "system prompt" },
+    { role: "user", content: "read the file" },
+    {
+      role: "assistant",
+      content: "",
+      tool_calls: [{ id: "t1", function: { name: "read_file" } }],
+    },
+    { role: "tool", tool_call_id: "t1", content: "x".repeat(2_000) },
+  ];
+  for (let index = 0; index < 4; index += 1) {
+    messages.push({ role: "assistant", content: `answer ${index}` });
+    messages.push({ role: "user", content: `question ${index}` });
+  }
+  return messages;
+}
+
+function tokenBloatCompactor() {
+  return {
+    compress: vi.fn(),
+    shouldAutoCompact: (messages) =>
+      messages.reduce(
+        (total, message) =>
+          total +
+          (typeof message.content === "string" ? message.content.length : 0),
+        0,
+      ) > 1_500,
+  };
+}
+
 async function drain(iterable) {
   const out = [];
   for await (const event of iterable) out.push(event);
@@ -69,6 +100,39 @@ describe("agentLoop compaction self-persist", () => {
     expect(Array.isArray(payload.messages)).toBe(true);
     expect(payload.compressedMessages).toBeLessThan(payload.originalMessages);
     expect(authorityExpectedMessages).toEqual(expectedMessages);
+  });
+
+  it("persists a microcompact checkpoint before replacing live messages", async () => {
+    const messages = seedTokenBloat();
+    const expectedMessages = messages.map((message) => ({ ...message }));
+    const compactor = tokenBloatCompactor();
+
+    const events = await drain(
+      agentLoop(messages, {
+        chatFn: finalReplyChatFn(),
+        sessionId: "micro-session",
+        _autoCompactor: compactor,
+      }),
+    );
+
+    expect(compactor.compress).not.toHaveBeenCalled();
+    expect(store.appendCompactEventIfMessagesMatch).toHaveBeenCalledOnce();
+    const [sid, payload, authorityExpectedMessages] =
+      store.appendCompactEventIfMessagesMatch.mock.calls[0];
+    expect(sid).toBe("micro-session");
+    expect(payload).toMatchObject({
+      trigger: "auto",
+      strategy: "microcompact",
+      trimmed: 1,
+    });
+    expect(payload.messages).toHaveLength(expectedMessages.length);
+    expect(
+      payload.messages.find((message) => message.role === "tool").content,
+    ).toHaveLength(400);
+    expect(authorityExpectedMessages).toEqual(expectedMessages);
+    expect(events.some((event) => event.type === "micro-compaction")).toBe(
+      true,
+    );
   });
 
   it("does NOT persist when the session file does not exist (one-shot)", async () => {
