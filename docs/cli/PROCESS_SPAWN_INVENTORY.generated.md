@@ -3,8 +3,8 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 389 (runtime: 256, tooling: 103, test: 30).
-Runtime audit: brokered: 184, audited-exemption: 33, non-executable: 39, unreviewed: 0.
+Total matches: 390 (runtime: 257, tooling: 103, test: 30).
+Runtime audit: brokered: 185, audited-exemption: 33, non-executable: 39, unreviewed: 0.
 
 ## Policy
 
@@ -98,6 +98,7 @@ Runtime audit: brokered: 184, audited-exemption: 33, non-executable: 39, unrevie
 | `packages/cli/src/lib/code-agent.js` | 227 | `non-executable` | declaration/comment/type/regex lexical match | `/child_process.*exec\s*\(\s*[`"'].*\$\{/,` |
 | `packages/cli/src/lib/code-review.js` | 11 | `brokered` | call targets ProcessExecutionBroker | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
 | `packages/cli/src/lib/code-review.js` | 29 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `return _deps.execFileSync("git", buildGitDiffArgs(target, options), {` |
+| `packages/cli/src/lib/command-lifecycle-report.js` | 245 | `brokered` | call targets ProcessExecutionBroker | `return executionBroker.spawnSync("git", args, {` |
 | `packages/cli/src/lib/computer-use/control-backend.js` | 13 | `brokered` | call targets ProcessExecutionBroker | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/lib/computer-use/control-backend.js` | 19 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const res = deps.spawnSync(` |
 | `packages/cli/src/lib/computer-use/control-backend.js` | 150 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const res = deps.spawnSync(app, args, {` |

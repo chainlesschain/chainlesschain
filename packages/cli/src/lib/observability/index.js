@@ -186,6 +186,7 @@ export class ObservabilityRuntime {
           unit: "{invocation}",
           value: 1,
           monotonic: true,
+          aggregationTemporality: 1,
           attributes,
         },
         {
@@ -194,6 +195,7 @@ export class ObservabilityRuntime {
           unit: "ms",
           count: 1,
           sum: durationMs,
+          aggregationTemporality: 1,
           attributes,
         },
       ]);
