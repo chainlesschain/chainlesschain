@@ -39,6 +39,14 @@ const SERVER_NAME = "materialized-capsule-live";
 const HOST_DESCENDANT_MARKER_PREFIX = "--cc-mcp-live-descendant=";
 const PROCESS_OBSERVER_TIMEOUT_MS = 20_000;
 const WINDOWS_PROCESS_START_DRAIN_MS = 2_000;
+const WINDOWS_PROCESS_START_OBSERVER_KIND =
+  "windows-wmi-process-start-observer-v1";
+const WINDOWS_PROCESS_START_CALIBRATION_KIND =
+  "windows-wmi-positive-control-v1";
+const WINDOWS_PROCESS_START_CALIBRATION_PHASES = Object.freeze([
+  "pre-launch",
+  "post-launch",
+]);
 const ALLOWED_OS_SPAWN_DENIAL_CODES = new Set(["EACCES", "EPERM"]);
 const WINDOWS_INDETERMINATE_NETWORK_ERRORS = new Set(["ETIMEDOUT", "timeout"]);
 const fixturePath = fileURLToPath(
@@ -118,16 +126,90 @@ function isTypedOsSpawnDenial(child, platform = process.platform) {
   );
 }
 
+function isWindowsProcessStartCalibrationRecord(calibration, phase) {
+  return Boolean(
+    calibration?.kind === WINDOWS_PROCESS_START_CALIBRATION_KIND &&
+    calibration.phase === phase &&
+    typeof calibration.observerInstanceId === "string" &&
+    /^[a-f0-9]{32}$/.test(calibration.observerInstanceId) &&
+    Number.isSafeInteger(calibration.hostPid) &&
+    calibration.hostPid > 0 &&
+    Number.isSafeInteger(calibration.sequence) &&
+    calibration.sequence >= 0 &&
+    Number.isSafeInteger(calibration.pid) &&
+    calibration.pid > 0 &&
+    calibration.parentPid === calibration.hostPid &&
+    typeof calibration.creationMarker === "string" &&
+    /^wmi-time-created:[1-9]\d*$/.test(calibration.creationMarker),
+  );
+}
+
+function hasObservedWindowsProcessStartCalibrationWindow(
+  observerCalibrations,
+  observation,
+) {
+  if (
+    !Array.isArray(observerCalibrations) ||
+    observerCalibrations.length !==
+      WINDOWS_PROCESS_START_CALIBRATION_PHASES.length ||
+    observation?.kind !== WINDOWS_PROCESS_START_OBSERVER_KIND ||
+    typeof observation.instanceId !== "string" ||
+    !/^[a-f0-9]{32}$/.test(observation.instanceId) ||
+    !Array.isArray(observation.events) ||
+    !observation.events.every(
+      (event, index) =>
+        event?.sequence === index &&
+        Number.isSafeInteger(event.pid) &&
+        event.pid > 0 &&
+        Number.isSafeInteger(event.parentPid) &&
+        event.parentPid >= 0 &&
+        typeof event.creationMarker === "string" &&
+        /^wmi-time-created:[1-9]\d*$/.test(event.creationMarker),
+    )
+  ) {
+    return false;
+  }
+  const [preLaunch, postLaunch] = observerCalibrations;
+  if (
+    !isWindowsProcessStartCalibrationRecord(preLaunch, "pre-launch") ||
+    !isWindowsProcessStartCalibrationRecord(postLaunch, "post-launch") ||
+    preLaunch.observerInstanceId !== observation.instanceId ||
+    postLaunch.observerInstanceId !== observation.instanceId ||
+    preLaunch.hostPid !== postLaunch.hostPid ||
+    preLaunch.sequence >= postLaunch.sequence
+  ) {
+    return false;
+  }
+  return observerCalibrations.every((calibration) => {
+    const identityMatches = observation.events.filter(
+      (event) =>
+        event.pid === calibration.pid &&
+        event.parentPid === calibration.parentPid &&
+        event.creationMarker === calibration.creationMarker,
+    );
+    return (
+      identityMatches.length === 1 &&
+      identityMatches[0].sequence === calibration.sequence
+    );
+  });
+}
+
 function isHostAttestedWindowsSpawnDenial(
   child,
   observedChildStarts,
+  observerCalibrations,
+  observation,
   platform = process.platform,
 ) {
   return Boolean(
     platform === "win32" &&
     isTypedOsSpawnDenial(child, platform) &&
     Array.isArray(observedChildStarts) &&
-    observedChildStarts.length === 0,
+    observedChildStarts.length === 0 &&
+    hasObservedWindowsProcessStartCalibrationWindow(
+      observerCalibrations,
+      observation,
+    ),
   );
 }
 
@@ -750,6 +832,7 @@ async function startWindowsProcessStartObserver() {
     os.tmpdir(),
     `cc-mcp-process-start-${crypto.randomUUID()}.stop`,
   );
+  const instanceId = crypto.randomBytes(16).toString("hex");
   fs.rmSync(stopPath, { force: true });
   const script = windowsProcessStartObserverScript();
   const observer = nativeSpawn(
@@ -833,10 +916,20 @@ async function startWindowsProcessStartObserver() {
   }
 
   let stopped = false;
+  let stoppedObservation = null;
   return {
+    kind: WINDOWS_PROCESS_START_OBSERVER_KIND,
+    instanceId,
     events,
     async stop() {
-      if (stopped) return [...events];
+      if (stopped) {
+        if (!stoppedObservation) {
+          throw new Error(
+            "Windows process-start observer stop did not complete",
+          );
+        }
+        return stoppedObservation;
+      }
       stopped = true;
       fs.writeFileSync(stopPath, "stop\n", "utf8");
       let timeout;
@@ -862,7 +955,12 @@ async function startWindowsProcessStartObserver() {
         }
         if (observerError) throw observerError;
         if (protocol.error) throw protocol.error;
-        return [...events];
+        stoppedObservation = Object.freeze({
+          kind: WINDOWS_PROCESS_START_OBSERVER_KIND,
+          instanceId,
+          events: Object.freeze([...events]),
+        });
+        return stoppedObservation;
       } catch (error) {
         observer.kill();
         throw error;
@@ -872,6 +970,64 @@ async function startWindowsProcessStartObserver() {
       }
     },
   };
+}
+
+async function calibrateWindowsProcessStartObserver(observer, phase) {
+  if (
+    process.platform !== "win32" ||
+    observer?.kind !== WINDOWS_PROCESS_START_OBSERVER_KIND ||
+    typeof observer.instanceId !== "string" ||
+    !/^[a-f0-9]{32}$/.test(observer.instanceId) ||
+    !WINDOWS_PROCESS_START_CALIBRATION_PHASES.includes(phase) ||
+    !Array.isArray(observer.events)
+  ) {
+    throw new Error("Windows process-start calibration requires one observer");
+  }
+  const firstCalibrationEvent = observer.events.length;
+  const nonce = crypto.randomBytes(16).toString("hex");
+  const child = nativeSpawn(
+    process.execPath,
+    ["-e", "", "--", markerForNonce(nonce)],
+    { stdio: "ignore", windowsHide: true },
+  );
+  const childPid = child.pid;
+  if (!Number.isSafeInteger(childPid) || childPid <= 0) {
+    child.kill();
+    throw new Error("Windows process-start calibration omitted a child PID");
+  }
+  const [code, signal] = await once(child, "close");
+  if (code !== 0 || signal !== null) {
+    throw new Error(
+      `Windows process-start calibration failed: code=${code}; signal=${signal}`,
+    );
+  }
+  await waitForValue(
+    () =>
+      observer.events
+        .slice(firstCalibrationEvent)
+        .find(
+          (event) => event.pid === childPid && event.parentPid === process.pid,
+        ),
+    "a same-instance Windows process-start calibration event",
+    PROCESS_OBSERVER_TIMEOUT_MS,
+  );
+  const matchingStarts = observer.events
+    .slice(firstCalibrationEvent)
+    .filter(
+      (event) => event.pid === childPid && event.parentPid === process.pid,
+    );
+  if (matchingStarts.length !== 1) {
+    throw new Error(
+      `Windows process-start calibration expected one event; observed=${matchingStarts.length}`,
+    );
+  }
+  return Object.freeze({
+    kind: WINDOWS_PROCESS_START_CALIBRATION_KIND,
+    phase,
+    observerInstanceId: observer.instanceId,
+    hostPid: process.pid,
+    ...matchingStarts[0],
+  });
 }
 
 function enumerateDarwinProcesses() {
@@ -1416,13 +1572,86 @@ describe("materialized MCP capsule host observer helpers", () => {
     ).toBe(false);
     expect(isTypedOsSpawnDenial(permissionDenial, "linux")).toBe(false);
 
+    const instanceId = "a".repeat(32);
+    const observerCalibrations = [
+      {
+        kind: WINDOWS_PROCESS_START_CALIBRATION_KIND,
+        phase: "pre-launch",
+        observerInstanceId: instanceId,
+        hostPid: 606,
+        sequence: 0,
+        pid: 707,
+        parentPid: 606,
+        creationMarker: "wmi-time-created:123456",
+      },
+      {
+        kind: WINDOWS_PROCESS_START_CALIBRATION_KIND,
+        phase: "post-launch",
+        observerInstanceId: instanceId,
+        hostPid: 606,
+        sequence: 2,
+        pid: 808,
+        parentPid: 606,
+        creationMarker: "wmi-time-created:123458",
+      },
+    ];
+    const observation = {
+      kind: WINDOWS_PROCESS_START_OBSERVER_KIND,
+      instanceId,
+      events: [
+        {
+          sequence: 0,
+          pid: 707,
+          parentPid: 606,
+          creationMarker: "wmi-time-created:123456",
+        },
+        {
+          sequence: 1,
+          pid: 909,
+          parentPid: 900,
+          creationMarker: "wmi-time-created:123457",
+        },
+        {
+          sequence: 2,
+          pid: 808,
+          parentPid: 606,
+          creationMarker: "wmi-time-created:123458",
+        },
+      ],
+    };
     expect(
-      isHostAttestedWindowsSpawnDenial(permissionDenial, [], "win32"),
+      isHostAttestedWindowsSpawnDenial(
+        permissionDenial,
+        [],
+        observerCalibrations,
+        observation,
+        "win32",
+      ),
     ).toBe(true);
     expect(
       isHostAttestedWindowsSpawnDenial(
         permissionDenial,
-        [{ pid: 707, parentPid: 606 }],
+        [{ pid: 808, parentPid: 606 }],
+        observerCalibrations,
+        observation,
+        "win32",
+      ),
+    ).toBe(false);
+    expect(
+      isHostAttestedWindowsSpawnDenial(
+        permissionDenial,
+        [],
+        null,
+        observation,
+        "win32",
+      ),
+    ).toBe(false);
+    expect(
+      isHostAttestedWindowsSpawnDenial(
+        permissionDenial,
+        [],
+        observerCalibrations,
+        { ...observation, events: [] },
         "win32",
       ),
     ).toBe(false);
@@ -1436,12 +1665,116 @@ describe("materialized MCP capsule host observer helpers", () => {
           error: "child-report-timeout",
         },
         [],
+        observerCalibrations,
+        observation,
         "win32",
       ),
     ).toBe(false);
     expect(
-      isHostAttestedWindowsSpawnDenial(permissionDenial, [], "linux"),
+      isHostAttestedWindowsSpawnDenial(
+        permissionDenial,
+        [],
+        observerCalibrations,
+        observation,
+        "linux",
+      ),
     ).toBe(false);
+  });
+
+  it("requires one ordered pre/post control from one complete WMI sequence", () => {
+    const instanceId = "b".repeat(32);
+    const event = (sequence, pid, creationMarker) => ({
+      sequence,
+      pid,
+      parentPid: 606,
+      creationMarker,
+    });
+    const calibration = (phase, observed) => ({
+      kind: WINDOWS_PROCESS_START_CALIBRATION_KIND,
+      phase,
+      observerInstanceId: instanceId,
+      hostPid: 606,
+      ...observed,
+    });
+    const preEvent = event(0, 707, "wmi-time-created:123456");
+    const postEvent = event(1, 808, "wmi-time-created:123457");
+    const calibrations = [
+      calibration("pre-launch", preEvent),
+      calibration("post-launch", postEvent),
+    ];
+    const observation = {
+      kind: WINDOWS_PROCESS_START_OBSERVER_KIND,
+      instanceId,
+      events: [preEvent, postEvent],
+    };
+
+    expect(
+      hasObservedWindowsProcessStartCalibrationWindow(
+        calibrations,
+        observation,
+      ),
+    ).toBe(true);
+    expect(
+      hasObservedWindowsProcessStartCalibrationWindow(
+        calibrations.slice(0, 1),
+        observation,
+      ),
+    ).toBe(false);
+    expect(
+      hasObservedWindowsProcessStartCalibrationWindow(
+        [...calibrations].reverse(),
+        observation,
+      ),
+    ).toBe(false);
+    expect(
+      hasObservedWindowsProcessStartCalibrationWindow(calibrations, {
+        ...observation,
+        instanceId: "c".repeat(32),
+      }),
+    ).toBe(false);
+    for (const [field, value] of [
+      ["sequence", 1],
+      ["pid", 999],
+      ["parentPid", 999],
+      ["creationMarker", "wmi-time-created:999999"],
+    ]) {
+      expect(
+        hasObservedWindowsProcessStartCalibrationWindow(
+          [{ ...calibrations[0], [field]: value }, calibrations[1]],
+          observation,
+        ),
+      ).toBe(false);
+    }
+
+    const duplicatePre = event(1, 707, preEvent.creationMarker);
+    const shiftedPost = event(2, postEvent.pid, postEvent.creationMarker);
+    expect(
+      hasObservedWindowsProcessStartCalibrationWindow(
+        [calibrations[0], calibration("post-launch", shiftedPost)],
+        {
+          ...observation,
+          events: [preEvent, duplicatePre, shiftedPost],
+        },
+      ),
+    ).toBe(false);
+    expect(
+      hasObservedWindowsProcessStartCalibrationWindow(calibrations, {
+        ...observation,
+        events: [preEvent, { ...postEvent, sequence: 2 }],
+      }),
+    ).toBe(false);
+  });
+
+  it("fails closed when a process-start positive control times out", async () => {
+    await expect(
+      waitForValue(
+        () => null,
+        "a same-instance Windows process-start calibration event",
+        0,
+      ),
+    ).rejects.toThrow(
+      "Timed out waiting for a same-instance Windows process-start calibration event",
+    );
   });
 
   it("never relabels Windows ETIMEDOUT or a harness timeout as denied", () => {
@@ -1711,37 +2044,36 @@ describe("materialized MCP capsule host observer helpers", () => {
     async () => {
       const observer = await startWindowsProcessStartObserver();
       let stopped = false;
-      const nonce = crypto.randomBytes(16).toString("hex");
-      const child = nativeSpawn(
-        process.execPath,
-        ["-e", "", "--", markerForNonce(nonce)],
-        { stdio: "ignore", windowsHide: true },
-      );
-      const childPid = child.pid;
       try {
-        const [code, signal] = await once(child, "close");
-        expect({ code, signal }).toEqual({ code: 0, signal: null });
-        await waitForValue(
-          () =>
-            observer.events.some(
-              (event) =>
-                event.pid === childPid && event.parentPid === process.pid,
-            ),
-          "a short-lived Windows process-start event",
-          PROCESS_OBSERVER_TIMEOUT_MS,
-        );
-        const events = await observer.stop();
+        const calibrations = [
+          await calibrateWindowsProcessStartObserver(observer, "pre-launch"),
+          await calibrateWindowsProcessStartObserver(observer, "post-launch"),
+        ];
+        const observation = await observer.stop();
         stopped = true;
-        const matchingStarts = selectObservedDescendantStarts(
-          events,
-          process.pid,
-        ).filter((event) => event.pid === childPid);
-        expect(matchingStarts).toHaveLength(1);
-        expect(matchingStarts[0]).toMatchObject({
-          pid: childPid,
-          parentPid: process.pid,
-          creationMarker: expect.stringMatching(/^wmi-time-created:\d+$/),
-        });
+        expect(
+          hasObservedWindowsProcessStartCalibrationWindow(
+            calibrations,
+            observation,
+          ),
+        ).toBe(true);
+        for (const calibration of calibrations) {
+          const matchingStarts = selectObservedDescendantStarts(
+            observation.events,
+            process.pid,
+          ).filter(
+            (event) =>
+              event.pid === calibration.pid &&
+              event.creationMarker === calibration.creationMarker,
+          );
+          expect(matchingStarts).toHaveLength(1);
+          expect(matchingStarts[0]).toMatchObject({
+            sequence: calibration.sequence,
+            pid: calibration.pid,
+            parentPid: process.pid,
+            creationMarker: calibration.creationMarker,
+          });
+        }
       } finally {
         if (!stopped) await observer.stop();
       }
@@ -1986,9 +2318,16 @@ describe.runIf(LIVE && SUPPORTED)(
         entry.process.pid,
       );
 
-      let processStartEvents = [];
+      let processStartObservation = null;
+      const processStartObserverCalibrations = [];
       if (process.platform === "win32") {
         windowsProcessStartObserver = await startWindowsProcessStartObserver();
+        processStartObserverCalibrations.push(
+          await calibrateWindowsProcessStartObserver(
+            windowsProcessStartObserver,
+            "pre-launch",
+          ),
+        );
       }
       let toolResult;
       try {
@@ -1997,16 +2336,33 @@ describe.runIf(LIVE && SUPPORTED)(
           "probe_sandbox_effects",
           {},
         );
+        if (windowsProcessStartObserver) {
+          processStartObserverCalibrations.push(
+            await calibrateWindowsProcessStartObserver(
+              windowsProcessStartObserver,
+              "post-launch",
+            ),
+          );
+        }
       } finally {
         if (windowsProcessStartObserver) {
-          processStartEvents = await windowsProcessStartObserver.stop();
+          processStartObservation = await windowsProcessStartObserver.stop();
           windowsProcessStartObserver = null;
         }
       }
+      const processStartEvents = processStartObservation?.events || [];
       const observedChildStarts = selectObservedDescendantStarts(
         processStartEvents,
         entry.process.pid,
       );
+      if (process.platform === "win32") {
+        expect(
+          hasObservedWindowsProcessStartCalibrationWindow(
+            processStartObserverCalibrations,
+            processStartObservation,
+          ),
+        ).toBe(true);
+      }
       const text = toolResult?.content?.find(
         (item) => item?.type === "text",
       )?.text;
@@ -2039,7 +2395,12 @@ describe.runIf(LIVE && SUPPORTED)(
         });
         expect(isTypedOsSpawnDenial(report.child)).toBe(true);
         expect(
-          isHostAttestedWindowsSpawnDenial(report.child, observedChildStarts),
+          isHostAttestedWindowsSpawnDenial(
+            report.child,
+            observedChildStarts,
+            processStartObserverCalibrations,
+            processStartObservation,
+          ),
         ).toBe(true);
         expect(nonceProcessRows(enumerateHostProcesses(), probeNonce)).toEqual(
           [],

@@ -1834,6 +1834,7 @@ class ProcessExecutionBroker extends EventEmitter {
       if (
         plan.runtimeProbe.kind ===
           "windows-appcontainer-launch-attestation-v1" &&
+        plan.runtimeProbe.runnable === true &&
         plan.runtimeProbe.capabilityCount !== 0
       ) {
         throw this._sandboxError(

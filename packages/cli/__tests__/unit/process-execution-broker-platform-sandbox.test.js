@@ -10552,6 +10552,28 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
     },
   );
 
+  it("does not fabricate capability evidence for a failed AppContainer probe", () => {
+    const plan = appliedPlan(
+      "sandbox-helper",
+      ["payload"],
+      {},
+      {
+        backend: "test-sandbox",
+        guarantees: [],
+        runtimeProbe: {
+          kind: "windows-appcontainer-launch-attestation-v1",
+          attempted: true,
+          runnable: false,
+          reason: "probe_failed",
+        },
+      },
+    );
+
+    expect(executionBroker._validateSandboxPlan(plan).runtimeProbe).toEqual(
+      plan.runtimeProbe,
+    );
+  });
+
   it("preserves complete static native plugin-tree evidence in the audit log", () => {
     const child = createChild();
     const nativeSpawn = vi.fn(() => child);
