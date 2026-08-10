@@ -90,6 +90,16 @@ function ttyDependencies(overrides = {}) {
     resolveSessionId: () => SESSION_ID,
     readVerifiedEvents: () => [startedEvent()],
     randomUUID: () => "request-uuid",
+    revokeSessionHostAuthority: vi.fn((_sessionId, request) => ({
+      requestId: request.requestId,
+      revocationEpoch: 1,
+      reasonCode: request.reasonCode,
+      revokedAtMs: 1,
+      targetLeaseId: null,
+      targetFencingToken: null,
+      targetOwnerPid: null,
+      replayed: false,
+    })),
     readReason: vi.fn(async () => "confirmed externally"),
     ...overrides,
   };
@@ -164,19 +174,25 @@ describe("session mcp-recovery CLI", () => {
     );
 
     expect(readChallenge).toHaveBeenCalledWith(
-      `HOST STOPPED; ADJUDICATE ${SESSION_ID} mcp-cli-1 confirmed_applied ${recovery.recoveryDigest}`,
+      `HOST STOPPED AND MCP DISPATCH DRAINED; REVOKE HOST AUTHORITY; ADJUDICATE ${SESSION_ID} mcp-cli-1 confirmed_applied ${recovery.recoveryDigest}`,
     );
     const persisted = appendAuthorityEventIfHead.mock.calls[0][2];
     expect(persisted).toMatchObject({
-      requestId: "mcp-recovery-request-uuid",
+      schemaVersion: 2,
+      requestId: expect.stringMatching(/^mcp-recovery-[0-9a-f]{64}$/),
       sessionId: SESSION_ID,
       authority: "local-cli-tty",
-      confirmation: "typed-digest-host-stopped",
+      confirmation: "typed-digest-host-authority-revoke",
       expectedHeadHash: HEAD_1,
       expectedRecoveryDigest: recovery.recoveryDigest,
     });
     expect(JSON.stringify(persisted)).not.toContain("release already exists");
     expect(result).toMatchObject({
+      hostRevocation: {
+        requestId: persisted.requestId,
+        revocationEpoch: 1,
+        replayed: false,
+      },
       runtimeReloadRequired: true,
       remediation: "restart_or_resume_before_mcp_calls",
     });
@@ -238,7 +254,7 @@ describe("session mcp-recovery CLI", () => {
     expect(optionNames).not.toContain("reason");
   });
 
-  it("warns that a successful mutation does not downgrade the running host", async () => {
+  it("distinguishes durable authority revocation from process termination", async () => {
     const recoveryState = authority();
     const outputLogger = {
       log: vi.fn(),
@@ -275,7 +291,7 @@ describe("session mcp-recovery CLI", () => {
     expect(outputLogger.success).toHaveBeenCalledOnce();
     expect(outputLogger.warn).toHaveBeenCalledWith(
       expect.stringMatching(
-        /not adopted.*restart\/resume.*prior host stopped/i,
+        /durably revoked.*future MCP dispatches.*does not cancel.*already dispatched.*restart\/resume/i,
       ),
     );
     expect(outputLogger.error).not.toHaveBeenCalled();

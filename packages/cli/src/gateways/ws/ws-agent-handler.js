@@ -34,12 +34,17 @@ import {
 import { createWsApprovalGate } from "./ws-approval-gate.js";
 import { createSessionMcpLedgerSink } from "../../lib/mcp-call-ledger-store.js";
 import { createMcpHostRecoveryRuntime } from "../../lib/mcp-host-recovery-runtime.js";
+import { compactConversationWithProvider } from "../../harness/provider-backed-compaction.js";
+import { projectCanonicalResumeMessages } from "../../lib/session-message-provenance.js";
+import { feature } from "../../lib/feature-flags.js";
 import {
+  appendCompactEventIfMessagesMatch,
   claimWsTurnIfHead,
   computeWsTurnInputDigest,
   createWsTurnClaimId,
   normalizeWsTurnRequestId,
   readVerifiedWsTurnState,
+  readVerifiedMessages,
   settleWsTurnClaim,
 } from "../../harness/jsonl-session-store.js";
 
@@ -78,6 +83,8 @@ export class WSAgentHandler {
     db,
     approvalGate,
     agentLoop: runAgentLoop,
+    compactionLlmQuery,
+    compactionChatFn,
     canonicalSessionStore,
     sessionHostLease = null,
   }) {
@@ -122,12 +129,22 @@ export class WSAgentHandler {
     this._mcpRecoveryRevision = null;
     this._mcpRecoveryClient = null;
     this._agentLoop = runAgentLoop || agentLoop;
+    this._compactionLlmQuery = compactionLlmQuery || null;
+    this._compactionSettlementBlock = null;
+    this._compactionChatFn =
+      compactionChatFn ||
+      (async (...args) => {
+        const { chatWithTools } = await import("../../runtime/agent-core.js");
+        return chatWithTools(...args);
+      });
     this._canonicalSessionStore = {
+      appendCompactEventIfMessagesMatch,
       claimWsTurnIfHead,
       computeWsTurnInputDigest,
       createWsTurnClaimId,
       normalizeWsTurnRequestId,
       readVerifiedWsTurnState,
+      readVerifiedMessages,
       settleWsTurnClaim,
       ...(canonicalSessionStore || {}),
     };
@@ -171,9 +188,56 @@ export class WSAgentHandler {
     return this.session.messages;
   }
 
+  _latchCompactionSettlement({
+    code,
+    reason,
+    commitState = "unknown",
+    usageOutcome = null,
+  }) {
+    this._compactionSettlementBlock = Object.freeze({
+      code: code || "CC_COMPACTION_SETTLEMENT_UNKNOWN",
+      reason: reason || "canonical_compaction_settlement_failed",
+      commitState,
+      ...(usageOutcome ? { usageOutcome } : {}),
+    });
+    return this._compactionSettlementBlock;
+  }
+
+  _reconcileCompactionSettlementBlock() {
+    if (
+      this._compactionSettlementBlock?.commitState !== "provider-usage-unknown"
+    ) {
+      this._compactionSettlementBlock = null;
+    }
+  }
+
+  _emitCompactionUsage(requestId, usageEvent) {
+    if (!usageEvent) return;
+    this.interaction.emit("token-usage", {
+      requestId,
+      ...usageEvent,
+    });
+  }
+
+  _emitCompactionUsageUnknown(requestId, usageUnknownEvent) {
+    const block = this._latchCompactionSettlement({
+      code: "CC_COMPACTION_USAGE_UNKNOWN",
+      reason: usageUnknownEvent?.reason || "provider_transport_outcome_unknown",
+      commitState: "provider-usage-unknown",
+      usageOutcome: "unknown",
+    });
+    this.interaction.emit("compaction-usage-unknown", {
+      requestId,
+      ...usageUnknownEvent,
+      code: block.code,
+    });
+    return block;
+  }
+
   _canonicalTurnFromAuthority(state, requestId, userMessage, inputDigest) {
     const status = state?.status || (state?.turn ? "completed" : "none");
     this._applyCanonicalMessages(state?.messages || []);
+    this._reconcileCompactionSettlementBlock();
     if (status === "completed" && state.turn) {
       return {
         requestId,
@@ -208,6 +272,193 @@ export class WSAgentHandler {
       };
     }
     return null;
+  }
+
+  async _compactCanonicalHistoryBeforeClaim(requestId) {
+    const { session } = this;
+    if (
+      session.autoCompact === false ||
+      !feature("PROMPT_COMPRESSOR") ||
+      this._compactionSettlementBlock?.commitState === "provider-usage-unknown"
+    ) {
+      return true;
+    }
+
+    const before = session.messages.length;
+    const expectedMessages = [...session.messages];
+    let result;
+    try {
+      this._sessionHostLease?.assert?.();
+      result = await compactConversationWithProvider(session.messages, {
+        provider: session.provider,
+        model: session.model,
+        baseUrl: session.baseUrl,
+        apiKey: session.apiKey,
+        signal: this._sessionHostLease?.signal,
+        onlyIfNeeded: true,
+        preserveCompletedExchange: true,
+        llmQuery: this._compactionLlmQuery,
+        chatFn: this._compactionChatFn,
+        chatOptions: {
+          cwd: session.projectRoot,
+          sessionId: session.id,
+        },
+        maxMessages: session.compactionMaxMessages,
+        maxTokens: session.compactionMaxTokens,
+        maxOutputTokens: session.compactionMaxOutputTokens,
+        summaryInputMaxChars: session.compactionInputMaxChars,
+      });
+      this._sessionHostLease?.assert?.();
+    } catch (error) {
+      if (isAbortError(error) || this._sessionHostLease?.signal?.aborted) {
+        throw error;
+      }
+      const block = this._latchCompactionSettlement({
+        code: error?.code || "CC_COMPACTION_FAILED",
+        reason: `compaction_failed:${String(error?.message || error).slice(0, 240)}`,
+        commitState: "provider-outcome-unknown",
+      });
+      this.interaction.emit("compaction-degraded", {
+        requestId,
+        reason: block.reason,
+        summaryMode: "none",
+        code: block.code,
+      });
+      this.interaction.emit("error", {
+        requestId,
+        code: block.code,
+        message: "Canonical history could not be compacted before turn claim",
+      });
+      return false;
+    }
+
+    const {
+      messages: compacted,
+      stats,
+      degradedEvent,
+      usageEvent,
+      usageUnknownEvent,
+    } = result;
+    if (degradedEvent) {
+      this.interaction.emit("compaction-degraded", {
+        requestId,
+        ...degradedEvent,
+      });
+    }
+    if (usageUnknownEvent) {
+      const block = this._emitCompactionUsageUnknown(
+        requestId,
+        usageUnknownEvent,
+      );
+      this.interaction.emit("error", {
+        requestId,
+        code: block.code,
+        message:
+          "Compaction provider usage is unknown; the paid compaction is not retried",
+      });
+      return false;
+    }
+
+    const messagesChanged =
+      session.messages.length !== expectedMessages.length ||
+      session.messages.some(
+        (message, index) => message !== expectedMessages[index],
+      );
+    const shouldSettle = stats?.strategy !== "none" && stats?.saved > 0;
+    let settlementError = null;
+    if (!messagesChanged && shouldSettle) {
+      try {
+        const settlement =
+          this._canonicalSessionStore.appendCompactEventIfMessagesMatch(
+            session.id,
+            {
+              ...stats,
+              trigger: "auto",
+              messages: projectCanonicalResumeMessages(compacted, {
+                strict: true,
+              }),
+            },
+            expectedMessages,
+          );
+        if (settlement && typeof settlement.then === "function") {
+          void Promise.resolve(settlement).catch(() => {});
+          const error = new TypeError(
+            "Canonical compact settlement must be synchronous",
+          );
+          error.code = "CC_COMPACTION_SETTLEMENT_ASYNC";
+          throw error;
+        }
+      } catch (error) {
+        settlementError = error;
+      }
+    }
+
+    this._emitCompactionUsage(requestId, usageEvent);
+    if (messagesChanged || settlementError) {
+      const stale = settlementError?.code === "SESSION_REVISION_STALE";
+      let reconciled = false;
+      if (stale) {
+        try {
+          const authoritativeMessages =
+            this._canonicalSessionStore.readVerifiedMessages(session.id);
+          if (!Array.isArray(authoritativeMessages)) {
+            throw new TypeError(
+              "Canonical message refresh must be synchronous",
+            );
+          }
+          this._applyCanonicalMessages(authoritativeMessages);
+          this._reconcileCompactionSettlementBlock();
+          reconciled = true;
+        } catch {
+          // Latch below until a later verified canonical refresh succeeds.
+        }
+      }
+      const block =
+        reconciled && stale
+          ? {
+              code: "CC_COMPACTION_REVISION_STALE",
+              reason: "session_messages_changed_during_compaction",
+              commitState: "reconciled-stale",
+            }
+          : this._latchCompactionSettlement({
+              code:
+                settlementError?.code ||
+                (messagesChanged
+                  ? "CC_COMPACTION_LOCAL_STATE_CHANGED"
+                  : "CC_COMPACTION_SETTLEMENT_UNKNOWN"),
+              reason:
+                messagesChanged || stale
+                  ? "session_messages_changed_during_compaction"
+                  : "canonical_compaction_settlement_failed",
+              commitState: "unknown",
+            });
+      this.interaction.emit("compaction-degraded", {
+        requestId,
+        reason: block.reason,
+        summaryMode: "none",
+        code: block.code,
+      });
+      this.interaction.emit("error", {
+        requestId,
+        code: block.code,
+        message:
+          "Canonical compaction did not settle; the paid compaction is not retried",
+      });
+      return false;
+    }
+
+    if (shouldSettle) {
+      session.messages.length = 0;
+      session.messages.push(...compacted);
+      this.interaction.emit("compaction", {
+        requestId,
+        stats,
+        trigger: "auto",
+        messagesBefore: before,
+        messagesAfter: session.messages.length,
+      });
+    }
+    return true;
   }
 
   _claimCanonicalTurn(userMessage, requestId) {
@@ -396,6 +647,7 @@ export class WSAgentHandler {
         sink: this._mcpRecoverySink,
         recovery: session.mcpLedgerRecovery || null,
         controller,
+        dispatchAdmission: this._sessionHostLease?.admitMcpDispatch || null,
       });
       this._mcpRecoveryClient = rawClient;
       this._mcpRecoveryRevision = revision;
@@ -509,7 +761,26 @@ export class WSAgentHandler {
       this._sessionHostLease?.assert?.();
 
       if (session.canonicalJsonlSession === true) {
-        canonicalTurn = this._claimCanonicalTurn(userMessage, requestId);
+        const inputDigest =
+          this._canonicalSessionStore.computeWsTurnInputDigest(userMessage);
+        const preflightState =
+          this._canonicalSessionStore.readVerifiedWsTurnState(
+            session.id,
+            requestId,
+            { inputDigest },
+          );
+        canonicalTurn = this._canonicalTurnFromAuthority(
+          preflightState,
+          requestId,
+          userMessage,
+          inputDigest,
+        );
+        if (!canonicalTurn) {
+          const compacted =
+            await this._compactCanonicalHistoryBeforeClaim(requestId);
+          if (!compacted) return;
+        }
+        canonicalTurn ||= this._claimCanonicalTurn(userMessage, requestId);
         if (canonicalTurn.status === "completed") {
           this.interaction.emit("response-complete", {
             requestId,
@@ -601,6 +872,7 @@ export class WSAgentHandler {
         // headless and REPL sessions. For unknown/write/destructive effects a
         // failed prewrite blocks the network call inside agent-core.
         mcpCallLedger: mcpRecoveryRuntime.ledger,
+        mcpDispatchAdmission: this._sessionHostLease?.admitMcpDispatch || null,
         shellPolicyOverrides: session.shellPolicyOverrides || null,
         slotFiller,
         interaction: this.interaction,
@@ -608,6 +880,12 @@ export class WSAgentHandler {
         // P0 authority: null unless opted in (byte-identical default — agent
         // core already defaults `options.approvalGate || null`).
         approvalGate: await this._ensureApprovalGate(),
+        // Canonical WS history is compacted before ws_turn_prepare. Compaction
+        // inside agent-core would include the staged pending user, which is not
+        // part of the canonical message projection until turn settlement.
+        ...(session.canonicalJsonlSession === true
+          ? { autoCompact: false }
+          : {}),
       };
 
       // P0-2: crash-safe side-effect ledger for the IDE/bridge path — mirrors
@@ -716,6 +994,37 @@ export class WSAgentHandler {
                 persistSideEffectLedger(session.id, sideEffectLedger);
                 currentSideEffectOpId = null;
               }
+              break;
+
+            case "compaction-degraded":
+              this.interaction.emit("compaction-degraded", {
+                requestId,
+                reason: event.reason,
+                summaryMode: event.summaryMode,
+                ...(event.code ? { code: event.code } : {}),
+                stats: event.stats,
+              });
+              break;
+
+            case "compaction-usage-unknown":
+              this._emitCompactionUsageUnknown(requestId, event);
+              break;
+
+            case "compaction":
+              this.interaction.emit("compaction", {
+                requestId,
+                stats: event.stats,
+              });
+              break;
+
+            case "token-usage":
+              this.interaction.emit("token-usage", {
+                requestId,
+                provider: event.provider,
+                model: event.model,
+                usage: event.usage,
+                ...(event.source ? { source: event.source } : {}),
+              });
               break;
 
             case "response-complete":
@@ -983,25 +1292,194 @@ export class WSAgentHandler {
         });
         break;
 
-      case "/compact":
-        if (session.contextEngine && session.messages.length > 5) {
-          const compacted = session.contextEngine.smartCompact(
-            session.messages,
-          );
-          session.messages.length = 0;
-          session.messages.push(...compacted);
-        } else if (session.messages.length > 5) {
-          const systemMsg = session.messages[0];
-          const recent = session.messages.slice(-4);
-          session.messages.length = 0;
-          session.messages.push(systemMsg, ...recent);
+      case "/compact": {
+        if (this._compactionSettlementBlock) {
+          const block = this._compactionSettlementBlock;
+          this.interaction.emit("compaction-degraded", {
+            requestId,
+            reason: block.reason,
+            summaryMode: "none",
+            code: block.code,
+          });
+          this.interaction.emit("command-response", {
+            requestId,
+            command: cmd,
+            result: {
+              messageCount: session.messages.length,
+              error: block,
+            },
+          });
+          break;
+        }
+
+        const before = session.messages.length;
+        const expectedMessages = [...session.messages];
+        let result = null;
+        let commandError = null;
+        try {
+          this._sessionHostLease?.assert?.();
+          result = await compactConversationWithProvider(session.messages, {
+            provider: session.provider,
+            model: session.model,
+            baseUrl: session.baseUrl,
+            apiKey: session.apiKey,
+            signal: this._sessionHostLease?.signal,
+            force: true,
+            preserveCompletedExchange: true,
+            llmQuery: this._compactionLlmQuery,
+            chatFn: this._compactionChatFn,
+            chatOptions: {
+              cwd: session.projectRoot,
+              sessionId: session.id,
+            },
+            maxOutputTokens: session.compactionMaxOutputTokens,
+            summaryInputMaxChars: session.compactionInputMaxChars,
+          });
+          this._sessionHostLease?.assert?.();
+        } catch (error) {
+          if (isAbortError(error) || this._sessionHostLease?.signal?.aborted) {
+            throw error;
+          }
+          commandError = this._latchCompactionSettlement({
+            code: error?.code || "CC_COMPACTION_FAILED",
+            reason: `compaction_failed:${String(error?.message || error).slice(0, 240)}`,
+            commitState: "provider-outcome-unknown",
+          });
+          this.interaction.emit("compaction-degraded", {
+            requestId,
+            reason: commandError.reason,
+            summaryMode: "none",
+            code: commandError.code,
+          });
+        }
+        if (result) {
+          const {
+            messages,
+            stats,
+            degradedEvent,
+            usageEvent,
+            usageUnknownEvent,
+          } = result;
+          if (degradedEvent) {
+            this.interaction.emit("compaction-degraded", {
+              requestId,
+              ...degradedEvent,
+            });
+          }
+          if (usageUnknownEvent) {
+            commandError = this._emitCompactionUsageUnknown(
+              requestId,
+              usageUnknownEvent,
+            );
+          }
+          const messagesChanged =
+            session.messages.length !== expectedMessages.length ||
+            session.messages.some(
+              (message, index) => message !== expectedMessages[index],
+            );
+          let settlementError = null;
+          if (
+            !commandError &&
+            !messagesChanged &&
+            session.canonicalJsonlSession === true
+          ) {
+            if (stats?.strategy !== "none") {
+              try {
+                const settlement =
+                  this._canonicalSessionStore.appendCompactEventIfMessagesMatch(
+                    session.id,
+                    {
+                      ...stats,
+                      trigger: "manual",
+                      messages: projectCanonicalResumeMessages(messages, {
+                        strict: true,
+                      }),
+                    },
+                    expectedMessages,
+                  );
+                if (settlement && typeof settlement.then === "function") {
+                  void Promise.resolve(settlement).catch(() => {});
+                  const error = new TypeError(
+                    "Canonical compact settlement must be synchronous",
+                  );
+                  error.code = "CC_COMPACTION_SETTLEMENT_ASYNC";
+                  throw error;
+                }
+              } catch (error) {
+                settlementError = error;
+              }
+            }
+          }
+
+          if (!commandError && !messagesChanged && !settlementError) {
+            session.messages.length = 0;
+            session.messages.push(...messages);
+            this.interaction.emit("compaction", {
+              requestId,
+              stats,
+              messagesBefore: before,
+              messagesAfter: session.messages.length,
+            });
+          } else if (!commandError) {
+            const stale = settlementError?.code === "SESSION_REVISION_STALE";
+            let reconciled = false;
+            if (stale) {
+              try {
+                const authoritativeMessages =
+                  this._canonicalSessionStore.readVerifiedMessages(session.id);
+                if (!Array.isArray(authoritativeMessages)) {
+                  throw new TypeError(
+                    "Canonical message refresh must be synchronous",
+                  );
+                }
+                this._applyCanonicalMessages(authoritativeMessages);
+                this._reconcileCompactionSettlementBlock();
+                reconciled = true;
+              } catch {
+                // Latch below until a later verified canonical refresh.
+              }
+            }
+            commandError =
+              reconciled && stale
+                ? {
+                    code: "CC_COMPACTION_REVISION_STALE",
+                    reason: "session_messages_changed_during_compaction",
+                    commitState: "reconciled-stale",
+                  }
+                : this._latchCompactionSettlement({
+                    code:
+                      settlementError?.code ||
+                      (messagesChanged
+                        ? "CC_COMPACTION_LOCAL_STATE_CHANGED"
+                        : "CC_COMPACTION_SETTLEMENT_UNKNOWN"),
+                    reason:
+                      messagesChanged || stale
+                        ? "session_messages_changed_during_compaction"
+                        : "canonical_compaction_settlement_failed",
+                    commitState: "unknown",
+                  });
+            this.interaction.emit("compaction-degraded", {
+              requestId,
+              reason: commandError.reason,
+              summaryMode: "none",
+              code: commandError.code,
+            });
+          }
+          // Provider usage is emitted exactly once even when the message CAS
+          // rejects the candidate; the paid request already happened and is
+          // never retried by this command.
+          this._emitCompactionUsage(requestId, usageEvent);
         }
         this.interaction.emit("command-response", {
           requestId,
           command: cmd,
-          result: { messageCount: session.messages.length },
+          result: {
+            messageCount: session.messages.length,
+            ...(commandError ? { error: commandError } : {}),
+          },
         });
         break;
+      }
 
       case "/task":
         if (arg === "clear") {

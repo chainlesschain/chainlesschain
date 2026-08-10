@@ -92,6 +92,146 @@ describe("REPL compact persistence fencing", () => {
     ).toThrow(expect.objectContaining({ code: "SESSION_REVISION_STALE" }));
     expect(controller.snapshot()).toEqual([{ role: "user", content: "known" }]);
   }, 20000);
+
+  it("accounts provider usage and settles CAS before replacing live messages", async () => {
+    const { createReplCompactPersistence, settleReplCompactionCandidate } =
+      await import("../../src/repl/agent-repl.js");
+    const { newCostStore } = await import("../../src/repl/session-cost.js");
+    const messages = [
+      { role: "system", content: "host prompt" },
+      { role: "user", content: "known question" },
+      { role: "assistant", content: "known answer" },
+    ];
+    const expectedMessages = [...messages];
+    const summary = markDurableSystemMessage(
+      { role: "system", content: "durable compact summary" },
+      DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
+    );
+    const compacted = [summary];
+    const appendCompactEventIfMessagesMatch = vi.fn(() => {
+      expect(messages).toEqual(expectedMessages);
+      return { hash: "b".repeat(64) };
+    });
+    const appendUsage = vi.fn();
+    const persistence = createReplCompactPersistence(messages, {
+      appendCompactEventIfMessagesMatch,
+    });
+    const costStore = newCostStore();
+
+    const result = settleReplCompactionCandidate({
+      messages,
+      expectedMessages,
+      compacted,
+      stats: { strategy: "summarize", saved: 20 },
+      trigger: "manual",
+      useJsonl: true,
+      sessionId: "session-usage",
+      persistence,
+      usageEvent: {
+        provider: "anthropic",
+        model: "claude-sonnet-4-6",
+        usage: { input_tokens: 40, output_tokens: 10 },
+      },
+      costStore,
+      appendUsage,
+    });
+
+    expect(result.applied).toBe(true);
+    expect(appendUsage).toHaveBeenCalledOnce();
+    expect(appendCompactEventIfMessagesMatch).toHaveBeenCalledOnce();
+    expect(appendUsage.mock.invocationCallOrder[0]).toBeLessThan(
+      appendCompactEventIfMessagesMatch.mock.invocationCallOrder[0],
+    );
+    expect(costStore.total).toMatchObject({
+      inputTokens: 40,
+      outputTokens: 10,
+      calls: 1,
+    });
+    expect(messages).toEqual(compacted);
+  }, 20000);
+
+  it("counts known usage once but preserves live messages when compact CAS is stale", async () => {
+    const { createReplCompactPersistence, settleReplCompactionCandidate } =
+      await import("../../src/repl/agent-repl.js");
+    const { newCostStore } = await import("../../src/repl/session-cost.js");
+    const messages = [{ role: "user", content: "known question" }];
+    const expectedMessages = [...messages];
+    const stale = Object.assign(new Error("stale"), {
+      code: "SESSION_REVISION_STALE",
+    });
+    const persistence = createReplCompactPersistence(messages, {
+      appendCompactEventIfMessagesMatch: vi.fn(() => {
+        throw stale;
+      }),
+    });
+    const appendUsage = vi.fn();
+    const costStore = newCostStore();
+
+    const result = settleReplCompactionCandidate({
+      messages,
+      expectedMessages,
+      compacted: [{ role: "assistant", content: "candidate" }],
+      stats: { strategy: "summarize", saved: 10 },
+      trigger: "auto",
+      useJsonl: true,
+      sessionId: "session-stale",
+      persistence,
+      usageEvent: {
+        provider: "anthropic",
+        model: "claude-sonnet-4-6",
+        usage: { input_tokens: 8, output_tokens: 2 },
+      },
+      costStore,
+      appendUsage,
+    });
+
+    expect(result).toMatchObject({ applied: false, error: stale });
+    expect(messages).toEqual(expectedMessages);
+    expect(appendUsage).toHaveBeenCalledOnce();
+    expect(costStore.total.calls).toBe(1);
+  }, 20000);
+
+  it("does not account, persist, or apply an unknown-usage fallback", async () => {
+    const { createReplCompactPersistence, settleReplCompactionCandidate } =
+      await import("../../src/repl/agent-repl.js");
+    const { newCostStore } = await import("../../src/repl/session-cost.js");
+    const messages = [{ role: "user", content: "known question" }];
+    const expectedMessages = [...messages];
+    const appendCompactEventIfMessagesMatch = vi.fn();
+    const appendUsage = vi.fn();
+    const costStore = newCostStore();
+    const persistence = createReplCompactPersistence(messages, {
+      appendCompactEventIfMessagesMatch,
+    });
+
+    const result = settleReplCompactionCandidate({
+      messages,
+      expectedMessages,
+      compacted: [{ role: "assistant", content: "extractive fallback" }],
+      stats: { strategy: "summarize", saved: 10 },
+      trigger: "manual",
+      useJsonl: true,
+      sessionId: "session-unknown",
+      persistence,
+      usageUnknownEvent: {
+        reason: "provider_transport_outcome_unknown",
+      },
+      costStore,
+      appendUsage,
+    });
+
+    expect(result).toMatchObject({
+      applied: false,
+      block: {
+        code: "CC_COMPACTION_USAGE_UNKNOWN",
+        commitState: "provider-usage-unknown",
+      },
+    });
+    expect(messages).toEqual(expectedMessages);
+    expect(appendUsage).not.toHaveBeenCalled();
+    expect(appendCompactEventIfMessagesMatch).not.toHaveBeenCalled();
+    expect(costStore.total.calls).toBe(0);
+  }, 20000);
 });
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

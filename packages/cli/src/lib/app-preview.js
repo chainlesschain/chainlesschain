@@ -311,6 +311,9 @@ export function buildEvidenceArtifact(kind, data = {}) {
         ...base,
         // The image bytes/path are opaque to this layer; only metadata here.
         ref: d.ref == null ? null : String(d.ref),
+        digest: /^sha256:[0-9a-f]{64}$/iu.test(String(d.digest || ""))
+          ? String(d.digest).toLowerCase()
+          : null,
         width: Number.isFinite(Number(d.width)) ? Number(d.width) : null,
         height: Number.isFinite(Number(d.height)) ? Number(d.height) : null,
       };

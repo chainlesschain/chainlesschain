@@ -125,6 +125,50 @@ describe("runAgentHeadlessStream --max-budget-usd", () => {
     ).toMatchObject({ subtype: "error_max_budget" });
   });
 
+  it("fails a hard budget closed when automatic compaction usage is unknown", async () => {
+    let calls = 0;
+    const usageUnknownLoop = async function* () {
+      calls += 1;
+      yield {
+        type: "compaction-usage-unknown",
+        provider: "anthropic",
+        model: "claude-sonnet-4-6",
+        reason: "provider_transport_outcome_unknown",
+        source: "semantic-compaction",
+      };
+      yield { type: "response-complete", content: "must not finish" };
+    };
+    const deps = baseDeps({
+      agentLoop: usageUnknownLoop,
+      input: input({ text: "one" }, { text: "two" }),
+    });
+
+    const outcome = await runAgentHeadlessStream(
+      { expandFileRefs: false, maxCostUsd: 10 },
+      deps,
+    );
+    const events = parse(deps._lines);
+
+    expect(calls).toBe(1);
+    expect(outcome).toMatchObject({ exitCode: 1, turns: 1 });
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "compaction_usage_unknown",
+        usage_outcome: "unknown",
+      }),
+    );
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "result",
+        subtype: "error_compaction_usage_unknown",
+        budget_state: "unverifiable",
+      }),
+    );
+    expect(events.some((event) => event.result === "must not finish")).toBe(
+      false,
+    );
+  });
+
   it("no cap → both turns complete", async () => {
     const deps = baseDeps({
       agentLoop: expensiveLoop,
@@ -448,6 +492,42 @@ describe("runAgentHeadlessStream MCP recovery authority", () => {
 });
 
 describe("runAgentHeadlessStream /compact (manual compaction, IDE parity)", () => {
+  const durableHistory = () => [
+    { role: "user", content: "Start the durable task." },
+    { role: "assistant", content: "I inspected the repository." },
+    { role: "user", content: "Preserve the exact constraints." },
+    { role: "assistant", content: "The constraints are recorded." },
+    { role: "user", content: "Finish the persistence wiring." },
+    { role: "assistant", content: "The persistence wiring is ready." },
+  ];
+  const resumeState = (messages) => ({
+    snapshot: {
+      schema: "chainlesschain.session-host-snapshot/v1",
+      schemaVersion: 1,
+      verified: true,
+      revision: "sha256:test-compact-head",
+    },
+    messages: [...messages],
+    recovery: { unsettled: [], incidents: [] },
+  });
+  const durableStoreDeps = (state, overrides = {}) => ({
+    sessionExists: () => true,
+    readSessionHostResumeState: () => resumeState(state.messages),
+    readEvents: () => [],
+    readVerifiedEvents: () => [],
+    appendUserMessage: vi.fn(),
+    appendAssistantMessage: vi.fn(),
+    appendEvent: () => true,
+    appendAuthorityEvent: () => true,
+    appendCompactEventIfMessagesMatch: vi.fn((_id, data) => {
+      state.messages = [...data.messages];
+      state.compactEvents.push(data);
+      return { hash: `sha256:${state.compactEvents.length}` };
+    }),
+    loadSideEffectLedger: () => null,
+    ...overrides,
+  });
+
   it("emits a compaction event when a {type:'compact'} control event arrives", async () => {
     const agentLoop = async function* () {
       yield { type: "response-complete", content: "ok" };
@@ -493,6 +573,431 @@ describe("runAgentHeadlessStream /compact (manual compaction, IDE parity)", () =
     expect(results).toHaveLength(2); // both user turns ran, compact between them
     expect(turns).toBe(2);
     expect(outcome.exitCode).toBe(0);
+  });
+
+  it("uses a provider-backed structured handoff and emits its usage", async () => {
+    let turns = 0;
+    const observedTurns = [];
+    const agentLoop = async function* (messages) {
+      turns++;
+      observedTurns.push(messages.map((message) => ({ ...message })));
+      yield { type: "response-complete", content: `answer ${turns}` };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    const compactionLlmQuery = vi.fn(async () => ({
+      summary: JSON.stringify({
+        objective: "Keep the long-running stream resumable",
+        constraints: ["Preserve exact user intent"],
+        keyDecisions: ["Use semantic handoff"],
+        changedFiles: [],
+        tests: [],
+        unresolvedSideEffects: [],
+        checkpoints: [],
+        blockers: [],
+        nextSteps: ["Continue the stream"],
+      }),
+      usage: { input_tokens: 80, output_tokens: 24 },
+      provider: "anthropic",
+      model: "claude-sonnet-4-6",
+    }));
+    const deps = baseDeps({
+      agentLoop,
+      compactionLlmQuery,
+      input: input(
+        { text: "one" },
+        { text: "two" },
+        { text: "three" },
+        { type: "compact" },
+        { text: "four" },
+      ),
+    });
+
+    await runAgentHeadlessStream(
+      {
+        expandFileRefs: false,
+        provider: "anthropic",
+        model: "claude-sonnet-4-6",
+      },
+      deps,
+    );
+
+    const events = parse(deps._lines);
+    expect(compactionLlmQuery).toHaveBeenCalledOnce();
+    expect(
+      observedTurns
+        .at(-1)
+        .slice(-3)
+        .map((message) => message.role),
+    ).toEqual(["user", "assistant", "user"]);
+    expect(
+      observedTurns
+        .at(-1)
+        .some((message) =>
+          String(message.content).includes(
+            "Keep the long-running stream resumable",
+          ),
+        ),
+    ).toBe(true);
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "compaction",
+        stats: expect.objectContaining({
+          summaryMode: "llm-structured",
+          degraded: false,
+        }),
+      }),
+    );
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "token_usage",
+        provider: "anthropic",
+        model: "claude-sonnet-4-6",
+        source: "semantic-compaction",
+        usage: expect.objectContaining({
+          input_tokens: 80,
+          output_tokens: 24,
+        }),
+      }),
+    );
+  });
+
+  it("settles one canonical compact event and restores it after restart", async () => {
+    const state = { messages: durableHistory(), compactEvents: [] };
+    const store = durableStoreDeps(state);
+    const compactionLlmQuery = vi.fn(async () => ({
+      summary: JSON.stringify({
+        objective: "Restore the compacted head after restart",
+        constraints: ["Use the canonical message CAS"],
+        keyDecisions: ["Run the provider outside the writer lock"],
+        changedFiles: [],
+        tests: ["Restart recovery"],
+        unresolvedSideEffects: [],
+        checkpoints: [],
+        blockers: [],
+        nextSteps: ["Continue from the compacted head"],
+      }),
+      usage: { input_tokens: 72, output_tokens: 18 },
+      provider: "anthropic",
+      model: "claude-sonnet-4-6",
+    }));
+    const firstDeps = baseDeps({
+      ...store,
+      compactionLlmQuery,
+      input: input({ type: "compact" }, { type: "compact" }),
+    });
+
+    const first = await runAgentHeadlessStream(
+      {
+        expandFileRefs: false,
+        sessionId: "durable-compact-restart",
+        provider: "anthropic",
+        model: "claude-sonnet-4-6",
+      },
+      firstDeps,
+    );
+
+    expect(first.exitCode).toBe(0);
+    expect(compactionLlmQuery).toHaveBeenCalledOnce();
+    expect(store.appendCompactEventIfMessagesMatch).toHaveBeenCalledOnce();
+    expect(state.compactEvents).toHaveLength(1);
+    expect(state.compactEvents[0]).toMatchObject({
+      trigger: "manual",
+      summaryMode: "llm-structured",
+      messages: expect.any(Array),
+    });
+    expect(
+      parse(firstDeps._lines).filter((event) => event.type === "token_usage"),
+    ).toHaveLength(1);
+
+    let resumedModelMessages = null;
+    const secondDeps = baseDeps({
+      ...durableStoreDeps(state, {
+        appendCompactEventIfMessagesMatch:
+          store.appendCompactEventIfMessagesMatch,
+      }),
+      input: input({ text: "continue after restart" }),
+      agentLoop: async function* (messages) {
+        resumedModelMessages = messages.map((message) => ({ ...message }));
+        yield { type: "response-complete", content: "continued" };
+        yield { type: "run-ended", reason: "complete" };
+      },
+    });
+    const second = await runAgentHeadlessStream(
+      {
+        expandFileRefs: false,
+        sessionId: "durable-compact-restart",
+        provider: "anthropic",
+        model: "claude-sonnet-4-6",
+      },
+      secondDeps,
+    );
+
+    expect(second.exitCode).toBe(0);
+    expect(
+      resumedModelMessages.some((message) =>
+        String(message.content).includes(
+          "Restore the compacted head after restart",
+        ),
+      ),
+    ).toBe(true);
+    expect(store.appendCompactEventIfMessagesMatch).toHaveBeenCalledOnce();
+  });
+
+  it("wires automatic compaction through the injected canonical message CAS", async () => {
+    const state = { messages: durableHistory(), compactEvents: [] };
+    let liveAtSettlement = null;
+    const store = durableStoreDeps(state, {
+      appendCompactEventIfMessagesMatch: vi.fn((_id, data, expected) => {
+        liveAtSettlement = expected.map((message) => ({ ...message }));
+        state.messages = [...data.messages];
+        state.compactEvents.push(data);
+        return { hash: "sha256:auto-compact" };
+      }),
+    });
+    const agentLoop = vi.fn(async function* (messages, options) {
+      const expectedMessages = [...messages];
+      const compacted = [
+        messages[0],
+        { role: "user", content: "automatic compact summary" },
+      ];
+      options.onCompaction({ strategy: "summarize", saved: 25 }, compacted, {
+        expectedMessages,
+        trigger: "auto",
+      });
+      expect(messages).toEqual(expectedMessages);
+      messages.splice(0, messages.length, ...compacted);
+      yield { type: "response-complete", content: "continued" };
+      yield { type: "run-ended", reason: "complete" };
+    });
+    const deps = baseDeps({
+      ...store,
+      agentLoop,
+      input: input({ text: "new turn" }),
+    });
+
+    const outcome = await runAgentHeadlessStream(
+      {
+        expandFileRefs: false,
+        sessionId: "durable-auto-compact-cas",
+      },
+      deps,
+    );
+
+    expect(outcome.exitCode).toBe(0);
+    expect(store.appendCompactEventIfMessagesMatch).toHaveBeenCalledOnce();
+    expect(state.compactEvents[0]).toMatchObject({
+      trigger: "auto",
+      strategy: "summarize",
+    });
+    expect(liveAtSettlement.at(-1)).toEqual({
+      role: "user",
+      content: "new turn",
+    });
+  });
+
+  it("does not retry or apply a stale canonical compact candidate", async () => {
+    const state = { messages: durableHistory(), compactEvents: [] };
+    const stale = new Error("concurrent canonical turn");
+    stale.code = "SESSION_REVISION_STALE";
+    const appendCompactEventIfMessagesMatch = vi.fn(() => {
+      throw stale;
+    });
+    const compactionLlmQuery = vi.fn(async () => ({
+      summary: JSON.stringify({
+        objective: "This stale handoff must not commit",
+        constraints: [],
+        keyDecisions: [],
+        changedFiles: [],
+        tests: [],
+        unresolvedSideEffects: [],
+        checkpoints: [],
+        blockers: [],
+        nextSteps: [],
+      }),
+      usage: { input_tokens: 40, output_tokens: 10 },
+      provider: "anthropic",
+      model: "claude-sonnet-4-6",
+    }));
+    const deps = baseDeps({
+      ...durableStoreDeps(state, { appendCompactEventIfMessagesMatch }),
+      compactionLlmQuery,
+      input: input({ type: "compact" }, { type: "compact" }),
+    });
+
+    const outcome = await runAgentHeadlessStream(
+      {
+        expandFileRefs: false,
+        sessionId: "durable-compact-race",
+        provider: "anthropic",
+        model: "claude-sonnet-4-6",
+      },
+      deps,
+    );
+    const events = parse(deps._lines);
+
+    expect(outcome.exitCode).toBe(1);
+    expect(compactionLlmQuery).toHaveBeenCalledOnce();
+    expect(appendCompactEventIfMessagesMatch).toHaveBeenCalledOnce();
+    expect(events.filter((event) => event.type === "token_usage")).toHaveLength(
+      1,
+    );
+    expect(events.some((event) => event.type === "compaction")).toBe(false);
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "result",
+        subtype: "error_compaction_stale",
+        code: "CC_COMPACTION_REVISION_STALE",
+      }),
+    );
+    expect(state.compactEvents).toHaveLength(0);
+  });
+
+  it("never retries an outcome-unknown canonical compact settlement", async () => {
+    const state = { messages: durableHistory(), compactEvents: [] };
+    const failure = Object.assign(new Error("fsync outcome unknown"), {
+      code: "CC_SESSION_PERSISTENCE_FAILED",
+      fsCode: "EIO",
+      operation: "transcript-settlement",
+      commitState: "unknown",
+      retryable: false,
+    });
+    const appendCompactEventIfMessagesMatch = vi.fn(() => {
+      throw failure;
+    });
+    const compactionLlmQuery = vi.fn(async () => ({
+      summary: JSON.stringify({
+        objective: "Do not retry an unknown settlement",
+        constraints: [],
+        keyDecisions: [],
+        changedFiles: [],
+        tests: [],
+        unresolvedSideEffects: [],
+        checkpoints: [],
+        blockers: [],
+        nextSteps: [],
+      }),
+      usage: { input_tokens: 32, output_tokens: 8 },
+    }));
+    const onPersistenceFailure = vi.fn();
+    const deps = baseDeps({
+      ...durableStoreDeps(state, { appendCompactEventIfMessagesMatch }),
+      compactionLlmQuery,
+      onPersistenceFailure,
+      input: input({ type: "compact" }, { type: "compact" }),
+    });
+
+    const outcome = await runAgentHeadlessStream(
+      {
+        expandFileRefs: false,
+        sessionId: "durable-compact-unknown",
+      },
+      deps,
+    );
+    const events = parse(deps._lines);
+
+    expect(compactionLlmQuery).toHaveBeenCalledOnce();
+    expect(appendCompactEventIfMessagesMatch).toHaveBeenCalledOnce();
+    expect(onPersistenceFailure).toHaveBeenCalledOnce();
+    expect(events.filter((event) => event.type === "token_usage")).toHaveLength(
+      1,
+    );
+    expect(events.some((event) => event.type === "compaction")).toBe(false);
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "result",
+        subtype: "error_persistence",
+        persistence: expect.objectContaining({
+          fs_code: "EIO",
+          commit_state: "unknown",
+          retryable: false,
+        }),
+      }),
+    );
+    expect(outcome).toMatchObject({
+      exitCode: 1,
+      persistence: expect.objectContaining({
+        commit_state: "unknown",
+        retryable: false,
+      }),
+    });
+  });
+
+  it("fails closed without persisting fallback when provider usage is unknown", async () => {
+    const state = { messages: durableHistory(), compactEvents: [] };
+    const store = durableStoreDeps(state);
+    const compactionLlmQuery = vi.fn(async () => {
+      throw new Error("provider unavailable");
+    });
+    const deps = baseDeps({
+      ...store,
+      compactionLlmQuery,
+      input: input({ type: "compact" }),
+    });
+
+    const outcome = await runAgentHeadlessStream(
+      {
+        expandFileRefs: false,
+        sessionId: "durable-compact-degraded",
+      },
+      deps,
+    );
+
+    expect(compactionLlmQuery).toHaveBeenCalledOnce();
+    expect(store.appendCompactEventIfMessagesMatch).not.toHaveBeenCalled();
+    expect(state.compactEvents).toHaveLength(0);
+    expect(state.messages).toEqual(durableHistory());
+    const events = parse(deps._lines);
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "compaction-degraded",
+        summaryMode: "extractive-fallback",
+      }),
+    );
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "compaction_usage_unknown",
+        usage_outcome: "unknown",
+      }),
+    );
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "result",
+        subtype: "error_compaction_usage_unknown",
+        code: "CC_COMPACTION_USAGE_UNKNOWN",
+      }),
+    );
+    expect(outcome.exitCode).toBe(1);
+  });
+
+  it("propagates manual compaction cancellation without applying or persisting", async () => {
+    const state = { messages: durableHistory(), compactEvents: [] };
+    const store = durableStoreDeps(state);
+    const abort = Object.assign(new Error("cancelled"), {
+      name: "AbortError",
+    });
+    const deps = baseDeps({
+      ...store,
+      compactionLlmQuery: vi.fn(async () => {
+        throw abort;
+      }),
+      input: input({ type: "compact" }),
+    });
+
+    await expect(
+      runAgentHeadlessStream(
+        {
+          expandFileRefs: false,
+          sessionId: "durable-compact-abort",
+        },
+        deps,
+      ),
+    ).rejects.toBe(abort);
+
+    expect(store.appendCompactEventIfMessagesMatch).not.toHaveBeenCalled();
+    expect(state.messages).toEqual(durableHistory());
+    expect(
+      parse(deps._lines).some((event) => event.type === "compaction"),
+    ).toBe(false);
   });
 });
 

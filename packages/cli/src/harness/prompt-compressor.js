@@ -11,6 +11,7 @@
 
 import { createHash } from "node:crypto";
 import { feature, featureVariant } from "../lib/feature-flags.js";
+import { isAbortError } from "../lib/abort-utils.js";
 import {
   DURABLE_SYSTEM_MESSAGE_KINDS,
   getDurableSystemMessageProvenance,
@@ -566,6 +567,8 @@ export class PromptCompressor {
     let degradedReason = null;
     let rawSummary;
     let summaryUsage = null;
+    let summaryUsageUnknown = false;
+    let summaryUsageUnknownReason = null;
     let summaryProvider = null;
     let summaryModel = null;
     try {
@@ -592,6 +595,12 @@ export class PromptCompressor {
                   usage.cache_creation_tokens,
               ) || 0,
           };
+        } else if (queryResult.usageOutcome !== "not-billable") {
+          // Standard provider adapters return an explicit `usage` field. A
+          // successful response without it is still a paid call whose amount
+          // is unknown; never let a hard budget silently count it as zero.
+          summaryUsageUnknown = true;
+          summaryUsageUnknownReason = "provider_usage_not_reported";
         }
         summaryProvider = queryResult.provider || null;
         summaryModel = queryResult.model || null;
@@ -599,9 +608,18 @@ export class PromptCompressor {
         rawSummary = queryResult;
       }
     } catch (error) {
+      // Cancellation is authoritative. Treating AbortError as an ordinary
+      // provider failure would manufacture an extractive summary after Stop and
+      // let callers apply/persist it even though the operation was cancelled.
+      if (isAbortError(error)) throw error;
       degraded = true;
       summaryMode = "extractive-fallback";
       degradedReason = `llm_query_failed:${boundedFailureMessage(error)}`;
+      // A transport exception does not prove that the provider rejected the
+      // request before billing it. Keep that uncertainty explicit so a hard
+      // budget can latch instead of silently accounting the call as $0.
+      summaryUsageUnknown = true;
+      summaryUsageUnknownReason = "provider_transport_outcome_unknown";
     }
     if (!degraded) {
       try {
@@ -644,6 +662,12 @@ export class PromptCompressor {
         summaryInputChars: prompt.length,
         summaryInputLimit: this.summaryInputMaxChars,
         ...(summaryUsage ? { summaryUsage } : {}),
+        ...(summaryUsageUnknown
+          ? {
+              summaryUsageUnknown: true,
+              summaryUsageUnknownReason,
+            }
+          : {}),
         ...(summaryProvider ? { summaryProvider } : {}),
         ...(summaryModel ? { summaryModel } : {}),
       },

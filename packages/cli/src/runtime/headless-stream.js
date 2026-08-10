@@ -33,10 +33,17 @@ import {
 } from "../lib/hooks-v2-producers.js";
 import { runWithHostHooksV2Workspace } from "../lib/hooks-v2-workspace-context.js";
 import { bootstrap } from "./bootstrap.js";
-import { buildSystemPrompt, agentLoop as coreAgentLoop } from "./agent-core.js";
+import {
+  buildSystemPrompt,
+  chatWithTools as coreChatWithTools,
+  agentLoop as coreAgentLoop,
+} from "./agent-core.js";
 import { composeSystemPrompt } from "./system-prompt.js";
 import { collapseConsecutiveMessagesInPlace } from "./message-roles.js";
 import { sanitizeToolPairs } from "../harness/prompt-compressor.js";
+import { compactConversationWithProvider } from "../harness/provider-backed-compaction.js";
+import { projectCanonicalResumeMessages } from "../lib/session-message-provenance.js";
+import { isAbortError } from "../lib/abort-utils.js";
 import { expandFileRefsAsync } from "./file-ref-expander.js";
 // Per-turn helpers resolved at module load (not re-`await import`ed inside the
 // turn loop). image-input + ide-context are pure local modules; pulling them up
@@ -85,6 +92,7 @@ import {
   appendAssistantMessage as jsonlAppendAssistantMessage,
   appendToolCallCompact as jsonlAppendToolCallCompact,
   appendLlmRetryCompact as jsonlAppendLlmRetryCompact,
+  appendCompactEventIfMessagesMatch as jsonlAppendCompactEventIfMessagesMatch,
   appendEvent as jsonlAppendEvent,
   appendAuthorityEvent as jsonlAppendAuthorityEvent,
   readEvents as jsonlReadEvents,
@@ -803,6 +811,7 @@ async function runTurn(
   let finalText = "";
   let endReason = "complete";
   let stopForCost = false;
+  let stopForCompactionUsageUnknown = false;
   let responseCompleted = false;
   // P0-2: the side-effect op currently in flight (at most one — the loop runs
   // tools serially). Non-null only between a dangerous tool's tool-executing
@@ -1012,6 +1021,18 @@ async function runTurn(
           }
         }
         break;
+      case "compaction-usage-unknown":
+        emit({
+          type: "compaction_usage_unknown",
+          provider: event.provider,
+          model: event.model,
+          source: event.source || "semantic-compaction",
+          reason: event.reason || "provider_transport_outcome_unknown",
+          usage_outcome: "unknown",
+        });
+        endReason = "compaction-usage-unknown";
+        stopForCompactionUsageUnknown = true;
+        break;
       case "iteration-warning":
         emit({ type: "iteration_warning", message: event.message });
         break;
@@ -1033,7 +1054,7 @@ async function runTurn(
     await waitForOutput?.();
     // Hard cost cap reached — stop consuming the loop (break the for-await, not
     // just the switch) so no further paid LLM call is made.
-    if (stopForCost) break;
+    if (stopForCost || stopForCompactionUsageUnknown) break;
   }
   if (
     sideEffects &&
@@ -1181,6 +1202,7 @@ async function withStreamSessionHostLease(options, deps, streamCleanup, task) {
     typeof deps.sessionHasPersistedEvidence === "function" ||
     typeof deps.sessionExists === "function" ||
     typeof deps.rebuildMessages === "function" ||
+    typeof deps.appendCompactEventIfMessagesMatch === "function" ||
     typeof deps.appendEvent === "function" ||
     typeof deps.appendAuthorityEvent === "function" ||
     typeof deps.readVerifiedEvents === "function" ||
@@ -1379,6 +1401,7 @@ async function runAgentHeadlessStreamInWorkspace(
     typeof deps.sessionHasPersistedEvidence === "function" ||
     typeof deps.sessionExists === "function" ||
     typeof deps.rebuildMessages === "function" ||
+    typeof deps.appendCompactEventIfMessagesMatch === "function" ||
     typeof deps.appendEvent === "function" ||
     typeof deps.appendAuthorityEvent === "function" ||
     typeof deps.readVerifiedEvents === "function" ||
@@ -1739,6 +1762,11 @@ async function runAgentHeadlessStreamInWorkspace(
     appendLlmRetryCompact:
       deps.appendLlmRetryCompact ||
       (hasInjectedSessionStore ? () => true : jsonlAppendLlmRetryCompact),
+    appendCompactEventIfMessagesMatch:
+      deps.appendCompactEventIfMessagesMatch ||
+      (hasInjectedSessionStore
+        ? unavailableAuthorityCapability("appendCompactEventIfMessagesMatch")
+        : jsonlAppendCompactEventIfMessagesMatch),
     appendEvent:
       deps.appendEvent ||
       (hasInjectedSessionStore ? () => true : jsonlAppendEvent),
@@ -2495,6 +2523,7 @@ async function runAgentHeadlessStreamInWorkspace(
     sink: mcpLedgerSink,
     recovery: mcpLedgerRecovery,
     recoveryError: mcpLedgerRecoveryError,
+    dispatchAdmission: sessionHostLease?.admitMcpDispatch || null,
   });
   const hostMcp = mcp
     ? { ...mcp, mcpClient: mcpRecoveryRuntime.client || mcp.mcpClient }
@@ -2730,6 +2759,26 @@ async function runAgentHeadlessStreamInWorkspace(
     // A null sink disables durable writes, not recovery admission. Retain the
     // guarded ledger so outcome-unknown calls cannot be retried in-process.
     mcpCallLedger: mcpRecoveryRuntime.ledger,
+    mcpDispatchAdmission: sessionHostLease?.admitMcpDispatch || null,
+    onCompaction: persist
+      ? (stats, compacted, settlement = {}) => {
+          sessionHostLease?.assert?.();
+          return requireSynchronousRecoveryResult(
+            store.appendCompactEventIfMessagesMatch(
+              sessionId,
+              {
+                ...stats,
+                trigger: settlement.trigger || "auto",
+                messages: projectCanonicalResumeMessages(compacted, {
+                  strict: true,
+                }),
+              },
+              settlement.expectedMessages,
+            ),
+            "appendCompactEventIfMessagesMatch",
+          );
+        }
+      : undefined,
     chatFn: deps.chatFn || options.chatFn || undefined,
     signal: options.signal || undefined,
     // --include-partial-messages: stream live assistant-text deltas as
@@ -3035,31 +3084,194 @@ async function runAgentHeadlessStreamInWorkspace(
       continue;
     }
 
-    // Manual `/compact` (Claude-Code IDE parity): trim the live history in
-    // place between turns — no LLM call (microCompact shortens large old tool
-    // results, preserving recent turns + tool pairs). Answers with a
-    // `compaction` event the panel renders as "compacted N→M, saved …".
+    // Manual `/compact` uses the same provider-backed structured handoff as the
+    // other long-lived hosts. Provider/schema failures degrade to the shared
+    // extractive handoff instead of silently dropping all but recent turns.
     if (parsed.compact) {
-      const { microCompact } = await import("../lib/micro-compact.js");
       const before = messages.length;
-      const { messages: compacted, stats } = microCompact(messages);
-      messages.length = 0;
-      messages.push(...compacted);
-      emit({
-        type: "compaction",
-        stats,
-        messages_before: before,
-        messages_after: messages.length,
-      });
-      emitHooksV2Event("PostCompact", {
-        schema_version: 1,
-        trigger: "manual",
-        session_id: sessionId,
-        messages_before: before,
-        messages_after: messages.length,
-        stats,
-        cwd,
-      });
+      const expectedMessages = [...messages];
+      let compacted;
+      let stats;
+      let degradedEvent;
+      let usageEvent;
+      let usageUnknownEvent;
+      try {
+        ({
+          messages: compacted,
+          stats,
+          degradedEvent,
+          usageEvent,
+          usageUnknownEvent,
+        } = await compactConversationWithProvider(messages, {
+          provider,
+          model,
+          baseUrl,
+          apiKey,
+          signal: options.signal,
+          force: true,
+          preserveCompletedExchange: true,
+          llmQuery:
+            deps.compactionLlmQuery || options.compactionLlmQuery || null,
+          chatFn:
+            deps.compactionChatFn ||
+            options.compactionChatFn ||
+            coreChatWithTools,
+          chatOptions: { cwd, sessionId },
+          maxOutputTokens: options.compactionMaxOutputTokens,
+          summaryInputMaxChars: options.compactionInputMaxChars,
+        }));
+      } catch (error) {
+        if (isAbortError(error) || options.signal?.aborted) throw error;
+        emit({
+          type: "compaction-degraded",
+          reason: `compaction_failed:${String(error?.message || error).slice(0, 240)}`,
+          summaryMode: "none",
+        });
+        continue;
+      }
+      if (degradedEvent) {
+        emit({ type: "compaction-degraded", ...degradedEvent });
+      }
+      if (usageUnknownEvent) {
+        emit({
+          type: "compaction_usage_unknown",
+          ...usageUnknownEvent,
+          usage_outcome: "unknown",
+        });
+        emit({
+          type: "result",
+          subtype: "error_compaction_usage_unknown",
+          is_error: true,
+          code: "CC_COMPACTION_USAGE_UNKNOWN",
+          error:
+            "Compaction provider usage is unknown; the paid compaction is not retried",
+          session_id: sessionId,
+          ...(costBudget ? { budget_state: "unverifiable" } : {}),
+        });
+        sawError = true;
+        break;
+      }
+      let costExceeded = false;
+      if (usageEvent) {
+        emit({ type: "token_usage", ...usageEvent });
+        if (costBudget) {
+          costBudget.add(usageEvent);
+          costExceeded = costBudget.exceeded();
+        }
+      }
+
+      // Provider work above is intentionally outside the canonical writer
+      // lock. Settle the candidate once, under the JSONL message-projection CAS,
+      // before replacing the live history. A stale/unknown settlement is never
+      // retried here: that could duplicate either the paid summary call or a
+      // compact event whose fsync outcome is unknown.
+      const shouldPersistCompact = stats?.strategy !== "none";
+      let settlementError = null;
+      let persistenceFailure = null;
+      if (persist && shouldPersistCompact) {
+        try {
+          sessionHostLease?.assert?.();
+          requireSynchronousRecoveryResult(
+            store.appendCompactEventIfMessagesMatch(
+              sessionId,
+              {
+                ...stats,
+                trigger: "manual",
+                messages: projectCanonicalResumeMessages(compacted, {
+                  strict: true,
+                }),
+              },
+              expectedMessages,
+            ),
+            "appendCompactEventIfMessagesMatch",
+          );
+        } catch (error) {
+          settlementError = error;
+          const normalized = createSessionPersistenceFailure(error, {
+            sessionId,
+            operation: "append-authority-event",
+          });
+          persistenceFailure = projectSessionPersistenceFailure(normalized, {
+            phase: "after-model",
+          });
+          if (persistenceFailure) {
+            terminalPersistenceFailure = persistenceFailure;
+            try {
+              deps.onPersistenceFailure?.(persistenceFailure);
+            } catch {
+              // Observability cannot change persistence semantics.
+            }
+          }
+        }
+      }
+
+      if (!settlementError) {
+        messages.length = 0;
+        messages.push(...compacted);
+        emit({
+          type: "compaction",
+          stats,
+          messages_before: before,
+          messages_after: messages.length,
+        });
+        emitHooksV2Event("PostCompact", {
+          schema_version: 1,
+          trigger: "manual",
+          session_id: sessionId,
+          messages_before: before,
+          messages_after: messages.length,
+          stats,
+          cwd,
+        });
+      } else {
+        const stale = settlementError?.code === "SESSION_REVISION_STALE";
+        const code = stale
+          ? "CC_COMPACTION_REVISION_STALE"
+          : persistenceFailure?.code ||
+            settlementError?.code ||
+            "CC_COMPACTION_SETTLEMENT_FAILED";
+        emit({
+          type: "compaction-degraded",
+          reason: stale
+            ? "session_messages_changed_during_compaction"
+            : "canonical_compaction_settlement_failed",
+          summaryMode: "none",
+          code,
+        });
+        emit({
+          type: "result",
+          subtype: persistenceFailure
+            ? "error_persistence"
+            : stale
+              ? "error_compaction_stale"
+              : "error_session_persistence",
+          is_error: true,
+          code,
+          error: "Canonical compaction was not settled",
+          session_id: sessionId,
+          ...(persistenceFailure ? { persistence: persistenceFailure } : {}),
+        });
+        sawError = true;
+      }
+
+      if (costExceeded) {
+        sawError = true;
+        emit({
+          type: "cost_budget_exhausted",
+          limit_usd: options.maxCostUsd,
+          spent_usd: costBudget.spentUsd,
+          session_id: sessionId,
+          turn: turns,
+        });
+      }
+      if (settlementError || costExceeded) {
+        break;
+      }
+      if (!shouldPersistCompact && persist) {
+        // A repeated `/compact` against an already-compact context is a no-op:
+        // do not grow the canonical chain with duplicate checkpoints.
+        sessionHostLease?.assert?.();
+      }
       continue;
     }
 
@@ -3595,6 +3807,23 @@ async function runAgentHeadlessStreamInWorkspace(
       break;
     }
     currentAbort = null;
+
+    if (outcome.endReason === "compaction-usage-unknown") {
+      sawError = true;
+      emit({
+        type: "result",
+        subtype: "error_compaction_usage_unknown",
+        is_error: true,
+        code: "CC_COMPACTION_USAGE_UNKNOWN",
+        error:
+          "Compaction provider usage is unknown; the paid compaction is not retried",
+        session_id: sessionId,
+        turn: turns,
+        usage: outcome.usage,
+        ...(costBudget ? { budget_state: "unverifiable" } : {}),
+      });
+      break;
+    }
 
     // §3.5.18 出境台账: report what left the device this turn (the cloud-LLM
     // call + any egress-classed tool) so the Android transparency ledger —

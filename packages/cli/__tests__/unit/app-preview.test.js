@@ -221,11 +221,13 @@ describe("buildEvidenceArtifact (secret-safe)", () => {
       width: 1280,
       height: 720,
       tier: VERIFICATION_TIER.VISUAL,
+      digest: `sha256:${"a".repeat(64)}`,
     });
     expect(a.kind).toBe("screenshot");
     expect(a.ref).toBe("art://123");
     expect(a.width).toBe(1280);
     expect(a.tier).toBe(VERIFICATION_TIER.VISUAL);
+    expect(a.digest).toBe(`sha256:${"a".repeat(64)}`);
   });
 
   it("redacts secrets from a DOM summary and action steps", () => {

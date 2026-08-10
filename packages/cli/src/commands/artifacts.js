@@ -153,6 +153,31 @@ export function registerArtifactsCommand(program) {
     });
 
   cmd
+    .command("delivery-run <state>")
+    .description(
+      "Persist and execute one delivery action through the production GitHub provider",
+    )
+    .requiredOption("--action <action>", "Exact delivery action to execute")
+    .requiredOption(
+      "--provider-config <path>",
+      "Production gate, preview, review, PR, CI, merge, and archive policy JSON",
+    )
+    .option("--payload-file <path>", "Optional action payload JSON")
+    .option(
+      "--expected-revision <revision>",
+      "Fail closed unless the snapshot still has this revision",
+    )
+    .option(
+      "--expected-state-digest <digest>",
+      "Fail closed unless the snapshot still has this sha256 digest",
+    )
+    .option("--cwd <path>", "Git worktree used by the production provider")
+    .option("--json", "Machine-readable JSON output")
+    .action(async (state, options) => {
+      process.exitCode = await runArtifactsDeliveryRun(state, options);
+    });
+
+  cmd
     .command("delivery-project <state>")
     .description("Validate and project a delivery snapshot for IDE consumption")
     .option("--json", "Machine-readable JSON output")
@@ -479,6 +504,79 @@ export function runArtifactsDeliveryStep(statePath, options = {}, deps = {}) {
     if (options.json) console.error(JSON.stringify(payload));
     else
       console.error(chalk.red(`Delivery flow step failed: ${error.message}`));
+    return 1;
+  }
+}
+
+/**
+ * Execute exactly one production delivery effect. The runner durably records
+ * the pending effect before this handler invokes any provider operation and
+ * refuses to replay an effect left pending by a crash or ambiguous response.
+ */
+export async function runArtifactsDeliveryRun(
+  statePath,
+  options = {},
+  deps = {},
+) {
+  try {
+    const providerConfig = readJsonFile(options.providerConfig, deps);
+    const payload = options.payloadFile
+      ? readJsonFile(options.payloadFile, deps)
+      : {};
+    const createAdapter =
+      deps.createAdapter ||
+      (await import("../lib/delivery-production-adapter.js"))
+        .createGitHubDeliveryProductionAdapter;
+    const adapter = createAdapter(
+      {
+        cwd: options.cwd || process.cwd(),
+        config: providerConfig,
+      },
+      deps.adapterDeps || {},
+    );
+    const runAction =
+      deps.runAction ||
+      (await import("../lib/delivery-production-runner.js"))
+        .runDeliveryProductionAction;
+    const state = await runAction(
+      {
+        statePath,
+        action: options.action,
+        payload,
+        expectedRevision: options.expectedRevision,
+        expectedStateDigest: options.expectedStateDigest,
+        adapter,
+      },
+      deps.runnerDeps || {},
+    );
+    printDeliveryCommandPayload(deliveryCommandPayload(state), options);
+    return state.status === "stopped" || state.status === "blocked" ? 1 : 0;
+  } catch (error) {
+    const pending = error.pendingEffect
+      ? {
+          id: error.pendingEffect.id,
+          action: error.pendingEffect.action,
+        }
+      : null;
+    const payload = {
+      schema: "chainlesschain.delivery-flow-command-error",
+      version: 1,
+      error: error.message,
+      ...(pending ? { pendingEffect: pending } : {}),
+    };
+    if (options.json) console.error(JSON.stringify(payload));
+    else {
+      console.error(
+        chalk.red(`Production delivery action failed: ${error.message}`),
+      );
+      if (pending) {
+        console.error(
+          chalk.yellow(
+            `Effect ${pending.action} (${pending.id}) remains pending; reconcile it before any retry.`,
+          ),
+        );
+      }
+    }
     return 1;
   }
 }

@@ -1,11 +1,11 @@
 # 98. IDE 桥接对标方案 (Claude-Code IDE Integration Parity v1.1)
 
-> ## 当前发布状态（2026-08-09）
+> ## 当前发布状态（2026-08-10）
 >
-> - **VS Code / VSCodium**：`chainlesschain.chainlesschain-ide` **0.37.47** 已在 [Open VSX](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 公开，累计下载已突破 **2 万**；源码与公开版一致。该状态不表示 Microsoft VS Code Marketplace 已发布。
-> - **JetBrains**：`com.chainlesschain.ide` **0.4.83** 已通过 JetBrains Marketplace 审核并公开（plugin id `32208`，`approve=true`、`listed=true`、`hidden=false`）；源码与公开版一致。
+> - **VS Code / VSCodium**：`chainlesschain.chainlesschain-ide` **0.37.48** 已在 [Open VSX](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 公开，累计下载已突破 **2.2 万**；源码与公开版一致。该状态不表示 Microsoft VS Code Marketplace 已发布。
+> - **JetBrains**：`com.chainlesschain.ide` **0.4.84** 已通过 JetBrains Marketplace 审核并公开（plugin id `32208`，`approve=true`、`listed=true`、`hidden=false`）；源码与公开版一致。
 > - **当前公开能力**：双端包含 CLI-owned Sessions Workbench、可恢复 GitHub/Gitee/configured-remote/manual delivery、canonical rewind/branch timeline 与真实宿主 gate；五类 canonical session 已覆盖 Dispatch → `needs_input` → Reply → done、artifact/PR 回读和独立 IDE 进程重启恢复。VS Code 公开版还包含编辑器内联聊天，以及同一干净 profile 下多窗口 Extension Host/bridge identity 隔离。
-> - **完整发布证据**：`ide-vscode-v0.37.47` 与 `ide-jetbrains-v0.4.83` 均指向 `9db081c5a9b24d1c51952e86513b0520620feadd`；[ARM64 11 格真实宿主聚合](https://github.com/chainlesschain/chainlesschain/actions/runs/31269850865)、[Open VSX 发布与回读](https://github.com/chainlesschain/chainlesschain/actions/runs/31271800174)、[JetBrains 上传与 Marketplace 回读](https://github.com/chainlesschain/chainlesschain/actions/runs/31271800206)均成功。VS Code 覆盖 stable/minimum × Linux/Windows/macOS ARM64；JetBrains 覆盖 Linux/macOS 2024.2/2025.2 与 Windows ARM64 2026.2.0.1。
+> - **完整发布证据**：`ide-vscode-v0.37.48` 与 `ide-jetbrains-v0.4.84` 均指向 `5c9506c73c7692edc48e0b528355035c7e018fc6`；[ARM64 11 格真实宿主聚合](https://github.com/chainlesschain/chainlesschain/actions/runs/31325856489)、[Open VSX 发布与回读](https://github.com/chainlesschain/chainlesschain/actions/runs/31326880152)、[JetBrains 上传与 Marketplace 回读](https://github.com/chainlesschain/chainlesschain/actions/runs/31327569046)均成功。VS Code 覆盖 stable/minimum × Linux/Windows/macOS ARM64；JetBrains 覆盖 Linux/macOS 2024.2/2025.2 与 Windows ARM64 2026.2.0.1。
 > - **P2-16 协作控制**：两端只读观察本地 Agent Team schema v6 与分布式 queue schema v1；takeover、managed checkpoint recovery 和 side-effect adjudication 必须携带 CLI authority digest、lease/evidence fence，并由 CLI-owned compare-and-swap 路径执行。IDE 文件监听和刷新不能直接改写 authority state。
 >
 > 下文主体仍是 2026-06-10 起的 Phase 0–7 初版实施记录。首发版本、当时的待审状态和早期缺口仅作历史追溯；判断当前能力与发布状态时以上述区块及增量权威文档为准。
@@ -15,7 +15,7 @@
 > **本文档是 IDE 桥接的初版规划方案（v1.1，2026-06-10），记录 Phase 0–7 首轮落地。它已不再反映现状——请勿把下方 §1.2 缺口表当作当前状态。**
 >
 > - **当前权威**：[`docs/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md`](../../CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md)（增量差距与优化建议）。IDE 落地状态另见 [`docs/ide/CLAUDE_CODE_IDE_GAP_ANALYSIS.md`](../../ide/CLAUDE_CODE_IDE_GAP_ANALYSIS.md) 与 [`docs/CLAUDE_CODE_IDE_GAP_ANALYSIS.md`](../../CLAUDE_CODE_IDE_GAP_ANALYSIS.md)。
-> - **版本指针**：VS Code 扩展 **0.37.47**（Open VSX live / source）；JetBrains 插件 **0.4.83**（Marketplace live / source）——正文出现的 `0.2.x` / `0.1.0` 是首发版本号，不是当前版本。
+> - **版本指针**：VS Code 扩展 **0.37.48**（Open VSX live / source）；JetBrains 插件 **0.4.84**（Marketplace live / source）——正文出现的 `0.2.x` / `0.1.0` 是首发版本号，不是当前版本。
 > - **§1.2 缺口表（下方）是实施前的原始基线**（2026-06-10）；表中"无 / HIGH"等判断均已在 Phase 0–7 及后续 7 个月的批次中落地，逐行 ✅ 标注见表内。
 > - **2026-06-10 之后落地、本文 Phase 日志未覆盖的主要能力**：Session Workbench / Sessions Index、Remote Handoff / Remote QR、IDE Diff Review（逐 hunk / 行批注 / openMultiDiff）、Browser State / Browser Action、managed CLI（检测 + 一键升级）、Artifacts / Policy / Quality 面板、语义工具（VS symbol / JB PSI）、Capability 双向协商 + N/N-1 降级、跨事件 `trace_id`、事件 `seq` / replay / 背压、remote URI/path mapping、隐式上下文脱敏、操作指纹审批、后台 Agent 面板。
 
@@ -50,8 +50,8 @@ ChainlessChain 的 `cc` CLI 与 `desktop-app-vue` 已对齐 Claude Code 的绝�
 | **IDE 工具:getSelection**   | 当前选区(file/range/text)注入 agent                          | 无                                                                                    | **MEDIUM**             | Phase 1(扩展) | ✅ 选区 + 实时 `<ide-context>` 注入                        |
 | **IDE 工具:getDiagnostics** | lint/类型错注入                                              | 无                                                                                    | **MEDIUM**             | Phase 1(扩展) | ✅ 诊断注入 + 编辑后回喂                                   |
 | **IDE 工具:openDiff(评审)** | 编辑器原生 diff,用户 accept/reject                           | 桌面有 worktree 批量评审;编辑器内无                                                   | **HIGH**(IDE 核心价值) | Phase 1(扩展) | ✅ 原生 diff + 逐 hunk + 行批注 + 乐观并发/二进制守卫      |
-| **VS Code 扩展包**          | 官方扩展(marketplace)                                        | 无(仅 Chrome `browser-extension/`)                                                    | **HIGH**               | Phase 1       | ✅ `0.37.47` on Open VSX（Microsoft Marketplace 仍未发布） |
-| **JetBrains 扩展包**        | 官方插件                                                     | 无                                                                                    | **HIGH**               | Phase 3(后置) | ✅ `0.4.83` on JetBrains Marketplace                       |
+| **VS Code 扩展包**          | 官方扩展(marketplace)                                        | 无(仅 Chrome `browser-extension/`)                                                    | **HIGH**               | Phase 1       | ✅ `0.37.48` on Open VSX（Microsoft Marketplace 仍未发布） |
+| **JetBrains 扩展包**        | 官方插件                                                     | 无                                                                                    | **HIGH**               | Phase 3(后置) | ✅ `0.4.84` on JetBrains Marketplace                       |
 
 ### 1.3 已有优势(复用,不重复造轮子)
 
@@ -276,7 +276,7 @@ MCP server → **真 Node CLI `MCPClient` 驱动**列 4 工具 + call getSelecti
 **自动发布**:本机已存 `OVSX_PAT` + `JETBRAINS_PUBLISH_TOKEN` 用户环境变量(`npm run publish:ovsx` /
 `gradlew publishPlugin` 自动认证);CI `ide-extensions.yml` tag `ide-vscode-v*` 触发 Open VSX(+官方
 marketplace iff 有 `VSCE_PAT`)、`ide-jetbrains-v*` 触发 JetBrains。升级新版只需 bump version + CHANGELOG。
-**历史时点剩余项**:官方 VS Code Marketplace（需 Azure 订阅,见上,可选）;JetBrains 当时仍待审核。当前 JetBrains 0.4.83 已审核通过并公开，官方 Microsoft VS Code Marketplace 仍未在本页宣称发布。
+**历史时点剩余项**:官方 VS Code Marketplace（需 Azure 订阅,见上,可选）;JetBrains 当时仍待审核。当前 JetBrains 0.4.84 已审核通过并公开，官方 Microsoft VS Code Marketplace 仍未在本页宣称发布。
 
 ### Phase 6 — Chat Panel(编辑器内原生对话面板)✅ P0 已落 (2026-06-11)
 

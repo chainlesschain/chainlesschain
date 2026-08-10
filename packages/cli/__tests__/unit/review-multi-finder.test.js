@@ -139,6 +139,25 @@ describe("runMultiFinderReview", () => {
     expect(res.byDimension.alpha).toBe(0);
     expect(res.byDimension.beta).toBe(1);
     expect(res.report.summary.total).toBe(1);
+    expect(res).toMatchObject({ isError: true, exitCode: 1 });
+    expect(res.failures).toEqual([
+      expect.objectContaining({ stage: "finder", dimension: "alpha" }),
+    ]);
+  });
+
+  it("fails closed when finders return error outcomes or invalid JSON", async () => {
+    const run = vi.fn(async (opts) =>
+      opts.prompt.includes("alpha code reviewer")
+        ? { isError: true, result: "[]" }
+        : { result: "not-json" },
+    );
+    const res = await runMultiFinderReview(
+      { writeOut: () => {}, writeErr: () => {}, scope: "working" },
+      { runAgentHeadless: run, dimensions },
+    );
+    expect(res).toMatchObject({ isError: true, exitCode: 1 });
+    expect(res.failures).toHaveLength(2);
+    expect(res.report.summary.total).toBe(0);
   });
 
   it("ships the four default review dimensions", () => {
@@ -199,6 +218,12 @@ describe("runVerifierPass", () => {
     );
     expect(Object.keys(verdicts)).toEqual([findingKey(findings[1])]);
     expect(verdicts[findingKey(findings[1])].verified).toBe(true);
+    expect(verdicts.failures).toEqual([
+      expect.objectContaining({
+        stage: "verifier",
+        finding: findingKey(findings[0]),
+      }),
+    ]);
   });
 });
 
@@ -254,6 +279,36 @@ describe("runMultiFinderReview --verify", () => {
     expect(res.report.summary.total).toBe(1); // x.js:1 refuted → dropped
     expect(res.report.findings[0].path).toBe("y.js");
     expect(res.verified).toBe(1);
+  });
+
+  it("fails closed when a verifier returns an invalid verdict", async () => {
+    const run = vi.fn(async (opts) => {
+      if (opts.prompt.includes("SKEPTICAL")) return { result: "not-json" };
+      return {
+        result: JSON.stringify([
+          {
+            path: "x.js",
+            line: 1,
+            severity: "High",
+            title: "bug",
+            body: "b",
+          },
+        ]),
+      };
+    });
+    const res = await runMultiFinderReview(
+      {
+        verify: true,
+        writeOut: () => {},
+        writeErr: () => {},
+        scope: "working",
+      },
+      { runAgentHeadless: run, dimensions: [dimensions[0]] },
+    );
+    expect(res).toMatchObject({ isError: true, exitCode: 1 });
+    expect(res.failures).toEqual([
+      expect.objectContaining({ stage: "verifier" }),
+    ]);
   });
 });
 

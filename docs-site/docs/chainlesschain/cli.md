@@ -1,6 +1,6 @@
 # CLI 命令行工具
 
-> **当前版本边界（2026-08-09）：产品 v5.0.3.135 / 推荐 CLI 0.163.2（npm latest、源码包元数据与完整门禁已对齐）| 175 命令 | Node.js ≥ 22.12.0**
+> **当前版本边界（2026-08-10）：产品 v5.0.3.135 / 推荐 CLI 0.163.3（npm latest、源码包元数据与完整门禁已对齐）| 175 命令 | Node.js ≥ 22.12.0**
 
 ## 概述
 
@@ -135,7 +135,7 @@ CLI 主配置文件位于 `~/.chainlesschain/config.json`，支持通过 `chainl
 ## 快速开始
 
 ```bash
-npm install -g chainlesschain@0.163.2
+npm install -g chainlesschain@0.163.3
 chainlesschain setup
 chainlesschain start
 ```
@@ -152,7 +152,7 @@ chainlesschain start
 ### 全局安装
 
 ```bash
-npm install -g chainlesschain@0.163.2
+npm install -g chainlesschain@0.163.3
 ```
 
 安装后提供 3 个等价命令：

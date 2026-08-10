@@ -899,6 +899,224 @@ describe("WSAgentHandler", () => {
       ).not.toContain(summary);
     });
 
+    it("auto-compacts verified history before claim and excludes the pending user", async () => {
+      const durableMessages = [
+        { role: "user", content: "A".repeat(2000) },
+        { role: "assistant", content: "B".repeat(2000) },
+        { role: "user", content: "C".repeat(2000) },
+        { role: "assistant", content: "D".repeat(2000) },
+        { role: "user", content: "E".repeat(2000) },
+        { role: "assistant", content: "F".repeat(2000) },
+      ];
+      let authoritativeMessages = [...durableMessages];
+      const appendCompactEventIfMessagesMatch = vi.fn((_id, data) => {
+        authoritativeMessages = [...data.messages];
+        return { hash: "compact-head" };
+      });
+      const claimWsTurnIfHead = vi.fn((_id, claim) => ({
+        ...canonicalState({ messages: authoritativeMessages }),
+        status: "pending",
+        acquired: true,
+        claim,
+      }));
+      const settleWsTurnClaim = vi.fn((_id, settlement) => {
+        const turn = {
+          outcome: "completed",
+          user: { role: "user", content: settlement.user },
+          assistant: { role: "assistant", content: settlement.assistant },
+        };
+        return {
+          ...canonicalState({ messages: authoritativeMessages }),
+          status: "completed",
+          turn,
+          settlement: turn,
+          messages: [...authoritativeMessages, turn.user, turn.assistant],
+        };
+      });
+      const store = canonicalStore({
+        store: {
+          readVerifiedWsTurnState: vi.fn(() =>
+            canonicalState({ messages: authoritativeMessages }),
+          ),
+          appendCompactEventIfMessagesMatch,
+          claimWsTurnIfHead,
+          settleWsTurnClaim,
+        },
+      });
+      const compactionLlmQuery = vi.fn(async () => ({
+        summary: JSON.stringify({
+          objective: "Preserve only verified prior history",
+          constraints: [],
+          keyDecisions: [],
+          changedFiles: [],
+          tests: [],
+          unresolvedSideEffects: [],
+          checkpoints: [],
+          blockers: [],
+          nextSteps: ["Claim the new turn after compaction"],
+        }),
+        usage: { input_tokens: 30, output_tokens: 12 },
+      }));
+      const canonicalSession = createMockSession({
+        id: "test-session-preclaim-compaction",
+        canonicalJsonlSession: true,
+        compactionMaxMessages: 4,
+        messages: [
+          { role: "system", content: "You are helpful." },
+          ...durableMessages,
+        ],
+      });
+      const canonicalInteraction = createMockInteraction();
+      const canonicalHandler = new WSAgentHandler({
+        session: canonicalSession,
+        interaction: canonicalInteraction,
+        db: null,
+        compactionLlmQuery,
+        canonicalSessionStore: store,
+      });
+
+      const requestId = "req-preclaim-compact";
+      const userMessage = "current pending question";
+      const inputDigest = store.computeWsTurnInputDigest(userMessage);
+      const preflight = store.readVerifiedWsTurnState(
+        canonicalSession.id,
+        requestId,
+        { inputDigest },
+      );
+      expect(
+        canonicalHandler._canonicalTurnFromAuthority(
+          preflight,
+          requestId,
+          userMessage,
+          inputDigest,
+        ),
+      ).toBeNull();
+      expect(
+        await canonicalHandler._compactCanonicalHistoryBeforeClaim(requestId),
+      ).toBe(true);
+      const claimed = canonicalHandler._claimCanonicalTurn(
+        userMessage,
+        requestId,
+      );
+
+      expect(compactionLlmQuery).toHaveBeenCalledOnce();
+      expect(compactionLlmQuery.mock.calls[0][0]).not.toContain(
+        "current pending question",
+      );
+      expect(appendCompactEventIfMessagesMatch).toHaveBeenCalledOnce();
+      expect(
+        JSON.stringify(appendCompactEventIfMessagesMatch.mock.calls[0][1]),
+      ).not.toContain("current pending question");
+      expect(
+        appendCompactEventIfMessagesMatch.mock.invocationCallOrder[0],
+      ).toBeLessThan(claimWsTurnIfHead.mock.invocationCallOrder[0]);
+      expect(claimed.status).toBe("pending");
+      expect(canonicalSession.messages.at(-1)).toEqual({
+        role: "user",
+        content: "current pending question",
+      });
+      expect(canonicalInteraction.emit).toHaveBeenCalledWith(
+        "token-usage",
+        expect.objectContaining({
+          requestId: "req-preclaim-compact",
+          source: "semantic-compaction",
+        }),
+      );
+    });
+
+    it("does not claim or retry after a paid pre-claim compaction CAS goes stale", async () => {
+      const durableMessages = Array.from({ length: 6 }, (_, index) => ({
+        role: index % 2 === 0 ? "user" : "assistant",
+        content: String.fromCharCode(65 + index).repeat(2000),
+      }));
+      const stale = Object.assign(new Error("external turn committed"), {
+        code: "SESSION_REVISION_STALE",
+      });
+      const appendCompactEventIfMessagesMatch = vi.fn(() => {
+        throw stale;
+      });
+      const claimWsTurnIfHead = vi.fn();
+      const readVerifiedMessages = vi.fn(() => [
+        ...durableMessages,
+        { role: "user", content: "external turn" },
+        { role: "assistant", content: "external answer" },
+      ]);
+      const store = canonicalStore({
+        readState: canonicalState({ messages: durableMessages }),
+        store: {
+          appendCompactEventIfMessagesMatch,
+          claimWsTurnIfHead,
+          readVerifiedMessages,
+        },
+      });
+      const compactionLlmQuery = vi.fn(async () => ({
+        summary: JSON.stringify({
+          objective: "This candidate must lose the CAS",
+          constraints: [],
+          keyDecisions: [],
+          changedFiles: [],
+          tests: [],
+          unresolvedSideEffects: [],
+          checkpoints: [],
+          blockers: [],
+          nextSteps: [],
+        }),
+        usage: { input_tokens: 20, output_tokens: 8 },
+      }));
+      const canonicalInteraction = createMockInteraction();
+      const canonicalSession = createMockSession({
+        id: "test-session-preclaim-stale",
+        canonicalJsonlSession: true,
+        compactionMaxMessages: 4,
+        messages: [
+          { role: "system", content: "You are helpful." },
+          ...durableMessages,
+        ],
+      });
+      const canonicalHandler = new WSAgentHandler({
+        session: canonicalSession,
+        interaction: canonicalInteraction,
+        db: null,
+        compactionLlmQuery,
+        canonicalSessionStore: store,
+      });
+
+      const requestId = "req-preclaim-stale";
+      const userMessage = "new pending question";
+      const inputDigest = store.computeWsTurnInputDigest(userMessage);
+      const preflight = store.readVerifiedWsTurnState(
+        canonicalSession.id,
+        requestId,
+        { inputDigest },
+      );
+      canonicalHandler._canonicalTurnFromAuthority(
+        preflight,
+        requestId,
+        userMessage,
+        inputDigest,
+      );
+      expect(
+        await canonicalHandler._compactCanonicalHistoryBeforeClaim(requestId),
+      ).toBe(false);
+
+      expect(compactionLlmQuery).toHaveBeenCalledOnce();
+      expect(appendCompactEventIfMessagesMatch).toHaveBeenCalledOnce();
+      expect(readVerifiedMessages).toHaveBeenCalledOnce();
+      expect(claimWsTurnIfHead).not.toHaveBeenCalled();
+      expect(
+        canonicalInteraction.emit.mock.calls.filter(
+          ([type]) => type === "token-usage",
+        ),
+      ).toHaveLength(1);
+      expect(canonicalInteraction.emit).toHaveBeenCalledWith(
+        "error",
+        expect.objectContaining({
+          requestId: "req-preclaim-stale",
+          code: "CC_COMPACTION_REVISION_STALE",
+        }),
+      );
+    });
+
     it("returns pending without invoking model or tools when another claim owns the request", async () => {
       const loop = vi.fn();
       const store = canonicalStore({
@@ -975,6 +1193,118 @@ describe("WSAgentHandler", () => {
         ...canonicalState().messages,
       ]);
     });
+
+    it("restores a canonical manual compact before the first post-restart turn", async () => {
+      const initialMessages = [
+        { role: "user", content: "start" },
+        { role: "assistant", content: "one" },
+        { role: "user", content: "preserve constraints" },
+        { role: "assistant", content: "two" },
+        { role: "user", content: "finish persistence" },
+        { role: "assistant", content: "three" },
+      ];
+      let persistedMessages = null;
+      const appendCompactEventIfMessagesMatch = vi.fn((_id, data) => {
+        persistedMessages = [...data.messages];
+        return { hash: "head-compact" };
+      });
+      const compactSession = createMockSession({
+        canonicalJsonlSession: true,
+        provider: "anthropic",
+        model: "claude-sonnet-4-6",
+        messages: [
+          { role: "system", content: "You are helpful." },
+          ...initialMessages,
+        ],
+      });
+      const compactHandler = new WSAgentHandler({
+        session: compactSession,
+        interaction: createMockInteraction(),
+        db: null,
+        compactionLlmQuery: vi.fn(async () => ({
+          summary: JSON.stringify({
+            objective: "Resume the WebSocket compact checkpoint",
+            constraints: ["Keep the canonical summary"],
+            keyDecisions: [],
+            changedFiles: [],
+            tests: ["Restart before next turn"],
+            unresolvedSideEffects: [],
+            checkpoints: [],
+            blockers: [],
+            nextSteps: ["Continue"],
+          }),
+          usage: { input_tokens: 20, output_tokens: 8 },
+        })),
+        canonicalSessionStore: canonicalStore({
+          store: { appendCompactEventIfMessagesMatch },
+        }),
+      });
+
+      await compactHandler.handleSlashCommand("/compact", "req-compact");
+      expect(appendCompactEventIfMessagesMatch).toHaveBeenCalledOnce();
+      expect(persistedMessages).toEqual(compactSession.messages.slice(1));
+
+      const restartState = canonicalState({
+        headHash: "head-compact",
+        messages: persistedMessages,
+      });
+      const restartStore = canonicalStore({
+        readState: restartState,
+        store: {
+          claimWsTurnIfHead: vi.fn((_id, claim) => ({
+            ...restartState,
+            status: "pending",
+            acquired: true,
+            claim,
+          })),
+          settleWsTurnClaim: vi.fn((_id, settlement) => {
+            const turn = {
+              outcome: "completed",
+              user: { role: "user", content: settlement.user },
+              assistant: {
+                role: "assistant",
+                content: settlement.assistant,
+              },
+            };
+            return {
+              ...restartState,
+              status: "completed",
+              turn,
+              settlement: turn,
+              messages: [...persistedMessages, turn.user, turn.assistant],
+            };
+          }),
+        },
+      });
+      let postRestartMessages = null;
+      const restartedSession = createMockSession({
+        canonicalJsonlSession: true,
+      });
+      const restartedHandler = new WSAgentHandler({
+        session: restartedSession,
+        interaction: createMockInteraction(),
+        db: null,
+        agentLoop: async function* (messages) {
+          postRestartMessages = messages.map((message) => ({ ...message }));
+          yield { type: "response-complete", content: "continued" };
+        },
+        canonicalSessionStore: restartStore,
+      });
+
+      await restartedHandler.handleMessage("continue", "req-after-restart");
+
+      expect(
+        postRestartMessages.some((message) =>
+          String(message.content).includes(
+            "Resume the WebSocket compact checkpoint",
+          ),
+        ),
+      ).toBe(true);
+      expect(postRestartMessages.at(-1)).toEqual({
+        role: "user",
+        content: "continue",
+      });
+    });
   });
 
   describe("handleSlashCommand", () => {
@@ -1017,7 +1347,7 @@ describe("WSAgentHandler", () => {
       expect(session.messages[0].role).toBe("system");
     });
 
-    it("/compact compacts messages", async () => {
+    it("/compact returns the resulting message count", async () => {
       // Add enough messages to trigger compaction (>5)
       for (let i = 0; i < 6; i++) {
         session.messages.push({ role: "user", content: `msg ${i}` });
@@ -1029,8 +1359,381 @@ describe("WSAgentHandler", () => {
         "command-response",
         expect.objectContaining({
           command: "/compact",
-          result: { messageCount: expect.any(Number) },
+          result: expect.objectContaining({
+            messageCount: expect.any(Number),
+          }),
         }),
+      );
+    });
+
+    it("/compact emits a provider-backed structured handoff and usage", async () => {
+      const persistedCompacts = [];
+      const appendCompactEventIfMessagesMatch = vi.fn((_id, data) => {
+        persistedCompacts.push(data);
+        return { hash: "compact-head" };
+      });
+      const compactionLlmQuery = vi.fn(async () => ({
+        summary: JSON.stringify({
+          objective: "Preserve the WebSocket session objective",
+          constraints: ["Keep provider tools disabled"],
+          keyDecisions: ["Use shared semantic compaction"],
+          changedFiles: [],
+          tests: [],
+          unresolvedSideEffects: [],
+          checkpoints: [],
+          blockers: [],
+          nextSteps: ["Resume the next WebSocket turn"],
+        }),
+        usage: { input_tokens: 64, output_tokens: 20 },
+        provider: "anthropic",
+        model: "claude-sonnet-4-6",
+      }));
+      session = createMockSession({
+        canonicalJsonlSession: true,
+        provider: "anthropic",
+        model: "claude-sonnet-4-6",
+        messages: [
+          { role: "system", content: "You are helpful." },
+          { role: "user", content: "Start the task." },
+          { role: "assistant", content: "I inspected the code." },
+          { role: "user", content: "Keep the constraints." },
+          { role: "assistant", content: "The constraints are recorded." },
+          { role: "user", content: "Compact and continue." },
+          { role: "assistant", content: "The session is ready to continue." },
+        ],
+      });
+      handler = new WSAgentHandler({
+        session,
+        interaction,
+        db: null,
+        compactionLlmQuery,
+        canonicalSessionStore: { appendCompactEventIfMessagesMatch },
+      });
+
+      await handler.handleSlashCommand("/compact", "req-semantic");
+      await handler.handleSlashCommand("/compact", "req-semantic-retry");
+
+      expect(compactionLlmQuery).toHaveBeenCalledOnce();
+      expect(appendCompactEventIfMessagesMatch).toHaveBeenCalledOnce();
+      expect(persistedCompacts).toHaveLength(1);
+      expect(persistedCompacts[0]).toMatchObject({
+        trigger: "manual",
+        summaryMode: "llm-structured",
+        messages: expect.any(Array),
+      });
+      expect(interaction.emit).toHaveBeenCalledWith(
+        "compaction",
+        expect.objectContaining({
+          requestId: "req-semantic",
+          stats: expect.objectContaining({
+            summaryMode: "llm-structured",
+            degraded: false,
+          }),
+        }),
+      );
+      expect(interaction.emit).toHaveBeenCalledWith("token-usage", {
+        requestId: "req-semantic",
+        provider: "anthropic",
+        model: "claude-sonnet-4-6",
+        usage: {
+          input_tokens: 64,
+          output_tokens: 20,
+          cache_read_input_tokens: 0,
+          cache_creation_input_tokens: 0,
+        },
+        source: "semantic-compaction",
+      });
+      expect(
+        interaction.emit.mock.calls.filter(([type]) => type === "token-usage"),
+      ).toHaveLength(1);
+      expect(
+        session.messages.some((message) =>
+          String(message.content).includes(
+            "Preserve the WebSocket session objective",
+          ),
+        ),
+      ).toBe(true);
+      expect(session.messages.slice(-2).map((message) => message.role)).toEqual(
+        ["user", "assistant"],
+      );
+    });
+
+    it("/compact never overwrites a turn that arrives during the provider call", async () => {
+      let resolveSummary;
+      const appendCompactEventIfMessagesMatch = vi.fn();
+      const compactionLlmQuery = vi.fn(
+        () =>
+          new Promise((resolve) => {
+            resolveSummary = () =>
+              resolve({
+                summary: JSON.stringify({
+                  objective: "Compact without losing a concurrent turn",
+                  constraints: [],
+                  keyDecisions: [],
+                  changedFiles: [],
+                  tests: [],
+                  unresolvedSideEffects: [],
+                  checkpoints: [],
+                  blockers: [],
+                  nextSteps: [],
+                }),
+                usage: { input_tokens: 10, output_tokens: 5 },
+              });
+          }),
+      );
+      session = createMockSession({
+        canonicalJsonlSession: true,
+        messages: [
+          { role: "system", content: "You are helpful." },
+          { role: "user", content: "first" },
+          { role: "assistant", content: "one" },
+          { role: "user", content: "second" },
+          { role: "assistant", content: "two" },
+          { role: "user", content: "third" },
+          { role: "assistant", content: "three" },
+        ],
+      });
+      handler = new WSAgentHandler({
+        session,
+        interaction,
+        db: null,
+        compactionLlmQuery,
+        canonicalSessionStore: { appendCompactEventIfMessagesMatch },
+      });
+
+      const compacting = handler.handleSlashCommand("/compact", "req-race");
+      await vi.waitFor(() => expect(compactionLlmQuery).toHaveBeenCalledOnce());
+      const concurrent = { role: "user", content: "concurrent turn" };
+      session.messages.push(concurrent);
+      resolveSummary();
+      await compacting;
+
+      expect(session.messages.at(-1)).toBe(concurrent);
+      expect(appendCompactEventIfMessagesMatch).not.toHaveBeenCalled();
+      expect(interaction.emit).toHaveBeenCalledWith(
+        "compaction-degraded",
+        expect.objectContaining({
+          requestId: "req-race",
+          reason: "session_messages_changed_during_compaction",
+        }),
+      );
+      expect(interaction.emit).not.toHaveBeenCalledWith(
+        "compaction",
+        expect.anything(),
+      );
+      expect(interaction.emit).toHaveBeenCalledWith(
+        "token-usage",
+        expect.objectContaining({
+          requestId: "req-race",
+          source: "semantic-compaction",
+        }),
+      );
+    });
+
+    it("/compact rejects an externally stale message CAS and refreshes authority", async () => {
+      const stale = new Error("external turn committed");
+      stale.code = "SESSION_REVISION_STALE";
+      const appendCompactEventIfMessagesMatch = vi.fn(() => {
+        throw stale;
+      });
+      const authoritativeMessages = [
+        { role: "user", content: "first" },
+        { role: "assistant", content: "one" },
+        { role: "user", content: "external concurrent turn" },
+        { role: "assistant", content: "external answer" },
+      ];
+      const readVerifiedMessages = vi.fn(() => authoritativeMessages);
+      const compactionLlmQuery = vi.fn(async () => ({
+        summary: JSON.stringify({
+          objective: "This stale candidate must not overwrite authority",
+          constraints: [],
+          keyDecisions: [],
+          changedFiles: [],
+          tests: [],
+          unresolvedSideEffects: [],
+          checkpoints: [],
+          blockers: [],
+          nextSteps: [],
+        }),
+        usage: { input_tokens: 12, output_tokens: 6 },
+      }));
+      session = createMockSession({
+        canonicalJsonlSession: true,
+        messages: [
+          { role: "system", content: "You are helpful." },
+          { role: "user", content: "first" },
+          { role: "assistant", content: "one" },
+          { role: "user", content: "second" },
+          { role: "assistant", content: "two" },
+          { role: "user", content: "third" },
+          { role: "assistant", content: "three" },
+        ],
+      });
+      handler = new WSAgentHandler({
+        session,
+        interaction,
+        db: null,
+        compactionLlmQuery,
+        canonicalSessionStore: {
+          appendCompactEventIfMessagesMatch,
+          readVerifiedMessages,
+        },
+      });
+
+      await handler.handleSlashCommand("/compact", "req-external-race");
+
+      expect(compactionLlmQuery).toHaveBeenCalledOnce();
+      expect(appendCompactEventIfMessagesMatch).toHaveBeenCalledOnce();
+      expect(readVerifiedMessages).toHaveBeenCalledOnce();
+      expect(session.messages).toEqual([
+        { role: "system", content: "You are helpful." },
+        ...authoritativeMessages,
+      ]);
+      expect(interaction.emit).not.toHaveBeenCalledWith(
+        "compaction",
+        expect.anything(),
+      );
+      expect(
+        interaction.emit.mock.calls.filter(([type]) => type === "token-usage"),
+      ).toHaveLength(1);
+    });
+
+    it("/compact latches an outcome-unknown settlement and exposes the error", async () => {
+      const settlementFailure = Object.assign(
+        new Error("fsync outcome unknown"),
+        {
+          code: "CC_SESSION_PERSISTENCE_FAILED",
+          commitState: "unknown",
+        },
+      );
+      const appendCompactEventIfMessagesMatch = vi.fn(() => {
+        throw settlementFailure;
+      });
+      const compactionLlmQuery = vi.fn(async () => ({
+        summary: JSON.stringify({
+          objective: "Do not retry this paid summary",
+          constraints: [],
+          keyDecisions: [],
+          changedFiles: [],
+          tests: [],
+          unresolvedSideEffects: [],
+          checkpoints: [],
+          blockers: [],
+          nextSteps: [],
+        }),
+        usage: { input_tokens: 18, output_tokens: 7 },
+      }));
+      session = createMockSession({
+        canonicalJsonlSession: true,
+        messages: [
+          { role: "system", content: "You are helpful." },
+          { role: "user", content: "first" },
+          { role: "assistant", content: "one" },
+          { role: "user", content: "second" },
+          { role: "assistant", content: "two" },
+          { role: "user", content: "third" },
+          { role: "assistant", content: "three" },
+        ],
+      });
+      handler = new WSAgentHandler({
+        session,
+        interaction,
+        db: null,
+        compactionLlmQuery,
+        canonicalSessionStore: { appendCompactEventIfMessagesMatch },
+      });
+
+      await handler.handleSlashCommand("/compact", "req-unknown");
+      await handler.handleSlashCommand("/compact", "req-unknown-retry");
+
+      expect(compactionLlmQuery).toHaveBeenCalledOnce();
+      expect(appendCompactEventIfMessagesMatch).toHaveBeenCalledOnce();
+      expect(
+        interaction.emit.mock.calls.filter(([type]) => type === "token-usage"),
+      ).toHaveLength(1);
+      expect(interaction.emit).toHaveBeenCalledWith(
+        "command-response",
+        expect.objectContaining({
+          requestId: "req-unknown-retry",
+          result: expect.objectContaining({
+            error: expect.objectContaining({
+              code: "CC_SESSION_PERSISTENCE_FAILED",
+              commitState: "unknown",
+            }),
+          }),
+        }),
+      );
+      expect(interaction.emit).not.toHaveBeenCalledWith(
+        "compaction",
+        expect.anything(),
+      );
+    });
+
+    it("/compact blocks retry and does not persist fallback when provider usage is unknown", async () => {
+      const appendCompactEventIfMessagesMatch = vi.fn(() => ({
+        hash: "degraded-compact-head",
+      }));
+      const compactionLlmQuery = vi.fn(async () => {
+        throw new Error("provider unavailable");
+      });
+      session = createMockSession({
+        canonicalJsonlSession: true,
+        messages: [
+          { role: "system", content: "You are helpful." },
+          { role: "user", content: "first" },
+          { role: "assistant", content: "one" },
+          { role: "user", content: "second" },
+          { role: "assistant", content: "two" },
+          { role: "user", content: "third" },
+          { role: "assistant", content: "three" },
+        ],
+      });
+      handler = new WSAgentHandler({
+        session,
+        interaction,
+        db: null,
+        compactionLlmQuery,
+        canonicalSessionStore: { appendCompactEventIfMessagesMatch },
+      });
+
+      await handler.handleSlashCommand("/compact", "req-degraded");
+      await handler.handleSlashCommand("/compact", "req-degraded-retry");
+
+      expect(compactionLlmQuery).toHaveBeenCalledOnce();
+      expect(appendCompactEventIfMessagesMatch).not.toHaveBeenCalled();
+      expect(interaction.emit).toHaveBeenCalledWith(
+        "compaction-degraded",
+        expect.objectContaining({
+          requestId: "req-degraded",
+          summaryMode: "extractive-fallback",
+        }),
+      );
+      expect(
+        interaction.emit.mock.calls.filter(([type]) => type === "token-usage"),
+      ).toHaveLength(0);
+      expect(interaction.emit).toHaveBeenCalledWith(
+        "compaction-usage-unknown",
+        expect.objectContaining({
+          requestId: "req-degraded",
+          code: "CC_COMPACTION_USAGE_UNKNOWN",
+          usageOutcome: "unknown",
+        }),
+      );
+      expect(interaction.emit).toHaveBeenCalledWith(
+        "command-response",
+        expect.objectContaining({
+          requestId: "req-degraded-retry",
+          result: expect.objectContaining({
+            error: expect.objectContaining({
+              code: "CC_COMPACTION_USAGE_UNKNOWN",
+              commitState: "provider-usage-unknown",
+            }),
+          }),
+        }),
+      );
+      expect(interaction.emit).not.toHaveBeenCalledWith(
+        "compaction",
+        expect.anything(),
       );
     });
 

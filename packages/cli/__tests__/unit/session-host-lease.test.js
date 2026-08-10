@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { fork } from "node:child_process";
@@ -79,6 +85,20 @@ function waitForChildExit(child, timeoutMs = 10_000) {
   });
 }
 
+function spawnLeaseChild(stateRoot, sessionId, mode = "host", requestId) {
+  return fork(
+    new URL("../fixtures/session-host-lease-child.mjs", import.meta.url),
+    [stateRoot, sessionId, mode, ...(requestId ? [requestId] : [])],
+    { stdio: ["ignore", "ignore", "ignore", "ipc"] },
+  );
+}
+
+async function requestChild(child, message) {
+  const response = waitForChildMessage(child);
+  child.send(message);
+  return response;
+}
+
 afterEach(() => {
   for (const root of roots.splice(0)) {
     if (existsSync(root)) rmSync(root, { recursive: true, force: true });
@@ -89,11 +109,7 @@ describe("SessionHostLeaseAuthority", () => {
   it("blocks a real second process and advances fencing after a hard exit", async () => {
     const stateRoot = testRoot();
     const sessionId = "session-real-process";
-    const child = fork(
-      new URL("../fixtures/session-host-lease-child.mjs", import.meta.url),
-      [stateRoot, sessionId],
-      { stdio: ["ignore", "ignore", "ignore", "ipc"] },
-    );
+    const child = spawnLeaseChild(stateRoot, sessionId);
     try {
       await expect(waitForChildMessage(child)).resolves.toMatchObject({
         type: "ready",
@@ -122,6 +138,124 @@ describe("SessionHostLeaseAuthority", () => {
       }
     }
   }, 20_000);
+
+  it("CAS-revokes a real host once, fences its next side effect, and never replays onto a restarted successor", async () => {
+    const stateRoot = testRoot();
+    const sessionId = "session-real-revocation";
+    const oldHost = spawnLeaseChild(stateRoot, sessionId);
+    const children = [oldHost];
+    try {
+      const oldReady = await waitForChildMessage(oldHost);
+      expect(oldReady).toMatchObject({
+        type: "ready",
+        fencingToken: 1,
+        revocationEpoch: 0,
+      });
+
+      const requestId = "cross-process-revoke-1";
+      const revokerA = spawnLeaseChild(
+        stateRoot,
+        sessionId,
+        "revoke",
+        requestId,
+      );
+      const revokerB = spawnLeaseChild(
+        stateRoot,
+        sessionId,
+        "revoke",
+        requestId,
+      );
+      children.push(revokerA, revokerB);
+      const revocations = await Promise.all([
+        waitForChildMessage(revokerA),
+        waitForChildMessage(revokerB),
+      ]);
+      expect(revocations).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: "revoked",
+            requestId,
+            revocationEpoch: 1,
+            replayed: false,
+            targetLeaseId: oldReady.leaseId,
+          }),
+          expect.objectContaining({
+            type: "revoked",
+            requestId,
+            revocationEpoch: 1,
+            replayed: true,
+            targetLeaseId: oldReady.leaseId,
+          }),
+        ]),
+      );
+
+      const sideEffectPath = join(stateRoot, "revoked-side-effect.txt");
+      await expect(
+        requestChild(oldHost, {
+          type: "side-effect",
+          path: sideEffectPath,
+        }),
+      ).resolves.toMatchObject({
+        type: "side-effect-error",
+        code: SESSION_HOST_LEASE_FENCED_CODE,
+      });
+      expect(existsSync(sideEffectPath)).toBe(false);
+      oldHost.kill();
+      await waitForChildExit(oldHost);
+
+      const restarted = spawnLeaseChild(stateRoot, sessionId);
+      children.push(restarted);
+      const restartedReady = await waitForChildMessage(restarted);
+      expect(restartedReady).toMatchObject({
+        type: "ready",
+        fencingToken: 2,
+        revocationEpoch: 1,
+      });
+
+      const replayAuthority = new SessionHostLeaseAuthority({
+        stateRoot,
+        ...timers(),
+      });
+      expect(
+        replayAuthority.revoke(sessionId, {
+          requestId,
+          reasonCode: "fixture",
+        }),
+      ).toMatchObject({
+        requestId,
+        revocationEpoch: 1,
+        replayed: true,
+        targetLeaseId: oldReady.leaseId,
+      });
+      await expect(
+        requestChild(restarted, { type: "assert" }),
+      ).resolves.toMatchObject({
+        type: "asserted",
+        authority: {
+          fencingToken: 2,
+          revocationEpoch: 1,
+        },
+      });
+
+      restarted.kill();
+      await waitForChildExit(restarted);
+      const afterHardKill = replayAuthority.acquire(sessionId, {
+        hostKind: "recovery",
+      });
+      expect(afterHardKill).toMatchObject({
+        fencingToken: 3,
+        revocationEpoch: 1,
+      });
+      afterHardKill.release();
+    } finally {
+      for (const child of children) {
+        if (child.exitCode === null && child.signalCode === null) {
+          child.kill();
+          await waitForChildExit(child).catch(() => {});
+        }
+      }
+    }
+  }, 30_000);
 
   it("admits one live host and fences another process view", () => {
     const stateRoot = testRoot();
@@ -261,6 +395,39 @@ describe("SessionHostLeaseAuthority", () => {
     lease.release();
   });
 
+  it("migrates an inactive v1 lease store without resetting fencing authority", () => {
+    const stateRoot = testRoot();
+    const authority = new SessionHostLeaseAuthority({
+      stateRoot,
+      ...timers(),
+    });
+    const sessionId = "session-v1-migration";
+    const filePath = authority.pathFor(sessionId);
+    writeFileSync(
+      filePath,
+      `${JSON.stringify({
+        version: 1,
+        sessionId,
+        lastFencingToken: 9,
+        active: null,
+      })}\n`,
+      "utf8",
+    );
+
+    const lease = authority.acquire(sessionId, { hostKind: "recovery" });
+    expect(lease).toMatchObject({
+      fencingToken: 10,
+      revocationEpoch: 0,
+    });
+    expect(JSON.parse(readFileSync(filePath, "utf8"))).toMatchObject({
+      version: 2,
+      lastFencingToken: 10,
+      revocationEpoch: 0,
+      revocations: [],
+    });
+    lease.release();
+  });
+
   it("fails closed on corrupt durable authority", () => {
     const stateRoot = testRoot();
     const authority = new SessionHostLeaseAuthority({ stateRoot, ...timers() });
@@ -275,5 +442,127 @@ describe("SessionHostLeaseAuthority", () => {
     ).toThrowError(
       expect.objectContaining({ code: SESSION_HOST_LEASE_UNAVAILABLE_CODE }),
     );
+  });
+
+  it("reconciles an exact revocation after the durable commit response is lost", () => {
+    const stateRoot = testRoot();
+    let failAfterCommit = false;
+    const authority = new SessionHostLeaseAuthority({
+      stateRoot,
+      ...timers(),
+      lock: (_filePath, task) => {
+        const result = task({ locked: true });
+        if (failAfterCommit) {
+          failAfterCommit = false;
+          throw Object.assign(new Error("injected lock release failure"), {
+            code: "EIO",
+          });
+        }
+        return result;
+      },
+    });
+    const lease = authority.acquire("session-revoke-unknown", {
+      hostKind: "headless",
+    });
+    failAfterCommit = true;
+
+    expect(
+      authority.revoke("session-revoke-unknown", {
+        requestId: "unknown-commit-revoke",
+        reasonCode: "operator",
+      }),
+    ).toMatchObject({
+      requestId: "unknown-commit-revoke",
+      revocationEpoch: 1,
+      replayed: true,
+    });
+    expect(lease.signal.aborted).toBe(true);
+    expect(() => lease.assert()).toThrowError(
+      expect.objectContaining({ code: SESSION_HOST_LEASE_FENCED_CODE }),
+    );
+
+    const recovered = new SessionHostLeaseAuthority({
+      stateRoot,
+      ...timers(),
+    });
+    expect(recovered.readAuthority("session-revoke-unknown")).toMatchObject({
+      revocationEpoch: 1,
+      revocationCount: 1,
+      active: null,
+    });
+    expect(
+      recovered.acquire("session-revoke-unknown", { hostKind: "recovery" }),
+    ).toMatchObject({ fencingToken: 2, revocationEpoch: 1 });
+  });
+
+  it("fences a real MCP dispatch paused after an earlier assert when revoke wins before send", async () => {
+    const stateRoot = testRoot();
+    const sessionId = "session-dispatch-admission-race";
+    const sideEffectPath = join(stateRoot, "dispatch-canary.txt");
+    const host = spawnLeaseChild(stateRoot, sessionId);
+    try {
+      await expect(waitForChildMessage(host)).resolves.toMatchObject({
+        type: "ready",
+      });
+      await expect(
+        requestChild(host, { type: "precheck" }),
+      ).resolves.toMatchObject({ type: "prechecked" });
+
+      const revoker = new SessionHostLeaseAuthority({
+        stateRoot,
+        ...timers(),
+      });
+      expect(
+        revoker.revoke(sessionId, {
+          requestId: "dispatch-race-revoke",
+          reasonCode: "operator",
+        }),
+      ).toMatchObject({ revocationEpoch: 1 });
+
+      await expect(
+        requestChild(host, {
+          type: "admitted-side-effect",
+          path: sideEffectPath,
+        }),
+      ).resolves.toMatchObject({
+        type: "admitted-side-effect-error",
+        code: SESSION_HOST_LEASE_FENCED_CODE,
+      });
+      expect(existsSync(sideEffectPath)).toBe(false);
+    } finally {
+      if (host.exitCode === null && host.signalCode === null) {
+        host.kill();
+        await waitForChildExit(host).catch(() => {});
+      }
+    }
+  }, 20_000);
+
+  it("linearizes dispatch-before-revoke and releases authority before awaiting the response", async () => {
+    const stateRoot = testRoot();
+    const sessionId = "session-dispatch-response-unlocked";
+    const host = new SessionHostLeaseAuthority({ stateRoot, ...timers() });
+    const revoker = new SessionHostLeaseAuthority({ stateRoot, ...timers() });
+    const lease = host.acquire(sessionId, { hostKind: "headless" });
+    let resolveResponse;
+    const response = new Promise((resolve) => {
+      resolveResponse = resolve;
+    });
+
+    const pending = lease.admitMcpDispatch(
+      { method: "tools/call", transport: "http" },
+      () => response,
+    );
+    expect(
+      revoker.revoke(sessionId, {
+        requestId: "response-unlocked-revoke",
+        reasonCode: "operator",
+      }),
+    ).toMatchObject({ revocationEpoch: 1 });
+    resolveResponse("completed-after-revoke");
+    await expect(pending).resolves.toBe("completed-after-revoke");
+    expect(() => lease.assert()).toThrowError(
+      expect.objectContaining({ code: SESSION_HOST_LEASE_FENCED_CODE }),
+    );
+    expect(lease.signal.aborted).toBe(true);
   });
 });
