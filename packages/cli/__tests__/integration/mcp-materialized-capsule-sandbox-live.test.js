@@ -98,6 +98,16 @@ function isTypedOsSpawnDenial(child) {
   );
 }
 
+function isTypedWindowsNetworkDrop(result, platform = process.platform) {
+  return Boolean(
+    platform === "win32" &&
+    result?.state === "indeterminate" &&
+    result.networkDenied === false &&
+    result.networkError === "ETIMEDOUT" &&
+    result.canaryPayloadAttempted === false,
+  );
+}
+
 function isTransitiveDescendant(row, rootPid, rowsByPid) {
   const visited = new Set([row.pid]);
   let parentPid = row.parentPid;
@@ -455,17 +465,26 @@ async function closeServer(server) {
   await closed;
 }
 
-function expectDeniedNetworkResults(networks, networkTargets) {
+function expectIsolatedNetworkResults(networks, networkTargets) {
   expect(networks.map((item) => item.label).sort()).toEqual(
     networkTargets.map((item) => item.label).sort(),
   );
   for (const result of networks) {
-    expect(result, JSON.stringify(result)).toMatchObject({
-      state: "denied",
-      networkDenied: true,
-      canaryPayloadAttempted: false,
-    });
-    expect(result.networkError).not.toBe("timeout");
+    const denied =
+      result.state === "denied" &&
+      result.networkDenied === true &&
+      result.canaryPayloadAttempted === false &&
+      result.networkError !== "timeout";
+    // A Windows AppContainer without network capabilities can surface its
+    // kernel drop as the typed Winsock ETIMEDOUT error. This result is accepted
+    // only in this live test, where the host endpoint was independently proven
+    // reachable and the assertions below also require no sandbox connection,
+    // an attested AppContainer backend, and the network guarantee. The
+    // harness-generated untyped `timeout` remains indeterminate and fails.
+    expect(
+      denied || isTypedWindowsNetworkDrop(result),
+      JSON.stringify(result),
+    ).toBe(true);
   }
 }
 
@@ -655,6 +674,31 @@ describe("materialized MCP capsule host observer helpers", () => {
         errorCode: null,
         error: "spawn-blocked-without-code",
       }),
+    ).toBe(false);
+  });
+
+  it("distinguishes a typed Windows network drop from a harness timeout", () => {
+    expect(
+      isTypedWindowsNetworkDrop(
+        {
+          state: "indeterminate",
+          networkDenied: false,
+          networkError: "ETIMEDOUT",
+          canaryPayloadAttempted: false,
+        },
+        "win32",
+      ),
+    ).toBe(true);
+    expect(
+      isTypedWindowsNetworkDrop(
+        {
+          state: "indeterminate",
+          networkDenied: false,
+          networkError: "timeout",
+          canaryPayloadAttempted: false,
+        },
+        "win32",
+      ),
     ).toBe(false);
   });
 });
@@ -900,7 +944,7 @@ describe.runIf(LIVE && SUPPORTED)(
         canaryCandidate: null,
         writeDenied: true,
       });
-      expectDeniedNetworkResults(report.root.networks, networkTargets);
+      expectIsolatedNetworkResults(report.root.networks, networkTargets);
       if (report.child.spawnDenied) {
         // A zero-capability sandbox may reject child creation at the OS
         // boundary. That is stronger than confining a created child, provided
@@ -929,7 +973,7 @@ describe.runIf(LIVE && SUPPORTED)(
           },
         });
         expect(report.child.namespacePid).toBeGreaterThan(0);
-        expectDeniedNetworkResults(report.child.networks, networkTargets);
+        expectIsolatedNetworkResults(report.child.networks, networkTargets);
         observedDescendantIdentities = await captureNonceDescendantIdentities(
           entry.process.pid,
           probeNonce,
