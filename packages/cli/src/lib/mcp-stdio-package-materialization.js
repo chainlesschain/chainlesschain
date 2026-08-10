@@ -54,12 +54,6 @@ const CAPSULE_WORKER_SCHEMA =
   "chainlesschain.mcp-stdio-capsule-builder-worker/v1";
 const CAPSULE_BUILD_TIMEOUT_MS = 120_000;
 const CAPSULE_WORKER_MAX_OLD_GENERATION_MB = 256;
-const CAPSULE_BUILDER_WORKER_PATH = fileURLToPath(
-  new URL("./mcp-stdio-capsule-builder-worker.cjs", import.meta.url),
-);
-const CAPSULE_RESOLVER_PATH = fileURLToPath(
-  new URL("./mcp-stdio-immutable-vfs-resolver.cjs", import.meta.url),
-);
 // Updated with the checked-in source digest whenever either pinned host module
 // changes. The worker receives source bytes, never a pathname to execute.
 const CAPSULE_BUILDER_WORKER_SHA256 =
@@ -842,6 +836,16 @@ function readPinnedCapsuleAsset({
 }
 
 function resolvePinnedCapsuleBuilder() {
+  // Vitest can evaluate this module through a non-file URL when desktop tests
+  // import the CLI process broker transitively. Resolve host-only assets only
+  // when a capsule build actually needs them; production builds still fail
+  // closed if the module does not have a file-backed identity.
+  const workerPath = fileURLToPath(
+    new URL("./mcp-stdio-capsule-builder-worker.cjs", import.meta.url),
+  );
+  const resolverPath = fileURLToPath(
+    new URL("./mcp-stdio-immutable-vfs-resolver.cjs", import.meta.url),
+  );
   const realpath = _deps.fs.realpathSync.native || _deps.fs.realpathSync;
   const packageJsonPath = realpath(
     require.resolve("esbuild-wasm/package.json"),
@@ -880,15 +884,15 @@ function resolvePinnedCapsuleBuilder() {
     label: "MCP capsule builder WASM",
   });
   const worker = readPinnedCapsuleAsset({
-    root: path.dirname(CAPSULE_BUILDER_WORKER_PATH),
-    relativePath: path.basename(CAPSULE_BUILDER_WORKER_PATH),
+    root: path.dirname(workerPath),
+    relativePath: path.basename(workerPath),
     bytes: CAPSULE_BUILDER_WORKER_BYTES,
     sha256: CAPSULE_BUILDER_WORKER_SHA256,
     label: "MCP capsule builder Worker",
   });
   const resolver = readPinnedCapsuleAsset({
-    root: path.dirname(CAPSULE_RESOLVER_PATH),
-    relativePath: path.basename(CAPSULE_RESOLVER_PATH),
+    root: path.dirname(resolverPath),
+    relativePath: path.basename(resolverPath),
     bytes: CAPSULE_RESOLVER_BYTES,
     sha256: CAPSULE_RESOLVER_SHA256,
     label: "MCP capsule immutable VFS resolver",
