@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI 0.163.4: immutable MCP capsules and durable scheduler storage
+
+> `chainlesschain` **0.163.3 → 0.163.4** (candidate; not yet published,
+> 2026-08-11).
+> CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.57**
+> and `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **Immutable MCP capsule build inputs**: the capsule builder now executes in a
+  bounded worker against an in-memory WASM virtual filesystem populated from
+  verified bytes. Package sources and native builder assets are canonicalized,
+  identity-bound, and no longer reopened from mutable host paths during the
+  build.
+- **Platform-bound live capsule evidence**: materialized stdio MCP capsules are
+  exercised through the production Process Broker and child contract on Linux,
+  Windows, and macOS. Framed reports, exact asset identity, deferred host-path
+  resolution, and shared CJS/ESM trace context prevent warning or path-alias
+  drift from weakening the evidence chain.
+- **Bounded failure behavior**: worker memory, output, timeout, and cleanup are
+  bounded; partial or malformed child evidence, post-verification replacement,
+  unapproved effects, and unsupported strict boundaries fail closed.
+- **Command lifecycle evidence and alias decision**: report v2 binds exact
+  coverage, approval, scope, and repository evidence and summarizes command
+  telemetry without silently accepting zero-data input. All 25 deprecated
+  aliases remain retained until representative opt-in telemetry exists and the
+  documented `0.164.0` removal floor is reached.
+- **Scheduler kernel storage foundation**: a versioned SQLite store adds strict
+  schema verification, expected-revision CAS, logical-occurrence deduplication,
+  durable claims, and two-handle race coverage. This is the first P2-4 storage
+  milestone, not completion of the scheduling kernel or orchestration runtime.
+- **Delivery and recovery hardening**: production delivery adapters, durable
+  provider-backed compaction, MCP recovery admission, session ownership fences,
+  and exact Windows write checks close additional internal consistency gaps.
+- **Native release readback hardening**: release evidence now verifies public
+  bytes, checksums, manifests, signatures, and provenance contracts more
+  strictly. Signed native distribution is still blocked until real signed
+  artifacts and public package-manager readback are available.
+- **Known residuals**: full P2-4 scheduling orchestration, signed native
+  distribution, representative alias telemetry, and the remaining documented
+  long-soak/host-boundary follow-ups are not claimed by this release.
+- **Release status**: final tag, exact source SHA, workflow run IDs, package
+  digest, provenance, and public registry readback are intentionally omitted
+  until the exact `0.163.4` release commit passes the Linux, Windows, and macOS
+  `CLI CI` and `CLI Strict Sandbox` gates and the npm release/readback workflows
+  complete successfully.
+
 ### Added — cc CLI 0.163.3: isolated background agents and policy-bound runtimes
 
 > `chainlesschain` **0.163.2 → 0.163.3** (published from exact SHA
