@@ -132,6 +132,8 @@ on:
       - "packages/cli/__tests__/unit/plugin-runtime-bin.test.js"
       - "packages/cli/__tests__/unit/plugin-runtime-bin-agent-core.test.js"
       - "packages/cli/__tests__/integration/process-broker-platform-sandbox-live.test.js"
+      - "packages/cli/__tests__/integration/mcp-materialized-capsule-sandbox-live.test.js"
+      - "packages/cli/__tests__/fixtures/mcp-materialized-capsule-live-server.cjs"
       - "packages/cli/__tests__/fixtures/process-broker-linux-bwrap-live-child.mjs"
       - "packages/cli/__tests__/fixtures/process-broker-linux-bwrap-native-live.c"
       - "packages/cli/__tests__/fixtures/process-broker-windows-posix-replace.ps1"
@@ -266,6 +268,8 @@ on:
       - "packages/cli/__tests__/unit/plugin-runtime-bin.test.js"
       - "packages/cli/__tests__/unit/plugin-runtime-bin-agent-core.test.js"
       - "packages/cli/__tests__/integration/process-broker-platform-sandbox-live.test.js"
+      - "packages/cli/__tests__/integration/mcp-materialized-capsule-sandbox-live.test.js"
+      - "packages/cli/__tests__/fixtures/mcp-materialized-capsule-live-server.cjs"
       - "packages/cli/__tests__/fixtures/process-broker-linux-bwrap-live-child.mjs"
       - "packages/cli/__tests__/fixtures/process-broker-linux-bwrap-native-live.c"
       - "packages/cli/__tests__/fixtures/process-broker-windows-posix-replace.ps1"
@@ -432,6 +436,7 @@ jobs:
           npx vitest run --reporter=json
           --outputFile=strict-sandbox-result.json
           __tests__/integration/process-broker-platform-sandbox-live.test.js
+          __tests__/integration/mcp-materialized-capsule-sandbox-live.test.js
           __tests__/unit/mcp-stdio-macos-code-snapshot.test.js
 
       - name: Capture macOS sandbox diagnostics
