@@ -1120,16 +1120,16 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
   #7 整项仍为**部分完成/外部验证延后**：真实 GitHub PR→CI→受控 merge→archive journey、
   ruleset/branch protection、权限及外部不可变/WORM 归档回读仍未关闭。
 - **S0-2 的真实 materialized Client→Broker→OS live chain 内部子门已形成完成候选。** PR
-  [#140](https://github.com/chainlesschain/chainlesschain/pull/140) 的 exact head
+  [#140](https://github.com/chainlesschain/chainlesschain/pull/140) 的已验证 commit
   `241929977ad35003f51a3465b150bc2ca624dd3b` 保持固定 npm MCP capsule 的 `code-snapshot`、
   `filesystem`、`network`、`process-tree` 不可降级 floor，并补齐真实 Client→Broker→OS、background
   与 direct plugin 边界；nested child readiness 使用继承 fd 和 exact PID/process-group/session 绑定，
   不依赖被 Linux seccomp 禁止的 socketpair。该 head 的
   [CLI CI `31364409253`](https://github.com/chainlesschain/chainlesschain/actions/runs/31364409253) 与
   [CLI Strict Sandbox `31364409081`](https://github.com/chainlesschain/chainlesschain/actions/runs/31364409081)
-  均完成 Linux、Windows、macOS 验证并成功，但 PR 仍待合并。S0-2 整项仍为**部分完成**：macOS
-  原子 runtime exec/open、任意 native/shared-library 递归闭包、远端即时撤权/distributed authority
-  及长期对抗矩阵仍未关闭。
+  均完成 Linux、Windows、macOS 验证并成功。此后 PR head 已由并发开发继续前移，新增提交必须另做
+  exact-SHA 验证；PR 仍待合并。S0-2 整项仍为**部分完成**：macOS 原子 runtime exec/open、任意
+  native/shared-library 递归闭包、远端即时撤权/distributed authority 及长期对抗矩阵仍未关闭。
 - **本期执行范围调整。** 按 2026-08-10 的执行决定，#4～#6，以及 #8～#10 中必须依赖第三方发布
   authority、签名证书/私钥、专用 Remote/Codespaces/Gateway 宿主或独立八小时资源的部分，本期不执行，
   统一保留为“未完成／外部阻塞／本期延后”。延后不是完成、豁免或 release GO；本期仅推进 #1～#3、#7
