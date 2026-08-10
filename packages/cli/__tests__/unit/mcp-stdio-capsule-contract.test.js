@@ -26,16 +26,7 @@ function writeJson(file, value) {
 }
 
 function brokerSpawnSync(command, args, options) {
-  const attestation = options?.hostInputAttestation;
-  const spawnOptions = { ...options };
-  delete spawnOptions.hostInputAttestation;
-  if (!attestation) return spawnSync(command, args, spawnOptions);
-  attestation.beforeSpawn();
-  try {
-    return spawnSync(command, args, spawnOptions);
-  } finally {
-    attestation.afterSpawn();
-  }
+  return spawnSync(command, args, options);
 }
 
 function fakeInstall({ directory }) {
@@ -94,7 +85,7 @@ describe("MCP stdio capsule host boundary floor", () => {
   let materializationRoot;
   let storePath;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-mcp-capsule-contract-"));
     indexPath = path.join(root, "security", "index.json");
     materializationRoot = path.join(root, "materializations");
@@ -119,7 +110,7 @@ describe("MCP stdio capsule host boundary floor", () => {
     });
     config = materializeApprovedMcpStdioInvocation(approval);
     _deps.processBrokerRunSync = brokerSpawnSync;
-    materializeMcpStdioNpmPackage({
+    await materializeMcpStdioNpmPackage({
       approvalRecord: resolveMcpStdioExecutionApproval(approval),
       config,
       packageSpec: "capsule-contract-fixture@1.2.3",

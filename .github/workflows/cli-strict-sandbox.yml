@@ -29,6 +29,8 @@ on:
       - "packages/cli/src/lib/mcp-stdio-environment.js"
       - "packages/cli/src/lib/mcp-stdio-executable-identity.js"
       - "packages/cli/src/lib/mcp-stdio-package-materialization.js"
+      - "packages/cli/src/lib/mcp-stdio-capsule-builder-worker.cjs"
+      - "packages/cli/src/lib/mcp-stdio-immutable-vfs-resolver.cjs"
       - "packages/cli/src/lib/skill-execution-authority.js"
       - "packages/cli/src/lib/skill-loader.js"
       - "packages/cli/src/lib/durable-security-store.js"
@@ -96,6 +98,8 @@ on:
       - "packages/cli/__tests__/unit/mcp-stdio-execution-authority.test.js"
       - "packages/cli/__tests__/unit/mcp-stdio-executable-identity.test.js"
       - "packages/cli/__tests__/unit/mcp-stdio-package-materialization.test.js"
+      - "packages/cli/__tests__/unit/mcp-stdio-capsule-builder-worker.test.js"
+      - "packages/cli/__tests__/unit/mcp-stdio-immutable-vfs-resolver.test.js"
       - "packages/cli/__tests__/unit/skill-execution-authority.test.js"
       - "packages/cli/__tests__/unit/skill-loader.test.js"
       - "packages/cli/__tests__/integration/agent-core-mcp-adversarial-stdio.test.js"
@@ -166,6 +170,8 @@ on:
       - "packages/cli/src/lib/mcp-stdio-environment.js"
       - "packages/cli/src/lib/mcp-stdio-executable-identity.js"
       - "packages/cli/src/lib/mcp-stdio-package-materialization.js"
+      - "packages/cli/src/lib/mcp-stdio-capsule-builder-worker.cjs"
+      - "packages/cli/src/lib/mcp-stdio-immutable-vfs-resolver.cjs"
       - "packages/cli/src/lib/skill-execution-authority.js"
       - "packages/cli/src/lib/skill-loader.js"
       - "packages/cli/src/lib/durable-security-store.js"
@@ -233,6 +239,8 @@ on:
       - "packages/cli/__tests__/unit/mcp-stdio-execution-authority.test.js"
       - "packages/cli/__tests__/unit/mcp-stdio-executable-identity.test.js"
       - "packages/cli/__tests__/unit/mcp-stdio-package-materialization.test.js"
+      - "packages/cli/__tests__/unit/mcp-stdio-capsule-builder-worker.test.js"
+      - "packages/cli/__tests__/unit/mcp-stdio-immutable-vfs-resolver.test.js"
       - "packages/cli/__tests__/unit/skill-execution-authority.test.js"
       - "packages/cli/__tests__/unit/skill-loader.test.js"
       - "packages/cli/__tests__/integration/agent-core-mcp-adversarial-stdio.test.js"
@@ -396,6 +404,8 @@ jobs:
           __tests__/unit/mcp-stdio-execution-authority.test.js
           __tests__/unit/mcp-stdio-executable-identity.test.js
           __tests__/unit/mcp-stdio-package-materialization.test.js
+          __tests__/unit/mcp-stdio-capsule-builder-worker.test.js
+          __tests__/unit/mcp-stdio-immutable-vfs-resolver.test.js
           __tests__/unit/skill-execution-authority.test.js
           __tests__/unit/skill-loader.test.js
           __tests__/integration/agent-core-mcp-adversarial-stdio.test.js

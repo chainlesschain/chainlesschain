@@ -36,6 +36,30 @@ describe("generatePkgConfig", () => {
       path.join(cliRoot, "bin", "chainlesschain.js"),
       "// fake bin",
     );
+    const capsuleLib = path.join(cliRoot, "src", "lib");
+    fs.mkdirSync(capsuleLib, { recursive: true });
+    fs.writeFileSync(
+      path.join(capsuleLib, "mcp-stdio-capsule-builder-worker.cjs"),
+      "// pinned worker source",
+    );
+    fs.writeFileSync(
+      path.join(capsuleLib, "mcp-stdio-immutable-vfs-resolver.cjs"),
+      "// pinned resolver source",
+    );
+    const esbuildWasmRoot = path.join(cliRoot, "node_modules", "esbuild-wasm");
+    fs.mkdirSync(path.join(esbuildWasmRoot, "lib"), { recursive: true });
+    fs.writeFileSync(
+      path.join(esbuildWasmRoot, "package.json"),
+      JSON.stringify({ name: "esbuild-wasm", version: "0.28.1" }),
+    );
+    fs.writeFileSync(
+      path.join(esbuildWasmRoot, "lib", "browser.js"),
+      "// pinned browser API",
+    );
+    fs.writeFileSync(
+      path.join(esbuildWasmRoot, "esbuild.wasm"),
+      Buffer.from([0, 97, 115, 109]),
+    );
   });
 
   afterEach(() => {
@@ -121,6 +145,19 @@ describe("generatePkgConfig", () => {
     expect(
       synth.pkg.assets.filter((asset) => /\.ps1(?:$|[*])/i.test(asset)),
     ).toEqual([recoveryInstaller]);
+  });
+
+  it("embeds every raw immutable capsule builder asset", () => {
+    const r = callGenerator();
+    const synth = JSON.parse(fs.readFileSync(r.pkgConfigFile, "utf-8"));
+    const expected = [
+      path.join(cliRoot, "node_modules", "esbuild-wasm", "package.json"),
+      path.join(cliRoot, "node_modules", "esbuild-wasm", "lib", "browser.js"),
+      path.join(cliRoot, "node_modules", "esbuild-wasm", "esbuild.wasm"),
+      path.join(cliRoot, "src", "lib", "mcp-stdio-capsule-builder-worker.cjs"),
+      path.join(cliRoot, "src", "lib", "mcp-stdio-immutable-vfs-resolver.cjs"),
+    ].map((asset) => asset.replace(/\\/g, "/"));
+    expect(synth.pkg.assets).toEqual(expect.arrayContaining(expected));
   });
 
   it("assets include prebuildsDir when provided", () => {

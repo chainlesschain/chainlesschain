@@ -79,17 +79,8 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function spawnSyncAtHostInputBoundary(command, args, options) {
-  const attestation = options?.hostInputAttestation;
-  const spawnOptions = { ...options };
-  delete spawnOptions.hostInputAttestation;
-  if (!attestation) return nativeSpawnSync(command, args, spawnOptions);
-  attestation.beforeSpawn();
-  try {
-    return nativeSpawnSync(command, args, spawnOptions);
-  } finally {
-    attestation.afterSpawn();
-  }
+function brokerInstallSpawnSync(command, args, options) {
+  return nativeSpawnSync(command, args, options);
 }
 
 function commandDigest(commandLine) {
@@ -1433,11 +1424,10 @@ function materializeProbe({
         nonce,
       }),
     // Materialization itself is not the subject of the live sandbox launch.
-    // It still performs the real esbuild capsule construction. The local
-    // spawn-boundary adapter executes the same pre/post input attestation as
-    // the Process Broker while keeping the audit log scoped to the live
-    // Client -> Broker -> OS invocation under test.
-    processBrokerRunSync: spawnSyncAtHostInputBoundary,
+    // It still performs the real pinned esbuild-wasm build in an isolated
+    // Worker over an immutable VFS. This injected sync seam is used only for
+    // npm install; runtime launch remains under the Process Broker below.
+    processBrokerRunSync: brokerInstallSpawnSync,
   });
 }
 
@@ -2295,7 +2285,7 @@ describe.runIf(LIVE && SUPPORTED)(
         // the immutable four-boundary capsule floor.
         sandboxPolicy: { requiredBoundaries: [] },
       };
-      const materialized = materializeProbe({
+      const materialized = await materializeProbe({
         config,
         materializationRoot,
         indexPath,
@@ -2307,8 +2297,8 @@ describe.runIf(LIVE && SUPPORTED)(
         nonce: probeNonce,
       });
       expect(materialized.identity.capsule).toMatchObject({
-        schema: "chainlesschain.mcp-stdio-node-capsule/v1",
-        builder: "esbuild",
+        schema: "chainlesschain.mcp-stdio-node-capsule/v2",
+        builder: "esbuild-wasm",
         builderVersion: "0.28.1",
       });
 
@@ -2629,7 +2619,7 @@ describe.runIf(LIVE && SUPPORTED)(
         transport: "stdio",
         policy: "allow",
       };
-      const materialized = materializeProbe({
+      const materialized = await materializeProbe({
         config,
         materializationRoot,
         indexPath,
