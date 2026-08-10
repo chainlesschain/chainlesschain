@@ -1494,17 +1494,13 @@ describe.runIf(LIVE && SUPPORTED)(
       const networkProbeEvidence = [
         expectNetworkProbeResults(report.root.networks, networkTargets),
       ];
-      if (process.platform === "linux") {
-        expect(report.child, JSON.stringify(report.child)).toMatchObject({
-          spawnDenied: false,
-          reportReceived: true,
-        });
-      }
       if (report.child.spawnDenied) {
         // A zero-capability sandbox may reject child creation at the OS
-        // boundary on Windows. The permission code and continuous host-side
-        // process-start observer must both agree that no child was created.
-        expect(process.platform).toBe("win32");
+        // boundary. Linux's deny-process seccomp policy and Windows's
+        // zero-capability AppContainer can both return a typed permission
+        // error before any child exists. Windows additionally has the
+        // continuous host-side process-start observer below.
+        expect(["linux", "win32"]).toContain(process.platform);
         expect(report.child).toMatchObject({
           spawnDenied: true,
           reportReceived: false,
@@ -1513,7 +1509,9 @@ describe.runIf(LIVE && SUPPORTED)(
           error: expect.any(String),
         });
         expect(isTypedOsSpawnDenial(report.child)).toBe(true);
-        expect(observedChildStarts).toEqual([]);
+        if (process.platform === "win32") {
+          expect(observedChildStarts).toEqual([]);
+        }
         expect(nonceProcessRows(enumerateHostProcesses(), probeNonce)).toEqual(
           [],
         );
