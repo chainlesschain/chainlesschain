@@ -141,7 +141,7 @@ describe("headless-runner — pure helpers", () => {
 describe("headless-runner — exact delivery fixer authority", () => {
   it("forwards the immutable exact tool and file mutation scope to agentLoop", async () => {
     const dir = mkdtempSync(join(tmpdir(), "cc-headless-mutation-scope-"));
-    const worktreeRoot = realpathSync(dir);
+    const worktreeRoot = (realpathSync.native || realpathSync)(dir);
     writeFileSync(join(worktreeRoot, "allowed.txt"), "allowed", "utf8");
     const allowedTools = Object.freeze(["read_file", "write_file"]);
     const allowedPaths = Object.freeze(["allowed.txt"]);
