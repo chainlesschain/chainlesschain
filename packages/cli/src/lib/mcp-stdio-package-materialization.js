@@ -837,7 +837,11 @@ function capsuleRuntimeGuard() {
 })();`;
 }
 
-export function esbuildRelativeEntrypointArg(entrypointRelative) {
+export function esbuildRelativeEntrypointArg(
+  entrypointRelative,
+  canonicalSnapshotRoot,
+  canonicalEntrypoint,
+) {
   if (
     typeof entrypointRelative !== "string" ||
     entrypointRelative.length === 0 ||
@@ -854,10 +858,30 @@ export function esbuildRelativeEntrypointArg(entrypointRelative) {
       "MCP capsule entrypoint must be one canonical relative POSIX path",
     );
   }
-  // esbuild's CLI parses a Windows `.\\node_modules\\...` argument as a
-  // package path. A leading POSIX `./` is the cross-platform file-path marker
-  // even when esbuild.exe itself is running on Windows.
-  return `./${entrypointRelative}`;
+  for (const [label, candidate] of [
+    ["snapshot root", canonicalSnapshotRoot],
+    ["entrypoint", canonicalEntrypoint],
+  ]) {
+    if (
+      typeof candidate !== "string" ||
+      candidate.includes("\0") ||
+      !path.isAbsolute(candidate) ||
+      path.normalize(candidate) !== candidate
+    ) {
+      throw new Error(`MCP capsule ${label} must be canonical and absolute`);
+    }
+  }
+  const reboundRelative = path
+    .relative(canonicalSnapshotRoot, canonicalEntrypoint)
+    .split(path.sep)
+    .join("/");
+  if (reboundRelative !== entrypointRelative) {
+    throw new Error("MCP capsule entrypoint escaped its canonical snapshot");
+  }
+  // esbuild's Windows CLI classifies a node_modules-looking relative argv as
+  // a package path and mechanically suggests another `./`. The realpath-bound
+  // absolute argv is unambiguously a file on every supported host.
+  return canonicalEntrypoint;
 }
 
 function buildCapsule({
@@ -884,14 +908,19 @@ function buildCapsule({
       entrypointRelative,
       "MCP capsule entrypoint",
     );
+    const canonicalEntrypoint = realpath(snapshotEntrypoint);
     const canonicalEntrypointRelative = path
-      .relative(canonicalSnapshotRoot, realpath(snapshotEntrypoint))
+      .relative(canonicalSnapshotRoot, canonicalEntrypoint)
       .split(path.sep)
       .join("/");
     if (canonicalEntrypointRelative !== entrypointRelative) {
       throw new Error("MCP capsule entrypoint changed through a path alias");
     }
-    const builderEntrypoint = esbuildRelativeEntrypointArg(entrypointRelative);
+    const builderEntrypoint = esbuildRelativeEntrypointArg(
+      entrypointRelative,
+      canonicalSnapshotRoot,
+      canonicalEntrypoint,
+    );
     const builder = resolveCapsuleBuilderBinary();
     const runThroughProcessBroker =
       processBrokerRunSync || _deps.processBrokerRunSync;

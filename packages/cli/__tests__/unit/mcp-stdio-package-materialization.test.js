@@ -32,12 +32,23 @@ import {
 
 const roots = [];
 
-it("uses an explicit POSIX relative file argv for esbuild on every host", () => {
+it("uses a canonical contained absolute file argv for esbuild", () => {
+  const snapshotRoot = path.resolve("capsule-snapshot-root");
+  const canonicalEntrypoint = path.join(
+    snapshotRoot,
+    "node_modules",
+    "@scope",
+    "mcp-server",
+    "bin",
+    "server.js",
+  );
   expect(
     esbuildRelativeEntrypointArg(
       "node_modules/@scope/mcp-server/bin/server.js",
+      snapshotRoot,
+      canonicalEntrypoint,
     ),
-  ).toBe("./node_modules/@scope/mcp-server/bin/server.js");
+  ).toBe(canonicalEntrypoint);
   for (const unsafe of [
     "",
     ".",
@@ -49,10 +60,32 @@ it("uses an explicit POSIX relative file argv for esbuild on every host", () => 
     "C:/node_modules/package/server.js",
     "node_modules/package/server.js\0ignored",
   ]) {
-    expect(() => esbuildRelativeEntrypointArg(unsafe)).toThrow(
+    expect(() =>
+      esbuildRelativeEntrypointArg(unsafe, snapshotRoot, canonicalEntrypoint),
+    ).toThrow(
       "MCP capsule entrypoint must be one canonical relative POSIX path",
     );
   }
+  for (const unsafeRoot of [
+    "relative-snapshot",
+    `${snapshotRoot}${path.sep}.`,
+    `${snapshotRoot}\0ignored`,
+  ]) {
+    expect(() =>
+      esbuildRelativeEntrypointArg(
+        "node_modules/@scope/mcp-server/bin/server.js",
+        unsafeRoot,
+        canonicalEntrypoint,
+      ),
+    ).toThrow("MCP capsule snapshot root must be canonical and absolute");
+  }
+  expect(() =>
+    esbuildRelativeEntrypointArg(
+      "node_modules/@scope/mcp-server/bin/server.js",
+      snapshotRoot,
+      path.join(snapshotRoot, "outside.js"),
+    ),
+  ).toThrow("MCP capsule entrypoint escaped its canonical snapshot");
 });
 
 function createRoot() {
@@ -247,7 +280,14 @@ describe("MCP stdio fixed npm package materialization", () => {
       const realpath = fs.realpathSync.native || fs.realpathSync;
       builderInvocations.push({
         args,
+        cwd: options.cwd,
         cwdIsCanonical: options.cwd === realpath(options.cwd),
+        entrypointIsCanonical:
+          path.isAbsolute(args[0]) && args[0] === realpath(args[0]),
+        entrypointRelative: path
+          .relative(options.cwd, args[0])
+          .split(path.sep)
+          .join("/"),
       });
       return spawnSync(command, args, options);
     };
@@ -285,9 +325,11 @@ describe("MCP stdio fixed npm package materialization", () => {
       inputCount: 3,
     });
     expect(result.identity.capsule.sha256).toMatch(/^[a-f0-9]{64}$/);
-    expect(
-      fs.readFileSync(path.join(result.root, "capsule", "server.cjs"), "utf8"),
-    ).toContain("transitive-dependency/index.js");
+    const capsuleSource = fs.readFileSync(
+      path.join(result.root, "capsule", "server.cjs"),
+      "utf8",
+    );
+    expect(capsuleSource).toContain("transitive-dependency/index.js");
     const repeated = materializeMcpStdioNpmPackage({
       approvalRecord: authority.approvalRecord,
       config: authority.invocation,
@@ -304,10 +346,13 @@ describe("MCP stdio fixed npm package materialization", () => {
     expect(builderInvocations).toHaveLength(2);
     for (const invocation of builderInvocations) {
       expect(invocation.cwdIsCanonical).toBe(true);
-      expect(path.isAbsolute(invocation.args[0])).toBe(false);
-      expect(invocation.args[0]).toBe(
-        "./node_modules/@scope/mcp-server/bin/server.js",
+      expect(invocation.entrypointIsCanonical).toBe(true);
+      expect(path.isAbsolute(invocation.args[0])).toBe(true);
+      expect(invocation.entrypointRelative).toBe(
+        "node_modules/@scope/mcp-server/bin/server.js",
       );
+      expect(capsuleSource).not.toContain(invocation.cwd);
+      expect(capsuleSource).not.toContain(invocation.cwd.replaceAll("\\", "/"));
     }
 
     const resolved = resolveMcpStdioPackageMaterialization({
