@@ -1795,6 +1795,7 @@ class ProcessExecutionBroker extends EventEmitter {
             (backend === "windows-appcontainer-job-restricted-token" &&
               plan.runtimeProbe.kind ===
                 "windows-appcontainer-launch-attestation-v1" &&
+              plan.runtimeProbe.capabilityCount === 0 &&
               policyAttested === true &&
               policyDigest !== null)) &&
           plan.runtimeProbe.contentSnapshotScope ===
@@ -1829,6 +1830,16 @@ class ProcessExecutionBroker extends EventEmitter {
             "Code snapshot guarantee requires typed atomic MCP capsule evidence",
           );
         }
+      }
+      if (
+        plan.runtimeProbe.kind ===
+          "windows-appcontainer-launch-attestation-v1" &&
+        plan.runtimeProbe.capabilityCount !== 0
+      ) {
+        throw this._sandboxError(
+          "invalid_sandbox_plan",
+          "Windows AppContainer runtime evidence must attest zero capabilities",
+        );
       }
       const genericWorkspaceEvidenceFields = [
         "contractDigest",

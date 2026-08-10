@@ -340,12 +340,19 @@ public static class ChainlessChainProcessStartObserver
             new ConcurrentQueue<ProcessStartRecord>();
         public readonly AutoResetEvent Signal = new AutoResetEvent(false);
         public Exception Failure;
+        public int ExpectedStop;
         public int InFlight;
+        public int StopAcknowledgements;
 
         public void Dispose()
         {
             Signal.Dispose();
         }
+    }
+
+    private static void RecordFailure(ObserverState state, Exception error)
+    {
+        Interlocked.CompareExchange(ref state.Failure, error, null);
     }
 
     private static void CaptureStart(
@@ -382,7 +389,49 @@ public static class ChainlessChainProcessStartObserver
         }
         catch (Exception error)
         {
-            Interlocked.CompareExchange(ref state.Failure, error, null);
+            RecordFailure(state, error);
+        }
+        finally
+        {
+            Interlocked.Decrement(ref state.InFlight);
+            state.Signal.Set();
+        }
+    }
+
+    private static void CaptureStopped(
+        ObserverState state,
+        StoppedEventArgs eventArgs)
+    {
+        Interlocked.Increment(ref state.InFlight);
+        try
+        {
+            int acknowledgement = Interlocked.Increment(
+                ref state.StopAcknowledgements);
+            ManagementStatus status = eventArgs.Status;
+            if (Volatile.Read(ref state.ExpectedStop) != 1)
+            {
+                throw new InvalidOperationException(
+                    "Windows process-start observer stopped unexpectedly");
+            }
+            if (status != ManagementStatus.OperationCanceled &&
+                status != ManagementStatus.CallCanceled)
+            {
+                throw new InvalidOperationException(
+                    "Windows process-start observer returned an unexpected " +
+                    "stop status: " +
+                    Convert.ToInt32(status, CultureInfo.InvariantCulture)
+                        .ToString(CultureInfo.InvariantCulture));
+            }
+            if (acknowledgement != 1)
+            {
+                throw new InvalidOperationException(
+                    "Windows process-start observer acknowledged stop more " +
+                    "than once");
+            }
+        }
+        catch (Exception error)
+        {
+            RecordFailure(state, error);
         }
         finally
         {
@@ -421,6 +470,66 @@ public static class ChainlessChainProcessStartObserver
         Console.Out.Flush();
     }
 
+    private static void WaitForExpectedStopAcknowledgement(
+        ObserverState state)
+    {
+        DateTime acknowledgementUntil = DateTime.UtcNow.AddSeconds(1);
+        while (Volatile.Read(ref state.StopAcknowledgements) == 0 &&
+            Interlocked.CompareExchange(ref state.Failure, null, null) == null &&
+            DateTime.UtcNow < acknowledgementUntil)
+        {
+            state.Signal.WaitOne(10);
+        }
+        ThrowHandlerFailure(state);
+        if (Volatile.Read(ref state.StopAcknowledgements) != 1)
+        {
+            throw new TimeoutException(
+                "Windows process-start observer did not acknowledge stop");
+        }
+
+        DateTime duplicateUntil = DateTime.UtcNow.AddMilliseconds(100);
+        while (DateTime.UtcNow < duplicateUntil)
+        {
+            ThrowHandlerFailure(state);
+            if (Volatile.Read(ref state.StopAcknowledgements) != 1)
+            {
+                throw new InvalidOperationException(
+                    "Windows process-start observer stop acknowledgement " +
+                    "was not unique");
+            }
+            state.Signal.WaitOne(10);
+        }
+        ThrowHandlerFailure(state);
+    }
+
+    private static void WaitForCallbacks(ObserverState state)
+    {
+        DateTime callbacksUntil = DateTime.UtcNow.AddSeconds(1);
+        while (Volatile.Read(ref state.InFlight) != 0 &&
+            DateTime.UtcNow < callbacksUntil)
+        {
+            state.Signal.WaitOne(10);
+        }
+        if (Volatile.Read(ref state.InFlight) != 0)
+        {
+            throw new TimeoutException(
+                "Windows process-start observer callback did not stop");
+        }
+    }
+
+    private static void StopAndAcknowledge(
+        ManagementEventWatcher watcher,
+        ObserverState state)
+    {
+        if (Interlocked.CompareExchange(ref state.ExpectedStop, 1, 0) != 0)
+        {
+            throw new InvalidOperationException(
+                "Windows process-start observer stop was requested twice");
+        }
+        watcher.Stop();
+        WaitForExpectedStopAcknowledgement(state);
+    }
+
     public static void Run(string stopPath, int drainMilliseconds)
     {
         if (String.IsNullOrEmpty(stopPath) ||
@@ -434,19 +543,27 @@ public static class ChainlessChainProcessStartObserver
             "SELECT * FROM Win32_ProcessStartTrace");
         var watcher = new ManagementEventWatcher(scope, query);
         var state = new ObserverState();
-        EventArrivedEventHandler handler = delegate(
+        EventArrivedEventHandler startHandler = delegate(
             object sender, EventArrivedEventArgs eventArgs)
         {
             CaptureStart(state, eventArgs);
         };
-        bool handlerRegistered = false;
+        StoppedEventHandler stoppedHandler = delegate(
+            object sender, StoppedEventArgs eventArgs)
+        {
+            CaptureStopped(state, eventArgs);
+        };
+        bool startHandlerRegistered = false;
+        bool stoppedHandlerRegistered = false;
         bool watcherStarted = false;
         long sequence = 0;
 
         try
         {
-            watcher.EventArrived += handler;
-            handlerRegistered = true;
+            watcher.EventArrived += startHandler;
+            startHandlerRegistered = true;
+            watcher.Stopped += stoppedHandler;
+            stoppedHandlerRegistered = true;
             watcher.Start();
             watcherStarted = true;
             Console.Out.WriteLine("{\"event\":\"observer-ready\"}");
@@ -468,37 +585,46 @@ public static class ChainlessChainProcessStartObserver
                 state.Signal.WaitOne(25);
             }
 
-            watcher.Stop();
             watcherStarted = false;
-            watcher.EventArrived -= handler;
-            handlerRegistered = false;
-
-            DateTime callbacksUntil = DateTime.UtcNow.AddSeconds(1);
-            while (Volatile.Read(ref state.InFlight) != 0 &&
-                DateTime.UtcNow < callbacksUntil)
-            {
-                state.Signal.WaitOne(10);
-            }
-            if (Volatile.Read(ref state.InFlight) != 0)
-            {
-                throw new TimeoutException(
-                    "Windows process-start observer callback did not stop");
-            }
+            StopAndAcknowledge(watcher, state);
+            watcher.EventArrived -= startHandler;
+            startHandlerRegistered = false;
+            watcher.Stopped -= stoppedHandler;
+            stoppedHandlerRegistered = false;
+            WaitForCallbacks(state);
             DrainQueue(state, ref sequence);
             ThrowHandlerFailure(state);
         }
         finally
         {
-            if (watcherStarted)
+            try
             {
-                watcher.Stop();
+                if (watcherStarted)
+                {
+                    watcherStarted = false;
+                    StopAndAcknowledge(watcher, state);
+                }
             }
-            if (handlerRegistered)
+            finally
             {
-                watcher.EventArrived -= handler;
+                try
+                {
+                    if (startHandlerRegistered)
+                    {
+                        watcher.EventArrived -= startHandler;
+                    }
+                    if (stoppedHandlerRegistered)
+                    {
+                        watcher.Stopped -= stoppedHandler;
+                    }
+                    WaitForCallbacks(state);
+                }
+                finally
+                {
+                    watcher.Dispose();
+                    state.Dispose();
+                }
             }
-            watcher.Dispose();
-            state.Dispose();
         }
     }
 }
@@ -1360,7 +1486,7 @@ describe("materialized MCP capsule host observer helpers", () => {
     ]).toEqual([first, second]);
   });
 
-  it("registers one Windows WMI callback before ready and drains its queue", () => {
+  it("binds Windows WMI start and stop callbacks before ready and closes them", () => {
     const source = windowsProcessStartObserverSource;
     const script = windowsProcessStartObserverScript();
     expect(script).toContain("Add-Type -AssemblyName System.Management");
@@ -1370,40 +1496,102 @@ describe("materialized MCP capsule host observer helpers", () => {
     expect(source).toContain('started["TIME_CREATED"]');
     expect(source).toContain("state.Queue.Enqueue");
     expect(source).toContain("Interlocked.CompareExchange");
+    expect(source).toContain("ManagementStatus.OperationCanceled");
+    expect(source).toContain("ManagementStatus.CallCanceled");
     expect(source).not.toContain("WaitForNextEvent");
     expect(source).not.toContain("CreateToolhelp32Snapshot");
 
     const captureStart = source.indexOf("private static void CaptureStart");
+    const captureStopped = source.indexOf(
+      "private static void CaptureStopped",
+      captureStart,
+    );
     const captureEnd = source.indexOf(
       "private static void ThrowHandlerFailure",
+      captureStopped,
     );
-    expect(source.slice(captureStart, captureEnd)).not.toContain("Console.Out");
+    const callbackSource = source.slice(captureStart, captureEnd);
+    expect(callbackSource).not.toContain("Console.Out");
+    expect(
+      callbackSource.match(/Interlocked\.Increment\(ref state\.InFlight\)/g),
+    ).toHaveLength(2);
+    expect(
+      callbackSource.match(/Interlocked\.Decrement\(ref state\.InFlight\)/g),
+    ).toHaveLength(2);
+    expect(callbackSource.match(/state\.Signal\.Set\(\)/g)).toHaveLength(2);
+    expect(source.slice(captureStopped, captureEnd)).toContain(
+      "Volatile.Read(ref state.ExpectedStop) != 1",
+    );
+    expect(source.slice(captureStopped, captureEnd)).toContain(
+      "acknowledgement != 1",
+    );
 
-    const registered = source.indexOf("watcher.EventArrived += handler;");
-    const started = source.indexOf("watcher.Start();", registered);
-    const ready = source.indexOf("observer-ready", started);
-    const stopObserved = source.indexOf(
+    const stopContractStart = source.indexOf(
+      "private static void StopAndAcknowledge",
+    );
+    const stopContractEnd = source.indexOf(
+      "public static void Run",
+      stopContractStart,
+    );
+    const stopContract = source.slice(stopContractStart, stopContractEnd);
+    expect(stopContract.indexOf("state.ExpectedStop, 1, 0")).toBeLessThan(
+      stopContract.indexOf("watcher.Stop();"),
+    );
+    expect(stopContract.indexOf("watcher.Stop();")).toBeLessThan(
+      stopContract.indexOf("WaitForExpectedStopAcknowledgement(state);"),
+    );
+
+    const runStart = source.indexOf("public static void Run");
+    const runSource = source.slice(runStart);
+    const startRegistered = runSource.indexOf(
+      "watcher.EventArrived += startHandler;",
+    );
+    const stoppedRegistered = runSource.indexOf(
+      "watcher.Stopped += stoppedHandler;",
+    );
+    const started = runSource.indexOf("watcher.Start();", stoppedRegistered);
+    const ready = runSource.indexOf("observer-ready", started);
+    const stopObserved = runSource.indexOf(
       "while (!File.Exists(stopPath))",
       ready,
     );
-    const drained = source.indexOf("DateTime drainUntil", stopObserved);
-    const stopped = source.indexOf("watcher.Stop();", drained);
-    const unregistered = source.indexOf(
-      "watcher.EventArrived -= handler;",
-      stopped,
+    const drained = runSource.indexOf("DateTime drainUntil", stopObserved);
+    const stopRequested = runSource.indexOf(
+      "StopAndAcknowledge(watcher, state);",
+      drained,
     );
-    const finalDrain = source.indexOf(
+    const startUnregistered = runSource.indexOf(
+      "watcher.EventArrived -= startHandler;",
+      stopRequested,
+    );
+    const stoppedUnregistered = runSource.indexOf(
+      "watcher.Stopped -= stoppedHandler;",
+      startUnregistered,
+    );
+    const callbacksStopped = runSource.indexOf(
+      "WaitForCallbacks(state);",
+      stoppedUnregistered,
+    );
+    const finalDrain = runSource.indexOf(
       "DrainQueue(state, ref sequence);",
-      unregistered,
+      callbacksStopped,
     );
-    expect(registered).toBeGreaterThanOrEqual(0);
-    expect(started).toBeGreaterThan(registered);
+    const finalFailureCheck = runSource.indexOf(
+      "ThrowHandlerFailure(state);",
+      finalDrain,
+    );
+    expect(startRegistered).toBeGreaterThanOrEqual(0);
+    expect(stoppedRegistered).toBeGreaterThan(startRegistered);
+    expect(started).toBeGreaterThan(stoppedRegistered);
     expect(ready).toBeGreaterThan(started);
     expect(stopObserved).toBeGreaterThan(ready);
     expect(drained).toBeGreaterThan(stopObserved);
-    expect(stopped).toBeGreaterThan(drained);
-    expect(unregistered).toBeGreaterThan(stopped);
-    expect(finalDrain).toBeGreaterThan(unregistered);
+    expect(stopRequested).toBeGreaterThan(drained);
+    expect(startUnregistered).toBeGreaterThan(stopRequested);
+    expect(stoppedUnregistered).toBeGreaterThan(startUnregistered);
+    expect(callbacksStopped).toBeGreaterThan(stoppedUnregistered);
+    expect(finalDrain).toBeGreaterThan(callbacksStopped);
+    expect(finalFailureCheck).toBeGreaterThan(finalDrain);
   });
 
   it.runIf(process.platform === "win32")(

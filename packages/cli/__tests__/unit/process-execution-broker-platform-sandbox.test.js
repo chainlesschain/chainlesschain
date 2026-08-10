@@ -10500,22 +10500,57 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
   });
 
   it("preserves a zero-capability runtime attestation through plan validation", () => {
-    const plan = appliedPlan("sandbox-helper", ["payload"], {}, {
-      backend: "test-sandbox",
-      guarantees: [],
-      runtimeProbe: {
-        kind: "windows-appcontainer-launch-attestation-v1",
-        attempted: true,
-        runnable: true,
-        reason: null,
-        capabilityCount: 0,
+    const plan = appliedPlan(
+      "sandbox-helper",
+      ["payload"],
+      {},
+      {
+        backend: "test-sandbox",
+        guarantees: [],
+        runtimeProbe: {
+          kind: "windows-appcontainer-launch-attestation-v1",
+          attempted: true,
+          runnable: true,
+          reason: null,
+          capabilityCount: 0,
+        },
       },
-    });
+    );
 
     expect(executionBroker._validateSandboxPlan(plan).runtimeProbe).toEqual(
       plan.runtimeProbe,
     );
   });
+
+  it.each([
+    ["missing", undefined],
+    ["nonzero", 1],
+  ])(
+    "rejects %s capability evidence for a Windows AppContainer runtime attestation",
+    (_label, capabilityCount) => {
+      const runtimeProbe = {
+        kind: "windows-appcontainer-launch-attestation-v1",
+        attempted: true,
+        runnable: true,
+        reason: null,
+        ...(capabilityCount === undefined ? {} : { capabilityCount }),
+      };
+      const plan = appliedPlan(
+        "sandbox-helper",
+        ["payload"],
+        {},
+        {
+          backend: "test-sandbox",
+          guarantees: [],
+          runtimeProbe,
+        },
+      );
+
+      expect(() => executionBroker._validateSandboxPlan(plan)).toThrow(
+        "Windows AppContainer runtime evidence must attest zero capabilities",
+      );
+    },
+  );
 
   it("preserves complete static native plugin-tree evidence in the audit log", () => {
     const child = createChild();

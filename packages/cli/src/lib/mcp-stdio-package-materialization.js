@@ -769,6 +769,142 @@ function createAttestedSnapshot(treeRoot, closure, staging) {
   return snapshotRoot;
 }
 
+function snapshotFileIdentity(stat) {
+  return Object.freeze({
+    dev: stat.dev,
+    ino: stat.ino,
+    mode: stat.mode,
+    size: stat.size,
+    mtimeNs: stat.mtimeNs,
+    ctimeNs: stat.ctimeNs,
+  });
+}
+
+function sameSnapshotFileIdentity(left, right) {
+  return Boolean(
+    left &&
+    right &&
+    left.dev === right.dev &&
+    left.ino === right.ino &&
+    left.mode === right.mode &&
+    left.size === right.size &&
+    left.mtimeNs === right.mtimeNs &&
+    left.ctimeNs === right.ctimeNs,
+  );
+}
+
+function readSnapshotInputAttestation(canonicalSnapshotRoot, inputRelative) {
+  const realpath = _deps.fs.realpathSync.native || _deps.fs.realpathSync;
+  const requested = resolveContainedPath(
+    canonicalSnapshotRoot,
+    inputRelative,
+    "MCP capsule build input",
+  );
+  const pathBefore = _deps.fs.lstatSync(requested, { bigint: true });
+  if (pathBefore.isSymbolicLink() || !pathBefore.isFile()) {
+    throw new Error(
+      `MCP capsule build input is not one regular file: ${inputRelative}`,
+    );
+  }
+  const canonicalPath = realpath(requested);
+  const reboundRelative = path
+    .relative(canonicalSnapshotRoot, canonicalPath)
+    .split(path.sep)
+    .join("/");
+  if (reboundRelative !== inputRelative) {
+    throw new Error(
+      `MCP capsule build input changed through a path alias: ${inputRelative}`,
+    );
+  }
+
+  let descriptor;
+  try {
+    descriptor = _deps.fs.openSync(
+      canonicalPath,
+      Number(_deps.fs.constants.O_RDONLY) |
+        Number(_deps.fs.constants.O_NOFOLLOW || 0) |
+        Number(_deps.fs.constants.O_NONBLOCK || 0),
+    );
+    const descriptorBefore = _deps.fs.fstatSync(descriptor, { bigint: true });
+    if (
+      !descriptorBefore.isFile() ||
+      descriptorBefore.size < 0n ||
+      descriptorBefore.size > BigInt(MAX_FILE_BYTES) ||
+      !sameSnapshotFileIdentity(
+        snapshotFileIdentity(pathBefore),
+        snapshotFileIdentity(descriptorBefore),
+      )
+    ) {
+      throw new Error(
+        `MCP capsule build input identity changed before read: ${inputRelative}`,
+      );
+    }
+
+    const bytes = Number(descriptorBefore.size);
+    const content = Buffer.alloc(bytes);
+    let offset = 0;
+    while (offset < bytes) {
+      const count = _deps.fs.readSync(
+        descriptor,
+        content,
+        offset,
+        bytes - offset,
+        offset,
+      );
+      if (count <= 0) {
+        throw new Error(
+          `MCP capsule build input ended during read: ${inputRelative}`,
+        );
+      }
+      offset += count;
+    }
+
+    const descriptorAfter = _deps.fs.fstatSync(descriptor, { bigint: true });
+    const pathAfter = _deps.fs.lstatSync(requested, { bigint: true });
+    const canonicalPathAfter = realpath(requested);
+    const beforeIdentity = snapshotFileIdentity(descriptorBefore);
+    const afterIdentity = snapshotFileIdentity(descriptorAfter);
+    if (
+      pathAfter.isSymbolicLink() ||
+      !pathAfter.isFile() ||
+      canonicalPathAfter !== canonicalPath ||
+      !sameSnapshotFileIdentity(beforeIdentity, afterIdentity) ||
+      !sameSnapshotFileIdentity(afterIdentity, snapshotFileIdentity(pathAfter))
+    ) {
+      throw new Error(
+        `MCP capsule build input changed during read: ${inputRelative}`,
+      );
+    }
+    return Object.freeze({
+      path: inputRelative,
+      canonicalPath,
+      bytes,
+      sha256: sha256(content),
+      identity: afterIdentity,
+    });
+  } finally {
+    if (descriptor !== undefined) _deps.fs.closeSync(descriptor);
+  }
+}
+
+function normalizeEsbuildInputPath(input) {
+  if (typeof input !== "string" || !input || input.includes("\0")) {
+    throw new Error("MCP capsule build reported an invalid input path");
+  }
+  const normalizedSeparators = input.replaceAll("\\", "/");
+  if (
+    path.posix.isAbsolute(normalizedSeparators) ||
+    /^[A-Za-z]:/.test(normalizedSeparators) ||
+    path.posix.normalize(normalizedSeparators) !== normalizedSeparators ||
+    normalizedSeparators === "." ||
+    normalizedSeparators === ".." ||
+    normalizedSeparators.startsWith("../")
+  ) {
+    throw new Error(`MCP capsule build reported an unsafe input: ${input}`);
+  }
+  return normalizedSeparators;
+}
+
 function resolveCapsuleBuilderBinary() {
   const platform = `${process.platform}-${process.arch}`;
   const expected = CAPSULE_BUILDER_BINARIES[platform];
@@ -924,16 +1060,28 @@ function buildCapsule({
       canonicalSnapshotRoot,
       canonicalEntrypoint,
     );
-    const entryRecord = closure.files.find(
-      (record) => record.path === entrypointRelative,
+    const closureByPath = new Map(
+      closure.files.map((record) => [record.path, record]),
     );
-    const entryInput = _deps.fs.readFileSync(canonicalEntrypoint);
-    if (
-      !entryRecord ||
-      entryInput.length !== entryRecord.bytes ||
-      sha256(entryInput) !== entryRecord.sha256
-    ) {
-      throw new Error("MCP capsule entrypoint changed before bundling");
+    const preBuildInputs = new Map();
+    for (const record of closure.files) {
+      const observed = readSnapshotInputAttestation(
+        canonicalSnapshotRoot,
+        record.path,
+      );
+      if (
+        observed.bytes !== record.bytes ||
+        observed.sha256 !== record.sha256 ||
+        Number(observed.identity.mode) !== record.mode
+      ) {
+        throw new Error(
+          `MCP capsule build input changed before bundling: ${record.path}`,
+        );
+      }
+      preBuildInputs.set(record.path, observed);
+    }
+    if (!preBuildInputs.has(entrypointRelative)) {
+      throw new Error("MCP capsule entrypoint is outside its closure");
     }
     const wrapperSpecifier = `./${boundEntrypointRelative}`;
     const wrapperSource = Buffer.from(
@@ -999,47 +1147,59 @@ function buildCapsule({
     ) {
       throw new Error("MCP capsule build metadata is invalid");
     }
-    const sourceByPath = new Map(
-      closure.files.map((record) => [record.path, record]),
-    );
     const wrapperInput = metafile.inputs[CAPSULE_STDIN_WRAPPER_SOURCEFILE];
+    const wrapperImport = wrapperInput?.imports?.[0];
     if (
       !wrapperInput ||
       wrapperInput.bytes !== wrapperSource.length ||
       !Array.isArray(wrapperInput.imports) ||
       wrapperInput.imports.length !== 1 ||
-      wrapperInput.imports[0]?.kind !== "require-call" ||
-      wrapperInput.imports[0]?.original !== wrapperSpecifier
+      wrapperImport?.kind !== "require-call" ||
+      wrapperImport?.original !== wrapperSpecifier ||
+      normalizeEsbuildInputPath(wrapperImport?.path) !==
+        boundEntrypointRelative ||
+      (wrapperImport.external !== undefined && wrapperImport.external !== false)
     ) {
       throw new Error("MCP capsule build did not bind its stdin wrapper");
     }
-    const inputs = Object.keys(metafile.inputs)
-      .map((input) => input.split(path.sep).join("/"))
-      .filter((input) => input !== CAPSULE_STDIN_WRAPPER_SOURCEFILE)
-      .sort()
-      .map((input) => {
-        const absolute = realpath(
-          path.resolve(canonicalSnapshotRoot, ...input.split("/")),
-        );
-        const relative = path
-          .relative(canonicalSnapshotRoot, absolute)
-          .split(path.sep)
-          .join("/");
-        const record = sourceByPath.get(relative);
-        if (!record) {
-          throw new Error(
-            `MCP capsule build used an unattested input: ${input}`,
-          );
-        }
-        return {
-          path: relative,
-          bytes: record.bytes,
-          sha256: record.sha256,
-        };
-      });
-    if (new Set(inputs.map((input) => input.path)).size !== inputs.length) {
+    const inputEntries = Object.entries(metafile.inputs)
+      .filter(([input]) => input !== CAPSULE_STDIN_WRAPPER_SOURCEFILE)
+      .map(([input, metadata]) => [normalizeEsbuildInputPath(input), metadata])
+      .sort(([left], [right]) => left.localeCompare(right));
+    if (
+      new Set(inputEntries.map(([input]) => input)).size !== inputEntries.length
+    ) {
       throw new Error("MCP capsule build reported duplicate input aliases");
     }
+    const inputs = inputEntries.map(([input, metadata]) => {
+      const preBuild = preBuildInputs.get(input);
+      const closureRecord = closureByPath.get(input);
+      if (!preBuild || !closureRecord) {
+        throw new Error(`MCP capsule build used an unattested input: ${input}`);
+      }
+      const observed = readSnapshotInputAttestation(
+        canonicalSnapshotRoot,
+        input,
+      );
+      if (
+        !metadata ||
+        typeof metadata !== "object" ||
+        metadata.bytes !== observed.bytes ||
+        observed.bytes !== closureRecord.bytes ||
+        observed.sha256 !== closureRecord.sha256 ||
+        observed.canonicalPath !== preBuild.canonicalPath ||
+        !sameSnapshotFileIdentity(observed.identity, preBuild.identity)
+      ) {
+        throw new Error(
+          `MCP capsule build input changed during bundling: ${input}`,
+        );
+      }
+      return {
+        path: input,
+        bytes: observed.bytes,
+        sha256: observed.sha256,
+      };
+    });
     if (
       inputs.length === 0 ||
       !inputs.some((input) => input.path === entrypointRelative)
@@ -1056,6 +1216,16 @@ function buildCapsule({
         }
         externalBuiltins.push(imported.path);
       }
+    }
+    const postBuildSnapshotClosure = collectTree(canonicalSnapshotRoot);
+    if (
+      postBuildSnapshotClosure.fileCount !== closure.fileCount ||
+      postBuildSnapshotClosure.totalBytes !== closure.totalBytes ||
+      postBuildSnapshotClosure.closureDigest !== closure.closureDigest ||
+      canonicalJson(postBuildSnapshotClosure.files) !==
+        canonicalJson(closure.files)
+    ) {
+      throw new Error("MCP capsule source snapshot changed during bundling");
     }
     const postBuildClosure = collectTree(treeRoot);
     if (

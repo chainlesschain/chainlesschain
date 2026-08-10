@@ -606,6 +606,126 @@ describe("MCP stdio fixed npm package materialization", () => {
     expect(fs.existsSync(indexPath)).toBe(false);
   });
 
+  it.each([
+    ["entrypoint bytes", "node_modules/@scope/mcp-server/bin/server.js", false],
+    [
+      "dependency identity",
+      "node_modules/transitive-dependency/index.js",
+      true,
+    ],
+  ])(
+    "rejects snapshot %s mutation between attestation and esbuild read",
+    (_label, relativeInput, replaceWithIdenticalBytes) => {
+      const config = {
+        command: "npx",
+        args: ["@scope/mcp-server@1.2.3"],
+        transport: "stdio",
+      };
+      const authority = approved(config, `snapshot-race-${_label}`);
+      const normalRunSync = _deps.processBrokerRunSync;
+      let mutated = false;
+      _deps.processBrokerRunSync = (command, args, options) => {
+        if (!mutated) {
+          mutated = true;
+          const inputPath = path.join(options.cwd, ...relativeInput.split("/"));
+          if (replaceWithIdenticalBytes) {
+            const replacementPath = `${inputPath}.replacement`;
+            const originalStat = fs.statSync(inputPath);
+            fs.writeFileSync(replacementPath, fs.readFileSync(inputPath));
+            fs.chmodSync(replacementPath, originalStat.mode & 0o777);
+            fs.rmSync(inputPath);
+            fs.renameSync(replacementPath, inputPath);
+          } else {
+            fs.appendFileSync(
+              inputPath,
+              "\nglobalThis.snapshotCompromised = true;\n",
+              "utf8",
+            );
+          }
+        }
+        return normalRunSync(command, args, options);
+      };
+
+      expect(() =>
+        materializeMcpStdioNpmPackage({
+          approvalRecord: authority.approvalRecord,
+          config: authority.invocation,
+          packageSpec: "@scope/mcp-server@1.2.3",
+          binName: "scope-mcp",
+          root: materializationRoot,
+          indexPath,
+          npmCli,
+          installRunner: fakeInstall,
+        }),
+      ).toThrow(
+        expect.objectContaining({
+          code: MCP_STDIO_PACKAGE_MATERIALIZATION_FAILED_CODE,
+          message: expect.stringContaining(
+            "build input changed during bundling",
+          ),
+        }),
+      );
+      expect(fs.existsSync(indexPath)).toBe(false);
+    },
+  );
+
+  it.each([
+    [
+      "resolved target",
+      (wrapperImport) => {
+        wrapperImport.path = "node_modules/transitive-dependency/index.js";
+      },
+    ],
+    [
+      "external edge",
+      (wrapperImport) => {
+        wrapperImport.external = true;
+      },
+    ],
+  ])("rejects a forged wrapper metafile %s", (_label, forge) => {
+    const config = {
+      command: "npx",
+      args: ["@scope/mcp-server@1.2.3"],
+      transport: "stdio",
+    };
+    const authority = approved(config, `forged-metafile-${_label}`);
+    const normalRunSync = _deps.processBrokerRunSync;
+    _deps.processBrokerRunSync = (command, args, options) => {
+      const result = normalRunSync(command, args, options);
+      if (!result.error && result.status === 0) {
+        const metafileArgument = args.find((arg) =>
+          arg.startsWith("--metafile="),
+        );
+        const metafilePath = metafileArgument.slice("--metafile=".length);
+        const metafile = JSON.parse(fs.readFileSync(metafilePath, "utf8"));
+        const wrapperInput =
+          metafile.inputs["chainlesschain-capsule-entry.cjs"];
+        forge(wrapperInput.imports[0]);
+        writeJson(metafilePath, metafile);
+      }
+      return result;
+    };
+
+    expect(() =>
+      materializeMcpStdioNpmPackage({
+        approvalRecord: authority.approvalRecord,
+        config: authority.invocation,
+        packageSpec: "@scope/mcp-server@1.2.3",
+        binName: "scope-mcp",
+        root: materializationRoot,
+        indexPath,
+        npmCli,
+        installRunner: fakeInstall,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: MCP_STDIO_PACKAGE_MATERIALIZATION_FAILED_CODE,
+        message: expect.stringContaining("did not bind its stdin wrapper"),
+      }),
+    );
+    expect(fs.existsSync(indexPath)).toBe(false);
+  });
+
   it.each(["require(target);", "import(target);"])(
     "blocks a dynamic external module retained by the bundle: %s",
     (loadExpression) => {
