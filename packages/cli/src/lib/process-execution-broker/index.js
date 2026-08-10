@@ -28,9 +28,6 @@ import os from "node:os";
 import path from "node:path";
 import * as fs from "node:fs";
 import * as tty from "node:tty";
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
 
 // P0-1: 平台沙箱 + 凭据代理
 // platform-sandbox.js exports: applySandbox, postSpawnSandbox
@@ -47,6 +44,7 @@ import {
   LINUX_GENERIC_CONTRACT_KIND,
 } from "./linux-generic-bwrap.js";
 import { consumeIssuedPluginSandboxExecutionContract } from "../plugin-runtime/bin.js";
+import { traceContext } from "../execution-trace/trace-context.js";
 import runtimeProvenanceLedger from "../runtime-provenance-ledger.js";
 import { credentialAgent } from "./credential-agent.js";
 import { WorkspaceTransactionManager } from "./workspace-transaction.js";
@@ -66,20 +64,7 @@ const SUPPORTED_SANDBOX_PROFILES = new Set([
 // evidence, not authority to invoke a privileged post-spawn closure.
 const admittedWindowsMcpCodeSnapshotPlans = new WeakSet();
 
-// 延迟导入避免循环依赖
-let _traceCtx = null;
 const _ipcBus = null;
-
-function getTraceCtx() {
-  if (!_traceCtx) {
-    try {
-      _traceCtx = require("../execution-trace/trace-context.js");
-    } catch {
-      _traceCtx = null;
-    }
-  }
-  return _traceCtx;
-}
 
 function getRpl() {
   return runtimeProvenanceLedger;
@@ -2921,11 +2906,7 @@ class ProcessExecutionBroker extends EventEmitter {
   }
 
   _getTraceContext() {
-    const traceCtx = getTraceCtx();
-    if (traceCtx && traceCtx.activeContext) {
-      return traceCtx.activeContext.value || null;
-    }
-    return null;
+    return traceContext.getCurrentContext() || null;
   }
 
   _writeRplEntry(auditEntry, status = "started", error = null) {
