@@ -1053,3 +1053,39 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
 
 当前结论仍为 **product release NO-GO**。最短关键路径是：先关闭 #1～#7 的安全/公开分发/真实交付门，
 再以 #8～#10 的远程、故障和长期宿主证据关闭 R3，最后推进 #11～#22 的 R4/R5 产品化。
+
+### 2026-08-10 已完成子门、在途验证与本期范围
+
+以下更新采用 exact commit、公开 workflow 与公网回读作为完成证据；它只修订已经关闭的子门，不把
+部分完成的路线项整体改写为完成，也不回写正在开发或尚未终态的 CI：
+
+- **CLI npm `0.163.3` exact-SHA 发布子门已完成。** 最终 release SHA
+  `17fcf6aa7917dd0fcc83b3ab5204c196bbb81758` 的
+  [CLI CI `31329476135`](https://github.com/chainlesschain/chainlesschain/actions/runs/31329476135)、
+  [CLI Strict Sandbox `31329476020`](https://github.com/chainlesschain/chainlesschain/actions/runs/31329476020)
+  和正式两小时 reliability/MCP soak
+  [`31329539092`](https://github.com/chainlesschain/chainlesschain/actions/runs/31329539092) 成功；不可变
+  tag `v-npm-0-163-3` 精确指向该 SHA。正式 npm 发布
+  [`31335579227`](https://github.com/chainlesschain/chainlesschain/actions/runs/31335579227) 与独立公网回读
+  [`31336362525`](https://github.com/chainlesschain/chainlesschain/actions/runs/31336362525) 均成功，
+  SLSA/Sigstore provenance 有效，registry tarball 与 workflow 不可变 artifact 逐字节一致。该结论关闭
+  CLI npm 发布与 covered-scope 两小时恶意 MCP 观察子门，不外推到 Microsoft Marketplace、签名
+  Desktop/native、Remote IDE 或八小时 IDE soak。
+- **S0-2 的固定 npm MCP capsule 宿主四边界强制子门已完成。** PR
+  [#138](https://github.com/chainlesschain/chainlesschain/pull/138) 的 exact head
+  `d2fcbddc99526dd3027e2de187345d240a1b48a2` 以 merge commit
+  `d3520301a8b018d81cb658a6c9a2ef8dfb83b6d1` 进入 `main`。受信 client 对物化 capsule 强制加入不可降级的
+  `code-snapshot`、`filesystem`、`network`、`process-tree` floor；弱调用方 policy、缺失边界和 authority
+  replay 均 fail closed。该 head 的 [CLI Strict Sandbox `31338888334`](https://github.com/chainlesschain/chainlesschain/actions/runs/31338888334)、
+  [P0-S formal matrix `31338888348`](https://github.com/chainlesschain/chainlesschain/actions/runs/31338888348)
+  与 [reliability/MCP soak `31338888360`](https://github.com/chainlesschain/chainlesschain/actions/runs/31338888360)
+  全部成功。S0-2 整项仍为**部分完成**：真实 Client→Broker→OS 物化 capsule live chain 的独立矩阵、
+  macOS 原子 runtime exec/open、任意 native/shared-library 递归闭包、远端即时撤权/distributed authority
+  仍必须分别关闭。
+- **本期执行范围调整。** 按 2026-08-10 的执行决定，#4～#6，以及 #8～#10 中必须依赖第三方发布
+  authority、签名证书/私钥、专用 Remote/Codespaces/Gateway 宿主或独立八小时资源的部分，本期不执行，
+  统一保留为“未完成／外部阻塞／本期延后”。延后不是完成、豁免或 release GO；本期仅推进 #1～#3、#7
+  及 R4/R5 中可由仓库代码与现有 GitHub Actions 权限独立验证的内部子门，不据此关闭整项。
+
+因此本次文档更新不改变上表的 **17/19 尚未关闭、22 个剩余工作包**口径；只有在对应整项的全部关闭
+条件和权威证据满足后才减少计数。
