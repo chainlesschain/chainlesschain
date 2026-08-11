@@ -1003,9 +1003,13 @@ export class SchedulerStore {
     }
   }
 
-  claimNext({ ownerId, leaseMs } = {}) {
+  claimNext({ ownerId, leaseMs, jobKind } = {}) {
     const owner = normalizeIdentifier(ownerId, "ownerId");
     const lease = normalizeLeaseMs(leaseMs);
+    const kind =
+      jobKind === undefined
+        ? null
+        : normalizeIdentifier(jobKind, "jobKind", { maxLength: 128 });
     const now = this._now();
     const leaseExpiresAt = now + lease;
     if (!Number.isSafeInteger(leaseExpiresAt)) {
@@ -1020,6 +1024,7 @@ export class SchedulerStore {
           FROM occurrences o
           JOIN jobs j ON j.job_id = o.job_id
           WHERE j.enabled = 1
+            AND (@jobKind IS NULL OR j.kind = @jobKind)
             AND o.attempt < o.max_attempts
             AND (
               (o.status IN ('queued', 'retry_wait') AND o.available_at <= @now)
@@ -1033,7 +1038,7 @@ export class SchedulerStore {
           LIMIT 1
         `,
         )
-        .get({ now });
+        .get({ now, jobKind: kind });
       if (!candidate) return null;
       const previousStatus = candidate.status;
       const previousOwner = candidate.lease_owner;
@@ -1088,6 +1093,103 @@ export class SchedulerStore {
           attempt: claimed.attempt,
           previousOwner,
           previousStatus,
+        },
+      });
+      return mapOccurrence(claimed);
+    });
+  }
+
+  /**
+   * Claim one known occurrence without consuming unrelated scheduler work.
+   *
+   * Command adapters use this after durably enqueueing a user-selected job.
+   * Returning `null` means the occurrence exists but is not currently
+   * claimable (another live owner holds it, it is not due yet, or it is
+   * terminal). A missing occurrence remains a hard error so callers cannot
+   * confuse a lost durable enqueue with ordinary contention.
+   */
+  claimOccurrence({ occurrenceId, ownerId, leaseMs } = {}) {
+    const id = normalizeIdentifier(occurrenceId, "occurrenceId");
+    const owner = normalizeIdentifier(ownerId, "ownerId");
+    const lease = normalizeLeaseMs(leaseMs);
+    const now = this._now();
+    const leaseExpiresAt = now + lease;
+    if (!Number.isSafeInteger(leaseExpiresAt)) {
+      throw invalidArgument("lease expiry exceeds the safe integer range");
+    }
+    return this._write(() => {
+      this._deadLetterExpiredLeases(now);
+      const candidate = this.statements.getOccurrence.get(id);
+      if (!candidate) {
+        throw new SchedulerKernelError(
+          "SCHEDULER_NOT_FOUND",
+          `Scheduler occurrence does not exist: ${id}`,
+        );
+      }
+      const job = this.statements.getJob.get(candidate.job_id);
+      const eligible =
+        job?.enabled === 1 &&
+        candidate.attempt < candidate.max_attempts &&
+        (([OCCURRENCE_STATUS.QUEUED, OCCURRENCE_STATUS.RETRY_WAIT].includes(
+          candidate.status,
+        ) &&
+          candidate.available_at <= now) ||
+          (candidate.status === OCCURRENCE_STATUS.RUNNING &&
+            candidate.lease_expires_at <= now));
+      if (!eligible) return null;
+
+      const previousStatus = candidate.status;
+      const previousOwner = candidate.lease_owner;
+      const result = this.db
+        .prepare(
+          `
+          UPDATE occurrences
+          SET status = 'running',
+              attempt = attempt + 1,
+              fence = fence + 1,
+              lease_owner = @ownerId,
+              lease_expires_at = @leaseExpiresAt,
+              updated_at = @now,
+              settled_at = NULL
+          WHERE occurrence_id = @occurrenceId
+            AND fence = @expectedFence
+            AND attempt < max_attempts
+            AND (
+              (status IN ('queued', 'retry_wait') AND available_at <= @now)
+              OR
+              (status = 'running' AND lease_expires_at <= @now)
+            )
+        `,
+        )
+        .run({
+          occurrenceId: id,
+          expectedFence: candidate.fence,
+          ownerId: owner,
+          leaseExpiresAt,
+          now,
+        });
+      if (result.changes !== 1) {
+        throw new SchedulerKernelError(
+          "SCHEDULER_CLAIM_CONFLICT",
+          "Occurrence eligibility changed during targeted claim",
+        );
+      }
+      const claimed = this.statements.getOccurrence.get(id);
+      this._appendEvent({
+        jobId: candidate.job_id,
+        occurrenceId: id,
+        type:
+          previousStatus === OCCURRENCE_STATUS.RUNNING
+            ? "occurrence_reclaimed"
+            : "occurrence_claimed",
+        occurredAt: now,
+        ownerId: owner,
+        fence: claimed.fence,
+        data: {
+          attempt: claimed.attempt,
+          previousOwner,
+          previousStatus,
+          targeted: true,
         },
       });
       return mapOccurrence(claimed);
