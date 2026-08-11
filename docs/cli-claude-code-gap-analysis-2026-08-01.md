@@ -1282,6 +1282,17 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 
 因此下一开发重点可以继续放在 P2-4 的统一 scheduler service 与首批 adapter 迁移；并行的产品发布阻断仍是任务 3 的剩余平台安全边界、任务 4 的外部签名/渠道材料和任务 5 的真实生产 telemetry。`0.163.4` 的成功发布只关闭本版本 npm 子链，不能外推为 signed native distribution、完整调度内核或 alias removal 已完成。
 
+### 16.20 2026-08-11 P2-4 runtime 与 Routine 首个 adapter 候选
+
+- 实现提交 `aa1eaadbe58f217912c2a9ff0def00f72bffbb59` 在 scheduler-kernel v1 store 上增加 host-owned `SchedulerRuntime`：只执行精确 job revision，要求显式 authorizer 和已注册 adapter；授权完成后再次复验 owner/fence 租约，再启动续租 heartbeat；成功、重试、死信和取消都只能由同一 owner/fence 结算。定向 `claimOccurrence` 不会消费其他 queued work，`claimNext(jobKind)` 允许 adapter driver 只恢复自己的 occurrence。
+- Routine 是第一套迁入统一执行面的入口：`routine trigger` 的 manual invocation，以及 `routine run` 的 cron/once 路径，均先把版本化 routine snapshot、逻辑 trigger key 和结构化 authority envelope 写入 scheduler store，再经 runtime claim/authorize/adapter/settle。双 driver 对同一 logical occurrence 只允许一个 agent 执行；Routine job 的 expected-revision CAS、scheduled state digest 与 manual definition digest 防止旧快照或被修改的 prompt 静默执行。GitHub polling 暂时保留 legacy 路径，不在本候选的迁移声明内。
+- 每个 scheduler occurrence 绑定确定性的 Routine run ID。若 agent 已完成且 run end 证据存在，但进程在 scheduler settle 前退出，后继 driver 会恢复同一 occurrence 并只补结算，不再次调用 agent；若只有 run start、没有 terminal evidence，则固定返回 `ROUTINE_RUN_OUTCOME_UNKNOWN` 并失败关闭。run ID、occurrence ID 与 snapshot digest 不匹配同样死信。该保证只覆盖进程崩溃后仍可读取的持久记录，不外推为断电/fsync、磁盘回滚或任意外部副作用的全局 exactly-once。
+- 当前本地候选证据为 6 个聚焦文件 **93/93 passed**，覆盖双 SQLite handle CAS/claim、按 adapter kind 隔离、授权拒绝、慢授权租约丢失、续租、取消、重试/死信、双 driver 竞争、handle restart、settle 前崩溃恢复、outcome-unknown 与 binding mismatch。Prettier、Node syntax、`git diff --check`、Routine help、shell completion 和 `npm pack --dry-run` 通过；tarball 清单 991 项且包含新增 runtime/adapter。目标 ESLint 为 0 errors、1 个既有 warning。本地复用依赖目录缺少 `ajv/dist/2020.js`，所以 manifest/help-index 生成门没有形成有效本地结论，必须以干净 `npm ci` 的 PR GitHub Actions 为准。
+- P2-4 继续是 **部分完成**，15 项总表仍为 **8 项完成、7 项部分完成、0 项完全未开始，7 项未完全关闭**。本候选尚未迁移 Agenda、Cowork Cron、Automation、Loop 与 Routine GitHub；没有统一 IANA timezone/DST/missed-run 语义，没有接入跨入口真实权限/预算 resolver，没有完整 standalone daemon/liveness/升级回滚，也没有三平台 kill/restart/双实例/磁盘故障/长期 soak。start-only outcome 仍需显式人工裁决，disabled/stale occurrence 的长期清理策略也未定义。
+- 在第 16.19 节剩余估算基础上，扣除通用 runtime 和 Routine cron/once/manual 首个 adapter，但保留上述全部产品退出条件，当前粗估约 **4～7 周（单工程师）/2.5～4.5 周（两人有效并行）**。下一窄切片建议迁移 Agenda，并把其现有 permission mode、worktree、turn/token/cost/time budget 与统一 authority resolver 接通；随后处理 timezone/DST/missed-run，再迁移其余三类 driver 并完成长期矩阵。
+
+本节仍是候选实现记录，不是 npm 发布授权。只有候选最终 exact SHA 的 `CLI CI` 与 `CLI Strict Sandbox` Linux/Windows/macOS 全矩阵成功并进入 `main` 后，才能把该增量计为正式已合并证据；即使合并，P2-4 也不会因此整项完成。
+
 ## 17. 2026-08-06 `0.162.198` 发布闭环与继续执行边界
 
 `0.162.198` 是第 16 节之后的 CLI-only 补丁发布，纳入 P0-1 canonical session workbench、P0-2 rewind/branch 宿主绑定、P0-3 发布可靠性跟进，以及 REPL/headless/provider/TTY 输出背压和跨平台 release fixture 修复。它不改变第 16.8 节产品级未完成项的授权边界。

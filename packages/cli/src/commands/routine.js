@@ -18,6 +18,11 @@ import { fileURLToPath } from "node:url";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import { executionBroker } from "../lib/process-execution-broker/index.js";
+import { openSchedulerStore } from "../lib/scheduler-kernel/store.js";
+import {
+  RoutineSchedulerBridge,
+  routineBridgeRunId,
+} from "../lib/scheduler-kernel/routine-adapter.js";
 
 export const _deps = {
   spawn: (...args) => executionBroker.spawn(...args),
@@ -281,14 +286,24 @@ export function registerRoutineCommand(program) {
     .description("Fire a routine NOW (the webhook/API entry point)")
     .option("--json", "Output as JSON")
     .action(async (id, options) => {
+      let schedulerStore;
       try {
         const store = await loadStore();
         const r = store.get(id);
         if (!r) throw new Error(`routine not found: ${id}`);
-        const { fireRoutine } = await import("../lib/routine-store.js");
-        const runId = await fireRoutine(store, r, defaultRunAgent, {
-          trigger: "manual",
+        schedulerStore = openSchedulerStore();
+        const bridge = new RoutineSchedulerBridge({
+          routineStore: store,
+          schedulerStore,
+          runAgent: defaultRunAgent,
         });
+        const fired = await bridge.trigger(r);
+        const runId = routineBridgeRunId(fired);
+        if (!runId) {
+          throw new Error(
+            `routine occurrence did not execute: ${fired.result?.status || "unknown"}`,
+          );
+        }
         const run = store.listRuns({ routineId: r.id, limit: 1 })[0];
         if (options.json) return console.log(JSON.stringify(run, null, 2));
         logger.success(`Fired ${r.id} → ${runId} (${run?.status})`);
@@ -296,6 +311,8 @@ export function registerRoutineCommand(program) {
       } catch (err) {
         logger.error(err.message);
         process.exitCode = 1;
+      } finally {
+        schedulerStore?.close();
       }
     });
 
@@ -304,17 +321,28 @@ export function registerRoutineCommand(program) {
     .description("Driver: fire due cron/once routines and poll github triggers")
     .option("--json", "Output as JSON")
     .action(async (options) => {
+      let schedulerStore;
       try {
         const store = await loadStore();
-        const { fireRoutine, pollGithubRoutine } =
-          await import("../lib/routine-store.js");
+        const { pollGithubRoutine } = await import("../lib/routine-store.js");
+        schedulerStore = openSchedulerStore();
+        const bridge = new RoutineSchedulerBridge({
+          routineStore: store,
+          schedulerStore,
+          runAgent: defaultRunAgent,
+        });
         const fired = [];
-        for (const r of store.due()) {
+        for (const scheduled of await bridge.runDue()) {
+          const runId = routineBridgeRunId(scheduled);
+          if (!runId) {
+            if (scheduled.result?.status === "busy") continue;
+            throw new Error(
+              `routine occurrence did not execute: ${scheduled.routine} (${scheduled.result?.status || "unknown"})`,
+            );
+          }
           fired.push({
-            routine: r.id,
-            runId: await fireRoutine(store, r, defaultRunAgent, {
-              trigger: r.trigger.kind,
-            }),
+            routine: scheduled.routine,
+            runId,
           });
         }
         for (const r of store.githubRoutines()) {
@@ -334,6 +362,8 @@ export function registerRoutineCommand(program) {
       } catch (err) {
         logger.error(err.message);
         process.exitCode = 1;
+      } finally {
+        schedulerStore?.close();
       }
     });
 
