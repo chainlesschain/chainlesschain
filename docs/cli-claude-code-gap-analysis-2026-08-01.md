@@ -1328,6 +1328,12 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 
 本节是未合并候选记录，不修改 CLI 版本、不创建 release tag，也不授权 npm 发布。只有候选最终 exact SHA 的 `CLI CI` 与 `CLI Strict Sandbox` Linux、Windows、macOS 全矩阵成功并进入 `main` 后，才能把该增量计为正式完成的 P2-4 子切片。
 
+### 16.25 2026-08-11 P2-4 Cowork Cron adapter 正式合并证据
+
+- [PR #155](https://github.com/chainlesschain/chainlesschain/pull/155) 的最终 head `41a6a02fc9250a88a82a77d75c101b64a20c60e1` 已以 merge commit `2eb17a0c0cae9ac3cd46bb47d33fb5e3bde1f52e` 进入 `main`。该 exact head 的 [CLI CI `31469044102`](https://github.com/chainlesschain/chainlesschain/actions/runs/31469044102) 为 **53/53 jobs success**，包含 Linux、Windows、macOS 全部 unit/integration/E2E shards、三平台 `verify-cli`、Linux pack dry-run 与 publish dry-run；手动 exact-SHA [CLI Strict Sandbox `31469776963`](https://github.com/chainlesschain/chainlesschain/actions/runs/31469776963) 为 Linux、macOS、Windows **3/3 success**。PR 最终检查汇总为 **89 pass、7 skipped、0 fail**。
+- branch protection 的 auto-merge 在完整 CLI CI 汇总结束前已经合入 PR，因为该完整 workflow 当时不属于 required 集；这不能作为发布门通过。期间没有修改 CLI 版本、创建 release tag 或发布 npm。只有在上述同一 head SHA 的 CLI 53/53 与 Strict 3/3 后，本节才把第 16.24 节的 production Cowork Cron runtime route、workspace-scoped recovery、definition snapshot、旧新 driver fencing、已知失败有限重试、terminal evidence 恢复和 outcome-unknown fail-close 更新为**正式已合并 P2-4 子切片**。
+- 总体判定仍为 **部分完成**：原 15 项总表保持 **8 项完成、7 项部分完成、0 项完全未开始，7 项未完全关闭**。Agenda monitor、Automation、Loop、Routine GitHub、真实共享权限/预算 resolver、IANA timezone/DST/missed-run、standalone daemon/liveness、未知结果人工裁决、迁移/回滚、磁盘故障和三平台长期 soak 仍是退出条件；剩余粗估继续采用第 16.24 节的 **3～6 周（单工程师）/2～3.5 周（两人有效并行）**。公网最新 CLI 仍为 `0.163.4`，本次合并不单独授权新 npm 发布。
+
 ## 17. 2026-08-06 `0.162.198` 发布闭环与继续执行边界
 
 `0.162.198` 是第 16 节之后的 CLI-only 补丁发布，纳入 P0-1 canonical session workbench、P0-2 rewind/branch 宿主绑定、P0-3 发布可靠性跟进，以及 REPL/headless/provider/TTY 输出背压和跨平台 release fixture 修复。它不改变第 16.8 节产品级未完成项的授权边界。
