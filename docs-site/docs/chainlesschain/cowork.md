@@ -1,6 +1,6 @@
 # Cowork 多智能体协作系统
 
-> **适用版本：CLI 0.163.3（npm latest、源码包元数据与生产推荐一致）| P2-16 Agent Teams 发布门已通过 | 状态：Cowork 命令可用，运行时测试持续维护**
+> **适用版本：CLI 0.163.5（npm latest、生产推荐一致）| Cowork Cron 已接入统一 Scheduler Kernel | P2-16 Agent Teams 发布门已通过 | 状态：Cowork 命令可用，运行时测试持续维护**
 >
 > 本文同时说明当前 CLI 与历史桌面端 Cowork。日常使用请优先参考“快速开始”和 CLI 章节；桌面 IPC 数量、历史性能基线与模块行数仅用于回归和演进追踪，不代表当前 CLI 的服务等级。Cowork 与基于 DAG / lease / queue 的 `cc team` 是两个不同入口，大规模团队协作请参阅 [Agent Team 用户指南](./cli-team.md)。
 
@@ -110,7 +110,7 @@ cc cowork status
 - 🎭 **Debate Review**: 多视角辩论式代码审查（性能/安全/可维护性），共识投票裁决
 - ⚖️ **A/B Comparator**: 多代理方案生成与基准对比，自动评分排名
 - 🔄 **Experience Replay**: 工作流模板自动提取，成功路径沉淀为 Instinct 模式
-- ⏰ **Cron 与 DAG 工作流**: 5 字段定时调度、依赖校验、批次并行、流水线和失败降级
+- ⏰ **Cron 与 DAG 工作流**: 5/6 字段定时调度、依赖校验、批次并行、流水线和失败降级；`0.163.5` 的 production `cowork cron run` 使用 definition snapshot、workspace-scoped claim、owner/fence lease 与 terminal-evidence recovery
 - 📦 **模板、分享与学习**: EvoMap 模板、SHA-256/可选 DID 签名、历史推荐与失败归因
 - 🔌 **MCP 工具挂载**: 模板声明 MCP server，任务生命周期内自动挂载和卸载
 - 🔩 **全自动开发流水线** (v3.0): DAG 流水线编排，需求→Spec→代码→部署→监控全链路自动化
@@ -1360,7 +1360,7 @@ CLI 主配置默认位于 `~/.chainlesschain/config.json`；如果设置 `CHAINL
 | `workflow run --max-parallel`      | `4`                                    | 每批最多并行步骤数                        |
 | `workflow run --pipeline`          | 关闭                                   | 依赖满足后立即启动步骤，不等待整批完成    |
 | `workflow run --continue-on-error` | 关闭                                   | 步骤失败后继续执行可运行步骤              |
-| `cron run --interval`              | `60000` ms                             | 调度器检查周期                            |
+| `cron run --interval`              | 5 字段 `60000` ms；6 字段 `1000` ms    | 显式传值优先；六字段 cron 自动使用秒级轮询 |
 | `observe report --days`            | `7`                                    | 聚合窗口天数                              |
 | `observe serve --host/--port`      | `127.0.0.1:18820`                      | 只读观察面板监听地址                      |
 
@@ -1618,7 +1618,7 @@ cc cowork share import ./packet.json --require-signed --trust <did>
 
 **Q: Cron 任务没有触发？**
 
-确认 `cc cowork cron run` 正在前台运行，并在创建计划时使用的同一项目目录启动。检查系统时区、5 字段 cron 表达式和 `cc cowork cron list` 中的 enabled 状态；默认检查周期为 60 秒。
+确认 `cc cowork cron run` 正在前台运行，并在创建计划时使用的同一项目目录启动。检查系统时区、5/6 字段 cron 表达式和 `cc cowork cron list` 中的 enabled 状态；5 字段默认检查周期为 60 秒，6 字段自动使用 1 秒。统一内核只领取当前 workspace 的 occurrence，不会由另一个工作区的 driver 代跑。
 
 **Q: 工作流提示不存在、依赖无效或出现环？**
 
@@ -1696,7 +1696,8 @@ const logs = await window.electron.ipcRenderer.invoke("cowork:get-logs", {
 | `packages/cli/src/lib/cowork-task-templates.js`       | 内置/用户任务模板注册表                       |
 | `packages/cli/src/lib/cowork-task-runner.js`          | SubAgent 任务执行、MCP 挂载与历史收口         |
 | `packages/cli/src/lib/cowork-workflow.js`             | DAG 校验、持久化、批次/流水线执行             |
-| `packages/cli/src/lib/cowork-cron.js`                 | 5 字段 cron 解析、租约与前台调度器            |
+| `packages/cli/src/lib/cowork-cron.js`                 | 5/6 字段 cron、兼容 JSONL 定义/执行证据与旧 driver fence |
+| `packages/cli/src/lib/scheduler-kernel/cowork-cron-adapter.js` | definition snapshot、workspace claim、恢复与 outcome-unknown 策略 |
 | `packages/cli/src/lib/cowork-template-marketplace.js` | 用户模板存储与安全路径校验                    |
 | `packages/cli/src/lib/cowork-evomap-adapter.js`       | EvoMap 搜索、安装、发布与签名策略             |
 | `packages/cli/src/lib/cowork-share.js`                | 模板/结果包导出、校验、签名和导入             |

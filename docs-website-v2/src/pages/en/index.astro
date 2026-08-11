@@ -2,7 +2,6 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Terminal from '../../components/Terminal.astro';
 import rootPkg from '../../../../package.json';
-import cliPkg from '../../../../packages/cli/package.json';
 import pdhPkg from '../../../../packages/personal-data-hub/package.json';
 import pdhCatalog from '../../../../docs/internal/pdh-app-data-catalog.json';
 import releaseSizes from '../../data/release-sizes.json';
@@ -17,7 +16,7 @@ const PDH_ADAPTER_COUNT = pdhCatalog.count;
 // fallback can drift ahead of npm during dev, so the pinned value is the norm.
 const CLI_VERSION = releaseStatus.recommendedCliVersion;
 const NPM_LATEST_CLI_VERSION = releaseSizes.cliVersion || releaseStatus.npmLatestCliVersion;
-const SOURCE_CLI_VERSION = cliPkg.version;
+const SOURCE_CLI_VERSION = releaseStatus.sourceMainCliVersion;
 const ANDROID_TAG = releaseSizes.tag || PRODUCT_VERSION;
 const DOWNLOAD_VERSION = releaseSizes.productVersion || PRODUCT_VERSION;
 const ANDROID_VERSION = DOWNLOAD_VERSION;
@@ -87,7 +86,7 @@ const everyday = [
 const badges = [
   { icon: '🏆', label: '4 invention patents' },
   { icon: '🔒', label: 'Military-grade encryption' },
-  { icon: '⭐', label: '22k+ Open VSX downloads' },
+  { icon: '⭐', label: '23k+ Open VSX downloads' },
   { icon: '✅', label: 'MLPS Level 3' },
   { icon: '📋', label: 'Co-author · Intrinsic Security of AI Agent (T/ZGCMCA 023—2025)', href: 'https://www.ttbz.org.cn/standardDetail.html?id=jy42azxbb1ymwtf6tm371ejs6jcuwz7' },
 ];
@@ -108,7 +107,7 @@ const badges = [
           <span class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> {PRODUCT_VERSION} · Evolution Edition</span>
           <span class="chip">Verified CLI v{CLI_VERSION}</span>
           <span class="chip">175 commands</span>
-          <a href="https://open-vsx.org/extension/chainlesschain/chainlesschain-ide" target="_blank" rel="noopener" class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> 🎉 VS Code extension · 22k+ downloads on Open VSX</a>
+          <a href="https://open-vsx.org/extension/chainlesschain/chainlesschain-ide" target="_blank" rel="noopener" class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> 🎉 VS Code extension · 23k+ downloads on Open VSX</a>
           <a href="https://www.npmjs.com/search?q=chainlesschain" target="_blank" rel="noopener" class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> 📦 50k+ monthly downloads across ChainlessChain npm packages</a>
           <span class="chip">Web Shell (default)</span>
           <span class="chip">Bilingual Web Panel</span>
@@ -142,7 +141,7 @@ const badges = [
         </div>
 
         <p class="animate-fade-in-delay-3 mt-5 text-sm text-muted max-w-3xl">
-          Release note: npm <code class="font-mono">latest</code>, the production recommendation, and source package metadata are all <code class="font-mono">{CLI_VERSION}</code>. The same immutable tagged SHA passed three-OS CLI CI, Strict Sandbox, the two-hour reliability gate, immutable artifact and SBOM checks, provenance, and registry readback. Source metadata is <code class="font-mono">{SOURCE_CLI_VERSION}</code>; production authority still comes from the immutable tag evidence.
+          Release note: npm <code class="font-mono">latest</code>, the production recommendation, and mainline source are all <code class="font-mono">{CLI_VERSION}</code>. The same immutable tagged SHA passed three-OS CLI CI, Strict Sandbox, npm publication, and registry readback. This release ships the unified Scheduler with Routine, Agenda, and Cowork Cron adapters; the Automation Scheduler adapter remains a feature-branch candidate outside the stable contract. Mainline is <code class="font-mono">{SOURCE_CLI_VERSION}</code>.
         </p>
 
         <div class="animate-fade-in-delay-3 mt-14 pt-8 border-t border-line flex flex-wrap gap-x-8 gap-y-3">

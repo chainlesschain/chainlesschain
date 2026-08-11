@@ -1,10 +1,9 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import cliPkg from '../../../../packages/cli/package.json';
 import releaseStatus from '../../data/release-status.json';
 
 const CLI_VERSION = releaseStatus.recommendedCliVersion;
-const SOURCE_CLI_VERSION = cliPkg.version;
+const SOURCE_CLI_VERSION = releaseStatus.sourceMainCliVersion;
 ---
 <BaseLayout
   title="Security & Privacy — U-Key · SIMKey · Signal · Local Ollama | ChainlessChain"

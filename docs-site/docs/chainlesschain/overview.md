@@ -1,8 +1,8 @@
 # ChainlessChain 系统概述
 
-> **当前版本（2026-08-10）：v5.0.3.135 | CLI 0.163.3（npm latest / 源码包元数据 / 生产推荐一致）| PDH 0.4.57（92 个采集契约 / 18 类来源）| Agent SDK 0.1.7 | Open VSX 0.37.48 | JetBrains Marketplace 0.4.84 | Android versionCode 503135 | iOS build 135**
+> **当前版本（2026-08-12）：v5.0.3.135 | CLI 0.163.5（npm latest / 主线源码 / 生产推荐一致）| PDH 0.4.57（92 个采集契约 / 18 类来源）| Agent SDK 0.1.7 | Open VSX 0.37.49 | JetBrains Marketplace 0.4.85 | Android versionCode 503135 | iOS build 135**
 >
-> **当前能力与发布边界**：CLI `0.163.3` 已公开默认后台 worktree、generation/token fence、grammar-safe detached argv、MCP source policy/cwd authority、Linux 插件逐文件封存与 Windows adapter artifact 安全回收，并承接 canonical session、checkpoint recovery 与 `0.163.2` 的 runtime identity/capsule 基线。生产安装建议固定 `chainlesschain@0.163.3`；同一精确 SHA 的三平台 CLI/Strict、两小时可靠性/恶意 MCP 门与 npm 发布/公网回读均成功。当前分支 `d2fcbddc99` 的 capsule 四边界宿主地板晚于 tag，尚非生产契约；unsigned native 证据也不等于签名 Desktop/native 发行。
+> **当前能力与发布边界**：CLI `0.163.5` 已公开统一 Scheduler 内核、租约/幂等恢复，以及 Routine、Agenda wakeup/cron、Cowork Cron 三类稳定适配器，并承接 canonical session、checkpoint recovery 与既有运行时隔离基线。生产安装建议固定 `chainlesschain@0.163.5`；精确 SHA `095087c1e8` 的三平台 CLI/Strict、npm 发布与公网回读均成功。当前功能分支的 Automation Scheduler 适配器（`15a641fa85`）尚非生产契约；unsigned native 证据也不等于签名 Desktop/native 发行。
 >
 > **v5.0.3.127–130 QQ空间一键采集 + 微信朋友圈采集 + §8.3 学习层备份上设备 + 个人助手 UX 收口（2026-06-24）**：QQ空间（Qzone）本地无库走 API——新增 `pdh/lib/forensics/qzone-collect.js`（`g_tk`=bkn hash over qzone 域 `p_skey`；说说/留言板/相册 → EVENT）+ `cc hub collect-qzone` + Android「QQ空间」一键采集卡（内嵌 WebView ptlogin2 登录 → 抓 cookie → in-APK 采集，真机 404 事件）；微信朋友圈 `SnsMicroMsg.db` 明文采集（`parseSnsEvents`，真机 2824 条）；§8.3 学习层备份命令上设备（`cc memory/instinct/learning export/import` → vault + 记忆 + 习惯 + 自进化轨迹全资产端到端备份）；个人助手 UX——卡死静默看门狗（20s 安抚/120s 友好超时+重试/进程退出自动重启）+ 待裁决信任卡固定（sticky）可见不再被消息流滚走。`pdh` 0.4.33→**0.4.36** + `chainlesschain` 0.162.101→**0.162.117** 已发 npm；Android cc bundle `internal-binaries-android-v20260624`（USR_VERSION 58）。
 >

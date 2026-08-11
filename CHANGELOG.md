@@ -7,11 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI 0.163.5: durable scheduler runtime and recovery
+
+> `chainlesschain` **0.163.4 → 0.163.5** (published from exact SHA
+> `095087c1e859a8451ce01ed58c59af3fede756fd`, 2026-08-11).
+> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.57**
+> and `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **Unified scheduler runtime**: the versioned scheduler store now has a shared
+  runtime with adapter registration, snapshot-bound authorization, durable
+  owner/fence claims, lease renewal, bounded retry, dead-letter settlement,
+  history, and adapter-kind isolation.
+- **Routine scheduling migration**: manual triggers and `routine run` cron/once
+  executions use canonical logical occurrences, revision-CAS job snapshots,
+  deterministic run evidence, dual-driver fencing, and crash recovery that
+  settles terminal evidence without replaying the agent.
+- **Agenda wakeup/cron migration**: production Agenda wakeup and cron entries
+  preserve their full permission/worktree/turn/token/cost/time run policy while
+  executing through the shared kernel. New and legacy drivers coordinate with
+  durable leases; known failures retry, while start-only outcomes fail closed.
+- **Cowork Cron migration**: production `cowork cron run` uses definition-only
+  snapshots, workspace-scoped recovery claims, cross-version JSONL delivery
+  fences, terminal-evidence recovery, and automatic one-second polling for
+  six-field cron expressions.
+- **Durable compaction recovery**: micro-compaction strips transient runtime
+  markers before persistence, records checkpoint state durably, restores it in
+  REPL/agent flows, and preserves trace propagation across Process Broker
+  execution boundaries.
+- **Honest execution boundary**: durable terminal evidence prevents duplicate
+  automatic replay after a scheduler process crash. Start-only evidence or a
+  post-side-effect persistence failure remains outcome-unknown and requires
+  explicit handling; this release does not claim global exactly-once behavior.
+- **Known residuals**: Agenda monitor, Automation, Loop, Routine GitHub,
+  standalone scheduler daemon/liveness, shared permission/budget resolution,
+  IANA timezone/DST/missed-run semantics, migration/rollback, disk-fault and
+  long-soak closure remain outside this release. Signed native distribution and
+  representative alias-removal telemetry also remain open.
+- **Published release evidence**: immutable tag `v-npm-0-163-5` resolves to
+  exact source commit `095087c1e859a8451ce01ed58c59af3fede756fd`. Its Linux,
+  Windows, and macOS `CLI CI` (`31509337185`) and `CLI Strict Sandbox`
+  (`31509336854`) matrices passed; the dedicated npm release (`31509336832`)
+  completed its exact-SHA gate, immutable package, Trusted Publishing and
+  signed provenance, and the independent public readback (`31514940240`)
+  succeeded. npm reports `latest=0.163.5`; the public tarball SHA-1 is
+  `5dc6677dee6d1d73b708e6a50e3808007a314894`.
+
 ### Added — cc CLI 0.163.4: immutable MCP capsules and durable scheduler storage
 
-> `chainlesschain` **0.163.3 → 0.163.4** (candidate; not yet published,
-> 2026-08-11).
-> CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.57**
+> `chainlesschain` **0.163.3 → 0.163.4** (published from exact SHA
+> `27ed0ac2005e16ce5ddff53990e85b1d13ea0b1d`, 2026-08-11).
+> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.57**
 > and `@chainlesschain/agent-sdk` remains **0.1.7**.
 
 - **Immutable MCP capsule build inputs**: the capsule builder now executes in a
@@ -46,11 +91,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Known residuals**: full P2-4 scheduling orchestration, signed native
   distribution, representative alias telemetry, and the remaining documented
   long-soak/host-boundary follow-ups are not claimed by this release.
-- **Release status**: final tag, exact source SHA, workflow run IDs, package
-  digest, provenance, and public registry readback are intentionally omitted
-  until the exact `0.163.4` release commit passes the Linux, Windows, and macOS
-  `CLI CI` and `CLI Strict Sandbox` gates and the npm release/readback workflows
-  complete successfully.
+- **Published release evidence**: immutable tag `v-npm-0-163-4` resolves to
+  exact source commit `27ed0ac2005e16ce5ddff53990e85b1d13ea0b1d`. `CLI CI`
+  (`31421782916`), `CLI Strict Sandbox` (`31421782072`), the npm release
+  (`31424056034`), and independent public readback (`31425519966`) succeeded.
 
 ### Added — cc CLI 0.163.3: isolated background agents and policy-bound runtimes
 
