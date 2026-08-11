@@ -1293,6 +1293,12 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 
 本节仍是候选实现记录，不是 npm 发布授权。只有候选最终 exact SHA 的 `CLI CI` 与 `CLI Strict Sandbox` Linux/Windows/macOS 全矩阵成功并进入 `main` 后，才能把该增量计为正式已合并证据；即使合并，P2-4 也不会因此整项完成。
 
+### 16.21 2026-08-11 P2-4 runtime/Routine adapter 正式合并证据
+
+- [PR #150](https://github.com/chainlesschain/chainlesschain/pull/150) 的最终 head `8ff4c2a9dd6221a292acc5328c8e1d311c2a5a16` 已以 merge commit `2a894144499f96c2996babbb49687694bb6858ee` 进入 `main`。最终 head 的 [CLI CI `31447976697`](https://github.com/chainlesschain/chainlesschain/actions/runs/31447976697) 为 **53/53 jobs success**；手动 exact-SHA [CLI Strict Sandbox `31448029113`](https://github.com/chainlesschain/chainlesschain/actions/runs/31448029113) 为 Linux、macOS、Windows **3/3 success**。PR 汇总没有失败检查，因此第 16.20 节的 runtime、Routine cron/once/manual adapter、process-crash run evidence recovery 与聚焦测试从“本地候选”更新为**正式已合并增量**。
+- 状态边界不变：P2-4 仍为 **部分完成**，原 15 项仍是 **8 项完成、7 项部分完成、0 项完全未开始，7 项未完全关闭**。Agenda、Cowork Cron、Automation、Loop、Routine GitHub、真实共享权限/预算、timezone/DST/missed-run、standalone daemon、迁移/回滚和三平台长期故障矩阵仍未关闭；当前剩余粗估继续采用第 16.20 节的 **4～7 周（单工程师）/2.5～4.5 周（两人有效并行）**。
+- 本次没有修改 CLI 版本，也没有触发 npm 发布。公网最新版本仍是已经完成独立回读的 `0.163.4`；PR #150 的实现只能进入未来版本候选，必须在那个未来 release 的精确 SHA 上重新完成发布所需的 `CLI CI` 与 `CLI Strict Sandbox`，不得沿用本 PR 的成功直接发布。
+
 ## 17. 2026-08-06 `0.162.198` 发布闭环与继续执行边界
 
 `0.162.198` 是第 16 节之后的 CLI-only 补丁发布，纳入 P0-1 canonical session workbench、P0-2 rewind/branch 宿主绑定、P0-3 发布可靠性跟进，以及 REPL/headless/provider/TTY 输出背压和跨平台 release fixture 修复。它不改变第 16.8 节产品级未完成项的授权边界。
