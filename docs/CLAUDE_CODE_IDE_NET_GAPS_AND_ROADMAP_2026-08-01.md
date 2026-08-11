@@ -1232,11 +1232,12 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
   Scheduler/Routine 回归 **61/61 passed**，ESLint、Prettier、command manifest/help/completions 与 npm pack
   dry-run 通过；exact-head Actions 仍在运行，PR 尚未进入 `main`。
 - **Agenda monitor scheduler 已形成开放候选。** PR
-  [#158](https://github.com/chainlesschain/chainlesschain/pull/158) 的 exact head
+  [#158](https://github.com/chainlesschain/chainlesschain/pull/158) 的 implementation commit
   `2ddc09d4cb16034f8082630238d0c9e2ba0640df` 将生产 command/file/HTTP monitor observation 接入统一
   kernel，并绑定独立 `monitor.observe` authority。monitor check、re-arm/match 与 scheduler evidence 在同一
   JSONL replacement 中结算；双 live driver 只观察一次，持久化结果可恢复且不重复通知，运行中崩溃的未知
-  observation outcome fail closed，observed output 保持 transient。提交前全部 Scheduler Kernel 相关回归
+  observation outcome fail closed，observed output 保持 transient；`81474931222e9f3f872d60fed9ef91c17311dbd3`
+  又使缺失 notification handler 显式产生可见错误而非静默丢弃。提交前全部 Scheduler Kernel 相关回归
   **161/161 passed**，ESLint、Prettier、command manifest/help/completions 与 npm pack dry-run 通过；
   exact-head Actions 仍在运行，PR 尚未进入 `main`。
 - 本更新仍不改变 **17/19 尚未关闭、22 个剩余工作包**计数。Microsoft Marketplace、JetBrains
