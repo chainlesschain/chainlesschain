@@ -29,6 +29,11 @@ import { monitorEventEnvelope, capEventPayload } from "../lib/monitor-event.js";
 import { unattendedDisallowedTools } from "../lib/unattended-action-policy.js";
 import executionBroker from "../lib/process-execution-broker/index.js";
 import { collectWorkspacePluginBinSandboxPolicy } from "../lib/plugin-runtime/bin.js";
+import {
+  AgendaSchedulerBridge,
+  agendaBridgeAction,
+} from "../lib/scheduler-kernel/agenda-adapter.js";
+import { openSchedulerStore } from "../lib/scheduler-kernel/store.js";
 import sharedShellPolicy from "../runtime/coding-agent-shell-policy.cjs";
 
 const { evaluateShellCommandPolicy } = sharedShellPolicy;
@@ -339,18 +344,55 @@ export async function runAgendaRun(options = {}, _deps = {}) {
   const readWatchedFile = _deps.readWatchedFile || defaultReadWatchedFile;
   const fetchUrl = _deps.fetchUrl || defaultFetchUrl;
   const notify = _deps.notify || sendAgentNotification;
-  const now = _deps.now ? _deps.now() : Date.now();
+  const clock = _deps.now || Date.now;
+  const now = clock();
   // Retire expired entries BEFORE firing due ones — an expired task never gets
   // a final fire (schedule-planner semantics). Dry-run inspects without mutating.
   const retired = options.dryRun
     ? partitionSchedule(store.list(), { now }).expired
     : store.retireExpired(now);
+  const actions = [];
+  const useSchedulerKernel =
+    !options.dryRun &&
+    (_deps.useSchedulerKernel === true ||
+      _deps.schedulerStore != null ||
+      _deps.store == null);
+  let schedulerEntries = [];
+  if (useSchedulerKernel) {
+    let schedulerStore = _deps.schedulerStore;
+    const ownsSchedulerStore = schedulerStore == null;
+    try {
+      schedulerStore ||= openSchedulerStore();
+      const bridge = new AgendaSchedulerBridge({
+        agendaStore: store,
+        schedulerStore,
+        runAgent: ({ prompt, runPolicy }) => spawnAgent(prompt, runPolicy),
+        now: clock,
+        ...(options.leaseMs === undefined
+          ? {}
+          : { leaseMs: Number(options.leaseMs) }),
+        ...(_deps.schedulerOwnerId === undefined
+          ? {}
+          : { ownerId: _deps.schedulerOwnerId }),
+      });
+      schedulerEntries = await bridge.runDue({
+        signal: options.signal || _deps.signal,
+      });
+      for (const scheduled of schedulerEntries) {
+        const action = agendaBridgeAction(scheduled);
+        if (action) actions.push(action);
+      }
+    } finally {
+      if (ownsSchedulerStore) schedulerStore?.close();
+    }
+  }
   const due = options.dryRun
     ? store.due(null, now)
-    : typeof store.claimDue === "function"
-      ? store.claimDue(now, options.leaseMs)
-      : store.due(null, now);
-  const actions = [];
+    : useSchedulerKernel && typeof store.claimDue === "function"
+      ? store.claimDue(now, options.leaseMs, "monitor")
+      : typeof store.claimDue === "function"
+        ? store.claimDue(now, options.leaseMs)
+        : store.due(useSchedulerKernel ? "monitor" : null, now);
 
   for (const entry of due) {
     if (options.dryRun) {
@@ -488,7 +530,11 @@ export async function runAgendaRun(options = {}, _deps = {}) {
   if (options.json) {
     log(
       JSON.stringify(
-        { due: due.length, retired: retiredSummary, actions },
+        {
+          due: due.length + schedulerEntries.length,
+          retired: retiredSummary,
+          actions,
+        },
         null,
         2,
       ),

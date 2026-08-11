@@ -168,6 +168,34 @@ function hasLiveExecutionLease(entry, now) {
   return Number(entry.executionLease?.expiresAt) > Number(now);
 }
 
+function agendaStoreError(code, message, { retryable = false, retryAt } = {}) {
+  const error = new Error(message);
+  error.code = code;
+  error.retryable = retryable;
+  if (retryAt !== undefined) error.retryAt = retryAt;
+  return error;
+}
+
+function applyScheduledAgentSuccess(entry, atMs) {
+  if (entry.kind === "wakeup") {
+    entry.status = "fired";
+    entry.firedAt = atMs;
+    return;
+  }
+  if (entry.kind === "cron") {
+    entry.lastRunAt = atMs;
+    entry.runs = (entry.runs || 0) + 1;
+    const next = nextCronTime(entry.cron, atMs);
+    if (next == null) entry.status = "exhausted";
+    else entry.nextAt = next;
+    return;
+  }
+  throw agendaStoreError(
+    "AGENDA_SCHEDULER_KIND_UNSUPPORTED",
+    `Scheduler execution is not supported for agenda kind: ${entry.kind}`,
+  );
+}
+
 /** Statuses an entry can never leave — safe to prune. */
 export const TERMINAL_STATUSES = Object.freeze([
   "fired",
@@ -499,6 +527,11 @@ export class AgentScheduleStore {
     return out;
   }
 
+  get(id) {
+    if (typeof id !== "string" || id.length === 0) return null;
+    return this.list().find((entry) => entry.id === id) || null;
+  }
+
   /** Entries whose time has come (pending wakeup / active cron|monitor). */
   due(kind = null, atMs = null) {
     const now = atMs != null ? atMs : this._now();
@@ -524,16 +557,20 @@ export class AgentScheduleStore {
    * lease expires. This is deliberately separate from `due()` for backwards
    * compatibility with read-only callers and injected test stores.
    */
-  claimDue(atMs = null, leaseMs = 120000) {
+  claimDue(atMs = null, leaseMs = 120000, kind = null) {
     const now = atMs != null ? Number(atMs) : this._now();
     const ttl = Math.max(1000, Number(leaseMs) || 120000);
+    const kinds = kind == null ? SCHEDULE_KINDS : [kind];
+    if (kinds.some((value) => !SCHEDULE_KINDS.includes(value))) {
+      throw new Error(`unknown schedule kind: ${kind}`);
+    }
     this._ensureDir();
     return withFileLock(
       path.join(this.dir, ".agenda-claims"),
       () => {
         const claimed = [];
-        for (const kind of SCHEDULE_KINDS) {
-          const entries = this._readAll(kind);
+        for (const scheduleKind of kinds) {
+          const entries = this._readAll(scheduleKind);
           let changed = false;
           for (const entry of entries) {
             if (!isSchedulableStatus(entry) || isEntryExpired(entry, now))
@@ -552,7 +589,7 @@ export class AgentScheduleStore {
             });
             changed = true;
           }
-          if (changed) this._writeAll(kind, entries);
+          if (changed) this._writeAll(scheduleKind, entries);
         }
         return claimed;
       },
@@ -569,6 +606,162 @@ export class AgentScheduleStore {
       if (updated) return updated;
     }
     return null;
+  }
+
+  /**
+   * Bind a scheduler claim to the legacy Agenda entry before agent execution.
+   * The same lock used by legacy `claimDue()` prevents an old/new driver from
+   * starting the entry concurrently during migration.
+   */
+  bindSchedulerExecution(
+    id,
+    { occurrenceId, snapshotDigest, attempt, atMs = null } = {},
+  ) {
+    const now = atMs != null ? Number(atMs) : this._now();
+    if (typeof occurrenceId !== "string" || occurrenceId.length === 0) {
+      throw agendaStoreError(
+        "AGENDA_SCHEDULER_BINDING_INVALID",
+        "Agenda scheduler occurrenceId is required",
+      );
+    }
+    if (typeof snapshotDigest !== "string" || snapshotDigest.length === 0) {
+      throw agendaStoreError(
+        "AGENDA_SCHEDULER_BINDING_INVALID",
+        "Agenda scheduler snapshotDigest is required",
+      );
+    }
+    if (!Number.isSafeInteger(attempt) || attempt < 1) {
+      throw agendaStoreError(
+        "AGENDA_SCHEDULER_BINDING_INVALID",
+        "Agenda scheduler attempt must be a positive integer",
+      );
+    }
+    this._ensureDir();
+    return withFileLock(
+      path.join(this.dir, ".agenda-claims"),
+      () => {
+        for (const kind of ["wakeup", "cron"]) {
+          const entries = this._readAll(kind);
+          const entry = entries.find((candidate) => candidate.id === id);
+          if (!entry) continue;
+          const prior = entry.schedulerExecution;
+          if (prior?.status === "running") {
+            throw agendaStoreError(
+              "AGENDA_SCHEDULER_OUTCOME_UNKNOWN",
+              `Agenda scheduler execution outcome is unknown: ${id}`,
+            );
+          }
+          if (
+            prior?.status === "succeeded" &&
+            prior.occurrenceId === occurrenceId &&
+            prior.snapshotDigest === snapshotDigest
+          ) {
+            return entry;
+          }
+          if (hasLiveExecutionLease(entry, now)) {
+            throw agendaStoreError(
+              "AGENDA_SCHEDULER_LEGACY_CLAIM_ACTIVE",
+              `Agenda entry is already claimed by a legacy runner: ${id}`,
+              {
+                retryable: true,
+                retryAt: Number(entry.executionLease.expiresAt),
+              },
+            );
+          }
+          entry.schedulerExecution = {
+            occurrenceId,
+            snapshotDigest,
+            attempt,
+            status: "running",
+            startedAt: now,
+          };
+          // Fence an older CLI that only understands the legacy claim field.
+          // Terminal scheduler evidence clears this lease; an outcome-unknown
+          // execution intentionally keeps it non-expiring until adjudicated so
+          // an old runner cannot duplicate an uncertain agent side effect.
+          entry.executionLease = {
+            owner: `scheduler:${occurrenceId}:${attempt}`,
+            claimedAt: now,
+            expiresAt: Number.MAX_SAFE_INTEGER,
+          };
+          this._writeAll(kind, entries);
+          return entry;
+        }
+        throw agendaStoreError(
+          "AGENDA_SCHEDULER_ENTRY_NOT_FOUND",
+          `Agenda entry does not exist: ${id}`,
+        );
+      },
+      { failIfUnavailable: true },
+    );
+  }
+
+  /**
+   * Atomically publish scheduler evidence and the legacy wakeup/cron state.
+   * A successful cron advances exactly once in the same JSONL replacement that
+   * records terminal evidence; failures keep the entry schedulable for the
+   * scheduler kernel's bounded retry policy.
+   */
+  completeSchedulerExecution(
+    id,
+    {
+      occurrenceId,
+      snapshotDigest,
+      attempt,
+      outcome,
+      result = null,
+      error = null,
+      atMs = null,
+    } = {},
+  ) {
+    if (!["succeeded", "failed"].includes(outcome)) {
+      throw agendaStoreError(
+        "AGENDA_SCHEDULER_OUTCOME_INVALID",
+        "Agenda scheduler outcome must be succeeded or failed",
+      );
+    }
+    const now = atMs != null ? Number(atMs) : this._now();
+    this._ensureDir();
+    return withFileLock(
+      path.join(this.dir, ".agenda-claims"),
+      () => {
+        for (const kind of ["wakeup", "cron"]) {
+          const entries = this._readAll(kind);
+          const entry = entries.find((candidate) => candidate.id === id);
+          if (!entry) continue;
+          const evidence = entry.schedulerExecution;
+          if (
+            !evidence ||
+            evidence.occurrenceId !== occurrenceId ||
+            evidence.snapshotDigest !== snapshotDigest ||
+            evidence.attempt !== attempt ||
+            evidence.status !== "running"
+          ) {
+            throw agendaStoreError(
+              "AGENDA_SCHEDULER_BINDING_MISMATCH",
+              `Agenda scheduler evidence does not match the active claim: ${id}`,
+            );
+          }
+          if (outcome === "succeeded") {
+            applyScheduledAgentSuccess(entry, now);
+          }
+          entry.schedulerExecution = {
+            ...evidence,
+            status: outcome,
+            endedAt: now,
+            ...(outcome === "succeeded" ? { result } : { error }),
+          };
+          delete entry.executionLease;
+          this._writeAll(kind, entries);
+          return entry;
+        }
+        throw agendaStoreError(
+          "AGENDA_SCHEDULER_ENTRY_NOT_FOUND",
+          `Agenda entry does not exist: ${id}`,
+        );
+      },
+      { failIfUnavailable: true },
+    );
   }
 
   /**
