@@ -1310,6 +1310,13 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 
 本节是未合并候选记录，不修改 CLI 版本，也不授权 npm 发布。只有候选最终 exact SHA 的 `CLI CI` 与 `CLI Strict Sandbox` Linux、Windows、macOS 全矩阵成功并进入 `main` 后，才能把该增量计为正式完成的 P2-4 子切片。
 
+### 16.23 2026-08-11 P2-4 Agenda wakeup/cron adapter 正式合并证据
+
+- [PR #152](https://github.com/chainlesschain/chainlesschain/pull/152) 的最终 head `7ed345b3663f9ef5b7f8b2940537a361b72128eb` 已以 merge commit `fa80965ab37fb7231c7be448294cb34e5aa6a0c5` 进入 `main`。该 exact head 的 [CLI Strict Sandbox `31462505731`](https://github.com/chainlesschain/chainlesschain/actions/runs/31462505731) 为 Linux、macOS、Windows **3/3 success**；[CLI CI `31462505772`](https://github.com/chainlesschain/chainlesschain/actions/runs/31462505772) attempt 2 为 **53/53 jobs success**，Linux、macOS、Windows `verify-cli` 均成功，其余 PR checks 无失败。
+- CLI CI 首次 attempt 的 Windows integration shard 3/8 曾因既有 `mcp-client-stdio-process-tree` 夹具未及时发布 PID marker 而失败；同一用例在当前 Windows 工作树隔离复跑为 1/1，通过后对同一 run 仅重跑失败 job，最终成功。该过程没有修改 head SHA，也没有把首轮失败或局部结果当作通过；最终只采用 attempt 2 的完整绿色矩阵。
+- 因此第 16.22 节的 production Agenda wakeup/cron runtime route、完整 `runPolicy` 保留、snapshot/occurrence binding、新旧 driver 双向 fencing、已知失败有限重试、成功 evidence 崩溃恢复及 outcome-unknown fail-close 从“候选”更新为**正式已合并 P2-4 子切片**。Agenda monitor 和其他未迁移入口不在该完成声明内。
+- 总体判定不变：P2-4 仍为 **部分完成**，原 15 项仍为 **8 项完成、7 项部分完成、0 项完全未开始，7 项未完全关闭**；剩余粗估继续采用第 16.22 节的 **3.5～6.5 周（单工程师）/2.5～4 周（两人有效并行）**。本次未修改 CLI 版本、未创建 release tag、未发布 npm；公网最新版本仍为 `0.163.4`。
+
 ## 17. 2026-08-06 `0.162.198` 发布闭环与继续执行边界
 
 `0.162.198` 是第 16 节之后的 CLI-only 补丁发布，纳入 P0-1 canonical session workbench、P0-2 rewind/branch 宿主绑定、P0-3 发布可靠性跟进，以及 REPL/headless/provider/TTY 输出背压和跨平台 release fixture 修复。它不改变第 16.8 节产品级未完成项的授权边界。
