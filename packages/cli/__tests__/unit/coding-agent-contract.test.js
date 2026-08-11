@@ -148,6 +148,16 @@ describe("coding-agent contract", () => {
     ]);
   });
 
+  it("exposes the optional IANA time zone on the schedule tool contract", () => {
+    const [definition] = getCodingAgentFunctionToolDefinitions({
+      names: ["schedule"],
+    });
+    expect(definition.function.parameters.properties.timezone).toMatchObject({
+      type: "string",
+      description: expect.stringContaining("IANA time zone"),
+    });
+  });
+
   it("maps tool definitions into registry descriptors using the contract", () => {
     expect(mapCodingAgentToolDefinition(CODING_AGENT_TOOLS[0])).toEqual(
       expect.objectContaining({

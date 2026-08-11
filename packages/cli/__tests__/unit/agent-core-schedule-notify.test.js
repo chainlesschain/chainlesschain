@@ -50,6 +50,20 @@ describe("schedule tool dispatch", () => {
     expect(res.scheduled).toMatchObject({ kind: "cron", cron: "0 9 * * 1-5" });
   });
 
+  it("threads an IANA time zone into the persisted cron entry", async () => {
+    const res = await executeTool("schedule", {
+      action: "cron",
+      prompt: "New York standup notes",
+      cron: "0 9 * * 1-5",
+      timezone: "America/New_York",
+    });
+    expect(res.scheduled).toMatchObject({
+      kind: "cron",
+      cron: "0 9 * * 1-5",
+      timeZone: "America/New_York",
+    });
+  });
+
   it("creates a monitor entry", async () => {
     const trustedWorkspace =
       `${tmpHome}${path.sep}staging${path.sep}..` +
@@ -228,6 +242,13 @@ describe("formatToolArgs for schedule/notify", () => {
     expect(
       formatToolArgs("schedule", { action: "cron", cron: "0 9 * * 1" }),
     ).toBe("cron 0 9 * * 1");
+    expect(
+      formatToolArgs("schedule", {
+        action: "cron",
+        cron: "0 9 * * 1",
+        timezone: "America/New_York",
+      }),
+    ).toBe("cron 0 9 * * 1 [America/New_York]");
     expect(formatToolArgs("schedule", { action: "wakeup", delay: "5m" })).toBe(
       "wakeup +5m",
     );

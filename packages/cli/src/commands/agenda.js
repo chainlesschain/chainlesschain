@@ -233,7 +233,7 @@ export function runAgendaList(options = {}, _deps = {}) {
       e.kind === "wakeup"
         ? new Date(e.dueAt).toISOString()
         : e.kind === "cron"
-          ? `${e.cron} (next ${new Date(e.nextAt).toISOString()})`
+          ? `${e.cron}${e.timeZone ? ` [${e.timeZone}]` : ""} (next ${new Date(e.nextAt).toISOString()})`
           : `${monitorWhat} (next ${new Date(e.nextAt).toISOString()})`;
     const expiry =
       e.expiresAt != null
