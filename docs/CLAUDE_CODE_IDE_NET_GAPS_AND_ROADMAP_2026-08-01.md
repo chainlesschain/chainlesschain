@@ -1151,7 +1151,7 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
   delivery live journey、外部 WORM 归档、远端即时撤权、macOS 原子 runtime exec/open、任意
   native/shared-library 递归闭包或长期对抗矩阵。
 - **S0-3 durable microcompact canonical CAS 已形成新的开放候选。** PR
-  [#146](https://github.com/chainlesschain/chainlesschain/pull/146) 的 exact head
+  [#146](https://github.com/chainlesschain/chainlesschain/pull/146) 的已验证 implementation commit
   `f19af7c794961eaaa08307eed0d5ca9e312d3e18` 将 microcompact checkpoint 持久化，并以 canonical
   message revision/digest CAS 拒绝 stale settlement；checkpoint 去除运行时 marker，trace context 在
   broker 边界继续传播。该 head 的 [CLI CI `31401473242`](https://github.com/chainlesschain/chainlesschain/actions/runs/31401473242)、
