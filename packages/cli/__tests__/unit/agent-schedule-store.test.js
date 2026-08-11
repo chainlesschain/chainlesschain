@@ -87,6 +87,18 @@ describe("nextCronTime", () => {
     expect(second).toBe(Date.UTC(2026, 10, 1, 6, 30, 0)); // 01:30 EST
   });
 
+  it("handles a fall-back transition that repeats the prior civil day", () => {
+    const beforeFirst = Date.UTC(2026, 3, 5, 1, 0, 0);
+    const first = nextCronTime("30 23 4 4 *", beforeFirst, {
+      timeZone: "America/Santiago",
+    });
+    const second = nextCronTime("30 23 4 4 *", first, {
+      timeZone: "America/Santiago",
+    });
+    expect(first).toBe(Date.UTC(2026, 3, 5, 2, 30, 0));
+    expect(second).toBe(Date.UTC(2026, 3, 5, 3, 30, 0));
+  });
+
   it("rejects an invalid IANA time zone", () => {
     expect(() => normalizeTimeZone("Mars/Olympus_Mons")).toThrow(
       /invalid IANA time zone/,

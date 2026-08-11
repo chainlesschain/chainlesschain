@@ -392,12 +392,19 @@ function nextCronTimeInTimeZone(sets, fromMs, timeZone) {
   const lastEpoch = Math.floor(from / 60_000) * 60_000 + minuteLimit * 60_000;
   const hours = [...sets[1]].sort((a, b) => a - b);
   const minutes = [...sets[0]].sort((a, b) => a - b);
+  let earliest = null;
 
   // Iterate civil dates instead of formatting every real minute. At most two
   // UTC offsets can map a civil minute around a DST transition; verifying each
   // reconstructed candidate preserves missing and repeated wall-time behavior.
-  for (let dayOffset = 0; dayOffset <= 367; dayOffset += 1) {
-    const date = new Date(firstLocalDay + dayOffset * 86_400_000);
+  // Start one civil day earlier because a rare midnight rollback can make a
+  // future real instant display as the previous local date. Once a later civil
+  // date is more than 36 hours beyond the best epoch, no supported IANA offset
+  // can map that date back before the current best candidate.
+  for (let dayOffset = -1; dayOffset <= 367; dayOffset += 1) {
+    const civilDay = firstLocalDay + dayOffset * 86_400_000;
+    if (earliest != null && civilDay - 36 * 3_600_000 > earliest) break;
+    const date = new Date(civilDay);
     const year = date.getUTCFullYear();
     const month = date.getUTCMonth() + 1;
     const day = date.getUTCDate();
@@ -410,7 +417,6 @@ function nextCronTimeInTimeZone(sets, fromMs, timeZone) {
       continue;
     }
     const offsets = localDayOffsets(year, month, day, timeZone);
-    let earliest = null;
     for (const hour of hours) {
       for (const minute of minutes) {
         for (const epoch of epochCandidatesForCivilMinute(
@@ -428,9 +434,8 @@ function nextCronTimeInTimeZone(sets, fromMs, timeZone) {
         }
       }
     }
-    if (earliest != null) return earliest;
   }
-  return null;
+  return earliest;
 }
 
 /**
