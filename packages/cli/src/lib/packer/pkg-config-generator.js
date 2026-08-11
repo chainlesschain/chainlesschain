@@ -18,7 +18,40 @@
  */
 
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
+
+function capsuleBuilderAssets(cliRoot) {
+  const requireFromCli = createRequire(path.join(cliRoot, "package.json"));
+  const realpath = fs.realpathSync.native || fs.realpathSync;
+  let packageJsonPath;
+  try {
+    packageJsonPath = realpath(
+      requireFromCli.resolve("esbuild-wasm/package.json"),
+    );
+  } catch (cause) {
+    throw new Error(
+      `Cannot resolve the pinned esbuild-wasm package for pkg assets: ${cause.message}`,
+    );
+  }
+  const packageRoot = path.dirname(packageJsonPath);
+  const sourceAssets = [
+    packageJsonPath,
+    path.join(packageRoot, "lib", "browser.js"),
+    path.join(packageRoot, "esbuild.wasm"),
+    path.join(cliRoot, "src", "lib", "mcp-stdio-capsule-builder-worker.cjs"),
+    path.join(cliRoot, "src", "lib", "mcp-stdio-immutable-vfs-resolver.cjs"),
+  ];
+  for (const asset of sourceAssets) {
+    const stat = fs.lstatSync(asset);
+    if (stat.isSymbolicLink() || !stat.isFile()) {
+      throw new Error(
+        `Pinned capsule builder pkg asset is not a regular file: ${asset}`,
+      );
+    }
+  }
+  return sourceAssets.map((asset) => realpath(asset));
+}
 
 /**
  * @param {object} ctx
@@ -396,6 +429,7 @@ export function generatePkgConfig(ctx) {
     `${posixify(cliRoot)}/src/lib/process-execution-broker/windows-sandbox-helper.exe`,
     `${posixify(cliRoot)}/src/lib/process-execution-broker/windows-sandbox.cs`,
     `${posixify(cliRoot)}/install/install.ps1`,
+    ...capsuleBuilderAssets(cliRoot).map(posixify),
   ];
   if (prebuildsDir) assets.push(`${posixify(prebuildsDir)}/**/*`);
   // Project mode: bundle the collected .chainlesschain/ snapshot as an asset.

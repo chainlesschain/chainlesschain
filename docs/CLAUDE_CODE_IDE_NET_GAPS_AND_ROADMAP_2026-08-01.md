@@ -1032,7 +1032,7 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
 | 2   | S0-2                 | 部分完成              | 完成恶意 Skill/MCP 来源、effect/ledger、动态撤销、进程树与长期对抗矩阵；direct handler 已阻断和默认确认门已过，但不等于完整信任闭环。                                                                                                                                                                                                                                                                                                             |
 | 3   | S0-3                 | 部分完成              | 完成真实 provider 长会话语义压缩、结构化 handoff、live trajectory 与全宿主长期一致性；synthetic 矩阵及 CLI 冷恢复 SLO 已关闭。                                                                                                                                                                                                                                                                                                                    |
 | 4   | Q0 / R0              | 未完成/外部阻塞       | 配置发布 authority，将同一验证 VSIX 发布到 Microsoft Marketplace，并完成 exact publisher/version/digest 回读及 stock VS Code 搜索、安装、升级、回滚；当前 Gallery 精确查询为 `TotalCount=0`。                                                                                                                                                                                                                                                     |
-| 5   | Q0 / Q4b             | 部分完成/外部阻塞     | 为 JetBrains `0.4.85` 配置作者证书、私钥和密码，执行 `signPlugin`，再做签名包 fresh-profile 安装、升级、失败恢复与回滚；`0.4.85` 已上传但仍在 Marketplace 公开审核，现有公开 `0.4.84` 已 listed，两个版本的 author signing 均被跳过。                                                                                                                                                                                                             |
+| 5   | Q0 / Q4b             | 部分完成/外部阻塞     | 为 JetBrains `0.4.85` 配置作者证书、私钥和密码，执行 `signPlugin`，再做签名包 fresh-profile 安装、升级、失败恢复与回滚；`0.4.85` 已 `approve=true`、`listed=true`、`hidden=false`，但 author signing 仍被跳过。                                                                                                                                                                                                                                   |
 | 6   | Q0 / Q4b             | 部分完成/外部阻塞     | 完成 Desktop/native x64+ARM64 签名发行、完整 generation transaction、真实 taskkill/断电、Authenticode、macOS signing/notarization 与公开资产逐字节回读；unsigned CLI 六目标不能替代。                                                                                                                                                                                                                                                             |
 | 7   | Q3 / P0-3 / R2       | 部分完成/外部验证延后 | PR #142 的 production GitHub adapter、`cc artifacts delivery-run` 与 crash-safe exact-effect runner 已通过 merge commit `e08a61530225e3371849e54f7cfb03efb8cf63a1` 进入 `main`，仓库内实现子门已关闭；仍需通过该入口真实执行 gates→preview→review→fix→PR/CI→受控 merge→archive，并关闭真实 ruleset/branch protection、required checks/review、权限及外部不可变归档回读。本期延后该外部 live journey；fake adapter、人工 PR 和仓库内测试不能替代。 |
 | 8   | Q4a/Q4b / P0-4       | 未完成                | 完成 Remote/SSH/WSL/devcontainer/Codespaces 与 JetBrains Gateway 的 stock/minimum × OS 真实宿主矩阵。                                                                                                                                                                                                                                                                                                                                             |
@@ -1169,14 +1169,13 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
   [发布 run `31450287978`](https://github.com/chainlesschain/chainlesschain/actions/runs/31450287978)，
   Windows/macOS/Linux 的 stable + minimum `1.85.2`、不可变 VSIX 校验、Open VSX credential、publish
   和 listing verify 全部成功。独立公开 API 回读确认 `0.37.49` 为 latest、listed 且可下载。
-- **JetBrains `0.4.85` 已完成上传，公开审核仍在传播。** 同一 exact SHA 的不可变 tag
+- **JetBrains `0.4.85` 已公开发布。** 同一 exact SHA 的不可变 tag
   `ide-jetbrains-v0.4.85` 触发
   [发布 run `31458637231`](https://github.com/chainlesschain/chainlesschain/actions/runs/31458637231)：
   `2024.2`/`2025.2` × Windows、macOS、Linux 六格真实宿主、smoke、JUnit、插件构建、结构与
-  Plugin Verifier 均成功，`publishPlugin` 上传成功。2026-08-11 本快照写入时，公开 API 尚未暴露
-  `0.4.85`，因此状态保持“uploaded / Marketplace review pending”，不得提前写为 `approve=true` 或
-  `listed=true`；当前已公开版本仍为 `0.4.84`。作者签名 secret 仍未配置，本次上传继续沿用现有
-  unsigned Marketplace 路径。
+  Plugin Verifier 均成功，`publishPlugin` 上传成功。独立公开 API 回读确认 `0.4.85` 已
+  `approve=true`、`listed=true`、`hidden=false`。作者签名 secret 仍未配置，本次上传继续沿用现有
+  unsigned Marketplace 路径；公开 listed 不替代作者签名与签名包 fresh-profile 升降级/回滚子门。
 - 两个 IDE 版本说明均推荐配套 CLI `0.163.4`，并概述 immutable MCP capsule build inputs、
   platform-bound live capsule evidence、durable revision-CAS scheduler storage foundation，以及从
   `0.163.3` 延续的 background worktree isolation/fenced ownership。IDE 版本本身是维护发布，不宣称

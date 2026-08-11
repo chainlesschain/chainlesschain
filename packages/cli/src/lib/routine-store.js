@@ -204,13 +204,24 @@ export class RoutineStore {
   }
 
   recordRunStart(routineId, meta = {}) {
-    const runId = `run-${Date.now().toString(36)}-${randomBytes(3).toString("hex")}`;
+    const runId =
+      typeof meta.runId === "string" && meta.runId.trim()
+        ? meta.runId.trim()
+        : `run-${Date.now().toString(36)}-${randomBytes(3).toString("hex")}`;
+    if (
+      runId.length > 512 ||
+      [...runId].some((char) => char.codePointAt(0) < 32)
+    ) {
+      throw new Error("routine runId is invalid");
+    }
     this._appendRun({
       type: "start",
       runId,
       routineId,
       trigger: meta.trigger || null,
       pid: meta.pid || null,
+      schedulerOccurrenceId: meta.schedulerOccurrenceId || null,
+      schedulerSnapshotDigest: meta.schedulerSnapshotDigest || null,
       startedAt: this._now(),
     });
     return runId;
@@ -263,6 +274,15 @@ export class RoutineStore {
       .map(({ type: _t, ...rest }) => rest);
   }
 
+  getRun(runId) {
+    if (typeof runId !== "string" || runId.length === 0) return null;
+    return (
+      this.listRuns({ limit: Number.MAX_SAFE_INTEGER }).find(
+        (run) => run.runId === runId,
+      ) || null
+    );
+  }
+
   /** Per-routine aggregate for `cc routine list`: runs, ok/failed, cost. */
   summarize(routineId) {
     const runs = this.listRuns({ routineId, limit: 1000 });
@@ -286,10 +306,51 @@ export class RoutineStore {
  * lastFiredAt (and disable a fired `once`). `runAgent({prompt})` must resolve
  * `{ exitCode, output, usage?, costUsd?, pid? }`.
  */
-export async function fireRoutine(store, routine, runAgent, meta = {}) {
+export async function executeRoutine(store, routine, runAgent, meta = {}) {
+  const requestedRunId =
+    typeof meta.runId === "string" && meta.runId.trim()
+      ? meta.runId.trim()
+      : null;
+  const existing = requestedRunId ? store.getRun(requestedRunId) : null;
+  if (existing) {
+    if (existing.routineId !== routine.id) {
+      const error = new Error("routine runId is bound to another routine");
+      error.code = "ROUTINE_RUN_ID_CONFLICT";
+      error.retryable = false;
+      throw error;
+    }
+    if (existing.status === "running") {
+      const error = new Error(
+        "routine run outcome is unknown; refusing duplicate execution",
+      );
+      error.code = "ROUTINE_RUN_OUTCOME_UNKNOWN";
+      error.retryable = false;
+      throw error;
+    }
+    const current = store.get(routine.id);
+    if (current) {
+      store.update(routine.id, {
+        lastFiredAt: existing.startedAt,
+        ...(current.trigger.kind === "once" ? { enabled: false } : {}),
+      });
+    }
+    return {
+      runId: existing.runId,
+      status: existing.status,
+      exitCode: existing.exitCode,
+      usage: existing.usage || null,
+      costUsd: Number.isFinite(existing.costUsd) ? existing.costUsd : null,
+      durationMs: existing.durationMs ?? null,
+      recovered: true,
+    };
+  }
+
   const startedAt = store._now();
   const runId = store.recordRunStart(routine.id, {
     trigger: meta.trigger || routine.trigger.kind,
+    ...(requestedRunId ? { runId: requestedRunId } : {}),
+    schedulerOccurrenceId: meta.schedulerOccurrenceId || null,
+    schedulerSnapshotDigest: meta.schedulerSnapshotDigest || null,
   });
   let result;
   try {
@@ -316,7 +377,19 @@ export async function fireRoutine(store, routine, runAgent, meta = {}) {
     lastFiredAt: startedAt,
     ...(routine.trigger.kind === "once" ? { enabled: false } : {}),
   });
-  return runId;
+  return {
+    runId,
+    status: result.exitCode === 0 ? "ok" : "failed",
+    exitCode: result.exitCode,
+    usage: result.usage || null,
+    costUsd: Number.isFinite(result.costUsd) ? result.costUsd : null,
+    durationMs: store._now() - startedAt,
+  };
+}
+
+export async function fireRoutine(store, routine, runAgent, meta = {}) {
+  const execution = await executeRoutine(store, routine, runAgent, meta);
+  return execution.runId;
 }
 
 /**

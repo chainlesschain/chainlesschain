@@ -36,6 +36,30 @@ describe("generatePkgConfig", () => {
       path.join(cliRoot, "bin", "chainlesschain.js"),
       "// fake bin",
     );
+    const capsuleLib = path.join(cliRoot, "src", "lib");
+    fs.mkdirSync(capsuleLib, { recursive: true });
+    fs.writeFileSync(
+      path.join(capsuleLib, "mcp-stdio-capsule-builder-worker.cjs"),
+      "// pinned worker source",
+    );
+    fs.writeFileSync(
+      path.join(capsuleLib, "mcp-stdio-immutable-vfs-resolver.cjs"),
+      "// pinned resolver source",
+    );
+    const esbuildWasmRoot = path.join(cliRoot, "node_modules", "esbuild-wasm");
+    fs.mkdirSync(path.join(esbuildWasmRoot, "lib"), { recursive: true });
+    fs.writeFileSync(
+      path.join(esbuildWasmRoot, "package.json"),
+      JSON.stringify({ name: "esbuild-wasm", version: "0.28.1" }),
+    );
+    fs.writeFileSync(
+      path.join(esbuildWasmRoot, "lib", "browser.js"),
+      "// pinned browser API",
+    );
+    fs.writeFileSync(
+      path.join(esbuildWasmRoot, "esbuild.wasm"),
+      Buffer.from([0, 97, 115, 109]),
+    );
   });
 
   afterEach(() => {
@@ -121,6 +145,53 @@ describe("generatePkgConfig", () => {
     expect(
       synth.pkg.assets.filter((asset) => /\.ps1(?:$|[*])/i.test(asset)),
     ).toEqual([recoveryInstaller]);
+  });
+
+  it("embeds every raw capsule asset under one canonical identity", () => {
+    const aliasParent = fs.mkdtempSync(
+      path.join(os.tmpdir(), "cc-posix-cli-alias-"),
+    );
+    const lexicalCliRoot = path.join(aliasParent, "var", "folders", "cli");
+    fs.mkdirSync(path.dirname(lexicalCliRoot), { recursive: true });
+    fs.symlinkSync(
+      cliRoot,
+      lexicalCliRoot,
+      process.platform === "win32" ? "junction" : "dir",
+    );
+
+    try {
+      const r = callGenerator({ cliRoot: lexicalCliRoot });
+      const synth = JSON.parse(fs.readFileSync(r.pkgConfigFile, "utf-8"));
+      const canonicalCliRoot = fs.realpathSync.native(lexicalCliRoot);
+      const canonicalBuilderRoot = fs.realpathSync.native(
+        path.join(lexicalCliRoot, "node_modules", "esbuild-wasm"),
+      );
+      const expected = [
+        path.join(canonicalBuilderRoot, "package.json"),
+        path.join(canonicalBuilderRoot, "lib", "browser.js"),
+        path.join(canonicalBuilderRoot, "esbuild.wasm"),
+        path.join(
+          canonicalCliRoot,
+          "src",
+          "lib",
+          "mcp-stdio-capsule-builder-worker.cjs",
+        ),
+        path.join(
+          canonicalCliRoot,
+          "src",
+          "lib",
+          "mcp-stdio-immutable-vfs-resolver.cjs",
+        ),
+      ].map((asset) => asset.replace(/\\/g, "/"));
+      expect(synth.pkg.assets).toEqual(expect.arrayContaining(expected));
+    } finally {
+      try {
+        fs.unlinkSync(lexicalCliRoot);
+      } catch {
+        fs.rmSync(lexicalCliRoot, { recursive: true, force: true });
+      }
+      fs.rmSync(aliasParent, { recursive: true, force: true });
+    }
   });
 
   it("assets include prebuildsDir when provided", () => {

@@ -16,6 +16,8 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import { builtinModules, createRequire } from "node:module";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { Worker } from "node:worker_threads";
 import { getCacheDir, getMachineSecurityAnchorDir } from "./paths.js";
 import {
   mutateSecurityStore,
@@ -34,60 +36,43 @@ export const MCP_STDIO_PACKAGE_MATERIALIZATION_CHANGED_CODE =
   "CC_MCP_STDIO_PACKAGE_MATERIALIZATION_CHANGED";
 
 const MATERIALIZATION_SCHEMA =
-  "chainlesschain.mcp-stdio-package-materialization/v2";
-const MATERIALIZATION_VERSION = 2;
-const CAPSULE_SCHEMA = "chainlesschain.mcp-stdio-node-capsule/v1";
+  "chainlesschain.mcp-stdio-package-materialization/v3";
+const MATERIALIZATION_VERSION = 3;
+const CAPSULE_SCHEMA = "chainlesschain.mcp-stdio-node-capsule/v2";
 const CAPSULE_RELATIVE_PATH = "capsule/server.cjs";
-const CAPSULE_BUILDER = "esbuild";
+const CAPSULE_BUILDER = "esbuild-wasm";
 const CAPSULE_BUILDER_VERSION = "0.28.1";
-const CAPSULE_BUILDER_BINARIES = Object.freeze({
-  "darwin-arm64": Object.freeze({
-    packageName: "@esbuild/darwin-arm64",
-    relativePath: "bin/esbuild",
-    sha256: "e2dc9a52440a2a34f09434a2f4843cb1e30f84e40dcf238976ec61ef8cd7f36a",
-  }),
-  "darwin-x64": Object.freeze({
-    packageName: "@esbuild/darwin-x64",
-    relativePath: "bin/esbuild",
-    sha256: "dd53ccf32f9b5b3ab30d41388ef1fc8f81c44ca57ee7a32a7364a1753308d009",
-  }),
-  "linux-arm64": Object.freeze({
-    packageName: "@esbuild/linux-arm64",
-    relativePath: "bin/esbuild",
-    sha256: "51e829ba36f36be6d9aea6e329ddc4f9350302339b16aaca96a3cb97f64a8ebb",
-  }),
-  "linux-ia32": Object.freeze({
-    packageName: "@esbuild/linux-ia32",
-    relativePath: "bin/esbuild",
-    sha256:
-      "9cd7515a75d6f96b0aa055861cf987888b4765c890501b6274f4bdff4061a5e0d9fd",
-  }),
-  "linux-x64": Object.freeze({
-    packageName: "@esbuild/linux-x64",
-    relativePath: "bin/esbuild",
-    sha256: "0c6588b092a2c291a72bab90659f3c9e0e25e0fe59c9ac12b4dae4d945e5548c",
-  }),
-  "win32-arm64": Object.freeze({
-    packageName: "@esbuild/win32-arm64",
-    relativePath: "esbuild.exe",
-    sha256: "bfb8798ab678f1ce4a723739f4a3eabab3244d7a04eeb12be2eb9f58095c13ef",
-  }),
-  "win32-ia32": Object.freeze({
-    packageName: "@esbuild/win32-ia32",
-    relativePath: "esbuild.exe",
-    sha256: "8fa99b6e0945830fce8d7e208fdb21763aa4aea875751f4a0eec7f6e262af1dd",
-  }),
-  "win32-x64": Object.freeze({
-    packageName: "@esbuild/win32-x64",
-    relativePath: "esbuild.exe",
-    sha256: "ec02ee9b14ab332416fedd10614dfb80eed5304d94f67745067c011934a8c3c3",
-  }),
-});
+const CAPSULE_BUILDER_WASM_SHA256 =
+  "cc8c5e14db584cd75c6c9fc16e1aae3d5b8e99ab7f333aeee71f59e23fa9f24e";
+const CAPSULE_BUILDER_WASM_BYTES = 13_940_120;
+const CAPSULE_BUILDER_API_SHA256 =
+  "4ec4cc1b6f2fdd0a117aa20ab5c49da9868ce7329322082a457927cdc64d89c1";
+const CAPSULE_BUILDER_API_BYTES = 133_235;
+const CAPSULE_RESOLVER_SCHEMA =
+  "chainlesschain.mcp-stdio-immutable-vfs-resolver/v1";
+const CAPSULE_WORKER_SCHEMA =
+  "chainlesschain.mcp-stdio-capsule-builder-worker/v1";
+const CAPSULE_BUILD_TIMEOUT_MS = 120_000;
+const CAPSULE_WORKER_MAX_OLD_GENERATION_MB = 256;
+// Updated with the checked-in source digest whenever either pinned host module
+// changes. The worker receives source bytes, never a pathname to execute.
+const CAPSULE_BUILDER_WORKER_SHA256 =
+  "1386f5ad51ba9e946fbf676d8aba4c8a11b3219916a413ac6fc24578d998ace1";
+const CAPSULE_BUILDER_WORKER_BYTES = 16_293;
+const CAPSULE_RESOLVER_SHA256 =
+  "48e1fc27454e6dcfd3018849912699e6ef8417db1716d1c8eff2cd1072a786d2";
+const CAPSULE_RESOLVER_BYTES = 24_417;
+const CAPSULE_STDIN_WRAPPER_SCHEMA =
+  "chainlesschain.mcp-stdio-capsule-stdin-wrapper/v1";
 const INDEX_LABEL = "MCP stdio package materialization index";
 const MANIFEST_LABEL = "MCP stdio package materialization manifest";
-const MAX_FILES = 50_000;
-const MAX_TOTAL_BYTES = 1024 * 1024 * 1024;
-const MAX_FILE_BYTES = 256 * 1024 * 1024;
+const MAX_FILES = 10_000;
+// Source bytes cross a Worker boundary and are copied into the immutable VFS
+// and browser realm. Keep the external-memory ceiling well below the V8 heap
+// limit because Worker resourceLimits do not bound ArrayBuffer/WASM memory.
+const MAX_TOTAL_BYTES = 64 * 1024 * 1024;
+const MAX_FILE_BYTES = 16 * 1024 * 1024;
+const MAX_CAPSULE_BYTES = 32 * 1024 * 1024;
 const MAX_DEPTH = 64;
 const HASH_CHUNK_BYTES = 1024 * 1024;
 const EXACT_VERSION =
@@ -96,7 +81,9 @@ const PACKAGE_NAME = /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/i;
 
 export const _deps = {
   fs,
+  onVfsSnapshotCaptured: null,
   processBrokerRunSync: null,
+  Worker,
 };
 
 const require = createRequire(import.meta.url);
@@ -141,7 +128,7 @@ export function getMcpStdioPackageMaterializationRoot(options = {}) {
   return path.resolve(
     options.root ||
       process.env.CC_MCP_PACKAGE_MATERIALIZATION_ROOT ||
-      path.join(getCacheDir(), "mcp-stdio-package-materializations-v2"),
+      path.join(getCacheDir(), "mcp-stdio-package-materializations-v3"),
   );
 }
 
@@ -151,7 +138,7 @@ export function getMcpStdioPackageMaterializationIndexPath(options = {}) {
       process.env.CC_MCP_PACKAGE_MATERIALIZATION_INDEX ||
       path.join(
         getMachineSecurityAnchorDir(),
-        "mcp-stdio-package-materializations-v2.json",
+        "mcp-stdio-package-materializations-v3.json",
       ),
   );
 }
@@ -523,6 +510,10 @@ function resolvePackageEntrypoint(treeRoot, exact, requestedBin) {
   });
 }
 
+function materializationFileMode(mode) {
+  return Number(mode) & (process.platform === "win32" ? 0o666 : 0o777);
+}
+
 function hashFile(file, expectedBytes) {
   let descriptor;
   try {
@@ -563,13 +554,26 @@ function hashFile(file, expectedBytes) {
     ) {
       throw new Error("file changed while it was being hashed");
     }
-    return digest.digest("hex");
+    return Object.freeze({
+      sha256: digest.digest("hex"),
+      // Node can synthesize pathname and descriptor execute bits differently
+      // on Windows. Record the descriptor view used to read the bytes and keep
+      // only permissions; the regular-file type is validated independently.
+      mode: materializationFileMode(after.mode),
+    });
   } finally {
     if (descriptor !== undefined) _deps.fs.closeSync(descriptor);
   }
 }
 
-function collectTree(root) {
+function collectTree(
+  root,
+  {
+    maxFiles = MAX_FILES,
+    maxTotalBytes = MAX_TOTAL_BYTES,
+    maxFileBytes = MAX_FILE_BYTES,
+  } = {},
+) {
   const files = [];
   let totalBytes = 0;
   const visit = (directory, depth) => {
@@ -598,22 +602,23 @@ function collectTree(root) {
         );
       }
       const stat = _deps.fs.statSync(absolute, { bigint: true });
-      if (stat.size < 0n || stat.size > BigInt(MAX_FILE_BYTES)) {
+      if (stat.size < 0n || stat.size > BigInt(maxFileBytes)) {
         throw new Error(
           `materialized file exceeds the size limit: ${relative}`,
         );
       }
       totalBytes += Number(stat.size);
-      if (files.length >= MAX_FILES || totalBytes > MAX_TOTAL_BYTES) {
+      if (files.length >= maxFiles || totalBytes > maxTotalBytes) {
         throw new Error(
           "materialized dependency tree exceeds its aggregate budget",
         );
       }
+      const attested = hashFile(absolute, Number(stat.size));
       files.push({
         path: relative,
         bytes: Number(stat.size),
-        mode: Number(stat.mode),
-        sha256: hashFile(absolute, Number(stat.size)),
+        mode: attested.mode,
+        sha256: attested.sha256,
       });
     }
   };
@@ -648,165 +653,384 @@ function resolveContainedPath(root, relative, label) {
   return resolved;
 }
 
-function copyAttestedFile(sourceRoot, snapshotRoot, record) {
-  const source = resolveContainedPath(
-    sourceRoot,
-    record.path,
-    "MCP capsule source",
-  );
-  const destination = resolveContainedPath(
-    snapshotRoot,
-    record.path,
-    "MCP capsule snapshot",
-  );
-  _deps.fs.mkdirSync(path.dirname(destination), {
-    recursive: true,
-    mode: 0o700,
+function snapshotFileIdentity(stat) {
+  return Object.freeze({
+    dev: stat.dev,
+    ino: stat.ino,
+    mode: stat.mode,
+    size: stat.size,
+    mtimeNs: stat.mtimeNs,
+    ctimeNs: stat.ctimeNs,
   });
-  let sourceDescriptor;
-  let destinationDescriptor;
+}
+
+function sameSnapshotFileIdentity(left, right) {
+  return Boolean(
+    left &&
+    right &&
+    left.dev === right.dev &&
+    left.ino === right.ino &&
+    left.mode === right.mode &&
+    left.size === right.size &&
+    left.mtimeNs === right.mtimeNs &&
+    left.ctimeNs === right.ctimeNs,
+  );
+}
+
+function openSnapshotInputDescriptor(file) {
+  return _deps.fs.openSync(
+    file,
+    Number(_deps.fs.constants.O_RDONLY) |
+      Number(_deps.fs.constants.O_NOFOLLOW || 0) |
+      Number(_deps.fs.constants.O_NONBLOCK || 0),
+  );
+}
+
+function snapshotIdentityThroughDescriptor(file) {
+  let descriptor;
   try {
-    sourceDescriptor = _deps.fs.openSync(
-      source,
-      Number(_deps.fs.constants.O_RDONLY) |
-        Number(_deps.fs.constants.O_NOFOLLOW || 0) |
-        Number(_deps.fs.constants.O_NONBLOCK || 0),
-    );
-    const before = _deps.fs.fstatSync(sourceDescriptor, { bigint: true });
-    if (!before.isFile() || before.size !== BigInt(record.bytes)) {
-      throw new Error(`MCP capsule source changed before copy: ${record.path}`);
+    descriptor = openSnapshotInputDescriptor(file);
+    const stat = _deps.fs.fstatSync(descriptor, { bigint: true });
+    if (!stat.isFile()) {
+      throw new Error("MCP capsule build input descriptor is not regular");
     }
-    destinationDescriptor = _deps.fs.openSync(
-      destination,
-      Number(_deps.fs.constants.O_WRONLY) |
-        Number(_deps.fs.constants.O_CREAT) |
-        Number(_deps.fs.constants.O_EXCL) |
-        Number(_deps.fs.constants.O_NOFOLLOW || 0),
-      0o600,
+    return snapshotFileIdentity(stat);
+  } finally {
+    if (descriptor !== undefined) _deps.fs.closeSync(descriptor);
+  }
+}
+
+function readSnapshotInputAttestation(canonicalSnapshotRoot, inputRelative) {
+  const realpath = _deps.fs.realpathSync.native || _deps.fs.realpathSync;
+  const requested = resolveContainedPath(
+    canonicalSnapshotRoot,
+    inputRelative,
+    "MCP capsule build input",
+  );
+  const pathBefore = _deps.fs.lstatSync(requested, { bigint: true });
+  if (pathBefore.isSymbolicLink() || !pathBefore.isFile()) {
+    throw new Error(
+      `MCP capsule build input is not one regular file: ${inputRelative}`,
     );
-    const digest = crypto.createHash("sha256");
-    const chunk = Buffer.allocUnsafe(
-      Math.max(1, Math.min(record.bytes, HASH_CHUNK_BYTES)),
+  }
+  const canonicalPath = realpath(requested);
+  const reboundRelative = path
+    .relative(canonicalSnapshotRoot, canonicalPath)
+    .split(path.sep)
+    .join("/");
+  if (reboundRelative !== inputRelative) {
+    throw new Error(
+      `MCP capsule build input changed through a path alias: ${inputRelative}`,
     );
+  }
+
+  let descriptor;
+  try {
+    descriptor = openSnapshotInputDescriptor(canonicalPath);
+    const descriptorBefore = _deps.fs.fstatSync(descriptor, { bigint: true });
+    const pathIdentityBefore = snapshotFileIdentity(pathBefore);
+    const descriptorIdentityBefore = snapshotFileIdentity(descriptorBefore);
+    // Node's Windows pathname and descriptor stat projections do not share a
+    // stable dev/ino namespace on every filesystem. Bind the pathname to the
+    // primary reader with a second descriptor instead: descriptor-to-
+    // descriptor identity is stable, while pathname metadata is checked only
+    // against the later pathname view. This retains file-ID binding without
+    // falling back to mutable size/timestamp comparisons.
+    const pathnameDescriptorIdentityBefore =
+      snapshotIdentityThroughDescriptor(canonicalPath);
+    if (
+      !descriptorBefore.isFile() ||
+      descriptorBefore.size < 0n ||
+      descriptorBefore.size > BigInt(MAX_FILE_BYTES) ||
+      !sameSnapshotFileIdentity(
+        descriptorIdentityBefore,
+        pathnameDescriptorIdentityBefore,
+      )
+    ) {
+      throw new Error(
+        `MCP capsule build input identity changed before read: ${inputRelative}`,
+      );
+    }
+
+    const bytes = Number(descriptorBefore.size);
+    // Slow buffers own their ArrayBuffer, so ownership can be transferred to
+    // the isolated builder Worker without detaching an unrelated slab.
+    const content = Buffer.allocUnsafeSlow(bytes);
     let offset = 0;
-    while (offset < record.bytes) {
+    while (offset < bytes) {
       const count = _deps.fs.readSync(
-        sourceDescriptor,
-        chunk,
-        0,
-        Math.min(chunk.length, record.bytes - offset),
+        descriptor,
+        content,
+        offset,
+        bytes - offset,
         offset,
       );
       if (count <= 0) {
-        throw new Error(`MCP capsule source ended during copy: ${record.path}`);
-      }
-      digest.update(chunk.subarray(0, count));
-      let written = 0;
-      while (written < count) {
-        const writeCount = _deps.fs.writeSync(
-          destinationDescriptor,
-          chunk,
-          written,
-          count - written,
-          offset + written,
+        throw new Error(
+          `MCP capsule build input ended during read: ${inputRelative}`,
         );
-        if (writeCount <= 0) {
-          throw new Error(
-            `MCP capsule snapshot ended during copy: ${record.path}`,
-          );
-        }
-        written += writeCount;
       }
       offset += count;
     }
-    const after = _deps.fs.fstatSync(sourceDescriptor, { bigint: true });
+
+    const descriptorAfter = _deps.fs.fstatSync(descriptor, { bigint: true });
+    const pathAfter = _deps.fs.lstatSync(requested, { bigint: true });
+    const canonicalPathAfter = realpath(requested);
     if (
-      after.dev !== before.dev ||
-      after.ino !== before.ino ||
-      after.size !== before.size ||
-      after.mtimeNs !== before.mtimeNs ||
-      after.ctimeNs !== before.ctimeNs ||
-      digest.digest("hex") !== record.sha256
+      pathAfter.isSymbolicLink() ||
+      !pathAfter.isFile() ||
+      canonicalPathAfter !== canonicalPath
     ) {
-      throw new Error(`MCP capsule source changed during copy: ${record.path}`);
+      throw new Error(
+        `MCP capsule build input changed during read: ${inputRelative}`,
+      );
     }
-    _deps.fs.fchmodSync(destinationDescriptor, record.mode & 0o777);
-    _deps.fs.fsyncSync(destinationDescriptor);
+    const descriptorIdentityAfter = snapshotFileIdentity(descriptorAfter);
+    const pathIdentityAfter = snapshotFileIdentity(pathAfter);
+    const pathnameDescriptorIdentityAfter =
+      snapshotIdentityThroughDescriptor(canonicalPathAfter);
+    if (
+      !sameSnapshotFileIdentity(
+        descriptorIdentityBefore,
+        descriptorIdentityAfter,
+      ) ||
+      !sameSnapshotFileIdentity(pathIdentityBefore, pathIdentityAfter) ||
+      !sameSnapshotFileIdentity(
+        descriptorIdentityAfter,
+        pathnameDescriptorIdentityAfter,
+      )
+    ) {
+      throw new Error(
+        `MCP capsule build input changed during read: ${inputRelative}`,
+      );
+    }
+    return Object.freeze({
+      path: inputRelative,
+      canonicalPath,
+      bytes,
+      sha256: sha256(content),
+      identity: descriptorIdentityAfter,
+      content,
+    });
   } finally {
-    if (destinationDescriptor !== undefined) {
-      _deps.fs.closeSync(destinationDescriptor);
-    }
-    if (sourceDescriptor !== undefined) _deps.fs.closeSync(sourceDescriptor);
-  }
-  if (hashFile(destination, record.bytes) !== record.sha256) {
-    throw new Error(`MCP capsule snapshot copy is invalid: ${record.path}`);
+    if (descriptor !== undefined) _deps.fs.closeSync(descriptor);
   }
 }
 
-function createAttestedSnapshot(treeRoot, closure, staging) {
-  const snapshotRoot = path.join(
-    staging,
-    `.capsule-source-${crypto.randomUUID()}`,
-  );
-  _deps.fs.mkdirSync(snapshotRoot, { recursive: false, mode: 0o700 });
-  for (const record of closure.files) {
-    copyAttestedFile(treeRoot, snapshotRoot, record);
-  }
-  const observed = collectTree(snapshotRoot);
+function readPinnedCapsuleAsset({
+  root,
+  relativePath,
+  bytes,
+  sha256: expectedSha256,
+  label,
+}) {
+  const observed = readSnapshotInputAttestation(root, relativePath);
   if (
-    observed.fileCount !== closure.fileCount ||
-    observed.totalBytes !== closure.totalBytes ||
-    observed.closureDigest !== closure.closureDigest ||
-    canonicalJson(observed.files) !== canonicalJson(closure.files)
+    observed.bytes !== bytes ||
+    observed.sha256 !== expectedSha256 ||
+    materializationFileMode(observed.identity.mode) === 0
   ) {
-    throw new Error(
-      "MCP capsule source snapshot does not match its attestation",
-    );
+    throw new Error(`${label} identity is invalid`);
   }
-  return snapshotRoot;
+  return observed;
 }
 
-function resolveCapsuleBuilderBinary() {
-  const platform = `${process.platform}-${process.arch}`;
-  const expected = CAPSULE_BUILDER_BINARIES[platform];
-  if (!expected) {
-    throw new Error(`MCP capsule builder does not support ${platform}`);
+function resolvePinnedCapsuleBuilder() {
+  // Vitest can evaluate this module through a non-file URL when desktop tests
+  // import the CLI process broker transitively. Resolve host-only assets only
+  // when a capsule build actually needs them; production builds still fail
+  // closed if the module does not have a file-backed identity.
+  const workerPath = fileURLToPath(
+    new URL("./mcp-stdio-capsule-builder-worker.cjs", import.meta.url),
+  );
+  const resolverPath = fileURLToPath(
+    new URL("./mcp-stdio-immutable-vfs-resolver.cjs", import.meta.url),
+  );
+  const realpath = _deps.fs.realpathSync.native || _deps.fs.realpathSync;
+  const packageJsonPath = realpath(
+    require.resolve("esbuild-wasm/package.json"),
+  );
+  const packageRoot = path.dirname(packageJsonPath);
+  const packageJsonAsset = readSnapshotInputAttestation(
+    packageRoot,
+    "package.json",
+  );
+  let packageJson;
+  try {
+    packageJson = JSON.parse(packageJsonAsset.content.toString("utf8"));
+  } catch {
+    throw new Error("MCP capsule builder package identity is invalid");
   }
-  const packageJsonPath = require.resolve(
-    `${expected.packageName}/package.json`,
-  );
-  const packageJson = JSON.parse(
-    _deps.fs.readFileSync(packageJsonPath, "utf8"),
-  );
   if (
-    packageJson.name !== expected.packageName ||
+    packageJson.name !== CAPSULE_BUILDER ||
     packageJson.version !== CAPSULE_BUILDER_VERSION
   ) {
     throw new Error(
-      `MCP capsule builder must be ${expected.packageName}@${CAPSULE_BUILDER_VERSION}`,
+      `MCP capsule builder must be ${CAPSULE_BUILDER}@${CAPSULE_BUILDER_VERSION}`,
     );
   }
-  const candidate = path.join(
-    path.dirname(packageJsonPath),
-    ...expected.relativePath.split("/"),
-  );
-  const realpath = _deps.fs.realpathSync.native || _deps.fs.realpathSync;
-  const binary = realpath(candidate);
-  const stat = _deps.fs.lstatSync(binary);
-  if (
-    stat.isSymbolicLink() ||
-    !stat.isFile() ||
-    stat.size <= 0 ||
-    stat.size > MAX_FILE_BYTES ||
-    hashFile(binary, stat.size) !== expected.sha256
-  ) {
-    throw new Error("MCP capsule builder binary identity is invalid");
-  }
-  return Object.freeze({
-    binary,
-    platform,
-    sha256: expected.sha256,
+  const api = readPinnedCapsuleAsset({
+    root: packageRoot,
+    relativePath: "lib/browser.js",
+    bytes: CAPSULE_BUILDER_API_BYTES,
+    sha256: CAPSULE_BUILDER_API_SHA256,
+    label: "MCP capsule builder API",
   });
+  const wasm = readPinnedCapsuleAsset({
+    root: packageRoot,
+    relativePath: "esbuild.wasm",
+    bytes: CAPSULE_BUILDER_WASM_BYTES,
+    sha256: CAPSULE_BUILDER_WASM_SHA256,
+    label: "MCP capsule builder WASM",
+  });
+  const worker = readPinnedCapsuleAsset({
+    root: path.dirname(workerPath),
+    relativePath: path.basename(workerPath),
+    bytes: CAPSULE_BUILDER_WORKER_BYTES,
+    sha256: CAPSULE_BUILDER_WORKER_SHA256,
+    label: "MCP capsule builder Worker",
+  });
+  const resolver = readPinnedCapsuleAsset({
+    root: path.dirname(resolverPath),
+    relativePath: path.basename(resolverPath),
+    bytes: CAPSULE_RESOLVER_BYTES,
+    sha256: CAPSULE_RESOLVER_SHA256,
+    label: "MCP capsule immutable VFS resolver",
+  });
+  return Object.freeze({
+    apiSource: api.content.toString("utf8"),
+    apiBytes: api.bytes,
+    apiSha256: api.sha256,
+    wasmBytes: wasm.content,
+    wasmSha256: wasm.sha256,
+    workerSource: worker.content.toString("utf8"),
+    workerSha256: worker.sha256,
+    resolverSource: resolver.content.toString("utf8"),
+    resolverSha256: resolver.sha256,
+  });
+}
+
+function capsuleWorkerError(payload) {
+  const error = new Error(
+    String(payload?.message || "MCP capsule builder Worker failed").slice(
+      0,
+      8_000,
+    ),
+  );
+  error.name = String(payload?.name || "Error").slice(0, 200);
+  if (typeof payload?.code === "string") error.code = payload.code;
+  if (typeof payload?.stack === "string") error.stack = payload.stack;
+  return error;
+}
+
+async function runCapsuleBuilderWorker({
+  builder,
+  files,
+  fileCount,
+  totalBytes,
+  entryPath,
+  vfsRoot,
+  banner,
+}) {
+  const nonce = crypto.randomBytes(32).toString("hex");
+  const transferList = [builder.wasmBytes.buffer];
+  for (const record of files) transferList.push(record[1].buffer);
+  let worker;
+  let timer;
+  const listeners = {};
+  try {
+    worker = new _deps.Worker(builder.workerSource, {
+      eval: true,
+      resourceLimits: {
+        maxOldGenerationSizeMb: CAPSULE_WORKER_MAX_OLD_GENERATION_MB,
+        maxYoungGenerationSizeMb: 64,
+        stackSizeMb: 8,
+      },
+      transferList,
+      workerData: {
+        schema: CAPSULE_WORKER_SCHEMA,
+        nonce,
+        browserApiSource: builder.apiSource,
+        resolverSource: builder.resolverSource,
+        wasmBytes: builder.wasmBytes,
+        builderVersion: CAPSULE_BUILDER_VERSION,
+        files,
+        fileCount,
+        totalBytes,
+        entryPath,
+        vfsRoot,
+        banner,
+        maxOutputBytes: MAX_CAPSULE_BYTES,
+        maxMetafileBytes: 16 * 1024 * 1024,
+      },
+    });
+    return await new Promise((resolve, reject) => {
+      let settled = false;
+      let terminal = null;
+      const fail = (error) => {
+        if (settled) return;
+        settled = true;
+        reject(error);
+      };
+      listeners.message = (message) => {
+        if (terminal) {
+          fail(
+            new Error(
+              "MCP capsule builder Worker emitted two terminal messages",
+            ),
+          );
+          return;
+        }
+        if (!message || message.nonce !== nonce) {
+          fail(new Error("MCP capsule builder Worker nonce mismatch"));
+          return;
+        }
+        terminal = message;
+      };
+      listeners.messageerror = () => {
+        fail(new Error("MCP capsule builder Worker message was not cloneable"));
+      };
+      listeners.error = (error) => fail(error);
+      listeners.exit = (code) => {
+        if (settled) return;
+        if (code !== 0) {
+          fail(
+            new Error(`MCP capsule builder Worker exited with status ${code}`),
+          );
+          return;
+        }
+        if (!terminal) {
+          fail(new Error("MCP capsule builder Worker exited without a result"));
+          return;
+        }
+        if (terminal.ok !== true) {
+          fail(capsuleWorkerError(terminal.error));
+          return;
+        }
+        settled = true;
+        resolve(terminal);
+      };
+      worker.on("message", listeners.message);
+      worker.once("messageerror", listeners.messageerror);
+      worker.once("error", listeners.error);
+      worker.once("exit", listeners.exit);
+      timer = setTimeout(() => {
+        fail(new Error("MCP capsule builder Worker timed out"));
+      }, CAPSULE_BUILD_TIMEOUT_MS);
+      timer.unref?.();
+    });
+  } finally {
+    if (timer) clearTimeout(timer);
+    if (worker) {
+      if (listeners.message) worker.off("message", listeners.message);
+      if (listeners.messageerror) {
+        worker.off("messageerror", listeners.messageerror);
+      }
+      if (listeners.error) worker.off("error", listeners.error);
+      if (listeners.exit) worker.off("exit", listeners.exit);
+      await worker.terminate();
+    }
+  }
 }
 
 function capsuleRuntimeGuard() {
@@ -814,6 +1038,7 @@ function capsuleRuntimeGuard() {
   const Module = require("node:module");
   const allowed = new Set(Module.builtinModules.flatMap((name) => [name, name.startsWith("node:") ? name : "node:" + name]));
   const originalLoad = Module._load;
+  const originalResolveFilename = Module._resolveFilename;
   const blocked = (kind, request) => {
     const error = new Error("MCP stdio capsule blocked " + kind + (request === undefined ? "" : ": " + String(request)));
     error.code = kind === "native module loading" ? "CC_MCP_STDIO_NATIVE_MODULE_BLOCKED" : "CC_MCP_STDIO_EXTERNAL_MODULE_BLOCKED";
@@ -828,6 +1053,15 @@ function capsuleRuntimeGuard() {
       return Reflect.apply(originalLoad, this, arguments);
     },
   });
+  Object.defineProperty(Module, "_resolveFilename", {
+    configurable: false,
+    enumerable: false,
+    writable: false,
+    value: function(request) {
+      if (typeof request !== "string" || !allowed.has(request)) blocked("external module resolution", request);
+      return Reflect.apply(originalResolveFilename, this, arguments);
+    },
+  });
   Object.defineProperty(process, "dlopen", {
     configurable: false,
     enumerable: false,
@@ -837,177 +1071,325 @@ function capsuleRuntimeGuard() {
 })();`;
 }
 
-function buildCapsule({
+export function esbuildRelativeEntrypointArg(
+  entrypointRelative,
+  canonicalSnapshotRoot,
+  canonicalEntrypoint,
+) {
+  if (
+    typeof entrypointRelative !== "string" ||
+    entrypointRelative.length === 0 ||
+    entrypointRelative.includes("\0") ||
+    entrypointRelative.includes("\\") ||
+    path.posix.isAbsolute(entrypointRelative) ||
+    /^[A-Za-z]:/.test(entrypointRelative) ||
+    path.posix.normalize(entrypointRelative) !== entrypointRelative ||
+    entrypointRelative === "." ||
+    entrypointRelative === ".." ||
+    entrypointRelative.startsWith("../")
+  ) {
+    throw new Error(
+      "MCP capsule entrypoint must be one canonical relative POSIX path",
+    );
+  }
+  for (const [label, candidate] of [
+    ["snapshot root", canonicalSnapshotRoot],
+    ["entrypoint", canonicalEntrypoint],
+  ]) {
+    if (
+      typeof candidate !== "string" ||
+      candidate.includes("\0") ||
+      !path.isAbsolute(candidate) ||
+      path.normalize(candidate) !== candidate
+    ) {
+      throw new Error(`MCP capsule ${label} must be canonical and absolute`);
+    }
+  }
+  const reboundRelative = path
+    .relative(canonicalSnapshotRoot, canonicalEntrypoint)
+    .split(path.sep)
+    .join("/");
+  if (reboundRelative !== entrypointRelative) {
+    throw new Error("MCP capsule entrypoint escaped its canonical snapshot");
+  }
+  // This is a logical source label for esbuild's stdin mode, not a positional
+  // entrypoint. Positional node_modules paths are package-classified by the
+  // native Windows CLI even when they are absolute or repeatedly prefixed.
+  return entrypointRelative;
+}
+
+async function buildCapsule({
   treeRoot,
   entrypointRelative,
   closure,
   staging,
-  processBrokerRunSync,
-  env,
 }) {
-  const snapshotRoot = createAttestedSnapshot(treeRoot, closure, staging);
   const capsuleRoot = path.join(staging, "capsule");
   const capsulePath = path.join(staging, ...CAPSULE_RELATIVE_PATH.split("/"));
-  const metafilePath = path.join(
-    staging,
-    `.capsule-meta-${crypto.randomUUID()}.json`,
-  );
   const realpath = _deps.fs.realpathSync.native || _deps.fs.realpathSync;
-  const canonicalSnapshotRoot = realpath(snapshotRoot);
+  const canonicalTreeRoot = realpath(treeRoot);
+  const vfsRoot = "/chainlesschain-source";
+  const wrapperRelative = "__chainlesschain_capsule_entry__.cjs";
+  const wrapperPath = `${vfsRoot}/${wrapperRelative}`;
+  const maxOutputBytes = MAX_CAPSULE_BYTES;
+  const maxMetafileBytes = 16 * 1024 * 1024;
   _deps.fs.mkdirSync(capsuleRoot, { recursive: false, mode: 0o700 });
-  try {
-    const snapshotEntrypoint = resolveContainedPath(
-      snapshotRoot,
-      entrypointRelative,
-      "MCP capsule entrypoint",
+  const sourceEntrypoint = resolveContainedPath(
+    canonicalTreeRoot,
+    entrypointRelative,
+    "MCP capsule entrypoint",
+  );
+  const canonicalEntrypoint = realpath(sourceEntrypoint);
+  const boundEntrypointRelative = esbuildRelativeEntrypointArg(
+    entrypointRelative,
+    canonicalTreeRoot,
+    canonicalEntrypoint,
+  );
+  if (closure.files.some((record) => record.path === wrapperRelative)) {
+    throw new Error("MCP capsule source collides with its host wrapper");
+  }
+
+  const closureByPath = new Map(
+    closure.files.map((record) => [record.path, record]),
+  );
+  const expectedByVfsPath = new Map();
+  const workerFiles = [];
+  for (const record of closure.files) {
+    const observed = readSnapshotInputAttestation(
+      canonicalTreeRoot,
+      record.path,
     );
-    const canonicalEntrypointRelative = path
-      .relative(canonicalSnapshotRoot, realpath(snapshotEntrypoint))
-      .split(path.sep)
-      .join("/");
-    if (canonicalEntrypointRelative !== entrypointRelative) {
-      throw new Error("MCP capsule entrypoint changed through a path alias");
-    }
-    const builderEntrypoint = `.${path.sep}${entrypointRelative
-      .split("/")
-      .join(path.sep)}`;
-    const builder = resolveCapsuleBuilderBinary();
-    const runThroughProcessBroker =
-      processBrokerRunSync || _deps.processBrokerRunSync;
-    if (typeof runThroughProcessBroker !== "function") {
+    if (
+      observed.bytes !== record.bytes ||
+      observed.sha256 !== record.sha256 ||
+      materializationFileMode(observed.identity.mode) !== record.mode
+    ) {
       throw new Error(
-        "MCP capsule construction requires a host-owned Process Broker runner",
+        `MCP capsule build input changed before capture: ${record.path}`,
       );
     }
-    const result = runThroughProcessBroker(
-      builder.binary,
-      [
-        builderEntrypoint,
-        "--bundle",
-        "--charset=utf8",
-        "--format=cjs",
-        "--legal-comments=none",
-        "--log-level=warning",
-        `--metafile=${metafilePath}`,
-        `--outfile=${capsulePath}`,
-        "--packages=bundle",
-        "--platform=node",
-        "--preserve-symlinks",
-        "--supported:dynamic-import=false",
-        "--target=node22",
-        "--tree-shaking=false",
-        `--banner:js=${capsuleRuntimeGuard()}`,
-      ],
-      {
-        cwd: canonicalSnapshotRoot,
-        env: sanitizeMcpStdioHostEnvironment(env),
-        encoding: "utf8",
-        shell: false,
-        windowsHide: true,
-        maxBuffer: 8 * 1024 * 1024,
-      },
+    const vfsPath = `${vfsRoot}/${record.path}`;
+    expectedByVfsPath.set(vfsPath, record);
+    workerFiles.push([vfsPath, observed.content]);
+  }
+  if (!closureByPath.has(entrypointRelative)) {
+    throw new Error("MCP capsule entrypoint is outside its closure");
+  }
+  const wrapperSpecifier = `./${boundEntrypointRelative}`;
+  const wrapperSource = Buffer.from(
+    `"use strict";\nrequire(${JSON.stringify(wrapperSpecifier)});\n`,
+    "utf8",
+  );
+  const ownedWrapperSource = Buffer.allocUnsafeSlow(wrapperSource.length);
+  wrapperSource.copy(ownedWrapperSource);
+  const wrapperBytes = ownedWrapperSource.length;
+  const wrapperSha256 = sha256(ownedWrapperSource);
+  expectedByVfsPath.set(wrapperPath, {
+    path: wrapperRelative,
+    bytes: wrapperBytes,
+    sha256: wrapperSha256,
+    wrapper: true,
+  });
+  workerFiles.push([wrapperPath, ownedWrapperSource]);
+
+  const builder = resolvePinnedCapsuleBuilder();
+  if (typeof _deps.onVfsSnapshotCaptured === "function") {
+    await _deps.onVfsSnapshotCaptured(
+      Object.freeze({
+        treeRoot: canonicalTreeRoot,
+        fileCount: closure.fileCount,
+        totalBytes: closure.totalBytes,
+        closureDigest: closure.closureDigest,
+      }),
     );
-    const stderr = String(result?.stderr || "").trim();
-    if (result?.error || result?.status !== 0 || stderr) {
-      const detail = String(
-        result?.error?.message || stderr || "esbuild failed",
-      )
-        .trim()
-        .slice(0, 2000);
-      throw new Error(`MCP capsule build failed closed: ${detail}`);
+  }
+  const result = await runCapsuleBuilderWorker({
+    builder,
+    files: workerFiles,
+    fileCount: workerFiles.length,
+    totalBytes: closure.totalBytes + wrapperBytes,
+    entryPath: wrapperPath,
+    vfsRoot,
+    banner: capsuleRuntimeGuard(),
+  });
+  if (
+    !(result.output instanceof Uint8Array) ||
+    result.output.byteLength <= 0 ||
+    result.output.byteLength > maxOutputBytes ||
+    !result.metafile ||
+    typeof result.metafile !== "object" ||
+    !result.metafile.inputs ||
+    typeof result.metafile.inputs !== "object" ||
+    !result.metafile.outputs ||
+    typeof result.metafile.outputs !== "object" ||
+    Buffer.byteLength(JSON.stringify(result.metafile)) > maxMetafileBytes ||
+    !Array.isArray(result.warnings) ||
+    result.warnings.length !== 0 ||
+    !result.audit ||
+    result.audit.root !== vfsRoot ||
+    result.audit.fileCount !== workerFiles.length ||
+    !Array.isArray(result.audit.loaded) ||
+    !Array.isArray(result.audit.resolutions)
+  ) {
+    throw new Error("MCP capsule builder Worker result is invalid");
+  }
+
+  const metafileInputs = new Map();
+  for (const [input, metadata] of Object.entries(result.metafile.inputs)) {
+    const prefix = "cc-immutable-vfs:";
+    if (!input.startsWith(prefix)) {
+      throw new Error(`MCP capsule build reported a non-VFS input: ${input}`);
     }
-    const metafile = JSON.parse(_deps.fs.readFileSync(metafilePath, "utf8"));
+    const vfsPath = input.slice(prefix.length);
     if (
-      !metafile ||
-      typeof metafile !== "object" ||
-      !metafile.inputs ||
-      typeof metafile.inputs !== "object" ||
-      !metafile.outputs ||
-      typeof metafile.outputs !== "object"
+      !vfsPath.startsWith(`${vfsRoot}/`) ||
+      path.posix.normalize(vfsPath) !== vfsPath ||
+      metafileInputs.has(vfsPath) ||
+      !metadata ||
+      typeof metadata !== "object"
     ) {
+      throw new Error(`MCP capsule build reported an unsafe input: ${input}`);
+    }
+    metafileInputs.set(vfsPath, metadata);
+  }
+  const loaded = [...result.audit.loaded];
+  if (
+    new Set(loaded).size !== loaded.length ||
+    loaded.some(
+      (input) =>
+        typeof input !== "string" ||
+        !input.startsWith(`${vfsRoot}/`) ||
+        path.posix.normalize(input) !== input,
+    ) ||
+    canonicalJson([...metafileInputs.keys()].sort()) !==
+      canonicalJson([...loaded].sort())
+  ) {
+    throw new Error("MCP capsule metafile did not match immutable VFS loads");
+  }
+  const inputs = loaded
+    .filter((input) => input !== wrapperPath)
+    .sort()
+    .map((input) => {
+      const expected = expectedByVfsPath.get(input);
+      const metadata = metafileInputs.get(input);
+      if (!expected || expected.wrapper || metadata?.bytes !== expected.bytes) {
+        throw new Error(`MCP capsule build used an unattested input: ${input}`);
+      }
+      return {
+        path: expected.path,
+        bytes: expected.bytes,
+        sha256: expected.sha256,
+      };
+    });
+  const wrapperMetadata = metafileInputs.get(wrapperPath);
+  if (
+    wrapperMetadata?.bytes !== wrapperBytes ||
+    !inputs.some((input) => input.path === entrypointRelative)
+  ) {
+    throw new Error("MCP capsule build did not bind its approved entrypoint");
+  }
+
+  const externalBuiltins = [];
+  if (Object.keys(result.metafile.outputs).length !== 1) {
+    throw new Error("MCP capsule build emitted an invalid output graph");
+  }
+  for (const output of Object.values(result.metafile.outputs)) {
+    if (!output || typeof output !== "object") {
       throw new Error("MCP capsule build metadata is invalid");
     }
-    const sourceByPath = new Map(
-      closure.files.map((record) => [record.path, record]),
-    );
-    const inputs = Object.keys(metafile.inputs)
-      .map((input) => input.split(path.sep).join("/"))
-      .sort()
-      .map((input) => {
-        const absolute = realpath(
-          path.resolve(snapshotRoot, ...input.split("/")),
+    for (const imported of output.imports || []) {
+      if (!imported.external || !NODE_BUILTINS.has(imported.path)) {
+        throw new Error(
+          `MCP capsule build retained an external dependency: ${imported.path}`,
         );
-        const relative = path
-          .relative(canonicalSnapshotRoot, absolute)
-          .split(path.sep)
-          .join("/");
-        const record = sourceByPath.get(relative);
-        if (!record) {
-          throw new Error(
-            `MCP capsule build used an unattested input: ${input}`,
-          );
-        }
-        return {
-          path: relative,
-          bytes: record.bytes,
-          sha256: record.sha256,
-        };
-      });
-    if (new Set(inputs.map((input) => input.path)).size !== inputs.length) {
-      throw new Error("MCP capsule build reported duplicate input aliases");
-    }
-    if (
-      inputs.length === 0 ||
-      !inputs.some((input) => input.path === entrypointRelative)
-    ) {
-      throw new Error("MCP capsule build did not bind its approved entrypoint");
-    }
-    const externalBuiltins = [];
-    for (const output of Object.values(metafile.outputs)) {
-      for (const imported of output.imports || []) {
-        if (!imported.external || !NODE_BUILTINS.has(imported.path)) {
-          throw new Error(
-            `MCP capsule build retained an external dependency: ${imported.path}`,
-          );
-        }
-        externalBuiltins.push(imported.path);
       }
+      externalBuiltins.push(imported.path);
     }
-    const postBuildClosure = collectTree(treeRoot);
-    if (
-      postBuildClosure.fileCount !== closure.fileCount ||
-      postBuildClosure.totalBytes !== closure.totalBytes ||
-      postBuildClosure.closureDigest !== closure.closureDigest ||
-      canonicalJson(postBuildClosure.files) !== canonicalJson(closure.files)
-    ) {
-      throw new Error("MCP package dependency closure changed during bundling");
-    }
-    const capsuleClosure = collectTree(capsuleRoot);
-    if (
-      capsuleClosure.fileCount !== 1 ||
-      capsuleClosure.files[0]?.path !== path.basename(capsulePath)
-    ) {
-      throw new Error("MCP capsule output is not one regular file");
-    }
-    return Object.freeze({
-      schema: CAPSULE_SCHEMA,
-      relativePath: CAPSULE_RELATIVE_PATH,
-      sha256: capsuleClosure.files[0].sha256,
-      bytes: capsuleClosure.files[0].bytes,
-      closureDigest: capsuleClosure.closureDigest,
-      builder: CAPSULE_BUILDER,
-      builderVersion: CAPSULE_BUILDER_VERSION,
-      builderPlatform: builder.platform,
-      builderBinarySha256: builder.sha256,
-      nodeTarget: "node22",
-      inputCount: inputs.length,
-      inputDigest: sha256(canonicalJson(inputs)),
-      externalBuiltins: Object.freeze([...new Set(externalBuiltins)].sort()),
-    });
-  } finally {
-    if (_deps.fs.existsSync(metafilePath)) _deps.fs.rmSync(metafilePath);
-    _deps.fs.rmSync(snapshotRoot, { recursive: true, force: true });
   }
+  for (const resolution of result.audit.resolutions) {
+    if (
+      !resolution ||
+      typeof resolution !== "object" ||
+      (resolution.external === true
+        ? !NODE_BUILTINS.has(resolution.path)
+        : !expectedByVfsPath.has(resolution.path))
+    ) {
+      throw new Error("MCP capsule resolver audit is invalid");
+    }
+  }
+
+  const output = Buffer.from(
+    result.output.buffer,
+    result.output.byteOffset,
+    result.output.byteLength,
+  );
+  let descriptor;
+  try {
+    descriptor = _deps.fs.openSync(
+      capsulePath,
+      Number(_deps.fs.constants.O_WRONLY) |
+        Number(_deps.fs.constants.O_CREAT) |
+        Number(_deps.fs.constants.O_EXCL) |
+        Number(_deps.fs.constants.O_NOFOLLOW || 0),
+      0o600,
+    );
+    let offset = 0;
+    while (offset < output.length) {
+      const written = _deps.fs.writeSync(
+        descriptor,
+        output,
+        offset,
+        output.length - offset,
+        offset,
+      );
+      if (written <= 0) throw new Error("MCP capsule output write stalled");
+      offset += written;
+    }
+    _deps.fs.fsyncSync(descriptor);
+  } finally {
+    if (descriptor !== undefined) _deps.fs.closeSync(descriptor);
+  }
+
+  const postBuildClosure = collectTree(treeRoot);
+  if (
+    postBuildClosure.fileCount !== closure.fileCount ||
+    postBuildClosure.totalBytes !== closure.totalBytes ||
+    postBuildClosure.closureDigest !== closure.closureDigest ||
+    canonicalJson(postBuildClosure.files) !== canonicalJson(closure.files)
+  ) {
+    throw new Error("MCP package dependency closure changed during bundling");
+  }
+  const capsuleClosure = collectTree(capsuleRoot, {
+    maxFiles: 1,
+    maxTotalBytes: MAX_CAPSULE_BYTES,
+    maxFileBytes: MAX_CAPSULE_BYTES,
+  });
+  if (
+    capsuleClosure.fileCount !== 1 ||
+    capsuleClosure.files[0]?.path !== path.basename(capsulePath)
+  ) {
+    throw new Error("MCP capsule output is not one regular file");
+  }
+  return Object.freeze({
+    schema: CAPSULE_SCHEMA,
+    relativePath: CAPSULE_RELATIVE_PATH,
+    sha256: capsuleClosure.files[0].sha256,
+    bytes: capsuleClosure.files[0].bytes,
+    closureDigest: capsuleClosure.closureDigest,
+    builder: CAPSULE_BUILDER,
+    builderVersion: CAPSULE_BUILDER_VERSION,
+    builderWasmSha256: builder.wasmSha256,
+    builderApiSha256: builder.apiSha256,
+    builderWorkerSha256: builder.workerSha256,
+    resolverSchema: CAPSULE_RESOLVER_SCHEMA,
+    resolverSha256: builder.resolverSha256,
+    wrapperSchema: CAPSULE_STDIN_WRAPPER_SCHEMA,
+    wrapperSha256,
+    nodeTarget: "node22",
+    inputCount: inputs.length,
+    inputDigest: sha256(canonicalJson(inputs)),
+    externalBuiltins: Object.freeze([...new Set(externalBuiltins)].sort()),
+  });
 }
 
 function assertSafeGeneration(root, generation) {
@@ -1042,15 +1424,19 @@ function validateManifest(manifest) {
     !/^[a-f0-9]{64}$/.test(manifest.capsule.sha256) ||
     !Number.isSafeInteger(manifest.capsule?.bytes) ||
     manifest.capsule.bytes <= 0 ||
-    manifest.capsule.bytes > MAX_FILE_BYTES ||
+    manifest.capsule.bytes > MAX_CAPSULE_BYTES ||
     typeof manifest.capsule?.closureDigest !== "string" ||
     !/^[a-f0-9]{64}$/.test(manifest.capsule.closureDigest) ||
     manifest.capsule?.builder !== CAPSULE_BUILDER ||
     manifest.capsule?.builderVersion !== CAPSULE_BUILDER_VERSION ||
-    typeof manifest.capsule?.builderPlatform !== "string" ||
-    !CAPSULE_BUILDER_BINARIES[manifest.capsule.builderPlatform] ||
-    manifest.capsule?.builderBinarySha256 !==
-      CAPSULE_BUILDER_BINARIES[manifest.capsule.builderPlatform]?.sha256 ||
+    manifest.capsule?.builderWasmSha256 !== CAPSULE_BUILDER_WASM_SHA256 ||
+    manifest.capsule?.builderApiSha256 !== CAPSULE_BUILDER_API_SHA256 ||
+    manifest.capsule?.builderWorkerSha256 !== CAPSULE_BUILDER_WORKER_SHA256 ||
+    manifest.capsule?.resolverSchema !== CAPSULE_RESOLVER_SCHEMA ||
+    manifest.capsule?.resolverSha256 !== CAPSULE_RESOLVER_SHA256 ||
+    manifest.capsule?.wrapperSchema !== CAPSULE_STDIN_WRAPPER_SCHEMA ||
+    typeof manifest.capsule?.wrapperSha256 !== "string" ||
+    !/^[a-f0-9]{64}$/.test(manifest.capsule.wrapperSha256) ||
     manifest.capsule?.nodeTarget !== "node22" ||
     !Number.isSafeInteger(manifest.capsule?.inputCount) ||
     manifest.capsule.inputCount <= 0 ||
@@ -1163,7 +1549,11 @@ function verifyPublishedGeneration(root, record, expectedFingerprint) {
   const capsuleRoot = path.dirname(entrypoint);
   let capsuleClosure;
   try {
-    capsuleClosure = collectTree(capsuleRoot);
+    capsuleClosure = collectTree(capsuleRoot, {
+      maxFiles: 1,
+      maxTotalBytes: MAX_CAPSULE_BYTES,
+      maxFileBytes: MAX_CAPSULE_BYTES,
+    });
   } catch (cause) {
     throw materializationError(
       MCP_STDIO_PACKAGE_MATERIALIZATION_CHANGED_CODE,
@@ -1209,7 +1599,7 @@ function verifyPublishedGeneration(root, record, expectedFingerprint) {
   });
 }
 
-export function materializeMcpStdioNpmPackage({
+export async function materializeMcpStdioNpmPackage({
   approvalRecord,
   config,
   packageSpec,
@@ -1263,13 +1653,11 @@ export function materializeMcpStdioNpmPackage({
     const lock = validateNpmLock(treeRoot, source);
     const entry = resolvePackageEntrypoint(treeRoot, source, binName);
     const closure = collectTree(treeRoot);
-    const capsule = buildCapsule({
+    const capsule = await buildCapsule({
       treeRoot,
       entrypointRelative: entry.entrypointRelative,
       closure,
       staging,
-      processBrokerRunSync,
-      env,
     });
     const generation = sha256(
       canonicalJson({

@@ -390,6 +390,109 @@ describe("scheduler-kernel SQLite store v1", () => {
     ).toMatchObject({ status: "succeeded", result: { ok: true } });
   });
 
+  it("targets one occurrence without consuming unrelated queued work", () => {
+    const f = fixture();
+    const firstHandle = f.open();
+    const secondHandle = f.open();
+    firstHandle.createJob(jobInput());
+    const first = firstHandle.enqueueOccurrence({
+      jobId: "job-a",
+      scheduledFor: f.now,
+      triggerKey: "target:first",
+    });
+    const target = firstHandle.enqueueOccurrence({
+      jobId: "job-a",
+      scheduledFor: f.now,
+      triggerKey: "target:second",
+    });
+
+    const targeted = secondHandle.claimOccurrence({
+      occurrenceId: target.id,
+      ownerId: "target-owner-a",
+      leaseMs: 100,
+    });
+    expect(targeted).toMatchObject({
+      id: target.id,
+      status: "running",
+      leaseOwner: "target-owner-a",
+      fence: 1,
+      attempt: 1,
+    });
+    expect(firstHandle.getOccurrence(first.id).status).toBe("queued");
+    expect(
+      firstHandle.claimOccurrence({
+        occurrenceId: target.id,
+        ownerId: "target-owner-b",
+        leaseMs: 100,
+      }),
+    ).toBeNull();
+
+    f.now += 101;
+    const reclaimed = firstHandle.claimOccurrence({
+      occurrenceId: target.id,
+      ownerId: "target-owner-b",
+      leaseMs: 100,
+    });
+    expect(reclaimed).toMatchObject({
+      id: target.id,
+      leaseOwner: "target-owner-b",
+      fence: 2,
+      attempt: 2,
+    });
+    firstHandle.settle({
+      occurrenceId: target.id,
+      ownerId: "target-owner-b",
+      fence: reclaimed.fence,
+      outcome: "succeeded",
+      result: { targeted: true },
+    });
+    expect(
+      secondHandle.claimOccurrence({
+        occurrenceId: target.id,
+        ownerId: "target-owner-c",
+        leaseMs: 100,
+      }),
+    ).toBeNull();
+    expectCode(
+      () =>
+        firstHandle.claimOccurrence({
+          occurrenceId: "occ_missing",
+          ownerId: "target-owner",
+          leaseMs: 100,
+        }),
+      "SCHEDULER_NOT_FOUND",
+    );
+  });
+
+  it("claims only the requested adapter kind without consuming other work", () => {
+    const f = fixture();
+    const store = f.open();
+    store.createJob(jobInput({ id: "job-other", kind: "other.adapter" }));
+    store.createJob(jobInput({ id: "job-routine", kind: "routine" }));
+    const other = store.enqueueOccurrence({
+      jobId: "job-other",
+      scheduledFor: f.now,
+      triggerKey: "kind:other",
+    });
+    const routine = store.enqueueOccurrence({
+      jobId: "job-routine",
+      scheduledFor: f.now,
+      triggerKey: "kind:routine",
+    });
+
+    expect(
+      store.claimNext({
+        ownerId: "routine-driver",
+        leaseMs: 100,
+        jobKind: "routine",
+      }),
+    ).toMatchObject({ id: routine.id, leaseOwner: "routine-driver" });
+    expect(store.getOccurrence(other.id).status).toBe("queued");
+    expect(
+      store.claimNext({ ownerId: "generic-driver", leaseMs: 100 }),
+    ).toMatchObject({ id: other.id, leaseOwner: "generic-driver" });
+  });
+
   it("bounds retries, dead-letters exhaustion, and exposes bounded history", () => {
     const f = fixture();
     const store = f.open();

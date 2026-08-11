@@ -2,6 +2,20 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.49] - Latest-main maintenance certification (2026-08-11)
+
+- Publish a maintenance build with no intentional user-facing IDE behavior
+  changes from 0.37.48.
+- Refresh the packaged Marketplace overview and recommended fully gated CLI
+  baseline to `chainlesschain@0.163.4`.
+- Highlight the companion CLI's immutable MCP capsule build inputs,
+  platform-bound live capsule evidence, durable revision-CAS scheduler storage
+  foundation, and delivery/recovery hardening. CLI 0.163.4 also carries forward
+  0.163.3's default background-agent worktree isolation and fenced ownership.
+- Re-certify the immutable VSIX and its paired JetBrains artifact from the same
+  latest-main commit under the fail-closed cross-platform and native ARM64
+  release gates.
+
 ## [0.37.48] - Fail-closed maintenance certification (2026-08-09)
 
 - Publish a maintenance build with no intentional user-facing IDE behavior

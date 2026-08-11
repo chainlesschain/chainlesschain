@@ -789,6 +789,28 @@ function identityDigest(identity) {
   return sha256(JSON.stringify(comparableIdentity(identity)));
 }
 
+export function nanosecondsToSafeMilliseconds(value) {
+  const nanoseconds = BigInt(value);
+  const maximumSafeNanoseconds = BigInt(Number.MAX_SAFE_INTEGER) * 1_000_000n;
+  if (
+    nanoseconds > maximumSafeNanoseconds ||
+    nanoseconds < -maximumSafeNanoseconds
+  ) {
+    throw new RangeError(
+      "MCP capsule file timestamp exceeds safe milliseconds",
+    );
+  }
+  const wholeMilliseconds = nanoseconds / 1_000_000n;
+  const remainderNanoseconds = nanoseconds % 1_000_000n;
+  const numericWholeMilliseconds = Number(wholeMilliseconds);
+  if (!Number.isSafeInteger(numericWholeMilliseconds)) {
+    throw new RangeError(
+      "MCP capsule file timestamp exceeds safe milliseconds",
+    );
+  }
+  return numericWholeMilliseconds + Number(remainderNanoseconds) / 1_000_000;
+}
+
 function capsuleSandboxFileIdentity(identity, requestedPath) {
   return Object.freeze({
     ...(requestedPath ? { requestedPath } : {}),
@@ -797,7 +819,7 @@ function capsuleSandboxFileIdentity(identity, requestedPath) {
     bytes: identity.bytes,
     dev: identity.dev,
     ino: identity.ino,
-    mtimeMs: Number(identity.mtimeNs) / 1_000_000,
+    mtimeMs: nanosecondsToSafeMilliseconds(identity.mtimeNs),
     mode: identity.mode,
   });
 }

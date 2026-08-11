@@ -28,6 +28,9 @@ import os from "node:os";
 import path from "node:path";
 import * as fs from "node:fs";
 import * as tty from "node:tty";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
 
 // P0-1: 平台沙箱 + 凭据代理
 // platform-sandbox.js exports: applySandbox, postSpawnSandbox
@@ -44,7 +47,6 @@ import {
   LINUX_GENERIC_CONTRACT_KIND,
 } from "./linux-generic-bwrap.js";
 import { consumeIssuedPluginSandboxExecutionContract } from "../plugin-runtime/bin.js";
-import { traceContext } from "../execution-trace/trace-context.js";
 import runtimeProvenanceLedger from "../runtime-provenance-ledger.js";
 import { credentialAgent } from "./credential-agent.js";
 import { WorkspaceTransactionManager } from "./workspace-transaction.js";
@@ -64,7 +66,21 @@ const SUPPORTED_SANDBOX_PROFILES = new Set([
 // evidence, not authority to invoke a privileged post-spawn closure.
 const admittedWindowsMcpCodeSnapshotPlans = new WeakSet();
 
+// Keep the broker on the shared CommonJS trace singleton so CommonJS and ESM
+// consumers observe the same AsyncLocalStorage without loader warnings.
+let _traceCtx = null;
 const _ipcBus = null;
+
+function getTraceCtx() {
+  if (!_traceCtx) {
+    try {
+      _traceCtx = require("../execution-trace/trace-context.cjs");
+    } catch {
+      _traceCtx = null;
+    }
+  }
+  return _traceCtx;
+}
 
 function getRpl() {
   return runtimeProvenanceLedger;
@@ -1203,6 +1219,7 @@ class ProcessExecutionBroker extends EventEmitter {
         "entrySnapshotAtomic",
         "runtimeLaunchAtomic",
         "mcpCapsuleCodeSnapshot",
+        "runtimeDetachedChildSpawnVerified",
       ]) {
         if (
           plan.runtimeProbe[field] !== undefined &&
@@ -1222,6 +1239,7 @@ class ProcessExecutionBroker extends EventEmitter {
         "runtimeSnapshotBytes",
         "runtimeAttestedBytes",
         "entrySnapshotBytes",
+        "capabilityCount",
       ]) {
         if (
           plan.runtimeProbe[field] !== undefined &&
@@ -1743,6 +1761,7 @@ class ProcessExecutionBroker extends EventEmitter {
           plan.runtimeProbe.runtimeLaunchAtomic === true &&
           plan.runtimeProbe.runtimeLaunchMechanism ===
             "bwrap-descriptor-mount-node-runtime-exec-v1" &&
+          plan.runtimeProbe.runtimeDetachedChildSpawnVerified === true &&
           plan.runtimeProbe.supervisorDescriptorBound === true &&
           plan.runtimeProbe.pluginTreeContentSnapshot === true &&
           plan.runtimeProbe.runtimeLaunchPath ===
@@ -1779,6 +1798,7 @@ class ProcessExecutionBroker extends EventEmitter {
             (backend === "windows-appcontainer-job-restricted-token" &&
               plan.runtimeProbe.kind ===
                 "windows-appcontainer-launch-attestation-v1" &&
+              plan.runtimeProbe.capabilityCount === 0 &&
               policyAttested === true &&
               policyDigest !== null)) &&
           plan.runtimeProbe.contentSnapshotScope ===
@@ -1813,6 +1833,17 @@ class ProcessExecutionBroker extends EventEmitter {
             "Code snapshot guarantee requires typed atomic MCP capsule evidence",
           );
         }
+      }
+      if (
+        plan.runtimeProbe.kind ===
+          "windows-appcontainer-launch-attestation-v1" &&
+        plan.runtimeProbe.runnable === true &&
+        plan.runtimeProbe.capabilityCount !== 0
+      ) {
+        throw this._sandboxError(
+          "invalid_sandbox_plan",
+          "Windows AppContainer runtime evidence must attest zero capabilities",
+        );
       }
       const genericWorkspaceEvidenceFields = [
         "contractDigest",
@@ -2088,6 +2119,9 @@ class ProcessExecutionBroker extends EventEmitter {
         ...(plan.runtimeProbe.targetRuntime !== undefined
           ? { targetRuntime: plan.runtimeProbe.targetRuntime }
           : {}),
+        ...(plan.runtimeProbe.capabilityCount !== undefined
+          ? { capabilityCount: plan.runtimeProbe.capabilityCount }
+          : {}),
         ...(plan.runtimeProbe.contentSnapshot !== undefined
           ? { contentSnapshot: plan.runtimeProbe.contentSnapshot }
           : {}),
@@ -2099,6 +2133,12 @@ class ProcessExecutionBroker extends EventEmitter {
           : {}),
         ...(plan.runtimeProbe.runtimeLaunchAtomic !== undefined
           ? { runtimeLaunchAtomic: plan.runtimeProbe.runtimeLaunchAtomic }
+          : {}),
+        ...(plan.runtimeProbe.runtimeDetachedChildSpawnVerified !== undefined
+          ? {
+              runtimeDetachedChildSpawnVerified:
+                plan.runtimeProbe.runtimeDetachedChildSpawnVerified,
+            }
           : {}),
         ...(plan.runtimeProbe.runtimeLaunchMechanism !== undefined
           ? {
@@ -2906,7 +2946,16 @@ class ProcessExecutionBroker extends EventEmitter {
   }
 
   _getTraceContext() {
-    return traceContext.getCurrentContext() || null;
+    const traceCtx = getTraceCtx();
+    const activeContext = traceCtx?.traceContext?.getCurrentContext?.() || null;
+    if (!activeContext) return null;
+    return {
+      ...activeContext,
+      traceparent: traceCtx.traceContext.formatTraceparent(
+        activeContext.traceId,
+        activeContext.spanId,
+      ),
+    };
   }
 
   _writeRplEntry(auditEntry, status = "started", error = null) {
@@ -3306,7 +3355,12 @@ class ProcessExecutionBroker extends EventEmitter {
     delete spawnOpts.mcpStdioExecutableIdentityDigest;
     if (traceCtx) {
       spawnOpts.env = { ...(spawnOpts.env || process.env) };
-      Object.assign(spawnOpts.env, traceContext.getPropagationEnv());
+      Object.assign(
+        spawnOpts.env,
+        getTraceCtx()?.traceContext?.getPropagationEnv?.() || {
+          TRACEPARENT: traceCtx.traceparent,
+        },
+      );
     }
 
     // P0-1: Credential filtering (default-on) — strip secrets from env/args
@@ -3610,7 +3664,12 @@ class ProcessExecutionBroker extends EventEmitter {
     this._stripAuditControlOptions(spawnOpts);
     if (traceCtx) {
       spawnOpts.env = { ...(spawnOpts.env || process.env) };
-      Object.assign(spawnOpts.env, traceContext.getPropagationEnv());
+      Object.assign(
+        spawnOpts.env,
+        getTraceCtx()?.traceContext?.getPropagationEnv?.() || {
+          TRACEPARENT: traceCtx.traceparent,
+        },
+      );
     }
 
     // P0-1: Credential filtering agent — strip secrets from env/args before spawn

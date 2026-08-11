@@ -1,0 +1,514 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import Database from "better-sqlite3";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { RoutineStore } from "../../src/lib/routine-store.js";
+import {
+  ROUTINE_SCHEDULER_CHANNELS,
+  RoutineSchedulerBridge,
+  buildRoutineSchedulerJob,
+  enqueueManualRoutine,
+  enqueueScheduledRoutine,
+  routineBridgeRunId,
+  routineDefinitionDigest,
+  routineSchedulerRunId,
+  routineSnapshotDigest,
+  syncRoutineSchedulerJob,
+} from "../../src/lib/scheduler-kernel/routine-adapter.js";
+import { openSchedulerStore } from "../../src/lib/scheduler-kernel/store.js";
+
+describe("scheduler-kernel routine adapter", () => {
+  const cleanups = [];
+
+  afterEach(() => {
+    while (cleanups.length > 0) cleanups.pop()();
+  });
+
+  function fixture(start = Date.UTC(2026, 7, 11, 3, 0, 0)) {
+    const dir = mkdtempSync(join(tmpdir(), "cc-scheduler-routine-"));
+    const routineDir = join(dir, "routines");
+    const schedulerFile = join(dir, "scheduler.db");
+    let now = start;
+    const routineStores = [];
+    const schedulerStores = [];
+    const openRoutine = () => {
+      const store = new RoutineStore({ dir: routineDir, now: () => now });
+      routineStores.push(store);
+      return store;
+    };
+    const openScheduler = () => {
+      const store = openSchedulerStore({
+        file: schedulerFile,
+        Database,
+        clock: () => now,
+      });
+      schedulerStores.push(store);
+      return store;
+    };
+    cleanups.push(() => {
+      for (const store of schedulerStores) store.close();
+      rmSync(dir, { recursive: true, force: true });
+    });
+    return {
+      openRoutine,
+      openScheduler,
+      clock: () => now,
+      get now() {
+        return now;
+      },
+      set now(value) {
+        now = value;
+      },
+    };
+  }
+
+  it("binds scheduled state but keeps manual idempotency stable across fire state", () => {
+    const f = fixture();
+    const routineStore = f.openRoutine();
+    const routine = routineStore.create({
+      name: "nightly",
+      prompt: "summarize",
+      trigger: { kind: "cron", cron: "0 * * * *" },
+    });
+    const scheduled = buildRoutineSchedulerJob(routine, {
+      channel: ROUTINE_SCHEDULER_CHANNELS.SCHEDULED,
+    });
+    const manual = buildRoutineSchedulerJob(routine, {
+      channel: ROUTINE_SCHEDULER_CHANNELS.MANUAL,
+    });
+    expect(scheduled.payload.snapshotType).toBe("state");
+    expect(manual.payload.snapshotType).toBe("definition");
+    expect(scheduled.payload.snapshotDigest).toBe(
+      routineSnapshotDigest(routine),
+    );
+    expect(manual.payload.snapshotDigest).toBe(
+      routineDefinitionDigest(routine),
+    );
+
+    const firedState = { ...routine, lastFiredAt: f.now + 1_000 };
+    expect(routineSnapshotDigest(firedState)).not.toBe(
+      scheduled.payload.snapshotDigest,
+    );
+    expect(routineDefinitionDigest(firedState)).toBe(
+      manual.payload.snapshotDigest,
+    );
+  });
+
+  it("runs a due once routine through authority, claim, adapter, and settlement", async () => {
+    const f = fixture();
+    const routineStore = f.openRoutine();
+    const schedulerStore = f.openScheduler();
+    const routine = routineStore.create({
+      name: "one-shot",
+      prompt: "produce report",
+      trigger: { kind: "once", at: f.now - 1 },
+    });
+    const runAgent = vi.fn(async () => ({
+      exitCode: 0,
+      output: "done",
+      usage: { total_tokens: 12 },
+      costUsd: 0.01,
+    }));
+    const bridge = new RoutineSchedulerBridge({
+      routineStore,
+      schedulerStore,
+      runAgent,
+      now: f.clock,
+      ownerId: "routine-owner",
+      leaseMs: 10_000,
+    });
+
+    const [fired] = await bridge.runDue();
+    expect(fired.result).toMatchObject({
+      status: "succeeded",
+      result: { status: "ok", exitCode: 0 },
+    });
+    expect(routineBridgeRunId(fired)).toMatch(/^run-/);
+    expect(runAgent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: "produce report",
+        routine: expect.objectContaining({ id: routine.id }),
+      }),
+    );
+    expect(routineStore.get(routine.id)).toMatchObject({
+      enabled: false,
+      lastFiredAt: f.now,
+    });
+    expect(routineStore.listRuns({ routineId: routine.id })).toHaveLength(1);
+    expect(
+      schedulerStore
+        .history({ occurrenceId: fired.occurrence })
+        .map((event) => event.type),
+    ).toEqual([
+      "occurrence_succeeded",
+      "occurrence_renewed",
+      "occurrence_claimed",
+      "occurrence_enqueued",
+    ]);
+  });
+
+  it("deduplicates two drivers that observed the same due routine", async () => {
+    const f = fixture();
+    const firstRoutineStore = f.openRoutine();
+    const routine = firstRoutineStore.create({
+      name: "hourly",
+      prompt: "run once",
+      trigger: { kind: "cron", cron: "0 * * * *" },
+    });
+    f.now += 60 * 60_000;
+    const secondRoutineStore = f.openRoutine();
+    const firstSchedulerStore = f.openScheduler();
+    const secondSchedulerStore = f.openScheduler();
+    let release;
+    const gate = new Promise((resolve) => {
+      release = resolve;
+    });
+    const runAgent = vi.fn(async () => {
+      await gate;
+      return { exitCode: 0, output: "once" };
+    });
+    const firstBridge = new RoutineSchedulerBridge({
+      routineStore: firstRoutineStore,
+      schedulerStore: firstSchedulerStore,
+      runAgent,
+      now: f.clock,
+      ownerId: "routine-contender-a",
+      leaseMs: 10_000,
+    });
+    const secondBridge = new RoutineSchedulerBridge({
+      routineStore: secondRoutineStore,
+      schedulerStore: secondSchedulerStore,
+      runAgent,
+      now: f.clock,
+      ownerId: "routine-contender-b",
+      leaseMs: 10_000,
+    });
+
+    const firstRun = firstBridge.runDue();
+    await vi.waitFor(() => expect(runAgent).toHaveBeenCalledTimes(1));
+    const secondRun = await secondBridge.runDue();
+    expect(secondRun).toHaveLength(1);
+    expect(secondRun[0]).toMatchObject({
+      routine: routine.id,
+      deduplicated: true,
+      result: { status: "busy" },
+    });
+    release();
+    await expect(firstRun).resolves.toEqual([
+      expect.objectContaining({
+        result: expect.objectContaining({ status: "succeeded" }),
+      }),
+    ]);
+    expect(runAgent).toHaveBeenCalledTimes(1);
+    expect(firstRoutineStore.listRuns({ routineId: routine.id })).toHaveLength(
+      1,
+    );
+  });
+
+  it("resumes a durably enqueued routine after the scheduler handle restarts", async () => {
+    const f = fixture();
+    const setupRoutineStore = f.openRoutine();
+    const routine = setupRoutineStore.create({
+      name: "restartable",
+      prompt: "resume after restart",
+      trigger: { kind: "once", at: f.now - 1 },
+    });
+    const setupSchedulerStore = f.openScheduler();
+    const occurrence = enqueueScheduledRoutine(setupSchedulerStore, routine);
+    setupSchedulerStore.close();
+
+    const resumedRoutineStore = f.openRoutine();
+    const resumedSchedulerStore = f.openScheduler();
+    const runAgent = vi.fn(async () => ({ exitCode: 0, output: "resumed" }));
+    const bridge = new RoutineSchedulerBridge({
+      routineStore: resumedRoutineStore,
+      schedulerStore: resumedSchedulerStore,
+      runAgent,
+      now: f.clock,
+      ownerId: "restart-owner",
+      leaseMs: 10_000,
+    });
+    await expect(
+      bridge.runtime.runOccurrence(occurrence.id),
+    ).resolves.toMatchObject({
+      status: "succeeded",
+      result: { status: "ok" },
+    });
+    expect(runAgent).toHaveBeenCalledTimes(1);
+    expect(resumedRoutineStore.get(routine.id)).toMatchObject({
+      enabled: false,
+      lastFiredAt: f.now,
+    });
+  });
+
+  it("recovers completed routine evidence without executing the agent twice", async () => {
+    const f = fixture();
+    const routineStore = f.openRoutine();
+    const schedulerStore = f.openScheduler();
+    const routine = routineStore.create({
+      name: "crash-recovery",
+      prompt: "execute exactly once",
+      trigger: { kind: "once", at: f.now - 1 },
+    });
+    const occurrence = enqueueScheduledRoutine(schedulerStore, routine);
+    expect(
+      schedulerStore.claimOccurrence({
+        occurrenceId: occurrence.id,
+        ownerId: "crashed-owner",
+        leaseMs: 1_000,
+      }),
+    ).toMatchObject({ status: "running", attempt: 1 });
+    const runId = routineSchedulerRunId(occurrence.id);
+    routineStore.recordRunStart(routine.id, {
+      runId,
+      trigger: "once",
+      schedulerOccurrenceId: occurrence.id,
+      schedulerSnapshotDigest: occurrence.payload.snapshotDigest,
+    });
+    routineStore.recordRunEnd(runId, {
+      status: "ok",
+      exitCode: 0,
+      summary: "agent completed before scheduler settlement",
+    });
+    // Simulate the crash window after routine state was updated but before the
+    // occurrence was settled in the scheduler database.
+    routineStore.update(routine.id, {
+      enabled: false,
+      lastFiredAt: f.now,
+    });
+    f.now += 1_001;
+    const runAgent = vi.fn();
+    const bridge = new RoutineSchedulerBridge({
+      routineStore,
+      schedulerStore,
+      runAgent,
+      now: f.clock,
+      ownerId: "crash-recovery-owner",
+      leaseMs: 10_000,
+    });
+
+    await expect(bridge.runDue()).resolves.toEqual([
+      expect.objectContaining({
+        routine: routine.id,
+        occurrence: occurrence.id,
+        recovered: true,
+        result: expect.objectContaining({
+          status: "succeeded",
+          result: expect.objectContaining({
+            runId,
+            status: "ok",
+            recovered: true,
+          }),
+        }),
+      }),
+    ]);
+    expect(runAgent).not.toHaveBeenCalled();
+    expect(routineStore.listRuns({ routineId: routine.id })).toHaveLength(1);
+    expect(schedulerStore.getOccurrence(occurrence.id)).toMatchObject({
+      status: "succeeded",
+      attempt: 2,
+    });
+  });
+
+  it("fails closed when a prior routine run has an unknown outcome", async () => {
+    const f = fixture();
+    const routineStore = f.openRoutine();
+    const schedulerStore = f.openScheduler();
+    const routine = routineStore.create({
+      name: "unknown-outcome",
+      prompt: "do not duplicate",
+      trigger: { kind: "once", at: f.now - 1 },
+    });
+    const occurrence = enqueueScheduledRoutine(schedulerStore, routine);
+    routineStore.recordRunStart(routine.id, {
+      runId: routineSchedulerRunId(occurrence.id),
+      trigger: "once",
+      schedulerOccurrenceId: occurrence.id,
+      schedulerSnapshotDigest: occurrence.payload.snapshotDigest,
+    });
+    const runAgent = vi.fn();
+    const bridge = new RoutineSchedulerBridge({
+      routineStore,
+      schedulerStore,
+      runAgent,
+      now: f.clock,
+      ownerId: "unknown-outcome-owner",
+      leaseMs: 10_000,
+    });
+
+    await expect(
+      bridge.runtime.runOccurrence(occurrence.id),
+    ).resolves.toMatchObject({
+      status: "dead_letter",
+      error: { code: "ROUTINE_RUN_OUTCOME_UNKNOWN" },
+    });
+    expect(runAgent).not.toHaveBeenCalled();
+  });
+
+  it("rejects routine run evidence bound to another scheduler occurrence", async () => {
+    const f = fixture();
+    const routineStore = f.openRoutine();
+    const schedulerStore = f.openScheduler();
+    const routine = routineStore.create({
+      name: "binding-mismatch",
+      prompt: "never execute mismatched evidence",
+      trigger: { kind: "once", at: f.now - 1 },
+    });
+    const occurrence = enqueueScheduledRoutine(schedulerStore, routine);
+    const runId = routineSchedulerRunId(occurrence.id);
+    routineStore.recordRunStart(routine.id, {
+      runId,
+      trigger: "once",
+      schedulerOccurrenceId: "occurrence-wrong",
+      schedulerSnapshotDigest: occurrence.payload.snapshotDigest,
+    });
+    routineStore.recordRunEnd(runId, { status: "ok", exitCode: 0 });
+    const runAgent = vi.fn();
+    const bridge = new RoutineSchedulerBridge({
+      routineStore,
+      schedulerStore,
+      runAgent,
+      now: f.clock,
+      ownerId: "binding-mismatch-owner",
+      leaseMs: 10_000,
+    });
+
+    await expect(
+      bridge.runtime.runOccurrence(occurrence.id),
+    ).resolves.toMatchObject({
+      status: "dead_letter",
+      error: { code: "SCHEDULER_ROUTINE_RUN_BINDING_MISMATCH" },
+    });
+    expect(runAgent).not.toHaveBeenCalled();
+  });
+
+  it("allows an explicit manual trigger for a disabled routine and deduplicates its request", async () => {
+    const f = fixture();
+    const routineStore = f.openRoutine();
+    const schedulerStore = f.openScheduler();
+    const routine = routineStore.create({
+      name: "webhook",
+      prompt: "manual only",
+      trigger: { kind: "webhook" },
+    });
+    routineStore.setEnabled(routine.id, false);
+    const current = routineStore.get(routine.id);
+    const runAgent = vi.fn(async () => ({ exitCode: 0, output: "manual" }));
+    const bridge = new RoutineSchedulerBridge({
+      routineStore,
+      schedulerStore,
+      runAgent,
+      now: f.clock,
+      ownerId: "manual-owner",
+      leaseMs: 10_000,
+    });
+
+    const first = await bridge.trigger(current, { requestId: "request-1" });
+    expect(first.result.status).toBe("succeeded");
+    const second = await bridge.trigger(routineStore.get(routine.id), {
+      requestId: "request-1",
+    });
+    expect(second.result).toMatchObject({
+      status: "succeeded",
+      alreadySettled: true,
+    });
+    expect(runAgent).toHaveBeenCalledTimes(1);
+    expect(routineStore.get(routine.id).enabled).toBe(false);
+  });
+
+  it("rejects a stale routine snapshot before a prompt can execute", async () => {
+    const f = fixture();
+    const routineStore = f.openRoutine();
+    const schedulerStore = f.openScheduler();
+    const routine = routineStore.create({
+      name: "mutable",
+      prompt: "old prompt",
+      trigger: { kind: "once", at: f.now - 1 },
+    });
+    const occurrence = enqueueScheduledRoutine(schedulerStore, routine);
+    routineStore.update(routine.id, { prompt: "new prompt" });
+    const runAgent = vi.fn();
+    const bridge = new RoutineSchedulerBridge({
+      routineStore,
+      schedulerStore,
+      runAgent,
+      now: f.clock,
+      ownerId: "stale-owner",
+      leaseMs: 10_000,
+    });
+
+    const result = await bridge.runtime.runOccurrence(occurrence.id);
+    expect(result).toMatchObject({
+      status: "dead_letter",
+      error: { code: "SCHEDULER_ROUTINE_STALE_SNAPSHOT" },
+    });
+    expect(runAgent).not.toHaveBeenCalled();
+  });
+
+  it("records a failed agent run once and dead-letters without retry", async () => {
+    const f = fixture();
+    const routineStore = f.openRoutine();
+    const schedulerStore = f.openScheduler();
+    const routine = routineStore.create({
+      name: "failing",
+      prompt: "fail",
+      trigger: { kind: "webhook" },
+    });
+    const bridge = new RoutineSchedulerBridge({
+      routineStore,
+      schedulerStore,
+      runAgent: async () => ({ exitCode: 7, output: "provider failed" }),
+      now: f.clock,
+      ownerId: "failure-owner",
+      leaseMs: 10_000,
+    });
+
+    const fired = await bridge.trigger(routine, { requestId: "failure-1" });
+    expect(fired.result).toMatchObject({
+      status: "dead_letter",
+      error: {
+        code: "SCHEDULER_ROUTINE_EXECUTION_FAILED",
+        details: { exitCode: 7 },
+      },
+    });
+    expect(routineBridgeRunId(fired)).toMatch(/^run-/);
+    expect(routineStore.listRuns({ routineId: routine.id })[0]).toMatchObject({
+      status: "failed",
+      exitCode: 7,
+    });
+    expect(
+      schedulerStore.claimOccurrence({
+        occurrenceId: fired.occurrence,
+        ownerId: "retry-owner",
+        leaseMs: 10_000,
+      }),
+    ).toBeNull();
+  });
+
+  it("syncs definition changes through expected-revision CAS", () => {
+    const f = fixture();
+    const routineStore = f.openRoutine();
+    const schedulerStore = f.openScheduler();
+    const routine = routineStore.create({
+      name: "versioned",
+      prompt: "v1",
+      trigger: { kind: "webhook" },
+    });
+    const first = syncRoutineSchedulerJob(schedulerStore, routine, {
+      channel: ROUTINE_SCHEDULER_CHANNELS.MANUAL,
+    });
+    const changed = routineStore.update(routine.id, { prompt: "v2" });
+    const second = syncRoutineSchedulerJob(schedulerStore, changed, {
+      channel: ROUTINE_SCHEDULER_CHANNELS.MANUAL,
+    });
+    expect(second).toMatchObject({ revision: first.revision + 1 });
+    expect(second.payload.routine.prompt).toBe("v2");
+
+    const manual = enqueueManualRoutine(schedulerStore, changed, {
+      now: f.now,
+      requestId: "cas-request",
+    });
+    expect(manual.jobRevision).toBe(second.revision);
+  });
+});

@@ -12,6 +12,7 @@ import {
 import {
   consumeMcpStdioCapsuleSandboxExecutionContract,
   MCP_STDIO_CAPSULE_REQUIRED_BOUNDARIES,
+  nanosecondsToSafeMilliseconds,
   prepareMcpStdioExecutableIdentity,
 } from "../../src/lib/mcp-stdio-executable-identity.js";
 import {
@@ -22,6 +23,10 @@ import {
 function writeJson(file, value) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+}
+
+function brokerSpawnSync(command, args, options) {
+  return spawnSync(command, args, options);
 }
 
 function fakeInstall({ directory }) {
@@ -56,6 +61,22 @@ function fakeInstall({ directory }) {
   );
 }
 
+it("rejects nanosecond timestamps just outside the safe millisecond boundary", () => {
+  const maximumSafeNanoseconds = BigInt(Number.MAX_SAFE_INTEGER) * 1_000_000n;
+  expect(nanosecondsToSafeMilliseconds(maximumSafeNanoseconds)).toBe(
+    Number.MAX_SAFE_INTEGER,
+  );
+  expect(nanosecondsToSafeMilliseconds(-maximumSafeNanoseconds)).toBe(
+    -Number.MAX_SAFE_INTEGER,
+  );
+  expect(() =>
+    nanosecondsToSafeMilliseconds(maximumSafeNanoseconds + 1n),
+  ).toThrow(RangeError);
+  expect(() =>
+    nanosecondsToSafeMilliseconds(-maximumSafeNanoseconds - 1n),
+  ).toThrow(RangeError);
+});
+
 describe("MCP stdio capsule host boundary floor", () => {
   let root;
   let approval;
@@ -64,7 +85,7 @@ describe("MCP stdio capsule host boundary floor", () => {
   let materializationRoot;
   let storePath;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-mcp-capsule-contract-"));
     indexPath = path.join(root, "security", "index.json");
     materializationRoot = path.join(root, "materializations");
@@ -88,8 +109,8 @@ describe("MCP stdio capsule host boundary floor", () => {
       config: sourceConfig,
     });
     config = materializeApprovedMcpStdioInvocation(approval);
-    _deps.processBrokerRunSync = spawnSync;
-    materializeMcpStdioNpmPackage({
+    _deps.processBrokerRunSync = brokerSpawnSync;
+    await materializeMcpStdioNpmPackage({
       approvalRecord: resolveMcpStdioExecutionApproval(approval),
       config,
       packageSpec: "capsule-contract-fixture@1.2.3",
@@ -146,15 +167,22 @@ describe("MCP stdio capsule host boundary floor", () => {
       accepted,
       MCP_STDIO_CAPSULE_REQUIRED_BOUNDARIES,
     );
+    const acceptedContract = accepted.sandboxExecutionContract;
+    expect(acceptedContract.entryIdentity.mtimeMs).toBe(
+      fs.statSync(acceptedContract.entryIdentity.realPath).mtimeMs,
+    );
+    expect(acceptedContract.runtimeIdentity.mtimeMs).toBe(
+      fs.statSync(acceptedContract.runtimeIdentity.realPath).mtimeMs,
+    );
     expect(
       consumeMcpStdioCapsuleSandboxExecutionContract(
-        accepted.sandboxExecutionContract,
+        acceptedContract,
         acceptedProvenance,
       ),
     ).toBe(true);
     expect(
       consumeMcpStdioCapsuleSandboxExecutionContract(
-        accepted.sandboxExecutionContract,
+        acceptedContract,
         acceptedProvenance,
       ),
     ).toBe(false);

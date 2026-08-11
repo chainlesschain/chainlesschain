@@ -159,6 +159,9 @@ const LINUX_BWRAP_PATH = "/usr/bin/bwrap";
 const LINUX_LDD_PATH = "/usr/bin/ldd";
 const LINUX_BWRAP_BACKEND = "linux-bwrap";
 const LINUX_BWRAP_NODE_PROBE_SENTINEL = "chainless-linux-bwrap-plugin-node-v1";
+const LINUX_BWRAP_CHILD_RUNTIME_PROBE_SENTINEL =
+  "chainless-linux-bwrap-child-runtime-v1";
+const LINUX_BWRAP_CHILD_RUNTIME_PROBE_FAILURE_STATUS = 86;
 const LINUX_BWRAP_MAX_PLUGIN_ENTRIES = 512;
 const LINUX_PLUGIN_TREE_SNAPSHOT_MAX_FILES = 256;
 const LINUX_PLUGIN_TREE_SNAPSHOT_MAX_BYTES = 256 * 1024 * 1024;
@@ -2544,6 +2547,7 @@ function waitForWindowsTargetIdentity(
         proc.sandboxAppContainerProfile =
           expectedAppContainer.appContainerProfileName;
         proc.sandboxAppContainerSid = expectedAppContainer.appContainerSid;
+        proc.sandboxAppContainerCapabilityCount = identity.capabilityCount;
       }
       // ChildProcess.pid is a writable data property. The native ChildProcess
       // handle still points at the helper, so kill()/ref()/unref() retain Job
@@ -2747,6 +2751,7 @@ function appContainerReadinessResult(
       ...runtimeProbe,
       runnable: true,
       reason: null,
+      capabilityCount: readiness.capabilityCount,
       ...(targetRuntime
         ? {
             probeRuntime: targetRuntime,
@@ -3877,6 +3882,7 @@ function linuxBubblewrapProbe(
   supervisorBinding = null,
   pluginTreeSnapshot = null,
   nativeDynamicClosure = null,
+  runtimeDetachedChildSpawnVerified = false,
 ) {
   const native =
     typeof targetRuntime === "string" && targetRuntime.startsWith("native-");
@@ -3942,6 +3948,7 @@ function linuxBubblewrapProbe(
     reason,
     probeRuntime: "node",
     targetRuntime,
+    runtimeDetachedChildSpawnVerified,
     contentSnapshot: snapshot,
     ...(snapshot
       ? {
@@ -6791,8 +6798,22 @@ function probeLinuxBubblewrapPolicy(
     ino: supervisorBinding.fileId.ino,
     bytes: supervisorBinding.bytes,
   });
+  const childProbeSource = [
+    'const fs = require("node:fs");',
+    "const sentinel = process.argv[1];",
+    'const raw = fs.readFileSync("/proc/self/stat", "utf8");',
+    'const close = raw.lastIndexOf(")");',
+    'const pid = Number(raw.slice(0, raw.indexOf(" ")));',
+    "const fields = raw.slice(close + 2).trim().split(/\\s+/);",
+    "const processGroupPid = Number(fields[2]);",
+    "const sessionPid = Number(fields[3]);",
+    "fs.writeSync(1, JSON.stringify({ sentinel, pid, processGroupPid, sessionPid }));",
+    "if (processGroupPid !== pid || sessionPid !== pid) process.exit(2);",
+  ].join("\n");
   const probeSource = [
     'const fs = require("node:fs");',
+    'const crypto = require("node:crypto");',
+    'const { spawnSync } = require("node:child_process");',
     `const expected = ${supervisorIdentity};`,
     'for (const name of fs.readdirSync("/proc/self/fd")) {',
     "  let current;",
@@ -6809,10 +6830,62 @@ function probeLinuxBubblewrapPolicy(
     "} catch (error) {",
     '  if (error?.code !== "ENOENT") throw error;',
     "}",
+    "// /tmp is a fresh private bwrap tmpfs; read the same O_EXCL inode by fd.",
+    'const childReportPath = "/tmp/.chainless-runtime-child-probe.json";',
+    `const expectedChildSentinel = ${JSON.stringify(
+      `${LINUX_BWRAP_CHILD_RUNTIME_PROBE_SENTINEL}:`,
+    )} + crypto.randomBytes(16).toString("hex");`,
+    "let reportFd;",
+    "let runtimeDetachedChildSpawnVerified = false;",
+    "try {",
+    '  reportFd = fs.openSync(childReportPath, "wx+", 0o600);',
+    `  const child = spawnSync("/opt/chainless/runtime/node", ["-e", ${JSON.stringify(
+      childProbeSource,
+    )}, expectedChildSentinel], {`,
+    '    cwd: "/",',
+    "    detached: true,",
+    "    env: process.env,",
+    "    shell: false,",
+    '    stdio: ["ignore", reportFd, "ignore"],',
+    "    timeout: 5_000,",
+    "  });",
+    "  const reportStat = fs.fstatSync(reportFd);",
+    "  const reportBytes = Number(reportStat.size);",
+    "  if (!child.error && child.status === 0 && child.signal === null &&",
+    "      Number.isSafeInteger(child.pid) && child.pid > 0 &&",
+    "      reportStat.isFile() && Number.isSafeInteger(reportBytes) &&",
+    "      reportBytes > 0 && reportBytes <= 1_024) {",
+    "    const reportBuffer = Buffer.alloc(reportBytes);",
+    "    const reportRead = fs.readSync(reportFd, reportBuffer, 0, reportBytes, 0);",
+    "    if (reportRead === reportBytes) {",
+    '      const reportText = reportBuffer.toString("utf8");',
+    "      const report = JSON.parse(reportText);",
+    "      const canonicalReport = JSON.stringify({ sentinel: report.sentinel,",
+    "        pid: report.pid, processGroupPid: report.processGroupPid,",
+    "        sessionPid: report.sessionPid });",
+    "      runtimeDetachedChildSpawnVerified = reportText === canonicalReport &&",
+    "        report.sentinel === expectedChildSentinel &&",
+    "        Number.isSafeInteger(report.pid) && report.pid > 0 &&",
+    "        report.pid === child.pid && report.processGroupPid === report.pid &&",
+    "        report.sessionPid === report.pid;",
+    "    }",
+    "  }",
+    "} catch {} finally {",
+    "  try { if (Number.isInteger(reportFd)) fs.closeSync(reportFd); } catch {",
+    "    runtimeDetachedChildSpawnVerified = false;",
+    "  }",
+    "  try { fs.unlinkSync(childReportPath); } catch {",
+    "    runtimeDetachedChildSpawnVerified = false;",
+    "  }",
+    "}",
+    `if (!runtimeDetachedChildSpawnVerified) process.exit(${LINUX_BWRAP_CHILD_RUNTIME_PROBE_FAILURE_STATUS});`,
     `process.stdout.write(${JSON.stringify(LINUX_BWRAP_NODE_PROBE_SENTINEL)});`,
   ].join("\n");
   let result;
   try {
+    // These pipes connect the host Broker to bwrap and are created before
+    // bwrap installs the target seccomp filter. The nested runtime probe above
+    // inherits a regular-file descriptor and never requests UV_CREATE_PIPE.
     result = runtime.spawnSync(
       supervisorLaunch.command,
       [...policyArgs, "--", "/opt/chainless/runtime/node", "-e", probeSource],
@@ -6846,7 +6919,11 @@ function probeLinuxBubblewrapPolicy(
     return linuxBubblewrapProbe(
       true,
       false,
-      result?.error ? "probe_spawn_failed" : "probe_failed",
+      result?.error
+        ? "probe_spawn_failed"
+        : result?.status === LINUX_BWRAP_CHILD_RUNTIME_PROBE_FAILURE_STATUS
+          ? "detached_child_runtime_probe_failed"
+          : "probe_failed",
       targetRuntime,
       contentSnapshot,
       supervisorBinding,
@@ -6869,6 +6946,9 @@ function probeLinuxBubblewrapPolicy(
     targetRuntime,
     contentSnapshot,
     supervisorBinding,
+    null,
+    null,
+    true,
   );
 }
 
@@ -7588,6 +7668,7 @@ export function applyLinuxSandbox(
       supervisorBinding,
       pluginTreeSnapshot,
       nativeDynamicClosure,
+      policyProbe.runtimeDetachedChildSpawnVerified === true,
     );
     const runtimeProbe = Object.freeze(
       capsuleContract

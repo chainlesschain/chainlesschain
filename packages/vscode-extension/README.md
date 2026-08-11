@@ -8,14 +8,22 @@ coordination, and a localhost IDE bridge.
 
 | Component                 | Current status                                                        |
 | ------------------------- | --------------------------------------------------------------------- |
-| VS Code extension         | **0.37.48** source/package version; Open VSX publication is tag-gated |
-| Recommended CLI           | **`chainlesschain@0.163.2`** (fully gated stable release)             |
+| VS Code extension         | **0.37.49** source/package version; Open VSX publication is tag-gated |
+| Recommended CLI           | **`chainlesschain@0.163.4`** (fully gated stable release)             |
 | Base bridge compatibility | `cc >= 0.162.47`; newer features can require a newer CLI              |
 | Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors                   |
 | Distribution              | Open VSX; not published on the Microsoft VS Code Marketplace          |
 
+The recommended CLI `0.163.4` adds immutable MCP capsule build inputs,
+platform-bound live capsule evidence, a durable revision-CAS scheduler storage
+foundation, and delivery/recovery hardening. It also carries forward `0.163.3`'s
+default clean-Git worktree isolation for eligible background agents and
+generation/token-fenced lifecycle ownership. These are companion CLI/runtime
+improvements; this maintenance extension release does not add new IDE UI
+behavior.
+
 The immutable release tag
-[`ide-vscode-v0.37.48`](https://github.com/chainlesschain/chainlesschain/releases/tag/ide-vscode-v0.37.48)
+[`ide-vscode-v0.37.49`](https://github.com/chainlesschain/chainlesschain/releases/tag/ide-vscode-v0.37.49)
 is the release authority for this version. Before tagging, the exact release
 commit must pass the native ARM64 aggregate. The tag workflow then validates
 the packaged VSIX in stable and minimum VS Code hosts on Windows, Linux, and
@@ -57,11 +65,11 @@ immutable extension version is packaged, gated, and published.
 Node.js `>= 22.12.0` and npm `>= 10.0.0` are required.
 
 ```bash
-npm i -g chainlesschain@0.163.2
+npm i -g chainlesschain@0.163.4
 cc --version
 ```
 
-Using `@0.163.2` reproduces the currently documented and fully gated pairing.
+Using `@0.163.4` reproduces the currently documented and fully gated pairing.
 Use `@latest` only when you intentionally want a newer published CLI.
 
 ### 2. Install the extension
@@ -177,7 +185,7 @@ bridge tool map, and the CLI compatibility source.
 
 ## Release validation
 
-Version `0.37.48` carries forward the release-host journey added across the
+Version `0.37.49` carries forward the release-host journey added across the
 `0.37.38` to `0.37.47` line:
 
 - an immutable packaged VSIX is exercised in real stable and minimum VS Code
@@ -202,7 +210,7 @@ npm --prefix packages/vscode-extension run test:unit
 # Package the extension
 cd packages/vscode-extension
 npx @vscode/vsce package --no-dependencies
-node scripts/verify-vsix.mjs chainlesschain-ide-0.37.48.vsix
+node scripts/verify-vsix.mjs chainlesschain-ide-0.37.49.vsix
 ```
 
 The extension has no runtime npm dependencies; it uses Node.js and the VS Code

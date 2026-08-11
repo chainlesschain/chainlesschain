@@ -3250,7 +3250,10 @@ describe("CheckpointRestoreSagaStore", () => {
       });
       const done = new Promise((resolve, reject) => {
         child.once("error", reject);
-        child.once("exit", (code) => {
+        // `exit` may precede delivery of the final stdout chunks. Wait for
+        // `close` so both contender result lines are fully drained before the
+        // parent evaluates the real two-process CAS outcome.
+        child.once("close", (code) => {
           if (code !== 0) {
             reject(new Error(`contender failed (${code}): ${stderr}`));
           } else {
