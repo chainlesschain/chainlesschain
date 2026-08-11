@@ -14,6 +14,7 @@ export const ROUTINE_SCHEDULER_CAPABILITY = "agent.execute";
 export const ROUTINE_SCHEDULER_CHANNELS = Object.freeze({
   SCHEDULED: "scheduled",
   MANUAL: "manual",
+  GITHUB: "github",
 });
 
 function routineError(code, message, details = undefined, cause = undefined) {
@@ -128,40 +129,184 @@ export function routineSchedulerJobId(routineId, channel) {
   return `routine:${normalizeIdentifier(routineId, "routineId")}:${normalizeChannel(channel)}`;
 }
 
+function normalizeGithubEvent(event) {
+  if (!event || typeof event !== "object" || Array.isArray(event)) {
+    throw routineError(
+      "SCHEDULER_ROUTINE_GITHUB_EVENT_INVALID",
+      "Routine GitHub event must be an object",
+    );
+  }
+  if (event.id === null || event.id === undefined) {
+    throw routineError(
+      "SCHEDULER_ROUTINE_GITHUB_EVENT_INVALID",
+      "Routine GitHub event requires an id",
+    );
+  }
+  if (event.type === null || event.type === undefined) {
+    throw routineError(
+      "SCHEDULER_ROUTINE_GITHUB_EVENT_INVALID",
+      "Routine GitHub event requires a type",
+    );
+  }
+  const rawCreatedAt = event.createdAt ?? event.created_at;
+  const createdAt = Number.isSafeInteger(rawCreatedAt)
+    ? rawCreatedAt
+    : Date.parse(rawCreatedAt);
+  if (!Number.isSafeInteger(createdAt) || createdAt < 0) {
+    throw routineError(
+      "SCHEDULER_ROUTINE_GITHUB_EVENT_INVALID",
+      "Routine GitHub event requires a valid created_at timestamp",
+    );
+  }
+  return {
+    id: normalizeIdentifier(String(event.id), "githubEvent.id"),
+    type: normalizeIdentifier(String(event.type), "githubEvent.type"),
+    createdAt,
+  };
+}
+
+function normalizeGithubBatch(batch) {
+  if (!batch || typeof batch !== "object" || Array.isArray(batch)) {
+    throw routineError(
+      "SCHEDULER_ROUTINE_GITHUB_EVENT_INVALID",
+      "Routine GitHub batch must be an object",
+    );
+  }
+  if (!Array.isArray(batch.events) || batch.events.length === 0) {
+    throw routineError(
+      "SCHEDULER_ROUTINE_GITHUB_EVENT_INVALID",
+      "Routine GitHub batch requires at least one event",
+    );
+  }
+  if (batch.cursorAfter === null || batch.cursorAfter === undefined) {
+    throw routineError(
+      "SCHEDULER_ROUTINE_GITHUB_EVENT_INVALID",
+      "Routine GitHub batch requires a cursorAfter value",
+    );
+  }
+  return {
+    repo: normalizeIdentifier(batch.repo, "github.repo"),
+    cursorBefore:
+      batch.cursorBefore === null || batch.cursorBefore === undefined
+        ? null
+        : normalizeIdentifier(
+            String(batch.cursorBefore),
+            "github.cursorBefore",
+          ),
+    cursorAfter: normalizeIdentifier(
+      String(batch.cursorAfter),
+      "github.cursorAfter",
+    ),
+    events: batch.events.map(normalizeGithubEvent),
+  };
+}
+
+function githubEventIsAfter(eventId, cursor) {
+  if (cursor === null || cursor === undefined) return true;
+  const candidate = normalizeIdentifier(String(eventId), "githubEvent.id");
+  const previous = normalizeIdentifier(String(cursor), "github.cursorBefore");
+  if (/^\d+$/.test(candidate) && /^\d+$/.test(previous)) {
+    return BigInt(candidate) > BigInt(previous);
+  }
+  return candidate > previous;
+}
+
+export function routineGithubBatch(routine, events, cursorAfter) {
+  const definition = routineDefinitionSnapshot(routine);
+  if (definition.trigger.kind !== "github") {
+    throw routineError(
+      "SCHEDULER_ROUTINE_NOT_GITHUB_DRIVEN",
+      `Routine is not driven by GitHub: ${definition.id}`,
+    );
+  }
+  if (!Array.isArray(events) || events.length === 0) {
+    throw routineError(
+      "SCHEDULER_ROUTINE_GITHUB_EVENT_INVALID",
+      "Routine GitHub batch requires at least one event",
+    );
+  }
+  return {
+    repo: normalizeIdentifier(
+      String(definition.trigger.repo),
+      "routine.trigger.repo",
+    ),
+    cursorBefore:
+      routine.lastSeenGithubEventId === null ||
+      routine.lastSeenGithubEventId === undefined
+        ? null
+        : normalizeIdentifier(
+            String(routine.lastSeenGithubEventId),
+            "routine.lastSeenGithubEventId",
+          ),
+    cursorAfter: normalizeIdentifier(String(cursorAfter), "github.cursorAfter"),
+    events: events.map(normalizeGithubEvent),
+  };
+}
+
+export function routineGithubBatchDigest(batch) {
+  return createHash("sha256")
+    .update("chainlesschain.scheduler.routine-github-batch.v1\0", "utf8")
+    .update(
+      canonicalJson(normalizeGithubBatch(batch), "routineGithubBatch"),
+      "utf8",
+    )
+    .digest("hex");
+}
+
+export function routineGithubSchedulerJobId(routineId, batchDigest) {
+  return `${routineSchedulerJobId(
+    routineId,
+    ROUTINE_SCHEDULER_CHANNELS.GITHUB,
+  )}:${normalizeIdentifier(batchDigest, "githubBatchDigest")}`;
+}
+
 export function routineSchedulerRunId(occurrenceId) {
   return `run-scheduler-${normalizeIdentifier(occurrenceId, "occurrenceId")}`;
 }
 
 export function buildRoutineSchedulerJob(
   routine,
-  { channel = ROUTINE_SCHEDULER_CHANNELS.SCHEDULED } = {},
+  { channel = ROUTINE_SCHEDULER_CHANNELS.SCHEDULED, githubBatch } = {},
 ) {
   const normalizedChannel = normalizeChannel(channel);
   const snapshot =
-    normalizedChannel === ROUTINE_SCHEDULER_CHANNELS.MANUAL
+    normalizedChannel !== ROUTINE_SCHEDULER_CHANNELS.SCHEDULED
       ? routineDefinitionSnapshot(routine)
       : routineSnapshot(routine);
   const snapshotType =
-    normalizedChannel === ROUTINE_SCHEDULER_CHANNELS.MANUAL
+    normalizedChannel !== ROUTINE_SCHEDULER_CHANNELS.SCHEDULED
       ? "definition"
       : "state";
   const snapshotDigest =
     snapshotType === "definition"
       ? routineDefinitionDigest(snapshot)
       : routineSnapshotDigest(snapshot);
+  const github =
+    normalizedChannel === ROUTINE_SCHEDULER_CHANNELS.GITHUB
+      ? routineGithubBatch(
+          routine,
+          githubBatch?.events,
+          githubBatch?.cursorAfter,
+        )
+      : null;
+  const githubDigest = github ? routineGithubBatchDigest(github) : null;
   return {
-    id: routineSchedulerJobId(snapshot.id, normalizedChannel),
+    id: github
+      ? routineGithubSchedulerJobId(snapshot.id, githubDigest)
+      : routineSchedulerJobId(snapshot.id, normalizedChannel),
     kind: ROUTINE_SCHEDULER_KIND,
     trigger: {
       source: "routine-store",
       channel: normalizedChannel,
       routineKind: snapshot.trigger.kind,
+      ...(github ? { batchDigest: githubDigest } : {}),
     },
     payload: {
       channel: normalizedChannel,
       routine: snapshot,
       snapshotType,
       snapshotDigest,
+      ...(github ? { github, githubDigest } : {}),
     },
     authority: {
       schemaVersion: 1,
@@ -287,17 +432,55 @@ export function enqueueManualRoutine(
   });
 }
 
+export function enqueueGithubRoutine(
+  schedulerStore,
+  routine,
+  events,
+  cursorAfter,
+  { availableAt } = {},
+) {
+  const githubBatch = routineGithubBatch(routine, events, cursorAfter);
+  const job = syncRoutineSchedulerJob(schedulerStore, routine, {
+    channel: ROUTINE_SCHEDULER_CHANNELS.GITHUB,
+    githubBatch,
+  });
+  const scheduledFor = Math.max(
+    ...githubBatch.events.map((event) => event.createdAt),
+  );
+  return schedulerStore.enqueueOccurrence({
+    jobId: job.id,
+    scheduledFor,
+    availableAt: normalizeEpochMs(
+      Number(availableAt ?? scheduledFor),
+      "github.availableAt",
+    ),
+    triggerKey: `github:${githubBatch.cursorAfter}:${routineGithubBatchDigest(
+      githubBatch,
+    )}`,
+  });
+}
+
 export function authorizeRoutineOccurrence({ job, occurrence }) {
   try {
     const payload = occurrence?.payload;
     const authority = occurrence?.authority;
     const routineId = payload?.routine?.id;
+    const channel = normalizeChannel(payload?.channel);
+    const expectedSnapshotType =
+      channel === ROUTINE_SCHEDULER_CHANNELS.SCHEDULED ? "state" : "definition";
     const expectedDigest =
       payload?.snapshotType === "definition"
         ? routineDefinitionDigest(payload.routine)
         : payload?.snapshotType === "state"
           ? routineSnapshotDigest(payload.routine)
           : null;
+    const github =
+      channel === ROUTINE_SCHEDULER_CHANNELS.GITHUB
+        ? normalizeGithubBatch(payload?.github)
+        : null;
+    const expectedGithubDigest = github
+      ? routineGithubBatchDigest(github)
+      : null;
     const allowed =
       job?.kind === ROUTINE_SCHEDULER_KIND &&
       typeof routineId === "string" &&
@@ -306,7 +489,13 @@ export function authorizeRoutineOccurrence({ job, occurrence }) {
       Array.isArray(authority?.requestedCapabilities) &&
       authority.requestedCapabilities.length === 1 &&
       authority.requestedCapabilities[0] === ROUTINE_SCHEDULER_CAPABILITY &&
-      payload?.snapshotDigest === expectedDigest;
+      payload?.snapshotType === expectedSnapshotType &&
+      payload?.snapshotDigest === expectedDigest &&
+      (channel === ROUTINE_SCHEDULER_CHANNELS.GITHUB
+        ? payload?.routine?.trigger?.kind === "github" &&
+          github.repo === payload.routine.trigger.repo &&
+          payload?.githubDigest === expectedGithubDigest
+        : payload?.github === undefined && payload?.githubDigest === undefined);
     return {
       allowed,
       reason: allowed ? "routine_snapshot_bound" : "routine_authority_mismatch",
@@ -352,6 +541,16 @@ export function createRoutineSchedulerAdapter({ routineStore, runAgent } = {}) {
           "Routine occurrence snapshot is missing or invalid",
         );
       }
+      if (
+        payload.channel === ROUTINE_SCHEDULER_CHANNELS.GITHUB &&
+        (payload.githubDigest !== routineGithubBatchDigest(payload.github) ||
+          payload.github.repo !== expected.trigger.repo)
+      ) {
+        throw routineError(
+          "SCHEDULER_ROUTINE_GITHUB_EVENT_INVALID",
+          "Routine GitHub occurrence batch is missing or invalid",
+        );
+      }
       const current = routineStore.get(expected.id);
       if (!current) {
         throw routineError(
@@ -383,7 +582,7 @@ export function createRoutineSchedulerAdapter({ routineStore, runAgent } = {}) {
         );
       }
       if (
-        payload.channel === ROUTINE_SCHEDULER_CHANNELS.SCHEDULED &&
+        payload.channel !== ROUTINE_SCHEDULER_CHANNELS.MANUAL &&
         !existingRun &&
         current.enabled !== true
       ) {
@@ -396,7 +595,11 @@ export function createRoutineSchedulerAdapter({ routineStore, runAgent } = {}) {
         trigger:
           payload.channel === ROUTINE_SCHEDULER_CHANNELS.MANUAL
             ? "manual"
-            : current.trigger.kind,
+            : payload.channel === ROUTINE_SCHEDULER_CHANNELS.GITHUB
+              ? `github:${payload.github.events
+                  .map((event) => event.type)
+                  .join(",")}`
+              : current.trigger.kind,
         runId: schedulerRunId,
         schedulerOccurrenceId: occurrence.id,
         schedulerSnapshotDigest: payload.snapshotDigest,
@@ -462,6 +665,84 @@ export class RoutineSchedulerBridge {
     });
     const result = await this.runtime.runOccurrence(occurrence.id, { signal });
     return { routine: routine.id, occurrence: occurrence.id, result };
+  }
+
+  async pollGithub(routine, { fetchEvents, signal } = {}) {
+    if (typeof fetchEvents !== "function") {
+      throw routineError(
+        "SCHEDULER_ROUTINE_GITHUB_FETCHER_REQUIRED",
+        "Routine GitHub scheduler requires a fetchEvents function",
+      );
+    }
+    const current = this.routineStore.get(routine.id);
+    if (
+      !current ||
+      current.enabled !== true ||
+      current.trigger?.kind !== "github"
+    ) {
+      return null;
+    }
+    const fetchedEvents = (await fetchEvents(current.trigger.repo)) || [];
+    if (!Array.isArray(fetchedEvents)) {
+      throw routineError(
+        "SCHEDULER_ROUTINE_GITHUB_EVENT_INVALID",
+        "Routine GitHub event source must return an array",
+      );
+    }
+    const events = fetchedEvents.map(normalizeGithubEvent);
+    const newestId =
+      events.length > 0
+        ? normalizeIdentifier(String(events[0]?.id ?? ""), "githubEvent.id")
+        : null;
+    if (newestId === "") {
+      throw routineError(
+        "SCHEDULER_ROUTINE_GITHUB_EVENT_INVALID",
+        "Routine GitHub event is missing an id",
+      );
+    }
+    const wanted = Array.isArray(current.trigger.events)
+      ? current.trigger.events
+      : null;
+    const fresh = events.filter((event) => {
+      if (wanted?.length > 0 && !wanted.includes(event?.type)) return false;
+      return (
+        event?.id !== null &&
+        event?.id !== undefined &&
+        githubEventIsAfter(event.id, current.lastSeenGithubEventId)
+      );
+    });
+    if (fresh.length === 0) {
+      if (
+        newestId &&
+        githubEventIsAfter(newestId, current.lastSeenGithubEventId)
+      ) {
+        this.routineStore.update(current.id, {
+          lastSeenGithubEventId: newestId,
+        });
+      }
+      return null;
+    }
+
+    // Enqueue the immutable event batch before advancing the legacy cursor.
+    // A crash in between leaves a recoverable occurrence and may only cause a
+    // deduplicated re-enqueue of the same batch on the next poll.
+    const occurrence = enqueueGithubRoutine(
+      this.schedulerStore,
+      current,
+      fresh,
+      newestId,
+      { availableAt: this.now() },
+    );
+    this.routineStore.update(current.id, {
+      lastSeenGithubEventId: newestId,
+    });
+    const result = await this.runtime.runOccurrence(occurrence.id, { signal });
+    return {
+      routine: current.id,
+      occurrence: occurrence.id,
+      deduplicated: occurrence.deduplicated,
+      result,
+    };
   }
 
   async runDue({ signal } = {}) {
