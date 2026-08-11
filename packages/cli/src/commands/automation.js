@@ -7,6 +7,7 @@ import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import { parseJsonOption } from "../lib/parse-json-option.js";
 import { AutomationSchedulerBridge } from "../lib/scheduler-kernel/automation-adapter.js";
+import { AutomationEventDispatcher } from "../lib/scheduler-kernel/automation-event-adapter.js";
 import { openSchedulerStore } from "../lib/scheduler-kernel/store.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
@@ -70,8 +71,12 @@ import {
 } from "../lib/automation-engine.js";
 
 function _dbFromCtx(cmd) {
-  const root = cmd?.parent?.parent ?? cmd?.parent;
-  return root?._db;
+  let current = cmd;
+  while (current) {
+    if (current._db) return current._db;
+    current = current.parent;
+  }
+  return null;
 }
 
 async function _prepare(cmd) {
@@ -138,6 +143,71 @@ export async function runAutomationScheduled(db, options = {}, _deps = {}) {
     )
       ? 1
       : 0;
+  } finally {
+    if (ownsSchedulerStore) schedulerStore?.close();
+  }
+}
+
+export async function runAutomationChannelEvent(db, options = {}, _deps = {}) {
+  const log = _deps.log || ((message) => console.log(message));
+  let schedulerStore = _deps.schedulerStore;
+  const ownsSchedulerStore = schedulerStore == null;
+  try {
+    schedulerStore ||= openSchedulerStore();
+    const dispatcher = new AutomationEventDispatcher({
+      db,
+      schedulerStore,
+      ...(_deps.ownerId === undefined ? {} : { ownerId: _deps.ownerId }),
+      ...(options.leaseMs === undefined
+        ? {}
+        : { leaseMs: Number(options.leaseMs) }),
+    });
+    const result = await dispatcher.dispatch(
+      {
+        id: options.eventId,
+        type: "channel.event",
+        origin: options.origin,
+        sender: options.sender || null,
+        text: options.text,
+        meta: options.meta || {},
+        producedAt:
+          options.producedAt === undefined
+            ? Number((_deps.now || Date.now)())
+            : Number(options.producedAt),
+      },
+      { signal: _deps.signal },
+    );
+    const summary = {
+      eventId: result.eventId,
+      matched: result.matched,
+      rejected: result.rejected,
+      executions: result.results.map((entry) => ({
+        flowId: entry.flowId,
+        triggerId: entry.triggerId,
+        occurrenceId: entry.occurrenceId,
+        deduplicated: entry.deduplicated,
+        status: entry.result?.status || "unknown",
+        executionId: entry.result?.result?.id || null,
+        error: entry.result?.error || null,
+      })),
+    };
+    if (options.json) {
+      log(JSON.stringify(summary, null, 2));
+    } else if (summary.matched === 0) {
+      log(
+        chalk.gray(`No scoped automation trigger matched ${summary.eventId}.`),
+      );
+    } else {
+      for (const entry of summary.executions) {
+        const color = entry.status === "succeeded" ? chalk.green : chalk.red;
+        log(
+          color(
+            `${entry.triggerId} → ${entry.status}${entry.executionId ? ` (${entry.executionId})` : ""}`,
+          ),
+        );
+      }
+    }
+    return summary;
   } finally {
     if (ownsSchedulerStore) schedulerStore?.close();
   }
@@ -602,6 +672,45 @@ function _wire(root) {
       } catch (e) {
         logger.error(e.message);
         process.exit(1);
+      } finally {
+        await shutdown();
+      }
+    });
+
+  root
+    .command("dispatch-channel-event")
+    .description(
+      "Dispatch one durable, scope-checked webhook or Telegram event",
+    )
+    .requiredOption(
+      "--event-id <id>",
+      "Stable source event id for deduplication",
+    )
+    .requiredOption("--origin <origin>", "Event origin (webhook|telegram)")
+    .requiredOption("--text <text>", "Inbound event text")
+    .option("--sender <id>", "Inbound sender id")
+    .option("--meta <json>", "Bounded event metadata as JSON")
+    .option("--produced-at <ms>", "Trusted source event epoch milliseconds")
+    .option("--lease-ms <ms>", "Scheduler execution lease milliseconds")
+    .option("--json", "Output as JSON")
+    .action(async (opts, cmd) => {
+      const db = _dbFromCtx(cmd);
+      try {
+        const summary = await runAutomationChannelEvent(db, {
+          ...opts,
+          meta: parseJsonOption(opts.meta, "--meta") || {},
+        });
+        if (
+          summary.rejected.length > 0 ||
+          summary.executions.some(
+            (entry) => !["succeeded", "busy"].includes(entry.status),
+          )
+        ) {
+          process.exitCode = 1;
+        }
+      } catch (e) {
+        logger.error(e.message);
+        process.exitCode = 1;
       } finally {
         await shutdown();
       }

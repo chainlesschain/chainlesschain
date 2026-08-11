@@ -323,6 +323,44 @@ describe("scheduler-kernel SQLite store v1", () => {
     ).toBe(1);
   });
 
+  it("binds an occurrence payload override to its idempotency identity", () => {
+    const f = fixture();
+    const store = f.open();
+    store.createJob(jobInput({ id: "event-job" }));
+    const first = store.enqueueOccurrence({
+      jobId: "event-job",
+      scheduledFor: f.now,
+      triggerKey: "event:one",
+      payload: { eventId: "evt-1", input: { text: "hello" } },
+    });
+    const duplicate = store.enqueueOccurrence({
+      jobId: "event-job",
+      scheduledFor: f.now,
+      triggerKey: "event:one",
+      payload: { eventId: "evt-1", input: { text: "hello" } },
+    });
+
+    expect(first.payload).toEqual({
+      eventId: "evt-1",
+      input: { text: "hello" },
+    });
+    expect(duplicate).toMatchObject({ id: first.id, deduplicated: true });
+    expect(
+      store.listOccurrencesByTrigger({
+        jobId: "event-job",
+        triggerKey: "event:one",
+      }),
+    ).toHaveLength(1);
+    expect(() =>
+      store.enqueueOccurrence({
+        jobId: "event-job",
+        scheduledFor: f.now,
+        triggerKey: "event:one",
+        payload: { eventId: "evt-1", input: { text: "changed" } },
+      }),
+    ).toThrow(/different payload/u);
+  });
+
   it("increments a monotonic fence and rejects stale owner/fence renew or settle", () => {
     const f = fixture();
     const store = f.open();

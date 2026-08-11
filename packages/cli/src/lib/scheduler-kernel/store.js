@@ -683,6 +683,12 @@ export class SchedulerStore {
       getOccurrenceByKey: db.prepare(
         "SELECT * FROM occurrences WHERE idempotency_key = ?",
       ),
+      listOccurrencesByTrigger: db.prepare(
+        `SELECT * FROM occurrences
+         WHERE job_id = ? AND trigger_key = ?
+         ORDER BY created_at ASC, occurrence_id ASC
+         LIMIT ?`,
+      ),
       insertEvent: db.prepare(`
         INSERT INTO events
           (job_id, occurrence_id, event_type, occurred_at, owner_id, fence, data_json)
@@ -855,7 +861,13 @@ export class SchedulerStore {
     });
   }
 
-  enqueueOccurrence({ jobId, scheduledFor, triggerKey, availableAt } = {}) {
+  enqueueOccurrence({
+    jobId,
+    scheduledFor,
+    triggerKey,
+    availableAt,
+    payload,
+  } = {}) {
     const id = normalizeIdentifier(jobId, "jobId");
     const scheduled = normalizeEpochMs(scheduledFor, "scheduledFor");
     const key = normalizeIdentifier(triggerKey, "triggerKey");
@@ -881,6 +893,10 @@ export class SchedulerStore {
         scheduledFor: scheduled,
         triggerKey: key,
       });
+      const payloadJson = canonicalJson(
+        payload === undefined ? job.payload : payload,
+        "occurrence.payload",
+      );
       const result = this.db
         .prepare(
           `
@@ -906,7 +922,7 @@ export class SchedulerStore {
           availableAt: available,
           maxAttempts: job.maxAttempts,
           authorityJson: canonicalJson(job.authority, "occurrence.authority"),
-          payloadJson: canonicalJson(job.payload, "occurrence.payload"),
+          payloadJson,
           now,
         });
       const row = this.statements.getOccurrenceByKey.get(
@@ -916,6 +932,13 @@ export class SchedulerStore {
         throw schemaError(
           "SCHEDULER_DATA_CORRUPT",
           "Occurrence idempotency identity does not match stored data",
+        );
+      }
+      if (row.payload_json !== payloadJson) {
+        throw new SchedulerKernelError(
+          "SCHEDULER_IDEMPOTENCY_PAYLOAD_MISMATCH",
+          "Occurrence idempotency identity was reused with a different payload",
+          { jobId: id, triggerKey: key },
         );
       }
       if (result.changes === 1) {
@@ -942,6 +965,19 @@ export class SchedulerStore {
         normalizeIdentifier(occurrenceId, "occurrenceId"),
       ),
     );
+  }
+
+  listOccurrencesByTrigger({ jobId, triggerKey, limit = 2 } = {}) {
+    this._assertOpen();
+    const id = normalizeIdentifier(jobId, "jobId");
+    const key = normalizeIdentifier(triggerKey, "triggerKey");
+    const boundedLimit = Math.min(
+      200,
+      Math.max(1, Number.isSafeInteger(Number(limit)) ? Number(limit) : 2),
+    );
+    return this.statements.listOccurrencesByTrigger
+      .all(id, key, boundedLimit)
+      .map(mapOccurrence);
   }
 
   _deadLetterExpiredLeases(now) {
