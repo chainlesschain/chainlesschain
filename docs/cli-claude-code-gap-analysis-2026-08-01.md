@@ -1299,6 +1299,17 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 - 状态边界不变：P2-4 仍为 **部分完成**，原 15 项仍是 **8 项完成、7 项部分完成、0 项完全未开始，7 项未完全关闭**。Agenda、Cowork Cron、Automation、Loop、Routine GitHub、真实共享权限/预算、timezone/DST/missed-run、standalone daemon、迁移/回滚和三平台长期故障矩阵仍未关闭；当前剩余粗估继续采用第 16.20 节的 **4～7 周（单工程师）/2.5～4.5 周（两人有效并行）**。
 - 本次没有修改 CLI 版本，也没有触发 npm 发布。公网最新版本仍是已经完成独立回读的 `0.163.4`；PR #150 的实现只能进入未来版本候选，必须在那个未来 release 的精确 SHA 上重新完成发布所需的 `CLI CI` 与 `CLI Strict Sandbox`，不得沿用本 PR 的成功直接发布。
 
+### 16.22 2026-08-11 P2-4 Agenda wakeup/cron adapter 候选
+
+- production 默认 `agenda run` 已把 wakeup 与 cron 接入统一 scheduler store/runtime；logical occurrence 在执行前绑定版本化 Agenda snapshot 和 SHA-256 digest，job 更新使用 expected-revision CAS，双 driver 只能由同一 owner/fence 执行及结算。monitor 仍保留 legacy driver，本候选不把它伪称为已迁移。
+- snapshot 保留完整 `runPolicy`，包括 permission mode、默认/显式 worktree、turn/outer-turn、goal、token、cost、time budget 和 unattended allowlist；实际 Agent 启动继续复用原 Agenda `spawnAgent` 参数构造与安全策略。当前只形成结构化 `agent.execute` authority envelope 和 snapshot-bound authorizer，跨入口真实共享权限/预算 resolver 仍是后续退出条件。
+- scheduler occurrence 在 Agent 副作用前，把 occurrence ID、snapshot digest、attempt 与 `running` evidence 写入 Agenda JSONL；成功时在同一次文件替换中写 terminal evidence 并把 wakeup 标为 fired 或把 cron 精确推进一次。已存在成功 evidence 的崩溃恢复只补 scheduler settlement，不再次启动 Agent；只有 start evidence 或 Agent 已返回成功但终态写盘失败时，固定按 outcome-unknown 死信并保留非过期 fence，禁止自动重放。
+- 新旧 CLI 并存期间复用 `.agenda-claims` 锁：新内核绑定后写入旧版本可识别的非过期 `executionLease`，阻止旧 driver 重复领取；若旧 driver 先取得有效 lease，新内核不会覆盖，而是退避到该 lease 到期。已知 Agent 失败才清除 fence，并按 60 秒延迟、最多 3 次尝试执行有限重试。该机制只覆盖 cooperating process 与 durable file evidence，不外推为磁盘回滚、断电/fsync 或任意外部副作用的全局 exactly-once。
+- 当前本地聚焦证据为 5 个文件 **128/128 passed**，覆盖完整 run policy、wakeup/cron、双新 driver、旧/新 driver 双向抢占、stale snapshot、已知失败重试、完成后进程崩溃恢复、start-only outcome-unknown、成功后终态持久化失败 fail-close，以及 production command route。Prettier、目标 ESLint、Node syntax、`agenda --help`、shell completion 与 `git diff --check` 通过；`npm pack --dry-run` 为 992 项并包含新增 Agenda adapter。完整 CLI 本地套件在形成最终汇总前被中断，因此不计为通过；复用依赖目录还缺少 `ajv/dist/2020.js`，导致 manifest 原生导入和依赖它的 help-index 检查没有形成有效本地结果。候选必须以干净 `npm ci` 下的 PR GitHub Actions 为准。
+- P2-4 继续是 **部分完成**，原 15 项总表仍为 **8 项完成、7 项部分完成、0 项完全未开始，7 项未完全关闭**。剩余范围包括 Agenda monitor、Cowork Cron、Automation、Loop、Routine GitHub、真实共享权限/预算 resolver、IANA timezone/DST/missed-run、standalone daemon、未知结果人工裁决、迁移/回滚、磁盘故障和三平台长期矩阵。扣除 runtime、Routine 与 Agenda wakeup/cron 后，当前粗估约 **3.5～6.5 周（单工程师）/2.5～4 周（两人有效并行）**。
+
+本节是未合并候选记录，不修改 CLI 版本，也不授权 npm 发布。只有候选最终 exact SHA 的 `CLI CI` 与 `CLI Strict Sandbox` Linux、Windows、macOS 全矩阵成功并进入 `main` 后，才能把该增量计为正式完成的 P2-4 子切片。
+
 ## 17. 2026-08-06 `0.162.198` 发布闭环与继续执行边界
 
 `0.162.198` 是第 16 节之后的 CLI-only 补丁发布，纳入 P0-1 canonical session workbench、P0-2 rewind/branch 宿主绑定、P0-3 发布可靠性跟进，以及 REPL/headless/provider/TTY 输出背压和跨平台 release fixture 修复。它不改变第 16.8 节产品级未完成项的授权边界。
