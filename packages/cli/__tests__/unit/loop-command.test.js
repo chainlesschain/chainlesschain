@@ -9,13 +9,18 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import { EventEmitter } from "node:events";
 import { Command } from "commander";
+import Database from "better-sqlite3";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { _deps, registerLoopCommand } from "../../src/commands/loop.js";
+import { openSchedulerStore } from "../../src/lib/scheduler-kernel/store.js";
+import { LoopSchedulerBridge } from "../../src/lib/scheduler-kernel/loop-adapter.js";
 import {
+  appendEvent,
   sessionPath,
   readEvents,
+  startSession,
 } from "../../src/harness/jsonl-session-store.js";
 
 let logSpy;
@@ -25,6 +30,7 @@ let exitCodeBefore;
 let tmpDir;
 const createdSessions = [];
 const originalSpawn = _deps.spawn;
+const originalOpenSchedulerStore = _deps.openSchedulerStore;
 
 /** Write a throwaway .js script (no shell-fragile embedded-space args). */
 function writeScript(body) {
@@ -55,12 +61,15 @@ beforeEach(() => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-loop-"));
   chainlesschainHomeBefore = process.env.CHAINLESSCHAIN_HOME;
   process.env.CHAINLESSCHAIN_HOME = path.join(tmpDir, "home");
+  _deps.openSchedulerStore = () =>
+    openSchedulerStore({ file: ":memory:", Database });
   logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
   errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 });
 
 afterEach(() => {
   _deps.spawn = originalSpawn;
+  _deps.openSchedulerStore = originalOpenSchedulerStore;
   logSpy.mockRestore();
   errSpy.mockRestore();
   process.exitCode = exitCodeBefore;
@@ -318,5 +327,60 @@ describe("cc loop — --save / --resume persistence", () => {
       .join("\n");
     expect(err).toMatch(/no such loop session/);
     expect(process.exitCode).toBe(1);
+  });
+
+  it("recovers a scheduler-settled pending iteration without spawning again", async () => {
+    const id = `cc-loop-test-${Math.random().toString(36).slice(2)}`;
+    createdSessions.push(id);
+    const scheduledFor = Date.now();
+    startSession(id, { title: "loop recovery" });
+    appendEvent(id, "loop_config", {
+      execMode: true,
+      operands: ["fake-recovered-tool"],
+      dynamic: false,
+      every: "1ms",
+      maxIterations: 1,
+      untilExitZero: false,
+      until: null,
+      cwd: tmpDir,
+    });
+    appendEvent(id, "loop_iteration_scheduled", { n: 1, scheduledFor });
+
+    const schedulerFile = path.join(tmpDir, "loop-recovery.sqlite");
+    const firstStore = openSchedulerStore({ file: schedulerFile, Database });
+    const first = new LoopSchedulerBridge({
+      schedulerStore: firstStore,
+      definition: {
+        executionId: id,
+        cwd: tmpDir,
+        execMode: true,
+        operands: ["fake-recovered-tool"],
+        dynamic: false,
+      },
+      runIteration: async () => ({
+        exitCode: 0,
+        output: "already completed",
+        durationMs: 3,
+      }),
+      ownerId: "pre-crash-owner",
+    });
+    await first.runIteration(1, { scheduledFor });
+    firstStore.close();
+
+    _deps.openSchedulerStore = () =>
+      openSchedulerStore({ file: schedulerFile, Database });
+    _deps.spawn = vi.fn();
+    const output = await run("--resume", id, "--json");
+    const summary = JSON.parse(output.slice(output.indexOf("{")));
+    expect(summary).toMatchObject({
+      iterations: 1,
+      stoppedBy: "max-iterations",
+      lastExitCode: 0,
+      sessionId: id,
+    });
+    expect(_deps.spawn).not.toHaveBeenCalled();
+    expect(
+      readEvents(id).filter((event) => event.type === "loop_iteration"),
+    ).toHaveLength(1);
   });
 });
