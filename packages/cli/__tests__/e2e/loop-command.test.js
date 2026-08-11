@@ -37,7 +37,11 @@ function runCli(args, timeout = 30000) {
   const r = spawnSync(process.execPath, [binScript, "loop", ...args], {
     encoding: "utf-8",
     timeout,
-    env: { ...process.env, NODE_NO_WARNINGS: "1" },
+    env: {
+      ...process.env,
+      NODE_NO_WARNINGS: "1",
+      CHAINLESSCHAIN_HOME: join(scriptDir, "home"),
+    },
   });
   return { status: r.status, stdout: r.stdout || "", stderr: r.stderr || "" };
 }

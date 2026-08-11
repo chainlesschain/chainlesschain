@@ -98,6 +98,21 @@ describe("runLoop stop conditions", () => {
     expect(out.stoppedBy).toBe("match");
   });
 
+  it("stops from a recovered durable match without retaining output", async () => {
+    const out = await runLoop({
+      runIteration: async () => ({
+        exitCode: 0,
+        output: "",
+        matchedUntil: true,
+      }),
+      intervalMs: 0,
+      untilRegex: /DONE/,
+      sleep: noSleep,
+    });
+    expect(out.iterations).toBe(1);
+    expect(out.stoppedBy).toBe("match");
+  });
+
   it("runs at least once even if shouldStop is already true after round 1", async () => {
     let stop = false;
     const runIteration = vi.fn(async () => {
@@ -242,6 +257,26 @@ describe("summarizeLoopEvents", () => {
     const s = summarizeLoopEvents([{ type: "user_message", data: {} }]);
     expect(s.config).toBe(null);
     expect(s.completedIterations).toBe(0);
+  });
+
+  it("projects an unresolved durable iteration schedule", () => {
+    const s = summarizeLoopEvents([
+      { type: "loop_config", data: { every: "1m" } },
+      {
+        type: "loop_iteration_scheduled",
+        data: { n: 2, scheduledFor: 1234 },
+      },
+    ]);
+    expect(s.pendingIteration).toEqual({ n: 2, scheduledFor: 1234 });
+
+    const completed = summarizeLoopEvents([
+      {
+        type: "loop_iteration_scheduled",
+        data: { n: 2, scheduledFor: 1234 },
+      },
+      { type: "loop_iteration", data: { n: 2, exitCode: 0 } },
+    ]);
+    expect(completed.pendingIteration).toBeNull();
   });
 });
 
