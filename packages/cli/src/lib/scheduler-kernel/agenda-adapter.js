@@ -448,7 +448,7 @@ export function createAgendaSchedulerAdapter({
         if (prior.status === "running") {
           throw agendaError(
             "AGENDA_SCHEDULER_OUTCOME_UNKNOWN",
-            `Agenda agent outcome is unknown; refusing duplicate execution: ${expected.id}`,
+            `Agenda execution outcome is unknown; refusing duplicate execution: ${expected.id}`,
           );
         }
       } else if (prior?.status === "running") {
@@ -609,9 +609,14 @@ export function createAgendaSchedulerAdapter({
         if (
           observation?.matched &&
           !observation.duplicate &&
-          observation.notification &&
-          typeof notifyMonitor === "function"
+          observation.notification
         ) {
+          if (typeof notifyMonitor !== "function") {
+            return {
+              ...persistedAction,
+              notifyError: "Agenda monitor notification handler is unavailable",
+            };
+          }
           try {
             await notifyMonitor(observation.notification);
           } catch (notifyError) {
