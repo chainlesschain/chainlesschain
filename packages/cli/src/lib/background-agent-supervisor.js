@@ -28,6 +28,12 @@ import {
   stripFirstTurnPromptArgv,
 } from "./background-command-argv.js";
 import { terminateOwnedProcessTree } from "./process-tree-termination.js";
+import { sendAgentNotification } from "./agent-notify.js";
+import {
+  buildNeedsInputNotification,
+  claimNeedsInputNotification,
+  settleNeedsInputNotification,
+} from "./background-needs-input-incident.js";
 import {
   assessBackgroundLaunchProfileCompatibility,
   buildArgvFromBackgroundLaunchProfile,
@@ -629,6 +635,78 @@ export function writeBackgroundAgentState(state, options = {}) {
   return mutateBackgroundAgentState(state.id, () => state, {
     createIfMissing: options.createIfMissing === true,
   }).state;
+}
+
+/**
+ * Claim and deliver the durable notification for one pending human question.
+ *
+ * The delivery claim is persisted before any notifier runs. A thrown notifier
+ * is therefore recorded as outcome_unknown and is never replayed implicitly;
+ * an operator must use force after accepting the possible duplicate. Known
+ * failures and an unconfigured notifier remain explicitly retryable.
+ */
+export async function deliverBackgroundNeedsInputNotification(
+  id,
+  options = {},
+) {
+  const now = typeof options.now === "function" ? options.now : Date.now;
+  let claim = null;
+  const claimed = mutateBackgroundAgentState(id, (current) => {
+    claim = claimNeedsInputNotification(current?.needsInputIncident, {
+      retry: options.retry === true,
+      force: options.force === true,
+      now: now(),
+    });
+    if (!claim.applied) return null;
+    return { ...current, needsInputIncident: claim.incident };
+  });
+  if (!claim?.applied) {
+    return {
+      applied: false,
+      reason: claim?.reason || "incident_not_pending",
+      incident: claimed.state?.needsInputIncident || null,
+    };
+  }
+
+  const notify = options.notify || sendAgentNotification;
+  let result = null;
+  let deliveryError = null;
+  try {
+    result = await notify(buildNeedsInputNotification(claim.incident));
+  } catch (error) {
+    deliveryError = error;
+  }
+
+  let settlement = null;
+  const settled = mutateBackgroundAgentState(id, (current) => {
+    if (current?.needsInputIncident?.incidentId !== claim.incident.incidentId) {
+      settlement = {
+        applied: false,
+        reason: "incident_changed",
+        incident: current?.needsInputIncident || null,
+      };
+      return null;
+    }
+    settlement = settleNeedsInputNotification(current.needsInputIncident, {
+      attempt: claim.attempt,
+      result,
+      error: deliveryError,
+      now: now(),
+    });
+    if (!settlement.applied) return null;
+    return { ...current, needsInputIncident: settlement.incident };
+  });
+
+  return {
+    applied: true,
+    attempt: claim.attempt,
+    settlementApplied: settlement?.applied === true,
+    reason: settlement?.reason || null,
+    incident:
+      settled.state?.needsInputIncident ||
+      settlement?.incident ||
+      claim.incident,
+  };
 }
 
 /**
