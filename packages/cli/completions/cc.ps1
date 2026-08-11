@@ -1,5 +1,5 @@
 # Generated from src/command-manifest.json; do not edit.
-# manifest-sha256: a342dc48c6d65ef81a96c7df387418e739a51c2a82b9a626d39882387bd2e999
+# manifest-sha256: e90adf9802a6d3eee692c21e74b6534e9c3c80e05ed3ab5217ef27e29ffce57f
 using namespace System.Management.Automation
 
 $ChainlessChainCommands = @(

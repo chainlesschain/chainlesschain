@@ -582,7 +582,7 @@
       "aliases": [],
       "module": "./commands/background-session.js",
       "register": "registerBackgroundSessionCommands",
-      "summary": "Inspect and stop background agent supervisor sessions",
+      "summary": "Manage background agent and scheduler services",
       "stability": "compatibility",
       "category": "compatibility",
       "visibility": "extended",

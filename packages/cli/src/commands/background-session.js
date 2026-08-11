@@ -9,6 +9,7 @@ import {
 } from "../lib/collaboration-run-store.js";
 import { readSessionHostResumeState } from "../lib/session-host-snapshot.js";
 import executionBroker from "../lib/process-execution-broker/index.js";
+import { registerSchedulerDaemonCommands } from "./scheduler-daemon.js";
 
 export function buildBackgroundDispatchArgs(prompt) {
   return ["agent", "--bg", `--print=${prompt}`];
@@ -825,7 +826,9 @@ export function registerBackgroundSessionCommands(program) {
 
   const daemon = program
     .command("daemon")
-    .description("Inspect and stop background agent supervisor sessions");
+    .description("Manage background agent and scheduler services");
+
+  registerSchedulerDaemonCommands(daemon);
 
   daemon
     .command("status")
