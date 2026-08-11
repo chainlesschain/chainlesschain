@@ -86,17 +86,49 @@ export function summarizeLoopEvents(events) {
   let config = null;
   let completedIterations = 0;
   let lastExitCode = null;
+  const scheduled = new Map();
+  const completed = new Set();
   for (const e of events || []) {
     if (e?.type === "loop_config") {
       config = e.data || null;
+    } else if (
+      e?.type === "loop_iteration_scheduled" &&
+      Number.isSafeInteger(e.data?.n) &&
+      e.data.n > 0 &&
+      Number.isSafeInteger(e.data?.scheduledFor) &&
+      e.data.scheduledFor >= 0
+    ) {
+      scheduled.set(e.data.n, {
+        n: e.data.n,
+        scheduledFor: e.data.scheduledFor,
+      });
     } else if (e?.type === "loop_iteration") {
       completedIterations += 1;
+      if (Number.isSafeInteger(e.data?.n) && e.data.n > 0) {
+        completed.add(e.data.n);
+      }
       if (e.data && typeof e.data.exitCode !== "undefined") {
         lastExitCode = e.data.exitCode;
       }
     }
   }
-  return { config, completedIterations, lastExitCode };
+  const pendingIteration =
+    [...scheduled.values()]
+      .filter((entry) => !completed.has(entry.n))
+      .sort((a, b) => a.n - b.n)[0] || null;
+  return { config, completedIterations, lastExitCode, pendingIteration };
+}
+
+/** Return durable terminal data for one loop iteration, if already recorded. */
+export function findLoopIterationResult(events, iteration) {
+  if (!Number.isSafeInteger(iteration) || iteration < 1) return null;
+  for (let index = (events || []).length - 1; index >= 0; index -= 1) {
+    const event = events[index];
+    if (event?.type === "loop_iteration" && event.data?.n === iteration) {
+      return event.data || null;
+    }
+  }
+  return null;
 }
 
 /** Default abortable sleep — resolves early if the signal aborts. */
@@ -187,7 +219,10 @@ export async function runLoop({
     if (untilExitZero && res.exitCode === 0) {
       return { iterations: i, stoppedBy: "exit-zero", results };
     }
-    if (untilRegex && untilRegex.test(res.output || "")) {
+    if (
+      untilRegex &&
+      (res.matchedUntil === true || untilRegex.test(res.output || ""))
+    ) {
       return { iterations: i, stoppedBy: "match", results };
     }
     if (maxIterations && i >= maxIterations) {

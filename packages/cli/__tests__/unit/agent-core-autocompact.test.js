@@ -337,13 +337,18 @@ describe("agentLoop microcompact auto-trigger", () => {
     const msgs = [
       { role: "system", content: "sys" },
       { role: "user", content: "read the file" },
+      {
+        role: "assistant",
+        content: "",
+        tool_calls: [{ id: "t1", function: { name: "read_file" } }],
+      },
       { role: "tool", tool_call_id: "t1", content: "X".repeat(2000) },
     ];
     for (let i = 0; i < 4; i++) {
       msgs.push({ role: "assistant", content: "a" + i });
       msgs.push({ role: "user", content: "q" + i });
     }
-    return msgs; // 11 msgs; the 2000-char tool result is older than keepRecent=6
+    return msgs; // 12 msgs; the 2000-char tool result is older than keepRecent=6
   }
   // Over threshold while total content is large; under once the tool result is trimmed.
   function fakeCompactor() {
@@ -366,18 +371,96 @@ describe("agentLoop microcompact auto-trigger", () => {
 
   it("trims old tool results and SKIPS the full compaction when that suffices", async () => {
     const messages = seedTokenBloat();
+    const original = [...messages];
     const comp = fakeCompactor();
+    const onCompaction = vi.fn((stats, candidate, settlement) => {
+      expect(messages).toEqual(original);
+      expect(stats.strategy).toBe("microcompact");
+      expect(candidate.find((m) => m.role === "tool").content).toHaveLength(
+        400,
+      );
+      expect(settlement.expectedMessages).toEqual(original);
+      return { hash: "microcompact-head" };
+    });
     const events = await drain(
-      agentLoop(messages, { chatFn: finalReplyChatFn(), _autoCompactor: comp }),
+      agentLoop(messages, {
+        chatFn: finalReplyChatFn(),
+        _autoCompactor: comp,
+        onCompaction,
+      }),
     );
     expect(
       events.find((e) => e.type === "micro-compaction")?.stats.trimmed,
     ).toBe(1);
     expect(events.find((e) => e.type === "compaction")).toBeUndefined(); // full skipped
     expect(comp.compress).not.toHaveBeenCalled();
+    expect(onCompaction).toHaveBeenCalledOnce();
     expect(messages.find((m) => m.role === "tool").content).toContain(
       "tool result trimmed",
     );
+  });
+
+  it("does not apply or continue after a stale microcompact settlement", async () => {
+    const messages = seedTokenBloat();
+    const original = [...messages];
+    const chatFn = vi.fn(finalReplyChatFn());
+    const stale = Object.assign(new Error("concurrent turn committed"), {
+      code: "SESSION_REVISION_STALE",
+    });
+
+    const events = await drain(
+      agentLoop(messages, {
+        chatFn,
+        _autoCompactor: fakeCompactor(),
+        onCompaction: () => {
+          throw stale;
+        },
+      }),
+    );
+
+    expect(messages).toEqual(original);
+    expect(chatFn).not.toHaveBeenCalled();
+    expect(events.some((event) => event.type === "micro-compaction")).toBe(
+      false,
+    );
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "compaction-degraded",
+        reason: "session_messages_changed_during_compaction",
+        code: "SESSION_REVISION_STALE",
+      }),
+    );
+  });
+
+  it("settles only the final candidate when microcompact still needs a summary", async () => {
+    const messages = seedTokenBloat();
+    const original = [...messages];
+    const comp = fakeCompactor();
+    comp.shouldAutoCompact = () => true;
+    const onCompaction = vi.fn((_stats, candidate, settlement) => {
+      expect(messages).toEqual(original);
+      expect(candidate).toHaveLength(3);
+      expect(settlement.expectedMessages).toEqual(original);
+      return { hash: "semantic-head" };
+    });
+
+    const events = await drain(
+      agentLoop(messages, {
+        chatFn: finalReplyChatFn(),
+        _autoCompactor: comp,
+        onCompaction,
+      }),
+    );
+
+    expect(comp.compress).toHaveBeenCalledOnce();
+    expect(
+      comp.compress.mock.calls[0][0].find((m) => m.role === "tool").content,
+    ).toHaveLength(400);
+    expect(onCompaction).toHaveBeenCalledOnce();
+    expect(events.some((event) => event.type === "micro-compaction")).toBe(
+      false,
+    );
+    expect(events.some((event) => event.type === "compaction")).toBe(true);
   });
 
   it("falls through to the full compaction when the trim is not enough", async () => {

@@ -10794,8 +10794,10 @@ export async function* agentLoop(messages, options) {
           // still compare against the transcript state that existed before any
           // in-memory compaction happened.
           const authorityExpectedMessages = [...messages];
-          // Cheap surgical pre-pass (Claude-Code microcompact parity): trim old
-          // large tool results IN PLACE before the disruptive full
+          let workingMessages = messages;
+          let microStats = null;
+          // Cheap surgical pre-pass (Claude-Code microcompact parity): build a
+          // candidate that trims old large tool results before the disruptive full
           // summarization. If the trim brings the context back under threshold,
           // the full compaction below is skipped this round — so heavy-tool
           // conversations rarely hit a full summarize. Opt out:
@@ -10805,15 +10807,20 @@ export async function* agentLoop(messages, options) {
               const { microCompact } = await import("../lib/micro-compact.js");
               const mc = microCompact(messages);
               if (mc.stats.trimmed > 0) {
-                messages.splice(0, messages.length, ...mc.messages);
-                yield { type: "micro-compaction", runId, stats: mc.stats };
+                workingMessages = mc.messages;
+                microStats = {
+                  ...mc.stats,
+                  strategy: "microcompact",
+                  originalMessages: messages.length,
+                  compressedMessages: mc.messages.length,
+                };
               }
             } catch {
               // microcompact is best-effort — never break the run
             }
           }
           // After the trim, is the full (disruptive) compaction still needed?
-          const needFull = compactor.shouldAutoCompact(messages);
+          const needFull = compactor.shouldAutoCompact(workingMessages);
           // settings.json PreCompact hooks: a `block` decision SKIPS this
           // compaction round (e.g. the hook archived / owns the history). Fires
           // right before the history would be compacted.
@@ -10826,7 +10833,7 @@ export async function* agentLoop(messages, options) {
                 "PreCompact",
                 {
                   trigger: "auto",
-                  message_count: messages.length,
+                  message_count: workingMessages.length,
                   session_id: options.sessionId || null,
                 },
                 { cwd: options.cwd || process.cwd() },
@@ -10852,16 +10859,22 @@ export async function* agentLoop(messages, options) {
           let pinOpts = {};
           if (options.autoPin) {
             const { buildAutoPinPredicate } = await import("./auto-pin.js");
-            const isPinned = buildAutoPinPredicate(messages, options.autoPin);
+            const isPinned = buildAutoPinPredicate(
+              workingMessages,
+              options.autoPin,
+            );
             if (isPinned) pinOpts = { isPinned };
           }
-          const { messages: compacted, stats } =
-            !needFull || preCompactBlocked
-              ? { messages, stats: { saved: 0 } }
-              : await compactor.compress(messages, {
-                  preserveToolPairs: true,
-                  ...pinOpts,
-                });
+          const fullCompactionApplied = needFull && !preCompactBlocked;
+          const { messages: compacted, stats } = !fullCompactionApplied
+            ? {
+                messages: workingMessages,
+                stats: microStats || { strategy: "none", saved: 0 },
+              }
+            : await compactor.compress(workingMessages, {
+                preserveToolPairs: true,
+                ...pinOpts,
+              });
           const compactionUsage = _compactionTokenUsage(stats);
           if (stats.degraded === true) {
             yield {
@@ -10872,7 +10885,10 @@ export async function* agentLoop(messages, options) {
               stats,
             };
           }
-          if (stats.saved > 0 && compacted.length < messages.length) {
+          if (
+            stats.saved > 0 &&
+            !_sameMessageSnapshot(compacted, authorityExpectedMessages)
+          ) {
             if (stats.summaryUsageUnknown === true) {
               automaticCompactionSettlementBlocked = true;
               yield {
@@ -10935,7 +10951,11 @@ export async function* agentLoop(messages, options) {
                 cwd: options.cwd || process.cwd(),
               });
             }
-            yield { type: "compaction", stats, runId };
+            yield {
+              type: fullCompactionApplied ? "compaction" : "micro-compaction",
+              stats,
+              runId,
+            };
           }
           if (compactionUsage) {
             // PromptCompressor calls the provider directly, outside the main

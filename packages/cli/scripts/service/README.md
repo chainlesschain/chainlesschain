@@ -40,3 +40,22 @@ Cloudwatch) and alert on absence of a tick within `interval × 2` seconds.
 `cc crosschain mtc-serve` and `cc mtc serve` handle `SIGINT` and `SIGTERM` —
 clear the interval timer and exit 0. systemd / launchd / NSSM all default to
 `SIGTERM` for stop, so no extra config is needed.
+
+## Unified scheduler service
+
+Run the durable Agenda and Cowork schedulers in one foreground process:
+
+```bash
+cc daemon scheduler run --json
+```
+
+The service is intended to be owned by systemd, launchd, NSSM, or another
+process supervisor. It binds Cowork schedules to the current working directory
+and uses the normal ChainlessChain home for Agenda and scheduler-kernel state.
+Use `--domains agenda` or `--domains cowork` to narrow the enabled domains,
+`--interval <seconds>` to set the poll interval, and `--once` for health checks
+or cron-driven execution.
+
+Ticks never overlap. A failed domain emits a `scheduler-driver-failed` incident
+and marks the tick degraded while the remaining domains still run. `SIGINT`
+and `SIGTERM` stop after the active tick and close the shared scheduler store.

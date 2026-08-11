@@ -14,6 +14,8 @@ export const SESSION_FORK_AUTHORITY_FIELD = "_cc_fork_authority";
 export const SESSION_MESSAGE_PROVENANCE_SCHEMA =
   "chainlesschain.session-message-provenance/v1";
 
+const MICRO_COMPACTED_RUNTIME_FIELD = "_microCompacted";
+
 export const DURABLE_SYSTEM_MESSAGE_KINDS = Object.freeze({
   COMPACT_SUMMARY: "compact-summary",
   COMPACT_TOOL_COLLAPSE: "compact-tool-collapse",
@@ -190,7 +192,8 @@ function cloneWithoutWireTag(snapshot) {
   for (const key of snapshot.keys) {
     if (
       key === SESSION_MESSAGE_PROVENANCE_FIELD ||
-      key === SESSION_FORK_AUTHORITY_FIELD
+      key === SESSION_FORK_AUTHORITY_FIELD ||
+      key === MICRO_COMPACTED_RUNTIME_FIELD
     ) {
       continue;
     }
