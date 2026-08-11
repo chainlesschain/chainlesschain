@@ -11,6 +11,7 @@
  */
 
 import crypto from "crypto";
+import { nextCronTime } from "./agent-schedule-store.js";
 
 /* ── Constants ─────────────────────────────────────────────── */
 
@@ -519,6 +520,12 @@ export function scheduleFlow(db, flowId, cron) {
   if (!cron || typeof cron !== "string") {
     throw new Error("cron expression required");
   }
+  // Validate at write time so an invalid schedule cannot poison a resident
+  // scheduler loop later. nextCronTime() parses the existing five-field cron
+  // dialect and returns the first matching minute.
+  if (nextCronTime(cron, Date.now()) === null) {
+    throw new Error("cron expression has no occurrence in the next 366 days");
+  }
   _requireFlow(db, flowId);
   db.prepare(
     `UPDATE auto_flows SET schedule = ?, updated_at = ? WHERE id = ?`,
@@ -732,29 +739,45 @@ export function executeFlow(db, flowId, options = {}) {
     inputData = {},
     triggerType = TRIGGER_TYPE.MANUAL,
     testMode = false,
+    executionId,
   } = options;
-  const execId = _genId("exec");
+  const execId =
+    executionId === undefined
+      ? _genId("exec")
+      : _normalizeExecutionId(executionId);
+  const existing = getExecution(db, execId);
+  if (existing) {
+    return _resolveExistingExecution(existing, { flowId, triggerType });
+  }
   const startedAt = _now();
   const startMs = Date.now();
 
-  db.prepare(
-    `INSERT INTO auto_executions
-     (id, flow_id, trigger_type, input_data, output_data, status, steps_log, duration_ms, error, test_mode, started_at, completed_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run(
-    execId,
-    flowId,
-    triggerType,
-    JSON.stringify(inputData),
-    null,
-    EXECUTION_STATUS.RUNNING,
-    JSON.stringify([]),
-    0,
-    null,
-    testMode ? 1 : 0,
-    startedAt,
-    null,
-  );
+  try {
+    db.prepare(
+      `INSERT INTO auto_executions
+       (id, flow_id, trigger_type, input_data, output_data, status, steps_log, duration_ms, error, test_mode, started_at, completed_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run(
+      execId,
+      flowId,
+      triggerType,
+      JSON.stringify(inputData),
+      null,
+      EXECUTION_STATUS.RUNNING,
+      JSON.stringify([]),
+      0,
+      null,
+      testMode ? 1 : 0,
+      startedAt,
+      null,
+    );
+  } catch (error) {
+    // A deterministic scheduler execution id may race another process. Resolve
+    // the winner from durable evidence instead of running the flow twice.
+    const concurrent = getExecution(db, execId);
+    if (!concurrent) throw error;
+    return _resolveExistingExecution(concurrent, { flowId, triggerType });
+  }
 
   const stepsLog = [];
   let finalStatus = EXECUTION_STATUS.SUCCESS;
@@ -815,6 +838,38 @@ export function executeFlow(db, flowId, options = {}) {
   return _rowToExecution(
     db.prepare(`SELECT * FROM auto_executions WHERE id = ?`).get(execId),
   );
+}
+
+function _normalizeExecutionId(value) {
+  if (
+    typeof value !== "string" ||
+    value.length === 0 ||
+    value.length > 256 ||
+    !/^[A-Za-z0-9._:-]+$/.test(value)
+  ) {
+    const error = new Error("executionId must be a safe non-empty identifier");
+    error.code = "AUTOMATION_EXECUTION_ID_INVALID";
+    throw error;
+  }
+  return value;
+}
+
+function _resolveExistingExecution(existing, { flowId, triggerType }) {
+  if (existing.flowId !== flowId || existing.triggerType !== triggerType) {
+    const error = new Error(
+      `Execution id is already bound to another automation request: ${existing.id}`,
+    );
+    error.code = "AUTOMATION_EXECUTION_BINDING_MISMATCH";
+    throw error;
+  }
+  if (existing.status === EXECUTION_STATUS.RUNNING) {
+    const error = new Error(
+      `Automation execution outcome is unknown; refusing duplicate execution: ${existing.id}`,
+    );
+    error.code = "AUTOMATION_EXECUTION_OUTCOME_UNKNOWN";
+    throw error;
+  }
+  return existing;
 }
 
 export function fireTrigger(db, triggerId, inputData = {}) {
