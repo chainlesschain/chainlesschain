@@ -1,5 +1,18 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.85] - Latest-main maintenance certification (2026-08-11)
+
+- Publish a maintenance build with no intentional user-facing IDE behavior
+  changes from 0.4.84.
+- Recommend companion CLI `0.163.4`, which adds immutable MCP capsule build
+  inputs, platform-bound live capsule evidence, durable revision-CAS scheduler
+  storage, and delivery/recovery hardening while carrying forward `0.163.3`'s
+  background-agent worktree isolation and fenced ownership.
+- Re-certify the immutable plugin and its paired VSIX from the same latest-main
+  commit under the fail-closed cross-platform and native ARM64 release gates.
+- Preserve the IntelliJ IDEA 2024.2/2025.2 six-host compatibility matrix and
+  exact 11-cell aggregate as release-blocking evidence.
+
 ## [0.4.84] - Fail-closed maintenance certification (2026-08-09)
 
 - Publish a maintenance build with no intentional user-facing IDE behavior
