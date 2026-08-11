@@ -66,7 +66,8 @@ const SUPPORTED_SANDBOX_PROFILES = new Set([
 // evidence, not authority to invoke a privileged post-spawn closure.
 const admittedWindowsMcpCodeSnapshotPlans = new WeakSet();
 
-// 延迟导入避免循环依赖
+// Keep the broker on the shared CommonJS trace singleton so CommonJS and ESM
+// consumers observe the same AsyncLocalStorage without loader warnings.
 let _traceCtx = null;
 const _ipcBus = null;
 
@@ -3354,7 +3355,12 @@ class ProcessExecutionBroker extends EventEmitter {
     delete spawnOpts.mcpStdioExecutableIdentityDigest;
     if (traceCtx) {
       spawnOpts.env = { ...(spawnOpts.env || process.env) };
-      spawnOpts.env.TRACEPARENT = traceCtx.traceparent;
+      Object.assign(
+        spawnOpts.env,
+        getTraceCtx()?.traceContext?.getPropagationEnv?.() || {
+          TRACEPARENT: traceCtx.traceparent,
+        },
+      );
     }
 
     // P0-1: Credential filtering (default-on) — strip secrets from env/args
@@ -3658,7 +3664,12 @@ class ProcessExecutionBroker extends EventEmitter {
     this._stripAuditControlOptions(spawnOpts);
     if (traceCtx) {
       spawnOpts.env = { ...(spawnOpts.env || process.env) };
-      spawnOpts.env.TRACEPARENT = traceCtx.traceparent;
+      Object.assign(
+        spawnOpts.env,
+        getTraceCtx()?.traceContext?.getPropagationEnv?.() || {
+          TRACEPARENT: traceCtx.traceparent,
+        },
+      );
     }
 
     // P0-1: Credential filtering agent — strip secrets from env/args before spawn
