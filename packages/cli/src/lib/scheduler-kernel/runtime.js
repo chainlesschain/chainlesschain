@@ -497,16 +497,19 @@ export class SchedulerRuntime {
       ownerId: this.ownerId,
       leaseMs: this.leaseMs,
       ...(options.jobKind === undefined ? {} : { jobKind: options.jobKind }),
+      ...(options.workspaceId === undefined
+        ? {}
+        : { workspaceId: options.workspaceId }),
     });
     if (!claimed) return { status: "idle" };
     return this._executeClaim(claimed, options);
   }
 
-  async runUntilIdle({ limit, signal, jobKind } = {}) {
+  async runUntilIdle({ limit, signal, jobKind, workspaceId } = {}) {
     const bounded = normalizeRunLimit(limit);
     const results = [];
     while (results.length < bounded && !signal?.aborted) {
-      const result = await this.runNext({ signal, jobKind });
+      const result = await this.runNext({ signal, jobKind, workspaceId });
       if (result.status === "idle" || result.status === "aborted") {
         return { status: result.status, results };
       }
