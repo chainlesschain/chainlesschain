@@ -53,6 +53,33 @@ export const _deps = {
   runTask: null, // injected at runtime to avoid circular import
 };
 
+export const COWORK_SCHEDULER_UNKNOWN_LEASE_EXPIRES_AT =
+  "9999-12-31T23:59:59.999Z";
+
+function coworkSchedulerError(
+  code,
+  message,
+  { retryable = false, retryAt } = {},
+) {
+  const error = new Error(message);
+  error.code = code;
+  error.retryable = retryable;
+  if (retryAt !== undefined) error.retryAt = retryAt;
+  return error;
+}
+
+function normalizedDate(value, label) {
+  const date =
+    value instanceof Date ? new Date(value.getTime()) : new Date(value);
+  if (!Number.isFinite(date.getTime())) {
+    throw coworkSchedulerError(
+      "COWORK_SCHEDULER_TIME_INVALID",
+      `${label} must be a valid date`,
+    );
+  }
+  return date;
+}
+
 // ─── Cron parser ─────────────────────────────────────────────────────────────
 
 const FIELD_RANGES = [
@@ -293,9 +320,7 @@ function _withScheduleLock(cwd, body) {
 
 /** Atomically replace the full schedule list under a fail-closed lock. */
 export function saveSchedules(cwd, schedules) {
-  return _withScheduleLock(cwd, () =>
-    _saveSchedulesUnlocked(cwd, schedules),
-  );
+  return _withScheduleLock(cwd, () => _saveSchedulesUnlocked(cwd, schedules));
 }
 
 // ─── CRUD ────────────────────────────────────────────────────────────────────
@@ -360,6 +385,191 @@ export function updateScheduleRunState(cwd, id, { lastRunAt, lastStatus }) {
     if (lastStatus) s.lastStatus = lastStatus;
     _saveSchedulesUnlocked(cwd, schedules);
     return true;
+  });
+}
+
+/** Return one schedule by id, or null when it does not exist. */
+export function getSchedule(cwd, id) {
+  if (typeof id !== "string" || id.length === 0) return null;
+  return (
+    loadSchedules(cwd, { failOnMalformed: true }).find(
+      (schedule) => schedule.id === id,
+    ) || null
+  );
+}
+
+/**
+ * Bind a scheduler-kernel occurrence before starting the Cowork task.
+ * The same JSONL lock used by the legacy driver closes both old-first and
+ * new-first claim races during migration.
+ */
+export function bindSchedulerScheduleFire(
+  cwd,
+  id,
+  { deliveryId, occurrenceId, snapshotDigest, attempt, at = _deps.now() } = {},
+) {
+  if (
+    typeof deliveryId !== "string" ||
+    typeof occurrenceId !== "string" ||
+    typeof snapshotDigest !== "string" ||
+    deliveryId.length === 0 ||
+    occurrenceId.length === 0 ||
+    snapshotDigest.length === 0 ||
+    !Number.isSafeInteger(attempt) ||
+    attempt < 1
+  ) {
+    throw coworkSchedulerError(
+      "COWORK_SCHEDULER_BINDING_INVALID",
+      "Cowork scheduler binding requires deliveryId, occurrenceId, snapshotDigest, and a positive attempt",
+    );
+  }
+  const now = normalizedDate(at, "cowork scheduler binding time");
+  const nowMs = now.getTime();
+  return _withScheduleLock(cwd, () => {
+    const schedules = loadSchedules(cwd, { failOnMalformed: true });
+    const schedule = schedules.find((entry) => entry.id === id);
+    if (!schedule) {
+      throw coworkSchedulerError(
+        "COWORK_SCHEDULER_SCHEDULE_NOT_FOUND",
+        `Cowork schedule does not exist: ${id}`,
+      );
+    }
+    const prior = schedule.schedulerExecution;
+    if (prior?.status === "running") {
+      throw coworkSchedulerError(
+        "COWORK_SCHEDULER_OUTCOME_UNKNOWN",
+        `Cowork schedule outcome is unknown: ${id}`,
+      );
+    }
+    if (
+      prior?.status === "succeeded" &&
+      prior.occurrenceId === occurrenceId &&
+      prior.snapshotDigest === snapshotDigest
+    ) {
+      return schedule;
+    }
+    // A legacy runner may have completed after the kernel enqueued this fire
+    // but before it acquired the JSONL lock. Its durable delivery id is
+    // terminal evidence for the same logical fire, so never overwrite it with
+    // a new scheduler claim.
+    if (schedule.lastDeliveryId === deliveryId) return schedule;
+
+    const active = schedule.activeDelivery;
+    const activeExpiresAt = Date.parse(active?.leaseExpiresAt || "");
+    if (active && Number.isFinite(activeExpiresAt) && activeExpiresAt > nowMs) {
+      throw coworkSchedulerError(
+        "COWORK_SCHEDULER_LEGACY_CLAIM_ACTIVE",
+        `Cowork schedule is already claimed: ${id}`,
+        { retryable: true, retryAt: activeExpiresAt },
+      );
+    }
+
+    const fence =
+      Math.max(
+        Number(schedule.deliveryFence) || 0,
+        Number(active?.fence) || 0,
+      ) + 1;
+    schedule.deliveryFence = fence;
+    schedule.activeDelivery = {
+      deliveryId,
+      ownerId: `scheduler:${occurrenceId}:${attempt}`,
+      fence,
+      claimedAt: now.toISOString(),
+      leaseExpiresAt: COWORK_SCHEDULER_UNKNOWN_LEASE_EXPIRES_AT,
+    };
+    schedule.schedulerExecution = {
+      deliveryId,
+      occurrenceId,
+      snapshotDigest,
+      attempt,
+      status: "running",
+      startedAt: now.toISOString(),
+    };
+    _saveSchedulesUnlocked(cwd, schedules);
+    return schedule;
+  });
+}
+
+/**
+ * Atomically settle scheduler evidence and the legacy Cowork delivery state.
+ * A known failure may keep a short legacy-visible fence until retryAt; an
+ * unknown outcome never calls this function and therefore remains fenced.
+ */
+export function completeSchedulerScheduleFire(
+  cwd,
+  id,
+  {
+    deliveryId,
+    occurrenceId,
+    snapshotDigest,
+    attempt,
+    outcome,
+    result = null,
+    error = null,
+    retryAt,
+    at = _deps.now(),
+  } = {},
+) {
+  if (!["succeeded", "failed"].includes(outcome)) {
+    throw coworkSchedulerError(
+      "COWORK_SCHEDULER_OUTCOME_INVALID",
+      "Cowork scheduler outcome must be succeeded or failed",
+    );
+  }
+  const now = normalizedDate(at, "cowork scheduler completion time");
+  const retryAtMs =
+    retryAt === undefined || retryAt === null ? null : Number(retryAt);
+  if (retryAtMs !== null && !Number.isSafeInteger(retryAtMs)) {
+    throw coworkSchedulerError(
+      "COWORK_SCHEDULER_RETRY_TIME_INVALID",
+      "Cowork scheduler retryAt must be a safe epoch millisecond",
+    );
+  }
+  return _withScheduleLock(cwd, () => {
+    const schedules = loadSchedules(cwd, { failOnMalformed: true });
+    const schedule = schedules.find((entry) => entry.id === id);
+    if (!schedule) {
+      throw coworkSchedulerError(
+        "COWORK_SCHEDULER_SCHEDULE_NOT_FOUND",
+        `Cowork schedule does not exist: ${id}`,
+      );
+    }
+    const evidence = schedule.schedulerExecution;
+    if (
+      !evidence ||
+      evidence.deliveryId !== deliveryId ||
+      evidence.occurrenceId !== occurrenceId ||
+      evidence.snapshotDigest !== snapshotDigest ||
+      evidence.attempt !== attempt ||
+      evidence.status !== "running"
+    ) {
+      throw coworkSchedulerError(
+        "COWORK_SCHEDULER_BINDING_MISMATCH",
+        `Cowork scheduler evidence does not match the active claim: ${id}`,
+      );
+    }
+
+    schedule.schedulerExecution = {
+      ...evidence,
+      status: outcome,
+      endedAt: now.toISOString(),
+      ...(outcome === "succeeded" ? { result } : { error }),
+    };
+    if (outcome === "succeeded") {
+      schedule.lastDeliveryId = deliveryId;
+      schedule.lastRunAt = now.toISOString();
+      schedule.lastStatus = result?.status || "completed";
+      schedule.activeDelivery = null;
+    } else if (retryAtMs !== null && retryAtMs > now.getTime()) {
+      schedule.activeDelivery = {
+        ...schedule.activeDelivery,
+        leaseExpiresAt: new Date(retryAtMs).toISOString(),
+      };
+    } else {
+      schedule.activeDelivery = null;
+    }
+    _saveSchedulesUnlocked(cwd, schedules);
+    return schedule;
   });
 }
 
@@ -564,9 +774,7 @@ export class CoworkCronScheduler {
         this._emit({ type: "invalid-cron", id: s.id, error: err.message });
         continue;
       }
-      const fireKey = `${s.id}:${
-        matcher.hasSeconds ? _secondKey(now) : _minuteKey(now)
-      }`;
+      const fireKey = coworkCronFireKey(s, now);
       if (this._firedKeys.has(fireKey)) continue;
       if (this._running.has(s.id)) continue;
       const isDue = matcher(now);
@@ -634,27 +842,30 @@ export class CoworkCronScheduler {
       deliveryId: claim.deliveryId,
     });
 
-    const renewal = setInterval(() => {
-      try {
-        const renewed = renewScheduleFire(this.cwd, schedule.id, claim, {
-          leaseMs: this.leaseMs,
-        });
-        if (!renewed) {
+    const renewal = setInterval(
+      () => {
+        try {
+          const renewed = renewScheduleFire(this.cwd, schedule.id, claim, {
+            leaseMs: this.leaseMs,
+          });
+          if (!renewed) {
+            this._emit({
+              type: "schedule-lease-lost",
+              id: schedule.id,
+              deliveryId: claim.deliveryId,
+            });
+          }
+        } catch (err) {
           this._emit({
-            type: "schedule-lease-lost",
+            type: "schedule-lease-renewal-failed",
             id: schedule.id,
             deliveryId: claim.deliveryId,
+            error: err.message,
           });
         }
-      } catch (err) {
-        this._emit({
-          type: "schedule-lease-renewal-failed",
-          id: schedule.id,
-          deliveryId: claim.deliveryId,
-          error: err.message,
-        });
-      }
-    }, Math.max(1000, Math.floor(this.leaseMs / 3)));
+      },
+      Math.max(1000, Math.floor(this.leaseMs / 3)),
+    );
     renewal.unref?.();
 
     let result = null;
@@ -718,12 +929,19 @@ export class CoworkCronScheduler {
   }
 }
 
-function _minuteKey(date) {
+export function coworkCronMinuteKey(date) {
   return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date.getHours()}-${date.getMinutes()}`;
 }
 
-function _secondKey(date) {
-  return `${_minuteKey(date)}-${date.getSeconds()}`;
+export function coworkCronSecondKey(date) {
+  return `${coworkCronMinuteKey(date)}-${date.getSeconds()}`;
+}
+
+export function coworkCronFireKey(schedule, date) {
+  const matcher = parseCron(schedule.cron);
+  return `${schedule.id}:${
+    matcher.hasSeconds ? coworkCronSecondKey(date) : coworkCronMinuteKey(date)
+  }`;
 }
 
 // =====================================================================

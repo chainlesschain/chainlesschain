@@ -1003,13 +1003,17 @@ export class SchedulerStore {
     }
   }
 
-  claimNext({ ownerId, leaseMs, jobKind } = {}) {
+  claimNext({ ownerId, leaseMs, jobKind, workspaceId } = {}) {
     const owner = normalizeIdentifier(ownerId, "ownerId");
     const lease = normalizeLeaseMs(leaseMs);
     const kind =
       jobKind === undefined
         ? null
         : normalizeIdentifier(jobKind, "jobKind", { maxLength: 128 });
+    const workspace =
+      workspaceId === undefined
+        ? null
+        : normalizeIdentifier(workspaceId, "workspaceId", { maxLength: 256 });
     const now = this._now();
     const leaseExpiresAt = now + lease;
     if (!Number.isSafeInteger(leaseExpiresAt)) {
@@ -1025,6 +1029,10 @@ export class SchedulerStore {
           JOIN jobs j ON j.job_id = o.job_id
           WHERE j.enabled = 1
             AND (@jobKind IS NULL OR j.kind = @jobKind)
+            AND (
+              @workspaceId IS NULL
+              OR json_extract(j.authority_json, '$.workspaceId') = @workspaceId
+            )
             AND o.attempt < o.max_attempts
             AND (
               (o.status IN ('queued', 'retry_wait') AND o.available_at <= @now)
@@ -1038,7 +1046,7 @@ export class SchedulerStore {
           LIMIT 1
         `,
         )
-        .get({ now, jobKind: kind });
+        .get({ now, jobKind: kind, workspaceId: workspace });
       if (!candidate) return null;
       const previousStatus = candidate.status;
       const previousOwner = candidate.lease_owner;

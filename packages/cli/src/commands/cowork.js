@@ -565,19 +565,30 @@ export function registerCoworkCommand(program) {
   cron
     .command("run")
     .description("Start the cron scheduler in the foreground (Ctrl-C to stop)")
-    .option("--interval <ms>", "Tick interval in ms (default 60000)", "60000")
+    .option(
+      "--interval <ms>",
+      "Tick interval in ms (auto: 1000 for six-field cron, otherwise 60000)",
+    )
     .action(async (options) => {
-      const [{ CoworkCronScheduler, _deps: cronDeps }, { runCoworkTask }] =
-        await Promise.all([
-          import("../lib/cowork-cron.js"),
-          import("../lib/cowork-task-runner.js"),
-        ]);
-      // Inject the runner so the scheduler doesn't require a circular import
-      cronDeps.runTask = runCoworkTask;
-
-      const scheduler = new CoworkCronScheduler({
+      const [
+        { CoworkCronKernelScheduler },
+        { openSchedulerStore },
+        { runCoworkTask },
+      ] = await Promise.all([
+        import("../lib/scheduler-kernel/cowork-cron-adapter.js"),
+        import("../lib/scheduler-kernel/store.js"),
+        import("../lib/cowork-task-runner.js"),
+      ]);
+      const schedulerStore = openSchedulerStore();
+      const intervalMs =
+        options.interval === undefined
+          ? undefined
+          : parseInt(options.interval, 10) || 60_000;
+      const scheduler = new CoworkCronKernelScheduler({
         cwd: process.cwd(),
-        intervalMs: parseInt(options.interval, 10) || 60_000,
+        schedulerStore,
+        runTask: runCoworkTask,
+        ...(intervalMs === undefined ? {} : { intervalMs }),
         onEvent: (e) => {
           const ts = new Date().toISOString();
           logger.log(chalk.gray(`[${ts}] ${JSON.stringify(e)}`));
@@ -587,8 +598,9 @@ export function registerCoworkCommand(program) {
       logger.log(
         chalk.green("Cowork cron scheduler running. Press Ctrl-C to stop."),
       );
-      process.on("SIGINT", () => {
+      process.once("SIGINT", () => {
         scheduler.stop();
+        schedulerStore.close();
         process.exit(0);
       });
     });

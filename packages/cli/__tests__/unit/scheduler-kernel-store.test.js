@@ -493,6 +493,45 @@ describe("scheduler-kernel SQLite store v1", () => {
     ).toMatchObject({ id: other.id, leaseOwner: "generic-driver" });
   });
 
+  it("claims only the requested workspace without consuming sibling work", () => {
+    const f = fixture();
+    const store = f.open();
+    store.createJob(
+      jobInput({
+        id: "job-workspace-a",
+        kind: "cowork-cron",
+        authority: authority({ workspaceId: "workspace-a" }),
+      }),
+    );
+    store.createJob(
+      jobInput({
+        id: "job-workspace-b",
+        kind: "cowork-cron",
+        authority: authority({ workspaceId: "workspace-b" }),
+      }),
+    );
+    const workspaceA = store.enqueueOccurrence({
+      jobId: "job-workspace-a",
+      scheduledFor: f.now,
+      triggerKey: "workspace:a",
+    });
+    const workspaceB = store.enqueueOccurrence({
+      jobId: "job-workspace-b",
+      scheduledFor: f.now,
+      triggerKey: "workspace:b",
+    });
+
+    expect(
+      store.claimNext({
+        ownerId: "workspace-b-driver",
+        leaseMs: 100,
+        jobKind: "cowork-cron",
+        workspaceId: "workspace-b",
+      }),
+    ).toMatchObject({ id: workspaceB.id, leaseOwner: "workspace-b-driver" });
+    expect(store.getOccurrence(workspaceA.id).status).toBe("queued");
+  });
+
   it("bounds retries, dead-letters exhaustion, and exposes bounded history", () => {
     const f = fixture();
     const store = f.open();
