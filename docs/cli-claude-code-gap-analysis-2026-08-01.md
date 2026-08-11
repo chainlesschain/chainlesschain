@@ -1310,6 +1310,24 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 
 本节是未合并候选记录，不修改 CLI 版本，也不授权 npm 发布。只有候选最终 exact SHA 的 `CLI CI` 与 `CLI Strict Sandbox` Linux、Windows、macOS 全矩阵成功并进入 `main` 后，才能把该增量计为正式完成的 P2-4 子切片。
 
+### 16.23 2026-08-11 P2-4 Agenda wakeup/cron adapter 正式合并证据
+
+- [PR #152](https://github.com/chainlesschain/chainlesschain/pull/152) 的最终 head `7ed345b3663f9ef5b7f8b2940537a361b72128eb` 已以 merge commit `fa80965ab37fb7231c7be448294cb34e5aa6a0c5` 进入 `main`。该 exact head 的 [CLI Strict Sandbox `31462505731`](https://github.com/chainlesschain/chainlesschain/actions/runs/31462505731) 为 Linux、macOS、Windows **3/3 success**；[CLI CI `31462505772`](https://github.com/chainlesschain/chainlesschain/actions/runs/31462505772) attempt 2 为 **53/53 jobs success**，Linux、macOS、Windows `verify-cli` 均成功，其余 PR checks 无失败。
+- CLI CI 首次 attempt 的 Windows integration shard 3/8 曾因既有 `mcp-client-stdio-process-tree` 夹具未及时发布 PID marker 而失败；同一用例在当前 Windows 工作树隔离复跑为 1/1，通过后对同一 run 仅重跑失败 job，最终成功。该过程没有修改 head SHA，也没有把首轮失败或局部结果当作通过；最终只采用 attempt 2 的完整绿色矩阵。
+- 因此第 16.22 节的 production Agenda wakeup/cron runtime route、完整 `runPolicy` 保留、snapshot/occurrence binding、新旧 driver 双向 fencing、已知失败有限重试、成功 evidence 崩溃恢复及 outcome-unknown fail-close 从“候选”更新为**正式已合并 P2-4 子切片**。Agenda monitor 和其他未迁移入口不在该完成声明内。
+- 总体判定不变：P2-4 仍为 **部分完成**，原 15 项仍为 **8 项完成、7 项部分完成、0 项完全未开始，7 项未完全关闭**；剩余粗估继续采用第 16.22 节的 **3.5～6.5 周（单工程师）/2.5～4 周（两人有效并行）**。本次未修改 CLI 版本、未创建 release tag、未发布 npm；公网最新版本仍为 `0.163.4`。
+
+### 16.24 2026-08-11 P2-4 Cowork Cron adapter 候选
+
+- production 默认 `cowork cron run` 已从独立 `CoworkCronScheduler` 路由到统一 scheduler store/runtime；workspace `schedules.jsonl` 继续保存兼容定义与执行证据，统一 SQLite 保存版本化 job、logical occurrence、owner/fence claim 和 history。job snapshot 只绑定 cron、template、message、files、enabled、createdAt 等定义字段，不把 `lastRunAt`、delivery lease 或 scheduler evidence 混入 digest；job 更新使用 expected-revision CAS，执行前再次核对 snapshot digest 与 enabled 状态。默认未显式传 `--interval` 时，五字段 cron 使用 60 秒轮询，六字段 cron 自动调为 1 秒，前台 timer 保持进程存活。
+- 全局 scheduler DB 的恢复领取新增 `workspaceId` 限定：Cowork driver 只能 claim 当前 workspace authority 下的 occurrence，不能由工作区 A 的前台进程执行工作区 B 的 queued/retry work；同 kind 的 sibling occurrence 保持 queued，并可由其自身 workspace driver 恢复。该隔离同时保留 adapter kind 过滤和 snapshot-bound `cowork.task.execute` authority envelope，但尚未接入跨入口真实共享 permission/budget resolver。
+- 新旧 CLI 并存时继续复用 Cowork `schedules.jsonl` 的同一 fail-closed lock、delivery ID、lease 与 fence。旧 driver 先取得有效 claim 时，新内核退避到 lease 到期；新内核先绑定时，写入旧 driver 可识别的非过期 `activeDelivery` 和 `schedulerExecution=running`，阻止重复领取。旧 driver 已完成同一 delivery 的 durable `lastDeliveryId` 可直接恢复为成功，不再次调用 Cowork task；成功时 scheduler terminal evidence、legacy last-run state 与 claim 清理在同一次原子文件替换中完成。
+- 已知 task throw 会先持久化 failed evidence，并以 60 秒有界延迟、最多 3 次 attempt 重试；已有 succeeded evidence 的进程崩溃恢复只补 scheduler settlement。若只有 start evidence，或 task 已产生副作用但 terminal JSONL 替换失败，则固定按 outcome-unknown 死信并保留非过期 legacy fence，禁止自动重放。该保证只覆盖 cooperating process、文件锁与仍可读取的 durable evidence，不外推为断电/fsync、磁盘回滚、DST 重叠或任意外部副作用的全局 exactly-once。
+- 本地 Cowork/内核相邻矩阵为 5 个文件 **106/106 passed**，其中 4 个核心文件为 **94/94 passed**；覆盖 definition-only snapshot、正常到期执行、前台保活与秒级自动调频、双 kernel driver、跨 workspace 隔离、旧 driver 先取 claim、旧版完成恢复、terminal-evidence 崩溃恢复、start-only outcome-unknown、已知失败重试、stale snapshot 和成功后持久化失败。Prettier、Node syntax、目标 ESLint（0 errors、4 个既有 warnings）、命令帮助、`git diff --check` 与 `npm pack --dry-run` 通过；tarball 清单 993 项且包含新增 Cowork adapter、不包含测试文件。完整 CLI 本地套件运行约 4 分钟仍未形成最终汇总后被主动停止，因此不计为通过；本地 help-index 检查在命令注册阶段报 `Manifest command is not registered: agent`，同样不形成有效通过结论，候选必须以干净 `npm ci` 的 PR GitHub Actions 为准。
+- P2-4 继续是 **部分完成**，原 15 项总表仍为 **8 项完成、7 项部分完成、0 项完全未开始，7 项未完全关闭**。剩余范围包括 Agenda monitor、Automation、Loop、Routine GitHub、真实共享权限/预算 resolver、IANA timezone/DST/missed-run、standalone daemon/liveness、未知结果人工裁决、迁移/回滚、磁盘故障和三平台长期 soak；Cowork 的本地系统时区和 DST/missed-run 语义没有因本次 driver 迁移而关闭。扣除 Cowork Cron production adapter 后，当前粗估约 **3～6 周（单工程师）/2～3.5 周（两人有效并行）**。
+
+本节是未合并候选记录，不修改 CLI 版本、不创建 release tag，也不授权 npm 发布。只有候选最终 exact SHA 的 `CLI CI` 与 `CLI Strict Sandbox` Linux、Windows、macOS 全矩阵成功并进入 `main` 后，才能把该增量计为正式完成的 P2-4 子切片。
+
 ## 17. 2026-08-06 `0.162.198` 发布闭环与继续执行边界
 
 `0.162.198` 是第 16 节之后的 CLI-only 补丁发布，纳入 P0-1 canonical session workbench、P0-2 rewind/branch 宿主绑定、P0-3 发布可靠性跟进，以及 REPL/headless/provider/TTY 输出背压和跨平台 release fixture 修复。它不改变第 16.8 节产品级未完成项的授权边界。
