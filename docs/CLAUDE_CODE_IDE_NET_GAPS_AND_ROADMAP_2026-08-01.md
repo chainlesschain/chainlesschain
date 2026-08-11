@@ -1205,6 +1205,40 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
   Node syntax、`git diff --check` 与 993 项 npm dry-run pack 均通过。该 PR 尚未进入 `main`，且最终
   exact-head GitHub Actions 尚待终态；它只形成 #13 的 Automation cron/runtime/history 内部候选，不关闭
   trigger scope、needs-input 通知、真实权限/预算预检、完整 Automation Center UI 或 scheduler 长期矩阵。
+- **Cowork cron scheduler 的仓库内子门已合并。** PR
+  [#155](https://github.com/chainlesschain/chainlesschain/pull/155) 的 implementation commit
+  `05d14ec338` 将每个确定性 cron fire 绑定到不可变 schedule/task snapshot、最小
+  `cowork.execute` authority、owner/fence 与 durable delivery evidence；同一 fire 的并发 driver 只启动一次，
+  已落盘成功可恢复，start-only 或 task 返回失败而未形成可信成功证据时不会伪装为成功。final head
+  `41a6a02fc9250a88a82a77d75c101b64a20c60e1` 以 merge commit
+  `2eb17a0c0cae9ac3cd46bb47d33fb5e3bde1f52e` 进入 `main`；其
+  [CLI Strict Sandbox `31469776963`](https://github.com/chainlesschain/chainlesschain/actions/runs/31469776963)、
+  CI Tests、Full Test Automation、E2E、PR Tests 与审计门已成功。该 head 的聚合 CLI CI 在合并时仍未终态，
+  因此不能把已成功子门拼接成完整 exact-head CLI CI 结论；合并也不关闭完整 Automation Center、统一预算/
+  权限预检、standalone daemon 或长期故障矩阵。
+- **Loop iteration scheduler 已形成开放候选。** PR
+  [#156](https://github.com/chainlesschain/chainlesschain/pull/156) 的 exact head
+  `b8495975c84e15068acdc557eed727f3938faac7` 将生产 `cc loop` 每次 iteration 接入统一 kernel，
+  使用不可变 definition snapshot、最小 process/agent authority、持久 iteration identity 与 CAS session event；
+  live contention 返回 busy，已结算结果恢复而不重复 spawn，claim 后崩溃且结果未知则以
+  `LOOP_SCHEDULER_OUTCOME_UNKNOWN` 拒绝重放。提交前定向 unit/integration/E2E 为 **82/82 passed**，
+  [CLI Strict Sandbox `31471958501`](https://github.com/chainlesschain/chainlesschain/actions/runs/31471958501)
+  已成功，其余 exact-head Actions 仍在运行；PR 尚未进入 `main`。
+- **Routine GitHub event scheduler 已形成开放候选。** PR
+  [#157](https://github.com/chainlesschain/chainlesschain/pull/157) 的 exact head
+  `ad8ac3b591c058ed9c2dde3f7a52602502d1ece3` 先持久化不可变 GitHub event batch occurrence 再推进
+  legacy cursor，以 per-batch job identity 保留新旧批次并发恢复能力；cursor 写失败会 deduplicate 到同一
+  occurrence，十进制 GitHub event id 单调比较且不回退，repository rebinding 在执行前拒绝。提交前
+  Scheduler/Routine 回归 **61/61 passed**，ESLint、Prettier、command manifest/help/completions 与 npm pack
+  dry-run 通过；exact-head Actions 仍在运行，PR 尚未进入 `main`。
+- **Agenda monitor scheduler 已形成开放候选。** PR
+  [#158](https://github.com/chainlesschain/chainlesschain/pull/158) 的 exact head
+  `2ddc09d4cb16034f8082630238d0c9e2ba0640df` 将生产 command/file/HTTP monitor observation 接入统一
+  kernel，并绑定独立 `monitor.observe` authority。monitor check、re-arm/match 与 scheduler evidence 在同一
+  JSONL replacement 中结算；双 live driver 只观察一次，持久化结果可恢复且不重复通知，运行中崩溃的未知
+  observation outcome fail closed，observed output 保持 transient。提交前全部 Scheduler Kernel 相关回归
+  **161/161 passed**，ESLint、Prettier、command manifest/help/completions 与 npm pack dry-run 通过；
+  exact-head Actions 仍在运行，PR 尚未进入 `main`。
 - 本更新仍不改变 **17/19 尚未关闭、22 个剩余工作包**计数。Microsoft Marketplace、JetBrains
   作者签名、Remote/SSH/WSL/devcontainer/Codespaces/Gateway、网络故障矩阵、八小时 IDE soak 与真实
   delivery live journey 继续按“外部阻塞／本期延后”处理；整体 product release 仍为 **NO-GO**。
