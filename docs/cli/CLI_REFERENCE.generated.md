@@ -34,7 +34,7 @@
 - `codegen` — Code generation agent (Phase 86)
 - `collab` — Collaboration governance — decisions, voting, autonomy levels, task assignment
 - `command` (aliases: cmd) — User-defined slash-command macros (.claude/commands/*.md)
-- `compact` — Compact a stored session's history (offline; persists for --resume)
+- `compact` — Compact a stored session into a structured handoff (persists for --resume)
 - `complete` — Inline code completion (FIM) for IDE ghost-text: reads {prefix,suffix,language} JSON on stdin, prints the code to insert.
 - `compliance` — Compliance management — evidence, reports, scanning, policies
 - `compt` — Compression Telemetry V2 governance (in-memory, CLI v0.143.0)
@@ -44,7 +44,7 @@
 - `cost` — Estimated $ cost from recorded token usage (per-session or global)
 - `cowork` — Multi-agent collaboration (debate review, A/B comparison, analysis)
 - `crosschain` — Cross-chain interoperability (Phase 89)
-- `daemon` — Inspect and stop background agent supervisor sessions
+- `daemon` — Manage background agent and scheduler services
 - `dao` — DAO Governance v2 — proposals, voting, delegation, treasury
 - `db` — Database management
 - `dbevo` — Database evolution & migration framework (Phase 80)

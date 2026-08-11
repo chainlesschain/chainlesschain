@@ -198,6 +198,51 @@ function applyScheduledAgentSuccess(entry, atMs) {
   );
 }
 
+function applyScheduledMonitorSuccess(entry, monitorCheck, atMs) {
+  if (
+    entry.kind !== "monitor" ||
+    !monitorCheck ||
+    typeof monitorCheck !== "object" ||
+    Array.isArray(monitorCheck) ||
+    typeof monitorCheck.matched !== "boolean"
+  ) {
+    throw agendaStoreError(
+      "AGENDA_SCHEDULER_MONITOR_RESULT_INVALID",
+      `Scheduler monitor result is invalid: ${entry.id}`,
+    );
+  }
+  const mtimeMs =
+    monitorCheck.mtimeMs === null || monitorCheck.mtimeMs === undefined
+      ? null
+      : Number(monitorCheck.mtimeMs);
+  if (mtimeMs !== null && (!Number.isFinite(mtimeMs) || mtimeMs < 0)) {
+    throw agendaStoreError(
+      "AGENDA_SCHEDULER_MONITOR_RESULT_INVALID",
+      `Scheduler monitor mtime is invalid: ${entry.id}`,
+    );
+  }
+  entry.checks = (entry.checks || 0) + 1;
+  entry.lastCheckAt = atMs;
+  if (mtimeMs !== null && entry.lastMtimeMs == null) {
+    entry.lastMtimeMs = mtimeMs;
+  }
+  if (monitorCheck.matched) {
+    entry.status = "matched";
+    entry.matchedAt = atMs;
+    if (monitorCheck.eventId != null) {
+      entry.lastEventId = String(monitorCheck.eventId);
+      entry.lastEventAt = atMs;
+    }
+    if (monitorCheck.authority != null) {
+      entry.lastAuthority = String(monitorCheck.authority);
+    }
+  } else if (entry.maxChecks != null && entry.checks >= entry.maxChecks) {
+    entry.status = "exhausted";
+  } else {
+    entry.nextAt = atMs + entry.intervalMs;
+  }
+}
+
 /** Statuses an entry can never leave — safe to prune. */
 export const TERMINAL_STATUSES = Object.freeze([
   "fired",
@@ -780,7 +825,7 @@ export class AgentScheduleStore {
   }
 
   /**
-   * Bind a scheduler claim to the legacy Agenda entry before agent execution.
+   * Bind a scheduler claim to the legacy Agenda entry before execution.
    * The same lock used by legacy `claimDue()` prevents an old/new driver from
    * starting the entry concurrently during migration.
    */
@@ -811,7 +856,7 @@ export class AgentScheduleStore {
     return withFileLock(
       path.join(this.dir, ".agenda-claims"),
       () => {
-        for (const kind of ["wakeup", "cron"]) {
+        for (const kind of SCHEDULE_KINDS) {
           const entries = this._readAll(kind);
           const entry = entries.find((candidate) => candidate.id === id);
           if (!entry) continue;
@@ -849,7 +894,8 @@ export class AgentScheduleStore {
           // Fence an older CLI that only understands the legacy claim field.
           // Terminal scheduler evidence clears this lease; an outcome-unknown
           // execution intentionally keeps it non-expiring until adjudicated so
-          // an old runner cannot duplicate an uncertain agent side effect.
+          // an old runner cannot duplicate an uncertain external observation or
+          // agent side effect.
           entry.executionLease = {
             owner: `scheduler:${occurrenceId}:${attempt}`,
             claimedAt: now,
@@ -868,10 +914,10 @@ export class AgentScheduleStore {
   }
 
   /**
-   * Atomically publish scheduler evidence and the legacy wakeup/cron state.
-   * A successful cron advances exactly once in the same JSONL replacement that
-   * records terminal evidence; failures keep the entry schedulable for the
-   * scheduler kernel's bounded retry policy.
+   * Atomically publish scheduler evidence and the legacy Agenda state. A
+   * successful cron advances and a successful monitor records/re-arms exactly
+   * once in the same JSONL replacement that records terminal evidence;
+   * failures keep the entry schedulable for the kernel's bounded retry policy.
    */
   completeSchedulerExecution(
     id,
@@ -882,6 +928,7 @@ export class AgentScheduleStore {
       outcome,
       result = null,
       error = null,
+      monitorCheck = null,
       atMs = null,
     } = {},
   ) {
@@ -896,7 +943,7 @@ export class AgentScheduleStore {
     return withFileLock(
       path.join(this.dir, ".agenda-claims"),
       () => {
-        for (const kind of ["wakeup", "cron"]) {
+        for (const kind of SCHEDULE_KINDS) {
           const entries = this._readAll(kind);
           const entry = entries.find((candidate) => candidate.id === id);
           if (!entry) continue;
@@ -913,14 +960,23 @@ export class AgentScheduleStore {
               `Agenda scheduler evidence does not match the active claim: ${id}`,
             );
           }
+          let storedResult = result;
           if (outcome === "succeeded") {
-            applyScheduledAgentSuccess(entry, now);
+            if (entry.kind === "monitor") {
+              applyScheduledMonitorSuccess(entry, monitorCheck, now);
+              storedResult =
+                result && typeof result === "object" && !Array.isArray(result)
+                  ? { ...result, status: entry.status }
+                  : result;
+            } else {
+              applyScheduledAgentSuccess(entry, now);
+            }
           }
           entry.schedulerExecution = {
             ...evidence,
             status: outcome,
             endedAt: now,
-            ...(outcome === "succeeded" ? { result } : { error }),
+            ...(outcome === "succeeded" ? { result: storedResult } : { error }),
           };
           delete entry.executionLease;
           this._writeAll(kind, entries);
@@ -1039,32 +1095,11 @@ export class AgentScheduleStore {
   ) {
     const now = atMs != null ? atMs : this._now();
     return this._mutate("monitor", id, (entry) => {
-      entry.checks = (entry.checks || 0) + 1;
-      entry.lastCheckAt = now;
-      // Record the mtime baseline the first time we see the file (for a
-      // watchChange monitor); leave it fixed thereafter so "changed" always
-      // means "changed since we started watching".
-      if (mtimeMs != null && entry.lastMtimeMs == null) {
-        entry.lastMtimeMs = mtimeMs;
-      }
-      if (matched) {
-        entry.status = "matched";
-        entry.matchedAt = now;
-        // Audit record of the firing: the deterministic monitor-event id + the
-        // (always SYSTEM/steer) authority the event was delivered under. Durable
-        // on the entry so `cc agenda list --json` and a future resident daemon
-        // can recognise / dedup the exact observation. Only stamped when the
-        // caller supplies them, so legacy callers stay byte-identical.
-        if (eventId != null) {
-          entry.lastEventId = String(eventId);
-          entry.lastEventAt = now;
-        }
-        if (authority != null) entry.lastAuthority = String(authority);
-      } else if (entry.maxChecks != null && entry.checks >= entry.maxChecks) {
-        entry.status = "exhausted";
-      } else {
-        entry.nextAt = now + entry.intervalMs;
-      }
+      applyScheduledMonitorSuccess(
+        entry,
+        { matched: Boolean(matched), mtimeMs, eventId, authority },
+        now,
+      );
     });
   }
 

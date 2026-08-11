@@ -21,6 +21,63 @@ import {
 } from "../../src/lib/session-message-provenance.js";
 
 describe("REPL compact persistence fencing", () => {
+  it("persists a microcompact checkpoint before replacing live messages", async () => {
+    const { createReplCompactPersistence, settleReplCompactionCandidate } =
+      await import("../../src/repl/agent-repl.js");
+    const messages = [
+      { role: "user", content: "known question" },
+      {
+        role: "assistant",
+        content: "",
+        tool_calls: [{ id: "t1", function: { name: "read_file" } }],
+      },
+      { role: "tool", tool_call_id: "t1", content: "x".repeat(2_000) },
+      { role: "assistant", content: "known answer" },
+    ];
+    const expectedMessages = [...messages];
+    const compacted = [
+      messages[0],
+      messages[1],
+      { ...messages[2], content: "trimmed", _microCompacted: true },
+      messages[3],
+    ];
+    const appendCompactEventIfMessagesMatch = vi.fn(() => ({
+      hash: "micro-head",
+    }));
+    const persistence = createReplCompactPersistence(messages, {
+      appendCompactEventIfMessagesMatch,
+    });
+
+    const result = settleReplCompactionCandidate({
+      messages,
+      expectedMessages,
+      compacted,
+      stats: { strategy: "microcompact", trimmed: 1, saved: 1_993 },
+      trigger: "manual",
+      useJsonl: true,
+      sessionId: "session-microcompact",
+      persistence,
+    });
+
+    expect(result.applied).toBe(true);
+    expect(appendCompactEventIfMessagesMatch).toHaveBeenCalledOnce();
+    const persistedPayload = appendCompactEventIfMessagesMatch.mock.calls[0][1];
+    expect(persistedPayload).toMatchObject({
+      strategy: "microcompact",
+      trigger: "manual",
+    });
+    expect(persistedPayload.messages).toEqual([
+      messages[0],
+      messages[1],
+      { role: "tool", tool_call_id: "t1", content: "trimmed" },
+      messages[3],
+    ]);
+    expect(appendCompactEventIfMessagesMatch.mock.calls[0][2]).toEqual(
+      expectedMessages,
+    );
+    expect(messages).toEqual(compacted);
+  });
+
   it("tracks the known replay and advances it only after a matched compact", async () => {
     const { createReplCompactPersistence } =
       await import("../../src/repl/agent-repl.js");

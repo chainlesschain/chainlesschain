@@ -149,6 +149,70 @@ function isExecutionPolicyFailure(error) {
   );
 }
 
+export async function evaluateAgendaMonitor(
+  entry,
+  { runCommand, readWatchedFile, fetchUrl, now },
+) {
+  let output = "";
+  let matched = false;
+  let mtimeMs = null;
+  if (entry.source === "file") {
+    const file = await readWatchedFile(entry.watchFile);
+    output = file.content;
+    mtimeMs = file.mtimeMs ?? null;
+    if (entry.watchChange) {
+      matched =
+        entry.lastMtimeMs != null &&
+        mtimeMs != null &&
+        mtimeMs > entry.lastMtimeMs;
+    } else {
+      matched = entry.stopWhen
+        ? new RegExp(entry.stopWhen).test(file.content)
+        : file.exists;
+    }
+  } else if (entry.source === "http") {
+    const res = await fetchUrl(entry.watchUrl);
+    output = res.body;
+    matched = entry.stopWhen
+      ? new RegExp(entry.stopWhen).test(res.body)
+      : res.ok;
+  } else {
+    const workspaceCwd = resolveMonitorWorkspaceCwd(entry);
+    assertMonitorShellPolicy(entry.command);
+    output = await runCommand(entry.command, { workspaceCwd });
+    matched = entry.stopWhen ? new RegExp(entry.stopWhen).test(output) : false;
+  }
+  if (!matched) return { matched: false, mtimeMs };
+
+  const what =
+    entry.source === "file"
+      ? entry.watchFile
+      : entry.source === "http"
+        ? entry.watchUrl
+        : entry.command;
+  const envelope = monitorEventEnvelope(
+    entry.id,
+    { what, output },
+    { at: now, source: entry.source },
+  );
+  const duplicate =
+    entry.lastEventId != null && entry.lastEventId === envelope.event_id;
+  return {
+    matched: true,
+    mtimeMs,
+    eventId: envelope.event_id,
+    authority: envelope.authority,
+    truncated: envelope.truncated === true,
+    notification: duplicate
+      ? null
+      : {
+          title: entry.notify?.title || `Monitor matched: ${what}`,
+          body: capEventPayload(output, 500).value,
+          level: "success",
+        },
+  };
+}
+
 export function registerAgendaCommand(program) {
   const cmd = program
     .command("agenda")
@@ -367,6 +431,14 @@ export async function runAgendaRun(options = {}, _deps = {}) {
         agendaStore: store,
         schedulerStore,
         runAgent: ({ prompt, runPolicy }) => spawnAgent(prompt, runPolicy),
+        runMonitor: ({ entry }) =>
+          evaluateAgendaMonitor(entry, {
+            runCommand,
+            readWatchedFile,
+            fetchUrl,
+            now: clock(),
+          }),
+        notifyMonitor: notify,
         now: clock,
         ...(options.leaseMs === undefined
           ? {}
@@ -388,11 +460,11 @@ export async function runAgendaRun(options = {}, _deps = {}) {
   }
   const due = options.dryRun
     ? store.due(null, now)
-    : useSchedulerKernel && typeof store.claimDue === "function"
-      ? store.claimDue(now, options.leaseMs, "monitor")
+    : useSchedulerKernel
+      ? []
       : typeof store.claimDue === "function"
         ? store.claimDue(now, options.leaseMs)
-        : store.due(useSchedulerKernel ? "monitor" : null, now);
+        : store.due(null, now);
 
   for (const entry of due) {
     if (options.dryRun) {

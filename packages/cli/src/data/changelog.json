@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.163.5",
+      "cliVersions": ["0.163.4", "0.163.5"],
+      "date": "2026-08-11",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added — cc CLI 0.163.5: durable scheduler runtime and recovery",
+          "body": "> `chainlesschain` **0.163.4 → 0.163.5** (candidate; not yet published,\n> 2026-08-11).\n> CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.57**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Unified scheduler runtime**: the versioned scheduler store now has a shared\n  runtime with adapter registration, snapshot-bound authorization, durable\n  owner/fence claims, lease renewal, bounded retry, dead-letter settlement,\n  history, and adapter-kind isolation.\n- **Routine scheduling migration**: manual triggers and `routine run` cron/once\n  executions use canonical logical occurrences, revision-CAS job snapshots,\n  deterministic run evidence, dual-driver fencing, and crash recovery that\n  settles terminal evidence without replaying the agent.\n- **Agenda wakeup/cron migration**: production Agenda wakeup and cron entries\n  preserve their full permission/worktree/turn/token/cost/time run policy while\n  executing through the shared kernel. New and legacy drivers coordinate with\n  durable leases; known failures retry, while start-only outcomes fail closed.\n- **Cowork Cron migration**: production `cowork cron run` uses definition-only\n  snapshots, workspace-scoped recovery claims, cross-version JSONL delivery\n  fences, terminal-evidence recovery, and automatic one-second polling for\n  six-field cron expressions.\n- **Durable compaction recovery**: micro-compaction strips transient runtime\n  markers before persistence, records checkpoint state durably, restores it in\n  REPL/agent flows, and preserves trace propagation across Process Broker\n  execution boundaries.\n- **Honest execution boundary**: durable terminal evidence prevents duplicate\n  automatic replay after a scheduler process crash. Start-only evidence or a\n  post-side-effect persistence failure remains outcome-unknown and requires\n  explicit handling; this release does not claim global exactly-once behavior.\n- **Known residuals**: Agenda monitor, Automation, Loop, Routine GitHub,\n  standalone scheduler daemon/liveness, shared permission/budget resolution,\n  IANA timezone/DST/missed-run semantics, migration/rollback, disk-fault and\n  long-soak closure remain outside this release. Signed native distribution and\n  representative alias-removal telemetry also remain open.\n- **Release status**: final tag, source SHA, workflow run IDs, package digest,\n  provenance, and registry readback are intentionally omitted until the exact\n  `0.163.5` merge commit passes Linux, Windows, and macOS `CLI CI` and `CLI\n  Strict Sandbox`, followed by the dedicated npm release and independent public\n  readback workflows."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.163.4",
       "cliVersions": ["0.163.3", "0.163.4"],
       "date": "2026-08-11",

@@ -26,6 +26,23 @@ const createdSessions = [];
 // `node -e "process.exit(0)"` hits a POSIX /bin/sh (dash) syntax error on the
 // "()" — a script-file path has no shell metachars and runs cross-platform.
 const scriptDir = mkdtempSync(join(tmpdir(), "cc-loop-e2e-"));
+const testHome = join(scriptDir, "home");
+
+function withTestHome(run) {
+  const previousHome = process.env.CHAINLESSCHAIN_HOME;
+  process.env.CHAINLESSCHAIN_HOME = testHome;
+  try {
+    return run();
+  } finally {
+    if (previousHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+    else process.env.CHAINLESSCHAIN_HOME = previousHome;
+  }
+}
+
+function readTestEvents(sessionId) {
+  return withTestHome(() => readEvents(sessionId));
+}
+
 function writeScript(body) {
   const p = join(scriptDir, `s${Math.random().toString(36).slice(2)}.js`);
   writeFileSync(p, body, "utf-8");
@@ -37,7 +54,11 @@ function runCli(args, timeout = 30000) {
   const r = spawnSync(process.execPath, [binScript, "loop", ...args], {
     encoding: "utf-8",
     timeout,
-    env: { ...process.env, NODE_NO_WARNINGS: "1" },
+    env: {
+      ...process.env,
+      NODE_NO_WARNINGS: "1",
+      CHAINLESSCHAIN_HOME: testHome,
+    },
   });
   return { status: r.status, stdout: r.stdout || "", stderr: r.stderr || "" };
 }
@@ -50,7 +71,7 @@ function summaryOf(out) {
 afterAll(() => {
   for (const id of createdSessions) {
     try {
-      rmSync(sessionPath(id), { force: true });
+      withTestHome(() => rmSync(sessionPath(id), { force: true }));
     } catch {
       /* best-effort */
     }
@@ -185,7 +206,7 @@ describe("E2E: cc loop — save / resume", () => {
     expect(s1.iterations).toBe(2);
     expect(s1.sessionId).toBe(id);
 
-    const ev1 = readEvents(id);
+    const ev1 = readTestEvents(id);
     expect(ev1.filter((e) => e.type === "loop_config")).toHaveLength(1);
     expect(ev1.filter((e) => e.type === "loop_iteration")).toHaveLength(2);
 
@@ -202,7 +223,7 @@ describe("E2E: cc loop — save / resume", () => {
     expect(s2.iterations).toBe(4);
     expect(s2.stoppedBy).toBe("max-iterations");
     expect(
-      readEvents(id).filter((e) => e.type === "loop_iteration"),
+      readTestEvents(id).filter((e) => e.type === "loop_iteration"),
     ).toHaveLength(4);
   });
 

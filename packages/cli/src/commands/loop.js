@@ -2,8 +2,9 @@
  * cc loop — repeatedly run a command or agent prompt on a fixed interval
  * (Claude-Code `/loop` parity, MVP). Lightweight by design: unlike `cc ccron`
  * (in-memory profile governance, runs nothing) or `cc automation` (DB-backed
- * flow/trigger engine), this just re-runs ONE thing on a timer until a stop
- * condition fires or you Ctrl-C.
+ * flow/trigger engine), this re-runs ONE thing until a stop condition fires or
+ * you Ctrl-C. Each iteration is claimed and settled by the durable scheduler
+ * kernel; the foreground command remains the lifecycle owner between rounds.
  *
  *   cc loop "check if CI passed, summarize failures"   # wraps `cc agent -p`
  *   cc loop --every 30s -- npm test                    # external command
@@ -20,9 +21,11 @@
  *   - with `--` → the operands after it are an EXTERNAL command (shell-resolved)
  *
  * The loop driver lives in src/lib/loop.js (pure, clock-injected). This layer
- * only builds the concrete iteration (spawn + tee output) and wires SIGINT.
+ * builds the concrete iteration (spawn + tee output), binds scheduler identity,
+ * persists resumable iteration plans, and wires SIGINT.
  */
 
+import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
@@ -34,16 +37,22 @@ import {
   makeSleep,
   parseLoopDirectives,
   summarizeLoopEvents,
+  findLoopIterationResult,
 } from "../lib/loop.js";
 import {
   startSession,
   appendEvent,
+  appendEventIfHead,
   readEvents,
   sessionExists,
 } from "../harness/jsonl-session-store.js";
+import { openSchedulerStore } from "../lib/scheduler-kernel/store.js";
+import { LoopSchedulerBridge } from "../lib/scheduler-kernel/loop-adapter.js";
 
 export const _deps = {
   spawn: executionBroker.spawn.bind(executionBroker),
+  openSchedulerStore,
+  createLoopSchedulerBridge: (options) => new LoopSchedulerBridge(options),
 };
 
 /**
@@ -68,10 +77,11 @@ const BIN_PATH = fileURLToPath(
  * the user sees live output) while capturing it, so `--until <regex>` can match
  * against what was printed. Resolves with { exitCode, output }.
  */
-function spawnIteration(cmd, args, { shell, onChild, capture }) {
+function spawnIteration(cmd, args, { shell, cwd, onChild, capture, signal }) {
   return new Promise((resolve) => {
     const child = _deps.spawn(cmd, args, {
       shell,
+      cwd,
       stdio: capture ? ["inherit", "pipe", "pipe"] : "inherit",
       env: process.env,
       origin: "loop:iteration",
@@ -79,6 +89,17 @@ function spawnIteration(cmd, args, { shell, onChild, capture }) {
       scope: "loop",
     });
     if (onChild) onChild(child);
+
+    const onAbort = () => {
+      if (child.exitCode == null) {
+        try {
+          child.kill("SIGINT");
+        } catch {
+          // The child may have exited between the state check and kill.
+        }
+      }
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
 
     const outChunks = [];
     if (capture) {
@@ -93,16 +114,22 @@ function spawnIteration(cmd, args, { shell, onChild, capture }) {
     }
 
     // `close` (not `exit`) so piped stdio is fully drained before we resolve.
-    child.on("close", (code, signal) => {
+    child.on("close", (code, childSignal) => {
+      signal?.removeEventListener?.("abort", onAbort);
       // Decode the captured bytes once, at the end. Accumulating with
       // `output += chunk` would decode each stdout chunk independently, so a
       // multi-byte UTF-8 character split across a chunk boundary corrupts the
       // captured string that `--until <regex>` / `--dynamic` directive parsing
       // reads. (The raw passthrough writes above are unaffected.)
       const output = Buffer.concat(outChunks).toString("utf-8");
-      resolve({ exitCode: code == null ? null : code, output, signal });
+      resolve({
+        exitCode: code == null ? null : code,
+        output,
+        signal: childSignal,
+      });
     });
     child.on("error", (err) => {
+      signal?.removeEventListener?.("abort", onAbort);
       resolve({
         exitCode: 127,
         output: String(err.message || err),
@@ -110,6 +137,73 @@ function spawnIteration(cmd, args, { shell, onChild, capture }) {
       });
     });
   });
+}
+
+function recoveredIterationResult(data) {
+  return {
+    exitCode: data?.exitCode ?? null,
+    signal: data?.signal ?? null,
+    durationMs: data?.durationMs ?? null,
+    done: data?.done === true,
+    nextDelayMs: data?.nextDelayMs ?? null,
+    matchedUntil: data?.matchedUntil === true,
+    outputBytes: data?.outputBytes ?? 0,
+    outputDigest: data?.outputDigest ?? null,
+    schedulerOccurrenceId: data?.schedulerOccurrenceId ?? null,
+    recovered: true,
+    output: "",
+  };
+}
+
+/**
+ * Publish one stable iteration schedule under the canonical session writer
+ * lock. A concurrent resumer either observes the same schedule or the already
+ * completed terminal record; it never invents a second scheduledFor identity.
+ */
+function claimPersistedIteration(sessionId, iteration, now = Date.now()) {
+  for (let attempt = 0; attempt < 32; attempt += 1) {
+    const events = readEvents(sessionId);
+    const completed = findLoopIterationResult(events, iteration);
+    if (completed) return { completed, scheduledFor: null };
+    const summary = summarizeLoopEvents(events);
+    if (summary.pendingIteration?.n === iteration) {
+      return {
+        completed: null,
+        scheduledFor: summary.pendingIteration.scheduledFor,
+      };
+    }
+    if (summary.pendingIteration) {
+      const error = new Error(
+        `loop session has unresolved iteration ${summary.pendingIteration.n}`,
+      );
+      error.code = "LOOP_PENDING_ITERATION_CONFLICT";
+      throw error;
+    }
+    const expectedHeadHash = events[events.length - 1]?.hash || null;
+    try {
+      appendEventIfHead(
+        sessionId,
+        "loop_iteration_scheduled",
+        { n: iteration, scheduledFor: now },
+        expectedHeadHash,
+      );
+      return { completed: null, scheduledFor: now };
+    } catch (error) {
+      if (error?.code === "SESSION_REVISION_STALE") continue;
+      // An append classified as outcome-unknown may still have committed.
+      const after = readEvents(sessionId);
+      const recovered = findLoopIterationResult(after, iteration);
+      if (recovered) return { completed: recovered, scheduledFor: null };
+      const pending = summarizeLoopEvents(after).pendingIteration;
+      if (pending?.n === iteration) {
+        return { completed: null, scheduledFor: pending.scheduledFor };
+      }
+      throw error;
+    }
+  }
+  const error = new Error("loop iteration schedule changed too many times");
+  error.code = "LOOP_ITERATION_SCHEDULE_CONTENTION";
+  throw error;
 }
 
 /**
@@ -283,6 +377,7 @@ export function registerLoopCommand(program) {
           savedConfig && !fromCli("untilExitZero")
             ? Boolean(savedConfig.untilExitZero)
             : Boolean(options.untilExitZero);
+        const executionCwd = savedConfig?.cwd || process.cwd();
 
         // --- build the child invocation (shared with resume) ---
         const { cmd, args, shell, label } = buildInvocation({
@@ -308,6 +403,7 @@ export function registerLoopCommand(program) {
             maxIterations: maxIterations ?? null,
             untilExitZero,
             until: untilRaw || null,
+            cwd: executionCwd,
           });
         }
 
@@ -346,7 +442,54 @@ export function registerLoopCommand(program) {
 
         const startedAt = Date.now();
         let summary;
+        let schedulerStore;
         try {
+          const executionId = sessionId || `loop-${randomUUID()}`;
+          schedulerStore = _deps.openSchedulerStore();
+          const loopScheduler = _deps.createLoopSchedulerBridge({
+            schedulerStore,
+            definition: {
+              executionId,
+              cwd: executionCwd,
+              execMode,
+              operands,
+              dynamic,
+            },
+            runIteration: async (n, { signal } = {}) => {
+              logger.log(chalk.gray(`\n▸ iteration ${n} — ${label}`));
+              const t0 = Date.now();
+              const res = await spawnIteration(cmd, args, {
+                shell,
+                cwd: executionCwd,
+                capture,
+                signal,
+                onChild: (c) => {
+                  activeChild = c;
+                },
+              });
+              res.durationMs = Date.now() - t0;
+              res.matchedUntil = Boolean(
+                untilRegex && untilRegex.test(res.output || ""),
+              );
+              if (dynamic) {
+                const directive = parseLoopDirectives(res.output);
+                res.done = directive.done;
+                if (directive.nextDelayMs != null) {
+                  res.nextDelayMs = directive.nextDelayMs;
+                }
+                if (directive.done) {
+                  logger.log(chalk.gray("     directive: stop"));
+                } else if (directive.nextDelayMs != null) {
+                  logger.log(
+                    chalk.gray(
+                      `     directive: next in ${formatDuration(directive.nextDelayMs)}`,
+                    ),
+                  );
+                }
+              }
+              return res;
+            },
+          });
           summary = await runLoop({
             intervalMs,
             maxIterations,
@@ -370,46 +513,34 @@ export function registerLoopCommand(program) {
                   durationMs: res.durationMs ?? null,
                   done: Boolean(res.done),
                   nextDelayMs: res.nextDelayMs ?? null,
+                  matchedUntil: Boolean(res.matchedUntil),
+                  signal: res.signal ?? null,
+                  outputBytes: res.outputBytes ?? 0,
+                  outputDigest: res.outputDigest ?? null,
+                  schedulerOccurrenceId: res.schedulerOccurrenceId ?? null,
+                  recovered: Boolean(res.recovered),
                 });
               }
             },
             runIteration: async (n) => {
-              logger.log(chalk.gray(`\n▸ iteration ${n} — ${label}`));
-              const t0 = Date.now();
-              const res = await spawnIteration(cmd, args, {
-                shell,
-                capture,
-                onChild: (c) => {
-                  activeChild = c;
-                },
-              });
-              res.durationMs = Date.now() - t0;
-              // --dynamic: read the iteration's [[loop:next]] / [[loop:stop]]
-              // directive and surface it to runLoop as done / nextDelayMs.
-              // Use the RESOLVED `dynamic` (not raw options.dynamic): on
-              // `cc loop --resume`, dynamic is rehydrated from saved config while
-              // options.dynamic is false — gating on the raw flag would skip
-              // directive parsing and the model's [[loop:stop]] would be ignored,
-              // running the loop forever.
-              if (dynamic) {
-                const d = parseLoopDirectives(res.output);
-                res.done = d.done;
-                if (d.nextDelayMs != null) res.nextDelayMs = d.nextDelayMs;
-                if (d.done) {
-                  logger.log(chalk.gray(`     ↺ directive: stop`));
-                } else if (d.nextDelayMs != null) {
-                  logger.log(
-                    chalk.gray(
-                      `     ↺ directive: next in ${formatDuration(d.nextDelayMs)}`,
-                    ),
-                  );
+              let scheduledFor = Date.now();
+              if (persist) {
+                const claim = claimPersistedIteration(
+                  sessionId,
+                  n,
+                  scheduledFor,
+                );
+                if (claim.completed) {
+                  return recoveredIterationResult(claim.completed);
                 }
+                scheduledFor = claim.scheduledFor;
               }
-              return res;
+              return loopScheduler.runIteration(n, { scheduledFor });
             },
           });
         } finally {
           process.removeListener("SIGINT", onSigint);
+          schedulerStore?.close();
         }
 
         const elapsed = formatDuration(Date.now() - startedAt);

@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { runAgendaRun } from "../../src/commands/agenda.js";
 import { AgentScheduleStore } from "../../src/lib/agent-schedule-store.js";
 import {
+  AGENDA_SCHEDULER_MONITOR_CAPABILITY,
   AGENDA_SCHEDULER_RETRY_DELAY_MS,
   AgendaSchedulerBridge,
   agendaEntrySnapshot,
@@ -563,5 +564,356 @@ describe("scheduler-kernel agenda adapter", () => {
       actions: [{ id: entry.id, kind: "wakeup", action: "fired" }],
     });
     expect(agendaStore.get(entry.id).status).toBe("fired");
+  });
+
+  it("binds monitor observations to a dedicated least-authority capability", () => {
+    const f = fixture();
+    const agendaStore = f.openAgenda();
+    const monitor = agendaStore.createMonitor({
+      watchFile: "status.txt",
+      intervalMs: 1_000,
+      stopWhen: "ready",
+    });
+    const job = buildAgendaSchedulerJob(monitor);
+
+    expect(job).toMatchObject({
+      trigger: {
+        scheduleKind: "monitor",
+        expression: "every:1000",
+      },
+      authority: {
+        requestedCapabilities: [AGENDA_SCHEDULER_MONITOR_CAPABILITY],
+      },
+    });
+    expect(job.payload.entry).not.toHaveProperty("executionLease");
+    expect(job.payload.entry).not.toHaveProperty("schedulerExecution");
+  });
+
+  it("records and rearms an unmatched monitor atomically with scheduler evidence", async () => {
+    const f = fixture();
+    const agendaStore = f.openAgenda();
+    const schedulerStore = f.openScheduler();
+    const monitor = agendaStore.createMonitor({
+      watchFile: "status.txt",
+      intervalMs: 1_000,
+      stopWhen: "ready",
+    });
+    f.now = monitor.nextAt;
+    const runMonitor = vi.fn(async () => ({
+      matched: false,
+      mtimeMs: 123,
+    }));
+    const bridge = new AgendaSchedulerBridge({
+      agendaStore,
+      schedulerStore,
+      runAgent: vi.fn(),
+      runMonitor,
+      notifyMonitor: vi.fn(),
+      now: f.clock,
+      ownerId: "agenda-monitor-owner",
+      leaseMs: 10_000,
+    });
+
+    await expect(bridge.runDue()).resolves.toEqual([
+      expect.objectContaining({
+        entry: monitor.id,
+        kind: "monitor",
+        result: expect.objectContaining({
+          status: "succeeded",
+          result: expect.objectContaining({
+            action: "checked",
+            status: "active",
+          }),
+        }),
+      }),
+    ]);
+    expect(runMonitor).toHaveBeenCalledTimes(1);
+    expect(agendaStore.get(monitor.id)).toMatchObject({
+      status: "active",
+      checks: 1,
+      lastMtimeMs: 123,
+      nextAt: f.now + 1_000,
+      schedulerExecution: { status: "succeeded", attempt: 1 },
+    });
+  });
+
+  it("allows only one monitor observation under two live drivers", async () => {
+    const f = fixture();
+    const firstAgenda = f.openAgenda();
+    const monitor = firstAgenda.createMonitor({
+      watchFile: "status.txt",
+      intervalMs: 1_000,
+      stopWhen: "ready",
+    });
+    f.now = monitor.nextAt;
+    const secondAgenda = f.openAgenda();
+    const firstScheduler = f.openScheduler();
+    const secondScheduler = f.openScheduler();
+    let release;
+    const gate = new Promise((resolve) => {
+      release = resolve;
+    });
+    const runMonitor = vi.fn(async () => {
+      await gate;
+      return { matched: false, mtimeMs: 321 };
+    });
+    const firstBridge = new AgendaSchedulerBridge({
+      agendaStore: firstAgenda,
+      schedulerStore: firstScheduler,
+      runAgent: vi.fn(),
+      runMonitor,
+      now: f.clock,
+      ownerId: "agenda-monitor-contender-a",
+      leaseMs: 10_000,
+    });
+    const secondBridge = new AgendaSchedulerBridge({
+      agendaStore: secondAgenda,
+      schedulerStore: secondScheduler,
+      runAgent: vi.fn(),
+      runMonitor,
+      now: f.clock,
+      ownerId: "agenda-monitor-contender-b",
+      leaseMs: 10_000,
+    });
+
+    const running = firstBridge.runDue();
+    await vi.waitFor(() => expect(runMonitor).toHaveBeenCalledTimes(1));
+    expect(secondAgenda.claimDue(f.now, 1_000, "monitor")).toEqual([]);
+    await expect(secondBridge.runDue()).resolves.toEqual([]);
+    release();
+    await expect(running).resolves.toEqual([
+      expect.objectContaining({
+        result: expect.objectContaining({ status: "succeeded" }),
+      }),
+    ]);
+    expect(runMonitor).toHaveBeenCalledTimes(1);
+    expect(firstAgenda.get(monitor.id)).toMatchObject({
+      status: "active",
+      checks: 1,
+      schedulerExecution: { status: "succeeded" },
+    });
+  });
+
+  it("persists a matched monitor before best-effort notification", async () => {
+    const f = fixture();
+    const agendaStore = f.openAgenda();
+    const schedulerStore = f.openScheduler();
+    const monitor = agendaStore.createMonitor({
+      watchUrl: "https://example.test/health",
+      intervalMs: 1_000,
+    });
+    f.now = monitor.nextAt;
+    const notifyMonitor = vi.fn(async () => {
+      expect(agendaStore.get(monitor.id)).toMatchObject({
+        status: "matched",
+        lastEventId: "event-501",
+        schedulerExecution: { status: "succeeded" },
+      });
+      throw new Error("desktop unavailable");
+    });
+    const bridge = new AgendaSchedulerBridge({
+      agendaStore,
+      schedulerStore,
+      runAgent: vi.fn(),
+      runMonitor: vi.fn(async () => ({
+        matched: true,
+        eventId: "event-501",
+        authority: "SYSTEM",
+        notification: {
+          title: "Monitor matched",
+          body: "healthy",
+          level: "success",
+        },
+      })),
+      notifyMonitor,
+      now: f.clock,
+      ownerId: "agenda-monitor-notify-owner",
+      leaseMs: 10_000,
+    });
+
+    await expect(bridge.runDue()).resolves.toEqual([
+      expect.objectContaining({
+        result: expect.objectContaining({
+          status: "succeeded",
+          result: expect.objectContaining({
+            action: "matched",
+            status: "matched",
+            event_id: "event-501",
+            notifyError: "desktop unavailable",
+          }),
+        }),
+      }),
+    ]);
+    expect(notifyMonitor).toHaveBeenCalledTimes(1);
+    expect(agendaStore.get(monitor.id)).not.toHaveProperty("output");
+  });
+
+  it("recovers a persisted monitor check without observing or notifying twice", async () => {
+    const f = fixture();
+    const agendaStore = f.openAgenda();
+    const schedulerStore = f.openScheduler();
+    const monitor = agendaStore.createMonitor({
+      watchFile: "status.txt",
+      intervalMs: 10_000,
+      stopWhen: "ready",
+    });
+    f.now = monitor.nextAt;
+    const occurrence = enqueueAgendaEntry(schedulerStore, monitor);
+    const claimed = schedulerStore.claimOccurrence({
+      occurrenceId: occurrence.id,
+      ownerId: "crashed-monitor-owner",
+      leaseMs: 1_000,
+    });
+    agendaStore.bindSchedulerExecution(monitor.id, {
+      occurrenceId: occurrence.id,
+      snapshotDigest: occurrence.payload.snapshotDigest,
+      attempt: claimed.attempt,
+      atMs: f.now,
+    });
+    agendaStore.completeSchedulerExecution(monitor.id, {
+      occurrenceId: occurrence.id,
+      snapshotDigest: occurrence.payload.snapshotDigest,
+      attempt: claimed.attempt,
+      outcome: "succeeded",
+      result: { id: monitor.id, kind: "monitor", action: "checked" },
+      monitorCheck: { matched: false, mtimeMs: 456 },
+      atMs: f.now,
+    });
+    f.now += 1_001;
+    const runMonitor = vi.fn();
+    const notifyMonitor = vi.fn();
+    const bridge = new AgendaSchedulerBridge({
+      agendaStore,
+      schedulerStore,
+      runAgent: vi.fn(),
+      runMonitor,
+      notifyMonitor,
+      now: f.clock,
+      ownerId: "agenda-monitor-recovery-owner",
+      leaseMs: 10_000,
+    });
+
+    await expect(bridge.runDue()).resolves.toEqual([
+      expect.objectContaining({
+        recovered: true,
+        result: expect.objectContaining({
+          status: "succeeded",
+          result: expect.objectContaining({
+            action: "checked",
+            recovered: true,
+          }),
+        }),
+      }),
+    ]);
+    expect(runMonitor).not.toHaveBeenCalled();
+    expect(notifyMonitor).not.toHaveBeenCalled();
+    expect(agendaStore.get(monitor.id).checks).toBe(1);
+  });
+
+  it("fails closed after a monitor crashes with an unknown observation outcome", async () => {
+    const f = fixture();
+    const agendaStore = f.openAgenda();
+    const schedulerStore = f.openScheduler();
+    const monitor = agendaStore.createMonitor({
+      watchUrl: "https://example.test/health",
+      intervalMs: 1_000,
+    });
+    f.now = monitor.nextAt;
+    const occurrence = enqueueAgendaEntry(schedulerStore, monitor);
+    const claimed = schedulerStore.claimOccurrence({
+      occurrenceId: occurrence.id,
+      ownerId: "unknown-monitor-owner",
+      leaseMs: 1_000,
+    });
+    agendaStore.bindSchedulerExecution(monitor.id, {
+      occurrenceId: occurrence.id,
+      snapshotDigest: occurrence.payload.snapshotDigest,
+      attempt: claimed.attempt,
+      atMs: f.now,
+    });
+    f.now += 1_001;
+    const runMonitor = vi.fn();
+    const notifyMonitor = vi.fn();
+    const bridge = new AgendaSchedulerBridge({
+      agendaStore,
+      schedulerStore,
+      runAgent: vi.fn(),
+      runMonitor,
+      notifyMonitor,
+      now: f.clock,
+      ownerId: "unknown-monitor-recovery-owner",
+      leaseMs: 10_000,
+    });
+
+    await expect(bridge.runDue()).resolves.toEqual([
+      expect.objectContaining({
+        result: expect.objectContaining({
+          status: "dead_letter",
+          error: expect.objectContaining({
+            code: "AGENDA_SCHEDULER_OUTCOME_UNKNOWN",
+          }),
+        }),
+      }),
+    ]);
+    expect(runMonitor).not.toHaveBeenCalled();
+    expect(notifyMonitor).not.toHaveBeenCalled();
+    expect(agendaStore.get(monitor.id)).toMatchObject({
+      status: "active",
+      checks: 0,
+      schedulerExecution: { status: "running" },
+      executionLease: { expiresAt: Number.MAX_SAFE_INTEGER },
+    });
+  });
+
+  it("routes the production Agenda monitor path through SchedulerRuntime", async () => {
+    const f = fixture();
+    const agendaStore = f.openAgenda();
+    const schedulerStore = f.openScheduler();
+    const monitor = agendaStore.createMonitor({
+      watchFile: "status.txt",
+      intervalMs: 1_000,
+      stopWhen: "ready",
+    });
+    f.now = monitor.nextAt;
+    const notify = vi.fn(async () => ({}));
+    const logs = [];
+    const code = await runAgendaRun(
+      { json: true },
+      {
+        store: agendaStore,
+        schedulerStore,
+        useSchedulerKernel: true,
+        schedulerOwnerId: "agenda-monitor-command-owner",
+        spawnAgent: vi.fn(),
+        readWatchedFile: vi.fn(async () => ({
+          exists: true,
+          content: "ready: yes",
+          mtimeMs: 789,
+        })),
+        notify,
+        now: f.clock,
+        log: (line) => logs.push(line),
+      },
+    );
+
+    expect(code).toBe(0);
+    expect(notify).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(logs.join("\n"))).toMatchObject({
+      due: 1,
+      actions: [
+        {
+          id: monitor.id,
+          kind: "monitor",
+          action: "matched",
+          status: "matched",
+        },
+      ],
+    });
+    expect(agendaStore.get(monitor.id)).toMatchObject({
+      status: "matched",
+      checks: 1,
+      lastMtimeMs: 789,
+      schedulerExecution: { status: "succeeded" },
+    });
   });
 });

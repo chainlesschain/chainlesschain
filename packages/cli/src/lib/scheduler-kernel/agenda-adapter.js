@@ -16,7 +16,12 @@ import { SchedulerRuntime } from "./runtime.js";
 
 export const AGENDA_SCHEDULER_KIND = "agenda";
 export const AGENDA_SCHEDULER_CAPABILITY = "agent.execute";
-export const AGENDA_SCHEDULER_ENTRY_KINDS = Object.freeze(["wakeup", "cron"]);
+export const AGENDA_SCHEDULER_MONITOR_CAPABILITY = "monitor.observe";
+export const AGENDA_SCHEDULER_ENTRY_KINDS = Object.freeze([
+  "wakeup",
+  "cron",
+  "monitor",
+]);
 export const AGENDA_SCHEDULER_RETRY_DELAY_MS = 60_000;
 
 function agendaError(
@@ -50,6 +55,125 @@ function safeFailure(error) {
   };
 }
 
+function capabilityForEntry(entry) {
+  return entry?.kind === "monitor"
+    ? AGENDA_SCHEDULER_MONITOR_CAPABILITY
+    : AGENDA_SCHEDULER_CAPABILITY;
+}
+
+function normalizeMonitorObservation(entry, observation) {
+  if (
+    !observation ||
+    typeof observation !== "object" ||
+    Array.isArray(observation) ||
+    typeof observation.matched !== "boolean"
+  ) {
+    throw agendaError(
+      "AGENDA_SCHEDULER_MONITOR_RESULT_INVALID",
+      `Agenda monitor returned an invalid observation: ${entry.id}`,
+    );
+  }
+  const mtimeMs =
+    observation.mtimeMs === null || observation.mtimeMs === undefined
+      ? null
+      : Number(observation.mtimeMs);
+  if (mtimeMs !== null && (!Number.isFinite(mtimeMs) || mtimeMs < 0)) {
+    throw agendaError(
+      "AGENDA_SCHEDULER_MONITOR_RESULT_INVALID",
+      `Agenda monitor returned an invalid mtime: ${entry.id}`,
+    );
+  }
+  const eventId = observation.matched
+    ? normalizeIdentifier(observation.eventId, "agenda.monitor.eventId")
+    : null;
+  const authority = observation.matched
+    ? normalizeIdentifier(observation.authority, "agenda.monitor.authority")
+    : null;
+  const duplicate = observation.matched && entry.lastEventId === eventId;
+  const notification =
+    observation.notification &&
+    typeof observation.notification === "object" &&
+    !Array.isArray(observation.notification)
+      ? {
+          title: String(observation.notification.title || ""),
+          body: String(observation.notification.body || ""),
+          level: String(observation.notification.level || "success"),
+        }
+      : null;
+  return {
+    matched: observation.matched,
+    mtimeMs,
+    eventId,
+    authority,
+    duplicate,
+    truncated: observation.truncated === true,
+    notification,
+  };
+}
+
+function validateMonitorSnapshot(snapshot) {
+  if (
+    !Number.isSafeInteger(snapshot.intervalMs) ||
+    snapshot.intervalMs < 1_000
+  ) {
+    throw agendaError(
+      "AGENDA_SCHEDULER_ENTRY_INVALID",
+      `Agenda monitor interval is invalid: ${snapshot.id}`,
+    );
+  }
+  if (!Number.isSafeInteger(snapshot.checks) || snapshot.checks < 0) {
+    throw agendaError(
+      "AGENDA_SCHEDULER_ENTRY_INVALID",
+      `Agenda monitor check count is invalid: ${snapshot.id}`,
+    );
+  }
+  if (!["command", "file", "http"].includes(snapshot.source)) {
+    throw agendaError(
+      "AGENDA_SCHEDULER_ENTRY_INVALID",
+      `Agenda monitor source is invalid: ${snapshot.id}`,
+    );
+  }
+  const sourceValue =
+    snapshot.source === "command"
+      ? snapshot.command
+      : snapshot.source === "file"
+        ? snapshot.watchFile
+        : snapshot.watchUrl;
+  if (typeof sourceValue !== "string" || sourceValue.length === 0) {
+    throw agendaError(
+      "AGENDA_SCHEDULER_ENTRY_INVALID",
+      `Agenda monitor source target is missing: ${snapshot.id}`,
+    );
+  }
+  if (
+    snapshot.watchChange === true &&
+    (snapshot.source !== "file" || snapshot.stopWhen != null)
+  ) {
+    throw agendaError(
+      "AGENDA_SCHEDULER_ENTRY_INVALID",
+      `Agenda monitor change condition is invalid: ${snapshot.id}`,
+    );
+  }
+  if (snapshot.stopWhen != null) {
+    if (typeof snapshot.stopWhen !== "string") {
+      throw agendaError(
+        "AGENDA_SCHEDULER_ENTRY_INVALID",
+        `Agenda monitor stop condition is invalid: ${snapshot.id}`,
+      );
+    }
+    try {
+      new RegExp(snapshot.stopWhen);
+    } catch (error) {
+      throw agendaError(
+        "AGENDA_SCHEDULER_ENTRY_INVALID",
+        `Agenda monitor stop condition is invalid: ${snapshot.id}`,
+        undefined,
+        error,
+      );
+    }
+  }
+}
+
 function validateEntrySnapshot(entry) {
   if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
     throw agendaError(
@@ -68,7 +192,10 @@ function validateEntrySnapshot(entry) {
       `Agenda scheduler does not support entry kind: ${snapshot.kind}`,
     );
   }
-  if (typeof snapshot.prompt !== "string" || snapshot.prompt.length === 0) {
+  if (
+    snapshot.kind !== "monitor" &&
+    (typeof snapshot.prompt !== "string" || snapshot.prompt.length === 0)
+  ) {
     throw agendaError(
       "AGENDA_SCHEDULER_ENTRY_INVALID",
       `Agenda prompt is missing: ${snapshot.id}`,
@@ -98,13 +225,15 @@ function validateEntrySnapshot(entry) {
   }
   const schedulable =
     (snapshot.kind === "wakeup" && snapshot.status === "pending") ||
-    (snapshot.kind === "cron" && snapshot.status === "active");
+    (["cron", "monitor"].includes(snapshot.kind) &&
+      snapshot.status === "active");
   if (!schedulable) {
     throw agendaError(
       "AGENDA_SCHEDULER_ENTRY_TERMINAL",
       `Agenda entry is not schedulable: ${snapshot.id}`,
     );
   }
+  if (snapshot.kind === "monitor") validateMonitorSnapshot(snapshot);
   normalizeEpochMs(Number(snapshot.createdAt), "agenda.entry.createdAt");
   const fireAt = effectiveFireAt(snapshot);
   if (fireAt == null) {
@@ -144,7 +273,11 @@ export function buildAgendaSchedulerJob(entry) {
       source: "agent-schedule-store",
       scheduleKind: snapshot.kind,
       expression:
-        snapshot.kind === "cron" ? snapshot.cron : String(snapshot.dueAt),
+        snapshot.kind === "cron"
+          ? snapshot.cron
+          : snapshot.kind === "monitor"
+            ? `every:${snapshot.intervalMs}`
+            : String(snapshot.dueAt),
       ...(snapshot.kind === "cron" && snapshot.timeZone
         ? { timeZone: snapshot.timeZone }
         : {}),
@@ -158,7 +291,7 @@ export function buildAgendaSchedulerJob(entry) {
       principal: { type: "agenda", id: snapshot.id },
       tenantId: null,
       workspaceId: null,
-      requestedCapabilities: [AGENDA_SCHEDULER_CAPABILITY],
+      requestedCapabilities: [capabilityForEntry(snapshot)],
       authorizationRefs: {
         decisionId: null,
         policyRevision: null,
@@ -246,7 +379,7 @@ export function authorizeAgendaOccurrence({ job, occurrence }) {
       authority?.principal?.id === entry.id &&
       Array.isArray(authority?.requestedCapabilities) &&
       authority.requestedCapabilities.length === 1 &&
-      authority.requestedCapabilities[0] === AGENDA_SCHEDULER_CAPABILITY &&
+      authority.requestedCapabilities[0] === capabilityForEntry(entry) &&
       payload.snapshotDigest === expectedDigest;
     return {
       allowed,
@@ -261,7 +394,11 @@ function recoveredResult(entry, evidence) {
   const result =
     evidence.result && typeof evidence.result === "object"
       ? evidence.result
-      : { id: entry.id, kind: entry.kind, action: "fired" };
+      : {
+          id: entry.id,
+          kind: entry.kind,
+          action: entry.kind === "monitor" ? "checked" : "fired",
+        };
   return { ...result, recovered: true };
 }
 
@@ -281,6 +418,8 @@ function matchingExecutionEvidence(
 export function createAgendaSchedulerAdapter({
   agendaStore,
   runAgent,
+  runMonitor,
+  notifyMonitor,
   now = Date.now,
 } = {}) {
   if (
@@ -339,7 +478,7 @@ export function createAgendaSchedulerAdapter({
         if (prior.status === "running") {
           throw agendaError(
             "AGENDA_SCHEDULER_OUTCOME_UNKNOWN",
-            `Agenda agent outcome is unknown; refusing duplicate execution: ${expected.id}`,
+            `Agenda execution outcome is unknown; refusing duplicate execution: ${expected.id}`,
           );
         }
       } else if (prior?.status === "running") {
@@ -377,14 +516,54 @@ export function createAgendaSchedulerAdapter({
         throw stale;
       }
 
+      let observation = null;
+      let action = null;
       try {
-        await runAgent({
-          entry: expected,
-          prompt: expected.prompt,
-          runPolicy: expected.runPolicy,
-          occurrenceId: occurrence.id,
-          attempt: occurrence.attempt,
-        });
+        if (expected.kind === "monitor") {
+          if (typeof runMonitor !== "function") {
+            throw agendaError(
+              "AGENDA_SCHEDULER_MONITOR_RUNNER_REQUIRED",
+              "Agenda scheduler monitor execution requires a monitor runner",
+            );
+          }
+          observation = normalizeMonitorObservation(
+            expected,
+            await runMonitor({
+              entry: expected,
+              occurrenceId: occurrence.id,
+              attempt: occurrence.attempt,
+            }),
+          );
+          action = {
+            id: expected.id,
+            kind: expected.kind,
+            action: observation.matched
+              ? observation.duplicate
+                ? "duplicate"
+                : "matched"
+              : "checked",
+            ...(observation.matched
+              ? {
+                  event_id: observation.eventId,
+                  authority: observation.authority,
+                }
+              : {}),
+            ...(observation.truncated ? { truncated: true } : {}),
+          };
+        } else {
+          await runAgent({
+            entry: expected,
+            prompt: expected.prompt,
+            runPolicy: expected.runPolicy,
+            occurrenceId: occurrence.id,
+            attempt: occurrence.attempt,
+          });
+          action = {
+            id: expected.id,
+            kind: expected.kind,
+            action: "fired",
+          };
+        }
       } catch (error) {
         let failurePersisted = false;
         try {
@@ -419,14 +598,16 @@ export function createAgendaSchedulerAdapter({
         throw agendaError(
           typeof error?.code === "string"
             ? error.code
-            : "AGENDA_AGENT_EXECUTION_FAILED",
+            : expected.kind === "monitor"
+              ? "AGENDA_MONITOR_EXECUTION_FAILED"
+              : "AGENDA_AGENT_EXECUTION_FAILED",
           typeof error?.message === "string"
             ? error.message
-            : `Agenda agent execution failed: ${expected.id}`,
+            : `Agenda ${expected.kind === "monitor" ? "monitor" : "agent"} execution failed: ${expected.id}`,
           undefined,
           error,
           {
-            retryable: true,
+            retryable: error?.retryable !== false,
             retryAt: normalizeEpochMs(
               Number(now()) + AGENDA_SCHEDULER_RETRY_DELAY_MS,
               "agenda.retryAt",
@@ -435,21 +616,50 @@ export function createAgendaSchedulerAdapter({
         );
       }
 
-      const action = {
-        id: expected.id,
-        kind: expected.kind,
-        action: "fired",
-      };
       try {
-        agendaStore.completeSchedulerExecution(expected.id, {
+        const completed = agendaStore.completeSchedulerExecution(expected.id, {
           occurrenceId: occurrence.id,
           snapshotDigest: expectedDigest,
           attempt: occurrence.attempt,
           outcome: "succeeded",
           result: action,
+          ...(observation
+            ? {
+                monitorCheck: {
+                  matched: observation.matched,
+                  mtimeMs: observation.mtimeMs,
+                  eventId: observation.eventId,
+                  authority: observation.authority,
+                },
+              }
+            : {}),
           atMs: now(),
         });
-        return action;
+        const persistedAction = completed.schedulerExecution?.result || action;
+        if (
+          observation?.matched &&
+          !observation.duplicate &&
+          observation.notification
+        ) {
+          if (typeof notifyMonitor !== "function") {
+            return {
+              ...persistedAction,
+              notifyError: "Agenda monitor notification handler is unavailable",
+            };
+          }
+          try {
+            await notifyMonitor(observation.notification);
+          } catch (notifyError) {
+            return {
+              ...persistedAction,
+              notifyError:
+                typeof notifyError?.message === "string"
+                  ? notifyError.message
+                  : String(notifyError),
+            };
+          }
+        }
+        return persistedAction;
       } catch (completionError) {
         const persisted = agendaStore.get(expected.id);
         if (
@@ -484,6 +694,8 @@ export class AgendaSchedulerBridge {
     agendaStore,
     schedulerStore,
     runAgent,
+    runMonitor,
+    notifyMonitor,
     now = Date.now,
     ownerId,
     leaseMs,
@@ -500,7 +712,15 @@ export class AgendaSchedulerBridge {
     this.now = now;
     this.runtime = new SchedulerRuntime({
       store: schedulerStore,
-      adapters: [createAgendaSchedulerAdapter({ agendaStore, runAgent, now })],
+      adapters: [
+        createAgendaSchedulerAdapter({
+          agendaStore,
+          runAgent,
+          runMonitor,
+          notifyMonitor,
+          now,
+        }),
+      ],
       authorize: authorizeAgendaOccurrence,
       ...(ownerId === undefined ? {} : { ownerId }),
       ...(leaseMs === undefined ? {} : { leaseMs }),
@@ -535,6 +755,7 @@ export class AgendaSchedulerBridge {
     const due = [
       ...this.agendaStore.due("wakeup", now),
       ...this.agendaStore.due("cron", now),
+      ...this.agendaStore.due("monitor", now),
     ];
     for (const entry of due) {
       const occurrence = enqueueAgendaEntry(this.schedulerStore, entry);

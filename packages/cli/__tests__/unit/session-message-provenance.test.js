@@ -80,6 +80,26 @@ describe("durable session system-message provenance", () => {
     ]);
   });
 
+  it("strips runtime microcompact markers from durable projections", () => {
+    const runtime = {
+      role: "tool",
+      content: "trimmed tool output",
+      _microCompacted: true,
+    };
+
+    expect(projectCanonicalResumeMessages([runtime])).toEqual([
+      { role: "tool", content: "trimmed tool output" },
+    ]);
+    expect(encodePersistedMessage(runtime)).toEqual({
+      role: "tool",
+      content: "trimmed tool output",
+    });
+    expect(sanitizePersistedMessage(runtime)).toEqual({
+      role: "tool",
+      content: "trimmed tool output",
+    });
+  });
+
   it("grants wire provenance only through the verified decoder", () => {
     for (const kind of Object.values(DURABLE_SYSTEM_MESSAGE_KINDS)) {
       const wire = encodePersistedMessage(

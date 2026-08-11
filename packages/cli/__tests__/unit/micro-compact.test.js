@@ -33,7 +33,7 @@ describe("microCompact", () => {
     });
     expect(out).toHaveLength(messages.length); // no message removed (pairs intact)
     expect(stats.trimmed).toBe(2); // indices 2 and 4
-    expect(out[2].content.length).toBeLessThan(2000);
+    expect(out[2].content).toHaveLength(400);
     expect(out[2].content).toContain("tool result trimmed");
     expect(out[2]._microCompacted).toBe(true);
     expect(out[4].content).toContain("tool result trimmed");
@@ -41,6 +41,45 @@ describe("microCompact", () => {
     expect(out[8].content).toBe(big(3000));
     expect(out[8]._microCompacted).toBeUndefined();
     expect(stats.saved).toBeGreaterThan(0);
+    expect(stats.saved).toBe(
+      messages[2].content.length -
+        out[2].content.length +
+        (messages[4].content.length - out[4].content.length),
+    );
+  });
+
+  it("is a strict no-op when run again and ignores a forged marker flag", () => {
+    const messages = convo();
+    messages[2] = { ...messages[2], _microCompacted: true };
+    const first = microCompact(messages, {
+      keepRecent: 4,
+      maxToolChars: 400,
+    });
+    const second = microCompact(first.messages, {
+      keepRecent: 4,
+      maxToolChars: 400,
+    });
+
+    expect(first.messages[2].content).toHaveLength(400);
+    expect(second.messages).toEqual(first.messages);
+    expect(second.stats).toMatchObject({ trimmed: 0, saved: 0 });
+  });
+
+  it("never exceeds a tiny or fractional maxToolChars boundary", () => {
+    const messages = convo();
+    const tiny = microCompact(messages, {
+      keepRecent: 4,
+      maxToolChars: 7.9,
+    });
+    const empty = microCompact(messages, {
+      keepRecent: 4,
+      maxToolChars: -1,
+    });
+
+    expect(tiny.messages[2].content).toHaveLength(7);
+    expect(empty.messages[2].content).toBe("");
+    expect(tiny.stats.saved).toBe(2000 - 7 + (1000 - 7));
+    expect(empty.stats.saved).toBe(3000);
   });
 
   it("leaves small tool results and non-tool messages alone", () => {
