@@ -2,7 +2,7 @@
 
 - 评估日期：2026-08-01
 - ChainlessChain 仓库快照：`eb0bc663b6eb794b1b62ba2bfc7a1267c699d25d`
-- 原始审计版本基线（2026-08-01，非当前发布状态）：CLI `0.162.194` release candidate（`0.162.190` / `0.162.191` / `0.162.192` 未发布；`0.162.193` 被非权威通用 workflow 发布，npm `latest` 为 `0.162.193`）、Open VSX `0.37.45`、JetBrains Marketplace `0.4.81`；Microsoft Marketplace 尚未发布。当前状态以第十二节 2026-08-09 快照为准
+- 原始审计版本基线（2026-08-01，非当前发布状态）：CLI `0.162.194` release candidate（`0.162.190` / `0.162.191` / `0.162.192` 未发布；`0.162.193` 被非权威通用 workflow 发布，npm `latest` 为 `0.162.193`）、Open VSX `0.37.45`、JetBrains Marketplace `0.4.81`；Microsoft Marketplace 尚未发布。当前状态以第十二节 2026-08-11 快照为准
 - Claude Code 基线：[CLI `2.1.220`](https://code.claude.com/docs/en/changelog)；官方文档回读日期 2026-08-01
 
 > 本文是一份面向下一阶段决策的“净差距”报告，不重复罗列已经完成的能力。
@@ -652,7 +652,7 @@ VS Code / JetBrains / Desktop / Web / Mobile
 - [Desktop coding agent bootstrap](../desktop-app-vue/src/main/bootstrap/coding-agent-bootstrap.js)
 - [现有完整差距审计](./IDE_VS_PLUGIN_CLAUDE_GAPS_AND_OPTIMIZATIONS_2026-07-22.md)
 
-## 十二、实施状态快照（更新至 2026-08-09）
+## 十二、实施状态快照（更新至 2026-08-11）
 
 本节记录原始审计快照之后的实施进展。状态严格区分“仓库实现”“本地定向验证”“真实宿主/远程矩阵”和
 “公开发布回读”：前两者不能替代后两者，也不能据此宣称 Microsoft Marketplace 发布、真实 PR/merge 或完整
@@ -1026,30 +1026,30 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
   不与 17 个原始编号相加；fresh-profile 升降级并入相应渠道，已关闭的 CLI 冷恢复 SLO、两小时 CLI soak、
   local-host、多根、多窗口和 IDE ARM64 exact-SHA 不再重复计入。
 
-| #   | 路线映射             | 状态                  | 剩余工作与关闭条件                                                                                                                                                                                                                                                                                                                                                                    |
-| --- | -------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | S0-1                 | 部分完成              | 完成即时撤权、跨进程 kill/restart、任意断电/fsync、独立 anti-rollback anchor、强篡改者与长期安全矩阵；现有 restart/resume 与 crash/尾截断证据不能外推。                                                                                                                                                                                                                               |
-| 2   | S0-2                 | 部分完成              | 完成恶意 Skill/MCP 来源、effect/ledger、动态撤销、进程树与长期对抗矩阵；direct handler 已阻断和默认确认门已过，但不等于完整信任闭环。                                                                                                                                                                                                                                                 |
-| 3   | S0-3                 | 部分完成              | 完成真实 provider 长会话语义压缩、结构化 handoff、live trajectory 与全宿主长期一致性；synthetic 矩阵及 CLI 冷恢复 SLO 已关闭。                                                                                                                                                                                                                                                        |
-| 4   | Q0 / R0              | 未完成/外部阻塞       | 配置发布 authority，将同一验证 VSIX 发布到 Microsoft Marketplace，并完成 exact publisher/version/digest 回读及 stock VS Code 搜索、安装、升级、回滚；当前 Gallery 精确查询为 `TotalCount=0`。                                                                                                                                                                                         |
-| 5   | Q0 / Q4b             | 部分完成/外部阻塞     | 为 JetBrains `0.4.83` 配置作者证书、私钥和密码，执行 `signPlugin`，再做签名包 fresh-profile 安装、升级、失败恢复与回滚；当前公开包已 listed，但 author signing 被跳过。                                                                                                                                                                                                               |
-| 6   | Q0 / Q4b             | 部分完成/外部阻塞     | 完成 Desktop/native x64+ARM64 签名发行、完整 generation transaction、真实 taskkill/断电、Authenticode、macOS signing/notarization 与公开资产逐字节回读；unsigned CLI 六目标不能替代。                                                                                                                                                                                                 |
-| 7   | Q3 / P0-3 / R2       | 部分完成/外部验证延后 | PR #142 的 production GitHub adapter、`cc artifacts delivery-run` 与 crash-safe exact-effect runner 已形成仓库内完成候选，尚待合并；合并后仍需通过该入口真实执行 gates→preview→review→fix→PR/CI→受控 merge→archive，并关闭真实 ruleset/branch protection、required checks/review、权限及外部不可变归档回读。本期延后该外部 live journey；fake adapter、人工 PR 和仓库内测试不能替代。 |
-| 8   | Q4a/Q4b / P0-4       | 未完成                | 完成 Remote/SSH/WSL/devcontainer/Codespaces 与 JetBrains Gateway 的 stock/minimum × OS 真实宿主矩阵。                                                                                                                                                                                                                                                                                 |
-| 9   | Q4a/Q4b / P0-4       | 未完成                | 完成网络抖动、断线重连、Bridge/CLI restart、失败注入、原请求重附与 authority 一致性矩阵。                                                                                                                                                                                                                                                                                             |
-| 10  | Q4b / P0-4           | 未完成                | 完成独立 8 小时 IDE reconnect/recovery soak 与 nightly live-provider trajectory；两小时 CLI reliability soak 不能替代。                                                                                                                                                                                                                                                               |
-| 11  | P1-1 / R4            | 部分完成              | 将现有 DAG 收敛为可生成、可审阅、可预算、可暂停恢复、版本化保存与分发的 Dynamic Workflow façade。                                                                                                                                                                                                                                                                                     |
-| 12  | P1-2 / R4            | 部分完成              | 将 Local/WSL/SSH/Cloud/Container 建为一等 Execution Location，完成创建时能力比较、安全 handoff 与 evidence/authority 继承。                                                                                                                                                                                                                                                           |
-| 13  | P1-3 / R4            | 部分完成              | 建成 Automation Center：trigger scope、run-now、schedule pause、history、needs-input 通知、预算和权限预检。                                                                                                                                                                                                                                                                           |
-| 14  | R4 budget            | 部分完成              | 把预算 authority 从 foundation/local adapters 接到 production root、全部 turn/token/tool 及 WS/REPL/headless 入口。                                                                                                                                                                                                                                                                   |
-| 15  | R4 command lifecycle | 部分完成              | 观测三批兼容别名的完整弃用周期，依据使用证据决定移除或延长；不得提前删除入口。                                                                                                                                                                                                                                                                                                        |
-| 16  | P1-4 / R5            | 部分完成              | 完成 Context 与 Permission/Side-effect 可解释中心：规则来源、实际资源、不可逆副作用、恢复覆盖、最小 scoped rule 与 revoke。                                                                                                                                                                                                                                                           |
-| 17  | P1-5 / R5            | 部分完成              | 完成 Marketplace 多来源发现、依赖/license/健康图、private registry、组织签名/撤销、代理/离线与供应链故障矩阵。                                                                                                                                                                                                                                                                        |
-| 18  | P2-1 / R5            | 未完成                | 完成 token/USD、retry、tool latency 到 diff/gate/artifact/PR 的因果可观测性、导出与预算告警。                                                                                                                                                                                                                                                                                         |
-| 19  | P2-2 / R5            | 未完成                | 完成自动 ghost-text completion 的 debounce/cancel/dedupe/cache、独立预算、P50/P95 SLO 与质量回退。                                                                                                                                                                                                                                                                                    |
-| 20  | P2-3 / R5            | 部分完成              | 完成多 Agent merge 前 hunk/file 选择、冲突解释、跨分支 batch checkpoint 与受控 rollback。                                                                                                                                                                                                                                                                                             |
-| 21  | P2-4 / R5            | 部分完成              | 完成键盘全路径、屏幕阅读器、焦点恢复、长会话虚拟化、大 diff/日志和 100+ session 的量化验收。                                                                                                                                                                                                                                                                                          |
-| 22  | P2-5 / R5            | 未决                  | 作出 WebIDE 产品定位决定；若无独立浏览器 IDE 目标则收敛为 Preview/Artifact，否则补齐仓库树、搜索、诊断、Git/Diff、Terminal 与 session 绑定。                                                                                                                                                                                                                                          |
+| #   | 路线映射             | 状态                  | 剩余工作与关闭条件                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| --- | -------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | S0-1                 | 部分完成              | 完成即时撤权、跨进程 kill/restart、任意断电/fsync、独立 anti-rollback anchor、强篡改者与长期安全矩阵；现有 restart/resume 与 crash/尾截断证据不能外推。                                                                                                                                                                                                                                                                                           |
+| 2   | S0-2                 | 部分完成              | 完成恶意 Skill/MCP 来源、effect/ledger、动态撤销、进程树与长期对抗矩阵；direct handler 已阻断和默认确认门已过，但不等于完整信任闭环。                                                                                                                                                                                                                                                                                                             |
+| 3   | S0-3                 | 部分完成              | 完成真实 provider 长会话语义压缩、结构化 handoff、live trajectory 与全宿主长期一致性；synthetic 矩阵及 CLI 冷恢复 SLO 已关闭。                                                                                                                                                                                                                                                                                                                    |
+| 4   | Q0 / R0              | 未完成/外部阻塞       | 配置发布 authority，将同一验证 VSIX 发布到 Microsoft Marketplace，并完成 exact publisher/version/digest 回读及 stock VS Code 搜索、安装、升级、回滚；当前 Gallery 精确查询为 `TotalCount=0`。                                                                                                                                                                                                                                                     |
+| 5   | Q0 / Q4b             | 部分完成/外部阻塞     | 为 JetBrains `0.4.85` 配置作者证书、私钥和密码，执行 `signPlugin`，再做签名包 fresh-profile 安装、升级、失败恢复与回滚；`0.4.85` 已 `approve=true`、`listed=true`、`hidden=false`，但 author signing 仍被跳过。                                                                                                                                                                                                                                   |
+| 6   | Q0 / Q4b             | 部分完成/外部阻塞     | 完成 Desktop/native x64+ARM64 签名发行、完整 generation transaction、真实 taskkill/断电、Authenticode、macOS signing/notarization 与公开资产逐字节回读；unsigned CLI 六目标不能替代。                                                                                                                                                                                                                                                             |
+| 7   | Q3 / P0-3 / R2       | 部分完成/外部验证延后 | PR #142 的 production GitHub adapter、`cc artifacts delivery-run` 与 crash-safe exact-effect runner 已通过 merge commit `e08a61530225e3371849e54f7cfb03efb8cf63a1` 进入 `main`，仓库内实现子门已关闭；仍需通过该入口真实执行 gates→preview→review→fix→PR/CI→受控 merge→archive，并关闭真实 ruleset/branch protection、required checks/review、权限及外部不可变归档回读。本期延后该外部 live journey；fake adapter、人工 PR 和仓库内测试不能替代。 |
+| 8   | Q4a/Q4b / P0-4       | 未完成                | 完成 Remote/SSH/WSL/devcontainer/Codespaces 与 JetBrains Gateway 的 stock/minimum × OS 真实宿主矩阵。                                                                                                                                                                                                                                                                                                                                             |
+| 9   | Q4a/Q4b / P0-4       | 未完成                | 完成网络抖动、断线重连、Bridge/CLI restart、失败注入、原请求重附与 authority 一致性矩阵。                                                                                                                                                                                                                                                                                                                                                         |
+| 10  | Q4b / P0-4           | 未完成                | 完成独立 8 小时 IDE reconnect/recovery soak 与 nightly live-provider trajectory；两小时 CLI reliability soak 不能替代。                                                                                                                                                                                                                                                                                                                           |
+| 11  | P1-1 / R4            | 部分完成              | 将现有 DAG 收敛为可生成、可审阅、可预算、可暂停恢复、版本化保存与分发的 Dynamic Workflow façade。                                                                                                                                                                                                                                                                                                                                                 |
+| 12  | P1-2 / R4            | 部分完成              | 将 Local/WSL/SSH/Cloud/Container 建为一等 Execution Location，完成创建时能力比较、安全 handoff 与 evidence/authority 继承。                                                                                                                                                                                                                                                                                                                       |
+| 13  | P1-3 / R4            | 部分完成              | 建成 Automation Center：trigger scope、run-now、schedule pause、history、needs-input 通知、预算和权限预检。                                                                                                                                                                                                                                                                                                                                       |
+| 14  | R4 budget            | 部分完成              | 把预算 authority 从 foundation/local adapters 接到 production root、全部 turn/token/tool 及 WS/REPL/headless 入口。                                                                                                                                                                                                                                                                                                                               |
+| 15  | R4 command lifecycle | 部分完成              | 观测三批兼容别名的完整弃用周期，依据使用证据决定移除或延长；不得提前删除入口。                                                                                                                                                                                                                                                                                                                                                                    |
+| 16  | P1-4 / R5            | 部分完成              | 完成 Context 与 Permission/Side-effect 可解释中心：规则来源、实际资源、不可逆副作用、恢复覆盖、最小 scoped rule 与 revoke。                                                                                                                                                                                                                                                                                                                       |
+| 17  | P1-5 / R5            | 部分完成              | 完成 Marketplace 多来源发现、依赖/license/健康图、private registry、组织签名/撤销、代理/离线与供应链故障矩阵。                                                                                                                                                                                                                                                                                                                                    |
+| 18  | P2-1 / R5            | 未完成                | 完成 token/USD、retry、tool latency 到 diff/gate/artifact/PR 的因果可观测性、导出与预算告警。                                                                                                                                                                                                                                                                                                                                                     |
+| 19  | P2-2 / R5            | 未完成                | 完成自动 ghost-text completion 的 debounce/cancel/dedupe/cache、独立预算、P50/P95 SLO 与质量回退。                                                                                                                                                                                                                                                                                                                                                |
+| 20  | P2-3 / R5            | 部分完成              | 完成多 Agent merge 前 hunk/file 选择、冲突解释、跨分支 batch checkpoint 与受控 rollback。                                                                                                                                                                                                                                                                                                                                                         |
+| 21  | P2-4 / R5            | 部分完成              | 完成键盘全路径、屏幕阅读器、焦点恢复、长会话虚拟化、大 diff/日志和 100+ session 的量化验收。                                                                                                                                                                                                                                                                                                                                                      |
+| 22  | P2-5 / R5            | 未决                  | 作出 WebIDE 产品定位决定；若无独立浏览器 IDE 目标则收敛为 Preview/Artifact，否则补齐仓库树、搜索、诊断、Git/Diff、Terminal 与 session 绑定。                                                                                                                                                                                                                                                                                                      |
 
 当前结论仍为 **product release NO-GO**。最短关键路径是：先关闭 #1～#7 的安全/公开分发/真实交付门，
 再以 #8～#10 的远程、故障和长期宿主证据关闭 R3，最后推进 #11～#22 的 R4/R5 产品化。
@@ -1137,3 +1137,74 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
 
 因此本次文档更新不改变上表的 **17/19 尚未关闭、22 个剩余工作包**口径；只有在对应整项的全部关闭
 条件和权威证据满足后才减少计数。
+
+### 2026-08-11 已合并内部子门、scheduler 候选与 IDE 插件发布
+
+- **PR #142 与 PR #140 已进入 `main`。** PR
+  [#142](https://github.com/chainlesschain/chainlesschain/pull/142) 已于 2026-08-10 合并，merge commit 为
+  `e08a61530225e3371849e54f7cfb03efb8cf63a1`；因此其 durable host revocation、MCP send-time
+  admission、provider-backed semantic compaction、production GitHub delivery adapter 与 crash-safe
+  exact-effect runner 不再是“尚待合并”的仓库内候选。PR
+  [#140](https://github.com/chainlesschain/chainlesschain/pull/140) 也已通过 merge commit
+  `bb2f34ad905250fd5e8cde6c7d3fb0d4d8bd49ab` 进入 `main`，真实 materialized
+  Client→Broker→OS MCP capsule chain 的仓库内子门随之落地。两项合并均不关闭真实 GitHub
+  delivery live journey、外部 WORM 归档、远端即时撤权、macOS 原子 runtime exec/open、任意
+  native/shared-library 递归闭包或长期对抗矩阵。
+- **S0-3 durable microcompact canonical CAS 已形成可合并开放候选。** PR
+  [#146](https://github.com/chainlesschain/chainlesschain/pull/146) 的 implementation commit
+  `f19af7c794961eaaa08307eed0d5ca9e312d3e18` 将 microcompact checkpoint 持久化，并以 canonical
+  message revision/digest CAS 拒绝 stale settlement；checkpoint 去除运行时 marker，trace context 在
+  broker 边界继续传播。合并最新 `main` 后的 exact head
+  `6ab6e69f35b0b73676d948bd9f75abb730a3cbec` 已通过
+  [CLI CI `31462529252`](https://github.com/chainlesschain/chainlesschain/actions/runs/31462529252)、
+  [CLI Strict Sandbox `31462529148`](https://github.com/chainlesschain/chainlesschain/actions/runs/31462529148)、
+  [P0-S formal matrix `31462529163`](https://github.com/chainlesschain/chainlesschain/actions/runs/31462529163)、
+  [CLI Session Host Consistency `31462529135`](https://github.com/chainlesschain/chainlesschain/actions/runs/31462529135)
+  与 [CI Tests `31462529141`](https://github.com/chainlesschain/chainlesschain/actions/runs/31462529141)，
+  当前 merge state 为 `CLEAN`。PR #146 仍为开放状态，尚未进入 `main`；它只关闭 durable
+  microcompact 的内部候选子门，不能替代真实 provider 长会话、structured handoff/live trajectory 与
+  全宿主长期一致性验收。
+- **Open VSX `0.37.49` 已公开发布。** PR
+  [#147](https://github.com/chainlesschain/chainlesschain/pull/147) 以 merge commit
+  `2c76d288a266ee2bc0a6292629af9d6415d596d8` 进入 `main`。同一 exact SHA 的
+  [IDE Extensions `31448636327`](https://github.com/chainlesschain/chainlesschain/actions/runs/31448636327)
+  与 [IDE ARM64 Host Validation `31448636315`](https://github.com/chainlesschain/chainlesschain/actions/runs/31448636315)
+  均成功；不可变 tag `ide-vscode-v0.37.49` 触发
+  [发布 run `31450287978`](https://github.com/chainlesschain/chainlesschain/actions/runs/31450287978)，
+  Windows/macOS/Linux 的 stable + minimum `1.85.2`、不可变 VSIX 校验、Open VSX credential、publish
+  和 listing verify 全部成功。独立公开 API 回读确认 `0.37.49` 为 latest、listed 且可下载。
+- **JetBrains `0.4.85` 已公开发布。** 同一 exact SHA 的不可变 tag
+  `ide-jetbrains-v0.4.85` 触发
+  [发布 run `31458637231`](https://github.com/chainlesschain/chainlesschain/actions/runs/31458637231)：
+  `2024.2`/`2025.2` × Windows、macOS、Linux 六格真实宿主、smoke、JUnit、插件构建、结构与
+  Plugin Verifier 均成功，`publishPlugin` 上传成功。独立公开 API 回读确认 `0.4.85` 已
+  `approve=true`、`listed=true`、`hidden=false`。作者签名 secret 仍未配置，本次上传继续沿用现有
+  unsigned Marketplace 路径；公开 listed 不替代作者签名与签名包 fresh-profile 升降级/回滚子门。
+- 两个 IDE 版本说明均推荐配套 CLI `0.163.4`，并概述 immutable MCP capsule build inputs、
+  platform-bound live capsule evidence、durable revision-CAS scheduler storage foundation，以及从
+  `0.163.3` 延续的 background worktree isolation/fenced ownership。IDE 版本本身是维护发布，不宣称
+  新增 IDE UI 行为。
+- **Agenda wakeup/cron 已接入统一 scheduler kernel。** PR
+  [#152](https://github.com/chainlesschain/chainlesschain/pull/152) 的 exact head
+  `7ed345b36672bd5895af33c0a384727e23d132e2` 已通过
+  [CLI CI `31462505648`](https://github.com/chainlesschain/chainlesschain/actions/runs/31462505648) 与
+  [CLI Strict Sandbox `31462505731`](https://github.com/chainlesschain/chainlesschain/actions/runs/31462505731)，
+  并以 merge commit `fa80965ab37fb7231c7be448294cb34e5aa6a0c5` 进入 `main`。生产 `agenda run`
+  的 wakeup/cron 现使用版本化 snapshot/digest、expected-revision CAS、owner/fence、旧/新 driver
+  互斥和 durable execution evidence；成功后结算失败可恢复而不重复启动 Agent，start-only 或成功结果
+  未能落盘则按 outcome-unknown fail closed。该子门不包含 Agenda monitor、真实共享权限/预算 resolver、
+  IANA timezone/DST、standalone daemon、磁盘回滚或长期故障矩阵，因此 #13 与完整 scheduler 收敛仍为
+  **部分完成**。
+- **Automation cron scheduler 已形成新的开放候选。** PR
+  [#154](https://github.com/chainlesschain/chainlesschain/pull/154) 的 implementation commit
+  `15a641fa85` 将 active flow 的 cron 执行接入统一 scheduler kernel，并增加生产
+  `cc automation run-scheduled`：canonical flow snapshot/digest 与最小 `automation.execute` authority
+  绑定 logical occurrence；停机期间多个 missed run 收敛为一次；pause、定义变更和 authority tamper 在
+  connector 执行前拒绝；deterministic execution id 允许恢复已落盘成功，start-only 结果未知则拒绝自动
+  重放。当前本地扩大回归为 11 个文件 **285/285 passed**，目标 ESLint 0 error，Prettier、help-index、
+  Node syntax、`git diff --check` 与 993 项 npm dry-run pack 均通过。该 PR 尚未进入 `main`，且最终
+  exact-head GitHub Actions 尚待终态；它只形成 #13 的 Automation cron/runtime/history 内部候选，不关闭
+  trigger scope、needs-input 通知、真实权限/预算预检、完整 Automation Center UI 或 scheduler 长期矩阵。
+- 本更新仍不改变 **17/19 尚未关闭、22 个剩余工作包**计数。Microsoft Marketplace、JetBrains
+  作者签名、Remote/SSH/WSL/devcontainer/Codespaces/Gateway、网络故障矩阵、八小时 IDE soak 与真实
+  delivery live journey 继续按“外部阻塞／本期延后”处理；整体 product release 仍为 **NO-GO**。
