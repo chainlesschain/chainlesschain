@@ -96,6 +96,7 @@ describe("scheduler-kernel Cowork cron adapter", () => {
     expect(snapshot).toEqual({
       id: schedule.id,
       cron: schedule.cron,
+      missedRunPolicy: "collapse",
       templateId: "doc-convert",
       userMessage: "scheduled cowork",
       files: [],
@@ -158,6 +159,99 @@ describe("scheduler-kernel Cowork cron adapter", () => {
       activeDelivery: null,
       schedulerExecution: { status: "succeeded", attempt: 1 },
     });
+  });
+
+  it("binds an IANA zone and collapses downtime to one latest occurrence", async () => {
+    const f = fixture();
+    f.now = Date.parse("2026-08-10T13:00:00Z");
+    const schedule = f.add({
+      cron: "0 9 * * *",
+      timeZone: "America/New_York",
+    });
+    expect(buildCoworkCronSchedulerJob(f.cwd, schedule).trigger).toMatchObject({
+      timeZone: "America/New_York",
+      missedRunPolicy: "collapse",
+    });
+
+    f.now = Date.parse("2026-08-12T15:15:00Z");
+    const schedulerStore = f.openScheduler();
+    const runTask = vi.fn(async () => ({
+      taskId: "task-catch-up",
+      status: "completed",
+    }));
+    const bridge = new CoworkCronSchedulerBridge({
+      cwd: f.cwd,
+      schedulerStore,
+      runTask,
+      now: f.clock,
+      ownerId: "catch-up-owner",
+      leaseMs: 10_000,
+    });
+
+    const results = await bridge.runDue();
+    expect(results).toEqual([
+      expect.objectContaining({
+        result: expect.objectContaining({ status: "succeeded" }),
+      }),
+    ]);
+    expect(runTask).toHaveBeenCalledTimes(1);
+    expect(
+      schedulerStore.getOccurrence(results[0].occurrence).scheduledFor,
+    ).toBe(Date.parse("2026-08-12T13:00:00Z"));
+    expect(getSchedule(f.cwd, schedule.id).nextAt).toBe(
+      Date.parse("2026-08-13T13:00:00Z"),
+    );
+  });
+
+  it("executes both real fall-back instants with distinct occurrence identity", async () => {
+    const f = fixture();
+    f.now = Date.parse("2026-11-01T05:30:00Z");
+    f.add({
+      cron: "30 1 * * *",
+      timeZone: "America/New_York",
+    });
+    const schedulerStore = f.openScheduler();
+    const runTask = vi.fn(async () => ({
+      taskId: "task-dst",
+      status: "completed",
+    }));
+    const bridge = new CoworkCronSchedulerBridge({
+      cwd: f.cwd,
+      schedulerStore,
+      runTask,
+      now: f.clock,
+      ownerId: "dst-owner",
+      leaseMs: 10_000,
+    });
+
+    const first = await bridge.runDue();
+    f.now = Date.parse("2026-11-01T06:30:00Z");
+    const second = await bridge.runDue();
+    expect(runTask).toHaveBeenCalledTimes(2);
+    expect([
+      schedulerStore.getOccurrence(first[0].occurrence).scheduledFor,
+      schedulerStore.getOccurrence(second[0].occurrence).scheduledFor,
+    ]).toEqual([
+      Date.parse("2026-11-01T05:30:00Z"),
+      Date.parse("2026-11-01T06:30:00Z"),
+    ]);
+  });
+
+  it("does not treat an exhausted null cursor as an epoch-due occurrence", async () => {
+    const f = fixture();
+    const schedule = f.add({ cron: "0 0 29 2 *" });
+    saveSchedules(f.cwd, [{ ...schedule, nextAt: null }]);
+    const schedulerStore = f.openScheduler();
+    const runTask = vi.fn();
+    const bridge = new CoworkCronSchedulerBridge({
+      cwd: f.cwd,
+      schedulerStore,
+      runTask,
+      now: f.clock,
+      ownerId: "exhausted-owner",
+    });
+    await expect(bridge.runDue()).resolves.toEqual([]);
+    expect(runTask).not.toHaveBeenCalled();
   });
 
   it("keeps the foreground kernel scheduler alive until stop", async () => {
@@ -239,13 +333,7 @@ describe("scheduler-kernel Cowork cron adapter", () => {
         leaseMs: 1_000,
       }),
     ).toBeNull();
-    await expect(second.runDue()).resolves.toEqual([
-      expect.objectContaining({
-        schedule: schedule.id,
-        deduplicated: true,
-        result: expect.objectContaining({ status: "busy" }),
-      }),
-    ]);
+    await expect(second.runDue()).resolves.toEqual([]);
     release();
     await expect(running).resolves.toEqual([
       expect.objectContaining({

@@ -2,11 +2,11 @@
 
 > 分析日期：2026-08-01
 >
-> ChainlessChain 历史候选基线：`packages/cli` v0.162.194 release candidate；v0.162.190 / v0.162.191 / v0.162.192 未发布；v0.162.193 已被非权威通用 workflow 发布且不得视为门禁通过。当前收口基线见第 16.19 节：v0.163.4 已完成最终 merge SHA 的双门、Trusted Publishing、签名 provenance 与独立公网回读；v0.162.197 / v0.162.198 的历史闭环保留在第 16～17 节。
+> ChainlessChain 历史候选基线：`packages/cli` v0.162.194 release candidate；v0.162.190 / v0.162.191 / v0.162.192 未发布；v0.162.193 已被非权威通用 workflow 发布且不得视为门禁通过。当前代码/Git 核验基线为 `main@90f266efeeec38913587c9b92203315cedec6206`（2026-08-12，PR #173）；公网 npm `latest` 为 v0.163.5，其 release SHA 为 `095087c1e859a8451ce01ed58c59af3fede756fd`。v0.163.5 之后合并的增量不在该公开包中，当前收口和未完成项见第 18 节。
 >
 > Claude Code 参考基线：官方文档与 2.1.220 changelog（2026-07-25）
 >
-> 文档性质：现状审计、实施方案与持续进度记录；未标记“已完成”的项目仍是待办。第 14～15 节保留逐次历史证据，第 16 节是当前判定入口。
+> 文档性质：现状审计、实施方案与持续进度记录；未标记“已完成”的项目仍是待办。第 14～17 节保留逐次历史证据，第 18 节是当前判定入口。
 
 ## 历史实施进展（截至 2026-08-05 `0.162.194` 失败快照）
 
@@ -1342,6 +1342,36 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 - 独立公网 [readback `31514940240`](https://github.com/chainlesschain/chainlesschain/actions/runs/31514940240) 重新下载 npm tarball，验证签名 provenance、tag/SHA/发布 run 身份，并证明 registry 字节与 GitHub 不可变 artifact 完全一致。因此 **`0.163.5` 发布任务正式关闭**，可以从未完成发布任务中减去 1 项。
 - 该发布闭环不改变第 16.25 节的 P2-4 功能口径：原 15 项仍为 **8 项完成、7 项部分完成、0 项完全未开始，7 项未完全关闭**，剩余粗估仍为 **3～6 周（单工程师）/ 2～3.5 周（两人有效并行）**。下一步应继续一次只关闭一个 P2-4 子任务；不得因为版本已发布就把共享 permission/budget resolver、IANA timezone/DST/missed-run、standalone daemon/liveness、人工裁决、迁移/回滚、磁盘故障和三平台长期 soak 视为完成。
 
+### 16.27 2026-08-12 P2-4 统一 scheduler service 正式合并证据
+
+- [PR #161](https://github.com/chainlesschain/chainlesschain/pull/161) 的最终 head `0e7d016d48a413642fb4e465c4138118a4e03426` 已以 merge commit `08881ec573158745a7c4a1443082966167168520` 进入 `main`。它新增 `cc daemon scheduler run`，在一个前台常驻进程内托管 Agenda 与 Cowork：tick 串行执行、单域失败隔离为 degraded incident、内存只保留最近 100 份 summary，SIGINT/SIGTERM 会停止下一轮并在活动 tick 结算后关闭共享 scheduler store；`--domains`、有界轮询间隔、NDJSON lifecycle/heartbeat 和 `--once` 单轮执行均有命令级覆盖。
+- 最终 head 的 [CLI CI `31500072164`](https://github.com/chainlesschain/chainlesschain/actions/runs/31500072164) 完成并成功，包含 Linux、Windows、macOS 的 unit/integration/E2E shards、三平台 `verify-cli`、pack 与 publish dry-run；其余 PR checks 无失败。合并后又对同一不可变 head 手动执行 [CLI Strict Sandbox `31543095330`](https://github.com/chainlesschain/chainlesschain/actions/runs/31543095330)，Linux、macOS、Windows **3/3 success**，没有借用其他 SHA 或局部矩阵。
+- 因此“独立 scheduler service host + 事件型 liveness + 优雅关闭”子切片从候选更新为**正式已合并**。边界必须保留：`--once` 会真实执行一轮到期任务，不是无副作用的只读探针；常驻进程的健康判断应使用 supervisor 进程状态与 NDJSON heartbeat。仓库尚未为该命令提供开箱即用的 systemd/launchd/NSSM 安装单元，三平台 kill/restart、双实例、磁盘故障与长期 soak 也未因本次合并自动完成。
+- 为避免原 15 项粗粒度统计长期看似不动，从本节开始同时记录 P2-4 内部可执行子项：第 16.25 节列出的 **11 个剩余子项现降为 10 个**，已移除 standalone daemon/liveness；剩余依次为 Agenda monitor、Automation、Loop、Routine GitHub、真实共享 permission/budget resolver、IANA timezone/DST/missed-run、未知结果人工裁决、迁移/回滚、磁盘故障、三平台长期 soak。原 P0-1～P2-4 共 15 项统计仍为 **8 项完成、7 项部分完成、0 项完全未开始，7 项未完全关闭**，原因是 P2-4 在该粗粒度总表中只占 1 项，必须待上述 10 个子项全部退出才会从“部分完成”变为“完成”。扣除本次 service host 后，剩余粗估约为 **2.5～5.5 周（单工程师）/1.5～3 周（两人有效并行）**。
+- 本次只合并 scheduler service，不修改 CLI 版本、不创建 release tag、不发布 npm；公网 `0.163.5` 不包含该 merge commit。下一项继续从上述 10 个子项中只关闭一个。
+
+### 16.28 2026-08-12 P2-4 Agenda monitor、Loop 与 Automation adapter 正式合并证据
+
+- Agenda monitor 的 [PR #158](https://github.com/chainlesschain/chainlesschain/pull/158) 最终 head `81474931222e9f3f872d60fed9ef91c17311dbd3` 已以 merge commit `650154f8b4c045ae48ab68b88a9da7165b4af557` 进入 `main`。production command/file/HTTP monitor observation 已通过 `monitor.observe` authority、snapshot/occurrence binding、owner/fence 与 durable outcome evidence 进入统一 kernel；monitor re-arm/match 与 scheduler settlement 原子持久化，terminal evidence 可在进程崩溃后只补结算而不重复观察/通知，start-only outcome 继续 fail closed。该 exact head 的 [CLI CI `31474844368`](https://github.com/chainlesschain/chainlesschain/actions/runs/31474844368) 为 **53/53 success**，[CLI Strict Sandbox `31474844226`](https://github.com/chainlesschain/chainlesschain/actions/runs/31474844226) attempt 2 为三平台 **3/3 success**。
+- Loop 的 [PR #156](https://github.com/chainlesschain/chainlesschain/pull/156) 最终 head `0cf5716b15e58eeb8f10f8b977a22c2bcf43152e` 已以 merge commit `98c6831329b82850b407d6ec97c3ad6b5dd31570` 进入 `main`。production `cc loop` iteration 已使用 immutable execution snapshot、least-capability authority、saved-session deterministic occurrence、live-owner fencing、terminal recovery 与 outcome-unknown fail-close，同时保留动态 pacing、stop condition、SIGINT 和 save/resume 兼容行为。该 exact head 的 [CLI CI `31475518293`](https://github.com/chainlesschain/chainlesschain/actions/runs/31475518293) 为 **53/53 success**，[CLI Strict Sandbox `31475526493`](https://github.com/chainlesschain/chainlesschain/actions/runs/31475526493) 为三平台 **3/3 success**。
+- Automation 的 [PR #154](https://github.com/chainlesschain/chainlesschain/pull/154) 最终功能 head `930531a9868349d5a11ada5468a1b5abd12509ba` 已以 merge commit `af041852e6bf13be1604e44c277aabee37800bea` 进入 `main`。active cron flow 已通过 canonical snapshot digest、authority envelope、missed-run collapse、pause/stale-definition check、deterministic execution ID 与 durable recovery 进入统一 kernel，并新增 production `automation run-scheduled` route。该 head 的首轮 CLI CI 暴露的两平台失败不是 adapter 测试，而是发布后 canonical CHANGELOG 与内置 artifact 未同步；最小 [PR #167](https://github.com/chainlesschain/chainlesschain/pull/167) 只重新生成两条发布状态并以 merge commit `e23b7f3a351cbc3ff099cefe3c1a6716df0ee91a` 合入。最终 follow-up head `b609c30fb9bd1ce28f2e6a2dcdd3a092a9815f1e` 的 [CLI CI `31551868259`](https://github.com/chainlesschain/chainlesschain/actions/runs/31551868259) attempt 2 为 **53/53 success**，[CLI Strict Sandbox `31551894005`](https://github.com/chainlesschain/chainlesschain/actions/runs/31551894005) 为三平台 **3/3 success**。CLI CI attempt 1 唯一剩余失败是既有 `tenant-saas` 测试在等待 2ms 后两次 `Date.now()` 偶发相等；同 head 本地目标复验 1/1 成功，随后只重跑该失败 job并成功，没有修改 SHA 或把首轮失败冒充通过。
+- P2-4 内部剩余可执行子项由第 16.27 节的 **10 个降为 7 个**：Routine GitHub、真实共享 permission/budget resolver、IANA timezone/DST/missed-run、未知结果人工裁决、迁移/回滚、磁盘故障、三平台长期 soak。Agenda monitor、Loop、Automation 已从列表删除；原 P0-1～P2-4 共 15 项粗粒度总表仍为 **8 项完成、7 项部分完成、0 项完全未开始，7 项未完全关闭**，因为 P2-4 整项仍未满足全部退出条件。剩余粗估下调为约 **2～4.5 周（单工程师）/1.5～2.5 周（两人有效并行）**。
+- 本节三项合并均发生在 `0.163.5` 发布提交之后，当前公网包不包含这些增量；本节不修改 CLI 版本、不创建 tag，也不授权 npm 发布。下一项继续只关闭上述 7 个子项中的一个。
+
+### 16.29 2026-08-12 P2-4 Routine GitHub adapter 正式合并证据
+
+- [PR #157](https://github.com/chainlesschain/chainlesschain/pull/157) 的最终 head `6460e49b011720a3a233ffc7f0fd803bfe52e3c3` 已以 merge commit `cb354ef9c9744e7b60d837c077108750f7aae0a4` 进入 `main`。production Routine GitHub polling 已通过共享 scheduler kernel 执行：event batch 在 cursor 推进前持久化，以不可变 batch identity 去重；cursor/write 或进程崩溃后可恢复而不重复交付，repository rebinding 被拒绝，十进制 GitHub event cursor 保持单调。
+- 该 exact head 的 [CLI CI `31541236578`](https://github.com/chainlesschain/chainlesschain/actions/runs/31541236578) 为 **53/53 jobs success**，[CLI Strict Sandbox `31541236398`](https://github.com/chainlesschain/chainlesschain/actions/runs/31541236398) 为 Linux、macOS、Windows **3/3 success**；普通 PR checks 同样无失败。因此 Routine GitHub adapter 从“未关闭”更新为**正式已合并 P2-4 子切片**。
+- P2-4 内部剩余可执行子项由第 16.28 节的 **7 个降为 6 个**：真实共享 permission/budget resolver、IANA timezone/DST/missed-run、未知结果人工裁决、迁移/回滚、磁盘故障、三平台长期 soak。原 15 项粗粒度总表仍为 **8 项完成、7 项部分完成、0 项完全未开始，7 项未完全关闭**；剩余粗估约为 **1.5～4 周（单工程师）/1～2.5 周（两人有效并行）**。
+- 本次不修改 CLI 版本、不创建 release tag、不发布 npm；公网 `0.163.5` 不包含该 adapter。下一项只处理 IANA timezone/DST/missed-run。
+
+### 16.30 2026-08-12 P2-4 IANA timezone、DST 与 missed-run policy 正式合并证据
+
+- Agenda 的 [PR #159](https://github.com/chainlesschain/chainlesschain/pull/159) 最终 head `092b5c7719f89b20793803f6c2c3cba2702b0dec` 已以 merge commit `fda5212638f7e3d84c8317c7a96b17bbbe137629` 进入 `main`。Agenda cron 现在保存并校验 canonical IANA timezone，按指定 civil time 计算 occurrence，不再依赖宿主时区；覆盖春季 DST gap 跳过、秋季重复分钟产生两个不同真实 instant，以及跨午夜回退。该 exact head 的 [CLI CI `31545397036`](https://github.com/chainlesschain/chainlesschain/actions/runs/31545397036) 为 **53/53 success**，[CLI Strict Sandbox `31545396812`](https://github.com/chainlesschain/chainlesschain/actions/runs/31545396812) 为 Linux、macOS、Windows **3/3 success**。普通 CI 首轮唯一失败来自 PDH 测试随机 MD5 恰含 `:42`，其余 4508 项通过；同一 SHA 只重跑失败 job 后，[attempt 2 `31545396815`](https://github.com/chainlesschain/chainlesschain/actions/runs/31545396815) 成功，没有修改实现或把首轮失败冒充通过。
+- Cowork Cron 与统一 missed-run policy 的 [PR #173](https://github.com/chainlesschain/chainlesschain/pull/173) 最终 head `c0155a2d9116f8c46c22c90c82da7de3e7435f07` 已以 merge commit `90f266efeeec38913587c9b92203315cedec6206` 进入 `main`。`cowork cron add --timezone <iana>` 会持久化 canonical timezone；5/6 字段 cron 在指定 civil time 下求值并保留 POSIX DOM/DOW OR 语义，支持非整点偏移、春季缺失分钟和秋季重复分钟。durable `nextAt` 与固定 `missedRunPolicy="collapse"` 把停机期间多个到期点收敛为最新一个，enqueue 后再用 CAS 推进 cursor；旧记录迁移不会回放升级前历史，带 `lastRunAt` 的记录最多补一次，禁用窗口不会补跑，耗尽 cursor 保持 `null`。秋季重复 wall time 使用 epoch occurrence identity，因此两个真实 instant 各执行一次；host-local legacy key 仍保留混合版本兼容。
+- PR #173 exact head 的 [CLI CI `31562505163`](https://github.com/chainlesschain/chainlesschain/actions/runs/31562505163) 为 **53/53 jobs success**，[CLI Strict Sandbox `31562610018`](https://github.com/chainlesschain/chainlesschain/actions/runs/31562610018) 为三平台 **3/3 success**。本地最终扩展矩阵为 **44 files / 1213 tests passed**，聚焦矩阵为 **6 files / 179 passed**；manifest、help index、completions、CLI reference、Prettier、Node syntax、`git diff --check` 与 npm pack dry-run 均通过，目标 ESLint 为 0 errors（6 个既有 warnings）。branch protection 在完整 CLI CI 汇总前已自动合并 PR，故合并动作本身不被当作门禁；只有同一 head 后续取得上述 53/53 与 3/3 后，本节才将该子项更新为正式完成。
+- P2-4 内部剩余可执行子项由第 16.29 节的 **6 个降为 5 个**：真实共享 permission/budget resolver、未知结果人工裁决、完整迁移/回滚、磁盘故障、三平台长期 soak。Agenda/Cowork 的 timezone、DST 与 missed-run 语义已从列表删除；本次兼容 legacy Cowork cursor 只关闭该入口的无回放升级规则，不等于五类入口、多个 store 与 schema 的完整迁移/回滚已经完成。原 P0-1～P2-4 共 15 项粗粒度总表仍为 **8 项完成、7 项部分完成、0 项完全未开始，7 项未完全关闭**，因为 P2-4 整项仍是一个“部分完成”条目。剩余粗估下调为约 **1.25～3.5 周（单工程师）/0.75～2 周（两人有效并行）**；下一项继续只关闭上述 5 项中的一个，优先真实共享 permission/budget resolver。本节不修改版本、不创建 tag，也不授权 npm 发布。
+
 ## 17. 2026-08-06 `0.162.198` 发布闭环与继续执行边界
 
 `0.162.198` 是第 16 节之后的 CLI-only 补丁发布，纳入 P0-1 canonical session workbench、P0-2 rewind/branch 宿主绑定、P0-3 发布可靠性跟进，以及 REPL/headless/provider/TTY 输出背压和跨平台 release fixture 修复。它不改变第 16.8 节产品级未完成项的授权边界。
@@ -1355,3 +1385,67 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 | 独立公网逐字节回读          | **完成** | [readback `31082366544`](https://github.com/chainlesschain/chainlesschain/actions/runs/31082366544) 从 npm 重新下载 `chainlesschain@0.162.198`，验证签名 provenance、原发布 workflow/tag/SHA、不可变 artifact 与 registry tarball 字节一致。npm `latest` 已为 `0.162.198`；公开 tarball `sha1=0438e7ef25fbc089b0299a0a6d18a4a3f0d2cd25`，integrity 为 `sha512-TUL4ZYdl6rvZgwBN1J9QFwXo95r9KSER2lHiGKnbSG/SKwu/7iZw6vtaD9AYT2w2RdxuAvd2Sba1387ORA5DsA==`。 |
 
 因此 `0.162.198` 的 **CLI npm exact-SHA 子闭环为 GO**，并成为第 16.8(5) 项命令生命周期 observation window 的公开起点。该结论仍不授权第 16.8 节中的 cold-process formal scale、session anti-rollback/TOCTOU、真实恶意 Skill/MCP、native generation transaction、真实终端/磁盘/长期 soak、IDE Marketplace 或 Desktop/native 公开发行链；这些任务继续保持未完成，必须各自取得同范围的 exact-SHA 矩阵与 artifact。
+
+## 18. 2026-08-12 当前未完成任务与执行顺序
+
+本节是面向继续开发的**当前清单**，优先级高于第 14～17 节保留的历史阶段判定。本次核验基线为 `github/main@90f266efeeec38913587c9b92203315cedec6206`；公网 npm `latest` 仍为 `chainlesschain@0.163.5`，其 release SHA 为 `095087c1e859a8451ce01ed58c59af3fede756fd`。因此第 16.28～16.30 节记录的部分 scheduler 增量虽然已进入 `main`，但尚未包含在公网 `0.163.5` 中；本节只更新任务事实，不修改版本、不创建 tag，也不授权发布。
+
+### 18.1 三种统计口径
+
+| 口径 | 当前结论 | 说明 |
+| ---- | -------- | ---- |
+| 原始 P0-1～P2-4 共 15 项 | **8 完成、7 部分完成、0 完全未开始；7 项未完全关闭** | P2-4 虽已连续关闭多个子切片，在原始总表中仍只占一个“部分完成”条目。 |
+| 第 16.8 节六项产品任务 | **3 完成、3 未完成** | 任务 1、2、6 完成；任务 3、4、5 未完成。该专项清单没有覆盖全部原始 15 项。 |
+| P2-4 调度内核内部清单 | **5 个子项未完成** | timezone/DST/missed-run 已由 PR #159、#173 关闭；剩余项见第 18.3 节。 |
+
+### 18.2 原始 15 项中仍未完全关闭的 7 项
+
+| 原始项 | 当前状态 | 仍需完成的退出条件 |
+| ------ | -------- | ------------------ |
+| P0-3 exact-SHA 发布门与可信更新链 | **部分完成 / NO-GO** | CLI npm exact-SHA 子链已是 GO；native 仍需 updater Ed25519、Windows Authenticode、macOS Developer ID/notarization、Linux/Sigstore、签名后的 fresh install/upgrade/rollback、Homebrew/WinGet 实际发布与公开资产逐字节回读。 |
+| P1-1 命令面收敛 / Agent 默认入口 | **部分完成** | Agent 默认入口与核心帮助面已完成，但 25 个 compatibility alias 仍全部保留。只有取得代表性 Collector/cohort、三平台 reporting coverage、非零 accepted points 与逐命令 usage，并达到 `0.164.0` removal floor 后，才能作最终删除决策。 |
+| P1-2 后台 Agent 恢复、隔离与预算取消 | **部分完成** | PR #131 已关闭默认后台 worktree、显式 `--no-worktree` 和主要 supervisor fencing；仍缺 native spawn 返回到 PID commit 之间的 hard-kill 窗口、无可复验 PID 的 detached descendant、独立长期 keeper，以及针对该边界的 kill/restart/并发/清理长期矩阵。 |
+| P1-5 官方 native 发行物与回滚升级 | **部分完成 / NO-GO** | 六目标 unsigned validation 已完成，签名公开发行链仍未完成。该项与 P0-3 的 native 子范围重叠，属于同一个主要交付包，不应重复估算为两套独立工作。 |
+| P2-2 交互细节 | **部分完成** | suggestions、recap、外部编辑器、prompt stash、keybindings 与文本 clipboard 已覆盖；标准终端仍没有 production 系统剪贴板图片 `readImage` adapter，目前只有嵌入宿主 binding 与路径 fallback。 |
+| P2-3 MCP 可选协议面 | **部分完成 / 待产品决策** | resource templates、subscribe/unsubscribe、logging level 与 completion 已实现；仍缺生产调用方或基于代表性 server usage 的正式取舍报告，server sampling `createMessage` 仍明确不支持并返回 `-32601`。 |
+| P2-4 调度内核收敛 | **部分完成** | 仍有 5 个内部子项，见下一节。完成某个 adapter、UI 或 preflight 候选不能把整项改为完成。 |
+
+### 18.3 P2-4 剩余 5 个内部子项
+
+1. **真实共享 permission/budget resolver**：Agenda、Routine、Cowork、Automation、Loop 必须使用同一 authority、预算预留/结算与失败关闭语义，而不是只在单一入口增加 preflight。
+2. **未知结果人工裁决**：为 outcome-unknown 提供 durable、可审计、单调且不可误重放的人工 adjudication 流程。
+3. **完整迁移与回滚**：覆盖五类入口、多套 store/schema、混合版本兼容、幂等迁移、失败回滚和旧数据退场；PR #173 对 legacy Cowork cursor 的兼容只关闭了一个窄切片。
+4. **磁盘故障矩阵**：覆盖 ENOSPC、partial write、fsync/rename/SQLite 故障、损坏记录、重启恢复与 fail-closed 行为。
+5. **三平台长期 soak**：在 Linux、Windows、macOS 上验证 kill/restart、双实例 lease/fencing、DST 边界、积压恢复、FD/handle/orphan 退休与长期资源稳定性。
+
+按当前范围，P2-4 剩余粗估为 **1.25～3.5 周（单工程师）/0.75～2 周（两人有效并行）**。建议先关闭共享 permission/budget resolver，再做 outcome-unknown 人工裁决，随后完成迁移/回滚、磁盘故障和三平台长期 soak；每次只把已获得 exact-SHA CI/Strict Sandbox 与相应 artifact 的子项从清单删除。
+
+截至本次核验，以下开放 PR 仍是**候选代码**，不能计作 `main` 已完成证据。四个功能 PR 均以 feature branch 为 base，属于 stacked 变更而非直接进入 `main` 的独立闭环：
+
+| PR | 当前 head / base | 核验状态 | 与剩余清单的关系 |
+| -- | ---------------- | -------- | ---------------- |
+| [#166](https://github.com/chainlesschain/chainlesschain/pull/166) channel event dispatch | `1c902a7beb6da3eb07ee4cc62722edf9a0ba58ee` / `feature/cli-scheduler-automation-adapter-v1` | open / clean | 是后续事件触发切片，不单独关闭共享 resolver、迁移或 soak。 |
+| [#168](https://github.com/chainlesschain/chainlesschain/pull/168) Automation permission/budget preflight | `b790e1479823e179dd878d466f0dee423fcf10ee` / `feature/cli-trigger-dispatch-stacked-v1` | open / clean | 只覆盖 Automation 候选切片；在五类入口共享 resolver 与最终 exact-SHA 门完成前，P2-4 第 1 项仍未关闭。 |
+| [#169](https://github.com/chainlesschain/chainlesschain/pull/169) Automation Center | `43ae1109002959ed2fe92206d7a2bb804f96bfa7` / `feature/cli-automation-preflight-v1` | open / clean | 属于管理与可视化入口，不替代调度内核的安全、迁移和可靠性退出条件。 |
+| [#172](https://github.com/chainlesschain/chainlesschain/pull/172) Automation Center 中的 Routine 控制 | `64fdb75f6ecf30a562fc6bfc94ad4ea3f1602db9` / `feature/ide-automation-center-v1` | open / unstable | 属于 stacked UI/control 候选，不计为 `main` 功能证据。 |
+
+[PR #174](https://github.com/chainlesschain/chainlesschain/pull/174) 是 base `main`、head `0723e5382cc23a160419b45ec0f33eae0a2bb082` 的 docs-only 候选，核验时为 open / blocked；它只记录第 16.30 节的合并事实，不包含新的功能实现，也不能减少未完成任务。本地文档在该历史记录之上继续新增了本节当前清单。
+
+### 18.4 六项产品任务中仍未完成的 3 项
+
+| 产品任务 | 当前判定 | 下一关闭条件 |
+| -------- | -------- | ------------ |
+| 3. Skill/MCP 真实恶意矩阵 | **部分完成 / NO-GO** | 完成 macOS runtime `exec/open` 原子绑定、任意 native/shared-library 递归闭包、远端 revoke/distributed authority、受信 Node builtin 的最终跨平台隔离边界，并补齐对应三平台长期恶意证据。 |
+| 4. 签名 native 公开发行 | **NO-GO / 外部前置未满足** | 取得真实签名凭据与公开渠道后，在同一 exact SHA 上完成签名、fresh install、upgrade、rollback、渠道发布和公开字节回读；不得以 unsigned validation 或 npm provenance 代替。 |
+| 5. 命令 telemetry 与 alias 决策 | **操作决策完成，正式观察项 NO-GO** | 当前继续保留 25/25 alias；等待获批的代表性 Collector/cohort 数据、三平台 coverage、非零 accepted points、逐命令 usage 与 `0.164.0` removal floor。 |
+
+### 18.5 推荐执行顺序与总判定
+
+1. 先完成仓库内可独立推进的 P2-4 shared resolver 与 outcome-unknown adjudication。
+2. 随后关闭 P2-4 迁移/回滚、磁盘故障和三平台长期 soak。
+3. 并行推进 Skill/MCP 剩余平台安全边界；该项取得完整三平台恶意证据前保持 NO-GO。
+4. 签名 native 发行等待真实凭据/渠道，一旦前置到位即按 exact-SHA 六目标矩阵执行。
+5. telemetry 按真实 observation window 持续采集；在数据和 `0.164.0` floor 前不删除 alias。
+6. P2-2 clipboard image 与 P2-3 MCP 可选协议面可作为较小、相互独立的产品切片排期，但不能替代前述发布与安全门。
+
+当前总判定为：**公网 CLI npm `0.163.5` 的既有 exact-SHA 发布子链为 GO；完整 CLI 产品与 native 公开发行仍为 NO-GO**。`main@90f266efeeec38913587c9b92203315cedec6206` 上未发布增量及任何开放 PR 都必须重新通过其最终 exact SHA 的权威矩阵，不能沿用旧 SHA、局部本地测试或 superseded run 作为发布授权。

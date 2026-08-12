@@ -64,7 +64,12 @@ describe("routine command process Broker", () => {
       callback(
         null,
         JSON.stringify([
-          { id: "evt-1", type: "PushEvent", actor: { login: "ignored" } },
+          {
+            id: "evt-1",
+            type: "PushEvent",
+            created_at: "2026-08-11T03:00:00Z",
+            actor: { login: "ignored" },
+          },
         ]),
         "",
       );
@@ -72,7 +77,11 @@ describe("routine command process Broker", () => {
     });
 
     await expect(defaultFetchEvents("acme/widgets")).resolves.toEqual([
-      { id: "evt-1", type: "PushEvent" },
+      {
+        id: "evt-1",
+        type: "PushEvent",
+        created_at: "2026-08-11T03:00:00Z",
+      },
     ]);
     expect(_deps.execFile).toHaveBeenCalledWith(
       "gh",

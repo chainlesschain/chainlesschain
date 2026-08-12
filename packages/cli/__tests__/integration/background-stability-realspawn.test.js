@@ -39,6 +39,16 @@ import { loadBackgroundInteractionJournal } from "../../src/lib/background-inter
 let dir;
 let launchedIds;
 let previousHome;
+let previousNotifierEnv;
+const NOTIFIER_ENV_KEYS = [
+  "TELEGRAM_BOT_TOKEN",
+  "TELEGRAM_CHAT_ID",
+  "WECOM_WEBHOOK_URL",
+  "DINGTALK_WEBHOOK_URL",
+  "DINGTALK_SECRET",
+  "FEISHU_WEBHOOK_URL",
+  "FEISHU_SECRET",
+];
 
 function killTree(pid) {
   if (!Number.isInteger(Number(pid)) || Number(pid) <= 0) return;
@@ -75,6 +85,10 @@ beforeEach(() => {
   process.env.CC_BACKGROUND_AGENTS_DIR = dir;
   previousHome = process.env.CHAINLESSCHAIN_HOME;
   process.env.CHAINLESSCHAIN_HOME = join(dir, "home");
+  previousNotifierEnv = Object.fromEntries(
+    NOTIFIER_ENV_KEYS.map((key) => [key, process.env[key]]),
+  );
+  for (const key of NOTIFIER_ENV_KEYS) delete process.env[key];
   launchedIds = [];
 });
 
@@ -92,6 +106,10 @@ afterEach(async () => {
     delete process.env.CHAINLESSCHAIN_HOME;
   } else {
     process.env.CHAINLESSCHAIN_HOME = previousHome;
+  }
+  for (const key of NOTIFIER_ENV_KEYS) {
+    if (previousNotifierEnv[key] === undefined) delete process.env[key];
+    else process.env[key] = previousNotifierEnv[key];
   }
   for (let attempt = 0; attempt < 40; attempt++) {
     try {
@@ -364,6 +382,23 @@ describe("P0-2 same-turn question round-trip (real worker/child IPC)", () => {
         : null;
     });
     expect(disconnectedState).not.toBeNull();
+    const notifiedState = await pollUntil(() => {
+      const current = readBackgroundAgentState(state.id);
+      return current?.needsInputIncident?.requestId ===
+        firstRequest.requestId &&
+        current.needsInputIncident.notification?.status === "unconfigured"
+        ? current
+        : null;
+    });
+    expect(notifiedState?.needsInputIncident).toMatchObject({
+      runId: state.id,
+      requestId: firstRequest.requestId,
+      status: "needs_input",
+      notification: { status: "unconfigured", attempts: 1 },
+    });
+    expect(JSON.stringify(notifiedState.needsInputIncident)).not.toContain(
+      "Deploy to production?",
+    );
 
     let conn = null;
     const replayResponses = [];
@@ -422,6 +457,11 @@ describe("P0-2 same-turn question round-trip (real worker/child IPC)", () => {
       { timeoutMs: 60_000 },
     );
     expect(completed?.turnCount).toBe(1);
+    expect(completed?.needsInputIncident).toMatchObject({
+      requestId: firstRequest.requestId,
+      status: "resolved",
+      notification: { status: "unconfigured", attempts: 1 },
+    });
     expect(interactionEvents.length).toBeGreaterThanOrEqual(2);
     expect(replayRequest).not.toBeNull();
     for (const event of interactionEvents) {

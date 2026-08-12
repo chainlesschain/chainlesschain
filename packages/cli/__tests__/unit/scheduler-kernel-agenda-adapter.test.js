@@ -96,6 +96,68 @@ describe("scheduler-kernel agenda adapter", () => {
     expect(job.payload.snapshotDigest).toBe(agendaEntrySnapshotDigest(entry));
   });
 
+  it("binds an explicit cron time zone into the immutable job trigger", () => {
+    const f = fixture(Date.UTC(2026, 2, 2, 13, 30, 0));
+    const entry = f.openAgenda().createCron({
+      prompt: "New York standup",
+      cron: "0 9 * * 1-5",
+      timeZone: "America/New_York",
+    });
+    const job = buildAgendaSchedulerJob(entry);
+    expect(job.trigger).toEqual({
+      source: "agent-schedule-store",
+      scheduleKind: "cron",
+      expression: "0 9 * * 1-5",
+      timeZone: "America/New_York",
+    });
+    expect(job.payload.entry.timeZone).toBe("America/New_York");
+  });
+
+  it("rejects a tampered cron time zone before enqueue", () => {
+    const f = fixture(Date.UTC(2026, 2, 2, 13, 30, 0));
+    const entry = f.openAgenda().createCron({
+      prompt: "New York standup",
+      cron: "0 9 * * 1-5",
+      timeZone: "America/New_York",
+    });
+    expect(() =>
+      buildAgendaSchedulerJob({ ...entry, timeZone: "Mars/Olympus_Mons" }),
+    ).toThrow(
+      expect.objectContaining({ code: "AGENDA_SCHEDULER_CRON_INVALID" }),
+    );
+  });
+
+  it("advances an explicit time-zone cron across the repeated DST minute", async () => {
+    const f = fixture(Date.UTC(2026, 10, 1, 4, 0, 0));
+    const agendaStore = f.openAgenda();
+    const schedulerStore = f.openScheduler();
+    const entry = agendaStore.createCron({
+      prompt: "fall-back check",
+      cron: "30 1 * * *",
+      timeZone: "America/New_York",
+    });
+    expect(entry.nextAt).toBe(Date.UTC(2026, 10, 1, 5, 30, 0));
+    f.now = entry.nextAt;
+    const bridge = new AgendaSchedulerBridge({
+      agendaStore,
+      schedulerStore,
+      runAgent: vi.fn(async () => 0),
+      now: f.clock,
+      ownerId: "agenda-dst-owner",
+      leaseMs: 10_000,
+    });
+    await expect(bridge.runDue()).resolves.toEqual([
+      expect.objectContaining({
+        result: expect.objectContaining({ status: "succeeded" }),
+      }),
+    ]);
+    expect(agendaStore.get(entry.id)).toMatchObject({
+      runs: 1,
+      nextAt: Date.UTC(2026, 10, 1, 6, 30, 0),
+      timeZone: "America/New_York",
+    });
+  });
+
   it("runs a due wakeup through the kernel and preserves its run policy", async () => {
     const f = fixture();
     const agendaStore = f.openAgenda();

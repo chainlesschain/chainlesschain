@@ -861,6 +861,88 @@ export class SchedulerStore {
     });
   }
 
+  _enqueueOccurrence({ id, scheduled, key, available, payload, now }) {
+    const job = mapJob(this.statements.getJob.get(id));
+    if (!job) {
+      throw new SchedulerKernelError(
+        "SCHEDULER_NOT_FOUND",
+        `Scheduler job does not exist: ${id}`,
+      );
+    }
+    if (!job.enabled) {
+      throw new SchedulerKernelError(
+        "SCHEDULER_JOB_DISABLED",
+        `Scheduler job is disabled: ${id}`,
+      );
+    }
+    const identity = deriveOccurrenceIdentity({
+      jobId: id,
+      jobRevision: job.revision,
+      scheduledFor: scheduled,
+      triggerKey: key,
+    });
+    const payloadJson = canonicalJson(
+      payload === undefined ? job.payload : payload,
+      "occurrence.payload",
+    );
+    const result = this.db
+      .prepare(
+        `
+        INSERT INTO occurrences
+          (occurrence_id, job_id, job_revision, idempotency_key, trigger_key,
+           scheduled_for, available_at, status, attempt, max_attempts, fence,
+           lease_owner, lease_expires_at, authority_json, payload_json,
+           last_error_json, result_json, created_at, updated_at, settled_at)
+        VALUES
+          (@occurrenceId, @jobId, @jobRevision, @idempotencyKey, @triggerKey,
+           @scheduledFor, @availableAt, 'queued', 0, @maxAttempts, 0,
+           NULL, NULL, @authorityJson, @payloadJson,
+           NULL, NULL, @now, @now, NULL)
+        ON CONFLICT(idempotency_key) DO NOTHING
+      `,
+      )
+      .run({
+        ...identity,
+        jobId: id,
+        jobRevision: job.revision,
+        triggerKey: key,
+        scheduledFor: scheduled,
+        availableAt: available,
+        maxAttempts: job.maxAttempts,
+        authorityJson: canonicalJson(job.authority, "occurrence.authority"),
+        payloadJson,
+        now,
+      });
+    const row = this.statements.getOccurrenceByKey.get(identity.idempotencyKey);
+    if (!row || row.occurrence_id !== identity.occurrenceId) {
+      throw schemaError(
+        "SCHEDULER_DATA_CORRUPT",
+        "Occurrence idempotency identity does not match stored data",
+      );
+    }
+    if (row.payload_json !== payloadJson) {
+      throw new SchedulerKernelError(
+        "SCHEDULER_IDEMPOTENCY_PAYLOAD_MISMATCH",
+        "Occurrence idempotency identity was reused with a different payload",
+        { jobId: id, triggerKey: key },
+      );
+    }
+    if (result.changes === 1) {
+      this._appendEvent({
+        jobId: id,
+        occurrenceId: identity.occurrenceId,
+        type: "occurrence_enqueued",
+        occurredAt: now,
+        data: {
+          jobRevision: job.revision,
+          scheduledFor: scheduled,
+          triggerKey: key,
+        },
+      });
+    }
+    return { ...mapOccurrence(row), deduplicated: result.changes === 0 };
+  }
+
   enqueueOccurrence({
     jobId,
     scheduledFor,
@@ -873,88 +955,42 @@ export class SchedulerStore {
     const key = normalizeIdentifier(triggerKey, "triggerKey");
     const available = normalizeEpochMs(availableAt ?? scheduled, "availableAt");
     const now = this._now();
+    return this._write(() =>
+      this._enqueueOccurrence({ id, scheduled, key, available, payload, now }),
+    );
+  }
+
+  enqueueOccurrenceOncePerTrigger({
+    jobId,
+    scheduledFor,
+    triggerKey,
+    availableAt,
+    payload,
+  } = {}) {
+    const id = normalizeIdentifier(jobId, "jobId");
+    const scheduled = normalizeEpochMs(scheduledFor, "scheduledFor");
+    const key = normalizeIdentifier(triggerKey, "triggerKey");
+    const available = normalizeEpochMs(availableAt ?? scheduled, "availableAt");
+    const now = this._now();
     return this._write(() => {
-      const job = mapJob(this.statements.getJob.get(id));
-      if (!job) {
-        throw new SchedulerKernelError(
-          "SCHEDULER_NOT_FOUND",
-          `Scheduler job does not exist: ${id}`,
-        );
-      }
-      if (!job.enabled) {
-        throw new SchedulerKernelError(
-          "SCHEDULER_JOB_DISABLED",
-          `Scheduler job is disabled: ${id}`,
-        );
-      }
-      const identity = deriveOccurrenceIdentity({
-        jobId: id,
-        jobRevision: job.revision,
-        scheduledFor: scheduled,
-        triggerKey: key,
-      });
-      const payloadJson = canonicalJson(
-        payload === undefined ? job.payload : payload,
-        "occurrence.payload",
-      );
-      const result = this.db
-        .prepare(
-          `
-          INSERT INTO occurrences
-            (occurrence_id, job_id, job_revision, idempotency_key, trigger_key,
-             scheduled_for, available_at, status, attempt, max_attempts, fence,
-             lease_owner, lease_expires_at, authority_json, payload_json,
-             last_error_json, result_json, created_at, updated_at, settled_at)
-          VALUES
-            (@occurrenceId, @jobId, @jobRevision, @idempotencyKey, @triggerKey,
-             @scheduledFor, @availableAt, 'queued', 0, @maxAttempts, 0,
-             NULL, NULL, @authorityJson, @payloadJson,
-             NULL, NULL, @now, @now, NULL)
-          ON CONFLICT(idempotency_key) DO NOTHING
-        `,
-        )
-        .run({
-          ...identity,
-          jobId: id,
-          jobRevision: job.revision,
-          triggerKey: key,
-          scheduledFor: scheduled,
-          availableAt: available,
-          maxAttempts: job.maxAttempts,
-          authorityJson: canonicalJson(job.authority, "occurrence.authority"),
-          payloadJson,
-          now,
-        });
-      const row = this.statements.getOccurrenceByKey.get(
-        identity.idempotencyKey,
-      );
-      if (!row || row.occurrence_id !== identity.occurrenceId) {
+      const prior = this.statements.listOccurrencesByTrigger.all(id, key, 2);
+      if (prior.length > 1) {
         throw schemaError(
           "SCHEDULER_DATA_CORRUPT",
-          "Occurrence idempotency identity does not match stored data",
+          "Multiple occurrences exist for a unique job trigger",
         );
       }
-      if (row.payload_json !== payloadJson) {
-        throw new SchedulerKernelError(
-          "SCHEDULER_IDEMPOTENCY_PAYLOAD_MISMATCH",
-          "Occurrence idempotency identity was reused with a different payload",
-          { jobId: id, triggerKey: key },
-        );
+      if (prior.length === 1) {
+        return { ...mapOccurrence(prior[0]), deduplicated: true };
       }
-      if (result.changes === 1) {
-        this._appendEvent({
-          jobId: id,
-          occurrenceId: identity.occurrenceId,
-          type: "occurrence_enqueued",
-          occurredAt: now,
-          data: {
-            jobRevision: job.revision,
-            scheduledFor: scheduled,
-            triggerKey: key,
-          },
-        });
-      }
-      return { ...mapOccurrence(row), deduplicated: result.changes === 0 };
+      return this._enqueueOccurrence({
+        id,
+        scheduled,
+        key,
+        available,
+        payload,
+        now,
+      });
     });
   }
 

@@ -75,4 +75,12 @@ describe("E2E: cowork command", () => {
       expect(result).toContain("--json");
     });
   });
+
+  describe("cowork cron add --help", () => {
+    it("documents the IANA timezone option", () => {
+      const result = run("cowork cron add --help");
+      expect(result).toContain("--timezone <iana>");
+      expect(result).toContain("IANA time zone");
+    });
+  });
 });

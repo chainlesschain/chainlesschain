@@ -262,6 +262,20 @@ describe("scheduler-kernel automation channel event adapter", () => {
     await expect(
       dispatcher.dispatch({ ...event, text: "different content" }),
     ).rejects.toMatchObject({ code: "AUTOMATION_EVENT_ID_COLLISION" });
+    await expect(
+      dispatcher.dispatch({
+        ...event,
+        text: "different content and timestamp",
+        producedAt: event.producedAt + 1,
+      }),
+    ).rejects.toMatchObject({ code: "AUTOMATION_EVENT_ID_COLLISION" });
+    expect(
+      f.schedulerStore.listOccurrencesByTrigger({
+        jobId: f.schedulerStore.getOccurrence(first.results[0].occurrenceId)
+          .jobId,
+        triggerKey: automationEventTriggerKey(event),
+      }),
+    ).toHaveLength(1);
   });
 
   it("fails closed when the trigger definition changes after enqueue", async () => {
