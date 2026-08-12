@@ -9,6 +9,8 @@ import com.intellij.util.ui.JBUI;
 import java.awt.Font;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
+import javax.swing.JSpinner;
+import javax.swing.SpinnerNumberModel;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.Nullable;
 
@@ -26,6 +28,13 @@ public final class CcConfigurable implements Configurable {
     private JBCheckBox contextIndicatorBox;
     private JBCheckBox leanContextBox;
     private JBCheckBox managedCliBox;
+    private JBCheckBox automaticCompletionBox;
+    private JSpinner automaticDebounceSpinner;
+    private JSpinner automaticRequestsSpinner;
+    private JSpinner automaticContextCharsSpinner;
+    private JSpinner automaticCacheTtlSpinner;
+    private JSpinner automaticMaxCharsSpinner;
+    private JSpinner automaticMaxLinesSpinner;
     private JPanel panel;
 
     @Override
@@ -39,6 +48,14 @@ public final class CcConfigurable implements Configurable {
         contextIndicatorBox = new JBCheckBox(CcBundle.message("settings.contextIndicator.label"));
         leanContextBox = new JBCheckBox(CcBundle.message("settings.leanContext.label"));
         managedCliBox = new JBCheckBox(CcBundle.message("settings.managedCli.label"));
+        automaticCompletionBox = new JBCheckBox(
+                CcBundle.message("settings.completion.automatic.label"));
+        automaticDebounceSpinner = spinner(650, 100, 3000);
+        automaticRequestsSpinner = spinner(60, 1, 10000);
+        automaticContextCharsSpinner = spinner(240_000, 1000, 10_000_000);
+        automaticCacheTtlSpinner = spinner(30_000, 1000, 300_000);
+        automaticMaxCharsSpinner = spinner(800, 32, 2000);
+        automaticMaxLinesSpinner = spinner(12, 1, 100);
 
         JBLabel hint = new JBLabel(CcBundle.message("settings.ccPath.hint"));
         hint.setForeground(JBUI.CurrentTheme.ContextHelp.FOREGROUND);
@@ -51,6 +68,26 @@ public final class CcConfigurable implements Configurable {
                 .addComponent(contextIndicatorBox, 1)
                 .addComponent(leanContextBox, 1)
                 .addComponent(managedCliBox, 1)
+                .addComponent(automaticCompletionBox, 1)
+                .addLabeledComponent(
+                        CcBundle.message("settings.completion.debounce.label"),
+                        automaticDebounceSpinner)
+                .addLabeledComponent(
+                        CcBundle.message("settings.completion.requests.label"),
+                        automaticRequestsSpinner)
+                .addLabeledComponent(
+                        CcBundle.message("settings.completion.contextChars.label"),
+                        automaticContextCharsSpinner)
+                .addLabeledComponent(
+                        CcBundle.message("settings.completion.cacheTtl.label"),
+                        automaticCacheTtlSpinner)
+                .addLabeledComponent(
+                        CcBundle.message("settings.completion.maxChars.label"),
+                        automaticMaxCharsSpinner)
+                .addLabeledComponent(
+                        CcBundle.message("settings.completion.maxLines.label"),
+                        automaticMaxLinesSpinner)
+                .addComponent(new JBLabel(CcBundle.message("settings.completion.slo.label")), 1)
                 .addComponentFillVertically(new JPanel(), 0)
                 .getPanel();
         return panel;
@@ -62,7 +99,14 @@ public final class CcConfigurable implements Configurable {
         return !ccPathField.getText().trim().equals(s.getCcPath())
                 || contextIndicatorBox.isSelected() != s.isContextIndicatorEnabled()
                 || leanContextBox.isSelected() != s.isLeanContextEnabled()
-                || managedCliBox.isSelected() != s.isManagedCliEnabled();
+                || managedCliBox.isSelected() != s.isManagedCliEnabled()
+                || automaticCompletionBox.isSelected() != s.isAutomaticCompletionEnabled()
+                || spinnerValue(automaticDebounceSpinner) != s.getState().automaticCompletionDebounceMs
+                || spinnerValue(automaticRequestsSpinner) != s.getState().automaticCompletionMaxRequestsPerHour
+                || spinnerValue(automaticContextCharsSpinner) != s.getState().automaticCompletionMaxContextCharsPerHour
+                || spinnerValue(automaticCacheTtlSpinner) != s.getState().automaticCompletionCacheTtlMs
+                || spinnerValue(automaticMaxCharsSpinner) != s.getState().automaticCompletionMaxChars
+                || spinnerValue(automaticMaxLinesSpinner) != s.getState().automaticCompletionMaxLines;
     }
 
     @Override
@@ -72,6 +116,14 @@ public final class CcConfigurable implements Configurable {
         s.setContextIndicatorEnabled(contextIndicatorBox.isSelected());
         s.setLeanContextEnabled(leanContextBox.isSelected());
         s.setManagedCliEnabled(managedCliBox.isSelected());
+        s.setAutomaticCompletionEnabled(automaticCompletionBox.isSelected());
+        s.setAutomaticCompletionOptions(
+                spinnerValue(automaticDebounceSpinner),
+                spinnerValue(automaticRequestsSpinner),
+                spinnerValue(automaticContextCharsSpinner),
+                spinnerValue(automaticCacheTtlSpinner),
+                spinnerValue(automaticMaxCharsSpinner),
+                spinnerValue(automaticMaxLinesSpinner));
     }
 
     @Override
@@ -81,6 +133,13 @@ public final class CcConfigurable implements Configurable {
         contextIndicatorBox.setSelected(s.isContextIndicatorEnabled());
         leanContextBox.setSelected(s.isLeanContextEnabled());
         managedCliBox.setSelected(s.isManagedCliEnabled());
+        automaticCompletionBox.setSelected(s.isAutomaticCompletionEnabled());
+        automaticDebounceSpinner.setValue(s.getState().automaticCompletionDebounceMs);
+        automaticRequestsSpinner.setValue(s.getState().automaticCompletionMaxRequestsPerHour);
+        automaticContextCharsSpinner.setValue(s.getState().automaticCompletionMaxContextCharsPerHour);
+        automaticCacheTtlSpinner.setValue(s.getState().automaticCompletionCacheTtlMs);
+        automaticMaxCharsSpinner.setValue(s.getState().automaticCompletionMaxChars);
+        automaticMaxLinesSpinner.setValue(s.getState().automaticCompletionMaxLines);
     }
 
     @Override
@@ -90,5 +149,20 @@ public final class CcConfigurable implements Configurable {
         contextIndicatorBox = null;
         leanContextBox = null;
         managedCliBox = null;
+        automaticCompletionBox = null;
+        automaticDebounceSpinner = null;
+        automaticRequestsSpinner = null;
+        automaticContextCharsSpinner = null;
+        automaticCacheTtlSpinner = null;
+        automaticMaxCharsSpinner = null;
+        automaticMaxLinesSpinner = null;
+    }
+
+    private static JSpinner spinner(int value, int min, int max) {
+        return new JSpinner(new SpinnerNumberModel(value, min, max, 1));
+    }
+
+    private static int spinnerValue(JSpinner spinner) {
+        return ((Number) spinner.getValue()).intValue();
     }
 }

@@ -2,7 +2,7 @@
   "name": "chainlesschain-ide",
   "displayName": "ChainlessChain IDE Bridge",
   "description": "Bridges the ChainlessChain `cc` agent CLI to VS Code: exposes the active selection, diagnostics, open editors, and native diff review as MCP tools the agent can call.",
-  "version": "0.37.50",
+  "version": "0.37.51",
   "publisher": "chainlesschain",
   "license": "MIT",
   "icon": "media/logo.png",
@@ -567,6 +567,53 @@
           "type": "boolean",
           "default": true,
           "description": "%config.completion.enabled.description%"
+        },
+        "chainlesschain.completion.automatic.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "%config.completion.automatic.enabled.description%"
+        },
+        "chainlesschain.completion.automatic.debounceMs": {
+          "type": "number",
+          "default": 650,
+          "minimum": 100,
+          "maximum": 3000,
+          "description": "%config.completion.automatic.debounceMs.description%"
+        },
+        "chainlesschain.completion.automatic.maxRequestsPerHour": {
+          "type": "number",
+          "default": 60,
+          "minimum": 1,
+          "maximum": 10000,
+          "description": "%config.completion.automatic.maxRequestsPerHour.description%"
+        },
+        "chainlesschain.completion.automatic.maxContextCharsPerHour": {
+          "type": "number",
+          "default": 240000,
+          "minimum": 1000,
+          "maximum": 10000000,
+          "description": "%config.completion.automatic.maxContextCharsPerHour.description%"
+        },
+        "chainlesschain.completion.automatic.cacheTtlMs": {
+          "type": "number",
+          "default": 30000,
+          "minimum": 1000,
+          "maximum": 300000,
+          "description": "%config.completion.automatic.cacheTtlMs.description%"
+        },
+        "chainlesschain.completion.automatic.maxCompletionChars": {
+          "type": "number",
+          "default": 800,
+          "minimum": 32,
+          "maximum": 2000,
+          "description": "%config.completion.automatic.maxCompletionChars.description%"
+        },
+        "chainlesschain.completion.automatic.maxCompletionLines": {
+          "type": "number",
+          "default": 12,
+          "minimum": 1,
+          "maximum": 100,
+          "description": "%config.completion.automatic.maxCompletionLines.description%"
         },
         "chainlesschain.remote.relayUrl": {
           "type": "string",

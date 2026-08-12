@@ -8,7 +8,7 @@ coordination, and a localhost IDE bridge.
 
 | Component                 | Current status                                                        |
 | ------------------------- | --------------------------------------------------------------------- |
-| VS Code extension         | **0.37.50** source/package version; Open VSX publication is tag-gated |
+| VS Code extension         | **0.37.51** source/package version; Open VSX publication is tag-gated |
 | Recommended CLI           | **`chainlesschain@0.163.5`** (fully gated stable release)             |
 | Base bridge compatibility | `cc >= 0.162.47`; newer features can require a newer CLI              |
 | Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors                   |
@@ -17,13 +17,13 @@ coordination, and a localhost IDE bridge.
 The recommended CLI `0.163.5` adds the unified durable scheduler runtime,
 Routine/Agenda/Cowork migration, snapshot-bound authorization, owner/fence
 claims, bounded retry, dead-letter settlement, crash recovery, and durable
-compaction. The 0.37.50 extension also introduces the Automation Center UI.
+compaction. The extension also includes the Automation Center UI.
 Those new Automation/Routine controls require a subsequent CLI release that
 contains the governed commands; `0.163.5` predates them and remains fully
 supported for the existing chat and IDE bridge surfaces.
 
 The immutable release tag
-[`ide-vscode-v0.37.50`](https://github.com/chainlesschain/chainlesschain/releases/tag/ide-vscode-v0.37.50)
+[`ide-vscode-v0.37.51`](https://github.com/chainlesschain/chainlesschain/releases/tag/ide-vscode-v0.37.51)
 is the release authority for this version. Before tagging, the exact release
 commit must pass the native ARM64 aggregate. The tag workflow then validates
 the packaged VSIX in stable and minimum VS Code hosts on Windows, Linux, and
@@ -42,6 +42,10 @@ immutable extension version is packaged, gated, and published.
   activity, use multiple conversation tabs, paste images, mention files or
   symbols, and copy, insert, replace, explain, refactor, fix, document, or test
   code without leaving the editor.
+- **Governed ghost-text completion** — keep Alt+\\ manual completion, or opt
+  into automatic suggestions with debounce, cancellation, exact-context
+  dedupe/cache, independent hourly request/context budgets, bounded local
+  context, quality fallback, and a P50 <= 2 s / P95 <= 5 s visible-latency SLO.
 - **Plan and permission review** — inspect or revise plans before execution,
   answer structured MCP elicitation forms, and approve or deny risky actions in
   explicit UI cards.
@@ -121,6 +125,13 @@ stream an answer, then copy, insert, or replace generated code. Dedicated
 commands also cover Explain, Refactor, Fix, Generate Documentation, and
 Generate Tests.
 
+Press **Alt+\\** for an explicit ghost-text request. Automatic ghost text is
+independently opt-in and off by default. When enabled, continued typing cancels
+pending work, identical contexts are deduplicated and cached, hourly request
+and context-character budgets are enforced separately from manual completion,
+and low-quality or slower-than-5-second results fail quiet. Rolling metrics
+evaluate the published P50 <= 2 s and P95 <= 5 s SLO after 20 samples.
+
 ### Review edits and plans
 
 File writes that require review open an editor-native diff. Accept the complete
@@ -173,17 +184,19 @@ Common Command Palette entries include:
 
 Important settings:
 
-| Setting                                      | Purpose                                    |
-| -------------------------------------------- | ------------------------------------------ |
-| `chainlesschain.ide.enabled`                 | Enable the localhost IDE bridge            |
-| `chainlesschain.cli.path`                    | Select a custom `cc` executable            |
-| `chainlesschain.cli.managed.enabled`         | Enable managed CLI lifecycle support       |
-| `chainlesschain.chat.provider` / `.model`    | Override the CLI's default chat model      |
-| `chainlesschain.chat.contextIndicator`       | Show context-window usage                  |
-| `chainlesschain.chat.leanContext`            | Reduce automatically attached chat context |
-| `chainlesschain.codeLens.enabled`            | Show Explain and Refactor CodeLens actions |
-| `chainlesschain.completion.enabled`          | Enable manual ghost-text completion        |
-| `chainlesschain.remote.relayUrl` / `.peerId` | Configure remote-control discovery         |
+| Setting                                       | Purpose                                    |
+| --------------------------------------------- | ------------------------------------------ |
+| `chainlesschain.ide.enabled`                  | Enable the localhost IDE bridge            |
+| `chainlesschain.cli.path`                     | Select a custom `cc` executable            |
+| `chainlesschain.cli.managed.enabled`          | Enable managed CLI lifecycle support       |
+| `chainlesschain.chat.provider` / `.model`     | Override the CLI's default chat model      |
+| `chainlesschain.chat.contextIndicator`        | Show context-window usage                  |
+| `chainlesschain.chat.leanContext`             | Reduce automatically attached chat context |
+| `chainlesschain.codeLens.enabled`             | Show Explain and Refactor CodeLens actions |
+| `chainlesschain.completion.enabled`           | Enable manual ghost-text completion        |
+| `chainlesschain.completion.automatic.enabled` | Opt into governed automatic ghost text     |
+| `chainlesschain.completion.automatic.*`       | Tune debounce, cache, budget and quality   |
+| `chainlesschain.remote.relayUrl` / `.peerId`  | Configure remote-control discovery         |
 
 The generated capability contract at the end of this README is the exhaustive
 command list and is checked against `package.json`, runtime registration, the

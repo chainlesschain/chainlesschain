@@ -1,5 +1,15 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.87] - Governed automatic ghost text (2026-08-12)
+
+- Add default-off governed automatic ghost text while preserving Alt+\\ manual
+  completion. Automatic requests debounce and cancel on continued typing,
+  deduplicate/cache exact contexts, use independent hourly request and context
+  budgets, bound local context/output, and fail quiet on low-quality results.
+- Record rolling P50/P95 latency evidence against a P50 <= 2 s / P95 <= 5 s
+  SLO after 20 samples. Automatic backend calls stop at five seconds so stale
+  results never appear; manual completion keeps its existing 12-second bound.
+
 ## [0.4.86] - Governed Automation Center (2026-08-12)
 
 - Add the native Automation Center backed by CLI-owned, versioned projections,
