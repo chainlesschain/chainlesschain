@@ -1,11 +1,14 @@
 import { createHash, randomUUID } from "node:crypto";
 import { resolve } from "node:path";
 import {
+  advanceScheduleNextAt,
   bindSchedulerScheduleFire,
   completeSchedulerScheduleFire,
   coworkCronFireKey,
+  ensureScheduleNextAt,
   getSchedule,
   hasSecondsResolution,
+  latestCoworkCronTime,
   loadSchedules,
   parseCron,
 } from "../cowork-cron.js";
@@ -90,7 +93,7 @@ export function coworkCronScheduleSnapshot(schedule) {
     );
   }
   try {
-    parseCron(schedule.cron);
+    parseCron(schedule.cron, { timeZone: schedule.timeZone });
   } catch (cause) {
     throw coworkCronError(
       "COWORK_CRON_SNAPSHOT_INVALID",
@@ -125,9 +128,13 @@ export function coworkCronScheduleSnapshot(schedule) {
       `Cowork cron files are invalid: ${id}`,
     );
   }
+  const timeZone =
+    parseCron(schedule.cron, { timeZone: schedule.timeZone }).timeZone || null;
   return {
     id,
     cron: schedule.cron.trim(),
+    ...(timeZone ? { timeZone } : {}),
+    missedRunPolicy: "collapse",
     templateId,
     userMessage: schedule.userMessage,
     files,
@@ -174,6 +181,8 @@ export function buildCoworkCronSchedulerJob(cwd, schedule) {
       source: "cowork-schedules-jsonl",
       expression: snapshot.cron,
       resolution: hasSecondsResolution(snapshot.cron) ? "second" : "minute",
+      ...(snapshot.timeZone ? { timeZone: snapshot.timeZone } : {}),
+      missedRunPolicy: snapshot.missedRunPolicy,
     },
     payload: {
       cwd: workspace,
@@ -255,7 +264,7 @@ export function coworkCronScheduledFor(schedule, at) {
       "Cowork cron fire time is invalid",
     );
   }
-  const matcher = parseCron(schedule.cron);
+  const matcher = parseCron(schedule.cron, { timeZone: schedule.timeZone });
   if (!matcher(date)) {
     throw coworkCronError(
       "COWORK_CRON_NOT_DUE",
@@ -629,23 +638,46 @@ export class CoworkCronSchedulerBridge {
       );
     }
     const schedules = loadSchedules(this.cwd, { failOnMalformed: true });
-    for (const schedule of schedules) {
+    for (const loadedSchedule of schedules) {
+      let schedule = loadedSchedule;
       if (schedule.enabled !== true) continue;
-      let matches = false;
-      try {
-        matches = parseCron(schedule.cron)(date);
-      } catch {
+      if (!Number.isSafeInteger(Number(schedule.nextAt))) {
+        schedule = ensureScheduleNextAt(this.cwd, schedule.id, date);
+      }
+      if (schedule?.nextAt === null) continue;
+      const scheduledFor = schedule?.nextAt;
+      if (
+        typeof scheduledFor !== "number" ||
+        !Number.isSafeInteger(scheduledFor) ||
+        scheduledFor > date.getTime()
+      ) {
         continue;
       }
-      if (!matches) continue;
-      const deliveryId = coworkCronFireKey(schedule, date);
-      if (schedule.lastDeliveryId === deliveryId) continue;
+      const collapsedFor = latestCoworkCronTime(
+        schedule.cron,
+        scheduledFor,
+        date.getTime(),
+        { timeZone: schedule.timeZone },
+      );
+      const scheduledDate = new Date(collapsedFor);
+      const deliveryId = coworkCronFireKey(schedule, scheduledDate);
+      if (schedule.lastDeliveryId === deliveryId) {
+        advanceScheduleNextAt(this.cwd, schedule.id, {
+          expectedNextAt: scheduledFor,
+          from: date,
+        });
+        continue;
+      }
       const occurrence = enqueueCoworkCronSchedule(
         this.schedulerStore,
         this.cwd,
         schedule,
-        date,
+        scheduledDate,
       );
+      advanceScheduleNextAt(this.cwd, schedule.id, {
+        expectedNextAt: scheduledFor,
+        from: scheduledDate,
+      });
       if (observed.has(occurrence.id)) continue;
       const result = await this.runtime.runOccurrence(occurrence.id, {
         signal,

@@ -6,6 +6,7 @@ import {
   AgentScheduleStore,
   parseCron,
   nextCronTime,
+  previousCronTime,
   normalizeTimeZone,
   normalizeRunPolicy,
 } from "../../src/lib/agent-schedule-store.js";
@@ -85,6 +86,18 @@ describe("nextCronTime", () => {
     });
     expect(first).toBe(Date.UTC(2026, 10, 1, 5, 30, 0)); // 01:30 EDT
     expect(second).toBe(Date.UTC(2026, 10, 1, 6, 30, 0)); // 01:30 EST
+  });
+
+  it("finds repeated fall-back instants in reverse real-time order", () => {
+    const afterBoth = Date.UTC(2026, 10, 1, 7, 0, 0);
+    const second = previousCronTime("30 1 * * *", afterBoth, {
+      timeZone: "America/New_York",
+    });
+    const first = previousCronTime("30 1 * * *", second, {
+      timeZone: "America/New_York",
+    });
+    expect(second).toBe(Date.UTC(2026, 10, 1, 6, 30, 0));
+    expect(first).toBe(Date.UTC(2026, 10, 1, 5, 30, 0));
   });
 
   it("handles a fall-back transition that repeats the prior civil day", () => {

@@ -475,7 +475,7 @@ export function registerCoworkCommand(program) {
       for (const s of schedules) {
         const flag = s.enabled ? chalk.green("✓") : chalk.gray("✗");
         logger.log(
-          `  ${flag} ${chalk.cyan(s.id)}  ${chalk.yellow(s.cron)}  [${s.templateId || "free"}]`,
+          `  ${flag} ${chalk.cyan(s.id)}  ${chalk.yellow(s.cron)}${s.timeZone ? ` [${s.timeZone}]` : ""}  [${s.templateId || "free"}]`,
         );
         logger.log(chalk.gray(`    ${s.userMessage.slice(0, 80)}`));
         if (s.lastRunAt) {
@@ -495,6 +495,7 @@ export function registerCoworkCommand(program) {
       "5-field cron expression (e.g. '0 9 * * 1-5')",
     )
     .requiredOption("--message <text>", "Task prompt / user message")
+    .option("--timezone <iana>", "IANA time zone (for example Asia/Shanghai)")
     .option(
       "--template <id>",
       "Template id (e.g. doc-convert); omit for free mode",
@@ -505,6 +506,7 @@ export function registerCoworkCommand(program) {
       try {
         const entry = addSchedule(process.cwd(), {
           cron: options.cron,
+          timeZone: options.timezone || null,
           templateId: options.template || null,
           userMessage: options.message,
           files: options.files
@@ -516,6 +518,9 @@ export function registerCoworkCommand(program) {
         });
         logger.log(chalk.green(`✓ Added schedule ${entry.id}`));
         logger.log(chalk.gray(`  cron: ${entry.cron}`));
+        if (entry.timeZone) {
+          logger.log(chalk.gray(`  timezone: ${entry.timeZone}`));
+        }
         logger.log(chalk.gray(`  template: ${entry.templateId || "free"}`));
       } catch (err) {
         logger.error(err.message);

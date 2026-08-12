@@ -39,6 +39,11 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
+import {
+  nextCronTime as nextAgentCronTime,
+  normalizeTimeZone,
+  previousCronTime as previousAgentCronTime,
+} from "./agent-schedule-store.js";
 import { withFileLock } from "./with-file-lock.js";
 
 export const _deps = {
@@ -91,6 +96,56 @@ const FIELD_RANGES = [
 ];
 
 const SECOND_RANGE = [0, 59];
+const CRON_TIME_ZONE_FORMATTERS = new Map();
+
+function timeZoneFormatter(timeZone) {
+  let formatter = CRON_TIME_ZONE_FORMATTERS.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en-US-u-ca-gregory-nu-latn", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    });
+    CRON_TIME_ZONE_FORMATTERS.set(timeZone, formatter);
+  }
+  return formatter;
+}
+
+function timeZoneParts(epochMs, timeZone) {
+  const values = {};
+  for (const part of timeZoneFormatter(timeZone).formatToParts(epochMs)) {
+    if (part.type !== "literal") values[part.type] = Number(part.value);
+  }
+  return {
+    year: values.year,
+    month: values.month,
+    day: values.day,
+    hour: values.hour,
+    minute: values.minute,
+    second: values.second,
+    dayOfWeek: new Date(
+      Date.UTC(values.year, values.month - 1, values.day),
+    ).getUTCDay(),
+  };
+}
+
+function cronDateParts(date, timeZone) {
+  if (timeZone) return timeZoneParts(date.getTime(), timeZone);
+  return {
+    year: date.getFullYear(),
+    month: date.getMonth() + 1,
+    day: date.getDate(),
+    hour: date.getHours(),
+    minute: date.getMinutes(),
+    second: date.getSeconds(),
+    dayOfWeek: date.getDay(),
+  };
+}
 
 /**
  * Non-standard alias → 5-field expression. Aliases never carry seconds.
@@ -182,7 +237,7 @@ export function parseCronField(field, [min, max]) {
  * @param {string} expr
  * @returns {((date: Date) => boolean) & { hasSeconds: boolean }}
  */
-export function parseCron(expr) {
+export function parseCron(expr, options = {}) {
   if (typeof expr !== "string") {
     throw new Error("cron expression must be a string");
   }
@@ -194,6 +249,9 @@ export function parseCron(expr) {
     );
   }
   const hasSeconds = parts.length === 6;
+  const timeZone = normalizeTimeZone(
+    typeof options === "string" ? options : options?.timeZone,
+  );
   let second = null;
   let minute, hour, dom, month, dow;
   if (hasSeconds) {
@@ -214,12 +272,15 @@ export function parseCron(expr) {
   const dowRestricted = dowField !== "*";
 
   function matches(date) {
-    const s = date.getSeconds();
-    const m = date.getMinutes();
-    const h = date.getHours();
-    const D = date.getDate();
-    const M = date.getMonth() + 1; // JS month is 0-based
-    const W = date.getDay();
+    const value = date instanceof Date ? date : new Date(date);
+    if (!Number.isFinite(value.getTime())) return false;
+    const civil = cronDateParts(value, timeZone);
+    const s = civil.second;
+    const m = civil.minute;
+    const h = civil.hour;
+    const D = civil.day;
+    const M = civil.month;
+    const W = civil.dayOfWeek;
     if (hasSeconds && !second.has(s)) return false;
     if (!minute.has(m)) return false;
     if (!hour.has(h)) return false;
@@ -233,6 +294,10 @@ export function parseCron(expr) {
     return true;
   }
   matches.hasSeconds = hasSeconds;
+  matches.timeZone = timeZone;
+  matches.fields = { second, minute, hour, dom, month, dow };
+  matches.domRestricted = domRestricted;
+  matches.dowRestricted = dowRestricted;
   return matches;
 }
 
@@ -246,13 +311,151 @@ export function hasSecondsResolution(expr) {
 }
 
 /** Validate a cron expression — returns null if valid, error string otherwise. */
-export function validateCron(expr) {
+export function validateCron(expr, options = {}) {
   try {
-    parseCron(expr);
+    parseCron(expr, options);
     return null;
   } catch (err) {
     return err.message;
   }
+}
+
+/** Return the next real instant for a Cowork 5/6-field cron. */
+export function nextCoworkCronTime(expr, fromMs, options = {}) {
+  const matcher = parseCron(expr, options);
+  const from = Number(fromMs);
+  if (!Number.isFinite(from)) throw new Error("cron start time is invalid");
+  const expanded = _expandExpr(expr);
+  const parts = expanded.split(/\s+/);
+  const minuteFields = matcher.hasSeconds ? parts.slice(1) : parts;
+  const minuteExpressions =
+    matcher.domRestricted && matcher.dowRestricted
+      ? [
+          [
+            minuteFields[0],
+            minuteFields[1],
+            minuteFields[2],
+            minuteFields[3],
+            "*",
+          ].join(" "),
+          [
+            minuteFields[0],
+            minuteFields[1],
+            "*",
+            minuteFields[3],
+            minuteFields[4],
+          ].join(" "),
+        ]
+      : [minuteFields.join(" ")];
+  const nextMinute = (after) => {
+    const candidates = minuteExpressions
+      .map((candidate) =>
+        nextAgentCronTime(candidate, after, { timeZone: matcher.timeZone }),
+      )
+      .filter((candidate) => candidate !== null);
+    return candidates.length > 0 ? Math.min(...candidates) : null;
+  };
+  if (!matcher.hasSeconds) return nextMinute(from);
+
+  const seconds = [...matcher.fields.second].sort((a, b) => a - b);
+  let minute = nextMinute(Math.floor(from / 60_000) * 60_000 - 60_000);
+  while (minute !== null) {
+    for (const second of seconds) {
+      const candidate = minute + second * 1_000;
+      if (candidate > from) return candidate;
+    }
+    minute = nextMinute(minute);
+  }
+  return null;
+}
+
+/**
+ * Select the latest due instant in `[firstMs, throughMs]`. Six-field schedules
+ * advance by matching civil minutes, not every elapsed second, so a long
+ * outage cannot turn an every-second schedule into millions of iterations.
+ */
+export function latestCoworkCronTime(expr, firstMs, throughMs, options = {}) {
+  const first = Number(firstMs);
+  const through = Number(throughMs);
+  if (!Number.isSafeInteger(first) || !Number.isSafeInteger(through)) {
+    throw new Error("cron catch-up bounds are invalid");
+  }
+  if (first > through) return null;
+  const matcher = parseCron(expr, options);
+  const seconds = matcher.hasSeconds
+    ? [...matcher.fields.second].sort((a, b) => b - a)
+    : [0];
+  const expanded = _expandExpr(expr);
+  const fields = expanded.split(/\s+/);
+  const minuteFields = matcher.hasSeconds ? fields.slice(1) : fields;
+  const minuteExpressions =
+    matcher.domRestricted && matcher.dowRestricted
+      ? [
+          [
+            minuteFields[0],
+            minuteFields[1],
+            minuteFields[2],
+            minuteFields[3],
+            "*",
+          ].join(" "),
+          [
+            minuteFields[0],
+            minuteFields[1],
+            "*",
+            minuteFields[3],
+            minuteFields[4],
+          ].join(" "),
+        ]
+      : [minuteFields.join(" ")];
+
+  const throughMinute = Math.floor(through / 60_000) * 60_000;
+  for (const second of seconds) {
+    const candidate = throughMinute + second * 1_000;
+    if (
+      candidate >= first &&
+      candidate <= through &&
+      matcher(new Date(candidate))
+    ) {
+      return candidate;
+    }
+  }
+
+  const previousMinute = Math.max(
+    ...minuteExpressions
+      .map((candidate) =>
+        previousAgentCronTime(candidate, throughMinute, {
+          timeZone: matcher.timeZone,
+        }),
+      )
+      .filter((candidate) => candidate !== null),
+  );
+  if (Number.isFinite(previousMinute)) {
+    for (const second of seconds) {
+      const candidate = previousMinute + second * 1_000;
+      if (candidate >= first && candidate <= through) return candidate;
+    }
+  }
+  return first;
+}
+
+function currentCoworkCronTime(schedule, at) {
+  const date = normalizedDate(at, "cowork cron observation time");
+  const matcher = parseCron(schedule.cron, { timeZone: schedule.timeZone });
+  if (!matcher(date)) return null;
+  const resolution = matcher.hasSeconds ? 1_000 : 60_000;
+  return Math.floor(date.getTime() / resolution) * resolution;
+}
+
+function initialCoworkCronNextAt(schedule, at) {
+  const current = currentCoworkCronTime(schedule, at);
+  if (current !== null) return current;
+  return nextCoworkCronTime(
+    schedule.cron,
+    normalizedDate(at, "now").getTime(),
+    {
+      timeZone: schedule.timeZone,
+    },
+  );
 }
 
 // ─── Persistence ─────────────────────────────────────────────────────────────
@@ -326,12 +529,20 @@ export function saveSchedules(cwd, schedules) {
 // ─── CRUD ────────────────────────────────────────────────────────────────────
 
 export function addSchedule(cwd, input) {
-  const { cron, templateId = null, userMessage, files = [] } = input || {};
+  const {
+    cron,
+    timeZone = null,
+    templateId = null,
+    userMessage,
+    files = [],
+  } = input || {};
   if (!userMessage || typeof userMessage !== "string") {
     throw new Error("userMessage is required");
   }
-  const err = validateCron(cron);
+  const normalizedTimeZone = normalizeTimeZone(timeZone);
+  const err = validateCron(cron, { timeZone: normalizedTimeZone });
   if (err) throw new Error(`invalid cron: ${err}`);
+  const createdAt = _deps.now();
 
   // Serialize the read-modify-write across processes (cc+cc / cc+desktop share
   // the cowork dir) so concurrently-added schedules don't clobber each other.
@@ -340,17 +551,90 @@ export function addSchedule(cwd, input) {
     const entry = {
       id: `sch-${crypto.randomUUID().slice(0, 12)}`,
       cron: cron.trim(),
+      ...(normalizedTimeZone ? { timeZone: normalizedTimeZone } : {}),
       templateId,
       userMessage,
       files: Array.isArray(files) ? files : [],
       enabled: true,
-      createdAt: _deps.now().toISOString(),
+      createdAt: createdAt.toISOString(),
+      nextAt: initialCoworkCronNextAt(
+        { cron: cron.trim(), timeZone: normalizedTimeZone },
+        createdAt,
+      ),
+      missedRunPolicy: "collapse",
       lastRunAt: null,
       lastStatus: null,
     };
     schedules.push(entry);
     _saveSchedulesUnlocked(cwd, schedules);
     return entry;
+  });
+}
+
+/**
+ * Upgrade a legacy schedule to durable next-fire state. Upgrade never replays
+ * pre-upgrade history: a matching current window is retained, otherwise the
+ * first future occurrence becomes authoritative.
+ */
+export function ensureScheduleNextAt(cwd, id, at = _deps.now()) {
+  return _withScheduleLock(cwd, () => {
+    const schedules = loadSchedules(cwd, { failOnMalformed: true });
+    const schedule = schedules.find((entry) => entry.id === id);
+    if (!schedule) return null;
+    if (Object.hasOwn(schedule, "nextAt")) {
+      if (
+        schedule.nextAt === null ||
+        (typeof schedule.nextAt === "number" &&
+          Number.isSafeInteger(schedule.nextAt) &&
+          schedule.nextAt >= 0)
+      ) {
+        return schedule;
+      }
+      throw coworkSchedulerError(
+        "COWORK_SCHEDULER_CURSOR_INVALID",
+        `Cowork schedule nextAt is invalid: ${id}`,
+      );
+    }
+    const lastRunAt = Date.parse(schedule.lastRunAt || "");
+    const observedAt = normalizedDate(at, "cowork cron migration time");
+    schedule.nextAt = Number.isSafeInteger(lastRunAt)
+      ? nextCoworkCronTime(schedule.cron, lastRunAt, {
+          timeZone: schedule.timeZone,
+        })
+      : initialCoworkCronNextAt(schedule, observedAt);
+    schedule.missedRunPolicy = "collapse";
+    _saveSchedulesUnlocked(cwd, schedules);
+    return schedule;
+  });
+}
+
+/**
+ * CAS-advance one due schedule beyond `from`, collapsing any number of missed
+ * periods to the single occurrence that was just durably enqueued.
+ */
+export function advanceScheduleNextAt(
+  cwd,
+  id,
+  { expectedNextAt, from = _deps.now() } = {},
+) {
+  return _withScheduleLock(cwd, () => {
+    const schedules = loadSchedules(cwd, { failOnMalformed: true });
+    const schedule = schedules.find((entry) => entry.id === id);
+    if (!schedule) return null;
+    if (
+      typeof schedule.nextAt !== "number" ||
+      schedule.nextAt !== Number(expectedNextAt)
+    ) {
+      return schedule;
+    }
+    schedule.nextAt = nextCoworkCronTime(
+      schedule.cron,
+      normalizedDate(from, "cowork cron advance time").getTime(),
+      { timeZone: schedule.timeZone },
+    );
+    schedule.missedRunPolicy = "collapse";
+    _saveSchedulesUnlocked(cwd, schedules);
+    return schedule;
   });
 }
 
@@ -370,7 +654,12 @@ export function setScheduleEnabled(cwd, id, enabled) {
     const schedules = loadSchedules(cwd, { failOnMalformed: true });
     const s = schedules.find((x) => x.id === id);
     if (!s) return false;
-    s.enabled = !!enabled;
+    const nextEnabled = !!enabled;
+    if (nextEnabled && !s.enabled) {
+      s.nextAt = initialCoworkCronNextAt(s, _deps.now());
+      s.missedRunPolicy = "collapse";
+    }
+    s.enabled = nextEnabled;
     _saveSchedulesUnlocked(cwd, schedules);
     return true;
   });
@@ -769,7 +1058,7 @@ export class CoworkCronScheduler {
       if (!s.enabled) continue;
       let matcher;
       try {
-        matcher = parseCron(s.cron);
+        matcher = parseCron(s.cron, { timeZone: s.timeZone });
       } catch (err) {
         this._emit({ type: "invalid-cron", id: s.id, error: err.message });
         continue;
@@ -938,10 +1227,19 @@ export function coworkCronSecondKey(date) {
 }
 
 export function coworkCronFireKey(schedule, date) {
-  const matcher = parseCron(schedule.cron);
-  return `${schedule.id}:${
-    matcher.hasSeconds ? coworkCronSecondKey(date) : coworkCronMinuteKey(date)
-  }`;
+  const matcher = parseCron(schedule.cron, { timeZone: schedule.timeZone });
+  // Keep the old host-local key while old and new CLIs may share this store.
+  // Zoned schedules need epoch identity so repeated DST wall times stay distinct.
+  if (!matcher.timeZone) {
+    const wallKey = matcher.hasSeconds
+      ? coworkCronSecondKey(date)
+      : coworkCronMinuteKey(date);
+    return `${schedule.id}:${wallKey}`;
+  }
+  const epoch = matcher.hasSeconds
+    ? Math.floor(date.getTime() / 1_000) * 1_000
+    : Math.floor(date.getTime() / 60_000) * 60_000;
+  return `${schedule.id}:${epoch}`;
 }
 
 // =====================================================================
