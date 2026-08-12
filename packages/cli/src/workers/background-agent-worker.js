@@ -19,6 +19,7 @@ import {
   DEFAULT_HEARTBEAT_STALE_MS,
   backgroundAgentsDir,
   claimBackgroundAgentHeartbeat,
+  deliverBackgroundNeedsInputNotification,
   insertArgumentsBeforeOptionTerminator,
   mutateBackgroundAgentState,
   openBackgroundLogFile,
@@ -40,6 +41,10 @@ import {
   shouldRetryOwnedProcessTreeTermination,
   terminateOwnedProcessTree,
 } from "../lib/process-tree-termination.js";
+import {
+  closeNeedsInputIncident,
+  createNeedsInputIncident,
+} from "../lib/background-needs-input-incident.js";
 
 const jobFile = process.argv[2];
 let job;
@@ -84,13 +89,21 @@ function persistInteractionSettlement(requestId, binding, outcome) {
   );
 }
 
-function mergeState(patch) {
+function mutateWorkerState(updater) {
   return mutateBackgroundAgentState(job.id, (current) => {
     if (!current || current.status !== "running" || current.stopRequestedAt) {
       return null;
     }
-    return { ...current, id: job.id, ...patch };
-  }).state;
+    return updater(current);
+  });
+}
+
+function mergeState(patch) {
+  return mutateWorkerState((current) => ({
+    ...current,
+    id: job.id,
+    ...patch,
+  })).state;
 }
 
 function writeHeartbeat() {
@@ -569,35 +582,85 @@ function startTurn(argv, promptText) {
         }),
       );
       phase = "needs_input";
-      mergeState({
-        phase,
-        pendingQuestion: {
-          intId: requestId,
-          requestId,
-          prompt: payload.prompt || payload.question,
-          hint: payload.hint,
-          options: payload.options,
-          multiSelect: payload.multiSelect,
-          timeoutMs: payload.timeoutMs,
-          askedAt: Date.now(),
-          binding: msg.binding,
-        },
+      const pendingQuestion = {
+        intId: requestId,
+        requestId,
+        prompt: payload.prompt || payload.question,
+        hint: payload.hint,
+        options: payload.options,
+        multiSelect: payload.multiSelect,
+        timeoutMs: payload.timeoutMs,
+        askedAt: Date.now(),
+        binding: msg.binding,
+      };
+      const candidateIncident = createNeedsInputIncident({
+        runId: job.id,
+        sessionId: job.sessionId || null,
+        requestId,
+        now: pendingQuestion.askedAt,
       });
+      let activeIncident = candidateIncident;
+      const questionMutation = mutateWorkerState((current) => {
+        if (
+          current.needsInputIncident?.incidentId ===
+          candidateIncident.incidentId
+        ) {
+          activeIncident = current.needsInputIncident;
+        }
+        return {
+          ...current,
+          id: job.id,
+          phase,
+          pendingQuestion,
+          needsInputIncident: activeIncident,
+        };
+      });
+      if (
+        questionMutation.applied &&
+        activeIncident.notification?.status === "pending"
+      ) {
+        void deliverBackgroundNeedsInputNotification(job.id).catch((error) => {
+          try {
+            writeSync(
+              2,
+              `[background-agent] needs-input notification failed: ${String(error?.message || error).slice(0, 500)}\n`,
+            );
+          } catch {
+            // The durable incident remains visible even if stderr is closed.
+          }
+        });
+      }
 
       return new Promise((resolve, reject) => {
         let settled = false;
-        const cleanup = () => {
+        const cleanup = (incidentStatus = "resolved") => {
           if (settled) return false;
           settled = true;
           pendingInteractions.delete(requestId);
-          const current = readBackgroundAgentState(job.id);
-          if (
-            current?.pendingQuestion?.requestId === requestId ||
-            current?.pendingQuestion?.intId === requestId
-          ) {
-            phase = "turn";
-            mergeState({ phase, pendingQuestion: null });
-          }
+          let releasedQuestion = false;
+          const cleanupMutation = mutateWorkerState((current) => {
+            const ownsQuestion =
+              current.pendingQuestion?.requestId === requestId ||
+              current.pendingQuestion?.intId === requestId;
+            const ownsIncident =
+              current.needsInputIncident?.requestId === requestId;
+            if (!ownsQuestion && !ownsIncident) return null;
+            releasedQuestion = ownsQuestion;
+            return {
+              ...current,
+              id: job.id,
+              ...(ownsQuestion ? { phase: "turn", pendingQuestion: null } : {}),
+              ...(ownsIncident
+                ? {
+                    needsInputIncident: closeNeedsInputIncident(
+                      current.needsInputIncident,
+                      { status: incidentStatus, now: Date.now() },
+                    ),
+                  }
+                : {}),
+            };
+          });
+          if (cleanupMutation.applied && releasedQuestion) phase = "turn";
           signal?.removeEventListener?.("abort", onAbort);
           return true;
         };
@@ -614,7 +677,7 @@ function startTurn(argv, promptText) {
           } catch (error) {
             rejection = error;
           }
-          if (!cleanup()) return;
+          if (!cleanup("cancelled")) return;
           if (!rejection) {
             rejection = new Error("Background interaction was cancelled");
             rejection.code = "INTERACTION_CANCELLED";
@@ -625,11 +688,11 @@ function startTurn(argv, promptText) {
           payload,
           binding: msg.binding,
           deliverResolved(answer) {
-            if (!cleanup()) return;
+            if (!cleanup("resolved")) return;
             resolve(answer);
           },
           deliverRejected(error) {
-            if (!cleanup()) return;
+            if (!cleanup("cancelled")) return;
             reject(error);
           },
         };

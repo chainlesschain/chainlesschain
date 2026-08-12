@@ -6,6 +6,8 @@ import {
   AgentScheduleStore,
   parseCron,
   nextCronTime,
+  previousCronTime,
+  normalizeTimeZone,
   normalizeRunPolicy,
 } from "../../src/lib/agent-schedule-store.js";
 import { jitterOffsetMs } from "../../src/lib/schedule-planner.js";
@@ -41,6 +43,79 @@ describe("nextCronTime", () => {
     const from = new Date(2026, 2, 2, 9, 30, 0).getTime(); // Monday 09:30
     const next = new Date(nextCronTime("0 9 * * 1", from));
     expect(next.getDate()).toBe(9); // next Monday
+  });
+
+  it("evaluates an explicit IANA time zone independently of the host", () => {
+    const from = Date.UTC(2026, 2, 2, 13, 30, 0); // Monday 08:30 New York
+    expect(
+      nextCronTime("0 9 * * 1", from, { timeZone: "America/New_York" }),
+    ).toBe(Date.UTC(2026, 2, 2, 14, 0, 0));
+  });
+
+  it("supports a non-hour IANA offset", () => {
+    const from = Date.UTC(2026, 2, 2, 3, 0, 0); // Monday 08:45 Kathmandu
+    expect(
+      nextCronTime("0 9 * * 1", from, { timeZone: "Asia/Kathmandu" }),
+    ).toBe(Date.UTC(2026, 2, 2, 3, 15, 0));
+  });
+
+  it("bounds a sparse time-zone schedule with no match in the next year", () => {
+    expect(
+      nextCronTime("0 0 29 2 *", Date.UTC(2025, 2, 1), {
+        timeZone: "America/New_York",
+      }),
+    ).toBeNull();
+  });
+
+  it("skips a nonexistent spring-forward wall minute", () => {
+    const beforeGap = Date.UTC(2026, 2, 8, 6, 59, 0); // 01:59 EST
+    expect(
+      nextCronTime("30 2 * * *", beforeGap, {
+        timeZone: "America/New_York",
+      }),
+    ).toBe(Date.UTC(2026, 2, 9, 6, 30, 0)); // next day's 02:30 EDT
+  });
+
+  it("represents both real instants of a fall-back wall minute", () => {
+    const beforeFirst = Date.UTC(2026, 10, 1, 4, 0, 0);
+    const first = nextCronTime("30 1 * * *", beforeFirst, {
+      timeZone: "America/New_York",
+    });
+    const second = nextCronTime("30 1 * * *", first, {
+      timeZone: "America/New_York",
+    });
+    expect(first).toBe(Date.UTC(2026, 10, 1, 5, 30, 0)); // 01:30 EDT
+    expect(second).toBe(Date.UTC(2026, 10, 1, 6, 30, 0)); // 01:30 EST
+  });
+
+  it("finds repeated fall-back instants in reverse real-time order", () => {
+    const afterBoth = Date.UTC(2026, 10, 1, 7, 0, 0);
+    const second = previousCronTime("30 1 * * *", afterBoth, {
+      timeZone: "America/New_York",
+    });
+    const first = previousCronTime("30 1 * * *", second, {
+      timeZone: "America/New_York",
+    });
+    expect(second).toBe(Date.UTC(2026, 10, 1, 6, 30, 0));
+    expect(first).toBe(Date.UTC(2026, 10, 1, 5, 30, 0));
+  });
+
+  it("handles a fall-back transition that repeats the prior civil day", () => {
+    const beforeFirst = Date.UTC(2026, 3, 5, 1, 0, 0);
+    const first = nextCronTime("30 23 4 4 *", beforeFirst, {
+      timeZone: "America/Santiago",
+    });
+    const second = nextCronTime("30 23 4 4 *", first, {
+      timeZone: "America/Santiago",
+    });
+    expect(first).toBe(Date.UTC(2026, 3, 5, 2, 30, 0));
+    expect(second).toBe(Date.UTC(2026, 3, 5, 3, 30, 0));
+  });
+
+  it("rejects an invalid IANA time zone", () => {
+    expect(() => normalizeTimeZone("Mars/Olympus_Mons")).toThrow(
+      /invalid IANA time zone/,
+    );
   });
 });
 
@@ -96,6 +171,33 @@ describe("AgentScheduleStore", () => {
     const advanced = store.advanceCron(entry.id, firstNext + 60000);
     expect(advanced.nextAt).toBeGreaterThan(firstNext);
     expect(advanced.runs).toBe(1);
+  });
+
+  it("persists a cron time zone and uses it for every advance", () => {
+    clock = Date.UTC(2026, 2, 2, 13, 30, 0);
+    const entry = store.createCron({
+      prompt: "New York standup",
+      cron: "0 9 * * 1-5",
+      timeZone: "America/New_York",
+    });
+    expect(entry).toMatchObject({
+      timeZone: "America/New_York",
+      nextAt: Date.UTC(2026, 2, 2, 14, 0, 0),
+    });
+    const advanced = store.advanceCron(entry.id, entry.nextAt);
+    expect(advanced.nextAt).toBe(Date.UTC(2026, 2, 3, 14, 0, 0));
+    expect(store.get(entry.id).timeZone).toBe("America/New_York");
+  });
+
+  it("refuses to persist an invalid cron time zone", () => {
+    expect(() =>
+      store.createCron({
+        prompt: "bad zone",
+        cron: "0 9 * * *",
+        timeZone: "Mars/Olympus_Mons",
+      }),
+    ).toThrow(/invalid IANA time zone/);
+    expect(store.list("cron")).toEqual([]);
   });
 
   it("creates a monitor, records checks, matches, and honours maxChecks", () => {

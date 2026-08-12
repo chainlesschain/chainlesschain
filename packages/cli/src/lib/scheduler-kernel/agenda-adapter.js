@@ -1,6 +1,11 @@
 import { createHash } from "node:crypto";
 import { effectiveFireAt } from "../schedule-planner.js";
 import {
+  nextCronTime,
+  normalizeTimeZone,
+  parseCron,
+} from "../agent-schedule-store.js";
+import {
   SchedulerKernelError,
   canonicalJson,
   normalizeEpochMs,
@@ -196,6 +201,28 @@ function validateEntrySnapshot(entry) {
       `Agenda prompt is missing: ${snapshot.id}`,
     );
   }
+  if (snapshot.kind === "cron") {
+    try {
+      parseCron(snapshot.cron);
+      if (snapshot.timeZone != null) {
+        const timeZone = normalizeTimeZone(snapshot.timeZone);
+        if (!timeZone) throw new Error("cron timeZone must not be empty");
+        const nextAt = Number(snapshot.nextAt);
+        if (
+          nextCronTime(snapshot.cron, nextAt - 60_000, { timeZone }) !== nextAt
+        ) {
+          throw new Error("cron nextAt does not match its time zone");
+        }
+      }
+    } catch (error) {
+      throw agendaError(
+        "AGENDA_SCHEDULER_CRON_INVALID",
+        `Agenda cron definition is invalid: ${snapshot.id}`,
+        undefined,
+        error,
+      );
+    }
+  }
   const schedulable =
     (snapshot.kind === "wakeup" && snapshot.status === "pending") ||
     (["cron", "monitor"].includes(snapshot.kind) &&
@@ -251,6 +278,9 @@ export function buildAgendaSchedulerJob(entry) {
           : snapshot.kind === "monitor"
             ? `every:${snapshot.intervalMs}`
             : String(snapshot.dueAt),
+      ...(snapshot.kind === "cron" && snapshot.timeZone
+        ? { timeZone: snapshot.timeZone }
+        : {}),
     },
     payload: {
       entry: snapshot,

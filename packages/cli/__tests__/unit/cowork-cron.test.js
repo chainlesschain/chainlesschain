@@ -7,6 +7,7 @@ import {
   loadSchedules,
   saveSchedules,
   addSchedule,
+  ensureScheduleNextAt,
   removeSchedule,
   setScheduleEnabled,
   updateScheduleRunState,
@@ -17,6 +18,9 @@ import {
   ALIASES,
   _expandExpr,
   hasSecondsResolution,
+  latestCoworkCronTime,
+  nextCoworkCronTime,
+  coworkCronFireKey,
   _deps,
 } from "../../src/lib/cowork-cron.js";
 
@@ -115,6 +119,62 @@ describe("parseCron", () => {
     // Jan 6 2026 is Tuesday, not the 15th
     expect(m(new Date(2026, 0, 6, 0, 0))).toBe(false);
   });
+
+  it("evaluates both real instants of a repeated IANA wall minute", () => {
+    const matcher = parseCron("30 1 * * *", {
+      timeZone: "America/New_York",
+    });
+    expect(matcher(new Date("2026-11-01T05:30:00Z"))).toBe(true);
+    expect(matcher(new Date("2026-11-01T06:30:00Z"))).toBe(true);
+    expect(matcher(new Date("2026-11-01T07:30:00Z"))).toBe(false);
+  });
+
+  it("skips a nonexistent spring-forward wall minute", () => {
+    expect(
+      nextCoworkCronTime("30 2 * * *", Date.parse("2026-03-08T05:00:00Z"), {
+        timeZone: "America/New_York",
+      }),
+    ).toBe(Date.parse("2026-03-09T06:30:00Z"));
+  });
+
+  it("preserves POSIX dom/dow OR semantics when finding the next instant", () => {
+    expect(
+      nextCoworkCronTime("0 0 15 * 5", new Date(2026, 0, 1, 0, 0).getTime()),
+    ).toBe(new Date(2026, 0, 2, 0, 0).getTime());
+  });
+
+  it("collapses six-field catch-up to the latest due second", () => {
+    expect(
+      latestCoworkCronTime(
+        "0,30 * * * * *",
+        Date.parse("2026-01-01T00:00:00Z"),
+        Date.parse("2026-01-01T00:03:42Z"),
+        { timeZone: "UTC" },
+      ),
+    ).toBe(Date.parse("2026-01-01T00:03:30Z"));
+  });
+
+  it("collapses a long every-second outage without replaying each second", () => {
+    expect(
+      latestCoworkCronTime(
+        "* * * * * *",
+        Date.parse("2026-01-01T00:00:00Z"),
+        Date.parse("2026-08-12T12:34:56.789Z"),
+        { timeZone: "UTC" },
+      ),
+    ).toBe(Date.parse("2026-08-12T12:34:56Z"));
+  });
+
+  it("uses real instants for fire identity across fall-back", () => {
+    const schedule = {
+      id: "dst",
+      cron: "30 1 * * *",
+      timeZone: "America/New_York",
+    };
+    expect(
+      coworkCronFireKey(schedule, new Date("2026-11-01T05:30:00Z")),
+    ).not.toBe(coworkCronFireKey(schedule, new Date("2026-11-01T06:30:00Z")));
+  });
 });
 
 describe("validateCron", () => {
@@ -198,6 +258,19 @@ describe("CRUD operations", () => {
     );
   });
 
+  it("persists a canonical IANA zone and explicit collapse cursor", () => {
+    const schedule = addSchedule("/project", {
+      cron: "0 9 * * *",
+      timeZone: "Asia/Kathmandu",
+      userMessage: "zoned",
+    });
+    expect(schedule).toMatchObject({
+      timeZone: "Asia/Katmandu",
+      missedRunPolicy: "collapse",
+      nextAt: Date.parse("2026-04-14T03:15:00Z"),
+    });
+  });
+
   it("does not overwrite a malformed durable schedule store", () => {
     const file = join(
       "/project",
@@ -241,6 +314,59 @@ describe("CRUD operations", () => {
     expect(loadSchedules("/project")[0].enabled).toBe(false);
   });
 
+  it("re-enabling resets the cursor instead of replaying disabled periods", () => {
+    const schedule = addSchedule("/project", {
+      cron: "0 * * * *",
+      userMessage: "x",
+    });
+    setScheduleEnabled("/project", schedule.id, false);
+    _deps.now = () => new Date("2026-04-14T04:30:00Z");
+    setScheduleEnabled("/project", schedule.id, true);
+    expect(loadSchedules("/project")[0]).toMatchObject({
+      enabled: true,
+      nextAt: Date.parse("2026-04-14T05:00:00Z"),
+      missedRunPolicy: "collapse",
+    });
+  });
+
+  it("migrates a legacy schedule without replaying pre-upgrade history", () => {
+    saveSchedules("/project", [
+      {
+        id: "legacy",
+        cron: "0 * * * *",
+        userMessage: "x",
+        enabled: true,
+        createdAt: "2026-04-14T00:30:00Z",
+        lastRunAt: null,
+      },
+    ]);
+    _deps.now = () => new Date("2026-04-14T04:30:00Z");
+    const migrated = ensureScheduleNextAt("/project", "legacy", _deps.now());
+    expect(migrated).toMatchObject({
+      nextAt: Date.parse("2026-04-14T05:00:00Z"),
+      missedRunPolicy: "collapse",
+    });
+  });
+
+  it("migrates from durable lastRunAt so one missed run can collapse", () => {
+    saveSchedules("/project", [
+      {
+        id: "legacy-ran",
+        cron: "0 * * * *",
+        userMessage: "x",
+        enabled: true,
+        createdAt: "2026-04-14T00:30:00Z",
+        lastRunAt: "2026-04-14T01:00:00Z",
+      },
+    ]);
+    const migrated = ensureScheduleNextAt(
+      "/project",
+      "legacy-ran",
+      new Date("2026-04-14T04:30:00Z"),
+    );
+    expect(migrated.nextAt).toBe(Date.parse("2026-04-14T02:00:00Z"));
+  });
+
   it("updateScheduleRunState records lastRunAt/lastStatus", () => {
     const s = addSchedule("/project", {
       cron: "* * * * *",
@@ -275,16 +401,11 @@ describe("CRUD operations", () => {
       }),
     ).toBeNull();
 
-    const successor = claimScheduleFire(
-      "/project",
-      schedule.id,
-      deliveryId,
-      {
-        ownerId: "owner-b",
-        now: new Date("2026-04-14T00:00:02Z"),
-        leaseMs: 1000,
-      },
-    );
+    const successor = claimScheduleFire("/project", schedule.id, deliveryId, {
+      ownerId: "owner-b",
+      now: new Date("2026-04-14T00:00:02Z"),
+      leaseMs: 1000,
+    });
     expect(successor.fence).toBe(2);
     expect(
       renewScheduleFire("/project", schedule.id, first, {

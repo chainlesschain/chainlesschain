@@ -1,14 +1,16 @@
 # ChainlessChain IDE 对照 Claude Code：净差距与优化路线图
 
 - 评估日期：2026-08-01
-- ChainlessChain 仓库快照：`eb0bc663b6eb794b1b62ba2bfc7a1267c699d25d`
-- 原始审计版本基线（2026-08-01，非当前发布状态）：CLI `0.162.194` release candidate（`0.162.190` / `0.162.191` / `0.162.192` 未发布；`0.162.193` 被非权威通用 workflow 发布，npm `latest` 为 `0.162.193`）、Open VSX `0.37.45`、JetBrains Marketplace `0.4.81`；Microsoft Marketplace 尚未发布。当前状态以第十二节 2026-08-11 快照为准
+- ChainlessChain 原始审计仓库快照：`eb0bc663b6eb794b1b62ba2bfc7a1267c699d25d`
+- 当前代码/Git 核验快照：`90f266efeeec38913587c9b92203315cedec6206`（`main`，2026-08-12，PR #173）
+- 原始审计版本基线（2026-08-01，非当前发布状态）：CLI `0.162.194` release candidate（`0.162.190` / `0.162.191` / `0.162.192` 未发布；`0.162.193` 被非权威通用 workflow 发布，npm `latest` 为 `0.162.193`）、Open VSX `0.37.45`、JetBrains Marketplace `0.4.81`；Microsoft Marketplace 尚未发布。当前状态以第十二节 2026-08-12 快照为准
 - Claude Code 基线：[CLI `2.1.220`](https://code.claude.com/docs/en/changelog)；官方文档回读日期 2026-08-01
 
 > 本文是一份面向下一阶段决策的“净差距”报告，不重复罗列已经完成的能力。
 > 既有实现、发布门和历史证据详见
 > [IDE 相对插件与 Claude Code 的完整审计](./IDE_VS_PLUGIN_CLAUDE_GAPS_AND_OPTIMIZATIONS_2026-07-22.md)。
-> 本地事实按上述仓库快照核验，公开版本只用于说明当前分发基线；除非另有发布证据，不能据此推断每项
+> 原始判断按原始审计快照核验，当前状态按当前代码/Git 核验快照及第十二节列出的 exact-head 证据核验；
+> 公开版本只用于说明当前分发基线。除非另有发布证据，不能据此推断每项
 > 本地实现或缺口已经存在于对应公开版本。
 
 ## 一、结论先行
@@ -652,17 +654,25 @@ VS Code / JetBrains / Desktop / Web / Mobile
 - [Desktop coding agent bootstrap](../desktop-app-vue/src/main/bootstrap/coding-agent-bootstrap.js)
 - [现有完整差距审计](./IDE_VS_PLUGIN_CLAUDE_GAPS_AND_OPTIMIZATIONS_2026-07-22.md)
 
-## 十二、实施状态快照（更新至 2026-08-11）
+## 十二、实施状态快照（更新至 2026-08-12）
 
 本节记录原始审计快照之后的实施进展。状态严格区分“仓库实现”“本地定向验证”“真实宿主/远程矩阵”和
 “公开发布回读”：前两者不能替代后两者，也不能据此宣称 Microsoft Marketplace 发布、真实 PR/merge 或完整
 release gate 已完成。
 
+当前核验基线为 `main@90f266efeeec38913587c9b92203315cedec6206`。公开分发基线为 CLI npm
+`0.163.5`、Open VSX `0.37.49` 与 JetBrains Marketplace `0.4.85`；Microsoft Marketplace、JetBrains
+作者签名及 Desktop/native 签名公开闭环仍未关闭。开放 PR 只按候选记录，不计入 `main` 已交付范围。
+
+下方首张总表保留 2026-08-09 的粗粒度校准基线，便于追溯当时的纠偏；它不是 2026-08-12 的最终状态表。
+与后续“剩余任务计数与可执行清单”或 exact-SHA 增量冲突时，以日期更新、当前核验 head 和最新清单为准。
+
 > 2026-08-09 纠偏：此前 P0-3 的“完成”声明只覆盖 host-neutral state machine、pending-effect
-> 协议、IDE projection 和 fake-adapter 测试。生产代码当前没有实例化
+> 协议、IDE projection 和 fake-adapter 测试。在该日快照中，生产代码尚未实例化
 > `DeliveryCoordinator` 的真实 provider adapter；`cc artifacts delivery-step` 明确不调用
 > PR、CI、merge 或 archive provider，双 IDE 也只请求/结算外部结果。因此 P0-3 外部交付闭环重新列为
-> **未完成**，不能再用 PR #86 或 fake adapter 把真实 provider 接线外推为已交付。
+> **未完成**，不能再用 PR #86 或 fake adapter 把真实 provider 接线外推为已交付。后续 PR #142 已关闭
+> 仓库内 production adapter/runner 子门，但真实公网交付 journey 仍未关闭，详见后文。
 
 | 路线项                   | 当前状态                                                                                                                                         | 已有证据                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | 尚未关闭的范围                                                                                                                                                                                                                                                                                                                                                                                                    |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1022,7 +1032,9 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
   只是阶段别名，不重复计数。完成项只有 P0-1/Q1 Workbench 与 P0-2/Q2 Rewind。
 - 若不拆 Q4a/Q4b，则口径为 **16/18 项尚未关闭**。Q4a 中的 local-host、多根、多窗口与 IDE
   ARM64 real-host exact-SHA 是已关闭子门，但 Remote、公开渠道、故障矩阵和 soak 尚未使整个 Q4a/Q4b 关闭。
-- 按可并行实施、并把同一外部阻塞合并后的工程口径，当前为 **22 个剩余工作包**。该数字用于排期，
+- 按可并行实施、并把同一外部阻塞合并后的工程口径，当前为 **21 个剩余工作包**。相较 2026-08-09
+  的 22 个，只有已合并的 `needs_input` 可恢复通知可正式减 1；开放的堆叠 PR #166、#168、#169、#172
+  尚不能减数。该数字用于排期，
   不与 17 个原始编号相加；fresh-profile 升降级并入相应渠道，已关闭的 CLI 冷恢复 SLO、两小时 CLI soak、
   local-host、多根、多窗口和 IDE ARM64 exact-SHA 不再重复计入。
 
@@ -1040,7 +1052,7 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
 | 10  | Q4b / P0-4           | 未完成                | 完成独立 8 小时 IDE reconnect/recovery soak 与 nightly live-provider trajectory；两小时 CLI reliability soak 不能替代。                                                                                                                                                                                                                                                                                                                           |
 | 11  | P1-1 / R4            | 部分完成              | 将现有 DAG 收敛为可生成、可审阅、可预算、可暂停恢复、版本化保存与分发的 Dynamic Workflow façade。                                                                                                                                                                                                                                                                                                                                                 |
 | 12  | P1-2 / R4            | 部分完成              | 将 Local/WSL/SSH/Cloud/Container 建为一等 Execution Location，完成创建时能力比较、安全 handoff 与 evidence/authority 继承。                                                                                                                                                                                                                                                                                                                       |
-| 13  | P1-3 / R4            | 部分完成（执行基础已形成候选） | scheduler kernel 已覆盖 Agenda/Automation/Cowork/Loop/Routine/monitor、IANA timezone/DST 与统一 daemon；仍需集中关闭 trigger scope/webhook/channel dispatch、needs-input 可恢复通知、真实预算/权限预检及 Automation Center UI。                                                                                                                                                                                                                      |
+| 13  | P1-3 / R4            | 部分完成（执行底座与通知已合并） | `main` 已覆盖 Agenda/Automation/Cowork/Loop/Routine/monitor、统一 daemon、`needs_input` 可恢复通知，以及 Agenda/Cowork 的 IANA timezone/DST/missed-run policy。PR #166、#168、#169、#172 仍是开放的堆叠候选，分别承载 scoped channel dispatch、真实权限/预算 preflight、双 IDE Automation Center 与 Routine 统一控制面；合并后仍需运行中 task 的条件式暂停/恢复、绑定原 run id 的越界 incident、未知结果裁决、迁移/回滚、磁盘故障和长期矩阵。 |
 | 14  | R4 budget            | 部分完成              | 把预算 authority 从 foundation/local adapters 接到 production root、全部 turn/token/tool 及 WS/REPL/headless 入口。                                                                                                                                                                                                                                                                                                                               |
 | 15  | R4 command lifecycle | 部分完成              | 观测三批兼容别名的完整弃用周期，依据使用证据决定移除或延长；不得提前删除入口。                                                                                                                                                                                                                                                                                                                                                                    |
 | 16  | P1-4 / R5            | 部分完成              | 完成 Context 与 Permission/Side-effect 可解释中心：规则来源、实际资源、不可逆副作用、恢复覆盖、最小 scoped rule 与 revoke。                                                                                                                                                                                                                                                                                                                       |
@@ -1135,10 +1147,11 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
   统一保留为“未完成／外部阻塞／本期延后”。延后不是完成、豁免或 release GO；本期仅推进 #1～#3、#7
   及 R4/R5 中可由仓库代码与现有 GitHub Actions 权限独立验证的内部子门，不据此关闭整项。
 
-因此本次文档更新不改变上表的 **17/19 尚未关闭、22 个剩余工作包**口径；只有在对应整项的全部关闭
-条件和权威证据满足后才减少计数。
+截至当前 `main`，原始编号仍为 **17/19 尚未关闭**；已合并的 `needs_input` 子门使工程口径由 22 个降为
+**21 个剩余工作包**。只有对应整项的全部关闭条件与权威证据满足后，才减少 17/19 的原始编号计数；
+开放候选在合并前也不能从工程口径中扣除。
 
-### 2026-08-11～12 已合并内部子门、scheduler 候选与 IDE 插件发布
+### 2026-08-11～12 已合并内部子门、scheduler 收敛与 IDE 插件发布
 
 - **PR #142 与 PR #140 已进入 `main`。** PR
   [#142](https://github.com/chainlesschain/chainlesschain/pull/142) 已于 2026-08-10 合并，merge commit 为
@@ -1195,18 +1208,20 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
   未能落盘则按 outcome-unknown fail closed。该子门不包含 Agenda monitor、真实共享权限/预算 resolver、
   IANA timezone/DST、standalone daemon、磁盘回滚或长期故障矩阵，因此 #13 与完整 scheduler 收敛仍为
   **部分完成**。
-- **Automation cron scheduler 已形成新的开放候选。** PR
+- **Automation cron scheduler 已合并。** PR
   [#154](https://github.com/chainlesschain/chainlesschain/pull/154) 的 implementation commit
   `15a641fa85` 将 active flow 的 cron 执行接入统一 scheduler kernel，并增加生产
   `cc automation run-scheduled`：canonical flow snapshot/digest 与最小 `automation.execute` authority
   绑定 logical occurrence；停机期间多个 missed run 收敛为一次；pause、定义变更和 authority tamper 在
   connector 执行前拒绝；deterministic execution id 允许恢复已落盘成功，start-only 结果未知则拒绝自动
   重放。当前本地扩大回归为 11 个文件 **285/285 passed**，目标 ESLint 0 error，Prettier、help-index、
-  Node syntax、`git diff --check` 与 993 项 npm dry-run pack 均通过。最终 exact head
-  `13410738de253adb1f8d952118d07634b55de6f0` 的
-  [CLI CI `31474924882`](https://github.com/chainlesschain/chainlesschain/actions/runs/31474924882) 已成功；
-  PR checks 为 **101 passed / 8 skipped / 0 failed / 0 pending**。该 PR 尚未进入 `main`；它只形成 #13
-  的 Automation cron/runtime/history 内部候选，不关闭
+  Node syntax、`git diff --check` 与 993 项 npm dry-run pack 均通过。最终功能 head
+  `930531a9868349d5a11ada5468a1b5abd12509ba` 已以 merge commit
+  `af041852e6bf13be1604e44c277aabee37800bea` 进入 `main`。随后 PR #167 只修复发布后 canonical
+  CHANGELOG 与内置 artifact 漂移；其 follow-up head `b609c30fb9bd1ce28f2e6a2dcdd3a092a9815f1e` 的
+  [CLI CI `31551868259`](https://github.com/chainlesschain/chainlesschain/actions/runs/31551868259) attempt 2
+  为 53/53 jobs success，[CLI Strict Sandbox `31551894005`](https://github.com/chainlesschain/chainlesschain/actions/runs/31551894005)
+  为三平台 3/3 success。该合并关闭 Automation cron/runtime/history 仓库内子门，但不关闭
   trigger scope、needs-input 通知、真实权限/预算预检、完整 Automation Center UI 或 scheduler 长期矩阵。
 - **Cowork cron scheduler 的仓库内子门已合并。** PR
   [#155](https://github.com/chainlesschain/chainlesschain/pull/155) 的 implementation commit
@@ -1219,7 +1234,7 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
   CI Tests、Full Test Automation、E2E、PR Tests 与审计门已成功。该 head 的聚合 CLI CI 在合并时仍未终态，
   因此不能把已成功子门拼接成完整 exact-head CLI CI 结论；合并也不关闭完整 Automation Center、统一预算/
   权限预检、standalone daemon 或长期故障矩阵。
-- **Loop iteration scheduler 已形成开放候选。** PR
+- **Loop iteration scheduler 已合并。** PR
   [#156](https://github.com/chainlesschain/chainlesschain/pull/156) 的 implementation head
   `b8495975c84e15068acdc557eed727f3938faac7` 将生产 `cc loop` 每次 iteration 接入统一 kernel，
   使用不可变 definition snapshot、最小 process/agent authority、持久 iteration identity 与 CAS session event；
@@ -1228,9 +1243,11 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
   [CLI Strict Sandbox `31471958501`](https://github.com/chainlesschain/chainlesschain/actions/runs/31471958501)
   已成功；测试 HOME 隔离修复后的 final exact head
   `0cf5716b15e58eeb8f10f8b977a22c2bcf43152e` 又通过
-  [CLI CI `31475518293`](https://github.com/chainlesschain/chainlesschain/actions/runs/31475518293)，PR checks 为
-  **89 passed / 7 skipped / 0 failed / 0 pending**。PR 尚未进入 `main`。
-- **Routine GitHub event scheduler 已形成开放候选。** PR
+  [CLI CI `31475518293`](https://github.com/chainlesschain/chainlesschain/actions/runs/31475518293)；同一 head 的
+  [CLI Strict Sandbox `31475526493`](https://github.com/chainlesschain/chainlesschain/actions/runs/31475526493)
+  为三平台 3/3 success。PR 以 merge commit `98c6831329b82850b407d6ec97c3ad6b5dd31570`
+  进入 `main`，最终 checks 为 **89 passed / 7 skipped / 0 failed / 0 pending**。
+- **Routine GitHub event scheduler 已合并。** PR
   [#157](https://github.com/chainlesschain/chainlesschain/pull/157) 的 implementation head
   `ad8ac3b591c058ed9c2dde3f7a52602502d1ece3` 先持久化不可变 GitHub event batch occurrence 再推进
   legacy cursor，以 per-batch job identity 保留新旧批次并发恢复能力；cursor 写失败会 deduplicate 到同一
@@ -1238,9 +1255,12 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
   Scheduler/Routine 回归 **61/61 passed**，ESLint、Prettier、command manifest/help/completions 与 npm pack
   dry-run 通过。旧 head 的 CLI CI 两次只在同一个无关 Windows `headless-runner` EPIPE cleanup 用例命中
   15 秒高负载 timeout；完整测试文件本地为 **81/81 passed**，因此只把该用例的 CI 容差提高到 30 秒，
-  功能断言不变。修复后的 exact head 为 `6460e49b011720a3a233ffc7f0fd803bfe52e3c3`；CLI CI 与
-  CLI Strict Sandbox 已创建并开始运行，但尚未终态，不能提前记为权威通过。PR 尚未进入 `main`。
-- **Agenda monitor scheduler 已形成开放候选。** PR
+  功能断言不变。修复后的 exact head `6460e49b011720a3a233ffc7f0fd803bfe52e3c3` 的
+  [CLI CI `31541236578`](https://github.com/chainlesschain/chainlesschain/actions/runs/31541236578) 为 53/53 jobs
+  success，[CLI Strict Sandbox `31541236398`](https://github.com/chainlesschain/chainlesschain/actions/runs/31541236398)
+  为三平台 3/3 success；PR 以 merge commit `cb354ef9c9744e7b60d837c077108750f7aae0a4`
+  进入 `main`。
+- **Agenda monitor scheduler 已合并。** PR
   [#158](https://github.com/chainlesschain/chainlesschain/pull/158) 的 implementation commit
   `2ddc09d4cb16034f8082630238d0c9e2ba0640df` 将生产 command/file/HTTP monitor observation 接入统一
   kernel，并绑定独立 `monitor.observe` authority。monitor check、re-arm/match 与 scheduler evidence 在同一
@@ -1251,7 +1271,8 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
   final exact head `81474931222e9f3f872d60fed9ef91c17311dbd3` 的
   [CLI CI `31474844368`](https://github.com/chainlesschain/chainlesschain/actions/runs/31474844368) 与
   [CLI Strict Sandbox `31474844226`](https://github.com/chainlesschain/chainlesschain/actions/runs/31474844226)
-  均成功，PR checks 为 **92 passed / 7 skipped / 0 failed / 0 pending**。PR 尚未进入 `main`。
+  均成功，PR checks 为 **92 passed / 7 skipped / 0 failed / 0 pending**；PR 以 merge commit
+  `650154f8b4c045ae48ab68b88a9da7165b4af557` 进入 `main`。
 - **Agenda 已补齐 IANA timezone/DST 调度语义。** PR
   [#159](https://github.com/chainlesschain/chainlesschain/pull/159) 的 exact head
   `d472854abc5e6fec730478ce6cdfebea1be177fb` 将 Agenda schedule 的 IANA zone、DST gap/fold、离线
@@ -1259,9 +1280,10 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
   本地相关 10 文件为 **192/192 passed**，manifest/help/completions、lint、format、syntax 与 pack 均通过。
   [CLI CI `31477873086`](https://github.com/chainlesschain/chainlesschain/actions/runs/31477873086) 与
   [CLI Strict Sandbox `31477873007`](https://github.com/chainlesschain/chainlesschain/actions/runs/31477873007)
-  均成功，PR checks 为 **99 passed / 7 skipped / 0 failed / 0 pending**。这关闭 #13 的
+  均成功，PR checks 为 **99 passed / 7 skipped / 0 failed / 0 pending**；PR 以 merge commit
+  `fda5212638f7e3d84c8317c7a96b17bbbe137629` 进入 `main`。这关闭 #13 的
   timezone/DST 内部子门，但不关闭 Automation Center 产品整项。
-- **统一 foreground scheduler daemon 已形成开放候选。** PR
+- **统一 foreground scheduler daemon 已合并。** PR
   [#161](https://github.com/chainlesschain/chainlesschain/pull/161) 的 exact head
   `0e7d016d48a413642fb4e465c4138118a4e03426` 增加 `cc daemon scheduler run`，在一个受 supervisor
   管理的进程内承载 Agenda 与 Cowork domain，共享 scheduler store、串行 tick、隔离 domain failure、
@@ -1271,11 +1293,55 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
   [CLI CI `31500072164`](https://github.com/chainlesschain/chainlesschain/actions/runs/31500072164) 与
   [IDE Extensions `31500072356`](https://github.com/chainlesschain/chainlesschain/actions/runs/31500072356)
   成功，PR checks 为 **107 passed / 8 skipped / 0 failed / 0 pending**。首次 JetBrains Ubuntu 2025.2
-  失败发生在 Microsoft APT 源 403、产品测试前，failed-job rerun 成功；该基础设施红灯未被抹除。
-- #13 的 scheduler execution foundation 已从 Agenda 单域前进到 Agenda/Automation/Cowork/Loop/Routine/
-  monitor、IANA timezone/DST 与统一 daemon 候选；下一批应集中关闭 trigger scope 与 webhook/channel
-  dispatch、`needs_input` 可恢复通知、真实权限/预算预检及 Automation Center UI，不再增加新的 scheduler
-  domain。由于这四类产品关闭条件仍未满足，本更新仍不改变 **17/19 尚未关闭、22 个剩余工作包**计数。
+  失败发生在 Microsoft APT 源 403、产品测试前，failed-job rerun 成功；该基础设施红灯未被抹除。PR 以
+  merge commit `08881ec573158745a7c4a1443082966167168520` 进入 `main`，随后同一 exact head 的
+  [CLI Strict Sandbox `31543095330`](https://github.com/chainlesschain/chainlesschain/actions/runs/31543095330)
+  为三平台 3/3 success。
+- #13 的 scheduler execution foundation 已从 Agenda 单域前进到 `main` 中的 Agenda/Automation/Cowork/
+  Loop/Routine/monitor、统一 daemon、durable `needs_input` 通知，以及 Agenda/Cowork 的 IANA timezone/DST/
+  missed-run policy。原始编号仍为 **17/19 尚未关闭**；已合并通知子门后为 **21 个剩余工作包**。
   Microsoft Marketplace、JetBrains
   作者签名、Remote/SSH/WSL/devcontainer/Codespaces/Gateway、网络故障矩阵、八小时 IDE soak 与真实
   delivery live journey 继续按“外部阻塞／本期延后”处理；整体 product release 仍为 **NO-GO**。
+
+### 2026-08-12 最新 `main`、发布与开放候选
+
+- **CLI npm `0.163.5` 发布闭环已完成。** release SHA
+  `095087c1e859a8451ce01ed58c59af3fede756fd` 由不可变 tag `v-npm-0-163-5` 指向；
+  [CLI CI `31509337185`](https://github.com/chainlesschain/chainlesschain/actions/runs/31509337185) attempt 2
+  为 53/53 jobs success，[CLI Strict Sandbox `31509336854`](https://github.com/chainlesschain/chainlesschain/actions/runs/31509336854)
+  为三平台 3/3 success。专用 [npm 发布 workflow `31509336832`](https://github.com/chainlesschain/chainlesschain/actions/runs/31509336832)
+  attempt 2 完成 exact-SHA gate、不可变 artifact、SBOM、Trusted Publishing 与签名 provenance；独立
+  [公网 readback `31514940240`](https://github.com/chainlesschain/chainlesschain/actions/runs/31514940240)
+  证明 registry tarball 与 GitHub artifact 逐字节一致。该公开包不包含随后合并的 PR #154、#156～#159、
+  #161、#165、#173，不能把当前 `main` 的后续能力外推到 `0.163.5`。
+- **durable `needs_input` 可恢复通知已合并。** PR
+  [#165](https://github.com/chainlesschain/chainlesschain/pull/165) 的 exact head
+  `e1ddf7a39ce9a437d86668600e7a665fc0740d95` 将不含提示正文的 incident 投影到已配置 channel，持久记录
+  delivery outcome，并提供受控 retry；含糊交付必须显式 `--force`。该 head 以 merge commit
+  `65022a4c9bfe3e1c15a11ba878c39b075b8417f8` 进入 `main`，PR rollup 为 110 success、8 skipped、
+  0 failed、0 pending。该合并正式关闭 1 个工程工作包，但不等于 Automation Center 整项完成。
+- **Agenda/Cowork 时区与 missed-run 内部子门已合并。** PR #159 的 Agenda IANA zone/DST 语义以 merge
+  commit `fda5212638f7e3d84c8317c7a96b17bbbe137629` 进入 `main`；PR
+  [#173](https://github.com/chainlesschain/chainlesschain/pull/173) 又把 Cowork cron、next-fire cursor、DST
+  repeated wall time 与显式 collapse policy 收敛到同一策略，merge commit 为当前核验 head
+  `90f266efeeec38913587c9b92203315cedec6206`。PR #173 的本地/定向证据为 44 文件 1213/1213，exact head 的
+  [CLI Strict Sandbox `31562610018`](https://github.com/chainlesschain/chainlesschain/actions/runs/31562610018)
+  为三平台 3/3 success，[CLI CI `31562505163`](https://github.com/chainlesschain/chainlesschain/actions/runs/31562505163)
+  为 53/53 jobs success；该仓库内时区策略子门的 exact-head 双门已关闭，但不替代公开发布与长期矩阵。
+- **PR #174 仅为开放的证据文档跟进。** exact head `0723e5382cc23a160419b45ec0f33eae0a2bb082`
+  只更新 `docs/cli-claude-code-gap-analysis-2026-08-01.md`，记录 PR #159/#173 双门并把该文档的
+  P2-4 内部剩余子项由 6 降为 5；其 CI 尚未终态，且不修改产品代码、当前 `main` 或本清单计数。
+- **四个开放功能 PR 是同一堆叠链，不得重复外推为 `main` 已交付。** PR
+  [#166](https://github.com/chainlesschain/chainlesschain/pull/166) 提交 scoped Webhook/Telegram event
+  dispatch；PR [#168](https://github.com/chainlesschain/chainlesschain/pull/168) 在其上提交 flow principal、
+  `automation:execute`、connector RBAC 与 rolling-window run/action budget preflight；PR
+  [#169](https://github.com/chainlesschain/chainlesschain/pull/169) 再提交 CLI-owned versioned projection、
+  history、run-now、失败重跑、暂停/恢复、禁用/删除及双 IDE Automation Center；PR
+  [#172](https://github.com/chainlesschain/chainlesschain/pull/172) 最后把 Routine cron/one-shot/webhook/
+  GitHub trigger 与 CAS 创建/编辑纳入同一 v2 控制面。四项当前均为 **OPEN**；#166、#168、#169 的
+  当前检查无 failure/pending，#172 的 IDE ARM64 矩阵为 24 success、2 failure、1 skipped、1 pending，
+  因此任何候选都不能从 21 个
+  剩余工作包中提前扣除。若四项以各自最终 exact head 完成权威矩阵并全部合并，工程口径可由 21 降至
+  17；P1-3 原始整项仍需运行中 task 的条件式暂停/恢复、绑定原 run id 的越界 incident、未知结果裁决、
+  迁移/回滚、磁盘故障与三平台长期 soak，故 **17/19** 原始编号届时仍不会自动变化。

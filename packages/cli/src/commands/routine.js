@@ -112,6 +112,7 @@ export function defaultFetchEvents(repo) {
             (Array.isArray(rows) ? rows : []).map((r) => ({
               id: r.id,
               type: r.type,
+              created_at: r.created_at,
             })),
           );
         } catch {
@@ -324,7 +325,6 @@ export function registerRoutineCommand(program) {
       let schedulerStore;
       try {
         const store = await loadStore();
-        const { pollGithubRoutine } = await import("../lib/routine-store.js");
         schedulerStore = openSchedulerStore();
         const bridge = new RoutineSchedulerBridge({
           routineStore: store,
@@ -346,11 +346,18 @@ export function registerRoutineCommand(program) {
           });
         }
         for (const r of store.githubRoutines()) {
-          const runs = await pollGithubRoutine(store, r, {
+          const github = await bridge.pollGithub(r, {
             fetchEvents: defaultFetchEvents,
-            runAgent: defaultRunAgent,
           });
-          for (const runId of runs) fired.push({ routine: r.id, runId });
+          if (!github) continue;
+          const runId = routineBridgeRunId(github);
+          if (!runId) {
+            if (github.result?.status === "busy") continue;
+            throw new Error(
+              `routine GitHub occurrence did not execute: ${github.routine} (${github.result?.status || "unknown"})`,
+            );
+          }
+          fired.push({ routine: github.routine, runId });
         }
         if (options.json)
           return console.log(JSON.stringify({ fired }, null, 2));
