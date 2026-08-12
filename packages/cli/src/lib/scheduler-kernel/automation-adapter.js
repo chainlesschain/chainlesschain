@@ -24,6 +24,10 @@ import {
   normalizeJson,
 } from "./contract.js";
 import { SchedulerRuntime } from "./runtime.js";
+import {
+  bindSchedulerAuthorityPolicy,
+  createSchedulerAuthorityResolver,
+} from "./authority-resolver.js";
 
 export const AUTOMATION_SCHEDULER_KIND = "automation";
 export const AUTOMATION_SCHEDULER_CAPABILITY = "automation.execute";
@@ -196,6 +200,10 @@ export function syncAutomationSchedulerJob(
   executionAuthority,
 ) {
   const desired = buildAutomationSchedulerJob(flow, executionAuthority);
+  desired.authority = bindSchedulerAuthorityPolicy(
+    schedulerStore,
+    desired.authority,
+  );
   let current = schedulerStore.getJob(desired.id);
   if (!current) {
     try {
@@ -299,6 +307,19 @@ export function enqueueScheduledAutomation(
   });
 }
 
+function automationDomainAuthority(authority) {
+  return {
+    ...authority,
+    authorizationRefs: {
+      decisionId: authority.authorizationRefs.decisionId,
+      policyRevision: authority.authorizationRefs.policyRevision,
+      grantIds: authority.authorizationRefs.grantIds,
+      approvalIds: authority.authorizationRefs.approvalIds,
+      delegationIds: authority.authorizationRefs.delegationIds,
+    },
+  };
+}
+
 export function authorizeAutomationOccurrence({ job, occurrence }) {
   try {
     const payload = occurrence?.payload;
@@ -323,8 +344,10 @@ export function authorizeAutomationOccurrence({ job, occurrence }) {
       payload?.channel === AUTOMATION_SCHEDULER_CHANNEL &&
       executionAuthority.flowId === flowId &&
       payload?.executionAuthorityDigest === executionAuthorityDigest &&
-      canonicalJson(authority, "automationOccurrenceAuthority") ===
-        canonicalJson(expectedAuthority, "expectedAutomationAuthority") &&
+      canonicalJson(
+        automationDomainAuthority(authority),
+        "automationOccurrenceAuthority",
+      ) === canonicalJson(expectedAuthority, "expectedAutomationAuthority") &&
       payload?.snapshotDigest === expectedDigest;
     return {
       allowed,
@@ -466,6 +489,7 @@ export class AutomationSchedulerBridge {
     ownerId,
     leaseMs,
     renewIntervalMs,
+    authorityResolver,
   } = {}) {
     if (typeof now !== "function") {
       throw automationError(
@@ -479,7 +503,19 @@ export class AutomationSchedulerBridge {
     this.runtime = new SchedulerRuntime({
       store: schedulerStore,
       adapters: [createAutomationSchedulerAdapter({ db, now })],
-      authorize: authorizeAutomationOccurrence,
+      authorize:
+        authorityResolver ||
+        createSchedulerAuthorityResolver({
+          store: schedulerStore,
+          validate: authorizeAutomationOccurrence,
+          units: ({ occurrence }) =>
+            Math.max(
+              1,
+              occurrence?.payload?.flow?.nodes?.filter(
+                (node) => (node?.type || "action") === "action",
+              ).length || 1,
+            ),
+        }),
       ...(ownerId === undefined ? {} : { ownerId }),
       ...(leaseMs === undefined ? {} : { leaseMs }),
       ...(renewIntervalMs === undefined ? {} : { renewIntervalMs }),
