@@ -413,48 +413,40 @@ export function enqueueAutomationChannelEvent(
       `channel event is outside trigger scope: ${trigger.id}`,
     );
   }
-  const jobId = automationEventJobId(trigger.id);
   const triggerKey = automationEventTriggerKey(normalizedEvent);
   const eventDigest = automationChannelEventDigest(normalizedEvent);
-  const prior = schedulerStore.listOccurrencesByTrigger({
-    jobId,
-    triggerKey,
-    limit: 2,
-  });
-  if (prior.length > 1) {
-    throw eventError(
-      "AUTOMATION_EVENT_DUPLICATE_EVIDENCE",
-      `multiple scheduler occurrences exist for one channel event: ${trigger.id}`,
-    );
-  }
-  if (prior.length === 1) {
-    if (prior[0].payload?.eventDigest !== eventDigest) {
+  const job = syncAutomationEventJob(schedulerStore, flow, trigger);
+  let occurrence;
+  try {
+    occurrence = schedulerStore.enqueueOccurrenceOncePerTrigger({
+      jobId: job.id,
+      scheduledFor: normalizedEvent.producedAt,
+      availableAt: normalizedEvent.producedAt,
+      triggerKey,
+      payload: {
+        ...job.payload,
+        event: normalizedEvent,
+        eventDigest,
+      },
+    });
+  } catch (error) {
+    if (error?.code === "SCHEDULER_JOB_DISABLED") {
       throw eventError(
-        "AUTOMATION_EVENT_ID_COLLISION",
-        `channel event id was reused with different content: ${normalizedEvent.id}`,
+        "AUTOMATION_EVENT_DEFINITION_INACTIVE",
+        `automation event trigger is not active: ${trigger.id}`,
+        undefined,
+        error,
       );
     }
-    return { ...prior[0], deduplicated: true };
+    throw error;
   }
-
-  const job = syncAutomationEventJob(schedulerStore, flow, trigger);
-  if (!job.enabled) {
+  if (occurrence.payload?.eventDigest !== eventDigest) {
     throw eventError(
-      "AUTOMATION_EVENT_DEFINITION_INACTIVE",
-      `automation event trigger is not active: ${trigger.id}`,
+      "AUTOMATION_EVENT_ID_COLLISION",
+      `channel event id was reused with different content: ${normalizedEvent.id}`,
     );
   }
-  return schedulerStore.enqueueOccurrence({
-    jobId: job.id,
-    scheduledFor: normalizedEvent.producedAt,
-    availableAt: normalizedEvent.producedAt,
-    triggerKey,
-    payload: {
-      ...job.payload,
-      event: normalizedEvent,
-      eventDigest,
-    },
-  });
+  return occurrence;
 }
 
 export function authorizeAutomationEventOccurrence({ job, occurrence }) {
