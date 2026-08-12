@@ -21,7 +21,7 @@ import {
 const requireCjs = createRequire(import.meta.url);
 
 export const SCHEDULER_APPLICATION_ID = 0x4343534b; // "CCSK"
-export const SCHEDULER_STORE_SCHEMA_VERSION = 2;
+export const SCHEDULER_STORE_SCHEMA_VERSION = 3;
 export const DEFAULT_BUSY_TIMEOUT_MS = 5_000;
 export const MAX_LEASE_MS = 24 * 60 * 60 * 1_000;
 export const MIN_AUTHORITY_WINDOW_MS = 60_000;
@@ -30,16 +30,22 @@ export const MAX_AUTHORITY_BUDGET = 1_000_000;
 export const DEFAULT_AUTHORITY_WINDOW_MS = 24 * 60 * 60 * 1_000;
 export const DEFAULT_AUTHORITY_MAX_RUNS = 100_000;
 export const DEFAULT_AUTHORITY_MAX_UNITS = 100_000;
+export const SCHEDULER_ADJUDICATION_AUTHORITY = "local-operator";
+export const SCHEDULER_ADJUDICATION_DECISIONS = Object.freeze({
+  CONFIRMED_APPLIED: "confirmed_applied",
+  CONFIRMED_NOT_APPLIED: "confirmed_not_applied",
+});
 
 const MIGRATION_V1_NAME = "scheduler-kernel-v1";
 const MIGRATION_V2_NAME = "scheduler-kernel-authority-v2";
+const MIGRATION_V3_NAME = "scheduler-kernel-adjudication-v3";
 const V1_USER_TABLES = Object.freeze([
   "events",
   "jobs",
   "migrations",
   "occurrences",
 ]);
-const USER_TABLES = Object.freeze([
+const V2_USER_TABLES = Object.freeze([
   "events",
   "jobs",
   "migrations",
@@ -47,6 +53,10 @@ const USER_TABLES = Object.freeze([
   "scheduler_authority_policies",
   "scheduler_authority_reservations",
   "scheduler_authority_usage",
+]);
+const USER_TABLES = Object.freeze([
+  ...V2_USER_TABLES,
+  "scheduler_occurrence_adjudications",
 ]);
 
 export const MIGRATION_V1_SQL = `
@@ -209,6 +219,49 @@ export const MIGRATION_V2_CHECKSUM = createHash("sha256")
   .update("\0scheduler-authority-v2-backfill-v1", "utf8")
   .digest("hex");
 
+export const MIGRATION_V3_SQL = `
+CREATE TABLE scheduler_occurrence_adjudications (
+  occurrence_id       TEXT PRIMARY KEY NOT NULL
+                      REFERENCES occurrences(occurrence_id) ON DELETE RESTRICT,
+  job_id              TEXT NOT NULL REFERENCES jobs(job_id) ON DELETE RESTRICT,
+  request_id          TEXT NOT NULL UNIQUE,
+  decision            TEXT NOT NULL CHECK (
+    decision IN ('confirmed_applied', 'confirmed_not_applied')
+  ),
+  authority           TEXT NOT NULL CHECK (authority = 'local-operator'),
+  evidence_digest     TEXT NOT NULL,
+  expected_attempt    INTEGER NOT NULL CHECK (expected_attempt >= 1),
+  expected_fence      INTEGER NOT NULL CHECK (expected_fence >= 1),
+  reason_digest       TEXT NOT NULL,
+  operator_digest     TEXT NOT NULL,
+  status              TEXT NOT NULL CHECK (status IN ('pending', 'applied')),
+  created_at          INTEGER NOT NULL CHECK (created_at >= 0),
+  applied_at          INTEGER,
+  retry_settled_at    INTEGER,
+  retry_outcome_json  TEXT CHECK (
+    retry_outcome_json IS NULL OR json_valid(retry_outcome_json)
+  ),
+  CHECK (
+    (status = 'pending' AND applied_at IS NULL)
+    OR
+    (status = 'applied' AND applied_at IS NOT NULL)
+  ),
+  CHECK (
+    (retry_settled_at IS NULL AND retry_outcome_json IS NULL)
+    OR
+    (status = 'applied' AND retry_settled_at IS NOT NULL
+      AND retry_outcome_json IS NOT NULL)
+  )
+);
+
+CREATE INDEX scheduler_adjudications_status
+  ON scheduler_occurrence_adjudications(status, created_at, occurrence_id);
+`;
+
+export const MIGRATION_V3_CHECKSUM = createHash("sha256")
+  .update(MIGRATION_V3_SQL.trim().replace(/\r\n/g, "\n"), "utf8")
+  .digest("hex");
+
 // Fingerprint of the normalized sqlite_master catalog produced by the v1 DDL.
 // Unlike the migration-source checksum, this also detects added triggers/views
 // and constraint/foreign-key changes that preserve the visible column list.
@@ -216,6 +269,8 @@ export const SCHEMA_V1_FINGERPRINT =
   "cf244f675ac7430683f67046b57524eb6c14baa45d6463ed3f704be898fec887";
 export const SCHEMA_V2_FINGERPRINT =
   "402c58d4b3b217699591528f9be6c1c7fe341650b843eb2d8d9d907779ff27b0";
+export const SCHEMA_V3_FINGERPRINT =
+  "aac3733641bebb5a86aea3f9c421818201f5dde051da6b95b880d503a420047b";
 
 const EXPECTED_COLUMNS = Object.freeze({
   migrations: [
@@ -302,9 +357,27 @@ const EXPECTED_COLUMNS = Object.freeze({
     ["created_at", "INTEGER", 1, 0],
     ["settled_at", "INTEGER", 0, 0],
   ],
+  scheduler_occurrence_adjudications: [
+    ["occurrence_id", "TEXT", 1, 1],
+    ["job_id", "TEXT", 1, 0],
+    ["request_id", "TEXT", 1, 0],
+    ["decision", "TEXT", 1, 0],
+    ["authority", "TEXT", 1, 0],
+    ["evidence_digest", "TEXT", 1, 0],
+    ["expected_attempt", "INTEGER", 1, 0],
+    ["expected_fence", "INTEGER", 1, 0],
+    ["reason_digest", "TEXT", 1, 0],
+    ["operator_digest", "TEXT", 1, 0],
+    ["status", "TEXT", 1, 0],
+    ["created_at", "INTEGER", 1, 0],
+    ["applied_at", "INTEGER", 0, 0],
+    ["retry_settled_at", "INTEGER", 0, 0],
+    ["retry_outcome_json", "TEXT", 0, 0],
+  ],
 });
 
 const EXPECTED_INDEXES = Object.freeze([
+  "scheduler_adjudications_status",
   "scheduler_authority_reservations_principal",
   "scheduler_authority_reservations_status",
   "scheduler_events_job",
@@ -586,6 +659,147 @@ function mapEvent(row) {
   };
 }
 
+function mapAdjudication(row) {
+  if (!row) return null;
+  return {
+    occurrenceId: row.occurrence_id,
+    jobId: row.job_id,
+    requestId: row.request_id,
+    decision: row.decision,
+    authority: row.authority,
+    evidenceDigest: row.evidence_digest,
+    expectedAttempt: row.expected_attempt,
+    expectedFence: row.expected_fence,
+    reasonDigest: row.reason_digest,
+    operatorDigest: row.operator_digest,
+    status: row.status,
+    createdAt: row.created_at,
+    appliedAt: row.applied_at,
+    retrySettledAt: row.retry_settled_at,
+    retryOutcome:
+      row.retry_outcome_json === null
+        ? null
+        : readStoredJson(row.retry_outcome_json, "adjudication retry outcome"),
+  };
+}
+
+function schedulerAdjudicationError(code, message, details = undefined) {
+  return new SchedulerKernelError(code, message, details);
+}
+
+function normalizeAdjudicationDecision(value) {
+  if (!Object.values(SCHEDULER_ADJUDICATION_DECISIONS).includes(value)) {
+    throw invalidArgument(
+      "decision must be confirmed_applied or confirmed_not_applied",
+    );
+  }
+  return value;
+}
+
+function normalizeSha256Digest(value, field) {
+  if (typeof value !== "string" || !/^sha256:[a-f0-9]{64}$/.test(value)) {
+    throw invalidArgument(`${field} must be a sha256 payload digest`);
+  }
+  return value;
+}
+
+function isOutcomeUnknownError(error) {
+  return (
+    typeof error?.code === "string" &&
+    /^[A-Z0-9_]+_OUTCOME_UNKNOWN$/.test(error.code)
+  );
+}
+
+function sha256PayloadDigest(value, field) {
+  return `sha256:${createHash("sha256")
+    .update(canonicalJson(value, field), "utf8")
+    .digest("hex")}`;
+}
+
+export function schedulerAdjudicationReasonDigest(reason) {
+  if (typeof reason !== "string" || reason.trim().length === 0) {
+    throw invalidArgument("adjudication reason must be a non-empty string");
+  }
+  if (Buffer.byteLength(reason, "utf8") > 4_000) {
+    throw invalidArgument("adjudication reason must not exceed 4000 bytes");
+  }
+  return sha256PayloadDigest(reason, "adjudication.reason");
+}
+
+export function schedulerAdjudicationOperatorDigest(identity) {
+  return sha256PayloadDigest(
+    normalizeJson(identity, "adjudication.operatorIdentity"),
+    "adjudication.operatorIdentity",
+  );
+}
+
+function adjudicationEvidence(occurrence, reservation) {
+  return {
+    schemaVersion: 1,
+    occurrence: {
+      id: occurrence.id,
+      jobId: occurrence.jobId,
+      jobRevision: occurrence.jobRevision,
+      idempotencyKey: occurrence.idempotencyKey,
+      triggerKey: occurrence.triggerKey,
+      scheduledFor: occurrence.scheduledFor,
+      status: occurrence.status,
+      attempt: occurrence.attempt,
+      maxAttempts: occurrence.maxAttempts,
+      fence: occurrence.fence,
+      authorityDigest: sha256PayloadDigest(
+        occurrence.authority,
+        "adjudication.authority",
+      ),
+      payloadDigest: sha256PayloadDigest(
+        occurrence.payload,
+        "adjudication.payload",
+      ),
+      lastError: occurrence.lastError,
+      settledAt: occurrence.settledAt,
+    },
+    reservation:
+      reservation === null
+        ? null
+        : {
+            jobId: reservation.jobId,
+            principal: reservation.principal,
+            policyRevision: reservation.policyRevision,
+            windowStartedAt: reservation.windowStartedAt,
+            units: reservation.units,
+            status: reservation.status,
+            outcomeDigest:
+              reservation.outcome === null
+                ? null
+                : sha256PayloadDigest(
+                    reservation.outcome,
+                    "adjudication.reservationOutcome",
+                  ),
+            createdAt: reservation.createdAt,
+            settledAt: reservation.settledAt,
+          },
+  };
+}
+
+function deterministicAdjudicationRequestId({
+  occurrenceId,
+  decision,
+  evidenceDigest,
+  reasonDigest,
+}) {
+  const digest = sha256PayloadDigest(
+    {
+      schemaVersion: 1,
+      occurrenceId,
+      decision,
+      evidenceDigest,
+      reasonDigest,
+    },
+    "adjudication.request",
+  );
+  return `scheduler-adjudication-${digest.slice("sha256:".length)}`;
+}
+
 function listUserTables(db) {
   return db
     .prepare(
@@ -662,7 +876,12 @@ function schemaFingerprint(db) {
 function verifySchema(db, version = SCHEDULER_STORE_SCHEMA_VERSION) {
   assertDatabaseIntegrity(db);
   const tables = listUserTables(db);
-  const expectedTables = version === 1 ? V1_USER_TABLES : USER_TABLES;
+  const expectedTables =
+    version === 1
+      ? V1_USER_TABLES
+      : version === 2
+        ? V2_USER_TABLES
+        : USER_TABLES;
   if (JSON.stringify(tables) !== JSON.stringify(expectedTables)) {
     throw schemaError(
       "SCHEDULER_SCHEMA_UNKNOWN",
@@ -697,7 +916,11 @@ function verifySchema(db, version = SCHEDULER_STORE_SCHEMA_VERSION) {
 
   const actualFingerprint = schemaFingerprint(db);
   const expectedFingerprint =
-    version === 1 ? SCHEMA_V1_FINGERPRINT : SCHEMA_V2_FINGERPRINT;
+    version === 1
+      ? SCHEMA_V1_FINGERPRINT
+      : version === 2
+        ? SCHEMA_V2_FINGERPRINT
+        : SCHEMA_V3_FINGERPRINT;
   if (actualFingerprint !== expectedFingerprint) {
     throw schemaError(
       "SCHEDULER_SCHEMA_CORRUPT",
@@ -729,10 +952,14 @@ function verifySchema(db, version = SCHEDULER_STORE_SCHEMA_VERSION) {
     migrations[0].version !== 1 ||
     migrations[0].name !== MIGRATION_V1_NAME ||
     migrations[0].checksum !== MIGRATION_V1_CHECKSUM ||
-    (version === 2 &&
+    (version >= 2 &&
       (migrations[1]?.version !== 2 ||
         migrations[1]?.name !== MIGRATION_V2_NAME ||
-        migrations[1]?.checksum !== MIGRATION_V2_CHECKSUM))
+        migrations[1]?.checksum !== MIGRATION_V2_CHECKSUM)) ||
+    (version >= 3 &&
+      (migrations[2]?.version !== 3 ||
+        migrations[2]?.name !== MIGRATION_V3_NAME ||
+        migrations[2]?.checksum !== MIGRATION_V3_CHECKSUM))
   ) {
     throw schemaError(
       "SCHEDULER_SCHEMA_UNKNOWN",
@@ -748,12 +975,11 @@ function verifySchema(db, version = SCHEDULER_STORE_SCHEMA_VERSION) {
     )
     .all()
     .map((row) => row.name);
-  const expectedIndexes =
-    version === 1
-      ? EXPECTED_INDEXES.filter(
-          (name) => !name.startsWith("scheduler_authority_"),
-        )
-      : EXPECTED_INDEXES;
+  const expectedIndexes = EXPECTED_INDEXES.filter(
+    (name) =>
+      (version >= 2 || !name.startsWith("scheduler_authority_")) &&
+      (version >= 3 || !name.startsWith("scheduler_adjudications_")),
+  );
   if (JSON.stringify(indexes) !== JSON.stringify(expectedIndexes)) {
     throw schemaError(
       "SCHEDULER_SCHEMA_CORRUPT",
@@ -860,6 +1086,10 @@ function migrateAuthorityV2(db, now) {
   }
 }
 
+function migrateAdjudicationV3(db) {
+  db.exec(MIGRATION_V3_SQL);
+}
+
 function initializeOrVerifySchema(db, now) {
   assertDatabaseIntegrity(db);
   const tables = listUserTables(db);
@@ -867,12 +1097,16 @@ function initializeOrVerifySchema(db, now) {
     const migrate = db.transaction(() => {
       db.exec(MIGRATION_V1_SQL);
       migrateAuthorityV2(db, now);
+      migrateAdjudicationV3(db);
       db.prepare(
         "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
       ).run(1, MIGRATION_V1_NAME, MIGRATION_V1_CHECKSUM, now);
       db.prepare(
         "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
       ).run(2, MIGRATION_V2_NAME, MIGRATION_V2_CHECKSUM, now);
+      db.prepare(
+        "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
+      ).run(3, MIGRATION_V3_NAME, MIGRATION_V3_CHECKSUM, now);
       db.pragma(`application_id = ${SCHEDULER_APPLICATION_ID}`);
       db.pragma(`user_version = ${SCHEDULER_STORE_SCHEMA_VERSION}`);
     });
@@ -888,9 +1122,23 @@ function initializeOrVerifySchema(db, now) {
     verifySchema(db, 1);
     const migrate = db.transaction(() => {
       migrateAuthorityV2(db, now);
+      migrateAdjudicationV3(db);
       db.prepare(
         "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
       ).run(2, MIGRATION_V2_NAME, MIGRATION_V2_CHECKSUM, now);
+      db.prepare(
+        "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
+      ).run(3, MIGRATION_V3_NAME, MIGRATION_V3_CHECKSUM, now);
+      db.pragma(`user_version = ${SCHEDULER_STORE_SCHEMA_VERSION}`);
+    });
+    migrate.immediate();
+  } else if (db.pragma("user_version", { simple: true }) === 2) {
+    verifySchema(db, 2);
+    const migrate = db.transaction(() => {
+      migrateAdjudicationV3(db);
+      db.prepare(
+        "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
+      ).run(3, MIGRATION_V3_NAME, MIGRATION_V3_CHECKSUM, now);
       db.pragma(`user_version = ${SCHEDULER_STORE_SCHEMA_VERSION}`);
     });
     migrate.immediate();
@@ -1369,6 +1617,42 @@ export class SchedulerStore {
         now,
       });
       if (result.changes === 1) {
+        const adjudication = this.db
+          .prepare(
+            `SELECT * FROM scheduler_occurrence_adjudications
+             WHERE occurrence_id = ? AND status = 'pending'`,
+          )
+          .get(row.occurrence_id);
+        if (adjudication) {
+          const retryOutcome = {
+            status: OCCURRENCE_STATUS.DEAD_LETTER,
+            error,
+          };
+          this.db
+            .prepare(
+              `UPDATE scheduler_occurrence_adjudications
+               SET status = 'applied', applied_at = ?, retry_settled_at = ?,
+                   retry_outcome_json = ?
+               WHERE occurrence_id = ? AND status = 'pending'`,
+            )
+            .run(
+              now,
+              now,
+              canonicalJson(retryOutcome, "adjudication.retryOutcome"),
+              row.occurrence_id,
+            );
+          this.db
+            .prepare(
+              `UPDATE scheduler_authority_reservations
+               SET status = 'failed', outcome_json = ?, settled_at = ?
+               WHERE occurrence_id = ? AND status = 'reserved'`,
+            )
+            .run(
+              canonicalJson(retryOutcome, "authoritySettlement"),
+              now,
+              row.occurrence_id,
+            );
+        }
         this._appendEvent({
           jobId: row.job_id,
           occurrenceId: row.occurrence_id,
@@ -1380,6 +1664,9 @@ export class SchedulerStore {
             attempt: row.attempt,
             maxAttempts: row.max_attempts,
             reason: "lease_expired",
+            ...(adjudication
+              ? { adjudicationRequestId: adjudication.request_id }
+              : {}),
           },
         });
       }
@@ -1642,6 +1929,7 @@ export class SchedulerStore {
     error,
     retryable = true,
     retryAt,
+    adjudicationRequestId,
   } = {}) {
     const id = normalizeIdentifier(occurrenceId, "occurrenceId");
     const owner = normalizeIdentifier(ownerId, "ownerId");
@@ -1669,6 +1957,12 @@ export class SchedulerStore {
       outcome !== "failed" || retryAt === undefined
         ? now
         : Math.max(now, normalizeEpochMs(retryAt, "retryAt"));
+    const adjudicationRequest =
+      adjudicationRequestId === undefined
+        ? null
+        : normalizeIdentifier(adjudicationRequestId, "adjudicationRequestId", {
+            maxLength: 128,
+          });
 
     return this._write(() => {
       const current = this.statements.getOccurrence.get(id);
@@ -1772,6 +2066,51 @@ export class SchedulerStore {
           );
         }
       }
+      const adjudication = this.db
+        .prepare(
+          `SELECT * FROM scheduler_occurrence_adjudications
+           WHERE occurrence_id = ?`,
+        )
+        .get(id);
+      if (
+        adjudicationRequest !== null &&
+        adjudication?.status === "pending" &&
+        adjudication.request_id !== adjudicationRequest
+      ) {
+        throw new SchedulerKernelError(
+          "SCHEDULER_ADJUDICATION_SETTLEMENT_CONFLICT",
+          `Scheduler adjudication request does not match settlement: ${id}`,
+        );
+      }
+      if (
+        adjudication?.status === "pending" &&
+        (nextStatus === OCCURRENCE_STATUS.SUCCEEDED ||
+          nextStatus === OCCURRENCE_STATUS.DEAD_LETTER)
+      ) {
+        const retryOutcome =
+          nextStatus === OCCURRENCE_STATUS.SUCCEEDED
+            ? { status: nextStatus, result: normalizedResult }
+            : { status: nextStatus, error: normalizedError };
+        const adjudicationUpdate = this.db
+          .prepare(
+            `UPDATE scheduler_occurrence_adjudications
+             SET status = 'applied', applied_at = ?, retry_settled_at = ?,
+                 retry_outcome_json = ?
+             WHERE occurrence_id = ? AND status = 'pending'`,
+          )
+          .run(
+            now,
+            now,
+            canonicalJson(retryOutcome, "adjudication.retryOutcome"),
+            id,
+          );
+        if (adjudicationUpdate.changes !== 1) {
+          throw new SchedulerKernelError(
+            "SCHEDULER_ADJUDICATION_SETTLEMENT_CONFLICT",
+            `Scheduler adjudication could not be settled: ${id}`,
+          );
+        }
+      }
       this._appendEvent({
         jobId: current.job_id,
         occurrenceId: id,
@@ -1790,6 +2129,9 @@ export class SchedulerStore {
             : {}),
           ...(nextStatus === OCCURRENCE_STATUS.RETRY_WAIT
             ? { retryAt: nextAvailableAt }
+            : {}),
+          ...(adjudication?.status === "pending"
+            ? { adjudicationRequestId: adjudication.request_id }
             : {}),
         },
       });
@@ -1841,6 +2183,259 @@ export class SchedulerStore {
       )
       .all(id, boundedLimit)
       .map(mapOccurrence);
+  }
+
+  _adjudicationCase(occurrenceId) {
+    const row = this.statements.getOccurrence.get(occurrenceId);
+    if (!row) return null;
+    const occurrence = mapOccurrence(row);
+    const reservation = mapAuthorityReservation(
+      this.db
+        .prepare(
+          `SELECT * FROM scheduler_authority_reservations
+           WHERE occurrence_id = ?`,
+        )
+        .get(occurrenceId),
+    );
+    const adjudication = mapAdjudication(
+      this.db
+        .prepare(
+          `SELECT * FROM scheduler_occurrence_adjudications
+           WHERE occurrence_id = ?`,
+        )
+        .get(occurrenceId),
+    );
+    const eligible =
+      occurrence.status === OCCURRENCE_STATUS.DEAD_LETTER &&
+      isOutcomeUnknownError(occurrence.lastError) &&
+      adjudication === null;
+    const evidenceDigest = eligible
+      ? sha256PayloadDigest(
+          adjudicationEvidence(occurrence, reservation),
+          "adjudication.evidence",
+        )
+      : (adjudication?.evidenceDigest ?? null);
+    return {
+      occurrenceId: occurrence.id,
+      jobId: occurrence.jobId,
+      status: occurrence.status,
+      attempt: occurrence.attempt,
+      maxAttempts: occurrence.maxAttempts,
+      fence: occurrence.fence,
+      settledAt: occurrence.settledAt,
+      errorCode:
+        typeof occurrence.lastError?.code === "string"
+          ? occurrence.lastError.code
+          : null,
+      authorityPrincipal: occurrence.authority.principal,
+      reservation:
+        reservation === null
+          ? null
+          : {
+              policyRevision: reservation.policyRevision,
+              units: reservation.units,
+              status: reservation.status,
+            },
+      eligible,
+      evidenceDigest,
+      adjudication,
+    };
+  }
+
+  getAdjudicationCase(occurrenceId) {
+    this._assertOpen();
+    return this._adjudicationCase(
+      normalizeIdentifier(occurrenceId, "occurrenceId"),
+    );
+  }
+
+  listAdjudicationCases({ limit } = {}) {
+    this._assertOpen();
+    const boundedLimit = normalizeHistoryLimit(limit);
+    return this.db
+      .prepare(
+        `SELECT o.occurrence_id
+         FROM occurrences o
+         LEFT JOIN scheduler_occurrence_adjudications a
+           ON a.occurrence_id = o.occurrence_id
+         WHERE o.status = 'dead_letter'
+           AND a.occurrence_id IS NULL
+           AND json_extract(o.last_error_json, '$.code') GLOB '*_OUTCOME_UNKNOWN'
+         ORDER BY o.settled_at DESC, o.occurrence_id
+         LIMIT 1000`,
+      )
+      .all()
+      .map((row) => this._adjudicationCase(row.occurrence_id))
+      .filter((entry) => entry.eligible)
+      .slice(0, boundedLimit);
+  }
+
+  getOccurrenceAdjudication(occurrenceId) {
+    this._assertOpen();
+    const id = normalizeIdentifier(occurrenceId, "occurrenceId");
+    return mapAdjudication(
+      this.db
+        .prepare(
+          `SELECT * FROM scheduler_occurrence_adjudications
+           WHERE occurrence_id = ?`,
+        )
+        .get(id),
+    );
+  }
+
+  adjudicateOccurrence({
+    occurrenceId,
+    decision,
+    expectedEvidenceDigest,
+    expectedAttempt,
+    expectedFence,
+    reasonDigest,
+    operatorDigest,
+  } = {}) {
+    const id = normalizeIdentifier(occurrenceId, "occurrenceId");
+    const normalizedDecision = normalizeAdjudicationDecision(decision);
+    const evidenceDigest = normalizeSha256Digest(
+      expectedEvidenceDigest,
+      "expectedEvidenceDigest",
+    );
+    const reason = normalizeSha256Digest(reasonDigest, "reasonDigest");
+    const operator = normalizeSha256Digest(operatorDigest, "operatorDigest");
+    const attempt = assertPositiveSafeInteger(
+      expectedAttempt,
+      "expectedAttempt",
+    );
+    const fence = assertPositiveSafeInteger(expectedFence, "expectedFence");
+    const now = this._now();
+    return this._write(() => {
+      const adjudicationCase = this._adjudicationCase(id);
+      if (!adjudicationCase) {
+        throw schedulerAdjudicationError(
+          "SCHEDULER_NOT_FOUND",
+          `Scheduler occurrence does not exist: ${id}`,
+        );
+      }
+      if (adjudicationCase.adjudication) {
+        throw schedulerAdjudicationError(
+          "SCHEDULER_ADJUDICATION_ALREADY_RECORDED",
+          `Scheduler occurrence already has a monotonic adjudication: ${id}`,
+          { requestId: adjudicationCase.adjudication.requestId },
+        );
+      }
+      if (!adjudicationCase.eligible) {
+        throw schedulerAdjudicationError(
+          "SCHEDULER_ADJUDICATION_NOT_ELIGIBLE",
+          `Scheduler occurrence is not an outcome-unknown dead letter: ${id}`,
+          {
+            status: adjudicationCase.status,
+            errorCode: adjudicationCase.errorCode,
+          },
+        );
+      }
+      if (
+        adjudicationCase.evidenceDigest !== evidenceDigest ||
+        adjudicationCase.attempt !== attempt ||
+        adjudicationCase.fence !== fence
+      ) {
+        throw schedulerAdjudicationError(
+          "SCHEDULER_ADJUDICATION_EVIDENCE_CONFLICT",
+          `Scheduler adjudication evidence changed: ${id}`,
+          {
+            actualEvidenceDigest: adjudicationCase.evidenceDigest,
+            actualAttempt: adjudicationCase.attempt,
+            actualFence: adjudicationCase.fence,
+          },
+        );
+      }
+      const grantedMaxAttempts =
+        normalizedDecision ===
+        SCHEDULER_ADJUDICATION_DECISIONS.CONFIRMED_APPLIED
+          ? attempt + 2
+          : attempt + 1;
+      if (grantedMaxAttempts > 32) {
+        throw schedulerAdjudicationError(
+          "SCHEDULER_ADJUDICATION_ATTEMPT_LIMIT",
+          `Scheduler occurrence cannot receive a bounded adjudication claim: ${id}`,
+        );
+      }
+      const requestId = deterministicAdjudicationRequestId({
+        occurrenceId: id,
+        decision: normalizedDecision,
+        evidenceDigest,
+        reasonDigest: reason,
+      });
+      this.db
+        .prepare(
+          `INSERT INTO scheduler_occurrence_adjudications
+             (occurrence_id, job_id, request_id, decision, authority,
+              evidence_digest, expected_attempt, expected_fence,
+              reason_digest, operator_digest, status, created_at, applied_at,
+              retry_settled_at, retry_outcome_json)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, NULL, NULL, NULL)`,
+        )
+        .run(
+          id,
+          adjudicationCase.jobId,
+          requestId,
+          normalizedDecision,
+          SCHEDULER_ADJUDICATION_AUTHORITY,
+          evidenceDigest,
+          attempt,
+          fence,
+          reason,
+          operator,
+          now,
+        );
+      const update = this.db
+        .prepare(
+          `UPDATE occurrences
+           SET status = 'retry_wait',
+               available_at = ?,
+               max_attempts = ?,
+               lease_owner = NULL,
+               lease_expires_at = NULL,
+               result_json = NULL,
+               updated_at = ?,
+               settled_at = NULL
+           WHERE occurrence_id = ?
+             AND status = 'dead_letter'
+             AND attempt = ?
+             AND fence = ?`,
+        )
+        .run(now, grantedMaxAttempts, now, id, attempt, fence);
+      if (update.changes !== 1) {
+        throw schedulerAdjudicationError(
+          "SCHEDULER_ADJUDICATION_EVIDENCE_CONFLICT",
+          `Scheduler occurrence changed during adjudication: ${id}`,
+        );
+      }
+      this.db
+        .prepare(
+          `UPDATE scheduler_authority_reservations
+           SET status = 'reserved', outcome_json = NULL, settled_at = NULL
+           WHERE occurrence_id = ? AND status = 'failed'`,
+        )
+        .run(id);
+      this._appendEvent({
+        jobId: adjudicationCase.jobId,
+        occurrenceId: id,
+        type: "occurrence_adjudication_recorded",
+        occurredAt: now,
+        fence,
+        data: {
+          requestId,
+          decision: normalizedDecision,
+          authority: SCHEDULER_ADJUDICATION_AUTHORITY,
+          evidenceDigest,
+          expectedAttempt: attempt,
+          expectedFence: fence,
+          reasonDigest: reason,
+          operatorDigest: operator,
+          retryAttempt: attempt + 1,
+          maxAttempts: grantedMaxAttempts,
+        },
+      });
+      return this._adjudicationCase(id);
+    });
   }
 
   setAuthorityPolicy(

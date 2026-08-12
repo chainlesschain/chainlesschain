@@ -1064,6 +1064,98 @@ export class AgentScheduleStore {
   }
 
   /**
+   * Resolve start-only scheduler evidence after an operator has verified the
+   * external outcome. This is intentionally separate from normal completion:
+   * it preserves the adjudication identity and can release the non-expiring
+   * legacy fence without pretending that a machine observed a terminal result.
+   */
+  adjudicateSchedulerExecution(
+    id,
+    {
+      occurrenceId,
+      snapshotDigest,
+      attempt,
+      decision,
+      requestId,
+      atMs = null,
+    } = {},
+  ) {
+    if (!["confirmed_applied", "confirmed_not_applied"].includes(decision)) {
+      throw agendaStoreError(
+        "AGENDA_SCHEDULER_ADJUDICATION_INVALID",
+        "Agenda scheduler adjudication decision is invalid",
+      );
+    }
+    const now = atMs != null ? Number(atMs) : this._now();
+    this._ensureDir();
+    return withFileLock(
+      path.join(this.dir, ".agenda-claims"),
+      () => {
+        for (const kind of SCHEDULE_KINDS) {
+          const entries = this._readAll(kind);
+          const entry = entries.find((candidate) => candidate.id === id);
+          if (!entry) continue;
+          const evidence = entry.schedulerExecution;
+          if (
+            evidence?.occurrenceId === occurrenceId &&
+            evidence.snapshotDigest === snapshotDigest &&
+            evidence.adjudication?.requestId === requestId &&
+            evidence.adjudication.decision === decision &&
+            evidence.status ===
+              (decision === "confirmed_applied"
+                ? "adjudicated_applied"
+                : "adjudicated_not_applied")
+          ) {
+            return entry;
+          }
+          if (
+            !evidence ||
+            evidence.occurrenceId !== occurrenceId ||
+            evidence.snapshotDigest !== snapshotDigest ||
+            !Number.isSafeInteger(evidence.attempt) ||
+            evidence.attempt < 1 ||
+            evidence.attempt > attempt ||
+            evidence.status !== "running"
+          ) {
+            throw agendaStoreError(
+              "AGENDA_SCHEDULER_ADJUDICATION_EVIDENCE_MISMATCH",
+              `Agenda scheduler adjudication evidence does not match: ${id}`,
+            );
+          }
+          if (decision === "confirmed_applied") {
+            if (entry.kind === "monitor") {
+              // A generic operator decision proves the prior check ran, but
+              // not whether its observation matched. Pause the monitor rather
+              // than inventing a domain result or rearming a duplicate check.
+              entry.status = "adjudicated";
+              entry.lastCheckAt = now;
+            } else {
+              applyScheduledAgentSuccess(entry, now);
+            }
+          }
+          entry.schedulerExecution = {
+            ...evidence,
+            status:
+              decision === "confirmed_applied"
+                ? "adjudicated_applied"
+                : "adjudicated_not_applied",
+            endedAt: now,
+            adjudication: { requestId, decision },
+          };
+          delete entry.executionLease;
+          this._writeAll(kind, entries);
+          return entry;
+        }
+        throw agendaStoreError(
+          "AGENDA_SCHEDULER_ENTRY_NOT_FOUND",
+          `Agenda entry does not exist: ${id}`,
+        );
+      },
+      { failIfUnavailable: true },
+    );
+  }
+
+  /**
    * Retire every schedulable entry whose `expiresAt` has passed (status →
    * "expired", stamping `expiredAt`), across all kinds, so it never fires again.
    * A daemon / `cc agenda run` calls this before firing due entries — mirroring

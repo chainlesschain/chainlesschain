@@ -267,7 +267,21 @@ export function createLoopSchedulerAdapter({ runIteration } = {}) {
   const transientResults = new Map();
   return {
     kind: LOOP_SCHEDULER_KIND,
-    async execute({ occurrence, signal }) {
+    async adjudicate({ occurrence, adjudication }) {
+      if (adjudication.decision === "confirmed_applied") {
+        const match = /^iteration:(\d+)$/.exec(occurrence.triggerKey);
+        return {
+          settled: true,
+          result: {
+            iteration: match ? Number(match[1]) : null,
+            status: "adjudicated-applied",
+            adjudicationRequestId: adjudication.requestId,
+          },
+        };
+      }
+      return { continue: true };
+    },
+    async execute({ occurrence, signal, adjudication }) {
       const definition = loopExecutionSnapshot(occurrence?.payload?.definition);
       if (
         occurrence.payload.snapshotDigest !== loopExecutionDigest(definition)
@@ -285,7 +299,10 @@ export function createLoopSchedulerAdapter({ runIteration } = {}) {
           `Loop occurrence iteration key is invalid: ${occurrence.id}`,
         );
       }
-      if (occurrence.attempt > 1) {
+      const authorizedRetry =
+        adjudication?.decision === "confirmed_not_applied" &&
+        adjudication.expectedAttempt + 1 === occurrence.attempt;
+      if (occurrence.attempt > 1 && !authorizedRetry) {
         throw loopSchedulerError(
           "LOOP_SCHEDULER_OUTCOME_UNKNOWN",
           `Loop iteration may already have produced side effects; refusing replay: ${occurrence.id}`,

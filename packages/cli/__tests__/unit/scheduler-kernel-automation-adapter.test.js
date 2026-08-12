@@ -392,6 +392,81 @@ describe("scheduler-kernel automation adapter", () => {
     expect(listExecutions(f.db, { flowId: flow.id })).toHaveLength(1);
   });
 
+  it("removes only the bound running evidence before one adjudicated retry", async () => {
+    const f = fixture();
+    const flow = activeScheduledFlow(f);
+    const occurrence = enqueue(f, flow);
+    const executionId = automationSchedulerExecutionId(occurrence.id);
+    f.db
+      .prepare(
+        `INSERT INTO auto_executions
+         (id, flow_id, trigger_type, input_data, output_data, status, steps_log,
+          duration_ms, error, test_mode, started_at, completed_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        executionId,
+        flow.id,
+        TRIGGER_TYPE.SCHEDULE,
+        "{}",
+        null,
+        EXECUTION_STATUS.RUNNING,
+        "[]",
+        0,
+        null,
+        0,
+        new Date(f.now).toISOString(),
+        null,
+      );
+    const firstRuntime = new SchedulerRuntime({
+      store: f.schedulerStore,
+      adapters: [createAutomationSchedulerAdapter({ db: f.db })],
+      authorize: authorizeAutomationOccurrence,
+      ownerId: "automation-fail-close-owner",
+      leaseMs: 10_000,
+    });
+    await firstRuntime.runOccurrence(occurrence.id);
+    const candidate = f.schedulerStore.getAdjudicationCase(occurrence.id);
+    f.schedulerStore.adjudicateOccurrence({
+      occurrenceId: occurrence.id,
+      decision: "confirmed_not_applied",
+      expectedEvidenceDigest: candidate.evidenceDigest,
+      expectedAttempt: candidate.attempt,
+      expectedFence: candidate.fence,
+      reasonDigest: `sha256:${"2".repeat(64)}`,
+      operatorDigest: `sha256:${"9".repeat(64)}`,
+    });
+    const recovered = new SchedulerRuntime({
+      store: f.schedulerStore,
+      adapters: [createAutomationSchedulerAdapter({ db: f.db })],
+      authorize: authorizeAutomationOccurrence,
+      ownerId: "automation-adjudication-owner",
+      leaseMs: 10_000,
+    });
+    await expect(recovered.runOccurrence(occurrence.id)).resolves.toMatchObject(
+      {
+        status: "succeeded",
+        result: { id: executionId, status: EXECUTION_STATUS.SUCCESS },
+      },
+    );
+    const adjudicatedExecutions = listExecutions(f.db, { flowId: flow.id });
+    expect(adjudicatedExecutions).toHaveLength(2);
+    expect(adjudicatedExecutions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: executionId,
+          status: EXECUTION_STATUS.SUCCESS,
+        }),
+        expect.objectContaining({ status: EXECUTION_STATUS.CANCELLED }),
+      ]),
+    );
+    expect(
+      f.schedulerStore.getOccurrenceAdjudication(occurrence.id),
+    ).toMatchObject({
+      status: "applied",
+    });
+  });
+
   it("rejects a tampered authority envelope before adapter execution", async () => {
     const f = fixture();
     const flow = activeScheduledFlow(f);

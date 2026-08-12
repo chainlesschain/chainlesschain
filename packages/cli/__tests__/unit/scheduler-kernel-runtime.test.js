@@ -119,6 +119,67 @@ describe("scheduler-kernel runtime", () => {
     ]);
   });
 
+  it("applies confirmed-applied adjudication without replaying the adapter", async () => {
+    const f = fixture();
+    const store = f.open();
+    const occurrence = enqueue(store, f, { job: { maxAttempts: 1 } });
+    const first = store.claimNext({
+      ownerId: "crashed-owner",
+      leaseMs: 10_000,
+    });
+    store.settle({
+      occurrenceId: occurrence.id,
+      ownerId: "crashed-owner",
+      fence: first.fence,
+      outcome: "failed",
+      error: { code: "TEST_OUTCOME_UNKNOWN" },
+      retryable: false,
+    });
+    const candidate = store.getAdjudicationCase(occurrence.id);
+    store.adjudicateOccurrence({
+      occurrenceId: occurrence.id,
+      decision: "confirmed_applied",
+      expectedEvidenceDigest: candidate.evidenceDigest,
+      expectedAttempt: candidate.attempt,
+      expectedFence: candidate.fence,
+      reasonDigest: `sha256:${"d".repeat(64)}`,
+      operatorDigest: `sha256:${"9".repeat(64)}`,
+    });
+    const execute = vi.fn();
+    const adjudicate = vi.fn(async () => ({
+      settled: true,
+      result: { recovered: "operator-confirmed" },
+    }));
+    const runtime = new SchedulerRuntime({
+      store,
+      ownerId: "adjudication-owner",
+      leaseMs: 10_000,
+      adapters: [{ kind: "test.runtime", execute, adjudicate }],
+      authorize: () => ({ allowed: true }),
+    });
+
+    await expect(runtime.runOccurrence(occurrence.id)).resolves.toMatchObject({
+      status: "succeeded",
+      result: { recovered: "operator-confirmed" },
+    });
+    expect(adjudicate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        adjudication: expect.objectContaining({
+          decision: "confirmed_applied",
+          status: "pending",
+        }),
+      }),
+    );
+    expect(execute).not.toHaveBeenCalled();
+    expect(store.getOccurrenceAdjudication(occurrence.id)).toMatchObject({
+      status: "applied",
+      retryOutcome: {
+        status: "succeeded",
+        result: { recovered: "operator-confirmed" },
+      },
+    });
+  });
+
   it("fails closed when authorization is denied or an adapter is missing", async () => {
     const deniedFixture = fixture();
     const deniedStore = deniedFixture.open();

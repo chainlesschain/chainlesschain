@@ -528,7 +528,45 @@ export function createRoutineSchedulerAdapter({ routineStore, runAgent } = {}) {
   }
   return {
     kind: ROUTINE_SCHEDULER_KIND,
-    async execute({ occurrence }) {
+    async adjudicate({ occurrence, adjudication }) {
+      const payload = occurrence.payload;
+      const expected = payload?.routine;
+      const runId = routineSchedulerRunId(occurrence.id);
+      if (
+        !expected ||
+        typeof routineStore.recordRunAdjudication !== "function"
+      ) {
+        throw routineError(
+          "SCHEDULER_ROUTINE_ADJUDICATION_UNSUPPORTED",
+          `Routine adjudication cannot be applied: ${occurrence.id}`,
+        );
+      }
+      routineStore.recordRunAdjudication(runId, {
+        decision: adjudication.decision,
+        requestId: adjudication.requestId,
+        occurrenceId: occurrence.id,
+        snapshotDigest: payload.snapshotDigest,
+      });
+      if (adjudication.decision === "confirmed_applied") {
+        const current = routineStore.get(expected.id);
+        if (current) {
+          routineStore.update(expected.id, {
+            lastFiredAt: occurrence.scheduledFor,
+            ...(current.trigger.kind === "once" ? { enabled: false } : {}),
+          });
+        }
+        return {
+          settled: true,
+          result: {
+            runId,
+            status: "adjudicated-applied",
+            adjudicationRequestId: adjudication.requestId,
+          },
+        };
+      }
+      return { continue: true };
+    },
+    async execute({ occurrence, adjudication }) {
       const payload = occurrence.payload;
       const expected = payload?.routine;
       if (!expected) {
@@ -611,6 +649,7 @@ export function createRoutineSchedulerAdapter({ routineStore, runAgent } = {}) {
         runId: schedulerRunId,
         schedulerOccurrenceId: occurrence.id,
         schedulerSnapshotDigest: payload.snapshotDigest,
+        ...(adjudication ? { adjudication } : {}),
       });
       if (execution.status !== "ok") {
         throw routineError(

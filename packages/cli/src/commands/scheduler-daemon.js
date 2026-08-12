@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { hostname, userInfo } from "node:os";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import {
@@ -7,6 +8,10 @@ import {
   MIN_SERVICE_INTERVAL_MS,
   createSchedulerService,
 } from "../lib/scheduler-kernel/service.js";
+import {
+  schedulerAdjudicationOperatorDigest,
+  schedulerAdjudicationReasonDigest,
+} from "../lib/scheduler-kernel/store.js";
 
 export const SCHEDULER_DAEMON_DOMAINS = Object.freeze(["agenda", "cowork"]);
 
@@ -73,6 +78,144 @@ async function withSchedulerStore(dependencies, operation) {
   } finally {
     store.close();
   }
+}
+
+export function buildSchedulerAdjudicationChallenge({
+  occurrenceId,
+  decision,
+  evidenceDigest,
+  expectedAttempt,
+  expectedFence,
+} = {}) {
+  if (
+    typeof occurrenceId !== "string" ||
+    !["confirmed_applied", "confirmed_not_applied"].includes(decision) ||
+    typeof evidenceDigest !== "string" ||
+    !/^sha256:[a-f0-9]{64}$/.test(evidenceDigest) ||
+    !Number.isSafeInteger(expectedAttempt) ||
+    expectedAttempt < 1 ||
+    !Number.isSafeInteger(expectedFence) ||
+    expectedFence < 1
+  ) {
+    throw schedulerDaemonError(
+      "SCHEDULER_ADJUDICATION_INPUT_INVALID",
+      "Scheduler adjudication challenge input is invalid",
+    );
+  }
+  return (
+    `HOST STOPPED AND SCHEDULER DISPATCH DRAINED; ADJUDICATE ${occurrenceId} ` +
+    `${decision} ${evidenceDigest} ATTEMPT ${expectedAttempt} FENCE ${expectedFence}`
+  );
+}
+
+async function requireSchedulerAdjudicationTTY(request, dependencies = {}) {
+  const stdin = dependencies.stdin || process.stdin;
+  const stdout = dependencies.stdout || process.stdout;
+  if (stdin?.isTTY !== true || stdout?.isTTY !== true) {
+    throw schedulerDaemonError(
+      "SCHEDULER_ADJUDICATION_NON_INTERACTIVE",
+      "Scheduler adjudication requires an interactive TTY",
+    );
+  }
+  const readReason =
+    dependencies.readReason ||
+    (async () => {
+      const { input } = await import("@inquirer/prompts");
+      return input({
+        message: "Reason (only its digest is stored; do not enter secrets)",
+      });
+    });
+  const reason = await readReason();
+  const challenge = buildSchedulerAdjudicationChallenge(request);
+  const readChallenge =
+    dependencies.readChallenge ||
+    (async (expected) => {
+      const { input } = await import("@inquirer/prompts");
+      return input({
+        message:
+          "Stop every scheduler host, drain already-dispatched work, and verify the external outcome. " +
+          `Type this authorization exactly:\n${expected}`,
+      });
+    });
+  if ((await readChallenge(challenge)) !== challenge) {
+    throw schedulerDaemonError(
+      "SCHEDULER_ADJUDICATION_CHALLENGE_FAILED",
+      "Scheduler adjudication challenge did not match; no change was made",
+    );
+  }
+  return { reasonDigest: schedulerAdjudicationReasonDigest(reason), challenge };
+}
+
+export async function listSchedulerAdjudicationCases(
+  options = {},
+  dependencies = {},
+) {
+  return withSchedulerStore(dependencies, (store) =>
+    store.listAdjudicationCases({ limit: options.limit }),
+  );
+}
+
+export async function getSchedulerAdjudicationCase(
+  occurrenceId,
+  dependencies = {},
+) {
+  return withSchedulerStore(dependencies, (store) => {
+    const adjudicationCase = store.getAdjudicationCase(occurrenceId);
+    if (!adjudicationCase) {
+      throw schedulerDaemonError(
+        "SCHEDULER_NOT_FOUND",
+        `Scheduler occurrence does not exist: ${occurrenceId}`,
+      );
+    }
+    return adjudicationCase;
+  });
+}
+
+export async function adjudicateSchedulerOccurrence(
+  occurrenceId,
+  options,
+  dependencies = {},
+) {
+  const request = {
+    occurrenceId,
+    decision: options.decision,
+    evidenceDigest: options.expectedEvidenceDigest,
+    expectedAttempt: positiveInteger(
+      options.expectedAttempt,
+      "expectedAttempt",
+    ),
+    expectedFence: positiveInteger(options.expectedFence, "expectedFence"),
+  };
+  const confirmation = await requireSchedulerAdjudicationTTY(
+    request,
+    dependencies,
+  );
+  const operatorIdentity =
+    dependencies.operatorIdentity ||
+    (() => {
+      let username = "unknown";
+      try {
+        username = userInfo().username || username;
+      } catch {
+        // The digest still binds the host and uid when username lookup fails.
+      }
+      return {
+        username,
+        hostname: hostname(),
+        uid: typeof process.getuid === "function" ? process.getuid() : null,
+      };
+    })();
+  return withSchedulerStore(dependencies, (store) =>
+    store.adjudicateOccurrence({
+      occurrenceId,
+      decision: request.decision,
+      expectedEvidenceDigest: request.evidenceDigest,
+      expectedAttempt: request.expectedAttempt,
+      expectedFence: request.expectedFence,
+      reasonDigest: confirmation.reasonDigest,
+      operatorDigest: schedulerAdjudicationOperatorDigest(operatorIdentity),
+    }),
+  );
 }
 
 export async function getSchedulerAuthorityPolicy(
@@ -441,6 +584,86 @@ export function registerSchedulerDaemonCommands(daemon) {
             null,
             2,
           ),
+        );
+      } catch (error) {
+        logger.error(chalk.red(error.message));
+        process.exitCode = 1;
+      }
+    });
+
+  const adjudication = scheduler
+    .command("adjudication")
+    .description("Inspect or resolve scheduler outcome-unknown dead letters");
+
+  adjudication
+    .command("list", { isDefault: true })
+    .description("List unadjudicated outcome-unknown dead letters")
+    .option("--limit <n>", "Maximum cases to return", "100")
+    .action(async (options) => {
+      try {
+        logger.log(
+          JSON.stringify(
+            await listSchedulerAdjudicationCases({
+              limit: positiveInteger(options.limit, "limit"),
+            }),
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        logger.error(chalk.red(error.message));
+        process.exitCode = 1;
+      }
+    });
+
+  adjudication
+    .command("show")
+    .description("Show one case and its current CAS evidence")
+    .argument("<occurrence-id>", "Scheduler occurrence ID")
+    .action(async (occurrenceId) => {
+      try {
+        logger.log(
+          JSON.stringify(
+            await getSchedulerAdjudicationCase(occurrenceId),
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        logger.error(chalk.red(error.message));
+        process.exitCode = 1;
+      }
+    });
+
+  adjudication
+    .command("decide")
+    .description(
+      "After host stop, dispatch drain and external verification, record one monotonic decision",
+    )
+    .argument("<occurrence-id>", "Scheduler occurrence ID")
+    .requiredOption(
+      "--decision <decision>",
+      "confirmed_applied or confirmed_not_applied",
+    )
+    .requiredOption(
+      "--expected-evidence-digest <digest>",
+      "Exact evidenceDigest from the latest show",
+    )
+    .requiredOption(
+      "--expected-attempt <n>",
+      "Exact attempt from the latest show",
+    )
+    .requiredOption("--expected-fence <n>", "Exact fence from the latest show")
+    .action(async (occurrenceId, options) => {
+      try {
+        const result = await adjudicateSchedulerOccurrence(
+          occurrenceId,
+          options,
+        );
+        logger.log(JSON.stringify(result, null, 2));
+        logger.warn(
+          "The typed challenge is operational evidence, not a machine-wide process lease. " +
+            "Restart a scheduler host to apply the durable decision; confirmed_not_applied permits one bounded claim.",
         );
       } catch (error) {
         logger.error(chalk.red(error.message));

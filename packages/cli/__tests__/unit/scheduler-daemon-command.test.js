@@ -2,6 +2,9 @@ import { EventEmitter } from "node:events";
 import { describe, expect, it, vi } from "vitest";
 import {
   createDefaultSchedulerService,
+  adjudicateSchedulerOccurrence,
+  buildSchedulerAdjudicationChallenge,
+  getSchedulerAdjudicationCase,
   getSchedulerAuthorityPolicy,
   parseSchedulerDomains,
   parseSchedulerIntervalMs,
@@ -68,6 +71,89 @@ describe("scheduler daemon command", () => {
       },
     );
     expect(close).toHaveBeenCalledTimes(2);
+  });
+
+  it("reads a scheduler adjudication case without exposing occurrence payload", async () => {
+    const close = vi.fn();
+    const getAdjudicationCase = vi.fn(() => ({
+      occurrenceId: "occ_test",
+      eligible: true,
+      evidenceDigest: `sha256:${"a".repeat(64)}`,
+    }));
+    await expect(
+      getSchedulerAdjudicationCase("occ_test", {
+        openSchedulerStore: () => ({ close, getAdjudicationCase }),
+      }),
+    ).resolves.toMatchObject({ eligible: true });
+    expect(close).toHaveBeenCalledOnce();
+  });
+
+  it("requires a TTY typed challenge before recording scheduler adjudication", async () => {
+    const evidenceDigest = `sha256:${"b".repeat(64)}`;
+    const request = {
+      occurrenceId: "occ_test",
+      decision: "confirmed_not_applied",
+      evidenceDigest,
+      expectedAttempt: 2,
+      expectedFence: 3,
+    };
+    const challenge = buildSchedulerAdjudicationChallenge(request);
+    const adjudicateOccurrence = vi.fn((input) => ({
+      occurrenceId: input.occurrenceId,
+      adjudication: { decision: input.decision },
+    }));
+    const close = vi.fn();
+    await expect(
+      adjudicateSchedulerOccurrence(
+        "occ_test",
+        {
+          decision: request.decision,
+          expectedEvidenceDigest: evidenceDigest,
+          expectedAttempt: "2",
+          expectedFence: "3",
+        },
+        {
+          stdin: { isTTY: true },
+          stdout: { isTTY: true },
+          readReason: async () => "operator verified remote result",
+          readChallenge: async () => challenge,
+          operatorIdentity: {
+            username: "tester",
+            hostname: "test-host",
+            uid: 1,
+          },
+          openSchedulerStore: () => ({ close, adjudicateOccurrence }),
+        },
+      ),
+    ).resolves.toMatchObject({
+      occurrenceId: "occ_test",
+      adjudication: { decision: "confirmed_not_applied" },
+    });
+    expect(adjudicateOccurrence).toHaveBeenCalledWith(
+      expect.objectContaining({
+        occurrenceId: "occ_test",
+        expectedAttempt: 2,
+        expectedFence: 3,
+        reasonDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+        operatorDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+      }),
+    );
+    expect(close).toHaveBeenCalledOnce();
+
+    await expect(
+      adjudicateSchedulerOccurrence(
+        "occ_test",
+        {
+          decision: request.decision,
+          expectedEvidenceDigest: evidenceDigest,
+          expectedAttempt: "2",
+          expectedFence: "3",
+        },
+        { stdin: { isTTY: false }, stdout: { isTTY: true } },
+      ),
+    ).rejects.toMatchObject({
+      code: "SCHEDULER_ADJUDICATION_NON_INTERACTIVE",
+    });
   });
 
   it("normalizes a strict, deterministic domain selection", () => {
