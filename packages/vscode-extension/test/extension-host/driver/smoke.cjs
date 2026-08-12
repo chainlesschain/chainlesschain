@@ -32,6 +32,7 @@ const REQUIRED_COMMANDS = [
   "chainlesschain.preview.start",
   "chainlesschain.preview.stop",
   "chainlesschain.sessions.workbench",
+  "chainlesschain.automation.center",
   "chainlesschain.session.prStatus",
   "chainlesschain.background.agents",
   "chainlesschain.remote.control",

@@ -2,12 +2,74 @@ import { EventEmitter } from "node:events";
 import { describe, expect, it, vi } from "vitest";
 import {
   createDefaultSchedulerService,
+  getSchedulerAuthorityPolicy,
   parseSchedulerDomains,
   parseSchedulerIntervalMs,
+  parseSchedulerCapabilities,
   runSchedulerDaemon,
+  setSchedulerAuthorityPolicy,
 } from "../../src/commands/scheduler-daemon.js";
 
 describe("scheduler daemon command", () => {
+  it("normalizes exact scheduler capabilities without allowing a wildcard", () => {
+    expect(
+      parseSchedulerCapabilities("agent.execute, network.read,agent.execute"),
+    ).toEqual(["agent.execute", "network.read"]);
+    expect(() => parseSchedulerCapabilities("*")).toThrow(/exact/u);
+    expect(() => parseSchedulerCapabilities(" , ")).toThrow(/exact/u);
+  });
+
+  it("reads and CAS-updates a scheduler permission and budget policy", async () => {
+    const close = vi.fn();
+    const getAuthorityPolicy = vi.fn(() => ({
+      principal: { type: "agenda", id: "daily" },
+      revision: 3,
+    }));
+    const setAuthorityPolicy = vi.fn(() => ({
+      principal: { type: "agenda", id: "daily" },
+      revision: 4,
+      enabled: false,
+    }));
+    const dependencies = {
+      openSchedulerStore: () => ({
+        close,
+        getAuthorityPolicy,
+        setAuthorityPolicy,
+      }),
+    };
+
+    await expect(
+      getSchedulerAuthorityPolicy("agenda", "daily", dependencies),
+    ).resolves.toMatchObject({ revision: 3 });
+    await expect(
+      setSchedulerAuthorityPolicy(
+        "agenda",
+        "daily",
+        {
+          capabilities: "agent.execute",
+          windowSeconds: "3600",
+          maxRuns: "5",
+          maxUnits: "20",
+          expectedRevision: "3",
+          disable: true,
+        },
+        dependencies,
+      ),
+    ).resolves.toMatchObject({ revision: 4, enabled: false });
+    expect(setAuthorityPolicy).toHaveBeenCalledWith(
+      { type: "agenda", id: "daily" },
+      {
+        capabilities: ["agent.execute"],
+        windowMs: 3_600_000,
+        maxRuns: 5,
+        maxUnits: 20,
+        enabled: false,
+        expectedRevision: 3,
+      },
+    );
+    expect(close).toHaveBeenCalledTimes(2);
+  });
+
   it("normalizes a strict, deterministic domain selection", () => {
     expect(parseSchedulerDomains(" cowork,agenda,cowork ")).toEqual([
       "agenda",

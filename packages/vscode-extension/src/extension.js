@@ -28,6 +28,7 @@ const { ActivityLog, summarizeArgs } = require("./activity-log");
 const { createStatusBar } = require("./ui/status-bar");
 const { IdeBridgeTreeProvider } = require("./ui/tree-view");
 const { openDashboard, refreshDashboard } = require("./ui/dashboard");
+const { openAutomationCenter } = require("./ui/automation-center-view");
 const { ChatViewProvider } = require("./chat/chat-view");
 const {
   HOST_DOM_COMMAND,
@@ -712,6 +713,9 @@ function activate(context) {
     vscode.commands.registerCommand("chainlesschain.sessions.workbench", () => {
       openSessionsWorkbenchPanel();
     }),
+    vscode.commands.registerCommand("chainlesschain.automation.center", () =>
+      openAutomationCenter(vscode),
+    ),
     // Artifacts drawer (gap #9): browse the agent deliverable store
     // (`cc artifacts`) — metadata list + preview (markdown/image/text via
     // vscode APIs; html opens externally, never executed in the webview),

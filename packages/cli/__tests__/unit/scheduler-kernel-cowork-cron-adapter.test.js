@@ -159,6 +159,11 @@ describe("scheduler-kernel Cowork cron adapter", () => {
       activeDelivery: null,
       schedulerExecution: { status: "succeeded", attempt: 1 },
     });
+    expect(
+      schedulerStore.db
+        .prepare("SELECT status, units FROM scheduler_authority_reservations")
+        .get(),
+    ).toEqual({ status: "succeeded", units: 1 });
   });
 
   it("binds an IANA zone and collapses downtime to one latest occurrence", async () => {

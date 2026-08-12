@@ -6,7 +6,6 @@ import { getHomeDir } from "../paths.js";
 import { ensurePrivateDirectory, ensurePrivateFile } from "../secure-fs.js";
 import {
   OCCURRENCE_STATUS,
-  SCHEDULER_SCHEMA_VERSION,
   SchedulerKernelError,
   canonicalJson,
   deriveOccurrenceIdentity,
@@ -22,18 +21,35 @@ import {
 const requireCjs = createRequire(import.meta.url);
 
 export const SCHEDULER_APPLICATION_ID = 0x4343534b; // "CCSK"
+export const SCHEDULER_STORE_SCHEMA_VERSION = 2;
 export const DEFAULT_BUSY_TIMEOUT_MS = 5_000;
 export const MAX_LEASE_MS = 24 * 60 * 60 * 1_000;
+export const MIN_AUTHORITY_WINDOW_MS = 60_000;
+export const MAX_AUTHORITY_WINDOW_MS = 31 * 24 * 60 * 60 * 1_000;
+export const MAX_AUTHORITY_BUDGET = 1_000_000;
+export const DEFAULT_AUTHORITY_WINDOW_MS = 24 * 60 * 60 * 1_000;
+export const DEFAULT_AUTHORITY_MAX_RUNS = 100_000;
+export const DEFAULT_AUTHORITY_MAX_UNITS = 100_000;
 
-const MIGRATION_NAME = "scheduler-kernel-v1";
-const USER_TABLES = Object.freeze([
+const MIGRATION_V1_NAME = "scheduler-kernel-v1";
+const MIGRATION_V2_NAME = "scheduler-kernel-authority-v2";
+const V1_USER_TABLES = Object.freeze([
   "events",
   "jobs",
   "migrations",
   "occurrences",
 ]);
+const USER_TABLES = Object.freeze([
+  "events",
+  "jobs",
+  "migrations",
+  "occurrences",
+  "scheduler_authority_policies",
+  "scheduler_authority_reservations",
+  "scheduler_authority_usage",
+]);
 
-const MIGRATION_V1_SQL = `
+export const MIGRATION_V1_SQL = `
 CREATE TABLE migrations (
   version     INTEGER PRIMARY KEY NOT NULL,
   name        TEXT NOT NULL UNIQUE,
@@ -120,11 +136,86 @@ export const MIGRATION_V1_CHECKSUM = createHash("sha256")
   .update(MIGRATION_V1_SQL.trim().replace(/\r\n/g, "\n"), "utf8")
   .digest("hex");
 
+export const MIGRATION_V2_SQL = `
+CREATE TABLE scheduler_authority_policies (
+  principal_type     TEXT NOT NULL,
+  principal_id       TEXT NOT NULL,
+  revision           INTEGER NOT NULL CHECK (revision >= 1),
+  enabled            INTEGER NOT NULL CHECK (enabled IN (0, 1)),
+  capabilities_json  TEXT NOT NULL CHECK (json_valid(capabilities_json)),
+  window_ms          INTEGER NOT NULL CHECK (
+    window_ms BETWEEN 60000 AND 2678400000
+  ),
+  max_runs           INTEGER NOT NULL CHECK (
+    max_runs BETWEEN 1 AND 1000000
+  ),
+  max_units          INTEGER NOT NULL CHECK (
+    max_units BETWEEN 1 AND 1000000
+  ),
+  created_at         INTEGER NOT NULL CHECK (created_at >= 0),
+  updated_at         INTEGER NOT NULL CHECK (updated_at >= 0),
+  PRIMARY KEY (principal_type, principal_id)
+);
+
+CREATE TABLE scheduler_authority_usage (
+  principal_type     TEXT NOT NULL,
+  principal_id       TEXT NOT NULL,
+  policy_revision    INTEGER NOT NULL CHECK (policy_revision >= 1),
+  window_started_at  INTEGER NOT NULL CHECK (window_started_at >= 0),
+  runs               INTEGER NOT NULL CHECK (runs BETWEEN 0 AND 1000000),
+  units              INTEGER NOT NULL CHECK (units BETWEEN 0 AND 1000000),
+  updated_at         INTEGER NOT NULL CHECK (updated_at >= 0),
+  PRIMARY KEY (
+    principal_type,
+    principal_id,
+    policy_revision,
+    window_started_at
+  )
+);
+
+CREATE TABLE scheduler_authority_reservations (
+  occurrence_id      TEXT PRIMARY KEY NOT NULL
+                     REFERENCES occurrences(occurrence_id) ON DELETE RESTRICT,
+  job_id             TEXT NOT NULL REFERENCES jobs(job_id) ON DELETE RESTRICT,
+  principal_type     TEXT NOT NULL,
+  principal_id       TEXT NOT NULL,
+  policy_revision    INTEGER NOT NULL CHECK (policy_revision >= 1),
+  window_started_at  INTEGER NOT NULL CHECK (window_started_at >= 0),
+  units              INTEGER NOT NULL CHECK (units BETWEEN 1 AND 1000000),
+  status             TEXT NOT NULL CHECK (
+    status IN ('reserved', 'succeeded', 'failed')
+  ),
+  outcome_json       TEXT CHECK (
+    outcome_json IS NULL OR json_valid(outcome_json)
+  ),
+  created_at         INTEGER NOT NULL CHECK (created_at >= 0),
+  settled_at         INTEGER,
+  CHECK (
+    (status = 'reserved' AND outcome_json IS NULL AND settled_at IS NULL)
+    OR
+    (status <> 'reserved' AND outcome_json IS NOT NULL AND settled_at IS NOT NULL)
+  )
+);
+
+CREATE INDEX scheduler_authority_reservations_principal
+  ON scheduler_authority_reservations
+    (principal_type, principal_id, policy_revision, window_started_at);
+CREATE INDEX scheduler_authority_reservations_status
+  ON scheduler_authority_reservations(status, created_at);
+`;
+
+export const MIGRATION_V2_CHECKSUM = createHash("sha256")
+  .update(MIGRATION_V2_SQL.trim().replace(/\r\n/g, "\n"), "utf8")
+  .update("\0scheduler-authority-v2-backfill-v1", "utf8")
+  .digest("hex");
+
 // Fingerprint of the normalized sqlite_master catalog produced by the v1 DDL.
 // Unlike the migration-source checksum, this also detects added triggers/views
 // and constraint/foreign-key changes that preserve the visible column list.
 export const SCHEMA_V1_FINGERPRINT =
   "cf244f675ac7430683f67046b57524eb6c14baa45d6463ed3f704be898fec887";
+export const SCHEMA_V2_FINGERPRINT =
+  "402c58d4b3b217699591528f9be6c1c7fe341650b843eb2d8d9d907779ff27b0";
 
 const EXPECTED_COLUMNS = Object.freeze({
   migrations: [
@@ -177,9 +268,45 @@ const EXPECTED_COLUMNS = Object.freeze({
     ["fence", "INTEGER", 0, 0],
     ["data_json", "TEXT", 1, 0],
   ],
+  scheduler_authority_policies: [
+    ["principal_type", "TEXT", 1, 1],
+    ["principal_id", "TEXT", 1, 2],
+    ["revision", "INTEGER", 1, 0],
+    ["enabled", "INTEGER", 1, 0],
+    ["capabilities_json", "TEXT", 1, 0],
+    ["window_ms", "INTEGER", 1, 0],
+    ["max_runs", "INTEGER", 1, 0],
+    ["max_units", "INTEGER", 1, 0],
+    ["created_at", "INTEGER", 1, 0],
+    ["updated_at", "INTEGER", 1, 0],
+  ],
+  scheduler_authority_usage: [
+    ["principal_type", "TEXT", 1, 1],
+    ["principal_id", "TEXT", 1, 2],
+    ["policy_revision", "INTEGER", 1, 3],
+    ["window_started_at", "INTEGER", 1, 4],
+    ["runs", "INTEGER", 1, 0],
+    ["units", "INTEGER", 1, 0],
+    ["updated_at", "INTEGER", 1, 0],
+  ],
+  scheduler_authority_reservations: [
+    ["occurrence_id", "TEXT", 1, 1],
+    ["job_id", "TEXT", 1, 0],
+    ["principal_type", "TEXT", 1, 0],
+    ["principal_id", "TEXT", 1, 0],
+    ["policy_revision", "INTEGER", 1, 0],
+    ["window_started_at", "INTEGER", 1, 0],
+    ["units", "INTEGER", 1, 0],
+    ["status", "TEXT", 1, 0],
+    ["outcome_json", "TEXT", 0, 0],
+    ["created_at", "INTEGER", 1, 0],
+    ["settled_at", "INTEGER", 0, 0],
+  ],
 });
 
 const EXPECTED_INDEXES = Object.freeze([
+  "scheduler_authority_reservations_principal",
+  "scheduler_authority_reservations_status",
   "scheduler_events_job",
   "scheduler_events_occurrence",
   "scheduler_occurrences_claim",
@@ -216,6 +343,84 @@ function normalizeBoolean(value, field) {
     throw invalidArgument(`${field} must be a boolean`);
   }
   return value;
+}
+
+function normalizeAuthorityBudgetLimit(
+  value,
+  field,
+  { minimum = 1, maximum = MAX_AUTHORITY_BUDGET } = {},
+) {
+  if (!Number.isSafeInteger(value) || value < minimum || value > maximum) {
+    throw invalidArgument(
+      `${field} must be an integer between ${minimum} and ${maximum}`,
+    );
+  }
+  return value;
+}
+
+function normalizeAuthorityPrincipal(principal) {
+  if (!principal || typeof principal !== "object" || Array.isArray(principal)) {
+    throw invalidArgument("authority principal must be an object");
+  }
+  return {
+    type: normalizeIdentifier(principal.type, "authority.principal.type", {
+      maxLength: 64,
+    }),
+    id: normalizeIdentifier(principal.id, "authority.principal.id"),
+  };
+}
+
+function normalizeCapabilityList(value, field = "capabilities") {
+  if (!Array.isArray(value) || value.length === 0 || value.length > 256) {
+    throw invalidArgument(`${field} must contain between 1 and 256 entries`);
+  }
+  const capabilities = [
+    ...new Set(
+      value.map((capability, index) =>
+        normalizeIdentifier(capability, `${field}[${index}]`),
+      ),
+    ),
+  ].sort();
+  if (capabilities.includes("*")) {
+    throw invalidArgument(`${field} must contain exact capabilities`);
+  }
+  return capabilities;
+}
+
+function mapAuthorityPolicy(row) {
+  if (!row) return null;
+  return {
+    principal: { type: row.principal_type, id: row.principal_id },
+    revision: row.revision,
+    enabled: row.enabled === 1,
+    capabilities: normalizeCapabilityList(
+      readStoredJson(row.capabilities_json, "scheduler authority capabilities"),
+    ),
+    windowMs: row.window_ms,
+    maxRuns: row.max_runs,
+    maxUnits: row.max_units,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function mapAuthorityReservation(row) {
+  if (!row) return null;
+  return {
+    occurrenceId: row.occurrence_id,
+    jobId: row.job_id,
+    principal: { type: row.principal_type, id: row.principal_id },
+    policyRevision: row.policy_revision,
+    windowStartedAt: row.window_started_at,
+    units: row.units,
+    status: row.status,
+    outcome:
+      row.outcome_json === null
+        ? null
+        : readStoredJson(row.outcome_json, "scheduler authority outcome"),
+    createdAt: row.created_at,
+    settledAt: row.settled_at,
+  };
 }
 
 function normalizeJobInput(input) {
@@ -428,7 +633,7 @@ function verifyTableShape(db, table) {
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
     throw schemaError(
       "SCHEDULER_SCHEMA_CORRUPT",
-      `Scheduler table shape does not match v1: ${table}`,
+      `Scheduler table shape is invalid: ${table}`,
       undefined,
       { expected, actual },
     );
@@ -454,15 +659,16 @@ function schemaFingerprint(db) {
     .digest("hex");
 }
 
-function verifySchema(db) {
+function verifySchema(db, version = SCHEDULER_STORE_SCHEMA_VERSION) {
   assertDatabaseIntegrity(db);
   const tables = listUserTables(db);
-  if (JSON.stringify(tables) !== JSON.stringify(USER_TABLES)) {
+  const expectedTables = version === 1 ? V1_USER_TABLES : USER_TABLES;
+  if (JSON.stringify(tables) !== JSON.stringify(expectedTables)) {
     throw schemaError(
       "SCHEDULER_SCHEMA_UNKNOWN",
       "Scheduler database has unknown or missing tables",
       undefined,
-      { expected: USER_TABLES, actual: tables },
+      { expected: expectedTables, actual: tables },
     );
   }
 
@@ -478,10 +684,7 @@ function verifySchema(db) {
       cause,
     );
   }
-  if (
-    applicationId !== SCHEDULER_APPLICATION_ID ||
-    userVersion !== SCHEDULER_SCHEMA_VERSION
-  ) {
+  if (applicationId !== SCHEDULER_APPLICATION_ID || userVersion !== version) {
     throw schemaError(
       "SCHEDULER_SCHEMA_UNKNOWN",
       "Scheduler schema version or application identity is unknown",
@@ -490,16 +693,18 @@ function verifySchema(db) {
     );
   }
 
-  for (const table of USER_TABLES) verifyTableShape(db, table);
+  for (const table of expectedTables) verifyTableShape(db, table);
 
   const actualFingerprint = schemaFingerprint(db);
-  if (actualFingerprint !== SCHEMA_V1_FINGERPRINT) {
+  const expectedFingerprint =
+    version === 1 ? SCHEMA_V1_FINGERPRINT : SCHEMA_V2_FINGERPRINT;
+  if (actualFingerprint !== expectedFingerprint) {
     throw schemaError(
       "SCHEDULER_SCHEMA_CORRUPT",
-      "Scheduler sqlite_master catalog does not match v1",
+      `Scheduler sqlite_master catalog does not match v${version}`,
       undefined,
       {
-        expected: SCHEMA_V1_FINGERPRINT,
+        expected: expectedFingerprint,
         actual: actualFingerprint,
       },
     );
@@ -520,10 +725,14 @@ function verifySchema(db) {
     );
   }
   if (
-    migrations.length !== 1 ||
-    migrations[0].version !== SCHEDULER_SCHEMA_VERSION ||
-    migrations[0].name !== MIGRATION_NAME ||
-    migrations[0].checksum !== MIGRATION_V1_CHECKSUM
+    migrations.length !== version ||
+    migrations[0].version !== 1 ||
+    migrations[0].name !== MIGRATION_V1_NAME ||
+    migrations[0].checksum !== MIGRATION_V1_CHECKSUM ||
+    (version === 2 &&
+      (migrations[1]?.version !== 2 ||
+        migrations[1]?.name !== MIGRATION_V2_NAME ||
+        migrations[1]?.checksum !== MIGRATION_V2_CHECKSUM))
   ) {
     throw schemaError(
       "SCHEDULER_SCHEMA_UNKNOWN",
@@ -539,12 +748,18 @@ function verifySchema(db) {
     )
     .all()
     .map((row) => row.name);
-  if (JSON.stringify(indexes) !== JSON.stringify(EXPECTED_INDEXES)) {
+  const expectedIndexes =
+    version === 1
+      ? EXPECTED_INDEXES.filter(
+          (name) => !name.startsWith("scheduler_authority_"),
+        )
+      : EXPECTED_INDEXES;
+  if (JSON.stringify(indexes) !== JSON.stringify(expectedIndexes)) {
     throw schemaError(
       "SCHEDULER_SCHEMA_CORRUPT",
-      "Scheduler indexes do not match v1",
+      `Scheduler indexes do not match v${version}`,
       undefined,
-      { expected: EXPECTED_INDEXES, actual: indexes },
+      { expected: expectedIndexes, actual: indexes },
     );
   }
   const foreignKeyFailures = db.pragma("foreign_key_check");
@@ -558,22 +773,108 @@ function verifySchema(db) {
   }
 }
 
+function migrateAuthorityV2(db, now) {
+  db.exec(MIGRATION_V2_SQL);
+  const policies = new Map();
+  const jobs = db
+    .prepare("SELECT job_id, authority_json FROM jobs ORDER BY job_id")
+    .all();
+  const occurrences = db
+    .prepare(
+      `SELECT occurrence_id, status, authority_json
+       FROM occurrences ORDER BY occurrence_id`,
+    )
+    .all();
+  const bind = (encoded, field) => {
+    const authority = readStoredAuthority(encoded, field);
+    const key = canonicalJson(authority.principal, `${field}.principal`);
+    const current = policies.get(key) ?? {
+      principal: authority.principal,
+      capabilities: new Set(),
+    };
+    for (const capability of authority.requestedCapabilities) {
+      current.capabilities.add(capability);
+    }
+    policies.set(key, current);
+    return {
+      ...authority,
+      authorizationRefs: {
+        ...authority.authorizationRefs,
+        schedulerPolicyRevision: "scheduler-authority:1",
+      },
+    };
+  };
+  const boundJobs = jobs.map((row) => ({
+    id: row.job_id,
+    authority: bind(row.authority_json, `job ${row.job_id} authority`),
+  }));
+  const boundOccurrences = occurrences.map((row) => {
+    const field = `occurrence ${row.occurrence_id} authority`;
+    const terminal =
+      row.status === OCCURRENCE_STATUS.SUCCEEDED ||
+      row.status === OCCURRENCE_STATUS.DEAD_LETTER;
+    return {
+      id: row.occurrence_id,
+      terminal,
+      // Validate terminal history too, but do not widen the active policy with
+      // capabilities that no current or replayable occurrence still needs.
+      authority: terminal
+        ? readStoredAuthority(row.authority_json, field)
+        : bind(row.authority_json, field),
+    };
+  });
+  const insertPolicy = db.prepare(
+    `INSERT INTO scheduler_authority_policies
+       (principal_type, principal_id, revision, enabled,
+        capabilities_json, window_ms, max_runs, max_units,
+        created_at, updated_at)
+     VALUES (?, ?, 1, 1, ?, ?, ?, ?, ?, ?)`,
+  );
+  for (const { principal, capabilities } of policies.values()) {
+    insertPolicy.run(
+      principal.type,
+      principal.id,
+      canonicalJson([...capabilities].sort(), "authorityPolicy.capabilities"),
+      DEFAULT_AUTHORITY_WINDOW_MS,
+      DEFAULT_AUTHORITY_MAX_RUNS,
+      DEFAULT_AUTHORITY_MAX_UNITS,
+      now,
+      now,
+    );
+  }
+  const updateJob = db.prepare(
+    "UPDATE jobs SET authority_json = ? WHERE job_id = ?",
+  );
+  for (const row of boundJobs) {
+    updateJob.run(canonicalJson(row.authority, "job.authority"), row.id);
+  }
+  const updateOccurrence = db.prepare(
+    "UPDATE occurrences SET authority_json = ? WHERE occurrence_id = ?",
+  );
+  for (const row of boundOccurrences) {
+    if (row.terminal) continue;
+    updateOccurrence.run(
+      canonicalJson(row.authority, "occurrence.authority"),
+      row.id,
+    );
+  }
+}
+
 function initializeOrVerifySchema(db, now) {
   assertDatabaseIntegrity(db);
   const tables = listUserTables(db);
   if (tables.length === 0) {
     const migrate = db.transaction(() => {
       db.exec(MIGRATION_V1_SQL);
+      migrateAuthorityV2(db, now);
       db.prepare(
         "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
-      ).run(
-        SCHEDULER_SCHEMA_VERSION,
-        MIGRATION_NAME,
-        MIGRATION_V1_CHECKSUM,
-        now,
-      );
+      ).run(1, MIGRATION_V1_NAME, MIGRATION_V1_CHECKSUM, now);
+      db.prepare(
+        "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
+      ).run(2, MIGRATION_V2_NAME, MIGRATION_V2_CHECKSUM, now);
       db.pragma(`application_id = ${SCHEDULER_APPLICATION_ID}`);
-      db.pragma(`user_version = ${SCHEDULER_SCHEMA_VERSION}`);
+      db.pragma(`user_version = ${SCHEDULER_STORE_SCHEMA_VERSION}`);
     });
     migrate.immediate();
   } else if (!tables.includes("migrations")) {
@@ -583,6 +884,16 @@ function initializeOrVerifySchema(db, now) {
       undefined,
       { tables },
     );
+  } else if (db.pragma("user_version", { simple: true }) === 1) {
+    verifySchema(db, 1);
+    const migrate = db.transaction(() => {
+      migrateAuthorityV2(db, now);
+      db.prepare(
+        "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
+      ).run(2, MIGRATION_V2_NAME, MIGRATION_V2_CHECKSUM, now);
+      db.pragma(`user_version = ${SCHEDULER_STORE_SCHEMA_VERSION}`);
+    });
+    migrate.immediate();
   }
   verifySchema(db);
 }
@@ -1425,6 +1736,42 @@ export class SchedulerStore {
           settledAt,
         });
       if (update.changes !== 1) throw leaseLost(id);
+      const reservation = this.db
+        .prepare(
+          `SELECT * FROM scheduler_authority_reservations
+           WHERE occurrence_id = ?`,
+        )
+        .get(id);
+      if (
+        reservation?.status === "reserved" &&
+        (nextStatus === OCCURRENCE_STATUS.SUCCEEDED ||
+          nextStatus === OCCURRENCE_STATUS.DEAD_LETTER)
+      ) {
+        const authorityOutcome =
+          nextStatus === OCCURRENCE_STATUS.SUCCEEDED ? "succeeded" : "failed";
+        const authorityResult =
+          authorityOutcome === "succeeded"
+            ? { status: nextStatus, result: normalizedResult }
+            : { status: nextStatus, error: normalizedError };
+        const authorityUpdate = this.db
+          .prepare(
+            `UPDATE scheduler_authority_reservations
+             SET status = ?, outcome_json = ?, settled_at = ?
+             WHERE occurrence_id = ? AND status = 'reserved'`,
+          )
+          .run(
+            authorityOutcome,
+            canonicalJson(authorityResult, "authoritySettlement"),
+            now,
+            id,
+          );
+        if (authorityUpdate.changes !== 1) {
+          throw new SchedulerKernelError(
+            "SCHEDULER_AUTHORITY_SETTLEMENT_CONFLICT",
+            `Scheduler authority reservation could not be settled: ${id}`,
+          );
+        }
+      }
       this._appendEvent({
         jobId: current.job_id,
         occurrenceId: id,
@@ -1435,6 +1782,12 @@ export class SchedulerStore {
         data: {
           attempt: current.attempt,
           maxAttempts: current.max_attempts,
+          ...(reservation
+            ? {
+                authorityPolicyRevision: reservation.policy_revision,
+                authorityUnits: reservation.units,
+              }
+            : {}),
           ...(nextStatus === OCCURRENCE_STATUS.RETRY_WAIT
             ? { retryAt: nextAvailableAt }
             : {}),
@@ -1488,6 +1841,313 @@ export class SchedulerStore {
       )
       .all(id, boundedLimit)
       .map(mapOccurrence);
+  }
+
+  setAuthorityPolicy(
+    principal,
+    {
+      capabilities,
+      windowMs,
+      maxRuns,
+      maxUnits,
+      enabled = true,
+      expectedRevision,
+    } = {},
+  ) {
+    const actor = normalizeAuthorityPrincipal(principal);
+    const allowedCapabilities = normalizeCapabilityList(capabilities);
+    const window = normalizeAuthorityBudgetLimit(windowMs, "windowMs", {
+      minimum: MIN_AUTHORITY_WINDOW_MS,
+      maximum: MAX_AUTHORITY_WINDOW_MS,
+    });
+    const runs = normalizeAuthorityBudgetLimit(maxRuns, "maxRuns");
+    const units = normalizeAuthorityBudgetLimit(maxUnits, "maxUnits");
+    const active = normalizeBoolean(enabled, "enabled");
+    if (
+      expectedRevision !== undefined &&
+      (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0)
+    ) {
+      throw invalidArgument("expectedRevision must be an integer >= 0");
+    }
+    const now = this._now();
+    return this._write(() => {
+      const current = this.db
+        .prepare(
+          `SELECT * FROM scheduler_authority_policies
+           WHERE principal_type = ? AND principal_id = ?`,
+        )
+        .get(actor.type, actor.id);
+      const currentRevision = current?.revision ?? 0;
+      if (
+        expectedRevision !== undefined &&
+        expectedRevision !== currentRevision
+      ) {
+        throw new SchedulerKernelError(
+          "SCHEDULER_AUTHORITY_POLICY_CONFLICT",
+          "Scheduler authority policy revision does not match",
+          { expectedRevision, actualRevision: currentRevision },
+        );
+      }
+      const revision = currentRevision + 1;
+      this.db
+        .prepare(
+          `INSERT INTO scheduler_authority_policies
+             (principal_type, principal_id, revision, enabled,
+              capabilities_json, window_ms, max_runs, max_units,
+              created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(principal_type, principal_id) DO UPDATE SET
+             revision = excluded.revision,
+             enabled = excluded.enabled,
+             capabilities_json = excluded.capabilities_json,
+             window_ms = excluded.window_ms,
+             max_runs = excluded.max_runs,
+             max_units = excluded.max_units,
+             updated_at = excluded.updated_at`,
+        )
+        .run(
+          actor.type,
+          actor.id,
+          revision,
+          active ? 1 : 0,
+          canonicalJson(allowedCapabilities, "authorityPolicy.capabilities"),
+          window,
+          runs,
+          units,
+          current?.created_at ?? now,
+          now,
+        );
+      return this.getAuthorityPolicy(actor);
+    });
+  }
+
+  getAuthorityPolicy(principal) {
+    this._assertOpen();
+    const actor = normalizeAuthorityPrincipal(principal);
+    return mapAuthorityPolicy(
+      this.db
+        .prepare(
+          `SELECT * FROM scheduler_authority_policies
+           WHERE principal_type = ? AND principal_id = ?`,
+        )
+        .get(actor.type, actor.id),
+    );
+  }
+
+  ensureAuthorityPolicy(
+    authority,
+    {
+      windowMs = DEFAULT_AUTHORITY_WINDOW_MS,
+      maxRuns = DEFAULT_AUTHORITY_MAX_RUNS,
+      maxUnits = DEFAULT_AUTHORITY_MAX_UNITS,
+    } = {},
+  ) {
+    const normalized = normalizeAuthorityEnvelope(authority);
+    const current = this.getAuthorityPolicy(normalized.principal);
+    if (current) return current;
+    try {
+      return this.setAuthorityPolicy(normalized.principal, {
+        capabilities: normalized.requestedCapabilities,
+        windowMs,
+        maxRuns,
+        maxUnits,
+        expectedRevision: 0,
+      });
+    } catch (error) {
+      if (error?.code !== "SCHEDULER_AUTHORITY_POLICY_CONFLICT") throw error;
+      const raced = this.getAuthorityPolicy(normalized.principal);
+      if (raced) return raced;
+      throw error;
+    }
+  }
+
+  getAuthorityReservation(occurrenceId) {
+    this._assertOpen();
+    const id = normalizeIdentifier(occurrenceId, "occurrenceId");
+    return mapAuthorityReservation(
+      this.db
+        .prepare(
+          `SELECT * FROM scheduler_authority_reservations
+           WHERE occurrence_id = ?`,
+        )
+        .get(id),
+    );
+  }
+
+  reserveAuthority({ occurrenceId, policyRevision, units = 1 } = {}) {
+    const id = normalizeIdentifier(occurrenceId, "occurrenceId");
+    const expectedPolicyRevision = normalizeAuthorityBudgetLimit(
+      policyRevision,
+      "policyRevision",
+      { maximum: Number.MAX_SAFE_INTEGER },
+    );
+    const requestedUnits = normalizeAuthorityBudgetLimit(units, "units");
+    const now = this._now();
+    return this._write(() => {
+      const occurrence = mapOccurrence(this.statements.getOccurrence.get(id));
+      if (!occurrence) {
+        throw new SchedulerKernelError(
+          "SCHEDULER_NOT_FOUND",
+          `Scheduler occurrence does not exist: ${id}`,
+        );
+      }
+      if (occurrence.status !== OCCURRENCE_STATUS.RUNNING) {
+        throw new SchedulerKernelError(
+          "SCHEDULER_AUTHORITY_OCCURRENCE_NOT_RUNNING",
+          `Scheduler authority may only reserve a running occurrence: ${id}`,
+        );
+      }
+      const existing = this.db
+        .prepare(
+          `SELECT * FROM scheduler_authority_reservations
+           WHERE occurrence_id = ?`,
+        )
+        .get(id);
+      if (existing) {
+        const reservation = mapAuthorityReservation(existing);
+        if (
+          reservation.jobId !== occurrence.jobId ||
+          reservation.principal.type !== occurrence.authority.principal.type ||
+          reservation.principal.id !== occurrence.authority.principal.id ||
+          reservation.policyRevision !== expectedPolicyRevision ||
+          reservation.units !== requestedUnits
+        ) {
+          throw new SchedulerKernelError(
+            "SCHEDULER_AUTHORITY_RESERVATION_MISMATCH",
+            `Scheduler authority reservation identity is mismatched: ${id}`,
+          );
+        }
+        return { ...reservation, deduplicated: true };
+      }
+      const principal = occurrence.authority.principal;
+      const policyRow = this.db
+        .prepare(
+          `SELECT * FROM scheduler_authority_policies
+           WHERE principal_type = ? AND principal_id = ?`,
+        )
+        .get(principal.type, principal.id);
+      const policy = mapAuthorityPolicy(policyRow);
+      if (!policy || !policy.enabled) {
+        throw new SchedulerKernelError(
+          "SCHEDULER_AUTHORITY_POLICY_REQUIRED",
+          `Scheduler authority policy is missing or disabled: ${principal.type}:${principal.id}`,
+        );
+      }
+      if (policy.revision !== expectedPolicyRevision) {
+        throw new SchedulerKernelError(
+          "SCHEDULER_AUTHORITY_POLICY_STALE",
+          `Scheduler authority policy changed before reservation: ${principal.type}:${principal.id}`,
+          {
+            expectedRevision: expectedPolicyRevision,
+            actualRevision: policy.revision,
+          },
+        );
+      }
+      const denied = occurrence.authority.requestedCapabilities.filter(
+        (capability) =>
+          !policy.capabilities.includes("*") &&
+          !policy.capabilities.includes(capability),
+      );
+      if (denied.length > 0) {
+        throw new SchedulerKernelError(
+          "SCHEDULER_AUTHORITY_PERMISSION_DENIED",
+          `Scheduler authority capability was denied: ${principal.type}:${principal.id}`,
+          { denied },
+        );
+      }
+      const windowStartedAt =
+        Math.floor(now / policy.windowMs) * policy.windowMs;
+      const usage = this.db
+        .prepare(
+          `SELECT runs, units FROM scheduler_authority_usage
+           WHERE principal_type = ? AND principal_id = ?
+             AND policy_revision = ? AND window_started_at = ?`,
+        )
+        .get(
+          principal.type,
+          principal.id,
+          policy.revision,
+          windowStartedAt,
+        ) ?? { runs: 0, units: 0 };
+      const reservations = this.db
+        .prepare(
+          `SELECT COUNT(*) AS runs, COALESCE(SUM(units), 0) AS units
+           FROM scheduler_authority_reservations
+           WHERE principal_type = ? AND principal_id = ?
+             AND policy_revision = ? AND window_started_at = ?`,
+        )
+        .get(principal.type, principal.id, policy.revision, windowStartedAt);
+      if (
+        reservations.runs !== usage.runs ||
+        reservations.units !== usage.units
+      ) {
+        throw new SchedulerKernelError(
+          "SCHEDULER_AUTHORITY_BUDGET_STATE_INVALID",
+          `Scheduler authority usage does not match reservations: ${principal.type}:${principal.id}`,
+          { usage, reservations },
+        );
+      }
+      const nextRuns = usage.runs + 1;
+      const nextUnits = usage.units + requestedUnits;
+      if (nextRuns > policy.maxRuns || nextUnits > policy.maxUnits) {
+        throw new SchedulerKernelError(
+          "SCHEDULER_AUTHORITY_BUDGET_EXHAUSTED",
+          `Scheduler authority budget is exhausted: ${principal.type}:${principal.id}`,
+          {
+            windowStartedAt,
+            windowEndsAt: windowStartedAt + policy.windowMs,
+            usedRuns: usage.runs,
+            usedUnits: usage.units,
+            requestedUnits,
+            maxRuns: policy.maxRuns,
+            maxUnits: policy.maxUnits,
+          },
+        );
+      }
+      this.db
+        .prepare(
+          `INSERT INTO scheduler_authority_usage
+             (principal_type, principal_id, policy_revision,
+              window_started_at, runs, units, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(principal_type, principal_id, policy_revision,
+                       window_started_at) DO UPDATE SET
+             runs = excluded.runs,
+             units = excluded.units,
+             updated_at = excluded.updated_at`,
+        )
+        .run(
+          principal.type,
+          principal.id,
+          policy.revision,
+          windowStartedAt,
+          nextRuns,
+          nextUnits,
+          now,
+        );
+      this.db
+        .prepare(
+          `INSERT INTO scheduler_authority_reservations
+             (occurrence_id, job_id, principal_type, principal_id,
+              policy_revision, window_started_at, units, status,
+              outcome_json, created_at, settled_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 'reserved', NULL, ?, NULL)`,
+        )
+        .run(
+          id,
+          occurrence.jobId,
+          principal.type,
+          principal.id,
+          policy.revision,
+          windowStartedAt,
+          requestedUnits,
+          now,
+        );
+      return {
+        ...this.getAuthorityReservation(id),
+        deduplicated: false,
+      };
+    });
   }
 
   schemaInfo() {

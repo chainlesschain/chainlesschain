@@ -8,11 +8,26 @@ import {
   inspectAutomationExecutionAuthority,
   setAutomationExecutionBudget,
 } from "../lib/automation-execution-authority.js";
+import {
+  buildAutomationCenterProjection,
+  runAutomationCenterAction,
+} from "../lib/automation-center.js";
+import {
+  createAutomationCenterRoutine,
+  editAutomationCenterRoutine,
+  runAutomationCenterRoutineAction,
+} from "../lib/automation-center-routines.js";
 import { logger } from "../lib/logger.js";
 import { parseJsonOption } from "../lib/parse-json-option.js";
 import { AutomationSchedulerBridge } from "../lib/scheduler-kernel/automation-adapter.js";
 import { AutomationEventDispatcher } from "../lib/scheduler-kernel/automation-event-adapter.js";
 import { openSchedulerStore } from "../lib/scheduler-kernel/store.js";
+import {
+  RoutineSchedulerBridge,
+  routineBridgeRunId,
+} from "../lib/scheduler-kernel/routine-adapter.js";
+import { RoutineStore } from "../lib/routine-store.js";
+import { defaultRunAgent } from "./routine.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureAutomationTables,
@@ -81,6 +96,50 @@ function _dbFromCtx(cmd) {
     current = current.parent;
   }
   return null;
+}
+
+async function readBoundedJsonStdin(options, maximum = 80 * 1024) {
+  if (options?.jsonStdin !== true) {
+    throw new Error("--json-stdin is required for routine definitions");
+  }
+  let serialized = "";
+  for await (const chunk of process.stdin) {
+    serialized += chunk;
+    if (Buffer.byteLength(serialized, "utf8") > maximum) {
+      throw new Error(`routine definition exceeds ${maximum} UTF-8 bytes`);
+    }
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(serialized);
+  } catch {
+    throw new Error("routine definition stdin must be valid JSON");
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("routine definition stdin must be a JSON object");
+  }
+  return parsed;
+}
+
+async function triggerCenterRoutine(store, routine) {
+  const schedulerStore = openSchedulerStore();
+  try {
+    const bridge = new RoutineSchedulerBridge({
+      routineStore: store,
+      schedulerStore,
+      runAgent: defaultRunAgent,
+    });
+    const fired = await bridge.trigger(routine);
+    const runId = routineBridgeRunId(fired);
+    if (!runId) {
+      throw new Error(
+        `routine occurrence did not execute: ${fired.result?.status || "unknown"}`,
+      );
+    }
+    return store.getRun(runId) || { runId, status: "unknown" };
+  } finally {
+    schedulerStore.close();
+  }
 }
 
 async function _prepare(cmd) {
@@ -226,7 +285,12 @@ export function registerAutomationCommand(program) {
         "Workflow automation engine — 12 SaaS connectors + triggers (Phase 96)",
       )
       .hook("preAction", async (thisCommand, actionCommand) => {
-        if (actionCommand && actionCommand.name().endsWith("-v2")) return;
+        if (
+          actionCommand &&
+          (actionCommand.name().endsWith("-v2") ||
+            actionCommand.name().startsWith("center-routine-"))
+        )
+          return;
         const db = await _prepare(thisCommand);
         thisCommand._db = db;
       });
@@ -370,6 +434,140 @@ function _wire(root) {
       } catch (e) {
         logger.error(e.message);
         process.exit(1);
+      } finally {
+        await shutdown();
+      }
+    });
+
+  root
+    .command("center-projection")
+    .description("Emit the versioned Automation Center projection for IDEs")
+    .option("-l, --limit <n>", "Maximum flows", "100")
+    .option("--json", "Output as JSON")
+    .action(async (opts, cmd) => {
+      const db = _dbFromCtx(cmd);
+      try {
+        const projection = buildAutomationCenterProjection(db, {
+          limit: Number(opts.limit),
+        });
+        if (opts.json) console.log(JSON.stringify(projection, null, 2));
+        else {
+          logger.info(
+            `${projection.summary.total} items (${projection.summary.flows} flows, ${projection.summary.routines} routines), ${projection.summary.needsAttention} need attention`,
+          );
+          for (const flow of projection.items) {
+            logger.log(
+              `  ${chalk.cyan(flow.id)} ${flow.kind.padEnd(7)} ${flow.status.padEnd(8)} ${flow.name} preflight=${flow.security.state}`,
+            );
+          }
+        }
+      } catch (e) {
+        logger.error(e.message);
+        process.exitCode = 1;
+      } finally {
+        await shutdown();
+      }
+    });
+
+  root
+    .command("center-routine-create")
+    .description("Create a revision-gated Routine from JSON stdin")
+    .requiredOption(
+      "--expected-revision <revision>",
+      "Exact Routine catalog revision shown by center-projection",
+    )
+    .requiredOption("--json-stdin", "Read the Routine definition from stdin")
+    .option("--json", "Output as JSON")
+    .action(async (opts) => {
+      try {
+        const result = createAutomationCenterRoutine(new RoutineStore(), {
+          expectedRevision: opts.expectedRevision,
+          definition: await readBoundedJsonStdin(opts),
+        });
+        if (opts.json) console.log(JSON.stringify(result, null, 2));
+        else logger.success(`Created routine ${result.routineId}`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exitCode = 1;
+      } finally {
+        await shutdown();
+      }
+    });
+
+  root
+    .command("center-routine-edit <routineId>")
+    .description("Edit a revision-gated Routine from JSON stdin")
+    .requiredOption(
+      "--expected-revision <revision>",
+      "Exact Routine item revision shown by center-projection",
+    )
+    .requiredOption("--json-stdin", "Read the Routine definition from stdin")
+    .option("--json", "Output as JSON")
+    .action(async (routineId, opts) => {
+      try {
+        const result = editAutomationCenterRoutine(new RoutineStore(), {
+          routineId,
+          expectedRevision: opts.expectedRevision,
+          definition: await readBoundedJsonStdin(opts),
+        });
+        if (opts.json) console.log(JSON.stringify(result, null, 2));
+        else logger.success(`Edited routine ${result.routineId}`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exitCode = 1;
+      } finally {
+        await shutdown();
+      }
+    });
+
+  root
+    .command("center-routine-action <routineId> <action>")
+    .description("Run a revision-gated Routine action")
+    .requiredOption(
+      "--expected-revision <revision>",
+      "Exact Routine item revision shown by center-projection",
+    )
+    .option("--json", "Output as JSON")
+    .action(async (routineId, action, opts) => {
+      try {
+        const store = new RoutineStore();
+        const result = await runAutomationCenterRoutineAction(store, {
+          routineId,
+          action,
+          expectedRevision: opts.expectedRevision,
+          triggerRoutine: (routine) => triggerCenterRoutine(store, routine),
+        });
+        if (opts.json) console.log(JSON.stringify(result, null, 2));
+        else logger.success(`${routineId} ${action} completed`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exitCode = 1;
+      } finally {
+        await shutdown();
+      }
+    });
+
+  root
+    .command("center-action <flowId> <action>")
+    .description("Run a revision-gated Automation Center action")
+    .requiredOption(
+      "--expected-revision <revision>",
+      "Exact flow revision shown by center-projection",
+    )
+    .option("--json", "Output as JSON")
+    .action(async (flowId, action, opts, cmd) => {
+      const db = _dbFromCtx(cmd);
+      try {
+        const result = runAutomationCenterAction(db, {
+          flowId,
+          action,
+          expectedRevision: opts.expectedRevision,
+        });
+        if (opts.json) console.log(JSON.stringify(result, null, 2));
+        else logger.success(`${flowId} ${action} completed`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exitCode = 1;
       } finally {
         await shutdown();
       }

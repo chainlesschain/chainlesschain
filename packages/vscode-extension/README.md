@@ -8,22 +8,22 @@ coordination, and a localhost IDE bridge.
 
 | Component                 | Current status                                                        |
 | ------------------------- | --------------------------------------------------------------------- |
-| VS Code extension         | **0.37.49** source/package version; Open VSX publication is tag-gated |
-| Recommended CLI           | **`chainlesschain@0.163.4`** (fully gated stable release)             |
+| VS Code extension         | **0.37.50** source/package version; Open VSX publication is tag-gated |
+| Recommended CLI           | **`chainlesschain@0.163.5`** (fully gated stable release)             |
 | Base bridge compatibility | `cc >= 0.162.47`; newer features can require a newer CLI              |
 | Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors                   |
 | Distribution              | Open VSX; not published on the Microsoft VS Code Marketplace          |
 
-The recommended CLI `0.163.4` adds immutable MCP capsule build inputs,
-platform-bound live capsule evidence, a durable revision-CAS scheduler storage
-foundation, and delivery/recovery hardening. It also carries forward `0.163.3`'s
-default clean-Git worktree isolation for eligible background agents and
-generation/token-fenced lifecycle ownership. These are companion CLI/runtime
-improvements; this maintenance extension release does not add new IDE UI
-behavior.
+The recommended CLI `0.163.5` adds the unified durable scheduler runtime,
+Routine/Agenda/Cowork migration, snapshot-bound authorization, owner/fence
+claims, bounded retry, dead-letter settlement, crash recovery, and durable
+compaction. The 0.37.50 extension also introduces the Automation Center UI.
+Those new Automation/Routine controls require a subsequent CLI release that
+contains the governed commands; `0.163.5` predates them and remains fully
+supported for the existing chat and IDE bridge surfaces.
 
 The immutable release tag
-[`ide-vscode-v0.37.49`](https://github.com/chainlesschain/chainlesschain/releases/tag/ide-vscode-v0.37.49)
+[`ide-vscode-v0.37.50`](https://github.com/chainlesschain/chainlesschain/releases/tag/ide-vscode-v0.37.50)
 is the release authority for this version. Before tagging, the exact release
 commit must pass the native ARM64 aggregate. The tag workflow then validates
 the packaged VSIX in stable and minimum VS Code hosts on Windows, Linux, and
@@ -32,6 +32,11 @@ Changes to this README appear in the registry Overview only after a new
 immutable extension version is packaged, gated, and published.
 
 ## Highlights
+
+- **Governed Automation Center** - inspect CLI-owned, versioned Automation and
+  Routine projections, preflight and history; run now, retry failures,
+  pause/resume, disable, or delete through revision-checked CLI actions. Cron,
+  one-shot, webhook, and GitHub triggers share the same fail-closed surface.
 
 - **Sidebar Chat and editor-native inline chat** — stream answers and tool
   activity, use multiple conversation tabs, paste images, mention files or
@@ -65,12 +70,13 @@ immutable extension version is packaged, gated, and published.
 Node.js `>= 22.12.0` and npm `>= 10.0.0` are required.
 
 ```bash
-npm i -g chainlesschain@0.163.4
+npm i -g chainlesschain@0.163.5
 cc --version
 ```
 
-Using `@0.163.4` reproduces the currently documented and fully gated pairing.
-Use `@latest` only when you intentionally want a newer published CLI.
+Using `@0.163.5` reproduces the currently documented and fully gated public
+CLI pairing. Install a later CLI release to enable the Automation Center. Use
+`@latest` only when you intentionally want a newer published CLI.
 
 ### 2. Install the extension
 
@@ -229,7 +235,7 @@ This summary is pinned to the repository's versioned, secret-free
 [`PUBLIC_IDE_CAPABILITY_MANIFEST.generated.json`](../../docs/cli/PUBLIC_IDE_CAPABILITY_MANIFEST.generated.json).
 The base IDE/Doctor contract requires `cc >= 0.162.47`; feature-specific sections below may require a newer CLI.
 
-- VS Code commands: **50** registered entries
+- VS Code commands: **51** registered entries
 - Doctor entries: `chainlesschain.ide.doctor`, `chainlesschain.remote.doctor`
 - Bridge capability schema: **v1** (19 mapped tools)
 - Drift check: `npm run ide:capabilities:check` from the repository root
@@ -246,6 +252,7 @@ The base IDE/Doctor contract requires `cc >= 0.162.47`; feature-specific section
 - `chainlesschain.session.prStatus`
 - `chainlesschain.background.agents`
 - `chainlesschain.sessions.workbench`
+- `chainlesschain.automation.center`
 - `chainlesschain.remote.control`
 - `chainlesschain.usage.show`
 - `chainlesschain.plugins.manage`

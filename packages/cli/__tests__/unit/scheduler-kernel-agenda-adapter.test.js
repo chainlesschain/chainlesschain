@@ -201,6 +201,11 @@ describe("scheduler-kernel agenda adapter", () => {
       firedAt: f.now,
       schedulerExecution: { status: "succeeded", attempt: 1 },
     });
+    expect(
+      schedulerStore.db
+        .prepare("SELECT status, units FROM scheduler_authority_reservations")
+        .get(),
+    ).toEqual({ status: "succeeded", units: 3 });
   });
 
   it("allows only one cron agent execution under two live drivers", async () => {

@@ -124,6 +124,11 @@ describe("scheduler-kernel Loop adapter", () => {
       attempt: 1,
       result: { iteration: 1, exitCode: 2, outputBytes: 13 },
     });
+    expect(
+      store.db
+        .prepare("SELECT status, units FROM scheduler_authority_reservations")
+        .get(),
+    ).toEqual({ status: "succeeded", units: 1 });
   });
 
   it("recovers a settled iteration without replaying its child", async () => {

@@ -8,6 +8,10 @@ import {
   normalizeIdentifier,
 } from "./contract.js";
 import { SchedulerRuntime } from "./runtime.js";
+import {
+  bindSchedulerAuthorityPolicy,
+  createSchedulerAuthorityResolver,
+} from "./authority-resolver.js";
 
 export const ROUTINE_SCHEDULER_KIND = "routine";
 export const ROUTINE_SCHEDULER_CAPABILITY = "agent.execute";
@@ -354,6 +358,10 @@ function sameJob(current, desired) {
 
 export function syncRoutineSchedulerJob(schedulerStore, routine, options = {}) {
   const desired = buildRoutineSchedulerJob(routine, options);
+  desired.authority = bindSchedulerAuthorityPolicy(
+    schedulerStore,
+    desired.authority,
+  );
   let current = schedulerStore.getJob(desired.id);
   if (!current) {
     try {
@@ -638,6 +646,7 @@ export class RoutineSchedulerBridge {
     ownerId,
     leaseMs,
     renewIntervalMs,
+    authorityResolver,
   } = {}) {
     if (typeof now !== "function") {
       throw routineError(
@@ -651,7 +660,12 @@ export class RoutineSchedulerBridge {
     this.runtime = new SchedulerRuntime({
       store: schedulerStore,
       adapters: [createRoutineSchedulerAdapter({ routineStore, runAgent })],
-      authorize: authorizeRoutineOccurrence,
+      authorize:
+        authorityResolver ||
+        createSchedulerAuthorityResolver({
+          store: schedulerStore,
+          validate: authorizeRoutineOccurrence,
+        }),
       ...(ownerId === undefined ? {} : { ownerId }),
       ...(leaseMs === undefined ? {} : { leaseMs }),
       ...(renewIntervalMs === undefined ? {} : { renewIntervalMs }),

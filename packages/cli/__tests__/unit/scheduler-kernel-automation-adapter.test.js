@@ -140,6 +140,43 @@ describe("scheduler-kernel automation adapter", () => {
       allowed: true,
       reason: "automation_snapshot_bound",
     });
+    const schedulerBoundOccurrence = {
+      ...occurrence,
+      authority: {
+        ...occurrence.authority,
+        authorizationRefs: {
+          ...occurrence.authority.authorizationRefs,
+          schedulerPolicyRevision: "scheduler-authority:1",
+        },
+      },
+    };
+    expect(
+      authorizeAutomationOccurrence({
+        job,
+        occurrence: schedulerBoundOccurrence,
+      }),
+    ).toEqual({
+      allowed: true,
+      reason: "automation_snapshot_bound",
+    });
+    expect(
+      authorizeAutomationOccurrence({
+        job,
+        occurrence: {
+          ...schedulerBoundOccurrence,
+          authority: {
+            ...schedulerBoundOccurrence.authority,
+            authorizationRefs: {
+              ...schedulerBoundOccurrence.authority.authorizationRefs,
+              decisionId: "tampered-decision",
+            },
+          },
+        },
+      }),
+    ).toEqual({
+      allowed: false,
+      reason: "automation_authority_mismatch",
+    });
   });
 
   it("runs one catch-up occurrence and records durable automation history", async () => {
@@ -165,6 +202,11 @@ describe("scheduler-kernel automation adapter", () => {
       status: EXECUTION_STATUS.SUCCESS,
       triggerType: TRIGGER_TYPE.SCHEDULE,
     });
+    expect(
+      f.schedulerStore.db
+        .prepare("SELECT status, units FROM scheduler_authority_reservations")
+        .get(),
+    ).toEqual({ status: "succeeded", units: 1 });
 
     await expect(bridge.runDue()).resolves.toEqual([]);
     expect(listExecutions(f.db, { flowId: flow.id })).toHaveLength(1);

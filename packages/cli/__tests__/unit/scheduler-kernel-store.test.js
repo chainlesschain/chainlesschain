@@ -14,8 +14,12 @@ import {
 } from "../../src/lib/scheduler-kernel/contract.js";
 import {
   MIGRATION_V1_CHECKSUM,
+  MIGRATION_V1_SQL,
+  MIGRATION_V2_CHECKSUM,
   SCHEDULER_APPLICATION_ID,
+  SCHEDULER_STORE_SCHEMA_VERSION,
   SCHEMA_V1_FINGERPRINT,
+  SCHEMA_V2_FINGERPRINT,
   openSchedulerStore,
 } from "../../src/lib/scheduler-kernel/store.js";
 
@@ -211,7 +215,7 @@ describe("scheduler-kernel contract v1", () => {
   });
 });
 
-describe("scheduler-kernel SQLite store v1", () => {
+describe("scheduler-kernel SQLite store", () => {
   const cleanups = [];
 
   afterEach(async () => {
@@ -259,27 +263,123 @@ describe("scheduler-kernel SQLite store v1", () => {
     };
   }
 
-  it("creates the exact v1 schema and migration record", () => {
+  it("creates the exact current schema and migration record", () => {
     const f = fixture();
     const store = f.open();
     expect(store.schemaInfo()).toEqual({
       applicationId: SCHEDULER_APPLICATION_ID,
-      schemaVersion: 1,
+      schemaVersion: SCHEDULER_STORE_SCHEMA_VERSION,
       migration: {
-        version: 1,
-        name: "scheduler-kernel-v1",
-        checksum: MIGRATION_V1_CHECKSUM,
+        version: 2,
+        name: "scheduler-kernel-authority-v2",
+        checksum: MIGRATION_V2_CHECKSUM,
         appliedAt: f.now,
       },
     });
     expect(SCHEMA_V1_FINGERPRINT).toMatch(/^[a-f0-9]{64}$/);
+    expect(SCHEMA_V2_FINGERPRINT).toMatch(/^[a-f0-9]{64}$/);
     const tables = store.db
       .prepare(
         "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
       )
       .all()
       .map((row) => row.name);
-    expect(tables).toEqual(["events", "jobs", "migrations", "occurrences"]);
+    expect(tables).toEqual([
+      "events",
+      "jobs",
+      "migrations",
+      "occurrences",
+      "scheduler_authority_policies",
+      "scheduler_authority_reservations",
+      "scheduler_authority_usage",
+    ]);
+  });
+
+  it("migrates an exact v1 database to v2 without losing jobs", () => {
+    const f = fixture({ fileName: "legacy-v1.db" });
+    const legacy = new Database(f.file);
+    legacy.exec(MIGRATION_V1_SQL);
+    legacy
+      .prepare(
+        "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
+      )
+      .run(1, "scheduler-kernel-v1", MIGRATION_V1_CHECKSUM, f.now - 1);
+    legacy
+      .prepare(
+        `INSERT INTO jobs
+           (job_id, kind, trigger_json, payload_json, authority_json,
+            enabled, revision, max_attempts, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, 1, 1, 3, ?, ?)`,
+      )
+      .run(
+        "legacy-job",
+        "test.adapter",
+        canonicalJson({ adapter: "legacy" }),
+        canonicalJson({ action: "preserve" }),
+        canonicalJson(authority()),
+        f.now - 1,
+        f.now - 1,
+      );
+    const legacyOccurrence = deriveOccurrenceIdentity({
+      jobId: "legacy-job",
+      jobRevision: 1,
+      scheduledFor: f.now - 1,
+      triggerKey: "legacy:queued",
+    });
+    legacy
+      .prepare(
+        `INSERT INTO occurrences
+           (occurrence_id, job_id, job_revision, idempotency_key,
+            trigger_key, scheduled_for, available_at, status, attempt,
+            max_attempts, fence, lease_owner, lease_expires_at,
+            authority_json, payload_json, last_error_json, result_json,
+            created_at, updated_at, settled_at)
+         VALUES (?, ?, 1, ?, ?, ?, ?, 'queued', 0, 3, 0, NULL, NULL,
+                 ?, ?, NULL, NULL, ?, ?, NULL)`,
+      )
+      .run(
+        legacyOccurrence.occurrenceId,
+        "legacy-job",
+        legacyOccurrence.idempotencyKey,
+        "legacy:queued",
+        f.now - 1,
+        f.now - 1,
+        canonicalJson(authority()),
+        canonicalJson({ action: "preserve" }),
+        f.now - 1,
+        f.now - 1,
+      );
+    legacy.pragma(`application_id = ${SCHEDULER_APPLICATION_ID}`);
+    legacy.pragma("user_version = 1");
+    legacy.close();
+
+    const migrated = f.open();
+    expect(migrated.schemaInfo()).toMatchObject({
+      schemaVersion: 2,
+      migration: { version: 2, checksum: MIGRATION_V2_CHECKSUM },
+    });
+    expect(migrated.getJob("legacy-job")).toMatchObject({
+      id: "legacy-job",
+      revision: 1,
+      payload: { action: "preserve" },
+    });
+    expect(migrated.getAuthorityPolicy(authority().principal)).toMatchObject({
+      revision: 1,
+      capabilities: ["network.none", "workspace.read"],
+    });
+    expect(
+      migrated.getJob("legacy-job").authority.authorizationRefs,
+    ).toMatchObject({
+      policyRevision: "policy-7",
+      schedulerPolicyRevision: "scheduler-authority:1",
+    });
+    expect(
+      migrated.getOccurrence(legacyOccurrence.occurrenceId).authority
+        .authorizationRefs,
+    ).toMatchObject({
+      policyRevision: "policy-7",
+      schedulerPolicyRevision: "scheduler-authority:1",
+    });
   });
 
   it("applies expected-revision CAS across two real database handles", () => {
@@ -706,7 +806,7 @@ describe("scheduler-kernel SQLite store v1", () => {
     const future = fixture({ fileName: "future.db" });
     future.open().close();
     const futureDb = new Database(future.file);
-    futureDb.pragma("user_version = 2");
+    futureDb.pragma("user_version = 3");
     futureDb.close();
     expectCode(() => future.open(), "SCHEDULER_SCHEMA_UNKNOWN");
 
