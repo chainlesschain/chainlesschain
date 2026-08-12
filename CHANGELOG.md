@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI 0.163.6: unified scheduler authority and automation control
+
+> `chainlesschain` **0.163.5 → 0.163.6** (candidate; not yet published,
+> 2026-08-12).
+> CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.57**
+> and `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **Complete scheduler adapter migration**: Agenda monitors, Loop iterations,
+  Automation cron flows, Routine GitHub polling, channel automation events,
+  and the standalone daemon now execute through the shared scheduler service
+  with durable claims, definition snapshots, recovery fences, and bounded
+  retry/dead-letter behavior.
+- **Timezone and missed-run consistency**: Agenda and Cowork cron definitions
+  persist canonical IANA timezones, handle DST gaps and repeated civil times,
+  and collapse downtime to one latest due occurrence without replay storms.
+- **Shared scheduler permission and budget authority**: Agenda, Routine,
+  Cowork, Automation, and Loop bind exact capability policies to durable
+  revisions and use one transactional reservation/settlement path. Missing,
+  stale, disabled, exhausted, or inconsistent policy state fails closed;
+  retries reuse the original reservation instead of charging twice.
+- **Layered Automation enforcement**: the shared scheduler authority composes
+  with Automation's creator identity, connector permissions, live revocation,
+  and per-flow run/action budgets. Domain evidence and the scheduler policy
+  revision remain independently validated.
+- **Governed management surfaces**: scheduler policy inspection/update commands
+  require exact capabilities and revision CAS, while the Automation Center
+  exposes governed flow and Routine controls without bypassing backend
+  permission or budget checks.
+- **Known residuals**: durable outcome-unknown adjudication, complete mixed-
+  version migration/rollback, scheduler disk-fault closure, and the three-OS
+  long-soak matrix remain open. Signed native distribution and representative
+  alias-removal telemetry also remain outside this release.
+- **Release status**: final tag, source SHA, workflow run IDs, package digest,
+  provenance, and registry readback are intentionally omitted until the exact
+  `0.163.6` release commit passes the complete `CLI CI` and `CLI Strict Sandbox`
+  Linux, Windows, and macOS matrices, followed by the dedicated npm release and
+  independent public readback workflows.
+
 ### Added — cc CLI 0.163.5: durable scheduler runtime and recovery
 
 > `chainlesschain` **0.163.4 → 0.163.5** (published from exact SHA
