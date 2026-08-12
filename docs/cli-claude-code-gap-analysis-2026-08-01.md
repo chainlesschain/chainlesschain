@@ -1395,15 +1395,15 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 
 ## 18. 2026-08-12 当前未完成任务与执行顺序
 
-本节是面向继续开发的**当前清单**，优先级高于第 14～17 节保留的历史阶段判定。本次核验基线为 `github/main@149bc9adac3d8354bd77c41b2653ee6b294eb3f5`；公网 npm `latest` 仍为 `chainlesschain@0.163.5`，其 release SHA 为 `095087c1e859a8451ce01ed58c59af3fede756fd`。因此第 16.28～16.31 节记录的 scheduler 增量虽然已进入 `main`，但尚未包含在公网 `0.163.5` 中；本节只更新任务事实，不把候选 `0.163.6` 版本提交或后续 tag 当作已发布证据。
+本节是面向继续开发的**当前清单**，优先级高于第 14～17 节保留的历史阶段判定。本次核验基线为 `github/main@6af92ec4254d56e16f7a0b1a130db1731f47518a`；公网 npm `latest` 为 `chainlesschain@0.163.6`，其 release SHA 为 `85c3577c887003fea98d0a159603cd359506f09b`。PR #180 的 outcome-unknown 人工裁决已在该公开版本之后进入 `main`，因此本节只更新任务事实，不把功能 PR 的门禁当作后续 npm 版本的发布授权。
 
 ### 18.1 三种统计口径
 
-| 口径                     | 当前结论                                             | 说明                                                                                                   |
-| ------------------------ | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| 原始 P0-1～P2-4 共 15 项 | **8 完成、7 部分完成、0 完全未开始；7 项未完全关闭** | P2-4 虽已连续关闭多个子切片，在原始总表中仍只占一个“部分完成”条目。                                    |
-| 第 16.8 节六项产品任务   | **3 完成、3 未完成**                                 | 任务 1、2、6 完成；任务 3、4、5 未完成。该专项清单没有覆盖全部原始 15 项。                             |
-| P2-4 调度内核内部清单    | **4 个子项未完成**                                   | timezone/DST/missed-run 已由 PR #159、#173 关闭，共享 resolver 已由 PR #175 关闭；剩余项见第 18.3 节。 |
+| 口径                     | 当前结论                                             | 说明                                                                       |
+| ------------------------ | ---------------------------------------------------- | -------------------------------------------------------------------------- |
+| 原始 P0-1～P2-4 共 15 项 | **8 完成、7 部分完成、0 完全未开始；7 项未完全关闭** | P2-4 虽已连续关闭多个子切片，在原始总表中仍只占一个“部分完成”条目。        |
+| 第 16.8 节六项产品任务   | **3 完成、3 未完成**                                 | 任务 1、2、6 完成；任务 3、4、5 未完成。该专项清单没有覆盖全部原始 15 项。 |
+| P2-4 调度内核内部清单    | **3 个子项未完成**                                   | outcome-unknown 人工裁决已由 PR #180 关闭；剩余项见第 18.3 节。            |
 
 ### 18.2 原始 15 项中仍未完全关闭的 7 项
 
@@ -1415,18 +1415,17 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 | P1-5 官方 native 发行物与回滚升级    | **部分完成 / NO-GO**      | 六目标 unsigned validation 已完成，签名公开发行链仍未完成。该项与 P0-3 的 native 子范围重叠，属于同一个主要交付包，不应重复估算为两套独立工作。                                                                                                     |
 | P2-2 交互细节                        | **部分完成**              | suggestions、recap、外部编辑器、prompt stash、keybindings 与文本 clipboard 已覆盖；标准终端仍没有 production 系统剪贴板图片 `readImage` adapter，目前只有嵌入宿主 binding 与路径 fallback。                                                         |
 | P2-3 MCP 可选协议面                  | **部分完成 / 待产品决策** | resource templates、subscribe/unsubscribe、logging level 与 completion 已实现；仍缺生产调用方或基于代表性 server usage 的正式取舍报告，server sampling `createMessage` 仍明确不支持并返回 `-32601`。                                                |
-| P2-4 调度内核收敛                    | **部分完成**              | 仍有 4 个内部子项，见下一节。完成某个 adapter、UI 或 preflight 不能把整项改为完成。                                                                                                                                                                 |
+| P2-4 调度内核收敛                    | **部分完成**              | 仍有 3 个内部子项，见下一节。完成某个 adapter、UI 或 preflight 不能把整项改为完成。                                                                                                                                                                 |
 
-### 18.3 P2-4 剩余 4 个内部子项
+### 18.3 P2-4 剩余 3 个内部子项
 
-1. **未知结果人工裁决**：为 outcome-unknown 提供 durable、可审计、单调且不可误重放的人工 adjudication 流程。
-2. **完整迁移与回滚**：覆盖五类入口、多套 store/schema、混合版本兼容、幂等迁移、失败回滚和旧数据退场；PR #173 的 legacy Cowork cursor 与 PR #175 的 scheduler store v1→v2 forward migration 都只关闭各自窄切片。
-3. **磁盘故障矩阵**：覆盖 ENOSPC、partial write、fsync/rename/SQLite 故障、损坏记录、重启恢复与 fail-closed 行为。
-4. **三平台长期 soak**：在 Linux、Windows、macOS 上验证 kill/restart、双实例 lease/fencing、DST 边界、积压恢复、FD/handle/orphan 退休与长期资源稳定性。
+1. **完整迁移与回滚**：覆盖五类入口、多套 store/schema、混合版本兼容、幂等迁移、失败回滚和旧数据退场；PR #173 的 legacy Cowork cursor、PR #175 的 scheduler store v1→v2 以及 PR #180 的 v1/v2→v3 forward migration 都只关闭各自窄切片。
+2. **磁盘故障矩阵**：覆盖 ENOSPC、partial write、fsync/rename/SQLite 故障、损坏记录、重启恢复与 fail-closed 行为。
+3. **三平台长期 soak**：在 Linux、Windows、macOS 上验证 kill/restart、双实例 lease/fencing、DST 边界、积压恢复、FD/handle/orphan 退休与长期资源稳定性。
 
-按当前范围，P2-4 剩余粗估为 **1～3 周（单工程师）/0.75～1.75 周（两人有效并行）**。下一项先做 outcome-unknown 人工裁决，随后完成迁移/回滚、磁盘故障和三平台长期 soak；每次只把已获得 exact-SHA CI/Strict Sandbox 与相应 artifact 的子项从清单删除。
+按当前范围，P2-4 剩余粗估为 **0.75～2.5 周（单工程师）/0.5～1.5 周（两人有效并行）**。下一项只做完整迁移/回滚，正式关闭后再依次处理磁盘故障和三平台长期 soak；每次只把已获得 exact-SHA CI/Strict Sandbox 与相应 artifact 的子项从清单删除。
 
-截至本次核验，先前列为候选的 Automation 相关 PR 状态已更新如下；这些合并扩大了 `main` 功能面，但不替代 P2-4 剩余四项的退出条件：
+截至本次核验，先前列为候选的 Automation 相关 PR 状态已更新如下；这些合并扩大了 `main` 功能面，但不替代 P2-4 剩余三项的退出条件：
 
 | PR                                                                                                       | 当前 head / base                                | 核验状态                                                             | 与剩余清单的关系                                                                   |
 | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
@@ -1447,19 +1446,20 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 
 ### 18.5 推荐执行顺序与总判定
 
-1. 先完成 P2-4 outcome-unknown adjudication。
-2. 随后关闭 P2-4 迁移/回滚、磁盘故障和三平台长期 soak。
+1. 下一项只关闭 P2-4 完整迁移/回滚。
+2. 迁移/回滚正式关闭后，再依次关闭磁盘故障和三平台长期 soak。
 3. 并行推进 Skill/MCP 剩余平台安全边界；该项取得完整三平台恶意证据前保持 NO-GO。
 4. 签名 native 发行等待真实凭据/渠道，一旦前置到位即按 exact-SHA 六目标矩阵执行。
 5. telemetry 按真实 observation window 持续采集；在数据和 `0.164.0` floor 前不删除 alias。
 6. P2-2 clipboard image 与 P2-3 MCP 可选协议面可作为较小、相互独立的产品切片排期，但不能替代前述发布与安全门。
 
-当前总判定为：**公网 CLI npm `0.163.5` 的既有 exact-SHA 发布子链为 GO；完整 CLI 产品与 native 公开发行仍为 NO-GO**。`main@149bc9adac3d8354bd77c41b2653ee6b294eb3f5` 上未发布增量已经通过各自功能 head 的权威门，但候选 `0.163.6` 版本提交仍必须重新通过其最终 exact SHA 的 `CLI CI` 与 `CLI Strict Sandbox`，不能沿用功能 PR SHA、局部本地测试或 superseded run 作为发布授权。
+当前总判定为：**公网 CLI npm `0.163.6` 的既有 exact-SHA 发布子链为 GO；完整 CLI 产品与 native 公开发行仍为 NO-GO**。`main@6af92ec4254d56e16f7a0b1a130db1731f47518a` 上的 outcome-unknown adjudication 已通过其功能 head 的权威门但尚未进入公开 npm 包；后续版本仍必须在最终 release exact SHA 上重新通过 `CLI CI` 与 `CLI Strict Sandbox`，不能沿用功能 PR SHA、局部本地测试或 superseded run 作为发布授权。
 
-### 18.6 2026-08-12 P2-4 outcome-unknown 人工裁决本地候选
+### 18.6 2026-08-12 P2-4 outcome-unknown 人工裁决正式合并证据
 
 - 本地候选分支 `feature/cli-scheduler-adjudication-v1` 把 scheduler store 从 schema v2 前向迁移到 v3，新增 `scheduler_occurrence_adjudications` 单调记录。裁决只接受 error code 以 `_OUTCOME_UNKNOWN` 结尾的 dead letter，并以最新 occurrence、authority、payload、last error 和预算 reservation 的摘要形成 `evidenceDigest`；写入时对 exact digest、attempt、fence 做同一 SQLite immediate transaction 内的 CAS，同时记录确定性 request ID、decision、reason digest 与 operator identity digest。一个 occurrence 只允许一条裁决，reason 和本机操作者原文均不进入数据库。
 - `confirmed_applied` 只通过一个 host-owned synthetic claim 调用 adapter 的 `adjudicate()` 钩子，然后直接结算 scheduler success，不调用原副作用 `execute()`；`confirmed_not_applied` 只开放一个有界新 claim。Agenda/Cowork 会在 adapter claim 下幂等清除永久 legacy fence；Routine 保留 append-only start/adjudication 历史后再开始一次确定性 run；Automation/Automation Event 会把原 RUNNING 证据改名归档为 CANCELLED adjudication evidence，再用原 execution ID 执行一次；Loop 只在绑定该 request ID、原 attempt 和新 fence 的 claim 中越过默认防重放。共享 scheduler/Automation reservation 均按 occurrence 去重，不重复扣预算。若裁决后的最终 claim 再次崩溃，lease expiry 会把 adjudication 与 reservation 一并 fail-close 结算，不开放第二次裁决。
 - 新命令为 `cc daemon scheduler adjudication list|show|decide`。`decide` 强制交互 TTY，先读取只存摘要的 reason，再要求逐字输入包含 `HOST STOPPED AND SCHEDULER DISPATCH DRAINED`、occurrence、decision、evidence digest、attempt 和 fence 的 challenge。该 challenge 是操作性证明，不是 machine-wide process lease；操作者仍必须先停止所有 scheduler host、drain 已 dispatch 工作并核验外部结果，随后重启 host 应用 durable decision。
-- 当前本地候选证据：9 个聚焦测试文件 **128/128 passed**，覆盖 v1→v3、v2→v3 迁移、schema fingerprint、防并发 CAS、只筛真正 outcome-unknown、单调 deny、预算 reservation 复用、无副作用 replay 的 confirmed-applied、五类 adapter 的 confirmed-not-applied 恢复以及 CLI TTY/challenge。目标 ESLint 为 **0 errors、7 个既有 warnings**；Prettier、Node syntax、`git diff --check`、help-index/completions check 与 production command help 均通过。
-- 本节仍是**本地候选**，尚无提交 SHA、PR、Linux/macOS/Windows `CLI CI`、`CLI Strict Sandbox` 或合并证据，因此第 18.3 节正式清单暂不把人工裁决删除。候选最终 exact SHA 的两套三平台门禁全部通过并进入 `main` 后，P2-4 内部未完成子项才可由 4 个降为 3 个：完整迁移/回滚、磁盘故障、三平台长期 soak；届时剩余粗估约 **0.75～2.5 周（单工程师）/0.5～1.5 周（两人有效并行）**。
+- 提交前本地证据为 9 个聚焦测试文件 **128/128 passed**，覆盖 v1→v3、v2→v3 迁移、schema fingerprint、防并发 CAS、只筛真正 outcome-unknown、单调 deny、预算 reservation 复用、无副作用 replay 的 confirmed-applied、五类 adapter 的 confirmed-not-applied 恢复以及 CLI TTY/challenge。目标 ESLint 为 **0 errors、7 个既有 warnings**；Prettier、Node syntax、`git diff --check`、help-index/completions check 与 production command help 均通过。
+- [PR #180](https://github.com/chainlesschain/chainlesschain/pull/180) 的最终 head `15f337b919df501fbd5d1e5b2c72859b01f5c142` 已以 merge commit `7057d1ad31baebf4b185d114095e7fe63d2fc959` 进入 `main`。该 head 的 [CLI CI `31609620383`](https://github.com/chainlesschain/chainlesschain/actions/runs/31609620383) attempt 2 为 **53/53 success**，[CLI Strict Sandbox `31609663692`](https://github.com/chainlesschain/chainlesschain/actions/runs/31609663692) 为 Ubuntu、macOS、Windows **3/3 success**，两套 workflow 的 `headSha` 均为最终 head。首个 head 的 CLI CI 暴露 `0.163.6` canonical changelog 与内置 artifact 漂移，随后只重新生成 artifact 并形成最终 head；最终 head 首轮唯一失败是未修改的 Windows `headless-stream-questions` 在 `timeout` 与 `stdin-closed` 两个等价终态间的计时竞态，同分片 7361 项及 changelog parity 均通过，同一 SHA 只重跑失败 job 后成功，三平台 `verify-cli` 随后全部成功。没有借用旧 SHA 的 Strict 结果，也没有把首轮失败冒充通过。
+- 因此 outcome-unknown 人工裁决从“本地候选”更新为**正式已合并 P2-4 子项**，第 18.3 节内部未完成数由 4 个降为 3 个：完整迁移/回滚、磁盘故障、三平台长期 soak。原始 15 项粗粒度统计仍是 **8 完成、7 部分完成、0 完全未开始；7 项未完全关闭**，因为 P2-4 整项仍未满足全部退出条件。本次没有修改 CLI 版本、创建 release tag 或发布 npm。
