@@ -2,6 +2,10 @@ import { afterEach, describe, expect, it } from "vitest";
 import Database from "better-sqlite3";
 import { runAutomationChannelEvent } from "../../src/commands/automation.js";
 import {
+  automationExecutionAuthoritySnapshot,
+  setAutomationExecutionBudget,
+} from "../../src/lib/automation-execution-authority.js";
+import {
   EXECUTION_STATUS,
   FLOW_STATUS,
   TRIGGER_TYPE,
@@ -12,6 +16,10 @@ import {
   listExecutions,
   updateFlowStatus,
 } from "../../src/lib/automation-engine.js";
+import {
+  grantPermission,
+  revokePermission,
+} from "../../src/lib/permission-engine.js";
 import {
   AUTOMATION_EVENT_CAPABILITY,
   AUTOMATION_EVENT_KIND,
@@ -30,6 +38,7 @@ import { openSchedulerStore } from "../../src/lib/scheduler-kernel/store.js";
 
 describe("scheduler-kernel automation channel event adapter", () => {
   const cleanups = [];
+  const principalId = "did:test:automation-event-owner";
 
   afterEach(() => {
     while (cleanups.length > 0) cleanups.pop()();
@@ -61,6 +70,7 @@ describe("scheduler-kernel automation channel event adapter", () => {
   function activeEventDefinition(f, scope = { origins: ["webhook"] }) {
     const created = createFlow(f.db, {
       name: "channel event flow",
+      createdBy: principalId,
       nodes: [
         {
           id: "notify",
@@ -70,12 +80,34 @@ describe("scheduler-kernel automation channel event adapter", () => {
         },
       ],
     });
+    grantPermission(f.db, principalId, "automation:execute");
+    grantPermission(f.db, principalId, "automation:connector:slack");
+    setAutomationExecutionBudget(
+      f.db,
+      created.id,
+      { windowMs: 60 * 60_000, maxRuns: 100, maxActionSteps: 100 },
+      { now: () => f.now },
+    );
     const flow = updateFlowStatus(f.db, created.id, FLOW_STATUS.ACTIVE);
     const trigger = addTrigger(f.db, flow.id, {
       type: TRIGGER_TYPE.EVENT,
       config: { event: "channel.event", scope },
     });
     return { flow, trigger };
+  }
+
+  function executionAuthority(f, flow) {
+    return automationExecutionAuthoritySnapshot(f.db, flow);
+  }
+
+  function enqueue(f, flow, trigger, event) {
+    return enqueueAutomationChannelEvent(
+      f.schedulerStore,
+      flow,
+      trigger,
+      event,
+      executionAuthority(f, flow),
+    );
   }
 
   function channelEvent(f, overrides = {}) {
@@ -98,7 +130,11 @@ describe("scheduler-kernel automation channel event adapter", () => {
       senders: ["ci"],
     });
     const event = channelEvent(f);
-    const job = buildAutomationEventJob(flow, trigger);
+    const job = buildAutomationEventJob(
+      flow,
+      trigger,
+      executionAuthority(f, flow),
+    );
 
     expect(job).toMatchObject({
       kind: AUTOMATION_EVENT_KIND,
@@ -109,8 +145,11 @@ describe("scheduler-kernel automation channel event adapter", () => {
         origins: ["webhook"],
       },
       authority: {
-        principal: { type: "automation", id: flow.id },
-        requestedCapabilities: [AUTOMATION_EVENT_CAPABILITY],
+        principal: { type: "user", id: principalId },
+        requestedCapabilities: [
+          "automation.connector.slack",
+          AUTOMATION_EVENT_CAPABILITY,
+        ],
       },
     });
     expect(matchesAutomationChannelEvent(trigger, event)).toBe(true);
@@ -243,12 +282,7 @@ describe("scheduler-kernel automation channel event adapter", () => {
     const f = fixture();
     const { flow, trigger } = activeEventDefinition(f);
     const event = channelEvent(f);
-    const occurrence = enqueueAutomationChannelEvent(
-      f.schedulerStore,
-      flow,
-      trigger,
-      event,
-    );
+    const occurrence = enqueue(f, flow, trigger, event);
     f.db.prepare("UPDATE auto_triggers SET config = ? WHERE id = ?").run(
       JSON.stringify({
         event: "channel.event",
@@ -275,12 +309,7 @@ describe("scheduler-kernel automation channel event adapter", () => {
     const f = fixture();
     const { flow, trigger } = activeEventDefinition(f);
     const event = channelEvent(f);
-    const occurrence = enqueueAutomationChannelEvent(
-      f.schedulerStore,
-      flow,
-      trigger,
-      event,
-    );
+    const occurrence = enqueue(f, flow, trigger, event);
     f.schedulerStore.db
       .prepare(
         "UPDATE occurrences SET payload_json = ? WHERE occurrence_id = ?",
@@ -311,8 +340,8 @@ describe("scheduler-kernel automation channel event adapter", () => {
   it("recovers committed success and dead-letters start-only evidence", async () => {
     const f = fixture();
     const first = activeEventDefinition(f);
-    const firstOccurrence = enqueueAutomationChannelEvent(
-      f.schedulerStore,
+    const firstOccurrence = enqueue(
+      f,
       first.flow,
       first.trigger,
       channelEvent(f),
@@ -355,8 +384,8 @@ describe("scheduler-kernel automation channel event adapter", () => {
 
     const second = activeEventDefinition(f);
     const secondEvent = channelEvent(f, { id: "event-2" });
-    const secondOccurrence = enqueueAutomationChannelEvent(
-      f.schedulerStore,
+    const secondOccurrence = enqueue(
+      f,
       second.flow,
       second.trigger,
       secondEvent,
@@ -399,5 +428,33 @@ describe("scheduler-kernel automation channel event adapter", () => {
     const event = channelEvent(f);
     expect(automationEventTriggerKey(event)).toMatch(/^channel:[0-9a-f]{64}$/u);
     expect(automationChannelEventDigest(event)).toMatch(/^[0-9a-f]{64}$/u);
+  });
+
+  it("denies a scoped channel event when live connector authority is revoked", async () => {
+    const f = fixture();
+    const { flow } = activeEventDefinition(f);
+    revokePermission(f.db, principalId, "automation:connector:slack");
+    const dispatcher = new AutomationEventDispatcher({
+      db: f.db,
+      schedulerStore: f.schedulerStore,
+      ownerId: "automation-event-revoked",
+      leaseMs: 10_000,
+      now: () => f.now,
+    });
+
+    await expect(dispatcher.dispatch(channelEvent(f))).resolves.toMatchObject({
+      matched: 1,
+      rejected: [],
+      results: [
+        {
+          flowId: flow.id,
+          result: {
+            status: "dead_letter",
+            error: { code: "AUTOMATION_EXECUTION_PERMISSION_DENIED" },
+          },
+        },
+      ],
+    });
+    expect(listExecutions(f.db, { flowId: flow.id })).toHaveLength(0);
   });
 });

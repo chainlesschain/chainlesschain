@@ -4,6 +4,10 @@
  */
 
 import chalk from "chalk";
+import {
+  inspectAutomationExecutionAuthority,
+  setAutomationExecutionBudget,
+} from "../lib/automation-execution-authority.js";
 import { logger } from "../lib/logger.js";
 import { parseJsonOption } from "../lib/parse-json-option.js";
 import { AutomationSchedulerBridge } from "../lib/scheduler-kernel/automation-adapter.js";
@@ -157,6 +161,7 @@ export async function runAutomationChannelEvent(db, options = {}, _deps = {}) {
     const dispatcher = new AutomationEventDispatcher({
       db,
       schedulerStore,
+      now: _deps.now || Date.now,
       ...(_deps.ownerId === undefined ? {} : { ownerId: _deps.ownerId }),
       ...(options.leaseMs === undefined
         ? {}
@@ -499,6 +504,76 @@ function _wire(root) {
       try {
         const code = await runAutomationScheduled(db, opts);
         if (code !== 0) process.exitCode = code;
+      } catch (e) {
+        logger.error(e.message);
+        process.exitCode = 1;
+      } finally {
+        await shutdown();
+      }
+    });
+
+  root
+    .command("set-execution-budget <flowId>")
+    .description("Set the durable unattended-execution budget for a flow")
+    .requiredOption("--window-ms <ms>", "Fixed budget window in milliseconds")
+    .requiredOption("--max-runs <n>", "Maximum executions per window")
+    .requiredOption(
+      "--max-action-steps <n>",
+      "Maximum connector action steps per window",
+    )
+    .option("--json", "Output as JSON")
+    .action(async (flowId, opts, cmd) => {
+      const db = _dbFromCtx(cmd);
+      try {
+        const budget = setAutomationExecutionBudget(db, flowId, {
+          windowMs: Number(opts.windowMs),
+          maxRuns: Number(opts.maxRuns),
+          maxActionSteps: Number(opts.maxActionSteps),
+        });
+        if (opts.json) console.log(JSON.stringify(budget, null, 2));
+        else {
+          logger.success(`Execution budget set for ${flowId}`);
+          logger.log(
+            `  revision=${budget.revision} window=${budget.windowMs}ms runs=${budget.maxRuns} actionSteps=${budget.maxActionSteps}`,
+          );
+        }
+      } catch (e) {
+        logger.error(e.message);
+        process.exitCode = 1;
+      } finally {
+        await shutdown();
+      }
+    });
+
+  root
+    .command("execution-preflight <flowId>")
+    .description(
+      "Check live RBAC connector permissions and durable budget availability",
+    )
+    .option("--json", "Output as JSON")
+    .action(async (flowId, opts, cmd) => {
+      const db = _dbFromCtx(cmd);
+      try {
+        const flow = getFlow(db, flowId);
+        if (!flow) throw new Error(`Flow not found: ${flowId}`);
+        const result = inspectAutomationExecutionAuthority(db, flow);
+        if (opts.json) console.log(JSON.stringify(result, null, 2));
+        else {
+          const color = result.ready ? chalk.green : chalk.red;
+          logger.log(
+            color(`Execution preflight: ${result.ready ? "READY" : "DENIED"}`),
+          );
+          logger.log(`  principal: ${result.snapshot.principalId}`);
+          for (const permission of result.permissions) {
+            logger.log(
+              `  ${permission.allowed ? "ALLOW" : "DENY "} ${permission.permission}`,
+            );
+          }
+          logger.log(
+            `  remaining: runs=${result.window.remainingRuns} actionSteps=${result.window.remainingActionSteps}`,
+          );
+        }
+        if (!result.ready) process.exitCode = 1;
       } catch (e) {
         logger.error(e.message);
         process.exitCode = 1;

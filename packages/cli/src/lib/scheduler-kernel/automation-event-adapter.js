@@ -1,6 +1,13 @@
 import { createHash } from "node:crypto";
 import { Buffer } from "node:buffer";
 import {
+  automationExecutionAuthorityDigest,
+  automationExecutionAuthoritySnapshot,
+  automationSchedulerAuthority,
+  normalizeAutomationExecutionAuthoritySnapshot,
+  reserveAutomationExecutionAuthority,
+} from "../automation-execution-authority.js";
+import {
   EXECUTION_STATUS,
   FLOW_STATUS,
   TRIGGER_TYPE,
@@ -307,7 +314,7 @@ export function matchesAutomationChannelEvent(trigger, event) {
   );
 }
 
-export function buildAutomationEventJob(flow, trigger) {
+export function buildAutomationEventJob(flow, trigger, executionAuthority) {
   const flowSnapshot = automationEventFlowSnapshot(flow);
   const triggerSnapshot = automationEventTriggerSnapshot(trigger);
   if (triggerSnapshot.flowId !== flowSnapshot.id) {
@@ -320,6 +327,11 @@ export function buildAutomationEventJob(flow, trigger) {
     flowSnapshot,
     triggerSnapshot,
   );
+  const normalizedExecutionAuthority =
+    normalizeAutomationExecutionAuthoritySnapshot(
+      executionAuthority,
+      flowSnapshot,
+    );
   return {
     id: automationEventJobId(triggerSnapshot.id),
     kind: AUTOMATION_EVENT_KIND,
@@ -334,21 +346,17 @@ export function buildAutomationEventJob(flow, trigger) {
       flow: flowSnapshot,
       trigger: triggerSnapshot,
       definitionDigest,
+      executionAuthority: normalizedExecutionAuthority,
+      executionAuthorityDigest: automationExecutionAuthorityDigest(
+        normalizedExecutionAuthority,
+        flowSnapshot,
+      ),
     },
-    authority: {
-      schemaVersion: 1,
-      principal: { type: "automation", id: flowSnapshot.id },
-      tenantId: null,
-      workspaceId: null,
-      requestedCapabilities: [AUTOMATION_EVENT_CAPABILITY],
-      authorizationRefs: {
-        decisionId: null,
-        policyRevision: null,
-        grantIds: [],
-        approvalIds: [],
-        delegationIds: [],
-      },
-    },
+    authority: automationSchedulerAuthority(
+      normalizedExecutionAuthority,
+      flowSnapshot,
+      AUTOMATION_EVENT_CAPABILITY,
+    ),
     enabled:
       flowSnapshot.status === FLOW_STATUS.ACTIVE && triggerSnapshot.enabled,
     maxAttempts: 3,
@@ -374,8 +382,13 @@ function sameJob(current, desired) {
   );
 }
 
-export function syncAutomationEventJob(schedulerStore, flow, trigger) {
-  const desired = buildAutomationEventJob(flow, trigger);
+export function syncAutomationEventJob(
+  schedulerStore,
+  flow,
+  trigger,
+  executionAuthority,
+) {
+  const desired = buildAutomationEventJob(flow, trigger, executionAuthority);
   let current = schedulerStore.getJob(desired.id);
   if (!current) {
     try {
@@ -405,6 +418,7 @@ export function enqueueAutomationChannelEvent(
   flow,
   trigger,
   event,
+  executionAuthority,
 ) {
   const normalizedEvent = normalizeAutomationChannelEvent(event);
   if (!matchesAutomationChannelEvent(trigger, normalizedEvent)) {
@@ -415,7 +429,12 @@ export function enqueueAutomationChannelEvent(
   }
   const triggerKey = automationEventTriggerKey(normalizedEvent);
   const eventDigest = automationChannelEventDigest(normalizedEvent);
-  const job = syncAutomationEventJob(schedulerStore, flow, trigger);
+  const job = syncAutomationEventJob(
+    schedulerStore,
+    flow,
+    trigger,
+    executionAuthority,
+  );
   let occurrence;
   try {
     occurrence = schedulerStore.enqueueOccurrenceOncePerTrigger({
@@ -455,6 +474,19 @@ export function authorizeAutomationEventOccurrence({ job, occurrence }) {
     const flow = automationEventFlowSnapshot(payload?.flow);
     const trigger = automationEventTriggerSnapshot(payload?.trigger);
     const event = normalizeAutomationChannelEvent(payload?.event);
+    const executionAuthority = normalizeAutomationExecutionAuthoritySnapshot(
+      payload?.executionAuthority,
+      flow,
+    );
+    const executionAuthorityDigest = automationExecutionAuthorityDigest(
+      executionAuthority,
+      flow,
+    );
+    const expectedAuthority = automationSchedulerAuthority(
+      executionAuthority,
+      flow,
+      AUTOMATION_EVENT_CAPABILITY,
+    );
     const allowed =
       job?.kind === AUTOMATION_EVENT_KIND &&
       payload?.channel === AUTOMATION_EVENT_CHANNEL &&
@@ -464,12 +496,12 @@ export function authorizeAutomationEventOccurrence({ job, occurrence }) {
       trigger.flowId === flow.id &&
       matchesAutomationChannelEvent(trigger, event) &&
       occurrence?.triggerKey === automationEventTriggerKey(event) &&
-      occurrence?.authority?.principal?.type === "automation" &&
-      occurrence.authority.principal.id === flow.id &&
-      Array.isArray(occurrence.authority.requestedCapabilities) &&
-      occurrence.authority.requestedCapabilities.length === 1 &&
-      occurrence.authority.requestedCapabilities[0] ===
-        AUTOMATION_EVENT_CAPABILITY;
+      payload?.executionAuthorityDigest === executionAuthorityDigest &&
+      canonicalJson(
+        occurrence?.authority,
+        "automationEventOccurrenceAuthority",
+      ) ===
+        canonicalJson(expectedAuthority, "expectedAutomationEventAuthority");
     return {
       allowed,
       reason: allowed
@@ -511,7 +543,7 @@ function existingExecutionResult(db, occurrence, expectedFlow) {
   return execution;
 }
 
-export function createAutomationEventAdapter({ db } = {}) {
+export function createAutomationEventAdapter({ db, now = Date.now } = {}) {
   if (!db || typeof db.prepare !== "function") {
     throw eventError(
       "AUTOMATION_EVENT_DATABASE_REQUIRED",
@@ -562,6 +594,15 @@ export function createAutomationEventAdapter({ db } = {}) {
         );
       }
 
+      reserveAutomationExecutionAuthority(
+        db,
+        currentFlow,
+        occurrence.id,
+        payload.executionAuthority,
+        payload.executionAuthorityDigest,
+        { now },
+      );
+
       let execution;
       try {
         execution = executeFlow(db, expectedFlow.id, {
@@ -596,12 +637,19 @@ export function createAutomationEventAdapter({ db } = {}) {
 }
 
 export class AutomationEventDispatcher {
-  constructor({ db, schedulerStore, ownerId, leaseMs, renewIntervalMs } = {}) {
+  constructor({
+    db,
+    schedulerStore,
+    ownerId,
+    leaseMs,
+    renewIntervalMs,
+    now = Date.now,
+  } = {}) {
     this.db = db;
     this.schedulerStore = schedulerStore;
     this.runtime = new SchedulerRuntime({
       store: schedulerStore,
-      adapters: [createAutomationEventAdapter({ db })],
+      adapters: [createAutomationEventAdapter({ db, now })],
       authorize: authorizeAutomationEventOccurrence,
       ...(ownerId === undefined ? {} : { ownerId }),
       ...(leaseMs === undefined ? {} : { leaseMs }),
@@ -632,12 +680,26 @@ export class AutomationEventDispatcher {
 
     const results = [];
     for (const match of matches) {
-      const occurrence = enqueueAutomationChannelEvent(
-        this.schedulerStore,
-        match.flow,
-        match.trigger,
-        normalizedEvent,
-      );
+      let occurrence;
+      try {
+        occurrence = enqueueAutomationChannelEvent(
+          this.schedulerStore,
+          match.flow,
+          match.trigger,
+          normalizedEvent,
+          automationExecutionAuthoritySnapshot(this.db, match.flow),
+        );
+      } catch (error) {
+        if (!String(error?.code || "").startsWith("AUTOMATION_EXECUTION_")) {
+          throw error;
+        }
+        rejected.push({
+          triggerId: match.trigger.id,
+          code: error?.code || "AUTOMATION_EXECUTION_PREFLIGHT_REJECTED",
+          message: String(error?.message || error).slice(0, 1000),
+        });
+        continue;
+      }
       const result = await this.runtime.runOccurrence(occurrence.id, {
         signal,
       });
