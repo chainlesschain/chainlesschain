@@ -660,9 +660,10 @@ VS Code / JetBrains / Desktop / Web / Mobile
 “公开发布回读”：前两者不能替代后两者，也不能据此宣称 Microsoft Marketplace 发布、真实 PR/merge 或完整
 release gate 已完成。
 
-当前核验基线为 `main@90f266efeeec38913587c9b92203315cedec6206`。公开分发基线为 CLI npm
-`0.163.5`、Open VSX `0.37.49` 与 JetBrains Marketplace `0.4.85`；Microsoft Marketplace、JetBrains
-作者签名及 Desktop/native 签名公开闭环仍未关闭。开放 PR 只按候选记录，不计入 `main` 已交付范围。
+当前核验基线为 `main@149bc9adac3d8354bd77c41b2653ee6b294eb3f5`。公开分发基线为 CLI npm
+`0.163.5`、Open VSX `0.37.50` 与 JetBrains Marketplace `0.4.86`；两个 IDE tag 均绑定已验证的
+`074bc471297b4ae0f02445b9bdb30d4dd11d5536`。Microsoft Marketplace、JetBrains 作者签名及
+Desktop/native 签名公开闭环仍未关闭。开放 PR 只按候选记录，不计入 `main` 已交付范围。
 
 下方首张总表保留 2026-08-09 的粗粒度校准基线，便于追溯当时的纠偏；它不是 2026-08-12 的最终状态表。
 与后续“剩余任务计数与可执行清单”或 exact-SHA 增量冲突时，以日期更新、当前核验 head 和最新清单为准。
@@ -1032,9 +1033,9 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
   只是阶段别名，不重复计数。完成项只有 P0-1/Q1 Workbench 与 P0-2/Q2 Rewind。
 - 若不拆 Q4a/Q4b，则口径为 **16/18 项尚未关闭**。Q4a 中的 local-host、多根、多窗口与 IDE
   ARM64 real-host exact-SHA 是已关闭子门，但 Remote、公开渠道、故障矩阵和 soak 尚未使整个 Q4a/Q4b 关闭。
-- 按可并行实施、并把同一外部阻塞合并后的工程口径，当前为 **21 个剩余工作包**。相较 2026-08-09
-  的 22 个，只有已合并的 `needs_input` 可恢复通知可正式减 1；开放的堆叠 PR #166、#168、#169、#172
-  尚不能减数。该数字用于排期，
+- 按可并行实施、并把同一外部阻塞合并后的工程口径，当前为 **17 个剩余工作包**。相较 2026-08-09
+  的 22 个，已合并的 `needs_input` 可恢复通知减 1，堆叠 PR #166、#168、#169、#172 在完成各自
+  exact-head 门并进入 `main` 后再减 4。该数字用于排期，
   不与 17 个原始编号相加；fresh-profile 升降级并入相应渠道，已关闭的 CLI 冷恢复 SLO、两小时 CLI soak、
   local-host、多根、多窗口和 IDE ARM64 exact-SHA 不再重复计入。
 
@@ -1044,7 +1045,7 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
 | 2   | S0-2                 | 部分完成              | 完成恶意 Skill/MCP 来源、effect/ledger、动态撤销、进程树与长期对抗矩阵；direct handler 已阻断和默认确认门已过，但不等于完整信任闭环。                                                                                                                                                                                                                                                                                                             |
 | 3   | S0-3                 | 部分完成              | 完成真实 provider 长会话语义压缩、结构化 handoff、live trajectory 与全宿主长期一致性；synthetic 矩阵及 CLI 冷恢复 SLO 已关闭。                                                                                                                                                                                                                                                                                                                    |
 | 4   | Q0 / R0              | 未完成/外部阻塞       | 配置发布 authority，将同一验证 VSIX 发布到 Microsoft Marketplace，并完成 exact publisher/version/digest 回读及 stock VS Code 搜索、安装、升级、回滚；当前 Gallery 精确查询为 `TotalCount=0`。                                                                                                                                                                                                                                                     |
-| 5   | Q0 / Q4b             | 部分完成/外部阻塞     | 为 JetBrains `0.4.85` 配置作者证书、私钥和密码，执行 `signPlugin`，再做签名包 fresh-profile 安装、升级、失败恢复与回滚；`0.4.85` 已 `approve=true`、`listed=true`、`hidden=false`，但 author signing 仍被跳过。                                                                                                                                                                                                                                   |
+| 5   | Q0 / Q4b             | 部分完成/外部阻塞     | 为 JetBrains `0.4.86` 配置作者证书、私钥和密码，执行 `signPlugin`，再做签名包 fresh-profile 安装、升级、失败恢复与回滚；`0.4.86` 已由 tag workflow 上传并通过发布后 Marketplace listing 验证，但 author signing 与签名包升降级/回滚仍未关闭。                                                                                                                                                                                                     |
 | 6   | Q0 / Q4b             | 部分完成/外部阻塞     | 完成 Desktop/native x64+ARM64 签名发行、完整 generation transaction、真实 taskkill/断电、Authenticode、macOS signing/notarization 与公开资产逐字节回读；unsigned CLI 六目标不能替代。                                                                                                                                                                                                                                                             |
 | 7   | Q3 / P0-3 / R2       | 部分完成/外部验证延后 | PR #142 的 production GitHub adapter、`cc artifacts delivery-run` 与 crash-safe exact-effect runner 已通过 merge commit `e08a61530225e3371849e54f7cfb03efb8cf63a1` 进入 `main`，仓库内实现子门已关闭；仍需通过该入口真实执行 gates→preview→review→fix→PR/CI→受控 merge→archive，并关闭真实 ruleset/branch protection、required checks/review、权限及外部不可变归档回读。本期延后该外部 live journey；fake adapter、人工 PR 和仓库内测试不能替代。 |
 | 8   | Q4a/Q4b / P0-4       | 未完成                | 完成 Remote/SSH/WSL/devcontainer/Codespaces 与 JetBrains Gateway 的 stock/minimum × OS 真实宿主矩阵。                                                                                                                                                                                                                                                                                                                                             |
@@ -1147,8 +1148,9 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
   统一保留为“未完成／外部阻塞／本期延后”。延后不是完成、豁免或 release GO；本期仅推进 #1～#3、#7
   及 R4/R5 中可由仓库代码与现有 GitHub Actions 权限独立验证的内部子门，不据此关闭整项。
 
-截至当前 `main`，原始编号仍为 **17/19 尚未关闭**；已合并的 `needs_input` 子门使工程口径由 22 个降为
-**21 个剩余工作包**。只有对应整项的全部关闭条件与权威证据满足后，才减少 17/19 的原始编号计数；
+截至当前 `main`，原始编号仍为 **17/19 尚未关闭**；已合并的 `needs_input` 子门及 #166/#168/#169/#172
+四个 Automation/Routine 工程包使工程口径由 22 个降为 **17 个剩余工作包**。只有对应整项的全部关闭
+条件与权威证据满足后，才减少 17/19 的原始编号计数；
 开放候选在合并前也不能从工程口径中扣除。
 
 ### 2026-08-11～12 已合并内部子门、scheduler 收敛与 IDE 插件发布
@@ -1298,8 +1300,9 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
   [CLI Strict Sandbox `31543095330`](https://github.com/chainlesschain/chainlesschain/actions/runs/31543095330)
   为三平台 3/3 success。
 - #13 的 scheduler execution foundation 已从 Agenda 单域前进到 `main` 中的 Agenda/Automation/Cowork/
-  Loop/Routine/monitor、统一 daemon、durable `needs_input` 通知，以及 Agenda/Cowork 的 IANA timezone/DST/
-  missed-run policy。原始编号仍为 **17/19 尚未关闭**；已合并通知子门后为 **21 个剩余工作包**。
+  Loop/Routine/monitor、统一 daemon、durable `needs_input` 通知、Agenda/Cowork 的 IANA timezone/DST/
+  missed-run policy，以及 governed Automation/Routine 控制面。原始编号仍为 **17/19 尚未关闭**；已合并
+  通知与四个控制面工程包后为 **17 个剩余工作包**。
   Microsoft Marketplace、JetBrains
   作者签名、Remote/SSH/WSL/devcontainer/Codespaces/Gateway、网络故障矩阵、八小时 IDE soak 与真实
   delivery live journey 继续按“外部阻塞／本期延后”处理；整体 product release 仍为 **NO-GO**。
@@ -1332,16 +1335,35 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
 - **PR #174 仅为开放的证据文档跟进。** exact head `0723e5382cc23a160419b45ec0f33eae0a2bb082`
   只更新 `docs/cli-claude-code-gap-analysis-2026-08-01.md`，记录 PR #159/#173 双门并把该文档的
   P2-4 内部剩余子项由 6 降为 5；其 CI 尚未终态，且不修改产品代码、当前 `main` 或本清单计数。
-- **四个开放功能 PR 是同一堆叠链，不得重复外推为 `main` 已交付。** PR
-  [#166](https://github.com/chainlesschain/chainlesschain/pull/166) 提交 scoped Webhook/Telegram event
-  dispatch；PR [#168](https://github.com/chainlesschain/chainlesschain/pull/168) 在其上提交 flow principal、
-  `automation:execute`、connector RBAC 与 rolling-window run/action budget preflight；PR
-  [#169](https://github.com/chainlesschain/chainlesschain/pull/169) 再提交 CLI-owned versioned projection、
-  history、run-now、失败重跑、暂停/恢复、禁用/删除及双 IDE Automation Center；PR
-  [#172](https://github.com/chainlesschain/chainlesschain/pull/172) 最后把 Routine cron/one-shot/webhook/
-  GitHub trigger 与 CAS 创建/编辑纳入同一 v2 控制面。四项当前均为 **OPEN**；#166、#168、#169 的
-  当前检查无 failure/pending，#172 的 IDE ARM64 矩阵为 24 success、2 failure、1 skipped、1 pending，
-  因此任何候选都不能从 21 个
-  剩余工作包中提前扣除。若四项以各自最终 exact head 完成权威矩阵并全部合并，工程口径可由 21 降至
-  17；P1-3 原始整项仍需运行中 task 的条件式暂停/恢复、绑定原 run id 的越界 incident、未知结果裁决、
-  迁移/回滚、磁盘故障与三平台长期 soak，故 **17/19** 原始编号届时仍不会自动变化。
+- **四个 Automation/Routine 工程包已完成 exact-head 门并全部合并。** PR
+  [#166](https://github.com/chainlesschain/chainlesschain/pull/166) 的 scoped Webhook/Telegram event dispatch
+  以 `4681fd84a2d08854d2e3a2e51dae0f7c71a7e0df` 进入 `main`；PR
+  [#168](https://github.com/chainlesschain/chainlesschain/pull/168) 的 flow principal、`automation:execute`、
+  connector RBAC 与 rolling-window run/action budget preflight 以
+  `1e7efd50d23589f35b2f76fadaeb46a10187c6ab` 进入 `main`。PR
+  [#172](https://github.com/chainlesschain/chainlesschain/pull/172) 先把 Routine cron/one-shot/webhook/GitHub
+  trigger 与 CAS 创建/编辑合入 #169，随后 PR
+  [#169](https://github.com/chainlesschain/chainlesschain/pull/169) 以 exact head
+  `91a3d9c6e5d6a76f06788cf869ac37acd4284a7b` 的 **15/15 workflows success** 收口 CLI-owned versioned
+  projection、scope/preflight/history、run-now、失败重跑、暂停/恢复、禁用/删除及双 IDE Automation Center，
+  并以 `074bc471297b4ae0f02445b9bdb30d4dd11d5536` 进入 `main`。该 exact main 发布提交的
+  [IDE Extensions `31586925945`](https://github.com/chainlesschain/chainlesschain/actions/runs/31586925945)
+  与 [IDE ARM64 Host Validation `31586925848`](https://github.com/chainlesschain/chainlesschain/actions/runs/31586925848)
+  均成功，故四个工程包已从排期口径扣除，工程剩余数由 21 降至 **17**。P1-3 原始整项仍需运行中
+  task 的条件式暂停/恢复、绑定原 run id 的越界 incident、未知结果裁决、迁移/回滚、磁盘故障与三平台
+  长期 soak，故 **17/19** 原始编号不变。
+- **Open VSX `0.37.50` 与 JetBrains Marketplace `0.4.86` 已从同一 exact SHA 发布。** 不可变 tags
+  `ide-vscode-v0.37.50` 与 `ide-jetbrains-v0.4.86` 均绑定
+  `074bc471297b4ae0f02445b9bdb30d4dd11d5536`。Open VSX
+  [发布 run `31589542152`](https://github.com/chainlesschain/chainlesschain/actions/runs/31589542152) 完成不可变
+  VSIX、Windows/macOS/Linux stable + minimum `1.85.2`、publish 与公开 listing 回读。JetBrains
+  [发布 run `31589547677`](https://github.com/chainlesschain/chainlesschain/actions/runs/31589547677) 的
+  `2024.2`/`2025.2` × 三 OS 六格真实宿主全部成功；attempt 1 因 Gradle 临时未解析到 `IC-2024.2`
+  installer 而在 smoke 配置期失败，attempt 2 越过同一点并完成 smoke、JUnit、build、Plugin Verifier、
+  Marketplace upload 及 post-publish listing verification。该发布不关闭 Microsoft Marketplace、JetBrains
+  作者签名或 signed fresh-profile 升降级/回滚。
+- **两个 IDE 版本说明已概述 CLI `0.163.5` 新能力及兼容边界。** README/CHANGELOG 说明 durable unified
+  scheduler runtime、Routine/Agenda/Cowork migration、snapshot-bound authority/fencing、bounded retry、
+  dead-letter、crash recovery 与 durable compaction；同时明确 `0.163.5` 早于 governed
+  Automation/Routine commands，现有 chat/bridge 可继续使用，新 Automation Center 控制需要后续 CLI，
+  不把尚未公开的 CLI 命令误写成 `0.163.5` 已交付。
