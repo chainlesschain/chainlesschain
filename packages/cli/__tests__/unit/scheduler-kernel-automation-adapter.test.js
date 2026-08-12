@@ -2,6 +2,10 @@ import { afterEach, describe, expect, it } from "vitest";
 import Database from "better-sqlite3";
 import { runAutomationScheduled } from "../../src/commands/automation.js";
 import {
+  automationExecutionAuthoritySnapshot,
+  setAutomationExecutionBudget,
+} from "../../src/lib/automation-execution-authority.js";
+import {
   EXECUTION_STATUS,
   FLOW_STATUS,
   TRIGGER_TYPE,
@@ -14,6 +18,10 @@ import {
   scheduleFlow,
   updateFlowStatus,
 } from "../../src/lib/automation-engine.js";
+import {
+  grantPermission,
+  revokePermission,
+} from "../../src/lib/permission-engine.js";
 import {
   AUTOMATION_SCHEDULER_CAPABILITY,
   AutomationSchedulerBridge,
@@ -29,6 +37,7 @@ import { openSchedulerStore } from "../../src/lib/scheduler-kernel/store.js";
 
 describe("scheduler-kernel automation adapter", () => {
   const cleanups = [];
+  const principalId = "did:test:automation-owner";
 
   afterEach(() => {
     while (cleanups.length > 0) cleanups.pop()();
@@ -61,6 +70,7 @@ describe("scheduler-kernel automation adapter", () => {
   function activeScheduledFlow(f, cron = "* * * * *") {
     const created = createFlow(f.db, {
       name: "scheduled flow",
+      createdBy: principalId,
       nodes: [
         {
           id: "notify",
@@ -70,16 +80,37 @@ describe("scheduler-kernel automation adapter", () => {
         },
       ],
     });
+    grantPermission(f.db, principalId, "automation:execute");
+    grantPermission(f.db, principalId, "automation:connector:slack");
+    setAutomationExecutionBudget(
+      f.db,
+      created.id,
+      { windowMs: 60 * 60_000, maxRuns: 100, maxActionSteps: 100 },
+      { now: f.clock },
+    );
     scheduleFlow(f.db, created.id, cron);
     const active = updateFlowStatus(f.db, created.id, FLOW_STATUS.ACTIVE);
     f.now = Date.parse(active.updatedAt) + 10 * 60_000;
     return active;
   }
 
+  function executionAuthority(f, flow) {
+    return automationExecutionAuthoritySnapshot(f.db, flow);
+  }
+
+  function enqueue(f, flow, now = f.now) {
+    return enqueueScheduledAutomation(
+      f.schedulerStore,
+      flow,
+      now,
+      executionAuthority(f, flow),
+    );
+  }
+
   it("binds a canonical flow snapshot and least-capability authority", () => {
     const f = fixture();
     const flow = activeScheduledFlow(f);
-    const job = buildAutomationSchedulerJob(flow);
+    const job = buildAutomationSchedulerJob(flow, executionAuthority(f, flow));
 
     expect(job).toMatchObject({
       kind: "automation",
@@ -87,8 +118,11 @@ describe("scheduler-kernel automation adapter", () => {
       maxAttempts: 3,
       trigger: { channel: "scheduled", cron: "* * * * *" },
       authority: {
-        principal: { type: "automation", id: flow.id },
-        requestedCapabilities: [AUTOMATION_SCHEDULER_CAPABILITY],
+        principal: { type: "user", id: principalId },
+        requestedCapabilities: [
+          "automation.connector.slack",
+          AUTOMATION_SCHEDULER_CAPABILITY,
+        ],
       },
       payload: {
         channel: "scheduled",
@@ -192,7 +226,7 @@ describe("scheduler-kernel automation adapter", () => {
   it("resets the cron cursor when a schedule definition is edited", () => {
     const f = fixture();
     const flow = activeScheduledFlow(f);
-    const first = enqueueScheduledAutomation(f.schedulerStore, flow, f.now);
+    const first = enqueue(f, flow);
     const editedAt = f.now + 60 * 60_000;
     f.db
       .prepare(
@@ -201,11 +235,7 @@ describe("scheduler-kernel automation adapter", () => {
       .run("* * * * *", new Date(editedAt).toISOString(), flow.id);
     f.now = editedAt + 2 * 60_000;
 
-    const second = enqueueScheduledAutomation(
-      f.schedulerStore,
-      getFlow(f.db, flow.id),
-      f.now,
-    );
+    const second = enqueue(f, getFlow(f.db, flow.id));
     expect(second.id).not.toBe(first.id);
     expect(second.scheduledFor).toBeGreaterThan(editedAt);
   });
@@ -213,11 +243,7 @@ describe("scheduler-kernel automation adapter", () => {
   it("rejects a queued occurrence when the flow is paused before execution", async () => {
     const f = fixture();
     const flow = activeScheduledFlow(f);
-    const occurrence = enqueueScheduledAutomation(
-      f.schedulerStore,
-      flow,
-      f.now,
-    );
+    const occurrence = enqueue(f, flow);
     updateFlowStatus(f.db, flow.id, FLOW_STATUS.PAUSED);
     const runtime = new SchedulerRuntime({
       store: f.schedulerStore,
@@ -238,11 +264,7 @@ describe("scheduler-kernel automation adapter", () => {
   it("rejects a stale flow snapshot before connector execution", async () => {
     const f = fixture();
     const flow = activeScheduledFlow(f);
-    const occurrence = enqueueScheduledAutomation(
-      f.schedulerStore,
-      flow,
-      f.now,
-    );
+    const occurrence = enqueue(f, flow);
     scheduleFlow(f.db, flow.id, "*/2 * * * *");
     const runtime = new SchedulerRuntime({
       store: f.schedulerStore,
@@ -263,11 +285,7 @@ describe("scheduler-kernel automation adapter", () => {
   it("recovers committed success without executing the flow twice", async () => {
     const f = fixture();
     const flow = activeScheduledFlow(f);
-    const occurrence = enqueueScheduledAutomation(
-      f.schedulerStore,
-      flow,
-      f.now,
-    );
+    const occurrence = enqueue(f, flow);
     const executionId = automationSchedulerExecutionId(occurrence.id);
     executeFlow(f.db, flow.id, {
       triggerType: TRIGGER_TYPE.SCHEDULE,
@@ -291,11 +309,7 @@ describe("scheduler-kernel automation adapter", () => {
   it("dead-letters a start-only execution as outcome unknown", async () => {
     const f = fixture();
     const flow = activeScheduledFlow(f);
-    const occurrence = enqueueScheduledAutomation(
-      f.schedulerStore,
-      flow,
-      f.now,
-    );
+    const occurrence = enqueue(f, flow);
     const executionId = automationSchedulerExecutionId(occurrence.id);
     f.db
       .prepare(
@@ -339,11 +353,7 @@ describe("scheduler-kernel automation adapter", () => {
   it("rejects a tampered authority envelope before adapter execution", async () => {
     const f = fixture();
     const flow = activeScheduledFlow(f);
-    const occurrence = enqueueScheduledAutomation(
-      f.schedulerStore,
-      flow,
-      f.now,
-    );
+    const occurrence = enqueue(f, flow);
     f.schedulerStore.db
       .prepare(
         "UPDATE occurrences SET authority_json = ? WHERE occurrence_id = ?",
@@ -366,6 +376,126 @@ describe("scheduler-kernel automation adapter", () => {
     await expect(runtime.runOccurrence(occurrence.id)).resolves.toMatchObject({
       status: "dead_letter",
       error: { code: "SCHEDULER_RUNTIME_AUTHORIZATION_DENIED" },
+    });
+    expect(listExecutions(f.db, { flowId: flow.id })).toHaveLength(0);
+  });
+
+  it("rechecks live connector permission immediately before execution", async () => {
+    const f = fixture();
+    const flow = activeScheduledFlow(f);
+    const occurrence = enqueue(f, flow);
+    revokePermission(f.db, principalId, "automation:connector:slack");
+    const runtime = new SchedulerRuntime({
+      store: f.schedulerStore,
+      adapters: [createAutomationSchedulerAdapter({ db: f.db, now: f.clock })],
+      authorize: authorizeAutomationOccurrence,
+      ownerId: "automation-revoked-owner",
+      leaseMs: 10_000,
+    });
+
+    await expect(runtime.runOccurrence(occurrence.id)).resolves.toMatchObject({
+      status: "dead_letter",
+      error: { code: "AUTOMATION_EXECUTION_PERMISSION_DENIED" },
+    });
+    expect(listExecutions(f.db, { flowId: flow.id })).toHaveLength(0);
+  });
+
+  it("rejects an unattended flow before enqueue when no budget is configured", async () => {
+    const f = fixture();
+    const created = createFlow(f.db, {
+      name: "unconfigured scheduled flow",
+      createdBy: principalId,
+      nodes: [
+        {
+          id: "notify",
+          type: "action",
+          connector: "slack",
+          action: "postMessage",
+        },
+      ],
+    });
+    grantPermission(f.db, principalId, "automation:execute");
+    grantPermission(f.db, principalId, "automation:connector:slack");
+    scheduleFlow(f.db, created.id, "* * * * *");
+    const flow = updateFlowStatus(f.db, created.id, FLOW_STATUS.ACTIVE);
+    f.now = Date.parse(flow.updatedAt) + 10 * 60_000;
+    const bridge = new AutomationSchedulerBridge({
+      db: f.db,
+      schedulerStore: f.schedulerStore,
+      now: f.clock,
+      ownerId: "automation-unconfigured-owner",
+      leaseMs: 10_000,
+    });
+
+    await expect(bridge.runDue()).resolves.toMatchObject([
+      {
+        flow: flow.id,
+        occurrence: null,
+        rejected: true,
+        result: {
+          status: "rejected",
+          error: { code: "AUTOMATION_EXECUTION_BUDGET_REQUIRED" },
+        },
+      },
+    ]);
+    expect(listExecutions(f.db, { flowId: flow.id })).toHaveLength(0);
+  });
+
+  it("consumes one durable run/action budget and denies the next cron fire", async () => {
+    const f = fixture();
+    const flow = activeScheduledFlow(f);
+    const windowMs = 60 * 60_000;
+    f.now = Math.floor(f.now / windowMs) * windowMs + windowMs + 10 * 60_000;
+    setAutomationExecutionBudget(
+      f.db,
+      flow.id,
+      { windowMs, maxRuns: 1, maxActionSteps: 1 },
+      { now: f.clock },
+    );
+    const bridge = new AutomationSchedulerBridge({
+      db: f.db,
+      schedulerStore: f.schedulerStore,
+      now: f.clock,
+      ownerId: "automation-budget-owner",
+      leaseMs: 10_000,
+    });
+
+    await expect(bridge.runDue()).resolves.toMatchObject([
+      { result: { status: "succeeded" } },
+    ]);
+    f.now += 60_000;
+    await expect(bridge.runDue()).resolves.toMatchObject([
+      {
+        result: {
+          status: "dead_letter",
+          error: { code: "AUTOMATION_EXECUTION_BUDGET_EXHAUSTED" },
+        },
+      },
+    ]);
+    expect(listExecutions(f.db, { flowId: flow.id })).toHaveLength(1);
+  });
+
+  it("rejects an occurrence when its budget policy changes after enqueue", async () => {
+    const f = fixture();
+    const flow = activeScheduledFlow(f);
+    const occurrence = enqueue(f, flow);
+    setAutomationExecutionBudget(
+      f.db,
+      flow.id,
+      { windowMs: 60 * 60_000, maxRuns: 50, maxActionSteps: 50 },
+      { now: f.clock },
+    );
+    const runtime = new SchedulerRuntime({
+      store: f.schedulerStore,
+      adapters: [createAutomationSchedulerAdapter({ db: f.db, now: f.clock })],
+      authorize: authorizeAutomationOccurrence,
+      ownerId: "automation-stale-budget-owner",
+      leaseMs: 10_000,
+    });
+
+    await expect(runtime.runOccurrence(occurrence.id)).resolves.toMatchObject({
+      status: "dead_letter",
+      error: { code: "AUTOMATION_EXECUTION_AUTHORITY_STALE" },
     });
     expect(listExecutions(f.db, { flowId: flow.id })).toHaveLength(0);
   });

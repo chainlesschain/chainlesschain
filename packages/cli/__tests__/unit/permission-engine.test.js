@@ -72,9 +72,9 @@ describe("Permission Engine", () => {
       expect(PERMISSION_SCOPES.length).toBeGreaterThanOrEqual(20);
     });
 
-    it("should follow resource:action format", () => {
+    it("should follow hierarchical resource:action format", () => {
       for (const scope of PERMISSION_SCOPES) {
-        expect(scope).toMatch(/^\w+:\w+$/);
+        expect(scope).toMatch(/^\w+(?::\w+)+(?::\*)?$/);
       }
     });
   });
@@ -351,6 +351,42 @@ describe("Permission Engine", () => {
       expect(checkPermission(db, "did:chainless:carol", "audit:write")).toBe(
         false,
       );
+    });
+
+    it("supports a narrow hierarchical wildcard without widening its parent", () => {
+      ensurePermissionTables(db);
+      grantPermission(db, "did:chainless:automation", "automation:connector:*");
+      expect(
+        checkPermission(
+          db,
+          "did:chainless:automation",
+          "automation:connector:slack",
+        ),
+      ).toBe(true);
+      expect(
+        checkPermission(db, "did:chainless:automation", "automation:execute"),
+      ).toBe(false);
+    });
+
+    it("evaluates expiring grants at the caller-bound preflight time", () => {
+      ensurePermissionTables(db);
+      grantRole(
+        db,
+        "did:chainless:timed",
+        "viewer",
+        null,
+        "2030-01-01T00:00:00.000Z",
+      );
+      expect(
+        checkPermission(db, "did:chainless:timed", "note:read", {
+          nowMs: Date.parse("2029-12-31T23:59:59.000Z"),
+        }),
+      ).toBe(true);
+      expect(
+        checkPermission(db, "did:chainless:timed", "note:read", {
+          nowMs: Date.parse("2030-01-01T00:00:00.000Z"),
+        }),
+      ).toBe(false);
     });
   });
 

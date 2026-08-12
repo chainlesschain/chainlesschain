@@ -91,6 +91,8 @@ export const PERMISSION_SCOPES = [
   "audit:write",
   "config:read",
   "config:write",
+  "automation:execute",
+  "automation:connector:*",
   "system:admin",
 ];
 
@@ -296,7 +298,7 @@ function _grantActive(expiresAt, nowMs) {
 /**
  * Get all roles and direct permissions for a user.
  */
-export function getUserPermissions(db, userDid) {
+export function getUserPermissions(db, userDid, { nowMs = Date.now() } = {}) {
   ensurePermissionTables(db);
 
   // Get active role grants
@@ -305,7 +307,6 @@ export function getUserPermissions(db, userDid) {
     .all(userDid);
 
   // Filter out expired grants
-  const nowMs = Date.now();
   const grants = allGrants.filter((g) => _grantActive(g.expires_at, nowMs));
 
   // Get direct permissions (not expired)
@@ -347,8 +348,8 @@ export function getUserPermissions(db, userDid) {
 /**
  * Check if a user has a specific permission.
  */
-export function checkPermission(db, userDid, permission) {
-  const userPerms = getUserPermissions(db, userDid);
+export function checkPermission(db, userDid, permission, options) {
+  const userPerms = getUserPermissions(db, userDid, options);
 
   // Admin wildcard
   if (userPerms.isAdmin) return true;
@@ -356,9 +357,15 @@ export function checkPermission(db, userDid, permission) {
   // Exact match
   if (userPerms.effectivePermissions.includes(permission)) return true;
 
-  // Wildcard match (e.g., "note:*" matches "note:read")
-  const [scope] = permission.split(":");
-  if (userPerms.effectivePermissions.includes(`${scope}:*`)) return true;
+  // Hierarchical wildcard match. In addition to `note:*`, this allows an
+  // explicitly narrow grant such as `automation:connector:*` to authorize
+  // `automation:connector:slack` without granting unrelated automation
+  // capabilities.
+  const segments = permission.split(":");
+  for (let length = segments.length - 1; length >= 1; length -= 1) {
+    const wildcard = `${segments.slice(0, length).join(":")}:*`;
+    if (userPerms.effectivePermissions.includes(wildcard)) return true;
+  }
 
   return false;
 }

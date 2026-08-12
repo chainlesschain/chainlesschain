@@ -1,6 +1,13 @@
 import { createHash } from "node:crypto";
 import { nextCronTime } from "../agent-schedule-store.js";
 import {
+  automationExecutionAuthorityDigest,
+  automationExecutionAuthoritySnapshot,
+  automationSchedulerAuthority,
+  normalizeAutomationExecutionAuthoritySnapshot,
+  reserveAutomationExecutionAuthority,
+} from "../automation-execution-authority.js";
+import {
   EXECUTION_STATUS,
   FLOW_STATUS,
   TRIGGER_TYPE,
@@ -130,8 +137,10 @@ export function automationSchedulerExecutionId(occurrenceId) {
   return `exec-scheduler-${digest}`;
 }
 
-export function buildAutomationSchedulerJob(flow) {
+export function buildAutomationSchedulerJob(flow, executionAuthority) {
   const snapshot = automationFlowSnapshot(flow);
+  const normalizedExecutionAuthority =
+    normalizeAutomationExecutionAuthoritySnapshot(executionAuthority, snapshot);
   return {
     id: automationSchedulerJobId(snapshot.id),
     kind: AUTOMATION_SCHEDULER_KIND,
@@ -144,21 +153,17 @@ export function buildAutomationSchedulerJob(flow) {
       channel: AUTOMATION_SCHEDULER_CHANNEL,
       flow: snapshot,
       snapshotDigest: automationFlowSnapshotDigest(snapshot),
+      executionAuthority: normalizedExecutionAuthority,
+      executionAuthorityDigest: automationExecutionAuthorityDigest(
+        normalizedExecutionAuthority,
+        snapshot,
+      ),
     },
-    authority: {
-      schemaVersion: 1,
-      principal: { type: "automation", id: snapshot.id },
-      tenantId: null,
-      workspaceId: null,
-      requestedCapabilities: [AUTOMATION_SCHEDULER_CAPABILITY],
-      authorizationRefs: {
-        decisionId: null,
-        policyRevision: null,
-        grantIds: [],
-        approvalIds: [],
-        delegationIds: [],
-      },
-    },
+    authority: automationSchedulerAuthority(
+      normalizedExecutionAuthority,
+      snapshot,
+      AUTOMATION_SCHEDULER_CAPABILITY,
+    ),
     enabled: snapshot.status === FLOW_STATUS.ACTIVE,
     // A reclaimed occurrence needs a second attempt to read deterministic
     // execution evidence. Adapter errors themselves remain non-retryable.
@@ -185,8 +190,12 @@ function sameJob(current, desired) {
   );
 }
 
-export function syncAutomationSchedulerJob(schedulerStore, flow) {
-  const desired = buildAutomationSchedulerJob(flow);
+export function syncAutomationSchedulerJob(
+  schedulerStore,
+  flow,
+  executionAuthority,
+) {
+  const desired = buildAutomationSchedulerJob(flow, executionAuthority);
   let current = schedulerStore.getJob(desired.id);
   if (!current) {
     try {
@@ -264,8 +273,17 @@ export function scheduledAutomationFireAt(schedulerStore, flow, now) {
   return latestDue ?? next;
 }
 
-export function enqueueScheduledAutomation(schedulerStore, flow, now) {
-  const job = syncAutomationSchedulerJob(schedulerStore, flow);
+export function enqueueScheduledAutomation(
+  schedulerStore,
+  flow,
+  now,
+  executionAuthority,
+) {
+  const job = syncAutomationSchedulerJob(
+    schedulerStore,
+    flow,
+    executionAuthority,
+  );
   if (!job.enabled) {
     throw automationError(
       "AUTOMATION_SCHEDULER_FLOW_NOT_ACTIVE",
@@ -287,14 +305,26 @@ export function authorizeAutomationOccurrence({ job, occurrence }) {
     const authority = occurrence?.authority;
     const flowId = payload?.flow?.id;
     const expectedDigest = automationFlowSnapshotDigest(payload?.flow);
+    const executionAuthority = normalizeAutomationExecutionAuthoritySnapshot(
+      payload?.executionAuthority,
+      payload?.flow,
+    );
+    const executionAuthorityDigest = automationExecutionAuthorityDigest(
+      executionAuthority,
+      payload?.flow,
+    );
+    const expectedAuthority = automationSchedulerAuthority(
+      executionAuthority,
+      payload?.flow,
+      AUTOMATION_SCHEDULER_CAPABILITY,
+    );
     const allowed =
       job?.kind === AUTOMATION_SCHEDULER_KIND &&
       payload?.channel === AUTOMATION_SCHEDULER_CHANNEL &&
-      authority?.principal?.type === "automation" &&
-      authority?.principal?.id === flowId &&
-      Array.isArray(authority?.requestedCapabilities) &&
-      authority.requestedCapabilities.length === 1 &&
-      authority.requestedCapabilities[0] === AUTOMATION_SCHEDULER_CAPABILITY &&
+      executionAuthority.flowId === flowId &&
+      payload?.executionAuthorityDigest === executionAuthorityDigest &&
+      canonicalJson(authority, "automationOccurrenceAuthority") ===
+        canonicalJson(expectedAuthority, "expectedAutomationAuthority") &&
       payload?.snapshotDigest === expectedDigest;
     return {
       allowed,
@@ -337,7 +367,7 @@ function existingExecutionResult(db, occurrence, expected) {
   return execution;
 }
 
-export function createAutomationSchedulerAdapter({ db } = {}) {
+export function createAutomationSchedulerAdapter({ db, now = Date.now } = {}) {
   if (!db || typeof db.prepare !== "function") {
     throw automationError(
       "AUTOMATION_SCHEDULER_DATABASE_REQUIRED",
@@ -385,6 +415,15 @@ export function createAutomationSchedulerAdapter({ db } = {}) {
           `Automation flow changed after occurrence enqueue: ${expected.id}`,
         );
       }
+
+      reserveAutomationExecutionAuthority(
+        db,
+        current,
+        occurrence.id,
+        payload.executionAuthority,
+        payload.executionAuthorityDigest,
+        { now },
+      );
 
       let execution;
       try {
@@ -439,7 +478,7 @@ export class AutomationSchedulerBridge {
     this.now = now;
     this.runtime = new SchedulerRuntime({
       store: schedulerStore,
-      adapters: [createAutomationSchedulerAdapter({ db })],
+      adapters: [createAutomationSchedulerAdapter({ db, now })],
       authorize: authorizeAutomationOccurrence,
       ...(ownerId === undefined ? {} : { ownerId }),
       ...(leaseMs === undefined ? {} : { leaseMs }),
@@ -475,11 +514,32 @@ export class AutomationSchedulerBridge {
       limit: 10_000,
     }).filter((flow) => typeof flow.schedule === "string" && flow.schedule);
     for (const flow of flows) {
-      const occurrence = enqueueScheduledAutomation(
-        this.schedulerStore,
-        flow,
-        now,
-      );
+      let occurrence;
+      try {
+        occurrence = enqueueScheduledAutomation(
+          this.schedulerStore,
+          flow,
+          now,
+          automationExecutionAuthoritySnapshot(this.db, flow),
+        );
+      } catch (error) {
+        if (!String(error?.code || "").startsWith("AUTOMATION_EXECUTION_")) {
+          throw error;
+        }
+        results.push({
+          flow: flow.id,
+          occurrence: null,
+          rejected: true,
+          result: {
+            status: "rejected",
+            error: {
+              code: error?.code || "AUTOMATION_EXECUTION_PREFLIGHT_REJECTED",
+              message: String(error?.message || error).slice(0, 1000),
+            },
+          },
+        });
+        continue;
+      }
       if (!occurrence || observedOccurrences.has(occurrence.id)) continue;
       const result = await this.runtime.runOccurrence(occurrence.id, {
         signal,
