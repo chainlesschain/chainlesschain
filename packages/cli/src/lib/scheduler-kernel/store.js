@@ -1875,6 +1875,25 @@ export class SchedulerStore {
     return this._domainMigration(migrationId);
   }
 
+  getActiveDomainMigrationBySource({ domain, sourceScope, sourceId } = {}) {
+    this._assertOpen();
+    if (!SCHEDULER_MIGRATION_DOMAINS.includes(domain)) {
+      throw invalidArgument(
+        "domain must be a supported scheduler migration domain",
+      );
+    }
+    const scopeDigest = schedulerMigrationScopeDigest(sourceScope);
+    const id = normalizeIdentifier(sourceId, "sourceId");
+    const row = this.db
+      .prepare(
+        `SELECT migration_id FROM scheduler_domain_migration_entries
+         WHERE domain = ? AND source_scope_digest = ? AND source_id = ?
+           AND state <> 'rolled_back'`,
+      )
+      .get(domain, scopeDigest, id);
+    return row ? this._domainMigration(row.migration_id) : null;
+  }
+
   listDomainMigrations({ state, limit = 50 } = {}) {
     this._assertOpen();
     const boundedLimit = Math.min(
@@ -2322,6 +2341,19 @@ export class SchedulerStore {
             ...intended,
             enabled: false,
           });
+          if (
+            current &&
+            schedulerJobDefinitionDigest(current) === candidate.targetJobDigest
+          ) {
+            this.db
+              .prepare(
+                `UPDATE scheduler_domain_migration_entries
+                 SET target_applied_revision = ?, updated_at = ?
+                 WHERE migration_id = ? AND entry_id = ? AND state = 'retired'`,
+              )
+              .run(current.revision, now, id, candidate.entryId);
+            continue;
+          }
           if (
             !current ||
             current.revision !== candidate.targetAppliedRevision ||

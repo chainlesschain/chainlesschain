@@ -22,7 +22,7 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { randomUUID } from "crypto";
+import { createHash, randomUUID } from "crypto";
 import { isEntryExpired, effectiveFireAt } from "./schedule-planner.js";
 import { SUBAGENT_PERMISSION_MODES } from "./subagent-contract.js";
 import { parseGoalCondition } from "./goal-condition-engine.js";
@@ -30,6 +30,7 @@ import { normalizeActionClass } from "./unattended-action-policy.js";
 import { withFileLock } from "./with-file-lock.js";
 
 export const SCHEDULE_KINDS = Object.freeze(["wakeup", "cron", "monitor"]);
+export const AGENDA_SCHEDULER_MIGRATION_SCHEMA_VERSION = 1;
 
 /** A valid absolute-epoch-ms expiry, or null (never expires). */
 function normalizeExpiresAt(v) {
@@ -166,6 +167,87 @@ function isSchedulableStatus(entry) {
 
 function hasLiveExecutionLease(entry, now) {
   return Number(entry.executionLease?.expiresAt) > Number(now);
+}
+
+function stableJsonValue(value) {
+  if (Array.isArray(value)) return value.map(stableJsonValue);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, stableJsonValue(value[key])]),
+    );
+  }
+  return value;
+}
+
+function agendaMigrationSource(entry) {
+  const source = { ...entry };
+  delete source.executionLease;
+  delete source.schedulerExecution;
+  delete source.schedulerMigration;
+  delete source.firedAt;
+  delete source.lastRunAt;
+  delete source.runs;
+  delete source.nextAt;
+  delete source.lastCheckAt;
+  delete source.checks;
+  delete source.lastMtimeMs;
+  delete source.lastEventId;
+  delete source.lastAuthority;
+  delete source.status;
+  return source;
+}
+
+export function agendaMigrationSourceDigest(entry) {
+  return createHash("sha256")
+    .update("chainlesschain.agenda.scheduler-migration-source.v1\0", "utf8")
+    .update(
+      JSON.stringify(stableJsonValue(agendaMigrationSource(entry))),
+      "utf8",
+    )
+    .digest("hex");
+}
+
+export function agendaMigrationSourceSnapshot(entry) {
+  return stableJsonValue(agendaMigrationSource(entry));
+}
+
+function schedulerMigrationFence(entry, now) {
+  const migration = entry.schedulerMigration;
+  if (
+    migration?.schemaVersion !== AGENDA_SCHEDULER_MIGRATION_SCHEMA_VERSION ||
+    typeof migration.retirementToken !== "string" ||
+    migration.retirementToken.length === 0
+  ) {
+    return false;
+  }
+  return (
+    hasLiveExecutionLease(entry, now) &&
+    entry.executionLease?.owner ===
+      `scheduler-migration:${migration.retirementToken}`
+  );
+}
+
+function applySchedulerMigrationFence(entry, now) {
+  const token = entry.schedulerMigration?.retirementToken;
+  if (typeof token !== "string" || token.length === 0) return false;
+  entry.executionLease = {
+    owner: `scheduler-migration:${token}`,
+    claimedAt: now,
+    expiresAt: Number.MAX_SAFE_INTEGER,
+  };
+  return true;
+}
+
+function normalizeMigrationField(value, field) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw agendaStoreError(
+      "AGENDA_SCHEDULER_MIGRATION_INVALID",
+      `Agenda scheduler migration ${field} is required`,
+    );
+  }
+  return value.trim();
 }
 
 function agendaStoreError(code, message, { retryable = false, retryAt } = {}) {
@@ -820,15 +902,224 @@ export class AgentScheduleStore {
     return this.list().find((entry) => entry.id === id) || null;
   }
 
+  prepareSchedulerMigration(
+    id,
+    { migrationId, sourceDigest, targetJobId } = {},
+  ) {
+    const migration = normalizeMigrationField(migrationId, "migrationId");
+    const expectedDigest = normalizeMigrationField(
+      sourceDigest,
+      "sourceDigest",
+    );
+    const target = normalizeMigrationField(targetJobId, "targetJobId");
+    this._ensureDir();
+    return withFileLock(
+      path.join(this.dir, ".agenda-claims"),
+      () => {
+        for (const kind of SCHEDULE_KINDS) {
+          const entries = this._readAll(kind);
+          const entry = entries.find((candidate) => candidate.id === id);
+          if (!entry) continue;
+          if (!isSchedulableStatus(entry)) {
+            throw agendaStoreError(
+              "AGENDA_SCHEDULER_ENTRY_TERMINAL",
+              `Agenda entry is not schedulable: ${id}`,
+            );
+          }
+          const actualDigest = agendaMigrationSourceDigest(entry);
+          if (actualDigest !== expectedDigest) {
+            throw agendaStoreError(
+              "AGENDA_SCHEDULER_MIGRATION_SOURCE_CHANGED",
+              `Agenda entry changed before migration: ${id}`,
+            );
+          }
+          const prior = entry.schedulerMigration;
+          if (prior) {
+            if (
+              prior.schemaVersion !==
+                AGENDA_SCHEDULER_MIGRATION_SCHEMA_VERSION ||
+              prior.sourceDigest !== expectedDigest ||
+              prior.targetJobId !== target ||
+              prior.migrationId !== migration ||
+              prior.state !== "prepared"
+            ) {
+              throw agendaStoreError(
+                "AGENDA_SCHEDULER_MIGRATION_CONFLICT",
+                `Agenda entry already belongs to another scheduler migration: ${id}`,
+              );
+            }
+            return entry;
+          }
+          entry.schedulerMigration = {
+            schemaVersion: AGENDA_SCHEDULER_MIGRATION_SCHEMA_VERSION,
+            state: "prepared",
+            migrationId: migration,
+            sourceDigest: expectedDigest,
+            targetJobId: target,
+            preparedAt: this._now(),
+          };
+          this._writeAll(kind, entries);
+          return entry;
+        }
+        throw agendaStoreError(
+          "AGENDA_SCHEDULER_ENTRY_NOT_FOUND",
+          `Agenda entry does not exist: ${id}`,
+        );
+      },
+      { failIfUnavailable: true },
+    );
+  }
+
+  retireForSchedulerMigration(
+    id,
+    {
+      migrationId,
+      sourceDigest,
+      targetJobId,
+      retirementToken,
+      atMs = null,
+    } = {},
+  ) {
+    const migration = normalizeMigrationField(migrationId, "migrationId");
+    const expectedDigest = normalizeMigrationField(
+      sourceDigest,
+      "sourceDigest",
+    );
+    const target = normalizeMigrationField(targetJobId, "targetJobId");
+    const token = normalizeMigrationField(retirementToken, "retirementToken");
+    const now = atMs != null ? Number(atMs) : this._now();
+    this._ensureDir();
+    return withFileLock(
+      path.join(this.dir, ".agenda-claims"),
+      () => {
+        for (const kind of SCHEDULE_KINDS) {
+          const entries = this._readAll(kind);
+          const entry = entries.find((candidate) => candidate.id === id);
+          if (!entry) continue;
+          const prior = entry.schedulerMigration;
+          if (
+            prior?.schemaVersion !==
+              AGENDA_SCHEDULER_MIGRATION_SCHEMA_VERSION ||
+            prior.sourceDigest !== expectedDigest ||
+            prior.targetJobId !== target ||
+            prior.migrationId !== migration ||
+            !["prepared", "retired"].includes(prior.state)
+          ) {
+            throw agendaStoreError(
+              "AGENDA_SCHEDULER_MIGRATION_CONFLICT",
+              `Agenda migration preparation changed before retirement: ${id}`,
+            );
+          }
+          if (prior.state === "retired") {
+            if (
+              prior.retirementToken !== token ||
+              !schedulerMigrationFence(entry, now)
+            ) {
+              throw agendaStoreError(
+                "AGENDA_SCHEDULER_MIGRATION_CONFLICT",
+                `Agenda migration retirement fence changed: ${id}`,
+              );
+            }
+            return entry;
+          }
+          if (agendaMigrationSourceDigest(entry) !== expectedDigest) {
+            throw agendaStoreError(
+              "AGENDA_SCHEDULER_MIGRATION_SOURCE_CHANGED",
+              `Agenda entry changed before retirement: ${id}`,
+            );
+          }
+          if (hasLiveExecutionLease(entry, now)) {
+            throw agendaStoreError(
+              "AGENDA_SCHEDULER_LEGACY_CLAIM_ACTIVE",
+              `Agenda entry is already claimed by a legacy runner: ${id}`,
+              {
+                retryable: true,
+                retryAt: Number(entry.executionLease.expiresAt),
+              },
+            );
+          }
+          entry.schedulerMigration = {
+            ...prior,
+            state: "retired",
+            retirementToken: token,
+            retiredAt: now,
+          };
+          applySchedulerMigrationFence(entry, now);
+          this._writeAll(kind, entries);
+          return entry;
+        }
+        throw agendaStoreError(
+          "AGENDA_SCHEDULER_ENTRY_NOT_FOUND",
+          `Agenda entry does not exist: ${id}`,
+        );
+      },
+      { failIfUnavailable: true },
+    );
+  }
+
+  restoreFromSchedulerMigration(
+    id,
+    { migrationId, targetJobId, retirementToken } = {},
+  ) {
+    const migrationIdValue = normalizeMigrationField(
+      migrationId,
+      "migrationId",
+    );
+    const target = normalizeMigrationField(targetJobId, "targetJobId");
+    const token = normalizeMigrationField(retirementToken, "retirementToken");
+    this._ensureDir();
+    return withFileLock(
+      path.join(this.dir, ".agenda-claims"),
+      () => {
+        for (const kind of SCHEDULE_KINDS) {
+          const entries = this._readAll(kind);
+          const entry = entries.find((candidate) => candidate.id === id);
+          if (!entry) continue;
+          const migration = entry.schedulerMigration;
+          if (
+            migration?.schemaVersion !==
+              AGENDA_SCHEDULER_MIGRATION_SCHEMA_VERSION ||
+            typeof migration.sourceDigest !== "string" ||
+            agendaMigrationSourceDigest(entry) !== migration.sourceDigest ||
+            migration.targetJobId !== target ||
+            migration.migrationId !== migrationIdValue ||
+            migration.retirementToken !== token ||
+            migration.state !== "retired" ||
+            entry.executionLease?.owner !== `scheduler-migration:${token}`
+          ) {
+            throw agendaStoreError(
+              "AGENDA_SCHEDULER_MIGRATION_CONFLICT",
+              `Agenda migration fence changed before rollback: ${id}`,
+            );
+          }
+          delete entry.schedulerMigration;
+          delete entry.executionLease;
+          this._writeAll(kind, entries);
+          return entry;
+        }
+        throw agendaStoreError(
+          "AGENDA_SCHEDULER_ENTRY_NOT_FOUND",
+          `Agenda entry does not exist: ${id}`,
+        );
+      },
+      { failIfUnavailable: true },
+    );
+  }
+
   /** Entries whose time has come (pending wakeup / active cron|monitor). */
-  due(kind = null, atMs = null) {
+  due(kind = null, atMs = null, { schedulerMigration = false } = {}) {
     const now = atMs != null ? atMs : this._now();
     return this.list(kind).filter((entry) => {
       // An entry past its expiry never fires — even if it is not yet retired
       // (defense-in-depth: retireExpired need not have run first).
       if (isEntryExpired(entry, now)) return false;
       if (!isSchedulableStatus(entry)) return false;
-      if (hasLiveExecutionLease(entry, now)) return false;
+      if (
+        hasLiveExecutionLease(entry, now) &&
+        !(schedulerMigration && schedulerMigrationFence(entry, now))
+      ) {
+        return false;
+      }
       // The effective fire time applies the entry's OWN deterministic jitter
       // (`entry.jitterMs`, default 0 → base fire time, byte-identical to the
       // prior `dueAt`/`nextAt` comparison). A jittered entry fires slightly
@@ -946,7 +1237,8 @@ export class AgentScheduleStore {
           ) {
             return entry;
           }
-          if (hasLiveExecutionLease(entry, now)) {
+          const migrationFence = schedulerMigrationFence(entry, now);
+          if (hasLiveExecutionLease(entry, now) && !migrationFence) {
             throw agendaStoreError(
               "AGENDA_SCHEDULER_LEGACY_CLAIM_ACTIVE",
               `Agenda entry is already claimed by a legacy runner: ${id}`,
@@ -1051,6 +1343,8 @@ export class AgentScheduleStore {
             ...(outcome === "succeeded" ? { result: storedResult } : { error }),
           };
           delete entry.executionLease;
+          if (isSchedulableStatus(entry))
+            applySchedulerMigrationFence(entry, now);
           this._writeAll(kind, entries);
           return entry;
         }
@@ -1143,6 +1437,8 @@ export class AgentScheduleStore {
             adjudication: { requestId, decision },
           };
           delete entry.executionLease;
+          if (isSchedulableStatus(entry))
+            applySchedulerMigrationFence(entry, now);
           this._writeAll(kind, entries);
           return entry;
         }
