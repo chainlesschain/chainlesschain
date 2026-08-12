@@ -15,7 +15,8 @@ public final class AutomationCenter {
 
     public static final String SCHEMA = "chainlesschain.automation-center/v1";
     public static final int SCHEMA_VERSION = 1;
-    public static final List<String> ACTIONS = List.of("run_now", "pause", "resume");
+    public static final List<String> ACTIONS = List.of(
+            "run_now", "retry_failed", "pause", "resume", "disable", "delete");
     private static final Set<String> ACTION_SET = Set.copyOf(ACTIONS);
     private static final Set<String> STATUS = Set.of("draft", "active", "paused", "archived");
     private static final Set<String> SECURITY = Set.of("ready", "denied", "unconfigured", "invalid");

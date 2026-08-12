@@ -95,6 +95,14 @@ describe("Automation Center projection", () => {
       available: true,
       preview: { executor: "cli", mutates: true },
     });
+    expect(flow.actions.map((action) => action.id)).toEqual([
+      "run_now",
+      "retry_failed",
+      "pause",
+      "resume",
+      "disable",
+      "delete",
+    ]);
   });
 
   it("fails closed when principal, permissions or budget are not configured", () => {
@@ -115,7 +123,7 @@ describe("Automation Center projection", () => {
     });
   });
 
-  it("uses item-revision CAS for run-now, pause and resume", () => {
+  it("uses item-revision CAS for run-now, lifecycle and delete actions", () => {
     const f = fixture();
     let flow = buildAutomationCenterProjection(f.db, {
       now: () => now,
@@ -156,6 +164,70 @@ describe("Automation Center projection", () => {
       now: () => now,
     });
     expect(getFlow(f.db, f.flowId).status).toBe(FLOW_STATUS.ACTIVE);
+
+    flow = buildAutomationCenterProjection(f.db, { now: () => now }).flows[0];
+    runAutomationCenterAction(f.db, {
+      flowId: f.flowId,
+      action: "disable",
+      expectedRevision: flow.revision,
+      now: () => now,
+    });
+    expect(getFlow(f.db, f.flowId).status).toBe(FLOW_STATUS.ARCHIVED);
+
+    flow = buildAutomationCenterProjection(f.db, { now: () => now }).flows[0];
+    const removed = runAutomationCenterAction(f.db, {
+      flowId: f.flowId,
+      action: "delete",
+      expectedRevision: flow.revision,
+      now: () => now,
+    });
+    expect(removed.result).toEqual({ deleted: true });
+    expect(getFlow(f.db, f.flowId)).toBeNull();
+    expect(
+      f.db
+        .prepare("SELECT flow_id FROM auto_execution_budgets WHERE flow_id = ?")
+        .get(f.flowId),
+    ).toBeUndefined();
+  });
+
+  it("only offers retry for the latest failed run and binds it to that run", () => {
+    const f = fixture();
+    const failedId = "exec-failed-center";
+    f.db
+      .prepare(
+        `INSERT INTO auto_executions
+         (id, flow_id, trigger_type, input_data, output_data, status, steps_log,
+          duration_ms, error, test_mode, started_at, completed_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        failedId,
+        f.flowId,
+        "manual",
+        '{"ticket":"INC-42"}',
+        null,
+        "failed",
+        "[]",
+        1,
+        "temporary failure",
+        0,
+        "2026-08-12T00:00:00.000Z",
+        "2026-08-12T00:00:00.001Z",
+      );
+    const flow = buildAutomationCenterProjection(f.db, {
+      now: () => now,
+    }).flows[0];
+    expect(
+      flow.actions.find((action) => action.id === "retry_failed"),
+    ).toMatchObject({ available: true });
+    const retried = runAutomationCenterAction(f.db, {
+      flowId: f.flowId,
+      action: "retry_failed",
+      expectedRevision: flow.revision,
+      now: () => now,
+    });
+    expect(retried.retryOf).toBe(failedId);
+    expect(retried.result.inputData).toEqual({ ticket: "INC-42" });
   });
 
   it("keeps revisions stable across generatedAt-only changes", () => {

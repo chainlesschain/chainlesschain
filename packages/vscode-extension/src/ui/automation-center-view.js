@@ -95,8 +95,14 @@ async function runAction(vscode, message) {
     return;
   }
   const label = request.action.replace("_", " ");
+  const impact =
+    request.action === "delete"
+      ? " This permanently deletes the disabled flow, its triggers, run history, and automation budget records."
+      : request.action === "disable"
+        ? " This archives the flow and stops future trigger execution."
+        : "";
   const confirmed = await vscode.window.showWarningMessage(
-    `Run Automation Center action “${label}” for ${request.id}? The CLI will enforce the exact flow revision, live permissions, and budget.`,
+    `Run Automation Center action “${label}” for ${request.id}?${impact} The CLI will enforce the exact flow revision and applicable live authority.`,
     { modal: true },
     "Run action",
   );

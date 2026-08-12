@@ -9,7 +9,9 @@ import {
   EXECUTION_STATUS,
   FLOW_STATUS,
   TRIGGER_TYPE,
+  deleteFlow,
   executeFlow,
+  getExecution,
   getFlow,
   listExecutions,
   listFlows,
@@ -26,8 +28,11 @@ export const AUTOMATION_CENTER_SCHEMA = "chainlesschain.automation-center/v1";
 export const AUTOMATION_CENTER_SCHEMA_VERSION = 1;
 export const AUTOMATION_CENTER_ACTIONS = Object.freeze([
   "run_now",
+  "retry_failed",
   "pause",
   "resume",
+  "disable",
+  "delete",
 ]);
 
 function centerError(code, message, details = undefined) {
@@ -191,6 +196,8 @@ function projectFlow(db, flow, { historyLimit, now }) {
   const revision = digest(content);
   const active = flow.status === FLOW_STATUS.ACTIVE;
   const paused = flow.status === FLOW_STATUS.PAUSED;
+  const archived = flow.status === FLOW_STATUS.ARCHIVED;
+  const latestFailed = history[0]?.status === EXECUTION_STATUS.FAILED;
   return {
     ...content,
     revision,
@@ -201,6 +208,17 @@ function projectFlow(db, flow, { historyLimit, now }) {
         !active
           ? "flow is not active"
           : "permission or budget preflight denied",
+        flow.id,
+        revision,
+      ),
+      action(
+        "retry_failed",
+        active && latestFailed && security.ready,
+        !active
+          ? "flow is not active"
+          : !latestFailed
+            ? "latest run did not fail"
+            : "permission or budget preflight denied",
         flow.id,
         revision,
       ),
@@ -217,6 +235,20 @@ function projectFlow(db, flow, { historyLimit, now }) {
         !paused
           ? "only a paused flow can be resumed"
           : "permission or budget preflight denied",
+        flow.id,
+        revision,
+      ),
+      action(
+        "disable",
+        !archived,
+        "flow is already disabled",
+        flow.id,
+        revision,
+      ),
+      action(
+        "delete",
+        archived,
+        "disable the flow before deleting it",
         flow.id,
         revision,
       ),
@@ -264,9 +296,9 @@ export function buildAutomationCenterProjection(
   };
 }
 
-function executionIdFor(flowId, revision) {
+function executionIdFor(flowId, requestedAction, revision) {
   return `exec-center-${createHash("sha256")
-    .update(`${flowId}\0${revision}`, "utf8")
+    .update(`${flowId}\0${requestedAction}\0${revision}`, "utf8")
     .digest("hex")}`;
 }
 
@@ -306,13 +338,38 @@ export function runAutomationCenterAction(
   }
 
   let result;
+  let retryOf = null;
   if (requestedAction === "pause") {
     result = updateFlowStatus(db, id, FLOW_STATUS.PAUSED);
   } else if (requestedAction === "resume") {
     result = updateFlowStatus(db, id, FLOW_STATUS.ACTIVE);
+  } else if (requestedAction === "disable") {
+    result = updateFlowStatus(db, id, FLOW_STATUS.ARCHIVED);
+  } else if (requestedAction === "delete") {
+    if (typeof db.transaction !== "function") {
+      throw centerError(
+        "AUTOMATION_CENTER_TRANSACTION_REQUIRED",
+        "deleting an automation flow requires a transactional database",
+      );
+    }
+    result = db
+      .transaction(() => {
+        db.prepare(
+          "DELETE FROM auto_execution_budget_reservations WHERE flow_id = ?",
+        ).run(id);
+        db.prepare(
+          "DELETE FROM auto_execution_budget_usage WHERE flow_id = ?",
+        ).run(id);
+        db.prepare("DELETE FROM auto_execution_budgets WHERE flow_id = ?").run(
+          id,
+        );
+        deleteFlow(db, id);
+        return { deleted: true };
+      })
+      .immediate();
   } else {
     const authority = automationExecutionAuthoritySnapshot(db, flow);
-    const occurrenceId = `automation-center:${id}:${item.revision.slice("sha256:".length)}`;
+    const occurrenceId = `automation-center:${requestedAction}:${id}:${item.revision.slice("sha256:".length)}`;
     reserveAutomationExecutionAuthority(
       db,
       flow,
@@ -321,10 +378,22 @@ export function runAutomationCenterAction(
       automationExecutionAuthorityDigest(authority, flow),
       { now },
     );
+    let inputData = { source: "automation-center" };
+    if (requestedAction === "retry_failed") {
+      const failed = getExecution(db, item.history[0].id);
+      if (!failed || failed.status !== EXECUTION_STATUS.FAILED) {
+        throw centerError(
+          "AUTOMATION_CENTER_FAILED_RUN_CHANGED",
+          `failed automation run changed before retry: ${id}`,
+        );
+      }
+      retryOf = failed.id;
+      inputData = failed.inputData;
+    }
     result = executeFlow(db, id, {
       triggerType: TRIGGER_TYPE.MANUAL,
-      inputData: { source: "automation-center" },
-      executionId: executionIdFor(id, item.revision),
+      inputData,
+      executionId: executionIdFor(id, requestedAction, item.revision),
     });
   }
   return {
@@ -334,6 +403,7 @@ export function runAutomationCenterAction(
     flowId: id,
     action: requestedAction,
     previousRevision: item.revision,
+    ...(retryOf ? { retryOf } : {}),
     result,
   };
 }

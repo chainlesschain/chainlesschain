@@ -65,8 +65,11 @@ function sample() {
         history: [],
         actions: [
           action("run_now", true),
+          action("retry_failed", false),
           action("pause", true),
           action("resume", false),
+          action("disable", true),
+          action("delete", false),
         ],
       },
     ],

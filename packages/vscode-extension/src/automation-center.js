@@ -2,7 +2,14 @@
 
 const SCHEMA = "chainlesschain.automation-center/v1";
 const SCHEMA_VERSION = 1;
-const ACTIONS = Object.freeze(["run_now", "pause", "resume"]);
+const ACTIONS = Object.freeze([
+  "run_now",
+  "retry_failed",
+  "pause",
+  "resume",
+  "disable",
+  "delete",
+]);
 const STATUS = new Set(["draft", "active", "paused", "archived"]);
 const SECURITY = new Set(["ready", "denied", "unconfigured", "invalid"]);
 

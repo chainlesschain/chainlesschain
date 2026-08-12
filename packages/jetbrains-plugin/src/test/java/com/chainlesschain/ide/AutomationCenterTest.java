@@ -45,8 +45,11 @@ class AutomationCenterTest {
                 "startedAt", "2026-08-12T00:00:00Z")));
         flow.put("actions", List.of(
                 action("run_now", true, flowRevision),
+                action("retry_failed", false, flowRevision),
                 action("pause", true, flowRevision),
-                action("resume", false, flowRevision)));
+                action("resume", false, flowRevision),
+                action("disable", true, flowRevision),
+                action("delete", false, flowRevision)));
         root.put("flows", List.of(flow));
         return MiniJson.stringify(root);
     }

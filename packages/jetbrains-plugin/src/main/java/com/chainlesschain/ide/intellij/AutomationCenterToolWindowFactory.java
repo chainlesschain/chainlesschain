@@ -56,8 +56,11 @@ public final class AutomationCenterToolWindowFactory implements ToolWindowFactor
         private final JTextArea detail = new JTextArea(20, 80);
         private final JLabel summary = new JLabel(" ");
         private final JButton runBtn = new JButton("Run now");
+        private final JButton retryBtn = new JButton("Retry failed");
         private final JButton pauseBtn = new JButton("Pause");
         private final JButton resumeBtn = new JButton("Resume");
+        private final JButton disableBtn = new JButton("Disable");
+        private final JButton deleteBtn = new JButton("Delete");
         private final Alarm alarm;
         private final AtomicBoolean inFlight = new AtomicBoolean(false);
         private final AtomicBoolean syncing = new AtomicBoolean(false);
@@ -92,17 +95,26 @@ public final class AutomationCenterToolWindowFactory implements ToolWindowFactor
                 if (!syncing.get()) syncSelection();
             });
             runBtn.addActionListener(event -> action("run_now"));
+            retryBtn.addActionListener(event -> action("retry_failed"));
             pauseBtn.addActionListener(event -> action("pause"));
             resumeBtn.addActionListener(event -> action("resume"));
+            disableBtn.addActionListener(event -> action("disable"));
+            deleteBtn.addActionListener(event -> action("delete"));
             runBtn.setName("chainlesschain.automation.runNow");
+            retryBtn.setName("chainlesschain.automation.retryFailed");
             pauseBtn.setName("chainlesschain.automation.pause");
             resumeBtn.setName("chainlesschain.automation.resume");
+            disableBtn.setName("chainlesschain.automation.disable");
+            deleteBtn.setName("chainlesschain.automation.delete");
 
             JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
             actions.add(refresh);
             actions.add(runBtn);
+            actions.add(retryBtn);
             actions.add(pauseBtn);
             actions.add(resumeBtn);
+            actions.add(disableBtn);
+            actions.add(deleteBtn);
             JPanel top = new JPanel(new BorderLayout(6, 6));
             top.add(search, BorderLayout.NORTH);
             top.add(picker, BorderLayout.CENTER);
@@ -184,8 +196,11 @@ public final class AutomationCenterToolWindowFactory implements ToolWindowFactor
             AutomationCenter.Flow flow = selected();
             detail.setText(flow == null ? "No automation flow." : AutomationCenter.detail(flow));
             runBtn.setEnabled(available(flow, "run_now"));
+            retryBtn.setEnabled(available(flow, "retry_failed"));
             pauseBtn.setEnabled(available(flow, "pause"));
             resumeBtn.setEnabled(available(flow, "resume"));
+            disableBtn.setEnabled(available(flow, "disable"));
+            deleteBtn.setEnabled(available(flow, "delete"));
         }
 
         private static boolean available(AutomationCenter.Flow flow, String action) {
@@ -214,9 +229,15 @@ public final class AutomationCenterToolWindowFactory implements ToolWindowFactor
                     return;
                 }
                 ApplicationManager.getApplication().invokeLater(() -> {
+                    String impact = "delete".equals(action)
+                            ? " This permanently deletes the disabled flow, its triggers, run history, and automation budget records."
+                            : "disable".equals(action)
+                                    ? " This archives the flow and stops future trigger execution."
+                                    : "";
                     int answer = Messages.showYesNoDialog(project,
                             "Run “" + action.replace('_', ' ') + "” for " + flow.id
-                                    + "? The CLI will enforce the exact revision, live permissions, and budget.",
+                                    + "?" + impact
+                                    + " The CLI will enforce the exact revision and applicable live authority.",
                             "Automation Center", null);
                     if (answer != Messages.YES) {
                         inFlight.set(false);
