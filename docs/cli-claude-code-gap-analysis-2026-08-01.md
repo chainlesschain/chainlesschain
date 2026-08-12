@@ -1358,6 +1358,13 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 - P2-4 内部剩余可执行子项由第 16.27 节的 **10 个降为 7 个**：Routine GitHub、真实共享 permission/budget resolver、IANA timezone/DST/missed-run、未知结果人工裁决、迁移/回滚、磁盘故障、三平台长期 soak。Agenda monitor、Loop、Automation 已从列表删除；原 P0-1～P2-4 共 15 项粗粒度总表仍为 **8 项完成、7 项部分完成、0 项完全未开始，7 项未完全关闭**，因为 P2-4 整项仍未满足全部退出条件。剩余粗估下调为约 **2～4.5 周（单工程师）/1.5～2.5 周（两人有效并行）**。
 - 本节三项合并均发生在 `0.163.5` 发布提交之后，当前公网包不包含这些增量；本节不修改 CLI 版本、不创建 tag，也不授权 npm 发布。下一项继续只关闭上述 7 个子项中的一个。
 
+### 16.29 2026-08-12 P2-4 Routine GitHub adapter 正式合并证据
+
+- [PR #157](https://github.com/chainlesschain/chainlesschain/pull/157) 的最终 head `6460e49b011720a3a233ffc7f0fd803bfe52e3c3` 已以 merge commit `cb354ef9c9744e7b60d837c077108750f7aae0a4` 进入 `main`。production Routine GitHub polling 已通过共享 scheduler kernel 执行：event batch 在 cursor 推进前持久化，以不可变 batch identity 去重；cursor/write 或进程崩溃后可恢复而不重复交付，repository rebinding 被拒绝，十进制 GitHub event cursor 保持单调。
+- 该 exact head 的 [CLI CI `31541236578`](https://github.com/chainlesschain/chainlesschain/actions/runs/31541236578) 为 **53/53 jobs success**，[CLI Strict Sandbox `31541236398`](https://github.com/chainlesschain/chainlesschain/actions/runs/31541236398) 为 Linux、macOS、Windows **3/3 success**；普通 PR checks 同样无失败。因此 Routine GitHub adapter 从“未关闭”更新为**正式已合并 P2-4 子切片**。
+- P2-4 内部剩余可执行子项由第 16.28 节的 **7 个降为 6 个**：真实共享 permission/budget resolver、IANA timezone/DST/missed-run、未知结果人工裁决、迁移/回滚、磁盘故障、三平台长期 soak。原 15 项粗粒度总表仍为 **8 项完成、7 项部分完成、0 项完全未开始，7 项未完全关闭**；剩余粗估约为 **1.5～4 周（单工程师）/1～2.5 周（两人有效并行）**。
+- 本次不修改 CLI 版本、不创建 release tag、不发布 npm；公网 `0.163.5` 不包含该 adapter。下一项只处理 IANA timezone/DST/missed-run。
+
 ## 17. 2026-08-06 `0.162.198` 发布闭环与继续执行边界
 
 `0.162.198` 是第 16 节之后的 CLI-only 补丁发布，纳入 P0-1 canonical session workbench、P0-2 rewind/branch 宿主绑定、P0-3 发布可靠性跟进，以及 REPL/headless/provider/TTY 输出背压和跨平台 release fixture 修复。它不改变第 16.8 节产品级未完成项的授权边界。
