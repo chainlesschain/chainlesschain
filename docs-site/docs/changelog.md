@@ -5,12 +5,28 @@
 
 ## [Unreleased]
 
-#### Fixed — 发布后源码：MCP capsule 强制宿主沙箱地板
+#### Added — 当前功能分支候选：Automation Scheduler 适配器
 
-> 当前分支提交 `d2fcbddc99` 晚于不可变 `v-npm-0-163-3`；在后续版本完成自身 exact-SHA 三平台门禁前，不把它写成已发布 npm 契约。
+> 当前分支提交 `15a641fa85` 晚于不可变 `v-npm-0-163-5`；在进入主线并完成自身 exact-SHA 三平台门禁前，不把 `automation run-scheduled` 写成已发布 npm 契约。
 
-- exact-package stdio MCP capsule 只在 trusted executable-identity preparer 已发行 execution contract 后，强制叠加 `code-snapshot`、`filesystem`、`network`、`process-tree` 四个宿主边界。
-- source 配置先作为不可信数据规范化，只能增加要求，不能关闭宿主地板；CI selector 同步纳入 policy 与 capsule contract 测试。
+- Automation 计划任务复用统一 Scheduler 的持久作业、lease、重试、历史和幂等执行语义。
+- 稳定版仍以 Routine、Agenda wakeup/cron 和 Cowork Cron 三类适配器为边界。
+
+#### Added — CLI 0.163.5 正式发布：统一 Scheduler 与持久恢复
+
+> `chainlesschain@0.163.5` 已成为 npm `latest` 与生产推荐版。不可变 tag `v-npm-0-163-5` 精确指向 [`095087c1e8`](https://github.com/chainlesschain/chainlesschain/commit/095087c1e859a8451ce01ed58c59af3fede756fd)；该 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31509337185)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31509336854)、[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/31509336832)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/31514940240)均成功。公网 tarball SHA-1 为 `5dc6677dee6d1d73b708e6a50e3808007a314894`。
+
+- **统一调度内核**：共享 SQLite store、adapter registry、snapshot-bound authorization、owner/fence claim、lease renew、bounded retry、dead-letter 与历史查询。
+- **稳定适配器**：Routine、Agenda wakeup/cron 与 Cowork Cron 使用 canonical occurrence、revision CAS、终态证据与进程崩溃恢复；六字段 Cowork cron 自动使用一秒轮询。
+- **诚实恢复边界**：持久终态证据阻止自动重复执行；只有 start evidence 或副作用后持久化失败仍视为 outcome unknown，不承诺全局 exactly-once。
+- **仍未发布**：Agenda monitor、Automation、Loop、Routine GitHub、独立 scheduler daemon、共享 permission/budget resolution、完整 IANA timezone/DST/missed-run 语义仍在后续范围。
+
+#### Added — CLI 0.163.4 正式发布：不可变 MCP Capsule 与 Scheduler 存储基础
+
+> `chainlesschain@0.163.4` 从 exact SHA [`27ed0ac200`](https://github.com/chainlesschain/chainlesschain/commit/27ed0ac2005e16ce5ddff53990e85b1d13ea0b1d) 发布；[CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31421782916)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31421782072)、[npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/31424056034)与[独立回读](https://github.com/chainlesschain/chainlesschain/actions/runs/31425519966)均成功。
+
+- MCP capsule builder 在有界 worker 与内存 WASM 文件系统中使用身份绑定字节，避免构建中重新打开可变宿主路径。
+- Scheduler 首个存储里程碑提供版本化 schema、revision CAS、logical-occurrence 去重、durable claim 与双连接竞态覆盖；完整运行时随后由 `0.163.5` 交付。
 
 #### Added — CLI 0.163.3 正式发布：后台 Agent 默认隔离与策略化运行时
 

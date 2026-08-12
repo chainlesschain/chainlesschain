@@ -304,6 +304,14 @@ describe("automation-engine (Phase 96)", () => {
       const f = createFlow(db, { name: "t" });
       expect(() => scheduleFlow(db, f.id, "")).toThrow(/cron expression/);
     });
+
+    it("rejects an invalid cron before persisting it", () => {
+      const f = createFlow(db, { name: "t" });
+      expect(() => scheduleFlow(db, f.id, "not-a-cron")).toThrow(
+        /cron expression must have 5 fields/,
+      );
+      expect(getFlow(db, f.id).schedule).toBeNull();
+    });
   });
 
   describe("shareFlow", () => {
@@ -531,6 +539,50 @@ describe("automation-engine (Phase 96)", () => {
       });
       const exec = executeFlow(db, f.id, { testMode: true });
       expect(exec.testMode).toBe(true);
+    });
+
+    it("deduplicates a deterministic execution id", () => {
+      const f = createFlow(db, {
+        name: "t",
+        nodes: [
+          {
+            id: "n1",
+            type: "action",
+            connector: "slack",
+            action: "postMessage",
+          },
+        ],
+      });
+      const first = executeFlow(db, f.id, {
+        triggerType: "schedule",
+        executionId: "exec-scheduler-stable",
+      });
+      const second = executeFlow(db, f.id, {
+        triggerType: "schedule",
+        executionId: "exec-scheduler-stable",
+      });
+      expect(second).toEqual(first);
+      expect(listExecutions(db, { flowId: f.id })).toHaveLength(1);
+    });
+
+    it("refuses to replay a deterministic execution with unknown outcome", () => {
+      const f = createFlow(db, { name: "t" });
+      const first = executeFlow(db, f.id, {
+        triggerType: "schedule",
+        executionId: "exec-scheduler-unknown",
+      });
+      const row = db.data
+        .get("auto_executions")
+        .find((candidate) => candidate.id === first.id);
+      row.status = "running";
+      row.completed_at = null;
+      expect(() =>
+        executeFlow(db, f.id, {
+          triggerType: "schedule",
+          executionId: first.id,
+        }),
+      ).toThrow(/outcome is unknown/);
+      expect(listExecutions(db, { flowId: f.id })).toHaveLength(1);
     });
 
     it("fails gracefully for flow with cycle", () => {

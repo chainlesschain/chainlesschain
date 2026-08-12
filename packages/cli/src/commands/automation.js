@@ -6,6 +6,8 @@
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import { parseJsonOption } from "../lib/parse-json-option.js";
+import { AutomationSchedulerBridge } from "../lib/scheduler-kernel/automation-adapter.js";
+import { openSchedulerStore } from "../lib/scheduler-kernel/store.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   ensureAutomationTables,
@@ -82,6 +84,63 @@ async function _prepare(cmd) {
   const db = ctx.db.getDatabase();
   ensureAutomationTables(db);
   return db;
+}
+
+export async function runAutomationScheduled(db, options = {}, _deps = {}) {
+  const log = _deps.log || ((message) => console.log(message));
+  let schedulerStore = _deps.schedulerStore;
+  const ownsSchedulerStore = schedulerStore == null;
+  try {
+    schedulerStore ||= openSchedulerStore();
+    const bridge = new AutomationSchedulerBridge({
+      db,
+      schedulerStore,
+      now: _deps.now || Date.now,
+      ...(_deps.ownerId === undefined ? {} : { ownerId: _deps.ownerId }),
+      ...(options.leaseMs === undefined
+        ? {}
+        : { leaseMs: Number(options.leaseMs) }),
+    });
+    const results = await bridge.runDue({ signal: _deps.signal });
+    const summary = results.map((entry) => ({
+      flow: entry.flow,
+      occurrence: entry.occurrence,
+      status: entry.result?.status ?? "unknown",
+      recovered: entry.recovered === true,
+      deduplicated: entry.deduplicated === true,
+      executionId:
+        typeof entry.result?.result?.id === "string"
+          ? entry.result.result.id
+          : null,
+      error: entry.result?.error ?? null,
+    }));
+    if (options.json) {
+      log(
+        JSON.stringify({ due: summary.length, executions: summary }, null, 2),
+      );
+    } else if (summary.length === 0) {
+      log(chalk.gray("Nothing due."));
+    } else {
+      for (const entry of summary) {
+        const color = entry.status === "succeeded" ? chalk.green : chalk.red;
+        log(
+          color(
+            `${entry.flow} → ${entry.status}${entry.executionId ? ` (${entry.executionId})` : ""}`,
+          ),
+        );
+      }
+    }
+    return summary.some(
+      (entry) =>
+        entry.status !== "succeeded" &&
+        entry.status !== "idle" &&
+        entry.status !== "busy",
+    )
+      ? 1
+      : 0;
+  } finally {
+    if (ownsSchedulerStore) schedulerStore?.close();
+  }
 }
 
 export function registerAutomationCommand(program) {
@@ -355,6 +414,24 @@ function _wire(root) {
       } catch (e) {
         logger.error(e.message);
         process.exit(1);
+      } finally {
+        await shutdown();
+      }
+    });
+
+  root
+    .command("run-scheduled")
+    .description("Run due cron flows through the durable scheduler kernel")
+    .option("--json", "Output as JSON")
+    .option("--lease-ms <ms>", "Scheduler execution lease in milliseconds")
+    .action(async (opts, cmd) => {
+      const db = _dbFromCtx(cmd);
+      try {
+        const code = await runAutomationScheduled(db, opts);
+        if (code !== 0) process.exitCode = code;
+      } catch (e) {
+        logger.error(e.message);
+        process.exitCode = 1;
       } finally {
         await shutdown();
       }

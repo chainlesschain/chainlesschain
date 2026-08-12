@@ -1,11 +1,10 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import cliPkg from '../../../packages/cli/package.json';
 import vscodePkg from '../../../packages/vscode-extension/package.json';
 import releaseStatus from '../data/release-status.json';
 
 const CLI_VERSION = releaseStatus.recommendedCliVersion;
-const SOURCE_CLI_VERSION = cliPkg.version;
+const SOURCE_CLI_VERSION = releaseStatus.sourceMainCliVersion;
 const VSCODE_VERSION = releaseStatus.openVsxVersion;
 const VSCODE_SOURCE_VERSION = vscodePkg.version;
 const JETBRAINS_VERSION = releaseStatus.jetBrainsMarketplaceVersion;
@@ -60,10 +59,10 @@ const OPEN_VSX_DOWNLOADS = releaseStatus.openVsxDownloadsMilestone;
           ['插件', '事务化升级 + 供应链治理', '按 scope 启停；升级先 staging 校验 manifest/签名/SBOM 再原子激活，失败恢复旧版本。IDE 只在 activated 后重载会话，扩大 capability 前要求显式批准。'],
           ['治理', 'Distributed Agent Teams', 'IDE 只读观察本地 team state v6 与独立 distributed queue v1 原始快照；takeover、managed checkpoint recovery 与副作用 adjudication 全部交回 CLI，并绑定 authority digest、lease 与 evidence fence。过期 UI 动作失败闭合，IDE 不直接改权威 JSON。'],
           ['归因', '耗时与重试可见', '用量视图展示真实工具耗时、同轮观测重试和脱敏的流式 LLM retry 原因/实际 provider/model，不保存工具参数、输出或凭据。'],
-          ['会话', 'CLI-owned Sessions Workbench', '公开版 0.37.48 / 0.4.84 读取 CLI 生成的 immutable session projection；五类 session 已覆盖 Dispatch、needs_input、Reply、artifact/PR 与独立进程重启恢复，过期动作失败闭合。'],
+          ['会话', 'CLI-owned Sessions Workbench', '公开版 0.37.49 / 0.4.85 读取 CLI 生成的 immutable session projection；五类 session 已覆盖 Dispatch、needs_input、Reply、artifact/PR 与独立进程重启恢复，过期动作失败闭合。'],
           ['交付', '可恢复 delivery 与 rewind', '公开版覆盖 GitHub、Gitee、configured remote 与 manual handoff；每步校验结果/副作用摘要，rewind 绑定 session、workspace、仓库 head、checkpoint revision 与 manifest digest。'],
-          ['内联', '选区旁直接问与改', 'VS Code 0.37.48 提供独立内联会话、流式响应、代码块复制/插入/替换，并完成 stable/minimum × Linux/Windows/macOS ARM64 多窗口隔离门；Explain / Refactor / Fix / Docs / Tests 已在 Open VSX 公开。'],
-          ['同步', 'CLI 版本对齐', '激活时检测 cc --version；当前稳定安装固定到 npm i -g chainlesschain@0.163.3，与已完成完整门禁的 npm latest 一致。'],
+          ['内联', '选区旁直接问与改', 'VS Code 0.37.49 提供独立内联会话、流式响应、代码块复制/插入/替换，并完成 stable/minimum × Linux/Windows/macOS ARM64 多窗口隔离门；Explain / Refactor / Fix / Docs / Tests 已在 Open VSX 公开。'],
+          ['同步', 'CLI 版本对齐', '激活时检测 cc --version；当前稳定安装固定到 npm i -g chainlesschain@0.163.5，与已完成完整门禁的 npm latest 一致。'],
           ['补全', '@ 文件 / 实时斜杠命令', 'REPL 里 @ 路径 TAB 补全把编辑器打开的文件排最前；面板 @ 补全含 @selection / @diagnostics / @terminal；/status /doctor /mcp /hooks /permissions /agents /tasks /memory 读取当前会话，另含 /new /plan /approve /reject /stop /expand。'],
         ].map(([tag, title, desc]) => (
           <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">

@@ -1,13 +1,12 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import cliPkg from '../../../packages/cli/package.json';
 import releaseStatus from '../data/release-status.json';
 import { parseChangelog } from '../../../packages/cli/src/lib/changelog.js';
 import { readFileSync } from 'node:fs';
 
 const CLI_VERSION = releaseStatus.recommendedCliVersion;
 const NPM_LATEST_CLI_VERSION = releaseStatus.npmLatestCliVersion;
-const SOURCE_CLI_VERSION = cliPkg.version;
+const SOURCE_CLI_VERSION = releaseStatus.sourceMainCliVersion;
 
 // Recent CLI (npm) updates, derived from the root CHANGELOG.md at BUILD time via
 // the same parser that powers `cc changelog`. No committed snapshot to go stale:
@@ -380,6 +379,10 @@ const categories = [
       ['pipe rollback / monitor-record', '部署回滚 + 监控'],
       ['auto create / activate / execute', '工作流自动化（12 SaaS 连接器）'],
       ['auto add-trigger / fire-trigger', 'Webhook/Schedule 触发器'],
+      ['routine run / trigger / runs', '统一 Scheduler：例行任务、即时触发与运行记录'],
+      ['agenda run --watch', 'Agenda wakeup/cron 常驻调度'],
+      ['cowork cron run', 'Cowork Cron 持久调度与恢复'],
+      ['automation run-scheduled', '源码候选：Automation Scheduler 适配器'],
       ['eco register / review / publish', '插件生态（AI 审查 + 沙箱）'],
       ['perf collect / evaluate / apply', '性能调优建议'],
     ],
@@ -455,7 +458,7 @@ const packs = [
           175 条顶层命令，覆盖从知识库到链上治理的完整生命周期。零 GUI 依赖，纯文本输入输出，可管道可脚本可 CI。
         </p>
         <p class="mt-4 text-sm text-muted max-w-3xl">
-          官网推荐完整通过 Linux / Windows / macOS 门禁的 <strong class="text-ink">{CLI_VERSION}</strong>，npm latest 同为 <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong>。源码包元数据是 <strong class="text-ink">{SOURCE_CLI_VERSION}</strong>，但 HEAD 含发布后加固；安装命令固定到 exact-SHA、不可变制品、SBOM、provenance 与 registry 回读均已核验的发布标签。
+          官网推荐完整通过 Linux / Windows / macOS 门禁的 <strong class="text-ink">{CLI_VERSION}</strong>，npm latest 与主线源码同为 <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong> / <strong class="text-ink">{SOURCE_CLI_VERSION}</strong>。安装命令固定到 exact-SHA、三平台门禁、发布与 registry 回读均已核验的发布标签；当前功能分支的 Automation Scheduler 适配器单独标为源码候选。
         </p>
 
         <!-- Install tabs -->
@@ -632,7 +635,7 @@ const packs = [
           当前 CLI 搭载 PDH 0.4.57：来源别名、raw observation、字段级冲突决策、引用重写与最终实体在同一事务提交；桌面端、Web Panel 与命令行共用实时采集协议，临时 Cookie/OAuth 不落配置；部分读取、不可读数据库或不完整分页保留旧水位，可在下一轮安全续扫。
         </p>
         <p class="mt-4 text-lg text-muted">
-          稳定版 <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> 已包含默认后台 worktree、generation/token-fenced supervisor、grammar-safe detached argv、MCP source policy/cwd authority、Linux 插件逐文件 sealed snapshot、Windows adapter artifact 安全回收、canonical session authority 与 checkpoint restore saga。干净 Git checkout 中的非 stream-json 后台任务默认从 committed HEAD 隔离启动；只有 <code class="font-mono text-sm">--no-worktree</code> 才共享 checkout。同一精确 SHA 的三平台 CLI/Strict、unsigned 六目标 native validation、两小时可靠性/恶意 MCP 门与 npm 发布已成功；原生验证固定 <code class="font-mono text-sm">signed=false</code>、<code class="font-mono text-sm">releaseEligible=false</code>，不等于签名 Desktop/native 发行。
+          稳定版 <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> 在既有后台 worktree、Process Broker、canonical session 与 checkpoint restore saga 之上，新增统一 Scheduler：SQLite 持久化状态、lease claim、幂等执行键、错过触发恢复，以及 Routine、Agenda wakeup/cron、Cowork Cron 三类稳定适配器。当前功能分支还提供 Automation Scheduler 适配器，但尚未进入 main 或 npm <code class="font-mono text-sm">0.163.5</code>。同一精确 SHA 的三平台 CLI/Strict、npm 发布与独立回读均成功；原生验证仍不等于签名 Desktop/native 发行。
         </p>
       </div>
     </div>

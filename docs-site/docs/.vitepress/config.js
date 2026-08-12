@@ -9,7 +9,7 @@ export default defineConfig({
   transformPageData(pageData) {
     if (pageData.relativePath === "index.md" && pageData.frontmatter.hero) {
       pageData.frontmatter.hero.tagline =
-        "v5.0.3.135 · CLI 0.163.3 · PDH 0.4.57 · Open VSX 0.37.48 · JetBrains 0.4.84｜后台 Worktree · Policy-bound MCP · ARM64 IDE";
+        "v5.0.3.135 · CLI 0.163.5 · PDH 0.4.57 · Open VSX 0.37.49 · JetBrains 0.4.85｜统一 Scheduler · ARM64 IDE";
     }
   },
 
@@ -224,7 +224,7 @@ export default defineConfig({
               link: "/chainlesschain/cli-background-agents",
             },
             {
-              text: "当前 CLI Runtime 实现 (0.163.3) ⭐NEW",
+              text: "当前 CLI Runtime 实现 (0.163.5) ⭐NEW",
               link: "/chainlesschain/cli-runtime-current",
             },
             {
@@ -1784,7 +1784,7 @@ export default defineConfig({
               link: "/design/modules/78-cli-agent-runtime",
             },
             {
-              text: "CLI Runtime 当前实现核对 (0.163.3) ⭐NEW",
+              text: "CLI Runtime 当前实现核对 (0.163.5) ⭐NEW",
               link: "/design/cli-runtime-current",
             },
             {

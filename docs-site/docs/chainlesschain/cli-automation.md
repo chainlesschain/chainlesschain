@@ -3,6 +3,8 @@
 > `chainlesschain automation`（别名 `auto`）— SaaS 连接器 + 触发器 + DAG 工作流编排。
 >
 > 12 个 SaaS 连接器 + 5 种触发器类型 + DAG 拓扑排序 + 条件分支执行。
+>
+> **版本边界（2026-08-12）**：`0.163.5` 是 npm 稳定版；当前工作分支 `15a641fa85` 新增 `automation run-scheduled` 的统一 Scheduler Kernel 路由，但尚未进入 `github/main` 或 npm tag。下文凡标“源码候选”的命令不能视为稳定安装包能力。
 
 ---
 
@@ -22,6 +24,7 @@ Airtable/Figma/Linear/Confluence），支持 webhook/schedule/email/form/manual 
 - **生命周期管理** — `draft → active → paused → archived`；`activate/pause/archive/delete` 状态机
 - **模板共享** — 导出/导入自定义模板，`share --public` 公开
 - **执行日志** — 每次执行记录步骤级详情、输入输出、错误堆栈
+- **定时执行候选** — `automation run-scheduled` 将 active+scheduled flow 绑定为 immutable snapshot，使用 logical occurrence 去重、owner/fence lease 与确定性 execution id；只恢复可验证成功证据，不自动重放 outcome-unknown 副作用
 - **V2 治理层** — `-v2` 后缀：4 态 automation maturity + 5 态 execution lifecycle，cap + auto-pause-idle + auto-fail-stuck
 
 ---
@@ -43,6 +46,9 @@ Airtable/Figma/Linear/Confluence），支持 webhook/schedule/email/form/manual 
 │  step-level, JSON    │  public share + import        │
 ├──────────────────────────────────────────────────────┤
 │  SQLite (automation_flows / triggers / executions)    │
+├──────────────────────────────────────────────────────┤
+│  Scheduler Kernel candidate (kernel-v1.sqlite)        │
+│  snapshot/CAS · occurrence dedup · lease · recovery   │
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -111,8 +117,9 @@ __tests__/unit/automation-engine.test.js — 114 tests (1285 lines)
 **Q: 定时任务未按计划触发?**
 
 1. 验证 cron 表达式语法（`auto schedule <id> --cron` 传入后会解析）
-2. 是否超过 `maxConcurrentExecutions`（触发器会跳过并记录）
-3. V2 下检查是否被 `auto-pause-idle` 自动暂停
+2. npm `0.163.5` 尚不包含 `run-scheduled`；仅在包含 `15a641fa85` 的源码工作树中运行 `chainlesschain auto run-scheduled`
+3. 确认 flow 状态为 `active`；`draft/paused/archived` 不会被 scheduler 入队
+4. V2 下检查是否被 `auto-pause-idle` 自动暂停
 
 **Q: 连接器调用失败?**
 
@@ -126,6 +133,8 @@ __tests__/unit/automation-engine.test.js — 114 tests (1285 lines)
 
 - `packages/cli/src/commands/automation.js` — Commander 子命令（~924 行）
 - `packages/cli/src/lib/automation-engine.js` — DAG 引擎与连接器
+- `packages/cli/src/lib/scheduler-kernel/automation-adapter.js` — 源码候选：scheduled flow snapshot、occurrence 与恢复策略
+- `packages/cli/src/lib/scheduler-kernel/runtime.js` — 共享 claim/lease/heartbeat/settlement runtime
 - `packages/cli/__tests__/unit/automation-engine.test.js` — 单测（114 tests）
 - 数据表：`automation_flows` / `automation_triggers` / `automation_executions`
 - 设计文档：`docs/design/modules/61_工作流自动化引擎.md`
@@ -145,6 +154,11 @@ chainlesschain auto add-trigger $fid --type webhook --config '{"path":"/hooks/fo
 
 # 3. 定时触发（工作日 9:00）
 chainlesschain auto schedule $fid --cron "0 9 * * 1-5"
+
+# 源码候选（15a641fa85；不在 npm 0.163.5）
+chainlesschain auto run-scheduled
+chainlesschain auto run-scheduled --json
+chainlesschain auto run-scheduled --lease-ms 60000
 
 # 4. 手动测试
 chainlesschain auto execute $fid --input '{"subject":"test"}'
@@ -188,6 +202,8 @@ chainlesschain auto delete <flow-id>      # 删除
 
 # 定时调度
 chainlesschain auto schedule <flow-id> --cron "0 9 * * 1-5"
+# 源码候选：运行所有当前到期的 active cron flow
+chainlesschain auto run-scheduled [--json] [--lease-ms 60000]
 
 # 分享与模板
 chainlesschain auto share <flow-id> --public
@@ -210,6 +226,8 @@ chainlesschain auto fire-trigger <trigger-id> --payload '{"key":"value"}'
 ---
 
 ## 执行与日志
+
+`run-scheduled` 使用 occurrence 派生的确定性 execution id。若同一 occurrence 已有成功 execution evidence，只补齐 scheduler settlement；若只有 `running`、非成功终态或副作用后持久化结果未知，则失败闭合，不自动重跑连接器。该约束不等于外部 SaaS 的全局 exactly-once。
 
 ```bash
 # 手动执行工作流

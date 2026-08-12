@@ -1,6 +1,6 @@
 # 长任务调度 — Monitor / Cron / Push（`cc agenda`）
 
-> **版本: 第四阶段（跨端与长任务）#3 · 2026-07-09 | 状态: ✅ 生产就绪 | 一次性 wakeup + Cron 表达式 + Monitor 停止条件 + 多渠道推送 + `notify`/`schedule` 两个 Agent 工具 | 29 测试全绿**
+> **适用版本：CLI 0.163.5（npm latest）· 更新：2026-08-12 | wakeup/cron 已接入统一 Scheduler Kernel；monitor 保留兼容执行路径 | 一次性 wakeup + Cron + Monitor + 多渠道推送**
 >
 > 一次性的 Agent turn 无法给自己续命定时器。`cc agenda` 补齐了这个缺口：Agent 用 `schedule` 工具把「过一会儿/按 cron/满足条件时」的意图**持久化**下来，`cc agenda run`（由 `cc loop` 或系统 cron 常驻触发）在到点时真正执行——重新拉起 `cc agent`、或跑监控命令并在命中停止条件时经 `notify` 推送通知。
 
@@ -25,7 +25,9 @@ Agent 的一次执行是有始有终的：它跑完一轮就退出，没有一�
 - 🧰 **两个新 Agent 工具**: `schedule`（一工具五动作 wakeup/cron/monitor/list/cancel）+ `notify`（多渠道推送），均为 extension tier（`AGENT_TOOLS` 21 → 23）。
 - 💾 **JSONL 持久化 + 容错**: 三类调度共享 `~/.chainlesschain/agent-schedule/<kind>.jsonl`（`0600`），逐行解析，坏行跳过不炸整表。
 - 🔌 **可注入的执行副作用**: `cc agenda run` 的 spawn/命令执行/通知全部 deps 可注入——离线可单测；`--dry-run` / `--json`；任何单元失败 → 退出码 1。
-- 🕹️ **无内建 daemon，显式触发**: 不偷偷起后台进程；用 `cc loop` 或系统 cron/systemd timer 常驻触发，行为透明可控。
+- 🕹️ **显式驻留或外部触发**：`cc agenda run --watch <seconds>` 可以前台常驻运行；也可用 `cc loop`、系统 cron/systemd timer 或单次 `cc agenda run`，生命周期始终由用户明确启动。
+- 🧷 **wakeup/cron 持久权威**：`0.163.5` 把这两类 Agent 执行接入统一 SQLite scheduler，保留完整 runPolicy，并用 snapshot digest、owner/fence lease、heartbeat、有限重试与 terminal evidence 恢复防止协作 driver 重复执行。
+- 👁️ **monitor 边界不变**：命令/文件/URL monitor 仍走 AgentScheduleStore 的兼容 claim 与安全策略路径，不要把 wakeup/cron 已迁移误读为 monitor 也已进入统一内核。
 
 ## 系统架构
 
@@ -45,6 +47,11 @@ Agent 的一次执行是有始有终的：它跑完一轮就退出，没有一�
  │    recordMonitorCheck                          │
  └───────────────────┬───────────────────────────┘
                      │ due 项
+ ┌───────────────────▼───────────────────────────┐
+ │ Scheduler Kernel（仅 wakeup / cron）          │
+ │ snapshot/CAS · logical occurrence · lease     │
+ │ heartbeat · terminal evidence recovery        │
+ └───────────────────┬───────────────────────────┘
  ┌───────────────────▼───────────────────────────┐
  │  cc agenda run  (commands/agenda.js)           │
  │  ├─ wakeup/cron → spawn cc agent -p <prompt>   │
@@ -83,6 +90,7 @@ cc agenda list --json
 cc agenda run                 # 触发到期项
 cc agenda run --dry-run       # 只显示会触发什么，不执行
 cc agenda run --json          # 机器可读结果
+cc agenda run --watch 30      # 前台常驻，每 30 秒检查一次
 ```
 
 | 旗标        | 说明                             | 默认 |
@@ -102,11 +110,14 @@ cc agenda cancel <id>
 
 ### 常驻触发（推荐）
 
-`cc agenda` 不内建后台守护进程。用以下任一方式周期性触发：
+`cc agenda` 不会静默安装系统服务。用以下任一方式显式驻留或周期触发：
 
 ```bash
 # 用内建 cc loop 每分钟触发一次
 cc loop --every 1m -- cc agenda run
+
+# 或让 agenda 自身以前台 resident 模式每 30 秒检查
+cc agenda run --watch 30
 
 # 或系统 cron（Linux/macOS）
 * * * * * cc agenda run
@@ -145,7 +156,7 @@ cc loop --every 1m -- cc agenda run
 | 调度存储     | `~/.chainlesschain/agent-schedule/<kind>.jsonl`     | —           | `0600`，三类各一 JSONL，逐行容错          |
 | 通知渠道     | `NotificationManager.fromEnv`（环境变量配置）       | 无（no-op） | Telegram / WeCom / DingTalk / Feishu      |
 | cron 语法    | 标准 5 字段 `分 时 日 月 周`                         | —           | 支持 `*` `,` `-` `/`                      |
-| 常驻触发     | `cc loop --every` / 系统 cron / systemd timer       | 无（手动）  | 无内建 daemon                             |
+| 常驻触发     | `cc agenda run --watch <seconds>` / `cc loop --every` / 系统 timer | 无（手动） | 仅显式前台驻留；standalone scheduler service 尚未发布 |
 
 ## 性能指标
 
@@ -175,7 +186,8 @@ cc loop --every 1m -- cc agenda run
 - **持久化即执行**：`schedule` 写入的意图会被 `cc agenda run` **真正执行**（spawn agent / 跑 shell 命令）。调度存储以 `0600` 落盘，仅属主可读写；不要把不可信内容写进 monitor 的 `command`。
 - **plan mode 屏蔽**：`schedule` 和 `notify` 有外部/未来副作用，`planModeBehavior: blocked`——plan mode 预演时不会真的排期或推送。
 - **无渠道不静默失败**：`notify` 在没有配置任何通知渠道时返回明确的 no-op note，而不是假装发送成功。
-- **触发透明**：没有内建后台 daemon 偷跑；触发完全由用户显式的 `cc loop` 或系统 cron 掌控，便于审计与停用。
+- **触发透明**：没有自动安装的后台服务；触发由用户显式的 `--watch`、`cc loop` 或系统 timer 掌控，便于审计与停用。
+- **不是全局 exactly-once**：协作 driver 与可读取的 terminal evidence 可以避免重复 Agent 执行；断电、磁盘回滚或 start-only 结果仍必须保守处理。
 
 ## 故障排除
 
@@ -194,6 +206,8 @@ cc loop --every 1m -- cc agenda run
 | ---------------------------------------------------------- | ------------------------------------------------------------- |
 | `packages/cli/src/commands/agenda.js`                      | `cc agenda list/run/cancel`——到期触发 spawn/monitor/notify    |
 | `packages/cli/src/lib/agent-schedule-store.js`             | `AgentScheduleStore` + `parseCron` + `nextCronTime` + JSONL 持久化 |
+| `packages/cli/src/lib/scheduler-kernel/agenda-adapter.js`   | wakeup/cron snapshot、occurrence、双 driver fencing 与恢复策略     |
+| `packages/cli/src/lib/scheduler-kernel/runtime.js`          | claim、authority 复验、heartbeat、retry/dead-letter 与 settlement  |
 | `packages/cli/src/lib/agent-notify.js`                     | `sendAgentNotification`——包 `NotificationManager.fromEnv`     |
 | `packages/cli/src/runtime/coding-agent-contract-shared.cjs` | `notify` / `schedule` 工具契约                                |
 | `packages/cli/src/runtime/coding-agent-policy.cjs`         | `notify` / `schedule` 策略元数据（LOW / blocked / 非只读）    |
