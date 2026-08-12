@@ -6,12 +6,17 @@ import {
   bindSchedulerScheduleFire,
   completeSchedulerScheduleFire,
   coworkCronFireKey,
+  coworkCronMigrationSourceDigest,
+  coworkCronMigrationSourceSnapshot,
   ensureScheduleNextAt,
   getSchedule,
   hasSecondsResolution,
   latestCoworkCronTime,
   loadSchedules,
   parseCron,
+  prepareCoworkSchedulerMigration,
+  restoreCoworkSchedulerMigration,
+  retireCoworkSchedulerMigration,
 } from "../cowork-cron.js";
 import {
   SchedulerKernelError,
@@ -21,6 +26,7 @@ import {
   normalizeJson,
 } from "./contract.js";
 import { SchedulerRuntime } from "./runtime.js";
+import { schedulerMigrationSourceDigest } from "./store.js";
 import {
   bindSchedulerAuthorityPolicy,
   createSchedulerAuthorityResolver,
@@ -263,6 +269,143 @@ export function syncCoworkCronSchedulerJob(schedulerStore, cwd, schedule) {
     if (sameJob(latest, desired)) return latest;
     throw error;
   }
+}
+
+export function migrateCoworkCronSchedule({ cwd, schedulerStore, schedule }) {
+  const workspace = normalizedCwd(cwd);
+  const snapshot = coworkCronScheduleSnapshot(schedule);
+  const sourceScope = { store: "cowork-schedules", workspace };
+  const desired = buildCoworkCronSchedulerJob(workspace, snapshot);
+  desired.authority = bindSchedulerAuthorityPolicy(
+    schedulerStore,
+    desired.authority,
+  );
+  const sourceSnapshot = coworkCronMigrationSourceSnapshot(schedule);
+  const sourceDigest = coworkCronMigrationSourceDigest(schedule);
+  const existing = schedulerStore.getActiveDomainMigrationBySource({
+    domain: "cowork-cron",
+    sourceScope,
+    sourceId: snapshot.id,
+  });
+  const prepared =
+    existing ||
+    schedulerStore.prepareDomainMigration({
+      entries: [
+        {
+          domain: "cowork-cron",
+          sourceId: snapshot.id,
+          sourceScope,
+          source: sourceSnapshot,
+          targetJob: desired,
+          rollbackStrategy: "disable",
+        },
+      ],
+    });
+  if (
+    prepared.entries.length !== 1 ||
+    prepared.entries[0].domain !== "cowork-cron"
+  ) {
+    throw coworkCronError(
+      "COWORK_SCHEDULER_MIGRATION_DOMAIN_MISMATCH",
+      "Cowork schedule belongs to an invalid mixed-domain migration",
+    );
+  }
+  if (
+    prepared.entries[0].sourceDigest !==
+      schedulerMigrationSourceDigest(sourceSnapshot) ||
+    prepared.entries[0].targetJobId !== desired.id
+  ) {
+    throw coworkCronError(
+      "COWORK_SCHEDULER_MIGRATION_SOURCE_CHANGED",
+      `Cowork schedule changed after migration started: ${snapshot.id}`,
+    );
+  }
+  let migration = prepared;
+  if (["rolling_back", "rolled_back"].includes(migration.state)) {
+    throw coworkCronError(
+      "COWORK_SCHEDULER_MIGRATION_STATE_CONFLICT",
+      `Cowork migration cannot resume from state ${migration.state}`,
+    );
+  }
+  if (migration.state === "retired") {
+    retireCoworkSchedulerMigration(workspace, snapshot.id, {
+      migrationId: migration.id,
+      sourceDigest,
+      targetJobId: desired.id,
+      retirementToken: migration.entries[0].retirementToken,
+    });
+    return migration;
+  }
+  if (migration.state === "prepared") {
+    prepareCoworkSchedulerMigration(workspace, snapshot.id, {
+      migrationId: migration.id,
+      sourceDigest,
+      targetJobId: desired.id,
+    });
+    migration = schedulerStore.applyDomainMigration(migration.id);
+  }
+  if (migration.state === "applied") {
+    migration = schedulerStore.verifyDomainMigration(migration.id, {
+      sources: [
+        { entryId: migration.entries[0].entryId, source: sourceSnapshot },
+      ],
+    });
+  }
+  const retiring =
+    migration.state === "retiring"
+      ? migration
+      : schedulerStore.beginDomainMigrationRetirement(migration.id);
+  const entry = retiring.entries[0];
+  const retired = retireCoworkSchedulerMigration(workspace, snapshot.id, {
+    migrationId: migration.id,
+    sourceDigest,
+    targetJobId: desired.id,
+    retirementToken: entry.retirementToken,
+  });
+  schedulerStore.confirmDomainMigrationEntryRetired({
+    migrationId: migration.id,
+    entryId: entry.entryId,
+    retirementToken: entry.retirementToken,
+    source: retired,
+  });
+  return schedulerStore.getDomainMigration(migration.id);
+}
+
+export function rollbackCoworkCronMigration({
+  cwd,
+  schedulerStore,
+  migrationId,
+}) {
+  const workspace = normalizedCwd(cwd);
+  const migration = schedulerStore.beginDomainMigrationRollback(migrationId);
+  const entries = migration.entries.filter(
+    (entry) => entry.domain === "cowork-cron",
+  );
+  if (entries.length !== migration.entries.length) {
+    throw coworkCronError(
+      "COWORK_SCHEDULER_MIGRATION_DOMAIN_MISMATCH",
+      "Cowork rollback cannot operate on a mixed-domain migration",
+    );
+  }
+  schedulerStore.rollbackDomainMigrationTargets(migrationId);
+  for (const entry of entries) {
+    const restored = restoreCoworkSchedulerMigration(
+      workspace,
+      entry.sourceId,
+      {
+        migrationId,
+        targetJobId: entry.targetJobId,
+        retirementToken: entry.retirementToken,
+      },
+    );
+    schedulerStore.confirmDomainMigrationEntrySourceRestored({
+      migrationId,
+      entryId: entry.entryId,
+      retirementToken: entry.retirementToken,
+      source: coworkCronMigrationSourceSnapshot(restored),
+    });
+  }
+  return schedulerStore.getDomainMigration(migrationId);
 }
 
 export function coworkCronScheduledFor(schedule, at) {
@@ -623,6 +766,7 @@ export class CoworkCronSchedulerBridge {
     leaseMs,
     renewIntervalMs,
     authorityResolver,
+    migrateLegacy = true,
   } = {}) {
     if (!schedulerStore) {
       throw coworkCronError(
@@ -639,6 +783,7 @@ export class CoworkCronSchedulerBridge {
     this.cwd = normalizedCwd(cwd);
     this.schedulerStore = schedulerStore;
     this.now = now;
+    this.migrateLegacy = migrateLegacy !== false;
     this.runtime = new SchedulerRuntime({
       store: schedulerStore,
       adapters: [createCoworkCronSchedulerAdapter({ runTask, now })],
@@ -736,6 +881,26 @@ export class CoworkCronSchedulerBridge {
         deduplicated: occurrence.deduplicated,
         result,
       });
+    }
+    if (this.migrateLegacy) {
+      const candidates = loadSchedules(this.cwd, {
+        failOnMalformed: true,
+      }).filter(
+        (schedule) =>
+          schedule.enabled === true &&
+          !schedule.schedulerMigration &&
+          [undefined, "succeeded"].includes(
+            schedule.schedulerExecution?.status,
+          ) &&
+          !schedule.activeDelivery,
+      );
+      for (const schedule of candidates) {
+        migrateCoworkCronSchedule({
+          cwd: this.cwd,
+          schedulerStore: this.schedulerStore,
+          schedule,
+        });
+      }
     }
     return results;
   }

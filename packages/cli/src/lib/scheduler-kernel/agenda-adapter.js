@@ -394,6 +394,7 @@ export function migrateAgendaSchedulerEntry({
           sourceScope,
           source: sourceSnapshot,
           targetJob: desired,
+          rollbackStrategy: "disable",
         },
       ],
     });

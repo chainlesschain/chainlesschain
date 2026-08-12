@@ -10,7 +10,9 @@ import {
   bindSchedulerScheduleFire,
   claimScheduleFire,
   completeSchedulerScheduleFire,
+  coworkCronMigrationSourceDigest,
   getSchedule,
+  prepareCoworkSchedulerMigration,
   saveSchedules,
   settleScheduleFire,
 } from "../../src/lib/cowork-cron.js";
@@ -22,6 +24,8 @@ import {
   coworkCronScheduleDigest,
   coworkCronScheduleSnapshot,
   enqueueCoworkCronSchedule,
+  migrateCoworkCronSchedule,
+  rollbackCoworkCronMigration,
 } from "../../src/lib/scheduler-kernel/cowork-cron-adapter.js";
 import { openSchedulerStore } from "../../src/lib/scheduler-kernel/store.js";
 
@@ -156,7 +160,10 @@ describe("scheduler-kernel Cowork cron adapter", () => {
     expect(getSchedule(f.cwd, schedule.id)).toMatchObject({
       lastStatus: "completed",
       lastDeliveryId: expect.stringContaining(schedule.id),
-      activeDelivery: null,
+      activeDelivery: {
+        ownerId: expect.stringMatching(/^scheduler-migration:/),
+        leaseExpiresAt: COWORK_SCHEDULER_UNKNOWN_LEASE_EXPIRES_AT,
+      },
       schedulerExecution: { status: "succeeded", attempt: 1 },
     });
     expect(
@@ -164,6 +171,142 @@ describe("scheduler-kernel Cowork cron adapter", () => {
         .prepare("SELECT status, units FROM scheduler_authority_reservations")
         .get(),
     ).toEqual({ status: "succeeded", units: 1 });
+  });
+
+  it("migrates Cowork with an old-version delivery fence and rolls it back", () => {
+    const f = fixture();
+    const schedule = f.add();
+    const schedulerStore = f.openScheduler();
+    const migrated = migrateCoworkCronSchedule({
+      cwd: f.cwd,
+      schedulerStore,
+      schedule,
+    });
+    expect(migrated).toMatchObject({
+      state: "retired",
+      entries: [
+        {
+          domain: "cowork-cron",
+          sourceId: schedule.id,
+          rollbackStrategy: "disable",
+        },
+      ],
+    });
+    const retired = getSchedule(f.cwd, schedule.id);
+    expect(retired).toMatchObject({
+      schedulerMigration: { migrationId: migrated.id, state: "retired" },
+      activeDelivery: {
+        ownerId: `scheduler-migration:${migrated.entries[0].retirementToken}`,
+        leaseExpiresAt: COWORK_SCHEDULER_UNKNOWN_LEASE_EXPIRES_AT,
+      },
+    });
+    expect(
+      claimScheduleFire(f.cwd, schedule.id, "legacy-fire", {
+        ownerId: "legacy",
+        now: f.clock(),
+      }),
+    ).toBeNull();
+    expect(
+      migrateCoworkCronSchedule({
+        cwd: f.cwd,
+        schedulerStore,
+        schedule: retired,
+      }),
+    ).toMatchObject({ id: migrated.id, state: "retired" });
+
+    expect(
+      rollbackCoworkCronMigration({
+        cwd: f.cwd,
+        schedulerStore,
+        migrationId: migrated.id,
+      }),
+    ).toMatchObject({ state: "rolled_back" });
+    expect(getSchedule(f.cwd, schedule.id)).toMatchObject({
+      enabled: true,
+      activeDelivery: null,
+    });
+    expect(getSchedule(f.cwd, schedule.id)).not.toHaveProperty(
+      "schedulerMigration",
+    );
+    expect(
+      schedulerStore.getJob(migrated.entries[0].targetJobId),
+    ).toMatchObject({
+      enabled: false,
+    });
+    expect(
+      claimScheduleFire(f.cwd, schedule.id, "legacy-fire", {
+        ownerId: "legacy",
+        now: f.clock(),
+      }),
+    ).not.toBeNull();
+  });
+
+  it("resumes Cowork migration after target staging and retirement write crashes", () => {
+    const f = fixture();
+    const schedule = f.add();
+    const schedulerStore = f.openScheduler();
+    const desired = buildCoworkCronSchedulerJob(f.cwd, schedule);
+    const source = {
+      createdAt: schedule.createdAt,
+      cron: schedule.cron,
+      enabled: schedule.enabled,
+      files: schedule.files,
+      id: schedule.id,
+      templateId: schedule.templateId,
+      userMessage: schedule.userMessage,
+    };
+    const prepared = schedulerStore.prepareDomainMigration({
+      entries: [
+        {
+          domain: "cowork-cron",
+          sourceId: schedule.id,
+          sourceScope: {
+            store: "cowork-schedules",
+            workspace: f.cwd.toLowerCase(),
+          },
+          source,
+          targetJob: desired,
+          rollbackStrategy: "disable",
+        },
+      ],
+    });
+    prepareCoworkSchedulerMigration(f.cwd, schedule.id, {
+      migrationId: prepared.id,
+      sourceDigest: coworkCronMigrationSourceDigest(schedule),
+      targetJobId: desired.id,
+    });
+    schedulerStore.applyDomainMigration(prepared.id);
+    expect(
+      migrateCoworkCronSchedule({
+        cwd: f.cwd,
+        schedulerStore,
+        schedule: getSchedule(f.cwd, schedule.id),
+      }),
+    ).toMatchObject({ id: prepared.id, state: "retired" });
+    const retired = schedulerStore.getDomainMigration(prepared.id);
+    schedulerStore.db
+      .prepare(
+        `UPDATE scheduler_domain_migrations SET state = 'retiring',
+         completed_at = NULL WHERE migration_id = ?`,
+      )
+      .run(prepared.id);
+    schedulerStore.db
+      .prepare(
+        `UPDATE scheduler_domain_migration_entries SET state = 'retiring'
+         WHERE migration_id = ?`,
+      )
+      .run(prepared.id);
+    expect(
+      migrateCoworkCronSchedule({
+        cwd: f.cwd,
+        schedulerStore,
+        schedule: getSchedule(f.cwd, schedule.id),
+      }),
+    ).toMatchObject({
+      id: prepared.id,
+      state: "retired",
+      entries: [{ retirementToken: retired.entries[0].retirementToken }],
+    });
   });
 
   it("binds an IANA zone and collapses downtime to one latest occurrence", async () => {
@@ -679,7 +822,10 @@ describe("scheduler-kernel Cowork cron adapter", () => {
     expect(getSchedule(f.cwd, schedule.id)).toMatchObject({
       lastDeliveryId: occurrence.triggerKey,
       schedulerExecution: { status: "succeeded", attempt: 3 },
-      activeDelivery: null,
+      activeDelivery: {
+        ownerId: expect.stringMatching(/^scheduler-migration:/),
+        leaseExpiresAt: COWORK_SCHEDULER_UNKNOWN_LEASE_EXPIRES_AT,
+      },
     });
   });
 
@@ -723,7 +869,10 @@ describe("scheduler-kernel Cowork cron adapter", () => {
     expect(runTask).toHaveBeenCalledTimes(2);
     expect(getSchedule(f.cwd, schedule.id)).toMatchObject({
       lastStatus: "completed",
-      activeDelivery: null,
+      activeDelivery: {
+        ownerId: expect.stringMatching(/^scheduler-migration:/),
+        leaseExpiresAt: COWORK_SCHEDULER_UNKNOWN_LEASE_EXPIRES_AT,
+      },
       schedulerExecution: { status: "succeeded", attempt: 2 },
     });
   });

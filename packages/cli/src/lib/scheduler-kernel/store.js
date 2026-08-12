@@ -323,6 +323,9 @@ CREATE TABLE scheduler_domain_migration_entries (
   source_digest                 TEXT NOT NULL,
   target_job_id                 TEXT NOT NULL,
   target_job_digest             TEXT NOT NULL,
+  rollback_strategy             TEXT NOT NULL CHECK (
+    rollback_strategy IN ('restore', 'disable')
+  ),
   state                         TEXT NOT NULL CHECK (
     state IN (
       'prepared', 'applied', 'verified', 'retiring', 'retired',
@@ -409,7 +412,7 @@ export const SCHEMA_V2_FINGERPRINT =
 export const SCHEMA_V3_FINGERPRINT =
   "aac3733641bebb5a86aea3f9c421818201f5dde051da6b95b880d503a420047b";
 export const SCHEMA_V4_FINGERPRINT =
-  "8cc7c179090856e969007edde81b6ed24c0d3cec2f88aba9cd41c6357354ca90";
+  "59762b9d5da862b857edb76021ed51d05a256133dce543a3fd7d7b0403c9c081";
 
 const EXPECTED_COLUMNS = Object.freeze({
   migrations: [
@@ -533,6 +536,7 @@ const EXPECTED_COLUMNS = Object.freeze({
     ["source_digest", "TEXT", 1, 0],
     ["target_job_id", "TEXT", 1, 0],
     ["target_job_digest", "TEXT", 1, 0],
+    ["rollback_strategy", "TEXT", 1, 0],
     ["state", "TEXT", 1, 0],
     ["target_action", "TEXT", 0, 0],
     ["target_before_json", "TEXT", 0, 0],
@@ -903,6 +907,7 @@ function normalizeDomainMigrationEntry(input, index) {
     "sourceScope",
     "source",
     "targetJob",
+    "rollbackStrategy",
   ]);
   const unknown = Object.keys(input).filter((key) => !allowed.has(key));
   if (unknown.length > 0) {
@@ -923,6 +928,12 @@ function normalizeDomainMigrationEntry(input, index) {
   const sourceDigest = schedulerMigrationSourceDigest(input.source);
   const targetJob = normalizeJobInput(input.targetJob);
   const targetJobDigest = schedulerJobDefinitionDigest(targetJob);
+  const rollbackStrategy = input.rollbackStrategy ?? "restore";
+  if (!["restore", "disable"].includes(rollbackStrategy)) {
+    throw invalidArgument(
+      `entries[${index}].rollbackStrategy must be restore or disable`,
+    );
+  }
   const identity = {
     schemaVersion: 1,
     domain: input.domain,
@@ -931,6 +942,7 @@ function normalizeDomainMigrationEntry(input, index) {
     sourceDigest,
     targetJobId: targetJob.id,
     targetJobDigest,
+    rollbackStrategy,
   };
   const entryDigest = sha256PayloadDigest(
     identity,
@@ -999,6 +1011,7 @@ function normalizeDomainMigrationPlan(input) {
       sourceDigest: entry.sourceDigest,
       targetJobId: entry.targetJobId,
       targetJobDigest: entry.targetJobDigest,
+      rollbackStrategy: entry.rollbackStrategy,
       targetJob: entry.targetJob,
     })),
   };
@@ -1025,6 +1038,7 @@ function mapDomainMigrationEntry(row) {
     sourceDigest: row.source_digest,
     targetJobId: row.target_job_id,
     targetJobDigest: row.target_job_digest,
+    rollbackStrategy: row.rollback_strategy,
     state: row.state,
     targetAction: row.target_action,
     targetBefore:
@@ -1960,13 +1974,14 @@ export class SchedulerStore {
       const insert = this.db.prepare(
         `INSERT INTO scheduler_domain_migration_entries
            (migration_id, entry_id, domain, source_id, source_scope_digest,
-            source_digest, target_job_id, target_job_digest, state,
+            source_digest, target_job_id, target_job_digest, rollback_strategy,
+            state,
             target_action, target_before_json, target_applied_revision,
             target_applied_at, target_occurrence_count_before,
             target_execution_event_count_before, target_rollback_revision,
             retirement_token, source_retirement_digest, source_restored_digest,
             created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'prepared',
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'prepared',
                  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
                  ?, ?)`,
       );
@@ -1981,6 +1996,7 @@ export class SchedulerStore {
             entry.sourceDigest,
             entry.targetJobId,
             entry.targetJobDigest,
+            entry.rollbackStrategy,
             now,
             now,
           );
@@ -2626,7 +2642,10 @@ export class SchedulerStore {
         if (entry.state === "rollback_target_disabled") continue;
         const current = snapshots.get(entry.entryId);
         let rolledBack;
-        if (entry.targetAction === "created") {
+        if (
+          entry.targetAction === "created" ||
+          entry.rollbackStrategy === "disable"
+        ) {
           rolledBack = current.enabled
             ? this.updateJob(current.id, current.revision, { enabled: false })
             : current;
