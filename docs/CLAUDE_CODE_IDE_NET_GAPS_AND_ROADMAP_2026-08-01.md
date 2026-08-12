@@ -1393,3 +1393,33 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
   17/19 降为 **16/19 尚未关闭（3/19 完成）**，工程口径由 17 降为 **16 个剩余工作包**。此结论关闭
   仓库内 P2-2 整项，但 `0.37.51`/`0.4.87` 目前只是已验证的后续候选版本，不在没有 tag、上传和公开
   listing 回读时宣称已经发布；外部阻塞和本期延后项也不因此改变。
+
+## 十三、未完成项汇总表（截至 2026-08-12）
+
+本表按原始路线图编号汇总当前仍未关闭的整项，便于排期和持续更新。当前口径为 **16/19 项尚未关闭，
+3/19 项完成**；已完成的 P0-1/Q1 Workbench、P0-2/Q2 Rewind 和 P2-2/R5 自动补全不再列入。
+R0～R5 只是阶段别名，不重复计数。“部分完成”表示已有实现或子门已经关闭，但整项退出条件仍未满足；
+“外部阻塞”与“本期延后”均不代表完成、豁免或 release GO。
+
+| # | 路线项 | 当前状态 | 已完成基础/最新进展 | 未完成范围与关闭条件 |
+| --- | --- | --- | --- | --- |
+| 1 | S0-1：Plan、权限与运行时正确性 | 部分完成；P0 release gate | Plan/contract/Hook/子树指令等安全底座已加固；durable host revocation 与 MCP send-time admission 已进入 `main` | 关闭已 dispatch 外部 effect 的撤权边界、跨进程 kill/restart、任意断电/fsync、独立 anti-rollback anchor、强篡改者与长期安全矩阵；任何 authority-bearing 失败均不得扩大能力 |
+| 2 | S0-2：Skill/MCP 信任边界 | 部分完成；P0 release gate | production Skill direct handler 已阻断；固定 npm MCP capsule 的四类不可降级宿主边界及真实 Client→Broker→OS live chain 已合并 | 补齐 macOS 原子 runtime exec/open、任意 native/shared-library 递归闭包、远端即时撤权/distributed authority、恶意来源/effect ledger/动态撤销/进程树和长期对抗矩阵 |
+| 3 | S0-3：持久状态、语义压缩与 handoff | 部分完成；P0 foundation | provider-backed semantic compaction、canonical settlement 与 covered-scope CLI 冷恢复子门已关闭 | 为 in-memory microcompact prepass 增加 durable canonical CAS；完成真实 provider 长会话、可验收 structured handoff/live trajectory 与全宿主长期一致性矩阵 |
+| 4 | Q0：可信入口与 Microsoft Marketplace | 部分完成；外部阻塞 | Desktop 单一 command registry、公开 capability manifest、不可变发布门已实现；Open VSX `0.37.50` 和 JetBrains `0.4.86` 已公开发布 | 配置 Microsoft Marketplace 发布 authority，发布同一已验证 VSIX，并完成 exact publisher/version/digest 回读及 stock VS Code 搜索、fresh-profile 安装、升级和回滚 |
+| 5 | Q3：Evidence-Driven Delivery Loop | 部分完成；外部 live journey 延后 | production GitHub adapter、`cc artifacts delivery-run` 与 crash-safe exact-effect runner 已进入 `main` | 通过生产入口真实执行 gates→preview→review→fix→PR/CI→受控 merge→archive；绑定 exact head，并关闭 ruleset/branch protection、required checks/review、权限及外部不可变/WORM 归档回读 |
+| 6 | Q4a：真实宿主验收基础设施 | 部分完成 | local-host、stable/minimum、多根、多窗口与 IDE ARM64 exact-SHA 子门已关闭 | 完成 Remote/SSH/WSL/devcontainer/Codespaces、JetBrains Gateway 的真实宿主 driver、versioned fixture manifest、失败 artifact capture 与可重放矩阵 |
+| 7 | Q4b：完整发布与用户旅程门 | 部分完成；外部阻塞/本期延后 | CLI npm exact-SHA 发布和公网回读、Open VSX/JetBrains 发布及 unsigned CLI 六目标执行已完成 | 完成 Microsoft Marketplace、JetBrains 作者签名、Desktop/native x64+ARM64 签名与公证、fresh-profile 升降级/回滚、网络抖动/重连/Bridge 与 CLI restart、8 小时 IDE soak 和 nightly live-provider trajectory |
+| 8 | P1-1：Dynamic Workflow façade | 部分完成 | 已有 Cowork DAG、run history、Team/Batch 和统一 scheduler/Automation 控制基础 | 收敛为可生成、可审阅、可预算、可暂停恢复、版本化保存和插件分发的统一 façade；同一 definition 必须可重放，阶段最多提交一次 |
+| 9 | P1-2：一等 Execution Location | 部分完成 | 已有 Local、Remote Control、Cloud、后台和跨端 primitive | 将 Local/WSL/SSH/Cloud/Container 建为创建会话时可比较的一等属性；完成 capability manifest、安全 handoff，以及 commit/diff/summary/artifact/evidence/authority 的可审阅继承 |
+| 10 | P1-3：Automation Center | 部分完成 | `main` 已覆盖 Agenda/Automation/Cowork/Loop/Routine/monitor、统一 daemon、`needs_input` 通知、时区/DST/missed-run、权限/预算 preflight 和双 IDE 控制面 | 补齐运行中 task 的条件式暂停/恢复、绑定原 run id 的越界 incident、未知结果裁决、mixed-version 迁移/回滚、磁盘故障及三平台长期矩阵 |
+| 11 | P1-4：Context 与 Permission/Side-effect Center | 部分完成 | 已有 IDE context primitive、policy/approval/ledger 和只读 Policy Viewer | 统一可移除 context chips 及 source/freshness/range/token 解释；展示最终规则来源、实际文件/网络/进程/credential、副作用与恢复覆盖；支持最小 scoped rule、失效和 revoke，且不得放宽 managed deny |
+| 12 | P1-5：Marketplace 发现与组织治理 | 部分完成 | 签名、SBOM、策略、升级恢复与供应链治理底座较强 | 补齐多来源发现、依赖/license/健康图、private registry、组织签名/撤销、代理/离线，以及来源切换、依赖冲突和供应链故障注入矩阵 |
+| 13 | P2-1：因果可观测性 | 未完成 | 已有 usage/insights、artifact、gate 与 PR/CI 等分散证据 | 把 token/USD、retry、tool latency 关联到 diff、gate、artifact 和 PR 结果，并支持 workspace/team/policy 导出与预算告警 |
+| 14 | P2-3：多 Agent 合并审阅 | 部分完成 | 已有 Team/Worktree、checkpoint/rollback 与受控 writer primitive | 完成 merge 前 hunk/file 选择、冲突解释、跨分支 batch checkpoint 和受控 rollback，并以一致 evidence 记录合并决策 |
+| 15 | P2-4：可访问性与性能 | 部分完成 | 已有局部 IDE 宿主、长会话和规模测试基础 | 完成键盘全路径、屏幕阅读器、焦点恢复、长会话虚拟化、大 diff/日志和 100+ session 的量化验收；覆盖真实宿主和长期运行 |
+| 16 | P2-5：WebIDE 定位 | 未决 | 当前 WebIDE 更接近固定 HTML/CSS/JS playground | 明确产品决策：若无独立浏览器 IDE 目标，则收敛为 Preview/Artifact；若继续投入，则补齐仓库树、搜索、诊断、Git/Diff、Terminal 与 session 绑定 |
+
+建议关闭顺序为：先完成 **S0-1～S0-3、Q0、Q3** 的安全、可信分发和真实交付门，再用 **Q4a/Q4b**
+关闭远程、故障与长期宿主证据，随后推进 **P1-1～P1-5** 的产品化，最后处理 **P2-1、P2-3～P2-5**。
+在 Q0、Q3 和 Q4b 的外部证据未闭合前，整体产品发布结论保持 **NO-GO**。
