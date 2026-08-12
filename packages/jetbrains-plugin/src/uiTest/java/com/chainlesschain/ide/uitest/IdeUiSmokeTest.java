@@ -70,6 +70,7 @@ final class IdeUiSmokeTest {
                     Locators.byXpath("//div[@class='IdeFrameImpl']"), FRAME_BUDGET);
             assertRequiredHostArchitecture(frame);
             assertRequiredHostVersion(frame);
+            assertAutomaticCompletionContract(frame);
             dismissVendorOnboarding(robot);
 
             if ("restart".equals(System.getProperty("ui.journey.phase"))) {
@@ -169,6 +170,41 @@ final class IdeUiSmokeTest {
                             + required + ", got " + actual);
         }
         System.out.println("[ui-smoke] verified IDE version: " + actual);
+    }
+
+    private static void assertAutomaticCompletionContract(ComponentFixture frame) {
+        Object value = frame.callJs(
+                "importClass(com.intellij.ide.plugins.PluginManagerCore); "
+                        + "importClass(com.intellij.openapi.extensions.PluginId); "
+                        + "importClass(com.intellij.openapi.application.ApplicationManager); "
+                        + "var descriptor = PluginManagerCore.getPlugin("
+                        + "PluginId.getId('com.chainlesschain.ide')); "
+                        + "if (descriptor == null) throw 'ChainlessChain plugin not installed'; "
+                        + "var loader = descriptor.getPluginClassLoader(); "
+                        + "var settingsClass = java.lang.Class.forName("
+                        + "'com.chainlesschain.ide.intellij.CcSettings', true, loader); "
+                        + "var policyClass = java.lang.Class.forName("
+                        + "'com.chainlesschain.ide.CcAutomaticCompletionPolicy', true, loader); "
+                        + "var settings = ApplicationManager.getApplication()"
+                        + ".getService(settingsClass); "
+                        + "var options = settings.getAutomaticCompletionOptions(); "
+                        + "[settings.isAutomaticCompletionEnabled(), "
+                        + "options.debounceMs, options.maxRequestsPerHour, "
+                        + "options.maxContextCharsPerHour, options.cacheTtlMs, "
+                        + "options.maxCompletionChars, options.maxCompletionLines, "
+                        + "policyClass.getField('SLO_P50_MS').get(null), "
+                        + "policyClass.getField('SLO_P95_MS').get(null), "
+                        + "policyClass.getField('SLO_MINIMUM_SAMPLES').get(null)]"
+                        + ".join('|');");
+        String actual = String.valueOf(value);
+        String expected = "false|650|60|240000|30000|800|12|2000|5000|20";
+        if (!expected.equals(actual)) {
+            throw new AssertionError(
+                    "JetBrains automatic-completion contract drifted: expected "
+                            + expected + ", got " + actual);
+        }
+        System.out.println("[ui-smoke] verified governed automatic-completion contract: "
+                + actual);
     }
 
     private static boolean equivalentNumericVersion(String expected, String actual) {

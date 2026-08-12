@@ -11,7 +11,8 @@ speaks the _same_ MCP protocol as the VS Code extension; only `ide` differs
 
 ## Release compatibility
 
-Plugin **0.4.86** adds a governed Automation Center for CLI-owned, versioned
+Plugin **0.4.87** adds governed automatic ghost-text completion and carries
+forward the Automation Center for CLI-owned, versioned
 Automation and Routine projections. It shows preflight and history, then routes
 run-now, failed-run retry, pause/resume, disable, delete, and revision-CAS
 create/edit operations through exact CLI-issued arguments. Cron, one-shot,
@@ -23,6 +24,17 @@ owner/fence claims, bounded retry, dead-letter settlement, crash recovery, and
 durable compaction. The new Automation Center controls additionally require a
 subsequent CLI release containing the governed Automation/Routine commands;
 `0.163.5` remains fully supported for existing chat and IDE bridge features.
+
+## Governed ghost-text completion
+
+Press **Alt+\\** for an explicit completion at the caret. Automatic ghost text
+is independently opt-in under **Settings → Tools → ChainlessChain IDE** and is
+off by default to prevent surprise model cost. Once enabled it uses a 650 ms
+debounce, platform cancellation, exact-context in-flight dedupe and TTL cache,
+bounded local context, independent hourly request/context-character budgets,
+and length/line/prose quality fallback. Rolling metrics evaluate a fixed
+P50 <= 2 s / P95 <= 5 s visible-latency SLO after 20 samples; results slower
+than five seconds fail quiet and do not interrupt editing or the main Agent.
 
 ## Automatic awareness (cc ≥ 0.162.39)
 

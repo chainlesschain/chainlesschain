@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.chainlesschain.ide</id>
     <name>ChainlessChain IDE Bridge</name>
-    <version>0.4.86</version>
+    <version>0.4.87</version>
     <vendor url="https://github.com/chainlesschain/chainlesschain">ChainlessChain</vendor>
 
     <description><![CDATA[
@@ -261,8 +261,8 @@
         <!-- jetbrains://idea/chainlesschain/open?prompt=… deep link (VS Code
              registerUriHandler parity): focus the chat tool window + seed a prompt. -->
         <jbProtocolCommand implementation="com.chainlesschain.ide.intellij.CcProtocolCommand"/>
-        <!-- Ghost-text inline completion (manual trigger only). VS Code
-             InlineCompletionItemProvider parity; shares the `cc complete` backend. -->
+        <!-- Ghost-text inline completion: manual trigger plus governed,
+             default-off automatic mode; shares the `cc complete` backend. -->
         <inline.completion.provider
                 implementation="com.chainlesschain.ide.intellij.CcInlineCompletionProvider"/>
     </extensions>
@@ -388,7 +388,7 @@
         </action>
         <!-- Ghost-text: fire an explicit inline-completion request at the caret.
              Alt+\ matches the VS Code keybinding; rebindable in Settings → Keymap.
-             Manual only — nothing runs on ordinary typing. -->
+             Automatic typing remains independently opt-in under plugin settings. -->
         <action id="chainlesschain.completion.trigger"
                 class="com.chainlesschain.ide.intellij.TriggerCompletionAction">
             <keyboard-shortcut keymap="$default" first-keystroke="alt BACK_SLASH"/>

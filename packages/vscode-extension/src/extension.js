@@ -471,9 +471,9 @@ function activate(context) {
     log(`Inline chat not loaded: ${e.message}`);
   }
 
-  // Inline ghost-text completion (manual trigger). The provider only fires on an
-  // explicit Invoke (the keybinding → the built-in inline trigger), so typing
-  // never spawns an LLM; it reuses `cc complete` (the configured LLM).
+  // Inline ghost-text completion. Manual Alt+\ remains available; governed
+  // automatic requests are a separate opt-in so typing never creates surprise
+  // model cost. Both paths reuse `cc complete` (the configured LLM).
   {
     const { createInlineCompletionProvider } = require("./completion");
     const { getResolvedCli } = require("./cli-binary");
@@ -495,6 +495,37 @@ function activate(context) {
         vscode.workspace
           .getConfiguration("chainlesschain")
           .get("completion.enabled", true) !== false,
+      isAutomaticEnabled: () =>
+        vscode.workspace
+          .getConfiguration("chainlesschain")
+          .get("completion.automatic.enabled", false) === true,
+      getAutomaticOptions: () => {
+        const config = vscode.workspace.getConfiguration("chainlesschain");
+        return {
+          debounceMs: config.get("completion.automatic.debounceMs", 650),
+          maxRequestsPerHour: config.get(
+            "completion.automatic.maxRequestsPerHour",
+            60,
+          ),
+          maxContextCharsPerHour: config.get(
+            "completion.automatic.maxContextCharsPerHour",
+            240000,
+          ),
+          cacheTtlMs: config.get("completion.automatic.cacheTtlMs", 30000),
+          maxCompletionChars: config.get(
+            "completion.automatic.maxCompletionChars",
+            800,
+          ),
+          maxCompletionLines: config.get(
+            "completion.automatic.maxCompletionLines",
+            12,
+          ),
+        };
+      },
+      onMetrics: (metrics) =>
+        log(
+          `auto completion metrics: requests=${metrics.requests} cacheHits=${metrics.cacheHits} dedupeHits=${metrics.dedupeHits} budgetRejects=${metrics.budgetRejects} qualityRejects=${metrics.qualityRejects} sloRejects=${metrics.sloRejects} cancellations=${metrics.cancellations} p50=${metrics.p50Ms}ms/${metrics.sloTargetP50Ms}ms p95=${metrics.p95Ms}ms/${metrics.sloTargetP95Ms}ms samples=${metrics.samples} sloMet=${metrics.sloMet}`,
+        ),
     });
     context.subscriptions.push(
       vscode.languages.registerInlineCompletionItemProvider(

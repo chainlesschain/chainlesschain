@@ -21,6 +21,7 @@ const EXTENSION_ID = "chainlesschain.chainlesschain-ide";
 const EXTENSION_ACTIVATION_TIMEOUT_MS = 60_000;
 const REQUIRED_COMMANDS = [
   "chainlesschain.ide.showStatus",
+  "chainlesschain.complete.trigger",
   "chainlesschain.cli.installManaged",
   "chainlesschain.chat.newConversation",
   "chainlesschain.diff.accept",
@@ -125,6 +126,51 @@ async function dismissFreshInstallReloadPrompt() {
   // terminate the extension-test contract mid-journey.
   await new Promise((resolve) => setTimeout(resolve, 250));
   await vscode.commands.executeCommand("notifications.clearAll");
+}
+
+function assertAutomaticCompletionContract(extension) {
+  const properties =
+    extension.packageJSON?.contributes?.configuration?.properties || {};
+  const expectedDefaults = {
+    "chainlesschain.completion.automatic.enabled": false,
+    "chainlesschain.completion.automatic.debounceMs": 650,
+    "chainlesschain.completion.automatic.maxRequestsPerHour": 60,
+    "chainlesschain.completion.automatic.maxContextCharsPerHour": 240000,
+    "chainlesschain.completion.automatic.cacheTtlMs": 30000,
+    "chainlesschain.completion.automatic.maxCompletionChars": 800,
+    "chainlesschain.completion.automatic.maxCompletionLines": 12,
+  };
+  for (const [key, expected] of Object.entries(expectedDefaults)) {
+    assert.ok(properties[key], `installed VSIX is missing setting ${key}`);
+    assert.equal(
+      properties[key].default,
+      expected,
+      `installed VSIX default drifted for ${key}`,
+    );
+    assert.equal(
+      vscode.workspace.getConfiguration().get(key),
+      expected,
+      `fresh-profile runtime default drifted for ${key}`,
+    );
+  }
+  const nls = JSON.parse(
+    fs.readFileSync(
+      path.join(extension.extensionPath, "package.nls.json"),
+      "utf8",
+    ),
+  );
+  assert.match(
+    String(nls["config.completion.automatic.enabled.description"]),
+    /P50.*2 s.*P95.*5 s/u,
+    "installed VSIX does not publish the automatic-completion latency SLO",
+  );
+  const completionSource = fs.readFileSync(
+    path.join(extension.extensionPath, "src", "completion.js"),
+    "utf8",
+  );
+  assert.match(completionSource, /p50Ms:\s*2_000/u);
+  assert.match(completionSource, /p95Ms:\s*5_000/u);
+  assert.match(completionSource, /minimumSamples:\s*20/u);
 }
 
 async function runCompanionWindow({
@@ -593,9 +639,20 @@ async function run() {
   );
   assert.equal(extension.isActive, true, "extension did not become active");
   await dismissFreshInstallReloadPrompt();
+  assertAutomaticCompletionContract(extension);
   console.log(`[extension-host-smoke] ${journeyPhase}: VSIX activated`);
   if (journeyMode !== "dom") {
     appendHostTrace(traceFile, journeyPhase, "vsix-activated");
+    appendHostTrace(
+      traceFile,
+      journeyPhase,
+      "automatic-completion-contract-verified",
+      {
+        defaultEnabled: false,
+        p50SloMs: 2000,
+        p95SloMs: 5000,
+      },
+    );
   }
 
   if (journeyMode !== "host-api" && journeyPhase === "restart") {

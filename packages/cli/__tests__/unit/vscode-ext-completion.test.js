@@ -1,12 +1,16 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { EventEmitter } from "node:events";
 import {
+  AUTO_COMPLETION_SLO,
   MAX_COMPLETION_CHARS,
+  AutomaticCompletionPolicy,
   cleanCompletion,
   extractContext,
   parseCompletionResponse,
   spawnComplete,
   createInlineCompletionProvider,
+  isAutomaticCompletionUsable,
+  normalizeAutoOptions,
 } from "../../../vscode-extension/src/completion.js";
 
 const fakeVscode = {
@@ -52,6 +56,234 @@ describe("inline completion — extractContext", () => {
     const r = extractContext("abc", 999, "");
     expect(r.prefix).toBe("abc");
     expect(r.suffix).toBe("");
+  });
+});
+
+describe("inline completion - governed automatic mode", () => {
+  const token = { isCancellationRequested: false };
+  const automatic = {
+    triggerKind: fakeVscode.InlineCompletionTriggerKind.Automatic,
+  };
+
+  it("normalizes bounded automatic options", () => {
+    expect(
+      normalizeAutoOptions({
+        debounceMs: 1,
+        maxRequestsPerHour: 0,
+        maxCompletionChars: 99999,
+      }),
+    ).toMatchObject({
+      debounceMs: 100,
+      maxRequestsPerHour: 1,
+      maxCompletionChars: MAX_COMPLETION_CHARS,
+    });
+  });
+
+  it("stays opt-in and keeps automatic typing quiet by default", async () => {
+    const runComplete = vi.fn(async () => "suggested");
+    const provider = createInlineCompletionProvider({
+      vscode: fakeVscode,
+      isEnabled: () => true,
+      isAutomaticEnabled: () => false,
+      runComplete,
+    });
+    expect(
+      await provider.provideInlineCompletionItems(
+        fakeDoc("const value"),
+        { offset: 11 },
+        automatic,
+        token,
+      ),
+    ).toBeUndefined();
+    expect(runComplete).not.toHaveBeenCalled();
+  });
+
+  it("debounces, caches exact contexts, and records latency SLO evidence", async () => {
+    vi.useFakeTimers();
+    try {
+      let now = 1000;
+      const runComplete = vi.fn(async () => {
+        now += 292;
+        return " = buildValue()";
+      });
+      const provider = createInlineCompletionProvider({
+        vscode: fakeVscode,
+        isEnabled: () => true,
+        isAutomaticEnabled: () => true,
+        getAutomaticOptions: () => ({ debounceMs: 250 }),
+        runComplete,
+        now: () => now,
+      });
+      const first = provider.provideInlineCompletionItems(
+        fakeDoc("const value"),
+        { offset: 11 },
+        automatic,
+        token,
+      );
+      expect(runComplete).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(249);
+      expect(runComplete).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(1);
+      expect((await first).items[0].insertText).toBe(" = buildValue()");
+
+      const cached = await provider.provideInlineCompletionItems(
+        fakeDoc("const value"),
+        { offset: 11 },
+        automatic,
+        token,
+      );
+      expect(cached.items[0].insertText).toBe(" = buildValue()");
+      expect(runComplete).toHaveBeenCalledTimes(1);
+      expect(provider.getAutomaticMetrics()).toMatchObject({
+        requests: 1,
+        cacheHits: 1,
+        p50Ms: 292,
+        p95Ms: 292,
+        samples: 1,
+      });
+      expect(runComplete).toHaveBeenCalledWith(
+        expect.objectContaining({ timeoutMs: 4750 }),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not spend budget when cancelled during debounce", async () => {
+    let cancel;
+    const runComplete = vi.fn(async () => "unused");
+    const provider = createInlineCompletionProvider({
+      vscode: fakeVscode,
+      isEnabled: () => true,
+      isAutomaticEnabled: () => true,
+      runComplete,
+      deps: { setTimeout: () => 1, clearTimeout: () => {} },
+    });
+    const pending = provider.provideInlineCompletionItems(
+      fakeDoc("const value"),
+      { offset: 11 },
+      automatic,
+      {
+        isCancellationRequested: false,
+        onCancellationRequested: (fn) => {
+          cancel = fn;
+          return { dispose: () => {} };
+        },
+      },
+    );
+    cancel();
+    expect(await pending).toBeUndefined();
+    expect(runComplete).not.toHaveBeenCalled();
+    expect(provider.getAutomaticMetrics()).toMatchObject({
+      requests: 0,
+      cancellations: 1,
+    });
+  });
+
+  it("fails quiet when the independent hourly budget is exhausted", async () => {
+    vi.useFakeTimers();
+    try {
+      const runComplete = vi.fn(async () => "Suggestion");
+      const provider = createInlineCompletionProvider({
+        vscode: fakeVscode,
+        isEnabled: () => true,
+        isAutomaticEnabled: () => true,
+        getAutomaticOptions: () => ({
+          debounceMs: 100,
+          maxRequestsPerHour: 1,
+        }),
+        runComplete,
+      });
+      const first = provider.provideInlineCompletionItems(
+        fakeDoc("const one"),
+        { offset: 9 },
+        automatic,
+        token,
+      );
+      await vi.advanceTimersByTimeAsync(100);
+      expect(await first).toBeDefined();
+      const second = provider.provideInlineCompletionItems(
+        fakeDoc("const two"),
+        { offset: 9 },
+        automatic,
+        token,
+      );
+      await vi.advanceTimersByTimeAsync(100);
+      expect(await second).toBeUndefined();
+      expect(runComplete).toHaveBeenCalledTimes(1);
+      expect(provider.getAutomaticMetrics().budgetRejects).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("rejects low-quality automatic output", () => {
+    const options = normalizeAutoOptions({ maxCompletionLines: 2 });
+    expect(
+      isAutomaticCompletionUsable(
+        "line1\nline2\nline3",
+        { suffix: "" },
+        options,
+      ),
+    ).toBe(false);
+    expect(
+      isAutomaticCompletionUsable(
+        "Here is the completion",
+        { suffix: "" },
+        options,
+      ),
+    ).toBe(false);
+    expect(
+      isAutomaticCompletionUsable("value", { suffix: "value;" }, options),
+    ).toBe(false);
+    expect(
+      isAutomaticCompletionUsable("nextValue", { suffix: ";" }, options),
+    ).toBe(true);
+  });
+
+  it("keeps a rolling request and character budget", () => {
+    let now = 0;
+    const policy = new AutomaticCompletionPolicy({ now: () => now });
+    const options = normalizeAutoOptions({
+      maxRequestsPerHour: 2,
+      maxContextCharsPerHour: 1000,
+    });
+    expect(policy.reserve(500, options)).toBe(true);
+    expect(policy.reserve(500, options)).toBe(true);
+    expect(policy.reserve(1, options)).toBe(false);
+    now = 3_600_001;
+    expect(policy.reserve(500, options)).toBe(true);
+  });
+
+  it("deduplicates in-flight exact contexts and rejects stale slow output", () => {
+    const policy = new AutomaticCompletionPolicy();
+    expect(policy.begin("same")).toBe(true);
+    expect(policy.begin("same")).toBe(false);
+    expect(policy.snapshot().dedupeHits).toBe(1);
+    policy.end("same");
+    expect(policy.begin("same")).toBe(true);
+    policy.end("same");
+
+    expect(policy.recordLatency(AUTO_COMPLETION_SLO.p95Ms + 1)).toBe(false);
+    expect(policy.snapshot()).toMatchObject({
+      sloRejects: 1,
+      sloTargetP50Ms: 2000,
+      sloTargetP95Ms: 5000,
+    });
+  });
+
+  it("evaluates the published P50/P95 SLO after twenty samples", () => {
+    const policy = new AutomaticCompletionPolicy();
+    for (let sample = 1; sample <= 20; sample++) {
+      expect(policy.recordLatency(sample * 100)).toBe(true);
+    }
+    expect(policy.snapshot()).toMatchObject({
+      p50Ms: 1000,
+      p95Ms: 1900,
+      samples: 20,
+      sloEvaluable: true,
+      sloMet: true,
+    });
   });
 });
 

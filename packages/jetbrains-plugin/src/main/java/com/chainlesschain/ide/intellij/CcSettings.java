@@ -40,6 +40,14 @@ public final class CcSettings implements PersistentStateComponent<CcSettings.CcS
          * applies when an explicit cc path is set.
          */
         public boolean managedCliEnabled = true;
+        /** Opt-in automatic ghost text; false prevents surprise model cost. */
+        public boolean automaticCompletionEnabled = false;
+        public int automaticCompletionDebounceMs = 650;
+        public int automaticCompletionMaxRequestsPerHour = 60;
+        public int automaticCompletionMaxContextCharsPerHour = 240_000;
+        public int automaticCompletionCacheTtlMs = 30_000;
+        public int automaticCompletionMaxChars = 800;
+        public int automaticCompletionMaxLines = 12;
     }
 
     private CcState state = new CcState();
@@ -91,6 +99,37 @@ public final class CcSettings implements PersistentStateComponent<CcSettings.CcS
     public void setManagedCliEnabled(boolean enabled) {
         state.managedCliEnabled = enabled;
         applyToRuntime();
+    }
+
+    public boolean isAutomaticCompletionEnabled() {
+        return state.automaticCompletionEnabled;
+    }
+
+    public void setAutomaticCompletionEnabled(boolean enabled) {
+        state.automaticCompletionEnabled = enabled;
+    }
+
+    public com.chainlesschain.ide.CcAutomaticCompletionPolicy.Options
+            getAutomaticCompletionOptions() {
+        return new com.chainlesschain.ide.CcAutomaticCompletionPolicy.Options(
+                state.automaticCompletionDebounceMs,
+                state.automaticCompletionCacheTtlMs,
+                64,
+                state.automaticCompletionMaxRequestsPerHour,
+                state.automaticCompletionMaxContextCharsPerHour,
+                state.automaticCompletionMaxChars,
+                state.automaticCompletionMaxLines);
+    }
+
+    public void setAutomaticCompletionOptions(
+            int debounceMs, int maxRequestsPerHour, int maxContextCharsPerHour,
+            int cacheTtlMs, int maxChars, int maxLines) {
+        state.automaticCompletionDebounceMs = debounceMs;
+        state.automaticCompletionMaxRequestsPerHour = maxRequestsPerHour;
+        state.automaticCompletionMaxContextCharsPerHour = maxContextCharsPerHour;
+        state.automaticCompletionCacheTtlMs = cacheTtlMs;
+        state.automaticCompletionMaxChars = maxChars;
+        state.automaticCompletionMaxLines = maxLines;
     }
 
     /** Push runtime-consumed settings into the pure layer (idempotent). */
