@@ -509,8 +509,9 @@ Permission & Side Effect Center：
 
 1. **因果可观测性**：把 token/USD、retry、tool latency 关联到 diff、gate、artifact、PR 结果，支持按
    workspace/team/policy 导出和预算告警。
-2. **自动 ghost-text completion**：在独立开关和预算下实现 debounce、cancel、dedupe、cache、局部上下文、
-   P50/P95 延迟和质量回退；不能阻塞主 Agent 体验。
+2. **自动 ghost-text completion（已完成，2026-08-12）**：双 IDE 已在默认关闭的独立开关和预算下实现
+   debounce、cancel、exact-context dedupe/cache、局部上下文、P50/P95 SLO 与质量回退；手动补全入口保持兼容，
+   自动路径超时或质量不合格时 fail quiet，不阻塞主 Agent 体验。关闭证据见 PR #178 与本文件末尾记录。
 3. **多 Agent 合并审阅**：提供 merge 前 hunk/file 选择、冲突解释、跨分支 batch checkpoint 和受控 rollback。
 4. **可访问性与性能**：键盘全路径、屏幕阅读器、焦点恢复、长会话虚拟化、大 diff/大日志/100+ session 压测。
 5. **WebIDE 定位决策**：若没有独立“浏览器 IDE”商业目标，应把当前固定 HTML/CSS/JS playground 收敛为
@@ -1028,14 +1029,14 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
 
 计数必须先固定口径，避免把阶段别名、已关闭子门或同一外部阻塞重复计算：
 
-- **原始路线图编号口径：17/19 项尚未关闭，2/19 项完成。** 分母为 S0-1～S0-3（3）、
+- **原始路线图编号口径：16/19 项尚未关闭，3/19 项完成。** 分母为 S0-1～S0-3（3）、
   Q0～Q4b（6，Q4 拆为 Q4a/Q4b）、P1-1～P1-5（5）、P2-1～P2-5（5）；R0～R5
-  只是阶段别名，不重复计数。完成项只有 P0-1/Q1 Workbench 与 P0-2/Q2 Rewind。
-- 若不拆 Q4a/Q4b，则口径为 **16/18 项尚未关闭**。Q4a 中的 local-host、多根、多窗口与 IDE
+  只是阶段别名，不重复计数。完成项为 P0-1/Q1 Workbench、P0-2/Q2 Rewind 与 P2-2/R5 自动补全。
+- 若不拆 Q4a/Q4b，则口径为 **15/18 项尚未关闭**。Q4a 中的 local-host、多根、多窗口与 IDE
   ARM64 real-host exact-SHA 是已关闭子门，但 Remote、公开渠道、故障矩阵和 soak 尚未使整个 Q4a/Q4b 关闭。
-- 按可并行实施、并把同一外部阻塞合并后的工程口径，当前为 **17 个剩余工作包**。相较 2026-08-09
+- 按可并行实施、并把同一外部阻塞合并后的工程口径，当前为 **16 个剩余工作包**。相较 2026-08-09
   的 22 个，已合并的 `needs_input` 可恢复通知减 1，堆叠 PR #166、#168、#169、#172 在完成各自
-  exact-head 门并进入 `main` 后再减 4。该数字用于排期，
+  exact-head 门并进入 `main` 后再减 4，P2-2/R5 自动补全由 PR #178 关闭后再减 1。该数字用于排期，
   不与 17 个原始编号相加；fresh-profile 升降级并入相应渠道，已关闭的 CLI 冷恢复 SLO、两小时 CLI soak、
   local-host、多根、多窗口和 IDE ARM64 exact-SHA 不再重复计入。
 
@@ -1059,7 +1060,7 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
 | 16  | P1-4 / R5            | 部分完成              | 完成 Context 与 Permission/Side-effect 可解释中心：规则来源、实际资源、不可逆副作用、恢复覆盖、最小 scoped rule 与 revoke。                                                                                                                                                                                                                                                                                                                       |
 | 17  | P1-5 / R5            | 部分完成              | 完成 Marketplace 多来源发现、依赖/license/健康图、private registry、组织签名/撤销、代理/离线与供应链故障矩阵。                                                                                                                                                                                                                                                                                                                                    |
 | 18  | P2-1 / R5            | 未完成                | 完成 token/USD、retry、tool latency 到 diff/gate/artifact/PR 的因果可观测性、导出与预算告警。                                                                                                                                                                                                                                                                                                                                                     |
-| 19  | P2-2 / R5            | 未完成                | 完成自动 ghost-text completion 的 debounce/cancel/dedupe/cache、独立预算、P50/P95 SLO 与质量回退。                                                                                                                                                                                                                                                                                                                                                |
+| 19  | P2-2 / R5            | **完成**              | PR [#178](https://github.com/chainlesschain/chainlesschain/pull/178) 已将双 IDE 默认关闭的自动 ghost-text、650ms cancellable debounce、exact-context dedupe/cache、滚动请求/字符预算、质量回退与 P50/P95 SLO 合入 `main`；手动补全保持兼容，自动路径超时/拒绝时 fail quiet。exact head 与真实宿主证据见末尾关闭记录。                                                                                                                               |
 | 20  | P2-3 / R5            | 部分完成              | 完成多 Agent merge 前 hunk/file 选择、冲突解释、跨分支 batch checkpoint 与受控 rollback。                                                                                                                                                                                                                                                                                                                                                         |
 | 21  | P2-4 / R5            | 部分完成              | 完成键盘全路径、屏幕阅读器、焦点恢复、长会话虚拟化、大 diff/日志和 100+ session 的量化验收。                                                                                                                                                                                                                                                                                                                                                      |
 | 22  | P2-5 / R5            | 未决                  | 作出 WebIDE 产品定位决定；若无独立浏览器 IDE 目标则收敛为 Preview/Artifact，否则补齐仓库树、搜索、诊断、Git/Diff、Terminal 与 session 绑定。                                                                                                                                                                                                                                                                                                      |
@@ -1148,9 +1149,9 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
   统一保留为“未完成／外部阻塞／本期延后”。延后不是完成、豁免或 release GO；本期仅推进 #1～#3、#7
   及 R4/R5 中可由仓库代码与现有 GitHub Actions 权限独立验证的内部子门，不据此关闭整项。
 
-截至当前 `main`，原始编号仍为 **17/19 尚未关闭**；已合并的 `needs_input` 子门及 #166/#168/#169/#172
-四个 Automation/Routine 工程包使工程口径由 22 个降为 **17 个剩余工作包**。只有对应整项的全部关闭
-条件与权威证据满足后，才减少 17/19 的原始编号计数；
+截至当前 `main`，原始编号为 **16/19 尚未关闭**；已合并的 `needs_input` 子门、#166/#168/#169/#172
+四个 Automation/Routine 工程包及 PR #178 的 P2-2 整项使工程口径由 22 个降为 **16 个剩余工作包**。
+只有对应整项的全部关闭条件与权威证据满足后，才减少原始编号计数；
 开放候选在合并前也不能从工程口径中扣除。
 
 ### 2026-08-11～12 已合并内部子门、scheduler 收敛与 IDE 插件发布
@@ -1301,8 +1302,9 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
   为三平台 3/3 success。
 - #13 的 scheduler execution foundation 已从 Agenda 单域前进到 `main` 中的 Agenda/Automation/Cowork/
   Loop/Routine/monitor、统一 daemon、durable `needs_input` 通知、Agenda/Cowork 的 IANA timezone/DST/
-  missed-run policy，以及 governed Automation/Routine 控制面。原始编号仍为 **17/19 尚未关闭**；已合并
-  通知与四个控制面工程包后为 **17 个剩余工作包**。
+  missed-run policy，以及 governed Automation/Routine 控制面。截至该批控制面合并时，原始编号为
+  **17/19 尚未关闭**，通知与四个控制面工程包合并后为 **17 个剩余工作包**；随后 PR #178 的 P2-2
+  整项关闭将当前口径继续降为 16/19 与 16 个工作包。
   Microsoft Marketplace、JetBrains
   作者签名、Remote/SSH/WSL/devcontainer/Codespaces/Gateway、网络故障矩阵、八小时 IDE soak 与真实
   delivery live journey 继续按“外部阻塞／本期延后”处理；整体 product release 仍为 **NO-GO**。
@@ -1375,3 +1377,19 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
   dead-letter、crash recovery 与 durable compaction；同时明确 `0.163.5` 早于 governed
   Automation/Routine commands，现有 chat/bridge 可继续使用，新 Automation Center 控制需要后续 CLI，
   不把尚未公开的 CLI 命令误写成 `0.163.5` 已交付。
+- **P2-2 / R5 自动 ghost-text completion 已关闭。** PR
+  [#178](https://github.com/chainlesschain/chainlesschain/pull/178) 的 implementation head
+  `2f809762cc2ba0e9a5ef721e7954e0f38fa8bc54` 以 merge commit
+  `106e6115d153f574e4f665f38ffe2fecdce5c779` 进入 `main`。VS Code 与 JetBrains 均采用默认关闭的独立
+  自动补全开关、650ms cancellable debounce、exact-context in-flight dedupe 与 TTL/LRU cache、滚动一小时
+  请求/上下文字符预算、最大字符/行数及重复后缀/散文/代码围栏质量拒绝；自动路径以 5 秒为端到端硬上界，
+  统计 P50/P95 且在不满足 SLO 时 fail quiet，手动补全入口保持兼容。exact head 的
+  [IDE Extensions `31599212078`](https://github.com/chainlesschain/chainlesschain/actions/runs/31599212078)
+  整体成功（12 success、1 个发布条件分支 skipped、0 failed），覆盖 VS Code stable/minimum `1.85.2` ×
+  Windows/macOS/Linux、JetBrains `2024.2`/`2025.2` × 三 OS、不可变 VSIX、JUnit、build 与 Plugin Verifier；
+  [IDE ARM64 Host Validation `31599211993`](https://github.com/chainlesschain/chainlesschain/actions/runs/31599211993)
+  也整体成功并聚合 11-cell exact-SHA 证据。提交前 VS Code unit 91/91、自动补全定向集 28/28、
+  extension-host 51/51、JetBrains test/smokeTest 1276/1276 与新增 policy 7/7 均通过。因此原始编号由
+  17/19 降为 **16/19 尚未关闭（3/19 完成）**，工程口径由 17 降为 **16 个剩余工作包**。此结论关闭
+  仓库内 P2-2 整项，但 `0.37.51`/`0.4.87` 目前只是已验证的后续候选版本，不在没有 tag、上传和公开
+  listing 回读时宣称已经发布；外部阻塞和本期延后项也不因此改变。
