@@ -70,7 +70,11 @@ export function _computeNextTriggers(schedules, from, limit = 5) {
   const matchers = [];
   for (const s of enabled) {
     try {
-      matchers.push({ id: s.id, cron: s.cron, match: parseCron(s.cron) });
+      matchers.push({
+        id: s.id,
+        cron: s.cron,
+        match: parseCron(s.cron, { timeZone: s.timeZone }),
+      });
     } catch (_e) {
       // skip invalid cron
     }

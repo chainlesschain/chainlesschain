@@ -483,6 +483,59 @@ function nextCronTimeInTimeZone(sets, fromMs, timeZone) {
   return earliest;
 }
 
+function previousCronTimeInTimeZone(sets, fromMs, timeZone) {
+  const from = Number(fromMs);
+  const firstLocal = timeZoneParts(from, timeZone);
+  const firstLocalDay = Date.UTC(
+    firstLocal.year,
+    firstLocal.month - 1,
+    firstLocal.day,
+  );
+  const minuteLimit = 366 * 24 * 60;
+  const firstEpoch = Math.floor(from / 60_000) * 60_000 - minuteLimit * 60_000;
+  const hours = [...sets[1]].sort((a, b) => b - a);
+  const minutes = [...sets[0]].sort((a, b) => b - a);
+  let latest = null;
+
+  // Start one civil day ahead because a rare midnight transition can make a
+  // prior real instant display as the following local date.
+  for (let dayOffset = 1; dayOffset >= -367; dayOffset -= 1) {
+    const civilDay = firstLocalDay + dayOffset * 86_400_000;
+    if (latest != null && civilDay + 36 * 3_600_000 < latest) break;
+    const date = new Date(civilDay);
+    const year = date.getUTCFullYear();
+    const month = date.getUTCMonth() + 1;
+    const day = date.getUTCDate();
+    const dayOfWeek = date.getUTCDay();
+    if (
+      !sets[2].has(day) ||
+      !sets[3].has(month) ||
+      (!sets[4].has(dayOfWeek) && !(sets[4].has(7) && dayOfWeek === 0))
+    ) {
+      continue;
+    }
+    const offsets = localDayOffsets(year, month, day, timeZone);
+    for (const hour of hours) {
+      for (const minute of minutes) {
+        for (const epoch of epochCandidatesForCivilMinute(
+          { year, month, day, hour, minute },
+          timeZone,
+          offsets,
+        )) {
+          if (
+            epoch < from &&
+            epoch >= firstEpoch &&
+            (latest == null || epoch > latest)
+          ) {
+            latest = epoch;
+          }
+        }
+      }
+    }
+  }
+  return latest;
+}
+
 /**
  * Next epoch-ms at which `expr` fires strictly after `fromMs`, at minute
  * granularity. By default this preserves host-local cron behavior; an explicit
@@ -505,6 +558,25 @@ export function nextCronTime(expr, fromMs, options = {}) {
   for (let i = 0; i < limit; i += 1) {
     if (cronMatches(sets, cursor)) return cursor.getTime();
     cursor.setMinutes(cursor.getMinutes() + 1);
+  }
+  return null;
+}
+
+/** Previous cron occurrence strictly before `fromMs`, bounded to one year. */
+export function previousCronTime(expr, fromMs, options = {}) {
+  const sets = parseCron(expr);
+  const timeZone = normalizeTimeZone(
+    typeof options === "string" ? options : options?.timeZone,
+  );
+  if (timeZone) return previousCronTimeInTimeZone(sets, fromMs, timeZone);
+  const cursor = new Date(fromMs);
+  cursor.setSeconds(0, 0);
+  if (cursor.getTime() >= Number(fromMs))
+    cursor.setMinutes(cursor.getMinutes() - 1);
+  const limit = 366 * 24 * 60;
+  for (let i = 0; i < limit; i += 1) {
+    if (cronMatches(sets, cursor)) return cursor.getTime();
+    cursor.setMinutes(cursor.getMinutes() - 1);
   }
   return null;
 }
