@@ -7,6 +7,10 @@ import {
   normalizeIdentifier,
 } from "./contract.js";
 import { SchedulerRuntime } from "./runtime.js";
+import {
+  bindSchedulerAuthorityPolicy,
+  createSchedulerAuthorityResolver,
+} from "./authority-resolver.js";
 
 export const LOOP_SCHEDULER_KIND = "loop-iteration";
 export const LOOP_PROCESS_CAPABILITY = "process.execute";
@@ -144,6 +148,10 @@ function comparableJob(job) {
 
 export function syncLoopSchedulerJob(schedulerStore, definition) {
   const desired = buildLoopSchedulerJob(definition);
+  desired.authority = bindSchedulerAuthorityPolicy(
+    schedulerStore,
+    desired.authority,
+  );
   let current = schedulerStore.getJob(desired.id);
   if (!current) {
     try {
@@ -311,6 +319,7 @@ export class LoopSchedulerBridge {
     ownerId,
     leaseMs,
     renewIntervalMs,
+    authorityResolver,
   } = {}) {
     if (!schedulerStore) {
       throw loopSchedulerError(
@@ -325,7 +334,12 @@ export class LoopSchedulerBridge {
     this.runtime = new SchedulerRuntime({
       store: schedulerStore,
       adapters: [this.adapter],
-      authorize: authorizeLoopOccurrence,
+      authorize:
+        authorityResolver ||
+        createSchedulerAuthorityResolver({
+          store: schedulerStore,
+          validate: authorizeLoopOccurrence,
+        }),
       ...(ownerId === undefined ? {} : { ownerId }),
       ...(leaseMs === undefined ? {} : { leaseMs }),
       ...(renewIntervalMs === undefined ? {} : { renewIntervalMs }),

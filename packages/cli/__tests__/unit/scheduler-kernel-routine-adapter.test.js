@@ -140,6 +140,11 @@ describe("scheduler-kernel routine adapter", () => {
     });
     expect(routineStore.listRuns({ routineId: routine.id })).toHaveLength(1);
     expect(
+      schedulerStore.db
+        .prepare("SELECT status, units FROM scheduler_authority_reservations")
+        .get(),
+    ).toEqual({ status: "succeeded", units: 1 });
+    expect(
       schedulerStore
         .history({ occurrenceId: fired.occurrence })
         .map((event) => event.type),

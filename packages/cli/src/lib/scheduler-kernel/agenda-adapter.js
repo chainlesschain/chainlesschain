@@ -13,6 +13,10 @@ import {
   normalizeJson,
 } from "./contract.js";
 import { SchedulerRuntime } from "./runtime.js";
+import {
+  bindSchedulerAuthorityPolicy,
+  createSchedulerAuthorityResolver,
+} from "./authority-resolver.js";
 
 export const AGENDA_SCHEDULER_KIND = "agenda";
 export const AGENDA_SCHEDULER_CAPABILITY = "agent.execute";
@@ -326,6 +330,10 @@ function sameJob(current, desired) {
 
 export function syncAgendaSchedulerJob(schedulerStore, entry) {
   const desired = buildAgendaSchedulerJob(entry);
+  desired.authority = bindSchedulerAuthorityPolicy(
+    schedulerStore,
+    desired.authority,
+  );
   let current = schedulerStore.getJob(desired.id);
   if (!current) {
     try {
@@ -700,6 +708,7 @@ export class AgendaSchedulerBridge {
     ownerId,
     leaseMs,
     renewIntervalMs,
+    authorityResolver,
   } = {}) {
     if (typeof now !== "function") {
       throw agendaError(
@@ -721,7 +730,17 @@ export class AgendaSchedulerBridge {
           now,
         }),
       ],
-      authorize: authorizeAgendaOccurrence,
+      authorize:
+        authorityResolver ||
+        createSchedulerAuthorityResolver({
+          store: schedulerStore,
+          validate: authorizeAgendaOccurrence,
+          units: ({ occurrence }) =>
+            Math.max(
+              1,
+              Number(occurrence?.payload?.entry?.runPolicy?.maxTurns) || 1,
+            ),
+        }),
       ...(ownerId === undefined ? {} : { ownerId }),
       ...(leaseMs === undefined ? {} : { leaseMs }),
       ...(renewIntervalMs === undefined ? {} : { renewIntervalMs }),

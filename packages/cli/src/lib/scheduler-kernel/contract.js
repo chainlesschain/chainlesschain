@@ -30,6 +30,7 @@ const PRINCIPAL_FIELDS = new Set(["type", "id"]);
 const AUTHORIZATION_REF_FIELDS = new Set([
   "decisionId",
   "policyRevision",
+  "schedulerPolicyRevision",
   "grantIds",
   "approvalIds",
   "delegationIds",
@@ -117,9 +118,8 @@ function normalizeIdentifierList(value, field) {
  * Normalize the authority evidence carried by a job and every occurrence.
  *
  * This envelope is deliberately descriptive. The scheduler stores the actor,
- * requested capabilities and immutable decision/grant references, but it does
- * not infer that those references authorize execution. A future dispatcher
- * must still resolve and enforce the referenced policy before doing work.
+ * requested capabilities and immutable decision/grant references. The runtime
+ * still has to resolve and enforce those references before doing work.
  */
 export function normalizeAuthorityEnvelope(input) {
   const authority = assertPlainObject(input, "authority");
@@ -177,6 +177,14 @@ export function normalizeAuthorityEnvelope(input) {
         refs.policyRevision,
         "authority.authorizationRefs.policyRevision",
       ),
+      ...(refs.schedulerPolicyRevision === undefined
+        ? {}
+        : {
+            schedulerPolicyRevision: normalizeOptionalIdentifier(
+              refs.schedulerPolicyRevision,
+              "authority.authorizationRefs.schedulerPolicyRevision",
+            ),
+          }),
       grantIds: normalizeIdentifierList(
         refs.grantIds,
         "authority.authorizationRefs.grantIds",

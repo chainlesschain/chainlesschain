@@ -20,6 +20,10 @@ import {
   normalizeJson,
 } from "./contract.js";
 import { SchedulerRuntime } from "./runtime.js";
+import {
+  bindSchedulerAuthorityPolicy,
+  createSchedulerAuthorityResolver,
+} from "./authority-resolver.js";
 
 export const COWORK_CRON_SCHEDULER_KIND = "cowork-cron";
 export const COWORK_CRON_SCHEDULER_CAPABILITY = "cowork.task.execute";
@@ -229,6 +233,10 @@ function sameJob(current, desired) {
 
 export function syncCoworkCronSchedulerJob(schedulerStore, cwd, schedule) {
   const desired = buildCoworkCronSchedulerJob(cwd, schedule);
+  desired.authority = bindSchedulerAuthorityPolicy(
+    schedulerStore,
+    desired.authority,
+  );
   let current = schedulerStore.getJob(desired.id);
   if (!current) {
     try {
@@ -580,6 +588,7 @@ export class CoworkCronSchedulerBridge {
     ownerId,
     leaseMs,
     renewIntervalMs,
+    authorityResolver,
   } = {}) {
     if (!schedulerStore) {
       throw coworkCronError(
@@ -599,7 +608,12 @@ export class CoworkCronSchedulerBridge {
     this.runtime = new SchedulerRuntime({
       store: schedulerStore,
       adapters: [createCoworkCronSchedulerAdapter({ runTask, now })],
-      authorize: authorizeCoworkCronOccurrence,
+      authorize:
+        authorityResolver ||
+        createSchedulerAuthorityResolver({
+          store: schedulerStore,
+          validate: authorizeCoworkCronOccurrence,
+        }),
       ...(ownerId === undefined ? {} : { ownerId }),
       ...(leaseMs === undefined ? {} : { leaseMs }),
       ...(renewIntervalMs === undefined ? {} : { renewIntervalMs }),
