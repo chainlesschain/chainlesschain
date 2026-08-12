@@ -43,6 +43,7 @@ export const NODE_TYPE = Object.freeze({
   PARALLEL: "parallel",
   LOOP: "loop",
 });
+export const AUTOMATION_SCHEDULER_MIGRATION_SCHEMA_VERSION = 1;
 
 /* ── Built-in connector catalog ────────────────────────────── */
 
@@ -310,6 +311,21 @@ export function ensureAutomationTables(db) {
       created_at TEXT DEFAULT (datetime('now'))
     )
   `);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS auto_scheduler_migrations (
+      flow_id TEXT PRIMARY KEY NOT NULL,
+      schema_version INTEGER NOT NULL CHECK (schema_version = 1),
+      state TEXT NOT NULL CHECK (state IN ('prepared', 'retired')),
+      migration_id TEXT NOT NULL UNIQUE,
+      source_digest TEXT NOT NULL,
+      target_job_id TEXT NOT NULL UNIQUE,
+      retirement_token TEXT UNIQUE,
+      prior_status TEXT NOT NULL CHECK (prior_status = 'active'),
+      prior_updated_at TEXT NOT NULL,
+      prepared_at TEXT NOT NULL,
+      retired_at TEXT
+    )
+  `);
 }
 
 /* ── Helpers ───────────────────────────────────────────────── */
@@ -320,6 +336,54 @@ function _genId(prefix) {
 
 function _now() {
   return new Date().toISOString();
+}
+
+function _stableJsonValue(value) {
+  if (Array.isArray(value)) return value.map(_stableJsonValue);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, _stableJsonValue(value[key])]),
+    );
+  }
+  return value;
+}
+
+function _automationMigrationField(value, field) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    const error = new Error(
+      `automation scheduler migration ${field} is required`,
+    );
+    error.code = "AUTOMATION_SCHEDULER_MIGRATION_INVALID";
+    throw error;
+  }
+  return value.trim();
+}
+
+function _automationTransaction(db, callback) {
+  if (typeof db.transaction !== "function") return callback();
+  const transaction = db.transaction(callback);
+  return typeof transaction.immediate === "function"
+    ? transaction.immediate()
+    : transaction();
+}
+
+function _rowToSchedulerMigration(row) {
+  if (!row) return null;
+  return {
+    flowId: row.flow_id,
+    schemaVersion: row.schema_version,
+    state: row.state,
+    migrationId: row.migration_id,
+    sourceDigest: row.source_digest,
+    targetJobId: row.target_job_id,
+    retirementToken: row.retirement_token || null,
+    priorStatus: row.prior_status,
+    priorUpdatedAt: row.prior_updated_at,
+    preparedAt: row.prepared_at,
+    retiredAt: row.retired_at || null,
+  };
 }
 
 function _parseJSON(value, fallback) {
@@ -467,6 +531,222 @@ export function getFlow(db, flowId) {
   return _rowToFlow(
     db.prepare(`SELECT * FROM auto_flows WHERE id = ?`).get(flowId),
   );
+}
+
+export function automationMigrationSourceSnapshot(flow) {
+  const source = { ...flow };
+  delete source.updatedAt;
+  delete source.schedulerMigration;
+  return _stableJsonValue(source);
+}
+
+export function automationMigrationSourceDigest(flow) {
+  return crypto
+    .createHash("sha256")
+    .update("chainlesschain.automation.scheduler-migration-source.v1\0", "utf8")
+    .update(JSON.stringify(automationMigrationSourceSnapshot(flow)), "utf8")
+    .digest("hex");
+}
+
+export function getAutomationSchedulerMigration(db, flowId) {
+  return _rowToSchedulerMigration(
+    db
+      .prepare("SELECT * FROM auto_scheduler_migrations WHERE flow_id = ?")
+      .get(flowId),
+  );
+}
+
+export function automationEffectiveSchedulerFlow(db, flow) {
+  if (!flow) return flow;
+  const migration = getAutomationSchedulerMigration(db, flow.id);
+  if (
+    migration?.schemaVersion ===
+      AUTOMATION_SCHEDULER_MIGRATION_SCHEMA_VERSION &&
+    migration.state === "retired" &&
+    migration.priorStatus === FLOW_STATUS.ACTIVE &&
+    flow.status === FLOW_STATUS.PAUSED
+  ) {
+    return {
+      ...flow,
+      status: FLOW_STATUS.ACTIVE,
+      updatedAt: migration.priorUpdatedAt,
+      schedulerMigration: migration,
+    };
+  }
+  return flow;
+}
+
+export function listAutomationSchedulerFlows(db, { limit = 10_000 } = {}) {
+  return db
+    .prepare(
+      `SELECT f.* FROM auto_flows f
+       JOIN auto_scheduler_migrations m ON m.flow_id = f.id
+       WHERE m.state = 'retired' AND f.status = 'paused'
+       ORDER BY f.created_at DESC LIMIT ?`,
+    )
+    .all(limit)
+    .map(_rowToFlow)
+    .map((flow) => automationEffectiveSchedulerFlow(db, flow));
+}
+
+export function prepareAutomationSchedulerMigration(
+  db,
+  flowId,
+  { migrationId, sourceDigest, targetJobId } = {},
+) {
+  const migration = _automationMigrationField(migrationId, "migrationId");
+  const digest = _automationMigrationField(sourceDigest, "sourceDigest");
+  const target = _automationMigrationField(targetJobId, "targetJobId");
+  return _automationTransaction(db, () => {
+    const flow = getFlow(db, flowId);
+    if (!flow) throw new Error(`Flow not found: ${flowId}`);
+    if (flow.status !== FLOW_STATUS.ACTIVE) {
+      const error = new Error(`Automation flow is not active: ${flowId}`);
+      error.code = "AUTOMATION_SCHEDULER_FLOW_NOT_ACTIVE";
+      throw error;
+    }
+    if (automationMigrationSourceDigest(flow) !== digest) {
+      const error = new Error(
+        `Automation flow changed before migration: ${flowId}`,
+      );
+      error.code = "AUTOMATION_SCHEDULER_MIGRATION_SOURCE_CHANGED";
+      throw error;
+    }
+    const prior = getAutomationSchedulerMigration(db, flowId);
+    if (prior) {
+      if (
+        prior.migrationId !== migration ||
+        prior.sourceDigest !== digest ||
+        prior.targetJobId !== target ||
+        prior.state !== "prepared"
+      ) {
+        const error = new Error(
+          `Automation flow already belongs to another migration: ${flowId}`,
+        );
+        error.code = "AUTOMATION_SCHEDULER_MIGRATION_CONFLICT";
+        throw error;
+      }
+      return prior;
+    }
+    const now = _now();
+    db.prepare(
+      `INSERT INTO auto_scheduler_migrations
+       (flow_id, schema_version, state, migration_id, source_digest,
+        target_job_id, retirement_token, prior_status, prior_updated_at,
+        prepared_at, retired_at)
+       VALUES (?, 1, 'prepared', ?, ?, ?, NULL, 'active', ?, ?, NULL)`,
+    ).run(flowId, migration, digest, target, flow.updatedAt, now);
+    return getAutomationSchedulerMigration(db, flowId);
+  });
+}
+
+export function retireAutomationSchedulerMigration(
+  db,
+  flowId,
+  { migrationId, sourceDigest, targetJobId, retirementToken } = {},
+) {
+  const migration = _automationMigrationField(migrationId, "migrationId");
+  const digest = _automationMigrationField(sourceDigest, "sourceDigest");
+  const target = _automationMigrationField(targetJobId, "targetJobId");
+  const token = _automationMigrationField(retirementToken, "retirementToken");
+  return _automationTransaction(db, () => {
+    const marker = getAutomationSchedulerMigration(db, flowId);
+    const flow = getFlow(db, flowId);
+    if (
+      !marker ||
+      marker.migrationId !== migration ||
+      marker.sourceDigest !== digest ||
+      marker.targetJobId !== target ||
+      !["prepared", "retired"].includes(marker.state) ||
+      !flow
+    ) {
+      const error = new Error(
+        `Automation migration changed before retirement: ${flowId}`,
+      );
+      error.code = "AUTOMATION_SCHEDULER_MIGRATION_CONFLICT";
+      throw error;
+    }
+    if (marker.state === "retired") {
+      if (
+        marker.retirementToken !== token ||
+        flow.status !== FLOW_STATUS.PAUSED
+      ) {
+        const error = new Error(
+          `Automation migration fence changed: ${flowId}`,
+        );
+        error.code = "AUTOMATION_SCHEDULER_MIGRATION_CONFLICT";
+        throw error;
+      }
+      return automationEffectiveSchedulerFlow(db, flow);
+    }
+    if (automationMigrationSourceDigest(flow) !== digest) {
+      const error = new Error(
+        `Automation flow changed before retirement: ${flowId}`,
+      );
+      error.code = "AUTOMATION_SCHEDULER_MIGRATION_SOURCE_CHANGED";
+      throw error;
+    }
+    const now = _now();
+    db.prepare(
+      `UPDATE auto_flows SET status = 'paused', updated_at = ?
+       WHERE id = ? AND status = 'active' AND updated_at = ?`,
+    ).run(now, flowId, marker.priorUpdatedAt);
+    const changed = db
+      .prepare(
+        `UPDATE auto_scheduler_migrations
+       SET state = 'retired', retirement_token = ?, retired_at = ?
+       WHERE flow_id = ? AND state = 'prepared'`,
+      )
+      .run(token, now, flowId);
+    if (changed.changes !== 1) {
+      const error = new Error(
+        `Automation migration changed during retirement: ${flowId}`,
+      );
+      error.code = "AUTOMATION_SCHEDULER_MIGRATION_CONFLICT";
+      throw error;
+    }
+    return automationEffectiveSchedulerFlow(db, getFlow(db, flowId));
+  });
+}
+
+export function restoreAutomationSchedulerMigration(
+  db,
+  flowId,
+  { migrationId, targetJobId, retirementToken } = {},
+) {
+  const migration = _automationMigrationField(migrationId, "migrationId");
+  const target = _automationMigrationField(targetJobId, "targetJobId");
+  const token = _automationMigrationField(retirementToken, "retirementToken");
+  return _automationTransaction(db, () => {
+    const marker = getAutomationSchedulerMigration(db, flowId);
+    const flow = getFlow(db, flowId);
+    if (
+      !marker ||
+      marker.migrationId !== migration ||
+      marker.targetJobId !== target ||
+      marker.retirementToken !== token ||
+      marker.state !== "retired" ||
+      marker.priorStatus !== FLOW_STATUS.ACTIVE ||
+      !flow ||
+      flow.status !== FLOW_STATUS.PAUSED ||
+      automationMigrationSourceDigest(
+        automationEffectiveSchedulerFlow(db, flow),
+      ) !== marker.sourceDigest
+    ) {
+      const error = new Error(
+        `Automation migration fence changed before rollback: ${flowId}`,
+      );
+      error.code = "AUTOMATION_SCHEDULER_MIGRATION_CONFLICT";
+      throw error;
+    }
+    db.prepare(
+      `UPDATE auto_flows SET status = 'active', updated_at = ? WHERE id = ?`,
+    ).run(marker.priorUpdatedAt, flowId);
+    db.prepare("DELETE FROM auto_scheduler_migrations WHERE flow_id = ?").run(
+      flowId,
+    );
+    return getFlow(db, flowId);
+  });
 }
 
 export function listFlows(db, filters = {}) {

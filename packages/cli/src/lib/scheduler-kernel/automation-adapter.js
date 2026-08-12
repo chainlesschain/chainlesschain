@@ -11,11 +11,18 @@ import {
   EXECUTION_STATUS,
   FLOW_STATUS,
   TRIGGER_TYPE,
+  automationEffectiveSchedulerFlow,
+  automationMigrationSourceDigest,
+  automationMigrationSourceSnapshot,
   executeFlow,
   adjudicateAutomationExecution,
   getExecution,
   getFlow,
   listFlows,
+  listAutomationSchedulerFlows,
+  prepareAutomationSchedulerMigration,
+  restoreAutomationSchedulerMigration,
+  retireAutomationSchedulerMigration,
 } from "../automation-engine.js";
 import {
   SchedulerKernelError,
@@ -25,6 +32,7 @@ import {
   normalizeJson,
 } from "./contract.js";
 import { SchedulerRuntime } from "./runtime.js";
+import { schedulerMigrationSourceDigest } from "./store.js";
 import {
   bindSchedulerAuthorityPolicy,
   createSchedulerAuthorityResolver,
@@ -230,6 +238,143 @@ export function syncAutomationSchedulerJob(
     if (sameJob(latest, desired)) return latest;
     throw error;
   }
+}
+
+export function migrateAutomationFlow({
+  db,
+  schedulerStore,
+  flow,
+  executionAuthority,
+}) {
+  const effective = automationEffectiveSchedulerFlow(db, flow);
+  const snapshot = automationFlowSnapshot(effective);
+  const sourceScope = { store: "automation-engine", database: "current" };
+  const desired = buildAutomationSchedulerJob(effective, executionAuthority);
+  desired.authority = bindSchedulerAuthorityPolicy(
+    schedulerStore,
+    desired.authority,
+  );
+  const sourceSnapshot = automationMigrationSourceSnapshot(effective);
+  const sourceDigest = automationMigrationSourceDigest(effective);
+  const existing = schedulerStore.getActiveDomainMigrationBySource({
+    domain: "automation",
+    sourceScope,
+    sourceId: snapshot.id,
+  });
+  const prepared =
+    existing ||
+    schedulerStore.prepareDomainMigration({
+      entries: [
+        {
+          domain: "automation",
+          sourceId: snapshot.id,
+          sourceScope,
+          source: sourceSnapshot,
+          targetJob: desired,
+          rollbackStrategy: "disable",
+        },
+      ],
+    });
+  if (
+    prepared.entries.length !== 1 ||
+    prepared.entries[0].domain !== "automation"
+  ) {
+    throw automationError(
+      "AUTOMATION_SCHEDULER_MIGRATION_DOMAIN_MISMATCH",
+      "Automation flow belongs to an invalid mixed-domain migration",
+    );
+  }
+  if (
+    prepared.entries[0].sourceDigest !==
+      schedulerMigrationSourceDigest(sourceSnapshot) ||
+    prepared.entries[0].targetJobId !== desired.id
+  ) {
+    throw automationError(
+      "AUTOMATION_SCHEDULER_MIGRATION_SOURCE_CHANGED",
+      `Automation flow changed after migration started: ${snapshot.id}`,
+    );
+  }
+  let migration = prepared;
+  if (["rolling_back", "rolled_back"].includes(migration.state)) {
+    throw automationError(
+      "AUTOMATION_SCHEDULER_MIGRATION_STATE_CONFLICT",
+      `Automation migration cannot resume from state ${migration.state}`,
+    );
+  }
+  if (migration.state === "retired") {
+    retireAutomationSchedulerMigration(db, snapshot.id, {
+      migrationId: migration.id,
+      sourceDigest,
+      targetJobId: desired.id,
+      retirementToken: migration.entries[0].retirementToken,
+    });
+    return migration;
+  }
+  if (migration.state === "prepared") {
+    prepareAutomationSchedulerMigration(db, snapshot.id, {
+      migrationId: migration.id,
+      sourceDigest,
+      targetJobId: desired.id,
+    });
+    migration = schedulerStore.applyDomainMigration(migration.id);
+  }
+  if (migration.state === "applied") {
+    migration = schedulerStore.verifyDomainMigration(migration.id, {
+      sources: [
+        { entryId: migration.entries[0].entryId, source: sourceSnapshot },
+      ],
+    });
+  }
+  const retiring =
+    migration.state === "retiring"
+      ? migration
+      : schedulerStore.beginDomainMigrationRetirement(migration.id);
+  const entry = retiring.entries[0];
+  const retired = retireAutomationSchedulerMigration(db, snapshot.id, {
+    migrationId: migration.id,
+    sourceDigest,
+    targetJobId: desired.id,
+    retirementToken: entry.retirementToken,
+  });
+  schedulerStore.confirmDomainMigrationEntryRetired({
+    migrationId: migration.id,
+    entryId: entry.entryId,
+    retirementToken: entry.retirementToken,
+    source: retired,
+  });
+  return schedulerStore.getDomainMigration(migration.id);
+}
+
+export function rollbackAutomationMigration({
+  db,
+  schedulerStore,
+  migrationId,
+}) {
+  const migration = schedulerStore.beginDomainMigrationRollback(migrationId);
+  const entries = migration.entries.filter(
+    (entry) => entry.domain === "automation",
+  );
+  if (entries.length !== migration.entries.length) {
+    throw automationError(
+      "AUTOMATION_SCHEDULER_MIGRATION_DOMAIN_MISMATCH",
+      "Automation rollback cannot operate on a mixed-domain migration",
+    );
+  }
+  schedulerStore.rollbackDomainMigrationTargets(migrationId);
+  for (const entry of entries) {
+    const restored = restoreAutomationSchedulerMigration(db, entry.sourceId, {
+      migrationId,
+      targetJobId: entry.targetJobId,
+      retirementToken: entry.retirementToken,
+    });
+    schedulerStore.confirmDomainMigrationEntrySourceRestored({
+      migrationId,
+      entryId: entry.entryId,
+      retirementToken: entry.retirementToken,
+      source: automationMigrationSourceSnapshot(restored),
+    });
+  }
+  return schedulerStore.getDomainMigration(migrationId);
 }
 
 function latestEnqueuedScheduledFor(schedulerStore, jobId) {
@@ -458,13 +603,14 @@ export function createAutomationSchedulerAdapter({ db, now = Date.now } = {}) {
           `Automation flow disappeared before execution: ${expected.id}`,
         );
       }
-      if (current.status !== FLOW_STATUS.ACTIVE) {
+      const effectiveCurrent = automationEffectiveSchedulerFlow(db, current);
+      if (effectiveCurrent.status !== FLOW_STATUS.ACTIVE) {
         throw automationError(
           "AUTOMATION_SCHEDULER_FLOW_NOT_ACTIVE",
           `Automation flow is not active: ${expected.id}`,
         );
       }
-      if (automationFlowSnapshotDigest(current) !== expectedDigest) {
+      if (automationFlowSnapshotDigest(effectiveCurrent) !== expectedDigest) {
         throw automationError(
           "AUTOMATION_SCHEDULER_STALE_SNAPSHOT",
           `Automation flow changed after occurrence enqueue: ${expected.id}`,
@@ -473,7 +619,7 @@ export function createAutomationSchedulerAdapter({ db, now = Date.now } = {}) {
 
       reserveAutomationExecutionAuthority(
         db,
-        current,
+        effectiveCurrent,
         occurrence.id,
         payload.executionAuthority,
         payload.executionAuthorityDigest,
@@ -522,6 +668,7 @@ export class AutomationSchedulerBridge {
     leaseMs,
     renewIntervalMs,
     authorityResolver,
+    migrateLegacy = true,
   } = {}) {
     if (typeof now !== "function") {
       throw automationError(
@@ -532,6 +679,7 @@ export class AutomationSchedulerBridge {
     this.db = db;
     this.schedulerStore = schedulerStore;
     this.now = now;
+    this.migrateLegacy = migrateLegacy !== false;
     this.runtime = new SchedulerRuntime({
       store: schedulerStore,
       adapters: [createAutomationSchedulerAdapter({ db, now })],
@@ -577,10 +725,36 @@ export class AutomationSchedulerBridge {
     if (signal?.aborted) return results;
 
     const now = normalizeEpochMs(Number(this.now()), "now");
-    const flows = listFlows(this.db, {
-      status: FLOW_STATUS.ACTIVE,
-      limit: 10_000,
-    }).filter((flow) => typeof flow.schedule === "string" && flow.schedule);
+    if (this.migrateLegacy) {
+      const candidates = listFlows(this.db, {
+        status: FLOW_STATUS.ACTIVE,
+        limit: 10_000,
+      }).filter((flow) => typeof flow.schedule === "string" && flow.schedule);
+      for (const flow of candidates) {
+        try {
+          migrateAutomationFlow({
+            db: this.db,
+            schedulerStore: this.schedulerStore,
+            flow,
+            executionAuthority: automationExecutionAuthoritySnapshot(
+              this.db,
+              flow,
+            ),
+          });
+        } catch (error) {
+          if (!String(error?.code || "").startsWith("AUTOMATION_EXECUTION_")) {
+            throw error;
+          }
+        }
+      }
+    }
+    const flows = [
+      ...listFlows(this.db, {
+        status: FLOW_STATUS.ACTIVE,
+        limit: 10_000,
+      }),
+      ...listAutomationSchedulerFlows(this.db, { limit: 10_000 }),
+    ].filter((flow) => typeof flow.schedule === "string" && flow.schedule);
     for (const flow of flows) {
       let occurrence;
       try {
