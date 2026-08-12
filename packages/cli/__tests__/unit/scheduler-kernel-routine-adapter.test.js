@@ -3,7 +3,10 @@ import Database from "better-sqlite3";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { RoutineStore } from "../../src/lib/routine-store.js";
+import {
+  RoutineStore,
+  routineMigrationSourceDigest,
+} from "../../src/lib/routine-store.js";
 import {
   ROUTINE_SCHEDULER_CHANNELS,
   RoutineSchedulerBridge,
@@ -12,6 +15,8 @@ import {
   enqueueGithubRoutine,
   enqueueManualRoutine,
   enqueueScheduledRoutine,
+  migrateRoutineSchedule,
+  rollbackRoutineMigration,
   routineBridgeRunId,
   routineDefinitionDigest,
   routineGithubBatchDigest,
@@ -154,6 +159,165 @@ describe("scheduler-kernel routine adapter", () => {
       "occurrence_claimed",
       "occurrence_enqueued",
     ]);
+  });
+
+  it("migrates Routine by disabling the old source and rolls it back safely", () => {
+    const f = fixture();
+    const routineStore = f.openRoutine();
+    const schedulerStore = f.openScheduler();
+    const routine = routineStore.create({
+      name: "migrate-routine",
+      prompt: "migrate",
+      trigger: { kind: "cron", cron: "0 * * * *" },
+    });
+    const migrated = migrateRoutineSchedule({
+      routineStore,
+      schedulerStore,
+      routine,
+    });
+    expect(migrated).toMatchObject({
+      state: "retired",
+      entries: [
+        {
+          domain: "routine",
+          sourceId: routine.id,
+          rollbackStrategy: "disable",
+        },
+      ],
+    });
+    expect(routineStore.get(routine.id)).toMatchObject({
+      enabled: false,
+      schedulerMigration: { migrationId: migrated.id, state: "retired" },
+    });
+    expect(routineStore.due(f.now + 60 * 60 * 1_000)).toEqual([]);
+    expect(routineStore.schedulerMigrated()).toEqual([
+      expect.objectContaining({ id: routine.id, enabled: true }),
+    ]);
+    expect(
+      migrateRoutineSchedule({
+        routineStore,
+        schedulerStore,
+        routine: routineStore.get(routine.id),
+      }),
+    ).toMatchObject({ id: migrated.id, state: "retired" });
+
+    expect(
+      rollbackRoutineMigration({
+        routineStore,
+        schedulerStore,
+        migrationId: migrated.id,
+      }),
+    ).toMatchObject({ state: "rolled_back" });
+    expect(routineStore.get(routine.id)).toMatchObject({ enabled: true });
+    expect(routineStore.get(routine.id)).not.toHaveProperty(
+      "schedulerMigration",
+    );
+    expect(
+      schedulerStore.getJob(migrated.entries[0].targetJobId),
+    ).toMatchObject({
+      enabled: false,
+    });
+  });
+
+  it("resumes Routine migration after target staging and source retirement crashes", () => {
+    const f = fixture();
+    const routineStore = f.openRoutine();
+    const schedulerStore = f.openScheduler();
+    const routine = routineStore.create({
+      name: "resume-routine",
+      prompt: "resume",
+      trigger: { kind: "once", at: f.now + 1_000 },
+    });
+    const desired = buildRoutineSchedulerJob(routine);
+    const source = {
+      createdAt: routine.createdAt,
+      enabled: routine.enabled,
+      id: routine.id,
+      name: routine.name,
+      prompt: routine.prompt,
+      trigger: routine.trigger,
+    };
+    const prepared = schedulerStore.prepareDomainMigration({
+      entries: [
+        {
+          domain: "routine",
+          sourceId: routine.id,
+          sourceScope: { store: "routines", directory: routineStore.dir },
+          source,
+          targetJob: desired,
+          rollbackStrategy: "disable",
+        },
+      ],
+    });
+    routineStore.prepareSchedulerMigration(routine.id, {
+      migrationId: prepared.id,
+      sourceDigest: routineMigrationSourceDigest(routine),
+      targetJobId: desired.id,
+    });
+    schedulerStore.applyDomainMigration(prepared.id);
+    expect(
+      migrateRoutineSchedule({
+        routineStore,
+        schedulerStore,
+        routine: routineStore.get(routine.id),
+      }),
+    ).toMatchObject({ id: prepared.id, state: "retired" });
+    const retired = schedulerStore.getDomainMigration(prepared.id);
+    schedulerStore.db
+      .prepare(
+        `UPDATE scheduler_domain_migrations SET state = 'retiring',
+         completed_at = NULL WHERE migration_id = ?`,
+      )
+      .run(prepared.id);
+    schedulerStore.db
+      .prepare(
+        `UPDATE scheduler_domain_migration_entries SET state = 'retiring'
+         WHERE migration_id = ?`,
+      )
+      .run(prepared.id);
+    expect(
+      migrateRoutineSchedule({
+        routineStore,
+        schedulerStore,
+        routine: routineStore.get(routine.id),
+      }),
+    ).toMatchObject({
+      id: prepared.id,
+      state: "retired",
+      entries: [{ retirementToken: retired.entries[0].retirementToken }],
+    });
+  });
+
+  it("keeps a migrated recurring Routine disabled for legacy drivers after run", async () => {
+    const f = fixture();
+    const routineStore = f.openRoutine();
+    const schedulerStore = f.openScheduler();
+    const routine = routineStore.create({
+      name: "fenced-routine",
+      prompt: "run migrated",
+      trigger: { kind: "cron", cron: "0 * * * *" },
+    });
+    migrateRoutineSchedule({ routineStore, schedulerStore, routine });
+    f.now += 60 * 60 * 1_000;
+    const bridge = new RoutineSchedulerBridge({
+      routineStore,
+      schedulerStore,
+      runAgent: vi.fn(async () => ({ exitCode: 0, output: "done" })),
+      now: f.clock,
+      ownerId: "routine-migration-owner",
+      leaseMs: 10_000,
+    });
+    await expect(bridge.runDue()).resolves.toEqual([
+      expect.objectContaining({
+        result: expect.objectContaining({ status: "succeeded" }),
+      }),
+    ]);
+    expect(routineStore.get(routine.id)).toMatchObject({
+      enabled: false,
+      lastFiredAt: f.now,
+      schedulerMigration: { state: "retired" },
+    });
+    expect(routineStore.due(f.now + 60 * 60 * 1_000)).toEqual([]);
   });
 
   it("deduplicates two drivers that observed the same due routine", async () => {
@@ -621,6 +785,14 @@ describe("scheduler-kernel routine adapter", () => {
       result: { status: "succeeded" },
     });
     expect(runAgent).toHaveBeenCalledTimes(1);
+    expect(routineStore.githubRoutines()).toEqual([]);
+    expect(routineStore.githubRoutines({ schedulerMigration: true })).toEqual([
+      expect.objectContaining({ id: routine.id, enabled: true }),
+    ]);
+    expect(routineStore.get(routine.id)).toMatchObject({
+      enabled: false,
+      schedulerMigration: { state: "retired" },
+    });
     expect(routineStore.get(routine.id).lastSeenGithubEventId).toBe("102");
     expect(routineStore.getRun(routineBridgeRunId(fired))).toMatchObject({
       trigger: "github:PushEvent,PushEvent",

@@ -1,6 +1,11 @@
 import { createHash, randomUUID } from "node:crypto";
 import { nextCronTime } from "../agent-schedule-store.js";
-import { executeRoutine } from "../routine-store.js";
+import {
+  executeRoutine,
+  routineEffectiveSchedulerView,
+  routineMigrationSourceDigest,
+  routineMigrationSourceSnapshot,
+} from "../routine-store.js";
 import {
   SchedulerKernelError,
   canonicalJson,
@@ -8,6 +13,7 @@ import {
   normalizeIdentifier,
 } from "./contract.js";
 import { SchedulerRuntime } from "./runtime.js";
+import { schedulerMigrationSourceDigest } from "./store.js";
 import {
   bindSchedulerAuthorityPolicy,
   createSchedulerAuthorityResolver,
@@ -389,6 +395,171 @@ export function syncRoutineSchedulerJob(schedulerStore, routine, options = {}) {
   }
 }
 
+export function migrateRoutineSchedule({
+  routineStore,
+  schedulerStore,
+  routine,
+}) {
+  const effective = routineEffectiveSchedulerView(routine);
+  const snapshot = routineDefinitionSnapshot(effective);
+  if (!["cron", "once", "github"].includes(snapshot.trigger.kind)) {
+    throw routineError(
+      "SCHEDULER_ROUTINE_MIGRATION_TRIGGER_UNSUPPORTED",
+      `Routine trigger has no legacy driver to migrate: ${snapshot.id}`,
+    );
+  }
+  const sourceScope = { store: "routines", directory: routineStore.dir };
+  const channel =
+    snapshot.trigger.kind === "github"
+      ? ROUTINE_SCHEDULER_CHANNELS.GITHUB
+      : ROUTINE_SCHEDULER_CHANNELS.SCHEDULED;
+  // GitHub occurrences use per-batch jobs. A disabled guard job owns the
+  // migration namespace while actual batches remain independently immutable.
+  const desired =
+    channel === ROUTINE_SCHEDULER_CHANNELS.GITHUB
+      ? {
+          ...buildRoutineSchedulerJob(effective, {
+            channel: ROUTINE_SCHEDULER_CHANNELS.SCHEDULED,
+          }),
+          id: routineSchedulerJobId(snapshot.id, channel),
+          trigger: {
+            source: "routine-store",
+            channel,
+            routineKind: "github",
+          },
+          enabled: true,
+        }
+      : buildRoutineSchedulerJob(effective, { channel });
+  desired.authority = bindSchedulerAuthorityPolicy(
+    schedulerStore,
+    desired.authority,
+  );
+  const sourceSnapshot = routineMigrationSourceSnapshot(routine);
+  const sourceDigest = routineMigrationSourceDigest(routine);
+  const existing = schedulerStore.getActiveDomainMigrationBySource({
+    domain: "routine",
+    sourceScope,
+    sourceId: snapshot.id,
+  });
+  const prepared =
+    existing ||
+    schedulerStore.prepareDomainMigration({
+      entries: [
+        {
+          domain: "routine",
+          sourceId: snapshot.id,
+          sourceScope,
+          source: sourceSnapshot,
+          targetJob: desired,
+          rollbackStrategy: "disable",
+        },
+      ],
+    });
+  if (
+    prepared.entries.length !== 1 ||
+    prepared.entries[0].domain !== "routine"
+  ) {
+    throw routineError(
+      "SCHEDULER_ROUTINE_MIGRATION_DOMAIN_MISMATCH",
+      "Routine belongs to an invalid mixed-domain migration",
+    );
+  }
+  if (
+    prepared.entries[0].sourceDigest !==
+      schedulerMigrationSourceDigest(sourceSnapshot) ||
+    prepared.entries[0].targetJobId !== desired.id
+  ) {
+    throw routineError(
+      "SCHEDULER_ROUTINE_MIGRATION_SOURCE_CHANGED",
+      `Routine changed after migration started: ${snapshot.id}`,
+    );
+  }
+  let migration = prepared;
+  if (["rolling_back", "rolled_back"].includes(migration.state)) {
+    throw routineError(
+      "SCHEDULER_ROUTINE_MIGRATION_STATE_CONFLICT",
+      `Routine migration cannot resume from state ${migration.state}`,
+    );
+  }
+  if (migration.state === "retired") {
+    routineStore.retireForSchedulerMigration(snapshot.id, {
+      migrationId: migration.id,
+      sourceDigest,
+      targetJobId: desired.id,
+      retirementToken: migration.entries[0].retirementToken,
+    });
+    return migration;
+  }
+  if (migration.state === "prepared") {
+    routineStore.prepareSchedulerMigration(snapshot.id, {
+      migrationId: migration.id,
+      sourceDigest,
+      targetJobId: desired.id,
+    });
+    migration = schedulerStore.applyDomainMigration(migration.id);
+  }
+  if (migration.state === "applied") {
+    migration = schedulerStore.verifyDomainMigration(migration.id, {
+      sources: [
+        { entryId: migration.entries[0].entryId, source: sourceSnapshot },
+      ],
+    });
+  }
+  const retiring =
+    migration.state === "retiring"
+      ? migration
+      : schedulerStore.beginDomainMigrationRetirement(migration.id);
+  const entry = retiring.entries[0];
+  const retired = routineStore.retireForSchedulerMigration(snapshot.id, {
+    migrationId: migration.id,
+    sourceDigest,
+    targetJobId: desired.id,
+    retirementToken: entry.retirementToken,
+  });
+  schedulerStore.confirmDomainMigrationEntryRetired({
+    migrationId: migration.id,
+    entryId: entry.entryId,
+    retirementToken: entry.retirementToken,
+    source: retired,
+  });
+  return schedulerStore.getDomainMigration(migration.id);
+}
+
+export function rollbackRoutineMigration({
+  routineStore,
+  schedulerStore,
+  migrationId,
+}) {
+  const migration = schedulerStore.beginDomainMigrationRollback(migrationId);
+  const entries = migration.entries.filter(
+    (entry) => entry.domain === "routine",
+  );
+  if (entries.length !== migration.entries.length) {
+    throw routineError(
+      "SCHEDULER_ROUTINE_MIGRATION_DOMAIN_MISMATCH",
+      "Routine rollback cannot operate on a mixed-domain migration",
+    );
+  }
+  schedulerStore.rollbackDomainMigrationTargets(migrationId);
+  for (const entry of entries) {
+    const restored = routineStore.restoreFromSchedulerMigration(
+      entry.sourceId,
+      {
+        migrationId,
+        targetJobId: entry.targetJobId,
+        retirementToken: entry.retirementToken,
+      },
+    );
+    schedulerStore.confirmDomainMigrationEntrySourceRestored({
+      migrationId,
+      entryId: entry.entryId,
+      retirementToken: entry.retirementToken,
+      source: routineMigrationSourceSnapshot(restored),
+    });
+  }
+  return schedulerStore.getDomainMigration(migrationId);
+}
+
 export function scheduledRoutineFireAt(routine) {
   const snapshot = routineSnapshot(routine);
   if (snapshot.trigger.kind === "once") {
@@ -552,7 +723,9 @@ export function createRoutineSchedulerAdapter({ routineStore, runAgent } = {}) {
         if (current) {
           routineStore.update(expected.id, {
             lastFiredAt: occurrence.scheduledFor,
-            ...(current.trigger.kind === "once" ? { enabled: false } : {}),
+            ...(current.trigger.kind === "once" || current.schedulerMigration
+              ? { enabled: false }
+              : {}),
           });
         }
         return {
@@ -617,10 +790,11 @@ export function createRoutineSchedulerAdapter({ routineStore, runAgent } = {}) {
           `Routine run evidence does not match occurrence: ${occurrence.id}`,
         );
       }
+      const effectiveCurrent = routineEffectiveSchedulerView(current);
       const currentDigest =
         payload.snapshotType === "definition"
-          ? routineDefinitionDigest(current)
-          : routineSnapshotDigest(current);
+          ? routineDefinitionDigest(effectiveCurrent)
+          : routineSnapshotDigest(effectiveCurrent);
       if (!existingRun && currentDigest !== payload.snapshotDigest) {
         throw routineError(
           "SCHEDULER_ROUTINE_STALE_SNAPSHOT",
@@ -630,27 +804,32 @@ export function createRoutineSchedulerAdapter({ routineStore, runAgent } = {}) {
       if (
         payload.channel !== ROUTINE_SCHEDULER_CHANNELS.MANUAL &&
         !existingRun &&
-        current.enabled !== true
+        effectiveCurrent.enabled !== true
       ) {
         throw routineError(
           "SCHEDULER_ROUTINE_DISABLED",
           `Routine was disabled before scheduled execution: ${expected.id}`,
         );
       }
-      const execution = await executeRoutine(routineStore, current, runAgent, {
-        trigger:
-          payload.channel === ROUTINE_SCHEDULER_CHANNELS.MANUAL
-            ? "manual"
-            : payload.channel === ROUTINE_SCHEDULER_CHANNELS.GITHUB
-              ? `github:${payload.github.events
-                  .map((event) => event.type)
-                  .join(",")}`
-              : current.trigger.kind,
-        runId: schedulerRunId,
-        schedulerOccurrenceId: occurrence.id,
-        schedulerSnapshotDigest: payload.snapshotDigest,
-        ...(adjudication ? { adjudication } : {}),
-      });
+      const execution = await executeRoutine(
+        routineStore,
+        effectiveCurrent,
+        runAgent,
+        {
+          trigger:
+            payload.channel === ROUTINE_SCHEDULER_CHANNELS.MANUAL
+              ? "manual"
+              : payload.channel === ROUTINE_SCHEDULER_CHANNELS.GITHUB
+                ? `github:${payload.github.events
+                    .map((event) => event.type)
+                    .join(",")}`
+                : current.trigger.kind,
+          runId: schedulerRunId,
+          schedulerOccurrenceId: occurrence.id,
+          schedulerSnapshotDigest: payload.snapshotDigest,
+          ...(adjudication ? { adjudication } : {}),
+        },
+      );
       if (execution.status !== "ok") {
         throw routineError(
           "SCHEDULER_ROUTINE_EXECUTION_FAILED",
@@ -686,6 +865,7 @@ export class RoutineSchedulerBridge {
     leaseMs,
     renewIntervalMs,
     authorityResolver,
+    migrateLegacy = true,
   } = {}) {
     if (typeof now !== "function") {
       throw routineError(
@@ -696,6 +876,7 @@ export class RoutineSchedulerBridge {
     this.routineStore = routineStore;
     this.schedulerStore = schedulerStore;
     this.now = now;
+    this.migrateLegacy = migrateLegacy !== false;
     this.runtime = new SchedulerRuntime({
       store: schedulerStore,
       adapters: [createRoutineSchedulerAdapter({ routineStore, runAgent })],
@@ -727,7 +908,20 @@ export class RoutineSchedulerBridge {
         "Routine GitHub scheduler requires a fetchEvents function",
       );
     }
-    const current = this.routineStore.get(routine.id);
+    if (
+      this.migrateLegacy &&
+      routine.enabled === true &&
+      !routine.schedulerMigration &&
+      routine.trigger?.kind === "github"
+    ) {
+      migrateRoutineSchedule({
+        routineStore: this.routineStore,
+        schedulerStore: this.schedulerStore,
+        routine,
+      });
+    }
+    const stored = this.routineStore.get(routine.id);
+    const current = routineEffectiveSchedulerView(stored);
     if (
       !current ||
       current.enabled !== true ||
@@ -822,7 +1016,38 @@ export class RoutineSchedulerBridge {
     if (signal?.aborted) return results;
 
     const now = normalizeEpochMs(Number(this.now()), "now");
-    const due = this.routineStore.due(now);
+    if (this.migrateLegacy) {
+      const candidates = this.routineStore
+        .list()
+        .filter(
+          (routine) =>
+            routine.enabled === true &&
+            !routine.schedulerMigration &&
+            ["cron", "once"].includes(routine.trigger?.kind),
+        );
+      for (const routine of candidates) {
+        migrateRoutineSchedule({
+          routineStore: this.routineStore,
+          schedulerStore: this.schedulerStore,
+          routine,
+        });
+      }
+    }
+    const due = [
+      ...this.routineStore.due(now),
+      ...this.routineStore.schedulerMigrated().filter((routine) => {
+        if (routine.trigger.kind === "cron") {
+          const from = routine.lastFiredAt || routine.createdAt || 0;
+          const next = nextCronTime(routine.trigger.cron, from);
+          return next !== null && next <= now;
+        }
+        return (
+          routine.trigger.kind === "once" &&
+          !routine.lastFiredAt &&
+          routine.trigger.at <= now
+        );
+      }),
+    ];
     for (const routine of due) {
       const occurrence = enqueueScheduledRoutine(this.schedulerStore, routine);
       if (observedOccurrences.has(occurrence.id)) continue;

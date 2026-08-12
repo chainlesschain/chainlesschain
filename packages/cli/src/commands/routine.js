@@ -345,7 +345,7 @@ export function registerRoutineCommand(program) {
             runId,
           });
         }
-        for (const r of store.githubRoutines()) {
+        for (const r of store.githubRoutines({ schedulerMigration: true })) {
           const github = await bridge.pollGithub(r, {
             fetchEvents: defaultFetchEvents,
           });
