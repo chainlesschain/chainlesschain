@@ -8,6 +8,10 @@ import {
   inspectAutomationExecutionAuthority,
   setAutomationExecutionBudget,
 } from "../lib/automation-execution-authority.js";
+import {
+  buildAutomationCenterProjection,
+  runAutomationCenterAction,
+} from "../lib/automation-center.js";
 import { logger } from "../lib/logger.js";
 import { parseJsonOption } from "../lib/parse-json-option.js";
 import { AutomationSchedulerBridge } from "../lib/scheduler-kernel/automation-adapter.js";
@@ -370,6 +374,62 @@ function _wire(root) {
       } catch (e) {
         logger.error(e.message);
         process.exit(1);
+      } finally {
+        await shutdown();
+      }
+    });
+
+  root
+    .command("center-projection")
+    .description("Emit the versioned Automation Center projection for IDEs")
+    .option("-l, --limit <n>", "Maximum flows", "100")
+    .option("--json", "Output as JSON")
+    .action(async (opts, cmd) => {
+      const db = _dbFromCtx(cmd);
+      try {
+        const projection = buildAutomationCenterProjection(db, {
+          limit: Number(opts.limit),
+        });
+        if (opts.json) console.log(JSON.stringify(projection, null, 2));
+        else {
+          logger.info(
+            `${projection.summary.total} flows, ${projection.summary.needsAttention} need attention`,
+          );
+          for (const flow of projection.flows) {
+            logger.log(
+              `  ${chalk.cyan(flow.id)} ${flow.status.padEnd(8)} ${flow.name} preflight=${flow.security.state}`,
+            );
+          }
+        }
+      } catch (e) {
+        logger.error(e.message);
+        process.exitCode = 1;
+      } finally {
+        await shutdown();
+      }
+    });
+
+  root
+    .command("center-action <flowId> <action>")
+    .description("Run a revision-gated Automation Center action")
+    .requiredOption(
+      "--expected-revision <revision>",
+      "Exact flow revision shown by center-projection",
+    )
+    .option("--json", "Output as JSON")
+    .action(async (flowId, action, opts, cmd) => {
+      const db = _dbFromCtx(cmd);
+      try {
+        const result = runAutomationCenterAction(db, {
+          flowId,
+          action,
+          expectedRevision: opts.expectedRevision,
+        });
+        if (opts.json) console.log(JSON.stringify(result, null, 2));
+        else logger.success(`${flowId} ${action} completed`);
+      } catch (e) {
+        logger.error(e.message);
+        process.exitCode = 1;
       } finally {
         await shutdown();
       }

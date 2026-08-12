@@ -8,6 +8,7 @@
   "cmd.session.prStatus.title": "ChainlessChain: Show PR / CI Status",
   "cmd.background.agents.title": "ChainlessChain: Background Agents",
   "cmd.sessions.workbench.title": "ChainlessChain: Sessions Workbench",
+  "cmd.automation.center.title": "ChainlessChain: Automation Center",
   "cmd.remote.control.title": "ChainlessChain: Remote Control (pair phone/web)",
   "cmd.usage.show.title": "ChainlessChain: Show Token Usage",
   "cmd.plugins.manage.title": "ChainlessChain: Manage Plugins & MCP",

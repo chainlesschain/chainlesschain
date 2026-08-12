@@ -246,6 +246,9 @@
         <toolWindow id="ChainlessChain Sessions" anchor="right" secondary="true"
                     icon="/icons/chainlesschain.png"
                     factoryClass="com.chainlesschain.ide.intellij.SessionsWorkbenchToolWindowFactory"/>
+        <toolWindow id="ChainlessChain Automation" anchor="right" secondary="true"
+                    icon="/icons/chainlesschain.png"
+                    factoryClass="com.chainlesschain.ide.intellij.AutomationCenterToolWindowFactory"/>
         <statusBarWidgetFactory id="chainlesschain.ide.statusBar"
                                 implementation="com.chainlesschain.ide.intellij.BridgeStatusBarWidgetFactory"/>
         <!-- Balloon notifications (one-shot cc-upgrade "What's New" nudge; VS
@@ -297,6 +300,10 @@
         </action>
         <action id="chainlesschain.sessions.Workbench"
                 class="com.chainlesschain.ide.intellij.SessionsWorkbenchAction">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        <action id="chainlesschain.automation.Center"
+                class="com.chainlesschain.ide.intellij.AutomationCenterAction">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
         <action id="chainlesschain.usage.Show"

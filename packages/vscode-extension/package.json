@@ -90,6 +90,11 @@
         "icon": "$(list-tree)"
       },
       {
+        "command": "chainlesschain.automation.center",
+        "title": "%cmd.automation.center.title%",
+        "icon": "$(run-all)"
+      },
+      {
         "command": "chainlesschain.remote.control",
         "title": "%cmd.remote.control.title%",
         "icon": "$(broadcast)"
