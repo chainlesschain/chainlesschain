@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.135 | CLI 0.163.5 | Open VSX 0.37.49 · JetBrains 0.4.85 | 统一 Scheduler · ARM64 IDE 认证"
+  tagline: "v5.0.3.135 | CLI 0.163.6 | Open VSX 0.37.50 · JetBrains 0.4.86 | Automation Center · 统一 Scheduler"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -28,7 +28,7 @@ features:
     details: 依赖 DAG、fenced lease、四维预算、每任务 worktree、本地 v6 authority 与分布式 queue v1 已完成三平台短门及长期 soak。
   - icon: 🧑‍💻
     title: 双 IDE 会话与交付
-    details: Open VSX 0.37.49 下载已突破 2.3 万，JetBrains Marketplace 0.4.85 已公开；11 格 ARM64 聚合覆盖双端 chat、Stop/restart、Sessions Workbench、rewind 与 artifact 真实宿主 journey。
+    details: Open VSX 0.37.50 下载已突破 2.4 万，JetBrains Marketplace 0.4.86 已公开；双端新增 governed Automation Center，并继续覆盖 chat、Sessions Workbench、rewind 与 artifact 真实宿主 journey。
   - icon: 🔐
     title: 安全优先
     details: 本地优先、权限控制、会话恢复、Process Broker 与跨平台沙箱共同保护 Agent 执行边界。
@@ -37,10 +37,10 @@ features:
     details: 92 个采集契约覆盖 18 类来源，支持事务化事实归并、显式游标、有界分页与部分结果失败闭合。
   - icon: 🧪
     title: 发布证据分层
-    details: CLI 0.163.5 已在 exact SHA 完成三平台 CLI CI、Strict Sandbox、npm 发布与独立 registry 回读；Scheduler 恢复语义和稳定适配器进入公开契约。
+    details: CLI 0.163.6 已在 exact SHA 完成三平台 CLI CI、Strict Sandbox、npm 发布与独立 registry 回读；统一 authority、时区与 Automation/Routine 控制面进入公开契约。
 ---
 
-> **2026-08-12 当前主线快照**：桌面、Android 与 iOS 源码版本保持 `5.0.3.135`；npm `latest`、生产推荐 CLI 与主线源码均为 `0.163.5`。不可变 tag `v-npm-0-163-5` 精确指向提交 `095087c1e8`；同一 SHA 的三平台 CLI CI、CLI Strict Sandbox、专用 npm 发布与独立公网回读均成功。该版正式提供统一 Scheduler 内核、SQLite 持久化、lease/幂等恢复，以及 Routine、Agenda wakeup/cron、Cowork Cron 三类适配器。当前功能分支的 Automation Scheduler 适配器（`15a641fa85`）尚非生产契约。Open VSX `0.37.49` 与 JetBrains Marketplace `0.4.85` 均已公开。详细入口：[CLI Runtime 当前实现](/chainlesschain/cli-runtime-current)、[Routine](/chainlesschain/cli-routine)、[Agenda](/chainlesschain/cli-agenda)、[Automation](/chainlesschain/cli-automation)、[Cowork](/chainlesschain/cowork)与[更新日志](/changelog)。
+> **2026-08-12 当前主线快照**：桌面、Android 与 iOS 源码版本保持 `5.0.3.135`；npm `latest`、生产推荐 CLI 与主线源码均为 `0.163.6`。不可变 tag `v-npm-0-163-6` 精确指向提交 `85c3577c88`；同一 SHA 的三平台 CLI CI、CLI Strict Sandbox、专用 npm 发布与独立公网回读均成功。该版把 Agenda monitor、Loop、Automation cron、Routine GitHub、channel event 与 standalone daemon 接入统一 Scheduler，并公开共享 permission/budget authority 与 Agenda/Cowork IANA timezone、DST、missed-run collapse 语义。Open VSX `0.37.50` 与 JetBrains Marketplace `0.4.86` 的 governed Automation Center 已公开。详细入口：[CLI Runtime 当前实现](/chainlesschain/cli-runtime-current)、[Routine](/chainlesschain/cli-routine)、[Agenda](/chainlesschain/cli-agenda)、[Automation](/chainlesschain/cli-automation)、[IDE 插件](/chainlesschain/ide-plugin)与[更新日志](/changelog)。
 
 > 2026-04-08 更新：文档站已对齐 CLI Agent Runtime 重构、统一 runtime event、session record、后台任务增强、Worktree 合并助手、压缩观测、会话迁移，以及 **Coding Agent Phase 5 最小 Harness + 真实 interrupt**。
 >

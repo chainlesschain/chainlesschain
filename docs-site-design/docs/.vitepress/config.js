@@ -9,7 +9,7 @@ export default defineConfig({
   transformPageData(pageData) {
     if (pageData.relativePath === "index.md" && pageData.frontmatter.hero) {
       pageData.frontmatter.hero.tagline =
-        "v5.0.3.135 · CLI 0.163.5 · PDH 0.4.57 · Open VSX 0.37.49 · JetBrains 0.4.85｜统一 Scheduler · ARM64 IDE";
+        "v5.0.3.135 · CLI 0.163.6 · PDH 0.4.57 · Open VSX 0.37.50 · JetBrains 0.4.86｜Automation Center · 统一 Scheduler";
     }
   },
 
@@ -874,7 +874,7 @@ export default defineConfig({
               link: "/modules/m78-cli-agent-runtime",
             },
             {
-              text: "CLI Runtime 当前实现核对 (0.163.5) ⭐NEW",
+              text: "CLI Runtime 当前实现核对 (0.163.6) ⭐NEW",
               link: "/cli-runtime-current",
             },
             {

@@ -660,8 +660,8 @@ VS Code / JetBrains / Desktop / Web / Mobile
 “公开发布回读”：前两者不能替代后两者，也不能据此宣称 Microsoft Marketplace 发布、真实 PR/merge 或完整
 release gate 已完成。
 
-当前核验基线为 `main@149bc9adac3d8354bd77c41b2653ee6b294eb3f5`。公开分发基线为 CLI npm
-`0.163.5`、Open VSX `0.37.50` 与 JetBrains Marketplace `0.4.86`；两个 IDE tag 均绑定已验证的
+当前核验基线为 `main@15e4e7aed723743dba54f250cae86c0d8a814d14`。公开分发基线为 CLI npm
+`0.163.6`、Open VSX `0.37.50` 与 JetBrains Marketplace `0.4.86`；两个 IDE tag 均绑定已验证的
 `074bc471297b4ae0f02445b9bdb30d4dd11d5536`。Microsoft Marketplace、JetBrains 作者签名及
 Desktop/native 签名公开闭环仍未关闭。开放 PR 只按候选记录，不计入 `main` 已交付范围。
 
@@ -1362,6 +1362,14 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
   installer 而在 smoke 配置期失败，attempt 2 越过同一点并完成 smoke、JUnit、build、Plugin Verifier、
   Marketplace upload 及 post-publish listing verification。该发布不关闭 Microsoft Marketplace、JetBrains
   作者签名或 signed fresh-profile 升降级/回滚。
+- **CLI `0.163.6` 已从 exact release SHA 正式发布。** 不可变 tag `v-npm-0-163-6` 绑定
+  `85c3577c887003fea98d0a159603cd359506f09b`；[CLI CI `31595865423`](https://github.com/chainlesschain/chainlesschain/actions/runs/31595865423)、
+  [CLI Strict Sandbox `31595865206`](https://github.com/chainlesschain/chainlesschain/actions/runs/31595865206)、
+  [npm 发布 `31595865181`](https://github.com/chainlesschain/chainlesschain/actions/runs/31595865181)与
+  [独立公网回读 `31597577056`](https://github.com/chainlesschain/chainlesschain/actions/runs/31597577056)均成功。
+  npm `latest` 为 `0.163.6`，公开 tarball SHA-1 为 `18bb9d807a4a35a36cf9049dcc15f67eb47bbfa6`；
+  这使 governed Automation/Routine commands 成为公开安装契约，但仍不关闭本节记录的 outcome-unknown、
+  mixed-version migration/rollback、磁盘故障、长期 soak 或 signed native 边界。
 - **两个 IDE 版本说明已概述 CLI `0.163.5` 新能力及兼容边界。** README/CHANGELOG 说明 durable unified
   scheduler runtime、Routine/Agenda/Cowork migration、snapshot-bound authority/fencing、bounded retry、
   dead-letter、crash recovery 与 durable compaction；同时明确 `0.163.5` 早于 governed

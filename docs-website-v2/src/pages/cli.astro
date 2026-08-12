@@ -382,7 +382,7 @@ const categories = [
       ['routine run / trigger / runs', '统一 Scheduler：例行任务、即时触发与运行记录'],
       ['agenda run --watch', 'Agenda wakeup/cron 常驻调度'],
       ['cowork cron run', 'Cowork Cron 持久调度与恢复'],
-      ['automation run-scheduled', '源码候选：Automation Scheduler 适配器'],
+      ['automation run-scheduled / center-projection', '统一 Automation Scheduler + 双 IDE 治理控制面'],
       ['eco register / review / publish', '插件生态（AI 审查 + 沙箱）'],
       ['perf collect / evaluate / apply', '性能调优建议'],
     ],
@@ -458,7 +458,7 @@ const packs = [
           175 条顶层命令，覆盖从知识库到链上治理的完整生命周期。零 GUI 依赖，纯文本输入输出，可管道可脚本可 CI。
         </p>
         <p class="mt-4 text-sm text-muted max-w-3xl">
-          官网推荐完整通过 Linux / Windows / macOS 门禁的 <strong class="text-ink">{CLI_VERSION}</strong>，npm latest 与主线源码同为 <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong> / <strong class="text-ink">{SOURCE_CLI_VERSION}</strong>。安装命令固定到 exact-SHA、三平台门禁、发布与 registry 回读均已核验的发布标签；当前功能分支的 Automation Scheduler 适配器单独标为源码候选。
+          官网推荐完整通过 Linux / Windows / macOS 门禁的 <strong class="text-ink">{CLI_VERSION}</strong>，npm latest 与主线源码同为 <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong> / <strong class="text-ink">{SOURCE_CLI_VERSION}</strong>。安装命令固定到 exact-SHA、三平台门禁、发布与 registry 回读均已核验的发布标签；Automation Scheduler、共享 permission/budget authority 与 IDE Automation Center 命令已进入稳定契约。
         </p>
 
         <!-- Install tabs -->
@@ -635,7 +635,7 @@ const packs = [
           当前 CLI 搭载 PDH 0.4.57：来源别名、raw observation、字段级冲突决策、引用重写与最终实体在同一事务提交；桌面端、Web Panel 与命令行共用实时采集协议，临时 Cookie/OAuth 不落配置；部分读取、不可读数据库或不完整分页保留旧水位，可在下一轮安全续扫。
         </p>
         <p class="mt-4 text-lg text-muted">
-          稳定版 <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> 在既有后台 worktree、Process Broker、canonical session 与 checkpoint restore saga 之上，新增统一 Scheduler：SQLite 持久化状态、lease claim、幂等执行键、错过触发恢复，以及 Routine、Agenda wakeup/cron、Cowork Cron 三类稳定适配器。当前功能分支还提供 Automation Scheduler 适配器，但尚未进入 main 或 npm <code class="font-mono text-sm">0.163.5</code>。同一精确 SHA 的三平台 CLI/Strict、npm 发布与独立回读均成功；原生验证仍不等于签名 Desktop/native 发行。
+          稳定版 <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> 在既有后台 worktree、Process Broker、canonical session 与 checkpoint restore saga 之上，统一 Agenda、Routine、Cowork、Automation 与 Loop 的 Scheduler authority，公开 IANA timezone、DST/missed-run collapse、exact capability policy 与 transactional budget。Automation Center 使用 CLI-owned projection、preflight/history 与 revision CAS；同一精确 SHA 的三平台 CLI/Strict、npm 发布与独立回读均成功。原生验证仍不等于签名 Desktop/native 发行。
         </p>
       </div>
     </div>

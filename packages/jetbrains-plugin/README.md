@@ -18,12 +18,11 @@ run-now, failed-run retry, pause/resume, disable, delete, and revision-CAS
 create/edit operations through exact CLI-issued arguments. Cron, one-shot,
 webhook, and GitHub triggers share the same fail-closed surface.
 
-The fully gated public CLI `chainlesschain@0.163.5` adds the unified durable
-scheduler runtime, Routine/Agenda/Cowork migration, snapshot-bound authority,
-owner/fence claims, bounded retry, dead-letter settlement, crash recovery, and
-durable compaction. The new Automation Center controls additionally require a
-subsequent CLI release containing the governed Automation/Routine commands;
-`0.163.5` remains fully supported for existing chat and IDE bridge features.
+The fully gated public CLI `chainlesschain@0.163.6` contains the governed
+Automation/Routine commands, unified scheduler authority, timezone/missed-run
+semantics, and shared permission/budget enforcement required by the Automation
+Center. CLI `0.163.5` remains supported for existing chat and IDE bridge
+features but does not expose the new control commands.
 
 ## Governed ghost-text completion
 

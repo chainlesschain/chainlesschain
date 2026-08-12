@@ -9,9 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added — cc CLI 0.163.6: unified scheduler authority and automation control
 
-> `chainlesschain` **0.163.5 → 0.163.6** (candidate; not yet published,
-> 2026-08-12).
-> CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.57**
+> `chainlesschain` **0.163.5 → 0.163.6** (published from exact SHA
+> `85c3577c887003fea98d0a159603cd359506f09b`, 2026-08-12).
+> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.57**
 > and `@chainlesschain/agent-sdk` remains **0.1.7**.
 
 - **Complete scheduler adapter migration**: Agenda monitors, Loop iterations,
@@ -39,11 +39,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   version migration/rollback, scheduler disk-fault closure, and the three-OS
   long-soak matrix remain open. Signed native distribution and representative
   alias-removal telemetry also remain outside this release.
-- **Release status**: final tag, source SHA, workflow run IDs, package digest,
-  provenance, and registry readback are intentionally omitted until the exact
-  `0.163.6` release commit passes the complete `CLI CI` and `CLI Strict Sandbox`
-  Linux, Windows, and macOS matrices, followed by the dedicated npm release and
-  independent public readback workflows.
+- **Published release evidence**: immutable tag `v-npm-0-163-6` resolves to
+  exact source commit `85c3577c887003fea98d0a159603cd359506f09b`. Its Linux,
+  Windows, and macOS `CLI CI` (`31595865423`) and `CLI Strict Sandbox`
+  (`31595865206`) matrices passed; the dedicated npm release (`31595865181`)
+  completed its exact-SHA gate, immutable package, Trusted Publishing, and
+  signed provenance, and the independent public readback (`31597577056`)
+  succeeded. npm reports `latest=0.163.6`; the public tarball SHA-1 is
+  `18bb9d807a4a35a36cf9049dcc15f67eb47bbfa6`.
 
 ### Added — cc CLI 0.163.5: durable scheduler runtime and recovery
 

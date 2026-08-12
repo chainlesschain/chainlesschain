@@ -13,7 +13,7 @@ const OPEN_VSX_DOWNLOADS = releaseStatus.openVsxDownloadsMilestone;
 ---
 <BaseLayout
   title="IDE Integration — VS Code + JetBrains extensions, agent in your editor | ChainlessChain"
-  description="ChainlessChain IDE bridge for VS Code (Open VSX) and JetBrains (Marketplace): selection and diagnostics, native diff approval, bounded test/coverage/debugger quality context, signature/SBOM/policy-aware plugin governance, supervised worktree tasks, Jupyter kernels, sidebar Chat, app preview, terminal context, and CLI version-sync."
+  description="ChainlessChain IDE bridge for VS Code (Open VSX) and JetBrains (Marketplace): governed Automation Center, selection and diagnostics, native diff approval, CLI-owned Sessions, Jupyter kernels, sidebar Chat, and app preview."
   canonical="https://www.chainlesschain.com/en/ide"
   locale="en"
 >
@@ -38,7 +38,7 @@ const OPEN_VSX_DOWNLOADS = releaseStatus.openVsxDownloadsMilestone;
           VS Code <strong class="text-ink">{VSCODE_VERSION}</strong> is publicly listed on Open VSX with more than <strong class="text-ink">{OPEN_VSX_DOWNLOADS}</strong> downloads; JetBrains <strong class="text-ink">{JETBRAINS_VERSION}</strong> is public on Marketplace. Use them with fully gated CLI <strong class="text-ink">{CLI_VERSION}</strong>. Both tagged workflows passed real three-OS hosts, artifact verification, publication, and registry readback. No Microsoft VS Code Marketplace build is published.
         </p>
         <p class="mt-3 text-sm text-muted">
-          IDE source and public stable versions align: VS Code <strong class="text-ink">{VSCODE_SOURCE_VERSION}</strong> and JetBrains <strong class="text-ink">{JETBRAINS_SOURCE_VERSION}</strong>. CLI source package metadata <strong class="text-ink">{SOURCE_CLI_VERSION}</strong> also matches the fully gated public build, while immutable tag evidence remains the stable authority. Inline chat, the CLI-owned Sessions Workbench, resumable delivery, canonical rewind, and five-session reply/artifact/PR/restart recovery are public-install capabilities.
+          IDE source and public stable versions align: VS Code <strong class="text-ink">{VSCODE_SOURCE_VERSION}</strong> and JetBrains <strong class="text-ink">{JETBRAINS_SOURCE_VERSION}</strong>. CLI source package metadata <strong class="text-ink">{SOURCE_CLI_VERSION}</strong> also matches the fully gated public build, while immutable tag evidence remains the stable authority. The governed Automation Center, inline chat, CLI-owned Sessions Workbench, resumable delivery, and canonical rewind are public-install capabilities.
         </p>
       </div>
     </div>
@@ -46,7 +46,7 @@ const OPEN_VSX_DOWNLOADS = releaseStatus.openVsxDownloadsMilestone;
 
   <section class="py-16 md:py-24">
     <div class="container-wide">
-      <h2 class="text-4xl md:text-5xl mb-12 max-w-3xl">Sixteen things, the moment you open the editor.</h2>
+      <h2 class="text-4xl md:text-5xl mb-12 max-w-3xl">Seventeen things, the moment you open the editor.</h2>
       <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[
           ['Sense', 'Selection with every prompt', 'Each prompt automatically carries your current selection + open tabs (an <ide-context> block) — the model knows what you are looking at, never persisted to the session.'],
@@ -60,10 +60,11 @@ const OPEN_VSX_DOWNLOADS = releaseStatus.openVsxDownloadsMilestone;
           ['Plugins', 'Transactional upgrades and supply-chain governance', 'Enable or disable by scope. Upgrades stage and revalidate manifests/signatures/SBOMs before atomic activation, restoring the previous version on failure. IDEs reload only after activation and require explicit consent for capability widening.'],
           ['Governance', 'Distributed Agent Teams', 'The IDE observes raw local team-state v6 and separate distributed-queue v1 snapshots read-only. Takeover, managed-checkpoint recovery, and side-effect adjudication return to the CLI with authority-digest, lease, and evidence fences. Stale UI actions fail closed; the IDE never mutates authoritative JSON directly.'],
           ['Attribution', 'Tool duration and retries', 'Usage views show measured tool duration, observed same-turn retries, and secret-free streaming LLM retry reasons with actual provider/model identity, without retaining tool arguments, output, or credentials.'],
-          ['Sessions', 'CLI-owned Sessions Workbench', 'Public 0.37.49 / 0.4.85 read immutable session projections produced by the CLI. Five session kinds cover Dispatch, needs_input, Reply, artifact/PR, and second-process restart recovery; stale actions fail closed.'],
+          ['Automation', 'Governed Automation Center', 'Public 0.37.50 / 0.4.86 show CLI-owned flow/Routine projections, scope, preflight, and history. Run-now, failed-run retry, pause/resume, disable/delete, and Routine create/edit all use exact revisions and CLI argv; the IDE never writes authoritative storage directly.'],
+          ['Sessions', 'CLI-owned Sessions Workbench', 'Public 0.37.50 / 0.4.86 read immutable session projections produced by the CLI. Five session kinds cover Dispatch, needs_input, Reply, artifact/PR, and second-process restart recovery; stale actions fail closed.'],
           ['Delivery', 'Resumable delivery and rewind', 'The public build covers GitHub, Gitee, configured remotes, and manual handoff. Each step verifies result/effect digests; rewind binds session, workspace, repository head, checkpoint revision, and manifest digest.'],
-          ['Inline', 'Ask and edit beside a selection', 'VS Code 0.37.49 provides isolated inline sessions, streaming replies, code-block copy/insert/replace, and a stable/minimum × Linux/Windows/macOS ARM64 multi-window isolation gate. Explain / Refactor / Fix / Docs / Tests are public on Open VSX.'],
-          ['Sync', 'CLI version-sync', 'Activation checks cc --version. Stable installation is pinned to npm i -g chainlesschain@0.163.5, aligned with the npm latest that completed the full release gate.'],
+          ['Inline', 'Ask and edit beside a selection', 'VS Code 0.37.50 provides isolated inline sessions, streaming replies, code-block copy/insert/replace, and a stable/minimum × Linux/Windows/macOS ARM64 multi-window isolation gate. Explain / Refactor / Fix / Docs / Tests are public on Open VSX.'],
+          ['Sync', 'CLI version-sync', 'Activation checks cc --version. Stable installation is pinned to npm i -g chainlesschain@0.163.6, aligned with the npm latest that completed the full release gate.'],
           ['Complete', '@ files / live slash commands', '@-path TAB completion ranks editor-open files first; @-completion offers @selection / @diagnostics / @terminal; /status /doctor /mcp /hooks /permissions /agents /tasks /memory inspect the active session, alongside /new /plan /approve /reject /stop /expand.'],
         ].map(([tag, title, desc]) => (
           <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">

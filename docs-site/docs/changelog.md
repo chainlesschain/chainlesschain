@@ -5,12 +5,23 @@
 
 ## [Unreleased]
 
-#### Added — 当前功能分支候选：Automation Scheduler 适配器
+#### Added — CLI 0.163.6 正式发布：统一 Scheduler Authority 与 Automation 控制面
 
-> 当前分支提交 `15a641fa85` 晚于不可变 `v-npm-0-163-5`；在进入主线并完成自身 exact-SHA 三平台门禁前，不把 `automation run-scheduled` 写成已发布 npm 契约。
+> `chainlesschain@0.163.6` 已成为 npm `latest` 与生产推荐版。不可变 tag `v-npm-0-163-6` 精确指向 [`85c3577c88`](https://github.com/chainlesschain/chainlesschain/commit/85c3577c887003fea98d0a159603cd359506f09b)；该 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31595865423)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31595865206)、[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/31595865181)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/31597577056)均成功。公网 tarball SHA-1 为 `18bb9d807a4a35a36cf9049dcc15f67eb47bbfa6`。
 
-- Automation 计划任务复用统一 Scheduler 的持久作业、lease、重试、历史和幂等执行语义。
-- 稳定版仍以 Routine、Agenda wakeup/cron 和 Cowork Cron 三类适配器为边界。
+- **完整 adapter migration**：Agenda monitor、Loop、Automation cron、Routine GitHub、scope-checked channel event 与 standalone daemon 使用共享 job/occurrence、definition snapshot、recovery fence 和 bounded retry/dead-letter。
+- **时区与错过触发一致性**：Agenda/Cowork 保存规范 IANA timezone，诚实处理 DST gap/repeated minute，并把停机追赶折叠到最近一个到期 occurrence。
+- **共享权限与预算**：Agenda、Routine、Cowork、Automation、Loop 绑定 exact capability policy revision 和 transactional run/unit reservation；缺失、过期、停用、耗尽或不一致时失败闭合，retry 不重复扣减。
+- **Automation Center**：CLI-owned versioned projection、scope/preflight/history 与 revision CAS 支持 flow run-now、失败重试、pause/resume、disable/delete，以及 cron/once/webhook/GitHub Routine create/edit。
+- **剩余边界**：外部 SaaS outcome-unknown 裁决、完整 mixed-version migration/rollback、scheduler disk-fault closure 与三系统长期 soak 仍未关闭；npm 发布也不等于 Desktop/native 签名发行。
+
+#### Added — IDE Automation Center：Open VSX 0.37.50 / JetBrains Marketplace 0.4.86
+
+> 双 tag `ide-vscode-v0.37.50` / `ide-jetbrains-v0.4.86` 精确指向 [`074bc47129`](https://github.com/chainlesschain/chainlesschain/commit/074bc471297b4ae0f02445b9bdb30d4dd11d5536)。[Open VSX 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/31589542152)与[JetBrains 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/31589547677)完成真实三平台宿主、制品、发布与 listing 回读。
+
+- 双端使用同一 CLI-owned projection 和 exact argv，过期 revision 在确认前失败闭合。
+- Automation 与 Routine 的 scope、preflight、history、run/retry/pause/resume/disable/delete 进入编辑器原生控制面。
+- Microsoft VS Code Marketplace、JetBrains 作者签名与 signed fresh-profile 升降级/回滚仍未关闭。
 
 #### Added — CLI 0.163.5 正式发布：统一 Scheduler 与持久恢复
 

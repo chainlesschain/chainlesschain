@@ -1,6 +1,6 @@
 # 命名定时/触发任务 — Cron / Once / Webhook / GitHub（`cc routine`）
 
-> **适用版本：CLI 0.163.5（npm latest）· 更新：2026-08-12 | cron / once / manual 已接入统一 Scheduler Kernel；GitHub 仍走兼容轮询路径 | 四种触发 + 运行历史 + 结果/用量/成本汇总**
+> **适用版本：CLI 0.163.6（npm latest）· 更新：2026-08-12 | cron / once / manual / GitHub 均接入统一 Scheduler Kernel | Automation Center + revision CAS | 四种触发 + 运行历史 + 成本汇总**
 >
 > `cc routine` 是 `cc agenda` 之上的**持久化命名层**：给一个反复要跑的 Agent 任务起个名字、绑一种触发方式、随时启用/停用，并保留一份**只增不改的运行历史**（含每次的输出、token 用量与成本）。
 
@@ -25,6 +25,9 @@
 - 📜 **只增运行历史**：`cc routine runs [id]` 合并 start/end 行，未闭合的记为 `running`，最新在前；坏行逐行跳过不炸整表。`cc routine logs <runId>` 打印该次完整输出。
 - 💾 **双层持久化 + 容错**：`~/.chainlesschain/routines/` 继续保存用户定义、run history 与日志；`~/.chainlesschain/scheduler/kernel-v1.sqlite` 保存版本化 job/occurrence/claim/history。定义与用户可读历史没有被静默迁走。
 - 🧷 **防重复与保守恢复**：manual/cron/once 绑定 definition snapshot digest、logical occurrence、owner/fence lease 与确定性 run id。已有 terminal run evidence 时只补 scheduler settlement；只有 start evidence 时判为 outcome-unknown，不自动再跑 Agent。
+- 🐙 **GitHub 统一调度**：`0.163.6` 把 GitHub polling 也绑定到 definition snapshot、event high-water mark、scheduler claim 与恢复 fence，不再走独立的非内核执行路径。
+- 🛡️ **共享权限/预算**：Routine principal 需要 exact `agent.execute` capability policy revision 与可用 run/unit 预算；缺失、过期、停用或耗尽时失败闭合。
+- 🖥️ **Automation Center**：VS Code `0.37.50` / JetBrains `0.4.86` 可在同一治理表面查看、创建、编辑和操作 cron/once/webhook/GitHub Routine；所有 mutation 由 CLI 以 revision CAS 执行。
 - 🔁 **与 agenda 同源同驱动**：`cc loop --every 1m -- cc routine run` 常驻触发，行为透明。
 
 ## 系统架构
@@ -47,7 +50,7 @@
  └───────────────┬──────────────────────────────────────┘
                  │
  ┌───────────────▼──────────────────────────────────────┐
- │ Scheduler Kernel（0.163.5）                          │
+ │ Scheduler Kernel（0.163.6）                          │
  │ kernel-v1.sqlite · snapshot/CAS · occurrence dedup   │
  │ owner/fence lease · heartbeat · retry/dead-letter    │
  └───────────────┬──────────────────────────────────────┘
@@ -180,7 +183,8 @@ cc routine logs run-abc123      # 某次运行的完整 Agent 输出
 - **webhook 触发本身无鉴权**：`cc routine trigger <id>` 就是「API/webhook 入口」，代码明确要求由你自建的 HTTP 接收器负责鉴权——**本命令不做任何 token / 签名 / HMAC 校验**。任何能本地运行 `cc routine trigger` 的进程都能触发。把它接到网络入口时，鉴权是你的责任。
 - **github 触发是轮询而非签名 webhook**：鉴权委托给 `gh` CLI 自身的认证；事件新鲜度是事件 id 的字符串比较（假设 id 单调递增），不验证 GitHub webhook 密钥。
 - **磁盘明文**：目录/日志以 `0700`（仅属主）创建，但 `routines.json`（含 prompt）与 `logs/*.log`（含完整 agent 输出，可能含敏感结果）以明文落盘。
-- **无稳定版统一 daemon**：cron/once 仍只在你实际运行 `cc routine run` 时触发；Scheduler Kernel 提供持久执行权威，但 `0.163.5` 不包含 standalone scheduler service。
+- **Routine 驱动仍需显式运行**：`0.163.6` 已提供 `cc daemon scheduler`，但当前 daemon domain 仅为 `agenda,cowork`；Routine cron/once/GitHub 仍只在你实际运行 `cc routine run` 时触发。
+- **权限与预算会实时变化**：Automation Center 的 preflight 只是当前快照；真正触发时会再次读取 shared scheduler policy revision，不能把旧的 READY 结果当成长期授权。
 - **不是全局 exactly-once**：协作 driver 与可读取的 terminal evidence 可以避免重复执行；断电、磁盘回滚、外部系统副作用或 start-only 结果不能自动判定成功。
 
 ## 故障排除
@@ -204,9 +208,27 @@ cc routine logs run-abc123      # 某次运行的完整 Agent 输出
 | `packages/cli/src/lib/agent-schedule-store.js` | 共享的 `parseCron` / `nextCronTime` cron 引擎                                                                                |
 | `packages/cli/src/lib/scheduler-kernel/routine-adapter.js` | Routine snapshot/job/occurrence bridge 与恢复策略                                                             |
 | `packages/cli/src/lib/scheduler-kernel/runtime.js` | claim、authority 复验、heartbeat、retry/dead-letter 与 settlement                                                        |
+| `packages/cli/src/lib/scheduler-kernel/authority-resolver.js` | exact capability policy 与 transactional run/unit budget                                              |
+| `packages/cli/src/lib/automation-center-routines.js` | Routine projection、CAS create/edit 与 revision-gated action                                                       |
 | `packages/cli/src/commands/agenda.js`          | 姊妹驱动（临时调度层）                                                                                                       |
 
 ## 使用示例
+
+### 0. 在 Automation Center 中管理 Routine
+
+VS Code 从 Activity Bar 打开 **ChainlessChain Automation**；JetBrains 从 **View → Tool Windows → ChainlessChain Automation** 打开。命令行集成方可使用同一 CLI-owned 控制面：
+
+```bash
+cc automation center-projection --json
+cc automation center-routine-action <routine-id> pause \
+  --expected-revision <item-revision> --json
+
+# POSIX shell：从有界 JSON stdin 创建定义
+cc automation center-routine-create \
+  --expected-revision <catalog-revision> --json-stdin --json < routine.json
+```
+
+投影过期、动作不可用或 revision 不匹配都会失败闭合；IDE 不直接修改 `routines.json`。
 
 ### 1. 每日 03:00 cron 日报
 

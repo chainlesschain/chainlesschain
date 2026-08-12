@@ -6,30 +6,27 @@ coordination, and a localhost IDE bridge.
 
 ## Current release
 
-| Component                 | Current status                                                        |
-| ------------------------- | --------------------------------------------------------------------- |
-| VS Code extension         | **0.37.51** source/package version; Open VSX publication is tag-gated |
-| Recommended CLI           | **`chainlesschain@0.163.5`** (fully gated stable release)             |
-| Base bridge compatibility | `cc >= 0.162.47`; newer features can require a newer CLI              |
-| Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors                   |
-| Distribution              | Open VSX; not published on the Microsoft VS Code Marketplace          |
+| Component                 | Current status                                                          |
+| ------------------------- | ----------------------------------------------------------------------- |
+| VS Code extension         | **0.37.51** source/package; Open VSX public version is **0.37.50**       |
+| Recommended CLI           | **`chainlesschain@0.163.6`** (fully gated stable release)               |
+| Base bridge compatibility | `cc >= 0.162.47`; newer features can require a newer CLI                |
+| Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors                     |
+| Distribution              | Open VSX; not published on the Microsoft VS Code Marketplace            |
 
-The recommended CLI `0.163.5` adds the unified durable scheduler runtime,
-Routine/Agenda/Cowork migration, snapshot-bound authorization, owner/fence
-claims, bounded retry, dead-letter settlement, crash recovery, and durable
-compaction. The extension also includes the Automation Center UI.
-Those new Automation/Routine controls require a subsequent CLI release that
-contains the governed commands; `0.163.5` predates them and remains fully
-supported for the existing chat and IDE bridge surfaces.
+The recommended CLI `0.163.6` includes the governed Automation/Routine commands,
+unified scheduler authority, timezone/missed-run semantics, and shared
+permission/budget enforcement required by the Automation Center.
+CLI `0.163.5` remains compatible with existing chat and bridge surfaces but
+does not expose the Automation Center control commands.
 
-The immutable release tag
-[`ide-vscode-v0.37.51`](https://github.com/chainlesschain/chainlesschain/releases/tag/ide-vscode-v0.37.51)
-is the release authority for this version. Before tagging, the exact release
-commit must pass the native ARM64 aggregate. The tag workflow then validates
-the packaged VSIX in stable and minimum VS Code hosts on Windows, Linux, and
-macOS, publishes it to Open VSX, and reads the public registry artifact back.
-Changes to this README appear in the registry Overview only after a new
-immutable extension version is packaged, gated, and published.
+The last immutable public release tag is
+[`ide-vscode-v0.37.50`](https://github.com/chainlesschain/chainlesschain/releases/tag/ide-vscode-v0.37.50).
+Source version `0.37.51` is not public until its exact release commit passes the
+native ARM64 aggregate and the tag workflow validates the packaged VSIX in
+stable and minimum VS Code hosts on Windows, Linux, and macOS, publishes it to
+Open VSX, and reads the public registry artifact back. Changes to this README
+appear in the registry Overview only after that immutable release is published.
 
 ## Highlights
 
@@ -74,13 +71,13 @@ immutable extension version is packaged, gated, and published.
 Node.js `>= 22.12.0` and npm `>= 10.0.0` are required.
 
 ```bash
-npm i -g chainlesschain@0.163.5
+npm i -g chainlesschain@0.163.6
 cc --version
 ```
 
-Using `@0.163.5` reproduces the currently documented and fully gated public
-CLI pairing. Install a later CLI release to enable the Automation Center. Use
-`@latest` only when you intentionally want a newer published CLI.
+Using `@0.163.6` reproduces the currently documented and fully gated public
+CLI pairing, including Automation Center controls. Use `@latest` only when you
+intentionally want a newer published CLI.
 
 ### 2. Install the extension
 

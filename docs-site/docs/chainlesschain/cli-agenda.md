@@ -1,6 +1,6 @@
 # 长任务调度 — Monitor / Cron / Push（`cc agenda`）
 
-> **适用版本：CLI 0.163.5（npm latest）· 更新：2026-08-12 | wakeup/cron 已接入统一 Scheduler Kernel；monitor 保留兼容执行路径 | 一次性 wakeup + Cron + Monitor + 多渠道推送**
+> **适用版本：CLI 0.163.6（npm latest）· 更新：2026-08-12 | wakeup/cron/monitor 均接入统一 Scheduler Kernel | IANA 时区 + missed-run collapse + standalone daemon | 多渠道推送**
 >
 > 一次性的 Agent turn 无法给自己续命定时器。`cc agenda` 补齐了这个缺口：Agent 用 `schedule` 工具把「过一会儿/按 cron/满足条件时」的意图**持久化**下来，`cc agenda run`（由 `cc loop` 或系统 cron 常驻触发）在到点时真正执行——重新拉起 `cc agent`、或跑监控命令并在命中停止条件时经 `notify` 推送通知。
 
@@ -26,8 +26,9 @@ Agent 的一次执行是有始有终的：它跑完一轮就退出，没有一�
 - 💾 **JSONL 持久化 + 容错**: 三类调度共享 `~/.chainlesschain/agent-schedule/<kind>.jsonl`（`0600`），逐行解析，坏行跳过不炸整表。
 - 🔌 **可注入的执行副作用**: `cc agenda run` 的 spawn/命令执行/通知全部 deps 可注入——离线可单测；`--dry-run` / `--json`；任何单元失败 → 退出码 1。
 - 🕹️ **显式驻留或外部触发**：`cc agenda run --watch <seconds>` 可以前台常驻运行；也可用 `cc loop`、系统 cron/systemd timer 或单次 `cc agenda run`，生命周期始终由用户明确启动。
-- 🧷 **wakeup/cron 持久权威**：`0.163.5` 把这两类 Agent 执行接入统一 SQLite scheduler，保留完整 runPolicy，并用 snapshot digest、owner/fence lease、heartbeat、有限重试与 terminal evidence 恢复防止协作 driver 重复执行。
-- 👁️ **monitor 边界不变**：命令/文件/URL monitor 仍走 AgentScheduleStore 的兼容 claim 与安全策略路径，不要把 wakeup/cron 已迁移误读为 monitor 也已进入统一内核。
+- 🧷 **三类持久权威**：`0.163.6` 把 wakeup、cron 与 monitor 全部接入统一 SQLite scheduler，保留完整 runPolicy，并用 snapshot digest、owner/fence lease、heartbeat、有限重试与 terminal evidence recovery 防止协作 driver 重复执行。
+- 🌍 **明确时区与错过触发**：cron 可保存规范 IANA timezone；DST spring-forward gap 不制造不存在的时间，fall-back repeated minute 保留两个真实 occurrence，停机追赶只折叠到最近一个到期 occurrence。
+- 🛡️ **共享权限/预算**：每个 unattended principal 绑定 exact capability policy revision 与 run/unit 窗口预算；策略缺失、过期、停用、耗尽或不一致时失败闭合。
 
 ## 系统架构
 
@@ -48,7 +49,7 @@ Agent 的一次执行是有始有终的：它跑完一轮就退出，没有一�
  └───────────────────┬───────────────────────────┘
                      │ due 项
  ┌───────────────────▼───────────────────────────┐
- │ Scheduler Kernel（仅 wakeup / cron）          │
+ │ Scheduler Kernel（wakeup / cron / monitor）   │
  │ snapshot/CAS · logical occurrence · lease     │
  │ heartbeat · terminal evidence recovery        │
  └───────────────────┬───────────────────────────┘
@@ -156,7 +157,8 @@ cc agenda run --watch 30
 | 调度存储     | `~/.chainlesschain/agent-schedule/<kind>.jsonl`     | —           | `0600`，三类各一 JSONL，逐行容错          |
 | 通知渠道     | `NotificationManager.fromEnv`（环境变量配置）       | 无（no-op） | Telegram / WeCom / DingTalk / Feishu      |
 | cron 语法    | 标准 5 字段 `分 时 日 月 周`                         | —           | 支持 `*` `,` `-` `/`                      |
-| 常驻触发     | `cc agenda run --watch <seconds>` / `cc loop --every` / 系统 timer | 无（手动） | 仅显式前台驻留；standalone scheduler service 尚未发布 |
+| 常驻触发     | `cc daemon scheduler run --domains agenda` / `cc agenda run --watch <seconds>` / 系统 timer | 无（手动） | daemon 仍需用户或服务管理器显式启动 |
+| cron 时区    | `schedule(..., timezone="Asia/Shanghai")`                 | 宿主本地时区 | 使用 IANA 名称；保存时规范化并校验              |
 
 ## 性能指标
 
@@ -186,7 +188,7 @@ cc agenda run --watch 30
 - **持久化即执行**：`schedule` 写入的意图会被 `cc agenda run` **真正执行**（spawn agent / 跑 shell 命令）。调度存储以 `0600` 落盘，仅属主可读写；不要把不可信内容写进 monitor 的 `command`。
 - **plan mode 屏蔽**：`schedule` 和 `notify` 有外部/未来副作用，`planModeBehavior: blocked`——plan mode 预演时不会真的排期或推送。
 - **无渠道不静默失败**：`notify` 在没有配置任何通知渠道时返回明确的 no-op note，而不是假装发送成功。
-- **触发透明**：没有自动安装的后台服务；触发由用户显式的 `--watch`、`cc loop` 或系统 timer 掌控，便于审计与停用。
+- **触发透明**：`cc daemon scheduler` 已公开，但不会自行安装或开机启动；触发仍由用户显式前台运行或交给 systemd/launchd/Windows 服务管理器，便于审计与停用。
 - **不是全局 exactly-once**：协作 driver 与可读取的 terminal evidence 可以避免重复 Agent 执行；断电、磁盘回滚或 start-only 结果仍必须保守处理。
 
 ## 故障排除
@@ -194,6 +196,7 @@ cc agenda run --watch 30
 | 现象                          | 原因                             | 处理                                                       |
 | ----------------------------- | -------------------------------- | ---------------------------------------------------------- |
 | 排期了但从不触发              | 没有常驻触发器调用 `cc agenda run` | 起 `cc loop --every 1m -- cc agenda run` 或系统 cron       |
+| daemon 启动后立即拒绝执行     | scheduler capability/budget policy 缺失、过期或耗尽 | 用 `cc daemon scheduler policy get` 检查，再以 exact revision CAS 更新 |
 | `notify` 返回 no-op           | 未配置任何通知渠道               | 按 [`cc notification`](./cli-notification.md) 配置渠道环境变量 |
 | cron 从不匹配                 | cron 表达式写错                  | 用标准 5 字段 `分 时 日 月 周`；`cc agenda list` 看解析结果 |
 | monitor 一直不停              | `stop_when` 正则从不命中         | 检查正则；到 `max_checks` 会自动停                         |
@@ -208,6 +211,8 @@ cc agenda run --watch 30
 | `packages/cli/src/lib/agent-schedule-store.js`             | `AgentScheduleStore` + `parseCron` + `nextCronTime` + JSONL 持久化 |
 | `packages/cli/src/lib/scheduler-kernel/agenda-adapter.js`   | wakeup/cron snapshot、occurrence、双 driver fencing 与恢复策略     |
 | `packages/cli/src/lib/scheduler-kernel/runtime.js`          | claim、authority 复验、heartbeat、retry/dead-letter 与 settlement  |
+| `packages/cli/src/lib/scheduler-kernel/authority-resolver.js` | exact capability policy 与 transactional budget reservation       |
+| `packages/cli/src/commands/scheduler-daemon.js`             | `cc daemon scheduler run/policy` 常驻服务与治理控制面               |
 | `packages/cli/src/lib/agent-notify.js`                     | `sendAgentNotification`——包 `NotificationManager.fromEnv`     |
 | `packages/cli/src/runtime/coding-agent-contract-shared.cjs` | `notify` / `schedule` 工具契约                                |
 | `packages/cli/src/runtime/coding-agent-policy.cjs`         | `notify` / `schedule` 策略元数据（LOW / blocked / 非只读）    |
@@ -221,6 +226,23 @@ cc agenda run --watch 30
 （Agent 调用 schedule 工具）
 schedule(action="wakeup", delay="20m",
          prompt="检查刚才那个构建有没有过，没过就贴出失败日志")
+```
+
+### 1.1 指定 IANA 时区的 cron
+
+```
+schedule(action="cron", cron="0 9 * * 1-5", timezone="Asia/Shanghai",
+         prompt="生成工作日上午九点的项目日报")
+```
+
+### 1.2 启动统一常驻调度服务
+
+```bash
+# 单次检查，适合部署前验证
+cc daemon scheduler run --domains agenda --once --json
+
+# 常驻运行；Ctrl-C 可停止
+cc daemon scheduler run --domains agenda --interval 30
 ```
 
 ### 2. Agent 安排每日报告

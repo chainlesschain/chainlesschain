@@ -377,7 +377,7 @@ const categories = [
       ['routine run / trigger / runs', 'Unified Scheduler: routines, manual triggers, and run history'],
       ['agenda run --watch', 'Resident Agenda wakeup/cron scheduling'],
       ['cowork cron run', 'Durable Cowork Cron scheduling and recovery'],
-      ['automation run-scheduled', 'Source candidate: Automation Scheduler adapter'],
+      ['automation run-scheduled / center-projection', 'Unified Automation Scheduler and governed IDE control plane'],
       ['eco register / review / publish', 'Plugin ecosystem (AI review + sandbox)'],
       ['perf collect / evaluate / apply', 'Performance tuning suggestions'],
     ],
@@ -454,7 +454,7 @@ const packs = [
           175 top-level commands covering the full lifecycle from knowledge base to on-chain governance. Zero GUI dependency, plain text I/O — pipeable, scriptable, CI-ready.
         </p>
         <p class="mt-4 text-sm text-muted max-w-3xl">
-          The site recommends <strong class="text-ink">{CLI_VERSION}</strong>, which passed the complete Linux / Windows / macOS gate; npm latest and mainline source are <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong> / <strong class="text-ink">{SOURCE_CLI_VERSION}</strong>. Install commands pin the release tag whose exact SHA, three-OS gates, publication, and registry readback have been verified. The feature-branch Automation Scheduler adapter is labeled separately as a source candidate.
+          The site recommends <strong class="text-ink">{CLI_VERSION}</strong>, which passed the complete Linux / Windows / macOS gate; npm latest and mainline source are <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong> / <strong class="text-ink">{SOURCE_CLI_VERSION}</strong>. Install commands pin the release tag whose exact SHA, three-OS gates, publication, and registry readback have been verified. Automation scheduling, shared permission budgets, and the IDE Automation Center commands are part of the stable contract.
         </p>
 
         <!-- Install tabs -->
@@ -632,7 +632,7 @@ const packs = [
           The current CLI carries PDH 0.4.57. Source aliases, raw observations, field-level conflict decisions, rewritten references, and final entities commit in one transaction. Desktop, Web Panel, and CLI share one live-collection protocol; transient Cookie/OAuth inputs are not persisted, and partial reads, unreadable databases, or incomplete pagination retain the previous checkpoint for a safe resume.
         </p>
         <p class="mt-4 text-lg text-muted">
-          Stable release <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> adds a unified Scheduler on top of the existing background-worktree, Process Broker, canonical-session, and checkpoint-restore foundations: SQLite-backed state, lease claims, idempotent execution keys, missed-trigger recovery, and stable Routine, Agenda wakeup/cron, and Cowork Cron adapters. The current feature branch also carries an Automation Scheduler adapter, but it is not in main or the npm <code class="font-mono text-sm">0.163.5</code> contract. The same exact SHA passed three-OS CLI/Strict gates, npm publication, and independent readback; native validation still is not a signed Desktop/native release.
+          Stable release <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> unifies Agenda, Routine, Cowork, Automation, and Loop scheduler authority on top of the existing background-worktree, Process Broker, canonical-session, and checkpoint-restore foundations. It includes IANA timezone and DST/missed-run semantics, exact capability policies, transactional budgets, and CLI-owned Automation Center projections with revision-CAS actions. The same exact SHA passed three-OS CLI/Strict gates, npm publication, and independent readback; native validation still is not a signed Desktop/native release.
         </p>
       </div>
     </div>

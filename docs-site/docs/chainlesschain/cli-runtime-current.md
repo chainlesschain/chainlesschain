@@ -1,6 +1,6 @@
-# CLI Runtime 当前实现（0.163.5）
+# CLI Runtime 当前实现（0.163.6）
 
-> 更新时间：2026-08-12。npm `latest` 与生产推荐版均为 `0.163.5`。稳定能力以不可变 tag `v-npm-0-163-5` 的精确 SHA [`095087c1e8`](https://github.com/chainlesschain/chainlesschain/commit/095087c1e859a8451ce01ed58c59af3fede756fd) 为准；该 SHA 的 CLI CI、CLI Strict Sandbox、专用 npm 发布、provenance 与独立公网回读均已核验。当前 Automation adapter 工作分支晚于且不属于该 tag，本文单独标为源码候选。
+> 更新时间：2026-08-12。npm `latest`、生产推荐版与主线包元数据均为 `0.163.6`。稳定能力以不可变 tag `v-npm-0-163-6` 的精确 SHA [`85c3577c88`](https://github.com/chainlesschain/chainlesschain/commit/85c3577c887003fea98d0a159603cd359506f09b) 为准；该 SHA 的 CLI CI、CLI Strict Sandbox、专用 npm 发布、provenance 与独立公网回读均已核验。
 
 ## 概述
 
@@ -10,17 +10,17 @@
 
 | 用途                | 版本      | 说明                                                                                                                |
 | ------------------- | --------- | ------------------------------------------------------------------------------------------------------------------- |
-| 生产 / 日常稳定使用 | `0.163.5` | `v-npm-0-163-5` 的同一 exact SHA 已完成 Linux、Windows、macOS CLI CI、Strict Sandbox、制品与发布门 |
-| npm `latest`        | `0.163.5` | registry、tag、provenance、tarball 与授权 workflow 已交叉回读                                      |
-| 当前源码候选        | Automation adapter | `15a641fa85` 尚未合并到 `github/main` 或发布 tag，不继承 `0.163.5` 授权                  |
+| 生产 / 日常稳定使用 | `0.163.6` | `v-npm-0-163-6` 的同一 exact SHA 已完成 Linux、Windows、macOS CLI CI、Strict Sandbox、制品与发布门 |
+| npm `latest`        | `0.163.6` | registry、tag、provenance、tarball 与授权 workflow 已交叉回读                                      |
+| IDE 自动化控制      | CLI `0.163.6` + VS Code `0.37.50` / JetBrains `0.4.86` | Automation Center 命令与双 IDE 公开版已对齐 |
 
 生产安装建议显式固定：
 
 ```bash
-npm i -g chainlesschain@0.163.5
+npm i -g chainlesschain@0.163.6
 ```
 
-已安装 `0.163.5` 的用户就是当前生产推荐版。`0.163.4` 是上一完整门禁基线；旧的失败 tag 保持不可变，不移动或复用。
+已安装 `0.163.6` 的用户就是当前生产推荐版。`0.163.5` 是上一完整门禁基线；旧的失败 tag 保持不可变，不移动或复用。
 
 ## 核心特性
 
@@ -42,7 +42,9 @@ npm i -g chainlesschain@0.163.5
 - `0.163.4` capsule 与 scheduler store：exact-package 输入在有界 worker 的 immutable WASM VFS 中构建；scheduler SQLite store 提供 strict schema、revision CAS、logical-occurrence 去重、durable claim 与 history。
 - `0.163.5` 统一调度：Routine manual/cron/once、Agenda wakeup/cron 与 Cowork Cron 已接入共享 runtime。driver 领取 owner/fence lease、持续 heartbeat，并在执行前复验 definition snapshot 与 authority；只有可核验的 terminal evidence 才能在崩溃后补结算，start-only/outcome-unknown 不自动重放。
 - `0.163.5` microcompact：压缩 checkpoint 持久化并可在 REPL/Agent 恢复；瞬态 runtime marker 不进入长期状态。
-- 当前源码候选（未发布）：`15a641fa85` 把 `cc automation run-scheduled` 路由到同一内核；它不属于 npm `0.163.5`。Agenda monitor、Loop、Routine GitHub、standalone daemon、共享权限/预算与完整 timezone/DST/missed-run 语义仍未进入稳定契约。
+- `0.163.6` 统一调度收敛：Agenda monitor、Loop、Automation cron、Routine GitHub、scope-checked channel event 与 standalone daemon 已接入共享 scheduler；Agenda/Cowork cron 支持规范 IANA timezone、DST gap/repeated minute 与 missed-run collapse。
+- `0.163.6` 共享 authority：Agenda、Routine、Cowork、Automation、Loop 在执行前复验 exact capability policy revision，并以同一事务 reservation/settlement 处理 run/unit 预算；缺失、过期、停用、耗尽或不一致的策略失败闭合，retry 不重复扣减。
+- `0.163.6` Automation Center：CLI-owned versioned projection 暴露 scope、preflight 与 history；VS Code `0.37.50` / JetBrains `0.4.86` 通过 exact argv 与 revision CAS 执行 run-now、失败重试、pause/resume、disable/delete 及 Routine 创建/编辑。IDE 不直接写权威存储。
 - 原生发行边界：unsigned 六目标 native validation 与三系统两小时可靠性门已在同一精确 SHA 成功，但 validation 固定 `signed=false`、`releaseEligible=false`；Windows Authenticode、macOS signing/notarization、updater key 与公开原生 fresh install/upgrade/rollback 回读仍未完成。
 - 跨平台 sandbox 与 credential agent：前台、后台、hook、MCP、monitor、LSP、PTY 和插件 bin 都通过统一 broker 执行。
 - 强执行路径补齐：插件异步/后台进程、通用后台任务、CLI PTY 与桌面项目 PTY 共用失败闭合边界；未经证明的项目根和远端 metadata 不能获得本机 PTY 权限。
@@ -77,8 +79,8 @@ cc
  ├─ durable event / interaction journal
  ├─ scheduler kernel
  │    ├─ versioned SQLite + revision CAS + occurrence history
- │    ├─ stable: Routine / Agenda wakeup+cron / Cowork Cron
- │    └─ source candidate: Automation cron
+ │    ├─ Routine / Agenda / Cowork / Automation / Loop adapters
+ │    └─ exact capability policy + transactional budget authority
  ├─ MCP ws/wss + uncertain-outcome recovery authority
  │    └─ stdio runtime identity + source policy/workspace authority → Broker
  ├─ bounded usage / retry attribution
@@ -109,8 +111,8 @@ cc
 - `packages/cli/src/lib/paths.js`：`CHAINLESSCHAIN_HOME` 与运行目录解析。
 - `packages/cli/src/lib/session-hooks.js`：通知与会话钩子。
 - `packages/cli/src/lib/scheduler-kernel/{contract,store,runtime}.js`：统一调度契约、SQLite 状态与 host-owned runtime。
-- `packages/cli/src/lib/scheduler-kernel/{routine,agenda,cowork-cron}-adapter.js`：`0.163.5` 已发布 adapter。
-- `packages/cli/src/lib/scheduler-kernel/automation-adapter.js`：当前工作分支候选，不属于稳定安装包。
+- `packages/cli/src/lib/scheduler-kernel/{routine,agenda,cowork-cron,automation,loop,automation-event}-adapter.js`：`0.163.6` 已发布 adapter。
+- `packages/cli/src/lib/scheduler-kernel/authority-resolver.js`、`service.js`：共享权限/预算解析与常驻 scheduler service。
 
 ## 平台注意
 
@@ -134,7 +136,7 @@ cc mcp add my-server --command node --args ./server.mjs \
   --runtime-kind node --auto-connect
 ```
 
-`0.163.5` 允许在 `.mcp.json`、managed settings、Skill 或 Cowork 定义中声明 source-required boundary：
+`0.163.6` 允许在 `.mcp.json`、managed settings、Skill 或 Cowork 定义中声明 source-required boundary：
 
 ```json
 {
@@ -156,7 +158,7 @@ source 配置中的 `requiredBoundaries` 当前只接受 `filesystem` 和 `netwo
 
 ## 在 IDE 中查看质量、插件、Worktree 与 Agent Teams
 
-Open VSX 当前公开 VS Code `0.37.49`，JetBrains Marketplace 当前公开 `0.4.85`。生产建议搭配 CLI `0.163.5`：
+Open VSX 当前公开 VS Code `0.37.50`，JetBrains Marketplace 当前公开 `0.4.86`。生产建议搭配 CLI `0.163.6`：
 
 - 质量上下文只发送有界的测试结果、覆盖率与调试器快照，并标注新鲜度；VS Code Notebook 使用当前 notebook 的真实执行上下文。
 - Installation Doctor 会同时检查 Node/Java、managed CLI 与插件 registry 离线恢复状态，不从工作区目录探测可执行文件。
@@ -165,7 +167,7 @@ Open VSX 当前公开 VS Code `0.37.49`，JetBrains Marketplace 当前公开 `0.
 - Team Monitor 只读观察本地 v6 或 queue v1 原始状态；takeover、managed checkpoint recovery 与 side-effect adjudication 通过解析出的 CLI 执行，并绑定精确 authority digest、lease 和 evidence fence。IDE 不直接改写权威 JSON。
 - 用量视图显示真实工具耗时、观测重试与实际 provider/model 的脱敏 retry 原因。
 - Sessions Workbench 只消费 CLI-owned session projection，并按 exact revision 决定 resume、attach、delivery 与 remote-control 动作；可恢复 delivery 覆盖 GitHub、Gitee、configured remote 与 manual handoff，rewind/branch timeline 绑定 session、workspace、repository head、checkpoint revision 与 manifest digest。
-- VS Code `0.37.49` / JetBrains `0.4.85` 公开版重新认证 local/background/remote/team/workflow 五类 canonical session、artifact/PR 回读、独立 IDE 进程重启恢复及 11 格 ARM64 聚合；这两个维护版本无意改变用户行为。
+- VS Code `0.37.50` / JetBrains `0.4.86` 公开版新增 Automation Center，并继续认证 local/background/remote/team/workflow 五类 canonical session、artifact/PR 回读、独立 IDE 进程重启恢复及真实宿主聚合。
 
 ## 托管回滚与 Agent Team 边界
 
@@ -264,7 +266,7 @@ npm run test:integration
 npm run test:e2e
 ```
 
-`0.163.5` 的权威发布提交为 [`095087c1e859a8451ce01ed58c59af3fede756fd`](https://github.com/chainlesschain/chainlesschain/commit/095087c1e859a8451ce01ed58c59af3fede756fd)。同一 `head_sha` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31509337185)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31509336854)、[npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/31509336832)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/31514940240)均成功。Linux、Windows、macOS 的权威矩阵必须绑定精确提交；本地结果和当前 Automation 分支测试只能补充，不能替代发布门。
+`0.163.6` 的权威发布提交为 [`85c3577c887003fea98d0a159603cd359506f09b`](https://github.com/chainlesschain/chainlesschain/commit/85c3577c887003fea98d0a159603cd359506f09b)。同一 `head_sha` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31595865423)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31595865206)、[npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/31595865181)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/31597577056)均成功。Linux、Windows、macOS 的权威矩阵必须绑定精确提交；本地结果只能补充，不能替代发布门。
 
 ## 相关文档
 

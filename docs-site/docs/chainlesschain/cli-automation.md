@@ -4,7 +4,7 @@
 >
 > 12 个 SaaS 连接器 + 5 种触发器类型 + DAG 拓扑排序 + 条件分支执行。
 >
-> **版本边界（2026-08-12）**：`0.163.5` 是 npm 稳定版；当前工作分支 `15a641fa85` 新增 `automation run-scheduled` 的统一 Scheduler Kernel 路由，但尚未进入 `github/main` 或 npm tag。下文凡标“源码候选”的命令不能视为稳定安装包能力。
+> **版本边界（2026-08-12）**：`0.163.6` 是 npm `latest` 与生产推荐版。`automation run-scheduled`、execution preflight/budget、scope-checked channel event 以及双 IDE Automation Center 均已进入公开安装契约。
 
 ---
 
@@ -24,7 +24,9 @@ Airtable/Figma/Linear/Confluence），支持 webhook/schedule/email/form/manual 
 - **生命周期管理** — `draft → active → paused → archived`；`activate/pause/archive/delete` 状态机
 - **模板共享** — 导出/导入自定义模板，`share --public` 公开
 - **执行日志** — 每次执行记录步骤级详情、输入输出、错误堆栈
-- **定时执行候选** — `automation run-scheduled` 将 active+scheduled flow 绑定为 immutable snapshot，使用 logical occurrence 去重、owner/fence lease 与确定性 execution id；只恢复可验证成功证据，不自动重放 outcome-unknown 副作用
+- **持久定时执行** — `automation run-scheduled` 将 active+scheduled flow 绑定为 immutable snapshot，使用 logical occurrence 去重、owner/fence lease 与确定性 execution id；只恢复可验证成功证据，不自动重放 outcome-unknown 副作用
+- **执行前置检查与预算** — creator identity、`automation:execute`、连接器 RBAC、live revocation、flow run/action budget 与共享 scheduler policy revision 分层复验
+- **Automation Center** — CLI 生成 versioned projection 和 exact argv；VS Code `0.37.50` / JetBrains `0.4.86` 通过 revision CAS 管理 flow 与 cron/once/webhook/GitHub Routine
 - **V2 治理层** — `-v2` 后缀：4 态 automation maturity + 5 态 execution lifecycle，cap + auto-pause-idle + auto-fail-stuck
 
 ---
@@ -47,7 +49,7 @@ Airtable/Figma/Linear/Confluence），支持 webhook/schedule/email/form/manual 
 ├──────────────────────────────────────────────────────┤
 │  SQLite (automation_flows / triggers / executions)    │
 ├──────────────────────────────────────────────────────┤
-│  Scheduler Kernel candidate (kernel-v1.sqlite)        │
+│  Scheduler Kernel (kernel-v1.sqlite)                  │
 │  snapshot/CAS · occurrence dedup · lease · recovery   │
 └──────────────────────────────────────────────────────┘
 ```
@@ -103,6 +105,8 @@ __tests__/unit/automation-engine.test.js — 114 tests (1285 lines)
 3. **cron 频率限制** — schedule 触发器后端强制最小间隔，防止滥用
 4. **步骤失败重试** — 指数退避重试，避免外部服务过载
 5. **审计日志** — 所有 activate/pause/archive/delete 操作写入审计链
+6. **失败闭合的无人值守权限** — 缺少 creator、`automation:execute`、连接器权限、预算或共享 scheduler policy 时拒绝运行；重试复用原 reservation
+7. **作用域事件去重** — `dispatch-channel-event` 要求稳定 source event id，仅接受 webhook/Telegram origin，并在 durable scope check 后触发匹配 flow
 
 ---
 
@@ -117,7 +121,7 @@ __tests__/unit/automation-engine.test.js — 114 tests (1285 lines)
 **Q: 定时任务未按计划触发?**
 
 1. 验证 cron 表达式语法（`auto schedule <id> --cron` 传入后会解析）
-2. npm `0.163.5` 尚不包含 `run-scheduled`；仅在包含 `15a641fa85` 的源码工作树中运行 `chainlesschain auto run-scheduled`
+2. 确认已安装 `chainlesschain@0.163.6`，再运行 `chainlesschain auto run-scheduled --json`
 3. 确认 flow 状态为 `active`；`draft/paused/archived` 不会被 scheduler 入队
 4. V2 下检查是否被 `auto-pause-idle` 自动暂停
 
@@ -133,7 +137,10 @@ __tests__/unit/automation-engine.test.js — 114 tests (1285 lines)
 
 - `packages/cli/src/commands/automation.js` — Commander 子命令（~924 行）
 - `packages/cli/src/lib/automation-engine.js` — DAG 引擎与连接器
-- `packages/cli/src/lib/scheduler-kernel/automation-adapter.js` — 源码候选：scheduled flow snapshot、occurrence 与恢复策略
+- `packages/cli/src/lib/scheduler-kernel/automation-adapter.js` — scheduled flow snapshot、occurrence 与恢复策略
+- `packages/cli/src/lib/automation-execution-authority.js` — creator / connector RBAC / flow budget 前置检查与结算
+- `packages/cli/src/lib/automation-center.js`、`automation-center-routines.js` — versioned projection、revision-CAS flow/Routine 控制面
+- `packages/cli/src/lib/scheduler-kernel/automation-event-adapter.js` — channel event scope、去重与执行
 - `packages/cli/src/lib/scheduler-kernel/runtime.js` — 共享 claim/lease/heartbeat/settlement runtime
 - `packages/cli/__tests__/unit/automation-engine.test.js` — 单测（114 tests）
 - 数据表：`automation_flows` / `automation_triggers` / `automation_executions`
@@ -155,7 +162,7 @@ chainlesschain auto add-trigger $fid --type webhook --config '{"path":"/hooks/fo
 # 3. 定时触发（工作日 9:00）
 chainlesschain auto schedule $fid --cron "0 9 * * 1-5"
 
-# 源码候选（15a641fa85；不在 npm 0.163.5）
+# npm 0.163.6：统一 Scheduler
 chainlesschain auto run-scheduled
 chainlesschain auto run-scheduled --json
 chainlesschain auto run-scheduled --lease-ms 60000
@@ -202,7 +209,7 @@ chainlesschain auto delete <flow-id>      # 删除
 
 # 定时调度
 chainlesschain auto schedule <flow-id> --cron "0 9 * * 1-5"
-# 源码候选：运行所有当前到期的 active cron flow
+# 运行所有当前到期的 active cron flow
 chainlesschain auto run-scheduled [--json] [--lease-ms 60000]
 
 # 分享与模板
@@ -210,6 +217,49 @@ chainlesschain auto share <flow-id> --public
 chainlesschain auto templates                           # 列出模板
 chainlesschain auto import-template <template-id>       # 导入模板
 ```
+
+---
+
+## 执行权限、预算与 channel event
+
+无人值守执行前先为 flow 设置固定窗口预算，再查看 live RBAC 与剩余额度：
+
+```bash
+chainlesschain auto set-execution-budget <flow-id> \
+  --window-ms 3600000 --max-runs 20 --max-action-steps 200
+chainlesschain auto execution-preflight <flow-id> --json
+
+# Webhook / Telegram 接入层传入稳定事件 ID；相同 ID 会被持久去重
+chainlesschain auto dispatch-channel-event \
+  --event-id webhook-20260812-001 --origin webhook \
+  --sender build-service --text "production build failed" \
+  --meta '{"repository":"acme/app"}' --json
+```
+
+`execution-preflight` 同时展示 principal、每个连接器权限以及剩余 run/action-step 配额。它通过不代表未来永久可用；实际执行仍会再次读取 live revocation、flow budget 与共享 scheduler policy revision。
+
+## Automation Center 与 IDE
+
+IDE 只消费 `center-projection`，不直接编辑 Automation/Routine 的 SQLite 或 JSON 文件。每个 mutation 都必须携带投影展示的 exact revision；投影过期时失败闭合并要求刷新。
+
+```bash
+# IDE/集成方读取版本化投影
+chainlesschain auto center-projection --limit 100 --json
+
+# Flow 动作：run_now | retry_failed | pause | resume | disable | delete
+chainlesschain auto center-action <flow-id> pause \
+  --expected-revision <revision> --json
+
+# Routine 动作：run_now | retry_failed | pause | resume | disable | delete
+chainlesschain auto center-routine-action <routine-id> run_now \
+  --expected-revision <revision> --json
+
+# PowerShell：定义由有界 JSON stdin 输入，禁止 shell 拼接
+Get-Content routine.json | chainlesschain auto center-routine-create --expected-revision <catalog-revision> --json-stdin --json
+Get-Content routine.json | chainlesschain auto center-routine-edit <routine-id> --expected-revision <item-revision> --json-stdin --json
+```
+
+VS Code 在 Activity Bar 打开 **ChainlessChain Automation**；JetBrains 在 **View → Tool Windows → ChainlessChain Automation** 打开。两端都显示 scope、preflight、运行历史与可用动作，最终权威仍由 CLI 持有。
 
 ---
 

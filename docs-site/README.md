@@ -2,7 +2,7 @@
 
 这是ChainlessChain项目的官方文档网站，使用VitePress构建。
 
-> 当前文档快照（2026-08-12）：产品源码 `v5.0.3.135`，npm `latest`、生产推荐 CLI 与主线源码均为 `0.163.5`。该版正式提供统一 Scheduler 内核及 Routine、Agenda wakeup/cron、Cowork Cron 适配器；当前功能分支的 Automation Scheduler 适配器（`15a641fa85`）仍是源码候选，不属于 npm 契约。Open VSX 为 `0.37.49`，JetBrains Marketplace 为 `0.4.85`。
+> 当前文档快照（2026-08-12）：产品源码 `v5.0.3.135`，npm `latest`、生产推荐 CLI 与主线源码均为 `0.163.6`。该版正式提供统一 Scheduler、五域共享 permission/budget authority、IANA timezone/missed-run 语义及 Automation/Routine 治理控制面。Open VSX 为 `0.37.50`，JetBrains Marketplace 为 `0.4.86`。
 
 ## 📚 文档内容
 
