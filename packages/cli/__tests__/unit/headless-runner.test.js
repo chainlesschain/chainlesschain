@@ -216,6 +216,9 @@ describe("headless-runner — exact delivery fixer authority", () => {
 });
 
 describe("headless-runner — output formats", () => {
+  // This test imports the full headless runner graph and can share a saturated
+  // Windows shard with filesystem-heavy worktree tests. Keep the assertion
+  // strict while allowing CI startup/cleanup overhead to settle.
   it("routes EPIPE through the normal MCP cleanup before returning success", async () => {
     const previousExitCode = process.exitCode;
     const disconnectAll = vi.fn(async () => {});
@@ -257,7 +260,7 @@ describe("headless-runner — output formats", () => {
     } finally {
       process.exitCode = previousExitCode;
     }
-  }, 15_000);
+  }, 30_000);
 
   it("bounds hung cleanup and starts every later single-turn disposer", async () => {
     const { deps } = makeDeps(replyText("done"));
