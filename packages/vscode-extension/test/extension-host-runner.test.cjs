@@ -37,6 +37,7 @@ const {
   runHostApiPhase,
   runRealDomPhase,
   settleHostAfterCdp,
+  stopManagedHostAfterActivationFailure,
   writeCompanionWorkspace,
   writeMultiRootWorkspace,
 } = require("./extension-host/run.cjs");
@@ -589,6 +590,33 @@ test("hung hosts are shut down after the CDP deadline", async () => {
   assert.equal(signalCount, 1);
 });
 
+test("activation-ready failures force a bounded managed-host shutdown", async () => {
+  let resolveHost;
+  const signals = [];
+  const host = {
+    error: Object.assign(new Error("terminated"), { signal: "SIGKILL" }),
+  };
+  const launched = {
+    outcome: new Promise((resolve) => {
+      resolveHost = resolve;
+    }),
+    requestStop() {
+      signals.push(signals.length === 0 ? "SIGINT" : "SIGKILL");
+      if (signals.length === 2) resolveHost(host);
+    },
+  };
+
+  const result = await stopManagedHostAfterActivationFailure({
+    launched,
+    phase: "initial",
+    graceMs: 5,
+    forceGraceMs: 5,
+  });
+
+  assert.deepEqual(signals, ["SIGINT", "SIGKILL"]);
+  assert.deepEqual(result, { value: host });
+});
+
 test("diagnostic discovery is limited to release-relevant host logs", () => {
   const root = temporaryRoot();
   const logs = path.join(root, "user-data-restart", "logs", "window1");
@@ -658,6 +686,10 @@ test("host-API launch keeps the real extension-test profile without CDP", () => 
     args.some((arg) => arg.startsWith("--remote-debugging")),
     false,
   );
+  assert.ok(args.includes("--use-inmemory-secretstorage"));
+  assert.ok(args.includes("--disable-background-timer-throttling"));
+  assert.ok(args.includes("--disable-backgrounding-occluded-windows"));
+  assert.ok(args.includes("--disable-renderer-backgrounding"));
 });
 
 test("external companion launch uses a distinct real VS Code profile", () => {
@@ -911,6 +943,119 @@ test("non-Windows multi-window gate orchestrates two bounded real hosts", async 
     "multi_window_companion_launch_requested",
     "multi_window_companion_launch_dispatched",
   ]);
+});
+
+test("macOS multi-window gate retries a primary activation timeout once", async () => {
+  const root = temporaryRoot();
+  const runtimeDir = path.join(root, "multi-window-runtime");
+  const workspaceDir = path.join(root, "workspace");
+  const extensionsDir = path.join(root, "extensions");
+  const profileHome = path.join(root, "home");
+  const companionWorkspace = path.join(root, "workspace-companion");
+  const progressPath = path.join(root, "progress.jsonl");
+  for (const directory of [
+    workspaceDir,
+    extensionsDir,
+    profileHome,
+    companionWorkspace,
+  ]) {
+    fs.mkdirSync(directory, { recursive: true });
+  }
+  fs.writeFileSync(progressPath, "", "utf8");
+
+  const launches = [];
+  const stops = [];
+  const hostResolvers = [];
+  const { resultFile } = hostPhaseSignalPaths(runtimeDir, "initial");
+  const result = await runHostApiPhase({
+    runTests: async () => assert.fail("macOS hosts must be managed"),
+    vscodeExecutablePath: path.join(root, "Code"),
+    workspaceDir,
+    profileArgs: buildProfileArgs({
+      runRoot: root,
+      extensionsDir,
+      phase: "multi-window",
+    }),
+    extensionsDir,
+    profileHome,
+    expectedVersion: "0.37.45",
+    phase: "initial",
+    runtimeDir,
+    fixture: {
+      statePath: path.join(root, "fixture-state.json"),
+      tracePath: path.join(root, "fixture-trace.jsonl"),
+    },
+    companionWorkspace,
+    multiWindowEvidenceFile: path.join(root, "multi-window-evidence.json"),
+    progressPath,
+    includeMultiWindow: true,
+    platform: "darwin",
+    primaryActivationTimeoutMs: 5,
+    managedHostShutdownGraceMs: 5,
+    managedHostForceGraceMs: 5,
+    launchManagedHost(options) {
+      const index = launches.push(options) - 1;
+      let resolveHost;
+      const outcome = new Promise((resolve) => {
+        resolveHost = resolve;
+      });
+      hostResolvers.push(resolveHost);
+      if (index === 1) {
+        writeJsonSignal(
+          options.extensionTestsEnv
+            .CHAINLESSCHAIN_MULTI_WINDOW_PRIMARY_READY_FILE,
+          { phase: "initial", role: "primary", hostArchitecture: process.arch },
+        );
+      }
+      if (index === 2) {
+        writeJsonSignal(resultFile, {
+          ok: true,
+          phase: "initial",
+          mode: "host-api",
+          completedAt: "2026-08-12T00:00:00.000Z",
+        });
+        hostResolvers[1](0);
+        hostResolvers[2](0);
+      }
+      return {
+        outcome,
+        requestStop() {
+          stops.push(index);
+          if (
+            index === 0 &&
+            stops.filter((value) => value === 0).length === 2
+          ) {
+            resolveHost(0);
+          }
+        },
+      };
+    },
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(launches.length, 3);
+  assert.deepEqual(stops, [0, 0]);
+  assert.ok(
+    launches[1].launchArgs.some((argument) =>
+      argument.includes("user-data-multi-window-activation-retry-2"),
+    ),
+  );
+  assert.match(
+    launches[1].extensionTestsEnv.CHAINLESSCHAIN_SMOKE_USER_DATA_DIR,
+    /user-data-multi-window-activation-retry-2$/u,
+  );
+  const progressStages = fs
+    .readFileSync(progressPath, "utf8")
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line).stage);
+  assert.ok(progressStages.includes("multi_window_primary_launch_retry"));
+  assert.equal(
+    progressStages.filter(
+      (stage) => stage === "multi_window_primary_launch_requested",
+    ).length,
+    2,
+  );
 });
 
 test("macOS DOM relay launches without a debugger transport", async () => {

@@ -438,6 +438,14 @@ function buildHostInspectorLaunchArgs({
 function buildHostApiLaunchArgs({ workspaceDir, profileArgs }) {
   return [
     ...profileArgs,
+    // Keep isolated automation hosts away from the login Keychain. On fresh
+    // macOS ARM64 runners, stable VS Code can otherwise open its main window
+    // but never activate the extension-test driver while waiting on the
+    // system secret-storage prompt.
+    "--use-inmemory-secretstorage",
+    "--disable-background-timer-throttling",
+    "--disable-backgrounding-occluded-windows",
+    "--disable-renderer-backgrounding",
     "--disable-extension-update-checks",
     "--disable-telemetry",
     "--disable-crash-reporter",
@@ -781,6 +789,33 @@ async function settleHostAfterCdp({
   return { host, managedTermination: true };
 }
 
+async function stopManagedHostAfterActivationFailure({
+  launched,
+  phase,
+  graceMs = 5_000,
+  forceGraceMs = 15_000,
+}) {
+  const hostOutcome = launched.outcome.then(
+    (value) => ({ value }),
+    (error) => ({ error }),
+  );
+  launched.requestStop();
+  let host = await waitForOutcome(hostOutcome, graceMs);
+  if (host !== null) return host;
+
+  process.stderr.write(
+    `[extension-host-smoke] ${phase}: activation-ready host ignored graceful shutdown; terminating its process tree\n`,
+  );
+  launched.requestStop();
+  host = await waitForOutcome(hostOutcome, forceGraceMs);
+  if (host === null) {
+    throw new Error(
+      `VS Code host did not exit after activation-ready failure during ${phase}`,
+    );
+  }
+  return host;
+}
+
 async function runRealDomPhase({
   runTests,
   vscodeExecutablePath,
@@ -1058,6 +1093,9 @@ async function runHostApiPhase({
   includeMultiWindow = false,
   platform = process.platform,
   launchManagedHost = launchManagedExtensionHost,
+  primaryActivationTimeoutMs = 90_000,
+  managedHostShutdownGraceMs = 5_000,
+  managedHostForceGraceMs = 15_000,
 }) {
   const launchTarget = workspaceTarget || workspaceDir;
   const expectedWorkspaceFolders = workspaceFolders || [workspaceDir];
@@ -1114,38 +1152,92 @@ async function runHostApiPhase({
     },
   };
   if (useExternalCompanion) {
-    recordHostProgress(progressPath, "multi_window_primary_launch_requested", {
-      actor: "orchestrator",
-      transport: "managed-extension-host",
-    });
-    const primaryHost = launchManagedHost(launchOptions);
-    recordHostProgress(progressPath, "multi_window_primary_launch_dispatched", {
-      actor: "orchestrator",
-      transport: "managed-extension-host",
-    });
-    const primaryReadyOutcome = waitForFile(
-      primaryActivationReadyFile,
-      90_000,
-    ).then(
-      () => ({ source: "ready" }),
-      (error) => ({ source: "ready", error }),
-    );
-    const primaryHostOutcome = primaryHost.outcome.then(
-      (value) => ({ source: "host", value }),
-      (error) => ({ source: "host", error }),
-    );
-    const firstPrimaryOutcome = await Promise.race([
-      primaryReadyOutcome,
-      primaryHostOutcome,
-    ]);
-    if (firstPrimaryOutcome.error || firstPrimaryOutcome.source === "host") {
-      primaryHost.requestStop();
-      await primaryHost.outcome.catch(() => {});
-      if (firstPrimaryOutcome.error) throw firstPrimaryOutcome.error;
-      throw new Error(
-        "primary VS Code host exited before its activation-ready signal",
+    const primaryAttempts = platform === "darwin" ? 2 : 1;
+    let primaryHost = null;
+    let activationError = null;
+    for (let attempt = 1; attempt <= primaryAttempts; attempt += 1) {
+      fs.rmSync(primaryActivationReadyFile, { force: true });
+      const attemptLaunchOptions =
+        attempt === 1
+          ? launchOptions
+          : {
+              ...launchOptions,
+              launchArgs: launchOptions.launchArgs.map((argument) =>
+                argument.startsWith("--user-data-dir=")
+                  ? `${argument}-activation-retry-${attempt}`
+                  : argument,
+              ),
+              extensionTestsEnv: {
+                ...launchOptions.extensionTestsEnv,
+                CHAINLESSCHAIN_SMOKE_USER_DATA_DIR: `${userDataDir}-activation-retry-${attempt}`,
+              },
+            };
+      recordHostProgress(
+        progressPath,
+        "multi_window_primary_launch_requested",
+        {
+          actor: "orchestrator",
+          transport: "managed-extension-host",
+          attempt,
+        },
       );
+      primaryHost = launchManagedHost(attemptLaunchOptions);
+      recordHostProgress(
+        progressPath,
+        "multi_window_primary_launch_dispatched",
+        {
+          actor: "orchestrator",
+          transport: "managed-extension-host",
+          attempt,
+        },
+      );
+      const readyAbort = new AbortController();
+      const primaryReadyOutcome = waitForFile(
+        primaryActivationReadyFile,
+        primaryActivationTimeoutMs,
+        readyAbort.signal,
+      ).then(
+        () => ({ source: "ready" }),
+        (error) => ({ source: "ready", error }),
+      );
+      const primaryHostOutcome = primaryHost.outcome.then(
+        (value) => ({ source: "host", value }),
+        (error) => ({ source: "host", error }),
+      );
+      const firstPrimaryOutcome = await Promise.race([
+        primaryReadyOutcome,
+        primaryHostOutcome,
+      ]);
+      readyAbort.abort();
+      if (
+        !firstPrimaryOutcome.error &&
+        firstPrimaryOutcome.source === "ready"
+      ) {
+        activationError = null;
+        break;
+      }
+
+      activationError =
+        firstPrimaryOutcome.error ||
+        new Error(
+          "primary VS Code host exited before its activation-ready signal",
+        );
+      await stopManagedHostAfterActivationFailure({
+        launched: primaryHost,
+        phase,
+        graceMs: managedHostShutdownGraceMs,
+        forceGraceMs: managedHostForceGraceMs,
+      });
+      if (attempt < primaryAttempts) {
+        recordHostProgress(progressPath, "multi_window_primary_launch_retry", {
+          actor: "orchestrator",
+          transport: "managed-extension-host",
+          attempt: attempt + 1,
+          reason: "activation-ready-timeout-or-early-exit",
+        });
+      }
     }
+    if (activationError) throw activationError;
     recordHostProgress(
       progressPath,
       "multi_window_primary_activation_ready_observed",
@@ -1707,6 +1799,7 @@ module.exports = {
   runHostApiPhase,
   runRealDomPhase,
   settleHostAfterCdp,
+  stopManagedHostAfterActivationFailure,
   writeMultiRootWorkspace,
   writeCompanionWorkspace,
 };
