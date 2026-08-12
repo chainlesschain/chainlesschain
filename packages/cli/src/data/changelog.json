@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.163.6",
+      "cliVersions": ["0.163.5", "0.163.6"],
+      "date": "2026-08-12",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added — cc CLI 0.163.6: unified scheduler authority and automation control",
+          "body": "> `chainlesschain` **0.163.5 → 0.163.6** (candidate; not yet published,\n> 2026-08-12).\n> CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.57**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Complete scheduler adapter migration**: Agenda monitors, Loop iterations,\n  Automation cron flows, Routine GitHub polling, channel automation events,\n  and the standalone daemon now execute through the shared scheduler service\n  with durable claims, definition snapshots, recovery fences, and bounded\n  retry/dead-letter behavior.\n- **Timezone and missed-run consistency**: Agenda and Cowork cron definitions\n  persist canonical IANA timezones, handle DST gaps and repeated civil times,\n  and collapse downtime to one latest due occurrence without replay storms.\n- **Shared scheduler permission and budget authority**: Agenda, Routine,\n  Cowork, Automation, and Loop bind exact capability policies to durable\n  revisions and use one transactional reservation/settlement path. Missing,\n  stale, disabled, exhausted, or inconsistent policy state fails closed;\n  retries reuse the original reservation instead of charging twice.\n- **Layered Automation enforcement**: the shared scheduler authority composes\n  with Automation's creator identity, connector permissions, live revocation,\n  and per-flow run/action budgets. Domain evidence and the scheduler policy\n  revision remain independently validated.\n- **Governed management surfaces**: scheduler policy inspection/update commands\n  require exact capabilities and revision CAS, while the Automation Center\n  exposes governed flow and Routine controls without bypassing backend\n  permission or budget checks.\n- **Known residuals**: durable outcome-unknown adjudication, complete mixed-\n  version migration/rollback, scheduler disk-fault closure, and the three-OS\n  long-soak matrix remain open. Signed native distribution and representative\n  alias-removal telemetry also remain outside this release.\n- **Release status**: final tag, source SHA, workflow run IDs, package digest,\n  provenance, and registry readback are intentionally omitted until the exact\n  `0.163.6` release commit passes the complete `CLI CI` and `CLI Strict Sandbox`\n  Linux, Windows, and macOS matrices, followed by the dedicated npm release and\n  independent public readback workflows."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.163.5",
       "cliVersions": ["0.163.4", "0.163.5"],
       "date": "2026-08-11",
