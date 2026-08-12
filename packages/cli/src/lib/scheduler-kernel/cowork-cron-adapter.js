@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { resolve } from "node:path";
 import {
   advanceScheduleNextAt,
+  adjudicateSchedulerScheduleFire,
   bindSchedulerScheduleFire,
   completeSchedulerScheduleFire,
   coworkCronFireKey,
@@ -371,6 +372,39 @@ export function createCoworkCronSchedulerAdapter({ runTask, now } = {}) {
   }
   return {
     kind: COWORK_CRON_SCHEDULER_KIND,
+    async adjudicate({ occurrence, adjudication }) {
+      const payload = occurrence.payload;
+      const cwd = normalizedCwd(payload.cwd);
+      const expected = coworkCronScheduleSnapshot(payload.schedule);
+      const expectedDigest = coworkCronScheduleDigest(expected);
+      if (payload.snapshotDigest !== expectedDigest) {
+        throw coworkCronError(
+          "COWORK_CRON_ADJUDICATION_SNAPSHOT_INVALID",
+          `Cowork cron adjudication snapshot is invalid: ${occurrence.id}`,
+        );
+      }
+      adjudicateSchedulerScheduleFire(cwd, expected.id, {
+        deliveryId: occurrence.triggerKey,
+        occurrenceId: occurrence.id,
+        snapshotDigest: expectedDigest,
+        attempt: adjudication.expectedAttempt,
+        decision: adjudication.decision,
+        requestId: adjudication.requestId,
+        at: now(),
+      });
+      if (adjudication.decision === "confirmed_applied") {
+        return {
+          settled: true,
+          result: {
+            scheduleId: expected.id,
+            deliveryId: occurrence.triggerKey,
+            status: "adjudicated-applied",
+            adjudicationRequestId: adjudication.requestId,
+          },
+        };
+      }
+      return { continue: true };
+    },
     async execute({ occurrence, signal }) {
       const payload = occurrence.payload;
       const expected = coworkCronScheduleSnapshot(payload?.schedule);

@@ -242,6 +242,66 @@ describe("scheduler-kernel Loop adapter", () => {
     });
   });
 
+  it("runs exactly once after confirmed-not-applied adjudication", async () => {
+    const f = fixture();
+    const store = f.open();
+    const definition = f.definition();
+    const occurrence = enqueueLoopIteration(store, definition, 1, {
+      scheduledFor: f.now,
+    });
+    store.claimOccurrence({
+      occurrenceId: occurrence.id,
+      ownerId: "crashed-owner",
+      leaseMs: 1_000,
+    });
+    f.now += 1_001;
+    const failClosed = new LoopSchedulerBridge({
+      schedulerStore: store,
+      definition,
+      runIteration: vi.fn(),
+      ownerId: "fail-close-owner",
+      leaseMs: 1_000,
+    });
+    await expect(
+      failClosed.runIteration(1, { scheduledFor: occurrence.scheduledFor }),
+    ).rejects.toMatchObject({ code: "LOOP_SCHEDULER_OUTCOME_UNKNOWN" });
+    const candidate = store.getAdjudicationCase(occurrence.id);
+    store.adjudicateOccurrence({
+      occurrenceId: occurrence.id,
+      decision: "confirmed_not_applied",
+      expectedEvidenceDigest: candidate.evidenceDigest,
+      expectedAttempt: candidate.attempt,
+      expectedFence: candidate.fence,
+      reasonDigest: `sha256:${"e".repeat(64)}`,
+      operatorDigest: `sha256:${"9".repeat(64)}`,
+    });
+    const runIteration = vi.fn(async () => ({
+      exitCode: 0,
+      output: "adjudicated retry",
+      durationMs: 2,
+    }));
+    const recovered = new LoopSchedulerBridge({
+      schedulerStore: store,
+      definition,
+      runIteration,
+      ownerId: "adjudication-owner",
+      leaseMs: 1_000,
+    });
+    await expect(
+      recovered.runIteration(1, { scheduledFor: occurrence.scheduledFor }),
+    ).resolves.toMatchObject({ exitCode: 0, output: "adjudicated retry" });
+    expect(runIteration).toHaveBeenCalledOnce();
+    expect(store.getOccurrence(occurrence.id)).toMatchObject({
+      status: "succeeded",
+      attempt: 3,
+      maxAttempts: 3,
+    });
+    expect(store.getOccurrenceAdjudication(occurrence.id)).toMatchObject({
+      status: "applied",
+      decision: "confirmed_not_applied",
+    });
+  });
+
   it("refuses to rewrite a saved execution definition", () => {
     const f = fixture();
     const store = f.open();

@@ -342,6 +342,40 @@ export class RoutineStore {
     });
   }
 
+  recordRunAdjudication(
+    runId,
+    { decision, requestId, occurrenceId, snapshotDigest } = {},
+  ) {
+    if (!["confirmed_applied", "confirmed_not_applied"].includes(decision)) {
+      throw new Error("routine adjudication decision is invalid");
+    }
+    const existing = this.getRun(runId);
+    if (
+      !existing ||
+      existing.status !== "running" ||
+      existing.schedulerOccurrenceId !== occurrenceId ||
+      existing.schedulerSnapshotDigest !== snapshotDigest
+    ) {
+      if (
+        existing?.adjudication?.requestId === requestId &&
+        existing.adjudication.decision === decision
+      ) {
+        return existing;
+      }
+      const error = new Error("routine adjudication evidence does not match");
+      error.code = "ROUTINE_ADJUDICATION_EVIDENCE_MISMATCH";
+      throw error;
+    }
+    this._appendRun({
+      type: "adjudication",
+      runId,
+      decision,
+      requestId,
+      adjudicatedAt: this._now(),
+    });
+    return this.getRun(runId);
+  }
+
   /** Merged run rows (start+end), newest first. */
   listRuns({ routineId = null, limit = 20 } = {}) {
     let lines = [];
@@ -366,6 +400,21 @@ export class RoutineStore {
       } else if (rec.type === "end") {
         const prev = runs.get(rec.runId) || { runId: rec.runId };
         runs.set(rec.runId, { ...prev, ...rec, type: undefined });
+      } else if (rec.type === "adjudication") {
+        const prev = runs.get(rec.runId) || { runId: rec.runId };
+        runs.set(rec.runId, {
+          ...prev,
+          status:
+            rec.decision === "confirmed_applied"
+              ? "adjudicated_applied"
+              : "adjudicated_not_applied",
+          adjudication: {
+            requestId: rec.requestId,
+            decision: rec.decision,
+            adjudicatedAt: rec.adjudicatedAt,
+          },
+          type: undefined,
+        });
       }
     }
     return [...runs.values()]
@@ -420,30 +469,38 @@ export async function executeRoutine(store, routine, runAgent, meta = {}) {
       error.retryable = false;
       throw error;
     }
-    if (existing.status === "running") {
+    const authorizedRetry =
+      existing.status === "adjudicated_not_applied" &&
+      meta.adjudication?.decision === "confirmed_not_applied" &&
+      existing.adjudication?.requestId === meta.adjudication.requestId;
+    if (authorizedRetry) {
+      // The append-only evidence remains intact. A second start record for the
+      // deterministic run id begins the single scheduler-authorized retry.
+    } else if (existing.status === "running") {
       const error = new Error(
         "routine run outcome is unknown; refusing duplicate execution",
       );
       error.code = "ROUTINE_RUN_OUTCOME_UNKNOWN";
       error.retryable = false;
       throw error;
+    } else {
+      const current = store.get(routine.id);
+      if (current) {
+        store.update(routine.id, {
+          lastFiredAt: existing.startedAt,
+          ...(current.trigger.kind === "once" ? { enabled: false } : {}),
+        });
+      }
+      return {
+        runId: existing.runId,
+        status: existing.status,
+        exitCode: existing.exitCode,
+        usage: existing.usage || null,
+        costUsd: Number.isFinite(existing.costUsd) ? existing.costUsd : null,
+        durationMs: existing.durationMs ?? null,
+        recovered: true,
+      };
     }
-    const current = store.get(routine.id);
-    if (current) {
-      store.update(routine.id, {
-        lastFiredAt: existing.startedAt,
-        ...(current.trigger.kind === "once" ? { enabled: false } : {}),
-      });
-    }
-    return {
-      runId: existing.runId,
-      status: existing.status,
-      exitCode: existing.exitCode,
-      usage: existing.usage || null,
-      costUsd: Number.isFinite(existing.costUsd) ? existing.costUsd : null,
-      durationMs: existing.durationMs ?? null,
-      recovered: true,
-    };
   }
 
   const startedAt = store._now();

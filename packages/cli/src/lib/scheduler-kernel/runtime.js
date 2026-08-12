@@ -409,11 +409,67 @@ export class SchedulerRuntime {
       occurrence,
       authority: occurrence.authority,
       decision,
+      adjudication:
+        typeof this.store.getOccurrenceAdjudication === "function"
+          ? this.store.getOccurrenceAdjudication(occurrence.id)
+          : null,
       signal: linked.controller.signal,
       renewLease: renew,
     };
     try {
-      const result = await adapter.execute(context);
+      let result;
+      if (context.adjudication?.status === "pending") {
+        const allowedAttempts =
+          context.adjudication.decision === "confirmed_applied"
+            ? [
+                context.adjudication.expectedAttempt + 1,
+                context.adjudication.expectedAttempt + 2,
+              ]
+            : [context.adjudication.expectedAttempt + 1];
+        if (
+          !allowedAttempts.includes(occurrence.attempt) ||
+          context.adjudication.expectedFence >= occurrence.fence
+        ) {
+          throw runtimeError(
+            "SCHEDULER_RUNTIME_ADJUDICATION_BINDING_MISMATCH",
+            `Scheduler adjudication is not bound to this claim: ${occurrence.id}`,
+          );
+        }
+        if (typeof adapter.adjudicate !== "function") {
+          throw runtimeError(
+            "SCHEDULER_RUNTIME_ADJUDICATION_UNSUPPORTED",
+            `Scheduler adapter cannot apply an outcome-unknown adjudication: ${job.kind}`,
+          );
+        }
+        const resolution = await adapter.adjudicate(context);
+        if (
+          context.adjudication.decision === "confirmed_applied" &&
+          resolution?.settled !== true
+        ) {
+          throw runtimeError(
+            "SCHEDULER_RUNTIME_ADJUDICATION_INVALID",
+            "confirmed_applied adjudication must settle without replay",
+          );
+        }
+        if (
+          context.adjudication.decision === "confirmed_not_applied" &&
+          resolution?.continue !== true
+        ) {
+          throw runtimeError(
+            "SCHEDULER_RUNTIME_ADJUDICATION_INVALID",
+            "confirmed_not_applied adjudication must explicitly authorize one execution",
+          );
+        }
+        result =
+          resolution?.settled === true
+            ? (resolution.result ?? {
+                adjudicationRequestId: context.adjudication.requestId,
+                decision: context.adjudication.decision,
+              })
+            : await adapter.execute(context);
+      } else {
+        result = await adapter.execute(context);
+      }
       if (leaseError) throw leaseError;
       if (linked.controller.signal.aborted) {
         const aborted = runtimeError(
@@ -429,6 +485,9 @@ export class SchedulerRuntime {
         fence: occurrence.fence,
         outcome: "succeeded",
         result: result ?? null,
+        ...(context.adjudication?.status === "pending"
+          ? { adjudicationRequestId: context.adjudication.requestId }
+          : {}),
       });
       return settledResult(settled);
     } catch (error) {
@@ -453,6 +512,9 @@ export class SchedulerRuntime {
         outcome: "failed",
         error: safeError(settlementError),
         retryable: policy.retryable,
+        ...(context.adjudication?.status === "pending"
+          ? { adjudicationRequestId: context.adjudication.requestId }
+          : {}),
         ...(policy.retryAt === undefined ? {} : { retryAt: policy.retryAt }),
       });
       return settledResult(settled);

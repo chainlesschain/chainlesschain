@@ -616,6 +616,73 @@ describe("scheduler-kernel Cowork cron adapter", () => {
     });
   });
 
+  it("clears the permanent delivery fence before one adjudicated retry", async () => {
+    const f = fixture();
+    const schedule = f.add();
+    const schedulerStore = f.openScheduler();
+    const occurrence = enqueueCoworkCronSchedule(
+      schedulerStore,
+      f.cwd,
+      schedule,
+      f.clock(),
+    );
+    const claimed = schedulerStore.claimOccurrence({
+      occurrenceId: occurrence.id,
+      ownerId: "crashed-cowork-owner",
+      leaseMs: 1_000,
+    });
+    bindSchedulerScheduleFire(f.cwd, schedule.id, {
+      deliveryId: occurrence.triggerKey,
+      occurrenceId: occurrence.id,
+      snapshotDigest: occurrence.payload.snapshotDigest,
+      attempt: claimed.attempt,
+      at: f.clock(),
+    });
+    f.now += 1_001;
+    const failClosed = new CoworkCronSchedulerBridge({
+      cwd: f.cwd,
+      schedulerStore,
+      runTask: vi.fn(),
+      now: f.clock,
+      ownerId: "cowork-fail-close-owner",
+      leaseMs: 10_000,
+    });
+    await failClosed.runDue();
+    const candidate = schedulerStore.getAdjudicationCase(occurrence.id);
+    schedulerStore.adjudicateOccurrence({
+      occurrenceId: occurrence.id,
+      decision: "confirmed_not_applied",
+      expectedEvidenceDigest: candidate.evidenceDigest,
+      expectedAttempt: candidate.attempt,
+      expectedFence: candidate.fence,
+      reasonDigest: `sha256:${"3".repeat(64)}`,
+      operatorDigest: `sha256:${"9".repeat(64)}`,
+    });
+    const runTask = vi.fn(async () => ({
+      taskId: "task-adjudicated",
+      status: "completed",
+    }));
+    const recovered = new CoworkCronSchedulerBridge({
+      cwd: f.cwd,
+      schedulerStore,
+      runTask,
+      now: f.clock,
+      ownerId: "cowork-adjudication-owner",
+      leaseMs: 10_000,
+    });
+    await expect(recovered.runDue()).resolves.toEqual([
+      expect.objectContaining({
+        result: expect.objectContaining({ status: "succeeded" }),
+      }),
+    ]);
+    expect(runTask).toHaveBeenCalledOnce();
+    expect(getSchedule(f.cwd, schedule.id)).toMatchObject({
+      lastDeliveryId: occurrence.triggerKey,
+      schedulerExecution: { status: "succeeded", attempt: 3 },
+      activeDelivery: null,
+    });
+  });
+
   it("retries a known thrown failure after the bounded delay", async () => {
     const f = fixture();
     const schedule = f.add({ cron: "0 14 * * *" });

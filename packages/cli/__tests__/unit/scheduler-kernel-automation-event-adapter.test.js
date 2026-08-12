@@ -421,6 +421,38 @@ describe("scheduler-kernel automation channel event adapter", () => {
     expect(getExecution(f.db, secondExecutionId)).toMatchObject({
       status: EXECUTION_STATUS.RUNNING,
     });
+
+    const candidate = f.schedulerStore.getAdjudicationCase(secondOccurrence.id);
+    f.schedulerStore.adjudicateOccurrence({
+      occurrenceId: secondOccurrence.id,
+      decision: "confirmed_not_applied",
+      expectedEvidenceDigest: candidate.evidenceDigest,
+      expectedAttempt: candidate.attempt,
+      expectedFence: candidate.fence,
+      reasonDigest: `sha256:${"4".repeat(64)}`,
+      operatorDigest: `sha256:${"9".repeat(64)}`,
+    });
+    await expect(
+      runtime.runOccurrence(secondOccurrence.id),
+    ).resolves.toMatchObject({
+      status: "succeeded",
+      result: { id: secondExecutionId, status: EXECUTION_STATUS.SUCCESS },
+    });
+    expect(getExecution(f.db, secondExecutionId)).toMatchObject({
+      status: EXECUTION_STATUS.SUCCESS,
+    });
+    expect(listExecutions(f.db, { flowId: second.flow.id })).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: secondExecutionId,
+          status: EXECUTION_STATUS.SUCCESS,
+        }),
+        expect.objectContaining({ status: EXECUTION_STATUS.CANCELLED }),
+      ]),
+    );
+    expect(
+      f.schedulerStore.getOccurrenceAdjudication(secondOccurrence.id),
+    ).toMatchObject({ status: "applied" });
   });
 
   it("derives stable trigger and execution identities", () => {

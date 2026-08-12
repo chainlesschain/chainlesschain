@@ -455,6 +455,40 @@ export function createAgendaSchedulerAdapter({
   }
   return {
     kind: AGENDA_SCHEDULER_KIND,
+    async adjudicate({ occurrence, adjudication }) {
+      const payload = occurrence.payload;
+      const expected = agendaEntrySnapshot(payload?.entry);
+      const expectedDigest = agendaEntrySnapshotDigest(expected);
+      if (
+        payload.snapshotDigest !== expectedDigest ||
+        typeof agendaStore.adjudicateSchedulerExecution !== "function"
+      ) {
+        throw agendaError(
+          "AGENDA_SCHEDULER_ADJUDICATION_UNSUPPORTED",
+          `Agenda adjudication cannot be applied: ${occurrence.id}`,
+        );
+      }
+      agendaStore.adjudicateSchedulerExecution(expected.id, {
+        occurrenceId: occurrence.id,
+        snapshotDigest: expectedDigest,
+        attempt: adjudication.expectedAttempt,
+        decision: adjudication.decision,
+        requestId: adjudication.requestId,
+        atMs: now(),
+      });
+      if (adjudication.decision === "confirmed_applied") {
+        return {
+          settled: true,
+          result: {
+            id: expected.id,
+            kind: expected.kind,
+            action: "adjudicated-applied",
+            adjudicationRequestId: adjudication.requestId,
+          },
+        };
+      }
+      return { continue: true };
+    },
     async execute({ occurrence }) {
       const payload = occurrence.payload;
       const expected = agendaEntrySnapshot(payload?.entry);

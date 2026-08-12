@@ -862,6 +862,79 @@ export function completeSchedulerScheduleFire(
   });
 }
 
+export function adjudicateSchedulerScheduleFire(
+  cwd,
+  id,
+  {
+    deliveryId,
+    occurrenceId,
+    snapshotDigest,
+    attempt,
+    decision,
+    requestId,
+    at = _deps.now(),
+  } = {},
+) {
+  if (!["confirmed_applied", "confirmed_not_applied"].includes(decision)) {
+    throw coworkSchedulerError(
+      "COWORK_SCHEDULER_ADJUDICATION_INVALID",
+      "Cowork scheduler adjudication decision is invalid",
+    );
+  }
+  const now = normalizedDate(at, "cowork scheduler adjudication time");
+  return _withScheduleLock(cwd, () => {
+    const schedules = loadSchedules(cwd, { failOnMalformed: true });
+    const schedule = schedules.find((entry) => entry.id === id);
+    if (!schedule) {
+      throw coworkSchedulerError(
+        "COWORK_SCHEDULER_SCHEDULE_NOT_FOUND",
+        `Cowork schedule does not exist: ${id}`,
+      );
+    }
+    const evidence = schedule.schedulerExecution;
+    const targetStatus =
+      decision === "confirmed_applied"
+        ? "adjudicated_applied"
+        : "adjudicated_not_applied";
+    if (
+      evidence?.status === targetStatus &&
+      evidence.adjudication?.requestId === requestId &&
+      evidence.adjudication.decision === decision
+    ) {
+      return schedule;
+    }
+    if (
+      !evidence ||
+      evidence.deliveryId !== deliveryId ||
+      evidence.occurrenceId !== occurrenceId ||
+      evidence.snapshotDigest !== snapshotDigest ||
+      !Number.isSafeInteger(evidence.attempt) ||
+      evidence.attempt < 1 ||
+      evidence.attempt > attempt ||
+      evidence.status !== "running"
+    ) {
+      throw coworkSchedulerError(
+        "COWORK_SCHEDULER_ADJUDICATION_EVIDENCE_MISMATCH",
+        `Cowork scheduler adjudication evidence does not match: ${id}`,
+      );
+    }
+    schedule.schedulerExecution = {
+      ...evidence,
+      status: targetStatus,
+      endedAt: now.toISOString(),
+      adjudication: { requestId, decision },
+    };
+    if (decision === "confirmed_applied") {
+      schedule.lastDeliveryId = deliveryId;
+      schedule.lastRunAt = now.toISOString();
+      schedule.lastStatus = "adjudicated-applied";
+    }
+    schedule.activeDelivery = null;
+    _saveSchedulesUnlocked(cwd, schedules);
+    return schedule;
+  });
+}
+
 /**
  * Claim one concrete cron fire before launching its side effect. The persisted
  * delivery id prevents two scheduler processes from running the same fire; an
