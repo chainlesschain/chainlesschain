@@ -101,6 +101,21 @@ export function formatBackgroundAgentDetails(
     );
   }
   if (session.phase) lines.push(`  phase: ${session.phase}`);
+  if (session.pendingQuestion) {
+    const prompt = String(
+      session.pendingQuestion.prompt || session.pendingQuestion.question || "",
+    )
+      .replace(/\s+/gu, " ")
+      .trim()
+      .slice(0, 240);
+    lines.push(`  needsInput: ${prompt || "question pending"}`);
+  }
+  if (session.needsInputIncident) {
+    const incident = session.needsInputIncident;
+    lines.push(
+      `  needsInputIncident: ${incident.incidentId || "-"} status=${incident.status || "?"} notification=${incident.notification?.status || "?"}`,
+    );
+  }
   if (session.pr?.number) {
     lines.push(
       `  pr: #${session.pr.number}${session.pr.state ? ` ${session.pr.state}` : ""}${session.pr.url ? `  ${session.pr.url}` : ""}`,
@@ -121,6 +136,19 @@ export function formatBackgroundAgentDetails(
   lines.push("", "Commands:");
   lines.push(`  cc attach ${session.id}`);
   lines.push(`  cc logs ${session.id} -n 100`);
+  if (
+    ["failed", "unconfigured"].includes(
+      session.needsInputIncident?.notification?.status,
+    )
+  ) {
+    lines.push(`  cc daemon notify-needs-input ${session.id}`);
+  } else if (
+    ["delivering", "outcome_unknown", "partial"].includes(
+      session.needsInputIncident?.notification?.status,
+    )
+  ) {
+    lines.push(`  cc daemon notify-needs-input ${session.id} --force`);
+  }
   if (session.status === "running") {
     lines.push(`  cc daemon stop ${session.id}`);
   }
@@ -274,6 +302,49 @@ export async function replyBackgroundAgent(id, prompt, dependencies = {}) {
       // The worker may close immediately after accepting the final prompt.
     }
   }
+}
+
+export async function retryBackgroundNeedsInputNotification(
+  id,
+  options = {},
+  dependencies = {},
+) {
+  const sessionId = String(id || "").trim();
+  if (!sessionId) throw new Error("background agent id is required");
+  const supervisor = dependencies.supervisor || (await loadSupervisor());
+  const state = supervisor.readBackgroundAgentState(sessionId);
+  if (!state) throw new Error(`Background agent not found: ${sessionId}`);
+  if (!state.needsInputIncident) {
+    throw new Error(
+      `Background agent ${sessionId} has no needs-input incident`,
+    );
+  }
+  const result = await supervisor.deliverBackgroundNeedsInputNotification(
+    sessionId,
+    {
+      retry: true,
+      force: options.force === true,
+      ...(dependencies.notify ? { notify: dependencies.notify } : {}),
+    },
+  );
+  if (!result.applied) {
+    const error = new Error(
+      result.reason === "delivery_in_progress"
+        ? `Needs-input notification is already being delivered for ${sessionId}`
+        : result.reason === "delivery_not_retryable"
+          ? `Needs-input notification for ${sessionId} is not safely retryable; use --force only after accepting possible duplicate delivery`
+          : `Background agent ${sessionId} no longer has a pending needs-input incident`,
+    );
+    error.code = "BACKGROUND_NEEDS_INPUT_NOTIFICATION_NOT_RETRYABLE";
+    error.reason = result.reason;
+    throw error;
+  }
+  return {
+    id: sessionId,
+    incidentId: result.incident?.incidentId || null,
+    incidentStatus: result.incident?.status || null,
+    notification: result.incident?.notification || null,
+  };
 }
 
 export const LOG_TRUNCATION_NOTICE =
@@ -829,6 +900,33 @@ export function registerBackgroundSessionCommands(program) {
     .description("Manage background agent and scheduler services");
 
   registerSchedulerDaemonCommands(daemon);
+
+  daemon
+    .command("notify-needs-input <id>")
+    .description(
+      "Retry a durable needs-input notification for a background run",
+    )
+    .option(
+      "--force",
+      "Retry an ambiguous or already-delivered notification (may duplicate)",
+    )
+    .option("--json", "Output as JSON")
+    .action(async (id, options) => {
+      try {
+        const result = await retryBackgroundNeedsInputNotification(id, options);
+        if (options.json) console.log(JSON.stringify(result, null, 2));
+        else {
+          logger.log(
+            chalk.green(
+              `Needs-input notification ${result.notification?.status || "settled"} for ${id}`,
+            ),
+          );
+        }
+      } catch (error) {
+        logger.error(chalk.red(error.message));
+        process.exitCode = 1;
+      }
+    });
 
   daemon
     .command("status")

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -9,6 +9,7 @@ import {
   formatBackgroundAgentLine,
   readLogFromOffset,
   replyBackgroundAgent,
+  retryBackgroundNeedsInputNotification,
   summarizeSideEffects,
 } from "../../src/commands/background-session.js";
 
@@ -85,6 +86,31 @@ describe("background-session command helpers", () => {
     expect(text).toContain("phase: idle");
     expect(text).toContain("turns: 3");
     expect(text).toContain("transport: interactive attach available");
+  });
+
+  it("shows a bounded pending question, durable notification status and recovery command", () => {
+    const text = formatBackgroundAgentDetails(
+      {
+        id: "bg-needs",
+        status: "running",
+        startedAt: 1_000,
+        phase: "needs_input",
+        pendingQuestion: { prompt: `Deploy? ${"x".repeat(400)}` },
+        needsInputIncident: {
+          incidentId: "incident-1",
+          status: "needs_input",
+          notification: { status: "unconfigured" },
+        },
+      },
+      "",
+      { now: 2_000 },
+    );
+    expect(text).toContain("needsInput: Deploy?");
+    expect(text).toContain(
+      "needsInputIncident: incident-1 status=needs_input notification=unconfigured",
+    );
+    expect(text).toContain("cc daemon notify-needs-input bg-needs");
+    expect(text).not.toContain("x".repeat(241));
   });
 
   it("renders the bounded governance and side-effect summaries", () => {
@@ -167,6 +193,39 @@ describe("background-session command helpers", () => {
       priorPhase: "needs_input",
     });
     expect(closed).toBe(true);
+  });
+
+  it("retries a durable needs-input notification through the supervisor", async () => {
+    const deliver = vi.fn(async (_id, options) => {
+      expect(options).toMatchObject({ retry: true, force: false });
+      return {
+        applied: true,
+        incident: {
+          incidentId: "incident-1",
+          status: "needs_input",
+          notification: { status: "delivered", attempts: 2 },
+        },
+      };
+    });
+    const result = await retryBackgroundNeedsInputNotification(
+      "bg-needs",
+      {},
+      {
+        supervisor: {
+          readBackgroundAgentState: () => ({
+            id: "bg-needs",
+            needsInputIncident: { incidentId: "incident-1" },
+          }),
+          deliverBackgroundNeedsInputNotification: deliver,
+        },
+      },
+    );
+    expect(deliver).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({
+      id: "bg-needs",
+      incidentId: "incident-1",
+      notification: { status: "delivered", attempts: 2 },
+    });
   });
 
   it("fails closed before sending when the canonical transcript is unverified", async () => {
