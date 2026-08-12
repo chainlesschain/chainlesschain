@@ -6045,6 +6045,7 @@ async function executeToolInner(
           const entry = store.createCron({
             prompt: args.prompt,
             cron: args.cron,
+            timeZone: args.timezone || null,
             label: args.label || null,
             expiresInMs,
             jitterMs,
@@ -11912,7 +11913,7 @@ export function formatToolArgs(name, args) {
     }
     case "schedule":
       return args.action === "cron"
-        ? `cron ${args.cron || ""}`.trim()
+        ? `cron ${args.cron || ""}${args.timezone ? ` [${args.timezone}]` : ""}`.trim()
         : args.action === "monitor"
           ? `monitor ${(args.command || "").substring(0, 40)}`.trim()
           : args.action === "wakeup"

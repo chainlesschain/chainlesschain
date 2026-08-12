@@ -1012,6 +1012,11 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
           description:
             'For cron: a 5-field cron expression, e.g. "0 9 * * 1" (09:00 every Monday)',
         },
+        timezone: {
+          type: "string",
+          description:
+            'For cron: optional IANA time zone, e.g. "America/New_York". When omitted, the agenda driver host local time is used.',
+        },
         command: {
           type: "string",
           description: "For monitor: the shell command to run each interval",

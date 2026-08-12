@@ -66,6 +66,17 @@ describe("cc agenda", () => {
     expect(parsed.entries).toHaveLength(1);
   });
 
+  it("shows an explicit cron time zone in the human agenda", () => {
+    clock = Date.UTC(2026, 2, 2, 13, 30, 0);
+    store.createCron({
+      prompt: "New York standup",
+      cron: "0 9 * * 1-5",
+      timeZone: "America/New_York",
+    });
+    expect(runAgendaList({}, { store, log, now: () => clock })).toBe(0);
+    expect(logs.join("\n")).toContain("0 9 * * 1-5 [America/New_York]");
+  });
+
   it("reports the adaptive next-wakeup (earliest future fire time)", () => {
     store.scheduleWakeup({ prompt: "later", dueAt: clock + 5000 });
     store.scheduleWakeup({ prompt: "sooner", dueAt: clock + 2000 });

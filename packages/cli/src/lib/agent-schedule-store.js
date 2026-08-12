@@ -185,7 +185,9 @@ function applyScheduledAgentSuccess(entry, atMs) {
   if (entry.kind === "cron") {
     entry.lastRunAt = atMs;
     entry.runs = (entry.runs || 0) + 1;
-    const next = nextCronTime(entry.cron, atMs);
+    const next = nextCronTime(entry.cron, atMs, {
+      timeZone: entry.timeZone || null,
+    });
     if (next == null) entry.status = "exhausted";
     else entry.nextAt = next;
     return;
@@ -277,6 +279,61 @@ const CRON_RANGES = [
   [0, 6], // day of week (0/7 = Sunday)
 ];
 
+const CRON_TIME_ZONE_FORMATTERS = new Map();
+
+export function normalizeTimeZone(value) {
+  if (value == null || value === "") return null;
+  if (typeof value !== "string") {
+    throw new Error("cron timeZone must be an IANA time zone string");
+  }
+  const requested = value.trim();
+  if (!requested) return null;
+  if (requested.length > 128 || /\p{Cc}/u.test(requested)) {
+    throw new Error("invalid IANA time zone");
+  }
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: requested,
+    }).resolvedOptions().timeZone;
+  } catch {
+    throw new Error(`invalid IANA time zone: ${requested}`);
+  }
+}
+
+function timeZoneFormatter(timeZone) {
+  let formatter = CRON_TIME_ZONE_FORMATTERS.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en-US-u-ca-gregory-nu-latn", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    });
+    CRON_TIME_ZONE_FORMATTERS.set(timeZone, formatter);
+  }
+  return formatter;
+}
+
+function timeZoneParts(epochMs, timeZone) {
+  const values = {};
+  for (const part of timeZoneFormatter(timeZone).formatToParts(epochMs)) {
+    if (part.type !== "literal") values[part.type] = Number(part.value);
+  }
+  return {
+    year: values.year,
+    minute: values.minute,
+    hour: values.hour,
+    day: values.day,
+    month: values.month,
+    dayOfWeek: new Date(
+      Date.UTC(values.year, values.month - 1, values.day),
+    ).getUTCDay(),
+  };
+}
+
 function parseCronField(field, [min, max]) {
   const values = new Set();
   for (const part of String(field).split(",")) {
@@ -325,13 +382,122 @@ function cronMatches(sets, date) {
   );
 }
 
+function timeZoneOffsetAt(epochMs, timeZone) {
+  const minuteEpoch = Math.floor(epochMs / 60_000) * 60_000;
+  const parts = timeZoneParts(minuteEpoch, timeZone);
+  return (
+    Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute) -
+    minuteEpoch
+  );
+}
+
+function localDayOffsets(year, month, day, timeZone) {
+  const reference = Date.UTC(year, month - 1, day, 12, 0, 0);
+  return [
+    ...new Set(
+      [-36, -12, 0, 12, 36].map((hours) =>
+        timeZoneOffsetAt(reference + hours * 3_600_000, timeZone),
+      ),
+    ),
+  ];
+}
+
+function epochCandidatesForCivilMinute(
+  { year, month, day, hour, minute },
+  timeZone,
+  offsets,
+) {
+  const civilEpoch = Date.UTC(year, month - 1, day, hour, minute, 0);
+  const matches = [];
+  for (const offset of offsets) {
+    const epoch = civilEpoch - offset;
+    const actual = timeZoneParts(epoch, timeZone);
+    if (
+      actual.year === year &&
+      actual.month === month &&
+      actual.day === day &&
+      actual.hour === hour &&
+      actual.minute === minute
+    ) {
+      matches.push(epoch);
+    }
+  }
+  return [...new Set(matches)].sort((a, b) => a - b);
+}
+
+function nextCronTimeInTimeZone(sets, fromMs, timeZone) {
+  const from = Number(fromMs);
+  const firstLocal = timeZoneParts(from, timeZone);
+  const firstLocalDay = Date.UTC(
+    firstLocal.year,
+    firstLocal.month - 1,
+    firstLocal.day,
+  );
+  const minuteLimit = 366 * 24 * 60;
+  const lastEpoch = Math.floor(from / 60_000) * 60_000 + minuteLimit * 60_000;
+  const hours = [...sets[1]].sort((a, b) => a - b);
+  const minutes = [...sets[0]].sort((a, b) => a - b);
+  let earliest = null;
+
+  // Iterate civil dates instead of formatting every real minute. At most two
+  // UTC offsets can map a civil minute around a DST transition; verifying each
+  // reconstructed candidate preserves missing and repeated wall-time behavior.
+  // Start one civil day earlier because a rare midnight rollback can make a
+  // future real instant display as the previous local date. Once a later civil
+  // date is more than 36 hours beyond the best epoch, no supported IANA offset
+  // can map that date back before the current best candidate.
+  for (let dayOffset = -1; dayOffset <= 367; dayOffset += 1) {
+    const civilDay = firstLocalDay + dayOffset * 86_400_000;
+    if (earliest != null && civilDay - 36 * 3_600_000 > earliest) break;
+    const date = new Date(civilDay);
+    const year = date.getUTCFullYear();
+    const month = date.getUTCMonth() + 1;
+    const day = date.getUTCDate();
+    const dayOfWeek = date.getUTCDay();
+    if (
+      !sets[2].has(day) ||
+      !sets[3].has(month) ||
+      (!sets[4].has(dayOfWeek) && !(sets[4].has(7) && dayOfWeek === 0))
+    ) {
+      continue;
+    }
+    const offsets = localDayOffsets(year, month, day, timeZone);
+    for (const hour of hours) {
+      for (const minute of minutes) {
+        for (const epoch of epochCandidatesForCivilMinute(
+          { year, month, day, hour, minute },
+          timeZone,
+          offsets,
+        )) {
+          if (
+            epoch > from &&
+            epoch <= lastEpoch &&
+            (earliest == null || epoch < earliest)
+          ) {
+            earliest = epoch;
+          }
+        }
+      }
+    }
+  }
+  return earliest;
+}
+
 /**
- * Next epoch-ms at which `expr` fires strictly after `fromMs` (local time,
- * minute granularity). Scans up to ~366 days then gives up (returns null) so a
- * never-matching expression can't loop forever.
+ * Next epoch-ms at which `expr` fires strictly after `fromMs`, at minute
+ * granularity. By default this preserves host-local cron behavior; an explicit
+ * IANA `timeZone` evaluates the same epoch minutes against that civil clock.
+ * A repeated fall-back wall minute therefore maps to both real instants, while
+ * a skipped spring-forward wall minute does not exist. Scans up to ~366 days
+ * then gives up (returns null) so a never-matching expression can't loop
+ * forever.
  */
-export function nextCronTime(expr, fromMs) {
+export function nextCronTime(expr, fromMs, options = {}) {
   const sets = parseCron(expr);
+  const timeZone = normalizeTimeZone(
+    typeof options === "string" ? options : options?.timeZone,
+  );
+  if (timeZone) return nextCronTimeInTimeZone(sets, fromMs, timeZone);
   const cursor = new Date(fromMs);
   cursor.setSeconds(0, 0);
   cursor.setMinutes(cursor.getMinutes() + 1);
@@ -435,12 +601,16 @@ export class AgentScheduleStore {
       expiresAt = null,
       expiresInMs = null,
       jitterMs = 0,
+      timeZone = null,
     } = options;
     if (!prompt || typeof prompt !== "string") {
       throw new Error("cron requires a prompt");
     }
     const now = this._now();
-    const nextAt = nextCronTime(cron, now); // validates the expression too
+    const normalizedTimeZone = normalizeTimeZone(timeZone);
+    const nextAt = nextCronTime(cron, now, {
+      timeZone: normalizedTimeZone,
+    }); // validates the expression and optional IANA time zone
     if (nextAt == null) {
       throw new Error(`cron "${cron}" has no upcoming match`);
     }
@@ -451,6 +621,7 @@ export class AgentScheduleStore {
       kind: "cron",
       prompt,
       cron,
+      ...(normalizedTimeZone ? { timeZone: normalizedTimeZone } : {}),
       label: label || null,
       nextAt,
       expiresAt: resolveExpiresAt(expiresAt, expiresInMs, now),
@@ -897,7 +1068,9 @@ export class AgentScheduleStore {
     return this._mutate("cron", id, (entry) => {
       entry.lastRunAt = now;
       entry.runs = (entry.runs || 0) + 1;
-      const next = nextCronTime(entry.cron, now);
+      const next = nextCronTime(entry.cron, now, {
+        timeZone: entry.timeZone || null,
+      });
       if (next == null) {
         entry.status = "exhausted";
       } else {
