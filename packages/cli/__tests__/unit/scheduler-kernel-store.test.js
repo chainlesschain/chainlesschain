@@ -15,13 +15,13 @@ import {
 import {
   MIGRATION_V1_CHECKSUM,
   MIGRATION_V1_SQL,
-  MIGRATION_V2_CHECKSUM,
-  MIGRATION_V3_CHECKSUM,
+  MIGRATION_V4_CHECKSUM,
   SCHEDULER_APPLICATION_ID,
   SCHEDULER_STORE_SCHEMA_VERSION,
   SCHEMA_V1_FINGERPRINT,
   SCHEMA_V2_FINGERPRINT,
   SCHEMA_V3_FINGERPRINT,
+  SCHEMA_V4_FINGERPRINT,
   openSchedulerStore,
 } from "../../src/lib/scheduler-kernel/store.js";
 
@@ -272,15 +272,16 @@ describe("scheduler-kernel SQLite store", () => {
       applicationId: SCHEDULER_APPLICATION_ID,
       schemaVersion: SCHEDULER_STORE_SCHEMA_VERSION,
       migration: {
-        version: 3,
-        name: "scheduler-kernel-adjudication-v3",
-        checksum: MIGRATION_V3_CHECKSUM,
+        version: 4,
+        name: "scheduler-kernel-domain-migration-v4",
+        checksum: MIGRATION_V4_CHECKSUM,
         appliedAt: f.now,
       },
     });
     expect(SCHEMA_V1_FINGERPRINT).toMatch(/^[a-f0-9]{64}$/);
     expect(SCHEMA_V2_FINGERPRINT).toMatch(/^[a-f0-9]{64}$/);
     expect(SCHEMA_V3_FINGERPRINT).toMatch(/^[a-f0-9]{64}$/);
+    expect(SCHEMA_V4_FINGERPRINT).toMatch(/^[a-f0-9]{64}$/);
     const tables = store.db
       .prepare(
         "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
@@ -295,11 +296,13 @@ describe("scheduler-kernel SQLite store", () => {
       "scheduler_authority_policies",
       "scheduler_authority_reservations",
       "scheduler_authority_usage",
+      "scheduler_domain_migration_entries",
+      "scheduler_domain_migrations",
       "scheduler_occurrence_adjudications",
     ]);
   });
 
-  it("migrates an exact v1 database to v3 without losing jobs", () => {
+  it("migrates an exact v1 database to v4 without losing jobs", () => {
     const f = fixture({ fileName: "legacy-v1.db" });
     const legacy = new Database(f.file);
     legacy.exec(MIGRATION_V1_SQL);
@@ -359,8 +362,8 @@ describe("scheduler-kernel SQLite store", () => {
 
     const migrated = f.open();
     expect(migrated.schemaInfo()).toMatchObject({
-      schemaVersion: 3,
-      migration: { version: 3, checksum: MIGRATION_V3_CHECKSUM },
+      schemaVersion: 4,
+      migration: { version: 4, checksum: MIGRATION_V4_CHECKSUM },
     });
     expect(migrated.getJob("legacy-job")).toMatchObject({
       id: "legacy-job",
@@ -386,27 +389,51 @@ describe("scheduler-kernel SQLite store", () => {
     });
   });
 
-  it("migrates an exact v2 database to v3 without changing authority state", () => {
+  it("migrates an exact v2 database to v4 without changing authority state", () => {
     const f = fixture({ fileName: "legacy-v2.db" });
     const seed = f.open();
     seed.createJob(jobInput());
     seed.ensureAuthorityPolicy(authority());
     seed.close();
     const legacy = new Database(f.file);
+    legacy.exec("DROP TABLE scheduler_domain_migration_entries");
+    legacy.exec("DROP TABLE scheduler_domain_migrations");
     legacy.exec("DROP TABLE scheduler_occurrence_adjudications");
+    legacy.prepare("DELETE FROM migrations WHERE version = 4").run();
     legacy.prepare("DELETE FROM migrations WHERE version = 3").run();
     legacy.pragma("user_version = 2");
     legacy.close();
 
     const migrated = f.open();
     expect(migrated.schemaInfo()).toMatchObject({
-      schemaVersion: 3,
-      migration: { version: 3, checksum: MIGRATION_V3_CHECKSUM },
+      schemaVersion: 4,
+      migration: { version: 4, checksum: MIGRATION_V4_CHECKSUM },
     });
     expect(migrated.getJob("job-a")).toMatchObject({ id: "job-a" });
     expect(migrated.getAuthorityPolicy(authority().principal)).toMatchObject({
       revision: 1,
     });
+  });
+
+  it("migrates an exact v3 database to v4 atomically", () => {
+    const f = fixture({ fileName: "legacy-v3.db" });
+    const seed = f.open();
+    seed.createJob(jobInput());
+    seed.close();
+    const legacy = new Database(f.file);
+    legacy.exec("DROP TABLE scheduler_domain_migration_entries");
+    legacy.exec("DROP TABLE scheduler_domain_migrations");
+    legacy.prepare("DELETE FROM migrations WHERE version = 4").run();
+    legacy.pragma("user_version = 3");
+    legacy.close();
+
+    const migrated = f.open();
+    expect(migrated.schemaInfo()).toMatchObject({
+      schemaVersion: 4,
+      migration: { version: 4, checksum: MIGRATION_V4_CHECKSUM },
+    });
+    expect(migrated.getJob("job-a")).toMatchObject({ id: "job-a" });
+    expect(migrated.listDomainMigrations()).toEqual([]);
   });
 
   it("applies expected-revision CAS across two real database handles", () => {
@@ -425,6 +452,244 @@ describe("scheduler-kernel SQLite store", () => {
       expectedRevision: 1,
       actualRevision: 2,
     });
+  });
+
+  it("journals an idempotent domain migration through retire and safe rollback", () => {
+    const f = fixture();
+    const store = f.open();
+    const source = {
+      id: "agenda-one",
+      status: "active",
+      schedule: "0 * * * *",
+    };
+    const plan = {
+      entries: [
+        {
+          domain: "agenda",
+          sourceId: source.id,
+          sourceScope: { store: "agent-schedule", tenant: "tenant-a" },
+          source,
+          targetJob: jobInput({ id: "agenda-job" }),
+        },
+      ],
+    };
+    const prepared = store.prepareDomainMigration(plan);
+    expect(prepared).toMatchObject({ state: "prepared", deduplicated: false });
+    expect(store.prepareDomainMigration(plan)).toMatchObject({
+      id: prepared.id,
+      state: "prepared",
+      deduplicated: true,
+    });
+    const applied = store.applyDomainMigration(prepared.id);
+    expect(applied).toMatchObject({
+      state: "applied",
+      entries: [
+        {
+          domain: "agenda",
+          targetAction: "created",
+          targetAppliedRevision: 1,
+        },
+      ],
+    });
+    expect(store.applyDomainMigration(prepared.id)).toMatchObject({
+      state: "applied",
+      deduplicated: true,
+    });
+    const verified = store.verifyDomainMigration(prepared.id, {
+      sources: [{ entryId: applied.entries[0].entryId, source }],
+    });
+    expect(verified).toMatchObject({ state: "verified" });
+    const retiring = store.beginDomainMigrationRetirement(prepared.id);
+    const entry = retiring.entries[0];
+    expect(entry.retirementToken).toMatch(/^scheduler-retirement-/);
+    const retiredSource = {
+      ...source,
+      schedulerMigration: entry.retirementToken,
+    };
+    store.confirmDomainMigrationEntryRetired({
+      migrationId: prepared.id,
+      entryId: entry.entryId,
+      retirementToken: entry.retirementToken,
+      source: retiredSource,
+    });
+    expect(store.getDomainMigration(prepared.id)).toMatchObject({
+      state: "retired",
+      completedAt: f.now,
+      entries: [{ targetAppliedRevision: 2 }],
+    });
+    expect(store.getJob("agenda-job")).toMatchObject({
+      enabled: true,
+      revision: 2,
+    });
+
+    expect(store.beginDomainMigrationRollback(prepared.id)).toMatchObject({
+      state: "rolling_back",
+    });
+    expect(store.rollbackDomainMigrationTargets(prepared.id)).toMatchObject({
+      state: "rolling_back",
+      entries: [{ state: "rollback_target_disabled" }],
+    });
+    expect(store.getJob("agenda-job")).toMatchObject({
+      enabled: false,
+      revision: 3,
+    });
+    store.confirmDomainMigrationEntrySourceRestored({
+      migrationId: prepared.id,
+      entryId: entry.entryId,
+      retirementToken: entry.retirementToken,
+      source,
+    });
+    expect(store.getDomainMigration(prepared.id)).toMatchObject({
+      state: "rolled_back",
+      entries: [{ state: "rolled_back", targetRollbackRevision: 3 }],
+    });
+
+    const replacement = store.prepareDomainMigration(plan);
+    expect(replacement).toMatchObject({
+      state: "rolled_back",
+      deduplicated: true,
+    });
+    expect(replacement.id).toBe(prepared.id);
+  });
+
+  it("restores updated targets and fails closed after target execution evidence", () => {
+    const f = fixture();
+    const store = f.open();
+    const original = store.createJob(
+      jobInput({
+        id: "shared-job",
+        payload: { action: "legacy" },
+      }),
+    );
+    const source = { id: "routine-one", enabled: true };
+    const prepared = store.prepareDomainMigration({
+      entries: [
+        {
+          domain: "routine",
+          sourceId: source.id,
+          sourceScope: { store: "routines", workspace: "workspace-a" },
+          source,
+          targetJob: jobInput({
+            id: "shared-job",
+            payload: { action: "scheduler" },
+          }),
+        },
+      ],
+    });
+    const applied = store.applyDomainMigration(prepared.id);
+    expect(applied.entries[0]).toMatchObject({
+      targetAction: "updated",
+      targetBefore: {
+        id: original.id,
+        payload: { action: "legacy" },
+      },
+      targetAppliedRevision: 2,
+    });
+    store.beginDomainMigrationRollback(prepared.id);
+    store.rollbackDomainMigrationTargets(prepared.id);
+    expect(store.getJob("shared-job")).toMatchObject({
+      revision: 3,
+      payload: { action: "legacy" },
+    });
+
+    const second = store.prepareDomainMigration({
+      entries: [
+        {
+          domain: "automation",
+          sourceId: "flow-one",
+          sourceScope: { database: "automation-a" },
+          source: { id: "flow-one", status: "active" },
+          targetJob: jobInput({ id: "executed-job" }),
+        },
+      ],
+    });
+    store.applyDomainMigration(second.id);
+    store.verifyDomainMigration(second.id, {
+      sources: [
+        {
+          entryId: store.getDomainMigration(second.id).entries[0].entryId,
+          source: { id: "flow-one", status: "active" },
+        },
+      ],
+    });
+    const secondRetiring = store.beginDomainMigrationRetirement(second.id);
+    const secondEntry = secondRetiring.entries[0];
+    store.confirmDomainMigrationEntryRetired({
+      migrationId: second.id,
+      entryId: secondEntry.entryId,
+      retirementToken: secondEntry.retirementToken,
+      source: {
+        id: "flow-one",
+        status: "paused",
+        schedulerMigration: secondEntry.retirementToken,
+      },
+    });
+    store.enqueueOccurrence({
+      jobId: "executed-job",
+      scheduledFor: f.now,
+      triggerKey: "migration:evidence",
+    });
+    store.beginDomainMigrationRollback(second.id);
+    expectCode(
+      () => store.rollbackDomainMigrationTargets(second.id),
+      "SCHEDULER_MIGRATION_EXECUTION_EVIDENCE",
+    );
+    expect(store.getDomainMigration(second.id)).toMatchObject({
+      state: "rolling_back",
+      entries: [{ state: "retired" }],
+    });
+    expect(store.getJob("executed-job")).toMatchObject({ enabled: true });
+  });
+
+  it("rejects changed migration sources, targets, and active duplicates", () => {
+    const f = fixture();
+    const store = f.open();
+    const source = { id: "cowork-one", enabled: true };
+    const plan = {
+      entries: [
+        {
+          domain: "cowork-cron",
+          sourceId: source.id,
+          sourceScope: { workspace: "workspace-a" },
+          source,
+          targetJob: jobInput({ id: "cowork-job" }),
+        },
+      ],
+    };
+    const prepared = store.prepareDomainMigration(plan);
+    const applied = store.applyDomainMigration(prepared.id);
+    expectCode(
+      () =>
+        store.verifyDomainMigration(prepared.id, {
+          sources: [
+            {
+              entryId: applied.entries[0].entryId,
+              source: { ...source, enabled: false },
+            },
+          ],
+        }),
+      "SCHEDULER_MIGRATION_SOURCE_CHANGED",
+    );
+    store.updateJob("cowork-job", 1, { payload: { changed: true } });
+    expectCode(
+      () =>
+        store.verifyDomainMigration(prepared.id, {
+          sources: [{ entryId: applied.entries[0].entryId, source }],
+        }),
+      "SCHEDULER_MIGRATION_TARGET_CHANGED",
+    );
+    expectCode(
+      () =>
+        store.prepareDomainMigration({
+          entries: [
+            {
+              ...plan.entries[0],
+              source: { ...source, revision: 2 },
+            },
+          ],
+        }),
+      "SCHEDULER_MIGRATION_CONFLICT",
+    );
   });
 
   it("parameterizes identifiers and deduplicates a logical occurrence", () => {
@@ -980,7 +1245,7 @@ describe("scheduler-kernel SQLite store", () => {
     const future = fixture({ fileName: "future.db" });
     future.open().close();
     const futureDb = new Database(future.file);
-    futureDb.pragma("user_version = 4");
+    futureDb.pragma("user_version = 5");
     futureDb.close();
     expectCode(() => future.open(), "SCHEDULER_SCHEMA_UNKNOWN");
 
