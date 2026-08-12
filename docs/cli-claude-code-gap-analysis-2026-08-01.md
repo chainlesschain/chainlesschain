@@ -1342,6 +1342,14 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 - 独立公网 [readback `31514940240`](https://github.com/chainlesschain/chainlesschain/actions/runs/31514940240) 重新下载 npm tarball，验证签名 provenance、tag/SHA/发布 run 身份，并证明 registry 字节与 GitHub 不可变 artifact 完全一致。因此 **`0.163.5` 发布任务正式关闭**，可以从未完成发布任务中减去 1 项。
 - 该发布闭环不改变第 16.25 节的 P2-4 功能口径：原 15 项仍为 **8 项完成、7 项部分完成、0 项完全未开始，7 项未完全关闭**，剩余粗估仍为 **3～6 周（单工程师）/ 2～3.5 周（两人有效并行）**。下一步应继续一次只关闭一个 P2-4 子任务；不得因为版本已发布就把共享 permission/budget resolver、IANA timezone/DST/missed-run、standalone daemon/liveness、人工裁决、迁移/回滚、磁盘故障和三平台长期 soak 视为完成。
 
+### 16.27 2026-08-12 P2-4 统一 scheduler service 正式合并证据
+
+- [PR #161](https://github.com/chainlesschain/chainlesschain/pull/161) 的最终 head `0e7d016d48a413642fb4e465c4138118a4e03426` 已以 merge commit `08881ec573158745a7c4a1443082966167168520` 进入 `main`。它新增 `cc daemon scheduler run`，在一个前台常驻进程内托管 Agenda 与 Cowork：tick 串行执行、单域失败隔离为 degraded incident、内存只保留最近 100 份 summary，SIGINT/SIGTERM 会停止下一轮并在活动 tick 结算后关闭共享 scheduler store；`--domains`、有界轮询间隔、NDJSON lifecycle/heartbeat 和 `--once` 单轮执行均有命令级覆盖。
+- 最终 head 的 [CLI CI `31500072164`](https://github.com/chainlesschain/chainlesschain/actions/runs/31500072164) 完成并成功，包含 Linux、Windows、macOS 的 unit/integration/E2E shards、三平台 `verify-cli`、pack 与 publish dry-run；其余 PR checks 无失败。合并后又对同一不可变 head 手动执行 [CLI Strict Sandbox `31543095330`](https://github.com/chainlesschain/chainlesschain/actions/runs/31543095330)，Linux、macOS、Windows **3/3 success**，没有借用其他 SHA 或局部矩阵。
+- 因此“独立 scheduler service host + 事件型 liveness + 优雅关闭”子切片从候选更新为**正式已合并**。边界必须保留：`--once` 会真实执行一轮到期任务，不是无副作用的只读探针；常驻进程的健康判断应使用 supervisor 进程状态与 NDJSON heartbeat。仓库尚未为该命令提供开箱即用的 systemd/launchd/NSSM 安装单元，三平台 kill/restart、双实例、磁盘故障与长期 soak 也未因本次合并自动完成。
+- 为避免原 15 项粗粒度统计长期看似不动，从本节开始同时记录 P2-4 内部可执行子项：第 16.25 节列出的 **11 个剩余子项现降为 10 个**，已移除 standalone daemon/liveness；剩余依次为 Agenda monitor、Automation、Loop、Routine GitHub、真实共享 permission/budget resolver、IANA timezone/DST/missed-run、未知结果人工裁决、迁移/回滚、磁盘故障、三平台长期 soak。原 P0-1～P2-4 共 15 项统计仍为 **8 项完成、7 项部分完成、0 项完全未开始，7 项未完全关闭**，原因是 P2-4 在该粗粒度总表中只占 1 项，必须待上述 10 个子项全部退出才会从“部分完成”变为“完成”。扣除本次 service host 后，剩余粗估约为 **2.5～5.5 周（单工程师）/1.5～3 周（两人有效并行）**。
+- 本次只合并 scheduler service，不修改 CLI 版本、不创建 release tag、不发布 npm；公网 `0.163.5` 不包含该 merge commit。下一项继续从上述 10 个子项中只关闭一个。
+
 ## 17. 2026-08-06 `0.162.198` 发布闭环与继续执行边界
 
 `0.162.198` 是第 16 节之后的 CLI-only 补丁发布，纳入 P0-1 canonical session workbench、P0-2 rewind/branch 宿主绑定、P0-3 发布可靠性跟进，以及 REPL/headless/provider/TTY 输出背压和跨平台 release fixture 修复。它不改变第 16.8 节产品级未完成项的授权边界。
