@@ -2,6 +2,26 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.50] - Governed Automation Center (2026-08-12)
+
+- Add a native Automation Center for CLI-owned, versioned automation
+  projections with scope, preflight, run history, run-now, failed-run retry,
+  pause/resume, disable, and transactional deletion controls.
+- Mutations re-read the target revision and execute only the exact argv signed
+  by the CLI; stale projections fail closed before an action is confirmed.
+- Display cron, one-shot, webhook, and GitHub-triggered Routines through the
+  same fail-closed control surface. Routine creation and edits use revision
+  CAS with bounded JSON stdin.
+- Harden macOS real-host activation with in-memory secret storage, bounded
+  process cleanup, and one fresh-profile retry; the immutable VSIX remains
+  gated by stable/minimum hosts and the exact native ARM64 aggregate.
+- Recommend the fully gated public CLI `chainlesschain@0.163.5` for its durable
+  scheduler runtime, Routine/Agenda/Cowork migration, fencing, recovery, and
+  durable compaction. The new Automation Center controls additionally require
+  a CLI release that contains the governed Automation/Routine commands;
+  `0.163.5` predates those commands and continues to support the existing chat
+  and IDE bridge surfaces.
+
 ## [0.37.49] - Latest-main maintenance certification (2026-08-11)
 
 - Publish a maintenance build with no intentional user-facing IDE behavior

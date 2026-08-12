@@ -9,6 +9,21 @@ diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 speaks the _same_ MCP protocol as the VS Code extension; only `ide` differs
 (`"jetbrains"`).
 
+## Release compatibility
+
+Plugin **0.4.86** adds a governed Automation Center for CLI-owned, versioned
+Automation and Routine projections. It shows preflight and history, then routes
+run-now, failed-run retry, pause/resume, disable, delete, and revision-CAS
+create/edit operations through exact CLI-issued arguments. Cron, one-shot,
+webhook, and GitHub triggers share the same fail-closed surface.
+
+The fully gated public CLI `chainlesschain@0.163.5` adds the unified durable
+scheduler runtime, Routine/Agenda/Cowork migration, snapshot-bound authority,
+owner/fence claims, bounded retry, dead-letter settlement, crash recovery, and
+durable compaction. The new Automation Center controls additionally require a
+subsequent CLI release containing the governed Automation/Routine commands;
+`0.163.5` remains fully supported for existing chat and IDE bridge features.
+
 ## Automatic awareness (cc ≥ 0.162.39)
 
 With a current `cc` CLI the agent doesn't just _have_ the bridge tools — it

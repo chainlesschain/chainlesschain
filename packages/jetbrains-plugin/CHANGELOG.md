@@ -1,5 +1,22 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.86] - Governed Automation Center (2026-08-12)
+
+- Add the native Automation Center backed by CLI-owned, versioned projections,
+  including scope/preflight display, run history, run-now, failed-run retry,
+  pause/resume, disable, and transactional deletion controls.
+- Re-read the target revision before confirmation and execute only the exact
+  argv issued by the CLI; stale projections fail closed.
+- Bring cron, one-shot, webhook, and GitHub-triggered Routines into the same
+  control surface. Creation and edits use revision CAS and bounded JSON stdin.
+- Preserve the IntelliJ IDEA 2024.2/2025.2 six-host compatibility matrix and
+  the shared exact native ARM64 aggregate as release-blocking evidence.
+- Recommend the fully gated public CLI `chainlesschain@0.163.5` for its durable
+  scheduler runtime, Routine/Agenda/Cowork migration, fencing, recovery, and
+  durable compaction. The new Automation Center controls additionally require
+  a CLI release containing the governed Automation/Routine commands; `0.163.5`
+  predates them and remains compatible with the existing chat/bridge surfaces.
+
 ## [0.4.85] - Latest-main maintenance certification (2026-08-11)
 
 - Publish a maintenance build with no intentional user-facing IDE behavior
