@@ -13,19 +13,25 @@ public final class AutomationCenter {
 
     private AutomationCenter() {}
 
-    public static final String SCHEMA = "chainlesschain.automation-center/v1";
-    public static final int SCHEMA_VERSION = 1;
-    public static final List<String> ACTIONS = List.of(
+    public static final String SCHEMA = "chainlesschain.automation-center/v2";
+    public static final int SCHEMA_VERSION = 2;
+    public static final List<String> FLOW_ACTIONS = List.of(
             "run_now", "retry_failed", "pause", "resume", "disable", "delete");
-    private static final Set<String> ACTION_SET = Set.copyOf(ACTIONS);
+    public static final List<String> ROUTINE_ACTIONS = List.of(
+            "run_now", "retry_failed", "pause", "resume", "disable", "delete", "edit");
+    public static final List<String> ACTIONS = ROUTINE_ACTIONS;
+    private static final Set<String> KINDS = Set.of("flow", "routine");
     private static final Set<String> STATUS = Set.of("draft", "active", "paused", "archived");
-    private static final Set<String> SECURITY = Set.of("ready", "denied", "unconfigured", "invalid");
+    private static final Set<String> SECURITY = Set.of(
+            "ready", "denied", "unconfigured", "invalid", "snapshot_bound");
 
     public static final class ActionPreview {
         public final List<String> argv;
+        public final boolean jsonStdin;
 
-        private ActionPreview(List<String> argv) {
+        private ActionPreview(List<String> argv, boolean jsonStdin) {
             this.argv = Collections.unmodifiableList(new ArrayList<String>(argv));
+            this.jsonStdin = jsonStdin;
         }
     }
 
@@ -41,7 +47,8 @@ public final class AutomationCenter {
         }
     }
 
-    public static final class Flow {
+    public static final class Item {
+        public final String kind;
         public final String id;
         public final String revision;
         public final String name;
@@ -57,12 +64,15 @@ public final class AutomationCenter {
         public final List<String> triggers;
         public final List<String> history;
         public final Map<String, Action> actions;
+        public final Map<String, Object> definition;
 
-        private Flow(String id, String revision, String name, String description,
-                String status, String schedule, String securityState, boolean ready,
-                String principalId, long remainingRuns, long remainingActionSteps,
-                String issue, List<String> triggers, List<String> history,
-                Map<String, Action> actions) {
+        private Item(String kind, String id, String revision, String name,
+                String description, String status, String schedule,
+                String securityState, boolean ready, String principalId,
+                long remainingRuns, long remainingActionSteps, String issue,
+                List<String> triggers, List<String> history,
+                Map<String, Action> actions, Map<String, Object> definition) {
+            this.kind = kind;
             this.id = id;
             this.revision = revision;
             this.name = name;
@@ -78,32 +88,52 @@ public final class AutomationCenter {
             this.triggers = Collections.unmodifiableList(new ArrayList<String>(triggers));
             this.history = Collections.unmodifiableList(new ArrayList<String>(history));
             this.actions = Collections.unmodifiableMap(new LinkedHashMap<String, Action>(actions));
+            this.definition = definition == null
+                    ? Collections.emptyMap()
+                    : Collections.unmodifiableMap(new LinkedHashMap<String, Object>(definition));
         }
+    }
+
+    /** Compatibility name retained for callers while the collection now holds both kinds. */
+    public static final class Flow {
+        private Flow() {}
     }
 
     public static final class Snapshot {
         public final boolean connected;
         public final boolean stale;
         public final String revision;
+        public final String routineCatalogRevision;
         public final String error;
         public final long total;
+        public final long flowCount;
+        public final long routineCount;
         public final long active;
         public final long paused;
         public final long needsAttention;
-        public final List<Flow> flows;
+        public final List<Item> items;
+        public final List<Item> flows;
+        public final ActionPreview createRoutine;
 
         private Snapshot(boolean connected, boolean stale, String revision,
-                String error, long total, long active, long paused,
-                long needsAttention, List<Flow> flows) {
+                String routineCatalogRevision, String error, long total,
+                long flowCount, long routineCount, long active, long paused,
+                long needsAttention, List<Item> items, ActionPreview createRoutine) {
             this.connected = connected;
             this.stale = stale;
             this.revision = revision == null ? "" : revision;
+            this.routineCatalogRevision = routineCatalogRevision == null
+                    ? "" : routineCatalogRevision;
             this.error = error == null ? "" : error;
             this.total = total;
+            this.flowCount = flowCount;
+            this.routineCount = routineCount;
             this.active = active;
             this.paused = paused;
             this.needsAttention = needsAttention;
-            this.flows = Collections.unmodifiableList(new ArrayList<Flow>(flows));
+            this.items = Collections.unmodifiableList(new ArrayList<Item>(items));
+            this.flows = this.items;
+            this.createRoutine = createRoutine;
         }
     }
 
@@ -127,7 +157,7 @@ public final class AutomationCenter {
                     false, revision);
         }
         if (!Boolean.TRUE.equals(root.get("connected")) || revision.isEmpty()
-                || !(root.get("flows") instanceof List)) {
+                || !(root.get("items") instanceof List)) {
             return disconnected("Automation Center disconnected", false, revision);
         }
         if (expectedRevision != null && !expectedRevision.isEmpty()
@@ -135,37 +165,53 @@ public final class AutomationCenter {
             return disconnected("stale Automation Center projection", true, revision);
         }
         try {
-            List<Flow> flows = new ArrayList<Flow>();
-            for (Object rawFlow : (List<Object>) root.get("flows")) {
-                if (!(rawFlow instanceof Map)) throw new IllegalArgumentException();
-                Map<String, Object> flow = (Map<String, Object>) rawFlow;
-                String id = text(flow.get("id"), 256);
-                String itemRevision = text(flow.get("revision"), 96);
-                String status = text(flow.get("status"), 32);
-                if (id.isEmpty() || itemRevision.isEmpty() || !STATUS.contains(status)
-                        || !(flow.get("security") instanceof Map)
-                        || !(flow.get("triggers") instanceof List)
-                        || !(flow.get("history") instanceof List)
-                        || !(flow.get("actions") instanceof List)) {
+            String catalogRevision = text(root.get("routineCatalogRevision"), 96);
+            if (catalogRevision.isEmpty() || !(root.get("mutations") instanceof Map)) {
+                throw new IllegalArgumentException();
+            }
+            Map<String, Object> mutations = (Map<String, Object>) root.get("mutations");
+            ActionPreview createRoutine = parseCreateRoutine(
+                    mutations.get("createRoutine"), catalogRevision);
+            if (createRoutine == null) throw new IllegalArgumentException();
+
+            List<Item> items = new ArrayList<Item>();
+            Set<String> keys = new LinkedHashSet<String>();
+            for (Object rawItem : (List<Object>) root.get("items")) {
+                if (!(rawItem instanceof Map)) throw new IllegalArgumentException();
+                Map<String, Object> item = (Map<String, Object>) rawItem;
+                String kind = text(item.get("kind"), 16);
+                String id = text(item.get("id"), 256);
+                String itemRevision = text(item.get("revision"), 96);
+                String status = text(item.get("status"), 32);
+                if (!KINDS.contains(kind) || id.isEmpty() || itemRevision.isEmpty()
+                        || !keys.add(kind + "\0" + id) || !STATUS.contains(status)
+                        || !(item.get("security") instanceof Map)
+                        || !(item.get("triggers") instanceof List)
+                        || !(item.get("history") instanceof List)
+                        || !(item.get("actions") instanceof List)) {
                     throw new IllegalArgumentException();
                 }
-                Map<String, Object> security = (Map<String, Object>) flow.get("security");
+                Map<String, Object> security = (Map<String, Object>) item.get("security");
                 String securityState = text(security.get("state"), 32);
                 if (!SECURITY.contains(securityState)) throw new IllegalArgumentException();
                 Map<String, Object> budget = security.get("budget") instanceof Map
                         ? (Map<String, Object>) security.get("budget") : Map.of();
                 Map<String, Object> issue = security.get("issue") instanceof Map
                         ? (Map<String, Object>) security.get("issue") : Map.of();
+                List<String> required = "routine".equals(kind)
+                        ? ROUTINE_ACTIONS : FLOW_ACTIONS;
+                Set<String> allowed = Set.copyOf(required);
                 Map<String, Action> actions = new LinkedHashMap<String, Action>();
                 Set<String> seen = new LinkedHashSet<String>();
-                for (Object rawAction : (List<Object>) flow.get("actions")) {
+                for (Object rawAction : (List<Object>) item.get("actions")) {
                     if (!(rawAction instanceof Map)) continue;
                     Map<String, Object> value = (Map<String, Object>) rawAction;
                     String actionId = text(value.get("id"), 32);
-                    if (!ACTION_SET.contains(actionId) || !seen.add(actionId)) continue;
+                    if (!allowed.contains(actionId) || !seen.add(actionId)) continue;
                     boolean available = Boolean.TRUE.equals(value.get("available"));
                     ActionPreview preview = available
-                            ? parsePreview(value.get("preview"), id, actionId, itemRevision)
+                            ? parsePreview(value.get("preview"), kind, id,
+                                    actionId, itemRevision)
                             : null;
                     if ((available && preview == null)
                             || (!available && value.get("preview") != null)) {
@@ -174,38 +220,61 @@ public final class AutomationCenter {
                     actions.put(actionId, new Action(available,
                             text(value.get("reason"), 240), preview));
                 }
-                if (actions.size() != ACTIONS.size()) throw new IllegalArgumentException();
-                flows.add(new Flow(
-                        id, itemRevision, fallback(text(flow.get("name"), 200), id),
-                        text(flow.get("description"), 500), status,
-                        text(flow.get("schedule"), 120), securityState,
+                if (actions.size() != required.size()) throw new IllegalArgumentException();
+                Map<String, Object> definition = null;
+                if ("routine".equals(kind)) {
+                    if (!(item.get("definition") instanceof Map)) {
+                        throw new IllegalArgumentException();
+                    }
+                    definition = (Map<String, Object>) item.get("definition");
+                    if (text(definition.get("name"), 512).isEmpty()
+                            || text(definition.get("prompt"), 65536).isEmpty()
+                            || !(definition.get("trigger") instanceof Map)) {
+                        throw new IllegalArgumentException();
+                    }
+                }
+                items.add(new Item(
+                        kind, id, itemRevision,
+                        fallback(text(item.get("name"), 200), id),
+                        text(item.get("description"), 500), status,
+                        text(item.get("schedule"), 240), securityState,
                         Boolean.TRUE.equals(security.get("ready")),
                         text(security.get("principalId"), 256),
                         number(budget.get("remainingRuns")),
                         number(budget.get("remainingActionSteps")),
                         text(issue.get("code"), 96),
-                        triggerLines((List<Object>) flow.get("triggers")),
-                        historyLines((List<Object>) flow.get("history")),
-                        actions));
+                        triggerLines((List<Object>) item.get("triggers")),
+                        historyLines((List<Object>) item.get("history")),
+                        actions, definition));
             }
             Map<String, Object> summary = root.get("summary") instanceof Map
                     ? (Map<String, Object>) root.get("summary") : Map.of();
-            return new Snapshot(true, false, revision, "",
-                    number(summary.get("total")), number(summary.get("active")),
+            long total = number(summary.get("total"));
+            long flowCount = number(summary.get("flows"));
+            long routineCount = number(summary.get("routines"));
+            if (total != items.size()
+                    || flowCount != items.stream().filter(i -> "flow".equals(i.kind)).count()
+                    || routineCount != items.stream().filter(i -> "routine".equals(i.kind)).count()) {
+                throw new IllegalArgumentException();
+            }
+            return new Snapshot(true, false, revision, catalogRevision, "",
+                    total, flowCount, routineCount, number(summary.get("active")),
                     number(summary.get("paused")), number(summary.get("needsAttention")),
-                    flows);
+                    items, createRoutine);
         } catch (RuntimeException error) {
             return disconnected("malformed Automation Center projection", false, revision);
         }
     }
 
-    public static ActionPreview preview(Snapshot snapshot, String flowId,
-            String action, String requestRevision, String itemRevision) {
+    public static ActionPreview preview(Snapshot snapshot, String kind,
+            String itemId, String action, String requestRevision,
+            String itemRevision) {
         if (snapshot == null || !snapshot.connected
                 || !snapshot.revision.equals(requestRevision)) return null;
-        for (Flow flow : snapshot.flows) {
-            if (flow.id.equals(flowId) && flow.revision.equals(itemRevision)) {
-                Action value = flow.actions.get(action);
+        for (Item item : snapshot.items) {
+            if (item.kind.equals(kind) && item.id.equals(itemId)
+                    && item.revision.equals(itemRevision)) {
+                Action value = item.actions.get(action);
                 return value != null && value.available ? value.preview : null;
             }
         }
@@ -213,67 +282,100 @@ public final class AutomationCenter {
     }
 
     public static ActionPreview recheck(Snapshot rendered, Snapshot current,
-            String flowId, String action, String requestRevision,
+            String kind, String itemId, String action, String requestRevision,
             String itemRevision) {
-        if (preview(rendered, flowId, action, requestRevision, itemRevision) == null
+        if (preview(rendered, kind, itemId, action, requestRevision, itemRevision) == null
                 || current == null || !current.connected) return null;
-        for (Flow flow : current.flows) {
-            if (flow.id.equals(flowId) && flow.revision.equals(itemRevision)) {
-                Action value = flow.actions.get(action);
-                return value != null && value.available ? value.preview : null;
-            }
-        }
-        return null;
+        return preview(current, kind, itemId, action,
+                current.revision, itemRevision);
     }
 
-    public static List<Flow> filter(List<Flow> flows, String query) {
+    public static ActionPreview recheckCreateRoutine(
+            Snapshot rendered, Snapshot current) {
+        if (rendered == null || current == null || !rendered.connected
+                || !current.connected
+                || !rendered.routineCatalogRevision.equals(
+                        current.routineCatalogRevision)) return null;
+        return current.createRoutine;
+    }
+
+    public static List<Item> filter(List<Item> items, String query) {
         String needle = text(query, 200).trim().toLowerCase();
-        if (needle.isEmpty()) return new ArrayList<Flow>(flows == null ? List.of() : flows);
-        List<Flow> result = new ArrayList<Flow>();
-        if (flows == null) return result;
-        for (Flow flow : flows) {
-            String haystack = (flow.name + " " + flow.id + " " + flow.status
-                    + " " + flow.securityState + " " + flow.schedule).toLowerCase();
-            if (haystack.contains(needle)) result.add(flow);
+        if (needle.isEmpty()) return new ArrayList<Item>(items == null ? List.of() : items);
+        List<Item> result = new ArrayList<Item>();
+        if (items == null) return result;
+        for (Item item : items) {
+            String haystack = (item.kind + " " + item.name + " " + item.id + " "
+                    + item.status + " " + item.securityState + " " + item.schedule).toLowerCase();
+            if (haystack.contains(needle)) result.add(item);
         }
         return result;
     }
 
-    public static String detail(Flow flow) {
-        if (flow == null) return "";
+    public static String detail(Item item) {
+        if (item == null) return "";
         StringBuilder out = new StringBuilder();
-        out.append(flow.name).append("\n")
-                .append(flow.id).append(" · ").append(flow.status);
-        if (!flow.schedule.isEmpty()) out.append(" · ").append(flow.schedule);
-        out.append("\nPreflight: ").append(flow.securityState);
-        if (!flow.principalId.isEmpty()) out.append(" · principal ").append(flow.principalId);
-        if (flow.ready) out.append(" · ").append(flow.remainingRuns)
-                .append(" runs / ").append(flow.remainingActionSteps).append(" steps left");
-        if (!flow.issue.isEmpty()) out.append(" · ").append(flow.issue);
-        out.append("\nTriggers: ").append(flow.triggers.isEmpty()
-                ? "none" : String.join("; ", flow.triggers));
+        out.append(item.name).append("\n")
+                .append(item.kind).append(" · ").append(item.id)
+                .append(" · ").append(item.status);
+        if (!item.schedule.isEmpty()) out.append(" · ").append(item.schedule);
+        out.append("\nPreflight: ").append(item.securityState);
+        if (!item.principalId.isEmpty()) out.append(" · principal ").append(item.principalId);
+        if (item.ready && !"routine".equals(item.kind)) out.append(" · ")
+                .append(item.remainingRuns).append(" runs / ")
+                .append(item.remainingActionSteps).append(" steps left");
+        if (!item.issue.isEmpty()) out.append(" · ").append(item.issue);
+        out.append("\nTriggers: ").append(item.triggers.isEmpty()
+                ? "none" : String.join("; ", item.triggers));
         out.append("\n\nRun history:");
-        if (flow.history.isEmpty()) out.append(" none");
-        else for (String line : flow.history) out.append("\n  ").append(line);
+        if (item.history.isEmpty()) out.append(" none");
+        else for (String line : item.history) out.append("\n  ").append(line);
         return out.toString();
     }
 
     @SuppressWarnings("unchecked")
-    private static ActionPreview parsePreview(Object raw, String flowId,
-            String actionId, String itemRevision) {
+    private static ActionPreview parseCreateRoutine(Object raw, String revision) {
+        if (!(raw instanceof Map)) return null;
+        Map<String, Object> action = (Map<String, Object>) raw;
+        if (!Boolean.TRUE.equals(action.get("available"))
+                || action.get("reason") != null) return null;
+        List<String> expected = List.of("automation", "center-routine-create",
+                "--expected-revision", revision, "--json-stdin", "--json");
+        return parseExactPreview(action.get("preview"), expected, true);
+    }
+
+    private static List<String> expectedAction(String kind, String id,
+            String action, String revision) {
+        if ("flow".equals(kind)) return List.of("automation", "center-action", id,
+                action, "--expected-revision", revision, "--json");
+        if ("edit".equals(action)) return List.of("automation", "center-routine-edit", id,
+                "--expected-revision", revision, "--json-stdin", "--json");
+        return List.of("automation", "center-routine-action", id, action,
+                "--expected-revision", revision, "--json");
+    }
+
+    private static ActionPreview parsePreview(Object raw, String kind,
+            String id, String action, String revision) {
+        return parseExactPreview(raw, expectedAction(kind, id, action, revision),
+                "routine".equals(kind) && "edit".equals(action));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static ActionPreview parseExactPreview(Object raw,
+            List<String> expected, boolean jsonStdin) {
         if (!(raw instanceof Map)) return null;
         Map<String, Object> value = (Map<String, Object>) raw;
         if (!"cli".equals(text(value.get("executor"), 16))
                 || !Boolean.TRUE.equals(value.get("mutates"))
+                || (jsonStdin ? !"json".equals(value.get("stdin"))
+                        : value.get("stdin") != null)
                 || !(value.get("argv") instanceof List)) return null;
-        List<String> expected = List.of("automation", "center-action", flowId,
-                actionId, "--expected-revision", itemRevision, "--json");
         List<Object> argv = (List<Object>) value.get("argv");
         if (argv.size() != expected.size()) return null;
         for (int i = 0; i < expected.size(); i++) {
             if (!expected.get(i).equals(argv.get(i))) return null;
         }
-        return new ActionPreview(expected);
+        return new ActionPreview(expected, jsonStdin);
     }
 
     @SuppressWarnings("unchecked")
@@ -288,16 +390,20 @@ public final class AutomationCenter {
             if (!Boolean.TRUE.equals(trigger.get("enabled"))) line.append(" (disabled)");
             if (trigger.get("scope") instanceof Map) {
                 Map<String, Object> scope = (Map<String, Object>) trigger.get("scope");
+                String detail = firstNonEmpty(
+                        text(scope.get("repo"), 200), text(scope.get("cron"), 120),
+                        text(scope.get("at"), 80), text(scope.get("entryPoint"), 300));
                 if (scope.get("origins") instanceof List) {
                     List<String> origins = new ArrayList<String>();
                     for (Object origin : (List<Object>) scope.get("origins")) {
                         String value = text(origin, 64);
                         if (!value.isEmpty()) origins.add(value);
                     }
-                    if (!origins.isEmpty()) line.append(" · ").append(String.join(", ", origins));
+                    detail = String.join(", ", origins);
                 } else if (Boolean.TRUE.equals(scope.get("endpointConfigured"))) {
-                    line.append(" · endpoint configured");
+                    detail = "endpoint configured";
                 }
+                if (!detail.isEmpty()) line.append(" · ").append(detail);
             }
             result.add(line.toString());
         }
@@ -312,14 +418,15 @@ public final class AutomationCenter {
             Map<String, Object> item = (Map<String, Object>) raw;
             String status = text(item.get("status"), 40);
             if (status.isEmpty()) continue;
-            result.add(status + " · " + fallback(text(item.get("triggerType"), 40), "manual")
+            result.add(status + " · " + fallback(text(item.get("triggerType"), 80), "manual")
                     + " · " + text(item.get("startedAt"), 80));
         }
         return result;
     }
 
     private static Snapshot disconnected(String error, boolean stale, String revision) {
-        return new Snapshot(false, stale, revision, error, 0, 0, 0, 0, List.of());
+        return new Snapshot(false, stale, revision, "", error,
+                0, 0, 0, 0, 0, 0, List.of(), null);
     }
 
     private static String text(Object value, int maximum) {
@@ -335,5 +442,10 @@ public final class AutomationCenter {
 
     private static String fallback(String value, String fallback) {
         return value == null || value.isEmpty() ? fallback : value;
+    }
+
+    private static String firstNonEmpty(String... values) {
+        for (String value : values) if (value != null && !value.isEmpty()) return value;
+        return "";
     }
 }

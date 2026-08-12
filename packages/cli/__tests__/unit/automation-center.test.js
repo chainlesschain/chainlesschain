@@ -1,9 +1,18 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import Database from "better-sqlite3";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   buildAutomationCenterProjection,
   runAutomationCenterAction,
 } from "../../src/lib/automation-center.js";
+import {
+  createAutomationCenterRoutine,
+  editAutomationCenterRoutine,
+  runAutomationCenterRoutineAction,
+} from "../../src/lib/automation-center-routines.js";
+import { RoutineStore } from "../../src/lib/routine-store.js";
 import {
   addTrigger,
   createFlow,
@@ -27,6 +36,12 @@ describe("Automation Center projection", () => {
   function fixture({ configure = true } = {}) {
     const db = new Database(":memory:");
     cleanups.push(() => db.close());
+    const routineDir = mkdtempSync(join(tmpdir(), "cc-center-routines-"));
+    cleanups.push(() => rmSync(routineDir, { recursive: true, force: true }));
+    const routineStore = new RoutineStore({
+      dir: routineDir,
+      now: () => now,
+    });
     ensureAutomationTables(db);
     const flow = createFlow(db, {
       name: "IDE delivery alert",
@@ -61,23 +76,37 @@ describe("Automation Center projection", () => {
         { now: () => now },
       );
     }
-    return { db, flowId: flow.id };
+    return { db, flowId: flow.id, routineStore };
+  }
+
+  function projection(f, options = {}) {
+    return buildAutomationCenterProjection(f.db, {
+      routineStore: f.routineStore,
+      now: () => now,
+      ...options,
+    });
   }
 
   it("projects flows, scoped triggers, history, actions and live authority", () => {
     const f = fixture();
-    const projection = buildAutomationCenterProjection(f.db, {
-      now: () => now,
-    });
+    const center = projection(f);
 
-    expect(projection).toMatchObject({
-      schema: "chainlesschain.automation-center/v1",
-      schemaVersion: 1,
+    expect(center).toMatchObject({
+      schema: "chainlesschain.automation-center/v2",
+      schemaVersion: 2,
       authority: "cli",
       connected: true,
-      summary: { total: 1, active: 1, paused: 0, needsAttention: 0 },
+      summary: {
+        total: 1,
+        flows: 1,
+        routines: 0,
+        active: 1,
+        paused: 0,
+        needsAttention: 0,
+      },
     });
-    const flow = projection.flows[0];
+    const flow = center.items[0];
+    expect(flow.kind).toBe("flow");
     expect(flow.security).toMatchObject({
       state: "ready",
       principalId,
@@ -107,9 +136,7 @@ describe("Automation Center projection", () => {
 
   it("fails closed when principal, permissions or budget are not configured", () => {
     const f = fixture({ configure: false });
-    const flow = buildAutomationCenterProjection(f.db, {
-      now: () => now,
-    }).flows[0];
+    const flow = projection(f).items[0];
     expect(flow.security).toMatchObject({
       ready: false,
       state: "unconfigured",
@@ -125,9 +152,7 @@ describe("Automation Center projection", () => {
 
   it("uses item-revision CAS for run-now, lifecycle and delete actions", () => {
     const f = fixture();
-    let flow = buildAutomationCenterProjection(f.db, {
-      now: () => now,
-    }).flows[0];
+    let flow = projection(f).items[0];
     expect(() =>
       runAutomationCenterAction(f.db, {
         flowId: f.flowId,
@@ -147,7 +172,7 @@ describe("Automation Center projection", () => {
     });
     expect(run.result.status).toBe("success");
 
-    flow = buildAutomationCenterProjection(f.db, { now: () => now }).flows[0];
+    flow = projection(f).items[0];
     runAutomationCenterAction(f.db, {
       flowId: f.flowId,
       action: "pause",
@@ -156,7 +181,7 @@ describe("Automation Center projection", () => {
     });
     expect(getFlow(f.db, f.flowId).status).toBe(FLOW_STATUS.PAUSED);
 
-    flow = buildAutomationCenterProjection(f.db, { now: () => now }).flows[0];
+    flow = projection(f).items[0];
     runAutomationCenterAction(f.db, {
       flowId: f.flowId,
       action: "resume",
@@ -165,7 +190,7 @@ describe("Automation Center projection", () => {
     });
     expect(getFlow(f.db, f.flowId).status).toBe(FLOW_STATUS.ACTIVE);
 
-    flow = buildAutomationCenterProjection(f.db, { now: () => now }).flows[0];
+    flow = projection(f).items[0];
     runAutomationCenterAction(f.db, {
       flowId: f.flowId,
       action: "disable",
@@ -174,7 +199,7 @@ describe("Automation Center projection", () => {
     });
     expect(getFlow(f.db, f.flowId).status).toBe(FLOW_STATUS.ARCHIVED);
 
-    flow = buildAutomationCenterProjection(f.db, { now: () => now }).flows[0];
+    flow = projection(f).items[0];
     const removed = runAutomationCenterAction(f.db, {
       flowId: f.flowId,
       action: "delete",
@@ -214,9 +239,7 @@ describe("Automation Center projection", () => {
         "2026-08-12T00:00:00.000Z",
         "2026-08-12T00:00:00.001Z",
       );
-    const flow = buildAutomationCenterProjection(f.db, {
-      now: () => now,
-    }).flows[0];
+    const flow = projection(f).items[0];
     expect(
       flow.actions.find((action) => action.id === "retry_failed"),
     ).toMatchObject({ available: true });
@@ -232,11 +255,114 @@ describe("Automation Center projection", () => {
 
   it("keeps revisions stable across generatedAt-only changes", () => {
     const f = fixture();
-    const first = buildAutomationCenterProjection(f.db, { now: () => now });
-    const second = buildAutomationCenterProjection(f.db, {
-      now: () => now + 1_000,
-    });
+    const first = projection(f);
+    const second = projection(f, { now: () => now + 1_000 });
     expect(second.revision).toBe(first.revision);
-    expect(second.flows[0].revision).toBe(first.flows[0].revision);
+    expect(second.items[0].revision).toBe(first.items[0].revision);
+  });
+
+  it("projects Routine one-shot/GitHub definitions and revision-gates create/edit/lifecycle", async () => {
+    const f = fixture();
+    const initial = projection(f);
+    expect(initial.mutations.createRoutine.preview).toMatchObject({
+      stdin: "json",
+      argv: [
+        "automation",
+        "center-routine-create",
+        "--expected-revision",
+        initial.routineCatalogRevision,
+        "--json-stdin",
+        "--json",
+      ],
+    });
+    const created = createAutomationCenterRoutine(f.routineStore, {
+      expectedRevision: initial.routineCatalogRevision,
+      definition: {
+        name: "Release watcher",
+        prompt: "Summarize the release event",
+        trigger: {
+          kind: "github",
+          repo: "acme/app",
+          events: ["PushEvent", "ReleaseEvent"],
+        },
+      },
+    });
+    expect(() =>
+      createAutomationCenterRoutine(f.routineStore, {
+        expectedRevision: initial.routineCatalogRevision,
+        definition: {
+          name: "stale",
+          prompt: "must fail",
+          trigger: { kind: "webhook" },
+        },
+      }),
+    ).toThrowError(
+      expect.objectContaining({ code: "ROUTINE_REVISION_CONFLICT" }),
+    );
+
+    let center = projection(f);
+    let routine = center.items.find((item) => item.kind === "routine");
+    expect(routine).toMatchObject({
+      id: created.routineId,
+      status: "active",
+      definition: {
+        trigger: { kind: "github", repo: "acme/app" },
+      },
+      security: { state: "snapshot_bound", ready: true },
+    });
+    expect(
+      routine.actions.find((action) => action.id === "edit").preview,
+    ).toMatchObject({
+      stdin: "json",
+    });
+
+    editAutomationCenterRoutine(f.routineStore, {
+      routineId: routine.id,
+      expectedRevision: routine.revision,
+      definition: {
+        name: "One shot release summary",
+        prompt: "Summarize once",
+        trigger: { kind: "once", at: now + 60_000 },
+      },
+    });
+    center = projection(f);
+    routine = center.items.find((item) => item.kind === "routine");
+    expect(routine).toMatchObject({
+      name: "One shot release summary",
+      schedule: new Date(now + 60_000).toISOString(),
+      definition: { trigger: { kind: "once", at: now + 60_000 } },
+    });
+
+    const triggerRoutine = vi.fn(async (snapshot) => ({
+      runId: `run-${snapshot.id}`,
+      status: "ok",
+    }));
+    const fired = await runAutomationCenterRoutineAction(f.routineStore, {
+      routineId: routine.id,
+      action: "run_now",
+      expectedRevision: routine.revision,
+      triggerRoutine,
+    });
+    expect(fired.result).toEqual({ runId: `run-${routine.id}`, status: "ok" });
+    expect(triggerRoutine).toHaveBeenCalledWith(
+      expect.objectContaining({ id: routine.id, prompt: "Summarize once" }),
+    );
+
+    await runAutomationCenterRoutineAction(f.routineStore, {
+      routineId: routine.id,
+      action: "pause",
+      expectedRevision: routine.revision,
+    });
+    routine = projection(f).items.find((item) => item.kind === "routine");
+    expect(routine.status).toBe("paused");
+    expect(() =>
+      editAutomationCenterRoutine(f.routineStore, {
+        routineId: routine.id,
+        expectedRevision: "sha256:stale",
+        definition: routine.definition,
+      }),
+    ).toThrowError(
+      expect.objectContaining({ code: "ROUTINE_REVISION_CONFLICT" }),
+    );
   });
 });

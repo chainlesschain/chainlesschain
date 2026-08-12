@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, readFileSync, existsSync } from "node:fs";
+import {
+  mkdtempSync,
+  rmSync,
+  readFileSync,
+  existsSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -70,11 +76,44 @@ describe("RoutineStore definitions", () => {
       }),
     ).toThrow(/invalid --at/);
     expect(() =>
+      s.create({
+        name: "x",
+        prompt: "p",
+        trigger: { kind: "once", at: "" },
+      }),
+    ).toThrow(/invalid --at/);
+    expect(() =>
       s.create({ name: "x", prompt: "p", trigger: { kind: "github" } }),
     ).toThrow(/--repo/);
     expect(() =>
       s.create({ name: "", prompt: "p", trigger: { kind: "webhook" } }),
     ).toThrow(/name/);
+    expect(() =>
+      s.create({
+        name: "x",
+        prompt: "p",
+        trigger: { kind: "github", repo: "../token", events: ["PushEvent"] },
+      }),
+    ).toThrow(/--repo/);
+  });
+
+  it("fails closed instead of replacing a corrupt definition store", () => {
+    const s = store();
+    s.create({
+      name: "safe",
+      prompt: "p",
+      trigger: { kind: "webhook" },
+    });
+    writeFileSync(join(dir, "routines.json"), "{corrupt", "utf8");
+    expect(() => s.list()).toThrow(/store corrupt failed/);
+    expect(() =>
+      s.create({
+        name: "must-not-overwrite",
+        prompt: "p",
+        trigger: { kind: "webhook" },
+      }),
+    ).toThrow(/store corrupt failed/);
+    expect(readFileSync(join(dir, "routines.json"), "utf8")).toBe("{corrupt");
   });
 
   it("computes due(): cron past next-fire, once reached, disabled never", () => {
