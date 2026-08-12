@@ -119,7 +119,14 @@ public final class AgentChatSession {
      * blank result as "unavailable". Pure JDK; safe to call off the EDT.
      */
     public static String runCapture(List<String> args, File cwd, long timeoutMs) {
-        return runCaptureWith(resolveBinary(), args, cwd, timeoutMs);
+        return runCaptureWith(resolveBinary(), args, null, cwd, timeoutMs);
+    }
+
+    /** Captured one-shot command with a bounded UTF-8 stdin payload. */
+    public static String runCaptureInput(List<String> args, String input,
+            File cwd, long timeoutMs) {
+        return runCaptureWith(resolveBinary(), args,
+                input == null ? "" : input, cwd, timeoutMs);
     }
 
     private static volatile String resolvedBinary = null;
@@ -207,7 +214,8 @@ public final class AgentChatSession {
         String r = resolvedBinary;
         if (r != null) return r;
         String picked = chooseBinary(cand -> runCaptureWith(
-                cand, java.util.Collections.singletonList("--version"), null, 12000));
+                cand, java.util.Collections.singletonList("--version"), null,
+                null, 12000));
         if (picked != null) {
             resolvedBinary = picked;
             return picked;
@@ -301,7 +309,8 @@ public final class AgentChatSession {
     }
 
     /** {@code <binary> <args…>} → captured stdout, or "" on failure/timeout. */
-    private static String runCaptureWith(String binary, List<String> args, File cwd, long timeoutMs) {
+    private static String runCaptureWith(String binary, List<String> args,
+            String input, File cwd, long timeoutMs) {
         List<String> cmd = buildCaptureCommand(
                 binary, args, File.separatorChar == '\\');
         if (cmd.isEmpty()) return "";
@@ -311,6 +320,15 @@ public final class AgentChatSession {
             CliLauncher.augmentPath(pb); // find cc even when the IDE PATH lacks npm-global
             pb.redirectErrorStream(false);
             Process p = pb.start();
+            try (java.io.OutputStream childInput = p.getOutputStream()) {
+                if (input != null) {
+                    if (input.getBytes(StandardCharsets.UTF_8).length > 80 * 1024) {
+                        destroyTreeForcibly(p);
+                        return "";
+                    }
+                    childInput.write(input.getBytes(StandardCharsets.UTF_8));
+                }
+            }
             // StringBuffer (not StringBuilder): the pump thread appends while the
             // caller thread may read out.toString() after pump.join(500) times out
             // on a chatty child — StringBuilder is not thread-safe and would tear

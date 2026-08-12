@@ -23,9 +23,11 @@ import {
   canonicalJson,
   normalizeIdentifier,
 } from "./scheduler-kernel/contract.js";
+import { RoutineStore } from "./routine-store.js";
+import { buildRoutineCenterProjection } from "./automation-center-routines.js";
 
-export const AUTOMATION_CENTER_SCHEMA = "chainlesschain.automation-center/v1";
-export const AUTOMATION_CENTER_SCHEMA_VERSION = 1;
+export const AUTOMATION_CENTER_SCHEMA = "chainlesschain.automation-center/v2";
+export const AUTOMATION_CENTER_SCHEMA_VERSION = 2;
 export const AUTOMATION_CENTER_ACTIONS = Object.freeze([
   "run_now",
   "retry_failed",
@@ -43,7 +45,7 @@ function centerError(code, message, details = undefined) {
 
 function digest(value) {
   return `sha256:${createHash("sha256")
-    .update("chainlesschain.automation-center.v1\0", "utf8")
+    .update("chainlesschain.automation-center.v2\0", "utf8")
     .update(canonicalJson(value, "automationCenter"), "utf8")
     .digest("hex")}`;
 }
@@ -183,6 +185,7 @@ function projectFlow(db, flow, { historyLimit, now }) {
   }).map(projectExecution);
   const security = projectSecurity(db, flow, now);
   const content = {
+    kind: "flow",
     id: flow.id,
     name: boundedText(flow.name, 200),
     description: boundedText(flow.description, 500),
@@ -258,7 +261,12 @@ function projectFlow(db, flow, { historyLimit, now }) {
 
 export function buildAutomationCenterProjection(
   db,
-  { limit = 100, historyLimit = 20, now = Date.now } = {},
+  {
+    limit = 100,
+    historyLimit = 20,
+    now = Date.now,
+    routineStore = new RoutineStore(),
+  } = {},
 ) {
   if (typeof now !== "function") {
     throw centerError(
@@ -271,14 +279,22 @@ export function buildAutomationCenterProjection(
   const flows = listFlows(db, { limit: boundedLimit }).map((flow) =>
     projectFlow(db, flow, { historyLimit: boundedHistory, now }),
   );
+  const routineProjection = buildRoutineCenterProjection(routineStore, {
+    limit: boundedLimit,
+    historyLimit: boundedHistory,
+  });
+  const items = [...flows, ...routineProjection.items];
   const summary = {
-    total: flows.length,
-    active: flows.filter((flow) => flow.status === FLOW_STATUS.ACTIVE).length,
-    paused: flows.filter((flow) => flow.status === FLOW_STATUS.PAUSED).length,
-    needsAttention: flows.filter(
-      (flow) =>
-        flow.security.ready !== true ||
-        flow.history[0]?.status === EXECUTION_STATUS.FAILED,
+    total: items.length,
+    flows: flows.length,
+    routines: routineProjection.items.length,
+    active: items.filter((item) => item.status === FLOW_STATUS.ACTIVE).length,
+    paused: items.filter((item) => item.status === FLOW_STATUS.PAUSED).length,
+    needsAttention: items.filter(
+      (item) =>
+        item.security.ready !== true ||
+        item.history[0]?.status === EXECUTION_STATUS.FAILED ||
+        item.history[0]?.status === "failed",
     ).length,
   };
   return {
@@ -287,12 +303,22 @@ export function buildAutomationCenterProjection(
     authority: "cli",
     connected: true,
     generatedAt: new Date(Number(now())).toISOString(),
+    routineCatalogRevision: routineProjection.catalogRevision,
     revision: digest({
       summary,
-      flows: flows.map((flow) => ({ id: flow.id, revision: flow.revision })),
+      mutations: {
+        createRoutine: routineProjection.createRoutine.preview.argv,
+        routineCatalogRevision: routineProjection.catalogRevision,
+      },
+      items: items.map((item) => ({
+        kind: item.kind,
+        id: item.id,
+        revision: item.revision,
+      })),
     }),
     summary,
-    flows,
+    mutations: { createRoutine: routineProjection.createRoutine },
+    items,
   };
 }
 

@@ -27,6 +27,11 @@ import path from "node:path";
 import os from "node:os";
 import { randomBytes } from "node:crypto";
 import { parseCron, nextCronTime } from "./agent-schedule-store.js";
+import {
+  readSecurityStore,
+  writeSecurityStore,
+} from "./durable-security-store.js";
+import { withFileLock } from "./with-file-lock.js";
 
 export const ROUTINE_TRIGGER_KINDS = Object.freeze([
   "cron",
@@ -45,9 +50,73 @@ function shortId() {
 
 function parseWhen(value) {
   if (value == null) return NaN;
+  if (typeof value === "string" && value.trim() === "") return NaN;
+  if (typeof value !== "string" && typeof value !== "number") return NaN;
   const n = Number(value);
   if (Number.isFinite(n)) return n;
   return Date.parse(String(value));
+}
+
+function boundedDefinitionText(value, field, maximum) {
+  const text = String(value || "").trim();
+  if (!text) throw new Error(`routine needs a ${field}`);
+  if (Buffer.byteLength(text, "utf8") > maximum) {
+    throw new Error(`routine ${field} exceeds ${maximum} UTF-8 bytes`);
+  }
+  return text;
+}
+
+export function normalizeRoutineDefinition(def = {}) {
+  const name = boundedDefinitionText(def.name, "name", 512);
+  const prompt = boundedDefinitionText(def.prompt, "prompt", 64 * 1024);
+  const raw = def.trigger;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    throw new Error("routine trigger is required");
+  }
+  if (!ROUTINE_TRIGGER_KINDS.includes(raw.kind)) {
+    throw new Error(
+      `routine trigger kind must be one of: ${ROUTINE_TRIGGER_KINDS.join(", ")}`,
+    );
+  }
+  let trigger;
+  if (raw.kind === "cron") {
+    const cron = String(raw.cron || "").trim();
+    if (!parseCron(cron)) throw new Error(`invalid cron expression: ${cron}`);
+    trigger = { kind: "cron", cron };
+  } else if (raw.kind === "once") {
+    const at = parseWhen(raw.at);
+    if (!Number.isFinite(at) || !Number.isSafeInteger(at) || at < 0) {
+      throw new Error(`invalid --at time: ${raw.at}`);
+    }
+    trigger = { kind: "once", at };
+  } else if (raw.kind === "github") {
+    const repo = String(raw.repo || "").trim();
+    const parts = repo.split("/");
+    if (
+      !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u.test(repo) ||
+      parts.some((part) => part === "." || part === "..")
+    ) {
+      throw new Error("github trigger needs --repo <owner/name>");
+    }
+    const events = Array.isArray(raw.events)
+      ? [...new Set(raw.events.map((value) => String(value || "").trim()))]
+          .filter(Boolean)
+          .sort()
+      : [];
+    if (
+      events.length > 64 ||
+      events.some(
+        (event) =>
+          event.length > 128 || !/^[A-Za-z][A-Za-z0-9_.-]*$/u.test(event),
+      )
+    ) {
+      throw new Error("github trigger events are invalid");
+    }
+    trigger = { kind: "github", repo, events };
+  } else {
+    trigger = { kind: "webhook" };
+  }
+  return { name, prompt, trigger };
 }
 
 export class RoutineStore {
@@ -70,66 +139,56 @@ export class RoutineStore {
   }
 
   _readRoutines() {
-    try {
-      const parsed = JSON.parse(fs.readFileSync(this._routinesFile(), "utf-8"));
-      return parsed && typeof parsed === "object" ? parsed : {};
-    } catch {
-      return {};
-    }
+    return readSecurityStore(this._routinesFile(), "routine definitions");
   }
   _writeRoutines(map) {
+    writeSecurityStore(this._routinesFile(), "routine definitions", map);
+  }
+
+  _withDefinitionLock(callback) {
     this._ensureDir();
-    fs.writeFileSync(
+    return withFileLock(
       this._routinesFile(),
-      JSON.stringify(map, null, 2),
-      "utf-8",
+      () => callback(this._readRoutines()),
+      { failIfUnavailable: true },
     );
+  }
+
+  _resolveFromMap(map, id) {
+    if (map[id]) return map[id];
+    const matches = Object.values(map).filter(
+      (routine) => routine.id.startsWith(id) || routine.name === id,
+    );
+    if (matches.length === 1) return matches[0];
+    if (matches.length > 1) {
+      throw new Error(`routine "${id}" is ambiguous (${matches.length} match)`);
+    }
+    return null;
+  }
+
+  _createInMap(map, def) {
+    const definition = normalizeRoutineDefinition(def);
+    const routine = {
+      id: shortId(),
+      ...definition,
+      enabled: true,
+      createdAt: this._now(),
+      lastFiredAt: null,
+      lastSeenGithubEventId: null,
+    };
+    map[routine.id] = routine;
+    return routine;
   }
 
   /**
    * @param {object} def { name, prompt, trigger: {kind, cron?, at?, repo?, events?} }
    */
   create(def = {}) {
-    const name = String(def.name || "").trim();
-    const prompt = String(def.prompt || "").trim();
-    const trigger = def.trigger || {};
-    if (!name) throw new Error("routine needs a name");
-    if (!prompt) throw new Error("routine needs a prompt");
-    if (!ROUTINE_TRIGGER_KINDS.includes(trigger.kind)) {
-      throw new Error(
-        `routine trigger kind must be one of: ${ROUTINE_TRIGGER_KINDS.join(", ")}`,
-      );
-    }
-    if (trigger.kind === "cron") {
-      if (!parseCron(trigger.cron || "")) {
-        throw new Error(`invalid cron expression: ${trigger.cron}`);
-      }
-    }
-    if (trigger.kind === "once") {
-      const at = parseWhen(trigger.at);
-      if (!Number.isFinite(at)) {
-        throw new Error(`invalid --at time: ${trigger.at}`);
-      }
-      trigger.at = at;
-    }
-    if (trigger.kind === "github" && !trigger.repo) {
-      throw new Error("github trigger needs --repo <owner/name>");
-    }
-
-    const routine = {
-      id: shortId(),
-      name,
-      prompt,
-      trigger,
-      enabled: true,
-      createdAt: this._now(),
-      lastFiredAt: null,
-      lastSeenGithubEventId: null,
-    };
-    const map = this._readRoutines();
-    map[routine.id] = routine;
-    this._writeRoutines(map);
-    return routine;
+    return this._withDefinitionLock((map) => {
+      const routine = this._createInMap(map, def);
+      this._writeRoutines(map);
+      return routine;
+    });
   }
 
   list() {
@@ -140,26 +199,26 @@ export class RoutineStore {
 
   get(id) {
     const map = this._readRoutines();
-    if (map[id]) return map[id];
-    // prefix / name match for CLI ergonomics
-    const matches = Object.values(map).filter(
-      (r) => r.id.startsWith(id) || r.name === id,
-    );
-    if (matches.length === 1) return matches[0];
-    if (matches.length > 1) {
-      throw new Error(`routine "${id}" is ambiguous (${matches.length} match)`);
-    }
-    return null;
+    return this._resolveFromMap(map, id);
   }
 
   update(id, patch) {
-    const map = this._readRoutines();
-    const routine = this.get(id);
-    if (!routine) throw new Error(`routine not found: ${id}`);
-    const next = { ...routine, ...patch, id: routine.id };
-    map[routine.id] = next;
-    this._writeRoutines(map);
-    return next;
+    return this._withDefinitionLock((map) => {
+      const routine = this._resolveFromMap(map, id);
+      if (!routine) throw new Error(`routine not found: ${id}`);
+      const next = { ...routine, ...patch, id: routine.id };
+      map[routine.id] = next;
+      this._writeRoutines(map);
+      return next;
+    });
+  }
+
+  updateDefinition(id, definition) {
+    const normalized = normalizeRoutineDefinition(definition);
+    return this.update(id, {
+      ...normalized,
+      lastSeenGithubEventId: null,
+    });
   }
 
   setEnabled(id, enabled) {
@@ -167,12 +226,54 @@ export class RoutineStore {
   }
 
   remove(id) {
-    const map = this._readRoutines();
-    const routine = this.get(id);
-    if (!routine) throw new Error(`routine not found: ${id}`);
-    delete map[routine.id];
-    this._writeRoutines(map);
-    return routine;
+    return this._withDefinitionLock((map) => {
+      const routine = this._resolveFromMap(map, id);
+      if (!routine) throw new Error(`routine not found: ${id}`);
+      delete map[routine.id];
+      this._writeRoutines(map);
+      return routine;
+    });
+  }
+
+  createIfRevision(expectedRevision, revisionOfMap, definition) {
+    return this._withDefinitionLock((map) => {
+      if (revisionOfMap(map) !== expectedRevision) {
+        const error = new Error("routine collection changed before create");
+        error.code = "ROUTINE_REVISION_CONFLICT";
+        throw error;
+      }
+      const routine = this._createInMap(map, definition);
+      this._writeRoutines(map);
+      return routine;
+    });
+  }
+
+  readIfRevision(id, expectedRevision, revisionOfRoutine) {
+    return this._withDefinitionLock((map) => {
+      const routine = map[id];
+      if (!routine) throw new Error(`routine not found: ${id}`);
+      if (revisionOfRoutine(routine) !== expectedRevision) {
+        const error = new Error(`routine changed before action: ${id}`);
+        error.code = "ROUTINE_REVISION_CONFLICT";
+        throw error;
+      }
+      return structuredClone(routine);
+    });
+  }
+
+  mutateIfRevision(id, expectedRevision, revisionOfRoutine, mutation) {
+    return this._withDefinitionLock((map) => {
+      const routine = map[id];
+      if (!routine) throw new Error(`routine not found: ${id}`);
+      if (revisionOfRoutine(routine) !== expectedRevision) {
+        const error = new Error(`routine changed before mutation: ${id}`);
+        error.code = "ROUTINE_REVISION_CONFLICT";
+        throw error;
+      }
+      const result = mutation(routine, map);
+      this._writeRoutines(map);
+      return result;
+    });
   }
 
   /** Routines the driver should fire now (cron due / once reached). */

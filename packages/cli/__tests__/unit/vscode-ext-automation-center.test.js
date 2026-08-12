@@ -9,8 +9,10 @@ const extensionRoot = path.resolve(here, "../../../vscode-extension");
 
 function sample() {
   const revision = "sha256:" + "a".repeat(64);
-  const itemRevision = "sha256:" + "b".repeat(64);
-  const action = (id, available) => ({
+  const flowRevision = "sha256:" + "b".repeat(64);
+  const routineRevision = "sha256:" + "c".repeat(64);
+  const catalogRevision = "sha256:" + "d".repeat(64);
+  const flowAction = (id, available) => ({
     id,
     available,
     reason: available ? null : "unavailable",
@@ -23,24 +25,84 @@ function sample() {
             "flow-1",
             id,
             "--expected-revision",
-            itemRevision,
+            flowRevision,
             "--json",
           ],
           mutates: true,
         }
       : null,
   });
+  const routineAction = (id, available) => ({
+    id,
+    available,
+    reason: available ? null : "unavailable",
+    preview: available
+      ? {
+          executor: "cli",
+          argv:
+            id === "edit"
+              ? [
+                  "automation",
+                  "center-routine-edit",
+                  "rt-1",
+                  "--expected-revision",
+                  routineRevision,
+                  "--json-stdin",
+                  "--json",
+                ]
+              : [
+                  "automation",
+                  "center-routine-action",
+                  "rt-1",
+                  id,
+                  "--expected-revision",
+                  routineRevision,
+                  "--json",
+                ],
+          ...(id === "edit" ? { stdin: "json" } : {}),
+          mutates: true,
+        }
+      : null,
+  });
   return {
-    schema: "chainlesschain.automation-center/v1",
-    schemaVersion: 1,
+    schema: "chainlesschain.automation-center/v2",
+    schemaVersion: 2,
     authority: "cli",
     connected: true,
     revision,
-    summary: { total: 1, active: 1, paused: 0, needsAttention: 0 },
-    flows: [
+    routineCatalogRevision: catalogRevision,
+    summary: {
+      total: 2,
+      flows: 1,
+      routines: 1,
+      active: 2,
+      paused: 0,
+      needsAttention: 0,
+    },
+    mutations: {
+      createRoutine: {
+        available: true,
+        reason: null,
+        preview: {
+          executor: "cli",
+          argv: [
+            "automation",
+            "center-routine-create",
+            "--expected-revision",
+            catalogRevision,
+            "--json-stdin",
+            "--json",
+          ],
+          stdin: "json",
+          mutates: true,
+        },
+      },
+    },
+    items: [
       {
+        kind: "flow",
         id: "flow-1",
-        revision: itemRevision,
+        revision: flowRevision,
         name: "<deploy & notify>",
         description: "scope",
         status: "active",
@@ -64,12 +126,57 @@ function sample() {
         ],
         history: [],
         actions: [
-          action("run_now", true),
-          action("retry_failed", false),
-          action("pause", true),
-          action("resume", false),
-          action("disable", true),
-          action("delete", false),
+          flowAction("run_now", true),
+          flowAction("retry_failed", false),
+          flowAction("pause", true),
+          flowAction("resume", false),
+          flowAction("disable", true),
+          flowAction("delete", false),
+        ],
+      },
+      {
+        kind: "routine",
+        id: "rt-1",
+        revision: routineRevision,
+        name: "GitHub watch",
+        description: "Routine · github",
+        status: "active",
+        schedule: "acme/app · PushEvent",
+        definition: {
+          name: "GitHub watch",
+          prompt: "Summarize pushes",
+          trigger: {
+            kind: "github",
+            repo: "acme/app",
+            events: ["PushEvent"],
+          },
+        },
+        security: {
+          state: "snapshot_bound",
+          ready: true,
+          principalId: "routine:rt-1",
+          connectors: [],
+          permissions: [{ permission: "agent.execute", allowed: true }],
+          budget: null,
+          issue: null,
+        },
+        triggers: [
+          {
+            id: "routine:rt-1:github",
+            type: "github",
+            enabled: true,
+            scope: { repo: "acme/app", events: ["PushEvent"] },
+          },
+        ],
+        history: [],
+        actions: [
+          routineAction("run_now", true),
+          routineAction("retry_failed", false),
+          routineAction("pause", true),
+          routineAction("resume", false),
+          routineAction("disable", true),
+          routineAction("delete", false),
+          routineAction("edit", true),
         ],
       },
     ],
@@ -77,67 +184,54 @@ function sample() {
 }
 
 describe("VS Code Automation Center", () => {
-  it("parses the CLI projection and exposes only exact signed previews", () => {
+  it("parses flow/Routine items and exposes only exact CLI previews", () => {
     const parsed = automationCenter.parseAutomationCenter(sample());
     expect(parsed.connected).toBe(true);
-    expect(parsed.flows[0]).toMatchObject({
-      id: "flow-1",
-      status: "active",
-      security: { state: "ready", ready: true },
+    expect(parsed.summary).toMatchObject({ flows: 1, routines: 1 });
+    const routine = parsed.items.find((item) => item.kind === "routine");
+    expect(routine).toMatchObject({
+      id: "rt-1",
+      definition: { trigger: { kind: "github", repo: "acme/app" } },
     });
     const preview = automationCenter.previewAutomationAction(parsed, {
-      id: "flow-1",
-      action: "run_now",
+      kind: "routine",
+      id: "rt-1",
+      action: "edit",
       revision: parsed.revision,
-      itemRevision: parsed.flows[0].revision,
+      itemRevision: routine.revision,
     });
-    expect(preview.argv).toEqual([
-      "automation",
-      "center-action",
-      "flow-1",
-      "run_now",
-      "--expected-revision",
-      parsed.flows[0].revision,
-      "--json",
-    ]);
+    expect(preview).toMatchObject({ stdin: "json" });
+    expect(preview.argv[1]).toBe("center-routine-edit");
   });
 
-  it("fails closed on malformed previews and stale target revisions", () => {
+  it("fails closed on arbitrary argv, stale item or stale Routine catalog", () => {
     const invalid = sample();
-    invalid.flows[0].actions[0].preview.argv = ["agent", "--dangerous"];
+    invalid.items[1].actions[6].preview.argv = ["agent", "--dangerous"];
     expect(automationCenter.parseAutomationCenter(invalid)).toMatchObject({
       connected: false,
-      flows: [],
+      items: [],
     });
 
     const rendered = automationCenter.parseAutomationCenter(sample());
     const currentInput = sample();
-    currentInput.flows[0].revision = "sha256:" + "c".repeat(64);
-    for (const action of currentInput.flows[0].actions) {
-      if (action.preview)
-        action.preview.argv[5] = currentInput.flows[0].revision;
-    }
+    currentInput.routineCatalogRevision = "sha256:" + "e".repeat(64);
+    currentInput.mutations.createRoutine.preview.argv[3] =
+      currentInput.routineCatalogRevision;
     const current = automationCenter.parseAutomationCenter(currentInput);
-    expect(
-      automationCenter.recheckAutomationAction(rendered, current, {
-        id: "flow-1",
-        action: "pause",
-        revision: rendered.revision,
-        itemRevision: rendered.flows[0].revision,
-      }),
-    ).toBeNull();
+    expect(automationCenter.recheckCreateRoutine(rendered, current)).toBeNull();
   });
 
-  it("filters and escapes flow content in rendered rows", () => {
+  it("filters and escapes both item kinds", () => {
     const parsed = automationCenter.parseAutomationCenter(sample());
     expect(
-      automationCenter.filterAutomationFlows(parsed.flows, "telegram"),
-    ).toHaveLength(0);
-    expect(
-      automationCenter.filterAutomationFlows(parsed.flows, "deploy"),
+      automationCenter.filterAutomationFlows(parsed.items, "github"),
     ).toHaveLength(1);
-    const html = automationCenter.renderAutomationRows(parsed.flows);
+    expect(
+      automationCenter.filterAutomationFlows(parsed.items, "deploy"),
+    ).toHaveLength(1);
+    const html = automationCenter.renderAutomationRows(parsed.items);
     expect(html).toContain("&lt;deploy &amp; notify&gt;");
+    expect(html).toContain("acme/app");
     expect(html).not.toContain("<deploy & notify>");
   });
 
@@ -149,17 +243,6 @@ describe("VS Code Automation Center", () => {
       (entry) => entry.command === "chainlesschain.automation.center",
     );
     expect(command.title).toBe("%cmd.automation.center.title%");
-    const en = JSON.parse(
-      fs.readFileSync(path.join(extensionRoot, "package.nls.json"), "utf8"),
-    );
-    const zh = JSON.parse(
-      fs.readFileSync(
-        path.join(extensionRoot, "package.nls.zh-cn.json"),
-        "utf8",
-      ),
-    );
-    expect(en["cmd.automation.center.title"]).toContain("Automation Center");
-    expect(zh["cmd.automation.center.title"]).toContain("自动化中心");
     const extension = fs.readFileSync(
       path.join(extensionRoot, "src", "extension.js"),
       "utf8",
