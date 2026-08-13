@@ -40,7 +40,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Cross-platform CI hardening**: migration fixtures verify retirement fences
   and canonical source identities consistently across operating systems, while
   distributed-queue and authority test workers use bounded lifetimes and attach
-  result observers before short-lived children can exit.
+  result observers before short-lived children can exit. Terminal Skill
+  authority fixtures now use an explicit parent acknowledgement before clean
+  exit, removing Windows IPC exit-before-message ordering ambiguity without
+  weakening concurrent revocation assertions.
 - **Verified causal delivery reports**: scoped sessions can be bound by exact
   transcript head and event count to digest-protected delivery states. The new
   session observability commands export a redacted session-to-delivery graph

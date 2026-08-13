@@ -24,24 +24,87 @@ function createAuthorityPath() {
   return path.join(root, "state", "skill-execution-authority.json");
 }
 
-function waitForMessage(host, predicate, timeoutMs = 5000) {
+function acknowledgeTerminalMessage(host, message) {
+  if (typeof message?.terminalAckId !== "string") return Promise.resolve();
+  const acknowledgement = {
+    type: "terminal-ack",
+    terminalAckId: message.terminalAckId,
+  };
+  if (host instanceof Worker) {
+    try {
+      host.postMessage(acknowledgement);
+      return Promise.resolve();
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  }
   return new Promise((resolve, reject) => {
+    if (!host.connected) {
+      reject(
+        new Error("Skill authority fixture IPC channel closed before ACK"),
+      );
+      return;
+    }
+    host.send(acknowledgement, (error) => {
+      if (error) reject(error);
+      else resolve();
+    });
+  });
+}
+
+function waitForMessage(host, predicate, timeoutMs = 6000) {
+  return new Promise((resolve, reject) => {
+    let terminalMessage = null;
+    let settled = false;
     const timer = setTimeout(() => {
-      cleanup();
-      reject(new Error("Timed out waiting for Skill authority fixture"));
+      settle(
+        reject,
+        new Error("Timed out waiting for Skill authority fixture"),
+      );
     }, timeoutMs);
     const onMessage = (message) => {
-      if (!predicate(message)) return;
-      cleanup();
-      resolve(message);
+      const fixtureFailed = message?.type === "error";
+      if (!fixtureFailed && !predicate(message)) return;
+      if (typeof message?.terminalAckId !== "string") {
+        settle(fixtureFailed ? reject : resolve, fixtureResult(message));
+        return;
+      }
+      if (terminalMessage) return;
+      terminalMessage = message;
+      void acknowledgeTerminalMessage(host, message).then(
+        () => {},
+        (error) => {
+          settle(reject, error);
+        },
+      );
     };
     const onError = (error) => {
-      cleanup();
-      reject(error);
+      settle(reject, error);
     };
     const onExit = (code) => {
+      if (code !== 0 || !terminalMessage) {
+        settle(
+          reject,
+          new Error(`Skill authority fixture exited early (${code})`),
+        );
+        return;
+      }
+      const fixtureFailed = terminalMessage.type === "error";
+      settle(fixtureFailed ? reject : resolve, fixtureResult(terminalMessage));
+    };
+    const fixtureResult = (message) => {
+      if (message?.type !== "error") return message;
+      const error = new Error(
+        message.message || "Skill authority fixture failed",
+      );
+      if (message.code) error.code = message.code;
+      return error;
+    };
+    const settle = (handler, value) => {
+      if (settled) return;
+      settled = true;
       cleanup();
-      reject(new Error(`Skill authority fixture exited early (${code})`));
+      handler(value);
     };
     const cleanup = () => {
       clearTimeout(timer);
