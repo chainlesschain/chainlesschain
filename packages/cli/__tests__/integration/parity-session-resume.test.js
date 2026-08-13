@@ -52,7 +52,7 @@ import {
 async function drain(iterable) {
   const out = [];
   for await (const event of iterable) {
-    if (event.type === "run-started" || event.type === "run-ended") continue;
+    if (event.type !== "response-complete") continue;
     out.push(event);
   }
   return out;

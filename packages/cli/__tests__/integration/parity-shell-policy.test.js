@@ -30,7 +30,16 @@ import {
 async function drain(iterable) {
   const out = [];
   for await (const event of iterable) {
-    if (event.type === "run-started" || event.type === "run-ended") continue;
+    // Usage accounting emits separate boundary events. This harness verifies
+    // only the shell-policy transport/result protocol; observability suites
+    // own the usage event contract.
+    if (
+      event.type !== "tool-executing" &&
+      event.type !== "tool-result" &&
+      event.type !== "response-complete"
+    ) {
+      continue;
+    }
     out.push(event);
   }
   return out;

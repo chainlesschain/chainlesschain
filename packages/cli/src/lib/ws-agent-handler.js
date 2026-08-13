@@ -9,4 +9,7 @@
  * in new code.
  */
 
-export { WSAgentHandler } from "../gateways/ws/ws-agent-handler.js";
+export {
+  WSAgentHandler,
+  readCanonicalUsageProtocol,
+} from "../gateways/ws/ws-agent-handler.js";

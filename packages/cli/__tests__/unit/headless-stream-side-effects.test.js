@@ -193,8 +193,14 @@ describe("stream side-effect ledger — resume reconcile + recovery notice", () 
         sessionExists: () => true,
         readVerifiedEvents: () => [
           {
-            type: MCP_CALL_LEDGER_EVENT,
+            type: "session_start",
             prevHash: null,
+            hash: "0".repeat(64),
+            data: { title: "headless stream recovery" },
+          },
+          {
+            type: MCP_CALL_LEDGER_EVENT,
+            prevHash: "0".repeat(64),
             hash: "1".repeat(64),
             data: {
               schemaVersion: 1,

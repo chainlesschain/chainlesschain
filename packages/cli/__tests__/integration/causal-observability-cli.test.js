@@ -719,6 +719,13 @@ describe("session observability command", () => {
     temporary = fs.mkdtempSync(path.join(os.tmpdir(), "cc-causal-cli-"));
     const requestPath = path.join(temporary, "request.json");
     fs.writeFileSync(requestPath, "{}\n");
+    const identityDescriptor = fs.openSync(requestPath, fs.constants.O_RDONLY);
+    let trustedDevice;
+    try {
+      trustedDevice = fs.fstatSync(identityDescriptor, { bigint: true }).dev;
+    } finally {
+      fs.closeSync(identityDescriptor);
+    }
     const growingFs = {
       ...fs,
       constants: fs.constants,
@@ -742,8 +749,7 @@ describe("session observability command", () => {
         withTrustedFileParentSync: (_runtimeFs, filePath, callback) =>
           callback({
             canonicalPath: path.resolve(filePath),
-            parentDevice: fs.lstatSync(path.dirname(filePath), { bigint: true })
-              .dev,
+            parentDevice: trustedDevice,
           }),
       },
     );

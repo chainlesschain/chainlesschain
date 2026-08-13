@@ -146,8 +146,9 @@ describe("spawn_sub_agent — maxTurns / isolation plumbing", () => {
     );
     expect(result).toBeDefined();
     expect(calls).toBeGreaterThan(0); // the child actually ran
-    // iterationCount counts loop EVENTS (~3 per iteration); cap 1 → ≤3.
-    expect(result.iterationCount).toBeLessThanOrEqual(3);
+    // iterationCount includes observability boundary events. Provider-call
+    // count is the stable maxTurns contract; event count only proves activity.
+    expect(result.iterationCount).toBeGreaterThan(0);
     expect(calls).toBeLessThanOrEqual(2); // no runaway toward the default 8
   });
 });

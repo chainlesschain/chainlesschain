@@ -25,6 +25,7 @@ describe("checkpoint timeline atomic session commit", () => {
   });
 
   it("compare-and-appends only at the exact transcript head", () => {
+    store.startSession("timeline-cas", { title: "timeline CAS" });
     const first = store.appendEvent("timeline-cas", "user_message", {
       role: "user",
       content: "one",
@@ -47,6 +48,7 @@ describe("checkpoint timeline atomic session commit", () => {
   });
 
   it("one composite event atomically replaces replay messages and binding", () => {
+    store.startSession("timeline-commit", { title: "timeline commit" });
     const first = store.appendEvent("timeline-commit", "user_message", {
       role: "user",
       content: "old",
