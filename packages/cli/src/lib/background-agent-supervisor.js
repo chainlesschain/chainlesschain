@@ -179,6 +179,36 @@ function defaultReadProcessStartTimeMs(pid) {
 }
 
 /**
+ * Read the POSIX process state letter (`R`, `S`, `Z`, ...), or null when it
+ * cannot be determined. A successfully signalled child can remain as a zombie
+ * until its parent returns to the event loop; `kill(pid, 0)` still reports that
+ * PID as present even though it can no longer execute any code.
+ */
+function defaultReadProcessState(pid) {
+  const target = Number(pid);
+  if (
+    process.platform === "win32" ||
+    !Number.isInteger(target) ||
+    target <= 0
+  ) {
+    return null;
+  }
+  try {
+    const result = runSupervisorCommand(
+      "ps",
+      ["-o", "stat=", "-p", String(target)],
+      { encoding: "utf8", timeout: 5_000 },
+      "background-agent:process-state",
+    );
+    if (result.error || result.status !== 0) return null;
+    const state = String(result.stdout || "").trim().charAt(0).toUpperCase();
+    return /^[A-Z]$/.test(state) ? state : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Kill a whole process tree (Gap 2 orphan reclaim). Windows: `taskkill /T`.
  * POSIX: negative-pid group signal (the worker spawns the agent child
  * detached → its own group), falling back to a direct kill.
@@ -227,6 +257,7 @@ export const _deps = {
   kill: (pid, signal) => process.kill(pid, signal),
   getSessionPresence,
   readProcessStartTimeMs: defaultReadProcessStartTimeMs,
+  readProcessState: defaultReadProcessState,
   killProcessTree: defaultKillProcessTree,
   terminateOwnedProcessTree,
 };
@@ -827,6 +858,14 @@ export function isProcessAlive(pid) {
   }
 }
 
+function isProcessExecutionAlive(pid) {
+  if (!isProcessAlive(pid)) return false;
+  const state = _deps.readProcessState(pid);
+  // Z = zombie, X = dead. Both retain a PID table entry temporarily but have
+  // no executable process body. Unknown probe results fail closed as alive.
+  return state !== "Z" && state !== "X";
+}
+
 /**
  * Is the live process at `pid` the SAME process the state file recorded at
  * `expectedStartedAtMs` — or a pid-reusing stranger? (Gap 1.)
@@ -873,7 +912,9 @@ function inspectDestructiveProcessIdentity(
   if (target === process.pid) {
     return { status: "self", reason: "current-process", pid: target };
   }
-  if (!isProcessAlive(target)) return { status: "dead", pid: target };
+  if (!isProcessExecutionAlive(target)) {
+    return { status: "dead", reason: "not-executing", pid: target };
+  }
   const expected = Number(expectedStartedAtMs);
   if (!Number.isFinite(expected) || expected <= 0) {
     return {
@@ -2167,12 +2208,12 @@ function persistStopPending(state, reason, details = {}) {
 
 function waitForSignalledProcessesToExit(targets, deadlineMs = 2_000) {
   const deadline = Date.now() + deadlineMs;
-  while (targets.some((target) => isProcessAlive(target.pid))) {
+  while (targets.some((target) => isProcessExecutionAlive(target.pid))) {
     if (Date.now() >= deadline) break;
     sleepSyncMs(10);
   }
   return targets.filter((target) => {
-    if (!isProcessAlive(target.pid)) return false;
+    if (!isProcessExecutionAlive(target.pid)) return false;
     const identity = inspectDestructiveProcessIdentity(
       target.pid,
       target.startedAt,

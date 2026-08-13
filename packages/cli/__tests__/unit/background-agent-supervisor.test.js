@@ -52,6 +52,7 @@ let dir;
 const originalSpawn = _deps.spawn;
 const originalSpawnSync = _deps.spawnSync;
 const originalReadStart = _deps.readProcessStartTimeMs;
+const originalReadProcessState = _deps.readProcessState;
 const originalKillTree = _deps.killProcessTree;
 const originalKill = _deps.kill;
 const originalGetSessionPresence = _deps.getSessionPresence;
@@ -218,6 +219,7 @@ afterEach(async () => {
   _deps.spawn = originalSpawn;
   _deps.spawnSync = originalSpawnSync;
   _deps.readProcessStartTimeMs = originalReadStart;
+  _deps.readProcessState = originalReadProcessState;
   _deps.killProcessTree = originalKillTree;
   _deps.kill = originalKill;
   _deps.getSessionPresence = originalGetSessionPresence;
@@ -1864,6 +1866,31 @@ describe("background agent supervisor", () => {
       expect(state.status).toBe("stopped");
       expect(state.stopped).toBe(true);
       // Group signal through the seam — never a bare process.kill.
+      expect(_deps.kill).toHaveBeenCalledWith(-sleeperPid, "SIGTERM");
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "treats a signalled POSIX zombie as terminated before parent reaping",
+    () => {
+      const sleeperPid = spawnSleeperPid();
+      const startedAt = Date.now();
+      writeBackgroundAgentState({
+        id: "bg-stop-posix-zombie",
+        status: "running",
+        pid: sleeperPid,
+        startedAt,
+      });
+      _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+      _deps.readProcessState = vi
+        .fn()
+        .mockReturnValueOnce("S")
+        .mockReturnValue("Z");
+      _deps.kill = vi.fn();
+
+      const state = stopBackgroundAgent("bg-stop-posix-zombie");
+
+      expect(state).toMatchObject({ status: "stopped", stopped: true });
       expect(_deps.kill).toHaveBeenCalledWith(-sleeperPid, "SIGTERM");
     },
   );
