@@ -558,7 +558,7 @@ describe("TeamAdjudicationStore", () => {
   });
 
   it("preserves the last valid state when an atomic replacement fails", () => {
-    const healthy = store();
+    const healthy = store({ _platform: "win32" });
     const opened = openCase(healthy);
     const canonicalFilePath = fs.realpathSync.native(filePath);
     const token = "known-failing-attempt";
@@ -609,7 +609,7 @@ describe("TeamAdjudicationStore", () => {
   });
 
   it("retries transient Windows atomic replacement sharing failures", () => {
-    const healthy = store();
+    const healthy = store({ _platform: "win32" });
     const opened = openCase(healthy);
     const canonicalFilePath = fs.realpathSync.native(filePath);
     let renameAttempts = 0;
@@ -645,7 +645,7 @@ describe("TeamAdjudicationStore", () => {
   });
 
   it("fails closed after exhausting transient Windows replacement retries", () => {
-    const healthy = store();
+    const healthy = store({ _platform: "win32" });
     const opened = openCase(healthy);
     const canonicalFilePath = fs.realpathSync.native(filePath);
     const token = "exhausted-windows-attempt";
