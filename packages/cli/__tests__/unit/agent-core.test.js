@@ -104,6 +104,7 @@ const {
 } = await import("../../src/lib/agent-core.js");
 
 const { getPlanModeManager } = await import("../../src/lib/plan-mode.js");
+const { executeHooks } = await import("../../src/lib/hook-manager.js");
 
 describe("AGENT_TOOLS", () => {
   it("has 28 tool definitions", () => {
@@ -1639,9 +1640,16 @@ describe("agentLoop", () => {
     const nonBookend = events.filter(
       (e) => e.type !== "run-started" && e.type !== "run-ended",
     );
-    expect(nonBookend).toHaveLength(1);
-    expect(nonBookend[0].type).toBe("response-complete");
-    expect(nonBookend[0].content).toBe("Hello! How can I help?");
+    expect(nonBookend.map((event) => event.type)).toEqual([
+      "model-usage-started",
+      "model-usage-unknown",
+      "response-complete",
+    ]);
+    expect(nonBookend[1]).toMatchObject({
+      callId: nonBookend[0].callId,
+      code: "provider_usage_missing",
+    });
+    expect(nonBookend[2].content).toBe("Hello! How can I help?");
   });
 
   it("yields token-usage event when LLM response includes usage", async () => {
@@ -1818,7 +1826,7 @@ describe("agentLoop", () => {
       },
     });
 
-    it("runs a read-only batch concurrently, preserving event + result order", async () => {
+    it("runs a read-only batch concurrently after yielding every start boundary", async () => {
       writeFileSync(join(tmp, "a.txt"), "AAA-content", "utf-8");
       writeFileSync(join(tmp, "b.txt"), "BBB-content", "utf-8");
 
@@ -1850,14 +1858,14 @@ describe("agentLoop", () => {
         events.push(ev);
       }
 
-      // Event ORDER is byte-identical to the sequential path.
+      // The host sees every start before dispatch, then ordered results.
       const seq = events
         .filter((e) => e.type === "tool-executing" || e.type === "tool-result")
         .map((e) => e.type);
       expect(seq).toEqual([
         "tool-executing",
-        "tool-result",
         "tool-executing",
+        "tool-result",
         "tool-result",
       ]);
 
@@ -1866,6 +1874,102 @@ describe("agentLoop", () => {
       expect(toolMsgs.map((m) => m.tool_call_id)).toEqual(["r-a", "r-b"]);
       expect(toolMsgs[0].content).toContain("AAA-content");
       expect(toolMsgs[1].content).toContain("BBB-content");
+    });
+
+    it("does not enter tool execution until all starts are consumed and keeps both reads in flight", async () => {
+      writeFileSync(join(tmp, "a.txt"), "AAA-content", "utf-8");
+      writeFileSync(join(tmp, "b.txt"), "BBB-content", "utf-8");
+
+      let n = 0;
+      const chatFn = async () => {
+        n++;
+        if (n === 1) {
+          return {
+            message: {
+              role: "assistant",
+              content: "",
+              tool_calls: [readCall("g-a", "a.txt"), readCall("g-b", "b.txt")],
+            },
+          };
+        }
+        return { message: { role: "assistant", content: "done" } };
+      };
+
+      const consumedStarts = [];
+      const executionEntries = [];
+      let releaseExecutions;
+      const executionGate = new Promise((resolve) => {
+        releaseExecutions = resolve;
+      });
+      let markBothEntered;
+      const bothEntered = new Promise((resolve) => {
+        markBothEntered = resolve;
+      });
+      executeHooks.mockImplementation(async (_db, event, payload) => {
+        if (event !== "PreToolUse") return undefined;
+        executionEntries.push({
+          tool: payload.tool,
+          starts: [...consumedStarts],
+        });
+        if (executionEntries.length === 2) markBothEntered();
+        await executionGate;
+        return undefined;
+      });
+
+      try {
+        const messages = [{ role: "user", content: "read both" }];
+        const iterator = agentLoop(messages, {
+          provider: "ollama",
+          model: "test",
+          baseUrl: "http://localhost:11434",
+          cwd: tmp,
+          chatFn,
+          hookDb: {},
+          runnableProviderFallback: false,
+        });
+
+        while (consumedStarts.length < 2) {
+          const step = await iterator.next();
+          expect(step.done).toBe(false);
+          if (step.value.type === "tool-executing") {
+            consumedStarts.push(step.value.tool_use_id);
+          }
+        }
+        expect(consumedStarts).toEqual(["g-a", "g-b"]);
+        expect(executionEntries).toEqual([]);
+
+        const firstResultPromise = iterator.next();
+        await bothEntered;
+        expect(executionEntries).toEqual([
+          { tool: "read_file", starts: ["g-a", "g-b"] },
+          { tool: "read_file", starts: ["g-a", "g-b"] },
+        ]);
+
+        releaseExecutions();
+        const firstResult = await firstResultPromise;
+        expect(firstResult.value).toMatchObject({
+          type: "tool-result",
+          tool_use_id: "g-a",
+        });
+
+        const remainingResults = [];
+        for (;;) {
+          const step = await iterator.next();
+          if (step.done) break;
+          if (step.value.type === "tool-result") {
+            remainingResults.push(step.value.tool_use_id);
+          }
+        }
+        expect(remainingResults).toEqual(["g-b"]);
+        expect(
+          messages
+            .filter((message) => message.role === "tool")
+            .map((message) => message.tool_call_id),
+        ).toEqual(["g-a", "g-b"]);
+      } finally {
+        releaseExecutions?.();
+        executeHooks.mockResolvedValue(undefined);
+      }
     });
 
     it("keeps a mixed read+write batch sequential (the write still happens)", async () => {

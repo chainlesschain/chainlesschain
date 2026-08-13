@@ -1845,8 +1845,17 @@ describe("headless-runner — goal-condition cross-process resume", () => {
   // A fake JSONL store with a chain-free event log: appendEvent pushes, and
   // readEvents replays. Captures goal_snapshot payloads per session id.
   function makeGoalStore(seed = {}) {
+    const sessionStartEvent = () => ({
+      type: "session_start",
+      timestamp: 0,
+      data: { title: "goal-condition test" },
+    });
     const log = {}; // id -> raw event array (shape readEvents returns)
-    for (const [id, evs] of Object.entries(seed)) log[id] = [...evs];
+    for (const [id, evs] of Object.entries(seed)) {
+      log[id] = evs.some((event) => event.type === "session_start")
+        ? [...evs]
+        : [sessionStartEvent(), ...evs];
+    }
     const snapshots = {}; // id -> list of goal_snapshot `data`
     return {
       log,
@@ -1856,7 +1865,7 @@ describe("headless-runner — goal-condition cross-process resume", () => {
         sessionExists: (id) => Object.prototype.hasOwnProperty.call(log, id),
         rebuildMessages: () => [],
         startSession: (id) => {
-          if (!log[id]) log[id] = [];
+          if (!log[id]) log[id] = [sessionStartEvent()];
         },
         appendUserMessage: () => {},
         appendAssistantMessage: () => {},

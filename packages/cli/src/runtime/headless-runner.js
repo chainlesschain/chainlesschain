@@ -74,7 +74,10 @@ import {
 } from "../lib/mcp-call-ledger-store.js";
 import { createMcpHostRecoveryRuntime } from "../lib/mcp-host-recovery-runtime.js";
 import { readSessionHostResumeState } from "../lib/session-host-snapshot.js";
-import { acquireSessionHostLease } from "../lib/session-host-lease.js";
+import {
+  acquireSessionHostLease,
+  createSessionHostWriteDelegation,
+} from "../lib/session-host-lease.js";
 import { TurnBindingLog, createTurnBindingFeed } from "../lib/turn-binding.js";
 import { TURN_BINDING_EVENT } from "../lib/turn-binding-store.js";
 import { operationIdempotencyKey } from "../lib/idempotency.js";
@@ -121,6 +124,13 @@ const goalBrokerRunner = executionBroker.spawnSync.bind(executionBroker);
 export const _goalProcessDeps = {
   run: goalBrokerRunner,
 };
+
+export const RUNTIME_LEDGER_PERSISTENCE_FAILURE_MESSAGE =
+  "CC_RUNTIME_USAGE_LEDGER_FAILED: runtime usage telemetry was not durably persisted";
+
+export function resolveHeadlessMeteredSessionId(persist, sessionId) {
+  return persist && sessionId ? sessionId : null;
+}
 
 function runHeadlessGoalCommand(command, options = {}) {
   return _goalProcessDeps.run(command, [], {
@@ -172,6 +182,14 @@ import {
   createSessionPersistenceFailure,
   projectSessionPersistenceFailure,
 } from "../lib/session-persistence-failure.js";
+import {
+  markRuntimeLedgerPersistenceError,
+  projectRuntimeTokenUsage,
+  projectRuntimeUsageBoundary,
+  runtimeUsageEventType,
+  runtimeToolCallId,
+} from "../lib/runtime-usage-ledger.js";
+import { runMeteredDirectModelCall } from "../lib/direct-model-usage.js";
 
 /**
  * Normalize a public --permission-mode spelling to the canonical internal mode.
@@ -289,14 +307,20 @@ export function parseToolList(value) {
  * still REPLAYS prior history into context, but nothing new is written — the
  * deterministic-CI shape ("read context, leave no trace").
  *
- * @param {object} options { resume, continueSession, sessionId, persistSession, ephemeral }
+ * @param {object} options { resume, continueSession, sessionId, persistSession, ephemeral, observabilityScope }
  * @param {object} store   { getLastSessionId }  (injection seam)
  * @param {string} fallbackId  used when nothing is being resumed
  * @returns {{ sessionId:string, resumeId:string|null, persist:boolean, wantLatest:boolean }}
  */
 export function resolveHeadlessSession(options = {}, store = {}, fallbackId) {
-  const { resume, continueSession, sessionId, persistSession, ephemeral } =
-    options;
+  const {
+    resume,
+    continueSession,
+    sessionId,
+    persistSession,
+    ephemeral,
+    observabilityScope,
+  } = options;
   const wantLatest = continueSession === true || resume === true;
   let resumeId = null;
   if (wantLatest) {
@@ -323,7 +347,10 @@ export function resolveHeadlessSession(options = {}, store = {}, fallbackId) {
   const persist =
     ephemeral === true
       ? false
-      : persistSession === true || resumeId != null || wantLatest;
+      : persistSession === true ||
+        resumeId != null ||
+        wantLatest ||
+        observabilityScope != null;
   const id = resumeId || sessionId || fallbackId;
   return { sessionId: id, resumeId, persist, wantLatest };
 }
@@ -401,6 +428,11 @@ async function withHeadlessSessionHostLease(options, deps, task) {
   if (!prompt) {
     throw new Error(
       "runAgentHeadless requires a non-empty prompt (use -p, a positional arg, or pipe stdin).",
+    );
+  }
+  if (options.observabilityScope != null && options.ephemeral === true) {
+    throw new Error(
+      "observability scope requires durable session persistence and cannot be combined with ephemeral mode",
     );
   }
   const outputFormat = options.outputFormat || "text";
@@ -657,6 +689,19 @@ async function runAgentHeadlessInWorkspace(
   // but it does not opt into replaying the target's prior conversation.
   const canonicalResume = resumeId ? canonicalAdmission : null;
 
+  if (options.observabilityScope != null && canonicalAdmission) {
+    const message =
+      "CC_OBSERVABILITY_SCOPE_IMMUTABLE: an existing session scope cannot be overwritten; create a new scoped session";
+    emitHeadlessError(message);
+    writeErr(`${message}\n`);
+    return {
+      exitCode: 1,
+      result: message,
+      isError: true,
+      sessionSnapshot: canonicalAdmission.snapshot,
+    };
+  }
+
   // `let` (not const): a custom-command macro's `model:` frontmatter may
   // override it below (when the user passed no explicit --model), mirroring
   // `cc command run`.
@@ -898,6 +943,23 @@ async function runAgentHeadlessInWorkspace(
       deps.verifySession ||
       (hasInjectedSessionStore ? () => null : jsonlVerifySession),
   };
+  if (options.observabilityScope != null) {
+    let existingSession;
+    try {
+      existingSession = store.sessionExists(sessionId);
+    } catch {
+      existingSession = null;
+    }
+    if (existingSession !== false) {
+      const message =
+        existingSession === true
+          ? "CC_OBSERVABILITY_SCOPE_IMMUTABLE: an existing session scope cannot be overwritten; create a new scoped session"
+          : "CC_OBSERVABILITY_SCOPE_AUTHORITY_UNAVAILABLE: existing session authority could not be excluded";
+      emitHeadlessError(message);
+      writeErr(`${message}\n`);
+      return { exitCode: 1, result: message, isError: true };
+    }
+  }
   // ── Headless `/config` directive (Claude-Code 2.1.181: /config in -p mode) ──
   // A leading `/config …` prompt is a one-shot config get/set/show, not a task
   // for the LLM — handled before bootstrap/session/model so it never spends a
@@ -1163,9 +1225,15 @@ async function runAgentHeadlessInWorkspace(
     : null;
   const _backgroundInteraction = _bgPhase.enabled
     ? deps.backgroundInteractionClient ||
-      createBackgroundInteractionClient({
+      (
+        deps.createBackgroundInteractionClient ||
+        createBackgroundInteractionClient
+      )({
         backgroundAgentId: process.env.CC_BACKGROUND_AGENT_ID,
         sessionId,
+        sessionHostWriteDelegation: sessionHostLease?.leaseId
+          ? createSessionHostWriteDelegation(sessionHostLease)
+          : null,
         // One headless invocation is one user turn even when its model/tool
         // loop contains several internal iterations.
         turnId: options.turnId || sideEffectRunNonce,
@@ -1650,6 +1718,7 @@ async function runAgentHeadlessInWorkspace(
           title: prompt.slice(0, 60),
           provider,
           model,
+          observabilityScope: options.observabilityScope,
         });
       }
       // Persist the expanded content so a resumed session faithfully replays
@@ -2045,6 +2114,18 @@ async function runAgentHeadlessInWorkspace(
   };
   persistContextSources();
 
+  // Scoped call-ledger writes are safety boundaries, not best-effort
+  // diagnostics. Normalize every persistence failure so the outer host aborts
+  // this turn and cannot begin another paid model/tool call.
+  const persistRuntimeLedgerWrite = (action) => {
+    try {
+      return action();
+    } catch (error) {
+      throw markRuntimeLedgerPersistenceError(error);
+    }
+  };
+
+  const childToolExecs = new Map();
   const loopOptions = {
     model,
     provider,
@@ -2164,19 +2245,85 @@ async function runAgentHeadlessInWorkspace(
     onStreamRetry: (attempt, error, telemetry = {}) => {
       writeErr(`  ⟳ connection dropped — retrying (attempt ${attempt})…\n`);
       if (persist) {
-        try {
+        persistRuntimeLedgerWrite(() =>
           store.appendLlmRetryCompact(sessionId, {
             attempt,
             durationMs: telemetry.durationMs,
             provider: telemetry.provider || provider,
             model: telemetry.model || model,
             reason: classifyStreamRetryReason(error),
-          });
-        } catch {
-          /* usage telemetry is best-effort */
-        }
+          }),
+        );
       }
     },
+    onUsageBoundary: persist
+      ? (event) => {
+          persistRuntimeLedgerWrite(() =>
+            store.appendEvent(
+              sessionId,
+              runtimeUsageEventType("started"),
+              projectRuntimeUsageBoundary(event, "started"),
+            ),
+          );
+        }
+      : undefined,
+    onUsageSettlement: persist
+      ? (event) => {
+          if (event?.type === "token-usage") {
+            persistRuntimeLedgerWrite(() =>
+              store.appendTokenUsage(
+                sessionId,
+                projectRuntimeTokenUsage(event),
+              ),
+            );
+            return;
+          }
+          persistRuntimeLedgerWrite(() =>
+            store.appendEvent(
+              sessionId,
+              runtimeUsageEventType("unknown"),
+              projectRuntimeUsageBoundary(event, "unknown"),
+            ),
+          );
+        }
+      : undefined,
+    onToolCallBoundary: persist
+      ? (event) => {
+          const id = runtimeToolCallId(event?.tool_use_id);
+          childToolExecs.set(id, {
+            tool: event?.tool || "?",
+            startedAt: deps.now ? deps.now() : Date.now(),
+          });
+          persistRuntimeLedgerWrite(() =>
+            store.appendEvent(sessionId, "tool_call_started", {
+              id,
+              tool: event?.tool || "?",
+            }),
+          );
+        }
+      : undefined,
+    onToolCallSettlement: persist
+      ? (event) => {
+          const id = runtimeToolCallId(event?.tool_use_id);
+          const started = childToolExecs.get(id);
+          childToolExecs.delete(id);
+          persistRuntimeLedgerWrite(() =>
+            store.appendToolCallCompact(sessionId, {
+              id,
+              tool: event?.tool || started?.tool || "?",
+              isError: Boolean(event?.error || event?.result?.error),
+              skill: event?.attribution?.skill,
+              durationMs: started
+                ? Math.max(
+                    0,
+                    (deps.now ? deps.now() : Date.now()) - started.startedAt,
+                  )
+                : undefined,
+            }),
+          );
+        }
+      : undefined,
+    strictUsageTelemetry: persist,
     onStall: (ms, timeoutMs) => {
       const silent = Math.round(ms / 1000);
       const retryIn = timeoutMs > ms ? Math.round((timeoutMs - ms) / 1000) : 0;
@@ -2249,9 +2396,10 @@ async function runAgentHeadlessInWorkspace(
   const toolCalls = [];
   // The core normally attaches a precise toolTelemetryRecord on success.
   // Keep an event-boundary fallback for denials/early throws that settle
-  // before that record is produced. Tools are serial in this loop, so one
-  // timestamp is sufficient and never leaks into the result envelope.
-  let currentToolStartedAt = null;
+  // before that record is produced. Read-only batches can run concurrently,
+  // so timestamps and result pairing are keyed by provider tool-call id.
+  const activeToolCalls = new Map();
+  const toolStartedAt = new Map();
   // Policy denials (blocked tool calls) collected for an end-of-run summary,
   // so a non-interactive run surfaces what got blocked the way the REPL's
   // `/permissions denials` does (Claude-Code 2.1.193 denial reasons).
@@ -2263,15 +2411,10 @@ async function runAgentHeadlessInWorkspace(
     cache_read_input_tokens: 0,
     cache_creation_input_tokens: 0,
   };
-  // 用量归因: attributed child-loop usage (spawn_sub_agent / isolated
-  // run_skill). Kept OUT of the `usage` accumulator above so the result
-  // envelope and the end-of-run aggregate token_usage event keep their
-  // long-standing "main loop only" semantics — the attributed records are
-  // persisted as their own token_usage events instead (no double count).
-  const attributedUsage = [];
   let finalText = "";
   let endReason = "complete";
   let stopForCost = false;
+  let stopForCompactionUsageUnknown = false;
 
   const emitStream = (obj) => {
     if (isStream) writeOut(JSON.stringify(obj) + "\n");
@@ -2388,12 +2531,22 @@ async function runAgentHeadlessInWorkspace(
       `Condition: ${cond.text || cond.source}\n\n` +
       `Latest assistant output:\n${String(transcript.finalText || "").slice(0, 2000)}\n\n` +
       `Reply with STRICT JSON only: {"met": true|false, "reason": "<short>"}.`;
-    const r = await chatWithTools([{ role: "user", content: judgePrompt }], {
-      model,
+    const r = await runMeteredDirectModelCall({
+      sessionId: resolveHeadlessMeteredSessionId(persist, sessionId),
+      persist: persist
+        ? (type, data) => store.appendEvent(sessionId, type, data)
+        : null,
       provider,
-      baseUrl,
-      apiKey,
-      enabledToolNames: [],
+      model,
+      source: "model",
+      call: () =>
+        chatWithTools([{ role: "user", content: judgePrompt }], {
+          model,
+          provider,
+          baseUrl,
+          apiKey,
+          enabledToolNames: [],
+        }),
     });
     const text = r?.message?.content || "";
     let met = false;
@@ -2557,7 +2710,7 @@ async function runAgentHeadlessInWorkspace(
             break;
           }
           case "tool-executing": {
-            currentToolStartedAt = deps.now ? deps.now() : Date.now();
+            const telemetryToolId = runtimeToolCallId(event.tool_use_id);
             const line = `  [${event.tool}] ${formatToolArgs(event.tool, event.args)}`;
             if (isText) writeErr(line + "\n");
             emitStream({
@@ -2566,11 +2719,27 @@ async function runAgentHeadlessInWorkspace(
               tool: event.tool,
               args: event.args,
             });
-            toolCalls.push({
-              ...(event.tool_use_id ? { id: event.tool_use_id } : {}),
+            const toolCall = {
+              id: telemetryToolId,
               tool: event.tool,
               args: event.args,
-            });
+            };
+            toolCalls.push(toolCall);
+            toolStartedAt.set(
+              telemetryToolId,
+              deps.now ? deps.now() : Date.now(),
+            );
+            if (event.tool_use_id) {
+              activeToolCalls.set(event.tool_use_id, toolCall);
+            }
+            if (persist) {
+              persistRuntimeLedgerWrite(() =>
+                store.appendEvent(sessionId, "tool_call_started", {
+                  id: telemetryToolId,
+                  tool: event.tool,
+                }),
+              );
+            }
             // P0-2: record an irreversible effect as STARTED (persisted before
             // it settles) so a crash before the matching tool-result leaves a
             // reconcilable "in flight" marker instead of a silent replay.
@@ -2647,35 +2816,66 @@ async function runAgentHeadlessInWorkspace(
                 ? { permission_decision: event.permission_decision }
                 : {}),
             });
-            if (toolCalls.length > 0) {
-              const settledCall = toolCalls[toolCalls.length - 1];
+            const settledCall =
+              (event.tool_use_id
+                ? activeToolCalls.get(event.tool_use_id)
+                : null) ||
+              [...toolCalls]
+                .reverse()
+                .find(
+                  (call) =>
+                    !call._runtimeSettled &&
+                    (!event.tool || call.tool === event.tool),
+                ) ||
+              null;
+            if (settledCall) {
               settledCall.is_error = Boolean(err);
               settledCall.durationMs =
                 event.result?.toolTelemetryRecord?.durationMs ??
-                (currentToolStartedAt === null
+                (toolStartedAt.get(settledCall.id) === undefined
                   ? undefined
                   : Math.max(
                       0,
                       (deps.now ? deps.now() : Date.now()) -
-                        currentToolStartedAt,
+                        toolStartedAt.get(settledCall.id),
                     ));
               Object.assign(
                 settledCall,
                 extractPluginUsageAttribution(event.result),
               );
+              Object.defineProperty(settledCall, "_runtimeSettled", {
+                configurable: true,
+                value: true,
+              });
+              toolStartedAt.delete(settledCall.id);
+              if (event.tool_use_id) activeToolCalls.delete(event.tool_use_id);
             }
-            currentToolStartedAt = null;
+            if (persist && settledCall) {
+              persistRuntimeLedgerWrite(() =>
+                store.appendToolCallCompact(sessionId, {
+                  id: settledCall.id || `tool-${toolCalls.length}`,
+                  tool: settledCall.tool,
+                  isError: Boolean(settledCall.is_error),
+                  skill:
+                    settledCall.tool === "run_skill"
+                      ? settledCall.args?.skill_name || null
+                      : undefined,
+                  plugin: settledCall.plugin || undefined,
+                  pluginVersion: settledCall.pluginVersion || undefined,
+                  durationMs: settledCall.durationMs,
+                }),
+              );
+            }
             // Track policy denials (not plain tool failures) for the end-of-run
             // summary. The preceding tool-executing pushed the args.
             if (err) {
-              const last = toolCalls[toolCalls.length - 1];
               const denial = classifyDenial({
                 tool: event.tool,
                 result: event.result,
                 error: event.error,
                 argsSummary:
-                  last && last.tool === event.tool
-                    ? formatToolArgs(event.tool, last.args)
+                  settledCall && settledCall.tool === event.tool
+                    ? formatToolArgs(event.tool, settledCall.args)
                     : "",
               });
               if (denial) {
@@ -2704,19 +2904,51 @@ async function runAgentHeadlessInWorkspace(
             emitStream({ ...event, reason });
             break;
           }
-          case "token-usage": {
-            if (event.attribution) {
-              // Child-loop (sub-agent / isolated-skill) spend: excluded from
-              // the main `usage` envelope, persisted with its attribution
-              // frame below, but still counted toward the cost budget — it
-              // is real money on the same key.
-              attributedUsage.push({
-                provider: event.provider ?? null,
-                model: event.model ?? null,
-                usage: event.usage || null,
-                attribution: event.attribution,
+          case "model-usage-started": {
+            if (persist && event.ledgerPersisted !== true) {
+              persistRuntimeLedgerWrite(() =>
+                store.appendEvent(
+                  sessionId,
+                  runtimeUsageEventType("started"),
+                  projectRuntimeUsageBoundary(event, "started"),
+                ),
+              );
+            }
+            break;
+          }
+          case "model-usage-unknown":
+          case "compaction-usage-unknown": {
+            if (persist && event.ledgerPersisted !== true) {
+              persistRuntimeLedgerWrite(() =>
+                store.appendEvent(
+                  sessionId,
+                  runtimeUsageEventType("unknown"),
+                  projectRuntimeUsageBoundary(event, "unknown"),
+                ),
+              );
+            }
+            if (event.type === "compaction-usage-unknown") {
+              endReason = "compaction-usage-unknown";
+              stopForCompactionUsageUnknown = true;
+              emitStream({
+                type: "compaction_usage_unknown",
+                provider: event.provider,
+                model: event.model,
+                source: event.source || "semantic-compaction",
+                reason: event.reason || "provider_transport_outcome_unknown",
+                usage_outcome: "unknown",
               });
-            } else {
+            }
+            break;
+          }
+          case "token-usage": {
+            const persistedUsage = projectRuntimeTokenUsage(event);
+            if (persist && event.ledgerPersisted !== true) {
+              persistRuntimeLedgerWrite(() =>
+                store.appendTokenUsage(sessionId, persistedUsage),
+              );
+            }
+            if (!event.attribution) {
               usage.input_tokens += event.usage?.input_tokens || 0;
               usage.output_tokens += event.usage?.output_tokens || 0;
               // Carry prompt-cache tokens into accumulated usage (cost accuracy).
@@ -2808,7 +3040,7 @@ async function runAgentHeadlessInWorkspace(
         await deps.outputFlow?.wait?.();
         // Hard cost cap reached: stop consuming the loop so no further paid LLM
         // call is made (break out of the for-await, not just the switch).
-        if (stopForCost) break;
+        if (stopForCost || stopForCompactionUsageUnknown) break;
       }
       // P1 turn→checkpoint binding: the turn settled — persist the explicit
       // table (latest snapshot wins on load; no-op when nothing was recorded).
@@ -2918,6 +3150,7 @@ async function runAgentHeadlessInWorkspace(
             });
           }
         } catch (err) {
+          if (err?.runtimeLedgerPersistence === true) throw err;
           evaluation = {
             met: false,
             reason: `goal check failed: ${err.message}`,
@@ -2966,11 +3199,18 @@ async function runAgentHeadlessInWorkspace(
       break;
     }
   } catch (err) {
-    const message = err?.message || String(err);
+    const runtimeLedgerPersistenceFailed =
+      err?.runtimeLedgerPersistence === true;
+    const message = runtimeLedgerPersistenceFailed
+      ? RUNTIME_LEDGER_PERSISTENCE_FAILURE_MESSAGE
+      : err?.message || String(err);
+    const errorSubtype = runtimeLedgerPersistenceFailed
+      ? "error_persistence"
+      : "error";
     if (isStream) {
       emitStream({
         type: "result",
-        subtype: "error",
+        subtype: errorSubtype,
         is_error: true,
         error: message,
       });
@@ -2978,7 +3218,7 @@ async function runAgentHeadlessInWorkspace(
       writeOut(
         JSON.stringify(
           buildResultEnvelope({
-            subtype: "error",
+            subtype: errorSubtype,
             isError: true,
             result: message,
             sessionId,
@@ -2997,7 +3237,7 @@ async function runAgentHeadlessInWorkspace(
     // Provider/transport failures get their own exit code (5) so CI can tell
     // "the model call failed" from "the run itself errored" (1).
     loopFailureOutcome = {
-      exitCode: classifyLoopError(err),
+      exitCode: runtimeLedgerPersistenceFailed ? 1 : classifyLoopError(err),
       result: message,
       isError: true,
     };
@@ -3184,26 +3424,6 @@ async function runAgentHeadlessInWorkspace(
   if (persist && !isError) {
     try {
       if (finalText) store.appendAssistantMessage(sessionId, finalText);
-      // 用量归因: compact per-tool records (name + error flag + skill hint —
-      // never args) so `cc session usage --by tool|mcp` can aggregate
-      // headless sessions too.
-      for (const tc of toolCalls) {
-        store.appendToolCallCompact(sessionId, {
-          tool: tc.tool,
-          isError: Boolean(tc.is_error),
-          skill:
-            tc.tool === "run_skill" ? tc.args?.skill_name || null : undefined,
-          plugin: tc.plugin || undefined,
-          pluginVersion: tc.pluginVersion || undefined,
-          durationMs: tc.durationMs,
-        });
-      }
-      // Attributed child-loop usage first (chronology: it happened during
-      // the run), then the unchanged main-loop aggregate.
-      for (const au of attributedUsage) {
-        store.appendTokenUsage(sessionId, au);
-      }
-      store.appendTokenUsage(sessionId, usage);
     } catch (error) {
       const persistenceError = createSessionPersistenceFailure(error, {
         sessionId,
@@ -3233,8 +3453,9 @@ async function runAgentHeadlessInWorkspace(
 
   // Run-end goal self-assessment (cc goal Phase 2, opt-in via --goal-assess).
   // Spends one extra completion to judge whether the run advanced the bound
-  // goal, then persists progress / key-result / drift updates. Best-effort: it
-  // must never change the run's own outcome.
+  // goal, then persists progress / key-result / drift updates. Ordinary
+  // assessment failures are best-effort; a usage-ledger durability failure is
+  // terminal because reporting the extra paid call as successful is unsafe.
   if (options.goalAssess && boundGoalId && !isError) {
     try {
       const { getGoal } = await import("../lib/goal-store.js");
@@ -3246,10 +3467,23 @@ async function runAgentHeadlessInWorkspace(
           deps.assessChat ||
           (async (assessPrompt) => {
             const { chatWithTools } = await import("./agent-core.js");
-            const r = await chatWithTools(
-              [{ role: "user", content: assessPrompt }],
-              { model, provider, baseUrl, apiKey, enabledToolNames: [] },
-            );
+            const r = await runMeteredDirectModelCall({
+              sessionId: resolveHeadlessMeteredSessionId(persist, sessionId),
+              persist: persist
+                ? (type, data) => store.appendEvent(sessionId, type, data)
+                : null,
+              provider,
+              model,
+              source: "model",
+              call: () =>
+                chatWithTools([{ role: "user", content: assessPrompt }], {
+                  model,
+                  provider,
+                  baseUrl,
+                  apiKey,
+                  enabledToolNames: [],
+                }),
+            });
             return r?.message?.content || "";
           });
         const { assessment } = await doAssess({
@@ -3276,8 +3510,16 @@ async function runAgentHeadlessInWorkspace(
           });
         }
       }
-    } catch {
-      /* assessment is best-effort — never affect the run outcome */
+    } catch (error) {
+      if (error?.runtimeLedgerPersistence === true) {
+        isError = true;
+        subtype = "error_persistence";
+        finalText = RUNTIME_LEDGER_PERSISTENCE_FAILURE_MESSAGE;
+        if (isText) {
+          writeErr(`${RUNTIME_LEDGER_PERSISTENCE_FAILURE_MESSAGE}\n`);
+        }
+      }
+      // Non-ledger assessment failures remain best-effort.
     }
   }
 

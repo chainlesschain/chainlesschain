@@ -364,6 +364,28 @@ describe("AdvisorRuntime", () => {
     );
   });
 
+  it("rethrows a runtime-ledger persistence marker from the advisor call", async () => {
+    const marker = Object.assign(new Error("ledger unavailable"), {
+      runtimeLedgerPersistence: true,
+    });
+    const advisor = runtime({
+      invoke: vi.fn(async () => {
+        throw marker;
+      }),
+    });
+
+    await expect(advisor.advise({ force: true, messages: [] })).rejects.toBe(
+      marker,
+    );
+    expect(
+      advisor.events.some(
+        (event) =>
+          event.type === "advisor_call" && event.data.effect === "failed",
+      ),
+    ).toBe(false);
+    expect(advisor.calls.size).toBe(0);
+  });
+
   it("composes local-verification guidance with an existing prepareCall hook", async () => {
     const advisor = runtime({
       config: {
@@ -398,6 +420,121 @@ describe("AdvisorRuntime", () => {
     expect(advisor.invoke).toHaveBeenCalledTimes(1);
     await prepare({ iteration: 3 });
     expect(advisor.invoke).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not swallow a runtime-ledger marker in prepareCall or onAdvice", async () => {
+    const messages = [
+      {
+        role: "assistant",
+        tool_calls: [
+          {
+            id: "edit-marker",
+            function: {
+              name: "edit_file",
+              arguments: '{"path":"a.js"}',
+            },
+          },
+        ],
+      },
+      {
+        role: "tool",
+        tool_call_id: "edit-marker",
+        content: '{"success":true}',
+      },
+    ];
+    const markerFromInvoke = Object.assign(new Error("invoke ledger failure"), {
+      runtimeLedgerPersistence: true,
+    });
+    const invokeAdvisor = runtime({
+      config: {
+        advisor: {
+          enabled: true,
+          provider: "anthropic",
+          model: "claude-sonnet-4-6",
+          budgetUsd: 1,
+        },
+      },
+      invoke: vi.fn(async () => {
+        throw markerFromInvoke;
+      }),
+    });
+    invokeAdvisor.beginTurn("turn-invoke-marker");
+
+    await expect(
+      invokeAdvisor.createPrepareCall({ messages })({ iteration: 1 }),
+    ).rejects.toBe(markerFromInvoke);
+
+    const markerFromCallback = Object.assign(
+      new Error("callback ledger failure"),
+      { runtimeLedgerPersistence: true },
+    );
+    const callbackAdvisor = runtime({
+      config: {
+        advisor: {
+          enabled: true,
+          provider: "anthropic",
+          model: "claude-sonnet-4-6",
+          budgetUsd: 1,
+        },
+      },
+    });
+    callbackAdvisor.beginTurn("turn-callback-marker");
+    const onAdvice = vi.fn(async () => {
+      throw markerFromCallback;
+    });
+
+    await expect(
+      callbackAdvisor.createPrepareCall({ messages, onAdvice })({
+        iteration: 1,
+      }),
+    ).rejects.toBe(markerFromCallback);
+    expect(onAdvice).toHaveBeenCalledOnce();
+  });
+
+  it("keeps ordinary onAdvice rendering failures advisory", async () => {
+    const advisor = runtime({
+      config: {
+        advisor: {
+          enabled: true,
+          provider: "anthropic",
+          model: "claude-sonnet-4-6",
+          budgetUsd: 1,
+        },
+      },
+    });
+    advisor.beginTurn("turn-render-failure");
+    const messages = [
+      {
+        role: "assistant",
+        tool_calls: [
+          {
+            id: "edit-render",
+            function: {
+              name: "edit_file",
+              arguments: '{"path":"a.js"}',
+            },
+          },
+        ],
+      },
+      {
+        role: "tool",
+        tool_call_id: "edit-render",
+        content: '{"success":true}',
+      },
+    ];
+
+    await expect(
+      advisor.createPrepareCall({
+        messages,
+        onAdvice: async () => {
+          throw new Error("render failed");
+        },
+      })({ iteration: 1 }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        systemSuffix: expect.stringContaining("INDEPENDENT ADVISOR DATA"),
+      }),
+    );
   });
 
   it("records whether the main agent verified or rejected a recommendation", async () => {

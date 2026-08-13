@@ -21,6 +21,297 @@ import {
 } from "../../src/lib/session-message-provenance.js";
 
 describe("REPL compact persistence fencing", () => {
+  it("keeps the REPL terminal after a compaction ledger persistence failure", async () => {
+    const { createReplRuntimeLedgerTerminalLatch } =
+      await import("../../src/repl/agent-repl.js");
+    const onTrip = vi.fn();
+    const latch = createReplRuntimeLedgerTerminalLatch({ onTrip });
+    const persistenceError = Object.assign(new Error("ledger unavailable"), {
+      runtimeLedgerPersistence: true,
+    });
+
+    const terminal = latch.trip(persistenceError);
+
+    expect(terminal).toMatchObject({
+      code: "CC_RUNTIME_USAGE_LEDGER_FAILED",
+      runtimeLedgerPersistence: true,
+    });
+    expect(latch.isTripped()).toBe(true);
+    expect(() => latch.assertOpen()).toThrow(terminal);
+    expect(latch.trip(new Error("unrelated"))).toBe(terminal);
+    expect(onTrip).toHaveBeenCalledOnce();
+  }, 20000);
+
+  it("brackets a direct REPL tool with one secret-free started/settlement pair", async () => {
+    const { runReplDirectToolWithLedger } =
+      await import("../../src/repl/agent-repl.js");
+    const order = [];
+    const started = [];
+    const settled = [];
+    const now = vi.fn().mockReturnValueOnce(100).mockReturnValueOnce(125);
+
+    const result = await runReplDirectToolWithLedger({
+      sessionId: "session-direct-tool",
+      tool: "run_skill",
+      args: { skill_name: "review", secret: "do-not-persist" },
+      callId: "direct-tool-1",
+      now,
+      persistStarted: (sessionId, type, data) => {
+        order.push("started");
+        started.push({ sessionId, type, data });
+      },
+      persistSettlement: (sessionId, record) => {
+        order.push("settled");
+        settled.push({ sessionId, record });
+      },
+      execute: async () => {
+        order.push("tool");
+        return {
+          ok: true,
+          plugin_bin: { plugin: "quality", version: "1.2.3" },
+        };
+      },
+    });
+
+    expect(result).toEqual(expect.objectContaining({ ok: true }));
+    expect(order).toEqual(["started", "tool", "settled"]);
+    expect(started).toEqual([
+      {
+        sessionId: "session-direct-tool",
+        type: "tool_call_started",
+        data: { id: "direct-tool-1", tool: "run_skill" },
+      },
+    ]);
+    expect(settled).toEqual([
+      {
+        sessionId: "session-direct-tool",
+        record: {
+          id: "direct-tool-1",
+          tool: "run_skill",
+          isError: false,
+          skill: "review",
+          plugin: "quality",
+          pluginVersion: "1.2.3",
+          durationMs: 25,
+        },
+      },
+    ]);
+    expect(JSON.stringify({ started, settled })).not.toContain(
+      "do-not-persist",
+    );
+  });
+
+  it("blocks the direct tool and every later call when its started row cannot persist", async () => {
+    const {
+      createReplRuntimeLedgerTerminalLatch,
+      runReplDirectToolWithLedger,
+    } = await import("../../src/repl/agent-repl.js");
+    const latch = createReplRuntimeLedgerTerminalLatch();
+    const execute = vi.fn(async () => ({ ok: true }));
+    const persistenceError = new Error("disk full");
+
+    await expect(
+      runReplDirectToolWithLedger({
+        sessionId: "session-direct-start-failure",
+        tool: "write_file",
+        args: { path: "a.txt", content: "x" },
+        execute,
+        terminalLatch: latch,
+        persistStarted: () => {
+          throw persistenceError;
+        },
+        persistSettlement: vi.fn(),
+      }),
+    ).rejects.toMatchObject({
+      code: "CC_RUNTIME_USAGE_LEDGER_FAILED",
+      runtimeLedgerPersistence: true,
+    });
+    expect(execute).not.toHaveBeenCalled();
+    expect(latch.isTripped()).toBe(true);
+
+    await expect(
+      runReplDirectToolWithLedger({
+        sessionId: "session-direct-start-failure",
+        tool: "read_file",
+        args: { path: "a.txt" },
+        execute,
+        terminalLatch: latch,
+        persistStarted: vi.fn(),
+        persistSettlement: vi.fn(),
+      }),
+    ).rejects.toBe(latch.error());
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it("settles a failed direct tool, but latches terminal if settlement is lost", async () => {
+    const {
+      createReplRuntimeLedgerTerminalLatch,
+      runReplDirectToolWithLedger,
+    } = await import("../../src/repl/agent-repl.js");
+    const toolError = new Error("tool failed");
+    const settlement = vi.fn();
+
+    await expect(
+      runReplDirectToolWithLedger({
+        sessionId: "session-direct-tool-error",
+        tool: "run_shell",
+        args: { command: "false" },
+        callId: "direct-tool-error",
+        execute: async () => {
+          throw toolError;
+        },
+        persistStarted: vi.fn(),
+        persistSettlement: settlement,
+        now: vi.fn().mockReturnValueOnce(10).mockReturnValueOnce(20),
+      }),
+    ).rejects.toBe(toolError);
+    expect(settlement).toHaveBeenCalledWith(
+      "session-direct-tool-error",
+      expect.objectContaining({
+        id: "direct-tool-error",
+        tool: "run_shell",
+        isError: true,
+        durationMs: 10,
+      }),
+    );
+
+    const latch = createReplRuntimeLedgerTerminalLatch();
+    const execute = vi.fn(async () => ({ ok: true }));
+    await expect(
+      runReplDirectToolWithLedger({
+        sessionId: "session-direct-settlement-failure",
+        tool: "write_file",
+        args: { path: "a.txt", content: "x" },
+        execute,
+        terminalLatch: latch,
+        persistStarted: vi.fn(),
+        persistSettlement: () => {
+          throw new Error("settlement disk failure");
+        },
+      }),
+    ).rejects.toMatchObject({
+      code: "CC_RUNTIME_USAGE_LEDGER_FAILED",
+      runtimeLedgerPersistence: true,
+    });
+    expect(execute).toHaveBeenCalledOnce();
+    expect(latch.isTripped()).toBe(true);
+  });
+
+  it("routes both REPL-owned direct tool producers through the strict ledger", () => {
+    const source = readFileSync(
+      join(
+        dirname(fileURLToPath(import.meta.url)),
+        "../../src/repl/agent-repl.js",
+      ),
+      "utf8",
+    );
+    expect(source).toContain("toolExecutor: _runReplDirectTool");
+    expect(source).toContain(
+      "return await _runReplDirectTool(item.tool, item.params)",
+    );
+  });
+
+  it("meters a semantic compaction call before spend and returns settled metadata", async () => {
+    const { runReplMeteredModelCallWithLedger } =
+      await import("../../src/repl/agent-repl.js");
+    const order = [];
+    const persisted = [];
+
+    const metered = await runReplMeteredModelCallWithLedger({
+      sessionId: "session-metered-compact",
+      provider: "anthropic",
+      model: "claude-sonnet-4-6",
+      source: "semantic-compaction",
+      persist: (type, data) => {
+        order.push(type);
+        persisted.push({ type, data });
+      },
+      call: async () => {
+        order.push("provider");
+        return {
+          message: { content: "summary" },
+          usage: { input_tokens: 12, output_tokens: 3 },
+        };
+      },
+    });
+
+    expect(order).toEqual(["model_usage_started", "provider", "token_usage"]);
+    expect(metered).toMatchObject({
+      callId: persisted[0].data.callId,
+      usageLedgerSettled: true,
+      result: { usage: { input_tokens: 12, output_tokens: 3 } },
+    });
+    expect(persisted[1]).toMatchObject({
+      type: "token_usage",
+      data: {
+        callId: persisted[0].data.callId,
+        provider: "anthropic",
+        model: "claude-sonnet-4-6",
+        source: "semantic-compaction",
+      },
+    });
+  });
+
+  it("durably settles missing compaction usage as unknown", async () => {
+    const { runReplMeteredModelCallWithLedger } =
+      await import("../../src/repl/agent-repl.js");
+    const persisted = [];
+
+    const metered = await runReplMeteredModelCallWithLedger({
+      sessionId: "session-metered-unknown",
+      provider: "openai",
+      model: "gpt-4o",
+      source: "semantic-compaction",
+      persist: (type, data) => persisted.push({ type, data }),
+      call: async () => ({ message: { content: "summary" } }),
+    });
+
+    expect(metered.usageLedgerSettled).toBe(true);
+    expect(persisted.map((event) => event.type)).toEqual([
+      "model_usage_started",
+      "model_usage_unknown",
+    ]);
+    expect(persisted[1].data).toMatchObject({
+      callId: persisted[0].data.callId,
+      source: "semantic-compaction",
+      code: "provider_usage_missing",
+    });
+  });
+
+  it("attaches settled ledger metadata to a compaction provider error", async () => {
+    const { runReplMeteredModelCallWithLedger } =
+      await import("../../src/repl/agent-repl.js");
+    const providerError = new Error("connection reset after upload");
+    const persisted = [];
+
+    await expect(
+      runReplMeteredModelCallWithLedger({
+        sessionId: "session-metered-error",
+        provider: "openai",
+        model: "gpt-4o",
+        source: "semantic-compaction",
+        persist: (type, data) => persisted.push({ type, data }),
+        call: async () => {
+          throw providerError;
+        },
+        attachErrorMetadata: true,
+      }),
+    ).rejects.toBe(providerError);
+
+    expect(providerError).toMatchObject({
+      compactionCallId: persisted[0].data.callId,
+      usageLedgerSettled: true,
+    });
+    expect(persisted[1]).toMatchObject({
+      type: "model_usage_unknown",
+      data: {
+        callId: persisted[0].data.callId,
+        source: "semantic-compaction",
+        code: "provider_call_failed",
+      },
+    });
+  });
+
   it("persists a microcompact checkpoint before replacing live messages", async () => {
     const { createReplCompactPersistence, settleReplCompactionCandidate } =
       await import("../../src/repl/agent-repl.js");
@@ -207,6 +498,93 @@ describe("REPL compact persistence fencing", () => {
     expect(messages).toEqual(compacted);
   }, 20000);
 
+  it("counts an already-durable usage settlement locally without appending it twice", async () => {
+    const { createReplCompactPersistence, settleReplCompactionCandidate } =
+      await import("../../src/repl/agent-repl.js");
+    const { newCostStore } = await import("../../src/repl/session-cost.js");
+    const messages = [{ role: "user", content: "known question" }];
+    const expectedMessages = [...messages];
+    const appendUsage = vi.fn();
+    const appendCompactEventIfMessagesMatch = vi.fn(() => ({
+      hash: "c".repeat(64),
+    }));
+    const costStore = newCostStore();
+
+    const result = settleReplCompactionCandidate({
+      messages,
+      expectedMessages,
+      compacted: [{ role: "assistant", content: "summary" }],
+      stats: { strategy: "summarize", saved: 10 },
+      trigger: "auto",
+      useJsonl: true,
+      sessionId: "session-already-settled",
+      persistence: createReplCompactPersistence(messages, {
+        appendCompactEventIfMessagesMatch,
+      }),
+      usageEvent: {
+        callId: "semantic-call-1",
+        provider: "openai",
+        model: "gpt-4o",
+        source: "semantic-compaction",
+        usageLedgerSettled: true,
+        usage: { input_tokens: 8, output_tokens: 2 },
+      },
+      costStore,
+      appendUsage,
+    });
+
+    expect(result.applied).toBe(true);
+    expect(appendUsage).not.toHaveBeenCalled();
+    expect(appendCompactEventIfMessagesMatch).toHaveBeenCalledOnce();
+    expect(costStore.total).toMatchObject({
+      inputTokens: 8,
+      outputTokens: 2,
+      calls: 1,
+    });
+  }, 20000);
+
+  it("fails closed when a legacy known-usage settlement cannot persist", async () => {
+    const { createReplCompactPersistence, settleReplCompactionCandidate } =
+      await import("../../src/repl/agent-repl.js");
+    const { newCostStore } = await import("../../src/repl/session-cost.js");
+    const messages = [{ role: "user", content: "known question" }];
+    const expectedMessages = [...messages];
+    const appendCompactEventIfMessagesMatch = vi.fn();
+    const appendFailure = Object.freeze(new Error("disk full"));
+    const costStore = newCostStore();
+
+    const result = settleReplCompactionCandidate({
+      messages,
+      expectedMessages,
+      compacted: [{ role: "assistant", content: "summary" }],
+      stats: { strategy: "summarize", saved: 10 },
+      trigger: "manual",
+      useJsonl: true,
+      sessionId: "session-usage-failure",
+      persistence: createReplCompactPersistence(messages, {
+        appendCompactEventIfMessagesMatch,
+      }),
+      usageEvent: {
+        provider: "openai",
+        model: "gpt-4o",
+        usage: { input_tokens: 5, output_tokens: 1 },
+      },
+      costStore,
+      appendUsage: () => {
+        throw appendFailure;
+      },
+    });
+
+    expect(result).toMatchObject({
+      applied: false,
+      error: { runtimeLedgerPersistence: true },
+      usagePersistenceError: { runtimeLedgerPersistence: true },
+    });
+    expect(messages).toEqual(expectedMessages);
+    expect(appendCompactEventIfMessagesMatch).not.toHaveBeenCalled();
+    expect(costStore.total.calls).toBe(1);
+  }, 20000);
+
   it("counts known usage once but preserves live messages when compact CAS is stale", async () => {
     const { createReplCompactPersistence, settleReplCompactionCandidate } =
       await import("../../src/repl/agent-repl.js");
@@ -272,6 +650,7 @@ describe("REPL compact persistence fencing", () => {
       persistence,
       usageUnknownEvent: {
         reason: "provider_transport_outcome_unknown",
+        usageLedgerSettled: true,
       },
       costStore,
       appendUsage,
@@ -288,6 +667,37 @@ describe("REPL compact persistence fencing", () => {
     expect(appendUsage).not.toHaveBeenCalled();
     expect(appendCompactEventIfMessagesMatch).not.toHaveBeenCalled();
     expect(costStore.total.calls).toBe(0);
+  }, 20000);
+
+  it("marks an undurable unknown settlement as terminal", async () => {
+    const { createReplCompactPersistence, settleReplCompactionCandidate } =
+      await import("../../src/repl/agent-repl.js");
+    const messages = [{ role: "user", content: "known question" }];
+    const appendCompactEventIfMessagesMatch = vi.fn();
+
+    const result = settleReplCompactionCandidate({
+      messages,
+      expectedMessages: [...messages],
+      compacted: [{ role: "assistant", content: "fallback" }],
+      stats: { strategy: "summarize", saved: 10 },
+      trigger: "manual",
+      useJsonl: true,
+      sessionId: "session-undurable-unknown",
+      persistence: createReplCompactPersistence(messages, {
+        appendCompactEventIfMessagesMatch,
+      }),
+      usageUnknownEvent: {
+        reason: "provider_transport_outcome_unknown",
+      },
+    });
+
+    expect(result).toMatchObject({
+      applied: false,
+      block: { code: "CC_COMPACTION_USAGE_UNKNOWN" },
+      usagePersistenceError: { runtimeLedgerPersistence: true },
+    });
+    expect(messages).toEqual([{ role: "user", content: "known question" }]);
+    expect(appendCompactEventIfMessagesMatch).not.toHaveBeenCalled();
   }, 20000);
 });
 

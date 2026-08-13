@@ -56,6 +56,7 @@ describe("cc agent background worktree dispatch", () => {
   let worktreePath;
   let originalArgv;
   let originalCwd;
+  let originalExitCode;
   let stdout;
   let stderr;
 
@@ -66,6 +67,8 @@ describe("cc agent background worktree dispatch", () => {
     mkdirSync(worktreePath, { recursive: true });
     originalArgv = process.argv;
     originalCwd = process.cwd();
+    originalExitCode = process.exitCode;
+    process.exitCode = undefined;
     process.chdir(repoRoot);
     process.argv = [
       process.execPath,
@@ -126,6 +129,7 @@ describe("cc agent background worktree dispatch", () => {
     stdout.mockRestore();
     stderr.mockRestore();
     process.argv = originalArgv;
+    process.exitCode = originalExitCode;
     process.chdir(originalCwd);
     rmSync(root, { recursive: true, force: true });
   });
@@ -166,6 +170,33 @@ describe("cc agent background worktree dispatch", () => {
     // Ownership was transferred: the foreground exit/finish path must not
     // reap the directory out from under the detached worker.
     expect(worktreeMocks.finish).not.toHaveBeenCalled();
+  });
+
+  it("rejects --bg with --ephemeral before worktree or worker launch", async () => {
+    process.argv = [
+      process.execPath,
+      "cc",
+      "agent",
+      "--bg",
+      "--ephemeral",
+      "-p",
+      "do work",
+    ];
+    const program = new Command();
+    program.exitOverride();
+    registerAgentCommand(program);
+
+    await program.parseAsync(
+      ["agent", "--bg", "--ephemeral", "-p", "do work"],
+      { from: "user" },
+    );
+
+    expect(process.exitCode).toBe(1);
+    expect(stderr).toHaveBeenCalledWith(
+      expect.stringMatching(/--bg.*--ephemeral.*durable/i),
+    );
+    expect(worktreeMocks.setup).not.toHaveBeenCalled();
+    expect(supervisorMocks.launch).not.toHaveBeenCalled();
   });
 
   it("defaults a background Git task to one isolated worktree", async () => {

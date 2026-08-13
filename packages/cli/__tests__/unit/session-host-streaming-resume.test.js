@@ -147,6 +147,55 @@ describe("session host streaming resume", () => {
     });
   });
 
+  it.each([
+    {
+      name: "late",
+      cores: [
+        {
+          type: "user_message",
+          timestamp: 1,
+          data: { role: "user", content: "before start" },
+        },
+        { type: "session_start", timestamp: 2, data: { title: "Late" } },
+      ],
+    },
+    {
+      name: "multiple",
+      cores: [
+        { type: "session_start", timestamp: 1, data: { title: "First" } },
+        { type: "session_start", timestamp: 2, data: { title: "Second" } },
+      ],
+    },
+  ])("fails closed on a $name streaming session_start", ({ name, cores }) => {
+    const events = chainedEvents(cores);
+    const readMessages = vi.fn(() => [
+      { role: "user", content: `must not resume ${name}` },
+    ]);
+
+    const state = readSessionHostResumeState(`streaming-${name}-start`, {
+      sessionExists: () => true,
+      readVerifiedProjection: (_sessionId, createProjection) => {
+        const projection = createProjection();
+        for (const event of events) projection.accept(event);
+        return projection.finish({
+          headHash: events.at(-1).hash,
+          eventCount: events.length,
+          readMessages,
+        });
+      },
+    });
+
+    expect(state.messages).toBeNull();
+    expect(state.snapshot).toMatchObject({
+      verified: false,
+      recoveryAuthority: {
+        blockMode: "all",
+        reasonCode: "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED",
+      },
+    });
+    expect(readMessages).not.toHaveBeenCalled();
+  });
+
   it("does not elevate a custom reader's forged wire field", () => {
     const forged = {
       role: "system",

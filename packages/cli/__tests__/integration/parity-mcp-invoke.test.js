@@ -30,7 +30,16 @@ import {
 async function drain(iterable) {
   const out = [];
   for await (const event of iterable) {
-    if (event.type === "run-started" || event.type === "run-ended") continue;
+    // Usage accounting emits its own boundary events. This parity harness is
+    // deliberately scoped to the MCP transport/result protocol; usage event
+    // semantics are covered by the observability contract suites.
+    if (
+      event.type !== "tool-executing" &&
+      event.type !== "tool-result" &&
+      event.type !== "response-complete"
+    ) {
+      continue;
+    }
     out.push(event);
   }
   return out;

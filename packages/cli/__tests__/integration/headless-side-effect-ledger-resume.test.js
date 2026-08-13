@@ -572,6 +572,62 @@ describe("background state-machine producers (uncertain_side_effect + needs_inpu
     ]);
   });
 
+  it("binds the active durable host lease into a production background interaction client", async () => {
+    const store = makeStore();
+    const reporter = makeFakeReporter(true);
+    const interactionClient = {
+      request: vi.fn(async () => "yes"),
+      close: vi.fn(),
+    };
+    const createClient = vi.fn(() => interactionClient);
+    const release = vi.fn();
+    const lease = {
+      sessionId: "sid-delegated-question",
+      leaseId: "lease-00000000-0000-4000-8000-000000000001",
+      fencingToken: 7,
+      revocationEpoch: 2,
+      ownerPid: process.pid,
+      hostKind: "headless",
+      signal: new AbortController().signal,
+      assert: vi.fn(),
+      release,
+    };
+    const loop = async function* () {
+      yield { type: "run-ended", reason: "complete" };
+    };
+
+    await runAgentHeadless(
+      {
+        prompt: "ask with durable authority",
+        sessionId: "sid-delegated-question",
+        persistSession: true,
+        outputFormat: "json",
+        expandFileRefs: false,
+      },
+      {
+        ...baseDeps(store, loop),
+        acquireSessionHostLease: vi.fn(() => lease),
+        backgroundPhaseReporter: reporter,
+        createBackgroundInteractionClient: createClient,
+      },
+    );
+
+    expect(createClient).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: "sid-delegated-question",
+        sessionHostWriteDelegation: {
+          sessionId: "sid-delegated-question",
+          leaseId: lease.leaseId,
+          fencingToken: 7,
+          revocationEpoch: 2,
+          ownerPid: process.pid,
+          hostKind: "headless",
+        },
+      }),
+    );
+    expect(release).toHaveBeenCalledOnce();
+  });
+
   it("a non-background run supplies NO interaction (user_not_reachable path unchanged)", async () => {
     const store = makeStore();
     const reporter = makeFakeReporter(false); // disabled — foreground run

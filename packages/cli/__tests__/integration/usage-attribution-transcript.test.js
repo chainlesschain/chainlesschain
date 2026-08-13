@@ -157,12 +157,14 @@ describe("REPL wrapper persists compact tool_call events", () => {
     const toolEvents = events.filter((e) => e.type === "tool_call");
     expect(toolEvents).toHaveLength(2);
     expect(toolEvents[0].data).toEqual({
+      id: expect.stringMatching(/^tool-/),
       tool: "run_skill",
       is_error: false,
       skill: "csv-clean",
       duration_ms: expect.any(Number),
     });
     expect(toolEvents[1].data).toEqual({
+      id: expect.stringMatching(/^tool-/),
       tool: "mcp__github__search_issues",
       is_error: true,
       duration_ms: expect.any(Number),

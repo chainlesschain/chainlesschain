@@ -60,6 +60,14 @@ import {
 } from "../harness/jsonl-session-store.js";
 import { classifyStreamRetryReason } from "../lib/stream-retry.js";
 import {
+  markRuntimeLedgerPersistenceError,
+  projectRuntimeTokenUsage,
+  projectRuntimeUsageBoundary,
+  runtimeUsageEventType,
+  runtimeToolCallId,
+} from "../lib/runtime-usage-ledger.js";
+import { runMeteredDirectModelCall } from "../lib/direct-model-usage.js";
+import {
   createSessionMcpLedgerSink,
   formatMcpLedgerRecoveryNotice,
   loadMcpLedgerRecovery,
@@ -179,6 +187,219 @@ import {
   describeTier,
   nextTier,
 } from "./permission-tier.js";
+
+export const REPL_RUNTIME_LEDGER_PERSISTENCE_FAILURE_MESSAGE =
+  "CC_RUNTIME_USAGE_LEDGER_FAILED: runtime usage telemetry was not durably persisted; restart this session";
+
+/** One fail-closed latch is created for each REPL process/session host. */
+export function createReplRuntimeLedgerTerminalLatch(options = {}) {
+  const onTrip = typeof options.onTrip === "function" ? options.onTrip : null;
+  let terminalError = null;
+  return Object.freeze({
+    trip(error) {
+      if (terminalError) return terminalError;
+      if (error?.runtimeLedgerPersistence !== true) return null;
+      terminalError = new Error(
+        REPL_RUNTIME_LEDGER_PERSISTENCE_FAILURE_MESSAGE,
+        { cause: error },
+      );
+      terminalError.code = "CC_RUNTIME_USAGE_LEDGER_FAILED";
+      terminalError.runtimeLedgerPersistence = true;
+      try {
+        onTrip?.(terminalError);
+      } catch {
+        // Terminal state must survive a best-effort host notification failure.
+      }
+      return terminalError;
+    },
+    assertOpen() {
+      if (terminalError) throw terminalError;
+    },
+    isTripped() {
+      return terminalError !== null;
+    },
+    error() {
+      return terminalError;
+    },
+  });
+}
+
+/** Persisted sessions may only use the deterministic local suggestion engine. */
+export function resolveReplPromptSuggestionGenerator(useJsonl, generator) {
+  return useJsonl ? undefined : generator;
+}
+
+export function resolveReplMeteredSessionId(useJsonl, sessionId) {
+  return useJsonl && sessionId ? sessionId : null;
+}
+
+function attachReplCompactionLedgerMetadata(error, callId, settled) {
+  let target = error;
+  if (!target || (typeof target !== "object" && typeof target !== "function")) {
+    target = new Error("semantic compaction provider call failed", {
+      cause: error,
+    });
+  }
+  try {
+    Object.defineProperties(target, {
+      compactionCallId: {
+        configurable: true,
+        value: callId || undefined,
+      },
+      usageLedgerSettled: {
+        configurable: true,
+        value: settled === true,
+      },
+    });
+    return target;
+  } catch {
+    const wrapped = new Error("semantic compaction provider call failed", {
+      cause: error,
+    });
+    Object.defineProperties(wrapped, {
+      compactionCallId: {
+        configurable: true,
+        value: callId || undefined,
+      },
+      usageLedgerSettled: {
+        configurable: true,
+        value: settled === true,
+      },
+    });
+    return wrapped;
+  }
+}
+
+function asReplRuntimeLedgerPersistenceError(error, message) {
+  if (error && (typeof error === "object" || typeof error === "function")) {
+    try {
+      const marked = markRuntimeLedgerPersistenceError(error);
+      if (marked?.runtimeLedgerPersistence === true) return marked;
+    } catch {
+      // Frozen/non-extensible errors are wrapped below.
+    }
+  }
+  const wrapped = new Error(message, { cause: error });
+  return markRuntimeLedgerPersistenceError(wrapped);
+}
+
+/** Meter one direct REPL call and expose only secret-free ledger metadata. */
+export async function runReplMeteredModelCallWithLedger({
+  sessionId,
+  persist,
+  provider,
+  model,
+  source = "model",
+  call,
+  attachErrorMetadata = false,
+}) {
+  let callId = null;
+  let usageLedgerSettled = false;
+  try {
+    const result = await runMeteredDirectModelCall({
+      sessionId,
+      persist: sessionId
+        ? async (type, data) => {
+            await persist(type, data);
+            if (type === "model_usage_started") callId = data.callId;
+            else usageLedgerSettled = true;
+          }
+        : null,
+      provider,
+      model,
+      source,
+      call,
+    });
+    return Object.freeze({ result, callId, usageLedgerSettled });
+  } catch (error) {
+    if (attachErrorMetadata) {
+      throw attachReplCompactionLedgerMetadata(
+        error,
+        callId,
+        usageLedgerSettled,
+      );
+    }
+    throw error;
+  }
+}
+
+/**
+ * Execute a REPL-owned direct tool surface behind the same durable call ledger
+ * used by the main agent loop. `/auto` and `/plan execute` do not yield
+ * `tool-executing` / `tool-result` events, so their host must bracket the real
+ * execution here instead of relying on the loop wrapper.
+ */
+export async function runReplDirectToolWithLedger({
+  sessionId = null,
+  tool,
+  args,
+  execute,
+  persistStarted = appendEvent,
+  persistSettlement = appendToolCallCompact,
+  now = Date.now,
+  callId,
+  terminalLatch = null,
+}) {
+  if (typeof execute !== "function") {
+    throw new TypeError("direct REPL tool execution requires an executor");
+  }
+  terminalLatch?.assertOpen();
+  const id = runtimeToolCallId(callId);
+  if (sessionId) {
+    try {
+      await persistStarted(sessionId, "tool_call_started", { id, tool });
+    } catch (error) {
+      const persistenceError = asReplRuntimeLedgerPersistenceError(
+        error,
+        "direct REPL tool start was not durable",
+      );
+      throw terminalLatch?.trip(persistenceError) || persistenceError;
+    }
+  }
+
+  const startedAt = now();
+  let result;
+  let executionError;
+  let executionFailed = false;
+  try {
+    result = await execute(tool, args);
+  } catch (error) {
+    executionFailed = true;
+    executionError = error;
+  }
+
+  const observedDuration = result?.toolTelemetryRecord?.durationMs;
+  const durationMs =
+    observedDuration ?? Math.max(0, Number(now()) - Number(startedAt));
+  if (sessionId) {
+    try {
+      await persistSettlement(sessionId, {
+        id,
+        tool,
+        isError: Boolean(
+          executionFailed ||
+          result?.error ||
+          result?.is_error ||
+          result?.isError,
+        ),
+        skill: tool === "run_skill" ? args?.skill_name : undefined,
+        ...extractPluginUsageAttribution(result),
+        durationMs,
+      });
+    } catch (error) {
+      const persistenceError = asReplRuntimeLedgerPersistenceError(
+        error,
+        "direct REPL tool settlement was not durable",
+      );
+      throw terminalLatch?.trip(persistenceError) || persistenceError;
+    }
+  }
+
+  if (executionFailed) {
+    throw terminalLatch?.trip(executionError) || executionError;
+  }
+  return result;
+}
 
 /**
  * Reference to the runtime DB for hook execution (set during startAgentRepl)
@@ -342,6 +563,17 @@ export async function agentLoop(messages, options) {
   const writeOut =
     options.writeOut || ((text) => process.stdout.write(String(text)));
   const waitForOutput = options.waitForOutput;
+  const persistBoundary = options._appendUsageBoundary || appendEvent;
+  const persistTokenUsage = options._appendTokenUsage || appendTokenUsage;
+  const persistToolCall =
+    options._appendToolCallCompact || appendToolCallCompact;
+  const persistRuntimeLedger = (action) => {
+    try {
+      return action();
+    } catch (error) {
+      throw markRuntimeLedgerPersistenceError(error);
+    }
+  };
   // Resume-degenerate role merge (Claude Code 2.1.187 parity), gated by the
   // one-shot `mergeRoles` flag so it fires only on the first model call after
   // resuming a session whose prior run produced no assistant response. Collapse
@@ -370,9 +602,95 @@ export async function agentLoop(messages, options) {
   // `_coreLoop` is an injectable seam (defaults to agent-core's loop) so the
   // wrapper's event translation can be unit-tested without a live model.
   const runCoreLoop = options._coreLoop || coreAgentLoop;
-  // The tool-result event carries no args; remember the last tool-executing
-  // pair so a recorded denial can show what was attempted (/permissions denials).
-  let _lastExec = null;
+  const onUsageBoundary =
+    options.onUsageBoundary ||
+    (options.persistUsageTelemetry === true && options.sessionId
+      ? (event) => {
+          persistRuntimeLedger(() =>
+            persistBoundary(
+              options.sessionId,
+              runtimeUsageEventType("started"),
+              projectRuntimeUsageBoundary(event, "started"),
+            ),
+          );
+        }
+      : undefined);
+  const onUsageSettlement =
+    options.onUsageSettlement ||
+    (options.persistUsageTelemetry === true && options.sessionId
+      ? (event) => {
+          if (event?.type === "token-usage") {
+            persistRuntimeLedger(() =>
+              persistTokenUsage(
+                options.sessionId,
+                projectRuntimeTokenUsage(event),
+              ),
+            );
+            return;
+          }
+          persistRuntimeLedger(() =>
+            persistBoundary(
+              options.sessionId,
+              runtimeUsageEventType("unknown"),
+              projectRuntimeUsageBoundary(
+                event?.type === "compaction-usage-unknown"
+                  ? {
+                      ...event,
+                      code: event.code || "provider_transport_outcome_unknown",
+                    }
+                  : event,
+                "unknown",
+              ),
+            ),
+          );
+        }
+      : undefined);
+  const childToolExecs = new Map();
+  const onToolCallBoundary =
+    options.onToolCallBoundary ||
+    (options.persistUsageTelemetry === true && options.sessionId
+      ? (event) => {
+          const id = runtimeToolCallId(event?.tool_use_id);
+          childToolExecs.set(id, {
+            tool: event?.tool || "?",
+            startedAt: options.now ? options.now() : Date.now(),
+          });
+          persistRuntimeLedger(() =>
+            persistBoundary(options.sessionId, "tool_call_started", {
+              id,
+              tool: event?.tool || "?",
+            }),
+          );
+        }
+      : undefined);
+  const onToolCallSettlement =
+    options.onToolCallSettlement ||
+    (options.persistUsageTelemetry === true && options.sessionId
+      ? (event) => {
+          const id = runtimeToolCallId(event?.tool_use_id);
+          const started = childToolExecs.get(id);
+          childToolExecs.delete(id);
+          persistRuntimeLedger(() =>
+            persistToolCall(options.sessionId, {
+              id,
+              tool: event?.tool || started?.tool || "?",
+              isError: Boolean(event?.error || event?.result?.error),
+              skill: event?.attribution?.skill,
+              durationMs: started
+                ? Math.max(
+                    0,
+                    (options.now ? options.now() : Date.now()) -
+                      started.startedAt,
+                  )
+                : undefined,
+            }),
+          );
+        }
+      : undefined);
+  // Tool results carry a stable provider id. Keep every in-flight call keyed by
+  // that id because read-only batches may expose all starts before any result.
+  const _activeExecs = new Map();
+  const _unsettledExecs = [];
   // The core loop runs tools serially. A classified non-MCP side effect stays
   // live from its yielded `tool-executing` boundary until the matching result.
   let _currentSideEffectOpId = null;
@@ -383,6 +701,10 @@ export async function agentLoop(messages, options) {
     // too would trim the same history twice. Placed AFTER the spread so a
     // caller's options.autoCompact can never silently re-enable the double pass.
     autoCompact: false,
+    onUsageBoundary,
+    onUsageSettlement,
+    onToolCallBoundary,
+    onToolCallSettlement,
     onProviderFallback,
   })) {
     // P1 explicit turn→checkpoint binding — the REPL as PRODUCER: fold every
@@ -419,11 +741,23 @@ export async function agentLoop(messages, options) {
         chalk.gray(`  ⎌ checkpoint ${event.id} (before ${event.tool})\n`),
       );
     } else if (event.type === "tool-executing") {
-      _lastExec = {
+      const exec = {
+        id: runtimeToolCallId(event.tool_use_id),
+        providerId: event.tool_use_id || null,
         tool: event.tool,
         args: event.args,
         startedAt: options.now ? options.now() : Date.now(),
       };
+      _unsettledExecs.push(exec);
+      if (exec.providerId) _activeExecs.set(exec.providerId, exec);
+      if (options.persistUsageTelemetry === true && options.sessionId) {
+        persistRuntimeLedger(() =>
+          persistBoundary(options.sessionId, "tool_call_started", {
+            id: exec.id,
+            tool: event.tool,
+          }),
+        );
+      }
       _currentSideEffectOpId = null;
       if (options.sideEffects) {
         const sideEffect = classifyToolSideEffect(event.tool, event.args);
@@ -455,6 +789,20 @@ export async function agentLoop(messages, options) {
         ),
       );
     } else if (event.type === "tool-result") {
+      const exec =
+        (event.tool_use_id ? _activeExecs.get(event.tool_use_id) : null) ||
+        _unsettledExecs.find(
+          (candidate) =>
+            !candidate.settled &&
+            (!event.tool || candidate.tool === event.tool),
+        ) ||
+        null;
+      if (exec) {
+        exec.settled = true;
+        if (exec.providerId) _activeExecs.delete(exec.providerId);
+        const activeIndex = _unsettledExecs.indexOf(exec);
+        if (activeIndex >= 0) _unsettledExecs.splice(activeIndex, 1);
+      }
       if (options.sideEffects && _currentSideEffectOpId) {
         const sideEffectError = event.error || event.result?.error || null;
         if (event.permission_decision) {
@@ -475,10 +823,10 @@ export async function agentLoop(messages, options) {
       }
       const durationMs =
         event.result?.toolTelemetryRecord?.durationMs ??
-        (_lastExec?.tool === event.tool
+        (exec?.tool === event.tool
           ? Math.max(
               0,
-              (options.now ? options.now() : Date.now()) - _lastExec.startedAt,
+              (options.now ? options.now() : Date.now()) - exec.startedAt,
             )
           : undefined);
       // 用量归因: persist a compact tool_call record (name + error flag +
@@ -488,18 +836,22 @@ export async function agentLoop(messages, options) {
       // options.persistToolCalls === false.
       if (options.sessionId && options.persistToolCalls !== false) {
         try {
-          appendToolCallCompact(options.sessionId, {
+          persistToolCall(options.sessionId, {
+            id: exec?.id,
             tool: event.tool,
             isError: Boolean(event.error || event.result?.error),
             skill:
-              event.tool === "run_skill" && _lastExec?.tool === "run_skill"
-                ? _lastExec.args?.skill_name
+              event.tool === "run_skill" && exec?.tool === "run_skill"
+                ? exec.args?.skill_name
                 : undefined,
             ...extractPluginUsageAttribution(event.result),
             durationMs,
           });
         } catch (_e) {
-          // persistence is best-effort — never break the turn
+          if (options.persistUsageTelemetry === true) {
+            throw markRuntimeLedgerPersistenceError(_e);
+          }
+          // Legacy non-JSONL persistence remains best-effort.
         }
       }
       if (event.error || event.result?.error) {
@@ -514,8 +866,8 @@ export async function agentLoop(messages, options) {
             result: event.result,
             error: event.error,
             argsSummary:
-              _lastExec && _lastExec.tool === event.tool
-                ? formatToolArgs(event.tool, _lastExec.args)
+              exec && exec.tool === event.tool
+                ? formatToolArgs(event.tool, exec.args)
                 : "",
           });
           if (denial) {
@@ -565,6 +917,43 @@ export async function agentLoop(messages, options) {
       }
     } else if (event.type === "token-usage") {
       usageEvents.push(event);
+      if (
+        event.ledgerPersisted !== true &&
+        options.persistUsageTelemetry === true &&
+        options.sessionId
+      ) {
+        persistRuntimeLedger(() =>
+          persistTokenUsage(options.sessionId, projectRuntimeTokenUsage(event)),
+        );
+      }
+    } else if (
+      event.type === "model-usage-started" ||
+      event.type === "model-usage-unknown" ||
+      event.type === "compaction-usage-unknown"
+    ) {
+      if (
+        event.ledgerPersisted !== true &&
+        options.persistUsageTelemetry === true &&
+        options.sessionId
+      ) {
+        const outcome =
+          event.type === "model-usage-started" ? "started" : "unknown";
+        persistRuntimeLedger(() =>
+          persistBoundary(
+            options.sessionId,
+            runtimeUsageEventType(outcome),
+            projectRuntimeUsageBoundary(
+              event.type === "compaction-usage-unknown"
+                ? {
+                    ...event,
+                    code: event.code || "provider_transport_outcome_unknown",
+                  }
+                : event,
+              outcome,
+            ),
+          ),
+        );
+      }
     } else if (event.type === "iteration-warning") {
       writeOut(chalk.yellow(`\n  ${event.message}\n`));
     } else if (event.type === "iteration-budget-exhausted") {
@@ -1336,32 +1725,57 @@ export function settleReplCompactionCandidate({
   appendUsage = appendTokenUsage,
 }) {
   if (usageUnknownEvent) {
+    const block = Object.freeze({
+      code: "CC_COMPACTION_USAGE_UNKNOWN",
+      reason: usageUnknownEvent.reason || "provider_transport_outcome_unknown",
+      commitState: "provider-usage-unknown",
+      usageOutcome: "unknown",
+    });
+    if (
+      useJsonl &&
+      sessionId &&
+      usageUnknownEvent.usageLedgerSettled !== true
+    ) {
+      const usagePersistenceError = asReplRuntimeLedgerPersistenceError(
+        new Error("semantic compaction usage-unknown row was not durable"),
+        "semantic compaction usage-unknown row was not durable",
+      );
+      return {
+        applied: false,
+        error: usagePersistenceError,
+        usagePersistenceError,
+        block,
+      };
+    }
     return {
       applied: false,
-      block: Object.freeze({
-        code: "CC_COMPACTION_USAGE_UNKNOWN",
-        reason:
-          usageUnknownEvent.reason || "provider_transport_outcome_unknown",
-        commitState: "provider-usage-unknown",
-        usageOutcome: "unknown",
-      }),
+      block,
     };
   }
 
-  let usagePersistenceError = null;
   if (usageEvent) {
     addUsage(costStore, [usageEvent]);
-    if (useJsonl && sessionId) {
+    if (useJsonl && sessionId && usageEvent.usageLedgerSettled !== true) {
       try {
         appendUsage(sessionId, {
           provider: usageEvent.provider,
           model: usageEvent.model,
           usage: usageEvent.usage,
+          ...(usageEvent.callId ? { callId: usageEvent.callId } : {}),
+          ...(usageEvent.source ? { source: usageEvent.source } : {}),
         });
       } catch (error) {
-        // The paid request is accounted in-memory exactly once. Never retry an
-        // append whose durable commit state may be unknown.
-        usagePersistenceError = error;
+        const usagePersistenceError = asReplRuntimeLedgerPersistenceError(
+          error,
+          "semantic compaction token usage was not durable",
+        );
+        // The paid request is accounted in-memory exactly once, but compaction
+        // and all later input must stop when the durable settlement is unknown.
+        return {
+          applied: false,
+          error: usagePersistenceError,
+          usagePersistenceError,
+        };
       }
     }
   }
@@ -1374,7 +1788,7 @@ export function settleReplCompactionCandidate({
       "REPL messages changed while provider compaction was running",
     );
     error.code = "CC_COMPACTION_LOCAL_STATE_CHANGED";
-    return { applied: false, error, usagePersistenceError };
+    return { applied: false, error };
   }
 
   if (useJsonl && sessionId && stats?.strategy !== "none") {
@@ -1385,13 +1799,13 @@ export function settleReplCompactionCandidate({
         messages: compacted,
       });
     } catch (error) {
-      return { applied: false, error, usagePersistenceError };
+      return { applied: false, error };
     }
   }
 
   messages.length = 0;
   messages.push(...compacted);
-  return { applied: true, usagePersistenceError };
+  return { applied: true };
 }
 
 function validateRawReplReplayMessages(rebuiltMessages) {
@@ -2145,6 +2559,14 @@ export function createReplMcpHostRuntimeManager(dependencies = {}) {
  * the public startAgentRepl() below always supplies the real fixed bindings.
  */
 export async function runReplStartupBoundary(options, startupDependencies) {
+  if (options.observabilityScope != null && options.ephemeral === true) {
+    throw Object.assign(
+      new Error(
+        "observability scope requires durable session persistence and cannot be combined with ephemeral mode",
+      ),
+      { code: "CC_OBSERVABILITY_SCOPE_EPHEMERAL_CONFLICT" },
+    );
+  }
   const prepareStartup = dependencyDataFunction(
     startupDependencies,
     "prepareReplStartupResume",
@@ -2163,6 +2585,25 @@ export async function runReplStartupBoundary(options, startupDependencies) {
     ),
   );
   const startupCandidate = startupAdmission.candidate;
+  if (
+    options.observabilityScope != null &&
+    startupAdmission.useJsonl !== true
+  ) {
+    throw Object.assign(
+      new Error(
+        "observability scope requires durable JSONL session persistence, but JSONL storage is unavailable",
+      ),
+      { code: "CC_OBSERVABILITY_SCOPE_JSONL_REQUIRED" },
+    );
+  }
+  if (options.observabilityScope != null && startupCandidate?.ok === true) {
+    throw Object.assign(
+      new Error(
+        "an existing REPL session scope cannot be overwritten; create a new scoped session",
+      ),
+      { code: "CC_OBSERVABILITY_SCOPE_IMMUTABLE" },
+    );
+  }
   if (startupCandidate && !startupCandidate.ok) {
     const refuseStartup = dependencyDataFunction(
       startupDependencies,
@@ -2220,6 +2661,36 @@ export async function runReplStartupBoundary(options, startupDependencies) {
   return enterWorkspace(trustedWorkspaceRoot, () =>
     startWorkspace(options, startupAdmission),
   );
+}
+
+/** Start a REPL JSONL session while preserving legacy best-effort behavior. */
+export function startReplJsonlSession(
+  startSession,
+  requestedId,
+  meta,
+  observabilityScope,
+) {
+  try {
+    const sessionId = startSession(requestedId, {
+      ...meta,
+      ...(observabilityScope != null ? { observabilityScope } : {}),
+    });
+    if (
+      observabilityScope != null &&
+      (typeof sessionId !== "string" || !sessionId)
+    ) {
+      throw new Error("JSONL session creation returned no durable session id");
+    }
+    return sessionId || null;
+  } catch (error) {
+    if (observabilityScope == null) return null;
+    const failure = new Error(
+      "scoped JSONL session could not be durably created",
+      { cause: error },
+    );
+    failure.code = "CC_OBSERVABILITY_SCOPE_START_FAILED";
+    throw failure;
+  }
 }
 
 /** Start the agentic REPL with non-overridable production bindings. */
@@ -2374,6 +2845,85 @@ async function startAgentReplInWorkspaceOwned(
     }
   };
   const { useJsonl, candidate: _startupJsonlResume } = startupAdmission;
+  // A usage-ledger durability failure makes this REPL terminal. Keep the latch
+  // above every direct-model surface (Advisor, /btw, /auto, /plan, /goal), and
+  // clear steering immediately so queued work cannot start another paid call.
+  let _processingLine = false;
+  const _pendingLines = [];
+  const _runtimeLedgerTerminalLatch = createReplRuntimeLedgerTerminalLatch({
+    onTrip: (terminalError) => {
+      _pendingLines.length = 0;
+      try {
+        _turnAbort?.abort(terminalError);
+      } catch {
+        // An already-settled turn needs no further cancellation.
+      }
+    },
+  });
+  const _reportRuntimeLedgerTerminal = ({ concurrent = false } = {}) => {
+    const message = REPL_RUNTIME_LEDGER_PERSISTENCE_FAILURE_MESSAGE;
+    if (concurrent) process.stderr.write(`\n${message}\n`);
+    else logger.error(message);
+  };
+  const _runReplMeteredModelCall = async ({
+    call,
+    callProvider,
+    callModel,
+    source = "model",
+    includeLedgerMetadata = false,
+  }) => {
+    _runtimeLedgerTerminalLatch.assertOpen();
+    try {
+      const durableSessionId = resolveReplMeteredSessionId(useJsonl, sessionId);
+      const metered = await runReplMeteredModelCallWithLedger({
+        sessionId: durableSessionId,
+        persist: durableSessionId
+          ? (type, data) => appendEvent(durableSessionId, type, data)
+          : null,
+        provider: callProvider || provider,
+        model: callModel || model,
+        source,
+        call,
+        attachErrorMetadata: includeLedgerMetadata,
+      });
+      return includeLedgerMetadata ? metered : metered.result;
+    } catch (error) {
+      const terminalError = _runtimeLedgerTerminalLatch.trip(error);
+      if (terminalError) throw terminalError;
+      throw error;
+    }
+  };
+  // Direct chat helpers keep their public string-returning API while routing
+  // each private provider envelope through the durable per-call REPL meter.
+  const _directChatCallWrapper = ({
+    call,
+    provider: callProvider,
+    model: callModel,
+  }) =>
+    _runReplMeteredModelCall({
+      call,
+      callProvider,
+      callModel,
+      source: "model",
+    });
+  const _runReplDirectTool = async (tool, args) => {
+    _runtimeLedgerTerminalLatch.assertOpen();
+    try {
+      const durableSessionId = resolveReplMeteredSessionId(useJsonl, sessionId);
+      return await runReplDirectToolWithLedger({
+        sessionId: durableSessionId,
+        tool,
+        args,
+        execute: executeTool,
+        now: options.now || Date.now,
+        terminalLatch: _runtimeLedgerTerminalLatch,
+      });
+    } catch (error) {
+      const terminalError = _runtimeLedgerTerminalLatch.trip(error);
+      if (terminalError) throw terminalError;
+      throw error;
+    }
+  };
   let model = options.model || "qwen2.5:7b";
   let provider = options.provider || "ollama";
   // Extended thinking (Anthropic; opt-in via --think/--ultrathink). Carried from
@@ -2518,24 +3068,36 @@ async function startAgentReplInWorkspaceOwned(
       model,
       provider,
       llmQuery: async (prompt) => {
-        const response = await chatWithTools(
-          [{ role: "user", content: prompt }],
-          {
-            provider,
-            model,
-            baseUrl,
-            apiKey,
-            signal: _sessionHostLeaseScope?.lease?.signal,
-            enabledToolNames: [],
-            extraToolDefinitions: [],
-            maxOutputTokens: 2048,
-          },
-        );
+        const {
+          result: response,
+          callId,
+          usageLedgerSettled,
+        } = await _runReplMeteredModelCall({
+          callProvider: provider,
+          callModel: model,
+          source: "semantic-compaction",
+          includeLedgerMetadata: true,
+          call: () =>
+            chatWithTools([{ role: "user", content: prompt }], {
+              provider,
+              model,
+              baseUrl,
+              apiKey,
+              signal: _sessionHostLeaseScope?.lease?.signal,
+              enabledToolNames: [],
+              extraToolDefinitions: [],
+              hostManagedToolPolicy: null,
+              contextEngine: null,
+              maxOutputTokens: 2048,
+            }),
+        });
         return {
           summary: response?.message?.content || "",
           usage: response?.usage || null,
           provider,
           model,
+          ...(callId ? { callId } : {}),
+          ...(usageLedgerSettled ? { usageLedgerSettled: true } : {}),
         };
       },
     });
@@ -2915,11 +3477,12 @@ async function startAgentReplInWorkspaceOwned(
       model,
     };
     if (useJsonl) {
-      try {
-        sessionId = jsonlStartSession(options.sessionId || null, meta);
-      } catch (_err) {
-        // Non-critical
-      }
+      sessionId = startReplJsonlSession(
+        jsonlStartSession,
+        options.sessionId || null,
+        meta,
+        options.observabilityScope,
+      );
       if (
         sessionId &&
         _sessionHostLeaseScope &&
@@ -3760,7 +4323,7 @@ async function startAgentReplInWorkspaceOwned(
   // transcript snapshot and ZERO tools. Compact call/outcome metadata shares
   // the session hash chain, while advice text itself is never persisted.
   try {
-    const { createConfiguredAdvisorRuntime } =
+    const { createConfiguredAdvisorRuntime, invokeToolFreeAdvisor } =
       await import("../lib/advisor-runtime.js");
     const advisorOverrides = {};
     if (options.advisorEnabled !== undefined) {
@@ -3775,6 +4338,13 @@ async function startAgentReplInWorkspaceOwned(
       baseUrl,
       apiKey,
       overrides: advisorOverrides,
+      invoke: (request) =>
+        _runReplMeteredModelCall({
+          callProvider: request?.provider,
+          callModel: request?.model,
+          source: "model",
+          call: () => invokeToolFreeAdvisor(request),
+        }),
       onEvent: (event) => {
         if (!useJsonl || !sessionId) return;
         try {
@@ -4080,7 +4650,10 @@ async function startAgentReplInWorkspaceOwned(
     getSuggestionContext: () => ({ messages: messages.slice() }),
     persistSuggestionEnabled: _persistPromptSuggestionsEnabled,
     clipboardBinding: options.clipboardBinding || null,
-    generateSuggestions: options.generatePromptSuggestions,
+    generateSuggestions: resolveReplPromptSuggestionGenerator(
+      useJsonl,
+      options.generatePromptSuggestions,
+    ),
     suggestionDebounceMs: options.promptSuggestionDebounceMs,
     screenReader: _screenReaderMode,
     write: (text) => process.stdout.write(String(text)),
@@ -4524,9 +5097,6 @@ async function startAgentReplInWorkspaceOwned(
   // line instead of racing a second concurrent turn; the queue drains FIFO
   // when the current turn finishes. `/btw` is the deliberate exception: its
   // tool-free snapshot call may run concurrently without mutating main state.
-  let _processingLine = false;
-  const _pendingLines = [];
-
   const runBtwSideQuestion = async (btw, { concurrent = false } = {}) => {
     if (!btw || btw.error) {
       const message = btw?.error || "usage: /btw [--fork] <question>";
@@ -4535,7 +5105,13 @@ async function startAgentReplInWorkspaceOwned(
       return { ok: false, error: message };
     }
     try {
-      const chatFn = createChatFn({ provider, model, baseUrl, apiKey });
+      const chatFn = createChatFn({
+        provider,
+        model,
+        baseUrl,
+        apiKey,
+        callWrapper: _directChatCallWrapper,
+      });
       const { answer } = await runBtwQuestion({
         messages,
         question: btw.text,
@@ -4570,6 +5146,11 @@ async function startAgentReplInWorkspaceOwned(
       else logger.log(`\n${block}\n`);
       return { ok: true, answer, forkedId };
     } catch (error) {
+      const terminalError = _runtimeLedgerTerminalLatch.trip(error);
+      if (terminalError) {
+        _reportRuntimeLedgerTerminal({ concurrent });
+        return { ok: false, error: terminalError.message, terminal: true };
+      }
       const message = `/btw failed: ${error.message}`;
       if (concurrent) process.stderr.write(`\n${message}\n`);
       else logger.error(message);
@@ -4610,6 +5191,16 @@ async function startAgentReplInWorkspaceOwned(
     );
     const trimmed = _slashBypassed ? slashBypassSentinel() : rawLine;
     if (!trimmed) {
+      prompt();
+      return;
+    }
+    if (
+      _runtimeLedgerTerminalLatch.isTripped() &&
+      trimmed !== "/exit" &&
+      trimmed !== "/quit"
+    ) {
+      _pendingLines.length = 0;
+      _reportRuntimeLedgerTerminal();
       prompt();
       return;
     }
@@ -6085,6 +6676,12 @@ async function startAgentReplInWorkspaceOwned(
           ) {
             throw error;
           }
+          const terminalError = _runtimeLedgerTerminalLatch.trip(error);
+          if (terminalError) {
+            _reportRuntimeLedgerTerminal();
+            prompt();
+            return;
+          }
           logger.error(`Compaction failed: ${error.message}`);
           prompt();
           return;
@@ -6109,9 +6706,14 @@ async function startAgentReplInWorkspaceOwned(
           costStore: _costStore,
         });
         if (settlement.usagePersistenceError) {
-          logger.warn(
-            `Compaction usage was counted locally but not durably persisted: ${settlement.usagePersistenceError.message}`,
+          const terminalError = _runtimeLedgerTerminalLatch.trip(
+            settlement.usagePersistenceError,
           );
+          if (terminalError) {
+            _reportRuntimeLedgerTerminal();
+            prompt();
+            return;
+          }
         }
         if (settlement.block) {
           _compactionUsageBlock = settlement.block;
@@ -6813,7 +7415,13 @@ async function startAgentReplInWorkspaceOwned(
           const result = await startDebate({
             target: targetLabel,
             code,
-            llmOptions: { provider, model, baseUrl, apiKey },
+            llmOptions: {
+              provider,
+              model,
+              baseUrl,
+              apiKey,
+              callWrapper: _directChatCallWrapper,
+            },
           });
           for (const review of result.reviews) {
             const vc =
@@ -6835,7 +7443,9 @@ async function startAgentReplInWorkspaceOwned(
             content: `[Cowork Debate Result] ${result.verdict} (consensus: ${result.consensusScore}%)\n${result.summary.substring(0, 500)}`,
           });
         } catch (err) {
-          logger.error(`Debate failed: ${err.message}`);
+          const terminalError = _runtimeLedgerTerminalLatch.trip(err);
+          if (terminalError) _reportRuntimeLedgerTerminal();
+          else logger.error(`Debate failed: ${err.message}`);
         }
       } else if (subCmd === "compare" && coworkInput) {
         try {
@@ -6844,7 +7454,13 @@ async function startAgentReplInWorkspaceOwned(
           process.stdout.write(chalk.gray("\n  Generating variants...\n"));
           const result = await compare({
             prompt: coworkInput,
-            llmOptions: { provider, model, baseUrl, apiKey },
+            llmOptions: {
+              provider,
+              model,
+              baseUrl,
+              apiKey,
+              callWrapper: _directChatCallWrapper,
+            },
           });
           for (const v of result.variants) {
             process.stdout.write(
@@ -6859,7 +7475,9 @@ async function startAgentReplInWorkspaceOwned(
             content: `[Cowork Compare Result] Winner: ${result.winner}. ${result.reason}`,
           });
         } catch (err) {
-          logger.error(`Compare failed: ${err.message}`);
+          const terminalError = _runtimeLedgerTerminalLatch.trip(err);
+          if (terminalError) _reportRuntimeLedgerTerminal();
+          else logger.error(`Compare failed: ${err.message}`);
         }
       } else if (subCmd === "graph" && coworkInput) {
         try {
@@ -7044,10 +7662,16 @@ async function startAgentReplInWorkspaceOwned(
         // Submit new goal
         // Lazy-init autonomous agent with LLM chat function
         if (!autonomousAgent._initialized) {
-          const chatFn = createChatFn({ provider, model, baseUrl, apiKey });
+          const chatFn = createChatFn({
+            provider,
+            model,
+            baseUrl,
+            apiKey,
+            callWrapper: _directChatCallWrapper,
+          });
           autonomousAgent.initialize({
             llmChat: chatFn,
-            toolExecutor: executeTool,
+            toolExecutor: _runReplDirectTool,
           });
         }
 
@@ -7214,7 +7838,7 @@ async function startAgentReplInWorkspaceOwned(
                   process.stdout.write(
                     chalk.gray(`  [${item.tool}] ${item.title}\n`),
                   );
-                  return await executeTool(item.tool, item.params);
+                  return await _runReplDirectTool(item.tool, item.params);
                 }
                 return { skipped: true };
               },
@@ -7249,7 +7873,13 @@ async function startAgentReplInWorkspaceOwned(
             await import("../lib/interactive-planner.js");
           const { TerminalInteractionAdapter } =
             await import("../lib/interaction-adapter.js");
-          const chatFn = createChatFn({ provider, model, baseUrl, apiKey });
+          const chatFn = createChatFn({
+            provider,
+            model,
+            baseUrl,
+            apiKey,
+            callWrapper: _directChatCallWrapper,
+          });
           const planner = new CLIInteractivePlanner({
             llmChat: chatFn,
             db,
@@ -8352,11 +8982,12 @@ async function startAgentReplInWorkspaceOwned(
                 model: telemetry.model || activeModel,
                 reason: classifyStreamRetryReason(error),
               });
-            } catch {
-              /* usage telemetry is best-effort */
+            } catch (persistenceError) {
+              throw markRuntimeLedgerPersistenceError(persistenceError);
             }
           }
         },
+        strictUsageTelemetry: useJsonl,
         // Stream-stall hint (Claude-Code 2.1.185): the connection is alive but
         // the API has gone silent mid-response — tell the user we're still
         // waiting instead of leaving a frozen spinner. stderr so it never
@@ -8391,6 +9022,7 @@ async function startAgentReplInWorkspaceOwned(
         contextEngine,
         iterationBudget,
         sessionId,
+        persistUsageTelemetry: useJsonl,
         skillLoader: _replSkillLoader,
         cwd: process.cwd(),
         additionalDirectories,
@@ -8459,24 +9091,6 @@ async function startAgentReplInWorkspaceOwned(
       // Running spend for `/cost` (in-memory, works without persistence).
       if (usageEvents?.length) addUsage(_costStore, usageEvents);
 
-      if (sessionId && usageEvents?.length) {
-        for (const ue of usageEvents) {
-          try {
-            appendTokenUsage(sessionId, {
-              provider: ue.provider,
-              model: ue.model,
-              usage: ue.usage,
-              // 用量归因: sub-agent / isolated-skill usage carries its
-              // attribution frame into the transcript; main-loop events stay
-              // exactly as before (absence ⇒ origin "main").
-              ...(ue.attribution ? { attribution: ue.attribution } : {}),
-            });
-          } catch (_e) {
-            /* best-effort */
-          }
-        }
-      }
-
       // Feed the status line: the last usage event's input+output ≈ the tokens
       // now resident in the context window (what the next call resends). Track
       // the active model too, so the built-in readout reflects auto-switches.
@@ -8507,12 +9121,18 @@ async function startAgentReplInWorkspaceOwned(
               `Condition: ${cond.text || cond.source}\n\n` +
               `Latest assistant output:\n${String(finalText || "").slice(0, 2000)}\n\n` +
               `Reply with STRICT JSON only: {"met": true|false, "reason": "<short>"}.`;
-            const jr = await chatWithTools([{ role: "user", content: p }], {
-              model: activeModel,
-              provider,
-              baseUrl,
-              apiKey,
-              enabledToolNames: [],
+            const jr = await _runReplMeteredModelCall({
+              callProvider: provider,
+              callModel: activeModel,
+              source: "model",
+              call: () =>
+                chatWithTools([{ role: "user", content: p }], {
+                  model: activeModel,
+                  provider,
+                  baseUrl,
+                  apiKey,
+                  enabledToolNames: [],
+                }),
             });
             const text = jr?.message?.content || "";
             let met = false;
@@ -8547,7 +9167,9 @@ async function startAgentReplInWorkspaceOwned(
             logger.log(chalk.cyan(l));
           if (done) _sessionGoal = null; // completed or exhausted → drop
         } catch (err) {
-          logger.verbose(`/goal eval skipped: ${err.message}`);
+          const terminalError = _runtimeLedgerTerminalLatch.trip(err);
+          if (terminalError) _reportRuntimeLedgerTerminal();
+          else logger.verbose(`/goal eval skipped: ${err.message}`);
         }
       }
 
@@ -8660,6 +9282,7 @@ async function startAgentReplInWorkspaceOwned(
         feature("PROMPT_COMPRESSOR") &&
         _compressor &&
         !_compactionUsageBlock &&
+        !_runtimeLedgerTerminalLatch.isTripped() &&
         _compressor.shouldAutoCompact(messages)
       ) {
         try {
@@ -8688,9 +9311,10 @@ async function startAgentReplInWorkspaceOwned(
             costStore: _costStore,
           });
           if (settlement.usagePersistenceError) {
-            logger.warn(
-              `Auto-compaction usage was counted locally but not durably persisted: ${settlement.usagePersistenceError.message}`,
+            const terminalError = _runtimeLedgerTerminalLatch.trip(
+              settlement.usagePersistenceError,
             );
+            if (terminalError) throw terminalError;
           }
           if (settlement.block) {
             _compactionUsageBlock = settlement.block;
@@ -8725,6 +9349,7 @@ async function startAgentReplInWorkspaceOwned(
           ) {
             throw error;
           }
+          if (error?.runtimeLedgerPersistence === true) throw error;
           logger.warn(`Auto-compaction failed: ${error.message}`);
         }
       }
@@ -8772,6 +9397,12 @@ async function startAgentReplInWorkspaceOwned(
       }
     } catch (err) {
       _turnAbort = null;
+      const terminalError = _runtimeLedgerTerminalLatch.trip(err);
+      if (terminalError) {
+        _reportRuntimeLedgerTerminal();
+        prompt();
+        return;
+      }
       // Esc interrupt: an aborted turn is normal flow, not an error — the
       // partial conversation stays usable and queued lines still drain.
       if (err?.name === "AbortError" || /abort/i.test(err?.message || "")) {
@@ -8806,6 +9437,16 @@ async function startAgentReplInWorkspaceOwned(
 
   rl.on("line", async (input) => {
     if (!(await _waitForReplOutput())) return;
+    if (_runtimeLedgerTerminalLatch.isTripped()) {
+      const terminalInput = input.trim();
+      if (terminalInput === "/exit" || terminalInput === "/quit") {
+        logger.log(chalk.gray("\nGoodbye!"));
+        rl.close();
+      } else {
+        _reportRuntimeLedgerTerminal();
+      }
+      return;
+    }
     if (_processingLine) {
       const concurrentBtw = _slashCommandsDisabled
         ? null
@@ -8830,7 +9471,7 @@ async function startAgentReplInWorkspaceOwned(
     try {
       await handleLine(input);
       if (!(await _waitForReplOutput())) return;
-      while (_pendingLines.length) {
+      while (_pendingLines.length && !_runtimeLedgerTerminalLatch.isTripped()) {
         const next = _pendingLines.shift();
         logger.log(chalk.cyan(`▶ running queued input: ${next}`));
         await handleLine(next);

@@ -1,7 +1,64 @@
 import { closeSync, fstatSync, openSync, readSync } from "node:fs";
-import { StringDecoder } from "node:string_decoder";
 
 const DEFAULT_CHUNK_SIZE = 64 * 1024;
+export const DEFAULT_MAX_FILE_LINE_BYTES = 16 * 1024 * 1024;
+export const FILE_LINE_TOO_LARGE_CODE = "CC_FILE_LINE_TOO_LARGE";
+
+function normalizeMaxLineBytes(value) {
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+    throw new TypeError("maxLineBytes must be a positive safe integer");
+  }
+  return parsed;
+}
+
+function normalizeChunkSize(value) {
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+    throw new TypeError("chunkSize must be a positive safe integer");
+  }
+  return parsed;
+}
+
+export function assertFileLineByteLength(
+  byteLength,
+  {
+    maxLineBytes = DEFAULT_MAX_FILE_LINE_BYTES,
+    code = FILE_LINE_TOO_LARGE_CODE,
+    lineNo = null,
+    direction = null,
+    label = "File line",
+  } = {},
+) {
+  const actualBytes = Number(byteLength);
+  const maxBytes = normalizeMaxLineBytes(maxLineBytes);
+  if (!Number.isSafeInteger(actualBytes) || actualBytes < 0) {
+    throw new TypeError("byteLength must be a non-negative safe integer");
+  }
+  if (actualBytes <= maxBytes) return actualBytes;
+  const error = new Error(`${label} exceeded the ${maxBytes}-byte limit`);
+  error.code = code;
+  error.actualBytes = actualBytes;
+  error.maxBytes = maxBytes;
+  if (Number.isSafeInteger(lineNo) && lineNo > 0) error.lineNo = lineNo;
+  if (direction) error.direction = direction;
+  throw error;
+}
+
+function assertLineByteLength(byteLength, options, details) {
+  return assertFileLineByteLength(byteLength, {
+    maxLineBytes: options.maxLineBytes,
+    code: options.lineTooLargeCode,
+    label: options.lineLabel,
+    ...details,
+  });
+}
+
+function joinedLineBuffer(parts, byteLength) {
+  if (parts.length === 0) return Buffer.alloc(0);
+  if (parts.length === 1) return parts[0];
+  return Buffer.concat(parts, byteLength);
+}
 
 function recordRead(ioMetrics, bytes) {
   if (!ioMetrics || typeof ioMetrics !== "object") return;
@@ -13,7 +70,8 @@ function recordRead(ioMetrics, bytes) {
 /**
  * Stream UTF-8 lines from a file without loading the whole file. The final
  * unterminated fragment is yielded with `terminated:false`, which lets callers
- * distinguish a crash tail from a normal record.
+ * distinguish a crash tail from a normal record. Records are assembled as raw
+ * byte slices and checked before any Buffer.concat or UTF-8 decode.
  */
 export function* iterateFileLinesSync(
   filePath,
@@ -21,35 +79,81 @@ export function* iterateFileLinesSync(
     chunkSize = DEFAULT_CHUNK_SIZE,
     includeEmpty = false,
     ioMetrics = null,
+    maxLineBytes = DEFAULT_MAX_FILE_LINE_BYTES,
+    lineTooLargeCode = FILE_LINE_TOO_LARGE_CODE,
+    lineLabel = "File line",
   } = {},
 ) {
+  const lineOptions = {
+    maxLineBytes: normalizeMaxLineBytes(maxLineBytes),
+    lineTooLargeCode,
+    lineLabel,
+  };
+  const buffer = Buffer.allocUnsafe(
+    Math.min(normalizeChunkSize(chunkSize), lineOptions.maxLineBytes),
+  );
   const fd = openSync(filePath, "r");
-  const decoder = new StringDecoder("utf8");
-  const buffer = Buffer.allocUnsafe(Math.max(1024, chunkSize));
-  let pending = "";
+  let pendingParts = [];
+  let pendingBytes = 0;
   let lineNo = 0;
   try {
     for (;;) {
-      const bytes = readSync(fd, buffer, 0, buffer.length, null);
-      if (bytes === 0) break;
-      recordRead(ioMetrics, bytes);
-      pending += decoder.write(buffer.subarray(0, bytes));
-      let newline;
-      while ((newline = pending.indexOf("\n")) >= 0) {
-        let line = pending.slice(0, newline);
-        if (line.endsWith("\r")) line = line.slice(0, -1);
-        pending = pending.slice(newline + 1);
+      const bytesRead = readSync(fd, buffer, 0, buffer.length, null);
+      if (bytesRead === 0) break;
+      recordRead(ioMetrics, bytesRead);
+      let start = 0;
+      let newline = buffer.indexOf(0x0a, start);
+      while (newline >= 0 && newline < bytesRead) {
+        const segment = buffer.subarray(start, newline);
+        const lineByteLength = pendingBytes + segment.length;
         lineNo += 1;
-        if (includeEmpty || line.length > 0) {
-          yield { line, lineNo, terminated: true };
+        assertLineByteLength(lineByteLength, lineOptions, {
+          lineNo,
+          direction: "forward",
+        });
+        let lineBytes = joinedLineBuffer(
+          segment.length > 0 ? [...pendingParts, segment] : pendingParts,
+          lineByteLength,
+        );
+        if (lineBytes.length > 0 && lineBytes[lineBytes.length - 1] === 0x0d) {
+          lineBytes = lineBytes.subarray(0, lineBytes.length - 1);
         }
+        if (includeEmpty || lineBytes.length > 0) {
+          yield {
+            line: lineBytes.toString("utf8"),
+            lineNo,
+            terminated: true,
+          };
+        }
+        pendingParts = [];
+        pendingBytes = 0;
+        start = newline + 1;
+        newline = buffer.indexOf(0x0a, start);
       }
+
+      const trailing = buffer.subarray(start, bytesRead);
+      const nextPendingBytes = pendingBytes + trailing.length;
+      assertLineByteLength(nextPendingBytes, lineOptions, {
+        lineNo: lineNo + 1,
+        direction: "forward",
+      });
+      if (trailing.length > 0) pendingParts.push(Buffer.from(trailing));
+      pendingBytes = nextPendingBytes;
     }
-    pending += decoder.end();
-    if (pending.length > 0 || includeEmpty) {
+
+    if (pendingBytes > 0 || includeEmpty) {
       lineNo += 1;
-      if (includeEmpty || pending.length > 0) {
-        yield { line: pending, lineNo, terminated: false };
+      assertLineByteLength(pendingBytes, lineOptions, {
+        lineNo,
+        direction: "forward",
+      });
+      if (includeEmpty || pendingBytes > 0) {
+        const pending = joinedLineBuffer(pendingParts, pendingBytes);
+        yield {
+          line: pending.toString("utf8"),
+          lineNo,
+          terminated: false,
+        };
       }
     }
   } finally {
@@ -68,36 +172,57 @@ export function* iterateFileLinesReverseSync(
     chunkSize = DEFAULT_CHUNK_SIZE,
     includeEmpty = false,
     ioMetrics = null,
+    maxLineBytes = DEFAULT_MAX_FILE_LINE_BYTES,
+    lineTooLargeCode = FILE_LINE_TOO_LARGE_CODE,
+    lineLabel = "File line",
   } = {},
 ) {
+  const lineOptions = {
+    maxLineBytes: normalizeMaxLineBytes(maxLineBytes),
+    lineTooLargeCode,
+    lineLabel,
+  };
+  const readChunkSize = Math.min(
+    normalizeChunkSize(chunkSize),
+    lineOptions.maxLineBytes,
+  );
   const fd = openSync(filePath, "r");
-  const size = fstatSync(fd).size;
-  let endsWithNewline = false;
-  if (size > 0) {
-    const last = Buffer.allocUnsafe(1);
-    const bytes = readSync(fd, last, 0, 1, size - 1);
-    recordRead(ioMetrics, bytes);
-    endsWithNewline = last[0] === 0x0a;
-  }
-  let position = size;
-  let carry = Buffer.alloc(0);
+  let carryParts = [];
+  let carryBytes = 0;
   let isPhysicalTail = true;
   try {
+    const size = fstatSync(fd).size;
+    let endsWithNewline = false;
+    if (size > 0) {
+      const last = Buffer.allocUnsafe(1);
+      const bytesRead = readSync(fd, last, 0, 1, size - 1);
+      recordRead(ioMetrics, bytesRead);
+      endsWithNewline = last[0] === 0x0a;
+    }
+
+    let position = size;
     while (position > 0) {
-      const length = Math.min(Math.max(1024, chunkSize), position);
+      const length = Math.min(readChunkSize, position);
       position -= length;
       const chunk = Buffer.allocUnsafe(length);
-      const bytes = readSync(fd, chunk, 0, length, position);
-      recordRead(ioMetrics, bytes);
-      const combined = Buffer.concat([chunk, carry]);
-      let end = combined.length;
-      for (let index = combined.length - 1; index >= 0; index -= 1) {
-        if (combined[index] !== 0x0a) continue;
-        let bytes = combined.subarray(index + 1, end);
-        if (bytes.length > 0 && bytes[bytes.length - 1] === 0x0d) {
-          bytes = bytes.subarray(0, bytes.length - 1);
+      const bytesRead = readSync(fd, chunk, 0, length, position);
+      recordRead(ioMetrics, bytesRead);
+      let end = bytesRead;
+      for (let index = bytesRead - 1; index >= 0; index -= 1) {
+        if (chunk[index] !== 0x0a) continue;
+        const segment = chunk.subarray(index + 1, end);
+        const lineByteLength = segment.length + carryBytes;
+        assertLineByteLength(lineByteLength, lineOptions, {
+          direction: "reverse",
+        });
+        let lineBytes = joinedLineBuffer(
+          segment.length > 0 ? [segment, ...carryParts] : carryParts,
+          lineByteLength,
+        );
+        if (lineBytes.length > 0 && lineBytes[lineBytes.length - 1] === 0x0d) {
+          lineBytes = lineBytes.subarray(0, lineBytes.length - 1);
         }
-        const line = bytes.toString("utf8");
+        const line = lineBytes.toString("utf8");
         const terminated = isPhysicalTail ? endsWithNewline : true;
         // A file ending in "\n" produces one empty physical-tail slice. Skip
         // it without changing the termination status of the real last line.
@@ -105,16 +230,27 @@ export function* iterateFileLinesReverseSync(
           yield { line, terminated };
           isPhysicalTail = false;
         }
+        carryParts = [];
+        carryBytes = 0;
         end = index;
       }
-      carry = combined.subarray(0, end);
+
+      const prefix = chunk.subarray(0, end);
+      const nextCarryBytes = prefix.length + carryBytes;
+      assertLineByteLength(nextCarryBytes, lineOptions, {
+        direction: "reverse",
+      });
+      if (prefix.length > 0) carryParts.unshift(Buffer.from(prefix));
+      carryBytes = nextCarryBytes;
     }
-    if (carry.length > 0 || includeEmpty) {
-      let bytes = carry;
-      if (bytes.length > 0 && bytes[bytes.length - 1] === 0x0d) {
-        bytes = bytes.subarray(0, bytes.length - 1);
+
+    if (carryBytes > 0 || includeEmpty) {
+      assertLineByteLength(carryBytes, lineOptions, { direction: "reverse" });
+      let lineBytes = joinedLineBuffer(carryParts, carryBytes);
+      if (lineBytes.length > 0 && lineBytes[lineBytes.length - 1] === 0x0d) {
+        lineBytes = lineBytes.subarray(0, lineBytes.length - 1);
       }
-      const line = bytes.toString("utf8");
+      const line = lineBytes.toString("utf8");
       if (includeEmpty || line.length > 0) {
         yield { line, terminated: !isPhysicalTail };
       }

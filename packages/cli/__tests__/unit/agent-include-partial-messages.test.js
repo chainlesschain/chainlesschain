@@ -53,7 +53,8 @@ describe("_accumulateOllamaStream", () => {
     expect(data.message.content).toBe("ok");
     expect(data.message.tool_calls).toHaveLength(1);
     expect(data.message.tool_calls[0].function.name).toBe("read_file");
-    expect(data.usage).toEqual({ input_tokens: 0, output_tokens: 2 });
+    // A missing prompt_eval_count is unknown, not a known zero.
+    expect(data.usage).toBeUndefined();
   });
 
   it("tolerates blank and non-JSON lines mid-stream", () => {
@@ -67,6 +68,17 @@ describe("_accumulateOllamaStream", () => {
   it("omits usage when no eval counts were seen", () => {
     const data = _accumulateOllamaStream(
       ['{"message":{"content":"hi"}}'],
+      null,
+    );
+    expect(data.usage).toBeUndefined();
+  });
+
+  it("latches a malformed token count even if a later line is valid", () => {
+    const data = _accumulateOllamaStream(
+      [
+        '{"message":{"content":"hi"},"prompt_eval_count":"0"}',
+        '{"done":true,"prompt_eval_count":4,"eval_count":2}',
+      ],
       null,
     );
     expect(data.usage).toBeUndefined();

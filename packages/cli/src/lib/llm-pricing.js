@@ -84,11 +84,6 @@ export const PRICE_TABLE = Object.freeze({
   ],
 });
 
-const round = (n, dp = 6) => {
-  const f = Math.pow(10, dp);
-  return Math.round((Number(n) + Number.EPSILON) * f) / f;
-};
-
 /**
  * Merge user-supplied price overrides (typically `config.llm.pricing`) onto the
  * built-in table. Override shape mirrors PRICE_TABLE:
@@ -221,22 +216,22 @@ export function estimateCost({
       rate: null,
     };
   }
-  const inputCost = round((Number(inputTokens) / 1e6) * rate.in);
-  const outputCost = round((Number(outputTokens) / 1e6) * rate.out);
-  const cacheReadCost = round(
-    (Number(cacheReadTokens) / 1e6) * rate.in * cacheReadMultiplier(provider),
-  );
-  const cacheCreationCost = round(
-    (Number(cacheCreationTokens) / 1e6) * rate.in * CACHE_WRITE_MULTIPLIER,
-  );
+  // Keep full IEEE-754 precision throughout authority and budget arithmetic.
+  // Rounding each component to six decimals lets a real sub-microdollar call
+  // become zero and can make a hard `maxUsd` gate pass incorrectly. Display
+  // surfaces may format these values, but safety decisions consume the raw sum.
+  const inputCost = (Number(inputTokens) / 1e6) * rate.in;
+  const outputCost = (Number(outputTokens) / 1e6) * rate.out;
+  const cacheReadCost =
+    (Number(cacheReadTokens) / 1e6) * rate.in * cacheReadMultiplier(provider);
+  const cacheCreationCost =
+    (Number(cacheCreationTokens) / 1e6) * rate.in * CACHE_WRITE_MULTIPLIER;
   return {
     inputCost,
     outputCost,
     cacheReadCost,
     cacheCreationCost,
-    totalCost: round(
-      inputCost + outputCost + cacheReadCost + cacheCreationCost,
-    ),
+    totalCost: inputCost + outputCost + cacheReadCost + cacheCreationCost,
     currency: "USD",
     matched: true,
     free: rate.pattern === "free",
@@ -280,7 +275,7 @@ export function priceRollup(aggregate, { table } = {}) {
   const unpriced = [];
   for (const row of byModel) {
     if (row.matched) {
-      totalCost = round(totalCost + row.cost);
+      totalCost += row.cost;
     } else if (row.totalTokens > 0) {
       unpriced.push({
         provider: row.provider,

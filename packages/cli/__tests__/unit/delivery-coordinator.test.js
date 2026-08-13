@@ -665,6 +665,183 @@ describe("DeliveryCoordinator", () => {
     expect(() => restoreDeliveryFlow(state)).toThrow(/state-digest-mismatch/);
   });
 
+  it("normalizes and hash-protects causal session bindings", () => {
+    const state = createDeliveryFlow(
+      config({
+        causality: {
+          scope: {
+            workspaceId: " workspace-1 ",
+            teamId: " team-a ",
+            policyId: " policy-release ",
+          },
+          sessions: [
+            {
+              sessionId: " session-b ",
+              headHash: "B".repeat(64),
+              eventCount: "8",
+            },
+            {
+              sessionId: "session-a",
+              headHash: "a".repeat(64),
+              eventCount: 3,
+            },
+          ],
+        },
+      }),
+      { now: NOW },
+    );
+
+    expect(state.causality).toEqual({
+      scope: {
+        workspaceId: "workspace-1",
+        teamId: "team-a",
+        policyId: "policy-release",
+      },
+      sessions: [
+        {
+          sessionId: "session-a",
+          headHash: "a".repeat(64),
+          eventCount: 3,
+        },
+        {
+          sessionId: "session-b",
+          headHash: "b".repeat(64),
+          eventCount: 8,
+        },
+      ],
+    });
+    expect(verifyDeliveryFlowState(state)).toMatchObject({ valid: true });
+
+    const reordered = JSON.parse(JSON.stringify(state));
+    reordered.causality.sessions.reverse();
+    expect(verifyDeliveryFlowState(reordered)).toMatchObject({
+      valid: false,
+      reason: "causality-noncanonical",
+    });
+  });
+
+  it.each([
+    [
+      "duplicate session ids after normalization",
+      [
+        { sessionId: "session-a", headHash: "a".repeat(64), eventCount: 1 },
+        {
+          sessionId: " session-a ",
+          headHash: "b".repeat(64),
+          eventCount: 2,
+        },
+      ],
+      /duplicate sessionId/,
+    ],
+    [
+      "an unsafe session id",
+      [{ sessionId: "../session-a", headHash: "a".repeat(64), eventCount: 1 }],
+      /sessionId is unsafe/,
+    ],
+    [
+      "an invalid transcript head",
+      [{ sessionId: "session-a", headHash: "abc", eventCount: 1 }],
+      /headHash is invalid/,
+    ],
+    [
+      "a non-positive transcript event count",
+      [{ sessionId: "session-a", headHash: "a".repeat(64), eventCount: 0 }],
+      /positive safe integer/,
+    ],
+  ])("rejects causal bindings with %s", (_label, sessions, expected) => {
+    expect(() =>
+      createDeliveryFlow(
+        config({
+          causality: { scope: { workspaceId: "workspace-1" }, sessions },
+        }),
+        { now: NOW },
+      ),
+    ).toThrow(expected);
+  });
+
+  it.each(["", " ", "\t"])(
+    "rejects an explicitly blank causal scope value %j",
+    (workspaceId) => {
+      expect(() =>
+        createDeliveryFlow(
+          config({
+            causality: {
+              scope: { workspaceId },
+              sessions: [],
+            },
+          }),
+          { now: NOW },
+        ),
+      ).toThrow(/causality\.scope\.workspaceId must not be blank/);
+    },
+  );
+
+  it("requires at least one scope dimension when sessions are bound", () => {
+    expect(() =>
+      createDeliveryFlow(
+        config({
+          causality: {
+            scope: { workspaceId: null, teamId: null, policyId: null },
+            sessions: [
+              {
+                sessionId: "session-a",
+                headHash: "a".repeat(64),
+                eventCount: 1,
+              },
+            ],
+          },
+        }),
+        { now: NOW },
+      ),
+    ).toThrow(/scope requires at least one dimension/);
+  });
+
+  it("sorts causal session bindings by deterministic code-unit order", () => {
+    const binding = (sessionId, head) => ({
+      sessionId,
+      headHash: head.repeat(64),
+      eventCount: 1,
+    });
+    const sessions = [binding("ä-session", "a"), binding("z-session", "b")];
+    const create = (bindings) =>
+      createDeliveryFlow(
+        config({
+          flowId: undefined,
+          causality: {
+            scope: { workspaceId: "workspace-1" },
+            sessions: bindings,
+          },
+        }),
+        { now: NOW },
+      );
+
+    const forward = create(sessions);
+    const reversed = create([...sessions].reverse());
+    expect(
+      forward.causality.sessions.map(({ sessionId }) => sessionId),
+    ).toEqual(["z-session", "ä-session"]);
+    expect(reversed).toEqual(forward);
+  });
+
+  it("keeps legacy flow identity and state unchanged for empty causality", () => {
+    const base = config({ flowId: undefined });
+    const legacy = createDeliveryFlow(base, { now: NOW });
+    const empty = createDeliveryFlow(
+      {
+        ...base,
+        causality: {
+          scope: { workspaceId: null, teamId: null, policyId: undefined },
+          sessions: [],
+        },
+      },
+      { now: NOW },
+    );
+
+    expect(empty).toEqual(legacy);
+    expect(empty.flowId).toBe(legacy.flowId);
+    expect(empty).not.toHaveProperty("causality");
+  });
+
   it("validates the same host fixture consumed by VS Code and JetBrains", () => {
     const fixture = JSON.parse(
       fs.readFileSync(

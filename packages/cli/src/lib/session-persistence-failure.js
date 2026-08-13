@@ -10,6 +10,7 @@ const COMMIT_STATES = new Set(["not-committed", "unknown", "committed"]);
 const OPERATIONS = new Set([
   "append-event",
   "append-authority-event",
+  "verified-projection-authority-append",
   "transcript-append",
   "transcript-settlement",
   "session-start",

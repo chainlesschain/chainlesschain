@@ -43,6 +43,7 @@ import {
   _deps as interactionJournalDeps,
 } from "../../src/lib/background-interaction-journal.js";
 import { existsSync } from "node:fs";
+import { SESSION_PRESENCE } from "../../src/harness/jsonl-session-store.js";
 
 const writeBackgroundAgentState = (state) =>
   persistBackgroundAgentState(state, { createIfMissing: true });
@@ -51,8 +52,12 @@ let dir;
 const originalSpawn = _deps.spawn;
 const originalSpawnSync = _deps.spawnSync;
 const originalReadStart = _deps.readProcessStartTimeMs;
+const originalReadProcessState = _deps.readProcessState;
+const originalReadProcessGroupStates = _deps.readProcessGroupStates;
+const originalProcessExitWaitDeadlineMs = _deps.processExitWaitDeadlineMs;
 const originalKillTree = _deps.killProcessTree;
 const originalKill = _deps.kill;
+const originalGetSessionPresence = _deps.getSessionPresence;
 const originalTerminateOwnedProcessTree = _deps.terminateOwnedProcessTree;
 
 // Pids of processes REALLY spawned by a test (via the tracking wrapper installed
@@ -145,10 +150,14 @@ function reapTree(pid) {
 function isProcessStillAlive(pid) {
   try {
     process.kill(Number(pid), 0);
-    return true;
   } catch {
     return false;
   }
+  if (process.platform !== "win32") {
+    const state = originalReadProcessState(pid);
+    if (state === "Z" || state === "X") return false;
+  }
+  return true;
 }
 
 async function waitForLaunchedProcessesToExit() {
@@ -195,6 +204,11 @@ beforeEach(() => {
   // the pre-Gap-1 kill(pid,0) semantics every legacy fixture here assumes.
   // Identity tests inject their own probe explicitly.
   _deps.readProcessStartTimeMs = () => null;
+  // Fixture pids do not own process groups. Tests exercising zombie/group
+  // behavior override this seam explicitly; keeping legacy fixtures hermetic
+  // avoids scanning or depending on unrelated CI-runner processes.
+  _deps.readProcessGroupStates = () => [];
+  _deps.getSessionPresence = () => SESSION_PRESENCE.ABSENT;
   // Hermetic kills: NO unit test in this file may deliver a real signal —
   // stop-flow fixtures record live-looking pids, and before this seam existed
   // the un-interceptable `process.kill` inside stopBackgroundAgent SIGTERMed
@@ -215,8 +229,12 @@ afterEach(async () => {
   _deps.spawn = originalSpawn;
   _deps.spawnSync = originalSpawnSync;
   _deps.readProcessStartTimeMs = originalReadStart;
+  _deps.readProcessState = originalReadProcessState;
+  _deps.readProcessGroupStates = originalReadProcessGroupStates;
+  _deps.processExitWaitDeadlineMs = originalProcessExitWaitDeadlineMs;
   _deps.killProcessTree = originalKillTree;
   _deps.kill = originalKill;
+  _deps.getSessionPresence = originalGetSessionPresence;
   _deps.terminateOwnedProcessTree = originalTerminateOwnedProcessTree;
   // Reap real detached worker+agent trees BEFORE removing the state dir (raw
   // state files carry the pids — needed for agent GRANDCHILDREN a real worker
@@ -245,6 +263,62 @@ afterEach(async () => {
 });
 
 describe("background agent supervisor", () => {
+  it("rejects ephemeral initial and follow-up argv before worker spawn", () => {
+    _deps.spawn = vi.fn(() => ({ pid: 43210, unref: vi.fn() }));
+    expect(() =>
+      launchBackgroundAgent({
+        argv: ["agent", "--ephemeral", "-p", "work"],
+        cwd: process.cwd(),
+        sessionId: "session-ephemeral-initial",
+        title: "work",
+        followUpArgv: ["agent", "--session", "session-ephemeral-initial"],
+      }),
+    ).toThrowError(
+      expect.objectContaining({ code: "BACKGROUND_EPHEMERAL_UNSUPPORTED" }),
+    );
+    expect(() =>
+      launchBackgroundAgent({
+        argv: ["agent", "-p", "work"],
+        cwd: process.cwd(),
+        sessionId: "session-ephemeral-follow-up",
+        title: "work",
+        followUpArgv: [
+          "agent",
+          "--ephemeral",
+          "--session",
+          "session-ephemeral-follow-up",
+        ],
+      }),
+    ).toThrowError(
+      expect.objectContaining({ code: "BACKGROUND_EPHEMERAL_UNSUPPORTED" }),
+    );
+    expect(_deps.spawn).not.toHaveBeenCalled();
+  });
+
+  it.each([SESSION_PRESENCE.MISSING_TRANSCRIPT, SESSION_PRESENCE.TOMBSTONED])(
+    "refuses background launch from %s canonical presence",
+    (presence) => {
+      _deps.getSessionPresence = vi.fn(() => presence);
+      _deps.spawn = vi.fn();
+
+      expect(() =>
+        launchBackgroundAgent({
+          argv: ["agent", "-p", "work"],
+          cwd: process.cwd(),
+          sessionId: `session-${presence}`,
+          title: "work",
+        }),
+      ).toThrowError(
+        expect.objectContaining({
+          code: "BACKGROUND_SESSION_BOOTSTRAP_EVIDENCE_INVALID",
+          presence,
+        }),
+      );
+      expect(_deps.spawn).not.toHaveBeenCalled();
+      expect(readdirSync(dir)).toEqual([]);
+    },
+  );
+
   it("launches a detached worker without persisting argv secrets", () => {
     _deps.spawn = vi.fn(() => ({ pid: 43210, unref: vi.fn() }));
     const state = launchBackgroundAgent({
@@ -262,6 +336,7 @@ describe("background agent supervisor", () => {
     });
     expect(state.status).toBe("running");
     expect(state.pid).toBe(43210);
+    expect(state.sessionBootstrapExpected).toBe(true);
     const persistedState = readBackgroundAgentState(state.id);
     expect(persistedState).not.toHaveProperty("argv");
     expect(persistedState.launchProfile).toMatchObject({
@@ -278,6 +353,7 @@ describe("background agent supervisor", () => {
     const job = JSON.parse(readFileSync(join(dir, jobName), "utf8"));
     expect(job.argv).toEqual(["agent", "-p", "work"]);
     expect(job.followUpArgv).toEqual(["agent", "--session", "session-test"]);
+    expect(job.sessionBootstrapExpected).toBe(true);
     expect(_deps.spawn.mock.calls[0][2].env.CC_API_KEY).toBe("secret");
     expect(_deps.spawn.mock.calls[0][2]).toMatchObject({
       detached: true,
@@ -290,6 +366,95 @@ describe("background agent supervisor", () => {
     expect(_deps.spawn.mock.calls[0][2].stdio[1]).toBe(
       _deps.spawn.mock.calls[0][2].stdio[2],
     );
+  });
+
+  it("finalizes the launcher pid from fresh state without erasing a claimed turn", () => {
+    const wrapperPid = 43220;
+    const workerPid = 43221;
+    const agentPid = 43222;
+    const turnStartedAt = Date.now();
+    let publishedTurn = false;
+    _deps.spawn = vi.fn(() => {
+      const child = { on: vi.fn(), unref: vi.fn() };
+      Object.defineProperty(child, "pid", {
+        get() {
+          if (!publishedTurn) {
+            publishedTurn = true;
+            const stateFile = readdirSync(dir).find(
+              (name) => name.endsWith(".json") && !name.includes(".job."),
+            );
+            const id = stateFile.slice(0, -5);
+            mutateBackgroundAgentState(id, (current) => ({
+              ...current,
+              pid: workerPid,
+              workerPid,
+              workerClaimedPid: workerPid,
+              workerClaimedAt: turnStartedAt,
+              turnCount: 1,
+              agentPid,
+              agentStartedAt: turnStartedAt,
+              pendingQuestion: {
+                requestId: "request-launch-race",
+                binding: {
+                  backgroundAgentId: id,
+                  sessionId: current.sessionId,
+                  turnId: "turn-launch-race",
+                  toolUseId: "tool-launch-race",
+                  sequence: 1,
+                },
+              },
+              interactionRecovery: {
+                status: "pending",
+                turn: 1,
+                workerGeneration: current.workerGeneration,
+                startedAt: turnStartedAt,
+              },
+            }));
+          }
+          return wrapperPid;
+        },
+      });
+      return child;
+    });
+
+    const launched = launchBackgroundAgent({
+      argv: ["agent", "-p", "work"],
+      cwd: process.cwd(),
+      sessionId: "session-launch-race",
+      title: "launch race",
+    });
+
+    expect(publishedTurn).toBe(true);
+    expect(launched).toMatchObject({
+      pid: workerPid,
+      workerPid,
+      workerClaimedPid: workerPid,
+      turnCount: 1,
+      agentPid,
+      agentStartedAt: turnStartedAt,
+      launchFinalizationUncertain: false,
+      pendingQuestion: { requestId: "request-launch-race" },
+      interactionRecovery: {
+        status: "pending",
+        turn: 1,
+        workerGeneration: launched.workerGeneration,
+      },
+    });
+    expect(readBackgroundAgentState(launched.id)).toMatchObject({
+      pid: workerPid,
+      workerPid,
+      workerClaimedPid: workerPid,
+      turnCount: 1,
+      agentPid,
+      agentStartedAt: turnStartedAt,
+      launchFinalizationUncertain: false,
+      pendingQuestion: { requestId: "request-launch-race" },
+      interactionRecovery: {
+        status: "pending",
+        turn: 1,
+        workerGeneration: launched.workerGeneration,
+      },
+    });
   });
 
   it("persists only an external marker for an inherited CC_API_KEY", () => {
@@ -1057,6 +1222,33 @@ describe("background agent supervisor", () => {
     ).toThrow(/turn launch intent is unresolved/i);
   });
 
+  it.skipIf(process.platform === "win32")(
+    "refuses worktree cleanup while a zombie leader group can still execute",
+    () => {
+      const sleeperPid = spawnSleeperPid();
+      const startedAt = Date.now();
+      const worktreePath = join(dir, "zombie-live-group-worktree");
+      mkdirSync(worktreePath);
+      _deps.readProcessState = vi.fn(() => "Z");
+      _deps.readProcessGroupStates = vi.fn(() => ["Z", "S"]);
+      _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+
+      expect(() =>
+        cleanupBackgroundAgentWorktree({
+          id: "bg-zombie-live-group-worktree",
+          status: "lost",
+          pid: sleeperPid,
+          startedAt,
+          repoRoot: dir,
+          worktreePath,
+          baseSha: "a".repeat(40),
+          branch: "cc-agent-zombie-live-group",
+        }),
+      ).toThrow(/active worker process/i);
+      expect(existsSync(worktreePath)).toBe(true);
+    },
+  );
+
   it("does not stop a stale-heartbeat session even if its pid is alive", () => {
     writeBackgroundAgentState({
       id: "bg-reused-abc",
@@ -1076,6 +1268,59 @@ describe("background agent supervisor", () => {
     const stopped = stopBackgroundAgent("bg-reused-abc");
     expect(stopped.status).toBe("lost");
     expect(stopped.stopped).toBe(false);
+  });
+
+  it("explicitly stops a stale-heartbeat owner when its process identity matches", () => {
+    const sleeperPid = spawnSleeperPid();
+    const startedAt = Date.now();
+    writeBackgroundAgentState({
+      id: "bg-stale-explicit-stop",
+      status: "lost",
+      lostReason: "heartbeat-stale",
+      pid: sleeperPid,
+      workerPid: sleeperPid,
+      startedAt,
+      heartbeatAt: startedAt - 300_000,
+    });
+    _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+    if (process.platform === "win32") {
+      _deps.spawnSync = vi.fn((file, args) => {
+        process.kill(Number(args[1]), "SIGKILL");
+        return { status: 0 };
+      });
+    } else {
+      _deps.kill = vi.fn((pid, signal) => process.kill(pid, signal));
+    }
+
+    const stopped = stopBackgroundAgent("bg-stale-explicit-stop");
+    expect(stopped).toMatchObject({ status: "stopped", stopped: true });
+    expect(stopped.stopRequestedAt).toEqual(expect.any(Number));
+  });
+
+  it("fails closed without a destructive process identity anchor", () => {
+    const sleeperPid = spawnSleeperPid();
+    writeBackgroundAgentState({
+      id: "bg-stop-legacy-identity",
+      status: "running",
+      pid: sleeperPid,
+      workerPid: sleeperPid,
+      heartbeatAt: Date.now(),
+    });
+    _deps.spawnSync = vi.fn(() => ({ status: 0 }));
+
+    const stopped = stopBackgroundAgent("bg-stop-legacy-identity");
+    expect(stopped).toMatchObject({
+      status: "running",
+      stopped: false,
+      stopPending: true,
+      stopPendingReason: "identity-unverifiable",
+    });
+    expect(_deps.kill).not.toHaveBeenCalled();
+    expect(_deps.spawnSync).not.toHaveBeenCalledWith(
+      "taskkill",
+      expect.any(Array),
+      expect.any(Object),
+    );
   });
 
   it("renames a background agent and persists the title", () => {
@@ -1607,7 +1852,12 @@ describe("background agent supervisor", () => {
         pid: sleeperPid,
         startedAt: Date.now(),
       });
-      _deps.spawnSync = vi.fn(() => ({ status: 0 }));
+      const startedAt = readBackgroundAgentState("bg-stop-abc").startedAt;
+      _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+      _deps.spawnSync = vi.fn((file, args) => {
+        process.kill(Number(args[1]), "SIGKILL");
+        return { status: 0 };
+      });
       const state = stopBackgroundAgent("bg-stop-abc");
       expect(state.status).toBe("stopped");
       expect(state.stopped).toBe(true);
@@ -1652,11 +1902,151 @@ describe("background agent supervisor", () => {
         pid: sleeperPid,
         startedAt: Date.now(),
       });
+      const startedAt = readBackgroundAgentState("bg-stop-posix").startedAt;
+      _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+      _deps.kill = vi.fn((pid, signal) => process.kill(pid, signal));
       const state = stopBackgroundAgent("bg-stop-posix");
       expect(state.status).toBe("stopped");
       expect(state.stopped).toBe(true);
       // Group signal through the seam — never a bare process.kill.
       expect(_deps.kill).toHaveBeenCalledWith(-sleeperPid, "SIGTERM");
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "reads POSIX group states through the constrained execution broker",
+    () => {
+      _deps.spawnSync = vi.fn(() => ({
+        status: 0,
+        stdout: "  41 Z\n  42 Ss\n  42 Z+\n",
+      }));
+
+      expect(originalReadProcessGroupStates(42)).toEqual(["S", "Z"]);
+      expect(_deps.spawnSync).toHaveBeenCalledWith(
+        "ps",
+        ["-A", "-o", "pgid=", "-o", "stat="],
+        expect.objectContaining({
+          origin: "background-agent:process-group-state",
+          policy: "allow",
+          scope: "background-agent",
+          shell: false,
+        }),
+      );
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "treats a signalled POSIX zombie as terminated before parent reaping",
+    () => {
+      const sleeperPid = spawnSleeperPid();
+      const startedAt = Date.now();
+      writeBackgroundAgentState({
+        id: "bg-stop-posix-zombie",
+        status: "running",
+        pid: sleeperPid,
+        startedAt,
+      });
+      _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+      _deps.readProcessState = vi
+        .fn()
+        .mockReturnValueOnce("S")
+        .mockReturnValue("Z");
+      _deps.readProcessGroupStates = vi.fn(() => ["Z"]);
+      _deps.kill = vi.fn();
+
+      const state = stopBackgroundAgent("bg-stop-posix-zombie");
+
+      expect(state).toMatchObject({ status: "stopped", stopped: true });
+      expect(_deps.kill).toHaveBeenCalledWith(-sleeperPid, "SIGTERM");
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "keeps stop pending while a zombie POSIX leader has an executing group member",
+    () => {
+      const sleeperPid = spawnSleeperPid();
+      const startedAt = Date.now();
+      writeBackgroundAgentState({
+        id: "bg-stop-posix-zombie-live-group",
+        status: "running",
+        pid: sleeperPid,
+        startedAt,
+      });
+      _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+      _deps.readProcessState = vi
+        .fn()
+        .mockReturnValueOnce("S")
+        .mockReturnValue("Z");
+      _deps.readProcessGroupStates = vi.fn(() => ["Z", "S"]);
+      _deps.processExitWaitDeadlineMs = 0;
+      _deps.kill = vi.fn();
+
+      const state = stopBackgroundAgent("bg-stop-posix-zombie-live-group");
+
+      expect(state).toMatchObject({
+        status: "running",
+        stopped: false,
+        stopPending: true,
+        stopPendingReason: "process-exit",
+      });
+      expect(_deps.kill).toHaveBeenCalledWith(-sleeperPid, "SIGTERM");
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "fails closed when a zombie POSIX group snapshot cannot be read",
+    () => {
+      const sleeperPid = spawnSleeperPid();
+      const startedAt = Date.now();
+      writeBackgroundAgentState({
+        id: "bg-stop-posix-zombie-unknown-group",
+        status: "running",
+        pid: sleeperPid,
+        startedAt,
+      });
+      _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+      _deps.readProcessState = vi
+        .fn()
+        .mockReturnValueOnce("S")
+        .mockReturnValue("Z");
+      _deps.readProcessGroupStates = vi.fn(() => null);
+      _deps.processExitWaitDeadlineMs = 0;
+      _deps.kill = vi.fn();
+
+      const state = stopBackgroundAgent("bg-stop-posix-zombie-unknown-group");
+
+      expect(state).toMatchObject({
+        stopped: false,
+        stopPending: true,
+        stopPendingReason: "process-exit",
+      });
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "fails closed when descendants survive a POSIX leader PID reuse",
+    () => {
+      const sleeperPid = spawnSleeperPid();
+      const startedAt = Date.now() - 300_000;
+      writeBackgroundAgentState({
+        id: "bg-stop-posix-reused-live-group",
+        status: "running",
+        pid: sleeperPid,
+        startedAt,
+      });
+      _deps.readProcessState = vi.fn(() => "S");
+      _deps.readProcessStartTimeMs = vi.fn(() => Date.now());
+      _deps.readProcessGroupStates = vi.fn(() => ["S"]);
+      _deps.kill = vi.fn();
+
+      const state = stopBackgroundAgent("bg-stop-posix-reused-live-group");
+
+      expect(state).toMatchObject({
+        stopped: false,
+        stopPending: true,
+        stopPendingReason: "identity-unverifiable",
+      });
+      expect(_deps.kill).not.toHaveBeenCalled();
     },
   );
 
@@ -1706,6 +2096,11 @@ describe("background agent supervisor", () => {
         throw new Error("kill denied");
       });
     }
+
+    const startedAt = readBackgroundAgentState(
+      "bg-stop-failed-fence",
+    ).startedAt;
+    _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
 
     expect(() => stopBackgroundAgent("bg-stop-failed-fence")).toThrow();
     const fenced = readBackgroundAgentState("bg-stop-failed-fence");
@@ -1831,14 +2226,44 @@ describe("removeBackgroundAgent (cc daemon rm, gap 2026-07-11)", () => {
       startedAt: Date.now(),
       heartbeatAt: Date.now(),
     });
+    const startedAt = readBackgroundAgentState("bg-rm-force").startedAt;
+    _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
     _deps.spawnSync = vi.fn(() => ({ status: 0 })); // Windows taskkill stub
     expect(() => removeBackgroundAgent("bg-rm-force", { force: true })).toThrow(
-      /state changed before removal/i,
+      /process termination and interaction recovery/i,
     );
     expect(existsSync(statePath("bg-rm-force"))).toBe(true);
     if (process.platform !== "win32") {
       expect(_deps.kill).toHaveBeenCalledWith(-sleeperPid, "SIGTERM");
     }
+  });
+
+  it("--force removes a stale-heartbeat record only after exact process death", () => {
+    const sleeperPid = spawnSleeperPid();
+    const startedAt = Date.now();
+    writeBackgroundAgentState({
+      id: "bg-rm-stale-force",
+      status: "lost",
+      lostReason: "heartbeat-stale",
+      pid: sleeperPid,
+      workerPid: sleeperPid,
+      startedAt,
+      heartbeatAt: startedAt - 300_000,
+    });
+    _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+    if (process.platform === "win32") {
+      _deps.spawnSync = vi.fn((file, args) => {
+        process.kill(Number(args[1]), "SIGKILL");
+        return { status: 0 };
+      });
+    } else {
+      _deps.kill = vi.fn((pid, signal) => process.kill(pid, signal));
+    }
+
+    expect(
+      removeBackgroundAgent("bg-rm-stale-force", { force: true }),
+    ).toMatchObject({ id: "bg-rm-stale-force", removed: true });
+    expect(readBackgroundAgentState("bg-rm-stale-force")).toBeNull();
   });
 
   it("--keep-log preserves the log file", () => {
@@ -1925,13 +2350,9 @@ describe("pid identity — reuse detection (Gap 1, supervisor gap 2026-07-11)", 
         startedAt: now - 300_000,
         heartbeatAt: now,
       });
-      // First identity check (effectiveBackgroundAgentState) sees our worker;
-      // the pid is reused in the gap before the kill → the last-instant
-      // re-check must catch it.
-      _deps.readProcessStartTimeMs = vi
-        .fn()
-        .mockReturnValueOnce(now - 299_000) // reconcile: same process
-        .mockReturnValue(now - 1_000); // pre-kill: reused
+      // The fresh destructive probe observes a different creation time and
+      // therefore refuses to signal the reused pid.
+      _deps.readProcessStartTimeMs = vi.fn(() => now - 1_000);
       _deps.spawnSync = vi.fn(() => ({ status: 0 }));
 
       const result = stopBackgroundAgent("bg-reuse-stop");
@@ -1946,13 +2367,23 @@ describe("pid identity — reuse detection (Gap 1, supervisor gap 2026-07-11)", 
 
 describe("orphan agent reclaim (Gap 2, supervisor gap 2026-07-11)", () => {
   it("rejects a lost worker's pending interaction exactly once", () => {
-    const originalAppend = interactionJournalDeps.appendEvent;
-    const originalRead = interactionJournalDeps.readEvents;
-    const events = [];
-    interactionJournalDeps.appendEvent = vi.fn((sessionId, type, data) => {
-      events.push({ sessionId, type, data: structuredClone(data) });
-    });
-    interactionJournalDeps.readEvents = vi.fn(() =>
+    const originalAppend =
+      interactionJournalDeps.appendEventWithVerifiedProjection;
+    const originalReadVerified = interactionJournalDeps.readVerifiedEvents;
+    const events = [{ type: "session_start", data: {} }];
+    interactionJournalDeps.appendEventWithVerifiedProjection = vi.fn(
+      (sessionId, type, data, { createProjection, validateProjection }) => {
+        const projection = createProjection();
+        for (const event of events) projection.accept(structuredClone(event));
+        validateProjection(projection.finish(), {
+          headHash: null,
+          eventCount: events.length,
+        });
+        events.push({ sessionId, type, data: structuredClone(data) });
+        return { hash: "mock-hash" };
+      },
+    );
+    interactionJournalDeps.readVerifiedEvents = vi.fn(() =>
       events.map(({ type, data }) => ({ type, data: structuredClone(data) })),
     );
 
@@ -1996,12 +2427,12 @@ describe("orphan agent reclaim (Gap 2, supervisor gap 2026-07-11)", () => {
           recoveredAt: now,
         },
       });
-      expect(events).toHaveLength(1);
-      expect(events[0]).toMatchObject({
+      expect(events).toHaveLength(2);
+      expect(events[1]).toMatchObject({
         sessionId: "session-interaction-lost",
         type: BACKGROUND_INTERACTION_JOURNAL_EVENT,
       });
-      expect(events[0].data.records[0]).toMatchObject({
+      expect(events[1].data.records[0]).toMatchObject({
         requestId: "request-lost",
         status: "rejected",
         settlement: {
@@ -2014,27 +2445,180 @@ describe("orphan agent reclaim (Gap 2, supervisor gap 2026-07-11)", () => {
         { now: now + 1 },
       );
       expect(second.interactionRecovery).toEqual(first.interactionRecovery);
-      expect(events).toHaveLength(1);
+      expect(events).toHaveLength(2);
     } finally {
-      interactionJournalDeps.appendEvent = originalAppend;
-      interactionJournalDeps.readEvents = originalRead;
+      interactionJournalDeps.appendEventWithVerifiedProjection = originalAppend;
+      interactionJournalDeps.readVerifiedEvents = originalReadVerified;
+    }
+  });
+
+  it("returns the fresh durable state when terminal recovery loses its CAS", () => {
+    const originalAppend =
+      interactionJournalDeps.appendEventWithVerifiedProjection;
+    const originalReadVerified = interactionJournalDeps.readVerifiedEvents;
+    const events = [{ type: "session_start", data: {} }];
+    const id = "bg-interaction-recovery-cas";
+    const sessionId = "session-interaction-recovery-cas";
+    const workerGeneration = "generation-interaction-recovery-cas";
+    const now = Date.now();
+
+    interactionJournalDeps.readVerifiedEvents = vi.fn(() =>
+      events.map(({ type, data }) => ({ type, data: structuredClone(data) })),
+    );
+    interactionJournalDeps.appendEventWithVerifiedProjection = vi.fn(
+      (
+        candidateSessionId,
+        type,
+        data,
+        { createProjection, validateProjection },
+      ) => {
+        const projection = createProjection();
+        for (const event of events) projection.accept(structuredClone(event));
+        validateProjection(projection.finish(), {
+          headHash: null,
+          eventCount: events.length,
+        });
+        events.push({
+          sessionId: candidateSessionId,
+          type,
+          data: structuredClone(data),
+        });
+
+        // Simulate a concurrent supervisor writer after the journal terminal
+        // append but before this caller can project that result into state.
+        mutateBackgroundAgentState(id, (current) => ({
+          ...current,
+          interactionRecovery: {
+            status: "failed",
+            code: "CONCURRENT_RECOVERY_OWNER",
+            recoveredAt: now + 1,
+            turn: 1,
+            workerGeneration,
+          },
+        }));
+        return { hash: "mock-cas-race-hash" };
+      },
+    );
+
+    try {
+      writeBackgroundAgentState({
+        id,
+        sessionId,
+        workerGeneration,
+        turnCount: 1,
+        status: "running",
+        phase: "needs_input",
+        pid: 999999999,
+        workerPid: 999999999,
+        startedAt: now - 60_000,
+        heartbeatAt: now,
+        pendingQuestion: {
+          requestId: "request-recovery-cas",
+          question: "Continue?",
+          binding: {
+            backgroundAgentId: id,
+            sessionId,
+            turnId: "turn-recovery-cas",
+            toolUseId: "tool-recovery-cas",
+            sequence: 1,
+          },
+          askedAt: now - 1_000,
+        },
+        interactionRecovery: {
+          status: "pending",
+          turn: 1,
+          workerGeneration,
+          startedAt: now - 1_000,
+        },
+      });
+
+      const returned = effectiveBackgroundAgentState(
+        readBackgroundAgentState(id),
+        { now },
+      );
+      const durable = readBackgroundAgentState(id);
+
+      expect(returned.interactionRecovery).toMatchObject({
+        status: "failed",
+        code: "CONCURRENT_RECOVERY_OWNER",
+        recoveredAt: now + 1,
+      });
+      expect(returned.interactionRecovery).toEqual(durable.interactionRecovery);
+      expect(returned.pendingQuestion).toEqual(durable.pendingQuestion);
+      expect(events.at(-1).data.records[0].status).toBe("rejected");
+    } finally {
+      interactionJournalDeps.appendEventWithVerifiedProjection = originalAppend;
+      interactionJournalDeps.readVerifiedEvents = originalReadVerified;
+    }
+  });
+
+  it("fails closed when a lost worker has malformed pending interaction evidence", () => {
+    const originalReadVerified = interactionJournalDeps.readVerifiedEvents;
+    interactionJournalDeps.readVerifiedEvents = vi.fn(() => [
+      { type: "session_start", data: {} },
+    ]);
+    try {
+      const now = Date.now();
+      writeBackgroundAgentState({
+        id: "bg-interaction-malformed",
+        sessionId: "session-interaction-malformed",
+        workerGeneration: "generation-malformed",
+        turnCount: 1,
+        status: "running",
+        phase: "needs_input",
+        pid: 999999999,
+        workerPid: 999999999,
+        startedAt: now - 60_000,
+        heartbeatAt: now,
+        pendingQuestion: {
+          question: "Continue?",
+          binding: {
+            backgroundAgentId: "bg-interaction-malformed",
+            sessionId: "session-interaction-malformed",
+            turnId: "turn-malformed",
+            toolUseId: "tool-malformed",
+            sequence: 1,
+          },
+        },
+      });
+
+      const state = effectiveBackgroundAgentState(
+        readBackgroundAgentState("bg-interaction-malformed"),
+        { now },
+      );
+      expect(state).toMatchObject({
+        status: "lost",
+        pendingQuestion: { question: "Continue?" },
+        interactionRecovery: {
+          status: "failed",
+          code: "INTERACTION_RECOVERY_FALLBACK_INVALID",
+          turn: 1,
+          workerGeneration: "generation-malformed",
+        },
+      });
+      expect(() =>
+        removeBackgroundAgent("bg-interaction-malformed", { force: true }),
+      ).toThrow(/interaction recovery/i);
+    } finally {
+      interactionJournalDeps.readVerifiedEvents = originalReadVerified;
     }
   });
 
   it("reaps the recorded agent child when the worker is lost (dead worker pid)", () => {
+    const sleeperPid = spawnSleeperPid();
     const now = Date.now();
     writeBackgroundAgentState({
       id: "bg-orphan-a",
       status: "running",
       pid: 999999999, // worker gone
       workerPid: 999999999,
-      agentPid: process.pid, // leaked agent child, alive
+      agentPid: sleeperPid, // leaked agent child, alive
       agentStartedAt: now - 5_000,
       startedAt: now - 60_000,
       heartbeatAt: now,
     });
     _deps.readProcessStartTimeMs = vi.fn((pid) =>
-      pid === process.pid ? now - 5_000 : null,
+      pid === sleeperPid ? now - 5_000 : null,
     );
     _deps.killProcessTree = vi.fn(() => true);
 
@@ -2044,7 +2628,34 @@ describe("orphan agent reclaim (Gap 2, supervisor gap 2026-07-11)", () => {
     );
     expect(s.status).toBe("lost");
     expect(s.lostReason).toBe("process-exited");
-    expect(_deps.killProcessTree).toHaveBeenCalledWith(process.pid, "SIGKILL");
+    expect(_deps.killProcessTree).toHaveBeenCalledWith(sleeperPid, "SIGKILL");
+  });
+
+  it("never treats the current process as a reclaimable orphan agent", () => {
+    const now = Date.now();
+    writeBackgroundAgentState({
+      id: "bg-orphan-self",
+      status: "running",
+      pid: 999999999,
+      workerPid: 999999999,
+      agentPid: process.pid,
+      agentStartedAt: now - 5_000,
+      startedAt: now - 60_000,
+      heartbeatAt: now,
+    });
+    _deps.readProcessStartTimeMs = vi.fn(() => now - 5_000);
+    _deps.killProcessTree = vi.fn(() => true);
+
+    const state = effectiveBackgroundAgentState(
+      readBackgroundAgentState("bg-orphan-self"),
+      { now },
+    );
+
+    expect(state).toMatchObject({
+      status: "lost",
+      lostReason: "process-exited",
+    });
+    expect(_deps.killProcessTree).not.toHaveBeenCalled();
   });
 
   it("never kills without an identity anchor (no agentStartedAt → fail closed)", () => {
@@ -2089,23 +2700,39 @@ describe("orphan agent reclaim (Gap 2, supervisor gap 2026-07-11)", () => {
   });
 
   it("stop on an already-lost session still reaps the leaked agent child", () => {
+    const sleeperPid = spawnSleeperPid();
     const now = Date.now();
     writeBackgroundAgentState({
       id: "bg-orphan-stop",
       status: "lost",
       lostReason: "heartbeat-stale",
       pid: 999999999,
-      agentPid: process.pid,
+      agentPid: sleeperPid,
       agentStartedAt: now - 5_000,
       startedAt: now - 60_000,
       endedAt: now - 1_000,
     });
     _deps.readProcessStartTimeMs = vi.fn(() => now - 5_000);
-    _deps.killProcessTree = vi.fn(() => true);
+    if (process.platform === "win32") {
+      _deps.spawnSync = vi.fn((file, args) => {
+        process.kill(Number(args[1]), "SIGKILL");
+        return { status: 0 };
+      });
+    } else {
+      _deps.kill = vi.fn((pid, signal) => process.kill(pid, signal));
+    }
 
     const result = stopBackgroundAgent("bg-orphan-stop");
-    expect(result.stopped).toBe(false);
-    expect(_deps.killProcessTree).toHaveBeenCalledWith(process.pid, "SIGKILL");
+    expect(result).toMatchObject({ stopped: true, status: "stopped" });
+    if (process.platform === "win32") {
+      expect(_deps.spawnSync).toHaveBeenCalledWith(
+        "taskkill",
+        expect.arrayContaining(["/PID", String(sleeperPid), "/T", "/F"]),
+        expect.any(Object),
+      );
+    } else {
+      expect(_deps.kill).toHaveBeenCalledWith(-sleeperPid, "SIGTERM");
+    }
   });
 });
 
@@ -2165,6 +2792,20 @@ describe("prompt queue backpressure (Gap 4, supervisor gap 2026-07-11)", () => {
     expect(errors[0].message).toMatch(/prompt queue full/);
 
     conn.close();
+    const stopSnapshot = readBackgroundAgentState(state.id) || state;
+    _deps.readProcessStartTimeMs = vi.fn((pid) => {
+      const target = Number(pid);
+      if (target === Number(stopSnapshot.agentPid)) {
+        return Number(stopSnapshot.agentStartedAt);
+      }
+      if (
+        target === Number(stopSnapshot.pid) ||
+        target === Number(stopSnapshot.workerPid)
+      ) {
+        return Number(stopSnapshot.startedAt);
+      }
+      return null;
+    });
     // Reap the worker tree so the 20s turn + 100 queued turns never run on.
     if (process.platform === "win32") {
       // The sandbox can reject taskkill /T even for our own child. Keep the

@@ -26,6 +26,7 @@ import {
   sanitizePersistedMessage,
   sanitizePersistedMessages,
 } from "./session-message-provenance.js";
+import { createSessionTranscriptStructureProjection } from "./session-transcript-structure.js";
 
 export const SESSION_HOST_SNAPSHOT_SCHEMA =
   "chainlesschain.session-host-snapshot/v1";
@@ -122,12 +123,17 @@ function titleFromEvents(events) {
   return title;
 }
 
-function validatePlainSessionEvents(events) {
+function validatePlainSessionEvents(events, sessionId) {
   // Validate the complete nested graph without invoking accessors/Proxy traps,
   // then retain the original in-process objects so an already-established
   // runtime WeakMap provenance capability is not lost on the trusted legacy
   // adapter seam.
   sanitizePersistedMessages(events, { strict: true });
+  const structure = createSessionTranscriptStructureProjection(sessionId, {
+    failFast: true,
+  });
+  for (const event of events) structure.accept(event);
+  structure.finish();
   return events;
 }
 
@@ -250,7 +256,7 @@ export function projectSessionHostObservation({
   messages,
   recovery,
 }) {
-  const safeEvents = validatePlainSessionEvents(events);
+  const safeEvents = validatePlainSessionEvents(events, sessionId);
   if (safeEvents.length === 0) {
     throw new TypeError("Verified session events must be a non-empty array");
   }
@@ -271,7 +277,7 @@ export function projectSessionHostObservation({
 
 /** Build a content-free snapshot from one already-verified, stable event set. */
 export function projectVerifiedSessionHostSnapshot(sessionId, events) {
-  const safeEvents = validatePlainSessionEvents(events);
+  const safeEvents = validatePlainSessionEvents(events, sessionId);
   const messages = replayMessagesFromVerifiedEvents(safeEvents);
   const recovery = reduceMcpLedgerEvents(safeEvents, {
     sessionId,
@@ -292,6 +298,9 @@ export function projectVerifiedSessionHostSnapshot(sessionId, events) {
 function createStreamingSessionHostProjection(sessionId) {
   let title = "Untitled";
   let lastEventType = null;
+  const structure = createSessionTranscriptStructureProjection(sessionId, {
+    failFast: true,
+  });
   const mcpReducer = createMcpLedgerEventReducer({
     sessionId,
     verified: true,
@@ -303,6 +312,7 @@ function createStreamingSessionHostProjection(sessionId) {
       if (!safeEvent || typeof safeEvent !== "object") {
         throw new TypeError("Verified session event must be plain JSON data");
       }
+      structure.accept(safeEvent);
       if (safeEvent.type === "session_start" && safeEvent.data?.title) {
         title = String(safeEvent.data.title);
       } else if (safeEvent.type === "session_rename" && safeEvent.data?.title) {
@@ -313,6 +323,7 @@ function createStreamingSessionHostProjection(sessionId) {
       mcpReducer.accept(safeEvent);
     },
     finish({ headHash, eventCount, readMessages }) {
+      structure.finish();
       if (typeof readMessages !== "function") {
         throw new TypeError("Verified resume message reader is missing");
       }

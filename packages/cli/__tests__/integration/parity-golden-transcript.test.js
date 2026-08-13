@@ -61,7 +61,18 @@ describe("Phase 7 parity: file-backed golden transcripts", () => {
           chatFn: mock.chatFn,
         }),
       ),
-      { workspace },
+      {
+        workspace,
+        // This golden owns the tool/result behavior. Usage boundary events
+        // have dedicated observability contract coverage.
+        ignoredTypes: [
+          "run-started",
+          "run-ended",
+          "model-usage-started",
+          "model-usage-unknown",
+          "token-usage",
+        ],
+      },
     );
     const expected = JSON.parse(readFileSync(fixturePath, "utf8"));
 

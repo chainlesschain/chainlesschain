@@ -10,6 +10,7 @@ import { createHash } from "node:crypto";
 import { homedir } from "node:os";
 import { dirname, join, parse, resolve } from "node:path";
 import { getConfigPath } from "./paths.js";
+import { assertBackgroundArgvDurable } from "./background-command-argv.js";
 
 export const BACKGROUND_LAUNCH_PROFILE_VERSION = 1;
 
@@ -314,6 +315,7 @@ export function captureBackgroundLaunchProfile({
   worktree = null,
   governance = null,
 } = {}) {
+  assertBackgroundArgvDurable(argv, "background launch profile");
   const profile = emptyParsedProfile(cwd, worktree, governance);
   const omitted = new Set();
   const addDirs = [];

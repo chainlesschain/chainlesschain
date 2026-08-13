@@ -11,6 +11,86 @@ import { LLMProviderRegistry, BUILT_IN_PROVIDERS } from "./llm-providers.js";
 import { loadConfig } from "./config-manager.js";
 import { applyConfigLlmDefaults } from "./llm-config-defaults.js";
 
+function plainUsage(value) {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value
+    : null;
+}
+
+function normalizeOllamaUsage(data) {
+  if (
+    !Object.hasOwn(data, "prompt_eval_count") ||
+    !Object.hasOwn(data, "eval_count")
+  ) {
+    return null;
+  }
+  return {
+    input_tokens: data.prompt_eval_count,
+    output_tokens: data.eval_count,
+    cache_read_input_tokens: 0,
+    cache_creation_input_tokens: 0,
+  };
+}
+
+function normalizeAnthropicUsage(value) {
+  const usage = plainUsage(value);
+  if (!usage) return null;
+  // Keep malformed provider fields malformed so the canonical ledger projects
+  // the call as unknown instead of manufacturing a known zero settlement.
+  return {
+    input_tokens: usage.input_tokens,
+    output_tokens: usage.output_tokens,
+    cache_read_input_tokens: Object.hasOwn(usage, "cache_read_input_tokens")
+      ? usage.cache_read_input_tokens
+      : 0,
+    cache_creation_input_tokens: Object.hasOwn(
+      usage,
+      "cache_creation_input_tokens",
+    )
+      ? usage.cache_creation_input_tokens
+      : 0,
+  };
+}
+
+function normalizeOpenAiUsage(value) {
+  const usage = plainUsage(value);
+  if (!usage) return null;
+  // OpenAI/volcengine report cached prompt tokens under the nested detail;
+  // DeepSeek reports the same quantity as prompt_cache_hit_tokens. In both
+  // cases prompt_tokens includes the cached prefix, so persist only the
+  // uncached remainder as input_tokens.
+  const detailed = Number(usage.prompt_tokens_details?.cached_tokens);
+  const deepseek = Number(usage.prompt_cache_hit_tokens);
+  const cached =
+    Number.isFinite(detailed) && detailed > 0
+      ? detailed
+      : Number.isFinite(deepseek) && deepseek > 0
+        ? deepseek
+        : 0;
+  const input =
+    typeof usage.prompt_tokens === "number" && typeof cached === "number"
+      ? usage.prompt_tokens - cached
+      : usage.prompt_tokens;
+  return {
+    input_tokens: input,
+    output_tokens: usage.completion_tokens,
+    cache_read_input_tokens: cached,
+    cache_creation_input_tokens: 0,
+  };
+}
+
+function chatEnvelope(content, usage = null) {
+  return {
+    content: typeof content === "string" ? content : "",
+    ...(usage ? { usage } : {}),
+  };
+}
+
+async function invokeChatCall(callWrapper, provider, model, call) {
+  if (!callWrapper) return call();
+  return callWrapper({ call, provider, model });
+}
+
 /**
  * Create a chat completion function that routes through the active LLM provider.
  *
@@ -26,6 +106,10 @@ import { applyConfigLlmDefaults } from "./llm-config-defaults.js";
  * @param {string} [options.model] - Model name override
  * @param {string} [options.baseUrl] - Base URL override
  * @param {string} [options.apiKey] - API key override
+ * @param {(request: {call: function, provider: string, model: string}) => Promise<object>} [options.callWrapper]
+ *        Optional host boundary around each real provider call. The callback
+ *        resolves to a private `{content, usage?}` envelope; callers still
+ *        receive only the response string.
  * @returns {(messages: object[], opts?: object) => Promise<string>}
  */
 export function createChatFn(options = {}) {
@@ -47,25 +131,40 @@ export function createChatFn(options = {}) {
   const model =
     resolved.model || process.env.LLM_MODEL || providerDef.models[0];
   const baseUrl = resolved.baseUrl || providerDef.baseUrl;
+  const callWrapper = resolved.callWrapper || null;
+  if (callWrapper !== null && typeof callWrapper !== "function") {
+    throw new TypeError("cowork callWrapper must be a function");
+  }
 
   return async function chat(messages, opts = {}) {
     const currentModel = opts.model || model;
     const maxTokens = opts.maxTokens || 2048;
 
     if (provider === "ollama") {
-      const res = await fetch(`${baseUrl}/api/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: currentModel,
-          messages,
-          stream: false,
-          options: { num_predict: maxTokens },
-        }),
-      });
-      if (!res.ok) throw new Error(`Ollama error: ${res.status}`);
-      const data = await res.json();
-      return data.message?.content || "";
+      const envelope = await invokeChatCall(
+        callWrapper,
+        provider,
+        currentModel,
+        async () => {
+          const res = await fetch(`${baseUrl}/api/chat`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: currentModel,
+              messages,
+              stream: false,
+              options: { num_predict: maxTokens },
+            }),
+          });
+          if (!res.ok) throw new Error(`Ollama error: ${res.status}`);
+          const data = await res.json();
+          return chatEnvelope(
+            data.message?.content,
+            normalizeOllamaUsage(data),
+          );
+        },
+      );
+      return typeof envelope === "string" ? envelope : envelope?.content || "";
     }
 
     if (provider === "anthropic") {
@@ -82,39 +181,61 @@ export function createChatFn(options = {}) {
       if (systemMsgs.length > 0) {
         body.system = systemMsgs.map((m) => m.content).join("\n");
       }
-      const res = await fetch(`${baseUrl}/messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": key,
-          "anthropic-version": "2023-06-01",
+      const envelope = await invokeChatCall(
+        callWrapper,
+        provider,
+        currentModel,
+        async () => {
+          const res = await fetch(`${baseUrl}/messages`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-api-key": key,
+              "anthropic-version": "2023-06-01",
+            },
+            body: JSON.stringify(body),
+          });
+          if (!res.ok) throw new Error(`Anthropic error: ${res.status}`);
+          const data = await res.json();
+          return chatEnvelope(
+            data.content?.[0]?.text,
+            normalizeAnthropicUsage(data.usage),
+          );
         },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) throw new Error(`Anthropic error: ${res.status}`);
-      const data = await res.json();
-      return data.content?.[0]?.text || "";
+      );
+      return typeof envelope === "string" ? envelope : envelope?.content || "";
     }
 
     // OpenAI-compatible (openai, deepseek, dashscope, mistral, gemini)
     const key = resolved.apiKey || process.env[providerDef.apiKeyEnv];
     if (!key) throw new Error(`${providerDef.apiKeyEnv} not set`);
 
-    const res = await fetch(`${baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${key}`,
+    const envelope = await invokeChatCall(
+      callWrapper,
+      provider,
+      currentModel,
+      async () => {
+        const res = await fetch(`${baseUrl}/chat/completions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${key}`,
+          },
+          body: JSON.stringify({
+            model: currentModel,
+            messages,
+            max_tokens: maxTokens,
+          }),
+        });
+        if (!res.ok) throw new Error(`API error: ${res.status}`);
+        const data = await res.json();
+        return chatEnvelope(
+          data.choices?.[0]?.message?.content,
+          normalizeOpenAiUsage(data.usage),
+        );
       },
-      body: JSON.stringify({
-        model: currentModel,
-        messages,
-        max_tokens: maxTokens,
-      }),
-    });
-    if (!res.ok) throw new Error(`API error: ${res.status}`);
-    const data = await res.json();
-    return data.choices?.[0]?.message?.content || "";
+    );
+    return typeof envelope === "string" ? envelope : envelope?.content || "";
   };
 }
 

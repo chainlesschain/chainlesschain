@@ -129,6 +129,19 @@ describe("llm-pricing — estimateCost", () => {
     expect(c.currency).toBe("USD");
   });
 
+  it("preserves sub-microdollar charges for hard budget decisions", () => {
+    const c = estimateCost({
+      provider: "openai",
+      model: "gpt-5-nano",
+      inputTokens: 1,
+      outputTokens: 0,
+    });
+    expect(c.matched).toBe(true);
+    expect(c.free).toBe(false);
+    expect(c.inputCost).toBe(5e-8);
+    expect(c.totalCost).toBe(5e-8);
+  });
+
   it("local model costs nothing but is matched+free", () => {
     const c = estimateCost({
       provider: "ollama",

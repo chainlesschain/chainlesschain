@@ -25,12 +25,25 @@ function flush() {
 describe("background interaction child client", () => {
   it("resolves only a response with the original turn/tool binding", async () => {
     const processLike = fakeIpcEndpoint();
-    processLike.env = { CC_BACKGROUND_AGENT_ID: "bg-1" };
+    processLike.pid = 1234;
+    processLike.env = {
+      CC_BACKGROUND_AGENT_ID: "bg-1",
+      CC_BACKGROUND_TURN_IPC_NONCE: "turn-token-1",
+    };
+    const sessionHostWriteDelegation = {
+      sessionId: "session-1",
+      leaseId: "lease-00000000-0000-4000-8000-000000000001",
+      fencingToken: 1,
+      revocationEpoch: 0,
+      ownerPid: 1234,
+      hostKind: "headless",
+    };
     const client = createBackgroundInteractionClient({
       processLike,
       sessionId: "session-1",
       turnId: "turn-7",
       idFactory: () => "request-1",
+      sessionHostWriteDelegation,
     });
 
     const answerPromise = client.request({
@@ -40,6 +53,13 @@ describe("background interaction child client", () => {
       timeoutMs: 5_000,
     });
     const request = processLike.sent[0];
+    expect(request.sessionHostWriteDelegation).toEqual(
+      sessionHostWriteDelegation,
+    );
+    expect(request).toMatchObject({
+      senderPid: 1234,
+      turnIpcToken: "turn-token-1",
+    });
 
     processLike.emit("message", {
       type: "interaction-response",
@@ -166,6 +186,79 @@ describe("background interaction worker handler", () => {
     expect(child.sent.at(-1)).toMatchObject({
       status: "rejected",
       error: { code: "INTERACTION_BINDING_MISMATCH" },
+    });
+    detach();
+  });
+
+  it("rejects a request outside the private turn child identity", async () => {
+    const child = fakeIpcEndpoint();
+    const resolver = vi.fn();
+    const detach = attachInteractionRequestHandler(child, resolver, {
+      backgroundAgentId: "bg-1",
+      sessionId: "session-1",
+      turnIpcToken: "expected-turn-token",
+      requireSenderPid: true,
+    });
+
+    child.emit("message", {
+      type: "interaction-request",
+      protocolVersion: BACKGROUND_INTERACTION_PROTOCOL_VERSION,
+      requestId: "request-wrong-child",
+      binding: {
+        backgroundAgentId: "bg-1",
+        sessionId: "session-1",
+        turnId: "turn-1",
+        toolUseId: "tool-1",
+        sequence: 1,
+      },
+      senderPid: 1234,
+      turnIpcToken: "wrong-turn-token",
+      payload: { kind: "question", question: "Deploy?" },
+    });
+    await flush();
+
+    expect(resolver).not.toHaveBeenCalled();
+    expect(child.sent.at(-1)).toMatchObject({
+      status: "rejected",
+      error: { code: "INTERACTION_CHILD_IDENTITY_MISMATCH" },
+    });
+    detach();
+  });
+
+  it("rejects a forged sender/delegation owner mismatch before journal work", async () => {
+    const child = fakeIpcEndpoint();
+    const resolver = vi.fn();
+    const detach = attachInteractionRequestHandler(child, resolver, {
+      backgroundAgentId: "bg-1",
+      sessionId: "session-1",
+      turnIpcToken: "expected-turn-token",
+      requireSenderPid: true,
+      requireDelegationOwnerPid: true,
+    });
+    const request = {
+      type: "interaction-request",
+      protocolVersion: BACKGROUND_INTERACTION_PROTOCOL_VERSION,
+      requestId: "request-owner-mismatch",
+      binding: {
+        backgroundAgentId: "bg-1",
+        sessionId: "session-1",
+        turnId: "turn-1",
+        toolUseId: "tool-1",
+        sequence: 1,
+      },
+      senderPid: 4321,
+      turnIpcToken: "expected-turn-token",
+      sessionHostWriteDelegation: { ownerPid: 1234 },
+      payload: { kind: "question", question: "Deploy?" },
+    };
+
+    child.emit("message", request);
+    await flush();
+
+    expect(resolver).not.toHaveBeenCalled();
+    expect(child.sent.at(-1)).toMatchObject({
+      status: "rejected",
+      error: { code: "INTERACTION_CHILD_IDENTITY_MISMATCH" },
     });
     detach();
   });

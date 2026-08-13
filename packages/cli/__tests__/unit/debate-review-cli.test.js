@@ -119,6 +119,63 @@ describe("debate-review-cli", () => {
       expect(result.reviews[0].perspective).toBe("correctness");
     });
 
+    it("routes every reviewer and moderator provider call through callWrapper", async () => {
+      mockFetch([
+        { message: { content: "## Verdict\nAPPROVE" } },
+        { message: { content: "Final Verdict: APPROVE\nConsensus Score: 90" } },
+      ]);
+      const callWrapper = vi.fn(({ call }) => call());
+
+      await startDebate({
+        target: "test",
+        code: "const ok = true;",
+        perspectives: ["correctness"],
+        llmOptions: { provider: "ollama", callWrapper },
+      });
+
+      expect(callWrapper).toHaveBeenCalledTimes(2);
+      expect(
+        callWrapper.mock.calls.map(([request]) => request.provider),
+      ).toEqual(["ollama", "ollama"]);
+    });
+
+    it.each(["reviewer", "moderator"])(
+      "does not swallow a %s runtime-ledger persistence failure",
+      async (phase) => {
+        mockFetch([
+          { message: { content: "## Verdict\nAPPROVE" } },
+          {
+            message: {
+              content: "Final Verdict: APPROVE\nConsensus Score: 90",
+            },
+          },
+        ]);
+        const failure = Object.assign(new Error("private disk path"), {
+          runtimeLedgerPersistence: true,
+        });
+        let calls = 0;
+        const callWrapper = async ({ call }) => {
+          calls += 1;
+          if (
+            (phase === "reviewer" && calls === 1) ||
+            (phase === "moderator" && calls === 2)
+          ) {
+            throw failure;
+          }
+          return call();
+        };
+
+        await expect(
+          startDebate({
+            target: "test",
+            code: "const ok = true;",
+            perspectives: ["correctness"],
+            llmOptions: { provider: "ollama", callWrapper },
+          }),
+        ).rejects.toBe(failure);
+      },
+    );
+
     it("handles unknown perspectives gracefully", async () => {
       mockFetch([
         { message: { content: "## Verdict\nAPPROVE" } },

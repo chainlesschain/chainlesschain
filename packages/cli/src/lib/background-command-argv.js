@@ -316,3 +316,27 @@ export function stripFirstTurnPromptArgv(
   }
   return out;
 }
+
+export const BACKGROUND_EPHEMERAL_UNSUPPORTED_CODE =
+  "BACKGROUND_EPHEMERAL_UNSUPPORTED";
+
+/**
+ * Background sessions are resumable, attachable durable authorities. Allowing
+ * an ephemeral child would leave the worker's interaction journal without a
+ * canonical session genesis and a later resume would silently change the
+ * caller's no-persistence contract. Keep this guard independent of Commander
+ * so direct supervisor/profile callers cannot bypass the CLI validation.
+ */
+export function assertBackgroundArgvDurable(argv, label = "background agent") {
+  for (const token of Array.isArray(argv) ? argv : []) {
+    if (token === "--") break;
+    if (token === "--ephemeral" || token.startsWith("--ephemeral=")) {
+      const error = new Error(
+        `${label} cannot use --ephemeral because background sessions require durable session and interaction authority`,
+      );
+      error.code = BACKGROUND_EPHEMERAL_UNSUPPORTED_CODE;
+      throw error;
+    }
+  }
+  return true;
+}

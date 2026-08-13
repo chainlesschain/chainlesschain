@@ -36,6 +36,7 @@ import {
   isUnsafeSessionId,
   readVerifiedEvents as readVerifiedSessionEvents,
   readVerifiedProjection as readVerifiedSessionProjection,
+  sessionHasPersistedEvidence,
 } from "../harness/jsonl-session-store.js";
 
 // ─── Dependencies (overridable for testing) ──────────────────────────────────
@@ -49,6 +50,7 @@ export const _deps = {
   appendSessionEventIfHead,
   readVerifiedSessionEvents,
   readVerifiedSessionProjection,
+  sessionHasPersistedEvidence,
   randomUUID,
 };
 
@@ -56,6 +58,91 @@ export const _deps = {
 
 const DEFAULT_MAX_ITERATIONS = 50;
 const DEFAULT_TOKEN_BUDGET = 100_000;
+const COWORK_MCP_CALL_LEDGER_UNSUPPORTED =
+  "CC_COWORK_MCP_CALL_LEDGER_UNSUPPORTED";
+const COWORK_MCP_SESSION_UNVERIFIED = "CC_COWORK_MCP_SESSION_UNVERIFIED";
+const PROTECTED_USAGE_FIELDS = Object.freeze([
+  "observabilityScope",
+  "usageTelemetryProtocol",
+  "usageTelemetryVersion",
+]);
+
+function coworkMcpAdmissionError(code, message, sessionId, cause = null) {
+  const error = new Error(message, cause ? { cause } : undefined);
+  error.code = code;
+  error.sessionId = sessionId;
+  return error;
+}
+
+function assertCoworkMcpEventUsageAdmission(event, sessionId) {
+  if (event?.type !== "session_start") return;
+  const data =
+    event.data && typeof event.data === "object" && !Array.isArray(event.data)
+      ? event.data
+      : {};
+  if (!PROTECTED_USAGE_FIELDS.some((field) => Object.hasOwn(data, field))) {
+    return;
+  }
+  throw coworkMcpAdmissionError(
+    COWORK_MCP_CALL_LEDGER_UNSUPPORTED,
+    "Scoped call-ledger sessions are not supported by Cowork MCP tasks; use agent mode or an IDE host with usage-ledger support",
+    sessionId,
+  );
+}
+
+function readCoworkMcpUsageAdmission(sessionId) {
+  return _deps.readVerifiedSessionProjection(sessionId, () => ({
+    accept(event) {
+      assertCoworkMcpEventUsageAdmission(event, sessionId);
+    },
+    finish() {
+      return true;
+    },
+  }));
+}
+
+/**
+ * An explicitly supplied MCP session can name an existing canonical JSONL
+ * authority. Verify it before mounting servers or starting a child model, and
+ * refuse protected usage transcripts until Cowork persists the call ledger.
+ */
+export function assertCoworkMcpSessionUsageAdmission(sessionId) {
+  if (sessionId == null) return;
+  if (typeof sessionId !== "string" || isUnsafeSessionId(sessionId)) {
+    throw coworkMcpAdmissionError(
+      "CC_COWORK_MCP_SESSION_INVALID",
+      "Cowork MCP session id is invalid",
+      sessionId,
+    );
+  }
+
+  let hasEvidence;
+  try {
+    hasEvidence = _deps.sessionHasPersistedEvidence(sessionId);
+  } catch (cause) {
+    throw coworkMcpAdmissionError(
+      COWORK_MCP_SESSION_UNVERIFIED,
+      "Cowork MCP session authority could not be inspected; refusing to start a model or tool",
+      sessionId,
+      cause,
+    );
+  }
+  if (!hasEvidence) return;
+
+  try {
+    if (readCoworkMcpUsageAdmission(sessionId) !== true) {
+      throw new Error("verified usage-admission projection was bypassed");
+    }
+  } catch (cause) {
+    if (cause?.code === COWORK_MCP_CALL_LEDGER_UNSUPPORTED) throw cause;
+    throw coworkMcpAdmissionError(
+      COWORK_MCP_SESSION_UNVERIFIED,
+      "Cowork MCP session authority could not be verified; refusing to start a model or tool",
+      sessionId,
+      cause,
+    );
+  }
+}
 
 function resolveCoworkMcpSessionId(requested) {
   if (requested != null) {
@@ -152,6 +239,7 @@ function createCoworkMcpRecoveryProjection(sessionId, templateId, onFinish) {
         throw error;
       }
       acceptedCount += 1;
+      assertCoworkMcpEventUsageAdmission(event, sessionId);
       assertCoworkMcpSessionBindingEvent(event, templateId);
       ledger.accept(event);
     },
@@ -343,24 +431,13 @@ export function prepareCoworkMcpRuntime(mcp, options = {}) {
       });
     }
   } catch (error) {
-    recoveryNotice =
-      "MCP recovery notice — the durable Cowork MCP ledger could not be read. " +
-      "Do not execute or retry MCP tools until the session transcript has " +
-      `been inspected (${error?.code || "CC_MCP_LEDGER_EVENT_READ_FAILED"}).`;
-    recoveryState = publicMcpRecoveryState(
-      null,
-      "all",
-      error?.code || "CC_MCP_LEDGER_EVENT_READ_FAILED",
+    if (error?.code === COWORK_MCP_CALL_LEDGER_UNSUPPORTED) throw error;
+    throw coworkMcpAdmissionError(
+      COWORK_MCP_SESSION_UNVERIFIED,
+      "Cowork MCP session authority could not be verified; refusing to start a model or tool",
+      sessionId,
+      error,
     );
-    if (typeof options.onProgress === "function") {
-      options.onProgress({
-        type: "mcp-recovery",
-        sessionId,
-        unsettled: 0,
-        incidents: 1,
-        recovery: recoveryState,
-      });
-    }
   }
 
   const sink = createSessionMcpLedgerSink(
@@ -422,6 +499,10 @@ export async function runCoworkTask(options = {}) {
   if (!userMessage || typeof userMessage !== "string") {
     throw new Error("userMessage is required");
   }
+
+  // An explicit canonical authority must be admitted before mounting local MCP
+  // servers, constructing a child context, or making any provider call.
+  assertCoworkMcpSessionUsageAdmission(mcpSessionId);
 
   // Validate file paths before starting
   if (files.length > 0) {
@@ -586,6 +667,7 @@ export async function runCoworkTask(options = {}) {
  * @param {object} options - Same as runCoworkTask, plus:
  * @param {number} [options.agents] - Number of parallel agents (default 3, max 10)
  * @param {string} [options.strategy] - Routing strategy (default "round-robin")
+ * @param {string} [options.mcpSessionId] - Canonical session authority to admit
  * @param {function} [options.onProgress] - Progress callback
  * @param {AbortSignal} [options.signal] - Cancellation signal
  * @returns {Promise<{ taskId: string, status: string, result: object }>}
@@ -600,11 +682,17 @@ export async function runCoworkTaskParallel(options = {}) {
     strategy,
     onProgress = null,
     signal = null,
+    mcpSessionId = null,
   } = options;
 
   if (!userMessage || typeof userMessage !== "string") {
     throw new Error("userMessage is required");
   }
+
+  // Parallel orchestration can make provider calls while decomposing and
+  // dispatching work. Apply the same canonical authority gate as sequential
+  // Cowork before constructing the orchestrator or starting any provider.
+  assertCoworkMcpSessionUsageAdmission(mcpSessionId);
 
   if (files.length > 0) {
     const missing = files.filter((f) => !_deps.existsSync(f));
@@ -742,6 +830,7 @@ export async function runCoworkTaskParallel(options = {}) {
  * @param {string[]} [options.perspectives] - Override template perspectives
  * @param {string} [options.cwd] - Working directory for history
  * @param {object} [options.llmOptions] - LLM provider/model/key
+ * @param {string} [options.mcpSessionId] - Canonical session authority to admit
  * @param {function} [options.onProgress] - Progress callback
  * @returns {Promise<{ taskId, status, result }>}
  */
@@ -754,11 +843,17 @@ export async function runCoworkDebate(options = {}) {
     cwd = process.cwd(),
     llmOptions = {},
     onProgress = null,
+    mcpSessionId = null,
   } = options;
 
   if (!userMessage || typeof userMessage !== "string") {
     throw new Error("userMessage is required");
   }
+
+  // Debate performs multiple reviewer calls plus moderator synthesis. Refuse a
+  // protected or unverifiable authority before emitting progress or invoking
+  // the first reviewer, matching sequential and parallel Cowork admission.
+  assertCoworkMcpSessionUsageAdmission(mcpSessionId);
 
   if (files.length > 0) {
     const missing = files.filter((f) => !_deps.existsSync(f));

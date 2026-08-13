@@ -263,6 +263,11 @@ export function makeFallbackChatFn(opts = {}) {
     try {
       return await baseChatFn(messages, options);
     } catch (firstErr) {
+      // A strict call-ledger boundary identifies exactly one provider/model
+      // transport. Retrying behind that boundary would either attribute the
+      // fallback's usage to the primary identity or lose the failed attempt's
+      // possible spend, so surface the primary error without another call.
+      if (options.strictUsageTelemetry === true) throw firstErr;
       let err = firstErr;
       let lastTried = options.model;
       for (const candidate of models) {

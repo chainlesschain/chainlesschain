@@ -45,6 +45,7 @@ const {
   _sessionScaleFaultHooks,
   readEvents,
   readVerifiedEvents,
+  getVerifiedSessionObservabilityAuthority,
   readVerifiedTranscriptBytes,
   readVerifiedWsTurnState,
   computeWsTurnInputDigest,
@@ -76,6 +77,11 @@ const {
   verifySession,
   verifyAllSessions,
   repairSession,
+  assertCanonicalJsonlRecordByteLength,
+  parseCanonicalJsonlRecord,
+  serializeCanonicalJsonlRecord,
+  CANONICAL_JSONL_RECORD_MAX_BYTES,
+  CANONICAL_JSONL_RECORD_TOO_LARGE_CODE,
   SESSION_GENERATION_AUTHORITY_FIELD,
   SESSION_GENERATION_AUTHORITY_SCHEMA,
 } = await import("../../src/lib/jsonl-session-store.js");
@@ -148,6 +154,7 @@ describe("jsonl-session-store", () => {
     _sessionScaleFaultHooks.beforeTranscriptDirectoryFsync = null;
     _sessionScaleFaultHooks.afterTranscriptDirectoryFsync = null;
     _sessionScaleFaultHooks.afterTranscriptAppend = null;
+    _sessionScaleFaultHooks.beforeVerifiedProjectionRepair = null;
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }
@@ -570,6 +577,77 @@ describe("jsonl-session-store", () => {
       expect(events[0].data.title).toBe("Chat");
       expect(events[0].data.provider).toBe("ollama");
       expect(events[0].timestamp).toBeGreaterThan(0);
+    });
+
+    it("persists a normalized observability scope in session_start", () => {
+      const id = startSession("observability-scoped", {
+        title: "Scoped",
+        observabilityScope: {
+          workspaceId: " workspace-1 ",
+          teamId: " team-a ",
+          policyId: null,
+        },
+      });
+
+      expect(readEvents(id)[0]).toMatchObject({
+        type: "session_start",
+        data: {
+          observabilityScope: {
+            workspaceId: "workspace-1",
+            teamId: "team-a",
+            policyId: null,
+          },
+        },
+      });
+    });
+
+    it("rejects an invalid observability scope before creating a transcript", () => {
+      expect(() =>
+        startSession("observability-invalid", {
+          observabilityScope: { workspaceId: "workspace\nforged" },
+        }),
+      ).toThrow(/observabilityScope\.workspaceId is invalid/);
+      expect(sessionExists("observability-invalid")).toBe(false);
+    });
+
+    it.each([
+      ["workspaceId", ""],
+      ["teamId", " "],
+      ["policyId", "\t"],
+    ])("rejects an explicitly blank %s scope", (field, value) => {
+      const id = `observability-blank-${field}`;
+      expect(() =>
+        startSession(id, {
+          observabilityScope: {
+            workspaceId: field === "workspaceId" ? value : "workspace-1",
+            teamId: field === "teamId" ? value : null,
+            policyId: field === "policyId" ? value : null,
+          },
+        }),
+      ).toThrow(new RegExp(`observabilityScope\\.${field} is invalid`));
+      expect(sessionExists(id)).toBe(false);
+    });
+
+    it("rejects an observability scope with no populated dimension", () => {
+      expect(() =>
+        startSession("observability-empty-scope", {
+          observabilityScope: {
+            workspaceId: null,
+            teamId: undefined,
+            policyId: null,
+          },
+        }),
+      ).toThrow(/requires at least one non-null dimension/);
+      expect(sessionExists("observability-empty-scope")).toBe(false);
+    });
+
+    it("rejects an explicitly blank observability scope value", () => {
+      expect(() =>
+        startSession("observability-blank-scope", {
+          observabilityScope: "",
+        }),
+      ).toThrow(/observabilityScope must be an object/);
+      expect(sessionExists("observability-blank-scope")).toBe(false);
     });
 
     it("uses owner-only directory and transcript modes on POSIX", () => {
@@ -1012,9 +1090,146 @@ describe("jsonl-session-store", () => {
         "assistant_message",
       ]);
     });
+
+    it("rejects a hash-valid record at the shared pre-decode/pre-parse size guard", () => {
+      expect(CANONICAL_JSONL_RECORD_MAX_BYTES).toBe(16 * 1024 * 1024);
+      const core = {
+        type: "oversized-fixture",
+        timestamp: 1,
+        data: { content: "界".repeat(40) },
+      };
+      const event = {
+        ...core,
+        prevHash: null,
+        hash: computeEventHash(null, core),
+      };
+      const line = JSON.stringify(event);
+      const lowTestLimit = 96;
+      expect(Buffer.byteLength(line, "utf8")).toBeGreaterThan(lowTestLimit);
+
+      for (const operation of [
+        () => parseCanonicalJsonlRecord(line, lowTestLimit),
+        () => serializeCanonicalJsonlRecord(event, lowTestLimit),
+      ]) {
+        expect(operation).toThrow(
+          expect.objectContaining({
+            code: CANONICAL_JSONL_RECORD_TOO_LARGE_CODE,
+            maxBytes: lowTestLimit,
+          }),
+        );
+      }
+
+      expect(() =>
+        assertCanonicalJsonlRecordByteLength(
+          CANONICAL_JSONL_RECORD_MAX_BYTES + 1,
+          Number.MAX_SAFE_INTEGER,
+        ),
+      ).toThrow(
+        expect.objectContaining({
+          code: CANONICAL_JSONL_RECORD_TOO_LARGE_CODE,
+          maxBytes: CANONICAL_JSONL_RECORD_MAX_BYTES,
+        }),
+      );
+    });
   });
 
   describe("readVerifiedEvents", () => {
+    it("returns the anchored observability scope and exact transcript revision", () => {
+      const id = startSession("observability-authority", {
+        observabilityScope: {
+          workspaceId: "workspace-1",
+          teamId: "team-a",
+          policyId: "policy-release",
+        },
+      });
+      appendUserMessage(id, "hello");
+      const events = readVerifiedEvents(id);
+
+      const authority = getVerifiedSessionObservabilityAuthority(id);
+
+      expect(authority).toEqual({
+        sessionId: id,
+        headHash: events.at(-1).hash,
+        eventCount: events.length,
+        observabilityScope: {
+          workspaceId: "workspace-1",
+          teamId: "team-a",
+          policyId: "policy-release",
+        },
+      });
+      expect(Object.isFrozen(authority)).toBe(true);
+      expect(Object.isFrozen(authority.observabilityScope)).toBe(true);
+    });
+
+    it("normalizes scope again at the verified authority boundary", () => {
+      const id = "observability-authority-normalized";
+      appendEvent(id, "session_start", {
+        title: "Raw scoped session",
+        observabilityScope: {
+          workspaceId: " workspace-raw ",
+          teamId: null,
+          policyId: null,
+        },
+      });
+
+      expect(getVerifiedSessionObservabilityAuthority(id)).toMatchObject({
+        sessionId: id,
+        observabilityScope: {
+          workspaceId: "workspace-raw",
+          teamId: null,
+          policyId: null,
+        },
+      });
+    });
+
+    it("rejects a verified authority whose persisted scope is empty", () => {
+      const id = "observability-authority-empty";
+      appendEvent(id, "session_start", {
+        title: "Raw empty scope",
+        observabilityScope: {
+          workspaceId: null,
+          teamId: null,
+          policyId: null,
+        },
+      });
+
+      expect(() => getVerifiedSessionObservabilityAuthority(id)).toThrow(
+        /requires at least one non-null dimension/,
+      );
+    });
+
+    it("fails closed when a verified session has no observability scope", () => {
+      const id = startSession("observability-scope-missing", {
+        title: "Legacy",
+      });
+
+      expect(() => getVerifiedSessionObservabilityAuthority(id)).toThrowError(
+        expect.objectContaining({
+          code: "SESSION_OBSERVABILITY_SCOPE_MISSING",
+        }),
+      );
+    });
+
+    it("does not return observability authority from a tampered transcript", () => {
+      const id = startSession("observability-tampered", {
+        observabilityScope: {
+          workspaceId: "workspace-1",
+          teamId: null,
+          policyId: null,
+        },
+      });
+      const file = sessionPath(id);
+      writeFileSync(
+        file,
+        readFileSync(file, "utf8").replace("workspace-1", "workspace-2"),
+        "utf8",
+      );
+
+      expect(() => getVerifiedSessionObservabilityAuthority(id)).toThrowError(
+        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+      );
+    });
+
     it("returns fully chained events and rejects tampered authority history", () => {
       const id = startSession("verified-ledger", { title: "verified" });
       appendEvent(id, "mcp_call_ledger", { phase: "started" });
@@ -1563,6 +1778,114 @@ describe("jsonl-session-store", () => {
       ).toThrow("Authority projection validation rejected the append");
       expect(readEvents(id)).toHaveLength(eventCount);
       expect(verifySession(id).status).toBe("verified");
+    });
+
+    it("preserves unknown commit state when exact-readback repair fails", () => {
+      const id = startSession("authority-projection-repair-failure", {
+        title: "verified",
+      });
+      const eventType = "projection_repair_failure";
+      const previous = process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+      process.env.CC_SESSION_SCALE_FAULT_INJECTION = "1";
+      _sessionScaleFaultHooks.afterTranscriptAppend = ({ type }) => {
+        if (type !== eventType) return;
+        const error = new Error("injected ambiguous transcript settlement");
+        error.code = "EIO";
+        throw error;
+      };
+      _sessionScaleFaultHooks.beforeVerifiedProjectionRepair = ({ type }) => {
+        if (type !== eventType) return;
+        const error = new Error("injected projection repair failure");
+        error.code = "EIO";
+        throw error;
+      };
+
+      try {
+        expect(() =>
+          appendAuthorityEventWithVerifiedProjection(
+            id,
+            eventType,
+            { schemaVersion: 1 },
+            {
+              createProjection: () => ({
+                accept() {},
+                finish() {
+                  return {};
+                },
+              }),
+              validateProjection: () => true,
+            },
+          ),
+        ).toThrow(
+          expect.objectContaining({
+            code: "CC_SESSION_PERSISTENCE_FAILED",
+            fsCode: "EIO",
+            operation: "verified-projection-authority-append",
+            commitState: "unknown",
+            retryable: false,
+          }),
+        );
+      } finally {
+        _sessionScaleFaultHooks.afterTranscriptAppend = null;
+        _sessionScaleFaultHooks.beforeVerifiedProjectionRepair = null;
+        if (previous === undefined) {
+          delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+        } else {
+          process.env.CC_SESSION_SCALE_FAULT_INJECTION = previous;
+        }
+      }
+
+      expect(
+        readEvents(id).filter((event) => event.type === eventType),
+      ).toHaveLength(1);
+      expect(() => readVerifiedEvents(id)).toThrow(
+        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+      );
+    });
+
+    it("adjudicates a strict lock-release failure by exact verified readback", () => {
+      const id = startSession("authority-projection-lock-release", {
+        title: "verified",
+      });
+      const eventType = "projection_lock_release";
+      const ownerPath = join(`${sessionPath(id)}.lock`, "owner.json");
+
+      const appended = appendAuthorityEventWithVerifiedProjection(
+        id,
+        eventType,
+        { schemaVersion: 1 },
+        {
+          createProjection: () => ({
+            accept() {},
+            finish() {
+              return {};
+            },
+          }),
+          validateProjection() {
+            writeFileSync(
+              ownerPath,
+              JSON.stringify({
+                pid: Number.MAX_SAFE_INTEGER,
+                startedAt: Date.now(),
+                token: "dead-owner-0000000000000000000000000001",
+              }),
+              "utf8",
+            );
+            return true;
+          },
+        },
+      );
+
+      expect(appended).toMatchObject({
+        hash: expect.stringMatching(/^[a-f0-9]{64}$/),
+        commitState: "committed-after-lock-release-readback",
+      });
+      const committed = readVerifiedEvents(id).filter(
+        (event) => event.type === eventType,
+      );
+      expect(committed).toHaveLength(1);
+      expect(committed[0].hash).toBe(appended.hash);
+      expect(existsSync(`${sessionPath(id)}.lock`)).toBe(false);
     });
 
     it("refuses a stale compact CAS without hiding a concurrent turn", () => {
@@ -3226,6 +3549,108 @@ describe("jsonl-session-store", () => {
       expect(result.valid).toBe(true);
       expect(result.eventCount).toBe(2);
       expect(result.messageCount).toBe(1);
+      expect(result).toMatchObject({
+        sessionStartCount: 1,
+        sessionStartIndex: 0,
+        sessionStartIsFirst: true,
+      });
+    });
+
+    it.each([
+      {
+        name: "late",
+        id: "validate-late-session-start",
+        cores: [
+          {
+            type: "user_message",
+            timestamp: 1,
+            data: { role: "user", content: "before authority" },
+          },
+          { type: "session_start", timestamp: 2, data: { title: "Late" } },
+        ],
+        expected: { sessionStartCount: 1, sessionStartIndex: 1 },
+        reason: /session_start must be the first event/,
+      },
+      {
+        name: "multiple",
+        id: "validate-multiple-session-start",
+        cores: [
+          { type: "session_start", timestamp: 1, data: { title: "First" } },
+          {
+            type: "session_start",
+            timestamp: 2,
+            data: { title: "Second" },
+          },
+        ],
+        expected: { sessionStartCount: 2, sessionStartIndex: 0 },
+        reason: /exactly one session_start/,
+      },
+    ])(
+      "rejects and refuses to repair a $name session_start structure",
+      ({ id, cores, expected, reason }) => {
+        let previousHash = null;
+        const events = cores.map((core) => {
+          const hash = computeEventHash(previousHash, core);
+          const event = { ...core, prevHash: previousHash, hash };
+          previousHash = hash;
+          return event;
+        });
+        writeFileSync(
+          sessionPath(id),
+          `${events.map((event) => JSON.stringify(event)).join("\n")}\n`,
+          "utf8",
+        );
+
+        expect(verifySession(id)).toMatchObject({ status: "verified" });
+        const validation = validateJsonlSession(id);
+        expect(validation).toMatchObject({
+          valid: false,
+          eventCount: 2,
+          ...expected,
+        });
+        expect(validation.reason).toMatch(reason);
+
+        const before = readFileSync(sessionPath(id));
+        for (const dryRun of [true, false]) {
+          const result = repairSession(id, { dryRun });
+          expect(result).toMatchObject({
+            healthy: false,
+            transcriptHealthy: false,
+            changed: false,
+            physicalChanged: false,
+            status: "verified",
+            beforeValidation: { valid: false, ...expected },
+          });
+          expect(result.reason).toMatch(reason);
+          expect(readFileSync(sessionPath(id))).toEqual(before);
+        }
+      },
+    );
+
+    it("keeps a rich legacy migration anchored by one leading session_start", () => {
+      const legacyPath = join(sessionsDir, "legacy-structure.json");
+      writeFileSync(
+        legacyPath,
+        JSON.stringify({
+          id: "legacy-structure",
+          messages: [
+            { role: "system", content: "system" },
+            { role: "user", content: "hello" },
+            { role: "assistant", content: "hi" },
+          ],
+        }),
+        "utf8",
+      );
+
+      expect(migrateLegacySessionFile(legacyPath)).toMatchObject({
+        migrated: true,
+      });
+      expect(validateJsonlSession("legacy-structure")).toMatchObject({
+        valid: true,
+        eventCount: 4,
+        sessionStartCount: 1,
+        sessionStartIndex: 0,
+      });
     });
 
     it("builds a dry-run batch migration report", () => {

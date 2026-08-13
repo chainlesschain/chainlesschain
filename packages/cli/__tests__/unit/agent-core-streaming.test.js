@@ -95,6 +95,46 @@ describe("_accumulateAnthropicStream", () => {
     expect(out.message.content).toBe("x");
     expect(out.usage).toBeUndefined();
   });
+
+  it("keeps explicit zero totals but rejects malformed cache totals", () => {
+    const knownZero = _accumulateAnthropicStream(
+      sse([
+        {
+          type: "message_start",
+          message: {
+            usage: {
+              input_tokens: 0,
+              cache_read_input_tokens: 0,
+              cache_creation_input_tokens: 0,
+            },
+          },
+        },
+        { type: "message_delta", usage: { output_tokens: 0 } },
+      ]),
+    );
+    expect(knownZero.usage).toEqual({
+      input_tokens: 0,
+      output_tokens: 0,
+      cache_read_input_tokens: 0,
+      cache_creation_input_tokens: 0,
+    });
+
+    const malformedCache = _accumulateAnthropicStream(
+      sse([
+        {
+          type: "message_start",
+          message: {
+            usage: {
+              input_tokens: 4,
+              cache_read_input_tokens: "0",
+            },
+          },
+        },
+        { type: "message_delta", usage: { output_tokens: 2 } },
+      ]),
+    );
+    expect(malformedCache.usage).toBeUndefined();
+  });
 });
 
 describe("_accumulateOpenAIStream", () => {
@@ -273,5 +313,41 @@ describe("_accumulateOpenAIStream — cached prompt tokens (OpenAI/DeepSeek/volc
       output_tokens: 93,
       cache_read_input_tokens: 0,
     });
+  });
+
+  it.each([
+    ["malformed nested cache count", { cached_tokens: "0" }],
+    ["negative nested cache count", { cached_tokens: -1 }],
+  ])("omits usage for %s", (_label, promptTokensDetails) => {
+    const out = _accumulateOpenAIStream(
+      sse([
+        {
+          choices: [{ delta: {}, finish_reason: "stop" }],
+          usage: {
+            prompt_tokens: 10,
+            completion_tokens: 2,
+            prompt_tokens_details: promptTokensDetails,
+          },
+        },
+      ]),
+    );
+    expect(out.usage).toBeUndefined();
+  });
+
+  it("omits usage when cache aliases conflict", () => {
+    const out = _accumulateOpenAIStream(
+      sse([
+        {
+          choices: [{ delta: {}, finish_reason: "stop" }],
+          usage: {
+            prompt_tokens: 10,
+            completion_tokens: 2,
+            prompt_tokens_details: { cached_tokens: 3 },
+            prompt_cache_hit_tokens: 4,
+          },
+        },
+      ]),
+    );
+    expect(out.usage).toBeUndefined();
   });
 });

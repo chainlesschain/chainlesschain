@@ -149,6 +149,7 @@ describe("cowork-task-runner", () => {
     _deps.appendSessionEventIfHead = vi.fn(() => true);
     _deps.readVerifiedSessionEvents = vi.fn(() => []);
     _deps.readVerifiedSessionProjection = null;
+    _deps.sessionHasPersistedEvidence = vi.fn(() => false);
     _deps.randomUUID = vi.fn(() => "stable-cowork-session");
     _mockRun.mockResolvedValue({
       summary: "Task completed successfully",
@@ -166,6 +167,97 @@ describe("cowork-task-runner", () => {
   });
 
   // ─── Basic execution ──────────────────────────────────────
+
+  it.each([
+    ["observabilityScope", { pr: "140" }],
+    ["usageTelemetryProtocol", "call-ledger"],
+    ["usageTelemetryVersion", 1],
+  ])(
+    "rejects an existing Cowork MCP session with a %s marker before provider admission",
+    async (field, value) => {
+      _deps.sessionHasPersistedEvidence = vi.fn(() => true);
+      _deps.readVerifiedSessionProjection = vi.fn(
+        (_sessionId, createProjection) => {
+          const projection = createProjection();
+          projection.accept({
+            type: "session_start",
+            hash: "a".repeat(64),
+            data: { title: "protected", [field]: value },
+          });
+          return projection.finish({
+            headHash: "a".repeat(64),
+            eventCount: 1,
+            readMessages: () => [],
+          });
+        },
+      );
+
+      await expect(
+        runCoworkTask({
+          templateId: "doc-convert",
+          userMessage: "publish",
+          mcpSessionId: "protected-cowork-session",
+        }),
+      ).rejects.toMatchObject({
+        code: "CC_COWORK_MCP_CALL_LEDGER_UNSUPPORTED",
+        sessionId: "protected-cowork-session",
+      });
+      expect(_mockMount).not.toHaveBeenCalled();
+      expect(_mockCreate).not.toHaveBeenCalled();
+      expect(_mockRun).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects an existing unreadable Cowork MCP authority before provider admission", async () => {
+    _deps.sessionHasPersistedEvidence = vi.fn(() => true);
+    _deps.readVerifiedSessionProjection = vi.fn(() => {
+      const error = new Error("hash chain broken");
+      error.code = "SESSION_TRANSCRIPT_UNVERIFIED";
+      throw error;
+    });
+
+    await expect(
+      runCoworkTask({
+        templateId: "doc-convert",
+        userMessage: "publish",
+        mcpSessionId: "damaged-cowork-session",
+      }),
+    ).rejects.toMatchObject({
+      code: "CC_COWORK_MCP_SESSION_UNVERIFIED",
+      sessionId: "damaged-cowork-session",
+    });
+    expect(_mockMount).not.toHaveBeenCalled();
+    expect(_mockCreate).not.toHaveBeenCalled();
+    expect(_mockRun).not.toHaveBeenCalled();
+  });
+
+  it("admits a verified unprotected Cowork MCP authority", async () => {
+    _deps.sessionHasPersistedEvidence = vi.fn(() => true);
+    _deps.readVerifiedSessionProjection = vi.fn(
+      (_sessionId, createProjection) => {
+        const projection = createProjection();
+        projection.accept({
+          type: "session_start",
+          hash: "a".repeat(64),
+          data: { title: "legacy-cowork" },
+        });
+        return projection.finish({
+          headHash: "a".repeat(64),
+          eventCount: 1,
+          readMessages: () => [],
+        });
+      },
+    );
+
+    await expect(
+      runCoworkTask({
+        templateId: "doc-convert",
+        userMessage: "read",
+        mcpSessionId: "legacy-cowork-session",
+      }),
+    ).resolves.toMatchObject({ status: "completed" });
+    expect(_mockRun).toHaveBeenCalledOnce();
+  });
 
   it("runs a task with a known template", async () => {
     const result = await runCoworkTask({
@@ -975,18 +1067,19 @@ describe("cowork-task-runner", () => {
       { ...clean, bindingAllowed: false },
     ]) {
       _deps.readVerifiedSessionProjection = vi.fn(() => result);
-      const runtime = prepareCoworkMcpRuntime(
-        {
-          mcpClient: { callTool: vi.fn() },
-          extraToolDefinitions: [
-            { type: "function", function: { name: "mcp__repo__publish" } },
-          ],
-        },
-        { mcpSessionId: sessionId, templateId: "doc-convert" },
+      expect(() =>
+        prepareCoworkMcpRuntime(
+          {
+            mcpClient: { callTool: vi.fn() },
+            extraToolDefinitions: [
+              { type: "function", function: { name: "mcp__repo__publish" } },
+            ],
+          },
+          { mcpSessionId: sessionId, templateId: "doc-convert" },
+        ),
+      ).toThrow(
+        expect.objectContaining({ code: "CC_COWORK_MCP_SESSION_UNVERIFIED" }),
       );
-      expect(runtime.bindingAllowed).toBe(false);
-      expect(runtime.expectedHeadHash).toBeNull();
-      expect(runtime.recoveryState).toMatchObject({ blockMode: "all" });
     }
     expect(accessorReads).toBe(0);
     expect(thenable.then).not.toHaveBeenCalled();
@@ -1035,20 +1128,22 @@ describe("cowork-task-runner", () => {
           return projection.finish(authority);
         },
       );
-      const runtime = prepareCoworkMcpRuntime(
-        {
-          mcpClient: { callTool: vi.fn() },
-          extraToolDefinitions: [
-            { type: "function", function: { name: "mcp__repo__publish" } },
-          ],
-        },
-        {
-          mcpSessionId: "cowork-invalid-completion",
-          templateId: "doc-convert",
-        },
+      expect(() =>
+        prepareCoworkMcpRuntime(
+          {
+            mcpClient: { callTool: vi.fn() },
+            extraToolDefinitions: [
+              { type: "function", function: { name: "mcp__repo__publish" } },
+            ],
+          },
+          {
+            mcpSessionId: "cowork-invalid-completion",
+            templateId: "doc-convert",
+          },
+        ),
+      ).toThrow(
+        expect.objectContaining({ code: "CC_COWORK_MCP_SESSION_UNVERIFIED" }),
       );
-      expect(runtime.bindingAllowed).toBe(false);
-      expect(runtime.recoveryState).toMatchObject({ blockMode: "all" });
     }
     expect(accessorReads).toBe(0);
   });
@@ -1107,7 +1202,7 @@ describe("cowork-task-runner", () => {
     });
   });
 
-  it("blocks every MCP effect when the durable transcript cannot be verified", async () => {
+  it("rejects the Cowork task when the durable transcript cannot be verified", async () => {
     _mockMount.mockResolvedValueOnce({
       mcpClient: { callTool: vi.fn() },
       mounted: ["reader"],
@@ -1122,39 +1217,26 @@ describe("cowork-task-runner", () => {
       error.code = "SESSION_TRANSCRIPT_UNVERIFIED";
       throw error;
     });
-    const onProgress = vi.fn();
-
-    await runCoworkTask({
-      templateId: "doc-convert",
-      userMessage: "read",
-      mcpSessionId: "cowork-corrupt-session",
-      onProgress,
-    });
-
-    const ledger = _mockCreate.mock.calls[0][0].mcpCallLedger;
     await expect(
-      ledger.begin({
-        toolName: "mcp__reader__read",
-        serverName: "reader",
-        effectContract: { effect: "read", trusted: true },
+      runCoworkTask({
+        templateId: "doc-convert",
+        userMessage: "read",
+        mcpSessionId: "cowork-corrupt-session",
       }),
     ).rejects.toMatchObject({
-      code: "CC_COWORK_MCP_RECOVERY_BLOCKED",
-      blockMode: "all",
+      code: "CC_COWORK_MCP_SESSION_UNVERIFIED",
+      sessionId: "cowork-corrupt-session",
     });
-    expect(onProgress).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: "mcp-recovery",
-        recovery: expect.objectContaining({ blockMode: "all" }),
-      }),
-    );
+    expect(_mockCreate).not.toHaveBeenCalled();
+    expect(_mockRun).not.toHaveBeenCalled();
+    expect(_mockCleanup).toHaveBeenCalledOnce();
   });
 
   it.each([
     ["null", () => null],
     ["a Promise", () => Promise.resolve([])],
   ])(
-    "blocks every MCP effect when verified session events return %s",
+    "rejects the Cowork task when verified session events return %s",
     async (_label, readVerifiedSessionEvents) => {
       _mockMount.mockResolvedValueOnce({
         mcpClient: { callTool: vi.fn() },
@@ -1169,22 +1251,19 @@ describe("cowork-task-runner", () => {
       });
       _deps.readVerifiedSessionEvents = vi.fn(readVerifiedSessionEvents);
 
-      await runCoworkTask({
-        templateId: "doc-convert",
-        userMessage: "read",
-        mcpSessionId: "cowork-invalid-events-session",
-      });
-
       await expect(
-        _mockCreate.mock.calls[0][0].mcpCallLedger.begin({
-          toolName: "mcp__reader__read",
-          serverName: "reader",
-          effectContract: { effect: "read", trusted: true },
+        runCoworkTask({
+          templateId: "doc-convert",
+          userMessage: "read",
+          mcpSessionId: "cowork-invalid-events-session",
         }),
       ).rejects.toMatchObject({
-        code: "CC_COWORK_MCP_RECOVERY_BLOCKED",
-        blockMode: "all",
+        code: "CC_COWORK_MCP_SESSION_UNVERIFIED",
+        sessionId: "cowork-invalid-events-session",
       });
+      expect(_mockCreate).not.toHaveBeenCalled();
+      expect(_mockRun).not.toHaveBeenCalled();
+      expect(_mockCleanup).toHaveBeenCalledOnce();
     },
   );
 
@@ -1210,24 +1289,20 @@ describe("cowork-task-runner", () => {
       },
     ]);
 
-    await runCoworkTask({
-      templateId: "doc-convert",
-      userMessage: "read",
-      mcpSessionId: "cowork-bound-session",
-    });
-
-    expect(_deps.appendSessionEventIfHead).not.toHaveBeenCalled();
-    expect(_mockRun.mock.calls[0][1]).not.toHaveProperty("sessionId");
     await expect(
-      _mockCreate.mock.calls[0][0].mcpCallLedger.begin({
-        toolName: "mcp__reader__read",
-        serverName: "reader",
-        effectContract: { effect: "read", trusted: true },
+      runCoworkTask({
+        templateId: "doc-convert",
+        userMessage: "read",
+        mcpSessionId: "cowork-bound-session",
       }),
     ).rejects.toMatchObject({
-      code: "CC_COWORK_MCP_RECOVERY_BLOCKED",
-      blockMode: "all",
+      code: "CC_COWORK_MCP_SESSION_UNVERIFIED",
+      sessionId: "cowork-bound-session",
     });
+    expect(_deps.appendSessionEventIfHead).not.toHaveBeenCalled();
+    expect(_mockCreate).not.toHaveBeenCalled();
+    expect(_mockRun).not.toHaveBeenCalled();
+    expect(_mockCleanup).toHaveBeenCalledOnce();
   });
 
   it("cleans up and aborts when the session head changes before binding", async () => {
@@ -1331,6 +1406,8 @@ describe("runCoworkTaskParallel", () => {
     _deps.existsSync = vi.fn(() => true);
     _deps.mkdirSync = vi.fn();
     _deps.appendFileSync = vi.fn();
+    _deps.sessionHasPersistedEvidence = vi.fn(() => false);
+    _deps.readVerifiedSessionProjection = null;
     _mockAddTask.mockResolvedValue({
       id: "orch-task-001",
       status: "completed",
@@ -1341,6 +1418,38 @@ describe("runCoworkTaskParallel", () => {
         { output: "Agent 2 completed research" },
       ],
     });
+  });
+
+  it("rejects a protected canonical session before parallel provider admission", async () => {
+    _deps.sessionHasPersistedEvidence = vi.fn(() => true);
+    _deps.readVerifiedSessionProjection = vi.fn(
+      (_sessionId, createProjection) => {
+        const projection = createProjection();
+        projection.accept({
+          type: "session_start",
+          hash: "a".repeat(64),
+          data: { observabilityScope: { workspace: "workspace-1" } },
+        });
+        return projection.finish({
+          headHash: "a".repeat(64),
+          eventCount: 1,
+          readMessages: () => [],
+        });
+      },
+    );
+
+    await expect(
+      runCoworkTaskParallel({
+        templateId: "web-research",
+        userMessage: "research",
+        mcpSessionId: "protected-parallel-session",
+      }),
+    ).rejects.toMatchObject({
+      code: "CC_COWORK_MCP_CALL_LEDGER_UNSUPPORTED",
+      sessionId: "protected-parallel-session",
+    });
+    expect(_MockOrchestrator).not.toHaveBeenCalled();
+    expect(_mockAddTask).not.toHaveBeenCalled();
   });
 
   it("returns parallel result with correct structure", async () => {
@@ -1508,6 +1617,8 @@ describe("runCoworkDebate", () => {
     _deps.mkdirSync = vi.fn();
     _deps.appendFileSync = vi.fn();
     _deps.readFileSync = vi.fn(() => "function foo() { return 42; }");
+    _deps.sessionHasPersistedEvidence = vi.fn(() => false);
+    _deps.readVerifiedSessionProjection = null;
     _mockStartDebate.mockResolvedValue({
       target: "test",
       perspectives: ["performance", "security", "maintainability"],
@@ -1535,6 +1646,37 @@ describe("runCoworkDebate", () => {
       consensusScore: 75,
       summary: "Overall decent, fix the security issue.",
     });
+  });
+
+  it("rejects a protected canonical session before debate provider admission", async () => {
+    _deps.sessionHasPersistedEvidence = vi.fn(() => true);
+    _deps.readVerifiedSessionProjection = vi.fn(
+      (_sessionId, createProjection) => {
+        const projection = createProjection();
+        projection.accept({
+          type: "session_start",
+          hash: "b".repeat(64),
+          data: { usageTelemetryProtocol: "call-ledger" },
+        });
+        return projection.finish({
+          headHash: "b".repeat(64),
+          eventCount: 1,
+          readMessages: () => [],
+        });
+      },
+    );
+
+    await expect(
+      runCoworkDebate({
+        templateId: "code-review",
+        userMessage: "review",
+        mcpSessionId: "protected-debate-session",
+      }),
+    ).rejects.toMatchObject({
+      code: "CC_COWORK_MCP_CALL_LEDGER_UNSUPPORTED",
+      sessionId: "protected-debate-session",
+    });
+    expect(_mockStartDebate).not.toHaveBeenCalled();
   });
 
   it("returns debate result with verdict and reviews", async () => {

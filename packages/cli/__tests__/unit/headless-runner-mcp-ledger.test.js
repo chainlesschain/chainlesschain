@@ -3,8 +3,18 @@ import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
 import { executeTool } from "../../src/runtime/agent-core.js";
 import { MCP_CALL_LEDGER_EVENT } from "../../src/lib/mcp-call-ledger-store.js";
 
+const HEAD_0 = "0".repeat(64);
 const HEAD_1 = "1".repeat(64);
 const HEAD_2 = "2".repeat(64);
+
+function sessionStartEvent() {
+  return {
+    type: "session_start",
+    prevHash: null,
+    hash: HEAD_0,
+    data: { title: "test" },
+  };
+}
 
 function fakeGate() {
   return {
@@ -43,13 +53,16 @@ function ledgerRecord(status = "started") {
 function ledgerEvent(record, phase = "started") {
   return {
     type: MCP_CALL_LEDGER_EVENT,
-    prevHash: phase === "started" ? null : HEAD_1,
+    prevHash: phase === "started" ? HEAD_0 : HEAD_1,
     hash: phase === "started" ? HEAD_1 : HEAD_2,
     data: { schemaVersion: 1, phase, record },
   };
 }
 
 function harness(events) {
+  const sessionEvents = events.some((event) => event.type === "session_start")
+    ? events
+    : [sessionStartEvent(), ...events];
   const captured = {};
   const appendAuthorityEvent = vi.fn(() => true);
   const deps = {
@@ -69,8 +82,8 @@ function harness(events) {
       { role: "user", content: "before" },
       { role: "assistant", content: "answer" },
     ],
-    readEvents: () => events,
-    readVerifiedEvents: () => events,
+    readEvents: () => sessionEvents,
+    readVerifiedEvents: () => sessionEvents,
     startSession: () => {},
     appendUserMessage: () => {},
     appendAssistantMessage: () => {},

@@ -604,6 +604,122 @@ describe("runAgentHeadlessStream", () => {
     expect(JSON.stringify(failure)).not.toContain("private path");
   });
 
+  it("terminates the stream when a call-ledger append fails", async () => {
+    let calls = 0;
+    const agentLoop = async function* () {
+      calls += 1;
+      yield {
+        type: "model-usage-started",
+        callId: `call-${calls}`,
+        provider: "openai",
+        model: "gpt-4o",
+        source: "model",
+      };
+      yield { type: "response-complete", content: "must not continue" };
+    };
+    const deps = baseDeps({
+      agentLoop,
+      input: input({ text: "first" }, { text: "second" }),
+      sessionExists: () => false,
+      startSession: () => {},
+      appendUserMessage: () => {},
+      appendAssistantMessage: () => {},
+      appendEvent: (_id, type) => {
+        if (type === "model_usage_started") {
+          throw Object.assign(new Error("private path"), { code: "ENOSPC" });
+        }
+      },
+      readEvents: () => [],
+      loadSideEffectLedger: () => null,
+    });
+
+    const outcome = await runAgentHeadlessStream(
+      { sessionId: "stream-ledger-full", expandFileRefs: false },
+      deps,
+    );
+
+    expect(calls).toBe(1);
+    expect(outcome).toMatchObject({
+      exitCode: 1,
+      turns: 1,
+      persistence: { fs_code: "ENOSPC", phase: "after-model" },
+    });
+    const failure = parseEmitted(deps._lines).find(
+      (event) => event.subtype === "error_persistence",
+    );
+    expect(JSON.stringify(failure)).not.toContain("private path");
+  });
+
+  it("persists child settlements synchronously and does not replay their writes", async () => {
+    const usageWrites = [];
+    const eventWrites = [];
+    const agentLoop = async function* (_messages, options) {
+      const known = {
+        type: "token-usage",
+        callId: "stream-child-known-1",
+        provider: "openai",
+        model: "gpt-4o-mini",
+        source: "subagent",
+        usage: { input_tokens: 13, output_tokens: 5 },
+        attribution: { origin: "subagent", subagentId: "sub-stream-1" },
+      };
+      const unknown = {
+        type: "model-usage-unknown",
+        callId: "stream-child-unknown-1",
+        provider: "openai",
+        model: "gpt-4o-mini",
+        source: "subagent",
+        code: "provider_usage_missing",
+      };
+      options.onUsageSettlement(known);
+      yield { ...known, ledgerPersisted: true };
+      options.onUsageSettlement(unknown);
+      yield { ...unknown, ledgerPersisted: true };
+      yield { type: "response-complete", content: "done" };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    const deps = baseDeps({
+      agentLoop,
+      input: input({ type: "user", text: "go" }),
+      sessionExists: () => false,
+      startSession: () => {},
+      appendUserMessage: () => {},
+      appendAssistantMessage: () => {},
+      appendTokenUsage: (...args) => usageWrites.push(args),
+      appendEvent: (...args) => eventWrites.push(args),
+      readEvents: () => [],
+      loadSideEffectLedger: () => null,
+    });
+
+    const outcome = await runAgentHeadlessStream(
+      { sessionId: "stream-child-settlement", expandFileRefs: false },
+      deps,
+    );
+
+    expect(outcome).toEqual({ exitCode: 0, turns: 1 });
+    expect(usageWrites).toEqual([
+      [
+        "stream-child-settlement",
+        expect.objectContaining({ callId: "stream-child-known-1" }),
+      ],
+    ]);
+    expect(
+      eventWrites.filter(([, type]) => type === "model_usage_unknown"),
+    ).toEqual([
+      [
+        "stream-child-settlement",
+        "model_usage_unknown",
+        expect.objectContaining({
+          callId: "stream-child-unknown-1",
+          code: "provider_usage_missing",
+        }),
+      ],
+    ]);
+    expect(
+      parseEmitted(deps._lines).filter((event) => event.type === "token_usage"),
+    ).toHaveLength(1);
+  });
+
   it("threads autoCheckpoint into the loop options, keyed by sessionId", async () => {
     const captured = [];
     const agentLoop = async function* (_messages, loopOptions) {
@@ -1079,6 +1195,71 @@ describe("runAgentHeadlessStream — custom slash-command macros (panel parity)"
     );
   });
 
+  it("pairs interleaved tool latency by provider id", async () => {
+    const compactCalls = [];
+    const ticks = [0, 10, 20, 50, 80];
+    const agentLoop = async function* () {
+      yield {
+        type: "tool-executing",
+        tool_use_id: "parallel-a",
+        tool: "read_file",
+        args: { path: "a" },
+      };
+      yield {
+        type: "tool-executing",
+        tool_use_id: "parallel-b",
+        tool: "list_dir",
+        args: { path: "." },
+      };
+      yield {
+        type: "tool-result",
+        tool_use_id: "parallel-a",
+        tool: "read_file",
+        result: { ok: true },
+      };
+      yield {
+        type: "tool-result",
+        tool_use_id: "parallel-b",
+        tool: "list_dir",
+        result: { ok: true },
+      };
+      yield { type: "response-complete", content: "done" };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    const deps = baseDeps({
+      agentLoop,
+      input: input({ type: "user", text: "go" }),
+      now: () => ticks.shift(),
+      sessionExists: () => false,
+      startSession: () => {},
+      appendUserMessage: () => {},
+      appendAssistantMessage: () => {},
+      appendToolCallCompact: (_sessionId, record) => compactCalls.push(record),
+      appendEvent: () => {},
+      readEvents: () => [],
+      rebuildMessages: () => [],
+      loadSideEffectLedger: () => null,
+    });
+
+    await runAgentHeadlessStream(
+      { sessionId: "stream-parallel-tools", expandFileRefs: false },
+      deps,
+    );
+
+    expect(compactCalls).toEqual([
+      expect.objectContaining({
+        id: "parallel-a",
+        tool: "read_file",
+        durationMs: 40,
+      }),
+      expect.objectContaining({
+        id: "parallel-b",
+        tool: "list_dir",
+        durationMs: 60,
+      }),
+    ]);
+  });
+
   it("persists stream turn bindings with provider ids and tool-free coverage", async () => {
     const snapshots = [];
     let turn = 0;
@@ -1126,11 +1307,16 @@ describe("runAgentHeadlessStream — custom slash-command macros (panel parity)"
       deps,
     );
 
-    expect(snapshots).toHaveLength(2);
-    expect(snapshots.every((entry) => entry.type === TURN_BINDING_EVENT)).toBe(
-      true,
+    const turnBindingSnapshots = snapshots.filter(
+      (entry) => entry.type === TURN_BINDING_EVENT,
     );
-    const turns = TurnBindingLog.fromJSON(snapshots.at(-1).data).list();
+    expect(turnBindingSnapshots).toHaveLength(2);
+    expect(
+      turnBindingSnapshots.every((entry) => entry.type === TURN_BINDING_EVENT),
+    ).toBe(true);
+    const turns = TurnBindingLog.fromJSON(
+      turnBindingSnapshots.at(-1).data,
+    ).list();
     expect(turns).toHaveLength(2);
     expect(turns[0].toolCallIds).toEqual(["provider-stream-call-1"]);
     expect(turns[1].toolCallIds).toEqual([]);

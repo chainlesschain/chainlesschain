@@ -53,6 +53,30 @@ describe("session-tail", () => {
     expect(events[0].type).toBe("ok");
   });
 
+  it("parseChunk rejects an oversized unterminated record", async () => {
+    const { parseChunk } = await import("../../src/lib/session-tail.js");
+    expect(() => parseChunk("0123456789", { maxRecordBytes: 8 })).toThrowError(
+      expect.objectContaining({
+        code: "CC_SESSION_JSONL_RECORD_TOO_LARGE",
+        actualBytes: 10,
+        maxBytes: 8,
+      }),
+    );
+  });
+
+  it("parseChunk rejects an oversized terminated record before slicing it", async () => {
+    const { parseChunk } = await import("../../src/lib/session-tail.js");
+    expect(() =>
+      parseChunk("0123456789\n", { maxRecordBytes: 8 }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "CC_SESSION_JSONL_RECORD_TOO_LARGE",
+        actualBytes: 10,
+        maxBytes: 8,
+      }),
+    );
+  });
+
   it("retries transient ENOENT presence races and fails closed if they persist", async () => {
     const { readLiveTranscriptPresence } =
       await import("../../src/lib/session-tail.js");
@@ -103,6 +127,101 @@ describe("session-tail", () => {
       "user_message",
       "assistant_message",
     ]);
+  });
+
+  it("bounds fromStart reads and rejects a record before decode or parse", async () => {
+    const { sessionPath } =
+      await import("../../src/harness/jsonl-session-store.js");
+    const { followSession } = await import("../../src/lib/session-tail.js");
+    fs.mkdirSync(path.join(tmpHome, "sessions"), { recursive: true });
+    fs.writeFileSync(
+      sessionPath("tail-oversized-from-start"),
+      `${JSON.stringify({ type: "large", data: { value: "界".repeat(40) } })}\n`,
+      "utf8",
+    );
+
+    await expect(
+      drain(
+        followSession("tail-oversized-from-start", {
+          fromStart: true,
+          once: true,
+          maxRecordBytes: 64,
+          readChunkBytes: 7,
+        }),
+      ),
+    ).rejects.toMatchObject({
+      code: "CC_SESSION_JSONL_RECORD_TOO_LARGE",
+      maxBytes: 64,
+    });
+  });
+
+  it("rejects an unterminated record that crosses the cap across polls", async () => {
+    const { sessionPath } =
+      await import("../../src/harness/jsonl-session-store.js");
+    const { followSession } = await import("../../src/lib/session-tail.js");
+    fs.mkdirSync(path.join(tmpHome, "sessions"), { recursive: true });
+    const transcript = sessionPath("tail-oversized-across-polls");
+    fs.writeFileSync(transcript, '{"type":"pending","data":"', "utf8");
+
+    const iter = followSession("tail-oversized-across-polls", {
+      fromStart: true,
+      pollMs: 5,
+      maxRecordBytes: 40,
+      readChunkBytes: 6,
+    });
+    const next = iter.next();
+    setTimeout(() => fs.appendFileSync(transcript, "x".repeat(30), "utf8"), 20);
+
+    await expect(next).rejects.toMatchObject({
+      code: "CC_SESSION_JSONL_RECORD_TOO_LARGE",
+      maxBytes: 40,
+    });
+  });
+
+  it("preserves UTF-8 code points split across bounded reads", async () => {
+    const { sessionPath } =
+      await import("../../src/harness/jsonl-session-store.js");
+    const { followSession } = await import("../../src/lib/session-tail.js");
+    fs.mkdirSync(path.join(tmpHome, "sessions"), { recursive: true });
+    fs.writeFileSync(
+      sessionPath("tail-split-utf8"),
+      `${JSON.stringify({ type: "unicode", data: { value: "界" } })}\n`,
+      "utf8",
+    );
+
+    const items = await drain(
+      followSession("tail-split-utf8", {
+        fromStart: true,
+        once: true,
+        readChunkBytes: 1,
+      }),
+    );
+    expect(items).toHaveLength(1);
+    expect(items[0].event.data.value).toBe("界");
+  });
+
+  it("rejects an explicit offset that starts inside a physical record", async () => {
+    const { sessionPath } =
+      await import("../../src/harness/jsonl-session-store.js");
+    const { followSession } = await import("../../src/lib/session-tail.js");
+    fs.mkdirSync(path.join(tmpHome, "sessions"), { recursive: true });
+    const prefix = "x".repeat(80);
+    const suffix = `${JSON.stringify({ type: "suffix", data: {} })}\n`;
+    fs.writeFileSync(sessionPath("tail-mid-record-offset"), prefix + suffix);
+
+    await expect(
+      drain(
+        followSession("tail-mid-record-offset", {
+          fromOffset: Buffer.byteLength(prefix),
+          once: true,
+          maxRecordBytes: 64,
+          readChunkBytes: 7,
+        }),
+      ),
+    ).rejects.toMatchObject({
+      code: "SESSION_TAIL_OFFSET_NOT_RECORD_BOUNDARY",
+      offset: Buffer.byteLength(prefix),
+    });
   });
 
   it("followSession filters by type", async () => {

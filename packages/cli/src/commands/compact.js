@@ -5,7 +5,7 @@
  *
  *   cc compact <session-id>              compact and persist (writes a `compact`
  *                                        checkpoint event the resume path honors)
- *   cc compact <session-id> --dry-run    preview the reduction, write nothing
+ *   cc compact <session-id> --dry-run    offline preview; no provider call/write
  *
  * Engine: PromptCompressor with a bounded structured semantic handoff using the
  * session's recorded provider. `--offline` explicitly selects deterministic
@@ -23,14 +23,17 @@ import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import {
   appendAuthorityEventIfHead,
+  appendEventIfHead,
   readVerifiedProjection,
   sessionExists,
 } from "../harness/jsonl-session-store.js";
 import { PromptCompressor } from "../harness/prompt-compressor.js";
+import { compactConversationWithProvider } from "../harness/provider-backed-compaction.js";
+import { runMeteredDirectModelCall } from "../lib/direct-model-usage.js";
 import { chatWithTools } from "../runtime/agent-core.js";
 
 /** Build a compressor sized to the session (or explicit overrides). */
-function buildCompressor(options, recorded) {
+function buildCompressor(options, recorded, llmQuery) {
   const maxTokens = options.maxTokens ? Number(options.maxTokens) : undefined;
   const maxMessages = options.maxMessages
     ? Number(options.maxMessages)
@@ -40,7 +43,7 @@ function buildCompressor(options, recorded) {
     return new PromptCompressor({
       maxTokens,
       maxMessages,
-      llmQuery: buildSemanticQuery(options, recorded),
+      llmQuery,
     });
   }
   const model = options.model || recorded.model || undefined;
@@ -49,32 +52,89 @@ function buildCompressor(options, recorded) {
   return new PromptCompressor({
     model,
     provider,
-    llmQuery: buildSemanticQuery(options, { model, provider }),
+    llmQuery,
   });
 }
 
-function buildSemanticQuery(options, recorded) {
+function attachMeteringMetadata(value, { callId, settled }) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return;
+  try {
+    Object.defineProperties(value, {
+      compactionCallId: {
+        configurable: true,
+        value: callId || undefined,
+      },
+      usageLedgerSettled: {
+        configurable: true,
+        value: settled === true,
+      },
+    });
+  } catch {
+    // A frozen provider error still propagates. The durable started row remains
+    // authoritative if its unknown settlement could not be attached here.
+  }
+}
+
+function buildSemanticQuery(options, recorded, sessionId, ledger) {
   const provider = options.provider || recorded.provider || undefined;
   const model = options.model || recorded.model || undefined;
-  if (options.offline || !provider) return null;
+  // A preview must be both write-free and spend-free. It uses the same
+  // deterministic compressor thresholds, but never installs an LLM callback.
+  if (options.offline || options.dryRun || !provider) return null;
   const baseUrl =
     options.baseUrl ||
     (provider === "ollama" ? "http://localhost:11434" : undefined);
   return async (prompt) => {
-    const response = await chatWithTools([{ role: "user", content: prompt }], {
-      provider,
-      model,
-      baseUrl,
-      enabledToolNames: [],
-      extraToolDefinitions: [],
-      maxOutputTokens: 2048,
-    });
-    return {
-      summary: response?.message?.content || "",
-      usage: response?.usage || null,
-      provider,
-      model,
-    };
+    let callId = null;
+    try {
+      const response = await runMeteredDirectModelCall({
+        sessionId,
+        provider,
+        model,
+        source: "semantic-compaction",
+        persist: async (type, data) => {
+          const appended = appendEventIfHead(
+            sessionId,
+            type,
+            data,
+            ledger.headHash,
+          );
+          ledger.headHash = appended.hash;
+          if (type === "model_usage_started") {
+            callId = data.callId;
+            ledger.callId = callId;
+            ledger.started = true;
+          } else {
+            ledger.settled = true;
+          }
+        },
+        call: () =>
+          chatWithTools([{ role: "user", content: prompt }], {
+            provider,
+            model,
+            baseUrl,
+            enabledToolNames: [],
+            extraToolDefinitions: [],
+            hostManagedToolPolicy: null,
+            contextEngine: null,
+            maxOutputTokens: 2048,
+          }),
+      });
+      return {
+        summary: response?.message?.content || "",
+        usage: response?.usage || null,
+        provider,
+        model,
+        callId,
+        usageLedgerSettled: true,
+      };
+    } catch (error) {
+      attachMeteringMetadata(error, {
+        callId: callId || ledger.callId,
+        settled: ledger.settled,
+      });
+      throw error;
+    }
   };
 }
 
@@ -144,9 +204,32 @@ export function registerCompactCommand(program) {
 
         const source = readCompactSource(sessionId);
         const messages = source.messages;
-        const compressor = buildCompressor(options, source.recorded);
+        const ledger = {
+          headHash: source.headHash,
+          callId: null,
+          started: false,
+          settled: false,
+        };
+        const llmQuery = buildSemanticQuery(
+          options,
+          source.recorded,
+          sessionId,
+          ledger,
+        );
+        const compressor = buildCompressor(options, source.recorded, llmQuery);
+        // llmQuery already persisted a complete call ledger. The provider
+        // helper only carries its metadata through stats; its projected usage
+        // event is intentionally not appended a second time here.
         const { messages: compacted, stats } =
-          await compressor.compress(messages);
+          await compactConversationWithProvider(messages, {
+            compressor,
+            provider: options.provider || source.recorded.provider || undefined,
+            model: options.model || source.recorded.model || undefined,
+          });
+
+        if (ledger.started && !ledger.settled) {
+          throw new Error("semantic compaction usage ledger is unsettled");
+        }
 
         const reduced = stats.saved > 0 || compacted.length < messages.length;
 
@@ -170,7 +253,7 @@ export function registerCompactCommand(program) {
             sessionId,
             "compact",
             { ...stats, messages: compacted },
-            source.headHash,
+            ledger.headHash,
           );
         }
 

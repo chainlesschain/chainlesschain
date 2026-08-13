@@ -48,6 +48,14 @@ function capture(argv) {
 }
 
 describe("background launch profile", () => {
+  it("refuses to capture an ephemeral profile that resume cannot preserve", () => {
+    expect(() =>
+      capture(["agent", "--ephemeral", "--session", "ephemeral-session"]),
+    ).toThrowError(
+      expect.objectContaining({ code: "BACKGROUND_EPHEMERAL_UNSUPPORTED" }),
+    );
+  });
+
   it("captures a versioned effective envelope without prompt or credentials", () => {
     const settings = join(dir, "settings.json");
     const mcp = join(dir, "mcp.json");

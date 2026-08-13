@@ -80,6 +80,8 @@ function sendIpc(target, message, onError = () => {}) {
  * @param {string} [options.backgroundAgentId]
  * @param {string|null} [options.sessionId]
  * @param {string|null} [options.turnId]
+ * @param {object|null} [options.sessionHostWriteDelegation]
+ * @param {string|null} [options.turnIpcToken]
  * @param {number} [options.defaultTimeoutMs]
  * @param {()=>string} [options.idFactory]
  */
@@ -89,6 +91,11 @@ export function createBackgroundInteractionClient(options = {}) {
     options.backgroundAgentId ?? processLike?.env?.CC_BACKGROUND_AGENT_ID;
   const sessionId = options.sessionId ?? null;
   const turnId = options.turnId ?? null;
+  const sessionHostWriteDelegation = options.sessionHostWriteDelegation ?? null;
+  const turnIpcToken =
+    options.turnIpcToken ??
+    asNullableString(processLike?.env?.CC_BACKGROUND_TURN_IPC_NONCE);
+  const senderPid = Number(processLike?.pid ?? process.pid);
   const defaultTimeoutMs =
     Number.isFinite(options.defaultTimeoutMs) && options.defaultTimeoutMs > 0
       ? options.defaultTimeoutMs
@@ -205,6 +212,12 @@ export function createBackgroundInteractionClient(options = {}) {
             protocolVersion: BACKGROUND_INTERACTION_PROTOCOL_VERSION,
             requestId,
             binding,
+            sessionHostWriteDelegation,
+            senderPid:
+              Number.isSafeInteger(senderPid) && senderPid > 0
+                ? senderPid
+                : null,
+            turnIpcToken,
             payload: {
               kind: payload.kind || "question",
               question: String(payload.question || payload.prompt || ""),
@@ -261,6 +274,9 @@ export function createBackgroundInteractionClient(options = {}) {
  * @param {object} [options]
  * @param {string|null} [options.backgroundAgentId]
  * @param {string|null} [options.sessionId]
+ * @param {string|null} [options.turnIpcToken]
+ * @param {boolean} [options.requireSenderPid]
+ * @param {boolean} [options.requireDelegationOwnerPid]
  * @returns {()=>void} detach function
  */
 export function attachInteractionRequestHandler(
@@ -324,6 +340,8 @@ export function attachInteractionRequestHandler(
     const binding = normalizeInteractionBinding(message.binding);
     const expectedAgentId = asNullableString(options.backgroundAgentId);
     const expectedSessionId = asNullableString(options.sessionId);
+    const expectedTurnIpcToken = asNullableString(options.turnIpcToken);
+    const senderPid = Number(message.senderPid);
     if (
       (expectedAgentId && binding.backgroundAgentId !== expectedAgentId) ||
       (expectedSessionId && binding.sessionId !== expectedSessionId)
@@ -332,6 +350,20 @@ export function attachInteractionRequestHandler(
         message,
         "INTERACTION_BINDING_MISMATCH",
         "Background interaction does not belong to this worker/session",
+      );
+      return;
+    }
+    if (
+      (expectedTurnIpcToken && message.turnIpcToken !== expectedTurnIpcToken) ||
+      (options.requireSenderPid === true &&
+        (!Number.isSafeInteger(senderPid) || senderPid < 1)) ||
+      (options.requireDelegationOwnerPid === true &&
+        Number(message.sessionHostWriteDelegation?.ownerPid) !== senderPid)
+    ) {
+      rejectRequest(
+        message,
+        "INTERACTION_CHILD_IDENTITY_MISMATCH",
+        "Background interaction did not originate from this turn child",
       );
       return;
     }
