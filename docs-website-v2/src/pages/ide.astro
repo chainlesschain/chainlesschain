@@ -13,7 +13,7 @@ const OPEN_VSX_DOWNLOADS = releaseStatus.openVsxDownloadsMilestone;
 ---
 <BaseLayout
   title="IDE 集成 — VS Code + JetBrains 双扩展，agent 进编辑器 | ChainlessChain"
-  description="ChainlessChain IDE 桥接：VS Code（Open VSX）+ JetBrains（Marketplace）双扩展。Governed Automation Center、选区与诊断回喂、原生 diff 审批、CLI-owned Sessions、Jupyter kernel、侧边栏 Chat 与 App 预览。"
+  description="ChainlessChain IDE 桥接：VS Code（Open VSX）+ JetBrains（Marketplace）双扩展。受治理自动 ghost-text、Automation Center、原生 diff 审批、CLI-owned Sessions、侧边栏 Chat 与 App 预览。"
   canonical="https://www.chainlesschain.com/ide"
 >
   <section class="relative overflow-hidden">
@@ -37,7 +37,7 @@ const OPEN_VSX_DOWNLOADS = releaseStatus.openVsxDownloadsMilestone;
           当前 VS Code <strong class="text-ink">{VSCODE_VERSION}</strong> 已公开上架 Open VSX，累计下载突破 <strong class="text-ink">{OPEN_VSX_DOWNLOADS}</strong>；JetBrains <strong class="text-ink">{JETBRAINS_VERSION}</strong> 已公开上架 Marketplace，推荐搭配完整门禁 CLI <strong class="text-ink">{CLI_VERSION}</strong>。两个 tagged workflow 均已完成三平台真实宿主、制品、发布与 registry 回读；微软 VS Code Marketplace 版本仍未发布。
         </p>
         <p class="mt-3 text-sm text-muted">
-          IDE 源码与公开稳定版已对齐：VS Code <strong class="text-ink">{VSCODE_SOURCE_VERSION}</strong>、JetBrains <strong class="text-ink">{JETBRAINS_SOURCE_VERSION}</strong>。CLI 源码包元数据 <strong class="text-ink">{SOURCE_CLI_VERSION}</strong> 也与完整门禁公开版一致，稳定组合仍以不可变标签证据为准。Governed Automation Center、内联聊天、CLI-owned Sessions Workbench、可恢复交付与 canonical rewind 均已进入公开安装能力。
+          IDE 源码与公开稳定版已对齐：VS Code <strong class="text-ink">{VSCODE_SOURCE_VERSION}</strong>、JetBrains <strong class="text-ink">{JETBRAINS_SOURCE_VERSION}</strong>。CLI 源码包元数据 <strong class="text-ink">{SOURCE_CLI_VERSION}</strong> 也与完整门禁公开版一致，稳定组合仍以不可变标签证据为准。默认关闭的受治理自动 ghost-text、Automation Center、内联聊天、CLI-owned Sessions Workbench、可恢复交付与 canonical rewind 均已进入公开安装能力。
         </p>
       </div>
     </div>
@@ -59,12 +59,12 @@ const OPEN_VSX_DOWNLOADS = releaseStatus.openVsxDownloadsMilestone;
           ['插件', '事务化升级 + 供应链治理', '按 scope 启停；升级先 staging 校验 manifest/签名/SBOM 再原子激活，失败恢复旧版本。IDE 只在 activated 后重载会话，扩大 capability 前要求显式批准。'],
           ['治理', 'Distributed Agent Teams', 'IDE 只读观察本地 team state v6 与独立 distributed queue v1 原始快照；takeover、managed checkpoint recovery 与副作用 adjudication 全部交回 CLI，并绑定 authority digest、lease 与 evidence fence。过期 UI 动作失败闭合，IDE 不直接改权威 JSON。'],
           ['归因', '耗时与重试可见', '用量视图展示真实工具耗时、同轮观测重试和脱敏的流式 LLM retry 原因/实际 provider/model，不保存工具参数、输出或凭据。'],
-          ['自动化', 'Governed Automation Center', '公开版 0.37.50 / 0.4.86 展示 CLI-owned flow/Routine projection、scope、preflight 与 history；run-now、失败重试、pause/resume、disable/delete、Routine create/edit 全部经 exact revision 与 CLI argv 执行，IDE 不直接写权威存储。'],
+          ['自动化', 'Governed Automation Center', '公开版 0.37.51 / 0.4.87 展示 CLI-owned flow/Routine projection、scope、preflight 与 history；run-now、失败重试、pause/resume、disable/delete、Routine create/edit 全部经 exact revision 与 CLI argv 执行，IDE 不直接写权威存储。'],
           ['会话', 'CLI-owned Sessions Workbench', '公开版 0.37.50 / 0.4.86 读取 CLI 生成的 immutable session projection；五类 session 已覆盖 Dispatch、needs_input、Reply、artifact/PR 与独立进程重启恢复，过期动作失败闭合。'],
           ['交付', '可恢复 delivery 与 rewind', '公开版覆盖 GitHub、Gitee、configured remote 与 manual handoff；每步校验结果/副作用摘要，rewind 绑定 session、workspace、仓库 head、checkpoint revision 与 manifest digest。'],
-          ['内联', '选区旁直接问与改', 'VS Code 0.37.50 提供独立内联会话、流式响应、代码块复制/插入/替换，并完成 stable/minimum × Linux/Windows/macOS ARM64 多窗口隔离门；Explain / Refactor / Fix / Docs / Tests 已在 Open VSX 公开。'],
+          ['内联', '选区旁直接问与改', 'VS Code 0.37.51 提供独立内联会话、流式响应、代码块复制/插入/替换，并完成 stable/minimum × Linux/Windows/macOS ARM64 多窗口隔离门；Explain / Refactor / Fix / Docs / Tests 已在 Open VSX 公开。'],
           ['同步', 'CLI 版本对齐', '激活时检测 cc --version；当前稳定安装固定到 npm i -g chainlesschain@0.163.6，与已完成完整门禁的 npm latest 一致。'],
-          ['补全', '@ 文件 / 实时斜杠命令', 'REPL 里 @ 路径 TAB 补全把编辑器打开的文件排最前；面板 @ 补全含 @selection / @diagnostics / @terminal；/status /doctor /mcp /hooks /permissions /agents /tasks /memory 读取当前会话，另含 /new /plan /approve /reject /stop /expand。'],
+          ['补全', '受治理自动 ghost-text', 'Alt+\\ 手动补全保持不变；自动路径默认关闭，启用后采用 650ms 可取消 debounce、exact-context 去重/缓存、独立小时请求与上下文字数预算、有界输出和质量回退。超过 5 秒或质量不足时静默丢弃。'],
         ].map(([tag, title, desc]) => (
           <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">
             <div class="font-mono text-xs text-ember mb-3">{tag}</div>

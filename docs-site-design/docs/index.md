@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: "v5.0.3.135 | 87+ 模块设计 | CLI 0.163.6 | Open VSX 0.37.50 / JetBrains 0.4.86 | Automation Center · Scheduler Authority"
+  tagline: "v5.0.3.135 | 87+ 模块设计 | CLI 0.163.6 | Open VSX 0.37.51 / JetBrains 0.4.87 | 自动补全治理 · Scheduler 裁决"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -45,7 +45,7 @@ features:
     details: RBAC权限、SOC2合规、SCIM用户配置、DLP数据防泄漏、SIEM安全信息管理
 ---
 
-> **2026-08-12 设计核对**：当前产品源码 `5.0.3.135`，npm `latest`、生产推荐 CLI 与主线源码均为 `0.163.6`。不可变 tag `v-npm-0-163-6` 精确指向 `85c3577c88`；同 SHA 的三平台 CLI CI、Strict Sandbox、npm 发布与独立回读均成功。公开版以 SQLite 为持久层统一 Agenda、Routine、Cowork、Automation 与 Loop 的 Scheduler authority，并提供 IANA timezone、missed-run collapse、exact capability policy 与 transactional budget。Open VSX `0.37.50` / JetBrains `0.4.86` 的 Automation Center 使用 CLI-owned projection 与 revision CAS。详见[运行时实现核对](/cli-runtime-current)、[CLI 对标与 P2 收口](/CLAUDE_CODE_CLI_PARITY_OPTIMIZATION_PLAN)及[IDE 桥接设计](/modules/m98-ide-bridge)。
+> **2026-08-13 设计核对**：当前产品源码 `5.0.3.135`，npm `latest` 与生产推荐 CLI 为 `0.163.6`。Open VSX `0.37.51` / JetBrains `0.4.87` 在 Automation Center 上新增默认关闭的受治理自动 ghost-text。`main` 的 scheduler store schema v3 另以单调决策、evidence digest、attempt/fence CAS 和 adapter adjudication hook 收口 outcome-unknown 人工裁决；该增量未进入新的 npm tag，不能写成 `0.163.6` 稳定契约。详见[运行时实现核对](/cli-runtime-current)、[CLI 对标与 P2 收口](/CLAUDE_CODE_CLI_PARITY_OPTIMIZATION_PLAN)及[IDE 桥接设计](/modules/m98-ide-bridge)。
 
 ## 快速导航
 
@@ -89,6 +89,7 @@ features:
 | **v5.0.3.135（P2-14 / P2-16 收口）**  | —       | **CLI 0.162.189 + IDE 协作控制正式发布**：P2-14 在 Process Broker 管理的声明 workspace writer 范围内提供持久 checkpoint、分层 coverage 与失败/取消/超时后的 fenced rollback/recovery；P2-16 完成本地 v6 authority、分布式 queue v1、团队预算、lease/CAS fencing、wall lifecycle fence、两阶段 worktree 清理、交互式裁决/安全恢复及三平台长期 soak。VS Code 0.37.37 与 JetBrains 0.4.76 以只读投影呈现 Agent Team 状态，所有权威变更继续由 CLI 执行。CLI release SHA `2607af0dad`；IDE release SHA `33e4d512d3`。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | **2026-08-04 源码候选**               | —       | **CLI 0.162.194 / VS Code 0.37.40 / JetBrains 0.4.78（均未发布）**：canonical session 与资源预算、MCP recovery adjudication、受控 Skill 子 Agent、签名 updater recovery、checkpoint restore saga/recovery CLI、IDE Sessions Workbench、resumable delivery、canonical rewind/branch timeline 与 VS Code inline chat。公开 registry 仍分别按推荐 CLI 0.162.189、Open VSX 0.37.38、JetBrains 0.4.76 说明；不把候选源码或失败 workflow 表述为稳定发布。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | **2026-08-12 正式发布**               | —       | **CLI 0.163.6 / Open VSX 0.37.50 / JetBrains 0.4.86**：CLI 在 exact SHA `85c3577c88` 完成三平台 CI、Strict Sandbox、npm 发布与独立回读，公开五域 Scheduler authority、IANA timezone/missed-run、权限预算与 Automation/Routine 控制面；IDE 双市场版本同指 `074bc47129`。 |
+| **2026-08-13 主线同步**               | —       | **Open VSX 0.37.51 / JetBrains 0.4.87 + scheduler adjudication source**：IDE 双 tag 指向 `dd0adad7b1` 并公开受治理自动 ghost-text；CLI `main` 的 `c7d49beaa1` 增加 outcome-unknown 裁决，但 npm 稳定版仍为 0.163.6。 |
 | **2026-08-08 正式发布**               | —       | **CLI 0.163.1 / Open VSX 0.37.45 / JetBrains 0.4.81**：CLI 在 exact SHA `e3f56b11e2` 完成三平台 CI/Strict、unsigned 六目标 native validation、三系统两小时可靠性门、immutable tarball/SBOM、Trusted Publishing、SLSA provenance 与 registry/npmmirror 回读；公开 durable-witness 会话竞态加固、有界长会话、Windows MCP 原子启动、可复现 Web Panel 与 Node 22 standalone 基座。unsigned native 证据不替代签名 Desktop/native 发行。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 
 ---

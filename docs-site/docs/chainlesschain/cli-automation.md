@@ -4,7 +4,7 @@
 >
 > 12 个 SaaS 连接器 + 5 种触发器类型 + DAG 拓扑排序 + 条件分支执行。
 >
-> **版本边界（2026-08-12）**：`0.163.6` 是 npm `latest` 与生产推荐版。`automation run-scheduled`、execution preflight/budget、scope-checked channel event 以及双 IDE Automation Center 均已进入公开安装契约。
+> **版本边界（2026-08-13）**：`0.163.6` 是 npm `latest` 与生产推荐版。`automation run-scheduled`、execution preflight/budget、scope-checked channel event 以及双 IDE Automation Center 均已进入公开安装契约。scheduler outcome-unknown 人工裁决仅在 `main` 源码中，尚未进入 npm 稳定版。
 
 ---
 
@@ -262,6 +262,25 @@ Get-Content routine.json | chainlesschain auto center-routine-edit <routine-id> 
 VS Code 在 Activity Bar 打开 **ChainlessChain Automation**；JetBrains 在 **View → Tool Windows → ChainlessChain Automation** 打开。两端都显示 scope、preflight、运行历史与可用动作，最终权威仍由 CLI 持有。
 
 ---
+
+## `main` 源码：outcome-unknown 人工裁决
+
+当外部连接器可能已产生副作用、但本地终态无法证明时，scheduler 会写入 `*_OUTCOME_UNKNOWN` 死信并拒绝自动重放。源码版提供统一操作入口：
+
+```bash
+cc daemon scheduler adjudication list
+cc daemon scheduler adjudication show <occurrence-id>
+
+cc daemon scheduler adjudication decide <occurrence-id> \
+  --decision confirmed_applied \
+  --expected-evidence-digest sha256:<digest> \
+  --expected-attempt <attempt> \
+  --expected-fence <fence>
+```
+
+运行 `decide` 前必须停止每一个 scheduler host、排空已分发任务，并在目标 SaaS/外部系统核验真实结果。命令只接受交互式 TTY 和逐字 typed challenge；理由与操作员身份只保存摘要。选择 `confirmed_applied` 会从证据结算且绝不重放，选择 `confirmed_not_applied` 只授权一次有界执行。任何旧 digest、attempt/fence 变化、重复裁决或非 outcome-unknown 状态都会失败闭合。决策写入后再重启一个 scheduler host 应用。
+
+这不是全局 exactly-once，也不是机器范围锁；`chainlesschain@0.163.6` 尚无这些子命令。生产安装在新 npm 版本完成三平台发布门前应继续保持死信并人工核验，不要绕过存储直接改状态。
 
 ## 触发器管理
 

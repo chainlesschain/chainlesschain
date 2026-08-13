@@ -1,6 +1,6 @@
 # CLI Runtime 当前实现（0.163.6）
 
-> 更新时间：2026-08-12。npm `latest`、生产推荐版与主线包元数据均为 `0.163.6`。稳定能力以不可变 tag `v-npm-0-163-6` 的精确 SHA [`85c3577c88`](https://github.com/chainlesschain/chainlesschain/commit/85c3577c887003fea98d0a159603cd359506f09b) 为准；该 SHA 的 CLI CI、CLI Strict Sandbox、专用 npm 发布、provenance 与独立公网回读均已核验。
+> 更新时间：2026-08-13。npm `latest`、生产推荐版与主线包元数据均为 `0.163.6`。稳定能力以不可变 tag `v-npm-0-163-6` 的精确 SHA [`85c3577c88`](https://github.com/chainlesschain/chainlesschain/commit/85c3577c887003fea98d0a159603cd359506f09b) 为准。`main` 新增的 scheduler outcome-unknown 人工裁决尚未进入 npm 发布，本文会明确区分源码能力与稳定安装契约。
 
 ## 概述
 
@@ -12,7 +12,8 @@
 | ------------------- | --------- | ------------------------------------------------------------------------------------------------------------------- |
 | 生产 / 日常稳定使用 | `0.163.6` | `v-npm-0-163-6` 的同一 exact SHA 已完成 Linux、Windows、macOS CLI CI、Strict Sandbox、制品与发布门 |
 | npm `latest`        | `0.163.6` | registry、tag、provenance、tarball 与授权 workflow 已交叉回读                                      |
-| IDE 自动化控制      | CLI `0.163.6` + VS Code `0.37.50` / JetBrains `0.4.86` | Automation Center 命令与双 IDE 公开版已对齐 |
+| IDE 工作台          | CLI `0.163.6` + VS Code `0.37.51` / JetBrains `0.4.87` | Automation Center + 默认关闭的受治理自动 ghost-text |
+| Scheduler 人工裁决  | `main` 源码（未发版） | 只供源码检出验证；不要在 `0.163.6` 安装上假定命令存在 |
 
 生产安装建议显式固定：
 
@@ -45,6 +46,7 @@ npm i -g chainlesschain@0.163.6
 - `0.163.6` 统一调度收敛：Agenda monitor、Loop、Automation cron、Routine GitHub、scope-checked channel event 与 standalone daemon 已接入共享 scheduler；Agenda/Cowork cron 支持规范 IANA timezone、DST gap/repeated minute 与 missed-run collapse。
 - `0.163.6` 共享 authority：Agenda、Routine、Cowork、Automation、Loop 在执行前复验 exact capability policy revision，并以同一事务 reservation/settlement 处理 run/unit 预算；缺失、过期、停用、耗尽或不一致的策略失败闭合，retry 不重复扣减。
 - `0.163.6` Automation Center：CLI-owned versioned projection 暴露 scope、preflight 与 history；VS Code `0.37.50` / JetBrains `0.4.86` 通过 exact argv 与 revision CAS 执行 run-now、失败重试、pause/resume、disable/delete 及 Routine 创建/编辑。IDE 不直接写权威存储。
+- `main` scheduler adjudication：只针对 `*_OUTCOME_UNKNOWN` 的 `dead_letter`，以 evidence digest、attempt、fence 做 CAS。`confirmed_applied` 只结算不重放；`confirmed_not_applied` 只放行一次有界 claim。操作前必须停掉全部 scheduler host、排空已分发工作并核验外部结果。
 - 原生发行边界：unsigned 六目标 native validation 与三系统两小时可靠性门已在同一精确 SHA 成功，但 validation 固定 `signed=false`、`releaseEligible=false`；Windows Authenticode、macOS signing/notarization、updater key 与公开原生 fresh install/upgrade/rollback 回读仍未完成。
 - 跨平台 sandbox 与 credential agent：前台、后台、hook、MCP、monitor、LSP、PTY 和插件 bin 都通过统一 broker 执行。
 - 强执行路径补齐：插件异步/后台进程、通用后台任务、CLI PTY 与桌面项目 PTY 共用失败闭合边界；未经证明的项目根和远端 metadata 不能获得本机 PTY 权限。
@@ -80,7 +82,8 @@ cc
  ├─ scheduler kernel
  │    ├─ versioned SQLite + revision CAS + occurrence history
  │    ├─ Routine / Agenda / Cowork / Automation / Loop adapters
- │    └─ exact capability policy + transactional budget authority
+ │    ├─ exact capability policy + transactional budget authority
+ │    └─ source-only outcome-unknown adjudication + evidence CAS
  ├─ MCP ws/wss + uncertain-outcome recovery authority
  │    └─ stdio runtime identity + source policy/workspace authority → Broker
  ├─ bounded usage / retry attribution
@@ -113,6 +116,7 @@ cc
 - `packages/cli/src/lib/scheduler-kernel/{contract,store,runtime}.js`：统一调度契约、SQLite 状态与 host-owned runtime。
 - `packages/cli/src/lib/scheduler-kernel/{routine,agenda,cowork-cron,automation,loop,automation-event}-adapter.js`：`0.163.6` 已发布 adapter。
 - `packages/cli/src/lib/scheduler-kernel/authority-resolver.js`、`service.js`：共享权限/预算解析与常驻 scheduler service。
+- `packages/cli/src/commands/scheduler-daemon.js`、scheduler store schema v3：`main` 的人工裁决命令、typed challenge、证据 CAS 与单调决策记录。
 
 ## 平台注意
 
@@ -158,7 +162,7 @@ source 配置中的 `requiredBoundaries` 当前只接受 `filesystem` 和 `netwo
 
 ## 在 IDE 中查看质量、插件、Worktree 与 Agent Teams
 
-Open VSX 当前公开 VS Code `0.37.50`，JetBrains Marketplace 当前公开 `0.4.86`。生产建议搭配 CLI `0.163.6`：
+Open VSX 当前公开 VS Code `0.37.51`，JetBrains Marketplace 当前公开 `0.4.87`。生产建议搭配 CLI `0.163.6`：
 
 - 质量上下文只发送有界的测试结果、覆盖率与调试器快照，并标注新鲜度；VS Code Notebook 使用当前 notebook 的真实执行上下文。
 - Installation Doctor 会同时检查 Node/Java、managed CLI 与插件 registry 离线恢复状态，不从工作区目录探测可执行文件。
@@ -216,7 +220,13 @@ cc team plan --tasks team-shell.json --json
 
 # 查看 checkpoint 恢复状态；执行 resume/rollback 前先核验证据
 cc checkpoint recovery list --json
+
+# main 源码：只读列出 scheduler outcome-unknown 待裁决项
+cc daemon scheduler adjudication list
+cc daemon scheduler adjudication show <occurrence-id>
 ```
+
+`decide` 只能在交互式 TTY 中运行，并要求最新 `evidenceDigest`、`attempt`、`fence`。不要在 scheduler host 仍运行、已分发任务尚未排空或外部结果未核验时执行。决策落盘后重启一个 scheduler host 应用结果。
 
 ## 性能指标
 
@@ -252,6 +262,7 @@ cc checkpoint recovery list --json
 | strict sandbox 启动即拒绝          | 运行 `cc doctor`，检查 Docker/bubblewrap/AppContainer 与平台证明；不要通过降低策略掩盖生产配置错误                |
 | checkpoint 显示 `partial` / `none` | 检查 writer 是否由 Broker 管理、是否位于声明 workspace，以及是否存在外部副作用                                    |
 | Team task 停在 adjudication        | 重新读取 status、authority digest、attempt 和 evidence，再显式 retry、accept 或 cancel                            |
+| Scheduler 出现 outcome-unknown 死信 | `0.163.6` 不含人工裁决命令；源码版先停全部 host、排空 dispatch、外部核验，再 `adjudication show/decide`，禁止盲目重跑 |
 | `CC_SKILL_DIRECT_HANDLER_BLOCKED`  | 当前 production 不执行 direct handler；改用受支持的隔离 Skill 工具，不要修改 handler 绕过检查                     |
 | 会话或预算状态异常                 | 在同一 `CHAINLESSCHAIN_HOME` 下检查 session JSONL、状态日志和目录权限，避免混用多个运行目录                       |
 

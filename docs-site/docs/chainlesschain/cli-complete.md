@@ -1,6 +1,6 @@
 # 行内代码补全 — FIM Ghost-Text（`cc complete`）
 
-> **版本: IDE 深度整合 · 状态: ✅ 生产就绪 | 从 stdin 读 `{prefix, suffix, language}` JSON → stdout 打印待插入代码 | 复用 `cc ask` 的 provider 路由与配置（零新增鉴权）| VS Code / JetBrains 插件的 ghost-text 后端 |**
+> **版本: CLI `0.163.6` 后端 + IDE `0.37.51 / 0.4.87` | 从 stdin 读 `{prefix, suffix, language}` JSON → stdout 打印待插入代码 | `Alt+\` 手动路径保持兼容；IDE 自动路径默认关闭并受独立预算、取消、缓存和质量门治理 |**
 >
 > `cc complete` 是给 IDE 用的**填空式（fill-in-the-middle, FIM）行内补全**引擎。它从 stdin 读一段描述光标前后代码的 JSON，把要插入光标处的代码打印到 stdout。它不是给人直接敲的——消费者是 IDE 插件（VS Code 的 `InlineCompletionItemProvider`、JetBrains 的 `InlineCompletionProvider`），它们把编辑器缓冲构造成请求、把回复渲染成灰字建议。
 
@@ -11,7 +11,7 @@
 设计要点（源码明示）：
 
 - **复用 `cc ask` 的后端**：直接调用 `queryLLM`——沿用你已配置好的 LLM/provider/key，**不引入任何新鉴权**。
-- **手动触发 v1**：IDE 把它绑到一个快捷键上，所以慢/贵的聊天模型也能接受；配一个快的本地 FIM 模型只是让它更跟手。IDE 两端都**只**在手动触发（`Invoke`）时请求，**不做**逐键自动触发。
+- **手动 + opt-in 自动**：`Alt+\` 显式触发保持兼容；IDE `0.37.51 / 0.4.87` 可另行启用默认关闭的自动建议，自动路径有独立 debounce、预算、缓存、超时和质量门。
 - **默认全本地**：默认 provider 是 `ollama`、默认模型 `qwen2.5-coder`——不配云端时代码不出本机。
 
 ## 核心特性
@@ -106,7 +106,19 @@ echo '{"prefix":"function add(a, b) {\n  return ","suffix":"\n}","language":"jav
 | 去抖/取消 | 全由 IDE 负责（超时/取消时 kill 子进程）              |
 | 输出上限  | 硬截 2000 字符（`MAX_COMPLETION_CHARS`）              |
 | 上下文    | IDE 每侧至多 4000 字符（`CONTEXT_CHARS`）             |
-| 触发      | 仅手动触发（`Invoke`），不做逐键自动补全              |
+| 触发      | CLI 本身仍是显式调用；IDE 可在用户 opt-in 后自动触发 |
+
+## IDE 受治理自动补全
+
+VS Code `0.37.51` 与 JetBrains `0.4.87` 不改变 `cc complete` 的 stdin/stdout 契约，而是在 IDE 侧增加一层默认关闭的调度与质量治理：
+
+- 停止输入 650ms 后才发起请求；继续输入、切换文档或上下文变化会取消在途结果。
+- exact-context 请求合并并使用短 TTL 缓存，避免同一光标上下文重复计费。
+- 自动路径有独立的每小时请求预算和上下文字符预算，不消耗或放宽手动触发策略。
+- 自动建议默认最多 800 字符、12 行；疑似 prose、无有效代码或越界结果会静默丢弃。
+- 自动后端调用 5 秒截止；手动 `Alt+\` 保留原 12 秒边界。达到 20 个样本后记录滚动 P50/P95，目标分别不超过 2 秒/5 秒。
+
+VS Code 在 Settings 搜索 `chainlesschain.completion.automatic`；JetBrains 在 **Settings → Tools → ChainlessChain IDE** 启用并调整预算。关闭自动开关后，`Alt+\` 仍可随时手动请求。
 
 ## 测试覆盖
 

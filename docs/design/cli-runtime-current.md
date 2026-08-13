@@ -1,6 +1,6 @@
 # CLI Runtime 当前实现核对（稳定版 0.163.6）
 
-> 更新时间：2026-08-12。npm `latest`、生产推荐版与 `github/main` 包元数据均为 `0.163.6`；公开能力绑定不可变 tag `v-npm-0-163-6` 的精确 SHA `85c3577c887003fea98d0a159603cd359506f09b`。本文继续把 npm/CLI、IDE 市场与 Desktop/native 签名发行的证据边界分开记录。
+> 更新时间：2026-08-13。npm `latest`、生产推荐版与 `github/main` 包元数据均为 `0.163.6`；公开 CLI 能力绑定不可变 tag `v-npm-0-163-6` 的精确 SHA `85c3577c887003fea98d0a159603cd359506f09b`。`main` 此后增加的 scheduler outcome-unknown 裁决属于未发版源码能力，不能反向写成 `0.163.6` 契约。本文继续把 npm/CLI、IDE 市场与 Desktop/native 签名发行的证据边界分开记录。
 
 ## 版本与证据边界
 
@@ -11,7 +11,7 @@
 - `0.163.3` 进一步公开默认后台 worktree、generation/token-fenced supervisor、grammar-safe detached argv、MCP source policy/cwd authority、Linux plugin 全树逐文件封存与 Windows adapter artifact 安全回收；其剩余边界不外推为任意 shared-library closure、macOS atomic exec、远端 revoke 或签名 native 发行。
 - `0.163.5` 公开 host-owned `SchedulerRuntime`，并把 Routine manual/cron/once、Agenda wakeup/cron 与 Cowork Cron 接到统一内核；durable microcompact checkpoint 同时进入发布。terminal evidence 可以在崩溃后安全补结算，start-only 或副作用后持久化失败固定为 outcome-unknown，不外推为全局 exactly-once。
 - `0.163.6` 完成 Agenda monitor、Loop、Automation cron、Routine GitHub、channel event 与 standalone daemon 的 adapter 迁移，并统一权限/预算 authority 及 Agenda/Cowork 的 timezone/DST/missed-run 语义。
-- IDE 当前公开版本为 Open VSX `0.37.50`、JetBrains Marketplace `0.4.86`。双 tag 指向 `074bc47129`，Automation Center、真实宿主矩阵与发布回读已完成；微软 VS Code Marketplace 与 JetBrains 作者签名仍未完成。
+- IDE 当前公开版本为 Open VSX `0.37.51`、JetBrains Marketplace `0.4.87`。双 tag 指向 `dd0adad7b1`，默认关闭的受治理自动 ghost-text、Automation Center、真实宿主矩阵与发布回读已完成；微软 VS Code Marketplace 与 JetBrains 作者签名仍未完成。
 
 ## 当前边界
 
@@ -38,7 +38,8 @@ cc entry
   │    ├─ versioned SQLite contract + revision-CAS jobs/occurrences/history
   │    ├─ host-owned runtime + owner/fence claims + lease heartbeat
   │    ├─ adapters: Routine / Agenda / Cowork / Automation / Loop
-  │    └─ shared authority: exact capabilities + revision-bound budgets
+  │    ├─ shared authority: exact capabilities + revision-bound budgets
+  │    └─ source-only adjudication v3: evidence CAS + monotonic decision
   ├─ Agent Team authority
   │    ├─ local state v6 + distributed queue v1
   │    └─ budget / lease / worktree / adjudication fences
@@ -120,7 +121,26 @@ cc entry
 - **共享 permission/budget authority**：五个 domain 绑定 exact capability policy revision，并经同一事务 reservation/settlement 处理 `maxRuns`/`maxUnits`。缺失、过期、停用、耗尽或不一致的策略失败闭合；retry 复用原 reservation，不重复计费。
 - **Automation 双层复验**：scheduler authority 与 flow creator、connector RBAC、live revocation、per-flow run/action budget 分别核验；其中任一证据失效都拒绝 unattended execution。
 - **Governed Automation Center**：CLI 生成 versioned projection 与 exact argv；VS Code `0.37.50` / JetBrains `0.4.86` 展示 scope、preflight、history，支持 run-now、失败重试、pause/resume、disable/delete，并以 bounded JSON stdin + revision CAS 创建/编辑 cron、once、webhook、GitHub Routine。IDE 不直接写权威存储。
-- **诚实剩余边界**：外部 SaaS outcome-unknown 仍需独立裁决；完整 mixed-version migration/rollback、scheduler disk-fault closure 与三系统长期 soak 未完成。本发布不宣称全局 exactly-once 或 Desktop/native 签名发行。
+- **诚实剩余边界**：`0.163.6` 本身不含 scheduler outcome-unknown 人工裁决；完整 mixed-version migration/rollback、scheduler disk-fault closure 与三系统长期 soak 未完成。本发布不宣称全局 exactly-once 或 Desktop/native 签名发行。
+
+## 2026-08-13 `main`：scheduler outcome-unknown 人工裁决（未发版）
+
+`c7d49beaa1` 在 scheduler store schema v3 中新增单调裁决记录，并把 Agenda、Routine、Cowork Cron、Automation cron/event 与 Loop 的恢复适配器接入同一协议。它只接受状态为 `dead_letter` 且错误码匹配 `*_OUTCOME_UNKNOWN` 的 occurrence。
+
+```text
+outcome-unknown dead letter
+  → stop every scheduler host
+  → drain already-dispatched work
+  → verify the external system
+  → read evidenceDigest + attempt + fence
+  → interactive typed challenge + reason/operator digest
+     ├─ confirmed_applied     → settle from evidence; never replay
+     └─ confirmed_not_applied → authorize exactly one bounded claim
+```
+
+裁决以 occurrence、authority、payload、reservation outcome、attempt 与 fence 生成 evidence digest；写入时逐项 CAS 复验。旧 evidence、非交互终端、重复裁决、已变化 fence 或不支持裁决的 adapter 全部失败闭合。数据库只保存 reason/operator 的摘要，不保存理由明文。typed challenge 是操作证据，不是机器范围进程租约，因此停机、排空与外部核验仍是操作员前置责任。
+
+该增量没有修改 `packages/cli/package.json`，也没有新的 npm tag。官网与用户文档只能将其标为 `main` 源码能力；待精确发布 SHA 完成 Linux、Windows、macOS 的 `CLI CI` 与 `CLI Strict Sandbox`、npm 发布及公网回读后，才能升级为稳定安装契约。
 
 ## 已落地能力
 

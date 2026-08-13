@@ -9,7 +9,7 @@ export default defineConfig({
   transformPageData(pageData) {
     if (pageData.relativePath === "index.md" && pageData.frontmatter.hero) {
       pageData.frontmatter.hero.tagline =
-        "v5.0.3.135 · CLI 0.163.6 · PDH 0.4.57 · Open VSX 0.37.50 · JetBrains 0.4.86｜Automation Center · 统一 Scheduler";
+        "v5.0.3.135 · CLI 0.163.6 · PDH 0.4.57 · Open VSX 0.37.51 · JetBrains 0.4.87｜受治理自动补全 · Scheduler 裁决";
     }
   },
 

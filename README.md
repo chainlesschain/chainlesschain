@@ -11,19 +11,21 @@
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
-## 2026-08-12 当前主线 — **v5.0.3.135 / CLI 0.163.6 / PDH 0.4.57 / Open VSX 0.37.50 / JetBrains 0.4.86**
+## 2026-08-13 当前主线 — **v5.0.3.135 / CLI 0.163.6 / PDH 0.4.57 / Open VSX 0.37.51 / JetBrains 0.4.87**
 
 > **发布口径**：`chainlesschain@0.163.6` 是当前 npm `latest` 与生产推荐版；不可变 tag `v-npm-0-163-6` 精确指向提交 [`85c3577c88`](https://github.com/chainlesschain/chainlesschain/commit/85c3577c887003fea98d0a159603cd359506f09b)。该 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31595865423)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31595865206)、[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/31595865181)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/31597577056)均成功；npm registry 已回读 `latest=0.163.6`，公开 tarball SHA-1 为 `18bb9d807a4a35a36cf9049dcc15f67eb47bbfa6`。
 >
 > **CLI 0.163.6**：统一 scheduler runtime 已覆盖 Agenda monitor、Loop、Automation cron、Routine GitHub、channel automation event 与独立 daemon，并统一 Agenda/Cowork 的 IANA timezone、DST 与错过触发折叠策略。Agenda、Routine、Cowork、Automation 和 Loop 共享 revision-bound permission/budget authority；缺失、过期、停用、耗尽或不一致的策略失败闭合，重试复用原 reservation，避免重复计费。
 >
-> **自动化控制面**：Open VSX `0.37.50` 与 JetBrains `0.4.86` 的 Automation Center 读取 CLI-owned versioned projection，展示 scope、preflight 与运行历史，并通过 revision 复验执行 run-now、失败重试、暂停/恢复、禁用/删除，以及 cron/once/webhook/GitHub Routine 的 CAS 创建与编辑；IDE 不直接修改权威存储。外部 SaaS outcome-unknown 裁决、完整混合版本迁移/回滚、scheduler 磁盘故障闭环与三系统长期 soak 仍未关闭。
+> **IDE 主线能力**：Open VSX `0.37.51` 与 JetBrains `0.4.87` 在 Automation Center 之上新增默认关闭的受治理自动 ghost-text。启用后采用 650ms 可取消 debounce、exact-context 去重/缓存、独立小时请求与上下文字数预算、有界输出和质量回退；超过 5 秒或质量不足时静默丢弃，`Alt+\` 手动补全保持不变。
+>
+> **Scheduler 源码增量**：`main` 提交 `c7d49beaa1` 已补齐 `*_OUTCOME_UNKNOWN` 死信的持久人工裁决。操作员停掉全部 scheduler host、排空已分发工作并核验外部结果后，使用 evidence digest + attempt + fence 做 CAS 决策；`confirmed_applied` 只结算不重放，`confirmed_not_applied` 只放行一次有界执行。该能力尚未进入新的 npm 版本，`0.163.6` 用户不能据此假定命令已发布；完整混合版本迁移/回滚、磁盘故障闭环与三系统长期 soak 仍未关闭。
 >
 > **原生边界**：npm `0.163.6` 发布闭环不等于 Desktop/native 签名发行。unsigned 六目标 validation 记录固定 `signed=false`、`releaseEligible=false`；仓库仍缺 Linux signing、Windows Authenticode、macOS signing/notarization 与 updater key，因而尚无签名原生公开资产或 fresh install/upgrade/rollback 公网回读。
 >
 > **Checkpoint 恢复**：直接恢复与 timeline restore 已统一进入 hash-chained CAS saga，绑定 workspace prestate、生命周期锁、Git/copy 不可变目标与安全 checkpoint。`cc checkpoint recovery list|show|abort|resume|rollback|release` 只在 live owner/owner absence、seq、head hash 与操作 eligibility 全部验证后执行；`resume` 仅结算已验证为完成的恢复，`rollback --yes` 仅处理已验证的部分文件变更。这是窄范围的文件恢复闭包，不等于通用多资源原子事务、断电证明或外部副作用回滚。
 >
-> **IDE 主线**：Open VSX `0.37.50` 与 JetBrains Marketplace `0.4.86` 已公开；截至 2026-08-12，Open VSX 页面累计下载已突破 **2.4 万**。双 tag 精确指向提交 [`074bc47129`](https://github.com/chainlesschain/chainlesschain/commit/074bc471297b4ae0f02445b9bdb30d4dd11d5536)。[Open VSX 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/31589542152)和[JetBrains 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/31589547677)完成三平台真实宿主、制品、发布与 listing 回读。微软 VS Code Marketplace 仍未发布，JetBrains 作者签名也仍未完成。
+> **IDE 发布边界**：Open VSX `0.37.51` 与 JetBrains Marketplace `0.4.87` 的不可变 tag 均指向 [`dd0adad7b1`](https://github.com/chainlesschain/chainlesschain/commit/dd0adad7b1ba500400042ff62d138ec7784a5722)，包含受治理自动补全与此前 Automation Center 能力。截至 2026-08-12，Open VSX 页面累计下载已突破 **2.4 万**。微软 VS Code Marketplace 仍未发布，JetBrains 作者签名也仍未完成。
 >
 > **发布链闭环**：`0.163.6` 的 tag、三平台 CLI CI/Strict、不可变制品、Trusted Publishing、签名 provenance、registry 与独立公网回读已闭环；“registry 有版本”仍不等于“发布来源已验证”。数字产品 release 只消费已有且通过 tag、exact-SHA 与 registry 证据的 CLI，不持有 CLI 发布令牌。PDH 仍为 `0.4.57`（92 个采集契约 / 18 类数据源），Agent SDK 仍为 `0.1.7`。
 >

@@ -637,6 +637,9 @@ const packs = [
         <p class="mt-4 text-lg text-muted">
           稳定版 <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> 在既有后台 worktree、Process Broker、canonical session 与 checkpoint restore saga 之上，统一 Agenda、Routine、Cowork、Automation 与 Loop 的 Scheduler authority，公开 IANA timezone、DST/missed-run collapse、exact capability policy 与 transactional budget。Automation Center 使用 CLI-owned projection、preflight/history 与 revision CAS；同一精确 SHA 的三平台 CLI/Strict、npm 发布与独立回读均成功。原生验证仍不等于签名 Desktop/native 发行。
         </p>
+        <p class="mt-4 text-lg text-muted">
+          <code class="font-mono text-sm">main</code> 源码已增加 <code class="font-mono text-sm">cc daemon scheduler adjudication</code>，仅处理 <code class="font-mono text-sm">*_OUTCOME_UNKNOWN</code> 死信。它要求先停全部 scheduler host、排空 dispatch 并核验外部结果，再以 evidence digest、attempt 和 fence 做 CAS；已生效只结算，未生效只授权一次有界执行。该命令尚未进入 npm <code class="font-mono text-sm">{CLI_VERSION}</code>，不能当作稳定安装能力。
+        </p>
       </div>
     </div>
   </section>

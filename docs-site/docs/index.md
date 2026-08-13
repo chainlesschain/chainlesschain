@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.135 | CLI 0.163.6 | Open VSX 0.37.50 · JetBrains 0.4.86 | Automation Center · 统一 Scheduler"
+  tagline: "v5.0.3.135 | CLI 0.163.6 | Open VSX 0.37.51 · JetBrains 0.4.87 | 受治理自动补全 · Scheduler 裁决"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -28,7 +28,7 @@ features:
     details: 依赖 DAG、fenced lease、四维预算、每任务 worktree、本地 v6 authority 与分布式 queue v1 已完成三平台短门及长期 soak。
   - icon: 🧑‍💻
     title: 双 IDE 会话与交付
-    details: Open VSX 0.37.50 下载已突破 2.4 万，JetBrains Marketplace 0.4.86 已公开；双端新增 governed Automation Center，并继续覆盖 chat、Sessions Workbench、rewind 与 artifact 真实宿主 journey。
+    details: Open VSX 0.37.51 下载已突破 2.4 万，JetBrains Marketplace 0.4.87 已公开；双端新增默认关闭、带 debounce/预算/质量门的自动 ghost-text，并继续覆盖 Automation Center、Sessions Workbench 与真实宿主 journey。
   - icon: 🔐
     title: 安全优先
     details: 本地优先、权限控制、会话恢复、Process Broker 与跨平台沙箱共同保护 Agent 执行边界。
@@ -40,7 +40,7 @@ features:
     details: CLI 0.163.6 已在 exact SHA 完成三平台 CLI CI、Strict Sandbox、npm 发布与独立 registry 回读；统一 authority、时区与 Automation/Routine 控制面进入公开契约。
 ---
 
-> **2026-08-12 当前主线快照**：桌面、Android 与 iOS 源码版本保持 `5.0.3.135`；npm `latest`、生产推荐 CLI 与主线源码均为 `0.163.6`。不可变 tag `v-npm-0-163-6` 精确指向提交 `85c3577c88`；同一 SHA 的三平台 CLI CI、CLI Strict Sandbox、专用 npm 发布与独立公网回读均成功。该版把 Agenda monitor、Loop、Automation cron、Routine GitHub、channel event 与 standalone daemon 接入统一 Scheduler，并公开共享 permission/budget authority 与 Agenda/Cowork IANA timezone、DST、missed-run collapse 语义。Open VSX `0.37.50` 与 JetBrains Marketplace `0.4.86` 的 governed Automation Center 已公开。详细入口：[CLI Runtime 当前实现](/chainlesschain/cli-runtime-current)、[Routine](/chainlesschain/cli-routine)、[Agenda](/chainlesschain/cli-agenda)、[Automation](/chainlesschain/cli-automation)、[IDE 插件](/chainlesschain/ide-plugin)与[更新日志](/changelog)。
+> **2026-08-13 当前主线快照**：桌面、Android 与 iOS 源码版本保持 `5.0.3.135`；npm `latest` 与生产推荐 CLI 仍为 `0.163.6`。Open VSX `0.37.51` 与 JetBrains Marketplace `0.4.87` 已公开默认关闭的受治理自动 ghost-text。`main` 还新增只处理 `*_OUTCOME_UNKNOWN` 死信的 scheduler 人工裁决：停全部 host、排空 dispatch、外部核验后，以 evidence digest、attempt、fence 做 CAS；“已生效”只结算，“未生效”只放行一次有界执行。该裁决尚未进入新的 npm 版本。详细入口：[CLI Runtime 当前实现](/chainlesschain/cli-runtime-current)、[Automation](/chainlesschain/cli-automation)、[补全](/chainlesschain/cli-complete)、[IDE 插件](/chainlesschain/ide-plugin)与[更新日志](/changelog)。
 
 > 2026-04-08 更新：文档站已对齐 CLI Agent Runtime 重构、统一 runtime event、session record、后台任务增强、Worktree 合并助手、压缩观测、会话迁移，以及 **Coding Agent Phase 5 最小 Harness + 真实 interrupt**。
 >

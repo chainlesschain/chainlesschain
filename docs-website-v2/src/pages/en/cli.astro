@@ -634,6 +634,9 @@ const packs = [
         <p class="mt-4 text-lg text-muted">
           Stable release <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> unifies Agenda, Routine, Cowork, Automation, and Loop scheduler authority on top of the existing background-worktree, Process Broker, canonical-session, and checkpoint-restore foundations. It includes IANA timezone and DST/missed-run semantics, exact capability policies, transactional budgets, and CLI-owned Automation Center projections with revision-CAS actions. The same exact SHA passed three-OS CLI/Strict gates, npm publication, and independent readback; native validation still is not a signed Desktop/native release.
         </p>
+        <p class="mt-4 text-lg text-muted">
+          Mainline source now adds <code class="font-mono text-sm">cc daemon scheduler adjudication</code> only for <code class="font-mono text-sm">*_OUTCOME_UNKNOWN</code> dead letters. Stop every scheduler host, drain dispatch, verify the external result, then use evidence digest, attempt, and fence CAS. Applied settles without replay; not-applied permits one bounded execution. This command is not in npm <code class="font-mono text-sm">{CLI_VERSION}</code> and is not a stable-install capability yet.
+        </p>
       </div>
     </div>
   </section>
