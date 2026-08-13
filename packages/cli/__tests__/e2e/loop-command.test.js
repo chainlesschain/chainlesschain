@@ -207,7 +207,21 @@ describe("E2E: cc loop — save / resume", () => {
     expect(s1.sessionId).toBe(id);
 
     const ev1 = readTestEvents(id);
-    expect(ev1.filter((e) => e.type === "loop_config")).toHaveLength(1);
+    const configsAfterSave = ev1.filter((e) => e.type === "loop_config");
+    expect(configsAfterSave).toHaveLength(2);
+    expect(configsAfterSave[0].data).toMatchObject({
+      operands: ["node", expect.any(String)],
+    });
+    expect(configsAfterSave.at(-1).data).toMatchObject({
+      operands: [],
+      schedulerMigrationFence: {
+        state: "retired",
+        originalConfig: { operands: ["node", expect.any(String)] },
+      },
+    });
+    expect(
+      ev1.filter((e) => e.type === "loop_scheduler_migration"),
+    ).toHaveLength(1);
     expect(ev1.filter((e) => e.type === "loop_iteration")).toHaveLength(2);
 
     const resume = runCli([
@@ -222,9 +236,14 @@ describe("E2E: cc loop — save / resume", () => {
     const s2 = summaryOf(resume.stdout);
     expect(s2.iterations).toBe(4);
     expect(s2.stoppedBy).toBe("max-iterations");
+    const ev2 = readTestEvents(id);
+    expect(ev2.filter((e) => e.type === "loop_iteration")).toHaveLength(4);
+    // Resuming reuses the durable retirement fence; it must not append another
+    // config or migration marker for the same scheduler migration.
+    expect(ev2.filter((e) => e.type === "loop_config")).toHaveLength(2);
     expect(
-      readTestEvents(id).filter((e) => e.type === "loop_iteration"),
-    ).toHaveLength(4);
+      ev2.filter((e) => e.type === "loop_scheduler_migration"),
+    ).toHaveLength(1);
   });
 
   it("exits 1 when resuming a non-existent session", () => {

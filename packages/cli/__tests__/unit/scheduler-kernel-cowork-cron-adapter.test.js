@@ -266,6 +266,7 @@ describe("scheduler-kernel Cowork cron adapter", () => {
     const f = fixture();
     const schedule = f.add({ cron: "0 0 1 1 *" });
     const schedulerStore = f.openScheduler();
+    const workspace = canonicalSchedulerSourcePath(f.cwd);
     const desired = buildCoworkCronSchedulerJob(f.cwd, schedule);
     const source = {
       createdAt: schedule.createdAt,
@@ -283,7 +284,7 @@ describe("scheduler-kernel Cowork cron adapter", () => {
           sourceId: schedule.id,
           sourceScope: {
             store: "cowork-schedules",
-            workspace: f.cwd.toLowerCase(),
+            workspace,
           },
           source,
           targetJob: desired,
@@ -291,6 +292,7 @@ describe("scheduler-kernel Cowork cron adapter", () => {
         },
       ],
     });
+    expect(prepared.entries[0].sourceLocator).toBeNull();
     prepareCoworkSchedulerMigration(f.cwd, schedule.id, {
       migrationId: prepared.id,
       sourceDigest: coworkCronMigrationSourceDigest(schedule),
@@ -311,6 +313,15 @@ describe("scheduler-kernel Cowork cron adapter", () => {
     expect(schedulerStore.getDomainMigration(prepared.id)).toMatchObject({
       id: prepared.id,
       state: "retired",
+      entries: [
+        {
+          sourceLocator: {
+            schemaVersion: 1,
+            type: "cowork-workspace",
+            workspace,
+          },
+        },
+      ],
     });
     const retired = schedulerStore.getDomainMigration(prepared.id);
     schedulerStore.db
