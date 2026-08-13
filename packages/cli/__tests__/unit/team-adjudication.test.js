@@ -568,12 +568,15 @@ describe("TeamAdjudicationStore", () => {
     );
     const unrelatedTemporary = path.join(directory, "unrelated-writer.tmp");
     fs.writeFileSync(unrelatedTemporary, "keep\n", { mode: 0o600 });
+    let renameAttempts = 0;
+    const sleep = vi.fn();
     const failingFs = {
       ...fs,
       constants: fs.constants,
       realpathSync: fs.realpathSync,
       renameSync(source, destination) {
         if (path.resolve(destination) === path.resolve(canonicalFilePath)) {
+          renameAttempts += 1;
           const error = new Error("simulated rename failure");
           error.code = "EIO";
           throw error;
@@ -584,6 +587,8 @@ describe("TeamAdjudicationStore", () => {
     const failing = store({
       _fs: failingFs,
       _randomUUID: () => token,
+      _platform: "win32",
+      _sleep: sleep,
     });
 
     expect(
@@ -596,9 +601,97 @@ describe("TeamAdjudicationStore", () => {
         }),
       ),
     ).toBe(TEAM_ADJUDICATION_ERROR_CODES.WRITE_FAILED);
+    expect(renameAttempts).toBe(1);
+    expect(sleep).not.toHaveBeenCalled();
     expect(healthy.getCase(binding())).toEqual(opened.case);
     expect(fs.existsSync(temporaryPath)).toBe(false);
     expect(fs.readFileSync(unrelatedTemporary, "utf8")).toBe("keep\n");
+  });
+
+  it("retries transient Windows atomic replacement sharing failures", () => {
+    const healthy = store();
+    const opened = openCase(healthy);
+    const canonicalFilePath = fs.realpathSync.native(filePath);
+    let renameAttempts = 0;
+    const sleep = vi.fn();
+    const retryingFs = {
+      ...fs,
+      constants: fs.constants,
+      realpathSync: fs.realpathSync,
+      renameSync(source, destination) {
+        if (
+          path.resolve(destination) === path.resolve(canonicalFilePath) &&
+          renameAttempts++ < 2
+        ) {
+          const error = new Error("simulated Windows sharing transient");
+          error.code = renameAttempts === 1 ? "EPERM" : "EBUSY";
+          throw error;
+        }
+        return fs.renameSync(source, destination);
+      },
+    };
+    const target = store({
+      _fs: retryingFs,
+      _platform: "win32",
+      _sleep: sleep,
+    });
+
+    expect(decide(target, opened, "cancel").case).toMatchObject({
+      status: "authorized",
+      decision: { value: "cancel" },
+    });
+    expect(renameAttempts).toBe(3);
+    expect(sleep.mock.calls).toEqual([[5], [10]]);
+  });
+
+  it("fails closed after exhausting transient Windows replacement retries", () => {
+    const healthy = store();
+    const opened = openCase(healthy);
+    const canonicalFilePath = fs.realpathSync.native(filePath);
+    const token = "exhausted-windows-attempt";
+    const temporaryPath = path.join(
+      directory,
+      `.${path.basename(filePath)}.${process.pid}.${token}.tmp`,
+    );
+    let renameAttempts = 0;
+    const sleep = vi.fn();
+    const failingFs = {
+      ...fs,
+      constants: fs.constants,
+      realpathSync: fs.realpathSync,
+      renameSync(source, destination) {
+        if (path.resolve(destination) === path.resolve(canonicalFilePath)) {
+          renameAttempts += 1;
+          const error = new Error("persistent Windows sharing failure");
+          error.code = "EACCES";
+          throw error;
+        }
+        return fs.renameSync(source, destination);
+      },
+    };
+    const target = store({
+      _fs: failingFs,
+      _randomUUID: () => token,
+      _platform: "win32",
+      _sleep: sleep,
+    });
+
+    expect(
+      thrownCode(() =>
+        target.decideCase({
+          ...binding(),
+          decision: "cancel",
+          authority: "operator",
+          expectedRevision: 1,
+        }),
+      ),
+    ).toBe(TEAM_ADJUDICATION_ERROR_CODES.WRITE_FAILED);
+    expect(renameAttempts).toBe(9);
+    expect(sleep.mock.calls).toEqual(
+      [5, 10, 20, 40, 80, 100, 100, 100].map((delay) => [delay]),
+    );
+    expect(healthy.getCase(binding())).toEqual(opened.case);
+    expect(fs.existsSync(temporaryPath)).toBe(false);
   });
 
   it("preserves an O_EXCL collision that this writer did not create", () => {
