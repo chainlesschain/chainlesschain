@@ -64,7 +64,10 @@ describe("scheduler-kernel Loop adapter", () => {
     };
   }
 
-  function savedSession(sessionId = "loop-session-1") {
+  function savedSession(
+    sessionId = "loop-session-1",
+    sessionDirectory = join(tmpdir(), "sessions"),
+  ) {
     const events = [
       {
         type: "loop_config",
@@ -83,6 +86,7 @@ describe("scheduler-kernel Loop adapter", () => {
     ];
     return {
       sessionId,
+      sessionFilePath: (id) => join(sessionDirectory, `${id}.jsonl`),
       config: events[0].data,
       readEvents: () => events.map((event) => structuredClone(event)),
       appendEventIfHead: (id, type, data, expectedHeadHash) => {
@@ -290,6 +294,70 @@ describe("scheduler-kernel Loop adapter", () => {
       ),
     ).toHaveLength(1);
     expect(store.getJob(migrated.entries[0].targetJobId).enabled).toBe(true);
+  });
+
+  it("does not bind an unlocated legacy migration from a same-id session in another directory", () => {
+    const f = fixture();
+    const store = f.open();
+    const original = savedSession("loop-session-1", join(f.root, "original"));
+    const definition = f.definition({ cwd: "C:/workspace" });
+    const migrated = migrateSavedLoopSession({
+      schedulerStore: store,
+      definition,
+      ...original,
+    });
+    store.db
+      .prepare(
+        `UPDATE scheduler_domain_migration_entries
+         SET source_locator_json = NULL WHERE migration_id = ?`,
+      )
+      .run(migrated.id);
+    const other = savedSession("loop-session-1", join(f.root, "other"));
+
+    expect(() =>
+      migrateSavedLoopSession({
+        schedulerStore: store,
+        definition,
+        ...other,
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "LOOP_SCHEDULER_MIGRATION_LOCATOR_UNPROVEN",
+      }),
+    );
+    expect(
+      store.getDomainMigration(migrated.id).entries[0].sourceLocator,
+    ).toBeNull();
+  });
+
+  it("rejects a wrong rollback session before changing journal or target", () => {
+    const f = fixture();
+    const store = f.open();
+    const session = savedSession();
+    const migrated = migrateSavedLoopSession({
+      schedulerStore: store,
+      definition: f.definition({ cwd: "C:/workspace" }),
+      ...session,
+    });
+    const targetBefore = store.getJob(migrated.entries[0].targetJobId);
+
+    expect(() =>
+      rollbackSavedLoopMigration({
+        schedulerStore: store,
+        migrationId: migrated.id,
+        ...session,
+        sessionId: "different-loop-session",
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "LOOP_SCHEDULER_MIGRATION_DOMAIN_MISMATCH",
+      }),
+    );
+    expect(store.getDomainMigration(migrated.id)).toMatchObject({
+      state: "retired",
+      entries: [{ state: "retired" }],
+    });
+    expect(store.getJob(migrated.entries[0].targetJobId)).toEqual(targetBefore);
   });
 
   it("runs and durably settles one iteration", async () => {

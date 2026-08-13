@@ -17,11 +17,12 @@ import {
   normalizeJson,
   normalizeMaxAttempts,
 } from "./contract.js";
+import { isCanonicalSchedulerSourcePath } from "./source-locator-path.js";
 
 const requireCjs = createRequire(import.meta.url);
 
 export const SCHEDULER_APPLICATION_ID = 0x4343534b; // "CCSK"
-export const SCHEDULER_STORE_SCHEMA_VERSION = 4;
+export const SCHEDULER_STORE_SCHEMA_VERSION = 5;
 export const DEFAULT_BUSY_TIMEOUT_MS = 5_000;
 export const MAX_LEASE_MS = 24 * 60 * 60 * 1_000;
 export const MIN_AUTHORITY_WINDOW_MS = 60_000;
@@ -56,6 +57,7 @@ const MIGRATION_V1_NAME = "scheduler-kernel-v1";
 const MIGRATION_V2_NAME = "scheduler-kernel-authority-v2";
 const MIGRATION_V3_NAME = "scheduler-kernel-adjudication-v3";
 const MIGRATION_V4_NAME = "scheduler-kernel-domain-migration-v4";
+const MIGRATION_V5_NAME = "scheduler-kernel-source-locator-v5";
 const V1_USER_TABLES = Object.freeze([
   "events",
   "jobs",
@@ -402,6 +404,17 @@ export const MIGRATION_V4_CHECKSUM = createHash("sha256")
   .update(MIGRATION_V4_SQL.trim().replace(/\r\n/g, "\n"), "utf8")
   .digest("hex");
 
+export const MIGRATION_V5_SQL = `
+ALTER TABLE scheduler_domain_migration_entries
+  ADD COLUMN source_locator_json TEXT CHECK (
+    source_locator_json IS NULL OR json_valid(source_locator_json)
+  );
+`;
+
+export const MIGRATION_V5_CHECKSUM = createHash("sha256")
+  .update(MIGRATION_V5_SQL.trim().replace(/\r\n/g, "\n"), "utf8")
+  .digest("hex");
+
 // Fingerprint of the normalized sqlite_master catalog produced by the v1 DDL.
 // Unlike the migration-source checksum, this also detects added triggers/views
 // and constraint/foreign-key changes that preserve the visible column list.
@@ -413,6 +426,8 @@ export const SCHEMA_V3_FINGERPRINT =
   "aac3733641bebb5a86aea3f9c421818201f5dde051da6b95b880d503a420047b";
 export const SCHEMA_V4_FINGERPRINT =
   "59762b9d5da862b857edb76021ed51d05a256133dce543a3fd7d7b0403c9c081";
+export const SCHEMA_V5_FINGERPRINT =
+  "9619647628488fc4fdc79ad36b4b6632d8257f40c23245822a18941870c187ac";
 
 const EXPECTED_COLUMNS = Object.freeze({
   migrations: [
@@ -550,6 +565,7 @@ const EXPECTED_COLUMNS = Object.freeze({
     ["source_restored_digest", "TEXT", 0, 0],
     ["created_at", "INTEGER", 1, 0],
     ["updated_at", "INTEGER", 1, 0],
+    ["source_locator_json", "TEXT", 0, 0],
   ],
 });
 
@@ -897,6 +913,146 @@ export function schedulerMigrationScopeDigest(sourceScope) {
   );
 }
 
+const SENSITIVE_SOURCE_LOCATOR_FIELD =
+  /(?:pass(?:word)?|secret|token|credential|api[_-]?key|private[_-]?key)/iu;
+
+function assertNonSensitiveSourceLocator(value, field) {
+  if (Array.isArray(value)) {
+    value.forEach((item, index) =>
+      assertNonSensitiveSourceLocator(item, `${field}[${index}]`),
+    );
+    return;
+  }
+  if (!value || typeof value !== "object") return;
+  for (const [key, nested] of Object.entries(value)) {
+    if (SENSITIVE_SOURCE_LOCATOR_FIELD.test(key)) {
+      throw invalidArgument(`${field} must not contain sensitive fields`, {
+        field: key,
+      });
+    }
+    assertNonSensitiveSourceLocator(nested, `${field}.${key}`);
+  }
+}
+
+function normalizeSchedulerMigrationSourceLocator(
+  value,
+  domain,
+  sourceScopeDigest,
+  field,
+  { allowLegacyAutomationCurrent = false } = {},
+) {
+  if (value === undefined || value === null) return null;
+  const locator = normalizeJson(value, field);
+  if (!locator || typeof locator !== "object" || Array.isArray(locator)) {
+    throw invalidArgument(`${field} must be an object`);
+  }
+  if (locator.schemaVersion !== 1) {
+    throw invalidArgument(`${field}.schemaVersion must be 1`);
+  }
+  const type = normalizeIdentifier(locator.type, `${field}.type`, {
+    maxLength: 128,
+  });
+  const locatorTypes = {
+    agenda: {
+      type: "agenda-store",
+      key: "directory",
+      store: "agent-schedule",
+    },
+    "cowork-cron": {
+      type: "cowork-workspace",
+      key: "workspace",
+      store: "cowork-schedules",
+    },
+    routine: {
+      type: "routine-store",
+      key: "directory",
+      store: "routines",
+    },
+    automation: {
+      type: "automation-database",
+      key: "database",
+      store: "automation-engine",
+    },
+    "loop-iteration": {
+      type: "jsonl-session",
+      key: "sessionId",
+      additionalKey: "directory",
+      store: "jsonl-session",
+    },
+  };
+  const locatorType = locatorTypes[domain];
+  if (!locatorType || locatorType.type !== type) {
+    throw invalidArgument(`${field}.type does not match migration domain`);
+  }
+  const allowed = new Set([
+    "schemaVersion",
+    "type",
+    locatorType.key,
+    ...(locatorType.additionalKey ? [locatorType.additionalKey] : []),
+  ]);
+  const unknown = Object.keys(locator).filter((key) => !allowed.has(key));
+  if (unknown.length > 0) {
+    throw invalidArgument(`${field} contains unknown fields`, {
+      fields: unknown.sort(),
+    });
+  }
+  const location = normalizeIdentifier(
+    locator[locatorType.key],
+    `${field}.${locatorType.key}`,
+    { maxLength: 4096 },
+  );
+  const additionalLocation = locatorType.additionalKey
+    ? normalizeIdentifier(
+        locator[locatorType.additionalKey],
+        `${field}.${locatorType.additionalKey}`,
+        { maxLength: 4096 },
+      )
+    : null;
+  const pathKeys = new Set(["directory", "workspace", "database"]);
+  for (const [key, candidate] of [
+    [locatorType.key, location],
+    [locatorType.additionalKey, additionalLocation],
+  ]) {
+    if (
+      key &&
+      pathKeys.has(key) &&
+      !(domain === "automation" && String(candidate).startsWith("memory:")) &&
+      !isCanonicalSchedulerSourcePath(candidate)
+    ) {
+      throw invalidArgument(
+        `${field}.${key} must be an absolute path in canonical form; Windows paths require a fully-qualified drive or UNC share`,
+      );
+    }
+  }
+  const derivedScope = {
+    store: locatorType.store,
+    [locatorType.key]: location,
+  };
+  const legacyAutomationCurrentScope =
+    allowLegacyAutomationCurrent &&
+    domain === "automation" &&
+    schedulerMigrationScopeDigest({
+      store: "automation-engine",
+      database: "current",
+    }) === sourceScopeDigest;
+  if (
+    schedulerMigrationScopeDigest(derivedScope) !== sourceScopeDigest &&
+    !legacyAutomationCurrentScope
+  ) {
+    throw invalidArgument(`${field} must resolve to sourceScope`);
+  }
+  const normalized = {
+    schemaVersion: 1,
+    type,
+    [locatorType.key]: location,
+    ...(locatorType.additionalKey
+      ? { [locatorType.additionalKey]: additionalLocation }
+      : {}),
+  };
+  assertNonSensitiveSourceLocator(normalized, field);
+  return normalized;
+}
+
 function normalizeDomainMigrationEntry(input, index) {
   if (!input || typeof input !== "object" || Array.isArray(input)) {
     throw invalidArgument(`entries[${index}] must be an object`);
@@ -905,6 +1061,7 @@ function normalizeDomainMigrationEntry(input, index) {
     "domain",
     "sourceId",
     "sourceScope",
+    "sourceLocator",
     "source",
     "targetJob",
     "rollbackStrategy",
@@ -925,6 +1082,12 @@ function normalizeDomainMigrationEntry(input, index) {
     `entries[${index}].sourceId`,
   );
   const sourceScopeDigest = schedulerMigrationScopeDigest(input.sourceScope);
+  const sourceLocator = normalizeSchedulerMigrationSourceLocator(
+    input.sourceLocator,
+    input.domain,
+    sourceScopeDigest,
+    `entries[${index}].sourceLocator`,
+  );
   const sourceDigest = schedulerMigrationSourceDigest(input.source);
   const targetJob = normalizeJobInput(input.targetJob);
   const targetJobDigest = schedulerJobDefinitionDigest(targetJob);
@@ -950,6 +1113,7 @@ function normalizeDomainMigrationEntry(input, index) {
   );
   return {
     ...identity,
+    sourceLocator,
     entryId: `scheduler-migration-entry-${entryDigest.slice("sha256:".length)}`,
     targetJob,
   };
@@ -1029,12 +1193,42 @@ function normalizeDomainMigrationPlan(input) {
 
 function mapDomainMigrationEntry(row) {
   if (!row) return null;
+  let sourceLocator = null;
+  if (row.source_locator_json !== null) {
+    try {
+      sourceLocator = normalizeSchedulerMigrationSourceLocator(
+        readStoredJson(
+          row.source_locator_json,
+          "scheduler migration source locator",
+        ),
+        row.domain,
+        row.source_scope_digest,
+        "scheduler migration source locator",
+        { allowLegacyAutomationCurrent: true },
+      );
+    } catch (cause) {
+      if (cause?.code === "SCHEDULER_DATA_CORRUPT") throw cause;
+      throw schemaError(
+        "SCHEDULER_DATA_CORRUPT",
+        "Stored scheduler migration source locator is invalid or unbound",
+        cause,
+      );
+    }
+  }
   return {
     migrationId: row.migration_id,
     entryId: row.entry_id,
     domain: row.domain,
     sourceId: row.source_id,
     sourceScopeDigest: row.source_scope_digest,
+    sourceLocator,
+    sourceLocatorDigest:
+      sourceLocator === null
+        ? null
+        : sha256PayloadDigest(
+            sourceLocator,
+            "schedulerMigration.sourceLocator",
+          ),
     sourceDigest: row.source_digest,
     targetJobId: row.target_job_id,
     targetJobDigest: row.target_job_digest,
@@ -1235,7 +1429,7 @@ function assertDatabaseIntegrity(db) {
   }
 }
 
-function verifyTableShape(db, table) {
+function verifyTableShape(db, table, version) {
   const actual = db
     .pragma(`table_info(${JSON.stringify(table)})`)
     .map((column) => [
@@ -1244,7 +1438,12 @@ function verifyTableShape(db, table) {
       column.notnull,
       column.pk,
     ]);
-  const expected = EXPECTED_COLUMNS[table];
+  const expected =
+    version < 5 && table === "scheduler_domain_migration_entries"
+      ? EXPECTED_COLUMNS[table].filter(
+          ([name]) => name !== "source_locator_json",
+        )
+      : EXPECTED_COLUMNS[table];
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
     throw schemaError(
       "SCHEDULER_SCHEMA_CORRUPT",
@@ -1315,7 +1514,7 @@ function verifySchema(db, version = SCHEDULER_STORE_SCHEMA_VERSION) {
     );
   }
 
-  for (const table of expectedTables) verifyTableShape(db, table);
+  for (const table of expectedTables) verifyTableShape(db, table, version);
 
   const actualFingerprint = schemaFingerprint(db);
   const expectedFingerprint =
@@ -1325,7 +1524,9 @@ function verifySchema(db, version = SCHEDULER_STORE_SCHEMA_VERSION) {
         ? SCHEMA_V2_FINGERPRINT
         : version === 3
           ? SCHEMA_V3_FINGERPRINT
-          : SCHEMA_V4_FINGERPRINT;
+          : version === 4
+            ? SCHEMA_V4_FINGERPRINT
+            : SCHEMA_V5_FINGERPRINT;
   if (actualFingerprint !== expectedFingerprint) {
     throw schemaError(
       "SCHEDULER_SCHEMA_CORRUPT",
@@ -1368,7 +1569,11 @@ function verifySchema(db, version = SCHEDULER_STORE_SCHEMA_VERSION) {
     (version >= 4 &&
       (migrations[3]?.version !== 4 ||
         migrations[3]?.name !== MIGRATION_V4_NAME ||
-        migrations[3]?.checksum !== MIGRATION_V4_CHECKSUM))
+        migrations[3]?.checksum !== MIGRATION_V4_CHECKSUM)) ||
+    (version >= 5 &&
+      (migrations[4]?.version !== 5 ||
+        migrations[4]?.name !== MIGRATION_V5_NAME ||
+        migrations[4]?.checksum !== MIGRATION_V5_CHECKSUM))
   ) {
     throw schemaError(
       "SCHEDULER_SCHEMA_UNKNOWN",
@@ -1504,6 +1709,10 @@ function migrateDomainMigrationV4(db) {
   db.exec(MIGRATION_V4_SQL);
 }
 
+function migrateSourceLocatorV5(db) {
+  db.exec(MIGRATION_V5_SQL);
+}
+
 function initializeOrVerifySchema(db, now) {
   assertDatabaseIntegrity(db);
   const tables = listUserTables(db);
@@ -1513,6 +1722,7 @@ function initializeOrVerifySchema(db, now) {
       migrateAuthorityV2(db, now);
       migrateAdjudicationV3(db);
       migrateDomainMigrationV4(db);
+      migrateSourceLocatorV5(db);
       db.prepare(
         "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
       ).run(1, MIGRATION_V1_NAME, MIGRATION_V1_CHECKSUM, now);
@@ -1525,6 +1735,9 @@ function initializeOrVerifySchema(db, now) {
       db.prepare(
         "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
       ).run(4, MIGRATION_V4_NAME, MIGRATION_V4_CHECKSUM, now);
+      db.prepare(
+        "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
+      ).run(5, MIGRATION_V5_NAME, MIGRATION_V5_CHECKSUM, now);
       db.pragma(`application_id = ${SCHEDULER_APPLICATION_ID}`);
       db.pragma(`user_version = ${SCHEDULER_STORE_SCHEMA_VERSION}`);
     });
@@ -1542,6 +1755,7 @@ function initializeOrVerifySchema(db, now) {
       migrateAuthorityV2(db, now);
       migrateAdjudicationV3(db);
       migrateDomainMigrationV4(db);
+      migrateSourceLocatorV5(db);
       db.prepare(
         "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
       ).run(2, MIGRATION_V2_NAME, MIGRATION_V2_CHECKSUM, now);
@@ -1551,6 +1765,9 @@ function initializeOrVerifySchema(db, now) {
       db.prepare(
         "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
       ).run(4, MIGRATION_V4_NAME, MIGRATION_V4_CHECKSUM, now);
+      db.prepare(
+        "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
+      ).run(5, MIGRATION_V5_NAME, MIGRATION_V5_CHECKSUM, now);
       db.pragma(`user_version = ${SCHEDULER_STORE_SCHEMA_VERSION}`);
     });
     migrate.immediate();
@@ -1559,12 +1776,16 @@ function initializeOrVerifySchema(db, now) {
     const migrate = db.transaction(() => {
       migrateAdjudicationV3(db);
       migrateDomainMigrationV4(db);
+      migrateSourceLocatorV5(db);
       db.prepare(
         "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
       ).run(3, MIGRATION_V3_NAME, MIGRATION_V3_CHECKSUM, now);
       db.prepare(
         "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
       ).run(4, MIGRATION_V4_NAME, MIGRATION_V4_CHECKSUM, now);
+      db.prepare(
+        "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
+      ).run(5, MIGRATION_V5_NAME, MIGRATION_V5_CHECKSUM, now);
       db.pragma(`user_version = ${SCHEDULER_STORE_SCHEMA_VERSION}`);
     });
     migrate.immediate();
@@ -1572,9 +1793,23 @@ function initializeOrVerifySchema(db, now) {
     verifySchema(db, 3);
     const migrate = db.transaction(() => {
       migrateDomainMigrationV4(db);
+      migrateSourceLocatorV5(db);
       db.prepare(
         "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
       ).run(4, MIGRATION_V4_NAME, MIGRATION_V4_CHECKSUM, now);
+      db.prepare(
+        "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
+      ).run(5, MIGRATION_V5_NAME, MIGRATION_V5_CHECKSUM, now);
+      db.pragma(`user_version = ${SCHEDULER_STORE_SCHEMA_VERSION}`);
+    });
+    migrate.immediate();
+  } else if (db.pragma("user_version", { simple: true }) === 4) {
+    verifySchema(db, 4);
+    const migrate = db.transaction(() => {
+      migrateSourceLocatorV5(db);
+      db.prepare(
+        "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
+      ).run(5, MIGRATION_V5_NAME, MIGRATION_V5_CHECKSUM, now);
       db.pragma(`user_version = ${SCHEDULER_STORE_SCHEMA_VERSION}`);
     });
     migrate.immediate();
@@ -1908,6 +2143,100 @@ export class SchedulerStore {
     return row ? this._domainMigration(row.migration_id) : null;
   }
 
+  bindDomainMigrationSourceLocator({
+    migrationId,
+    entryId,
+    sourceLocator,
+    expectedSourceDigest,
+    expectedTargetJobId,
+  } = {}) {
+    const id = normalizeIdentifier(migrationId, "migrationId");
+    const normalizedEntryId = normalizeIdentifier(entryId, "entryId");
+    const sourceDigest = normalizeSha256Digest(
+      expectedSourceDigest,
+      "expectedSourceDigest",
+    );
+    const targetJobId = normalizeIdentifier(
+      expectedTargetJobId,
+      "expectedTargetJobId",
+    );
+    const now = this._now();
+    return this._write(() => {
+      const row = this.statements.getDomainMigrationEntry.get(
+        id,
+        normalizedEntryId,
+      );
+      if (!row) {
+        throw schedulerMigrationError(
+          "SCHEDULER_MIGRATION_NOT_FOUND",
+          `Scheduler migration entry does not exist: ${normalizedEntryId}`,
+        );
+      }
+      if (
+        row.source_digest !== sourceDigest ||
+        row.target_job_id !== targetJobId
+      ) {
+        throw schedulerMigrationError(
+          "SCHEDULER_MIGRATION_SOURCE_MISMATCH",
+          "Scheduler migration locator evidence does not match the journal",
+        );
+      }
+      const locator = normalizeSchedulerMigrationSourceLocator(
+        sourceLocator,
+        row.domain,
+        row.source_scope_digest,
+        "sourceLocator",
+        { allowLegacyAutomationCurrent: true },
+      );
+      if (locator === null) {
+        throw invalidArgument("sourceLocator is required");
+      }
+      const encoded = canonicalJson(
+        locator,
+        "schedulerMigration.sourceLocator",
+      );
+      if (row.source_locator_json !== null) {
+        if (row.source_locator_json !== encoded) {
+          throw schedulerMigrationError(
+            "SCHEDULER_MIGRATION_LOCATOR_CONFLICT",
+            "Scheduler migration source locator is already bound differently",
+          );
+        }
+        return {
+          ...mapDomainMigrationEntry(row),
+          deduplicated: true,
+        };
+      }
+      const result = this.db
+        .prepare(
+          `UPDATE scheduler_domain_migration_entries
+           SET source_locator_json = ?, updated_at = ?
+           WHERE migration_id = ? AND entry_id = ?
+             AND source_locator_json IS NULL
+             AND source_digest = ? AND target_job_id = ?`,
+        )
+        .run(encoded, now, id, normalizedEntryId, sourceDigest, targetJobId);
+      if (result.changes !== 1) {
+        throw schedulerMigrationError(
+          "SCHEDULER_MIGRATION_LOCATOR_CONFLICT",
+          "Scheduler migration source locator changed during binding",
+        );
+      }
+      this.db
+        .prepare(
+          `UPDATE scheduler_domain_migrations
+           SET updated_at = ? WHERE migration_id = ?`,
+        )
+        .run(now, id);
+      return {
+        ...mapDomainMigrationEntry(
+          this.statements.getDomainMigrationEntry.get(id, normalizedEntryId),
+        ),
+        deduplicated: false,
+      };
+    });
+  }
+
   listDomainMigrations({ state, limit = 50 } = {}) {
     this._assertOpen();
     const boundedLimit = Math.min(
@@ -1972,19 +2301,115 @@ export class SchedulerStore {
         }
         const [activeId] = activeIds;
         const active = this.statements.getDomainMigration.get(activeId);
-        const activeManifest = active
-          ? readStoredJson(active.manifest_json, "scheduler migration manifest")
-          : null;
-        const activePlanDigest =
-          activeManifest?.planDigest ?? active?.manifest_digest;
-        if (!active || activePlanDigest !== plan.manifestDigest) {
+        if (!active) {
+          throw schemaError(
+            "SCHEDULER_DATA_CORRUPT",
+            "Active scheduler migration entry has no parent journal",
+          );
+        }
+        const activeMigration = this._domainMigration(activeId);
+        const matchedEntries = [];
+        const samePlan =
+          activeMigration.entries.length === plan.entries.length &&
+          activeMigration.entries.every((entry) => {
+            const candidate = plan.entries.find(
+              (item) =>
+                item.domain === entry.domain &&
+                item.sourceId === entry.sourceId &&
+                item.sourceScopeDigest === entry.sourceScopeDigest &&
+                item.targetJobId === entry.targetJobId,
+            );
+            const locatorMatches =
+              candidate &&
+              (entry.sourceLocator === null ||
+                candidate.sourceLocator === null ||
+                canonicalJson(
+                  entry.sourceLocator,
+                  "schedulerMigration.sourceLocator",
+                ) ===
+                  canonicalJson(
+                    candidate.sourceLocator,
+                    "schedulerMigration.sourceLocator",
+                  ));
+            const matches =
+              candidate &&
+              locatorMatches &&
+              candidate.sourceDigest === entry.sourceDigest &&
+              candidate.targetJobDigest === entry.targetJobDigest &&
+              candidate.rollbackStrategy === entry.rollbackStrategy;
+            if (matches) matchedEntries.push({ entry, candidate });
+            return matches;
+          });
+        if (!samePlan) {
+          const comparison = {
+            active: activeMigration.entries.map((entry) => ({
+              domain: entry.domain,
+              sourceId: entry.sourceId,
+              sourceScopeDigest: entry.sourceScopeDigest,
+              sourceDigest: entry.sourceDigest,
+              targetJobId: entry.targetJobId,
+              targetJobDigest: entry.targetJobDigest,
+              rollbackStrategy: entry.rollbackStrategy,
+            })),
+            requested: plan.entries.map((entry) => ({
+              domain: entry.domain,
+              sourceId: entry.sourceId,
+              sourceScopeDigest: entry.sourceScopeDigest,
+              sourceDigest: entry.sourceDigest,
+              targetJobId: entry.targetJobId,
+              targetJobDigest: entry.targetJobDigest,
+              rollbackStrategy: entry.rollbackStrategy,
+            })),
+          };
           throw schedulerMigrationError(
             "SCHEDULER_MIGRATION_CONFLICT",
             "A scheduler source or target already has a different active migration",
+            comparison,
           );
         }
+        let locatorBackfilled = false;
+        const backfillLocator = this.db.prepare(
+          `UPDATE scheduler_domain_migration_entries
+           SET source_locator_json = ?, updated_at = ?
+           WHERE migration_id = ? AND entry_id = ?
+             AND source_locator_json IS NULL`,
+        );
+        for (const { entry, candidate } of matchedEntries) {
+          if (
+            entry.sourceLocator !== null ||
+            candidate.sourceLocator === null
+          ) {
+            continue;
+          }
+          const result = backfillLocator.run(
+            canonicalJson(
+              candidate.sourceLocator,
+              "schedulerMigration.sourceLocator",
+            ),
+            now,
+            activeId,
+            entry.entryId,
+          );
+          if (result.changes !== 1) {
+            throw schemaError(
+              "SCHEDULER_DATA_CORRUPT",
+              "Scheduler migration source locator changed during binding",
+            );
+          }
+          locatorBackfilled = true;
+        }
+        if (locatorBackfilled) {
+          this.db
+            .prepare(
+              `UPDATE scheduler_domain_migrations
+               SET updated_at = ? WHERE migration_id = ?`,
+            )
+            .run(now, activeId);
+        }
         return {
-          ...this._domainMigration(activeId),
+          ...(locatorBackfilled
+            ? this._domainMigration(activeId)
+            : activeMigration),
           deduplicated: true,
         };
       }
@@ -2020,14 +2445,14 @@ export class SchedulerStore {
       const insert = this.db.prepare(
         `INSERT INTO scheduler_domain_migration_entries
            (migration_id, entry_id, domain, source_id, source_scope_digest,
-            source_digest, target_job_id, target_job_digest, rollback_strategy,
-            state,
+            source_locator_json, source_digest, target_job_id,
+            target_job_digest, rollback_strategy, state,
             target_action, target_before_json, target_applied_revision,
             target_applied_at, target_occurrence_count_before,
             target_execution_event_count_before, target_rollback_revision,
             retirement_token, source_retirement_digest, source_restored_digest,
             created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'prepared',
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'prepared',
                  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
                  ?, ?)`,
       );
@@ -2039,6 +2464,12 @@ export class SchedulerStore {
             entry.domain,
             entry.sourceId,
             entry.sourceScopeDigest,
+            entry.sourceLocator === null
+              ? null
+              : canonicalJson(
+                  entry.sourceLocator,
+                  "schedulerMigration.sourceLocator",
+                ),
             entry.sourceDigest,
             entry.targetJobId,
             entry.targetJobDigest,
@@ -2502,8 +2933,39 @@ export class SchedulerStore {
              AND state IN ('prepared', 'applied', 'verified', 'retiring', 'retired')`,
         )
         .run(now, id);
-      return this._rollbackDomainMigrationTargetsInTransaction(id, now);
+      return this._rollbackDomainMigrationTargetsInTransaction(
+        id,
+        now,
+        migration.state,
+      );
     });
+  }
+
+  restoreDomainMigrationEntrySource({
+    migrationId,
+    entryId,
+    retirementToken,
+    restoreSource,
+  } = {}) {
+    if (typeof restoreSource !== "function") {
+      throw invalidArgument("restoreSource must be a function");
+    }
+    const id = normalizeIdentifier(migrationId, "migrationId");
+    const normalizedEntryId = normalizeIdentifier(entryId, "entryId");
+    const token =
+      retirementToken === null || retirementToken === undefined
+        ? null
+        : normalizeIdentifier(retirementToken, "retirementToken");
+    const now = this._now();
+    return this._write(() =>
+      this._restoreDomainMigrationEntrySourceInTransaction({
+        migrationId: id,
+        entryId: normalizedEntryId,
+        retirementToken: token,
+        restoreSource,
+        now,
+      }),
+    );
   }
 
   confirmDomainMigrationEntrySourceRestored({
@@ -2512,88 +2974,107 @@ export class SchedulerStore {
     retirementToken,
     source,
   } = {}) {
-    const id = normalizeIdentifier(migrationId, "migrationId");
-    const normalizedEntryId = normalizeIdentifier(entryId, "entryId");
-    const token =
-      retirementToken === null || retirementToken === undefined
-        ? null
-        : normalizeIdentifier(retirementToken, "retirementToken");
-    const restoredDigest = schedulerMigrationSourceDigest(source);
-    const now = this._now();
-    return this._write(() => {
-      const migration = this._domainMigration(id);
-      if (
-        ![
-          SCHEDULER_MIGRATION_STATES.ROLLING_BACK,
-          SCHEDULER_MIGRATION_STATES.ROLLED_BACK,
-        ].includes(migration.state)
-      ) {
-        throw schedulerMigrationError(
-          "SCHEDULER_MIGRATION_STATE_CONFLICT",
-          "Scheduler migration is not rolling back",
-        );
-      }
-      const entry = mapDomainMigrationEntry(
-        this.statements.getDomainMigrationEntry.get(id, normalizedEntryId),
+    return this.restoreDomainMigrationEntrySource({
+      migrationId,
+      entryId,
+      retirementToken,
+      restoreSource: () => source,
+    });
+  }
+
+  _restoreDomainMigrationEntrySourceInTransaction({
+    migrationId,
+    entryId,
+    retirementToken,
+    restoreSource,
+    now,
+  }) {
+    const migration = this._domainMigration(migrationId);
+    if (
+      ![
+        SCHEDULER_MIGRATION_STATES.ROLLING_BACK,
+        SCHEDULER_MIGRATION_STATES.ROLLED_BACK,
+      ].includes(migration.state)
+    ) {
+      throw schedulerMigrationError(
+        "SCHEDULER_MIGRATION_STATE_CONFLICT",
+        "Scheduler migration is not rolling back",
       );
-      if (!entry || entry.retirementToken !== token) {
+    }
+    const entry = mapDomainMigrationEntry(
+      this.statements.getDomainMigrationEntry.get(migrationId, entryId),
+    );
+    if (!entry || entry.retirementToken !== retirementToken) {
+      throw schedulerMigrationError(
+        "SCHEDULER_MIGRATION_STATE_CONFLICT",
+        "Scheduler migration source restoration token does not match",
+      );
+    }
+    if (entry.state === "rolled_back") {
+      if (entry.sourceRestoredDigest !== entry.sourceDigest) {
         throw schedulerMigrationError(
-          "SCHEDULER_MIGRATION_STATE_CONFLICT",
-          "Scheduler migration source restoration token does not match",
+          "SCHEDULER_MIGRATION_SOURCE_MISMATCH",
+          "Restored scheduler source evidence does not match the journal",
         );
       }
-      if (restoredDigest !== entry.sourceDigest) {
-        throw schedulerMigrationError(
-          "SCHEDULER_MIGRATION_SOURCE_CHANGED",
-          "Restored scheduler source does not match its pre-migration digest",
-          { entryId: normalizedEntryId, sourceId: entry.sourceId },
-        );
-      }
-      if (entry.state === "rolled_back") {
-        if (entry.sourceRestoredDigest !== restoredDigest) {
-          throw schedulerMigrationError(
-            "SCHEDULER_MIGRATION_SOURCE_MISMATCH",
-            "Restored scheduler source evidence does not match the journal",
-          );
-        }
-        return { ...entry, deduplicated: true };
-      }
-      if (!["prepared", "rollback_target_disabled"].includes(entry.state)) {
-        throw schedulerMigrationError(
-          "SCHEDULER_MIGRATION_STATE_CONFLICT",
-          `Scheduler migration entry cannot restore its source from state ${entry.state}`,
-        );
-      }
+      return { ...entry, deduplicated: true };
+    }
+    if (entry.state === "rollback_target_disabled") {
+      this._assertDomainMigrationRollbackTarget(migration, entry);
+    } else if (entry.state !== "prepared") {
+      throw schedulerMigrationError(
+        "SCHEDULER_MIGRATION_STATE_CONFLICT",
+        `Scheduler migration entry cannot restore its source from state ${entry.state}`,
+      );
+    }
+
+    const restoredSource = restoreSource();
+    if (restoredSource && typeof restoredSource.then === "function") {
+      throw invalidArgument("restoreSource must complete synchronously");
+    }
+    const restoredDigest = schedulerMigrationSourceDigest(restoredSource);
+    if (restoredDigest !== entry.sourceDigest) {
+      throw schedulerMigrationError(
+        "SCHEDULER_MIGRATION_SOURCE_CHANGED",
+        "Restored scheduler source does not match its pre-migration digest",
+        { entryId, sourceId: entry.sourceId },
+      );
+    }
+    const update = this.db
+      .prepare(
+        `UPDATE scheduler_domain_migration_entries
+         SET state = 'rolled_back', source_restored_digest = ?, updated_at = ?
+         WHERE migration_id = ? AND entry_id = ?
+           AND state IN ('prepared', 'rollback_target_disabled')`,
+      )
+      .run(restoredDigest, now, migrationId, entryId);
+    if (update.changes !== 1) {
+      throw schedulerMigrationError(
+        "SCHEDULER_MIGRATION_STATE_CONFLICT",
+        "Scheduler migration source restoration lost its journal fence",
+      );
+    }
+    const remaining = this.db
+      .prepare(
+        `SELECT COUNT(*) AS count FROM scheduler_domain_migration_entries
+         WHERE migration_id = ? AND state <> 'rolled_back'`,
+      )
+      .get(migrationId).count;
+    if (remaining === 0) {
       this.db
         .prepare(
-          `UPDATE scheduler_domain_migration_entries
-           SET state = 'rolled_back', source_restored_digest = ?, updated_at = ?
-           WHERE migration_id = ? AND entry_id = ?
-             AND state IN ('prepared', 'rollback_target_disabled')`,
+          `UPDATE scheduler_domain_migrations
+           SET state = 'rolled_back', updated_at = ?, completed_at = ?
+           WHERE migration_id = ? AND state = 'rolling_back'`,
         )
-        .run(restoredDigest, now, id, normalizedEntryId);
-      const remaining = this.db
-        .prepare(
-          `SELECT COUNT(*) AS count FROM scheduler_domain_migration_entries
-           WHERE migration_id = ? AND state <> 'rolled_back'`,
-        )
-        .get(id).count;
-      if (remaining === 0) {
-        this.db
-          .prepare(
-            `UPDATE scheduler_domain_migrations
-             SET state = 'rolled_back', updated_at = ?, completed_at = ?
-             WHERE migration_id = ? AND state = 'rolling_back'`,
-          )
-          .run(now, now, id);
-      }
-      return {
-        ...mapDomainMigrationEntry(
-          this.statements.getDomainMigrationEntry.get(id, normalizedEntryId),
-        ),
-        deduplicated: false,
-      };
-    });
+        .run(now, now, migrationId);
+    }
+    return {
+      ...mapDomainMigrationEntry(
+        this.statements.getDomainMigrationEntry.get(migrationId, entryId),
+      ),
+      deduplicated: false,
+    };
   }
 
   rollbackDomainMigrationTargets(migrationId) {
@@ -2614,7 +3095,11 @@ export class SchedulerStore {
     });
   }
 
-  _rollbackDomainMigrationTargetsInTransaction(migrationId, now) {
+  _rollbackDomainMigrationTargetsInTransaction(
+    migrationId,
+    now,
+    rollbackFromState = null,
+  ) {
     const migration = this._domainMigration(migrationId);
     const invalid = migration.entries.filter(
       (entry) =>
@@ -2635,6 +3120,12 @@ export class SchedulerStore {
         "Scheduler migration entries are not ready for target rollback",
         { entryIds: invalid.map((entry) => entry.entryId) },
       );
+    }
+    const targetRollbackEntries = migration.entries.filter(
+      (entry) => entry.state === "rollback_target_disabled",
+    );
+    for (const entry of targetRollbackEntries) {
+      this._assertDomainMigrationRollbackTarget(migration, entry);
     }
     const pending = [...migration.entries]
       .reverse()
@@ -2657,29 +3148,13 @@ export class SchedulerStore {
           },
         );
       }
-      const counts = this.db
-        .prepare(
-          `SELECT
-               (SELECT COUNT(*) FROM occurrences WHERE job_id = ?) AS occurrences,
-               (SELECT COUNT(*) FROM events
-                WHERE job_id = ? AND occurrence_id IS NOT NULL) AS execution_events`,
-        )
-        .get(entry.targetJobId, entry.targetJobId);
-      if (
-        counts.occurrences !== entry.targetOccurrenceCountBefore ||
-        counts.execution_events !== entry.targetExecutionEventCountBefore
-      ) {
-        throw schedulerMigrationError(
-          "SCHEDULER_MIGRATION_EXECUTION_EVIDENCE",
-          `Scheduler migration target has execution evidence and cannot be rolled back: ${entry.targetJobId}`,
-          {
-            occurrenceCountBefore: entry.targetOccurrenceCountBefore,
-            occurrenceCountNow: counts.occurrences,
-            executionEventCountBefore: entry.targetExecutionEventCountBefore,
-            executionEventCountNow: counts.execution_events,
-          },
-        );
-      }
+      this._assertDomainMigrationTargetBeforeRollback(
+        migration,
+        entry,
+        current,
+        rollbackFromState,
+      );
+      this._assertDomainMigrationTargetExecutionEvidence(entry);
       snapshots.set(entry.entryId, current);
     }
     for (const entry of pending) {
@@ -2732,6 +3207,123 @@ export class SchedulerStore {
       ...this._domainMigration(migrationId),
       deduplicated: pending.length === 0,
     };
+  }
+
+  _assertDomainMigrationTargetBeforeRollback(
+    migration,
+    entry,
+    current,
+    rollbackFromState,
+  ) {
+    const manifestEntry = migration.manifest.entries.find(
+      (candidate) => candidate.entryId === entry.entryId,
+    );
+    if (!manifestEntry) {
+      throw schemaError(
+        "SCHEDULER_DATA_CORRUPT",
+        "Scheduler migration entry is absent from its manifest",
+      );
+    }
+    const intended = normalizeJobInput(manifestEntry.targetJob);
+    const resumedRetiredMigration =
+      rollbackFromState === null &&
+      entry.state === "retired" &&
+      migration.entries.every((candidate) =>
+        ["retired", "rollback_target_disabled", "rolled_back"].includes(
+          candidate.state,
+        ),
+      );
+    const targetWasActivated =
+      rollbackFromState === SCHEDULER_MIGRATION_STATES.RETIRED ||
+      resumedRetiredMigration;
+    const expected = targetWasActivated
+      ? intended
+      : { ...intended, enabled: false };
+    const expectedDigest = schedulerJobDefinitionDigest(expected);
+    const actualDigest = schedulerJobDefinitionDigest(current);
+    if (actualDigest !== expectedDigest) {
+      throw schedulerMigrationError(
+        "SCHEDULER_MIGRATION_TARGET_CHANGED",
+        `Scheduler migration target definition changed before rollback: ${entry.targetJobId}`,
+        {
+          expectedRevision: entry.targetAppliedRevision,
+          actualRevision: current.revision,
+          expectedDefinitionDigest: expectedDigest,
+          actualDefinitionDigest: actualDigest,
+        },
+      );
+    }
+  }
+
+  _assertDomainMigrationRollbackTarget(migration, entry) {
+    const current = mapJob(this.statements.getJob.get(entry.targetJobId));
+    const manifestEntry = migration.manifest.entries.find(
+      (candidate) => candidate.entryId === entry.entryId,
+    );
+    if (
+      !current ||
+      current.revision !== entry.targetRollbackRevision ||
+      !manifestEntry ||
+      !this._isExpectedDomainMigrationRollbackTarget(
+        entry,
+        current,
+        manifestEntry.targetJob,
+      )
+    ) {
+      throw schedulerMigrationError(
+        "SCHEDULER_MIGRATION_TARGET_CHANGED",
+        `Scheduler migration target changed after rollback: ${entry.targetJobId}`,
+        {
+          expectedRevision: entry.targetRollbackRevision,
+          actualRevision: current?.revision ?? null,
+        },
+      );
+    }
+    this._assertDomainMigrationTargetExecutionEvidence(entry);
+  }
+
+  _isExpectedDomainMigrationRollbackTarget(entry, current, targetJob) {
+    if (
+      entry.targetAction === "created" ||
+      entry.rollbackStrategy === "disable"
+    ) {
+      const intended = normalizeJobInput(targetJob);
+      return (
+        schedulerJobDefinitionDigest(current) ===
+        schedulerJobDefinitionDigest({ ...intended, enabled: false })
+      );
+    }
+    return (
+      entry.targetBefore !== null &&
+      schedulerJobDefinitionDigest(current) ===
+        schedulerJobDefinitionDigest(entry.targetBefore)
+    );
+  }
+
+  _assertDomainMigrationTargetExecutionEvidence(entry) {
+    const counts = this.db
+      .prepare(
+        `SELECT
+             (SELECT COUNT(*) FROM occurrences WHERE job_id = ?) AS occurrences,
+             (SELECT COUNT(*) FROM events
+              WHERE job_id = ? AND occurrence_id IS NOT NULL) AS execution_events`,
+      )
+      .get(entry.targetJobId, entry.targetJobId);
+    if (
+      counts.occurrences !== entry.targetOccurrenceCountBefore ||
+      counts.execution_events !== entry.targetExecutionEventCountBefore
+    ) {
+      throw schedulerMigrationError(
+        "SCHEDULER_MIGRATION_EXECUTION_EVIDENCE",
+        `Scheduler migration target has execution evidence and cannot be rolled back: ${entry.targetJobId}`,
+        {
+          occurrenceCountBefore: entry.targetOccurrenceCountBefore,
+          occurrenceCountNow: counts.occurrences,
+          executionEventCountBefore: entry.targetExecutionEventCountBefore,
+          executionEventCountNow: counts.execution_events,
+        },
+      );
+    }
   }
 
   _enqueueOccurrence({ id, scheduled, key, available, payload, now }) {

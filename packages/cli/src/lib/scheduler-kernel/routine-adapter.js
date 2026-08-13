@@ -18,6 +18,7 @@ import {
   bindSchedulerAuthorityPolicy,
   createSchedulerAuthorityResolver,
 } from "./authority-resolver.js";
+import { canonicalSchedulerSourcePath } from "./source-locator-path.js";
 
 export const ROUTINE_SCHEDULER_KIND = "routine";
 export const ROUTINE_SCHEDULER_CAPABILITY = "agent.execute";
@@ -408,7 +409,31 @@ export function migrateRoutineSchedule({
       `Routine trigger has no legacy driver to migrate: ${snapshot.id}`,
     );
   }
-  const sourceScope = { store: "routines", directory: routineStore.dir };
+  const directory = canonicalSchedulerSourcePath(routineStore.dir);
+  const sourceScope = { store: "routines", directory };
+  const sourceLocator = {
+    schemaVersion: 1,
+    type: "routine-store",
+    directory,
+  };
+  let prepared = schedulerStore.getActiveDomainMigrationBySource({
+    domain: "routine",
+    sourceScope,
+    sourceId: snapshot.id,
+  });
+  if (!prepared && routineStore.dir !== directory) {
+    const ambiguousLegacy = schedulerStore.getActiveDomainMigrationBySource({
+      domain: "routine",
+      sourceScope: { store: "routines", directory: routineStore.dir },
+      sourceId: snapshot.id,
+    });
+    if (ambiguousLegacy) {
+      throw routineError(
+        "SCHEDULER_ROUTINE_MIGRATION_SOURCE_UNBOUND",
+        `Legacy Routine migration uses a non-canonical path scope and cannot be bound safely: ${snapshot.id}`,
+      );
+    }
+  }
   const channel =
     snapshot.trigger.kind === "github"
       ? ROUTINE_SCHEDULER_CHANNELS.GITHUB
@@ -436,25 +461,41 @@ export function migrateRoutineSchedule({
   );
   const sourceSnapshot = routineMigrationSourceSnapshot(routine);
   const sourceDigest = routineMigrationSourceDigest(routine);
-  const existing = schedulerStore.getActiveDomainMigrationBySource({
-    domain: "routine",
-    sourceScope,
-    sourceId: snapshot.id,
-  });
-  const prepared =
-    existing ||
-    schedulerStore.prepareDomainMigration({
+  if (prepared) {
+    const migrationEntries = prepared.entries.filter(
+      (candidate) =>
+        candidate.domain === "routine" && candidate.sourceId === snapshot.id,
+    );
+    if (prepared.entries.length !== 1 || migrationEntries.length !== 1) {
+      throw routineError(
+        "SCHEDULER_ROUTINE_MIGRATION_DOMAIN_MISMATCH",
+        "Routine belongs to an invalid mixed-domain migration",
+      );
+    }
+    const [migrationEntry] = migrationEntries;
+    schedulerStore.bindDomainMigrationSourceLocator({
+      migrationId: prepared.id,
+      entryId: migrationEntry.entryId,
+      sourceLocator,
+      expectedSourceDigest: migrationEntry.sourceDigest,
+      expectedTargetJobId: migrationEntry.targetJobId,
+    });
+    prepared = schedulerStore.getDomainMigration(prepared.id);
+  } else {
+    prepared = schedulerStore.prepareDomainMigration({
       entries: [
         {
           domain: "routine",
           sourceId: snapshot.id,
           sourceScope,
+          sourceLocator,
           source: sourceSnapshot,
           targetJob: desired,
           rollbackStrategy: "disable",
         },
       ],
     });
+  }
   if (
     prepared.entries.length !== 1 ||
     prepared.entries[0].domain !== "routine"
@@ -530,33 +571,63 @@ export function rollbackRoutineMigration({
   schedulerStore,
   migrationId,
 }) {
-  const migration = schedulerStore.beginDomainMigrationRollback(migrationId);
-  const entries = migration.entries.filter(
-    (entry) => entry.domain === "routine",
+  const directory = canonicalSchedulerSourcePath(routineStore.dir);
+  const assertRollbackBinding = (migration) => {
+    if (
+      migration?.id !== migrationId ||
+      !Array.isArray(migration.entries) ||
+      migration.entries.length === 0 ||
+      migration.entries.some((entry) => entry.domain !== "routine")
+    ) {
+      throw routineError(
+        "SCHEDULER_ROUTINE_MIGRATION_DOMAIN_MISMATCH",
+        "Routine rollback cannot operate on a mixed-domain migration",
+      );
+    }
+    for (const entry of migration.entries) {
+      const locator = entry.sourceLocator;
+      if (
+        locator?.schemaVersion !== 1 ||
+        locator.type !== "routine-store" ||
+        locator.directory !== directory
+      ) {
+        throw routineError(
+          "SCHEDULER_ROUTINE_MIGRATION_SOURCE_UNBOUND",
+          `Routine rollback source locator does not match its store: ${entry.sourceId}`,
+        );
+      }
+    }
+    return migration;
+  };
+  const current = assertRollbackBinding(
+    schedulerStore.getDomainMigration(migrationId),
   );
-  if (entries.length !== migration.entries.length) {
-    throw routineError(
-      "SCHEDULER_ROUTINE_MIGRATION_DOMAIN_MISMATCH",
-      "Routine rollback cannot operate on a mixed-domain migration",
-    );
+  if (current.state === "rolled_back") {
+    return { ...current, deduplicated: true };
   }
+  const migration = assertRollbackBinding(
+    schedulerStore.beginDomainMigrationRollback(migrationId),
+  );
   if (migration.state === "rolled_back") return migration;
+  const entries = migration.entries;
   for (const entry of entries) {
     if (entry.state === "rolled_back") continue;
-    const current = routineStore.get(entry.sourceId);
-    const restored = current.schedulerMigration
-      ? routineStore.restoreFromSchedulerMigration(entry.sourceId, {
-          migrationId,
-          sourceDigest: routineMigrationSourceDigest(current),
-          targetJobId: entry.targetJobId,
-          retirementToken: entry.retirementToken,
-        })
-      : current;
-    schedulerStore.confirmDomainMigrationEntrySourceRestored({
+    schedulerStore.restoreDomainMigrationEntrySource({
       migrationId,
       entryId: entry.entryId,
       retirementToken: entry.retirementToken,
-      source: routineMigrationSourceSnapshot(restored),
+      restoreSource: () => {
+        const current = routineStore.get(entry.sourceId);
+        const restored = current.schedulerMigration
+          ? routineStore.restoreFromSchedulerMigration(entry.sourceId, {
+              migrationId,
+              sourceDigest: routineMigrationSourceDigest(current),
+              targetJobId: entry.targetJobId,
+              retirementToken: entry.retirementToken,
+            })
+          : current;
+        return routineMigrationSourceSnapshot(restored);
+      },
     });
   }
   return schedulerStore.getDomainMigration(migrationId);
@@ -914,7 +985,10 @@ export class RoutineSchedulerBridge {
       this.migrateLegacy &&
       this.schedulerStore.getActiveDomainMigrationBySource({
         domain: "routine",
-        sourceScope: { store: "routines", directory: this.routineStore.dir },
+        sourceScope: {
+          store: "routines",
+          directory: canonicalSchedulerSourcePath(this.routineStore.dir),
+        },
         sourceId: routine.id,
       });
     if (
@@ -1009,7 +1083,7 @@ export class RoutineSchedulerBridge {
     if (!signal?.aborted && this.migrateLegacy) {
       const sourceScope = {
         store: "routines",
-        directory: this.routineStore.dir,
+        directory: canonicalSchedulerSourcePath(this.routineStore.dir),
       };
       const candidates = this.routineStore.list().filter((routine) => {
         const activeMigration =

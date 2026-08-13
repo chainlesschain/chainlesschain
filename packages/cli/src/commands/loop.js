@@ -44,6 +44,7 @@ import {
   appendEvent,
   appendEventIfHead,
   readEvents,
+  sessionPath,
   sessionExists,
 } from "../harness/jsonl-session-store.js";
 import { openSchedulerStore } from "../lib/scheduler-kernel/store.js";
@@ -466,6 +467,7 @@ export function registerLoopCommand(program) {
               definition,
               readEvents,
               appendEventIfHead,
+              sessionFilePath: sessionPath,
             });
           }
           const loopScheduler = _deps.createLoopSchedulerBridge({

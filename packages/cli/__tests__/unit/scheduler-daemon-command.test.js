@@ -6,14 +6,231 @@ import {
   buildSchedulerAdjudicationChallenge,
   getSchedulerAdjudicationCase,
   getSchedulerAuthorityPolicy,
+  listSchedulerMigrationJournal,
   parseSchedulerDomains,
   parseSchedulerIntervalMs,
   parseSchedulerCapabilities,
   runSchedulerDaemon,
   setSchedulerAuthorityPolicy,
+  showSchedulerMigrationJournal,
 } from "../../src/commands/scheduler-daemon.js";
 
 describe("scheduler daemon command", () => {
+  const migrationFixture = () => ({
+    id: "scheduler-domain-migration-test",
+    state: "retired",
+    entryCount: 1,
+    manifestDigest: `sha256:${"a".repeat(64)}`,
+    manifest: {
+      entries: [
+        {
+          targetJob: {
+            payload: { secret: "do-not-expose" },
+            authority: { secret: "do-not-expose-authority" },
+          },
+        },
+      ],
+    },
+    createdAt: 100,
+    updatedAt: 200,
+    completedAt: 200,
+    lastError: { code: "TEST_ERROR", details: { secret: "hidden" } },
+    entries: [
+      {
+        entryId: "scheduler-migration-entry-test",
+        domain: "routine",
+        sourceId: "daily",
+        sourceScopeDigest: `sha256:${"b".repeat(64)}`,
+        sourceLocator: {
+          schemaVersion: 1,
+          type: "routine-store",
+          directory: "C:\\do-not-expose-routines",
+        },
+        sourceDigest: `sha256:${"c".repeat(64)}`,
+        targetJobId: "routine:test",
+        targetJobDigest: `sha256:${"d".repeat(64)}`,
+        rollbackStrategy: "disable",
+        state: "retired",
+        targetAction: "created",
+        targetBefore: { payload: { secret: "also-hidden" } },
+        targetAppliedRevision: 3,
+        targetAppliedAt: 150,
+        targetOccurrenceCountBefore: 0,
+        targetExecutionEventCountBefore: 0,
+        targetRollbackRevision: null,
+        retirementToken: "do-not-expose-token",
+        sourceRetirementDigest: `sha256:${"e".repeat(64)}`,
+        sourceRestoredDigest: null,
+        sourceSnapshot: { prompt: "do-not-expose-prompt" },
+        createdAt: 100,
+        updatedAt: 200,
+      },
+    ],
+  });
+
+  it("lists sanitized migration summaries with strict filters", async () => {
+    const list = vi.fn(() => [migrationFixture()]);
+    await expect(
+      listSchedulerMigrationJournal(
+        { state: "RETIRED", domain: "ROUTINE", limit: "20" },
+        { migrationRepository: { list } },
+      ),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        id: "scheduler-domain-migration-test",
+        state: "retired",
+        domains: ["routine"],
+        entryCount: 1,
+      }),
+    ]);
+    expect(list).toHaveBeenCalledWith({
+      state: "retired",
+      domain: "routine",
+      limit: 20,
+    });
+    await expect(
+      listSchedulerMigrationJournal(
+        { domain: "unknown" },
+        { migrationRepository: { list } },
+      ),
+    ).rejects.toMatchObject({
+      code: "SCHEDULER_MIGRATION_ADMIN_INVALID_ARGUMENT",
+    });
+  });
+
+  it("shows a payload-free journal, target counters and rollback blockers", async () => {
+    const repository = {
+      get: vi.fn(() => migrationFixture()),
+      getTarget: vi.fn(() => ({
+        jobId: "routine:test",
+        exists: true,
+        revision: 4,
+        enabled: true,
+        occurrenceCount: 1,
+        eventCount: 5,
+        executionEventCount: 1,
+      })),
+    };
+    const result = await showSchedulerMigrationJournal(
+      "scheduler-domain-migration-test",
+      { migrationRepository: repository },
+    );
+    expect(result).toMatchObject({
+      journal: {
+        lastError: { code: "TEST_ERROR" },
+        entries: [
+          {
+            domain: "routine",
+            sourceLocatorAvailable: true,
+            targetJobId: "routine:test",
+            targetAppliedRevision: 3,
+          },
+        ],
+      },
+      targets: [
+        {
+          revision: 4,
+          enabled: true,
+          occurrenceCount: 1,
+          eventCount: 5,
+          executionEventCount: 1,
+        },
+      ],
+      rollback: {
+        eligible: false,
+        blockers: expect.arrayContaining([
+          expect.objectContaining({ code: "TARGET_REVISION_CHANGED" }),
+          expect.objectContaining({ code: "TARGET_OCCURRENCES_OBSERVED" }),
+          expect.objectContaining({ code: "TARGET_EXECUTION_EVENTS_OBSERVED" }),
+        ]),
+      },
+    });
+    const serialized = JSON.stringify(result);
+    expect(serialized).not.toContain("do-not-expose");
+    expect(serialized).not.toContain("sourceSnapshot");
+    expect(serialized).not.toContain("targetBefore");
+    expect(serialized).not.toContain("retirementToken");
+
+    repository.getTarget.mockReturnValue({
+      jobId: "routine:test",
+      exists: true,
+      revision: 3,
+      enabled: true,
+      occurrenceCount: 0,
+      eventCount: 2,
+      executionEventCount: 0,
+    });
+    await expect(
+      showSchedulerMigrationJournal("scheduler-domain-migration-test", {
+        migrationRepository: repository,
+      }),
+    ).resolves.toMatchObject({ rollback: { eligible: true, blockers: [] } });
+  });
+
+  it("reports management and locator blockers without exposing locator values", async () => {
+    const migration = migrationFixture();
+    migration.entryCount = 2;
+    migration.entries[0].sourceLocator = null;
+    migration.entries.push({
+      ...migration.entries[0],
+      entryId: "scheduler-migration-entry-second",
+      sourceId: "weekly",
+      sourceLocator: {
+        schemaVersion: 1,
+        type: "routine-store",
+        directory: "C:\\second-private-routines",
+      },
+      targetJobId: "routine:second",
+    });
+    const result = await showSchedulerMigrationJournal(migration.id, {
+      migrationRepository: {
+        get: () => migration,
+        getTarget: (targetJobId) => ({
+          jobId: targetJobId,
+          exists: true,
+          revision: 3,
+          enabled: true,
+          occurrenceCount: 0,
+          eventCount: 2,
+          executionEventCount: 0,
+        }),
+      },
+    });
+
+    expect(result.journal.entries).toEqual([
+      expect.objectContaining({ sourceLocatorAvailable: false }),
+      expect.objectContaining({ sourceLocatorAvailable: true }),
+    ]);
+    expect(result.rollback).toMatchObject({
+      eligible: false,
+      blockers: expect.arrayContaining([
+        expect.objectContaining({
+          code: "MULTI_ENTRY_UNSUPPORTED",
+          entryCount: 2,
+        }),
+        expect.objectContaining({
+          code: "SOURCE_LOCATOR_UNAVAILABLE",
+          entryId: "scheduler-migration-entry-test",
+        }),
+      ]),
+    });
+    const serialized = JSON.stringify(result);
+    expect(serialized).not.toContain("do-not-expose-routines");
+    expect(serialized).not.toContain("second-private-routines");
+    expect(serialized).not.toContain('"sourceLocator":');
+  });
+
+  it("uses a stable error code for a missing migration journal", async () => {
+    await expect(
+      showSchedulerMigrationJournal("missing", {
+        migrationRepository: { get: () => null, getTarget: vi.fn() },
+      }),
+    ).rejects.toMatchObject({
+      code: "SCHEDULER_MIGRATION_NOT_FOUND",
+      message: "Scheduler domain migration does not exist: missing",
+    });
+  });
+
   it("normalizes exact scheduler capabilities without allowing a wildcard", () => {
     expect(
       parseSchedulerCapabilities("agent.execute, network.read,agent.execute"),

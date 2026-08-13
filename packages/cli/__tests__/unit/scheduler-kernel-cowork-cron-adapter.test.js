@@ -29,6 +29,7 @@ import {
   migrateCoworkCronSchedule,
   rollbackCoworkCronMigration,
 } from "../../src/lib/scheduler-kernel/cowork-cron-adapter.js";
+import { canonicalSchedulerSourcePath } from "../../src/lib/scheduler-kernel/source-locator-path.js";
 import { openSchedulerStore } from "../../src/lib/scheduler-kernel/store.js";
 
 describe("scheduler-kernel Cowork cron adapter", () => {
@@ -346,6 +347,7 @@ describe("scheduler-kernel Cowork cron adapter", () => {
     const schedule = f.add({ cron: "0 0 1 1 *" });
     const schedulerStore = f.openScheduler();
     const desired = buildCoworkCronSchedulerJob(f.cwd, schedule);
+    const workspace = canonicalSchedulerSourcePath(f.cwd);
     const prepared = schedulerStore.prepareDomainMigration({
       entries: [
         {
@@ -353,7 +355,12 @@ describe("scheduler-kernel Cowork cron adapter", () => {
           sourceId: schedule.id,
           sourceScope: {
             store: "cowork-schedules",
-            workspace: f.cwd.toLowerCase(),
+            workspace,
+          },
+          sourceLocator: {
+            schemaVersion: 1,
+            type: "cowork-workspace",
+            workspace,
           },
           source: coworkCronMigrationSourceSnapshot(schedule),
           targetJob: desired,
@@ -380,6 +387,83 @@ describe("scheduler-kernel Cowork cron adapter", () => {
       "schedulerMigration",
     );
     expect(schedulerStore.getJob(desired.id)).toMatchObject({ enabled: false });
+  });
+
+  it("rejects a foreign-domain rollback before changing its journal or target", () => {
+    const f = fixture();
+    const schedule = f.add({ cron: "0 0 1 1 *" });
+    const schedulerStore = f.openScheduler();
+    const desired = buildCoworkCronSchedulerJob(f.cwd, schedule);
+    const directory = canonicalSchedulerSourcePath(f.cwd);
+    const prepared = schedulerStore.prepareDomainMigration({
+      entries: [
+        {
+          domain: "agenda",
+          sourceId: schedule.id,
+          sourceScope: { store: "agent-schedule", directory },
+          sourceLocator: {
+            schemaVersion: 1,
+            type: "agenda-store",
+            directory,
+          },
+          source: coworkCronMigrationSourceSnapshot(schedule),
+          targetJob: desired,
+          rollbackStrategy: "disable",
+        },
+      ],
+    });
+    schedulerStore.applyDomainMigration(prepared.id);
+    const beforeMigration = schedulerStore.getDomainMigration(prepared.id);
+    const beforeTarget = schedulerStore.getJob(desired.id);
+
+    expect(() =>
+      rollbackCoworkCronMigration({
+        cwd: f.cwd,
+        schedulerStore,
+        migrationId: prepared.id,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "COWORK_SCHEDULER_MIGRATION_DOMAIN_MISMATCH",
+      }),
+    );
+    expect(schedulerStore.getDomainMigration(prepared.id).state).toBe(
+      beforeMigration.state,
+    );
+    expect(schedulerStore.getJob(desired.id).revision).toBe(
+      beforeTarget.revision,
+    );
+  });
+
+  it("rejects a Cowork rollback from another workspace before changing its journal or target", () => {
+    const f = fixture();
+    const schedule = f.add({ cron: "0 0 1 1 *" });
+    const schedulerStore = f.openScheduler();
+    const migrated = migrateCoworkCronSchedule({
+      cwd: f.cwd,
+      schedulerStore,
+      schedule,
+    });
+    const beforeMigration = schedulerStore.getDomainMigration(migrated.id);
+    const beforeTarget = schedulerStore.getJob(migrated.entries[0].targetJobId);
+
+    expect(() =>
+      rollbackCoworkCronMigration({
+        cwd: join(f.root, "wrong-workspace"),
+        schedulerStore,
+        migrationId: migrated.id,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "COWORK_SCHEDULER_MIGRATION_SOURCE_UNBOUND",
+      }),
+    );
+    expect(schedulerStore.getDomainMigration(migrated.id).state).toBe(
+      beforeMigration.state,
+    );
+    expect(
+      schedulerStore.getJob(migrated.entries[0].targetJobId).revision,
+    ).toBe(beforeTarget.revision);
   });
 
   it("binds an IANA zone and collapses downtime to one latest occurrence", async () => {

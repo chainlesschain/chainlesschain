@@ -20,6 +20,7 @@ import {
   bindSchedulerAuthorityPolicy,
   createSchedulerAuthorityResolver,
 } from "./authority-resolver.js";
+import { canonicalSchedulerSourcePath } from "./source-locator-path.js";
 
 export const AGENDA_SCHEDULER_KIND = "agenda";
 export const AGENDA_SCHEDULER_CAPABILITY = "agent.execute";
@@ -371,7 +372,34 @@ export function migrateAgendaSchedulerEntry({
   entry,
 }) {
   const snapshot = agendaEntrySnapshot(entry);
-  const sourceScope = { store: "agent-schedule", directory: agendaStore.dir };
+  const directory = canonicalSchedulerSourcePath(agendaStore.dir);
+  const sourceScope = { store: "agent-schedule", directory };
+  const sourceLocator = {
+    schemaVersion: 1,
+    type: "agenda-store",
+    directory,
+  };
+  let prepared = schedulerStore.getActiveDomainMigrationBySource({
+    domain: "agenda",
+    sourceScope,
+    sourceId: snapshot.id,
+  });
+  if (!prepared && agendaStore.dir !== directory) {
+    const ambiguousLegacy = schedulerStore.getActiveDomainMigrationBySource({
+      domain: "agenda",
+      sourceScope: {
+        store: "agent-schedule",
+        directory: agendaStore.dir,
+      },
+      sourceId: snapshot.id,
+    });
+    if (ambiguousLegacy) {
+      throw agendaError(
+        "AGENDA_SCHEDULER_MIGRATION_SOURCE_UNBOUND",
+        `Legacy Agenda migration uses a non-canonical path scope and cannot be bound safely: ${snapshot.id}`,
+      );
+    }
+  }
   const desired = buildAgendaSchedulerJob(snapshot);
   desired.authority = bindSchedulerAuthorityPolicy(
     schedulerStore,
@@ -379,25 +407,41 @@ export function migrateAgendaSchedulerEntry({
   );
   const sourceDigest = agendaMigrationSourceDigest(entry);
   const sourceSnapshot = agendaMigrationSourceSnapshot(entry);
-  const existing = schedulerStore.getActiveDomainMigrationBySource({
-    domain: "agenda",
-    sourceScope,
-    sourceId: snapshot.id,
-  });
-  const prepared =
-    existing ||
-    schedulerStore.prepareDomainMigration({
+  if (prepared) {
+    const migrationEntries = prepared.entries.filter(
+      (candidate) =>
+        candidate.domain === "agenda" && candidate.sourceId === snapshot.id,
+    );
+    if (prepared.entries.length !== 1 || migrationEntries.length !== 1) {
+      throw agendaError(
+        "AGENDA_SCHEDULER_MIGRATION_DOMAIN_MISMATCH",
+        "Agenda entry belongs to an invalid mixed-domain migration",
+      );
+    }
+    const [migrationEntry] = migrationEntries;
+    schedulerStore.bindDomainMigrationSourceLocator({
+      migrationId: prepared.id,
+      entryId: migrationEntry.entryId,
+      sourceLocator,
+      expectedSourceDigest: migrationEntry.sourceDigest,
+      expectedTargetJobId: migrationEntry.targetJobId,
+    });
+    prepared = schedulerStore.getDomainMigration(prepared.id);
+  } else {
+    prepared = schedulerStore.prepareDomainMigration({
       entries: [
         {
           domain: "agenda",
           sourceId: snapshot.id,
           sourceScope,
+          sourceLocator,
           source: sourceSnapshot,
           targetJob: desired,
           rollbackStrategy: "disable",
         },
       ],
     });
+  }
   if (
     prepared.entries.length !== 1 ||
     prepared.entries[0].domain !== "agenda"
@@ -477,33 +521,63 @@ export function rollbackAgendaSchedulerMigration({
   schedulerStore,
   migrationId,
 }) {
-  const migration = schedulerStore.beginDomainMigrationRollback(migrationId);
-  const entries = migration.entries.filter(
-    (entry) => entry.domain === "agenda",
+  const directory = canonicalSchedulerSourcePath(agendaStore.dir);
+  const assertRollbackBinding = (migration) => {
+    if (
+      migration?.id !== migrationId ||
+      !Array.isArray(migration.entries) ||
+      migration.entries.length === 0 ||
+      migration.entries.some((entry) => entry.domain !== "agenda")
+    ) {
+      throw agendaError(
+        "AGENDA_SCHEDULER_MIGRATION_DOMAIN_MISMATCH",
+        "Agenda rollback cannot operate on a mixed-domain migration",
+      );
+    }
+    for (const entry of migration.entries) {
+      const locator = entry.sourceLocator;
+      if (
+        locator?.schemaVersion !== 1 ||
+        locator.type !== "agenda-store" ||
+        locator.directory !== directory
+      ) {
+        throw agendaError(
+          "AGENDA_SCHEDULER_MIGRATION_SOURCE_UNBOUND",
+          `Agenda rollback source locator does not match its store: ${entry.sourceId}`,
+        );
+      }
+    }
+    return migration;
+  };
+  const current = assertRollbackBinding(
+    schedulerStore.getDomainMigration(migrationId),
   );
-  if (entries.length !== migration.entries.length) {
-    throw agendaError(
-      "AGENDA_SCHEDULER_MIGRATION_DOMAIN_MISMATCH",
-      "Agenda rollback cannot operate on a mixed-domain migration",
-    );
+  if (current.state === "rolled_back") {
+    return { ...current, deduplicated: true };
   }
+  const migration = assertRollbackBinding(
+    schedulerStore.beginDomainMigrationRollback(migrationId),
+  );
   if (migration.state === "rolled_back") return migration;
+  const entries = migration.entries;
   for (const entry of entries) {
     if (entry.state === "rolled_back") continue;
-    const current = agendaStore.get(entry.sourceId);
-    const restored = current.schedulerMigration
-      ? agendaStore.restoreFromSchedulerMigration(entry.sourceId, {
-          migrationId,
-          sourceDigest: agendaMigrationSourceDigest(current),
-          targetJobId: entry.targetJobId,
-          retirementToken: entry.retirementToken,
-        })
-      : current;
-    schedulerStore.confirmDomainMigrationEntrySourceRestored({
+    schedulerStore.restoreDomainMigrationEntrySource({
       migrationId,
       entryId: entry.entryId,
       retirementToken: entry.retirementToken,
-      source: agendaMigrationSourceSnapshot(restored),
+      restoreSource: () => {
+        const current = agendaStore.get(entry.sourceId);
+        const restored = current.schedulerMigration
+          ? agendaStore.restoreFromSchedulerMigration(entry.sourceId, {
+              migrationId,
+              sourceDigest: agendaMigrationSourceDigest(current),
+              targetJobId: entry.targetJobId,
+              retirementToken: entry.retirementToken,
+            })
+          : current;
+        return agendaMigrationSourceSnapshot(restored);
+      },
     });
   }
   return schedulerStore.getDomainMigration(migrationId);
@@ -937,7 +1011,7 @@ export class AgendaSchedulerBridge {
     if (!signal?.aborted && this.migrateLegacy) {
       const sourceScope = {
         store: "agent-schedule",
-        directory: this.agendaStore.dir,
+        directory: canonicalSchedulerSourcePath(this.agendaStore.dir),
       };
       const candidates = this.agendaStore.list().filter((entry) => {
         const activeMigration =

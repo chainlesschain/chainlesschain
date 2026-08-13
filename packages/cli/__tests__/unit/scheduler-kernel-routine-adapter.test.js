@@ -25,6 +25,7 @@ import {
   routineSnapshotDigest,
   syncRoutineSchedulerJob,
 } from "../../src/lib/scheduler-kernel/routine-adapter.js";
+import { canonicalSchedulerSourcePath } from "../../src/lib/scheduler-kernel/source-locator-path.js";
 import { openSchedulerStore } from "../../src/lib/scheduler-kernel/store.js";
 
 describe("scheduler-kernel routine adapter", () => {
@@ -283,7 +284,10 @@ describe("scheduler-kernel routine adapter", () => {
         {
           domain: "routine",
           sourceId: routine.id,
-          sourceScope: { store: "routines", directory: routineStore.dir },
+          sourceScope: {
+            store: "routines",
+            directory: canonicalSchedulerSourcePath(routineStore.dir),
+          },
           source,
           targetJob: desired,
           rollbackStrategy: "disable",
@@ -351,12 +355,18 @@ describe("scheduler-kernel routine adapter", () => {
       trigger: { kind: "once", at: f.now + 1_000 },
     });
     const desired = buildRoutineSchedulerJob(routine);
+    const directory = canonicalSchedulerSourcePath(routineStore.dir);
     const prepared = schedulerStore.prepareDomainMigration({
       entries: [
         {
           domain: "routine",
           sourceId: routine.id,
-          sourceScope: { store: "routines", directory: routineStore.dir },
+          sourceScope: { store: "routines", directory },
+          sourceLocator: {
+            schemaVersion: 1,
+            type: "routine-store",
+            directory,
+          },
           source: routineMigrationSourceSnapshot(routine),
           targetJob: desired,
           rollbackStrategy: "disable",
@@ -382,6 +392,97 @@ describe("scheduler-kernel routine adapter", () => {
       "schedulerMigration",
     );
     expect(schedulerStore.getJob(desired.id)).toMatchObject({ enabled: false });
+  });
+
+  it("rejects a foreign-domain rollback before changing its journal or target", () => {
+    const f = fixture();
+    const routineStore = f.openRoutine();
+    const schedulerStore = f.openScheduler();
+    const routine = routineStore.create({
+      name: "foreign-domain-rollback",
+      prompt: "rollback",
+      trigger: { kind: "once", at: f.now + 1_000 },
+    });
+    const desired = buildRoutineSchedulerJob(routine);
+    const directory = canonicalSchedulerSourcePath(routineStore.dir);
+    const prepared = schedulerStore.prepareDomainMigration({
+      entries: [
+        {
+          domain: "agenda",
+          sourceId: routine.id,
+          sourceScope: { store: "agent-schedule", directory },
+          sourceLocator: {
+            schemaVersion: 1,
+            type: "agenda-store",
+            directory,
+          },
+          source: routineMigrationSourceSnapshot(routine),
+          targetJob: desired,
+          rollbackStrategy: "disable",
+        },
+      ],
+    });
+    schedulerStore.applyDomainMigration(prepared.id);
+    const beforeMigration = schedulerStore.getDomainMigration(prepared.id);
+    const beforeTarget = schedulerStore.getJob(desired.id);
+
+    expect(() =>
+      rollbackRoutineMigration({
+        routineStore,
+        schedulerStore,
+        migrationId: prepared.id,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "SCHEDULER_ROUTINE_MIGRATION_DOMAIN_MISMATCH",
+      }),
+    );
+    expect(schedulerStore.getDomainMigration(prepared.id).state).toBe(
+      beforeMigration.state,
+    );
+    expect(schedulerStore.getJob(desired.id).revision).toBe(
+      beforeTarget.revision,
+    );
+  });
+
+  it("rejects a Routine rollback from another store before changing its journal or target", () => {
+    const f = fixture();
+    const routineStore = f.openRoutine();
+    const schedulerStore = f.openScheduler();
+    const routine = routineStore.create({
+      name: "wrong-store-rollback",
+      prompt: "rollback",
+      trigger: { kind: "once", at: f.now + 1_000 },
+    });
+    const migrated = migrateRoutineSchedule({
+      routineStore,
+      schedulerStore,
+      routine,
+    });
+    const beforeMigration = schedulerStore.getDomainMigration(migrated.id);
+    const beforeTarget = schedulerStore.getJob(migrated.entries[0].targetJobId);
+    const wrongRoutineStore = new RoutineStore({
+      dir: join(routineStore.dir, "wrong-store"),
+      now: f.clock,
+    });
+
+    expect(() =>
+      rollbackRoutineMigration({
+        routineStore: wrongRoutineStore,
+        schedulerStore,
+        migrationId: migrated.id,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "SCHEDULER_ROUTINE_MIGRATION_SOURCE_UNBOUND",
+      }),
+    );
+    expect(schedulerStore.getDomainMigration(migrated.id).state).toBe(
+      beforeMigration.state,
+    );
+    expect(
+      schedulerStore.getJob(migrated.entries[0].targetJobId).revision,
+    ).toBe(beforeTarget.revision);
   });
 
   it("keeps a migrated recurring Routine disabled for legacy drivers after run", async () => {

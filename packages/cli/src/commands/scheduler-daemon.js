@@ -9,6 +9,14 @@ import {
   createSchedulerService,
 } from "../lib/scheduler-kernel/service.js";
 import {
+  createSchedulerMigrationAdminRepository,
+  listSchedulerMigrations,
+} from "../lib/scheduler-kernel/migration-admin.js";
+import {
+  rollbackSchedulerMigration,
+  showSchedulerMigrationRollback,
+} from "../lib/scheduler-kernel/migration-rollback-admin.js";
+import {
   schedulerAdjudicationOperatorDigest,
   schedulerAdjudicationReasonDigest,
 } from "../lib/scheduler-kernel/store.js";
@@ -69,15 +77,64 @@ export function parseSchedulerCapabilities(value) {
 }
 
 async function withSchedulerStore(dependencies, operation) {
+  if (dependencies.schedulerStore) {
+    return operation(dependencies.schedulerStore);
+  }
   const openStore =
     dependencies.openSchedulerStore ||
     (await import("../lib/scheduler-kernel/store.js")).openSchedulerStore;
   const store = openStore();
   try {
-    return operation(store);
+    return await operation(store);
   } finally {
     store.close();
   }
+}
+
+async function withSchedulerMigrationRepository(dependencies, operation) {
+  if (dependencies.migrationRepository) {
+    return operation(dependencies.migrationRepository);
+  }
+  return withSchedulerStore(dependencies, (store) =>
+    operation(createSchedulerMigrationAdminRepository(store)),
+  );
+}
+
+export async function listSchedulerMigrationJournal(
+  options = {},
+  dependencies = {},
+) {
+  return withSchedulerMigrationRepository(dependencies, (repository) =>
+    listSchedulerMigrations(repository, options),
+  );
+}
+
+export async function showSchedulerMigrationJournal(
+  migrationId,
+  dependencies = {},
+) {
+  return withSchedulerMigrationRepository(dependencies, (repository) =>
+    showSchedulerMigrationRollback(repository, migrationId),
+  );
+}
+
+export async function rollbackSchedulerMigrationJournal(
+  migrationId,
+  options = {},
+  dependencies = {},
+) {
+  return withSchedulerStore(dependencies, (schedulerStore) => {
+    const repository =
+      dependencies.migrationRepository ||
+      createSchedulerMigrationAdminRepository(schedulerStore);
+    return rollbackSchedulerMigration({
+      schedulerStore,
+      repository,
+      migrationId,
+      options,
+      dependencies,
+    });
+  });
 }
 
 export function buildSchedulerAdjudicationChallenge({
@@ -502,7 +559,7 @@ export async function runSchedulerDaemon(options = {}, dependencies = {}) {
   }
 }
 
-export function registerSchedulerDaemonCommands(daemon) {
+export function registerSchedulerDaemonCommands(daemon, dependencies = {}) {
   const scheduler = daemon
     .command("scheduler")
     .description("Run durable unattended scheduler domains in one process");
@@ -581,6 +638,83 @@ export function registerSchedulerDaemonCommands(daemon) {
               principalId,
               options,
             ),
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        logger.error(chalk.red(error.message));
+        process.exitCode = 1;
+      }
+    });
+
+  const migration = scheduler
+    .command("migration")
+    .description("Inspect scheduler domain migration journals");
+
+  migration
+    .command("list", { isDefault: true })
+    .description("List scheduler domain migration journals")
+    .option("--state <state>", "Filter by migration state")
+    .option("--domain <domain>", "Filter by scheduler source domain")
+    .option("--limit <n>", "Maximum migrations to return", "50")
+    .action(async (options) => {
+      try {
+        logger.log(
+          JSON.stringify(
+            await listSchedulerMigrationJournal(options, dependencies),
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        logger.error(chalk.red(error.message));
+        process.exitCode = 1;
+      }
+    });
+
+  migration
+    .command("rollback")
+    .description(
+      "Rollback one scheduler migration after source, target, CAS and TTY checks",
+    )
+    .argument("<migration-id>", "Scheduler domain migration ID")
+    .requiredOption(
+      "--expected-evidence-digest <digest>",
+      "Exact rollback.evidenceDigest from the latest migration show",
+    )
+    .option("--source-directory <path>", "Agenda or routine source directory")
+    .option("--workspace <path>", "Cowork source workspace")
+    .option("--session-id <id>", "Saved loop session ID")
+    .option("--automation-database <identity>", "Automation database identity")
+    .action(async (migrationId, options) => {
+      try {
+        logger.log(
+          JSON.stringify(
+            await rollbackSchedulerMigrationJournal(
+              migrationId,
+              options,
+              dependencies,
+            ),
+            null,
+            2,
+          ),
+        );
+      } catch (error) {
+        logger.error(chalk.red(error.message));
+        process.exitCode = 1;
+      }
+    });
+
+  migration
+    .command("show")
+    .description("Show a sanitized migration journal and rollback readiness")
+    .argument("<migration-id>", "Scheduler domain migration ID")
+    .action(async (migrationId) => {
+      try {
+        logger.log(
+          JSON.stringify(
+            await showSchedulerMigrationJournal(migrationId, dependencies),
             null,
             2,
           ),

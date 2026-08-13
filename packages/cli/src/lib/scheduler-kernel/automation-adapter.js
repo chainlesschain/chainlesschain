@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { nextCronTime } from "../agent-schedule-store.js";
 import {
   automationExecutionAuthorityDigest,
@@ -33,16 +33,43 @@ import {
   normalizeJson,
 } from "./contract.js";
 import { SchedulerRuntime } from "./runtime.js";
-import { schedulerMigrationSourceDigest } from "./store.js";
+import {
+  schedulerJobDefinitionDigest,
+  schedulerMigrationSourceDigest,
+} from "./store.js";
 import {
   bindSchedulerAuthorityPolicy,
   createSchedulerAuthorityResolver,
 } from "./authority-resolver.js";
+import { canonicalSchedulerSourcePath } from "./source-locator-path.js";
 
 export const AUTOMATION_SCHEDULER_KIND = "automation";
 export const AUTOMATION_SCHEDULER_CAPABILITY = "automation.execute";
 export const AUTOMATION_SCHEDULER_CHANNEL = "scheduled";
 export const AUTOMATION_SCHEDULER_MAX_CATCHUP_STEPS = 527_040;
+const AUTOMATION_MEMORY_DATABASE_IDENTITIES = new WeakMap();
+
+export function automationDatabaseIdentity(db, pathOptions = undefined) {
+  if (typeof db?.databasePath === "string" && db.databasePath.length > 0) {
+    return canonicalSchedulerSourcePath(db.databasePath, pathOptions);
+  }
+  const main = db
+    .prepare("PRAGMA database_list")
+    .all()
+    .find((entry) => entry.name === "main");
+  const file = typeof main?.file === "string" ? main.file : "";
+  if (!file) {
+    // In-memory stores exist only for one process and are never safe to reopen
+    // from an operator command. Keep their scope isolated to this handle.
+    let identity = AUTOMATION_MEMORY_DATABASE_IDENTITIES.get(db);
+    if (!identity) {
+      identity = `memory:${randomUUID()}`;
+      AUTOMATION_MEMORY_DATABASE_IDENTITIES.set(db, identity);
+    }
+    return identity;
+  }
+  return canonicalSchedulerSourcePath(file, pathOptions);
+}
 
 function automationError(
   code,
@@ -247,9 +274,21 @@ export function migrateAutomationFlow({
   flow,
   executionAuthority,
 }) {
+  if (db?.__isSqlJsCompat === true) {
+    throw automationError(
+      "AUTOMATION_SCHEDULER_MIGRATION_DURABILITY_UNAVAILABLE",
+      "Automation scheduler migration requires native SQLite durability",
+    );
+  }
   const effective = automationEffectiveSchedulerFlow(db, flow);
   const snapshot = automationFlowSnapshot(effective);
-  const sourceScope = { store: "automation-engine", database: "current" };
+  const database = automationDatabaseIdentity(db);
+  const sourceScope = { store: "automation-engine", database };
+  const sourceLocator = {
+    schemaVersion: 1,
+    type: "automation-database",
+    database,
+  };
   const desired = buildAutomationSchedulerJob(effective, executionAuthority);
   desired.authority = bindSchedulerAuthorityPolicy(
     schedulerStore,
@@ -257,25 +296,73 @@ export function migrateAutomationFlow({
   );
   const sourceSnapshot = automationMigrationSourceSnapshot(effective);
   const sourceDigest = automationMigrationSourceDigest(effective);
-  const existing = schedulerStore.getActiveDomainMigrationBySource({
-    domain: "automation",
-    sourceScope,
-    sourceId: snapshot.id,
-  });
-  const prepared =
-    existing ||
-    schedulerStore.prepareDomainMigration({
+  const targetJobDigest = schedulerJobDefinitionDigest(desired);
+  const marker = getAutomationSchedulerMigration(db, snapshot.id);
+  let prepared;
+  if (marker) {
+    if (
+      marker.schemaVersion !== 1 ||
+      !["prepared", "retired"].includes(marker.state) ||
+      marker.sourceDigest !== sourceDigest ||
+      marker.targetJobId !== desired.id ||
+      (marker.state === "prepared" && marker.retirementToken !== null)
+    ) {
+      throw automationError(
+        "AUTOMATION_SCHEDULER_MIGRATION_CONFLICT",
+        `Automation migration marker is invalid: ${snapshot.id}`,
+      );
+    }
+    prepared = schedulerStore.getDomainMigration(marker.migrationId);
+    if (
+      prepared.entries.length !== 1 ||
+      prepared.entries[0].domain !== "automation" ||
+      prepared.entries[0].sourceId !== snapshot.id ||
+      prepared.entries[0].sourceDigest !==
+        schedulerMigrationSourceDigest(sourceSnapshot) ||
+      prepared.entries[0].targetJobId !== desired.id ||
+      prepared.entries[0].targetJobDigest !== targetJobDigest ||
+      (marker.state === "retired" &&
+        prepared.entries[0].retirementToken !== marker.retirementToken)
+    ) {
+      throw automationError(
+        "AUTOMATION_SCHEDULER_MIGRATION_CONFLICT",
+        `Automation migration marker does not match its journal: ${snapshot.id}`,
+      );
+    }
+    schedulerStore.bindDomainMigrationSourceLocator({
+      migrationId: prepared.id,
+      entryId: prepared.entries[0].entryId,
+      sourceLocator,
+      expectedSourceDigest: prepared.entries[0].sourceDigest,
+      expectedTargetJobId: desired.id,
+    });
+    prepared = schedulerStore.getDomainMigration(prepared.id);
+  } else {
+    const unboundLegacy = schedulerStore.getActiveDomainMigrationBySource({
+      domain: "automation",
+      sourceScope: { store: "automation-engine", database: "current" },
+      sourceId: snapshot.id,
+    });
+    if (unboundLegacy) {
+      throw automationError(
+        "AUTOMATION_SCHEDULER_MIGRATION_SOURCE_UNBOUND",
+        `Legacy Automation migration has no source marker and cannot be bound safely: ${snapshot.id}`,
+      );
+    }
+    prepared = schedulerStore.prepareDomainMigration({
       entries: [
         {
           domain: "automation",
           sourceId: snapshot.id,
           sourceScope,
+          sourceLocator,
           source: sourceSnapshot,
           targetJob: desired,
           rollbackStrategy: "disable",
         },
       ],
     });
+  }
   if (
     prepared.entries.length !== 1 ||
     prepared.entries[0].domain !== "automation"
@@ -288,7 +375,8 @@ export function migrateAutomationFlow({
   if (
     prepared.entries[0].sourceDigest !==
       schedulerMigrationSourceDigest(sourceSnapshot) ||
-    prepared.entries[0].targetJobId !== desired.id
+    prepared.entries[0].targetJobId !== desired.id ||
+    prepared.entries[0].targetJobDigest !== targetJobDigest
   ) {
     throw automationError(
       "AUTOMATION_SCHEDULER_MIGRATION_SOURCE_CHANGED",
@@ -346,50 +434,140 @@ export function migrateAutomationFlow({
   return schedulerStore.getDomainMigration(migration.id);
 }
 
-export function rollbackAutomationMigration({
+function assertAutomationRollbackBinding({
   db,
-  schedulerStore,
+  migration,
   migrationId,
+  database,
 }) {
-  const migration = schedulerStore.beginDomainMigrationRollback(migrationId);
-  if (migration.state === "rolled_back") return migration;
-  const entries = migration.entries.filter(
-    (entry) => entry.domain === "automation",
-  );
-  if (entries.length !== migration.entries.length) {
+  if (
+    migration?.id !== migrationId ||
+    !Array.isArray(migration.entries) ||
+    migration.entries.length === 0 ||
+    migration.entries.some((entry) => entry.domain !== "automation")
+  ) {
     throw automationError(
       "AUTOMATION_SCHEDULER_MIGRATION_DOMAIN_MISMATCH",
       "Automation rollback cannot operate on a mixed-domain migration",
     );
   }
-  for (const entry of entries) {
-    if (entry.state === "rolled_back") continue;
+  for (const entry of migration.entries) {
+    const locator = entry.sourceLocator;
+    if (
+      locator?.schemaVersion !== 1 ||
+      locator.type !== "automation-database" ||
+      locator.database !== database
+    ) {
+      throw automationError(
+        "AUTOMATION_SCHEDULER_MIGRATION_SOURCE_UNBOUND",
+        `Automation rollback source locator does not match its database: ${entry.sourceId}`,
+      );
+    }
     const current = getFlow(db, entry.sourceId);
+    if (!current) {
+      throw automationError(
+        "AUTOMATION_SCHEDULER_MIGRATION_SOURCE_CHANGED",
+        `Automation rollback source does not exist: ${entry.sourceId}`,
+      );
+    }
     const marker = getAutomationSchedulerMigration(db, entry.sourceId);
-    let restored;
+    const effective = automationEffectiveSchedulerFlow(db, current);
+    if (
+      schedulerMigrationSourceDigest(
+        automationMigrationSourceSnapshot(effective),
+      ) !== entry.sourceDigest
+    ) {
+      throw automationError(
+        "AUTOMATION_SCHEDULER_MIGRATION_SOURCE_CHANGED",
+        `Automation rollback source changed: ${entry.sourceId}`,
+      );
+    }
     if (!marker) {
-      const source = automationMigrationSourceSnapshot(current);
-      if (schedulerMigrationSourceDigest(source) !== entry.sourceDigest) {
+      if (
+        !["prepared", "rolling_back", "rolled_back"].includes(migration.state)
+      ) {
         throw automationError(
-          "AUTOMATION_SCHEDULER_MIGRATION_SOURCE_CHANGED",
-          `Automation flow changed after rollback source restoration: ${entry.sourceId}`,
+          "AUTOMATION_SCHEDULER_MIGRATION_CONFLICT",
+          `Automation rollback source marker is missing: ${entry.sourceId}`,
         );
       }
-      restored = current;
-    } else {
-      const effective = automationEffectiveSchedulerFlow(db, current);
-      restored = restoreAutomationSchedulerMigration(db, entry.sourceId, {
-        migrationId,
-        sourceDigest: automationMigrationSourceDigest(effective),
-        targetJobId: entry.targetJobId,
-        retirementToken: entry.retirementToken,
-      });
+      continue;
     }
-    schedulerStore.confirmDomainMigrationEntrySourceRestored({
+    if (
+      marker.schemaVersion !== 1 ||
+      !["prepared", "retired"].includes(marker.state) ||
+      marker.migrationId !== migrationId ||
+      marker.targetJobId !== entry.targetJobId ||
+      marker.sourceDigest !== automationMigrationSourceDigest(effective) ||
+      (marker.state === "prepared" && marker.retirementToken !== null) ||
+      (marker.state === "retired" &&
+        marker.retirementToken !== entry.retirementToken)
+    ) {
+      throw automationError(
+        "AUTOMATION_SCHEDULER_MIGRATION_CONFLICT",
+        `Automation rollback source marker does not match its journal: ${entry.sourceId}`,
+      );
+    }
+  }
+  return migration;
+}
+
+export function rollbackAutomationMigration({
+  db,
+  schedulerStore,
+  migrationId,
+}) {
+  const database = automationDatabaseIdentity(db);
+  assertAutomationRollbackBinding({
+    db,
+    migration: schedulerStore.getDomainMigration(migrationId),
+    migrationId,
+    database,
+  });
+  const migration = assertAutomationRollbackBinding({
+    db,
+    migration: schedulerStore.beginDomainMigrationRollback(migrationId),
+    migrationId,
+    database,
+  });
+  if (migration.state === "rolled_back") return migration;
+  for (const entry of migration.entries) {
+    if (entry.state === "rolled_back") continue;
+    schedulerStore.restoreDomainMigrationEntrySource({
       migrationId,
       entryId: entry.entryId,
       retirementToken: entry.retirementToken,
-      source: automationMigrationSourceSnapshot(restored),
+      restoreSource: () => {
+        const current = getFlow(db, entry.sourceId);
+        const marker = getAutomationSchedulerMigration(db, entry.sourceId);
+        let restored;
+        if (!marker) {
+          const source = automationMigrationSourceSnapshot(current);
+          if (schedulerMigrationSourceDigest(source) !== entry.sourceDigest) {
+            throw automationError(
+              "AUTOMATION_SCHEDULER_MIGRATION_SOURCE_CHANGED",
+              `Automation flow changed after rollback source restoration: ${entry.sourceId}`,
+            );
+          }
+          restored = current;
+        } else {
+          const effective = automationEffectiveSchedulerFlow(db, current);
+          restored = restoreAutomationSchedulerMigration(db, entry.sourceId, {
+            migrationId,
+            sourceDigest: automationMigrationSourceDigest(effective),
+            targetJobId: entry.targetJobId,
+            // The scheduler journal allocates its retirement token before the
+            // Automation source transaction advances its marker from prepared
+            // to retired. A crash in that window therefore has a journal token
+            // but an intentionally null source-marker token. Keep the source
+            // marker authoritative for this phase; the restore primitive still
+            // verifies migration/source/target identity before deleting it.
+            retirementToken:
+              marker.state === "prepared" ? null : entry.retirementToken,
+          });
+        }
+        return automationMigrationSourceSnapshot(restored);
+      },
     });
   }
   return schedulerStore.getDomainMigration(migrationId);
