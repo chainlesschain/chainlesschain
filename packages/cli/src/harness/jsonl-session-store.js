@@ -90,6 +90,7 @@ export const _sessionScaleFaultHooks = Object.seal({
   beforeTranscriptDirectoryFsync: null,
   afterTranscriptDirectoryFsync: null,
   afterTranscriptAppend: null,
+  beforeVerifiedProjectionRepair: null,
   afterForkCopy: null,
   afterForkLineage: null,
   afterForkPublish: null,
@@ -1681,79 +1682,188 @@ export function appendAuthorityEventWithVerifiedProjection(
     );
   }
   const filePath = sessionPath(sessionId);
-  return withSessionHostWriterLock(
-    sessionId,
-    filePath,
-    () => {
-      const projection = createProjection();
-      if (
-        !projection ||
-        typeof projection.accept !== "function" ||
-        typeof projection.finish !== "function"
-      ) {
-        throw new TypeError(
-          "Authority projection must provide accept() and finish()",
-        );
+  let intendedAppend = null;
+  try {
+    return runClassifiedAppend(
+      sessionId,
+      "verified-projection-authority-append",
+      () =>
+        withSessionHostWriterLock(
+          sessionId,
+          filePath,
+          () => {
+            const projection = createProjection();
+            if (
+              !projection ||
+              typeof projection.accept !== "function" ||
+              typeof projection.finish !== "function"
+            ) {
+              throw new TypeError(
+                "Authority projection must provide accept() and finish()",
+              );
+            }
+            if (!existsSync(filePath)) {
+              throw unverifiedTranscriptError(sessionId, {
+                status: "missing",
+                reason: "authority transcript does not exist",
+                lastHash: null,
+                chainedEvents: 0,
+              });
+            }
+            _resolveChainTail(filePath);
+            const verification = verifyTranscriptFile(filePath, {
+              onVerifiedEvent: (event) => {
+                const accepted = projection.accept(event);
+                if (accepted && typeof accepted.then === "function") {
+                  throw new TypeError(
+                    "Authority projection accept() must be synchronous",
+                  );
+                }
+              },
+            });
+            assertVerifiedTranscriptAnchor(sessionId, verification);
+            const authority = Object.freeze({
+              headHash: verification.lastHash,
+              eventCount: verification.chainedEvents,
+              readMessages: () => rebuildVerifiedMessagesFromFile(filePath),
+            });
+            const projected = projection.finish(authority);
+            if (projected && typeof projected.then === "function") {
+              throw new TypeError(
+                "Authority projection finish() must be synchronous",
+              );
+            }
+            const validation = validateProjection(projected, authority);
+            if (validation && typeof validation.then === "function") {
+              throw new TypeError(
+                "Authority projection validation must be synchronous",
+              );
+            }
+            if (validation === false) {
+              throw new Error(
+                "Authority projection validation rejected the append",
+              );
+            }
+            const persistedData = encodeEventMessageProvenance(type, data);
+            let appended;
+            try {
+              appended = appendVerifiedWsAuthorityEventLocked(
+                sessionId,
+                filePath,
+                type,
+                persistedData,
+                authority.headHash,
+              );
+            } catch (error) {
+              // The transcript append can succeed before its metadata/anti-rollback
+              // anchor reports an ambiguous settlement. Perform an exact locked
+              // readback before releasing the writer authority: if the intended
+              // event is now the verified physical head, repair the rebuildable
+              // sidecar and publish a fresh anti-rollback witness. Callers may then
+              // safely treat the authority mutation as committed exactly once.
+              if (error?.commitState !== "unknown") throw error;
+              let intended = null;
+              const verification = verifyTranscriptFile(filePath, {
+                onVerifiedEvent: (event) => {
+                  intended = event;
+                },
+              });
+              const exactPhysicalCommit =
+                verification.status === TRANSCRIPT_CHAIN_STATUS.VERIFIED &&
+                verification.malformedLines === 0 &&
+                !verification.truncatedTail &&
+                intended?.prevHash === authority.headHash &&
+                intended?.type === type &&
+                JSON.stringify(intended?.data) ===
+                  JSON.stringify(persistedData);
+              if (!exactPhysicalCommit) throw error;
+              intendedAppend = Object.freeze({
+                previousHeadHash: authority.headHash,
+                type,
+                data: persistedData,
+                hash: intended.hash,
+              });
+              try {
+                runSessionScaleFaultHook("beforeVerifiedProjectionRepair", {
+                  sessionId,
+                  type,
+                  hash: intended.hash,
+                });
+                const repairedMeta = rebuildSessionMetaUnlocked(
+                  getSessionsDir(),
+                  sessionId,
+                  filePath,
+                );
+                publishSessionAntiRollbackWitness(
+                  sessionId,
+                  repairedMeta,
+                  filePath,
+                  "live",
+                );
+                assertVerifiedTranscriptAnchor(sessionId, verification);
+              } catch (cause) {
+                const repairError = new Error(
+                  `Session authority repair failed after exact physical commit: ${sessionId}`,
+                  { cause },
+                );
+                repairError.code = "SESSION_INDEX_ANCHOR_FAILED";
+                repairError.sessionId = sessionId;
+                repairError.commitState = "unknown";
+                throw repairError;
+              }
+              appended = Object.freeze({
+                hash: intended.hash,
+                event: intended,
+                commitState: "committed-after-readback",
+              });
+            }
+            if (intendedAppend === null) {
+              intendedAppend = Object.freeze({
+                previousHeadHash: authority.headHash,
+                type,
+                data: persistedData,
+                hash: appended.hash,
+              });
+            }
+            return Object.freeze({ hash: appended.hash });
+          },
+          {
+            failIfUnavailable: true,
+            timeoutMs: 30_000,
+            retryMs: 1,
+            maxRetryMs: 8,
+            retryJitterMs: 4,
+            yieldAfterReleaseMs: 2,
+          },
+        ),
+    );
+  } catch (error) {
+    // A strict lock-release failure happens after the callback returned. The
+    // append is already settled at that point, but runClassifiedAppend must
+    // conservatively label the operation unknown. Adjudicate only an exact
+    // verified head match; otherwise preserve the unknown outcome.
+    if (intendedAppend) {
+      try {
+        const events = readVerifiedEvents(sessionId);
+        const head = events.at(-1);
+        if (
+          head?.hash === intendedAppend.hash &&
+          head?.prevHash === intendedAppend.previousHeadHash &&
+          head?.type === intendedAppend.type &&
+          JSON.stringify(head?.data) === JSON.stringify(intendedAppend.data)
+        ) {
+          return Object.freeze({
+            hash: head.hash,
+            commitState: "committed-after-lock-release-readback",
+          });
+        }
+      } catch {
+        // Preserve the original classified persistence error.
       }
-      if (!existsSync(filePath)) {
-        throw unverifiedTranscriptError(sessionId, {
-          status: "missing",
-          reason: "authority transcript does not exist",
-          lastHash: null,
-          chainedEvents: 0,
-        });
-      }
-      _resolveChainTail(filePath);
-      const verification = verifyTranscriptFile(filePath, {
-        onVerifiedEvent: (event) => {
-          const accepted = projection.accept(event);
-          if (accepted && typeof accepted.then === "function") {
-            throw new TypeError(
-              "Authority projection accept() must be synchronous",
-            );
-          }
-        },
-      });
-      assertVerifiedTranscriptAnchor(sessionId, verification);
-      const authority = Object.freeze({
-        headHash: verification.lastHash,
-        eventCount: verification.chainedEvents,
-        readMessages: () => rebuildVerifiedMessagesFromFile(filePath),
-      });
-      const projected = projection.finish(authority);
-      if (projected && typeof projected.then === "function") {
-        throw new TypeError(
-          "Authority projection finish() must be synchronous",
-        );
-      }
-      const validation = validateProjection(projected, authority);
-      if (validation && typeof validation.then === "function") {
-        throw new TypeError(
-          "Authority projection validation must be synchronous",
-        );
-      }
-      if (validation === false) {
-        throw new Error("Authority projection validation rejected the append");
-      }
-      const persistedData = encodeEventMessageProvenance(type, data);
-      const appended = appendVerifiedWsAuthorityEventLocked(
-        sessionId,
-        filePath,
-        type,
-        persistedData,
-        authority.headHash,
-      );
-      return Object.freeze({ hash: appended.hash });
-    },
-    {
-      failIfUnavailable: true,
-      timeoutMs: 30_000,
-      retryMs: 1,
-      maxRetryMs: 8,
-      retryJitterMs: 4,
-      yieldAfterReleaseMs: 2,
-    },
-  );
+    }
+    if (intendedAppend && !error?.commitState) error.commitState = "unknown";
+    throw error;
+  }
 }
 
 /**

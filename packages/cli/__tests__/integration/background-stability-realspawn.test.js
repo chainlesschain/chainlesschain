@@ -23,7 +23,7 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   effectiveBackgroundAgentState,
   isProcessAlive,
@@ -41,6 +41,7 @@ let dir;
 let launchedIds;
 let previousHome;
 let previousNotifierEnv;
+const CLI_ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const NOTIFIER_ENV_KEYS = [
   "TELEGRAM_BOT_TOKEN",
   "TELEGRAM_CHAT_ID",
@@ -322,20 +323,26 @@ describe("P0-2 same-turn question round-trip (real worker/child IPC)", () => {
   it("replays after disconnect, answers once, and completes the same turn", async () => {
     const evidenceFile = join(dir, "same-turn-result.json");
     const interactionModule = pathToFileURL(
-      join(process.cwd(), "src", "lib", "background-interaction-resolver.js"),
+      join(CLI_ROOT, "src", "lib", "background-interaction-resolver.js"),
     ).href;
     const sessionStoreModule = pathToFileURL(
-      join(process.cwd(), "src", "harness", "jsonl-session-store.js"),
+      join(CLI_ROOT, "src", "harness", "jsonl-session-store.js"),
+    ).href;
+    const sessionHostLeaseModule = pathToFileURL(
+      join(CLI_ROOT, "src", "lib", "session-host-lease.js"),
     ).href;
     const state = launch({
       script: [
         `import { createBackgroundInteractionClient } from ${JSON.stringify(interactionModule)};`,
         `import { startSession } from ${JSON.stringify(sessionStoreModule)};`,
+        `import { acquireSessionHostLease, createSessionHostWriteDelegation } from ${JSON.stringify(sessionHostLeaseModule)};`,
         `import { writeFileSync } from "node:fs";`,
+        `const lease = acquireSessionHostLease("sid-same-turn", { hostKind: "headless" });`,
         `startSession("sid-same-turn", { title: "same-turn", provider: "test", model: "fake" });`,
         `const client = createBackgroundInteractionClient({`,
         `  sessionId: "sid-same-turn",`,
         `  turnId: "provider-turn-1",`,
+        `  sessionHostWriteDelegation: createSessionHostWriteDelegation(lease),`,
         `});`,
         `const beforePid = process.pid;`,
         `const answer = await client.request({`,
@@ -348,6 +355,7 @@ describe("P0-2 same-turn question round-trip (real worker/child IPC)", () => {
         `  beforePid, afterPid: process.pid, answer`,
         `}));`,
         `client.close();`,
+        `lease.release();`,
         "",
       ].join("\n"),
       followUpArgv: ["--unused-follow-up"],

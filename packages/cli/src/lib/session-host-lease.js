@@ -125,6 +125,54 @@ function normalizeActiveLease(value, fallbackRevocationEpoch = null) {
   });
 }
 
+function normalizeWriteDelegation(value, expectedSessionId = null) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new TypeError("session host write delegation must be an object");
+  }
+  const sessionId = canonicalSessionId(value.sessionId);
+  if (expectedSessionId !== null && sessionId !== expectedSessionId) {
+    throw leaseError(
+      SESSION_HOST_LEASE_FENCED_CODE,
+      `Session host write delegation belongs to a different session`,
+      { sessionId: expectedSessionId, delegatedSessionId: sessionId },
+    );
+  }
+  if (
+    typeof value.leaseId !== "string" ||
+    !LEASE_ID_PATTERN.test(value.leaseId) ||
+    !Number.isSafeInteger(value.fencingToken) ||
+    value.fencingToken < 1 ||
+    !Number.isSafeInteger(value.revocationEpoch) ||
+    value.revocationEpoch < 0 ||
+    !Number.isSafeInteger(value.ownerPid) ||
+    value.ownerPid < 1 ||
+    typeof value.hostKind !== "string" ||
+    !HOST_KIND_PATTERN.test(value.hostKind)
+  ) {
+    throw new TypeError("session host write delegation is invalid");
+  }
+  return Object.freeze({
+    sessionId,
+    leaseId: value.leaseId,
+    fencingToken: value.fencingToken,
+    revocationEpoch: value.revocationEpoch,
+    ownerPid: value.ownerPid,
+    hostKind: value.hostKind,
+  });
+}
+
+function delegationMatchesLease(delegation, lease) {
+  return Boolean(
+    delegation &&
+    lease &&
+    delegation.leaseId === lease.leaseId &&
+    delegation.fencingToken === lease.fencingToken &&
+    delegation.revocationEpoch === lease.revocationEpoch &&
+    delegation.ownerPid === lease.ownerPid &&
+    delegation.hostKind === lease.hostKind,
+  );
+}
+
 function normalizeRevocation(value, expectedEpoch) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new TypeError("session host revocation must be an object");
@@ -268,6 +316,7 @@ export class SessionHostLeaseAuthority {
     this._lock = lock;
     this._local = new Map();
     this._fenced = new Map();
+    this._delegatedWrites = [];
   }
 
   pathFor(sessionId) {
@@ -568,6 +617,8 @@ export class SessionHostLeaseAuthority {
       leaseId: record.active.leaseId,
       fencingToken: record.active.fencingToken,
       revocationEpoch: record.active.revocationEpoch,
+      ownerPid: record.active.ownerPid,
+      hostKind: record.active.hostKind,
       signal: controller.signal,
       renew,
       assert: () => this.withWriteAuthority(id, (authority) => authority),
@@ -756,8 +807,16 @@ export class SessionHostLeaseAuthority {
     const priorFence = this._fenced.get(key);
     if (priorFence) throw priorFence;
     const local = this._local.get(key);
+    const delegation = this._delegatedWrites.at(-1) || null;
     if (!fs.existsSync(filePath)) {
-      if (!local) return invokeTask(null);
+      if (!delegation && !local) return invokeTask(null);
+      if (delegation) {
+        throw leaseError(
+          SESSION_HOST_LEASE_FENCED_CODE,
+          `Delegated session write lost its active host lease: ${id}`,
+          { sessionId: id, delegatedLeaseId: delegation.leaseId },
+        );
+      }
       const error = leaseError(
         SESSION_HOST_LEASE_FENCED_CODE,
         `Session host authority disappeared while locally held: ${id}`,
@@ -777,6 +836,43 @@ export class SessionHostLeaseAuthority {
           const snapshot = this._read(filePath, id);
           const record = this._local.get(key);
           const now = Math.trunc(this._now());
+          // A delegated scope is always constrained by the delegated lease.
+          // Do this before considering a local record: an authority instance
+          // may have acquired a successor/recovery lease after the delegation
+          // was minted, and that local authority must never upgrade the stale
+          // capability into a write under the successor.
+          if (
+            delegation &&
+            (!snapshot.active ||
+              !delegationMatchesLease(delegation, snapshot.active) ||
+              delegation.sessionId !== id ||
+              snapshot.active.expiresAtMs <= now)
+          ) {
+            throw leaseError(
+              SESSION_HOST_LEASE_FENCED_CODE,
+              `Delegated session write is fenced by a revocation, successor, or expired host lease: ${id}`,
+              {
+                sessionId: id,
+                delegatedLeaseId: delegation.leaseId,
+                delegatedFencingToken: delegation.fencingToken,
+                activeLeaseId: snapshot.active?.leaseId ?? null,
+                activeFencingToken: snapshot.active?.fencingToken ?? null,
+                activeRevocationEpoch: snapshot.revocationEpoch,
+              },
+            );
+          }
+          if (delegation && snapshot.active) {
+            return invokeTask(
+              Object.freeze({
+                leaseId: snapshot.active.leaseId,
+                fencingToken: snapshot.active.fencingToken,
+                revocationEpoch: snapshot.active.revocationEpoch,
+                ownerPid: snapshot.active.ownerPid,
+                hostKind: snapshot.active.hostKind,
+                delegated: true,
+              }),
+            );
+          }
           if (
             record &&
             (record.released ||
@@ -806,7 +902,7 @@ export class SessionHostLeaseAuthority {
               `Session write is fenced by another host lease: ${id}`,
               {
                 sessionId: id,
-                activeFencingToken: snapshot.active.fencingToken,
+                activeFencingToken: snapshot.active?.fencingToken ?? null,
                 localFencingToken: null,
                 activeRevocationEpoch: snapshot.revocationEpoch,
               },
@@ -837,6 +933,41 @@ export class SessionHostLeaseAuthority {
       throw this._unavailable(id, filePath, cause);
     }
   }
+
+  withDelegatedWriteAuthority(sessionId, delegation, task, options = {}) {
+    if (typeof task !== "function") {
+      throw new TypeError("delegated session host write callback is required");
+    }
+    const id = canonicalSessionId(sessionId);
+    const normalized = normalizeWriteDelegation(delegation, id);
+    if (
+      options.expectedOwnerPid !== undefined &&
+      normalized.ownerPid !==
+        positiveInteger(options.expectedOwnerPid, "delegated owner pid")
+    ) {
+      throw leaseError(
+        SESSION_HOST_LEASE_FENCED_CODE,
+        `Session host write delegation owner does not match the turn child (delegated ${normalized.ownerPid}, expected ${Number(options.expectedOwnerPid)})`,
+        {
+          sessionId: id,
+          delegatedOwnerPid: normalized.ownerPid,
+          expectedOwnerPid: Number(options.expectedOwnerPid),
+        },
+      );
+    }
+    this._delegatedWrites.push(normalized);
+    try {
+      const result = task();
+      if (result && typeof result.then === "function") {
+        throw new TypeError(
+          "delegated session host write callback must be synchronous",
+        );
+      }
+      return result;
+    } finally {
+      this._delegatedWrites.pop();
+    }
+  }
 }
 
 const defaultAuthority = new SessionHostLeaseAuthority();
@@ -847,6 +978,44 @@ export function acquireSessionHostLease(sessionId, options) {
 
 export function withSessionHostWriteAuthority(sessionId, task) {
   return defaultAuthority.withWriteAuthority(sessionId, task);
+}
+
+export function createSessionHostWriteDelegation(lease) {
+  return normalizeWriteDelegation(lease);
+}
+
+export function withSessionHostDelegatedWriteAuthority(
+  sessionId,
+  delegation,
+  task,
+  options,
+) {
+  return defaultAuthority.withDelegatedWriteAuthority(
+    sessionId,
+    delegation,
+    task,
+    options,
+  );
+}
+
+export function withSessionHostRecoveryLease(
+  sessionId,
+  task,
+  { hostKind = "background-recovery" } = {},
+) {
+  if (typeof task !== "function") {
+    throw new TypeError("session host recovery callback is required");
+  }
+  const lease = acquireSessionHostLease(sessionId, { hostKind });
+  try {
+    const result = task(lease);
+    if (result && typeof result.then === "function") {
+      throw new TypeError("session host recovery callback must be synchronous");
+    }
+    return result;
+  } finally {
+    lease.release();
+  }
 }
 
 export function assertSessionHostWriteAuthority(sessionId) {

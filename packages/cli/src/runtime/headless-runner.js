@@ -74,7 +74,10 @@ import {
 } from "../lib/mcp-call-ledger-store.js";
 import { createMcpHostRecoveryRuntime } from "../lib/mcp-host-recovery-runtime.js";
 import { readSessionHostResumeState } from "../lib/session-host-snapshot.js";
-import { acquireSessionHostLease } from "../lib/session-host-lease.js";
+import {
+  acquireSessionHostLease,
+  createSessionHostWriteDelegation,
+} from "../lib/session-host-lease.js";
 import { TurnBindingLog, createTurnBindingFeed } from "../lib/turn-binding.js";
 import { TURN_BINDING_EVENT } from "../lib/turn-binding-store.js";
 import { operationIdempotencyKey } from "../lib/idempotency.js";
@@ -1222,9 +1225,15 @@ async function runAgentHeadlessInWorkspace(
     : null;
   const _backgroundInteraction = _bgPhase.enabled
     ? deps.backgroundInteractionClient ||
-      createBackgroundInteractionClient({
+      (
+        deps.createBackgroundInteractionClient ||
+        createBackgroundInteractionClient
+      )({
         backgroundAgentId: process.env.CC_BACKGROUND_AGENT_ID,
         sessionId,
+        sessionHostWriteDelegation: sessionHostLease?.leaseId
+          ? createSessionHostWriteDelegation(sessionHostLease)
+          : null,
         // One headless invocation is one user turn even when its model/tool
         // loop contains several internal iterations.
         turnId: options.turnId || sideEffectRunNonce,

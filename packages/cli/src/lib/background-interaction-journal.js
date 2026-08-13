@@ -9,10 +9,12 @@
 
 import { createHash } from "node:crypto";
 import {
-  appendAuthorityEvent as storeAppendAuthorityEvent,
-  readEvents as storeReadEvents,
-  findLatestEvent as storeFindLatestEvent,
+  appendAuthorityEventWithVerifiedProjection as storeAppendAuthorityEventWithVerifiedProjection,
+  getSessionPresence as storeGetSessionPresence,
+  readVerifiedEvents as storeReadVerifiedEvents,
+  SESSION_PRESENCE,
 } from "../harness/jsonl-session-store.js";
+import { createSessionTranscriptStructureProjection } from "./session-transcript-structure.js";
 import {
   normalizeInteractionBinding,
   sameInteractionBinding,
@@ -26,41 +28,35 @@ export const MAX_BACKGROUND_INTERACTION_RECORDS = 256;
 const TERMINAL_STATUSES = new Set(["resolved", "rejected", "cancelled"]);
 
 export const _deps = {
-  appendEvent: storeAppendAuthorityEvent,
-  readEvents: storeReadEvents,
-  findLatestEvent: storeFindLatestEvent,
+  appendEventWithVerifiedProjection:
+    storeAppendAuthorityEventWithVerifiedProjection,
+  getSessionPresence: storeGetSessionPresence,
+  readVerifiedEvents: storeReadVerifiedEvents,
 };
+
+function absentJournal(backgroundAgentId, options = {}) {
+  return new BackgroundInteractionJournal({
+    backgroundAgentId,
+    now: options.now,
+    sessionId: options.sessionId,
+  });
+}
 
 function findLatestJournalEvent(sessionId, backgroundAgentId) {
   const valid = (event) => event?.data?.backgroundAgentId === backgroundAgentId;
-  if (
-    typeof _deps.findLatestEvent === "function" &&
-    _deps.findLatestEvent !== storeFindLatestEvent
-  ) {
-    return _deps.findLatestEvent(
-      sessionId,
-      BACKGROUND_INTERACTION_JOURNAL_EVENT,
-      valid,
-    );
-  }
-  if (_deps.readEvents !== storeReadEvents) {
-    const events = _deps.readEvents(sessionId) || [];
-    for (let index = events.length - 1; index >= 0; index -= 1) {
-      const event = events[index];
-      if (
-        event?.type === BACKGROUND_INTERACTION_JOURNAL_EVENT &&
-        valid(event)
-      ) {
-        return event;
-      }
+  const events = _deps.readVerifiedEvents(sessionId) || [];
+  const structure = createSessionTranscriptStructureProjection(sessionId, {
+    failFast: true,
+  });
+  for (const event of events) structure.accept(event);
+  structure.finish({ assertValid: true });
+  for (let index = events.length - 1; index >= 0; index -= 1) {
+    const event = events[index];
+    if (event?.type === BACKGROUND_INTERACTION_JOURNAL_EVENT && valid(event)) {
+      return event;
     }
-    return null;
   }
-  return storeFindLatestEvent(
-    sessionId,
-    BACKGROUND_INTERACTION_JOURNAL_EVENT,
-    valid,
-  );
+  return null;
 }
 
 function journalError(message, code, details = {}) {
@@ -70,9 +66,93 @@ function journalError(message, code, details = {}) {
   return error;
 }
 
+function assertVerifiedRecoverySession(sessionId) {
+  const events = _deps.readVerifiedEvents(sessionId);
+  if (!Array.isArray(events) || events[0]?.type !== "session_start") {
+    throw journalError(
+      `Background interaction recovery requires an existing verified session: ${sessionId}`,
+      "INTERACTION_RECOVERY_SESSION_UNAVAILABLE",
+      { sessionId },
+    );
+  }
+  return events;
+}
+
 function cloneJson(value) {
   if (value === undefined) return null;
   return JSON.parse(JSON.stringify(value));
+}
+
+function journalSnapshotFingerprint(journal) {
+  return fingerprint(journal.toJSON());
+}
+
+function createJournalProjection(sessionId, backgroundAgentId) {
+  const structure = createSessionTranscriptStructureProjection(sessionId, {
+    failFast: true,
+  });
+  let latest = null;
+  return Object.freeze({
+    accept(event) {
+      structure.accept(event);
+      if (
+        event?.type === BACKGROUND_INTERACTION_JOURNAL_EVENT &&
+        event?.data?.backgroundAgentId === backgroundAgentId
+      ) {
+        latest = event.data;
+      }
+    },
+    finish() {
+      structure.finish({ assertValid: true });
+      const journal = latest
+        ? BackgroundInteractionJournal.fromJSON(latest, {
+            expectedSessionId: sessionId,
+          })
+        : new BackgroundInteractionJournal({ backgroundAgentId });
+      return Object.freeze({
+        journal,
+        fingerprint: journalSnapshotFingerprint(journal),
+      });
+    },
+  });
+}
+
+function assertCompleteRecoveryFallback(
+  fallback,
+  sessionId,
+  backgroundAgentId,
+) {
+  if (fallback == null) return false;
+  if (!fallback?.requestId) {
+    throw journalError(
+      "Legacy pending interaction recovery evidence has no request id",
+      "INTERACTION_RECOVERY_FALLBACK_INVALID",
+      { sessionId, backgroundAgentId },
+    );
+  }
+  const normalized = normalizeInteractionBinding(fallback.binding);
+  const complete =
+    normalized.backgroundAgentId !== null &&
+    normalized.sessionId !== null &&
+    normalized.turnId !== null &&
+    normalized.toolUseId !== null &&
+    normalized.sequence !== null;
+  if (
+    !complete ||
+    normalized.backgroundAgentId !== backgroundAgentId ||
+    normalized.sessionId !== sessionId
+  ) {
+    throw journalError(
+      "Legacy pending interaction recovery evidence is incomplete or belongs to another session",
+      "INTERACTION_RECOVERY_FALLBACK_INVALID",
+      {
+        sessionId,
+        backgroundAgentId,
+        requestId: String(fallback.requestId),
+      },
+    );
+  }
+  return true;
 }
 
 function canonicalize(value) {
@@ -134,6 +214,8 @@ export class BackgroundInteractionJournal {
         "INTERACTION_JOURNAL_INVALID",
       );
     }
+    this.sessionId =
+      options.sessionId == null ? null : String(options.sessionId);
     this._now = options.now || Date.now;
     this.records = [];
   }
@@ -153,20 +235,88 @@ export class BackgroundInteractionJournal {
     const journal = new BackgroundInteractionJournal({
       backgroundAgentId: snapshot.backgroundAgentId,
       now: options.now,
+      sessionId: options.expectedSessionId,
     });
-    journal.records = snapshot.records.map((record) => ({
-      requestId: String(record.requestId || ""),
-      binding: normalizeInteractionBinding(record.binding),
-      payload: cloneJson(record.payload || {}),
-      payloadFingerprint: String(record.payloadFingerprint || ""),
-      status: String(record.status || "pending"),
-      createdAt: Number(record.createdAt) || 0,
-      settledAt: record.settledAt == null ? null : Number(record.settledAt),
-      settlement: record.settlement ? cloneJson(record.settlement) : null,
-      settlementFingerprint: record.settlementFingerprint
-        ? String(record.settlementFingerprint)
-        : null,
-    }));
+    const seen = new Set();
+    journal.records = snapshot.records.map((record) => {
+      const requestId = String(record?.requestId || "");
+      const binding = normalizeInteractionBinding(record?.binding);
+      const payload = cloneJson(record?.payload || {});
+      const payloadFingerprint = String(record?.payloadFingerprint || "");
+      const status = String(record?.status || "");
+      const completeBinding =
+        binding.backgroundAgentId === snapshot.backgroundAgentId &&
+        (options.expectedSessionId == null ||
+          binding.sessionId === options.expectedSessionId) &&
+        binding.sessionId !== null &&
+        binding.turnId !== null &&
+        binding.toolUseId !== null &&
+        binding.sequence !== null;
+      if (
+        !requestId ||
+        seen.has(requestId) ||
+        !completeBinding ||
+        payloadFingerprint !== fingerprint(payload) ||
+        (status !== "pending" && !TERMINAL_STATUSES.has(status))
+      ) {
+        throw journalError(
+          "Invalid background interaction journal record",
+          "INTERACTION_JOURNAL_CORRUPT",
+          { requestId: requestId || null },
+        );
+      }
+      seen.add(requestId);
+      const createdAt = Number(record.createdAt);
+      const settledAt =
+        record.settledAt == null ? null : Number(record.settledAt);
+      let settlement = null;
+      let settlementFingerprint = null;
+      if (status === "pending") {
+        if (
+          settledAt !== null ||
+          record.settlement != null ||
+          record.settlementFingerprint != null
+        ) {
+          throw journalError(
+            "Pending background interaction has terminal settlement data",
+            "INTERACTION_JOURNAL_CORRUPT",
+            { requestId },
+          );
+        }
+      } else {
+        settlement = normalizeSettlement(record.settlement);
+        settlementFingerprint = String(record.settlementFingerprint || "");
+        if (
+          settlement.status !== status ||
+          !Number.isFinite(settledAt) ||
+          settlementFingerprint !== fingerprint(settlement)
+        ) {
+          throw journalError(
+            "Terminal background interaction settlement is inconsistent",
+            "INTERACTION_JOURNAL_CORRUPT",
+            { requestId },
+          );
+        }
+      }
+      if (!Number.isFinite(createdAt) || createdAt <= 0) {
+        throw journalError(
+          "Background interaction timestamp is invalid",
+          "INTERACTION_JOURNAL_CORRUPT",
+          { requestId },
+        );
+      }
+      return {
+        requestId,
+        binding,
+        payload,
+        payloadFingerprint,
+        status,
+        createdAt,
+        settledAt,
+        settlement,
+        settlementFingerprint,
+      };
+    });
     return journal;
   }
 
@@ -192,7 +342,16 @@ export class BackgroundInteractionJournal {
   recordPending({ requestId, binding, payload = {}, createdAt } = {}) {
     const id = String(requestId || "");
     const normalizedBinding = normalizeInteractionBinding(binding);
-    if (!id || normalizedBinding.sequence === null) {
+    if (
+      !id ||
+      normalizedBinding.backgroundAgentId !== this.backgroundAgentId ||
+      (this.sessionId !== null &&
+        normalizedBinding.sessionId !== this.sessionId) ||
+      normalizedBinding.sessionId === null ||
+      normalizedBinding.turnId === null ||
+      normalizedBinding.toolUseId === null ||
+      normalizedBinding.sequence === null
+    ) {
       throw journalError(
         "A requestId and complete interaction binding are required",
         "INTERACTION_REQUEST_INVALID",
@@ -311,6 +470,8 @@ export class BackgroundInteractionPersistenceError extends Error {
         : "INTERACTION_JOURNAL_PERSIST_FAILED";
     this.operation = operation;
     this.sessionId = sessionId;
+    if (cause?.commitState) this.commitState = cause.commitState;
+    if (cause?.code) this.causeCode = cause.code;
   }
 }
 
@@ -324,10 +485,44 @@ export function persistBackgroundInteractionJournal(
     if (!sessionId || !(journal instanceof BackgroundInteractionJournal)) {
       throw new TypeError("sessionId and interaction journal are required");
     }
-    _deps.appendEvent(
+    // Re-parse the complete candidate at the final write boundary. A mutate
+    // callback can add records after the source snapshot was validated; those
+    // records must still be bound to this exact session and agent.
+    BackgroundInteractionJournal.fromJSON(journal.toJSON(), {
+      expectedSessionId: sessionId,
+    });
+    const expectedFingerprint =
+      options.expectedFingerprint ??
+      journalSnapshotFingerprint(
+        new BackgroundInteractionJournal({
+          backgroundAgentId: journal.backgroundAgentId,
+        }),
+      );
+    _deps.appendEventWithVerifiedProjection(
       sessionId,
       BACKGROUND_INTERACTION_JOURNAL_EVENT,
       journal.toJSON(),
+      {
+        createProjection: () =>
+          createJournalProjection(sessionId, journal.backgroundAgentId),
+        validateProjection(projected) {
+          if (
+            expectedFingerprint !== undefined &&
+            projected.fingerprint !== expectedFingerprint
+          ) {
+            throw journalError(
+              "Background interaction journal changed before the mutation could commit",
+              "INTERACTION_JOURNAL_STALE",
+              {
+                sessionId,
+                backgroundAgentId: journal.backgroundAgentId,
+                expectedFingerprint,
+                actualFingerprint: projected.fingerprint,
+              },
+            );
+          }
+        },
+      },
     );
     return true;
   } catch (error) {
@@ -350,19 +545,28 @@ export function loadBackgroundInteractionJournal(
     if (!sessionId || !backgroundAgentId) {
       throw new TypeError("sessionId and backgroundAgentId are required");
     }
+    const presence = _deps.getSessionPresence(sessionId);
+    if (presence === SESSION_PRESENCE.ABSENT && options.allowAbsent === true) {
+      return absentJournal(backgroundAgentId, { ...options, sessionId });
+    }
     const event = findLatestJournalEvent(sessionId, backgroundAgentId);
     if (event) {
-      return BackgroundInteractionJournal.fromJSON(event.data, options);
+      return BackgroundInteractionJournal.fromJSON(event.data, {
+        ...options,
+        expectedSessionId: sessionId,
+      });
     }
     return new BackgroundInteractionJournal({
       backgroundAgentId,
       now: options.now,
+      sessionId,
     });
   } catch (error) {
     if (!failIfUnavailable) {
       return new BackgroundInteractionJournal({
         backgroundAgentId,
         now: options.now,
+        sessionId,
       });
     }
     throw new BackgroundInteractionPersistenceError(
@@ -383,14 +587,82 @@ export function updateBackgroundInteractionJournal(
   mutate,
   options = {},
 ) {
+  const expectedFingerprint = journalSnapshotFingerprint(journal);
   const draft = BackgroundInteractionJournal.fromJSON(journal.toJSON(), {
     now: options.now || journal._now,
+    expectedSessionId: sessionId,
   });
   const result = mutate(draft);
   if (!options.persistIf || options.persistIf(result) !== false) {
-    persistBackgroundInteractionJournal(sessionId, draft, options);
+    try {
+      persistBackgroundInteractionJournal(sessionId, draft, {
+        ...options,
+        expectedFingerprint,
+      });
+    } catch (error) {
+      // Authority append can durably reach the transcript before its metadata
+      // settlement reports an ambiguous result. Only an exact verified
+      // readback of the intended full snapshot adjudicates that ambiguity as
+      // committed; every other state remains fail closed.
+      if (error?.commitState === "unknown") {
+        try {
+          const readback = options.readbackJournal;
+          const verified =
+            typeof readback === "function"
+              ? readback(sessionId, journal.backgroundAgentId, options)
+              : loadBackgroundInteractionJournal(
+                  sessionId,
+                  journal.backgroundAgentId,
+                  options,
+                );
+          if (
+            journalSnapshotFingerprint(verified) ===
+            journalSnapshotFingerprint(draft)
+          ) {
+            return { journal: verified, result, adjudicated: true };
+          }
+        } catch {
+          // Keep the original ambiguous persistence error and its commitState.
+        }
+      }
+      throw error;
+    }
   }
   return { journal: draft, result };
+}
+
+/**
+ * Classify a transport response that arrived after its live child request was
+ * removed. A still-pending row belongs to recovery authority and must never be
+ * settled by a late client. Only an exact replay of an already-terminal result
+ * is acknowledged, without appending another journal snapshot.
+ */
+export function classifyLateBackgroundInteractionSettlement(
+  journal,
+  requestId,
+  binding,
+  outcome,
+) {
+  if (!(journal instanceof BackgroundInteractionJournal)) {
+    throw new TypeError("background interaction journal is required");
+  }
+  const record = journal.get(requestId);
+  if (!record || record.status === "pending") {
+    return Object.freeze({
+      accepted: false,
+      duplicate: false,
+      delivered: false,
+      reason: record
+        ? "interaction_no_live_child"
+        : "interaction_request_unknown",
+    });
+  }
+  const duplicate = journal.settle(requestId, binding, outcome);
+  return Object.freeze({
+    accepted: true,
+    duplicate: duplicate.applied === false,
+    delivered: false,
+  });
 }
 
 /**
@@ -403,19 +675,56 @@ export function rejectPendingBackgroundInteractions(
   backgroundAgentId,
   options = {},
 ) {
+  const presence = _deps.getSessionPresence(sessionId);
+  if (presence === SESSION_PRESENCE.ABSENT && options.fallbackRequest == null) {
+    return {
+      journal: absentJournal(backgroundAgentId, { ...options, sessionId }),
+      rejected: [],
+      changed: false,
+    };
+  }
+  // Normalize absent/missing/tombstoned recovery to a stable domain error
+  // before loading a canonical journal. Structurally corrupt live transcripts
+  // still surface as read failures and therefore block cleanup fail closed.
+  if (options.fallbackRequest != null) assertVerifiedRecoverySession(sessionId);
   let journal = loadBackgroundInteractionJournal(
     sessionId,
     backgroundAgentId,
     options,
   );
   const fallback = options.fallbackRequest;
+  const hasValidFallback = assertCompleteRecoveryFallback(
+    fallback,
+    sessionId,
+    backgroundAgentId,
+  );
   const hasFallback =
-    fallback?.requestId &&
-    normalizeInteractionBinding(fallback.binding).sequence !== null &&
-    !journal.get(fallback.requestId);
+    hasValidFallback && !journal.get(String(fallback.requestId));
+  if (hasValidFallback && !hasFallback) {
+    const existing = journal.get(String(fallback.requestId));
+    const normalizedBinding = normalizeInteractionBinding(fallback.binding);
+    // The supervisor state intentionally stores a compact display projection
+    // of the question, not the complete canonical IPC payload (for example it
+    // may omit defaultValue/policyDigest). Once the exact request id and full
+    // binding match, the verified journal remains payload authority.
+    if (!sameInteractionBinding(existing.binding, normalizedBinding)) {
+      throw journalError(
+        "Legacy pending interaction recovery evidence conflicts with the canonical journal",
+        "INTERACTION_RECOVERY_FALLBACK_INVALID",
+        {
+          sessionId,
+          backgroundAgentId,
+          requestId: String(fallback.requestId),
+        },
+      );
+    }
+  }
   if (!journal.pending().length && !hasFallback) {
     return { journal, rejected: [], changed: false };
   }
+  // Give missing/tombstoned recovery a stable domain error before the atomic
+  // verified projection handles the normal append path.
+  assertVerifiedRecoverySession(sessionId);
   const mutation = updateBackgroundInteractionJournal(
     sessionId,
     journal,

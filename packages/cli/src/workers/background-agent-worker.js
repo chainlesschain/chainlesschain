@@ -14,6 +14,8 @@
 
 import { readFileSync, writeSync } from "node:fs";
 import { randomBytes } from "node:crypto";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   DEFAULT_HEARTBEAT_INTERVAL_MS,
   DEFAULT_HEARTBEAT_STALE_MS,
@@ -31,6 +33,7 @@ import { startBackgroundSessionServer } from "../lib/background-session-transpor
 import { idlePhaseFor } from "../lib/background-agent-phase.js";
 import { attachInteractionRequestHandler } from "../lib/background-interaction-resolver.js";
 import {
+  classifyLateBackgroundInteractionSettlement,
   loadBackgroundInteractionJournal,
   rejectPendingBackgroundInteractions,
   updateBackgroundInteractionJournal,
@@ -45,6 +48,10 @@ import {
   closeNeedsInputIncident,
   createNeedsInputIncident,
 } from "../lib/background-needs-input-incident.js";
+import {
+  withSessionHostDelegatedWriteAuthority,
+  withSessionHostRecoveryLease,
+} from "../lib/session-host-lease.js";
 
 const jobFile = process.argv[2];
 let job;
@@ -59,6 +66,7 @@ let lastExit = { code: 0, signal: null };
 let transportState = null;
 let detachInteractionHandler = null;
 let interactionJournal = null;
+let interactionFinalSweep = null;
 let turnLaunchUncertainty = null;
 let turnLaunchSettlement = null;
 const promptQueue = [];
@@ -71,22 +79,208 @@ const pendingInteractions = new Map();
 // relays the throw as {type:"error", message}) instead of silently queued.
 const MAX_PROMPT_QUEUE = 100;
 
+/**
+ * Bind one idempotent termination settlement to a turn child.
+ *
+ * Node normally emits `exit` before `close`, but a spawn/runtime error can
+ * produce `error` followed only by `close`. Treat `error` as diagnostic (it
+ * does not prove process death) and settle when either terminal event arrives.
+ * The first terminal event wins, so the ordinary exit->close sequence cannot
+ * run journal recovery or finalization twice.
+ *
+ * Exported only so the event-order contract can be exercised without booting
+ * the detached worker process.
+ */
+export function attachTurnChildTerminationSettlement(
+  childProcess,
+  settleTermination,
+) {
+  if (!childProcess || typeof childProcess.once !== "function") {
+    throw new TypeError("turn child must be an EventEmitter-like process");
+  }
+  if (typeof settleTermination !== "function") {
+    throw new TypeError("turn child termination callback is required");
+  }
+
+  let settled = false;
+  let observedError = null;
+  const settleOnce = (source, code, signal) => {
+    if (settled) return false;
+    settled = true;
+    settleTermination(
+      Object.freeze({
+        source,
+        code: observedError ? 1 : (code ?? null),
+        signal: signal || null,
+        error: observedError,
+        errorMessage: observedError?.message || null,
+      }),
+    );
+    return true;
+  };
+  const onError = (error) => {
+    observedError ||= error instanceof Error ? error : new Error(String(error));
+  };
+  const onExit = (code, signal) => settleOnce("exit", code, signal);
+  const onClose = (code, signal) => settleOnce("close", code, signal);
+
+  childProcess.once("error", onError);
+  childProcess.once("exit", onExit);
+  childProcess.once("close", onClose);
+
+  return () => {
+    childProcess.off?.("error", onError);
+    childProcess.off?.("exit", onExit);
+    childProcess.off?.("close", onClose);
+  };
+}
+
+/**
+ * Deliver an already-durable interaction outcome after best-effort cleanup of
+ * the worker-state projection.
+ *
+ * The transcript journal is the settlement authority. Once it contains the
+ * terminal answer, failure to clear the rebuildable state projection (or to
+ * persist its diagnostic marker) must not strand the child that is waiting
+ * for that answer.
+ */
+export function deliverAfterDurableInteractionCleanup({
+  cleanupProjection,
+  recordCleanupFailure,
+  detachAbort,
+  deliver,
+}) {
+  if (typeof deliver !== "function") {
+    throw new TypeError("durable interaction delivery callback is required");
+  }
+
+  let cleanupError = null;
+  try {
+    cleanupProjection?.();
+  } catch (error) {
+    cleanupError = error;
+    try {
+      recordCleanupFailure?.(error);
+    } catch {
+      // The canonical terminal journal remains the answer authority even when
+      // both the state cleanup and its rebuildable diagnostic marker fail.
+    }
+  }
+
+  try {
+    detachAbort?.();
+  } catch {
+    // Listener cleanup is also subordinate to delivering the durable answer.
+  }
+  deliver();
+  return { cleanupError };
+}
+
 function updateInteractionJournal(mutate, options = {}) {
-  const mutation = updateBackgroundInteractionJournal(
+  const {
+    sessionHostWriteDelegation = null,
+    expectedOwnerPid,
+    ...journalOptions
+  } = options;
+  const update = () =>
+    updateBackgroundInteractionJournal(
+      job.sessionId,
+      interactionJournal,
+      mutate,
+      journalOptions,
+    );
+  // Live child interaction writes always require the exact lease delegated by
+  // that child. Recovery is the only exception and uses its own acquired lease
+  // outside this helper; never fall back to legacy no-lease write authority.
+  const mutation = withSessionHostDelegatedWriteAuthority(
     job.sessionId,
-    interactionJournal,
-    mutate,
-    options,
+    sessionHostWriteDelegation,
+    update,
+    { expectedOwnerPid },
   );
   interactionJournal = mutation.journal;
   return mutation.result;
 }
 
-function persistInteractionSettlement(requestId, binding, outcome) {
+function persistInteractionSettlement(
+  requestId,
+  binding,
+  outcome,
+  authority = {},
+) {
   return updateInteractionJournal(
     (draft) => draft.settle(requestId, binding, outcome),
-    { persistIf: (result) => result.applied },
+    { ...authority, persistIf: (result) => result.applied },
   );
+}
+
+function beginFinalInteractionSweep(continuation) {
+  if (interactionFinalSweep) return;
+  if (!job?.sessionId || !interactionJournal) {
+    continuation();
+    return;
+  }
+  const context = {
+    attempts: 0,
+    timer: null,
+    continuation,
+  };
+  interactionFinalSweep = context;
+
+  const attempt = () => {
+    if (interactionFinalSweep !== context) return;
+    context.attempts += 1;
+    try {
+      // Reload from the canonical transcript under a fresh lease after the
+      // child is proven dead. This deliberately ignores the worker's cached
+      // journal: an earlier append may have reported commitState=unknown even
+      // though its pending snapshot reached disk.
+      const recovery = withSessionHostRecoveryLease(job.sessionId, () =>
+        rejectPendingBackgroundInteractions(job.sessionId, job.id, {
+          code: "INTERACTION_CHILD_EXITED",
+          message: "The agent child exited before the interaction settled",
+        }),
+      );
+      interactionJournal = recovery.journal;
+      phase = "turn";
+      mergeState({
+        phase,
+        pendingQuestion: null,
+        interactionRecovery: {
+          status: recovery.changed ? "rejected" : "clean",
+          requestIds: recovery.rejected.map((record) => record.requestId),
+          recoveredAt: Date.now(),
+          attempts: context.attempts,
+          turn: turnCount,
+          workerGeneration: job.workerGeneration,
+        },
+      });
+      interactionFinalSweep = null;
+      context.continuation();
+    } catch (error) {
+      phase = "interaction_recovery";
+      const retryMs = Math.min(
+        5_000,
+        250 * 2 ** Math.min(context.attempts - 1, 4),
+      );
+      mergeState({
+        phase,
+        pendingQuestion: null,
+        interactionRecovery: {
+          status: "failed",
+          code: error?.code || "INTERACTION_RECOVERY_FAILED",
+          message: error?.message || String(error),
+          failedAt: Date.now(),
+          attempts: context.attempts,
+          retryAfterMs: retryMs,
+          turn: turnCount,
+          workerGeneration: job.workerGeneration,
+        },
+      });
+      context.timer = setTimeout(attempt, retryMs);
+    }
+  };
+  attempt();
 }
 
 function mutateWorkerState(updater) {
@@ -158,6 +352,10 @@ function finalize(code, signal, errorMessage) {
   // result is durably recorded. Transport detach, a queued prompt, or a fatal
   // callback must not exit through finalize and strand that retry protocol.
   if (turnLaunchSettlement) return;
+  // A child-death journal sweep is part of terminal durability. Keep the
+  // worker and heartbeat alive until its fresh-lease reload either settles
+  // every disk-visible pending request or persists retry evidence.
+  if (interactionFinalSweep) return;
   if (finalized) return;
   finalized = true;
   clearInterval(heartbeat);
@@ -286,6 +484,17 @@ function persistConfirmedTurnLaunchSettlement(context) {
         turnLaunchFinalizationUncertain: false,
         turnLaunchToken: null,
         turnLaunchError: null,
+        interactionRecovery: job.sessionId
+          ? {
+              status: "failed",
+              code: "INTERACTION_TURN_LAUNCH_SETTLEMENT",
+              message:
+                "Turn launch settlement completed before interaction recovery",
+              turn: Math.max(turnCount, context.turnLaunchAttempt),
+              workerGeneration: job.workerGeneration,
+              failedAt: Date.now(),
+            }
+          : current.interactionRecovery,
         turnLaunchTermination: {
           confirmed: true,
           treeMode: context.termination.treeMode || null,
@@ -302,11 +511,18 @@ function persistConfirmedTurnLaunchSettlement(context) {
     turnLaunchUncertainty = null;
     turnLaunchSettlement = null;
     child = null;
-    finalize(
-      1,
-      null,
-      context.error?.message || "background turn launch failed",
-    );
+    const finishLaunchFailure = () =>
+      finalize(
+        1,
+        null,
+        context.error?.message || "background turn launch failed",
+      );
+    if (context.owned && job.sessionId && interactionJournal) {
+      turnCount = Math.max(turnCount, context.turnLaunchAttempt);
+      beginFinalInteractionSweep(finishLaunchFailure);
+    } else {
+      finishLaunchFailure();
+    }
   } catch {
     scheduleTurnLaunchSettlementPersistence();
   }
@@ -431,6 +647,9 @@ function startTurn(argv, promptText) {
   if (!writeHeartbeat()) return false;
   const nextTurn = turnCount + 1;
   const turnLaunchToken = randomBytes(16).toString("hex");
+  // Private spawn-generation binding for the dedicated child IPC channel.
+  // It is never persisted in state or exposed through attach transports.
+  const turnIpcToken = randomBytes(32).toString("hex");
   let turnLaunchAttempt = 0;
   let prepared;
   try {
@@ -507,7 +726,11 @@ function startTurn(argv, promptText) {
         [job.cliEntry, ...argv],
         {
           cwd: job.cwd,
-          env: { ...process.env, CC_BACKGROUND_AGENT_ID: job.id },
+          env: {
+            ...process.env,
+            CC_BACKGROUND_AGENT_ID: job.id,
+            CC_BACKGROUND_TURN_IPC_NONCE: turnIpcToken,
+          },
           stdio: ["ignore", log.fd, log.fd, "ipc"],
           windowsHide: true,
           origin: "background-agent:turn",
@@ -525,6 +748,12 @@ function startTurn(argv, promptText) {
         pendingApprovals: 0,
         pendingQuestion: null,
         uncertainSideEffects: 0,
+        interactionRecovery: {
+          status: "pending",
+          turn: nextTurn,
+          workerGeneration: job.workerGeneration,
+          startedAt: agentStartedAt,
+        },
         agentPid: spawned.pid,
         agentStartedAt,
         turnLaunchIntent: null,
@@ -573,13 +802,22 @@ function startTurn(argv, promptText) {
     child,
     async (payload, msg, { signal }) => {
       const requestId = msg.requestId;
-      updateInteractionJournal((draft) =>
-        draft.recordPending({
-          requestId,
-          binding: msg.binding,
-          payload,
-          createdAt: Date.now(),
-        }),
+      const journalAuthority = {
+        sessionHostWriteDelegation: msg.sessionHostWriteDelegation || null,
+        // On Windows the broker ChildProcess PID can be the restricted-token
+        // sandbox helper. The dedicated IPC target reports its actual Node PID;
+        // require that PID to be the owner embedded in the exact active lease.
+        expectedOwnerPid: msg.senderPid,
+      };
+      updateInteractionJournal(
+        (draft) =>
+          draft.recordPending({
+            requestId,
+            binding: msg.binding,
+            payload,
+            createdAt: Date.now(),
+          }),
+        journalAuthority,
       );
       phase = "needs_input";
       const pendingQuestion = {
@@ -633,67 +871,97 @@ function startTurn(argv, promptText) {
 
       return new Promise((resolve, reject) => {
         let settled = false;
-        const cleanup = (incidentStatus = "resolved") => {
+        const deliverTerminalOutcome = (
+          incidentStatus = "resolved",
+          deliver,
+        ) => {
           if (settled) return false;
           settled = true;
           pendingInteractions.delete(requestId);
           let releasedQuestion = false;
-          const cleanupMutation = mutateWorkerState((current) => {
-            const ownsQuestion =
-              current.pendingQuestion?.requestId === requestId ||
-              current.pendingQuestion?.intId === requestId;
-            const ownsIncident =
-              current.needsInputIncident?.requestId === requestId;
-            if (!ownsQuestion && !ownsIncident) return null;
-            releasedQuestion = ownsQuestion;
-            return {
-              ...current,
-              id: job.id,
-              ...(ownsQuestion ? { phase: "turn", pendingQuestion: null } : {}),
-              ...(ownsIncident
-                ? {
-                    needsInputIncident: closeNeedsInputIncident(
-                      current.needsInputIncident,
-                      { status: incidentStatus, now: Date.now() },
-                    ),
-                  }
-                : {}),
-            };
+          deliverAfterDurableInteractionCleanup({
+            cleanupProjection() {
+              const cleanupMutation = mutateWorkerState((current) => {
+                const ownsQuestion =
+                  current.pendingQuestion?.requestId === requestId ||
+                  current.pendingQuestion?.intId === requestId;
+                const ownsIncident =
+                  current.needsInputIncident?.requestId === requestId;
+                if (!ownsQuestion && !ownsIncident) return null;
+                releasedQuestion = ownsQuestion;
+                return {
+                  ...current,
+                  id: job.id,
+                  ...(ownsQuestion
+                    ? { phase: "turn", pendingQuestion: null }
+                    : {}),
+                  ...(ownsIncident
+                    ? {
+                        needsInputIncident: closeNeedsInputIncident(
+                          current.needsInputIncident,
+                          { status: incidentStatus, now: Date.now() },
+                        ),
+                      }
+                    : {}),
+                };
+              });
+              if (cleanupMutation.applied && releasedQuestion) phase = "turn";
+            },
+            recordCleanupFailure(error) {
+              // The terminal journal snapshot is already durable and therefore
+              // remains answer authority. Retain an explicit failed marker for
+              // the next heartbeat/recovery pass when possible.
+              mergeState({
+                interactionRecovery: {
+                  status: "failed",
+                  code: "INTERACTION_STATE_CLEANUP_FAILED",
+                  message: error?.message || String(error),
+                  failedAt: Date.now(),
+                  turn: turnCount,
+                  workerGeneration: job.workerGeneration,
+                },
+              });
+            },
+            detachAbort() {
+              signal?.removeEventListener?.("abort", onAbort);
+            },
+            deliver,
           });
-          if (cleanupMutation.applied && releasedQuestion) phase = "turn";
-          signal?.removeEventListener?.("abort", onAbort);
           return true;
         };
         const onAbort = () => {
           let rejection;
           try {
-            persistInteractionSettlement(requestId, msg.binding, {
-              status: "cancelled",
-              error: {
-                code: "INTERACTION_CANCELLED",
-                message: "Background interaction was cancelled",
+            persistInteractionSettlement(
+              requestId,
+              msg.binding,
+              {
+                status: "cancelled",
+                error: {
+                  code: "INTERACTION_CANCELLED",
+                  message: "Background interaction was cancelled",
+                },
               },
-            });
+              journalAuthority,
+            );
           } catch (error) {
             rejection = error;
           }
-          if (!cleanup("cancelled")) return;
           if (!rejection) {
             rejection = new Error("Background interaction was cancelled");
             rejection.code = "INTERACTION_CANCELLED";
           }
-          reject(rejection);
+          deliverTerminalOutcome("cancelled", () => reject(rejection));
         };
         const entry = {
           payload,
           binding: msg.binding,
+          journalAuthority,
           deliverResolved(answer) {
-            if (!cleanup("resolved")) return;
-            resolve(answer);
+            deliverTerminalOutcome("resolved", () => resolve(answer));
           },
           deliverRejected(error) {
-            if (!cleanup("cancelled")) return;
-            reject(error);
+            deliverTerminalOutcome("cancelled", () => reject(error));
           },
         };
         pendingInteractions.set(requestId, entry);
@@ -708,39 +976,46 @@ function startTurn(argv, promptText) {
     {
       backgroundAgentId: job.id,
       sessionId: job.sessionId || null,
+      turnIpcToken,
+      requireSenderPid: true,
+      requireDelegationOwnerPid: true,
     },
   );
 
-  child.on("exit", (code, signal) => {
-    lastExit = { code, signal };
-    child = null;
-    // 清理交互处理器
-    detachInteractionHandler?.();
-    detachInteractionHandler = null;
-    // Reject any request that survived an abnormal child exit. Normal
-    // responses remove themselves from this map before the turn continues.
-    for (const [requestId, pending] of pendingInteractions) {
-      const error = new Error("Agent exited");
-      error.code = "INTERACTION_CHILD_EXITED";
-      try {
-        persistInteractionSettlement(requestId, pending.binding, {
-          status: "rejected",
-          error,
-        });
-      } catch {
-        // The child is already gone; the unresolved journal remains pending
-        // so the supervisor recovery path can reject it deterministically.
+  attachTurnChildTerminationSettlement(
+    child,
+    ({ code, signal, errorMessage }) => {
+      lastExit = {
+        code,
+        signal,
+        ...(errorMessage ? { errorMessage } : {}),
+      };
+      child = null;
+      // 清理交互处理器
+      detachInteractionHandler?.();
+      detachInteractionHandler = null;
+      // Reject any request that survived an abnormal child exit. Normal
+      // responses remove themselves from this map before the turn continues.
+      for (const [requestId, pending] of pendingInteractions) {
+        const error = new Error("Agent exited");
+        error.code = "INTERACTION_CHILD_EXITED";
+        pending.deliverRejected?.(error);
       }
-      pending.deliverRejected?.(error);
-    }
-    pendingInteractions.clear();
-    server?.broadcast({ type: "turn-ended", turn: turnCount, exitCode: code });
-    maybeContinue();
-  });
-  child.on("error", (error) => {
-    child = null;
-    finalize(1, null, error.message);
-  });
+      pendingInteractions.clear();
+      beginFinalInteractionSweep(() => {
+        server?.broadcast({
+          type: "turn-ended",
+          turn: turnCount,
+          exitCode: code,
+        });
+        if (lastExit.errorMessage) {
+          finalize(1, signal, lastExit.errorMessage);
+        } else {
+          maybeContinue();
+        }
+      });
+    },
+  );
   return true;
 }
 
@@ -814,24 +1089,38 @@ async function main() {
   }
   removeJobFile(jobFile);
   log = openBackgroundLogFile(job.id);
-  interactionJournal = loadBackgroundInteractionJournal(job.sessionId, job.id);
+  const bootstrapState = readBackgroundAgentState(job.id);
+  const allowAbsentBootstrap =
+    job.sessionBootstrapExpected === true &&
+    bootstrapState?.sessionBootstrapExpected === true &&
+    bootstrapState?.workerGeneration === job.workerGeneration &&
+    Number(bootstrapState?.turnCount || 0) === 0 &&
+    !bootstrapState?.pendingQuestion;
+  interactionJournal = loadBackgroundInteractionJournal(job.sessionId, job.id, {
+    // A fresh background session is created by the first headless turn child.
+    // Bootstrap may inspect an actually absent transcript before that child
+    // writes session_start; it must remain an empty in-memory journal and may
+    // never create transcript genesis itself.
+    allowAbsent: allowAbsentBootstrap,
+  });
   if (interactionJournal.pending().length > 0) {
-    const recovery = rejectPendingBackgroundInteractions(
-      job.sessionId,
-      job.id,
-      {
+    const recovery = withSessionHostRecoveryLease(job.sessionId, () =>
+      rejectPendingBackgroundInteractions(job.sessionId, job.id, {
         code: "INTERACTION_WORKER_RESTARTED",
         message:
           "The background worker restarted before the interaction settled",
-      },
+      }),
     );
     interactionJournal = recovery.journal;
     mergeState({
       phase: "turn",
       pendingQuestion: null,
       interactionRecovery: {
-        rejected: recovery.rejected.length,
+        status: recovery.changed ? "rejected" : "clean",
+        requestIds: recovery.rejected.map((record) => record.requestId),
         recoveredAt: Date.now(),
+        turn: turnCount,
+        workerGeneration: job.workerGeneration,
       },
     });
   }
@@ -900,16 +1189,22 @@ async function main() {
                   : { code: "INTERACTION_REJECTED", message: String(error) },
             }
           : { status: "resolved", answer };
+        if (!entry) {
+          return classifyLateBackgroundInteractionSettlement(
+            interactionJournal,
+            resolvedId,
+            binding,
+            outcome,
+          );
+        }
         const settlement = persistInteractionSettlement(
           resolvedId,
           binding,
           outcome,
+          entry.journalAuthority,
         );
         if (!settlement.applied) {
           return { accepted: true, duplicate: true };
-        }
-        if (!entry) {
-          return { accepted: true, duplicate: false, delivered: false };
         }
         if (error) {
           const rejection = new Error(
@@ -979,7 +1274,7 @@ async function main() {
   if (!startTurn(job.argv, null)) finalize(0, null);
 }
 
-main().catch((error) => {
+function handleWorkerFatal(error) {
   // The earliest bootstrap failures happen before `job` and `log` exist.
   // Write synchronously to the launcher-provided stderr handle so detached
   // Windows workers retain the loader/job/state error that caused the exit.
@@ -1002,4 +1297,16 @@ main().catch((error) => {
     }
   }
   process.exit(1);
-});
+}
+
+const invokedWorkerPath = process.argv[1] ? resolve(process.argv[1]) : null;
+const moduleWorkerPath = resolve(fileURLToPath(import.meta.url));
+const directWorkerEntrypoint =
+  invokedWorkerPath !== null &&
+  (process.platform === "win32"
+    ? invokedWorkerPath.toLowerCase() === moduleWorkerPath.toLowerCase()
+    : invokedWorkerPath === moduleWorkerPath);
+
+if (directWorkerEntrypoint) {
+  main().catch(handleWorkerFatal);
+}

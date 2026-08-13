@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   existsSync,
   mkdirSync,
@@ -14,6 +14,7 @@ import {
   SESSION_HOST_LEASE_HELD_CODE,
   SESSION_HOST_LEASE_UNAVAILABLE_CODE,
   SessionHostLeaseAuthority,
+  createSessionHostWriteDelegation,
 } from "../../src/lib/session-host-lease.js";
 
 const roots = [];
@@ -106,6 +107,115 @@ afterEach(() => {
 });
 
 describe("SessionHostLeaseAuthority", () => {
+  it("permits only an exact child-bound delegated writer", () => {
+    const stateRoot = testRoot();
+    const owner = new SessionHostLeaseAuthority({ stateRoot, ...timers() });
+    const worker = new SessionHostLeaseAuthority({ stateRoot, ...timers() });
+    const lease = owner.acquire("delegated-session", {
+      hostKind: "headless",
+    });
+    const delegation = createSessionHostWriteDelegation(lease);
+    const missingDelegationWrite = vi.fn();
+
+    expect(() =>
+      worker.withDelegatedWriteAuthority(
+        "delegated-session",
+        null,
+        missingDelegationWrite,
+        { expectedOwnerPid: process.pid },
+      ),
+    ).toThrow(/delegation/i);
+    expect(missingDelegationWrite).not.toHaveBeenCalled();
+
+    expect(() =>
+      worker.withWriteAuthority("delegated-session", () => true),
+    ).toThrowError(
+      expect.objectContaining({ code: SESSION_HOST_LEASE_FENCED_CODE }),
+    );
+    expect(
+      worker.withDelegatedWriteAuthority(
+        "delegated-session",
+        delegation,
+        () =>
+          worker.withWriteAuthority(
+            "delegated-session",
+            (authority) => authority,
+          ),
+        { expectedOwnerPid: process.pid },
+      ),
+    ).toMatchObject({
+      leaseId: lease.leaseId,
+      fencingToken: lease.fencingToken,
+      ownerPid: process.pid,
+      hostKind: "headless",
+      delegated: true,
+    });
+    expect(() =>
+      worker.withDelegatedWriteAuthority(
+        "delegated-session",
+        delegation,
+        () => true,
+        { expectedOwnerPid: process.pid + 1 },
+      ),
+    ).toThrowError(
+      expect.objectContaining({ code: SESSION_HOST_LEASE_FENCED_CODE }),
+    );
+    expect(() =>
+      worker.withDelegatedWriteAuthority(
+        "delegated-session",
+        { ...delegation, fencingToken: delegation.fencingToken + 1 },
+        () => worker.withWriteAuthority("delegated-session", () => true),
+        { expectedOwnerPid: process.pid },
+      ),
+    ).toThrowError(
+      expect.objectContaining({ code: SESSION_HOST_LEASE_FENCED_CODE }),
+    );
+
+    expect(lease.release()).toBe(true);
+    const successor = owner.acquire("delegated-session", {
+      hostKind: "background-recovery",
+    });
+    const successorDelegation = createSessionHostWriteDelegation(successor);
+
+    // A stale/forged delegated scope cannot borrow the local successor lease
+    // merely because both happen to live in the same authority instance.
+    for (const staleDelegation of [
+      delegation,
+      {
+        ...successorDelegation,
+        fencingToken: successorDelegation.fencingToken + 1,
+      },
+      { ...successorDelegation, ownerPid: process.pid + 1 },
+    ]) {
+      expect(() =>
+        owner.withDelegatedWriteAuthority(
+          "delegated-session",
+          staleDelegation,
+          () => owner.withWriteAuthority("delegated-session", () => true),
+          { expectedOwnerPid: staleDelegation.ownerPid },
+        ),
+      ).toThrowError(
+        expect.objectContaining({ code: SESSION_HOST_LEASE_FENCED_CODE }),
+      );
+    }
+    expect(successor.assert()).toMatchObject({
+      leaseId: successor.leaseId,
+      fencingToken: successor.fencingToken,
+    });
+
+    expect(() =>
+      worker.withDelegatedWriteAuthority(
+        "delegated-session",
+        delegation,
+        () => worker.withWriteAuthority("delegated-session", () => true),
+        { expectedOwnerPid: process.pid },
+      ),
+    ).toThrowError(
+      expect.objectContaining({ code: SESSION_HOST_LEASE_FENCED_CODE }),
+    );
+    expect(successor.release()).toBe(true);
+  });
+
   it("blocks a real second process and advances fencing after a hard exit", async () => {
     const stateRoot = testRoot();
     const sessionId = "session-real-process";

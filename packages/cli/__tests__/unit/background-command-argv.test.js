@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   agentPrintArgument,
+  assertBackgroundArgvDurable,
   canonicalizeBackgroundSessionArgv,
   captureCommandArgvGrammar,
   captureCommandOptionSpecs,
@@ -23,6 +24,23 @@ const OPTION_SPECS = [
 ];
 
 describe("background command argv", () => {
+  it("rejects ephemeral background authority but preserves literal prompt data", () => {
+    expect(() =>
+      assertBackgroundArgvDurable(["agent", "--ephemeral", "-p", "work"]),
+    ).toThrowError(
+      expect.objectContaining({ code: "BACKGROUND_EPHEMERAL_UNSUPPORTED" }),
+    );
+    expect(() =>
+      assertBackgroundArgvDurable([
+        "agent",
+        "--session",
+        "durable",
+        "--",
+        "--ephemeral",
+      ]),
+    ).not.toThrow();
+  });
+
   it.each(["--help", "--no-worktree", "--dangerously-skip-permissions"])(
     "keeps option-shaped prompt data inside one print token: %s",
     (prompt) => {

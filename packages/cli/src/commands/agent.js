@@ -24,6 +24,7 @@ import {
 import { appendSecurityAuditEvent } from "../lib/security-audit.js";
 import {
   agentPrintArgument,
+  BACKGROUND_EPHEMERAL_UNSUPPORTED_CODE,
   canonicalizeBackgroundSessionArgv,
   captureCommandArgvGrammar,
   transformBackgroundLaunchArgv,
@@ -696,6 +697,15 @@ export function registerAgentCommand(program) {
       }
       const backgroundRequested =
         options.background === true || options.bg === true;
+      if (backgroundRequested && options.ephemeral === true) {
+        const error = new Error(
+          "--bg cannot be combined with --ephemeral because background sessions require durable session and interaction authority",
+        );
+        error.code = BACKGROUND_EPHEMERAL_UNSUPPORTED_CODE;
+        process.stderr.write(`${error.message}\n`);
+        process.exitCode = 1;
+        return;
+      }
       const invocationCwd = process.cwd();
       let worktreeDecision = {
         enabled: false,

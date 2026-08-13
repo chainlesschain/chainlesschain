@@ -154,6 +154,7 @@ describe("jsonl-session-store", () => {
     _sessionScaleFaultHooks.beforeTranscriptDirectoryFsync = null;
     _sessionScaleFaultHooks.afterTranscriptDirectoryFsync = null;
     _sessionScaleFaultHooks.afterTranscriptAppend = null;
+    _sessionScaleFaultHooks.beforeVerifiedProjectionRepair = null;
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }
@@ -1777,6 +1778,114 @@ describe("jsonl-session-store", () => {
       ).toThrow("Authority projection validation rejected the append");
       expect(readEvents(id)).toHaveLength(eventCount);
       expect(verifySession(id).status).toBe("verified");
+    });
+
+    it("preserves unknown commit state when exact-readback repair fails", () => {
+      const id = startSession("authority-projection-repair-failure", {
+        title: "verified",
+      });
+      const eventType = "projection_repair_failure";
+      const previous = process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+      process.env.CC_SESSION_SCALE_FAULT_INJECTION = "1";
+      _sessionScaleFaultHooks.afterTranscriptAppend = ({ type }) => {
+        if (type !== eventType) return;
+        const error = new Error("injected ambiguous transcript settlement");
+        error.code = "EIO";
+        throw error;
+      };
+      _sessionScaleFaultHooks.beforeVerifiedProjectionRepair = ({ type }) => {
+        if (type !== eventType) return;
+        const error = new Error("injected projection repair failure");
+        error.code = "EIO";
+        throw error;
+      };
+
+      try {
+        expect(() =>
+          appendAuthorityEventWithVerifiedProjection(
+            id,
+            eventType,
+            { schemaVersion: 1 },
+            {
+              createProjection: () => ({
+                accept() {},
+                finish() {
+                  return {};
+                },
+              }),
+              validateProjection: () => true,
+            },
+          ),
+        ).toThrow(
+          expect.objectContaining({
+            code: "CC_SESSION_PERSISTENCE_FAILED",
+            fsCode: "EIO",
+            operation: "verified-projection-authority-append",
+            commitState: "unknown",
+            retryable: false,
+          }),
+        );
+      } finally {
+        _sessionScaleFaultHooks.afterTranscriptAppend = null;
+        _sessionScaleFaultHooks.beforeVerifiedProjectionRepair = null;
+        if (previous === undefined) {
+          delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+        } else {
+          process.env.CC_SESSION_SCALE_FAULT_INJECTION = previous;
+        }
+      }
+
+      expect(
+        readEvents(id).filter((event) => event.type === eventType),
+      ).toHaveLength(1);
+      expect(() => readVerifiedEvents(id)).toThrow(
+        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+      );
+    });
+
+    it("adjudicates a strict lock-release failure by exact verified readback", () => {
+      const id = startSession("authority-projection-lock-release", {
+        title: "verified",
+      });
+      const eventType = "projection_lock_release";
+      const ownerPath = join(`${sessionPath(id)}.lock`, "owner.json");
+
+      const appended = appendAuthorityEventWithVerifiedProjection(
+        id,
+        eventType,
+        { schemaVersion: 1 },
+        {
+          createProjection: () => ({
+            accept() {},
+            finish() {
+              return {};
+            },
+          }),
+          validateProjection() {
+            writeFileSync(
+              ownerPath,
+              JSON.stringify({
+                pid: Number.MAX_SAFE_INTEGER,
+                startedAt: Date.now(),
+                token: "dead-owner-0000000000000000000000000001",
+              }),
+              "utf8",
+            );
+            return true;
+          },
+        },
+      );
+
+      expect(appended).toMatchObject({
+        hash: expect.stringMatching(/^[a-f0-9]{64}$/),
+        commitState: "committed-after-lock-release-readback",
+      });
+      const committed = readVerifiedEvents(id).filter(
+        (event) => event.type === eventType,
+      );
+      expect(committed).toHaveLength(1);
+      expect(committed[0].hash).toBe(appended.hash);
+      expect(existsSync(`${sessionPath(id)}.lock`)).toBe(false);
     });
 
     it("refuses a stale compact CAS without hiding a concurrent turn", () => {
