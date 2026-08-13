@@ -9,8 +9,26 @@ import {
   previousCronTime,
   normalizeTimeZone,
   normalizeRunPolicy,
+  agendaMigrationSourceDigest,
 } from "../../src/lib/agent-schedule-store.js";
 import { jitterOffsetMs } from "../../src/lib/schedule-planner.js";
+
+function fileSystemWith(overrides = {}) {
+  return Object.assign(Object.create(fs), overrides);
+}
+
+function thrownBy(callback) {
+  try {
+    callback();
+  } catch (error) {
+    return error;
+  }
+  throw new Error("Expected callback to throw");
+}
+
+function temporaryFiles(dir) {
+  return fs.readdirSync(dir).filter((name) => name.endsWith(".tmp"));
+}
 
 describe("parseCron", () => {
   it("parses the 5 fields with * , - / support", () => {
@@ -283,6 +301,254 @@ describe("AgentScheduleStore", () => {
     store.scheduleWakeup({ prompt: "ok" });
     fs.appendFileSync(path.join(dir, "wakeup.jsonl"), "{ broken\n");
     expect(store.list("wakeup")).toHaveLength(1);
+  });
+
+  describe("fail-closed durable JSONL replacement", () => {
+    it("keeps advisory reads tolerant but rejects malformed authority mutations", () => {
+      const entry = store.scheduleWakeup({ prompt: "migrate me" });
+      const filePath = path.join(dir, "wakeup.jsonl");
+      fs.appendFileSync(filePath, "{ broken\n");
+      const before = fs.readFileSync(filePath, "utf8");
+
+      expect(store.list("wakeup").map((item) => item.id)).toEqual([entry.id]);
+      const error = thrownBy(() =>
+        store.prepareSchedulerMigration(entry.id, {
+          migrationId: "migration-1",
+          sourceDigest: agendaMigrationSourceDigest(entry),
+          targetJobId: "scheduler-job-1",
+        }),
+      );
+
+      expect(error).toMatchObject({
+        name: "AgendaScheduleStoreError",
+        code: "AGENDA_SCHEDULE_STORE_MALFORMED",
+        filePath,
+      });
+      expect(fs.readFileSync(filePath, "utf8")).toBe(before);
+      expect(temporaryFiles(dir)).toEqual([]);
+    });
+
+    it("treats only ENOENT as empty and wraps other read failures stably", () => {
+      const filePath = path.join(dir, "wakeup.jsonl");
+      const denied = Object.assign(new Error("access denied"), {
+        code: "EACCES",
+      });
+      const faultingFs = fileSystemWith({
+        readFileSync(target, ...args) {
+          if (target === filePath) throw denied;
+          return fs.readFileSync(target, ...args);
+        },
+      });
+      const faultingStore = new AgentScheduleStore({
+        dir,
+        now: () => clock,
+        fileSystem: faultingFs,
+      });
+
+      const error = thrownBy(() => faultingStore.list("wakeup"));
+      expect(error).toMatchObject({
+        name: "AgendaScheduleStoreError",
+        code: "AGENDA_SCHEDULE_STORE_READ_FAILED",
+        fsCode: "EACCES",
+        filePath,
+      });
+      expect(error.cause).toBe(denied);
+    });
+
+    it("loops until every byte is written to a unique wx 0600 temp file", () => {
+      store.scheduleWakeup({ prompt: "existing" });
+      const filePath = path.join(dir, "wakeup.jsonl");
+      const opened = [];
+      let writeCalls = 0;
+      const partialFs = fileSystemWith({
+        openSync(target, flags, mode) {
+          opened.push({ target, flags, mode });
+          return fs.openSync(target, flags, mode);
+        },
+        writeSync(fd, buffer, offset, length, position) {
+          writeCalls += 1;
+          return fs.writeSync(
+            fd,
+            buffer,
+            offset,
+            Math.min(7, length),
+            position,
+          );
+        },
+      });
+      const partialStore = new AgentScheduleStore({
+        dir,
+        now: () => clock,
+        fileSystem: partialFs,
+        platform: "win32",
+      });
+
+      partialStore.scheduleWakeup({ prompt: "partial writes complete" });
+
+      expect(writeCalls).toBeGreaterThan(1);
+      expect(opened).toHaveLength(1);
+      expect(opened[0]).toMatchObject({ flags: "wx", mode: 0o600 });
+      expect(opened[0].target).not.toBe(filePath);
+      expect(path.dirname(opened[0].target)).toBe(dir);
+      expect(path.basename(opened[0].target)).toMatch(
+        /^\.wakeup\.jsonl\.\d+\..+\.tmp$/,
+      );
+      expect(
+        fs
+          .readFileSync(filePath, "utf8")
+          .trim()
+          .split("\n")
+          .map((line) => JSON.parse(line).prompt),
+      ).toEqual(["existing", "partial writes complete"]);
+      expect(temporaryFiles(dir)).toEqual([]);
+    });
+
+    it("keeps the old authority and removes its temp after partial-write ENOSPC", () => {
+      store.scheduleWakeup({ prompt: "authoritative" });
+      const filePath = path.join(dir, "wakeup.jsonl");
+      const before = fs.readFileSync(filePath, "utf8");
+      let writeCalls = 0;
+      const faultingFs = fileSystemWith({
+        writeSync(fd, buffer, offset, length, position) {
+          writeCalls += 1;
+          if (writeCalls === 1) {
+            return fs.writeSync(
+              fd,
+              buffer,
+              offset,
+              Math.min(11, length),
+              position,
+            );
+          }
+          throw Object.assign(new Error("disk full"), { code: "ENOSPC" });
+        },
+      });
+      const faultingStore = new AgentScheduleStore({
+        dir,
+        now: () => clock,
+        fileSystem: faultingFs,
+        platform: "win32",
+      });
+
+      const error = thrownBy(() =>
+        faultingStore.scheduleWakeup({ prompt: "must not commit" }),
+      );
+      expect(error).toMatchObject({
+        code: "AGENDA_SCHEDULE_STORE_WRITE_FAILED",
+        fsCode: "ENOSPC",
+        commitState: "not-committed",
+        filePath,
+      });
+      expect(writeCalls).toBe(2);
+      expect(fs.readFileSync(filePath, "utf8")).toBe(before);
+      expect(temporaryFiles(dir)).toEqual([]);
+    });
+
+    it("keeps the old authority and removes its temp when file fsync fails", () => {
+      store.scheduleWakeup({ prompt: "authoritative" });
+      const filePath = path.join(dir, "wakeup.jsonl");
+      const before = fs.readFileSync(filePath, "utf8");
+      const faultingFs = fileSystemWith({
+        fsyncSync() {
+          throw Object.assign(new Error("file fsync failed"), { code: "EIO" });
+        },
+      });
+      const faultingStore = new AgentScheduleStore({
+        dir,
+        now: () => clock,
+        fileSystem: faultingFs,
+        platform: "win32",
+      });
+
+      const error = thrownBy(() =>
+        faultingStore.scheduleWakeup({ prompt: "must not commit" }),
+      );
+      expect(error).toMatchObject({
+        code: "AGENDA_SCHEDULE_STORE_WRITE_FAILED",
+        fsCode: "EIO",
+        commitState: "not-committed",
+        filePath,
+      });
+      expect(fs.readFileSync(filePath, "utf8")).toBe(before);
+      expect(temporaryFiles(dir)).toEqual([]);
+    });
+
+    it("keeps the old authority and removes its temp when rename fails", () => {
+      store.scheduleWakeup({ prompt: "authoritative" });
+      const filePath = path.join(dir, "wakeup.jsonl");
+      const before = fs.readFileSync(filePath, "utf8");
+      const faultingFs = fileSystemWith({
+        renameSync() {
+          throw Object.assign(new Error("rename failed"), { code: "EACCES" });
+        },
+      });
+      const faultingStore = new AgentScheduleStore({
+        dir,
+        now: () => clock,
+        fileSystem: faultingFs,
+        platform: "win32",
+      });
+
+      const error = thrownBy(() =>
+        faultingStore.scheduleWakeup({ prompt: "must not commit" }),
+      );
+      expect(error).toMatchObject({
+        code: "AGENDA_SCHEDULE_STORE_WRITE_FAILED",
+        fsCode: "EACCES",
+        commitState: "not-committed",
+        filePath,
+      });
+      expect(fs.readFileSync(filePath, "utf8")).toBe(before);
+      expect(temporaryFiles(dir)).toEqual([]);
+    });
+
+    it("reports unknown commit after rename when POSIX directory fsync fails", () => {
+      store.scheduleWakeup({ prompt: "authoritative" });
+      const filePath = path.join(dir, "wakeup.jsonl");
+      const directoryDescriptor = 2_147_483_000;
+      const faultingFs = fileSystemWith({
+        openSync(target, flags, mode) {
+          if (target === dir && flags === "r") return directoryDescriptor;
+          return fs.openSync(target, flags, mode);
+        },
+        fsyncSync(descriptor) {
+          if (descriptor === directoryDescriptor) {
+            throw Object.assign(new Error("directory fsync failed"), {
+              code: "EIO",
+            });
+          }
+          return fs.fsyncSync(descriptor);
+        },
+        closeSync(descriptor) {
+          if (descriptor === directoryDescriptor) return;
+          return fs.closeSync(descriptor);
+        },
+      });
+      const faultingStore = new AgentScheduleStore({
+        dir,
+        now: () => clock,
+        fileSystem: faultingFs,
+        platform: "linux",
+      });
+
+      const error = thrownBy(() =>
+        faultingStore.scheduleWakeup({ prompt: "renamed but uncertain" }),
+      );
+      expect(error).toMatchObject({
+        code: "AGENDA_SCHEDULE_STORE_WRITE_FAILED",
+        fsCode: "EIO",
+        commitState: "unknown",
+        filePath,
+      });
+      expect(
+        fs
+          .readFileSync(filePath, "utf8")
+          .trim()
+          .split("\n")
+          .map((line) => JSON.parse(line).prompt),
+      ).toEqual(["authoritative", "renamed but uncertain"]);
+      expect(temporaryFiles(dir)).toEqual([]);
+    });
   });
 
   describe("per-entry jitterMs", () => {

@@ -258,6 +258,21 @@ function agendaStoreError(code, message, { retryable = false, retryAt } = {}) {
   return error;
 }
 
+function agendaPersistenceError(
+  code,
+  message,
+  cause,
+  { filePath, commitState } = {},
+) {
+  const error = new Error(message, { cause });
+  error.name = "AgendaScheduleStoreError";
+  error.code = code;
+  error.filePath = filePath;
+  if (typeof cause?.code === "string") error.fsCode = cause.code;
+  if (commitState) error.commitState = commitState;
+  return error;
+}
+
 function applyScheduledAgentSuccess(entry, atMs) {
   if (entry.kind === "wakeup") {
     entry.status = "fired";
@@ -666,9 +681,16 @@ export function previousCronTime(expr, fromMs, options = {}) {
 // ─── store ───────────────────────────────────────────────────────────────
 
 export class AgentScheduleStore {
-  constructor({ dir = null, now = () => Date.now() } = {}) {
+  constructor({
+    dir = null,
+    now = () => Date.now(),
+    fileSystem = fs,
+    platform = process.platform,
+  } = {}) {
     this.dir = dir || agentScheduleDir();
     this._now = typeof now === "function" ? now : () => now;
+    this._fs = fileSystem;
+    this._platform = platform;
   }
 
   _file(kind) {
@@ -676,37 +698,124 @@ export class AgentScheduleStore {
   }
 
   _ensureDir() {
-    fs.mkdirSync(this.dir, { recursive: true, mode: 0o700 });
+    this._fs.mkdirSync(this.dir, { recursive: true, mode: 0o700 });
   }
 
-  _readAll(kind) {
+  _readAll(kind, { failOnMalformed = false } = {}) {
+    const filePath = this._file(kind);
     let raw;
     try {
-      raw = fs.readFileSync(this._file(kind), "utf-8");
-    } catch {
-      return [];
+      raw = this._fs.readFileSync(filePath, "utf-8");
+    } catch (cause) {
+      if (cause?.code === "ENOENT") return [];
+      throw agendaPersistenceError(
+        "AGENDA_SCHEDULE_STORE_READ_FAILED",
+        `Agenda schedule store read failed (${filePath})`,
+        cause,
+        { filePath },
+      );
     }
     const entries = [];
+    let lineNumber = 0;
     for (const line of raw.split("\n")) {
+      lineNumber += 1;
       const trimmed = line.trim();
       if (!trimmed) continue;
       try {
-        entries.push(JSON.parse(trimmed));
-      } catch {
+        const entry = JSON.parse(trimmed);
+        if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+          throw new TypeError("schedule entry must be an object");
+        }
+        entries.push(entry);
+      } catch (cause) {
+        if (failOnMalformed) {
+          throw agendaPersistenceError(
+            "AGENDA_SCHEDULE_STORE_MALFORMED",
+            `Agenda schedule store contains malformed JSONL (${filePath}:${lineNumber})`,
+            cause,
+            { filePath },
+          );
+        }
         // Skip a corrupt line rather than throwing — one bad append must not
-        // poison the whole store (per-row resilience, like the JSON.parse sweep).
+        // poison advisory reads. Authoritative mutations opt into strict mode
+        // so they never replace a store after silently dropping durable rows.
       }
     }
     return entries;
   }
 
   _writeAll(kind, entries) {
-    this._ensureDir();
+    const filePath = this._file(kind);
     const body = entries.map((entry) => JSON.stringify(entry)).join("\n");
-    fs.writeFileSync(this._file(kind), body ? body + "\n" : "", {
-      encoding: "utf-8",
-      mode: 0o600,
-    });
+    const contents = Buffer.from(body ? `${body}\n` : "", "utf8");
+    const temporaryPath = path.join(
+      this.dir,
+      `.${path.basename(filePath)}.${process.pid}.${randomUUID()}.tmp`,
+    );
+    let descriptor = null;
+    let renamed = false;
+
+    try {
+      this._ensureDir();
+      descriptor = this._fs.openSync(temporaryPath, "wx", 0o600);
+      let offset = 0;
+      while (offset < contents.length) {
+        const written = this._fs.writeSync(
+          descriptor,
+          contents,
+          offset,
+          contents.length - offset,
+          null,
+        );
+        if (!Number.isSafeInteger(written) || written <= 0) {
+          const cause = new Error("write returned no progress");
+          cause.code = "EIO";
+          throw cause;
+        }
+        offset += written;
+      }
+      this._fs.fsyncSync(descriptor);
+      this._fs.closeSync(descriptor);
+      descriptor = null;
+      this._fs.renameSync(temporaryPath, filePath);
+      renamed = true;
+
+      if (this._platform !== "win32") {
+        const directoryDescriptor = this._fs.openSync(this.dir, "r");
+        try {
+          this._fs.fsyncSync(directoryDescriptor);
+        } finally {
+          this._fs.closeSync(directoryDescriptor);
+        }
+      }
+    } catch (cause) {
+      if (descriptor !== null) {
+        try {
+          this._fs.closeSync(descriptor);
+        } catch {
+          // Preserve the original persistence failure.
+        }
+      }
+      if (!renamed) {
+        try {
+          this._fs.unlinkSync(temporaryPath);
+        } catch {
+          // Best-effort orphan cleanup; the authoritative file is untouched.
+        }
+      }
+      throw agendaPersistenceError(
+        "AGENDA_SCHEDULE_STORE_WRITE_FAILED",
+        `Agenda schedule store write failed (${filePath})`,
+        cause,
+        {
+          filePath,
+          // A failure before rename leaves the old generation authoritative.
+          // A directory-fsync failure after rename makes crash durability
+          // unknowable even though an immediate read sees the new generation.
+          commitState: renamed ? "unknown" : "not-committed",
+        },
+      );
+    }
   }
 
   // ── create ──────────────────────────────────────────────────────────────
@@ -741,7 +850,7 @@ export class AgentScheduleStore {
       createdAt: now,
       status: "pending",
     };
-    const entries = this._readAll("wakeup");
+    const entries = this._readAll("wakeup", { failOnMalformed: true });
     entries.push(entry);
     this._writeAll("wakeup", entries);
     return entry;
@@ -786,7 +895,7 @@ export class AgentScheduleStore {
       runs: 0,
       status: "active",
     };
-    const entries = this._readAll("cron");
+    const entries = this._readAll("cron", { failOnMalformed: true });
     entries.push(entry);
     this._writeAll("cron", entries);
     return entry;
@@ -882,7 +991,7 @@ export class AgentScheduleStore {
       checks: 0,
       status: "active",
     };
-    const entries = this._readAll("monitor");
+    const entries = this._readAll("monitor", { failOnMalformed: true });
     entries.push(entry);
     this._writeAll("monitor", entries);
     return entry;
@@ -917,7 +1026,7 @@ export class AgentScheduleStore {
       path.join(this.dir, ".agenda-claims"),
       () => {
         for (const kind of SCHEDULE_KINDS) {
-          const entries = this._readAll(kind);
+          const entries = this._readAll(kind, { failOnMalformed: true });
           const entry = entries.find((candidate) => candidate.id === id);
           if (!entry) continue;
           if (!isSchedulableStatus(entry)) {
@@ -993,7 +1102,7 @@ export class AgentScheduleStore {
       path.join(this.dir, ".agenda-claims"),
       () => {
         for (const kind of SCHEDULE_KINDS) {
-          const entries = this._readAll(kind);
+          const entries = this._readAll(kind, { failOnMalformed: true });
           const entry = entries.find((candidate) => candidate.id === id);
           if (!entry) continue;
           const prior = entry.schedulerMigration;
@@ -1079,7 +1188,7 @@ export class AgentScheduleStore {
       path.join(this.dir, ".agenda-claims"),
       () => {
         for (const kind of SCHEDULE_KINDS) {
-          const entries = this._readAll(kind);
+          const entries = this._readAll(kind, { failOnMalformed: true });
           const entry = entries.find((candidate) => candidate.id === id);
           if (!entry) continue;
           const migration = entry.schedulerMigration;
@@ -1171,7 +1280,9 @@ export class AgentScheduleStore {
       () => {
         const claimed = [];
         for (const scheduleKind of kinds) {
-          const entries = this._readAll(scheduleKind);
+          const entries = this._readAll(scheduleKind, {
+            failOnMalformed: true,
+          });
           let changed = false;
           for (const entry of entries) {
             if (!isSchedulableStatus(entry) || isEntryExpired(entry, now))
@@ -1242,7 +1353,7 @@ export class AgentScheduleStore {
       path.join(this.dir, ".agenda-claims"),
       () => {
         for (const kind of SCHEDULE_KINDS) {
-          const entries = this._readAll(kind);
+          const entries = this._readAll(kind, { failOnMalformed: true });
           const entry = entries.find((candidate) => candidate.id === id);
           if (!entry) continue;
           const prior = entry.schedulerExecution;
@@ -1330,7 +1441,7 @@ export class AgentScheduleStore {
       path.join(this.dir, ".agenda-claims"),
       () => {
         for (const kind of SCHEDULE_KINDS) {
-          const entries = this._readAll(kind);
+          const entries = this._readAll(kind, { failOnMalformed: true });
           const entry = entries.find((candidate) => candidate.id === id);
           if (!entry) continue;
           const evidence = entry.schedulerExecution;
@@ -1408,7 +1519,7 @@ export class AgentScheduleStore {
       path.join(this.dir, ".agenda-claims"),
       () => {
         for (const kind of SCHEDULE_KINDS) {
-          const entries = this._readAll(kind);
+          const entries = this._readAll(kind, { failOnMalformed: true });
           const entry = entries.find((candidate) => candidate.id === id);
           if (!entry) continue;
           const evidence = entry.schedulerExecution;
@@ -1484,7 +1595,7 @@ export class AgentScheduleStore {
     const now = atMs != null ? atMs : this._now();
     const retired = [];
     for (const kind of SCHEDULE_KINDS) {
-      const entries = this._readAll(kind);
+      const entries = this._readAll(kind, { failOnMalformed: true });
       let changed = false;
       for (const entry of entries) {
         if (isSchedulableStatus(entry) && isEntryExpired(entry, now)) {
@@ -1501,7 +1612,7 @@ export class AgentScheduleStore {
 
   cancel(id) {
     for (const kind of SCHEDULE_KINDS) {
-      const entries = this._readAll(kind);
+      const entries = this._readAll(kind, { failOnMalformed: true });
       const idx = entries.findIndex((entry) => entry.id === id);
       if (idx >= 0) {
         const [removed] = entries.splice(idx, 1);
@@ -1522,7 +1633,7 @@ export class AgentScheduleStore {
   pruneTerminal({ before = Infinity } = {}) {
     const removed = [];
     for (const kind of SCHEDULE_KINDS) {
-      const entries = this._readAll(kind);
+      const entries = this._readAll(kind, { failOnMalformed: true });
       const keep = entries.filter((entry) => {
         const prunable =
           TERMINAL_SET.has(entry.status) && terminalAt(entry) <= before;
@@ -1586,7 +1697,7 @@ export class AgentScheduleStore {
   }
 
   _mutate(kind, id, fn) {
-    const entries = this._readAll(kind);
+    const entries = this._readAll(kind, { failOnMalformed: true });
     const entry = entries.find((e) => e.id === id);
     if (!entry) return null;
     fn(entry);

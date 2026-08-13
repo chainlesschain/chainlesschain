@@ -327,6 +327,46 @@ describe("scheduler-kernel automation adapter", () => {
     });
   });
 
+  it("rolls back an Automation restore transaction on real SQLITE_FULL", () => {
+    const f = fixture();
+    const flow = activeScheduledFlow(f);
+    const migrated = migrateAutomationFlow({
+      db: f.db,
+      schedulerStore: f.schedulerStore,
+      flow,
+      executionAuthority: executionAuthority(f, flow),
+    });
+    const marker = getAutomationSchedulerMigration(f.db, flow.id);
+    f.db.exec(`
+      CREATE TRIGGER automation_restore_disk_fault
+      BEFORE DELETE ON auto_scheduler_migrations
+      BEGIN
+        INSERT INTO auto_executions
+          (id, flow_id, input_data, status, steps_log, started_at)
+        VALUES
+          ('fault-fill', OLD.flow_id, replace(hex(zeroblob(262144)), '00', 'x'),
+           'running', '[]', datetime('now'));
+      END
+    `);
+    const pageCount = f.db.pragma("page_count", { simple: true });
+    f.db.pragma(`max_page_count = ${pageCount}`);
+
+    expect(() =>
+      restoreAutomationSchedulerMigration(f.db, flow.id, {
+        migrationId: migrated.id,
+        sourceDigest: automationMigrationSourceDigest(flow),
+        targetJobId: migrated.entries[0].targetJobId,
+        retirementToken: migrated.entries[0].retirementToken,
+      }),
+    ).toThrowError(expect.objectContaining({ code: "SQLITE_FULL" }));
+    expect(getFlow(f.db, flow.id)).toMatchObject({
+      status: FLOW_STATUS.PAUSED,
+      schedule: null,
+    });
+    expect(getAutomationSchedulerMigration(f.db, flow.id)).toEqual(marker);
+    expect(f.db.pragma("quick_check(1)")).toEqual([{ quick_check: "ok" }]);
+  });
+
   it("keeps the retired source inert across legacy activate and rejects new authority mutations", () => {
     const f = fixture();
     const flow = activeScheduledFlow(f);

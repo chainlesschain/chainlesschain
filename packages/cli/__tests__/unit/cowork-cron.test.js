@@ -28,14 +28,41 @@ import {
 
 function installFakeFs() {
   const files = new Map();
-  _deps.existsSync = vi.fn((p) => files.has(p));
+  const descriptors = new Map();
+  let nextDescriptor = 10;
   _deps.mkdirSync = vi.fn();
   _deps.readFileSync = vi.fn((p) => {
-    if (!files.has(p)) throw new Error(`ENOENT: ${p}`);
+    if (!files.has(p)) {
+      throw Object.assign(new Error(`ENOENT: ${p}`), { code: "ENOENT" });
+    }
     return files.get(p);
   });
-  _deps.writeFileSync = vi.fn((p, body) => {
-    files.set(p, body);
+  _deps.openSync = vi.fn((p, flags) => {
+    if (flags === "wx" && files.has(p)) {
+      throw Object.assign(new Error(`EEXIST: ${p}`), { code: "EEXIST" });
+    }
+    const descriptor = nextDescriptor++;
+    descriptors.set(descriptor, p);
+    if (flags === "wx") files.set(p, "");
+    return descriptor;
+  });
+  _deps.writeSync = vi.fn((descriptor, buffer, offset, length) => {
+    const path = descriptors.get(descriptor);
+    if (!path) throw new Error(`EBADF: ${descriptor}`);
+    const prior = files.get(path) || Buffer.alloc(0);
+    const chunk = Buffer.from(buffer).subarray(offset, offset + length);
+    files.set(
+      path,
+      Buffer.concat([Buffer.from(prior), chunk]).toString("utf8"),
+    );
+    return chunk.length;
+  });
+  _deps.fsyncSync = vi.fn((descriptor) => {
+    if (!descriptors.has(descriptor)) throw new Error(`EBADF: ${descriptor}`);
+  });
+  _deps.closeSync = vi.fn((descriptor) => {
+    if (!descriptors.delete(descriptor))
+      throw new Error(`EBADF: ${descriptor}`);
   });
   _deps.renameSync = vi.fn((from, to) => {
     if (!files.has(from)) throw new Error(`ENOENT: ${from}`);
@@ -219,6 +246,30 @@ describe("schedule persistence", () => {
     expect(out[0].id).toBe("a");
     expect(out[1].id).toBe("b");
   });
+
+  it("treats only ENOENT as empty and exposes other read failures stably", () => {
+    const file = join(
+      "/project",
+      ".chainlesschain",
+      "cowork",
+      "schedules.jsonl",
+    );
+    const denied = Object.assign(new Error("access denied"), {
+      code: "EACCES",
+    });
+    _deps.readFileSync = vi.fn(() => {
+      throw denied;
+    });
+
+    expect(() => loadSchedules("/project", { failOnMalformed: true })).toThrow(
+      expect.objectContaining({
+        code: "COWORK_SCHEDULE_STORE_READ_FAILED",
+        fsCode: "EACCES",
+        filePath: file,
+        cause: denied,
+      }),
+    );
+  });
 });
 
 // ─── CRUD ────────────────────────────────────────────────────────────────────
@@ -279,9 +330,12 @@ describe("CRUD operations", () => {
       "schedules.jsonl",
     );
     const malformed = '{"id":"kept"}\nnot-json\n';
-    // installFakeFs returns a private map, but its write seam models an existing
-    // file just as the real filesystem would.
-    _deps.writeFileSync(file, malformed);
+    // Seed the private fake filesystem through the same exclusive-create seam
+    // used by production persistence.
+    const descriptor = _deps.openSync(file, "wx", 0o600);
+    const bytes = Buffer.from(malformed, "utf8");
+    _deps.writeSync(descriptor, bytes, 0, bytes.length, null);
+    _deps.closeSync(descriptor);
 
     expect(() =>
       addSchedule("/project", {
@@ -290,6 +344,29 @@ describe("CRUD operations", () => {
       }),
     ).toThrow(/malformed JSON/);
     expect(_deps.readFileSync(file)).toBe(malformed);
+  });
+
+  it("does not replace a syntactically valid non-object schedule record", () => {
+    const file = join(
+      "/project",
+      ".chainlesschain",
+      "cowork",
+      "schedules.jsonl",
+    );
+    const descriptor = _deps.openSync(file, "wx", 0o600);
+    const bytes = Buffer.from("null\n", "utf8");
+    _deps.writeSync(descriptor, bytes, 0, bytes.length, null);
+    _deps.closeSync(descriptor);
+
+    expect(() =>
+      addSchedule("/project", {
+        cron: "* * * * *",
+        userMessage: "must not replace the corrupt store",
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: "COWORK_SCHEDULE_STORE_CORRUPT" }),
+    );
+    expect(_deps.readFileSync(file)).toBe("null\n");
   });
 
   it("removeSchedule removes by id", () => {
