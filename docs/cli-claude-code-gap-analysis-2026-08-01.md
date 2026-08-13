@@ -1,8 +1,8 @@
 # ChainlessChain CLI 对照 Claude Code CLI 补齐与优化方案
 
-> 分析日期：2026-08-01
+> 分析起始日期：2026-08-01；当前核验日期：2026-08-14
 >
-> ChainlessChain 历史候选基线：`packages/cli` v0.162.194 release candidate；v0.162.190 / v0.162.191 / v0.162.192 未发布；v0.162.193 已被非权威通用 workflow 发布且不得视为门禁通过。当前代码/Git 核验基线为 `main@149bc9adac3d8354bd77c41b2653ee6b294eb3f5`（2026-08-12，PR #175）；公网 npm `latest` 为 v0.163.5，其 release SHA 为 `095087c1e859a8451ce01ed58c59af3fede756fd`。v0.163.5 之后合并的增量不在该公开包中，当前收口和未完成项见第 18 节。
+> ChainlessChain 历史候选基线：`packages/cli` v0.162.194 release candidate；v0.162.190 / v0.162.191 / v0.162.192 未发布；v0.162.193 已被非权威通用 workflow 发布且不得视为门禁通过。当前代码/Git 核验基线为 `main@de6105566b54cdd26df0f551259009015c8e3059`（2026-08-14，PR #182；其第一父提交已包含 PR #183）；公网 npm `latest` 为 v0.163.6，其 release SHA 为 `85c3577c887003fea98d0a159603cd359506f09b`。v0.163.7 正在独立 release branch 上形成候选，尚未发布；当前收口和未完成项见第 18 节。
 >
 > Claude Code 参考基线：官方文档与 2.1.220 changelog（2026-07-25）
 >
@@ -1393,17 +1393,17 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 
 因此 `0.162.198` 的 **CLI npm exact-SHA 子闭环为 GO**，并成为第 16.8(5) 项命令生命周期 observation window 的公开起点。该结论仍不授权第 16.8 节中的 cold-process formal scale、session anti-rollback/TOCTOU、真实恶意 Skill/MCP、native generation transaction、真实终端/磁盘/长期 soak、IDE Marketplace 或 Desktop/native 公开发行链；这些任务继续保持未完成，必须各自取得同范围的 exact-SHA 矩阵与 artifact。
 
-## 18. 2026-08-12 当前未完成任务与执行顺序
+## 18. 2026-08-14 当前未完成任务与执行顺序
 
-本节是面向继续开发的**当前清单**，优先级高于第 14～17 节保留的历史阶段判定。本次核验基线为 `github/main@6af92ec4254d56e16f7a0b1a130db1731f47518a`；公网 npm `latest` 为 `chainlesschain@0.163.6`，其 release SHA 为 `85c3577c887003fea98d0a159603cd359506f09b`。PR #180 的 outcome-unknown 人工裁决已在该公开版本之后进入 `main`，因此本节只更新任务事实，不把功能 PR 的门禁当作后续 npm 版本的发布授权。
+本节是面向继续开发的**当前清单**，优先级高于第 14～17 节保留的历史阶段判定。本次核验基线为 `github/main@de6105566b54cdd26df0f551259009015c8e3059`；公网 npm `latest` 为 `chainlesschain@0.163.6`，其 release SHA 为 `85c3577c887003fea98d0a159603cd359506f09b`。PR #180 的 outcome-unknown 人工裁决、PR #183 的五域迁移/回滚和 PR #182 的因果可观测性均已在该公开版本之后进入 `main`。`0.163.7` 仍是未发布候选，因此功能 PR 的门禁不能替代最终 release merge SHA 的发布门禁。
 
 ### 18.1 三种统计口径
 
-| 口径                     | 当前结论                                             | 说明                                                                       |
-| ------------------------ | ---------------------------------------------------- | -------------------------------------------------------------------------- |
-| 原始 P0-1～P2-4 共 15 项 | **8 完成、7 部分完成、0 完全未开始；7 项未完全关闭** | P2-4 虽已连续关闭多个子切片，在原始总表中仍只占一个“部分完成”条目。        |
-| 第 16.8 节六项产品任务   | **3 完成、3 未完成**                                 | 任务 1、2、6 完成；任务 3、4、5 未完成。该专项清单没有覆盖全部原始 15 项。 |
-| P2-4 调度内核内部清单    | **3 个子项未完成**                                   | outcome-unknown 人工裁决已由 PR #180 关闭；剩余项见第 18.3 节。            |
+| 口径                     | 当前结论                                             | 说明                                                                         |
+| ------------------------ | ---------------------------------------------------- | ---------------------------------------------------------------------------- |
+| 原始 P0-1～P2-4 共 15 项 | **8 完成、7 部分完成、0 完全未开始；7 项未完全关闭** | P2-4 虽已连续关闭多个子切片，在原始总表中仍只占一个“部分完成”条目。          |
+| 第 16.8 节六项产品任务   | **3 完成、3 未完成**                                 | 任务 1、2、6 完成；任务 3、4、5 未完成。该专项清单没有覆盖全部原始 15 项。   |
+| P2-4 调度内核内部清单    | **3 个子项未完成**                                   | outcome-unknown 已由 PR #180 关闭；五域迁移已合并但发布闭环未关，详见 18.3。 |
 
 ### 18.2 原始 15 项中仍未完全关闭的 7 项
 
@@ -1419,11 +1419,11 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 
 ### 18.3 P2-4 剩余 3 个内部子项
 
-1. **完整迁移与回滚（本地候选已实现，正式状态未关闭）**：当前候选已覆盖 Agenda、Cowork Cron、Routine、Automation、Loop 五类入口，以及统一 journal、幂等迁移、目标回滚与旧源恢复；但尚未完成最终提交/合并和待发布 exact SHA 的权威门禁，因此仍计为未完成。PR #173 的 legacy Cowork cursor、PR #175 的 scheduler store v1→v2 以及 PR #180 的 v1/v2→v3 forward migration 仍只能作为此前各自的窄切片证据，不能替代本候选的最终验证。
+1. **完整迁移与回滚（功能已合并，发布闭环未关闭）**：Agenda、Cowork Cron、Routine、Automation、Loop 五类入口，以及统一 journal、幂等迁移、target-first 回滚和旧源恢复，已由 PR #183 合并；其最终功能 head 已通过完整 `CLI CI` 与 `CLI Strict Sandbox`。由于该功能尚未进入一个通过最终 release merge SHA 双门禁、不可变 tag、npm 发布和独立公网回读的新版本，本项暂仍计为未完成。PR #173、#175、#180 和 #183 的功能证据都不能单独替代发布闭环。
 2. **磁盘故障矩阵**：覆盖 ENOSPC、partial write、fsync/rename/SQLite 故障、损坏记录、重启恢复与 fail-closed 行为。
 3. **三平台长期 soak**：在 Linux、Windows、macOS 上验证 kill/restart、双实例 lease/fencing、DST 边界、积压恢复、FD/handle/orphan 退休与长期资源稳定性。
 
-按当前候选已经完成的代码量，迁移/回滚切片剩余约 **0.5～2 个工程日**用于完整 CLI 分片复验、审计收尾、提交/PR 和 exact-SHA 门禁；若三平台暴露路径、原生 SQLite 或时序问题，则另预留 **1～3 个工程日**。磁盘故障矩阵粗估 **2～5 个工程日**，三平台长期 soak 的脚本/修复粗估 **2～4 个工程日**，并至少需要 **3～7 个自然日**观察窗口。综合仍按约 **0.75～2 周（单工程师）/0.5～1.25 周（两人有效并行）**计划，长期 soak 的自然时间不能靠并行完全压缩。迁移/回滚正式关闭后再依次处理磁盘故障和三平台长期 soak；每次只把已获得 exact-SHA CI/Strict Sandbox 与相应 artifact 的子项从清单删除。
+按当前代码和功能 PR 已完成的进度，迁移/回滚切片只剩 `0.163.7` release PR、最终 merge SHA 双门禁、tag/publish 和独立回读，正常约 **0.5～1.5 个工程日**；若三平台门禁暴露新问题，则按问题复杂度另计。磁盘故障矩阵粗估 **2～5 个工程日**，三平台长期 soak 的脚本/修复粗估 **2～4 个工程日**，并至少需要 **3～7 个自然日**观察窗口。P2-4 全部关闭仍按约 **0.75～2 周（单工程师）/0.5～1.25 周（两人有效并行）**计划，长期 soak 的自然时间不能靠并行完全压缩。每次只把已获得 exact-SHA 门禁与相应 artifact 的子项从清单删除。
 
 截至本次核验，先前列为候选的 Automation 相关 PR 状态已更新如下；这些合并扩大了 `main` 功能面，但不替代 P2-4 剩余三项的退出条件：
 
@@ -1446,14 +1446,14 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 
 ### 18.5 推荐执行顺序与总判定
 
-1. 先完成 P2-4 迁移/回滚候选的完整 CLI 分片、审计、提交/PR 与 exact-SHA 权威门禁；在此之前该子项仍不从未完成清单删除。
-2. 迁移/回滚正式关闭后，再依次关闭磁盘故障和三平台长期 soak。
+1. 先完成 `0.163.7` release PR head 门禁、合并、最终 merge SHA 双门禁、不可变 tag/npm 发布和独立公网回读；闭环前迁移/回滚仍不从未完成清单删除。
+2. 发布闭环关闭后，将 P2-4 内部未完成数从 3 降为 2，再依次关闭磁盘故障和三平台长期 soak。
 3. 并行推进 Skill/MCP 剩余平台安全边界；该项取得完整三平台恶意证据前保持 NO-GO。
 4. 签名 native 发行等待真实凭据/渠道，一旦前置到位即按 exact-SHA 六目标矩阵执行。
 5. telemetry 按真实 observation window 持续采集；在数据和 `0.164.0` floor 前不删除 alias。
 6. P2-2 clipboard image 与 P2-3 MCP 可选协议面可作为较小、相互独立的产品切片排期，但不能替代前述发布与安全门。
 
-当前总判定为：**公网 CLI npm `0.163.6` 的既有 exact-SHA 发布子链为 GO；完整 CLI 产品与 native 公开发行仍为 NO-GO**。`main@6af92ec4254d56e16f7a0b1a130db1731f47518a` 上的 outcome-unknown adjudication 已通过其功能 head 的权威门但尚未进入公开 npm 包；后续版本仍必须在最终 release exact SHA 上重新通过 `CLI CI` 与 `CLI Strict Sandbox`，不能沿用功能 PR SHA、局部本地测试或 superseded run 作为发布授权。
+当前总判定为：**公网 CLI npm `0.163.6` 的既有 exact-SHA 发布子链为 GO；`0.163.7` 候选当前为 NO-GO；完整 CLI 产品与 native 公开发行仍为 NO-GO**。`main@de6105566b54cdd26df0f551259009015c8e3059` 已包含 outcome-unknown adjudication、五域迁移/回滚和因果可观测性，但新版本仍必须在最终 release merge SHA 上重新通过 `CLI CI` 与 `CLI Strict Sandbox`，不能沿用功能 PR SHA、局部本地测试或 superseded run 作为发布授权。
 
 ### 18.6 2026-08-12 P2-4 outcome-unknown 人工裁决正式合并证据
 
@@ -1464,13 +1464,14 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 - [PR #180](https://github.com/chainlesschain/chainlesschain/pull/180) 的最终 head `15f337b919df501fbd5d1e5b2c72859b01f5c142` 已以 merge commit `7057d1ad31baebf4b185d114095e7fe63d2fc959` 进入 `main`。该 head 的 [CLI CI `31609620383`](https://github.com/chainlesschain/chainlesschain/actions/runs/31609620383) attempt 2 为 **53/53 success**，[CLI Strict Sandbox `31609663692`](https://github.com/chainlesschain/chainlesschain/actions/runs/31609663692) 为 Ubuntu、macOS、Windows **3/3 success**，两套 workflow 的 `headSha` 均为最终 head。首个 head 的 CLI CI 暴露 `0.163.6` canonical changelog 与内置 artifact 漂移，随后只重新生成 artifact 并形成最终 head；最终 head 首轮唯一失败是未修改的 Windows `headless-stream-questions` 在 `timeout` 与 `stdin-closed` 两个等价终态间的计时竞态，同分片 7361 项及 changelog parity 均通过，同一 SHA 只重跑失败 job 后成功，三平台 `verify-cli` 随后全部成功。没有借用旧 SHA 的 Strict 结果，也没有把首轮失败冒充通过。
 - 因此 outcome-unknown 人工裁决从“本地候选”更新为**正式已合并 P2-4 子项**，第 18.3 节内部未完成数由 4 个降为 3 个：完整迁移/回滚、磁盘故障、三平台长期 soak。原始 15 项粗粒度统计仍是 **8 完成、7 部分完成、0 完全未开始；7 项未完全关闭**，因为 P2-4 整项仍未满足全部退出条件。本次没有修改 CLI 版本、创建 release tag 或发布 npm。
 
-### 18.7 2026-08-13 P2-4 五域迁移/回滚本地候选进展
+### 18.7 2026-08-14 P2-4 五域迁移/回滚与 `0.163.7` 发布候选进展
 
-- 当前工作分支为 `feature/cli-scheduler-migration-v1`，已形成 Agenda、Cowork Cron、Routine、Automation、Loop 五域迁移提交，并继续在同一候选上做 rollback 管理面和故障恢复加固。该候选尚未合并到 `main`；以下内容均是**本地候选事实**，不是正式完成或发布证据。
+- [PR #183](https://github.com/chainlesschain/chainlesschain/pull/183) 已把 Agenda、Cowork Cron、Routine、Automation、Loop 五域迁移/回滚合并到 `main`。最终功能 head 为 `56f0fc579d4999ad10256c5c920f1d1d90b7d870`，merge commit 为 `1fa938fae7a9bb68f1b826927566065448ad6e38`。该 head 的 [CLI CI `31728288640`](https://github.com/chainlesschain/chainlesschain/actions/runs/31728288640) attempt 2 为 **53/53 success**，[CLI Strict Sandbox `31728288347`](https://github.com/chainlesschain/chainlesschain/actions/runs/31728288347) 为 Ubuntu、macOS、Windows **3/3 success**；两套 workflow 的 `headSha` 都是最终功能 head。
+- 并发开发的 [PR #182](https://github.com/chainlesschain/chainlesschain/pull/182) 随后以 merge commit `de6105566b54cdd26df0f551259009015c8e3059` 进入 `main`，因此 release branch 已变基到该最新基线。PR #182 的最终 head `53880c298385b58492e8cbf321a672cd96a4b5c3` 通过 [CLI CI `31728668076`](https://github.com/chainlesschain/chainlesschain/actions/runs/31728668076) **53/53** 和 [CLI Strict Sandbox `31728667629`](https://github.com/chainlesschain/chainlesschain/actions/runs/31728667629) **3/3**，新增受验证 session→delivery 因果报告、fail-closed `call-ledger@1` 预算和后台恢复 authority 加固。它的图证明显式绑定到精确 verified revision，不证明某次模型调用在语义上造成某个 hunk；scope 不是身份/成员证明，digest 不是数字签名，machine-local anti-rollback 也不外推为远端信任。
 - scheduler store 已前向迁移到 **schema v5**，新增 `source_locator_json`。五域 locator 使用按 domain 收紧的结构（Agenda/Routine 目录、Cowork workspace、Automation database、Loop session ID + directory），校验其与 source scope 一致并拒绝额外/敏感字段；管理输出只暴露 locator 是否存在及其 SHA-256 digest，不回显原始路径。locator 可对旧 journal 做一次性 CAS 绑定/补写，但不会改变原 migration/entry 的不可变业务身份；冲突绑定、同源多 entry 和 target definition 漂移均失败关闭。
 - Windows source path 使用独立 canonical 规则：只接受完整 drive 路径或完整 UNC share，统一分隔符并大小写折叠；拒绝 `C:relative`、`\root-relative`、不完整 UNC 及 `\\.\pipe` 等 device namespace。Agenda、Cowork、Routine、Automation 和 Loop 均在 journal 前持久化该 canonical identity，避免相同源因 Windows 拼写差异形成两份迁移或回滚到错误位置。
 - 新管理面为 `cc daemon scheduler migration list|show|rollback`。`list/show` 返回去敏 journal、target 计数和 rollback blockers；`rollback` 要求最新 evidence digest、交互 TTY 和逐字 challenge，并为五域分别重新打开/核验源 store。rollback 顺序为**先停用或恢复 scheduler target，再恢复 legacy source**：target revision、definition digest、执行证据与 journal 状态在 SQLite transaction/CAS 下推进；跨 store 的 source restore 再以原 source digest、retirement token 和 marker/fence 复核，进程在 source 已恢复但 journal 未落盘的窗口退出时可幂等重试。它不是跨文件系统的全局原子事务，也不外推为断电/磁盘损坏已经验证。
 - Automation locator 绑定到 canonical database identity；从磁盘打开时强制 `fileMustExist`，不会因路径错误静默创建空数据库。由于 sql.js/WASM 兼容层的持久化不提供本迁移所要求的原子 durability，Automation migration 与 rollback 在该后端上明确 **fail closed**，只允许 native SQLite 执行；这不表示整个 CLI 禁止 WASM fallback，而是避免把不可可靠回滚的 Automation 源提前退休。
-- 2026-08-13 当前 scheduler 聚焦矩阵为 **10 files / 196 tests passed**，覆盖 schema v1→v5、source locator、五域 adapter、管理命令、rollback、Windows canonical path、WASM 拒绝、multi-entry guard、target-first/CAS 与崩溃重试边界。发布阻断复审后又补齐 rollback 前置归属校验、target definition digest CAS、终态 restore 回调幂等、Automation token 分配崩溃窗口、Loop 旧 journal locator 证明、路径尾分隔符/空白 identity 和源异常路径去敏；统一矩阵复验仍为 196/196。一次裸跑完整 `npm test` 在 20 分钟超时，因此**不计为通过**；按 GitHub Actions 形状本地并行执行 unit 分片时，1/4 得到 7517 passed、6 timeout failure、6 skipped，6 个超时文件随后单线程复验为 163 passed、1 skipped，另两个并行分片到 12 分钟没有汇总而终止；这些结果只作为负载诊断，不冒充完整 CLI 通过，最终仍由 exact-SHA GitHub 三平台矩阵裁决。
-- 正式关闭迁移/回滚仍需：冻结并提交最终功能 SHA；经 PR 合并后，再通过独立 release PR 形成版本候选；在待发布的精确 merge SHA 上让 `CLI CI` 与 `CLI Strict Sandbox` 的 Linux、Windows、macOS 全矩阵通过。当前候选的 Prettier、ESLint、Node syntax、manifest/help/completion、`npm pack --dry-run` 和 `git diff --check` 已通过；启动 SLO 本机复验中 version/quick-status 通过而 root-help/command-help 超时，主工作区因依赖缺失无法形成可比基线，故不计为通过，交由 Actions 的 verify job 裁决。当前没有最终 SHA 的权威 workflow 结果，没有创建 release tag，也没有发布新的 npm CLI 版本，因此发布判定仍为 **NO-GO**。
-- 在迁移/回滚通过上述门禁后，P2-4 仍剩**磁盘故障矩阵**和**三平台长期 soak**，整项仍只能标记为部分完成。当前估算沿用第 18.3 节：迁移候选收尾通常为 0.5～2 个工程日（发现跨平台问题时另加 1～3 日）；P2-4 全部剩余约 0.75～2 周单工程师或 0.5～1.25 周两人有效并行，并受至少 3～7 个自然日 soak 观察窗约束。
+- scheduler 聚焦矩阵为 **10 files / 196 tests passed**，覆盖 schema v1→v5、source locator、五域 adapter、管理命令、rollback、Windows canonical path、WASM 拒绝、multi-entry guard、target-first/CAS 与崩溃重试边界。功能 PR 门禁过程中又修复 Windows distributed queue worker 有界退出、team adjudication 原子 rename 的瞬态共享错误重试、跨平台 fixture identity，以及短生命周期 Skill authority child 的消息监听竞态；最终功能 head 的两套权威三平台矩阵均已通过。CLI CI attempt 1 唯一失败是 macOS hosted runner 上未修改启动基准的 version p95 为 626.1 ms；同 SHA 只重跑该失败 job 后 version/root-help/command-help/quick-status p95 分别为 106.8/97.7/136.7/205 ms 并通过，不能把首次失败冒充通过。
+- `release/cli-0.163.7` 已变基到最新 `main@de6105566b54cdd26df0f551259009015c8e3059`，只准备 CLI version、根 lockfile、根 CHANGELOG、内置 changelog artifact 和本进度文档五个候选文件，不混入新功能。发布 PR head 和最终 merge SHA 必须分别完成 `CLI CI` 与 `CLI Strict Sandbox` 的 Linux、Windows、macOS 全矩阵；之后才可创建精确指向最终 SHA 的 `v-npm-0-163-7`、由专用 workflow 发布，并运行独立公网逐字节回读。当前这些 release 证据尚未全部产生，没有创建 tag，也没有发布 `0.163.7`，因此发布判定仍为 **NO-GO**。
+- PR #183 的功能门禁足以证明代码已合并，但不足以授权 npm 发布。待 `0.163.7` 完成最终 SHA 双门禁、tag/publish 和独立 readback 后，迁移/回滚才从第 18.3 节删除，P2-4 内部未完成数由 3 降为 2；之后剩余项为**磁盘故障矩阵**和**三平台长期 soak**。P2-4 全部剩余工期仍受至少 3～7 个自然日 soak 观察窗约束。
