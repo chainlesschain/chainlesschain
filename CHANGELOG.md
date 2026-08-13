@@ -7,6 +7,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI 0.163.7: governed scheduler migration and causal observability
+
+> `chainlesschain` **0.163.6 → 0.163.7** (candidate; not yet published,
+> 2026-08-14).
+> CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.57**
+> and `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **Five-domain migration journal**: Agenda, Cowork Cron, Routine, Automation,
+  and Loop migrations use the scheduler store schema-v5 journal with
+  domain-typed source locators, immutable source/target digest bindings,
+  idempotent recovery, and fail-closed rejection of conflicting or ambiguous
+  legacy entries.
+- **Governed rollback controls**: the new scheduler migration `list`, `show`,
+  and `rollback` commands expose redacted migration status and blockers.
+  Rollback requires the latest evidence digest, an interactive TTY, and the
+  exact typed challenge before reopening any legacy source.
+- **Target-first recovery and CAS fencing**: rollback stops or restores the
+  scheduler target before restoring the legacy source, validates target
+  revision, definition and execution evidence, and makes terminal source
+  restoration retry-safe across process crashes. This is not a claim of one
+  atomic transaction across independent stores or filesystems.
+- **Fail-closed source identity**: Windows drive and UNC paths are canonicalized
+  while relative, incomplete and device-namespace paths are rejected.
+  Automation migration requires an existing native SQLite database and refuses
+  the non-durable sql.js fallback; Loop restoration remains bound to its durable
+  retirement fence, marker and original source digest.
+- **Windows persistence hardening**: team adjudication atomic replacement
+  retries only transient Windows `EACCES`, `EBUSY`, and `EPERM` sharing
+  failures with bounded backoff and authority-path revalidation. Exhausted,
+  non-transient, and non-Windows replacement failures continue to fail closed.
+- **Cross-platform CI hardening**: migration fixtures verify retirement fences
+  and canonical source identities consistently across operating systems, while
+  distributed-queue and authority test workers use bounded lifetimes and attach
+  result observers before short-lived children can exit. Terminal Skill
+  authority fixtures now use an explicit parent acknowledgement before clean
+  exit, removing Windows IPC exit-before-message ordering ambiguity without
+  weakening concurrent revocation assertions.
+- **Verified causal delivery reports**: scoped sessions can be bound by exact
+  transcript head and event count to digest-protected delivery states. The new
+  session observability commands export a redacted session-to-delivery graph
+  spanning diffs, gates, artifacts, pull requests, and merges, with exact
+  workspace, team, and policy filters.
+- **Fail-closed call-ledger budgets**: `call-ledger@1` brackets model, retry,
+  compaction, subagent, isolated-skill, and tool calls with known or unknown
+  settlements. Strict budget mode rejects exceeded and unevaluable results
+  instead of treating missing token, cost, retry, or tool-latency evidence as
+  zero.
+- **Background recovery authority hardening**: verified transcript CAS,
+  delegated recovery leases, IPC sender/nonce binding, bootstrap guards, exact
+  process-group termination checks, and terminal cleanup prevent uncertain or
+  still-live descendants from authorizing recovery or worktree deletion.
+- **Causal evidence boundary**: report bindings prove exact verified revisions,
+  not that a model call semantically caused a source hunk. Scope labels are not
+  identity or membership proofs, digests are not signatures, anti-rollback is
+  machine-local, and incomplete or legacy ledgers remain partial or unknown.
+- **Known residuals**: scheduler ENOSPC/partial-write/fsync/rename/SQLite fault
+  closure and the Linux, Windows, and macOS long-soak matrix remain open.
+  Signed native distribution and representative alias-removal telemetry also
+  remain outside this candidate.
+- **Release status**: final tag, source SHA, workflow run IDs, package digest,
+  provenance, and registry readback are intentionally omitted until the exact
+  `0.163.7` release merge commit passes both required workflow matrices on
+  Linux, Windows, and macOS, followed by the dedicated npm release and
+  independent public readback workflows.
+
 ### Added — cc CLI 0.163.6: unified scheduler authority and automation control
 
 > `chainlesschain` **0.163.5 → 0.163.6** (published from exact SHA

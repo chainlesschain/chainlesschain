@@ -10,18 +10,57 @@ const authority = new DurableSkillExecutionAuthority({
   filePath,
   pollIntervalMs: 20,
 });
+let terminalMessageSequence = 0;
+
+function sendRaw(payload, callback) {
+  if (isWorker) {
+    try {
+      parentPort.postMessage(payload);
+      callback?.();
+    } catch (error) {
+      callback?.(error);
+      if (!callback) throw error;
+    }
+  } else if (typeof process.send === "function") {
+    process.send(payload, callback);
+  } else throw new Error("Skill authority fixture IPC channel is unavailable");
+}
 
 function send(payload, done = false) {
-  if (isWorker) {
-    parentPort.postMessage(payload);
-    if (done) parentPort.close();
+  if (!done) {
+    sendRaw(payload);
     return;
   }
-  if (typeof process.send === "function") {
-    process.send(payload, done ? () => process.exit(0) : undefined);
-  } else if (done) {
-    process.exit(0);
-  }
+
+  // A successful process.send callback only proves that Node handed the
+  // payload to the IPC pipe. On Windows the parent can observe `exit` before
+  // its queued `message` callback runs. Keep this fixture alive until the
+  // parent has actually consumed the terminal result.
+  const terminalAckId = `${process.pid}:${++terminalMessageSequence}`;
+  const channel = isWorker ? parentPort : process;
+  const cleanup = () => {
+    clearTimeout(timer);
+    channel.off("message", onAcknowledgement);
+  };
+  const finish = (code) => {
+    cleanup();
+    if (isWorker && code === 0) parentPort.close();
+    else process.exit(code);
+  };
+  const onAcknowledgement = (message) => {
+    if (
+      message?.type !== "terminal-ack" ||
+      message?.terminalAckId !== terminalAckId
+    ) {
+      return;
+    }
+    finish(0);
+  };
+  const timer = setTimeout(() => finish(1), 4000);
+  channel.on("message", onAcknowledgement);
+  sendRaw({ ...payload, terminalAckId }, (error) => {
+    if (error) finish(1);
+  });
 }
 
 function fail(error) {
