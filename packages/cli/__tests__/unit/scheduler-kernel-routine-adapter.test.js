@@ -354,6 +354,68 @@ describe("scheduler-kernel routine adapter", () => {
     expect(runAgent).not.toHaveBeenCalled();
   });
 
+  it("preserves append-only evidence and retries once after adjudication", async () => {
+    const f = fixture();
+    const routineStore = f.openRoutine();
+    const schedulerStore = f.openScheduler();
+    const routine = routineStore.create({
+      name: "adjudicated-routine",
+      prompt: "run once after verification",
+      trigger: { kind: "once", at: f.now - 1 },
+    });
+    const occurrence = enqueueScheduledRoutine(schedulerStore, routine);
+    const runId = routineSchedulerRunId(occurrence.id);
+    routineStore.recordRunStart(routine.id, {
+      runId,
+      trigger: "once",
+      schedulerOccurrenceId: occurrence.id,
+      schedulerSnapshotDigest: occurrence.payload.snapshotDigest,
+    });
+    const firstBridge = new RoutineSchedulerBridge({
+      routineStore,
+      schedulerStore,
+      runAgent: vi.fn(),
+      now: f.clock,
+      ownerId: "routine-fail-close-owner",
+      leaseMs: 10_000,
+    });
+    await firstBridge.runtime.runOccurrence(occurrence.id);
+    const candidate = schedulerStore.getAdjudicationCase(occurrence.id);
+    schedulerStore.adjudicateOccurrence({
+      occurrenceId: occurrence.id,
+      decision: "confirmed_not_applied",
+      expectedEvidenceDigest: candidate.evidenceDigest,
+      expectedAttempt: candidate.attempt,
+      expectedFence: candidate.fence,
+      reasonDigest: `sha256:${"1".repeat(64)}`,
+      operatorDigest: `sha256:${"9".repeat(64)}`,
+    });
+    const runAgent = vi.fn(async () => ({ exitCode: 0, output: "done" }));
+    const recovered = new RoutineSchedulerBridge({
+      routineStore,
+      schedulerStore,
+      runAgent,
+      now: f.clock,
+      ownerId: "routine-adjudication-owner",
+      leaseMs: 10_000,
+    });
+    await expect(
+      recovered.runtime.runOccurrence(occurrence.id),
+    ).resolves.toMatchObject({ status: "succeeded", result: { runId } });
+    expect(runAgent).toHaveBeenCalledOnce();
+    expect(routineStore.getRun(runId)).toMatchObject({ status: "ok" });
+    const runLines = routineStore.listRuns({
+      routineId: routine.id,
+      limit: 10,
+    });
+    expect(runLines).toHaveLength(1);
+    expect(
+      schedulerStore.getOccurrenceAdjudication(occurrence.id),
+    ).toMatchObject({
+      status: "applied",
+    });
+  });
+
   it("rejects routine run evidence bound to another scheduler occurrence", async () => {
     const f = fixture();
     const routineStore = f.openRoutine();

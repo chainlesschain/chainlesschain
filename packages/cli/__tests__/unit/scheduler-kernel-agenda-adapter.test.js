@@ -417,6 +417,68 @@ describe("scheduler-kernel agenda adapter", () => {
     expect(agendaStore.due("wakeup", f.now)).toEqual([]);
   });
 
+  it("clears the legacy fence and retries once after confirmed-not-applied", async () => {
+    const f = fixture();
+    const agendaStore = f.openAgenda();
+    const schedulerStore = f.openScheduler();
+    const entry = agendaStore.scheduleWakeup({
+      prompt: "verified not applied",
+      dueAt: f.now,
+    });
+    const occurrence = enqueueAgendaEntry(schedulerStore, entry);
+    const claimed = schedulerStore.claimOccurrence({
+      occurrenceId: occurrence.id,
+      ownerId: "crashed-agenda-owner",
+      leaseMs: 1_000,
+    });
+    agendaStore.bindSchedulerExecution(entry.id, {
+      occurrenceId: occurrence.id,
+      snapshotDigest: occurrence.payload.snapshotDigest,
+      attempt: claimed.attempt,
+      atMs: f.now,
+    });
+    f.now += 1_001;
+    const failClosed = new AgendaSchedulerBridge({
+      agendaStore,
+      schedulerStore,
+      runAgent: vi.fn(),
+      now: f.clock,
+      ownerId: "fail-close-agenda-owner",
+      leaseMs: 10_000,
+    });
+    await failClosed.runDue();
+    const candidate = schedulerStore.getAdjudicationCase(occurrence.id);
+    schedulerStore.adjudicateOccurrence({
+      occurrenceId: occurrence.id,
+      decision: "confirmed_not_applied",
+      expectedEvidenceDigest: candidate.evidenceDigest,
+      expectedAttempt: candidate.attempt,
+      expectedFence: candidate.fence,
+      reasonDigest: `sha256:${"f".repeat(64)}`,
+      operatorDigest: `sha256:${"9".repeat(64)}`,
+    });
+    const runAgent = vi.fn(async () => 0);
+    const recovered = new AgendaSchedulerBridge({
+      agendaStore,
+      schedulerStore,
+      runAgent,
+      now: f.clock,
+      ownerId: "adjudication-agenda-owner",
+      leaseMs: 10_000,
+    });
+    await expect(recovered.runDue()).resolves.toEqual([
+      expect.objectContaining({
+        result: expect.objectContaining({ status: "succeeded" }),
+      }),
+    ]);
+    expect(runAgent).toHaveBeenCalledOnce();
+    expect(agendaStore.get(entry.id)).toMatchObject({
+      status: "fired",
+      schedulerExecution: { status: "succeeded", attempt: 3 },
+    });
+    expect(agendaStore.get(entry.id)).not.toHaveProperty("executionLease");
+  });
+
   it("does not retry after the agent succeeds but outcome persistence fails", async () => {
     const f = fixture();
     const agendaStore = f.openAgenda();

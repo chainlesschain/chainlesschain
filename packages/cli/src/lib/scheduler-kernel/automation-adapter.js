@@ -12,6 +12,7 @@ import {
   FLOW_STATUS,
   TRIGGER_TYPE,
   executeFlow,
+  adjudicateAutomationExecution,
   getExecution,
   getFlow,
   listFlows,
@@ -399,6 +400,37 @@ export function createAutomationSchedulerAdapter({ db, now = Date.now } = {}) {
   }
   return {
     kind: AUTOMATION_SCHEDULER_KIND,
+    async adjudicate({ occurrence, adjudication }) {
+      const payload = occurrence?.payload;
+      const expected = automationFlowSnapshot(payload?.flow);
+      if (payload?.snapshotDigest !== automationFlowSnapshotDigest(expected)) {
+        throw automationError(
+          "AUTOMATION_SCHEDULER_ADJUDICATION_SNAPSHOT_INVALID",
+          `Automation adjudication snapshot is invalid: ${occurrence.id}`,
+        );
+      }
+      adjudicateAutomationExecution(
+        db,
+        automationSchedulerExecutionId(occurrence.id),
+        {
+          flowId: expected.id,
+          triggerType: TRIGGER_TYPE.SCHEDULE,
+          decision: adjudication.decision,
+          requestId: adjudication.requestId,
+        },
+      );
+      if (adjudication.decision === "confirmed_applied") {
+        return {
+          settled: true,
+          result: {
+            executionId: automationSchedulerExecutionId(occurrence.id),
+            status: "adjudicated-applied",
+            adjudicationRequestId: adjudication.requestId,
+          },
+        };
+      }
+      return { continue: true };
+    },
     async execute({ occurrence }) {
       const payload = occurrence?.payload;
       const expected = automationFlowSnapshot(payload?.flow);

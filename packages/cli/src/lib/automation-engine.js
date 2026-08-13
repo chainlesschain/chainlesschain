@@ -840,6 +840,100 @@ export function executeFlow(db, flowId, options = {}) {
   );
 }
 
+export function adjudicateAutomationExecution(
+  db,
+  executionId,
+  { flowId, triggerType, decision, requestId } = {},
+) {
+  const execId = _normalizeExecutionId(executionId);
+  if (!["confirmed_applied", "confirmed_not_applied"].includes(decision)) {
+    const error = new Error("automation adjudication decision is invalid");
+    error.code = "AUTOMATION_ADJUDICATION_INVALID";
+    throw error;
+  }
+  const marker = JSON.stringify({
+    authority: "scheduler-adjudication",
+    requestId,
+    decision,
+  });
+  const archivedId = `${execId}:adjudication:${String(requestId).slice(-24)}`;
+  const existing = getExecution(db, execId);
+  const archived = getExecution(db, archivedId);
+  if (decision === "confirmed_not_applied" && archived) {
+    if (
+      archived.flowId !== flowId ||
+      archived.triggerType !== triggerType ||
+      archived.error !== marker
+    ) {
+      const error = new Error(
+        `Automation adjudication archive mismatch: ${execId}`,
+      );
+      error.code = "AUTOMATION_ADJUDICATION_EVIDENCE_MISMATCH";
+      throw error;
+    }
+    return archived;
+  }
+  if (!existing) {
+    const error = new Error(`Automation execution not found: ${execId}`);
+    error.code = "AUTOMATION_ADJUDICATION_EVIDENCE_MISMATCH";
+    throw error;
+  }
+  if (existing.flowId !== flowId || existing.triggerType !== triggerType) {
+    const error = new Error(`Automation execution binding mismatch: ${execId}`);
+    error.code = "AUTOMATION_ADJUDICATION_EVIDENCE_MISMATCH";
+    throw error;
+  }
+  if (
+    existing.status !== EXECUTION_STATUS.RUNNING &&
+    existing.error === marker
+  ) {
+    return existing;
+  }
+  if (existing.status !== EXECUTION_STATUS.RUNNING) {
+    const error = new Error(
+      `Automation execution is not outcome-unknown: ${execId}`,
+    );
+    error.code = "AUTOMATION_ADJUDICATION_EVIDENCE_MISMATCH";
+    throw error;
+  }
+  if (decision === "confirmed_not_applied") {
+    const result = db
+      .prepare(
+        `UPDATE auto_executions
+         SET id = ?, status = ?, error = ?, completed_at = ?
+         WHERE id = ? AND status = ?`,
+      )
+      .run(
+        archivedId,
+        EXECUTION_STATUS.CANCELLED,
+        marker,
+        _now(),
+        execId,
+        EXECUTION_STATUS.RUNNING,
+      );
+    if (result.changes !== 1) {
+      const error = new Error(
+        `Automation adjudication changed concurrently: ${execId}`,
+      );
+      error.code = "AUTOMATION_ADJUDICATION_EVIDENCE_MISMATCH";
+      throw error;
+    }
+    return getExecution(db, archivedId);
+  }
+  db.prepare(
+    `UPDATE auto_executions
+     SET status = ?, error = ?, completed_at = ?
+     WHERE id = ? AND status = ?`,
+  ).run(
+    EXECUTION_STATUS.SUCCESS,
+    marker,
+    _now(),
+    execId,
+    EXECUTION_STATUS.RUNNING,
+  );
+  return getExecution(db, execId);
+}
+
 function _normalizeExecutionId(value) {
   if (
     typeof value !== "string" ||

@@ -11,6 +11,7 @@ import {
   EXECUTION_STATUS,
   FLOW_STATUS,
   TRIGGER_TYPE,
+  adjudicateAutomationExecution,
   executeFlow,
   getExecution,
   getFlow,
@@ -552,6 +553,41 @@ export function createAutomationEventAdapter({ db, now = Date.now } = {}) {
   }
   return {
     kind: AUTOMATION_EVENT_KIND,
+    async adjudicate({ occurrence, adjudication }) {
+      const payload = occurrence?.payload;
+      const expectedFlow = automationEventFlowSnapshot(payload?.flow);
+      const expectedTrigger = automationEventTriggerSnapshot(payload?.trigger);
+      if (
+        payload?.definitionDigest !==
+        automationEventDefinitionDigest(expectedFlow, expectedTrigger)
+      ) {
+        throw eventError(
+          "AUTOMATION_EVENT_ADJUDICATION_SNAPSHOT_INVALID",
+          `automation event adjudication snapshot is invalid: ${occurrence.id}`,
+        );
+      }
+      adjudicateAutomationExecution(
+        db,
+        automationEventExecutionId(occurrence.id),
+        {
+          flowId: expectedFlow.id,
+          triggerType: TRIGGER_TYPE.EVENT,
+          decision: adjudication.decision,
+          requestId: adjudication.requestId,
+        },
+      );
+      if (adjudication.decision === "confirmed_applied") {
+        return {
+          settled: true,
+          result: {
+            executionId: automationEventExecutionId(occurrence.id),
+            status: "adjudicated-applied",
+            adjudicationRequestId: adjudication.requestId,
+          },
+        };
+      }
+      return { continue: true };
+    },
     async execute({ occurrence }) {
       const payload = occurrence?.payload;
       const expectedFlow = automationEventFlowSnapshot(payload?.flow);

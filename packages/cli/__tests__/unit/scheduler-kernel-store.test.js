@@ -16,10 +16,12 @@ import {
   MIGRATION_V1_CHECKSUM,
   MIGRATION_V1_SQL,
   MIGRATION_V2_CHECKSUM,
+  MIGRATION_V3_CHECKSUM,
   SCHEDULER_APPLICATION_ID,
   SCHEDULER_STORE_SCHEMA_VERSION,
   SCHEMA_V1_FINGERPRINT,
   SCHEMA_V2_FINGERPRINT,
+  SCHEMA_V3_FINGERPRINT,
   openSchedulerStore,
 } from "../../src/lib/scheduler-kernel/store.js";
 
@@ -270,14 +272,15 @@ describe("scheduler-kernel SQLite store", () => {
       applicationId: SCHEDULER_APPLICATION_ID,
       schemaVersion: SCHEDULER_STORE_SCHEMA_VERSION,
       migration: {
-        version: 2,
-        name: "scheduler-kernel-authority-v2",
-        checksum: MIGRATION_V2_CHECKSUM,
+        version: 3,
+        name: "scheduler-kernel-adjudication-v3",
+        checksum: MIGRATION_V3_CHECKSUM,
         appliedAt: f.now,
       },
     });
     expect(SCHEMA_V1_FINGERPRINT).toMatch(/^[a-f0-9]{64}$/);
     expect(SCHEMA_V2_FINGERPRINT).toMatch(/^[a-f0-9]{64}$/);
+    expect(SCHEMA_V3_FINGERPRINT).toMatch(/^[a-f0-9]{64}$/);
     const tables = store.db
       .prepare(
         "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
@@ -292,10 +295,11 @@ describe("scheduler-kernel SQLite store", () => {
       "scheduler_authority_policies",
       "scheduler_authority_reservations",
       "scheduler_authority_usage",
+      "scheduler_occurrence_adjudications",
     ]);
   });
 
-  it("migrates an exact v1 database to v2 without losing jobs", () => {
+  it("migrates an exact v1 database to v3 without losing jobs", () => {
     const f = fixture({ fileName: "legacy-v1.db" });
     const legacy = new Database(f.file);
     legacy.exec(MIGRATION_V1_SQL);
@@ -355,8 +359,8 @@ describe("scheduler-kernel SQLite store", () => {
 
     const migrated = f.open();
     expect(migrated.schemaInfo()).toMatchObject({
-      schemaVersion: 2,
-      migration: { version: 2, checksum: MIGRATION_V2_CHECKSUM },
+      schemaVersion: 3,
+      migration: { version: 3, checksum: MIGRATION_V3_CHECKSUM },
     });
     expect(migrated.getJob("legacy-job")).toMatchObject({
       id: "legacy-job",
@@ -379,6 +383,29 @@ describe("scheduler-kernel SQLite store", () => {
     ).toMatchObject({
       policyRevision: "policy-7",
       schedulerPolicyRevision: "scheduler-authority:1",
+    });
+  });
+
+  it("migrates an exact v2 database to v3 without changing authority state", () => {
+    const f = fixture({ fileName: "legacy-v2.db" });
+    const seed = f.open();
+    seed.createJob(jobInput());
+    seed.ensureAuthorityPolicy(authority());
+    seed.close();
+    const legacy = new Database(f.file);
+    legacy.exec("DROP TABLE scheduler_occurrence_adjudications");
+    legacy.prepare("DELETE FROM migrations WHERE version = 3").run();
+    legacy.pragma("user_version = 2");
+    legacy.close();
+
+    const migrated = f.open();
+    expect(migrated.schemaInfo()).toMatchObject({
+      schemaVersion: 3,
+      migration: { version: 3, checksum: MIGRATION_V3_CHECKSUM },
+    });
+    expect(migrated.getJob("job-a")).toMatchObject({ id: "job-a" });
+    expect(migrated.getAuthorityPolicy(authority().principal)).toMatchObject({
+      revision: 1,
     });
   });
 
@@ -741,6 +768,153 @@ describe("scheduler-kernel SQLite store", () => {
     expect(store.history({ limit: 10_000 })).toHaveLength(MAX_HISTORY_LIMIT);
   });
 
+  it("CAS-adjudicates only outcome-unknown dead letters and grants one bounded claim", () => {
+    const f = fixture();
+    const store = f.open();
+    store.createJob(jobInput({ maxAttempts: 1 }));
+    store.ensureAuthorityPolicy(authority());
+    const occurrence = store.enqueueOccurrence({
+      jobId: "job-a",
+      scheduledFor: f.now,
+      triggerKey: "adjudication:unknown",
+    });
+    const claim = store.claimNext({ ownerId: "worker-a", leaseMs: 10_000 });
+    const reservation = store.reserveAuthority({
+      occurrenceId: occurrence.id,
+      policyRevision: 1,
+      units: 2,
+    });
+    store.settle({
+      occurrenceId: occurrence.id,
+      ownerId: "worker-a",
+      fence: claim.fence,
+      outcome: "failed",
+      error: { code: "AGENDA_SCHEDULER_OUTCOME_UNKNOWN" },
+      retryable: false,
+    });
+
+    const candidate = store.getAdjudicationCase(occurrence.id);
+    expect(candidate).toMatchObject({
+      eligible: true,
+      attempt: 1,
+      fence: 1,
+      errorCode: "AGENDA_SCHEDULER_OUTCOME_UNKNOWN",
+      reservation: { status: "failed", units: 2 },
+    });
+    expect(candidate.evidenceDigest).toMatch(/^sha256:[a-f0-9]{64}$/);
+    expect(store.listAdjudicationCases({ limit: 10 })).toHaveLength(1);
+    const reasonDigest = `sha256:${"a".repeat(64)}`;
+    expectCode(
+      () =>
+        store.adjudicateOccurrence({
+          occurrenceId: occurrence.id,
+          decision: "confirmed_not_applied",
+          expectedEvidenceDigest: `sha256:${"b".repeat(64)}`,
+          expectedAttempt: 1,
+          expectedFence: 1,
+          reasonDigest,
+          operatorDigest: `sha256:${"9".repeat(64)}`,
+        }),
+      "SCHEDULER_ADJUDICATION_EVIDENCE_CONFLICT",
+    );
+    const adjudicated = store.adjudicateOccurrence({
+      occurrenceId: occurrence.id,
+      decision: "confirmed_not_applied",
+      expectedEvidenceDigest: candidate.evidenceDigest,
+      expectedAttempt: 1,
+      expectedFence: 1,
+      reasonDigest,
+      operatorDigest: `sha256:${"9".repeat(64)}`,
+    });
+    expect(adjudicated).toMatchObject({
+      eligible: false,
+      status: "retry_wait",
+      maxAttempts: 2,
+      adjudication: {
+        decision: "confirmed_not_applied",
+        status: "pending",
+        expectedAttempt: 1,
+        expectedFence: 1,
+        reasonDigest,
+      },
+      reservation: { status: "reserved", units: 2 },
+    });
+    expectCode(
+      () =>
+        store.adjudicateOccurrence({
+          occurrenceId: occurrence.id,
+          decision: "confirmed_not_applied",
+          expectedEvidenceDigest: candidate.evidenceDigest,
+          expectedAttempt: 1,
+          expectedFence: 1,
+          reasonDigest,
+          operatorDigest: `sha256:${"9".repeat(64)}`,
+        }),
+      "SCHEDULER_ADJUDICATION_ALREADY_RECORDED",
+    );
+
+    const retry = store.claimNext({ ownerId: "worker-b", leaseMs: 10_000 });
+    const pending = store.getOccurrenceAdjudication(occurrence.id);
+    expect(retry).toMatchObject({ attempt: 2, fence: 2 });
+    expect(
+      store.reserveAuthority({
+        occurrenceId: occurrence.id,
+        policyRevision: 1,
+        units: 2,
+      }),
+    ).toMatchObject({ deduplicated: true });
+    store.settle({
+      occurrenceId: occurrence.id,
+      ownerId: "worker-b",
+      fence: retry.fence,
+      outcome: "succeeded",
+      result: { retried: true },
+      adjudicationRequestId: pending.requestId,
+    });
+    expect(store.getOccurrenceAdjudication(occurrence.id)).toMatchObject({
+      status: "applied",
+      retryOutcome: { status: "succeeded", result: { retried: true } },
+    });
+    expect(store.getAuthorityReservation(occurrence.id)).toMatchObject({
+      occurrenceId: reservation.occurrenceId,
+      status: "succeeded",
+      units: 2,
+    });
+  });
+
+  it("uses a synthetic claim to settle confirmed-applied without replay", () => {
+    const f = fixture();
+    const store = f.open();
+    store.createJob(jobInput({ maxAttempts: 1 }));
+    const occurrence = store.enqueueOccurrence({
+      jobId: "job-a",
+      scheduledFor: f.now,
+      triggerKey: "adjudication:applied",
+    });
+    const claim = store.claimNext({ ownerId: "worker-a", leaseMs: 10_000 });
+    store.settle({
+      occurrenceId: occurrence.id,
+      ownerId: "worker-a",
+      fence: claim.fence,
+      outcome: "failed",
+      error: { code: "LOOP_SCHEDULER_OUTCOME_UNKNOWN" },
+      retryable: false,
+    });
+    const candidate = store.getAdjudicationCase(occurrence.id);
+    const adjudicated = store.adjudicateOccurrence({
+      occurrenceId: occurrence.id,
+      decision: "confirmed_applied",
+      expectedEvidenceDigest: candidate.evidenceDigest,
+      expectedAttempt: 1,
+      expectedFence: 1,
+      reasonDigest: `sha256:${"c".repeat(64)}`,
+      operatorDigest: `sha256:${"9".repeat(64)}`,
+    });
+    expect(adjudicated.maxAttempts).toBe(3);
+    const synthetic = store.claimNext({ ownerId: "worker-b", leaseMs: 10_000 });
+    expect(synthetic).toMatchObject({ attempt: 2, fence: 2 });
+  });
+
   it("dead-letters an expired final attempt before selecting more work", () => {
     const f = fixture();
     const store = f.open();
@@ -806,7 +980,7 @@ describe("scheduler-kernel SQLite store", () => {
     const future = fixture({ fileName: "future.db" });
     future.open().close();
     const futureDb = new Database(future.file);
-    futureDb.pragma("user_version = 3");
+    futureDb.pragma("user_version = 4");
     futureDb.close();
     expectCode(() => future.open(), "SCHEDULER_SCHEMA_UNKNOWN");
 
