@@ -5,8 +5,10 @@ import {
   canonicalJson,
   normalizeEpochMs,
   normalizeIdentifier,
+  normalizeJson,
 } from "./contract.js";
 import { SchedulerRuntime } from "./runtime.js";
+import { schedulerMigrationSourceDigest } from "./store.js";
 import {
   bindSchedulerAuthorityPolicy,
   createSchedulerAuthorityResolver,
@@ -15,6 +17,7 @@ import {
 export const LOOP_SCHEDULER_KIND = "loop-iteration";
 export const LOOP_PROCESS_CAPABILITY = "process.execute";
 export const LOOP_AGENT_CAPABILITY = "agent.execute";
+export const LOOP_SCHEDULER_MIGRATION_SCHEMA_VERSION = 1;
 
 function loopSchedulerError(
   code,
@@ -81,6 +84,209 @@ export function loopExecutionDigest(definition) {
     .update("chainlesschain.scheduler.loop-execution.v1\0", "utf8")
     .update(canonicalJson(loopExecutionSnapshot(definition)), "utf8")
     .digest("hex");
+}
+
+export function loopMigrationSourceSnapshot({ sessionId, config }) {
+  return normalizeJson(
+    {
+      schemaVersion: LOOP_SCHEDULER_MIGRATION_SCHEMA_VERSION,
+      sessionId: normalizeIdentifier(sessionId, "loop.sessionId"),
+      config: normalizeJson(config, "loop.config"),
+    },
+    "loopMigration.source",
+  );
+}
+
+function latestLoopMigrationMarker(events) {
+  return [...events]
+    .reverse()
+    .find((event) => event?.type === "loop_scheduler_migration")?.data;
+}
+
+function appendLoopMigrationMarker({
+  sessionId,
+  marker,
+  readEvents,
+  appendEventIfHead,
+}) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const events = readEvents(sessionId);
+    const current = latestLoopMigrationMarker(events);
+    if (
+      current?.state === marker.state &&
+      current?.migrationId === marker.migrationId &&
+      current?.retirementToken === marker.retirementToken &&
+      current?.targetJobId === marker.targetJobId
+    ) {
+      return current;
+    }
+    try {
+      appendEventIfHead(
+        sessionId,
+        "loop_scheduler_migration",
+        marker,
+        events[events.length - 1]?.hash || null,
+      );
+      return latestLoopMigrationMarker(readEvents(sessionId));
+    } catch (error) {
+      if (error?.code !== "SESSION_REVISION_STALE" || attempt === 2) {
+        throw error;
+      }
+    }
+  }
+  throw loopSchedulerError(
+    "LOOP_SCHEDULER_MIGRATION_SESSION_BUSY",
+    `Saved loop changed repeatedly during migration: ${sessionId}`,
+  );
+}
+
+export function migrateSavedLoopSession({
+  schedulerStore,
+  sessionId,
+  config,
+  definition,
+  readEvents,
+  appendEventIfHead,
+}) {
+  if (
+    typeof readEvents !== "function" ||
+    typeof appendEventIfHead !== "function"
+  ) {
+    throw loopSchedulerError(
+      "LOOP_SCHEDULER_MIGRATION_SESSION_STORE_REQUIRED",
+      "Loop migration requires session read and compare-append functions",
+    );
+  }
+  const snapshot = loopMigrationSourceSnapshot({ sessionId, config });
+  const desired = buildLoopSchedulerJob(definition);
+  desired.authority = bindSchedulerAuthorityPolicy(
+    schedulerStore,
+    desired.authority,
+  );
+  const sourceScope = { store: "jsonl-session", sessionId: snapshot.sessionId };
+  const existing = schedulerStore.getActiveDomainMigrationBySource({
+    domain: "loop-iteration",
+    sourceScope,
+    sourceId: snapshot.sessionId,
+  });
+  const prepared =
+    existing ||
+    schedulerStore.prepareDomainMigration({
+      entries: [
+        {
+          domain: "loop-iteration",
+          sourceId: snapshot.sessionId,
+          sourceScope,
+          source: snapshot,
+          targetJob: desired,
+          rollbackStrategy: "disable",
+        },
+      ],
+    });
+  if (
+    prepared.entries.length !== 1 ||
+    prepared.entries[0].domain !== "loop-iteration"
+  ) {
+    throw loopSchedulerError(
+      "LOOP_SCHEDULER_MIGRATION_DOMAIN_MISMATCH",
+      "Loop session belongs to an invalid mixed-domain migration",
+    );
+  }
+  if (
+    prepared.entries[0].sourceDigest !==
+      schedulerMigrationSourceDigest(snapshot) ||
+    prepared.entries[0].targetJobId !== desired.id
+  ) {
+    throw loopSchedulerError(
+      "LOOP_SCHEDULER_MIGRATION_SOURCE_CHANGED",
+      `Saved loop changed after migration started: ${snapshot.sessionId}`,
+    );
+  }
+  let migration = prepared;
+  if (["rolling_back", "rolled_back"].includes(migration.state)) {
+    throw loopSchedulerError(
+      "LOOP_SCHEDULER_MIGRATION_STATE_CONFLICT",
+      `Loop migration cannot resume from state ${migration.state}`,
+    );
+  }
+  if (migration.state === "prepared") {
+    migration = schedulerStore.applyDomainMigration(migration.id);
+  }
+  if (migration.state === "applied") {
+    migration = schedulerStore.verifyDomainMigration(migration.id, {
+      sources: [{ entryId: migration.entries[0].entryId, source: snapshot }],
+    });
+  }
+  const retiring =
+    migration.state === "retiring"
+      ? migration
+      : migration.state === "retired"
+        ? migration
+        : schedulerStore.beginDomainMigrationRetirement(migration.id);
+  const entry = retiring.entries[0];
+  const retiredMarker = appendLoopMigrationMarker({
+    sessionId: snapshot.sessionId,
+    readEvents,
+    appendEventIfHead,
+    marker: {
+      schemaVersion: LOOP_SCHEDULER_MIGRATION_SCHEMA_VERSION,
+      state: "retired",
+      migrationId: migration.id,
+      retirementToken: entry.retirementToken,
+      targetJobId: entry.targetJobId,
+      compatibility: "explicit-resume-only",
+    },
+  });
+  schedulerStore.confirmDomainMigrationEntryRetired({
+    migrationId: migration.id,
+    entryId: entry.entryId,
+    retirementToken: entry.retirementToken,
+    source: retiredMarker,
+  });
+  return schedulerStore.getDomainMigration(migration.id);
+}
+
+export function rollbackSavedLoopMigration({
+  schedulerStore,
+  sessionId,
+  config,
+  migrationId,
+  readEvents,
+  appendEventIfHead,
+}) {
+  const migration = schedulerStore.beginDomainMigrationRollback(migrationId);
+  if (
+    migration.entries.length !== 1 ||
+    migration.entries[0].domain !== "loop-iteration" ||
+    migration.entries[0].sourceId !== sessionId
+  ) {
+    throw loopSchedulerError(
+      "LOOP_SCHEDULER_MIGRATION_DOMAIN_MISMATCH",
+      "Loop rollback cannot operate on this migration",
+    );
+  }
+  schedulerStore.rollbackDomainMigrationTargets(migrationId);
+  const entry = migration.entries[0];
+  appendLoopMigrationMarker({
+    sessionId,
+    readEvents,
+    appendEventIfHead,
+    marker: {
+      schemaVersion: LOOP_SCHEDULER_MIGRATION_SCHEMA_VERSION,
+      state: "rolled_back",
+      migrationId,
+      retirementToken: entry.retirementToken,
+      targetJobId: entry.targetJobId,
+      compatibility: "explicit-resume-only",
+    },
+  });
+  schedulerStore.confirmDomainMigrationEntrySourceRestored({
+    migrationId,
+    entryId: entry.entryId,
+    retirementToken: entry.retirementToken,
+    source: loopMigrationSourceSnapshot({ sessionId, config }),
+  });
+  return schedulerStore.getDomainMigration(migrationId);
 }
 
 export function loopWorkspaceId(cwd) {
@@ -187,7 +393,10 @@ export function enqueueLoopIteration(
   }
   const job = syncLoopSchedulerJob(schedulerStore, definition);
   const scheduled = normalizeEpochMs(scheduledFor, "loop.scheduledFor");
-  return schedulerStore.enqueueOccurrence({
+  // An iteration remains the same logical firing when a saved Loop session is
+  // migrated and the target job revision advances. Reuse the durable terminal
+  // outcome instead of deriving a second occurrence from the new revision.
+  return schedulerStore.enqueueOccurrenceOncePerTrigger({
     jobId: job.id,
     scheduledFor: scheduled,
     availableAt: normalizeEpochMs(availableAt ?? scheduled, "loop.availableAt"),

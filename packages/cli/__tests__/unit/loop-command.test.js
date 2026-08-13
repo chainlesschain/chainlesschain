@@ -298,6 +298,15 @@ describe("cc loop — --save / --resume persistence", () => {
 
     const events1 = readEvents(id);
     expect(events1.filter((e) => e.type === "loop_config")).toHaveLength(1);
+    expect(
+      events1.filter((e) => e.type === "loop_scheduler_migration"),
+    ).toHaveLength(1);
+    expect(
+      events1.find((e) => e.type === "loop_scheduler_migration")?.data,
+    ).toMatchObject({
+      state: "retired",
+      compatibility: "explicit-resume-only",
+    });
     expect(events1.filter((e) => e.type === "loop_iteration")).toHaveLength(2);
     expect(events1.filter((e) => e.type === "loop_end")).toHaveLength(1);
 
@@ -371,7 +380,12 @@ describe("cc loop — --save / --resume persistence", () => {
       openSchedulerStore({ file: schedulerFile, Database });
     _deps.spawn = vi.fn();
     const output = await run("--resume", id, "--json");
-    const summary = JSON.parse(output.slice(output.indexOf("{")));
+    const jsonStart = output.indexOf("{");
+    expect(
+      jsonStart,
+      errSpy.mock.calls.map((call) => call.map(String).join(" ")).join("\n"),
+    ).toBeGreaterThanOrEqual(0);
+    const summary = JSON.parse(output.slice(jsonStart));
     expect(summary).toMatchObject({
       iterations: 1,
       stoppedBy: "max-iterations",
