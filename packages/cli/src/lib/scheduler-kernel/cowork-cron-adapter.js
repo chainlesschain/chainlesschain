@@ -387,17 +387,18 @@ export function rollbackCoworkCronMigration({
       "Cowork rollback cannot operate on a mixed-domain migration",
     );
   }
-  schedulerStore.rollbackDomainMigrationTargets(migrationId);
+  if (migration.state === "rolled_back") return migration;
   for (const entry of entries) {
-    const restored = restoreCoworkSchedulerMigration(
-      workspace,
-      entry.sourceId,
-      {
-        migrationId,
-        targetJobId: entry.targetJobId,
-        retirementToken: entry.retirementToken,
-      },
-    );
+    if (entry.state === "rolled_back") continue;
+    const current = getSchedule(workspace, entry.sourceId);
+    const restored = current.schedulerMigration
+      ? restoreCoworkSchedulerMigration(workspace, entry.sourceId, {
+          migrationId,
+          sourceDigest: coworkCronMigrationSourceDigest(current),
+          targetJobId: entry.targetJobId,
+          retirementToken: entry.retirementToken,
+        })
+      : current;
     schedulerStore.confirmDomainMigrationEntrySourceRestored({
       migrationId,
       entryId: entry.entryId,
@@ -802,6 +803,33 @@ export class CoworkCronSchedulerBridge {
   async runDue({ signal } = {}) {
     const results = [];
     const observed = new Set();
+    if (!signal?.aborted && this.migrateLegacy) {
+      const sourceScope = {
+        store: "cowork-schedules",
+        workspace: this.cwd,
+      };
+      const candidates = loadSchedules(this.cwd, {
+        failOnMalformed: true,
+      }).filter((schedule) => {
+        const activeMigration =
+          this.schedulerStore.getActiveDomainMigrationBySource({
+            domain: "cowork-cron",
+            sourceScope,
+            sourceId: schedule.id,
+          });
+        if (schedule.schedulerMigration) {
+          return activeMigration?.state !== "retired";
+        }
+        return activeMigration?.state !== undefined;
+      });
+      for (const schedule of candidates) {
+        migrateCoworkCronSchedule({
+          cwd: this.cwd,
+          schedulerStore: this.schedulerStore,
+          schedule,
+        });
+      }
+    }
     const recovered = await this.runtime.runUntilIdle({
       limit: 10_000,
       signal,

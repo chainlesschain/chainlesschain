@@ -103,6 +103,72 @@ function latestLoopMigrationMarker(events) {
     .find((event) => event?.type === "loop_scheduler_migration")?.data;
 }
 
+function latestLoopConfig(events) {
+  return [...events].reverse().find((event) => event?.type === "loop_config")
+    ?.data;
+}
+
+function appendLoopConfig({
+  sessionId,
+  config,
+  matches,
+  canReplace,
+  readEvents,
+  appendEventIfHead,
+}) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const events = readEvents(sessionId);
+    const current = latestLoopConfig(events);
+    if (matches(current)) return current;
+    if (!canReplace(current)) {
+      throw loopSchedulerError(
+        "LOOP_SCHEDULER_MIGRATION_SOURCE_CHANGED",
+        `Saved loop changed during migration: ${sessionId}`,
+      );
+    }
+    try {
+      appendEventIfHead(
+        sessionId,
+        "loop_config",
+        config,
+        events[events.length - 1]?.hash || null,
+      );
+      return latestLoopConfig(readEvents(sessionId));
+    } catch (error) {
+      if (error?.code !== "SESSION_REVISION_STALE" || attempt === 2) {
+        throw error;
+      }
+    }
+  }
+  throw loopSchedulerError(
+    "LOOP_SCHEDULER_MIGRATION_SESSION_BUSY",
+    `Saved loop changed repeatedly during migration: ${sessionId}`,
+  );
+}
+
+function loopRetirementConfig(snapshot, migration, entry) {
+  return {
+    // Prior clients resolve this as a Loop with no operands and stop before
+    // creating a child process. New clients unwrap originalConfig above.
+    execMode: true,
+    operands: [],
+    dynamic: false,
+    every: snapshot.config.every ?? "5m",
+    maxIterations: snapshot.config.maxIterations ?? null,
+    untilExitZero: false,
+    until: null,
+    cwd: snapshot.config.cwd ?? null,
+    schedulerMigrationFence: {
+      schemaVersion: LOOP_SCHEDULER_MIGRATION_SCHEMA_VERSION,
+      state: "retired",
+      migrationId: migration.id,
+      retirementToken: entry.retirementToken,
+      targetJobId: entry.targetJobId,
+      originalConfig: snapshot.config,
+    },
+  };
+}
+
 function appendLoopMigrationMarker({
   sessionId,
   marker,
@@ -224,6 +290,36 @@ export function migrateSavedLoopSession({
         ? migration
         : schedulerStore.beginDomainMigrationRetirement(migration.id);
   const entry = retiring.entries[0];
+  appendLoopConfig({
+    sessionId: snapshot.sessionId,
+    readEvents,
+    appendEventIfHead,
+    config: loopRetirementConfig(snapshot, migration, entry),
+    matches: (current) => {
+      const fence = current?.schedulerMigrationFence;
+      return (
+        fence?.schemaVersion === LOOP_SCHEDULER_MIGRATION_SCHEMA_VERSION &&
+        fence.state === "retired" &&
+        fence.migrationId === migration.id &&
+        fence.retirementToken === entry.retirementToken &&
+        fence.targetJobId === entry.targetJobId &&
+        schedulerMigrationSourceDigest(
+          loopMigrationSourceSnapshot({
+            sessionId: snapshot.sessionId,
+            config: fence.originalConfig,
+          }),
+        ) === entry.sourceDigest
+      );
+    },
+    canReplace: (current) =>
+      !current?.schedulerMigrationFence &&
+      schedulerMigrationSourceDigest(
+        loopMigrationSourceSnapshot({
+          sessionId: snapshot.sessionId,
+          config: current,
+        }),
+      ) === entry.sourceDigest,
+  });
   const retiredMarker = appendLoopMigrationMarker({
     sessionId: snapshot.sessionId,
     readEvents,
@@ -234,7 +330,7 @@ export function migrateSavedLoopSession({
       migrationId: migration.id,
       retirementToken: entry.retirementToken,
       targetJobId: entry.targetJobId,
-      compatibility: "explicit-resume-only",
+      compatibility: "legacy-config-fenced",
     },
   });
   schedulerStore.confirmDomainMigrationEntryRetired({
@@ -265,8 +361,43 @@ export function rollbackSavedLoopMigration({
       "Loop rollback cannot operate on this migration",
     );
   }
+  if (migration.state === "rolled_back") return migration;
   schedulerStore.rollbackDomainMigrationTargets(migrationId);
   const entry = migration.entries[0];
+  const restoredSnapshot = loopMigrationSourceSnapshot({ sessionId, config });
+  if (schedulerMigrationSourceDigest(restoredSnapshot) !== entry.sourceDigest) {
+    throw loopSchedulerError(
+      "LOOP_SCHEDULER_MIGRATION_SOURCE_CHANGED",
+      `Saved loop rollback config does not match the migration: ${sessionId}`,
+    );
+  }
+  appendLoopConfig({
+    sessionId,
+    config: restoredSnapshot.config,
+    readEvents,
+    appendEventIfHead,
+    matches: (current) =>
+      !current?.schedulerMigrationFence &&
+      schedulerMigrationSourceDigest(
+        loopMigrationSourceSnapshot({ sessionId, config: current }),
+      ) === entry.sourceDigest,
+    canReplace: (current) => {
+      const fence = current?.schedulerMigrationFence;
+      return (
+        fence?.schemaVersion === LOOP_SCHEDULER_MIGRATION_SCHEMA_VERSION &&
+        fence.state === "retired" &&
+        fence.migrationId === migrationId &&
+        fence.retirementToken === entry.retirementToken &&
+        fence.targetJobId === entry.targetJobId &&
+        schedulerMigrationSourceDigest(
+          loopMigrationSourceSnapshot({
+            sessionId,
+            config: fence.originalConfig,
+          }),
+        ) === entry.sourceDigest
+      );
+    },
+  });
   appendLoopMigrationMarker({
     sessionId,
     readEvents,
@@ -277,14 +408,14 @@ export function rollbackSavedLoopMigration({
       migrationId,
       retirementToken: entry.retirementToken,
       targetJobId: entry.targetJobId,
-      compatibility: "explicit-resume-only",
+      compatibility: "legacy-config-restored",
     },
   });
   schedulerStore.confirmDomainMigrationEntrySourceRestored({
     migrationId,
     entryId: entry.entryId,
     retirementToken: entry.retirementToken,
-    source: loopMigrationSourceSnapshot({ sessionId, config }),
+    source: restoredSnapshot,
   });
   return schedulerStore.getDomainMigration(migrationId);
 }

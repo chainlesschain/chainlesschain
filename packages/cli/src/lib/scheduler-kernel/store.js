@@ -1943,19 +1943,65 @@ export class SchedulerStore {
     const plan = normalizeDomainMigrationPlan(input);
     const now = this._now();
     return this._write(() => {
-      const existing = this.statements.getDomainMigration.get(plan.migrationId);
-      if (existing) {
-        if (existing.manifest_digest !== plan.manifestDigest) {
-          throw schemaError(
-            "SCHEDULER_DATA_CORRUPT",
-            "Scheduler migration identity does not match its stored manifest",
+      const activeIds = new Set();
+      const findActiveSource = this.db.prepare(
+        `SELECT migration_id FROM scheduler_domain_migration_entries
+         WHERE domain = ? AND source_scope_digest = ? AND source_id = ?
+           AND state <> 'rolled_back'`,
+      );
+      const findActiveTarget = this.db.prepare(
+        `SELECT migration_id FROM scheduler_domain_migration_entries
+         WHERE target_job_id = ? AND state <> 'rolled_back'`,
+      );
+      for (const entry of plan.entries) {
+        const source = findActiveSource.get(
+          entry.domain,
+          entry.sourceScopeDigest,
+          entry.sourceId,
+        );
+        const target = findActiveTarget.get(entry.targetJobId);
+        if (source) activeIds.add(source.migration_id);
+        if (target) activeIds.add(target.migration_id);
+      }
+      if (activeIds.size > 0) {
+        if (activeIds.size !== 1) {
+          throw schedulerMigrationError(
+            "SCHEDULER_MIGRATION_CONFLICT",
+            "Scheduler migration sources or targets belong to different active migrations",
+          );
+        }
+        const [activeId] = activeIds;
+        const active = this.statements.getDomainMigration.get(activeId);
+        const activeManifest = active
+          ? readStoredJson(active.manifest_json, "scheduler migration manifest")
+          : null;
+        const activePlanDigest =
+          activeManifest?.planDigest ?? active?.manifest_digest;
+        if (!active || activePlanDigest !== plan.manifestDigest) {
+          throw schedulerMigrationError(
+            "SCHEDULER_MIGRATION_CONFLICT",
+            "A scheduler source or target already has a different active migration",
           );
         }
         return {
-          ...this._domainMigration(plan.migrationId),
+          ...this._domainMigration(activeId),
           deduplicated: true,
         };
       }
+
+      const attemptManifest = {
+        ...plan.manifest,
+        schemaVersion: 2,
+        planDigest: plan.manifestDigest,
+        attemptId: randomUUID(),
+      };
+      const manifestDigest = sha256PayloadDigest(
+        attemptManifest,
+        "schedulerMigration.attemptManifest",
+      );
+      const migrationId = `scheduler-domain-migration-${manifestDigest.slice(
+        "sha256:".length,
+      )}`;
       this.db
         .prepare(
           `INSERT INTO scheduler_domain_migrations
@@ -1964,9 +2010,9 @@ export class SchedulerStore {
            VALUES (?, ?, ?, 'prepared', ?, ?, ?, NULL, NULL)`,
         )
         .run(
-          plan.migrationId,
-          plan.manifestDigest,
-          canonicalJson(plan.manifest, "schedulerMigration.manifest"),
+          migrationId,
+          manifestDigest,
+          canonicalJson(attemptManifest, "schedulerMigration.manifest"),
           plan.entries.length,
           now,
           now,
@@ -1988,7 +2034,7 @@ export class SchedulerStore {
       for (const entry of plan.entries) {
         try {
           insert.run(
-            plan.migrationId,
+            migrationId,
             entry.entryId,
             entry.domain,
             entry.sourceId,
@@ -2016,7 +2062,7 @@ export class SchedulerStore {
         }
       }
       return {
-        ...this._domainMigration(plan.migrationId),
+        ...this._domainMigration(migrationId),
         deduplicated: false,
       };
     });
@@ -2429,30 +2475,14 @@ export class SchedulerStore {
     return this._write(() => {
       const migration = this._domainMigration(id);
       if (migration.state === SCHEDULER_MIGRATION_STATES.ROLLING_BACK) {
-        return { ...migration, deduplicated: true };
+        return this._rollbackDomainMigrationTargetsInTransaction(id, now);
       }
       if (migration.state === SCHEDULER_MIGRATION_STATES.ROLLED_BACK) {
         return { ...migration, deduplicated: true };
       }
-      if (migration.state === SCHEDULER_MIGRATION_STATES.PREPARED) {
-        this.db
-          .prepare(
-            `UPDATE scheduler_domain_migration_entries
-             SET state = 'rolled_back', updated_at = ?
-             WHERE migration_id = ? AND state = 'prepared'`,
-          )
-          .run(now, id);
-        this.db
-          .prepare(
-            `UPDATE scheduler_domain_migrations
-             SET state = 'rolled_back', updated_at = ?, completed_at = ?
-             WHERE migration_id = ? AND state = 'prepared'`,
-          )
-          .run(now, now, id);
-        return { ...this._domainMigration(id), deduplicated: false };
-      }
       if (
         ![
+          SCHEDULER_MIGRATION_STATES.PREPARED,
           SCHEDULER_MIGRATION_STATES.APPLIED,
           SCHEDULER_MIGRATION_STATES.VERIFIED,
           SCHEDULER_MIGRATION_STATES.RETIRING,
@@ -2469,18 +2499,10 @@ export class SchedulerStore {
           `UPDATE scheduler_domain_migrations
            SET state = 'rolling_back', updated_at = ?, completed_at = NULL
            WHERE migration_id = ?
-             AND state IN ('applied', 'verified', 'retiring', 'retired')`,
+             AND state IN ('prepared', 'applied', 'verified', 'retiring', 'retired')`,
         )
         .run(now, id);
-      this.db
-        .prepare(
-          `UPDATE scheduler_domain_migration_entries
-           SET state = 'source_restored', source_restored_digest = source_digest,
-               updated_at = ?
-           WHERE migration_id = ? AND state IN ('applied', 'verified')`,
-        )
-        .run(now, id);
-      return { ...this._domainMigration(id), deduplicated: false };
+      return this._rollbackDomainMigrationTargetsInTransaction(id, now);
     });
   }
 
@@ -2492,12 +2514,20 @@ export class SchedulerStore {
   } = {}) {
     const id = normalizeIdentifier(migrationId, "migrationId");
     const normalizedEntryId = normalizeIdentifier(entryId, "entryId");
-    const token = normalizeIdentifier(retirementToken, "retirementToken");
+    const token =
+      retirementToken === null || retirementToken === undefined
+        ? null
+        : normalizeIdentifier(retirementToken, "retirementToken");
     const restoredDigest = schedulerMigrationSourceDigest(source);
     const now = this._now();
     return this._write(() => {
       const migration = this._domainMigration(id);
-      if (migration.state !== SCHEDULER_MIGRATION_STATES.ROLLING_BACK) {
+      if (
+        ![
+          SCHEDULER_MIGRATION_STATES.ROLLING_BACK,
+          SCHEDULER_MIGRATION_STATES.ROLLED_BACK,
+        ].includes(migration.state)
+      ) {
         throw schedulerMigrationError(
           "SCHEDULER_MIGRATION_STATE_CONFLICT",
           "Scheduler migration is not rolling back",
@@ -2519,7 +2549,7 @@ export class SchedulerStore {
           { entryId: normalizedEntryId, sourceId: entry.sourceId },
         );
       }
-      if (entry.state === "source_restored") {
+      if (entry.state === "rolled_back") {
         if (entry.sourceRestoredDigest !== restoredDigest) {
           throw schedulerMigrationError(
             "SCHEDULER_MIGRATION_SOURCE_MISMATCH",
@@ -2528,7 +2558,7 @@ export class SchedulerStore {
         }
         return { ...entry, deduplicated: true };
       }
-      if (entry.state !== "rollback_target_disabled") {
+      if (!["prepared", "rollback_target_disabled"].includes(entry.state)) {
         throw schedulerMigrationError(
           "SCHEDULER_MIGRATION_STATE_CONFLICT",
           `Scheduler migration entry cannot restore its source from state ${entry.state}`,
@@ -2537,13 +2567,9 @@ export class SchedulerStore {
       this.db
         .prepare(
           `UPDATE scheduler_domain_migration_entries
-           SET state = CASE
-                 WHEN state = 'rollback_target_disabled' THEN 'rolled_back'
-                 ELSE 'source_restored'
-               END,
-               source_restored_digest = ?, updated_at = ?
+           SET state = 'rolled_back', source_restored_digest = ?, updated_at = ?
            WHERE migration_id = ? AND entry_id = ?
-             AND state = 'rollback_target_disabled'`,
+             AND state IN ('prepared', 'rollback_target_disabled')`,
         )
         .run(restoredDigest, now, id, normalizedEntryId);
       const remaining = this.db
@@ -2575,130 +2601,137 @@ export class SchedulerStore {
     const now = this._now();
     return this._write(() => {
       const migration = this._domainMigration(id);
+      if (migration.state === SCHEDULER_MIGRATION_STATES.ROLLED_BACK) {
+        return { ...migration, deduplicated: true };
+      }
       if (migration.state !== SCHEDULER_MIGRATION_STATES.ROLLING_BACK) {
         throw schedulerMigrationError(
           "SCHEDULER_MIGRATION_STATE_CONFLICT",
           "Scheduler migration is not rolling back",
         );
       }
-      const invalid = migration.entries.filter(
-        (entry) =>
-          ![
-            "retired",
-            "retiring",
-            "source_restored",
-            "rollback_target_disabled",
-          ].includes(entry.state),
+      return this._rollbackDomainMigrationTargetsInTransaction(id, now);
+    });
+  }
+
+  _rollbackDomainMigrationTargetsInTransaction(migrationId, now) {
+    const migration = this._domainMigration(migrationId);
+    const invalid = migration.entries.filter(
+      (entry) =>
+        ![
+          "prepared",
+          "applied",
+          "verified",
+          "retired",
+          "retiring",
+          "source_restored",
+          "rollback_target_disabled",
+          "rolled_back",
+        ].includes(entry.state),
+    );
+    if (invalid.length > 0) {
+      throw schedulerMigrationError(
+        "SCHEDULER_MIGRATION_STATE_CONFLICT",
+        "Scheduler migration entries are not ready for target rollback",
+        { entryIds: invalid.map((entry) => entry.entryId) },
       );
-      if (invalid.length > 0) {
+    }
+    const pending = [...migration.entries]
+      .reverse()
+      .filter(
+        (entry) =>
+          !["prepared", "rollback_target_disabled", "rolled_back"].includes(
+            entry.state,
+          ),
+      );
+    const snapshots = new Map();
+    for (const entry of pending) {
+      const current = mapJob(this.statements.getJob.get(entry.targetJobId));
+      if (!current || current.revision !== entry.targetAppliedRevision) {
         throw schedulerMigrationError(
-          "SCHEDULER_MIGRATION_STATE_CONFLICT",
-          "Scheduler migration entries are not ready for target rollback",
-          { entryIds: invalid.map((entry) => entry.entryId) },
+          "SCHEDULER_MIGRATION_TARGET_CHANGED",
+          `Scheduler migration target revision changed before rollback: ${entry.targetJobId}`,
+          {
+            expectedRevision: entry.targetAppliedRevision,
+            actualRevision: current?.revision ?? null,
+          },
         );
       }
-      const pending = [...migration.entries]
-        .reverse()
-        .filter((entry) => entry.state !== "rollback_target_disabled");
-      const snapshots = new Map();
-      for (const entry of pending) {
-        const current = mapJob(this.statements.getJob.get(entry.targetJobId));
-        if (!current || current.revision !== entry.targetAppliedRevision) {
-          throw schedulerMigrationError(
-            "SCHEDULER_MIGRATION_TARGET_CHANGED",
-            `Scheduler migration target revision changed before rollback: ${entry.targetJobId}`,
-            {
-              expectedRevision: entry.targetAppliedRevision,
-              actualRevision: current?.revision ?? null,
-            },
-          );
-        }
-        const counts = this.db
-          .prepare(
-            `SELECT
+      const counts = this.db
+        .prepare(
+          `SELECT
                (SELECT COUNT(*) FROM occurrences WHERE job_id = ?) AS occurrences,
                (SELECT COUNT(*) FROM events
                 WHERE job_id = ? AND occurrence_id IS NOT NULL) AS execution_events`,
-          )
-          .get(entry.targetJobId, entry.targetJobId);
-        if (
-          counts.occurrences !== entry.targetOccurrenceCountBefore ||
-          counts.execution_events !== entry.targetExecutionEventCountBefore
-        ) {
-          throw schedulerMigrationError(
-            "SCHEDULER_MIGRATION_EXECUTION_EVIDENCE",
-            `Scheduler migration target has execution evidence and cannot be rolled back: ${entry.targetJobId}`,
-            {
-              occurrenceCountBefore: entry.targetOccurrenceCountBefore,
-              occurrenceCountNow: counts.occurrences,
-              executionEventCountBefore: entry.targetExecutionEventCountBefore,
-              executionEventCountNow: counts.execution_events,
-            },
-          );
-        }
-        snapshots.set(entry.entryId, current);
+        )
+        .get(entry.targetJobId, entry.targetJobId);
+      if (
+        counts.occurrences !== entry.targetOccurrenceCountBefore ||
+        counts.execution_events !== entry.targetExecutionEventCountBefore
+      ) {
+        throw schedulerMigrationError(
+          "SCHEDULER_MIGRATION_EXECUTION_EVIDENCE",
+          `Scheduler migration target has execution evidence and cannot be rolled back: ${entry.targetJobId}`,
+          {
+            occurrenceCountBefore: entry.targetOccurrenceCountBefore,
+            occurrenceCountNow: counts.occurrences,
+            executionEventCountBefore: entry.targetExecutionEventCountBefore,
+            executionEventCountNow: counts.execution_events,
+          },
+        );
       }
-      for (const entry of pending) {
-        if (entry.state === "rollback_target_disabled") continue;
-        const current = snapshots.get(entry.entryId);
-        let rolledBack;
-        if (
-          entry.targetAction === "created" ||
-          entry.rollbackStrategy === "disable"
-        ) {
-          rolledBack = current.enabled
-            ? this.updateJob(current.id, current.revision, { enabled: false })
-            : current;
-        } else {
-          const before = normalizeJobInput(entry.targetBefore);
-          rolledBack =
-            schedulerJobDefinitionDigest(current) ===
-            schedulerJobDefinitionDigest(before)
-              ? current
-              : this.updateJob(current.id, current.revision, {
-                  kind: before.kind,
-                  trigger: before.trigger,
-                  payload: before.payload,
-                  authority: before.authority,
-                  enabled: before.enabled,
-                  maxAttempts: before.maxAttempts,
-                });
-        }
-        this.db
-          .prepare(
-            `UPDATE scheduler_domain_migration_entries
-             SET state = 'rollback_target_disabled',
-                 target_rollback_revision = ?, updated_at = ?
-             WHERE migration_id = ? AND entry_id = ?
-               AND state IN ('retired', 'retiring', 'source_restored')`,
-          )
-          .run(rolledBack.revision, now, id, entry.entryId);
+      snapshots.set(entry.entryId, current);
+    }
+    for (const entry of pending) {
+      if (entry.state === "rollback_target_disabled") continue;
+      const current = snapshots.get(entry.entryId);
+      let rolledBack;
+      if (
+        entry.targetAction === "created" ||
+        entry.rollbackStrategy === "disable"
+      ) {
+        rolledBack = current.enabled
+          ? this.updateJob(current.id, current.revision, { enabled: false })
+          : current;
+      } else {
+        const before = normalizeJobInput(entry.targetBefore);
+        rolledBack =
+          schedulerJobDefinitionDigest(current) ===
+          schedulerJobDefinitionDigest(before)
+            ? current
+            : this.updateJob(current.id, current.revision, {
+                kind: before.kind,
+                trigger: before.trigger,
+                payload: before.payload,
+                authority: before.authority,
+                enabled: before.enabled,
+                maxAttempts: before.maxAttempts,
+              });
       }
       this.db
         .prepare(
           `UPDATE scheduler_domain_migration_entries
-           SET state = 'rolled_back', updated_at = ?
+             SET state = 'rollback_target_disabled',
+                 target_rollback_revision = ?, updated_at = ?
+             WHERE migration_id = ? AND entry_id = ?
+               AND state IN (
+                 'applied', 'verified', 'retiring', 'retired', 'source_restored'
+               )`,
+        )
+        .run(rolledBack.revision, now, migrationId, entry.entryId);
+    }
+    this.db
+      .prepare(
+        `UPDATE scheduler_domain_migration_entries
+           SET source_restored_digest = NULL, updated_at = ?
            WHERE migration_id = ? AND state = 'rollback_target_disabled'
              AND source_restored_digest IS NOT NULL`,
-        )
-        .run(now, id);
-      const awaitingSourceRestore = this.db
-        .prepare(
-          `SELECT COUNT(*) AS count FROM scheduler_domain_migration_entries
-           WHERE migration_id = ? AND state <> 'rolled_back'`,
-        )
-        .get(id).count;
-      if (awaitingSourceRestore === 0) {
-        this.db
-          .prepare(
-            `UPDATE scheduler_domain_migrations
-             SET state = 'rolled_back', updated_at = ?, completed_at = ?
-             WHERE migration_id = ? AND state = 'rolling_back'`,
-          )
-          .run(now, now, id);
-      }
-      return { ...this._domainMigration(id), deduplicated: false };
-    });
+      )
+      .run(now, migrationId);
+    return {
+      ...this._domainMigration(migrationId),
+      deduplicated: pending.length === 0,
+    };
   }
 
   _enqueueOccurrence({ id, scheduled, key, available, payload, now }) {

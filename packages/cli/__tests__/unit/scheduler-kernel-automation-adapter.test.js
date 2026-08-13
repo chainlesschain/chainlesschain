@@ -9,8 +9,11 @@ import {
   EXECUTION_STATUS,
   FLOW_STATUS,
   TRIGGER_TYPE,
+  automationEffectiveSchedulerFlow,
   automationMigrationSourceDigest,
+  automationMigrationSourceSnapshot,
   createFlow,
+  deleteFlow,
   ensureAutomationTables,
   executeFlow,
   getExecution,
@@ -19,6 +22,7 @@ import {
   listExecutions,
   listFlows,
   prepareAutomationSchedulerMigration,
+  restoreAutomationSchedulerMigration,
   scheduleFlow,
   updateFlowStatus,
 } from "../../src/lib/automation-engine.js";
@@ -206,6 +210,7 @@ describe("scheduler-kernel automation adapter", () => {
     });
     expect(getFlow(f.db, flow.id)).toMatchObject({
       status: FLOW_STATUS.PAUSED,
+      schedule: null,
     });
     expect(getAutomationSchedulerMigration(f.db, flow.id)).toMatchObject({
       migrationId: migrated.id,
@@ -236,10 +241,180 @@ describe("scheduler-kernel automation adapter", () => {
     });
     expect(getAutomationSchedulerMigration(f.db, flow.id)).toBeNull();
     expect(
+      restoreAutomationSchedulerMigration(f.db, flow.id, {
+        migrationId: migrated.id,
+        sourceDigest: automationMigrationSourceDigest(flow),
+        targetJobId: migrated.entries[0].targetJobId,
+        retirementToken: migrated.entries[0].retirementToken,
+      }),
+    ).toMatchObject({
+      status: FLOW_STATUS.ACTIVE,
+      schedule: "* * * * *",
+    });
+    expect(
       f.schedulerStore.getJob(migrated.entries[0].targetJobId),
     ).toMatchObject({
       enabled: false,
     });
+  });
+
+  it("keeps the retired source inert across legacy activate and rejects new authority mutations", () => {
+    const f = fixture();
+    const flow = activeScheduledFlow(f);
+    const migrated = migrateAutomationFlow({
+      db: f.db,
+      schedulerStore: f.schedulerStore,
+      flow,
+      executionAuthority: executionAuthority(f, flow),
+    });
+
+    const marker = getAutomationSchedulerMigration(f.db, flow.id);
+    expect(marker).toMatchObject({
+      state: "retired",
+      sourceSnapshot: {
+        id: flow.id,
+        status: FLOW_STATUS.ACTIVE,
+        schedule: "* * * * *",
+      },
+    });
+    expect(getFlow(f.db, flow.id)).toMatchObject({
+      status: FLOW_STATUS.PAUSED,
+      schedule: null,
+    });
+
+    // Simulate an older CLI's activate command, which knows nothing about the
+    // migration marker. The durable empty schedule keeps its legacy driver inert.
+    f.db
+      .prepare(
+        "UPDATE auto_flows SET status = 'active', updated_at = ? WHERE id = ?",
+      )
+      .run(new Date(f.now).toISOString(), flow.id);
+    expect(
+      listFlows(f.db, { status: FLOW_STATUS.ACTIVE, limit: 100 }).filter(
+        (candidate) => candidate.schedule,
+      ),
+    ).toEqual([]);
+    expect(
+      automationEffectiveSchedulerFlow(f.db, getFlow(f.db, flow.id)),
+    ).toMatchObject({
+      status: FLOW_STATUS.ACTIVE,
+      schedule: "* * * * *",
+      schedulerMigration: { migrationId: migrated.id },
+    });
+
+    expect(() =>
+      updateFlowStatus(f.db, flow.id, FLOW_STATUS.ACTIVE),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "AUTOMATION_SCHEDULER_MIGRATION_ACTIVE",
+      }),
+    );
+    expect(() => scheduleFlow(f.db, flow.id, "*/2 * * * *")).toThrowError(
+      expect.objectContaining({
+        code: "AUTOMATION_SCHEDULER_MIGRATION_ACTIVE",
+      }),
+    );
+    expect(() => deleteFlow(f.db, flow.id)).toThrowError(
+      expect.objectContaining({
+        code: "AUTOMATION_SCHEDULER_MIGRATION_ACTIVE",
+      }),
+    );
+
+    expect(
+      migrateAutomationFlow({
+        db: f.db,
+        schedulerStore: f.schedulerStore,
+        flow: getFlow(f.db, flow.id),
+        executionAuthority: executionAuthority(f, flow),
+      }),
+    ).toMatchObject({ id: migrated.id, state: "retired" });
+    expect(getFlow(f.db, flow.id)).toMatchObject({
+      status: FLOW_STATUS.PAUSED,
+      schedule: null,
+    });
+  });
+
+  it("rolls back a prepared source with a null retirement token", () => {
+    const f = fixture();
+    const flow = activeScheduledFlow(f);
+    const authority = executionAuthority(f, flow);
+    const desired = buildAutomationSchedulerJob(flow, authority);
+    const source = automationMigrationSourceSnapshot(flow);
+    const prepared = f.schedulerStore.prepareDomainMigration({
+      entries: [
+        {
+          domain: "automation",
+          sourceId: flow.id,
+          sourceScope: { store: "automation-engine", database: "current" },
+          source,
+          targetJob: desired,
+          rollbackStrategy: "disable",
+        },
+      ],
+    });
+    prepareAutomationSchedulerMigration(f.db, flow.id, {
+      migrationId: prepared.id,
+      sourceDigest: automationMigrationSourceDigest(flow),
+      targetJobId: desired.id,
+    });
+
+    expect(
+      rollbackAutomationMigration({
+        db: f.db,
+        schedulerStore: f.schedulerStore,
+        migrationId: prepared.id,
+      }),
+    ).toMatchObject({ state: "rolled_back" });
+    expect(getAutomationSchedulerMigration(f.db, flow.id)).toBeNull();
+    expect(getFlow(f.db, flow.id)).toMatchObject({
+      status: FLOW_STATUS.ACTIVE,
+      schedule: "* * * * *",
+    });
+  });
+
+  it("resumes rollback after source restore succeeds before journal confirmation", () => {
+    const f = fixture();
+    const flow = activeScheduledFlow(f);
+    const migrated = migrateAutomationFlow({
+      db: f.db,
+      schedulerStore: f.schedulerStore,
+      flow,
+      executionAuthority: executionAuthority(f, flow),
+    });
+    const confirm = f.schedulerStore.confirmDomainMigrationEntrySourceRestored;
+    f.schedulerStore.confirmDomainMigrationEntrySourceRestored = () => {
+      throw new Error("simulated crash after source restoration");
+    };
+    expect(() =>
+      rollbackAutomationMigration({
+        db: f.db,
+        schedulerStore: f.schedulerStore,
+        migrationId: migrated.id,
+      }),
+    ).toThrow("simulated crash after source restoration");
+    expect(getAutomationSchedulerMigration(f.db, flow.id)).toBeNull();
+    expect(getFlow(f.db, flow.id)).toMatchObject({
+      status: FLOW_STATUS.ACTIVE,
+      schedule: "* * * * *",
+    });
+
+    f.schedulerStore.confirmDomainMigrationEntrySourceRestored = confirm.bind(
+      f.schedulerStore,
+    );
+    expect(
+      rollbackAutomationMigration({
+        db: f.db,
+        schedulerStore: f.schedulerStore,
+        migrationId: migrated.id,
+      }),
+    ).toMatchObject({ state: "rolled_back" });
+    expect(
+      rollbackAutomationMigration({
+        db: f.db,
+        schedulerStore: f.schedulerStore,
+        migrationId: migrated.id,
+      }),
+    ).toMatchObject({ state: "rolled_back", deduplicated: true });
   });
 
   it("resumes Automation migration after target staging and source retirement crashes", () => {

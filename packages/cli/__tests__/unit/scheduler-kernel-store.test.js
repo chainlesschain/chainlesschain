@@ -524,10 +524,12 @@ describe("scheduler-kernel SQLite store", () => {
 
     expect(store.beginDomainMigrationRollback(prepared.id)).toMatchObject({
       state: "rolling_back",
+      entries: [{ state: "rollback_target_disabled" }],
     });
     expect(store.rollbackDomainMigrationTargets(prepared.id)).toMatchObject({
       state: "rolling_back",
       entries: [{ state: "rollback_target_disabled" }],
+      deduplicated: true,
     });
     expect(store.getJob("agenda-job")).toMatchObject({
       enabled: false,
@@ -546,10 +548,14 @@ describe("scheduler-kernel SQLite store", () => {
 
     const replacement = store.prepareDomainMigration(plan);
     expect(replacement).toMatchObject({
-      state: "rolled_back",
-      deduplicated: true,
+      state: "prepared",
+      deduplicated: false,
     });
-    expect(replacement.id).toBe(prepared.id);
+    expect(replacement.id).not.toBe(prepared.id);
+    expect(replacement.manifest).toMatchObject({
+      schemaVersion: 2,
+      planDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+    });
   });
 
   it("restores updated targets and fails closed after target execution evidence", () => {
@@ -629,16 +635,72 @@ describe("scheduler-kernel SQLite store", () => {
       scheduledFor: f.now,
       triggerKey: "migration:evidence",
     });
-    store.beginDomainMigrationRollback(second.id);
     expectCode(
-      () => store.rollbackDomainMigrationTargets(second.id),
+      () => store.beginDomainMigrationRollback(second.id),
       "SCHEDULER_MIGRATION_EXECUTION_EVIDENCE",
     );
     expect(store.getDomainMigration(second.id)).toMatchObject({
-      state: "rolling_back",
+      state: "retired",
       entries: [{ state: "retired" }],
     });
     expect(store.getJob("executed-job")).toMatchObject({ enabled: true });
+  });
+
+  it("rolls back prepared and applied migrations with nullable tokens", () => {
+    const f = fixture();
+    const store = f.open();
+    const source = { id: "routine-staged", enabled: true };
+    const plan = {
+      entries: [
+        {
+          domain: "routine",
+          sourceId: source.id,
+          sourceScope: { store: "routines", workspace: "workspace-a" },
+          source,
+          targetJob: jobInput({ id: "routine-staged-job" }),
+        },
+      ],
+    };
+
+    const prepared = store.prepareDomainMigration(plan);
+    expect(store.beginDomainMigrationRollback(prepared.id)).toMatchObject({
+      state: "rolling_back",
+      entries: [{ state: "prepared", retirementToken: null }],
+    });
+    const preparedEntry = store.getDomainMigration(prepared.id).entries[0];
+    store.confirmDomainMigrationEntrySourceRestored({
+      migrationId: prepared.id,
+      entryId: preparedEntry.entryId,
+      retirementToken: null,
+      source,
+    });
+    expect(store.beginDomainMigrationRollback(prepared.id)).toMatchObject({
+      state: "rolled_back",
+      deduplicated: true,
+    });
+
+    const applied = store.prepareDomainMigration(plan);
+    store.applyDomainMigration(applied.id);
+    expect(store.beginDomainMigrationRollback(applied.id)).toMatchObject({
+      state: "rolling_back",
+      entries: [{ state: "rollback_target_disabled", retirementToken: null }],
+    });
+    expect(store.getJob("routine-staged-job")).toMatchObject({
+      enabled: false,
+    });
+    const appliedEntry = store.getDomainMigration(applied.id).entries[0];
+    store.confirmDomainMigrationEntrySourceRestored({
+      migrationId: applied.id,
+      entryId: appliedEntry.entryId,
+      source,
+    });
+    expect(
+      store.confirmDomainMigrationEntrySourceRestored({
+        migrationId: applied.id,
+        entryId: appliedEntry.entryId,
+        source,
+      }),
+    ).toMatchObject({ state: "rolled_back", deduplicated: true });
   });
 
   it("rejects changed migration sources, targets, and active duplicates", () => {

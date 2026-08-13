@@ -906,11 +906,15 @@ export function retireCoworkSchedulerMigration(
 export function restoreCoworkSchedulerMigration(
   cwd,
   id,
-  { migrationId, targetJobId, retirementToken } = {},
+  { migrationId, sourceDigest, targetJobId, retirementToken } = {},
 ) {
   const migration = migrationField(migrationId, "migrationId");
+  const expectedDigest = migrationField(sourceDigest, "sourceDigest");
   const target = migrationField(targetJobId, "targetJobId");
-  const token = migrationField(retirementToken, "retirementToken");
+  const token =
+    retirementToken === null || retirementToken === undefined
+      ? null
+      : migrationField(retirementToken, "retirementToken");
   return _withScheduleLock(cwd, () => {
     const schedules = loadSchedules(cwd, { failOnMalformed: true });
     const schedule = schedules.find((entry) => entry.id === id);
@@ -921,14 +925,30 @@ export function restoreCoworkSchedulerMigration(
       );
     }
     const current = schedule.schedulerMigration;
+    if (!current) {
+      if (
+        coworkCronMigrationSourceDigest(schedule) !== expectedDigest ||
+        String(schedule.activeDelivery?.ownerId || "").startsWith(
+          "scheduler-migration:",
+        )
+      ) {
+        throw coworkSchedulerError(
+          "COWORK_SCHEDULER_MIGRATION_CONFLICT",
+          `Cowork source changed after rollback restoration: ${id}`,
+        );
+      }
+      return schedule;
+    }
     if (
       current?.schemaVersion !== COWORK_SCHEDULER_MIGRATION_SCHEMA_VERSION ||
       current.migrationId !== migration ||
+      current.sourceDigest !== expectedDigest ||
       current.targetJobId !== target ||
-      current.retirementToken !== token ||
-      current.state !== "retired" ||
-      coworkCronMigrationSourceDigest(schedule) !== current.sourceDigest ||
-      schedule.activeDelivery?.ownerId !== `scheduler-migration:${token}`
+      !["prepared", "retired"].includes(current.state) ||
+      coworkCronMigrationSourceDigest(schedule) !== expectedDigest ||
+      (current.state === "retired" &&
+        (current.retirementToken !== token ||
+          schedule.activeDelivery?.ownerId !== `scheduler-migration:${token}`))
     ) {
       throw coworkSchedulerError(
         "COWORK_SCHEDULER_MIGRATION_CONFLICT",
@@ -936,7 +956,7 @@ export function restoreCoworkSchedulerMigration(
       );
     }
     delete schedule.schedulerMigration;
-    schedule.activeDelivery = null;
+    if (current.state === "retired") schedule.activeDelivery = null;
     _saveSchedulesUnlocked(cwd, schedules);
     return schedule;
   });

@@ -1059,14 +1059,21 @@ export class AgentScheduleStore {
 
   restoreFromSchedulerMigration(
     id,
-    { migrationId, targetJobId, retirementToken } = {},
+    { migrationId, sourceDigest, targetJobId, retirementToken } = {},
   ) {
     const migrationIdValue = normalizeMigrationField(
       migrationId,
       "migrationId",
     );
+    const expectedDigest = normalizeMigrationField(
+      sourceDigest,
+      "sourceDigest",
+    );
     const target = normalizeMigrationField(targetJobId, "targetJobId");
-    const token = normalizeMigrationField(retirementToken, "retirementToken");
+    const token =
+      retirementToken === null || retirementToken === undefined
+        ? null
+        : normalizeMigrationField(retirementToken, "retirementToken");
     this._ensureDir();
     return withFileLock(
       path.join(this.dir, ".agenda-claims"),
@@ -1076,16 +1083,31 @@ export class AgentScheduleStore {
           const entry = entries.find((candidate) => candidate.id === id);
           if (!entry) continue;
           const migration = entry.schedulerMigration;
+          if (!migration) {
+            if (
+              agendaMigrationSourceDigest(entry) !== expectedDigest ||
+              String(entry.executionLease?.owner || "").startsWith(
+                "scheduler-migration:",
+              )
+            ) {
+              throw agendaStoreError(
+                "AGENDA_SCHEDULER_MIGRATION_CONFLICT",
+                `Agenda source changed after rollback restoration: ${id}`,
+              );
+            }
+            return entry;
+          }
           if (
             migration?.schemaVersion !==
               AGENDA_SCHEDULER_MIGRATION_SCHEMA_VERSION ||
-            typeof migration.sourceDigest !== "string" ||
-            agendaMigrationSourceDigest(entry) !== migration.sourceDigest ||
+            migration.sourceDigest !== expectedDigest ||
+            agendaMigrationSourceDigest(entry) !== expectedDigest ||
             migration.targetJobId !== target ||
             migration.migrationId !== migrationIdValue ||
-            migration.retirementToken !== token ||
-            migration.state !== "retired" ||
-            entry.executionLease?.owner !== `scheduler-migration:${token}`
+            !["prepared", "retired"].includes(migration.state) ||
+            (migration.state === "retired" &&
+              (migration.retirementToken !== token ||
+                entry.executionLease?.owner !== `scheduler-migration:${token}`))
           ) {
             throw agendaStoreError(
               "AGENDA_SCHEDULER_MIGRATION_CONFLICT",
@@ -1093,7 +1115,7 @@ export class AgentScheduleStore {
             );
           }
           delete entry.schedulerMigration;
-          delete entry.executionLease;
+          if (migration.state === "retired") delete entry.executionLease;
           this._writeAll(kind, entries);
           return entry;
         }

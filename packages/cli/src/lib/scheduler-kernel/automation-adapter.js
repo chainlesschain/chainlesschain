@@ -18,6 +18,7 @@ import {
   adjudicateAutomationExecution,
   getExecution,
   getFlow,
+  getAutomationSchedulerMigration,
   listFlows,
   listAutomationSchedulerFlows,
   prepareAutomationSchedulerMigration,
@@ -351,6 +352,7 @@ export function rollbackAutomationMigration({
   migrationId,
 }) {
   const migration = schedulerStore.beginDomainMigrationRollback(migrationId);
+  if (migration.state === "rolled_back") return migration;
   const entries = migration.entries.filter(
     (entry) => entry.domain === "automation",
   );
@@ -360,13 +362,29 @@ export function rollbackAutomationMigration({
       "Automation rollback cannot operate on a mixed-domain migration",
     );
   }
-  schedulerStore.rollbackDomainMigrationTargets(migrationId);
   for (const entry of entries) {
-    const restored = restoreAutomationSchedulerMigration(db, entry.sourceId, {
-      migrationId,
-      targetJobId: entry.targetJobId,
-      retirementToken: entry.retirementToken,
-    });
+    if (entry.state === "rolled_back") continue;
+    const current = getFlow(db, entry.sourceId);
+    const marker = getAutomationSchedulerMigration(db, entry.sourceId);
+    let restored;
+    if (!marker) {
+      const source = automationMigrationSourceSnapshot(current);
+      if (schedulerMigrationSourceDigest(source) !== entry.sourceDigest) {
+        throw automationError(
+          "AUTOMATION_SCHEDULER_MIGRATION_SOURCE_CHANGED",
+          `Automation flow changed after rollback source restoration: ${entry.sourceId}`,
+        );
+      }
+      restored = current;
+    } else {
+      const effective = automationEffectiveSchedulerFlow(db, current);
+      restored = restoreAutomationSchedulerMigration(db, entry.sourceId, {
+        migrationId,
+        sourceDigest: automationMigrationSourceDigest(effective),
+        targetJobId: entry.targetJobId,
+        retirementToken: entry.retirementToken,
+      });
+    }
     schedulerStore.confirmDomainMigrationEntrySourceRestored({
       migrationId,
       entryId: entry.entryId,

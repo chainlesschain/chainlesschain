@@ -14,6 +14,7 @@ import {
   migrateSavedLoopSession,
   rollbackSavedLoopMigration,
 } from "../../src/lib/scheduler-kernel/loop-adapter.js";
+import { summarizeLoopEvents } from "../../src/lib/loop.js";
 import { openSchedulerStore } from "../../src/lib/scheduler-kernel/store.js";
 
 describe("scheduler-kernel Loop adapter", () => {
@@ -155,10 +156,23 @@ describe("scheduler-kernel Loop adapter", () => {
         (event) => event.type === "loop_scheduler_migration",
       ),
     ).toHaveLength(1);
+    const legacyConfig = session.events
+      .filter((event) => event.type === "loop_config")
+      .at(-1).data;
+    expect(legacyConfig.operands).toEqual([]);
+    expect(legacyConfig.schedulerMigrationFence).toMatchObject({
+      state: "retired",
+      migrationId: migrated.id,
+      originalConfig: session.config,
+    });
+    expect(summarizeLoopEvents(session.events)).toMatchObject({
+      config: session.config,
+      schedulerMigration: { state: "retired", migrationId: migrated.id },
+    });
     expect(session.events.at(-1).data).toMatchObject({
       state: "retired",
       migrationId: migrated.id,
-      compatibility: "explicit-resume-only",
+      compatibility: "legacy-config-fenced",
     });
 
     expect(
@@ -173,6 +187,9 @@ describe("scheduler-kernel Loop adapter", () => {
         (event) => event.type === "loop_scheduler_migration",
       ),
     ).toHaveLength(1);
+    expect(
+      session.events.filter((event) => event.type === "loop_config"),
+    ).toHaveLength(2);
 
     const rolledBack = rollbackSavedLoopMigration({
       schedulerStore: store,
@@ -185,6 +202,56 @@ describe("scheduler-kernel Loop adapter", () => {
       state: "rolled_back",
       migrationId: migrated.id,
     });
+    expect(
+      session.events.filter((event) => event.type === "loop_config").at(-1)
+        .data,
+    ).toEqual(session.config);
+    expect(
+      rollbackSavedLoopMigration({
+        schedulerStore: store,
+        migrationId: migrated.id,
+        ...session,
+      }),
+    ).toMatchObject({ state: "rolled_back", id: migrated.id });
+  });
+
+  it("uses semantic CAS instead of overwriting a concurrent Loop config", () => {
+    const f = fixture();
+    const store = f.open();
+    const session = savedSession();
+    const originalAppend = session.appendEventIfHead;
+    let raced = false;
+    session.appendEventIfHead = (...args) => {
+      if (!raced && args[1] === "loop_config") {
+        raced = true;
+        originalAppend(
+          session.sessionId,
+          "loop_config",
+          { ...session.config, every: "10s" },
+          args[3],
+        );
+        const error = new Error("stale loop session head");
+        error.code = "SESSION_REVISION_STALE";
+        throw error;
+      }
+      return originalAppend(...args);
+    };
+
+    expect(() =>
+      migrateSavedLoopSession({
+        schedulerStore: store,
+        definition: f.definition({ cwd: "C:/workspace" }),
+        ...session,
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "LOOP_SCHEDULER_MIGRATION_SOURCE_CHANGED",
+      }),
+    );
+    expect(
+      session.events.filter((event) => event.type === "loop_config").at(-1)
+        .data,
+    ).toMatchObject({ every: "10s", operands: ["npm", "test"] });
   });
 
   it("recovers Loop migration after the session marker write", () => {

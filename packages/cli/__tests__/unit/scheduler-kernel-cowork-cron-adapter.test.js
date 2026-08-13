@@ -11,8 +11,10 @@ import {
   claimScheduleFire,
   completeSchedulerScheduleFire,
   coworkCronMigrationSourceDigest,
+  coworkCronMigrationSourceSnapshot,
   getSchedule,
   prepareCoworkSchedulerMigration,
+  restoreCoworkSchedulerMigration,
   saveSchedules,
   settleScheduleFire,
 } from "../../src/lib/cowork-cron.js";
@@ -214,6 +216,17 @@ describe("scheduler-kernel Cowork cron adapter", () => {
       }),
     ).toMatchObject({ id: migrated.id, state: "retired" });
 
+    schedulerStore.beginDomainMigrationRollback(migrated.id);
+    const rollbackSource = getSchedule(f.cwd, schedule.id);
+    restoreCoworkSchedulerMigration(f.cwd, schedule.id, {
+      migrationId: migrated.id,
+      sourceDigest: coworkCronMigrationSourceDigest(rollbackSource),
+      targetJobId: migrated.entries[0].targetJobId,
+      retirementToken: migrated.entries[0].retirementToken,
+    });
+    expect(schedulerStore.getDomainMigration(migrated.id)).toMatchObject({
+      state: "rolling_back",
+    });
     expect(
       rollbackCoworkCronMigration({
         cwd: f.cwd,
@@ -239,11 +252,18 @@ describe("scheduler-kernel Cowork cron adapter", () => {
         now: f.clock(),
       }),
     ).not.toBeNull();
+    expect(
+      rollbackCoworkCronMigration({
+        cwd: f.cwd,
+        schedulerStore,
+        migrationId: migrated.id,
+      }),
+    ).toMatchObject({ state: "rolled_back", deduplicated: true });
   });
 
-  it("resumes Cowork migration after target staging and retirement write crashes", () => {
+  it("resumes Cowork migration from fresh bridges after staging and retirement crashes", async () => {
     const f = fixture();
-    const schedule = f.add();
+    const schedule = f.add({ cron: "0 0 1 1 *" });
     const schedulerStore = f.openScheduler();
     const desired = buildCoworkCronSchedulerJob(f.cwd, schedule);
     const source = {
@@ -276,13 +296,21 @@ describe("scheduler-kernel Cowork cron adapter", () => {
       targetJobId: desired.id,
     });
     schedulerStore.applyDomainMigration(prepared.id);
-    expect(
-      migrateCoworkCronSchedule({
-        cwd: f.cwd,
-        schedulerStore,
-        schedule: getSchedule(f.cwd, schedule.id),
-      }),
-    ).toMatchObject({ id: prepared.id, state: "retired" });
+    expect(schedulerStore.getJob(desired.id)).toMatchObject({ enabled: false });
+
+    const afterStagingCrash = new CoworkCronSchedulerBridge({
+      cwd: f.cwd,
+      schedulerStore: f.openScheduler(),
+      runTask: vi.fn(),
+      now: f.clock,
+      ownerId: "cowork-migration-restart-a",
+      leaseMs: 10_000,
+    });
+    await expect(afterStagingCrash.runDue()).resolves.toEqual([]);
+    expect(schedulerStore.getDomainMigration(prepared.id)).toMatchObject({
+      id: prepared.id,
+      state: "retired",
+    });
     const retired = schedulerStore.getDomainMigration(prepared.id);
     schedulerStore.db
       .prepare(
@@ -296,17 +324,62 @@ describe("scheduler-kernel Cowork cron adapter", () => {
          WHERE migration_id = ?`,
       )
       .run(prepared.id);
-    expect(
-      migrateCoworkCronSchedule({
-        cwd: f.cwd,
-        schedulerStore,
-        schedule: getSchedule(f.cwd, schedule.id),
-      }),
-    ).toMatchObject({
+    const afterRetirementCrash = new CoworkCronSchedulerBridge({
+      cwd: f.cwd,
+      schedulerStore: f.openScheduler(),
+      runTask: vi.fn(),
+      now: f.clock,
+      ownerId: "cowork-migration-restart-b",
+      leaseMs: 10_000,
+    });
+    await expect(afterRetirementCrash.runDue()).resolves.toEqual([]);
+    expect(schedulerStore.getDomainMigration(prepared.id)).toMatchObject({
       id: prepared.id,
       state: "retired",
       entries: [{ retirementToken: retired.entries[0].retirementToken }],
     });
+    expect(schedulerStore.getJob(desired.id)).toMatchObject({ enabled: true });
+  });
+
+  it("rolls back a staged Cowork target before retirement assigns a token", () => {
+    const f = fixture();
+    const schedule = f.add({ cron: "0 0 1 1 *" });
+    const schedulerStore = f.openScheduler();
+    const desired = buildCoworkCronSchedulerJob(f.cwd, schedule);
+    const prepared = schedulerStore.prepareDomainMigration({
+      entries: [
+        {
+          domain: "cowork-cron",
+          sourceId: schedule.id,
+          sourceScope: {
+            store: "cowork-schedules",
+            workspace: f.cwd.toLowerCase(),
+          },
+          source: coworkCronMigrationSourceSnapshot(schedule),
+          targetJob: desired,
+          rollbackStrategy: "disable",
+        },
+      ],
+    });
+    prepareCoworkSchedulerMigration(f.cwd, schedule.id, {
+      migrationId: prepared.id,
+      sourceDigest: coworkCronMigrationSourceDigest(schedule),
+      targetJobId: desired.id,
+    });
+    const applied = schedulerStore.applyDomainMigration(prepared.id);
+    expect(applied.entries[0].retirementToken).toBeNull();
+
+    expect(
+      rollbackCoworkCronMigration({
+        cwd: f.cwd,
+        schedulerStore,
+        migrationId: prepared.id,
+      }),
+    ).toMatchObject({ state: "rolled_back" });
+    expect(getSchedule(f.cwd, schedule.id)).not.toHaveProperty(
+      "schedulerMigration",
+    );
+    expect(schedulerStore.getJob(desired.id)).toMatchObject({ enabled: false });
   });
 
   it("binds an IANA zone and collapses downtime to one latest occurrence", async () => {

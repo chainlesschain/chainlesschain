@@ -540,16 +540,18 @@ export function rollbackRoutineMigration({
       "Routine rollback cannot operate on a mixed-domain migration",
     );
   }
-  schedulerStore.rollbackDomainMigrationTargets(migrationId);
+  if (migration.state === "rolled_back") return migration;
   for (const entry of entries) {
-    const restored = routineStore.restoreFromSchedulerMigration(
-      entry.sourceId,
-      {
-        migrationId,
-        targetJobId: entry.targetJobId,
-        retirementToken: entry.retirementToken,
-      },
-    );
+    if (entry.state === "rolled_back") continue;
+    const current = routineStore.get(entry.sourceId);
+    const restored = current.schedulerMigration
+      ? routineStore.restoreFromSchedulerMigration(entry.sourceId, {
+          migrationId,
+          sourceDigest: routineMigrationSourceDigest(current),
+          targetJobId: entry.targetJobId,
+          retirementToken: entry.retirementToken,
+        })
+      : current;
     schedulerStore.confirmDomainMigrationEntrySourceRestored({
       migrationId,
       entryId: entry.entryId,
@@ -908,11 +910,20 @@ export class RoutineSchedulerBridge {
         "Routine GitHub scheduler requires a fetchEvents function",
       );
     }
+    const activeMigration =
+      this.migrateLegacy &&
+      this.schedulerStore.getActiveDomainMigrationBySource({
+        domain: "routine",
+        sourceScope: { store: "routines", directory: this.routineStore.dir },
+        sourceId: routine.id,
+      });
     if (
       this.migrateLegacy &&
-      routine.enabled === true &&
-      !routine.schedulerMigration &&
-      routine.trigger?.kind === "github"
+      ((routine.schedulerMigration && activeMigration?.state !== "retired") ||
+        activeMigration?.state !== undefined ||
+        (routine.enabled === true &&
+          !routine.schedulerMigration &&
+          routine.trigger?.kind === "github"))
     ) {
       migrateRoutineSchedule({
         routineStore: this.routineStore,
@@ -995,6 +1006,31 @@ export class RoutineSchedulerBridge {
   async runDue({ signal } = {}) {
     const results = [];
     const observedOccurrences = new Set();
+    if (!signal?.aborted && this.migrateLegacy) {
+      const sourceScope = {
+        store: "routines",
+        directory: this.routineStore.dir,
+      };
+      const candidates = this.routineStore.list().filter((routine) => {
+        const activeMigration =
+          this.schedulerStore.getActiveDomainMigrationBySource({
+            domain: "routine",
+            sourceScope,
+            sourceId: routine.id,
+          });
+        if (routine.schedulerMigration) {
+          return activeMigration?.state !== "retired";
+        }
+        return activeMigration?.state !== undefined;
+      });
+      for (const routine of candidates) {
+        migrateRoutineSchedule({
+          routineStore: this.routineStore,
+          schedulerStore: this.schedulerStore,
+          routine,
+        });
+      }
+    }
     const recovered = await this.runtime.runUntilIdle({
       limit: 10_000,
       signal,
@@ -1016,23 +1052,6 @@ export class RoutineSchedulerBridge {
     if (signal?.aborted) return results;
 
     const now = normalizeEpochMs(Number(this.now()), "now");
-    if (this.migrateLegacy) {
-      const candidates = this.routineStore
-        .list()
-        .filter(
-          (routine) =>
-            routine.enabled === true &&
-            !routine.schedulerMigration &&
-            ["cron", "once"].includes(routine.trigger?.kind),
-        );
-      for (const routine of candidates) {
-        migrateRoutineSchedule({
-          routineStore: this.routineStore,
-          schedulerStore: this.schedulerStore,
-          routine,
-        });
-      }
-    }
     const due = [
       ...this.routineStore.due(now),
       ...this.routineStore.schedulerMigrated().filter((routine) => {
@@ -1060,6 +1079,23 @@ export class RoutineSchedulerBridge {
         deduplicated: occurrence.deduplicated,
         result,
       });
+    }
+    if (this.migrateLegacy) {
+      const candidates = this.routineStore
+        .list()
+        .filter(
+          (routine) =>
+            routine.enabled === true &&
+            !routine.schedulerMigration &&
+            ["cron", "once"].includes(routine.trigger?.kind),
+        );
+      for (const routine of candidates) {
+        migrateRoutineSchedule({
+          routineStore: this.routineStore,
+          schedulerStore: this.schedulerStore,
+          routine,
+        });
+      }
     }
     return results;
   }

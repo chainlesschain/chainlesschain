@@ -477,23 +477,28 @@ export function rollbackAgendaSchedulerMigration({
   schedulerStore,
   migrationId,
 }) {
-  const rollingBack = schedulerStore.beginDomainMigrationRollback(migrationId);
-  const entries = rollingBack.entries.filter(
+  const migration = schedulerStore.beginDomainMigrationRollback(migrationId);
+  const entries = migration.entries.filter(
     (entry) => entry.domain === "agenda",
   );
-  if (entries.length !== rollingBack.entries.length) {
+  if (entries.length !== migration.entries.length) {
     throw agendaError(
       "AGENDA_SCHEDULER_MIGRATION_DOMAIN_MISMATCH",
       "Agenda rollback cannot operate on a mixed-domain migration",
     );
   }
-  schedulerStore.rollbackDomainMigrationTargets(migrationId);
+  if (migration.state === "rolled_back") return migration;
   for (const entry of entries) {
-    const restored = agendaStore.restoreFromSchedulerMigration(entry.sourceId, {
-      migrationId,
-      targetJobId: entry.targetJobId,
-      retirementToken: entry.retirementToken,
-    });
+    if (entry.state === "rolled_back") continue;
+    const current = agendaStore.get(entry.sourceId);
+    const restored = current.schedulerMigration
+      ? agendaStore.restoreFromSchedulerMigration(entry.sourceId, {
+          migrationId,
+          sourceDigest: agendaMigrationSourceDigest(current),
+          targetJobId: entry.targetJobId,
+          retirementToken: entry.retirementToken,
+        })
+      : current;
     schedulerStore.confirmDomainMigrationEntrySourceRestored({
       migrationId,
       entryId: entry.entryId,
@@ -929,6 +934,31 @@ export class AgendaSchedulerBridge {
   async runDue({ signal } = {}) {
     const results = [];
     const observedOccurrences = new Set();
+    if (!signal?.aborted && this.migrateLegacy) {
+      const sourceScope = {
+        store: "agent-schedule",
+        directory: this.agendaStore.dir,
+      };
+      const candidates = this.agendaStore.list().filter((entry) => {
+        const activeMigration =
+          this.schedulerStore.getActiveDomainMigrationBySource({
+            domain: "agenda",
+            sourceScope,
+            sourceId: entry.id,
+          });
+        if (entry.schedulerMigration) {
+          return activeMigration?.state !== "retired";
+        }
+        return activeMigration?.state !== undefined;
+      });
+      for (const entry of candidates) {
+        migrateAgendaSchedulerEntry({
+          agendaStore: this.agendaStore,
+          schedulerStore: this.schedulerStore,
+          entry,
+        });
+      }
+    }
     const recovered = await this.runtime.runUntilIdle({
       limit: 10_000,
       signal,

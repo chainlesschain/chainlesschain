@@ -62,7 +62,7 @@ beforeEach(() => {
   chainlesschainHomeBefore = process.env.CHAINLESSCHAIN_HOME;
   process.env.CHAINLESSCHAIN_HOME = path.join(tmpDir, "home");
   _deps.openSchedulerStore = () =>
-    openSchedulerStore({ file: ":memory:", Database });
+    openSchedulerStore({ file: path.join(tmpDir, "scheduler.db"), Database });
   logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
   errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 });
@@ -297,7 +297,16 @@ describe("cc loop — --save / --resume persistence", () => {
     expect(s1.sessionId).toBe(id);
 
     const events1 = readEvents(id);
-    expect(events1.filter((e) => e.type === "loop_config")).toHaveLength(1);
+    expect(events1.filter((e) => e.type === "loop_config")).toHaveLength(2);
+    expect(
+      events1.filter((e) => e.type === "loop_config").at(-1).data,
+    ).toMatchObject({
+      operands: [],
+      schedulerMigrationFence: {
+        state: "retired",
+        originalConfig: { operands: ["node", expect.any(String)] },
+      },
+    });
     expect(
       events1.filter((e) => e.type === "loop_scheduler_migration"),
     ).toHaveLength(1);
@@ -305,7 +314,7 @@ describe("cc loop — --save / --resume persistence", () => {
       events1.find((e) => e.type === "loop_scheduler_migration")?.data,
     ).toMatchObject({
       state: "retired",
-      compatibility: "explicit-resume-only",
+      compatibility: "legacy-config-fenced",
     });
     expect(events1.filter((e) => e.type === "loop_iteration")).toHaveLength(2);
     expect(events1.filter((e) => e.type === "loop_end")).toHaveLength(1);
