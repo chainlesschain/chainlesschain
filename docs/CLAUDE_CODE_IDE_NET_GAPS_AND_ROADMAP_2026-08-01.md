@@ -1447,11 +1447,13 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
   四层拒绝。child IPC 增加私有 nonce、sender PID 与 delegation owner 校验；`error -> close`、状态投影清理
   失败和异常 child exit 均不能吞掉已持久化 terminal answer。stop/remove 只对带成功 fresh creation-time
   probe 的精确进程身份发送信号，缺 anchor、探针失败、PID reuse 或 self PID 一律保留可见 stop-pending/
-  lost 状态而不误杀。
-- **本地候选验证已通过。** supervisor 为 **69 passed / 2 skipped**；session store、persistence failure 与
+  lost 状态而不误杀。POSIX stop 又将 detached process group 纳入执行存活判定：leader 已成为 zombie 或被
+  reap 时，只要 group 仍有可执行成员或 group snapshot 不可验证，就继续保持 stop-pending 并阻止恢复和
+  worktree 删除；只有空 group 或全 zombie group 才可判定停止。
+- **本地候选验证已通过。** supervisor 为 **69 passed / 7 skipped**；session store、persistence failure 与
   host lease 为 **160 passed / 1 skipped**；interaction journal/resolver、worker termination 与 headless resume
   为 **38/38**；argv/profile/worktree 与四个真实后台 worker/transport 回归为 **31/31**，合计
-  **298 passed / 3 skipped**，并通过变更文件语法检查与 `git diff --check`。独立审计额外发现并关闭损坏
+  **298 passed / 8 skipped**，并通过变更文件语法检查与 `git diff --check`。独立审计额外发现并关闭损坏
   `agentPid=self` 可能误杀当前 stop 进程的反例。本记录是 exact-head GitHub Actions 和合并前的内部候选证据，
   **不减少 15 个剩余工作包**，也不替代 S0-1 的任意断电/fsync、强篡改者、跨宿主即时撤权及长期矩阵。
 

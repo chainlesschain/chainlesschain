@@ -53,6 +53,8 @@ const originalSpawn = _deps.spawn;
 const originalSpawnSync = _deps.spawnSync;
 const originalReadStart = _deps.readProcessStartTimeMs;
 const originalReadProcessState = _deps.readProcessState;
+const originalReadProcessGroupStates = _deps.readProcessGroupStates;
+const originalProcessExitWaitDeadlineMs = _deps.processExitWaitDeadlineMs;
 const originalKillTree = _deps.killProcessTree;
 const originalKill = _deps.kill;
 const originalGetSessionPresence = _deps.getSessionPresence;
@@ -148,10 +150,14 @@ function reapTree(pid) {
 function isProcessStillAlive(pid) {
   try {
     process.kill(Number(pid), 0);
-    return true;
   } catch {
     return false;
   }
+  if (process.platform !== "win32") {
+    const state = originalReadProcessState(pid);
+    if (state === "Z" || state === "X") return false;
+  }
+  return true;
 }
 
 async function waitForLaunchedProcessesToExit() {
@@ -198,6 +204,10 @@ beforeEach(() => {
   // the pre-Gap-1 kill(pid,0) semantics every legacy fixture here assumes.
   // Identity tests inject their own probe explicitly.
   _deps.readProcessStartTimeMs = () => null;
+  // Fixture pids do not own process groups. Tests exercising zombie/group
+  // behavior override this seam explicitly; keeping legacy fixtures hermetic
+  // avoids scanning or depending on unrelated CI-runner processes.
+  _deps.readProcessGroupStates = () => [];
   _deps.getSessionPresence = () => SESSION_PRESENCE.ABSENT;
   // Hermetic kills: NO unit test in this file may deliver a real signal —
   // stop-flow fixtures record live-looking pids, and before this seam existed
@@ -220,6 +230,8 @@ afterEach(async () => {
   _deps.spawnSync = originalSpawnSync;
   _deps.readProcessStartTimeMs = originalReadStart;
   _deps.readProcessState = originalReadProcessState;
+  _deps.readProcessGroupStates = originalReadProcessGroupStates;
+  _deps.processExitWaitDeadlineMs = originalProcessExitWaitDeadlineMs;
   _deps.killProcessTree = originalKillTree;
   _deps.kill = originalKill;
   _deps.getSessionPresence = originalGetSessionPresence;
@@ -1210,6 +1222,33 @@ describe("background agent supervisor", () => {
     ).toThrow(/turn launch intent is unresolved/i);
   });
 
+  it.skipIf(process.platform === "win32")(
+    "refuses worktree cleanup while a zombie leader group can still execute",
+    () => {
+      const sleeperPid = spawnSleeperPid();
+      const startedAt = Date.now();
+      const worktreePath = join(dir, "zombie-live-group-worktree");
+      mkdirSync(worktreePath);
+      _deps.readProcessState = vi.fn(() => "Z");
+      _deps.readProcessGroupStates = vi.fn(() => ["Z", "S"]);
+      _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+
+      expect(() =>
+        cleanupBackgroundAgentWorktree({
+          id: "bg-zombie-live-group-worktree",
+          status: "lost",
+          pid: sleeperPid,
+          startedAt,
+          repoRoot: dir,
+          worktreePath,
+          baseSha: "a".repeat(40),
+          branch: "cc-agent-zombie-live-group",
+        }),
+      ).toThrow(/active worker process/i);
+      expect(existsSync(worktreePath)).toBe(true);
+    },
+  );
+
   it("does not stop a stale-heartbeat session even if its pid is alive", () => {
     writeBackgroundAgentState({
       id: "bg-reused-abc",
@@ -1277,7 +1316,11 @@ describe("background agent supervisor", () => {
       stopPendingReason: "identity-unverifiable",
     });
     expect(_deps.kill).not.toHaveBeenCalled();
-    expect(_deps.spawnSync).not.toHaveBeenCalled();
+    expect(_deps.spawnSync).not.toHaveBeenCalledWith(
+      "taskkill",
+      expect.any(Array),
+      expect.any(Object),
+    );
   });
 
   it("renames a background agent and persists the title", () => {
@@ -1871,6 +1914,28 @@ describe("background agent supervisor", () => {
   );
 
   it.skipIf(process.platform === "win32")(
+    "reads POSIX group states through the constrained execution broker",
+    () => {
+      _deps.spawnSync = vi.fn(() => ({
+        status: 0,
+        stdout: "  41 Z\n  42 Ss\n  42 Z+\n",
+      }));
+
+      expect(originalReadProcessGroupStates(42)).toEqual(["S", "Z"]);
+      expect(_deps.spawnSync).toHaveBeenCalledWith(
+        "ps",
+        ["-A", "-o", "pgid=", "-o", "stat="],
+        expect.objectContaining({
+          origin: "background-agent:process-group-state",
+          policy: "allow",
+          scope: "background-agent",
+          shell: false,
+        }),
+      );
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
     "treats a signalled POSIX zombie as terminated before parent reaping",
     () => {
       const sleeperPid = spawnSleeperPid();
@@ -1886,12 +1951,102 @@ describe("background agent supervisor", () => {
         .fn()
         .mockReturnValueOnce("S")
         .mockReturnValue("Z");
+      _deps.readProcessGroupStates = vi.fn(() => ["Z"]);
       _deps.kill = vi.fn();
 
       const state = stopBackgroundAgent("bg-stop-posix-zombie");
 
       expect(state).toMatchObject({ status: "stopped", stopped: true });
       expect(_deps.kill).toHaveBeenCalledWith(-sleeperPid, "SIGTERM");
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "keeps stop pending while a zombie POSIX leader has an executing group member",
+    () => {
+      const sleeperPid = spawnSleeperPid();
+      const startedAt = Date.now();
+      writeBackgroundAgentState({
+        id: "bg-stop-posix-zombie-live-group",
+        status: "running",
+        pid: sleeperPid,
+        startedAt,
+      });
+      _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+      _deps.readProcessState = vi
+        .fn()
+        .mockReturnValueOnce("S")
+        .mockReturnValue("Z");
+      _deps.readProcessGroupStates = vi.fn(() => ["Z", "S"]);
+      _deps.processExitWaitDeadlineMs = 0;
+      _deps.kill = vi.fn();
+
+      const state = stopBackgroundAgent("bg-stop-posix-zombie-live-group");
+
+      expect(state).toMatchObject({
+        status: "running",
+        stopped: false,
+        stopPending: true,
+        stopPendingReason: "process-exit",
+      });
+      expect(_deps.kill).toHaveBeenCalledWith(-sleeperPid, "SIGTERM");
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "fails closed when a zombie POSIX group snapshot cannot be read",
+    () => {
+      const sleeperPid = spawnSleeperPid();
+      const startedAt = Date.now();
+      writeBackgroundAgentState({
+        id: "bg-stop-posix-zombie-unknown-group",
+        status: "running",
+        pid: sleeperPid,
+        startedAt,
+      });
+      _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+      _deps.readProcessState = vi
+        .fn()
+        .mockReturnValueOnce("S")
+        .mockReturnValue("Z");
+      _deps.readProcessGroupStates = vi.fn(() => null);
+      _deps.processExitWaitDeadlineMs = 0;
+      _deps.kill = vi.fn();
+
+      const state = stopBackgroundAgent("bg-stop-posix-zombie-unknown-group");
+
+      expect(state).toMatchObject({
+        stopped: false,
+        stopPending: true,
+        stopPendingReason: "process-exit",
+      });
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "fails closed when descendants survive a POSIX leader PID reuse",
+    () => {
+      const sleeperPid = spawnSleeperPid();
+      const startedAt = Date.now() - 300_000;
+      writeBackgroundAgentState({
+        id: "bg-stop-posix-reused-live-group",
+        status: "running",
+        pid: sleeperPid,
+        startedAt,
+      });
+      _deps.readProcessState = vi.fn(() => "S");
+      _deps.readProcessStartTimeMs = vi.fn(() => Date.now());
+      _deps.readProcessGroupStates = vi.fn(() => ["S"]);
+      _deps.kill = vi.fn();
+
+      const state = stopBackgroundAgent("bg-stop-posix-reused-live-group");
+
+      expect(state).toMatchObject({
+        stopped: false,
+        stopPending: true,
+        stopPendingReason: "identity-unverifiable",
+      });
+      expect(_deps.kill).not.toHaveBeenCalled();
     },
   );
 

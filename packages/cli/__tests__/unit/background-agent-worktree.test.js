@@ -283,6 +283,10 @@ describe("background agent worktree lifecycle", () => {
     const worktree = setupAgentWorktree({ cwd: repo });
     writeBackgroundAgentState(
       terminalState("bg-wt-active", worktree, {
+        // This fixture isolates the worktree blocker. Canonical interaction
+        // recovery has its own tests and would correctly fail earlier when a
+        // terminal record still names a live process.
+        sessionId: null,
         pid: process.pid,
         workerPid: process.pid,
         uncertainSideEffects: 1,

@@ -201,8 +201,55 @@ function defaultReadProcessState(pid) {
       "background-agent:process-state",
     );
     if (result.error || result.status !== 0) return null;
-    const state = String(result.stdout || "").trim().charAt(0).toUpperCase();
+    const state = String(result.stdout || "")
+      .trim()
+      .charAt(0)
+      .toUpperCase();
     return /^[A-Z]$/.test(state) ? state : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Read every state in the POSIX process group whose id is `pgid`.
+ *
+ * Both procps (Linux) and BSD ps (macOS) support repeated `-o` fields and an
+ * empty header (`field=`).  Enumerating the table is more portable than the
+ * incompatible Linux/BSD process-group selector flags.  `null` means the
+ * snapshot could not be trusted; callers must keep treating the group as live.
+ */
+function defaultReadProcessGroupStates(pgid) {
+  const target = Number(pgid);
+  if (
+    process.platform === "win32" ||
+    !Number.isInteger(target) ||
+    target <= 0
+  ) {
+    return null;
+  }
+  try {
+    const result = runSupervisorCommand(
+      "ps",
+      ["-A", "-o", "pgid=", "-o", "stat="],
+      {
+        encoding: "utf8",
+        timeout: 5_000,
+        maxBuffer: 16 * 1024 * 1024,
+      },
+      "background-agent:process-group-state",
+    );
+    if (result.error || result.status !== 0) return null;
+    const states = [];
+    for (const line of String(result.stdout || "").split(/\r?\n/)) {
+      if (!line.trim()) continue;
+      const match = /^\s*(\d+)\s+([A-Za-z])/.exec(line);
+      // Unexpected output (including an unsuppressed header) makes the whole
+      // snapshot untrusted instead of accidentally declaring a group dead.
+      if (!match) return null;
+      if (Number(match[1]) === target) states.push(match[2].toUpperCase());
+    }
+    return states;
   } catch {
     return null;
   }
@@ -258,6 +305,8 @@ export const _deps = {
   getSessionPresence,
   readProcessStartTimeMs: defaultReadProcessStartTimeMs,
   readProcessState: defaultReadProcessState,
+  readProcessGroupStates: defaultReadProcessGroupStates,
+  processExitWaitDeadlineMs: 2_000,
   killProcessTree: defaultKillProcessTree,
   terminateOwnedProcessTree,
 };
@@ -866,6 +915,28 @@ function isProcessExecutionAlive(pid) {
   return state !== "Z" && state !== "X";
 }
 
+function inspectProcessGroupExecution(pgid) {
+  const states = _deps.readProcessGroupStates(pgid);
+  if (!Array.isArray(states)) return { status: "unknown" };
+  return {
+    status: states.some((state) => state !== "Z" && state !== "X")
+      ? "alive"
+      : "dead",
+    states,
+  };
+}
+
+function isSignalledTargetExecutionAlive(target) {
+  if (isProcessExecutionAlive(target.pid)) return true;
+  if (process.platform === "win32" || target.signalledAsGroup !== true) {
+    return false;
+  }
+  // The detached group leader can be reaped (or remain a zombie) while a tool
+  // grandchild in the same group still executes. Unknown snapshots fail
+  // closed as alive so interaction recovery never races an orphaned tool.
+  return inspectProcessGroupExecution(target.pid).status !== "dead";
+}
+
 /**
  * Is the live process at `pid` the SAME process the state file recorded at
  * `expectedStartedAtMs` — or a pid-reusing stranger? (Gap 1.)
@@ -879,7 +950,7 @@ function isProcessExecutionAlive(pid) {
  *   born after the original died)
  */
 export function isSameProcess(pid, expectedStartedAtMs, options = {}) {
-  if (!isProcessAlive(pid)) return false;
+  if (!isProcessExecutionAlive(pid)) return false;
   const expected = Number(expectedStartedAtMs);
   if (!Number.isFinite(expected) || expected <= 0) return true;
   const actual = processStartTimeMs(pid);
@@ -912,8 +983,39 @@ function inspectDestructiveProcessIdentity(
   if (target === process.pid) {
     return { status: "self", reason: "current-process", pid: target };
   }
-  if (!isProcessExecutionAlive(target)) {
-    return { status: "dead", reason: "not-executing", pid: target };
+  const leaderAlive = isProcessAlive(target);
+  const leaderState = leaderAlive ? _deps.readProcessState(target) : null;
+  const leaderCanExecute =
+    leaderAlive && leaderState !== "Z" && leaderState !== "X";
+  if (!leaderCanExecute) {
+    if (process.platform === "win32") {
+      return { status: "dead", reason: "not-executing", pid: target };
+    }
+    const group = inspectProcessGroupExecution(target);
+    if (group.status === "dead") {
+      return {
+        status: "dead",
+        reason: "process-group-not-executing",
+        pid: target,
+      };
+    }
+    if (group.status === "unknown") {
+      return {
+        status: "unverifiable",
+        reason: "process-group-state-probe-failed",
+        pid: target,
+      };
+    }
+    if (!leaderAlive) {
+      // A live group whose leader has already disappeared has no remaining
+      // creation-time identity that can authorize signalling. Keep the stop
+      // fenced rather than risking an unrelated, reused process group.
+      return {
+        status: "unverifiable",
+        reason: "process-group-owner-not-verifiable",
+        pid: target,
+      };
+    }
   }
   const expected = Number(expectedStartedAtMs);
   if (!Number.isFinite(expected) || expected <= 0) {
@@ -936,6 +1038,25 @@ function inspectDestructiveProcessIdentity(
     ? Number(options.toleranceMs)
     : PID_IDENTITY_TOLERANCE_MS;
   if (Math.abs(actual - expected) > tolerance) {
+    if (process.platform !== "win32") {
+      const group = inspectProcessGroupExecution(target);
+      // The leader PID can be reused while descendants from its detached
+      // process group still execute under the old PGID. We can prove the new
+      // PID is not ours, but cannot prove that the group is empty unless this
+      // snapshot succeeds. Never recover/delete through that ambiguity.
+      if (group.status !== "dead") {
+        return {
+          status: "unverifiable",
+          reason:
+            group.status === "alive"
+              ? "process-group-survived-pid-reuse"
+              : "process-group-state-probe-failed",
+          pid: target,
+          expectedStartedAt: expected,
+          actualStartedAt: actual,
+        };
+      }
+    }
     return {
       status: "reused",
       pid: target,
@@ -2138,6 +2259,14 @@ function recordedBackgroundProcessesAlive(state) {
   );
 }
 
+function isRecordedProcessTreeExecutionAlive(pid, startedAt) {
+  const identity = inspectDestructiveProcessIdentity(pid, startedAt);
+  // `unverifiable` includes a vanished/zombie POSIX leader whose process group
+  // is still executable or whose group snapshot failed. Both must block
+  // worktree deletion just as a verified live leader does.
+  return ["match", "unverifiable", "self"].includes(identity.status);
+}
+
 function signalBackgroundProcessTree(pid, signal = "SIGTERM") {
   const target = Number(pid);
   if (process.platform === "win32") {
@@ -2154,12 +2283,14 @@ function signalBackgroundProcessTree(pid, signal = "SIGTERM") {
           `taskkill exited ${killed.status}`,
       );
     }
-    return;
+    return "process-tree";
   }
   try {
     _deps.kill(-target, signal);
+    return "process-group";
   } catch {
     _deps.kill(target, signal);
+    return "process";
   }
 }
 
@@ -2206,14 +2337,21 @@ function persistStopPending(state, reason, details = {}) {
   };
 }
 
-function waitForSignalledProcessesToExit(targets, deadlineMs = 2_000) {
-  const deadline = Date.now() + deadlineMs;
-  while (targets.some((target) => isProcessExecutionAlive(target.pid))) {
+function waitForSignalledProcessesToExit(
+  targets,
+  deadlineMs = _deps.processExitWaitDeadlineMs,
+) {
+  const configuredDeadline = Number(deadlineMs);
+  const waitMs = Number.isFinite(configuredDeadline)
+    ? Math.max(0, configuredDeadline)
+    : 2_000;
+  const deadline = Date.now() + waitMs;
+  while (targets.some(isSignalledTargetExecutionAlive)) {
     if (Date.now() >= deadline) break;
     sleepSyncMs(10);
   }
   return targets.filter((target) => {
-    if (!isProcessExecutionAlive(target.pid)) return false;
+    if (!isSignalledTargetExecutionAlive(target)) return false;
     const identity = inspectDestructiveProcessIdentity(
       target.pid,
       target.startedAt,
@@ -2366,7 +2504,9 @@ export function stopBackgroundAgent(id) {
       // The child is detached into its own group and therefore gets its own
       // exact-identity signal before the worker tree is terminated.
       for (const target of targets) {
-        signalBackgroundProcessTree(target.pid, "SIGTERM");
+        target.signalledAsGroup =
+          signalBackgroundProcessTree(target.pid, "SIGTERM") ===
+          "process-group";
         signalledPids.add(target.pid);
       }
     } catch (error) {
@@ -2484,14 +2624,14 @@ function activeWorktreeProcesses(state) {
   if (
     Number.isInteger(Number(state?.pid)) &&
     Number(state.pid) > 0 &&
-    isSameProcess(state.pid, state.startedAt)
+    isRecordedProcessTreeExecutionAlive(state.pid, state.startedAt)
   ) {
     active.push("worker");
   }
   if (
     Number.isInteger(Number(state?.agentPid)) &&
     Number(state.agentPid) > 0 &&
-    isSameProcess(state.agentPid, state.agentStartedAt)
+    isRecordedProcessTreeExecutionAlive(state.agentPid, state.agentStartedAt)
   ) {
     active.push("agent");
   }
