@@ -35,6 +35,7 @@ import {
 } from "../../src/lib/background-agent-supervisor.js";
 import { connectBackgroundSession } from "../../src/lib/background-session-transport.js";
 import { loadBackgroundInteractionJournal } from "../../src/lib/background-interaction-journal.js";
+import { readEvents } from "../../src/harness/jsonl-session-store.js";
 
 let dir;
 let launchedIds;
@@ -323,10 +324,15 @@ describe("P0-2 same-turn question round-trip (real worker/child IPC)", () => {
     const interactionModule = pathToFileURL(
       join(process.cwd(), "src", "lib", "background-interaction-resolver.js"),
     ).href;
+    const sessionStoreModule = pathToFileURL(
+      join(process.cwd(), "src", "harness", "jsonl-session-store.js"),
+    ).href;
     const state = launch({
       script: [
         `import { createBackgroundInteractionClient } from ${JSON.stringify(interactionModule)};`,
+        `import { startSession } from ${JSON.stringify(sessionStoreModule)};`,
         `import { writeFileSync } from "node:fs";`,
+        `startSession("sid-same-turn", { title: "same-turn", provider: "test", model: "fake" });`,
         `const client = createBackgroundInteractionClient({`,
         `  sessionId: "sid-same-turn",`,
         `  turnId: "provider-turn-1",`,
@@ -480,6 +486,16 @@ describe("P0-2 same-turn question round-trip (real worker/child IPC)", () => {
     expect(
       new Set(interactionEvents.map((event) => event.requestId)),
     ).toHaveLength(1);
+    const transcriptEvents = readEvents("sid-same-turn");
+    expect(transcriptEvents[0]?.type).toBe("session_start");
+    expect(
+      transcriptEvents.filter((event) => event.type === "session_start"),
+    ).toHaveLength(1);
+    expect(
+      transcriptEvents.filter(
+        (event) => event.type === "background_interaction_journal",
+      ),
+    ).toHaveLength(2);
     const journal = loadBackgroundInteractionJournal("sid-same-turn", state.id);
     expect(journal.get(firstRequest.requestId)).toMatchObject({
       status: "resolved",
