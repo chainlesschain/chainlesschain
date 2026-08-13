@@ -70,6 +70,10 @@ const EVENT_DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/;
 const CASE_ID_PATTERN = /^tadj_[a-f0-9]{64}$/;
 const CLAIM_ID_PATTERN =
   /^tadj_claim_[a-zA-Z0-9](?:[a-zA-Z0-9._-]{0,126}[a-zA-Z0-9])?$/;
+const WINDOWS_RENAME_TRANSIENT_CODES = new Set(["EACCES", "EBUSY", "EPERM"]);
+const WINDOWS_RENAME_RETRY_DELAYS_MS = Object.freeze([
+  5, 10, 20, 40, 80, 100, 100, 100,
+]);
 const DECISIONS = new Set(Object.values(TEAM_ADJUDICATION_DECISIONS));
 const HEADER_KEYS = new Set([
   "schema",
@@ -128,6 +132,19 @@ export class TeamAdjudicationError extends Error {
 
 function adjudicationError(code, message, details = {}, cause = null) {
   return new TeamAdjudicationError(code, message, details, cause);
+}
+
+function sleepSync(milliseconds) {
+  const duration = Math.max(0, Number(milliseconds) || 0);
+  if (duration === 0) return;
+  try {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, duration);
+  } catch {
+    const deadline = Date.now() + duration;
+    while (Date.now() < deadline) {
+      // SharedArrayBuffer is unavailable; retain a bounded synchronous wait.
+    }
+  }
 }
 
 function isAdjudicationError(error) {
@@ -892,11 +909,13 @@ export class TeamAdjudicationStore {
     _lock = withFileLock,
     _randomUUID = randomUUID,
     _platform = process.platform,
+    _sleep = sleepSync,
   } = {}) {
     this._fs = _fs;
     this._lock = _lock;
     this._randomUUID = _randomUUID;
     this._platform = _platform;
+    this._sleep = typeof _sleep === "function" ? _sleep : sleepSync;
     this._now = typeof now === "function" ? now : () => Number(now);
     this.lockTimeoutMs = Math.max(0, Number(lockTimeoutMs) || 0);
     this.lockStaleMs = Math.max(1, Number(lockStaleMs) || 30_000);
@@ -1161,7 +1180,27 @@ export class TeamAdjudicationStore {
             descriptor = null;
 
             this._assertAuthorityPaths();
-            this._fs.renameSync(temporaryPath, canonicalPath);
+            let renameAttempt = 0;
+            for (;;) {
+              try {
+                this._fs.renameSync(temporaryPath, canonicalPath);
+                break;
+              } catch (cause) {
+                const delay = WINDOWS_RENAME_RETRY_DELAYS_MS[renameAttempt];
+                if (
+                  this._platform !== "win32" ||
+                  !WINDOWS_RENAME_TRANSIENT_CODES.has(cause?.code) ||
+                  delay === undefined
+                ) {
+                  throw cause;
+                }
+                renameAttempt += 1;
+                this._sleep(delay);
+                // Keep each retry bound to the same canonical authority after
+                // yielding to a transient Windows file-sharing holder.
+                this._assertAuthorityPaths();
+              }
+            }
             renamed = true;
             this._fs.chmodSync(canonicalPath, 0o600);
             const persisted = this._secureRead();

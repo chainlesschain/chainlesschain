@@ -1419,11 +1419,11 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 
 ### 18.3 P2-4 剩余 3 个内部子项
 
-1. **完整迁移与回滚**：覆盖五类入口、多套 store/schema、混合版本兼容、幂等迁移、失败回滚和旧数据退场；PR #173 的 legacy Cowork cursor、PR #175 的 scheduler store v1→v2 以及 PR #180 的 v1/v2→v3 forward migration 都只关闭各自窄切片。
+1. **完整迁移与回滚（本地候选已实现，正式状态未关闭）**：当前候选已覆盖 Agenda、Cowork Cron、Routine、Automation、Loop 五类入口，以及统一 journal、幂等迁移、目标回滚与旧源恢复；但尚未完成最终提交/合并和待发布 exact SHA 的权威门禁，因此仍计为未完成。PR #173 的 legacy Cowork cursor、PR #175 的 scheduler store v1→v2 以及 PR #180 的 v1/v2→v3 forward migration 仍只能作为此前各自的窄切片证据，不能替代本候选的最终验证。
 2. **磁盘故障矩阵**：覆盖 ENOSPC、partial write、fsync/rename/SQLite 故障、损坏记录、重启恢复与 fail-closed 行为。
 3. **三平台长期 soak**：在 Linux、Windows、macOS 上验证 kill/restart、双实例 lease/fencing、DST 边界、积压恢复、FD/handle/orphan 退休与长期资源稳定性。
 
-按当前范围，P2-4 剩余粗估为 **0.75～2.5 周（单工程师）/0.5～1.5 周（两人有效并行）**。下一项只做完整迁移/回滚，正式关闭后再依次处理磁盘故障和三平台长期 soak；每次只把已获得 exact-SHA CI/Strict Sandbox 与相应 artifact 的子项从清单删除。
+按当前候选已经完成的代码量，迁移/回滚切片剩余约 **0.5～2 个工程日**用于完整 CLI 分片复验、审计收尾、提交/PR 和 exact-SHA 门禁；若三平台暴露路径、原生 SQLite 或时序问题，则另预留 **1～3 个工程日**。磁盘故障矩阵粗估 **2～5 个工程日**，三平台长期 soak 的脚本/修复粗估 **2～4 个工程日**，并至少需要 **3～7 个自然日**观察窗口。综合仍按约 **0.75～2 周（单工程师）/0.5～1.25 周（两人有效并行）**计划，长期 soak 的自然时间不能靠并行完全压缩。迁移/回滚正式关闭后再依次处理磁盘故障和三平台长期 soak；每次只把已获得 exact-SHA CI/Strict Sandbox 与相应 artifact 的子项从清单删除。
 
 截至本次核验，先前列为候选的 Automation 相关 PR 状态已更新如下；这些合并扩大了 `main` 功能面，但不替代 P2-4 剩余三项的退出条件：
 
@@ -1446,7 +1446,7 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 
 ### 18.5 推荐执行顺序与总判定
 
-1. 下一项只关闭 P2-4 完整迁移/回滚。
+1. 先完成 P2-4 迁移/回滚候选的完整 CLI 分片、审计、提交/PR 与 exact-SHA 权威门禁；在此之前该子项仍不从未完成清单删除。
 2. 迁移/回滚正式关闭后，再依次关闭磁盘故障和三平台长期 soak。
 3. 并行推进 Skill/MCP 剩余平台安全边界；该项取得完整三平台恶意证据前保持 NO-GO。
 4. 签名 native 发行等待真实凭据/渠道，一旦前置到位即按 exact-SHA 六目标矩阵执行。
@@ -1463,3 +1463,14 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 - 提交前本地证据为 9 个聚焦测试文件 **128/128 passed**，覆盖 v1→v3、v2→v3 迁移、schema fingerprint、防并发 CAS、只筛真正 outcome-unknown、单调 deny、预算 reservation 复用、无副作用 replay 的 confirmed-applied、五类 adapter 的 confirmed-not-applied 恢复以及 CLI TTY/challenge。目标 ESLint 为 **0 errors、7 个既有 warnings**；Prettier、Node syntax、`git diff --check`、help-index/completions check 与 production command help 均通过。
 - [PR #180](https://github.com/chainlesschain/chainlesschain/pull/180) 的最终 head `15f337b919df501fbd5d1e5b2c72859b01f5c142` 已以 merge commit `7057d1ad31baebf4b185d114095e7fe63d2fc959` 进入 `main`。该 head 的 [CLI CI `31609620383`](https://github.com/chainlesschain/chainlesschain/actions/runs/31609620383) attempt 2 为 **53/53 success**，[CLI Strict Sandbox `31609663692`](https://github.com/chainlesschain/chainlesschain/actions/runs/31609663692) 为 Ubuntu、macOS、Windows **3/3 success**，两套 workflow 的 `headSha` 均为最终 head。首个 head 的 CLI CI 暴露 `0.163.6` canonical changelog 与内置 artifact 漂移，随后只重新生成 artifact 并形成最终 head；最终 head 首轮唯一失败是未修改的 Windows `headless-stream-questions` 在 `timeout` 与 `stdin-closed` 两个等价终态间的计时竞态，同分片 7361 项及 changelog parity 均通过，同一 SHA 只重跑失败 job 后成功，三平台 `verify-cli` 随后全部成功。没有借用旧 SHA 的 Strict 结果，也没有把首轮失败冒充通过。
 - 因此 outcome-unknown 人工裁决从“本地候选”更新为**正式已合并 P2-4 子项**，第 18.3 节内部未完成数由 4 个降为 3 个：完整迁移/回滚、磁盘故障、三平台长期 soak。原始 15 项粗粒度统计仍是 **8 完成、7 部分完成、0 完全未开始；7 项未完全关闭**，因为 P2-4 整项仍未满足全部退出条件。本次没有修改 CLI 版本、创建 release tag 或发布 npm。
+
+### 18.7 2026-08-13 P2-4 五域迁移/回滚本地候选进展
+
+- 当前工作分支为 `feature/cli-scheduler-migration-v1`，已形成 Agenda、Cowork Cron、Routine、Automation、Loop 五域迁移提交，并继续在同一候选上做 rollback 管理面和故障恢复加固。该候选尚未合并到 `main`；以下内容均是**本地候选事实**，不是正式完成或发布证据。
+- scheduler store 已前向迁移到 **schema v5**，新增 `source_locator_json`。五域 locator 使用按 domain 收紧的结构（Agenda/Routine 目录、Cowork workspace、Automation database、Loop session ID + directory），校验其与 source scope 一致并拒绝额外/敏感字段；管理输出只暴露 locator 是否存在及其 SHA-256 digest，不回显原始路径。locator 可对旧 journal 做一次性 CAS 绑定/补写，但不会改变原 migration/entry 的不可变业务身份；冲突绑定、同源多 entry 和 target definition 漂移均失败关闭。
+- Windows source path 使用独立 canonical 规则：只接受完整 drive 路径或完整 UNC share，统一分隔符并大小写折叠；拒绝 `C:relative`、`\root-relative`、不完整 UNC 及 `\\.\pipe` 等 device namespace。Agenda、Cowork、Routine、Automation 和 Loop 均在 journal 前持久化该 canonical identity，避免相同源因 Windows 拼写差异形成两份迁移或回滚到错误位置。
+- 新管理面为 `cc daemon scheduler migration list|show|rollback`。`list/show` 返回去敏 journal、target 计数和 rollback blockers；`rollback` 要求最新 evidence digest、交互 TTY 和逐字 challenge，并为五域分别重新打开/核验源 store。rollback 顺序为**先停用或恢复 scheduler target，再恢复 legacy source**：target revision、definition digest、执行证据与 journal 状态在 SQLite transaction/CAS 下推进；跨 store 的 source restore 再以原 source digest、retirement token 和 marker/fence 复核，进程在 source 已恢复但 journal 未落盘的窗口退出时可幂等重试。它不是跨文件系统的全局原子事务，也不外推为断电/磁盘损坏已经验证。
+- Automation locator 绑定到 canonical database identity；从磁盘打开时强制 `fileMustExist`，不会因路径错误静默创建空数据库。由于 sql.js/WASM 兼容层的持久化不提供本迁移所要求的原子 durability，Automation migration 与 rollback 在该后端上明确 **fail closed**，只允许 native SQLite 执行；这不表示整个 CLI 禁止 WASM fallback，而是避免把不可可靠回滚的 Automation 源提前退休。
+- 2026-08-13 当前 scheduler 聚焦矩阵为 **10 files / 196 tests passed**，覆盖 schema v1→v5、source locator、五域 adapter、管理命令、rollback、Windows canonical path、WASM 拒绝、multi-entry guard、target-first/CAS 与崩溃重试边界。发布阻断复审后又补齐 rollback 前置归属校验、target definition digest CAS、终态 restore 回调幂等、Automation token 分配崩溃窗口、Loop 旧 journal locator 证明、路径尾分隔符/空白 identity 和源异常路径去敏；统一矩阵复验仍为 196/196。一次裸跑完整 `npm test` 在 20 分钟超时，因此**不计为通过**；按 GitHub Actions 形状本地并行执行 unit 分片时，1/4 得到 7517 passed、6 timeout failure、6 skipped，6 个超时文件随后单线程复验为 163 passed、1 skipped，另两个并行分片到 12 分钟没有汇总而终止；这些结果只作为负载诊断，不冒充完整 CLI 通过，最终仍由 exact-SHA GitHub 三平台矩阵裁决。
+- 正式关闭迁移/回滚仍需：冻结并提交最终功能 SHA；经 PR 合并后，再通过独立 release PR 形成版本候选；在待发布的精确 merge SHA 上让 `CLI CI` 与 `CLI Strict Sandbox` 的 Linux、Windows、macOS 全矩阵通过。当前候选的 Prettier、ESLint、Node syntax、manifest/help/completion、`npm pack --dry-run` 和 `git diff --check` 已通过；启动 SLO 本机复验中 version/quick-status 通过而 root-help/command-help 超时，主工作区因依赖缺失无法形成可比基线，故不计为通过，交由 Actions 的 verify job 裁决。当前没有最终 SHA 的权威 workflow 结果，没有创建 release tag，也没有发布新的 npm CLI 版本，因此发布判定仍为 **NO-GO**。
+- 在迁移/回滚通过上述门禁后，P2-4 仍剩**磁盘故障矩阵**和**三平台长期 soak**，整项仍只能标记为部分完成。当前估算沿用第 18.3 节：迁移候选收尾通常为 0.5～2 个工程日（发现跨平台问题时另加 1～3 日）；P2-4 全部剩余约 0.75～2 周单工程师或 0.5～1.25 周两人有效并行，并受至少 3～7 个自然日 soak 观察窗约束。

@@ -11,7 +11,10 @@ import {
   enqueueLoopIteration,
   loopExecutionDigest,
   loopExecutionSnapshot,
+  migrateSavedLoopSession,
+  rollbackSavedLoopMigration,
 } from "../../src/lib/scheduler-kernel/loop-adapter.js";
+import { summarizeLoopEvents } from "../../src/lib/loop.js";
 import { openSchedulerStore } from "../../src/lib/scheduler-kernel/store.js";
 
 describe("scheduler-kernel Loop adapter", () => {
@@ -61,6 +64,51 @@ describe("scheduler-kernel Loop adapter", () => {
     };
   }
 
+  function savedSession(
+    sessionId = "loop-session-1",
+    sessionDirectory = join(tmpdir(), "sessions"),
+  ) {
+    const events = [
+      {
+        type: "loop_config",
+        data: {
+          execMode: true,
+          operands: ["npm", "test"],
+          dynamic: false,
+          every: "1s",
+          maxIterations: 3,
+          untilExitZero: false,
+          until: null,
+          cwd: "C:/workspace",
+        },
+        hash: "head-0",
+      },
+    ];
+    return {
+      sessionId,
+      sessionFilePath: (id) => join(sessionDirectory, `${id}.jsonl`),
+      config: events[0].data,
+      readEvents: () => events.map((event) => structuredClone(event)),
+      appendEventIfHead: (id, type, data, expectedHeadHash) => {
+        expect(id).toBe(sessionId);
+        const actualHeadHash = events[events.length - 1]?.hash || null;
+        if (actualHeadHash !== expectedHeadHash) {
+          const error = new Error("stale loop session head");
+          error.code = "SESSION_REVISION_STALE";
+          throw error;
+        }
+        const event = {
+          type,
+          data: structuredClone(data),
+          hash: `head-${events.length}`,
+        };
+        events.push(event);
+        return structuredClone(event);
+      },
+      events,
+    };
+  }
+
   it("binds the execution definition and least capability", () => {
     const f = fixture();
     const processDefinition = f.definition();
@@ -81,6 +129,235 @@ describe("scheduler-kernel Loop adapter", () => {
         f.definition({ execMode: false, operands: ["check CI"] }),
       ).authority.requestedCapabilities,
     ).toEqual([LOOP_AGENT_CAPABILITY]);
+  });
+
+  it("migrates and safely rolls back one saved Loop session", () => {
+    const f = fixture();
+    const store = f.open();
+    const session = savedSession();
+    const definition = f.definition({ cwd: "C:/workspace" });
+
+    const migrated = migrateSavedLoopSession({
+      schedulerStore: store,
+      definition,
+      ...session,
+    });
+    expect(migrated).toMatchObject({
+      state: "retired",
+      entries: [
+        {
+          domain: "loop-iteration",
+          sourceId: session.sessionId,
+          rollbackStrategy: "disable",
+        },
+      ],
+    });
+    expect(store.getJob(migrated.entries[0].targetJobId)).toMatchObject({
+      enabled: true,
+    });
+    expect(
+      session.events.filter(
+        (event) => event.type === "loop_scheduler_migration",
+      ),
+    ).toHaveLength(1);
+    const legacyConfig = session.events
+      .filter((event) => event.type === "loop_config")
+      .at(-1).data;
+    expect(legacyConfig.operands).toEqual([]);
+    expect(legacyConfig.schedulerMigrationFence).toMatchObject({
+      state: "retired",
+      migrationId: migrated.id,
+      originalConfig: session.config,
+    });
+    expect(summarizeLoopEvents(session.events)).toMatchObject({
+      config: session.config,
+      schedulerMigration: { state: "retired", migrationId: migrated.id },
+    });
+    expect(session.events.at(-1).data).toMatchObject({
+      state: "retired",
+      migrationId: migrated.id,
+      compatibility: "legacy-config-fenced",
+    });
+
+    expect(
+      migrateSavedLoopSession({
+        schedulerStore: store,
+        definition,
+        ...session,
+      }),
+    ).toMatchObject({ id: migrated.id, state: "retired" });
+    expect(
+      session.events.filter(
+        (event) => event.type === "loop_scheduler_migration",
+      ),
+    ).toHaveLength(1);
+    expect(
+      session.events.filter((event) => event.type === "loop_config"),
+    ).toHaveLength(2);
+
+    const rolledBack = rollbackSavedLoopMigration({
+      schedulerStore: store,
+      migrationId: migrated.id,
+      ...session,
+    });
+    expect(rolledBack.state).toBe("rolled_back");
+    expect(store.getJob(migrated.entries[0].targetJobId).enabled).toBe(false);
+    expect(session.events.at(-1).data).toMatchObject({
+      state: "rolled_back",
+      migrationId: migrated.id,
+    });
+    expect(
+      session.events.filter((event) => event.type === "loop_config").at(-1)
+        .data,
+    ).toEqual(session.config);
+    expect(
+      rollbackSavedLoopMigration({
+        schedulerStore: store,
+        migrationId: migrated.id,
+        ...session,
+      }),
+    ).toMatchObject({ state: "rolled_back", id: migrated.id });
+  });
+
+  it("uses semantic CAS instead of overwriting a concurrent Loop config", () => {
+    const f = fixture();
+    const store = f.open();
+    const session = savedSession();
+    const originalAppend = session.appendEventIfHead;
+    let raced = false;
+    session.appendEventIfHead = (...args) => {
+      if (!raced && args[1] === "loop_config") {
+        raced = true;
+        originalAppend(
+          session.sessionId,
+          "loop_config",
+          { ...session.config, every: "10s" },
+          args[3],
+        );
+        const error = new Error("stale loop session head");
+        error.code = "SESSION_REVISION_STALE";
+        throw error;
+      }
+      return originalAppend(...args);
+    };
+
+    expect(() =>
+      migrateSavedLoopSession({
+        schedulerStore: store,
+        definition: f.definition({ cwd: "C:/workspace" }),
+        ...session,
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "LOOP_SCHEDULER_MIGRATION_SOURCE_CHANGED",
+      }),
+    );
+    expect(
+      session.events.filter((event) => event.type === "loop_config").at(-1)
+        .data,
+    ).toMatchObject({ every: "10s", operands: ["npm", "test"] });
+  });
+
+  it("recovers Loop migration after the session marker write", () => {
+    const f = fixture();
+    const store = f.open();
+    const session = savedSession();
+    const definition = f.definition({ cwd: "C:/workspace" });
+    const migrated = migrateSavedLoopSession({
+      schedulerStore: store,
+      definition,
+      ...session,
+    });
+    store.db
+      .prepare(
+        `UPDATE scheduler_domain_migrations SET state = 'retiring',
+         completed_at = NULL WHERE migration_id = ?`,
+      )
+      .run(migrated.id);
+    store.db
+      .prepare(
+        `UPDATE scheduler_domain_migration_entries SET state = 'retiring'
+         WHERE migration_id = ?`,
+      )
+      .run(migrated.id);
+
+    expect(
+      migrateSavedLoopSession({
+        schedulerStore: store,
+        definition,
+        ...session,
+      }),
+    ).toMatchObject({ id: migrated.id, state: "retired" });
+    expect(
+      session.events.filter(
+        (event) => event.type === "loop_scheduler_migration",
+      ),
+    ).toHaveLength(1);
+    expect(store.getJob(migrated.entries[0].targetJobId).enabled).toBe(true);
+  });
+
+  it("does not bind an unlocated legacy migration from a same-id session in another directory", () => {
+    const f = fixture();
+    const store = f.open();
+    const original = savedSession("loop-session-1", join(f.root, "original"));
+    const definition = f.definition({ cwd: "C:/workspace" });
+    const migrated = migrateSavedLoopSession({
+      schedulerStore: store,
+      definition,
+      ...original,
+    });
+    store.db
+      .prepare(
+        `UPDATE scheduler_domain_migration_entries
+         SET source_locator_json = NULL WHERE migration_id = ?`,
+      )
+      .run(migrated.id);
+    const other = savedSession("loop-session-1", join(f.root, "other"));
+
+    expect(() =>
+      migrateSavedLoopSession({
+        schedulerStore: store,
+        definition,
+        ...other,
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "LOOP_SCHEDULER_MIGRATION_LOCATOR_UNPROVEN",
+      }),
+    );
+    expect(
+      store.getDomainMigration(migrated.id).entries[0].sourceLocator,
+    ).toBeNull();
+  });
+
+  it("rejects a wrong rollback session before changing journal or target", () => {
+    const f = fixture();
+    const store = f.open();
+    const session = savedSession();
+    const migrated = migrateSavedLoopSession({
+      schedulerStore: store,
+      definition: f.definition({ cwd: "C:/workspace" }),
+      ...session,
+    });
+    const targetBefore = store.getJob(migrated.entries[0].targetJobId);
+
+    expect(() =>
+      rollbackSavedLoopMigration({
+        schedulerStore: store,
+        migrationId: migrated.id,
+        ...session,
+        sessionId: "different-loop-session",
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "LOOP_SCHEDULER_MIGRATION_DOMAIN_MISMATCH",
+      }),
+    );
+    expect(store.getDomainMigration(migrated.id)).toMatchObject({
+      state: "retired",
+      entries: [{ state: "retired" }],
+    });
+    expect(store.getJob(migrated.entries[0].targetJobId)).toEqual(targetBefore);
   });
 
   it("runs and durably settles one iteration", async () => {

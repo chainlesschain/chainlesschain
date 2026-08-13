@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import { effectiveFireAt } from "../schedule-planner.js";
 import {
+  agendaMigrationSourceDigest,
+  agendaMigrationSourceSnapshot,
   nextCronTime,
   normalizeTimeZone,
   parseCron,
@@ -13,10 +15,12 @@ import {
   normalizeJson,
 } from "./contract.js";
 import { SchedulerRuntime } from "./runtime.js";
+import { schedulerMigrationSourceDigest } from "./store.js";
 import {
   bindSchedulerAuthorityPolicy,
   createSchedulerAuthorityResolver,
 } from "./authority-resolver.js";
+import { canonicalSchedulerSourcePath } from "./source-locator-path.js";
 
 export const AGENDA_SCHEDULER_KIND = "agenda";
 export const AGENDA_SCHEDULER_CAPABILITY = "agent.execute";
@@ -188,6 +192,7 @@ function validateEntrySnapshot(entry) {
   const plain = { ...entry };
   delete plain.executionLease;
   delete plain.schedulerExecution;
+  delete plain.schedulerMigration;
   const snapshot = normalizeJson(plain, "agendaEntrySnapshot");
   snapshot.id = normalizeIdentifier(snapshot.id, "agenda.entry.id");
   if (!AGENDA_SCHEDULER_ENTRY_KINDS.includes(snapshot.kind)) {
@@ -359,6 +364,223 @@ export function syncAgendaSchedulerJob(schedulerStore, entry) {
     if (sameJob(latest, desired)) return latest;
     throw error;
   }
+}
+
+export function migrateAgendaSchedulerEntry({
+  agendaStore,
+  schedulerStore,
+  entry,
+}) {
+  const snapshot = agendaEntrySnapshot(entry);
+  const directory = canonicalSchedulerSourcePath(agendaStore.dir);
+  const sourceScope = { store: "agent-schedule", directory };
+  const sourceLocator = {
+    schemaVersion: 1,
+    type: "agenda-store",
+    directory,
+  };
+  let prepared = schedulerStore.getActiveDomainMigrationBySource({
+    domain: "agenda",
+    sourceScope,
+    sourceId: snapshot.id,
+  });
+  if (!prepared && agendaStore.dir !== directory) {
+    const ambiguousLegacy = schedulerStore.getActiveDomainMigrationBySource({
+      domain: "agenda",
+      sourceScope: {
+        store: "agent-schedule",
+        directory: agendaStore.dir,
+      },
+      sourceId: snapshot.id,
+    });
+    if (ambiguousLegacy) {
+      throw agendaError(
+        "AGENDA_SCHEDULER_MIGRATION_SOURCE_UNBOUND",
+        `Legacy Agenda migration uses a non-canonical path scope and cannot be bound safely: ${snapshot.id}`,
+      );
+    }
+  }
+  const desired = buildAgendaSchedulerJob(snapshot);
+  desired.authority = bindSchedulerAuthorityPolicy(
+    schedulerStore,
+    desired.authority,
+  );
+  const sourceDigest = agendaMigrationSourceDigest(entry);
+  const sourceSnapshot = agendaMigrationSourceSnapshot(entry);
+  if (prepared) {
+    const migrationEntries = prepared.entries.filter(
+      (candidate) =>
+        candidate.domain === "agenda" && candidate.sourceId === snapshot.id,
+    );
+    if (prepared.entries.length !== 1 || migrationEntries.length !== 1) {
+      throw agendaError(
+        "AGENDA_SCHEDULER_MIGRATION_DOMAIN_MISMATCH",
+        "Agenda entry belongs to an invalid mixed-domain migration",
+      );
+    }
+    const [migrationEntry] = migrationEntries;
+    schedulerStore.bindDomainMigrationSourceLocator({
+      migrationId: prepared.id,
+      entryId: migrationEntry.entryId,
+      sourceLocator,
+      expectedSourceDigest: migrationEntry.sourceDigest,
+      expectedTargetJobId: migrationEntry.targetJobId,
+    });
+    prepared = schedulerStore.getDomainMigration(prepared.id);
+  } else {
+    prepared = schedulerStore.prepareDomainMigration({
+      entries: [
+        {
+          domain: "agenda",
+          sourceId: snapshot.id,
+          sourceScope,
+          sourceLocator,
+          source: sourceSnapshot,
+          targetJob: desired,
+          rollbackStrategy: "disable",
+        },
+      ],
+    });
+  }
+  if (
+    prepared.entries.length !== 1 ||
+    prepared.entries[0].domain !== "agenda"
+  ) {
+    throw agendaError(
+      "AGENDA_SCHEDULER_MIGRATION_DOMAIN_MISMATCH",
+      "Agenda entry belongs to an invalid mixed-domain migration",
+    );
+  }
+  const expectedJournalDigest = schedulerMigrationSourceDigest(sourceSnapshot);
+  if (
+    prepared.entries[0].sourceDigest !== expectedJournalDigest ||
+    prepared.entries[0].targetJobId !== desired.id
+  ) {
+    throw agendaError(
+      "AGENDA_SCHEDULER_MIGRATION_SOURCE_CHANGED",
+      `Agenda entry changed after its scheduler migration started: ${snapshot.id}`,
+    );
+  }
+  let migration = prepared;
+  if (migration.state === "rolled_back" || migration.state === "rolling_back") {
+    throw agendaError(
+      "AGENDA_SCHEDULER_MIGRATION_STATE_CONFLICT",
+      `Agenda migration cannot resume from state ${migration.state}`,
+    );
+  }
+  if (migration.state === "retired") {
+    const migrationEntry = migration.entries[0];
+    agendaStore.retireForSchedulerMigration(snapshot.id, {
+      migrationId: migration.id,
+      sourceDigest,
+      targetJobId: desired.id,
+      retirementToken: migrationEntry.retirementToken,
+    });
+    return migration;
+  }
+  if (migration.state === "prepared") {
+    agendaStore.prepareSchedulerMigration(snapshot.id, {
+      migrationId: migration.id,
+      sourceDigest,
+      targetJobId: desired.id,
+    });
+    migration = schedulerStore.applyDomainMigration(migration.id);
+  }
+  if (migration.state === "applied") {
+    migration = schedulerStore.verifyDomainMigration(migration.id, {
+      sources: [
+        {
+          entryId: migration.entries[0].entryId,
+          source: agendaMigrationSourceSnapshot(entry),
+        },
+      ],
+    });
+  }
+  const retiring =
+    migration.state === "retiring"
+      ? migration
+      : schedulerStore.beginDomainMigrationRetirement(migration.id);
+  const retiringEntry = retiring.entries[0];
+  const retired = agendaStore.retireForSchedulerMigration(snapshot.id, {
+    migrationId: prepared.id,
+    sourceDigest,
+    targetJobId: desired.id,
+    retirementToken: retiringEntry.retirementToken,
+  });
+  schedulerStore.confirmDomainMigrationEntryRetired({
+    migrationId: prepared.id,
+    entryId: retiringEntry.entryId,
+    retirementToken: retiringEntry.retirementToken,
+    source: retired,
+  });
+  return schedulerStore.getDomainMigration(prepared.id);
+}
+
+export function rollbackAgendaSchedulerMigration({
+  agendaStore,
+  schedulerStore,
+  migrationId,
+}) {
+  const directory = canonicalSchedulerSourcePath(agendaStore.dir);
+  const assertRollbackBinding = (migration) => {
+    if (
+      migration?.id !== migrationId ||
+      !Array.isArray(migration.entries) ||
+      migration.entries.length === 0 ||
+      migration.entries.some((entry) => entry.domain !== "agenda")
+    ) {
+      throw agendaError(
+        "AGENDA_SCHEDULER_MIGRATION_DOMAIN_MISMATCH",
+        "Agenda rollback cannot operate on a mixed-domain migration",
+      );
+    }
+    for (const entry of migration.entries) {
+      const locator = entry.sourceLocator;
+      if (
+        locator?.schemaVersion !== 1 ||
+        locator.type !== "agenda-store" ||
+        locator.directory !== directory
+      ) {
+        throw agendaError(
+          "AGENDA_SCHEDULER_MIGRATION_SOURCE_UNBOUND",
+          `Agenda rollback source locator does not match its store: ${entry.sourceId}`,
+        );
+      }
+    }
+    return migration;
+  };
+  const current = assertRollbackBinding(
+    schedulerStore.getDomainMigration(migrationId),
+  );
+  if (current.state === "rolled_back") {
+    return { ...current, deduplicated: true };
+  }
+  const migration = assertRollbackBinding(
+    schedulerStore.beginDomainMigrationRollback(migrationId),
+  );
+  if (migration.state === "rolled_back") return migration;
+  const entries = migration.entries;
+  for (const entry of entries) {
+    if (entry.state === "rolled_back") continue;
+    schedulerStore.restoreDomainMigrationEntrySource({
+      migrationId,
+      entryId: entry.entryId,
+      retirementToken: entry.retirementToken,
+      restoreSource: () => {
+        const current = agendaStore.get(entry.sourceId);
+        const restored = current.schedulerMigration
+          ? agendaStore.restoreFromSchedulerMigration(entry.sourceId, {
+              migrationId,
+              sourceDigest: agendaMigrationSourceDigest(current),
+              targetJobId: entry.targetJobId,
+              retirementToken: entry.retirementToken,
+            })
+          : current;
+        return agendaMigrationSourceSnapshot(restored);
+      },
+    });
+  }
+  return schedulerStore.getDomainMigration(migrationId);
 }
 
 export function enqueueAgendaEntry(schedulerStore, entry) {
@@ -743,6 +965,7 @@ export class AgendaSchedulerBridge {
     leaseMs,
     renewIntervalMs,
     authorityResolver,
+    migrateLegacy = true,
   } = {}) {
     if (typeof now !== "function") {
       throw agendaError(
@@ -753,6 +976,7 @@ export class AgendaSchedulerBridge {
     this.agendaStore = agendaStore;
     this.schedulerStore = schedulerStore;
     this.now = now;
+    this.migrateLegacy = migrateLegacy !== false;
     this.runtime = new SchedulerRuntime({
       store: schedulerStore,
       adapters: [
@@ -784,6 +1008,31 @@ export class AgendaSchedulerBridge {
   async runDue({ signal } = {}) {
     const results = [];
     const observedOccurrences = new Set();
+    if (!signal?.aborted && this.migrateLegacy) {
+      const sourceScope = {
+        store: "agent-schedule",
+        directory: canonicalSchedulerSourcePath(this.agendaStore.dir),
+      };
+      const candidates = this.agendaStore.list().filter((entry) => {
+        const activeMigration =
+          this.schedulerStore.getActiveDomainMigrationBySource({
+            domain: "agenda",
+            sourceScope,
+            sourceId: entry.id,
+          });
+        if (entry.schedulerMigration) {
+          return activeMigration?.state !== "retired";
+        }
+        return activeMigration?.state !== undefined;
+      });
+      for (const entry of candidates) {
+        migrateAgendaSchedulerEntry({
+          agendaStore: this.agendaStore,
+          schedulerStore: this.schedulerStore,
+          entry,
+        });
+      }
+    }
     const recovered = await this.runtime.runUntilIdle({
       limit: 10_000,
       signal,
@@ -806,9 +1055,9 @@ export class AgendaSchedulerBridge {
 
     const now = normalizeEpochMs(Number(this.now()), "now");
     const due = [
-      ...this.agendaStore.due("wakeup", now),
-      ...this.agendaStore.due("cron", now),
-      ...this.agendaStore.due("monitor", now),
+      ...this.agendaStore.due("wakeup", now, { schedulerMigration: true }),
+      ...this.agendaStore.due("cron", now, { schedulerMigration: true }),
+      ...this.agendaStore.due("monitor", now, { schedulerMigration: true }),
     ];
     for (const entry of due) {
       const occurrence = enqueueAgendaEntry(this.schedulerStore, entry);
@@ -823,6 +1072,28 @@ export class AgendaSchedulerBridge {
         deduplicated: occurrence.deduplicated,
         result,
       });
+    }
+    if (this.migrateLegacy) {
+      const candidates = this.agendaStore
+        .list()
+        .filter(
+          (entry) =>
+            !entry.schedulerMigration &&
+            [undefined, "succeeded"].includes(
+              entry.schedulerExecution?.status,
+            ) &&
+            !entry.executionLease &&
+            ((entry.kind === "wakeup" && entry.status === "pending") ||
+              (["cron", "monitor"].includes(entry.kind) &&
+                entry.status === "active")),
+        );
+      for (const entry of candidates) {
+        migrateAgendaSchedulerEntry({
+          agendaStore: this.agendaStore,
+          schedulerStore: this.schedulerStore,
+          entry,
+        });
+      }
     }
     return results;
   }

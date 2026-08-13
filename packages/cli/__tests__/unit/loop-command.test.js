@@ -62,7 +62,7 @@ beforeEach(() => {
   chainlesschainHomeBefore = process.env.CHAINLESSCHAIN_HOME;
   process.env.CHAINLESSCHAIN_HOME = path.join(tmpDir, "home");
   _deps.openSchedulerStore = () =>
-    openSchedulerStore({ file: ":memory:", Database });
+    openSchedulerStore({ file: path.join(tmpDir, "scheduler.db"), Database });
   logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
   errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 });
@@ -297,7 +297,25 @@ describe("cc loop — --save / --resume persistence", () => {
     expect(s1.sessionId).toBe(id);
 
     const events1 = readEvents(id);
-    expect(events1.filter((e) => e.type === "loop_config")).toHaveLength(1);
+    expect(events1.filter((e) => e.type === "loop_config")).toHaveLength(2);
+    expect(
+      events1.filter((e) => e.type === "loop_config").at(-1).data,
+    ).toMatchObject({
+      operands: [],
+      schedulerMigrationFence: {
+        state: "retired",
+        originalConfig: { operands: ["node", expect.any(String)] },
+      },
+    });
+    expect(
+      events1.filter((e) => e.type === "loop_scheduler_migration"),
+    ).toHaveLength(1);
+    expect(
+      events1.find((e) => e.type === "loop_scheduler_migration")?.data,
+    ).toMatchObject({
+      state: "retired",
+      compatibility: "legacy-config-fenced",
+    });
     expect(events1.filter((e) => e.type === "loop_iteration")).toHaveLength(2);
     expect(events1.filter((e) => e.type === "loop_end")).toHaveLength(1);
 
@@ -371,7 +389,12 @@ describe("cc loop — --save / --resume persistence", () => {
       openSchedulerStore({ file: schedulerFile, Database });
     _deps.spawn = vi.fn();
     const output = await run("--resume", id, "--json");
-    const summary = JSON.parse(output.slice(output.indexOf("{")));
+    const jsonStart = output.indexOf("{");
+    expect(
+      jsonStart,
+      errSpy.mock.calls.map((call) => call.map(String).join(" ")).join("\n"),
+    ).toBeGreaterThanOrEqual(0);
+    const summary = JSON.parse(output.slice(jsonStart));
     expect(summary).toMatchObject({
       iterations: 1,
       stoppedBy: "max-iterations",

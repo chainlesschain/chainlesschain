@@ -144,12 +144,25 @@ describe("cc loop integration — persistence chain", () => {
     expect(c.iterations).toBe(6);
 
     const events = readEvents(id);
-    // One config, six iteration records (2+2+2), three end markers.
-    expect(events.filter((e) => e.type === "loop_config")).toHaveLength(1);
+    // The original config plus one scheduler-retirement fence, six iteration
+    // records (2+2+2), and three end markers. Repeated resumes must reuse the
+    // same fence rather than appending another loop_config.
+    const configs = events.filter((e) => e.type === "loop_config");
+    expect(configs).toHaveLength(2);
+    expect(configs.at(-1).data).toMatchObject({
+      operands: [],
+      schedulerMigrationFence: {
+        state: "retired",
+        originalConfig: { operands: ["node", script] },
+      },
+    });
+    expect(
+      events.filter((e) => e.type === "loop_scheduler_migration"),
+    ).toHaveLength(1);
     expect(events.filter((e) => e.type === "loop_iteration")).toHaveLength(6);
     expect(events.filter((e) => e.type === "loop_end")).toHaveLength(3);
     // Config faithfully captured the exec invocation.
-    const cfg = events.find((e) => e.type === "loop_config").data;
+    const cfg = configs[0].data;
     expect(cfg.execMode).toBe(true);
     expect(cfg.operands).toEqual(["node", script]);
     // Iteration numbers are cumulative across the three runs.

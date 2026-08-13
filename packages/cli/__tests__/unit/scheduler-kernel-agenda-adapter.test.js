@@ -2,9 +2,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import Database from "better-sqlite3";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { runAgendaRun } from "../../src/commands/agenda.js";
-import { AgentScheduleStore } from "../../src/lib/agent-schedule-store.js";
+import {
+  AgentScheduleStore,
+  agendaMigrationSourceDigest,
+  agendaMigrationSourceSnapshot,
+} from "../../src/lib/agent-schedule-store.js";
 import {
   AGENDA_SCHEDULER_MONITOR_CAPABILITY,
   AGENDA_SCHEDULER_RETRY_DELAY_MS,
@@ -14,7 +18,10 @@ import {
   agendaSchedulerJobId,
   buildAgendaSchedulerJob,
   enqueueAgendaEntry,
+  migrateAgendaSchedulerEntry,
+  rollbackAgendaSchedulerMigration,
 } from "../../src/lib/scheduler-kernel/agenda-adapter.js";
+import { canonicalSchedulerSourcePath } from "../../src/lib/scheduler-kernel/source-locator-path.js";
 import { openSchedulerStore } from "../../src/lib/scheduler-kernel/store.js";
 
 describe("scheduler-kernel agenda adapter", () => {
@@ -111,6 +118,398 @@ describe("scheduler-kernel agenda adapter", () => {
       timeZone: "America/New_York",
     });
     expect(job.payload.entry.timeZone).toBe("America/New_York");
+  });
+
+  it("migrates Agenda with an old-version lease fence and rolls it back safely", () => {
+    const f = fixture();
+    const agendaStore = f.openAgenda();
+    const schedulerStore = f.openScheduler();
+    const entry = agendaStore.createCron({
+      prompt: "migration",
+      cron: "0 * * * *",
+    });
+    const migrated = migrateAgendaSchedulerEntry({
+      agendaStore,
+      schedulerStore,
+      entry,
+    });
+    expect(migrated).toMatchObject({
+      state: "retired",
+      entries: [
+        {
+          domain: "agenda",
+          sourceId: entry.id,
+          targetJobId: agendaSchedulerJobId(entry.id),
+        },
+      ],
+    });
+    const retired = agendaStore.get(entry.id);
+    expect(retired).toMatchObject({
+      schedulerMigration: {
+        migrationId: migrated.id,
+        state: "retired",
+      },
+      executionLease: {
+        owner: `scheduler-migration:${migrated.entries[0].retirementToken}`,
+        expiresAt: Number.MAX_SAFE_INTEGER,
+      },
+    });
+    // A previous CLI sees only the durable legacy lease and cannot claim it.
+    expect(agendaStore.claimDue(entry.nextAt, 1_000)).toEqual([]);
+    expect(schedulerStore.getJob(agendaSchedulerJobId(entry.id))).toMatchObject(
+      {
+        enabled: true,
+        revision: 2,
+      },
+    );
+    expect(
+      migrateAgendaSchedulerEntry({
+        agendaStore,
+        schedulerStore,
+        entry: retired,
+      }),
+    ).toMatchObject({ id: migrated.id, state: "retired" });
+
+    schedulerStore.beginDomainMigrationRollback(migrated.id);
+    const rollbackSource = agendaStore.get(entry.id);
+    agendaStore.restoreFromSchedulerMigration(entry.id, {
+      migrationId: migrated.id,
+      sourceDigest: agendaMigrationSourceDigest(rollbackSource),
+      targetJobId: migrated.entries[0].targetJobId,
+      retirementToken: migrated.entries[0].retirementToken,
+    });
+    expect(schedulerStore.getDomainMigration(migrated.id)).toMatchObject({
+      state: "rolling_back",
+    });
+    const rolledBack = rollbackAgendaSchedulerMigration({
+      agendaStore,
+      schedulerStore,
+      migrationId: migrated.id,
+    });
+    expect(rolledBack).toMatchObject({ state: "rolled_back" });
+    expect(agendaStore.get(entry.id)).not.toHaveProperty("schedulerMigration");
+    expect(agendaStore.get(entry.id)).not.toHaveProperty("executionLease");
+    expect(schedulerStore.getJob(agendaSchedulerJobId(entry.id))).toMatchObject(
+      {
+        enabled: false,
+        revision: 3,
+      },
+    );
+    expect(agendaStore.claimDue(entry.nextAt, 1_000)).toHaveLength(1);
+    expect(
+      rollbackAgendaSchedulerMigration({
+        agendaStore,
+        schedulerStore,
+        migrationId: migrated.id,
+      }),
+    ).toMatchObject({ state: "rolled_back", deduplicated: true });
+  });
+
+  it("keeps a recurring Agenda migration fence after each scheduler run", async () => {
+    const f = fixture();
+    const agendaStore = f.openAgenda();
+    const schedulerStore = f.openScheduler();
+    const cron = agendaStore.createCron({
+      prompt: "recurring migration",
+      cron: "0 * * * *",
+    });
+    f.now = cron.nextAt;
+    const bridge = new AgendaSchedulerBridge({
+      agendaStore,
+      schedulerStore,
+      runAgent: vi.fn(async () => 0),
+      now: f.clock,
+      ownerId: "agenda-migration-owner",
+      leaseMs: 10_000,
+    });
+    await expect(bridge.runDue()).resolves.toEqual([
+      expect.objectContaining({
+        result: expect.objectContaining({ status: "succeeded" }),
+      }),
+    ]);
+    const migrated = agendaStore.get(cron.id);
+    expect(migrated).toMatchObject({
+      runs: 1,
+      schedulerMigration: { state: "retired" },
+      executionLease: {
+        owner: expect.stringMatching(/^scheduler-migration:/),
+        expiresAt: Number.MAX_SAFE_INTEGER,
+      },
+    });
+    expect(agendaStore.claimDue(migrated.nextAt, 1_000)).toEqual([]);
+    expect(
+      agendaStore.due("cron", migrated.nextAt, { schedulerMigration: true }),
+    ).toHaveLength(1);
+  });
+
+  it("resumes an Agenda migration from fresh bridges after staging and retirement crashes", async () => {
+    const f = fixture();
+    const agendaStore = f.openAgenda();
+    const schedulerStore = f.openScheduler();
+    const entry = agendaStore.createCron({
+      prompt: "resume migration",
+      cron: "0 * * * *",
+    });
+    const desired = buildAgendaSchedulerJob(entry);
+    const source = {
+      ...entry,
+    };
+    const prepared = schedulerStore.prepareDomainMigration({
+      entries: [
+        {
+          domain: "agenda",
+          sourceId: entry.id,
+          sourceScope: {
+            store: "agent-schedule",
+            directory: canonicalSchedulerSourcePath(agendaStore.dir),
+          },
+          source: {
+            createdAt: entry.createdAt,
+            cron: entry.cron,
+            expiresAt: entry.expiresAt,
+            id: entry.id,
+            jitterMs: entry.jitterMs,
+            kind: entry.kind,
+            label: entry.label,
+            prompt: entry.prompt,
+          },
+          targetJob: desired,
+        },
+      ],
+    });
+    agendaStore.prepareSchedulerMigration(entry.id, {
+      migrationId: prepared.id,
+      sourceDigest: agendaMigrationSourceDigest(source),
+      targetJobId: desired.id,
+    });
+    schedulerStore.applyDomainMigration(prepared.id);
+    expect(schedulerStore.getJob(desired.id)).toMatchObject({ enabled: false });
+
+    const afterStagingCrash = new AgendaSchedulerBridge({
+      agendaStore: f.openAgenda(),
+      schedulerStore: f.openScheduler(),
+      runAgent: vi.fn(async () => 0),
+      now: f.clock,
+      ownerId: "agenda-migration-restart-a",
+      leaseMs: 10_000,
+    });
+    await expect(afterStagingCrash.runDue()).resolves.toEqual([]);
+    expect(schedulerStore.getDomainMigration(prepared.id)).toMatchObject({
+      id: prepared.id,
+      state: "retired",
+    });
+
+    const retired = schedulerStore.getDomainMigration(prepared.id);
+    const retiredEntry = retired.entries[0];
+    // Simulate a crash after the source write but before SQLite confirmation.
+    schedulerStore.db
+      .prepare(
+        `UPDATE scheduler_domain_migrations
+         SET state = 'retiring', completed_at = NULL WHERE migration_id = ?`,
+      )
+      .run(prepared.id);
+    schedulerStore.db
+      .prepare(
+        `UPDATE scheduler_domain_migration_entries
+         SET state = 'retiring' WHERE migration_id = ?`,
+      )
+      .run(prepared.id);
+    const afterRetirementCrash = new AgendaSchedulerBridge({
+      agendaStore: f.openAgenda(),
+      schedulerStore: f.openScheduler(),
+      runAgent: vi.fn(async () => 0),
+      now: f.clock,
+      ownerId: "agenda-migration-restart-b",
+      leaseMs: 10_000,
+    });
+    await expect(afterRetirementCrash.runDue()).resolves.toEqual([]);
+    expect(schedulerStore.getDomainMigration(prepared.id)).toMatchObject({
+      id: prepared.id,
+      state: "retired",
+      entries: [
+        {
+          retirementToken: retiredEntry.retirementToken,
+        },
+      ],
+    });
+    expect(schedulerStore.getJob(desired.id)).toMatchObject({ enabled: true });
+  });
+
+  it("fails closed on a pre-v5 Agenda journal with a non-canonical path scope", () => {
+    const f = fixture();
+    const agendaStore = f.openAgenda();
+    agendaStore.dir = `${agendaStore.dir}${sep}.`;
+    const schedulerStore = f.openScheduler();
+    const entry = agendaStore.createCron({
+      prompt: "ambiguous legacy locator",
+      cron: "0 * * * *",
+    });
+    const desired = buildAgendaSchedulerJob(entry);
+    const prepared = schedulerStore.prepareDomainMigration({
+      entries: [
+        {
+          domain: "agenda",
+          sourceId: entry.id,
+          sourceScope: {
+            store: "agent-schedule",
+            directory: agendaStore.dir,
+          },
+          source: agendaMigrationSourceSnapshot(entry),
+          targetJob: desired,
+          rollbackStrategy: "disable",
+        },
+      ],
+    });
+
+    expect(() =>
+      migrateAgendaSchedulerEntry({ agendaStore, schedulerStore, entry }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "AGENDA_SCHEDULER_MIGRATION_SOURCE_UNBOUND",
+      }),
+    );
+    expect(schedulerStore.getDomainMigration(prepared.id)).toMatchObject({
+      state: "prepared",
+      entries: [{ sourceLocator: null, state: "prepared" }],
+    });
+    expect(schedulerStore.getJob(desired.id)).toBeNull();
+  });
+
+  it("rolls back a staged Agenda target before retirement assigns a token", () => {
+    const f = fixture();
+    const agendaStore = f.openAgenda();
+    const schedulerStore = f.openScheduler();
+    const entry = agendaStore.createCron({
+      prompt: "rollback staged agenda",
+      cron: "0 * * * *",
+    });
+    const desired = buildAgendaSchedulerJob(entry);
+    const prepared = schedulerStore.prepareDomainMigration({
+      entries: [
+        {
+          domain: "agenda",
+          sourceId: entry.id,
+          sourceScope: {
+            store: "agent-schedule",
+            directory: canonicalSchedulerSourcePath(agendaStore.dir),
+          },
+          sourceLocator: {
+            schemaVersion: 1,
+            type: "agenda-store",
+            directory: canonicalSchedulerSourcePath(agendaStore.dir),
+          },
+          source: agendaMigrationSourceSnapshot(entry),
+          targetJob: desired,
+          rollbackStrategy: "disable",
+        },
+      ],
+    });
+    agendaStore.prepareSchedulerMigration(entry.id, {
+      migrationId: prepared.id,
+      sourceDigest: agendaMigrationSourceDigest(entry),
+      targetJobId: desired.id,
+    });
+    const applied = schedulerStore.applyDomainMigration(prepared.id);
+    expect(applied.entries[0].retirementToken).toBeNull();
+
+    expect(
+      rollbackAgendaSchedulerMigration({
+        agendaStore,
+        schedulerStore,
+        migrationId: prepared.id,
+      }),
+    ).toMatchObject({ state: "rolled_back" });
+    expect(agendaStore.get(entry.id)).not.toHaveProperty("schedulerMigration");
+    expect(schedulerStore.getJob(desired.id)).toMatchObject({ enabled: false });
+  });
+
+  it("rejects a foreign-domain rollback before changing its journal or target", () => {
+    const f = fixture();
+    const agendaStore = f.openAgenda();
+    const schedulerStore = f.openScheduler();
+    const entry = agendaStore.createCron({
+      prompt: "foreign domain rollback",
+      cron: "0 * * * *",
+    });
+    const desired = buildAgendaSchedulerJob(entry);
+    const directory = canonicalSchedulerSourcePath(agendaStore.dir);
+    const prepared = schedulerStore.prepareDomainMigration({
+      entries: [
+        {
+          domain: "routine",
+          sourceId: entry.id,
+          sourceScope: { store: "routines", directory },
+          sourceLocator: {
+            schemaVersion: 1,
+            type: "routine-store",
+            directory,
+          },
+          source: agendaMigrationSourceSnapshot(entry),
+          targetJob: desired,
+          rollbackStrategy: "disable",
+        },
+      ],
+    });
+    schedulerStore.applyDomainMigration(prepared.id);
+    const beforeMigration = schedulerStore.getDomainMigration(prepared.id);
+    const beforeTarget = schedulerStore.getJob(desired.id);
+
+    expect(() =>
+      rollbackAgendaSchedulerMigration({
+        agendaStore,
+        schedulerStore,
+        migrationId: prepared.id,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "AGENDA_SCHEDULER_MIGRATION_DOMAIN_MISMATCH",
+      }),
+    );
+    expect(schedulerStore.getDomainMigration(prepared.id).state).toBe(
+      beforeMigration.state,
+    );
+    expect(schedulerStore.getJob(desired.id).revision).toBe(
+      beforeTarget.revision,
+    );
+  });
+
+  it("rejects an Agenda rollback from another store before changing its journal or target", () => {
+    const f = fixture();
+    const agendaStore = f.openAgenda();
+    const schedulerStore = f.openScheduler();
+    const entry = agendaStore.createCron({
+      prompt: "wrong store rollback",
+      cron: "0 * * * *",
+    });
+    const migrated = migrateAgendaSchedulerEntry({
+      agendaStore,
+      schedulerStore,
+      entry,
+    });
+    const beforeMigration = schedulerStore.getDomainMigration(migrated.id);
+    const beforeTarget = schedulerStore.getJob(migrated.entries[0].targetJobId);
+    const wrongAgendaStore = new AgentScheduleStore({
+      dir: join(agendaStore.dir, "wrong-store"),
+      now: f.clock,
+    });
+
+    expect(() =>
+      rollbackAgendaSchedulerMigration({
+        agendaStore: wrongAgendaStore,
+        schedulerStore,
+        migrationId: migrated.id,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "AGENDA_SCHEDULER_MIGRATION_SOURCE_UNBOUND",
+      }),
+    );
+    expect(schedulerStore.getDomainMigration(migrated.id).state).toBe(
+      beforeMigration.state,
+    );
+    expect(
+      schedulerStore.getJob(migrated.entries[0].targetJobId).revision,
+    ).toBe(beforeTarget.revision);
   });
 
   it("rejects a tampered cron time zone before enqueue", () => {

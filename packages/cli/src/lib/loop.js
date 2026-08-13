@@ -88,9 +88,25 @@ export function summarizeLoopEvents(events) {
   let lastExitCode = null;
   const scheduled = new Map();
   const completed = new Set();
+  let schedulerMigration = null;
   for (const e of events || []) {
     if (e?.type === "loop_config") {
-      config = e.data || null;
+      const migrationFence = e.data?.schedulerMigrationFence;
+      if (
+        migrationFence?.schemaVersion === 1 &&
+        migrationFence.state === "retired" &&
+        migrationFence.originalConfig &&
+        typeof migrationFence.originalConfig === "object" &&
+        !Array.isArray(migrationFence.originalConfig)
+      ) {
+        // New clients recover the original definition from the fence while an
+        // older client sees the intentionally empty operands and refuses to
+        // start. The source is restored by appending the original loop_config.
+        config = migrationFence.originalConfig;
+        schedulerMigration = migrationFence;
+      } else {
+        config = e.data || null;
+      }
     } else if (
       e?.type === "loop_iteration_scheduled" &&
       Number.isSafeInteger(e.data?.n) &&
@@ -110,13 +126,21 @@ export function summarizeLoopEvents(events) {
       if (e.data && typeof e.data.exitCode !== "undefined") {
         lastExitCode = e.data.exitCode;
       }
+    } else if (e?.type === "loop_scheduler_migration") {
+      schedulerMigration = e.data || null;
     }
   }
   const pendingIteration =
     [...scheduled.values()]
       .filter((entry) => !completed.has(entry.n))
       .sort((a, b) => a.n - b.n)[0] || null;
-  return { config, completedIterations, lastExitCode, pendingIteration };
+  return {
+    config,
+    completedIterations,
+    lastExitCode,
+    pendingIteration,
+    schedulerMigration,
+  };
 }
 
 /** Return durable terminal data for one loop iteration, if already recorded. */

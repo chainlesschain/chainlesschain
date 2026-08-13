@@ -25,7 +25,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { parseCron, nextCronTime } from "./agent-schedule-store.js";
 import {
   readSecurityStore,
@@ -39,6 +39,9 @@ export const ROUTINE_TRIGGER_KINDS = Object.freeze([
   "webhook",
   "github",
 ]);
+export const ROUTINE_SCHEDULER_MIGRATION_SCHEMA_VERSION = 1;
+const ROUTINE_SCHEDULER_LEGACY_FENCE_PROMPT =
+  "This routine is owned by the scheduler kernel. Use a current CLI to manage it.";
 
 export function routinesDir(homedir = os.homedir()) {
   return path.join(homedir, ".chainlesschain", "routines");
@@ -64,6 +67,104 @@ function boundedDefinitionText(value, field, maximum) {
     throw new Error(`routine ${field} exceeds ${maximum} UTF-8 bytes`);
   }
   return text;
+}
+
+function stableJsonValue(value) {
+  if (Array.isArray(value)) return value.map(stableJsonValue);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, stableJsonValue(value[key])]),
+    );
+  }
+  return value;
+}
+
+export function routineMigrationSourceSnapshot(routine) {
+  const source = { ...routine };
+  delete source.schedulerMigration;
+  delete source.lastFiredAt;
+  delete source.lastSeenGithubEventId;
+  if (
+    routine.schedulerMigration?.schemaVersion ===
+      ROUTINE_SCHEDULER_MIGRATION_SCHEMA_VERSION &&
+    routine.schedulerMigration.state === "retired" &&
+    routine.schedulerMigration.originalDefinition &&
+    routine.enabled === false &&
+    routine.prompt === ROUTINE_SCHEDULER_LEGACY_FENCE_PROMPT &&
+    routine.trigger?.kind === "webhook" &&
+    routine.schedulerMigration.wasEnabled === true
+  ) {
+    Object.assign(source, routine.schedulerMigration.originalDefinition);
+    source.enabled = true;
+  }
+  return stableJsonValue(source);
+}
+
+export function routineMigrationSourceDigest(routine) {
+  return createHash("sha256")
+    .update("chainlesschain.routine.scheduler-migration-source.v1\0", "utf8")
+    .update(JSON.stringify(routineMigrationSourceSnapshot(routine)), "utf8")
+    .digest("hex");
+}
+
+export function routineEffectiveSchedulerView(routine) {
+  if (
+    routine?.schedulerMigration?.schemaVersion ===
+      ROUTINE_SCHEDULER_MIGRATION_SCHEMA_VERSION &&
+    routine.schedulerMigration.state === "retired" &&
+    routine.schedulerMigration.originalDefinition &&
+    routine.enabled === false &&
+    routine.prompt === ROUTINE_SCHEDULER_LEGACY_FENCE_PROMPT &&
+    routine.trigger?.kind === "webhook" &&
+    routine.schedulerMigration.wasEnabled === true
+  ) {
+    return {
+      ...routine,
+      ...routine.schedulerMigration.originalDefinition,
+      enabled: true,
+    };
+  }
+  return routine;
+}
+
+function routineSchedulerMigrationConflict(routine, action) {
+  const error = new Error(
+    `routine ${action} is blocked while scheduler migration owns ${routine.id}`,
+  );
+  error.code = "ROUTINE_SCHEDULER_MIGRATION_CONFLICT";
+  return error;
+}
+
+function assertRetiredRoutineMutationSafe(before, after, action) {
+  if (
+    before?.schedulerMigration?.schemaVersion !==
+      ROUTINE_SCHEDULER_MIGRATION_SCHEMA_VERSION ||
+    before.schedulerMigration.state !== "retired"
+  ) {
+    return;
+  }
+  if (
+    !after ||
+    after.enabled !== false ||
+    after.name !== before.name ||
+    after.prompt !== before.prompt ||
+    JSON.stringify(after.trigger) !== JSON.stringify(before.trigger) ||
+    JSON.stringify(after.schedulerMigration) !==
+      JSON.stringify(before.schedulerMigration)
+  ) {
+    throw routineSchedulerMigrationConflict(before, action);
+  }
+}
+
+function routineMigrationField(value, field) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    const error = new Error(`routine scheduler migration ${field} is required`);
+    error.code = "ROUTINE_SCHEDULER_MIGRATION_INVALID";
+    throw error;
+  }
+  return value.trim();
 }
 
 export function normalizeRoutineDefinition(def = {}) {
@@ -207,6 +308,7 @@ export class RoutineStore {
       const routine = this._resolveFromMap(map, id);
       if (!routine) throw new Error(`routine not found: ${id}`);
       const next = { ...routine, ...patch, id: routine.id };
+      assertRetiredRoutineMutationSafe(routine, next, "update");
       map[routine.id] = next;
       this._writeRoutines(map);
       return next;
@@ -225,10 +327,198 @@ export class RoutineStore {
     return this.update(id, { enabled: enabled === true });
   }
 
+  prepareSchedulerMigration(
+    id,
+    { migrationId, sourceDigest, targetJobId } = {},
+  ) {
+    const migration = routineMigrationField(migrationId, "migrationId");
+    const digest = routineMigrationField(sourceDigest, "sourceDigest");
+    const target = routineMigrationField(targetJobId, "targetJobId");
+    return this._withDefinitionLock((map) => {
+      const routine = this._resolveFromMap(map, id);
+      if (!routine) throw new Error(`routine not found: ${id}`);
+      if (routine.enabled !== true) {
+        const error = new Error(`routine is disabled: ${routine.id}`);
+        error.code = "ROUTINE_SCHEDULER_DISABLED";
+        throw error;
+      }
+      if (routineMigrationSourceDigest(routine) !== digest) {
+        const error = new Error(
+          `routine changed before migration: ${routine.id}`,
+        );
+        error.code = "ROUTINE_SCHEDULER_MIGRATION_SOURCE_CHANGED";
+        throw error;
+      }
+      const prior = routine.schedulerMigration;
+      if (prior) {
+        if (
+          prior.schemaVersion !== ROUTINE_SCHEDULER_MIGRATION_SCHEMA_VERSION ||
+          prior.migrationId !== migration ||
+          prior.sourceDigest !== digest ||
+          prior.targetJobId !== target ||
+          prior.state !== "prepared"
+        ) {
+          const error = new Error(
+            `routine already belongs to another migration: ${routine.id}`,
+          );
+          error.code = "ROUTINE_SCHEDULER_MIGRATION_CONFLICT";
+          throw error;
+        }
+        return routine;
+      }
+      routine.schedulerMigration = {
+        schemaVersion: ROUTINE_SCHEDULER_MIGRATION_SCHEMA_VERSION,
+        state: "prepared",
+        migrationId: migration,
+        sourceDigest: digest,
+        targetJobId: target,
+        wasEnabled: true,
+        originalDefinition: {
+          name: routine.name,
+          prompt: routine.prompt,
+          trigger: structuredClone(routine.trigger),
+        },
+        preparedAt: this._now(),
+      };
+      this._writeRoutines(map);
+      return routine;
+    });
+  }
+
+  retireForSchedulerMigration(
+    id,
+    { migrationId, sourceDigest, targetJobId, retirementToken } = {},
+  ) {
+    const migration = routineMigrationField(migrationId, "migrationId");
+    const digest = routineMigrationField(sourceDigest, "sourceDigest");
+    const target = routineMigrationField(targetJobId, "targetJobId");
+    const token = routineMigrationField(retirementToken, "retirementToken");
+    return this._withDefinitionLock((map) => {
+      const routine = this._resolveFromMap(map, id);
+      if (!routine) throw new Error(`routine not found: ${id}`);
+      const prior = routine.schedulerMigration;
+      if (
+        prior?.schemaVersion !== ROUTINE_SCHEDULER_MIGRATION_SCHEMA_VERSION ||
+        prior.migrationId !== migration ||
+        prior.sourceDigest !== digest ||
+        prior.targetJobId !== target ||
+        !["prepared", "retired"].includes(prior.state)
+      ) {
+        const error = new Error(
+          `routine migration changed before retirement: ${routine.id}`,
+        );
+        error.code = "ROUTINE_SCHEDULER_MIGRATION_CONFLICT";
+        throw error;
+      }
+      if (prior.state === "retired") {
+        if (
+          prior.retirementToken !== token ||
+          routine.enabled !== false ||
+          routine.prompt !== ROUTINE_SCHEDULER_LEGACY_FENCE_PROMPT ||
+          routine.trigger?.kind !== "webhook"
+        ) {
+          const error = new Error(
+            `routine migration fence changed: ${routine.id}`,
+          );
+          error.code = "ROUTINE_SCHEDULER_MIGRATION_CONFLICT";
+          throw error;
+        }
+        return routine;
+      }
+      if (routineMigrationSourceDigest(routine) !== digest) {
+        const error = new Error(
+          `routine changed before retirement: ${routine.id}`,
+        );
+        error.code = "ROUTINE_SCHEDULER_MIGRATION_SOURCE_CHANGED";
+        throw error;
+      }
+      routine.enabled = false;
+      routine.prompt = ROUTINE_SCHEDULER_LEGACY_FENCE_PROMPT;
+      routine.trigger = { kind: "webhook" };
+      routine.schedulerMigration = {
+        ...prior,
+        state: "retired",
+        retirementToken: token,
+        retiredAt: this._now(),
+      };
+      this._writeRoutines(map);
+      return routine;
+    });
+  }
+
+  restoreFromSchedulerMigration(
+    id,
+    { migrationId, sourceDigest, targetJobId, retirementToken } = {},
+  ) {
+    const migration = routineMigrationField(migrationId, "migrationId");
+    const expectedDigest = routineMigrationField(sourceDigest, "sourceDigest");
+    const target = routineMigrationField(targetJobId, "targetJobId");
+    const token =
+      retirementToken === null || retirementToken === undefined
+        ? null
+        : routineMigrationField(retirementToken, "retirementToken");
+    return this._withDefinitionLock((map) => {
+      const routine = this._resolveFromMap(map, id);
+      if (!routine) throw new Error(`routine not found: ${id}`);
+      const current = routine.schedulerMigration;
+      if (!current) {
+        if (routineMigrationSourceDigest(routine) !== expectedDigest) {
+          const error = new Error(
+            `routine changed after rollback restoration: ${routine.id}`,
+          );
+          error.code = "ROUTINE_SCHEDULER_MIGRATION_CONFLICT";
+          throw error;
+        }
+        return routine;
+      }
+      if (
+        current?.schemaVersion !== ROUTINE_SCHEDULER_MIGRATION_SCHEMA_VERSION ||
+        current.migrationId !== migration ||
+        current.sourceDigest !== expectedDigest ||
+        current.targetJobId !== target ||
+        !current.originalDefinition ||
+        routineMigrationSourceDigest(routine) !== expectedDigest ||
+        !["prepared", "retired"].includes(current.state) ||
+        (current.state === "retired" &&
+          (current.retirementToken !== token ||
+            routine.enabled !== false ||
+            routine.prompt !== ROUTINE_SCHEDULER_LEGACY_FENCE_PROMPT ||
+            routine.trigger?.kind !== "webhook"))
+      ) {
+        const error = new Error(
+          `routine migration fence changed before rollback: ${routine.id}`,
+        );
+        error.code = "ROUTINE_SCHEDULER_MIGRATION_CONFLICT";
+        throw error;
+      }
+      if (current.state === "retired") {
+        Object.assign(routine, current.originalDefinition);
+        routine.enabled = current.wasEnabled === true;
+      }
+      delete routine.schedulerMigration;
+      this._writeRoutines(map);
+      return routine;
+    });
+  }
+
+  schedulerMigrated() {
+    return this.list()
+      .filter(
+        (routine) =>
+          routine.schedulerMigration?.schemaVersion ===
+            ROUTINE_SCHEDULER_MIGRATION_SCHEMA_VERSION &&
+          routine.schedulerMigration.state === "retired",
+      )
+      .map(routineEffectiveSchedulerView);
+  }
+
   remove(id) {
     return this._withDefinitionLock((map) => {
       const routine = this._resolveFromMap(map, id);
       if (!routine) throw new Error(`routine not found: ${id}`);
+      if (routine.schedulerMigration?.state === "retired") {
+        throw routineSchedulerMigrationConflict(routine, "removal");
+      }
       delete map[routine.id];
       this._writeRoutines(map);
       return routine;
@@ -270,7 +560,13 @@ export class RoutineStore {
         error.code = "ROUTINE_REVISION_CONFLICT";
         throw error;
       }
+      const before = structuredClone(routine);
       const result = mutation(routine, map);
+      assertRetiredRoutineMutationSafe(
+        before,
+        map[id] || null,
+        "revisioned mutation",
+      );
       this._writeRoutines(map);
       return result;
     });
@@ -293,8 +589,12 @@ export class RoutineStore {
   }
 
   /** GitHub-triggered routines the driver should poll. */
-  githubRoutines() {
-    return this.list().filter((r) => r.enabled && r.trigger.kind === "github");
+  githubRoutines({ schedulerMigration = false } = {}) {
+    return this.list()
+      .map((routine) =>
+        schedulerMigration ? routineEffectiveSchedulerView(routine) : routine,
+      )
+      .filter((r) => r.enabled && r.trigger.kind === "github");
   }
 
   // ── run history ──────────────────────────────────────────────────────────
@@ -533,7 +833,9 @@ export async function executeRoutine(store, routine, runAgent, meta = {}) {
   });
   store.update(routine.id, {
     lastFiredAt: startedAt,
-    ...(routine.trigger.kind === "once" ? { enabled: false } : {}),
+    ...(routine.trigger.kind === "once" || routine.schedulerMigration
+      ? { enabled: false }
+      : {}),
   });
   return {
     runId,

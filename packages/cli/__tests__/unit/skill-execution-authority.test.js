@@ -240,13 +240,11 @@ describe("durable Skill execution authority", () => {
 
   it("serializes concurrent revocations without losing a generation or audit event", async () => {
     const filePath = createAuthorityPath();
-    const children = Array.from({ length: 6 }, () =>
-      spawnChild(filePath, "revoke"),
-    );
     const results = await Promise.all(
-      children.map((child) =>
-        waitForMessage(child, (message) => message?.type === "revoked"),
-      ),
+      Array.from({ length: 6 }, () => {
+        const child = spawnChild(filePath, "revoke");
+        return waitForMessage(child, (message) => message?.type === "revoked");
+      }),
     );
     expect(
       results.map((result) => Number(result.generation)).sort((a, b) => a - b),

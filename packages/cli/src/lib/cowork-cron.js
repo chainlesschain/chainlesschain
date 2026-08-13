@@ -60,6 +60,7 @@ export const _deps = {
 
 export const COWORK_SCHEDULER_UNKNOWN_LEASE_EXPIRES_AT =
   "9999-12-31T23:59:59.999Z";
+export const COWORK_SCHEDULER_MIGRATION_SCHEMA_VERSION = 1;
 
 function coworkSchedulerError(
   code,
@@ -83,6 +84,81 @@ function normalizedDate(value, label) {
     );
   }
   return date;
+}
+
+function stableJsonValue(value) {
+  if (Array.isArray(value)) return value.map(stableJsonValue);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, stableJsonValue(value[key])]),
+    );
+  }
+  return value;
+}
+
+export function coworkCronMigrationSourceSnapshot(schedule) {
+  const source = { ...schedule };
+  delete source.activeDelivery;
+  delete source.deliveryFence;
+  delete source.schedulerExecution;
+  delete source.schedulerMigration;
+  delete source.lastDeliveryId;
+  delete source.lastRunAt;
+  delete source.lastStatus;
+  delete source.nextAt;
+  delete source.missedRunPolicy;
+  return stableJsonValue(source);
+}
+
+export function coworkCronMigrationSourceDigest(schedule) {
+  return crypto
+    .createHash("sha256")
+    .update(
+      "chainlesschain.cowork-cron.scheduler-migration-source.v1\0",
+      "utf8",
+    )
+    .update(JSON.stringify(coworkCronMigrationSourceSnapshot(schedule)), "utf8")
+    .digest("hex");
+}
+
+function migrationField(value, field) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw coworkSchedulerError(
+      "COWORK_SCHEDULER_MIGRATION_INVALID",
+      `Cowork scheduler migration ${field} is required`,
+    );
+  }
+  return value.trim();
+}
+
+function coworkMigrationFence(schedule, nowMs) {
+  const migration = schedule.schedulerMigration;
+  const expiresAt = Date.parse(schedule.activeDelivery?.leaseExpiresAt || "");
+  return (
+    migration?.schemaVersion === COWORK_SCHEDULER_MIGRATION_SCHEMA_VERSION &&
+    typeof migration.retirementToken === "string" &&
+    schedule.activeDelivery?.ownerId ===
+      `scheduler-migration:${migration.retirementToken}` &&
+    Number.isFinite(expiresAt) &&
+    expiresAt > nowMs
+  );
+}
+
+function applyCoworkMigrationFence(schedule, now) {
+  const token = schedule.schedulerMigration?.retirementToken;
+  if (typeof token !== "string" || token.length === 0) return false;
+  const fence = Math.max(Number(schedule.deliveryFence) || 0, 0) + 1;
+  schedule.deliveryFence = fence;
+  schedule.activeDelivery = {
+    deliveryId: `scheduler-migration:${token}`,
+    ownerId: `scheduler-migration:${token}`,
+    fence,
+    claimedAt: now.toISOString(),
+    leaseExpiresAt: COWORK_SCHEDULER_UNKNOWN_LEASE_EXPIRES_AT,
+  };
+  return true;
 }
 
 // ─── Cron parser ─────────────────────────────────────────────────────────────
@@ -687,6 +763,205 @@ export function getSchedule(cwd, id) {
   );
 }
 
+export function prepareCoworkSchedulerMigration(
+  cwd,
+  id,
+  { migrationId, sourceDigest, targetJobId } = {},
+) {
+  const migration = migrationField(migrationId, "migrationId");
+  const digest = migrationField(sourceDigest, "sourceDigest");
+  const target = migrationField(targetJobId, "targetJobId");
+  return _withScheduleLock(cwd, () => {
+    const schedules = loadSchedules(cwd, { failOnMalformed: true });
+    const schedule = schedules.find((entry) => entry.id === id);
+    if (!schedule) {
+      throw coworkSchedulerError(
+        "COWORK_SCHEDULER_SCHEDULE_NOT_FOUND",
+        `Cowork schedule does not exist: ${id}`,
+      );
+    }
+    if (schedule.enabled !== true) {
+      throw coworkSchedulerError(
+        "COWORK_SCHEDULER_SCHEDULE_DISABLED",
+        `Cowork schedule is disabled: ${id}`,
+      );
+    }
+    if (coworkCronMigrationSourceDigest(schedule) !== digest) {
+      throw coworkSchedulerError(
+        "COWORK_SCHEDULER_MIGRATION_SOURCE_CHANGED",
+        `Cowork schedule changed before migration: ${id}`,
+      );
+    }
+    const prior = schedule.schedulerMigration;
+    if (prior) {
+      if (
+        prior.schemaVersion !== COWORK_SCHEDULER_MIGRATION_SCHEMA_VERSION ||
+        prior.migrationId !== migration ||
+        prior.sourceDigest !== digest ||
+        prior.targetJobId !== target ||
+        prior.state !== "prepared"
+      ) {
+        throw coworkSchedulerError(
+          "COWORK_SCHEDULER_MIGRATION_CONFLICT",
+          `Cowork schedule already belongs to another migration: ${id}`,
+        );
+      }
+      return schedule;
+    }
+    schedule.schedulerMigration = {
+      schemaVersion: COWORK_SCHEDULER_MIGRATION_SCHEMA_VERSION,
+      state: "prepared",
+      migrationId: migration,
+      sourceDigest: digest,
+      targetJobId: target,
+      preparedAt: _deps.now().toISOString(),
+    };
+    _saveSchedulesUnlocked(cwd, schedules);
+    return schedule;
+  });
+}
+
+export function retireCoworkSchedulerMigration(
+  cwd,
+  id,
+  {
+    migrationId,
+    sourceDigest,
+    targetJobId,
+    retirementToken,
+    at = _deps.now(),
+  } = {},
+) {
+  const migration = migrationField(migrationId, "migrationId");
+  const digest = migrationField(sourceDigest, "sourceDigest");
+  const target = migrationField(targetJobId, "targetJobId");
+  const token = migrationField(retirementToken, "retirementToken");
+  const now = normalizedDate(at, "cowork scheduler migration retirement");
+  return _withScheduleLock(cwd, () => {
+    const schedules = loadSchedules(cwd, { failOnMalformed: true });
+    const schedule = schedules.find((entry) => entry.id === id);
+    if (!schedule) {
+      throw coworkSchedulerError(
+        "COWORK_SCHEDULER_SCHEDULE_NOT_FOUND",
+        `Cowork schedule does not exist: ${id}`,
+      );
+    }
+    const prior = schedule.schedulerMigration;
+    if (
+      prior?.schemaVersion !== COWORK_SCHEDULER_MIGRATION_SCHEMA_VERSION ||
+      prior.migrationId !== migration ||
+      prior.sourceDigest !== digest ||
+      prior.targetJobId !== target ||
+      !["prepared", "retired"].includes(prior.state)
+    ) {
+      throw coworkSchedulerError(
+        "COWORK_SCHEDULER_MIGRATION_CONFLICT",
+        `Cowork migration preparation changed before retirement: ${id}`,
+      );
+    }
+    if (prior.state === "retired") {
+      if (
+        prior.retirementToken !== token ||
+        !coworkMigrationFence(schedule, now.getTime())
+      ) {
+        throw coworkSchedulerError(
+          "COWORK_SCHEDULER_MIGRATION_CONFLICT",
+          `Cowork migration retirement fence changed: ${id}`,
+        );
+      }
+      return schedule;
+    }
+    if (coworkCronMigrationSourceDigest(schedule) !== digest) {
+      throw coworkSchedulerError(
+        "COWORK_SCHEDULER_MIGRATION_SOURCE_CHANGED",
+        `Cowork schedule changed before retirement: ${id}`,
+      );
+    }
+    const activeExpiresAt = Date.parse(
+      schedule.activeDelivery?.leaseExpiresAt || "",
+    );
+    if (
+      schedule.activeDelivery &&
+      Number.isFinite(activeExpiresAt) &&
+      activeExpiresAt > now.getTime()
+    ) {
+      throw coworkSchedulerError(
+        "COWORK_SCHEDULER_LEGACY_CLAIM_ACTIVE",
+        `Cowork schedule is already claimed: ${id}`,
+        { retryable: true, retryAt: activeExpiresAt },
+      );
+    }
+    schedule.schedulerMigration = {
+      ...prior,
+      state: "retired",
+      retirementToken: token,
+      retiredAt: now.toISOString(),
+    };
+    applyCoworkMigrationFence(schedule, now);
+    _saveSchedulesUnlocked(cwd, schedules);
+    return schedule;
+  });
+}
+
+export function restoreCoworkSchedulerMigration(
+  cwd,
+  id,
+  { migrationId, sourceDigest, targetJobId, retirementToken } = {},
+) {
+  const migration = migrationField(migrationId, "migrationId");
+  const expectedDigest = migrationField(sourceDigest, "sourceDigest");
+  const target = migrationField(targetJobId, "targetJobId");
+  const token =
+    retirementToken === null || retirementToken === undefined
+      ? null
+      : migrationField(retirementToken, "retirementToken");
+  return _withScheduleLock(cwd, () => {
+    const schedules = loadSchedules(cwd, { failOnMalformed: true });
+    const schedule = schedules.find((entry) => entry.id === id);
+    if (!schedule) {
+      throw coworkSchedulerError(
+        "COWORK_SCHEDULER_SCHEDULE_NOT_FOUND",
+        `Cowork schedule does not exist: ${id}`,
+      );
+    }
+    const current = schedule.schedulerMigration;
+    if (!current) {
+      if (
+        coworkCronMigrationSourceDigest(schedule) !== expectedDigest ||
+        String(schedule.activeDelivery?.ownerId || "").startsWith(
+          "scheduler-migration:",
+        )
+      ) {
+        throw coworkSchedulerError(
+          "COWORK_SCHEDULER_MIGRATION_CONFLICT",
+          `Cowork source changed after rollback restoration: ${id}`,
+        );
+      }
+      return schedule;
+    }
+    if (
+      current?.schemaVersion !== COWORK_SCHEDULER_MIGRATION_SCHEMA_VERSION ||
+      current.migrationId !== migration ||
+      current.sourceDigest !== expectedDigest ||
+      current.targetJobId !== target ||
+      !["prepared", "retired"].includes(current.state) ||
+      coworkCronMigrationSourceDigest(schedule) !== expectedDigest ||
+      (current.state === "retired" &&
+        (current.retirementToken !== token ||
+          schedule.activeDelivery?.ownerId !== `scheduler-migration:${token}`))
+    ) {
+      throw coworkSchedulerError(
+        "COWORK_SCHEDULER_MIGRATION_CONFLICT",
+        `Cowork migration fence changed before rollback: ${id}`,
+      );
+    }
+    delete schedule.schedulerMigration;
+    if (current.state === "retired") schedule.activeDelivery = null;
+    _saveSchedulesUnlocked(cwd, schedules);
+    return schedule;
+  });
+}
+
 /**
  * Bind a scheduler-kernel occurrence before starting the Cowork task.
  * The same JSONL lock used by the legacy driver closes both old-first and
@@ -745,7 +1020,13 @@ export function bindSchedulerScheduleFire(
 
     const active = schedule.activeDelivery;
     const activeExpiresAt = Date.parse(active?.leaseExpiresAt || "");
-    if (active && Number.isFinite(activeExpiresAt) && activeExpiresAt > nowMs) {
+    const migrationFence = coworkMigrationFence(schedule, nowMs);
+    if (
+      active &&
+      Number.isFinite(activeExpiresAt) &&
+      activeExpiresAt > nowMs &&
+      !migrationFence
+    ) {
       throw coworkSchedulerError(
         "COWORK_SCHEDULER_LEGACY_CLAIM_ACTIVE",
         `Cowork schedule is already claimed: ${id}`,
@@ -857,6 +1138,7 @@ export function completeSchedulerScheduleFire(
     } else {
       schedule.activeDelivery = null;
     }
+    if (schedule.enabled === true) applyCoworkMigrationFence(schedule, now);
     _saveSchedulesUnlocked(cwd, schedules);
     return schedule;
   });
@@ -930,6 +1212,7 @@ export function adjudicateSchedulerScheduleFire(
       schedule.lastStatus = "adjudicated-applied";
     }
     schedule.activeDelivery = null;
+    if (schedule.enabled === true) applyCoworkMigrationFence(schedule, now);
     _saveSchedulesUnlocked(cwd, schedules);
     return schedule;
   });

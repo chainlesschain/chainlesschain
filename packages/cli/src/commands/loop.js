@@ -44,15 +44,20 @@ import {
   appendEvent,
   appendEventIfHead,
   readEvents,
+  sessionPath,
   sessionExists,
 } from "../harness/jsonl-session-store.js";
 import { openSchedulerStore } from "../lib/scheduler-kernel/store.js";
-import { LoopSchedulerBridge } from "../lib/scheduler-kernel/loop-adapter.js";
+import {
+  LoopSchedulerBridge,
+  migrateSavedLoopSession,
+} from "../lib/scheduler-kernel/loop-adapter.js";
 
 export const _deps = {
   spawn: executionBroker.spawn.bind(executionBroker),
   openSchedulerStore,
   createLoopSchedulerBridge: (options) => new LoopSchedulerBridge(options),
+  migrateSavedLoopSession,
 };
 
 /**
@@ -395,7 +400,7 @@ export function registerLoopCommand(program) {
               : null,
             { title: `loop: ${operands.join(" ")}`.slice(0, 80) },
           );
-          appendEvent(sessionId, "loop_config", {
+          savedConfig = {
             execMode,
             operands,
             dynamic,
@@ -404,7 +409,8 @@ export function registerLoopCommand(program) {
             untilExitZero,
             until: untilRaw || null,
             cwd: executionCwd,
-          });
+          };
+          appendEvent(sessionId, "loop_config", savedConfig);
         }
 
         // --- SIGINT → graceful stop after the current iteration ---
@@ -446,15 +452,27 @@ export function registerLoopCommand(program) {
         try {
           const executionId = sessionId || `loop-${randomUUID()}`;
           schedulerStore = _deps.openSchedulerStore();
+          const definition = {
+            executionId,
+            cwd: executionCwd,
+            execMode,
+            operands,
+            dynamic,
+          };
+          if (persist) {
+            _deps.migrateSavedLoopSession({
+              schedulerStore,
+              sessionId,
+              config: savedConfig,
+              definition,
+              readEvents,
+              appendEventIfHead,
+              sessionFilePath: sessionPath,
+            });
+          }
           const loopScheduler = _deps.createLoopSchedulerBridge({
             schedulerStore,
-            definition: {
-              executionId,
-              cwd: executionCwd,
-              execMode,
-              operands,
-              dynamic,
-            },
+            definition,
             runIteration: async (n, { signal } = {}) => {
               logger.log(chalk.gray(`\n▸ iteration ${n} — ${label}`));
               const t0 = Date.now();
