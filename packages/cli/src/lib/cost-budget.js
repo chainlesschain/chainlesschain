@@ -19,11 +19,6 @@
 
 import { estimateCost } from "./llm-pricing.js";
 
-const round = (n, dp = 6) => {
-  const f = Math.pow(10, dp);
-  return Math.round((Number(n) + Number.EPSILON) * f) / f;
-};
-
 /** Parse a `--max-budget-usd` value into a positive number, or null when unset. */
 export function parseBudgetUsd(value) {
   if (value == null || value === "") return null;
@@ -94,7 +89,10 @@ export class CostBudget {
       // otherwise treat the record as unpriced.
       const cost = Number(est.totalCost);
       if (Number.isFinite(cost) && cost >= 0) {
-        this.spentUsd = round(this.spentUsd + cost);
+        // Preserve sub-microdollar charges. Formatting belongs at the UI edge;
+        // rounding here can turn a positive paid call into zero and disable a
+        // sufficiently small hard budget.
+        this.spentUsd += cost;
         this.priced = true;
       } else {
         this.sawUnpriced = true;
@@ -114,7 +112,7 @@ export class CostBudget {
   remaining() {
     return this.limitUsd == null
       ? Infinity
-      : Math.max(0, round(this.limitUsd - this.spentUsd));
+      : Math.max(0, this.limitUsd - this.spentUsd);
   }
 
   /**

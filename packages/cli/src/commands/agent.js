@@ -175,6 +175,52 @@ function readStdin() {
   });
 }
 
+/** Normalize the three opt-in causal-report scope flags without losing empties. */
+export function resolveAgentObservabilityScope(options = {}) {
+  const fields = [
+    ["observabilityWorkspace", "workspaceId", "--observability-workspace"],
+    ["observabilityTeam", "teamId", "--observability-team"],
+    ["observabilityPolicy", "policyId", "--observability-policy"],
+  ];
+  const providedFields = fields.filter(
+    ([optionName]) => options[optionName] !== undefined,
+  );
+  if (providedFields.length > 0 && options.forkSession === true) {
+    throw new Error(
+      "observability scope flags cannot be combined with --fork-session; a fork inherits the source session's immutable observability scope",
+    );
+  }
+  let provided = false;
+  const scope = {};
+  for (const [optionName, scopeName, flag] of fields) {
+    const value = options[optionName];
+    if (value === undefined) {
+      scope[scopeName] = null;
+      continue;
+    }
+    provided = true;
+    if (typeof value !== "string") {
+      throw new TypeError(`${flag} requires a non-empty string id`);
+    }
+    const normalized = value.trim();
+    const hasControlCharacter = [...normalized].some((character) => {
+      const code = character.codePointAt(0);
+      return code <= 0x1f || code === 0x7f;
+    });
+    if (!normalized || normalized.length > 256 || hasControlCharacter) {
+      throw new TypeError(`${flag} requires a valid non-empty id`);
+    }
+    scope[scopeName] = normalized;
+  }
+  if (!provided) return undefined;
+  if (options.ephemeral === true) {
+    throw new Error(
+      "observability scope requires durable session persistence and cannot be combined with --ephemeral",
+    );
+  }
+  return scope;
+}
+
 export function registerAgentCommand(program) {
   program
     .command("agent")
@@ -497,6 +543,18 @@ export function registerAgentCommand(program) {
       "Hard USD spend cap: stop the run before the next paid LLM call once the estimated cost reaches this (headless; uses the cc cost price table)",
     )
     .option(
+      "--observability-workspace <id>",
+      "Persist a workspace scope on new session authority for causal reports",
+    )
+    .option(
+      "--observability-team <id>",
+      "Persist a team scope on new session authority for causal reports",
+    )
+    .option(
+      "--observability-policy <id>",
+      "Persist a policy scope on new session authority for causal reports",
+    )
+    .option(
       "--strict-mcp-config",
       "Use ONLY --mcp-config servers; ignore registered (cc mcp add) and IDE-bridge MCP for a reproducible tool surface",
     )
@@ -520,6 +578,19 @@ export function registerAgentCommand(program) {
       false,
     )
     .action(async (task, options, command) => {
+      // Scope is immutable session authority. Resolve every scope/fork
+      // conflict before worktree creation, session forking, bootstrap, or any
+      // other externally visible setup performed by this action.
+      let observabilityScope;
+      try {
+        observabilityScope = resolveAgentObservabilityScope(options);
+      } catch (error) {
+        process.stderr.write(`${error.message}\n`);
+        process.exitCode = 1;
+        return;
+      }
+      const hasObservabilityScope = observabilityScope !== undefined;
+
       // --capabilities: print the machine-readable manifest and exit — no
       // config, no bootstrap, no network (gap-analysis 2026-07-11 快速收益 #6).
       if (options.capabilities) {
@@ -1182,7 +1253,6 @@ export function registerAgentCommand(program) {
         const { mergePricing } = await import("../lib/llm-pricing.js");
         priceTable = mergePricing(loadConfig().llm?.pricing);
       }
-
       // 鈹€鈹€ Streaming-input mode (--input-format stream-json) 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
       // A persistent multi-turn conversation driven by NDJSON user events on
       // stdin; output is always NDJSON. Routed before single-prompt handling
@@ -1248,6 +1318,9 @@ export function registerAgentCommand(program) {
             maxCostUsd,
             priceTable,
             chatFn: fallbackChatFn,
+            observabilityScope: hasObservabilityScope
+              ? observabilityScope
+              : undefined,
             // --json-schema: structured output for stream-INPUT mode. The schema
             // is resolved + meta-validated up front, its output contract injected
             // into the system prompt, and a per-turn `structured_result` event is
@@ -1544,6 +1617,9 @@ export function registerAgentCommand(program) {
           // --max-budget-usd: hard spend cap (+ price table from config llm.pricing)
           maxCostUsd,
           priceTable,
+          observabilityScope: hasObservabilityScope
+            ? observabilityScope
+            : undefined,
           // --fallback-model: retry once on a backup model on transient errors
           chatFn: fallbackChatFn,
         };
@@ -1701,6 +1777,9 @@ export function registerAgentCommand(program) {
         // --channels: inbound channel listeners (webhook/telegram) whose
         // events become user turns in this session.
         channels: options.channels || null,
+        observabilityScope: hasObservabilityScope
+          ? observabilityScope
+          : undefined,
       });
       await runtime.startAgentSession();
       // Interactive session ended (REPL closed) — settle the worktree.

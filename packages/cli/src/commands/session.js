@@ -65,6 +65,7 @@ import {
 import { executionBroker } from "../lib/process-execution-broker/index.js";
 import { registerSessionMcpRecoveryCommands } from "./session-mcp-recovery.js";
 import { registerSessionShowSubcommand } from "./session-show.js";
+import { registerSessionObservabilitySubcommand } from "./session-observability.js";
 
 export const _deps = {
   execFileSync: (...args) => executionBroker.execFileSync(...args),
@@ -1836,6 +1837,43 @@ export function registerSessionCommand(program) {
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
         process.exit(1);
+      }
+    });
+
+  registerSessionObservabilitySubcommand(session);
+
+  session
+    .command("observability-authority <id>")
+    .description(
+      "Print the verified headHash/eventCount/scope binding for a delivery flow",
+    )
+    .option("--json", "Machine-readable JSON output")
+    .action(async (id) => {
+      try {
+        const { getVerifiedSessionObservabilityAuthority } =
+          await import("../harness/jsonl-session-store.js");
+        const authority = getVerifiedSessionObservabilityAuthority(id);
+        console.log(
+          JSON.stringify(
+            {
+              causality: {
+                scope: authority.observabilityScope,
+                sessions: [
+                  {
+                    sessionId: authority.sessionId,
+                    headHash: authority.headHash,
+                    eventCount: authority.eventCount,
+                  },
+                ],
+              },
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exitCode = 1;
       }
     });
 

@@ -24,6 +24,7 @@ vi.mock("../../src/lib/sub-agent-context.js", () => {
       id: `sub-mock-${n}`,
       role: opts.role || "t",
       task: opts.task,
+      opts,
       status: "active",
       result: null,
       maxIterations: 8,
@@ -100,6 +101,53 @@ async function drive(chatFn, options = {}) {
   });
   for await (const e of gen) events.push(e);
   return { events, messages };
+}
+
+async function captureRejection(promise) {
+  try {
+    await promise;
+  } catch (error) {
+    return error;
+  }
+  throw new Error("expected promise to reject");
+}
+
+function runStrictChildUsageAttempt(ctx, childProvider) {
+  const callId = `mdl-${ctx.id}`;
+  try {
+    ctx.opts.onUsageBoundary({
+      type: "model-usage-started",
+      callId,
+      provider: "anthropic",
+      model: "claude-haiku-4-5",
+      source: "model",
+    });
+    const providerResult = childProvider();
+    ctx.opts.onUsageSettlement({
+      type: "token-usage",
+      callId,
+      provider: "anthropic",
+      model: "claude-haiku-4-5",
+      usage: providerResult.usage,
+    });
+    ctx._resolveRun(RESULT);
+  } catch (error) {
+    ctx._rejectRun(error);
+  }
+  return callId;
+}
+
+function strictUsageObservers(failurePhase, failure, timeline) {
+  return {
+    onUsageBoundary: vi.fn((event) => {
+      timeline.push({ phase: "boundary", event });
+      if (failurePhase === "boundary") throw failure;
+    }),
+    onUsageSettlement: vi.fn((event) => {
+      timeline.push({ phase: "settlement", event });
+      if (failurePhase === "settlement") throw failure;
+    }),
+  };
 }
 
 beforeEach(() => {
@@ -200,6 +248,146 @@ describe("spawn_sub_agent background mode", () => {
     ).toHaveLength(1);
     expect(chatFn).toHaveBeenCalledTimes(2);
   });
+
+  it.each(["boundary", "settlement"])(
+    "loop-top settled drain rethrows the original %s persistence failure before parent call 2",
+    async (failurePhase) => {
+      const failure = new Error(`${failurePhase} ledger unavailable`);
+      const timeline = [];
+      const observers = strictUsageObservers(failurePhase, failure, timeline);
+      const childProvider = vi.fn(() => {
+        timeline.push({ phase: "provider" });
+        return { usage: { input_tokens: 5, output_tokens: 2 } };
+      });
+      _subState.autoResolve = (ctx) => {
+        ctx._usageCallId = runStrictChildUsageAttempt(ctx, childProvider);
+      };
+      let parentCall = 0;
+      const chatFn = vi.fn(async () => {
+        parentCall += 1;
+        if (parentCall === 1) {
+          return {
+            message: {
+              content: "",
+              tool_calls: [
+                spawnCall({ role: "strict-bg", task: "bg", background: true }),
+              ],
+            },
+          };
+        }
+        throw new Error("parent provider call 2 must not start");
+      });
+
+      const error = await captureRejection(
+        drive(chatFn, {
+          strictUsageTelemetry: true,
+          ...observers,
+        }),
+      );
+
+      expect(error).toBe(failure);
+      expect(error.runtimeLedgerPersistence).toBe(true);
+      expect(chatFn).toHaveBeenCalledTimes(1);
+      expect(_subState.created).toHaveLength(1);
+      const [ctx] = _subState.created;
+      expect(ctx.opts).toMatchObject({ strictUsageTelemetry: true });
+      expect(ctx.opts.onUsageBoundary).toEqual(expect.any(Function));
+      expect(ctx.opts.onUsageSettlement).toEqual(expect.any(Function));
+      expect(ctx.forceComplete).toHaveBeenCalledWith(failure.message);
+      expect(observers.onUsageBoundary).toHaveBeenCalledTimes(1);
+      expect(observers.onUsageBoundary.mock.calls[0][0]).toMatchObject({
+        callId: ctx._usageCallId,
+        source: "subagent",
+        attribution: {
+          origin: "subagent",
+          subagentId: ctx.id,
+          role: "strict-bg",
+        },
+      });
+
+      if (failurePhase === "boundary") {
+        expect(childProvider).not.toHaveBeenCalled();
+        expect(observers.onUsageSettlement).not.toHaveBeenCalled();
+        expect(timeline.map(({ phase }) => phase)).toEqual(["boundary"]);
+      } else {
+        expect(childProvider).toHaveBeenCalledTimes(1);
+        expect(observers.onUsageSettlement).toHaveBeenCalledTimes(1);
+        expect(observers.onUsageSettlement.mock.calls[0][0].callId).toBe(
+          ctx._usageCallId,
+        );
+        expect(timeline.map(({ phase }) => phase)).toEqual([
+          "boundary",
+          "provider",
+          "settlement",
+        ]);
+      }
+    },
+  );
+
+  it.each(["boundary", "settlement"])(
+    "final Promise.all drain rethrows the original %s persistence failure before parent call 3",
+    async (failurePhase) => {
+      const failure = new Error(`${failurePhase} ledger unavailable`);
+      const timeline = [];
+      const observers = strictUsageObservers(failurePhase, failure, timeline);
+      const childProvider = vi.fn(() => {
+        timeline.push({ phase: "provider" });
+        return { usage: { input_tokens: 8, output_tokens: 3 } };
+      });
+      let parentCall = 0;
+      const chatFn = vi.fn(async () => {
+        parentCall += 1;
+        if (parentCall === 1) {
+          return {
+            message: {
+              content: "",
+              tool_calls: [
+                spawnCall({ role: "strict-bg", task: "bg", background: true }),
+              ],
+            },
+          };
+        }
+        if (parentCall === 2) {
+          // Keep the child pending through the next parent call, then fail it
+          // so the no-tool final path must catch it after Promise.all.
+          const [ctx] = _subState.created;
+          ctx._usageCallId = runStrictChildUsageAttempt(ctx, childProvider);
+          return { message: { content: "premature parent final" } };
+        }
+        throw new Error("parent provider call 3 must not start");
+      });
+
+      const error = await captureRejection(
+        drive(chatFn, {
+          strictUsageTelemetry: true,
+          ...observers,
+        }),
+      );
+
+      expect(error).toBe(failure);
+      expect(error.runtimeLedgerPersistence).toBe(true);
+      expect(chatFn).toHaveBeenCalledTimes(2);
+      const [ctx] = _subState.created;
+      expect(ctx.forceComplete).toHaveBeenCalledWith(failure.message);
+      expect(observers.onUsageBoundary).toHaveBeenCalledTimes(1);
+      if (failurePhase === "boundary") {
+        expect(childProvider).not.toHaveBeenCalled();
+        expect(observers.onUsageSettlement).not.toHaveBeenCalled();
+        expect(timeline.map(({ phase }) => phase)).toEqual(["boundary"]);
+      } else {
+        expect(childProvider).toHaveBeenCalledTimes(1);
+        expect(observers.onUsageSettlement).toHaveBeenCalledTimes(1);
+        expect(observers.onUsageSettlement.mock.calls[0][0].callId).toBe(
+          ctx._usageCallId,
+        );
+        expect(timeline.map(({ phase }) => phase)).toEqual([
+          "boundary",
+          "provider",
+          "settlement",
+        ]);
+      }
+    },
+  );
 
   it("delivers a FAILED background run with its error instead of losing it", async () => {
     let call = 0;

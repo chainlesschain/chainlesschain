@@ -888,6 +888,7 @@ export class AdvisorRuntime {
         guidance: buildAdvisorGuidance({ ok: true, advice }),
       };
     } catch (error) {
+      if (error?.runtimeLedgerPersistence === true) throw error;
       const failure = {
         callId,
         trigger,
@@ -994,7 +995,8 @@ export class AdvisorRuntime {
       });
       try {
         await onAdvice?.(result, selected);
-      } catch {
+      } catch (error) {
+        if (error?.runtimeLedgerPersistence === true) throw error;
         // Rendering/telemetry callbacks are advisory only.
       }
       if (!result.ok || !result.guidance) {

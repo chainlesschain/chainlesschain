@@ -8,6 +8,49 @@ const DEFAULT_MAX_OUTPUT_TOKENS = 2048;
 const MIN_MAX_OUTPUT_TOKENS = 256;
 const MAX_MAX_OUTPUT_TOKENS = 4096;
 const MANUAL_MAX_MESSAGES = 4;
+const MAX_USAGE_CALL_ID_CHARS = 128;
+
+function safeUsageCallId(value) {
+  if (
+    typeof value !== "string" ||
+    !value.trim() ||
+    value.length > MAX_USAGE_CALL_ID_CHARS ||
+    /\p{Cc}/u.test(value)
+  ) {
+    return null;
+  }
+  return value.trim();
+}
+
+function attachProviderCallId(result, startedCallId) {
+  const callId =
+    safeUsageCallId(startedCallId) || safeUsageCallId(result?.callId);
+  if (!callId) return result;
+  if (result && typeof result === "object" && !Array.isArray(result)) {
+    return { ...result, callId };
+  }
+  return { summary: result, callId };
+}
+
+function attachProviderCallIdToError(error, callId) {
+  const safeCallId = safeUsageCallId(callId);
+  if (
+    !safeCallId ||
+    !error ||
+    (typeof error !== "object" && typeof error !== "function")
+  ) {
+    return;
+  }
+  try {
+    Object.defineProperty(error, "compactionCallId", {
+      configurable: true,
+      value: safeCallId,
+    });
+  } catch {
+    // Frozen provider errors still propagate; their call remains conservative
+    // because no unsafe metadata is manufactured here.
+  }
+}
 
 function boundedMaxOutputTokens(value) {
   const parsed = Math.trunc(Number(value));
@@ -20,9 +63,11 @@ function boundedMaxOutputTokens(value) {
   );
 }
 
-function tokenCount(value) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : 0;
+function tokenCount(value, { required = false } = {}) {
+  if (typeof value === "number" && Number.isSafeInteger(value) && value >= 0) {
+    return value;
+  }
+  return required ? null : 0;
 }
 
 function responseSummary(response) {
@@ -56,9 +101,12 @@ function preserveCompletedExchange(originalMessages, compactedMessages) {
 export function compactionTokenUsage(stats) {
   const usage = stats?.summaryUsage;
   if (!usage || typeof usage !== "object") return null;
+  const inputTokens = tokenCount(usage.inputTokens, { required: true });
+  const outputTokens = tokenCount(usage.outputTokens, { required: true });
+  if (inputTokens == null || outputTokens == null) return null;
   return {
-    input_tokens: tokenCount(usage.inputTokens),
-    output_tokens: tokenCount(usage.outputTokens),
+    input_tokens: inputTokens,
+    output_tokens: outputTokens,
     cache_read_input_tokens: tokenCount(usage.cacheReadTokens),
     cache_creation_input_tokens: tokenCount(usage.cacheCreationTokens),
   };
@@ -78,35 +126,52 @@ export async function compactConversationWithProvider(messages, options = {}) {
   const model = options.model || null;
   const maxOutputTokens = boundedMaxOutputTokens(options.maxOutputTokens);
   const chatFn = options.chatFn;
+  const invokeProviderCall = async (call) => {
+    const callId = safeUsageCallId(await options.onProviderCallStart?.());
+    try {
+      return attachProviderCallId(await call(), callId);
+    } catch (error) {
+      attachProviderCallIdToError(error, callId);
+      throw error;
+    }
+  };
   const llmQuery =
     typeof options.llmQuery === "function"
-      ? options.llmQuery
+      ? async (prompt) => invokeProviderCall(() => options.llmQuery(prompt))
       : async (prompt) => {
           if (typeof chatFn !== "function") {
             throw new Error("provider adapter unavailable");
           }
-          const response = await chatFn([{ role: "user", content: prompt }], {
-            ...(options.chatOptions || {}),
-            provider,
-            model,
-            baseUrl: options.baseUrl,
-            apiKey: options.apiKey,
-            signal: options.signal,
-            contextEngine: null,
-            enabledToolNames: [],
-            extraToolDefinitions: [],
-            hostManagedToolPolicy: null,
-            onToken: undefined,
-            onStall: undefined,
-            onStreamRetry: undefined,
-            maxOutputTokens,
+          return invokeProviderCall(async () => {
+            const response = await chatFn([{ role: "user", content: prompt }], {
+              ...(options.chatOptions || {}),
+              provider,
+              model,
+              baseUrl: options.baseUrl,
+              apiKey: options.apiKey,
+              signal: options.signal,
+              contextEngine: null,
+              enabledToolNames: [],
+              extraToolDefinitions: [],
+              hostManagedToolPolicy: null,
+              onToken: undefined,
+              onStall: undefined,
+              onStreamRetry: undefined,
+              maxOutputTokens,
+            });
+            return {
+              summary: responseSummary(response),
+              usage: response?.usage || null,
+              provider,
+              model,
+              ...(safeUsageCallId(response?.callId)
+                ? { callId: safeUsageCallId(response.callId) }
+                : {}),
+              ...(response?.usageLedgerSettled === true
+                ? { usageLedgerSettled: true }
+                : {}),
+            };
           });
-          return {
-            summary: responseSummary(response),
-            usage: response?.usage || null,
-            provider,
-            model,
-          };
         };
 
   const compressor =
@@ -178,6 +243,10 @@ export async function compactConversationWithProvider(messages, options = {}) {
             stats.summaryUsageUnknownReason ||
             "provider_transport_outcome_unknown",
           usageOutcome: "unknown",
+          ...(stats.summaryCallId ? { callId: stats.summaryCallId } : {}),
+          ...(stats.summaryUsageLedgerSettled === true
+            ? { usageLedgerSettled: true }
+            : {}),
         }
       : null;
 
@@ -198,6 +267,10 @@ export async function compactConversationWithProvider(messages, options = {}) {
           model: stats.summaryModel || model,
           usage,
           source: "semantic-compaction",
+          ...(stats.summaryCallId ? { callId: stats.summaryCallId } : {}),
+          ...(stats.summaryUsageLedgerSettled === true
+            ? { usageLedgerSettled: true }
+            : {}),
         }
       : null,
     usageUnknownEvent,

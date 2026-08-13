@@ -2857,6 +2857,12 @@ export async function executeTool(name, args, context = {}) {
       // 用量归因: shared per-run sink for child-loop (sub-agent / isolated
       // skill) token usage, drained by agentLoop as attributed events.
       subAgentUsageSink: context.subAgentUsageSink || null,
+      strictUsageTelemetry: context.strictUsageTelemetry === true,
+      onUsageBoundary: context.onUsageBoundary || null,
+      onUsageSettlement: context.onUsageSettlement || null,
+      onToolCallBoundary: context.onToolCallBoundary || null,
+      onToolCallSettlement: context.onToolCallSettlement || null,
+      backgroundUsageFailureState: context.backgroundUsageFailureState || null,
       planManager,
       permissionRules: context.permissionRules || null,
       effectiveAllowedToolNames: context.effectiveAllowedToolNames ?? null,
@@ -4259,6 +4265,12 @@ async function executeToolInner(
     signal = null,
     backgroundSubAgents = null,
     subAgentUsageSink = null,
+    strictUsageTelemetry = false,
+    onUsageBoundary = null,
+    onUsageSettlement = null,
+    onToolCallBoundary = null,
+    onToolCallSettlement = null,
+    backgroundUsageFailureState = null,
     toolAdmission = null,
     unattendedActionPolicy = null,
     managedCheckpoint = false,
@@ -5715,6 +5727,12 @@ async function executeToolInner(
           signal,
           backgroundSubAgents,
           subAgentUsageSink,
+          strictUsageTelemetry,
+          onUsageBoundary,
+          onUsageSettlement,
+          onToolCallBoundary,
+          onToolCallSettlement,
+          backgroundUsageFailureState,
           toolAdmission,
         }),
       );
@@ -6597,7 +6615,75 @@ async function executeToolInner(
         const skillUsageSink = Array.isArray(subAgentUsageSink)
           ? subAgentUsageSink
           : null;
+        if (strictUsageTelemetry === true) {
+          _assertStrictUsageObserver(onUsageBoundary, "boundary");
+          _assertStrictUsageObserver(onUsageSettlement, "settlement");
+        }
         let skillSubRef = null;
+        const projectSkillUsage = (event) =>
+          event && event.attribution
+            ? event
+            : {
+                ...event,
+                source:
+                  event?.source === "semantic-compaction"
+                    ? "semantic-compaction"
+                    : "subagent",
+                attribution: {
+                  origin: "skill",
+                  skill: args.skill_name,
+                  subagentId: skillSubRef?.id || null,
+                  parentSessionId: sessionId || null,
+                  depth: (subAgentDepth || 0) + 1,
+                },
+              };
+        const observeSkillBoundary =
+          strictUsageTelemetry === true
+            ? (event) =>
+                _notifyStrictUsageBoundary(
+                  onUsageBoundary,
+                  projectSkillUsage(event),
+                )
+            : null;
+        const observeSkillSettlement =
+          strictUsageTelemetry === true
+            ? (event) =>
+                _notifyStrictUsageSettlement(
+                  onUsageSettlement,
+                  projectSkillUsage(event),
+                )
+            : null;
+        const projectSkillTool = (event) => ({
+          ...event,
+          attribution: event?.attribution || projectSkillUsage({}).attribution,
+        });
+        const observeSkillToolBoundary =
+          strictUsageTelemetry === true
+            ? (event) =>
+                _notifyStrictToolObserver(
+                  onToolCallBoundary,
+                  projectSkillTool(event),
+                  "boundary",
+                )
+            : null;
+        const observeSkillToolSettlement =
+          strictUsageTelemetry === true
+            ? (event) =>
+                _notifyStrictToolObserver(
+                  onToolCallSettlement,
+                  projectSkillTool(event),
+                  "settlement",
+                )
+            : null;
+        const skillLlmOptions = { ...(llmOptions || {}) };
+        if (typeof llmOptions?.onStreamRetry === "function") {
+          skillLlmOptions.onStreamRetry = (attempt, error, telemetry = {}) =>
+            _notifyStrictRetryObserver(llmOptions.onStreamRetry, [
+              attempt,
+              error,
+              projectSkillUsage(telemetry),
+            ]);
+        }
         // Run skill through isolated sub-agent context
         let subCtx;
         try {
@@ -6613,7 +6699,7 @@ async function executeToolInner(
             signal: skillExecutionSignal,
             toolAdmission,
             cwd,
-            llmOptions: llmOptions || null,
+            llmOptions: skillLlmOptions,
             ...(sessionBudget ? { sessionBudget } : {}),
             ...(permissionRules ? { permissionRules } : {}),
             ...(hostManagedToolPolicy
@@ -6637,29 +6723,29 @@ async function executeToolInner(
             ...(mcpConflictScheduler ? { mcpConflictScheduler } : {}),
             onUsage: skillUsageSink
               ? (u) => {
+                  const forwarded = projectSkillUsage(u);
                   try {
-                    skillUsageSink.push(
-                      u && u.attribution
-                        ? u
-                        : {
-                            provider: u?.provider ?? null,
-                            model: u?.model ?? null,
-                            usage: u?.usage || null,
-                            ...(u?.source ? { source: u.source } : {}),
-                            attribution: {
-                              origin: "skill",
-                              skill: args.skill_name,
-                              subagentId: skillSubRef?.id || null,
-                              parentSessionId: sessionId || null,
-                              depth: (subAgentDepth || 0) + 1,
-                            },
-                          },
-                    );
-                  } catch (_e) {
-                    // usage forwarding is best-effort
+                    skillUsageSink.push(forwarded);
+                  } catch (error) {
+                    if (strictUsageTelemetry === true) {
+                      throw _runtimeUsageBoundaryFailure(
+                        error,
+                        "CC_USAGE_FORWARDING_FAILED",
+                        "Isolated skill usage forwarding failed",
+                      );
+                    }
                   }
                 }
               : null,
+            ...(strictUsageTelemetry === true
+              ? {
+                  strictUsageTelemetry: true,
+                  onUsageBoundary: observeSkillBoundary,
+                  onUsageSettlement: observeSkillSettlement,
+                  onToolCallBoundary: observeSkillToolBoundary,
+                  onToolCallSettlement: observeSkillToolSettlement,
+                }
+              : {}),
           });
         } catch (error) {
           skillExecutionLease?.release?.();
@@ -6704,6 +6790,7 @@ async function executeToolInner(
             toolsUsed: result.toolsUsed,
           });
         } catch (err) {
+          if (err?.runtimeLedgerPersistence === true) throw err;
           if (
             signal?.aborted ||
             skillExecutionSignal?.aborted ||
@@ -7839,6 +7926,34 @@ function _backgroundSubAgentResultText(entry) {
   );
 }
 
+function _throwBackgroundSubAgentUsageFailure(entry) {
+  const error = entry?.outcome?.fatalError;
+  if (error?.runtimeLedgerPersistence === true) throw error;
+}
+
+function _throwSettledBackgroundUsageFailure(map) {
+  if (!(map instanceof Map)) return;
+  for (const entry of map.values()) {
+    if (entry?.settled === true) {
+      _throwBackgroundSubAgentUsageFailure(entry);
+    }
+  }
+}
+
+function _throwBackgroundUsageFailureState(state) {
+  const error = state?.error;
+  if (error?.runtimeLedgerPersistence === true) throw error;
+}
+
+async function _awaitBackgroundUsageSettlement(map, state) {
+  _throwBackgroundUsageFailureState(state);
+  if (map instanceof Map && map.size > 0) {
+    await Promise.all([...map.values()].map((entry) => entry.promise));
+  }
+  _throwBackgroundUsageFailureState(state);
+  _throwSettledBackgroundUsageFailure(map);
+}
+
 /**
  * Drain the run's attributed child-loop usage sink (spawn_sub_agent /
  * isolated run_skill — see toolContext.subAgentUsageSink), re-yielding each
@@ -7850,13 +7965,48 @@ function _backgroundSubAgentResultText(entry) {
 function* _drainSubAgentUsage(sink) {
   while (Array.isArray(sink) && sink.length > 0) {
     const u = sink.shift();
+    if (u?.type === "model-usage-unknown") {
+      const boundary = {
+        callId: u.callId,
+        provider: u.provider ?? null,
+        model: u.model ?? null,
+        source: u.source || "subagent",
+        attribution: u.attribution || null,
+      };
+      if (u.callId && u.boundaryNotified !== true) {
+        yield { type: "model-usage-started", ...boundary };
+      }
+      yield {
+        type: "model-usage-unknown",
+        ...boundary,
+        code: u.code || "provider_transport_outcome_unknown",
+        ...(u.ledgerPersisted === true ? { ledgerPersisted: true } : {}),
+      };
+      continue;
+    }
+    if (u?.callId && u.boundaryNotified !== true) {
+      yield {
+        type: "model-usage-started",
+        callId: u.callId,
+        provider: u.provider ?? null,
+        model: u.model ?? null,
+        source: u.source || "subagent",
+        attribution: u.attribution || null,
+      };
+    }
     yield {
       type: "token-usage",
+      ...(u?.callId ? { callId: u.callId } : {}),
       provider: u?.provider ?? null,
       model: u?.model ?? null,
       usage: u?.usage || {},
-      ...(u?.source ? { source: u.source } : {}),
+      ...(u?.source
+        ? { source: u.source }
+        : u?.callId
+          ? { source: "subagent" }
+          : {}),
       attribution: u?.attribution || null,
+      ...(u?.ledgerPersisted === true ? { ledgerPersisted: true } : {}),
     };
   }
 }
@@ -8313,32 +8463,126 @@ async function _executeSpawnSubAgent(args, ctx) {
   const usageSink = Array.isArray(ctx.subAgentUsageSink)
     ? ctx.subAgentUsageSink
     : null;
+  if (ctx.strictUsageTelemetry === true) {
+    _assertStrictUsageObserver(ctx.onUsageBoundary, "boundary");
+    _assertStrictUsageObserver(ctx.onUsageSettlement, "settlement");
+  }
   let subCtxRef = null;
+  const latchBackgroundUsageFailure = (error) => {
+    if (
+      error?.runtimeLedgerPersistence === true &&
+      ctx.backgroundUsageFailureState &&
+      !ctx.backgroundUsageFailureState.error
+    ) {
+      ctx.backgroundUsageFailureState.error = error;
+    }
+    return error;
+  };
+  const projectSubagentUsage = (u) =>
+    u && u.attribution
+      ? u
+      : {
+          ...u,
+          source:
+            u?.source === "semantic-compaction"
+              ? "semantic-compaction"
+              : "subagent",
+          attribution: {
+            origin: "subagent",
+            subagentId: subCtxRef?.id || null,
+            role: subCtxRef?.role || role || null,
+            parentSessionId,
+            depth: currentDepth + 1,
+          },
+        };
   const onUsage = usageSink
     ? (u) => {
+        const forwarded = projectSubagentUsage(u);
         try {
-          usageSink.push(
-            u && u.attribution
-              ? u
-              : {
-                  provider: u?.provider ?? null,
-                  model: u?.model ?? null,
-                  usage: u?.usage || null,
-                  ...(u?.source ? { source: u.source } : {}),
-                  attribution: {
-                    origin: "subagent",
-                    subagentId: subCtxRef?.id || null,
-                    role: subCtxRef?.role || role || null,
-                    parentSessionId,
-                    depth: currentDepth + 1,
-                  },
-                },
-          );
-        } catch (_e) {
-          // usage forwarding is best-effort
+          usageSink.push(forwarded);
+        } catch (error) {
+          if (ctx.strictUsageTelemetry === true) {
+            throw _runtimeUsageBoundaryFailure(
+              error,
+              "CC_USAGE_FORWARDING_FAILED",
+              "Sub-agent usage forwarding failed",
+            );
+          }
         }
       }
     : null;
+  const observeSubagentBoundary =
+    ctx.strictUsageTelemetry === true
+      ? (event) => {
+          try {
+            return _notifyStrictUsageBoundary(
+              ctx.onUsageBoundary,
+              projectSubagentUsage(event),
+            );
+          } catch (error) {
+            throw latchBackgroundUsageFailure(error);
+          }
+        }
+      : null;
+  const observeSubagentSettlement =
+    ctx.strictUsageTelemetry === true
+      ? (event) => {
+          try {
+            return _notifyStrictUsageSettlement(
+              ctx.onUsageSettlement,
+              projectSubagentUsage(event),
+            );
+          } catch (error) {
+            throw latchBackgroundUsageFailure(error);
+          }
+        }
+      : null;
+  const projectSubagentTool = (event) => ({
+    ...event,
+    attribution:
+      event?.attribution || projectSubagentUsage({}).attribution || null,
+  });
+  const observeSubagentToolBoundary =
+    ctx.strictUsageTelemetry === true
+      ? (event) => {
+          try {
+            return _notifyStrictToolObserver(
+              ctx.onToolCallBoundary,
+              projectSubagentTool(event),
+              "boundary",
+            );
+          } catch (error) {
+            throw latchBackgroundUsageFailure(error);
+          }
+        }
+      : null;
+  const observeSubagentToolSettlement =
+    ctx.strictUsageTelemetry === true
+      ? (event) => {
+          try {
+            return _notifyStrictToolObserver(
+              ctx.onToolCallSettlement,
+              projectSubagentTool(event),
+              "settlement",
+            );
+          } catch (error) {
+            throw latchBackgroundUsageFailure(error);
+          }
+        }
+      : null;
+  if (typeof parentLlm.onStreamRetry === "function") {
+    subLlmOptions.onStreamRetry = (attempt, error, telemetry = {}) => {
+      try {
+        return _notifyStrictRetryObserver(parentLlm.onStreamRetry, [
+          attempt,
+          error,
+          projectSubagentUsage(telemetry),
+        ]);
+      } catch (observerError) {
+        throw latchBackgroundUsageFailure(observerError);
+      }
+    };
+  }
 
   // Worktree sparse-checkout + dependency symlink (large-monorepo lever): when
   // the child runs in an isolated worktree, only materialize the packages it
@@ -8394,6 +8638,15 @@ async function _executeSpawnSubAgent(args, ctx) {
     subAgentBudget: ctx.subAgentBudget || null,
     ...(ctx.sessionBudget ? { sessionBudget: ctx.sessionBudget } : {}),
     onUsage,
+    ...(ctx.strictUsageTelemetry === true
+      ? {
+          strictUsageTelemetry: true,
+          onUsageBoundary: observeSubagentBoundary,
+          onUsageSettlement: observeSubagentSettlement,
+          onToolCallBoundary: observeSubagentToolBoundary,
+          onToolCallSettlement: observeSubagentToolSettlement,
+        }
+      : {}),
     // Extended contract (gap 2026-07-11): per-agent iteration cap + opt-in
     // worktree isolation. undefined keeps the profile/flag defaults intact.
     ...(subMaxTurns ? { maxIterations: subMaxTurns } : {}),
@@ -8574,7 +8827,13 @@ async function _executeSpawnSubAgent(args, ctx) {
         (result) => ({ result, error: null }),
         (err) => {
           subCtx.forceComplete(err.message);
-          return { result: subCtx.result, error: err.message };
+          return {
+            result: subCtx.result,
+            error: err.message,
+            ...(err?.runtimeLedgerPersistence === true
+              ? { fatalError: err }
+              : {}),
+          };
         },
       )
       .then((outcome) => {
@@ -8704,6 +8963,8 @@ async function _executeSpawnSubAgent(args, ctx) {
       completedAt: subCtx.completedAt,
     });
 
+    if (err?.runtimeLedgerPersistence === true) throw err;
+
     return {
       error: `Sub-agent failed: ${err.message}`,
       subAgentId: subCtx.id,
@@ -8737,6 +8998,49 @@ function getEffectiveToolDefinitions(options = {}) {
       ...(options.extraToolDefinitions || []),
     ],
   });
+}
+
+function _isNonNegativeSafeInteger(value) {
+  return Number.isSafeInteger(value) && value >= 0;
+}
+
+function _providerUsageCount(usage, canonical, alias) {
+  if (!usage || typeof usage !== "object" || Array.isArray(usage)) return null;
+  const hasCanonical = Object.prototype.hasOwnProperty.call(usage, canonical);
+  const hasAlias = Object.prototype.hasOwnProperty.call(usage, alias);
+  if (!hasCanonical && !hasAlias) return null;
+  if (hasCanonical && hasAlias && usage[canonical] !== usage[alias])
+    return null;
+  const value = hasCanonical ? usage[canonical] : usage[alias];
+  return _isNonNegativeSafeInteger(value) ? value : null;
+}
+
+function _optionalProviderUsageCount(usage, canonical, alias) {
+  if (!usage || typeof usage !== "object" || Array.isArray(usage)) return null;
+  const hasCanonical = Object.prototype.hasOwnProperty.call(usage, canonical);
+  const hasAlias = Object.prototype.hasOwnProperty.call(usage, alias);
+  if (!hasCanonical && !hasAlias) return 0;
+  if (hasCanonical && hasAlias && usage[canonical] !== usage[alias])
+    return null;
+  const value = hasCanonical ? usage[canonical] : usage[alias];
+  return _isNonNegativeSafeInteger(value) ? value : null;
+}
+
+function _hasCompleteProviderUsage(usage) {
+  return (
+    _providerUsageCount(usage, "input_tokens", "prompt_tokens") != null &&
+    _providerUsageCount(usage, "output_tokens", "completion_tokens") != null &&
+    _optionalProviderUsageCount(
+      usage,
+      "cache_read_input_tokens",
+      "cache_read_tokens",
+    ) != null &&
+    _optionalProviderUsageCount(
+      usage,
+      "cache_creation_input_tokens",
+      "cache_creation_tokens",
+    ) != null
+  );
 }
 
 /**
@@ -8802,12 +9106,17 @@ export async function chatWithTools(rawMessages, options) {
           ),
         {
           signal,
-          onRetry: (attempt, error, telemetry) =>
-            options.onStreamRetry?.(attempt, error, {
-              ...telemetry,
-              provider: "ollama",
-              model: model || null,
-            }),
+          strictRetryObserver: options.strictUsageTelemetry === true,
+          ...(typeof options.onStreamRetry === "function"
+            ? {
+                onRetry: (attempt, error, telemetry) =>
+                  options.onStreamRetry(attempt, error, {
+                    ...telemetry,
+                    provider: "ollama",
+                    model: model || null,
+                  }),
+              }
+            : {}),
         },
       );
     }
@@ -8829,11 +9138,16 @@ export async function chatWithTools(rawMessages, options) {
       throw new Error(await formatProviderResponseError("ollama", response));
     }
     const data = await response.json();
-    if (data.prompt_eval_count || data.eval_count) {
+    if (
+      _isNonNegativeSafeInteger(data.prompt_eval_count) &&
+      _isNonNegativeSafeInteger(data.eval_count)
+    ) {
       data.usage = {
-        input_tokens: data.prompt_eval_count || 0,
-        output_tokens: data.eval_count || 0,
+        input_tokens: data.prompt_eval_count,
+        output_tokens: data.eval_count,
       };
+    } else {
+      delete data.usage;
     }
     return data;
   }
@@ -8941,12 +9255,17 @@ export async function chatWithTools(rawMessages, options) {
           ),
         {
           signal,
-          onRetry: (attempt, error, telemetry) =>
-            options.onStreamRetry?.(attempt, error, {
-              ...telemetry,
-              provider: "anthropic",
-              model: effModel,
-            }),
+          strictRetryObserver: options.strictUsageTelemetry === true,
+          ...(typeof options.onStreamRetry === "function"
+            ? {
+                onRetry: (attempt, error, telemetry) =>
+                  options.onStreamRetry(attempt, error, {
+                    ...telemetry,
+                    provider: "anthropic",
+                    model: effModel,
+                  }),
+              }
+            : {}),
         },
       );
     }
@@ -8968,17 +9287,32 @@ export async function chatWithTools(rawMessages, options) {
 
     const data = await response.json();
     const normalized = _normalizeAnthropicResponse(data);
-    if (data.usage) {
+    if (_hasCompleteProviderUsage(data.usage)) {
       normalized.usage = {
         // With prompt caching, Anthropic splits input into uncached
         // `input_tokens` + cache read/write — capture all three so cost
         // accounting prices the cached prefix correctly (read ≈ 0.1×,
         // write ≈ 1.25× input). Absent (caching off) → 0, byte-identical.
-        input_tokens: data.usage.input_tokens || 0,
-        output_tokens: data.usage.output_tokens || 0,
-        cache_read_input_tokens: data.usage.cache_read_input_tokens || 0,
-        cache_creation_input_tokens:
-          data.usage.cache_creation_input_tokens || 0,
+        input_tokens: _providerUsageCount(
+          data.usage,
+          "input_tokens",
+          "prompt_tokens",
+        ),
+        output_tokens: _providerUsageCount(
+          data.usage,
+          "output_tokens",
+          "completion_tokens",
+        ),
+        cache_read_input_tokens: _optionalProviderUsageCount(
+          data.usage,
+          "cache_read_input_tokens",
+          "cache_read_tokens",
+        ),
+        cache_creation_input_tokens: _optionalProviderUsageCount(
+          data.usage,
+          "cache_creation_input_tokens",
+          "cache_creation_tokens",
+        ),
       };
     }
     return normalized;
@@ -9056,12 +9390,17 @@ export async function chatWithTools(rawMessages, options) {
         ),
       {
         signal,
-        onRetry: (attempt, error, telemetry) =>
-          options.onStreamRetry?.(attempt, error, {
-            ...telemetry,
-            provider,
-            model: model || defaultModels[provider] || "gpt-4o-mini",
-          }),
+        strictRetryObserver: options.strictUsageTelemetry === true,
+        ...(typeof options.onStreamRetry === "function"
+          ? {
+              onRetry: (attempt, error, telemetry) =>
+                options.onStreamRetry(attempt, error, {
+                  ...telemetry,
+                  provider,
+                  model: model || defaultModels[provider] || "gpt-4o-mini",
+                }),
+            }
+          : {}),
       },
     );
   }
@@ -9093,16 +9432,28 @@ export async function chatWithTools(rawMessages, options) {
   }
   const choice = data.choices[0];
   const out = { message: choice.message };
-  if (data.usage) {
+  if (_hasCompleteProviderUsage(data.usage)) {
     // OpenAI/DeepSeek/volcengine report cached prompt tokens AS PART of
     // prompt_tokens — split them out so cost prices the cached prefix at the
     // provider's cache rate, not full input. 0 (or absent) → input unchanged.
+    const promptTokens = _providerUsageCount(
+      data.usage,
+      "input_tokens",
+      "prompt_tokens",
+    );
+    const completionTokens = _providerUsageCount(
+      data.usage,
+      "output_tokens",
+      "completion_tokens",
+    );
     const cached = _openaiCachedTokens(data.usage);
-    out.usage = {
-      input_tokens: Math.max(0, (data.usage.prompt_tokens || 0) - cached),
-      output_tokens: data.usage.completion_tokens || 0,
-      cache_read_input_tokens: cached,
-    };
+    if (cached != null && cached <= promptTokens) {
+      out.usage = {
+        input_tokens: promptTokens - cached,
+        output_tokens: completionTokens,
+        cache_read_input_tokens: cached,
+      };
+    }
   }
   return out;
 }
@@ -9121,8 +9472,9 @@ function _ollamaInitState() {
     role: "assistant",
     content: "",
     toolCalls: null,
-    promptEval: 0,
-    evalCount: 0,
+    promptEval: null,
+    evalCount: null,
+    usageInvalid: false,
   };
 }
 
@@ -9188,8 +9540,20 @@ function _ollamaReduceLine(state, line, onToken) {
       state.toolCalls = (state.toolCalls || []).concat(msg.tool_calls);
     }
   }
-  if (obj.prompt_eval_count) state.promptEval = obj.prompt_eval_count;
-  if (obj.eval_count) state.evalCount = obj.eval_count;
+  if (Object.prototype.hasOwnProperty.call(obj, "prompt_eval_count")) {
+    if (_isNonNegativeSafeInteger(obj.prompt_eval_count)) {
+      state.promptEval = obj.prompt_eval_count;
+    } else {
+      state.usageInvalid = true;
+    }
+  }
+  if (Object.prototype.hasOwnProperty.call(obj, "eval_count")) {
+    if (_isNonNegativeSafeInteger(obj.eval_count)) {
+      state.evalCount = obj.eval_count;
+    } else {
+      state.usageInvalid = true;
+    }
+  }
   return state;
 }
 
@@ -9199,7 +9563,11 @@ function _ollamaFinalize(state) {
     message.tool_calls = state.toolCalls;
   }
   const data = { message };
-  if (state.promptEval || state.evalCount) {
+  if (
+    state.usageInvalid !== true &&
+    _isNonNegativeSafeInteger(state.promptEval) &&
+    _isNonNegativeSafeInteger(state.evalCount)
+  ) {
     data.usage = {
       input_tokens: state.promptEval,
       output_tokens: state.evalCount,
@@ -9292,7 +9660,7 @@ const _STREAM_STALL = Symbol("stream-stall");
  * last error — strictly better than today (one drop → instant error).
  *
  * @param {() => Promise<any>} streamFn  invokes one `_chat*Streaming` attempt
- * @param {object} opts  { signal?, retries?, baseDelayMs?, onRetry?, sleep? }
+ * @param {object} opts  { signal?, retries?, baseDelayMs?, onRetry?, strictRetryObserver?, sleep? }
  */
 export async function _retryStreamingChat(streamFn, opts = {}) {
   // Default budget honors CC_MAX_RETRIES / CLAUDE_CODE_MAX_RETRIES (capped 15);
@@ -9311,13 +9679,46 @@ export async function _retryStreamingChat(streamFn, opts = {}) {
       if (attempt >= retries || !_isRetryableStreamError(err, signal))
         throw err;
       attempt++;
+      if (
+        opts.strictRetryObserver === true &&
+        typeof opts.onRetry !== "function"
+      ) {
+        throw _runtimeUsageBoundaryFailure(
+          null,
+          "CC_RETRY_OBSERVER_REQUIRED",
+          "Strict streaming retry requires a synchronous persistence observer",
+        );
+      }
       if (typeof opts.onRetry === "function") {
         try {
-          opts.onRetry(attempt, err, {
+          const observation = opts.onRetry(attempt, err, {
             durationMs: Math.max(0, now() - attemptStartedAt),
           });
-        } catch {
-          /* the retry notice is best-effort; never let it mask the retry */
+          if (observation && typeof observation.then === "function") {
+            void Promise.resolve(observation).catch(() => {});
+            if (opts.strictRetryObserver === true) {
+              const observerError = new Error(
+                "Strict retry observer must be synchronous",
+              );
+              observerError.code = "CC_RETRY_OBSERVER_ASYNC";
+              throw observerError;
+            }
+          }
+        } catch (observerError) {
+          // A persisted usage ledger must record the failed attempt before a
+          // second billable transport attempt starts. Strict hosts opt into a
+          // fail-closed observer; legacy/unpersisted callers retain the former
+          // best-effort notification behavior.
+          if (
+            opts.strictRetryObserver === true ||
+            observerError?.code === "CC_SESSION_PERSISTENCE_FAILED"
+          ) {
+            throw _runtimeUsageBoundaryFailure(
+              observerError,
+              observerError?.code || "CC_RETRY_PERSISTENCE_FAILED",
+              "Streaming retry persistence failed",
+            );
+          }
         }
       }
       await sleep(base * Math.pow(2, attempt - 1));
@@ -9489,10 +9890,11 @@ function _anthropicInitState() {
   return {
     text: "",
     blocks: {},
-    inputTokens: 0,
-    outputTokens: 0,
+    inputTokens: null,
+    outputTokens: null,
     cacheReadTokens: 0,
     cacheCreationTokens: 0,
+    usageInvalid: false,
   };
 }
 
@@ -9508,13 +9910,35 @@ function _anthropicReduceLine(state, raw, onToken, onThinking) {
     return state;
   }
   if (obj.type === "message_start") {
-    const u = obj.message?.usage || {};
-    state.inputTokens = Number(u.input_tokens) || state.inputTokens;
-    // Prompt-cache token counts ride message_start.usage (Anthropic caching).
-    state.cacheReadTokens =
-      Number(u.cache_read_input_tokens) || state.cacheReadTokens;
-    state.cacheCreationTokens =
-      Number(u.cache_creation_input_tokens) || state.cacheCreationTokens;
+    const usage = obj.message?.usage;
+    if (usage != null) {
+      const inputTokens = _providerUsageCount(
+        usage,
+        "input_tokens",
+        "prompt_tokens",
+      );
+      const cacheReadTokens = _optionalProviderUsageCount(
+        usage,
+        "cache_read_input_tokens",
+        "cache_read_tokens",
+      );
+      const cacheCreationTokens = _optionalProviderUsageCount(
+        usage,
+        "cache_creation_input_tokens",
+        "cache_creation_tokens",
+      );
+      if (
+        inputTokens == null ||
+        cacheReadTokens == null ||
+        cacheCreationTokens == null
+      ) {
+        state.usageInvalid = true;
+      } else {
+        state.inputTokens = inputTokens;
+        state.cacheReadTokens = cacheReadTokens;
+        state.cacheCreationTokens = cacheCreationTokens;
+      }
+    }
   } else if (obj.type === "content_block_start") {
     const cb = obj.content_block || {};
     state.blocks[obj.index] =
@@ -9553,7 +9977,18 @@ function _anthropicReduceLine(state, raw, onToken, onThinking) {
         (state.blocks[obj.index].signature || "") + (d.signature || "");
     }
   } else if (obj.type === "message_delta") {
-    state.outputTokens = Number(obj.usage?.output_tokens) || state.outputTokens;
+    if (obj.usage != null) {
+      const outputTokens = _providerUsageCount(
+        obj.usage,
+        "output_tokens",
+        "completion_tokens",
+      );
+      if (outputTokens == null) {
+        state.usageInvalid = true;
+      } else {
+        state.outputTokens = outputTokens;
+      }
+    }
   }
   return state;
 }
@@ -9594,10 +10029,9 @@ function _anthropicFinalize(state) {
   if (thinkingBlocks.length) message._thinkingBlocks = thinkingBlocks;
   const out = { message };
   if (
-    state.inputTokens ||
-    state.outputTokens ||
-    state.cacheReadTokens ||
-    state.cacheCreationTokens
+    state.usageInvalid !== true &&
+    _isNonNegativeSafeInteger(state.inputTokens) &&
+    _isNonNegativeSafeInteger(state.outputTokens)
   ) {
     out.usage = {
       input_tokens: state.inputTokens,
@@ -9683,21 +10117,49 @@ async function _chatAnthropicStreaming(
 // cached prefix twice. Verified live against volcengine (field present, 0 when
 // the provider does not auto-cache).
 function _openaiCachedTokens(usage) {
-  if (!usage || typeof usage !== "object") return 0;
-  const detailed = Number(usage.prompt_tokens_details?.cached_tokens);
-  if (Number.isFinite(detailed) && detailed > 0) return detailed;
-  const deepseek = Number(usage.prompt_cache_hit_tokens);
-  if (Number.isFinite(deepseek) && deepseek > 0) return deepseek;
-  return 0;
+  if (!usage || typeof usage !== "object" || Array.isArray(usage)) return null;
+  const candidates = [];
+  const hasDirect =
+    Object.prototype.hasOwnProperty.call(usage, "cache_read_input_tokens") ||
+    Object.prototype.hasOwnProperty.call(usage, "cache_read_tokens");
+  if (hasDirect) {
+    const direct = _optionalProviderUsageCount(
+      usage,
+      "cache_read_input_tokens",
+      "cache_read_tokens",
+    );
+    if (direct == null) return null;
+    candidates.push(direct);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(usage, "prompt_tokens_details")) {
+    const details = usage.prompt_tokens_details;
+    if (!details || typeof details !== "object" || Array.isArray(details)) {
+      return null;
+    }
+    if (Object.prototype.hasOwnProperty.call(details, "cached_tokens")) {
+      if (!_isNonNegativeSafeInteger(details.cached_tokens)) return null;
+      candidates.push(details.cached_tokens);
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(usage, "prompt_cache_hit_tokens")) {
+    if (!_isNonNegativeSafeInteger(usage.prompt_cache_hit_tokens)) return null;
+    candidates.push(usage.prompt_cache_hit_tokens);
+  }
+
+  if (candidates.some((value) => value !== candidates[0])) return null;
+  return candidates[0] ?? 0;
 }
 
 function _openaiInitState() {
   return {
     text: "",
     tools: [],
-    inputTokens: 0,
-    outputTokens: 0,
+    inputTokens: null,
+    outputTokens: null,
     cacheReadTokens: 0,
+    usageInvalid: false,
   };
 }
 
@@ -9734,14 +10196,26 @@ function _openaiReduceLine(state, raw, onToken) {
         state.tools[idx].args += tc.function.arguments;
     }
   }
-  if (obj.usage) {
+  if (obj.usage != null) {
+    const usage = obj.usage;
+    const prompt = _providerUsageCount(usage, "input_tokens", "prompt_tokens");
+    const completion = _providerUsageCount(
+      usage,
+      "output_tokens",
+      "completion_tokens",
+    );
     const cached = _openaiCachedTokens(obj.usage);
-    const prompt = Number(obj.usage.prompt_tokens);
-    if (Number.isFinite(prompt))
+    if (
+      !_hasCompleteProviderUsage(usage) ||
+      cached == null ||
+      cached > prompt
+    ) {
+      state.usageInvalid = true;
+    } else {
       state.inputTokens = Math.max(0, prompt - cached);
-    if (cached) state.cacheReadTokens = cached;
-    state.outputTokens =
-      Number(obj.usage.completion_tokens) || state.outputTokens;
+      state.outputTokens = completion;
+      state.cacheReadTokens = cached;
+    }
   }
   return state;
 }
@@ -9755,11 +10229,15 @@ function _openaiFinalize(state) {
   const message = { role: "assistant", content: state.text };
   if (toolCalls.length) message.tool_calls = toolCalls;
   const out = { message };
-  if (state.inputTokens || state.outputTokens || state.cacheReadTokens) {
+  if (
+    state.usageInvalid !== true &&
+    _isNonNegativeSafeInteger(state.inputTokens) &&
+    _isNonNegativeSafeInteger(state.outputTokens)
+  ) {
     out.usage = {
       input_tokens: state.inputTokens,
       output_tokens: state.outputTokens,
-      cache_read_input_tokens: state.cacheReadTokens || 0,
+      cache_read_input_tokens: state.cacheReadTokens,
     };
   }
   return out;
@@ -10119,11 +10597,293 @@ function _managedCheckpointUncoveredWriterReason(toolContext) {
  *   { type: "checkpoint", id, tool }          — auto-checkpoint before a mutating tool
  *   { type: "tool-executing", tool, args }
  *   { type: "tool-result", tool, result, error }
+ *   { type: "model-usage-started", callId, provider, model, source }
+ *   { type: "token-usage", callId, provider, model, usage, source? }
+ *   { type: "model-usage-unknown", callId, provider, model, source, code }
  *   { type: "response-complete", content }
  *
  * @param {Array} messages - mutable messages array (will be appended to)
  * @param {object} options - provider, model, baseUrl, apiKey, contextEngine, hookDb, skillLoader, cwd, slotFiller, interaction
  */
+const _autoCompactionUsageStates = new WeakMap();
+const _autoCompactorInstrumentation = new WeakMap();
+
+function _newModelUsageCallId(source = "model") {
+  // UUIDs are generated locally and contain no session/run/user material. The
+  // fixed prefixes keep the identifier useful in diagnostics while remaining
+  // far below the persisted ledger's 128-character ceiling.
+  const prefix =
+    source === "semantic-compaction"
+      ? "cmp"
+      : source === "subagent"
+        ? "sub"
+        : "mdl";
+  return `${prefix}-${randomUUID()}`;
+}
+
+function _runtimeUsageBoundaryFailure(error, code, fallbackMessage) {
+  const failure =
+    error && (typeof error === "object" || typeof error === "function")
+      ? error
+      : new Error(fallbackMessage);
+  try {
+    failure.runtimeLedgerPersistence = true;
+    if (!failure.code && code) failure.code = code;
+  } catch {
+    const wrapped = new Error(fallbackMessage, { cause: error });
+    wrapped.runtimeLedgerPersistence = true;
+    wrapped.code = code;
+    return wrapped;
+  }
+  return failure;
+}
+
+/**
+ * Strict child loops are consumed inside executeTool, so their yielded model
+ * boundaries cannot reach the parent host before provider work. Require the
+ * parent's synchronous persistence observer and prewrite one conservative
+ * subagent call. The matching unknown event is forwarded after child settlement.
+ */
+function _notifyStrictUsageBoundary(observer, boundary) {
+  if (typeof observer !== "function") {
+    throw _runtimeUsageBoundaryFailure(
+      null,
+      "CC_USAGE_BOUNDARY_OBSERVER_REQUIRED",
+      "Strict child usage telemetry requires a synchronous boundary observer",
+    );
+  }
+  let observation;
+  try {
+    observation = observer(boundary);
+  } catch (error) {
+    throw _runtimeUsageBoundaryFailure(
+      error,
+      "CC_USAGE_BOUNDARY_PERSISTENCE_FAILED",
+      "Child usage boundary persistence failed",
+    );
+  }
+  let isThenable = false;
+  try {
+    isThenable = Boolean(observation && typeof observation.then === "function");
+  } catch (error) {
+    throw _runtimeUsageBoundaryFailure(
+      error,
+      "CC_USAGE_BOUNDARY_OBSERVER_ASYNC",
+      "Child usage boundary observer must be synchronous",
+    );
+  }
+  if (isThenable) {
+    void Promise.resolve(observation).catch(() => {});
+    throw _runtimeUsageBoundaryFailure(
+      null,
+      "CC_USAGE_BOUNDARY_OBSERVER_ASYNC",
+      "Child usage boundary observer must be synchronous",
+    );
+  }
+}
+
+function _notifyStrictUsageSettlement(observer, settlement) {
+  if (typeof observer !== "function") {
+    throw _runtimeUsageBoundaryFailure(
+      null,
+      "CC_USAGE_SETTLEMENT_OBSERVER_REQUIRED",
+      "Strict child usage telemetry requires a synchronous settlement observer",
+    );
+  }
+  let observation;
+  try {
+    observation = observer(settlement);
+  } catch (error) {
+    throw _runtimeUsageBoundaryFailure(
+      error,
+      "CC_USAGE_SETTLEMENT_PERSISTENCE_FAILED",
+      "Child usage settlement persistence failed",
+    );
+  }
+  let isThenable = false;
+  try {
+    isThenable = Boolean(observation && typeof observation.then === "function");
+  } catch (error) {
+    throw _runtimeUsageBoundaryFailure(
+      error,
+      "CC_USAGE_SETTLEMENT_OBSERVER_ASYNC",
+      "Child usage settlement observer must be synchronous",
+    );
+  }
+  if (isThenable) {
+    void Promise.resolve(observation).catch(() => {});
+    throw _runtimeUsageBoundaryFailure(
+      null,
+      "CC_USAGE_SETTLEMENT_OBSERVER_ASYNC",
+      "Child usage settlement observer must be synchronous",
+    );
+  }
+}
+
+function _notifyStrictToolObserver(observer, event, phase) {
+  const upper = phase.toUpperCase();
+  if (typeof observer !== "function") {
+    throw _runtimeUsageBoundaryFailure(
+      null,
+      `CC_TOOL_${upper}_OBSERVER_REQUIRED`,
+      `Strict child tool ${phase} requires a synchronous persistence observer`,
+    );
+  }
+  let observation;
+  try {
+    observation = observer(event);
+  } catch (error) {
+    throw _runtimeUsageBoundaryFailure(
+      error,
+      `CC_TOOL_${upper}_PERSISTENCE_FAILED`,
+      `Child tool ${phase} persistence failed`,
+    );
+  }
+  if (observation && typeof observation.then === "function") {
+    void Promise.resolve(observation).catch(() => {});
+    throw _runtimeUsageBoundaryFailure(
+      null,
+      `CC_TOOL_${upper}_OBSERVER_ASYNC`,
+      `Child tool ${phase} observer must be synchronous`,
+    );
+  }
+}
+
+function _notifyStrictRetryObserver(observer, args) {
+  if (typeof observer !== "function") {
+    throw _runtimeUsageBoundaryFailure(
+      null,
+      "CC_RETRY_OBSERVER_REQUIRED",
+      "Strict child streaming retry requires a synchronous persistence observer",
+    );
+  }
+  let observation;
+  try {
+    observation = observer(...args);
+  } catch (error) {
+    throw _runtimeUsageBoundaryFailure(
+      error,
+      "CC_RETRY_PERSISTENCE_FAILED",
+      "Child streaming retry persistence failed",
+    );
+  }
+  if (observation && typeof observation.then === "function") {
+    void Promise.resolve(observation).catch(() => {});
+    throw _runtimeUsageBoundaryFailure(
+      null,
+      "CC_RETRY_OBSERVER_ASYNC",
+      "Child streaming retry observer must be synchronous",
+    );
+  }
+}
+
+function _assertStrictUsageObserver(observer, phase) {
+  if (typeof observer !== "function") {
+    throw _runtimeUsageBoundaryFailure(
+      null,
+      `CC_USAGE_${phase.toUpperCase()}_OBSERVER_REQUIRED`,
+      `Strict child usage telemetry requires a synchronous ${phase} observer`,
+    );
+  }
+}
+
+function _autoCompactionUsageState(options) {
+  let state = _autoCompactionUsageStates.get(options);
+  if (!state) {
+    state = { calls: [] };
+    _autoCompactionUsageStates.set(options, state);
+  }
+  return state;
+}
+
+/**
+ * Wrap only the compressor's actual provider-query seam. `shouldAutoCompact`,
+ * microcompact, and extractive/count-only compaction never enter this wrapper,
+ * so they cannot manufacture a billable-call boundary.
+ */
+function _instrumentAutoCompactorUsage(compactor, options) {
+  if (!compactor || typeof compactor.llmQuery !== "function") return compactor;
+  const installed = _autoCompactorInstrumentation.get(compactor);
+  if (
+    installed?.options === options &&
+    compactor.llmQuery === installed.wrapper
+  ) {
+    return compactor;
+  }
+
+  const original = installed?.original || compactor.llmQuery;
+  const state = _autoCompactionUsageState(options);
+  const wrapper = async function instrumentedCompactionQuery(...args) {
+    const call = {
+      callId: _newModelUsageCallId("semantic-compaction"),
+      provider: options.provider || null,
+      model: options.model || null,
+      source: "semantic-compaction",
+      observerError: null,
+      observerFailed: false,
+      boundaryNotified: false,
+    };
+    state.calls.push(call);
+    try {
+      if (typeof options.onUsageBoundary === "function") {
+        // Synchronous and before `original`: a host can durably append the
+        // start row, and any append failure prevents provider spend.
+        const observation = options.onUsageBoundary({
+          type: "model-usage-started",
+          callId: call.callId,
+          provider: call.provider,
+          model: call.model,
+          source: call.source,
+        });
+        if (observation && typeof observation.then === "function") {
+          void Promise.resolve(observation).catch(() => {});
+          const error = new Error(
+            "Automatic compaction usage boundary observer must be synchronous",
+          );
+          error.code = "CC_USAGE_BOUNDARY_OBSERVER_ASYNC";
+          throw error;
+        }
+        call.boundaryNotified = true;
+      }
+    } catch (error) {
+      call.observerError = error;
+      call.observerFailed = true;
+      throw error;
+    }
+
+    return await original.apply(this, args);
+  };
+
+  try {
+    compactor.llmQuery = wrapper;
+  } catch (error) {
+    if (options.strictUsageTelemetry === true) {
+      throw _runtimeUsageBoundaryFailure(
+        error,
+        "CC_COMPACTION_USAGE_INSTRUMENTATION_REQUIRED",
+        "Strict semantic compaction requires an instrumentable provider boundary",
+      );
+    }
+    // A frozen injected compactor cannot be instrumented safely. Production
+    // PromptCompressor instances are mutable; legacy injected fakes stay as-is.
+    return compactor;
+  }
+  if (compactor.llmQuery === wrapper) {
+    _autoCompactorInstrumentation.set(compactor, {
+      original,
+      options,
+      wrapper,
+    });
+  } else if (options.strictUsageTelemetry === true) {
+    throw _runtimeUsageBoundaryFailure(
+      null,
+      "CC_COMPACTION_USAGE_INSTRUMENTATION_REQUIRED",
+      "Strict semantic compaction requires an instrumentable provider boundary",
+    );
+  }
+  return compactor;
+}
+
 /**
  * Lazily build (and cache on `options`) the PromptCompressor used for in-loop
  * auto-compaction. Returns null when the feature is off or the module can't be
@@ -10132,7 +10892,7 @@ function _managedCheckpointUncoveredWriterReason(toolContext) {
  */
 async function _getAutoCompactor(options) {
   if (Object.prototype.hasOwnProperty.call(options, "_autoCompactor")) {
-    return options._autoCompactor;
+    return _instrumentAutoCompactorUsage(options._autoCompactor, options);
   }
   let compressor = null;
   try {
@@ -10180,6 +10940,7 @@ async function _getAutoCompactor(options) {
         llmQuery,
         summaryInputMaxChars: options.compactionInputMaxChars,
       });
+      compressor = _instrumentAutoCompactorUsage(compressor, options);
     }
   } catch {
     compressor = null;
@@ -10194,17 +10955,36 @@ async function _getAutoCompactor(options) {
 
 function _compactionTokenUsage(stats) {
   const summaryUsage = stats?.summaryUsage;
-  if (!summaryUsage || typeof summaryUsage !== "object") return null;
-  const tokenCount = (value) => {
-    const number = Number(value);
-    return Number.isFinite(number) && number > 0 ? Math.trunc(number) : 0;
+  if (
+    !summaryUsage ||
+    typeof summaryUsage !== "object" ||
+    Array.isArray(summaryUsage) ||
+    !_isNonNegativeSafeInteger(summaryUsage.inputTokens) ||
+    !_isNonNegativeSafeInteger(summaryUsage.outputTokens)
+  ) {
+    return null;
+  }
+  const optionalTokenCount = (key) => {
+    if (!Object.prototype.hasOwnProperty.call(summaryUsage, key)) return 0;
+    return _isNonNegativeSafeInteger(summaryUsage[key])
+      ? summaryUsage[key]
+      : null;
   };
+  const cacheReadTokens = optionalTokenCount("cacheReadTokens");
+  const cacheCreationTokens = optionalTokenCount("cacheCreationTokens");
+  if (cacheReadTokens == null || cacheCreationTokens == null) return null;
   return {
-    input_tokens: tokenCount(summaryUsage.inputTokens),
-    output_tokens: tokenCount(summaryUsage.outputTokens),
-    cache_read_input_tokens: tokenCount(summaryUsage.cacheReadTokens),
-    cache_creation_input_tokens: tokenCount(summaryUsage.cacheCreationTokens),
+    input_tokens: summaryUsage.inputTokens,
+    output_tokens: summaryUsage.outputTokens,
+    cache_read_input_tokens: cacheReadTokens,
+    cache_creation_input_tokens: cacheCreationTokens,
   };
+}
+
+function _compactionUsageUnknownReason(stats) {
+  return stats?.summaryUsageUnknownReason === "provider_usage_not_reported"
+    ? "provider_usage_not_reported"
+    : "provider_transport_outcome_unknown";
 }
 
 function _sameMessageSnapshot(messages, expectedMessages) {
@@ -10519,7 +11299,30 @@ export async function* agentLoop(messages, options) {
       model: options.model || null,
       baseUrl: options.baseUrl || null,
       apiKey: options.apiKey || null,
+      ...(typeof options.onUsageBoundary === "function"
+        ? { onUsageBoundary: options.onUsageBoundary }
+        : {}),
+      ...(typeof options.onUsageSettlement === "function"
+        ? { onUsageSettlement: options.onUsageSettlement }
+        : {}),
+      ...(typeof options.onStreamRetry === "function"
+        ? { onStreamRetry: options.onStreamRetry }
+        : {}),
+      ...(typeof options.onToolCallBoundary === "function"
+        ? { onToolCallBoundary: options.onToolCallBoundary }
+        : {}),
+      ...(typeof options.onToolCallSettlement === "function"
+        ? { onToolCallSettlement: options.onToolCallSettlement }
+        : {}),
+      ...(options.strictUsageTelemetry === true
+        ? { strictUsageTelemetry: true }
+        : {}),
     },
+    strictUsageTelemetry: options.strictUsageTelemetry === true,
+    onUsageBoundary: options.onUsageBoundary || null,
+    onUsageSettlement: options.onUsageSettlement || null,
+    onToolCallBoundary: options.onToolCallBoundary || null,
+    onToolCallSettlement: options.onToolCallSettlement || null,
     parentMessages: messages, // pass parent messages for sub-agent auto-condensation
     interaction: options.interaction || null,
     shellPolicyOverrides: options.shellPolicyOverrides || null,
@@ -10583,6 +11386,10 @@ export async function* agentLoop(messages, options) {
     // any are still running (it waits, injects, and gives the model one more
     // turn) so a background result can never be silently lost.
     backgroundSubAgents: new Map(),
+    // A background child reports strict observer failure synchronously here,
+    // before its promise rejection necessarily reaches the entry's `settled`
+    // continuation. Provider/tool admission fences consult this latch directly.
+    backgroundUsageFailureState: { error: null },
     // 用量归因: per-run sink for child-loop (spawn_sub_agent / isolated
     // run_skill) token usage. Child loops consume their own generator events,
     // so their real usage never reaches this loop's consumers — the spawn
@@ -10594,6 +11401,7 @@ export async function* agentLoop(messages, options) {
       : [],
   };
   const backgroundSubAgents = toolContext.backgroundSubAgents;
+  const backgroundUsageFailureState = toolContext.backgroundUsageFailureState;
   const subAgentUsageSink = toolContext.subAgentUsageSink;
   const lifecycleHookEmitter = hermeticExecution ? () => {} : emitHooksV2Event;
 
@@ -10658,7 +11466,15 @@ export async function* agentLoop(messages, options) {
   // wrong / expired, self-heal to a provider we can actually run (endpoint-
   // inferred, then env-keyed) instead of failing the turn. Opt out with
   // `runnableProviderFallback: false`. Transparent on the happy path.
-  if (options.runnableProviderFallback !== false) {
+  // A runnable fallback may perform an additional (and cross-provider) model
+  // attempt inside one logical `llmCall`, where this generator cannot durably
+  // bracket each transport attempt. Strict call-ledger sessions therefore
+  // disable that recovery path and surface the configured provider's failure
+  // as unknown; legacy sessions keep the existing self-healing behavior.
+  if (
+    options.runnableProviderFallback !== false &&
+    options.strictUsageTelemetry !== true
+  ) {
     const { makeRunnableProviderFallback } =
       await import("../lib/runnable-provider.js");
     llmCall = makeRunnableProviderFallback(llmCall, {
@@ -10742,6 +11558,12 @@ export async function* agentLoop(messages, options) {
     budget.consume();
     throwIfAborted(signal);
 
+    // A detached child may fail its synchronous ledger write between parent
+    // turns. Surface that original marked error before any further paid parent
+    // provider call is admitted.
+    _throwBackgroundUsageFailureState(backgroundUsageFailureState);
+    _throwSettledBackgroundUsageFailure(backgroundSubAgents);
+
     // Surface attributed child-loop usage collected since the last boundary
     // (blocking spawns push during executeTool; background spawns push live).
     yield* _drainSubAgentUsage(subAgentUsageSink);
@@ -10787,9 +11609,14 @@ export async function* agentLoop(messages, options) {
       !automaticCompactionSettlementBlocked &&
       messages.length > 4
     ) {
+      let compactionUsageState = null;
+      let compactionUsageCall = null;
+      let compactionObserverFailure = null;
       try {
         const compactor = await _getAutoCompactor(options);
         if (compactor && compactor.shouldAutoCompact(messages)) {
+          compactionUsageState = _autoCompactionUsageState(options);
+          compactionUsageState.calls = [];
           // This is the canonical pre-provider authority snapshot. A local
           // micro-compact may change the working input, but the durable CAS must
           // still compare against the transcript state that existed before any
@@ -10876,36 +11703,88 @@ export async function* agentLoop(messages, options) {
                 preserveToolPairs: true,
                 ...pinOpts,
               });
+          const observerFailure = compactionUsageState.calls.find(
+            (call) => call.observerFailed,
+          );
+          if (observerFailure) {
+            compactionObserverFailure = observerFailure.observerError;
+            compactionUsageState.calls = [];
+            throw compactionObserverFailure;
+          }
+          compactionUsageCall = compactionUsageState.calls.at(-1) || null;
           const compactionUsage = _compactionTokenUsage(stats);
           if (stats.degraded === true) {
+            const usageOutcomeUnknown = stats.summaryUsageUnknown === true;
+            const projectedStats = usageOutcomeUnknown
+              ? {
+                  ...stats,
+                  degradedReason: "semantic-summary-provider-outcome-unknown",
+                  summaryUsageUnknownReason:
+                    _compactionUsageUnknownReason(stats),
+                }
+              : stats;
             yield {
               type: "compaction-degraded",
               runId,
-              reason: stats.degradedReason || "semantic-summary-degraded",
+              reason: usageOutcomeUnknown
+                ? "semantic-summary-provider-outcome-unknown"
+                : stats.degradedReason || "semantic-summary-degraded",
               summaryMode: stats.summaryMode || "extractive-fallback",
-              stats,
+              stats: projectedStats,
             };
+          }
+          const compactionUsageMissing =
+            stats.summaryUsageUnknown !== true &&
+            compactionUsageCall != null &&
+            compactionUsage == null;
+          if (stats.summaryUsageUnknown === true || compactionUsageMissing) {
+            automaticCompactionSettlementBlocked = true;
+            const unknownReason = compactionUsageMissing
+              ? "provider_usage_not_reported"
+              : _compactionUsageUnknownReason(stats);
+            if (
+              options.strictUsageTelemetry === true &&
+              !compactionUsageCall?.callId
+            ) {
+              throw _runtimeUsageBoundaryFailure(
+                null,
+                "CC_COMPACTION_USAGE_BOUNDARY_MISSING",
+                "Strict semantic compaction produced usage without a real call boundary",
+              );
+            }
+            yield {
+              type: "compaction-usage-unknown",
+              callId:
+                compactionUsageCall?.callId ||
+                _newModelUsageCallId("semantic-compaction"),
+              runId,
+              provider:
+                compactionUsageCall?.boundaryNotified === true
+                  ? compactionUsageCall.provider
+                  : stats.summaryProvider || options.provider || null,
+              model:
+                compactionUsageCall?.boundaryNotified === true
+                  ? compactionUsageCall.model
+                  : stats.summaryModel || options.model || null,
+              reason: unknownReason,
+              code:
+                unknownReason === "provider_usage_not_reported"
+                  ? "provider_usage_missing"
+                  : "provider_call_failed",
+              source: "semantic-compaction",
+            };
+            // Unknown compaction spend makes every hard budget unverifiable;
+            // never apply the fallback or initiate the main model call.
+            await _awaitBackgroundUsageSettlement(
+              backgroundSubAgents,
+              backgroundUsageFailureState,
+            );
+            return;
           }
           if (
             stats.saved > 0 &&
             !_sameMessageSnapshot(compacted, authorityExpectedMessages)
           ) {
-            if (stats.summaryUsageUnknown === true) {
-              automaticCompactionSettlementBlocked = true;
-              yield {
-                type: "compaction-usage-unknown",
-                runId,
-                provider: stats.summaryProvider || options.provider || null,
-                model: stats.summaryModel || options.model || null,
-                reason:
-                  stats.summaryUsageUnknownReason ||
-                  "provider_transport_outcome_unknown",
-                source: "semantic-compaction",
-              };
-              // Do not apply the fallback or start another paid model request.
-              // A transport failure may already have incurred unknown usage.
-              return;
-            }
             const liveExpectedMessages = [...messages];
             try {
               await _settleAutomaticCompaction({
@@ -10931,8 +11810,17 @@ export async function* agentLoop(messages, options) {
               if (compactionUsage) {
                 yield {
                   type: "token-usage",
-                  provider: stats.summaryProvider || options.provider || null,
-                  model: stats.summaryModel || options.model || null,
+                  ...(compactionUsageCall
+                    ? { callId: compactionUsageCall.callId }
+                    : {}),
+                  provider:
+                    compactionUsageCall?.boundaryNotified === true
+                      ? compactionUsageCall.provider
+                      : stats.summaryProvider || options.provider || null,
+                  model:
+                    compactionUsageCall?.boundaryNotified === true
+                      ? compactionUsageCall.model
+                      : stats.summaryModel || options.model || null,
                   usage: compactionUsage,
                   source: "semantic-compaction",
                   runId,
@@ -10940,6 +11828,10 @@ export async function* agentLoop(messages, options) {
               }
               // The paid summary call is never retried, and an unknown/stale
               // canonical settlement cannot be followed by another model call.
+              await _awaitBackgroundUsageSettlement(
+                backgroundSubAgents,
+                backgroundUsageFailureState,
+              );
               return;
             }
             if (!hermeticExecution) {
@@ -10967,8 +11859,17 @@ export async function* agentLoop(messages, options) {
             // next model call, without entering the normal response path.
             yield {
               type: "token-usage",
-              provider: stats.summaryProvider || options.provider || null,
-              model: stats.summaryModel || options.model || null,
+              ...(compactionUsageCall
+                ? { callId: compactionUsageCall.callId }
+                : {}),
+              provider:
+                compactionUsageCall?.boundaryNotified === true
+                  ? compactionUsageCall.provider
+                  : stats.summaryProvider || options.provider || null,
+              model:
+                compactionUsageCall?.boundaryNotified === true
+                  ? compactionUsageCall.model
+                  : stats.summaryModel || options.model || null,
               usage: compactionUsage,
               source: "semantic-compaction",
               runId,
@@ -10977,6 +11878,35 @@ export async function* agentLoop(messages, options) {
         }
       } catch (_e) {
         if (isAbortError(_e) || signal?.aborted) throw _e;
+        if (_e?.runtimeLedgerPersistence === true) throw _e;
+        if (compactionObserverFailure === _e) throw _e;
+        const observerFailure = compactionUsageState?.calls?.find(
+          (call) => call.observerFailed && call.observerError === _e,
+        );
+        if (observerFailure) {
+          compactionUsageState.calls = [];
+          throw _e;
+        }
+        compactionUsageCall =
+          compactionUsageCall || compactionUsageState?.calls?.at(-1) || null;
+        if (compactionUsageCall) {
+          automaticCompactionSettlementBlocked = true;
+          yield {
+            type: "compaction-usage-unknown",
+            callId: compactionUsageCall.callId,
+            runId,
+            provider: compactionUsageCall.provider,
+            model: compactionUsageCall.model,
+            reason: "provider_transport_outcome_unknown",
+            code: "provider_call_failed",
+            source: "semantic-compaction",
+          };
+          await _awaitBackgroundUsageSettlement(
+            backgroundSubAgents,
+            backgroundUsageFailureState,
+          );
+          return;
+        }
         yield {
           type: "compaction-degraded",
           runId,
@@ -10994,6 +11924,7 @@ export async function* agentLoop(messages, options) {
       for (const entry of _takeSettledBackgroundSubAgents(
         backgroundSubAgents,
       )) {
+        _throwBackgroundSubAgentUsageFailure(entry);
         // SubagentStop fires at RESULT time for background spawns (the
         // spawn-time handle skips it); a block reason rides along as feedback.
         if (!hermeticExecution && options.settingsHooks) {
@@ -11033,6 +11964,12 @@ export async function* agentLoop(messages, options) {
       }
     }
 
+    // Result-delivery hooks and context preparation can yield long enough for
+    // a detached child's synchronous ledger failure to settle. Keep the final
+    // dispatch fence adjacent to construction of the paid parent request.
+    _throwBackgroundUsageFailureState(backgroundUsageFailureState);
+    _throwSettledBackgroundUsageFailure(backgroundSubAgents);
+
     // Turn-scoped context injection (open-agents prepareCall parity).
     // prepareCall runs fresh each iteration and returns an ephemeral
     // system-message supplement that is NOT persisted to messages history.
@@ -11071,67 +12008,139 @@ export async function* agentLoop(messages, options) {
           promptId: `${runId}:t${budget.consumed}:p`,
         })
       : null;
-    const result = await _withSpan(
-      recorder,
-      "agent.model",
-      {
-        "gen_ai.system": options.provider || "ollama",
-        "gen_ai.request.model": options.model || "unknown",
-        "agent.iteration": budget.consumed,
-        ...(modelIdAttrs || {}),
-      },
-      () => llmCall(callMessages, effectiveToolOptions),
-      (span, r) => {
-        const t = _usageTokens(r?.usage);
-        if (t) {
-          if (t.input != null)
-            span.setAttribute("gen_ai.usage.input_tokens", t.input);
-          if (t.output != null)
-            span.setAttribute("gen_ai.usage.output_tokens", t.output);
-          // Cache read/write tokens — the prompt-caching hit rate the plan's
-          // reliability telemetry cares about.
-          if (t.cacheRead != null)
-            span.setAttribute("gen_ai.usage.cache_read_tokens", t.cacheRead);
-          if (t.cacheWrite != null)
-            span.setAttribute("gen_ai.usage.cache_write_tokens", t.cacheWrite);
-        }
-        span.setAttribute(
-          "agent.has_tool_calls",
-          Array.isArray(r?.message?.tool_calls) &&
-            r.message.tool_calls.length > 0,
-        );
-        // response CONTENT is opt-in (--otlp-content): stamped only when
-        // enabled, redacted + length-capped through the same normalizer; the
-        // field is entirely absent by default so default OTLP stays unchanged.
-        if (options.otlpIncludeContent === true && r?.message?.content) {
-          const respAttrs = buildTelemetryAttributes(
-            { response: r.message.content },
-            { includeContent: true },
-          );
-          if (respAttrs["content.response"] != null) {
-            span.setAttribute(
-              "content.response",
-              respAttrs["content.response"],
-            );
-          }
-        }
-      },
-      "model_error",
-    );
-    if (recorder) recorder.counter("agent.model.calls", 1);
     throwIfAborted(signal);
-    const msg = result?.message;
-
-    if (result?.usage) {
+    _throwBackgroundUsageFailureState(backgroundUsageFailureState);
+    _throwSettledBackgroundUsageFailure(backgroundSubAgents);
+    const modelUsageCall = {
+      type: "model-usage-started",
+      callId: _newModelUsageCallId("model"),
+      provider: options.provider || "ollama",
+      model: options.model || "unknown",
+      source: "model",
+    };
+    // The consumer receives this boundary before `.next()` resumes into the
+    // provider call, so a durable append failure can prevent spend.
+    yield modelUsageCall;
+    // A background child can fail its synchronous settlement write while the
+    // parent boundary is being persisted by the host. Re-check at the last
+    // synchronous admission point before dispatching this paid call.
+    try {
+      _throwBackgroundUsageFailureState(backgroundUsageFailureState);
+      _throwSettledBackgroundUsageFailure(backgroundSubAgents);
+    } catch (backgroundFailure) {
+      // The host has already persisted this parent boundary. Close it with the
+      // same id before surfacing the detached child's authoritative failure.
       yield {
-        type: "token-usage",
-        provider: options.provider || "ollama",
-        model: options.model || "unknown",
-        usage: result.usage,
+        type: "model-usage-unknown",
+        callId: modelUsageCall.callId,
+        provider: modelUsageCall.provider,
+        model: modelUsageCall.model,
+        source: modelUsageCall.source,
+        code: "provider_call_failed",
       };
+      throw backgroundFailure;
     }
 
+    let result;
+    try {
+      result = await _withSpan(
+        recorder,
+        "agent.model",
+        {
+          "gen_ai.system": options.provider || "ollama",
+          "gen_ai.request.model": options.model || "unknown",
+          "agent.iteration": budget.consumed,
+          ...(modelIdAttrs || {}),
+        },
+        () => llmCall(callMessages, effectiveToolOptions),
+        (span, r) => {
+          const t = _usageTokens(r?.usage);
+          if (t) {
+            if (t.input != null)
+              span.setAttribute("gen_ai.usage.input_tokens", t.input);
+            if (t.output != null)
+              span.setAttribute("gen_ai.usage.output_tokens", t.output);
+            // Cache read/write tokens — the prompt-caching hit rate the plan's
+            // reliability telemetry cares about.
+            if (t.cacheRead != null)
+              span.setAttribute("gen_ai.usage.cache_read_tokens", t.cacheRead);
+            if (t.cacheWrite != null)
+              span.setAttribute(
+                "gen_ai.usage.cache_write_tokens",
+                t.cacheWrite,
+              );
+          }
+          span.setAttribute(
+            "agent.has_tool_calls",
+            Array.isArray(r?.message?.tool_calls) &&
+              r.message.tool_calls.length > 0,
+          );
+          // response CONTENT is opt-in (--otlp-content): stamped only when
+          // enabled, redacted + length-capped through the same normalizer; the
+          // field is entirely absent by default so default OTLP stays unchanged.
+          if (options.otlpIncludeContent === true && r?.message?.content) {
+            const respAttrs = buildTelemetryAttributes(
+              { response: r.message.content },
+              { includeContent: true },
+            );
+            if (respAttrs["content.response"] != null) {
+              span.setAttribute(
+                "content.response",
+                respAttrs["content.response"],
+              );
+            }
+          }
+        },
+        "model_error",
+      );
+    } catch (error) {
+      // Never retain provider error text in the usage ledger. Pause on a fixed
+      // unknown settlement, then rethrow only after the consumer resumes.
+      yield {
+        type: "model-usage-unknown",
+        callId: modelUsageCall.callId,
+        provider: modelUsageCall.provider,
+        model: modelUsageCall.model,
+        source: modelUsageCall.source,
+        code: "provider_call_failed",
+      };
+      await _awaitBackgroundUsageSettlement(
+        backgroundSubAgents,
+        backgroundUsageFailureState,
+      );
+      throw error;
+    }
+    if (recorder) recorder.counter("agent.model.calls", 1);
+    const msg = result?.message;
+
+    // Close the already-persisted call boundary before honoring an abort that
+    // raced with a successful provider response. Once the transport returned,
+    // dropping this settlement would strand a durable `started` row forever.
+    if (_hasCompleteProviderUsage(result?.usage)) {
+      yield {
+        type: "token-usage",
+        callId: modelUsageCall.callId,
+        provider: modelUsageCall.provider,
+        model: modelUsageCall.model,
+        usage: result.usage,
+      };
+    } else {
+      yield {
+        type: "model-usage-unknown",
+        callId: modelUsageCall.callId,
+        provider: modelUsageCall.provider,
+        model: modelUsageCall.model,
+        source: modelUsageCall.source,
+        code: "provider_usage_missing",
+      };
+    }
+    throwIfAborted(signal);
+
     if (!msg) {
+      await _awaitBackgroundUsageSettlement(
+        backgroundSubAgents,
+        backgroundUsageFailureState,
+      );
       yield { type: "response-complete", content: "(No response from LLM)" };
       yield { type: "run-ended", runId, reason: "no-response" };
       return;
@@ -11154,11 +12163,13 @@ export async function* agentLoop(messages, options) {
         await Promise.all(
           [...backgroundSubAgents.values()].map((e) => e.promise),
         );
+        _throwBackgroundUsageFailureState(backgroundUsageFailureState);
         throwIfAborted(signal);
         messages.push({ role: "assistant", content: msg.content || "" });
         for (const entry of _takeSettledBackgroundSubAgents(
           backgroundSubAgents,
         )) {
+          _throwBackgroundSubAgentUsageFailure(entry);
           messages.push({
             role: "user",
             content:
@@ -11298,9 +12309,9 @@ export async function* agentLoop(messages, options) {
     // no process spawn, no shared-state writes) and there is no interactive
     // confirmer in play, run them concurrently so wall-clock drops from the SUM
     // of the reads to their MAX — the common "read these N files" case. Crucially,
-    // `tool-executing`/`tool-result` events are still YIELDED, and tool results
-    // still PUSHED, in the ORIGINAL order, so the output stream and tool_call_id
-    // correlation are byte-identical to the sequential path — only timing changes.
+    // Every `tool-executing` boundary is YIELDED before dispatch, giving the
+    // host a chance to durably record every call. Tool results stay in call order;
+    // correlation stays deterministic even though the reads themselves overlap.
     // Any mutating/unknown/MCP tool in the batch, a single call, an interactive
     // session (concurrent prompts would race), or `parallelReadOnlyTools: false`
     // falls through to the strictly sequential loop below.
@@ -11317,10 +12328,7 @@ export async function* agentLoop(messages, options) {
       throwIfAborted(signal);
       const turnId = `${runId}:t${budget.consumed}`;
       const toolBatchRecords = [];
-      // Kick every read off now; settle into {result,error} so an unawaited
-      // promise can never surface as an unhandled rejection if the loop aborts
-      // before it is consumed.
-      const inflight = toolCalls.map((call) => {
+      const prepared = toolCalls.map((call) => {
         let toolArgs;
         try {
           toolArgs =
@@ -11330,6 +12338,44 @@ export async function* agentLoop(messages, options) {
         } catch {
           toolArgs = {};
         }
+        return { call, toolArgs };
+      });
+      // Yield every start boundary before dispatch. Async-generator consumers
+      // persist each boundary before asking for the next item, so by the time
+      // this loop finishes all parallel calls have durable started records.
+      const startedPrepared = [];
+      try {
+        throwIfAborted(signal);
+        _throwBackgroundUsageFailureState(backgroundUsageFailureState);
+        for (const { call, toolArgs } of prepared) {
+          yield {
+            type: "tool-executing",
+            tool: call.function.name,
+            args: toolArgs,
+            tool_use_id: call.id,
+            turn_id: `${runId}:t${budget.consumed}`,
+          };
+          startedPrepared.push({ call, toolArgs });
+          throwIfAborted(signal);
+        }
+        _throwBackgroundUsageFailureState(backgroundUsageFailureState);
+      } catch (admissionFailure) {
+        for (const { call } of startedPrepared) {
+          yield {
+            type: "tool-result",
+            tool: call.function.name,
+            result: { error: "Tool execution cancelled before dispatch" },
+            error: "tool execution cancelled before dispatch",
+            tool_use_id: call.id,
+            turn_id: `${runId}:t${budget.consumed}`,
+          };
+        }
+        throw admissionFailure;
+      }
+      // Only after every start has been consumed do we kick every read off.
+      // Settle each promise into {result,error} so an abort before its ordered
+      // result is consumed can never surface an unhandled rejection.
+      const inflight = prepared.map(({ call, toolArgs }) => {
         const promise = executeTool(call.function.name, toolArgs, {
           ...toolContext,
           toolCallId: call.id,
@@ -11342,13 +12388,7 @@ export async function* agentLoop(messages, options) {
       });
       for (const { call, toolArgs, promise } of inflight) {
         throwIfAborted(signal);
-        yield {
-          type: "tool-executing",
-          tool: call.function.name,
-          args: toolArgs,
-          tool_use_id: call.id,
-          turn_id: `${runId}:t${budget.consumed}`,
-        };
+        _throwBackgroundUsageFailureState(backgroundUsageFailureState);
         const { result: toolResult, error: toolError } = await promise;
         throwIfAborted(signal);
         const failed = emitToolHookLifecycle({
@@ -11410,6 +12450,7 @@ export async function* agentLoop(messages, options) {
     const toolBatchRecords = [];
     for (const call of toolCalls) {
       throwIfAborted(signal);
+      _throwBackgroundUsageFailureState(backgroundUsageFailureState);
       const fn = call?.function;
       const toolName = fn?.name;
       // A malformed tool call (no `function` / no `name` — a provider quirk or a
@@ -11592,6 +12633,25 @@ export async function* agentLoop(messages, options) {
             tool_use_id: call.id,
             turn_id: `${runId}:t${budget.consumed}`,
           };
+          // The event yield is a host persistence boundary. A detached child's
+          // fatal usage write can settle while the consumer handles it; fence
+          // the next (possibly provider-backed) tool immediately before start.
+          try {
+            _throwBackgroundUsageFailureState(backgroundUsageFailureState);
+          } catch (backgroundFailure) {
+            yield {
+              type: "tool-result",
+              tool: toolName,
+              result: {
+                error:
+                  "Tool execution blocked by an authoritative background usage persistence failure",
+              },
+              error: "authoritative background usage persistence failure",
+              tool_use_id: call.id,
+              turn_id: `${runId}:t${budget.consumed}`,
+            };
+            throw backgroundFailure;
+          }
         }
 
         let toolResult;
@@ -11676,6 +12736,7 @@ export async function* agentLoop(messages, options) {
               "tool_error",
             );
           } catch (err) {
+            if (err?.runtimeLedgerPersistence === true) throw err;
             toolResult = { error: err.message };
             toolError = err.message;
           }
@@ -11845,6 +12906,10 @@ export async function* agentLoop(messages, options) {
 
   // Budget exhausted — flush any child usage the final iteration produced,
   // then yield exhaustion event + final message
+  await _awaitBackgroundUsageSettlement(
+    backgroundSubAgents,
+    backgroundUsageFailureState,
+  );
   yield* _drainSubAgentUsage(subAgentUsageSink);
   yield { type: "iteration-budget-exhausted", budget: budget.toSummary() };
   yield {

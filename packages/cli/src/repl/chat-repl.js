@@ -54,6 +54,7 @@ import {
 } from "../harness/jsonl-session-store.js";
 import { installPipeSafety } from "../runtime/pipe-safety.js";
 import { installOutputBackpressure } from "../runtime/output-backpressure.js";
+import { assertChatSessionUsageAdmission } from "../lib/chat-session-admission.js";
 
 const SLASH_COMMANDS = {
   "/exit": "Exit the chat",
@@ -92,6 +93,9 @@ const SLASH_COMMANDS = {
  * @param {object} options
  */
 export async function startChatRepl(options = {}) {
+  const admittedSessionId = options.sessionId
+    ? assertChatSessionUsageAdmission(options.sessionId)
+    : null;
   let model = options.model || "qwen2:7b";
   let provider = options.provider || "ollama";
   const baseUrl = options.baseUrl || "http://localhost:11434";
@@ -103,7 +107,7 @@ export async function startChatRepl(options = {}) {
 
   // Phase J — attach chat REPL to a JSONL session so token_usage is recorded
   // and `cc session usage` / `usage.*` WS routes show real numbers.
-  let sessionId = options.sessionId || null;
+  let sessionId = admittedSessionId;
   if (!sessionId && options.recordUsage !== false) {
     try {
       sessionId = startSession(null, {

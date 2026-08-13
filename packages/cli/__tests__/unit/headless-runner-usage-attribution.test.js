@@ -30,32 +30,38 @@ function fakeLoop() {
     yield { type: "run-started", runId: "r1", sessionId: "s-attr" };
     yield {
       type: "tool-executing",
+      tool_use_id: "skill-call",
       tool: "run_skill",
       args: { skill_name: "csv-clean", input: "x" },
     };
     yield {
       type: "tool-result",
+      tool_use_id: "skill-call",
       tool: "run_skill",
       result: { ok: 1, toolTelemetryRecord: { durationMs: 12 } },
     };
     yield {
       type: "tool-executing",
+      tool_use_id: "mcp-call",
       tool: "mcp__github__search_issues",
       args: { q: "bug" },
     };
     yield {
-      type: "tool-result",
-      tool: "mcp__github__search_issues",
-      result: { error: "rate limited" },
-      error: "rate limited",
-    };
-    yield {
       type: "tool-executing",
+      tool_use_id: "shell-call",
       tool: "run_shell",
       args: { command: "acme-lint" },
     };
     yield {
       type: "tool-result",
+      tool_use_id: "mcp-call",
+      tool: "mcp__github__search_issues",
+      result: { error: "rate limited" },
+      error: "rate limited",
+    };
+    yield {
+      type: "tool-result",
+      tool_use_id: "shell-call",
       tool: "run_shell",
       result: {
         toolTelemetryRecord: { durationMs: 34 },
@@ -94,6 +100,7 @@ function makeDeps() {
     llmRetries: [],
     assistant: [],
     user: [],
+    events: [],
   };
   const deps = {
     bootstrap: async () => ({ db: null }),
@@ -114,6 +121,7 @@ function makeDeps() {
     appendTokenUsage: (id, u) => writes.tokenUsage.push({ id, u }),
     appendToolCallCompact: (id, rec) => writes.toolCalls.push({ id, rec }),
     appendLlmRetryCompact: (id, rec) => writes.llmRetries.push({ id, rec }),
+    appendEvent: (id, type, data) => writes.events.push({ id, type, data }),
     appendCompactEvent: () => {},
     appendAuthorityEvent: () => true,
     getLastSessionId: () => null,
@@ -153,20 +161,30 @@ describe("headless runner usage attribution", () => {
     expect(writes.tokenUsage[0].u).toEqual({
       provider: "anthropic",
       model: "claude-haiku-4-5",
-      usage: { input_tokens: 40, output_tokens: 15 },
+      usage: {
+        input_tokens: 40,
+        output_tokens: 15,
+        cache_read_input_tokens: 0,
+        cache_creation_input_tokens: 0,
+      },
       attribution: ATTR,
     });
     expect(writes.tokenUsage[1].u).toEqual({
-      input_tokens: 100,
-      output_tokens: 20,
-      cache_read_input_tokens: 0,
-      cache_creation_input_tokens: 0,
+      provider: "anthropic",
+      model: "claude-opus-4-8",
+      usage: {
+        input_tokens: 100,
+        output_tokens: 20,
+        cache_read_input_tokens: 0,
+        cache_creation_input_tokens: 0,
+      },
     });
 
     // compact tool_call records: skill hint on run_skill, error flag from
     // the tool result, never args
     expect(writes.toolCalls).toHaveLength(3);
     expect(writes.toolCalls[0].rec).toMatchObject({
+      id: "skill-call",
       tool: "run_skill",
       isError: false,
       skill: "csv-clean",
@@ -174,18 +192,23 @@ describe("headless runner usage attribution", () => {
     });
     expect(writes.toolCalls[0].rec.args).toBeUndefined();
     expect(writes.toolCalls[1].rec).toMatchObject({
+      id: "mcp-call",
       tool: "mcp__github__search_issues",
       isError: true,
     });
     expect(writes.toolCalls[1].rec.durationMs).toEqual(expect.any(Number));
     expect(writes.toolCalls[1].rec.durationMs).toBeGreaterThanOrEqual(0);
     expect(writes.toolCalls[2].rec).toMatchObject({
+      id: "shell-call",
       tool: "run_shell",
       isError: false,
       plugin: "acme-tools",
       pluginVersion: "2.1.0",
       durationMs: 34,
     });
+    expect(
+      writes.events.filter((event) => event.type === "tool_call_started"),
+    ).toHaveLength(3);
   }, 15000);
 
   it("stream mode forwards attributed usage as ordinary token_usage events (wire shape unchanged)", async () => {
@@ -254,5 +277,63 @@ describe("headless runner usage attribution", () => {
       },
     ]);
     expect(JSON.stringify(writes.llmRetries)).not.toContain("secret");
+  });
+
+  it("persists child settlements through the synchronous hook without replay writes", async () => {
+    const { deps, writes } = makeDeps();
+    deps.agentLoop = async function* (_messages, options) {
+      const known = {
+        type: "token-usage",
+        callId: "child-known-1",
+        provider: "anthropic",
+        model: "claude-haiku-4-5",
+        source: "subagent",
+        usage: { input_tokens: 11, output_tokens: 4 },
+        attribution: ATTR,
+      };
+      const unknown = {
+        type: "model-usage-unknown",
+        callId: "child-unknown-1",
+        provider: "anthropic",
+        model: "claude-haiku-4-5",
+        source: "subagent",
+        code: "provider_usage_missing",
+        attribution: ATTR,
+      };
+      options.onUsageSettlement(known);
+      yield { ...known, ledgerPersisted: true };
+      options.onUsageSettlement(unknown);
+      yield { ...unknown, ledgerPersisted: true };
+      yield { type: "response-complete", content: "done" };
+      yield { type: "run-ended", reason: "complete" };
+    };
+
+    const result = await runAgentHeadless(
+      {
+        prompt: "go",
+        outputFormat: "json",
+        sessionId: "s-child-settlement",
+        persistSession: true,
+      },
+      deps,
+    );
+
+    expect(result.exitCode).toBe(0);
+    expect(writes.tokenUsage).toHaveLength(1);
+    expect(writes.tokenUsage[0].u).toMatchObject({
+      callId: "child-known-1",
+      attribution: ATTR,
+    });
+    expect(
+      writes.events.filter(({ type }) => type === "model_usage_unknown"),
+    ).toEqual([
+      expect.objectContaining({
+        id: "s-child-settlement",
+        data: expect.objectContaining({
+          callId: "child-unknown-1",
+          code: "provider_usage_missing",
+        }),
+      }),
+    ]);
   });
 });

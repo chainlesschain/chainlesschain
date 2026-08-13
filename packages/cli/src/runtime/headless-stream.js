@@ -90,6 +90,7 @@ import {
   startSession as jsonlStartSession,
   appendUserMessage as jsonlAppendUserMessage,
   appendAssistantMessage as jsonlAppendAssistantMessage,
+  appendTokenUsage as jsonlAppendTokenUsage,
   appendToolCallCompact as jsonlAppendToolCallCompact,
   appendLlmRetryCompact as jsonlAppendLlmRetryCompact,
   appendCompactEventIfMessagesMatch as jsonlAppendCompactEventIfMessagesMatch,
@@ -142,6 +143,12 @@ import {
   createSessionPersistenceFailure,
   projectSessionPersistenceFailure,
 } from "../lib/session-persistence-failure.js";
+import {
+  projectRuntimeTokenUsage,
+  projectRuntimeUsageBoundary,
+  runtimeUsageEventType,
+  markRuntimeLedgerPersistenceError,
+} from "../lib/runtime-usage-ledger.js";
 
 function invalidMcpRecoveryTransaction(capability, expected) {
   const error = new TypeError(
@@ -798,6 +805,8 @@ async function runTurn(
     turnNumber,
     turnBindingFeed,
     waitForOutput,
+    persistUsageEvent,
+    persistToolEvent,
     now = Date.now,
   },
 ) {
@@ -817,10 +826,10 @@ async function runTurn(
   // tools serially). Non-null only between a dangerous tool's tool-executing
   // and its tool-result.
   let currentSideEffectOpId = null;
-  // Precise tool telemetry is normally carried by tool-result. Keep a private
-  // event-boundary fallback for denials/early throws that settle before the
-  // core can create that record.
-  let currentToolStartedAt = null;
+  // Precise tool telemetry is normally carried by tool-result. Keep private
+  // event-boundary fallbacks keyed by call id because read-only batches can run
+  // concurrently after every start boundary is persisted.
+  const toolStartedAt = new Map();
   const diffReviewFollowUps = new DiffReviewFollowUpTracker(
     sideEffects?.ledger,
   );
@@ -851,7 +860,6 @@ async function runTurn(
     turnBindingFeed?.handleEvent(event);
     switch (event.type) {
       case "tool-executing": {
-        currentToolStartedAt = now();
         // Additive protocol-v1 correlation id ("tu-<n>", session-scoped —
         // agent-sdk docs/PROTOCOL.md §1.2.1): the matching tool_result below
         // echoes the same id so UIs can pair calls without adjacency.
@@ -868,6 +876,8 @@ async function runTurn(
           args: event.args,
           planItemId: planItem?.id || null,
         });
+        toolStartedAt.set(toolUseId, now());
+        persistToolEvent?.("started", toolCalls[toolCalls.length - 1]);
         emit({
           type: "tool_use",
           ...(toolUseId ? { id: toolUseId } : {}),
@@ -950,12 +960,13 @@ async function runTurn(
           lastCall.is_error = Boolean(err);
           lastCall.durationMs =
             event.result?.toolTelemetryRecord?.durationMs ??
-            (currentToolStartedAt === null
+            (toolStartedAt.get(lastCall.id) === undefined
               ? undefined
-              : Math.max(0, now() - currentToolStartedAt));
+              : Math.max(0, now() - toolStartedAt.get(lastCall.id)));
           Object.assign(lastCall, extractPluginUsageAttribution(event.result));
+          persistToolEvent?.("settled", lastCall);
         }
-        currentToolStartedAt = null;
+        if (lastCall) toolStartedAt.delete(lastCall.id);
         const pm = getPlanModeManager();
         const settledItem = lastCall?.planItemId
           ? pm.settlePlanItem(lastCall.planItemId, {
@@ -988,6 +999,7 @@ async function runTurn(
         break;
       }
       case "token-usage":
+        if (event.ledgerPersisted !== true) persistUsageEvent?.(event);
         // 用量归因: attributed child-loop usage (sub-agent / isolated skill)
         // is forwarded on the stream (same wire shape) and counted toward the
         // cost budget, but stays out of the turn's `usage` envelope, which
@@ -1021,7 +1033,18 @@ async function runTurn(
           }
         }
         break;
+      case "model-usage-started":
+      case "model-usage-unknown":
+        if (event.ledgerPersisted !== true) persistUsageEvent?.(event);
+        break;
       case "compaction-usage-unknown":
+        if (event.ledgerPersisted !== true) {
+          persistUsageEvent?.({
+            ...event,
+            type: "model-usage-unknown",
+            code: event.code || "provider_transport_outcome_unknown",
+          });
+        }
         emit({
           type: "compaction_usage_unknown",
           provider: event.provider,
@@ -1195,9 +1218,16 @@ const STREAM_SESSION_ID = Symbol("streamSessionId");
 const STREAM_SESSION_HOST_LEASE = Symbol("streamSessionHostLease");
 
 async function withStreamSessionHostLease(options, deps, streamCleanup, task) {
+  if (options.observabilityScope != null && options.ephemeral === true) {
+    throw new Error(
+      "observability scope requires durable session persistence and cannot be combined with ephemeral mode",
+    );
+  }
   const sessionId =
     options.sessionId || `headless-stream-${Date.now()}-${process.pid}`;
-  const persist = Boolean(options.sessionId) && options.ephemeral !== true;
+  const persist =
+    (Boolean(options.sessionId) || options.observabilityScope != null) &&
+    options.ephemeral !== true;
   const hasInjectedSessionStore =
     typeof deps.sessionHasPersistedEvidence === "function" ||
     typeof deps.sessionExists === "function" ||
@@ -1377,7 +1407,9 @@ async function runAgentHeadlessStreamInWorkspace(
     deps[STREAM_SESSION_ID] ||
     options.sessionId ||
     `headless-stream-${Date.now()}-${process.pid}`;
-  const persist = Boolean(options.sessionId) && options.ephemeral !== true;
+  const persist =
+    (Boolean(options.sessionId) || options.observabilityScope != null) &&
+    options.ephemeral !== true;
   const sessionHostLease = deps[STREAM_SESSION_HOST_LEASE] || null;
   const traceId = resolveTraceId(options, process.env, deps);
   const fieldGate = {
@@ -1466,6 +1498,21 @@ async function runAgentHeadlessStreamInWorkspace(
           "sessionExists",
           "return a boolean",
         );
+      }
+      if (options.observabilityScope != null && existingSession) {
+        const code = "CC_OBSERVABILITY_SCOPE_IMMUTABLE";
+        const error =
+          "An existing stream session scope cannot be overwritten; create a new scoped session";
+        emit({
+          type: "result",
+          subtype: "error_session_resume",
+          is_error: true,
+          code,
+          error,
+          session_id: sessionId,
+        });
+        writeErr(`${code}: ${error}\n`);
+        return { exitCode: 1, turns: 0 };
       }
       canonicalResume = existingSession
         ? requireSynchronousRecoveryResult(
@@ -1756,6 +1803,7 @@ async function runAgentHeadlessStreamInWorkspace(
     appendUserMessage: deps.appendUserMessage || jsonlAppendUserMessage,
     appendAssistantMessage:
       deps.appendAssistantMessage || jsonlAppendAssistantMessage,
+    appendTokenUsage: deps.appendTokenUsage || jsonlAppendTokenUsage,
     appendToolCallCompact:
       deps.appendToolCallCompact ||
       (hasInjectedSessionStore ? () => true : jsonlAppendToolCallCompact),
@@ -2314,14 +2362,23 @@ async function runAgentHeadlessStreamInWorkspace(
       ).length;
     } else {
       try {
-        requireSynchronousRecoveryResult(
+        const startedSessionId = requireSynchronousRecoveryResult(
           store.startSession(sessionId, {
             title: "stream session",
             provider,
             model,
+            observabilityScope: options.observabilityScope,
           }),
           "startSession",
         );
+        if (
+          options.observabilityScope != null &&
+          startedSessionId !== sessionId
+        ) {
+          throw new Error(
+            "Scoped stream session creation did not confirm the requested durable session id",
+          );
+        }
       } catch (error) {
         const code = "CC_SESSION_PERSISTENCE_START_FAILED";
         const persistenceError = createSessionPersistenceFailure(error, {
@@ -2812,11 +2869,12 @@ async function runAgentHeadlessStreamInWorkspace(
             model: telemetry.model || model,
             reason: classifyStreamRetryReason(error),
           });
-        } catch {
-          /* usage telemetry is best-effort */
+        } catch (persistenceError) {
+          throw markRuntimeLedgerPersistenceError(persistenceError);
         }
       }
     },
+    strictUsageTelemetry: persist,
     // Visible cross-vendor fallback notice: when the configured provider hits an
     // auth error and the loop falls back to another vendor (or relabels via
     // baseUrl), surface it as a `raw` info line the panel renders instead of a
@@ -2845,6 +2903,84 @@ async function runAgentHeadlessStreamInWorkspace(
 
   let sawError = false;
   let terminalPersistenceFailure = null;
+  const persistUsageEvent = persist
+    ? (event) => {
+        try {
+          if (event.type === "token-usage") {
+            store.appendTokenUsage(sessionId, projectRuntimeTokenUsage(event));
+            return;
+          }
+          const outcome =
+            event.type === "model-usage-started" ? "started" : "unknown";
+          store.appendEvent(
+            sessionId,
+            runtimeUsageEventType(outcome),
+            projectRuntimeUsageBoundary(event, outcome),
+          );
+        } catch (error) {
+          throw markRuntimeLedgerPersistenceError(error);
+        }
+      }
+    : null;
+  const persistToolEvent = persist
+    ? (outcome, call) => {
+        try {
+          const id = call?.id || `tool-${toolUseCounter + 1}`;
+          if (outcome === "started") {
+            store.appendEvent(sessionId, "tool_call_started", {
+              id,
+              tool: call.tool,
+            });
+            return;
+          }
+          store.appendToolCallCompact(sessionId, {
+            id,
+            tool: call.tool,
+            isError: Boolean(call.is_error),
+            skill:
+              call.skill ||
+              (call.tool === "run_skill"
+                ? call.args?.skill_name || null
+                : undefined),
+            plugin: call.plugin || undefined,
+            pluginVersion: call.pluginVersion || undefined,
+            durationMs: call.durationMs,
+          });
+        } catch (error) {
+          throw markRuntimeLedgerPersistenceError(error);
+        }
+      }
+    : null;
+  const childToolExecs = new Map();
+  const persistChildToolBoundary = persistToolEvent
+    ? (event) => {
+        const id = event?.tool_use_id;
+        childToolExecs.set(id, {
+          tool: event?.tool || "?",
+          startedAt: deps.now ? deps.now() : Date.now(),
+        });
+        persistToolEvent("started", { id, tool: event?.tool || "?" });
+      }
+    : undefined;
+  const persistChildToolSettlement = persistToolEvent
+    ? (event) => {
+        const id = event?.tool_use_id;
+        const started = childToolExecs.get(id);
+        childToolExecs.delete(id);
+        persistToolEvent("settled", {
+          id,
+          tool: event?.tool || started?.tool || "?",
+          is_error: Boolean(event?.error || event?.result?.error),
+          skill: event?.attribution?.skill,
+          durationMs: started
+            ? Math.max(
+                0,
+                (deps.now ? deps.now() : Date.now()) - started.startedAt,
+              )
+            : undefined,
+        });
+      }
+    : undefined;
   // Session-scoped tool-call correlation ids ("tu-<n>", additive protocol-v1
   // field): one counter across ALL turns so ids never repeat within a session.
   // Gated by the capability handshake (docs/PROTOCOL.md §1.3): a client that
@@ -3095,6 +3231,8 @@ async function runAgentHeadlessStreamInWorkspace(
       let degradedEvent;
       let usageEvent;
       let usageUnknownEvent;
+      const compactionCallId = `compact-${++slashRequestSeq}`;
+      let compactionProviderStarted = false;
       try {
         ({
           messages: compacted,
@@ -3119,9 +3257,31 @@ async function runAgentHeadlessStreamInWorkspace(
           chatOptions: { cwd, sessionId },
           maxOutputTokens: options.compactionMaxOutputTokens,
           summaryInputMaxChars: options.compactionInputMaxChars,
+          onProviderCallStart: () => {
+            persistUsageEvent?.({
+              type: "model-usage-started",
+              callId: compactionCallId,
+              provider,
+              model,
+              source: "semantic-compaction",
+            });
+            compactionProviderStarted = true;
+            return compactionCallId;
+          },
         }));
       } catch (error) {
         if (isAbortError(error) || options.signal?.aborted) throw error;
+        if (error?.runtimeLedgerPersistence === true) throw error;
+        if (compactionProviderStarted) {
+          persistUsageEvent?.({
+            type: "model-usage-unknown",
+            callId: compactionCallId,
+            provider,
+            model,
+            source: "semantic-compaction",
+            code: "provider_call_failed",
+          });
+        }
         emit({
           type: "compaction-degraded",
           reason: `compaction_failed:${String(error?.message || error).slice(0, 240)}`,
@@ -3133,6 +3293,14 @@ async function runAgentHeadlessStreamInWorkspace(
         emit({ type: "compaction-degraded", ...degradedEvent });
       }
       if (usageUnknownEvent) {
+        persistUsageEvent?.({
+          type: "model-usage-unknown",
+          callId: compactionCallId,
+          provider: usageUnknownEvent.provider || provider,
+          model: usageUnknownEvent.model || model,
+          source: "semantic-compaction",
+          code: "provider_transport_outcome_unknown",
+        });
         emit({
           type: "compaction_usage_unknown",
           ...usageUnknownEvent,
@@ -3153,6 +3321,12 @@ async function runAgentHeadlessStreamInWorkspace(
       }
       let costExceeded = false;
       if (usageEvent) {
+        persistUsageEvent?.({
+          type: "token-usage",
+          callId: compactionCallId,
+          ...usageEvent,
+          source: "semantic-compaction",
+        });
         emit({ type: "token_usage", ...usageEvent });
         if (costBudget) {
           costBudget.add(usageEvent);
@@ -3742,6 +3916,10 @@ async function runAgentHeadlessStreamInWorkspace(
             : {}),
           iterationBudget: budget,
           signal: turnSignal,
+          onUsageBoundary: persistUsageEvent,
+          onUsageSettlement: persistUsageEvent,
+          onToolCallBoundary: persistChildToolBoundary,
+          onToolCallSettlement: persistChildToolSettlement,
           // Resume-degenerate role merge for the first live model call only.
           mergeRoles: mergeRolesThisTurn,
         },
@@ -3755,10 +3933,51 @@ async function runAgentHeadlessStreamInWorkspace(
           turnBindingFeed,
           waitForOutput: deps.outputFlow?.wait,
           now: deps.now || Date.now,
+          persistUsageEvent,
+          persistToolEvent,
         },
       );
     } catch (err) {
       currentAbort = null;
+      if (persist) {
+        const normalized = createSessionPersistenceFailure(err, {
+          sessionId,
+          operation: "append-event",
+        });
+        const telemetryPersistence = projectSessionPersistenceFailure(
+          normalized,
+          { phase: "after-model" },
+        );
+        if (telemetryPersistence) {
+          terminalPersistenceFailure = telemetryPersistence;
+          try {
+            deps.onPersistenceFailure?.(telemetryPersistence);
+          } catch {
+            // Observability cannot change persistence semantics.
+          }
+          emit({
+            type: "result",
+            subtype: "error_persistence",
+            is_error: true,
+            code: telemetryPersistence.code,
+            persistence: telemetryPersistence,
+            turn: turns,
+          });
+          sawError = true;
+          break;
+        }
+        if (err?.runtimeLedgerPersistence === true) {
+          emit({
+            type: "result",
+            subtype: "error_persistence",
+            is_error: true,
+            code: "CC_RUNTIME_LEDGER_PERSISTENCE_FAILED",
+            turn: turns,
+          });
+          sawError = true;
+          break;
+        }
+      }
       const isAbort =
         err?.name === "AbortError" || /abort/i.test(err?.message || "");
       if (isAbort && !options.signal?.aborted) {
@@ -3862,19 +4081,6 @@ async function runAgentHeadlessStreamInWorkspace(
     if (persist) {
       try {
         store.appendAssistantMessage(sessionId, outcome.finalText);
-        for (const call of outcome.toolCalls || []) {
-          store.appendToolCallCompact(sessionId, {
-            tool: call.tool,
-            isError: Boolean(call.is_error),
-            skill:
-              call.tool === "run_skill"
-                ? call.args?.skill_name || null
-                : undefined,
-            plugin: call.plugin || undefined,
-            pluginVersion: call.pluginVersion || undefined,
-            durationMs: call.durationMs,
-          });
-        }
       } catch (error) {
         const persistenceError = createSessionPersistenceFailure(error, {
           sessionId,

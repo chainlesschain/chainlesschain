@@ -66,7 +66,10 @@ const ACTION_TO_METHOD = Object.freeze({
 
 const EXACT_COMMIT_RE = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/i;
 const SHA256_RE = /^sha256:[0-9a-f]{64}$/i;
+const TRANSCRIPT_HEAD_RE = /^[0-9a-f]{64}$/i;
 const DEFAULT_BLOCKING_SEVERITIES = Object.freeze(["Critical", "High"]);
+const MAX_CAUSAL_ID_LENGTH = 256;
+const MAX_CAUSAL_SESSIONS = 128;
 
 function hash(value) {
   return `sha256:${crypto
@@ -102,6 +105,126 @@ function boundedInteger(value, fallback, min, max) {
   return Number.isInteger(number)
     ? Math.min(max, Math.max(min, number))
     : fallback;
+}
+
+function hasAsciiControlCharacter(value) {
+  for (let index = 0; index < value.length; index++) {
+    const code = value.charCodeAt(index);
+    if (code <= 0x1f || code === 0x7f) return true;
+  }
+  return false;
+}
+
+function compareCodeUnits(left, right) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
+function normalizeCausalId(value, field, { required = false } = {}) {
+  if (value == null) {
+    if (required) throw new Error(`${field} is required`);
+    return null;
+  }
+  if (typeof value !== "string") throw new Error(`${field} must be a string`);
+  const normalized = value.trim();
+  if (!normalized) {
+    if (required) throw new Error(`${field} is required`);
+    throw new Error(`${field} must not be blank`);
+  }
+  if (
+    normalized.length > MAX_CAUSAL_ID_LENGTH ||
+    hasAsciiControlCharacter(normalized)
+  ) {
+    throw new Error(`${field} is invalid`);
+  }
+  return normalized;
+}
+
+function normalizeCausality(value) {
+  if (value != null && (typeof value !== "object" || Array.isArray(value))) {
+    throw new Error("causality must be an object");
+  }
+  const source = value || {};
+  if (Object.hasOwn(source, "sessionIds")) {
+    throw new Error(
+      "causality.sessionIds is unsupported; bind sessions with headHash and eventCount",
+    );
+  }
+  if (
+    source.scope != null &&
+    (typeof source.scope !== "object" || Array.isArray(source.scope))
+  ) {
+    throw new Error("causality.scope must be an object");
+  }
+  if (source.sessions != null && !Array.isArray(source.sessions)) {
+    throw new Error("causality.sessions must be an array");
+  }
+  const scope = source.scope || {};
+  if ((source.sessions || []).length > MAX_CAUSAL_SESSIONS) {
+    throw new Error(
+      `causality.sessions exceeds the ${MAX_CAUSAL_SESSIONS} session limit`,
+    );
+  }
+  const sessions = (source.sessions || [])
+    .map((binding) => {
+      if (!binding || typeof binding !== "object" || Array.isArray(binding)) {
+        throw new Error("causality.sessions entries must be objects");
+      }
+      const sessionId = normalizeCausalId(
+        binding.sessionId,
+        "causality.sessions.sessionId",
+        { required: true },
+      );
+      if (
+        sessionId.includes("/") ||
+        sessionId.includes("\\") ||
+        sessionId.includes("..")
+      ) {
+        throw new Error("causality.sessions.sessionId is unsafe");
+      }
+      const headHash = String(binding.headHash || "").toLowerCase();
+      if (!TRANSCRIPT_HEAD_RE.test(headHash)) {
+        throw new Error("causality.sessions.headHash is invalid");
+      }
+      const eventCount = Number(binding.eventCount);
+      if (!Number.isSafeInteger(eventCount) || eventCount <= 0) {
+        throw new Error(
+          "causality.sessions.eventCount must be a positive safe integer",
+        );
+      }
+      return { sessionId, headHash, eventCount };
+    })
+    .sort((a, b) => compareCodeUnits(a.sessionId, b.sessionId));
+  if (
+    new Set(sessions.map((binding) => binding.sessionId)).size !==
+    sessions.length
+  ) {
+    throw new Error("causality.sessions contains duplicate sessionId values");
+  }
+  const normalizedScope = {
+    workspaceId: normalizeCausalId(
+      scope.workspaceId,
+      "causality.scope.workspaceId",
+    ),
+    teamId: normalizeCausalId(scope.teamId, "causality.scope.teamId"),
+    policyId: normalizeCausalId(scope.policyId, "causality.scope.policyId"),
+  };
+  if (
+    sessions.length > 0 &&
+    !Object.values(normalizedScope).some((scopeId) => scopeId != null)
+  ) {
+    throw new Error(
+      "causality.scope requires at least one dimension when sessions are bound",
+    );
+  }
+  return { scope: normalizedScope, sessions };
+}
+
+function hasCausality(causality) {
+  return Boolean(
+    causality &&
+    (causality.sessions.length > 0 ||
+      Object.values(causality.scope).some((value) => value != null)),
+  );
 }
 
 function stateMaterial(state) {
@@ -533,6 +656,19 @@ export function verifyDeliveryFlowState(snapshot) {
     unmet.push("schema-unsupported");
   if (snapshot.version !== DELIVERY_FLOW_VERSION)
     unmet.push("version-unsupported");
+  if (Object.hasOwn(snapshot, "causality")) {
+    try {
+      const normalized = normalizeCausality(snapshot.causality);
+      if (
+        canonicalDeliveryJson(normalized) !==
+        canonicalDeliveryJson(snapshot.causality)
+      ) {
+        unmet.push("causality-noncanonical");
+      }
+    } catch {
+      unmet.push("causality-invalid");
+    }
+  }
   const actualDigest = String(snapshot.stateDigest || "");
   const expectedDigest = hash(stateMaterial(snapshot));
   if (!actualDigest || actualDigest !== expectedDigest) {
@@ -580,6 +716,10 @@ export function restoreDeliveryFlow(snapshot) {
 export function createDeliveryFlow(config = {}, { now } = {}) {
   const createdAt = isoNow(now);
   const requiredGates = normalizeGateDefinitions(config.requiredGates);
+  const normalizedCausality = normalizeCausality(config.causality);
+  const causality = hasCausality(normalizedCausality)
+    ? normalizedCausality
+    : null;
   const gateSelection = selectImpactedGates({
     changedFiles: config.diff?.changedFiles || config.changedFiles,
     requiredGates: requiredGates.map((gate) => ({
@@ -646,6 +786,7 @@ export function createDeliveryFlow(config = {}, { now } = {}) {
     commitSha: config.commitSha,
     diff: config.diff,
     requiredGateIds: requiredGates.map((gate) => gate.id),
+    ...(causality ? { causality } : {}),
   };
   const state = {
     schema: DELIVERY_FLOW_SCHEMA,
@@ -661,6 +802,7 @@ export function createDeliveryFlow(config = {}, { now } = {}) {
     stopReason: preflightReason,
     preflightUnmet,
     commitSha,
+    ...(causality ? { causality } : {}),
     diff: jsonClone(config.diff || {}),
     environment: jsonClone(config.environment || {}),
     requiredGates,

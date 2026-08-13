@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
+  FILE_LINE_TOO_LARGE_CODE,
   iterateFileLinesReverseSync,
   iterateFileLinesSync,
 } from "../../src/lib/file-lines.js";
@@ -54,5 +55,58 @@ describe("bounded UTF-8 file line iterators", () => {
         (x) => x.line,
       ),
     ).toEqual(["a", "", "b", ""]);
+  });
+
+  it("fails forward before decoding a terminated line over the byte limit", () => {
+    const file = temporaryFile(`${"界".repeat(3)}\nnext\n`);
+    expect(() => [
+      ...iterateFileLinesSync(file, {
+        chunkSize: 2,
+        maxLineBytes: 8,
+      }),
+    ]).toThrow(
+      expect.objectContaining({
+        code: FILE_LINE_TOO_LARGE_CODE,
+        actualBytes: 9,
+        maxBytes: 8,
+        lineNo: 1,
+        direction: "forward",
+      }),
+    );
+  });
+
+  it("fails forward while an unterminated pending record crosses the limit", () => {
+    const file = temporaryFile("0123456789");
+    expect(() => [
+      ...iterateFileLinesSync(file, {
+        chunkSize: 4,
+        maxLineBytes: 8,
+      }),
+    ]).toThrow(
+      expect.objectContaining({
+        code: FILE_LINE_TOO_LARGE_CODE,
+        actualBytes: 10,
+        maxBytes: 8,
+        lineNo: 1,
+        direction: "forward",
+      }),
+    );
+  });
+
+  it("fails reverse before decoding a line over the byte limit", () => {
+    const file = temporaryFile(`safe\n${"界".repeat(3)}\n`);
+    expect(() => [
+      ...iterateFileLinesReverseSync(file, {
+        chunkSize: 2,
+        maxLineBytes: 8,
+      }),
+    ]).toThrow(
+      expect.objectContaining({
+        code: FILE_LINE_TOO_LARGE_CODE,
+        actualBytes: 9,
+        maxBytes: 8,
+        direction: "reverse",
+      }),
+    );
   });
 });

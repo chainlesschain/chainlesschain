@@ -21,6 +21,8 @@ import {
   worktreeLog,
 } from "./worktree-isolator.js";
 import { isGitRepo } from "./git-integration.js";
+import { markRuntimeLedgerPersistenceError } from "./runtime-usage-ledger.js";
+import { IterationBudget } from "./iteration-budget.js";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -29,6 +31,85 @@ const SUMMARY_DIRECT_THRESHOLD = 500; // chars — below this, use result as-is
 const SUMMARY_SECTION_PATTERN =
   /^##\s*(Summary|Result|Output|Conclusion|Answer)/im;
 const TRUNCATE_LENGTH = 500;
+
+function runtimeUsageObserverFailure(error, code, message) {
+  const failure =
+    error && (typeof error === "object" || typeof error === "function")
+      ? markRuntimeLedgerPersistenceError(error)
+      : markRuntimeLedgerPersistenceError(new Error(message));
+  try {
+    if (!failure.code) failure.code = code;
+  } catch {
+    // A frozen error was already wrapped by markRuntimeLedgerPersistenceError.
+  }
+  return failure;
+}
+
+function assertSyncUsageObserver(observer, phase) {
+  if (typeof observer === "function") return;
+  const upper = phase.toUpperCase();
+  throw runtimeUsageObserverFailure(
+    null,
+    `CC_USAGE_${upper}_OBSERVER_REQUIRED`,
+    `Strict child usage telemetry requires a synchronous ${phase} observer`,
+  );
+}
+
+function requireSyncUsageObserver(observer, event, phase) {
+  const upper = phase.toUpperCase();
+  assertSyncUsageObserver(observer, phase);
+  let observation;
+  try {
+    observation = observer(event);
+  } catch (error) {
+    throw runtimeUsageObserverFailure(
+      error,
+      `CC_USAGE_${upper}_PERSISTENCE_FAILED`,
+      `Child usage ${phase} persistence failed`,
+    );
+  }
+  let isThenable = false;
+  try {
+    isThenable = Boolean(observation && typeof observation.then === "function");
+  } catch (error) {
+    throw runtimeUsageObserverFailure(
+      error,
+      `CC_USAGE_${upper}_OBSERVER_ASYNC`,
+      `Child usage ${phase} observer must be synchronous`,
+    );
+  }
+  if (isThenable) {
+    void Promise.resolve(observation).catch(() => {});
+    throw runtimeUsageObserverFailure(
+      null,
+      `CC_USAGE_${upper}_OBSERVER_ASYNC`,
+      `Child usage ${phase} observer must be synchronous`,
+    );
+  }
+}
+
+function requireUsageCallId(event, phase) {
+  if (typeof event?.callId === "string" && event.callId.trim()) {
+    return event.callId;
+  }
+  const upper = phase.toUpperCase();
+  throw runtimeUsageObserverFailure(
+    null,
+    `CC_USAGE_${upper}_CALL_ID_REQUIRED`,
+    `Strict child usage ${phase} requires a real callId`,
+  );
+}
+
+function requireToolCallId(event, phase) {
+  const value = event?.tool_use_id ?? event?.callId ?? event?.id;
+  if (typeof value === "string" && value.trim()) return value;
+  const upper = phase.toUpperCase();
+  throw runtimeUsageObserverFailure(
+    null,
+    `CC_TOOL_${upper}_CALL_ID_REQUIRED`,
+    `Strict child tool ${phase} requires a real provider call id`,
+  );
+}
 
 // ─── SubAgentContext ────────────────────────────────────────────────────────
 
@@ -53,6 +134,15 @@ export class SubAgentContext {
    * @param {object} [options.llmOptions] - LLM provider/model/key options
    * @param {string} [options.cwd] - Working directory
    * @param {boolean} [options.useWorktree] - Force worktree isolation (overrides flag)
+   * @param {function} [options.onUsageBoundary] - Synchronous observer for
+   *   real child model-usage-started events. A failure is terminal so provider
+   *   work cannot begin without a durable parent boundary.
+   * @param {function} [options.onUsageSettlement] - Synchronous observer for
+   *   real child token-usage/model-usage-unknown settlements.
+   * @param {function} [options.onToolCallBoundary] - Synchronous observer for
+   *   real child tool-executing boundaries.
+   * @param {function} [options.onToolCallSettlement] - Synchronous observer for
+   *   matching child tool-result settlements.
    * @returns {SubAgentContext}
    */
   static create(options = {}) {
@@ -158,6 +248,23 @@ export class SubAgentContext {
     // the parent loop can re-yield attributed `token-usage` events.
     this._onUsage =
       typeof options.onUsage === "function" ? options.onUsage : null;
+    this._onUsageBoundary =
+      typeof options.onUsageBoundary === "function"
+        ? options.onUsageBoundary
+        : null;
+    this._onUsageSettlement =
+      typeof options.onUsageSettlement === "function"
+        ? options.onUsageSettlement
+        : null;
+    this._onToolCallBoundary =
+      typeof options.onToolCallBoundary === "function"
+        ? options.onToolCallBoundary
+        : null;
+    this._onToolCallSettlement =
+      typeof options.onToolCallSettlement === "function"
+        ? options.onToolCallSettlement
+        : null;
+    this._strictUsageTelemetry = options.strictUsageTelemetry === true;
 
     // Optional EXTERNAL abort signal for cancellation (e.g. a parent-provided
     // AbortSignal). In addition, every context owns an INTERNAL controller so a
@@ -439,6 +546,7 @@ export class SubAgentContext {
       }
       return result;
     } catch (err) {
+      if (err?.runtimeLedgerPersistence === true) throw err;
       // If worktree creation fails (e.g. not a git repo), fall back to direct
       this.status = "failed";
       this.completedAt = new Date().toISOString();
@@ -525,8 +633,103 @@ export class SubAgentContext {
     if (authority.unattendedActionPolicy) {
       options.unattendedActionPolicy = authority.unattendedActionPolicy;
     }
-    if (this.iterationBudget) {
-      options.iterationBudget = this.iterationBudget;
+    // Let agentLoop enforce model-turn admission at its real provider boundary.
+    // The former event-count guard could stop immediately after a yielded
+    // model/tool `started` event and strand it without a settlement.
+    options.iterationBudget =
+      this.iterationBudget ||
+      new IterationBudget({ limit: this.maxIterations, owner: this.id });
+    const strictUsageTelemetry =
+      this._strictUsageTelemetry || options.strictUsageTelemetry === true;
+    const pendingUsageCalls = new Set();
+    const pendingToolCalls = new Map();
+    let observeUsageBoundary = null;
+    let observeUsageSettlement = null;
+    let observeToolBoundary = null;
+    let observeToolSettlement = null;
+    if (strictUsageTelemetry) {
+      // Presence is checked without invoking either observer. In particular,
+      // do not manufacture a null "validation event" that a durable writer
+      // could mistake for a real provider-call boundary.
+      assertSyncUsageObserver(this._onUsageBoundary, "boundary");
+      assertSyncUsageObserver(this._onUsageSettlement, "settlement");
+
+      observeUsageBoundary = (event) => {
+        const callId = requireUsageCallId(event, "boundary");
+        if (pendingUsageCalls.has(callId)) {
+          throw runtimeUsageObserverFailure(
+            null,
+            "CC_USAGE_BOUNDARY_CALL_ID_DUPLICATE",
+            `Duplicate child usage boundary callId: ${callId}`,
+          );
+        }
+        requireSyncUsageObserver(this._onUsageBoundary, event, "boundary");
+        pendingUsageCalls.add(callId);
+      };
+      observeUsageSettlement = (event) => {
+        const callId = requireUsageCallId(event, "settlement");
+        if (!pendingUsageCalls.has(callId)) {
+          throw runtimeUsageObserverFailure(
+            null,
+            "CC_USAGE_SETTLEMENT_BOUNDARY_MISSING",
+            `Child usage settlement has no matching boundary: ${callId}`,
+          );
+        }
+        requireSyncUsageObserver(this._onUsageSettlement, event, "settlement");
+        pendingUsageCalls.delete(callId);
+      };
+
+      // agentLoop yields model-usage-started before provider work. Its consumer
+      // runs synchronously before requesting the next event, so a durable host
+      // write failure prevents the child provider call from starting.
+      // Automatic semantic compaction invokes this same wrapped boundary seam
+      // directly, before its provider query, rather than yielding a start event.
+      options.onUsageBoundary = observeUsageBoundary;
+      options.onUsageSettlement = observeUsageSettlement;
+      options.strictUsageTelemetry = true;
+
+      observeToolBoundary = (event) => {
+        const callId = requireToolCallId(event, "boundary");
+        if (pendingToolCalls.has(callId)) {
+          throw runtimeUsageObserverFailure(
+            null,
+            "CC_TOOL_BOUNDARY_CALL_ID_DUPLICATE",
+            `Duplicate child tool boundary callId: ${callId}`,
+          );
+        }
+        requireSyncUsageObserver(
+          this._onToolCallBoundary,
+          event,
+          "tool_boundary",
+        );
+        pendingToolCalls.set(callId, event.tool || null);
+      };
+      observeToolSettlement = (event) => {
+        const callId = requireToolCallId(event, "settlement");
+        if (!pendingToolCalls.has(callId)) {
+          throw runtimeUsageObserverFailure(
+            null,
+            "CC_TOOL_SETTLEMENT_BOUNDARY_MISSING",
+            `Child tool settlement has no matching boundary: ${callId}`,
+          );
+        }
+        const startedTool = pendingToolCalls.get(callId);
+        if (startedTool && event.tool && startedTool !== event.tool) {
+          throw runtimeUsageObserverFailure(
+            null,
+            "CC_TOOL_SETTLEMENT_IDENTITY_CHANGED",
+            `Child tool settlement changed tool identity for ${callId}`,
+          );
+        }
+        requireSyncUsageObserver(
+          this._onToolCallSettlement,
+          event,
+          "tool_settlement",
+        );
+        pendingToolCalls.delete(callId);
+      };
+      options.onToolCallBoundary = observeToolBoundary;
+      options.onToolCallSettlement = observeToolSettlement;
     }
 
     // Forward MCP / external tool plumbing into the agent loop
@@ -605,9 +808,32 @@ export class SubAgentContext {
         }
 
         if (event.type === "token-usage") {
+          const forwardedUsage = {
+            type: "token-usage",
+            ...(event.callId ? { callId: event.callId } : {}),
+            provider: event.provider || null,
+            model: event.model || null,
+            usage: event.usage || null,
+            ...(event.source ? { source: event.source } : {}),
+            attribution: event.attribution || null,
+            ...(event.boundaryNotified === true ||
+            event.ledgerPersisted === true
+              ? { boundaryNotified: true }
+              : {}),
+            ...(event.ledgerPersisted === true
+              ? { ledgerPersisted: true }
+              : {}),
+          };
+          if (strictUsageTelemetry && event.ledgerPersisted !== true) {
+            forwardedUsage.boundaryNotified = true;
+            observeUsageSettlement(forwardedUsage);
+            forwardedUsage.ledgerPersisted = true;
+          }
+          // Close the durable provider-call row before any secondary budget
+          // projection can fail. A budget writer error must never turn a paid
+          // call into a permanently open `started` row.
           // Attributed usage was already charged by the nested child sharing
-          // this same authority. Only direct usage is folded here, otherwise a
-          // child-of-child would be counted once at every ancestor level.
+          // this same authority, so only direct usage is folded here.
           if (!event.attribution && this.sessionBudget?.recordUsage) {
             this.sessionBudget.recordUsage({
               provider: event.provider || null,
@@ -618,16 +844,81 @@ export class SubAgentContext {
           if (this._onUsage) {
             // Forward real usage to the spawner. A nested child's event already
             // carries its own attribution frame — preserve it (deepest wins).
-            try {
-              this._onUsage({
-                provider: event.provider || null,
-                model: event.model || null,
-                usage: event.usage || null,
-                ...(event.source ? { source: event.source } : {}),
-                attribution: event.attribution || null,
-              });
-            } catch (_e) {
-              // Usage forwarding is best-effort — never break the child loop
+            if (strictUsageTelemetry) {
+              requireSyncUsageObserver(
+                this._onUsage,
+                forwardedUsage,
+                "forwarding",
+              );
+            } else {
+              try {
+                this._onUsage(forwardedUsage);
+              } catch {
+                // Legacy attribution forwarding remains best-effort.
+              }
+            }
+          }
+        }
+
+        if (event.type === "model-usage-started") {
+          if (strictUsageTelemetry) {
+            if (
+              event.boundaryNotified === true ||
+              event.ledgerPersisted === true
+            ) {
+              pendingUsageCalls.add(requireUsageCallId(event, "boundary"));
+            } else {
+              observeUsageBoundary(event);
+            }
+          }
+        }
+
+        if (event.type === "tool-executing" && strictUsageTelemetry) {
+          observeToolBoundary(event);
+        }
+
+        if (
+          event.type === "model-usage-unknown" ||
+          event.type === "compaction-usage-unknown"
+        ) {
+          const forwardedUnknown = {
+            type: "model-usage-unknown",
+            callId: event.callId,
+            provider: event.provider || null,
+            model: event.model || null,
+            source:
+              event.source ||
+              (event.type === "compaction-usage-unknown"
+                ? "semantic-compaction"
+                : "model"),
+            code: event.code || "provider_transport_outcome_unknown",
+            attribution: event.attribution || null,
+            ...(event.boundaryNotified === true ||
+            event.ledgerPersisted === true
+              ? { boundaryNotified: true }
+              : {}),
+            ...(event.ledgerPersisted === true
+              ? { ledgerPersisted: true }
+              : {}),
+          };
+          if (strictUsageTelemetry && event.ledgerPersisted !== true) {
+            forwardedUnknown.boundaryNotified = true;
+            observeUsageSettlement(forwardedUnknown);
+            forwardedUnknown.ledgerPersisted = true;
+          }
+          if (this._onUsage) {
+            if (strictUsageTelemetry) {
+              requireSyncUsageObserver(
+                this._onUsage,
+                forwardedUnknown,
+                "forwarding",
+              );
+            } else {
+              try {
+                this._onUsage(forwardedUnknown);
+              } catch {
+                // Legacy attribution forwarding remains best-effort.
+              }
             }
           }
         }
@@ -637,6 +928,9 @@ export class SubAgentContext {
         }
 
         if (event.type === "tool-result") {
+          if (strictUsageTelemetry && event.tool_use_id) {
+            observeToolSettlement(event);
+          }
           // Store large tool results as artifacts
           const resultStr = JSON.stringify(event.result);
           // Estimate token count from tool result (~4 chars per token)
@@ -672,7 +966,10 @@ export class SubAgentContext {
         }
 
         // Check abort signal (external OR this context's own `abort()`)
-        if (this.isAborted()) {
+        const providerOrToolBoundaryPending =
+          event.type === "model-usage-started" ||
+          event.type === "tool-executing";
+        if (this.isAborted() && !providerOrToolBoundaryPending) {
           this.forceComplete(this._cancelReason || "cancelled", {
             partialContent: lastContent,
             artifacts,
@@ -681,21 +978,30 @@ export class SubAgentContext {
         }
 
         // Enforce token budget
-        if (this.tokenBudget && this._tokenCount >= this.tokenBudget) {
+        if (
+          this.tokenBudget &&
+          this._tokenCount >= this.tokenBudget &&
+          !providerOrToolBoundaryPending
+        ) {
           this.forceComplete("token-budget-exceeded", {
             partialContent: lastContent,
             artifacts,
           });
           break;
         }
-
-        // Enforce iteration limit
-        if (this._iterationCount >= this.maxIterations * 3) {
-          // 3 events per iteration (executing + result + potential response)
-          break;
-        }
+      }
+      if (
+        strictUsageTelemetry &&
+        (pendingUsageCalls.size > 0 || pendingToolCalls.size > 0)
+      ) {
+        throw runtimeUsageObserverFailure(
+          null,
+          "CC_CHILD_CALL_SETTLEMENT_INCOMPLETE",
+          "Strict child execution ended with an unsettled provider or tool call",
+        );
       }
     } catch (err) {
+      if (err?.runtimeLedgerPersistence === true) throw err;
       if (this.isAborted()) {
         this.forceComplete(this._cancelReason || "cancelled", {
           partialContent: lastContent,

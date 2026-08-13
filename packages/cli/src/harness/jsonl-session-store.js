@@ -32,9 +32,7 @@ import {
 } from "../lib/secure-file-identity.js";
 import {
   computeEventHash,
-  latestChainHash,
   TRANSCRIPT_CHAIN_STATUS,
-  verifyTranscriptText,
 } from "./transcript-integrity.js";
 import { withFileLock } from "../lib/with-file-lock.js";
 import {
@@ -47,8 +45,10 @@ import {
   SESSION_FORK_AUTHORITY_FIELD,
 } from "../lib/session-message-provenance.js";
 import {
-  iterateFileLinesSync,
-  iterateFileLinesReverseSync,
+  assertFileLineByteLength,
+  DEFAULT_MAX_FILE_LINE_BYTES,
+  iterateFileLinesSync as iterateRawFileLinesSync,
+  iterateFileLinesReverseSync as iterateRawFileLinesReverseSync,
 } from "../lib/file-lines.js";
 import {
   emptySessionMeta,
@@ -69,6 +69,7 @@ import {
 } from "./session-list-index.js";
 import { createSessionPersistenceFailure } from "../lib/session-persistence-failure.js";
 import { withSessionHostWriteAuthority } from "../lib/session-host-lease.js";
+import { createSessionTranscriptStructureProjection } from "../lib/session-transcript-structure.js";
 import {
   listSessionAntiRollbackIds,
   publishSessionAntiRollbackAnchor,
@@ -99,6 +100,9 @@ export const WS_TURN_EVENT = "ws_turn";
 export const WS_TURN_CLAIM_EVENT = "ws_turn_claim";
 export const WS_TURN_SCHEMA_VERSION = 1;
 export const WS_TURN_REQUEST_ID_MAX_BYTES = 128;
+export const CANONICAL_JSONL_RECORD_MAX_BYTES = DEFAULT_MAX_FILE_LINE_BYTES;
+export const CANONICAL_JSONL_RECORD_TOO_LARGE_CODE =
+  "CC_SESSION_JSONL_RECORD_TOO_LARGE";
 const WS_TURN_CONTENT_MAX_BYTES = 4 * 1024 * 1024;
 const WS_TURN_REQUEST_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:@-]*$/;
 const WS_TURN_INPUT_DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
@@ -109,6 +113,91 @@ export {
   SESSION_GENERATION_AUTHORITY_FIELD,
   SESSION_GENERATION_AUTHORITY_SCHEMA,
 };
+
+function canonicalJsonlSizeOptions(maxRecordBytes) {
+  return {
+    maxLineBytes: resolveCanonicalJsonlRecordMaxBytes(maxRecordBytes),
+    code: CANONICAL_JSONL_RECORD_TOO_LARGE_CODE,
+    label: "Canonical session JSONL record",
+  };
+}
+
+export function resolveCanonicalJsonlRecordMaxBytes(
+  maxRecordBytes = CANONICAL_JSONL_RECORD_MAX_BYTES,
+) {
+  const parsed = Number(maxRecordBytes);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+    throw new TypeError("maxRecordBytes must be a positive safe integer");
+  }
+  // Optional limits are test seams / caller-side tightening only. No caller
+  // may raise the canonical on-disk hard cap.
+  return Math.min(parsed, CANONICAL_JSONL_RECORD_MAX_BYTES);
+}
+
+export function assertCanonicalJsonlRecordByteLength(
+  byteLength,
+  maxRecordBytes = CANONICAL_JSONL_RECORD_MAX_BYTES,
+) {
+  assertFileLineByteLength(
+    byteLength,
+    canonicalJsonlSizeOptions(maxRecordBytes),
+  );
+  return byteLength;
+}
+
+export function assertCanonicalJsonlRecordSize(
+  serialized,
+  maxRecordBytes = CANONICAL_JSONL_RECORD_MAX_BYTES,
+) {
+  if (typeof serialized !== "string") {
+    throw new TypeError("Canonical session JSONL record must be a string");
+  }
+  return assertCanonicalJsonlRecordByteLength(
+    Buffer.byteLength(serialized, "utf8"),
+    maxRecordBytes,
+  );
+}
+
+export function serializeCanonicalJsonlRecord(
+  event,
+  maxRecordBytes = CANONICAL_JSONL_RECORD_MAX_BYTES,
+) {
+  const serialized = JSON.stringify(event);
+  assertCanonicalJsonlRecordSize(serialized, maxRecordBytes);
+  return serialized;
+}
+
+export function parseCanonicalJsonlRecord(
+  line,
+  maxRecordBytes = CANONICAL_JSONL_RECORD_MAX_BYTES,
+) {
+  assertCanonicalJsonlRecordSize(line, maxRecordBytes);
+  return JSON.parse(line);
+}
+
+function rethrowCanonicalJsonlRecordLimit(error) {
+  if (error?.code === CANONICAL_JSONL_RECORD_TOO_LARGE_CODE) throw error;
+}
+
+function canonicalLineOptions(options = {}) {
+  return {
+    ...options,
+    maxLineBytes: CANONICAL_JSONL_RECORD_MAX_BYTES,
+    lineTooLargeCode: CANONICAL_JSONL_RECORD_TOO_LARGE_CODE,
+    lineLabel: "Canonical session JSONL record",
+  };
+}
+
+function iterateCanonicalJsonlLinesSync(filePath, options = {}) {
+  return iterateRawFileLinesSync(filePath, canonicalLineOptions(options));
+}
+
+function iterateCanonicalJsonlLinesReverseSync(filePath, options = {}) {
+  return iterateRawFileLinesReverseSync(
+    filePath,
+    canonicalLineOptions(options),
+  );
+}
 
 function wsTurnError(message, code) {
   const error = new Error(message);
@@ -674,17 +763,23 @@ function inspectPhysicalTail(filePath, { dryRun = false } = {}) {
             found = true;
           }
         }
-        const tail = Buffer.allocUnsafe(size - tailStart);
+        const tailBytes = size - tailStart;
+        assertFileLineByteLength(
+          tailBytes,
+          canonicalJsonlSizeOptions(CANONICAL_JSONL_RECORD_MAX_BYTES),
+        );
+        const tail = Buffer.allocUnsafe(tailBytes);
         if (tail.length > 0) readSync(fd, tail, 0, tail.length, tailStart);
         try {
           const text = new TextDecoder("utf-8", { fatal: true }).decode(tail);
-          JSON.parse(text);
+          parseCanonicalJsonlRecord(text);
           // A valid legacy/manual last record merely lacks its newline; retain
           // it and normalize before appending the next chained event.
           result.action = "normalize-newline";
           result.changed = true;
           normalizeNewline = !dryRun;
-        } catch {
+        } catch (error) {
+          rethrowCanonicalJsonlRecordLimit(error);
           // Crash tail: discard only the one incomplete physical record.
           result.action = "discard-partial-record";
           result.changed = true;
@@ -714,19 +809,20 @@ function _resolveChainTail(filePath) {
   // Fast path: almost every append follows a newline-terminated record. Read
   // that tail once and avoid opening the file a second time just to inspect its
   // last byte. The slow repair path runs only for an unterminated crash tail.
-  const initial = iterateFileLinesReverseSync(filePath);
+  const initial = iterateCanonicalJsonlLinesReverseSync(filePath);
   const first = initial.next();
   if (!first.done && first.value.terminated) {
     try {
       let current = first;
       while (!current.done) {
         try {
-          const event = JSON.parse(current.value.line);
+          const event = parseCanonicalJsonlRecord(current.value.line);
           return {
             prevHash: typeof event?.hash === "string" ? event.hash : null,
             recovery: null,
           };
-        } catch {
+        } catch (error) {
+          rethrowCanonicalJsonlRecordLimit(error);
           current = initial.next();
         }
       }
@@ -738,14 +834,15 @@ function _resolveChainTail(filePath) {
   initial.return?.();
 
   const recovery = inspectPhysicalTail(filePath);
-  for (const { line } of iterateFileLinesReverseSync(filePath)) {
+  for (const { line } of iterateCanonicalJsonlLinesReverseSync(filePath)) {
     try {
-      const event = JSON.parse(line);
+      const event = parseCanonicalJsonlRecord(line);
       return {
         prevHash: typeof event?.hash === "string" ? event.hash : null,
         recovery: recovery.changed ? recovery : null,
       };
-    } catch {
+    } catch (error) {
+      rethrowCanonicalJsonlRecordLimit(error);
       // A malformed historical line is verified separately; keep searching so
       // this append never chains from arbitrary bytes.
     }
@@ -934,6 +1031,10 @@ function appendTranscriptEventAtPath({
   expectedState,
   parentDevice,
 }) {
+  // Bound the complete persisted envelope (including hash/prevHash) before
+  // opening or writing the canonical transcript.
+  const serializedEvent = serializeCanonicalJsonlRecord(event);
+  const bytes = Buffer.from(`${serializedEvent}\n`, "utf8");
   let fd = null;
   let wroteBytes = false;
   let appendCompleted = false;
@@ -975,7 +1076,6 @@ function appendTranscriptEventAtPath({
         }
       }
     }
-    const bytes = Buffer.from(`${JSON.stringify(event)}\n`, "utf8");
     let offset = 0;
     while (offset < bytes.length) {
       const written = writeSync(fd, bytes, offset, bytes.length - offset);
@@ -1201,11 +1301,12 @@ function antiRollbackAnchorMatchesCandidate(anchor, candidate) {
 function transcriptHashAtEventCount(filePath, eventCount) {
   if (eventCount === 0) return null;
   let count = 0;
-  for (const { line } of iterateFileLinesSync(filePath)) {
+  for (const { line } of iterateCanonicalJsonlLinesSync(filePath)) {
     let event;
     try {
-      event = JSON.parse(line);
-    } catch {
+      event = parseCanonicalJsonlRecord(line);
+    } catch (error) {
+      rethrowCanonicalJsonlRecordLimit(error);
       continue;
     }
     if (typeof event?.hash !== "string") continue;
@@ -1885,13 +1986,15 @@ function verifyTranscriptFile(filePath, options = {}) {
     reason,
   });
 
-  for (const { line, lineNo, terminated } of iterateFileLinesSync(filePath, {
-    ioMetrics,
-  })) {
+  for (const { line, lineNo, terminated } of iterateCanonicalJsonlLinesSync(
+    filePath,
+    { ioMetrics },
+  )) {
     let event;
     try {
-      event = JSON.parse(line);
-    } catch {
+      event = parseCanonicalJsonlRecord(line);
+    } catch (error) {
+      rethrowCanonicalJsonlRecordLimit(error);
       result.malformedLines += 1;
       if (!terminated) {
         result.truncatedTail = true;
@@ -2242,9 +2345,96 @@ export function startSession(sessionId, meta = {}) {
     title: meta.title || "Untitled",
     provider: meta.provider || "",
     model: meta.model || "",
+    ...(meta.observabilityScope != null
+      ? {
+          observabilityScope: normalizeObservabilityScope(
+            meta.observabilityScope,
+          ),
+          usageTelemetryProtocol: "call-ledger",
+          usageTelemetryVersion: 1,
+        }
+      : {}),
   });
 
   return id;
+}
+
+/** Return the anchored transcript revision used by delivery causality bindings. */
+export function getVerifiedSessionObservabilityAuthority(sessionId) {
+  return readVerifiedProjection(sessionId, () => {
+    let sessionStartSeen = false;
+    let hasObservabilityScope = false;
+    let observabilityScope = null;
+    return {
+      accept(event) {
+        if (event?.type === "session_start" && !sessionStartSeen) {
+          sessionStartSeen = true;
+          if (Object.hasOwn(event.data || {}, "observabilityScope")) {
+            hasObservabilityScope = true;
+            observabilityScope = event.data.observabilityScope;
+          }
+        }
+      },
+      finish(authority) {
+        if (!authority.headHash || authority.eventCount <= 0) {
+          throw unverifiedTranscriptError(sessionId, {
+            status: "empty",
+            reason: "session has no anchored transcript events",
+          });
+        }
+        if (!hasObservabilityScope) {
+          const error = new Error(
+            `session ${sessionId} has no observabilityScope authority`,
+          );
+          error.code = "SESSION_OBSERVABILITY_SCOPE_MISSING";
+          throw error;
+        }
+        const normalizedScope = normalizeObservabilityScope(observabilityScope);
+        return Object.freeze({
+          sessionId,
+          headHash: authority.headHash,
+          eventCount: authority.eventCount,
+          observabilityScope: Object.freeze(normalizedScope),
+        });
+      },
+    };
+  });
+}
+
+function hasAsciiControlCharacter(value) {
+  for (let index = 0; index < value.length; index++) {
+    const code = value.charCodeAt(index);
+    if (code <= 0x1f || code === 0x7f) return true;
+  }
+  return false;
+}
+
+function normalizeObservabilityScope(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new TypeError("observabilityScope must be an object");
+  }
+  const normalize = (input, field) => {
+    if (input == null) return null;
+    if (typeof input !== "string") {
+      throw new TypeError(`observabilityScope.${field} must be a string`);
+    }
+    const output = input.trim();
+    if (!output || output.length > 256 || hasAsciiControlCharacter(output)) {
+      throw new TypeError(`observabilityScope.${field} is invalid`);
+    }
+    return output;
+  };
+  const normalized = {
+    workspaceId: normalize(value.workspaceId, "workspaceId"),
+    teamId: normalize(value.teamId, "teamId"),
+    policyId: normalize(value.policyId, "policyId"),
+  };
+  if (!Object.values(normalized).some((scopeId) => scopeId != null)) {
+    throw new TypeError(
+      "observabilityScope requires at least one non-null dimension",
+    );
+  }
+  return normalized;
 }
 
 export function appendUserMessage(sessionId, content) {
@@ -2502,10 +2692,23 @@ export function appendToolCall(sessionId, toolName, args) {
  */
 export function appendToolCallCompact(
   sessionId,
-  { tool, isError, skill, plugin, pluginVersion, durationMs } = {},
+  { id, tool, isError, skill, plugin, pluginVersion, durationMs } = {},
 ) {
+  const cleanId =
+    id === undefined
+      ? null
+      : typeof id === "string" &&
+          id.trim() &&
+          id.length <= 128 &&
+          !/\p{Cc}/u.test(id)
+        ? id.trim()
+        : null;
+  if (id !== undefined && !cleanId) {
+    throw new TypeError("compact tool call id must be a bounded string");
+  }
   const duration = normalizeCompactDuration(durationMs);
   appendEvent(sessionId, "tool_call", {
+    ...(cleanId ? { id: cleanId } : {}),
     tool: tool || "?",
     is_error: Boolean(isError),
     ...(skill ? { skill: String(skill) } : {}),
@@ -2631,10 +2834,11 @@ export function readEvents(sessionId) {
   if (!existsSync(filePath)) return [];
 
   const events = [];
-  for (const { line } of iterateFileLinesSync(filePath)) {
+  for (const { line } of iterateCanonicalJsonlLinesSync(filePath)) {
     try {
-      events.push(JSON.parse(line));
-    } catch {
+      events.push(parseCanonicalJsonlRecord(line));
+    } catch (error) {
+      rethrowCanonicalJsonlRecordLimit(error);
       // Skip malformed lines
     }
   }
@@ -2823,11 +3027,16 @@ export function readVerifiedProjection(
           }),
         );
       }
+      const structure = createSessionTranscriptStructureProjection(sessionId);
       const verification = verifyTranscriptFile(filePath, {
         ioMetrics: options.ioMetrics,
-        onVerifiedEvent: (event) => projection.accept(event),
+        onVerifiedEvent: (event) => {
+          structure.accept(event);
+          projection.accept(event);
+        },
       });
       assertVerifiedTranscriptAnchor(sessionId, verification);
+      structure.finish({ assertValid: true });
       return projection.finish(
         Object.freeze({
           headHash: verification.lastHash,
@@ -2945,6 +3154,10 @@ function readVerifiedTranscriptBytesAtPath(sessionId, filePath, parentDevice) {
         "the read descriptor does not match the canonical path",
       );
     }
+    // Verify with the bounded line iterator before materializing the requested
+    // full transcript. A single attacker-controlled record can therefore never
+    // force readFileSync/JSON parsing to allocate an unbounded line first.
+    const verification = verifyTranscriptFile(filePath);
     const text = readFileSync(fd, "utf8");
     const afterStats = fstatSync(fd, { bigint: true });
     const after = physicalTranscriptStateFromStats(afterStats);
@@ -2964,10 +3177,6 @@ function readVerifiedTranscriptBytesAtPath(sessionId, filePath, parentDevice) {
         "the transcript changed while verified bytes were read",
       );
     }
-    const verification = {
-      ...verifyTranscriptText(text),
-      lastHash: latestChainHash(text),
-    };
     assertVerifiedTranscriptAnchor(sessionId, verification, published);
     return text;
   } finally {
@@ -3077,11 +3286,14 @@ function rebuildMessagesFromFile(
   // replay state, but the file itself is still never loaded as one giant string.
   const suffix = [];
   let checkpoint = [];
-  for (const { line } of iterateFileLinesReverseSync(filePath, { ioMetrics })) {
+  for (const { line } of iterateCanonicalJsonlLinesReverseSync(filePath, {
+    ioMetrics,
+  })) {
     let event;
     try {
-      event = JSON.parse(line);
-    } catch {
+      event = parseCanonicalJsonlRecord(line);
+    } catch (error) {
+      rethrowCanonicalJsonlRecordLimit(error);
       continue;
     }
     if (
@@ -3155,11 +3367,12 @@ export function toIsoSafe(ts) {
 
 function rebuildSessionMetaUnlocked(dir, sessionId, filePath) {
   let meta = emptySessionMeta(sessionId);
-  for (const { line } of iterateFileLinesSync(filePath)) {
+  for (const { line } of iterateCanonicalJsonlLinesSync(filePath)) {
     try {
-      const event = JSON.parse(line);
+      const event = parseCanonicalJsonlRecord(line);
       meta = applyEventToSessionMeta(meta, event, event?.hash);
-    } catch {
+    } catch (error) {
+      rethrowCanonicalJsonlRecordLimit(error);
       // The validator/repair path reports malformed records. The index remains
       // a best-effort projection over all intact events.
     }
@@ -3742,17 +3955,19 @@ export function forkSession(sourceId, options = {}) {
               },
             };
             const hash = computeEventHash(prevHash, core);
-            appendFileSync(
-              workingPath,
-              `${JSON.stringify({ ...core, prevHash, hash })}\n`,
-              { encoding: "utf8", mode: 0o600 },
-            );
+            const lineageEvent = { ...core, prevHash, hash };
+            const serializedLineage =
+              serializeCanonicalJsonlRecord(lineageEvent);
+            appendFileSync(workingPath, `${serializedLineage}\n`, {
+              encoding: "utf8",
+              mode: 0o600,
+            });
             ensurePrivateFile(workingPath);
             runSessionScaleFaultHook("afterForkLineage", {
               sourceId,
               sessionId: newId,
               filePath: workingPath,
-              event: { ...core, prevHash, hash },
+              event: lineageEvent,
             });
             target = inspectTarget();
             targetMeta = readSessionMeta(sessionsDir, newId);
@@ -4426,16 +4641,14 @@ export function validateJsonlSession(sessionId) {
   }
 
   let malformedLines = 0;
-  let eventCount = 0;
   let messageCount = 0;
   let invalidWsTurns = 0;
   let invalidWsClaims = 0;
-  let hasStartEvent = false;
-  for (const { line } of iterateFileLinesSync(filePath)) {
+  const structure = createSessionTranscriptStructureProjection(sessionId);
+  for (const { line } of iterateCanonicalJsonlLinesSync(filePath)) {
     try {
-      const event = JSON.parse(line);
-      eventCount += 1;
-      if (event?.type === "session_start") hasStartEvent = true;
+      const event = parseCanonicalJsonlRecord(line);
+      structure.accept(event);
       if (
         event?.type === "user_message" ||
         event?.type === "assistant_message"
@@ -4451,10 +4664,21 @@ export function validateJsonlSession(sessionId) {
       ) {
         invalidWsClaims += 1;
       }
-    } catch {
+    } catch (error) {
+      rethrowCanonicalJsonlRecordLimit(error);
       malformedLines++;
     }
   }
+
+  const structural = structure.finish();
+  const reason =
+    malformedLines > 0
+      ? "session contains malformed JSONL records"
+      : invalidWsTurns > 0
+        ? "session contains invalid WebSocket turn settlements"
+        : invalidWsClaims > 0
+          ? "session contains invalid WebSocket turn claims"
+          : structural.reason;
 
   return {
     sessionId,
@@ -4462,13 +4686,17 @@ export function validateJsonlSession(sessionId) {
       malformedLines === 0 &&
       invalidWsTurns === 0 &&
       invalidWsClaims === 0 &&
-      hasStartEvent,
+      structural.valid,
+    reason,
     malformedLines,
     invalidWsTurns,
     invalidWsClaims,
-    eventCount,
+    eventCount: structural.eventCount,
     messageCount,
-    hasStartEvent,
+    hasStartEvent: structural.hasStartEvent,
+    sessionStartCount: structural.sessionStartCount,
+    sessionStartIndex: structural.sessionStartIndex,
+    sessionStartIsFirst: structural.sessionStartIsFirst,
   };
 }
 

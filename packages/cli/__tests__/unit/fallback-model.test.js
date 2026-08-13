@@ -85,6 +85,31 @@ describe("makeFallbackChatFn", () => {
     });
   });
 
+  it("does not issue or announce fallbacks for a strict usage ledger", async () => {
+    const primaryError = new Error("overloaded");
+    const baseChatFn = vi
+      .fn()
+      .mockRejectedValueOnce(primaryError)
+      .mockResolvedValueOnce({ message: { content: "must-not-run" } });
+    const onFallback = vi.fn();
+    const fn = makeFallbackChatFn({
+      fallbackModels: ["backup-1", "backup-2"],
+      baseChatFn,
+      onFallback,
+    });
+
+    await expect(
+      fn([], {
+        model: "primary",
+        provider: "ollama",
+        strictUsageTelemetry: true,
+      }),
+    ).rejects.toBe(primaryError);
+
+    expect(baseChatFn).toHaveBeenCalledTimes(1);
+    expect(onFallback).not.toHaveBeenCalled();
+  });
+
   it("does not retry a non-retryable error", async () => {
     const baseChatFn = vi.fn().mockRejectedValue(new Error("invalid prompt"));
     const fn = makeFallbackChatFn({ fallbackModel: "backup", baseChatFn });

@@ -4,8 +4,16 @@
  */
 
 import { createAgentRuntimeFactory } from "../runtime/runtime-factory.js";
+import { assertChatSessionUsageAdmission } from "../lib/chat-session-admission.js";
 
-export function registerChatCommand(program) {
+export { assertChatSessionUsageAdmission } from "../lib/chat-session-admission.js";
+
+export function registerChatCommand(program, dependencies = {}) {
+  const createRuntimeFactory =
+    dependencies.createAgentRuntimeFactory || createAgentRuntimeFactory;
+  const assertUsageAdmission =
+    dependencies.assertChatSessionUsageAdmission ||
+    assertChatSessionUsageAdmission;
   program
     .command("chat")
     .description("Start an interactive AI chat session")
@@ -22,7 +30,8 @@ export function registerChatCommand(program) {
     )
     .option("--session <id>", "Resume a previous session (agent mode)")
     .action(async (options) => {
-      const factory = createAgentRuntimeFactory();
+      if (!options.agent) assertUsageAdmission(options.session);
+      const factory = createRuntimeFactory();
       const runtimeOptions = {
         model: options.model,
         provider: options.provider,

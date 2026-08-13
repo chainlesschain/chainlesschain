@@ -92,6 +92,186 @@ describe("agentLoop() wrapper", () => {
     expect(res.usageEvents).toHaveLength(2);
   });
 
+  it("persists a call start before the generator resumes into provider work", async () => {
+    const callOrder = [];
+    const core = async function* () {
+      callOrder.push("yield-started");
+      yield {
+        type: "model-usage-started",
+        callId: "call-1",
+        provider: "openai",
+        model: "gpt-4o",
+        source: "model",
+      };
+      callOrder.push("provider-call");
+      yield {
+        type: "token-usage",
+        callId: "call-1",
+        provider: "openai",
+        model: "gpt-4o",
+        usage: { input_tokens: 5, output_tokens: 2 },
+      };
+      yield { type: "response-complete", content: "done" };
+    };
+    await agentLoop([], {
+      _coreLoop: core,
+      sessionId: "s-ledger",
+      persistUsageTelemetry: true,
+      _appendUsageBoundary: () => callOrder.push("persist-started"),
+      _appendTokenUsage: () => callOrder.push("persist-usage"),
+    });
+    expect(callOrder).toEqual([
+      "yield-started",
+      "persist-started",
+      "provider-call",
+      "persist-usage",
+    ]);
+  });
+
+  it("persists child settlements synchronously and skips their re-yielded ledger writes", async () => {
+    const boundaryWrites = [];
+    const usageWrites = [];
+    const known = {
+      type: "token-usage",
+      callId: "child-known-1",
+      provider: "openai",
+      model: "gpt-4o-mini",
+      source: "subagent",
+      usage: { input_tokens: 7, output_tokens: 2 },
+    };
+    const unknown = {
+      type: "model-usage-unknown",
+      callId: "child-unknown-1",
+      provider: "openai",
+      model: "gpt-4o-mini",
+      source: "subagent",
+      code: "provider_usage_missing",
+    };
+    const core = async function* (_messages, options) {
+      options.onUsageSettlement(known);
+      yield { ...known, ledgerPersisted: true };
+      options.onUsageSettlement(unknown);
+      yield { ...unknown, ledgerPersisted: true };
+      yield { type: "response-complete", content: "done" };
+    };
+
+    const result = await agentLoop([], {
+      _coreLoop: core,
+      sessionId: "s-child-settlement",
+      persistUsageTelemetry: true,
+      _appendUsageBoundary: (...args) => boundaryWrites.push(args),
+      _appendTokenUsage: (...args) => usageWrites.push(args),
+    });
+
+    expect(usageWrites).toHaveLength(1);
+    expect(usageWrites[0][1]).toMatchObject({ callId: "child-known-1" });
+    expect(boundaryWrites).toHaveLength(1);
+    expect(boundaryWrites[0]).toEqual([
+      "s-child-settlement",
+      "model_usage_unknown",
+      expect.objectContaining({
+        callId: "child-unknown-1",
+        code: "provider_usage_missing",
+      }),
+    ]);
+    expect(result.usageEvents).toEqual([
+      expect.objectContaining({
+        callId: "child-known-1",
+        ledgerPersisted: true,
+      }),
+    ]);
+  });
+
+  it("pairs interleaved tool results by provider id and preserves each latency", async () => {
+    const compactCalls = [];
+    const ticks = [10, 20, 50, 80];
+    const core = coreLoop([
+      {
+        type: "tool-executing",
+        tool_use_id: "call-a",
+        tool: "read_file",
+        args: { path: "a" },
+      },
+      {
+        type: "tool-executing",
+        tool_use_id: "call-b",
+        tool: "list_dir",
+        args: { path: "." },
+      },
+      {
+        type: "tool-result",
+        tool_use_id: "call-a",
+        tool: "read_file",
+        result: { success: true },
+      },
+      {
+        type: "tool-result",
+        tool_use_id: "call-b",
+        tool: "list_dir",
+        result: { success: true },
+      },
+      { type: "response-complete", content: "done" },
+    ]);
+
+    await agentLoop([], {
+      _coreLoop: core,
+      sessionId: "s-tools",
+      persistToolCalls: true,
+      now: () => ticks.shift(),
+      _appendToolCallCompact: (_sessionId, record) => compactCalls.push(record),
+      _appendUsageBoundary: () => {},
+    });
+
+    expect(compactCalls).toEqual([
+      expect.objectContaining({
+        id: "call-a",
+        tool: "read_file",
+        durationMs: 40,
+      }),
+      expect.objectContaining({
+        id: "call-b",
+        tool: "list_dir",
+        durationMs: 60,
+      }),
+    ]);
+  });
+
+  it("persists tool starts through the injected durable-boundary seam", async () => {
+    const boundaries = [];
+    const core = coreLoop([
+      {
+        type: "tool-executing",
+        tool_use_id: "call-seam",
+        tool: "read_file",
+        args: { path: "a" },
+      },
+      {
+        type: "tool-result",
+        tool_use_id: "call-seam",
+        tool: "read_file",
+        result: { success: true },
+      },
+      { type: "response-complete", content: "done" },
+    ]);
+
+    await agentLoop([], {
+      _coreLoop: core,
+      sessionId: "s-tool-seam",
+      persistUsageTelemetry: true,
+      _appendUsageBoundary: (sessionId, type, data) =>
+        boundaries.push({ sessionId, type, data }),
+      _appendToolCallCompact: () => {},
+    });
+
+    expect(boundaries).toEqual([
+      {
+        sessionId: "s-tool-seam",
+        type: "tool_call_started",
+        data: { id: "call-seam", tool: "read_file" },
+      },
+    ]);
+  });
+
   it("returns empty content + usageEvents when the loop ends with no response-complete", async () => {
     const core = coreLoop([
       { type: "tool-executing", tool: "read_file", args: { path: "x" } },

@@ -56,6 +56,18 @@ describe("CostBudget", () => {
     expect(b.remaining()).toBeCloseTo(9, 5);
   });
 
+  it("does not round a real sub-microdollar charge down to zero", () => {
+    const b = new CostBudget({ limitUsd: 1e-8 });
+    b.add({
+      provider: "openai",
+      model: "gpt-5-nano",
+      usage: { input_tokens: 1, output_tokens: 0 },
+    });
+    expect(b.spentUsd).toBe(5e-8);
+    expect(b.exceeded()).toBe(true);
+    expect(b.remaining()).toBe(0);
+  });
+
   it("a non-finite cost (bad token count) does not poison spentUsd / disable the cap", () => {
     const b = new CostBudget({ limitUsd: 1 });
     // A buggy provider usage event with a non-numeric token count makes

@@ -616,6 +616,271 @@ describe("WSAgentHandler", () => {
       return store;
     }
 
+    function usageProjection(sessionStartData) {
+      return vi.fn((_sessionId, createProjection) => {
+        const projection = createProjection();
+        projection.accept({
+          type: "session_start",
+          data: sessionStartData,
+        });
+        return projection.finish({ headHash: "head-1", eventCount: 1 });
+      });
+    }
+
+    it("persists strict model, retry, and tool ledgers for a scoped WS turn", async () => {
+      const writes = {
+        events: [],
+        usage: [],
+        retries: [],
+        tools: [],
+      };
+      let loopOptions = null;
+      const store = canonicalStore({
+        store: {
+          readVerifiedProjection: usageProjection({
+            observabilityScope: { workspaceId: "workspace-1" },
+            usageTelemetryProtocol: "call-ledger",
+            usageTelemetryVersion: 1,
+          }),
+          appendEvent: vi.fn((...args) => writes.events.push(args)),
+          appendTokenUsage: vi.fn((...args) => writes.usage.push(args)),
+          appendLlmRetryCompact: vi.fn((...args) => writes.retries.push(args)),
+          appendToolCallCompact: vi.fn((...args) => writes.tools.push(args)),
+        },
+      });
+      const canonicalHandler = new WSAgentHandler({
+        session: createMockSession({ canonicalJsonlSession: true }),
+        interaction: createMockInteraction(),
+        db: null,
+        canonicalSessionStore: store,
+        agentLoop: vi.fn(async function* (_messages, options) {
+          loopOptions = options;
+          options.onUsageBoundary({
+            type: "model-usage-started",
+            callId: "subagent-call-1",
+            provider: "ollama",
+            model: "qwen2.5:7b",
+            source: "subagent",
+          });
+          const childKnown = {
+            type: "token-usage",
+            callId: "subagent-call-1",
+            provider: "ollama",
+            model: "qwen2.5:7b",
+            source: "subagent",
+            usage: { input_tokens: 4, output_tokens: 1 },
+          };
+          options.onUsageSettlement(childKnown);
+          yield { ...childKnown, ledgerPersisted: true };
+          options.onUsageBoundary({
+            type: "model-usage-started",
+            callId: "subagent-call-2",
+            provider: "ollama",
+            model: "qwen2.5:7b",
+            source: "subagent",
+          });
+          const childUnknown = {
+            type: "model-usage-unknown",
+            callId: "subagent-call-2",
+            provider: "ollama",
+            model: "qwen2.5:7b",
+            source: "subagent",
+            code: "provider_usage_missing",
+          };
+          options.onUsageSettlement(childUnknown);
+          yield { ...childUnknown, ledgerPersisted: true };
+          yield {
+            type: "model-usage-started",
+            callId: "model-call-1",
+            provider: "ollama",
+            model: "qwen2.5:7b",
+            source: "model",
+          };
+          options.onStreamRetry(1, { code: "ECONNRESET" }, { durationMs: 7 });
+          yield {
+            type: "token-usage",
+            callId: "model-call-1",
+            provider: "ollama",
+            model: "qwen2.5:7b",
+            usage: { input_tokens: 12, output_tokens: 3 },
+          };
+          yield {
+            type: "tool-executing",
+            tool: "read_file",
+            args: { path: "README.md" },
+            tool_use_id: "tool-call-1",
+          };
+          yield {
+            type: "tool-result",
+            tool: "read_file",
+            result: { content: "ok", toolTelemetryRecord: { durationMs: 9 } },
+            tool_use_id: "tool-call-1",
+          };
+          yield { type: "response-complete", content: "done" };
+        }),
+      });
+
+      await canonicalHandler.handleMessage("inspect", "req-ledger-1");
+
+      expect(loopOptions).toEqual(
+        expect.objectContaining({
+          strictUsageTelemetry: true,
+          onUsageBoundary: expect.any(Function),
+          onUsageSettlement: expect.any(Function),
+          onStreamRetry: expect.any(Function),
+        }),
+      );
+      expect(writes.events).toEqual(
+        expect.arrayContaining([
+          [
+            "test-session-1",
+            "model_usage_started",
+            expect.objectContaining({ callId: "subagent-call-1" }),
+          ],
+          [
+            "test-session-1",
+            "model_usage_started",
+            expect.objectContaining({ callId: "subagent-call-2" }),
+          ],
+          [
+            "test-session-1",
+            "model_usage_unknown",
+            expect.objectContaining({
+              callId: "subagent-call-2",
+              code: "provider_usage_missing",
+            }),
+          ],
+          [
+            "test-session-1",
+            "model_usage_started",
+            expect.objectContaining({ callId: "model-call-1" }),
+          ],
+          [
+            "test-session-1",
+            "tool_call_started",
+            { id: "tool-call-1", tool: "read_file" },
+          ],
+        ]),
+      );
+      expect(writes.usage).toEqual([
+        [
+          "test-session-1",
+          expect.objectContaining({
+            callId: "subagent-call-1",
+            usage: expect.objectContaining({
+              input_tokens: 4,
+              output_tokens: 1,
+            }),
+          }),
+        ],
+        [
+          "test-session-1",
+          expect.objectContaining({
+            callId: "model-call-1",
+            usage: expect.objectContaining({
+              input_tokens: 12,
+              output_tokens: 3,
+            }),
+          }),
+        ],
+      ]);
+      expect(writes.retries[0][1]).toEqual(
+        expect.objectContaining({ attempt: 1, reason: "connection_reset" }),
+      );
+      expect(writes.tools).toEqual([
+        [
+          "test-session-1",
+          expect.objectContaining({
+            id: "tool-call-1",
+            tool: "read_file",
+            isError: false,
+            durationMs: 9,
+          }),
+        ],
+      ]);
+    });
+
+    it("stops before provider execution when the strict start row cannot persist", async () => {
+      let providerEntered = false;
+      const store = canonicalStore({
+        store: {
+          readVerifiedProjection: usageProjection({
+            observabilityScope: { workspaceId: "workspace-1" },
+            usageTelemetryProtocol: "call-ledger",
+            usageTelemetryVersion: 1,
+          }),
+          appendEvent: vi.fn(() => {
+            throw new Error("disk detail must not surface");
+          }),
+          appendTokenUsage: vi.fn(),
+          appendLlmRetryCompact: vi.fn(),
+          appendToolCallCompact: vi.fn(),
+        },
+      });
+      const interaction = createMockInteraction();
+      const canonicalHandler = new WSAgentHandler({
+        session: createMockSession({ canonicalJsonlSession: true }),
+        interaction,
+        db: null,
+        canonicalSessionStore: store,
+        agentLoop: vi.fn(async function* () {
+          yield {
+            type: "model-usage-started",
+            callId: "model-call-fail",
+            provider: "ollama",
+            model: "qwen2.5:7b",
+            source: "model",
+          };
+          providerEntered = true;
+          yield { type: "response-complete", content: "must not happen" };
+        }),
+      });
+
+      await canonicalHandler.handleMessage("inspect", "req-ledger-fail");
+
+      expect(providerEntered).toBe(false);
+      expect(interaction.emit).toHaveBeenCalledWith("error", {
+        requestId: "req-ledger-fail",
+        code: "CC_USAGE_LEDGER_PERSISTENCE_FAILED",
+        message:
+          "Canonical usage ledger persistence failed; model and tool execution is blocked",
+      });
+      expect(JSON.stringify(interaction.emit.mock.calls)).not.toContain(
+        "disk detail",
+      );
+    });
+
+    it("refuses a scoped canonical session with no call-ledger marker", async () => {
+      const loop = vi.fn();
+      const store = canonicalStore({
+        store: {
+          readVerifiedProjection: usageProjection({
+            observabilityScope: { workspaceId: "workspace-1" },
+          }),
+        },
+      });
+      const interaction = createMockInteraction();
+      const canonicalHandler = new WSAgentHandler({
+        session: createMockSession({ canonicalJsonlSession: true }),
+        interaction,
+        db: null,
+        agentLoop: loop,
+        canonicalSessionStore: store,
+      });
+
+      await canonicalHandler.handleMessage("inspect", "req-protocol-fail");
+
+      expect(loop).not.toHaveBeenCalled();
+      expect(store.claimWsTurnIfHead).not.toHaveBeenCalled();
+      expect(interaction.emit).toHaveBeenCalledWith(
+        "error",
+        expect.objectContaining({
+          requestId: "req-protocol-fail",
+          code: "CC_USAGE_LEDGER_PROTOCOL_REQUIRED",
+        }),
+      );
+    });
+
     it.each([
       [
         "model throw",

@@ -186,6 +186,250 @@ describe("run_skill controlled execution boundary", () => {
     expect(mocks.childConfigs[0]).not.toHaveProperty("processBroker");
   });
 
+  it("forwards the isolated skill child's real call boundary and settlement without an aggregate sentinel", async () => {
+    registerSkill({ id: "metered-reviewer", isolation: true });
+    const usageSink = [];
+    const boundaries = [];
+    const settlements = [];
+    const providerCall = vi.fn();
+    const boundaryWriter = vi.fn((event) => boundaries.push(event));
+    const settlementWriter = vi.fn((event) => settlements.push(event));
+    const realCallId = "mdl-real-skill-call";
+    mocks.createSubAgent.mockImplementationOnce((opts) => {
+      mocks.childConfigs.push(opts);
+      return {
+        id: "skill-child-real",
+        run: vi.fn(async (input) => {
+          mocks.childRuns.push(input);
+          opts.onUsageBoundary({
+            type: "model-usage-started",
+            callId: realCallId,
+            provider: "openai",
+            model: "gpt-test",
+            source: "model",
+          });
+          providerCall();
+          const settlement = {
+            type: "token-usage",
+            callId: realCallId,
+            provider: "openai",
+            model: "gpt-test",
+            source: "model",
+            usage: {
+              input_tokens: 7,
+              output_tokens: 3,
+              cache_read_input_tokens: 0,
+              cache_creation_input_tokens: 0,
+            },
+            boundaryNotified: true,
+          };
+          opts.onUsageSettlement(settlement);
+          settlement.ledgerPersisted = true;
+          opts.onUsage(settlement);
+          return { summary: `isolated:${input}`, toolsUsed: [] };
+        }),
+      };
+    });
+
+    const result = await executeTool(
+      "run_skill",
+      { skill_name: "metered-reviewer", input: "inspect" },
+      {
+        cwd: tempDir,
+        sessionId: "parent-session",
+        llmOptions: { provider: "openai", model: "gpt-test" },
+        strictUsageTelemetry: true,
+        subAgentUsageSink: usageSink,
+        onUsageBoundary: boundaryWriter,
+        onUsageSettlement: settlementWriter,
+      },
+    );
+
+    expect(result).toMatchObject({ success: true, isolated: true });
+    expect(providerCall).toHaveBeenCalledOnce();
+    expect(boundaries).toHaveLength(1);
+    expect(boundaries[0]).toMatchObject({
+      type: "model-usage-started",
+      callId: realCallId,
+      provider: "openai",
+      model: "gpt-test",
+      source: "subagent",
+      attribution: {
+        origin: "skill",
+        skill: "metered-reviewer",
+        subagentId: "skill-child-real",
+        parentSessionId: "parent-session",
+      },
+    });
+    expect(settlements).toEqual([
+      expect.objectContaining({
+        type: "token-usage",
+        callId: realCallId,
+        source: "subagent",
+        boundaryNotified: true,
+        attribution: expect.objectContaining({
+          origin: "skill",
+          skill: "metered-reviewer",
+          subagentId: "skill-child-real",
+        }),
+      }),
+    ]);
+    expect(usageSink).toEqual([
+      expect.objectContaining({
+        type: "token-usage",
+        callId: realCallId,
+        source: "subagent",
+        boundaryNotified: true,
+        ledgerPersisted: true,
+        attribution: expect.objectContaining({
+          origin: "skill",
+          skill: "metered-reviewer",
+          subagentId: "skill-child-real",
+        }),
+      }),
+    ]);
+    expect(
+      [...boundaries, ...settlements, ...usageSink].some(
+        (event) =>
+          event.callId !== realCallId || event.type === "model-usage-unknown",
+      ),
+    ).toBe(false);
+    expect(boundaryWriter.mock.invocationCallOrder[0]).toBeLessThan(
+      providerCall.mock.invocationCallOrder[0],
+    );
+    expect(providerCall.mock.invocationCallOrder[0]).toBeLessThan(
+      settlementWriter.mock.invocationCallOrder[0],
+    );
+  });
+
+  it("blocks an isolated skill child when strict boundary persistence fails", async () => {
+    registerSkill({ id: "metered-failure", isolation: true });
+    const persistenceError = new Error("ledger unavailable");
+    const providerCall = vi.fn();
+    mocks.createSubAgent.mockImplementationOnce((opts) => {
+      mocks.childConfigs.push(opts);
+      return {
+        id: "skill-child-boundary-failure",
+        run: vi.fn(async () => {
+          opts.onUsageBoundary({
+            type: "model-usage-started",
+            callId: "mdl-boundary-failure",
+            provider: "openai",
+            model: "gpt-test",
+            source: "model",
+          });
+          providerCall();
+          return { summary: "must not complete", toolsUsed: [] };
+        }),
+      };
+    });
+
+    await expect(
+      executeTool(
+        "run_skill",
+        { skill_name: "metered-failure", input: "inspect" },
+        {
+          cwd: tempDir,
+          strictUsageTelemetry: true,
+          subAgentUsageSink: [],
+          onUsageSettlement: vi.fn(),
+          onUsageBoundary: () => {
+            throw persistenceError;
+          },
+        },
+      ),
+    ).rejects.toBe(persistenceError);
+    expect(providerCall).not.toHaveBeenCalled();
+    expect(persistenceError).toMatchObject({
+      runtimeLedgerPersistence: true,
+      code: "CC_USAGE_BOUNDARY_PERSISTENCE_FAILED",
+    });
+  });
+
+  it("fails closed after provider work when strict skill settlement persistence fails", async () => {
+    registerSkill({ id: "metered-settlement-failure", isolation: true });
+    const persistenceError = new Error("ledger settlement unavailable");
+    const providerCall = vi.fn();
+    const usageSink = [];
+    const boundaryWriter = vi.fn();
+    mocks.createSubAgent.mockImplementationOnce((opts) => {
+      mocks.childConfigs.push(opts);
+      return {
+        id: "skill-child-settlement-failure",
+        run: vi.fn(async () => {
+          const callId = "mdl-settlement-failure";
+          opts.onUsageBoundary({
+            type: "model-usage-started",
+            callId,
+            provider: "openai",
+            model: "gpt-test",
+            source: "model",
+          });
+          providerCall();
+          const settlement = {
+            type: "token-usage",
+            callId,
+            provider: "openai",
+            model: "gpt-test",
+            source: "model",
+            usage: { input_tokens: 4, output_tokens: 2 },
+            boundaryNotified: true,
+          };
+          opts.onUsageSettlement(settlement);
+          settlement.ledgerPersisted = true;
+          opts.onUsage(settlement);
+          return { summary: "must not complete", toolsUsed: [] };
+        }),
+      };
+    });
+
+    await expect(
+      executeTool(
+        "run_skill",
+        { skill_name: "metered-settlement-failure", input: "inspect" },
+        {
+          cwd: tempDir,
+          sessionId: "parent-session",
+          strictUsageTelemetry: true,
+          subAgentUsageSink: usageSink,
+          onUsageBoundary: boundaryWriter,
+          onUsageSettlement: () => {
+            throw persistenceError;
+          },
+        },
+      ),
+    ).rejects.toBe(persistenceError);
+
+    expect(boundaryWriter).toHaveBeenCalledOnce();
+    expect(providerCall).toHaveBeenCalledOnce();
+    expect(usageSink).toEqual([]);
+    expect(persistenceError).toMatchObject({
+      runtimeLedgerPersistence: true,
+      code: "CC_USAGE_SETTLEMENT_PERSISTENCE_FAILED",
+    });
+  });
+
+  it("does not manufacture a paid boundary for a non-isolated skill", async () => {
+    registerSkill({ id: "local-only", isolation: false });
+    const onUsageBoundary = vi.fn(() => {
+      throw new Error("must not be called");
+    });
+
+    const result = await executeTool(
+      "run_skill",
+      { skill_name: "local-only", input: "inspect" },
+      {
+        cwd: tempDir,
+        strictUsageTelemetry: true,
+        onUsageBoundary,
+      },
+    );
+
+    expect(result).toMatchObject({ code: "CC_SKILL_DIRECT_HANDLER_BLOCKED" });
+    expect(onUsageBoundary).not.toHaveBeenCalled();
+    expect(mocks.childRuns).toEqual([]);
+  });
+
   it("links the parent AbortSignal into the isolated Skill context", async () => {
     registerSkill({ id: "linked-cancel", isolation: true });
     const controller = new AbortController();

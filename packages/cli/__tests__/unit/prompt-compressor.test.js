@@ -274,6 +274,18 @@ describe("PromptCompressor", () => {
       expect(messages.length).toBeGreaterThan(0);
     });
 
+    it("rethrows usage-ledger persistence failures instead of degrading", async () => {
+      const persistenceError = Object.assign(new Error("ledger unavailable"), {
+        runtimeLedgerPersistence: true,
+      });
+      compressor.llmQuery = vi.fn().mockRejectedValue(persistenceError);
+      compressor.maxTokens = 10;
+
+      await expect(compressor.compress(makeMessages(3))).rejects.toBe(
+        persistenceError,
+      );
+    });
+
     it("keeps repeated compaction bounded while preserving durable host context", async () => {
       const mockLlm = vi.fn().mockRejectedValue(new Error("offline"));
       const bounded = new PromptCompressor({

@@ -10,6 +10,10 @@ import { runPeerGroup } from "./agent-group-runner.js";
 
 const DEFAULT_CRITERIA = ["quality", "performance", "readability"];
 
+function throwRuntimeLedgerFailure(error) {
+  if (error?.runtimeLedgerPersistence === true) throw error;
+}
+
 const VARIANT_PROFILES = [
   {
     name: "conservative",
@@ -84,6 +88,12 @@ export async function compare({
     },
   });
 
+  // Ordinary variant failures remain comparable, but a host ledger failure
+  // must escape before judging can spend again or a partial result is emitted.
+  for (const outcome of runResult.results) {
+    throwRuntimeLedgerFailure(outcome.error);
+  }
+
   const generatedVariants = runResult.results.map((r) => {
     if (r.ok) return r.value;
     const profile = r.peer.payload.profile;
@@ -135,6 +145,7 @@ REASON: (1-2 sentence justification)`;
     winner = parseWinner(judgement) || generatedVariants[0]?.name || "unknown";
     reason = parseReason(judgement) || "See detailed scores above.";
   } catch (err) {
+    throwRuntimeLedgerFailure(err);
     reason = `Scoring error: ${err.message}`;
   }
 

@@ -50,6 +50,27 @@ function outputSink() {
 }
 
 describe("chat-repl — session autorecord", () => {
+  it("refuses a scoped session before readline or provider startup", async () => {
+    const { startSession } =
+      await import("../../src/harness/jsonl-session-store.js");
+    const { startChatRepl } = await import("../../src/repl/chat-repl.js");
+    const sessionId = startSession("chat-scoped-resume", {
+      title: "scoped",
+      provider: "ollama",
+      model: "qwen2:7b",
+      observabilityScope: { workspaceId: "workspace-1" },
+    });
+
+    await expect(
+      startChatRepl({
+        sessionId,
+        stdout: outputSink(),
+        stderr: outputSink(),
+      }),
+    ).rejects.toMatchObject({ code: "CC_CHAT_CALL_LEDGER_UNSUPPORTED" });
+    expect(globalThis.fetch).toBe(originalFetch);
+  });
+
   it("startChatRepl creates a JSONL session and records user + assistant + token_usage", async () => {
     // Mock readline to drive one prompt then close.
     vi.doMock("readline", () => ({

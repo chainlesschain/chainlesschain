@@ -10,6 +10,10 @@ import { runPeerGroup } from "./agent-group-runner.js";
 
 const DEFAULT_PERSPECTIVES = ["performance", "security", "maintainability"];
 
+function throwRuntimeLedgerFailure(error) {
+  if (error?.runtimeLedgerPersistence === true) throw error;
+}
+
 const PERSPECTIVE_PROMPTS = {
   performance: {
     role: "Performance Reviewer",
@@ -96,6 +100,13 @@ export async function startDebate({
     },
   });
 
+  // Peer groups intentionally turn ordinary reviewer failures into result
+  // rows. A durable usage-ledger failure is host-terminal, not review content:
+  // let the REPL latch stop this and every later paid call.
+  for (const outcome of runResult.results) {
+    throwRuntimeLedgerFailure(outcome.error);
+  }
+
   const reviews = runResult.results.map((r) => {
     if (r.ok) return r.value;
     return {
@@ -142,6 +153,7 @@ export async function startDebate({
     finalVerdict = extractVerdict(summary);
     consensusScore = extractConsensusScore(summary);
   } catch (err) {
+    throwRuntimeLedgerFailure(err);
     summary = `Moderator error: ${err.message}`;
   }
 

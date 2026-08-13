@@ -11,6 +11,7 @@
  * adapter.
  */
 
+import { randomUUID } from "node:crypto";
 import { agentLoop, formatToolArgs } from "../../runtime/agent-core.js";
 import { classifyToolSideEffect } from "../../lib/side-effect-ledger.js";
 import { DiffReviewFollowUpTracker } from "../../lib/diff-review-follow-up.js";
@@ -37,12 +38,25 @@ import { createMcpHostRecoveryRuntime } from "../../lib/mcp-host-recovery-runtim
 import { compactConversationWithProvider } from "../../harness/provider-backed-compaction.js";
 import { projectCanonicalResumeMessages } from "../../lib/session-message-provenance.js";
 import { feature } from "../../lib/feature-flags.js";
+import { classifyStreamRetryReason } from "../../lib/stream-retry.js";
+import {
+  markRuntimeLedgerPersistenceError,
+  projectRuntimeTokenUsage,
+  projectRuntimeUsageBoundary,
+  runtimeToolCallId,
+  runtimeUsageEventType,
+} from "../../lib/runtime-usage-ledger.js";
 import {
   appendCompactEventIfMessagesMatch,
+  appendEvent,
+  appendLlmRetryCompact,
+  appendTokenUsage,
+  appendToolCallCompact,
   claimWsTurnIfHead,
   computeWsTurnInputDigest,
   createWsTurnClaimId,
   normalizeWsTurnRequestId,
+  readVerifiedProjection,
   readVerifiedWsTurnState,
   readVerifiedMessages,
   settleWsTurnClaim,
@@ -50,6 +64,59 @@ import {
 
 const CANONICAL_WS_TURN_QUEUES = new Map();
 const CANONICAL_WS_CLAIM_CAS_ATTEMPTS = 4;
+const CALL_LEDGER_PROTOCOL = "call-ledger";
+const CALL_LEDGER_VERSION = 1;
+const USAGE_LEDGER_PERSISTENCE_CODE = "CC_USAGE_LEDGER_PERSISTENCE_FAILED";
+const USAGE_LEDGER_PERSISTENCE_MESSAGE =
+  "Canonical usage ledger persistence failed; model and tool execution is blocked";
+
+function usageProtocolError(code, message) {
+  const error = new Error(message);
+  error.code = code;
+  return error;
+}
+
+function classifyCanonicalUsageProtocol(data = {}) {
+  const record =
+    data && typeof data === "object" && !Array.isArray(data) ? data : {};
+  const hasScope = Object.hasOwn(record, "observabilityScope");
+  const hasProtocol = Object.hasOwn(record, "usageTelemetryProtocol");
+  const hasVersion = Object.hasOwn(record, "usageTelemetryVersion");
+  if (!hasScope && !hasProtocol && !hasVersion) return "legacy";
+  if (!hasProtocol || !hasVersion) {
+    throw usageProtocolError(
+      "CC_USAGE_LEDGER_PROTOCOL_REQUIRED",
+      "Canonical scoped sessions require call-ledger usage telemetry before model or tool execution",
+    );
+  }
+  if (
+    record.usageTelemetryProtocol !== CALL_LEDGER_PROTOCOL ||
+    record.usageTelemetryVersion !== CALL_LEDGER_VERSION
+  ) {
+    throw usageProtocolError(
+      "CC_USAGE_LEDGER_PROTOCOL_UNSUPPORTED",
+      "Canonical session usage telemetry protocol is unsupported",
+    );
+  }
+  return "call-ledger";
+}
+
+export function readCanonicalUsageProtocol(sessionId, projectionReader) {
+  if (typeof projectionReader !== "function") return "legacy";
+  return projectionReader(sessionId, () => {
+    let sessionStart = null;
+    return {
+      accept(event) {
+        if (event?.type === "session_start" && sessionStart === null) {
+          sessionStart = event.data || {};
+        }
+      },
+      finish() {
+        return classifyCanonicalUsageProtocol(sessionStart || {});
+      },
+    };
+  });
+}
 
 function runCanonicalWsTurnExclusive(sessionId, task) {
   const previous = CANONICAL_WS_TURN_QUEUES.get(sessionId) || Promise.resolve();
@@ -137,17 +204,33 @@ export class WSAgentHandler {
         const { chatWithTools } = await import("../../runtime/agent-core.js");
         return chatWithTools(...args);
       });
+    const injectedCanonicalStore = canonicalSessionStore || null;
     this._canonicalSessionStore = {
       appendCompactEventIfMessagesMatch,
+      appendEvent,
+      appendLlmRetryCompact,
+      appendTokenUsage,
+      appendToolCallCompact,
       claimWsTurnIfHead,
       computeWsTurnInputDigest,
       createWsTurnClaimId,
       normalizeWsTurnRequestId,
+      readVerifiedProjection,
       readVerifiedWsTurnState,
       readVerifiedMessages,
       settleWsTurnClaim,
       ...(canonicalSessionStore || {}),
     };
+    // Test/embedding stores historically injected only WS-turn CAS methods.
+    // Preserve that compatibility as legacy unless they explicitly provide a
+    // verified projection reader. The production store always supplies one.
+    this._canonicalUsageProjectionReader =
+      injectedCanonicalStore &&
+      typeof injectedCanonicalStore.readVerifiedProjection !== "function"
+        ? null
+        : this._canonicalSessionStore.readVerifiedProjection;
+    this._canonicalUsageProtocol = null;
+    this._usageLedgerFailure = null;
     const explicitHostPrefix = Array.isArray(
       session?._canonicalHostSystemPrefix,
     )
@@ -186,6 +269,159 @@ export class WSAgentHandler {
       this.session.messages.splice(insertionIndex, 0, recoveryNotice);
     }
     return this.session.messages;
+  }
+
+  _resolveCanonicalUsageProtocol() {
+    if (this.session.canonicalJsonlSession !== true) return "legacy";
+    if (this._canonicalUsageProtocol) return this._canonicalUsageProtocol;
+
+    // An embedding may attach the immutable session-start declaration directly
+    // while supplying a partial canonical store. Never ignore such a marker.
+    const attachedDeclaration = {};
+    for (const field of [
+      "observabilityScope",
+      "usageTelemetryProtocol",
+      "usageTelemetryVersion",
+    ]) {
+      if (Object.hasOwn(this.session, field)) {
+        attachedDeclaration[field] = this.session[field];
+      }
+    }
+    const attachedMode = classifyCanonicalUsageProtocol(attachedDeclaration);
+    if (attachedMode !== "legacy") {
+      this._canonicalUsageProtocol = attachedMode;
+      return attachedMode;
+    }
+
+    this._canonicalUsageProtocol = readCanonicalUsageProtocol(
+      this.session.id,
+      this._canonicalUsageProjectionReader,
+    );
+    return this._canonicalUsageProtocol;
+  }
+
+  _usageLedgerTerminalError(cause = null) {
+    const error = new Error(USAGE_LEDGER_PERSISTENCE_MESSAGE, {
+      ...(cause ? { cause } : {}),
+    });
+    error.code = USAGE_LEDGER_PERSISTENCE_CODE;
+    error.runtimeLedgerPersistence = true;
+    return error;
+  }
+
+  _latchUsageLedgerFailure(error) {
+    const marked = markRuntimeLedgerPersistenceError(error);
+    this._usageLedgerFailure ||= Object.freeze({
+      code: USAGE_LEDGER_PERSISTENCE_CODE,
+      reason: "canonical_usage_ledger_persistence_failed",
+    });
+    return this._usageLedgerTerminalError(marked);
+  }
+
+  _assertUsageLedgerWritable() {
+    if (this._usageLedgerFailure) throw this._usageLedgerTerminalError();
+  }
+
+  _callCanonicalLedgerStore(method, ...args) {
+    this._assertUsageLedgerWritable();
+    try {
+      const result = this._canonicalSessionStore[method](...args);
+      if (result && typeof result.then === "function") {
+        void Promise.resolve(result).catch(() => {});
+        throw new TypeError(
+          `Canonical usage ledger ${method} must be synchronous`,
+        );
+      }
+      return result;
+    } catch (error) {
+      throw this._latchUsageLedgerFailure(error);
+    }
+  }
+
+  _persistCanonicalUsageBoundary(event, outcome) {
+    let projected;
+    try {
+      projected = projectRuntimeUsageBoundary(event, outcome);
+    } catch (error) {
+      throw this._latchUsageLedgerFailure(error);
+    }
+    this._callCanonicalLedgerStore(
+      "appendEvent",
+      this.session.id,
+      runtimeUsageEventType(outcome),
+      projected,
+    );
+  }
+
+  _persistCanonicalTokenUsage(event) {
+    let projected;
+    try {
+      projected = projectRuntimeTokenUsage(event);
+    } catch (error) {
+      throw this._latchUsageLedgerFailure(error);
+    }
+    this._callCanonicalLedgerStore(
+      "appendTokenUsage",
+      this.session.id,
+      projected,
+    );
+  }
+
+  _persistCanonicalUsageSettlement(event) {
+    if (event?.type === "token-usage") {
+      this._persistCanonicalTokenUsage(event);
+      return;
+    }
+    this._persistCanonicalUsageBoundary(event, "unknown");
+  }
+
+  _beginCanonicalCompactionUsage() {
+    const call = Object.freeze({
+      callId: `ws-cmp-${randomUUID()}`,
+      provider: this.session.provider || null,
+      model: this.session.model || null,
+      source: "semantic-compaction",
+    });
+    this._persistCanonicalUsageBoundary(call, "started");
+    return call;
+  }
+
+  _settleCanonicalCompactionUsage(call, result) {
+    if (!call) return;
+    const unknown = result?.usageUnknownEvent || null;
+    if (unknown) {
+      const reason = unknown.reason || "provider_transport_outcome_unknown";
+      this._persistCanonicalUsageBoundary(
+        {
+          ...call,
+          code:
+            reason === "provider_usage_not_reported"
+              ? "provider_usage_missing"
+              : unknown.code || "provider_call_failed",
+        },
+        "unknown",
+      );
+      return;
+    }
+    if (result?.usageEvent?.usage) {
+      this._persistCanonicalTokenUsage({
+        ...call,
+        usage: result.usageEvent.usage,
+      });
+      return;
+    }
+    this._persistCanonicalUsageBoundary(
+      { ...call, code: "provider_usage_missing" },
+      "unknown",
+    );
+  }
+
+  _settleCanonicalCompactionFailure(call) {
+    if (!call) return;
+    this._persistCanonicalUsageBoundary(
+      { ...call, code: "provider_call_failed" },
+      "unknown",
+    );
   }
 
   _latchCompactionSettlement({
@@ -286,6 +522,10 @@ export class WSAgentHandler {
 
     const before = session.messages.length;
     const expectedMessages = [...session.messages];
+    const strictUsageTelemetry =
+      this._resolveCanonicalUsageProtocol() === "call-ledger";
+    let compactionUsageCall = null;
+    let compactionUsageSettled = false;
     let result;
     try {
       this._sessionHostLease?.assert?.();
@@ -303,13 +543,35 @@ export class WSAgentHandler {
           cwd: session.projectRoot,
           sessionId: session.id,
         },
+        ...(strictUsageTelemetry
+          ? {
+              onProviderCallStart: () => {
+                const call = this._beginCanonicalCompactionUsage();
+                compactionUsageCall = call;
+                return call.callId;
+              },
+            }
+          : {}),
         maxMessages: session.compactionMaxMessages,
         maxTokens: session.compactionMaxTokens,
         maxOutputTokens: session.compactionMaxOutputTokens,
         summaryInputMaxChars: session.compactionInputMaxChars,
       });
+      if (compactionUsageCall) {
+        this._settleCanonicalCompactionUsage(compactionUsageCall, result);
+        compactionUsageSettled = true;
+      }
       this._sessionHostLease?.assert?.();
     } catch (error) {
+      if (
+        compactionUsageCall &&
+        !compactionUsageSettled &&
+        error?.runtimeLedgerPersistence !== true
+      ) {
+        this._settleCanonicalCompactionFailure(compactionUsageCall);
+        compactionUsageSettled = true;
+      }
+      if (error?.runtimeLedgerPersistence === true) throw error;
       if (isAbortError(error) || this._sessionHostLease?.signal?.aborted) {
         throw error;
       }
@@ -755,6 +1017,7 @@ export class WSAgentHandler {
     let diffReviewFollowUps = null;
     let runRecorded = false;
     let canonicalTurn = null;
+    let strictUsageTelemetry = false;
 
     try {
       const { session } = this;
@@ -776,6 +1039,9 @@ export class WSAgentHandler {
           inputDigest,
         );
         if (!canonicalTurn) {
+          strictUsageTelemetry =
+            this._resolveCanonicalUsageProtocol() === "call-ledger";
+          if (strictUsageTelemetry) this._assertUsageLedgerWritable();
           const compacted =
             await this._compactCanonicalHistoryBeforeClaim(requestId);
           if (!compacted) return;
@@ -886,6 +1152,27 @@ export class WSAgentHandler {
         ...(session.canonicalJsonlSession === true
           ? { autoCompact: false }
           : {}),
+        ...(strictUsageTelemetry
+          ? {
+              strictUsageTelemetry: true,
+              onUsageBoundary: (event) =>
+                this._persistCanonicalUsageBoundary(event, "started"),
+              onUsageSettlement: (event) =>
+                this._persistCanonicalUsageSettlement(event),
+              onStreamRetry: (attempt, error, telemetry = {}) =>
+                this._callCanonicalLedgerStore(
+                  "appendLlmRetryCompact",
+                  session.id,
+                  {
+                    attempt,
+                    durationMs: telemetry.durationMs,
+                    provider: telemetry.provider || session.provider,
+                    model: telemetry.model || activeModel,
+                    reason: classifyStreamRetryReason(error),
+                  },
+                ),
+            }
+          : {}),
       };
 
       // P0-2: crash-safe side-effect ledger for the IDE/bridge path — mirrors
@@ -897,6 +1184,68 @@ export class WSAgentHandler {
       diffReviewFollowUps = new DiffReviewFollowUpTracker(sideEffectLedger);
       let currentSideEffectOpId = null;
       let currentTodoWrite = null;
+      const activeToolCalls = new Map();
+      const activeToolCallOrder = [];
+      const boundedToolUseId = (value) =>
+        typeof value === "string" &&
+        value.trim() &&
+        value.length <= 128 &&
+        !/\p{Cc}/u.test(value)
+          ? value.trim()
+          : null;
+      const boundedToolName = (value) => {
+        if (typeof value !== "string") return "?";
+        const clean = value.replace(/\p{Cc}/gu, "").trim();
+        return clean ? clean.slice(0, 160) : "?";
+      };
+      const beginToolUsage = (event) => {
+        const providerId = boundedToolUseId(event.tool_use_id);
+        const record = {
+          id: runtimeToolCallId(providerId || undefined),
+          providerId,
+          tool: boundedToolName(event.tool),
+          startedAt: Date.now(),
+        };
+        this._callCanonicalLedgerStore(
+          "appendEvent",
+          session.id,
+          "tool_call_started",
+          { id: record.id, tool: record.tool },
+        );
+        activeToolCallOrder.push(record);
+        if (providerId) activeToolCalls.set(providerId, record);
+      };
+      const settleToolUsage = (event) => {
+        const providerId = boundedToolUseId(event.tool_use_id);
+        const record =
+          (providerId ? activeToolCalls.get(providerId) : null) ||
+          activeToolCallOrder.find(
+            (entry) => entry.tool === boundedToolName(event.tool),
+          ) ||
+          null;
+        if (!record) return;
+        const durationMs =
+          event.result?.toolTelemetryRecord?.durationMs ??
+          Math.max(0, Date.now() - record.startedAt);
+        this._callCanonicalLedgerStore("appendToolCallCompact", session.id, {
+          id: record.id,
+          tool: record.tool,
+          isError: Boolean(event.error || event.result?.error),
+          skill:
+            event?.attribution?.skill ||
+            (record.tool === "run_skill"
+              ? event.result?.skill || event.result?.skill_name || undefined
+              : undefined),
+          durationMs,
+        });
+        if (record.providerId) activeToolCalls.delete(record.providerId);
+        const index = activeToolCallOrder.indexOf(record);
+        if (index >= 0) activeToolCallOrder.splice(index, 1);
+      };
+      if (strictUsageTelemetry) {
+        loopOptions.onToolCallBoundary = beginToolUsage;
+        loopOptions.onToolCallSettlement = settleToolUsage;
+      }
 
       const executeAgentTurn = async () => {
         for await (const event of this._agentLoop(
@@ -913,6 +1262,7 @@ export class WSAgentHandler {
               break;
 
             case "tool-executing":
+              if (strictUsageTelemetry) beginToolUsage(event);
               this.interaction.emit("tool-executing", {
                 requestId,
                 tool: event.tool,
@@ -953,6 +1303,7 @@ export class WSAgentHandler {
               break;
 
             case "tool-result":
+              if (strictUsageTelemetry) settleToolUsage(event);
               this.interaction.emit("tool-result", {
                 requestId,
                 tool: event.tool,
@@ -1007,7 +1358,22 @@ export class WSAgentHandler {
               break;
 
             case "compaction-usage-unknown":
+              if (strictUsageTelemetry && event.ledgerPersisted !== true) {
+                this._persistCanonicalUsageBoundary(event, "unknown");
+              }
               this._emitCompactionUsageUnknown(requestId, event);
+              break;
+
+            case "model-usage-started":
+              if (strictUsageTelemetry && event.ledgerPersisted !== true) {
+                this._persistCanonicalUsageBoundary(event, "started");
+              }
+              break;
+
+            case "model-usage-unknown":
+              if (strictUsageTelemetry && event.ledgerPersisted !== true) {
+                this._persistCanonicalUsageBoundary(event, "unknown");
+              }
               break;
 
             case "compaction":
@@ -1018,6 +1384,9 @@ export class WSAgentHandler {
               break;
 
             case "token-usage":
+              if (strictUsageTelemetry && event.ledgerPersisted !== true) {
+                this._persistCanonicalTokenUsage(event);
+              }
               this.interaction.emit("token-usage", {
                 requestId,
                 provider: event.provider,
@@ -1121,6 +1490,12 @@ export class WSAgentHandler {
           { cause: err },
         );
         surfacedError.code = "CC_WS_TURN_SETTLEMENT_UNKNOWN";
+      }
+      if (
+        surfacedError?.runtimeLedgerPersistence === true &&
+        surfacedError?.code !== "CC_WS_TURN_SETTLEMENT_UNKNOWN"
+      ) {
+        surfacedError = this._usageLedgerTerminalError(surfacedError);
       }
       if (canonicalTurn?.baseMessages && canonicalTurn.status !== "completed") {
         this.session.messages = [...canonicalTurn.baseMessages];
@@ -1312,10 +1687,41 @@ export class WSAgentHandler {
           break;
         }
 
+        let strictUsageTelemetry = false;
+        if (session.canonicalJsonlSession === true) {
+          try {
+            strictUsageTelemetry =
+              this._resolveCanonicalUsageProtocol() === "call-ledger";
+            if (strictUsageTelemetry) this._assertUsageLedgerWritable();
+          } catch (error) {
+            const admission = {
+              code: error?.code || "CC_USAGE_LEDGER_ADMISSION_FAILED",
+              reason: "canonical_usage_telemetry_admission_failed",
+            };
+            this.interaction.emit("compaction-degraded", {
+              requestId,
+              reason: admission.reason,
+              summaryMode: "none",
+              code: admission.code,
+            });
+            this.interaction.emit("command-response", {
+              requestId,
+              command: cmd,
+              result: {
+                messageCount: session.messages.length,
+                error: admission,
+              },
+            });
+            break;
+          }
+        }
+
         const before = session.messages.length;
         const expectedMessages = [...session.messages];
         let result = null;
         let commandError = null;
+        let compactionUsageCall = null;
+        let compactionUsageSettled = false;
         try {
           this._sessionHostLease?.assert?.();
           result = await compactConversationWithProvider(session.messages, {
@@ -1332,19 +1738,47 @@ export class WSAgentHandler {
               cwd: session.projectRoot,
               sessionId: session.id,
             },
+            ...(strictUsageTelemetry
+              ? {
+                  onProviderCallStart: () => {
+                    const call = this._beginCanonicalCompactionUsage();
+                    compactionUsageCall = call;
+                    return call.callId;
+                  },
+                }
+              : {}),
             maxOutputTokens: session.compactionMaxOutputTokens,
             summaryInputMaxChars: session.compactionInputMaxChars,
           });
+          if (compactionUsageCall) {
+            this._settleCanonicalCompactionUsage(compactionUsageCall, result);
+            compactionUsageSettled = true;
+          }
           this._sessionHostLease?.assert?.();
         } catch (error) {
+          if (
+            compactionUsageCall &&
+            !compactionUsageSettled &&
+            error?.runtimeLedgerPersistence !== true
+          ) {
+            this._settleCanonicalCompactionFailure(compactionUsageCall);
+            compactionUsageSettled = true;
+          }
           if (isAbortError(error) || this._sessionHostLease?.signal?.aborted) {
             throw error;
           }
-          commandError = this._latchCompactionSettlement({
-            code: error?.code || "CC_COMPACTION_FAILED",
-            reason: `compaction_failed:${String(error?.message || error).slice(0, 240)}`,
-            commitState: "provider-outcome-unknown",
-          });
+          commandError =
+            error?.runtimeLedgerPersistence === true
+              ? {
+                  code: USAGE_LEDGER_PERSISTENCE_CODE,
+                  reason: "canonical_usage_ledger_persistence_failed",
+                  commitState: "usage-ledger-failed",
+                }
+              : this._latchCompactionSettlement({
+                  code: error?.code || "CC_COMPACTION_FAILED",
+                  reason: `compaction_failed:${String(error?.message || error).slice(0, 240)}`,
+                  commitState: "provider-outcome-unknown",
+                });
           this.interaction.emit("compaction-degraded", {
             requestId,
             reason: commandError.reason,

@@ -32,6 +32,7 @@ export * from "./structured-handoff.js";
 // a long, tool-heavy history stays sub-second instead of O(n²·content).
 const DEDUP_JACCARD_MAX_CHARS = 4000;
 const DEDUP_FUZZY_WINDOW = 100;
+const SUMMARY_CALL_ID_MAX_CHARS = 128;
 export const SUMMARY_INPUT_DEFAULT_MAX_CHARS = 24000;
 export const SUMMARY_INPUT_HARD_MAX_CHARS = 32000;
 const SUMMARY_INPUT_MIN_CHARS = 1024;
@@ -121,6 +122,31 @@ function boundedFailureMessage(error) {
     .replace(/[\r\n]+/g, " ")
     .trim()
     .slice(0, 240);
+}
+
+function safeSummaryCallId(value) {
+  if (
+    typeof value !== "string" ||
+    !value.trim() ||
+    value.length > SUMMARY_CALL_ID_MAX_CHARS ||
+    /\p{Cc}/u.test(value)
+  ) {
+    return null;
+  }
+  return value.trim();
+}
+
+function summaryUsageCount(usage, canonical, alias, { required = false } = {}) {
+  const hasCanonical = Object.hasOwn(usage, canonical);
+  const hasAlias = Object.hasOwn(usage, alias);
+  if (!hasCanonical && !hasAlias) return required ? null : 0;
+  if (hasCanonical && hasAlias && usage[canonical] !== usage[alias]) {
+    return null;
+  }
+  const value = hasCanonical ? usage[canonical] : usage[alias];
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0
+    ? value
+    : null;
 }
 
 export function estimateTokens(text) {
@@ -571,8 +597,18 @@ export class PromptCompressor {
     let summaryUsageUnknownReason = null;
     let summaryProvider = null;
     let summaryModel = null;
+    let summaryCallId = null;
+    let summaryUsageLedgerSettled = false;
     try {
       const queryResult = await this.llmQuery(prompt);
+      if (
+        queryResult &&
+        typeof queryResult === "object" &&
+        !Array.isArray(queryResult)
+      ) {
+        summaryCallId = safeSummaryCallId(queryResult.callId);
+        summaryUsageLedgerSettled = queryResult.usageLedgerSettled === true;
+      }
       if (
         queryResult &&
         typeof queryResult === "object" &&
@@ -580,20 +616,46 @@ export class PromptCompressor {
       ) {
         rawSummary = queryResult.summary;
         const usage = queryResult.usage;
-        if (usage && typeof usage === "object") {
+        const inputTokens = usage
+          ? summaryUsageCount(usage, "input_tokens", "prompt_tokens", {
+              required: true,
+            })
+          : null;
+        const outputTokens = usage
+          ? summaryUsageCount(usage, "output_tokens", "completion_tokens", {
+              required: true,
+            })
+          : null;
+        const cacheReadTokens = usage
+          ? summaryUsageCount(
+              usage,
+              "cache_read_input_tokens",
+              "cache_read_tokens",
+            )
+          : null;
+        const cacheCreationTokens = usage
+          ? summaryUsageCount(
+              usage,
+              "cache_creation_input_tokens",
+              "cache_creation_tokens",
+            )
+          : null;
+        if (
+          usage &&
+          typeof usage === "object" &&
+          !Array.isArray(usage) &&
+          Number.isSafeInteger(inputTokens) &&
+          inputTokens >= 0 &&
+          Number.isSafeInteger(outputTokens) &&
+          outputTokens >= 0 &&
+          cacheReadTokens != null &&
+          cacheCreationTokens != null
+        ) {
           summaryUsage = {
-            inputTokens: Number(usage.input_tokens ?? usage.prompt_tokens) || 0,
-            outputTokens:
-              Number(usage.output_tokens ?? usage.completion_tokens) || 0,
-            cacheReadTokens:
-              Number(
-                usage.cache_read_input_tokens ?? usage.cache_read_tokens,
-              ) || 0,
-            cacheCreationTokens:
-              Number(
-                usage.cache_creation_input_tokens ??
-                  usage.cache_creation_tokens,
-              ) || 0,
+            inputTokens,
+            outputTokens,
+            cacheReadTokens,
+            cacheCreationTokens,
           };
         } else if (queryResult.usageOutcome !== "not-billable") {
           // Standard provider adapters return an explicit `usage` field. A
@@ -612,6 +674,13 @@ export class PromptCompressor {
       // provider failure would manufacture an extractive summary after Stop and
       // let callers apply/persist it even though the operation was cancelled.
       if (isAbortError(error)) throw error;
+      // A durable-ledger write failure is authoritative too. Falling back here
+      // would let the host continue after losing the model-call boundary.
+      if (error?.runtimeLedgerPersistence === true) throw error;
+      summaryCallId = safeSummaryCallId(
+        error?.compactionCallId ?? error?.callId,
+      );
+      summaryUsageLedgerSettled = error?.usageLedgerSettled === true;
       degraded = true;
       summaryMode = "extractive-fallback";
       degradedReason = `llm_query_failed:${boundedFailureMessage(error)}`;
@@ -670,6 +739,10 @@ export class PromptCompressor {
           : {}),
         ...(summaryProvider ? { summaryProvider } : {}),
         ...(summaryModel ? { summaryModel } : {}),
+        ...(summaryCallId ? { summaryCallId } : {}),
+        ...(summaryUsageLedgerSettled
+          ? { summaryUsageLedgerSettled: true }
+          : {}),
       },
     };
   }

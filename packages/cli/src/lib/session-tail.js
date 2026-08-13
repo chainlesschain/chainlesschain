@@ -11,10 +11,18 @@
 import { promises as fsp } from "node:fs";
 import { existsSync, statSync } from "node:fs";
 import {
+  assertCanonicalJsonlRecordByteLength,
+  assertCanonicalJsonlRecordSize,
+  CANONICAL_JSONL_RECORD_MAX_BYTES,
+  CANONICAL_JSONL_RECORD_TOO_LARGE_CODE,
   getSessionPresence,
+  parseCanonicalJsonlRecord,
+  resolveCanonicalJsonlRecordMaxBytes,
   SESSION_PRESENCE,
   sessionPath,
 } from "../harness/jsonl-session-store.js";
+
+const DEFAULT_LIVE_READ_CHUNK_BYTES = 64 * 1024;
 
 export function readLiveTranscriptPresence(
   sessionId,
@@ -59,14 +67,64 @@ function assertLiveTranscriptReadable(sessionId) {
   throw error;
 }
 
-function parseLine(line) {
+function positiveSafeInteger(value, label) {
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+    throw new TypeError(`${label} must be a positive safe integer`);
+  }
+  return parsed;
+}
+
+function nonNegativeSafeInteger(value, label) {
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < 0) {
+    throw new TypeError(`${label} must be a non-negative safe integer`);
+  }
+  return parsed;
+}
+
+function rethrowCanonicalRecordLimit(error) {
+  if (error?.code === CANONICAL_JSONL_RECORD_TOO_LARGE_CODE) throw error;
+}
+
+function parseLine(line, maxRecordBytes = CANONICAL_JSONL_RECORD_MAX_BYTES) {
+  // Bound attacker-controlled text before trim() can copy it and again inside
+  // the canonical parser before JSON.parse.
+  assertCanonicalJsonlRecordSize(line, maxRecordBytes);
   const trimmed = line.trim();
   if (!trimmed) return null;
   try {
-    return JSON.parse(trimmed);
-  } catch {
+    return parseCanonicalJsonlRecord(trimmed, maxRecordBytes);
+  } catch (error) {
+    rethrowCanonicalRecordLimit(error);
     return null;
   }
+}
+
+function assertUtf8RangeSize(text, start, end, maxRecordBytes) {
+  let byteLength = 0;
+  for (let index = start; index < end; index += 1) {
+    const codeUnit = text.charCodeAt(index);
+    if (codeUnit <= 0x7f) {
+      byteLength += 1;
+    } else if (codeUnit <= 0x7ff) {
+      byteLength += 2;
+    } else if (
+      codeUnit >= 0xd800 &&
+      codeUnit <= 0xdbff &&
+      index + 1 < end &&
+      text.charCodeAt(index + 1) >= 0xdc00 &&
+      text.charCodeAt(index + 1) <= 0xdfff
+    ) {
+      byteLength += 4;
+      index += 1;
+    } else {
+      // Lone UTF-16 surrogates are encoded as the three-byte replacement
+      // character by Buffer.byteLength()/UTF-8 decoders.
+      byteLength += 3;
+    }
+  }
+  assertCanonicalJsonlRecordByteLength(byteLength, maxRecordBytes);
 }
 
 /**
@@ -74,18 +132,82 @@ function parseLine(line) {
  * where `rest` is the unterminated trailing partial line to keep for the next
  * read.
  */
-export function parseChunk(buffer) {
+export function parseChunk(
+  buffer,
+  { maxRecordBytes = CANONICAL_JSONL_RECORD_MAX_BYTES } = {},
+) {
+  const limit = resolveCanonicalJsonlRecordMaxBytes(maxRecordBytes);
   const events = [];
-  let rest = buffer;
-  let nl = rest.indexOf("\n");
+  let start = 0;
+  let nl = buffer.indexOf("\n", start);
   while (nl !== -1) {
-    const line = rest.slice(0, nl);
-    rest = rest.slice(nl + 1);
-    const evt = parseLine(line);
+    // Count the source range before slice() can retain/copy an attacker-sized
+    // terminated line.
+    assertUtf8RangeSize(buffer, start, nl, limit);
+    const line = buffer.slice(start, nl);
+    const evt = parseLine(line, limit);
     if (evt) events.push(evt);
-    nl = rest.indexOf("\n");
+    start = nl + 1;
+    nl = buffer.indexOf("\n", start);
   }
+  assertUtf8RangeSize(buffer, start, buffer.length, limit);
+  const rest = buffer.slice(start);
   return { events, rest };
+}
+
+function offsetBoundaryError(offset) {
+  const error = new Error(
+    `Session tail offset ${offset} is not at a JSONL record boundary`,
+  );
+  error.code = "SESSION_TAIL_OFFSET_NOT_RECORD_BOUNDARY";
+  error.offset = offset;
+  return error;
+}
+
+async function assertOffsetAtRecordBoundary(fd, offset, fileSize) {
+  if (offset === 0) return;
+  if (offset > fileSize) throw offsetBoundaryError(offset);
+  const previousByte = Buffer.allocUnsafe(1);
+  const read = await fd.read(previousByte, 0, 1, offset - 1);
+  if (read.bytesRead !== 1 || previousByte[0] !== 0x0a) {
+    throw offsetBoundaryError(offset);
+  }
+}
+
+function joinedRecordBuffer(parts, byteLength) {
+  if (parts.length === 0) return Buffer.alloc(0);
+  if (parts.length === 1) return parts[0];
+  return Buffer.concat(parts, byteLength);
+}
+
+function consumeLiveJsonlBytes(state, bytes, maxRecordBytes) {
+  const events = [];
+  let start = 0;
+  let newline = bytes.indexOf(0x0a, start);
+  while (newline >= 0) {
+    const segment = bytes.subarray(start, newline);
+    const recordBytes = state.byteLength + segment.length;
+    assertCanonicalJsonlRecordByteLength(recordBytes, maxRecordBytes);
+    const record = joinedRecordBuffer(
+      segment.length > 0 ? [...state.parts, segment] : state.parts,
+      recordBytes,
+    );
+    // Decode only after the byte limit passes. The parser repeats the same
+    // canonical check immediately before JSON.parse.
+    const event = parseLine(record.toString("utf8"), maxRecordBytes);
+    if (event) events.push(event);
+    state.parts = [];
+    state.byteLength = 0;
+    start = newline + 1;
+    newline = bytes.indexOf(0x0a, start);
+  }
+
+  const trailing = bytes.subarray(start);
+  const pendingBytes = state.byteLength + trailing.length;
+  assertCanonicalJsonlRecordByteLength(pendingBytes, maxRecordBytes);
+  if (trailing.length > 0) state.parts.push(Buffer.from(trailing));
+  state.byteLength = pendingBytes;
+  return events;
 }
 
 function matchesFilter(event, { types, sinceMs }) {
@@ -119,6 +241,8 @@ export function initialOffset(sessionId, { fromStart = false } = {}) {
  *   - types        string[] of event.type to include (null = all)
  *   - sinceMs      only yield events with timestamp >= sinceMs
  *   - once         if true, stop once file is drained (no polling)
+ *   - maxRecordBytes canonical JSONL record cap (test seam; default 16 MiB)
+ *   - readChunkBytes bounded file read size (test seam; default 64 KiB)
  */
 export async function* followSession(sessionId, options = {}) {
   const {
@@ -129,18 +253,23 @@ export async function* followSession(sessionId, options = {}) {
     types = null,
     sinceMs = null,
     once = false,
+    maxRecordBytes = CANONICAL_JSONL_RECORD_MAX_BYTES,
+    readChunkBytes = DEFAULT_LIVE_READ_CHUNK_BYTES,
   } = options;
 
+  const recordLimit = resolveCanonicalJsonlRecordMaxBytes(maxRecordBytes);
+  const readLimit = Math.min(
+    positiveSafeInteger(readChunkBytes, "readChunkBytes"),
+    recordLimit,
+  );
+
   const filePath = sessionPath(sessionId);
-  let offset =
-    typeof fromOffset === "number"
-      ? fromOffset
-      : initialOffset(sessionId, { fromStart });
-  let buffer = "";
-  // Streaming decoder persisted across polls: when the file grows by a partial
-  // multi-byte UTF-8 character between reads (the rest arrives next poll), the
-  // held bytes are reassembled instead of corrupted into U+FFFD.
-  let decoder = new TextDecoder("utf-8");
+  const hasExplicitOffset = fromOffset !== undefined;
+  let offset = hasExplicitOffset
+    ? nonNegativeSafeInteger(fromOffset, "fromOffset")
+    : initialOffset(sessionId, { fromStart });
+  const pending = { parts: [], byteLength: 0 };
+  let offsetBoundaryValidated = offset === 0;
 
   while (true) {
     if (signal?.aborted) return;
@@ -156,26 +285,42 @@ export async function* followSession(sessionId, options = {}) {
         if (stat.size < offset) {
           // File was truncated / rotated — restart from beginning
           offset = 0;
-          buffer = "";
-          decoder = new TextDecoder("utf-8"); // drop any held partial-char bytes
+          pending.parts = [];
+          pending.byteLength = 0;
+          offsetBoundaryValidated = true;
         }
-        if (stat.size > offset) {
+        if (!offsetBoundaryValidated || stat.size > offset) {
           const fd = await fsp.open(filePath, "r");
           try {
-            const length = stat.size - offset;
-            const buf = Buffer.alloc(length);
-            await fd.read(buf, 0, length, offset);
-            offset = stat.size;
-            buffer += decoder.decode(buf, { stream: true });
+            const targetOffset = stat.size;
+            if (!offsetBoundaryValidated) {
+              await assertOffsetAtRecordBoundary(fd, offset, targetOffset);
+              offsetBoundaryValidated = true;
+            }
+            while (offset < targetOffset) {
+              const length = Math.min(readLimit, targetOffset - offset);
+              const buf = Buffer.allocUnsafe(length);
+              const read = await fd.read(buf, 0, length, offset);
+              if (
+                !Number.isSafeInteger(read.bytesRead) ||
+                read.bytesRead <= 0
+              ) {
+                break;
+              }
+              offset += read.bytesRead;
+              const events = consumeLiveJsonlBytes(
+                pending,
+                buf.subarray(0, read.bytesRead),
+                recordLimit,
+              );
+              for (const evt of events) {
+                if (matchesFilter(evt, { types, sinceMs })) {
+                  yield { event: evt, offset };
+                }
+              }
+            }
           } finally {
             await fd.close();
-          }
-          const { events, rest } = parseChunk(buffer);
-          buffer = rest;
-          for (const evt of events) {
-            if (matchesFilter(evt, { types, sinceMs })) {
-              yield { event: evt, offset };
-            }
           }
         }
       } catch (error) {

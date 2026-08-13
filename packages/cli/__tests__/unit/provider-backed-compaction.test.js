@@ -80,6 +80,72 @@ describe("compactConversationWithProvider", () => {
     });
   });
 
+  it("propagates the started call id through stats and the usage event", async () => {
+    const onProviderCallStart = vi.fn(() => "semantic-call-1");
+    const result = await compactConversationWithProvider(longConversation(), {
+      provider: "anthropic",
+      model: "claude-sonnet-4-6",
+      force: true,
+      onProviderCallStart,
+      llmQuery: async () => ({
+        summary: structuredSummary,
+        usage: { input_tokens: 12, output_tokens: 4 },
+      }),
+    });
+
+    expect(onProviderCallStart).toHaveBeenCalledOnce();
+    expect(result.stats.summaryCallId).toBe("semantic-call-1");
+    expect(result.usageEvent).toMatchObject({
+      callId: "semantic-call-1",
+      source: "semantic-compaction",
+      usage: { input_tokens: 12, output_tokens: 4 },
+    });
+  });
+
+  it("propagates an already-settled custom query without losing its call id", async () => {
+    const result = await compactConversationWithProvider(longConversation(), {
+      provider: "openai",
+      model: "gpt-4o",
+      force: true,
+      llmQuery: async () => ({
+        summary: structuredSummary,
+        usage: { input_tokens: 20, output_tokens: 8 },
+        callId: "pre-metered-call",
+        usageLedgerSettled: true,
+      }),
+    });
+
+    expect(result.stats).toMatchObject({
+      summaryCallId: "pre-metered-call",
+      summaryUsageLedgerSettled: true,
+    });
+    expect(result.usageEvent).toMatchObject({
+      callId: "pre-metered-call",
+      usageLedgerSettled: true,
+    });
+  });
+
+  it("propagates settled metadata to an outcome-unknown event", async () => {
+    const result = await compactConversationWithProvider(longConversation(), {
+      provider: "openai",
+      model: "gpt-4o",
+      force: true,
+      llmQuery: async () => ({
+        summary: structuredSummary,
+        callId: "pre-metered-unknown-call",
+        usageLedgerSettled: true,
+      }),
+    });
+
+    expect(result.usageEvent).toBeNull();
+    expect(result.usageUnknownEvent).toMatchObject({
+      callId: "pre-metered-unknown-call",
+      usageLedgerSettled: true,
+      usageOutcome: "unknown",
+      reason: "provider_usage_not_reported",
+    });
+  });
+
   it("keeps a structured extractive handoff and billed usage on invalid output", async () => {
     const result = await compactConversationWithProvider(longConversation(), {
       provider: "openai",
@@ -114,6 +180,7 @@ describe("compactConversationWithProvider", () => {
       provider: "anthropic",
       model: "claude-sonnet-4-6",
       force: true,
+      onProviderCallStart: () => "failed-semantic-call",
       llmQuery: async () => {
         throw new Error("connection reset after request upload");
       },
@@ -132,7 +199,24 @@ describe("compactConversationWithProvider", () => {
       source: "semantic-compaction",
       reason: "provider_transport_outcome_unknown",
       usageOutcome: "unknown",
+      callId: "failed-semantic-call",
     });
+  });
+
+  it("omits unsafe query call ids from public stats and events", async () => {
+    const result = await compactConversationWithProvider(longConversation(), {
+      provider: "openai",
+      model: "gpt-4o",
+      force: true,
+      llmQuery: async () => ({
+        summary: structuredSummary,
+        usage: { input_tokens: 3, output_tokens: 1 },
+        callId: "unsafe\ncall",
+      }),
+    });
+
+    expect(result.stats.summaryCallId).toBeUndefined();
+    expect(result.usageEvent.callId).toBeUndefined();
   });
 
   it("marks a provider response with missing usage as outcome-unknown", async () => {
@@ -143,6 +227,41 @@ describe("compactConversationWithProvider", () => {
       chatFn: async () => ({ message: { content: structuredSummary } }),
     });
 
+    expect(result.stats).toMatchObject({
+      summaryUsageUnknown: true,
+      summaryUsageUnknownReason: "provider_usage_not_reported",
+    });
+    expect(result.usageUnknownEvent).toMatchObject({
+      usageOutcome: "unknown",
+      reason: "provider_usage_not_reported",
+    });
+  });
+
+  it.each([
+    ["empty", {}],
+    ["input-only", { input_tokens: 3 }],
+    ["output-only", { output_tokens: 1 }],
+    [
+      "conflicting-required-alias",
+      {
+        input_tokens: 3,
+        prompt_tokens: 4,
+        output_tokens: 1,
+      },
+    ],
+    [
+      "invalid-cache",
+      { input_tokens: 3, output_tokens: 1, cache_read_tokens: "2" },
+    ],
+  ])("keeps incomplete %s compaction usage unknown", async (_label, usage) => {
+    const result = await compactConversationWithProvider(longConversation(), {
+      provider: "openai",
+      model: "gpt-4o",
+      force: true,
+      llmQuery: async () => ({ summary: structuredSummary, usage }),
+    });
+
+    expect(result.usageEvent).toBeNull();
     expect(result.stats).toMatchObject({
       summaryUsageUnknown: true,
       summaryUsageUnknownReason: "provider_usage_not_reported",

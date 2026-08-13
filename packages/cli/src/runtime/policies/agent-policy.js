@@ -49,6 +49,10 @@ export function resolveAgentPolicy({
       : [],
     worktreeId:
       overrides.worktreeId == null ? null : String(overrides.worktreeId),
+    ...(overrides.observabilityScope &&
+    typeof overrides.observabilityScope === "object"
+      ? { observabilityScope: { ...overrides.observabilityScope } }
+      : {}),
     systemPrompt: overrides.systemPrompt || null,
     appendSystemPrompt: overrides.appendSystemPrompt || null,
     fallbackModel: overrides.fallbackModel || null,

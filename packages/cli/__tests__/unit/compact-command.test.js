@@ -36,11 +36,18 @@ vi.mock("../../src/harness/jsonl-session-store.js", () => {
         readMessages: () => readVerifiedMessages(),
       });
     }),
+    appendEventIfHead: vi.fn((_sessionId, _type, _data, expectedHead) => ({
+      hash: `${expectedHead}-next`,
+    })),
     appendAuthorityEventIfHead: vi.fn(() => ({ hash: "head-2" })),
   };
 });
+vi.mock("../../src/runtime/agent-core.js", () => ({
+  chatWithTools: vi.fn(),
+}));
 
 const store = await import("../../src/harness/jsonl-session-store.js");
+const { chatWithTools } = await import("../../src/runtime/agent-core.js");
 const { logger } = await import("../../src/lib/logger.js");
 const { registerCompactCommand } =
   await import("../../src/commands/compact.js");
@@ -56,6 +63,29 @@ function manyMessages(n) {
   }
   return out;
 }
+
+function semanticMessages(n) {
+  const out = [{ role: "system", content: "sys" }];
+  for (let i = 0; i < n; i++) {
+    out.push({
+      role: i % 2 === 0 ? "user" : "assistant",
+      content: String.fromCodePoint(0x4e00 + i).repeat(80),
+    });
+  }
+  return out;
+}
+
+const structuredSummary = JSON.stringify({
+  objective: "Compact the durable session",
+  constraints: [],
+  keyDecisions: ["Keep model usage auditable"],
+  changedFiles: [],
+  tests: [],
+  unresolvedSideEffects: [],
+  checkpoints: [],
+  blockers: [],
+  nextSteps: ["Resume from the compact event"],
+});
 
 async function runCompact(args) {
   const program = new Command();
@@ -73,9 +103,19 @@ describe("cc compact", () => {
       { type: "session_start", data: { model: "", provider: "" } },
     ]);
     store.readVerifiedMessages.mockReturnValue([]);
+    store.appendEventIfHead.mockImplementation(
+      (_sessionId, _type, _data, expectedHead) => ({
+        hash: `${expectedHead}-next`,
+      }),
+    );
     store.appendAuthorityEventIfHead.mockImplementation(() => ({
       hash: "head-2",
     }));
+    chatWithTools.mockReset();
+    chatWithTools.mockResolvedValue({
+      message: { content: structuredSummary },
+      usage: { input_tokens: 100, output_tokens: 20 },
+    });
   });
 
   it("errors with exit code 1 when the session does not exist", async () => {
@@ -89,7 +129,7 @@ describe("cc compact", () => {
   });
 
   it("compacts and persists a long session", async () => {
-    store.readVerifiedMessages.mockReturnValue(manyMessages(40));
+    store.readVerifiedMessages.mockReturnValue(semanticMessages(40));
     await runCompact(["sess-1"]);
     expect(store.appendAuthorityEventIfHead).toHaveBeenCalledTimes(1);
     const [sid, type, payload, expectedHead] =
@@ -106,12 +146,195 @@ describe("cc compact", () => {
   });
 
   it("does NOT write anything in --dry-run mode", async () => {
-    store.readVerifiedMessages.mockReturnValue(manyMessages(40));
-    await runCompact(["sess-1", "--dry-run"]);
+    store.readEvents.mockReturnValue([
+      {
+        type: "session_start",
+        data: { model: "gpt-4o", provider: "openai" },
+      },
+    ]);
+    store.readVerifiedMessages.mockReturnValue(semanticMessages(40));
+    await runCompact(["sess-1", "--dry-run", "--max-messages", "5"]);
+    expect(chatWithTools).not.toHaveBeenCalled();
+    expect(store.appendEventIfHead).not.toHaveBeenCalled();
     expect(store.appendAuthorityEventIfHead).not.toHaveBeenCalled();
     expect(logger.log).toHaveBeenCalledWith(
       expect.stringContaining("Would compact"),
     );
+  });
+
+  it("persists a complete semantic model-call ledger before the compact CAS", async () => {
+    store.readEvents.mockReturnValue([
+      {
+        type: "session_start",
+        data: { model: "gpt-4o", provider: "openai" },
+      },
+    ]);
+    store.readVerifiedMessages.mockReturnValue(semanticMessages(40));
+    store.appendEventIfHead
+      .mockReturnValueOnce({ hash: "head-started" })
+      .mockReturnValueOnce({ hash: "head-settled" });
+
+    await runCompact(["sess-1", "--max-messages", "5"]);
+
+    expect(chatWithTools).toHaveBeenCalledOnce();
+    expect(store.appendEventIfHead).toHaveBeenCalledTimes(2);
+    const started = store.appendEventIfHead.mock.calls[0];
+    const settled = store.appendEventIfHead.mock.calls[1];
+    expect(store.appendEventIfHead.mock.invocationCallOrder[0]).toBeLessThan(
+      chatWithTools.mock.invocationCallOrder[0],
+    );
+    expect(chatWithTools.mock.invocationCallOrder[0]).toBeLessThan(
+      store.appendEventIfHead.mock.invocationCallOrder[1],
+    );
+    expect(started).toMatchObject([
+      "sess-1",
+      "model_usage_started",
+      {
+        provider: "openai",
+        model: "gpt-4o",
+        source: "semantic-compaction",
+      },
+      "head-1",
+    ]);
+    expect(settled).toMatchObject([
+      "sess-1",
+      "token_usage",
+      {
+        provider: "openai",
+        model: "gpt-4o",
+        source: "semantic-compaction",
+        usage: { input_tokens: 100, output_tokens: 20 },
+      },
+      "head-started",
+    ]);
+    expect(settled[2].callId).toBe(started[2].callId);
+    const compactPayload = store.appendAuthorityEventIfHead.mock.calls[0]?.[2];
+    expect(compactPayload).toMatchObject({
+      summaryCallId: started[2].callId,
+      summaryUsageLedgerSettled: true,
+    });
+    expect(store.appendAuthorityEventIfHead).toHaveBeenCalledWith(
+      "sess-1",
+      "compact",
+      expect.any(Object),
+      "head-settled",
+    );
+  });
+
+  it("settles a provider exception as unknown before the offline fallback persists", async () => {
+    store.readEvents.mockReturnValue([
+      {
+        type: "session_start",
+        data: { model: "gpt-4o", provider: "openai" },
+      },
+    ]);
+    store.readVerifiedMessages.mockReturnValue(semanticMessages(40));
+    chatWithTools.mockRejectedValue(
+      new Error("connection reset after request upload"),
+    );
+
+    await runCompact(["sess-1", "--max-messages", "5"]);
+
+    const [started, unknown] = store.appendEventIfHead.mock.calls;
+    expect(unknown).toMatchObject([
+      "sess-1",
+      "model_usage_unknown",
+      {
+        callId: started[2].callId,
+        provider: "openai",
+        model: "gpt-4o",
+        source: "semantic-compaction",
+        code: "provider_call_failed",
+      },
+      "head-1-next",
+    ]);
+    expect(store.appendAuthorityEventIfHead).toHaveBeenCalledWith(
+      "sess-1",
+      "compact",
+      expect.objectContaining({
+        degraded: true,
+        summaryCallId: started[2].callId,
+        summaryUsageLedgerSettled: true,
+      }),
+      "head-1-next-next",
+    );
+    expect(process.exitCode).toBe(0);
+  });
+
+  it("settles missing provider usage as unknown with the same call id", async () => {
+    store.readEvents.mockReturnValue([
+      {
+        type: "session_start",
+        data: { model: "gpt-4o", provider: "openai" },
+      },
+    ]);
+    store.readVerifiedMessages.mockReturnValue(semanticMessages(40));
+    chatWithTools.mockResolvedValue({
+      message: { content: structuredSummary },
+    });
+
+    await runCompact(["sess-1", "--max-messages", "5"]);
+
+    const [started, unknown] = store.appendEventIfHead.mock.calls;
+    expect(started[1]).toBe("model_usage_started");
+    expect(unknown[1]).toBe("model_usage_unknown");
+    expect(unknown[2]).toMatchObject({
+      callId: started[2].callId,
+      provider: "openai",
+      model: "gpt-4o",
+      source: "semantic-compaction",
+      code: "provider_usage_missing",
+    });
+    expect(store.appendAuthorityEventIfHead).toHaveBeenCalledWith(
+      "sess-1",
+      "compact",
+      expect.any(Object),
+      "head-1-next-next",
+    );
+  });
+
+  it("fails closed before provider spend when the started row cannot persist", async () => {
+    store.readEvents.mockReturnValue([
+      {
+        type: "session_start",
+        data: { model: "gpt-4o", provider: "openai" },
+      },
+    ]);
+    store.readVerifiedMessages.mockReturnValue(semanticMessages(40));
+    store.appendEventIfHead.mockImplementationOnce(() => {
+      const error = new Error("session changed");
+      error.code = "SESSION_REVISION_STALE";
+      throw error;
+    });
+
+    await runCompact(["sess-1", "--max-messages", "5"]);
+
+    expect(chatWithTools).not.toHaveBeenCalled();
+    expect(store.appendAuthorityEventIfHead).not.toHaveBeenCalled();
+    expect(process.exitCode).toBe(1);
+  });
+
+  it("fails closed when the known settlement loses its CAS race", async () => {
+    store.readEvents.mockReturnValue([
+      {
+        type: "session_start",
+        data: { model: "gpt-4o", provider: "openai" },
+      },
+    ]);
+    store.readVerifiedMessages.mockReturnValue(semanticMessages(40));
+    store.appendEventIfHead
+      .mockReturnValueOnce({ hash: "head-started" })
+      .mockImplementationOnce(() => {
+        const error = new Error("session changed");
+        error.code = "SESSION_REVISION_STALE";
+        throw error;
+      });
+
+    await runCompact(["sess-1", "--max-messages", "5"]);
+
+    expect(chatWithTools).toHaveBeenCalledOnce();
+    expect(store.appendAuthorityEventIfHead).not.toHaveBeenCalled();
+    expect(process.exitCode).toBe(1);
   });
 
   it("reports nothing-to-compact for a short session and writes nothing", async () => {

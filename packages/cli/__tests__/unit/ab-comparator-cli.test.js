@@ -170,6 +170,64 @@ REASON: Good.`,
       expect(result.criteria).toEqual(["speed", "safety"]);
     });
 
+    it("routes every variant and judge provider call through callWrapper", async () => {
+      mockFetch([
+        { message: { content: "Solution" } },
+        {
+          message: {
+            content:
+              "SCORES:\nVariant 1 (conservative): quality=8\nRANKING: conservative\nWINNER: conservative\nREASON: Good.",
+          },
+        },
+      ]);
+      const callWrapper = vi.fn(({ call }) => call());
+
+      await compare({
+        prompt: "test",
+        variants: 1,
+        llmOptions: { provider: "ollama", callWrapper },
+      });
+
+      expect(callWrapper).toHaveBeenCalledTimes(2);
+    });
+
+    it.each(["variant", "judge"])(
+      "does not swallow a %s runtime-ledger persistence failure",
+      async (phase) => {
+        mockFetch([
+          { message: { content: "Solution" } },
+          {
+            message: {
+              content:
+                "SCORES:\nVariant 1 (conservative): quality=8\nRANKING: conservative\nWINNER: conservative\nREASON: Good.",
+            },
+          },
+        ]);
+        const failure = Object.assign(new Error("private disk path"), {
+          runtimeLedgerPersistence: true,
+        });
+        let calls = 0;
+        const callWrapper = async ({ call }) => {
+          calls += 1;
+          if (
+            (phase === "variant" && calls === 1) ||
+            (phase === "judge" && calls === 2)
+          ) {
+            throw failure;
+          }
+          return call();
+        };
+
+        await expect(
+          compare({
+            prompt: "test",
+            variants: 1,
+            llmOptions: { provider: "ollama", callWrapper },
+          }),
+        ).rejects.toBe(failure);
+      },
+    );
+
     it("handles variant generation error", async () => {
       globalThis._originalFetch = globalThis.fetch;
       let callIndex = 0;
