@@ -15,11 +15,42 @@ if (!filePath || !mode) {
   process.exit(64);
 }
 
-const queue = new TeamDistributedQueue({ filePath });
-
 function sleep(milliseconds) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
 }
+
+function testDuration(name, fallback, { allowZero = false } = {}) {
+  const raw = process.env[name];
+  if (raw == null || raw === "") return fallback;
+  const value = Number(raw);
+  if (!Number.isSafeInteger(value) || (allowZero ? value < 0 : value <= 0)) {
+    throw new TypeError(
+      `${name} must be ${allowZero ? "non-negative" : "positive"}`,
+    );
+  }
+  return value;
+}
+
+const competeDeadlineMs = testDuration(
+  "CC_TEST_TEAM_QUEUE_COMPETE_DEADLINE_MS",
+  40_000,
+);
+const competeLockTimeoutMs = testDuration(
+  "CC_TEST_TEAM_QUEUE_LOCK_TIMEOUT_MS",
+  1_000,
+);
+const competeLockYieldMs = testDuration("CC_TEST_TEAM_QUEUE_LOCK_YIELD_MS", 5, {
+  allowZero: true,
+});
+const queue = new TeamDistributedQueue({
+  filePath,
+  ...(mode === "compete"
+    ? {
+        lockTimeoutMs: competeLockTimeoutMs,
+        lockYieldAfterReleaseMs: competeLockYieldMs,
+      }
+    : {}),
+});
 
 function output(value) {
   process.stdout.write(`${JSON.stringify(value)}\n`);
@@ -95,33 +126,69 @@ if (mode !== "compete") {
 
 const completed = [];
 let idleRounds = 0;
-while (idleRounds < 2_000) {
-  const claim = queue.claim({ holder, ttlMs: 10_000 });
+let lockRetries = 0;
+const competeDeadline = Date.now() + competeDeadlineMs;
+
+function withCompeteLockRetry(operation) {
+  for (;;) {
+    try {
+      return operation();
+    } catch (error) {
+      if (
+        error?.code !== "TEAM_QUEUE_LOCK_FAILED" ||
+        error?.cause?.code !== "STATE_LOCK_UNAVAILABLE" ||
+        Date.now() >= competeDeadline
+      ) {
+        throw error;
+      }
+      lockRetries += 1;
+      sleep(Math.min(20, Math.max(1, competeDeadline - Date.now())));
+    }
+  }
+}
+
+let allDone = false;
+while (idleRounds < 2_000 && Date.now() < competeDeadline) {
+  const claim = withCompeteLockRetry(() =>
+    queue.claim({ holder, ttlMs: 10_000 }),
+  );
   if (claim.ok) {
     idleRounds = 0;
-    const settled = queue.complete(claim.key, {
-      holder,
-      leaseId: claim.lease.leaseId,
-      result: { completedByPid: process.pid },
-    });
+    const settled = withCompeteLockRetry(() =>
+      queue.complete(claim.key, {
+        holder,
+        leaseId: claim.lease.leaseId,
+        result: { completedByPid: process.pid },
+      }),
+    );
     if (!settled.ok) {
-      output({ pid: process.pid, completed, claim, settled });
+      output({ pid: process.pid, completed, claim, settled, lockRetries });
       process.exit(3);
     }
     completed.push(claim.key);
     continue;
   }
-  if (queue.allDone()) break;
+  allDone = withCompeteLockRetry(() => queue.allDone());
+  if (allDone) break;
   if (
     claim.reason !== "no_claimable_task" &&
     !claim.reason?.startsWith("max-")
   ) {
-    output({ pid: process.pid, completed, claim });
+    output({ pid: process.pid, completed, claim, lockRetries });
     process.exit(4);
   }
   idleRounds += 1;
   sleep(2);
 }
 
-output({ pid: process.pid, completed, allDone: queue.allDone() });
-process.exit(queue.allDone() ? 0 : 5);
+if (!allDone && Date.now() < competeDeadline) {
+  allDone = withCompeteLockRetry(() => queue.allDone());
+}
+output({
+  pid: process.pid,
+  completed,
+  allDone,
+  lockRetries,
+  deadlineExceeded: Date.now() >= competeDeadline,
+});
+process.exit(allDone ? 0 : 5);

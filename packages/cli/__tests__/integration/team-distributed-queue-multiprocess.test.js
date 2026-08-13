@@ -12,6 +12,12 @@ const workerPath = path.resolve(
   "../fixtures/team-distributed-queue-worker.mjs",
 );
 const temporaryDirectories = [];
+const DEFAULT_WORKER_TIMEOUT_MS = 20_000;
+const COMPETE_WORKER_TIMEOUT_MS = 45_000;
+const WORKER_FORCE_KILL_DELAY_MS = 1_000;
+const COMPETE_DEADLINE_MS = 40_000;
+const COMPETE_LOCK_TIMEOUT_MS = 1_000;
+const COMPETE_LOCK_YIELD_MS = 5;
 
 function tempState() {
   const directory = fs.mkdtempSync(
@@ -23,12 +29,27 @@ function tempState() {
 
 function runWorker(filePath, mode, holder, extraArguments = []) {
   return new Promise((resolve, reject) => {
+    const workerTimeoutMs =
+      mode === "compete"
+        ? COMPETE_WORKER_TIMEOUT_MS
+        : DEFAULT_WORKER_TIMEOUT_MS;
+    const environment = { ...process.env };
+    if (mode === "compete") {
+      environment.CC_TEST_TEAM_QUEUE_COMPETE_DEADLINE_MS =
+        String(COMPETE_DEADLINE_MS);
+      environment.CC_TEST_TEAM_QUEUE_LOCK_TIMEOUT_MS = String(
+        COMPETE_LOCK_TIMEOUT_MS,
+      );
+      environment.CC_TEST_TEAM_QUEUE_LOCK_YIELD_MS = String(
+        COMPETE_LOCK_YIELD_MS,
+      );
+    }
     const child = spawn(
       process.execPath,
       [workerPath, filePath, mode, holder, ...extraArguments],
       {
         cwd: path.resolve(testDirectory, "../.."),
-        env: { ...process.env },
+        env: environment,
         shell: false,
         windowsHide: true,
         stdio: ["ignore", "pipe", "pipe"],
@@ -36,6 +57,17 @@ function runWorker(filePath, mode, holder, extraArguments = []) {
     );
     let stdout = "";
     let stderr = "";
+    let timedOut = false;
+    let forceKillTimer = null;
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      child.kill("SIGTERM");
+      forceKillTimer = setTimeout(() => {
+        if (child.exitCode == null && child.signalCode == null) {
+          child.kill("SIGKILL");
+        }
+      }, WORKER_FORCE_KILL_DELAY_MS);
+    }, workerTimeoutMs);
     child.stdout.setEncoding("utf8");
     child.stderr.setEncoding("utf8");
     child.stdout.on("data", (chunk) => {
@@ -44,8 +76,23 @@ function runWorker(filePath, mode, holder, extraArguments = []) {
     child.stderr.on("data", (chunk) => {
       stderr += chunk;
     });
-    child.on("error", reject);
+    child.on("error", (error) => {
+      clearTimeout(timeout);
+      if (forceKillTimer) clearTimeout(forceKillTimer);
+      reject(error);
+    });
     child.on("close", (code, signal) => {
+      clearTimeout(timeout);
+      if (forceKillTimer) clearTimeout(forceKillTimer);
+      if (timedOut) {
+        reject(
+          new Error(
+            `worker ${holder} (${child.pid}) exceeded ${workerTimeoutMs}ms and was terminated` +
+              `\nstdout:\n${stdout || "<empty>"}\nstderr:\n${stderr || "<empty>"}`,
+          ),
+        );
+        return;
+      }
       const lines = stdout.trim().split(/\r?\n/).filter(Boolean);
       let message = null;
       try {
