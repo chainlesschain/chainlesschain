@@ -57,6 +57,7 @@ const GATE_SOURCE_PATHS = [
   "packages/cli/src/commands/session.js",
   "packages/cli/src/commands/session-show.js",
   "packages/cli/src/lib/pr-link-store.js",
+  "packages/cli/src/lib/session-anti-rollback-anchor.js",
   "packages/cli/scripts/session-scale-gate.mjs",
   "packages/cli/__tests__/fixtures/session-concurrency-writer.mjs",
   "packages/cli/__tests__/fixtures/session-scale-crash-writer.mjs",
@@ -65,8 +66,48 @@ const GATE_SOURCE_PATHS = [
   "packages/cli/__tests__/fixtures/session-scale-pipeline-crash-worker.mjs",
   "packages/cli/__tests__/unit/jsonl-session-store.test.js",
   "packages/cli/__tests__/unit/session-list-index.test.js",
+  "packages/cli/__tests__/unit/session-anti-rollback-anchor.test.js",
   "packages/cli/__tests__/unit/session-scale-gate.test.js",
 ];
+const PRODUCTION_PIPELINE_KILL_POINTS = Object.freeze([
+  Object.freeze({
+    point: "after-new-transcript-file-fsync",
+    createsSession: true,
+    expectedBoundary: "new-transcript-file-fsync-before-sidecar",
+  }),
+  Object.freeze({
+    point: "after-new-transcript-directory-fsync",
+    createsSession: true,
+    posixOnly: true,
+    expectedBoundary: "new-transcript-directory-fsync-before-sidecar",
+  }),
+  Object.freeze({
+    point: "after-transcript-fsync",
+    expectedBoundary: "transcript-file-fsync-before-sidecar",
+  }),
+  Object.freeze({
+    point: "after-meta-temp-fsync",
+    expectedBoundary: "sidecar-temp-fsync-before-rename",
+  }),
+  Object.freeze({
+    point: "after-meta-rename",
+    canonicalMetaCommitted: true,
+    expectedBoundary: "sidecar-rename-before-directory-fsync",
+  }),
+  Object.freeze({
+    point: "after-meta-directory-fsync",
+    posixOnly: true,
+    canonicalMetaCommitted: true,
+    expectedBoundary: "sidecar-directory-fsync-before-external-anchor",
+  }),
+  Object.freeze({
+    point: "after-anchor",
+    canonicalMetaCommitted: true,
+    activityCommitted: true,
+    anchorCommitted: true,
+    expectedBoundary: "external-anti-rollback-anchor-settled",
+  }),
+]);
 
 function positiveInteger(value, fallback, name) {
   if (value == null || value === "") return fallback;
@@ -273,9 +314,37 @@ function spawnCapture(command, args, options = {}) {
     let stdout = "";
     let stderr = "";
     let timeoutError = null;
+    let forcedSettlement = null;
+    let settled = false;
+    const cleanupTimers = () => {
+      clearTimeout(timeout);
+      if (forcedSettlement !== null) clearTimeout(forcedSettlement);
+    };
+    const rejectOnce = (error) => {
+      if (settled) return;
+      settled = true;
+      cleanupTimers();
+      rejectPromise(error);
+    };
+    const resolveOnce = (value) => {
+      if (settled) return;
+      settled = true;
+      cleanupTimers();
+      resolvePromise(value);
+    };
     const timeout = setTimeout(() => {
       timeoutError = new Error(`process timed out: ${command}`);
       child.kill("SIGKILL");
+      forcedSettlement = setTimeout(() => {
+        // A failed OS termination request must not leave a gate Promise (and
+        // therefore a workflow job) waiting forever. Detach only after a
+        // second bounded kill attempt and close the captured pipe handles.
+        child.kill("SIGKILL");
+        child.stdout.destroy();
+        child.stderr.destroy();
+        child.unref();
+        rejectOnce(timeoutError);
+      }, 5_000);
     }, options.timeoutMs || 60_000);
     child.stdout.on("data", (chunk) => {
       stdout += chunk;
@@ -285,17 +354,15 @@ function spawnCapture(command, args, options = {}) {
       stderr += chunk;
     });
     child.once("error", (error) => {
-      clearTimeout(timeout);
-      rejectPromise(error);
+      rejectOnce(error);
     });
     child.once("exit", (code, signal) => {
-      clearTimeout(timeout);
       if (timeoutError) {
-        rejectPromise(timeoutError);
+        rejectOnce(timeoutError);
       } else if (code === 0 || options.acceptKilled === true) {
-        resolvePromise({ code, signal, stdout, stderr, child });
+        resolveOnce({ code, signal, stdout, stderr, child });
       } else {
-        rejectPromise(
+        rejectOnce(
           new Error(
             `process exited ${code ?? signal}: ${stderr || stdout}`.trim(),
           ),
@@ -895,11 +962,18 @@ function inspectRepairOutcome(store, sessionId, cut, recordBytes) {
   const dryRunPreservedBytes = readFileSync(filePath).equals(beforeDryRun);
   const repaired = store.repairSession(sessionId);
   const verified = store.verifySession(sessionId);
+  let authoritativeEvents = null;
+  try {
+    authoritativeEvents = store.readVerifiedEvents(sessionId);
+  } catch {
+    // Keep the result structured so this crash cut fails the gate instead of
+    // turning an authority-read exception into an unscoped fatal error.
+  }
   const completeJsonBytes = recordBytes - 1;
   const completeWithoutNewline = cut === completeJsonBytes;
   const completeWithNewline = cut === recordBytes;
   const expectedPhysicalChange = !completeWithNewline;
-  const expectedIndexRebuild = completeWithoutNewline || completeWithNewline;
+  const expectedIndexRebuild = true;
   const expectedPhysicalAction = completeWithNewline
     ? "none"
     : completeWithoutNewline
@@ -908,7 +982,8 @@ function inspectRepairOutcome(store, sessionId, cut, recordBytes) {
   const expectedAction = completeWithNewline
     ? "rebuild-index"
     : expectedPhysicalAction;
-  const expectedChainedEvents = expectedIndexRebuild ? 2 : 1;
+  const expectedChainedEvents =
+    completeWithoutNewline || completeWithNewline ? 2 : 1;
   const pass =
     dryRun.changed === expectedPhysicalChange &&
     dryRun.healthy === false &&
@@ -920,13 +995,16 @@ function inspectRepairOutcome(store, sessionId, cut, recordBytes) {
     repaired.physicalChanged === expectedPhysicalChange &&
     repaired.indexRebuilt === expectedIndexRebuild &&
     repaired.healthy === true &&
+    repaired.authorityAnchored === true &&
     repaired.action === expectedAction &&
     repaired.physicalAction === expectedPhysicalAction &&
     repaired.discardedRecords <= 1 &&
     repaired.discardedBytes ===
       (completeWithoutNewline || completeWithNewline ? 0 : cut) &&
     verified.status === "verified" &&
-    verified.chainedEvents === expectedChainedEvents;
+    verified.chainedEvents === expectedChainedEvents &&
+    authoritativeEvents?.length === expectedChainedEvents &&
+    authoritativeEvents?.at(-1)?.hash === verified.lastHash;
   return {
     pass,
     cut,
@@ -937,6 +1015,8 @@ function inspectRepairOutcome(store, sessionId, cut, recordBytes) {
     dryRunPreservedBytes,
     dryRunHealthy: dryRun.healthy,
     repairedHealthy: repaired.healthy,
+    authorityAnchored: repaired.authorityAnchored,
+    authorityReadSucceeded: authoritativeEvents !== null,
     physicalChanged: repaired.physicalChanged,
     indexRebuilt: repaired.indexRebuilt,
     chainStatus: verified.status,
@@ -946,7 +1026,7 @@ function inspectRepairOutcome(store, sessionId, cut, recordBytes) {
 }
 
 async function killAtCut(home, sessionId, record, cut) {
-  let killed = false;
+  let killRequested = false;
   const result = await spawnCapture(
     process.execPath,
     [CRASH_WORKER, home, sessionId, record.toString("base64"), String(cut)],
@@ -954,19 +1034,26 @@ async function killAtCut(home, sessionId, record, cut) {
       timeoutMs: 30_000,
       acceptKilled: true,
       onStdout(stdout, child) {
-        if (!killed && stdout.includes('"ready":true')) {
-          killed = true;
-          child.kill("SIGKILL");
+        if (!killRequested && stdout.includes('"ready":true')) {
+          killRequested = child.kill("SIGKILL");
         }
       },
     },
   );
-  if (!killed) throw new Error(`crash worker never reached byte cut ${cut}`);
-  return { exitCode: result.code, signal: result.signal || "forced" };
+  if (!killRequested) {
+    throw new Error(`crash worker never accepted SIGKILL at byte cut ${cut}`);
+  }
+  const signal = result.signal || null;
+  return {
+    exitCode: result.code,
+    signal,
+    killRequested,
+    killConfirmed: signal === "SIGKILL",
+  };
 }
 
 async function killAtPipelinePoint(home, sessionId, point) {
-  let killed = false;
+  let killRequested = false;
   let ready = null;
   let lockOwnerMatched = false;
   const lockOwnerPath = `${join(
@@ -986,16 +1073,20 @@ async function killAtPipelinePoint(home, sessionId, point) {
       timeoutMs: 30_000,
       acceptKilled: true,
       onStdout(stdout, child) {
-        if (killed) return;
+        if (killRequested) return;
         for (const line of stdout.split(/\r?\n/).filter(Boolean)) {
           try {
             const parsed = JSON.parse(line);
             if (!parsed?.ready || parsed.point !== point) continue;
             ready = parsed;
-            const owner = JSON.parse(readFileSync(lockOwnerPath, "utf8"));
-            lockOwnerMatched = owner?.pid === parsed.pid;
-            killed = true;
-            child.kill("SIGKILL");
+            try {
+              const owner = JSON.parse(readFileSync(lockOwnerPath, "utf8"));
+              lockOwnerMatched = owner?.pid === parsed.pid;
+            } catch {
+              // The kill must not depend on a diagnostic owner read. A failed
+              // read remains a case failure through lockOwnerMatched=false.
+            }
+            killRequested = child.kill("SIGKILL");
             break;
           } catch {
             // The callback may observe a partial stdout chunk. The cumulative
@@ -1005,26 +1096,58 @@ async function killAtPipelinePoint(home, sessionId, point) {
       },
     },
   );
-  if (!killed || !ready) {
-    throw new Error(`pipeline crash worker never reached ${point}`);
+  if (!killRequested || !ready) {
+    throw new Error(`pipeline crash worker never accepted SIGKILL at ${point}`);
   }
+  const signal = result.signal || null;
   return {
     exitCode: result.code,
-    signal: result.signal || "forced",
+    signal,
+    killRequested,
+    killConfirmed: signal === "SIGKILL",
     eventHash: ready.eventHash,
     lockOwnerMatched,
   };
 }
 
-async function runPipelineKillCase(store, sessionIndex, home, point) {
+async function runPipelineKillCase(
+  store,
+  sessionIndex,
+  antiRollback,
+  home,
+  specification,
+) {
+  const {
+    point,
+    createsSession = false,
+    posixOnly = false,
+    canonicalMetaCommitted = false,
+    activityCommitted = false,
+    anchorCommitted = false,
+    expectedBoundary,
+  } = specification;
+  if (posixOnly && process.platform === "win32") {
+    return {
+      pass: true,
+      point,
+      productionAppendEvent: true,
+      skipped: true,
+      reason:
+        "Node does not expose a usable Windows directory fsync; file FlushFileBuffers remains covered",
+      expectedBoundary,
+    };
+  }
+
   const sessionId = `scale-pipeline-${point}`;
-  store.startSession(sessionId, { title: `pipeline ${point}` });
-  const baseline = store.readEvents(sessionId).at(-1);
+  let baseline = null;
+  if (!createsSession) {
+    store.startSession(sessionId, { title: `pipeline ${point}` });
+    baseline = store.readEvents(sessionId).at(-1);
+  }
   const termination = await killAtPipelinePoint(home, sessionId, point);
   const sessionsDir = join(home, "sessions");
   const filePath = store.sessionPath(sessionId);
   const beforeDryRun = readFileSync(filePath);
-  const verificationBeforeRepair = store.verifySession(sessionId);
   const sidecarBeforeRepair = sessionIndex.readSessionMeta(
     sessionsDir,
     sessionId,
@@ -1033,10 +1156,37 @@ async function runPipelineKillCase(store, sessionIndex, home, point) {
     sessionsDir,
     sessionId,
   );
+  // Capture the external witness before any store presence/verification read:
+  // getSessionPresence deliberately adjudicates an exact transcript+meta pair
+  // and may advance a stale external prefix as part of safe crash recovery.
+  const anchorAtKillBoundary =
+    antiRollback.readSessionAntiRollbackAnchor(sessionId);
+  const verificationBeforeRepair = store.verifySession(sessionId);
+  const anchorAfterPresenceAdjudication =
+    antiRollback.readSessionAntiRollbackAnchor(sessionId);
+  const expectedEventCount = createsSession ? 1 : 2;
+  const baselineEventCount = createsSession ? null : 1;
+  const expectedSidecarCount = canonicalMetaCommitted
+    ? expectedEventCount
+    : baselineEventCount;
+  const expectedActivityCount = activityCommitted
+    ? expectedEventCount
+    : baselineEventCount;
+  const expectedAnchorCount = anchorCommitted
+    ? expectedEventCount
+    : baselineEventCount;
+  const expectedAnchorAfterPresenceCount = canonicalMetaCommitted
+    ? expectedEventCount
+    : expectedAnchorCount;
+  const indexRepairRequired =
+    expectedSidecarCount !== expectedEventCount ||
+    expectedActivityCount !== expectedEventCount;
   const dryRun = store.repairSession(sessionId, { dryRun: true });
   const dryRunPreservedBytes = readFileSync(filePath).equals(beforeDryRun);
   const repaired = store.repairSession(sessionId);
   const repairedPreservedBytes = readFileSync(filePath).equals(beforeDryRun);
+  const anchorImmediatelyAfterRepair =
+    antiRollback.readSessionAntiRollbackAnchor(sessionId);
   const verification = store.verifySession(sessionId);
   const sidecarAfterRepair = sessionIndex.readSessionMeta(
     sessionsDir,
@@ -1046,54 +1196,80 @@ async function runPipelineKillCase(store, sessionIndex, home, point) {
     sessionsDir,
     sessionId,
   );
-  const expectedSidecarCount = point === "after-sidecar" ? 2 : 1;
-  const expectedSidecarHash =
-    point === "after-sidecar" ? termination.eventHash : baseline?.hash;
+  // A verified authority read is the restart adjudicator: it proves the old
+  // external witness is an exact prefix before advancing it to the repaired
+  // canonical head. This must never bless a forked/equal-count transcript.
+  const recoveredEvents = store.readVerifiedEvents(sessionId);
+  const anchorAfterAdjudication =
+    antiRollback.readSessionAntiRollbackAnchor(sessionId);
+  const expectedSidecarHash = canonicalMetaCommitted
+    ? termination.eventHash
+    : baseline?.hash || null;
   const pass =
+    termination.killConfirmed === true &&
     termination.lockOwnerMatched === true &&
     verificationBeforeRepair.status === "verified" &&
-    verificationBeforeRepair.chainedEvents === 2 &&
-    sidecarBeforeRepair?.event_count === expectedSidecarCount &&
-    sidecarBeforeRepair?.last_hash === expectedSidecarHash &&
-    activityBeforeRepair?.event_count === 1 &&
-    activityBeforeRepair?.last_hash === baseline?.hash &&
+    verificationBeforeRepair.chainedEvents === expectedEventCount &&
+    (sidecarBeforeRepair?.event_count ?? null) === expectedSidecarCount &&
+    (sidecarBeforeRepair?.last_hash ?? null) === expectedSidecarHash &&
+    (activityBeforeRepair?.event_count ?? null) === expectedActivityCount &&
+    (activityBeforeRepair?.last_hash ?? null) ===
+      (activityCommitted ? termination.eventHash : baseline?.hash || null) &&
+    (anchorAtKillBoundary?.eventCount ?? null) === expectedAnchorCount &&
+    (anchorAtKillBoundary?.headHash ?? null) ===
+      (anchorCommitted ? termination.eventHash : baseline?.hash || null) &&
+    (anchorAfterPresenceAdjudication?.eventCount ?? null) ===
+      expectedAnchorAfterPresenceCount &&
+    (anchorAfterPresenceAdjudication?.headHash ?? null) ===
+      (canonicalMetaCommitted || anchorCommitted
+        ? termination.eventHash
+        : baseline?.hash || null) &&
     dryRun.changed === false &&
     dryRun.physicalChanged === false &&
-    dryRun.indexRepairRequired === true &&
-    dryRun.wouldChange === true &&
-    dryRun.action === "rebuild-index" &&
-    dryRun.indexAction === "rebuild-index" &&
-    dryRun.healthy === false &&
+    dryRun.indexRepairRequired === indexRepairRequired &&
+    dryRun.wouldChange === indexRepairRequired &&
+    dryRun.action === (indexRepairRequired ? "rebuild-index" : "none") &&
+    dryRun.indexAction === (indexRepairRequired ? "rebuild-index" : "none") &&
+    dryRun.healthy === !indexRepairRequired &&
     dryRunPreservedBytes &&
-    repaired.changed === true &&
+    repaired.changed === indexRepairRequired &&
     repaired.physicalChanged === false &&
-    repaired.indexChanged === true &&
-    repaired.indexRebuilt === true &&
+    repaired.indexChanged === indexRepairRequired &&
+    repaired.indexRebuilt === indexRepairRequired &&
     repaired.healthy === true &&
-    repaired.action === "rebuild-index" &&
+    repaired.action === (indexRepairRequired ? "rebuild-index" : "none") &&
     repaired.discardedBytes === 0 &&
     repaired.discardedRecords === 0 &&
     repairedPreservedBytes &&
+    repaired.authorityAnchored === true &&
+    anchorImmediatelyAfterRepair?.eventCount === expectedEventCount &&
+    anchorImmediatelyAfterRepair?.headHash === termination.eventHash &&
     verification.status === "verified" &&
-    verification.chainedEvents === 2 &&
-    sidecarAfterRepair?.event_count === 2 &&
+    verification.chainedEvents === expectedEventCount &&
+    sidecarAfterRepair?.event_count === expectedEventCount &&
     sidecarAfterRepair?.last_hash === termination.eventHash &&
-    activityAfterRepair?.event_count === 2 &&
+    activityAfterRepair?.event_count === expectedEventCount &&
     activityAfterRepair?.last_hash === termination.eventHash &&
+    recoveredEvents.length === expectedEventCount &&
+    recoveredEvents.at(-1)?.hash === termination.eventHash &&
+    anchorAfterAdjudication?.eventCount === expectedEventCount &&
+    anchorAfterAdjudication?.headHash === termination.eventHash &&
     !existsSync(`${filePath}.lock`);
   return {
     pass,
     point,
     productionAppendEvent: true,
-    expectedBoundary:
-      point === "after-sidecar"
-        ? "transcript-and-sidecar-before-activity-journal"
-        : "transcript-before-sidecar-and-activity-journal",
+    createsSession,
+    skipped: false,
+    expectedBoundary,
     ...termination,
     stateBeforeRepair: {
       transcriptEvents: verificationBeforeRepair.chainedEvents,
       sidecarEvents: sidecarBeforeRepair?.event_count ?? null,
       activityEvents: activityBeforeRepair?.event_count ?? null,
+      externalAnchorEvents: anchorAtKillBoundary?.eventCount ?? null,
+      externalAnchorEventsAfterPresence:
+        anchorAfterPresenceAdjudication?.eventCount ?? null,
     },
     dryRun: {
       action: dryRun.action,
@@ -1108,6 +1284,15 @@ async function runPipelineKillCase(store, sessionIndex, home, point) {
       indexRebuilt: repaired.indexRebuilt,
       healthy: repaired.healthy,
       bytesPreserved: repairedPreservedBytes,
+      authorityAnchored: repaired.authorityAnchored,
+      externalAnchorEvents: anchorImmediatelyAfterRepair?.eventCount ?? null,
+    },
+    adjudication: {
+      recoveredEvents: recoveredEvents.length,
+      externalAnchorEvents: anchorAfterAdjudication?.eventCount ?? null,
+      exactHead:
+        anchorAfterAdjudication?.headHash === termination.eventHash &&
+        recoveredEvents.at(-1)?.hash === termination.eventHash,
     },
     chainStatus: verification.status,
     chainedEvents: verification.chainedEvents,
@@ -1136,6 +1321,7 @@ function chooseKillCuts(recordLength, count) {
 async function runCrashRepairScenario(
   store,
   sessionIndex,
+  antiRollback,
   computeEventHash,
   home,
   profile,
@@ -1151,9 +1337,15 @@ async function runCrashRepairScenario(
   );
   const recordBytes = template.length;
   const productionAppendPipelineKills = [];
-  for (const point of ["after-transcript", "after-sidecar"]) {
+  for (const specification of PRODUCTION_PIPELINE_KILL_POINTS) {
     productionAppendPipelineKills.push(
-      await runPipelineKillCase(store, sessionIndex, home, point),
+      await runPipelineKillCase(
+        store,
+        sessionIndex,
+        antiRollback,
+        home,
+        specification,
+      ),
     );
   }
   const actualKillResults = [];
@@ -1237,6 +1429,11 @@ async function runCrashRepairScenario(
   if (actualKillResults.some((item) => !item.pass)) {
     violations.push("one or more real kill cases repaired incorrectly");
   }
+  if (actualKillResults.some((item) => item.killConfirmed !== true)) {
+    violations.push(
+      "one or more partial-record SIGKILL requests were not confirmed",
+    );
+  }
   if (productionAppendPipelineKills.some((item) => !item.pass)) {
     violations.push(
       "one or more production append pipeline kills repaired incorrectly",
@@ -1264,8 +1461,19 @@ async function runCrashRepairScenario(
   return {
     pass: violations.length === 0,
     recordBytes: template.length,
+    faultModel: {
+      kind: "process-sigkill-at-production-persistence-boundary",
+      namedHostCallCompletesBeforeKill: true,
+      physicalPowerLossSimulated: false,
+      preexistingDurableStateRootsRequired: true,
+      windowsDirectoryFsyncAvailableThroughNode: false,
+      allowedRestartOutcomes: ["exact-old", "exact-new", "blocked"],
+    },
     actualProcessKillsTotal:
-      actualKillResults.length + productionAppendPipelineKills.length,
+      actualKillResults.filter((item) => item.killConfirmed === true).length +
+      productionAppendPipelineKills.filter(
+        (item) => !item.skipped && item.killConfirmed === true,
+      ).length,
     partialRecordProcessKills: actualKillResults,
     productionAppendPipelineKills,
     byteCutCoverage: {
@@ -1370,6 +1578,8 @@ export async function runSessionScaleGate() {
     const { computeEventHash } =
       await import("../src/harness/transcript-integrity.js");
     const sessionIndex = await import("../src/harness/session-list-index.js");
+    const antiRollback =
+      await import("../src/lib/session-anti-rollback-anchor.js");
 
     const runScenario = async (name, task) => {
       const scenarioStarted = performance.now();
@@ -1414,6 +1624,7 @@ export async function runSessionScaleGate() {
       runCrashRepairScenario(
         store,
         sessionIndex,
+        antiRollback,
         computeEventHash,
         crashHome,
         profile,

@@ -90,11 +90,22 @@ export const _sessionScaleFaultHooks = Object.seal({
   beforeTranscriptDirectoryFsync: null,
   afterTranscriptDirectoryFsync: null,
   afterTranscriptAppend: null,
+  beforeTailRepairFsync: null,
+  afterTailRepairFsync: null,
   beforeVerifiedProjectionRepair: null,
   afterForkCopy: null,
+  beforeForkCopyFsync: null,
+  afterForkCopyFsync: null,
   afterForkLineage: null,
+  beforeForkLineageFsync: null,
+  afterForkLineageFsync: null,
   afterForkPublish: null,
+  beforeForkDirectoryFsync: null,
+  afterForkDirectoryFsync: null,
   afterForkMeta: null,
+  beforeDeleteDirectoryFsync: null,
+  afterDeleteDirectoryFsync: null,
+  afterAntiRollbackPublish: null,
 });
 
 export const WS_TURN_EVENT = "ws_turn";
@@ -575,6 +586,48 @@ function runSessionScaleFaultHook(name, payload) {
   if (typeof hook === "function") hook(payload);
 }
 
+function fsyncRegularFilePath(filePath, payload, beforeHook, afterHook) {
+  runSessionScaleFaultHook(beforeHook, payload);
+  let descriptor = null;
+  try {
+    const flags = fsConstants.O_RDWR | Number(fsConstants.O_NOFOLLOW ?? 0);
+    descriptor = openSync(filePath, flags);
+    const stats = fstatSync(descriptor);
+    if (!stats.isFile()) {
+      throw new Error(`Session durability target is not a file: ${filePath}`);
+    }
+    fsyncSync(descriptor);
+    runSessionScaleFaultHook(afterHook, payload);
+  } finally {
+    if (descriptor !== null) closeSync(descriptor);
+  }
+}
+
+function fsyncParentDirectory(filePath, payload, beforeHook, afterHook) {
+  // Node does not expose a usable directory FlushFileBuffers handle on
+  // Windows. The file itself is still flushed before publication there.
+  if (process.platform === "win32") return;
+  runSessionScaleFaultHook(beforeHook, payload);
+  let descriptor = null;
+  try {
+    const flags =
+      fsConstants.O_RDONLY |
+      Number(fsConstants.O_DIRECTORY ?? 0) |
+      Number(fsConstants.O_NOFOLLOW ?? 0);
+    descriptor = openSync(dirname(filePath), flags);
+    const stats = fstatSync(descriptor);
+    if (!stats.isDirectory()) {
+      throw new Error(
+        `Session durability parent is not a directory: ${dirname(filePath)}`,
+      );
+    }
+    fsyncSync(descriptor);
+    runSessionScaleFaultHook(afterHook, payload);
+  } finally {
+    if (descriptor !== null) closeSync(descriptor);
+  }
+}
+
 function getSessionsDir() {
   const dir = join(getHomeDir(), "sessions");
   let current = null;
@@ -740,7 +793,6 @@ function inspectPhysicalTail(filePath, { dryRun = false } = {}) {
   };
   if (!existsSync(filePath)) return result;
   const fd = openSync(filePath, "r+");
-  let normalizeNewline = false;
   try {
     const size = fstatSync(fd).size;
     result.fileSize = size;
@@ -778,7 +830,15 @@ function inspectPhysicalTail(filePath, { dryRun = false } = {}) {
           // it and normalize before appending the next chained event.
           result.action = "normalize-newline";
           result.changed = true;
-          normalizeNewline = !dryRun;
+          if (!dryRun) {
+            const newline = Buffer.from("\n", "utf8");
+            const written = writeSync(fd, newline, 0, newline.length, size);
+            if (written !== newline.length) {
+              throw new Error(
+                "Session transcript tail repair made no forward progress",
+              );
+            }
+          }
         } catch (error) {
           rethrowCanonicalJsonlRecordLimit(error);
           // Crash tail: discard only the one incomplete physical record.
@@ -790,11 +850,19 @@ function inspectPhysicalTail(filePath, { dryRun = false } = {}) {
         }
       }
     }
+    if (!dryRun && result.changed) {
+      const payload = Object.freeze({
+        filePath,
+        action: result.action,
+        discardedBytes: result.discardedBytes,
+        discardedRecords: result.discardedRecords,
+      });
+      runSessionScaleFaultHook("beforeTailRepairFsync", payload);
+      fsyncSync(fd);
+      runSessionScaleFaultHook("afterTailRepairFsync", payload);
+    }
   } finally {
     closeSync(fd);
-  }
-  if (normalizeNewline) {
-    appendFileSync(filePath, "\n", { encoding: "utf8", mode: 0o600 });
   }
   if (!dryRun && result.changed) ensurePrivateFile(filePath);
   return result;
@@ -904,6 +972,17 @@ function appendVerifiedWsAuthorityEventLocked(
       },
     );
     publishSessionAntiRollbackWitness(sessionId, nextMeta, filePath, "live");
+    runSessionScaleFaultHook(
+      "afterAntiRollbackPublish",
+      Object.freeze({
+        sessionId,
+        type,
+        event,
+        hash,
+        meta: nextMeta,
+        filePath,
+      }),
+    );
   } catch (cause) {
     const error = new Error(
       `Session authority anchor could not be persisted: ${sessionId}`,
@@ -1535,6 +1614,17 @@ function appendEventLocked(
           nextMeta,
           filePath,
           "live",
+        );
+        runSessionScaleFaultHook(
+          "afterAntiRollbackPublish",
+          Object.freeze({
+            sessionId,
+            type,
+            event,
+            hash,
+            meta: nextMeta,
+            filePath,
+          }),
         );
       } catch (cause) {
         const error = new Error(
@@ -2205,13 +2295,21 @@ export function verifyAllSessions(options = {}) {
     .map((sessionId) => verifySession(sessionId));
 }
 
-function indexedProjectionMatchesTranscript(meta, verification, validation) {
+function indexedProjectionMatchesTranscript(
+  meta,
+  verification,
+  validation,
+  transcriptState,
+) {
   return (
     verification.status === TRANSCRIPT_CHAIN_STATUS.VERIFIED &&
     validation.valid === true &&
     meta?.deleted !== true &&
     Number(meta?.event_count) === validation.eventCount &&
-    (meta?.last_hash ?? null) === (verification.lastHash ?? null)
+    (meta?.last_hash ?? null) === (verification.lastHash ?? null) &&
+    meta?.transcript != null &&
+    transcriptState != null &&
+    samePhysicalTranscriptState(meta.transcript, transcriptState)
   );
 }
 
@@ -2263,6 +2361,10 @@ export function repairSession(sessionId, options = {}) {
           indexRepairRequired: false,
           indexRebuilt: false,
           indexRepairError: null,
+          authorityAnchorRequired: false,
+          authorityAnchored: false,
+          authorityAnchorChanged: false,
+          authorityAnchorError: null,
           discardedBytes: 0,
           discardedRecords: 0,
           healthy: false,
@@ -2288,6 +2390,9 @@ export function repairSession(sessionId, options = {}) {
           ? before.truncatedTail || repair.changed
           : after.truncatedTail) &&
         effectiveValidation.valid;
+      const effectiveTranscriptState = transcriptHealthy
+        ? readPhysicalTranscriptState(filePath)
+        : null;
       const currentMeta = readSessionMeta(dir, sessionId);
       const currentActivity = readLatestSessionActivity(dir, sessionId);
       const indexRepairRequired =
@@ -2296,11 +2401,13 @@ export function repairSession(sessionId, options = {}) {
           currentMeta,
           effective,
           effectiveValidation,
+          effectiveTranscriptState,
         ) ||
           !indexedProjectionMatchesTranscript(
             currentActivity,
             effective,
             effectiveValidation,
+            effectiveTranscriptState,
           ));
       let indexRebuilt = false;
       let indexRepairError = null;
@@ -2315,25 +2422,64 @@ export function repairSession(sessionId, options = {}) {
           };
         }
       }
+      const authorityAnchorRequired =
+        transcriptHealthy &&
+        effective.status === TRANSCRIPT_CHAIN_STATUS.VERIFIED;
+      let authorityAnchored = !authorityAnchorRequired;
+      let authorityAnchorChanged = false;
+      let authorityAnchorError = null;
+      if (
+        !dryRun &&
+        authorityAnchorRequired &&
+        (!indexRepairRequired || indexRebuilt)
+      ) {
+        try {
+          const anchorBefore = readSessionAntiRollbackAnchor(sessionId);
+          assertVerifiedTranscriptAnchor(
+            sessionId,
+            effective,
+            effectiveTranscriptState,
+          );
+          const anchorAfter = readSessionAntiRollbackAnchor(sessionId);
+          authorityAnchored = true;
+          authorityAnchorChanged =
+            JSON.stringify(anchorBefore) !== JSON.stringify(anchorAfter);
+        } catch (cause) {
+          authorityAnchorError = {
+            code: cause?.code || null,
+            message: String(cause?.message || cause),
+          };
+        }
+      }
       const healthy = dryRun
         ? transcriptHealthy && !repair.changed && !indexRepairRequired
-        : transcriptHealthy && (!indexRepairRequired || indexRebuilt);
+        : transcriptHealthy &&
+          (!indexRepairRequired || indexRebuilt) &&
+          authorityAnchored;
       return {
         sessionId,
         dryRun,
-        changed: repair.changed || indexRebuilt,
+        changed: repair.changed || indexRebuilt || authorityAnchorChanged,
         physicalChanged: repair.changed,
         indexChanged: indexRebuilt,
         wouldChange: dryRun && (repair.changed || indexRepairRequired),
         action:
-          repair.action === "none" && indexRepairRequired
-            ? "rebuild-index"
-            : repair.action,
+          repair.action !== "none"
+            ? repair.action
+            : indexRepairRequired
+              ? "rebuild-index"
+              : authorityAnchorChanged
+                ? "repair-anchor"
+                : "none",
         physicalAction: repair.action,
         indexAction: indexRepairRequired ? "rebuild-index" : "none",
         indexRepairRequired,
         indexRebuilt,
         indexRepairError,
+        authorityAnchorRequired,
+        authorityAnchored,
+        authorityAnchorChanged,
+        authorityAnchorError,
         discardedBytes: repair.discardedBytes,
         discardedRecords: repair.discardedRecords,
         healthy,
@@ -2351,9 +2497,11 @@ export function repairSession(sessionId, options = {}) {
                 "transcript remains structurally invalid"
               : indexRepairError
                 ? `session metadata index rebuild failed: ${indexRepairError.message}`
-                : indexRepairRequired && dryRun
-                  ? "session metadata index requires rebuild"
-                  : null,
+                : authorityAnchorError
+                  ? `session external authority anchor repair failed: ${authorityAnchorError.message}`
+                  : indexRepairRequired && dryRun
+                    ? "session metadata index requires rebuild"
+                    : null,
       };
     },
     { failIfUnavailable: true },
@@ -3666,7 +3814,13 @@ export function renameSession(sessionId, title) {
 export function deleteJsonlSession(sessionId) {
   if (isUnsafeSessionId(sessionId)) return false;
   const filePath = sessionPath(sessionId);
-  if (!existsSync(filePath) && !hasLiveSessionWitness(sessionId)) return false;
+  if (
+    !existsSync(filePath) &&
+    readSessionPersistenceWitness(sessionId)?.deleted !== true &&
+    !hasLiveSessionWitness(sessionId)
+  ) {
+    return false;
+  }
   return withSessionHostWriterLock(
     sessionId,
     filePath,
@@ -3675,10 +3829,32 @@ export function deleteJsonlSession(sessionId) {
       let existingMeta = readSessionPersistenceWitness(sessionId);
       const marker = readSessionTombstoneMarker(getSessionsDir(), sessionId);
       const externalAnchor = readSessionAntiRollbackAnchor(sessionId);
-      if (
-        !transcriptExists &&
-        (existingMeta === null || existingMeta?.deleted === true)
-      ) {
+      if (!transcriptExists && existingMeta?.deleted === true) {
+        // recordSessionDeleted publishes meta before the independent witness.
+        // Re-emit the exact tombstone to settle its file/directory barriers,
+        // then advance the external anchor before an interrupted delete retry
+        // reports success.
+        const timestamp =
+          Math.max(
+            0,
+            Number(existingMeta.deleted_at_ms) ||
+              Number(existingMeta.updated_at_ms) ||
+              Date.now(),
+          ) || Date.now();
+        const tombstone = recordSessionDeleted(
+          getSessionsDir(),
+          sessionId,
+          timestamp,
+        );
+        publishSessionAntiRollbackWitness(
+          sessionId,
+          tombstone,
+          filePath,
+          "deleted",
+        );
+        return externalAnchor?.status !== "deleted";
+      }
+      if (!transcriptExists && existingMeta === null) {
         return false;
       }
       const deletionWitness =
@@ -3728,6 +3904,15 @@ export function deleteJsonlSession(sessionId) {
         });
       }
       if (transcriptExists) rmSync(filePath, { force: true });
+      // The external tombstone is published only after the absent transcript
+      // directory entry is durable. A retry after an interrupted unlink must
+      // repeat this barrier even though the path is already absent in memory.
+      fsyncParentDirectory(
+        filePath,
+        Object.freeze({ sessionId, filePath, operation: "delete" }),
+        "beforeDeleteDirectoryFsync",
+        "afterDeleteDirectoryFsync",
+      );
       try {
         const tombstone = recordSessionDeleted(getSessionsDir(), sessionId);
         publishSessionAntiRollbackWitness(
@@ -3737,15 +3922,23 @@ export function deleteJsonlSession(sessionId) {
           "deleted",
         );
       } catch (error) {
-        // writeMetaAtomic precedes the activity-journal append. If only the
-        // rebuildable journal lock/release failed, the durable sidecar still
-        // prevents a stale writer from resurrecting this deleted session.
+        // A complete anti-rollback record is readable before its fsync. If
+        // rollback also fails, readback alone cannot prove durability. Only
+        // swallow a post-meta failure after an exact replay has settled the
+        // deleted record through the production persistence path.
+        const tombstone = readSessionMeta(getSessionsDir(), sessionId);
         if (
-          readSessionMeta(getSessionsDir(), sessionId)?.deleted !== true ||
+          tombstone?.deleted !== true ||
           readSessionAntiRollbackAnchor(sessionId)?.status !== "deleted"
         ) {
           throw error;
         }
+        publishSessionAntiRollbackWitness(
+          sessionId,
+          tombstone,
+          filePath,
+          "deleted",
+        );
       }
       return true;
     },
@@ -3943,6 +4136,17 @@ export function forkSession(sourceId, options = {}) {
               sessionId: newId,
               filePath: workingPath,
             });
+            fsyncRegularFilePath(
+              workingPath,
+              Object.freeze({
+                sourceId,
+                sessionId: newId,
+                filePath: workingPath,
+                phase: "copy",
+              }),
+              "beforeForkCopyFsync",
+              "afterForkCopyFsync",
+            );
           } else {
             const prefix = compareFilePrefix(workingPath, sourcePath);
             if (prefix.matches && prefix.candidateSize < prefix.fullSize) {
@@ -3963,6 +4167,17 @@ export function forkSession(sourceId, options = {}) {
                 sessionId: newId,
                 filePath: workingPath,
               });
+              fsyncRegularFilePath(
+                workingPath,
+                Object.freeze({
+                  sourceId,
+                  sessionId: newId,
+                  filePath: workingPath,
+                  phase: "copy",
+                }),
+                "beforeForkCopyFsync",
+                "afterForkCopyFsync",
+              );
             }
           }
 
@@ -4027,6 +4242,7 @@ export function forkSession(sourceId, options = {}) {
             target.verification.chainedEvents ===
               sourceVerification.chainedEvents;
 
+          let lineageFsynced = false;
           if (exactSourceCopy) {
             if (targetMeta !== null) {
               throw unverifiedTranscriptError(newId, target.verification);
@@ -4079,6 +4295,19 @@ export function forkSession(sourceId, options = {}) {
               filePath: workingPath,
               event: lineageEvent,
             });
+            fsyncRegularFilePath(
+              workingPath,
+              Object.freeze({
+                sourceId,
+                sessionId: newId,
+                filePath: workingPath,
+                phase: "lineage",
+                event: lineageEvent,
+              }),
+              "beforeForkLineageFsync",
+              "afterForkLineageFsync",
+            );
+            lineageFsynced = true;
             target = inspectTarget();
             targetMeta = readSessionMeta(sessionsDir, newId);
           }
@@ -4133,12 +4362,35 @@ export function forkSession(sourceId, options = {}) {
             throw unverifiedTranscriptError(newId, target.verification);
           }
 
+          // A retry may inherit a complete lineage record from a process that
+          // exited at the pre-fsync hook. Flush that exact verified candidate
+          // before it can cross the rename/publication boundary.
+          if (!lineageFsynced && targetMeta === null) {
+            fsyncRegularFilePath(
+              workingPath,
+              Object.freeze({
+                sourceId,
+                sessionId: newId,
+                filePath: workingPath,
+                phase: "lineage-recovery",
+                event: target.lineageEvent,
+              }),
+              "beforeForkLineageFsync",
+              "afterForkLineageFsync",
+            );
+            lineageFsynced = true;
+          }
+
           const anchorMatchesTarget =
             targetMeta?.deleted !== true &&
             targetMeta?.last_hash === target.verification.lastHash &&
             Number(targetMeta?.event_count) ===
               target.verification.chainedEvents;
           if (anchorMatchesTarget) {
+            // Meta publication precedes the independent machine-local witness.
+            // A process can die in that exact window, so an idempotent fork
+            // retry must settle the external anchor before reporting success.
+            assertVerifiedTranscriptAnchor(newId, target.verification);
             const activity = readLatestSessionActivity(sessionsDir, newId);
             if (
               activity?.deleted === true ||
@@ -4198,6 +4450,22 @@ export function forkSession(sourceId, options = {}) {
               filePath: workingPath,
             });
           }
+
+          // The sidecar and anti-rollback witness below may only advance after
+          // the final transcript directory entry is durable on POSIX. This is
+          // also required on a retry that inherited the final path from a crash
+          // immediately after rename.
+          fsyncParentDirectory(
+            filePath,
+            Object.freeze({
+              sourceId,
+              sessionId: newId,
+              filePath,
+              operation: "fork-publish",
+            }),
+            "beforeForkDirectoryFsync",
+            "afterForkDirectoryFsync",
+          );
 
           rebuildSessionMetaUnlocked(sessionsDir, newId, filePath);
           runSessionScaleFaultHook("afterForkMeta", {

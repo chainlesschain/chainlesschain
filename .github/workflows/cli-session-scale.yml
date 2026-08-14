@@ -16,6 +16,7 @@ on:
       - "packages/cli/src/commands/session-show.js"
       - "packages/cli/src/lib/pr-link-store.js"
       - "packages/cli/src/lib/file-lines.js"
+      - "packages/cli/src/lib/session-anti-rollback-anchor.js"
       - "packages/cli/src/lib/paths.js"
       - "packages/cli/src/lib/secure-fs.js"
       - "packages/cli/src/lib/with-file-lock.js"
@@ -24,6 +25,7 @@ on:
       - "packages/cli/__tests__/fixtures/session-scale-*.mjs"
       - "packages/cli/__tests__/unit/jsonl-session-store.test.js"
       - "packages/cli/__tests__/unit/session-list-index.test.js"
+      - "packages/cli/__tests__/unit/session-anti-rollback-anchor.test.js"
       - "packages/cli/__tests__/unit/session-*scale*.test.js"
   schedule:
     - cron: "41 4 * * 2"
