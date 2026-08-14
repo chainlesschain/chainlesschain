@@ -568,13 +568,13 @@ describe("system clipboard image readers", () => {
     expect(runTiffFallback()).toBe("tiff-png");
     expect(unwrap).toHaveBeenCalledTimes(6);
     omittedMetadataKey = depthKey;
-    expect(runTiffFallback()).toBe("invalid:tiff-depth-missing");
+    expect(runTiffFallback()).toBe("invalid:tiff-depth-candidate-missing");
     expect(unwrap).toHaveBeenCalledTimes(8);
 
     omittedMetadataKey = null;
     const readsBeforeBoundCheck = allKeysReads;
     properties.count = "257";
-    expect(runTiffFallback()).toBe("invalid:tiff-width-missing");
+    expect(runTiffFallback()).toBe("invalid:tiff-width-count-invalid");
     expect(allKeysReads).toBe(readsBeforeBoundCheck);
 
     properties.count = String(metadataKeys.length);

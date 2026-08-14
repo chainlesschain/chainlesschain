@@ -93,15 +93,21 @@ ObjC.import("AppKit");
 ObjC.import("Foundation");
 ObjC.import("ImageIO");
 
+var propertyLookupStatus = "not-read";
+
 function isObjCNil(value) {
   return value == null ||
     (typeof value.isNil === "function" && value.isNil());
 }
 
 function propertyValue(properties, key, publicName) {
+  propertyLookupStatus = "direct-missing";
   try {
     const directValue = properties.objectForKey(key);
-    if (!isObjCNil(directValue)) return directValue;
+    if (!isObjCNil(directValue)) {
+      propertyLookupStatus = "direct";
+      return directValue;
+    }
   } catch {
     // Fall through to a shallow lookup with the dictionary-owned keys.
   }
@@ -116,18 +122,30 @@ function propertyValue(properties, key, publicName) {
     propertyCount < 1 ||
     propertyCount > 256
   ) {
+    propertyLookupStatus = "count-invalid";
     return null;
   }
   const keys = properties.allKeys;
-  if (isObjCNil(keys)) return null;
+  if (isObjCNil(keys)) {
+    propertyLookupStatus = "keys-missing";
+    return null;
+  }
   const keyCount = Number(keys.count);
-  if (keyCount !== propertyCount) return null;
+  if (keyCount !== propertyCount) {
+    propertyLookupStatus = "keys-count-mismatch";
+    return null;
+  }
   for (let index = 0; index < keyCount; index += 1) {
     const candidate = keys.objectAtIndex(index);
     if (propertyStringEquals(candidate, publicName)) {
-      return properties.objectForKey(candidate);
+      const candidateValue = properties.objectForKey(candidate);
+      propertyLookupStatus = isObjCNil(candidateValue)
+        ? "candidate-missing"
+        : "candidate";
+      return candidateValue;
     }
   }
+  propertyLookupStatus = "name-missing";
   return null;
 }
 
@@ -218,7 +236,7 @@ function run(argv) {
         $.kCGImagePropertyPixelWidth,
         "PixelWidth",
       );
-      if (width === null) return "invalid:tiff-width-missing";
+      if (width === null) return "invalid:tiff-width-" + propertyLookupStatus;
       if (!Number.isSafeInteger(width) || width <= 0) {
         return "invalid:tiff-width-value";
       }
@@ -228,7 +246,9 @@ function run(argv) {
         $.kCGImagePropertyPixelHeight,
         "PixelHeight",
       );
-      if (height === null) return "invalid:tiff-height-missing";
+      if (height === null) {
+        return "invalid:tiff-height-" + propertyLookupStatus;
+      }
       if (!Number.isSafeInteger(height) || height <= 0) {
         return "invalid:tiff-height-value";
       }
@@ -238,7 +258,7 @@ function run(argv) {
         $.kCGImagePropertyDepth,
         "Depth",
       );
-      if (depth === null) return "invalid:tiff-depth-missing";
+      if (depth === null) return "invalid:tiff-depth-" + propertyLookupStatus;
       if (!Number.isSafeInteger(depth) || depth <= 0) {
         return "invalid:tiff-depth-value";
       }
