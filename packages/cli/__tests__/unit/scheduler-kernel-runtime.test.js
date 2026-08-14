@@ -439,6 +439,258 @@ describe("scheduler-kernel runtime", () => {
     });
   });
 
+  it("acknowledges a declared before-execute pause without invoking the adapter", async () => {
+    const f = fixture();
+    const store = f.open();
+    const occurrence = enqueue(store, f, { job: { maxAttempts: 1 } });
+    const runtimeControl = {
+      schemaVersion: 1,
+      pauseResume: "checkpoint_v1",
+      safePoints: ["before_execute"],
+    };
+    const execute = vi.fn(async () => ({ completed: true }));
+    let requested = false;
+    const runtime = new SchedulerRuntime({
+      store,
+      ownerId: "before-execute-owner",
+      leaseMs: 10_000,
+      adapters: [{ kind: "test.runtime", runtimeControl, execute }],
+      authorize: ({ occurrence: claimed }) => {
+        if (!requested) {
+          requested = true;
+          store.requestOccurrencePause({
+            occurrenceId: claimed.id,
+            expectedFence: claimed.fence,
+            requestId: "runtime-before-execute-pause",
+            capability: runtimeControl,
+          });
+        }
+        return { allowed: true };
+      },
+    });
+
+    await expect(runtime.runOccurrence(occurrence.id)).resolves.toMatchObject({
+      status: "paused",
+      occurrence: { id: occurrence.id, attempt: 1, status: "retry_wait" },
+      control: {
+        state: "paused",
+        checkpoint: {
+          safePoint: "before_execute",
+          data: { adapterStarted: false },
+        },
+      },
+    });
+    expect(execute).not.toHaveBeenCalled();
+    const control = store.getOccurrenceControl(occurrence.id);
+    store.resumeOccurrence({
+      occurrenceId: occurrence.id,
+      expectedRevision: control.revision,
+      requestId: "runtime-before-execute-resume",
+    });
+    await expect(runtime.runOccurrence(occurrence.id)).resolves.toMatchObject({
+      status: "succeeded",
+      occurrence: { id: occurrence.id, attempt: 1, fence: 2 },
+    });
+    expect(execute).toHaveBeenCalledTimes(1);
+  });
+
+  it("resumes from a durable adapter checkpoint without replaying earlier effects", async () => {
+    const f = fixture();
+    const store = f.open();
+    const occurrence = enqueue(store, f);
+    const runtimeControl = {
+      schemaVersion: 1,
+      pauseResume: "checkpoint_v1",
+      safePoints: ["adapter_checkpoint"],
+    };
+    const classifyError = vi.fn();
+    const effects = [];
+    const execute = vi.fn(async (context) => {
+      effects.push("effect:0", "effect:1", "effect:2");
+      store.requestOccurrencePause({
+        occurrenceId: context.occurrence.id,
+        expectedFence: context.occurrence.fence,
+        requestId: "runtime-adapter-checkpoint-pause",
+        capability: runtimeControl,
+      });
+      context.checkpoint({ cursor: 3, phase: "write-safe" });
+      return { unreachable: true };
+    });
+    const resume = vi.fn(async (context, checkpoint) => {
+      expect(context.resumeCheckpoint).toEqual(checkpoint);
+      expect(checkpoint).toEqual({
+        schemaVersion: 1,
+        safePoint: "adapter_checkpoint",
+        data: { cursor: 3, phase: "write-safe" },
+      });
+      for (let cursor = checkpoint.data.cursor; cursor < 6; cursor += 1) {
+        effects.push(`effect:${cursor}`);
+      }
+      return { resumedFrom: checkpoint.data.cursor };
+    });
+    const runtime = new SchedulerRuntime({
+      store,
+      ownerId: "adapter-checkpoint-owner",
+      leaseMs: 10_000,
+      adapters: [
+        {
+          kind: "test.runtime",
+          runtimeControl,
+          execute,
+          resume,
+          classifyError,
+        },
+      ],
+      authorize: () => ({ allowed: true }),
+    });
+
+    const paused = await runtime.runOccurrence(occurrence.id);
+    expect(paused).toMatchObject({
+      status: "paused",
+      occurrence: {
+        id: occurrence.id,
+        status: "retry_wait",
+        attempt: 1,
+        lastError: null,
+      },
+      control: {
+        state: "paused",
+        checkpoint: {
+          safePoint: "adapter_checkpoint",
+          data: { cursor: 3, phase: "write-safe" },
+        },
+      },
+    });
+    expect(classifyError).not.toHaveBeenCalled();
+    expect(
+      store.history({ occurrenceId: occurrence.id }).map((event) => event.type),
+    ).toContain("occurrence_paused");
+    expect(
+      store.history({ occurrenceId: occurrence.id }).map((event) => event.type),
+    ).not.toContain("occurrence_retry_scheduled");
+    store.resumeOccurrence({
+      occurrenceId: occurrence.id,
+      expectedRevision: paused.control.revision,
+      requestId: "runtime-adapter-checkpoint-resume",
+    });
+
+    await expect(runtime.runOccurrence(occurrence.id)).resolves.toMatchObject({
+      status: "succeeded",
+      result: { resumedFrom: 3 },
+      occurrence: { attempt: 1, fence: 2 },
+    });
+    expect(execute).toHaveBeenCalledTimes(1);
+    expect(resume).toHaveBeenCalledTimes(1);
+    expect(effects).toEqual([
+      "effect:0",
+      "effect:1",
+      "effect:2",
+      "effect:3",
+      "effect:4",
+      "effect:5",
+    ]);
+    expect(store.getOccurrenceControl(occurrence.id)).toMatchObject({
+      state: "terminal",
+      checkpoint: { data: { cursor: 3 } },
+    });
+  });
+
+  it("reclaims a crashed resume and continues from the same durable checkpoint", async () => {
+    const f = fixture();
+    const firstStore = f.open();
+    const occurrence = enqueue(firstStore, f, { job: { maxAttempts: 1 } });
+    const runtimeControl = {
+      schemaVersion: 1,
+      pauseResume: "checkpoint_v1",
+      safePoints: ["adapter_checkpoint"],
+    };
+    const firstResume = vi.fn(async () => new Promise(() => {}));
+    const firstRuntime = new SchedulerRuntime({
+      store: firstStore,
+      ownerId: "resume-crash-owner",
+      leaseMs: 1_000,
+      renewIntervalMs: 500,
+      setIntervalFn: () => ({ unref() {} }),
+      clearIntervalFn: () => {},
+      adapters: [
+        {
+          kind: "test.runtime",
+          runtimeControl,
+          execute: async (context) => {
+            firstStore.requestOccurrencePause({
+              occurrenceId: context.occurrence.id,
+              expectedFence: context.occurrence.fence,
+              requestId: "resume-crash-pause",
+              capability: runtimeControl,
+            });
+            context.checkpoint({ cursor: 9 });
+          },
+          resume: firstResume,
+        },
+      ],
+      authorize: () => ({ allowed: true }),
+    });
+    const paused = await firstRuntime.runOccurrence(occurrence.id);
+    firstStore.resumeOccurrence({
+      occurrenceId: occurrence.id,
+      expectedRevision: paused.control.revision,
+      requestId: "resume-crash-request",
+    });
+
+    const abandonedRun = firstRuntime.runOccurrence(occurrence.id);
+    abandonedRun.catch(() => {});
+    await vi.waitFor(() => expect(firstResume).toHaveBeenCalledTimes(1));
+    const abandoned = firstStore.getOccurrence(occurrence.id);
+    expect(firstStore.getOccurrenceControl(occurrence.id)).toMatchObject({
+      state: "resumed",
+      expectedFence: abandoned.fence,
+      checkpoint: { data: { cursor: 9 } },
+    });
+
+    f.now = abandoned.leaseExpiresAt + 1;
+    const recoveredStore = f.open();
+    const recoveredExecute = vi.fn();
+    const recoveredResume = vi.fn(async (_context, checkpoint) => ({
+      resumedFrom: checkpoint.data.cursor,
+    }));
+    const recoveredRuntime = new SchedulerRuntime({
+      store: recoveredStore,
+      ownerId: "resume-recovered-owner",
+      leaseMs: 1_000,
+      adapters: [
+        {
+          kind: "test.runtime",
+          runtimeControl,
+          execute: recoveredExecute,
+          resume: recoveredResume,
+        },
+      ],
+      authorize: () => ({ allowed: true }),
+    });
+
+    await expect(
+      recoveredRuntime.runOccurrence(occurrence.id),
+    ).resolves.toMatchObject({
+      status: "succeeded",
+      result: { resumedFrom: 9 },
+      occurrence: {
+        attempt: 1,
+        fence: abandoned.fence + 1,
+      },
+    });
+    expect(recoveredExecute).not.toHaveBeenCalled();
+    expect(recoveredResume).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resumeCheckpoint: expect.objectContaining({ data: { cursor: 9 } }),
+      }),
+      expect.objectContaining({ data: { cursor: 9 } }),
+    );
+    expect(recoveredStore.getOccurrenceControl(occurrence.id)).toMatchObject({
+      state: "terminal",
+      expectedFence: abandoned.fence + 1,
+    });
+  });
+
   it("never executes one targeted occurrence twice under live contention", async () => {
     const f = fixture();
     const firstStore = f.open();

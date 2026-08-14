@@ -1,12 +1,18 @@
 import { createHash } from "node:crypto";
 import { Buffer } from "node:buffer";
 import {
+  assertAutomationRuntimeBoundary,
   automationExecutionAuthorityDigest,
   automationExecutionAuthoritySnapshot,
   automationSchedulerAuthority,
+  classifyAutomationBoundaryError,
   normalizeAutomationExecutionAuthoritySnapshot,
   reserveAutomationExecutionAuthority,
 } from "../automation-execution-authority.js";
+import {
+  resolveAutomationExecutionIncidentsForSucceededRun,
+  upsertAutomationExecutionIncident,
+} from "../automation-execution-incident.js";
 import {
   EXECUTION_STATUS,
   FLOW_STATUS,
@@ -26,6 +32,7 @@ import {
   normalizeJson,
 } from "./contract.js";
 import { SchedulerRuntime } from "./runtime.js";
+import { CHECKPOINT_V1_RUNTIME_CONTROL } from "./runtime-control-capabilities.js";
 
 export const AUTOMATION_EVENT_KIND = "automation-event";
 export const AUTOMATION_EVENT_CAPABILITY = "automation.execute";
@@ -294,6 +301,39 @@ export function automationEventExecutionId(occurrenceId) {
     .digest("hex")}`;
 }
 
+function persistAutomationEventIncident(db, occurrence, flow, error, now) {
+  const classified = classifyAutomationBoundaryError(error);
+  if (!classified) return null;
+  const snapshot = occurrence.payload.executionAuthority;
+  const deniedPermissions = Array.isArray(error?.details?.permissions)
+    ? error.details.permissions.map(String).slice(0, 32)
+    : [];
+  return upsertAutomationExecutionIncident(
+    db,
+    {
+      runId: automationEventExecutionId(occurrence.id),
+      flowId: flow.id,
+      occurrenceId: occurrence.id,
+      triggerType: TRIGGER_TYPE.EVENT,
+      triggerId: occurrence.payload?.trigger?.id || null,
+      category: classified.category,
+      code: classified.code,
+      authorityDigest: automationExecutionAuthorityDigest(snapshot, flow),
+      boundary: {
+        ...(deniedPermissions.length > 0 ? { deniedPermissions } : {}),
+        ...(snapshot?.budget?.revision === undefined
+          ? {}
+          : { budgetRevision: snapshot.budget.revision }),
+        ...(Array.isArray(snapshot?.connectors)
+          ? { connectors: snapshot.connectors }
+          : {}),
+      },
+      details: { reasonCode: classified.code, retryable: false },
+    },
+    { now },
+  );
+}
+
 export function automationEventTriggerKey(event) {
   const normalized = normalizeAutomationChannelEvent(event);
   return `channel:${createHash("sha256")
@@ -514,7 +554,7 @@ export function authorizeAutomationEventOccurrence({ job, occurrence }) {
   }
 }
 
-function existingExecutionResult(db, occurrence, expectedFlow) {
+function existingExecutionResult(db, occurrence, expectedFlow, now) {
   const executionId = automationEventExecutionId(occurrence.id);
   const execution = getExecution(db, executionId);
   if (!execution) return null;
@@ -541,6 +581,9 @@ function existingExecutionResult(db, occurrence, expectedFlow) {
       { executionId: execution.id, status: execution.status },
     );
   }
+  resolveAutomationExecutionIncidentsForSucceededRun(db, execution.id, {
+    now,
+  });
   return execution;
 }
 
@@ -553,6 +596,7 @@ export function createAutomationEventAdapter({ db, now = Date.now } = {}) {
   }
   return {
     kind: AUTOMATION_EVENT_KIND,
+    runtimeControl: CHECKPOINT_V1_RUNTIME_CONTROL,
     async adjudicate({ occurrence, adjudication }) {
       const payload = occurrence?.payload;
       const expectedFlow = automationEventFlowSnapshot(payload?.flow);
@@ -588,7 +632,7 @@ export function createAutomationEventAdapter({ db, now = Date.now } = {}) {
       }
       return { continue: true };
     },
-    async execute({ occurrence }) {
+    async execute({ occurrence, checkpoint }) {
       const payload = occurrence?.payload;
       const expectedFlow = automationEventFlowSnapshot(payload?.flow);
       const expectedTrigger = automationEventTriggerSnapshot(payload?.trigger);
@@ -605,7 +649,12 @@ export function createAutomationEventAdapter({ db, now = Date.now } = {}) {
         );
       }
 
-      const recovered = existingExecutionResult(db, occurrence, expectedFlow);
+      const recovered = existingExecutionResult(
+        db,
+        occurrence,
+        expectedFlow,
+        now,
+      );
       if (recovered) return recovered;
 
       const currentFlow = getFlow(db, expectedFlow.id);
@@ -630,14 +679,24 @@ export function createAutomationEventAdapter({ db, now = Date.now } = {}) {
         );
       }
 
-      reserveAutomationExecutionAuthority(
-        db,
-        currentFlow,
-        occurrence.id,
-        payload.executionAuthority,
-        payload.executionAuthorityDigest,
-        { now },
-      );
+      checkpoint({
+        executionId: automationEventExecutionId(occurrence.id),
+        phase: "before_execution_reservation",
+      });
+
+      try {
+        reserveAutomationExecutionAuthority(
+          db,
+          currentFlow,
+          occurrence.id,
+          payload.executionAuthority,
+          payload.executionAuthorityDigest,
+          { now },
+        );
+      } catch (error) {
+        persistAutomationEventIncident(db, occurrence, currentFlow, error, now);
+        throw error;
+      }
 
       let execution;
       try {
@@ -645,8 +704,19 @@ export function createAutomationEventAdapter({ db, now = Date.now } = {}) {
           inputData: { event: expectedEvent },
           triggerType: TRIGGER_TYPE.EVENT,
           executionId: automationEventExecutionId(occurrence.id),
+          executionAuthority: payload.executionAuthority,
+          assertRuntimeBoundary: assertAutomationRuntimeBoundary,
         });
       } catch (cause) {
+        if (classifyAutomationBoundaryError(cause)) {
+          persistAutomationEventIncident(
+            db,
+            occurrence,
+            currentFlow,
+            cause,
+            now,
+          );
+        }
         if (cause?.code === "AUTOMATION_EXECUTION_OUTCOME_UNKNOWN") {
           throw eventError(
             "AUTOMATION_EVENT_OUTCOME_UNKNOWN",
@@ -664,7 +734,13 @@ export function createAutomationEventAdapter({ db, now = Date.now } = {}) {
           { executionId: execution.id, error: execution.error },
         );
       }
+      resolveAutomationExecutionIncidentsForSucceededRun(db, execution.id, {
+        now,
+      });
       return execution;
+    },
+    async resume(context) {
+      return this.execute(context);
     },
     classifyError() {
       return { retryable: false };

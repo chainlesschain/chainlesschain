@@ -436,6 +436,37 @@ describe("automation-engine (Phase 96)", () => {
 
   // ─── Execution ────────────────────────────────────────────
   describe("executeFlow", () => {
+    it("rejects an undeclared runtime boundary before creating an execution", () => {
+      const f = createFlow(db, {
+        name: "boundary-denied",
+        nodes: [
+          {
+            id: "n1",
+            type: "action",
+            connector: "slack",
+            action: "postMessage",
+          },
+        ],
+      });
+      const denied = new Error("runtime scope denied");
+      denied.code = "AUTOMATION_EXECUTION_WRITE_SCOPE_DENIED";
+
+      expect(() =>
+        executeFlow(db, f.id, {
+          executionId: "exec-boundary-denied",
+          executionAuthority: {},
+          assertRuntimeBoundary: () => {
+            throw denied;
+          },
+        }),
+      ).toThrowError(
+        expect.objectContaining({
+          code: "AUTOMATION_EXECUTION_WRITE_SCOPE_DENIED",
+        }),
+      );
+      expect(listExecutions(db, { flowId: f.id })).toHaveLength(0);
+    });
+
     it("executes a single-node flow and logs step", () => {
       const f = createFlow(db, {
         name: "one",

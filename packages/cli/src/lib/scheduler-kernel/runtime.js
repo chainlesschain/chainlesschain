@@ -1,10 +1,15 @@
 import { randomUUID } from "node:crypto";
 import {
   OCCURRENCE_STATUS,
+  RUNTIME_CONTROL_SCHEMA_VERSION,
+  RUNTIME_CONTROL_SAFE_POINTS,
+  RUNTIME_PAUSE_RESUME,
   SchedulerKernelError,
+  canonicalJson,
   normalizeEpochMs,
   normalizeIdentifier,
   normalizeJson,
+  normalizeRuntimeControlCapability,
 } from "./contract.js";
 
 export const DEFAULT_RUNTIME_LEASE_MS = 60_000;
@@ -16,6 +21,15 @@ const TERMINAL_OCCURRENCE_STATUSES = new Set([
   OCCURRENCE_STATUS.SUCCEEDED,
   OCCURRENCE_STATUS.DEAD_LETTER,
 ]);
+
+class SchedulerPauseSignal extends Error {
+  constructor(control, checkpoint) {
+    super("Scheduler adapter reached a requested pause checkpoint");
+    this.name = "SchedulerPauseSignal";
+    this.control = control;
+    this.checkpoint = checkpoint;
+  }
+}
 
 function runtimeError(code, message, details = undefined, cause = undefined) {
   return new SchedulerKernelError(
@@ -95,7 +109,21 @@ function normalizeAdapter(adapter) {
       `Scheduler adapter must implement execute(): ${kind}`,
     );
   }
-  return { kind, adapter };
+  const runtimeControl = normalizeRuntimeControlCapability(
+    adapter.runtimeControl,
+  );
+  if (
+    runtimeControl.safePoints.includes(
+      RUNTIME_CONTROL_SAFE_POINTS.ADAPTER_CHECKPOINT,
+    ) &&
+    typeof adapter.resume !== "function"
+  ) {
+    throw runtimeError(
+      "SCHEDULER_RUNTIME_INVALID_ADAPTER",
+      `Scheduler adapter must implement resume() for adapter checkpoints: ${kind}`,
+    );
+  }
+  return { kind, adapter, runtimeControl };
 }
 
 function normalizeAdapters(adapters = []) {
@@ -268,6 +296,14 @@ export class SchedulerRuntime {
     return this;
   }
 
+  runtimeControlFor(jobKind) {
+    const kind = normalizeIdentifier(jobKind, "jobKind", { maxLength: 128 });
+    const adapter = this.adapters.get(kind);
+    return adapter
+      ? normalizeRuntimeControlCapability(adapter.runtimeControl)
+      : normalizeRuntimeControlCapability();
+  }
+
   async _settleRejected(occurrence, error, retryable = false) {
     const settled = this.store.settle({
       occurrenceId: occurrence.id,
@@ -314,6 +350,9 @@ export class SchedulerRuntime {
         ),
       );
     }
+    const runtimeControl = normalizeRuntimeControlCapability(
+      adapter.runtimeControl,
+    );
 
     let decision;
     let allowed = false;
@@ -368,6 +407,103 @@ export class SchedulerRuntime {
       aborted.retryable = true;
       return this._settleRejected(occurrence, aborted, true);
     }
+    const readBoundControl = (state) => {
+      if (typeof this.store.getOccurrenceControl !== "function") return null;
+      const control = this.store.getOccurrenceControl(occurrence.id);
+      if (control?.state !== state) return null;
+      if (
+        runtimeControl.pauseResume !== RUNTIME_PAUSE_RESUME.CHECKPOINT_V1 ||
+        canonicalJson(control.capability, "runtimeControl.persisted") !==
+          canonicalJson(runtimeControl, "runtimeControl.adapter")
+      ) {
+        throw runtimeError(
+          "SCHEDULER_RUNTIME_CONTROL_CAPABILITY_MISMATCH",
+          `Scheduler runtime-control evidence no longer matches adapter capability: ${occurrence.id}`,
+          {
+            capabilityDigest: control.capabilityDigest,
+            adapterPauseResume: runtimeControl.pauseResume,
+          },
+        );
+      }
+      if (control.expectedFence !== occurrence.fence) {
+        throw runtimeError(
+          "SCHEDULER_RUNTIME_CONTROL_FENCE_MISMATCH",
+          `Scheduler runtime control is not bound to this claim: ${occurrence.id}`,
+          {
+            expectedFence: control.expectedFence,
+            actualFence: occurrence.fence,
+          },
+        );
+      }
+      return control;
+    };
+    const readPendingPause = () => readBoundControl("pause_requested");
+    const readResumingControl = () => {
+      const control = readBoundControl("resumed");
+      if (!control) return null;
+      const checkpoint = control.checkpoint;
+      if (
+        !checkpoint ||
+        checkpoint.schemaVersion !== RUNTIME_CONTROL_SCHEMA_VERSION ||
+        !Object.values(RUNTIME_CONTROL_SAFE_POINTS).includes(
+          checkpoint.safePoint,
+        ) ||
+        !Object.hasOwn(checkpoint, "data") ||
+        !runtimeControl.safePoints.includes(checkpoint.safePoint)
+      ) {
+        throw runtimeError(
+          "SCHEDULER_RUNTIME_RESUME_CHECKPOINT_INVALID",
+          `Scheduler resume checkpoint is invalid for adapter: ${occurrence.id}`,
+        );
+      }
+      return control;
+    };
+    const acknowledgePause = (control, safePoint, checkpoint) => {
+      if (typeof this.store.ackOccurrencePause !== "function") {
+        throw runtimeError(
+          "SCHEDULER_RUNTIME_CONTROL_STORE_UNSUPPORTED",
+          "Scheduler store cannot acknowledge durable runtime controls",
+        );
+      }
+      const acknowledged = this.store.ackOccurrencePause({
+        occurrenceId: occurrence.id,
+        ownerId: this.ownerId,
+        fence: occurrence.fence,
+        requestId: control.pauseRequestId,
+        expectedRevision: control.revision,
+        safePoint,
+        checkpoint,
+      });
+      return {
+        status: "paused",
+        occurrence: acknowledged.occurrence,
+        control: acknowledged.control,
+        result: null,
+        error: null,
+      };
+    };
+    let pendingPause;
+    let resumingControl;
+    try {
+      pendingPause = readPendingPause();
+      resumingControl = readResumingControl();
+    } catch (error) {
+      linked.dispose();
+      return this._settleRejected(occurrence, error, false);
+    }
+    if (
+      pendingPause &&
+      runtimeControl.safePoints.includes(
+        RUNTIME_CONTROL_SAFE_POINTS.BEFORE_EXECUTE,
+      )
+    ) {
+      linked.dispose();
+      return acknowledgePause(
+        pendingPause,
+        RUNTIME_CONTROL_SAFE_POINTS.BEFORE_EXECUTE,
+        { adapterStarted: false },
+      );
+    }
     let leaseError = null;
     let renewing = false;
     const renew = () => {
@@ -415,7 +551,26 @@ export class SchedulerRuntime {
           : null,
       signal: linked.controller.signal,
       renewLease: renew,
+      runtimeControl,
+      resumeCheckpoint: resumingControl?.checkpoint ?? null,
+      checkpoint: (data = null) => {
+        if (
+          !runtimeControl.safePoints.includes(
+            RUNTIME_CONTROL_SAFE_POINTS.ADAPTER_CHECKPOINT,
+          )
+        ) {
+          return { pauseRequested: false };
+        }
+        const control = readPendingPause();
+        if (!control) return { pauseRequested: false };
+        throw new SchedulerPauseSignal(control, data);
+      },
     };
+    const invokeAdapter = () =>
+      resumingControl?.checkpoint.safePoint ===
+      RUNTIME_CONTROL_SAFE_POINTS.ADAPTER_CHECKPOINT
+        ? adapter.resume(context, resumingControl.checkpoint)
+        : adapter.execute(context);
     try {
       let result;
       if (context.adjudication?.status === "pending") {
@@ -466,9 +621,9 @@ export class SchedulerRuntime {
                 adjudicationRequestId: context.adjudication.requestId,
                 decision: context.adjudication.decision,
               })
-            : await adapter.execute(context);
+            : await invokeAdapter();
       } else {
-        result = await adapter.execute(context);
+        result = await invokeAdapter();
       }
       if (leaseError) throw leaseError;
       if (linked.controller.signal.aborted) {
@@ -492,6 +647,13 @@ export class SchedulerRuntime {
       return settledResult(settled);
     } catch (error) {
       if (leaseError) throw leaseError;
+      if (error instanceof SchedulerPauseSignal) {
+        return acknowledgePause(
+          error.control,
+          RUNTIME_CONTROL_SAFE_POINTS.ADAPTER_CHECKPOINT,
+          error.checkpoint,
+        );
+      }
       let policy;
       let settlementError = error;
       try {
@@ -545,6 +707,17 @@ export class SchedulerRuntime {
       leaseMs: this.leaseMs,
     });
     if (!claimed) {
+      const control =
+        typeof this.store.getOccurrenceControl === "function"
+          ? this.store.getOccurrenceControl(id)
+          : null;
+      if (control?.state === "paused") {
+        return {
+          status: "paused",
+          occurrence: this.store.getOccurrence(id),
+          control,
+        };
+      }
       return {
         status: "busy",
         occurrence: this.store.getOccurrence(id),

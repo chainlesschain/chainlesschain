@@ -57,6 +57,8 @@ public final class AutomationCenterToolWindowFactory implements ToolWindowFactor
         final JPanel root = new JPanel(new BorderLayout(6, 6));
         private final SearchTextField search = new SearchTextField(false);
         private final JComboBox<String> picker = new JComboBox<>();
+        private final JComboBox<String> runtimePicker = new JComboBox<>();
+        private final JComboBox<String> incidentPicker = new JComboBox<>();
         private final JTextArea detail = new JTextArea(20, 80);
         private final JLabel summary = new JLabel(" ");
         private final JButton createBtn = new JButton("New routine");
@@ -67,11 +69,17 @@ public final class AutomationCenterToolWindowFactory implements ToolWindowFactor
         private final JButton disableBtn = new JButton("Disable");
         private final JButton deleteBtn = new JButton("Delete");
         private final JButton editBtn = new JButton("Edit routine");
+        private final JButton occurrencePauseBtn = new JButton("Pause occurrence");
+        private final JButton occurrenceResumeBtn = new JButton("Resume occurrence");
+        private final JButton incidentRetryBtn = new JButton("Retry incident");
+        private final JButton incidentCancelBtn = new JButton("Cancel incident");
         private final Alarm alarm;
         private final AtomicBoolean inFlight = new AtomicBoolean(false);
         private final AtomicBoolean syncing = new AtomicBoolean(false);
         private volatile AutomationCenter.Snapshot snapshot = AutomationCenter.parse(null);
         private List<AutomationCenter.Item> visible = new ArrayList<>();
+        private List<AutomationCenter.RuntimeItem> visibleRuntime = new ArrayList<>();
+        private List<AutomationCenter.Incident> visibleIncidents = new ArrayList<>();
 
         Panel(Project project, ToolWindow toolWindow) {
             this.project = project;
@@ -89,6 +97,12 @@ public final class AutomationCenterToolWindowFactory implements ToolWindowFactor
             picker.setName("chainlesschain.automation.items");
             picker.getAccessibleContext().setAccessibleName(
                     "ChainlessChain automation items");
+            runtimePicker.setName("chainlesschain.automation.runtimeItems");
+            runtimePicker.getAccessibleContext().setAccessibleName(
+                    "ChainlessChain live automation occurrences");
+            incidentPicker.setName("chainlesschain.automation.incidents");
+            incidentPicker.getAccessibleContext().setAccessibleName(
+                    "ChainlessChain automation incidents");
 
             JButton refresh = new JButton("Refresh");
             refresh.addActionListener(event -> load());
@@ -100,6 +114,12 @@ public final class AutomationCenterToolWindowFactory implements ToolWindowFactor
             picker.addActionListener(event -> {
                 if (!syncing.get()) syncSelection();
             });
+            runtimePicker.addActionListener(event -> {
+                if (!syncing.get()) syncSelection();
+            });
+            incidentPicker.addActionListener(event -> {
+                if (!syncing.get()) syncSelection();
+            });
             createBtn.addActionListener(event -> createRoutine());
             runBtn.addActionListener(event -> action("run_now"));
             retryBtn.addActionListener(event -> action("retry_failed"));
@@ -108,6 +128,10 @@ public final class AutomationCenterToolWindowFactory implements ToolWindowFactor
             disableBtn.addActionListener(event -> action("disable"));
             deleteBtn.addActionListener(event -> action("delete"));
             editBtn.addActionListener(event -> action("edit"));
+            occurrencePauseBtn.addActionListener(event -> runtimeAction("pause"));
+            occurrenceResumeBtn.addActionListener(event -> runtimeAction("resume"));
+            incidentRetryBtn.addActionListener(event -> incidentAction("retry"));
+            incidentCancelBtn.addActionListener(event -> incidentAction("cancel"));
             createBtn.setName("chainlesschain.automation.createRoutine");
             runBtn.setName("chainlesschain.automation.runNow");
             retryBtn.setName("chainlesschain.automation.retryFailed");
@@ -116,6 +140,10 @@ public final class AutomationCenterToolWindowFactory implements ToolWindowFactor
             disableBtn.setName("chainlesschain.automation.disable");
             deleteBtn.setName("chainlesschain.automation.delete");
             editBtn.setName("chainlesschain.automation.editRoutine");
+            occurrencePauseBtn.setName("chainlesschain.automation.pauseOccurrence");
+            occurrenceResumeBtn.setName("chainlesschain.automation.resumeOccurrence");
+            incidentRetryBtn.setName("chainlesschain.automation.retryIncident");
+            incidentCancelBtn.setName("chainlesschain.automation.cancelIncident");
 
             JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
             actions.add(refresh);
@@ -127,9 +155,17 @@ public final class AutomationCenterToolWindowFactory implements ToolWindowFactor
             actions.add(disableBtn);
             actions.add(deleteBtn);
             actions.add(editBtn);
+            actions.add(occurrencePauseBtn);
+            actions.add(occurrenceResumeBtn);
+            actions.add(incidentRetryBtn);
+            actions.add(incidentCancelBtn);
+            JPanel selectors = new JPanel(new java.awt.GridLayout(3, 1, 0, 4));
+            selectors.add(picker);
+            selectors.add(runtimePicker);
+            selectors.add(incidentPicker);
             JPanel top = new JPanel(new BorderLayout(6, 6));
             top.add(search, BorderLayout.NORTH);
-            top.add(picker, BorderLayout.CENTER);
+            top.add(selectors, BorderLayout.CENTER);
             top.add(actions, BorderLayout.SOUTH);
             root.add(top, BorderLayout.NORTH);
             root.add(new JBScrollPane(detail), BorderLayout.CENTER);
@@ -171,10 +207,16 @@ public final class AutomationCenterToolWindowFactory implements ToolWindowFactor
 
         private void applyFilter() {
             AutomationCenter.Item selected = selected();
+            AutomationCenter.RuntimeItem selectedRuntime = selectedRuntime();
             String keepKey = selected == null
                     ? null : selected.kind + "\0" + selected.id;
+            String keepRuntimeId = selectedRuntime == null ? null : selectedRuntime.id;
             visible = snapshot.connected
                     ? AutomationCenter.filter(snapshot.items, search.getText())
+                    : new ArrayList<>();
+            visibleRuntime = snapshot.connected
+                    ? AutomationCenter.filterRuntime(
+                            snapshot.runtimeItems, search.getText())
                     : new ArrayList<>();
             syncing.set(true);
             try {
@@ -187,6 +229,18 @@ public final class AutomationCenterToolWindowFactory implements ToolWindowFactor
                     if ((item.kind + "\0" + item.id).equals(keepKey)) select = i;
                 }
                 if (!visible.isEmpty()) picker.setSelectedIndex(select >= 0 ? select : 0);
+                runtimePicker.removeAllItems();
+                int runtimeSelect = -1;
+                for (int i = 0; i < visibleRuntime.size(); i++) {
+                    AutomationCenter.RuntimeItem item = visibleRuntime.get(i);
+                    runtimePicker.addItem("Live · " + item.jobKind + " · "
+                            + item.status + " · " + item.id);
+                    if (item.id.equals(keepRuntimeId)) runtimeSelect = i;
+                }
+                if (!visibleRuntime.isEmpty()) {
+                    runtimePicker.setSelectedIndex(
+                            runtimeSelect >= 0 ? runtimeSelect : 0);
+                }
             } finally {
                 syncing.set(false);
             }
@@ -194,6 +248,9 @@ public final class AutomationCenterToolWindowFactory implements ToolWindowFactor
                     ? snapshot.total + " items · " + snapshot.flowCount + " flows · "
                             + snapshot.routineCount + " routines · " + snapshot.active
                             + " active · " + snapshot.paused + " paused · "
+                            + snapshot.runtimeRunning + " running occurrences · "
+                            + snapshot.runtimePauseRequested + " pausing · "
+                            + snapshot.runtimePaused + " occurrence paused · "
                             + snapshot.needsAttention + " need attention"
                     : "Automation Center unavailable: " + snapshot.error);
             syncSelection();
@@ -204,9 +261,45 @@ public final class AutomationCenterToolWindowFactory implements ToolWindowFactor
             return index >= 0 && index < visible.size() ? visible.get(index) : null;
         }
 
+        private AutomationCenter.RuntimeItem selectedRuntime() {
+            int index = runtimePicker.getSelectedIndex();
+            return index >= 0 && index < visibleRuntime.size()
+                    ? visibleRuntime.get(index) : null;
+        }
+
+        private AutomationCenter.Incident selectedIncident() {
+            int index = incidentPicker.getSelectedIndex();
+            return index >= 0 && index < visibleIncidents.size()
+                    ? visibleIncidents.get(index) : null;
+        }
+
         private void syncSelection() {
             AutomationCenter.Item item = selected();
-            detail.setText(item == null ? "No automation item." : AutomationCenter.detail(item));
+            AutomationCenter.RuntimeItem runtime = selectedRuntime();
+            AutomationCenter.Incident priorIncident = selectedIncident();
+            String keepIncident = priorIncident == null ? null : priorIncident.incidentId;
+            visibleIncidents = item == null
+                    ? new ArrayList<>() : new ArrayList<>(item.incidents);
+            syncing.set(true);
+            try {
+                incidentPicker.removeAllItems();
+                int select = -1;
+                for (int i = 0; i < visibleIncidents.size(); i++) {
+                    AutomationCenter.Incident incident = visibleIncidents.get(i);
+                    incidentPicker.addItem("Incident · " + incident.status + " · "
+                            + incident.code + " · " + incident.incidentId);
+                    if (incident.incidentId.equals(keepIncident)) select = i;
+                }
+                if (!visibleIncidents.isEmpty()) {
+                    incidentPicker.setSelectedIndex(select >= 0 ? select : 0);
+                }
+            } finally {
+                syncing.set(false);
+            }
+            AutomationCenter.Incident incident = selectedIncident();
+            String itemDetail = item == null
+                    ? "No automation item." : AutomationCenter.detail(item);
+            detail.setText(itemDetail + "\n\n" + AutomationCenter.runtimeDetail(runtime));
             createBtn.setEnabled(snapshot.connected && snapshot.createRoutine != null);
             runBtn.setEnabled(available(item, "run_now"));
             retryBtn.setEnabled(available(item, "retry_failed"));
@@ -215,11 +308,27 @@ public final class AutomationCenterToolWindowFactory implements ToolWindowFactor
             disableBtn.setEnabled(available(item, "disable"));
             deleteBtn.setEnabled(available(item, "delete"));
             editBtn.setEnabled(available(item, "edit"));
+            occurrencePauseBtn.setEnabled(runtimeAvailable(runtime, "pause"));
+            occurrenceResumeBtn.setEnabled(runtimeAvailable(runtime, "resume"));
+            incidentRetryBtn.setEnabled(incidentAvailable(incident, "retry"));
+            incidentCancelBtn.setEnabled(incidentAvailable(incident, "cancel"));
         }
 
         private static boolean available(AutomationCenter.Item item, String action) {
             return item != null && item.actions.get(action) != null
                     && item.actions.get(action).available;
+        }
+
+        private static boolean runtimeAvailable(
+                AutomationCenter.RuntimeItem item, String action) {
+            return item != null && item.actions.get(action) != null
+                    && item.actions.get(action).available;
+        }
+
+        private static boolean incidentAvailable(
+                AutomationCenter.Incident incident, String action) {
+            return incident != null && incident.actions.get(action) != null
+                    && incident.actions.get(action).available;
         }
 
         private void action(String action) {
@@ -273,6 +382,84 @@ public final class AutomationCenterToolWindowFactory implements ToolWindowFactor
                                                         : CLI_TIMEOUT_MS);
                         finishMutation(output);
                     });
+                });
+            });
+        }
+
+        private void runtimeAction(String action) {
+            AutomationCenter.Snapshot rendered = snapshot;
+            AutomationCenter.RuntimeItem item = selectedRuntime();
+            if (item == null || !runtimeAvailable(item, action)
+                    || !inFlight.compareAndSet(false, true)) return;
+            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                AutomationCenter.Snapshot current = read();
+                AutomationCenter.ActionPreview preview =
+                        AutomationCenter.recheckRuntime(rendered, current,
+                                item.id, action, rendered.revision,
+                                item.fence, item.controlRevision);
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    if (preview == null) {
+                        snapshot = current;
+                        inFlight.set(false);
+                        applyFilter();
+                        Messages.showWarningDialog(project,
+                                "The occurrence, fence, control revision, or action "
+                                        + "changed; refreshed without sending it.",
+                                "Automation Center");
+                        return;
+                    }
+                    int answer = Messages.showYesNoDialog(project,
+                            ("pause".equals(action) ? "Pause" : "Resume")
+                                    + " live occurrence " + item.id
+                                    + "? The CLI will enforce its exact fence, "
+                                    + "control revision, and checkpoint capability.",
+                            "Automation Center", null);
+                    if (answer != Messages.YES) {
+                        inFlight.set(false);
+                        return;
+                    }
+                    ApplicationManager.getApplication().executeOnPooledThread(() ->
+                            finishMutation(AgentChatSession.runCapture(
+                                    preview.argv, cwd(), CLI_TIMEOUT_MS)));
+                });
+            });
+        }
+
+        private void incidentAction(String action) {
+            AutomationCenter.Snapshot rendered = snapshot;
+            AutomationCenter.Incident incident = selectedIncident();
+            if (incident == null || !incidentAvailable(incident, action)
+                    || !inFlight.compareAndSet(false, true)) return;
+            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                AutomationCenter.Snapshot current = read();
+                AutomationCenter.ActionPreview preview =
+                        AutomationCenter.recheckIncident(rendered, current,
+                                incident.incidentId, action, rendered.revision,
+                                incident.revision);
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    if (preview == null) {
+                        snapshot = current;
+                        inFlight.set(false);
+                        applyFilter();
+                        Messages.showWarningDialog(project,
+                                "The incident revision or action changed; refreshed "
+                                        + "without sending it.",
+                                "Automation Center");
+                        return;
+                    }
+                    int answer = Messages.showYesNoDialog(project,
+                            ("retry".equals(action) ? "Retry" : "Cancel")
+                                    + " incident " + incident.incidentId
+                                    + "? The CLI will enforce the exact incident "
+                                    + "revision and scheduler evidence.",
+                            "Automation Center", null);
+                    if (answer != Messages.YES) {
+                        inFlight.set(false);
+                        return;
+                    }
+                    ApplicationManager.getApplication().executeOnPooledThread(() ->
+                            finishMutation(AgentChatSession.runCapture(
+                                    preview.argv, cwd(), CLI_TIMEOUT_MS)));
                 });
             });
         }

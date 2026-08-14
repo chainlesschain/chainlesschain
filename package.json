@@ -36,6 +36,7 @@
     "test:cli-team-soak": "node packages/cli/scripts/team-distributed-soak.mjs",
     "test:cli-reliability-soak": "node packages/cli/scripts/cli-reliability-soak.mjs",
     "test:cli-mcp-security-soak": "node packages/cli/scripts/cli-mcp-security-soak.mjs",
+    "test:cli-scheduler-reliability-soak": "node packages/cli/scripts/scheduler-reliability-soak.mjs",
     "ide:capabilities": "node packages/cli/scripts/gen-public-ide-capability-manifest.mjs",
     "ide:capabilities:check": "node packages/cli/scripts/gen-public-ide-capability-manifest.mjs --check",
     "test": "cd packages/cli && npm test",

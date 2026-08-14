@@ -7,6 +7,7 @@ import {
   automationExecutionAuthoritySnapshot,
   setAutomationExecutionBudget,
 } from "../../src/lib/automation-execution-authority.js";
+import { listAutomationExecutionIncidents } from "../../src/lib/automation-execution-incident.js";
 import {
   EXECUTION_STATUS,
   FLOW_STATUS,
@@ -185,6 +186,83 @@ describe("scheduler-kernel automation adapter", () => {
       executionAuthority(f, flow),
     );
   }
+
+  it("pauses at the adapter checkpoint before reserving or executing, then resumes once", async () => {
+    const f = fixture();
+    const flow = activeScheduledFlow(f);
+    const occurrence = enqueue(f, flow);
+    const productionAdapter = createAutomationSchedulerAdapter({
+      db: f.db,
+      now: f.clock,
+    });
+    let pauseBeforeCheckpoint = true;
+    const adapter = {
+      ...productionAdapter,
+      async execute(context) {
+        if (pauseBeforeCheckpoint) {
+          pauseBeforeCheckpoint = false;
+          f.schedulerStore.requestOccurrencePause({
+            occurrenceId: context.occurrence.id,
+            expectedFence: context.occurrence.fence,
+            requestId: "automation-adapter-checkpoint-pause",
+            capability: productionAdapter.runtimeControl,
+          });
+        }
+        return productionAdapter.execute(context);
+      },
+    };
+    const runtime = new SchedulerRuntime({
+      store: f.schedulerStore,
+      adapters: [adapter],
+      authorize: authorizeAutomationOccurrence,
+      ownerId: "automation-checkpoint-owner",
+      leaseMs: 10_000,
+    });
+
+    await expect(runtime.runOccurrence(occurrence.id)).resolves.toMatchObject({
+      status: "paused",
+      occurrence: { id: occurrence.id, status: "retry_wait", attempt: 1 },
+      control: {
+        state: "paused",
+        checkpoint: {
+          safePoint: "adapter_checkpoint",
+          data: {
+            executionId: automationSchedulerExecutionId(occurrence.id),
+            phase: "before_execution_reservation",
+          },
+        },
+      },
+    });
+    expect(listExecutions(f.db, { flowId: flow.id })).toHaveLength(0);
+    expect(
+      f.db
+        .prepare(
+          "SELECT COUNT(*) AS count FROM auto_execution_budget_reservations",
+        )
+        .get(),
+    ).toEqual({ count: 0 });
+
+    const pausedControl = f.schedulerStore.getOccurrenceControl(occurrence.id);
+    const resumed = f.schedulerStore.resumeOccurrence({
+      occurrenceId: occurrence.id,
+      expectedRevision: pausedControl.revision,
+      requestId: "automation-adapter-checkpoint-resume",
+    });
+    expect(resumed.occurrence.id).toBe(occurrence.id);
+    await expect(runtime.runOccurrence(occurrence.id)).resolves.toMatchObject({
+      status: "succeeded",
+      occurrence: { id: occurrence.id, attempt: 1 },
+      result: { id: automationSchedulerExecutionId(occurrence.id) },
+    });
+    expect(listExecutions(f.db, { flowId: flow.id })).toHaveLength(1);
+    expect(
+      f.db
+        .prepare(
+          "SELECT COUNT(*) AS count FROM auto_execution_budget_reservations",
+        )
+        .get(),
+    ).toEqual({ count: 1 });
+  });
 
   it("binds a canonical flow snapshot and least-capability authority", () => {
     const f = fixture();
@@ -1311,6 +1389,48 @@ describe("scheduler-kernel automation adapter", () => {
       error: { code: "AUTOMATION_EXECUTION_PERMISSION_DENIED" },
     });
     expect(listExecutions(f.db, { flowId: flow.id })).toHaveLength(0);
+    expect(listAutomationExecutionIncidents(f.db, { flowId: flow.id })).toEqual(
+      [
+        expect.objectContaining({
+          runId: automationSchedulerExecutionId(occurrence.id),
+          occurrenceId: occurrence.id,
+          category: "connector",
+          code: "AUTOMATION_EXECUTION_PERMISSION_DENIED",
+          status: "open",
+        }),
+      ],
+    );
+
+    grantPermission(f.db, principalId, "automation:connector:slack");
+    const deadLetter = f.schedulerStore.getOccurrence(occurrence.id);
+    f.schedulerStore.requeueDeadLetter({
+      occurrenceId: occurrence.id,
+      expectedFence: deadLetter.fence,
+      expectedErrorCode: "AUTOMATION_EXECUTION_PERMISSION_DENIED",
+      requestId: "retry-revoked-scheduler-incident",
+    });
+    const retryRuntime = new SchedulerRuntime({
+      store: f.schedulerStore,
+      adapters: [createAutomationSchedulerAdapter({ db: f.db, now: f.clock })],
+      authorize: authorizeAutomationOccurrence,
+      ownerId: "automation-restored-owner",
+      leaseMs: 10_000,
+    });
+    await expect(
+      retryRuntime.runOccurrence(occurrence.id),
+    ).resolves.toMatchObject({
+      status: "succeeded",
+      result: { id: automationSchedulerExecutionId(occurrence.id) },
+    });
+    expect(listAutomationExecutionIncidents(f.db, { flowId: flow.id })).toEqual(
+      [
+        expect.objectContaining({
+          runId: automationSchedulerExecutionId(occurrence.id),
+          status: "resolved",
+          resolutionCode: "EXECUTION_SUCCEEDED",
+        }),
+      ],
+    );
   });
 
   it("rejects an unattended flow before enqueue when no budget is configured", async () => {
@@ -1386,6 +1506,15 @@ describe("scheduler-kernel automation adapter", () => {
       },
     ]);
     expect(listExecutions(f.db, { flowId: flow.id })).toHaveLength(1);
+    const incident = listAutomationExecutionIncidents(f.db, {
+      flowId: flow.id,
+      status: "open",
+    })[0];
+    expect(incident).toMatchObject({
+      runId: automationSchedulerExecutionId(incident.occurrenceId),
+      category: "budget",
+      code: "AUTOMATION_EXECUTION_BUDGET_EXHAUSTED",
+    });
   });
 
   it("rejects an occurrence when its budget policy changes after enqueue", async () => {

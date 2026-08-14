@@ -3,7 +3,10 @@ import Database from "better-sqlite3";
 import {
   automationExecutionAuthorityDigest,
   automationExecutionAuthoritySnapshot,
+  assertAutomationRuntimeBoundary,
+  classifyAutomationBoundaryError,
   inspectAutomationExecutionAuthority,
+  normalizeAutomationExecutionAuthoritySnapshot,
   reserveAutomationExecutionAuthority,
   setAutomationExecutionBudget,
 } from "../../src/lib/automation-execution-authority.js";
@@ -97,6 +100,95 @@ describe("automation execution authority", () => {
         { permission: "automation:connector:slack", allowed: true },
       ],
       window: { usedRuns: 0, usedActionSteps: 0, remainingRuns: 2 },
+    });
+  });
+
+  it("binds every simulated write to a versioned resource boundary", () => {
+    const f = fixture();
+    configure(f);
+    const snapshot = automationExecutionAuthoritySnapshot(f.db, f.flow);
+    expect(snapshot.schemaVersion).toBe(2);
+    expect(snapshot.effectBoundary).toMatchObject({
+      schemaVersion: 1,
+      effects: [
+        {
+          nodeId: "notify",
+          connector: "slack",
+          action: "postMessage",
+          effect: "write",
+          resourceScopes: [
+            `automation-flow:${f.flow.id}:node:notify:simulated`,
+          ],
+        },
+        {
+          nodeId: "issue",
+          connector: "github",
+          action: "createIssue",
+          effect: "write",
+          resourceScopes: [`automation-flow:${f.flow.id}:node:issue:simulated`],
+        },
+      ],
+    });
+    expect(() =>
+      assertAutomationRuntimeBoundary(snapshot, f.flow, {
+        nodeId: "notify",
+        connector: "slack",
+        action: "postMessage",
+        effect: "write",
+        resourceScopes: ["channel:outside"],
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "AUTOMATION_EXECUTION_WRITE_SCOPE_DENIED",
+      }),
+    );
+    expect(
+      classifyAutomationBoundaryError({
+        code: "AUTOMATION_EXECUTION_PERMISSION_DENIED",
+        details: { permissions: ["automation:connector:slack"] },
+      }),
+    ).toEqual({
+      category: "connector",
+      code: "AUTOMATION_EXECUTION_PERMISSION_DENIED",
+    });
+  });
+
+  it("accepts a released v1 snapshot without weakening its legacy digest", () => {
+    const f = fixture();
+    configure(f);
+    const current = automationExecutionAuthoritySnapshot(f.db, f.flow);
+    const legacy = {
+      schemaVersion: 1,
+      flowId: current.flowId,
+      principalId: current.principalId,
+      requiredPermissions: current.requiredPermissions,
+      connectors: current.connectors,
+      actionSteps: current.actionSteps,
+      budget: current.budget,
+    };
+    const digest = automationExecutionAuthorityDigest(legacy, f.flow);
+    const normalized = normalizeAutomationExecutionAuthoritySnapshot(
+      legacy,
+      f.flow,
+    );
+
+    expect(normalized).toMatchObject({
+      schemaVersion: 1,
+      effectBoundary: current.effectBoundary,
+    });
+    expect(
+      reserveAutomationExecutionAuthority(
+        f.db,
+        f.flow,
+        "legacy-v1-occurrence",
+        legacy,
+        digest,
+        { now: () => now },
+      ),
+    ).toMatchObject({
+      occurrenceId: "legacy-v1-occurrence",
+      authorityDigest: digest,
+      deduplicated: false,
     });
   });
 

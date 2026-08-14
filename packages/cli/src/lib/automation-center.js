@@ -1,10 +1,22 @@
 import { createHash } from "node:crypto";
 import {
+  assertAutomationRuntimeBoundary,
   automationExecutionAuthorityDigest,
   automationExecutionAuthoritySnapshot,
+  classifyAutomationBoundaryError,
   inspectAutomationExecutionAuthority,
   reserveAutomationExecutionAuthority,
 } from "./automation-execution-authority.js";
+import {
+  listAutomationExecutionIncidents,
+  upsertAutomationExecutionIncident,
+} from "./automation-execution-incident.js";
+import { projectAutomationCenterIncident } from "./automation-center-incidents.js";
+import {
+  AUTOMATION_CENTER_RUNTIME_SCHEMA,
+  AUTOMATION_CENTER_RUNTIME_SCHEMA_VERSION,
+  buildAutomationCenterRuntimeProjection,
+} from "./automation-center-runtime.js";
 import {
   EXECUTION_STATUS,
   FLOW_STATUS,
@@ -23,11 +35,12 @@ import {
   canonicalJson,
   normalizeIdentifier,
 } from "./scheduler-kernel/contract.js";
+import { resolveAutomationCenterRuntimeControl } from "./scheduler-kernel/runtime-control-capabilities.js";
 import { RoutineStore } from "./routine-store.js";
 import { buildRoutineCenterProjection } from "./automation-center-routines.js";
 
-export const AUTOMATION_CENTER_SCHEMA = "chainlesschain.automation-center/v2";
-export const AUTOMATION_CENTER_SCHEMA_VERSION = 2;
+export const AUTOMATION_CENTER_SCHEMA = "chainlesschain.automation-center/v3";
+export const AUTOMATION_CENTER_SCHEMA_VERSION = 3;
 export const AUTOMATION_CENTER_ACTIONS = Object.freeze([
   "run_now",
   "retry_failed",
@@ -45,7 +58,7 @@ function centerError(code, message, details = undefined) {
 
 function digest(value) {
   return `sha256:${createHash("sha256")
-    .update("chainlesschain.automation-center.v2\0", "utf8")
+    .update("chainlesschain.automation-center.v3\0", "utf8")
     .update(canonicalJson(value, "automationCenter"), "utf8")
     .digest("hex")}`;
 }
@@ -183,6 +196,10 @@ function projectFlow(db, flow, { historyLimit, now }) {
     flowId: flow.id,
     limit: historyLimit,
   }).map(projectExecution);
+  const incidents = listAutomationExecutionIncidents(db, {
+    flowId: flow.id,
+    limit: historyLimit,
+  }).map(projectAutomationCenterIncident);
   const security = projectSecurity(db, flow, now);
   const content = {
     kind: "flow",
@@ -194,6 +211,7 @@ function projectFlow(db, flow, { historyLimit, now }) {
     updatedAt: flow.updatedAt || null,
     triggers,
     history,
+    incidents,
     security,
   };
   const revision = digest(content);
@@ -266,6 +284,8 @@ export function buildAutomationCenterProjection(
     historyLimit = 20,
     now = Date.now,
     routineStore = new RoutineStore(),
+    schedulerStore = null,
+    runtimeCapabilityForKind = resolveAutomationCenterRuntimeControl,
   } = {},
 ) {
   if (typeof now !== "function") {
@@ -283,16 +303,34 @@ export function buildAutomationCenterProjection(
     limit: boundedLimit,
     historyLimit: boundedHistory,
   });
+  const runtime = schedulerStore
+    ? buildAutomationCenterRuntimeProjection(schedulerStore, {
+        capabilityForKind: runtimeCapabilityForKind,
+        limit: Math.min(200, boundedLimit),
+      })
+    : {
+        schema: AUTOMATION_CENTER_RUNTIME_SCHEMA,
+        schemaVersion: AUTOMATION_CENTER_RUNTIME_SCHEMA_VERSION,
+        items: [],
+      };
   const items = [...flows, ...routineProjection.items];
   const summary = {
     total: items.length,
     flows: flows.length,
     routines: routineProjection.items.length,
+    runtimeRunning: runtime.items.filter((item) => item.status === "running")
+      .length,
+    runtimePauseRequested: runtime.items.filter(
+      (item) => item.status === "pause_requested",
+    ).length,
+    runtimePaused: runtime.items.filter((item) => item.status === "paused")
+      .length,
     active: items.filter((item) => item.status === FLOW_STATUS.ACTIVE).length,
     paused: items.filter((item) => item.status === FLOW_STATUS.PAUSED).length,
     needsAttention: items.filter(
       (item) =>
         item.security.ready !== true ||
+        item.incidents?.some((incident) => incident.status === "open") ||
         item.history[0]?.status === EXECUTION_STATUS.FAILED ||
         item.history[0]?.status === "failed",
     ).length,
@@ -315,10 +353,16 @@ export function buildAutomationCenterProjection(
         id: item.id,
         revision: item.revision,
       })),
+      // The root revision protects the exact sanitized runtime capability and
+      // action previews consumed by IDEs, not only the occurrence state. A
+      // capability downgrade must therefore invalidate a previously rendered
+      // pause/resume action even when fence/controlRevision are unchanged.
+      runtime,
     }),
     summary,
     mutations: { createRoutine: routineProjection.createRoutine },
     items,
+    runtime,
   };
 }
 
@@ -328,7 +372,62 @@ function executionIdFor(flowId, requestedAction, revision) {
     .digest("hex")}`;
 }
 
-export function runAutomationCenterAction(
+function manualIncidentBoundary(error, authority) {
+  const classified = classifyAutomationBoundaryError(error);
+  if (!classified) return null;
+  return {
+    classified,
+    boundary: {
+      ...(Array.isArray(error?.details?.permissions)
+        ? {
+            deniedPermissions: error.details.permissions
+              .map(String)
+              .slice(0, 32),
+          }
+        : {}),
+      ...(authority?.budget?.revision === undefined
+        ? {}
+        : { budgetRevision: authority.budget.revision }),
+      ...(Array.isArray(authority?.connectors)
+        ? { connectors: authority.connectors }
+        : {}),
+    },
+    details: { reasonCode: classified.code, retryable: false },
+  };
+}
+
+const DURABLE_CENTER_REJECTION = Symbol("durable-center-rejection");
+
+function persistManualExecutionIncident(
+  db,
+  { flow, executionId, occurrenceId, requestedAction, authority, error, now },
+) {
+  const evidence = manualIncidentBoundary(error, authority);
+  if (!evidence) return false;
+  const authorityDigest = automationExecutionAuthorityDigest(authority, flow);
+  upsertAutomationExecutionIncident(
+    db,
+    {
+      runId: executionId,
+      flowId: flow.id,
+      occurrenceId,
+      triggerType: TRIGGER_TYPE.MANUAL,
+      category: evidence.classified.category,
+      code: evidence.classified.code,
+      authorityDigest,
+      boundary: evidence.boundary,
+      details: { ...evidence.details, actionId: requestedAction },
+    },
+    { now },
+  );
+  return true;
+}
+
+function durableCenterRejection(error) {
+  return { [DURABLE_CENTER_REJECTION]: error };
+}
+
+function runAutomationCenterActionLocked(
   db,
   { flowId, action: requestedAction, expectedRevision, now = Date.now } = {},
 ) {
@@ -372,38 +471,44 @@ export function runAutomationCenterAction(
   } else if (requestedAction === "disable") {
     result = updateFlowStatus(db, id, FLOW_STATUS.ARCHIVED);
   } else if (requestedAction === "delete") {
-    if (typeof db.transaction !== "function") {
-      throw centerError(
-        "AUTOMATION_CENTER_TRANSACTION_REQUIRED",
-        "deleting an automation flow requires a transactional database",
-      );
-    }
-    result = db
-      .transaction(() => {
-        db.prepare(
-          "DELETE FROM auto_execution_budget_reservations WHERE flow_id = ?",
-        ).run(id);
-        db.prepare(
-          "DELETE FROM auto_execution_budget_usage WHERE flow_id = ?",
-        ).run(id);
-        db.prepare("DELETE FROM auto_execution_budgets WHERE flow_id = ?").run(
-          id,
-        );
-        deleteFlow(db, id);
-        return { deleted: true };
-      })
-      .immediate();
+    db.prepare(
+      "DELETE FROM auto_execution_budget_reservations WHERE flow_id = ?",
+    ).run(id);
+    db.prepare("DELETE FROM auto_execution_budget_usage WHERE flow_id = ?").run(
+      id,
+    );
+    db.prepare("DELETE FROM auto_execution_budgets WHERE flow_id = ?").run(id);
+    deleteFlow(db, id);
+    result = { deleted: true };
   } else {
     const authority = automationExecutionAuthoritySnapshot(db, flow);
+    const executionId = executionIdFor(id, requestedAction, item.revision);
     const occurrenceId = `automation-center:${requestedAction}:${id}:${item.revision.slice("sha256:".length)}`;
-    reserveAutomationExecutionAuthority(
-      db,
-      flow,
-      occurrenceId,
-      authority,
-      automationExecutionAuthorityDigest(authority, flow),
-      { now },
-    );
+    try {
+      reserveAutomationExecutionAuthority(
+        db,
+        flow,
+        occurrenceId,
+        authority,
+        automationExecutionAuthorityDigest(authority, flow),
+        { now },
+      );
+    } catch (error) {
+      if (
+        persistManualExecutionIncident(db, {
+          flow,
+          executionId,
+          occurrenceId,
+          requestedAction,
+          authority,
+          error,
+          now,
+        })
+      ) {
+        return durableCenterRejection(error);
+      }
+      throw error;
+    }
     let inputData = { source: "automation-center" };
     if (requestedAction === "retry_failed") {
       const failed = getExecution(db, item.history[0].id);
@@ -416,11 +521,30 @@ export function runAutomationCenterAction(
       retryOf = failed.id;
       inputData = failed.inputData;
     }
-    result = executeFlow(db, id, {
-      triggerType: TRIGGER_TYPE.MANUAL,
-      inputData,
-      executionId: executionIdFor(id, requestedAction, item.revision),
-    });
+    try {
+      result = executeFlow(db, id, {
+        triggerType: TRIGGER_TYPE.MANUAL,
+        inputData,
+        executionId,
+        executionAuthority: authority,
+        assertRuntimeBoundary: assertAutomationRuntimeBoundary,
+      });
+    } catch (error) {
+      if (
+        persistManualExecutionIncident(db, {
+          flow,
+          executionId,
+          occurrenceId,
+          requestedAction,
+          authority,
+          error,
+          now,
+        })
+      ) {
+        return durableCenterRejection(error);
+      }
+      throw error;
+    }
   }
   return {
     schema: "chainlesschain.automation-center-action/v1",
@@ -432,4 +556,24 @@ export function runAutomationCenterAction(
     ...(retryOf ? { retryOf } : {}),
     result,
   };
+}
+
+export function runAutomationCenterAction(db, options = {}) {
+  if (!db || typeof db.transaction !== "function") {
+    throw centerError(
+      "AUTOMATION_CENTER_TRANSACTION_REQUIRED",
+      "automation center actions require transactional database support",
+    );
+  }
+  // BEGIN IMMEDIATE makes the rendered revision recheck and its mutation one
+  // cross-process critical section. Boundary rejections are returned as a
+  // sentinel so their durable incident commits before the original error is
+  // surfaced to the caller.
+  const outcome = db
+    .transaction(() => runAutomationCenterActionLocked(db, options))
+    .immediate();
+  if (outcome?.[DURABLE_CENTER_REJECTION]) {
+    throw outcome[DURABLE_CENTER_REJECTION];
+  }
+  return outcome;
 }

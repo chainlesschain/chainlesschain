@@ -11,18 +11,29 @@ speaks the _same_ MCP protocol as the VS Code extension; only `ide` differs
 
 ## Release compatibility
 
-Plugin **0.4.87** adds governed automatic ghost-text completion and carries
-forward the Automation Center for CLI-owned, versioned
+Plugin **0.4.88** is the source candidate that carries forward governed
+automatic ghost-text completion and the Automation Center for CLI-owned, versioned
 Automation and Routine projections. It shows preflight and history, then routes
 run-now, failed-run retry, pause/resume, disable, delete, and revision-CAS
 create/edit operations through exact CLI-issued arguments. Cron, one-shot,
 webhook, and GitHub triggers share the same fail-closed surface.
 
-The fully gated public CLI `chainlesschain@0.163.6` contains the governed
+The fully gated public CLI `chainlesschain@0.163.7` contains the governed
 Automation/Routine commands, unified scheduler authority, timezone/missed-run
 semantics, and shared permission/budget enforcement required by the Automation
-Center. CLI `0.163.5` remains supported for existing chat and IDE bridge
-features but does not expose the new control commands.
+Center. It emits the released Automation Center v2 projection: `0.4.88`
+preserves the existing item controls with empty incidents/runtime and does not
+invent the new actions.
+
+The `0.4.88` source accepts only the exact released v2/schemaVersion 2 pair or
+the new v3/schemaVersion 3 pair; unknown and cross-paired versions fail closed.
+With v3 it shows sanitized run incidents and bounded live scheduler occurrences.
+Incident retry/cancel and cooperative occurrence pause/resume appear only when
+the CLI supplies an exact revision/fence-gated action preview. The plugin
+refreshes the projection and rechecks that preview before execution; it never
+derives argv from display data or imports scheduler payload, authority, or
+checkpoint evidence. These v3 controls require a subsequent exact-gated CLI
+release; CLI `0.163.7` remains fully usable through v2 without showing them.
 
 ## Governed ghost-text completion
 

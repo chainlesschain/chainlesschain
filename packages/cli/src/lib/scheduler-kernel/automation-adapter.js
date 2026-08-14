@@ -1,12 +1,18 @@
 import { createHash, randomUUID } from "node:crypto";
 import { nextCronTime } from "../agent-schedule-store.js";
 import {
+  assertAutomationRuntimeBoundary,
   automationExecutionAuthorityDigest,
   automationExecutionAuthoritySnapshot,
   automationSchedulerAuthority,
+  classifyAutomationBoundaryError,
   normalizeAutomationExecutionAuthoritySnapshot,
   reserveAutomationExecutionAuthority,
 } from "../automation-execution-authority.js";
+import {
+  resolveAutomationExecutionIncidentsForSucceededRun,
+  upsertAutomationExecutionIncident,
+} from "../automation-execution-incident.js";
 import {
   EXECUTION_STATUS,
   FLOW_STATUS,
@@ -33,6 +39,7 @@ import {
   normalizeJson,
 } from "./contract.js";
 import { SchedulerRuntime } from "./runtime.js";
+import { CHECKPOINT_V1_RUNTIME_CONTROL } from "./runtime-control-capabilities.js";
 import {
   schedulerJobDefinitionDigest,
   schedulerMigrationSourceDigest,
@@ -176,6 +183,54 @@ export function automationSchedulerExecutionId(occurrenceId) {
     .update(id, "utf8")
     .digest("hex");
   return `exec-scheduler-${digest}`;
+}
+
+function automationBoundaryIncidentEvidence(error, snapshot) {
+  const classified = classifyAutomationBoundaryError(error);
+  if (!classified) return null;
+  const deniedPermissions = Array.isArray(error?.details?.permissions)
+    ? error.details.permissions.map(String).slice(0, 32)
+    : [];
+  return {
+    classified,
+    boundary: {
+      ...(deniedPermissions.length > 0 ? { deniedPermissions } : {}),
+      ...(snapshot?.budget?.revision === undefined
+        ? {}
+        : { budgetRevision: snapshot.budget.revision }),
+      ...(Array.isArray(snapshot?.connectors)
+        ? { connectors: snapshot.connectors }
+        : {}),
+    },
+    details: { reasonCode: classified.code, retryable: false },
+  };
+}
+
+function persistAutomationSchedulerIncident(
+  db,
+  occurrence,
+  flow,
+  snapshot,
+  error,
+  now,
+) {
+  const evidence = automationBoundaryIncidentEvidence(error, snapshot);
+  if (!evidence) return null;
+  return upsertAutomationExecutionIncident(
+    db,
+    {
+      runId: automationSchedulerExecutionId(occurrence.id),
+      flowId: flow.id,
+      occurrenceId: occurrence.id,
+      triggerType: TRIGGER_TYPE.SCHEDULE,
+      category: evidence.classified.category,
+      code: evidence.classified.code,
+      authorityDigest: automationExecutionAuthorityDigest(snapshot, flow),
+      boundary: evidence.boundary,
+      details: evidence.details,
+    },
+    { now },
+  );
 }
 
 export function buildAutomationSchedulerJob(flow, executionAuthority) {
@@ -702,7 +757,7 @@ export function authorizeAutomationOccurrence({ job, occurrence }) {
   }
 }
 
-function existingExecutionResult(db, occurrence, expected) {
+function existingExecutionResult(db, occurrence, expected, now) {
   const executionId = automationSchedulerExecutionId(occurrence.id);
   const execution = getExecution(db, executionId);
   if (!execution) return null;
@@ -729,6 +784,9 @@ function existingExecutionResult(db, occurrence, expected) {
       { executionId: execution.id, status: execution.status },
     );
   }
+  resolveAutomationExecutionIncidentsForSucceededRun(db, execution.id, {
+    now,
+  });
   return execution;
 }
 
@@ -741,6 +799,7 @@ export function createAutomationSchedulerAdapter({ db, now = Date.now } = {}) {
   }
   return {
     kind: AUTOMATION_SCHEDULER_KIND,
+    runtimeControl: CHECKPOINT_V1_RUNTIME_CONTROL,
     async adjudicate({ occurrence, adjudication }) {
       const payload = occurrence?.payload;
       const expected = automationFlowSnapshot(payload?.flow);
@@ -772,7 +831,7 @@ export function createAutomationSchedulerAdapter({ db, now = Date.now } = {}) {
       }
       return { continue: true };
     },
-    async execute({ occurrence }) {
+    async execute({ occurrence, checkpoint }) {
       const payload = occurrence?.payload;
       const expected = automationFlowSnapshot(payload?.flow);
       const expectedDigest = automationFlowSnapshotDigest(expected);
@@ -789,7 +848,7 @@ export function createAutomationSchedulerAdapter({ db, now = Date.now } = {}) {
       // A prior process may have committed the flow result and died before the
       // scheduler settlement. Durable success is authoritative even if the flow
       // was subsequently paused or edited.
-      const recovered = existingExecutionResult(db, occurrence, expected);
+      const recovered = existingExecutionResult(db, occurrence, expected, now);
       if (recovered) return recovered;
 
       const current = getFlow(db, expected.id);
@@ -813,14 +872,31 @@ export function createAutomationSchedulerAdapter({ db, now = Date.now } = {}) {
         );
       }
 
-      reserveAutomationExecutionAuthority(
-        db,
-        effectiveCurrent,
-        occurrence.id,
-        payload.executionAuthority,
-        payload.executionAuthorityDigest,
-        { now },
-      );
+      checkpoint({
+        executionId: automationSchedulerExecutionId(occurrence.id),
+        phase: "before_execution_reservation",
+      });
+
+      try {
+        reserveAutomationExecutionAuthority(
+          db,
+          effectiveCurrent,
+          occurrence.id,
+          payload.executionAuthority,
+          payload.executionAuthorityDigest,
+          { now },
+        );
+      } catch (error) {
+        persistAutomationSchedulerIncident(
+          db,
+          occurrence,
+          effectiveCurrent,
+          payload.executionAuthority,
+          error,
+          now,
+        );
+        throw error;
+      }
 
       let execution;
       try {
@@ -828,8 +904,20 @@ export function createAutomationSchedulerAdapter({ db, now = Date.now } = {}) {
           inputData: {},
           triggerType: TRIGGER_TYPE.SCHEDULE,
           executionId: automationSchedulerExecutionId(occurrence.id),
+          executionAuthority: payload.executionAuthority,
+          assertRuntimeBoundary: assertAutomationRuntimeBoundary,
         });
       } catch (cause) {
+        if (classifyAutomationBoundaryError(cause)) {
+          persistAutomationSchedulerIncident(
+            db,
+            occurrence,
+            effectiveCurrent,
+            payload.executionAuthority,
+            cause,
+            now,
+          );
+        }
         if (cause?.code === "AUTOMATION_EXECUTION_OUTCOME_UNKNOWN") {
           throw automationError(
             "AUTOMATION_SCHEDULER_OUTCOME_UNKNOWN",
@@ -847,7 +935,13 @@ export function createAutomationSchedulerAdapter({ db, now = Date.now } = {}) {
           { executionId: execution.id, error: execution.error },
         );
       }
+      resolveAutomationExecutionIncidentsForSucceededRun(db, execution.id, {
+        now,
+      });
       return execution;
+    },
+    async resume(context) {
+      return this.execute(context);
     },
     classifyError() {
       return { retryable: false };

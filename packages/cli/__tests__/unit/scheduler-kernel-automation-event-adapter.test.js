@@ -5,6 +5,7 @@ import {
   automationExecutionAuthoritySnapshot,
   setAutomationExecutionBudget,
 } from "../../src/lib/automation-execution-authority.js";
+import { listAutomationExecutionIncidents } from "../../src/lib/automation-execution-incident.js";
 import {
   EXECUTION_STATUS,
   FLOW_STATUS,
@@ -488,5 +489,49 @@ describe("scheduler-kernel automation channel event adapter", () => {
       ],
     });
     expect(listExecutions(f.db, { flowId: flow.id })).toHaveLength(0);
+    const incident = listAutomationExecutionIncidents(f.db, {
+      flowId: flow.id,
+      status: "open",
+    })[0];
+    expect(incident).toMatchObject({
+      occurrenceId: expect.stringMatching(/^occ_/u),
+      triggerType: "event",
+      category: "connector",
+      code: "AUTOMATION_EXECUTION_PERMISSION_DENIED",
+    });
+    expect(incident.runId).toBe(
+      automationEventExecutionId(incident.occurrenceId),
+    );
+
+    grantPermission(f.db, principalId, "automation:connector:slack");
+    const deadLetter = f.schedulerStore.getOccurrence(incident.occurrenceId);
+    f.schedulerStore.requeueDeadLetter({
+      occurrenceId: incident.occurrenceId,
+      expectedFence: deadLetter.fence,
+      expectedErrorCode: incident.code,
+      requestId: "retry-revoked-event-incident",
+    });
+    const retryRuntime = new SchedulerRuntime({
+      store: f.schedulerStore,
+      adapters: [createAutomationEventAdapter({ db: f.db, now: () => f.now })],
+      authorize: authorizeAutomationEventOccurrence,
+      ownerId: "automation-event-restored",
+      leaseMs: 10_000,
+    });
+    await expect(
+      retryRuntime.runOccurrence(incident.occurrenceId),
+    ).resolves.toMatchObject({
+      status: "succeeded",
+      result: { id: incident.runId },
+    });
+    expect(listAutomationExecutionIncidents(f.db, { flowId: flow.id })).toEqual(
+      [
+        expect.objectContaining({
+          runId: incident.runId,
+          status: "resolved",
+          resolutionCode: "EXECUTION_SUCCEEDED",
+        }),
+      ],
+    );
   });
 });

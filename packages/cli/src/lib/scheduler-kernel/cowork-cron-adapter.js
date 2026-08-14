@@ -25,6 +25,7 @@ import {
   normalizeJson,
 } from "./contract.js";
 import { SchedulerRuntime } from "./runtime.js";
+import { CHECKPOINT_V1_RUNTIME_CONTROL } from "./runtime-control-capabilities.js";
 import { schedulerMigrationSourceDigest } from "./store.js";
 import {
   bindSchedulerAuthorityPolicy,
@@ -571,6 +572,7 @@ export function createCoworkCronSchedulerAdapter({ runTask, now } = {}) {
   }
   return {
     kind: COWORK_CRON_SCHEDULER_KIND,
+    runtimeControl: CHECKPOINT_V1_RUNTIME_CONTROL,
     async adjudicate({ occurrence, adjudication }) {
       const payload = occurrence.payload;
       const cwd = normalizedCwd(payload.cwd);
@@ -604,7 +606,7 @@ export function createCoworkCronSchedulerAdapter({ runTask, now } = {}) {
       }
       return { continue: true };
     },
-    async execute({ occurrence, signal }) {
+    async execute({ occurrence, signal, checkpoint }) {
       const payload = occurrence.payload;
       const expected = coworkCronScheduleSnapshot(payload?.schedule);
       const expectedDigest = coworkCronScheduleDigest(expected);
@@ -661,6 +663,12 @@ export function createCoworkCronSchedulerAdapter({ runTask, now } = {}) {
           `Cowork cron schedule was disabled: ${expected.id}`,
         );
       }
+
+      checkpoint({
+        deliveryId,
+        phase: "before_execution_bind",
+        scheduleId: expected.id,
+      });
 
       current = bindSchedulerScheduleFire(cwd, expected.id, {
         deliveryId,
@@ -802,6 +810,9 @@ export function createCoworkCronSchedulerAdapter({ runTask, now } = {}) {
           completionError,
         );
       }
+    },
+    async resume(context) {
+      return this.execute(context);
     },
     classifyError(error) {
       return {

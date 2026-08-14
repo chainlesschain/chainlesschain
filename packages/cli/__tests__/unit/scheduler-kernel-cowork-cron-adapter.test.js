@@ -404,8 +404,13 @@ describe("scheduler-kernel Cowork cron adapter", () => {
       }),
     ).toThrow(
       expect.objectContaining({
-        code: "EIO",
-        commitState: "not-committed",
+        code: "SCHEDULER_STORAGE_UNAVAILABLE",
+        details: {
+          phase: "write",
+          storageCode: "EIO",
+          commitState: "not_committed",
+          retryable: false,
+        },
       }),
     );
     expect(readFileSync(file, "utf8")).toBe(retiredSource);
