@@ -107,7 +107,11 @@ function propertyValue(properties, key) {
 function propertyNumber(properties, key) {
   const value = propertyValue(properties, key);
   if (isObjCNil(value)) return null;
-  return Number(value);
+  const primitive =
+    typeof value === "number" || typeof value === "string"
+      ? value
+      : ObjC.unwrap(value);
+  return Number(primitive);
 }
 
 function propertyStringEquals(value, expected) {
@@ -170,26 +174,25 @@ function run(argv) {
       if (isObjCNil(properties)) return "invalid:tiff-properties";
       stage = "tiff-width";
       const width = propertyNumber(properties, "PixelWidth");
+      if (!Number.isSafeInteger(width) || width <= 0) {
+        return "invalid:tiff-width";
+      }
       stage = "tiff-height";
       const height = propertyNumber(properties, "PixelHeight");
+      if (!Number.isSafeInteger(height) || height <= 0) {
+        return "invalid:tiff-height";
+      }
       stage = "tiff-depth";
       const depth = propertyNumber(properties, "Depth");
+      if (!Number.isSafeInteger(depth) || depth <= 0) {
+        return "invalid:tiff-depth";
+      }
       stage = "tiff-color-read";
       const colorModel = propertyValue(properties, "ColorModel");
-      if (isObjCNil(colorModel)) return "invalid:tiff-metadata";
+      if (isObjCNil(colorModel)) return "invalid:tiff-color-model";
       stage = "tiff-color-model";
       const isRgb = propertyStringEquals(colorModel, "RGB");
       const isGray = propertyStringEquals(colorModel, "Gray");
-      if (
-        !Number.isSafeInteger(width) ||
-        !Number.isSafeInteger(height) ||
-        !Number.isSafeInteger(depth) ||
-        width <= 0 ||
-        height <= 0 ||
-        depth <= 0
-      ) {
-        return "invalid:tiff-metadata";
-      }
       if (!isRgb && !isGray) return "invalid:unsupported-color-model";
       if (
         depth > 16 ||

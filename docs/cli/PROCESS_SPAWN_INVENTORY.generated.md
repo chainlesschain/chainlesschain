@@ -257,9 +257,9 @@ Runtime audit: brokered: 189, audited-exemption: 33, non-executable: 39, unrevie
 | `packages/cli/src/repl/clipboard-copy.js` | 82 | `brokered` | call targets ProcessExecutionBroker | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/repl/clipboard-copy.js` | 91 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const spawn = spawnSync \|\| _deps.spawnSync;` |
 | `packages/cli/src/repl/clipboard-copy.js` | 97 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `res = spawn(cmd, args, {` |
-| `packages/cli/src/repl/clipboard-image.js` | 248 | `brokered` | call targets ProcessExecutionBroker | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
-| `packages/cli/src/repl/clipboard-image.js` | 474 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `return deps.spawnSync(candidate.cmd, candidate.args, {` |
-| `packages/cli/src/repl/clipboard-image.js` | 571 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const readResult = deps.spawnSync(` |
+| `packages/cli/src/repl/clipboard-image.js` | 266 | `brokered` | call targets ProcessExecutionBroker | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
+| `packages/cli/src/repl/clipboard-image.js` | 492 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `return deps.spawnSync(candidate.cmd, candidate.args, {` |
+| `packages/cli/src/repl/clipboard-image.js` | 589 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const readResult = deps.spawnSync(` |
 | `packages/cli/src/repl/pr-comments.js` | 15 | `brokered` | call targets ProcessExecutionBroker | `execFile: (...args) => executionBroker.execFile(...args),` |
 | `packages/cli/src/repl/pr-comments.js` | 21 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `deps.execFile(` |
 | `packages/cli/src/repl/prompt-editor.js` | 104 | `brokered` | call targets ProcessExecutionBroker | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |

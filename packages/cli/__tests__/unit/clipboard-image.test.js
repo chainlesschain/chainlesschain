@@ -445,16 +445,24 @@ describe("system clipboard image readers", () => {
       isEqualToString: (expected) => (expected?.value ?? expected) === "RGB",
     };
     let primitiveColorModel = false;
+    let primitiveNumberMetadata = true;
+    let omittedMetadataKey = null;
+    const wrappedNumber = (value) => ({ isNil: () => false, value });
     const rawProperties = { isNil: () => false };
     const properties = {
       isNil: () => false,
-      objectForKey: (key) =>
-        ({
+      objectForKey: (key) => {
+        if (key === omittedMetadataKey) return undefined;
+        const value = {
           PixelWidth: 3,
           PixelHeight: 2,
           Depth: 8,
           ColorModel: primitiveColorModel ? "RGB" : colorModel,
-        })[key],
+        }[key];
+        return key === "ColorModel" || primitiveNumberMetadata
+          ? value
+          : wrappedNumber(value);
+      },
     };
     const pasteboard = {
       dataForType: (type) => (type === "public.png" ? wrappedNil : tiffData),
@@ -489,12 +497,16 @@ describe("system clipboard image readers", () => {
         },
       },
     });
+    const unwrap = vi.fn((value) => {
+      if (typeof value?.value !== "number") {
+        throw new Error("only wrapped numeric metadata may be unwrapped");
+      }
+      return value.value;
+    });
     const context = {
       ObjC: {
         import: () => {},
-        unwrap: () => {
-          throw new Error("TIFF metadata must not depend on ObjC.unwrap");
-        },
+        unwrap,
       },
       $: bridge,
     };
@@ -504,8 +516,14 @@ describe("system clipboard image readers", () => {
         context,
       );
     expect(runTiffFallback()).toBe("tiff-png");
+    expect(unwrap).not.toHaveBeenCalled();
+    primitiveNumberMetadata = false;
     primitiveColorModel = true;
     expect(runTiffFallback()).toBe("tiff-png");
+    expect(unwrap).toHaveBeenCalledTimes(3);
+    omittedMetadataKey = "Depth";
+    expect(runTiffFallback()).toBe("invalid:tiff-depth");
+    expect(unwrap).toHaveBeenCalledTimes(5);
   });
 
   it("reports only a stable macOS helper validation stage", () => {
