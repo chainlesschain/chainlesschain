@@ -448,10 +448,28 @@ describe("system clipboard image readers", () => {
     let primitiveNumberMetadata = true;
     let unwrapNumberMetadata = true;
     let omittedMetadataKey = null;
-    const pixelWidthKey = Object.freeze({ name: "pixel-width" });
-    const pixelHeightKey = Object.freeze({ name: "pixel-height" });
-    const depthKey = Object.freeze({ name: "depth" });
-    const colorModelKey = Object.freeze({ name: "color-model" });
+    const imagePropertyKey = (publicName) =>
+      Object.freeze({
+        publicName,
+        isEqualToString: (expected) =>
+          (expected?.value ?? expected) === publicName,
+      });
+    const pixelWidthKey = imagePropertyKey("PixelWidth");
+    const pixelHeightKey = imagePropertyKey("PixelHeight");
+    const depthKey = imagePropertyKey("Depth");
+    const colorModelKey = imagePropertyKey("ColorModel");
+    const metadataKeys = [
+      pixelWidthKey,
+      pixelHeightKey,
+      depthKey,
+      colorModelKey,
+    ];
+    let allKeysReads = 0;
+    const allKeys = {
+      isNil: () => false,
+      count: String(metadataKeys.length),
+      objectAtIndex: (index) => metadataKeys[index],
+    };
     const wrappedNumber = (value) => ({
       isNil: () => false,
       value,
@@ -460,6 +478,11 @@ describe("system clipboard image readers", () => {
     const rawProperties = { isNil: () => false };
     const properties = {
       isNil: () => false,
+      count: String(metadataKeys.length),
+      get allKeys() {
+        allKeysReads += 1;
+        return allKeys;
+      },
       objectForKey: (key) => {
         if (key === omittedMetadataKey) return undefined;
         const value = new Map([
@@ -468,6 +491,7 @@ describe("system clipboard image readers", () => {
           [depthKey, 8],
           [colorModelKey, primitiveColorModel ? "RGB" : colorModel],
         ]).get(key);
+        if (value === undefined) return undefined;
         return key === colorModelKey || primitiveNumberMetadata
           ? value
           : wrappedNumber(value);
@@ -530,16 +554,34 @@ describe("system clipboard image readers", () => {
       );
     expect(runTiffFallback()).toBe("tiff-png");
     expect(unwrap).not.toHaveBeenCalled();
+    expect(allKeysReads).toBe(0);
+    bridge.kCGImagePropertyPixelWidth = imagePropertyKey("foreign-width");
+    bridge.kCGImagePropertyPixelHeight = imagePropertyKey("foreign-height");
+    bridge.kCGImagePropertyDepth = imagePropertyKey("foreign-depth");
+    bridge.kCGImagePropertyColorModel = imagePropertyKey("foreign-color");
     primitiveNumberMetadata = false;
     primitiveColorModel = true;
     expect(runTiffFallback()).toBe("tiff-png");
     expect(unwrap).toHaveBeenCalledTimes(3);
+    expect(allKeysReads).toBe(4);
     unwrapNumberMetadata = false;
     expect(runTiffFallback()).toBe("tiff-png");
     expect(unwrap).toHaveBeenCalledTimes(6);
     omittedMetadataKey = depthKey;
     expect(runTiffFallback()).toBe("invalid:tiff-depth-missing");
     expect(unwrap).toHaveBeenCalledTimes(8);
+
+    omittedMetadataKey = null;
+    const readsBeforeBoundCheck = allKeysReads;
+    properties.count = "257";
+    expect(runTiffFallback()).toBe("invalid:tiff-width-missing");
+    expect(allKeysReads).toBe(readsBeforeBoundCheck);
+
+    properties.count = String(metadataKeys.length);
+    allKeys.objectAtIndex = () => {
+      throw new Error("private key bridge detail");
+    };
+    expect(runTiffFallback()).toBe("error:tiff-width");
   });
 
   it("reports only a stable macOS helper validation stage", () => {

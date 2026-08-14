@@ -98,12 +98,41 @@ function isObjCNil(value) {
     (typeof value.isNil === "function" && value.isNil());
 }
 
-function propertyValue(properties, key) {
-  return properties.objectForKey(key);
+function propertyValue(properties, key, publicName) {
+  try {
+    const directValue = properties.objectForKey(key);
+    if (!isObjCNil(directValue)) return directValue;
+  } catch {
+    // Fall through to a shallow lookup with the dictionary-owned keys.
+  }
+
+  // ImageIO can expose CFString dictionary keys through JXA wrappers that do
+  // not compare equal to the separately imported global constant. Walk only
+  // the shallow, bounded top-level key list and then query with the exact key
+  // object returned by the dictionary. Never recursively unwrap metadata.
+  const propertyCount = Number(properties.count);
+  if (
+    !Number.isSafeInteger(propertyCount) ||
+    propertyCount < 1 ||
+    propertyCount > 256
+  ) {
+    return null;
+  }
+  const keys = properties.allKeys;
+  if (isObjCNil(keys)) return null;
+  const keyCount = Number(keys.count);
+  if (keyCount !== propertyCount) return null;
+  for (let index = 0; index < keyCount; index += 1) {
+    const candidate = keys.objectAtIndex(index);
+    if (propertyStringEquals(candidate, publicName)) {
+      return properties.objectForKey(candidate);
+    }
+  }
+  return null;
 }
 
-function propertyNumber(properties, key) {
-  const value = propertyValue(properties, key);
+function propertyNumber(properties, key, publicName) {
+  const value = propertyValue(properties, key, publicName);
   if (isObjCNil(value)) return null;
   if (typeof value === "number" || typeof value === "string") {
     return Number(value);
@@ -123,9 +152,12 @@ function propertyNumber(properties, key) {
 }
 
 function propertyStringEquals(value, expected) {
-  return typeof value === "string"
-    ? value === expected
-    : Boolean(value.isEqualToString($(expected)));
+  if (typeof value === "string") return value === expected;
+  return (
+    !isObjCNil(value) &&
+    typeof value.isEqualToString === "function" &&
+    Boolean(value.isEqualToString($(expected)))
+  );
 }
 
 function run(argv) {
@@ -181,25 +213,41 @@ function run(argv) {
       const properties = $.NSDictionary.dictionaryWithDictionary(rawProperties);
       if (isObjCNil(properties)) return "invalid:tiff-properties";
       stage = "tiff-width";
-      const width = propertyNumber(properties, $.kCGImagePropertyPixelWidth);
+      const width = propertyNumber(
+        properties,
+        $.kCGImagePropertyPixelWidth,
+        "PixelWidth",
+      );
       if (width === null) return "invalid:tiff-width-missing";
       if (!Number.isSafeInteger(width) || width <= 0) {
         return "invalid:tiff-width-value";
       }
       stage = "tiff-height";
-      const height = propertyNumber(properties, $.kCGImagePropertyPixelHeight);
+      const height = propertyNumber(
+        properties,
+        $.kCGImagePropertyPixelHeight,
+        "PixelHeight",
+      );
       if (height === null) return "invalid:tiff-height-missing";
       if (!Number.isSafeInteger(height) || height <= 0) {
         return "invalid:tiff-height-value";
       }
       stage = "tiff-depth";
-      const depth = propertyNumber(properties, $.kCGImagePropertyDepth);
+      const depth = propertyNumber(
+        properties,
+        $.kCGImagePropertyDepth,
+        "Depth",
+      );
       if (depth === null) return "invalid:tiff-depth-missing";
       if (!Number.isSafeInteger(depth) || depth <= 0) {
         return "invalid:tiff-depth-value";
       }
       stage = "tiff-color-read";
-      const colorModel = propertyValue(properties, $.kCGImagePropertyColorModel);
+      const colorModel = propertyValue(
+        properties,
+        $.kCGImagePropertyColorModel,
+        "ColorModel",
+      );
       if (isObjCNil(colorModel)) return "invalid:tiff-color-model";
       stage = "tiff-color-model";
       const isRgb = propertyStringEquals(colorModel, "RGB");
