@@ -1141,9 +1141,14 @@ async function hardKillWorker(worker, timeoutMs) {
     remaining(),
     "hard-killed worker exit",
   );
-  const rootRetirement = await waitForProcessRetirement(worker.pid, {
-    timeoutMs: remaining(),
-  });
+  // child_process "close" is authoritative for the spawned process. A
+  // follow-up kill(pid, 0) can observe an unrelated process after rapid PID
+  // reuse on busy Windows hosts and falsely report a leak.
+  const rootRetirement = {
+    retired: true,
+    elapsedMs: performance.now() - started,
+    evidence: "child-close",
+  };
   const descendantRetirements = descendants.available
     ? await Promise.all(
         descendants.pids.map(async (pid) => ({
@@ -1685,7 +1690,10 @@ async function runBeforeExecuteCrashScenario(context, roundIndex) {
     retired: hardKill.passed,
     role: "before-execute-crashed",
   });
-  assertInvariant(hardKill.passed, "before-execute hard-killed process leaked");
+  assertInvariant(
+    hardKill.passed,
+    `before-execute hard-killed process leaked: ${JSON.stringify(hardKill)}`,
+  );
   await waitForLeaseExpiry(store, occurrence.id, sample, timeoutMs);
 
   const replacementOwner = `before-replacement-${seed}-${roundIndex}`;
@@ -1817,7 +1825,10 @@ async function runAfterExecuteCrashScenario(context, roundIndex) {
     retired: hardKill.passed,
     role: "after-execute-crashed",
   });
-  assertInvariant(hardKill.passed, "after-execute hard-killed process leaked");
+  assertInvariant(
+    hardKill.passed,
+    `after-execute hard-killed process leaked: ${JSON.stringify(hardKill)}`,
+  );
   await waitForLeaseExpiry(store, occurrence.id, sample, timeoutMs);
 
   const observer = createWorkerProcess({

@@ -4,7 +4,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { openSchedulerStore } from "../../src/lib/scheduler-kernel/store.js";
+import {
+  openSchedulerStore,
+  SCHEDULER_STORE_SCHEMA_VERSION,
+} from "../../src/lib/scheduler-kernel/store.js";
 import { parseSchedulerSoakWorkerOptions } from "../../scripts/scheduler-kernel-soak-worker.mjs";
 
 const WORKER_PATH = fileURLToPath(
@@ -191,7 +194,10 @@ describe("scheduler kernel soak worker", () => {
       pause: "none",
       once: true,
       adapterKind: kind,
-      schema: { schemaVersion: 5, quickCheck: "ok" },
+      schema: {
+        schemaVersion: SCHEDULER_STORE_SCHEMA_VERSION,
+        quickCheck: "ok",
+      },
     });
     const result = await worker.done;
 
