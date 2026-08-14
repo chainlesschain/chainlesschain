@@ -62,15 +62,20 @@ const WINDOWS_CLIPBOARD_IMAGE_SCRIPT = [
   "  $stream.Dispose()",
   "  $image.Dispose()",
   "}",
-].join("; ");
+].join("\n");
 
 const MACOS_CLIPBOARD_IMAGE_SCRIPT = String.raw`
 ObjC.import("AppKit");
 ObjC.import("ImageIO");
 
+function isObjCNil(value) {
+  return value == null ||
+    (typeof value.isNil === "function" && value.isNil());
+}
+
 function propertyNumber(properties, key) {
   const value = properties.objectForKey(key);
-  return value ? Number(ObjC.unwrap(value)) : null;
+  return isObjCNil(value) ? null : Number(ObjC.unwrap(value));
 }
 
 function run(argv) {
@@ -83,40 +88,56 @@ function run(argv) {
   const pasteboard = $.NSPasteboard.generalPasteboard;
   let imageData = pasteboard.dataForType($("public.png"));
   let imageKind = "png";
-  if (!imageData) {
+  if (isObjCNil(imageData)) {
     const tiffData = pasteboard.dataForType($("public.tiff"));
-    if (!tiffData) return "none";
+    if (isObjCNil(tiffData)) return "none";
     const tiffBytes = Number(tiffData.length);
-    if (!Number.isSafeInteger(tiffBytes) || tiffBytes <= 0) return "invalid";
-    if (tiffBytes > maximumSourceBytes) return "too-large";
-    const imageSource = $.CGImageSourceCreateWithData(tiffData, null);
-    if (!imageSource || Number($.CGImageSourceGetCount(imageSource)) < 1) {
-      return "invalid";
+    if (!Number.isSafeInteger(tiffBytes) || tiffBytes <= 0) {
+      return "invalid:tiff-length";
+    }
+    if (tiffBytes > maximumSourceBytes) return "too-large:tiff-source";
+    const imageSource = $.CGImageSourceCreateWithData(tiffData, $());
+    const imageCount = isObjCNil(imageSource)
+      ? 0
+      : Number($.CGImageSourceGetCount(imageSource));
+    if (
+      isObjCNil(imageSource) ||
+      !Number.isSafeInteger(imageCount) ||
+      imageCount < 1
+    ) {
+      return "invalid:tiff-source";
     }
     const properties = $.CGImageSourceCopyPropertiesAtIndex(
       imageSource,
       0,
-      null,
+      $(),
     );
-    if (!properties) return "invalid";
+    if (isObjCNil(properties)) return "invalid:tiff-properties";
     const width = propertyNumber(properties, $.kCGImagePropertyPixelWidth);
     const height = propertyNumber(properties, $.kCGImagePropertyPixelHeight);
     const depth = propertyNumber(properties, $.kCGImagePropertyDepth);
     const colorModel = properties.objectForKey($.kCGImagePropertyColorModel);
+    if (isObjCNil(colorModel)) return "invalid:tiff-metadata";
+    const normalizedColorModel = String(ObjC.unwrap(colorModel));
     const isRgb =
-      colorModel && colorModel.isEqualToString($.kCGImagePropertyColorModelRGB);
+      normalizedColorModel ===
+      String(ObjC.unwrap($.kCGImagePropertyColorModelRGB));
     const isGray =
-      colorModel &&
-      colorModel.isEqualToString($.kCGImagePropertyColorModelGray);
+      normalizedColorModel ===
+      String(ObjC.unwrap($.kCGImagePropertyColorModelGray));
     if (
       !Number.isSafeInteger(width) ||
       !Number.isSafeInteger(height) ||
       !Number.isSafeInteger(depth) ||
       width <= 0 ||
       height <= 0 ||
-      depth <= 0 ||
+      depth <= 0
+    ) {
+      return "invalid:tiff-metadata";
+    }
+    if (!isRgb && !isGray) return "invalid:unsupported-color-model";
+    if (
       depth > 16 ||
-      (!isRgb && !isGray) ||
       width > maximumDimension ||
       height > maximumDimension ||
       width > Math.floor(maximumPixels / height) ||
@@ -126,10 +147,10 @@ function run(argv) {
             (height * (isRgb ? 4 : 2) * Math.ceil(depth / 8)),
         )
     ) {
-      return "too-large";
+      return "too-large:tiff-metadata";
     }
-    const cgImage = $.CGImageSourceCreateImageAtIndex(imageSource, 0, null);
-    if (!cgImage) return "invalid";
+    const cgImage = $.CGImageSourceCreateImageAtIndex(imageSource, 0, $());
+    if (isObjCNil(cgImage)) return "invalid:tiff-decode";
     const decodedWidth = Number($.CGImageGetWidth(cgImage));
     const decodedHeight = Number($.CGImageGetHeight(cgImage));
     const bitsPerPixel = Number($.CGImageGetBitsPerPixel(cgImage));
@@ -140,23 +161,29 @@ function run(argv) {
       !Number.isSafeInteger(bitsPerPixel) ||
       !Number.isSafeInteger(bytesPerRow) ||
       bitsPerPixel <= 0 ||
+      bytesPerRow <= 0
+    ) {
+      return "invalid:tiff-decoded";
+    }
+    if (
       bitsPerPixel > 64 ||
-      bytesPerRow <= 0 ||
       bytesPerRow > Math.floor(maximumDecodedBytes / decodedHeight)
     ) {
-      return "too-large";
+      return "too-large:tiff-decoded";
     }
     const bitmap = $.NSBitmapImageRep.alloc.initWithCGImage(cgImage);
-    if (!bitmap) return "invalid";
+    if (isObjCNil(bitmap)) return "invalid:tiff-bitmap";
     imageData = bitmap.representationUsingTypeProperties(4, $({}));
+    if (isObjCNil(imageData)) return "invalid:tiff-encode";
     imageKind = "tiff-png";
   }
-  if (!imageData) return "invalid";
   const imageBytes = Number(imageData.length);
-  if (!Number.isSafeInteger(imageBytes) || imageBytes <= 0) return "invalid";
-  if (imageBytes > maximumBytes) return "too-large";
+  if (!Number.isSafeInteger(imageBytes) || imageBytes <= 0) {
+    return "invalid:image-length";
+  }
+  if (imageBytes > maximumBytes) return "too-large:image-bytes";
   if (!imageData.writeToFileAtomically($(outputPath), true)) {
-    throw new Error("clipboard image write failed");
+    return "invalid:image-write";
   }
   return imageKind;
 }`;
@@ -525,11 +552,19 @@ function readMacosClipboardImage(deps, options) {
       .trim()
       .toLowerCase();
     if (imageKind === "none") return null;
-    if (imageKind === "too-large") {
+    if (imageKind === "too-large" || imageKind.startsWith("too-large:")) {
       throw new Error(`Clipboard image exceeds ${options.maxBytes} bytes.`);
     }
-    if (imageKind === "invalid") {
-      throw new Error("macOS clipboard helper returned invalid image data.");
+    if (imageKind === "invalid" || imageKind.startsWith("invalid:")) {
+      const stageValue = imageKind.includes(":")
+        ? imageKind.slice(imageKind.indexOf(":") + 1)
+        : "";
+      const stage = /^[a-z][a-z-]{0,63}$/u.test(stageValue)
+        ? ` (${stageValue})`
+        : "";
+      throw new Error(
+        `macOS clipboard helper returned invalid image data${stage}.`,
+      );
     }
     if (imageKind !== "png" && imageKind !== "tiff-png") {
       throw new Error("macOS clipboard helper returned an invalid image kind.");

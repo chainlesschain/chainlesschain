@@ -41,12 +41,20 @@ describe("CLI clipboard image host workflow", () => {
     expect(workflow).toContain(
       'entry.macosTiffFallback?.reader !== "osascript+jxa-tiff"',
     );
+    expect(workflow).toContain('entry.reader !== "osascript"');
+    expect(workflow).toContain('entry.writerLifecycle?.mode !== "foreground"');
+    expect(workflow).toContain(
+      "entry.writerLifecycle?.cleanupConfirmed !== true",
+    );
     expect(workflow).toContain("cli-clipboard-image-aggregate-");
   });
 
   it("uses a real X11 clipboard host on Linux and native hosts elsewhere", () => {
     expect(workflow).toContain("sudo apt-get install -y x11-utils xclip xvfb");
     expect(workflow).toContain("Xvfb :99");
+    expect(workflow).toContain("-nolisten tcp");
+    expect(workflow).toContain("unset WAYLAND_DISPLAY");
+    expect(workflow).toContain('wait "${xvfb_pid}"');
     expect(workflow).toContain("shell: pwsh");
     expect(workflow).toContain("Run macOS clipboard image write/read smoke");
     expect(workflow).toContain("macosTiffFallback");

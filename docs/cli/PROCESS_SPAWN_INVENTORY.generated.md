@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 399 (runtime: 261, tooling: 108, test: 30).
+Total matches: 401 (runtime: 261, tooling: 110, test: 30).
 Runtime audit: brokered: 189, audited-exemption: 33, non-executable: 39, unreviewed: 0.
 
 ## Policy
@@ -257,9 +257,9 @@ Runtime audit: brokered: 189, audited-exemption: 33, non-executable: 39, unrevie
 | `packages/cli/src/repl/clipboard-copy.js` | 82 | `brokered` | call targets ProcessExecutionBroker | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/repl/clipboard-copy.js` | 91 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const spawn = spawnSync \|\| _deps.spawnSync;` |
 | `packages/cli/src/repl/clipboard-copy.js` | 97 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `res = spawn(cmd, args, {` |
-| `packages/cli/src/repl/clipboard-image.js` | 172 | `brokered` | call targets ProcessExecutionBroker | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
-| `packages/cli/src/repl/clipboard-image.js` | 398 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `return deps.spawnSync(candidate.cmd, candidate.args, {` |
-| `packages/cli/src/repl/clipboard-image.js` | 495 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const readResult = deps.spawnSync(` |
+| `packages/cli/src/repl/clipboard-image.js` | 199 | `brokered` | call targets ProcessExecutionBroker | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
+| `packages/cli/src/repl/clipboard-image.js` | 425 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `return deps.spawnSync(candidate.cmd, candidate.args, {` |
+| `packages/cli/src/repl/clipboard-image.js` | 522 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const readResult = deps.spawnSync(` |
 | `packages/cli/src/repl/pr-comments.js` | 15 | `brokered` | call targets ProcessExecutionBroker | `execFile: (...args) => executionBroker.execFile(...args),` |
 | `packages/cli/src/repl/pr-comments.js` | 21 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `deps.execFile(` |
 | `packages/cli/src/repl/prompt-editor.js` | 104 | `brokered` | call targets ProcessExecutionBroker | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
@@ -346,8 +346,10 @@ Runtime audit: brokered: 189, audited-exemption: 33, non-executable: 39, unrevie
 | `packages/cli/scripts/cli-reliability-soak.mjs` | 1784 | `spawn(` |
 | `packages/cli/scripts/cli-reliability-soak.mjs` | 1832 | `spawn(` |
 | `packages/cli/scripts/cli-reliability-soak.mjs` | 1875 | `spawnSync(` |
-| `packages/cli/scripts/clipboard-image-host-smoke.mjs` | 277 | `const result = executionBroker.spawnSync(command, args, {` |
-| `packages/cli/scripts/clipboard-image-host-smoke.mjs` | 295 | `executionBroker.execFileSync("git", ["rev-parse", "HEAD"], {` |
+| `packages/cli/scripts/clipboard-image-host-smoke.mjs` | 313 | `const result = executionBroker.spawnSync(command, args, {` |
+| `packages/cli/scripts/clipboard-image-host-smoke.mjs` | 486 | `spawn = (...args) => executionBroker.spawn(...args),` |
+| `packages/cli/scripts/clipboard-image-host-smoke.mjs` | 490 | `const child = spawn("xclip", linuxClipboardOwnerArgs(filePath), {` |
+| `packages/cli/scripts/clipboard-image-host-smoke.mjs` | 556 | `executionBroker.execFileSync("git", ["rev-parse", "HEAD"], {` |
 | `packages/cli/scripts/event-runtime-recovery-drill.mjs` | 132 | `child = executionBroker.fork(scriptPath, ["--child", mode, dir], {` |
 | `packages/cli/scripts/gen-process-spawn-inventory.mjs` | 3 | `* Generate (or byte-diff-check) an inventory of direct child_process usage.` |
 | `packages/cli/scripts/gen-process-spawn-inventory.mjs` | 36 | `/(?:child_process\|node:child_process\|\b(?:cpDefault\|childProcess\|_deps\|deps)\.(?:spawn\|spawnSync\|exec\|execFile\|execSync\|execFileSync\|fork)\b\|\b(?:spawn\|spawnSync\|execFile\|execSync\|execFileSync\|fork)\s*\()/;` |

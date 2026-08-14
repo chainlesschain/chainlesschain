@@ -87,9 +87,14 @@ jobs:
           CC_CLIPBOARD_IMAGE_OUTPUT: ${{ runner.temp }}/clipboard-image-${{ runner.os }}.json
         run: |
           set -euo pipefail
-          Xvfb :99 -screen 0 1280x720x24 >"${RUNNER_TEMP}/xvfb.log" 2>&1 &
+          unset WAYLAND_DISPLAY
+          Xvfb :99 -nolisten tcp -screen 0 1280x720x24 >"${RUNNER_TEMP}/xvfb.log" 2>&1 &
           xvfb_pid="$!"
-          trap 'kill "${xvfb_pid}" 2>/dev/null || true' EXIT
+          cleanup_xvfb() {
+            kill "${xvfb_pid}" 2>/dev/null || true
+            wait "${xvfb_pid}" 2>/dev/null || true
+          }
+          trap cleanup_xvfb EXIT
           export DISPLAY=:99
           for attempt in {1..50}; do
             if xdpyinfo -display "${DISPLAY}" >/dev/null 2>&1; then break; fi
@@ -190,10 +195,22 @@ jobs:
               (
                 entry.platform === "darwin" &&
                 (
+                  entry.reader !== "osascript" ||
                   entry.macosTiffFallback?.status !== "passed" ||
                   entry.macosTiffFallback?.mediaType !== "image/png" ||
                   entry.macosTiffFallback?.pixelSha256 !== entry.fixturePixelSha256 ||
                   entry.macosTiffFallback?.reader !== "osascript+jxa-tiff"
+                )
+              ) ||
+              (
+                entry.platform === "linux" &&
+                (
+                  entry.writer !== "xclip" ||
+                  entry.writerLifecycle?.mode !== "foreground" ||
+                  entry.writerLifecycle?.loops !== 1 ||
+                  entry.writerLifecycle?.exitCode !== 0 ||
+                  entry.writerLifecycle?.signal !== null ||
+                  entry.writerLifecycle?.cleanupConfirmed !== true
                 )
               )
             ) {

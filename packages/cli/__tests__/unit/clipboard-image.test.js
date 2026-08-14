@@ -1,5 +1,6 @@
 import { existsSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
+import { runInNewContext } from "node:vm";
 import { describe, expect, it, vi } from "vitest";
 import {
   createSystemClipboardImageBinding,
@@ -199,6 +200,10 @@ describe("system clipboard image readers", () => {
     expect(command).toMatch(/powershell\.exe$/iu);
     expect(args).toContain("-Sta");
     expect(args.join(" ")).toContain("OpenStandardOutput");
+    const script = args.at(-1);
+    expect(script).toContain("}\n  catch");
+    expect(script).toContain("} finally {");
+    expect(script).not.toMatch(/\};\s*(?:catch|finally)/u);
     expect(options).toMatchObject({
       encoding: null,
       origin: "repl:clipboard-image",
@@ -360,6 +365,9 @@ describe("system clipboard image readers", () => {
       expect(command).toBe("/usr/bin/osascript");
       temporaryFile = args[5];
       expect(args[3]).toContain("tiffBytes > maximumSourceBytes");
+      expect(args[3]).toContain("isObjCNil(imageData)");
+      expect(args[3]).toContain("isObjCNil(tiffData)");
+      expect(args[3]).toContain("CGImageSourceCreateWithData(tiffData, $())");
       expect(args[3]).toContain("CGImageSourceCopyPropertiesAtIndex");
       expect(args[3]).toContain("width > Math.floor(maximumPixels / height)");
       expect(args[3]).toContain("CGImageSourceCreateImageAtIndex");
@@ -404,5 +412,103 @@ describe("system clipboard image readers", () => {
       }),
     ).toThrow("osascript clipboard image helper exited with status 1");
     expect(existsSync(dirname(temporaryFile))).toBe(false);
+  });
+
+  it("recognizes JXA wrapped nil and enters the TIFF fallback", () => {
+    let jxaScript;
+    const spawnSync = vi.fn((command, args) => {
+      jxaScript = args[3];
+      writeFileSync(args[5], PNG_BYTES);
+      return {
+        status: 0,
+        signal: null,
+        stdout: "tiff-png\n",
+        stderr: "",
+      };
+    });
+    readSystemClipboardImage({
+      platform: "darwin",
+      executables: { osascript: "/usr/bin/osascript" },
+      deps: { spawnSync },
+    });
+
+    const wrappedNil = { isNil: () => true };
+    const wrapped = (value) => ({ isNil: () => false, value });
+    const tiffData = { isNil: () => false, length: "128" };
+    const encodedPng = {
+      isNil: () => false,
+      length: String(PNG_BYTES.length),
+      writeToFileAtomically: () => true,
+    };
+    const colorModel = wrapped("RGB");
+    const properties = {
+      isNil: () => false,
+      objectForKey: (key) =>
+        ({
+          width: wrapped(3),
+          height: wrapped(2),
+          depth: wrapped(8),
+          color: colorModel,
+        })[key],
+    };
+    const pasteboard = {
+      dataForType: (type) => (type === "public.png" ? wrappedNil : tiffData),
+    };
+    const bridge = (value) => value;
+    Object.assign(bridge, {
+      NSPasteboard: { generalPasteboard: pasteboard },
+      kCGImagePropertyPixelWidth: "width",
+      kCGImagePropertyPixelHeight: "height",
+      kCGImagePropertyDepth: "depth",
+      kCGImagePropertyColorModel: "color",
+      kCGImagePropertyColorModelRGB: wrapped("RGB"),
+      kCGImagePropertyColorModelGray: wrapped("Gray"),
+      CGImageSourceCreateWithData: () => ({ isNil: () => false }),
+      CGImageSourceGetCount: () => "1",
+      CGImageSourceCopyPropertiesAtIndex: () => properties,
+      CGImageSourceCreateImageAtIndex: () => ({ isNil: () => false }),
+      CGImageGetWidth: () => "3",
+      CGImageGetHeight: () => "2",
+      CGImageGetBitsPerPixel: () => "32",
+      CGImageGetBytesPerRow: () => "12",
+      NSBitmapImageRep: {
+        alloc: {
+          initWithCGImage: () => ({
+            isNil: () => false,
+            representationUsingTypeProperties: () => encodedPng,
+          }),
+        },
+      },
+    });
+    const context = {
+      ObjC: {
+        import: () => {},
+        unwrap: (value) => value?.value ?? value,
+      },
+      $: bridge,
+    };
+    expect(
+      runInNewContext(
+        `${jxaScript}\nrun(["/tmp/image.png", "1024", "1024", "100", "100", "4096"]);`,
+        context,
+      ),
+    ).toBe("tiff-png");
+  });
+
+  it("reports only a stable macOS helper validation stage", () => {
+    expect(() =>
+      readSystemClipboardImage({
+        platform: "darwin",
+        executables: { osascript: "/usr/bin/osascript" },
+        deps: {
+          spawnSync: vi.fn(() => ({
+            status: 0,
+            signal: null,
+            stdout: "invalid:tiff-source\n",
+            stderr: "",
+          })),
+        },
+      }),
+    ).toThrow("invalid image data (tiff-source)");
   });
 });
