@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — scheduler disk-fault closure
+
+- **Crash-safe Agenda and Cowork source stores**: authoritative scheduler
+  read-modify-write paths now reject unreadable, malformed, and non-object
+  records instead of treating them as an empty store. Replacements use private
+  exclusive temporary files, complete short-write loops, file fsync, atomic
+  rename, and POSIX directory fsync; failures distinguish known
+  `not-committed` outcomes from post-rename `unknown` durability.
+- **Deterministic fault matrix**: scheduler regressions cover ENOSPC, partial
+  writes, file and directory fsync failures, rename failures, source-file
+  corruption, native SQLite `SQLITE_FULL` transaction rollback, Automation
+  source rollback atomicity, database truncation, and clean reopen behavior.
+  Existing Routine durable replacement and Loop append/CAS durability remain
+  covered by their shared persistence suites.
+- **Scope boundary**: this closes the deterministic scheduler disk-fault
+  sub-item. Cross-platform process kill/restart, dual-instance fencing, DST,
+  backlog, FD/handle/orphan, and multi-hour resource stability remain in the
+  separate Linux/Windows/macOS long-soak exit gate.
+
 ### Added — cc CLI 0.163.7: governed scheduler migration and causal observability
 
 > `chainlesschain` **0.163.6 → 0.163.7** (candidate; not yet published,

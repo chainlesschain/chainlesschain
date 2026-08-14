@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import Database from "better-sqlite3";
-import { mkdtempSync, rmSync } from "node:fs";
+import {
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -35,13 +41,39 @@ import { openSchedulerStore } from "../../src/lib/scheduler-kernel/store.js";
 describe("scheduler-kernel Cowork cron adapter", () => {
   const cleanups = [];
   const originalNow = coworkDeps.now;
-  const originalRenameSync = coworkDeps.renameSync;
+  const originalPersistenceDeps = {
+    closeSync: coworkDeps.closeSync,
+    fsyncSync: coworkDeps.fsyncSync,
+    openSync: coworkDeps.openSync,
+    renameSync: coworkDeps.renameSync,
+    unlinkSync: coworkDeps.unlinkSync,
+    writeSync: coworkDeps.writeSync,
+  };
 
   afterEach(() => {
     coworkDeps.now = originalNow;
-    coworkDeps.renameSync = originalRenameSync;
+    Object.assign(coworkDeps, originalPersistenceDeps);
     while (cleanups.length > 0) cleanups.pop()();
   });
+
+  function coworkSourcePaths(cwd) {
+    const directory = join(cwd, ".chainlesschain", "cowork");
+    return {
+      directory,
+      file: join(directory, "schedules.jsonl"),
+    };
+  }
+
+  function coworkTemporaryFiles(cwd) {
+    const { directory } = coworkSourcePaths(cwd);
+    return readdirSync(directory).filter(
+      (entry) => entry.startsWith("schedules.jsonl.") && entry.endsWith(".tmp"),
+    );
+  }
+
+  function fsFailure(code, message) {
+    return Object.assign(new Error(message), { code });
+  }
 
   function fixture() {
     const root = mkdtempSync(join(tmpdir(), "cc-scheduler-cowork-cron-"));
@@ -261,6 +293,262 @@ describe("scheduler-kernel Cowork cron adapter", () => {
       }),
     ).toMatchObject({ state: "rolled_back", deduplicated: true });
   });
+
+  it("keeps the Cowork source intact on migration ENOSPC and converges after restart", () => {
+    const f = fixture();
+    const schedule = f.add({ cron: "0 0 1 1 *" });
+    const { file } = coworkSourcePaths(f.cwd);
+    const before = readFileSync(file, "utf8");
+    const schedulerStore = f.openScheduler();
+    coworkDeps.writeSync = () => {
+      throw fsFailure("ENOSPC", "fault injection: disk full");
+    };
+
+    expect(() =>
+      migrateCoworkCronSchedule({
+        cwd: f.cwd,
+        schedulerStore,
+        schedule,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "ENOSPC",
+        commitState: "not-committed",
+      }),
+    );
+    expect(readFileSync(file, "utf8")).toBe(before);
+    expect(getSchedule(f.cwd, schedule.id)).not.toHaveProperty(
+      "schedulerMigration",
+    );
+    expect(coworkTemporaryFiles(f.cwd)).toEqual([]);
+
+    coworkDeps.writeSync = originalPersistenceDeps.writeSync;
+    const restartedStore = f.openScheduler();
+    expect(
+      migrateCoworkCronSchedule({
+        cwd: f.cwd,
+        schedulerStore: restartedStore,
+        schedule: getSchedule(f.cwd, schedule.id),
+      }),
+    ).toMatchObject({ state: "retired" });
+    expect(getSchedule(f.cwd, schedule.id)).toMatchObject({
+      schedulerMigration: { state: "retired" },
+      activeDelivery: {
+        leaseExpiresAt: COWORK_SCHEDULER_UNKNOWN_LEASE_EXPIRES_AT,
+      },
+    });
+  });
+
+  it("completes repeated short writes before atomically replacing the Cowork source", () => {
+    const f = fixture();
+    const schedule = f.add({ cron: "0 0 1 1 *" });
+    let writeCalls = 0;
+    coworkDeps.writeSync = (descriptor, buffer, offset, length, position) => {
+      writeCalls += 1;
+      return originalPersistenceDeps.writeSync(
+        descriptor,
+        buffer,
+        offset,
+        Math.min(7, length),
+        position,
+      );
+    };
+
+    prepareCoworkSchedulerMigration(f.cwd, schedule.id, {
+      migrationId: "migration-short-write",
+      sourceDigest: coworkCronMigrationSourceDigest(schedule),
+      targetJobId: "job-short-write",
+    });
+
+    expect(writeCalls).toBeGreaterThan(1);
+    expect(getSchedule(f.cwd, schedule.id)).toMatchObject({
+      schedulerMigration: {
+        migrationId: "migration-short-write",
+        state: "prepared",
+      },
+    });
+    expect(coworkTemporaryFiles(f.cwd)).toEqual([]);
+  });
+
+  it("discards a partial rollback temp file, stays fenced, and resumes cleanly", () => {
+    const f = fixture();
+    const schedule = f.add({ cron: "0 0 1 1 *" });
+    const schedulerStore = f.openScheduler();
+    const migrated = migrateCoworkCronSchedule({
+      cwd: f.cwd,
+      schedulerStore,
+      schedule,
+    });
+    const { file } = coworkSourcePaths(f.cwd);
+    const retiredSource = readFileSync(file, "utf8");
+    let writeCalls = 0;
+    coworkDeps.writeSync = (descriptor, buffer, offset, length, position) => {
+      writeCalls += 1;
+      if (writeCalls === 1) {
+        return originalPersistenceDeps.writeSync(
+          descriptor,
+          buffer,
+          offset,
+          Math.max(1, Math.floor(length / 3)),
+          position,
+        );
+      }
+      throw fsFailure("EIO", "fault injection: partial write");
+    };
+
+    expect(() =>
+      rollbackCoworkCronMigration({
+        cwd: f.cwd,
+        schedulerStore,
+        migrationId: migrated.id,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "EIO",
+        commitState: "not-committed",
+      }),
+    );
+    expect(readFileSync(file, "utf8")).toBe(retiredSource);
+    expect(coworkTemporaryFiles(f.cwd)).toEqual([]);
+    expect(
+      claimScheduleFire(f.cwd, schedule.id, "must-remain-fenced", {
+        ownerId: "legacy-after-partial-write",
+        now: f.clock(),
+      }),
+    ).toBeNull();
+
+    coworkDeps.writeSync = originalPersistenceDeps.writeSync;
+    expect(
+      rollbackCoworkCronMigration({
+        cwd: f.cwd,
+        schedulerStore: f.openScheduler(),
+        migrationId: migrated.id,
+      }),
+    ).toMatchObject({ state: "rolled_back" });
+    expect(getSchedule(f.cwd, schedule.id)).toMatchObject({
+      enabled: true,
+      activeDelivery: null,
+    });
+    expect(getSchedule(f.cwd, schedule.id)).not.toHaveProperty(
+      "schedulerMigration",
+    );
+  });
+
+  it("uses a private exclusive temp and cleans it when file fsync fails", () => {
+    const f = fixture();
+    const schedule = f.add({ cron: "0 0 1 1 *" });
+    const { file } = coworkSourcePaths(f.cwd);
+    const before = readFileSync(file, "utf8");
+    const openCalls = [];
+    coworkDeps.openSync = (...args) => {
+      openCalls.push(args);
+      return originalPersistenceDeps.openSync(...args);
+    };
+    coworkDeps.closeSync = vi.fn(originalPersistenceDeps.closeSync);
+    coworkDeps.fsyncSync = () => {
+      throw fsFailure("EIO", "fault injection: file fsync");
+    };
+
+    expect(() =>
+      prepareCoworkSchedulerMigration(f.cwd, schedule.id, {
+        migrationId: "migration-file-fsync",
+        sourceDigest: coworkCronMigrationSourceDigest(schedule),
+        targetJobId: "job-file-fsync",
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "EIO",
+        commitState: "not-committed",
+      }),
+    );
+    expect(openCalls).toEqual([
+      [expect.stringMatching(/schedules\.jsonl\..+\.tmp$/), "wx", 0o600],
+    ]);
+    expect(coworkDeps.closeSync).toHaveBeenCalledOnce();
+    expect(readFileSync(file, "utf8")).toBe(before);
+    expect(coworkTemporaryFiles(f.cwd)).toEqual([]);
+    if (process.platform !== "win32") {
+      expect(statSync(file).mode & 0o777).toBe(0o600);
+    }
+  });
+
+  it("keeps the authoritative migration source when atomic rename fails", () => {
+    const f = fixture();
+    const schedule = f.add({ cron: "0 0 1 1 *" });
+    const { file } = coworkSourcePaths(f.cwd);
+    const before = readFileSync(file, "utf8");
+    coworkDeps.renameSync = () => {
+      throw fsFailure("EACCES", "fault injection: rename denied");
+    };
+
+    expect(() =>
+      prepareCoworkSchedulerMigration(f.cwd, schedule.id, {
+        migrationId: "migration-rename",
+        sourceDigest: coworkCronMigrationSourceDigest(schedule),
+        targetJobId: "job-rename",
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "EACCES",
+        commitState: "not-committed",
+      }),
+    );
+    expect(readFileSync(file, "utf8")).toBe(before);
+    expect(getSchedule(f.cwd, schedule.id)).not.toHaveProperty(
+      "schedulerMigration",
+    );
+    expect(coworkTemporaryFiles(f.cwd)).toEqual([]);
+  });
+
+  it.runIf(process.platform !== "win32")(
+    "reports unknown commit after directory fsync and converges from the complete source",
+    () => {
+      const f = fixture();
+      const schedule = f.add({ cron: "0 0 1 1 *" });
+      const schedulerStore = f.openScheduler();
+      let fsyncCalls = 0;
+      coworkDeps.fsyncSync = (descriptor) => {
+        fsyncCalls += 1;
+        if (fsyncCalls === 2) {
+          throw fsFailure("EIO", "fault injection: directory fsync");
+        }
+        return originalPersistenceDeps.fsyncSync(descriptor);
+      };
+
+      expect(() =>
+        migrateCoworkCronSchedule({
+          cwd: f.cwd,
+          schedulerStore,
+          schedule,
+        }),
+      ).toThrow(
+        expect.objectContaining({
+          code: "EIO",
+          commitState: "unknown",
+        }),
+      );
+      expect(fsyncCalls).toBe(2);
+      expect(coworkTemporaryFiles(f.cwd)).toEqual([]);
+      expect(getSchedule(f.cwd, schedule.id)).toMatchObject({
+        schedulerMigration: { state: "prepared" },
+      });
+
+      coworkDeps.fsyncSync = originalPersistenceDeps.fsyncSync;
+      expect(
+        migrateCoworkCronSchedule({
+          cwd: f.cwd,
+          schedulerStore: f.openScheduler(),
+          schedule: getSchedule(f.cwd, schedule.id),
+        }),
+      ).toMatchObject({ state: "retired" });
+      expect(getSchedule(f.cwd, schedule.id)).toMatchObject({
+        schedulerMigration: { state: "retired" },
+        activeDelivery: {
+          leaseExpiresAt: COWORK_SCHEDULER_UNKNOWN_LEASE_EXPIRES_AT,
+        },
+      });
+    },
+  );
 
   it("resumes Cowork migration from fresh bridges after staging and retirement crashes", async () => {
     const f = fixture();
@@ -1155,7 +1443,7 @@ describe("scheduler-kernel Cowork cron adapter", () => {
         }),
       }),
     ]);
-    coworkDeps.renameSync = originalRenameSync;
+    coworkDeps.renameSync = originalPersistenceDeps.renameSync;
     expect(runTask).toHaveBeenCalledTimes(1);
     expect(getSchedule(f.cwd, schedule.id)).toMatchObject({
       schedulerExecution: { status: "running" },

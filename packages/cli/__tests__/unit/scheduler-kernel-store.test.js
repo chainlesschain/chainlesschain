@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import Database from "better-sqlite3";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, truncateSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Worker } from "node:worker_threads";
@@ -533,6 +533,45 @@ describe("scheduler-kernel SQLite store", () => {
       expectedRevision: 1,
       actualRevision: 2,
     });
+  });
+
+  it("rolls back a multi-statement scheduler write on real SQLITE_FULL and reopens cleanly", () => {
+    const f = fixture({ fileName: "full-transaction.db" });
+    const store = f.open();
+    store.createJob(jobInput({ id: "job-full" }));
+    const historyBefore = store.history({ jobId: "job-full" });
+    const pageCount = store.db.pragma("page_count", { simple: true });
+    store.db.pragma(`max_page_count = ${pageCount}`);
+
+    let failure;
+    try {
+      store._write(() => {
+        store.db
+          .prepare("UPDATE jobs SET enabled = 0 WHERE job_id = ?")
+          .run("job-full");
+        store._appendEvent({
+          jobId: "job-full",
+          type: "fault_probe",
+          occurredAt: f.now,
+          data: { content: "x".repeat(512 * 1024) },
+        });
+      });
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure?.code).toBe("SQLITE_FULL");
+    expect(store.getJob("job-full")).toMatchObject({ enabled: true });
+    expect(store.history({ jobId: "job-full" })).toEqual(historyBefore);
+    expect(store.db.pragma("quick_check(1)")).toEqual([{ quick_check: "ok" }]);
+    store.close();
+
+    const reopened = f.open();
+    expect(reopened.schemaInfo()).toMatchObject({ schemaVersion: 5 });
+    expect(reopened.getJob("job-full")).toMatchObject({ enabled: true });
+    expect(reopened.history({ jobId: "job-full" })).toEqual(historyBefore);
+    expect(reopened.db.pragma("quick_check(1)")).toEqual([
+      { quick_check: "ok" },
+    ]);
   });
 
   it("journals an idempotent domain migration through retire and safe rollback", () => {
@@ -1917,5 +1956,12 @@ describe("scheduler-kernel SQLite store", () => {
     const garbage = fixture({ fileName: "garbage.db" });
     writeFileSync(garbage.file, "not-a-sqlite-database", { mode: 0o600 });
     expectCode(() => garbage.open(), "SCHEDULER_SCHEMA_CORRUPT");
+
+    const truncated = fixture({ fileName: "truncated.db" });
+    const truncatedStore = truncated.open();
+    truncatedStore.createJob(jobInput({ id: "durable-before-damage" }));
+    truncatedStore.close();
+    truncateSync(truncated.file, 512);
+    expectCode(() => truncated.open(), "SCHEDULER_SCHEMA_CORRUPT");
   });
 });

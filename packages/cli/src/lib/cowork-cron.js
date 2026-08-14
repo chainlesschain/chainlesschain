@@ -31,12 +31,14 @@
 
 import crypto from "node:crypto";
 import {
-  existsSync,
+  closeSync,
+  fsyncSync,
   mkdirSync,
+  openSync,
   readFileSync,
   renameSync,
   unlinkSync,
-  writeFileSync,
+  writeSync,
 } from "node:fs";
 import { join } from "node:path";
 import {
@@ -47,12 +49,14 @@ import {
 import { withFileLock } from "./with-file-lock.js";
 
 export const _deps = {
-  existsSync,
+  closeSync,
+  fsyncSync,
   mkdirSync,
+  openSync,
   readFileSync,
   renameSync,
   unlinkSync,
-  writeFileSync,
+  writeSync,
   withFileLock,
   now: () => new Date(),
   runTask: null, // injected at runtime to avoid circular import
@@ -543,14 +547,33 @@ function _scheduleFile(cwd) {
 /** Load all schedules from disk. Returns [] if the file doesn't exist. */
 export function loadSchedules(cwd, { failOnMalformed = false } = {}) {
   const file = _scheduleFile(cwd);
-  if (!_deps.existsSync(file)) return [];
-  const raw = _deps.readFileSync(file, "utf-8");
+  let raw;
+  try {
+    raw = _deps.readFileSync(file, "utf-8");
+  } catch (cause) {
+    if (cause?.code === "ENOENT") return [];
+    const error = new Error(`cowork schedule store read failed: ${file}`, {
+      cause,
+    });
+    error.code = "COWORK_SCHEDULE_STORE_READ_FAILED";
+    error.filePath = file;
+    if (typeof cause?.code === "string") error.fsCode = cause.code;
+    throw error;
+  }
   const out = [];
   for (const line of raw.split("\n")) {
     const trimmed = line.trim();
     if (!trimmed) continue;
     try {
-      out.push(JSON.parse(trimmed));
+      const schedule = JSON.parse(trimmed);
+      if (
+        !schedule ||
+        typeof schedule !== "object" ||
+        Array.isArray(schedule)
+      ) {
+        throw new TypeError("schedule entry must be an object");
+      }
+      out.push(schedule);
     } catch (cause) {
       if (failOnMalformed) {
         const error = new Error(
@@ -573,20 +596,68 @@ function _prepareScheduleDir(cwd) {
 }
 
 function _saveSchedulesUnlocked(cwd, schedules) {
-  _prepareScheduleDir(cwd);
+  const directory = _prepareScheduleDir(cwd);
   const file = _scheduleFile(cwd);
   const body = schedules.map((s) => JSON.stringify(s)).join("\n");
+  const contents = Buffer.from(body ? `${body}\n` : "", "utf8");
   const tmp = `${file}.${process.pid}.${crypto.randomUUID()}.tmp`;
+  let descriptor = null;
+  let renamed = false;
   try {
-    _deps.writeFileSync(tmp, body ? body + "\n" : "", "utf-8");
-    _deps.renameSync(tmp, file);
-  } catch (error) {
-    try {
-      _deps.unlinkSync(tmp);
-    } catch {
-      // Preserve the original persistence error.
+    descriptor = _deps.openSync(tmp, "wx", 0o600);
+    let offset = 0;
+    while (offset < contents.length) {
+      const written = _deps.writeSync(
+        descriptor,
+        contents,
+        offset,
+        contents.length - offset,
+        null,
+      );
+      if (!Number.isSafeInteger(written) || written <= 0) {
+        const cause = new Error("write returned no progress");
+        cause.code = "EIO";
+        throw cause;
+      }
+      offset += written;
     }
-    throw error;
+    _deps.fsyncSync(descriptor);
+    _deps.closeSync(descriptor);
+    descriptor = null;
+    _deps.renameSync(tmp, file);
+    renamed = true;
+
+    if (process.platform !== "win32") {
+      const directoryDescriptor = _deps.openSync(directory, "r");
+      try {
+        _deps.fsyncSync(directoryDescriptor);
+      } finally {
+        _deps.closeSync(directoryDescriptor);
+      }
+    }
+  } catch (error) {
+    if (descriptor !== null) {
+      try {
+        _deps.closeSync(descriptor);
+      } catch {
+        // Preserve the original persistence error.
+      }
+    }
+    if (!renamed) {
+      try {
+        _deps.unlinkSync(tmp);
+      } catch {
+        // Best-effort orphan cleanup; the authoritative file is unchanged.
+      }
+    }
+    const persistenceError =
+      error && (typeof error === "object" || typeof error === "function")
+        ? error
+        : new Error(`Cowork schedule persistence failed: ${String(error)}`, {
+            cause: error,
+          });
+    persistenceError.commitState = renamed ? "unknown" : "not-committed";
+    throw persistenceError;
   }
 }
 
