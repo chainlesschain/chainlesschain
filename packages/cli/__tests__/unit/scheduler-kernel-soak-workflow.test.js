@@ -50,6 +50,11 @@ describe("scheduler kernel soak workflow contract", () => {
     expect(workflow).toContain(
       "CC_SCHEDULER_SOAK_DURATION_SECONDS: ${{ github.event_name == 'pull_request' && '15' || inputs.duration_seconds || '7200' }}",
     );
+    expect(
+      workflow.match(
+        /CC_SCHEDULER_SOAK_LEASE_MS: \$\{\{ github\.event_name == 'pull_request' && '1000' \|\| '10000' \}\}/gu,
+      ),
+    ).toHaveLength(2);
     expect(workflow).toContain("vars.CLI_SCHEDULER_SOAK_PINNED_SHA");
     expect(workflow).toContain("vars.CLI_SCHEDULER_SOAK_CAMPAIGN");
     expect(workflow).toContain(

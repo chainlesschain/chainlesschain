@@ -48,6 +48,7 @@ const REQUIRED_INVARIANT_NAMES = Object.freeze([
 export const RESULT_SCHEMA = "chainlesschain.scheduler-kernel-soak.v1";
 export const AGGREGATE_SCHEMA =
   "chainlesschain.scheduler-kernel-soak-aggregate.v1";
+export const FORMAL_SCHEDULER_SOAK_LEASE_FLOOR_MS = 10_000;
 
 const JOBS = Object.freeze({
   steady: {
@@ -200,11 +201,14 @@ function normalizeProfile(profile) {
     ),
     formal ? 10 : 2,
   );
-  const leaseMs = positiveNumber(
-    profile?.leaseMs,
-    1_000,
-    "scheduler soak lease milliseconds",
-    { integer: true },
+  const leaseMs = floor(
+    positiveNumber(
+      profile?.leaseMs,
+      formal ? FORMAL_SCHEDULER_SOAK_LEASE_FLOOR_MS : 1_000,
+      "scheduler soak lease milliseconds",
+      { integer: true },
+    ),
+    formal ? FORMAL_SCHEDULER_SOAK_LEASE_FLOOR_MS : 1_000,
   );
   if (leaseMs < 1_000 || leaseMs > 60_000) {
     throw new TypeError("scheduler soak lease milliseconds must be 1000-60000");
@@ -524,7 +528,8 @@ function profileHasValidFloors(profile) {
       profile.rounds * profile.steadyOccurrencesPerRound &&
     (!formal || profile.steadyStateOccurrences >= 1_000) &&
     Number.isSafeInteger(profile.leaseMs) &&
-    profile.leaseMs >= 1_000 &&
+    profile.leaseMs >=
+      (formal ? FORMAL_SCHEDULER_SOAK_LEASE_FLOOR_MS : 1_000) &&
     profile.leaseMs <= 60_000 &&
     Number.isSafeInteger(profile.pollMs) &&
     profile.pollMs > 0 &&

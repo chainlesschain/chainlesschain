@@ -69,6 +69,7 @@ jobs:
     env:
       CC_SCHEDULER_SOAK_MODE: ${{ github.event_name == 'pull_request' && 'smoke' || 'formal' }}
       CC_SCHEDULER_SOAK_DURATION_SECONDS: ${{ github.event_name == 'pull_request' && '15' || inputs.duration_seconds || '7200' }}
+      CC_SCHEDULER_SOAK_LEASE_MS: ${{ github.event_name == 'pull_request' && '1000' || '10000' }}
       CC_SCHEDULER_SOAK_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || vars.CLI_SCHEDULER_SOAK_PINNED_SHA }}
       CC_SCHEDULER_SOAK_SEED: ${{ inputs.seed || vars.CLI_SCHEDULER_SOAK_SEED || '1592598566' }}
       CC_SCHEDULER_SOAK_CAMPAIGN: ${{ inputs.campaign || vars.CLI_SCHEDULER_SOAK_CAMPAIGN || 'p2-4-scheduler-long-soak-v1' }}
@@ -128,6 +129,7 @@ jobs:
     env:
       CC_SCHEDULER_SOAK_MODE: ${{ github.event_name == 'pull_request' && 'smoke' || 'formal' }}
       CC_SCHEDULER_SOAK_DURATION_SECONDS: ${{ github.event_name == 'pull_request' && '15' || inputs.duration_seconds || '7200' }}
+      CC_SCHEDULER_SOAK_LEASE_MS: ${{ github.event_name == 'pull_request' && '1000' || '10000' }}
       CC_SCHEDULER_SOAK_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || vars.CLI_SCHEDULER_SOAK_PINNED_SHA }}
       CC_SCHEDULER_SOAK_SEED: ${{ inputs.seed || vars.CLI_SCHEDULER_SOAK_SEED || '1592598566' }}
       CC_SCHEDULER_SOAK_CAMPAIGN: ${{ inputs.campaign || vars.CLI_SCHEDULER_SOAK_CAMPAIGN || 'p2-4-scheduler-long-soak-v1' }}
