@@ -135,6 +135,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
+      CC_SCHEDULER_SOAK_MODE: formal
+      CC_SCHEDULER_SOAK_LEASE_MS: "10000"
       CC_SCHEDULER_SOAK_EXPECTED_SHA: ${{ needs.validate-inputs.outputs.commit_sha }}
       CC_SCHEDULER_SOAK_SEED: ${{ needs.validate-inputs.outputs.seed }}
       CC_SCHEDULER_SOAK_CAMPAIGN: ${{ needs.validate-inputs.outputs.campaign }}
