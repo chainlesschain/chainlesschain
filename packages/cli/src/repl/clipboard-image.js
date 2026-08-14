@@ -105,11 +105,21 @@ function propertyValue(properties, key) {
 function propertyNumber(properties, key) {
   const value = propertyValue(properties, key);
   if (isObjCNil(value)) return null;
-  const primitive =
-    typeof value === "number" || typeof value === "string"
-      ? value
-      : ObjC.unwrap(value);
-  return Number(primitive);
+  if (typeof value === "number" || typeof value === "string") {
+    return Number(value);
+  }
+  try {
+    const unwrapped = Number(ObjC.unwrap(value));
+    if (Number.isSafeInteger(unwrapped) && unwrapped > 0) return unwrapped;
+  } catch {}
+  // ImageIO declares these dictionary values as CFNumber. CFNumber and
+  // NSNumber are toll-free bridged, so use the zero-argument scalar selector
+  // when JXA's generic unwrap does not produce a JavaScript number.
+  try {
+    return Number(value.doubleValue);
+  } catch {
+    return Number.NaN;
+  }
 }
 
 function propertyStringEquals(value, expected) {
@@ -172,18 +182,21 @@ function run(argv) {
       if (isObjCNil(properties)) return "invalid:tiff-properties";
       stage = "tiff-width";
       const width = propertyNumber(properties, $.kCGImagePropertyPixelWidth);
+      if (width === null) return "invalid:tiff-width-missing";
       if (!Number.isSafeInteger(width) || width <= 0) {
-        return "invalid:tiff-width";
+        return "invalid:tiff-width-value";
       }
       stage = "tiff-height";
       const height = propertyNumber(properties, $.kCGImagePropertyPixelHeight);
+      if (height === null) return "invalid:tiff-height-missing";
       if (!Number.isSafeInteger(height) || height <= 0) {
-        return "invalid:tiff-height";
+        return "invalid:tiff-height-value";
       }
       stage = "tiff-depth";
       const depth = propertyNumber(properties, $.kCGImagePropertyDepth);
+      if (depth === null) return "invalid:tiff-depth-missing";
       if (!Number.isSafeInteger(depth) || depth <= 0) {
-        return "invalid:tiff-depth";
+        return "invalid:tiff-depth-value";
       }
       stage = "tiff-color-read";
       const colorModel = propertyValue(properties, $.kCGImagePropertyColorModel);

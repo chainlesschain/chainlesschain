@@ -446,22 +446,29 @@ describe("system clipboard image readers", () => {
     };
     let primitiveColorModel = false;
     let primitiveNumberMetadata = true;
+    let unwrapNumberMetadata = true;
     let omittedMetadataKey = null;
-    const imagePropertyKey = (value) => ({ value });
-    const wrappedNumber = (value) => ({ isNil: () => false, value });
+    const pixelWidthKey = Object.freeze({ name: "pixel-width" });
+    const pixelHeightKey = Object.freeze({ name: "pixel-height" });
+    const depthKey = Object.freeze({ name: "depth" });
+    const colorModelKey = Object.freeze({ name: "color-model" });
+    const wrappedNumber = (value) => ({
+      isNil: () => false,
+      value,
+      doubleValue: value,
+    });
     const rawProperties = { isNil: () => false };
     const properties = {
       isNil: () => false,
       objectForKey: (key) => {
-        const keyValue = key?.value ?? key;
-        if (keyValue === omittedMetadataKey) return undefined;
-        const value = {
-          PixelWidth: 3,
-          PixelHeight: 2,
-          Depth: 8,
-          ColorModel: primitiveColorModel ? "RGB" : colorModel,
-        }[keyValue];
-        return keyValue === "ColorModel" || primitiveNumberMetadata
+        if (key === omittedMetadataKey) return undefined;
+        const value = new Map([
+          [pixelWidthKey, 3],
+          [pixelHeightKey, 2],
+          [depthKey, 8],
+          [colorModelKey, primitiveColorModel ? "RGB" : colorModel],
+        ]).get(key);
+        return key === colorModelKey || primitiveNumberMetadata
           ? value
           : wrappedNumber(value);
       },
@@ -474,10 +481,10 @@ describe("system clipboard image readers", () => {
       NSPasteboard: { generalPasteboard: pasteboard },
       NSPasteboardTypePNG: "public.png",
       NSPasteboardTypeTIFF: "public.tiff",
-      kCGImagePropertyPixelWidth: imagePropertyKey("PixelWidth"),
-      kCGImagePropertyPixelHeight: imagePropertyKey("PixelHeight"),
-      kCGImagePropertyDepth: imagePropertyKey("Depth"),
-      kCGImagePropertyColorModel: imagePropertyKey("ColorModel"),
+      kCGImagePropertyPixelWidth: pixelWidthKey,
+      kCGImagePropertyPixelHeight: pixelHeightKey,
+      kCGImagePropertyDepth: depthKey,
+      kCGImagePropertyColorModel: colorModelKey,
       NSDictionary: {
         dictionaryWithDictionary: (value) => {
           if (value !== rawProperties) {
@@ -507,7 +514,7 @@ describe("system clipboard image readers", () => {
       if (typeof value?.value !== "number") {
         throw new Error("only wrapped numeric metadata may be unwrapped");
       }
-      return value.value;
+      return unwrapNumberMetadata ? value.value : {};
     });
     const context = {
       ObjC: {
@@ -527,9 +534,12 @@ describe("system clipboard image readers", () => {
     primitiveColorModel = true;
     expect(runTiffFallback()).toBe("tiff-png");
     expect(unwrap).toHaveBeenCalledTimes(3);
-    omittedMetadataKey = "Depth";
-    expect(runTiffFallback()).toBe("invalid:tiff-depth");
-    expect(unwrap).toHaveBeenCalledTimes(5);
+    unwrapNumberMetadata = false;
+    expect(runTiffFallback()).toBe("tiff-png");
+    expect(unwrap).toHaveBeenCalledTimes(6);
+    omittedMetadataKey = depthKey;
+    expect(runTiffFallback()).toBe("invalid:tiff-depth-missing");
+    expect(unwrap).toHaveBeenCalledTimes(8);
   });
 
   it("reports only a stable macOS helper validation stage", () => {
