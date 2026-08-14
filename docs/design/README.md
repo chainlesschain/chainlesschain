@@ -1,6 +1,6 @@
 ﻿# 设计文档
 
-> 本目录是 ChainlessChain 的研发设计入口，也是用户文档站与设计文档站的共享设计源。CLI Runtime 核对已更新到 2026-08-14：npm `latest` 与生产推荐版为 `0.163.7`，发布证据绑定不可变 tag `v-npm-0-163-7` 的精确 SHA `3e99716862`；outcome-unknown 裁决、五域迁移/回滚与因果可观测性已进入公开契约，发布后的磁盘、Automation 恢复与 soak 增量单独标注。
+> 本目录是 ChainlessChain 的研发设计入口，也是用户文档站与设计文档站的共享设计源。CLI Runtime 核对已更新到 2026-08-14：npm `latest` 与生产推荐版为 `0.163.8`，发布证据绑定不可变 tag `v-npm-0-163-8` 的精确 SHA `a0631cb4f9`；磁盘故障闭环、Automation 恢复、受治理 merge review 与 MCP resource templates 已进入公开契约，`main@affafa7f0f` 的原生剪贴板图片粘贴按发布后源码能力单独标注。
 
 ## 当前重点
 
@@ -9,9 +9,9 @@
 - P2-16 已完成本地 Agent Team v6 authority、分布式 queue v1、预算/lease/wall fencing、两阶段 worktree 清理、交互式裁决与三平台长期 soak；10k task / 64 worker 是单进程规模验证，长期 soak 使用 2 个真实 OS worker。
 - CLI `0.163.6` 已把 Agenda monitor、Loop、Automation cron、Routine GitHub、channel automation event 与 standalone daemon 接入统一 Scheduler；Agenda/Cowork 同时公开 IANA timezone、DST 与 missed-run collapse 语义。
 - 精确发布 SHA `85c3577c88` 的三平台 CLI CI、Strict Sandbox、npm 发布与独立公网回读均已闭环；公开 tarball SHA-1 为 `18bb9d807a4a35a36cf9049dcc15f67eb47bbfa6`。原生证据仍固定 `signed=false`、`releaseEligible=false`，不等于 Desktop/native 签名发行完成。
-- Agenda、Routine、Cowork、Automation 与 Loop 共用 revision-bound permission/budget authority；治理控制面通过 capability 检查与 revision CAS 读写策略。outcome-unknown 裁决、完整混合版本迁移/回滚、磁盘故障与三系统长期 soak 仍未关闭。
+- Agenda、Routine、Cowork、Automation 与 Loop 共用 revision-bound permission/budget authority；`0.163.8` 已发布 outcome-unknown 裁决、五域迁移/回滚、确定性磁盘故障闭环与受治理恢复。三系统 72 小时长期 soak 仍未关闭。
 - Checkpoint 的直接恢复与 timeline restore 共用 hash-chained CAS saga，并新增 `cc checkpoint recovery list|show|abort|resume|rollback|release`。恢复动作绑定 workspace prestate、owner/owner absence、seq/head fence 与持久 Git/copy engine；它仍只是文件恢复闭包，不是通用多资源事务。
-- Open VSX 当前公开 `0.37.50`，JetBrains Marketplace 当前公开 `0.4.86`。双 tag 指向精确提交 `074bc47129`；Automation Center 使用 CLI-owned versioned projection、preflight/history 与 revision-checked action，11 格 ARM64 及发布 listing 回读继续作为权威证据。微软 VS Code Marketplace 与 JetBrains 作者签名仍未完成。
+- Open VSX 当前公开 `0.37.51`，JetBrains Marketplace 当前公开 `0.4.87`。双 tag 指向精确提交 `dd0adad7b1`；Automation Center 与默认关闭的受治理自动 ghost-text 已完成真实宿主矩阵和市场回读。微软 VS Code Marketplace 与 JetBrains 作者签名仍未完成。
 - Managed Agents 对标已新增独立模块 `91_Managed_Agents对标计划.md`，底层能力沉到共享包 `@chainlesschain/session-core`。
 - `session-core` 当前已覆盖 SessionHandle、TraceStore、SessionManager、IdleParker、AgentGroup、SharedTaskList、MemoryStore、MemoryConsolidator、ApprovalGate、BetaFlags、StreamRouter、file-adapters。
 - CLI 已接入 `memory recall/store`、`session policy`、`config beta list|enable|disable`；Desktop 仍处于 shim + 后续收口阶段。
@@ -20,7 +20,7 @@
 
 ### `cli-runtime-current.md`
 
-- 生产基线更新为 CLI `0.163.6`；npm `latest`、远端主线包元数据与完整门禁公开版已对齐。
+- 生产基线更新为 CLI `0.163.8`；npm `latest`、主线包元数据与完整门禁公开版已对齐，`main@affafa7f0f` 的 `/paste-image` 保持发布后源码标注。
 - 补充类型化 secret 配置、MCP `ws/wss` 与恢复裁决、canonical session/budget、受控 Skill 子 Agent、checkpoint restore saga 与保守 recovery CLI。
 - 明确 `CHAINLESSCHAIN_HOME` 是完整运行目录覆盖值，测试夹具不得写入真实 home。
 - 补充 process-execution-broker 的非秘密会话标识 allowlist 与默认凭据过滤边界。

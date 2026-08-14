@@ -1,8 +1,8 @@
 # ChainlessChain 系统概述
 
-> **当前版本（2026-08-14）：v5.0.3.135 | CLI 0.163.7（npm latest / 主线包元数据 / 生产推荐一致）| PDH 0.4.57（92 个采集契约 / 18 类来源）| Agent SDK 0.1.7 | Open VSX 0.37.51 | JetBrains Marketplace 0.4.87 | Android versionCode 503135 | iOS build 135**
+> **当前版本（2026-08-14）：v5.0.3.135 | CLI 0.163.8（npm latest / 主线包元数据 / 生产推荐一致）| PDH 0.4.57（92 个采集契约 / 18 类来源）| Agent SDK 0.1.7 | Open VSX 0.37.51 | JetBrains Marketplace 0.4.87 | Android versionCode 503135 | iOS build 135**
 >
-> **当前能力与发布边界**：CLI `0.163.7` 已公开统一 Scheduler、outcome-unknown 裁决、Agenda/Cowork/Routine/Automation/Loop 五域迁移/回滚、因果交付与 fail-closed call-ledger。生产安装建议固定 `chainlesschain@0.163.7`；精确 SHA `3e99716862` 的三平台 CLI/Strict、npm 发布与公网回读均成功。Open VSX `0.37.51` / JetBrains `0.4.87` 已公开；发布后的磁盘、Automation 恢复与 soak 源码增量不属于 `0.163.7` tarball，unsigned native 证据仍不等于签名 Desktop/native 发行。
+> **当前能力与发布边界**：CLI `0.163.8` 已公开统一 Scheduler、裁决/迁移、磁盘故障闭环、Automation 恢复、受治理 merge review 与 MCP resource templates。生产安装建议固定 `chainlesschain@0.163.8`；精确 SHA `a0631cb4f9` 的三平台 CLI/Strict、npm 发布与公网回读均成功。Open VSX `0.37.51` / JetBrains `0.4.87` 已公开；`main@affafa7f0f` 的原生 `/paste-image` 不属于 `0.163.8` tarball，unsigned native 证据仍不等于签名 Desktop/native 发行。
 >
 > **v5.0.3.127–130 QQ空间一键采集 + 微信朋友圈采集 + §8.3 学习层备份上设备 + 个人助手 UX 收口（2026-06-24）**：QQ空间（Qzone）本地无库走 API——新增 `pdh/lib/forensics/qzone-collect.js`（`g_tk`=bkn hash over qzone 域 `p_skey`；说说/留言板/相册 → EVENT）+ `cc hub collect-qzone` + Android「QQ空间」一键采集卡（内嵌 WebView ptlogin2 登录 → 抓 cookie → in-APK 采集，真机 404 事件）；微信朋友圈 `SnsMicroMsg.db` 明文采集（`parseSnsEvents`，真机 2824 条）；§8.3 学习层备份命令上设备（`cc memory/instinct/learning export/import` → vault + 记忆 + 习惯 + 自进化轨迹全资产端到端备份）；个人助手 UX——卡死静默看门狗（20s 安抚/120s 友好超时+重试/进程退出自动重启）+ 待裁决信任卡固定（sticky）可见不再被消息流滚走。`pdh` 0.4.33→**0.4.36** + `chainlesschain` 0.162.101→**0.162.117** 已发 npm；Android cc bundle `internal-binaries-android-v20260624`（USR_VERSION 58）。
 >

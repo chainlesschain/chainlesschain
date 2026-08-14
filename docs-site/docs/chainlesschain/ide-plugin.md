@@ -1,6 +1,6 @@
 # IDE 插件使用指南（VS Code / JetBrains）
 
-> **当前推荐组合（2026-08-14）：CLI `0.163.7` + VS Code 扩展 `0.37.51`（Open VSX）+ JetBrains 插件 `0.4.87`（JetBrains Marketplace）。IDE 双端提供默认关闭的受治理自动 ghost-text；CLI 的稳定契约以 `v-npm-0-163-7` 的精确 SHA 为准，发布后 runtime/incident 恢复命令尚未进入该 tarball。**
+> **当前推荐组合（2026-08-14）：CLI `0.163.8` + VS Code 扩展 `0.37.51`（Open VSX）+ JetBrains 插件 `0.4.87`（JetBrains Marketplace）。IDE 双端提供默认关闭的受治理自动 ghost-text；CLI 的稳定契约以 `v-npm-0-163-8` 的精确 SHA 为准，runtime/incident 恢复、merge review 与 MCP resource templates 已进入该 tarball。**
 >
 > 把 ChainlessChain 的 `cc` agent 变成**编辑器里的一等公民**：侧边栏 Chat 面板直接对话、计划以可编辑 Markdown 文档审阅、文件改动走编辑器原生 diff 评审（可逐块接受、可行级批注）、代理自动感知你的选区与诊断。VS Code 与 JetBrains 双端同一套协议、同一套功能面，会话还能跨 IDE 互相续接。
 >
@@ -22,7 +22,7 @@ ChainlessChain IDE 插件是 `cc` CLI 在编辑器内的完整工作台，由两
 ### 1. 安装 / 升级 `cc` CLI
 
 ```bash
-npm i -g chainlesschain@0.163.7  # 需要 Node ≥ 22.12.0；当前完整门禁基线
+npm i -g chainlesschain@0.163.8  # 需要 Node ≥ 22.12.0；当前完整门禁基线
 cc --version                # 建议 ≥ 0.162.157
 cc ide --help               # 确认有 ide 子命令
 ```

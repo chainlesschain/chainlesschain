@@ -1,6 +1,6 @@
 # Agent Team：声明式任务图协作（`cc team`）
 
-> 状态：P2-16 已完成并随 CLI `0.162.189` 首次公开；当前生产推荐版为 `0.163.7`（2026-08-14）。实现候选
+> 状态：P2-16 已完成并随 CLI `0.162.189` 首次公开；当前生产推荐版为 `0.163.8`（2026-08-14）。`0.163.8` 新增受治理的 file/hunk merge review；实现候选
 > `7df6feced4670ac71d19548752d18ac4cc225025` 的三平台短门与各 120 分钟 soak
 > 均成功；最终发布提交
 > [`2607af0dadeb951583139942e5f2add3e95e1208`](https://github.com/chainlesschain/chainlesschain/commit/2607af0dadeb951583139942e5f2add3e95e1208)
@@ -266,6 +266,38 @@ Worktree 是按任务创建的，不是按 teammate 创建的。一个 teammate 
 - `--sparse-paths` 控制物化范围，不代表写权限。
 - `--symlink-dirs` 会把主 checkout 中的依赖目录作为可写共享目录暴露给任务，因此会削弱
   worktree 隔离。
+
+## 受治理的 file/hunk merge review（`0.163.8`）
+
+对多个 Agent 分支进行最终发布时，可以不用接受整条 branch。`merge-review` 先在精确 base 上生成稳定的 file/hunk id，再要求操作员用 revision、plan digest、actor 和 reason 固定选择：
+
+```bash
+cc team merge-review preview \
+  --branch agent/api --branch agent/tests --json
+
+cc team merge-review show <review-id> --json
+
+cc team merge-review apply <review-id> \
+  --revision <next-revision> \
+  --plan-digest sha256:<plan-digest> \
+  --file-id <file-id> \
+  --hunk-id <hunk-id> \
+  --actor local-operator \
+  --reason "reviewed API and tests" \
+  --json
+```
+
+重复 `--file-id` / `--hunk-id` 可以选择多项。`show` 会输出当前状态允许的 exact next actions；不要手工猜 revision 或 digest。发生冲突、发布后需要撤销，或状态进入 `rollback_required` 时，重新 `show` 后按最新证据回滚：
+
+```bash
+cc team merge-review rollback <review-id> \
+  --revision <next-revision> \
+  --evidence-digest sha256:<evidence-digest> \
+  --confirm <review-id> \
+  --json
+```
+
+默认状态位于 `CHAINLESSCHAIN_HOME/team-merge-reviews`。自定义 `--state-dir` 必须位于 Agent 可写仓库之外并满足 owner-only 权限。CLI 会拒绝 Git hooks、仓库本地配置、继承环境、旧 revision、过大选择、base/branch 漂移和不安全状态目录；冲突证据会持久化，不会用强制覆盖伪装成功。该机制保护 Git 文件发布，不回滚数据库、部署、消息或其它外部副作用。
 
 ## 本地状态与恢复
 
@@ -761,6 +793,8 @@ npm run test:integration -- team
 | `packages/cli/src/lib/agent-team/team-worktree.js`           | Git worktree 隔离与最终发布              |
 | `packages/cli/src/lib/agent-team/team-process-checkpoint.js` | 托管执行、checkpoint 与回滚边界          |
 | `packages/cli/src/lib/agent-team/team-adjudication.js`       | 不确定结果的证据绑定和裁决               |
+| `packages/cli/src/commands/team-merge-review.js`             | merge review 命令、严格参数和输出 envelope |
+| `packages/cli/src/lib/agent-team/team-merge-review*.js`      | file/hunk 计划、状态、发布事务与受控回滚   |
 
 ## 安全考虑
 

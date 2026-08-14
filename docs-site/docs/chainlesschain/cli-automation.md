@@ -4,7 +4,7 @@
 >
 > 12 个 SaaS 连接器 + 5 种触发器类型 + DAG 拓扑排序 + 条件分支执行。
 >
-> **版本边界（2026-08-14）**：`0.163.7` 是 npm `latest` 与生产推荐版。`automation run-scheduled`、execution preflight/budget、scope-checked channel event、双 IDE Automation Center、scheduler outcome-unknown 裁决和五域迁移/回滚均已进入公开安装契约。exact-fence runtime pause/resume 与 incident retry/cancel 是 `main@12109a5d9e` 的发布后源码能力，不属于 `0.163.7` 不可变 tarball。
+> **版本边界（2026-08-14）**：`0.163.8` 是 npm `latest` 与生产推荐版。`automation run-scheduled`、execution preflight/budget、scope-checked channel event、双 IDE Automation Center、scheduler outcome-unknown 裁决、五域迁移/回滚，以及 exact-fence runtime pause/resume 与 incident retry/cancel 均已进入公开安装契约。
 
 ---
 
@@ -124,7 +124,7 @@ manual incident retry 拒绝和敏感证据不越过 IDE 投影边界。
 **Q: 定时任务未按计划触发?**
 
 1. 验证 cron 表达式语法（`auto schedule <id> --cron` 传入后会解析）
-2. 确认已安装 `chainlesschain@0.163.7`，再运行 `chainlesschain auto run-scheduled --json`
+2. 确认已安装 `chainlesschain@0.163.8`，再运行 `chainlesschain auto run-scheduled --json`
 3. 确认 flow 状态为 `active`；`draft/paused/archived` 不会被 scheduler 入队
 4. V2 下检查是否被 `auto-pause-idle` 自动暂停
 
@@ -168,7 +168,7 @@ chainlesschain auto add-trigger $fid --type webhook --config '{"path":"/hooks/fo
 # 3. 定时触发（工作日 9:00）
 chainlesschain auto schedule $fid --cron "0 9 * * 1-5"
 
-# npm 0.163.7：统一 Scheduler + migration/adjudication
+# npm 0.163.8：统一 Scheduler + migration/adjudication/recovery
 chainlesschain auto run-scheduled
 chainlesschain auto run-scheduled --json
 chainlesschain auto run-scheduled --lease-ms 60000
@@ -269,9 +269,9 @@ VS Code 在 Activity Bar 打开 **ChainlessChain Automation**；JetBrains 在 **
 
 ---
 
-## `main` 源码：运行中暂停/恢复与 incident 操作
+## `0.163.8`：运行中暂停/恢复与 incident 操作
 
-源码 `main@12109a5d9e` 的 `center-projection` 还会投影可控 scheduler occurrence、
+`0.163.8` 的 `center-projection` 会投影可控 scheduler occurrence、
 exact fence、control revision、`checkpoint_v1` capability/safe point，以及脱敏 incident。
 集成方必须执行投影生成的 exact argv；旧投影会因 fence/revision/capability 变化而失败闭合。
 
@@ -296,8 +296,7 @@ retry 会重新匹配 incident 与 occurrence 的 flow/job/run/trigger/fence/err
 manual incident 因无法证明外部效果未发生而禁止 retry，只能 cancel。IDE 不接收持久化的
 authority、boundary 或 detail evidence，也不直接修改 Automation/Scheduler 存储。
 
-这些命令晚于 `0.163.7` 不可变 tarball；生产 npm 安装应等待后续版本完成 exact-SHA
-三平台门禁、发布与公网回读后再启用。
+这些命令已经通过 `0.163.8` 的 exact-SHA 三平台门禁、发布与公网回读；操作时仍必须使用刚获取的投影，旧 fence/revision 不得复用。
 
 ---
 
@@ -318,7 +317,7 @@ cc daemon scheduler adjudication decide <occurrence-id> \
 
 运行 `decide` 前必须停止每一个 scheduler host、排空已分发任务，并在目标 SaaS/外部系统核验真实结果。命令只接受交互式 TTY 和逐字 typed challenge；理由与操作员身份只保存摘要。选择 `confirmed_applied` 会从证据结算且绝不重放，选择 `confirmed_not_applied` 只授权一次有界执行。任何旧 digest、attempt/fence 变化、重复裁决或非 outcome-unknown 状态都会失败闭合。决策写入后再重启一个 scheduler host 应用。
 
-这不是全局 exactly-once，也不是机器范围锁。`chainlesschain@0.163.7` 已包含这些子命令，但生产操作仍必须保持死信、完成外部核验并使用 exact evidence；不要绕过存储直接改状态。
+这不是全局 exactly-once，也不是机器范围锁。`chainlesschain@0.163.8` 继续包含这些子命令，但生产操作仍必须保持死信、完成外部核验并使用 exact evidence；不要绕过存储直接改状态。
 
 ## 触发器管理
 
