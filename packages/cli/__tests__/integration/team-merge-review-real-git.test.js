@@ -288,6 +288,9 @@ describe("team merge-review real Git transaction", { timeout: 60_000 }, () => {
     branchCommit(repo, "agent/file-metadata", () => {
       git(repo, "mv", "old-name.txt", "new-name.txt");
       write(repo, "mode-and-content.txt", "mode reviewed\n");
+      // The shared commit helper stages again; keep worktree and index modes
+      // aligned so Linux does not erase the executable bit during `git add -A`.
+      fs.chmodSync(path.join(repo, "mode-and-content.txt"), 0o755);
       git(repo, "update-index", "--chmod=+x", "mode-and-content.txt");
     });
 
