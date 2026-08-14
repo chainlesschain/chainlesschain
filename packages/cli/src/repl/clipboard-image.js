@@ -49,15 +49,10 @@ const MACOS_CLIPBOARD_HELPER_ERROR_STAGES = new Set([
   "tiff-length",
   "tiff-source",
   "tiff-count",
-  "tiff-properties",
-  "tiff-properties-bridge",
-  "tiff-width",
-  "tiff-height",
-  "tiff-depth",
-  "tiff-color-read",
+  "tiff-image-create",
+  "tiff-image-layout",
+  "tiff-color-space",
   "tiff-color-model",
-  "tiff-decode",
-  "tiff-decoded-metadata",
   "tiff-bitmap",
   "tiff-encode",
   "image-length",
@@ -90,167 +85,13 @@ const WINDOWS_CLIPBOARD_IMAGE_SCRIPT = [
 
 const MACOS_CLIPBOARD_IMAGE_SCRIPT = String.raw`
 ObjC.import("AppKit");
+ObjC.import("CoreGraphics");
 ObjC.import("Foundation");
 ObjC.import("ImageIO");
-
-var propertyLookupStatus = "not-read";
 
 function isObjCNil(value) {
   return value == null ||
     (typeof value.isNil === "function" && value.isNil());
-}
-
-function propertyKeyMatch(value, expected) {
-  if (isObjCNil(value)) return "unreadable";
-  let candidateLength;
-  try {
-    candidateLength =
-      typeof value === "string" ? value.length : Number(value.length);
-  } catch {
-    return "unreadable";
-  }
-  if (
-    !Number.isSafeInteger(candidateLength) ||
-    candidateLength < 1 ||
-    candidateLength > 128
-  ) {
-    return "invalid-length";
-  }
-  if (typeof value === "string") {
-    return value === expected ? "match" : "readable-mismatch";
-  }
-
-  let readable = false;
-  try {
-    if (typeof value.isEqualToString === "function") {
-      const equal = Boolean(value.isEqualToString($(expected)));
-      readable = true;
-      if (equal) return "match";
-    }
-  } catch {}
-  try {
-    const bridged = $.NSString.stringWithString(value);
-    if (typeof bridged === "string") {
-      readable = true;
-      if (bridged === expected) return "match";
-    } else if (!isObjCNil(bridged)) {
-      try {
-        if (typeof bridged.isEqualToString === "function") {
-          const equal = Boolean(bridged.isEqualToString($(expected)));
-          readable = true;
-          if (equal) return "match";
-        }
-      } catch {}
-      try {
-        const jsValue = bridged.js;
-        if (typeof jsValue === "string") {
-          readable = true;
-          if (jsValue === expected) return "match";
-        }
-      } catch {}
-    }
-  } catch {}
-  try {
-    const jsValue = value.js;
-    if (typeof jsValue === "string") {
-      readable = true;
-      if (jsValue === expected) return "match";
-    }
-  } catch {}
-  return readable ? "readable-mismatch" : "unreadable";
-}
-
-function propertyValue(properties, key, publicName) {
-  propertyLookupStatus = "direct-missing";
-  try {
-    const directValue = properties.objectForKey(key);
-    if (!isObjCNil(directValue)) {
-      propertyLookupStatus = "direct";
-      return directValue;
-    }
-  } catch {
-    // Fall through to a shallow lookup with the dictionary-owned keys.
-  }
-
-  // ImageIO can expose CFString dictionary keys through JXA wrappers that do
-  // not compare equal to the separately imported global constant. Walk only
-  // the shallow, bounded top-level key list and then query with the exact key
-  // object returned by the dictionary. Never recursively unwrap metadata.
-  const propertyCount = Number(properties.count);
-  if (
-    !Number.isSafeInteger(propertyCount) ||
-    propertyCount < 1 ||
-    propertyCount > 256
-  ) {
-    propertyLookupStatus = "count-invalid";
-    return null;
-  }
-  const keys = properties.allKeys;
-  if (isObjCNil(keys)) {
-    propertyLookupStatus = "keys-missing";
-    return null;
-  }
-  const keyCount = Number(keys.count);
-  if (keyCount !== propertyCount) {
-    propertyLookupStatus = "keys-count-mismatch";
-    return null;
-  }
-  let sawUnreadableKey = false;
-  for (let index = 0; index < keyCount; index += 1) {
-    const candidate = keys.objectAtIndex(index);
-    const match = propertyKeyMatch(candidate, publicName);
-    if (match === "invalid-length") {
-      propertyLookupStatus = "key-length-invalid";
-      return null;
-    }
-    if (match === "unreadable") sawUnreadableKey = true;
-    if (match === "match") {
-      const candidateValue = properties.objectForKey(candidate);
-      propertyLookupStatus = isObjCNil(candidateValue)
-        ? "candidate-missing"
-        : "candidate";
-      return candidateValue;
-    }
-  }
-  propertyLookupStatus = sawUnreadableKey ? "key-unreadable" : "name-absent";
-  return null;
-}
-
-function propertyNumber(properties, key, publicName) {
-  const value = propertyValue(properties, key, publicName);
-  if (isObjCNil(value)) return null;
-  if (typeof value === "number" || typeof value === "string") {
-    return Number(value);
-  }
-  try {
-    const unwrapped = Number(ObjC.unwrap(value));
-    if (Number.isSafeInteger(unwrapped) && unwrapped > 0) return unwrapped;
-  } catch {}
-  // ImageIO declares these dictionary values as CFNumber. CFNumber and
-  // NSNumber are toll-free bridged, so use the zero-argument scalar selector
-  // when JXA's generic unwrap does not produce a JavaScript number.
-  try {
-    return Number(value.doubleValue);
-  } catch {
-    return Number.NaN;
-  }
-}
-
-function propertyStringEquals(value, expected) {
-  if (typeof value === "string") return value === expected;
-  if (
-    !isObjCNil(value) &&
-    typeof value.isEqualToString === "function" &&
-    Boolean(value.isEqualToString($(expected)))
-  ) {
-    return true;
-  }
-  try {
-    const unwrapped = ObjC.unwrap(value);
-    return typeof unwrapped === "string" && unwrapped === expected;
-  } catch {
-    return false;
-  }
 }
 
 function run(argv) {
@@ -262,6 +103,21 @@ function run(argv) {
     const maximumPixels = Number(argv[3]);
     const maximumDimension = Number(argv[4]);
     const maximumDecodedBytes = Number(argv[5]);
+    if (
+      outputPath.length < 1 ||
+      !Number.isSafeInteger(maximumBytes) ||
+      !Number.isSafeInteger(maximumSourceBytes) ||
+      !Number.isSafeInteger(maximumPixels) ||
+      !Number.isSafeInteger(maximumDimension) ||
+      !Number.isSafeInteger(maximumDecodedBytes) ||
+      maximumBytes <= 0 ||
+      maximumSourceBytes <= 0 ||
+      maximumPixels <= 0 ||
+      maximumDimension <= 0 ||
+      maximumDecodedBytes <= 0
+    ) {
+      return "invalid:arguments";
+    }
     stage = "pasteboard";
     const pasteboard = $.NSPasteboard.generalPasteboard;
     stage = "png-read";
@@ -292,98 +148,78 @@ function run(argv) {
       ) {
         return "invalid:tiff-source";
       }
-      stage = "tiff-properties";
-      const rawProperties = $.CGImageSourceCopyPropertiesAtIndex(
-        imageSource,
-        0,
-        $(),
-      );
-      if (isObjCNil(rawProperties)) return "invalid:tiff-properties";
-      // The C API returns a CFDictionary proxy. Re-bridge it explicitly so
-      // JXA exposes NSDictionary selectors without recursively unwrapping the
-      // potentially nested metadata tree.
-      stage = "tiff-properties-bridge";
-      const properties = $.NSDictionary.dictionaryWithDictionary(rawProperties);
-      if (isObjCNil(properties)) return "invalid:tiff-properties";
-      stage = "tiff-width";
-      const width = propertyNumber(
-        properties,
-        $.kCGImagePropertyPixelWidth,
-        "PixelWidth",
-      );
-      if (width === null) return "invalid:tiff-width-" + propertyLookupStatus;
-      if (!Number.isSafeInteger(width) || width <= 0) {
-        return "invalid:tiff-width-value";
-      }
-      stage = "tiff-height";
-      const height = propertyNumber(
-        properties,
-        $.kCGImagePropertyPixelHeight,
-        "PixelHeight",
-      );
-      if (height === null) {
-        return "invalid:tiff-height-" + propertyLookupStatus;
-      }
-      if (!Number.isSafeInteger(height) || height <= 0) {
-        return "invalid:tiff-height-value";
-      }
-      stage = "tiff-depth";
-      const depth = propertyNumber(
-        properties,
-        $.kCGImagePropertyDepth,
-        "Depth",
-      );
-      if (depth === null) return "invalid:tiff-depth-" + propertyLookupStatus;
-      if (!Number.isSafeInteger(depth) || depth <= 0) {
-        return "invalid:tiff-depth-value";
-      }
-      stage = "tiff-color-read";
-      const colorModel = propertyValue(
-        properties,
-        $.kCGImagePropertyColorModel,
-        "ColorModel",
-      );
-      if (isObjCNil(colorModel)) return "invalid:tiff-color-model";
-      stage = "tiff-color-model";
-      const isRgb = propertyStringEquals(colorModel, "RGB");
-      const isGray = propertyStringEquals(colorModel, "Gray");
-      if (!isRgb && !isGray) return "invalid:unsupported-color-model";
-      if (
-        depth > 16 ||
-        width > maximumDimension ||
-        height > maximumDimension ||
-        width > Math.floor(maximumPixels / height) ||
-        width >
-          Math.floor(
-            maximumDecodedBytes /
-              (height * (isRgb ? 4 : 2) * Math.ceil(depth / 8)),
-          )
-      ) {
-        return "too-large:tiff-metadata";
-      }
-      stage = "tiff-decode";
+      // ImageIO defaults immediate caching to false, so the CGImage remains
+      // lazy through the scalar getters. Rendering/encoding is reached only
+      // after every layout bound below passes.
+      stage = "tiff-image-create";
       const cgImage = $.CGImageSourceCreateImageAtIndex(imageSource, 0, $());
-      if (isObjCNil(cgImage)) return "invalid:tiff-decode";
-      stage = "tiff-decoded-metadata";
-      const decodedWidth = Number($.CGImageGetWidth(cgImage));
-      const decodedHeight = Number($.CGImageGetHeight(cgImage));
+      if (isObjCNil(cgImage)) return "invalid:tiff-image-create";
+      stage = "tiff-image-layout";
+      const imageIsMask = Number($.CGImageIsMask(cgImage));
+      if (
+        !Number.isSafeInteger(imageIsMask) ||
+        (imageIsMask !== 0 && imageIsMask !== 1)
+      ) {
+        return "invalid:tiff-image-layout";
+      }
+      if (imageIsMask === 1) {
+        return "invalid:tiff-image-mask";
+      }
+      const width = Number($.CGImageGetWidth(cgImage));
+      const height = Number($.CGImageGetHeight(cgImage));
+      const bitsPerComponent = Number($.CGImageGetBitsPerComponent(cgImage));
       const bitsPerPixel = Number($.CGImageGetBitsPerPixel(cgImage));
       const bytesPerRow = Number($.CGImageGetBytesPerRow(cgImage));
       if (
-        decodedWidth !== width ||
-        decodedHeight !== height ||
+        !Number.isSafeInteger(width) ||
+        !Number.isSafeInteger(height) ||
+        !Number.isSafeInteger(bitsPerComponent) ||
         !Number.isSafeInteger(bitsPerPixel) ||
         !Number.isSafeInteger(bytesPerRow) ||
+        width <= 0 ||
+        height <= 0 ||
+        bitsPerComponent <= 0 ||
         bitsPerPixel <= 0 ||
         bytesPerRow <= 0
       ) {
-        return "invalid:tiff-decoded";
+        return "invalid:tiff-image-layout";
       }
       if (
+        width > maximumDimension ||
+        height > maximumDimension ||
+        width > Math.floor(maximumPixels / height) ||
+        bitsPerComponent > 16 ||
         bitsPerPixel > 64 ||
-        bytesPerRow > Math.floor(maximumDecodedBytes / decodedHeight)
+        bytesPerRow > Math.floor(maximumDecodedBytes / height)
       ) {
-        return "too-large:tiff-decoded";
+        return "too-large:tiff-image-layout";
+      }
+      if (bytesPerRow < Math.ceil((width * bitsPerPixel) / 8)) {
+        return "invalid:tiff-image-layout";
+      }
+      stage = "tiff-color-space";
+      const colorSpace = $.CGImageGetColorSpace(cgImage);
+      if (isObjCNil(colorSpace)) return "invalid:tiff-color-space";
+      stage = "tiff-color-model";
+      const colorModel = Number($.CGColorSpaceGetModel(colorSpace));
+      const isRgb = colorModel === Number($.kCGColorSpaceModelRGB);
+      const isMonochrome =
+        colorModel === Number($.kCGColorSpaceModelMonochrome);
+      if (!isRgb && !isMonochrome) {
+        return "invalid:unsupported-color-model";
+      }
+      if (bitsPerPixel < (isRgb ? 3 : 1) * bitsPerComponent) {
+        return "invalid:tiff-image-layout";
+      }
+      const normalizedBytesPerPixel =
+        (isRgb ? 4 : 2) * Math.ceil(bitsPerComponent / 8);
+      if (
+        width >
+        Math.floor(
+          maximumDecodedBytes / (height * normalizedBytesPerPixel),
+        )
+      ) {
+        return "too-large:tiff-image-layout";
       }
       stage = "tiff-bitmap";
       const bitmap = $.NSBitmapImageRep.alloc.initWithCGImage(cgImage);

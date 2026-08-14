@@ -19,6 +19,135 @@ const PNG_BYTES = Buffer.concat([
 ]);
 const JPEG_BYTES = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
 
+const MACOS_JXA_LIMITS = Object.freeze({
+  maximumBytes: 20 * 1024 * 1024,
+  maximumSourceBytes: 80 * 1024 * 1024,
+  maximumPixels: 25_000_000,
+  maximumDimension: 16_384,
+  maximumDecodedBytes: 256 * 1024 * 1024,
+});
+
+function captureMacosClipboardJxaScript() {
+  let jxaScript;
+  const spawnSync = vi.fn((_command, args) => {
+    jxaScript = args[3];
+    writeFileSync(args[5], PNG_BYTES);
+    return {
+      status: 0,
+      signal: null,
+      stdout: "tiff-png\n",
+      stderr: "",
+    };
+  });
+  readSystemClipboardImage({
+    platform: "darwin",
+    executables: { osascript: "/usr/bin/osascript" },
+    deps: { spawnSync },
+  });
+  return jxaScript;
+}
+
+function createMacosTiffJxaHarness(jxaScript, overrides = {}) {
+  const values = {
+    sourceBytes: 128,
+    imageCount: 1,
+    cgImage: { isNil: () => false },
+    isMask: false,
+    width: 3,
+    height: 2,
+    bitsPerComponent: 8,
+    bitsPerPixel: 32,
+    bytesPerRow: 12,
+    colorSpace: { isNil: () => false },
+    colorModel: 1,
+    encodedBytes: PNG_BYTES.length,
+    throwAt: null,
+    ...overrides,
+  };
+  const calls = [];
+  const invoke = (name, getValue) => {
+    calls.push(name);
+    if (values.throwAt === name) {
+      throw new Error(`private ${name} detail`);
+    }
+    return getValue();
+  };
+  const write = vi.fn(() => true);
+  const encode = vi.fn(() => ({
+    isNil: () => false,
+    get length() {
+      return values.encodedBytes;
+    },
+    writeToFileAtomically: write,
+  }));
+  const bitmap = {
+    isNil: () => false,
+    representationUsingTypeProperties: encode,
+  };
+  const bitmapInit = vi.fn(() => invoke("initWithCGImage", () => bitmap));
+  const wrappedNil = { isNil: () => true };
+  const tiffData = {
+    isNil: () => false,
+    get length() {
+      return values.sourceBytes;
+    },
+  };
+  const imageSource = { isNil: () => false };
+  const pasteboard = {
+    dataForType: (type) => (type === "public.png" ? wrappedNil : tiffData),
+  };
+  const bridge = (value) => value;
+  Object.assign(bridge, {
+    NSPasteboard: { generalPasteboard: pasteboard },
+    NSPasteboardTypePNG: "public.png",
+    NSPasteboardTypeTIFF: "public.tiff",
+    kCGColorSpaceModelMonochrome: 0,
+    kCGColorSpaceModelRGB: 1,
+    CGImageSourceCreateWithData: () =>
+      invoke("CGImageSourceCreateWithData", () => imageSource),
+    CGImageSourceGetCount: () =>
+      invoke("CGImageSourceGetCount", () => values.imageCount),
+    CGImageSourceCreateImageAtIndex: () =>
+      invoke("CGImageSourceCreateImageAtIndex", () => values.cgImage),
+    CGImageIsMask: () => invoke("CGImageIsMask", () => values.isMask),
+    CGImageGetWidth: () => invoke("CGImageGetWidth", () => values.width),
+    CGImageGetHeight: () => invoke("CGImageGetHeight", () => values.height),
+    CGImageGetBitsPerComponent: () =>
+      invoke("CGImageGetBitsPerComponent", () => values.bitsPerComponent),
+    CGImageGetBitsPerPixel: () =>
+      invoke("CGImageGetBitsPerPixel", () => values.bitsPerPixel),
+    CGImageGetBytesPerRow: () =>
+      invoke("CGImageGetBytesPerRow", () => values.bytesPerRow),
+    CGImageGetColorSpace: () =>
+      invoke("CGImageGetColorSpace", () => values.colorSpace),
+    CGColorSpaceGetModel: () =>
+      invoke("CGColorSpaceGetModel", () => values.colorModel),
+    NSBitmapImageRep: { alloc: { initWithCGImage: bitmapInit } },
+  });
+  const run = (limitOverrides = {}) => {
+    const limits = { ...MACOS_JXA_LIMITS, ...limitOverrides };
+    const argv = [
+      "/tmp/image.png",
+      limits.maximumBytes,
+      limits.maximumSourceBytes,
+      limits.maximumPixels,
+      limits.maximumDimension,
+      limits.maximumDecodedBytes,
+    ].map(String);
+    return runInNewContext(`${jxaScript}\nrun(${JSON.stringify(argv)});`, {
+      ObjC: { import: () => {} },
+      $: bridge,
+    });
+  };
+  return { bitmapInit, calls, encode, run, values, write };
+}
+
+function expectNoMacosRenderOrWrite(harness) {
+  expect(harness.bitmapInit).not.toHaveBeenCalled();
+  expect(harness.encode).not.toHaveBeenCalled();
+  expect(harness.write).not.toHaveBeenCalled();
+}
+
 describe("clipboard image capability", () => {
   it("keeps a truthful path fallback when no production binding is available", () => {
     expect(detectClipboardImageCapability(null)).toEqual({
@@ -368,13 +497,34 @@ describe("system clipboard image readers", () => {
       expect(args[3]).toContain("isObjCNil(imageData)");
       expect(args[3]).toContain("isObjCNil(tiffData)");
       expect(args[3]).toContain("CGImageSourceCreateWithData(tiffData, $())");
-      expect(args[3]).toContain("CGImageSourceCopyPropertiesAtIndex");
+      expect(args[3]).toContain('ObjC.import("CoreGraphics")');
       expect(args[3]).toContain("width > Math.floor(maximumPixels / height)");
-      expect(args[3]).toContain("CGImageSourceCreateImageAtIndex");
-      expect(
-        args[3].indexOf("CGImageSourceCopyPropertiesAtIndex"),
-      ).toBeLessThan(args[3].indexOf("CGImageSourceCreateImageAtIndex"));
+      expect(args[3]).toContain(
+        "CGImageSourceCreateImageAtIndex(imageSource, 0, $())",
+      );
+      expect(args[3]).toContain("CGImageGetBitsPerComponent");
+      expect(args[3]).toContain("CGImageGetBitsPerPixel");
+      expect(args[3]).toContain("CGImageGetBytesPerRow");
+      expect(args[3]).toContain("CGImageGetColorSpace");
+      expect(args[3]).toContain("CGColorSpaceGetModel");
+      expect(args[3]).toContain("CGImageIsMask");
+      expect(args[3]).not.toMatch(
+        /metadata|thumbnail|CGImageSourceCopyProperties|CGImageProperty|CFDictionary|NSDictionary|allKeys/iu,
+      );
+      expect(args[3]).not.toContain('"PixelWidth"');
+      expect(args[3]).not.toContain('"PixelHeight"');
+      expect(args[3]).not.toContain('"Depth"');
+      expect(args[3]).not.toContain('"ColorModel"');
       expect(args[3]).not.toContain("imageRepWithData");
+      expect(args[3].indexOf("CGImageSourceCreateImageAtIndex")).toBeLessThan(
+        args[3].indexOf("CGImageGetWidth"),
+      );
+      expect(args[3].indexOf("CGImageGetBytesPerRow")).toBeLessThan(
+        args[3].indexOf("initWithCGImage"),
+      );
+      expect(args[3].indexOf("maximumDecodedBytes / height")).toBeLessThan(
+        args[3].indexOf("initWithCGImage"),
+      );
       expect(args[3]).toContain("imageBytes > maximumBytes");
       expect(args[3].indexOf("imageBytes > maximumBytes")).toBeLessThan(
         args[3].indexOf("writeToFileAtomically"),
@@ -414,266 +564,244 @@ describe("system clipboard image readers", () => {
     expect(existsSync(dirname(temporaryFile))).toBe(false);
   });
 
-  it("accepts primitive and wrapped JXA TIFF metadata", () => {
-    let jxaScript;
-    const spawnSync = vi.fn((command, args) => {
-      jxaScript = args[3];
-      writeFileSync(args[5], PNG_BYTES);
-      return {
-        status: 0,
-        signal: null,
-        stdout: "tiff-png\n",
-        stderr: "",
-      };
-    });
-    readSystemClipboardImage({
-      platform: "darwin",
-      executables: { osascript: "/usr/bin/osascript" },
-      deps: { spawnSync },
-    });
-
-    const wrappedNil = { isNil: () => true };
-    const tiffData = { isNil: () => false, length: "128" };
-    const encodedPng = {
-      isNil: () => false,
-      length: String(PNG_BYTES.length),
-      writeToFileAtomically: () => true,
-    };
-    const colorModel = {
-      isNil: () => false,
-      value: "RGB",
-      isEqualToString: (expected) => (expected?.value ?? expected) === "RGB",
-    };
-    let primitiveColorModel = false;
-    let primitiveNumberMetadata = true;
-    let unwrapNumberMetadata = true;
-    let omittedMetadataKey = null;
-    const imagePropertyKey = (publicName, overrides = {}) =>
-      Object.freeze({
-        publicName,
-        length: overrides.length ?? publicName.length,
-        js: overrides.js ?? null,
-        ...(overrides.isEqualToString
-          ? { isEqualToString: overrides.isEqualToString }
-          : {}),
-      });
-    const pixelWidthKey = imagePropertyKey("PixelWidth");
-    const pixelHeightKey = imagePropertyKey("PixelHeight");
-    const depthKey = imagePropertyKey("Depth");
-    const colorModelKey = imagePropertyKey("ColorModel");
-    const metadataKeys = [
-      pixelWidthKey,
-      pixelHeightKey,
-      depthKey,
-      colorModelKey,
-    ];
-    let allKeysReads = 0;
-    const allKeys = {
-      isNil: () => false,
-      count: String(metadataKeys.length),
-      objectAtIndex: (index) => metadataKeys[index],
-    };
-    const wrappedNumber = (value) => ({
-      isNil: () => false,
-      value,
-      doubleValue: value,
-    });
-    const rawProperties = { isNil: () => false };
-    const propertyLookups = [];
-    const properties = {
-      isNil: () => false,
-      count: String(metadataKeys.length),
-      get allKeys() {
-        allKeysReads += 1;
-        return allKeys;
-      },
-      objectForKey: (key) => {
-        propertyLookups.push(key);
-        if (key === omittedMetadataKey) return undefined;
-        const value = new Map([
-          [pixelWidthKey, 3],
-          [pixelHeightKey, 2],
-          [depthKey, 8],
-          [colorModelKey, primitiveColorModel ? "RGB" : colorModel],
-        ]).get(key);
-        if (value === undefined) return undefined;
-        return key === colorModelKey || primitiveNumberMetadata
-          ? value
-          : wrappedNumber(value);
-      },
-    };
-    const pasteboard = {
-      dataForType: (type) => (type === "public.png" ? wrappedNil : tiffData),
-    };
-    let specialBridgeKey = null;
-    let specialBridgeMode = "selector";
-    const stringWithString = vi.fn((value) => {
-      if (typeof value?.publicName !== "string") {
-        throw new Error("unexpected NSString bridge value");
-      }
-      if (value === specialBridgeKey) {
-        if (specialBridgeMode === "primitive") return value.publicName;
-        if (specialBridgeMode === "js") {
-          return { isNil: () => false, js: value.publicName };
-        }
-        if (specialBridgeMode === "throw") {
-          throw new Error("private NSString bridge detail");
-        }
-        if (specialBridgeMode === "selector-throws") {
-          return {
-            isNil: () => false,
-            js: null,
-            isEqualToString: () => {
-              throw new Error("private normalized selector detail");
-            },
-          };
-        }
-      }
-      return {
-        isNil: () => false,
-        isEqualToString: (expected) =>
-          (expected?.value ?? expected) === value.publicName,
-      };
-    });
-    const bridge = (value) => value;
-    Object.assign(bridge, {
-      NSPasteboard: { generalPasteboard: pasteboard },
-      NSPasteboardTypePNG: "public.png",
-      NSPasteboardTypeTIFF: "public.tiff",
-      kCGImagePropertyPixelWidth: pixelWidthKey,
-      kCGImagePropertyPixelHeight: pixelHeightKey,
-      kCGImagePropertyDepth: depthKey,
-      kCGImagePropertyColorModel: colorModelKey,
-      NSString: { stringWithString },
-      NSDictionary: {
-        dictionaryWithDictionary: (value) => {
-          if (value !== rawProperties) {
-            throw new Error("unexpected metadata dictionary");
-          }
-          return properties;
-        },
-      },
-      CGImageSourceCreateWithData: () => ({ isNil: () => false }),
-      CGImageSourceGetCount: () => "1",
-      CGImageSourceCopyPropertiesAtIndex: () => rawProperties,
-      CGImageSourceCreateImageAtIndex: () => ({ isNil: () => false }),
-      CGImageGetWidth: () => "3",
-      CGImageGetHeight: () => "2",
-      CGImageGetBitsPerPixel: () => "32",
-      CGImageGetBytesPerRow: () => "12",
-      NSBitmapImageRep: {
-        alloc: {
-          initWithCGImage: () => ({
-            isNil: () => false,
-            representationUsingTypeProperties: () => encodedPng,
-          }),
-        },
-      },
-    });
-    const unwrap = vi.fn((value) => {
-      if (typeof value?.publicName === "string") return value.publicName;
-      if (typeof value?.value !== "number") {
-        throw new Error("only wrapped numeric metadata may be unwrapped");
-      }
-      return unwrapNumberMetadata ? value.value : {};
-    });
-    const deepUnwrap = vi.fn(() => {
-      throw new Error("deep metadata unwrap is forbidden");
-    });
-    const numericUnwrapCalls = () =>
-      unwrap.mock.calls.filter(([value]) => typeof value?.value === "number")
-        .length;
-    const context = {
-      ObjC: {
-        import: () => {},
-        unwrap,
-        deepUnwrap,
-      },
-      $: bridge,
-    };
-    const runTiffFallback = () =>
-      runInNewContext(
-        `${jxaScript}\nrun(["/tmp/image.png", "1024", "1024", "100", "100", "4096"]);`,
-        context,
+  it.each([
+    ["RGB", { colorModel: 1, bitsPerPixel: 32, bytesPerRow: 12 }],
+    ["Monochrome", { colorModel: 0, bitsPerPixel: 8, bytesPerRow: 3 }],
+  ])(
+    "validates and converts a lazy macOS %s CGImage before rendering",
+    (_label, overrides) => {
+      const harness = createMacosTiffJxaHarness(
+        captureMacosClipboardJxaScript(),
+        overrides,
       );
-    expect(runTiffFallback()).toBe("tiff-png");
-    expect(numericUnwrapCalls()).toBe(0);
-    expect(allKeysReads).toBe(0);
-    bridge.kCGImagePropertyPixelWidth = imagePropertyKey("foreign-width");
-    bridge.kCGImagePropertyPixelHeight = imagePropertyKey("foreign-height");
-    bridge.kCGImagePropertyDepth = imagePropertyKey("foreign-depth");
-    bridge.kCGImagePropertyColorModel = imagePropertyKey("foreign-color");
-    primitiveNumberMetadata = false;
-    primitiveColorModel = true;
-    expect(runTiffFallback()).toBe("tiff-png");
-    expect(numericUnwrapCalls()).toBe(3);
-    expect(allKeysReads).toBe(4);
-    expect(stringWithString).toHaveBeenCalledWith(pixelWidthKey);
+      expect(harness.run()).toBe("tiff-png");
+      expect(harness.bitmapInit).toHaveBeenCalledTimes(1);
+      expect(harness.encode).toHaveBeenCalledTimes(1);
+      expect(harness.write).toHaveBeenCalledWith("/tmp/image.png", true);
+      expect(harness.calls.indexOf("CGImageGetBytesPerRow")).toBeLessThan(
+        harness.calls.indexOf("initWithCGImage"),
+      );
+      expect(harness.calls.indexOf("CGColorSpaceGetModel")).toBeLessThan(
+        harness.calls.indexOf("initWithCGImage"),
+      );
+    },
+  );
 
-    specialBridgeKey = pixelWidthKey;
-    specialBridgeMode = "primitive";
-    expect(runTiffFallback()).toBe("tiff-png");
-
-    specialBridgeMode = "js";
-    const lookupsBeforeJsBridge = propertyLookups.length;
-    expect(runTiffFallback()).toBe("tiff-png");
-    expect(propertyLookups.slice(lookupsBeforeJsBridge)).toContain(
-      pixelWidthKey,
+  it.each([
+    ["CGImage", { cgImage: null }, "invalid:tiff-image-create"],
+    ["color space", { colorSpace: null }, "invalid:tiff-color-space"],
+  ])("fails closed for a nil macOS %s", (_label, overrides, expected) => {
+    const harness = createMacosTiffJxaHarness(
+      captureMacosClipboardJxaScript(),
+      overrides,
     );
-    specialBridgeKey = null;
+    expect(harness.run()).toBe(expected);
+    expectNoMacosRenderOrWrite(harness);
+  });
 
-    unwrapNumberMetadata = false;
-    expect(runTiffFallback()).toBe("tiff-png");
-    expect(numericUnwrapCalls()).toBe(12);
-    omittedMetadataKey = depthKey;
-    expect(runTiffFallback()).toBe("invalid:tiff-depth-candidate-missing");
-    expect(numericUnwrapCalls()).toBe(14);
+  it.each([
+    ["CGImageSourceCreateImageAtIndex", "error:tiff-image-create"],
+    ["CGImageIsMask", "error:tiff-image-layout"],
+    ["CGImageGetWidth", "error:tiff-image-layout"],
+    ["CGImageGetHeight", "error:tiff-image-layout"],
+    ["CGImageGetBitsPerComponent", "error:tiff-image-layout"],
+    ["CGImageGetBitsPerPixel", "error:tiff-image-layout"],
+    ["CGImageGetBytesPerRow", "error:tiff-image-layout"],
+    ["CGImageGetColorSpace", "error:tiff-color-space"],
+    ["CGColorSpaceGetModel", "error:tiff-color-model"],
+  ])(
+    "contains a throwing macOS %s getter at a stable stage",
+    (name, expected) => {
+      const harness = createMacosTiffJxaHarness(
+        captureMacosClipboardJxaScript(),
+        { throwAt: name },
+      );
+      expect(harness.run()).toBe(expected);
+      expectNoMacosRenderOrWrite(harness);
+    },
+  );
 
-    omittedMetadataKey = null;
-    const readsBeforeBoundCheck = allKeysReads;
-    properties.count = "257";
-    expect(runTiffFallback()).toBe("invalid:tiff-width-count-invalid");
-    expect(allKeysReads).toBe(readsBeforeBoundCheck);
+  it.each([
+    ["width", 0],
+    ["width", Number.MAX_SAFE_INTEGER + 1],
+    ["height", 0],
+    ["height", Number.MAX_SAFE_INTEGER + 1],
+    ["bitsPerComponent", 0],
+    ["bitsPerComponent", Number.MAX_SAFE_INTEGER + 1],
+    ["bitsPerPixel", 0],
+    ["bitsPerPixel", Number.MAX_SAFE_INTEGER + 1],
+    ["bytesPerRow", 0],
+    ["bytesPerRow", Number.MAX_SAFE_INTEGER + 1],
+  ])("rejects a non-positive or unsafe macOS %s scalar", (field, value) => {
+    const harness = createMacosTiffJxaHarness(
+      captureMacosClipboardJxaScript(),
+      { [field]: value },
+    );
+    expect(harness.run()).toBe("invalid:tiff-image-layout");
+    expectNoMacosRenderOrWrite(harness);
+  });
 
-    properties.count = String(metadataKeys.length);
-    const originalWidthKey = metadataKeys[0];
-    metadataKeys[0] = imagePropertyKey("OtherWidth");
-    expect(runTiffFallback()).toBe("invalid:tiff-width-name-absent");
+  it("rejects an unsafe macOS mask flag before rendering", () => {
+    const harness = createMacosTiffJxaHarness(
+      captureMacosClipboardJxaScript(),
+      { isMask: "not-a-number" },
+    );
+    expect(harness.run()).toBe("invalid:tiff-image-layout");
+    expectNoMacosRenderOrWrite(harness);
+  });
 
-    const unreadableWidthKey = imagePropertyKey("PixelWidth", {
-      isEqualToString: () => {
-        throw new Error("private original selector detail");
+  it.each([
+    {
+      name: "source byte maximum",
+      overrides: { sourceBytes: 80 * 1024 * 1024 },
+      expected: "tiff-png",
+    },
+    {
+      name: "source byte overflow",
+      overrides: { sourceBytes: 80 * 1024 * 1024 + 1 },
+      expected: "too-large:tiff-source",
+    },
+    {
+      name: "width maximum",
+      overrides: { width: 16_384, height: 1, bytesPerRow: 65_536 },
+      expected: "tiff-png",
+    },
+    {
+      name: "width overflow",
+      overrides: { width: 16_385, height: 1, bytesPerRow: 65_540 },
+      expected: "too-large:tiff-image-layout",
+    },
+    {
+      name: "height maximum",
+      overrides: { width: 1, height: 16_384, bytesPerRow: 4 },
+      expected: "tiff-png",
+    },
+    {
+      name: "height overflow",
+      overrides: { width: 1, height: 16_385, bytesPerRow: 4 },
+      expected: "too-large:tiff-image-layout",
+    },
+    {
+      name: "pixel maximum",
+      overrides: { width: 5_000, height: 5_000, bytesPerRow: 20_000 },
+      expected: "tiff-png",
+    },
+    {
+      name: "pixel overflow",
+      overrides: { width: 5_001, height: 5_000, bytesPerRow: 20_004 },
+      expected: "too-large:tiff-image-layout",
+    },
+    {
+      name: "component depth maximum",
+      overrides: { bitsPerComponent: 16, bitsPerPixel: 64, bytesPerRow: 24 },
+      expected: "tiff-png",
+    },
+    {
+      name: "component depth overflow",
+      overrides: { bitsPerComponent: 17, bitsPerPixel: 64, bytesPerRow: 24 },
+      expected: "too-large:tiff-image-layout",
+    },
+    {
+      name: "pixel depth maximum",
+      overrides: { bitsPerPixel: 64, bytesPerRow: 24 },
+      expected: "tiff-png",
+    },
+    {
+      name: "pixel depth overflow",
+      overrides: { bitsPerPixel: 65, bytesPerRow: 25 },
+      expected: "too-large:tiff-image-layout",
+    },
+    {
+      name: "decoded row budget maximum",
+      overrides: { bytesPerRow: 128 * 1024 * 1024 },
+      expected: "tiff-png",
+    },
+    {
+      name: "decoded row budget overflow",
+      overrides: { bytesPerRow: 128 * 1024 * 1024 + 1 },
+      expected: "too-large:tiff-image-layout",
+    },
+    {
+      name: "normalized bitmap budget maximum",
+      overrides: {
+        width: 16_384,
+        height: 2_048,
+        bitsPerComponent: 16,
+        bitsPerPixel: 48,
+        bytesPerRow: 98_304,
       },
-    });
-    metadataKeys[0] = unreadableWidthKey;
-    specialBridgeKey = unreadableWidthKey;
-    specialBridgeMode = "selector-throws";
-    expect(runTiffFallback()).toBe("invalid:tiff-width-key-unreadable");
-    specialBridgeMode = "throw";
-    expect(runTiffFallback()).toBe("invalid:tiff-width-key-unreadable");
+      limits: { maximumPixels: 100_000_000 },
+      expected: "tiff-png",
+    },
+    {
+      name: "normalized bitmap budget overflow",
+      overrides: {
+        width: 16_384,
+        height: 2_049,
+        bitsPerComponent: 16,
+        bitsPerPixel: 48,
+        bytesPerRow: 98_304,
+      },
+      limits: { maximumPixels: 100_000_000 },
+      expected: "too-large:tiff-image-layout",
+    },
+    {
+      name: "minimum row layout",
+      overrides: { bytesPerRow: 12 },
+      expected: "tiff-png",
+    },
+    {
+      name: "inconsistent component layout",
+      overrides: {
+        bitsPerComponent: 16,
+        bitsPerPixel: 32,
+        bytesPerRow: 12,
+      },
+      expected: "invalid:tiff-image-layout",
+    },
+    {
+      name: "short row layout",
+      overrides: { bytesPerRow: 11 },
+      expected: "invalid:tiff-image-layout",
+    },
+  ])(
+    "enforces the macOS $name boundary before rendering",
+    ({ expected, limits, overrides }) => {
+      const harness = createMacosTiffJxaHarness(
+        captureMacosClipboardJxaScript(),
+        overrides,
+      );
+      expect(harness.run(limits)).toBe(expected);
+      if (expected === "tiff-png") {
+        expect(harness.bitmapInit).toHaveBeenCalledTimes(1);
+        expect(harness.write).toHaveBeenCalledTimes(1);
+      } else {
+        expectNoMacosRenderOrWrite(harness);
+      }
+    },
+  );
 
-    const oversizedWidthKey = imagePropertyKey("PixelWidth", {
-      length: 129,
-      js: "PixelWidth",
-    });
-    metadataKeys[0] = oversizedWidthKey;
-    specialBridgeKey = oversizedWidthKey;
-    specialBridgeMode = "primitive";
-    const bridgeCallsBeforeLengthCheck = stringWithString.mock.calls.length;
-    expect(runTiffFallback()).toBe("invalid:tiff-width-key-length-invalid");
-    expect(
-      stringWithString.mock.calls
-        .slice(bridgeCallsBeforeLengthCheck)
-        .some(([value]) => value === oversizedWidthKey),
-    ).toBe(false);
-    metadataKeys[0] = originalWidthKey;
-    specialBridgeKey = null;
+  it.each([
+    ["image mask", { isMask: true }, "invalid:tiff-image-mask"],
+    [
+      "unsupported color model",
+      { colorModel: 2 },
+      "invalid:unsupported-color-model",
+    ],
+  ])("rejects a macOS %s before rendering", (_label, overrides, expected) => {
+    const harness = createMacosTiffJxaHarness(
+      captureMacosClipboardJxaScript(),
+      overrides,
+    );
+    expect(harness.run()).toBe(expected);
+    expectNoMacosRenderOrWrite(harness);
+  });
 
-    allKeys.objectAtIndex = () => {
-      throw new Error("private key bridge detail");
-    };
-    expect(runTiffFallback()).toBe("error:tiff-width");
-    expect(deepUnwrap).not.toHaveBeenCalled();
+  it("rejects invalid macOS helper limits before native clipboard access", () => {
+    const harness = createMacosTiffJxaHarness(captureMacosClipboardJxaScript());
+    expect(harness.run({ maximumPixels: 0 })).toBe("invalid:arguments");
+    expect(harness.calls).toEqual([]);
+    expectNoMacosRenderOrWrite(harness);
   });
 
   it("reports only a stable macOS helper validation stage", () => {
@@ -691,6 +819,23 @@ describe("system clipboard image readers", () => {
         },
       }),
     ).toThrow("invalid image data (tiff-source)");
+  });
+
+  it("reports a stable lazy CGImage layout exception stage", () => {
+    expect(() =>
+      readSystemClipboardImage({
+        platform: "darwin",
+        executables: { osascript: "/usr/bin/osascript" },
+        deps: {
+          spawnSync: vi.fn(() => ({
+            status: 0,
+            signal: null,
+            stdout: "error:tiff-image-layout\n",
+            stderr: "private native detail",
+          })),
+        },
+      }),
+    ).toThrow("macOS clipboard helper failed (tiff-image-layout)");
   });
 
   it("converts JXA bridge exceptions to a stable macOS helper stage", () => {
