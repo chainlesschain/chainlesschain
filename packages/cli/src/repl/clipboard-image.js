@@ -50,7 +50,10 @@ const MACOS_CLIPBOARD_HELPER_ERROR_STAGES = new Set([
   "tiff-source",
   "tiff-count",
   "tiff-properties",
-  "tiff-metadata",
+  "tiff-width",
+  "tiff-height",
+  "tiff-depth",
+  "tiff-color-read",
   "tiff-color-model",
   "tiff-decode",
   "tiff-decoded-metadata",
@@ -96,7 +99,8 @@ function isObjCNil(value) {
 
 function propertyNumber(properties, key) {
   const value = properties.objectForKey(key);
-  return isObjCNil(value) ? null : Number(ObjC.unwrap(value));
+  if (isObjCNil(value)) return null;
+  return typeof value === "number" ? value : Number(ObjC.unwrap(value));
 }
 
 function run(argv) {
@@ -145,10 +149,13 @@ function run(argv) {
         $(),
       );
       if (isObjCNil(properties)) return "invalid:tiff-properties";
-      stage = "tiff-metadata";
+      stage = "tiff-width";
       const width = propertyNumber(properties, $.kCGImagePropertyPixelWidth);
+      stage = "tiff-height";
       const height = propertyNumber(properties, $.kCGImagePropertyPixelHeight);
+      stage = "tiff-depth";
       const depth = propertyNumber(properties, $.kCGImagePropertyDepth);
+      stage = "tiff-color-read";
       const colorModel = properties.objectForKey($.kCGImagePropertyColorModel);
       if (isObjCNil(colorModel)) return "invalid:tiff-metadata";
       stage = "tiff-color-model";

@@ -449,9 +449,9 @@ describe("system clipboard image readers", () => {
       isNil: () => false,
       objectForKey: (key) =>
         ({
-          width: wrapped(3),
-          height: wrapped(2),
-          depth: wrapped(8),
+          width: 3,
+          height: 2,
+          depth: 8,
           color: colorModel,
         })[key],
     };
@@ -489,7 +489,12 @@ describe("system clipboard image readers", () => {
     const context = {
       ObjC: {
         import: () => {},
-        unwrap: (value) => value?.value ?? value,
+        unwrap: (value) => {
+          if (typeof value === "number") {
+            throw new Error("primitive numbers must not be unwrapped");
+          }
+          return value?.value ?? value;
+        },
       },
       $: bridge,
     };
