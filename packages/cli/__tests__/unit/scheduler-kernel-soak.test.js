@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 import {
   AGGREGATE_SCHEMA,
   RESULT_SCHEMA,
+  createSchedulerSoakWorkerExitError,
   evaluateSchedulerTemporalVectors,
   resolveSchedulerSoakProfile,
   schedulerSoakRoundDelayMs,
@@ -216,6 +217,42 @@ function verifyOptions(evidenceDir, overrides = {}) {
 }
 
 describe("scheduler kernel soak coordinator", () => {
+  it("preserves bounded fatal, stderr, and recent-event context on worker exit", () => {
+    const error = createSchedulerSoakWorkerExitError({
+      workerId: "steady-1",
+      code: 1,
+      signal: null,
+      events: [
+        { type: "ready", sequence: 1 },
+        {
+          type: "claimed",
+          sequence: 2,
+          occurrence: { id: "occ-test" },
+        },
+        {
+          type: "fatal",
+          sequence: 3,
+          error: { code: "SQLITE_BUSY", message: "database is locked" },
+        },
+      ],
+      stderr: `prefix-${"x".repeat(2_000)}-database is locked`,
+      parseError: new Error("trailing invalid JSON"),
+    });
+
+    expect(error.code).toBe("SQLITE_BUSY");
+    expect(error.message).toContain(
+      "worker steady-1 exited before expected event",
+    );
+    expect(error.message).toContain('fatal={"code":"SQLITE_BUSY"');
+    expect(error.message).toContain("stderr=");
+    expect(error.message).toContain("database is locked");
+    expect(error.message).toContain('events=[{"type":"ready"');
+    expect(error.message).toContain("occ-test");
+    expect(error.message).toContain("parseError=trailing invalid JSON");
+    expect(error.message).not.toContain("prefix-");
+    expect(error.message.length).toBeLessThan(4_000);
+  });
+
   it("publishes stable result and aggregate evidence schemas", () => {
     expect(RESULT_SCHEMA).toBe("chainlesschain.scheduler-kernel-soak.v1");
     expect(AGGREGATE_SCHEMA).toBe(

@@ -381,6 +381,54 @@ function safeError(error) {
   };
 }
 
+export function formatSchedulerSoakWorkerExit({
+  workerId,
+  code,
+  signal,
+  events = [],
+  stderr = "",
+  parseError = null,
+} = {}) {
+  const recentEvents = Array.from(events)
+    .slice(-8)
+    .map((event) => ({
+      type: event?.type ?? null,
+      sequence: event?.sequence ?? null,
+      checkpoint: event?.checkpoint ?? null,
+      status: event?.status ?? null,
+      command: event?.command ?? null,
+      occurrenceId: event?.occurrence?.id ?? null,
+      error: event?.error ?? null,
+    }));
+  const fatalEvent = Array.from(events).findLast(
+    (event) => event?.type === "fatal",
+  );
+  const failureDetails = [
+    fatalEvent ? `fatal=${JSON.stringify(fatalEvent.error)}` : null,
+    String(stderr || "").trim()
+      ? `stderr=${String(stderr).trim().slice(-1_000)}`
+      : null,
+    recentEvents.length > 0
+      ? `events=${JSON.stringify(recentEvents).slice(-1_500)}`
+      : null,
+    parseError ? `parseError=${safeError(parseError).message}` : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  return `worker ${workerId} exited before expected event: code=${code} signal=${signal || "none"}${failureDetails ? ` ${failureDetails}` : ""}`;
+}
+
+export function createSchedulerSoakWorkerExitError(options = {}) {
+  const error = new Error(formatSchedulerSoakWorkerExit(options));
+  const fatalError = Array.from(options.events || []).findLast(
+    (event) => event?.type === "fatal",
+  )?.error;
+  if (typeof fatalError?.code === "string" && fatalError.code.trim()) {
+    error.code = fatalError.code.trim().slice(0, 128);
+  }
+  return error;
+}
+
 function writeAll(descriptor, buffer) {
   let offset = 0;
   while (offset < buffer.length) {
@@ -910,6 +958,7 @@ function createWorkerProcess({
   let stderr = "";
   let parseError = null;
   let closed = false;
+  let exitError = null;
   let workerHandle = null;
   child.stdin.on("error", (error) => {
     // A checkpoint worker can exit between the writable check and write(2).
@@ -972,13 +1021,17 @@ function createWorkerProcess({
       closed = true;
       activeWorkers.delete(workerHandle);
       dispatch(stdoutBuffer);
+      exitError = createSchedulerSoakWorkerExitError({
+        workerId,
+        code,
+        signal,
+        events,
+        stderr,
+        parseError,
+      });
       for (const waiter of waiters) {
         clearTimeout(waiter.timer);
-        waiter.reject(
-          new Error(
-            `worker ${workerId} exited before expected event: code=${code} signal=${signal || "none"}`,
-          ),
-        );
+        waiter.reject(exitError);
       }
       waiters.clear();
       resolve({
@@ -996,7 +1049,8 @@ function createWorkerProcess({
     if (prior) return Promise.resolve(prior);
     if (closed) {
       return Promise.reject(
-        new Error(`worker ${workerId} already exited before ${label}`),
+        exitError ||
+          new Error(`worker ${workerId} already exited before ${label}`),
       );
     }
     return new Promise((resolve, reject) => {
