@@ -113,6 +113,10 @@ describe("CLI reliability soak gate", () => {
       resolve(REPOSITORY_ROOT, "packages/cli/scripts/cli-reliability-soak.mjs"),
       "utf8",
     );
+    const hostMetrics = readFileSync(
+      resolve(REPOSITORY_ROOT, "packages/cli/scripts/soak-host-metrics.mjs"),
+      "utf8",
+    );
     expect(gate).toContain("exactShaVerified");
     expect(gate).toContain("gitWorktreeChanges");
     expect(gate).toContain("chainlesschain.cli-reliability-soak.v2");
@@ -120,7 +124,8 @@ describe("CLI reliability soak gate", () => {
     expect(gate).toContain("partialScenarios");
     expect(gate).toContain("remoteRetired");
     expect(gate).toContain("CC_MCP_TOOL_RESULT_TOO_LARGE");
-    expect(gate).toContain("CreateToolhelp32Snapshot");
+    expect(gate).toContain('from "./soak-host-metrics.mjs"');
+    expect(hostMetrics).toContain("CreateToolhelp32Snapshot");
     expect(gate).toContain('"--session",');
     expect(gate).toContain("reliability-disk-${expectedFsCode.toLowerCase()}");
     expect(gate).toContain("--ax-screen-reader");

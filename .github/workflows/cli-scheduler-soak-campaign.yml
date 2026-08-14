@@ -1,0 +1,485 @@
+name: CLI Scheduler Kernel Soak Campaign
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "Pinned full commit SHA shared by every scheduler soak segment"
+        required: true
+        type: string
+      run_ids:
+        description: "JSON array of exactly four successful CLI Scheduler Kernel Soak run IDs"
+        required: true
+        type: string
+      duration_seconds:
+        description: "Required duration of every three-platform scheduler soak segment"
+        required: true
+        default: "7200"
+        type: choice
+        options: ["7200", "14400"]
+      seed:
+        description: "Unsigned 32-bit fault seed shared by every segment"
+        required: true
+        default: "1592598566"
+        type: string
+      campaign:
+        description: "Stable campaign identity shared by every segment"
+        required: true
+        default: "p2-4-scheduler-long-soak-v1"
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.commit_sha }}-${{ inputs.campaign }}
+  cancel-in-progress: false
+
+jobs:
+  validate-inputs:
+    name: Validate pinned campaign inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      commit_sha: ${{ steps.validate.outputs.commit_sha }}
+      run_ids: ${{ steps.validate.outputs.run_ids }}
+      duration_seconds: ${{ steps.validate.outputs.duration_seconds }}
+      seed: ${{ steps.validate.outputs.seed }}
+      campaign: ${{ steps.validate.outputs.campaign }}
+    steps:
+      - name: Require one exact identity and four distinct source runs
+        id: validate
+        shell: bash
+        env:
+          INPUT_COMMIT_SHA: ${{ inputs.commit_sha }}
+          INPUT_RUN_IDS: ${{ inputs.run_ids }}
+          INPUT_DURATION_SECONDS: ${{ inputs.duration_seconds }}
+          INPUT_SEED: ${{ inputs.seed }}
+          INPUT_CAMPAIGN: ${{ inputs.campaign }}
+          INPUT_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          INPUT_REF: ${{ github.ref }}
+          INPUT_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+
+          const commitSha = String(process.env.INPUT_COMMIT_SHA || "")
+            .trim()
+            .toLowerCase();
+          if (!/^[0-9a-f]{40}$/u.test(commitSha)) {
+            throw new Error("commit_sha must be one pinned full 40-character SHA");
+          }
+          const workflowSha = String(process.env.INPUT_WORKFLOW_SHA || "")
+            .trim()
+            .toLowerCase();
+          if (!/^[0-9a-f]{40}$/u.test(workflowSha)) {
+            throw new Error("campaign verifier workflow SHA must be exact");
+          }
+          const expectedRef = `refs/heads/${process.env.INPUT_DEFAULT_BRANCH}`;
+          if (process.env.INPUT_REF !== expectedRef) {
+            throw new Error("campaign verifier must run from the default branch");
+          }
+
+          let inputRunIds;
+          try {
+            inputRunIds = JSON.parse(process.env.INPUT_RUN_IDS || "");
+          } catch {
+            throw new Error("run_ids must be a JSON array");
+          }
+          if (!Array.isArray(inputRunIds) || inputRunIds.length !== 4) {
+            throw new Error("run_ids must contain exactly four source runs");
+          }
+          const runIds = inputRunIds.map((value) => String(value).trim());
+          if (runIds.some((value) => !/^[1-9][0-9]*$/u.test(value))) {
+            throw new Error("every source run ID must be a positive integer");
+          }
+          if (new Set(runIds).size !== runIds.length) {
+            throw new Error("source run IDs must be distinct");
+          }
+
+          const durationSeconds = String(
+            process.env.INPUT_DURATION_SECONDS || "",
+          ).trim();
+          if (!["7200", "14400"].includes(durationSeconds)) {
+            throw new Error("duration_seconds must be 7200 or 14400");
+          }
+          const seed = String(process.env.INPUT_SEED || "").trim();
+          if (!/^(0|[1-9][0-9]*)$/u.test(seed) || Number(seed) > 0xffffffff) {
+            throw new Error("seed must be an unsigned 32-bit integer");
+          }
+          const campaign = String(process.env.INPUT_CAMPAIGN || "").trim();
+          if (!/^[a-zA-Z0-9._:-]{1,128}$/u.test(campaign)) {
+            throw new Error("campaign has an invalid identity");
+          }
+
+          const output = [
+            `commit_sha=${commitSha}`,
+            `run_ids=${JSON.stringify(runIds)}`,
+            `duration_seconds=${durationSeconds}`,
+            `seed=${seed}`,
+            `campaign=${campaign}`,
+          ];
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `${output.join("\n")}\n`);
+          NODE
+
+  verify-segment:
+    name: "Verify scheduler soak source run ${{ matrix.run_id }}"
+    needs: validate-inputs
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        run_id: ${{ fromJSON(needs.validate-inputs.outputs.run_ids) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CC_SCHEDULER_SOAK_EXPECTED_SHA: ${{ needs.validate-inputs.outputs.commit_sha }}
+      CC_SCHEDULER_SOAK_SEED: ${{ needs.validate-inputs.outputs.seed }}
+      CC_SCHEDULER_SOAK_CAMPAIGN: ${{ needs.validate-inputs.outputs.campaign }}
+      CC_SCHEDULER_SOAK_VERIFIER_SHA: ${{ github.workflow_sha }}
+      CC_SCHEDULER_SOAK_DURATION_SECONDS: ${{ needs.validate-inputs.outputs.duration_seconds }}
+      SOURCE_RUN_ID: ${{ matrix.run_id }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Refuse failed, incomplete, foreign, or wrong-SHA source runs
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          metadata_path="${RUNNER_TEMP}/scheduler-soak-source-run.json"
+          gh api \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}" \
+            > "${metadata_path}"
+          SOURCE_METADATA_PATH="${metadata_path}" node --input-type=module <<'NODE'
+          import fs from "node:fs";
+
+          const source = JSON.parse(
+            fs.readFileSync(process.env.SOURCE_METADATA_PATH, "utf8"),
+          );
+          const expectedRunId = process.env.SOURCE_RUN_ID;
+          if (String(source.id) !== expectedRunId) {
+            throw new Error("GitHub returned a different source run");
+          }
+          if (source.status !== "completed" || source.conclusion !== "success") {
+            throw new Error("source scheduler soak run is not completed successfully");
+          }
+          if (!/^[0-9a-f]{40}$/u.test(String(source.head_sha || ""))) {
+            throw new Error("source scheduler soak run head SHA is invalid");
+          }
+          if (source.path !== ".github/workflows/cli-scheduler-soak.yml") {
+            throw new Error("source run belongs to a different workflow");
+          }
+          if (!Number.isSafeInteger(source.run_attempt) || source.run_attempt < 1) {
+            throw new Error("source run attempt is invalid");
+          }
+          if (!["schedule", "workflow_dispatch"].includes(source.event)) {
+            throw new Error("source scheduler soak run has an invalid event");
+          }
+          fs.appendFileSync(
+            process.env.GITHUB_OUTPUT,
+            `run_attempt=${source.run_attempt}\n`,
+          );
+          NODE
+
+          gh api \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}/artifacts?per_page=100" \
+            > "${RUNNER_TEMP}/scheduler-soak-source-artifacts.json"
+
+      - name: Checkout the pinned campaign verifier
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CC_SCHEDULER_SOAK_VERIFIER_SHA }}
+
+      - name: Bind the segment verifier to its control-plane commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_sha="$(git rev-parse HEAD | tr '[:upper:]' '[:lower:]')"
+          test "${actual_sha}" = "${CC_SCHEDULER_SOAK_VERIFIER_SHA}"
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Download exact Linux raw evidence from the source run attempt
+        uses: actions/download-artifact@v7
+        with:
+          name: cli-scheduler-soak-Linux-${{ env.CC_SCHEDULER_SOAK_EXPECTED_SHA }}-${{ steps.source.outputs.run_attempt }}
+          path: ${{ runner.temp }}/scheduler-soak-raw-${{ matrix.run_id }}
+          github-token: ${{ github.token }}
+          run-id: ${{ matrix.run_id }}
+
+      - name: Download exact Windows raw evidence from the source run attempt
+        uses: actions/download-artifact@v7
+        with:
+          name: cli-scheduler-soak-Windows-${{ env.CC_SCHEDULER_SOAK_EXPECTED_SHA }}-${{ steps.source.outputs.run_attempt }}
+          path: ${{ runner.temp }}/scheduler-soak-raw-${{ matrix.run_id }}
+          github-token: ${{ github.token }}
+          run-id: ${{ matrix.run_id }}
+
+      - name: Download exact macOS raw evidence from the source run attempt
+        uses: actions/download-artifact@v7
+        with:
+          name: cli-scheduler-soak-macOS-${{ env.CC_SCHEDULER_SOAK_EXPECTED_SHA }}-${{ steps.source.outputs.run_attempt }}
+          path: ${{ runner.temp }}/scheduler-soak-raw-${{ matrix.run_id }}
+          github-token: ${{ github.token }}
+          run-id: ${{ matrix.run_id }}
+
+      - name: Re-verify the complete raw platform matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          node packages/cli/scripts/scheduler-kernel-soak.mjs \
+            --verify-evidence-dir "${RUNNER_TEMP}/scheduler-soak-raw-${SOURCE_RUN_ID}" \
+            --release-commit "${CC_SCHEDULER_SOAK_EXPECTED_SHA}" \
+            --seed "${CC_SCHEDULER_SOAK_SEED}" \
+            --campaign "${CC_SCHEDULER_SOAK_CAMPAIGN}" \
+            --output "${RUNNER_TEMP}/scheduler-soak-segment-${SOURCE_RUN_ID}.json"
+
+      - name: Require the requested formal duration
+        shell: bash
+        env:
+          SEGMENT_PATH: ${{ runner.temp }}/scheduler-soak-segment-${{ matrix.run_id }}.json
+          SOURCE_RUN_ATTEMPT: ${{ steps.source.outputs.run_attempt }}
+          SOURCE_METADATA_PATH: ${{ runner.temp }}/scheduler-soak-source-run.json
+          SOURCE_ARTIFACTS_PATH: ${{ runner.temp }}/scheduler-soak-source-artifacts.json
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+
+          const segment = JSON.parse(fs.readFileSync(process.env.SEGMENT_PATH));
+          const source = JSON.parse(
+            fs.readFileSync(process.env.SOURCE_METADATA_PATH),
+          );
+          const artifactResponse = JSON.parse(
+            fs.readFileSync(process.env.SOURCE_ARTIFACTS_PATH),
+          );
+          const durationSeconds = Number(
+            process.env.CC_SCHEDULER_SOAK_DURATION_SECONDS,
+          );
+          const sourceRunAttempt = Number(process.env.SOURCE_RUN_ATTEMPT);
+          const normalizeTimestamp = (value, label) => {
+            const milliseconds = Date.parse(value);
+            if (!Number.isFinite(milliseconds)) {
+              throw new Error(`${label} is not a timestamp`);
+            }
+            return new Date(milliseconds).toISOString();
+          };
+          const sourceCreatedAt = normalizeTimestamp(
+            source.created_at,
+            "source created_at",
+          );
+          const sourceRunStartedAt = normalizeTimestamp(
+            source.run_started_at,
+            "source run_started_at",
+          );
+          const sourceUpdatedAt = normalizeTimestamp(
+            source.updated_at,
+            "source updated_at",
+          );
+          if (
+            segment.result !== "passed" ||
+            segment.profile?.mode !== "formal" ||
+            segment.profile?.durationSeconds !== durationSeconds
+          ) {
+            throw new Error("segment does not match the requested formal duration");
+          }
+          if (
+            segment.execution?.provider !== "github-actions" ||
+            segment.execution?.repository !== process.env.GITHUB_REPOSITORY ||
+            segment.execution?.workflow !== "CLI Scheduler Kernel Soak" ||
+            segment.execution?.eventName !== source.event ||
+            segment.execution?.runId !== process.env.SOURCE_RUN_ID ||
+            segment.execution?.runAttempt !== sourceRunAttempt ||
+            segment.execution?.controlPlaneSha !==
+              String(source.head_sha).toLowerCase() ||
+            segment.execution?.runUrl !==
+              `${source.html_url}/attempts/${sourceRunAttempt}`
+          ) {
+            throw new Error("segment execution identity does not match its source run");
+          }
+          const segmentStartedMs = Date.parse(segment.startedAt);
+          const segmentCompletedMs = Date.parse(segment.completedAt);
+          if (
+            !Number.isFinite(segmentStartedMs) ||
+            !Number.isFinite(segmentCompletedMs) ||
+            Date.parse(sourceCreatedAt) > Date.parse(sourceRunStartedAt) ||
+            Date.parse(sourceRunStartedAt) > segmentStartedMs ||
+            segmentCompletedMs > Date.parse(sourceUpdatedAt)
+          ) {
+            throw new Error("segment timestamps fall outside the GitHub source run");
+          }
+
+          const expectedArtifactNames = ["Linux", "Windows", "macOS"].map(
+            (operatingSystem) =>
+              `cli-scheduler-soak-${operatingSystem}-${process.env.CC_SCHEDULER_SOAK_EXPECTED_SHA}-${sourceRunAttempt}`,
+          );
+          const artifacts = expectedArtifactNames.map((name) => {
+            const matches = (artifactResponse.artifacts || []).filter(
+              (artifact) => artifact.name === name,
+            );
+            if (matches.length !== 1) {
+              throw new Error(`expected exactly one source artifact named ${name}`);
+            }
+            const artifact = matches[0];
+            if (
+              !Number.isSafeInteger(artifact.id) ||
+              artifact.id <= 0 ||
+              !Number.isSafeInteger(artifact.size_in_bytes) ||
+              artifact.size_in_bytes <= 0 ||
+              !/^sha256:[0-9a-f]{64}$/u.test(String(artifact.digest || "")) ||
+              artifact.expired !== false
+            ) {
+              throw new Error(`source artifact ${name} has invalid immutable metadata`);
+            }
+            return {
+              id: artifact.id,
+              name,
+              sizeInBytes: artifact.size_in_bytes,
+              digest: artifact.digest,
+              expired: artifact.expired,
+              archiveDownloadUrl: artifact.archive_download_url,
+              createdAt: normalizeTimestamp(
+                artifact.created_at,
+                `${name} created_at`,
+              ),
+              expiresAt: normalizeTimestamp(
+                artifact.expires_at,
+                `${name} expires_at`,
+              ),
+            };
+          });
+          segment.sourceRun = {
+            id: process.env.SOURCE_RUN_ID,
+            attempt: sourceRunAttempt,
+            eventName: source.event,
+            headSha: String(source.head_sha).toLowerCase(),
+            workflowPath: source.path,
+            url: source.html_url,
+            createdAt: sourceCreatedAt,
+            runStartedAt: sourceRunStartedAt,
+            updatedAt: sourceUpdatedAt,
+          };
+          segment.sourceArtifacts = artifacts;
+          fs.writeFileSync(
+            process.env.SEGMENT_PATH,
+            `${JSON.stringify(segment, null, 2)}\n`,
+            { encoding: "utf8", mode: 0o600 },
+          );
+          NODE
+
+      - name: Stage the re-verified aggregate and raw evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          stage="${RUNNER_TEMP}/scheduler-soak-campaign-segment-${SOURCE_RUN_ID}"
+          mkdir -p "${stage}/raw"
+          cp "${RUNNER_TEMP}/scheduler-soak-segment-${SOURCE_RUN_ID}.json" "${stage}/aggregate.json"
+          cp "${RUNNER_TEMP}/scheduler-soak-raw-${SOURCE_RUN_ID}"/*.json "${stage}/raw/"
+
+      - name: Upload one immutable re-verified campaign segment
+        uses: actions/upload-artifact@v6
+        with:
+          name: cli-scheduler-soak-campaign-segment-${{ matrix.run_id }}-${{ env.CC_SCHEDULER_SOAK_EXPECTED_SHA }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/scheduler-soak-campaign-segment-${{ matrix.run_id }}
+          if-no-files-found: error
+          retention-days: 90
+
+  verify-campaign:
+    name: Verify the 72-hour scheduler soak campaign
+    if: always()
+    needs:
+      - validate-inputs
+      - verify-segment
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CC_SCHEDULER_SOAK_EXPECTED_SHA: ${{ needs.validate-inputs.outputs.commit_sha }}
+      CC_SCHEDULER_SOAK_SEED: ${{ needs.validate-inputs.outputs.seed }}
+      CC_SCHEDULER_SOAK_CAMPAIGN: ${{ needs.validate-inputs.outputs.campaign }}
+      CC_SCHEDULER_SOAK_VERIFIER_SHA: ${{ github.workflow_sha }}
+      CC_SCHEDULER_SOAK_VERIFIER_WORKFLOW: ${{ github.workflow }}
+      CC_SCHEDULER_SOAK_VERIFIER_WORKFLOW_REF: ${{ github.workflow_ref }}
+      CC_SCHEDULER_SOAK_VERIFIER_REF: ${{ github.ref }}
+      CC_SCHEDULER_SOAK_VERIFIER_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}
+    steps:
+      - name: Refuse an incomplete or failed campaign segment matrix
+        if: needs.validate-inputs.result != 'success' || needs.verify-segment.result != 'success'
+        shell: bash
+        run: |
+          echo "::error::All four source runs must produce valid scheduler soak segments"
+          exit 1
+
+      - name: Checkout the pinned campaign verifier
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CC_SCHEDULER_SOAK_VERIFIER_SHA }}
+
+      - name: Bind the campaign verifier to its control-plane commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_sha="$(git rev-parse HEAD | tr '[:upper:]' '[:lower:]')"
+          test "${actual_sha}" = "${CC_SCHEDULER_SOAK_VERIFIER_SHA}"
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Download all re-verified segments from this campaign run
+        uses: actions/download-artifact@v7
+        with:
+          pattern: cli-scheduler-soak-campaign-segment-*-${{ env.CC_SCHEDULER_SOAK_EXPECTED_SHA }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/scheduler-soak-campaign-segments
+
+      - name: Verify 72-hour observation, four segments, and 30-hour maximum gap
+        shell: bash
+        run: |
+          set -euo pipefail
+          node packages/cli/scripts/scheduler-kernel-soak-campaign.mjs \
+            --evidence-dir "${RUNNER_TEMP}/scheduler-soak-campaign-segments" \
+            --release-commit "${CC_SCHEDULER_SOAK_EXPECTED_SHA}" \
+            --seed "${CC_SCHEDULER_SOAK_SEED}" \
+            --campaign "${CC_SCHEDULER_SOAK_CAMPAIGN}" \
+            --minimum-observation-hours 72 \
+            --minimum-segments 4 \
+            --maximum-gap-hours 30 \
+            --output "${RUNNER_TEMP}/scheduler-soak-campaign-evidence.json" \
+            --verifier-repository "${GITHUB_REPOSITORY}" \
+            --verifier-workflow "${CC_SCHEDULER_SOAK_VERIFIER_WORKFLOW}" \
+            --verifier-workflow-ref "${CC_SCHEDULER_SOAK_VERIFIER_WORKFLOW_REF}" \
+            --verifier-ref "${CC_SCHEDULER_SOAK_VERIFIER_REF}" \
+            --verifier-event-name "${GITHUB_EVENT_NAME}" \
+            --verifier-run-id "${GITHUB_RUN_ID}" \
+            --verifier-run-attempt "${GITHUB_RUN_ATTEMPT}" \
+            --verifier-control-plane-sha "${CC_SCHEDULER_SOAK_VERIFIER_SHA}" \
+            --verifier-source-commit "${CC_SCHEDULER_SOAK_VERIFIER_SHA}" \
+            --verifier-run-url "${CC_SCHEDULER_SOAK_VERIFIER_RUN_URL}"
+
+      - name: Stage the self-contained campaign evidence bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle="${RUNNER_TEMP}/scheduler-soak-campaign-bundle"
+          mkdir -p "${bundle}"
+          cp "${RUNNER_TEMP}/scheduler-soak-campaign-evidence.json" "${bundle}/campaign-evidence.json"
+          cp -R "${RUNNER_TEMP}/scheduler-soak-campaign-segments"/. "${bundle}/"
+
+      - name: Upload immutable scheduler soak campaign manifest
+        uses: actions/upload-artifact@v6
+        with:
+          name: cli-scheduler-soak-campaign-${{ env.CC_SCHEDULER_SOAK_EXPECTED_SHA }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/scheduler-soak-campaign-bundle
+          if-no-files-found: error
+          retention-days: 90

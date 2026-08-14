@@ -6,7 +6,6 @@ import {
   mkdtempSync,
   mkdirSync,
   renameSync,
-  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -16,6 +15,19 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { performance } from "node:perf_hooks";
+import {
+  descendantCount,
+  descendantProcessSnapshot,
+  processExists,
+  resourceCount,
+  rssBytes,
+  waitForProcessRetirement,
+} from "./soak-host-metrics.mjs";
+
+export {
+  descendantPidsFromProcessRows,
+  descendantProcessSnapshot,
+} from "./soak-host-metrics.mjs";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPOSITORY_ROOT = resolve(SCRIPT_DIR, "../../..");
@@ -38,66 +50,6 @@ function hasAnsiColor(value) {
     .slice(1)
     .some((suffix) => ANSI_COLOR_SUFFIX_PATTERN.test(suffix));
 }
-const WINDOWS_TOOLHELP32_SNAPSHOT_COMMAND = String.raw`
-$ErrorActionPreference = 'Stop'
-$source = @'
-using System;
-using System.Runtime.InteropServices;
-using System.Text;
-
-public static class CcProcessSnapshot {
-  [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-  private struct PROCESSENTRY32 {
-    public uint dwSize;
-    public uint cntUsage;
-    public uint th32ProcessID;
-    public IntPtr th32DefaultHeapID;
-    public uint th32ModuleID;
-    public uint cntThreads;
-    public uint th32ParentProcessID;
-    public int pcPriClassBase;
-    public uint dwFlags;
-    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
-    public string szExeFile;
-  }
-
-  [DllImport("kernel32.dll", SetLastError = true)]
-  private static extern IntPtr CreateToolhelp32Snapshot(uint flags, uint pid);
-  [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-  private static extern bool Process32FirstW(IntPtr snapshot, ref PROCESSENTRY32 entry);
-  [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-  private static extern bool Process32NextW(IntPtr snapshot, ref PROCESSENTRY32 entry);
-  [DllImport("kernel32.dll")]
-  private static extern bool CloseHandle(IntPtr handle);
-
-  public static string Capture() {
-    IntPtr snapshot = CreateToolhelp32Snapshot(0x00000002, 0);
-    if (snapshot == new IntPtr(-1)) {
-      throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
-    }
-    try {
-      var output = new StringBuilder();
-      var entry = new PROCESSENTRY32();
-      entry.dwSize = (uint)Marshal.SizeOf(typeof(PROCESSENTRY32));
-      if (Process32FirstW(snapshot, ref entry)) {
-        do {
-          output.Append(entry.th32ParentProcessID);
-          output.Append(',');
-          output.Append(entry.th32ProcessID);
-          output.Append('\n');
-          entry.dwSize = (uint)Marshal.SizeOf(typeof(PROCESSENTRY32));
-        } while (Process32NextW(snapshot, ref entry));
-      }
-      return output.ToString();
-    } finally {
-      CloseHandle(snapshot);
-    }
-  }
-}
-'@
-Add-Type -TypeDefinition $source -Language CSharp
-[CcProcessSnapshot]::Capture()
-`;
 const WINDOWS_IO_COUNTER_COMMAND = String.raw`
 $ErrorActionPreference = 'Stop'
 $source = @'
@@ -149,7 +101,6 @@ Add-Type -TypeDefinition $source -Language CSharp
 [CcIoCounters]::Capture(__PID__)
 `;
 const ownedProcesses = new Set();
-let preferredWindowsProcessProbe = null;
 let preferredWindowsIoProbe = null;
 
 function positiveNumber(value, fallback, name, { integer = false } = {}) {
@@ -537,80 +488,6 @@ function spawnCli(
   );
 }
 
-function resourceCount(pid) {
-  if (!Number.isInteger(pid) || pid <= 0)
-    return { kind: "unavailable", count: null };
-  if (process.platform === "linux") {
-    try {
-      return { kind: "fd", count: readdirSync(`/proc/${pid}/fd`).length };
-    } catch {
-      const listing = spawnSync(
-        "bash",
-        ["-lc", `ls -1 /proc/${pid}/fd 2>/dev/null | wc -l`],
-        { encoding: "utf8" },
-      );
-      const count = Number.parseInt(listing.stdout, 10);
-      return { kind: "fd", count: Number.isFinite(count) ? count : null };
-    }
-  }
-  if (process.platform === "darwin") {
-    const listing = spawnSync("lsof", ["-n", "-p", String(pid)], {
-      encoding: "utf8",
-    });
-    const count =
-      listing.status === 0
-        ? listing.stdout.trim().split(/\r?\n/u).length - 1
-        : null;
-    return { kind: "fd", count };
-  }
-  if (process.platform === "win32") {
-    const probe = spawnSync(
-      "powershell.exe",
-      [
-        "-NoProfile",
-        "-NonInteractive",
-        "-Command",
-        `(Get-Process -Id ${pid}).HandleCount`,
-      ],
-      { encoding: "utf8", windowsHide: true },
-    );
-    const count = Number.parseInt(probe.stdout, 10);
-    return { kind: "handle", count: Number.isFinite(count) ? count : null };
-  }
-  return { kind: "unavailable", count: null };
-}
-
-function rssBytes(pid) {
-  if (process.platform === "linux") {
-    try {
-      const status = readFileSync(`/proc/${pid}/status`, "utf8");
-      const match = /^VmRSS:\s+(\d+)\s+kB$/mu.exec(status);
-      return match ? Number(match[1]) * 1024 : null;
-    } catch {
-      return null;
-    }
-  }
-  if (process.platform === "win32") {
-    const probe = spawnSync(
-      "powershell.exe",
-      [
-        "-NoProfile",
-        "-NonInteractive",
-        "-Command",
-        `(Get-Process -Id ${pid}).WorkingSet64`,
-      ],
-      { encoding: "utf8", windowsHide: true },
-    );
-    const value = Number(probe.stdout.trim());
-    return Number.isFinite(value) ? value : null;
-  }
-  const probe = spawnSync("ps", ["-o", "rss=", "-p", String(pid)], {
-    encoding: "utf8",
-  });
-  const value = Number(probe.stdout.trim());
-  return Number.isFinite(value) ? value * 1024 : null;
-}
-
 export function ioSnapshot(pid) {
   if (process.platform === "linux") {
     try {
@@ -717,188 +594,6 @@ function ioDelta(before, after) {
     }
   }
   return result;
-}
-
-export function descendantPidsFromProcessRows(rows, rootPid) {
-  if (!Number.isSafeInteger(rootPid) || rootPid <= 0) return [];
-  const childrenByParent = new Map();
-  for (const entry of rows) {
-    const processId = Number(entry?.processId);
-    const parentProcessId = Number(entry?.parentProcessId);
-    if (
-      !Number.isSafeInteger(processId) ||
-      processId <= 0 ||
-      !Number.isSafeInteger(parentProcessId) ||
-      parentProcessId < 0
-    ) {
-      continue;
-    }
-    const children = childrenByParent.get(parentProcessId) || [];
-    children.push(processId);
-    childrenByParent.set(parentProcessId, children);
-  }
-  const descendants = [];
-  const pending = [...(childrenByParent.get(rootPid) || [])];
-  const seen = new Set([rootPid]);
-  while (pending.length > 0) {
-    const processId = pending.shift();
-    if (seen.has(processId)) continue;
-    seen.add(processId);
-    descendants.push(processId);
-    pending.push(...(childrenByParent.get(processId) || []));
-  }
-  return descendants;
-}
-
-function parseWindowsProcessPairs(value) {
-  const rows = [];
-  for (const line of String(value || "").split(/\r?\n/u)) {
-    const fields = line.trim().split(",");
-    if (fields.length < 2) continue;
-    const parentProcessId = Number(fields.at(-2));
-    const processId = Number(fields.at(-1));
-    if (
-      Number.isSafeInteger(processId) &&
-      processId > 0 &&
-      Number.isSafeInteger(parentProcessId) &&
-      parentProcessId >= 0
-    ) {
-      rows.push({ processId, parentProcessId });
-    }
-  }
-  return rows;
-}
-
-export function descendantProcessSnapshot(pid) {
-  if (!Number.isSafeInteger(pid) || pid <= 0) {
-    return { available: false, pids: [], reason: "invalid-root-pid" };
-  }
-  if (process.platform === "win32") {
-    const probes = [
-      {
-        source: "wmic",
-        command: "wmic.exe",
-        args: [
-          "path",
-          "Win32_Process",
-          "get",
-          "ParentProcessId,ProcessId",
-          "/format:csv",
-        ],
-      },
-      {
-        source: "cim",
-        command: "powershell.exe",
-        args: [
-          "-NoProfile",
-          "-NonInteractive",
-          "-Command",
-          `$ErrorActionPreference='Stop'; Get-CimInstance ` +
-            `-ClassName Win32_Process -ErrorAction Stop | ` +
-            `ForEach-Object { '{0},{1}' -f ` +
-            `$_.ParentProcessId,$_.ProcessId }`,
-        ],
-      },
-      {
-        source: "toolhelp32",
-        command: "powershell.exe",
-        args: [
-          "-NoProfile",
-          "-NonInteractive",
-          "-Command",
-          WINDOWS_TOOLHELP32_SNAPSHOT_COMMAND,
-        ],
-      },
-    ];
-    const orderedProbes = preferredWindowsProcessProbe
-      ? [
-          probes.find((probe) => probe.source === preferredWindowsProcessProbe),
-          ...probes.filter(
-            (probe) => probe.source !== preferredWindowsProcessProbe,
-          ),
-        ].filter(Boolean)
-      : probes;
-    const failures = [];
-    for (const probe of orderedProbes) {
-      const result = spawnSync(probe.command, probe.args, {
-        encoding: "utf8",
-        windowsHide: true,
-        timeout: 10_000,
-        maxBuffer: 16 * MIB,
-      });
-      if (result.status !== 0) {
-        failures.push(
-          result.error?.code
-            ? `${probe.source}-${result.error.code}`
-            : `${probe.source}-exit-${result.status ?? "unknown"}`,
-        );
-        continue;
-      }
-      const rows = parseWindowsProcessPairs(result.stdout);
-      if (rows.length === 0) {
-        failures.push(`${probe.source}-empty`);
-        continue;
-      }
-      preferredWindowsProcessProbe = probe.source;
-      return {
-        available: true,
-        pids: descendantPidsFromProcessRows(rows, pid),
-        source: probe.source,
-      };
-    }
-    return {
-      available: false,
-      pids: [],
-      reason: failures.join("+") || "windows-process-snapshot-unavailable",
-    };
-  }
-  const descendants = [];
-  const pending = [pid];
-  const seen = new Set([pid]);
-  while (pending.length > 0) {
-    const parentPid = pending.shift();
-    const probe = spawnSync("pgrep", ["-P", String(parentPid)], {
-      encoding: "utf8",
-    });
-    if (probe.status !== 0 && probe.status !== 1) {
-      return { available: false, pids: [], reason: "pgrep-unavailable" };
-    }
-    if (probe.status === 1) continue;
-    for (const value of probe.stdout.trim().split(/\s+/u).filter(Boolean)) {
-      const processId = Number.parseInt(value, 10);
-      if (!Number.isSafeInteger(processId) || processId <= 0) continue;
-      if (seen.has(processId)) continue;
-      seen.add(processId);
-      descendants.push(processId);
-      pending.push(processId);
-    }
-  }
-  return { available: true, pids: descendants, source: "pgrep" };
-}
-
-function descendantCount(pid) {
-  const snapshot = descendantProcessSnapshot(pid);
-  return snapshot.available ? snapshot.pids.length : null;
-}
-
-function processExists(pid) {
-  if (!Number.isSafeInteger(pid) || pid <= 0) return null;
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    return error?.code === "ESRCH" ? false : null;
-  }
-}
-
-async function waitForLocalProcessRetirement(pid, timeoutMs) {
-  let alive = processExists(pid);
-  const deadline = performance.now() + timeoutMs;
-  while (alive === true && performance.now() < deadline) {
-    await new Promise((resolvePromise) => setTimeout(resolvePromise, 100));
-    alive = processExists(pid);
-  }
-  return alive === false;
 }
 
 function diagnosticCodes(...values) {
@@ -1279,7 +974,11 @@ async function mcpOutputScenario(baseUrl, home, profile, llm) {
     Number.isSafeInteger(entry?.serverPid),
   )?.serverPid;
   const serverRetired = Number.isSafeInteger(serverPid)
-    ? await waitForLocalProcessRetirement(serverPid, profile.cleanupDeadlineMs)
+    ? (
+        await waitForProcessRetirement(serverPid, {
+          timeoutMs: profile.cleanupDeadlineMs,
+        })
+      ).retired
     : false;
   const protocolEvents = stdout
     .split(/\r?\n/u)
@@ -1547,7 +1246,9 @@ async function duplexSoakScenario(
   const descendantRetirements = descendantsBeforeExit.available
     ? await Promise.all(
         descendantsBeforeExit.pids.map((processId) =>
-          waitForLocalProcessRetirement(processId, profile.cleanupDeadlineMs),
+          waitForProcessRetirement(processId, {
+            timeoutMs: profile.cleanupDeadlineMs,
+          }).then((result) => result.retired),
         ),
       )
     : [];
@@ -1849,10 +1550,9 @@ async function ttyScenario(baseUrl, home, profile) {
     } catch {
       // The response timeout remains authoritative.
     }
-    await waitForLocalProcessRetirement(
-      screenReaderPid,
-      profile.cleanupDeadlineMs,
-    );
+    await waitForProcessRetirement(screenReaderPid, {
+      timeoutMs: profile.cleanupDeadlineMs,
+    });
   }
   const screenReaderExit = screenReaderOutcome.timedOut
     ? {
