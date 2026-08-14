@@ -57,6 +57,7 @@ import {
 } from "../lib/agent-team/team-control-store.js";
 import { TeamProcessCheckpointBroker } from "../lib/agent-team/team-process-checkpoint.js";
 import { registerTeamDistributedCommands } from "./team-distributed.js";
+import { registerTeamMergeReviewCommands } from "./team-merge-review.js";
 import {
   sameFileStatIdentity,
   samePathHandleFileIdentity,
@@ -1451,6 +1452,7 @@ export function registerTeamCommand(program, { logger } = {}) {
     agentExecutor: spawnAgent,
     buildAgentPrompt: buildTeamAgentPrompt,
   });
+  registerTeamMergeReviewCommands(team, { logger: log });
 
   team
     .command("control-bindings")

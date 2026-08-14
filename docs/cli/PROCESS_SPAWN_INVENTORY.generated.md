@@ -3,8 +3,8 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 401 (runtime: 261, tooling: 110, test: 30).
-Runtime audit: brokered: 189, audited-exemption: 33, non-executable: 39, unreviewed: 0.
+Total matches: 402 (runtime: 262, tooling: 110, test: 30).
+Runtime audit: brokered: 190, audited-exemption: 33, non-executable: 39, unreviewed: 0.
 
 ## Policy
 
@@ -56,9 +56,9 @@ Runtime audit: brokered: 189, audited-exemption: 33, non-executable: 39, unrevie
 | `packages/cli/src/commands/session.js` | 191 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const out = _deps.execFileSync("gh", args, {` |
 | `packages/cli/src/commands/team-distributed.js` | 851 | `brokered` | call targets ProcessExecutionBroker | `const output = executionBroker.execFileSync(` |
 | `packages/cli/src/commands/team-distributed.js` | 1262 | `brokered` | call targets ProcessExecutionBroker | `executionBroker.execFileSync("git", args, {` |
-| `packages/cli/src/commands/team.js` | 68 | `brokered` | call targets ProcessExecutionBroker | `spawn: (...args) => executionBroker.spawn(...args),` |
-| `packages/cli/src/commands/team.js` | 936 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const child = _deps.spawn(command, [], {` |
-| `packages/cli/src/commands/team.js` | 1042 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `child = _deps.spawn(process.execPath, args, {` |
+| `packages/cli/src/commands/team.js` | 69 | `brokered` | call targets ProcessExecutionBroker | `spawn: (...args) => executionBroker.spawn(...args),` |
+| `packages/cli/src/commands/team.js` | 937 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const child = _deps.spawn(command, [], {` |
+| `packages/cli/src/commands/team.js` | 1043 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `child = _deps.spawn(process.execPath, args, {` |
 | `packages/cli/src/commands/update.js` | 19 | `brokered` | call targets ProcessExecutionBroker | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/commands/update.js` | 40 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const result = _deps.spawnSync(command, args, {` |
 | `packages/cli/src/gateways/ws/ws-server.js` | 120 | `brokered` | call targets ProcessExecutionBroker | `spawn: (...args) => executionBroker.spawn(...args),` |
@@ -76,6 +76,7 @@ Runtime audit: brokered: 189, audited-exemption: 33, non-executable: 39, unrevie
 | `packages/cli/src/lib/agent-sandbox.js` | 383 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const result = _deps.spawnSync("docker", args, {` |
 | `packages/cli/src/lib/agent-sandbox.js` | 450 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const result = _deps.spawnSync("bwrap", args, {` |
 | `packages/cli/src/lib/agent-sandbox.js` | 509 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const result = deps.spawnSync(probeArgs[0], probeArgs[1], {` |
+| `packages/cli/src/lib/agent-team/team-merge-review-transaction.js` | 167 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `return _deps.execFileSync(executable, hardenedArgs, {` |
 | `packages/cli/src/lib/agent-team/team-worktree.js` | 167 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `child = _processDeps.spawn(command, [], {` |
 | `packages/cli/src/lib/agent-team/team-worktree.js` | 279 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `return _processDeps.execFileSync("git", args, {` |
 | `packages/cli/src/lib/agent-team/team-worktree.js` | 290 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const value = _processDeps.execFileSync(` |
@@ -272,8 +273,8 @@ Runtime audit: brokered: 189, audited-exemption: 33, non-executable: 39, unrevie
 | `packages/cli/src/runtime/agent-core.js` | 5469 | `brokered` | call targets ProcessExecutionBroker | `output = broker.execSync(args.command, brokerExecOpts);` |
 | `packages/cli/src/runtime/agent-core.js` | 5475 | `brokered` | call targets ProcessExecutionBroker | `const res = broker.spawnSync(shellInv.file, shellInv.argv, {` |
 | `packages/cli/src/runtime/agent-core.js` | 5591 | `non-executable` | declaration/comment/type/regex lexical match | `// cannot inject a second command. Previously execSync(`git ${cmd}`) ran` |
-| `packages/cli/src/runtime/agent-core.js` | 8361 | `non-executable` | declaration/comment/type/regex lexical match | `// fully-defaulted spawn (→ "default") touches neither tools nor confirmer nor gate.` |
-| `packages/cli/src/runtime/agent-core.js` | 8413 | `non-executable` | declaration/comment/type/regex lexical match | `// sub-agent runs, so a policy hook can VETO the spawn (`block`) or INJECT` |
+| `packages/cli/src/runtime/agent-core.js` | 8371 | `non-executable` | declaration/comment/type/regex lexical match | `// fully-defaulted spawn (→ "default") touches neither tools nor confirmer nor gate.` |
+| `packages/cli/src/runtime/agent-core.js` | 8423 | `non-executable` | declaration/comment/type/regex lexical match | `// sub-agent runs, so a policy hook can VETO the spawn (`block`) or INJECT` |
 | `packages/cli/src/runtime/diagnostics.js` | 84 | `brokered` | call targets ProcessExecutionBroker | `execFileSync: (...args) => executionBroker.execFileSync(...args),` |
 | `packages/cli/src/runtime/diagnostics.js` | 90 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `deps.execFileSync(file, args, {` |
 | `packages/cli/src/skills/video-editing/media-process.js` | 4 | `brokered` | call targets ProcessExecutionBroker | `spawn: (...args) => executionBroker.spawn(...args),` |
@@ -361,11 +362,11 @@ Runtime audit: brokered: 189, audited-exemption: 33, non-executable: 39, unrevie
 | `packages/cli/scripts/ide-roadmap-safety-gate.mjs` | 182 | `const result = executionBroker.spawnSync("git", ["rev-parse", "HEAD"], {` |
 | `packages/cli/scripts/ide-roadmap-safety-gate.mjs` | 451 | `child = executionBroker.fork(scriptPath, ["--worker", ...workerArgs], {` |
 | `packages/cli/scripts/scheduler-kernel-soak.mjs` | 4 | `import { execFileSync, spawn } from "node:child_process";` |
-| `packages/cli/scripts/scheduler-kernel-soak.mjs` | 353 | `const headSha = execFileSync("git", ["rev-parse", "HEAD"], options)` |
-| `packages/cli/scripts/scheduler-kernel-soak.mjs` | 356 | `const changes = execFileSync(` |
-| `packages/cli/scripts/scheduler-kernel-soak.mjs` | 895 | `const child = spawn(process.execPath, argumentsList, {` |
-| `packages/cli/scripts/scheduler-kernel-soak.mjs` | 1144 | `// child_process "close" is authoritative for the spawned process. A` |
-| `packages/cli/scripts/scheduler-kernel-soak.mjs` | 1190 | `const output = execFileSync(` |
+| `packages/cli/scripts/scheduler-kernel-soak.mjs` | 357 | `const headSha = execFileSync("git", ["rev-parse", "HEAD"], options)` |
+| `packages/cli/scripts/scheduler-kernel-soak.mjs` | 360 | `const changes = execFileSync(` |
+| `packages/cli/scripts/scheduler-kernel-soak.mjs` | 900 | `const child = spawn(process.execPath, argumentsList, {` |
+| `packages/cli/scripts/scheduler-kernel-soak.mjs` | 1149 | `// child_process "close" is authoritative for the spawned process. A` |
+| `packages/cli/scripts/scheduler-kernel-soak.mjs` | 1195 | `const output = execFileSync(` |
 | `packages/cli/scripts/scheduler-reliability-soak.mjs` | 4 | `import { execFileSync } from "node:child_process";` |
 | `packages/cli/scripts/scheduler-reliability-soak.mjs` | 125 | `execFileSync("git", ["rev-parse", "HEAD"], {` |
 | `packages/cli/scripts/scheduler-reliability-soak.mjs` | 133 | `return execFileSync(` |

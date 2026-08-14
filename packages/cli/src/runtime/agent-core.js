@@ -6873,6 +6873,16 @@ async function executeToolInner(
           });
         }
         try {
+          if (localToolExecutor.op === "list-templates") {
+            const resourceTemplates =
+              typeof mcpClient.listResourceTemplates === "function"
+                ? mcpClient.listResourceTemplates(args?.server || undefined)
+                : [];
+            return attachDescriptor({
+              count: resourceTemplates.length,
+              resourceTemplates,
+            });
+          }
           if (localToolExecutor.op === "list") {
             const resources =
               typeof mcpClient.listResources === "function"

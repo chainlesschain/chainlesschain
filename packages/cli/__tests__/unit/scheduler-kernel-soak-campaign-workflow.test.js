@@ -98,6 +98,8 @@ describe("scheduler kernel soak campaign workflow contract", () => {
     );
     expect(workflow).toContain('--seed "${CC_SCHEDULER_SOAK_SEED}"');
     expect(workflow).toContain('--campaign "${CC_SCHEDULER_SOAK_CAMPAIGN}"');
+    expect(workflow).toContain("CC_SCHEDULER_SOAK_MODE: formal");
+    expect(workflow).toContain('CC_SCHEDULER_SOAK_LEASE_MS: "10000"');
     expect(workflow).toContain(
       "segment.profile?.durationSeconds !== durationSeconds",
     );

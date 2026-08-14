@@ -61,7 +61,7 @@ function makeFakeProc(state) {
         result = { resources: [...state.resources] };
         break;
       case "resources/templates/list":
-        result = { resourceTemplates: [] };
+        result = { resourceTemplates: [...state.resourceTemplates] };
         break;
       case "prompts/list":
         result = { prompts: [] };
@@ -99,6 +99,9 @@ describe("MCPClient list_changed refresh", () => {
     state = {
       tools: [{ name: "alpha", inputSchema: { type: "object" } }],
       resources: [{ uri: "res://a", name: "a" }],
+      resourceTemplates: [
+        { uriTemplate: "res://{id}", name: "resource-by-id" },
+      ],
       toolsListCalls: 0,
     };
     proc = makeFakeProc(state);
@@ -126,11 +129,15 @@ describe("MCPClient list_changed refresh", () => {
     expect(changed).toEqual([{ server: "srv", count: 2 }]);
   });
 
-  it("refetches resources on notifications/resources/list_changed", async () => {
+  it("refetches resources and templates on notifications/resources/list_changed", async () => {
     const client = new MCPClient();
     await client.connect("srv", { command: "fake-mcp" });
 
     state.resources.push({ uri: "res://b", name: "b" });
+    state.resourceTemplates.push({
+      uriTemplate: "docs://{slug}",
+      name: "document-by-slug",
+    });
     await fromServer(proc, {
       jsonrpc: "2.0",
       method: "notifications/resources/list_changed",
@@ -138,6 +145,9 @@ describe("MCPClient list_changed refresh", () => {
 
     const entry = client.servers.get("srv");
     expect(entry.resources.map((r) => r.name)).toEqual(["a", "b"]);
+    expect(
+      client.listResourceTemplates("srv").map((template) => template.name),
+    ).toEqual(["resource-by-id", "document-by-slug"]);
   });
 
   it("coalesces a notification burst (in-flight + one trailing refetch)", async () => {

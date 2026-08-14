@@ -4568,12 +4568,12 @@ export class SchedulerStore {
       workspaceId === undefined
         ? null
         : normalizeIdentifier(workspaceId, "workspaceId", { maxLength: 256 });
-    const now = this._now();
-    const leaseExpiresAt = now + lease;
-    if (!Number.isSafeInteger(leaseExpiresAt)) {
-      throw invalidArgument("lease expiry exceeds the safe integer range");
-    }
     return this._write(() => {
+      const now = this._now();
+      const leaseExpiresAt = now + lease;
+      if (!Number.isSafeInteger(leaseExpiresAt)) {
+        throw invalidArgument("lease expiry exceeds the safe integer range");
+      }
       this._deadLetterExpiredLeases(now);
       const candidate = this.db
         .prepare(
@@ -4779,12 +4779,12 @@ export class SchedulerStore {
     const id = normalizeIdentifier(occurrenceId, "occurrenceId");
     const owner = normalizeIdentifier(ownerId, "ownerId");
     const lease = normalizeLeaseMs(leaseMs);
-    const now = this._now();
-    const leaseExpiresAt = now + lease;
-    if (!Number.isSafeInteger(leaseExpiresAt)) {
-      throw invalidArgument("lease expiry exceeds the safe integer range");
-    }
     return this._write(() => {
+      const now = this._now();
+      const leaseExpiresAt = now + lease;
+      if (!Number.isSafeInteger(leaseExpiresAt)) {
+        throw invalidArgument("lease expiry exceeds the safe integer range");
+      }
       this._deadLetterExpiredLeases(now);
       const candidate = this.statements.getOccurrence.get(id);
       if (!candidate) {
@@ -4959,12 +4959,12 @@ export class SchedulerStore {
     const owner = normalizeIdentifier(ownerId, "ownerId");
     const token = assertPositiveSafeInteger(fence, "fence");
     const lease = normalizeLeaseMs(leaseMs);
-    const now = this._now();
-    const leaseExpiresAt = now + lease;
-    if (!Number.isSafeInteger(leaseExpiresAt)) {
-      throw invalidArgument("lease expiry exceeds the safe integer range");
-    }
     return this._write(() => {
+      const now = this._now();
+      const leaseExpiresAt = now + lease;
+      if (!Number.isSafeInteger(leaseExpiresAt)) {
+        throw invalidArgument("lease expiry exceeds the safe integer range");
+      }
       const result = this.db
         .prepare(
           `
@@ -5032,11 +5032,10 @@ export class SchedulerStore {
             "error",
           )
         : null;
-    const now = this._now();
-    const availableAt =
+    const normalizedRetryAt =
       outcome !== "failed" || retryAt === undefined
-        ? now
-        : Math.max(now, normalizeEpochMs(retryAt, "retryAt"));
+        ? null
+        : normalizeEpochMs(retryAt, "retryAt");
     const adjudicationRequest =
       adjudicationRequestId === undefined
         ? null
@@ -5045,6 +5044,9 @@ export class SchedulerStore {
           });
 
     return this._write(() => {
+      const now = this._now();
+      const availableAt =
+        normalizedRetryAt === null ? now : Math.max(now, normalizedRetryAt);
       const current = this.statements.getOccurrence.get(id);
       if (
         !current ||

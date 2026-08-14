@@ -39,10 +39,10 @@ const FORMAL_PROFILE = Object.freeze({
   maxRssGrowthMb: 128,
   maxResourceGrowth: 8,
   cleanupDeadlineMs: 10_000,
-  leaseMs: 1_000,
+  leaseMs: 10_000,
   pollMs: 50,
   executionDelayMs: 50,
-  heartbeatDelayMs: 1_500,
+  heartbeatDelayMs: 15_000,
 });
 
 const SMOKE_PROFILE = Object.freeze({
@@ -233,6 +233,8 @@ describe("scheduler kernel soak coordinator", () => {
       CC_SCHEDULER_SOAK_MAX_RSS_GROWTH_MB: "128",
       CC_SCHEDULER_SOAK_MAX_RESOURCE_GROWTH: "8",
       CC_SCHEDULER_SOAK_CLEANUP_DEADLINE_MS: "50000",
+      CC_SCHEDULER_SOAK_LEASE_MS: "1000",
+      CC_SCHEDULER_SOAK_HEARTBEAT_DELAY_MS: "1500",
     });
 
     expect(profile).toMatchObject({
@@ -243,6 +245,8 @@ describe("scheduler kernel soak coordinator", () => {
       steadyStateOccurrences: 1_000,
       maxRssGrowthMb: 128,
       maxResourceGrowth: 8,
+      leaseMs: 10_000,
+      heartbeatDelayMs: 15_000,
     });
     expect(profile.durationSeconds).toBeGreaterThanOrEqual(7_200);
     expect(profile.rounds).toBeGreaterThanOrEqual(100);
@@ -474,14 +478,14 @@ describe("scheduler kernel soak coordinator", () => {
             CC_SCHEDULER_SOAK_DURATION_SECONDS: "14400",
             CC_SCHEDULER_SOAK_ROUNDS: "100",
             CC_SCHEDULER_SOAK_STEADY_OCCURRENCES_PER_ROUND: "10",
-            CC_SCHEDULER_SOAK_LEASE_MS: "1000",
+            CC_SCHEDULER_SOAK_LEASE_MS: "10000",
             CC_SCHEDULER_SOAK_POLL_MS: "50",
             CC_SCHEDULER_SOAK_CHECKPOINT_INTERVAL_SECONDS: "30",
             CC_SCHEDULER_SOAK_CLEANUP_DEADLINE_MS: "10000",
             CC_SCHEDULER_SOAK_MAX_RSS_GROWTH_MB: "128",
             CC_SCHEDULER_SOAK_MAX_RESOURCE_GROWTH: "8",
             CC_SCHEDULER_SOAK_EXECUTION_DELAY_MS: "50",
-            CC_SCHEDULER_SOAK_HEARTBEAT_DELAY_MS: "1500",
+            CC_SCHEDULER_SOAK_HEARTBEAT_DELAY_MS: "15000",
           },
         },
       );
@@ -503,6 +507,19 @@ describe("scheduler kernel soak coordinator", () => {
           verifyOptions(directory, { profile: undefined }),
         ),
       ).toThrow(/duration|7.?200|formal|profile floors/i);
+    });
+  });
+
+  it("rejects formal evidence below the lease floor", () => {
+    withEvidenceDirectory((directory) => {
+      writeEvidenceSet(directory, (evidence) => {
+        evidence.profile.leaseMs = 9_999;
+      });
+      expect(() =>
+        verifySchedulerSoakEvidenceSet(
+          verifyOptions(directory, { profile: undefined }),
+        ),
+      ).toThrow(/profile floors/i);
     });
   });
 
@@ -603,6 +620,38 @@ describe("scheduler kernel soak coordinator", () => {
       mutate: (evidence) => {
         evidence.cleanup.passed = true;
         evidence.cleanup.processes[0].retired = false;
+      },
+      expected: /cleanup|process|retired/i,
+    },
+    {
+      label: "nongraceful process cleanup",
+      mutate: (evidence) => {
+        evidence.cleanup.passed = true;
+        evidence.cleanup.processes[0].graceful = false;
+      },
+      expected: /cleanup|process|retired/i,
+    },
+    {
+      label: "nonzero process cleanup",
+      mutate: (evidence) => {
+        evidence.cleanup.passed = true;
+        evidence.cleanup.processes[0].code = 1;
+      },
+      expected: /cleanup|process|retired/i,
+    },
+    {
+      label: "signaled process cleanup",
+      mutate: (evidence) => {
+        evidence.cleanup.passed = true;
+        evidence.cleanup.processes[0].signal = "SIGKILL";
+      },
+      expected: /cleanup|process|retired/i,
+    },
+    {
+      label: "errored process cleanup",
+      mutate: (evidence) => {
+        evidence.cleanup.passed = true;
+        evidence.cleanup.processes[0].error = { message: "retire failed" };
       },
       expected: /cleanup|process|retired/i,
     },

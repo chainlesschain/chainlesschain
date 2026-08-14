@@ -2,6 +2,18 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.53] - Governed multi-agent merge review (2026-08-14)
+
+- Add a CLI-authoritative multi-agent merge review surface with stable file
+  and hunk selections, exact revision/digest-bound action previews, and a
+  single fast-forward publication commit across selected branches.
+- Persist bounded conflict evidence for explanation and recovery, and expose
+  only the CLI-issued retained-history rollback action after a fresh evidence
+  recheck; the extension never derives merge or reset commands itself.
+- Fail closed on stale or malformed evidence, changed refs, oversized
+  selections, unknown actions, and any exact-argv mismatch. These controls
+  require a subsequent exact-gated CLI release containing `team merge-review`.
+
 ## [0.37.52] - Governed runtime recovery (2026-08-14)
 
 - Accept only the exact released Automation Center v2/schemaVersion 2 pair or

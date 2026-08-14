@@ -5,19 +5,109 @@ import {
   buildAheadArgs,
   buildBackgroundListArgs,
   buildBranchDeleteArgs,
-  buildMergeAbortArgs,
-  buildMergeArgs,
-  buildMergePreviewArgs,
+  buildMergeReviewApplyArgs,
+  buildMergeReviewPreviewArgs,
+  buildMergeReviewRollbackArgs,
+  buildMergeReviewShowArgs,
   buildNewTaskCommand,
   buildShortstatArgs,
   buildWorktreeListArgs,
   buildWorktreeRemoveArgs,
   isTaskBranch,
   parseBackgroundTaskGovernance,
-  parseMergePreview,
+  parseMergeReview,
   parseWorktreeList,
+  selectMergeReviewActionArgs,
   summarizeShortstat,
+  validateMergeReviewSelection,
 } from "../../../vscode-extension/src/worktree-tasks.js";
+
+const REVIEW_ID = `tmr_${"a".repeat(32)}`;
+const FILE_ID = `tmrf_${"b".repeat(32)}`;
+const OTHER_FILE_ID = `tmrf_${"c".repeat(32)}`;
+const HUNK_ID = `tmrh_${"d".repeat(32)}`;
+const OTHER_HUNK_ID = `tmrh_${"e".repeat(32)}`;
+const PLAN_DIGEST = `sha256:${"1".repeat(64)}`;
+const EVIDENCE_DIGEST = `sha256:${"2".repeat(64)}`;
+
+function mergeReviewEnvelope({
+  operation = "preview",
+  commitOid = false,
+} = {}) {
+  const oidKey = commitOid ? "commitOid" : "oid";
+  const conflicts = [
+    {
+      candidateKey: "candidate-1",
+      path: "src/example.js",
+      type: "content",
+      explanation: "Both branches changed the same expression.",
+      suggestion: "Review the selected hunk before publishing.",
+      hunkIds: [HUNK_ID],
+    },
+  ];
+  const review = {
+    reviewId: REVIEW_ID,
+    revision: 7,
+    state: "planned",
+    base: { branch: "main", [oidKey]: "1".repeat(40) },
+    candidates: [
+      {
+        key: "candidate-1",
+        branch: "team/example",
+        [oidKey]: "2".repeat(40),
+      },
+    ],
+    files: [
+      {
+        id: FILE_ID,
+        candidateKey: "candidate-1",
+        path: "src/example.js",
+        status: "modified",
+        binary: false,
+        selected: false,
+        hunks: [
+          {
+            id: HUNK_ID,
+            header: "@@ -1,1 +1,1 @@",
+            oldStart: 1,
+            oldLines: 1,
+            newStart: 1,
+            newLines: 1,
+            selected: false,
+          },
+        ],
+      },
+    ],
+    selection: { fileIds: [], hunkIds: [] },
+    conflicts,
+    decision: null,
+    planDigest: PLAN_DIGEST,
+    evidenceDigest: EVIDENCE_DIGEST,
+    createdAt: "2026-08-14T01:00:00.000Z",
+    updatedAt: "2026-08-14T01:01:00.000Z",
+    details: {},
+  };
+  return {
+    schema: "chainlesschain.team-merge-review/v1",
+    schemaVersion: 1,
+    operation,
+    review,
+    actions: [
+      {
+        id: "apply",
+        enabled: false,
+        argv: ["team", "merge-review", "apply", REVIEW_ID],
+        reason: "Select at least one reviewed file or hunk first.",
+      },
+      {
+        id: "rollback",
+        enabled: false,
+        argv: ["team", "merge-review", "rollback", REVIEW_ID],
+        reason: "Review has not been published.",
+      },
+    ],
+  };
+}
 
 const PORCELAIN = [
   "worktree C:/repo",
@@ -69,32 +159,290 @@ describe("worktree list parsing", () => {
   });
 });
 
-describe("merge preview parsing", () => {
-  it("classifies clean / conflict / unknown", () => {
-    expect(parseMergePreview({ code: 0, stdout: "abc123\n" })).toEqual({
-      risk: "clean",
-      files: [],
-    });
-    const conflicted = parseMergePreview({
-      code: 1,
-      stdout: [
-        "deadbeefcafe",
-        "src/a.js",
-        "src/b.js",
-        "",
-        "Auto-merging src/a.js",
-        "CONFLICT (content): ...",
-      ].join("\n"),
-    });
-    expect(conflicted.risk).toBe("conflict");
-    expect(conflicted.files).toEqual(["src/a.js", "src/b.js"]);
-    // Older git without --write-tree → unknown, never a guess.
+describe("CLI-authoritative merge review", () => {
+  it("builds exact preview/show/apply/rollback argv", () => {
     expect(
-      parseMergePreview({
-        code: 129,
-        stderr: "error: unknown option `write-tree'",
+      buildMergeReviewPreviewArgs({
+        branches: ["team/a", "batch/b"],
+        base: "main",
+        stateDir: "C:/state",
+        actor: "vscode",
+        reason: "review",
       }),
-    ).toEqual({ risk: "unknown", files: [] });
+    ).toEqual([
+      "team",
+      "merge-review",
+      "preview",
+      "--branch",
+      "team/a",
+      "--branch",
+      "batch/b",
+      "--base",
+      "main",
+      "--state-dir",
+      "C:/state",
+      "--actor",
+      "vscode",
+      "--reason",
+      "review",
+      "--json",
+    ]);
+    expect(
+      buildMergeReviewShowArgs(REVIEW_ID, { stateDir: "C:/state" }),
+    ).toEqual([
+      "team",
+      "merge-review",
+      "show",
+      REVIEW_ID,
+      "--state-dir",
+      "C:/state",
+      "--json",
+    ]);
+    expect(
+      buildMergeReviewApplyArgs({
+        reviewId: REVIEW_ID,
+        revision: 7,
+        planDigest: PLAN_DIGEST,
+        fileIds: [FILE_ID],
+        hunkIds: [HUNK_ID],
+        actor: "vscode",
+        reason: "approved",
+      }),
+    ).toEqual([
+      "team",
+      "merge-review",
+      "apply",
+      REVIEW_ID,
+      "--revision",
+      "7",
+      "--plan-digest",
+      PLAN_DIGEST,
+      "--file-id",
+      FILE_ID,
+      "--hunk-id",
+      HUNK_ID,
+      "--actor",
+      "vscode",
+      "--reason",
+      "approved",
+      "--json",
+    ]);
+    expect(
+      buildMergeReviewRollbackArgs({
+        reviewId: REVIEW_ID,
+        revision: 7,
+        evidenceDigest: EVIDENCE_DIGEST,
+      }),
+    ).toEqual([
+      "team",
+      "merge-review",
+      "rollback",
+      REVIEW_ID,
+      "--revision",
+      "7",
+      "--evidence-digest",
+      EVIDENCE_DIGEST,
+      "--confirm",
+      REVIEW_ID,
+      "--json",
+    ]);
+    expect(() =>
+      buildMergeReviewApplyArgs({
+        reviewId: REVIEW_ID,
+        revision: 7,
+        planDigest: PLAN_DIGEST,
+        fileIds: Array.from(
+          { length: 101 },
+          (_, index) => `tmrf_${index.toString(16).padStart(32, "0")}`,
+        ),
+      }),
+    ).toThrow(/at most 100 selected IDs/);
+  });
+
+  it("strictly projects v1 evidence and normalizes compatible commitOid", () => {
+    const parsed = parseMergeReview(
+      JSON.stringify(mergeReviewEnvelope({ commitOid: true })),
+      { expectedOperation: "preview" },
+    );
+    expect(parsed.ok).toBe(true);
+    expect(parsed.review).toMatchObject({
+      reviewId: REVIEW_ID,
+      revision: 7,
+      base: { branch: "main", oid: "1".repeat(40) },
+      planDigest: PLAN_DIGEST,
+      evidenceDigest: EVIDENCE_DIGEST,
+    });
+    expect(parsed.review.candidates[0].oid).toBe("2".repeat(40));
+    expect(parsed.review.conflicts[0]).toMatchObject({
+      explanation: "Both branches changed the same expression.",
+      hunkIds: [HUNK_ID],
+    });
+    expect(JSON.stringify(parsed)).not.toContain("commitOid");
+  });
+
+  it("fails closed on unknown schema, fields, states, IDs, pins, and argv", () => {
+    const mutations = [
+      (value) => {
+        value.schema = "chainlesschain.team-merge-review/v2";
+      },
+      (value) => {
+        value.schemaVersion = 2;
+      },
+      (value) => {
+        value.operation = "execute";
+      },
+      (value) => {
+        value.unknown = true;
+      },
+      (value) => {
+        value.review.state = "approved";
+      },
+      (value) => {
+        value.review.reviewId = `tmr_${"a".repeat(31)}`;
+      },
+      (value) => {
+        value.review.revision = 0;
+      },
+      (value) => {
+        value.review.planDigest = "1".repeat(64);
+      },
+      (value) => {
+        value.review.updatedAt = "1";
+      },
+      (value) => {
+        value.review.base.commitOid = value.review.base.oid;
+      },
+      (value) => {
+        value.review.details.unexpected = true;
+      },
+      (value) => {
+        value.review.files.push(structuredClone(value.review.files[0]));
+      },
+      (value) => {
+        value.review.selection.hunkIds = [OTHER_HUNK_ID];
+      },
+      (value) => {
+        value.review.files[0].selected = true;
+      },
+      (value) => {
+        value.actions[0].argv = ["git", "merge", "team/example"];
+      },
+      (value) => {
+        value.actions[0].argv[3] = `tmr_${"f".repeat(32)}`;
+      },
+      (value) => {
+        delete value.actions[0].reason;
+      },
+      (value) => {
+        value.conflicts = value.review.conflicts;
+      },
+    ];
+    for (const mutate of mutations) {
+      const value = structuredClone(mergeReviewEnvelope());
+      mutate(value);
+      expect(parseMergeReview(value, { expectedOperation: "preview" }).ok).toBe(
+        false,
+      );
+    }
+    expect(parseMergeReview("not json").ok).toBe(false);
+    expect(
+      parseMergeReview(mergeReviewEnvelope(), { expectedOperation: "show" }).ok,
+    ).toBe(false);
+    expect(
+      parseMergeReview(
+        {
+          schema: "chainlesschain.team-merge-review/v1",
+          schemaVersion: 1,
+          operation: "preview",
+          error: {
+            code: "TEAM_MERGE_REVIEW_FAILED",
+            message: "candidate changed",
+          },
+        },
+        { expectedOperation: "preview" },
+      ),
+    ).toEqual({
+      ok: false,
+      error: "TEAM_MERGE_REVIEW_FAILED: candidate changed",
+    });
+  });
+
+  it("accepts only stable IDs from the exact review selection", () => {
+    const parsed = parseMergeReview(mergeReviewEnvelope(), {
+      expectedOperation: "preview",
+    });
+    expect(validateMergeReviewSelection(parsed.review, [FILE_ID], [])).toEqual({
+      ok: true,
+      fileIds: [FILE_ID],
+      hunkIds: [],
+    });
+    expect(validateMergeReviewSelection(parsed.review, [], [HUNK_ID])).toEqual({
+      ok: true,
+      fileIds: [],
+      hunkIds: [HUNK_ID],
+    });
+    expect(
+      validateMergeReviewSelection(parsed.review, [OTHER_FILE_ID], []).ok,
+    ).toBe(false);
+    expect(
+      validateMergeReviewSelection(parsed.review, [], [OTHER_HUNK_ID]).ok,
+    ).toBe(false);
+    expect(
+      validateMergeReviewSelection(parsed.review, [FILE_ID], [HUNK_ID]).ok,
+    ).toBe(false);
+    expect(
+      validateMergeReviewSelection(parsed.review, [FILE_ID, FILE_ID], []).ok,
+    ).toBe(false);
+  });
+
+  it("uses CLI-issued argv only when it exactly equals the locally pinned action", () => {
+    const expected = buildMergeReviewApplyArgs({
+      reviewId: REVIEW_ID,
+      revision: 7,
+      planDigest: PLAN_DIGEST,
+      hunkIds: [HUNK_ID],
+      actor: "vscode",
+      reason: "approved",
+    });
+    const envelope = mergeReviewEnvelope();
+    envelope.review.files[0].hunks[0].selected = true;
+    envelope.review.selection.hunkIds = [HUNK_ID];
+    envelope.review.decision = {
+      actor: "vscode",
+      reason: "approved",
+      host: "test-host",
+      decidedAt: "2026-08-14T01:00:30.000Z",
+    };
+    envelope.actions[0] = {
+      id: "apply",
+      enabled: true,
+      argv: expected,
+      reason: null,
+    };
+    const parsed = parseMergeReview(envelope, {
+      expectedOperation: "preview",
+    });
+    expect(selectMergeReviewActionArgs(parsed, "apply", expected)).toEqual(
+      expected,
+    );
+    expect(
+      selectMergeReviewActionArgs(parsed, "apply", [
+        ...expected,
+        "--actor",
+        "x",
+      ]),
+    ).toBeNull();
+    expect(
+      selectMergeReviewActionArgs(
+        parsed,
+        "rollback",
+        buildMergeReviewRollbackArgs({
+          reviewId: REVIEW_ID,
+          revision: 7,
+          evidenceDigest: EVIDENCE_DIGEST,
+        }),
+      ),
+    ).toBeNull();
   });
 });
 
@@ -126,15 +474,6 @@ describe("shortstat + argv + new-task command", () => {
       "--shortstat",
       "abc...b1",
     ]);
-    expect(buildMergePreviewArgs("main", "b1")).toEqual([
-      "merge-tree",
-      "--write-tree",
-      "--name-only",
-      "main",
-      "b1",
-    ]);
-    expect(buildMergeArgs("b1")).toEqual(["merge", "--no-ff", "b1"]);
-    expect(buildMergeAbortArgs()).toEqual(["merge", "--abort"]);
     expect(buildWorktreeRemoveArgs("/wt")).toEqual([
       "worktree",
       "remove",

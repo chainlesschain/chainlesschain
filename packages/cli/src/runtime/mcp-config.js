@@ -332,7 +332,8 @@ export function mcpAuthHint(url, errMessage) {
  * @param {object} servers  `{ name: { command|url, args, env, transport, headers } }`
  * @param {object} [deps]   { writeErr, createClient }
  * @returns {Promise<{mcpClient, extraToolDefinitions, externalToolExecutors,
- *                     externalToolDescriptors, connected}>}
+ *                     externalToolDescriptors, connected, resources,
+ *                     resourceTemplates, prompts}>}
  */
 export async function setupMcpFromConfig(servers, deps = {}) {
   const writeErr = deps.writeErr || (() => {});
@@ -354,6 +355,7 @@ export async function setupMcpFromConfig(servers, deps = {}) {
     externalToolDescriptors: {},
     connected: [],
     resources: [],
+    resourceTemplates: [],
     prompts: [],
   };
   if (!(result._mcpServerNameReservations instanceof Set)) {
@@ -362,9 +364,12 @@ export async function setupMcpFromConfig(servers, deps = {}) {
       configurable: true,
     });
   }
-  // Back-fill the resource/prompt accumulators when an older `deps.into` object
-  // (created before this field existed) is passed in.
+  // Back-fill the resource/template/prompt accumulators when an older
+  // `deps.into` object (created before these fields existed) is passed in.
   if (!Array.isArray(result.resources)) result.resources = [];
+  if (!Array.isArray(result.resourceTemplates)) {
+    result.resourceTemplates = [];
+  }
   if (!Array.isArray(result.prompts)) result.prompts = [];
   // Per-server usage instructions from the MCP initialize response (surfaced
   // by tool search; absent for servers that send none).
@@ -477,6 +482,9 @@ export async function setupMcpFromConfig(servers, deps = {}) {
       toolMetadataError = error;
     }
     const resources = Array.isArray(res?.resources) ? res.resources : [];
+    const resourceTemplates = Array.isArray(res?.resourceTemplates)
+      ? res.resourceTemplates
+      : [];
     const prompts = Array.isArray(res?.prompts) ? res.prompts : [];
     // A server can connect (initialize OK) yet have its tools/list fail — the
     // mcp-client surfaces that as `res.toolsError` (Claude-Code 2.1.181
@@ -506,6 +514,10 @@ export async function setupMcpFromConfig(servers, deps = {}) {
     for (const r of resources) {
       if (!r || !r.uri) continue;
       result.resources.push({ ...r, server: name });
+    }
+    for (const template of resourceTemplates) {
+      if (!template || !template.uriTemplate) continue;
+      result.resourceTemplates.push({ ...template, server: name });
     }
     for (const p of prompts) {
       if (!p || !p.name) continue;
@@ -566,12 +578,15 @@ export async function setupMcpFromConfig(servers, deps = {}) {
     }
   }
 
-  // Expose MCP resources to the LLM as two generic tools (Claude-Code parity:
-  // ListMcpResourcesTool / ReadMcpResourceTool). Registered once, only when at
-  // least one connected server advertises a resource, and re-entrant safe for
-  // accumulating `deps.into` batches.
-  if (result.resources.length > 0) {
+  // Expose MCP resources to the LLM as generic read-only tools. A
+  // templates-only server still needs the read tool so the model can
+  // instantiate a URI template and explicitly read that URI. Registration is
+  // re-entrant safe for accumulating `deps.into` batches.
+  if (result.resources.length > 0 || result.resourceTemplates.length > 0) {
     registerMcpResourceTools(result);
+  }
+  if (result.resourceTemplates.length > 0) {
+    registerMcpResourceTemplateTool(result);
   }
 
   return result;
@@ -615,14 +630,14 @@ export function registerMcpResourceTools(result) {
         name: "read_mcp_resource",
         description:
           "Read the contents of an MCP resource by its URI. Use " +
-          "list_mcp_resources first to discover available URIs.",
+          "list_mcp_resources or list_mcp_resource_templates first to discover a URI.",
         parameters: {
           type: "object",
           properties: {
             server: {
               type: "string",
               description:
-                "MCP server name that owns the resource (from list_mcp_resources).",
+                "MCP server name that owns the resource or resource template.",
             },
             uri: {
               type: "string",
@@ -684,6 +699,62 @@ export function registerMcpResourceTools(result) {
         destructiveHint: false,
         idempotentHint: true,
         openWorldHint: true,
+      },
+    },
+  };
+}
+
+/** Register the read-only resource-template discovery tool once. */
+function registerMcpResourceTemplateTool(result) {
+  const {
+    extraToolDefinitions,
+    externalToolExecutors,
+    externalToolDescriptors,
+  } = result;
+  if (externalToolExecutors.list_mcp_resource_templates) return;
+
+  extraToolDefinitions.push({
+    type: "function",
+    function: {
+      name: "list_mcp_resource_templates",
+      description:
+        "List URI templates exposed by connected MCP servers. Fill a template " +
+        "with concrete arguments, then pass the resulting URI and returned " +
+        "server name to read_mcp_resource.",
+      parameters: {
+        type: "object",
+        properties: {
+          server: {
+            type: "string",
+            description: "Optional MCP server name to filter by.",
+          },
+        },
+      },
+    },
+  });
+  externalToolExecutors.list_mcp_resource_templates = {
+    kind: "mcp-resource",
+    op: "list-templates",
+  };
+  externalToolDescriptors.list_mcp_resource_templates = {
+    name: "list_mcp_resource_templates",
+    kind: "mcp-resource",
+    category: "mcp",
+    source: "mcp",
+    isReadOnly: true,
+    riskLevel: "low",
+    effectContract: {
+      version: 1,
+      declaredEffect: "read",
+      authorizedEffect: "read",
+      riskLevel: "low",
+      sourceTrusted: true,
+      provenance: "host:mcp-resource-wrapper",
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
       },
     },
   };

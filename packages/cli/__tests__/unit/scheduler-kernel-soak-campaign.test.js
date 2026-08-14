@@ -44,14 +44,14 @@ function formalProfile() {
     rounds: 100,
     steadyOccurrencesPerRound: 10,
     steadyStateOccurrences: 1_000,
-    leaseMs: 1_000,
+    leaseMs: 10_000,
     pollMs: 50,
     checkpointIntervalSeconds: 30,
     cleanupDeadlineMs: 10_000,
     maxRssGrowthMb: 128,
     maxResourceGrowth: 8,
     executionDelayMs: 50,
-    heartbeatDelayMs: 1_500,
+    heartbeatDelayMs: 15_000,
   };
 }
 
@@ -289,6 +289,13 @@ describe("scheduler kernel long-soak campaign verifier", () => {
     mismatched.execution.controlPlaneSha = CONTROL_PLANE_SHA;
     mismatched.profile.mode = "smoke";
     writeAggregate(directory, "segment-2/aggregate-2.json", mismatched);
+    expect(() =>
+      verifySchedulerSoakCampaignEvidenceSet(verifyOptions(directory)),
+    ).toThrow(/formal profile/u);
+
+    const shortLease = aggregate(2, 48);
+    shortLease.profile.leaseMs = 9_999;
+    writeAggregate(directory, "segment-2/aggregate-2.json", shortLease);
     expect(() =>
       verifySchedulerSoakCampaignEvidenceSet(verifyOptions(directory)),
     ).toThrow(/formal profile/u);

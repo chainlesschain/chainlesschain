@@ -8,7 +8,7 @@ coordination, and a localhost IDE bridge.
 
 | Component                 | Current status                                                       |
 | ------------------------- | -------------------------------------------------------------------- |
-| VS Code extension         | **0.37.52** source candidate; Open VSX public version is **0.37.51** |
+| VS Code extension         | **0.37.53** source candidate; Open VSX public version is **0.37.52** |
 | Recommended CLI           | **`chainlesschain@0.163.7`** (fully gated stable release)            |
 | Base bridge compatibility | `cc >= 0.162.47`; newer features can require a newer CLI             |
 | Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors                  |
@@ -17,11 +17,11 @@ coordination, and a localhost IDE bridge.
 The recommended CLI `0.163.7` includes the governed Automation/Routine commands,
 unified scheduler authority, timezone/missed-run semantics, and shared
 permission/budget enforcement required by the Automation Center.
-It emits the released Automation Center v2 projection: `0.37.52` preserves the
+It emits the released Automation Center v2 projection: `0.37.53` preserves the
 existing item controls with empty incidents/runtime and does not invent the new
 actions.
 
-The `0.37.52` source accepts only the exact released v2/schemaVersion 2 pair or
+The `0.37.53` source accepts only the exact released v2/schemaVersion 2 pair or
 the new v3/schemaVersion 3 pair; unknown and cross-paired versions fail closed.
 With v3 it shows sanitized run incidents and bounded live scheduler occurrences.
 Incident retry/cancel and cooperative occurrence pause/resume appear only when
@@ -31,15 +31,27 @@ derives argv from display data. These v3 controls require a subsequent
 exact-gated CLI release; CLI `0.163.7` remains fully usable through v2 without
 showing them.
 
+Version `0.37.53` also consumes only strict, CLI-issued multi-agent merge-review
+evidence. It displays stable file/hunk choices, persistent conflict explanations,
+and exact apply/rollback previews, then refreshes the evidence before executing
+the exact argv. It never runs or derives `git merge`, `merge-tree`, or
+history-rewriting rollback commands. Public CLI `0.163.7` predates
+`team merge-review`; the controls remain unavailable until a subsequent
+exact-gated CLI release provides that command.
+
 The last immutable public release tag is
-[`ide-vscode-v0.37.51`](https://github.com/chainlesschain/chainlesschain/releases/tag/ide-vscode-v0.37.51).
-Source version `0.37.52` is not public until its exact release commit passes the
+[`ide-vscode-v0.37.52`](https://github.com/chainlesschain/chainlesschain/releases/tag/ide-vscode-v0.37.52).
+Source version `0.37.53` is not public until its exact release commit passes the
 native ARM64 aggregate and the tag workflow validates the packaged VSIX in
 stable and minimum VS Code hosts on Windows, Linux, and macOS, publishes it to
 Open VSX, and reads the public registry artifact back. Changes to this README
 appear in the registry Overview only after that immutable release is published.
 
 ## Highlights
+
+- **Governed multi-agent merge review** - inspect CLI-owned cross-branch
+  evidence, select stable files or hunks, publish one fast-forward commit, and
+  use retained-history rollback without granting the IDE direct merge authority.
 
 - **Governed Automation Center** - inspect CLI-owned, versioned Automation and
   Routine projections, preflight and history; run now, retry failures,
@@ -85,11 +97,11 @@ appear in the registry Overview only after that immutable release is published.
 Node.js `>= 22.12.0` and npm `>= 10.0.0` are required.
 
 ```bash
-npm i -g chainlesschain@0.163.6
+npm i -g chainlesschain@0.163.7
 cc --version
 ```
 
-Using `@0.163.6` reproduces the currently documented and fully gated public
+Using `@0.163.7` reproduces the currently documented and fully gated public
 CLI pairing, including Automation Center controls. Use `@latest` only when you
 intentionally want a newer published CLI.
 

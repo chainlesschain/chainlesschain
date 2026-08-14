@@ -277,6 +277,145 @@ describe("scheduler-kernel SQLite store", () => {
     };
   }
 
+  function advanceClockWhenNextWriteBodyStarts(store, fixtureClock, elapsedMs) {
+    const write = store._write.bind(store);
+    store._write = (callback) => {
+      store._write = write;
+      return write((...args) => {
+        fixtureClock.now += elapsedMs;
+        return callback(...args);
+      });
+    };
+  }
+
+  it("samples claimNext lease time after the immediate write transaction starts", () => {
+    const f = fixture();
+    const store = f.open();
+    store.createJob(jobInput());
+    store.enqueueOccurrence({
+      jobId: "job-a",
+      scheduledFor: f.now,
+      triggerKey: "transaction-clock:claim-next",
+    });
+    const beforeWriteWait = f.now;
+
+    advanceClockWhenNextWriteBodyStarts(store, f, 250);
+    const claim = store.claimNext({ ownerId: "worker-a", leaseMs: 100 });
+
+    expect(claim).toMatchObject({
+      leaseExpiresAt: beforeWriteWait + 350,
+      updatedAt: beforeWriteWait + 250,
+    });
+  });
+
+  it("samples claimOccurrence lease time after the immediate write transaction starts", () => {
+    const f = fixture();
+    const store = f.open();
+    store.createJob(jobInput());
+    const occurrence = store.enqueueOccurrence({
+      jobId: "job-a",
+      scheduledFor: f.now,
+      triggerKey: "transaction-clock:claim-occurrence",
+    });
+    const beforeWriteWait = f.now;
+
+    advanceClockWhenNextWriteBodyStarts(store, f, 250);
+    const claim = store.claimOccurrence({
+      occurrenceId: occurrence.id,
+      ownerId: "worker-a",
+      leaseMs: 100,
+    });
+
+    expect(claim).toMatchObject({
+      leaseExpiresAt: beforeWriteWait + 350,
+      updatedAt: beforeWriteWait + 250,
+    });
+  });
+
+  it("samples renew lease time after the immediate write transaction starts", () => {
+    const f = fixture();
+    const store = f.open();
+    store.createJob(jobInput());
+    store.enqueueOccurrence({
+      jobId: "job-a",
+      scheduledFor: f.now,
+      triggerKey: "transaction-clock:renew",
+    });
+    const claim = store.claimNext({ ownerId: "worker-a", leaseMs: 1000 });
+    const beforeWriteWait = f.now;
+
+    advanceClockWhenNextWriteBodyStarts(store, f, 250);
+    const renewed = store.renew({
+      occurrenceId: claim.id,
+      ownerId: "worker-a",
+      fence: claim.fence,
+      leaseMs: 2000,
+    });
+
+    expect(renewed).toMatchObject({
+      leaseExpiresAt: beforeWriteWait + 2250,
+      updatedAt: beforeWriteWait + 250,
+    });
+  });
+
+  it("rejects settlement when the lease expires while waiting for the write transaction", () => {
+    const f = fixture();
+    const store = f.open();
+    store.createJob(jobInput());
+    store.enqueueOccurrence({
+      jobId: "job-a",
+      scheduledFor: f.now,
+      triggerKey: "transaction-clock:settle-expired",
+    });
+    const claim = store.claimNext({ ownerId: "worker-a", leaseMs: 100 });
+
+    advanceClockWhenNextWriteBodyStarts(store, f, 101);
+    expectCode(
+      () =>
+        store.settle({
+          occurrenceId: claim.id,
+          ownerId: "worker-a",
+          fence: claim.fence,
+          outcome: "succeeded",
+        }),
+      "SCHEDULER_LEASE_LOST",
+    );
+    expect(store.getOccurrence(claim.id)).toMatchObject({
+      status: "running",
+      leaseOwner: "worker-a",
+      fence: claim.fence,
+    });
+  });
+
+  it("floors retryable settlement availability at transaction time", () => {
+    const f = fixture();
+    const store = f.open();
+    store.createJob(jobInput());
+    store.enqueueOccurrence({
+      jobId: "job-a",
+      scheduledFor: f.now,
+      triggerKey: "transaction-clock:settle-retry",
+    });
+    const claim = store.claimNext({ ownerId: "worker-a", leaseMs: 1000 });
+    const beforeWriteWait = f.now;
+
+    advanceClockWhenNextWriteBodyStarts(store, f, 200);
+    const retry = store.settle({
+      occurrenceId: claim.id,
+      ownerId: "worker-a",
+      fence: claim.fence,
+      outcome: "failed",
+      error: { code: "retry-me" },
+      retryAt: beforeWriteWait + 100,
+    });
+
+    expect(retry).toMatchObject({
+      status: "retry_wait",
+      availableAt: beforeWriteWait + 200,
+      updatedAt: beforeWriteWait + 200,
+    });
+  });
+
   it.each([
     ["ENOSPC", "ENOSPC", false],
     ["EROFS", "EROFS", false],
