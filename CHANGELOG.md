@@ -7,6 +7,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI 0.163.8: governed recovery, merge review, and MCP resource templates
+
+> `chainlesschain` **0.163.7 → 0.163.8** (candidate; not yet published,
+> 2026-08-14).
+> CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.57**
+> and `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **Crash-safe scheduler source persistence**: Agenda and Cowork authoritative
+  stores now reject unreadable, malformed, and non-object records instead of
+  treating them as empty state. Generation replacement uses private exclusive
+  temporary files, complete short-write loops, file fsync, atomic rename, and
+  POSIX directory fsync, while distinguishing pre-rename `not-committed`
+  failures from post-rename durability-unknown outcomes.
+- **Deterministic scheduler disk-fault closure**: fault injection covers ENOSPC,
+  partial writes, file and directory fsync failures, rename failures, corrupted
+  source stores, native SQLite `SQLITE_FULL` transaction rollback, Automation
+  source rollback atomicity, database truncation, and clean reopen behavior.
+  Routine and Loop retain their existing durable-store and append/CAS
+  protections.
+- **Governed Automation runtime recovery**: scheduler-backed Automation work can
+  expose exact-fence, control-revision, capability-bound pause and resume safe
+  points. Revisioned incidents support bounded retry or cancellation; retry
+  revalidates the exact dead-letter occurrence, run identity, fence, and error
+  evidence, while manual incidents are not silently replayed.
+- **Governed multi-agent merge review**: `cc team merge-review` subcommands
+  `preview|show|apply|rollback` provide stable file and hunk selection,
+  digest-bound decisions, durable conflict evidence, guarded cross-branch batch
+  publication, and retained-history rollback. Git hooks, repository-local
+  configuration, inherited environment, stale revisions, oversized selections,
+  and changed branch identities fail closed.
+- **Read-only MCP resource templates**: templates-only MCP servers can now
+  register the existing resource surface. The new
+  `list_mcp_resource_templates {server?}` tool reads the bounded discovery
+  cache, supports explicit server filtering, and lets the model instantiate a
+  concrete URI before using the existing `read_mcp_resource` boundary. It does
+  not add an implicit network request, subscription, or automatic URI
+  expansion.
+- **Explicit optional-protocol decisions**: resource templates enter the
+  production read-only surface; resource subscriptions, peer-controlled
+  logging, and completion remain deferred pending bounded consumers and
+  cancellation/recovery UX. MCP sampling remains undeclared and server
+  `createMessage` requests continue to return JSON-RPC `-32601`.
+- **Transaction-time scheduler fencing**: claim, renewal, and settlement paths
+  now read their lease clock inside the write transaction, preventing queue
+  wait time from turning a pre-transaction timestamp into a stale lease or
+  settlement decision.
+- **Formal scheduler soak evidence gate**: Linux, Windows, and macOS workflows
+  now exercise two-worker contention, lease/fence recovery, heartbeat renewal,
+  stale settlement rejection, outcome-unknown no-replay, DST/backlog behavior,
+  SQLite integrity, descendant cleanup, and bounded resource trends. The
+  campaign verifier requires at least four identity-bound formal segments whose
+  authoritative starts span at least 72 natural hours, with no gap above
+  30 hours.
+- **Release boundary**: the scheduler soak implementation and smoke matrices are
+  present, but the required 72-hour formal campaign has not completed; P2-4
+  therefore remains partially complete. Signed native distribution,
+  representative alias-removal telemetry, and the entire unmerged P2-2 native
+  clipboard-image host work remain outside this candidate.
+- **Release status**: final tag, source SHA, workflow run IDs, package digests,
+  provenance, and registry readback are intentionally omitted until the exact
+  `0.163.8` release merge commit passes complete `CLI CI` and
+  `CLI Strict Sandbox` matrices on Linux, Windows, and macOS, followed by the
+  dedicated npm release and independent public readback workflows.
+
 ### Fixed — scheduler disk-fault closure
 
 - **Crash-safe Agenda and Cowork source stores**: authoritative scheduler
@@ -28,9 +92,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added — cc CLI 0.163.7: governed scheduler migration and causal observability
 
-> `chainlesschain` **0.163.6 → 0.163.7** (candidate; not yet published,
-> 2026-08-14).
-> CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.57**
+> `chainlesschain` **0.163.6 → 0.163.7** (published from exact SHA
+> `3e997168621c53708a1682868c6cc4edc9baf15b`, 2026-08-14).
+> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.57**
 > and `@chainlesschain/agent-sdk` remains **0.1.7**.
 
 - **Five-domain migration journal**: Agenda, Cowork Cron, Routine, Automation,
@@ -81,15 +145,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   not that a model call semantically caused a source hunk. Scope labels are not
   identity or membership proofs, digests are not signatures, anti-rollback is
   machine-local, and incomplete or legacy ledgers remain partial or unknown.
-- **Known residuals**: scheduler ENOSPC/partial-write/fsync/rename/SQLite fault
-  closure and the Linux, Windows, and macOS long-soak matrix remain open.
-  Signed native distribution and representative alias-removal telemetry also
-  remain outside this candidate.
-- **Release status**: final tag, source SHA, workflow run IDs, package digest,
-  provenance, and registry readback are intentionally omitted until the exact
-  `0.163.7` release merge commit passes both required workflow matrices on
-  Linux, Windows, and macOS, followed by the dedicated npm release and
-  independent public readback workflows.
+- **Release boundary**: deterministic scheduler disk-fault closure landed after
+  this immutable release and is not attributed to its tarball. The
+  three-platform long-soak campaign, signed native distribution, and
+  representative alias-removal telemetry remained outside this release.
+- **Published release evidence**: immutable tag `v-npm-0-163-7` resolves to
+  exact source commit `3e997168621c53708a1682868c6cc4edc9baf15b`. Its Linux,
+  Windows, and macOS `CLI CI` (`31745391661`, attempt 2) and
+  `CLI Strict Sandbox` (`31745391321`) matrices passed; the dedicated npm
+  release (`31748153519`) completed its exact-SHA gate, immutable package,
+  Trusted Publishing, and signed provenance, and the independent public
+  readback (`31749404980`) succeeded. npm reports `latest=0.163.7`; the public
+  tarball SHA-1 is `5bfb7471643cfe4d4cd0b0a382b31c63fc1efdff` and SHA-256 is
+  `d7ca295e6cdb4e442ee7ad6bb9cc0b9d923f40de4eae395974d91b4dfab83a9d`.
 
 ### Added — cc CLI 0.163.6: unified scheduler authority and automation control
 
