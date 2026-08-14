@@ -5,9 +5,10 @@ JetBrains counterpart of the [VS Code extension](../vscode-extension/): it lets
 the ChainlessChain **`cc` agent CLI** read editor context and propose native
 diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
-**The CLI needs zero changes** — this plugin writes the _same_ lockfile and
-speaks the _same_ MCP protocol as the VS Code extension; only `ide` differs
-(`"jetbrains"`).
+**The bridge needs no IDE-specific CLI transport fork** — this plugin writes
+the _same_ lockfile and speaks the _same_ MCP protocol as the VS Code
+extension; only `ide` differs (`"jetbrains"`). Feature controls still require
+the corresponding exact-gated CLI command, as documented below.
 
 ## Release compatibility
 

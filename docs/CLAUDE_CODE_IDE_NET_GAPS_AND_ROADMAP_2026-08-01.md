@@ -2,7 +2,7 @@
 
 - 评估日期：2026-08-01
 - ChainlessChain 原始审计仓库快照：`eb0bc663b6eb794b1b62ba2bfc7a1267c699d25d`
-- 当前代码/Git 核验快照：`12109a5d9ef7e24d344db624cb6f67bbb2387b9e`（`main`，2026-08-14，PR #188）
+- 当前代码/Git 核验快照：`b57fad84aeee53e043611ee95e2f4899ccac7b54`（`main`，2026-08-14，PR #192）
 - 原始审计版本基线（2026-08-01，非当前发布状态）：CLI `0.162.194` release candidate（`0.162.190` / `0.162.191` / `0.162.192` 未发布；`0.162.193` 被非权威通用 workflow 发布，npm `latest` 为 `0.162.193`）、Open VSX `0.37.45`、JetBrains Marketplace `0.4.81`；Microsoft Marketplace 尚未发布。当前状态以第十二节 2026-08-14 快照为准
 - Claude Code 基线：[CLI `2.1.220`](https://code.claude.com/docs/en/changelog)；官方文档回读日期 2026-08-01
 
@@ -663,7 +663,7 @@ VS Code / JetBrains / Desktop / Web / Mobile
 “公开发布回读”：前两者不能替代后两者，也不能据此宣称 Microsoft Marketplace 发布、真实 PR/merge 或完整
 release gate 已完成。
 
-当前核验基线为 `main@12109a5d9ef7e24d344db624cb6f67bbb2387b9e`。公开分发基线为 CLI npm
+当前核验基线为 `main@b57fad84aeee53e043611ee95e2f4899ccac7b54`。公开分发基线为 CLI npm
 `0.163.7` 与 Open VSX `0.37.52`；JetBrains `0.4.88` 已上传 Marketplace，但官方 API 仍显示等待人工审核，
 因此当前公开 listing 仍以 `0.4.87` 为准。本次 IDE tags 均绑定上述 exact `main` SHA。Microsoft Marketplace、
 JetBrains 作者签名及 Desktop/native 签名公开闭环仍未关闭。开放 PR 只按候选记录，不计入 `main` 已交付范围。
