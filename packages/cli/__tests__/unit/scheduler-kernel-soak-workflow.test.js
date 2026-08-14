@@ -50,7 +50,18 @@ describe("scheduler kernel soak workflow contract", () => {
     expect(workflow).toContain(
       "CC_SCHEDULER_SOAK_DURATION_SECONDS: ${{ github.event_name == 'pull_request' && '15' || inputs.duration_seconds || '7200' }}",
     );
-    expect(workflow).toContain('[[ "${expected_sha}" =~ ^[0-9a-f]{40}$ ]]');
+    expect(workflow).toContain("vars.CLI_SCHEDULER_SOAK_PINNED_SHA");
+    expect(workflow).toContain("vars.CLI_SCHEDULER_SOAK_CAMPAIGN");
+    expect(workflow).toContain(
+      "CC_SCHEDULER_SOAK_WORKFLOW_SHA: ${{ github.workflow_sha }}",
+    );
+    expect(workflow).not.toContain("|| github.sha");
+    expect(workflow).toContain(
+      '".github/workflows/cli-scheduler-soak-campaign.yml"',
+    );
+    expect(workflow).toContain(
+      '"packages/cli/scripts/scheduler-kernel-soak-campaign.mjs"',
+    );
     expect(workflow).not.toContain("[0-9a-f]{40,64}");
   });
 
@@ -69,6 +80,14 @@ describe("scheduler kernel soak workflow contract", () => {
     expect(workflow).toContain("if-no-files-found: error");
     expect(workflow).toContain("retention-days: 90");
     expect(workflow).not.toContain("if-no-files-found: warn");
+    expect(workflow).toContain(
+      '[[ "${CC_SCHEDULER_SOAK_EXPECTED_SHA}" =~ ^[0-9a-f]{40}$ ]]',
+    );
+    expect(
+      workflow.match(
+        /test "\$\{actual_sha\}" = "\$\{CC_SCHEDULER_SOAK_EXPECTED_SHA\}"/gu,
+      ),
+    ).toHaveLength(2);
   });
 
   it("aggregates only one successful same-identity platform matrix", () => {

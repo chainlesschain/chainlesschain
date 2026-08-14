@@ -29,6 +29,7 @@ const WORKER_PATH = path.join(SCRIPT_DIR, "scheduler-kernel-soak-worker.mjs");
 const EXPECTED_OPERATING_SYSTEMS = Object.freeze(["linux", "macos", "windows"]);
 const FULL_SHA_PATTERN = /^[0-9a-f]{40}$/u;
 const CAMPAIGN_PATTERN = /^[a-zA-Z0-9._:-]{1,128}$/u;
+const RUN_ID_PATTERN = /^[a-zA-Z0-9._:-]{1,128}$/u;
 const MAX_WORKER_EVENTS = 25_000;
 const MAX_WORKER_STDERR_BYTES = 256 * 1024;
 const REQUIRED_INVARIANT_NAMES = Object.freeze([
@@ -114,6 +115,59 @@ function normalizeCampaign(value) {
     );
   }
   return campaign;
+}
+
+function normalizeRunMetadata(value, env, { campaign, expectedSha }) {
+  const githubActions =
+    String(env.GITHUB_ACTIONS || "").toLowerCase() === "true";
+  const runId = String(
+    value?.runId ??
+      env.CC_SCHEDULER_SOAK_RUN_ID ??
+      env.GITHUB_RUN_ID ??
+      `local:${campaign}`,
+  ).trim();
+  if (!RUN_ID_PATTERN.test(runId)) {
+    throw new TypeError("scheduler soak run ID is invalid");
+  }
+  const runAttempt = positiveNumber(
+    value?.runAttempt ?? env.GITHUB_RUN_ATTEMPT ?? 1,
+    1,
+    "scheduler soak run attempt",
+    { integer: true },
+  );
+  const repository = String(
+    value?.repository ?? env.GITHUB_REPOSITORY ?? "local",
+  ).trim();
+  const workflow = String(
+    value?.workflow ?? env.GITHUB_WORKFLOW ?? "local",
+  ).trim();
+  const eventName = String(
+    value?.eventName ?? env.GITHUB_EVENT_NAME ?? "local",
+  ).trim();
+  if (!repository || !workflow || !eventName) {
+    throw new TypeError(
+      "scheduler soak repository, workflow, and event name are required",
+    );
+  }
+  const controlPlaneSha = normalizeFullSha(
+    value?.controlPlaneSha ?? env.CC_SCHEDULER_SOAK_WORKFLOW_SHA ?? expectedSha,
+    "scheduler soak workflow commit",
+  );
+  const serverUrl = String(env.GITHUB_SERVER_URL || "").replace(/\/$/u, "");
+  return Object.freeze({
+    provider: githubActions ? "github-actions" : value?.provider || "local",
+    repository,
+    workflow,
+    eventName,
+    runId,
+    runAttempt,
+    controlPlaneSha,
+    runUrl:
+      value?.runUrl ??
+      (githubActions && serverUrl
+        ? `${serverUrl}/${repository}/actions/runs/${runId}/attempts/${runAttempt}`
+        : null),
+  });
 }
 
 function normalizeProfile(profile) {
@@ -503,6 +557,32 @@ function profilesEqual(first, second) {
   );
 }
 
+function parseStrictIsoTimestamp(value) {
+  if (typeof value !== "string") return null;
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return null;
+  return new Date(timestamp).toISOString() === value ? timestamp : null;
+}
+
+function validRunMetadata(value) {
+  return (
+    value &&
+    ["github-actions", "local"].includes(value.provider) &&
+    typeof value.repository === "string" &&
+    value.repository.length > 0 &&
+    typeof value.workflow === "string" &&
+    value.workflow.length > 0 &&
+    typeof value.eventName === "string" &&
+    value.eventName.length > 0 &&
+    RUN_ID_PATTERN.test(value.runId || "") &&
+    Number.isSafeInteger(value.runAttempt) &&
+    value.runAttempt > 0 &&
+    FULL_SHA_PATTERN.test(value.controlPlaneSha || "") &&
+    (value.runUrl === null ||
+      (typeof value.runUrl === "string" && value.runUrl.length > 0))
+  );
+}
+
 export function validateSchedulerSoakEvidence(value, options = {}) {
   const releaseCommit = normalizeFullSha(
     options.releaseCommit || value?.releaseCommit,
@@ -533,6 +613,7 @@ export function validateSchedulerSoakEvidence(value, options = {}) {
   if (!EXPECTED_OPERATING_SYSTEMS.includes(value?.runner?.operatingSystem)) {
     issues.push("operating system");
   }
+  if (!validRunMetadata(value?.execution)) issues.push("run metadata");
   if (!profileHasValidFloors(value?.profile)) issues.push("profile floors");
   if (options.profile && !profilesEqual(value?.profile, options.profile)) {
     issues.push("expected profile");
@@ -542,6 +623,16 @@ export function validateSchedulerSoakEvidence(value, options = {}) {
     value.continuousDurationSeconds < value?.profile?.durationSeconds
   ) {
     issues.push("continuous duration");
+  }
+  const startedAt = parseStrictIsoTimestamp(value?.startedAt);
+  const completedAt = parseStrictIsoTimestamp(value?.completedAt);
+  if (
+    startedAt === null ||
+    completedAt === null ||
+    completedAt < startedAt ||
+    completedAt - startedAt < value?.profile?.durationSeconds * 1_000
+  ) {
+    issues.push("wall-clock duration");
   }
   if (
     REQUIRED_INVARIANT_NAMES.some((name) => value?.invariants?.[name] !== true)
@@ -678,6 +769,16 @@ export function verifySchedulerSoakEvidenceSet(options = {}) {
   ) {
     throw new Error("scheduler soak profiles differ across operating systems");
   }
+  const executionJson = JSON.stringify(entries[0].value.execution);
+  if (
+    entries.some(
+      (entry) => JSON.stringify(entry.value.execution) !== executionJson,
+    )
+  ) {
+    throw new Error(
+      "scheduler soak run metadata differs across operating systems",
+    );
+  }
   if (
     options.profile &&
     !profilesEqual(entries[0].value.profile, options.profile)
@@ -686,6 +787,12 @@ export function verifySchedulerSoakEvidenceSet(options = {}) {
       "scheduler soak profile does not match the requested profile",
     );
   }
+  const startedAt = new Date(
+    Math.min(...entries.map((entry) => Date.parse(entry.value.startedAt))),
+  ).toISOString();
+  const completedAt = new Date(
+    Math.max(...entries.map((entry) => Date.parse(entry.value.completedAt))),
+  ).toISOString();
   const aggregate = {
     schema: AGGREGATE_SCHEMA,
     result: "passed",
@@ -693,8 +800,13 @@ export function verifySchedulerSoakEvidenceSet(options = {}) {
     seed,
     campaign,
     verifiedAt: new Date().toISOString(),
+    startedAt,
+    completedAt,
+    continuousDurationSeconds:
+      (Date.parse(completedAt) - Date.parse(startedAt)) / 1_000,
     operatingSystems: [...EXPECTED_OPERATING_SYSTEMS],
     profile: entries[0].value.profile,
+    execution: entries[0].value.execution,
     totals: entries.reduce(
       (sum, entry) => ({
         rounds: sum.rounds + entry.value.totals.rounds,
@@ -709,6 +821,8 @@ export function verifySchedulerSoakEvidenceSet(options = {}) {
       file: entry.name,
       operatingSystem: entry.value.runner.operatingSystem,
       sha256: sha256File(path.join(evidenceDir, entry.name)),
+      startedAt: entry.value.startedAt,
+      completedAt: entry.value.completedAt,
     })),
   };
   if (options.output) atomicWriteJson(options.output, aggregate);
@@ -1833,6 +1947,11 @@ export async function runSchedulerKernelSoak(options = {}) {
       options.env?.CC_SCHEDULER_SOAK_CAMPAIGN ||
       process.env.CC_SCHEDULER_SOAK_CAMPAIGN,
   );
+  const execution = normalizeRunMetadata(
+    options.execution,
+    options.env || process.env,
+    { campaign, expectedSha },
+  );
   const output = path.resolve(
     String(
       options.output ||
@@ -1878,6 +1997,7 @@ export async function runSchedulerKernelSoak(options = {}) {
       node: process.version,
       pid: process.pid,
     },
+    execution,
     profile,
     continuousDurationSeconds: 0,
     temporal: null,

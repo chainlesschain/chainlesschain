@@ -23,6 +23,8 @@ import {
 const RELEASE_COMMIT = "a".repeat(40);
 const SEED = 1_592_598_566;
 const CAMPAIGN = "p2-4-scheduler-long-soak-v1";
+const STARTED_AT = "2026-08-14T00:00:00.000Z";
+const COMPLETED_AT = "2026-08-14T02:00:00.000Z";
 const OPERATING_SYSTEMS = ["linux", "macos", "windows"];
 const COORDINATOR_PATH = fileURLToPath(
   new URL("../../scripts/scheduler-kernel-soak.mjs", import.meta.url),
@@ -86,6 +88,8 @@ function schedulerEvidence(operatingSystem) {
     exactShaVerified: true,
     seed: SEED,
     campaign: CAMPAIGN,
+    startedAt: STARTED_AT,
+    completedAt: COMPLETED_AT,
     source: {
       clean: true,
       changeCount: 0,
@@ -93,6 +97,17 @@ function schedulerEvidence(operatingSystem) {
       finalChangeCount: 0,
     },
     runner: { operatingSystem },
+    execution: {
+      provider: "github-actions",
+      repository: "chainlesschain/chainlesschain",
+      workflow: "CLI Scheduler Kernel Soak",
+      eventName: "workflow_dispatch",
+      runId: "31150275109",
+      runAttempt: 1,
+      controlPlaneSha: RELEASE_COMMIT,
+      runUrl:
+        "https://github.com/chainlesschain/chainlesschain/actions/runs/31150275109/attempts/1",
+    },
     profile: clone(FORMAL_PROFILE),
     continuousDurationSeconds: FORMAL_PROFILE.durationSeconds,
     invariants: clone(PASSED_INVARIANTS),
@@ -376,6 +391,13 @@ describe("scheduler kernel soak coordinator", () => {
       },
       expected: /campaign/i,
     },
+    {
+      label: "run identity",
+      mutate: (evidence) => {
+        evidence.execution.runId = "different-run";
+      },
+      expected: /run metadata|run identity/i,
+    },
   ])("rejects a mismatched $label", ({ mutate, expected }) => {
     withEvidenceDirectory((directory) => {
       writeEvidenceSet(directory, (evidence, operatingSystem) => {
@@ -492,6 +514,20 @@ describe("scheduler kernel soak coordinator", () => {
         evidence.violations = [{ message: "scheduler scenario failed" }];
       },
       expected: /status|violations/i,
+    },
+    {
+      label: "workflow control-plane identity",
+      mutate: (evidence) => {
+        evidence.execution.controlPlaneSha = "not-a-sha";
+      },
+      expected: /run metadata|workflow|sha/i,
+    },
+    {
+      label: "wall-clock duration",
+      mutate: (evidence) => {
+        evidence.completedAt = "2026-08-14T01:59:59.000Z";
+      },
+      expected: /wall.clock|duration|time/i,
     },
     {
       label: "resource metrics",
