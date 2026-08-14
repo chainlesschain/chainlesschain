@@ -2,32 +2,32 @@
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
-> **📦 CLI 安装**：`npm i -g chainlesschain@0.163.6`（当前完整门禁版；别名 `cc` / `clc` / `clchain`）。
+> **📦 CLI 安装**：`npm i -g chainlesschain@0.163.7`（当前完整门禁版；别名 `cc` / `clc` / `clchain`）。
 > **中国大陆镜像用户注意**：若你的 npm 默认源是淘宝镜像 `registry.npmmirror.com`，可能遇到安装报错 `npm error code E404 … '@chainlesschain/…' is not in this registry`——这是镜像对新发布包**懒同步 tarball** 导致（元数据已有但 tarball 尚未缓存）。改用官方源安装即可：
 >
 > ```bash
-> npm i -g chainlesschain@0.163.6 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.163.7 --registry https://registry.npmjs.org
 > ```
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
-## 2026-08-13 当前主线 — **v5.0.3.135 / CLI 0.163.6 / PDH 0.4.57 / Open VSX 0.37.51 / JetBrains 0.4.87**
+## 2026-08-14 当前主线 — **v5.0.3.135 / CLI 0.163.7 / PDH 0.4.57 / Open VSX 0.37.51 / JetBrains 0.4.87**
 
-> **发布口径**：`chainlesschain@0.163.6` 是当前 npm `latest` 与生产推荐版；不可变 tag `v-npm-0-163-6` 精确指向提交 [`85c3577c88`](https://github.com/chainlesschain/chainlesschain/commit/85c3577c887003fea98d0a159603cd359506f09b)。该 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31595865423)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31595865206)、[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/31595865181)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/31597577056)均成功；npm registry 已回读 `latest=0.163.6`，公开 tarball SHA-1 为 `18bb9d807a4a35a36cf9049dcc15f67eb47bbfa6`。
+> **发布口径**：`chainlesschain@0.163.7` 是当前 npm `latest` 与生产推荐版；不可变 tag `v-npm-0-163-7` 精确指向提交 [`3e99716862`](https://github.com/chainlesschain/chainlesschain/commit/3e997168621c53708a1682868c6cc4edc9baf15b)。该 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31745391661)（attempt 2）、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31745391321)、[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/31748153519)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/31749404980)均成功；npm registry 已回读 `latest=0.163.7`，公开 tarball SHA-1 为 `5bfb7471643cfe4d4cd0b0a382b31c63fc1efdff`。
 >
-> **CLI 0.163.6**：统一 scheduler runtime 已覆盖 Agenda monitor、Loop、Automation cron、Routine GitHub、channel automation event 与独立 daemon，并统一 Agenda/Cowork 的 IANA timezone、DST 与错过触发折叠策略。Agenda、Routine、Cowork、Automation 和 Loop 共享 revision-bound permission/budget authority；缺失、过期、停用、耗尽或不一致的策略失败闭合，重试复用原 reservation，避免重复计费。
+> **CLI 0.163.7**：在 `0.163.6` 的五域统一 scheduler authority 上，正式加入 outcome-unknown 人工裁决、Agenda/Cowork/Routine/Automation/Loop 五域迁移日志与受治理回滚，以及绑定 transcript head/event count 的因果交付报告和 fail-closed call-ledger 预算。回滚要求最新 evidence digest、交互式 TTY 与精确 typed challenge；这不是跨独立存储的单一原子事务，也不宣称模型调用在语义上导致了某个代码改动。
 >
 > **IDE 主线能力**：Open VSX `0.37.51` 与 JetBrains `0.4.87` 在 Automation Center 之上新增默认关闭的受治理自动 ghost-text。启用后采用 650ms 可取消 debounce、exact-context 去重/缓存、独立小时请求与上下文字数预算、有界输出和质量回退；超过 5 秒或质量不足时静默丢弃，`Alt+\` 手动补全保持不变。
 >
-> **Scheduler 源码增量**：`main` 提交 `c7d49beaa1` 已补齐 `*_OUTCOME_UNKNOWN` 死信的持久人工裁决。操作员停掉全部 scheduler host、排空已分发工作并核验外部结果后，使用 evidence digest + attempt + fence 做 CAS 决策；`confirmed_applied` 只结算不重放，`confirmed_not_applied` 只放行一次有界执行。该能力尚未进入新的 npm 版本，`0.163.6` 用户不能据此假定命令已发布；完整混合版本迁移/回滚、磁盘故障闭环与三系统长期 soak 仍未关闭。
+> **发布后源码增量**：PR #186 已用 ENOSPC、partial write、file/directory fsync、rename、损坏记录、原生 SQLite `SQLITE_FULL` 回滚与 reopen fail-closed 关闭确定性磁盘故障矩阵；PR #187 为 Automation Center 增加 exact fence/control revision/capability 约束的 checkpoint pause/resume，以及只对 scheduler-backed dead letter 开放的 incident retry/cancel；PR #188 加入三平台 scheduler soak 与 campaign verifier。正式退出仍要求至少 72 小时、4 个 formal segment、段间不超过 30 小时的 Linux/Windows/macOS 证据，因此长期 soak 尚未关闭。这三项均晚于 `0.163.7` 不可变 tarball。
 >
-> **原生边界**：npm `0.163.6` 发布闭环不等于 Desktop/native 签名发行。unsigned 六目标 validation 记录固定 `signed=false`、`releaseEligible=false`；仓库仍缺 Linux signing、Windows Authenticode、macOS signing/notarization 与 updater key，因而尚无签名原生公开资产或 fresh install/upgrade/rollback 公网回读。
+> **原生边界**：npm `0.163.7` 发布闭环不等于 Desktop/native 签名发行。unsigned 六目标 validation 记录固定 `signed=false`、`releaseEligible=false`；仓库仍缺 Linux signing、Windows Authenticode、macOS signing/notarization 与 updater key，因而尚无签名原生公开资产或 fresh install/upgrade/rollback 公网回读。
 >
 > **Checkpoint 恢复**：直接恢复与 timeline restore 已统一进入 hash-chained CAS saga，绑定 workspace prestate、生命周期锁、Git/copy 不可变目标与安全 checkpoint。`cc checkpoint recovery list|show|abort|resume|rollback|release` 只在 live owner/owner absence、seq、head hash 与操作 eligibility 全部验证后执行；`resume` 仅结算已验证为完成的恢复，`rollback --yes` 仅处理已验证的部分文件变更。这是窄范围的文件恢复闭包，不等于通用多资源原子事务、断电证明或外部副作用回滚。
 >
 > **IDE 发布边界**：Open VSX `0.37.51` 与 JetBrains Marketplace `0.4.87` 的不可变 tag 均指向 [`dd0adad7b1`](https://github.com/chainlesschain/chainlesschain/commit/dd0adad7b1ba500400042ff62d138ec7784a5722)，包含受治理自动补全与此前 Automation Center 能力。截至 2026-08-12，Open VSX 页面累计下载已突破 **2.4 万**。微软 VS Code Marketplace 仍未发布，JetBrains 作者签名也仍未完成。
 >
-> **发布链闭环**：`0.163.6` 的 tag、三平台 CLI CI/Strict、不可变制品、Trusted Publishing、签名 provenance、registry 与独立公网回读已闭环；“registry 有版本”仍不等于“发布来源已验证”。数字产品 release 只消费已有且通过 tag、exact-SHA 与 registry 证据的 CLI，不持有 CLI 发布令牌。PDH 仍为 `0.4.57`（92 个采集契约 / 18 类数据源），Agent SDK 仍为 `0.1.7`。
+> **发布链闭环**：`0.163.7` 的 tag、三平台 CLI CI/Strict、不可变制品、Trusted Publishing、签名 provenance、registry 与独立公网回读已闭环；“registry 有版本”仍不等于“发布来源已验证”。数字产品 release 只消费已有且通过 tag、exact-SHA 与 registry 证据的 CLI，不持有 CLI 发布令牌。PDH 仍为 `0.4.57`（92 个采集契约 / 18 类数据源），Agent SDK 仍为 `0.1.7`。
 >
 > 详见 [CLI Runtime 当前实现](docs-site/docs/chainlesschain/cli-runtime-current.md)、[检查点恢复指南](docs-site/docs/chainlesschain/checkpoint.md)、[IDE 插件使用指南](docs-site/docs/chainlesschain/ide-plugin.md)、[运行时设计核对](docs/design/cli-runtime-current.md)、[IDE 桥接设计](docs/design/modules/98_IDE桥接对标方案.md)及[更新日志](CHANGELOG.md)。
 
@@ -2795,7 +2795,7 @@ signals, reason, recommendedConcurrency, suggestedRoles }`。支持 monorepo 边
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
 ![Commands](https://img.shields.io/badge/CLI%20commands-175-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.163.6-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.163.7-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **去中心化 · 隐私优先 · AI原生**

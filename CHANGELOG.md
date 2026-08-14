@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — governed Automation runtime recovery
+
+- **Checkpoint-aware pause/resume**: Automation Center now projects supported
+  scheduler occurrences with their exact fence, control revision, declared
+  runtime-control capability, and safe points. `center-runtime-action` accepts
+  only an exact fenced `pause` or `resume`; stale revisions, changed
+  capabilities, terminal occurrences, and unsupported job kinds fail closed.
+- **Durable incident recovery**: Automation schedule/event failures create
+  revisioned incidents in the authoritative Automation database. The Center
+  exposes bounded `retry` and `cancel` actions; retry additionally revalidates
+  the exact dead-letter occurrence, job/run identity, fence, and error code
+  before issuing one idempotent requeue. Manual incidents are never retried
+  automatically because their external effects cannot be proven safe.
+- **Authority boundary**: IDEs consume redacted projections and exact CLI argv;
+  they never receive the stored authority, boundary, or incident-detail
+  evidence and never mutate Scheduler or Automation storage directly. These
+  capabilities are present on `main` after `0.163.7` and are not part of that
+  immutable npm tarball.
+
+### Added — scheduler kernel long-soak evidence gate
+
+- **Real-host matrix**: dedicated Linux, Windows, and macOS workflows exercise
+  two-worker contention, higher-fence recovery, stale-settlement rejection,
+  outcome-unknown no-replay, heartbeat renewal, DST semantics, backlog drain,
+  database integrity, descendant cleanup, and bounded host-resource trends.
+- **Campaign verifier**: formal evidence must bind the release and workflow
+  control plane to exact SHAs and accumulate at least 72 observation hours in
+  at least four formal segments, with no inter-segment gap above 30 hours.
+- **Current status**: the smoke, formal-segment, and campaign-verifier machinery
+  is merged at `12109a5d9e`; the required three-OS observation campaign has not
+  yet accumulated its exit evidence, so the long-soak item remains open.
+
 ### Fixed — scheduler disk-fault closure
 
 - **Crash-safe Agenda and Cowork source stores**: authoritative scheduler
@@ -28,9 +60,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added — cc CLI 0.163.7: governed scheduler migration and causal observability
 
-> `chainlesschain` **0.163.6 → 0.163.7** (candidate; not yet published,
-> 2026-08-14).
-> CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.57**
+> `chainlesschain` **0.163.6 → 0.163.7** (published from exact SHA
+> `3e997168621c53708a1682868c6cc4edc9baf15b`, 2026-08-14).
+> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.57**
 > and `@chainlesschain/agent-sdk` remains **0.1.7**.
 
 - **Five-domain migration journal**: Agenda, Cowork Cron, Routine, Automation,
@@ -81,15 +113,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   not that a model call semantically caused a source hunk. Scope labels are not
   identity or membership proofs, digests are not signatures, anti-rollback is
   machine-local, and incomplete or legacy ledgers remain partial or unknown.
-- **Known residuals**: scheduler ENOSPC/partial-write/fsync/rename/SQLite fault
-  closure and the Linux, Windows, and macOS long-soak matrix remain open.
-  Signed native distribution and representative alias-removal telemetry also
-  remain outside this candidate.
-- **Release status**: final tag, source SHA, workflow run IDs, package digest,
-  provenance, and registry readback are intentionally omitted until the exact
-  `0.163.7` release merge commit passes both required workflow matrices on
-  Linux, Windows, and macOS, followed by the dedicated npm release and
-  independent public readback workflows.
+- **Published release evidence**: immutable tag `v-npm-0-163-7` resolves to
+  exact source commit `3e997168621c53708a1682868c6cc4edc9baf15b`. Its
+  three-OS `CLI CI` (`31745391661`, attempt 2) and `CLI Strict Sandbox`
+  (`31745391321`) matrices passed; the dedicated npm release (`31748153519`)
+  completed exact-SHA gating, immutable artifact, CycloneDX SBOM, Trusted
+  Publishing, signed provenance, registry byte verification, and npmmirror
+  synchronization. Independent readback (`31749404980`) verified the public
+  tarball byte-for-byte against the immutable artifact. npm reports
+  `latest=0.163.7`; tarball SHA-1 is
+  `5bfb7471643cfe4d4cd0b0a382b31c63fc1efdff` and SHA-256 is
+  `d7ca295e6cdb4e442ee7ad6bb9cc0b9d923f40de4eae395974d91b4dfab83a9d`.
+- **Release boundary**: deterministic scheduler disk-fault closure landed
+  after this immutable release and must not be attributed to its tarball. The
+  three-OS long-soak exit campaign, signed native distribution, and
+  representative alias-removal telemetry remain open.
 
 ### Added — cc CLI 0.163.6: unified scheduler authority and automation control
 

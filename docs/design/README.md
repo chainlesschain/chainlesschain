@@ -1,6 +1,6 @@
 ﻿# 设计文档
 
-> 本目录是 ChainlessChain 的研发设计入口，也是用户文档站与设计文档站的共享设计源。CLI Runtime 核对已更新到 2026-08-12：npm `latest` 与生产推荐版为 `0.163.6`，发布证据绑定不可变 tag `v-npm-0-163-6` 的精确 SHA `85c3577c88`；Automation、Routine 与统一调度控制面已进入公开契约。
+> 本目录是 ChainlessChain 的研发设计入口，也是用户文档站与设计文档站的共享设计源。CLI Runtime 核对已更新到 2026-08-14：npm `latest` 与生产推荐版为 `0.163.7`，发布证据绑定不可变 tag `v-npm-0-163-7` 的精确 SHA `3e99716862`；outcome-unknown 裁决、五域迁移/回滚与因果可观测性已进入公开契约，发布后的磁盘、Automation 恢复与 soak 增量单独标注。
 
 ## 当前重点
 

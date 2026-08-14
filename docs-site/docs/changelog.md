@@ -5,6 +5,24 @@
 
 ## [Unreleased]
 
+#### Added — `main` 发布后 Scheduler/Automation 恢复与 soak 证据门
+
+> 当前源码 HEAD 为 [`12109a5d9e`](https://github.com/chainlesschain/chainlesschain/commit/12109a5d9ef7e24d344db624cb6f67bbb2387b9e)；以下能力均晚于 `0.163.7` 不可变 npm tarball，不能写成已发布安装契约。
+
+- **磁盘故障闭环（PR #186）**：Agenda/Cowork 权威写入使用 private temp、完整 short-write loop、file fsync、atomic rename 与 POSIX directory fsync；确定性矩阵覆盖 ENOSPC、partial write、file/directory fsync、rename、损坏记录、原生 SQLite `SQLITE_FULL` 回滚、Automation source 原子恢复、数据库截断与 reopen fail-closed。
+- **受治理 Automation 恢复（PR #187）**：Automation Center 投影 exact occurrence fence、control revision 与 `checkpoint_v1` safe point；`center-runtime-action` 提供合作式 pause/resume，`center-incident-action` 只对证据仍匹配的 scheduler-backed dead letter 提供幂等 retry/cancel。manual incident 不允许 retry，IDE 不读取 authority/boundary/detail evidence。
+- **Scheduler soak 证据门（PR #188）**：Linux/Windows/macOS 矩阵验证双 worker contention、higher-fence recovery、stale settlement、outcome-unknown no-replay、heartbeat、DST、backlog、数据库完整性、后代回收和资源趋势。正式 campaign 至少需要 72 小时、4 个 formal segment，且段间不超过 30 小时；框架已合并，但正式观察证据尚未完成。
+
+#### Added — CLI 0.163.7 正式发布：迁移/回滚与因果可观测性
+
+> `chainlesschain@0.163.7` 已成为 npm `latest` 与生产推荐版。不可变 tag `v-npm-0-163-7` 精确指向 [`3e99716862`](https://github.com/chainlesschain/chainlesschain/commit/3e997168621c53708a1682868c6cc4edc9baf15b)；该 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31745391661)（attempt 2）、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31745391321)、[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/31748153519)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/31749404980)均成功。公网 tarball SHA-1 为 `5bfb7471643cfe4d4cd0b0a382b31c63fc1efdff`。
+
+- **五域迁移日志**：Agenda、Cowork Cron、Routine、Automation、Loop 使用 schema-v5 migration journal，绑定 typed source locator、source/target digest、retirement fence 与恢复阶段；冲突、歧义或非耐久 source 失败闭合。
+- **受治理回滚**：`scheduler migration list|show|rollback` 暴露脱敏状态和 blocker；rollback 先停止/恢复 target，再以最新 evidence digest、交互式 TTY 与 exact typed challenge 恢复 legacy source。这不是跨独立存储/文件系统的单一原子事务。
+- **人工裁决正式发布**：`*_OUTCOME_UNKNOWN` 只在停全部 host、排空 dispatch、外部核验后接受 evidence digest + attempt + fence CAS；`confirmed_applied` 只结算不重放，`confirmed_not_applied` 只授权一次有界 claim。
+- **因果交付与预算**：delivery report 绑定精确 transcript head/event count 与 diff/gate/artifact/PR/merge revision；`call-ledger@1` 覆盖 model/retry/compaction/subagent/isolated Skill/tool call，严格预算对未知 settlement 失败闭合。
+- **边界**：磁盘故障闭环是发布后的 PR #186，不反写为 `0.163.7` tarball 能力；三平台长期 soak、签名 Desktop/native 发行与代表性 alias telemetry 仍未关闭。
+
 #### Added — CLI 0.163.6 正式发布：统一 Scheduler Authority 与 Automation 控制面
 
 > `chainlesschain@0.163.6` 已成为 npm `latest` 与生产推荐版。不可变 tag `v-npm-0-163-6` 精确指向 [`85c3577c88`](https://github.com/chainlesschain/chainlesschain/commit/85c3577c887003fea98d0a159603cd359506f09b)；该 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31595865423)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31595865206)、[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/31595865181)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/31597577056)均成功。公网 tarball SHA-1 为 `18bb9d807a4a35a36cf9049dcc15f67eb47bbfa6`。

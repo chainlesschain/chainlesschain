@@ -4,7 +4,7 @@
 >
 > 12 个 SaaS 连接器 + 5 种触发器类型 + DAG 拓扑排序 + 条件分支执行。
 >
-> **版本边界（2026-08-13）**：`0.163.6` 是 npm `latest` 与生产推荐版。`automation run-scheduled`、execution preflight/budget、scope-checked channel event 以及双 IDE Automation Center 均已进入公开安装契约。scheduler outcome-unknown 人工裁决仅在 `main` 源码中，尚未进入 npm 稳定版。
+> **版本边界（2026-08-14）**：`0.163.7` 是 npm `latest` 与生产推荐版。`automation run-scheduled`、execution preflight/budget、scope-checked channel event、双 IDE Automation Center、scheduler outcome-unknown 裁决和五域迁移/回滚均已进入公开安装契约。exact-fence runtime pause/resume 与 incident retry/cancel 是 `main@12109a5d9e` 的发布后源码能力，不属于 `0.163.7` 不可变 tarball。
 
 ---
 
@@ -89,12 +89,15 @@ Airtable/Figma/Linear/Confluence），支持 webhook/schedule/email/form/manual 
 
 ## 测试覆盖率
 
-```
-__tests__/unit/automation-engine.test.js — 114 tests (1285 lines)
-```
+核心覆盖位于 `automation-engine.test.js`，发布后恢复增量另由
+`automation-center-runtime.test.js`、`automation-center-incidents.test.js`、
+`automation-execution-incident.test.js`、`scheduler-runtime-control-capabilities.test.js`
+与 `scheduler-reliability-soak.test.js` 覆盖。
 
-覆盖：flow CRUD、trigger 创建/enable/disable/fire、execute 串行/并行/条件、logs、
-模板 import/export、`activate/pause/archive` 状态机、V2 治理（67 V2 tests 覆盖 cap/idle/stuck）。
+覆盖范围包括 flow CRUD、trigger 创建/enable/disable/fire、串行/并行/条件执行、
+模板 import/export、`activate/pause/archive` 状态机、V2 cap/idle/stuck、
+checkpoint pause/resume、stale fence/revision/capability 拒绝、incident 幂等 requeue、
+manual incident retry 拒绝和敏感证据不越过 IDE 投影边界。
 
 ---
 
@@ -121,7 +124,7 @@ __tests__/unit/automation-engine.test.js — 114 tests (1285 lines)
 **Q: 定时任务未按计划触发?**
 
 1. 验证 cron 表达式语法（`auto schedule <id> --cron` 传入后会解析）
-2. 确认已安装 `chainlesschain@0.163.6`，再运行 `chainlesschain auto run-scheduled --json`
+2. 确认已安装 `chainlesschain@0.163.7`，再运行 `chainlesschain auto run-scheduled --json`
 3. 确认 flow 状态为 `active`；`draft/paused/archived` 不会被 scheduler 入队
 4. V2 下检查是否被 `auto-pause-idle` 自动暂停
 
@@ -140,6 +143,9 @@ __tests__/unit/automation-engine.test.js — 114 tests (1285 lines)
 - `packages/cli/src/lib/scheduler-kernel/automation-adapter.js` — scheduled flow snapshot、occurrence 与恢复策略
 - `packages/cli/src/lib/automation-execution-authority.js` — creator / connector RBAC / flow budget 前置检查与结算
 - `packages/cli/src/lib/automation-center.js`、`automation-center-routines.js` — versioned projection、revision-CAS flow/Routine 控制面
+- `packages/cli/src/lib/automation-center-runtime.js`、`automation-center-incidents.js` — 发布后源码的 fenced runtime 控制、incident retry/cancel 与脱敏投影
+- `packages/cli/src/lib/automation-execution-incident.js` — revisioned incident 持久化与终态结算
+- `packages/cli/src/lib/scheduler-kernel/runtime-control-capabilities.js` — production adapter 的 `checkpoint_v1` safe-point 声明
 - `packages/cli/src/lib/scheduler-kernel/automation-event-adapter.js` — channel event scope、去重与执行
 - `packages/cli/src/lib/scheduler-kernel/runtime.js` — 共享 claim/lease/heartbeat/settlement runtime
 - `packages/cli/__tests__/unit/automation-engine.test.js` — 单测（114 tests）
@@ -162,7 +168,7 @@ chainlesschain auto add-trigger $fid --type webhook --config '{"path":"/hooks/fo
 # 3. 定时触发（工作日 9:00）
 chainlesschain auto schedule $fid --cron "0 9 * * 1-5"
 
-# npm 0.163.6：统一 Scheduler
+# npm 0.163.7：统一 Scheduler + migration/adjudication
 chainlesschain auto run-scheduled
 chainlesschain auto run-scheduled --json
 chainlesschain auto run-scheduled --lease-ms 60000
@@ -263,9 +269,41 @@ VS Code 在 Activity Bar 打开 **ChainlessChain Automation**；JetBrains 在 **
 
 ---
 
-## `main` 源码：outcome-unknown 人工裁决
+## `main` 源码：运行中暂停/恢复与 incident 操作
 
-当外部连接器可能已产生副作用、但本地终态无法证明时，scheduler 会写入 `*_OUTCOME_UNKNOWN` 死信并拒绝自动重放。源码版提供统一操作入口：
+源码 `main@12109a5d9e` 的 `center-projection` 还会投影可控 scheduler occurrence、
+exact fence、control revision、`checkpoint_v1` capability/safe point，以及脱敏 incident。
+集成方必须执行投影生成的 exact argv；旧投影会因 fence/revision/capability 变化而失败闭合。
+
+```bash
+# 合作式 pause/resume；pause 只在声明的 checkpoint safe point 生效，不是强杀
+chainlesschain auto center-runtime-action <occurrence-id> pause \
+  --expected-fence <fence> \
+  --expected-control-revision <control-revision> --json
+chainlesschain auto center-runtime-action <occurrence-id> resume \
+  --expected-fence <fence> \
+  --expected-control-revision <control-revision> --json
+
+# 只对 scheduler-backed schedule/event dead letter 开放 retry
+chainlesschain auto center-incident-action <incident-id> retry \
+  --expected-revision <incident-revision> --json
+chainlesschain auto center-incident-action <incident-id> cancel \
+  --expected-revision <incident-revision> --json
+```
+
+retry 会重新匹配 incident 与 occurrence 的 flow/job/run/trigger/fence/error code，
+重复点击使用确定性 request id 去重；原 incident 在重试产生权威 success evidence 前保持 open。
+manual incident 因无法证明外部效果未发生而禁止 retry，只能 cancel。IDE 不接收持久化的
+authority、boundary 或 detail evidence，也不直接修改 Automation/Scheduler 存储。
+
+这些命令晚于 `0.163.7` 不可变 tarball；生产 npm 安装应等待后续版本完成 exact-SHA
+三平台门禁、发布与公网回读后再启用。
+
+---
+
+## `0.163.7`：outcome-unknown 人工裁决
+
+当外部连接器可能已产生副作用、但本地终态无法证明时，scheduler 会写入 `*_OUTCOME_UNKNOWN` 死信并拒绝自动重放。稳定版提供统一操作入口：
 
 ```bash
 cc daemon scheduler adjudication list
@@ -280,7 +318,7 @@ cc daemon scheduler adjudication decide <occurrence-id> \
 
 运行 `decide` 前必须停止每一个 scheduler host、排空已分发任务，并在目标 SaaS/外部系统核验真实结果。命令只接受交互式 TTY 和逐字 typed challenge；理由与操作员身份只保存摘要。选择 `confirmed_applied` 会从证据结算且绝不重放，选择 `confirmed_not_applied` 只授权一次有界执行。任何旧 digest、attempt/fence 变化、重复裁决或非 outcome-unknown 状态都会失败闭合。决策写入后再重启一个 scheduler host 应用。
 
-这不是全局 exactly-once，也不是机器范围锁；`chainlesschain@0.163.6` 尚无这些子命令。生产安装在新 npm 版本完成三平台发布门前应继续保持死信并人工核验，不要绕过存储直接改状态。
+这不是全局 exactly-once，也不是机器范围锁。`chainlesschain@0.163.7` 已包含这些子命令，但生产操作仍必须保持死信、完成外部核验并使用 exact evidence；不要绕过存储直接改状态。
 
 ## 触发器管理
 
