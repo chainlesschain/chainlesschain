@@ -1399,11 +1399,11 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 
 ### 18.1 三种统计口径
 
-| 口径                     | 当前结论                                             | 说明                                                                                 |
-| ------------------------ | ---------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| 原始 P0-1～P2-4 共 15 项 | **8 完成、7 部分完成、0 完全未开始；7 项未完全关闭** | P2-4 虽已连续关闭多个子切片，在原始总表中仍只占一个“部分完成”条目。                  |
-| 第 16.8 节六项产品任务   | **3 完成、3 未完成**                                 | 任务 1、2、6 完成；任务 3、4、5 未完成。该专项清单没有覆盖全部原始 15 项。           |
-| P2-4 调度内核内部清单    | **磁盘矩阵实现候选完成，1 个子项仍未完成**           | 磁盘故障矩阵已在本地候选关闭，待 exact-SHA 三平台门禁确认；正式剩余三平台长期 soak。 |
+| 口径                     | 当前结论                                             | 说明                                                                        |
+| ------------------------ | ---------------------------------------------------- | --------------------------------------------------------------------------- |
+| 原始 P0-1～P2-4 共 15 项 | **8 完成、7 部分完成、0 完全未开始；7 项未完全关闭** | P2-4 虽已连续关闭多个子切片，在原始总表中仍只占一个“部分完成”条目。         |
+| 第 16.8 节六项产品任务   | **3 完成、3 未完成**                                 | 任务 1、2、6 完成；任务 3、4、5 未完成。该专项清单没有覆盖全部原始 15 项。  |
+| P2-4 调度内核内部清单    | **磁盘故障矩阵正式完成，1 个子项仍未完成**           | 磁盘故障矩阵已通过 exact-SHA 三平台门禁并进入 `main`；仅剩三平台长期 soak。 |
 
 ### 18.2 原始 15 项中仍未完全关闭的 7 项
 
@@ -1415,17 +1415,17 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 | P1-5 官方 native 发行物与回滚升级    | **部分完成 / NO-GO**      | 六目标 unsigned validation 已完成，签名公开发行链仍未完成。该项与 P0-3 的 native 子范围重叠，属于同一个主要交付包，不应重复估算为两套独立工作。                                                                                                     |
 | P2-2 交互细节                        | **部分完成**              | suggestions、recap、外部编辑器、prompt stash、keybindings 与文本 clipboard 已覆盖；标准终端仍没有 production 系统剪贴板图片 `readImage` adapter，目前只有嵌入宿主 binding 与路径 fallback。                                                         |
 | P2-3 MCP 可选协议面                  | **部分完成 / 待产品决策** | resource templates、subscribe/unsubscribe、logging level 与 completion 已实现；仍缺生产调用方或基于代表性 server usage 的正式取舍报告，server sampling `createMessage` 仍明确不支持并返回 `-32601`。                                                |
-| P2-4 调度内核收敛                    | **部分完成**              | 磁盘故障矩阵已形成待门禁候选；仍有三平台长期 soak 1 个内部子项，见下一节。完成某个 adapter、UI 或 preflight 不能把整项改为完成。                                                                                                                    |
+| P2-4 调度内核收敛                    | **部分完成**              | 磁盘故障矩阵已正式完成；仍有三平台长期 soak 1 个内部子项，见下一节。完成某个 adapter、UI 或 preflight 不能把整项改为完成。                                                                                                                          |
 
 ### 18.3 P2-4 剩余 1 个内部子项
 
 1. **三平台长期 soak**：在 Linux、Windows、macOS 上验证 kill/restart、双实例 lease/fencing、DST 边界、积压恢复、FD/handle/orphan 退休与长期资源稳定性。
 
-五域迁移/回滚已随 `chainlesschain@0.163.7` 的最终 release SHA 双门禁、不可变 tag、专用发布和独立公网回读完成而关闭，证据见第 18.8 节。磁盘故障矩阵候选已覆盖 ENOSPC、short/partial write、file/directory fsync、rename、损坏记录、原生 SQLite `SQLITE_FULL` 事务回滚、Automation 源恢复原子性、数据库截断与 reopen fail-closed；Agenda/Cowork 权威写入也已改为 private temp + 完整写循环 + fsync + atomic rename，并区分 `not-committed`/`unknown`。该候选仍须由功能分支 exact SHA 的 CLI CI 与 CLI Strict Sandbox 三平台矩阵确认后才记为正式合并完成。
+五域迁移/回滚已随 `chainlesschain@0.163.7` 的最终 release SHA 双门禁、不可变 tag、专用发布和独立公网回读完成而关闭，证据见第 18.8 节。磁盘故障矩阵已由 [PR #186](https://github.com/chainlesschain/chainlesschain/pull/186) 正式关闭，证据见第 18.9 节；其覆盖 ENOSPC、short/partial write、file/directory fsync、rename、损坏记录、原生 SQLite `SQLITE_FULL` 事务回滚、Automation 源恢复原子性、数据库截断与 reopen fail-closed。Agenda/Cowork 权威写入也已改为 private temp + 完整写循环 + fsync + atomic rename，并区分 `not-committed`/`unknown`。
 
 剩余三平台长期 soak 的脚本/修复粗估 **2～4 个工程日**，并至少需要 **3～7 个自然日**观察窗口。P2-4 全部关闭现按约 **0.5～1 周（单工程师）/3～7 个自然日（有效并行）**计划；自然观察时间不能靠并行完全压缩。每次只把已获得 exact-SHA 门禁与相应 artifact 的子项从清单删除。
 
-截至本次核验，先前列为候选的 Automation 相关 PR 状态已更新如下；这些合并扩大了 `main` 功能面，但不替代 P2-4 剩余两项的退出条件：
+截至本次核验，先前列为候选的 Automation 相关 PR 状态已更新如下；这些合并扩大了 `main` 功能面，但不替代 P2-4 剩余一项（三平台长期 soak）的退出条件：
 
 | PR                                                                                                       | 当前 head / base                                | 核验状态                                                             | 与剩余清单的关系                                                                   |
 | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
@@ -1446,13 +1446,13 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 
 ### 18.5 推荐执行顺序与总判定
 
-1. `0.163.7` 发布闭环已完成；磁盘故障矩阵候选完成并进入 exact-SHA 三平台门禁，下一重点是三平台长期 soak。
+1. `0.163.7` 发布闭环与磁盘故障矩阵均已完成；P2-4 下一且唯一重点是三平台长期 soak。
 2. 并行推进 Skill/MCP 剩余平台安全边界；该项取得完整三平台恶意证据前保持 NO-GO。
 3. 签名 native 发行等待真实凭据/渠道，一旦前置到位即按 exact-SHA 六目标矩阵执行。
 4. telemetry 按真实 observation window 持续采集；在数据和 `0.164.0` floor 前不删除 alias。
 5. P2-2 clipboard image 与 P2-3 MCP 可选协议面可作为较小、相互独立的产品切片排期，但不能替代前述发布与安全门。
 
-当前总判定为：**公网 CLI npm `0.163.7` 的 exact-SHA 发布子链为 GO；完整 CLI 产品与 native 公开发行仍为 NO-GO**。`0.163.7` release commit `3e997168621c53708a1682868c6cc4edc9baf15b` 已包含 outcome-unknown adjudication、五域迁移/回滚和因果可观测性，并完成最终 SHA 双门禁、不可变发布和独立回读；磁盘故障矩阵属于其后的待门禁候选，不反写成 `0.163.7` 已包含。长期 soak、Skill/MCP 恶意矩阵和签名 native 发行仍未完成。
+当前总判定为：**公网 CLI npm `0.163.7` 的 exact-SHA 发布子链为 GO；完整 CLI 产品与 native 公开发行仍为 NO-GO**。`0.163.7` release commit `3e997168621c53708a1682868c6cc4edc9baf15b` 已包含 outcome-unknown adjudication、五域迁移/回滚和因果可观测性，并完成最终 SHA 双门禁、不可变发布和独立回读；磁盘故障矩阵是其后由 PR #186 独立合并的增量，不反写成 `0.163.7` 已包含。长期 soak、Skill/MCP 恶意矩阵和签名 native 发行仍未完成。
 
 ### 18.6 2026-08-12 P2-4 outcome-unknown 人工裁决正式合并证据
 
@@ -1486,12 +1486,12 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 | 独立公网回读          | [readback `31749404980`](https://github.com/chainlesschain/chainlesschain/actions/runs/31749404980) / job `94611498750` 从 tag 解析同一最终 SHA，重新下载 `chainlesschain@0.163.7`，验证发布 run `31748153519` 的签名 provenance，并证明 registry tarball 与不可变 workflow artifact 字节完全一致。CLI `.tgz` 的 SHA-256 为 `d7ca295e6cdb4e442ee7ad6bb9cc0b9d923f40de4eae395974d91b4dfab83a9d`；GitHub 不可变 artifact ZIP digest 另为 `sha256:b1a49a3e1a735e4cbaed4cbf1a06af1b65c965dbfdd2f2e274890264aa846066`，两者不混用。独立证据 artifact `9200337771` 已上传并保留 90 天。                                                                                                                                                                                                               |
 | npm 公网身份          | npm `latest=0.163.7`；公开 tarball 为 `https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.163.7.tgz`，`dist.shasum=5bfb7471643cfe4d4cd0b0a382b31c63fc1efdff`，`dist.integrity=sha512-wcvnXKQqszc/QdwRBhSmDLl0k7BkeLeD/IhO2qZuDlBNKHidt3xh2ZjthLHsB66B8+7ZEtWbDYUY6YXqH+L9Pw==`。npm 未返回 `gitHead` 字段，因此不把缺失元数据冒充身份依据；tag、provenance、发布 artifact 和独立逐字节回读共同绑定最终 SHA。                                                                                                                                                                                                                                                                                                                                                                          |
 
-因此 `chainlesschain@0.163.7` 的 **CLI npm exact-SHA 子闭环为 GO**。五域迁移/回滚已随最终 release SHA 双门禁、不可变 tag、专用发布和独立公网回读完成而关闭；P2-4 内部未完成数由 3 降为 2。该结论仍不授权完整 CLI 产品、签名 native 公开发行、磁盘故障矩阵、三平台长期 soak 或 Skill/MCP 真实恶意矩阵。
+因此 `chainlesschain@0.163.7` 的 **CLI npm exact-SHA 子闭环为 GO**。五域迁移/回滚已随最终 release SHA 双门禁、不可变 tag、专用发布和独立公网回读完成而关闭；截至 `0.163.7` 发布时点，P2-4 内部未完成数由 3 降为 2。该发布时点的结论仍不授权完整 CLI 产品、签名 native 公开发行、磁盘故障矩阵、三平台长期 soak 或 Skill/MCP 真实恶意矩阵；磁盘矩阵的后续正式完成证据见第 18.9 节。
 
-### 18.9 2026-08-14 P2-4 磁盘故障矩阵候选
+### 18.9 2026-08-14 P2-4 磁盘故障矩阵正式合并证据
 
-- 候选分支 `feature/cli-scheduler-disk-fault-matrix` 关闭了审计发现的两个生产缺口。Agenda 原先会把任意读取错误当作空库、跳过损坏行并直接覆盖 JSONL；现在只有 `ENOENT` 表示不存在，所有权威 mutation 都严格拒绝 unreadable、malformed 或非 object 记录。Agenda 与 Cowork 均通过同目录随机 `wx`/`0600` 临时文件、完整 short-write 循环、file fsync、close、atomic rename 和 POSIX directory fsync 发布新 generation；rename 前失败标记 `not-committed`，rename 后目录 fsync 失败标记 `unknown`，Windows 不伪造不支持的目录 fsync。
+- [PR #186](https://github.com/chainlesschain/chainlesschain/pull/186) 的功能分支 `feature/cli-scheduler-disk-fault-matrix` 关闭了审计发现的两个生产缺口。Agenda 原先会把任意读取错误当作空库、跳过损坏行并直接覆盖 JSONL；现在只有 `ENOENT` 表示不存在，所有权威 mutation 都严格拒绝 unreadable、malformed 或非 object 记录。Agenda 与 Cowork 均通过同目录随机 `wx`/`0600` 临时文件、完整 short-write 循环、file fsync、close、atomic rename 和 POSIX directory fsync 发布新 generation；rename 前失败标记 `not-committed`，rename 后目录 fsync 失败标记 `unknown`，Windows 不伪造不支持的目录 fsync。
 - 确定性故障注入覆盖 Agenda/Cowork 的 ENOSPC、成功短写、多次写后失败、file fsync、rename、directory fsync、临时文件与 descriptor 清理、旧 generation 保持、完整新 generation 可恢复，以及损坏/不可读 authority 的 fail-closed。Scheduler 使用真实 better-sqlite3 file DB 和 `PRAGMA max_page_count` 触发原生 `SQLITE_FULL`，证明同一 IMMEDIATE transaction 中先更新 job、后插入 event 的组合整体回滚，关闭重开后 `quick_check=ok` 且旧状态不变；Automation source restore 同样验证 flow 恢复与 migration marker 删除在 `SQLITE_FULL` 下整体回滚。已有效 scheduler 数据库被截断后，重启通过 `quick_check`/schema 验证拒绝打开。
 - Routine 继续复用既有 `durable-security-store` 的 private temp、file fsync、rename、POSIX directory fsync 和 corrupt fail-closed；Loop 继续复用 JSONL session append/CAS 的 short-write、fsync、partial-tail、anchor 与 restart 保护。本次没有把这些已存在的通用耐久实现重复改写成 scheduler 专用副本。
 - 本地最终 scheduler 矩阵为 **15 files / 362 passed / 1 skipped**；唯一 skip 是 Windows 上不适用的 POSIX directory-fsync 故障。Cowork 相邻 unit/integration 为 **3 files / 64 passed**，Routine/Loop/持久化错误投影相邻矩阵为 **4 files / 50 passed**；Node syntax、Prettier、generated changelog parity 和 `git diff --check` 通过。独立只读复审在修复 Cowork `existsSync` 误判读取错误与合法非 object JSON 后判定无 P0/P1、无提交 blocker。完整本地 `__tests__/unit` 在 10 分钟上限内未返回汇总，不能记为通过；另一次 `jsonl-session-store` 扩展运行的 142 项中 1 项因复用依赖目录缺少 `ajv/dist/2020.js` 未加载，非本次断言失败，也不能记为通过。
-- 该子项当前状态是**实现与本地证据完成、等待 exact-SHA 三平台权威门禁**。在本功能 head 的 `CLI CI` 与 `CLI Strict Sandbox` Linux/Windows/macOS 全部成功并合并前，第 18.1 节明确保留“候选”措辞；不得用本地结果直接发布 npm。跨进程 hard-kill、双实例长期 contention、DST/积压、FD/handle/orphan 和多小时资源稳定性属于下一项三平台长期 soak，不重复计入磁盘矩阵。
+- PR #186 最终 head `445a646ebd044a08b4b5a207f4a52cda2b6fd4fa` 的 [CLI CI `31754318604`](https://github.com/chainlesschain/chainlesschain/actions/runs/31754318604) attempt 1 为 **53/53 success**，[CLI Strict Sandbox `31754338463`](https://github.com/chainlesschain/chainlesschain/actions/runs/31754338463) 为 Ubuntu、Windows、macOS **3/3 success**；两套 workflow 的 `headSha` 均为该最终 head。同一 head 的普通 CI 也无失败，最后完成的 Windows Node 22 unit job `94626715280` 为 success。PR 随后以 merge commit `b4813e8e260d2e313a63303eab2e9f829750919e` 进入 `main`，并已同步 GitHub/Gitee。因此磁盘故障矩阵正式完成并从 P2-4 剩余清单删除；P2-4 仅剩三平台长期 soak。跨进程 hard-kill、双实例长期 contention、DST/积压、FD/handle/orphan 和多小时资源稳定性属于该最后一项，不重复计入磁盘矩阵。本次没有修改 CLI 版本、创建 release tag 或发布 npm。
