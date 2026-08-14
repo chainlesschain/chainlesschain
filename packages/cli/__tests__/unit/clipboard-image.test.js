@@ -445,6 +445,7 @@ describe("system clipboard image readers", () => {
       isEqualToString: (expected) => (expected?.value ?? expected) === "RGB",
     };
     let primitiveColorModel = false;
+    const rawProperties = { isNil: () => false };
     const properties = {
       isNil: () => false,
       objectForKey: (key) =>
@@ -463,9 +464,17 @@ describe("system clipboard image readers", () => {
       NSPasteboard: { generalPasteboard: pasteboard },
       NSPasteboardTypePNG: "public.png",
       NSPasteboardTypeTIFF: "public.tiff",
+      NSDictionary: {
+        dictionaryWithDictionary: (value) => {
+          if (value !== rawProperties) {
+            throw new Error("unexpected metadata dictionary");
+          }
+          return properties;
+        },
+      },
       CGImageSourceCreateWithData: () => ({ isNil: () => false }),
       CGImageSourceGetCount: () => "1",
-      CGImageSourceCopyPropertiesAtIndex: () => properties,
+      CGImageSourceCopyPropertiesAtIndex: () => rawProperties,
       CGImageSourceCreateImageAtIndex: () => ({ isNil: () => false }),
       CGImageGetWidth: () => "3",
       CGImageGetHeight: () => "2",

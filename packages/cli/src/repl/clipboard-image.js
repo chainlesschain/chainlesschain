@@ -50,6 +50,7 @@ const MACOS_CLIPBOARD_HELPER_ERROR_STAGES = new Set([
   "tiff-source",
   "tiff-count",
   "tiff-properties",
+  "tiff-properties-bridge",
   "tiff-width",
   "tiff-height",
   "tiff-depth",
@@ -97,10 +98,14 @@ function isObjCNil(value) {
     (typeof value.isNil === "function" && value.isNil());
 }
 
-function propertyNumber(properties, key) {
+function propertyValue(properties, key) {
   // JXA can fail to marshal ImageIO's CFString globals when they are used as
   // NSDictionary keys. The public ImageIO key values avoid that bridge edge.
-  const value = properties.objectForKey($(key));
+  return properties.objectForKey($(key));
+}
+
+function propertyNumber(properties, key) {
+  const value = propertyValue(properties, key);
   if (isObjCNil(value)) return null;
   return Number(value);
 }
@@ -151,11 +156,17 @@ function run(argv) {
         return "invalid:tiff-source";
       }
       stage = "tiff-properties";
-      const properties = $.CGImageSourceCopyPropertiesAtIndex(
+      const rawProperties = $.CGImageSourceCopyPropertiesAtIndex(
         imageSource,
         0,
         $(),
       );
+      if (isObjCNil(rawProperties)) return "invalid:tiff-properties";
+      // The C API returns a CFDictionary proxy. Re-bridge it explicitly so
+      // JXA exposes NSDictionary selectors without recursively unwrapping the
+      // potentially nested metadata tree.
+      stage = "tiff-properties-bridge";
+      const properties = $.NSDictionary.dictionaryWithDictionary(rawProperties);
       if (isObjCNil(properties)) return "invalid:tiff-properties";
       stage = "tiff-width";
       const width = propertyNumber(properties, "PixelWidth");
@@ -164,7 +175,7 @@ function run(argv) {
       stage = "tiff-depth";
       const depth = propertyNumber(properties, "Depth");
       stage = "tiff-color-read";
-      const colorModel = properties.objectForKey($("ColorModel"));
+      const colorModel = propertyValue(properties, "ColorModel");
       if (isObjCNil(colorModel)) return "invalid:tiff-metadata";
       stage = "tiff-color-model";
       const isRgb = propertyStringEquals(colorModel, "RGB");
