@@ -89,7 +89,10 @@ namespace ChainlessChain.WindowsSandbox
         private const UInt32 WAIT_TIMEOUT = 0x00000102;
         private const UInt32 HANDLE_FLAG_INHERIT = 0x00000001;
         private const Int32 ERROR_INSUFFICIENT_BUFFER = 122;
+        private const Int32 ERROR_OPLOCK_NOT_GRANTED = 300;
         private const Int32 ERROR_IO_PENDING = 997;
+        private const Int32 LAUNCH_PATH_OPLOCK_MAX_ATTEMPTS = 22;
+        private const Int32 LAUNCH_PATH_OPLOCK_RETRY_BASE_DELAY_MS = 50;
         private const Int32 HRESULT_FROM_WIN32_ERROR_ALREADY_EXISTS =
             unchecked((Int32)0x800700B7);
         private const Int32 SecurityImpersonation = 2;
@@ -122,8 +125,10 @@ namespace ChainlessChain.WindowsSandbox
         private const UInt16 IMAGE_FILE_MACHINE_ARM64 = 0xaa64;
         private const UInt32 GENERIC_READ = 0x80000000;
         private const UInt32 GENERIC_WRITE = 0x40000000;
+        private const UInt32 FILE_READ_ATTRIBUTES = 0x00000080;
         private const UInt32 FILE_SHARE_READ = 0x00000001;
         private const UInt32 FILE_SHARE_WRITE = 0x00000002;
+        private const UInt32 FILE_SHARE_DELETE = 0x00000004;
         private const UInt32 OPEN_EXISTING = 3;
         private const UInt32 FILE_ATTRIBUTE_DIRECTORY = 0x00000010;
         private const UInt32 FILE_ATTRIBUTE_NORMAL = 0x00000080;
@@ -2306,6 +2311,42 @@ namespace ChainlessChain.WindowsSandbox
         private static LaunchPathLock AcquireLaunchPathLock(
             LaunchPathLockSpec spec)
         {
+            for (
+                int attempt = 1;
+                attempt <= LAUNCH_PATH_OPLOCK_MAX_ATTEMPTS;
+                attempt++)
+            {
+                try
+                {
+                    return AcquireLaunchPathLockOnce(spec);
+                }
+                catch (Win32Exception error)
+                {
+                    if (
+                        error.NativeErrorCode != ERROR_OPLOCK_NOT_GRANTED ||
+                        attempt == LAUNCH_PATH_OPLOCK_MAX_ATTEMPTS)
+                    {
+                        throw;
+                    }
+                    // Filter oplocks are exclusive. Another strict helper or
+                    // a short-lived host scanner can hold the same runtime;
+                    // add at most 4.75s of backoff for that explicit denial.
+                    // AcquireLaunchPathLockOnce closes every failed attempt
+                    // before this delay, and all identity checks run again.
+                    int retryDelay = Math.Min(
+                        250,
+                        LAUNCH_PATH_OPLOCK_RETRY_BASE_DELAY_MS *
+                            attempt);
+                    Thread.Sleep(retryDelay);
+                }
+            }
+            throw new InvalidOperationException(
+                "Launch path Filter oplock retry contract failed");
+        }
+
+        private static LaunchPathLock AcquireLaunchPathLockOnce(
+            LaunchPathLockSpec spec)
+        {
             UInt64 expectedDevice;
             UInt64 expectedFileId;
             if (
@@ -2345,8 +2386,8 @@ namespace ChainlessChain.WindowsSandbox
             {
                 lockingHandle = CreateFile(
                     expectedPath,
-                    0,
-                    FILE_SHARE_READ,
+                    FILE_READ_ATTRIBUTES,
+                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                     ref attributes,
                     OPEN_EXISTING,
                     FILE_FLAG_OVERLAPPED,
@@ -2373,12 +2414,17 @@ namespace ChainlessChain.WindowsSandbox
                     0,
                     out returned,
                     overlapped);
-                int oplockError = Marshal.GetLastWin32Error();
+                int oplockError = completed
+                    ? 0
+                    : Marshal.GetLastWin32Error();
                 if (completed || oplockError != ERROR_IO_PENDING)
                 {
                     throw new Win32Exception(
                         oplockError,
-                        "FSCTL_REQUEST_FILTER_OPLOCK was not granted");
+                        "FSCTL_REQUEST_FILTER_OPLOCK was not granted " +
+                        "(win32=" +
+                        oplockError.ToString(CultureInfo.InvariantCulture) +
+                        ", role=" + spec.role + ")");
                 }
                 oplockPending = true;
 

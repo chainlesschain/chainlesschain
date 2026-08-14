@@ -8858,6 +8858,21 @@ describe("platform sandbox adapter contract", () => {
     expect(windowsSandboxSource).toContain(
       "private const UInt32 FSCTL_REQUEST_FILTER_OPLOCK = 0x0009005C;",
     );
+    expect(windowsSandboxSource).toContain(
+      "private const Int32 ERROR_OPLOCK_NOT_GRANTED = 300;",
+    );
+    expect(windowsSandboxSource).toContain(
+      "private const Int32 LAUNCH_PATH_OPLOCK_MAX_ATTEMPTS = 22;",
+    );
+    expect(windowsSandboxSource).toContain(
+      "private const Int32 LAUNCH_PATH_OPLOCK_RETRY_BASE_DELAY_MS = 50;",
+    );
+    expect(windowsSandboxSource).toContain(
+      "private const UInt32 FILE_READ_ATTRIBUTES = 0x00000080;",
+    );
+    expect(windowsSandboxSource).toContain(
+      "private const UInt32 FILE_SHARE_DELETE = 0x00000004;",
+    );
     const acquireStart = windowsSandboxSource.indexOf(
       "private static LaunchPathLock AcquireLaunchPathLock(",
     );
@@ -8866,12 +8881,35 @@ describe("platform sandbox adapter contract", () => {
       acquireStart,
     );
     const acquireSource = windowsSandboxSource.slice(acquireStart, acquireEnd);
+    const acquireOnceStart = acquireSource.indexOf(
+      "private static LaunchPathLock AcquireLaunchPathLockOnce(",
+    );
+    const retrySource = acquireSource.slice(0, acquireOnceStart);
+    const acquireOnceSource = acquireSource.slice(acquireOnceStart);
+    expect(acquireOnceStart).toBeGreaterThan(-1);
+    expect(retrySource).toContain("return AcquireLaunchPathLockOnce(spec);");
+    expect(retrySource).toMatch(
+      /catch \(Win32Exception error\)[\s\S]*error\.NativeErrorCode != ERROR_OPLOCK_NOT_GRANTED \|\|[\s\S]*attempt == LAUNCH_PATH_OPLOCK_MAX_ATTEMPTS[\s\S]*throw;/,
+    );
+    expect(retrySource).toMatch(
+      /int retryDelay = Math\.Min\(\s*250,\s*LAUNCH_PATH_OPLOCK_RETRY_BASE_DELAY_MS \*\s*attempt\);\s*Thread\.Sleep\(retryDelay\);/,
+    );
     expect(acquireSource).toContain("attributes.bInheritHandle = false;");
+    expect(acquireOnceSource).toMatch(
+      /lockingHandle = CreateFile\(\s*expectedPath,\s*FILE_READ_ATTRIBUTES,\s*FILE_SHARE_READ \| FILE_SHARE_WRITE \| FILE_SHARE_DELETE,\s*ref attributes,\s*OPEN_EXISTING,\s*FILE_FLAG_OVERLAPPED,/,
+    );
     expect(acquireSource).toMatch(
       /DeviceIoControl\(\s*lockingHandle,\s*FSCTL_REQUEST_FILTER_OPLOCK,/,
     );
     expect(acquireSource).toMatch(
       /if \(completed \|\| oplockError != ERROR_IO_PENDING\)[\s\S]*FSCTL_REQUEST_FILTER_OPLOCK was not granted/,
+    );
+    expect(acquireOnceSource).toMatch(
+      /int oplockError = completed\s*\? 0\s*: Marshal\.GetLastWin32Error\(\);/,
+    );
+    expect(acquireOnceSource).toContain('", role=" + spec.role + ")"');
+    expect(acquireOnceSource).toMatch(
+      /finally\s*\{\s*ReleaseLaunchPathLockHandles\([\s\S]*oplockPending\);\s*\}/,
     );
 
     const filterOplock = acquireSource.indexOf("DeviceIoControl(");
