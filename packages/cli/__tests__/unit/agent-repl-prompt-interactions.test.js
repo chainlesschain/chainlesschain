@@ -10,6 +10,10 @@ const source = fs.readFileSync(
 describe("production agent REPL prompt interactions", () => {
   it("wires registry dispatch, idle keys, live suggestions, and vision chips", () => {
     expect(source).toContain("createPromptInteractionSurface({");
+    expect(source).toContain("createSystemClipboardImageBinding()");
+    expect(source).toContain(
+      'Object.prototype.hasOwnProperty.call(\n    options,\n    "clipboardBinding",',
+    );
     expect(source).toContain(
       "_promptInteractionSurface.dispatchSlash(trimmed)",
     );
@@ -24,6 +28,7 @@ describe("production agent REPL prompt interactions", () => {
     );
     expect(source).toContain("_promptInteractions.scheduleSuggestions({");
     expect(source).toContain("_promptInteractions.takeClipboardImageChips()");
+    expect(source).toContain("_promptInteractions.clearClipboardImageChips()");
     expect(source).toContain("mergeClipboardImageChips(");
     expect(source).toContain("resolveVisionLlm({");
     expect(source).toContain("_promptInteractions.dispose()");
