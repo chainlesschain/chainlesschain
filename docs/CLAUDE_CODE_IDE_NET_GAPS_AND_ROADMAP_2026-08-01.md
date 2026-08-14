@@ -1531,6 +1531,10 @@ P1-3 和当前 **15/19 尚未关闭、4/19 完成**的计数均不减少；Open 
   `merge-tree` 权限，严格校验 schema、字段、稳定 ID、revision/digest、selection、conflict 与 exact action argv；
   两端支持 file/hunk 选择、冲突说明、发布后受控 rollback。v1 单次 durable selection 统一限制 100 个 ID，最大
   恢复 action 为 215 个参数，低于两端 256 参数上限。
+- **双 IDE 发布候选已同步。** VS Code source candidate 升为 `0.37.53`，JetBrains source candidate 升为
+  `0.4.89`，两端 changelog/README 均说明 CLI-owned merge-review、file/hunk 选择、持久冲突证据、单提交发布与
+  retained-history rollback。公开 CLI `0.163.7` 尚不包含该命令；这些控制只在后续 exact-gated CLI 发布后出现。
+  本候选版本记录不冒充 Open VSX 或 JetBrains Marketplace 已发布证据。
 - **安全与本地回归已关闭。** Git 子进程剥离继承的全部非白名单 `GIT_*`，禁用 hooks、gpg signing、
   fsmonitor、external diff/textconv、active filter/custom driver 与 pager；真实反例覆盖恶意
   `GIT_DIR/GIT_WORK_TREE/GIT_CONFIG_*`、post-merge hook、filter、rename/mode metadata、冲突和 selective hunk。
