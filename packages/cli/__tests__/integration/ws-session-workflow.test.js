@@ -6,8 +6,57 @@
  * session-resume, session-list, session-close, slash-command, and session-answer.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { ChainlessChainWSServer } from "../../src/lib/ws-server.js";
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeAll,
+  beforeEach,
+  afterEach,
+  afterAll,
+} from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
+let ChainlessChainWSServer;
+let testStateRoot;
+let previousHome;
+let previousSecurityAnchorHome;
+
+function restoreEnvironment(name, value) {
+  if (value === undefined) delete process.env[name];
+  else process.env[name] = value;
+}
+
+beforeAll(async () => {
+  previousHome = process.env.CHAINLESSCHAIN_HOME;
+  previousSecurityAnchorHome = process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME;
+  testStateRoot = fs.mkdtempSync(
+    path.join(os.tmpdir(), "cli-ws-session-workflow-"),
+  );
+  process.env.CHAINLESSCHAIN_HOME = path.join(testStateRoot, "home");
+  process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME = path.join(
+    testStateRoot,
+    "security-anchors",
+  );
+  const { _registerTestScopedSessionAntiRollbackDirectory } =
+    await import("../../src/lib/session-anti-rollback-anchor.js");
+  _registerTestScopedSessionAntiRollbackDirectory();
+  ({ ChainlessChainWSServer } = await import("../../src/lib/ws-server.js"));
+});
+
+afterAll(() => {
+  restoreEnvironment("CHAINLESSCHAIN_HOME", previousHome);
+  restoreEnvironment(
+    "CHAINLESSCHAIN_SECURITY_ANCHOR_HOME",
+    previousSecurityAnchorHome,
+  );
+  if (testStateRoot) {
+    fs.rmSync(testStateRoot, { recursive: true, force: true });
+  }
+});
 
 /** Create a mock WebSocket object */
 function mockWs() {
@@ -100,11 +149,8 @@ describe("Integration: WebSocket Session Workflow", () => {
 
   afterEach(async () => {
     if (server) {
-      // Clear heartbeat timer to avoid leaks
-      if (server._heartbeatTimer) {
-        clearInterval(server._heartbeatTimer);
-        server._heartbeatTimer = null;
-      }
+      // Release handler-owned host leases as well as timers and clients.
+      await server.stop();
       server = null;
     }
   });
@@ -124,6 +170,18 @@ describe("Integration: WebSocket Session Workflow", () => {
       alive: true,
     });
     return server;
+  }
+
+  function installTestSessionHandler(sessionId, handler) {
+    const previous = server.sessionHandlers.get(sessionId);
+    if (
+      previous &&
+      previous !== handler &&
+      typeof previous.destroy === "function"
+    ) {
+      previous.destroy();
+    }
+    server.sessionHandlers.set(sessionId, handler);
   }
 
   // ─── session-create ────────────────────────────────────────────────
@@ -205,7 +263,7 @@ describe("Integration: WebSocket Session Workflow", () => {
       handleMessage: vi.fn().mockResolvedValue(undefined),
       handleSlashCommand: vi.fn(),
     };
-    server.sessionHandlers.set("test-session-1", mockHandler);
+    installTestSessionHandler("test-session-1", mockHandler);
 
     server._handleMessage("client-1", ws, {
       id: "req-msg",
@@ -478,7 +536,7 @@ describe("Integration: WebSocket Session Workflow", () => {
         interruptedRequestId: "req-msg",
       }),
     };
-    server.sessionHandlers.set("test-session-1", mockHandler);
+    installTestSessionHandler("test-session-1", mockHandler);
 
     await server._handleMessage("client-1", ws, {
       id: "req-interrupt",
@@ -511,7 +569,7 @@ describe("Integration: WebSocket Session Workflow", () => {
       handleMessage: vi.fn().mockResolvedValue(undefined),
       handleSlashCommand: vi.fn(),
     };
-    server.sessionHandlers.set("test-session-1", mockHandler);
+    installTestSessionHandler("test-session-1", mockHandler);
 
     server._handleMessage("client-1", ws, {
       id: "req-slash",
@@ -586,7 +644,7 @@ describe("Integration: WebSocket Session Workflow", () => {
     server = new ChainlessChainWSServer({ sessionManager: sm });
 
     // Manually add a session handler (no real WebSocket)
-    server.sessionHandlers.set("test-session-1", { destroy: vi.fn() });
+    installTestSessionHandler("test-session-1", { destroy: vi.fn() });
 
     await server.stop();
 
@@ -681,7 +739,7 @@ describe("Integration: WebSocket Session Workflow", () => {
       }),
       handleSlashCommand: vi.fn(),
     };
-    server.sessionHandlers.set("test-session-1", mockHandler);
+    installTestSessionHandler("test-session-1", mockHandler);
 
     // Send message that should trigger run_code
     server._handleMessage("client-1", ws, {
@@ -754,7 +812,7 @@ describe("Integration: WebSocket Session Workflow", () => {
       }),
       handleSlashCommand: vi.fn(),
     };
-    server.sessionHandlers.set("test-session-1", mockHandler);
+    installTestSessionHandler("test-session-1", mockHandler);
 
     server._handleMessage("client-1", ws, {
       id: "req-te",
@@ -808,7 +866,7 @@ describe("Integration: WebSocket Session Workflow", () => {
       handleSlashCommand: vi.fn(),
       destroy: vi.fn(),
     };
-    server.sessionHandlers.set("test-session-1", mockHandler);
+    installTestSessionHandler("test-session-1", mockHandler);
 
     // Step 3: Send message
     server._handleMessage("client-1", ws, {
@@ -1103,7 +1161,7 @@ describe("Integration: WebSocket Session Workflow", () => {
       handleMessage: vi.fn().mockResolvedValue(undefined),
       handleSlashCommand: vi.fn(),
     };
-    server.sessionHandlers.set("test-session-1", mockHandler);
+    installTestSessionHandler("test-session-1", mockHandler);
 
     // Enter review first
     sm.enterReview("test-session-1", { reason: "block" });
