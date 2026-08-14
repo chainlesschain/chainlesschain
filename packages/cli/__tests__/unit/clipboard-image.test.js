@@ -414,7 +414,7 @@ describe("system clipboard image readers", () => {
     expect(existsSync(dirname(temporaryFile))).toBe(false);
   });
 
-  it("recognizes JXA wrapped nil and enters the TIFF fallback", () => {
+  it("accepts primitive and wrapped JXA TIFF metadata", () => {
     let jxaScript;
     const spawnSync = vi.fn((command, args) => {
       jxaScript = args[3];
@@ -444,6 +444,7 @@ describe("system clipboard image readers", () => {
       value: "RGB",
       isEqualToString: (expected) => (expected?.value ?? expected) === "RGB",
     };
+    let primitiveColorModel = false;
     const properties = {
       isNil: () => false,
       objectForKey: (key) =>
@@ -451,7 +452,7 @@ describe("system clipboard image readers", () => {
           PixelWidth: 3,
           PixelHeight: 2,
           Depth: 8,
-          ColorModel: colorModel,
+          ColorModel: primitiveColorModel ? "RGB" : colorModel,
         })[key],
     };
     const pasteboard = {
@@ -488,12 +489,14 @@ describe("system clipboard image readers", () => {
       },
       $: bridge,
     };
-    expect(
+    const runTiffFallback = () =>
       runInNewContext(
         `${jxaScript}\nrun(["/tmp/image.png", "1024", "1024", "100", "100", "4096"]);`,
         context,
-      ),
-    ).toBe("tiff-png");
+      );
+    expect(runTiffFallback()).toBe("tiff-png");
+    primitiveColorModel = true;
+    expect(runTiffFallback()).toBe("tiff-png");
   });
 
   it("reports only a stable macOS helper validation stage", () => {

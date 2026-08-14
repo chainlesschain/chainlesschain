@@ -98,9 +98,17 @@ function isObjCNil(value) {
 }
 
 function propertyNumber(properties, key) {
+  // JXA can fail to marshal ImageIO's CFString globals when they are used as
+  // NSDictionary keys. The public ImageIO key values avoid that bridge edge.
   const value = properties.objectForKey($(key));
   if (isObjCNil(value)) return null;
   return Number(value);
+}
+
+function propertyStringEquals(value, expected) {
+  return typeof value === "string"
+    ? value === expected
+    : Boolean(value.isEqualToString($(expected)));
 }
 
 function run(argv) {
@@ -159,8 +167,8 @@ function run(argv) {
       const colorModel = properties.objectForKey($("ColorModel"));
       if (isObjCNil(colorModel)) return "invalid:tiff-metadata";
       stage = "tiff-color-model";
-      const isRgb = Boolean(colorModel.isEqualToString($("RGB")));
-      const isGray = Boolean(colorModel.isEqualToString($("Gray")));
+      const isRgb = propertyStringEquals(colorModel, "RGB");
+      const isGray = propertyStringEquals(colorModel, "Gray");
       if (
         !Number.isSafeInteger(width) ||
         !Number.isSafeInteger(height) ||
