@@ -98,9 +98,9 @@ function isObjCNil(value) {
 }
 
 function propertyNumber(properties, key) {
-  const value = properties.objectForKey(key);
+  const value = properties.objectForKey($(key));
   if (isObjCNil(value)) return null;
-  return typeof value === "number" ? value : Number(ObjC.unwrap(value));
+  return Number(value);
 }
 
 function run(argv) {
@@ -150,21 +150,17 @@ function run(argv) {
       );
       if (isObjCNil(properties)) return "invalid:tiff-properties";
       stage = "tiff-width";
-      const width = propertyNumber(properties, $.kCGImagePropertyPixelWidth);
+      const width = propertyNumber(properties, "PixelWidth");
       stage = "tiff-height";
-      const height = propertyNumber(properties, $.kCGImagePropertyPixelHeight);
+      const height = propertyNumber(properties, "PixelHeight");
       stage = "tiff-depth";
-      const depth = propertyNumber(properties, $.kCGImagePropertyDepth);
+      const depth = propertyNumber(properties, "Depth");
       stage = "tiff-color-read";
-      const colorModel = properties.objectForKey($.kCGImagePropertyColorModel);
+      const colorModel = properties.objectForKey($("ColorModel"));
       if (isObjCNil(colorModel)) return "invalid:tiff-metadata";
       stage = "tiff-color-model";
-      const isRgb = Boolean(
-        colorModel.isEqualToString($.kCGImagePropertyColorModelRGB),
-      );
-      const isGray = Boolean(
-        colorModel.isEqualToString($.kCGImagePropertyColorModelGray),
-      );
+      const isRgb = Boolean(colorModel.isEqualToString($("RGB")));
+      const isGray = Boolean(colorModel.isEqualToString($("Gray")));
       if (
         !Number.isSafeInteger(width) ||
         !Number.isSafeInteger(height) ||

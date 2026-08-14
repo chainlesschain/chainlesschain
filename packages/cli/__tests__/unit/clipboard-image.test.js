@@ -433,7 +433,6 @@ describe("system clipboard image readers", () => {
     });
 
     const wrappedNil = { isNil: () => true };
-    const wrapped = (value) => ({ isNil: () => false, value });
     const tiffData = { isNil: () => false, length: "128" };
     const encodedPng = {
       isNil: () => false,
@@ -449,10 +448,10 @@ describe("system clipboard image readers", () => {
       isNil: () => false,
       objectForKey: (key) =>
         ({
-          width: 3,
-          height: 2,
-          depth: 8,
-          color: colorModel,
+          PixelWidth: 3,
+          PixelHeight: 2,
+          Depth: 8,
+          ColorModel: colorModel,
         })[key],
     };
     const pasteboard = {
@@ -463,12 +462,6 @@ describe("system clipboard image readers", () => {
       NSPasteboard: { generalPasteboard: pasteboard },
       NSPasteboardTypePNG: "public.png",
       NSPasteboardTypeTIFF: "public.tiff",
-      kCGImagePropertyPixelWidth: "width",
-      kCGImagePropertyPixelHeight: "height",
-      kCGImagePropertyDepth: "depth",
-      kCGImagePropertyColorModel: "color",
-      kCGImagePropertyColorModelRGB: wrapped("RGB"),
-      kCGImagePropertyColorModelGray: wrapped("Gray"),
       CGImageSourceCreateWithData: () => ({ isNil: () => false }),
       CGImageSourceGetCount: () => "1",
       CGImageSourceCopyPropertiesAtIndex: () => properties,
@@ -489,11 +482,8 @@ describe("system clipboard image readers", () => {
     const context = {
       ObjC: {
         import: () => {},
-        unwrap: (value) => {
-          if (typeof value === "number") {
-            throw new Error("primitive numbers must not be unwrapped");
-          }
-          return value?.value ?? value;
+        unwrap: () => {
+          throw new Error("TIFF metadata must not depend on ObjC.unwrap");
         },
       },
       $: bridge,
