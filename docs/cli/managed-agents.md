@@ -555,13 +555,17 @@ CC_PROJECT_MCP=1 chainlesschain agent -p "..."  # 等价(整 shell 生效)
 
 ### Resources — 把 MCP 资源喂给 agent
 
-MCP 不止 tools。当任一连上的 server 暴露 **resource**(文档 / 文件 / 数据)时,agent
-循环自动多两个通用工具(对标 Claude Code 的 `ListMcpResourcesTool` / `ReadMcpResourceTool`):
+MCP 不止 tools。当任一连上的 server 暴露 **resource** 或 **resource template**
+(文档 / 文件 / 数据及其 URI 模板)时,agent 循环自动增加只读通用工具:
 
 - `list_mcp_resources {server?}` → 列出所有(或某 server 的)资源 `{server, uri, name, ...}`
-- `read_mcp_resource {uri, server?}` → 按 URI 读取内容;省略 `server` 时按 uri 自动定位归属
+- `list_mcp_resource_templates {server?}` → 有模板时列出 `{server, uriTemplate, name, ...}`
+- `read_mcp_resource {uri, server?}` → 按 URI 读取内容;具体资源可省略 `server` 并按 uri 自动定位,由模板实例化的 URI 应同时传回模板的 `server`
 
-只有"存在资源"才注册这两个工具(无资源的纯工具 server 不会污染工具表);多批合并(`--mcp-config` + 注册 + IDE)只注册一次。CLI 侧对应 `cc mcp resources` / `cc mcp read-resource <uri>`(见 `docs/cli/core-phases.md`)。
+没有 resource/template 的纯工具 server 不会污染工具表。templates-only server 会注册
+list/read 和 template discovery,从而可以先实例化 URI、再显式读取;多批合并
+(`--mcp-config` + 注册 + IDE)仍各只注册一次。CLI 侧的具体资源命令继续是
+`cc mcp resources` / `cc mcp read-resource <uri>`(见 `docs/cli/core-phases.md`)。
 
 ### Prompts — server 提供的斜杠命令(交互 REPL)
 

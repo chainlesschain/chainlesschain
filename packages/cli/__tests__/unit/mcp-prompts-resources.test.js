@@ -1,13 +1,13 @@
 /**
- * MCP prompts + resource exposure (Claude-Code parity).
+ * MCP prompts + resource/template exposure (Claude-Code parity).
  *
  *   1. MCPClient       — listResources / listPrompts accessors + getPrompt
  *                        (prompts/get) request shape.
- *   2. mcp-config.js   — setupMcpFromConfig collects a server's resources +
- *                        prompts and registers the generic list/read resource
- *                        tools (once, only when a resource exists).
- *   3. agent loop      — a model `list_mcp_resources` / `read_mcp_resource`
- *                        call is dispatched to the MCP client (real loop).
+ *   2. mcp-config.js   — setupMcpFromConfig collects resources, resource
+ *                        templates, and prompts and registers the generic
+ *                        read-only resource tools once.
+ *   3. agent loop      — model resource/template list + resource read calls
+ *                        are dispatched to the MCP client (real loop).
  *   4. repl/mcp-prompt — parse `/mcp__server__prompt`, render prompt messages,
  *                        expand via the client, render the `/mcp` overview.
  */
@@ -135,7 +135,7 @@ describe("MCPClient — resources + prompts", () => {
   });
 });
 
-// ─── 2. mcp-config — collect resources/prompts + register resource tools ─────
+// ─── 2. mcp-config — collect resources/templates/prompts + register tools ────
 
 function fakeClient(byServer) {
   return {
@@ -148,6 +148,7 @@ function fakeClient(byServer) {
         state: "connected",
         tools: s.tools || [],
         resources: s.resources || [],
+        resourceTemplates: s.resourceTemplates || [],
         prompts: s.prompts || [],
       };
     },
@@ -157,6 +158,17 @@ function fakeClient(byServer) {
         for (const r of s.resources || []) all.push({ ...r, server: n });
       }
       return server ? all.filter((r) => r.server === server) : all;
+    },
+    listResourceTemplates(server) {
+      const all = [];
+      for (const [n, s] of Object.entries(byServer)) {
+        for (const template of s.resourceTemplates || []) {
+          all.push({ ...template, server: n });
+        }
+      }
+      return server
+        ? all.filter((template) => template.server === server)
+        : all;
     },
     async readResource(server, uri) {
       return { contents: [{ uri, text: `read:${server}:${uri}` }] };
@@ -168,11 +180,18 @@ function fakeClient(byServer) {
   };
 }
 
-describe("setupMcpFromConfig — resources + prompts", () => {
-  it("collects resources + prompts and registers the generic resource tools", async () => {
+describe("setupMcpFromConfig — resources + templates + prompts", () => {
+  it("collects resources/templates/prompts and registers generic resource tools", async () => {
     const client = fakeClient({
       docs: {
         resources: [{ uri: "file:///a.md", name: "A" }],
+        resourceTemplates: [
+          {
+            uriTemplate: "file:///{path}",
+            name: "Workspace file",
+            description: "Read one workspace file",
+          },
+        ],
         prompts: [{ name: "summarize", description: "d" }],
       },
     });
@@ -184,12 +203,21 @@ describe("setupMcpFromConfig — resources + prompts", () => {
     expect(res.resources).toEqual([
       { uri: "file:///a.md", name: "A", server: "docs" },
     ]);
+    expect(res.resourceTemplates).toEqual([
+      {
+        uriTemplate: "file:///{path}",
+        name: "Workspace file",
+        description: "Read one workspace file",
+        server: "docs",
+      },
+    ]);
     expect(res.prompts).toEqual([
       { name: "summarize", description: "d", server: "docs" },
     ]);
 
     const toolNames = res.extraToolDefinitions.map((d) => d.function.name);
     expect(toolNames).toContain("list_mcp_resources");
+    expect(toolNames).toContain("list_mcp_resource_templates");
     expect(toolNames).toContain("read_mcp_resource");
     expect(res.externalToolExecutors.list_mcp_resources).toEqual({
       kind: "mcp-resource",
@@ -199,16 +227,133 @@ describe("setupMcpFromConfig — resources + prompts", () => {
       kind: "mcp-resource",
       op: "read",
     });
+    expect(res.externalToolExecutors.list_mcp_resource_templates).toEqual({
+      kind: "mcp-resource",
+      op: "list-templates",
+    });
+    expect(
+      res.externalToolDescriptors.list_mcp_resource_templates,
+    ).toMatchObject({
+      isReadOnly: true,
+      riskLevel: "low",
+      effectContract: {
+        declaredEffect: "read",
+        authorizedEffect: "read",
+        annotations: {
+          readOnlyHint: true,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
+      },
+    });
   });
 
-  it("does NOT register resource tools when no server exposes a resource", async () => {
+  it("does NOT register resource tools when no server exposes a resource or template", async () => {
     const client = fakeClient({ tool: { tools: [{ name: "t" }] } });
     const res = await setupMcpFromConfig(
       { tool: { command: "x" } },
       { createClient: () => client },
     );
     expect(res.externalToolExecutors.read_mcp_resource).toBeUndefined();
+    expect(
+      res.externalToolExecutors.list_mcp_resource_templates,
+    ).toBeUndefined();
     expect(res.resources).toEqual([]);
+    expect(res.resourceTemplates).toEqual([]);
+  });
+
+  it("registers list/read/template tools for a templates-only server", async () => {
+    const client = fakeClient({
+      catalog: {
+        resourceTemplates: [
+          { uriTemplate: "catalog://items/{id}", name: "Catalog item" },
+        ],
+      },
+    });
+    const res = await setupMcpFromConfig(
+      { catalog: { command: "x" } },
+      { createClient: () => client },
+    );
+
+    expect(res.resources).toEqual([]);
+    expect(res.resourceTemplates).toEqual([
+      {
+        uriTemplate: "catalog://items/{id}",
+        name: "Catalog item",
+        server: "catalog",
+      },
+    ]);
+    expect(Object.keys(res.externalToolExecutors)).toEqual(
+      expect.arrayContaining([
+        "list_mcp_resources",
+        "list_mcp_resource_templates",
+        "read_mcp_resource",
+      ]),
+    );
+  });
+
+  it("keeps the template tool idempotent across accumulating server batches", async () => {
+    const client = fakeClient({
+      docs: {
+        resourceTemplates: [{ uriTemplate: "docs://{slug}", name: "Document" }],
+      },
+      catalog: {
+        resourceTemplates: [
+          { uriTemplate: "catalog://{id}", name: "Catalog item" },
+        ],
+      },
+    });
+    const first = await setupMcpFromConfig(
+      { docs: { command: "x" } },
+      { createClient: () => client },
+    );
+    const accumulated = await setupMcpFromConfig(
+      { catalog: { command: "x" } },
+      { into: first },
+    );
+
+    expect(accumulated.resourceTemplates).toHaveLength(2);
+    expect(
+      accumulated.extraToolDefinitions.filter(
+        (definition) =>
+          definition.function.name === "list_mcp_resource_templates",
+      ),
+    ).toHaveLength(1);
+  });
+
+  it("back-fills templates on a legacy accumulating wiring object", async () => {
+    const client = fakeClient({
+      docs: {
+        resourceTemplates: [{ uriTemplate: "docs://{slug}", name: "Document" }],
+      },
+    });
+    const legacyInto = {
+      mcpClient: client,
+      extraToolDefinitions: [],
+      externalToolExecutors: {},
+      externalToolDescriptors: {},
+      connected: [],
+      resources: [],
+      prompts: [],
+    };
+
+    const accumulated = await setupMcpFromConfig(
+      { docs: { command: "x" } },
+      { into: legacyInto },
+    );
+
+    expect(accumulated).toBe(legacyInto);
+    expect(accumulated.resourceTemplates).toEqual([
+      {
+        uriTemplate: "docs://{slug}",
+        name: "Document",
+        server: "docs",
+      },
+    ]);
+    expect(
+      accumulated.externalToolExecutors.list_mcp_resource_templates,
+    ).toEqual({ kind: "mcp-resource", op: "list-templates" });
   });
 
   it("registerMcpResourceTools is idempotent across accumulating batches", () => {
@@ -250,18 +395,25 @@ describe("agent loop — MCP resource tools", () => {
     };
   };
 
-  it("dispatches list_mcp_resources + read_mcp_resource to the MCP client", async () => {
+  it("dispatches template/list/read resource tools to the MCP client", async () => {
     const client = fakeClient({
-      docs: { resources: [{ uri: "file:///a.md", name: "A" }] },
+      docs: {
+        resourceTemplates: [
+          { uriTemplate: "file:///{path}", name: "Workspace file" },
+        ],
+      },
     });
     const readSpy = vi.spyOn(client, "readResource");
+    const templateSpy = vi.spyOn(client, "listResourceTemplates");
     const wiring = await setupMcpFromConfig(
       { docs: { command: "x" } },
       { createClient: () => client },
     );
 
+    const modelInputs = [];
     let turn = 0;
-    const chatFn = vi.fn(async () => {
+    const chatFn = vi.fn(async (messages) => {
+      modelInputs.push(JSON.stringify(messages));
       turn += 1;
       if (turn === 1) {
         return {
@@ -271,6 +423,14 @@ describe("agent loop — MCP resource tools", () => {
             tool_calls: [
               {
                 id: "c1",
+                type: "function",
+                function: {
+                  name: "list_mcp_resource_templates",
+                  arguments: JSON.stringify({ server: "docs" }),
+                },
+              },
+              {
+                id: "c2",
                 type: "function",
                 function: { name: "list_mcp_resources", arguments: "{}" },
               },
@@ -285,11 +445,14 @@ describe("agent loop — MCP resource tools", () => {
             content: "",
             tool_calls: [
               {
-                id: "c2",
+                id: "c3",
                 type: "function",
                 function: {
                   name: "read_mcp_resource",
-                  arguments: JSON.stringify({ uri: "file:///a.md" }),
+                  arguments: JSON.stringify({
+                    server: "docs",
+                    uri: "file:///guide.md",
+                  }),
                 },
               },
             ],
@@ -317,8 +480,12 @@ describe("agent loop — MCP resource tools", () => {
     );
 
     expect(r.exitCode).toBe(0);
-    // read_mcp_resource auto-resolved the owning server from the uri.
-    expect(readSpy).toHaveBeenCalledWith("docs", "file:///a.md");
+    // The model instantiated file:///{path} and kept the owning server explicit.
+    expect(readSpy).toHaveBeenCalledWith("docs", "file:///guide.md");
+    expect(templateSpy).toHaveBeenCalledOnce();
+    expect(templateSpy).toHaveBeenCalledWith("docs");
+    expect(modelInputs.join("\n")).toContain("file:///{path}");
+    expect(modelInputs.join("\n")).toContain("Workspace file");
 
     const events = out
       .join("")
@@ -326,6 +493,12 @@ describe("agent loop — MCP resource tools", () => {
       .split("\n")
       .filter(Boolean)
       .map((l) => JSON.parse(l));
+    expect(
+      events.some(
+        (e) =>
+          e.type === "tool_use" && e.tool === "list_mcp_resource_templates",
+      ),
+    ).toBe(true);
     expect(
       events.some(
         (e) => e.type === "tool_use" && e.tool === "list_mcp_resources",
@@ -339,7 +512,7 @@ describe("agent loop — MCP resource tools", () => {
     expect(events.some((e) => e.type === "tool_result" && e.is_error)).toBe(
       false,
     );
-  }, 15_000);
+  }, 30_000);
 
   it.each([
     {
