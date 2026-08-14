@@ -23,6 +23,16 @@ describe("MCP optional protocol surface", () => {
         server: "fixture",
       },
     ]);
+    expect(client.listResourceTemplates("fixture")).toEqual([
+      {
+        name: "file",
+        uriTemplate: "file:///{path}",
+        server: "fixture",
+      },
+    ]);
+    expect(() => client.listResourceTemplates("missing")).toThrow(
+      'Server "missing" not found',
+    );
   });
 
   it("supports resource subscribe/unsubscribe", async () => {

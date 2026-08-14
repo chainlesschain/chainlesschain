@@ -1414,7 +1414,7 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 | P1-2 后台 Agent 恢复、隔离与预算取消 | **部分完成**              | PR #131 已关闭默认后台 worktree、显式 `--no-worktree` 和主要 supervisor fencing；仍缺 native spawn 返回到 PID commit 之间的 hard-kill 窗口、无可复验 PID 的 detached descendant、独立长期 keeper，以及针对该边界的 kill/restart/并发/清理长期矩阵。 |
 | P1-5 官方 native 发行物与回滚升级    | **部分完成 / NO-GO**      | 六目标 unsigned validation 已完成，签名公开发行链仍未完成。该项与 P0-3 的 native 子范围重叠，属于同一个主要交付包，不应重复估算为两套独立工作。                                                                                                     |
 | P2-2 交互细节                        | **部分完成**              | suggestions、recap、外部编辑器、prompt stash、keybindings 与文本 clipboard 已覆盖；标准终端仍没有 production 系统剪贴板图片 `readImage` adapter，目前只有嵌入宿主 binding 与路径 fallback。                                                         |
-| P2-3 MCP 可选协议面                  | **部分完成 / 待产品决策** | resource templates、subscribe/unsubscribe、logging level 与 completion 已实现；仍缺生产调用方或基于代表性 server usage 的正式取舍报告，server sampling `createMessage` 仍明确不支持并返回 `-32601`。                                                |
+| P2-3 MCP 可选协议面                  | **部分完成 / 候选待门禁** | 独立候选已把 resource templates 接成只读 `list_mcp_resource_templates` 生产工具，并正式决定 defer subscribe/logging/completion、保持 sampling `-32601`；在候选 exact-SHA 双门通过并合并前仍不从未完成清单删除，见第 18.10 节。                      |
 | P2-4 调度内核收敛                    | **部分完成**              | 磁盘故障矩阵已正式完成；仍有三平台长期 soak 1 个内部子项，见下一节。完成某个 adapter、UI 或 preflight 不能把整项改为完成。                                                                                                                          |
 
 ### 18.3 P2-4 剩余 1 个内部子项
@@ -1450,7 +1450,7 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 2. 并行推进 Skill/MCP 剩余平台安全边界；该项取得完整三平台恶意证据前保持 NO-GO。
 3. 签名 native 发行等待真实凭据/渠道，一旦前置到位即按 exact-SHA 六目标矩阵执行。
 4. telemetry 按真实 observation window 持续采集；在数据和 `0.164.0` floor 前不删除 alias。
-5. P2-2 clipboard image 与 P2-3 MCP 可选协议面可作为较小、相互独立的产品切片排期，但不能替代前述发布与安全门。
+5. P2-2 clipboard image 与 P2-3 resource templates 均已有独立候选；分别取得 exact-SHA 双门并合并后才更新完成计数，且不能替代前述发布与安全门。
 
 当前总判定为：**公网 CLI npm `0.163.7` 的 exact-SHA 发布子链为 GO；完整 CLI 产品与 native 公开发行仍为 NO-GO**。`0.163.7` release commit `3e997168621c53708a1682868c6cc4edc9baf15b` 已包含 outcome-unknown adjudication、五域迁移/回滚和因果可观测性，并完成最终 SHA 双门禁、不可变发布和独立回读；磁盘故障矩阵是其后由 PR #186 独立合并的增量，不反写成 `0.163.7` 已包含。长期 soak、Skill/MCP 恶意矩阵和签名 native 发行仍未完成。
 
@@ -1495,3 +1495,23 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 - Routine 继续复用既有 `durable-security-store` 的 private temp、file fsync、rename、POSIX directory fsync 和 corrupt fail-closed；Loop 继续复用 JSONL session append/CAS 的 short-write、fsync、partial-tail、anchor 与 restart 保护。本次没有把这些已存在的通用耐久实现重复改写成 scheduler 专用副本。
 - 本地最终 scheduler 矩阵为 **15 files / 362 passed / 1 skipped**；唯一 skip 是 Windows 上不适用的 POSIX directory-fsync 故障。Cowork 相邻 unit/integration 为 **3 files / 64 passed**，Routine/Loop/持久化错误投影相邻矩阵为 **4 files / 50 passed**；Node syntax、Prettier、generated changelog parity 和 `git diff --check` 通过。独立只读复审在修复 Cowork `existsSync` 误判读取错误与合法非 object JSON 后判定无 P0/P1、无提交 blocker。完整本地 `__tests__/unit` 在 10 分钟上限内未返回汇总，不能记为通过；另一次 `jsonl-session-store` 扩展运行的 142 项中 1 项因复用依赖目录缺少 `ajv/dist/2020.js` 未加载，非本次断言失败，也不能记为通过。
 - PR #186 最终 head `445a646ebd044a08b4b5a207f4a52cda2b6fd4fa` 的 [CLI CI `31754318604`](https://github.com/chainlesschain/chainlesschain/actions/runs/31754318604) attempt 1 为 **53/53 success**，[CLI Strict Sandbox `31754338463`](https://github.com/chainlesschain/chainlesschain/actions/runs/31754338463) 为 Ubuntu、Windows、macOS **3/3 success**；两套 workflow 的 `headSha` 均为该最终 head。同一 head 的普通 CI 也无失败，最后完成的 Windows Node 22 unit job `94626715280` 为 success。PR 随后以 merge commit `b4813e8e260d2e313a63303eab2e9f829750919e` 进入 `main`，并已同步 GitHub/Gitee。因此磁盘故障矩阵正式完成并从 P2-4 剩余清单删除；P2-4 仅剩三平台长期 soak。跨进程 hard-kill、双实例长期 contention、DST/积压、FD/handle/orphan 和多小时资源稳定性属于该最后一项，不重复计入磁盘矩阵。本次没有修改 CLI 版本、创建 release tag 或发布 npm。
+
+### 18.10 2026-08-14 P2-3 MCP 可选协议面产品决策与 resource templates 候选
+
+独立候选分支 `feature/cli-mcp-resource-templates` 基于 `github/main@b57fad84aeee53e043611ee95e2f4899ccac7b54`，选择一个有明确只读用途的 optional capability 进入生产面，而不是为协议条目数量一次性开放全部能力：
+
+- `setupMcpFromConfig` 现在累计并标注 server-owned resource templates；只要连接结果含 concrete resource 或 template，就注册既有 list/read resource 工具。templates-only server 因而也能先由模型取得 URI 模板，再把具体 URI 与返回的 server 名称显式交给 `read_mcp_resource`。
+- 新工具 `list_mcp_resource_templates {server?}` 只读取 MCPClient 已有的有界 capability-discovery cache，返回 `{count, resourceTemplates}`，支持按 server 过滤；它不在调用时新增网络请求、不自动实例化 URI、不订阅通知。descriptor 固定为 low-risk/read-only/idempotent/closed-world，多批 `--mcp-config`、registered server 与 IDE 累计接线只注册一次。
+- 本地聚焦矩阵为 **11 files / 186 tests passed**，覆盖 templates-only server、跨批次幂等、旧 `deps.into` backfill、只读 effect contract、按 server 查询、`resources/list_changed` 后的 live template cache，以及真实 headless model→tool→下一轮 model 将 `file:///{path}` 实例化为具体 URI、携带显式 server 后读取的 template/list/read round trip；全部 `mcp-client*` 加相邻 resource/agent config 扩大矩阵为 **29 files / 375 tests passed**。目标 Prettier、Node syntax、spawn inventory 与 `git diff --check` 均通过；ESLint 为 **0 errors、21 个既有 warnings**。本地通过不替代 exact-SHA `CLI CI` 和 `CLI Strict Sandbox` 三平台门禁。
+
+本轮正式产品取舍如下：
+
+| 可选协议面                      | 决策                | 边界与理由                                                                                                                                                                                                       |
+| ------------------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| resource templates              | **ship 只读生产面** | 已有 discovery/cache、明确的资源读取工作流和 server ownership；只暴露模板元数据，具体读取仍走既有显式 `read_mcp_resource` 边界。                                                                                 |
+| resources subscribe/unsubscribe | **defer**           | 保留低层 MCPClient API 与 `resource-updated` typed event，但不自动订阅或在 reconnect 后静默重订阅；等待真实长连接消费方、退订/恢复语义和 unsolicited update 展示策略。                                           |
+| logging level / log message     | **defer**           | 保留 level request 与 typed event，但不把 peer-controlled log data 自动写入终端、模型或 session；生产接线前需要独立的有界展示、去敏、背压和信任策略。                                                            |
+| completion                      | **defer**           | 保留 `completion/complete` 低层请求，不在 prompt/resource 参数编辑中自动发起远端调用；等待明确交互入口、deadline/cancel UX 与代表性 server 需求。                                                                |
+| sampling `createMessage`        | **保持不支持**      | client 不声明 sampling capability，server request 继续稳定返回 JSON-RPC `-32601`；server 发起的模型调用涉及 prompt/data disclosure、费用、provider policy、权限、预算和 durable ledger，不能由可选协议自动放开。 |
+
+该候选取得最终 exact-SHA 双门并进入 `main` 后，resource templates 的生产调用方与其余 optional capability 的明确取舍将共同满足 P2-3 原退出条件，届时可把 P2-3 从原始未完成清单删除。候选状态不关闭 Skill/MCP 真实恶意矩阵，不授权 native 发行，也不改变 npm 版本或创建 release tag。
