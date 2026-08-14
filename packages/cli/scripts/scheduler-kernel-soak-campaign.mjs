@@ -4,6 +4,7 @@ import { createHash, randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { FORMAL_SCHEDULER_SOAK_LEASE_FLOOR_MS } from "./scheduler-kernel-soak.mjs";
 
 const AGGREGATE_SCHEMA = "chainlesschain.scheduler-kernel-soak-aggregate.v1";
 const EXPECTED_OPERATING_SYSTEMS = Object.freeze(["linux", "macos", "windows"]);
@@ -248,7 +249,7 @@ function validateFormalProfile(profile) {
       profile.rounds * profile.steadyOccurrencesPerRound ||
     profile.steadyStateOccurrences < 1_000 ||
     !Number.isSafeInteger(profile.leaseMs) ||
-    profile.leaseMs < 1_000 ||
+    profile.leaseMs < FORMAL_SCHEDULER_SOAK_LEASE_FLOOR_MS ||
     profile.leaseMs > 60_000 ||
     !Number.isSafeInteger(profile.pollMs) ||
     profile.pollMs <= 0 ||
