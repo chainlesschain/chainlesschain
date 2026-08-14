@@ -46,6 +46,8 @@ function harness(options = {}) {
       ((text) => ({ ok: true, content: `${text} edited`, changed: true })),
     keybindings: options.keybindings,
     clipboardBinding: options.clipboardBinding,
+    maxClipboardImageAttachments: options.maxClipboardImageAttachments,
+    maxClipboardImageTotalBytes: options.maxClipboardImageTotalBytes,
     persistSuggestionEnabled: options.persistSuggestionEnabled,
     getSuggestionContext: options.getSuggestionContext,
     getColumns: options.getColumns,
@@ -168,7 +170,10 @@ describe("prompt interaction controller", () => {
         supportsImagePaste: true,
         readImage: async () => ({
           mediaType: "image/png",
-          data: Buffer.from("image"),
+          data: Buffer.concat([
+            Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+            Buffer.from("image"),
+          ]),
         }),
       },
     });
@@ -179,6 +184,60 @@ describe("prompt interaction controller", () => {
     });
     expect(supported.controller.takeClipboardImageChips()).toHaveLength(1);
     expect(supported.controller.takeClipboardImageChips()).toEqual([]);
+  });
+
+  it("bounds the clipboard attachment queue before another clipboard read", async () => {
+    const readImage = vi.fn(async () => ({
+      mediaType: "image/png",
+      data: Buffer.concat([
+        Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+        Buffer.from("queued"),
+      ]),
+    }));
+    const h = harness({
+      clipboardBinding: { supportsImagePaste: true, readImage },
+      maxClipboardImageAttachments: 1,
+    });
+    await expect(
+      h.controller.handleSlash("/paste-image"),
+    ).resolves.toMatchObject({
+      ok: true,
+    });
+    const rejected = await h.controller.handleSlash("/paste-image");
+    expect(rejected).toMatchObject({
+      ok: false,
+      reason: expect.stringContaining("limited to 1"),
+    });
+    expect(rejected).not.toHaveProperty("chip");
+    expect(readImage).toHaveBeenCalledTimes(1);
+    expect(h.controller.clearClipboardImageChips()).toBe(1);
+    expect(h.controller.clipboardImageBytes).toBe(0);
+    await h.controller.handleSlash("/paste-image");
+    expect(readImage).toHaveBeenCalledTimes(2);
+  });
+
+  it("drops image data when the aggregate clipboard byte budget is exceeded", async () => {
+    const h = harness({
+      clipboardBinding: {
+        supportsImagePaste: true,
+        readImage: async () => ({
+          mediaType: "image/png",
+          data: Buffer.concat([
+            Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+            Buffer.from("too-large-for-queue"),
+          ]),
+        }),
+      },
+      maxClipboardImageTotalBytes: 8,
+    });
+    const rejected = await h.controller.handleSlash("/paste-image");
+    expect(rejected).toMatchObject({
+      ok: false,
+      reason: expect.stringContaining("exceeds 8 bytes"),
+    });
+    expect(rejected).not.toHaveProperty("chip");
+    expect(h.controller.takeClipboardImageChips()).toEqual([]);
+    expect(h.controller.clipboardImageBytes).toBe(0);
   });
 
   it("merges only local data-image chips into multimodal turn content", () => {

@@ -18,6 +18,8 @@ import {
 } from "./repl-keybindings.js";
 import {
   detectClipboardImageCapability,
+  MAX_CLIPBOARD_IMAGE_ATTACHMENTS,
+  MAX_CLIPBOARD_IMAGE_TOTAL_BYTES,
   readClipboardImageChip,
 } from "./clipboard-image.js";
 import { layoutTerminalText } from "./terminal-layout.js";
@@ -34,6 +36,12 @@ function safeErrorText(value) {
     .split(/\r?\n/)
     .map((line) => line.replace(/[\p{Cc}\p{Cf}]+/gu, " ").trimEnd())
     .join("\n");
+}
+
+function boundedClipboardQueueLimit(value, fallback, maximum) {
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) return fallback;
+  return Math.min(parsed, maximum);
 }
 
 export const PROMPT_INTERACTION_SLASH_COMMANDS = Object.freeze([
@@ -136,6 +144,17 @@ export class PromptInteractionController {
     this.persistSuggestionEnabled = options.persistSuggestionEnabled;
     this.clipboardBinding = options.clipboardBinding || null;
     this.clipboardImageChips = [];
+    this.clipboardImageBytes = 0;
+    this.maxClipboardImageAttachments = boundedClipboardQueueLimit(
+      options.maxClipboardImageAttachments,
+      MAX_CLIPBOARD_IMAGE_ATTACHMENTS,
+      MAX_CLIPBOARD_IMAGE_ATTACHMENTS,
+    );
+    this.maxClipboardImageTotalBytes = boundedClipboardQueueLimit(
+      options.maxClipboardImageTotalBytes,
+      MAX_CLIPBOARD_IMAGE_TOTAL_BYTES,
+      MAX_CLIPBOARD_IMAGE_TOTAL_BYTES,
+    );
 
     const validated = validateReplKeybindings(options.keybindings || {});
     this.keybindingDiagnostics = validated.errors.slice();
@@ -279,12 +298,38 @@ export class PromptInteractionController {
         this._print(result.reason, { error: true });
         return { handled: true, action: "paste-image", ...result };
       }
-      const result = await readClipboardImageChip(this.clipboardBinding);
+      if (
+        this.clipboardImageChips.length >= this.maxClipboardImageAttachments
+      ) {
+        const result = {
+          ok: false,
+          supported: true,
+          mode: detectClipboardImageCapability(this.clipboardBinding).mode,
+          reason: `Clipboard attachment queue is limited to ${this.maxClipboardImageAttachments} images.`,
+        };
+        this._print(result.reason, { error: true });
+        return { handled: true, action: "paste-image", ...result };
+      }
+      let result = await readClipboardImageChip(this.clipboardBinding);
       if (result.ok) {
-        this.clipboardImageChips.push(result.chip);
-        this._print(
-          `Image attached from clipboard (${result.mediaType}, ${result.bytes} bytes).`,
-        );
+        if (
+          this.clipboardImageBytes + result.bytes >
+          this.maxClipboardImageTotalBytes
+        ) {
+          result = {
+            ok: false,
+            supported: true,
+            mode: result.mode,
+            reason: `Clipboard attachment queue exceeds ${this.maxClipboardImageTotalBytes} bytes.`,
+          };
+          this._print(result.reason, { error: true });
+        } else {
+          this.clipboardImageChips.push(result.chip);
+          this.clipboardImageBytes += result.bytes;
+          this._print(
+            `Image attached from clipboard (${result.mediaType}, ${result.bytes} bytes).`,
+          );
+        }
       } else {
         this._print(result.reason, { error: true });
       }
@@ -371,12 +416,20 @@ export class PromptInteractionController {
   takeClipboardImageChips() {
     const chips = this.clipboardImageChips.slice();
     this.clipboardImageChips.length = 0;
+    this.clipboardImageBytes = 0;
     return chips;
+  }
+
+  clearClipboardImageChips() {
+    const cleared = this.clipboardImageChips.length;
+    this.clipboardImageChips.length = 0;
+    this.clipboardImageBytes = 0;
+    return cleared;
   }
 
   dispose() {
     this.suggestions.dispose();
-    this.clipboardImageChips.length = 0;
+    this.clearClipboardImageChips();
   }
 }
 

@@ -1,6 +1,6 @@
-# CLI Runtime 当前实现（0.163.6）
+# CLI Runtime 当前实现（0.163.7）
 
-> 更新时间：2026-08-13。npm `latest`、生产推荐版与主线包元数据均为 `0.163.6`。稳定能力以不可变 tag `v-npm-0-163-6` 的精确 SHA [`85c3577c88`](https://github.com/chainlesschain/chainlesschain/commit/85c3577c887003fea98d0a159603cd359506f09b) 为准。`main` 新增的 scheduler outcome-unknown 人工裁决尚未进入 npm 发布，本文会明确区分源码能力与稳定安装契约。
+> 更新时间：2026-08-14。npm `latest`、生产推荐版与主线包元数据均为 `0.163.7`。稳定能力以不可变 tag `v-npm-0-163-7` 的精确 SHA [`3e99716862`](https://github.com/chainlesschain/chainlesschain/commit/3e997168621c53708a1682868c6cc4edc9baf15b) 为准。磁盘故障加固、Automation 受治理恢复和 scheduler soak campaign 均晚于该不可变 tarball，本文会明确区分源码能力与稳定安装契约。
 
 ## 概述
 
@@ -10,18 +10,19 @@
 
 | 用途                | 版本      | 说明                                                                                                                |
 | ------------------- | --------- | ------------------------------------------------------------------------------------------------------------------- |
-| 生产 / 日常稳定使用 | `0.163.6` | `v-npm-0-163-6` 的同一 exact SHA 已完成 Linux、Windows、macOS CLI CI、Strict Sandbox、制品与发布门 |
-| npm `latest`        | `0.163.6` | registry、tag、provenance、tarball 与授权 workflow 已交叉回读                                      |
-| IDE 工作台          | CLI `0.163.6` + VS Code `0.37.51` / JetBrains `0.4.87` | Automation Center + 默认关闭的受治理自动 ghost-text |
-| Scheduler 人工裁决  | `main` 源码（未发版） | 只供源码检出验证；不要在 `0.163.6` 安装上假定命令存在 |
+| 生产 / 日常稳定使用 | `0.163.7` | `v-npm-0-163-7` 的同一 exact SHA 已完成 Linux、Windows、macOS CLI CI、Strict Sandbox、制品与发布门 |
+| npm `latest`        | `0.163.7` | registry、tag、provenance、tarball 与授权 workflow 已交叉回读                                      |
+| IDE 工作台          | CLI `0.163.7` + VS Code `0.37.51` / JetBrains `0.4.87` | Automation Center + 默认关闭的受治理自动 ghost-text |
+| Scheduler 裁决/迁移 | `0.163.7` | outcome-unknown 裁决、五域 migration journal 与受治理 rollback 已发布 |
+| Runtime 恢复/soak   | `main@12109a5d9e` | pause/resume、incident retry/cancel 与 soak 证据框架仅供源码验证；不属于 `0.163.7` tarball |
 
 生产安装建议显式固定：
 
 ```bash
-npm i -g chainlesschain@0.163.6
+npm i -g chainlesschain@0.163.7
 ```
 
-已安装 `0.163.6` 的用户就是当前生产推荐版。`0.163.5` 是上一完整门禁基线；旧的失败 tag 保持不可变，不移动或复用。
+已安装 `0.163.7` 的用户就是当前生产推荐版。`0.163.6` 是上一完整门禁基线；旧的失败 tag 保持不可变，不移动或复用。
 
 ## 核心特性
 
@@ -46,7 +47,11 @@ npm i -g chainlesschain@0.163.6
 - `0.163.6` 统一调度收敛：Agenda monitor、Loop、Automation cron、Routine GitHub、scope-checked channel event 与 standalone daemon 已接入共享 scheduler；Agenda/Cowork cron 支持规范 IANA timezone、DST gap/repeated minute 与 missed-run collapse。
 - `0.163.6` 共享 authority：Agenda、Routine、Cowork、Automation、Loop 在执行前复验 exact capability policy revision，并以同一事务 reservation/settlement 处理 run/unit 预算；缺失、过期、停用、耗尽或不一致的策略失败闭合，retry 不重复扣减。
 - `0.163.6` Automation Center：CLI-owned versioned projection 暴露 scope、preflight 与 history；VS Code `0.37.50` / JetBrains `0.4.86` 通过 exact argv 与 revision CAS 执行 run-now、失败重试、pause/resume、disable/delete 及 Routine 创建/编辑。IDE 不直接写权威存储。
-- `main` scheduler adjudication：只针对 `*_OUTCOME_UNKNOWN` 的 `dead_letter`，以 evidence digest、attempt、fence 做 CAS。`confirmed_applied` 只结算不重放；`confirmed_not_applied` 只放行一次有界 claim。操作前必须停掉全部 scheduler host、排空已分发工作并核验外部结果。
+- `0.163.7` scheduler adjudication：只针对 `*_OUTCOME_UNKNOWN` 的 `dead_letter`，以 evidence digest、attempt、fence 做 CAS。`confirmed_applied` 只结算不重放；`confirmed_not_applied` 只放行一次有界 claim。操作前必须停掉全部 scheduler host、排空已分发工作并核验外部结果。
+- `0.163.7` migration/rollback：Agenda、Cowork Cron、Routine、Automation 与 Loop 以 schema-v5 journal 绑定 source/target digest、retirement fence 与恢复阶段；rollback 先处理 target，再经最新 evidence digest、交互 TTY 和 exact typed challenge 恢复 legacy source。
+- `0.163.7` causal observability：session delivery graph 绑定精确 transcript head/event count 与 diff/gate/artifact/PR/merge revision；`call-ledger@1` 对 model、retry、compaction、subagent、isolated Skill 与 tool call 的未知 settlement 失败闭合，而不是按零计费。
+- `main` 磁盘与 Automation 恢复：Agenda/Cowork 权威写入使用 private temp、完整 short-write、fsync 与 atomic rename，确定性 fault matrix 已关闭；Automation Center 另新增 exact fence/control revision/capability 约束的 checkpoint pause/resume，以及只对 scheduler-backed dead letter 安全开放的 incident retry/cancel。
+- `main` scheduler soak：Linux/Windows/macOS workflow 已覆盖双 worker contention、higher-fence recovery、stale settlement、no-replay、heartbeat、DST、backlog、数据库完整性、后代回收和资源趋势；正式退出仍需至少 72 小时、4 个 formal segment、最大段间隔 30 小时，当前尚未完成。
 - 原生发行边界：unsigned 六目标 native validation 与三系统两小时可靠性门已在同一精确 SHA 成功，但 validation 固定 `signed=false`、`releaseEligible=false`；Windows Authenticode、macOS signing/notarization、updater key 与公开原生 fresh install/upgrade/rollback 回读仍未完成。
 - 跨平台 sandbox 与 credential agent：前台、后台、hook、MCP、monitor、LSP、PTY 和插件 bin 都通过统一 broker 执行。
 - 强执行路径补齐：插件异步/后台进程、通用后台任务、CLI PTY 与桌面项目 PTY 共用失败闭合边界；未经证明的项目根和远端 metadata 不能获得本机 PTY 权限。
@@ -83,13 +88,49 @@ cc
  │    ├─ versioned SQLite + revision CAS + occurrence history
  │    ├─ Routine / Agenda / Cowork / Automation / Loop adapters
  │    ├─ exact capability policy + transactional budget authority
- │    └─ source-only outcome-unknown adjudication + evidence CAS
+ │    ├─ adjudication + migration/rollback evidence CAS
+ │    └─ source-only checkpoint control + incident requeue
  ├─ MCP ws/wss + uncertain-outcome recovery authority
  │    └─ stdio runtime identity + source policy/workspace authority → Broker
  ├─ bounded usage / retry attribution
  ├─ async-hook supervisor (timeout + process-tree reap)
  └─ Hooks v2 + session hooks (Setup/Notification)
 ```
+
+## Scheduler 运维与发布后恢复命令
+
+`0.163.7` 已公开人工裁决与迁移检查。裁决前必须停掉所有 scheduler host、排空已分发工作，并在外部系统核验真实结果；不要直接编辑 SQLite/JSONL 绕过证据 CAS。
+
+```bash
+cc daemon scheduler adjudication list
+cc daemon scheduler adjudication show <occurrence-id>
+cc daemon scheduler adjudication decide <occurrence-id> \
+  --decision confirmed_applied \
+  --expected-evidence-digest sha256:<digest> \
+  --expected-attempt <attempt> \
+  --expected-fence <fence>
+
+cc daemon scheduler migration list
+cc daemon scheduler migration show <migration-id>
+cc daemon scheduler migration rollback <migration-id> \
+  --expected-evidence-digest sha256:<digest>
+```
+
+源码 `main@12109a5d9e` 的 Automation Center 还会在 `center-projection` 中给出 exact argv。以下 mutation 必须使用刚读取到的 fence/revision；投影过期就重新读取，不要猜值：
+
+```bash
+cc automation center-projection --json
+cc automation center-runtime-action <occurrence-id> pause \
+  --expected-fence <fence> --expected-control-revision <revision> --json
+cc automation center-runtime-action <occurrence-id> resume \
+  --expected-fence <fence> --expected-control-revision <revision> --json
+cc automation center-incident-action <incident-id> retry \
+  --expected-revision <revision> --json
+cc automation center-incident-action <incident-id> cancel \
+  --expected-revision <revision> --json
+```
+
+pause 是合作式 checkpoint 控制，不是强杀；manual incident 不提供 retry，因为无法证明外部副作用未发生。上述 runtime/incident 命令晚于 `0.163.7`，正式 npm 用户应等待后续完成 exact-SHA 发布门的新版本。
 
 ## 关键文件
 
@@ -114,9 +155,11 @@ cc
 - `packages/cli/src/lib/paths.js`：`CHAINLESSCHAIN_HOME` 与运行目录解析。
 - `packages/cli/src/lib/session-hooks.js`：通知与会话钩子。
 - `packages/cli/src/lib/scheduler-kernel/{contract,store,runtime}.js`：统一调度契约、SQLite 状态与 host-owned runtime。
-- `packages/cli/src/lib/scheduler-kernel/{routine,agenda,cowork-cron,automation,loop,automation-event}-adapter.js`：`0.163.6` 已发布 adapter。
+- `packages/cli/src/lib/scheduler-kernel/{routine,agenda,cowork-cron,automation,loop,automation-event}-adapter.js`：`0.163.6` 已发布 adapter，`0.163.7` 已发布迁移/裁决接线。
 - `packages/cli/src/lib/scheduler-kernel/authority-resolver.js`、`service.js`：共享权限/预算解析与常驻 scheduler service。
-- `packages/cli/src/commands/scheduler-daemon.js`、scheduler store schema v3：`main` 的人工裁决命令、typed challenge、证据 CAS 与单调决策记录。
+- `packages/cli/src/commands/scheduler-daemon.js`、scheduler store migration/adjudication tables：`0.163.7` 的 typed challenge、证据 CAS、单调裁决与受治理 rollback。
+- `packages/cli/src/lib/automation-center-runtime.js`、`automation-center-incidents.js`：发布后源码的脱敏 runtime/incident 投影、exact argv 与 fenced mutation。
+- `packages/cli/scripts/scheduler-kernel-soak*.mjs`、`.github/workflows/cli-scheduler-soak*.yml`：三平台 formal segment 与 72 小时 campaign verifier。
 
 ## 平台注意
 
@@ -140,7 +183,7 @@ cc mcp add my-server --command node --args ./server.mjs \
   --runtime-kind node --auto-connect
 ```
 
-`0.163.6` 允许在 `.mcp.json`、managed settings、Skill 或 Cowork 定义中声明 source-required boundary：
+`0.163.7` 允许在 `.mcp.json`、managed settings、Skill 或 Cowork 定义中声明 source-required boundary：
 
 ```json
 {
@@ -162,7 +205,7 @@ source 配置中的 `requiredBoundaries` 当前只接受 `filesystem` 和 `netwo
 
 ## 在 IDE 中查看质量、插件、Worktree 与 Agent Teams
 
-Open VSX 当前公开 VS Code `0.37.51`，JetBrains Marketplace 当前公开 `0.4.87`。生产建议搭配 CLI `0.163.6`：
+Open VSX 当前公开 VS Code `0.37.51`，JetBrains Marketplace 当前公开 `0.4.87`。生产建议搭配 CLI `0.163.7`：
 
 - 质量上下文只发送有界的测试结果、覆盖率与调试器快照，并标注新鲜度；VS Code Notebook 使用当前 notebook 的真实执行上下文。
 - Installation Doctor 会同时检查 Node/Java、managed CLI 与插件 registry 离线恢复状态，不从工作区目录探测可执行文件。
@@ -262,7 +305,9 @@ cc daemon scheduler adjudication show <occurrence-id>
 | strict sandbox 启动即拒绝          | 运行 `cc doctor`，检查 Docker/bubblewrap/AppContainer 与平台证明；不要通过降低策略掩盖生产配置错误                |
 | checkpoint 显示 `partial` / `none` | 检查 writer 是否由 Broker 管理、是否位于声明 workspace，以及是否存在外部副作用                                    |
 | Team task 停在 adjudication        | 重新读取 status、authority digest、attempt 和 evidence，再显式 retry、accept 或 cancel                            |
-| Scheduler 出现 outcome-unknown 死信 | `0.163.6` 不含人工裁决命令；源码版先停全部 host、排空 dispatch、外部核验，再 `adjudication show/decide`，禁止盲目重跑 |
+| Scheduler 出现 outcome-unknown 死信 | `0.163.7` 先停全部 host、排空 dispatch、外部核验，再执行 `adjudication show/decide`；禁止盲目重跑或直接改存储 |
+| pause/resume 提示 fence/revision conflict | 重新读取 `center-projection` 并使用最新 exact argv；不要复用旧投影或自行改 fence |
+| incident retry 被拒绝               | 只有与 scheduler dead letter 的 occurrence/job/run/fence/error code 全部匹配才可重试；manual incident 只能 cancel |
 | `CC_SKILL_DIRECT_HANDLER_BLOCKED`  | 当前 production 不执行 direct handler；改用受支持的隔离 Skill 工具，不要修改 handler 绕过检查                     |
 | 会话或预算状态异常                 | 在同一 `CHAINLESSCHAIN_HOME` 下检查 session JSONL、状态日志和目录权限，避免混用多个运行目录                       |
 
@@ -277,7 +322,7 @@ npm run test:integration
 npm run test:e2e
 ```
 
-`0.163.6` 的权威发布提交为 [`85c3577c887003fea98d0a159603cd359506f09b`](https://github.com/chainlesschain/chainlesschain/commit/85c3577c887003fea98d0a159603cd359506f09b)。同一 `head_sha` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31595865423)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31595865206)、[npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/31595865181)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/31597577056)均成功。Linux、Windows、macOS 的权威矩阵必须绑定精确提交；本地结果只能补充，不能替代发布门。
+`0.163.7` 的权威发布提交为 [`3e997168621c53708a1682868c6cc4edc9baf15b`](https://github.com/chainlesschain/chainlesschain/commit/3e997168621c53708a1682868c6cc4edc9baf15b)。同一 `head_sha` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31745391661)（attempt 2）、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31745391321)、[npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/31748153519)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/31749404980)均成功。npm 公网回读为 `latest=0.163.7`，tarball SHA-1 为 `5bfb7471643cfe4d4cd0b0a382b31c63fc1efdff`。Linux、Windows、macOS 的权威矩阵必须绑定精确提交；本地结果和发布后源码门只能补充，不能替代发布授权。
 
 ## 相关文档
 

@@ -1,0 +1,238 @@
+name: CLI Clipboard Image Host Matrix
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cli-clipboard-image.yml"
+      - ".github/actions/setup-node-deps/action.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "packages/cli/package.json"
+      - "packages/cli/scripts/clipboard-image-host-smoke.mjs"
+      - "packages/cli/src/lib/process-execution-broker/**"
+      - "packages/cli/src/lib/secure-fs.js"
+      - "packages/cli/src/repl/clipboard-image.js"
+      - "packages/cli/src/repl/prompt-interactions.js"
+      - "packages/cli/src/repl/agent-repl.js"
+      - "packages/cli/__tests__/unit/clipboard-image.test.js"
+      - "packages/cli/__tests__/unit/prompt-interactions.test.js"
+      - "packages/cli/__tests__/unit/agent-repl-prompt-interactions.test.js"
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "Exact full commit SHA to validate"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.commit_sha || github.event.pull_request.head.sha }}
+  cancel-in-progress: false
+
+jobs:
+  clipboard-image-host:
+    name: "clipboard image host (${{ matrix.os }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      CC_CLIPBOARD_IMAGE_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha }}
+      CC_CLIPBOARD_IMAGE_WORKFLOW_SHA: ${{ github.workflow_sha }}
+      GITHUB_WORKFLOW_SHA: ${{ github.workflow_sha }}
+    steps:
+      - name: Require lowercase exact-SHA clipboard identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${CC_CLIPBOARD_IMAGE_EXPECTED_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          [[ "${GITHUB_WORKFLOW_SHA}" =~ ^[0-9a-f]{40}$ ]]
+
+      - name: Checkout exact clipboard image commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CC_CLIPBOARD_IMAGE_EXPECTED_SHA }}
+
+      - name: Bind checkout to exact clipboard image commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_sha="$(git rev-parse HEAD | tr '[:upper:]' '[:lower:]')"
+          test "${actual_sha}" = "${CC_CLIPBOARD_IMAGE_EXPECTED_SHA}"
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Install Linux clipboard host
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y x11-utils xclip xvfb
+
+      - name: Run Linux clipboard image write/read smoke
+        if: runner.os == 'Linux'
+        shell: bash
+        env:
+          CC_CLIPBOARD_IMAGE_OUTPUT: ${{ runner.temp }}/clipboard-image-${{ runner.os }}.json
+        run: |
+          set -euo pipefail
+          unset WAYLAND_DISPLAY
+          Xvfb :99 -nolisten tcp -screen 0 1280x720x24 >"${RUNNER_TEMP}/xvfb.log" 2>&1 &
+          xvfb_pid="$!"
+          cleanup_xvfb() {
+            kill "${xvfb_pid}" 2>/dev/null || true
+            wait "${xvfb_pid}" 2>/dev/null || true
+          }
+          trap cleanup_xvfb EXIT
+          export DISPLAY=:99
+          for attempt in {1..50}; do
+            if xdpyinfo -display "${DISPLAY}" >/dev/null 2>&1; then break; fi
+            sleep 0.1
+          done
+          xdpyinfo -display "${DISPLAY}" >/dev/null
+          node packages/cli/scripts/clipboard-image-host-smoke.mjs
+
+      - name: Run Windows clipboard image write/read smoke
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          CC_CLIPBOARD_IMAGE_OUTPUT: ${{ runner.temp }}/clipboard-image-${{ runner.os }}.json
+        run: node packages/cli/scripts/clipboard-image-host-smoke.mjs
+
+      - name: Run macOS clipboard image write/read smoke
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          CC_CLIPBOARD_IMAGE_OUTPUT: ${{ runner.temp }}/clipboard-image-${{ runner.os }}.json
+        run: node packages/cli/scripts/clipboard-image-host-smoke.mjs
+
+      - name: Upload exact-SHA clipboard image evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: cli-clipboard-image-${{ runner.os }}-${{ env.CC_CLIPBOARD_IMAGE_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/clipboard-image-${{ runner.os }}.json
+          if-no-files-found: error
+          retention-days: 90
+
+  clipboard-image-aggregate:
+    name: Clipboard image host aggregate
+    if: always()
+    needs: clipboard-image-host
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CC_CLIPBOARD_IMAGE_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha }}
+      CC_CLIPBOARD_IMAGE_WORKFLOW_SHA: ${{ github.workflow_sha }}
+    steps:
+      - name: Refuse an incomplete host matrix
+        shell: bash
+        env:
+          MATRIX_RESULT: ${{ needs.clipboard-image-host.result }}
+        run: |
+          set -euo pipefail
+          test "${MATRIX_RESULT}" = "success"
+
+      - name: Download clipboard image host evidence
+        uses: actions/download-artifact@v7
+        with:
+          pattern: cli-clipboard-image-*-${{ env.CC_CLIPBOARD_IMAGE_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/clipboard-image-evidence
+          merge-multiple: true
+
+      - name: Verify exact-SHA clipboard image evidence
+        shell: bash
+        env:
+          EVIDENCE_ROOT: ${{ runner.temp }}/clipboard-image-evidence
+          AGGREGATE_OUTPUT: ${{ runner.temp }}/clipboard-image-aggregate.json
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          import path from "node:path";
+
+          const expectedSha = process.env.CC_CLIPBOARD_IMAGE_EXPECTED_SHA;
+          const expectedWorkflowSha = process.env.CC_CLIPBOARD_IMAGE_WORKFLOW_SHA;
+          const files = fs.readdirSync(process.env.EVIDENCE_ROOT)
+            .filter((name) => name.endsWith(".json"))
+            .sort();
+          if (files.length !== 3) {
+            throw new Error(`expected three clipboard image evidence files; found ${files.length}`);
+          }
+          const entries = files.map((name) => JSON.parse(fs.readFileSync(
+            path.join(process.env.EVIDENCE_ROOT, name), "utf8",
+          )));
+          const expectedPlatforms = ["darwin", "linux", "win32"];
+          const actualPlatforms = entries.map((entry) => entry.platform).sort();
+          if (JSON.stringify(actualPlatforms) !== JSON.stringify(expectedPlatforms)) {
+            throw new Error("clipboard image evidence platform matrix is incomplete");
+          }
+          for (const entry of entries) {
+            if (
+              entry.schemaVersion !== 1 ||
+              entry.status !== "passed" ||
+              entry.releaseCommit !== expectedSha ||
+              entry.execution?.workflowSha !== expectedWorkflowSha ||
+              entry.mediaType !== "image/png" ||
+              entry.dimensions?.width !== 3 ||
+              entry.dimensions?.height !== 2 ||
+              !/^[0-9a-f]{64}$/u.test(entry.sha256 || "") ||
+              !/^[0-9a-f]{64}$/u.test(entry.fixtureSha256 || "") ||
+              !/^[0-9a-f]{64}$/u.test(entry.pixelSha256 || "") ||
+              !/^[0-9a-f]{64}$/u.test(entry.fixturePixelSha256 || "") ||
+              entry.pixelSha256 !== entry.fixturePixelSha256 ||
+              (
+                entry.platform === "darwin" &&
+                (
+                  entry.reader !== "osascript" ||
+                  entry.macosTiffFallback?.status !== "passed" ||
+                  entry.macosTiffFallback?.mediaType !== "image/png" ||
+                  entry.macosTiffFallback?.pixelSha256 !== entry.fixturePixelSha256 ||
+                  entry.macosTiffFallback?.reader !== "osascript+jxa-tiff"
+                )
+              ) ||
+              (
+                entry.platform === "linux" &&
+                (
+                  entry.writer !== "xclip" ||
+                  entry.writerLifecycle?.mode !== "foreground" ||
+                  entry.writerLifecycle?.loops !== 1 ||
+                  entry.writerLifecycle?.exitCode !== 0 ||
+                  entry.writerLifecycle?.signal !== null ||
+                  entry.writerLifecycle?.cleanupConfirmed !== true
+                )
+              )
+            ) {
+              throw new Error(`invalid clipboard image evidence for ${entry.platform || "unknown"}`);
+            }
+          }
+          if (new Set(entries.map((entry) => entry.fixturePixelSha256)).size !== 1) {
+            throw new Error("clipboard image fixtures differ across the host matrix");
+          }
+          fs.writeFileSync(process.env.AGGREGATE_OUTPUT, `${JSON.stringify({
+            schemaVersion: 1,
+            status: "passed",
+            releaseCommit: expectedSha,
+            platforms: entries,
+            verifiedAt: new Date().toISOString(),
+          }, null, 2)}\n`);
+          NODE
+
+      - name: Upload clipboard image aggregate
+        uses: actions/upload-artifact@v6
+        with:
+          name: cli-clipboard-image-aggregate-${{ env.CC_CLIPBOARD_IMAGE_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/clipboard-image-aggregate.json
+          if-no-files-found: error
+          retention-days: 90

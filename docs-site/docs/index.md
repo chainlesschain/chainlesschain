@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.135 | CLI 0.163.6 | Open VSX 0.37.51 · JetBrains 0.4.87 | 受治理自动补全 · Scheduler 裁决"
+  tagline: "v5.0.3.135 | CLI 0.163.7 | Open VSX 0.37.51 · JetBrains 0.4.87 | 迁移回滚 · 受治理恢复"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -37,10 +37,10 @@ features:
     details: 92 个采集契约覆盖 18 类来源，支持事务化事实归并、显式游标、有界分页与部分结果失败闭合。
   - icon: 🧪
     title: 发布证据分层
-    details: CLI 0.163.6 已在 exact SHA 完成三平台 CLI CI、Strict Sandbox、npm 发布与独立 registry 回读；统一 authority、时区与 Automation/Routine 控制面进入公开契约。
+    details: CLI 0.163.7 已在 exact SHA 完成三平台 CLI CI、Strict Sandbox、npm 发布与独立 registry 回读；裁决、五域迁移/回滚、因果交付与 call-ledger 进入公开契约。
 ---
 
-> **2026-08-13 当前主线快照**：桌面、Android 与 iOS 源码版本保持 `5.0.3.135`；npm `latest` 与生产推荐 CLI 仍为 `0.163.6`。Open VSX `0.37.51` 与 JetBrains Marketplace `0.4.87` 已公开默认关闭的受治理自动 ghost-text。`main` 还新增只处理 `*_OUTCOME_UNKNOWN` 死信的 scheduler 人工裁决：停全部 host、排空 dispatch、外部核验后，以 evidence digest、attempt、fence 做 CAS；“已生效”只结算，“未生效”只放行一次有界执行。该裁决尚未进入新的 npm 版本。详细入口：[CLI Runtime 当前实现](/chainlesschain/cli-runtime-current)、[Automation](/chainlesschain/cli-automation)、[补全](/chainlesschain/cli-complete)、[IDE 插件](/chainlesschain/ide-plugin)与[更新日志](/changelog)。
+> **2026-08-14 当前主线快照**：桌面、Android 与 iOS 源码版本保持 `5.0.3.135`；npm `latest` 与生产推荐 CLI 为 `0.163.7`。该版公开 outcome-unknown 裁决、Agenda/Cowork/Routine/Automation/Loop 五域迁移日志与受治理回滚、因果交付报告和 fail-closed call-ledger。发布后的 `main@12109a5d9e` 又关闭确定性磁盘故障矩阵，加入 exact-fence checkpoint pause/resume、scheduler-backed incident retry/cancel 和三平台 soak campaign gate；正式 72 小时观察证据尚未完成，不能把这些增量反写成 `0.163.7` tarball。详细入口：[CLI Runtime 当前实现](/chainlesschain/cli-runtime-current)、[Automation](/chainlesschain/cli-automation)、[补全](/chainlesschain/cli-complete)、[IDE 插件](/chainlesschain/ide-plugin)与[更新日志](/changelog)。
 
 > 2026-04-08 更新：文档站已对齐 CLI Agent Runtime 重构、统一 runtime event、session record、后台任务增强、Worktree 合并助手、压缩观测、会话迁移，以及 **Coding Agent Phase 5 最小 Harness + 真实 interrupt**。
 >

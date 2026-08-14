@@ -145,19 +145,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   not that a model call semantically caused a source hunk. Scope labels are not
   identity or membership proofs, digests are not signatures, anti-rollback is
   machine-local, and incomplete or legacy ledgers remain partial or unknown.
-- **Release boundary**: deterministic scheduler disk-fault closure landed after
-  this immutable release and is not attributed to its tarball. The
-  three-platform long-soak campaign, signed native distribution, and
-  representative alias-removal telemetry remained outside this release.
 - **Published release evidence**: immutable tag `v-npm-0-163-7` resolves to
-  exact source commit `3e997168621c53708a1682868c6cc4edc9baf15b`. Its Linux,
-  Windows, and macOS `CLI CI` (`31745391661`, attempt 2) and
-  `CLI Strict Sandbox` (`31745391321`) matrices passed; the dedicated npm
-  release (`31748153519`) completed its exact-SHA gate, immutable package,
-  Trusted Publishing, and signed provenance, and the independent public
-  readback (`31749404980`) succeeded. npm reports `latest=0.163.7`; the public
-  tarball SHA-1 is `5bfb7471643cfe4d4cd0b0a382b31c63fc1efdff` and SHA-256 is
+  exact source commit `3e997168621c53708a1682868c6cc4edc9baf15b`. Its
+  three-OS `CLI CI` (`31745391661`, attempt 2) and `CLI Strict Sandbox`
+  (`31745391321`) matrices passed; the dedicated npm release (`31748153519`)
+  completed exact-SHA gating, immutable artifact, CycloneDX SBOM, Trusted
+  Publishing, signed provenance, registry byte verification, and npmmirror
+  synchronization. Independent readback (`31749404980`) verified the public
+  tarball byte-for-byte against the immutable artifact. npm reports
+  `latest=0.163.7`; tarball SHA-1 is
+  `5bfb7471643cfe4d4cd0b0a382b31c63fc1efdff` and SHA-256 is
   `d7ca295e6cdb4e442ee7ad6bb9cc0b9d923f40de4eae395974d91b4dfab83a9d`.
+- **Release boundary**: deterministic scheduler disk-fault closure landed
+  after this immutable release and must not be attributed to its tarball. The
+  three-OS long-soak exit campaign, signed native distribution, and
+  representative alias-removal telemetry remain open.
 
 ### Added — cc CLI 0.163.6: unified scheduler authority and automation control
 

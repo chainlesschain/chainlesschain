@@ -173,6 +173,7 @@ import {
   createPromptInteractionSurface,
   mergeClipboardImageChips,
 } from "./prompt-interactions.js";
+import { createSystemClipboardImageBinding } from "./clipboard-image.js";
 import {
   buildPermissionPrompt,
   resolveAskIdleTimeoutMs,
@@ -4642,6 +4643,12 @@ async function startAgentReplInWorkspaceOwned(
 
   // Prompt-side interaction modules share the production readline surface.
   // A per-REPL registry avoids singleton handlers retaining an old session.
+  const _clipboardBinding = Object.prototype.hasOwnProperty.call(
+    options,
+    "clipboardBinding",
+  )
+    ? options.clipboardBinding
+    : createSystemClipboardImageBinding();
   const _promptInteractionSurface = createPromptInteractionSurface({
     readline: rl,
     config: _promptInteractionConfig,
@@ -4649,7 +4656,7 @@ async function startAgentReplInWorkspaceOwned(
     getSessionId: () => sessionId,
     getSuggestionContext: () => ({ messages: messages.slice() }),
     persistSuggestionEnabled: _persistPromptSuggestionsEnabled,
-    clipboardBinding: options.clipboardBinding || null,
+    clipboardBinding: _clipboardBinding,
     generateSuggestions: resolveReplPromptSuggestionGenerator(
       useJsonl,
       options.generatePromptSuggestions,
@@ -5936,6 +5943,7 @@ async function startAgentReplInWorkspaceOwned(
       if (snap) _clearedConversation = snap;
       messages.length = 1; // Keep system prompt
       _checkpointMarks.length = 0; // checkpoint marks no longer map to anything
+      _promptInteractions.clearClipboardImageChips();
       logger.info(
         snap
           ? "Conversation cleared — run /rewind clear to restore it"
