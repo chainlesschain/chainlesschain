@@ -2,7 +2,7 @@
 
 > 分析起始日期：2026-08-01；当前核验日期：2026-08-14
 >
-> ChainlessChain 历史候选基线：`packages/cli` v0.162.194 release candidate；v0.162.190 / v0.162.191 / v0.162.192 未发布；v0.162.193 已被非权威通用 workflow 发布且不得视为门禁通过。本次 CLI 发布核验基线为最终 release SHA `3e997168621c53708a1682868c6cc4edc9baf15b`（2026-08-14，PR #185）；公网 npm `latest` 为 v0.163.7，其 release SHA 同为 `3e997168621c53708a1682868c6cc4edc9baf15b`。v0.163.7 的 exact-SHA 发布子闭环已完成；当前收口和未完成项见第 18 节。
+> ChainlessChain 历史候选基线：`packages/cli` v0.162.194 release candidate；v0.162.190 / v0.162.191 / v0.162.192 未发布；v0.162.193 已被非权威通用 workflow 发布且不得视为门禁通过。本次 CLI 发布核验基线为最终 release SHA `a0631cb4f97f45ff7fcef9c19d346ed2b8387da6`（2026-08-14，PR #194）；公网 npm `latest` 为 v0.163.8，其 release SHA 同为 `a0631cb4f97f45ff7fcef9c19d346ed2b8387da6`。v0.163.8 的 exact-SHA 发布子闭环已完成；当前收口和未完成项见第 18 节，完整发布证据见第 18.12 节。
 >
 > Claude Code 参考基线：官方文档与 2.1.220 changelog（2026-07-25）
 >
@@ -1395,32 +1395,33 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 
 ## 18. 2026-08-14 当前未完成任务与执行顺序
 
-本节是面向继续开发的**当前清单**，优先级高于第 14～17 节保留的历史阶段判定。本次发布核验基线为最终 release SHA `3e997168621c53708a1682868c6cc4edc9baf15b`；公网 npm `latest` 为 `chainlesschain@0.163.7`，其 release SHA 同为该提交。PR #180 的 outcome-unknown 人工裁决、PR #183 的五域迁移/回滚和 PR #182 的因果可观测性均已进入该公开版本；完整发布证据见第 18.8 节。
+本节是面向继续开发的**当前清单**，优先级高于第 14～17 节保留的历史阶段判定。本次发布核验基线为最终 release SHA `a0631cb4f97f45ff7fcef9c19d346ed2b8387da6`；公网 npm `latest` 为 `chainlesschain@0.163.8`，其 release SHA 同为该提交。PR #180 的 outcome-unknown 人工裁决、PR #183 的五域迁移/回滚和 PR #182 的因果可观测性已先进入 `0.163.7`；其后的磁盘故障矩阵、governed recovery、正式 soak verifier、scheduler transaction-time fencing、governed merge review 与 MCP resource templates 已进入 `0.163.8`。两个版本的完整发布证据分别见第 18.8 节和第 18.12 节。
 
 ### 18.1 三种统计口径
 
-| 口径                     | 当前结论                                             | 说明                                                                                                                          |
-| ------------------------ | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| 原始 P0-1～P2-4 共 15 项 | **9 完成、6 部分完成、0 完全未开始；6 项未完全关闭** | 分层统计为 P0 **4 完成/1 部分**、P1 **3 完成/3 部分**、P2 **2 完成/2 部分**；P2-3 已正式关闭，P2-4 仍只占一个“部分完成”条目。 |
-| 第 16.8 节六项产品任务   | **3 完成、3 未完成**                                 | 任务 1、2、6 完成；任务 3、4、5 未完成。该专项清单没有覆盖全部原始 15 项。                                                    |
-| P2-4 调度内核内部清单    | **磁盘故障矩阵正式完成，1 个子项仍未完成**           | 磁盘故障矩阵已通过 exact-SHA 三平台门禁并进入 `main`；仅剩三平台长期 soak。                                                   |
+| 口径                     | 当前结论                                              | 说明                                                                                                                                |
+| ------------------------ | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| 原始 P0-1～P2-4 共 15 项 | **10 完成、5 部分完成、0 完全未开始；5 项未完全关闭** | 分层统计为 P0 **4 完成/1 部分**、P1 **3 完成/3 部分**、P2 **3 完成/1 部分**；P2-2、P2-3 已正式关闭，P2-4 仍只占一个“部分完成”条目。 |
+| 第 16.8 节六项产品任务   | **3 完成、3 未完成**                                  | 任务 1、2、6 完成；任务 3、4、5 未完成。该专项清单没有覆盖全部原始 15 项。                                                          |
+| P2-4 调度内核内部清单    | **磁盘故障矩阵正式完成，1 个子项仍未完成**            | 磁盘故障矩阵已通过 exact-SHA 三平台门禁并进入 `main`；仅剩三平台长期 soak。                                                         |
 
-### 18.2 原始 15 项中仍未完全关闭的 6 项
+### 18.2 原始 15 项中仍未完全关闭的 5 项
 
-| 原始项                               | 当前状态             | 仍需完成的退出条件                                                                                                                                                                                                                                                                                                                            |
-| ------------------------------------ | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P0-3 exact-SHA 发布门与可信更新链    | **部分完成 / NO-GO** | CLI npm exact-SHA 子链已是 GO；native 仍需 updater Ed25519、Windows Authenticode、macOS Developer ID/notarization、Linux/Sigstore、签名后的 fresh install/upgrade/rollback、Homebrew/WinGet 实际发布与公开资产逐字节回读。                                                                                                                    |
-| P1-1 命令面收敛 / Agent 默认入口     | **部分完成**         | Agent 默认入口与核心帮助面已完成，但 25 个 compatibility alias 仍全部保留。只有取得代表性 Collector/cohort、三平台 reporting coverage、非零 accepted points 与逐命令 usage，并达到 `0.164.0` removal floor 后，才能作最终删除决策。                                                                                                           |
-| P1-2 后台 Agent 恢复、隔离与预算取消 | **部分完成**         | PR #131 已关闭默认后台 worktree、显式 `--no-worktree` 和主要 supervisor fencing；仍缺 native spawn 返回到 PID commit 之间的 hard-kill 窗口、无可复验 PID 的 detached descendant、独立长期 keeper，以及针对该边界的 kill/restart/并发/清理长期矩阵。                                                                                           |
-| P1-5 官方 native 发行物与回滚升级    | **部分完成 / NO-GO** | 六目标 unsigned validation 已完成，签名公开发行链仍未完成。该项与 P0-3 的 native 子范围重叠，属于同一个主要交付包，不应重复估算为两套独立工作。                                                                                                                                                                                               |
-| P2-2 交互细节                        | **部分完成**         | suggestions、recap、外部编辑器、prompt stash、keybindings 与文本 clipboard 已覆盖；标准终端的 production 系统剪贴板图片 `readImage` adapter 仍未通过真实 macOS host。诊断 head `458798ae7ec002ebc02527a026550c696c4a57a7` 的 run `31797304999` 在 `tiff-width-name-absent` 失败，后续 lazy `CGImage` 路径仍是待 host 验证候选，不能计为完成。 |
-| P2-4 调度内核收敛                    | **部分完成**         | 磁盘故障矩阵已正式完成；仍有三平台长期 soak 1 个内部子项，见下一节。完成某个 adapter、UI 或 preflight 不能把整项改为完成。                                                                                                                                                                                                                    |
+| 原始项                               | 当前状态             | 仍需完成的退出条件                                                                                                                                                                                                                                  |
+| ------------------------------------ | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P0-3 exact-SHA 发布门与可信更新链    | **部分完成 / NO-GO** | CLI npm exact-SHA 子链已是 GO；native 仍需 updater Ed25519、Windows Authenticode、macOS Developer ID/notarization、Linux/Sigstore、签名后的 fresh install/upgrade/rollback、Homebrew/WinGet 实际发布与公开资产逐字节回读。                          |
+| P1-1 命令面收敛 / Agent 默认入口     | **部分完成**         | Agent 默认入口与核心帮助面已完成，但 25 个 compatibility alias 仍全部保留。只有取得代表性 Collector/cohort、三平台 reporting coverage、非零 accepted points 与逐命令 usage，并达到 `0.164.0` removal floor 后，才能作最终删除决策。                 |
+| P1-2 后台 Agent 恢复、隔离与预算取消 | **部分完成**         | PR #131 已关闭默认后台 worktree、显式 `--no-worktree` 和主要 supervisor fencing；仍缺 native spawn 返回到 PID commit 之间的 hard-kill 窗口、无可复验 PID 的 detached descendant、独立长期 keeper，以及针对该边界的 kill/restart/并发/清理长期矩阵。 |
+| P1-5 官方 native 发行物与回滚升级    | **部分完成 / NO-GO** | 六目标 unsigned validation 已完成，签名公开发行链仍未完成。该项与 P0-3 的 native 子范围重叠，属于同一个主要交付包，不应重复估算为两套独立工作。                                                                                                     |
+| P2-4 调度内核收敛                    | **部分完成**         | 磁盘故障矩阵已正式完成；仍有三平台长期 soak 1 个内部子项，见下一节。完成某个 adapter、UI 或 preflight 不能把整项改为完成。                                                                                                                          |
 
 ### 18.3 P2-4 剩余 1 个内部子项
 
 1. **三平台长期 soak**：在 Linux、Windows、macOS 上验证 kill/restart、双实例 lease/fencing、DST 边界、积压恢复、FD/handle/orphan 退休与长期资源稳定性。
 
-截至本次更新，正式有效的长期 soak segment 为 **0/4**。退出门要求同一 campaign 完成四个三平台 segment，每个 segment 至少运行 `7200s`，四次启动覆盖至少 `72h`，相邻启动间隔不超过 `30h`，并由最终 campaign verifier 对 exact SHA、seed、artifact 与资源趋势统一验收；短时 smoke、单平台运行或失败 segment 都不计入 4 个正式样本。
+首次正式尝试 [Scheduler Kernel Soak run `31807830251`](https://github.com/chainlesschain/chainlesschain/actions/runs/31807830251) 从不可变 ref `v-npm-0-163-8` 绑定 exact SHA `a0631cb4f97f45ff7fcef9c19d346ed2b8387da6`，`run_started_at=2026-08-14T14:05:41Z`。Windows job `94790923627` 在第 4 轮、连续运行 `270.1766281s` 后因 `worker steady-1 exited before expected event: code=1 signal=none` 失败；失败前已完成 4 rounds、40 steady occurrences、8 hard kills 和 49 effects。Windows artifact `9222159151` 的 workflow digest 为 `sha256:d01436bbfab044d2edb46de6745ed0ca22353db1135779197a615266be889a1a`。为避免继续占用 runner，Ubuntu 与 macOS 随后取消，整个 run 最终为 `cancelled`。
+
+该 run 是无效 segment，不定义正式 `T0`；正式有效的长期 soak segment 仍为 **0/4**。必须先修复并通过同一 exact SHA 的三平台门禁，再从新成功 segment 的实际 `run_started_at` 重置 `T0`。退出门要求同一 campaign 完成四个三平台 segment，每个 segment 至少运行 `7200s`，四次启动覆盖至少 `72h`，相邻启动间隔不超过 `30h`，并由最终 campaign verifier 对 exact SHA、seed、artifact 与资源趋势统一验收；短时 smoke、单平台、进行中、失败或取消的 segment 都不计入 4 个正式样本。有效调度仍采用 `T0 / +25h / +50h / +75h`。
 
 五域迁移/回滚已随 `chainlesschain@0.163.7` 的最终 release SHA 双门禁、不可变 tag、专用发布和独立公网回读完成而关闭，证据见第 18.8 节。磁盘故障矩阵已由 [PR #186](https://github.com/chainlesschain/chainlesschain/pull/186) 正式关闭，证据见第 18.9 节；其覆盖 ENOSPC、short/partial write、file/directory fsync、rename、损坏记录、原生 SQLite `SQLITE_FULL` 事务回滚、Automation 源恢复原子性、数据库截断与 reopen fail-closed。Agenda/Cowork 权威写入也已改为 private temp + 完整写循环 + fsync + atomic rename，并区分 `not-committed`/`unknown`。
 
@@ -1447,14 +1448,14 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 
 ### 18.5 推荐执行顺序与总判定
 
-1. P2-3 resource templates 与 P2-4 磁盘故障矩阵均已正式完成；先完成 `0.163.8` 候选自身的 exact-SHA 双门、合并后最终 SHA 双门、tag、专用 npm 发布与独立公网回读。
-2. 发布门结束后立即启动 P2-4 三平台长期 soak；当前正式 segment 为 0/4，至少需要 72 小时跨时段证据，不能用短时 smoke 代替。
+1. `chainlesschain@0.163.8` 已完成 PR head 双门、最终 merge SHA 双门、不可变 tag、专用 npm 发布与独立公网回读，发布子任务正式关闭；完整证据见第 18.12 节。
+2. P2-4 首次正式 segment 因 Windows worker 早退而无效，正式计数仍为 0/4；先完成根因修复、回归和 exact-SHA 三平台门禁，再以新的成功 segment 重置 `T0`，随后按 `T0 / +25h / +50h / +75h` 完成至少 72 小时跨时段证据。
 3. 并行推进 Skill/MCP 剩余平台安全边界；该项取得完整三平台恶意证据前保持 NO-GO。
 4. 签名 native 发行等待真实凭据/渠道，一旦前置到位即按 exact-SHA 六目标矩阵执行。
 5. telemetry 按真实 observation window 持续采集；在数据和 `0.164.0` floor 前不删除 alias。
-6. P2-2 clipboard image 继续单独取得真实 macOS host 证据和最终 exact-SHA 三平台双门；它不进入当前 `0.163.8` 候选，也不因本地或诊断实现存在而更新完成计数。
+6. P2-2 clipboard image 已由 PR #190 合入 `main`，并完成最终 exact-SHA 的三平台 host、CLI CI 与 Strict Sandbox 门禁；该项正式关闭，完整证据见第 18.13 节。它是在 `0.163.8` 发布后合入，不应倒推为该 npm tarball 已包含此增量。
 
-当前总判定为：**公网 CLI npm `0.163.7` 的 exact-SHA 发布子链为 GO；`0.163.8` 仍是待自身权威门禁的候选；完整 CLI 产品与 native 公开发行仍为 NO-GO**。`0.163.7` release commit `3e997168621c53708a1682868c6cc4edc9baf15b` 已包含 outcome-unknown adjudication、五域迁移/回滚和因果可观测性，并完成最终 SHA 双门禁、不可变发布和独立回读；其后的磁盘故障矩阵与 P2-3 resource templates 已分别正式合并，但不能反写成 `0.163.7` 已包含。长期 soak、Skill/MCP 恶意矩阵、P2-2 macOS host 边界和签名 native 发行仍未完成。
+当前总判定为：**公网 CLI npm `0.163.8` 的 exact-SHA 发布子链为 GO；完整 CLI 产品与 native 公开发行仍为 NO-GO**。`0.163.8` release commit `a0631cb4f97f45ff7fcef9c19d346ed2b8387da6` 已完成最终 SHA 双门禁、不可变发布和独立回读；P2-2 已在后续 `main` 提交关闭。P2-4 首次正式长期 soak segment 失败并取消，正式计数仍为 0/4。长期 soak、Skill/MCP 恶意矩阵、代表性 alias telemetry、P1-2 长期 keeper 矩阵和签名 native 发行仍未完成。
 
 ### 18.6 2026-08-12 P2-4 outcome-unknown 人工裁决正式合并证据
 
@@ -1520,9 +1521,9 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 
 [PR #193](https://github.com/chainlesschain/chainlesschain/pull/193) 随后以 merge commit `bdad2b2d57609a66dca753bd8575773334618da3` 进入 `main`。resource templates 的只读生产调用方与其余 optional capability 的明确取舍因此共同满足 P2-3 原退出条件，P2-3 已从第 18.2 节未完成清单删除；原始 15 项总计更新为 **9 完成、6 部分完成、0 完全未开始，6 项未完全关闭**。该完成结论不关闭第 18.4 节 Skill/MCP 真实恶意矩阵，不授权 native 发行，也不单独授权 npm 发布。
 
-### 18.11 2026-08-14 `0.163.8` 发布候选范围与剩余六项
+### 18.11 2026-08-14 `0.163.8` 发布候选范围与当时剩余六项
 
-当前 `release/cli-0.163.8` 候选以 `main@bdad2b2d57609a66dca753bd8575773334618da3` 为基线，只增加 CLI version、根 lockfile、根 CHANGELOG、内置 changelog artifact 与本进度文档五个发布文件。它收录 `0.163.7` 之后已经进入 `main` 的下列增量，不包含仍未合并的 P2-2 native clipboard-image host：
+正式发布前的 `release/cli-0.163.8` 候选以 `main@bdad2b2d57609a66dca753bd8575773334618da3` 为基线，只增加 CLI version、根 lockfile、根 CHANGELOG、内置 changelog artifact 与本进度文档五个发布文件。它收录 `0.163.7` 之后已经进入 `main` 的下列增量，不包含仍未合并的 P2-2 native clipboard-image host：
 
 | 已进入候选基线的增量                               | 正式合并证据                                                                                                               | 发布边界                                                                                         |
 | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
@@ -1533,6 +1534,25 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 | governed multi-agent merge review                  | PR #191 merge `66b26822c1a35fcf11afdb069cba187dbcb4d261`；PR-head CLI CI `31792432446` 通过                                | 该路径未触发完整 Strict，必须由最终 release SHA 补齐。                                           |
 | MCP resource templates 与 optional capability 决策 | PR #193 merge `bdad2b2d57609a66dca753bd8575773334618da3`                                                                   | P2-3 已完成；双门证据见第 18.10 节。                                                             |
 
-发布候选自身尚未形成可在本文内预写的最终 exact SHA，也尚未取得该 SHA 的完整 `CLI CI` 与 `CLI Strict Sandbox` Linux、Windows、macOS 矩阵；更没有最终 merge SHA 双门、不可变 `v-npm-0-163-8` tag、专用 npm publish 或独立公网回读。因此此刻不得把 `0.163.8` 写成已发布，npm 公网 `latest` 仍是 `0.163.7`。本地 dry-run 或组成 PR 各自的历史门禁都不能替代发布候选与最终 merge SHA 的权威门。
+在该候选快照形成时，release exact SHA、最终 merge SHA 双门、不可变 tag、专用 npm publish 与独立公网回读均尚未完成，因此当时不得预写发布成功。随后形成的 PR head、最终 merge SHA、tag、发布和公网回读闭环见第 18.12 节；历史组成 PR 的门禁和本地 dry-run 仍不被沿用为发布授权。
 
-按原始 15 项口径，当前仍未完全关闭的六项固定为：**P0-3 可信 native 更新链、P1-1 代表性 alias telemetry、P1-2 spawn→PID hard-kill/长期 keeper 矩阵、P1-5 签名 native 发行、P2-2 clipboard image 真实 host 边界、P2-4 三平台 72h 长期 soak**。其中 P0-3 与 P1-5 是重叠的主要交付包，但在原始条目统计中仍分别占一项；P2-4 的正式 segment 仍为 **0/4**。P2-3 已正式完成，不能继续列入未完成数，也不能被误用来关闭第 18.4 节独立的 Skill/MCP 恶意矩阵。
+在 `0.163.8` 发布候选形成时，原始 15 项口径仍有六项未完全关闭：**P0-3 可信 native 更新链、P1-1 代表性 alias telemetry、P1-2 spawn→PID hard-kill/长期 keeper 矩阵、P1-5 签名 native 发行、P2-2 clipboard image 真实 host 边界、P2-4 三平台 72h 长期 soak**。随后 P2-2 由第 18.13 节证据正式关闭，当前剩余前述其余五项。其中 P0-3 与 P1-5 是重叠的主要交付包，但在原始条目统计中仍分别占一项；P2-4 的正式 segment 仍为 **0/4**。P2-3 已正式完成，不能继续列入未完成数，也不能被误用来关闭第 18.4 节独立的 Skill/MCP 恶意矩阵。
+
+### 18.12 2026-08-14 `0.163.8` 最终发布闭环与 P2-4 首段失败证据
+
+| 证据阶段              | 精确结果                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PR head 门禁          | [PR #194](https://github.com/chainlesschain/chainlesschain/pull/194) 最终 head `84b120dad0aebf6fc697328f0a884affe82f9696` 的 [CLI CI `31801390253`](https://github.com/chainlesschain/chainlesschain/actions/runs/31801390253) 为 **53/53 success**，[CLI Strict Sandbox `31801389981`](https://github.com/chainlesschain/chainlesschain/actions/runs/31801389981) 为 Ubuntu、macOS、Windows **3/3 success**，required checks **6/6 success**。两套发布门均绑定该 exact PR head。                                                                                   |
+| 最终 merge SHA 门禁   | PR #194 以 merge commit `a0631cb4f97f45ff7fcef9c19d346ed2b8387da6` 进入 `main`。该 exact SHA 的 [CLI CI `31804468633`](https://github.com/chainlesschain/chainlesschain/actions/runs/31804468633) 成功，最终为 **52 success / 1 个正式条件 skip / 0 failure**；三平台 verify jobs Ubuntu `94783697271`、macOS `94783697364`、Windows `94783697508` 均 success。[CLI Strict Sandbox `31804468464`](https://github.com/chainlesschain/chainlesschain/actions/runs/31804468464) 为 **3/3 success**，对应 jobs `94779931238`、`94779931340`、`94779931354` 均 success。 |
+| 不可变 tag 与专用发布 | 轻量 tag `v-npm-0-163-8` 精确指向最终 merge SHA。专用 [npm 发布 run `31806101423`](https://github.com/chainlesschain/chainlesschain/actions/runs/31806101423) 的 exact-SHA、test、package 与 publish 阶段全部 success；没有从本地结果、旧 SHA 或部分矩阵发布。                                                                                                                                                                                                                                                                                                      |
+| 独立公网回读          | [readback `31807574517`](https://github.com/chainlesschain/chainlesschain/actions/runs/31807574517) 成功；公网 npm `latest=0.163.8`。registry tarball 为 **6,317,970 bytes**，SHA-1 `655557b5c5b897b23a29975708abbf8d5cd31e88`、SHA-256 `862a0f450da013740a1c21d084233b002982b4b816f156e4949b6110eda80e12`、SHA-512 `2893bac8b36c617d209537261c7f970de454a6e645b040af98963128d3f495daf6d6bc056072da8b660052edf16603e6052f72835b7fba0bcab45245140b8377`；`byteIdentical=true`，provenance `invalid=0`、`missing=0`。                                                 |
+| P2-4 正式首段         | [Scheduler Kernel Soak run `31807830251`](https://github.com/chainlesschain/chainlesschain/actions/runs/31807830251) 从 `v-npm-0-163-8` 解析到 exact SHA `a0631cb4f97f45ff7fcef9c19d346ed2b8387da6`，但 Windows job `94790923627` 在第 4 轮、`270.1766281s` 时因 `steady-1` worker `code=1` 早退而失败；Ubuntu 与 macOS 随后取消，run 最终为 `cancelled`。artifact `9222159151` 记录 4 rounds、40 steady occurrences、8 hard kills、49 effects。该 run 不计入正式样本、不定义 `T0`，正式计数仍为 **0/4**。                                                          |
+
+因此 `chainlesschain@0.163.8` 的 **CLI npm exact-SHA 子闭环为 GO**，发布任务可以关闭；P2-4 长期 soak 尚未取得首个有效 segment，不能提前关闭。随着第 18.13 节 P2-2 后续合并证据成立，原始 15 项统计更新为 **10 完成、5 部分完成、0 完全未开始；5 项未完全关闭**；第 16.8 节六项产品任务的 **3 完成/3 未完成**专项口径不因本次发布、P2-2 或失败 segment 改变。
+
+### 18.13 2026-08-14 P2-2 原生剪贴板图片正式合并与 exact-SHA host 证据
+
+- [PR #190](https://github.com/chainlesschain/chainlesschain/pull/190) 的 final head `12dc76720108d03ff0fd763fece81a39874f81fa` 包含诊断提交 `ee2073c0ee7ff84a3e55975961d9dea2f53be5e1` 的 lazy `CGImage` TIFF 解码修复，并以 merge commit `affafa7f0f6fede3274e503d2387ce493e74bfd0` 进入 `main`。PR head 与 merge commit 的完整 tree 均为 `2fbaeb173bd548afa401c36ddb4deb4fe6ea1f79`；生产实现 `clipboard-image.js` 的 blob 为 `6d7bfbb2f4374268e8b528b2feeb2f2ddf309a7b`，目标测试 blob 为 `0f3544db6a1ebd3b07c5f4e752dd77ff97a9d94e`。macOS 路径使用 `CGImageSourceCreateImageAtIndex`、`CGImageGetWidth` 与 `NSBitmapImageRep.initWithCGImage`，不再依赖会触发大 TIFF eager decode 的 `PixelWidth` metadata 探测。
+- PR head 的 [Clipboard Host `31808440289`](https://github.com/chainlesschain/chainlesschain/actions/runs/31808440289) 为 Linux、Windows、macOS 与 aggregate **4/4 success**，[CLI CI `31808440588`](https://github.com/chainlesschain/chainlesschain/actions/runs/31808440588) 为 **53/53 success**，[CLI Strict Sandbox `31808440296`](https://github.com/chainlesschain/chainlesschain/actions/runs/31808440296) 为 **3/3 success**。最终 merge SHA 的 [CLI CI `31810849262`](https://github.com/chainlesschain/chainlesschain/actions/runs/31810849262) overall success，[CLI Strict Sandbox `31810848956`](https://github.com/chainlesschain/chainlesschain/actions/runs/31810848956) 为 **3/3 success**。
+- 为消除 PR head 与 merge SHA 名义差异，又对最终 `main@affafa7f0f6fede3274e503d2387ce493e74bfd0` 触发 [Clipboard Host `31813967006`](https://github.com/chainlesschain/chainlesschain/actions/runs/31813967006)，Ubuntu job `94811065538`、Windows `94811065577`、macOS arm64 `94811065635` 与 aggregate `94811975926` 全部 success。macOS 真实 TIFF fallback 使用 `osascript+jxa-tiff`，输出 `3×2` 像素，`pixelSha256=211e8fe1dbf894469ecc528cc6b9209788f1a7aa6cc586b272fd43de5f2439c2`，与 fixture 完全一致。aggregate artifact `9224339398` 的 digest 为 `sha256:212176e8319ed4c32bd6ee332dd01c2f31cc00eba4bddb64f39bafcd0c76ac86`；Linux、Windows、macOS artifacts 分别为 `9224289742`、`9224333668`、`9224314344`。
+- 因此 P2-2 的 production 系统剪贴板图片 adapter、真实 macOS TIFF 边界和最终 exact-SHA 三平台 host/双门均已关闭，P2-2 从“部分完成”更新为**已完成**。该提交发生在 `0.163.8` 发布后，只代表当前 `main` 已具备此能力，不表示 npm `0.163.8` tarball 包含 PR #190。
