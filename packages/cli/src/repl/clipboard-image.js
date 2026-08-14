@@ -99,9 +99,7 @@ function isObjCNil(value) {
 }
 
 function propertyValue(properties, key) {
-  // JXA can fail to marshal ImageIO's CFString globals when they are used as
-  // NSDictionary keys. The public ImageIO key values avoid that bridge edge.
-  return properties.objectForKey($(key));
+  return properties.objectForKey(key);
 }
 
 function propertyNumber(properties, key) {
@@ -173,22 +171,22 @@ function run(argv) {
       const properties = $.NSDictionary.dictionaryWithDictionary(rawProperties);
       if (isObjCNil(properties)) return "invalid:tiff-properties";
       stage = "tiff-width";
-      const width = propertyNumber(properties, "PixelWidth");
+      const width = propertyNumber(properties, $.kCGImagePropertyPixelWidth);
       if (!Number.isSafeInteger(width) || width <= 0) {
         return "invalid:tiff-width";
       }
       stage = "tiff-height";
-      const height = propertyNumber(properties, "PixelHeight");
+      const height = propertyNumber(properties, $.kCGImagePropertyPixelHeight);
       if (!Number.isSafeInteger(height) || height <= 0) {
         return "invalid:tiff-height";
       }
       stage = "tiff-depth";
-      const depth = propertyNumber(properties, "Depth");
+      const depth = propertyNumber(properties, $.kCGImagePropertyDepth);
       if (!Number.isSafeInteger(depth) || depth <= 0) {
         return "invalid:tiff-depth";
       }
       stage = "tiff-color-read";
-      const colorModel = propertyValue(properties, "ColorModel");
+      const colorModel = propertyValue(properties, $.kCGImagePropertyColorModel);
       if (isObjCNil(colorModel)) return "invalid:tiff-color-model";
       stage = "tiff-color-model";
       const isRgb = propertyStringEquals(colorModel, "RGB");

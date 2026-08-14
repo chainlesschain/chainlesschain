@@ -447,19 +447,21 @@ describe("system clipboard image readers", () => {
     let primitiveColorModel = false;
     let primitiveNumberMetadata = true;
     let omittedMetadataKey = null;
+    const imagePropertyKey = (value) => ({ value });
     const wrappedNumber = (value) => ({ isNil: () => false, value });
     const rawProperties = { isNil: () => false };
     const properties = {
       isNil: () => false,
       objectForKey: (key) => {
-        if (key === omittedMetadataKey) return undefined;
+        const keyValue = key?.value ?? key;
+        if (keyValue === omittedMetadataKey) return undefined;
         const value = {
           PixelWidth: 3,
           PixelHeight: 2,
           Depth: 8,
           ColorModel: primitiveColorModel ? "RGB" : colorModel,
-        }[key];
-        return key === "ColorModel" || primitiveNumberMetadata
+        }[keyValue];
+        return keyValue === "ColorModel" || primitiveNumberMetadata
           ? value
           : wrappedNumber(value);
       },
@@ -472,6 +474,10 @@ describe("system clipboard image readers", () => {
       NSPasteboard: { generalPasteboard: pasteboard },
       NSPasteboardTypePNG: "public.png",
       NSPasteboardTypeTIFF: "public.tiff",
+      kCGImagePropertyPixelWidth: imagePropertyKey("PixelWidth"),
+      kCGImagePropertyPixelHeight: imagePropertyKey("PixelHeight"),
+      kCGImagePropertyDepth: imagePropertyKey("Depth"),
+      kCGImagePropertyColorModel: imagePropertyKey("ColorModel"),
       NSDictionary: {
         dictionaryWithDictionary: (value) => {
           if (value !== rawProperties) {
