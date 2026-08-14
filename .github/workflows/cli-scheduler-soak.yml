@@ -1,0 +1,178 @@
+name: CLI Scheduler Kernel Soak
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cli-scheduler-soak.yml"
+      - ".github/actions/setup-node-deps/action.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "packages/cli/package.json"
+      - "packages/cli/scripts/scheduler-kernel-soak.mjs"
+      - "packages/cli/scripts/scheduler-kernel-soak-worker.mjs"
+      - "packages/cli/scripts/soak-host-metrics.mjs"
+      - "packages/cli/src/lib/scheduler-kernel/**"
+      - "packages/cli/src/lib/agent-schedule-store.js"
+      - "packages/cli/src/lib/automation-engine.js"
+      - "packages/cli/src/lib/cowork-cron.js"
+      - "packages/cli/src/lib/routine-store.js"
+      - "packages/cli/src/harness/jsonl-session-store.js"
+      - "packages/cli/src/commands/scheduler-daemon.js"
+      - "packages/cli/__tests__/unit/scheduler-kernel-soak.test.js"
+      - "packages/cli/__tests__/unit/scheduler-kernel-soak-workflow.test.js"
+      - "packages/cli/__tests__/integration/scheduler-kernel-soak.test.js"
+  schedule:
+    - cron: "41 4 * * *"
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "Exact full commit SHA to soak"
+        required: true
+        type: string
+      duration_seconds:
+        description: "Formal soak duration on each operating system"
+        required: true
+        default: "7200"
+        type: choice
+        options: ["7200", "14400"]
+      seed:
+        description: "Reproducible unsigned 32-bit scheduler fault seed"
+        required: true
+        default: "1592598566"
+        type: string
+      campaign:
+        description: "Stable campaign identity shared by the three hosts"
+        required: true
+        default: "p2-4-scheduler-long-soak-v1"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}-${{ inputs.campaign || 'p2-4-scheduler-long-soak-v1' }}
+  cancel-in-progress: false
+
+jobs:
+  scheduler-soak:
+    name: "scheduler kill/restart/contention soak (${{ matrix.os }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 300
+    env:
+      CC_SCHEDULER_SOAK_MODE: ${{ github.event_name == 'pull_request' && 'smoke' || 'formal' }}
+      CC_SCHEDULER_SOAK_DURATION_SECONDS: ${{ github.event_name == 'pull_request' && '15' || inputs.duration_seconds || '7200' }}
+      CC_SCHEDULER_SOAK_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+      CC_SCHEDULER_SOAK_SEED: ${{ inputs.seed || '1592598566' }}
+      CC_SCHEDULER_SOAK_CAMPAIGN: ${{ inputs.campaign || 'p2-4-scheduler-long-soak-v1' }}
+      CC_SCHEDULER_SOAK_MAX_RSS_GROWTH_MB: "128"
+      CC_SCHEDULER_SOAK_MAX_RESOURCE_GROWTH: "8"
+      CC_SCHEDULER_SOAK_CLEANUP_DEADLINE_MS: "10000"
+      CC_SCHEDULER_SOAK_CHECKPOINT_INTERVAL_SECONDS: "30"
+    steps:
+      - name: Checkout exact scheduler soak commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CC_SCHEDULER_SOAK_EXPECTED_SHA }}
+
+      - name: Bind checkout to the exact scheduler soak commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_sha="$(
+            printf '%s' "${CC_SCHEDULER_SOAK_EXPECTED_SHA}" |
+              tr '[:upper:]' '[:lower:]'
+          )"
+          [[ "${expected_sha}" =~ ^[0-9a-f]{40}$ ]]
+          actual_sha="$(git rev-parse HEAD | tr '[:upper:]' '[:lower:]')"
+          test "${actual_sha}" = "${expected_sha}"
+          printf 'CC_SCHEDULER_SOAK_EXPECTED_SHA=%s\n' "${expected_sha}" >> "${GITHUB_ENV}"
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Run scheduler kernel soak
+        env:
+          CC_SCHEDULER_SOAK_OUTPUT: ${{ runner.temp }}/scheduler-kernel-soak-${{ runner.os }}.json
+        run: npm run test:cli-scheduler-soak
+
+      - name: Upload exact-SHA scheduler soak evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: cli-scheduler-soak-${{ runner.os }}-${{ env.CC_SCHEDULER_SOAK_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/scheduler-kernel-soak-${{ runner.os }}.json
+          if-no-files-found: error
+          retention-days: 90
+
+  scheduler-soak-aggregate:
+    name: Scheduler kernel soak aggregate
+    if: always()
+    needs: scheduler-soak
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CC_SCHEDULER_SOAK_MODE: ${{ github.event_name == 'pull_request' && 'smoke' || 'formal' }}
+      CC_SCHEDULER_SOAK_DURATION_SECONDS: ${{ github.event_name == 'pull_request' && '15' || inputs.duration_seconds || '7200' }}
+      CC_SCHEDULER_SOAK_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+      CC_SCHEDULER_SOAK_SEED: ${{ inputs.seed || '1592598566' }}
+      CC_SCHEDULER_SOAK_CAMPAIGN: ${{ inputs.campaign || 'p2-4-scheduler-long-soak-v1' }}
+      CC_SCHEDULER_SOAK_MAX_RSS_GROWTH_MB: "128"
+      CC_SCHEDULER_SOAK_MAX_RESOURCE_GROWTH: "8"
+      CC_SCHEDULER_SOAK_CLEANUP_DEADLINE_MS: "10000"
+      CC_SCHEDULER_SOAK_CHECKPOINT_INTERVAL_SECONDS: "30"
+    steps:
+      - name: Refuse an incomplete scheduler soak platform matrix
+        if: needs.scheduler-soak.result != 'success'
+        shell: bash
+        run: |
+          echo "::error::At least one scheduler soak platform failed or did not finish"
+          exit 1
+
+      - name: Checkout exact scheduler soak commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CC_SCHEDULER_SOAK_EXPECTED_SHA }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Download three-platform scheduler soak evidence
+        uses: actions/download-artifact@v7
+        with:
+          pattern: cli-scheduler-soak-*-${{ env.CC_SCHEDULER_SOAK_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/cli-scheduler-soak-evidence
+          merge-multiple: true
+
+      - name: Verify exact SHA, profile, seed, campaign, duration, and invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          node packages/cli/scripts/scheduler-kernel-soak.mjs \
+            --verify-evidence-dir "${RUNNER_TEMP}/cli-scheduler-soak-evidence" \
+            --release-commit "${CC_SCHEDULER_SOAK_EXPECTED_SHA}" \
+            --seed "${CC_SCHEDULER_SOAK_SEED}" \
+            --campaign "${CC_SCHEDULER_SOAK_CAMPAIGN}" \
+            --output "${RUNNER_TEMP}/cli-scheduler-soak-aggregate.json"
+
+      - name: Upload immutable scheduler soak aggregate
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: cli-scheduler-soak-aggregate-${{ env.CC_SCHEDULER_SOAK_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/cli-scheduler-soak-aggregate.json
+          if-no-files-found: error
+          retention-days: 90
