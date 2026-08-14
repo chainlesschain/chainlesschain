@@ -448,7 +448,15 @@ describe("system clipboard image readers", () => {
     let primitiveNumberMetadata = true;
     let unwrapNumberMetadata = true;
     let omittedMetadataKey = null;
-    const imagePropertyKey = (publicName) => Object.freeze({ publicName });
+    const imagePropertyKey = (publicName, overrides = {}) =>
+      Object.freeze({
+        publicName,
+        length: overrides.length ?? publicName.length,
+        js: overrides.js ?? null,
+        ...(overrides.isEqualToString
+          ? { isEqualToString: overrides.isEqualToString }
+          : {}),
+      });
     const pixelWidthKey = imagePropertyKey("PixelWidth");
     const pixelHeightKey = imagePropertyKey("PixelHeight");
     const depthKey = imagePropertyKey("Depth");
@@ -471,6 +479,7 @@ describe("system clipboard image readers", () => {
       doubleValue: value,
     });
     const rawProperties = { isNil: () => false };
+    const propertyLookups = [];
     const properties = {
       isNil: () => false,
       count: String(metadataKeys.length),
@@ -479,6 +488,7 @@ describe("system clipboard image readers", () => {
         return allKeys;
       },
       objectForKey: (key) => {
+        propertyLookups.push(key);
         if (key === omittedMetadataKey) return undefined;
         const value = new Map([
           [pixelWidthKey, 3],
@@ -495,6 +505,36 @@ describe("system clipboard image readers", () => {
     const pasteboard = {
       dataForType: (type) => (type === "public.png" ? wrappedNil : tiffData),
     };
+    let specialBridgeKey = null;
+    let specialBridgeMode = "selector";
+    const stringWithString = vi.fn((value) => {
+      if (typeof value?.publicName !== "string") {
+        throw new Error("unexpected NSString bridge value");
+      }
+      if (value === specialBridgeKey) {
+        if (specialBridgeMode === "primitive") return value.publicName;
+        if (specialBridgeMode === "js") {
+          return { isNil: () => false, js: value.publicName };
+        }
+        if (specialBridgeMode === "throw") {
+          throw new Error("private NSString bridge detail");
+        }
+        if (specialBridgeMode === "selector-throws") {
+          return {
+            isNil: () => false,
+            js: null,
+            isEqualToString: () => {
+              throw new Error("private normalized selector detail");
+            },
+          };
+        }
+      }
+      return {
+        isNil: () => false,
+        isEqualToString: (expected) =>
+          (expected?.value ?? expected) === value.publicName,
+      };
+    });
     const bridge = (value) => value;
     Object.assign(bridge, {
       NSPasteboard: { generalPasteboard: pasteboard },
@@ -504,6 +544,7 @@ describe("system clipboard image readers", () => {
       kCGImagePropertyPixelHeight: pixelHeightKey,
       kCGImagePropertyDepth: depthKey,
       kCGImagePropertyColorModel: colorModelKey,
+      NSString: { stringWithString },
       NSDictionary: {
         dictionaryWithDictionary: (value) => {
           if (value !== rawProperties) {
@@ -536,6 +577,9 @@ describe("system clipboard image readers", () => {
       }
       return unwrapNumberMetadata ? value.value : {};
     });
+    const deepUnwrap = vi.fn(() => {
+      throw new Error("deep metadata unwrap is forbidden");
+    });
     const numericUnwrapCalls = () =>
       unwrap.mock.calls.filter(([value]) => typeof value?.value === "number")
         .length;
@@ -543,6 +587,7 @@ describe("system clipboard image readers", () => {
       ObjC: {
         import: () => {},
         unwrap,
+        deepUnwrap,
       },
       $: bridge,
     };
@@ -563,12 +608,26 @@ describe("system clipboard image readers", () => {
     expect(runTiffFallback()).toBe("tiff-png");
     expect(numericUnwrapCalls()).toBe(3);
     expect(allKeysReads).toBe(4);
+    expect(stringWithString).toHaveBeenCalledWith(pixelWidthKey);
+
+    specialBridgeKey = pixelWidthKey;
+    specialBridgeMode = "primitive";
+    expect(runTiffFallback()).toBe("tiff-png");
+
+    specialBridgeMode = "js";
+    const lookupsBeforeJsBridge = propertyLookups.length;
+    expect(runTiffFallback()).toBe("tiff-png");
+    expect(propertyLookups.slice(lookupsBeforeJsBridge)).toContain(
+      pixelWidthKey,
+    );
+    specialBridgeKey = null;
+
     unwrapNumberMetadata = false;
     expect(runTiffFallback()).toBe("tiff-png");
-    expect(numericUnwrapCalls()).toBe(6);
+    expect(numericUnwrapCalls()).toBe(12);
     omittedMetadataKey = depthKey;
     expect(runTiffFallback()).toBe("invalid:tiff-depth-candidate-missing");
-    expect(numericUnwrapCalls()).toBe(8);
+    expect(numericUnwrapCalls()).toBe(14);
 
     omittedMetadataKey = null;
     const readsBeforeBoundCheck = allKeysReads;
@@ -577,10 +636,44 @@ describe("system clipboard image readers", () => {
     expect(allKeysReads).toBe(readsBeforeBoundCheck);
 
     properties.count = String(metadataKeys.length);
+    const originalWidthKey = metadataKeys[0];
+    metadataKeys[0] = imagePropertyKey("OtherWidth");
+    expect(runTiffFallback()).toBe("invalid:tiff-width-name-absent");
+
+    const unreadableWidthKey = imagePropertyKey("PixelWidth", {
+      isEqualToString: () => {
+        throw new Error("private original selector detail");
+      },
+    });
+    metadataKeys[0] = unreadableWidthKey;
+    specialBridgeKey = unreadableWidthKey;
+    specialBridgeMode = "selector-throws";
+    expect(runTiffFallback()).toBe("invalid:tiff-width-key-unreadable");
+    specialBridgeMode = "throw";
+    expect(runTiffFallback()).toBe("invalid:tiff-width-key-unreadable");
+
+    const oversizedWidthKey = imagePropertyKey("PixelWidth", {
+      length: 129,
+      js: "PixelWidth",
+    });
+    metadataKeys[0] = oversizedWidthKey;
+    specialBridgeKey = oversizedWidthKey;
+    specialBridgeMode = "primitive";
+    const bridgeCallsBeforeLengthCheck = stringWithString.mock.calls.length;
+    expect(runTiffFallback()).toBe("invalid:tiff-width-key-length-invalid");
+    expect(
+      stringWithString.mock.calls
+        .slice(bridgeCallsBeforeLengthCheck)
+        .some(([value]) => value === oversizedWidthKey),
+    ).toBe(false);
+    metadataKeys[0] = originalWidthKey;
+    specialBridgeKey = null;
+
     allKeys.objectAtIndex = () => {
       throw new Error("private key bridge detail");
     };
     expect(runTiffFallback()).toBe("error:tiff-width");
+    expect(deepUnwrap).not.toHaveBeenCalled();
   });
 
   it("reports only a stable macOS helper validation stage", () => {

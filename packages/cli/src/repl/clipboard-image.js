@@ -100,6 +100,66 @@ function isObjCNil(value) {
     (typeof value.isNil === "function" && value.isNil());
 }
 
+function propertyKeyMatch(value, expected) {
+  if (isObjCNil(value)) return "unreadable";
+  let candidateLength;
+  try {
+    candidateLength =
+      typeof value === "string" ? value.length : Number(value.length);
+  } catch {
+    return "unreadable";
+  }
+  if (
+    !Number.isSafeInteger(candidateLength) ||
+    candidateLength < 1 ||
+    candidateLength > 128
+  ) {
+    return "invalid-length";
+  }
+  if (typeof value === "string") {
+    return value === expected ? "match" : "readable-mismatch";
+  }
+
+  let readable = false;
+  try {
+    if (typeof value.isEqualToString === "function") {
+      const equal = Boolean(value.isEqualToString($(expected)));
+      readable = true;
+      if (equal) return "match";
+    }
+  } catch {}
+  try {
+    const bridged = $.NSString.stringWithString(value);
+    if (typeof bridged === "string") {
+      readable = true;
+      if (bridged === expected) return "match";
+    } else if (!isObjCNil(bridged)) {
+      try {
+        if (typeof bridged.isEqualToString === "function") {
+          const equal = Boolean(bridged.isEqualToString($(expected)));
+          readable = true;
+          if (equal) return "match";
+        }
+      } catch {}
+      try {
+        const jsValue = bridged.js;
+        if (typeof jsValue === "string") {
+          readable = true;
+          if (jsValue === expected) return "match";
+        }
+      } catch {}
+    }
+  } catch {}
+  try {
+    const jsValue = value.js;
+    if (typeof jsValue === "string") {
+      readable = true;
+      if (jsValue === expected) return "match";
+    }
+  } catch {}
+  return readable ? "readable-mismatch" : "unreadable";
+}
+
 function propertyValue(properties, key, publicName) {
   propertyLookupStatus = "direct-missing";
   try {
@@ -135,9 +195,16 @@ function propertyValue(properties, key, publicName) {
     propertyLookupStatus = "keys-count-mismatch";
     return null;
   }
+  let sawUnreadableKey = false;
   for (let index = 0; index < keyCount; index += 1) {
     const candidate = keys.objectAtIndex(index);
-    if (propertyStringEquals(candidate, publicName)) {
+    const match = propertyKeyMatch(candidate, publicName);
+    if (match === "invalid-length") {
+      propertyLookupStatus = "key-length-invalid";
+      return null;
+    }
+    if (match === "unreadable") sawUnreadableKey = true;
+    if (match === "match") {
       const candidateValue = properties.objectForKey(candidate);
       propertyLookupStatus = isObjCNil(candidateValue)
         ? "candidate-missing"
@@ -145,7 +212,7 @@ function propertyValue(properties, key, publicName) {
       return candidateValue;
     }
   }
-  propertyLookupStatus = "name-missing";
+  propertyLookupStatus = sawUnreadableKey ? "key-unreadable" : "name-absent";
   return null;
 }
 
