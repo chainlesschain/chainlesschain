@@ -440,7 +440,11 @@ describe("system clipboard image readers", () => {
       length: String(PNG_BYTES.length),
       writeToFileAtomically: () => true,
     };
-    const colorModel = wrapped("RGB");
+    const colorModel = {
+      isNil: () => false,
+      value: "RGB",
+      isEqualToString: (expected) => (expected?.value ?? expected) === "RGB",
+    };
     const properties = {
       isNil: () => false,
       objectForKey: (key) =>
@@ -457,6 +461,8 @@ describe("system clipboard image readers", () => {
     const bridge = (value) => value;
     Object.assign(bridge, {
       NSPasteboard: { generalPasteboard: pasteboard },
+      NSPasteboardTypePNG: "public.png",
+      NSPasteboardTypeTIFF: "public.tiff",
       kCGImagePropertyPixelWidth: "width",
       kCGImagePropertyPixelHeight: "height",
       kCGImagePropertyDepth: "depth",
@@ -510,5 +516,60 @@ describe("system clipboard image readers", () => {
         },
       }),
     ).toThrow("invalid image data (tiff-source)");
+  });
+
+  it("converts JXA bridge exceptions to a stable macOS helper stage", () => {
+    let jxaScript;
+    const spawnSync = vi.fn((command, args) => {
+      jxaScript = args[3];
+      return {
+        status: 0,
+        signal: null,
+        stdout: "error:image-write\n",
+        stderr: "private bridge detail",
+      };
+    });
+    expect(() =>
+      readSystemClipboardImage({
+        platform: "darwin",
+        executables: { osascript: "/usr/bin/osascript" },
+        deps: { spawnSync },
+      }),
+    ).toThrow("macOS clipboard helper failed (image-write)");
+    expect(jxaScript).toContain('stage = "png-read"');
+    expect(jxaScript).toContain('return "error:" + stage');
+
+    const bridge = (value) => value;
+    bridge.NSPasteboard = {
+      generalPasteboard: {
+        dataForType: () => {
+          throw new Error("private pasteboard detail");
+        },
+      },
+    };
+    bridge.NSPasteboardTypePNG = "public.png";
+    expect(
+      runInNewContext(
+        `${jxaScript}\nrun(["/tmp/image.png", "1024", "1024", "100", "100", "4096"]);`,
+        { ObjC: { import: () => {} }, $: bridge },
+      ),
+    ).toBe("error:png-read");
+  });
+
+  it("does not echo an unrecognized macOS helper error stage", () => {
+    expect(() =>
+      readSystemClipboardImage({
+        platform: "darwin",
+        executables: { osascript: "/usr/bin/osascript" },
+        deps: {
+          spawnSync: vi.fn(() => ({
+            status: 0,
+            signal: null,
+            stdout: "error:private-clipboard-detail\n",
+            stderr: "",
+          })),
+        },
+      }),
+    ).toThrow(/^macOS clipboard helper failed\.$/u);
   });
 });

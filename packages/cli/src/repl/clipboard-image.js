@@ -39,6 +39,26 @@ const MAX_MACOS_SOURCE_BYTES = 80 * 1024 * 1024;
 const MAX_MACOS_IMAGE_PIXELS = 25_000_000;
 const MAX_MACOS_IMAGE_DIMENSION = 16_384;
 const MAX_MACOS_DECODED_IMAGE_BYTES = 256 * 1024 * 1024;
+const MACOS_CLIPBOARD_HELPER_ERROR_STAGES = new Set([
+  "arguments",
+  "pasteboard",
+  "png-read",
+  "png-check",
+  "tiff-read",
+  "tiff-check",
+  "tiff-length",
+  "tiff-source",
+  "tiff-count",
+  "tiff-properties",
+  "tiff-metadata",
+  "tiff-color-model",
+  "tiff-decode",
+  "tiff-decoded-metadata",
+  "tiff-bitmap",
+  "tiff-encode",
+  "image-length",
+  "image-write",
+]);
 
 const WINDOWS_CLIPBOARD_IMAGE_SCRIPT = [
   "$ErrorActionPreference='Stop'",
@@ -66,6 +86,7 @@ const WINDOWS_CLIPBOARD_IMAGE_SCRIPT = [
 
 const MACOS_CLIPBOARD_IMAGE_SCRIPT = String.raw`
 ObjC.import("AppKit");
+ObjC.import("Foundation");
 ObjC.import("ImageIO");
 
 function isObjCNil(value) {
@@ -79,113 +100,134 @@ function propertyNumber(properties, key) {
 }
 
 function run(argv) {
-  const outputPath = String(argv[0]);
-  const maximumBytes = Number(argv[1]);
-  const maximumSourceBytes = Number(argv[2]);
-  const maximumPixels = Number(argv[3]);
-  const maximumDimension = Number(argv[4]);
-  const maximumDecodedBytes = Number(argv[5]);
-  const pasteboard = $.NSPasteboard.generalPasteboard;
-  let imageData = pasteboard.dataForType($("public.png"));
-  let imageKind = "png";
-  if (isObjCNil(imageData)) {
-    const tiffData = pasteboard.dataForType($("public.tiff"));
-    if (isObjCNil(tiffData)) return "none";
-    const tiffBytes = Number(tiffData.length);
-    if (!Number.isSafeInteger(tiffBytes) || tiffBytes <= 0) {
-      return "invalid:tiff-length";
+  let stage = "arguments";
+  try {
+    const outputPath = String(argv[0]);
+    const maximumBytes = Number(argv[1]);
+    const maximumSourceBytes = Number(argv[2]);
+    const maximumPixels = Number(argv[3]);
+    const maximumDimension = Number(argv[4]);
+    const maximumDecodedBytes = Number(argv[5]);
+    stage = "pasteboard";
+    const pasteboard = $.NSPasteboard.generalPasteboard;
+    stage = "png-read";
+    let imageData = pasteboard.dataForType($.NSPasteboardTypePNG);
+    let imageKind = "png";
+    stage = "png-check";
+    if (isObjCNil(imageData)) {
+      stage = "tiff-read";
+      const tiffData = pasteboard.dataForType($.NSPasteboardTypeTIFF);
+      stage = "tiff-check";
+      if (isObjCNil(tiffData)) return "none";
+      stage = "tiff-length";
+      const tiffBytes = Number(tiffData.length);
+      if (!Number.isSafeInteger(tiffBytes) || tiffBytes <= 0) {
+        return "invalid:tiff-length";
+      }
+      if (tiffBytes > maximumSourceBytes) return "too-large:tiff-source";
+      stage = "tiff-source";
+      const imageSource = $.CGImageSourceCreateWithData(tiffData, $());
+      stage = "tiff-count";
+      const imageCount = isObjCNil(imageSource)
+        ? 0
+        : Number($.CGImageSourceGetCount(imageSource));
+      if (
+        isObjCNil(imageSource) ||
+        !Number.isSafeInteger(imageCount) ||
+        imageCount < 1
+      ) {
+        return "invalid:tiff-source";
+      }
+      stage = "tiff-properties";
+      const properties = $.CGImageSourceCopyPropertiesAtIndex(
+        imageSource,
+        0,
+        $(),
+      );
+      if (isObjCNil(properties)) return "invalid:tiff-properties";
+      stage = "tiff-metadata";
+      const width = propertyNumber(properties, $.kCGImagePropertyPixelWidth);
+      const height = propertyNumber(properties, $.kCGImagePropertyPixelHeight);
+      const depth = propertyNumber(properties, $.kCGImagePropertyDepth);
+      const colorModel = properties.objectForKey($.kCGImagePropertyColorModel);
+      if (isObjCNil(colorModel)) return "invalid:tiff-metadata";
+      stage = "tiff-color-model";
+      const isRgb = Boolean(
+        colorModel.isEqualToString($.kCGImagePropertyColorModelRGB),
+      );
+      const isGray = Boolean(
+        colorModel.isEqualToString($.kCGImagePropertyColorModelGray),
+      );
+      if (
+        !Number.isSafeInteger(width) ||
+        !Number.isSafeInteger(height) ||
+        !Number.isSafeInteger(depth) ||
+        width <= 0 ||
+        height <= 0 ||
+        depth <= 0
+      ) {
+        return "invalid:tiff-metadata";
+      }
+      if (!isRgb && !isGray) return "invalid:unsupported-color-model";
+      if (
+        depth > 16 ||
+        width > maximumDimension ||
+        height > maximumDimension ||
+        width > Math.floor(maximumPixels / height) ||
+        width >
+          Math.floor(
+            maximumDecodedBytes /
+              (height * (isRgb ? 4 : 2) * Math.ceil(depth / 8)),
+          )
+      ) {
+        return "too-large:tiff-metadata";
+      }
+      stage = "tiff-decode";
+      const cgImage = $.CGImageSourceCreateImageAtIndex(imageSource, 0, $());
+      if (isObjCNil(cgImage)) return "invalid:tiff-decode";
+      stage = "tiff-decoded-metadata";
+      const decodedWidth = Number($.CGImageGetWidth(cgImage));
+      const decodedHeight = Number($.CGImageGetHeight(cgImage));
+      const bitsPerPixel = Number($.CGImageGetBitsPerPixel(cgImage));
+      const bytesPerRow = Number($.CGImageGetBytesPerRow(cgImage));
+      if (
+        decodedWidth !== width ||
+        decodedHeight !== height ||
+        !Number.isSafeInteger(bitsPerPixel) ||
+        !Number.isSafeInteger(bytesPerRow) ||
+        bitsPerPixel <= 0 ||
+        bytesPerRow <= 0
+      ) {
+        return "invalid:tiff-decoded";
+      }
+      if (
+        bitsPerPixel > 64 ||
+        bytesPerRow > Math.floor(maximumDecodedBytes / decodedHeight)
+      ) {
+        return "too-large:tiff-decoded";
+      }
+      stage = "tiff-bitmap";
+      const bitmap = $.NSBitmapImageRep.alloc.initWithCGImage(cgImage);
+      if (isObjCNil(bitmap)) return "invalid:tiff-bitmap";
+      stage = "tiff-encode";
+      imageData = bitmap.representationUsingTypeProperties(4, $({}));
+      if (isObjCNil(imageData)) return "invalid:tiff-encode";
+      imageKind = "tiff-png";
     }
-    if (tiffBytes > maximumSourceBytes) return "too-large:tiff-source";
-    const imageSource = $.CGImageSourceCreateWithData(tiffData, $());
-    const imageCount = isObjCNil(imageSource)
-      ? 0
-      : Number($.CGImageSourceGetCount(imageSource));
-    if (
-      isObjCNil(imageSource) ||
-      !Number.isSafeInteger(imageCount) ||
-      imageCount < 1
-    ) {
-      return "invalid:tiff-source";
+    stage = "image-length";
+    const imageBytes = Number(imageData.length);
+    if (!Number.isSafeInteger(imageBytes) || imageBytes <= 0) {
+      return "invalid:image-length";
     }
-    const properties = $.CGImageSourceCopyPropertiesAtIndex(
-      imageSource,
-      0,
-      $(),
-    );
-    if (isObjCNil(properties)) return "invalid:tiff-properties";
-    const width = propertyNumber(properties, $.kCGImagePropertyPixelWidth);
-    const height = propertyNumber(properties, $.kCGImagePropertyPixelHeight);
-    const depth = propertyNumber(properties, $.kCGImagePropertyDepth);
-    const colorModel = properties.objectForKey($.kCGImagePropertyColorModel);
-    if (isObjCNil(colorModel)) return "invalid:tiff-metadata";
-    const normalizedColorModel = String(ObjC.unwrap(colorModel));
-    const isRgb =
-      normalizedColorModel ===
-      String(ObjC.unwrap($.kCGImagePropertyColorModelRGB));
-    const isGray =
-      normalizedColorModel ===
-      String(ObjC.unwrap($.kCGImagePropertyColorModelGray));
-    if (
-      !Number.isSafeInteger(width) ||
-      !Number.isSafeInteger(height) ||
-      !Number.isSafeInteger(depth) ||
-      width <= 0 ||
-      height <= 0 ||
-      depth <= 0
-    ) {
-      return "invalid:tiff-metadata";
+    if (imageBytes > maximumBytes) return "too-large:image-bytes";
+    stage = "image-write";
+    if (!imageData.writeToFileAtomically($(outputPath), true)) {
+      return "invalid:image-write";
     }
-    if (!isRgb && !isGray) return "invalid:unsupported-color-model";
-    if (
-      depth > 16 ||
-      width > maximumDimension ||
-      height > maximumDimension ||
-      width > Math.floor(maximumPixels / height) ||
-      width >
-        Math.floor(
-          maximumDecodedBytes /
-            (height * (isRgb ? 4 : 2) * Math.ceil(depth / 8)),
-        )
-    ) {
-      return "too-large:tiff-metadata";
-    }
-    const cgImage = $.CGImageSourceCreateImageAtIndex(imageSource, 0, $());
-    if (isObjCNil(cgImage)) return "invalid:tiff-decode";
-    const decodedWidth = Number($.CGImageGetWidth(cgImage));
-    const decodedHeight = Number($.CGImageGetHeight(cgImage));
-    const bitsPerPixel = Number($.CGImageGetBitsPerPixel(cgImage));
-    const bytesPerRow = Number($.CGImageGetBytesPerRow(cgImage));
-    if (
-      decodedWidth !== width ||
-      decodedHeight !== height ||
-      !Number.isSafeInteger(bitsPerPixel) ||
-      !Number.isSafeInteger(bytesPerRow) ||
-      bitsPerPixel <= 0 ||
-      bytesPerRow <= 0
-    ) {
-      return "invalid:tiff-decoded";
-    }
-    if (
-      bitsPerPixel > 64 ||
-      bytesPerRow > Math.floor(maximumDecodedBytes / decodedHeight)
-    ) {
-      return "too-large:tiff-decoded";
-    }
-    const bitmap = $.NSBitmapImageRep.alloc.initWithCGImage(cgImage);
-    if (isObjCNil(bitmap)) return "invalid:tiff-bitmap";
-    imageData = bitmap.representationUsingTypeProperties(4, $({}));
-    if (isObjCNil(imageData)) return "invalid:tiff-encode";
-    imageKind = "tiff-png";
+    return imageKind;
+  } catch (error) {
+    return "error:" + stage;
   }
-  const imageBytes = Number(imageData.length);
-  if (!Number.isSafeInteger(imageBytes) || imageBytes <= 0) {
-    return "invalid:image-length";
-  }
-  if (imageBytes > maximumBytes) return "too-large:image-bytes";
-  if (!imageData.writeToFileAtomically($(outputPath), true)) {
-    return "invalid:image-write";
-  }
-  return imageKind;
 }`;
 
 const defaultSystemDeps = {
@@ -565,6 +607,13 @@ function readMacosClipboardImage(deps, options) {
       throw new Error(
         `macOS clipboard helper returned invalid image data${stage}.`,
       );
+    }
+    if (imageKind.startsWith("error:")) {
+      const stageValue = imageKind.slice("error:".length);
+      const stage = MACOS_CLIPBOARD_HELPER_ERROR_STAGES.has(stageValue)
+        ? ` (${stageValue})`
+        : "";
+      throw new Error(`macOS clipboard helper failed${stage}.`);
     }
     if (imageKind !== "png" && imageKind !== "tiff-png") {
       throw new Error("macOS clipboard helper returned an invalid image kind.");
