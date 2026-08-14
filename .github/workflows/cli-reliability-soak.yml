@@ -21,12 +21,37 @@ on:
       - "packages/cli/src/lib/mcp-stdio-environment.js"
       - "packages/cli/src/lib/mcp-stdio-package-materialization.js"
       - "packages/cli/src/lib/paths.js"
+      - "packages/cli/src/lib/automation-center-incidents.js"
+      - "packages/cli/src/lib/automation-center-runtime.js"
+      - "packages/cli/src/lib/automation-center.js"
+      - "packages/cli/src/lib/automation-engine.js"
+      - "packages/cli/src/lib/automation-execution-authority.js"
+      - "packages/cli/src/lib/automation-execution-incident.js"
+      - "packages/cli/src/commands/automation.js"
+      - "packages/cli/src/lib/scheduler-kernel/**"
       - "packages/cli/scripts/cli-reliability-soak.mjs"
       - "packages/cli/scripts/cli-reliability-mcp-server.mjs"
       - "packages/cli/scripts/cli-mcp-security-soak.mjs"
+      - "packages/cli/scripts/scheduler-reliability-soak.mjs"
       - "packages/cli/scripts/ide-roadmap-mcp-security-gate.mjs"
       - "packages/cli/__tests__/unit/cli-reliability-soak.test.js"
       - "packages/cli/__tests__/unit/cli-mcp-security-soak.test.js"
+      - "packages/cli/__tests__/unit/scheduler-reliability-soak.test.js"
+      - "packages/cli/__tests__/unit/scheduler-kernel-store.test.js"
+      - "packages/cli/__tests__/unit/automation-center-incidents.test.js"
+      - "packages/cli/__tests__/unit/automation-center-runtime.test.js"
+      - "packages/cli/__tests__/unit/automation-center.test.js"
+      - "packages/cli/__tests__/unit/automation-engine.test.js"
+      - "packages/cli/__tests__/unit/automation-execution-authority.test.js"
+      - "packages/cli/__tests__/unit/automation-execution-incident.test.js"
+      - "packages/cli/__tests__/unit/scheduler-kernel-*.test.js"
+      - "packages/cli/__tests__/unit/vscode-ext-automation-center.test.js"
+      - "packages/vscode-extension/src/automation-center.js"
+      - "packages/vscode-extension/src/ui/automation-center-view.js"
+      - "packages/vscode-extension/test/automation-center.test.cjs"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/AutomationCenter.java"
+      - "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/AutomationCenterToolWindowFactory.java"
+      - "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/AutomationCenterTest.java"
       - "packages/cli/__tests__/unit/repair-node-pty.test.js"
       - "packages/cli/__tests__/unit/mcp-stdio-package-materialization.test.js"
   schedule:
@@ -158,6 +183,99 @@ jobs:
           path: ${{ runner.temp }}/cli-reliability-result.json
           if-no-files-found: error
           retention-days: 30
+
+  scheduler-reliability-soak:
+    name: "scheduler persistence/restart/lease/retry/dedup soak (${{ matrix.os }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 300
+    env:
+      CC_CLI_SCHEDULER_SOAK_MODE: ${{ github.event_name == 'pull_request' && 'smoke' || 'formal' }}
+      CC_CLI_SCHEDULER_SOAK_DURATION_SECONDS: ${{ github.event_name == 'pull_request' && '5' || inputs.duration_seconds || '7200' }}
+      CC_CLI_SCHEDULER_SOAK_CYCLES: ${{ github.event_name == 'pull_request' && '3' || '1000' }}
+      CC_CLI_SCHEDULER_SOAK_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+      CC_CLI_SCHEDULER_SOAK_CHECKPOINT_INTERVAL_SECONDS: "30"
+    steps:
+      - name: Checkout exact scheduler reliability commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CC_CLI_SCHEDULER_SOAK_EXPECTED_SHA }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Run time-based scheduler persistence and recovery soak
+        env:
+          CC_CLI_SCHEDULER_SOAK_OUTPUT: ${{ runner.temp }}/scheduler-reliability-soak-${{ runner.os }}.json
+        run: npm run test:cli-scheduler-reliability-soak
+
+      - name: Upload exact-SHA scheduler reliability evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: scheduler-reliability-soak-${{ runner.os }}-${{ env.CC_CLI_SCHEDULER_SOAK_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/scheduler-reliability-soak-${{ runner.os }}.json
+          if-no-files-found: error
+          retention-days: 90
+
+  scheduler-reliability-soak-aggregate:
+    name: Scheduler reliability soak aggregate
+    if: always()
+    needs: scheduler-reliability-soak
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CC_CLI_SCHEDULER_SOAK_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Refuse an incomplete scheduler reliability platform matrix
+        if: needs.scheduler-reliability-soak.result != 'success'
+        shell: bash
+        run: |
+          echo "::error::At least one scheduler reliability soak platform failed or did not finish"
+          exit 1
+
+      - name: Checkout exact scheduler reliability commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CC_CLI_SCHEDULER_SOAK_EXPECTED_SHA }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: scheduler-reliability-soak-*-${{ env.CC_CLI_SCHEDULER_SOAK_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/scheduler-reliability-soak-evidence
+          merge-multiple: true
+
+      - name: Verify formal release evidence or isolated non-qualifying PR smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          node packages/cli/scripts/scheduler-reliability-soak.mjs \
+            --verify-evidence-dir "${RUNNER_TEMP}/scheduler-reliability-soak-evidence" \
+            --release-commit "${CC_CLI_SCHEDULER_SOAK_EXPECTED_SHA}" \
+            ${{ github.event_name == 'pull_request' && '--allow-smoke' || '' }} \
+            --output "${RUNNER_TEMP}/scheduler-reliability-soak-aggregate.json"
+
+      - name: Upload immutable scheduler reliability soak aggregate
+        uses: actions/upload-artifact@v6
+        with:
+          name: scheduler-reliability-soak-${{ github.event_name == 'pull_request' && 'smoke-non-qualifying' || 'formal-aggregate' }}-${{ env.CC_CLI_SCHEDULER_SOAK_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/scheduler-reliability-soak-aggregate.json
+          if-no-files-found: error
+          retention-days: 90
 
   mcp-security-soak:
     name: "malicious MCP host/race soak (${{ matrix.os }})"

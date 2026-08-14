@@ -5,8 +5,11 @@ const { escapeCmdArgs } = require("../win-shell");
 const {
   parseAutomationCenter,
   recheckAutomationAction,
+  recheckAutomationRuntimeAction,
+  recheckAutomationIncidentAction,
   recheckCreateRoutine,
   filterAutomationFlows,
+  filterAutomationRuntimeItems,
   renderAutomationRows,
 } = require("../automation-center");
 
@@ -60,7 +63,10 @@ function postRows() {
     revision: snapshot.revision,
     error: snapshot.error,
     summary: snapshot.summary,
-    html: renderAutomationRows(filterAutomationFlows(snapshot.items, query)),
+    html: renderAutomationRows(
+      filterAutomationFlows(snapshot.items, query),
+      filterAutomationRuntimeItems(snapshot.runtimeItems, query),
+    ),
   });
 }
 
@@ -255,6 +261,85 @@ async function runAction(vscode, message) {
   await refresh(vscode);
 }
 
+async function runRuntimeAction(vscode, message) {
+  const rendered = snapshot;
+  const request = {
+    id: String(message.id || ""),
+    action: String(message.action || ""),
+    revision: String(message.projectionRevision || ""),
+    fence: Number(message.fence),
+    controlRevision: Number(message.controlRevision),
+  };
+  if (
+    !Number.isSafeInteger(request.fence) ||
+    !Number.isSafeInteger(request.controlRevision)
+  ) {
+    return;
+  }
+  const current = await read(vscode);
+  const preview = recheckAutomationRuntimeAction(rendered, current, request);
+  if (!preview) {
+    snapshot = current;
+    panel?.webview.postMessage({
+      type: "notice",
+      text: "The live occurrence, fence, control revision, or action changed; refreshed without sending it.",
+    });
+    postRows();
+    return;
+  }
+  const confirmed = await vscode.window.showWarningMessage(
+    `${request.action === "pause" ? "Pause" : "Resume"} live occurrence ${request.id}? The CLI will recheck its exact fence, control revision, and cooperative checkpoint capability.`,
+    { modal: true },
+    "Run action",
+  );
+  if (confirmed !== "Run action") return;
+  const result = await runCli(vscode, preview.argv, 30_000);
+  panel?.webview.postMessage({
+    type: "notice",
+    text: result.ok
+      ? `${request.action} requested for the exact occurrence.`
+      : `${request.action} failed: ${result.error}`,
+  });
+  await refresh(vscode);
+}
+
+async function runIncidentAction(vscode, message) {
+  const rendered = snapshot;
+  const request = {
+    id: String(message.id || ""),
+    action: String(message.action || ""),
+    revision: String(message.projectionRevision || ""),
+    incidentRevision: Number(message.incidentRevision),
+  };
+  if (!Number.isSafeInteger(request.incidentRevision)) return;
+  const current = await read(vscode);
+  const preview = recheckAutomationIncidentAction(rendered, current, request);
+  if (!preview) {
+    snapshot = current;
+    panel?.webview.postMessage({
+      type: "notice",
+      text: "The incident revision or action changed; refreshed without sending it.",
+    });
+    postRows();
+    return;
+  }
+  const verb = request.action === "retry" ? "Retry" : "Cancel";
+  const confirmed = await vscode.window.showWarningMessage(
+    `${verb} incident ${request.id}? The CLI will enforce the exact incident revision and scheduler evidence.`,
+    { modal: true },
+    "Run action",
+  );
+  if (confirmed !== "Run action") return;
+  const result = await runCli(vscode, preview.argv, 30_000);
+  panel?.webview.postMessage({
+    type: "notice",
+    text: result.ok
+      ? `${request.action} completed for the exact incident.`
+      : `${request.action} failed: ${result.error}`,
+  });
+  await refresh(vscode);
+}
+
 function nonce() {
   return require("crypto").randomBytes(16).toString("hex");
 }
@@ -262,8 +347,8 @@ function nonce() {
 function html() {
   const n = nonce();
   return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${n}'"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
-body{font:13px var(--vscode-font-family);color:var(--vscode-foreground);padding:14px}h1{font-size:18px;margin:0}.top{display:flex;gap:8px;margin:12px 0}.top input{flex:1;background:var(--vscode-input-background);color:var(--vscode-input-foreground);border:1px solid var(--vscode-input-border);padding:5px}.summary{margin:8px 0;opacity:.8}.flow{border:1px solid var(--vscode-widget-border,#555);border-radius:7px;padding:10px;margin:9px 0}.flow header{display:flex;justify-content:space-between;gap:12px}.status,.kind{font-weight:600}.status.active{color:#3fb950}.status.paused{color:var(--vscode-editorWarning-foreground,orange)}.meta,.triggers{opacity:.7;margin-top:4px}.security{margin-top:7px}.actions{margin-top:9px}button{background:var(--vscode-button-background);color:var(--vscode-button-foreground);border:0;border-radius:4px;padding:4px 9px;margin-right:5px}button:disabled{opacity:.45}.empty{opacity:.7;padding:20px 0}li{margin:4px 0}#notice{color:var(--vscode-editorWarning-foreground);margin-top:8px}
-</style></head><body><h1>Automation Center</h1><div class="top"><input id="query" placeholder="Filter flows and routines"><button id="create">New routine</button><button id="refresh">Refresh</button></div><div id="summary" class="summary"></div><div id="notice"></div><main id="rows"></main><script nonce="${n}">const vscode=acquireVsCodeApi();let revision="";document.getElementById('refresh').onclick=()=>vscode.postMessage({command:'refresh'});document.getElementById('create').onclick=()=>vscode.postMessage({command:'createRoutine'});document.getElementById('query').oninput=e=>vscode.postMessage({command:'filter',query:e.target.value});document.getElementById('rows').onclick=e=>{const b=e.target.closest('button[data-action]');if(b&&!b.disabled)vscode.postMessage({command:'action',kind:b.dataset.kind,id:b.dataset.id,action:b.dataset.action,itemRevision:b.dataset.revision,projectionRevision:revision})};window.addEventListener('message',e=>{const m=e.data||{};if(m.type==='snapshot'){revision=m.revision||'';document.getElementById('rows').innerHTML=m.html;document.getElementById('summary').textContent=m.connected?m.summary.total+' items · '+m.summary.flows+' flows · '+m.summary.routines+' routines · '+m.summary.active+' active · '+m.summary.paused+' paused · '+m.summary.needsAttention+' need attention':'Disconnected: '+(m.error||'CLI unavailable')}if(m.type==='notice')document.getElementById('notice').textContent=m.text||''});vscode.postMessage({command:'ready'});</script></body></html>`;
+body{font:13px var(--vscode-font-family);color:var(--vscode-foreground);padding:14px}h1{font-size:18px;margin:0}.top{display:flex;gap:8px;margin:12px 0}.top input{flex:1;background:var(--vscode-input-background);color:var(--vscode-input-foreground);border:1px solid var(--vscode-input-border);padding:5px}.summary{margin:8px 0;opacity:.8}.flow{border:1px solid var(--vscode-widget-border,#555);border-radius:7px;padding:10px;margin:9px 0}.runtime{border-left:3px solid var(--vscode-focusBorder)}.flow header{display:flex;justify-content:space-between;gap:12px}.status,.kind{font-weight:600}.status.active,.status.running{color:#3fb950}.status.paused,.status.pause_requested{color:var(--vscode-editorWarning-foreground,orange)}.incident-status.open{color:var(--vscode-editorWarning-foreground,orange)}.meta,.triggers{opacity:.7;margin-top:4px}.security{margin-top:7px}.actions{margin-top:9px}button{background:var(--vscode-button-background);color:var(--vscode-button-foreground);border:0;border-radius:4px;padding:4px 9px;margin-right:5px}button:disabled{opacity:.45}.empty{opacity:.7;padding:20px 0}li{margin:4px 0}#notice{color:var(--vscode-editorWarning-foreground);margin-top:8px}
+</style></head><body><h1>Automation Center</h1><div class="top"><input id="query" placeholder="Filter flows, routines, incidents, and live occurrences"><button id="create">New routine</button><button id="refresh">Refresh</button></div><div id="summary" class="summary"></div><div id="notice"></div><main id="rows"></main><script nonce="${n}">const vscode=acquireVsCodeApi();let revision="";document.getElementById('refresh').onclick=()=>vscode.postMessage({command:'refresh'});document.getElementById('create').onclick=()=>vscode.postMessage({command:'createRoutine'});document.getElementById('query').oninput=e=>vscode.postMessage({command:'filter',query:e.target.value});document.getElementById('rows').onclick=e=>{const b=e.target.closest('button[data-action]');if(!b||b.disabled)return;const common={id:b.dataset.id,action:b.dataset.action,projectionRevision:revision};if(b.dataset.control==='runtime')vscode.postMessage({command:'runtimeAction',...common,fence:b.dataset.fence,controlRevision:b.dataset.controlRevision});else if(b.dataset.control==='incident')vscode.postMessage({command:'incidentAction',...common,incidentRevision:b.dataset.incidentRevision});else vscode.postMessage({command:'action',...common,kind:b.dataset.kind,itemRevision:b.dataset.revision})};window.addEventListener('message',e=>{const m=e.data||{};if(m.type==='snapshot'){revision=m.revision||'';document.getElementById('rows').innerHTML=m.html;document.getElementById('summary').textContent=m.connected?m.summary.total+' items · '+m.summary.flows+' flows · '+m.summary.routines+' routines · '+m.summary.runtimeRunning+' running · '+m.summary.runtimePauseRequested+' pausing · '+m.summary.runtimePaused+' occurrence paused · '+m.summary.needsAttention+' need attention':'Disconnected: '+(m.error||'CLI unavailable')}if(m.type==='notice')document.getElementById('notice').textContent=m.text||''});vscode.postMessage({command:'ready'});</script></body></html>`;
 }
 
 function openAutomationCenter(vscode) {
@@ -287,6 +372,10 @@ function openAutomationCenter(vscode) {
       postRows();
     } else if (message?.command === "action") {
       await runAction(vscode, message);
+    } else if (message?.command === "runtimeAction") {
+      await runRuntimeAction(vscode, message);
+    } else if (message?.command === "incidentAction") {
+      await runIncidentAction(vscode, message);
     } else if (message?.command === "createRoutine") {
       await createRoutine(vscode);
     }

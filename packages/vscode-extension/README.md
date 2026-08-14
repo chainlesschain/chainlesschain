@@ -6,23 +6,34 @@ coordination, and a localhost IDE bridge.
 
 ## Current release
 
-| Component                 | Current status                                                          |
-| ------------------------- | ----------------------------------------------------------------------- |
-| VS Code extension         | **0.37.51** source/package; Open VSX public version is **0.37.50**       |
-| Recommended CLI           | **`chainlesschain@0.163.6`** (fully gated stable release)               |
-| Base bridge compatibility | `cc >= 0.162.47`; newer features can require a newer CLI                |
-| Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors                     |
-| Distribution              | Open VSX; not published on the Microsoft VS Code Marketplace            |
+| Component                 | Current status                                                       |
+| ------------------------- | -------------------------------------------------------------------- |
+| VS Code extension         | **0.37.52** source candidate; Open VSX public version is **0.37.51** |
+| Recommended CLI           | **`chainlesschain@0.163.7`** (fully gated stable release)            |
+| Base bridge compatibility | `cc >= 0.162.47`; newer features can require a newer CLI             |
+| Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors                  |
+| Distribution              | Open VSX; not published on the Microsoft VS Code Marketplace         |
 
-The recommended CLI `0.163.6` includes the governed Automation/Routine commands,
+The recommended CLI `0.163.7` includes the governed Automation/Routine commands,
 unified scheduler authority, timezone/missed-run semantics, and shared
 permission/budget enforcement required by the Automation Center.
-CLI `0.163.5` remains compatible with existing chat and bridge surfaces but
-does not expose the Automation Center control commands.
+It emits the released Automation Center v2 projection: `0.37.52` preserves the
+existing item controls with empty incidents/runtime and does not invent the new
+actions.
+
+The `0.37.52` source accepts only the exact released v2/schemaVersion 2 pair or
+the new v3/schemaVersion 3 pair; unknown and cross-paired versions fail closed.
+With v3 it shows sanitized run incidents and bounded live scheduler occurrences.
+Incident retry/cancel and cooperative occurrence pause/resume appear only when
+the CLI supplies an exact revision/fence-gated action preview. The extension
+refreshes the projection and rechecks that preview before execution; it never
+derives argv from display data. These v3 controls require a subsequent
+exact-gated CLI release; CLI `0.163.7` remains fully usable through v2 without
+showing them.
 
 The last immutable public release tag is
-[`ide-vscode-v0.37.50`](https://github.com/chainlesschain/chainlesschain/releases/tag/ide-vscode-v0.37.50).
-Source version `0.37.51` is not public until its exact release commit passes the
+[`ide-vscode-v0.37.51`](https://github.com/chainlesschain/chainlesschain/releases/tag/ide-vscode-v0.37.51).
+Source version `0.37.52` is not public until its exact release commit passes the
 native ARM64 aggregate and the tag workflow validates the packaged VSIX in
 stable and minimum VS Code hosts on Windows, Linux, and macOS, publishes it to
 Open VSX, and reads the public registry artifact back. Changes to this README
@@ -34,6 +45,9 @@ appear in the registry Overview only after that immutable release is published.
   Routine projections, preflight and history; run now, retry failures,
   pause/resume, disable, or delete through revision-checked CLI actions. Cron,
   one-shot, webhook, and GitHub triggers share the same fail-closed surface.
+  Canonical v3 projections also expose CLI-governed incident recovery and
+  cooperative live-occurrence pause/resume without exposing scheduler payload,
+  authority, or checkpoint evidence to the webview.
 
 - **Sidebar Chat and editor-native inline chat** — stream answers and tool
   activity, use multiple conversation tabs, paste images, mention files or

@@ -1131,6 +1131,24 @@ function _topoOrder(nodes, edges) {
   return result.map((id) => indexById.get(id));
 }
 
+function _runtimeEffectForNode(flow, node) {
+  return {
+    nodeId: node.id,
+    connector: node.connector,
+    action: node.action,
+    effect:
+      node.effect && typeof node.effect === "object"
+        ? node.effect.effect || "write"
+        : "write",
+    resourceScopes:
+      node.effect &&
+      typeof node.effect === "object" &&
+      Array.isArray(node.effect.resourceScopes)
+        ? node.effect.resourceScopes
+        : [`automation-flow:${flow.id}:node:${node.id}:simulated`],
+  };
+}
+
 export function executeFlow(db, flowId, options = {}) {
   const flow = getFlow(db, flowId);
   if (!flow) throw new Error(`Flow not found: ${flowId}`);
@@ -1140,6 +1158,8 @@ export function executeFlow(db, flowId, options = {}) {
     triggerType = TRIGGER_TYPE.MANUAL,
     testMode = false,
     executionId,
+    executionAuthority = null,
+    assertRuntimeBoundary = null,
   } = options;
   const execId =
     executionId === undefined
@@ -1148,6 +1168,20 @@ export function executeFlow(db, flowId, options = {}) {
   const existing = getExecution(db, execId);
   if (existing) {
     return _resolveExistingExecution(existing, { flowId, triggerType });
+  }
+  // Validate every declared action boundary before creating an execution row
+  // or invoking the first effect. The per-node assertion below remains as the
+  // final send-time check, while this complete preflight guarantees that a
+  // later node cannot discover an undeclared write after earlier nodes ran.
+  if (assertRuntimeBoundary) {
+    for (const node of flow.nodes) {
+      if ((node.type || "action") !== "action") continue;
+      assertRuntimeBoundary(
+        executionAuthority,
+        flow,
+        _runtimeEffectForNode(flow, node),
+      );
+    }
   }
   const startedAt = _now();
   const startMs = Date.now();
@@ -1202,6 +1236,13 @@ export function executeFlow(db, flowId, options = {}) {
         for (const pe of parentEdges) {
           Object.assign(merged, stepInputs.get(pe.from) || {});
         }
+      }
+      if ((node.type || "action") === "action" && assertRuntimeBoundary) {
+        assertRuntimeBoundary(
+          executionAuthority,
+          flow,
+          _runtimeEffectForNode(flow, node),
+        );
       }
       const output = _simulateNodeOutput(node, merged);
       stepInputs.set(node.id, output.output || output);

@@ -1,5 +1,17 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.88] - Governed runtime recovery (2026-08-14)
+
+- Accept only the exact released Automation Center v2/schemaVersion 2 pair or
+  the new v3/schemaVersion 3 pair. CLI `0.163.7` keeps the existing v2 Center
+  and item actions; v2 projects empty incidents/runtime and no new controls.
+- On v3, validate bounded sanitized incidents and live runtime occurrences,
+  then expose only CLI-issued incident retry/cancel and cooperative occurrence
+  pause/resume actions after a fresh revision/fence/control-revision recheck.
+- Reject cross-paired/unknown schemas, duplicate identifiers, malformed or
+  unknown actions, and payload/authority/checkpoint fields crossing the IDE
+  boundary. V3 controls require a subsequent exact-gated CLI release.
+
 ## [0.4.87] - Governed automatic ghost text (2026-08-12)
 
 - Add default-off governed automatic ghost text while preserving Alt+\\ manual
@@ -9,6 +21,9 @@
 - Record rolling P50/P95 latency evidence against a P50 <= 2 s / P95 <= 5 s
   SLO after 20 samples. Automatic backend calls stop at five seconds so stale
   results never appear; manual completion keeps its existing 12-second bound.
+- Consume only the canonical `chainlesschain.automation-center/v3` projection,
+  validate and display bounded sanitized run incidents, and keep them read-only
+  unless a future CLI projection supplies an exact action preview.
 
 ## [0.4.86] - Governed Automation Center (2026-08-12)
 

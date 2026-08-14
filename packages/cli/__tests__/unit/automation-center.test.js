@@ -22,7 +22,13 @@ import {
   FLOW_STATUS,
 } from "../../src/lib/automation-engine.js";
 import { setAutomationExecutionBudget } from "../../src/lib/automation-execution-authority.js";
+import {
+  listAutomationExecutionIncidents,
+  upsertAutomationExecutionIncident,
+} from "../../src/lib/automation-execution-incident.js";
 import { grantPermission } from "../../src/lib/permission-engine.js";
+import { CHECKPOINT_V1_RUNTIME_CONTROL } from "../../src/lib/scheduler-kernel/runtime-control-capabilities.js";
+import { openSchedulerStore } from "../../src/lib/scheduler-kernel/store.js";
 
 describe("Automation Center projection", () => {
   const cleanups = [];
@@ -87,13 +93,80 @@ describe("Automation Center projection", () => {
     });
   }
 
+  function runningRuntimeStore() {
+    const schedulerDir = mkdtempSync(join(tmpdir(), "cc-center-runtime-root-"));
+    const schedulerStore = openSchedulerStore({
+      file: join(schedulerDir, "scheduler.db"),
+      Database,
+      clock: () => now,
+    });
+    cleanups.push(() => rmSync(schedulerDir, { recursive: true, force: true }));
+    cleanups.push(() => schedulerStore.close());
+    const authority = {
+      schemaVersion: 1,
+      principal: { type: "agent", id: "runtime-principal-must-not-leak" },
+      tenantId: "runtime-tenant-must-not-leak",
+      workspaceId: "runtime-workspace-must-not-leak",
+      requestedCapabilities: ["runtime.capability.must-not-leak"],
+      authorizationRefs: {
+        decisionId: "runtime-decision-must-not-leak",
+        policyRevision: "runtime-policy-must-not-leak",
+        grantIds: [],
+        approvalIds: [],
+        delegationIds: [],
+      },
+    };
+    schedulerStore.createJob({
+      id: "center-runtime-job",
+      kind: "automation",
+      trigger: { type: "schedule" },
+      payload: { secret: "runtime-payload-must-not-leak" },
+      authority,
+      maxAttempts: 3,
+    });
+    const occurrence = schedulerStore.enqueueOccurrence({
+      jobId: "center-runtime-job",
+      scheduledFor: now,
+      triggerKey: "center-runtime:root-projection",
+    });
+    const claim = schedulerStore.claimOccurrence({
+      occurrenceId: occurrence.id,
+      ownerId: "runtime-owner-must-not-leak",
+      leaseMs: 60_000,
+    });
+    schedulerStore.db
+      .prepare(
+        "UPDATE occurrences SET last_error_json = ? WHERE occurrence_id = ?",
+      )
+      .run('{"body":"runtime-error-must-not-leak"}', occurrence.id);
+    schedulerStore.createJob({
+      id: "unsupported-runtime-job",
+      kind: "unsupported-runtime-kind",
+      trigger: { type: "private" },
+      payload: { secret: "unsupported-payload-must-not-leak" },
+      authority,
+      maxAttempts: 1,
+    });
+    const unsupportedOccurrence = schedulerStore.enqueueOccurrence({
+      jobId: "unsupported-runtime-job",
+      scheduledFor: now,
+      triggerKey: "center-runtime:unsupported",
+    });
+    schedulerStore.claimOccurrence({
+      occurrenceId: unsupportedOccurrence.id,
+      ownerId: "unsupported-owner-must-not-leak",
+      leaseMs: 60_000,
+    });
+    return { schedulerStore, occurrence, claim };
+  }
+
   it("projects flows, scoped triggers, history, actions and live authority", () => {
     const f = fixture();
     const center = projection(f);
 
     expect(center).toMatchObject({
-      schema: "chainlesschain.automation-center/v2",
-      schemaVersion: 2,
+      schema: "chainlesschain.automation-center/v3",
+      schemaVersion: 3,
       authority: "cli",
       connected: true,
       summary: {
@@ -134,6 +207,192 @@ describe("Automation Center projection", () => {
     ]);
   });
 
+  it("defaults the root projection to an empty v1 scheduler runtime", () => {
+    const center = projection(fixture());
+
+    expect(center.runtime).toEqual({
+      schema: "chainlesschain.automation-center-runtime/v1",
+      schemaVersion: 1,
+      items: [],
+    });
+    expect(center.summary).toMatchObject({
+      runtimeRunning: 0,
+      runtimePauseRequested: 0,
+      runtimePaused: 0,
+    });
+  });
+
+  it("projects running scheduler controls into the root revision without leaking execution evidence", () => {
+    const f = fixture();
+    const runtime = runningRuntimeStore();
+    const initial = projection(f, {
+      schedulerStore: runtime.schedulerStore,
+    });
+
+    expect(initial.runtime).toMatchObject({
+      schema: "chainlesschain.automation-center-runtime/v1",
+      schemaVersion: 1,
+      items: [
+        {
+          id: runtime.occurrence.id,
+          jobId: "center-runtime-job",
+          jobKind: "automation",
+          status: "running",
+          occurrenceStatus: "running",
+          attempt: 1,
+          fence: runtime.claim.fence,
+          controlRevision: 0,
+          runtimeControl: {
+            pauseResume: "checkpoint_v1",
+            safePoints: ["adapter_checkpoint", "before_execute"],
+          },
+        },
+      ],
+    });
+    expect(initial.summary).toMatchObject({
+      runtimeRunning: 1,
+      runtimePauseRequested: 0,
+      runtimePaused: 0,
+    });
+    const unsupported = projection(f, {
+      schedulerStore: runtime.schedulerStore,
+      runtimeCapabilityForKind: () => ({
+        schemaVersion: 1,
+        pauseResume: "none",
+        safePoints: [],
+      }),
+    });
+    expect(unsupported.revision).not.toBe(initial.revision);
+    expect(unsupported.runtime.items[0]).toMatchObject({
+      runtimeControl: null,
+      actions: [
+        expect.objectContaining({
+          id: "pause",
+          available: false,
+          preview: null,
+        }),
+        expect.objectContaining({
+          id: "resume",
+          available: false,
+          preview: null,
+        }),
+      ],
+    });
+
+    const requested = runtime.schedulerStore.requestOccurrencePause({
+      occurrenceId: runtime.occurrence.id,
+      expectedFence: runtime.claim.fence,
+      requestId: "center-root-pause",
+      capability: CHECKPOINT_V1_RUNTIME_CONTROL,
+    });
+    const pauseRequested = projection(f, {
+      schedulerStore: runtime.schedulerStore,
+    });
+    expect(pauseRequested.revision).not.toBe(initial.revision);
+    expect(pauseRequested.runtime.items[0]).toMatchObject({
+      status: "pause_requested",
+      fence: runtime.claim.fence,
+      controlRevision: requested.revision,
+    });
+    expect(pauseRequested.summary).toMatchObject({
+      runtimeRunning: 0,
+      runtimePauseRequested: 1,
+      runtimePaused: 0,
+    });
+
+    const paused = runtime.schedulerStore.ackOccurrencePause({
+      occurrenceId: runtime.occurrence.id,
+      ownerId: "runtime-owner-must-not-leak",
+      fence: runtime.claim.fence,
+      requestId: "center-root-pause",
+      expectedRevision: requested.revision,
+      safePoint: "adapter_checkpoint",
+      checkpoint: { secret: "runtime-checkpoint-must-not-leak" },
+    });
+    runtime.schedulerStore.resumeOccurrence({
+      occurrenceId: runtime.occurrence.id,
+      expectedRevision: paused.control.revision,
+      requestId: "center-root-resume",
+    });
+    const reclaimed = runtime.schedulerStore.claimOccurrence({
+      occurrenceId: runtime.occurrence.id,
+      ownerId: "runtime-resume-owner-must-not-leak",
+      leaseMs: 60_000,
+    });
+    const resumed = projection(f, {
+      schedulerStore: runtime.schedulerStore,
+    });
+    expect(resumed.revision).not.toBe(pauseRequested.revision);
+    const resumedControl = runtime.schedulerStore.getOccurrenceControl(
+      runtime.occurrence.id,
+    );
+    expect(resumed.runtime.items[0]).toMatchObject({
+      status: "running",
+      attempt: 1,
+      fence: reclaimed.fence,
+      controlRevision: resumedControl.revision,
+    });
+    expect(resumedControl.revision).toBeGreaterThan(requested.revision);
+    expect(reclaimed.fence).not.toBe(runtime.claim.fence);
+    expect(resumed.summary).toMatchObject({
+      runtimeRunning: 1,
+      runtimePauseRequested: 0,
+      runtimePaused: 0,
+    });
+
+    const runtimeItem = resumed.runtime.items[0];
+    for (const field of [
+      "payload",
+      "authority",
+      "owner",
+      "ownerId",
+      "leaseOwner",
+      "checkpoint",
+      "error",
+      "lastError",
+    ]) {
+      expect(runtimeItem).not.toHaveProperty(field);
+    }
+    const encoded = JSON.stringify(resumed);
+    for (const secret of [
+      "runtime-payload-must-not-leak",
+      "runtime-principal-must-not-leak",
+      "runtime-tenant-must-not-leak",
+      "runtime-workspace-must-not-leak",
+      "runtime.capability.must-not-leak",
+      "runtime-decision-must-not-leak",
+      "runtime-policy-must-not-leak",
+      "runtime-owner-must-not-leak",
+      "runtime-resume-owner-must-not-leak",
+      "runtime-checkpoint-must-not-leak",
+      "runtime-error-must-not-leak",
+      "unsupported-payload-must-not-leak",
+      "unsupported-owner-must-not-leak",
+    ]) {
+      expect(encoded).not.toContain(secret);
+    }
+
+    runtime.schedulerStore.settle({
+      occurrenceId: runtime.occurrence.id,
+      ownerId: "runtime-resume-owner-must-not-leak",
+      fence: reclaimed.fence,
+      outcome: "succeeded",
+      result: { secret: "runtime-result-must-not-leak" },
+    });
+    const terminal = projection(f, {
+      schedulerStore: runtime.schedulerStore,
+    });
+    expect(terminal.runtime.items).toEqual([]);
+    expect(terminal.summary).toMatchObject({
+      runtimeRunning: 0,
+      runtimePauseRequested: 0,
+      runtimePaused: 0,
+    });
+    expect(JSON.stringify(terminal)).not.toContain(
+      "runtime-result-must-not-leak",
+    );
+  });
+
   it("fails closed when principal, permissions or budget are not configured", () => {
     const f = fixture({ configure: false });
     const flow = projection(f).items[0];
@@ -148,6 +407,37 @@ describe("Automation Center projection", () => {
       available: false,
       preview: null,
     });
+  });
+
+  it("projects bounded run incidents and counts open incidents as attention", () => {
+    const f = fixture();
+    upsertAutomationExecutionIncident(f.db, {
+      runId: "exec-center-denied",
+      flowId: f.flowId,
+      occurrenceId: "center-occurrence-denied",
+      triggerType: "manual",
+      category: "connector",
+      code: "AUTOMATION_EXECUTION_PERMISSION_DENIED",
+      authorityDigest: "a".repeat(64),
+      boundary: {
+        deniedPermissions: ["automation:connector:slack"],
+      },
+      details: { reasonCode: "AUTOMATION_EXECUTION_PERMISSION_DENIED" },
+    });
+    const center = projection(f);
+    expect(center.summary.needsAttention).toBe(1);
+    expect(center.items[0].incidents).toEqual([
+      expect.objectContaining({
+        runId: "exec-center-denied",
+        occurrenceId: "center-occurrence-denied",
+        category: "connector",
+        status: "open",
+      }),
+    ]);
+    expect(JSON.stringify(center)).not.toContain("deniedPermissions");
+    expect(
+      listAutomationExecutionIncidents(f.db, { flowId: f.flowId }),
+    ).toHaveLength(1);
   });
 
   it("uses item-revision CAS for run-now, lifecycle and delete actions", () => {
@@ -213,6 +503,33 @@ describe("Automation Center projection", () => {
         .prepare("SELECT flow_id FROM auto_execution_budgets WHERE flow_id = ?")
         .get(f.flowId),
     ).toBeUndefined();
+  });
+
+  it("holds an immediate transaction across the revision recheck and mutation", () => {
+    const f = fixture();
+    let observedTransaction = false;
+    f.db.function("observe_center_transaction", () => {
+      observedTransaction = f.db.inTransaction;
+      return 1;
+    });
+    f.db.exec(`
+      CREATE TEMP TRIGGER observe_center_flow_update
+      BEFORE UPDATE ON auto_flows
+      BEGIN
+        SELECT observe_center_transaction();
+      END;
+    `);
+    const flow = projection(f).items[0];
+
+    runAutomationCenterAction(f.db, {
+      flowId: f.flowId,
+      action: "pause",
+      expectedRevision: flow.revision,
+      now: () => now,
+    });
+
+    expect(observedTransaction).toBe(true);
+    expect(f.db.inTransaction).toBe(false);
   });
 
   it("only offers retry for the latest failed run and binds it to that run", () => {

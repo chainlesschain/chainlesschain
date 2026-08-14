@@ -13,6 +13,14 @@ import {
   runAutomationCenterAction,
 } from "../lib/automation-center.js";
 import {
+  automationCenterIncidentActionErrorEnvelope,
+  runAutomationCenterIncidentAction,
+} from "../lib/automation-center-incidents.js";
+import {
+  automationCenterRuntimeActionErrorEnvelope,
+  runAutomationCenterRuntimeAction,
+} from "../lib/automation-center-runtime.js";
+import {
   createAutomationCenterRoutine,
   editAutomationCenterRoutine,
   runAutomationCenterRoutineAction,
@@ -22,6 +30,7 @@ import { parseJsonOption } from "../lib/parse-json-option.js";
 import { AutomationSchedulerBridge } from "../lib/scheduler-kernel/automation-adapter.js";
 import { AutomationEventDispatcher } from "../lib/scheduler-kernel/automation-event-adapter.js";
 import { openSchedulerStore } from "../lib/scheduler-kernel/store.js";
+import { resolveAutomationCenterRuntimeControl } from "../lib/scheduler-kernel/runtime-control-capabilities.js";
 import {
   RoutineSchedulerBridge,
   routineBridgeRunId,
@@ -288,7 +297,8 @@ export function registerAutomationCommand(program) {
         if (
           actionCommand &&
           (actionCommand.name().endsWith("-v2") ||
-            actionCommand.name().startsWith("center-routine-"))
+            actionCommand.name().startsWith("center-routine-") ||
+            actionCommand.name() === "center-runtime-action")
         )
           return;
         const db = await _prepare(thisCommand);
@@ -446,9 +456,13 @@ function _wire(root) {
     .option("--json", "Output as JSON")
     .action(async (opts, cmd) => {
       const db = _dbFromCtx(cmd);
+      let schedulerStore;
       try {
+        schedulerStore = openSchedulerStore();
         const projection = buildAutomationCenterProjection(db, {
           limit: Number(opts.limit),
+          schedulerStore,
+          runtimeCapabilityForKind: resolveAutomationCenterRuntimeControl,
         });
         if (opts.json) console.log(JSON.stringify(projection, null, 2));
         else {
@@ -465,6 +479,94 @@ function _wire(root) {
         logger.error(e.message);
         process.exitCode = 1;
       } finally {
+        schedulerStore?.close();
+        await shutdown();
+      }
+    });
+
+  root
+    .command("center-runtime-action <occurrenceId> <pause|resume>")
+    .description("Pause or resume one exact fenced scheduler occurrence")
+    .requiredOption(
+      "--expected-fence <fence>",
+      "Exact scheduler fence shown by center-projection",
+    )
+    .requiredOption(
+      "--expected-control-revision <revision>",
+      "Exact runtime-control revision shown by center-projection",
+    )
+    .option("--json", "Output as JSON")
+    .action(async (occurrenceId, action, opts) => {
+      let schedulerStore;
+      try {
+        schedulerStore = openSchedulerStore();
+        const result = runAutomationCenterRuntimeAction(schedulerStore, {
+          capabilityForKind: resolveAutomationCenterRuntimeControl,
+          occurrenceId,
+          action,
+          expectedFence: Number(opts.expectedFence),
+          expectedControlRevision: Number(opts.expectedControlRevision),
+        });
+        if (opts.json) console.log(JSON.stringify(result, null, 2));
+        else logger.success(`${occurrenceId} ${action} completed`);
+      } catch (error) {
+        if (opts.json) {
+          console.log(
+            JSON.stringify(
+              automationCenterRuntimeActionErrorEnvelope(error, {
+                occurrenceId,
+                action,
+              }),
+              null,
+              2,
+            ),
+          );
+        } else logger.error(error.message);
+        process.exitCode = 1;
+      } finally {
+        schedulerStore?.close();
+        await shutdown();
+      }
+    });
+
+  root
+    .command("center-incident-action <incidentId> <retry|cancel>")
+    .description("Retry or cancel a revision-gated Automation Center incident")
+    .requiredOption(
+      "--expected-revision <revision>",
+      "Exact incident revision shown by center-projection",
+    )
+    .option("--json", "Output as JSON")
+    .action(async (incidentId, action, opts, cmd) => {
+      const db = _dbFromCtx(cmd);
+      let schedulerStore;
+      try {
+        // Cancellation is incident-local. Retry alone needs the scheduler's
+        // dead-letter evidence and owns this short-lived handle.
+        if (action === "retry") schedulerStore = openSchedulerStore();
+        const result = runAutomationCenterIncidentAction(db, schedulerStore, {
+          incidentId,
+          action,
+          expectedRevision: opts.expectedRevision,
+        });
+        if (opts.json) console.log(JSON.stringify(result, null, 2));
+        else logger.success(`${incidentId} ${action} completed`);
+      } catch (error) {
+        if (opts.json) {
+          console.log(
+            JSON.stringify(
+              automationCenterIncidentActionErrorEnvelope(error, {
+                incidentId,
+                action,
+              }),
+              null,
+              2,
+            ),
+          );
+        } else logger.error(error.message);
+        process.exitCode = 1;
+      } finally {
+        schedulerStore?.close();
         await shutdown();
       }
     });

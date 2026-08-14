@@ -65,8 +65,8 @@ function sample() {
       : null,
   });
   return {
-    schema: "chainlesschain.automation-center/v2",
-    schemaVersion: 2,
+    schema: "chainlesschain.automation-center/v3",
+    schemaVersion: 3,
     authority: "cli",
     connected: true,
     revision,
@@ -78,6 +78,9 @@ function sample() {
       active: 2,
       paused: 0,
       needsAttention: 0,
+      runtimeRunning: 0,
+      runtimePauseRequested: 0,
+      runtimePaused: 0,
     },
     mutations: {
       createRoutine: {
@@ -125,6 +128,7 @@ function sample() {
           },
         ],
         history: [],
+        incidents: [],
         actions: [
           flowAction("run_now", true),
           flowAction("retry_failed", false),
@@ -180,6 +184,11 @@ function sample() {
         ],
       },
     ],
+    runtime: {
+      schema: "chainlesschain.automation-center-runtime/v1",
+      schemaVersion: 1,
+      items: [],
+    },
   };
 }
 

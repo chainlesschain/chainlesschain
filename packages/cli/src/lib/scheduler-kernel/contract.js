@@ -3,6 +3,26 @@ import { Buffer } from "node:buffer";
 
 export const SCHEDULER_SCHEMA_VERSION = 1;
 export const AUTHORITY_ENVELOPE_VERSION = 1;
+export const RUNTIME_CONTROL_SCHEMA_VERSION = 1;
+
+export const RUNTIME_PAUSE_RESUME = Object.freeze({
+  NONE: "none",
+  CHECKPOINT_V1: "checkpoint_v1",
+});
+
+export const RUNTIME_CONTROL_SAFE_POINTS = Object.freeze({
+  BEFORE_EXECUTE: "before_execute",
+  ADAPTER_CHECKPOINT: "adapter_checkpoint",
+});
+
+const RUNTIME_CONTROL_FIELDS = new Set([
+  "schemaVersion",
+  "pauseResume",
+  "safePoints",
+]);
+const RUNTIME_CONTROL_SAFE_POINT_SET = new Set(
+  Object.values(RUNTIME_CONTROL_SAFE_POINTS),
+);
 
 export const OCCURRENCE_STATUS = Object.freeze({
   QUEUED: "queued",
@@ -284,6 +304,77 @@ export function normalizeHistoryLimit(value = DEFAULT_HISTORY_LIMIT) {
     throw invalidArgument("history limit must be a positive integer");
   }
   return Math.min(value, MAX_HISTORY_LIMIT);
+}
+
+/**
+ * Normalize the durable runtime-control capability advertised by an adapter.
+ *
+ * Missing declarations are deliberately treated as unsupported. A checkpoint
+ * declaration is evidence, not a hint: only the two kernel-owned safe points
+ * are accepted and every persisted pause request is bound to these canonical
+ * bytes.
+ */
+export function normalizeRuntimeControlCapability(input) {
+  if (input === undefined || input === null) {
+    return Object.freeze({
+      schemaVersion: RUNTIME_CONTROL_SCHEMA_VERSION,
+      pauseResume: RUNTIME_PAUSE_RESUME.NONE,
+      safePoints: Object.freeze([]),
+    });
+  }
+  const capability = assertPlainObject(input, "runtimeControl");
+  assertKnownFields(capability, RUNTIME_CONTROL_FIELDS, "runtimeControl");
+  if (
+    capability.schemaVersion !== undefined &&
+    capability.schemaVersion !== RUNTIME_CONTROL_SCHEMA_VERSION
+  ) {
+    throw invalidArgument(
+      `runtimeControl.schemaVersion must be ${RUNTIME_CONTROL_SCHEMA_VERSION}`,
+    );
+  }
+  const pauseResume = capability.pauseResume ?? RUNTIME_PAUSE_RESUME.NONE;
+  if (!Object.values(RUNTIME_PAUSE_RESUME).includes(pauseResume)) {
+    throw invalidArgument(
+      "runtimeControl.pauseResume must be none or checkpoint_v1",
+    );
+  }
+  const inputSafePoints = capability.safePoints ?? [];
+  if (!Array.isArray(inputSafePoints)) {
+    throw invalidArgument("runtimeControl.safePoints must be an array");
+  }
+  const safePoints = [
+    ...new Set(
+      inputSafePoints.map((safePoint, index) =>
+        normalizeIdentifier(safePoint, `runtimeControl.safePoints[${index}]`, {
+          maxLength: 64,
+        }),
+      ),
+    ),
+  ].sort();
+  const unknownSafePoints = safePoints.filter(
+    (safePoint) => !RUNTIME_CONTROL_SAFE_POINT_SET.has(safePoint),
+  );
+  if (unknownSafePoints.length > 0) {
+    throw invalidArgument("runtimeControl.safePoints contains unknown values", {
+      safePoints: unknownSafePoints,
+    });
+  }
+  if (
+    (pauseResume === RUNTIME_PAUSE_RESUME.NONE && safePoints.length !== 0) ||
+    (pauseResume === RUNTIME_PAUSE_RESUME.CHECKPOINT_V1 &&
+      safePoints.length === 0)
+  ) {
+    throw invalidArgument(
+      pauseResume === RUNTIME_PAUSE_RESUME.NONE
+        ? "runtimeControl.safePoints must be empty when pauseResume is none"
+        : "runtimeControl.safePoints must declare at least one checkpoint",
+    );
+  }
+  return Object.freeze({
+    schemaVersion: RUNTIME_CONTROL_SCHEMA_VERSION,
+    pauseResume,
+    safePoints: Object.freeze(safePoints),
+  });
 }
 
 /**

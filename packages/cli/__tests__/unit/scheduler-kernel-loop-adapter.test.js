@@ -7,13 +7,16 @@ import {
   LOOP_AGENT_CAPABILITY,
   LOOP_PROCESS_CAPABILITY,
   LoopSchedulerBridge,
+  authorizeLoopOccurrence,
   buildLoopSchedulerJob,
+  createLoopSchedulerAdapter,
   enqueueLoopIteration,
   loopExecutionDigest,
   loopExecutionSnapshot,
   migrateSavedLoopSession,
   rollbackSavedLoopMigration,
 } from "../../src/lib/scheduler-kernel/loop-adapter.js";
+import { SchedulerRuntime } from "../../src/lib/scheduler-kernel/runtime.js";
 import { summarizeLoopEvents } from "../../src/lib/loop.js";
 import { openSchedulerStore } from "../../src/lib/scheduler-kernel/store.js";
 
@@ -406,6 +409,78 @@ describe("scheduler-kernel Loop adapter", () => {
         .prepare("SELECT status, units FROM scheduler_authority_reservations")
         .get(),
     ).toEqual({ status: "succeeded", units: 1 });
+  });
+
+  it("pauses before the external runner and resumes the same attempt exactly once", async () => {
+    const f = fixture();
+    const store = f.open();
+    const definition = f.definition();
+    const occurrence = enqueueLoopIteration(store, definition, 1, {
+      scheduledFor: f.now,
+    });
+    const runIteration = vi.fn(async () => ({
+      exitCode: 0,
+      output: "done",
+      durationMs: 1,
+    }));
+    const productionAdapter = createLoopSchedulerAdapter({ runIteration });
+    let pauseBeforeCheckpoint = true;
+    const adapter = {
+      ...productionAdapter,
+      async execute(context) {
+        if (pauseBeforeCheckpoint) {
+          pauseBeforeCheckpoint = false;
+          store.requestOccurrencePause({
+            occurrenceId: context.occurrence.id,
+            expectedFence: context.occurrence.fence,
+            requestId: "loop-adapter-checkpoint-pause",
+            capability: productionAdapter.runtimeControl,
+          });
+        }
+        return productionAdapter.execute(context);
+      },
+    };
+    const runtime = new SchedulerRuntime({
+      store,
+      adapters: [adapter],
+      authorize: authorizeLoopOccurrence,
+      ownerId: "loop-checkpoint-owner",
+      leaseMs: 1_000,
+    });
+
+    await expect(runtime.runOccurrence(occurrence.id)).resolves.toMatchObject({
+      status: "paused",
+      occurrence: { id: occurrence.id, status: "retry_wait", attempt: 1 },
+      control: {
+        state: "paused",
+        checkpoint: {
+          safePoint: "adapter_checkpoint",
+          data: { iteration: 1, phase: "before_runner" },
+        },
+      },
+    });
+    expect(runIteration).not.toHaveBeenCalled();
+
+    const pausedControl = store.getOccurrenceControl(occurrence.id);
+    const resumed = store.resumeOccurrence({
+      occurrenceId: occurrence.id,
+      expectedRevision: pausedControl.revision,
+      requestId: "loop-adapter-checkpoint-resume",
+    });
+    expect(resumed.occurrence.id).toBe(occurrence.id);
+    await expect(runtime.runOccurrence(occurrence.id)).resolves.toMatchObject({
+      status: "succeeded",
+      occurrence: { id: occurrence.id, attempt: 1 },
+      result: { iteration: 1, exitCode: 0 },
+    });
+    expect(runIteration).toHaveBeenCalledTimes(1);
+
+    await expect(runtime.runOccurrence(occurrence.id)).resolves.toMatchObject({
+      status: "succeeded",
+      alreadySettled: true,
+      occurrence: { id: occurrence.id, attempt: 1 },
+    });
+    expect(runIteration).toHaveBeenCalledTimes(1);
   });
 
   it("recovers a settled iteration without replaying its child", async () => {

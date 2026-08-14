@@ -11,12 +11,15 @@ import {
 } from "./scheduler-kernel/contract.js";
 
 export const AUTOMATION_EXECUTE_PERMISSION = "automation:execute";
+export const AUTOMATION_EXECUTION_AUTHORITY_SCHEMA_VERSION = 2;
+export const AUTOMATION_EXECUTION_BOUNDARY_SCHEMA_VERSION = 1;
 export const AUTOMATION_MIN_BUDGET_WINDOW_MS = 60_000;
 export const AUTOMATION_MAX_BUDGET_WINDOW_MS = 31 * 24 * 60 * 60 * 1000;
 export const AUTOMATION_MAX_BUDGET_VALUE = 1_000_000;
 
 const CONNECTOR_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/u;
 const DIGEST_PATTERN = /^[0-9a-f]{64}$/u;
+const AUTOMATION_EFFECTS = new Set(["read", "write", "destructive"]);
 
 function authorityError(code, message, details = undefined, cause = undefined) {
   const error = new SchedulerKernelError(
@@ -106,6 +109,7 @@ function normalizeFlowAuthorityInputs(flow) {
     );
   }
   const connectors = [];
+  const effects = [];
   let actionSteps = 0;
   for (let index = 0; index < flow.nodes.length; index += 1) {
     const node = flow.nodes[index];
@@ -118,17 +122,69 @@ function normalizeFlowAuthorityInputs(flow) {
     }
     if ((node.type || "action") !== "action") continue;
     actionSteps += 1;
-    connectors.push(
-      normalizeConnector(
-        node.connector,
-        `automationFlow.nodes[${index}].connector`,
-      ),
+    const connector = normalizeConnector(
+      node.connector,
+      `automationFlow.nodes[${index}].connector`,
     );
+    const action = normalizeIdentifier(
+      node.action,
+      `automationFlow.nodes[${index}].action`,
+      { maxLength: 96 },
+    );
+    connectors.push(connector);
+    const rawEffect =
+      node.effect &&
+      typeof node.effect === "object" &&
+      !Array.isArray(node.effect)
+        ? node.effect
+        : {};
+    const effect = String(rawEffect.effect || "write").toLowerCase();
+    if (!AUTOMATION_EFFECTS.has(effect)) {
+      throw authorityError(
+        "AUTOMATION_EXECUTION_EFFECT_INVALID",
+        `automationFlow.nodes[${index}].effect.effect is invalid`,
+      );
+    }
+    const declaredScopes = Array.isArray(rawEffect.resourceScopes)
+      ? [
+          ...new Set(
+            rawEffect.resourceScopes.map((scope, scopeIndex) =>
+              normalizeIdentifier(
+                scope,
+                `automationFlow.nodes[${index}].effect.resourceScopes[${scopeIndex}]`,
+                { maxLength: 256 },
+              ),
+            ),
+          ),
+        ].sort()
+      : [];
+    // The current connector engine is intentionally a simulator and performs
+    // no outbound effect. Legacy flows therefore receive a deterministic,
+    // flow-local simulated scope. A future real connector must declare its
+    // actual resource scopes in the versioned flow definition before it can
+    // pass this same boundary contract.
+    const resourceScopes =
+      declaredScopes.length > 0
+        ? declaredScopes
+        : [
+            `automation-flow:${flowId}:node:${normalizeIdentifier(
+              node.id,
+              `automationFlow.nodes[${index}].id`,
+            )}:simulated`,
+          ];
+    effects.push({
+      nodeId: normalizeIdentifier(node.id, `automationFlow.nodes[${index}].id`),
+      connector,
+      action,
+      effect,
+      resourceScopes,
+    });
   }
   return {
     flowId,
     principalId,
     connectors: [...new Set(connectors)].sort(),
+    effects,
     actionSteps,
   };
 }
@@ -349,7 +405,7 @@ export function automationExecutionAuthoritySnapshot(db, flow) {
     );
   }
   return {
-    schemaVersion: 1,
+    schemaVersion: AUTOMATION_EXECUTION_AUTHORITY_SCHEMA_VERSION,
     flowId: inputs.flowId,
     principalId: inputs.principalId,
     requiredPermissions: [
@@ -357,6 +413,10 @@ export function automationExecutionAuthoritySnapshot(db, flow) {
       ...inputs.connectors.map(automationConnectorPermission),
     ],
     connectors: inputs.connectors,
+    effectBoundary: {
+      schemaVersion: AUTOMATION_EXECUTION_BOUNDARY_SCHEMA_VERSION,
+      effects: inputs.effects,
+    },
     actionSteps: inputs.actionSteps,
     budget: normalizeAutomationExecutionBudget(budget),
   };
@@ -372,8 +432,16 @@ export function normalizeAutomationExecutionAuthoritySnapshot(value, flow) {
   const inputs = normalizeFlowAuthorityInputs(flow);
   const budget = normalizeAutomationExecutionBudget(value.budget);
   const requiredPermissions = automationRequiredPermissions(flow);
+  const expectedEffectBoundary = {
+    schemaVersion: AUTOMATION_EXECUTION_BOUNDARY_SCHEMA_VERSION,
+    effects: inputs.effects,
+  };
+  const hasEffectBoundary = Object.prototype.hasOwnProperty.call(
+    value,
+    "effectBoundary",
+  );
   const normalized = {
-    schemaVersion: value.schemaVersion,
+    schemaVersion: Number(value.schemaVersion),
     flowId: normalizeIdentifier(value.flowId, "executionAuthority.flowId"),
     principalId: normalizeIdentifier(
       value.principalId,
@@ -395,11 +463,33 @@ export function normalizeAutomationExecutionAuthoritySnapshot(value, flow) {
           ),
         )
       : [],
+    effectBoundary:
+      value.effectBoundary &&
+      typeof value.effectBoundary === "object" &&
+      !Array.isArray(value.effectBoundary)
+        ? value.effectBoundary
+        : null,
     actionSteps: Number(value.actionSteps),
     budget,
   };
+  const boundaryMatches =
+    canonicalJson(
+      normalized.effectBoundary,
+      "executionAuthority.effectBoundary",
+    ) === canonicalJson(expectedEffectBoundary, "effectBoundary");
+  // Schema v1 is the pre-write-scope authority snapshot already persisted by
+  // released schedulers. It is accepted only for an otherwise exact flow and
+  // is upgraded in memory to the deterministic boundary derived from that
+  // immutable flow snapshot. New snapshots are v2 and must carry the boundary.
+  const compatibleSchema =
+    (normalized.schemaVersion === 1 &&
+      (!hasEffectBoundary || boundaryMatches)) ||
+    (normalized.schemaVersion ===
+      AUTOMATION_EXECUTION_AUTHORITY_SCHEMA_VERSION &&
+      hasEffectBoundary &&
+      boundaryMatches);
   const valid =
-    normalized.schemaVersion === 1 &&
+    compatibleSchema &&
     normalized.flowId === inputs.flowId &&
     normalized.principalId === inputs.principalId &&
     canonicalJson(
@@ -416,7 +506,7 @@ export function normalizeAutomationExecutionAuthoritySnapshot(value, flow) {
       `automation execution authority does not match flow: ${inputs.flowId}`,
     );
   }
-  return normalized;
+  return { ...normalized, effectBoundary: expectedEffectBoundary };
 }
 
 export function automationExecutionAuthorityDigest(snapshot, flow) {
@@ -424,10 +514,134 @@ export function automationExecutionAuthorityDigest(snapshot, flow) {
     snapshot,
     flow,
   );
+  const digestSnapshot =
+    normalized.schemaVersion === 1
+      ? {
+          schemaVersion: 1,
+          flowId: normalized.flowId,
+          principalId: normalized.principalId,
+          requiredPermissions: normalized.requiredPermissions,
+          connectors: normalized.connectors,
+          actionSteps: normalized.actionSteps,
+          budget: normalized.budget,
+        }
+      : normalized;
   return createHash("sha256")
-    .update("chainlesschain.automation-execution-authority.v1\0", "utf8")
-    .update(canonicalJson(normalized, "automationExecutionAuthority"), "utf8")
+    .update(
+      normalized.schemaVersion === 1
+        ? "chainlesschain.automation-execution-authority.v1\0"
+        : "chainlesschain.automation-execution-authority.v2\0",
+      "utf8",
+    )
+    .update(
+      canonicalJson(digestSnapshot, "automationExecutionAuthority"),
+      "utf8",
+    )
     .digest("hex");
+}
+
+export function automationExecutionBoundary(snapshot, flow) {
+  const normalized = normalizeAutomationExecutionAuthoritySnapshot(
+    snapshot,
+    flow,
+  );
+  return structuredClone(normalized.effectBoundary);
+}
+
+export function automationExecutionBoundaryDigest(snapshot, flow) {
+  const boundary = automationExecutionBoundary(snapshot, flow);
+  return createHash("sha256")
+    .update("chainlesschain.automation-execution-boundary.v1\0", "utf8")
+    .update(canonicalJson(boundary, "automationExecutionBoundary"), "utf8")
+    .digest("hex");
+}
+
+export function assertAutomationRuntimeBoundary(
+  snapshot,
+  flow,
+  { nodeId, connector, action, effect, resourceScopes } = {},
+) {
+  const boundary = automationExecutionBoundary(snapshot, flow);
+  const id = normalizeIdentifier(nodeId, "runtimeEffect.nodeId");
+  const expected = boundary.effects.find((entry) => entry.nodeId === id);
+  const actual = {
+    nodeId: id,
+    connector: normalizeConnector(connector, "runtimeEffect.connector"),
+    action: normalizeIdentifier(action, "runtimeEffect.action", {
+      maxLength: 96,
+    }),
+    effect: String(effect || "").toLowerCase(),
+    resourceScopes: Array.isArray(resourceScopes)
+      ? [
+          ...new Set(
+            resourceScopes.map((scope, index) =>
+              normalizeIdentifier(
+                scope,
+                `runtimeEffect.resourceScopes[${index}]`,
+                { maxLength: 256 },
+              ),
+            ),
+          ),
+        ].sort()
+      : [],
+  };
+  if (
+    !expected ||
+    canonicalJson(actual, "runtimeEffect") !==
+      canonicalJson(expected, "expectedRuntimeEffect")
+  ) {
+    throw authorityError(
+      "AUTOMATION_EXECUTION_WRITE_SCOPE_DENIED",
+      `automation runtime effect exceeds its declared boundary: ${id}`,
+      { flowId: boundary.flowId || flow?.id || null, nodeId: id },
+    );
+  }
+  return actual;
+}
+
+export function classifyAutomationBoundaryError(error) {
+  const code = String(error?.code || "");
+  if (code === "AUTOMATION_EXECUTION_BUDGET_EXHAUSTED") {
+    return { category: "budget", code };
+  }
+  if (
+    code === "AUTOMATION_EXECUTION_BUDGET_REQUIRED" ||
+    code === "AUTOMATION_EXECUTION_BUDGET_INVALID" ||
+    code === "AUTOMATION_EXECUTION_BUDGET_STATE_INVALID" ||
+    code === "AUTOMATION_EXECUTION_AUTHORITY_STALE"
+  ) {
+    return { category: "budget", code };
+  }
+  if (
+    code === "AUTOMATION_EXECUTION_WRITE_SCOPE_DENIED" ||
+    code === "AUTOMATION_EXECUTION_WRITE_SCOPE_REQUIRED" ||
+    code === "AUTOMATION_EXECUTION_EFFECT_INVALID"
+  ) {
+    return { category: "write_scope", code };
+  }
+  if (code === "AUTOMATION_EXECUTION_PERMISSION_DENIED") {
+    const denied = Array.isArray(error?.details?.permissions)
+      ? error.details.permissions.map(String)
+      : [];
+    return {
+      category: denied.some((permission) =>
+        permission.startsWith("automation:connector:"),
+      )
+        ? "connector"
+        : "permission",
+      code,
+    };
+  }
+  if (
+    code === "AUTOMATION_EXECUTION_PRINCIPAL_REQUIRED" ||
+    code === "AUTOMATION_EXECUTION_AUTHORITY_INVALID"
+  ) {
+    return { category: "permission", code };
+  }
+  if (code === "AUTOMATION_EXECUTION_CONNECTOR_INVALID") {
+    return { category: "connector", code };
+  }
+  return null;
 }
 
 export function automationSchedulerAuthority(snapshot, flow, capability) {
@@ -608,7 +822,22 @@ export function reserveAutomationExecutionAuthority(
   const timestamp = normalizeEpochMs(Number(now()), "now");
   const reserve = db.transaction(() => {
     const current = automationExecutionAuthoritySnapshot(db, flow);
-    const currentDigest = automationExecutionAuthorityDigest(current, flow);
+    const comparableCurrent =
+      normalized.schemaVersion === 1
+        ? {
+            schemaVersion: 1,
+            flowId: current.flowId,
+            principalId: current.principalId,
+            requiredPermissions: current.requiredPermissions,
+            connectors: current.connectors,
+            actionSteps: current.actionSteps,
+            budget: current.budget,
+          }
+        : current;
+    const currentDigest = automationExecutionAuthorityDigest(
+      comparableCurrent,
+      flow,
+    );
     if (currentDigest !== expectedDigest) {
       throw authorityError(
         "AUTOMATION_EXECUTION_AUTHORITY_STALE",

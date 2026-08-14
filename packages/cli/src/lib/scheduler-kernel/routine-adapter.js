@@ -13,6 +13,7 @@ import {
   normalizeIdentifier,
 } from "./contract.js";
 import { SchedulerRuntime } from "./runtime.js";
+import { CHECKPOINT_V1_RUNTIME_CONTROL } from "./runtime-control-capabilities.js";
 import { schedulerMigrationSourceDigest } from "./store.js";
 import {
   bindSchedulerAuthorityPolicy,
@@ -772,6 +773,7 @@ export function createRoutineSchedulerAdapter({ routineStore, runAgent } = {}) {
   }
   return {
     kind: ROUTINE_SCHEDULER_KIND,
+    runtimeControl: CHECKPOINT_V1_RUNTIME_CONTROL,
     async adjudicate({ occurrence, adjudication }) {
       const payload = occurrence.payload;
       const expected = payload?.routine;
@@ -812,7 +814,7 @@ export function createRoutineSchedulerAdapter({ routineStore, runAgent } = {}) {
       }
       return { continue: true };
     },
-    async execute({ occurrence, adjudication }) {
+    async execute({ occurrence, adjudication, checkpoint }) {
       const payload = occurrence.payload;
       const expected = payload?.routine;
       if (!expected) {
@@ -884,6 +886,7 @@ export function createRoutineSchedulerAdapter({ routineStore, runAgent } = {}) {
           `Routine was disabled before scheduled execution: ${expected.id}`,
         );
       }
+      checkpoint({ phase: "before_run_bind", runId: schedulerRunId });
       const execution = await executeRoutine(
         routineStore,
         effectiveCurrent,
@@ -911,6 +914,9 @@ export function createRoutineSchedulerAdapter({ routineStore, runAgent } = {}) {
         );
       }
       return execution;
+    },
+    async resume(context) {
+      return this.execute(context);
     },
     classifyError(error) {
       return { retryable: error?.retryable !== false };

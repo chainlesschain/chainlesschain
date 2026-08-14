@@ -6,6 +6,8 @@ import { getHomeDir } from "../paths.js";
 import { ensurePrivateDirectory, ensurePrivateFile } from "../secure-fs.js";
 import {
   OCCURRENCE_STATUS,
+  RUNTIME_CONTROL_SAFE_POINTS,
+  RUNTIME_PAUSE_RESUME,
   SchedulerKernelError,
   canonicalJson,
   deriveOccurrenceIdentity,
@@ -16,21 +18,51 @@ import {
   normalizeIdentifier,
   normalizeJson,
   normalizeMaxAttempts,
+  normalizeRuntimeControlCapability,
 } from "./contract.js";
 import { isCanonicalSchedulerSourcePath } from "./source-locator-path.js";
 
 const requireCjs = createRequire(import.meta.url);
 
+const STORAGE_FAILURE_CODES = Object.freeze([
+  "ENOSPC",
+  "EROFS",
+  "EIO",
+  "SQLITE_FULL",
+  "SQLITE_IOERR",
+  "SQLITE_READONLY",
+]);
+const STORAGE_FAILURE_CODE_SET = new Set(STORAGE_FAILURE_CODES);
+
 export const SCHEDULER_APPLICATION_ID = 0x4343534b; // "CCSK"
-export const SCHEDULER_STORE_SCHEMA_VERSION = 5;
+export const SCHEDULER_STORE_SCHEMA_VERSION = 6;
 export const DEFAULT_BUSY_TIMEOUT_MS = 5_000;
 export const MAX_LEASE_MS = 24 * 60 * 60 * 1_000;
 export const MIN_AUTHORITY_WINDOW_MS = 60_000;
 export const MAX_AUTHORITY_WINDOW_MS = 31 * 24 * 60 * 60 * 1_000;
 export const MAX_AUTHORITY_BUDGET = 1_000_000;
+export const MAX_RUNTIME_CHECKPOINT_BYTES = 64 * 1024;
 export const DEFAULT_AUTHORITY_WINDOW_MS = 24 * 60 * 60 * 1_000;
 export const DEFAULT_AUTHORITY_MAX_RUNS = 100_000;
 export const DEFAULT_AUTHORITY_MAX_UNITS = 100_000;
+export const MAX_RUNTIME_CONTROL_OCCURRENCES = 200;
+export const RUNTIME_CONTROL_OCCURRENCE_STATUSES = Object.freeze([
+  "running",
+  "pause_requested",
+  "paused",
+]);
+export const RUNTIME_CONTROL_JOB_KINDS = Object.freeze([
+  "agenda",
+  "automation",
+  "automation-event",
+  "cowork-cron",
+  "loop-iteration",
+  "routine",
+]);
+const RUNTIME_CONTROL_OCCURRENCE_STATUS_SET = new Set(
+  RUNTIME_CONTROL_OCCURRENCE_STATUSES,
+);
+const RUNTIME_CONTROL_JOB_KIND_SET = new Set(RUNTIME_CONTROL_JOB_KINDS);
 export const SCHEDULER_ADJUDICATION_AUTHORITY = "local-operator";
 export const SCHEDULER_ADJUDICATION_DECISIONS = Object.freeze({
   CONFIRMED_APPLIED: "confirmed_applied",
@@ -58,6 +90,7 @@ const MIGRATION_V2_NAME = "scheduler-kernel-authority-v2";
 const MIGRATION_V3_NAME = "scheduler-kernel-adjudication-v3";
 const MIGRATION_V4_NAME = "scheduler-kernel-domain-migration-v4";
 const MIGRATION_V5_NAME = "scheduler-kernel-source-locator-v5";
+const MIGRATION_V6_NAME = "scheduler-kernel-runtime-control-v6";
 const V1_USER_TABLES = Object.freeze([
   "events",
   "jobs",
@@ -77,11 +110,16 @@ const V3_USER_TABLES = Object.freeze([
   ...V2_USER_TABLES,
   "scheduler_occurrence_adjudications",
 ]);
-const USER_TABLES = Object.freeze([
+const V4_V5_USER_TABLES = Object.freeze([
   ...V2_USER_TABLES,
   "scheduler_domain_migration_entries",
   "scheduler_domain_migrations",
   "scheduler_occurrence_adjudications",
+]);
+const USER_TABLES = Object.freeze([
+  ...V4_V5_USER_TABLES,
+  "scheduler_occurrence_controls",
+  "scheduler_occurrence_retries",
 ]);
 
 export const MIGRATION_V1_SQL = `
@@ -415,6 +453,68 @@ export const MIGRATION_V5_CHECKSUM = createHash("sha256")
   .update(MIGRATION_V5_SQL.trim().replace(/\r\n/g, "\n"), "utf8")
   .digest("hex");
 
+export const MIGRATION_V6_SQL = `
+CREATE TABLE scheduler_occurrence_controls (
+  occurrence_id       TEXT PRIMARY KEY NOT NULL
+                      REFERENCES occurrences(occurrence_id) ON DELETE RESTRICT,
+  capability_json     TEXT NOT NULL CHECK (json_valid(capability_json)),
+  capability_digest   TEXT NOT NULL CHECK (
+    capability_digest GLOB 'sha256:[0-9a-f]*'
+    AND length(capability_digest) = 71
+  ),
+  state                TEXT NOT NULL CHECK (
+    state IN ('pause_requested', 'paused', 'resumed', 'terminal')
+  ),
+  revision             INTEGER NOT NULL CHECK (revision >= 1),
+  pause_request_id     TEXT NOT NULL,
+  resume_request_id    TEXT UNIQUE,
+  expected_fence       INTEGER NOT NULL CHECK (expected_fence >= 1),
+  checkpoint_json      TEXT CHECK (
+    checkpoint_json IS NULL OR json_valid(checkpoint_json)
+  ),
+  requested_at         INTEGER NOT NULL CHECK (requested_at >= 0),
+  paused_at            INTEGER CHECK (paused_at >= 0),
+  resumed_at           INTEGER CHECK (resumed_at >= 0),
+  terminal_at          INTEGER CHECK (terminal_at >= 0),
+  updated_at           INTEGER NOT NULL CHECK (updated_at >= 0),
+  CHECK (
+    (state = 'pause_requested' AND paused_at IS NULL
+      AND resumed_at IS NULL AND terminal_at IS NULL)
+    OR
+    (state = 'paused' AND paused_at IS NOT NULL
+      AND resumed_at IS NULL AND terminal_at IS NULL)
+    OR
+    (state = 'resumed' AND paused_at IS NOT NULL
+      AND resumed_at IS NOT NULL AND terminal_at IS NULL)
+    OR
+    (state = 'terminal' AND terminal_at IS NOT NULL)
+  )
+);
+
+CREATE UNIQUE INDEX scheduler_occurrence_controls_pause_request
+  ON scheduler_occurrence_controls(pause_request_id);
+CREATE INDEX scheduler_occurrence_controls_state
+  ON scheduler_occurrence_controls(state, updated_at, occurrence_id);
+
+CREATE TABLE scheduler_occurrence_retries (
+  occurrence_id       TEXT NOT NULL
+                      REFERENCES occurrences(occurrence_id) ON DELETE RESTRICT,
+  request_id           TEXT NOT NULL UNIQUE,
+  expected_fence       INTEGER NOT NULL CHECK (expected_fence >= 1),
+  expected_error_code  TEXT NOT NULL,
+  created_at           INTEGER NOT NULL CHECK (created_at >= 0),
+  claimed_at           INTEGER CHECK (claimed_at >= 0),
+  PRIMARY KEY (occurrence_id, request_id)
+);
+
+CREATE INDEX scheduler_occurrence_retries_pending
+  ON scheduler_occurrence_retries(occurrence_id, claimed_at, expected_fence);
+`;
+
+export const MIGRATION_V6_CHECKSUM = createHash("sha256")
+  .update(MIGRATION_V6_SQL.trim().replace(/\r\n/g, "\n"), "utf8")
+  .digest("hex");
+
 // Fingerprint of the normalized sqlite_master catalog produced by the v1 DDL.
 // Unlike the migration-source checksum, this also detects added triggers/views
 // and constraint/foreign-key changes that preserve the visible column list.
@@ -428,6 +528,8 @@ export const SCHEMA_V4_FINGERPRINT =
   "59762b9d5da862b857edb76021ed51d05a256133dce543a3fd7d7b0403c9c081";
 export const SCHEMA_V5_FINGERPRINT =
   "9619647628488fc4fdc79ad36b4b6632d8257f40c23245822a18941870c187ac";
+export const SCHEMA_V6_FINGERPRINT =
+  "6abe5595ba3f772c9643440b27d18d5d40057c85523ecb3b4986b195d67787c2";
 
 const EXPECTED_COLUMNS = Object.freeze({
   migrations: [
@@ -531,6 +633,30 @@ const EXPECTED_COLUMNS = Object.freeze({
     ["retry_settled_at", "INTEGER", 0, 0],
     ["retry_outcome_json", "TEXT", 0, 0],
   ],
+  scheduler_occurrence_controls: [
+    ["occurrence_id", "TEXT", 1, 1],
+    ["capability_json", "TEXT", 1, 0],
+    ["capability_digest", "TEXT", 1, 0],
+    ["state", "TEXT", 1, 0],
+    ["revision", "INTEGER", 1, 0],
+    ["pause_request_id", "TEXT", 1, 0],
+    ["resume_request_id", "TEXT", 0, 0],
+    ["expected_fence", "INTEGER", 1, 0],
+    ["checkpoint_json", "TEXT", 0, 0],
+    ["requested_at", "INTEGER", 1, 0],
+    ["paused_at", "INTEGER", 0, 0],
+    ["resumed_at", "INTEGER", 0, 0],
+    ["terminal_at", "INTEGER", 0, 0],
+    ["updated_at", "INTEGER", 1, 0],
+  ],
+  scheduler_occurrence_retries: [
+    ["occurrence_id", "TEXT", 1, 1],
+    ["request_id", "TEXT", 1, 2],
+    ["expected_fence", "INTEGER", 1, 0],
+    ["expected_error_code", "TEXT", 1, 0],
+    ["created_at", "INTEGER", 1, 0],
+    ["claimed_at", "INTEGER", 0, 0],
+  ],
   scheduler_domain_migrations: [
     ["migration_id", "TEXT", 1, 1],
     ["manifest_digest", "TEXT", 1, 0],
@@ -579,6 +705,9 @@ const EXPECTED_INDEXES = Object.freeze([
   "scheduler_domain_migrations_state",
   "scheduler_events_job",
   "scheduler_events_occurrence",
+  "scheduler_occurrence_controls_pause_request",
+  "scheduler_occurrence_controls_state",
+  "scheduler_occurrence_retries_pending",
   "scheduler_occurrences_claim",
   "scheduler_occurrences_idempotency",
   "scheduler_occurrences_job",
@@ -590,6 +719,45 @@ function schemaError(code, message, cause = undefined, details = undefined) {
     message,
     details,
     cause ? { cause } : undefined,
+  );
+}
+
+function normalizedStorageFailureCode(value) {
+  if (typeof value !== "string") return null;
+  const candidate = value.trim().toUpperCase();
+  if (STORAGE_FAILURE_CODE_SET.has(candidate)) return candidate;
+  return (
+    STORAGE_FAILURE_CODES.find((code) => candidate.startsWith(`${code}_`)) ||
+    null
+  );
+}
+
+function findStorageFailureCode(error) {
+  const visited = new Set();
+  let current = error;
+  while (
+    current !== null &&
+    (typeof current === "object" || typeof current === "function") &&
+    !visited.has(current)
+  ) {
+    visited.add(current);
+    const code = normalizedStorageFailureCode(current.code);
+    if (code) return code;
+    current = current.cause;
+  }
+  return null;
+}
+
+function storageUnavailableError({ phase, storageCode, commitState }) {
+  return new SchedulerKernelError(
+    "SCHEDULER_STORAGE_UNAVAILABLE",
+    "Scheduler storage is unavailable",
+    {
+      phase,
+      storageCode,
+      commitState,
+      retryable: false,
+    },
   );
 }
 
@@ -841,6 +1009,109 @@ function mapOccurrence(row) {
     updatedAt: row.updated_at,
     settledAt: row.settled_at,
   };
+}
+
+function mapRuntimeControlOccurrence(row) {
+  if (!row) return null;
+  return {
+    id: row.occurrence_id,
+    jobId: row.job_id,
+    jobKind: row.job_kind,
+    runtimeStatus: row.runtime_status,
+    occurrenceStatus: row.occurrence_status,
+    scheduledFor: row.scheduled_for,
+    attempt: row.attempt,
+    maxAttempts: row.max_attempts,
+    fence: row.fence,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    control:
+      row.control_state === null
+        ? null
+        : {
+            state: row.control_state,
+            revision: row.control_revision,
+            expectedFence: row.control_expected_fence,
+            capabilityDigest: row.control_capability_digest,
+            requestedAt: row.control_requested_at,
+            pausedAt: row.control_paused_at,
+            updatedAt: row.control_updated_at,
+          },
+  };
+}
+
+function normalizeRuntimeControlEnumeration(values, allowed, field) {
+  if (!Array.isArray(values) || values.length === 0) {
+    throw invalidArgument(`${field} must be a non-empty array`);
+  }
+  const normalized = [
+    ...new Set(
+      values.map((value, index) =>
+        normalizeIdentifier(value, `${field}[${index}]`, { maxLength: 128 }),
+      ),
+    ),
+  ];
+  const unsupported = normalized.filter((value) => !allowed.has(value));
+  if (unsupported.length > 0) {
+    throw invalidArgument(`${field} contains unsupported values`, {
+      values: unsupported.sort(),
+    });
+  }
+  return normalized.sort();
+}
+
+export function schedulerRuntimeControlCapabilityDigest(capability) {
+  return sha256PayloadDigest(
+    normalizeRuntimeControlCapability(capability),
+    "runtimeControl.capability",
+  );
+}
+
+function mapOccurrenceControl(row) {
+  if (!row) return null;
+  const capability = normalizeRuntimeControlCapability(
+    readStoredJson(row.capability_json, "scheduler runtime control capability"),
+  );
+  const capabilityDigest = schedulerRuntimeControlCapabilityDigest(capability);
+  if (capabilityDigest !== row.capability_digest) {
+    throw schemaError(
+      "SCHEDULER_DATA_CORRUPT",
+      `Scheduler runtime-control capability digest is invalid: ${row.occurrence_id}`,
+    );
+  }
+  return {
+    occurrenceId: row.occurrence_id,
+    capability,
+    capabilityDigest,
+    state: row.state,
+    revision: row.revision,
+    pauseRequestId: row.pause_request_id,
+    resumeRequestId: row.resume_request_id,
+    expectedFence: row.expected_fence,
+    checkpoint:
+      row.checkpoint_json === null
+        ? null
+        : readStoredJson(
+            row.checkpoint_json,
+            "scheduler runtime control checkpoint",
+          ),
+    requestedAt: row.requested_at,
+    pausedAt: row.paused_at,
+    resumedAt: row.resumed_at,
+    terminalAt: row.terminal_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function normalizeRuntimeCheckpoint(value) {
+  const checkpoint = normalizeJson(value ?? null, "runtimeControl.checkpoint");
+  const encoded = canonicalJson(checkpoint, "runtimeControl.checkpoint");
+  if (Buffer.byteLength(encoded, "utf8") > MAX_RUNTIME_CHECKPOINT_BYTES) {
+    throw invalidArgument(
+      `runtimeControl.checkpoint exceeds ${MAX_RUNTIME_CHECKPOINT_BYTES} encoded bytes`,
+    );
+  }
+  return { checkpoint, encoded };
 }
 
 function mapEvent(row) {
@@ -1483,7 +1754,9 @@ function verifySchema(db, version = SCHEDULER_STORE_SCHEMA_VERSION) {
         ? V2_USER_TABLES
         : version === 3
           ? V3_USER_TABLES
-          : USER_TABLES;
+          : version <= 5
+            ? V4_V5_USER_TABLES
+            : USER_TABLES;
   if (JSON.stringify(tables) !== JSON.stringify(expectedTables)) {
     throw schemaError(
       "SCHEDULER_SCHEMA_UNKNOWN",
@@ -1526,7 +1799,9 @@ function verifySchema(db, version = SCHEDULER_STORE_SCHEMA_VERSION) {
           ? SCHEMA_V3_FINGERPRINT
           : version === 4
             ? SCHEMA_V4_FINGERPRINT
-            : SCHEMA_V5_FINGERPRINT;
+            : version === 5
+              ? SCHEMA_V5_FINGERPRINT
+              : SCHEMA_V6_FINGERPRINT;
   if (actualFingerprint !== expectedFingerprint) {
     throw schemaError(
       "SCHEDULER_SCHEMA_CORRUPT",
@@ -1573,7 +1848,11 @@ function verifySchema(db, version = SCHEDULER_STORE_SCHEMA_VERSION) {
     (version >= 5 &&
       (migrations[4]?.version !== 5 ||
         migrations[4]?.name !== MIGRATION_V5_NAME ||
-        migrations[4]?.checksum !== MIGRATION_V5_CHECKSUM))
+        migrations[4]?.checksum !== MIGRATION_V5_CHECKSUM)) ||
+    (version >= 6 &&
+      (migrations[5]?.version !== 6 ||
+        migrations[5]?.name !== MIGRATION_V6_NAME ||
+        migrations[5]?.checksum !== MIGRATION_V6_CHECKSUM))
   ) {
     throw schemaError(
       "SCHEDULER_SCHEMA_UNKNOWN",
@@ -1593,7 +1872,9 @@ function verifySchema(db, version = SCHEDULER_STORE_SCHEMA_VERSION) {
     (name) =>
       (version >= 2 || !name.startsWith("scheduler_authority_")) &&
       (version >= 3 || !name.startsWith("scheduler_adjudications_")) &&
-      (version >= 4 || !name.startsWith("scheduler_domain_migration")),
+      (version >= 4 || !name.startsWith("scheduler_domain_migration")) &&
+      (version >= 6 || !name.startsWith("scheduler_occurrence_controls_")) &&
+      (version >= 6 || !name.startsWith("scheduler_occurrence_retries_")),
   );
   if (JSON.stringify(indexes) !== JSON.stringify(expectedIndexes)) {
     throw schemaError(
@@ -1713,6 +1994,10 @@ function migrateSourceLocatorV5(db) {
   db.exec(MIGRATION_V5_SQL);
 }
 
+function migrateRuntimeControlV6(db) {
+  db.exec(MIGRATION_V6_SQL);
+}
+
 function initializeOrVerifySchema(db, now) {
   assertDatabaseIntegrity(db);
   const tables = listUserTables(db);
@@ -1723,6 +2008,7 @@ function initializeOrVerifySchema(db, now) {
       migrateAdjudicationV3(db);
       migrateDomainMigrationV4(db);
       migrateSourceLocatorV5(db);
+      migrateRuntimeControlV6(db);
       db.prepare(
         "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
       ).run(1, MIGRATION_V1_NAME, MIGRATION_V1_CHECKSUM, now);
@@ -1738,6 +2024,9 @@ function initializeOrVerifySchema(db, now) {
       db.prepare(
         "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
       ).run(5, MIGRATION_V5_NAME, MIGRATION_V5_CHECKSUM, now);
+      db.prepare(
+        "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
+      ).run(6, MIGRATION_V6_NAME, MIGRATION_V6_CHECKSUM, now);
       db.pragma(`application_id = ${SCHEDULER_APPLICATION_ID}`);
       db.pragma(`user_version = ${SCHEDULER_STORE_SCHEMA_VERSION}`);
     });
@@ -1756,6 +2045,7 @@ function initializeOrVerifySchema(db, now) {
       migrateAdjudicationV3(db);
       migrateDomainMigrationV4(db);
       migrateSourceLocatorV5(db);
+      migrateRuntimeControlV6(db);
       db.prepare(
         "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
       ).run(2, MIGRATION_V2_NAME, MIGRATION_V2_CHECKSUM, now);
@@ -1768,6 +2058,9 @@ function initializeOrVerifySchema(db, now) {
       db.prepare(
         "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
       ).run(5, MIGRATION_V5_NAME, MIGRATION_V5_CHECKSUM, now);
+      db.prepare(
+        "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
+      ).run(6, MIGRATION_V6_NAME, MIGRATION_V6_CHECKSUM, now);
       db.pragma(`user_version = ${SCHEDULER_STORE_SCHEMA_VERSION}`);
     });
     migrate.immediate();
@@ -1777,6 +2070,7 @@ function initializeOrVerifySchema(db, now) {
       migrateAdjudicationV3(db);
       migrateDomainMigrationV4(db);
       migrateSourceLocatorV5(db);
+      migrateRuntimeControlV6(db);
       db.prepare(
         "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
       ).run(3, MIGRATION_V3_NAME, MIGRATION_V3_CHECKSUM, now);
@@ -1786,6 +2080,9 @@ function initializeOrVerifySchema(db, now) {
       db.prepare(
         "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
       ).run(5, MIGRATION_V5_NAME, MIGRATION_V5_CHECKSUM, now);
+      db.prepare(
+        "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
+      ).run(6, MIGRATION_V6_NAME, MIGRATION_V6_CHECKSUM, now);
       db.pragma(`user_version = ${SCHEDULER_STORE_SCHEMA_VERSION}`);
     });
     migrate.immediate();
@@ -1794,12 +2091,16 @@ function initializeOrVerifySchema(db, now) {
     const migrate = db.transaction(() => {
       migrateDomainMigrationV4(db);
       migrateSourceLocatorV5(db);
+      migrateRuntimeControlV6(db);
       db.prepare(
         "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
       ).run(4, MIGRATION_V4_NAME, MIGRATION_V4_CHECKSUM, now);
       db.prepare(
         "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
       ).run(5, MIGRATION_V5_NAME, MIGRATION_V5_CHECKSUM, now);
+      db.prepare(
+        "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
+      ).run(6, MIGRATION_V6_NAME, MIGRATION_V6_CHECKSUM, now);
       db.pragma(`user_version = ${SCHEDULER_STORE_SCHEMA_VERSION}`);
     });
     migrate.immediate();
@@ -1807,9 +2108,23 @@ function initializeOrVerifySchema(db, now) {
     verifySchema(db, 4);
     const migrate = db.transaction(() => {
       migrateSourceLocatorV5(db);
+      migrateRuntimeControlV6(db);
       db.prepare(
         "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
       ).run(5, MIGRATION_V5_NAME, MIGRATION_V5_CHECKSUM, now);
+      db.prepare(
+        "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
+      ).run(6, MIGRATION_V6_NAME, MIGRATION_V6_CHECKSUM, now);
+      db.pragma(`user_version = ${SCHEDULER_STORE_SCHEMA_VERSION}`);
+    });
+    migrate.immediate();
+  } else if (db.pragma("user_version", { simple: true }) === 5) {
+    verifySchema(db, 5);
+    const migrate = db.transaction(() => {
+      migrateRuntimeControlV6(db);
+      db.prepare(
+        "INSERT INTO migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)",
+      ).run(6, MIGRATION_V6_NAME, MIGRATION_V6_CHECKSUM, now);
       db.pragma(`user_version = ${SCHEDULER_STORE_SCHEMA_VERSION}`);
     });
     migrate.immediate();
@@ -1848,11 +2163,21 @@ function openDatabase({ file, Database, busyTimeoutMs, clock }) {
   }
   const now = normalizeEpochMs(clock(), "clock result");
   if (target !== ":memory:") {
-    ensurePrivateDirectory(dirname(target));
-    // Existing WAL/SHM files participate in the next SQLite open, so validate
-    // them before the native driver consumes either sidecar.
-    for (const candidate of sqliteStorageFiles(target)) {
-      if (existsSync(candidate)) ensurePrivateFile(candidate);
+    try {
+      ensurePrivateDirectory(dirname(target));
+      // Existing WAL/SHM files participate in the next SQLite open, so validate
+      // them before the native driver consumes either sidecar.
+      for (const candidate of sqliteStorageFiles(target)) {
+        if (existsSync(candidate)) ensurePrivateFile(candidate);
+      }
+    } catch (cause) {
+      const storageCode = findStorageFailureCode(cause);
+      if (!storageCode) throw cause;
+      throw storageUnavailableError({
+        phase: "open",
+        storageCode,
+        commitState: "unknown",
+      });
     }
   }
 
@@ -1873,6 +2198,14 @@ function openDatabase({ file, Database, busyTimeoutMs, clock }) {
       // Preserve the authoritative open/schema failure.
     }
     if (cause instanceof SchedulerKernelError) throw cause;
+    const storageCode = findStorageFailureCode(cause);
+    if (storageCode) {
+      throw storageUnavailableError({
+        phase: "open",
+        storageCode,
+        commitState: "unknown",
+      });
+    }
     throw schemaError(
       "SCHEDULER_SCHEMA_CORRUPT",
       "Scheduler database could not be opened or verified",
@@ -1881,12 +2214,27 @@ function openDatabase({ file, Database, busyTimeoutMs, clock }) {
   }
 
   if (target !== ":memory:") {
-    // A quiet WAL database may not have materialized sidecars yet. On Windows,
-    // asking secure-fs to classify a missing path deliberately falls back to a
-    // native ACL preflight. Only inspect files that SQLite actually created;
-    // later opens repeat this check for any surviving sidecars.
-    for (const candidate of sqliteStorageFiles(target)) {
-      if (existsSync(candidate)) ensurePrivateFile(candidate);
+    try {
+      // A quiet WAL database may not have materialized sidecars yet. On Windows,
+      // asking secure-fs to classify a missing path deliberately falls back to a
+      // native ACL preflight. Only inspect files that SQLite actually created;
+      // later opens repeat this check for any surviving sidecars.
+      for (const candidate of sqliteStorageFiles(target)) {
+        if (existsSync(candidate)) ensurePrivateFile(candidate);
+      }
+    } catch (cause) {
+      try {
+        db.close();
+      } catch {
+        // Preserve the authoritative storage or security failure.
+      }
+      const storageCode = findStorageFailureCode(cause);
+      if (!storageCode) throw cause;
+      throw storageUnavailableError({
+        phase: "open",
+        storageCode,
+        commitState: "unknown",
+      });
     }
   }
   return { db, target };
@@ -1912,6 +2260,18 @@ export class SchedulerStore {
       ),
       getOccurrenceByKey: db.prepare(
         "SELECT * FROM occurrences WHERE idempotency_key = ?",
+      ),
+      getOccurrenceControl: db.prepare(
+        "SELECT * FROM scheduler_occurrence_controls WHERE occurrence_id = ?",
+      ),
+      getOccurrenceControlByPauseRequest: db.prepare(
+        "SELECT * FROM scheduler_occurrence_controls WHERE pause_request_id = ?",
+      ),
+      getOccurrenceControlByResumeRequest: db.prepare(
+        "SELECT * FROM scheduler_occurrence_controls WHERE resume_request_id = ?",
+      ),
+      getOccurrenceRetryByRequest: db.prepare(
+        "SELECT * FROM scheduler_occurrence_retries WHERE request_id = ?",
       ),
       listOccurrencesByTrigger: db.prepare(
         `SELECT * FROM occurrences
@@ -1954,8 +2314,46 @@ export class SchedulerStore {
 
   _write(callback) {
     this._assertOpen();
-    const transaction = this.db.transaction(callback);
-    return transaction.immediate();
+    let bodyState = "not_started";
+    let bodyObservedTransaction = false;
+    try {
+      const transaction = this.db.transaction((...args) => {
+        bodyState = "running";
+        try {
+          bodyObservedTransaction = this.db.inTransaction === true;
+        } catch {
+          bodyObservedTransaction = false;
+        }
+        const result = callback(...args);
+        bodyState = "returned";
+        return result;
+      });
+      return transaction.immediate();
+    } catch (cause) {
+      if (cause instanceof SchedulerKernelError) throw cause;
+      const storageCode = findStorageFailureCode(cause);
+      if (!storageCode) throw cause;
+      let transactionClosed = false;
+      try {
+        transactionClosed = this.db.inTransaction === false;
+      } catch {
+        transactionClosed = false;
+      }
+      // Once the body returns, the wrapper may already be in COMMIT and an I/O
+      // failure cannot distinguish an applied commit from an aborted one. A
+      // body failure is only safe to call not-committed when we observed the
+      // native transaction and can also observe that its rollback closed it.
+      throw storageUnavailableError({
+        phase: "write",
+        storageCode,
+        commitState:
+          bodyState === "running" &&
+          bodyObservedTransaction &&
+          transactionClosed
+            ? "not_committed"
+            : "unknown",
+      });
+    }
   }
 
   _appendEvent({
@@ -3468,6 +3866,576 @@ export class SchedulerStore {
     );
   }
 
+  getOccurrenceControl(occurrenceId) {
+    this._assertOpen();
+    return mapOccurrenceControl(
+      this.statements.getOccurrenceControl.get(
+        normalizeIdentifier(occurrenceId, "occurrenceId"),
+      ),
+    );
+  }
+
+  /**
+   * Enumerate the small, public runtime-control surface used by Automation
+   * Center. This intentionally does not reuse mapOccurrence(): payload,
+   * authority, lease ownership, checkpoints, results and error bodies never
+   * cross this read boundary.
+   */
+  listRuntimeControlOccurrences({
+    statuses = RUNTIME_CONTROL_OCCURRENCE_STATUSES,
+    jobKinds = RUNTIME_CONTROL_JOB_KINDS,
+    limit = 50,
+  } = {}) {
+    this._assertOpen();
+    const selectedStatuses = normalizeRuntimeControlEnumeration(
+      statuses,
+      RUNTIME_CONTROL_OCCURRENCE_STATUS_SET,
+      "statuses",
+    );
+    const selectedJobKinds = normalizeRuntimeControlEnumeration(
+      jobKinds,
+      RUNTIME_CONTROL_JOB_KIND_SET,
+      "jobKinds",
+    );
+    if (!Number.isSafeInteger(limit) || limit < 1) {
+      throw invalidArgument("limit must be a positive integer");
+    }
+    const boundedLimit = Math.min(limit, MAX_RUNTIME_CONTROL_OCCURRENCES);
+    const statusParameters = selectedStatuses.map(() => "?").join(", ");
+    const kindParameters = selectedJobKinds.map(() => "?").join(", ");
+    const rows = this.db
+      .prepare(
+        `SELECT o.occurrence_id, o.job_id, j.kind AS job_kind,
+                CASE
+                  WHEN c.state = 'pause_requested' THEN 'pause_requested'
+                  WHEN c.state = 'paused' THEN 'paused'
+                  ELSE 'running'
+                END AS runtime_status,
+                o.status AS occurrence_status, o.scheduled_for, o.attempt,
+                o.max_attempts, o.fence, o.created_at, o.updated_at,
+                c.state AS control_state, c.revision AS control_revision,
+                c.expected_fence AS control_expected_fence,
+                c.capability_digest AS control_capability_digest,
+                c.requested_at AS control_requested_at,
+                c.paused_at AS control_paused_at,
+                c.updated_at AS control_updated_at
+         FROM occurrences o
+         JOIN jobs j ON j.job_id = o.job_id
+         LEFT JOIN scheduler_occurrence_controls c
+           ON c.occurrence_id = o.occurrence_id
+         WHERE j.kind IN (${kindParameters})
+           AND (
+             (o.status = 'running' AND c.occurrence_id IS NULL)
+             OR (o.status = 'running' AND c.state = 'pause_requested')
+             OR (o.status = 'running' AND c.state = 'resumed')
+             OR (o.status = 'retry_wait' AND c.state = 'paused')
+           )
+           AND CASE
+                 WHEN c.state = 'pause_requested' THEN 'pause_requested'
+                 WHEN c.state = 'paused' THEN 'paused'
+                 ELSE 'running'
+               END IN (${statusParameters})
+         ORDER BY o.updated_at DESC, o.occurrence_id ASC
+         LIMIT ?`,
+      )
+      .all(...selectedJobKinds, ...selectedStatuses, boundedLimit);
+    return rows.map(mapRuntimeControlOccurrence);
+  }
+
+  requestOccurrencePause({
+    occurrenceId,
+    expectedFence,
+    expectedRevision,
+    requestId,
+    capability,
+  } = {}) {
+    const id = normalizeIdentifier(occurrenceId, "occurrenceId");
+    const fence = assertPositiveSafeInteger(expectedFence, "expectedFence");
+    const request = normalizeIdentifier(requestId, "requestId", {
+      maxLength: 128,
+    });
+    const revision =
+      expectedRevision === undefined
+        ? null
+        : (() => {
+            if (
+              !Number.isSafeInteger(expectedRevision) ||
+              expectedRevision < 0
+            ) {
+              throw invalidArgument(
+                "expectedRevision must be a non-negative integer",
+              );
+            }
+            return expectedRevision;
+          })();
+    const normalizedCapability = normalizeRuntimeControlCapability(capability);
+    if (
+      normalizedCapability.pauseResume !== RUNTIME_PAUSE_RESUME.CHECKPOINT_V1
+    ) {
+      throw new SchedulerKernelError(
+        "SCHEDULER_PAUSE_UNSUPPORTED",
+        "Scheduler adapter does not declare durable checkpoint pause/resume",
+      );
+    }
+    const capabilityJson = canonicalJson(
+      normalizedCapability,
+      "runtimeControl.capability",
+    );
+    const capabilityDigest =
+      schedulerRuntimeControlCapabilityDigest(normalizedCapability);
+    const now = this._now();
+    return this._write(() => {
+      const occurrence = this.statements.getOccurrence.get(id);
+      if (!occurrence) {
+        throw new SchedulerKernelError(
+          "SCHEDULER_NOT_FOUND",
+          `Scheduler occurrence does not exist: ${id}`,
+        );
+      }
+      const requestOwner =
+        this.statements.getOccurrenceControlByPauseRequest.get(request);
+      if (requestOwner && requestOwner.occurrence_id !== id) {
+        throw new SchedulerKernelError(
+          "SCHEDULER_OCCURRENCE_CONTROL_CONFLICT",
+          "Scheduler pause request is already bound to another occurrence",
+        );
+      }
+      const current = this.statements.getOccurrenceControl.get(id);
+      if (current?.pause_request_id === request) {
+        if (
+          current.expected_fence !== fence ||
+          current.capability_digest !== capabilityDigest
+        ) {
+          throw new SchedulerKernelError(
+            "SCHEDULER_OCCURRENCE_CONTROL_CONFLICT",
+            `Scheduler pause request evidence changed: ${id}`,
+          );
+        }
+        return { ...mapOccurrenceControl(current), deduplicated: true };
+      }
+      const actualRevision = current?.revision ?? 0;
+      if (revision !== null && actualRevision !== revision) {
+        throw new SchedulerKernelError(
+          "SCHEDULER_REVISION_CONFLICT",
+          `Scheduler occurrence control revision changed: ${id}`,
+          { expectedRevision: revision, actualRevision },
+        );
+      }
+      if (current && current.state !== "terminal") {
+        throw new SchedulerKernelError(
+          "SCHEDULER_OCCURRENCE_CONTROL_CONFLICT",
+          `Scheduler occurrence already has an active runtime control: ${id}`,
+          { state: current.state, revision: current.revision },
+        );
+      }
+      if (occurrence.status !== OCCURRENCE_STATUS.RUNNING) {
+        throw new SchedulerKernelError(
+          "SCHEDULER_OCCURRENCE_NOT_RUNNING",
+          `Scheduler occurrence is not running: ${id}`,
+          { status: occurrence.status },
+        );
+      }
+      if (occurrence.fence !== fence) {
+        throw new SchedulerKernelError(
+          "SCHEDULER_FENCE_CONFLICT",
+          `Scheduler occurrence fence changed: ${id}`,
+          { expectedFence: fence, actualFence: occurrence.fence },
+        );
+      }
+      if (occurrence.lease_expires_at <= now) throw leaseLost(id);
+      if (current) {
+        this.db
+          .prepare(
+            `UPDATE scheduler_occurrence_controls
+             SET capability_json = @capabilityJson,
+                 capability_digest = @capabilityDigest,
+                 state = 'pause_requested', revision = revision + 1,
+                 pause_request_id = @requestId, resume_request_id = NULL,
+                 expected_fence = @expectedFence, checkpoint_json = NULL,
+                 requested_at = @now, paused_at = NULL, resumed_at = NULL,
+                 terminal_at = NULL, updated_at = @now
+             WHERE occurrence_id = @occurrenceId AND state = 'terminal'`,
+          )
+          .run({
+            occurrenceId: id,
+            capabilityJson,
+            capabilityDigest,
+            requestId: request,
+            expectedFence: fence,
+            now,
+          });
+      } else {
+        this.db
+          .prepare(
+            `INSERT INTO scheduler_occurrence_controls
+               (occurrence_id, capability_json, capability_digest, state,
+                revision, pause_request_id, resume_request_id, expected_fence,
+                checkpoint_json, requested_at, paused_at, resumed_at,
+                terminal_at, updated_at)
+             VALUES (@occurrenceId, @capabilityJson, @capabilityDigest,
+                     'pause_requested', 1, @requestId, NULL, @expectedFence,
+                     NULL, @now, NULL, NULL, NULL, @now)`,
+          )
+          .run({
+            occurrenceId: id,
+            capabilityJson,
+            capabilityDigest,
+            requestId: request,
+            expectedFence: fence,
+            now,
+          });
+      }
+      const control = this.statements.getOccurrenceControl.get(id);
+      this._appendEvent({
+        jobId: occurrence.job_id,
+        occurrenceId: id,
+        type: "occurrence_pause_requested",
+        occurredAt: now,
+        fence,
+        data: {
+          requestId: request,
+          controlRevision: control.revision,
+          capabilityDigest,
+        },
+      });
+      return { ...mapOccurrenceControl(control), deduplicated: false };
+    });
+  }
+
+  ackOccurrencePause({
+    occurrenceId,
+    ownerId,
+    fence,
+    requestId,
+    expectedRevision,
+    safePoint,
+    checkpoint,
+  } = {}) {
+    const id = normalizeIdentifier(occurrenceId, "occurrenceId");
+    const owner = normalizeIdentifier(ownerId, "ownerId");
+    const token = assertPositiveSafeInteger(fence, "fence");
+    const request = normalizeIdentifier(requestId, "requestId", {
+      maxLength: 128,
+    });
+    const revision = assertPositiveSafeInteger(
+      expectedRevision,
+      "expectedRevision",
+    );
+    const point = normalizeIdentifier(safePoint, "safePoint", {
+      maxLength: 64,
+    });
+    if (!Object.values(RUNTIME_CONTROL_SAFE_POINTS).includes(point)) {
+      throw invalidArgument("safePoint is not a scheduler runtime safe point");
+    }
+    const normalizedCheckpoint = normalizeRuntimeCheckpoint({
+      schemaVersion: 1,
+      safePoint: point,
+      data: checkpoint ?? null,
+    });
+    const now = this._now();
+    return this._write(() => {
+      const occurrence = this.statements.getOccurrence.get(id);
+      const controlRow = this.statements.getOccurrenceControl.get(id);
+      if (!occurrence || !controlRow) {
+        throw new SchedulerKernelError(
+          "SCHEDULER_NOT_FOUND",
+          `Scheduler occurrence control does not exist: ${id}`,
+        );
+      }
+      const control = mapOccurrenceControl(controlRow);
+      if (
+        control.state !== "pause_requested" ||
+        control.pauseRequestId !== request
+      ) {
+        throw new SchedulerKernelError(
+          "SCHEDULER_OCCURRENCE_CONTROL_CONFLICT",
+          `Scheduler pause request is no longer pending: ${id}`,
+          { state: control.state, revision: control.revision },
+        );
+      }
+      if (control.revision !== revision) {
+        throw new SchedulerKernelError(
+          "SCHEDULER_REVISION_CONFLICT",
+          `Scheduler occurrence control revision changed: ${id}`,
+          { expectedRevision: revision, actualRevision: control.revision },
+        );
+      }
+      if (
+        control.expectedFence !== token ||
+        occurrence.status !== OCCURRENCE_STATUS.RUNNING ||
+        occurrence.fence !== token ||
+        occurrence.lease_owner !== owner ||
+        occurrence.lease_expires_at <= now
+      ) {
+        throw leaseLost(id);
+      }
+      if (!control.capability.safePoints.includes(point)) {
+        throw new SchedulerKernelError(
+          "SCHEDULER_PAUSE_UNSUPPORTED_SAFE_POINT",
+          `Scheduler adapter did not declare pause safety at ${point}`,
+        );
+      }
+      const occurrenceUpdate = this.db
+        .prepare(
+          `UPDATE occurrences
+           SET status = 'retry_wait', available_at = @now,
+               lease_owner = NULL, lease_expires_at = NULL,
+               updated_at = @now, settled_at = NULL
+           WHERE occurrence_id = @occurrenceId AND status = 'running'
+             AND lease_owner = @ownerId AND fence = @fence
+             AND lease_expires_at > @now`,
+        )
+        .run({ occurrenceId: id, ownerId: owner, fence: token, now });
+      if (occurrenceUpdate.changes !== 1) throw leaseLost(id);
+      const controlUpdate = this.db
+        .prepare(
+          `UPDATE scheduler_occurrence_controls
+           SET state = 'paused', revision = revision + 1,
+               checkpoint_json = @checkpointJson,
+               paused_at = @now, updated_at = @now
+           WHERE occurrence_id = @occurrenceId
+             AND state = 'pause_requested' AND revision = @revision
+             AND pause_request_id = @requestId AND expected_fence = @fence`,
+        )
+        .run({
+          occurrenceId: id,
+          checkpointJson: normalizedCheckpoint.encoded,
+          now,
+          revision,
+          requestId: request,
+          fence: token,
+        });
+      if (controlUpdate.changes !== 1) {
+        throw new SchedulerKernelError(
+          "SCHEDULER_OCCURRENCE_CONTROL_CONFLICT",
+          `Scheduler pause acknowledgement lost its CAS: ${id}`,
+        );
+      }
+      this._appendEvent({
+        jobId: occurrence.job_id,
+        occurrenceId: id,
+        type: "occurrence_paused",
+        occurredAt: now,
+        fence: token,
+        data: {
+          requestId: request,
+          safePoint: point,
+          checkpointDigest: sha256PayloadDigest(
+            normalizedCheckpoint.checkpoint,
+            "runtimeControl.checkpoint",
+          ),
+        },
+      });
+      return {
+        control: mapOccurrenceControl(
+          this.statements.getOccurrenceControl.get(id),
+        ),
+        occurrence: mapOccurrence(this.statements.getOccurrence.get(id)),
+      };
+    });
+  }
+
+  resumeOccurrence({ occurrenceId, expectedRevision, requestId } = {}) {
+    const id = normalizeIdentifier(occurrenceId, "occurrenceId");
+    const revision = assertPositiveSafeInteger(
+      expectedRevision,
+      "expectedRevision",
+    );
+    const request = normalizeIdentifier(requestId, "requestId", {
+      maxLength: 128,
+    });
+    const now = this._now();
+    return this._write(() => {
+      const occurrence = this.statements.getOccurrence.get(id);
+      const controlRow = this.statements.getOccurrenceControl.get(id);
+      if (!occurrence || !controlRow) {
+        throw new SchedulerKernelError(
+          "SCHEDULER_NOT_FOUND",
+          `Scheduler occurrence control does not exist: ${id}`,
+        );
+      }
+      const requestOwner =
+        this.statements.getOccurrenceControlByResumeRequest.get(request);
+      if (requestOwner && requestOwner.occurrence_id !== id) {
+        throw new SchedulerKernelError(
+          "SCHEDULER_OCCURRENCE_CONTROL_CONFLICT",
+          "Scheduler resume request is already bound to another occurrence",
+        );
+      }
+      const control = mapOccurrenceControl(controlRow);
+      if (control.resumeRequestId === request) {
+        return {
+          control: { ...control, deduplicated: true },
+          occurrence: mapOccurrence(occurrence),
+        };
+      }
+      if (control.state !== "paused") {
+        throw new SchedulerKernelError(
+          "SCHEDULER_OCCURRENCE_CONTROL_CONFLICT",
+          `Scheduler occurrence is not paused: ${id}`,
+          { state: control.state, revision: control.revision },
+        );
+      }
+      if (control.revision !== revision) {
+        throw new SchedulerKernelError(
+          "SCHEDULER_REVISION_CONFLICT",
+          `Scheduler occurrence control revision changed: ${id}`,
+          { expectedRevision: revision, actualRevision: control.revision },
+        );
+      }
+      if (
+        occurrence.status !== OCCURRENCE_STATUS.RETRY_WAIT ||
+        occurrence.lease_owner !== null ||
+        occurrence.lease_expires_at !== null
+      ) {
+        throw new SchedulerKernelError(
+          "SCHEDULER_OCCURRENCE_CONTROL_CONFLICT",
+          `Paused occurrence state is inconsistent: ${id}`,
+        );
+      }
+      const update = this.db
+        .prepare(
+          `UPDATE scheduler_occurrence_controls
+           SET state = 'resumed', revision = revision + 1,
+               resume_request_id = @requestId, resumed_at = @now,
+               updated_at = @now
+           WHERE occurrence_id = @occurrenceId AND state = 'paused'
+             AND revision = @revision`,
+        )
+        .run({ occurrenceId: id, requestId: request, now, revision });
+      if (update.changes !== 1) {
+        throw new SchedulerKernelError(
+          "SCHEDULER_OCCURRENCE_CONTROL_CONFLICT",
+          `Scheduler resume request lost its CAS: ${id}`,
+        );
+      }
+      this.db
+        .prepare(
+          `UPDATE occurrences SET available_at = ?, updated_at = ?
+           WHERE occurrence_id = ? AND status = 'retry_wait'`,
+        )
+        .run(now, now, id);
+      this._appendEvent({
+        jobId: occurrence.job_id,
+        occurrenceId: id,
+        type: "occurrence_resume_requested",
+        occurredAt: now,
+        fence: occurrence.fence,
+        data: { requestId: request, controlRevision: revision + 1 },
+      });
+      return {
+        control: mapOccurrenceControl(
+          this.statements.getOccurrenceControl.get(id),
+        ),
+        occurrence: mapOccurrence(this.statements.getOccurrence.get(id)),
+      };
+    });
+  }
+
+  requeueDeadLetter({
+    occurrenceId,
+    expectedFence,
+    expectedErrorCode,
+    requestId,
+  } = {}) {
+    const id = normalizeIdentifier(occurrenceId, "occurrenceId");
+    const fence = assertPositiveSafeInteger(expectedFence, "expectedFence");
+    const errorCode = normalizeIdentifier(
+      expectedErrorCode,
+      "expectedErrorCode",
+      {
+        maxLength: 128,
+      },
+    );
+    const request = normalizeIdentifier(requestId, "requestId", {
+      maxLength: 128,
+    });
+    const now = this._now();
+    return this._write(() => {
+      const existing = this.statements.getOccurrenceRetryByRequest.get(request);
+      if (existing) {
+        if (
+          existing.occurrence_id !== id ||
+          existing.expected_fence !== fence ||
+          existing.expected_error_code !== errorCode
+        ) {
+          throw new SchedulerKernelError(
+            "SCHEDULER_REQUEUE_CONFLICT",
+            "Scheduler retry request evidence changed",
+          );
+        }
+        return {
+          occurrence: mapOccurrence(this.statements.getOccurrence.get(id)),
+          requestId: request,
+          deduplicated: true,
+        };
+      }
+      const occurrence = this.statements.getOccurrence.get(id);
+      if (!occurrence) {
+        throw new SchedulerKernelError(
+          "SCHEDULER_NOT_FOUND",
+          `Scheduler occurrence does not exist: ${id}`,
+        );
+      }
+      const lastError =
+        occurrence.last_error_json === null
+          ? null
+          : readStoredJson(occurrence.last_error_json, "occurrence error");
+      if (
+        occurrence.status !== OCCURRENCE_STATUS.DEAD_LETTER ||
+        occurrence.fence !== fence ||
+        lastError?.code !== errorCode
+      ) {
+        throw new SchedulerKernelError(
+          "SCHEDULER_REQUEUE_EVIDENCE_CONFLICT",
+          `Scheduler dead-letter evidence changed: ${id}`,
+          {
+            status: occurrence.status,
+            expectedFence: fence,
+            actualFence: occurrence.fence,
+            expectedErrorCode: errorCode,
+            actualErrorCode: lastError?.code ?? null,
+          },
+        );
+      }
+      this.db
+        .prepare(
+          `INSERT INTO scheduler_occurrence_retries
+             (occurrence_id, request_id, expected_fence,
+              expected_error_code, created_at, claimed_at)
+           VALUES (?, ?, ?, ?, ?, NULL)`,
+        )
+        .run(id, request, fence, errorCode, now);
+      const update = this.db
+        .prepare(
+          `UPDATE occurrences
+           SET status = 'retry_wait', available_at = ?, updated_at = ?,
+               settled_at = NULL
+           WHERE occurrence_id = ? AND status = 'dead_letter' AND fence = ?`,
+        )
+        .run(now, now, id, fence);
+      if (update.changes !== 1) {
+        throw new SchedulerKernelError(
+          "SCHEDULER_REQUEUE_CONFLICT",
+          `Scheduler dead letter changed during requeue: ${id}`,
+        );
+      }
+      this._appendEvent({
+        jobId: occurrence.job_id,
+        occurrenceId: id,
+        type: "occurrence_requeued",
+        occurredAt: now,
+        fence,
+        data: { requestId: request, expectedErrorCode: errorCode },
+      });
+      return {
+        occurrence: mapOccurrence(this.statements.getOccurrence.get(id)),
+        requestId: request,
+        deduplicated: false,
+      };
+    });
+  }
+
   listOccurrencesByTrigger({ jobId, triggerKey, limit = 2 } = {}) {
     this._assertOpen();
     const id = normalizeIdentifier(jobId, "jobId");
@@ -3490,6 +4458,11 @@ export class SchedulerStore {
         WHERE status = 'running'
           AND lease_expires_at <= ?
           AND attempt >= max_attempts
+          AND NOT EXISTS (
+            SELECT 1 FROM scheduler_occurrence_controls c
+            WHERE c.occurrence_id = occurrences.occurrence_id
+              AND c.state IN ('pause_requested', 'resumed')
+          )
         ORDER BY lease_expires_at, occurrence_id
         LIMIT 100
       `,
@@ -3509,6 +4482,11 @@ export class SchedulerStore {
         AND fence = @fence
         AND lease_expires_at <= @now
         AND attempt >= max_attempts
+        AND NOT EXISTS (
+          SELECT 1 FROM scheduler_occurrence_controls c
+          WHERE c.occurrence_id = occurrences.occurrence_id
+            AND c.state IN ('pause_requested', 'resumed')
+        )
     `);
     for (const row of expired) {
       const error = {
@@ -3600,16 +4578,33 @@ export class SchedulerStore {
       const candidate = this.db
         .prepare(
           `
-          SELECT o.*
+          SELECT o.*, c.state AS control_state,
+                 c.expected_fence AS control_expected_fence,
+                 r.request_id AS retry_request_id
           FROM occurrences o
           JOIN jobs j ON j.job_id = o.job_id
+          LEFT JOIN scheduler_occurrence_controls c
+            ON c.occurrence_id = o.occurrence_id
+          LEFT JOIN scheduler_occurrence_retries r
+            ON r.occurrence_id = o.occurrence_id
+           AND r.claimed_at IS NULL
+           AND r.expected_fence = o.fence
           WHERE j.enabled = 1
             AND (@jobKind IS NULL OR j.kind = @jobKind)
             AND (
               @workspaceId IS NULL
               OR json_extract(j.authority_json, '$.workspaceId') = @workspaceId
             )
-            AND o.attempt < o.max_attempts
+            AND (
+              o.attempt < o.max_attempts
+              OR c.state IN ('pause_requested', 'resumed')
+              OR r.request_id IS NOT NULL
+            )
+            AND (c.state IS NULL OR c.state <> 'paused')
+            AND (
+              c.state IS NULL OR c.state <> 'pause_requested'
+              OR o.status = 'running'
+            )
             AND (
               (o.status IN ('queued', 'retry_wait') AND o.available_at <= @now)
               OR
@@ -3631,7 +4626,25 @@ export class SchedulerStore {
           `
           UPDATE occurrences
           SET status = 'running',
-              attempt = attempt + 1,
+              attempt = attempt + CASE
+                WHEN EXISTS (
+                  SELECT 1 FROM scheduler_occurrence_controls c
+                  WHERE c.occurrence_id = occurrences.occurrence_id
+                    AND c.state = 'pause_requested'
+                ) THEN 0
+                WHEN EXISTS (
+                  SELECT 1 FROM scheduler_occurrence_controls c
+                  WHERE c.occurrence_id = occurrences.occurrence_id
+                    AND c.state = 'resumed'
+                    AND c.expected_fence = occurrences.fence
+                ) THEN 0
+                WHEN EXISTS (
+                  SELECT 1 FROM scheduler_occurrence_retries r
+                  WHERE r.occurrence_id = occurrences.occurrence_id
+                    AND r.claimed_at IS NULL
+                    AND r.expected_fence = occurrences.fence
+                ) THEN 0
+                ELSE 1 END,
               fence = fence + 1,
               lease_owner = @ownerId,
               lease_expires_at = @leaseExpiresAt,
@@ -3639,7 +4652,25 @@ export class SchedulerStore {
               settled_at = NULL
           WHERE occurrence_id = @occurrenceId
             AND fence = @expectedFence
-            AND attempt < max_attempts
+            AND (
+              attempt < max_attempts
+              OR EXISTS (
+                SELECT 1 FROM scheduler_occurrence_controls c
+                WHERE c.occurrence_id = occurrences.occurrence_id
+                  AND c.state IN ('pause_requested', 'resumed')
+              )
+              OR EXISTS (
+                SELECT 1 FROM scheduler_occurrence_retries r
+                WHERE r.occurrence_id = occurrences.occurrence_id
+                  AND r.claimed_at IS NULL
+                  AND r.expected_fence = occurrences.fence
+              )
+            )
+            AND NOT EXISTS (
+              SELECT 1 FROM scheduler_occurrence_controls c
+              WHERE c.occurrence_id = occurrences.occurrence_id
+                AND c.state = 'paused'
+            )
             AND (
               (status IN ('queued', 'retry_wait') AND available_at <= @now)
               OR
@@ -3663,6 +4694,49 @@ export class SchedulerStore {
       const claimed = this.statements.getOccurrence.get(
         candidate.occurrence_id,
       );
+      if (candidate.control_state === "pause_requested") {
+        this.db
+          .prepare(
+            `UPDATE scheduler_occurrence_controls
+             SET expected_fence = ?, revision = revision + 1, updated_at = ?
+             WHERE occurrence_id = ? AND state = 'pause_requested'
+               AND expected_fence = ?`,
+          )
+          .run(
+            claimed.fence,
+            now,
+            candidate.occurrence_id,
+            candidate.control_expected_fence,
+          );
+      } else if (candidate.control_state === "resumed") {
+        const rebound = this.db
+          .prepare(
+            `UPDATE scheduler_occurrence_controls
+             SET expected_fence = ?, revision = revision + 1, updated_at = ?
+             WHERE occurrence_id = ? AND state = 'resumed'
+               AND expected_fence = ?`,
+          )
+          .run(
+            claimed.fence,
+            now,
+            candidate.occurrence_id,
+            candidate.control_expected_fence,
+          );
+        if (rebound.changes !== 1) {
+          throw new SchedulerKernelError(
+            "SCHEDULER_OCCURRENCE_CONTROL_CONFLICT",
+            `Scheduler resume checkpoint lost its claim fence: ${candidate.occurrence_id}`,
+          );
+        }
+      }
+      if (candidate.retry_request_id !== null) {
+        this.db
+          .prepare(
+            `UPDATE scheduler_occurrence_retries SET claimed_at = ?
+             WHERE occurrence_id = ? AND request_id = ? AND claimed_at IS NULL`,
+          )
+          .run(now, candidate.occurrence_id, candidate.retry_request_id);
+      }
       this._appendEvent({
         jobId: candidate.job_id,
         occurrenceId: candidate.occurrence_id,
@@ -3677,6 +4751,15 @@ export class SchedulerStore {
           attempt: claimed.attempt,
           previousOwner,
           previousStatus,
+          ...(candidate.control_state === "pause_requested"
+            ? { pauseRequestRebound: true }
+            : {}),
+          ...(candidate.control_state === "resumed"
+            ? { resumedWithoutAttempt: true }
+            : {}),
+          ...(candidate.retry_request_id === null
+            ? {}
+            : { retryRequestId: candidate.retry_request_id }),
         },
       });
       return mapOccurrence(claimed);
@@ -3711,9 +4794,24 @@ export class SchedulerStore {
         );
       }
       const job = this.statements.getJob.get(candidate.job_id);
+      const controlRow = this.statements.getOccurrenceControl.get(id);
+      const retryRow = this.db
+        .prepare(
+          `SELECT * FROM scheduler_occurrence_retries
+           WHERE occurrence_id = ? AND claimed_at IS NULL
+             AND expected_fence = ? ORDER BY created_at, request_id LIMIT 1`,
+        )
+        .get(id, candidate.fence);
       const eligible =
         job?.enabled === 1 &&
-        candidate.attempt < candidate.max_attempts &&
+        (candidate.attempt < candidate.max_attempts ||
+          ["pause_requested", "resumed"].includes(controlRow?.state) ||
+          retryRow !== undefined) &&
+        controlRow?.state !== "paused" &&
+        !(
+          controlRow?.state === "pause_requested" &&
+          candidate.status !== OCCURRENCE_STATUS.RUNNING
+        ) &&
         (([OCCURRENCE_STATUS.QUEUED, OCCURRENCE_STATUS.RETRY_WAIT].includes(
           candidate.status,
         ) &&
@@ -3729,7 +4827,25 @@ export class SchedulerStore {
           `
           UPDATE occurrences
           SET status = 'running',
-              attempt = attempt + 1,
+              attempt = attempt + CASE
+                WHEN EXISTS (
+                  SELECT 1 FROM scheduler_occurrence_controls c
+                  WHERE c.occurrence_id = occurrences.occurrence_id
+                    AND c.state = 'pause_requested'
+                ) THEN 0
+                WHEN EXISTS (
+                  SELECT 1 FROM scheduler_occurrence_controls c
+                  WHERE c.occurrence_id = occurrences.occurrence_id
+                    AND c.state = 'resumed'
+                    AND c.expected_fence = occurrences.fence
+                ) THEN 0
+                WHEN EXISTS (
+                  SELECT 1 FROM scheduler_occurrence_retries r
+                  WHERE r.occurrence_id = occurrences.occurrence_id
+                    AND r.claimed_at IS NULL
+                    AND r.expected_fence = occurrences.fence
+                ) THEN 0
+                ELSE 1 END,
               fence = fence + 1,
               lease_owner = @ownerId,
               lease_expires_at = @leaseExpiresAt,
@@ -3737,7 +4853,25 @@ export class SchedulerStore {
               settled_at = NULL
           WHERE occurrence_id = @occurrenceId
             AND fence = @expectedFence
-            AND attempt < max_attempts
+            AND (
+              attempt < max_attempts
+              OR EXISTS (
+                SELECT 1 FROM scheduler_occurrence_controls c
+                WHERE c.occurrence_id = occurrences.occurrence_id
+                  AND c.state IN ('pause_requested', 'resumed')
+              )
+              OR EXISTS (
+                SELECT 1 FROM scheduler_occurrence_retries r
+                WHERE r.occurrence_id = occurrences.occurrence_id
+                  AND r.claimed_at IS NULL
+                  AND r.expected_fence = occurrences.fence
+              )
+            )
+            AND NOT EXISTS (
+              SELECT 1 FROM scheduler_occurrence_controls c
+              WHERE c.occurrence_id = occurrences.occurrence_id
+                AND c.state = 'paused'
+            )
             AND (
               (status IN ('queued', 'retry_wait') AND available_at <= @now)
               OR
@@ -3759,6 +4893,39 @@ export class SchedulerStore {
         );
       }
       const claimed = this.statements.getOccurrence.get(id);
+      if (controlRow?.state === "pause_requested") {
+        this.db
+          .prepare(
+            `UPDATE scheduler_occurrence_controls
+             SET expected_fence = ?, revision = revision + 1, updated_at = ?
+             WHERE occurrence_id = ? AND state = 'pause_requested'
+               AND expected_fence = ?`,
+          )
+          .run(claimed.fence, now, id, controlRow.expected_fence);
+      } else if (controlRow?.state === "resumed") {
+        const rebound = this.db
+          .prepare(
+            `UPDATE scheduler_occurrence_controls
+             SET expected_fence = ?, revision = revision + 1, updated_at = ?
+             WHERE occurrence_id = ? AND state = 'resumed'
+               AND expected_fence = ?`,
+          )
+          .run(claimed.fence, now, id, controlRow.expected_fence);
+        if (rebound.changes !== 1) {
+          throw new SchedulerKernelError(
+            "SCHEDULER_OCCURRENCE_CONTROL_CONFLICT",
+            `Scheduler resume checkpoint lost its claim fence: ${id}`,
+          );
+        }
+      }
+      if (retryRow) {
+        this.db
+          .prepare(
+            `UPDATE scheduler_occurrence_retries SET claimed_at = ?
+             WHERE occurrence_id = ? AND request_id = ? AND claimed_at IS NULL`,
+          )
+          .run(now, id, retryRow.request_id);
+      }
       this._appendEvent({
         jobId: candidate.job_id,
         occurrenceId: id,
@@ -3774,6 +4941,13 @@ export class SchedulerStore {
           previousOwner,
           previousStatus,
           targeted: true,
+          ...(controlRow?.state === "pause_requested"
+            ? { pauseRequestRebound: true }
+            : {}),
+          ...(controlRow?.state === "resumed"
+            ? { resumedWithoutAttempt: true }
+            : {}),
+          ...(retryRow ? { retryRequestId: retryRow.request_id } : {}),
         },
       });
       return mapOccurrence(claimed);
@@ -3936,6 +5110,35 @@ export class SchedulerStore {
           settledAt,
         });
       if (update.changes !== 1) throw leaseLost(id);
+      if (nextStatus === OCCURRENCE_STATUS.RETRY_WAIT) {
+        this.db
+          .prepare(
+            `UPDATE scheduler_occurrence_controls
+             SET expected_fence = @nextFence, revision = revision + 1,
+                 updated_at = @now
+             WHERE occurrence_id = @occurrenceId
+               AND state = 'resumed'
+               AND expected_fence = @fence`,
+          )
+          .run({
+            occurrenceId: id,
+            fence: token,
+            nextFence: token + 1,
+            now,
+          });
+      }
+      const controlTerminalized = this.db
+        .prepare(
+          `UPDATE scheduler_occurrence_controls
+           SET state = 'terminal', revision = revision + 1,
+               terminal_at = @now, updated_at = @now
+           WHERE occurrence_id = @occurrenceId
+              AND (
+                state = 'pause_requested'
+                OR (state = 'resumed' AND @status <> 'retry_wait')
+              )`,
+        )
+        .run({ occurrenceId: id, status: nextStatus, now }).changes;
       const reservation = this.db
         .prepare(
           `SELECT * FROM scheduler_authority_reservations
@@ -4038,6 +5241,9 @@ export class SchedulerStore {
             : {}),
           ...(adjudication?.status === "pending"
             ? { adjudicationRequestId: adjudication.request_id }
+            : {}),
+          ...(controlTerminalized === 1
+            ? { runtimeControlTerminalized: true }
             : {}),
         },
       });

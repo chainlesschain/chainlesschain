@@ -15,6 +15,7 @@ import {
   normalizeJson,
 } from "./contract.js";
 import { SchedulerRuntime } from "./runtime.js";
+import { CHECKPOINT_V1_RUNTIME_CONTROL } from "./runtime-control-capabilities.js";
 import { schedulerMigrationSourceDigest } from "./store.js";
 import {
   bindSchedulerAuthorityPolicy,
@@ -677,6 +678,7 @@ export function createAgendaSchedulerAdapter({
   }
   return {
     kind: AGENDA_SCHEDULER_KIND,
+    runtimeControl: CHECKPOINT_V1_RUNTIME_CONTROL,
     async adjudicate({ occurrence, adjudication }) {
       const payload = occurrence.payload;
       const expected = agendaEntrySnapshot(payload?.entry);
@@ -711,7 +713,7 @@ export function createAgendaSchedulerAdapter({
       }
       return { continue: true };
     },
-    async execute({ occurrence }) {
+    async execute({ occurrence, checkpoint }) {
       const payload = occurrence.payload;
       const expected = agendaEntrySnapshot(payload?.entry);
       const expectedDigest = agendaEntrySnapshotDigest(expected);
@@ -757,6 +759,17 @@ export function createAgendaSchedulerAdapter({
           `Agenda entry changed after occurrence enqueue: ${expected.id}`,
         );
       }
+      if (expected.kind === "monitor" && typeof runMonitor !== "function") {
+        throw agendaError(
+          "AGENDA_SCHEDULER_MONITOR_RUNNER_REQUIRED",
+          "Agenda scheduler monitor execution requires a monitor runner",
+        );
+      }
+
+      checkpoint({
+        entryId: expected.id,
+        phase: "before_execution_bind",
+      });
 
       current = agendaStore.bindSchedulerExecution(expected.id, {
         occurrenceId: occurrence.id,
@@ -784,12 +797,6 @@ export function createAgendaSchedulerAdapter({
       let action = null;
       try {
         if (expected.kind === "monitor") {
-          if (typeof runMonitor !== "function") {
-            throw agendaError(
-              "AGENDA_SCHEDULER_MONITOR_RUNNER_REQUIRED",
-              "Agenda scheduler monitor execution requires a monitor runner",
-            );
-          }
           observation = normalizeMonitorObservation(
             expected,
             await runMonitor({
@@ -943,6 +950,9 @@ export function createAgendaSchedulerAdapter({
           completionError,
         );
       }
+    },
+    async resume(context) {
+      return this.execute(context);
     },
     classifyError(error) {
       return {

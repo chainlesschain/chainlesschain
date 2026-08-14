@@ -7,6 +7,7 @@ import { Worker } from "node:worker_threads";
 import {
   AUTHORITY_ENVELOPE_VERSION,
   MAX_HISTORY_LIMIT,
+  SchedulerKernelError,
   canonicalJson,
   deriveOccurrenceIdentity,
   normalizeJson,
@@ -22,6 +23,7 @@ import {
   MIGRATION_V4_CHECKSUM,
   MIGRATION_V4_SQL,
   MIGRATION_V5_CHECKSUM,
+  MIGRATION_V6_CHECKSUM,
   SCHEDULER_APPLICATION_ID,
   SCHEDULER_STORE_SCHEMA_VERSION,
   SCHEMA_V1_FINGERPRINT,
@@ -29,6 +31,8 @@ import {
   SCHEMA_V3_FINGERPRINT,
   SCHEMA_V4_FINGERPRINT,
   SCHEMA_V5_FINGERPRINT,
+  SCHEMA_V6_FINGERPRINT,
+  SchedulerStore,
   openSchedulerStore,
 } from "../../src/lib/scheduler-kernel/store.js";
 import { canonicalSchedulerSourcePath } from "../../src/lib/scheduler-kernel/source-locator-path.js";
@@ -273,6 +277,236 @@ describe("scheduler-kernel SQLite store", () => {
     };
   }
 
+  it.each([
+    ["ENOSPC", "ENOSPC", false],
+    ["EROFS", "EROFS", false],
+    ["EIO", "EIO", false],
+    ["SQLITE_FULL", "SQLITE_FULL", false],
+    ["SQLITE_IOERR_WRITE", "SQLITE_IOERR", true],
+    ["SQLITE_READONLY_DBMOVED", "SQLITE_READONLY", true],
+  ])(
+    "sanitizes %s storage failures while opening the database",
+    (reportedCode, storageCode, nested) => {
+      const privatePath = "C:\\private\\scheduler-secret.db";
+      const nativeError = Object.assign(
+        new Error(`could not write ${privatePath}`),
+        { code: reportedCode },
+      );
+      const failure = nested
+        ? new Error("native database wrapper failed", { cause: nativeError })
+        : nativeError;
+      class FailingDatabase {
+        constructor() {
+          throw failure;
+        }
+      }
+
+      const error = expectCode(
+        () =>
+          openSchedulerStore({
+            file: ":memory:",
+            Database: FailingDatabase,
+            clock: () => 1_700_000_000_000,
+          }),
+        "SCHEDULER_STORAGE_UNAVAILABLE",
+      );
+      expect(error.message).toBe("Scheduler storage is unavailable");
+      expect(error.details).toEqual({
+        phase: "open",
+        storageCode,
+        commitState: "unknown",
+        retryable: false,
+      });
+      expect(Object.keys(error.details).sort()).toEqual([
+        "commitState",
+        "phase",
+        "retryable",
+        "storageCode",
+      ]);
+      expect(error.cause).toBeUndefined();
+      expect(JSON.stringify(error)).not.toContain(privatePath);
+      expect(JSON.stringify(error)).not.toContain("could not write");
+    },
+  );
+
+  it("reports sanitized commit-like wrapper failures as unknown", () => {
+    const privatePath = "/private/scheduler-secret.db";
+    const nativeError = Object.assign(
+      new Error(`readonly database at ${privatePath}`),
+      { code: "SQLITE_READONLY_CANTLOCK" },
+    );
+    const wrappedError = new Error("transaction failed", {
+      cause: nativeError,
+    });
+    let callbackReturned = false;
+    const fakeDb = {
+      prepare: () => ({ run: () => undefined }),
+      transaction: (callback) => ({
+        immediate: () => {
+          callback();
+          callbackReturned = true;
+          throw wrappedError;
+        },
+      }),
+      close: () => undefined,
+    };
+    const store = new SchedulerStore(fakeDb, {
+      file: ":memory:",
+      clock: () => 1_700_000_000_000,
+    });
+
+    const error = expectCode(
+      () => store._write(() => undefined),
+      "SCHEDULER_STORAGE_UNAVAILABLE",
+    );
+    expect(error.message).toBe("Scheduler storage is unavailable");
+    expect(error.details).toEqual({
+      phase: "write",
+      storageCode: "SQLITE_READONLY",
+      commitState: "unknown",
+      retryable: false,
+    });
+    expect(callbackReturned).toBe(true);
+    expect(error.cause).toBeUndefined();
+    expect(JSON.stringify(error)).not.toContain(privatePath);
+    expect(JSON.stringify(error)).not.toContain("transaction failed");
+
+    const authoritative = new SchedulerKernelError(
+      "SCHEDULER_TEST_AUTHORITY",
+      "authoritative kernel failure",
+    );
+    fakeDb.transaction = () => ({
+      immediate: () => {
+        throw authoritative;
+      },
+    });
+    try {
+      store._write(() => undefined);
+      throw new Error("Expected the authoritative scheduler error");
+    } catch (caught) {
+      expect(caught).toBe(authoritative);
+    }
+  });
+
+  it("reports an unknown commit state when rollback failure obscures the outcome", () => {
+    const bodyPath = "/private/body-secret.db";
+    const rollbackPath = "/private/rollback-secret.db";
+    const bodyError = Object.assign(new Error(`write failed at ${bodyPath}`), {
+      code: "SQLITE_FULL",
+    });
+    const rollbackError = Object.assign(
+      new Error(`rollback failed at ${rollbackPath}`, { cause: bodyError }),
+      { code: "SQLITE_IOERR_ROLLBACK" },
+    );
+    let inTransaction = false;
+    const fakeDb = {
+      get inTransaction() {
+        return inTransaction;
+      },
+      prepare: () => ({ run: () => undefined }),
+      transaction: (callback) => ({
+        immediate: () => {
+          inTransaction = true;
+          try {
+            callback();
+          } catch {
+            throw rollbackError;
+          }
+        },
+      }),
+      close: () => undefined,
+    };
+    const store = new SchedulerStore(fakeDb, {
+      file: ":memory:",
+      clock: () => 1_700_000_000_000,
+    });
+
+    const error = expectCode(
+      () =>
+        store._write(() => {
+          throw bodyError;
+        }),
+      "SCHEDULER_STORAGE_UNAVAILABLE",
+    );
+    expect(error.details).toEqual({
+      phase: "write",
+      storageCode: "SQLITE_IOERR",
+      commitState: "unknown",
+      retryable: false,
+    });
+    expect(error.cause).toBeUndefined();
+    expect(JSON.stringify(error)).not.toContain(bodyPath);
+    expect(JSON.stringify(error)).not.toContain(rollbackPath);
+    expect(JSON.stringify(error)).not.toContain("rollback failed");
+  });
+
+  it("rolls back a native SQLITE_FULL transaction and reopens cleanly", () => {
+    const f = fixture({ fileName: "full.db" });
+    const store = f.open();
+    store.createJob(jobInput());
+    const before = store.db
+      .prepare("SELECT revision, updated_at FROM jobs WHERE job_id = ?")
+      .get("job-a");
+    const pageCount = store.db.pragma("page_count", { simple: true });
+    store.db.pragma(`max_page_count = ${pageCount}`);
+
+    const error = expectCode(
+      () =>
+        store._write(() => {
+          store.db
+            .prepare(
+              "UPDATE jobs SET revision = revision + 1, updated_at = ? WHERE job_id = ?",
+            )
+            .run(f.now + 1, "job-a");
+          store.db
+            .prepare(
+              `INSERT INTO events
+                 (job_id, occurrence_id, event_type, occurred_at,
+                  owner_id, fence, data_json)
+               VALUES (?, NULL, ?, ?, NULL, NULL, ?)`,
+            )
+            .run(
+              "job-a",
+              "storage-pressure",
+              f.now + 1,
+              JSON.stringify({ payload: "x".repeat(1024 * 1024) }),
+            );
+        }),
+      "SCHEDULER_STORAGE_UNAVAILABLE",
+    );
+    expect(error.details).toEqual({
+      phase: "write",
+      storageCode: "SQLITE_FULL",
+      commitState: "not_committed",
+      retryable: false,
+    });
+    expect(
+      store.db
+        .prepare("SELECT revision, updated_at FROM jobs WHERE job_id = ?")
+        .get("job-a"),
+    ).toEqual(before);
+    expect(
+      store.db
+        .prepare("SELECT COUNT(*) AS count FROM events WHERE event_type = ?")
+        .get("storage-pressure").count,
+    ).toBe(0);
+    expect(store.db.pragma("quick_check", { simple: true })).toBe("ok");
+
+    store.close();
+    const reopened = f.open();
+    expect(reopened.db.pragma("quick_check", { simple: true })).toBe("ok");
+    expect(
+      reopened.db
+        .prepare("SELECT revision, updated_at FROM jobs WHERE job_id = ?")
+        .get("job-a"),
+    ).toEqual(before);
+    expect(
+      reopened.db
+        .prepare("SELECT COUNT(*) AS count FROM events WHERE event_type = ?")
+        .get("storage-pressure").count,
+    ).toBe(0);
+  });
+
   it("creates the exact current schema and migration record", () => {
     const f = fixture();
     const store = f.open();
@@ -280,9 +514,9 @@ describe("scheduler-kernel SQLite store", () => {
       applicationId: SCHEDULER_APPLICATION_ID,
       schemaVersion: SCHEDULER_STORE_SCHEMA_VERSION,
       migration: {
-        version: 5,
-        name: "scheduler-kernel-source-locator-v5",
-        checksum: MIGRATION_V5_CHECKSUM,
+        version: 6,
+        name: "scheduler-kernel-runtime-control-v6",
+        checksum: MIGRATION_V6_CHECKSUM,
         appliedAt: f.now,
       },
     });
@@ -291,6 +525,7 @@ describe("scheduler-kernel SQLite store", () => {
     expect(SCHEMA_V3_FINGERPRINT).toMatch(/^[a-f0-9]{64}$/);
     expect(SCHEMA_V4_FINGERPRINT).toMatch(/^[a-f0-9]{64}$/);
     expect(SCHEMA_V5_FINGERPRINT).toMatch(/^[a-f0-9]{64}$/);
+    expect(SCHEMA_V6_FINGERPRINT).toMatch(/^[a-f0-9]{64}$/);
     const tables = store.db
       .prepare(
         "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
@@ -308,6 +543,8 @@ describe("scheduler-kernel SQLite store", () => {
       "scheduler_domain_migration_entries",
       "scheduler_domain_migrations",
       "scheduler_occurrence_adjudications",
+      "scheduler_occurrence_controls",
+      "scheduler_occurrence_retries",
     ]);
   });
 
@@ -371,8 +608,8 @@ describe("scheduler-kernel SQLite store", () => {
 
     const migrated = f.open();
     expect(migrated.schemaInfo()).toMatchObject({
-      schemaVersion: 5,
-      migration: { version: 5, checksum: MIGRATION_V5_CHECKSUM },
+      schemaVersion: 6,
+      migration: { version: 6, checksum: MIGRATION_V6_CHECKSUM },
     });
     expect(migrated.getJob("legacy-job")).toMatchObject({
       id: "legacy-job",
@@ -405,6 +642,8 @@ describe("scheduler-kernel SQLite store", () => {
     seed.ensureAuthorityPolicy(authority());
     seed.close();
     const legacy = new Database(f.file);
+    legacy.exec("DROP TABLE scheduler_occurrence_retries");
+    legacy.exec("DROP TABLE scheduler_occurrence_controls");
     legacy.exec("DROP TABLE scheduler_domain_migration_entries");
     legacy.exec("DROP TABLE scheduler_domain_migrations");
     legacy.exec("DROP TABLE scheduler_occurrence_adjudications");
@@ -414,8 +653,8 @@ describe("scheduler-kernel SQLite store", () => {
 
     const migrated = f.open();
     expect(migrated.schemaInfo()).toMatchObject({
-      schemaVersion: 5,
-      migration: { version: 5, checksum: MIGRATION_V5_CHECKSUM },
+      schemaVersion: 6,
+      migration: { version: 6, checksum: MIGRATION_V6_CHECKSUM },
     });
     expect(migrated.getJob("job-a")).toMatchObject({ id: "job-a" });
     expect(migrated.getAuthorityPolicy(authority().principal)).toMatchObject({
@@ -429,6 +668,8 @@ describe("scheduler-kernel SQLite store", () => {
     seed.createJob(jobInput());
     seed.close();
     const legacy = new Database(f.file);
+    legacy.exec("DROP TABLE scheduler_occurrence_retries");
+    legacy.exec("DROP TABLE scheduler_occurrence_controls");
     legacy.exec("DROP TABLE scheduler_domain_migration_entries");
     legacy.exec("DROP TABLE scheduler_domain_migrations");
     legacy.prepare("DELETE FROM migrations WHERE version >= 4").run();
@@ -437,8 +678,8 @@ describe("scheduler-kernel SQLite store", () => {
 
     const migrated = f.open();
     expect(migrated.schemaInfo()).toMatchObject({
-      schemaVersion: 5,
-      migration: { version: 5, checksum: MIGRATION_V5_CHECKSUM },
+      schemaVersion: 6,
+      migration: { version: 6, checksum: MIGRATION_V6_CHECKSUM },
     });
     expect(migrated.getJob("job-a")).toMatchObject({ id: "job-a" });
     expect(migrated.listDomainMigrations()).toEqual([]);
@@ -499,8 +740,8 @@ describe("scheduler-kernel SQLite store", () => {
 
     const migrated = f.open();
     expect(migrated.schemaInfo()).toMatchObject({
-      schemaVersion: 5,
-      migration: { version: 5, checksum: MIGRATION_V5_CHECKSUM },
+      schemaVersion: 6,
+      migration: { version: 6, checksum: MIGRATION_V6_CHECKSUM },
     });
     expect(
       migrated.getDomainMigration("migration-v4").entries[0],
@@ -515,6 +756,27 @@ describe("scheduler-kernel SQLite store", () => {
         )
         .get("migration-v4").locator,
     ).toBeNull();
+  });
+
+  it("migrates an exact v5 database to v6 without rebuilding occurrences", () => {
+    const f = fixture({ fileName: "legacy-v5.db" });
+    const seed = f.open();
+    seed.createJob(jobInput());
+    seed.close();
+    const legacy = new Database(f.file);
+    legacy.exec("DROP TABLE scheduler_occurrence_retries");
+    legacy.exec("DROP TABLE scheduler_occurrence_controls");
+    legacy.prepare("DELETE FROM migrations WHERE version = 6").run();
+    legacy.pragma("user_version = 5");
+    legacy.close();
+
+    const migrated = f.open();
+    expect(migrated.schemaInfo()).toMatchObject({
+      schemaVersion: 6,
+      migration: { version: 6, checksum: MIGRATION_V6_CHECKSUM },
+    });
+    expect(migrated.getJob("job-a")).toMatchObject({ id: "job-a" });
+    expect(migrated.getOccurrenceControl("missing-occurrence")).toBeNull();
   });
 
   it("applies expected-revision CAS across two real database handles", () => {
@@ -559,14 +821,22 @@ describe("scheduler-kernel SQLite store", () => {
     } catch (error) {
       failure = error;
     }
-    expect(failure?.code).toBe("SQLITE_FULL");
+    expect(failure).toMatchObject({
+      code: "SCHEDULER_STORAGE_UNAVAILABLE",
+      details: {
+        phase: "write",
+        storageCode: "SQLITE_FULL",
+        commitState: "not_committed",
+        retryable: false,
+      },
+    });
     expect(store.getJob("job-full")).toMatchObject({ enabled: true });
     expect(store.history({ jobId: "job-full" })).toEqual(historyBefore);
     expect(store.db.pragma("quick_check(1)")).toEqual([{ quick_check: "ok" }]);
     store.close();
 
     const reopened = f.open();
-    expect(reopened.schemaInfo()).toMatchObject({ schemaVersion: 5 });
+    expect(reopened.schemaInfo()).toMatchObject({ schemaVersion: 6 });
     expect(reopened.getJob("job-full")).toMatchObject({ enabled: true });
     expect(reopened.history({ jobId: "job-full" })).toEqual(historyBefore);
     expect(reopened.db.pragma("quick_check(1)")).toEqual([
@@ -1852,6 +2122,359 @@ describe("scheduler-kernel SQLite store", () => {
     });
   });
 
+  it("durably pauses and resumes one exact claim without consuming an attempt", () => {
+    const f = fixture({ fileName: "runtime-control.db" });
+    const store = f.open();
+    store.createJob(jobInput({ maxAttempts: 2 }));
+    const occurrence = store.enqueueOccurrence({
+      jobId: "job-a",
+      scheduledFor: f.now,
+      triggerKey: "runtime-control:first",
+    });
+    const claim = store.claimOccurrence({
+      occurrenceId: occurrence.id,
+      ownerId: "pause-owner",
+      leaseMs: 10_000,
+    });
+    const capability = {
+      schemaVersion: 1,
+      pauseResume: "checkpoint_v1",
+      safePoints: ["before_execute", "adapter_checkpoint"],
+    };
+    expectCode(
+      () =>
+        store.requestOccurrencePause({
+          occurrenceId: occurrence.id,
+          expectedFence: claim.fence,
+          requestId: "pause-unsupported",
+          capability: { schemaVersion: 1, pauseResume: "none", safePoints: [] },
+        }),
+      "SCHEDULER_PAUSE_UNSUPPORTED",
+    );
+    expect(store.getOccurrenceControl(occurrence.id)).toBeNull();
+
+    const requested = store.requestOccurrencePause({
+      occurrenceId: occurrence.id,
+      expectedFence: claim.fence,
+      requestId: "pause-request-1",
+      capability,
+    });
+    expect(
+      store.requestOccurrencePause({
+        occurrenceId: occurrence.id,
+        expectedFence: claim.fence,
+        requestId: "pause-request-1",
+        capability,
+      }),
+    ).toMatchObject({ state: "pause_requested", deduplicated: true });
+    const paused = store.ackOccurrencePause({
+      occurrenceId: occurrence.id,
+      ownerId: "pause-owner",
+      fence: claim.fence,
+      requestId: "pause-request-1",
+      expectedRevision: requested.revision,
+      safePoint: "adapter_checkpoint",
+      checkpoint: { cursor: 7 },
+    });
+    expect(paused).toMatchObject({
+      occurrence: {
+        id: occurrence.id,
+        status: "retry_wait",
+        attempt: claim.attempt,
+        fence: claim.fence,
+        leaseOwner: null,
+      },
+      control: {
+        state: "paused",
+        checkpoint: {
+          safePoint: "adapter_checkpoint",
+          data: { cursor: 7 },
+        },
+      },
+    });
+    expect(
+      store.claimOccurrence({
+        occurrenceId: occurrence.id,
+        ownerId: "blocked-owner",
+        leaseMs: 10_000,
+      }),
+    ).toBeNull();
+
+    store.close();
+    const reopened = f.open();
+    const durable = reopened.getOccurrenceControl(occurrence.id);
+    expect(durable).toMatchObject({ state: "paused", revision: 2 });
+    expectCode(
+      () =>
+        reopened.resumeOccurrence({
+          occurrenceId: occurrence.id,
+          expectedRevision: 1,
+          requestId: "resume-request-1",
+        }),
+      "SCHEDULER_REVISION_CONFLICT",
+    );
+    const resumed = reopened.resumeOccurrence({
+      occurrenceId: occurrence.id,
+      expectedRevision: durable.revision,
+      requestId: "resume-request-1",
+    });
+    expect(resumed.control.state).toBe("resumed");
+    expect(
+      reopened.resumeOccurrence({
+        occurrenceId: occurrence.id,
+        expectedRevision: durable.revision,
+        requestId: "resume-request-1",
+      }).control,
+    ).toMatchObject({ state: "resumed", deduplicated: true });
+    const resumedClaim = reopened.claimOccurrence({
+      occurrenceId: occurrence.id,
+      ownerId: "resumed-owner",
+      leaseMs: 10_000,
+    });
+    expect(resumedClaim).toMatchObject({
+      id: occurrence.id,
+      attempt: claim.attempt,
+      fence: claim.fence + 1,
+    });
+    expect(reopened.getOccurrenceControl(occurrence.id)).toMatchObject({
+      state: "resumed",
+      revision: resumed.control.revision + 1,
+      expectedFence: resumedClaim.fence,
+      checkpoint: {
+        safePoint: "adapter_checkpoint",
+        data: { cursor: 7 },
+      },
+    });
+    const retryWait = reopened.settle({
+      occurrenceId: occurrence.id,
+      ownerId: "resumed-owner",
+      fence: resumedClaim.fence,
+      outcome: "failed",
+      error: { code: "resume_retry", message: "Resume must retry" },
+      retryable: true,
+    });
+    expect(retryWait).toMatchObject({
+      status: "retry_wait",
+      attempt: resumedClaim.attempt,
+    });
+    expect(reopened.getOccurrenceControl(occurrence.id)).toMatchObject({
+      state: "resumed",
+      expectedFence: resumedClaim.fence + 1,
+      checkpoint: {
+        safePoint: "adapter_checkpoint",
+        data: { cursor: 7 },
+      },
+    });
+
+    const retryClaim = reopened.claimOccurrence({
+      occurrenceId: occurrence.id,
+      ownerId: "retry-owner",
+      leaseMs: 10_000,
+    });
+    expect(retryClaim).toMatchObject({
+      id: occurrence.id,
+      attempt: resumedClaim.attempt + 1,
+      fence: resumedClaim.fence + 1,
+    });
+    expect(reopened.getOccurrenceControl(occurrence.id)).toMatchObject({
+      state: "resumed",
+      expectedFence: retryClaim.fence,
+    });
+    reopened.settle({
+      occurrenceId: occurrence.id,
+      ownerId: "retry-owner",
+      fence: retryClaim.fence,
+      outcome: "succeeded",
+      result: { resumedFrom: 7 },
+    });
+    expect(reopened.getOccurrenceControl(occurrence.id)).toMatchObject({
+      state: "terminal",
+      expectedFence: retryClaim.fence,
+    });
+  });
+
+  it("keeps an unacknowledged pause request across owner crash", () => {
+    const f = fixture({ fileName: "runtime-control-crash.db" });
+    const store = f.open();
+    store.createJob(jobInput({ maxAttempts: 1 }));
+    const occurrence = store.enqueueOccurrence({
+      jobId: "job-a",
+      scheduledFor: f.now,
+      triggerKey: "runtime-control:crash",
+    });
+    const claim = store.claimNext({ ownerId: "crashed-owner", leaseMs: 100 });
+    store.requestOccurrencePause({
+      occurrenceId: occurrence.id,
+      expectedFence: claim.fence,
+      requestId: "pause-before-crash",
+      capability: {
+        schemaVersion: 1,
+        pauseResume: "checkpoint_v1",
+        safePoints: ["before_execute"],
+      },
+    });
+    store.close();
+    f.now += 101;
+
+    const recovered = f.open();
+    const reclaimed = recovered.claimNext({
+      ownerId: "recovered-owner",
+      leaseMs: 100,
+    });
+    expect(reclaimed).toMatchObject({
+      id: occurrence.id,
+      attempt: claim.attempt,
+      fence: claim.fence + 1,
+    });
+    const rebound = recovered.getOccurrenceControl(occurrence.id);
+    expect(rebound).toMatchObject({
+      state: "pause_requested",
+      pauseRequestId: "pause-before-crash",
+      expectedFence: reclaimed.fence,
+      revision: 2,
+    });
+    expect(
+      recovered.ackOccurrencePause({
+        occurrenceId: occurrence.id,
+        ownerId: "recovered-owner",
+        fence: reclaimed.fence,
+        requestId: rebound.pauseRequestId,
+        expectedRevision: rebound.revision,
+        safePoint: "before_execute",
+        checkpoint: { recovered: true },
+      }),
+    ).toMatchObject({ control: { state: "paused" } });
+  });
+
+  it("fails closed on stale pause evidence and terminalizes a losing request", () => {
+    const f = fixture({ fileName: "runtime-control-conflicts.db" });
+    const store = f.open();
+    store.createJob(jobInput());
+    const queued = store.enqueueOccurrence({
+      jobId: "job-a",
+      scheduledFor: f.now,
+      triggerKey: "runtime-control:conflicts",
+    });
+    const capability = {
+      schemaVersion: 1,
+      pauseResume: "checkpoint_v1",
+      safePoints: ["before_execute"],
+    };
+    expectCode(
+      () =>
+        store.requestOccurrencePause({
+          occurrenceId: queued.id,
+          expectedFence: 1,
+          requestId: "queued-pause",
+          capability,
+        }),
+      "SCHEDULER_OCCURRENCE_NOT_RUNNING",
+    );
+    const claim = store.claimNext({
+      ownerId: "settling-owner",
+      leaseMs: 1000,
+    });
+    expectCode(
+      () =>
+        store.requestOccurrencePause({
+          occurrenceId: queued.id,
+          expectedFence: claim.fence + 1,
+          requestId: "stale-pause",
+          capability,
+        }),
+      "SCHEDULER_FENCE_CONFLICT",
+    );
+    const request = store.requestOccurrencePause({
+      occurrenceId: queued.id,
+      expectedFence: claim.fence,
+      requestId: "settlement-race-pause",
+      capability,
+    });
+    store.settle({
+      occurrenceId: queued.id,
+      ownerId: "settling-owner",
+      fence: claim.fence,
+      outcome: "succeeded",
+      result: { finished: true },
+    });
+    expect(store.getOccurrenceControl(queued.id)).toMatchObject({
+      state: "terminal",
+      revision: request.revision + 1,
+    });
+    expectCode(
+      () =>
+        store.ackOccurrencePause({
+          occurrenceId: queued.id,
+          ownerId: "settling-owner",
+          fence: claim.fence,
+          requestId: request.pauseRequestId,
+          expectedRevision: request.revision,
+          safePoint: "before_execute",
+        }),
+      "SCHEDULER_OCCURRENCE_CONTROL_CONFLICT",
+    );
+  });
+
+  it("requeues exact dead-letter evidence without consuming another attempt", () => {
+    const f = fixture({ fileName: "dead-letter-requeue.db" });
+    const store = f.open();
+    store.createJob(jobInput({ maxAttempts: 1 }));
+    const occurrence = store.enqueueOccurrence({
+      jobId: "job-a",
+      scheduledFor: f.now,
+      triggerKey: "dead-letter:requeue",
+    });
+    const first = store.claimNext({
+      ownerId: "failing-owner",
+      leaseMs: 1000,
+    });
+    const dead = store.settle({
+      occurrenceId: occurrence.id,
+      ownerId: "failing-owner",
+      fence: first.fence,
+      outcome: "failed",
+      error: { code: "BOUNDARY_DENIED", message: "denied" },
+      retryable: false,
+    });
+    expectCode(
+      () =>
+        store.requeueDeadLetter({
+          occurrenceId: occurrence.id,
+          expectedFence: dead.fence,
+          expectedErrorCode: "OTHER_ERROR",
+          requestId: "requeue-1",
+        }),
+      "SCHEDULER_REQUEUE_EVIDENCE_CONFLICT",
+    );
+    const requeued = store.requeueDeadLetter({
+      occurrenceId: occurrence.id,
+      expectedFence: dead.fence,
+      expectedErrorCode: "BOUNDARY_DENIED",
+      requestId: "requeue-1",
+    });
+    expect(requeued.occurrence).toMatchObject({
+      id: occurrence.id,
+      status: "retry_wait",
+      attempt: first.attempt,
+      lastError: { code: "BOUNDARY_DENIED" },
+    });
+    expect(
+      store.requeueDeadLetter({
+        occurrenceId: occurrence.id,
+        expectedFence: dead.fence,
+        expectedErrorCode: "BOUNDARY_DENIED",
+        requestId: "requeue-1",
+      }).deduplicated,
+    ).toBe(true);
+    expect(
+      store.claimNext({ ownerId: "retry-owner", leaseMs: 1000 }),
+    ).toMatchObject({
+      id: occurrence.id,
+      attempt: first.attempt,
+      fence: first.fence + 1,
+    });
+  });
+
   it("allows exactly one claimant under a real two-handle worker race", async () => {
     const f = fixture();
     const setup = f.open();
@@ -1899,7 +2522,7 @@ describe("scheduler-kernel SQLite store", () => {
     const future = fixture({ fileName: "future.db" });
     future.open().close();
     const futureDb = new Database(future.file);
-    futureDb.pragma("user_version = 6");
+    futureDb.pragma("user_version = 7");
     futureDb.close();
     expectCode(() => future.open(), "SCHEDULER_SCHEMA_UNKNOWN");
 

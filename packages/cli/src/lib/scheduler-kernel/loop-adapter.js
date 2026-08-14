@@ -7,6 +7,7 @@ import {
   normalizeJson,
 } from "./contract.js";
 import { SchedulerRuntime } from "./runtime.js";
+import { CHECKPOINT_V1_RUNTIME_CONTROL } from "./runtime-control-capabilities.js";
 import {
   schedulerJobDefinitionDigest,
   schedulerMigrationSourceDigest,
@@ -785,6 +786,7 @@ export function createLoopSchedulerAdapter({ runIteration } = {}) {
   const transientResults = new Map();
   return {
     kind: LOOP_SCHEDULER_KIND,
+    runtimeControl: CHECKPOINT_V1_RUNTIME_CONTROL,
     async adjudicate({ occurrence, adjudication }) {
       if (adjudication.decision === "confirmed_applied") {
         const match = /^iteration:(\d+)$/.exec(occurrence.triggerKey);
@@ -799,7 +801,7 @@ export function createLoopSchedulerAdapter({ runIteration } = {}) {
       }
       return { continue: true };
     },
-    async execute({ occurrence, signal, adjudication }) {
+    async execute({ occurrence, signal, adjudication, checkpoint }) {
       const definition = loopExecutionSnapshot(occurrence?.payload?.definition);
       if (
         occurrence.payload.snapshotDigest !== loopExecutionDigest(definition)
@@ -826,6 +828,7 @@ export function createLoopSchedulerAdapter({ runIteration } = {}) {
           `Loop iteration may already have produced side effects; refusing replay: ${occurrence.id}`,
         );
       }
+      checkpoint({ iteration, phase: "before_runner" });
       const result =
         (await runIteration(iteration, { signal, definition })) || {};
       const persisted = persistedIterationResult(iteration, result);
@@ -834,6 +837,9 @@ export function createLoopSchedulerAdapter({ runIteration } = {}) {
         output: result.output,
       });
       return persisted;
+    },
+    async resume(context) {
+      return this.execute(context);
     },
     classifyError() {
       return { retryable: false };
