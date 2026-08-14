@@ -448,12 +448,7 @@ describe("system clipboard image readers", () => {
     let primitiveNumberMetadata = true;
     let unwrapNumberMetadata = true;
     let omittedMetadataKey = null;
-    const imagePropertyKey = (publicName) =>
-      Object.freeze({
-        publicName,
-        isEqualToString: (expected) =>
-          (expected?.value ?? expected) === publicName,
-      });
+    const imagePropertyKey = (publicName) => Object.freeze({ publicName });
     const pixelWidthKey = imagePropertyKey("PixelWidth");
     const pixelHeightKey = imagePropertyKey("PixelHeight");
     const depthKey = imagePropertyKey("Depth");
@@ -535,11 +530,15 @@ describe("system clipboard image readers", () => {
       },
     });
     const unwrap = vi.fn((value) => {
+      if (typeof value?.publicName === "string") return value.publicName;
       if (typeof value?.value !== "number") {
         throw new Error("only wrapped numeric metadata may be unwrapped");
       }
       return unwrapNumberMetadata ? value.value : {};
     });
+    const numericUnwrapCalls = () =>
+      unwrap.mock.calls.filter(([value]) => typeof value?.value === "number")
+        .length;
     const context = {
       ObjC: {
         import: () => {},
@@ -553,7 +552,7 @@ describe("system clipboard image readers", () => {
         context,
       );
     expect(runTiffFallback()).toBe("tiff-png");
-    expect(unwrap).not.toHaveBeenCalled();
+    expect(numericUnwrapCalls()).toBe(0);
     expect(allKeysReads).toBe(0);
     bridge.kCGImagePropertyPixelWidth = imagePropertyKey("foreign-width");
     bridge.kCGImagePropertyPixelHeight = imagePropertyKey("foreign-height");
@@ -562,14 +561,14 @@ describe("system clipboard image readers", () => {
     primitiveNumberMetadata = false;
     primitiveColorModel = true;
     expect(runTiffFallback()).toBe("tiff-png");
-    expect(unwrap).toHaveBeenCalledTimes(3);
+    expect(numericUnwrapCalls()).toBe(3);
     expect(allKeysReads).toBe(4);
     unwrapNumberMetadata = false;
     expect(runTiffFallback()).toBe("tiff-png");
-    expect(unwrap).toHaveBeenCalledTimes(6);
+    expect(numericUnwrapCalls()).toBe(6);
     omittedMetadataKey = depthKey;
     expect(runTiffFallback()).toBe("invalid:tiff-depth-candidate-missing");
-    expect(unwrap).toHaveBeenCalledTimes(8);
+    expect(numericUnwrapCalls()).toBe(8);
 
     omittedMetadataKey = null;
     const readsBeforeBoundCheck = allKeysReads;

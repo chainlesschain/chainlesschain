@@ -171,11 +171,19 @@ function propertyNumber(properties, key, publicName) {
 
 function propertyStringEquals(value, expected) {
   if (typeof value === "string") return value === expected;
-  return (
+  if (
     !isObjCNil(value) &&
     typeof value.isEqualToString === "function" &&
     Boolean(value.isEqualToString($(expected)))
-  );
+  ) {
+    return true;
+  }
+  try {
+    const unwrapped = ObjC.unwrap(value);
+    return typeof unwrapped === "string" && unwrapped === expected;
+  } catch {
+    return false;
+  }
 }
 
 function run(argv) {
