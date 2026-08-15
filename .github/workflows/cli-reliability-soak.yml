@@ -294,6 +294,7 @@ jobs:
       CC_CLI_MCP_SECURITY_SOAK_CYCLES: ${{ github.event_name == 'pull_request' && '2' || '100' }}
       CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
       CC_CLI_MCP_SECURITY_SOAK_CHECKPOINT_INTERVAL_SECONDS: "30"
+      CC_CLI_MCP_SECURITY_SOAK_EXECUTION_CONTEXT_SAMPLES: ${{ github.event_name == 'pull_request' && '0' || '3' }}
     steps:
       - name: Checkout exact MCP security soak commit
         uses: actions/checkout@v5
@@ -308,30 +309,20 @@ jobs:
 
       - uses: ./.github/actions/setup-node-deps
 
-      - name: Run exact-SHA materialized capsule execution-context boundary
-        if: github.event_name != 'pull_request'
-        working-directory: packages/cli
+      - name: Run time-based MCP host/race soak with repeated fresh isolates
         env:
-          CC_SANDBOX_LIVE: "1"
-        run: >-
-          npx vitest run --reporter=json
-          --outputFile="${{ runner.temp }}/mcp-materialized-capsule-live-${{ runner.os }}.json"
-          __tests__/integration/mcp-materialized-capsule-sandbox-live.test.js
+          CC_CLI_MCP_SECURITY_SOAK_OUTPUT: ${{ runner.temp }}/cli-mcp-security-soak-${{ runner.os }}.json
+          CC_CLI_MCP_SECURITY_SOAK_EXECUTION_CONTEXT_DIR: ${{ runner.temp }}/cli-mcp-execution-context-live-${{ runner.os }}
+        run: npm run test:cli-mcp-security-soak
 
-      - name: Upload materialized capsule execution-context evidence
+      - name: Upload repeated materialized capsule execution-context evidence
         if: always() && github.event_name != 'pull_request'
         uses: actions/upload-artifact@v6
         with:
           name: cli-mcp-execution-context-live-${{ matrix.os }}-${{ env.CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/mcp-materialized-capsule-live-${{ runner.os }}.json
+          path: ${{ runner.temp }}/cli-mcp-execution-context-live-${{ runner.os }}/*.json
           if-no-files-found: error
           retention-days: 90
-
-      - name: Run time-based malicious MCP host and pathname race soak
-        env:
-          CC_CLI_MCP_SECURITY_SOAK_OUTPUT: ${{ runner.temp }}/cli-mcp-security-soak-${{ runner.os }}.json
-          CC_CLI_MCP_SECURITY_SOAK_EXECUTION_CONTEXT_RESULT: ${{ runner.temp }}/mcp-materialized-capsule-live-${{ runner.os }}.json
-        run: npm run test:cli-mcp-security-soak
 
       - name: Upload exact-SHA MCP security soak evidence
         if: always()

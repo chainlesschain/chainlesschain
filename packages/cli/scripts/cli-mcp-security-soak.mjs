@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 import crypto from "node:crypto";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
+import { createRequire } from "node:module";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -11,29 +12,34 @@ import { runMcpSecurityMatrix } from "./ide-roadmap-mcp-security-gate.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "../../..");
-const formalResultSchema = "chainlesschain.cli-mcp-security-soak-formal.v2";
+const formalResultSchema = "chainlesschain.cli-mcp-security-soak-formal.v3";
 const smokeResultSchema =
-  "chainlesschain.cli-mcp-security-soak-smoke-non-qualifying.v1";
+  "chainlesschain.cli-mcp-security-soak-smoke-non-qualifying.v2";
 const formalAggregateSchema =
-  "chainlesschain.cli-mcp-security-soak-formal-aggregate.v2";
+  "chainlesschain.cli-mcp-security-soak-formal-aggregate.v3";
 const smokeAggregateSchema =
-  "chainlesschain.cli-mcp-security-soak-smoke-aggregate-non-qualifying.v1";
+  "chainlesschain.cli-mcp-security-soak-smoke-aggregate-non-qualifying.v2";
 const innerEvidenceSchema =
   "chainlesschain.ide-roadmap-mcp-security-evidence.v4";
 const executionContextBoundarySchema =
-  "chainlesschain.cli-mcp-execution-context-live-sample.v1";
+  "chainlesschain.cli-mcp-execution-context-live-soak.v2";
+const executionContextSampleSchema =
+  "chainlesschain.cli-mcp-execution-context-live-sample.v2";
 const releaseCommitPattern = /^[0-9a-f]{40}$/u;
 const expectedOperatingSystems = Object.freeze(["linux", "macos", "windows"]);
+const minimumFormalExecutionContextSamples = 3;
+const maximumFormalExecutionContextSchedulingLatenessSeconds = 1_200;
+const executionContextProbeTimeoutMs = 15 * 60 * 1_000;
 const executionContextTestRelativePath =
   "packages/cli/__tests__/integration/mcp-materialized-capsule-sandbox-live.test.js";
 const executionContextTestPath = path.join(
   repoRoot,
   ...executionContextTestRelativePath.split("/"),
 );
-const executionContextReportFiles = Object.freeze({
-  linux: "mcp-materialized-capsule-live-Linux.json",
-  macos: "mcp-materialized-capsule-live-macOS.json",
-  windows: "mcp-materialized-capsule-live-Windows.json",
+const executionContextReportPrefixes = Object.freeze({
+  linux: "mcp-materialized-capsule-live-Linux",
+  macos: "mcp-materialized-capsule-live-macOS",
+  windows: "mcp-materialized-capsule-live-Windows",
 });
 const executionContextAssertionDefinitions = Object.freeze([
   Object.freeze({
@@ -73,6 +79,15 @@ const executionContextAssertionDefinitions = Object.freeze([
   }),
 ]);
 const maximumExecutionContextReportBytes = 16 * 1024 * 1024;
+const require = createRequire(import.meta.url);
+
+function executionContextReportFile(operatingSystem, sampleIndex) {
+  const prefix = executionContextReportPrefixes[operatingSystem];
+  if (!prefix || !Number.isSafeInteger(sampleIndex) || sampleIndex < 0) {
+    throw new Error("execution-context report identity is invalid");
+  }
+  return `${prefix}-${String(sampleIndex).padStart(3, "0")}.json`;
+}
 
 function positiveNumber(value, fallback, name, { integer = false } = {}) {
   if (value == null || value === "") return fallback;
@@ -94,6 +109,17 @@ export function resolveMcpSecuritySoakProfile(env = process.env) {
   }
   const formal = mode === "formal";
   const floor = (value, minimum) => (formal ? Math.max(value, minimum) : value);
+  const executionContextSamples = formal
+    ? Math.max(
+        positiveNumber(
+          env.CC_CLI_MCP_SECURITY_SOAK_EXECUTION_CONTEXT_SAMPLES,
+          minimumFormalExecutionContextSamples,
+          "MCP execution-context live sample count",
+          { integer: true },
+        ),
+        minimumFormalExecutionContextSamples,
+      )
+    : 0;
   return Object.freeze({
     mode,
     durationSeconds: floor(
@@ -122,6 +148,7 @@ export function resolveMcpSecuritySoakProfile(env = process.env) {
         { integer: true },
       ),
     ),
+    executionContextSamples,
   });
 }
 
@@ -287,28 +314,45 @@ function smokeExecutionContextBoundary() {
     result: "not_run_non_qualifying_smoke",
     scope: "pr-smoke-without-live-execution-context-sample",
     sampleCount: 0,
+    minimumSampleCount: minimumFormalExecutionContextSamples,
+    minimumStartSpanSeconds: 7_200,
+    observedStartSpanSeconds: 0,
     longRunning: false,
+    freshIsolatePerSample: false,
     qualifyingForSingleLiveSample: false,
     qualifyingForLongRunningMatrix: false,
+    completeSkillMcpSecurityClosure: false,
+    samples: [],
   };
 }
 
 /**
  * Parse the exact bytes emitted by Vitest's JSON reporter for the live
- * materialized-capsule integration test. The result deliberately describes a
- * single live sample. It is not evidence that this probe ran throughout the
- * separate two-hour host/race soak.
+ * materialized-capsule integration test. Timing and exact-SHA metadata come
+ * from the same host process that spawned this dedicated Vitest process; the
+ * aggregate later re-reads these exact bytes and compares the full sample.
  */
 export function parseMcpExecutionContextVitestEvidence({
   filePath,
   operatingSystem,
+  releaseCommit,
+  sampleIndex,
+  scheduledElapsedSeconds,
+  startedAt,
+  finishedAt,
+  startedElapsedSeconds,
+  finishedElapsedSeconds,
 } = {}) {
   if (!expectedOperatingSystems.includes(operatingSystem)) {
     throw new Error(
       `execution-context operating system is invalid: ${String(operatingSystem)}`,
     );
   }
-  const expectedReportFile = executionContextReportFiles[operatingSystem];
+  const normalizedReleaseCommit = normalizeReleaseCommit(releaseCommit);
+  const expectedReportFile = executionContextReportFile(
+    operatingSystem,
+    sampleIndex,
+  );
   if (path.basename(String(filePath || "")) !== expectedReportFile) {
     throw new Error(
       `execution-context report for ${operatingSystem} must be named ${expectedReportFile}`,
@@ -357,6 +401,25 @@ export function parseMcpExecutionContextVitestEvidence({
     issues.push("exactly one test file result");
   }
   const testResult = value?.testResults?.[0];
+  const startedAtMs = Date.parse(startedAt);
+  const finishedAtMs = Date.parse(finishedAt);
+  const reporterStartedAtMs = value?.startTime;
+  const testFileStartedAtMs = testResult?.startTime;
+  const testFileFinishedAtMs = testResult?.endTime;
+  if (
+    !Number.isSafeInteger(reporterStartedAtMs) ||
+    reporterStartedAtMs <= 0 ||
+    !Number.isFinite(testFileStartedAtMs) ||
+    !Number.isFinite(testFileFinishedAtMs) ||
+    testFileStartedAtMs < reporterStartedAtMs ||
+    testFileFinishedAtMs < testFileStartedAtMs ||
+    !Number.isFinite(startedAtMs) ||
+    !Number.isFinite(finishedAtMs) ||
+    reporterStartedAtMs < startedAtMs ||
+    testFileFinishedAtMs > finishedAtMs
+  ) {
+    issues.push("reporter run interval binding");
+  }
   const normalizedTestName = String(testResult?.name || "").replaceAll(
     "\\",
     "/",
@@ -424,14 +487,35 @@ export function parseMcpExecutionContextVitestEvidence({
       `invalid ${operatingSystem} MCP execution-context Vitest evidence: ${issues.join(", ")}`,
     );
   }
+  if (
+    !Number.isFinite(scheduledElapsedSeconds) ||
+    scheduledElapsedSeconds < 0 ||
+    !Number.isFinite(startedElapsedSeconds) ||
+    startedElapsedSeconds < scheduledElapsedSeconds ||
+    !Number.isFinite(finishedElapsedSeconds) ||
+    finishedElapsedSeconds < startedElapsedSeconds ||
+    !Number.isFinite(startedAtMs) ||
+    !Number.isFinite(finishedAtMs) ||
+    finishedAtMs < startedAtMs
+  ) {
+    throw new Error(
+      `invalid ${operatingSystem} MCP execution-context sample timing`,
+    );
+  }
   return {
-    schema: executionContextBoundarySchema,
+    schema: executionContextSampleSchema,
     result: "passed",
-    scope: "single-live-sample-before-time-based-host-race-soak",
-    sampleCount: 1,
-    longRunning: false,
-    qualifyingForSingleLiveSample: true,
-    qualifyingForLongRunningMatrix: false,
+    releaseCommit: normalizedReleaseCommit,
+    operatingSystem,
+    sampleIndex,
+    scheduledElapsedSeconds,
+    startedAt,
+    finishedAt,
+    startedElapsedSeconds,
+    finishedElapsedSeconds,
+    schedulingLatenessSeconds: startedElapsedSeconds - scheduledElapsedSeconds,
+    freshIsolate: true,
+    invocation: "spawned-node-vitest-process",
     rawReportFile: expectedReportFile,
     rawReportSha256: report.sha256,
     testSource: {
@@ -445,89 +529,356 @@ export function parseMcpExecutionContextVitestEvidence({
       passedTests: value.numPassedTests,
       skippedTests: value.numPendingTests,
       failedTests: value.numFailedTests,
+      runStartedAtMs: reporterStartedAtMs,
+      testFileStartedAtMs,
+      testFileFinishedAtMs,
     },
     requiredAssertions,
   };
 }
 
-function validateExecutionContextBoundary(value, { operatingSystem, mode }) {
+function validateExecutionContextSample(
+  value,
+  { operatingSystem, releaseCommit, sampleIndex },
+) {
   const issues = [];
-  if (mode === "smoke") {
-    if (
-      JSON.stringify(value) !== JSON.stringify(smokeExecutionContextBoundary())
-    ) {
-      issues.push("non-qualifying smoke boundary");
-    }
-  } else {
-    if (
-      !exactKeys(value, [
-        "schema",
-        "result",
-        "scope",
-        "sampleCount",
-        "longRunning",
-        "qualifyingForSingleLiveSample",
-        "qualifyingForLongRunningMatrix",
-        "rawReportFile",
-        "rawReportSha256",
-        "testSource",
-        "reporter",
-        "requiredAssertions",
-      ]) ||
-      value?.schema !== executionContextBoundarySchema ||
-      value?.result !== "passed" ||
-      value?.scope !== "single-live-sample-before-time-based-host-race-soak" ||
-      value?.sampleCount !== 1 ||
-      value?.longRunning !== false ||
-      value?.qualifyingForSingleLiveSample !== true ||
-      value?.qualifyingForLongRunningMatrix !== false ||
-      value?.rawReportFile !== executionContextReportFiles[operatingSystem] ||
-      !/^sha256:[a-f0-9]{64}$/u.test(value?.rawReportSha256 || "")
-    ) {
-      issues.push("formal live sample identity");
-    }
-    if (
-      !exactKeys(value?.testSource, ["path", "sha256"]) ||
-      value?.testSource?.path !== executionContextTestRelativePath ||
-      value?.testSource?.sha256 !== sha256File(executionContextTestPath)
-    ) {
-      issues.push("live test source identity");
-    }
-    if (
-      !exactKeys(value?.reporter, [
-        "totalTestSuites",
-        "passedTestSuites",
-        "totalTests",
-        "passedTests",
-        "skippedTests",
-        "failedTests",
-      ]) ||
-      !Number.isSafeInteger(value?.reporter?.totalTestSuites) ||
-      value.reporter.totalTestSuites <= 0 ||
-      value?.reporter?.passedTestSuites !== value?.reporter?.totalTestSuites ||
-      !Number.isSafeInteger(value?.reporter?.totalTests) ||
-      value.reporter.totalTests <= 0 ||
-      !Number.isSafeInteger(value?.reporter?.passedTests) ||
-      !Number.isSafeInteger(value?.reporter?.skippedTests) ||
-      value?.reporter?.failedTests !== 0 ||
-      value.reporter.passedTests + value.reporter.skippedTests !==
-        value.reporter.totalTests
-    ) {
-      issues.push("live reporter totals");
-    }
-    if (
-      JSON.stringify(value?.requiredAssertions) !==
-      JSON.stringify(expectedExecutionContextAssertions(operatingSystem))
-    ) {
-      issues.push("live platform sentinels");
-    }
+  if (
+    !exactKeys(value, [
+      "schema",
+      "result",
+      "releaseCommit",
+      "operatingSystem",
+      "sampleIndex",
+      "scheduledElapsedSeconds",
+      "startedAt",
+      "finishedAt",
+      "startedElapsedSeconds",
+      "finishedElapsedSeconds",
+      "schedulingLatenessSeconds",
+      "freshIsolate",
+      "invocation",
+      "rawReportFile",
+      "rawReportSha256",
+      "testSource",
+      "reporter",
+      "requiredAssertions",
+    ]) ||
+    value?.schema !== executionContextSampleSchema ||
+    value?.result !== "passed" ||
+    value?.releaseCommit !== releaseCommit ||
+    value?.operatingSystem !== operatingSystem ||
+    value?.sampleIndex !== sampleIndex ||
+    value?.freshIsolate !== true ||
+    value?.invocation !== "spawned-node-vitest-process" ||
+    value?.rawReportFile !==
+      executionContextReportFile(operatingSystem, sampleIndex) ||
+    !/^sha256:[a-f0-9]{64}$/u.test(value?.rawReportSha256 || "")
+  ) {
+    issues.push("formal live sample identity");
+  }
+  const startedAtMs = Date.parse(value?.startedAt);
+  const finishedAtMs = Date.parse(value?.finishedAt);
+  if (
+    !Number.isFinite(value?.scheduledElapsedSeconds) ||
+    value.scheduledElapsedSeconds < 0 ||
+    !Number.isFinite(value?.startedElapsedSeconds) ||
+    value.startedElapsedSeconds < value.scheduledElapsedSeconds ||
+    !Number.isFinite(value?.finishedElapsedSeconds) ||
+    value.finishedElapsedSeconds < value.startedElapsedSeconds ||
+    !Number.isFinite(value?.schedulingLatenessSeconds) ||
+    Math.abs(
+      value.schedulingLatenessSeconds -
+        (value.startedElapsedSeconds - value.scheduledElapsedSeconds),
+    ) > 0.001 ||
+    !Number.isFinite(startedAtMs) ||
+    !Number.isFinite(finishedAtMs) ||
+    finishedAtMs < startedAtMs
+  ) {
+    issues.push("live sample timing");
+  }
+  if (
+    !exactKeys(value?.testSource, ["path", "sha256"]) ||
+    value?.testSource?.path !== executionContextTestRelativePath ||
+    value?.testSource?.sha256 !== sha256File(executionContextTestPath)
+  ) {
+    issues.push("live test source identity");
+  }
+  if (
+    !exactKeys(value?.reporter, [
+      "totalTestSuites",
+      "passedTestSuites",
+      "totalTests",
+      "passedTests",
+      "skippedTests",
+      "failedTests",
+      "runStartedAtMs",
+      "testFileStartedAtMs",
+      "testFileFinishedAtMs",
+    ]) ||
+    !Number.isSafeInteger(value?.reporter?.totalTestSuites) ||
+    value.reporter.totalTestSuites <= 0 ||
+    value?.reporter?.passedTestSuites !== value?.reporter?.totalTestSuites ||
+    !Number.isSafeInteger(value?.reporter?.totalTests) ||
+    value.reporter.totalTests <= 0 ||
+    !Number.isSafeInteger(value?.reporter?.passedTests) ||
+    !Number.isSafeInteger(value?.reporter?.skippedTests) ||
+    value?.reporter?.failedTests !== 0 ||
+    value.reporter.passedTests + value.reporter.skippedTests !==
+      value.reporter.totalTests ||
+    !Number.isSafeInteger(value?.reporter?.runStartedAtMs) ||
+    value.reporter.runStartedAtMs < startedAtMs ||
+    !Number.isFinite(value?.reporter?.testFileStartedAtMs) ||
+    value.reporter.testFileStartedAtMs < value.reporter.runStartedAtMs ||
+    !Number.isFinite(value?.reporter?.testFileFinishedAtMs) ||
+    value.reporter.testFileFinishedAtMs < value.reporter.testFileStartedAtMs ||
+    value.reporter.testFileFinishedAtMs > finishedAtMs
+  ) {
+    issues.push("live reporter totals");
+  }
+  if (
+    JSON.stringify(value?.requiredAssertions) !==
+    JSON.stringify(expectedExecutionContextAssertions(operatingSystem))
+  ) {
+    issues.push("live platform sentinels");
   }
   if (issues.length > 0) {
     throw new Error(
-      `invalid ${operatingSystem} MCP execution-context boundary: ${issues.join(", ")}`,
+      `invalid ${operatingSystem} MCP execution-context sample ${sampleIndex}: ${issues.join(", ")}`,
     );
   }
   return value;
+}
+
+export function buildMcpExecutionContextSoakEvidence({
+  operatingSystem,
+  releaseCommit,
+  durationSeconds,
+  samples,
+} = {}) {
+  const normalizedReleaseCommit = normalizeReleaseCommit(releaseCommit);
+  if (!expectedOperatingSystems.includes(operatingSystem)) {
+    throw new Error("execution-context soak operating system is invalid");
+  }
+  if (!Number.isFinite(durationSeconds) || durationSeconds < 7_200) {
+    throw new Error(
+      "execution-context soak duration must be at least 7200 seconds",
+    );
+  }
+  if (
+    !Array.isArray(samples) ||
+    samples.length < minimumFormalExecutionContextSamples
+  ) {
+    throw new Error(
+      `execution-context soak requires at least ${minimumFormalExecutionContextSamples} live samples`,
+    );
+  }
+  const validatedSamples = samples.map((sample, sampleIndex) =>
+    validateExecutionContextSample(sample, {
+      operatingSystem,
+      releaseCommit: normalizedReleaseCommit,
+      sampleIndex,
+    }),
+  );
+  const scheduleOriginElapsedSeconds =
+    validatedSamples[0].startedElapsedSeconds;
+  let maximumObservedSchedulingLatenessSeconds = 0;
+  for (let index = 0; index < validatedSamples.length; index += 1) {
+    const sample = validatedSamples[index];
+    const expectedScheduledElapsedSeconds =
+      scheduleOriginElapsedSeconds +
+      (index / (validatedSamples.length - 1)) * durationSeconds;
+    if (
+      Math.abs(
+        sample.scheduledElapsedSeconds - expectedScheduledElapsedSeconds,
+      ) > 0.001
+    ) {
+      throw new Error(
+        `execution-context sample ${index} is not on the evenly-spaced formal schedule`,
+      );
+    }
+    if (
+      index > 0 &&
+      sample.startedElapsedSeconds <
+        validatedSamples[index - 1].finishedElapsedSeconds
+    ) {
+      throw new Error(
+        `execution-context sample ${index} overlaps or precedes the prior fresh isolate`,
+      );
+    }
+    maximumObservedSchedulingLatenessSeconds = Math.max(
+      maximumObservedSchedulingLatenessSeconds,
+      sample.schedulingLatenessSeconds,
+    );
+  }
+  if (
+    maximumObservedSchedulingLatenessSeconds >
+    maximumFormalExecutionContextSchedulingLatenessSeconds
+  ) {
+    throw new Error(
+      `execution-context live sample scheduling exceeded ${maximumFormalExecutionContextSchedulingLatenessSeconds} seconds`,
+    );
+  }
+  const observedStartSpanSeconds =
+    validatedSamples.at(-1).startedElapsedSeconds -
+    validatedSamples[0].startedElapsedSeconds;
+  if (observedStartSpanSeconds < durationSeconds) {
+    throw new Error(
+      `execution-context live sample start span ${observedStartSpanSeconds} is below ${durationSeconds} seconds`,
+    );
+  }
+  return {
+    schema: executionContextBoundarySchema,
+    result: "passed",
+    scope: "fresh-isolate-live-samples-spanning-formal-soak",
+    releaseCommit: normalizedReleaseCommit,
+    operatingSystem,
+    sampleCount: validatedSamples.length,
+    minimumSampleCount: minimumFormalExecutionContextSamples,
+    minimumStartSpanSeconds: durationSeconds,
+    observedStartSpanSeconds,
+    scheduleOriginElapsedSeconds,
+    sampleIntervalStrategy: "evenly-spaced-from-first-live-start",
+    maximumAllowedSchedulingLatenessSeconds:
+      maximumFormalExecutionContextSchedulingLatenessSeconds,
+    maximumObservedSchedulingLatenessSeconds,
+    longRunning: true,
+    freshIsolatePerSample: true,
+    qualifyingForSingleLiveSample: true,
+    qualifyingForLongRunningMatrix: true,
+    completeSkillMcpSecurityClosure: false,
+    samples: validatedSamples,
+  };
+}
+
+function validateExecutionContextBoundary(
+  value,
+  { operatingSystem, releaseCommit, profile },
+) {
+  if (profile?.mode === "smoke") {
+    if (
+      JSON.stringify(value) !== JSON.stringify(smokeExecutionContextBoundary())
+    ) {
+      throw new Error(
+        `invalid ${operatingSystem} MCP execution-context boundary: non-qualifying smoke boundary`,
+      );
+    }
+    return value;
+  }
+  const rebuilt = buildMcpExecutionContextSoakEvidence({
+    operatingSystem,
+    releaseCommit,
+    durationSeconds: profile?.durationSeconds,
+    samples: value?.samples,
+  });
+  if (
+    value?.sampleCount !== profile?.executionContextSamples ||
+    JSON.stringify(value) !== JSON.stringify(rebuilt)
+  ) {
+    throw new Error(
+      `invalid ${operatingSystem} MCP execution-context boundary: formal repeated live evidence`,
+    );
+  }
+  return value;
+}
+
+function prepareExecutionContextEvidenceDirectory(candidate) {
+  const resolved = path.resolve(String(candidate || ""));
+  if (!candidate) {
+    throw new Error(
+      "formal MCP security soak requires an execution-context evidence directory",
+    );
+  }
+  if (fs.existsSync(resolved)) {
+    const stat = fs.lstatSync(resolved);
+    if (stat.isSymbolicLink() || !stat.isDirectory()) {
+      throw new Error(
+        "execution-context evidence path must be a non-symlink directory",
+      );
+    }
+    if (fs.readdirSync(resolved).length !== 0) {
+      throw new Error(
+        "execution-context evidence directory must be empty before a formal soak",
+      );
+    }
+  } else {
+    fs.mkdirSync(resolved, { recursive: true });
+  }
+  return resolved;
+}
+
+function resolveInstalledVitestEntry() {
+  const cliRoot = path.join(repoRoot, "packages", "cli");
+  const packageJson = require.resolve("vitest/package.json", {
+    paths: [cliRoot],
+  });
+  const entry = path.join(path.dirname(packageJson), "vitest.mjs");
+  const stat = fs.statSync(entry);
+  if (!stat.isFile()) {
+    throw new Error("the exact installed Vitest entry is not a regular file");
+  }
+  return entry;
+}
+
+function runFreshExecutionContextProbe({ outputFile, env }) {
+  if (fs.existsSync(outputFile)) {
+    throw new Error(
+      `refusing to overwrite execution-context evidence ${path.basename(outputFile)}`,
+    );
+  }
+  const cliRoot = path.join(repoRoot, "packages", "cli");
+  const testPath = executionContextTestRelativePath.replace(
+    /^packages\/cli\//u,
+    "",
+  );
+  const result = spawnSync(
+    process.execPath,
+    [
+      resolveInstalledVitestEntry(),
+      "run",
+      "--configLoader",
+      "runner",
+      "--pool",
+      "forks",
+      "--maxWorkers",
+      "1",
+      "--fileParallelism=false",
+      "--reporter=json",
+      `--outputFile=${outputFile}`,
+      testPath,
+    ],
+    {
+      cwd: cliRoot,
+      env: { ...env, CC_SANDBOX_LIVE: "1" },
+      encoding: "utf8",
+      windowsHide: true,
+      timeout: executionContextProbeTimeoutMs,
+      maxBuffer: 4 * 1024 * 1024,
+    },
+  );
+  if (result.error || result.status !== 0 || result.signal) {
+    const detail = String(
+      result.error?.message || result.stderr || result.stdout || "no output",
+    )
+      .replace(/\s+/gu, " ")
+      .slice(0, 500);
+    throw new Error(
+      `fresh execution-context Vitest process failed (status=${String(result.status)}, signal=${String(result.signal)}): ${detail}`,
+    );
+  }
+}
+
+function assertExactCleanSource(
+  expectedSha,
+  label,
+  { getHead = gitHead, getChanges = gitWorktreeChanges } = {},
+) {
+  const observedHead = getHead();
+  const changes = getChanges();
+  if (observedHead !== expectedSha || changes.length > 0) {
+    throw new Error(
+      `${label} refused source drift: head=${observedHead}, changes=${changes.length}`,
+    );
+  }
 }
 
 function safeError(error) {
@@ -731,7 +1082,11 @@ function validateSoakEvidence(value, { releaseCommit, allowSmoke = false }) {
     !Number.isInteger(profile?.cycles) ||
     profile.cycles < (profile?.mode === "formal" ? 100 : 1) ||
     !Number.isFinite(profile?.durationSeconds) ||
-    profile.durationSeconds < (profile?.mode === "formal" ? 7_200 : 1)
+    profile.durationSeconds < (profile?.mode === "formal" ? 7_200 : 1) ||
+    !Number.isSafeInteger(profile?.executionContextSamples) ||
+    (profile?.mode === "formal"
+      ? profile.executionContextSamples < minimumFormalExecutionContextSamples
+      : profile.executionContextSamples !== 0)
   ) {
     issues.push("profile floors");
   }
@@ -740,6 +1095,15 @@ function validateSoakEvidence(value, { releaseCommit, allowSmoke = false }) {
     value.continuousDurationSeconds < profile?.durationSeconds
   ) {
     issues.push("continuous duration");
+  }
+  const outerStartedAtMs = Date.parse(value?.startedAt);
+  const outerFinishedAtMs = Date.parse(value?.finishedAt);
+  if (
+    !Number.isFinite(outerStartedAtMs) ||
+    !Number.isFinite(outerFinishedAtMs) ||
+    outerFinishedAtMs < outerStartedAtMs
+  ) {
+    issues.push("outer wall-clock interval");
   }
   if (
     !Array.isArray(value?.cycles) ||
@@ -767,8 +1131,20 @@ function validateSoakEvidence(value, { releaseCommit, allowSmoke = false }) {
   try {
     validateExecutionContextBoundary(value?.executionContextBoundary, {
       operatingSystem,
-      mode,
+      releaseCommit,
+      profile,
     });
+    if (
+      mode === "formal" &&
+      value.executionContextBoundary.samples.some(
+        (sample) =>
+          sample.finishedElapsedSeconds > value.continuousDurationSeconds ||
+          Date.parse(sample.startedAt) < outerStartedAtMs ||
+          Date.parse(sample.finishedAt) > outerFinishedAtMs,
+      )
+    ) {
+      issues.push("live samples outside outer soak interval");
+    }
   } catch (error) {
     issues.push(error.message);
   }
@@ -782,23 +1158,36 @@ function validateSoakEvidence(value, { releaseCommit, allowSmoke = false }) {
 export async function runMcpSecuritySoak(options = {}) {
   const env = options.env || process.env;
   const profile = options.profile || resolveMcpSecuritySoakProfile(env);
-  const headSha = gitHead();
-  const worktreeChanges = gitWorktreeChanges();
+  const monotonicNow = options.monotonicNow || (() => performance.now());
+  const wallNowIso = options.wallNowIso || (() => new Date().toISOString());
+  const waitForDelay = options.waitForDelay || waitWithCheckpoints;
+  const getHead = options.gitHead || gitHead;
+  const getChanges = options.gitWorktreeChanges || gitWorktreeChanges;
+  const executeSecurityMatrix =
+    options.runSecurityMatrix || runMcpSecurityMatrix;
+  const operatingSystem = options.operatingSystem || normalizeOperatingSystem();
+  if (!expectedOperatingSystems.includes(operatingSystem)) {
+    throw new Error("MCP security soak operating system is invalid");
+  }
+  const headSha = getHead();
+  const worktreeChanges = getChanges();
   const expectedShaCandidate =
     options.releaseCommit || env.CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA || "";
   const expectedSha = expectedShaCandidate
     ? normalizeReleaseCommit(expectedShaCandidate)
     : null;
-  const executionContextResult =
-    options.executionContextResult ||
-    env.CC_CLI_MCP_SECURITY_SOAK_EXECUTION_CONTEXT_RESULT ||
+  const executionContextDirectoryCandidate =
+    options.executionContextDirectory ||
+    env.CC_CLI_MCP_SECURITY_SOAK_EXECUTION_CONTEXT_DIR ||
     "";
+  const executeExecutionContextProbe =
+    options.runExecutionContextProbe || runFreshExecutionContextProbe;
   const output =
     options.output ||
     env.CC_CLI_MCP_SECURITY_SOAK_OUTPUT ||
     path.join(os.tmpdir(), `cli-mcp-security-soak-${process.platform}.json`);
-  const startedAt = new Date().toISOString();
-  const started = performance.now();
+  const startedAt = wallNowIso();
+  const started = monotonicNow();
   let rssMaximumBytes = process.memoryUsage().rss;
   let failedCycleEvidence = null;
   const report = {
@@ -821,7 +1210,7 @@ export async function runMcpSecuritySoak(options = {}) {
       finalChangeCount: null,
     },
     runner: {
-      operatingSystem: normalizeOperatingSystem(),
+      operatingSystem,
       architecture: process.arch,
       nodeVersion: process.version,
     },
@@ -831,15 +1220,21 @@ export async function runMcpSecuritySoak(options = {}) {
         ? {
             schema: executionContextBoundarySchema,
             result: "pending",
-            scope: "single-live-sample-before-time-based-host-race-soak",
+            scope: "fresh-isolate-live-samples-spanning-formal-soak",
             sampleCount: 0,
+            minimumSampleCount: minimumFormalExecutionContextSamples,
+            minimumStartSpanSeconds: profile.durationSeconds,
+            observedStartSpanSeconds: 0,
             longRunning: false,
+            freshIsolatePerSample: true,
             qualifyingForSingleLiveSample: false,
             qualifyingForLongRunningMatrix: false,
+            completeSkillMcpSecurityClosure: false,
+            samples: [],
           }
         : smokeExecutionContextBoundary(),
     cycles: [],
-    totals: expectedTotals(0, normalizeOperatingSystem()),
+    totals: expectedTotals(0, operatingSystem),
     rss: {
       beforeBytes: rssMaximumBytes,
       maximumBytes: rssMaximumBytes,
@@ -850,8 +1245,8 @@ export async function runMcpSecuritySoak(options = {}) {
     violations: [],
   };
   const checkpoint = () => {
-    report.checkpointedAt = new Date().toISOString();
-    report.continuousDurationSeconds = (performance.now() - started) / 1_000;
+    report.checkpointedAt = wallNowIso();
+    report.continuousDurationSeconds = (monotonicNow() - started) / 1_000;
     report.rss.maximumBytes = rssMaximumBytes;
     atomicWriteJson(output, report);
   };
@@ -870,36 +1265,113 @@ export async function runMcpSecuritySoak(options = {}) {
         `exact SHA source verification refused ${worktreeChanges.length} worktree change(s)`,
       );
     }
-    if (profile.mode === "formal") {
-      if (!executionContextResult) {
-        throw new Error(
-          "formal MCP security soak requires the fresh-isolate Vitest JSON result",
-        );
-      }
-      report.executionContextBoundary = parseMcpExecutionContextVitestEvidence({
-        filePath: executionContextResult,
+    const executionContextSamples = [];
+    let executionContextTargets = [];
+    let nextExecutionContextSample = 0;
+    let executionContextDirectory = null;
+    const runExecutionContextSample = async (
+      sampleIndex,
+      scheduledElapsedSeconds,
+    ) => {
+      assertExactCleanSource(
+        headSha,
+        `execution-context sample ${sampleIndex} preflight`,
+        { getHead, getChanges },
+      );
+      const rawReportFile = executionContextReportFile(
+        report.runner.operatingSystem,
+        sampleIndex,
+      );
+      const rawReportPath = path.join(executionContextDirectory, rawReportFile);
+      const startedAtForSample = wallNowIso();
+      const startedElapsedSeconds = (monotonicNow() - started) / 1_000;
+      const effectiveScheduledElapsedSeconds =
+        scheduledElapsedSeconds ?? startedElapsedSeconds;
+      await Promise.resolve(
+        executeExecutionContextProbe({
+          outputFile: rawReportPath,
+          operatingSystem: report.runner.operatingSystem,
+          releaseCommit: headSha,
+          sampleIndex,
+          env,
+        }),
+      );
+      const finishedElapsedSeconds = (monotonicNow() - started) / 1_000;
+      const finishedAtForSample = wallNowIso();
+      assertExactCleanSource(
+        headSha,
+        `execution-context sample ${sampleIndex} completion`,
+        { getHead, getChanges },
+      );
+      const sample = parseMcpExecutionContextVitestEvidence({
+        filePath: rawReportPath,
         operatingSystem: report.runner.operatingSystem,
+        releaseCommit: headSha,
+        sampleIndex,
+        scheduledElapsedSeconds: effectiveScheduledElapsedSeconds,
+        startedAt: startedAtForSample,
+        finishedAt: finishedAtForSample,
+        startedElapsedSeconds,
+        finishedElapsedSeconds,
       });
+      executionContextSamples.push(sample);
+      report.executionContextBoundary.sampleCount =
+        executionContextSamples.length;
+      report.executionContextBoundary.samples = [...executionContextSamples];
+      rssMaximumBytes = Math.max(rssMaximumBytes, process.memoryUsage().rss);
       checkpoint();
+      return sample;
+    };
+    if (profile.mode === "formal") {
+      executionContextDirectory = prepareExecutionContextEvidenceDirectory(
+        executionContextDirectoryCandidate,
+      );
+      const firstSample = await runExecutionContextSample(0, null);
+      executionContextTargets = Array.from(
+        { length: profile.executionContextSamples },
+        (_, index) =>
+          firstSample.startedElapsedSeconds +
+          (index / (profile.executionContextSamples - 1)) *
+            profile.durationSeconds,
+      );
+      nextExecutionContextSample = 1;
     }
     for (let index = 0; index < profile.cycles; index += 1) {
+      const cycleTargetElapsedSeconds =
+        profile.cycles <= 1
+          ? 0
+          : (index / (profile.cycles - 1)) * profile.durationSeconds;
+      while (
+        nextExecutionContextSample < executionContextTargets.length &&
+        executionContextTargets[nextExecutionContextSample] <=
+          cycleTargetElapsedSeconds
+      ) {
+        const target = executionContextTargets[nextExecutionContextSample];
+        await waitForDelay(
+          Math.max(0, target * 1_000 - (monotonicNow() - started)),
+          profile.checkpointIntervalSeconds * 1_000,
+          checkpoint,
+        );
+        await runExecutionContextSample(nextExecutionContextSample, target);
+        nextExecutionContextSample += 1;
+      }
       const delayMs = securitySoakCycleDelayMs(
         index,
         profile.cycles,
         profile.durationSeconds * 1_000,
-        performance.now() - started,
+        monotonicNow() - started,
       );
       if (delayMs > 0) {
-        await waitWithCheckpoints(
+        await waitForDelay(
           delayMs,
           profile.checkpointIntervalSeconds * 1_000,
           checkpoint,
         );
       }
-      const cycleStarted = performance.now();
+      const cycleStarted = monotonicNow();
       let evidence;
       try {
-        evidence = await runMcpSecurityMatrix({
+        evidence = await executeSecurityMatrix({
           releaseCommit: headSha,
           runs: 1,
         });
@@ -918,7 +1390,7 @@ export async function runMcpSecuritySoak(options = {}) {
       }
       report.cycles.push({
         index,
-        durationMs: performance.now() - cycleStarted,
+        durationMs: monotonicNow() - cycleStarted,
         evidence,
       });
       report.totals = expectedTotals(
@@ -928,8 +1400,27 @@ export async function runMcpSecuritySoak(options = {}) {
       rssMaximumBytes = Math.max(rssMaximumBytes, process.memoryUsage().rss);
       checkpoint();
     }
-    const finalHeadSha = gitHead();
-    const finalWorktreeChanges = gitWorktreeChanges();
+    while (nextExecutionContextSample < executionContextTargets.length) {
+      const target = executionContextTargets[nextExecutionContextSample];
+      await waitForDelay(
+        Math.max(0, target * 1_000 - (monotonicNow() - started)),
+        profile.checkpointIntervalSeconds * 1_000,
+        checkpoint,
+      );
+      await runExecutionContextSample(nextExecutionContextSample, target);
+      nextExecutionContextSample += 1;
+    }
+    if (profile.mode === "formal") {
+      report.executionContextBoundary = buildMcpExecutionContextSoakEvidence({
+        operatingSystem: report.runner.operatingSystem,
+        releaseCommit: headSha,
+        durationSeconds: profile.durationSeconds,
+        samples: executionContextSamples,
+      });
+      checkpoint();
+    }
+    const finalHeadSha = getHead();
+    const finalWorktreeChanges = getChanges();
     report.source.finalClean = finalWorktreeChanges.length === 0;
     report.source.finalChangeCount = finalWorktreeChanges.length;
     report.exactShaVerified =
@@ -947,8 +1438,8 @@ export async function runMcpSecuritySoak(options = {}) {
     report.violations.push(safeError(error));
     if (failedCycleEvidence) report.failedCycleEvidence = failedCycleEvidence;
   } finally {
-    report.finishedAt = new Date().toISOString();
-    report.continuousDurationSeconds = (performance.now() - started) / 1_000;
+    report.finishedAt = wallNowIso();
+    report.continuousDurationSeconds = (monotonicNow() - started) / 1_000;
     report.rss.afterBytes = process.memoryUsage().rss;
     rssMaximumBytes = Math.max(rssMaximumBytes, report.rss.afterBytes);
     report.rss.maximumBytes = rssMaximumBytes;
@@ -1041,11 +1532,20 @@ export function verifyMcpSecuritySoakEvidenceSet(options = {}) {
       );
     }
     const rawDirectory = path.resolve(options.executionContextEvidenceDir);
-    const rawNames = fs
-      .readdirSync(rawDirectory)
-      .filter((name) => name.endsWith(".json"))
+    const rawDirectoryStat = fs.lstatSync(rawDirectory);
+    if (rawDirectoryStat.isSymbolicLink() || !rawDirectoryStat.isDirectory()) {
+      throw new Error(
+        "execution-context evidence directory must be a non-symlink directory",
+      );
+    }
+    const rawNames = fs.readdirSync(rawDirectory).sort();
+    const expectedRawNames = expectedOperatingSystems
+      .flatMap((operatingSystem) =>
+        Array.from({ length: profile.executionContextSamples }, (_, index) =>
+          executionContextReportFile(operatingSystem, index),
+        ),
+      )
       .sort();
-    const expectedRawNames = Object.values(executionContextReportFiles).sort();
     if (JSON.stringify(rawNames) !== JSON.stringify(expectedRawNames)) {
       throw new Error(
         `execution-context evidence must contain exactly ${expectedRawNames.join(", ")}; found ${rawNames.join(", ")}`,
@@ -1056,24 +1556,56 @@ export function verifyMcpSecuritySoakEvidenceSet(options = {}) {
     );
     executionContextEvidence = expectedOperatingSystems.map(
       (operatingSystem) => {
-        const rawFile = executionContextReportFiles[operatingSystem];
-        const parsed = parseMcpExecutionContextVitestEvidence({
-          filePath: path.join(rawDirectory, rawFile),
-          operatingSystem,
-        });
         const platformBoundary =
           entriesByOperatingSystem.get(operatingSystem)?.value
             ?.executionContextBoundary;
-        if (JSON.stringify(parsed) !== JSON.stringify(platformBoundary)) {
+        const parsedSamples = platformBoundary.samples.map((sample, index) =>
+          parseMcpExecutionContextVitestEvidence({
+            filePath: path.join(rawDirectory, sample.rawReportFile),
+            operatingSystem,
+            releaseCommit,
+            sampleIndex: index,
+            scheduledElapsedSeconds: sample.scheduledElapsedSeconds,
+            startedAt: sample.startedAt,
+            finishedAt: sample.finishedAt,
+            startedElapsedSeconds: sample.startedElapsedSeconds,
+            finishedElapsedSeconds: sample.finishedElapsedSeconds,
+          }),
+        );
+        if (
+          JSON.stringify(parsedSamples) !==
+          JSON.stringify(platformBoundary.samples)
+        ) {
           throw new Error(
-            `${operatingSystem} execution-context raw report does not match its platform soak evidence`,
+            `${operatingSystem} execution-context raw reports do not match their platform soak evidence`,
           );
         }
         return {
           operatingSystem,
-          rawReportFile: parsed.rawReportFile,
-          rawReportSha256: parsed.rawReportSha256,
-          testSourceSha256: parsed.testSource.sha256,
+          releaseCommit,
+          sampleCount: parsedSamples.length,
+          minimumStartSpanSeconds: platformBoundary.minimumStartSpanSeconds,
+          observedStartSpanSeconds: platformBoundary.observedStartSpanSeconds,
+          maximumObservedSchedulingLatenessSeconds:
+            platformBoundary.maximumObservedSchedulingLatenessSeconds,
+          samples: parsedSamples.map((sample) => ({
+            releaseCommit: sample.releaseCommit,
+            operatingSystem: sample.operatingSystem,
+            sampleIndex: sample.sampleIndex,
+            scheduledElapsedSeconds: sample.scheduledElapsedSeconds,
+            startedAt: sample.startedAt,
+            finishedAt: sample.finishedAt,
+            startedElapsedSeconds: sample.startedElapsedSeconds,
+            finishedElapsedSeconds: sample.finishedElapsedSeconds,
+            schedulingLatenessSeconds: sample.schedulingLatenessSeconds,
+            freshIsolate: sample.freshIsolate,
+            invocation: sample.invocation,
+            rawReportFile: sample.rawReportFile,
+            rawReportSha256: sample.rawReportSha256,
+            testSourceSha256: sample.testSource.sha256,
+            reporter: sample.reporter,
+            requiredAssertions: sample.requiredAssertions,
+          })),
         };
       },
     );
@@ -1098,13 +1630,26 @@ export function verifyMcpSecuritySoakEvidenceSet(options = {}) {
     executionContextBoundary: {
       schema: executionContextBoundarySchema,
       scope: formal
-        ? "single-live-sample-per-platform-before-time-based-host-race-soak"
+        ? "fresh-isolate-live-samples-spanning-formal-soak-on-each-platform"
         : "pr-smoke-without-live-execution-context-sample",
-      sampleCount: formal ? expectedOperatingSystems.length : 0,
-      samplesPerOperatingSystem: formal ? 1 : 0,
-      longRunning: false,
+      sampleCount: formal
+        ? expectedOperatingSystems.length * profile.executionContextSamples
+        : 0,
+      samplesPerOperatingSystem: formal ? profile.executionContextSamples : 0,
+      minimumSamplesPerOperatingSystem: minimumFormalExecutionContextSamples,
+      minimumStartSpanSeconds: formal ? profile.durationSeconds : 0,
+      minimumObservedStartSpanSeconds: formal
+        ? Math.min(
+            ...executionContextEvidence.map(
+              (entry) => entry.observedStartSpanSeconds,
+            ),
+          )
+        : 0,
+      longRunning: formal,
+      freshIsolatePerSample: formal,
       qualifyingForSingleLiveSample: formal,
-      qualifyingForLongRunningMatrix: false,
+      qualifyingForLongRunningMatrix: formal,
+      completeSkillMcpSecurityClosure: false,
       operatingSystems: formal ? [...expectedOperatingSystems] : [],
       evidence: executionContextEvidence,
     },
@@ -1160,8 +1705,8 @@ function parseArgs(argv) {
       options.evidenceDir = argv[++index];
     } else if (argument === "--execution-context-evidence-dir") {
       options.executionContextEvidenceDir = argv[++index];
-    } else if (argument === "--execution-context-result") {
-      options.executionContextResult = argv[++index];
+    } else if (argument === "--execution-context-dir") {
+      options.executionContextDirectory = argv[++index];
     } else if (argument === "--allow-smoke") {
       options.allowSmoke = true;
     } else {
@@ -1180,7 +1725,7 @@ if (
     if (options.evidenceDir) {
       const aggregate = verifyMcpSecuritySoakEvidenceSet(options);
       process.stdout.write(
-        `verified MCP security ${aggregate.profile.mode} ${aggregate.releaseCommit}: ${aggregate.hostCycles} host cycles, ${aggregate.executionContextBoundary.sampleCount} single live execution-context samples (not long-running), ${aggregate.unapprovedEffectSamples} unapproved effects, ${aggregate.codeSnapshotRaceSamples} Linux races, ${aggregate.codeSnapshotFailClosedProbes} macOS fail-closed probes, zero escapes; ${aggregate.releaseGateEligible ? "release-gate eligible for this defined scope" : "non-qualifying smoke only"}\n`,
+        `verified MCP security ${aggregate.profile.mode} ${aggregate.releaseCommit}: ${aggregate.hostCycles} host cycles, ${aggregate.executionContextBoundary.sampleCount} fresh-isolate live execution-context samples across at least ${aggregate.executionContextBoundary.minimumObservedStartSpanSeconds.toFixed(3)} seconds per formal platform, ${aggregate.unapprovedEffectSamples} unapproved effects, ${aggregate.codeSnapshotRaceSamples} Linux races, ${aggregate.codeSnapshotFailClosedProbes} macOS fail-closed probes, zero escapes; ${aggregate.releaseGateEligible ? "release-gate eligible for this defined scope" : "non-qualifying smoke only"}\n`,
       );
     } else {
       const evidence = await runMcpSecuritySoak(options);
