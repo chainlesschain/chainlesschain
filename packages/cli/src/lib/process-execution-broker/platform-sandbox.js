@@ -34,6 +34,11 @@ import {
   isLinuxGenericWorkspaceContract,
 } from "./linux-generic-bwrap-runtime.js";
 import {
+  buildLinuxBwrapDescriptorScrubbedLaunch,
+  LINUX_BWRAP_DESCRIPTOR_SCRUBBER_PATH,
+  linuxBwrapDescriptorScrubberPolicyBinding,
+} from "./linux-bwrap-descriptor-launch.js";
+import {
   MCP_STDIO_FD_ENTRY_BOOTSTRAP,
   MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256,
   MCP_STDIO_MACOS_GATED_ENTRY_BOOTSTRAP_SHA256,
@@ -791,11 +796,55 @@ function normalizeSandboxRequest(profileOrRequest, explicitRequest) {
  * Materialize the requested POSIX shell before adding either wrapper. The
  * sandbox executable itself is always spawned directly.
  */
+function snapshotWrappedInvocationArgs(args) {
+  if (args === null || args === undefined) return Object.freeze([]);
+  try {
+    if (
+      !Array.isArray(args) ||
+      Object.getPrototypeOf(args) !== Array.prototype
+    ) {
+      return null;
+    }
+    const descriptors = Object.getOwnPropertyDescriptors(args);
+    const lengthDescriptor = descriptors.length;
+    if (
+      !lengthDescriptor ||
+      !("value" in lengthDescriptor) ||
+      !Number.isSafeInteger(lengthDescriptor.value) ||
+      lengthDescriptor.value < 0 ||
+      Reflect.ownKeys(descriptors).length !== lengthDescriptor.value + 1
+    ) {
+      return null;
+    }
+    const snapshot = [];
+    for (let index = 0; index < lengthDescriptor.value; index += 1) {
+      const descriptor = descriptors[String(index)];
+      if (!descriptor || !("value" in descriptor)) return null;
+      snapshot.push(descriptor.value);
+    }
+    return Object.freeze(snapshot);
+  } catch {
+    return null;
+  }
+}
+
 function normalizeWrappedInvocation(command, args, spawnOpts, platform) {
+  const argsSnapshot = snapshotWrappedInvocationArgs(args);
+  if (!argsSnapshot) {
+    return {
+      command,
+      args: [],
+      inputArgs: [],
+      argumentsValid: false,
+      options: { ...(spawnOpts || {}) },
+    };
+  }
   if (!spawnOpts?.shell) {
     return {
       command,
-      args: [...(args || [])],
+      args: [...argsSnapshot],
+      inputArgs: argsSnapshot,
+      argumentsValid: true,
       options: { ...(spawnOpts || {}) },
     };
   }
@@ -805,20 +854,24 @@ function normalizeWrappedInvocation(command, args, spawnOpts, platform) {
       typeof spawnOpts.shell === "string"
         ? spawnOpts.shell
         : process.env.ComSpec || "C:\\Windows\\System32\\cmd.exe";
-    const shellCommand = [command, ...(args || [])].map(String).join(" ");
+    const shellCommand = [command, ...argsSnapshot].map(String).join(" ");
     return {
       command: shell,
       args: ["/d", "/s", "/c", shellCommand],
+      inputArgs: argsSnapshot,
+      argumentsValid: true,
       options: { ...spawnOpts, shell: false },
     };
   }
 
   const shell =
     typeof spawnOpts.shell === "string" ? spawnOpts.shell : "/bin/sh";
-  const shellCommand = [command, ...(args || [])].map(String).join(" ");
+  const shellCommand = [command, ...argsSnapshot].map(String).join(" ");
   return {
     command: shell,
     args: ["-c", shellCommand],
+    inputArgs: argsSnapshot,
+    argumentsValid: true,
     options: { ...spawnOpts, shell: false },
   };
 }
@@ -5299,7 +5352,7 @@ function assignLinuxMountChildFds(mounts) {
 function linuxStdioWithPinnedMounts(
   stdio,
   descriptors,
-  { probe = false, supervisorFd = null } = {},
+  { probe = false, supervisorFd = null, scrubberFd = null } = {},
 ) {
   let standard;
   if (probe) {
@@ -5313,10 +5366,12 @@ function linuxStdioWithPinnedMounts(
   }
   while (standard.length < 3) standard.push(undefined);
   const supervisor = Number.isInteger(supervisorFd) ? [supervisorFd] : [];
+  const scrubber = Number.isInteger(scrubberFd) ? [scrubberFd] : [];
   return [
     ...standard.slice(0, 3),
     ...supervisor,
     ...descriptors.map((descriptor) => descriptor.fd),
+    ...scrubber,
   ];
 }
 
@@ -5359,16 +5414,51 @@ function validateLinuxPluginContract(
   ) {
     return { ok: false, reason: "unsupported_launch_options" };
   }
-  const invalidArgs =
-    !Array.isArray(args) ||
-    args.some((arg) => typeof arg !== "string" || arg.includes("\0"));
+  let argsSnapshot = null;
+  try {
+    if (
+      Array.isArray(args) &&
+      Object.getPrototypeOf(args) === Array.prototype
+    ) {
+      const descriptors = Object.getOwnPropertyDescriptors(args);
+      const lengthDescriptor = descriptors.length;
+      if (
+        lengthDescriptor &&
+        "value" in lengthDescriptor &&
+        Number.isSafeInteger(lengthDescriptor.value) &&
+        lengthDescriptor.value >= 0 &&
+        Reflect.ownKeys(descriptors).length === lengthDescriptor.value + 1
+      ) {
+        const snapshot = [];
+        for (let index = 0; index < lengthDescriptor.value; index += 1) {
+          const descriptor = descriptors[String(index)];
+          if (
+            !descriptor ||
+            !("value" in descriptor) ||
+            typeof descriptor.value !== "string" ||
+            descriptor.value.includes("\0")
+          ) {
+            argsSnapshot = null;
+            break;
+          }
+          snapshot.push(descriptor.value);
+        }
+        if (snapshot.length === lengthDescriptor.value) {
+          argsSnapshot = Object.freeze(snapshot);
+        }
+      }
+    }
+  } catch {
+    argsSnapshot = null;
+  }
+  const invalidArgs = argsSnapshot === null;
   const invalidNodeLaunch =
     nodeContract &&
-    (!Array.isArray(args) ||
+    (!argsSnapshot ||
       command !== contract.runtimePath ||
       command !== contract.runtimeIdentity?.realPath ||
-      args.length < 1 ||
-      args[0] !== contract.entryIdentity?.realPath);
+      argsSnapshot.length < 1 ||
+      argsSnapshot[0] !== contract.entryIdentity?.realPath);
   const invalidNativeLaunch =
     nativeContract && command !== contract.entryIdentity?.realPath;
   if (
@@ -5486,6 +5576,7 @@ function validateLinuxPluginContract(
   return {
     ok: true,
     contract,
+    argsSnapshot,
     entryRuntime: nativeContract
       ? entryFormat?.runtime ||
         (legacyStaticNativeContract
@@ -6976,17 +7067,22 @@ function linuxFdMountId(runtime, fd) {
 }
 
 function closeLinuxPinnedMounts(runtime, mounts) {
+  const closed = new Set();
   for (const mount of mounts || []) {
-    if (!Number.isInteger(mount?.fd)) continue;
-    const fd = mount.fd;
-    // Clear ownership before close so repeated cleanup cannot close an
-    // unrelated descriptor if the OS has already reused this number.
-    mount.fd = null;
-    try {
-      runtime.fs.closeSync(fd);
-    } catch {
-      // Best effort. The process is already fail-closed if a pin cannot be
-      // created; cleanup must not replace the original boundary error.
+    for (const field of ["fd", "scrubberFd"]) {
+      if (!Number.isInteger(mount?.[field])) continue;
+      const fd = mount[field];
+      // Clear ownership before close so repeated cleanup cannot close an
+      // unrelated descriptor if the OS has already reused this number.
+      mount[field] = null;
+      if (closed.has(fd)) continue;
+      closed.add(fd);
+      try {
+        runtime.fs.closeSync(fd);
+      } catch {
+        // Best effort. The process is already fail-closed if a pin cannot be
+        // created; cleanup must not replace the original boundary error.
+      }
     }
   }
 }
@@ -7507,42 +7603,119 @@ function pinLinuxBubblewrapSupervisor(runtime) {
   }
 }
 
-function openLinuxBubblewrapSupervisorLaunch(runtime, supervisorPin) {
+function pinLinuxBubblewrapDescriptorScrubber(runtime) {
   let fd;
   try {
+    for (const method of [
+      "openSync",
+      "readSync",
+      "fstatSync",
+      "statSync",
+      "lstatSync",
+      "closeSync",
+    ]) {
+      if (typeof runtime.fs?.[method] !== "function") {
+        throw new Error(`descriptor_scrubber_${method}_unavailable`);
+      }
+    }
     if (
-      !Number.isInteger(supervisorPin?.fd) ||
-      !supervisorPin.openedStat ||
-      !supervisorPin.attestation
+      linuxRealpath(runtime, LINUX_BWRAP_DESCRIPTOR_SCRUBBER_PATH) !==
+      LINUX_BWRAP_DESCRIPTOR_SCRUBBER_PATH
     ) {
-      throw new Error("supervisor_pin_missing");
+      throw new Error("descriptor_scrubber_realpath_changed");
+    }
+    const pathBefore = runtime.fs.lstatSync(
+      LINUX_BWRAP_DESCRIPTOR_SCRUBBER_PATH,
+      { bigint: true },
+    );
+    if (
+      pathBefore.isSymbolicLink?.() === true ||
+      !linuxBubblewrapSupervisorStatValid(pathBefore)
+    ) {
+      throw new Error("descriptor_scrubber_path_unattested");
+    }
+    const constants = runtime.fs.constants || fs.constants;
+    const flags =
+      Number(constants.O_RDONLY) |
+      Number(constants.O_NOFOLLOW || 0) |
+      Number(constants.O_NONBLOCK || 0);
+    fd = runtime.fs.openSync(LINUX_BWRAP_DESCRIPTOR_SCRUBBER_PATH, flags);
+    const openedBefore = runtime.fs.fstatSync(fd, { bigint: true });
+    const currentPath = runtime.fs.statSync(
+      LINUX_BWRAP_DESCRIPTOR_SCRUBBER_PATH,
+      { bigint: true },
+    );
+    if (
+      !linuxBubblewrapSupervisorStatValid(openedBefore) ||
+      !linuxOpenStatMatches(pathBefore, openedBefore) ||
+      !linuxOpenStatMatches(openedBefore, currentPath)
+    ) {
+      throw new Error("descriptor_scrubber_identity_changed");
+    }
+    const sha256 = hashLinuxOpenFile(runtime, fd, Number(openedBefore.size));
+    const openedAfter = runtime.fs.fstatSync(fd, { bigint: true });
+    const pathAfter = runtime.fs.statSync(
+      LINUX_BWRAP_DESCRIPTOR_SCRUBBER_PATH,
+      { bigint: true },
+    );
+    if (
+      !linuxOpenStatMatches(openedBefore, openedAfter) ||
+      !linuxOpenStatMatches(openedAfter, pathAfter)
+    ) {
+      throw new Error("descriptor_scrubber_identity_changed");
+    }
+    return {
+      fd,
+      openedStat: openedAfter,
+      attestation: Object.freeze({
+        path: LINUX_BWRAP_DESCRIPTOR_SCRUBBER_PATH,
+        fileId: Object.freeze({
+          dev: String(openedAfter.dev),
+          ino: String(openedAfter.ino),
+        }),
+        sha256,
+        bytes: Number(openedAfter.size),
+        mtimeMs: Number(openedAfter.mtimeMs),
+        mode: Number(openedAfter.mode),
+        uid: Number(openedAfter.uid),
+        gid: Number(openedAfter.gid),
+      }),
+    };
+  } catch (error) {
+    if (fd !== undefined) {
+      try {
+        runtime.fs.closeSync(fd);
+      } catch {
+        // Preserve the original attestation error.
+      }
+    }
+    throw error;
+  }
+}
+
+function openLinuxBubblewrapPinnedExecutableReader(runtime, pin, label) {
+  let fd;
+  try {
+    if (!Number.isInteger(pin?.fd) || !pin.openedStat || !pin.attestation) {
+      throw new Error(`${label}_pin_missing`);
     }
     const constants = runtime.fs.constants || fs.constants;
     const flags =
       Number(constants.O_RDONLY) | Number(constants.O_NONBLOCK || 0);
-    fd = runtime.fs.openSync(`/proc/self/fd/${supervisorPin.fd}`, flags);
+    fd = runtime.fs.openSync(`/proc/self/fd/${pin.fd}`, flags);
     const openedBefore = runtime.fs.fstatSync(fd, { bigint: true });
-    if (
-      !linuxBubblewrapPinnedStatMatches(supervisorPin.openedStat, openedBefore)
-    ) {
-      throw new Error("supervisor_launch_reader_identity_changed");
+    if (!linuxBubblewrapPinnedStatMatches(pin.openedStat, openedBefore)) {
+      throw new Error(`${label}_launch_reader_identity_changed`);
     }
-    const sha256 = hashLinuxOpenFile(
-      runtime,
-      fd,
-      supervisorPin.attestation.bytes,
-    );
+    const sha256 = hashLinuxOpenFile(runtime, fd, pin.attestation.bytes);
     const openedAfter = runtime.fs.fstatSync(fd, { bigint: true });
     if (
       !linuxOpenStatMatches(openedBefore, openedAfter) ||
-      sha256 !== supervisorPin.attestation.sha256
+      sha256 !== pin.attestation.sha256
     ) {
-      throw new Error("supervisor_launch_reader_identity_changed");
+      throw new Error(`${label}_launch_reader_identity_changed`);
     }
-    return {
-      fd,
-      command: `/proc/self/fd/${LINUX_BWRAP_SUPERVISOR_CHILD_FD}`,
-    };
+    return fd;
   } catch (error) {
     if (fd !== undefined) {
       try {
@@ -7555,17 +7728,46 @@ function openLinuxBubblewrapSupervisorLaunch(runtime, supervisorPin) {
   }
 }
 
-function attestLinuxBubblewrapSupervisorPin(runtime, supervisorPin) {
+function openLinuxBubblewrapSupervisorLaunch(
+  runtime,
+  supervisorPin,
+  descriptorScrubberPin,
+) {
+  let fd;
+  let scrubberFd;
+  try {
+    fd = openLinuxBubblewrapPinnedExecutableReader(
+      runtime,
+      supervisorPin,
+      "supervisor",
+    );
+    scrubberFd = openLinuxBubblewrapPinnedExecutableReader(
+      runtime,
+      descriptorScrubberPin,
+      "descriptor_scrubber",
+    );
+    return { fd, scrubberFd };
+  } catch (error) {
+    closeLinuxPinnedMounts(runtime, [{ fd }, { fd: scrubberFd }]);
+    throw error;
+  }
+}
+
+function attestLinuxBubblewrapSupervisorPin(
+  runtime,
+  supervisorPin,
+  label = "supervisor",
+) {
   if (
     !Number.isInteger(supervisorPin?.fd) ||
     !supervisorPin.openedStat ||
     !supervisorPin.attestation
   ) {
-    throw new Error("supervisor_pin_missing");
+    throw new Error(`${label}_pin_missing`);
   }
   const before = runtime.fs.fstatSync(supervisorPin.fd, { bigint: true });
   if (!linuxBubblewrapPinnedStatMatches(supervisorPin.openedStat, before)) {
-    throw new Error("supervisor_identity_changed");
+    throw new Error(`${label}_identity_changed`);
   }
   const sha256 = hashLinuxOpenFile(
     runtime,
@@ -7577,17 +7779,72 @@ function attestLinuxBubblewrapSupervisorPin(runtime, supervisorPin) {
     !linuxOpenStatMatches(before, after) ||
     sha256 !== supervisorPin.attestation.sha256
   ) {
-    throw new Error("supervisor_identity_changed");
+    throw new Error(`${label}_identity_changed`);
   }
+}
+
+function linuxBubblewrapScrubbedInvocation(
+  supervisorLaunch,
+  executableArgs,
+  stdio,
+) {
+  const scrubberChildFd = stdio.length - 1;
+  let explicitLayout = true;
+  const parentFds = new Set();
+  for (
+    let index = LINUX_BWRAP_SUPERVISOR_CHILD_FD;
+    index <= scrubberChildFd;
+    index += 1
+  ) {
+    const parentFd = stdio[index];
+    if (
+      !Object.hasOwn(stdio, index) ||
+      !Number.isSafeInteger(parentFd) ||
+      parentFd < 0 ||
+      parentFds.has(parentFd)
+    ) {
+      explicitLayout = false;
+      break;
+    }
+    parentFds.add(parentFd);
+  }
+  if (
+    !Number.isInteger(supervisorLaunch?.fd) ||
+    !Number.isInteger(supervisorLaunch?.scrubberFd) ||
+    stdio.length < 5 ||
+    stdio[LINUX_BWRAP_SUPERVISOR_CHILD_FD] !== supervisorLaunch.fd ||
+    stdio[scrubberChildFd] !== supervisorLaunch.scrubberFd ||
+    !explicitLayout
+  ) {
+    throw new Error("descriptor_scrubber_launch_layout_invalid");
+  }
+  return buildLinuxBwrapDescriptorScrubbedLaunch({
+    scrubberChildFd,
+    preservedMaxFd: scrubberChildFd - 1,
+    executableChildFd: LINUX_BWRAP_SUPERVISOR_CHILD_FD,
+    executableArgs,
+  });
 }
 
 function attestLinuxBubblewrapCapabilities(runtime, supervisorLaunch) {
   let result;
   try {
-    result = runtime.spawnSync(supervisorLaunch.command, ["--help"], {
+    const stdio = [
+      "ignore",
+      "pipe",
+      "pipe",
+      supervisorLaunch.fd,
+      supervisorLaunch.scrubberFd,
+    ];
+    const invocation = linuxBubblewrapScrubbedInvocation(
+      supervisorLaunch,
+      ["--help"],
+      stdio,
+    );
+    result = runtime.spawnSync(invocation.command, invocation.args, {
       shell: false,
       encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe", supervisorLaunch.fd],
+      stdio,
       timeout: 10_000,
       env: {
         PATH: "/usr/bin:/bin",
@@ -8376,25 +8633,28 @@ function probeLinuxBubblewrapPolicy(
     // These pipes connect the host Broker to bwrap and are created before
     // bwrap installs the target seccomp filter. The nested runtime probe above
     // inherits a regular-file descriptor and never requests UV_CREATE_PIPE.
-    result = runtime.spawnSync(
-      supervisorLaunch.command,
+    const stdio = linuxStdioWithPinnedMounts(null, pinnedDescriptors, {
+      probe: true,
+      supervisorFd: supervisorLaunch.fd,
+      scrubberFd: supervisorLaunch.scrubberFd,
+    });
+    const invocation = linuxBubblewrapScrubbedInvocation(
+      supervisorLaunch,
       [...policyArgs, "--", "/opt/chainless/runtime/node", "-e", probeSource],
-      {
-        cwd: "/",
-        shell: false,
-        encoding: "utf8",
-        stdio: linuxStdioWithPinnedMounts(null, pinnedDescriptors, {
-          probe: true,
-          supervisorFd: supervisorLaunch.fd,
-        }),
-        timeout: 15_000,
-        env: {
-          PATH: "/usr/bin:/bin",
-          LANG: "C",
-          LC_ALL: "C",
-        },
-      },
+      stdio,
     );
+    result = runtime.spawnSync(invocation.command, invocation.args, {
+      cwd: "/",
+      shell: false,
+      encoding: "utf8",
+      stdio,
+      timeout: 15_000,
+      env: {
+        PATH: "/usr/bin:/bin",
+        LANG: "C",
+        LC_ALL: "C",
+      },
+    });
   } catch {
     return linuxBubblewrapProbe(
       true,
@@ -8488,25 +8748,28 @@ function probeLinuxRuntimePathnameClosurePolicy(
   ].join("\n");
   let result;
   try {
-    result = runtime.spawnSync(
-      supervisorLaunch.command,
+    const stdio = linuxStdioWithPinnedMounts(null, pinnedDescriptors, {
+      probe: true,
+      supervisorFd: supervisorLaunch.fd,
+      scrubberFd: supervisorLaunch.scrubberFd,
+    });
+    const invocation = linuxBubblewrapScrubbedInvocation(
+      supervisorLaunch,
       [...policyArgs, "--", "/opt/chainless/runtime/node", "-e", probeSource],
-      {
-        cwd: "/",
-        shell: false,
-        encoding: "utf8",
-        stdio: linuxStdioWithPinnedMounts(null, pinnedDescriptors, {
-          probe: true,
-          supervisorFd: supervisorLaunch.fd,
-        }),
-        timeout: 15_000,
-        env: {
-          PATH: "/usr/bin:/bin",
-          LANG: "C",
-          LC_ALL: "C",
-        },
-      },
+      stdio,
     );
+    result = runtime.spawnSync(invocation.command, invocation.args, {
+      cwd: "/",
+      shell: false,
+      encoding: "utf8",
+      stdio,
+      timeout: 15_000,
+      env: {
+        PATH: "/usr/bin:/bin",
+        LANG: "C",
+        LC_ALL: "C",
+      },
+    });
   } catch {
     return linuxBubblewrapProbe(
       true,
@@ -8558,7 +8821,7 @@ export function applyLinuxSandbox(
     profile: sandboxOpts.profileName || "default",
     backend: "linux-prlimit",
     command,
-    args,
+    args: invocation.inputArgs,
     options: { ...(spawnOpts || {}) },
   };
   if (runtime.platform !== "linux") {
@@ -8996,6 +9259,7 @@ export function applyLinuxSandbox(
     }
     const pinnedDescriptors = [...pinnedMounts, seccompFilter];
     const probeDescriptors = [...probePinnedMounts, probeSeccompFilter];
+    let descriptorScrubberPin;
     const closeStrongLinuxResources = (...extra) => {
       closeLinuxPinnedMounts(runtime, [
         ...pinnedDescriptors,
@@ -9003,6 +9267,7 @@ export function applyLinuxSandbox(
         entrySnapshot?.probeMount,
         runtimeFileSnapshot?.probeMount,
         ...pluginTreeProbeMounts,
+        descriptorScrubberPin,
         ...extra,
       ]);
     };
@@ -9012,9 +9277,11 @@ export function applyLinuxSandbox(
     let finalLaunch;
     try {
       supervisorPin = pinLinuxBubblewrapSupervisor(runtime);
+      descriptorScrubberPin = pinLinuxBubblewrapDescriptorScrubber(runtime);
       capabilityLaunch = openLinuxBubblewrapSupervisorLaunch(
         runtime,
         supervisorPin,
+        descriptorScrubberPin,
       );
     } catch (error) {
       closeStrongLinuxResources(supervisorPin);
@@ -9059,7 +9326,11 @@ export function applyLinuxSandbox(
       });
     }
     try {
-      probeLaunch = openLinuxBubblewrapSupervisorLaunch(runtime, supervisorPin);
+      probeLaunch = openLinuxBubblewrapSupervisorLaunch(
+        runtime,
+        supervisorPin,
+        descriptorScrubberPin,
+      );
     } catch (error) {
       closeStrongLinuxResources(supervisorPin, probeLaunch);
       return createSandboxPlan({
@@ -9124,8 +9395,12 @@ export function applyLinuxSandbox(
       });
     }
     const targetArgs = validation.entryRuntime.startsWith("native-")
-      ? [sandboxEntry, ...args]
-      : ["/opt/chainless/runtime/node", sandboxEntry, ...args.slice(1)];
+      ? [sandboxEntry, ...validation.argsSnapshot]
+      : [
+          "/opt/chainless/runtime/node",
+          sandboxEntry,
+          ...validation.argsSnapshot.slice(1),
+        ];
     const snapshotPolicyBinding = entrySnapshot
       ? {
           scope: entrySnapshot.attestation.scope,
@@ -9141,13 +9416,23 @@ export function applyLinuxSandbox(
           targetMode: entrySnapshot.attestation.targetMode,
         }
       : null;
+    const descriptorScrubberPolicy = linuxBwrapDescriptorScrubberPolicyBinding(
+      descriptorScrubberPin.attestation,
+      {
+        scrubberChildFd: LINUX_BWRAP_FIRST_MOUNT_FD + pinnedDescriptors.length,
+        preservedMaxFd:
+          LINUX_BWRAP_FIRST_MOUNT_FD + pinnedDescriptors.length - 1,
+        executableChildFd: LINUX_BWRAP_SUPERVISOR_CHILD_FD,
+      },
+    );
     const policyDigest = crypto
       .createHash("sha256")
       .update(
         JSON.stringify({
-          version: 5,
+          version: 6,
           backend: LINUX_BWRAP_BACKEND,
           supervisor: supervisorPin.attestation,
+          descriptorScrubber: descriptorScrubberPolicy,
           contract: {
             kind: validation.contract.kind,
             pluginRoot: validation.contract.pluginRoot,
@@ -9255,7 +9540,13 @@ export function applyLinuxSandbox(
       sandboxOpts.sync,
       { sealedEntry: entrySnapshot !== null },
     );
-    if (!finalValidation.ok) {
+    const launchArgumentsChanged =
+      finalValidation.ok &&
+      (finalValidation.argsSnapshot.length !== validation.argsSnapshot.length ||
+        finalValidation.argsSnapshot.some(
+          (value, index) => value !== validation.argsSnapshot[index],
+        ));
+    if (!finalValidation.ok || launchArgumentsChanged) {
       closeStrongLinuxResources(supervisorPin, finalLaunch);
       return createSandboxPlan({
         ...base,
@@ -9266,7 +9557,11 @@ export function applyLinuxSandbox(
         runtimeProbe: linuxBubblewrapProbe(
           true,
           false,
-          `post_probe_${finalValidation.reason}`,
+          `post_probe_${
+            finalValidation.ok
+              ? "launch_arguments_changed"
+              : finalValidation.reason
+          }`,
           validation.entryRuntime,
           null,
           supervisorPin.attestation,
@@ -9313,6 +9608,11 @@ export function applyLinuxSandbox(
     }
     try {
       attestLinuxBubblewrapSupervisorPin(runtime, supervisorPin);
+      attestLinuxBubblewrapSupervisorPin(
+        runtime,
+        descriptorScrubberPin,
+        "descriptor_scrubber",
+      );
     } catch (error) {
       closeStrongLinuxResources(supervisorPin, finalLaunch);
       return createSandboxPlan({
@@ -9334,7 +9634,11 @@ export function applyLinuxSandbox(
       });
     }
     try {
-      finalLaunch = openLinuxBubblewrapSupervisorLaunch(runtime, supervisorPin);
+      finalLaunch = openLinuxBubblewrapSupervisorLaunch(
+        runtime,
+        supervisorPin,
+        descriptorScrubberPin,
+      );
     } catch (error) {
       closeStrongLinuxResources(supervisorPin, finalLaunch);
       return createSandboxPlan({
@@ -9356,8 +9660,9 @@ export function applyLinuxSandbox(
       });
     }
     const supervisorBinding = supervisorPin.attestation;
-    closeLinuxPinnedMounts(runtime, [supervisorPin]);
+    closeLinuxPinnedMounts(runtime, [supervisorPin, descriptorScrubberPin]);
     supervisorPin = null;
+    descriptorScrubberPin = null;
     const capsuleContract =
       validation.contract.kind === MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND;
     const baseRuntimeProbe = linuxBubblewrapProbe(
@@ -9372,10 +9677,14 @@ export function applyLinuxSandbox(
       runtimePathnameLoadSet,
       policyProbe.runtimeDetachedChildSpawnVerified === true,
     );
+    const descriptorBoundRuntimeProbe = {
+      ...baseRuntimeProbe,
+      descriptorScrubber: descriptorScrubberPolicy,
+    };
     const runtimeProbe = Object.freeze(
       capsuleContract
         ? {
-            ...baseRuntimeProbe,
+            ...descriptorBoundRuntimeProbe,
             mcpCapsuleCodeSnapshot: true,
             entrySnapshotAtomic: true,
             runtimeLaunchAtomic: true,
@@ -9389,51 +9698,81 @@ export function applyLinuxSandbox(
             runtimeLaunchPath: "/opt/chainless/runtime/node",
             entrySnapshotPath: sandboxEntry,
           }
-        : baseRuntimeProbe,
+        : descriptorBoundRuntimeProbe,
     );
-    const options = {
-      ...spawnOpts,
-      cwd: "/",
-      shell: false,
-      detached: false,
-      env: {
-        PATH: "/usr/bin:/bin",
-        LANG: "C",
-        LC_ALL: "C",
-      },
-      stdio: Object.freeze(
-        linuxStdioWithPinnedMounts(spawnOpts?.stdio, pinnedDescriptors, {
-          supervisorFd: finalLaunch.fd,
-        }),
-      ),
-    };
     let pinsClosed = false;
     const cleanup = () => {
       if (pinsClosed) return;
       pinsClosed = true;
       closeLinuxPinnedMounts(runtime, [...pinnedDescriptors, finalLaunch]);
     };
-    return createSandboxPlan({
-      ...base,
-      applied: true,
-      enforcement: LINUX_BWRAP_BACKEND,
-      backend: LINUX_BWRAP_BACKEND,
-      candidateBackend: null,
-      policyAttested: true,
-      policyDigest,
-      runtimeProbe,
-      reason: null,
-      guarantees: [
-        SANDBOX_BOUNDARIES.FILESYSTEM,
-        SANDBOX_BOUNDARIES.NETWORK,
-        SANDBOX_BOUNDARIES.PROCESS_TREE,
-        ...(capsuleContract ? [SANDBOX_BOUNDARIES.CODE_SNAPSHOT] : []),
-      ],
-      command: finalLaunch.command,
-      args: [...policyArgs, "--", ...targetArgs],
-      options,
-      cleanup,
-    });
+    try {
+      const stdio = linuxStdioWithPinnedMounts(
+        spawnOpts?.stdio,
+        pinnedDescriptors,
+        {
+          supervisorFd: finalLaunch.fd,
+          scrubberFd: finalLaunch.scrubberFd,
+        },
+      );
+      const invocation = linuxBubblewrapScrubbedInvocation(
+        finalLaunch,
+        [...policyArgs, "--", ...targetArgs],
+        stdio,
+      );
+      const options = {
+        ...spawnOpts,
+        cwd: "/",
+        shell: false,
+        detached: false,
+        env: {
+          PATH: "/usr/bin:/bin",
+          LANG: "C",
+          LC_ALL: "C",
+        },
+        stdio: Object.freeze(stdio),
+      };
+      return createSandboxPlan({
+        ...base,
+        applied: true,
+        enforcement: LINUX_BWRAP_BACKEND,
+        backend: LINUX_BWRAP_BACKEND,
+        candidateBackend: null,
+        policyAttested: true,
+        policyDigest,
+        runtimeProbe,
+        reason: null,
+        guarantees: [
+          SANDBOX_BOUNDARIES.FILESYSTEM,
+          SANDBOX_BOUNDARIES.NETWORK,
+          SANDBOX_BOUNDARIES.PROCESS_TREE,
+          ...(capsuleContract ? [SANDBOX_BOUNDARIES.CODE_SNAPSHOT] : []),
+        ],
+        command: invocation.command,
+        args: invocation.args,
+        options,
+        cleanup,
+      });
+    } catch (error) {
+      cleanup();
+      return createSandboxPlan({
+        ...base,
+        backend: null,
+        candidateBackend: LINUX_BWRAP_BACKEND,
+        policyAttested: false,
+        policyDigest,
+        runtimeProbe: linuxBubblewrapProbe(
+          true,
+          false,
+          `post_probe_${error.message || "final_plan_construction_failed"}`,
+          validation.entryRuntime,
+          null,
+          supervisorBinding,
+        ),
+        reason: "linux_bwrap_execution_contract_changed",
+        guarantees: [],
+      });
+    }
   }
 
   const prlimitParts = [];

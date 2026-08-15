@@ -449,6 +449,7 @@ jobs:
               live.packageIdentifier !== contract.packageIdentifier ||
               live.packageVersion !== contract.packageVersion ||
               live.packedRuntimeSha256 !== packedRuntimeSha256 ||
+              live.probeSentinelFd9ClosedAndNoResidual !== true ||
               live.packedRuntimeNodeModeVerified !== true ||
               live.snapshotLockInodeStableAcrossUpgrade !== true ||
               live.processForkAndSetsidDenied !== true) {
@@ -595,6 +596,7 @@ jobs:
                 live.packedRuntimeSha256 !== evidence.packedRuntimeSha256 ||
                 live.packageIdentifier !== contract.packageIdentifier ||
                 live.packageVersion !== contract.packageVersion ||
+                live.probeSentinelFd9ClosedAndNoResidual !== true ||
                 live.packedRuntimeNodeModeVerified !== true ||
                 live.snapshotLockInodeStableAcrossUpgrade !== true ||
                 live.globalSerializationStableAcrossUpgrade !== true ||

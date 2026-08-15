@@ -5,6 +5,7 @@ import {
   admitLinuxGenericSandboxExecutionContract,
   issueLinuxGenericSandboxExecutionContract,
 } from "../../src/lib/process-execution-broker/linux-generic-bwrap.js";
+import { parseLinuxBwrapDescriptorScrubbedLaunch } from "../../src/lib/process-execution-broker/linux-bwrap-descriptor-launch.js";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
 
 const ROOT = "/work/project";
@@ -35,8 +36,11 @@ function createLinuxRuntime({
   mountInfo = "20 1 8:1 / / rw,relatime - ext4 /dev/root rw\n",
   mountInfoAfterProbe = null,
   homeIdentityAlias = false,
+  omitDescriptorScrubber = false,
+  mutateDescriptorScrubberAfterProbe = false,
 } = {}) {
   const bwrapContents = Buffer.from("ELF-bwrap-supervisor");
+  const bashContents = Buffer.from("ELF-bash-descriptor-scrubber");
   const setsidContents = Buffer.from("ELF-setsid-pty-launcher");
   const nodeContents = Buffer.from("ELF-node-runtime");
   const pythonContents = Buffer.from("ELF-python-runtime");
@@ -85,6 +89,20 @@ function createLinuxRuntime({
           size: bwrapContents.length,
         }),
         buffer: bwrapContents,
+      },
+    ],
+    [
+      "/usr/bin/bash",
+      {
+        stat: typedStat({
+          dev: 1,
+          ino: 8,
+          mode: 0o100755,
+          uid: 0,
+          gid: 0,
+          size: bashContents.length,
+        }),
+        buffer: bashContents,
       },
     ],
     [
@@ -145,6 +163,7 @@ function createLinuxRuntime({
     ],
   ]);
   if (omitSystemNode) entries.delete("/usr/bin/node");
+  if (omitDescriptorScrubber) entries.delete("/usr/bin/bash");
   const symlinks = new Map([
     ["/bin", "usr/bin"],
     ["/sbin", "usr/sbin"],
@@ -328,15 +347,34 @@ function createLinuxRuntime({
   ].filter((entry) => entry !== omitCapability);
   const calls = [];
   const spawnSync = vi.fn((command, args, options) => {
-    calls.push({ command, args, options });
-    if (args.length === 1 && args[0] === "--help") {
-      const executable = openFiles.get(options.stdio[3])?.buffer;
+    const scrubbed = parseLinuxBwrapDescriptorScrubbedLaunch(
+      command,
+      args,
+      options,
+    );
+    if (!scrubbed) {
+      throw new Error("runtime launched an invalid descriptor scrubber");
+    }
+    const logicalCommand = `/proc/self/fd/${scrubbed.executableChildFd}`;
+    const logicalArgs = scrubbed.executableArgs;
+    calls.push({
+      command: logicalCommand,
+      args: logicalArgs,
+      options,
+      rawCommand: command,
+      rawArgs: args,
+      scrubbed,
+    });
+    if (logicalArgs.length === 1 && logicalArgs[0] === "--help") {
+      const executable = openFiles.get(
+        options.stdio[scrubbed.executableChildFd],
+      )?.buffer;
       if (executable?.equals(setsidContents)) {
         return { status: 0, stdout: "--ctty", stderr: "" };
       }
       return { status: 0, stdout: capabilities.join(" "), stderr: "" };
     }
-    const script = args.at(-1);
+    const script = logicalArgs.at(-1);
     const digests = String(script).match(/[a-f0-9]{64}/g) || [];
     if (simulateProcessTreeLeak) {
       const marker = String(script).match(
@@ -348,6 +386,12 @@ function createLinuxRuntime({
       const target = entries.get("/usr/bin/node");
       if (target) {
         target.stat = typedStat({ ...target.stat, ino: 404 });
+      }
+    }
+    if (mutateDescriptorScrubberAfterProbe) {
+      const scrubber = entries.get("/usr/bin/bash");
+      if (scrubber) {
+        scrubber.stat = typedStat({ ...scrubber.stat, ino: 405 });
       }
     }
     if (finalReadError) failDescriptorReads = true;
@@ -473,13 +517,28 @@ describe("Linux generic production runtime integration", () => {
         bwrapNewSession: false,
       },
     });
-    expect(plan.args.slice(0, 2)).toEqual(["--ctty", "/proc/self/fd/4"]);
+    expect(plan.args.slice(0, 2)).toEqual(["--ctty", "/proc/self/fd/9"]);
     expect(plan.args).not.toContain("--new-session");
     expect(harness.calls).toHaveLength(3);
     expect(harness.calls[1].args).toEqual(["--help"]);
-    expect(executionBroker._validateSandboxPlan(plan).ptyPolicy).toEqual(
-      plan.ptyPolicy,
-    );
+    expect(harness.calls.map((call) => call.rawCommand)).toEqual([
+      "/proc/self/fd/4",
+      "/proc/self/fd/4",
+      "/proc/self/fd/9",
+    ]);
+    expect(
+      harness.calls.every(
+        (call) =>
+          call.scrubbed.executableChildFd < call.scrubbed.scrubberChildFd,
+      ),
+    ).toBe(true);
+    expect(
+      executionBroker._validateSandboxPlan(plan, {
+        builtInSandboxAdapter: true,
+        executionContract: admitted,
+        cwd: ROOT,
+      }).ptyPolicy,
+    ).toEqual(plan.ptyPolicy);
     plan.cleanup();
     expect(harness.openFiles.size).toBe(0);
   });
@@ -544,7 +603,13 @@ describe("Linux generic production runtime integration", () => {
         socketCreationDenied: true,
       },
     });
-    expect(executionBroker._validateSandboxPlan(plan).applied).toBe(true);
+    expect(
+      executionBroker._validateSandboxPlan(plan, {
+        builtInSandboxAdapter: true,
+        executionContract: admitted,
+        cwd: ROOT,
+      }).applied,
+    ).toBe(true);
     expect(plan.filesystemPolicy.sourceMountSetDigest).toMatch(
       /^[a-f0-9]{64}$/,
     );
@@ -603,6 +668,35 @@ describe("Linux generic production runtime integration", () => {
       expect(harness.openFiles.size).toBe(0);
     },
   );
+
+  it("fails closed when the canonical descriptor scrubber is unavailable", () => {
+    const harness = createLinuxRuntime({ omitDescriptorScrubber: true });
+    const { admitted } = issueAndAdmit();
+    const plan = applyHarness(harness, admitted);
+
+    expect(plan).toMatchObject({
+      applied: false,
+      guarantees: [],
+      policyAttested: false,
+    });
+    expect(harness.calls).toHaveLength(0);
+    expect(harness.openFiles.size).toBe(0);
+  });
+
+  it("re-attests the descriptor scrubber and rejects final inode drift", () => {
+    const harness = createLinuxRuntime({
+      mutateDescriptorScrubberAfterProbe: true,
+    });
+    const { admitted } = issueAndAdmit();
+    const plan = applyHarness(harness, admitted);
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "linux_generic_execution_contract_changed",
+      guarantees: [],
+    });
+    expect(harness.openFiles.size).toBe(0);
+  });
 
   it("fails closed when the live close probe observes a surviving writer", () => {
     const harness = createLinuxRuntime({

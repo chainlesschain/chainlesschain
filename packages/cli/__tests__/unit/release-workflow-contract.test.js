@@ -937,4 +937,39 @@ describe("CLI release workflow contracts", () => {
       expect(setupAction).toContain(rollupBinary);
     }
   });
+
+  it("binds signed macOS helper evidence to a live inherited-fd sweep", () => {
+    const text = workflow("cli-macos-mcp-launcher-release.yml");
+    const liveGate = fs.readFileSync(
+      path.join(
+        repositoryRoot,
+        "packages",
+        "cli",
+        "scripts",
+        "macos-mcp-launcher-live-test.mjs",
+      ),
+      "utf8",
+    );
+    const probeStart = liveGate.indexOf(
+      "function verifyInstalledProbeClosesInheritedSentinelFd()",
+    );
+    const probeEnd = liveGate.indexOf("\nfunction ", probeStart + 1);
+    expect(probeStart).toBeGreaterThan(0);
+    expect(probeEnd).toBeGreaterThan(probeStart);
+    const probeBlock = liveGate.slice(probeStart, probeEnd);
+    expect(probeBlock).toContain('["--probe-v1", nonce]');
+    expect(probeBlock).toMatch(
+      /stdio:\s*\[\s*"ignore",\s*"pipe",\s*"pipe",\s*"ignore",\s*"ignore",\s*"ignore",\s*"ignore",\s*"ignore",\s*"ignore",\s*sentinelFd,\s*\/\/ fd 9[^\n]*\n\s*\]/u,
+    );
+    expect(probeBlock).toContain(
+      'probe.schema === "chainlesschain.macos-mcp-launcher-probe.v1"',
+    );
+    expect(liveGate).toMatch(
+      /const probeSentinelFd9ClosedAndNoResidual\s*=\s*verifyInstalledProbeClosesInheritedSentinelFd\(\);/u,
+    );
+    expect(liveGate).toContain("probeSentinelFd9ClosedAndNoResidual,");
+    expect(
+      occurrences(text, "live.probeSentinelFd9ClosedAndNoResidual !== true"),
+    ).toBe(2);
+  });
 });

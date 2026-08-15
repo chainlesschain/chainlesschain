@@ -77,6 +77,66 @@ struct source_evidence {
 static volatile sig_atomic_t control_write_fd = -1;
 static volatile sig_atomic_t pending_signal = 0;
 
+static int scan_descriptor_directory(int minimum_fd, int close_entries) {
+  DIR *directory = NULL;
+  struct dirent *entry;
+  int directory_fd;
+  int unexpected = 0;
+  int result = -1;
+
+  if (minimum_fd < 0 || (directory = opendir("/dev/fd")) == NULL) {
+    return -1;
+  }
+  directory_fd = dirfd(directory);
+  if (directory_fd < 0) {
+    goto done;
+  }
+  for (;;) {
+    char *end = NULL;
+    long candidate;
+    errno = 0;
+    entry = readdir(directory);
+    if (entry == NULL) {
+      if (errno == 0) result = unexpected ? -1 : 0;
+      break;
+    }
+    if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+      continue;
+    }
+    errno = 0;
+    candidate = strtol(entry->d_name, &end, 10);
+    if (errno == ERANGE || end == entry->d_name || *end != '\0' ||
+        candidate < 0 || candidate > INT_MAX) {
+      goto done;
+    }
+    if (candidate < minimum_fd || candidate == directory_fd) {
+      continue;
+    }
+    if (!close_entries) {
+      unexpected = 1;
+    }
+    if (close((int)candidate) != 0 && errno != EBADF) {
+      goto done;
+    }
+  }
+
+done:
+  if (closedir(directory) != 0) result = -1;
+  return result;
+}
+
+static int close_descriptors_from(int minimum_fd) {
+  /* Darwin exposes descriptor enumeration through /dev/fd but does not expose
+   * closefrom in the public macOS 13 SDK. A second pass closes and rejects any
+   * descriptor the first pass skipped, so no late descriptor is leaked even
+   * on the fail-closed path. RLIMIT_NOFILE is not an authority: a caller can
+   * lower it after opening a higher-numbered fd. */
+  if (scan_descriptor_directory(minimum_fd, 1) != 0) {
+    return -1;
+  }
+  return scan_descriptor_directory(minimum_fd, 0);
+}
+
 static void relay_signal(int signal_number) {
   unsigned char value = (unsigned char)signal_number;
   int fd = (int)control_write_fd;
@@ -307,7 +367,9 @@ static int install_snapshot_lock(void) {
   if (getuid() != 0 || geteuid() != 0 || getgid() != 0 || getegid() != 0) {
     return CC_EXIT_SECURITY;
   }
-  closefrom(3);
+  if (close_descriptors_from(3) != 0) {
+    return CC_EXIT_SECURITY;
+  }
   if (root_owned_directory("/Library", 0755) != 0 ||
       root_owned_directory("/Library/Application Support", 0755) != 0 ||
       root_owned_directory("/Library/Application Support/ChainlessChain", 0755) != 0 ||
@@ -1043,7 +1105,9 @@ static int target_exec(const struct launch_request *request,
   if (ready_write_fd != CC_READY_FD) close(ready_write_fd);
   /* fd 3 and fd 5 are harmless /dev/null placeholders across exec so Node
    * cannot reuse those numbers before the compiled bootstrap closes them. */
-  closefrom(CC_CALLER_LIFELINE_FD);
+  if (close_descriptors_from(CC_CALLER_LIFELINE_FD) != 0) {
+    goto failure;
+  }
   execve(CC_SANDBOX_EXECUTABLE, target_argv, safe_env);
 
 failure:
@@ -1325,7 +1389,9 @@ static int run_launch(int argc, char **argv) {
 
   (void)close(CC_GATE_FD);
   (void)close(CC_READY_FD);
-  closefrom(CC_CALLER_LIFELINE_FD + 1);
+  if (close_descriptors_from(CC_CALLER_LIFELINE_FD + 1) != 0) {
+    return CC_EXIT_SECURITY;
+  }
   if (fcntl(CC_GATE_FD, F_GETFD) >= 0 || errno != EBADF ||
       fcntl(CC_READY_FD, F_GETFD) >= 0 || errno != EBADF) {
     return CC_EXIT_SECURITY;
@@ -1419,7 +1485,9 @@ int main(int argc, char **argv) {
     return install_snapshot_lock();
   }
   if (argc == 3 && strcmp(argv[1], "--probe-v1") == 0) {
-    closefrom(3);
+    if (close_descriptors_from(3) != 0) {
+      return CC_EXIT_SECURITY;
+    }
     return probe(argv[2]);
   }
   if (argc >= 2 && strcmp(argv[1], "--launch-v1") == 0) {

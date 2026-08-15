@@ -389,8 +389,18 @@ describe("signed macOS MCP launcher contract", () => {
     expect(source).toContain("CC_CALLER_LIFELINE_FD");
     expect(source).toContain("F_SETFL, control_flags | O_NONBLOCK");
     expect(source).toContain("POLLIN | POLLHUP | POLLERR | POLLNVAL");
-    expect(source).toContain("closefrom(CC_CALLER_LIFELINE_FD)");
-    expect(source).toContain("closefrom(CC_CALLER_LIFELINE_FD + 1)");
+    expect(source).toContain("close_descriptors_from(CC_CALLER_LIFELINE_FD)");
+    expect(source).toContain(
+      "close_descriptors_from(CC_CALLER_LIFELINE_FD + 1)",
+    );
+    expect(source).toContain('opendir("/dev/fd")');
+    expect(source).toContain("candidate == directory_fd");
+    expect(source).toContain("scan_descriptor_directory(minimum_fd, 0)");
+    expect(source).not.toMatch(/\bclosefrom\s*\(/u);
+    expect(source.match(/close_descriptors_from\s*\(/gu)).toHaveLength(5);
+    expect(
+      source.match(/if\s*\(close_descriptors_from\([^)]*\)\s*!=\s*0\)/gu),
+    ).toHaveLength(4);
     expect(source).toContain('open("/dev/null", O_RDONLY | O_CLOEXEC)');
     expect(source).toContain("install_null_placeholders() != 0");
     expect(source).toContain("runtimeAndCapsuleSlotsNullBeforeExec");

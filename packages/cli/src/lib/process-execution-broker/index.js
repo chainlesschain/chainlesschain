@@ -52,7 +52,16 @@ import {
   admitLinuxGenericSandboxExecutionContract,
   issueLinuxGenericSandboxExecutionContract,
   LINUX_GENERIC_CONTRACT_KIND,
+  verifyLinuxGenericBubblewrapPlan,
 } from "./linux-generic-bwrap.js";
+import {
+  LINUX_BWRAP_DESCRIPTOR_SCRUBBER_KIND,
+  LINUX_BWRAP_DESCRIPTOR_SCRUBBER_MECHANISM,
+  LINUX_BWRAP_DESCRIPTOR_SCRUBBER_PASSES,
+  LINUX_BWRAP_DESCRIPTOR_SCRUBBER_PATH,
+  LINUX_BWRAP_DESCRIPTOR_SCRUBBER_SCRIPT_SHA256,
+  parseLinuxBwrapDescriptorScrubbedLaunch,
+} from "./linux-bwrap-descriptor-launch.js";
 import { consumeIssuedPluginSandboxExecutionContract } from "../plugin-runtime/bin.js";
 import runtimeProvenanceLedger from "../runtime-provenance-ledger.js";
 import { credentialAgent } from "./credential-agent.js";
@@ -115,6 +124,204 @@ const LINUX_RUNTIME_PATHNAME_POLICY_ENVIRONMENT = Object.freeze([
   ["TMPDIR", "/tmp"],
   ["TZ", "UTC"],
 ]);
+
+function denseOwnDataArraySnapshot(value) {
+  if (
+    !Array.isArray(value) ||
+    Object.getPrototypeOf(value) !== Array.prototype
+  ) {
+    return null;
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  const length = descriptors.length?.value;
+  if (
+    !Number.isSafeInteger(length) ||
+    length < 0 ||
+    Reflect.ownKeys(descriptors).length !== length + 1
+  ) {
+    return null;
+  }
+  const snapshot = [];
+  for (let index = 0; index < length; index += 1) {
+    const descriptor = descriptors[String(index)];
+    if (!descriptor || !("value" in descriptor)) return null;
+    snapshot.push(descriptor.value);
+  }
+  return Object.freeze(snapshot);
+}
+
+function exactOwnDataDescriptors(value, expectedKeys) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    Object.getPrototypeOf(value) !== Object.prototype
+  ) {
+    return null;
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  const keys = Reflect.ownKeys(descriptors);
+  if (
+    keys.some((key) => typeof key !== "string") ||
+    keys.length !== expectedKeys.length ||
+    expectedKeys.some((key) => !("value" in (descriptors[key] || {})))
+  ) {
+    return null;
+  }
+  return descriptors;
+}
+
+function ownDataObjectSnapshot(value) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    Object.getPrototypeOf(value) !== Object.prototype
+  ) {
+    return null;
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  const snapshot = {};
+  for (const key of Reflect.ownKeys(descriptors)) {
+    if (typeof key !== "string" || !("value" in descriptors[key])) {
+      return null;
+    }
+    Object.defineProperty(snapshot, key, {
+      value: descriptors[key].value,
+      enumerable: true,
+      configurable: true,
+      writable: true,
+    });
+  }
+  return Object.freeze(snapshot);
+}
+
+const LINUX_DESCRIPTOR_SCRUBBER_EVIDENCE_KEYS = Object.freeze([
+  "kind",
+  "mechanism",
+  "scriptSha256",
+  "executableIdentity",
+  "executablePinned",
+  "argvFixed",
+  "callerEnvironmentFixed",
+  "nodeRuntimeEnvironmentInjection",
+  "nodeIpcChildFd",
+  "nodeIpcSerializationMode",
+  "procSelfFdPasses",
+  "closesUnknownInheritedDescriptors",
+  "verificationPassesFailClosed",
+  "policyBound",
+  "scrubberChildFd",
+  "preservedMaxFd",
+  "activeStdioThrough",
+  "executableChildFd",
+]);
+const LINUX_DESCRIPTOR_SCRUBBER_IDENTITY_KEYS = Object.freeze([
+  "path",
+  "fileId",
+  "sha256",
+  "bytes",
+  "mtimeMs",
+  "mode",
+  "uid",
+  "gid",
+]);
+
+function sanitizeLinuxDescriptorScrubberEvidence(value, launch) {
+  const descriptors = exactOwnDataDescriptors(
+    value,
+    LINUX_DESCRIPTOR_SCRUBBER_EVIDENCE_KEYS,
+  );
+  const identity = descriptors?.executableIdentity?.value;
+  const identityDescriptors = exactOwnDataDescriptors(
+    identity,
+    LINUX_DESCRIPTOR_SCRUBBER_IDENTITY_KEYS,
+  );
+  const fileId = identityDescriptors?.fileId?.value;
+  const fileIdDescriptors = exactOwnDataDescriptors(fileId, ["dev", "ino"]);
+  const nodeIpcChildFd = launch?.nodeIpcChildFd ?? null;
+  const expectedInjection =
+    nodeIpcChildFd === null ? "none" : "node-child-process-exact-ipc-v1";
+  const expectedSerialization = nodeIpcChildFd === null ? null : "json";
+  if (
+    !descriptors ||
+    !launch ||
+    !identityDescriptors ||
+    !fileIdDescriptors ||
+    descriptors.kind.value !== LINUX_BWRAP_DESCRIPTOR_SCRUBBER_KIND ||
+    descriptors.mechanism.value !== LINUX_BWRAP_DESCRIPTOR_SCRUBBER_MECHANISM ||
+    descriptors.scriptSha256.value !==
+      LINUX_BWRAP_DESCRIPTOR_SCRUBBER_SCRIPT_SHA256 ||
+    descriptors.executablePinned.value !== true ||
+    descriptors.argvFixed.value !== true ||
+    descriptors.callerEnvironmentFixed.value !== true ||
+    descriptors.nodeRuntimeEnvironmentInjection.value !== expectedInjection ||
+    descriptors.nodeIpcChildFd.value !== nodeIpcChildFd ||
+    descriptors.nodeIpcSerializationMode.value !== expectedSerialization ||
+    descriptors.procSelfFdPasses.value !==
+      LINUX_BWRAP_DESCRIPTOR_SCRUBBER_PASSES ||
+    descriptors.closesUnknownInheritedDescriptors.value !== true ||
+    descriptors.verificationPassesFailClosed.value !== true ||
+    descriptors.policyBound.value !== true ||
+    descriptors.scrubberChildFd.value !== launch.scrubberChildFd ||
+    descriptors.preservedMaxFd.value !== launch.preservedMaxFd ||
+    descriptors.activeStdioThrough.value !== launch.activeStdioThrough ||
+    descriptors.executableChildFd.value !== launch.executableChildFd ||
+    identityDescriptors.path.value !== LINUX_BWRAP_DESCRIPTOR_SCRUBBER_PATH ||
+    typeof fileIdDescriptors.dev.value !== "string" ||
+    !/^(0|[1-9]\d*)$/.test(fileIdDescriptors.dev.value) ||
+    typeof fileIdDescriptors.ino.value !== "string" ||
+    !/^(0|[1-9]\d*)$/.test(fileIdDescriptors.ino.value) ||
+    typeof identityDescriptors.sha256.value !== "string" ||
+    !/^[a-f0-9]{64}$/.test(identityDescriptors.sha256.value) ||
+    !Number.isSafeInteger(identityDescriptors.bytes.value) ||
+    identityDescriptors.bytes.value <= 0 ||
+    identityDescriptors.bytes.value > 256 * 1024 * 1024 ||
+    !Number.isFinite(identityDescriptors.mtimeMs.value) ||
+    !Number.isSafeInteger(identityDescriptors.mode.value) ||
+    (identityDescriptors.mode.value & 0o170000) !== 0o100000 ||
+    (identityDescriptors.mode.value & 0o111) === 0 ||
+    (identityDescriptors.mode.value & 0o022) !== 0 ||
+    identityDescriptors.uid.value !== 0 ||
+    !Number.isSafeInteger(identityDescriptors.gid.value) ||
+    identityDescriptors.gid.value < 0
+  ) {
+    return null;
+  }
+  const sanitizedIdentity = Object.freeze({
+    path: identityDescriptors.path.value,
+    fileId: Object.freeze({
+      dev: fileIdDescriptors.dev.value,
+      ino: fileIdDescriptors.ino.value,
+    }),
+    sha256: identityDescriptors.sha256.value,
+    bytes: identityDescriptors.bytes.value,
+    mtimeMs: identityDescriptors.mtimeMs.value,
+    mode: identityDescriptors.mode.value,
+    uid: identityDescriptors.uid.value,
+    gid: identityDescriptors.gid.value,
+  });
+  return Object.freeze({
+    kind: descriptors.kind.value,
+    mechanism: descriptors.mechanism.value,
+    scriptSha256: descriptors.scriptSha256.value,
+    executableIdentity: sanitizedIdentity,
+    executablePinned: true,
+    argvFixed: true,
+    callerEnvironmentFixed: true,
+    nodeRuntimeEnvironmentInjection: expectedInjection,
+    nodeIpcChildFd,
+    nodeIpcSerializationMode: expectedSerialization,
+    procSelfFdPasses: LINUX_BWRAP_DESCRIPTOR_SCRUBBER_PASSES,
+    closesUnknownInheritedDescriptors: true,
+    verificationPassesFailClosed: true,
+    policyBound: true,
+    scrubberChildFd: launch.scrubberChildFd,
+    preservedMaxFd: launch.preservedMaxFd,
+    activeStdioThrough: launch.activeStdioThrough,
+    executableChildFd: launch.executableChildFd,
+  });
+}
 
 function parseLinuxRuntimePathnameClosurePolicyArgs(
   args,
@@ -1305,6 +1512,15 @@ class ProcessExecutionBroker extends EventEmitter {
         "Sandbox adapter returned no spawn plan",
       );
     }
+    const authorityPlan = plan;
+    const planSnapshot = ownDataObjectSnapshot(plan);
+    if (!planSnapshot) {
+      throw this._sandboxError(
+        "invalid_sandbox_plan",
+        "Sandbox spawn plan must use own data properties",
+      );
+    }
+    plan = planSnapshot;
     if (plan.contractVersion !== 1) {
       throw this._sandboxError(
         "invalid_sandbox_plan",
@@ -1317,16 +1533,34 @@ class ProcessExecutionBroker extends EventEmitter {
         "Sandbox spawn plan is missing applied:boolean",
       );
     }
-    if (typeof plan.command !== "string" || !Array.isArray(plan.args)) {
+    let planCommand = null;
+    try {
+      const commandDescriptor = Object.getOwnPropertyDescriptor(
+        plan,
+        "command",
+      );
+      if (
+        commandDescriptor &&
+        "value" in commandDescriptor &&
+        typeof commandDescriptor.value === "string"
+      ) {
+        planCommand = commandDescriptor.value;
+      }
+    } catch {
+      planCommand = null;
+    }
+    const planArgsSnapshot = denseOwnDataArraySnapshot(plan.args);
+    if (planCommand === null || !planArgsSnapshot) {
       throw this._sandboxError(
         "invalid_sandbox_plan",
-        "Sandbox spawn plan must provide command and args",
+        "Sandbox spawn plan must provide command and dense data-property args",
       );
     }
-    if (!plan.options || typeof plan.options !== "object") {
+    const planOptionsSnapshot = ownDataObjectSnapshot(plan.options);
+    if (!planOptionsSnapshot) {
       throw this._sandboxError(
         "invalid_sandbox_plan",
-        "Sandbox spawn plan must provide options",
+        "Sandbox spawn plan must provide data-property options",
       );
     }
     if (plan.applied && typeof plan.enforcement !== "string") {
@@ -1384,6 +1618,129 @@ class ProcessExecutionBroker extends EventEmitter {
       throw this._sandboxError(
         "invalid_sandbox_plan",
         "Sandbox policy digest must be a lowercase SHA-256 value",
+      );
+    }
+    const linuxDescriptorBackend =
+      plan.applied === true &&
+      (backend === "linux-bwrap" || backend === "linux-bwrap-workspace");
+    const linuxFdCodeSnapshotBackend =
+      plan.applied === true &&
+      (backend === "linux-fd-code-snapshot" ||
+        plan.enforcement === "linux-fd-code-snapshot");
+    let linuxDescriptorLaunch = null;
+    let linuxDescriptorPtyLaunch = false;
+    let linuxBubblewrapExecutableArgs = planArgsSnapshot;
+    let sanitizedDescriptorScrubber = null;
+    if (linuxFdCodeSnapshotBackend) {
+      if (plan.platform !== "linux") {
+        throw this._sandboxError(
+          "invalid_sandbox_plan",
+          "Reserved Linux FD code snapshot backend requires platform linux",
+        );
+      }
+      if (
+        plan.backend !== "linux-fd-code-snapshot" ||
+        plan.enforcement !== "linux-fd-code-snapshot"
+      ) {
+        throw this._sandboxError(
+          "invalid_sandbox_plan",
+          "Reserved Linux FD code snapshot backend requires exact backend and enforcement names",
+        );
+      }
+      if (launchContext.builtInSandboxAdapter !== true) {
+        throw this._sandboxError(
+          "invalid_sandbox_plan",
+          "Applied Linux FD code snapshot plans require the built-in sandbox adapter",
+        );
+      }
+      if (!guarantees.includes(SANDBOX_BOUNDARIES.CODE_SNAPSHOT)) {
+        throw this._sandboxError(
+          "invalid_sandbox_plan",
+          "Reserved Linux FD code snapshot backend requires the code-snapshot guarantee",
+        );
+      }
+    }
+    if (linuxDescriptorBackend) {
+      if (plan.platform !== "linux") {
+        throw this._sandboxError(
+          "invalid_sandbox_plan",
+          "Reserved Linux bubblewrap backends require platform linux",
+        );
+      }
+      if (launchContext.builtInSandboxAdapter !== true) {
+        throw this._sandboxError(
+          "invalid_sandbox_plan",
+          "Applied Linux bubblewrap plans require the built-in sandbox adapter",
+        );
+      }
+      const descriptorEvidence = plan.runtimeProbe?.descriptorScrubber;
+      const descriptorEvidenceDescriptors = exactOwnDataDescriptors(
+        descriptorEvidence,
+        LINUX_DESCRIPTOR_SCRUBBER_EVIDENCE_KEYS,
+      );
+      const activeStdioThrough =
+        backend === "linux-bwrap-workspace"
+          ? descriptorEvidenceDescriptors?.activeStdioThrough?.value
+          : 2;
+      linuxDescriptorPtyLaunch =
+        backend === "linux-bwrap-workspace" &&
+        plan.ptyPolicy !== null &&
+        plan.ptyPolicy !== undefined;
+      if (linuxDescriptorPtyLaunch) {
+        const innerArgs = Object.freeze([...planArgsSnapshot.slice(2)]);
+        linuxDescriptorLaunch =
+          planArgsSnapshot[0] === "--ctty" &&
+          typeof planArgsSnapshot[1] === "string"
+            ? parseLinuxBwrapDescriptorScrubbedLaunch(
+                planArgsSnapshot[1],
+                innerArgs,
+                planOptionsSnapshot,
+                { activeStdioThrough },
+              )
+            : null;
+      } else {
+        linuxDescriptorLaunch = parseLinuxBwrapDescriptorScrubbedLaunch(
+          planCommand,
+          planArgsSnapshot,
+          planOptionsSnapshot,
+          { activeStdioThrough },
+        );
+      }
+      sanitizedDescriptorScrubber = sanitizeLinuxDescriptorScrubberEvidence(
+        descriptorEvidence,
+        linuxDescriptorLaunch,
+      );
+      const expectedExecutableChildFd = linuxDescriptorPtyLaunch
+        ? activeStdioThrough + 2
+        : backend === "linux-bwrap-workspace"
+          ? activeStdioThrough + 1
+          : 3;
+      const outerPtyDescriptorValid =
+        !linuxDescriptorPtyLaunch ||
+        (planCommand === `/proc/self/fd/${activeStdioThrough + 1}` &&
+          Number.isSafeInteger(
+            linuxDescriptorLaunch?.stdio?.[activeStdioThrough + 1],
+          ));
+      if (
+        !linuxDescriptorLaunch ||
+        !sanitizedDescriptorScrubber ||
+        linuxDescriptorLaunch.executableChildFd !== expectedExecutableChildFd ||
+        !outerPtyDescriptorValid ||
+        (backend === "linux-bwrap" &&
+          (linuxDescriptorLaunch.activeStdioThrough !== 2 ||
+            linuxDescriptorLaunch.nodeIpcChildFd !== null ||
+            (plan.ptyPolicy !== null && plan.ptyPolicy !== undefined)))
+      ) {
+        throw this._sandboxError(
+          "invalid_sandbox_plan",
+          "Applied Linux bubblewrap plans require the exact typed descriptor scrubber launch contract",
+        );
+      }
+      linuxBubblewrapExecutableArgs = linuxDescriptorLaunch.executableArgs;
+    } else if (plan.runtimeProbe?.descriptorScrubber !== undefined) {
+      throw this._sandboxError(
+        "invalid_sandbox_plan",
+        "Linux descriptor scrubber evidence requires an applied bubblewrap backend",
       );
     }
     let runtimeProbe = null;
@@ -1930,7 +2287,7 @@ class ProcessExecutionBroker extends EventEmitter {
       ];
       const runtimePathnameMountPolicy =
         parseLinuxRuntimePathnameClosurePolicyArgs(
-          plan.args,
+          linuxBubblewrapExecutableArgs,
           plan.runtimeProbe.runtimeSharedLibraryLoadSetFiles,
         ) !== null;
       if (
@@ -2010,7 +2367,7 @@ class ProcessExecutionBroker extends EventEmitter {
         // one-launch plan is therefore burned by its first admission attempt,
         // including an attempt with a mismatched command or contract.
         windowsPlanBindingConsumed = windowsPlanBindingDeclared
-          ? consumeWindowsMcpCodeSnapshotPlanBinding(plan, {
+          ? consumeWindowsMcpCodeSnapshotPlanBinding(authorityPlan, {
               command: launchContext.command,
               args: launchArgs,
               cwd: launchContext.cwd,
@@ -2023,7 +2380,7 @@ class ProcessExecutionBroker extends EventEmitter {
             })
           : false;
         macPlanBindingConsumed = macPlanBindingDeclared
-          ? consumeMacMcpCodeSnapshotPlanBinding(plan, {
+          ? consumeMacMcpCodeSnapshotPlanBinding(authorityPlan, {
               command: launchContext.command,
               args: launchArgs,
               cwd: launchContext.cwd,
@@ -2110,6 +2467,7 @@ class ProcessExecutionBroker extends EventEmitter {
           plan.runtimeProbe.entrySnapshotBytes >= 0 &&
           plan.runtimeProbe.entrySnapshotBytes <= 64 * 1024 * 1024;
         const linuxSnapshotEvidence =
+          launchContext.builtInSandboxAdapter === true &&
           plan.platform === "linux" &&
           backend === "linux-fd-code-snapshot" &&
           plan.enforcement === "linux-fd-code-snapshot" &&
@@ -2134,16 +2492,18 @@ class ProcessExecutionBroker extends EventEmitter {
           Number.isSafeInteger(plan.runtimeProbe.runtimeSnapshotBytes) &&
           plan.runtimeProbe.runtimeSnapshotBytes > 0 &&
           plan.runtimeProbe.runtimeSnapshotBytes <= 256 * 1024 * 1024 &&
-          /^\/proc\/self\/fd\/\d+$/.test(plan.command) &&
-          plan.args[0] === "-e" &&
+          /^\/proc\/self\/fd\/\d+$/.test(planCommand) &&
+          planArgsSnapshot[0] === "-e" &&
           crypto
             .createHash("sha256")
-            .update(plan.args[1] || "")
+            .update(planArgsSnapshot[1] || "")
             .digest("hex") === MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256 &&
-          plan.args[2] === "--" &&
-          passthroughArgsMatch(plan.args.slice(3));
-        const linuxBubblewrapTargetSeparator = plan.args.indexOf("--");
+          planArgsSnapshot[2] === "--" &&
+          passthroughArgsMatch(planArgsSnapshot.slice(3));
+        const linuxBubblewrapTargetSeparator =
+          linuxBubblewrapExecutableArgs.indexOf("--");
         const linuxBubblewrapSnapshotEvidence =
+          launchContext.builtInSandboxAdapter === true &&
           plan.platform === "linux" &&
           backend === "linux-bwrap" &&
           plan.enforcement === "linux-bwrap" &&
@@ -2174,20 +2534,22 @@ class ProcessExecutionBroker extends EventEmitter {
           Number.isSafeInteger(plan.runtimeProbe.runtimeSnapshotBytes) &&
           plan.runtimeProbe.runtimeSnapshotBytes > 0 &&
           plan.runtimeProbe.runtimeSnapshotBytes <= 256 * 1024 * 1024 &&
-          /^\/proc\/self\/fd\/\d+$/.test(plan.command) &&
+          /^\/proc\/self\/fd\/\d+$/.test(planCommand) &&
           linuxBubblewrapTargetSeparator >= 0 &&
-          plan.args[linuxBubblewrapTargetSeparator + 1] ===
+          linuxBubblewrapExecutableArgs[linuxBubblewrapTargetSeparator + 1] ===
             plan.runtimeProbe.runtimeLaunchPath &&
-          plan.args[linuxBubblewrapTargetSeparator + 2] ===
+          linuxBubblewrapExecutableArgs[linuxBubblewrapTargetSeparator + 2] ===
             plan.runtimeProbe.entrySnapshotPath &&
           passthroughArgsMatch(
-            plan.args.slice(linuxBubblewrapTargetSeparator + 3),
+            linuxBubblewrapExecutableArgs.slice(
+              linuxBubblewrapTargetSeparator + 3,
+            ),
           );
         const macProtocol = MACOS_MCP_LAUNCHER_INPUTS.protocol;
-        const macStdio = plan.options?.stdio;
+        const macStdio = planOptionsSnapshot.stdio;
         const macSnapshotPath = path.posix.join(
           macProtocol.snapshotRoot,
-          plan.args[1] || "invalid",
+          planArgsSnapshot[1] || "invalid",
           "node",
         );
         const macSnapshotEvidence =
@@ -2235,7 +2597,8 @@ class ProcessExecutionBroker extends EventEmitter {
             (plan.runtimeProbe.targetRuntimeInvocationMode ===
               "pkg-copied-executable-eval-v1" &&
               plan.runtimeProbe.pkgExecPathMagicBound === true &&
-              plan.options?.env?.PKG_EXECPATH === MACOS_PKG_EXECPATH_MAGIC)) &&
+              planOptionsSnapshot.env?.PKG_EXECPATH ===
+                MACOS_PKG_EXECPATH_MAGIC)) &&
           plan.runtimeProbe.targetDescriptorAllowlist ===
             "stdio-fd3-null-fd4-entry-fd5-null-fd6-gate-fd7-ready" &&
           plan.runtimeProbe.capsuleRootDescriptorBound === true &&
@@ -2268,22 +2631,24 @@ class ProcessExecutionBroker extends EventEmitter {
             "macos-mcp-code-snapshot-plan-binding-v1" &&
           plan.runtimeProbe.runtimeLaunchPath === macSnapshotPath &&
           plan.runtimeProbe.entrySnapshotPath === "anonymous-root-owned-fd4" &&
-          plan.command === macProtocol.helperInstallPath &&
-          plan.args.length >= 10 &&
-          plan.args[0] === "--launch-v1" &&
-          /^[a-f0-9]{64}$/.test(plan.args[1] || "") &&
-          plan.args[2] === MACOS_MCP_LAUNCHER_INPUTS.protocolSha256 &&
-          plan.args[3] === executionContract.runtimeIdentity.sha256 &&
-          plan.args[4] === String(executionContract.runtimeIdentity.bytes) &&
-          plan.args[5] === executionContract.entryIdentity.sha256 &&
-          plan.args[6] === String(executionContract.entryIdentity.bytes) &&
-          /^[1-9]\d*$/.test(plan.args[7] || "") &&
-          /^[1-9]\d*$/.test(plan.args[8] || "") &&
-          plan.args[9] === policyDigest &&
-          passthroughArgsMatch(plan.args.slice(10)) &&
-          plan.options?.cwd === "/" &&
-          plan.options?.shell === false &&
-          plan.options?.detached === false &&
+          planCommand === macProtocol.helperInstallPath &&
+          planArgsSnapshot.length >= 10 &&
+          planArgsSnapshot[0] === "--launch-v1" &&
+          /^[a-f0-9]{64}$/.test(planArgsSnapshot[1] || "") &&
+          planArgsSnapshot[2] === MACOS_MCP_LAUNCHER_INPUTS.protocolSha256 &&
+          planArgsSnapshot[3] === executionContract.runtimeIdentity.sha256 &&
+          planArgsSnapshot[4] ===
+            String(executionContract.runtimeIdentity.bytes) &&
+          planArgsSnapshot[5] === executionContract.entryIdentity.sha256 &&
+          planArgsSnapshot[6] ===
+            String(executionContract.entryIdentity.bytes) &&
+          /^[1-9]\d*$/.test(planArgsSnapshot[7] || "") &&
+          /^[1-9]\d*$/.test(planArgsSnapshot[8] || "") &&
+          planArgsSnapshot[9] === policyDigest &&
+          passthroughArgsMatch(planArgsSnapshot.slice(10)) &&
+          planOptionsSnapshot.cwd === "/" &&
+          planOptionsSnapshot.shell === false &&
+          planOptionsSnapshot.detached === false &&
           Array.isArray(macStdio) &&
           macStdio.length === 9 &&
           macStdio
@@ -2451,12 +2816,12 @@ class ProcessExecutionBroker extends EventEmitter {
             ptyPolicy.launcherDescriptorConsumedBeforeTarget === true &&
             ptyPolicy.launcherStagingPathHidden === true &&
             ptyPolicy.bwrapNewSession === false &&
-            plan.args[0] === "--ctty" &&
-            /^\/proc\/self\/fd\/\d+$/.test(plan.args[1] || "") &&
-            !plan.args.includes("--new-session")
+            planArgsSnapshot[0] === "--ctty" &&
+            /^\/proc\/self\/fd\/\d+$/.test(planArgsSnapshot[1] || "") &&
+            !linuxBubblewrapExecutableArgs.includes("--new-session")
           : ptyPolicy === null &&
-            plan.args[0] !== "--ctty" &&
-            plan.args.includes("--new-session");
+            planArgsSnapshot[0] !== "--ctty" &&
+            linuxBubblewrapExecutableArgs.includes("--new-session");
         const workspaceRoot = filesystemPolicy?.workspaceRoot;
         const workingDirectory = filesystemPolicy?.workingDirectory;
         const workspaceRelative =
@@ -2464,7 +2829,19 @@ class ProcessExecutionBroker extends EventEmitter {
           typeof workingDirectory === "string"
             ? path.posix.relative(workspaceRoot, workingDirectory)
             : "..";
+        const genericExecutionContract = launchContext.executionContract;
+        const genericExecutionContractBound =
+          launchContext.builtInSandboxAdapter === true &&
+          verifyLinuxGenericBubblewrapPlan(authorityPlan) &&
+          genericExecutionContract?.contractVersion === 1 &&
+          genericExecutionContract.kind === LINUX_GENERIC_CONTRACT_KIND &&
+          genericExecutionContract.contractDigest ===
+            plan.runtimeProbe.contractDigest &&
+          genericExecutionContract.workspaceRoot === workspaceRoot &&
+          genericExecutionContract.workingDirectory === workingDirectory &&
+          launchContext.cwd === workingDirectory;
         genericWorkspaceProbe =
+          genericExecutionContractBound &&
           plan.applied === true &&
           plan.platform === "linux" &&
           plan.enforcement === "linux-bwrap-workspace" &&
@@ -2552,20 +2929,20 @@ class ProcessExecutionBroker extends EventEmitter {
           processTreePolicy?.parentDeathSignal === "SIGKILL" &&
           processTreePolicy?.asPid1 === false &&
           processTreePolicy?.closeFence === "pid-namespace-empty-or-killed" &&
-          plan.command.startsWith("/proc/self/fd/") &&
-          plan.options?.cwd === "/" &&
-          plan.options?.shell === false &&
-          plan.options?.detached === false &&
-          Array.isArray(plan.options?.stdio) &&
-          plan.args.includes("--bind-fd") &&
-          plan.args.includes("--ro-bind-fd") &&
-          plan.args.includes("--remount-ro") &&
-          plan.args.includes("--unshare-net") &&
-          plan.args.includes("--unshare-pid") &&
-          plan.args.includes("--die-with-parent") &&
-          !plan.args.includes("--as-pid-1") &&
-          plan.args.includes("--seccomp") &&
-          !plan.args.includes("--ro-bind") &&
+          planCommand.startsWith("/proc/self/fd/") &&
+          linuxDescriptorLaunch.options.cwd === "/" &&
+          linuxDescriptorLaunch.options.shell === false &&
+          linuxDescriptorLaunch.options.detached === false &&
+          Array.isArray(linuxDescriptorLaunch.stdio) &&
+          linuxBubblewrapExecutableArgs.includes("--bind-fd") &&
+          linuxBubblewrapExecutableArgs.includes("--ro-bind-fd") &&
+          linuxBubblewrapExecutableArgs.includes("--remount-ro") &&
+          linuxBubblewrapExecutableArgs.includes("--unshare-net") &&
+          linuxBubblewrapExecutableArgs.includes("--unshare-pid") &&
+          linuxBubblewrapExecutableArgs.includes("--die-with-parent") &&
+          !linuxBubblewrapExecutableArgs.includes("--as-pid-1") &&
+          linuxBubblewrapExecutableArgs.includes("--seccomp") &&
+          !linuxBubblewrapExecutableArgs.includes("--ro-bind") &&
           ptyPlanValid;
         if (!genericWorkspaceProbe) {
           throw this._sandboxError(
@@ -2799,6 +3176,9 @@ class ProcessExecutionBroker extends EventEmitter {
           runtimeProbe[field] = plan.runtimeProbe[field];
         }
       }
+      if (sanitizedDescriptorScrubber !== null) {
+        runtimeProbe.descriptorScrubber = sanitizedDescriptorScrubber;
+      }
       if (supervisorIdentity !== undefined) {
         runtimeProbe.supervisorExecutableIdentity = {
           path: supervisorIdentity.path,
@@ -2841,10 +3221,29 @@ class ProcessExecutionBroker extends EventEmitter {
         "Required post-spawn enforcement must declare sync or async mode",
       );
     }
+    const validatedArgs = linuxDescriptorLaunch
+      ? linuxDescriptorPtyLaunch
+        ? Object.freeze([
+            "--ctty",
+            `/proc/self/fd/${linuxDescriptorLaunch.scrubberChildFd}`,
+            ...linuxDescriptorLaunch.launchArgs,
+          ])
+        : linuxDescriptorLaunch.launchArgs
+      : planArgsSnapshot;
+    const validatedOptions = linuxDescriptorLaunch
+      ? Object.freeze({
+          ...linuxDescriptorLaunch.options,
+          stdio: Object.freeze([...linuxDescriptorLaunch.stdio]),
+          env: Object.freeze({
+            ...linuxDescriptorLaunch.callerEnvironment,
+          }),
+        })
+      : planOptionsSnapshot;
     const validatedPlan = {
       ...plan,
-      args: [...plan.args],
-      options: { ...plan.options },
+      command: planCommand,
+      args: [...validatedArgs],
+      options: { ...validatedOptions },
       backend,
       guarantees: [...new Set(guarantees)],
       candidateBackend,

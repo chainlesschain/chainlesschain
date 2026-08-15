@@ -126,15 +126,37 @@ function _pathIsInside(root, candidate) {
   return offset === "" || (!offset.startsWith("..") && !isAbsolute(offset));
 }
 
+function _canonicalWorkflowStoragePath(candidate, runtimeRealpath) {
+  const nativeRealpath = runtimeRealpath?.native;
+  return typeof nativeRealpath === "function"
+    ? nativeRealpath(candidate)
+    : runtimeRealpath(candidate);
+}
+
+export function workflowStoragePathIsContained(
+  cwd,
+  candidate,
+  runtimeRealpath = realpathSync,
+) {
+  const realRoot = _canonicalWorkflowStoragePath(cwd, runtimeRealpath);
+  const realCandidate = _canonicalWorkflowStoragePath(
+    candidate,
+    runtimeRealpath,
+  );
+  return _pathIsInside(realRoot, realCandidate);
+}
+
 function _assertWorkflowStoragePath(cwd, candidate) {
   const usingRuntimeFs =
     _deps.readFileSync === readFileSync &&
     _deps.realpathSync === realpathSync &&
     _deps.lstatSync === lstatSync;
   if (!usingRuntimeFs) return;
-  const realRoot = _deps.realpathSync(cwd);
-  const realCandidate = _deps.realpathSync(candidate);
-  if (!_pathIsInside(realRoot, realCandidate)) {
+  // Canonicalize both sides through the same native API. Windows hosted
+  // runners can expose cwd through an 8.3 alias while a trusted-parent read
+  // returns the expanded path; mixing legacy/native realpath projections can
+  // otherwise misclassify the same directory as an escape.
+  if (!workflowStoragePathIsContained(cwd, candidate, _deps.realpathSync)) {
     throw new Error("workflow storage path escapes the working directory");
   }
 }

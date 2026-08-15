@@ -41,6 +41,7 @@ const LINUX_BWRAP_SUPERVISOR_BINDING =
   "pinned-child-fd3-file-consume-run-overmount-v1";
 const LINUX_ENTRY_SNAPSHOT_MECHANISM =
   "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1";
+const LINUX_AMBIENT_SENTINEL_CHILD_FD = 142;
 
 afterAll(() => {
   expect(resetWindowsSandboxAdapterCache()).toBe(true);
@@ -81,6 +82,46 @@ function fileIdentity(filePath) {
     mtimeMs: stat.mtimeMs,
     attestation: "realpath-file-id-sha256",
   };
+}
+
+function inheritedSentinelStdio(parentFd) {
+  const stdio = Array.from(
+    { length: LINUX_AMBIENT_SENTINEL_CHILD_FD + 1 },
+    () => "ignore",
+  );
+  stdio[1] = "pipe";
+  stdio[2] = "pipe";
+  stdio[LINUX_AMBIENT_SENTINEL_CHILD_FD] = parentFd;
+  return stdio;
+}
+
+function createLiveFifo(fifoPath) {
+  const result = nativeSpawnSync(
+    "/usr/bin/python3",
+    [
+      "-I",
+      "-S",
+      "-c",
+      "import os, sys; os.mkfifo(sys.argv[1], 0o600)",
+      fifoPath,
+    ],
+    { encoding: "utf8", timeout: 10_000 },
+  );
+  if (result.error || result.status !== 0) {
+    throw new Error(
+      `Unable to create live FIFO ${fifoPath}: ${result.error?.message || result.stderr || result.status}`,
+    );
+  }
+}
+
+function verifyLiveFifoRoundTrip(fd, payload) {
+  const expected = Buffer.from(payload);
+  expect(fs.writeSync(fd, expected, 0, expected.length)).toBe(expected.length);
+  const received = Buffer.alloc(expected.length);
+  expect(fs.readSync(fd, received, 0, received.length, null)).toBe(
+    expected.length,
+  );
+  expect(received).toEqual(expected);
 }
 
 async function warmBrokerAsyncRuntime(cwd) {
@@ -143,7 +184,13 @@ async function warmBrokerAsyncRuntime(cwd) {
 
 function expectLinuxSupervisorPlan(supervisorPlan) {
   expect(supervisorPlan).toMatchObject({
-    command: "/proc/self/fd/3",
+    logicalBwrapCommand: "/proc/self/fd/3",
+    descriptorScrubberLayout: {
+      activeStdioThrough: 2,
+      executableChildFd: 3,
+      rawCommandMatchesLayout: true,
+      scrubberChildFdMapped: true,
+    },
     childFd3Mapped: true,
     supervisorFile: {
       childFd: "3",
@@ -151,6 +198,12 @@ function expectLinuxSupervisorPlan(supervisorPlan) {
       permissions: "0000",
     },
   });
+  expect(supervisorPlan.descriptorScrubberLayout.scrubberChildFd).toBe(
+    supervisorPlan.descriptorScrubberLayout.preservedMaxFd + 1,
+  );
+  expect(supervisorPlan.rawScrubberCommand).toBe(
+    `/proc/self/fd/${supervisorPlan.descriptorScrubberLayout.scrubberChildFd}`,
+  );
   expect(supervisorPlan.runDirectoryIndex).toBeGreaterThanOrEqual(0);
   expect(supervisorPlan.supervisorFile.index).toBeGreaterThan(
     supervisorPlan.runDirectoryIndex,
@@ -2436,6 +2489,15 @@ describe.runIf(LIVE && SUPPORTED)(
               direct_argv: true,
             },
           });
+          expect(envelope.mutationPhase, failureContext).toBe(
+            "after-broker-plan-admission-before-native-spawn",
+          );
+          expect(envelope.mutationLaunchBinding, failureContext).toEqual({
+            commandMatchesPlan: true,
+            argsMatchPlan: true,
+          });
+          expect(envelope.mutation, failureContext).not.toBeNull();
+          expect(envelope.dependencyMutation, failureContext).not.toBeNull();
           const report = JSON.parse(envelope.result.stdout);
           expect(report).toMatchObject({
             entryVersion: "original",
@@ -3062,41 +3124,64 @@ describe.runIf(LIVE && SUPPORTED)(
               .sort((left, right) =>
                 left.destination.localeCompare(right.destination),
               );
-            const positive = nativeSpawnSync(
-              process.execPath,
-              [
-                childFixture,
-                "plugin-command-snapshot-race",
-                workspace,
-                JSON.stringify({
-                  command: [alias, ...commandArgs].join(" "),
-                  entryPath,
-                  replacementPath: replacementEntry,
-                  destination,
-                  dependencyPath: dynamicRuntime
-                    ? approvedLibrary
-                    : allowedPath,
-                  dependencyReplacementPath: dynamicRuntime
-                    ? replacementApprovedLibrary
-                    : replacementAllowedPath,
-                  dependencyDestination: dynamicRuntime
-                    ? sandboxApprovedLibrary
-                    : sandboxAllowedPath,
-                  runtimeDestination: sandboxRuntimePath,
-                }),
-              ],
-              {
-                encoding: "utf8",
-                timeout: 60_000,
-                windowsHide: true,
-                env: {
-                  ...process.env,
-                  CC_SANDBOX_STRICT: "1",
-                  LD_LIBRARY_PATH: "/host/sensitive/library-path",
-                  CC_TEST_SENSITIVE_ENV: "must-not-cross-boundary",
-                },
-              },
+            const ambientSentinelPath = path.join(
+              workspace,
+              `.ambient-fd-sentinel-${alias}`,
             );
+            createLiveFifo(ambientSentinelPath);
+            const ambientSentinelFd = fs.openSync(
+              ambientSentinelPath,
+              fs.constants.O_RDWR | fs.constants.O_NONBLOCK,
+            );
+            let positive;
+            try {
+              positive = nativeSpawnSync(
+                process.execPath,
+                [
+                  childFixture,
+                  "plugin-command-snapshot-race",
+                  workspace,
+                  JSON.stringify({
+                    command: [alias, ...commandArgs].join(" "),
+                    entryPath,
+                    replacementPath: replacementEntry,
+                    destination,
+                    dependencyPath: dynamicRuntime
+                      ? approvedLibrary
+                      : allowedPath,
+                    dependencyReplacementPath: dynamicRuntime
+                      ? replacementApprovedLibrary
+                      : replacementAllowedPath,
+                    dependencyDestination: dynamicRuntime
+                      ? sandboxApprovedLibrary
+                      : sandboxAllowedPath,
+                    runtimeDestination: sandboxRuntimePath,
+                  }),
+                ],
+                {
+                  encoding: "utf8",
+                  timeout: 60_000,
+                  windowsHide: true,
+                  stdio: inheritedSentinelStdio(ambientSentinelFd),
+                  env: {
+                    ...process.env,
+                    CC_SANDBOX_STRICT: "1",
+                    CC_TEST_AMBIENT_SENTINEL_FD: String(
+                      LINUX_AMBIENT_SENTINEL_CHILD_FD,
+                    ),
+                    CC_TEST_AMBIENT_SENTINEL_PATH: ambientSentinelPath,
+                    LD_LIBRARY_PATH: "/host/sensitive/library-path",
+                    CC_TEST_SENSITIVE_ENV: "must-not-cross-boundary",
+                  },
+                },
+              );
+              verifyLiveFifoRoundTrip(
+                ambientSentinelFd,
+                `parent-still-owns-${alias}`,
+              );
+            } finally {
+              fs.closeSync(ambientSentinelFd);
+            }
             const positiveContext = JSON.stringify({
               alias,
               status: positive.status,
@@ -3108,6 +3193,15 @@ describe.runIf(LIVE && SUPPORTED)(
             expect(positive.error, positiveContext).toBeUndefined();
             expect(positive.status, positiveContext).toBe(0);
             const envelope = JSON.parse(positive.stdout);
+            expect(envelope.ambientDescriptorBeforeLaunch).toEqual({
+              childFd: LINUX_AMBIENT_SENTINEL_CHILD_FD,
+              openBeforeLaunch: true,
+              target: ambientSentinelPath,
+              expectedTarget: ambientSentinelPath,
+              targetMatchesSentinel: true,
+              isFifo: true,
+              reason: null,
+            });
             expect(envelope.result).toMatchObject({
               plugin_bin: {
                 plugin: "strict-native",
@@ -3117,6 +3211,15 @@ describe.runIf(LIVE && SUPPORTED)(
                 direct_argv: true,
               },
             });
+            expect(envelope.mutationPhase, positiveContext).toBe(
+              "after-broker-plan-admission-before-native-spawn",
+            );
+            expect(envelope.mutationLaunchBinding, positiveContext).toEqual({
+              commandMatchesPlan: true,
+              argsMatchPlan: true,
+            });
+            expect(envelope.mutation, positiveContext).not.toBeNull();
+            expect(envelope.dependencyMutation, positiveContext).not.toBeNull();
             const nativeReport = JSON.parse(envelope.result.stdout);
             expect(nativeReport).toMatchObject({
               allowedReadable: true,
@@ -4374,6 +4477,106 @@ describe.runIf(LIVE && SUPPORTED)(
         }
       },
       60_000,
+    );
+
+    it.runIf(process.platform === "linux")(
+      "scrubs a real inherited high descriptor before a generic bwrap target",
+      () => {
+        const workspace = fs.mkdtempSync(
+          path.join(os.tmpdir(), "cc-linux-generic-fd-scrub-live-"),
+        );
+        const sentinelPath = path.join(workspace, "ambient-sentinel.txt");
+        const childFixture = fileURLToPath(
+          new URL(
+            "../fixtures/process-broker-linux-bwrap-live-child.mjs",
+            import.meta.url,
+          ),
+        );
+        let sentinelFd = null;
+        try {
+          createLiveFifo(sentinelPath);
+          sentinelFd = fs.openSync(
+            sentinelPath,
+            fs.constants.O_RDWR | fs.constants.O_NONBLOCK,
+          );
+          const coordinator = nativeSpawnSync(
+            process.execPath,
+            [childFixture, "generic-fd-scrub", workspace],
+            {
+              encoding: "utf8",
+              timeout: 90_000,
+              windowsHide: true,
+              stdio: inheritedSentinelStdio(sentinelFd),
+              env: {
+                ...process.env,
+                CC_SANDBOX_STRICT: "1",
+                CC_TEST_AMBIENT_SENTINEL_FD: String(
+                  LINUX_AMBIENT_SENTINEL_CHILD_FD,
+                ),
+                CC_TEST_AMBIENT_SENTINEL_PATH: sentinelPath,
+              },
+            },
+          );
+          const failureContext = JSON.stringify({
+            status: coordinator.status,
+            signal: coordinator.signal,
+            error: coordinator.error?.message,
+            stdout: coordinator.stdout,
+            stderr: coordinator.stderr,
+          });
+          expect(coordinator.error, failureContext).toBeUndefined();
+          expect(coordinator.status, failureContext).toBe(0);
+          verifyLiveFifoRoundTrip(sentinelFd, "generic-parent-still-owns-fifo");
+          const envelope = JSON.parse(coordinator.stdout);
+          expect(envelope.ambientDescriptorBeforeLaunch).toEqual({
+            childFd: LINUX_AMBIENT_SENTINEL_CHILD_FD,
+            openBeforeLaunch: true,
+            target: sentinelPath,
+            expectedTarget: sentinelPath,
+            targetMatchesSentinel: true,
+            isFifo: true,
+            reason: null,
+          });
+          expect(envelope.result, failureContext).toMatchObject({
+            status: 0,
+            signal: null,
+            error: null,
+            stderr: "",
+          });
+          expect(JSON.parse(envelope.result.stdout)).toEqual({
+            fds: [],
+            nonStdioOpenFds: 0,
+          });
+          expect(envelope.descriptorPlan).toMatchObject({
+            logicalBwrapCommand: expect.stringMatching(
+              /^\/proc\/self\/fd\/\d+$/,
+            ),
+            activeStdioThrough: 2,
+            rawCommandMatchesLayout: true,
+          });
+          expect(envelope.descriptorPlan.rawScrubberCommand).toBe(
+            `/proc/self/fd/${envelope.descriptorPlan.scrubberChildFd}`,
+          );
+          expect(envelope.descriptorPlan.preservedMaxFd).toBe(
+            envelope.descriptorPlan.scrubberChildFd - 1,
+          );
+          expect(envelope.audit).toMatchObject({
+            sandboxed: true,
+            sandboxBackend: "linux-bwrap-workspace",
+            sandboxRuntimeProbe: {
+              descriptorScrubber: {
+                closesUnknownInheritedDescriptors: true,
+                verificationPassesFailClosed: true,
+                policyBound: true,
+              },
+            },
+          });
+        } finally {
+          if (sentinelFd !== null) fs.closeSync(sentinelFd);
+          fs.rmSync(workspace, { recursive: true, force: true });
+        }
+      },
+      90_000,
     );
 
     it.runIf(process.platform === "linux")(
