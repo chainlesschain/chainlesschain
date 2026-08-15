@@ -928,6 +928,133 @@ describe("background agent supervisor", () => {
     });
   });
 
+  it("keeps keeper and runtime evidence monotonic across stale writers", () => {
+    const id = "bg-keeper-projection-monotonic";
+    const token = "turn-token-keeper";
+    writeBackgroundAgentState({
+      id,
+      status: "running",
+      phase: "turn",
+      pid: 43212,
+      workerPid: 43212,
+      workerClaimedPid: 43212,
+      workerGeneration: "generation-owner",
+      workerWrapperPid: 43211,
+      keeperGeneration: "keeper-generation-owner",
+      keeperPid: 43214,
+      keeperStartedAt: 10,
+      keeperWrapperPid: 43213,
+      keeperStatus: "starting",
+      keeperHeartbeatAt: 10,
+      startedAt: 1,
+      heartbeatAt: 20,
+      turnLaunchAttempt: 1,
+      turnLaunchIntent: null,
+      turnLaunchResolution: {
+        token,
+        attempt: 1,
+        outcome: "spawned",
+        agentPid: 43215,
+        resolvedAt: 20,
+      },
+      agentPid: 43215,
+      agentStartedAt: 20,
+      agentRuntimePid: null,
+      agentRuntimeStartedAt: null,
+      turnBootstrapStatus: "awaiting-ready",
+      turnKeeperStatus: "waiting-for-runtime",
+    });
+    const stale = readBackgroundAgentState(id);
+
+    persistBackgroundAgentState({
+      ...stale,
+      keeperStatus: "ready",
+      keeperHeartbeatAt: 30,
+      keeperReadyAt: 30,
+      agentRuntimePid: 43216,
+      agentRuntimeStartedAt: 20,
+      turnBootstrapStatus: "released",
+      turnBootstrapCommittedAt: 40,
+      turnKeeperStatus: "armed",
+      turnKeeperPid: 43214,
+      turnKeeperArmedAt: 35,
+    });
+    persistBackgroundAgentState({
+      ...stale,
+      title: "stale rename snapshot",
+      heartbeatAt: 50,
+    });
+
+    expect(readBackgroundAgentState(id)).toMatchObject({
+      workerWrapperPid: 43211,
+      keeperGeneration: "keeper-generation-owner",
+      keeperPid: 43214,
+      keeperWrapperPid: 43213,
+      keeperStatus: "ready",
+      keeperReadyAt: 30,
+      agentPid: 43215,
+      agentRuntimePid: 43216,
+      turnBootstrapStatus: "released",
+      turnBootstrapCommittedAt: 40,
+      turnKeeperStatus: "armed",
+      turnKeeperPid: 43214,
+      turnKeeperArmedAt: 35,
+    });
+
+    const armed = readBackgroundAgentState(id);
+    persistBackgroundAgentState({
+      ...armed,
+      turnKeeperStatus: "retired",
+      turnKeeperCleanupReason: "turn-exited",
+      turnKeeperCleanupRequestedAt: 60,
+      turnKeeperCleanupConfirmedAt: 70,
+    });
+    persistBackgroundAgentState({
+      ...readBackgroundAgentState(id),
+      phase: "idle",
+      agentPid: null,
+      agentStartedAt: null,
+      agentRuntimePid: null,
+      agentRuntimeStartedAt: null,
+      turnBootstrapStatus: null,
+      turnBootstrapCommittedAt: null,
+      turnKeeperStatus: null,
+      turnKeeperPid: null,
+      turnKeeperArmedAt: null,
+      turnKeeperCleanupReason: null,
+      turnKeeperCleanupRequestedAt: null,
+      turnKeeperCleanupConfirmedAt: null,
+      turnKeeperCleanupError: null,
+    });
+    persistBackgroundAgentState({
+      ...armed,
+      title: "older active snapshot",
+      heartbeatAt: 80,
+    });
+
+    expect(readBackgroundAgentState(id)).toMatchObject({
+      phase: "idle",
+      agentPid: null,
+      agentRuntimePid: null,
+      turnBootstrapStatus: null,
+      turnKeeperStatus: null,
+      turnKeeperCleanupConfirmedAt: null,
+    });
+
+    persistBackgroundAgentState({
+      ...readBackgroundAgentState(id),
+      status: "completed",
+      phase: null,
+      transport: null,
+      endedAt: 90,
+      exitCode: 0,
+    });
+    expect(readBackgroundAgentState(id)).toMatchObject({
+      status: "completed",
+      phase: null,
+    });
+  });
+
   it("fences stop without signalling while a turn launch intent is unresolved", () => {
     const id = "bg-stop-turn-intent";
     const now = Date.now();
@@ -962,8 +1089,204 @@ describe("background agent supervisor", () => {
     expect(_deps.kill).not.toHaveBeenCalled();
     expect(readBackgroundAgentState(id)).toMatchObject({
       status: "running",
+      phase: "stopping",
       stopRequestedAt: expect.any(Number),
       turnLaunchIntent: { token: "turn-token-stop", attempt: 1 },
+    });
+  });
+
+  it("does not let the prior idle projection mask a new turn intent", () => {
+    const id = "bg-new-turn-after-idle";
+    writeBackgroundAgentState({
+      id,
+      status: "running",
+      phase: "idle",
+      pid: 43212,
+      workerPid: 43212,
+      workerClaimedPid: 43212,
+      workerGeneration: "generation-owner",
+      startedAt: 1,
+      heartbeatAt: 10,
+      turnLaunchAttempt: 1,
+      turnLaunchIntent: null,
+      turnLaunchResolution: {
+        token: "turn-token-one",
+        attempt: 1,
+        outcome: "spawned",
+        agentPid: 43213,
+        resolvedAt: 5,
+      },
+      agentPid: null,
+      agentRuntimePid: null,
+      turnBootstrapStatus: null,
+      turnKeeperStatus: null,
+    });
+
+    persistBackgroundAgentState({
+      ...readBackgroundAgentState(id),
+      phase: "turn_launching",
+      turnLaunchAttempt: 2,
+      turnLaunchIntent: {
+        token: "turn-token-two",
+        attempt: 2,
+        workerPid: 43212,
+        workerGeneration: "generation-owner",
+        preparedAt: 20,
+      },
+    });
+
+    expect(readBackgroundAgentState(id)).toMatchObject({
+      phase: "turn_launching",
+      turnLaunchAttempt: 2,
+      turnLaunchIntent: { token: "turn-token-two", attempt: 2 },
+    });
+
+    persistBackgroundAgentState({
+      id,
+      status: "running",
+      phase: "idle",
+      pid: 43212,
+      workerPid: 43212,
+      workerClaimedPid: 43212,
+      workerGeneration: "generation-owner",
+      startedAt: 1,
+      heartbeatAt: 30,
+      turnLaunchAttempt: 1,
+      turnLaunchIntent: null,
+      turnLaunchResolution: {
+        token: "turn-token-one",
+        attempt: 1,
+        outcome: "spawned",
+        agentPid: 43213,
+        resolvedAt: 5,
+      },
+      agentPid: null,
+      agentRuntimePid: null,
+      turnBootstrapStatus: null,
+      turnKeeperStatus: null,
+    });
+    expect(readBackgroundAgentState(id)).toMatchObject({
+      phase: "turn_launching",
+      turnLaunchAttempt: 2,
+      turnLaunchIntent: { token: "turn-token-two", attempt: 2 },
+    });
+  });
+
+  it("lets a queued turn replace the prior retired process projection", () => {
+    const id = "bg-new-turn-after-retire";
+    writeBackgroundAgentState({
+      id,
+      status: "running",
+      phase: "turn",
+      pid: 43212,
+      workerPid: 43212,
+      workerClaimedPid: 43212,
+      workerGeneration: "generation-owner",
+      startedAt: 1,
+      heartbeatAt: 10,
+      turnLaunchAttempt: 1,
+      turnLaunchIntent: null,
+      turnLaunchResolution: {
+        token: "turn-token-one",
+        attempt: 1,
+        outcome: "spawned",
+        agentPid: 43213,
+        resolvedAt: 5,
+      },
+      agentPid: 43213,
+      agentStartedAt: 5,
+      agentRuntimePid: 43214,
+      agentRuntimeStartedAt: 5,
+      turnBootstrapStatus: "released",
+      turnBootstrapCommittedAt: 6,
+      turnKeeperStatus: "retired",
+      turnKeeperPid: 43215,
+      turnKeeperArmedAt: 7,
+      turnKeeperCleanupReason: "turn-exited",
+      turnKeeperCleanupRequestedAt: 8,
+      turnKeeperCleanupConfirmedAt: 9,
+    });
+    const retiredSnapshot = readBackgroundAgentState(id);
+    persistBackgroundAgentState({
+      ...retiredSnapshot,
+      phase: "turn_launching",
+      turnLaunchAttempt: 2,
+      turnLaunchIntent: {
+        token: "turn-token-two",
+        attempt: 2,
+        workerPid: 43212,
+        workerGeneration: "generation-owner",
+        preparedAt: 20,
+      },
+    });
+    persistBackgroundAgentState({
+      ...retiredSnapshot,
+      title: "stale before second spawn",
+      heartbeatAt: 20,
+    });
+    expect(readBackgroundAgentState(id)).toMatchObject({
+      phase: "turn_launching",
+      turnLaunchAttempt: 2,
+      turnLaunchIntent: { token: "turn-token-two", attempt: 2 },
+    });
+    persistBackgroundAgentState({
+      ...readBackgroundAgentState(id),
+      phase: "turn",
+      turnLaunchIntent: null,
+      turnLaunchResolution: {
+        token: "turn-token-two",
+        attempt: 2,
+        outcome: "spawned",
+        agentPid: 43216,
+        resolvedAt: 21,
+      },
+      agentPid: 43216,
+      agentStartedAt: 21,
+      agentRuntimePid: null,
+      agentRuntimeStartedAt: null,
+      turnBootstrapStatus: "awaiting-ready",
+      turnBootstrapCommittedAt: null,
+      turnKeeperStatus: "waiting-for-runtime",
+      turnKeeperPid: null,
+      turnKeeperArmedAt: null,
+      turnKeeperCleanupReason: null,
+      turnKeeperCleanupRequestedAt: null,
+      turnKeeperCleanupConfirmedAt: null,
+      turnKeeperCleanupError: null,
+    });
+
+    expect(readBackgroundAgentState(id)).toMatchObject({
+      turnLaunchAttempt: 2,
+      turnLaunchIntent: null,
+      turnLaunchResolution: {
+        token: "turn-token-two",
+        attempt: 2,
+        outcome: "spawned",
+      },
+      agentPid: 43216,
+      agentRuntimePid: null,
+      turnBootstrapStatus: "awaiting-ready",
+      turnKeeperStatus: "waiting-for-runtime",
+      turnKeeperCleanupConfirmedAt: null,
+    });
+
+    persistBackgroundAgentState({
+      ...retiredSnapshot,
+      title: "stale prior-turn snapshot",
+      heartbeatAt: 30,
+    });
+    expect(readBackgroundAgentState(id)).toMatchObject({
+      turnLaunchAttempt: 2,
+      turnLaunchResolution: {
+        token: "turn-token-two",
+        attempt: 2,
+        outcome: "spawned",
+      },
+      agentPid: 43216,
+      agentRuntimePid: null,
+      turnBootstrapStatus: "awaiting-ready",
+      turnKeeperStatus: "waiting-for-runtime",
+      turnKeeperCleanupConfirmedAt: null,
     });
   });
 
@@ -1355,45 +1678,171 @@ describe("background agent supervisor", () => {
   });
 
   it("runs the real detached worker and records completion", async () => {
+    const workDir = join(dir, "work");
+    const isolatedHome = join(dir, "home");
+    mkdirSync(workDir);
     const fakeCli = join(dir, "fake-cli.mjs");
     writeFileSync(
       fakeCli,
       'console.log("worker-output"); setTimeout(() => process.exit(0), 50);\n',
     );
-    const state = launchBackgroundAgent({
-      argv: [],
-      cwd: dir,
-      sessionId: "session-real",
-      title: "real worker",
-      cliEntry: fakeCli,
-    });
+    const previousHome = process.env.CHAINLESSCHAIN_HOME;
+    let state;
+    try {
+      process.env.CHAINLESSCHAIN_HOME = isolatedHome;
+      state = launchBackgroundAgent({
+        argv: [],
+        cwd: workDir,
+        sessionId: "session-real",
+        title: "real worker",
+        cliEntry: fakeCli,
+      });
+    } finally {
+      if (previousHome === undefined) {
+        delete process.env.CHAINLESSCHAIN_HOME;
+      } else {
+        process.env.CHAINLESSCHAIN_HOME = previousHome;
+      }
+    }
     let completed = null;
+    let latest = null;
     const completionDeadline = Date.now() + 60_000;
     while (Date.now() < completionDeadline) {
       await new Promise((resolve) => setTimeout(resolve, 50));
       const current = readBackgroundAgentState(state.id);
+      latest = current;
       if (current?.status === "completed") {
         completed = current;
         break;
       }
     }
+    if (!completed) {
+      throw new Error(
+        `real background worker did not complete\nstate=${JSON.stringify(latest)}\nlog=${readBackgroundAgentLog(state.id)}`,
+      );
+    }
     expect(completed?.exitCode).toBe(0);
     expect(completed?.workerPid).toBe(state.pid);
     expect(Number.isInteger(completed?.agentPid)).toBe(true);
+    expect(Number.isInteger(completed?.agentRuntimePid)).toBe(true);
+    expect(Number.isInteger(completed?.keeperPid)).toBe(true);
+    expect(completed?.turnKeeperStatus).toBe("retired");
+    expect(completed?.turnKeeperCleanupConfirmedAt).toEqual(expect.any(Number));
     expect(Number.isFinite(completed?.heartbeatAt)).toBe(true);
     expect(readBackgroundAgentLog(state.id)).toContain("worker-output");
   });
 
+  it("keeps an armed turn contained when the worker is hard-killed", async () => {
+    const workDir = join(dir, "hard-kill-work");
+    const isolatedHome = join(dir, "hard-kill-home");
+    const evidenceFile = join(dir, "hard-kill-pids.json");
+    mkdirSync(workDir);
+    const fakeCli = join(dir, "fake-cli-hard-kill.mjs");
+    writeFileSync(
+      fakeCli,
+      [
+        'import { spawn } from "node:child_process";',
+        'import { writeFileSync } from "node:fs";',
+        'const descendant = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore" });',
+        `writeFileSync(${JSON.stringify(evidenceFile)}, JSON.stringify({ runtimePid: process.pid, descendantPid: descendant.pid }));`,
+        "setInterval(() => {}, 1000);",
+        "",
+      ].join("\n"),
+    );
+    const previousHome = process.env.CHAINLESSCHAIN_HOME;
+    let launched;
+    try {
+      process.env.CHAINLESSCHAIN_HOME = isolatedHome;
+      launched = launchBackgroundAgent({
+        argv: [],
+        cwd: workDir,
+        sessionId: "session-hard-kill",
+        title: "hard kill containment",
+        cliEntry: fakeCli,
+      });
+    } finally {
+      if (previousHome === undefined) {
+        delete process.env.CHAINLESSCHAIN_HOME;
+      } else {
+        process.env.CHAINLESSCHAIN_HOME = previousHome;
+      }
+    }
+
+    let armed = null;
+    const armedDeadline = Date.now() + 60_000;
+    while (Date.now() < armedDeadline) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      const current = readBackgroundAgentState(launched.id);
+      if (
+        current?.turnKeeperStatus === "armed" &&
+        current.turnBootstrapStatus === "released" &&
+        existsSync(evidenceFile)
+      ) {
+        armed = current;
+        break;
+      }
+    }
+    expect(
+      armed,
+      `state=${JSON.stringify(readBackgroundAgentState(launched.id))} log=${readBackgroundAgentLog(launched.id)}`,
+    ).not.toBeNull();
+    const evidence = JSON.parse(readFileSync(evidenceFile, "utf8"));
+    expect(evidence.runtimePid).toBe(armed.agentRuntimePid);
+    expect(isProcessStillAlive(evidence.descendantPid)).toBe(true);
+    expect(isProcessStillAlive(armed.keeperPid)).toBe(true);
+
+    // Kill only the worker process, never its tree. The sibling keeper must
+    // observe channel EOF and independently retire the already-armed turn.
+    process.kill(Number(armed.pid), "SIGKILL");
+
+    let cleaned = null;
+    const cleanupDeadline = Date.now() + 30_000;
+    while (Date.now() < cleanupDeadline) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      const current = readBackgroundAgentState(launched.id);
+      if (
+        current?.turnKeeperStatus === "retired" &&
+        !isProcessStillAlive(armed.agentPid) &&
+        !isProcessStillAlive(evidence.runtimePid) &&
+        !isProcessStillAlive(evidence.descendantPid) &&
+        !isProcessStillAlive(armed.keeperPid)
+      ) {
+        cleaned = current;
+        break;
+      }
+    }
+    expect(
+      cleaned,
+      `state=${JSON.stringify(readBackgroundAgentState(launched.id))} descendantAlive=${isProcessStillAlive(evidence.descendantPid)} log=${readBackgroundAgentLog(launched.id)}`,
+    ).not.toBeNull();
+    expect(cleaned.turnKeeperCleanupReason).toBe("worker-disconnected");
+    expect(cleaned.turnKeeperCleanupConfirmedAt).toEqual(expect.any(Number));
+  }, 90_000);
+
   it("keeps a running rename when the worker writes completion", async () => {
+    const workDir = join(dir, "rename-work");
+    const isolatedHome = join(dir, "rename-home");
+    mkdirSync(workDir);
     const fakeCli = join(dir, "fake-cli-rename.mjs");
     writeFileSync(fakeCli, "setTimeout(() => process.exit(0), 150);\n");
-    const state = launchBackgroundAgent({
-      argv: [],
-      cwd: dir,
-      sessionId: "session-rename",
-      title: "before",
-      cliEntry: fakeCli,
-    });
+    const previousHome = process.env.CHAINLESSCHAIN_HOME;
+    let state;
+    try {
+      process.env.CHAINLESSCHAIN_HOME = isolatedHome;
+      state = launchBackgroundAgent({
+        argv: [],
+        cwd: workDir,
+        sessionId: "session-rename",
+        title: "before",
+        cliEntry: fakeCli,
+      });
+    } finally {
+      if (previousHome === undefined) {
+        delete process.env.CHAINLESSCHAIN_HOME;
+      } else {
+        process.env.CHAINLESSCHAIN_HOME = previousHome;
+      }
+    }
 
     const renamed = renameBackgroundAgent(state.id, "after");
     expect(renamed.title).toBe("after");
@@ -1403,7 +1852,7 @@ describe("background agent supervisor", () => {
     // even wrote completion. (The rename-vs-finalize clobber itself is fixed
     // at the root in writeBackgroundAgentState's field-aware merge.)
     let completed = null;
-    const deadline = Date.now() + 10_000;
+    const deadline = Date.now() + 30_000;
     while (Date.now() < deadline) {
       await new Promise((resolve) => setTimeout(resolve, 50));
       const current = readBackgroundAgentState(state.id);
@@ -1522,7 +1971,7 @@ describe("background agent supervisor", () => {
     _deps.spawn = vi.fn(() => ({ pid: 778, unref: vi.fn() }));
 
     resumeBackgroundAgent(id, prompt);
-    const jobFile = _deps.spawn.mock.calls.at(-1)[1][1];
+    const jobFile = _deps.spawn.mock.calls[0][1][1];
     const job = JSON.parse(readFileSync(jobFile, "utf8"));
 
     expect(job.argv).toContain(`--print=${prompt}`);
@@ -1596,7 +2045,10 @@ describe("background agent supervisor", () => {
     });
 
     const resumed = resumeBackgroundAgent(original.id, "continue safely");
-    const jobFile = _deps.spawn.mock.calls.at(-1)[1][1];
+    const workerSpawn = _deps.spawn.mock.calls
+      .filter((call) => call[2].origin === "background-agent:worker")
+      .at(-1);
+    const jobFile = workerSpawn[1][1];
     const job = JSON.parse(readFileSync(jobFile, "utf8"));
     expect(job.argv).toEqual(
       expect.arrayContaining([
@@ -1676,7 +2128,10 @@ describe("background agent supervisor", () => {
     expect(resumed.launchProfile.llm.model).toBe("model-two");
     expect(resumed.launchProfile.permission.dangerousBypass).toBe(true);
     expect(resumed.governance.permissionMode).toBe("manual");
-    const jobFile = _deps.spawn.mock.calls.at(-1)[1][1];
+    const workerSpawn = _deps.spawn.mock.calls
+      .filter((call) => call[2].origin === "background-agent:worker")
+      .at(-1);
+    const jobFile = workerSpawn[1][1];
     const job = JSON.parse(readFileSync(jobFile, "utf8"));
     expect(job.argv).toEqual(
       expect.arrayContaining([
@@ -1719,11 +2174,12 @@ describe("background agent supervisor", () => {
         apiKey: "resume-secret",
       });
       expect(resumed.launchProfile.credentials.apiKey).toBe("external");
-      const jobFile = _deps.spawn.mock.calls.at(-1)[1][1];
+      const workerSpawn = _deps.spawn.mock.calls
+        .filter((call) => call[2].origin === "background-agent:worker")
+        .at(-1);
+      const jobFile = workerSpawn[1][1];
       expect(readFileSync(jobFile, "utf8")).not.toContain("resume-secret");
-      expect(_deps.spawn.mock.calls.at(-1)[2].env.CC_API_KEY).toBe(
-        "resume-secret",
-      );
+      expect(workerSpawn[2].env.CC_API_KEY).toBe("resume-secret");
     } finally {
       if (previous === undefined) delete process.env.CC_API_KEY;
       else process.env.CC_API_KEY = previous;
@@ -1765,6 +2221,9 @@ describe("background agent supervisor", () => {
   });
 
   it("runs follow-up turns over the session transport and finalizes on detach", async () => {
+    const workDir = join(dir, "interactive-work");
+    const isolatedHome = join(dir, "interactive-home");
+    mkdirSync(workDir);
     const fakeCli = join(dir, "fake-cli-interactive.mjs");
     // Turn 1 (no -p) stays alive long enough for the test to attach; follow-up
     // turns (-p present) print their argv and exit quickly.
@@ -1778,14 +2237,25 @@ describe("background agent supervisor", () => {
         "",
       ].join("\n"),
     );
-    const state = launchBackgroundAgent({
-      argv: ["--flag-a"],
-      cwd: dir,
-      sessionId: "session-interactive",
-      title: "interactive",
-      cliEntry: fakeCli,
-      followUpArgv: ["--flag-a"],
-    });
+    const previousHome = process.env.CHAINLESSCHAIN_HOME;
+    let state;
+    try {
+      process.env.CHAINLESSCHAIN_HOME = isolatedHome;
+      state = launchBackgroundAgent({
+        argv: ["--flag-a"],
+        cwd: workDir,
+        sessionId: "session-interactive",
+        title: "interactive",
+        cliEntry: fakeCli,
+        followUpArgv: ["--flag-a"],
+      });
+    } finally {
+      if (previousHome === undefined) {
+        delete process.env.CHAINLESSCHAIN_HOME;
+      } else {
+        process.env.CHAINLESSCHAIN_HOME = previousHome;
+      }
+    }
 
     // Wait for the worker to publish its transport endpoint.
     let transport = null;
@@ -1813,14 +2283,18 @@ describe("background agent supervisor", () => {
     conn.send({ type: "stop" });
 
     let turn2Ended = false;
-    for (let i = 0; i < 150 && !turn2Ended; i++) {
+    for (let i = 0; i < 300 && !turn2Ended; i++) {
       await new Promise((resolve) => setTimeout(resolve, 100));
       turn2Ended = events.some((e) => e.type === "turn-ended" && e.turn === 2);
     }
-    expect(events.some((e) => e.type === "turn-started" && e.turn === 2)).toBe(
-      true,
-    );
-    expect(turn2Ended).toBe(true);
+    expect(
+      events.some((e) => e.type === "turn-started" && e.turn === 2),
+      `state=${JSON.stringify(readBackgroundAgentState(state.id))} log=${readBackgroundAgentLog(state.id)}`,
+    ).toBe(true);
+    expect(
+      turn2Ended,
+      `state=${JSON.stringify(readBackgroundAgentState(state.id))} log=${readBackgroundAgentLog(state.id)}`,
+    ).toBe(true);
     expect(readBackgroundAgentLog(state.id)).toContain('"--print=second task"');
 
     // Detach while idle → the worker finalizes and clears the transport.
@@ -2798,11 +3272,21 @@ describe("prompt queue backpressure (Gap 4, supervisor gap 2026-07-11)", () => {
       if (target === Number(stopSnapshot.agentPid)) {
         return Number(stopSnapshot.agentStartedAt);
       }
+      if (target === Number(stopSnapshot.agentRuntimePid)) {
+        return Number(stopSnapshot.agentRuntimeStartedAt);
+      }
       if (
         target === Number(stopSnapshot.pid) ||
-        target === Number(stopSnapshot.workerPid)
+        target === Number(stopSnapshot.workerPid) ||
+        target === Number(stopSnapshot.workerWrapperPid)
       ) {
         return Number(stopSnapshot.startedAt);
+      }
+      if (
+        target === Number(stopSnapshot.keeperPid) ||
+        target === Number(stopSnapshot.keeperWrapperPid)
+      ) {
+        return Number(stopSnapshot.keeperStartedAt);
       }
       return null;
     });
@@ -2813,7 +3297,15 @@ describe("prompt queue backpressure (Gap 4, supervisor gap 2026-07-11)", () => {
       // only its OS command seam with direct termination of the recorded pids.
       _deps.spawnSync = vi.fn(() => {
         const latest = readBackgroundAgentState(state.id) || state;
-        for (const pid of [latest.agentPid, latest.workerPid, latest.pid]) {
+        for (const pid of [
+          latest.agentRuntimePid,
+          latest.agentPid,
+          latest.workerPid,
+          latest.workerWrapperPid,
+          latest.pid,
+          latest.keeperPid,
+          latest.keeperWrapperPid,
+        ]) {
           const target = Number(pid);
           if (!Number.isInteger(target) || target <= 0) continue;
           launchedPids.add(target);
