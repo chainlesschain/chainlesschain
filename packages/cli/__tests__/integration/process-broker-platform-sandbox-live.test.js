@@ -906,6 +906,7 @@ describe.runIf(LIVE && SUPPORTED)(
           expect(coordinator.error, failureContext).toBeUndefined();
           expect(coordinator.status, failureContext).toBe(0);
           const envelope = JSON.parse(coordinator.stdout);
+          expect(envelope.supervisorPlan).toBeNull();
           expect(envelope.result).toMatchObject({
             plugin_bin: {
               plugin: "strict-live",

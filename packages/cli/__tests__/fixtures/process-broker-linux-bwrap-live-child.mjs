@@ -396,6 +396,9 @@ async function executeWithSupervisorPlan(execute) {
   const underlyingSpawnSync = originalNative?.spawnSync || nativeSpawnSync;
   let supervisorPlan = null;
   const capturePlan = (command, args, options) => {
+    // This fixture exercises the platform-native launch on every supported OS.
+    // Only Linux's final launch is the descriptor-scrubbed bwrap contract.
+    if (process.platform !== "linux") return;
     const summary = summarizeLinuxSupervisorPlan({
       backend: "linux-bwrap",
       command,

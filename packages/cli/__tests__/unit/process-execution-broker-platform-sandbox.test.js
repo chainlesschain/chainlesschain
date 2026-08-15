@@ -4880,6 +4880,63 @@ describe("platform sandbox adapter contract", () => {
     },
   );
 
+  it("accepts a trusted dependency whose unused PT_INTERP is a valid system loader path", () => {
+    const harness = createLinuxStrongHarness({
+      entryRuntime: "native-dynamic-elf",
+      nativeEntry: createLinuxStaticPieElf64({
+        includeInterp: true,
+        interpreterPath: "/lib64/ld-linux.so.2",
+        dynamicNeededNames: ["libc.so.6"],
+      }),
+      runtimeLibc: createLinuxStaticPieElf64({
+        dynamicFlags1: null,
+        includeInterp: true,
+        interpreterPath: "/lib64/ld-linux.so.2",
+      }),
+    });
+    const plan = applyLinuxStrongNativeHarness(harness);
+
+    expect(plan).toMatchObject({
+      applied: true,
+      backend: "linux-bwrap",
+      runtimeProbe: {
+        targetRuntime: "native-dynamic-elf",
+        initialDynamicLoadClosureDescriptorBound: true,
+        initialDynamicRuntimeFileCount: 2,
+      },
+    });
+    plan.cleanup();
+    expect(harness.openFiles.size).toBe(0);
+  });
+
+  it("rejects an unused dependency PT_INTERP outside trusted system roots", () => {
+    const harness = createLinuxStrongHarness({
+      entryRuntime: "native-dynamic-elf",
+      nativeEntry: createLinuxStaticPieElf64({
+        includeInterp: true,
+        interpreterPath: "/lib64/ld-linux.so.2",
+        dynamicNeededNames: ["libc.so.6"],
+      }),
+      runtimeLibc: createLinuxStaticPieElf64({
+        dynamicFlags1: null,
+        includeInterp: true,
+        interpreterPath: "/tmp/untrusted-loader",
+      }),
+    });
+    const plan = applyLinuxStrongNativeHarness(harness);
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "linux_bwrap_native_runtime_unattested",
+      runtimeProbe: {
+        attempted: false,
+        runnable: false,
+        reason: "native_entry_interpreter_outside_system_roots",
+      },
+    });
+    expect(harness.openFiles.size).toBe(0);
+  });
+
   it("keeps the visible dynamic probe Node runtime on an immutable snapshot across a same-inode host rewrite", () => {
     const harness = createLinuxStrongHarness({
       entryRuntime: "native-dynamic-elf",

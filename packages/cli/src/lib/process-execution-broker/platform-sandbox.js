@@ -6727,9 +6727,12 @@ function inspectLinuxNativeElf(runtime, fd, identity, { role = "entry" } = {}) {
   if (interpreterSegments.length > 1) {
     throw new Error("native_entry_interpreter_ambiguous");
   }
-  if (dependencyObject && interpreterSegments.length !== 0) {
-    throw new Error("native_dependency_interpreter_unsupported");
-  }
+  // A shared object can itself be directly executable: Ubuntu 24.04's
+  // libc.so.6, for example, carries PT_INTERP. The dynamic loader ignores
+  // that segment when it maps the object as a dependency, so rejecting it
+  // would exclude a legitimate recursive startup graph. Still parse and
+  // validate the segment below; only an entry object's interpreter becomes
+  // part of the kernel-exec contract and returned closure evidence.
   let interpreter = null;
   if (interpreterSegments.length === 1) {
     const segment = interpreterSegments[0];
