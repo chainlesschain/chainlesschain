@@ -330,6 +330,7 @@ jobs:
       - name: Run time-based malicious MCP host and pathname race soak
         env:
           CC_CLI_MCP_SECURITY_SOAK_OUTPUT: ${{ runner.temp }}/cli-mcp-security-soak-${{ runner.os }}.json
+          CC_CLI_MCP_SECURITY_SOAK_EXECUTION_CONTEXT_RESULT: ${{ runner.temp }}/mcp-materialized-capsule-live-${{ runner.os }}.json
         run: npm run test:cli-mcp-security-soak
 
       - name: Upload exact-SHA MCP security soak evidence
@@ -374,19 +375,40 @@ jobs:
           path: ${{ runner.temp }}/cli-mcp-security-soak-evidence
           merge-multiple: true
 
-      - name: Verify exact commit, three operating systems, time, cycles, and invariants
+      - name: Download materialized capsule execution-context evidence
+        if: github.event_name != 'pull_request'
+        uses: actions/download-artifact@v7
+        with:
+          pattern: cli-mcp-execution-context-live-*-${{ env.CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/cli-mcp-execution-context-live-evidence
+          merge-multiple: true
+
+      - name: Verify formal exact-SHA platform, duration, and live-boundary evidence
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          node packages/cli/scripts/cli-mcp-security-soak.mjs \
+            --verify-evidence-dir "${RUNNER_TEMP}/cli-mcp-security-soak-evidence" \
+            --execution-context-evidence-dir "${RUNNER_TEMP}/cli-mcp-execution-context-live-evidence" \
+            --release-commit "${CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA}" \
+            --output "${RUNNER_TEMP}/cli-mcp-security-soak-aggregate.json"
+
+      - name: Verify isolated non-qualifying PR smoke evidence
+        if: github.event_name == 'pull_request'
         shell: bash
         run: |
           set -euo pipefail
           node packages/cli/scripts/cli-mcp-security-soak.mjs \
             --verify-evidence-dir "${RUNNER_TEMP}/cli-mcp-security-soak-evidence" \
             --release-commit "${CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA}" \
+            --allow-smoke \
             --output "${RUNNER_TEMP}/cli-mcp-security-soak-aggregate.json"
 
       - name: Upload immutable MCP security soak aggregate
         uses: actions/upload-artifact@v6
         with:
-          name: cli-mcp-security-soak-aggregate-${{ env.CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA }}-${{ github.run_attempt }}
+          name: cli-mcp-security-soak-${{ github.event_name == 'pull_request' && 'smoke-non-qualifying' || 'formal-aggregate' }}-${{ env.CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/cli-mcp-security-soak-aggregate.json
           if-no-files-found: error
           retention-days: 90
