@@ -181,7 +181,7 @@ outcome-unknown dead letter
 ## 2026-08-15 发布后安全候选
 
 - **后台 hard-kill keeper**：`1724f05300` 在 native child 进入用户代码前建立 bootstrap barrier，并由 sibling keeper 在 supervisor PID commit 前持有 process-tree cleanup authority；`0edc932aa5` 增加 20-Agent、7200 秒、1000-cycle 的三平台 exact-SHA formal workflow。实现已提交，但 CLI CI、Strict Sandbox 与 keeper formal artifact 尚未在该最终 SHA 上形成，因此 P1-2 仍为部分完成。
-- **Node capsule builtin policy**：`b22e65d1e9` 将 materialization/capsule 升到 v4/v3，把构建期静态 external builtin 集绑定为最终 allowlist，并同时约束 `Module._load`、`Module._resolveFilename`、`process.getBuiltinModule`、internal bindings 与 `process.dlopen`。它关闭当前 capsule 的直接 builtin loader 旁路；允许 `worker_threads` / `child_process` 时的新 JS 上下文传递隔离、macOS atomic exec、任意 shared-library closure、远端 distributed authority 和 exact-SHA 三平台恶意矩阵仍未关闭。
+- **Node capsule builtin policy**：`b22e65d1e9` 将构建期静态 external builtin 集绑定为最终 allowlist，并同时约束 `Module._load`、`Module._resolveFilename`、`process.getBuiltinModule`、internal bindings 与 `process.dlopen`。`2d4dff4052` 进一步把 `worker_threads` / `child_process` 等新执行上下文显式归入强制 OS sandbox contract，并用 fresh-isolate Worker 直接尝试未列入父 allowlist 的文件/网络访问。实现候选已关闭直接 loader 与执行上下文归属歧义；macOS atomic exec、任意 shared-library closure、远端 distributed authority 和该最终 exact SHA 的三平台恶意矩阵仍未关闭。
 
 ## 已落地能力
 
