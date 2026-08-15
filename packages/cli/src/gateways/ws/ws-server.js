@@ -1528,30 +1528,137 @@ export class ChainlessChainWSServer extends EventEmitter {
     const sessionId = payload.envelope?.sessionId;
     const crypto = this.remoteSessionCrypto.get(sessionId);
     const token = this.remoteSessionPairingSecrets.get(sessionId);
-    if (!crypto || !token)
+    if (!crypto)
       throw new Error("Remote Session pairing is unavailable or expired");
-    const invitation = this.remoteSessions.pairingInvitation(sessionId, token);
-    const durableMembership = Boolean(invitation.session.hostPrincipalId);
-    if (durableMembership) {
-      crypto.pairForDurableMembership(
+    if (
+      typeof payload.mobilePeerId !== "string" ||
+      payload.mobilePeerId !== message.from ||
+      payload.envelope?.senderId !== payload.mobilePeerId
+    ) {
+      throw new Error("Remote Session relay peer binding is invalid");
+    }
+
+    // An already-authenticated receipt wins even if the host has meanwhile
+    // issued a fresh token for another device. Trying the committed key first
+    // lets an ACK-lost peer reconcile without letting the new invitation erase
+    // its key/receipt. Authentication failure is side-effect free; only then
+    // may this frame be considered as a prospective current-token pairing.
+    let acceptedRetry = null;
+    if (crypto.hasRelayMembershipAcceptance(payload.mobilePeerId)) {
+      try {
+        acceptedRetry = crypto.decrypt(payload.envelope);
+      } catch (error) {
+        if (!token) throw error;
+      }
+    }
+    if (acceptedRetry) {
+      const join = acceptedRetry;
+      if (
+        join.type !== "pair.join" ||
+        join.remoteSessionId !== sessionId ||
+        typeof join.token !== "string"
+      ) {
+        throw new Error("Invalid encrypted Remote Session pairing retry");
+      }
+      const receipt = crypto.readRelayMembershipAcceptance(
         payload.mobilePeerId,
-        payload.mobilePublicKey,
-        token,
         {
-          authorizedScopes: invitation.scopes,
-          expiresAtMs: invitation.expiresAt,
-          ...this._requireRemoteMembershipCoordinator().relayAuthorityDescriptor(),
+          mobilePublicKey: payload.mobilePublicKey,
+          pairingTokenDigest: remoteSessionPairingTokenDigest(join.token),
+          capabilities: join.capabilities,
         },
       );
-    } else {
-      crypto.pair(payload.mobilePeerId, payload.mobilePublicKey, token);
+      const authorized = this.remoteSessions.authorize(
+        sessionId,
+        payload.mobilePeerId,
+        receipt.scopes[0],
+      );
+      if (
+        authorized.session.sessionEpoch !== receipt.sessionEpoch ||
+        authorized.member.principalId !== receipt.principalId ||
+        authorized.member.membershipEpoch !== receipt.membershipEpoch ||
+        JSON.stringify([...authorized.member.scopes].sort()) !==
+          JSON.stringify([...receipt.scopes].sort()) ||
+        authorized.membership?.sessionEpoch !== receipt.sessionEpoch ||
+        authorized.membership?.principalId !== receipt.principalId ||
+        authorized.membership?.membershipEpoch !== receipt.membershipEpoch
+      ) {
+        throw new Error("Remote relay membership reconciliation changed");
+      }
+      this.remoteSessionAudit?.record({
+        sessionId,
+        actor: payload.mobilePeerId,
+        action: "device.join-reconciled",
+        detail: {
+          via: "relay",
+          principalId: receipt.principalId,
+          sessionEpoch: receipt.sessionEpoch,
+          membershipEpoch: receipt.membershipEpoch,
+        },
+      });
+      this.remoteSessionRelay.sendEncrypted(
+        payload.mobilePeerId,
+        crypto.encrypt(payload.mobilePeerId, {
+          type: "pair.accepted",
+          remoteSessionId: sessionId,
+          principalId: receipt.principalId,
+          sessionEpoch: receipt.sessionEpoch,
+          membershipEpoch: receipt.membershipEpoch,
+          scopes: [...receipt.scopes],
+          capabilities: [...receipt.capabilities],
+          reconciled: true,
+        }),
+      );
+      return;
     }
-    const join = crypto.decrypt(payload.envelope);
-    if (join.type !== "pair.join" || join.token !== token) {
+    if (!token) {
+      throw new Error("Remote Session pairing is unavailable or expired");
+    }
+    const invitation = this.remoteSessions.pairingInvitation(sessionId, token);
+    const durableMembership = Boolean(invitation.session.hostPrincipalId);
+    // A relay peer id is the transport identity for the life of its active
+    // membership. If an existing receipt could not authenticate this frame,
+    // do not let possession of a newer invitation replace that transport with
+    // a different key/principal. In particular, joinRelayMember() commits the
+    // durable coordinator transition before attaching the transport; detecting
+    // the collision there would consume the token and leave an orphan member.
+    // members() refreshes durable state and returns only active memberships, so
+    // a revoked/inactive member whose binding was cleared does not block a
+    // legitimate fresh join.
+    const activeTransportMember = this.remoteSessions
+      .members(sessionId)
+      .find((member) => member.transportClientId === payload.mobilePeerId);
+    if (activeTransportMember) {
+      throw new Error(
+        "Remote relay transport is already bound to an active membership",
+      );
+    }
+    // Derive and authenticate against a candidate key without touching the
+    // live key, replay high-water, or accepted receipt. Commit is delayed until
+    // the registry/coordinator membership transition has succeeded.
+    const stagedPairing = crypto.stageRelayPairing(
+      payload.mobilePeerId,
+      payload.mobilePublicKey,
+      token,
+      payload.envelope,
+      durableMembership
+        ? {
+            authorizedScopes: invitation.scopes,
+            expiresAtMs: invitation.expiresAt,
+            ...this._requireRemoteMembershipCoordinator().relayAuthorityDescriptor(),
+          }
+        : null,
+    );
+    const join = stagedPairing.message;
+    if (
+      join.type !== "pair.join" ||
+      join.remoteSessionId !== sessionId ||
+      join.token !== token
+    ) {
       throw new Error("Invalid encrypted Remote Session pairing request");
     }
     const relayPossessionCapability = durableMembership
-      ? crypto.takeRelayPossessionCapability(payload.mobilePeerId)
+      ? stagedPairing.possessionCapability
       : null;
     const relayMember = durableMembership
       ? this.remoteSessions.joinRelayMember({
@@ -1576,6 +1683,19 @@ export class ChainlessChainWSServer extends EventEmitter {
           pushToken: join.pushToken,
           pushProvider: join.pushProvider,
         });
+    crypto.commitStagedRelayPairing(stagedPairing.stage);
+    if (durableMembership) {
+      crypto.rememberRelayMembershipAcceptance(payload.mobilePeerId, {
+        mobilePublicKey: relayPossessionCapability.mobilePublicKey,
+        pairingTokenDigest: remoteSessionPairingTokenDigest(join.token),
+        principalId: relayMember.member.principalId,
+        sessionEpoch: relayMember.session.sessionEpoch,
+        membershipEpoch: relayMember.member.membershipEpoch,
+        scopes: relayMember.member.scopes,
+        capabilities: relayMember.capabilities,
+        statement: relayMember.statement,
+      });
+    }
     this.remoteSessionAudit?.record({
       sessionId,
       actor: payload.mobilePeerId,
@@ -1593,6 +1713,9 @@ export class ChainlessChainWSServer extends EventEmitter {
       crypto.encrypt(payload.mobilePeerId, {
         type: "pair.accepted",
         remoteSessionId: sessionId,
+        principalId: relayMember?.member?.principalId || null,
+        sessionEpoch: relayMember?.session?.sessionEpoch || null,
+        membershipEpoch: relayMember?.member?.membershipEpoch || null,
         scopes: relayMember?.member?.scopes || null,
         capabilities: relayMember?.capabilities || [],
       }),

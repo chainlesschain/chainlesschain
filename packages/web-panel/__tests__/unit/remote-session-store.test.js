@@ -18,6 +18,8 @@ class FakeRelay {
   static instances = [];
   static host = null;
   static mobilePeerId = null;
+  static dropPairAccepts = 0;
+  static pairAttempts = [];
 
   constructor(url) {
     this.url = url;
@@ -67,6 +69,16 @@ class FakeRelay {
       const join = FakeRelay.host.decrypt(payload.envelope);
       if (join.type !== "pair.join") throw new Error("bad pair.join");
       FakeRelay.lastJoin = join;
+      FakeRelay.pairAttempts.push({
+        mobilePeerId: payload.mobilePeerId,
+        mobilePublicKey: payload.mobilePublicKey,
+        envelopeSequence: payload.envelope.sequence,
+        token: join.token,
+      });
+      if (FakeRelay.dropPairAccepts > 0) {
+        FakeRelay.dropPairAccepts -= 1;
+        return;
+      }
       this.pushEvent({ type: "pair.accepted", remoteSessionId: SESSION_ID });
     } else if (payload.type === "remote-session.encrypted") {
       this.controls.push(FakeRelay.host.decrypt(payload.envelope));
@@ -107,6 +119,8 @@ describe("remoteSession store", () => {
     setActivePinia(createPinia());
     FakeRelay.instances = [];
     FakeRelay.mobilePeerId = null;
+    FakeRelay.dropPairAccepts = 0;
+    FakeRelay.pairAttempts = [];
     FakeRelay.host = new RemoteSessionCryptoContext({
       sessionId: SESSION_ID,
       localPeerId: "host",
@@ -145,6 +159,28 @@ describe("remoteSession store", () => {
 
     store.interrupt();
     expect(active.controls.at(-1)).toMatchObject({ type: "interrupt" });
+  });
+
+  it("retransmits the encrypted join when pair.accepted is lost", async () => {
+    vi.useFakeTimers();
+    FakeRelay.dropPairAccepts = 1;
+    const store = useRemoteSessionStore();
+    connectAndOpen(store);
+
+    expect(store.status).toBe("pairing");
+    expect(FakeRelay.pairAttempts).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    expect(store.status).toBe("connected");
+    expect(FakeRelay.pairAttempts).toHaveLength(2);
+    expect(FakeRelay.pairAttempts[1]).toMatchObject({
+      mobilePeerId: FakeRelay.pairAttempts[0].mobilePeerId,
+      mobilePublicKey: FakeRelay.pairAttempts[0].mobilePublicKey,
+      token: TOKEN,
+    });
+    expect(FakeRelay.pairAttempts[1].envelopeSequence).toBeGreaterThan(
+      FakeRelay.pairAttempts[0].envelopeSequence,
+    );
   });
 
   it("answers a question with the exact runtime-owned binding", () => {

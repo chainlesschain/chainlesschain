@@ -44,6 +44,8 @@ export const REMOTE_MEMBERSHIP_COORDINATOR_UNAVAILABLE_CODE =
   "CC_REMOTE_MEMBERSHIP_COORDINATOR_UNAVAILABLE";
 export const REMOTE_MEMBERSHIP_COORDINATOR_ROLLBACK_CODE =
   "CC_REMOTE_MEMBERSHIP_COORDINATOR_ROLLBACK";
+export const REMOTE_MEMBERSHIP_NOT_ACTIVE_CODE =
+  "CC_REMOTE_MEMBERSHIP_NOT_ACTIVE";
 
 const STORE_VERSION = 1;
 const KEY_VERSION = 1;
@@ -227,7 +229,8 @@ function coordinatorError(code, message, cause = null, details = {}) {
 function unavailable(cause, filePath) {
   if (
     cause?.code === REMOTE_MEMBERSHIP_COORDINATOR_UNAVAILABLE_CODE ||
-    cause?.code === REMOTE_MEMBERSHIP_COORDINATOR_ROLLBACK_CODE
+    cause?.code === REMOTE_MEMBERSHIP_COORDINATOR_ROLLBACK_CODE ||
+    cause?.code === REMOTE_MEMBERSHIP_NOT_ACTIVE_CODE
   ) {
     return cause;
   }
@@ -1912,7 +1915,10 @@ export class DurableRemoteMembershipCoordinator {
         member.status !== "active" ||
         member.credentialType !== "ed25519"
       ) {
-        throw new Error("Remote membership resume challenge denied");
+        throw coordinatorError(
+          REMOTE_MEMBERSHIP_NOT_ACTIVE_CODE,
+          "Remote membership is not active for resume",
+        );
       }
       return this._newAuthenticationChallenge({
         purpose: "session.resume",

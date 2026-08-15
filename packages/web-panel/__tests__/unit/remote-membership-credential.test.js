@@ -88,7 +88,11 @@ describe("remote membership credential", () => {
       legacyStorage: null,
     });
     const created = await first.getOrCreate("session-2");
-    const bound = await first.rememberPrincipal("session-2", "principal-2");
+    expect(created.credentialPrincipalId).toMatch(/^ed25519:[0-9a-f]{64}$/);
+    const bound = await first.rememberPrincipal(
+      "session-2",
+      created.credentialPrincipalId,
+    );
     const second = createRemoteMembershipCredentialManager({
       subtle: webcrypto.subtle,
       credentialStore: store,
@@ -98,7 +102,7 @@ describe("remote membership credential", () => {
 
     expect(bound.publicKey).toBe(created.publicKey);
     expect(reloaded.publicKey).toBe(created.publicKey);
-    expect(reloaded.principalId).toBe("principal-2");
+    expect(reloaded.principalId).toBe(created.credentialPrincipalId);
     await expect(
       first.rememberPrincipal("session-2", "principal-tampered"),
     ).rejects.toThrow(/binding changed/);
@@ -159,9 +163,12 @@ describe("remote membership credential", () => {
     expect(second.publicKey).toBe(first.publicKey);
     expect(first.privateKey.extractable).toBe(false);
     expect(unavailable.delete).not.toHaveBeenCalled();
+    await expect(
+      manager.rememberPrincipal("session-5", first.credentialPrincipalId),
+    ).rejects.toThrow(/could not be persisted before join/);
   });
 
-  it("keeps an admitted principal usable when the binding write fails", async () => {
+  it("fails closed before join when the principal binding write fails", async () => {
     const store = memoryCredentialStore();
     const manager = createRemoteMembershipCredentialManager({
       subtle: webcrypto.subtle,
@@ -173,16 +180,18 @@ describe("remote membership credential", () => {
       throw new Error("transient IDB write failure");
     });
 
-    const bound = await manager.rememberPrincipal(
-      "session-put-failure",
-      "principal-put-failure",
-    );
+    await expect(
+      manager.rememberPrincipal(
+        "session-put-failure",
+        created.credentialPrincipalId,
+      ),
+    ).rejects.toThrow(/could not be persisted before join/);
     const reloaded = await manager.getOrCreate("session-put-failure");
 
     expect(store.put).toHaveBeenCalledOnce();
-    expect(bound.persistence).toBe("memory");
-    expect(bound.publicKey).toBe(created.publicKey);
-    expect(reloaded.principalId).toBe("principal-put-failure");
+    expect(store.records.get("session-put-failure").principalId).toBeNull();
+    expect(reloaded.principalId).toBeNull();
+    expect(reloaded.credentialPrincipalId).toBe(created.credentialPrincipalId);
     expect(reloaded.publicKey).toBe(created.publicKey);
   });
 

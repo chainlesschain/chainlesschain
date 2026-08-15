@@ -14,6 +14,7 @@ export const REMOTE_SESSION_AUDIT_ACTIONS = Object.freeze([
   "session.created",
   "pairing-token.issued",
   "device.joined",
+  "device.join-reconciled",
   "device.revoked",
   "device.disconnected",
   "membership.state-error",

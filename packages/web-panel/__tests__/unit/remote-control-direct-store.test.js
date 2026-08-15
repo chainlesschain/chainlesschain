@@ -8,6 +8,7 @@
  *   with a TOP-LEVEL commandId+seq (host idempotency ledger contract).
  */
 
+import { createHash } from "node:crypto";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { useRemoteSessionStore } from "../../src/stores/remoteSession.js";
@@ -41,6 +42,81 @@ function directUri(overrides = {}) {
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
+// Minimal IndexedDB stand-in for the default durable credential manager. The
+// direct-store tests exercise restart-safe membership behavior, so allowing
+// them to silently fall back to a tab-only key would hide a fail-closed bug.
+class MemoryIndexedDb {
+  constructor() {
+    this.records = new Map();
+    this.db = null;
+  }
+
+  open() {
+    const request = {};
+    queueMicrotask(() => {
+      if (!this.db) {
+        const stores = new Set();
+        this.db = {
+          objectStoreNames: { contains: (name) => stores.has(name) },
+          createObjectStore: (name) => stores.add(name),
+          transaction: () => {
+            const transaction = {};
+            const operate = (operation) => {
+              const operationRequest = {};
+              queueMicrotask(() => {
+                try {
+                  operationRequest.result = operation();
+                  operationRequest.onsuccess?.();
+                  queueMicrotask(() => transaction.oncomplete?.());
+                } catch (error) {
+                  operationRequest.error = error;
+                  let prevented = false;
+                  operationRequest.onerror?.({
+                    preventDefault: () => {
+                      prevented = true;
+                    },
+                    stopPropagation: () => {},
+                  });
+                  if (prevented) {
+                    queueMicrotask(() => transaction.oncomplete?.());
+                  } else {
+                    transaction.error = error;
+                    queueMicrotask(() => transaction.onerror?.());
+                  }
+                }
+              });
+              return operationRequest;
+            };
+            transaction.objectStore = () => ({
+              get: (sessionId) => operate(() => this.records.get(sessionId)),
+              add: (record) =>
+                operate(() => {
+                  if (this.records.has(record.sessionId)) {
+                    const error = new Error("duplicate credential");
+                    error.name = "ConstraintError";
+                    throw error;
+                  }
+                  this.records.set(record.sessionId, record);
+                }),
+              put: (record) =>
+                operate(() => this.records.set(record.sessionId, record)),
+              delete: (sessionId) =>
+                operate(() => this.records.delete(sessionId)),
+            });
+            return transaction;
+          },
+        };
+        request.result = this.db;
+        request.onupgradeneeded?.();
+      } else {
+        request.result = this.db;
+      }
+      request.onsuccess?.();
+    });
+    return request;
+  }
+}
+
 // Browser-WebSocket stand-in that plays the cc WS server's remote-session
 // protocol (auth-result / remote-session-joined / remote-session-published).
 class FakeDirectServer {
@@ -49,6 +125,12 @@ class FakeDirectServer {
   static rejectJoin = null;
   static rejectPublish = null;
   static rejectResumeChallenge = null;
+  static rejectResumeChallengeCode = "REMOTE_SESSION_MEMBERSHIP_NOT_ACTIVE";
+  static dropNextJoinAck = false;
+  static closeOnNextJoinAck = false;
+  static tamperJoinResultEpoch = false;
+  static tamperResumeResultEpoch = false;
+  static memberships = new Map();
 
   constructor(url) {
     this.url = url;
@@ -96,13 +178,28 @@ class FakeDirectServer {
       return;
     }
     if (msg.type === "remote-session-join-challenge") {
+      const sessionId = msg.remoteSessionId || SESSION_ID;
+      const principalId = `ed25519:${createHash("sha256")
+        .update(Buffer.from(msg.credentialPublicKey, "base64url"))
+        .digest("hex")}`;
+      this.pendingJoin = {
+        sessionId,
+        principalId,
+        credentialPublicKey: msg.credentialPublicKey,
+        sessionEpoch: "1",
+        membershipEpoch: "1",
+      };
       this.deliver({
         id: msg.id,
         type: "remote-session-join-challenge",
         challenge: {
           challengeId: "join-challenge-1",
           purpose: "member.join",
-          remoteSessionId: msg.remoteSessionId || SESSION_ID,
+          sessionId,
+          sessionEpoch: this.pendingJoin.sessionEpoch,
+          principalId,
+          membershipEpoch: this.pendingJoin.membershipEpoch,
+          credentialPublicKey: msg.credentialPublicKey,
         },
       });
       return;
@@ -112,8 +209,20 @@ class FakeDirectServer {
         this.deliver({
           id: msg.id,
           type: "error",
-          code: "REMOTE_SESSION_RESUME_ERROR",
+          code: FakeDirectServer.rejectResumeChallengeCode,
           message: FakeDirectServer.rejectResumeChallenge,
+        });
+        return;
+      }
+      const membership = FakeDirectServer.memberships.get(
+        msg.remoteSessionId || SESSION_ID,
+      );
+      if (!membership || membership.principalId !== msg.principalId) {
+        this.deliver({
+          id: msg.id,
+          type: "error",
+          code: "REMOTE_SESSION_MEMBERSHIP_NOT_ACTIVE",
+          message: "membership is not active",
         });
         return;
       }
@@ -123,20 +232,31 @@ class FakeDirectServer {
         challenge: {
           challengeId: "resume-challenge-1",
           purpose: "session.resume",
-          remoteSessionId: msg.remoteSessionId || SESSION_ID,
+          sessionId: msg.remoteSessionId || SESSION_ID,
+          sessionEpoch: membership.sessionEpoch,
           principalId: msg.principalId,
+          membershipEpoch: membership.membershipEpoch,
         },
       });
       return;
     }
     if (msg.type === "remote-session-resume") {
+      const membership = FakeDirectServer.memberships.get(
+        msg.remoteSessionId || SESSION_ID,
+      );
       this.deliver({
         id: msg.id,
         type: "remote-session-resumed",
-        session: { sessionId: msg.remoteSessionId || SESSION_ID },
+        session: {
+          sessionId: msg.remoteSessionId || SESSION_ID,
+          sessionEpoch: FakeDirectServer.tamperResumeResultEpoch
+            ? "999"
+            : membership.sessionEpoch,
+        },
         member: {
-          clientId: "principal-web-1",
-          principalId: "principal-web-1",
+          clientId: membership.principalId,
+          principalId: membership.principalId,
+          membershipEpoch: membership.membershipEpoch,
           scopes: ["observe", "approve"],
         },
       });
@@ -152,14 +272,41 @@ class FakeDirectServer {
         });
         return;
       }
+      const membership = msg.challengeId
+        ? {
+            principalId: this.pendingJoin.principalId,
+            credentialPublicKey: this.pendingJoin.credentialPublicKey,
+            sessionEpoch: this.pendingJoin.sessionEpoch,
+            membershipEpoch: this.pendingJoin.membershipEpoch,
+          }
+        : { principalId: "web-client" };
+      FakeDirectServer.memberships.set(
+        msg.remoteSessionId || SESSION_ID,
+        membership,
+      );
+      if (FakeDirectServer.dropNextJoinAck) {
+        FakeDirectServer.dropNextJoinAck = false;
+        return;
+      }
+      if (FakeDirectServer.closeOnNextJoinAck) {
+        FakeDirectServer.closeOnNextJoinAck = false;
+        this.close();
+        return;
+      }
       this.deliver({
         id: msg.id,
         type: "remote-session-joined",
-        session: { sessionId: msg.remoteSessionId || SESSION_ID },
+        session: {
+          sessionId: msg.remoteSessionId || SESSION_ID,
+          sessionEpoch: FakeDirectServer.tamperJoinResultEpoch
+            ? "999"
+            : membership.sessionEpoch,
+        },
         member: msg.challengeId
           ? {
-              clientId: "principal-web-1",
-              principalId: "principal-web-1",
+              clientId: membership.principalId,
+              principalId: membership.principalId,
+              membershipEpoch: membership.membershipEpoch,
               scopes: ["observe", "approve"],
             }
           : { clientId: "web-client", scopes: ["observe", "approve"] },
@@ -240,11 +387,21 @@ describe("remoteSession store — direct transport", () => {
     FakeDirectServer.rejectJoin = null;
     FakeDirectServer.rejectPublish = null;
     FakeDirectServer.rejectResumeChallenge = null;
+    FakeDirectServer.rejectResumeChallengeCode =
+      "REMOTE_SESSION_MEMBERSHIP_NOT_ACTIVE";
+    FakeDirectServer.dropNextJoinAck = false;
+    FakeDirectServer.closeOnNextJoinAck = false;
+    FakeDirectServer.tamperJoinResultEpoch = false;
+    FakeDirectServer.tamperResumeResultEpoch = false;
+    FakeDirectServer.memberships = new Map();
+    vi.stubGlobal("indexedDB", new MemoryIndexedDb());
     vi.stubGlobal("WebSocket", FakeDirectServer);
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   it("auths, joins with the one-time token and reports transport/scopes", async () => {
@@ -286,7 +443,7 @@ describe("remoteSession store — direct transport", () => {
     expect(typeof join.signature).toBe("string");
     expect(join).not.toHaveProperty("token");
 
-    vi.useFakeTimers();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
     const before = FakeDirectServer.instances.length;
     first.close();
     expect(store.status).toBe("reconnecting");
@@ -305,6 +462,120 @@ describe("remoteSession store — direct transport", () => {
       challengeId: "resume-challenge-1",
     });
     expect(typeof resumed.frames.at(-1).signature).toBe("string");
+  });
+
+  it("reconciles a committed join whose ACK is lost without replaying the join", async () => {
+    const nativeSetTimeout = globalThis.setTimeout;
+    vi.spyOn(globalThis, "setTimeout").mockImplementation(
+      (handler, delay, ...args) =>
+        nativeSetTimeout(handler, delay === 15_000 ? 1 : delay, ...args),
+    );
+    const store = useRemoteSessionStore();
+    const sessionId = `${SESSION_ID}-lost-ack`;
+    FakeDirectServer.dropNextJoinAck = true;
+
+    const active = await connectDirect(
+      store,
+      directUri({ remoteSessionId: sessionId, durableMembership: true }),
+    );
+    await vi.waitFor(() => expect(store.status).toBe("connected"));
+
+    expect(store.status).toBe("connected");
+    expect(active.frames.map((frame) => frame.type)).toEqual([
+      "auth",
+      "remote-session-join-challenge",
+      "remote-session-join",
+      "remote-session-resume-challenge",
+      "remote-session-resume",
+    ]);
+    expect(
+      active.frames.filter((frame) => frame.type === "remote-session-join"),
+    ).toHaveLength(1);
+  });
+
+  it("does not trust a join ACK with changed epochs and reconciles by possession", async () => {
+    const store = useRemoteSessionStore();
+    const sessionId = `${SESSION_ID}-join-epoch`;
+    FakeDirectServer.tamperJoinResultEpoch = true;
+
+    const active = await connectDirect(
+      store,
+      directUri({ remoteSessionId: sessionId, durableMembership: true }),
+    );
+    await vi.waitFor(() => expect(store.status).toBe("connected"));
+
+    expect(active.frames.map((frame) => frame.type)).toEqual([
+      "auth",
+      "remote-session-join-challenge",
+      "remote-session-join",
+      "remote-session-resume-challenge",
+      "remote-session-resume",
+    ]);
+    expect(
+      active.frames.filter((frame) => frame.type === "remote-session-join"),
+    ).toHaveLength(1);
+  });
+
+  it("rejects a resume result whose exact challenge epochs changed", async () => {
+    const store = useRemoteSessionStore();
+    const sessionId = `${SESSION_ID}-resume-epoch`;
+    await connectDirect(
+      store,
+      directUri({ remoteSessionId: sessionId, durableMembership: true }),
+    );
+    await vi.waitFor(() => expect(store.status).toBe("connected"));
+    store.disconnect();
+    FakeDirectServer.tamperResumeResultEpoch = true;
+
+    const resumed = await connectDirect(
+      store,
+      directUri({
+        remoteSessionId: sessionId,
+        durableMembership: true,
+        pairingToken: "must-not-be-spent-on-epoch-mismatch",
+      }),
+    );
+    await vi.waitFor(() => expect(store.status).toBe("error"));
+
+    expect(resumed.frames.map((frame) => frame.type)).toEqual([
+      "auth",
+      "remote-session-resume-challenge",
+      "remote-session-resume",
+    ]);
+    expect(store.error).toMatch(/resume binding changed/);
+  });
+
+  it("resumes after the connection carrying a committed join ACK is lost", async () => {
+    const nativeSetTimeout = globalThis.setTimeout;
+    vi.spyOn(globalThis, "setTimeout").mockImplementation(
+      (handler, delay, ...args) =>
+        nativeSetTimeout(handler, delay === 1_000 ? 1 : delay, ...args),
+    );
+    const store = useRemoteSessionStore();
+    const sessionId = `${SESSION_ID}-lost-connection`;
+    FakeDirectServer.closeOnNextJoinAck = true;
+
+    const first = await connectDirect(
+      store,
+      directUri({ remoteSessionId: sessionId, durableMembership: true }),
+    );
+    await vi.waitFor(() =>
+      expect(FakeDirectServer.instances.length).toBeGreaterThan(1),
+    );
+    const resumed = FakeDirectServer.instances.at(-1);
+    expect(resumed).not.toBe(first);
+    resumed.open();
+    await vi.waitFor(() => expect(store.status).toBe("connected"));
+    expect(resumed.frames.map((frame) => frame.type)).toEqual([
+      "auth",
+      "remote-session-resume-challenge",
+      "remote-session-resume",
+    ]);
+    expect(
+      [first, resumed]
+        .flatMap((socket) => socket.frames)
+        .filter((frame) => frame.type === "remote-session-join"),
+    ).toHaveLength(1);
   });
 
   it("rejoins with the stored key when a fresh URI follows host close and re-enable", async () => {
@@ -346,6 +617,38 @@ describe("remoteSession store — direct transport", () => {
       capabilities: ["approval-binding-v1"],
     });
     expect(reenabled.frames[3]).not.toHaveProperty("token");
+  });
+
+  it("does not spend a fresh token on a transient resume-authority failure", async () => {
+    const store = useRemoteSessionStore();
+    const sessionId = `${SESSION_ID}-resume-transient`;
+    await connectDirect(
+      store,
+      directUri({ remoteSessionId: sessionId, durableMembership: true }),
+    );
+    await vi.waitFor(() => expect(store.status).toBe("connected"));
+    store.disconnect();
+
+    FakeDirectServer.rejectResumeChallenge = "coordinator unavailable";
+    FakeDirectServer.rejectResumeChallengeCode =
+      "REMOTE_SESSION_RESUME_CHALLENGE_ERROR";
+    const retry = await connectDirect(
+      store,
+      directUri({
+        remoteSessionId: sessionId,
+        durableMembership: true,
+        pairingToken: "must-remain-unspent",
+      }),
+    );
+    await vi.waitFor(() => expect(store.status).toBe("error"));
+
+    expect(retry.frames.map((frame) => frame.type)).toEqual([
+      "auth",
+      "remote-session-resume-challenge",
+    ]);
+    expect(
+      retry.frames.some((frame) => frame.type === "remote-session-join"),
+    ).toBe(false);
   });
 
   it("echoes the immutable durable approval tuple", async () => {

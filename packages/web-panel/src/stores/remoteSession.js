@@ -48,6 +48,8 @@ const RECONNECT_MAX_MS = 30_000;
 // mount) starts a fresh round.
 const RECONNECT_MAX_ATTEMPTS = 20;
 const DIRECT_REQUEST_TIMEOUT_MS = 15_000;
+const RELAY_PAIR_ACK_TIMEOUT_MS = 5_000;
+const RELAY_PAIR_ACK_MAX_RETRIES = 2;
 
 let seq = 0;
 function newUuid() {
@@ -86,6 +88,8 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
   let closedExplicitly = false;
   let reconnectAttempts = 0;
   let reconnectTimer = null;
+  let relayPairAckTimer = null;
+  let relayPairAckRetries = 0;
   // Optional vendor push (Web Push subscription) carried in pair.join so the
   // host can wake this browser for approvals when the tab is backgrounded.
   let pushCredentials = null;
@@ -109,6 +113,13 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
     if (reconnectTimer) {
       clearTimeout(reconnectTimer);
       reconnectTimer = null;
+    }
+  }
+
+  function clearRelayPairAck() {
+    if (relayPairAckTimer) {
+      clearTimeout(relayPairAckTimer);
+      relayPairAckTimer = null;
     }
   }
 
@@ -216,6 +227,7 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
 
   function openSocket() {
     if (!pairing) return;
+    if (!paired) relayPairAckRetries = 0;
     const ws = new WebSocket(pairing.relayUrl);
     socket = ws;
     ws.addEventListener("open", () => {
@@ -235,6 +247,7 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
     });
     ws.addEventListener("close", () => {
       if (ws !== socket) return;
+      clearRelayPairAck();
       socket = null;
       if (closedExplicitly) {
         status.value = "disconnected";
@@ -318,13 +331,16 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
       if (!payload || payload.type !== "remote-session.encrypted") return;
       const event = crypto.decrypt(payload.envelope);
       if (event.type === "pair.accepted") {
+        clearRelayPairAck();
         paired = true;
+        relayPairAckRetries = 0;
         reconnectAttempts = 0;
         status.value = "connected";
       } else if (event.type === "session.revoked") {
         closedExplicitly = true;
         paired = false;
         clearReconnect();
+        clearRelayPairAck();
         if (socket) socket.close();
         socket = null;
         status.value = "revoked";
@@ -361,11 +377,31 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
       join.pushToken = pushCredentials.token;
       join.pushProvider = pushCredentials.provider || "web";
     }
-    relaySend("remote-session.pair", {
+    const sent = relaySend("remote-session.pair", {
       mobilePeerId: peerId,
       mobilePublicKey: crypto.publicKeyBase64(),
       envelope: crypto.encrypt(join),
     });
+    clearRelayPairAck();
+    if (!sent) return false;
+    relayPairAckTimer = setTimeout(() => {
+      relayPairAckTimer = null;
+      if (paired || closedExplicitly) return;
+      if (relayPairAckRetries >= RELAY_PAIR_ACK_MAX_RETRIES) {
+        // Force the ordinary reconnect path after bounded encrypted retries.
+        // The next registered frame sends the same credential-bound join; the
+        // host reconciles it without recreating or consuming a token.
+        try {
+          socket?.close();
+        } catch {
+          /* already closing */
+        }
+        return;
+      }
+      relayPairAckRetries += 1;
+      sendPairRequest();
+    }, RELAY_PAIR_ACK_TIMEOUT_MS);
+    return true;
   }
 
   function sendControl(event) {
@@ -434,11 +470,14 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
       directPending.delete(key);
       clearTimeout(pending.timer);
       if (message.type === "error") {
-        pending.reject(
-          new Error(
-            message.message || message.payload?.message || "server error",
-          ),
+        const remoteError = new Error(
+          message.message || message.payload?.message || "server error",
         );
+        if (typeof message.code === "string" && message.code) {
+          remoteError.code = message.code;
+        }
+        remoteError.remoteResponse = true;
+        pending.reject(remoteError);
       } else {
         pending.resolve(message);
       }
@@ -524,6 +563,63 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
             ));
           directPrincipalId =
             directPrincipalId || directCredential.principalId || null;
+          const isCanonicalEpoch = (value) =>
+            typeof value === "string" && /^[1-9]\d*$/.test(value);
+          const validateMembershipResult = (result, operation, challenge) => {
+            const resultSessionId = result.session?.sessionId || null;
+            const resultPrincipalId =
+              result.member?.principalId || result.member?.clientId || null;
+            if (
+              resultSessionId !== parsed.remoteSessionId ||
+              resultPrincipalId !== directCredential.credentialPrincipalId ||
+              !isCanonicalEpoch(challenge?.sessionEpoch) ||
+              !isCanonicalEpoch(challenge?.membershipEpoch) ||
+              result.session?.sessionEpoch !== challenge.sessionEpoch ||
+              result.member?.membershipEpoch !== challenge.membershipEpoch
+            ) {
+              throw new Error(
+                `Durable Remote Session ${operation} binding changed`,
+              );
+            }
+            return result;
+          };
+          const resumeDurableMembership = async () => {
+            if (!directPrincipalId) {
+              throw new Error(
+                "Durable Remote Session principal binding is unavailable",
+              );
+            }
+            const challenged = await directRequest(
+              "remote-session-resume-challenge",
+              {
+                remoteSessionId: parsed.remoteSessionId,
+                principalId: directPrincipalId,
+              },
+            );
+            if (
+              challenged.challenge?.sessionId !== parsed.remoteSessionId ||
+              challenged.challenge?.principalId !== directPrincipalId ||
+              !isCanonicalEpoch(challenged.challenge?.sessionEpoch) ||
+              !isCanonicalEpoch(challenged.challenge?.membershipEpoch)
+            ) {
+              throw new Error(
+                "Durable Remote Session resume challenge binding changed",
+              );
+            }
+            const signature = await signRemoteMembershipChallenge(
+              challenged.challenge,
+              directCredential.privateKey,
+            );
+            return validateMembershipResult(
+              await directRequest("remote-session-resume", {
+                remoteSessionId: parsed.remoteSessionId,
+                challengeId: challenged.challenge.challengeId,
+                signature,
+              }),
+              "resume",
+              challenged.challenge,
+            );
+          };
           const joinWithFreshPairingToken = async () => {
             const challenged = await directRequest(
               "remote-session-join-challenge",
@@ -534,48 +630,69 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
                 capabilities: ["approval-binding-v1"],
               },
             );
+            if (
+              challenged.challenge?.sessionId !== parsed.remoteSessionId ||
+              challenged.challenge?.principalId !==
+                directCredential.credentialPrincipalId ||
+              challenged.challenge?.credentialPublicKey !==
+                directCredential.publicKey ||
+              !isCanonicalEpoch(challenged.challenge?.sessionEpoch) ||
+              !isCanonicalEpoch(challenged.challenge?.membershipEpoch)
+            ) {
+              throw new Error(
+                "Durable Remote Session join challenge binding changed",
+              );
+            }
+            // Persist the coordinator's deterministic credential principal
+            // before dispatching the one-shot join. If the commit succeeds but
+            // its response is lost, a fresh browser process can reconcile by
+            // possession proof without replaying the pairing token.
+            directCredential = await rememberRemoteMembershipPrincipal(
+              parsed.remoteSessionId,
+              directCredential.credentialPrincipalId,
+            );
+            directPrincipalId = directCredential.principalId;
             const signature = await signRemoteMembershipChallenge(
               challenged.challenge,
               directCredential.privateKey,
             );
-            const result = await directRequest("remote-session-join", {
-              remoteSessionId: parsed.remoteSessionId,
-              challengeId: challenged.challenge.challengeId,
-              signature,
-            });
-            const joinedPrincipal =
-              result.member?.principalId || result.member?.clientId || null;
-            directCredential = await rememberRemoteMembershipPrincipal(
-              parsed.remoteSessionId,
-              joinedPrincipal,
-            );
-            directPrincipalId = directCredential.principalId;
-            return result;
+            try {
+              return validateMembershipResult(
+                await directRequest("remote-session-join", {
+                  remoteSessionId: parsed.remoteSessionId,
+                  challengeId: challenged.challenge.challengeId,
+                  signature,
+                }),
+                "join",
+                challenged.challenge,
+              );
+            } catch (joinError) {
+              // A remote error is a known failed join. Timeout/close is
+              // outcome-unknown: read it back only through possession-based
+              // resume, never by issuing another join or spending the token.
+              if (joinError?.remoteResponse) throw joinError;
+              try {
+                return await resumeDurableMembership();
+              } catch (resumeError) {
+                resumeError.joinOutcomeUnknown = true;
+                throw resumeError;
+              }
+            }
           };
           if (directPrincipalId) {
             try {
-              const challenged = await directRequest(
-                "remote-session-resume-challenge",
-                {
-                  remoteSessionId: parsed.remoteSessionId,
-                  principalId: directPrincipalId,
-                },
-              );
-              const signature = await signRemoteMembershipChallenge(
-                challenged.challenge,
-                directCredential.privateKey,
-              );
-              joined = await directRequest("remote-session-resume", {
-                remoteSessionId: parsed.remoteSessionId,
-                challengeId: challenged.challenge.challengeId,
-                signature,
-              });
+              joined = await resumeDurableMembership();
             } catch (resumeError) {
               // Automatic reconnect is resume-only: it must never consume or
               // retry a one-time token. A freshly scanned URI is different — a
               // host close then re-enable intentionally revokes the old membership,
               // so reuse the same non-extractable key to rejoin at epoch+1.
-              if (resumeOnly) throw resumeError;
+              if (
+                resumeOnly ||
+                resumeError?.code !== "REMOTE_SESSION_MEMBERSHIP_NOT_ACTIVE"
+              ) {
+                throw resumeError;
+              }
               joined = await joinWithFreshPairingToken();
             }
           } else {
@@ -607,7 +724,10 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
         } catch {
           /* already closing */
         }
-        if (resumeOnly && !closedExplicitly) {
+        if (
+          !closedExplicitly &&
+          (resumeOnly || cause?.joinOutcomeUnknown === true)
+        ) {
           scheduleDirectReconnect();
         } else {
           status.value = "error";
@@ -690,6 +810,7 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
       transport.value = "relay";
       scopes.value = null;
       paired = false;
+      relayPairAckRetries = 0;
       reconnectAttempts = 0;
       status.value = "connecting";
       openSocket();
@@ -820,6 +941,7 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
     closedExplicitly = true;
     paired = false;
     clearReconnect();
+    clearRelayPairAck();
     if (socket) {
       try {
         socket.close();

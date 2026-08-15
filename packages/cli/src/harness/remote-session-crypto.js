@@ -15,6 +15,7 @@ const PAIRING_SCHEME = "chainlesschain://remote-session/pair#";
 const RELAY_POSSESSION_SCHEMA =
   "chainlesschain.remote-session.relay-possession-capability/v1";
 const relayPossessionCapabilities = new WeakMap();
+const stagedRelayPairings = new WeakMap();
 const RELAY_AUTHORITY_SCOPES = new Set([
   "observe",
   "prompt",
@@ -128,6 +129,68 @@ function normalizeRelayAuthorityScopes(scopes) {
   return Object.freeze(normalized);
 }
 
+function normalizeRelayCapabilities(capabilities) {
+  if (capabilities == null) return Object.freeze([]);
+  if (!Array.isArray(capabilities) || capabilities.length > 32) {
+    throw new Error("Durable Remote relay capabilities are invalid");
+  }
+  const normalized = [...new Set(capabilities)];
+  if (
+    normalized.some(
+      (capability) =>
+        typeof capability !== "string" ||
+        capability.length === 0 ||
+        capability.length > 128 ||
+        capability.includes("\0"),
+    )
+  ) {
+    throw new Error("Durable Remote relay capabilities are invalid");
+  }
+  return Object.freeze(normalized.sort());
+}
+
+function sameStringArray(left, right) {
+  return (
+    left.length === right.length &&
+    left.every((value, index) => value === right[index])
+  );
+}
+
+function decryptEnvelopeWithKey(
+  sessionId,
+  key,
+  envelope,
+  previousSequence = 0,
+) {
+  if (envelope?.v !== 1 || envelope.sessionId !== sessionId) {
+    throw new Error("Invalid encrypted Remote Session envelope");
+  }
+  if (
+    !Number.isSafeInteger(envelope.sequence) ||
+    envelope.sequence <= previousSequence
+  ) {
+    throw new Error("Remote Session replay or out-of-order envelope rejected");
+  }
+  try {
+    const decipher = createDecipheriv(
+      "aes-256-gcm",
+      key,
+      unb64(envelope.nonce),
+    );
+    decipher.setAAD(aad(sessionId, envelope.senderId, envelope.sequence));
+    decipher.setAuthTag(unb64(envelope.tag));
+    const plaintext = Buffer.concat([
+      decipher.update(unb64(envelope.ciphertext)),
+      decipher.final(),
+    ]);
+    return JSON.parse(plaintext.toString("utf8"));
+  } catch (error) {
+    throw new Error(
+      `Remote Session envelope authentication failed: ${error.message}`,
+    );
+  }
+}
+
 function aad(sessionId, senderId, sequence) {
   return Buffer.from(
     `${PROTOCOL}\n${sessionId}\n${senderId}\n${sequence}`,
@@ -237,6 +300,8 @@ export class RemoteSessionCryptoContext {
     this._now = now;
     this.keys = new Map();
     this.pairingMaterial = new Map();
+    this.relayPeerBindings = new Map();
+    this.acceptedRelayMemberships = new Map();
     this.pendingRelayCapabilities = new Map();
     this.outstandingRelayCapabilities = new Map();
     this.sendSequence = 0;
@@ -298,6 +363,7 @@ export class RemoteSessionCryptoContext {
     this.pendingRelayCapabilities.delete(peerId);
     this.outstandingRelayCapabilities.delete(peerId);
     const normalizedPublicKey = canonicalPublicKey(peerPublicKey);
+    this.acceptedRelayMemberships.delete(peerId);
     this.keys.set(
       peerId,
       deriveKey(
@@ -315,6 +381,10 @@ export class RemoteSessionCryptoContext {
       coordinatorId: durableAuthority?.coordinatorId || null,
       serverInstanceId: durableAuthority?.serverInstanceId || null,
       authorityVersion: durableAuthority?.authorityVersion || null,
+    });
+    this.relayPeerBindings.set(peerId, {
+      mobilePublicKey: normalizedPublicKey,
+      pairingTokenDigest: remoteSessionPairingTokenDigest(pairingToken),
     });
   }
 
@@ -356,60 +426,170 @@ export class RemoteSessionCryptoContext {
         "Remote Session replay or out-of-order envelope rejected",
       );
     }
-    try {
-      const decipher = createDecipheriv(
-        "aes-256-gcm",
-        key,
-        unb64(envelope.nonce),
-      );
-      decipher.setAAD(
-        aad(this.sessionId, envelope.senderId, envelope.sequence),
-      );
-      decipher.setAuthTag(unb64(envelope.tag));
-      const plaintext = Buffer.concat([
-        decipher.update(unb64(envelope.ciphertext)),
-        decipher.final(),
-      ]);
-      const message = JSON.parse(plaintext.toString("utf8"));
-      this.receivedSequences.set(envelope.senderId, envelope.sequence);
-      const pairing = this.pairingMaterial.get(envelope.senderId);
-      if (
-        pairing &&
-        pairing.authorizedScopes !== null &&
-        pairing.coordinatorId !== null &&
-        pairing.serverInstanceId !== null &&
-        pairing.authorityVersion !== null &&
-        pairing.expiresAtMs > this._now() &&
-        message?.type === "pair.join" &&
-        typeof message.token === "string" &&
-        remoteSessionPairingTokenDigest(message.token) ===
-          pairing.pairingTokenDigest
-      ) {
-        const proof = Object.freeze({
-          schema: RELAY_POSSESSION_SCHEMA,
-          sessionId: this.sessionId,
-          mobilePeerId: envelope.senderId,
-          mobilePublicKey: pairing.mobilePublicKey,
-          pairingTokenDigest: pairing.pairingTokenDigest,
-          coordinatorId: pairing.coordinatorId,
-          serverInstanceId: pairing.serverInstanceId,
-          authorityVersion: pairing.authorityVersion,
-          authorizedScopes: pairing.authorizedScopes,
-          pairingExpiresAtMs: pairing.expiresAtMs,
-          envelopeSequence: envelope.sequence,
-          envelopeTranscriptHash: relayEnvelopeTranscriptHash(envelope),
-        });
-        relayPossessionCapabilities.set(proof, { ...proof });
-        this.pendingRelayCapabilities.set(envelope.senderId, proof);
-        this.outstandingRelayCapabilities.set(envelope.senderId, proof);
-        this.pairingMaterial.delete(envelope.senderId);
-      }
-      return message;
-    } catch (error) {
-      throw new Error(
-        `Remote Session envelope authentication failed: ${error.message}`,
-      );
+    const message = decryptEnvelopeWithKey(
+      this.sessionId,
+      key,
+      envelope,
+      previous,
+    );
+    this.receivedSequences.set(envelope.senderId, envelope.sequence);
+    const pairing = this.pairingMaterial.get(envelope.senderId);
+    if (
+      pairing &&
+      pairing.authorizedScopes !== null &&
+      pairing.coordinatorId !== null &&
+      pairing.serverInstanceId !== null &&
+      pairing.authorityVersion !== null &&
+      pairing.expiresAtMs > this._now() &&
+      message?.type === "pair.join" &&
+      typeof message.token === "string" &&
+      remoteSessionPairingTokenDigest(message.token) ===
+        pairing.pairingTokenDigest
+    ) {
+      const proof = Object.freeze({
+        schema: RELAY_POSSESSION_SCHEMA,
+        sessionId: this.sessionId,
+        mobilePeerId: envelope.senderId,
+        mobilePublicKey: pairing.mobilePublicKey,
+        pairingTokenDigest: pairing.pairingTokenDigest,
+        coordinatorId: pairing.coordinatorId,
+        serverInstanceId: pairing.serverInstanceId,
+        authorityVersion: pairing.authorityVersion,
+        authorizedScopes: pairing.authorizedScopes,
+        pairingExpiresAtMs: pairing.expiresAtMs,
+        envelopeSequence: envelope.sequence,
+        envelopeTranscriptHash: relayEnvelopeTranscriptHash(envelope),
+      });
+      relayPossessionCapabilities.set(proof, { ...proof });
+      this.pendingRelayCapabilities.set(envelope.senderId, proof);
+      this.outstandingRelayCapabilities.set(envelope.senderId, proof);
+      this.pairingMaterial.delete(envelope.senderId);
     }
+    return message;
+  }
+
+  /**
+   * Authenticate a prospective relay pairing without changing the live peer
+   * key, replay high-water mark, or an accepted-membership receipt. The caller
+   * commits the opaque stage only after the membership transition succeeds.
+   */
+  stageRelayPairing(
+    peerId,
+    peerPublicKey,
+    pairingToken,
+    envelope,
+    durableAuthority = null,
+  ) {
+    if (!peerId || !peerPublicKey || !pairingToken) {
+      throw new Error("Incomplete peer key material");
+    }
+    if (envelope?.senderId !== peerId) {
+      throw new Error("Remote Session relay peer binding is invalid");
+    }
+    const normalizedPublicKey = canonicalPublicKey(peerPublicKey);
+    const pairingTokenDigest = remoteSessionPairingTokenDigest(pairingToken);
+    let authority = null;
+    if (durableAuthority !== null) {
+      const normalizedExpiry = Number(durableAuthority?.expiresAtMs);
+      if (
+        !Number.isSafeInteger(normalizedExpiry) ||
+        normalizedExpiry <= this._now()
+      ) {
+        throw new Error("Durable Remote relay pairing authority is expired");
+      }
+      if (
+        typeof durableAuthority?.coordinatorId !== "string" ||
+        durableAuthority.coordinatorId.length === 0 ||
+        typeof durableAuthority?.serverInstanceId !== "string" ||
+        durableAuthority.serverInstanceId.length === 0 ||
+        typeof durableAuthority?.authorityVersion !== "string" ||
+        durableAuthority.authorityVersion.length === 0
+      ) {
+        throw new Error("Durable Remote relay authority domain is required");
+      }
+      authority = Object.freeze({
+        authorizedScopes: normalizeRelayAuthorityScopes(
+          durableAuthority.authorizedScopes,
+        ),
+        expiresAtMs: normalizedExpiry,
+        coordinatorId: durableAuthority.coordinatorId,
+        serverInstanceId: durableAuthority.serverInstanceId,
+        authorityVersion: durableAuthority.authorityVersion,
+      });
+    }
+    const key = deriveKey(
+      this.privateKey,
+      importPublicKey(normalizedPublicKey),
+      this.sessionId,
+      pairingToken,
+    );
+    // A new key/token tuple starts a new encrypted sequence space. Nothing is
+    // published to the live maps until commitStagedRelayPairing().
+    const message = decryptEnvelopeWithKey(this.sessionId, key, envelope, 0);
+    if (
+      message?.type !== "pair.join" ||
+      message.remoteSessionId !== this.sessionId ||
+      message.token !== pairingToken
+    ) {
+      throw new Error("Invalid encrypted Remote Session pairing request");
+    }
+    let possessionCapability = null;
+    if (authority) {
+      const proof = Object.freeze({
+        schema: RELAY_POSSESSION_SCHEMA,
+        sessionId: this.sessionId,
+        mobilePeerId: peerId,
+        mobilePublicKey: normalizedPublicKey,
+        pairingTokenDigest,
+        coordinatorId: authority.coordinatorId,
+        serverInstanceId: authority.serverInstanceId,
+        authorityVersion: authority.authorityVersion,
+        authorizedScopes: authority.authorizedScopes,
+        pairingExpiresAtMs: authority.expiresAtMs,
+        envelopeSequence: envelope.sequence,
+        envelopeTranscriptHash: relayEnvelopeTranscriptHash(envelope),
+      });
+      relayPossessionCapabilities.set(proof, { ...proof });
+      possessionCapability = proof;
+    }
+    const stage = Object.freeze({});
+    stagedRelayPairings.set(stage, {
+      owner: this,
+      peerId,
+      key,
+      mobilePublicKey: normalizedPublicKey,
+      pairingTokenDigest,
+      envelopeSequence: envelope.sequence,
+    });
+    return Object.freeze({
+      message,
+      stage,
+      possessionCapability,
+    });
+  }
+
+  commitStagedRelayPairing(stage) {
+    const candidate = stagedRelayPairings.get(stage);
+    stagedRelayPairings.delete(stage);
+    if (!candidate || candidate.owner !== this) {
+      throw new Error("Remote relay pairing stage is invalid or stale");
+    }
+    const outstandingCapability = this.outstandingRelayCapabilities.get(
+      candidate.peerId,
+    );
+    if (outstandingCapability) {
+      relayPossessionCapabilities.delete(outstandingCapability);
+    }
+    this.pendingRelayCapabilities.delete(candidate.peerId);
+    this.outstandingRelayCapabilities.delete(candidate.peerId);
+    this.pairingMaterial.delete(candidate.peerId);
+    this.keys.set(candidate.peerId, candidate.key);
+    this.relayPeerBindings.set(candidate.peerId, {
+      mobilePublicKey: candidate.mobilePublicKey,
+      pairingTokenDigest: candidate.pairingTokenDigest,
+    });
+    this.receivedSequences.set(candidate.peerId, candidate.envelopeSequence);
+    this.acceptedRelayMemberships.delete(candidate.peerId);
   }
 
   takeRelayPossessionCapability(peerId) {
@@ -421,5 +601,80 @@ export class RemoteSessionCryptoContext {
       );
     }
     return capability;
+  }
+
+  /**
+   * Keep the exact, already-committed relay membership tuple in this crypto
+   * process. It is deliberately not persisted: it only reconciles an ACK lost
+   * while the same host process still owns the authenticated DH/AEAD context.
+   */
+  rememberRelayMembershipAcceptance(
+    peerId,
+    {
+      mobilePublicKey,
+      pairingTokenDigest,
+      principalId,
+      sessionEpoch,
+      membershipEpoch,
+      scopes,
+      capabilities,
+      statement = null,
+    } = {},
+  ) {
+    const peer = this.relayPeerBindings.get(peerId);
+    const normalizedPublicKey = canonicalPublicKey(mobilePublicKey);
+    const normalizedScopes = normalizeRelayAuthorityScopes(scopes);
+    const normalizedCapabilities = normalizeRelayCapabilities(capabilities);
+    if (
+      !peer ||
+      peer.mobilePublicKey !== normalizedPublicKey ||
+      peer.pairingTokenDigest !== pairingTokenDigest ||
+      typeof principalId !== "string" ||
+      principalId.length === 0 ||
+      typeof sessionEpoch !== "string" ||
+      !/^[1-9]\d*$/.test(sessionEpoch) ||
+      typeof membershipEpoch !== "string" ||
+      !/^[1-9]\d*$/.test(membershipEpoch)
+    ) {
+      throw new Error("Remote relay membership acceptance binding is invalid");
+    }
+    const receipt = Object.freeze({
+      sessionId: this.sessionId,
+      mobilePeerId: peerId,
+      mobilePublicKey: normalizedPublicKey,
+      pairingTokenDigest,
+      principalId,
+      sessionEpoch,
+      membershipEpoch,
+      scopes: normalizedScopes,
+      capabilities: normalizedCapabilities,
+      statement,
+    });
+    this.acceptedRelayMemberships.set(peerId, receipt);
+    return receipt;
+  }
+
+  readRelayMembershipAcceptance(
+    peerId,
+    { mobilePublicKey, pairingTokenDigest, capabilities } = {},
+  ) {
+    const receipt = this.acceptedRelayMemberships.get(peerId);
+    const normalizedPublicKey = canonicalPublicKey(mobilePublicKey);
+    const normalizedCapabilities = normalizeRelayCapabilities(capabilities);
+    if (
+      !receipt ||
+      receipt.mobilePublicKey !== normalizedPublicKey ||
+      receipt.pairingTokenDigest !== pairingTokenDigest ||
+      !sameStringArray(receipt.capabilities, normalizedCapabilities)
+    ) {
+      throw new Error(
+        "Remote relay membership acceptance is unavailable or mismatched",
+      );
+    }
+    return receipt;
+  }
+
+  hasRelayMembershipAcceptance(peerId) {
+    return this.acceptedRelayMemberships.has(peerId);
   }
 }

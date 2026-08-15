@@ -16,6 +16,12 @@ function toBase64Url(bytes) {
     .replace(/=+$/g, "");
 }
 
+function toHex(bytes) {
+  return [...new Uint8Array(bytes)]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 function canonicalJson(value) {
   if (
     value === null ||
@@ -264,13 +270,23 @@ export function createRemoteMembershipCredentialManager({
   }
 
   async function materialize(record, persistence) {
-    const publicKey = toBase64Url(
-      await subtle.exportKey("spki", record.publicKey),
-    );
+    const publicKeySpki = await subtle.exportKey("spki", record.publicKey);
+    const publicKey = toBase64Url(publicKeySpki);
+    const credentialPrincipalId = `ed25519:${toHex(
+      await subtle.digest("SHA-256", publicKeySpki),
+    )}`;
+    if (record.principalId && record.principalId !== credentialPrincipalId) {
+      throw new Error("Remote membership principal binding changed");
+    }
     return Object.freeze({
       publicKey,
       privateKey: record.privateKey,
       principalId: record.principalId || null,
+      // The coordinator derives principal identity from SHA-256(SPKI). Keep
+      // that deterministic candidate available before the one-shot join is
+      // dispatched, so a lost join response can be reconciled by possession
+      // proof without replaying the pairing token.
+      credentialPrincipalId,
       persistence,
     });
   }
@@ -331,35 +347,54 @@ export function createRemoteMembershipCredentialManager({
       const principalId = normalizePrincipalId(principalIdValue);
       return withSessionLock(sessionId, async () => {
         const existing = await loadRecord(sessionId);
-        const loaded =
-          existing === STORAGE_UNAVAILABLE
-            ? await createRecord(sessionId, { memoryOnly: true })
-            : existing || (await createRecord(sessionId));
+        if (existing === STORAGE_UNAVAILABLE) {
+          throw new Error(
+            "Remote membership principal persistence is unavailable",
+          );
+        }
+        const loaded = existing || (await createRecord(sessionId));
+        const materialized = await materialize(
+          loaded.record,
+          loaded.persistence,
+        );
+        if (principalId !== materialized.credentialPrincipalId) {
+          throw new Error("Remote membership principal binding changed");
+        }
         if (
           loaded.record.principalId &&
           loaded.record.principalId !== principalId
         ) {
           throw new Error("Remote membership principal binding changed");
         }
+        // A previously committed binding is already restart-safe and needs no
+        // new write (important when a host close/re-enable happens while IDB is
+        // temporarily read-only). A new marker, however, is the recovery point
+        // for an outcome-unknown one-shot join and must be durable before that
+        // join can be dispatched.
+        if (
+          loaded.record.principalId === principalId &&
+          loaded.persistence === "indexeddb"
+        ) {
+          return materialized;
+        }
+        if (loaded.persistence !== "indexeddb" || !credentialStore) {
+          throw new Error(
+            "Remote membership principal could not be persisted before join",
+          );
+        }
         const record = validateCredentialRecord(
           { ...loaded.record, principalId },
           sessionId,
         );
-        let persistence = loaded.persistence;
-        if (persistence === "indexeddb" && credentialStore) {
-          try {
-            await credentialStore.put(record);
-          } catch {
-            // The host has already admitted this principal. Keep the same
-            // non-extractable key and binding alive for this tab instead of
-            // orphaning the live membership after a transient IDB failure.
-            volatileCredentials.set(sessionId, record);
-            persistence = "memory";
-          }
-        } else {
-          volatileCredentials.set(sessionId, record);
+        try {
+          await credentialStore.put(record);
+        } catch (cause) {
+          throw new Error(
+            "Remote membership principal could not be persisted before join",
+            { cause },
+          );
         }
-        return materialize(record, persistence);
+        return materialize(record, "indexeddb");
       });
     },
     forget(sessionIdValue) {

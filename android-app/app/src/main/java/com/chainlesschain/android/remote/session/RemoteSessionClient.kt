@@ -50,6 +50,9 @@ class RemoteSessionClient(
     private val reconnectMaxMs: Long = 30_000L,
     private val maxReconnectAttempts: Int = Int.MAX_VALUE,
     private val scheduler: RemoteReconnectScheduler = RealReconnectScheduler(),
+    private val pairAckTimeoutMs: Long = 5_000L,
+    private val maxPairAckRetries: Int = 2,
+    private val pairAckScheduler: RemoteReconnectScheduler = scheduler,
 ) {
     constructor(httpClient: OkHttpClient) : this(
         webSocketFactory = { url, listener ->
@@ -113,7 +116,13 @@ class RemoteSessionClient(
     private var closedExplicitly = false
     private var reconnectAttempts = 0
     private var reconnectTask: AutoCloseable? = null
+    // Counts pair.join send attempts for the whole connect() operation,
+    // including sends made on replacement relay sockets.  The one-shot token
+    // must not acquire a fresh retry budget every time the transport reconnects.
+    private var pairAckAttempts = 0
+    private var pairAckTask: AutoCloseable? = null
 
+    @Synchronized
     fun connect(uri: String) {
         disconnect()
         val parsed = RemoteSessionPairingParser.parse(uri)
@@ -127,14 +136,19 @@ class RemoteSessionClient(
         paired = false
         closedExplicitly = false
         reconnectAttempts = 0
+        pairAckAttempts = 0
         // Fresh pairing = fresh peerId = fresh per-device seq space on the host.
         controlSeq.set(0)
         _status.value = RemoteSessionStatus.CONNECTING
         openSocket()
     }
 
+    @Synchronized
     private fun openSocket() {
         val activePairing = pairing ?: return
+        if (!paired) {
+            cancelPairAck()
+        }
         socket = webSocketFactory(activePairing.relayUrl, listener)
     }
 
@@ -172,10 +186,12 @@ class RemoteSessionClient(
 
     fun interrupt() = sendControl(JSONObject().put("type", "interrupt"))
 
+    @Synchronized
     fun disconnect() {
         closedExplicitly = true
         paired = false
         cancelReconnect()
+        cancelPairAck()
         socket?.close(1000, "Android Remote Session closed")
         socket = null
         _status.value = RemoteSessionStatus.DISCONNECTED
@@ -205,7 +221,13 @@ class RemoteSessionClient(
         )
     }
 
+    @Synchronized
     private fun sendPairRequest(webSocket: WebSocket) {
+        if (paired || closedExplicitly || webSocket !== socket) return
+        if (pairAckAttempts > maxPairAckRetries.coerceAtLeast(0)) {
+            failPairAck(webSocket)
+            return
+        }
         val activePairing = requireNotNull(pairing)
         val activeCrypto = requireNotNull(crypto)
         val joinPayload = JSONObject()
@@ -216,7 +238,7 @@ class RemoteSessionClient(
         pushToken?.let { joinPayload.put("pushToken", it) }
         pushProvider?.let { joinPayload.put("pushProvider", it) }
         val envelope = activeCrypto.encrypt(joinPayload)
-        webSocket.send(
+        val sent = webSocket.send(
             JSONObject()
                 .put("type", "message")
                 .put("to", activePairing.hostPeerId)
@@ -230,9 +252,46 @@ class RemoteSessionClient(
                 )
                 .toString(),
         )
+        cancelPairAck()
+        pairAckAttempts += 1
+        if (!sent) {
+            // OkHttp reports false once the socket is closing/overloaded. Do
+            // not leave PAIRING without either a timeout or a reconnect path.
+            if (webSocket === socket) {
+                socket = null
+                webSocket.cancel()
+                scheduleReconnect()
+            }
+            return
+        }
+        pairAckTask = pairAckScheduler.schedule(pairAckTimeoutMs) {
+            handlePairAckTimeout(webSocket)
+        }
     }
 
-    private fun handleMessage(text: String) {
+    @Synchronized
+    private fun handlePairAckTimeout(webSocket: WebSocket) {
+        pairAckTask = null
+        sendPairRequest(webSocket)
+    }
+
+    @Synchronized
+    private fun failPairAck(webSocket: WebSocket) {
+        if (paired || closedExplicitly || webSocket !== socket) return
+        closedExplicitly = true
+        paired = false
+        cancelReconnect()
+        cancelPairAck()
+        socket = null
+        val message = "Remote Session pair ACK retry budget exhausted"
+        _errors.tryEmit(message)
+        _status.value = RemoteSessionStatus.ERROR
+        webSocket.close(1001, message)
+    }
+
+    @Synchronized
+    private fun handleMessage(webSocket: WebSocket, text: String) {
+        if (webSocket !== socket) return
         runCatching {
             var message = JSONObject(text)
             if (message.optString("type") == "offline-message") {
@@ -257,7 +316,9 @@ class RemoteSessionClient(
                     )
                     when (event.optString("type")) {
                         "pair.accepted" -> {
+                            cancelPairAck()
                             paired = true
+                            pairAckAttempts = 0
                             reconnectAttempts = 0
                             _status.value = RemoteSessionStatus.CONNECTED
                         }
@@ -265,6 +326,7 @@ class RemoteSessionClient(
                             closedExplicitly = true
                             paired = false
                             cancelReconnect()
+                            cancelPairAck()
                             socket?.close(1000, "Revoked by host")
                             socket = null
                             _status.value = RemoteSessionStatus.REVOKED
@@ -280,6 +342,7 @@ class RemoteSessionClient(
         }
     }
 
+    @Synchronized
     private fun scheduleReconnect() {
         if (closedExplicitly || reconnectTask != null || reconnectAttempts >= maxReconnectAttempts) {
             _status.value = RemoteSessionStatus.DISCONNECTED
@@ -294,9 +357,16 @@ class RemoteSessionClient(
         }
     }
 
+    @Synchronized
     private fun cancelReconnect() {
         reconnectTask?.close()
         reconnectTask = null
+    }
+
+    @Synchronized
+    private fun cancelPairAck() {
+        pairAckTask?.close()
+        pairAckTask = null
     }
 
     private fun isPositiveRevision(value: Any?): Boolean = when (value) {
@@ -310,37 +380,47 @@ class RemoteSessionClient(
 
     private val listener = object : WebSocketListener() {
         override fun onOpen(webSocket: WebSocket, response: Response) {
-            webSocket.send(
-                JSONObject()
-                    .put("type", "register")
-                    .put("peerId", peerId)
-                    .put("deviceType", "mobile")
-                    .put("deviceInfo", JSONObject().put("protocol", "remote-session.e2ee.v1"))
-                    .toString(),
-            )
+            synchronized(this@RemoteSessionClient) {
+                if (webSocket !== socket) return
+                webSocket.send(
+                    JSONObject()
+                        .put("type", "register")
+                        .put("peerId", peerId)
+                        .put("deviceType", "mobile")
+                        .put("deviceInfo", JSONObject().put("protocol", "remote-session.e2ee.v1"))
+                        .toString(),
+                )
+            }
         }
 
-        override fun onMessage(webSocket: WebSocket, text: String) = handleMessage(text)
-        override fun onMessage(webSocket: WebSocket, bytes: ByteString) = handleMessage(bytes.utf8())
+        override fun onMessage(webSocket: WebSocket, text: String) = handleMessage(webSocket, text)
+        override fun onMessage(webSocket: WebSocket, bytes: ByteString) =
+            handleMessage(webSocket, bytes.utf8())
 
         override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-            if (webSocket !== socket) return
-            socket = null
-            if (closedExplicitly) {
-                _status.value = RemoteSessionStatus.DISCONNECTED
-            } else {
-                scheduleReconnect()
+            synchronized(this@RemoteSessionClient) {
+                if (webSocket !== socket) return
+                cancelPairAck()
+                socket = null
+                if (closedExplicitly) {
+                    _status.value = RemoteSessionStatus.DISCONNECTED
+                } else {
+                    scheduleReconnect()
+                }
             }
         }
 
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-            if (webSocket !== socket) return
-            socket = null
-            _errors.tryEmit(t.message ?: "Remote Session relay failed")
-            if (closedExplicitly) {
-                _status.value = RemoteSessionStatus.ERROR
-            } else {
-                scheduleReconnect()
+            synchronized(this@RemoteSessionClient) {
+                if (webSocket !== socket) return
+                cancelPairAck()
+                socket = null
+                _errors.tryEmit(t.message ?: "Remote Session relay failed")
+                if (closedExplicitly) {
+                    _status.value = RemoteSessionStatus.ERROR
+                } else {
+                    scheduleReconnect()
+                }
             }
         }
     }

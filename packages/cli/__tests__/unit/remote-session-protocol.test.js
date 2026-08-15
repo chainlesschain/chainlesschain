@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { RemoteSessionRegistry } from "../../src/harness/remote-session-registry.js";
 import { RemoteSessionAuditLog } from "../../src/harness/remote-session-audit.js";
@@ -6,12 +9,20 @@ import {
   handleRemoteSessionCreate,
   handleRemoteSessionDevices,
   handleRemoteSessionJoin,
+  handleRemoteSessionJoinChallenge,
   handleRemoteSessionPolicy,
   handleRemoteSessionPublish,
   handleRemoteSessionPushRegister,
   handleRemoteSessionRevoke,
+  handleRemoteSessionResume,
+  handleRemoteSessionResumeChallenge,
 } from "../../src/gateways/ws/remote-session-protocol.js";
 import { parseRemotePairingUri } from "../../src/harness/remote-session-crypto.js";
+import {
+  createRemoteMembershipPrincipalCredential,
+  DurableRemoteMembershipCoordinator,
+  signRemoteMembershipAuthenticationChallenge,
+} from "../../src/lib/remote-membership-coordinator.js";
 
 function socket(name) {
   return { name, sent: [] };
@@ -98,6 +109,190 @@ describe("remote session WebSocket protocol", () => {
     expect(host.sent.at(-1)).toMatchObject({
       type: "remote-session-published",
       delivered: 1,
+    });
+  });
+
+  it("resumes an ACK-lost durable join across client and server restart without rejoining", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-direct-join-ack-"));
+    try {
+      const coordinatorOptions = {
+        stateFile: path.join(root, "state", "coordinator.json"),
+        keyFile: path.join(root, "key", "ed25519.json"),
+        witnessFile: path.join(root, "witness", "head.json"),
+      };
+      const hostCredential = createRemoteMembershipPrincipalCredential();
+      const phoneCredential = createRemoteMembershipPrincipalCredential();
+      const firstCoordinator = new DurableRemoteMembershipCoordinator(
+        coordinatorOptions,
+      );
+      const firstPhone = socket("first-phone");
+      const firstServer = {
+        ...server,
+        remoteSessions: new RemoteSessionRegistry({
+          membershipCoordinator: firstCoordinator,
+        }),
+        clients: new Map([
+          ["host", { ws: host, membershipConnectionNonce: "host-nonce" }],
+          [
+            "phone-first",
+            { ws: firstPhone, membershipConnectionNonce: "phone-nonce-1" },
+          ],
+        ]),
+      };
+
+      handleRemoteSessionCreate(firstServer, "host", host, {
+        id: "durable-create",
+        sessionId: "agent-durable",
+        scopes: ["observe", "approve"],
+        requireDurableMembershipAuthority: true,
+        hostCredentialPublicKeySpki: hostCredential.publicKey,
+      });
+      const created = host.sent.at(-1);
+      handleRemoteSessionJoinChallenge(firstServer, "phone-first", firstPhone, {
+        id: "join-challenge",
+        remoteSessionId: created.session.sessionId,
+        token: created.pairing.token,
+        credentialPublicKey: phoneCredential.publicKey,
+        capabilities: ["approval-binding-v1"],
+      });
+      const challenge = firstPhone.sent.at(-1).challenge;
+      handleRemoteSessionResumeChallenge(
+        firstServer,
+        "phone-first",
+        firstPhone,
+        {
+          id: "resume-before-join",
+          remoteSessionId: created.session.sessionId,
+          principalId: challenge.principalId,
+        },
+      );
+      expect(firstPhone.sent.at(-1)).toMatchObject({
+        type: "error",
+        code: "REMOTE_SESSION_MEMBERSHIP_NOT_ACTIVE",
+      });
+      expect(() =>
+        firstServer.remoteSessions.pairingInvitation(
+          created.session.sessionId,
+          created.pairing.token,
+        ),
+      ).not.toThrow();
+      const forgedOuterSessionId = "forged-secret-session-attribution";
+      handleRemoteSessionJoin(firstServer, "phone-first", firstPhone, {
+        id: "join-commit",
+        remoteSessionId: forgedOuterSessionId,
+        challengeId: challenge.challengeId,
+        signature: signRemoteMembershipAuthenticationChallenge(
+          challenge,
+          phoneCredential.privateKeyPkcs8,
+        ),
+      });
+      const committed = firstPhone.sent.at(-1);
+      expect(committed.type).toBe("remote-session-joined");
+      expect(committed.session.sessionId).toBe(created.session.sessionId);
+      expect(
+        firstServer.remoteSessions.members(created.session.sessionId),
+      ).toHaveLength(2);
+      expect(() =>
+        firstServer.remoteSessions.members(forgedOuterSessionId),
+      ).toThrow(/not found/);
+      expect(
+        firstServer.remoteSessionAudit.list({ action: "device.joined" }),
+      ).toEqual([
+        expect.objectContaining({ sessionId: created.session.sessionId }),
+      ]);
+      expect(
+        firstServer.remoteSessionAudit.list({
+          sessionId: forgedOuterSessionId,
+        }),
+      ).toHaveLength(0);
+      expect(() =>
+        firstServer.remoteSessions.pairingInvitation(
+          created.session.sessionId,
+          created.pairing.token,
+        ),
+      ).toThrow(/missing or expired/);
+
+      // Drop the committed response and both endpoints. The new server has
+      // only durable coordinator state; the new client connection has only
+      // the same private credential. Possession resume reads the exact tuple.
+      const resumedPhone = socket("resumed-phone");
+      const restartedServer = {
+        ...server,
+        remoteSessions: new RemoteSessionRegistry({
+          membershipCoordinator: new DurableRemoteMembershipCoordinator(
+            coordinatorOptions,
+          ),
+        }),
+        clients: new Map([
+          [
+            "phone-restarted",
+            { ws: resumedPhone, membershipConnectionNonce: "phone-nonce-2" },
+          ],
+        ]),
+      };
+      handleRemoteSessionResumeChallenge(
+        restartedServer,
+        "phone-restarted",
+        resumedPhone,
+        {
+          id: "resume-challenge",
+          remoteSessionId: created.session.sessionId,
+          principalId: committed.member.principalId,
+        },
+      );
+      const resumeChallenge = resumedPhone.sent.at(-1).challenge;
+      handleRemoteSessionResume(
+        restartedServer,
+        "phone-restarted",
+        resumedPhone,
+        {
+          id: "resume-complete",
+          remoteSessionId: created.session.sessionId,
+          challengeId: resumeChallenge.challengeId,
+          signature: signRemoteMembershipAuthenticationChallenge(
+            resumeChallenge,
+            phoneCredential.privateKeyPkcs8,
+          ),
+        },
+      );
+
+      expect(resumedPhone.sent.at(-1)).toMatchObject({
+        type: "remote-session-resumed",
+        session: {
+          sessionId: created.session.sessionId,
+          sessionEpoch: committed.session.sessionEpoch,
+        },
+        member: {
+          principalId: committed.member.principalId,
+          membershipEpoch: committed.member.membershipEpoch,
+        },
+      });
+      expect(
+        restartedServer.remoteSessions.members(created.session.sessionId),
+      ).toHaveLength(2);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("does not classify a transient resume coordinator failure as not-active", () => {
+    server.clients.get("phone").membershipConnectionNonce = "phone-nonce";
+    server.remoteSessions.issueSessionResumeChallenge = vi.fn(() => {
+      const failure = new Error("coordinator temporarily unavailable");
+      failure.code = "CC_REMOTE_MEMBERSHIP_COORDINATOR_UNAVAILABLE";
+      throw failure;
+    });
+
+    handleRemoteSessionResumeChallenge(server, "phone", phone, {
+      id: "resume-transient",
+      remoteSessionId: "remote-1",
+      principalId: `ed25519:${"a".repeat(64)}`,
+    });
+
+    expect(phone.sent.at(-1)).toMatchObject({
+      type: "error",
+      code: "REMOTE_SESSION_RESUME_CHALLENGE_ERROR",
+      message: "coordinator temporarily unavailable",
     });
   });
 

@@ -16,6 +16,7 @@ import {
   describeAuthorityChain,
 } from "../../lib/agent-authority.js";
 import { hasCompleteInteractionBinding } from "../../lib/interaction-binding.js";
+import { REMOTE_MEMBERSHIP_NOT_ACTIVE_CODE } from "../../lib/remote-membership-coordinator.js";
 
 const CLIENT_EVENT_SCOPES = Object.freeze({
   prompt: "prompt",
@@ -276,7 +277,10 @@ export function handleRemoteSessionResumeChallenge(
     });
   } catch (error) {
     reply(server, ws, message.id, "error", {
-      code: "REMOTE_SESSION_RESUME_CHALLENGE_ERROR",
+      code:
+        error?.code === REMOTE_MEMBERSHIP_NOT_ACTIVE_CODE
+          ? "REMOTE_SESSION_MEMBERSHIP_NOT_ACTIVE"
+          : "REMOTE_SESSION_RESUME_CHALLENGE_ERROR",
       message: error.message,
     });
   }
@@ -420,7 +424,10 @@ export function handleRemoteSessionJoin(server, clientId, ws, message) {
       client.membershipConnectionNonce = result.nextConnectionNonce;
     }
     audit(server, {
-      sessionId: message.remoteSessionId,
+      // A challengeId is the authority for a durable join. Its signed result
+      // can legitimately identify a different session than an untrusted outer
+      // field, so successful attribution must use only the committed result.
+      sessionId: result.session.sessionId,
       actor: clientId,
       action: "device.joined",
       detail: {
