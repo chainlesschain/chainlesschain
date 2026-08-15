@@ -95,7 +95,7 @@ describe("desktop cc-context-center/v1 twin", () => {
     });
     expect(enabled.prompt).toContain("<ide-context-center");
     expect(enabled.prompt).toContain('"schema": "cc-context-center/v1"');
-    expect(enabled.prompt).toEndWith("hello");
+    expect(enabled.prompt.endsWith("hello")).toBe(true);
   });
 
   it("drops unsupported candidate kinds", async () => {
