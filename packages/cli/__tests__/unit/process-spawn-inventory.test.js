@@ -13,8 +13,8 @@ describe("process spawn inventory audit", () => {
     expect(isNonExecutableMatch("// child_process spawn() boundary")).toBe(
       true,
     );
-    expect(isNonExecutableMatch('"child_process",')).toBe(true);
-    expect(isNonExecutableMatch('"node:child_process"')).toBe(true);
+    expect(isNonExecutableMatch('"child_process",')).toBe(false);
+    expect(isNonExecutableMatch('"node:child_process"')).toBe(false);
     expect(
       isNonExecutableMatch('require("node:child_process").spawn("cmd");'),
     ).toBe(false);
@@ -50,6 +50,36 @@ describe("process spawn inventory audit", () => {
     ).toMatchObject({
       disposition: "audited-exemption",
     });
+    expect(
+      auditRuntimeHit(
+        "packages/cli/src/lib/mcp-stdio-package-materialization.js",
+        '"child_process", // spawn-inventory-audit: static-execution-context-builtin',
+        "const CAPSULE_EXECUTION_CONTEXT_BUILTINS = new Set([]);",
+      ),
+    ).toMatchObject({ disposition: "audited-exemption" });
+  });
+
+  it("does not hide a multiline dynamic child_process load behind a string literal", () => {
+    const multilineLoad = [
+      "const hidden = require(",
+      '  "child_process",',
+      ");",
+      'hidden.spawn("cmd");',
+    ].join("\n");
+    expect(
+      auditRuntimeHit(
+        "packages/cli/src/example.js",
+        '"child_process",',
+        multilineLoad,
+      ),
+    ).toMatchObject({ disposition: "unreviewed" });
+    expect(
+      auditRuntimeHit(
+        "packages/cli/src/lib/mcp-stdio-package-materialization.js",
+        '"child_process",',
+        multilineLoad,
+      ),
+    ).toMatchObject({ disposition: "unreviewed" });
   });
 
   it("fails the current runtime inventory closed at zero unreviewed", () => {
