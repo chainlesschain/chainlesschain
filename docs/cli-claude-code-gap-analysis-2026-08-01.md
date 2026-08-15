@@ -1421,7 +1421,21 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 
 首次正式尝试 [Scheduler Kernel Soak run `31807830251`](https://github.com/chainlesschain/chainlesschain/actions/runs/31807830251) 从不可变 ref `v-npm-0-163-8` 绑定 exact SHA `a0631cb4f97f45ff7fcef9c19d346ed2b8387da6`，`run_started_at=2026-08-14T14:05:41Z`。Windows job `94790923627` 在第 4 轮、连续运行 `270.1766281s` 后因 `worker steady-1 exited before expected event: code=1 signal=none` 失败；失败前已完成 4 rounds、40 steady occurrences、8 hard kills 和 49 effects。Windows artifact `9222159151` 的 workflow digest 为 `sha256:d01436bbfab044d2edb46de6745ed0ca22353db1135779197a615266be889a1a`。为避免继续占用 runner，Ubuntu 与 macOS 随后取消，整个 run 最终为 `cancelled`。
 
-该 run 是无效 segment，不定义正式 `T0`；正式有效的长期 soak segment 仍为 **0/4**。必须先修复并通过同一 exact SHA 的三平台门禁，再从新成功 segment 的实际 `run_started_at` 重置 `T0`。退出门要求同一 campaign 完成四个三平台 segment，每个 segment 至少运行 `7200s`，四次启动覆盖至少 `72h`，相邻启动间隔不超过 `30h`，并由最终 campaign verifier 对 exact SHA、seed、artifact 与资源趋势统一验收；短时 smoke、单平台、进行中、失败或取消的 segment 都不计入 4 个正式样本。有效调度仍采用 `T0 / +25h / +50h / +75h`。
+该 run 是无效 segment，不定义正式 `T0`。随后 [PR #197](https://github.com/chainlesschain/chainlesschain/pull/197)
+以 merge SHA `7d3120fc1ed7ef1c32c183d3235ced4a39589e1f` 保留 bounded worker fatal、stderr、recent-event
+与 parse-error 诊断，并在该 exact SHA 重新调度正式
+[Scheduler Kernel Soak `31821080101`](https://github.com/chainlesschain/chainlesschain/actions/runs/31821080101)。
+该 run 的 Linux、macOS、Windows 与 aggregate 四个 jobs 全部成功；artifact
+`cli-scheduler-soak-aggregate-7d3120fc1ed7ef1c32c183d3235ced4a39589e1f-1`（ID `9230910714`，
+digest `sha256:f90462a1f23ceb6a59fd07f65643a80a523ee92cdbae403ddc201124142c59dc`）回读为
+`result=passed`，三平台统一 profile 为每平台 `7200s`、100 rounds、1000 steady occurrences，合计
+3000 steady occurrences、600 次 hard kill、3603 effects；aggregate 绑定 exact release/control-plane SHA、
+seed `1592598566` 与 campaign `p2-4-scheduler-long-soak-7d3120fc`。
+
+因此新的有效 segment 以 source run `run_started_at=2026-08-14T16:48:54Z` 定义正式 `T0`，当前计数为
+**1/4**。退出门仍要求同一 campaign 再完成 `+25h / +50h / +75h` 三个三平台 segment，使四次启动覆盖
+至少 `72h`、相邻启动间隔不超过 `30h`，并由最终 campaign verifier 对 exact SHA、seed、artifact 与
+资源趋势统一验收；短时 smoke、单平台、进行中、失败或取消的 segment 仍不计入正式样本。
 
 五域迁移/回滚已随 `chainlesschain@0.163.7` 的最终 release SHA 双门禁、不可变 tag、专用发布和独立公网回读完成而关闭，证据见第 18.8 节。磁盘故障矩阵已由 [PR #186](https://github.com/chainlesschain/chainlesschain/pull/186) 正式关闭，证据见第 18.9 节；其覆盖 ENOSPC、short/partial write、file/directory fsync、rename、损坏记录、原生 SQLite `SQLITE_FULL` 事务回滚、Automation 源恢复原子性、数据库截断与 reopen fail-closed。Agenda/Cowork 权威写入也已改为 private temp + 完整写循环 + fsync + atomic rename，并区分 `not-committed`/`unknown`。
 
@@ -1449,13 +1463,13 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 ### 18.5 推荐执行顺序与总判定
 
 1. `chainlesschain@0.163.8` 已完成 PR head 双门、最终 merge SHA 双门、不可变 tag、专用 npm 发布与独立公网回读，发布子任务正式关闭；完整证据见第 18.12 节。
-2. P2-4 首次正式 segment 因 Windows worker 早退而无效，正式计数仍为 0/4；先完成根因修复、回归和 exact-SHA 三平台门禁，再以新的成功 segment 重置 `T0`，随后按 `T0 / +25h / +50h / +75h` 完成至少 72 小时跨时段证据。
+2. P2-4 首次正式 segment 因 Windows worker 早退而无效；exact `main@7d3120fc1e` 的后继 run `31821080101` 已三平台成功并重置 `T0`，正式计数为 1/4。继续按 `+25h / +50h / +75h` 完成其余三个 segment 与最终 campaign verifier，形成至少 72 小时跨时段证据。
 3. 并行推进 Skill/MCP 剩余平台安全边界；该项取得完整三平台恶意证据前保持 NO-GO。
 4. 签名 native 发行等待真实凭据/渠道，一旦前置到位即按 exact-SHA 六目标矩阵执行。
 5. telemetry 按真实 observation window 持续采集；在数据和 `0.164.0` floor 前不删除 alias。
 6. P2-2 clipboard image 已由 PR #190 合入 `main`，并完成最终 exact-SHA 的三平台 host、CLI CI 与 Strict Sandbox 门禁；该项正式关闭，完整证据见第 18.13 节。它是在 `0.163.8` 发布后合入，不应倒推为该 npm tarball 已包含此增量。
 
-当前总判定为：**公网 CLI npm `0.163.8` 的 exact-SHA 发布子链为 GO；完整 CLI 产品与 native 公开发行仍为 NO-GO**。`0.163.8` release commit `a0631cb4f97f45ff7fcef9c19d346ed2b8387da6` 已完成最终 SHA 双门禁、不可变发布和独立回读；P2-2 已在后续 `main` 提交关闭。P2-4 首次正式长期 soak segment 失败并取消，正式计数仍为 0/4。长期 soak、Skill/MCP 恶意矩阵、代表性 alias telemetry、P1-2 长期 keeper 矩阵和签名 native 发行仍未完成。
+当前总判定为：**公网 CLI npm `0.163.8` 的 exact-SHA 发布子链为 GO；完整 CLI 产品与 native 公开发行仍为 NO-GO**。`0.163.8` release commit `a0631cb4f97f45ff7fcef9c19d346ed2b8387da6` 已完成最终 SHA 双门禁、不可变发布和独立回读；P2-2 已在后续 `main` 提交关闭。P2-4 的首个有效正式长期 soak segment 已在后续 `main@7d3120fc1e` 成功，正式计数为 1/4；其余三个 segment 与 campaign verifier 尚未完成。长期 soak、Skill/MCP 恶意矩阵、代表性 alias telemetry、P1-2 长期 keeper 矩阵和签名 native 发行仍未完成。
 
 ### 18.6 2026-08-12 P2-4 outcome-unknown 人工裁决正式合并证据
 
@@ -1529,14 +1543,14 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | P2-4 磁盘故障矩阵                                  | PR #186 merge `b4813e8e260d2e313a63303eab2e9f829750919e`                                                                   | 已完成；不替代长期 soak。                                                                        |
 | Automation governed recovery                       | PR #187 merge `f044181efbfc7fc9bcff38558eda556ae671a9e3`；PR head 的 CLI CI `31765681718` 与 Strict `31765681499` 通过     | 纳入候选功能面。                                                                                 |
-| 正式 soak collection/campaign verifier             | PR #188 merge `12109a5d9ef7e24d344db624cb6f67bbb2387b9e`；CLI CI `31770003944` 与 Scheduler Kernel Soak `31770003889` 通过 | 提供正式采集工具；当前 0/4，不宣称 72h campaign 已完成。                                         |
+| 正式 soak collection/campaign verifier             | PR #188 merge `12109a5d9ef7e24d344db624cb6f67bbb2387b9e`；CLI CI `31770003944` 与 Scheduler Kernel Soak `31770003889` 通过；后继 exact-main run `31821080101` 形成首个有效 segment | 提供正式采集工具；当前 1/4，不宣称 72h campaign 已完成。                                         |
 | scheduler transaction-time lease/soak hardening    | PR #192 merge `b57fad84aeee53e043611ee95e2f4899ccac7b54`                                                                   | 其 PR-head CLI CI `31784110089` 有失败，不能作为 release gate；必须由最终 release SHA 全量重验。 |
 | governed multi-agent merge review                  | PR #191 merge `66b26822c1a35fcf11afdb069cba187dbcb4d261`；PR-head CLI CI `31792432446` 通过                                | 该路径未触发完整 Strict，必须由最终 release SHA 补齐。                                           |
 | MCP resource templates 与 optional capability 决策 | PR #193 merge `bdad2b2d57609a66dca753bd8575773334618da3`                                                                   | P2-3 已完成；双门证据见第 18.10 节。                                                             |
 
 在该候选快照形成时，release exact SHA、最终 merge SHA 双门、不可变 tag、专用 npm publish 与独立公网回读均尚未完成，因此当时不得预写发布成功。随后形成的 PR head、最终 merge SHA、tag、发布和公网回读闭环见第 18.12 节；历史组成 PR 的门禁和本地 dry-run 仍不被沿用为发布授权。
 
-在 `0.163.8` 发布候选形成时，原始 15 项口径仍有六项未完全关闭：**P0-3 可信 native 更新链、P1-1 代表性 alias telemetry、P1-2 spawn→PID hard-kill/长期 keeper 矩阵、P1-5 签名 native 发行、P2-2 clipboard image 真实 host 边界、P2-4 三平台 72h 长期 soak**。随后 P2-2 由第 18.13 节证据正式关闭，当前剩余前述其余五项。其中 P0-3 与 P1-5 是重叠的主要交付包，但在原始条目统计中仍分别占一项；P2-4 的正式 segment 仍为 **0/4**。P2-3 已正式完成，不能继续列入未完成数，也不能被误用来关闭第 18.4 节独立的 Skill/MCP 恶意矩阵。
+在 `0.163.8` 发布候选形成时，原始 15 项口径仍有六项未完全关闭：**P0-3 可信 native 更新链、P1-1 代表性 alias telemetry、P1-2 spawn→PID hard-kill/长期 keeper 矩阵、P1-5 签名 native 发行、P2-2 clipboard image 真实 host 边界、P2-4 三平台 72h 长期 soak**。随后 P2-2 由第 18.13 节证据正式关闭，当前剩余前述其余五项。其中 P0-3 与 P1-5 是重叠的主要交付包，但在原始条目统计中仍分别占一项；P2-4 已形成首个有效正式 segment，当前为 **1/4**，尚未通过 72h campaign verifier。P2-3 已正式完成，不能继续列入未完成数，也不能被误用来关闭第 18.4 节独立的 Skill/MCP 恶意矩阵。
 
 ### 18.12 2026-08-14 `0.163.8` 最终发布闭环与 P2-4 首段失败证据
 
@@ -1546,9 +1560,9 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 | 最终 merge SHA 门禁   | PR #194 以 merge commit `a0631cb4f97f45ff7fcef9c19d346ed2b8387da6` 进入 `main`。该 exact SHA 的 [CLI CI `31804468633`](https://github.com/chainlesschain/chainlesschain/actions/runs/31804468633) 成功，最终为 **52 success / 1 个正式条件 skip / 0 failure**；三平台 verify jobs Ubuntu `94783697271`、macOS `94783697364`、Windows `94783697508` 均 success。[CLI Strict Sandbox `31804468464`](https://github.com/chainlesschain/chainlesschain/actions/runs/31804468464) 为 **3/3 success**，对应 jobs `94779931238`、`94779931340`、`94779931354` 均 success。 |
 | 不可变 tag 与专用发布 | 轻量 tag `v-npm-0-163-8` 精确指向最终 merge SHA。专用 [npm 发布 run `31806101423`](https://github.com/chainlesschain/chainlesschain/actions/runs/31806101423) 的 exact-SHA、test、package 与 publish 阶段全部 success；没有从本地结果、旧 SHA 或部分矩阵发布。                                                                                                                                                                                                                                                                                                      |
 | 独立公网回读          | [readback `31807574517`](https://github.com/chainlesschain/chainlesschain/actions/runs/31807574517) 成功；公网 npm `latest=0.163.8`。registry tarball 为 **6,317,970 bytes**，SHA-1 `655557b5c5b897b23a29975708abbf8d5cd31e88`、SHA-256 `862a0f450da013740a1c21d084233b002982b4b816f156e4949b6110eda80e12`、SHA-512 `2893bac8b36c617d209537261c7f970de454a6e645b040af98963128d3f495daf6d6bc056072da8b660052edf16603e6052f72835b7fba0bcab45245140b8377`；`byteIdentical=true`，provenance `invalid=0`、`missing=0`。                                                 |
-| P2-4 正式首段         | [Scheduler Kernel Soak run `31807830251`](https://github.com/chainlesschain/chainlesschain/actions/runs/31807830251) 从 `v-npm-0-163-8` 解析到 exact SHA `a0631cb4f97f45ff7fcef9c19d346ed2b8387da6`，但 Windows job `94790923627` 在第 4 轮、`270.1766281s` 时因 `steady-1` worker `code=1` 早退而失败；Ubuntu 与 macOS 随后取消，run 最终为 `cancelled`。artifact `9222159151` 记录 4 rounds、40 steady occurrences、8 hard kills、49 effects。该 run 不计入正式样本、不定义 `T0`，正式计数仍为 **0/4**。                                                          |
+| P2-4 正式 segments     | [Scheduler Kernel Soak run `31807830251`](https://github.com/chainlesschain/chainlesschain/actions/runs/31807830251) 从 `v-npm-0-163-8` 解析到 exact SHA `a0631cb4f97f45ff7fcef9c19d346ed2b8387da6`，但 Windows job `94790923627` 在第 4 轮、`270.1766281s` 时因 `steady-1` worker `code=1` 早退而失败；Ubuntu 与 macOS 随后取消，故该 run 不计数。后继 exact `main@7d3120fc1e` 的 [run `31821080101`](https://github.com/chainlesschain/chainlesschain/actions/runs/31821080101) 三平台及 aggregate 全部成功，artifact `9230910714` 绑定 7200 秒、每平台 1000 steady occurrences、exact SHA/seed/campaign，正式定义新 `T0`；当前计数为 **1/4**。 |
 
-因此 `chainlesschain@0.163.8` 的 **CLI npm exact-SHA 子闭环为 GO**，发布任务可以关闭；P2-4 长期 soak 尚未取得首个有效 segment，不能提前关闭。随着第 18.13 节 P2-2 后续合并证据成立，原始 15 项统计更新为 **10 完成、5 部分完成、0 完全未开始；5 项未完全关闭**；第 16.8 节六项产品任务的 **3 完成/3 未完成**专项口径不因本次发布、P2-2 或失败 segment 改变。
+因此 `chainlesschain@0.163.8` 的 **CLI npm exact-SHA 子闭环为 GO**，发布任务可以关闭；P2-4 长期 soak 已取得首个有效 segment，但仍为 `1/4`，不能提前关闭。随着第 18.13 节 P2-2 后续合并证据成立，原始 15 项统计更新为 **10 完成、5 部分完成、0 完全未开始；5 项未完全关闭**；第 16.8 节六项产品任务的 **3 完成/3 未完成**专项口径不因本次发布、P2-2 或单个有效 segment 改变。
 
 ### 18.13 2026-08-14 P2-2 原生剪贴板图片正式合并与 exact-SHA host 证据
 

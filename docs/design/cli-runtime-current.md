@@ -12,9 +12,9 @@
 - `0.163.5` 公开 host-owned `SchedulerRuntime`，并把 Routine manual/cron/once、Agenda wakeup/cron 与 Cowork Cron 接到统一内核；durable microcompact checkpoint 同时进入发布。terminal evidence 可以在崩溃后安全补结算，start-only 或副作用后持久化失败固定为 outcome-unknown，不外推为全局 exactly-once。
 - `0.163.6` 完成 Agenda monitor、Loop、Automation cron、Routine GitHub、channel event 与 standalone daemon 的 adapter 迁移，并统一权限/预算 authority 及 Agenda/Cowork 的 timezone/DST/missed-run 语义。
 - `0.163.7` 正式公开 outcome-unknown 人工裁决、五域 migration journal 与受治理回滚、因果交付报告、call-ledger 预算和后台恢复权威加固。裁决与回滚均依赖精确证据/CAS；它们不扩张为跨独立存储的原子事务或语义因果证明。
-- `0.163.8` 正式承接确定性 scheduler disk-fault matrix、checkpoint-aware Automation pause/resume、incident retry/cancel、受治理多 Agent merge review、只读 MCP resource templates 与 transaction-time lease clock。首个 formal soak run `31807830251` 因 Windows worker 提前退出而无效，正式计数仍为 `0/4`，72 小时观察尚未开始。
+- `0.163.8` 正式承接确定性 scheduler disk-fault matrix、checkpoint-aware Automation pause/resume、incident retry/cancel、受治理多 Agent merge review、只读 MCP resource templates 与 transaction-time lease clock。首个 formal soak run `31807830251` 因 Windows worker 提前退出而无效；后继 exact-main run `31821080101` 三平台及 aggregate 全部成功并定义新 `T0`，正式计数为 `1/4`，其余三个 segment 与 72 小时 campaign verifier 尚未完成。
 - `main@affafa7f0f` 在发布后新增原生 `/paste-image`。Windows、macOS 与 Linux 使用各自受控宿主桥读取有界图片并进入下一轮 vision message；最终 merge SHA 的 host workflow `31813967006`、CLI CI `31810849262` 与 CLI Strict Sandbox `31810848956` 均通过，但该提交仍不属于 `0.163.8` tarball。
-- IDE 当前公开版本为 Open VSX `0.37.51`、JetBrains Marketplace `0.4.87`。双 tag 指向 `dd0adad7b1`，默认关闭的受治理自动 ghost-text、Automation Center、真实宿主矩阵与发布回读已完成；微软 VS Code Marketplace 与 JetBrains 作者签名仍未完成。
+- IDE 当前公开版本为 Open VSX `0.37.52`；JetBrains `0.4.88` 已上传但尚无本文采用的公开 listing 回读。已发布双 tag 指向 `f044181efb`，默认关闭的受治理自动 ghost-text、Automation Center、真实宿主矩阵与发布回读已完成；微软 VS Code Marketplace 与 JetBrains 作者签名仍未完成。
 
 ## 当前边界
 
@@ -166,10 +166,10 @@ outcome-unknown dead letter
 - **磁盘故障闭环（PR #186）**：Agenda/Cowork 权威 JSONL 使用 private exclusive temp、完整 short-write loop、file fsync、atomic rename 与 POSIX directory fsync，并区分 `not-committed` 和 post-rename `unknown`。矩阵覆盖 ENOSPC、partial write、file/directory fsync、rename、损坏记录、原生 SQLite `SQLITE_FULL` 事务回滚、Automation source 原子恢复、数据库截断与 reopen fail-closed。
 - **受治理 runtime recovery（PR #187）**：`center-projection` 投影可控 occurrence、exact fence/control revision 与声明的 `checkpoint_v1` safe point；`center-runtime-action` 只允许 running→pause-request→paused→resume 的合作式转换。能力变化、旧 fence/revision、终态或不支持的 job kind 全部失败闭合。
 - **Automation incident（PR #187）**：schedule/event 失败形成 revisioned incident；`center-incident-action <id> retry|cancel --expected-revision` 中，retry 必须再次匹配 occurrence/job/run/fence/error code 才能做幂等 requeue，manual incident 因无法证明外部副作用而禁止 retry。IDE 只消费脱敏投影与 exact argv，不读取 authority/boundary/detail evidence。
-- **三平台 soak（PR #188）**：真实 Linux/Windows/macOS worker 验证 contention、higher-fence recovery、stale settlement、outcome-unknown no-replay、heartbeat、DST、backlog、SQLite quick-check、descendant retirement 与 RSS/FD/handle/orphan 趋势。campaign gate 要求绑定 exact release/control-plane SHA，至少 72 小时、至少 4 个 formal segment、最大段间隔 30 小时。首次正式 run `31807830251` 的 Windows worker 在第 4 轮提前退出，Ubuntu/macOS 随后取消；该 run 不定义 `T0`，正式样本仍为 `0/4`。
+- **三平台 soak（PR #188/#197）**：真实 Linux/Windows/macOS worker 验证 contention、higher-fence recovery、stale settlement、outcome-unknown no-replay、heartbeat、DST、backlog、SQLite quick-check、descendant retirement 与 RSS/FD/handle/orphan 趋势。campaign gate 要求绑定 exact release/control-plane SHA，至少 72 小时、至少 4 个 formal segment、最大段间隔 30 小时。首次正式 run `31807830251` 的 Windows worker 在第 4 轮提前退出，Ubuntu/macOS 随后取消；该 run 不计数。后继 `main@7d3120fc1e` 的 run `31821080101` 三平台及 aggregate 全部成功，定义新 `T0` 并把正式样本推进到 `1/4`；不得把这一段外推为完整 campaign 已通过。
 - **多 Agent merge review（PR #191）**：`preview` 从精确 base 与候选 branch 生成稳定 file/hunk 选择；`apply` 必须匹配 revision、plan digest、选择、actor 与 reason，先 prepare 再以受控 ref transaction 发布；`rollback` 还要求当前 evidence digest 与完整 review id 二次确认。默认状态位于 `CHAINLESSCHAIN_HOME/team-merge-reviews`，显式 `--state-dir` 必须位于 agent 可写仓库之外。
 - **MCP resource templates**：templates-only server 可以注册既有 resource surface。`list_mcp_resource_templates` 只读 discovery cache，可按 server 过滤；订阅、peer logging、completion 与 sampling 仍未进入公开契约。
-- **剩余边界**：soak 工作流、formal segment 和 verifier 已合并，但尚未积累上述三平台正式观察证据；因此长期 soak 仍是 P2-4 唯一未关闭项。以上能力已经进入不可变 `0.163.8` tarball。
+- **剩余边界**：soak 工作流、formal segment 和 verifier 已合并，首个 exact-main 三平台正式 segment 已成功；当前仍为 `1/4`，尚缺其余三个 segment、至少 72 小时观察与最终 campaign verifier，因此长期 soak 仍是 P2-4 唯一未关闭项。以上基础能力已经进入不可变 `0.163.8` tarball，后继修复与首段证据位于发布后 `main`。
 
 ## 2026-08-14 `main@affafa7f0f`：发布后原生剪贴板图片
 

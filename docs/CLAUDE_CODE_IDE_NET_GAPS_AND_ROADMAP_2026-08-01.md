@@ -2,8 +2,8 @@
 
 - 评估日期：2026-08-01
 - ChainlessChain 原始审计仓库快照：`eb0bc663b6eb794b1b62ba2bfc7a1267c699d25d`
-- 当前代码/Git 核验快照：`b57fad84aeee53e043611ee95e2f4899ccac7b54`（`main`，2026-08-14，PR #192）
-- 原始审计版本基线（2026-08-01，非当前发布状态）：CLI `0.162.194` release candidate（`0.162.190` / `0.162.191` / `0.162.192` 未发布；`0.162.193` 被非权威通用 workflow 发布，npm `latest` 为 `0.162.193`）、Open VSX `0.37.45`、JetBrains Marketplace `0.4.81`；Microsoft Marketplace 尚未发布。当前状态以第十二节 2026-08-14 快照为准
+- 当前代码/Git 核验快照：`7d3120fc1ed7ef1c32c183d3235ced4a39589e1f`（`github/main`，2026-08-15，PR #197）
+- 原始审计版本基线（2026-08-01，非当前发布状态）：CLI `0.162.194` release candidate（`0.162.190` / `0.162.191` / `0.162.192` 未发布；`0.162.193` 被非权威通用 workflow 发布，npm `latest` 为 `0.162.193`）、Open VSX `0.37.45`、JetBrains Marketplace `0.4.81`；Microsoft Marketplace 尚未发布。当前状态以第十二节 2026-08-15 快照及第十三节未完成项表为准
 - Claude Code 基线：[CLI `2.1.220`](https://code.claude.com/docs/en/changelog)；官方文档回读日期 2026-08-01
 
 > 本文是一份面向下一阶段决策的“净差距”报告，不重复罗列已经完成的能力。
@@ -657,16 +657,18 @@ VS Code / JetBrains / Desktop / Web / Mobile
 - [Desktop coding agent bootstrap](../desktop-app-vue/src/main/bootstrap/coding-agent-bootstrap.js)
 - [现有完整差距审计](./IDE_VS_PLUGIN_CLAUDE_GAPS_AND_OPTIMIZATIONS_2026-07-22.md)
 
-## 十二、实施状态快照（更新至 2026-08-14）
+## 十二、实施状态快照（更新至 2026-08-15）
 
 本节记录原始审计快照之后的实施进展。状态严格区分“仓库实现”“本地定向验证”“真实宿主/远程矩阵”和
 “公开发布回读”：前两者不能替代后两者，也不能据此宣称 Microsoft Marketplace 发布、真实 PR/merge 或完整
 release gate 已完成。
 
-当前核验基线为 `main@b57fad84aeee53e043611ee95e2f4899ccac7b54`。公开分发基线为 CLI npm
-`0.163.7` 与 Open VSX `0.37.52`；JetBrains `0.4.88` 已上传 Marketplace，但官方 API 仍显示等待人工审核，
-因此当前公开 listing 仍以 `0.4.87` 为准。本次 IDE tags 均绑定上述 exact `main` SHA。Microsoft Marketplace、
-JetBrains 作者签名及 Desktop/native 签名公开闭环仍未关闭。开放 PR 只按候选记录，不计入 `main` 已交付范围。
+当前核验基线为 `github/main@7d3120fc1ed7ef1c32c183d3235ced4a39589e1f`。公开分发基线为 CLI npm
+`0.163.8` 与 Open VSX `0.37.52`；JetBrains `0.4.88` 已上传 Marketplace，但尚无本文采用的公开 listing
+回读。已发布 IDE tags `ide-vscode-v0.37.52` / `ide-jetbrains-v0.4.88` 精确绑定
+`f044181efbfc7fc9bcff38558eda556ae671a9e3`；后续 `0.37.53` / `0.4.89` 仍按 source candidate 处理，
+不能仅凭 tag 外推为公开发布。Microsoft Marketplace、JetBrains 作者签名及 Desktop/native 签名公开闭环
+仍未关闭。开放 PR 只按候选记录，不计入 `main` 已交付范围。
 
 下方首张总表保留 2026-08-09 的粗粒度校准基线，便于追溯当时的纠偏；它不是当前最终状态表。
 与后续“剩余任务计数与可执行清单”或 exact-SHA 增量冲突时，以日期更新、当前核验 head 和最新清单为准。
@@ -1546,30 +1548,62 @@ P1-3 和当前 **15/19 尚未关闭、4/19 完成**的计数均不减少；Open 
 [PR #191](https://github.com/chainlesschain/chainlesschain/pull/191) 通过最终 exact-head required checks 并合并后
 生效；合并前 `main` 仍保持 15/19、4/19 与 15 个剩余工作包，不能用本地通过替代 GitHub Actions。
 
-## 十三、未完成项汇总表（截至 2026-08-14）
+### 2026-08-15 P1-3 Automation Center 长期门关闭记录
 
-本表按原始路线图编号汇总当前仍未关闭的整项，便于排期和持续更新。下述口径随 PR #191 合并生效：
-**14/19 项尚未关闭，5/19 项完成**；已完成的 P0-1/Q1 Workbench、P0-2/Q2 Rewind、P2-1/R5
-因果可观测性、P2-2/R5 自动补全和 P2-3/R5 多 Agent 合并审阅不再列入。
+- **原定正式长期门已经终态成功。** Automation Center 的生产实现与双 IDE 门绑定 exact merge SHA
+  `f044181efbfc7fc9bcff38558eda556ae671a9e3`；同一 SHA 的
+  [CLI Reliability Soak `31773664173`](https://github.com/chainlesschain/chainlesschain/actions/runs/31773664173)
+  已完成并成功。Linux、macOS、Windows 的 scheduler jobs 均连续运行不少于 7200 秒，随后 aggregate job
+  成功；不存在用短时 PR smoke、旧 SHA 或单平台结果替代正式矩阵的问题。
+- **不可变 aggregate 精确满足退出指标。** artifact
+  `scheduler-reliability-soak-formal-aggregate-f044181efbfc7fc9bcff38558eda556ae671a9e3-1`
+  （ID `9211705590`，workflow artifact digest
+  `sha256:44143aedf4b407b094f53274307421bd3cf4ad5cc8088ff12b25620716bcde14`）回读为
+  `result=passed`、`qualifyingEvidence=true`、`releaseGateEligible=true`。统一 profile 为
+  `durationSeconds=7200`、每平台 `cycles=1000`；三平台合计 3000 cycles、9000 jobs、18000 claims、
+  3000 次 contention/stale-lease/retry/pause/checkpoint/resume/dead-letter/requeue，
+  `duplicateExecutions=0`、`invariantViolations=0`，并包含三平台各自 evidence SHA-256。
+- **当前 main 上的独立 kernel 门再次复验通过。** 修复 worker 失败证据保留后的 exact
+  `github/main@7d3120fc1ed7ef1c32c183d3235ced4a39589e1f` 通过
+  [CLI Scheduler Kernel Soak `31821080101`](https://github.com/chainlesschain/chainlesschain/actions/runs/31821080101)：
+  Linux、macOS、Windows 与 aggregate 四个 jobs 全部成功。aggregate artifact
+  `cli-scheduler-soak-aggregate-7d3120fc1ed7ef1c32c183d3235ced4a39589e1f-1`
+  （ID `9230910714`，digest
+  `sha256:f90462a1f23ceb6a59fd07f65643a80a523ee92cdbae403ddc201124142c59dc`）为
+  `result=passed`，逐平台 profile 均为 7200 秒、100 rounds × 10 steady occurrences；三平台合计
+  3000 steady occurrences、600 次 hard kill、3603 个 effects。
+- **关闭边界保持窄且可审计。** P1-3 原始退出条件是已实现的统一 daemon/通知/时区/权限预算/
+  outcome-unknown/迁移回滚/checkpoint pause-resume/incident/磁盘故障/双 IDE 控制面，再加三平台每平台
+  不少于 2 小时且不少于 1000 cycles 的正式 aggregate；这些条件现已全部满足，故 P1-3 从本节起正式关闭。
+  `31821080101` 同时是独立 72 小时 scheduler kernel campaign 的第一个有效 segment（`1/4`，定义新的
+  `T0`），但后续 `+25h/+50h/+75h` segment 与 campaign verifier 仍属于更长观察证据；它们不被写成
+  已完成，也不反向重开已满足原始退出条件的 P1-3。Remote IDE、8 小时 IDE soak、签名发行与外部
+  live-provider trajectory 继续归属 Q4a/Q4b。
+
+## 十三、未完成项汇总表（截至 2026-08-15）
+
+本表按原始路线图编号汇总当前仍未关闭的整项，便于排期和持续更新。PR #191 合并且 P1-3 正式
+aggregate 回读后，当前为 **13/19 项尚未关闭，6/19 项完成**；已完成的 P0-1/Q1 Workbench、
+P0-2/Q2 Rewind、P1-3/R4 Automation Center、P2-1/R5 因果可观测性、P2-2/R5 自动补全和
+P2-3/R5 多 Agent 合并审阅不再列入。
 R0～R5 只是阶段别名，不重复计数。“部分完成”表示已有实现或子门已经关闭，但整项退出条件仍未满足；
 “外部阻塞”与“本期延后”均不代表完成、豁免或 release GO。
 
 | #   | 路线项                                         | 当前状态                                  | 已完成基础/最新进展                                                                                                                                                                                                                                                         | 未完成范围与关闭条件                                                                                                                                                                                                                       |
 | --- | ---------------------------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1   | S0-1：Plan、权限与运行时正确性                 | 部分完成；P0 release gate                 | Plan/contract/Hook/子树指令等安全底座已加固；durable host revocation 与 MCP send-time admission 已进入 `main`；PR #182 已形成后台 interaction journal CAS、delegated/recovery lease、精确进程身份与故障恢复加固候选                                                         | 关闭已 dispatch 外部 effect 的撤权边界、任意断电/fsync、独立 anti-rollback anchor、强篡改者与长期安全矩阵；合并前仍须通过 PR #182 exact-head CI，任何 authority-bearing 失败均不得扩大能力                                                 |
+| 1   | S0-1：Plan、权限与运行时正确性                 | 部分完成；P0 release gate                 | Plan/contract/Hook/子树指令、durable host revocation、MCP send-time admission、后台 interaction journal CAS、delegated/recovery lease、精确进程身份、独立 machine-local anti-rollback witness 与 covered-scope 磁盘故障恢复均已进入 `main`；PR #182 exact-head 双门及后续发布门已通过 | 关闭已 dispatch 外部 effect 无法召回的分布式撤权/人工裁决边界、任意断电与跨设备 fsync、同 UID 强篡改者、跨宿主 authority 及长期安全矩阵；任何 authority-bearing 失败均不得扩大能力                                                        |
 | 2   | S0-2：Skill/MCP 信任边界                       | 部分完成；P0 release gate                 | production Skill direct handler 已阻断；固定 npm MCP capsule 的四类不可降级宿主边界及真实 Client→Broker→OS live chain 已合并                                                                                                                                                | 补齐 macOS 原子 runtime exec/open、任意 native/shared-library 递归闭包、远端即时撤权/distributed authority、恶意来源/effect ledger/动态撤销/进程树和长期对抗矩阵                                                                           |
-| 3   | S0-3：持久状态、语义压缩与 handoff             | 部分完成；P0 foundation                   | provider-backed semantic compaction、canonical settlement 与 covered-scope CLI 冷恢复子门已关闭                                                                                                                                                                             | 为 in-memory microcompact prepass 增加 durable canonical CAS；完成真实 provider 长会话、可验收 structured handoff/live trajectory 与全宿主长期一致性矩阵                                                                                   |
+| 3   | S0-3：持久状态、语义压缩与 handoff             | 部分完成；P0 foundation                   | provider-backed semantic compaction、canonical settlement、durable microcompact canonical CAS 与 covered-scope CLI 冷恢复子门已关闭                                                                                                                                          | 完成真实 provider 长会话、可验收 structured handoff/live trajectory 与全宿主长期一致性矩阵                                                                                                                                                 |
 | 4   | Q0：可信入口与 Microsoft Marketplace           | 部分完成；外部阻塞                        | Desktop 单一 command registry、公开 capability manifest、不可变发布门已实现；Open VSX `0.37.52` 已公开发布，JetBrains `0.4.88` 已上传并等待人工审核                                                                                                                         | 配置 Microsoft Marketplace 发布 authority，发布同一已验证 VSIX，并完成 exact publisher/version/digest 回读及 stock VS Code 搜索、fresh-profile 安装、升级和回滚                                                                            |
 | 5   | Q3：Evidence-Driven Delivery Loop              | 部分完成；外部 live journey 延后          | production GitHub adapter、`cc artifacts delivery-run` 与 crash-safe exact-effect runner 已进入 `main`                                                                                                                                                                      | 通过生产入口真实执行 gates→preview→review→fix→PR/CI→受控 merge→archive；绑定 exact head，并关闭 ruleset/branch protection、required checks/review、权限及外部不可变/WORM 归档回读                                                          |
 | 6   | Q4a：真实宿主验收基础设施                      | 部分完成                                  | local-host、stable/minimum、多根、多窗口与 IDE ARM64 exact-SHA 子门已关闭                                                                                                                                                                                                   | 完成 Remote/SSH/WSL/devcontainer/Codespaces、JetBrains Gateway 的真实宿主 driver、versioned fixture manifest、失败 artifact capture 与可重放矩阵                                                                                           |
-| 7   | Q4b：完整发布与用户旅程门                      | 部分完成；外部阻塞/本期延后               | CLI npm exact-SHA 发布和公网回读、Open VSX `0.37.52` 公开回读、JetBrains `0.4.88` upload 及 unsigned CLI 六目标执行已完成                                                                                                                                                   | 等待 JetBrains `0.4.88` 人工审核；完成 Microsoft Marketplace、JetBrains 作者签名、Desktop/native x64+ARM64 签名与公证、fresh-profile 升降级/回滚、网络抖动/重连/Bridge 与 CLI restart、8 小时 IDE soak 和 nightly live-provider trajectory |
+| 7   | Q4b：完整发布与用户旅程门                      | 部分完成；外部阻塞/本期延后               | CLI npm `0.163.8` exact-SHA 发布和公网回读、Open VSX `0.37.52` 公开回读、JetBrains `0.4.88` upload 及 unsigned CLI 六目标执行已完成                                                                                                                                         | 等待 JetBrains `0.4.88` 人工审核；完成 Microsoft Marketplace、JetBrains 作者签名、Desktop/native x64+ARM64 签名与公证、fresh-profile 升降级/回滚、网络抖动/重连/Bridge 与 CLI restart、8 小时 IDE soak 和 nightly live-provider trajectory |
 | 8   | P1-1：Dynamic Workflow façade                  | 部分完成                                  | 已有 Cowork DAG、run history、Team/Batch 和统一 scheduler/Automation 控制基础                                                                                                                                                                                               | 收敛为可生成、可审阅、可预算、可暂停恢复、版本化保存和插件分发的统一 façade；同一 definition 必须可重放，阶段最多提交一次                                                                                                                  |
 | 9   | P1-2：一等 Execution Location                  | 部分完成                                  | 已有 Local、Remote Control、Cloud、后台和跨端 primitive                                                                                                                                                                                                                     | 将 Local/WSL/SSH/Cloud/Container 建为创建会话时可比较的一等属性；完成 capability manifest、安全 handoff，以及 commit/diff/summary/artifact/evidence/authority 的可审阅继承                                                                 |
-| 10  | P1-3：Automation Center                        | 部分完成；exact main/IDE 门已过，待长期门 | `main` 已覆盖统一 daemon、通知、时区、权限/预算、outcome-unknown、五域迁移/回滚、六 adapter checkpoint pause/resume、原 run/fence incident 恢复、SQLite FULL fail-closed 与双 IDE v2/v3 控制；exact-main IDE 门已通过，Open VSX `0.37.52` 已公开，JetBrains `0.4.88` 已上传 | 等待已调度的 Linux/Windows/macOS 每平台不少于 2 小时且不少于 1000 cycles 正式 aggregate 终态成功；成功前不关闭整项，也不因 P1-3 再减少当前计数                                                                                             |
-| 11  | P1-4：Context 与 Permission/Side-effect Center | 部分完成                                  | 已有 IDE context primitive、policy/approval/ledger 和只读 Policy Viewer                                                                                                                                                                                                     | 统一可移除 context chips 及 source/freshness/range/token 解释；展示最终规则来源、实际文件/网络/进程/credential、副作用与恢复覆盖；支持最小 scoped rule、失效和 revoke，且不得放宽 managed deny                                             |
-| 12  | P1-5：Marketplace 发现与组织治理               | 部分完成                                  | 签名、SBOM、策略、升级恢复与供应链治理底座较强                                                                                                                                                                                                                              | 补齐多来源发现、依赖/license/健康图、private registry、组织签名/撤销、代理/离线，以及来源切换、依赖冲突和供应链故障注入矩阵                                                                                                                |
-| 13  | P2-4：可访问性与性能                           | 部分完成                                  | 已有局部 IDE 宿主、长会话和规模测试基础                                                                                                                                                                                                                                     | 完成键盘全路径、屏幕阅读器、焦点恢复、长会话虚拟化、大 diff/日志和 100+ session 的量化验收；覆盖真实宿主和长期运行                                                                                                                         |
-| 14  | P2-5：WebIDE 定位                              | 未决                                      | 当前 WebIDE 更接近固定 HTML/CSS/JS playground                                                                                                                                                                                                                               | 明确产品决策：若无独立浏览器 IDE 目标，则收敛为 Preview/Artifact；若继续投入，则补齐仓库树、搜索、诊断、Git/Diff、Terminal 与 session 绑定                                                                                                 |
+| 10  | P1-4：Context 与 Permission/Side-effect Center | 部分完成                                  | 已有 IDE context primitive、policy/approval/ledger 和只读 Policy Viewer                                                                                                                                                                                                     | 统一可移除 context chips 及 source/freshness/range/token 解释；展示最终规则来源、实际文件/网络/进程/credential、副作用与恢复覆盖；支持最小 scoped rule、失效和 revoke，且不得放宽 managed deny                                             |
+| 11  | P1-5：Marketplace 发现与组织治理               | 部分完成                                  | 签名、SBOM、策略、升级恢复与供应链治理底座较强                                                                                                                                                                                                                              | 补齐多来源发现、依赖/license/健康图、private registry、组织签名/撤销、代理/离线，以及来源切换、依赖冲突和供应链故障注入矩阵                                                                                                                |
+| 12  | P2-4：可访问性与性能                           | 部分完成                                  | 已有局部 IDE 宿主、长会话和规模测试基础                                                                                                                                                                                                                                     | 完成键盘全路径、屏幕阅读器、焦点恢复、长会话虚拟化、大 diff/日志和 100+ session 的量化验收；覆盖真实宿主和长期运行                                                                                                                         |
+| 13  | P2-5：WebIDE 定位                              | 未决                                      | 当前 WebIDE 更接近固定 HTML/CSS/JS playground                                                                                                                                                                                                                               | 明确产品决策：若无独立浏览器 IDE 目标则收敛为 Preview/Artifact；若继续投入，则补齐仓库树、搜索、诊断、Git/Diff、Terminal 与 session 绑定                                                                                                   |
 
 建议关闭顺序为：先完成 **S0-1～S0-3、Q0、Q3** 的安全、可信分发和真实交付门，再用 **Q4a/Q4b**
 关闭远程、故障与长期宿主证据，随后推进 **P1-1～P1-5** 的产品化，最后处理 **P2-4～P2-5**。
