@@ -13,6 +13,11 @@ describe("process spawn inventory audit", () => {
     expect(isNonExecutableMatch("// child_process spawn() boundary")).toBe(
       true,
     );
+    expect(isNonExecutableMatch('"child_process",')).toBe(true);
+    expect(isNonExecutableMatch('"node:child_process"')).toBe(true);
+    expect(
+      isNonExecutableMatch('require("node:child_process").spawn("cmd");'),
+    ).toBe(false);
     expect(isNonExecutableMatch("const child = deps.spawn(file, args);")).toBe(
       false,
     );

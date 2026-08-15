@@ -87,6 +87,40 @@ function run(command, args, options = {}) {
   return result;
 }
 
+export function macosMcpLauncherCompilerArguments({
+  sdkPath,
+  temporaryRoot,
+  sourcePath = MACOS_MCP_LAUNCHER_SOURCE,
+  outputPath,
+}) {
+  for (const [name, value] of Object.entries({
+    sdkPath,
+    temporaryRoot,
+    sourcePath,
+    outputPath,
+  })) {
+    if (typeof value !== "string" || !path.isAbsolute(value)) {
+      throw new TypeError(`${name} must be an absolute path`);
+    }
+  }
+  return [
+    "-std=c11",
+    "-O2",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-Wno-deprecated-declarations",
+    "-mmacosx-version-min=13.0",
+    "-isysroot",
+    sdkPath,
+    "-I",
+    temporaryRoot,
+    sourcePath,
+    "-o",
+    outputPath,
+  ];
+}
+
 export function buildMacosMcpLauncher(outputPath, options = {}) {
   if ((options.platform || process.platform) !== "darwin") {
     throw new Error("macOS MCP launcher can only be compiled on macOS");
@@ -102,21 +136,27 @@ export function buildMacosMcpLauncher(outputPath, options = {}) {
     });
     const output = path.resolve(outputPath);
     fs.mkdirSync(path.dirname(output), { recursive: true });
-    const clang = run("/usr/bin/xcrun", ["--find", "clang"]).stdout.trim();
-    run(clang, [
-      "-std=c11",
-      "-O2",
-      "-Wall",
-      "-Wextra",
-      "-Werror",
-      "-Wno-deprecated-declarations",
-      "-mmacosx-version-min=13.0",
-      "-I",
-      temporaryRoot,
-      MACOS_MCP_LAUNCHER_SOURCE,
-      "-o",
-      output,
-    ]);
+    const clang = run("/usr/bin/xcrun", [
+      "--sdk",
+      "macosx",
+      "--find",
+      "clang",
+    ]).stdout.trim();
+    const sdkPath = fs.realpathSync(
+      run("/usr/bin/xcrun", [
+        "--sdk",
+        "macosx",
+        "--show-sdk-path",
+      ]).stdout.trim(),
+    );
+    run(
+      clang,
+      macosMcpLauncherCompilerArguments({
+        sdkPath,
+        temporaryRoot,
+        outputPath: output,
+      }),
+    );
     fs.chmodSync(output, 0o755);
     return Object.freeze({ output, ...inputs });
   } finally {

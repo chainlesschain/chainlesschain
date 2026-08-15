@@ -216,11 +216,19 @@ describe("permission side-effect center projection", () => {
       ],
     });
 
-    expect(projection.entries[0].unresolvedResources).toEqual([
+    const entriesByOperation = new Map(
+      projection.entries.map((entry) => [entry.opId, entry]),
+    );
+    expect(entriesByOperation.get("network-op").unresolvedResources).toEqual([
       "network target was not present in the recorded arguments",
     ]);
-    expect(projection.entries[1].resources.files).toEqual(["src/old.ts"]);
-    expect(projection.entries[1].recovery.coverage).toBe("unknown");
+    expect(entriesByOperation.get("file-op").resources.files).toEqual([
+      "src/old.ts",
+    ]);
+    expect(entriesByOperation.get("file-op").recovery.coverage).toBe("none");
+    expect(entriesByOperation.get("network-op").recovery.coverage).toBe(
+      "unknown",
+    );
   });
 
   it("includes actual MCP scopes and conservative open-world recovery", () => {

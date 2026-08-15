@@ -324,6 +324,7 @@ export const _deps = {
   processExitWaitDeadlineMs: 2_000,
   killProcessTree: defaultKillProcessTree,
   terminateOwnedProcessTree,
+  withSessionHostRecoveryLease,
 };
 
 /**
@@ -1533,7 +1534,7 @@ function recoverTerminalBackgroundInteractions(
 
   const fallbackRequest = backgroundInteractionFallback(state);
   try {
-    const recovery = withSessionHostRecoveryLease(state.sessionId, () =>
+    const recovery = _deps.withSessionHostRecoveryLease(state.sessionId, () =>
       rejectPendingBackgroundInteractions(state.sessionId, state.id, {
         fallbackRequest,
         code,
@@ -2694,9 +2695,13 @@ export function isBackgroundProcessTreeExecutionAlive(pid, startedAt) {
   return ["match", "unverifiable", "self"].includes(identity.status);
 }
 
-function signalBackgroundProcessTree(pid, signal = "SIGTERM") {
+export function signalBackgroundProcessTree(
+  pid,
+  signal = "SIGTERM",
+  { platform = process.platform } = {},
+) {
   const target = Number(pid);
-  if (process.platform === "win32") {
+  if (platform === "win32") {
     const killed = runSupervisorCommand(
       "taskkill",
       ["/PID", String(target), "/T", "/F"],
@@ -2719,9 +2724,22 @@ function signalBackgroundProcessTree(pid, signal = "SIGTERM") {
   try {
     _deps.kill(-target, signal);
     return "process-group";
-  } catch {
-    _deps.kill(target, signal);
-    return "process";
+  } catch (groupError) {
+    // A denied/invalid group signal can leave descendants executing even if a
+    // direct leader signal would succeed. Only ESRCH proves that there is no
+    // process group to terminate and permits the single-process fallback.
+    if (groupError?.code !== "ESRCH") throw groupError;
+    try {
+      _deps.kill(target, signal);
+      return "process";
+    } catch (error) {
+      // The exact-identity probe and signal are necessarily separate syscalls.
+      // A previously signalled group (or a naturally exiting child) can reap
+      // this target between them. ESRCH therefore proves there is no process
+      // left to terminate; permission and all other failures remain fatal.
+      if (error?.code === "ESRCH") return "already-exited";
+      throw error;
+    }
   }
 }
 
@@ -2793,7 +2811,7 @@ function waitForSignalledProcessesToExit(
 
 function recoverStoppedInteractions(state) {
   if (!state?.sessionId) return { state, recovery: null };
-  const recovery = withSessionHostRecoveryLease(state.sessionId, () =>
+  const recovery = _deps.withSessionHostRecoveryLease(state.sessionId, () =>
     rejectPendingBackgroundInteractions(state.sessionId, state.id, {
       fallbackRequest: backgroundInteractionFallback(state),
       code: "INTERACTION_STOPPED",
