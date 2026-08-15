@@ -1,11 +1,15 @@
 import crypto from "node:crypto";
-import { spawn as nativeSpawn } from "node:child_process";
+import {
+  spawn as nativeSpawn,
+  spawnSync as nativeSpawnSync,
+} from "node:child_process";
 import fs from "node:fs";
 import { executeTool } from "../../src/runtime/agent-core.js";
 import {
   executionBroker,
   SANDBOX_BOUNDARIES,
 } from "../../src/lib/process-execution-broker/index.js";
+import { materializeSandboxNativeLaunch } from "../../src/lib/process-execution-broker/platform-sandbox.js";
 
 const [mode, value, extra] = process.argv.slice(2);
 const BWRAP_SUPERVISOR_CHILD_FD = 3;
@@ -430,9 +434,29 @@ if (mode === "positive") {
   });
 } else if (mode === "plugin-command-snapshot-race") {
   const request = JSON.parse(extra);
+  const inheritedHighFd = Number(process.env.CC_TEST_INHERITED_HIGH_FD);
+  let inheritedHighFdObserved = false;
+  let inheritedHighFdCloexec = null;
+  if (Number.isSafeInteger(inheritedHighFd) && inheritedHighFd > 2) {
+    try {
+      fs.fstatSync(inheritedHighFd);
+      inheritedHighFdObserved = true;
+      const fdInfo = fs.readFileSync(
+        `/proc/self/fdinfo/${inheritedHighFd}`,
+        "utf8",
+      );
+      const flags = fdInfo.match(/^flags:\s*([0-7]+)$/m)?.[1];
+      inheritedHighFdCloexec = flags
+        ? (Number.parseInt(flags, 8) & 0o2000000) !== 0
+        : null;
+    } catch {
+      inheritedHighFdObserved = false;
+    }
+  }
   const originalApplySandbox = executionBroker._sandboxAdapter.applySandbox;
   const originalNative = executionBroker._native;
   const underlyingSpawn = originalNative?.spawn || nativeSpawn;
+  const underlyingSpawnSync = originalNative?.spawnSync || nativeSpawnSync;
   let mutation = null;
   let entryBindings = null;
   let dependencyMutation = null;
@@ -465,37 +489,48 @@ if (mode === "positive") {
     admittedPlan = plan;
     return plan;
   };
+  const mutateAfterAdmission = (command, args) => {
+    const launchArgs = Array.isArray(args) ? args : [];
+    const admittedNativeLaunch = admittedPlan
+      ? materializeSandboxNativeLaunch(admittedPlan)
+      : null;
+    const planArgs = Array.isArray(admittedNativeLaunch?.args)
+      ? admittedNativeLaunch.args
+      : [];
+    const launchMatchesPlan =
+      admittedNativeLaunch !== null &&
+      command === admittedNativeLaunch.command &&
+      JSON.stringify(launchArgs) === JSON.stringify(planArgs);
+    if (!mutated && launchMatchesPlan) {
+      mutated = true;
+      mutationPhase = "after-broker-plan-admission-before-native-spawn";
+      mutationLaunchBinding = {
+        commandMatchesPlan: true,
+        argsMatchPlan: true,
+      };
+      // ProcessExecutionBroker invokes its native spawn/spawnSync only after
+      // _prepareSandboxPlan has validated the adapter plan. Mutating here
+      // therefore proves that both the entry and dependency bytes remain
+      // descriptor-pinned across the final admission-to-spawn window.
+      mutation = rewriteSameInode(request.entryPath, request.replacementPath);
+      if (request.dependencyPath && request.dependencyReplacementPath) {
+        dependencyMutation = rewriteSameInode(
+          request.dependencyPath,
+          request.dependencyReplacementPath,
+        );
+      }
+    }
+    return launchArgs;
+  };
   executionBroker._native = {
     ...(originalNative || {}),
     spawn(command, args, options) {
-      const launchArgs = Array.isArray(args) ? args : [];
-      const planArgs = Array.isArray(admittedPlan?.args)
-        ? admittedPlan.args
-        : [];
-      const launchMatchesPlan =
-        admittedPlan !== null &&
-        command === admittedPlan.command &&
-        JSON.stringify(launchArgs) === JSON.stringify(planArgs);
-      if (!mutated && launchMatchesPlan) {
-        mutated = true;
-        mutationPhase = "after-broker-plan-admission-before-native-spawn";
-        mutationLaunchBinding = {
-          commandMatchesPlan: true,
-          argsMatchPlan: true,
-        };
-        // ProcessExecutionBroker invokes its native spawn only after
-        // _prepareSandboxPlan has validated the adapter plan. Mutating here
-        // therefore proves that both the entry and dependency bytes remain
-        // descriptor-pinned across the final admission-to-spawn window.
-        mutation = rewriteSameInode(request.entryPath, request.replacementPath);
-        if (request.dependencyPath && request.dependencyReplacementPath) {
-          dependencyMutation = rewriteSameInode(
-            request.dependencyPath,
-            request.dependencyReplacementPath,
-          );
-        }
-      }
+      const launchArgs = mutateAfterAdmission(command, args);
       return underlyingSpawn(command, launchArgs, options);
+    },
+    spawnSync(command, args, options) {
+      const launchArgs = mutateAfterAdmission(command, args);
+      return underlyingSpawnSync(command, launchArgs, options);
     },
   };
   let result;
@@ -520,6 +555,9 @@ if (mode === "positive") {
     supervisorPlan,
     mutationPhase,
     mutationLaunchBinding,
+    inheritedHighFd,
+    inheritedHighFdObserved,
+    inheritedHighFdCloexec,
     audit: executionBroker.getAuditLog(1)[0] || null,
   });
 } else if (mode === "generic-parent-exit") {

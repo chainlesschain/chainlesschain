@@ -42,6 +42,11 @@ import {
   MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256,
   MCP_STDIO_MACOS_GATED_ENTRY_BOOTSTRAP_SHA256,
   MACOS_PKG_EXECPATH_MAGIC,
+  LINUX_BWRAP_FD_CLOSURE_LAUNCHER_KIND,
+  LINUX_BWRAP_FD_CLOSURE_LAUNCHER_MECHANISM,
+  LINUX_BWRAP_FD_CLOSURE_LAUNCHER_SOURCE,
+  LINUX_BWRAP_FD_CLOSURE_LAUNCHER_SOURCE_SHA256,
+  materializeSandboxNativeLaunch,
   SANDBOX_BOUNDARIES,
 } from "./platform-sandbox.js";
 import {
@@ -105,6 +110,40 @@ const LINUX_RUNTIME_PATHNAME_POLICY_DIRECTORIES = Object.freeze([
   "/proc",
   "/dev",
 ]);
+
+function isTypedLinuxRootExecutableIdentity(identity) {
+  const fileId = identity?.fileId;
+  return (
+    identity &&
+    typeof identity === "object" &&
+    !Array.isArray(identity) &&
+    typeof identity.path === "string" &&
+    path.posix.isAbsolute(identity.path) &&
+    path.posix.normalize(identity.path) === identity.path &&
+    fileId &&
+    typeof fileId === "object" &&
+    !Array.isArray(fileId) &&
+    typeof fileId.dev === "string" &&
+    /^\d+$/.test(fileId.dev) &&
+    typeof fileId.ino === "string" &&
+    /^\d+$/.test(fileId.ino) &&
+    typeof identity.sha256 === "string" &&
+    /^[a-f0-9]{64}$/.test(identity.sha256) &&
+    Number.isSafeInteger(identity.bytes) &&
+    identity.bytes > 0 &&
+    identity.bytes <= 256 * 1024 * 1024 &&
+    Number.isFinite(identity.mtimeMs) &&
+    Number.isSafeInteger(identity.mode) &&
+    identity.mode > 0 &&
+    (identity.mode & 0o170000) === 0o100000 &&
+    (identity.mode & 0o111) !== 0 &&
+    (identity.mode & 0o022) === 0 &&
+    Number.isSafeInteger(identity.uid) &&
+    identity.uid === 0 &&
+    Number.isSafeInteger(identity.gid) &&
+    identity.gid >= 0
+  );
+}
 const LINUX_RUNTIME_PATHNAME_POLICY_ENVIRONMENT = Object.freeze([
   ["CHAINLESS_SANDBOXED", "1"],
   ["HOME", "/home/sandbox"],
@@ -1427,6 +1466,8 @@ class ProcessExecutionBroker extends EventEmitter {
         "runtimeSharedLibraryPathnameClosureExcludes",
         "runtimeSharedLibraryClosureScope",
         "runtimeSharedLibraryClosureMechanism",
+        "inheritedDescriptorClosureMechanism",
+        "fdClosureLauncherDependency",
         "targetDescriptorAllowlist",
         "targetRuntimeInvocationMode",
         "helperTeamIdentifier",
@@ -1463,6 +1504,7 @@ class ProcessExecutionBroker extends EventEmitter {
         "runtimeDevfsMounted",
         "runtimeScratchWritable",
         "runtimeDescriptorReopenPaths",
+        "inheritedDescriptorClosure",
         "rootProtectedRuntimeSnapshot",
         "entryRootOwnedAnonymousSnapshot",
         "entrySourcePrePostStat",
@@ -1526,6 +1568,7 @@ class ProcessExecutionBroker extends EventEmitter {
         "runtimeAttestedSha256",
         "entrySnapshotSha256",
         "entrySnapshotBootstrapSha256",
+        "fdClosureLauncherSourceSha256",
         "helperSha256",
         "helperSourceSha256",
         "helperProtocolSha256",
@@ -2755,6 +2798,39 @@ class ProcessExecutionBroker extends EventEmitter {
         }
       }
       for (const field of [
+        "inheritedDescriptorClosure",
+        "inheritedDescriptorClosureMechanism",
+        "fdClosureLauncherDependency",
+        "fdClosureLauncherSourceSha256",
+      ]) {
+        if (plan.runtimeProbe[field] !== undefined) {
+          runtimeProbe[field] = plan.runtimeProbe[field];
+        }
+      }
+      const fdClosureLauncherIdentity =
+        plan.runtimeProbe.fdClosureLauncherExecutableIdentity;
+      if (fdClosureLauncherIdentity !== undefined) {
+        if (!isTypedLinuxRootExecutableIdentity(fdClosureLauncherIdentity)) {
+          throw this._sandboxError(
+            "invalid_sandbox_plan",
+            "Sandbox runtime probe FD-closure launcher identity must use the typed root-owned executable contract",
+          );
+        }
+        runtimeProbe.fdClosureLauncherExecutableIdentity = {
+          path: fdClosureLauncherIdentity.path,
+          fileId: {
+            dev: fdClosureLauncherIdentity.fileId.dev,
+            ino: fdClosureLauncherIdentity.fileId.ino,
+          },
+          sha256: fdClosureLauncherIdentity.sha256,
+          bytes: fdClosureLauncherIdentity.bytes,
+          mtimeMs: fdClosureLauncherIdentity.mtimeMs,
+          mode: fdClosureLauncherIdentity.mode,
+          uid: fdClosureLauncherIdentity.uid,
+          gid: fdClosureLauncherIdentity.gid,
+        };
+      }
+      for (const field of [
         "rootProtectedRuntimeSnapshot",
         "entryRootOwnedAnonymousSnapshot",
         "entrySourcePrePostStat",
@@ -2830,6 +2906,121 @@ class ProcessExecutionBroker extends EventEmitter {
         "Applied Linux generic workspace plans require typed runtime evidence",
       );
     }
+    const linuxBubblewrapApplied =
+      plan.applied === true &&
+      plan.platform === "linux" &&
+      plan.enforcement === "linux-bwrap" &&
+      backend === "linux-bwrap";
+    let nativeLaunch;
+    if (linuxBubblewrapApplied) {
+      const candidate = plan.nativeLaunch;
+      const identity = candidate?.executableIdentity;
+      const childFd = candidate?.childFd;
+      const allowlistMaxFd = candidate?.allowlistMaxFd;
+      const stdio = plan.options?.stdio;
+      const argsPrefix = candidate?.argsPrefix;
+      const fdArguments = [];
+      const targetSeparator = plan.args.indexOf("--");
+      const policyArgumentEnd =
+        targetSeparator >= 0 ? targetSeparator : plan.args.length;
+      for (let index = 0; index < policyArgumentEnd; index += 1) {
+        if (
+          plan.args[index] === "--file" ||
+          plan.args[index] === "--ro-bind-fd" ||
+          plan.args[index] === "--ro-bind-data" ||
+          plan.args[index] === "--seccomp"
+        ) {
+          fdArguments.push(Number(plan.args[index + 1]));
+        }
+      }
+      const runtimeIdentity =
+        plan.runtimeProbe?.fdClosureLauncherExecutableIdentity;
+      if (
+        !candidate ||
+        typeof candidate !== "object" ||
+        Array.isArray(candidate) ||
+        candidate.kind !== LINUX_BWRAP_FD_CLOSURE_LAUNCHER_KIND ||
+        !Number.isSafeInteger(childFd) ||
+        childFd < 4 ||
+        allowlistMaxFd !== childFd - 1 ||
+        candidate.command !== `/proc/self/fd/${childFd}` ||
+        candidate.sourceSha256 !==
+          LINUX_BWRAP_FD_CLOSURE_LAUNCHER_SOURCE_SHA256 ||
+        !Array.isArray(argsPrefix) ||
+        argsPrefix.length !== 7 ||
+        argsPrefix[0] !== "-I" ||
+        argsPrefix[1] !== "-S" ||
+        argsPrefix[2] !== "-E" ||
+        argsPrefix[3] !== "-c" ||
+        argsPrefix[4] !== LINUX_BWRAP_FD_CLOSURE_LAUNCHER_SOURCE ||
+        argsPrefix[5] !== String(allowlistMaxFd) ||
+        argsPrefix[6] !== plan.command ||
+        plan.command !== "/proc/self/fd/3" ||
+        !Array.isArray(stdio) ||
+        stdio.length !== childFd + 1 ||
+        !stdio
+          .slice(3, childFd + 1)
+          .every((fd) => Number.isInteger(fd) && fd >= 0) ||
+        fdArguments.length === 0 ||
+        fdArguments.some(
+          (fd) => !Number.isSafeInteger(fd) || fd < 3 || fd > allowlistMaxFd,
+        ) ||
+        new Set(fdArguments).size !== allowlistMaxFd - 2 ||
+        Array.from(
+          { length: allowlistMaxFd - 2 },
+          (_unused, index) => index + 3,
+        ).some((fd) => !fdArguments.includes(fd)) ||
+        !isTypedLinuxRootExecutableIdentity(identity) ||
+        !isTypedLinuxRootExecutableIdentity(runtimeIdentity) ||
+        JSON.stringify(identity) !== JSON.stringify(runtimeIdentity) ||
+        plan.runtimeProbe?.inheritedDescriptorClosure !== true ||
+        plan.runtimeProbe?.inheritedDescriptorClosureMechanism !==
+          LINUX_BWRAP_FD_CLOSURE_LAUNCHER_MECHANISM ||
+        plan.runtimeProbe?.fdClosureLauncherDependency !== "/usr/bin/python3" ||
+        plan.runtimeProbe?.fdClosureLauncherSourceSha256 !==
+          LINUX_BWRAP_FD_CLOSURE_LAUNCHER_SOURCE_SHA256 ||
+        typeof plan.preNativeLaunch !== "function"
+      ) {
+        throw this._sandboxError(
+          "invalid_sandbox_plan",
+          "Applied Linux bubblewrap plans require the typed descriptor-bound pre-exec FD closure contract",
+        );
+      }
+      nativeLaunch = Object.freeze({
+        kind: candidate.kind,
+        command: candidate.command,
+        childFd,
+        allowlistMaxFd,
+        argsPrefix: Object.freeze([...argsPrefix]),
+        sourceSha256: candidate.sourceSha256,
+        executableIdentity: Object.freeze({
+          path: identity.path,
+          fileId: Object.freeze({
+            dev: identity.fileId.dev,
+            ino: identity.fileId.ino,
+          }),
+          sha256: identity.sha256,
+          bytes: identity.bytes,
+          mtimeMs: identity.mtimeMs,
+          mode: identity.mode,
+          uid: identity.uid,
+          gid: identity.gid,
+        }),
+      });
+    } else if (
+      plan.nativeLaunch !== undefined ||
+      plan.preNativeLaunch !== undefined ||
+      plan.runtimeProbe?.inheritedDescriptorClosure !== undefined ||
+      plan.runtimeProbe?.inheritedDescriptorClosureMechanism !== undefined ||
+      plan.runtimeProbe?.fdClosureLauncherDependency !== undefined ||
+      plan.runtimeProbe?.fdClosureLauncherSourceSha256 !== undefined ||
+      plan.runtimeProbe?.fdClosureLauncherExecutableIdentity !== undefined
+    ) {
+      throw this._sandboxError(
+        "invalid_sandbox_plan",
+        "Native pre-launch authority is reserved for an applied built-in Linux bubblewrap plan",
+      );
+    }
     const postSpawn = plan.postSpawn || { required: false, mode: "none" };
     if (
       postSpawn.required &&
@@ -2851,6 +3042,12 @@ class ProcessExecutionBroker extends EventEmitter {
       policyAttested,
       policyDigest,
       runtimeProbe,
+      ...(nativeLaunch
+        ? {
+            nativeLaunch,
+            preNativeLaunch: plan.preNativeLaunch,
+          }
+        : {}),
       ...(sanitizedFilesystemPolicy
         ? {
             filesystemPolicy: sanitizedFilesystemPolicy,
@@ -4039,7 +4236,18 @@ class ProcessExecutionBroker extends EventEmitter {
         );
         auditEntry.mcpStdioExecutableIdentityDigest = admitted.identityDigest;
       }
-      proc = nativeSpawnFn(command, args, optsForSpawn);
+      sandboxPlan.preNativeLaunch?.();
+      const nativeLaunch = materializeSandboxNativeLaunch({
+        ...sandboxPlan,
+        command,
+        args,
+        options: optsForSpawn,
+      });
+      proc = nativeSpawnFn(
+        nativeLaunch.command,
+        nativeLaunch.args,
+        nativeLaunch.options,
+      );
       if (builtInMacMcpPlan) {
         const callerLifeline = proc?.stdio?.[8];
         if (
@@ -4374,7 +4582,18 @@ class ProcessExecutionBroker extends EventEmitter {
         // exits; burning before entry prevents replay on every outcome.
         admittedMacMcpCodeSnapshotPlans.delete(sandboxPlan);
       }
-      const result = nativeSpawnSyncFn(command, args, optsForSync);
+      sandboxPlan.preNativeLaunch?.();
+      const nativeLaunch = materializeSandboxNativeLaunch({
+        ...sandboxPlan,
+        command,
+        args,
+        options: optsForSync,
+      });
+      const result = nativeSpawnSyncFn(
+        nativeLaunch.command,
+        nativeLaunch.args,
+        nativeLaunch.options,
+      );
       this._settleWorkspaceTransactionSpawn(auditEntry, {
         exitCode: result.status,
         signal: result.signal,

@@ -2738,6 +2738,8 @@ describe.runIf(LIVE && SUPPORTED)(
           supervisorIdentity.fileId.dev,
           supervisorIdentity.fileId.ino,
         ];
+        const inheritedHighFd = 142;
+        const inheritedHighFdSource = fs.openSync("/dev/null", "r");
 
         try {
           fs.mkdirSync(binDirectory, { recursive: true });
@@ -3062,6 +3064,13 @@ describe.runIf(LIVE && SUPPORTED)(
               .sort((left, right) =>
                 left.destination.localeCompare(right.destination),
               );
+            const injectedStdio = Array.from(
+              { length: inheritedHighFd + 1 },
+              () => "ignore",
+            );
+            injectedStdio[1] = "pipe";
+            injectedStdio[2] = "pipe";
+            injectedStdio[inheritedHighFd] = inheritedHighFdSource;
             const positive = nativeSpawnSync(
               process.execPath,
               [
@@ -3089,9 +3098,11 @@ describe.runIf(LIVE && SUPPORTED)(
                 encoding: "utf8",
                 timeout: 60_000,
                 windowsHide: true,
+                stdio: injectedStdio,
                 env: {
                   ...process.env,
                   CC_SANDBOX_STRICT: "1",
+                  CC_TEST_INHERITED_HIGH_FD: String(inheritedHighFd),
                   LD_LIBRARY_PATH: "/host/sensitive/library-path",
                   CC_TEST_SENSITIVE_ENV: "must-not-cross-boundary",
                 },
@@ -3108,6 +3119,11 @@ describe.runIf(LIVE && SUPPORTED)(
             expect(positive.error, positiveContext).toBeUndefined();
             expect(positive.status, positiveContext).toBe(0);
             const envelope = JSON.parse(positive.stdout);
+            expect(envelope).toMatchObject({
+              inheritedHighFd,
+              inheritedHighFdObserved: true,
+              inheritedHighFdCloexec: false,
+            });
             expect(envelope.result).toMatchObject({
               plugin_bin: {
                 plugin: "strict-native",
@@ -3349,6 +3365,17 @@ describe.runIf(LIVE && SUPPORTED)(
                 pluginTreeSnapshotConsistency: "per-file-pin-to-launch",
                 pluginTreeSnapshotContractBound: false,
                 pluginTreeSnapshotAtomic: false,
+                inheritedDescriptorClosure: true,
+                inheritedDescriptorClosureMechanism:
+                  "descriptor-pinned-python-proc-fd-allowlist-before-bwrap-exec-v1",
+                fdClosureLauncherDependency: "/usr/bin/python3",
+                fdClosureLauncherSourceSha256:
+                  expect.stringMatching(/^[a-f0-9]{64}$/),
+                fdClosureLauncherExecutableIdentity: {
+                  path: expect.stringMatching(/^\/usr\/bin\/python3/),
+                  sha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+                  uid: 0,
+                },
                 ...(targetRuntime === "native-dynamic-elf"
                   ? {
                       initialDynamicLoadClosureDescriptorBound: true,
@@ -3475,6 +3502,7 @@ describe.runIf(LIVE && SUPPORTED)(
           expect(fs.existsSync(scriptMarker)).toBe(false);
           expect(fs.existsSync(sandboxTmpPath)).toBe(false);
         } finally {
+          fs.closeSync(inheritedHighFdSource);
           fs.rmSync(workspace, { recursive: true, force: true });
           fs.rmSync(secretPath, { force: true });
           fs.rmSync(hostMarker, { force: true });
