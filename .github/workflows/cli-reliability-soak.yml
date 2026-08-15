@@ -36,6 +36,9 @@ on:
       - "packages/cli/scripts/ide-roadmap-mcp-security-gate.mjs"
       - "packages/cli/__tests__/unit/cli-reliability-soak.test.js"
       - "packages/cli/__tests__/unit/cli-mcp-security-soak.test.js"
+      - "packages/cli/__tests__/integration/mcp-materialized-capsule-sandbox-live.test.js"
+      - "packages/cli/__tests__/fixtures/mcp-materialized-capsule-live-server.cjs"
+      - "packages/cli/__tests__/fixtures/mcp-materialized-capsule-child-contract.cjs"
       - "packages/cli/__tests__/unit/scheduler-reliability-soak.test.js"
       - "packages/cli/__tests__/unit/scheduler-kernel-store.test.js"
       - "packages/cli/__tests__/unit/automation-center-incidents.test.js"
@@ -304,6 +307,25 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - uses: ./.github/actions/setup-node-deps
+
+      - name: Run exact-SHA materialized capsule execution-context boundary
+        if: github.event_name != 'pull_request'
+        working-directory: packages/cli
+        env:
+          CC_SANDBOX_LIVE: "1"
+        run: >-
+          npx vitest run --reporter=json
+          --outputFile="${{ runner.temp }}/mcp-materialized-capsule-live-${{ runner.os }}.json"
+          __tests__/integration/mcp-materialized-capsule-sandbox-live.test.js
+
+      - name: Upload materialized capsule execution-context evidence
+        if: always() && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v6
+        with:
+          name: cli-mcp-execution-context-live-${{ matrix.os }}-${{ env.CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mcp-materialized-capsule-live-${{ runner.os }}.json
+          if-no-files-found: error
+          retention-days: 90
 
       - name: Run time-based malicious MCP host and pathname race soak
         env:

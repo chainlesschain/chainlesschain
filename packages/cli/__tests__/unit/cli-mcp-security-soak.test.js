@@ -250,14 +250,43 @@ describe("CLI malicious MCP security soak", () => {
       resolve(repositoryRoot, ".github/workflows/cli-reliability-soak.yml"),
       "utf8",
     );
+    const jobsStart = workflow.indexOf("\njobs:");
+    expect(jobsStart).toBeGreaterThan(0);
+    const triggers = workflow.slice(0, jobsStart);
+    const mcpJobStart = workflow.indexOf("\n  mcp-security-soak:", jobsStart);
+    const aggregateJobStart = workflow.indexOf(
+      "\n  mcp-security-soak-aggregate:",
+      mcpJobStart,
+    );
+    expect(mcpJobStart).toBeGreaterThan(jobsStart);
+    expect(aggregateJobStart).toBeGreaterThan(mcpJobStart);
+    const mcpJob = workflow.slice(mcpJobStart, aggregateJobStart);
     expect(workflow).toContain("schedule:");
     expect(workflow).toContain("workflow_dispatch:");
-    expect(workflow).toContain(
+    expect(mcpJob).toContain(
       "os: [ubuntu-latest, windows-latest, macos-latest]",
     );
-    expect(workflow).toContain("CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA");
-    expect(workflow).toContain("CC_CLI_MCP_SECURITY_SOAK_CYCLES");
-    expect(workflow).toContain("npm run test:cli-mcp-security-soak");
+    expect(mcpJob).toContain("CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA");
+    expect(mcpJob).toContain("CC_CLI_MCP_SECURITY_SOAK_CYCLES");
+    expect(mcpJob).toContain("npm run test:cli-mcp-security-soak");
+    expect(mcpJob).toContain(
+      "Run exact-SHA materialized capsule execution-context boundary",
+    );
+    expect(mcpJob).toContain("if: github.event_name != 'pull_request'");
+    expect(mcpJob).toContain('CC_SANDBOX_LIVE: "1"');
+    expect(mcpJob).toContain(
+      "__tests__/integration/mcp-materialized-capsule-sandbox-live.test.js",
+    );
+    expect(mcpJob).toContain(
+      "cli-mcp-execution-context-live-${{ matrix.os }}-${{ env.CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA }}-${{ github.run_attempt }}",
+    );
+    for (const source of [
+      "packages/cli/__tests__/integration/mcp-materialized-capsule-sandbox-live.test.js",
+      "packages/cli/__tests__/fixtures/mcp-materialized-capsule-live-server.cjs",
+      "packages/cli/__tests__/fixtures/mcp-materialized-capsule-child-contract.cjs",
+    ]) {
+      expect(triggers).toContain(`- "${source}"`);
+    }
     expect(workflow).toContain("mcp-security-soak-aggregate");
     expect(workflow).toContain("actions/download-artifact@v7");
     expect(workflow).toContain("actions/upload-artifact@v6");
