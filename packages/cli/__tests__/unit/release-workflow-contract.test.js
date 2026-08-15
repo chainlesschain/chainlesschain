@@ -57,6 +57,7 @@ function occurrences(text, needle) {
 describe("CLI release workflow contracts", () => {
   it("gates npm production on exact-SHA matrices and one immutable tarball", () => {
     const text = workflow("npm-publish.yml");
+    expectExternalActionsPinned(text);
     expect(text).not.toContain("skip_tests");
     expect(text).toContain('- "v-npm-*"');
     expect(text).not.toContain('- "v*"');
@@ -70,10 +71,32 @@ describe("CLI release workflow contracts", () => {
     expect(text).toContain('npm publish "$TARBALL"');
     expect(text).toContain("--provenance --access public");
     expect(text).toContain('npm pack "chainlesschain@$PKG_VER"');
+    expect(text).not.toContain("${{ inputs.");
+    expect(text).toContain("if: ${{ github.event_name == 'push' }}");
     expect(text).toContain(
-      "differs from exact-SHA package version $COMMITTED_VERSION",
+      "if: ${{ github.event_name == 'workflow_dispatch' && needs.test.result == 'success' }}",
     );
     expect(text).toMatch(/dry-run:[\s\S]*permissions:\s*\n\s*contents: read/);
+    for (const block of literalRunBlocks(text)) {
+      expect(block).not.toContain("${{ inputs.");
+    }
+
+    const exactShaJob = text.slice(
+      text.indexOf("  exact-sha-gate:"),
+      text.indexOf("\n  package-cli:"),
+    );
+    const dryRunJob = text.slice(
+      text.indexOf("  dry-run:"),
+      text.indexOf("\n  publish:"),
+    );
+    const publishJob = text.slice(text.indexOf("  publish:"));
+    expect(exactShaJob).toContain("if: ${{ github.event_name == 'push' }}");
+    expect(dryRunJob).toContain(
+      "if: ${{ github.event_name == 'workflow_dispatch' && needs.test.result == 'success' }}",
+    );
+    expect(publishJob).toContain(
+      "if: ${{ github.event_name == 'push' && needs.test.result == 'success'",
+    );
 
     const packageJobStart = text.indexOf("  package-cli:");
     const packageJob = text.slice(
@@ -111,6 +134,9 @@ describe("CLI release workflow contracts", () => {
       packageJob.indexOf("npm-release-artifact.mjs create"),
     );
     expect(packageJob).toContain("PACK_METADATA=$(mktemp)");
+    expect(packageJob).toContain(
+      "VERSION=$(node -p \"require('./packages/cli/package.json').version\")",
+    );
     expect(packageJob).toContain('readFileSync(process.argv[1], "utf8")');
     expect(packageJob).not.toContain("JSON.parse(process.argv[1])");
 
@@ -205,6 +231,7 @@ describe("CLI release workflow contracts", () => {
 
   it("revalidates public npm bytes against the immutable attested run", () => {
     const readback = workflow("cli-npm-release-readback.yml");
+    expectExternalActionsPinned(readback);
     expect(readback).toContain("workflow_dispatch:");
     expect(readback).toContain("pull_request:");
     expect(readback).toContain("actions: read");
@@ -216,7 +243,14 @@ describe("CLI release workflow contracts", () => {
       "npm audit signatures --include-attestations --json",
     );
     expect(readback).toContain("verify-npm-release-provenance.mjs");
-    expect(readback).toContain("actions/download-artifact@v6");
+    expect(readback).toContain(
+      "actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53",
+    );
+    expect(readback).toContain("REQUESTED_VERSION: ${{ inputs.version }}");
+    expect(readback).not.toContain('VERSION="${{ inputs.version }}"');
+    for (const block of literalRunBlocks(readback)) {
+      expect(block).not.toContain("${{ inputs.version }}");
+    }
     expect(readback).toContain(
       "run-id: ${{ steps.provenance.outputs.run_id }}",
     );

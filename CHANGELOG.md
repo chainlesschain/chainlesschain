@@ -63,6 +63,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   still absent. The scheduler campaign remains incomplete, and the uncommitted
   remote `run_shell` lease-consumption vertical is excluded after its expanded
   parallel matrix did not finish fully green.
+- **Release authority hardening**: manual npm workflow runs are dry-run only;
+  production packaging and publishing require an immutable `v-npm-*` tag-push
+  event. Operator-controlled version text is no longer interpolated into shell
+  scripts, release Actions are commit-pinned, and independent readback validates
+  a canonical numeric SemVer before resolving the tag and attested artifact.
 - **Release status**: final tag, source SHA, workflow run IDs, package digests,
   provenance, and registry readback are intentionally omitted until the exact
   `0.164.0` release merge commit passes complete `CLI CI` and
