@@ -12,6 +12,7 @@ import {
   createBackgroundAgentKeeperMessage,
   normalizeBackgroundAgentKeeperHello,
   normalizeBackgroundAgentKeeperTurn,
+  resolveBackgroundAgentKeeperRetireTimeoutMs,
   sameBackgroundAgentKeeperTurn,
 } from "./background-agent-keeper-protocol.js";
 
@@ -71,6 +72,9 @@ export async function connectBackgroundAgentKeeper(options = {}) {
   const requestTimeoutMs = Math.max(
     1,
     Number(options.requestTimeoutMs) || DEFAULT_REQUEST_TIMEOUT_MS,
+  );
+  const retireTimeoutMs = resolveBackgroundAgentKeeperRetireTimeoutMs(
+    options.retireTimeoutMs,
   );
   const socket = await connectWithDeadline(options.pipePath, connectTimeoutMs);
   const pending = new Map();
@@ -168,16 +172,23 @@ export async function connectBackgroundAgentKeeper(options = {}) {
   helloTimer.unref?.();
   await readyPromise.finally(() => clearTimeout(helloTimer));
 
-  const request = (type, expectedType, turnValue) => {
+  const request = (
+    type,
+    expectedType,
+    turnValue,
+    timeoutMs = requestTimeoutMs,
+  ) => {
     const turn = normalizeBackgroundAgentKeeperTurn(turnValue);
     const requestId = randomBytes(16).toString("hex");
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         pending.delete(requestId);
         reject(
-          keeperError(`timed out waiting for background agent keeper ${type}`),
+          keeperError(
+            `timed out waiting for background agent keeper ${type} after ${timeoutMs}ms`,
+          ),
         );
-      }, requestTimeoutMs);
+      }, timeoutMs);
       timer.unref?.();
       pending.set(requestId, { expectedType, reject, resolve, timer, turn });
       try {
@@ -222,6 +233,7 @@ export async function connectBackgroundAgentKeeper(options = {}) {
         BACKGROUND_AGENT_KEEPER_RETIRE,
         BACKGROUND_AGENT_KEEPER_RETIRED,
         normalized,
+        retireTimeoutMs,
       );
       activeTurn = null;
       return true;

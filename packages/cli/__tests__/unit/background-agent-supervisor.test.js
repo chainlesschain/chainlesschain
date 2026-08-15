@@ -38,6 +38,7 @@ import {
   stopBackgroundAgentChildTree,
   writeBackgroundAgentState as persistBackgroundAgentState,
 } from "../../src/lib/background-agent-supervisor.js";
+import { BACKGROUND_AGENT_KEEPER_TASKKILL_TIMEOUT_MS } from "../../src/lib/background-agent-keeper-protocol.js";
 import {
   BACKGROUND_INTERACTION_JOURNAL_EVENT,
   _deps as interactionJournalDeps,
@@ -2343,6 +2344,7 @@ describe("background agent supervisor", () => {
           policy: "allow",
           scope: "background-agent",
           shell: false,
+          timeout: BACKGROUND_AGENT_KEEPER_TASKKILL_TIMEOUT_MS,
         }),
       );
     },
@@ -2362,9 +2364,45 @@ describe("background agent supervisor", () => {
         policy: "allow",
         scope: "background-agent",
         shell: false,
+        timeout: BACKGROUND_AGENT_KEEPER_TASKKILL_TIMEOUT_MS,
       }),
     );
   });
+
+  it("fails closed when the bounded Windows taskkill times out", () => {
+    const timeout = Object.assign(new Error("taskkill timed out"), {
+      code: "ETIMEDOUT",
+    });
+    _deps.spawnSync = vi.fn(() => ({ error: timeout, status: null }));
+
+    expect(() =>
+      stopBackgroundAgentChildTree(4242, { platform: "win32" }),
+    ).toThrow(/taskkill timed out/u);
+    expect(_deps.spawnSync).toHaveBeenCalledWith(
+      "taskkill",
+      ["/PID", "4242", "/T", "/F"],
+      expect.objectContaining({
+        timeout: BACKGROUND_AGENT_KEEPER_TASKKILL_TIMEOUT_MS,
+      }),
+    );
+  });
+
+  it.skipIf(process.platform !== "win32")(
+    "bounds the orphan-reclaim taskkill command",
+    () => {
+      _deps.spawnSync = vi.fn(() => ({ status: 0 }));
+
+      expect(originalKillTree(4242)).toBe(true);
+      expect(_deps.spawnSync).toHaveBeenCalledWith(
+        "taskkill",
+        ["/PID", "4242", "/T", "/F"],
+        expect.objectContaining({
+          origin: "background-agent:process-tree-kill",
+          timeout: BACKGROUND_AGENT_KEEPER_TASKKILL_TIMEOUT_MS,
+        }),
+      );
+    },
+  );
 
   it.skipIf(process.platform === "win32")(
     "stops a running POSIX worker via the injectable kill seam (group first)",

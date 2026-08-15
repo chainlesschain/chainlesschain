@@ -50,7 +50,12 @@ import {
   stripBackgroundLaunchSecrets,
   verifyBackgroundLaunchProfileSources,
 } from "./background-launch-profile.js";
-import { backgroundAgentKeeperPipePath } from "./background-agent-keeper-protocol.js";
+import {
+  BACKGROUND_AGENT_KEEPER_POWERSHELL_TIMEOUT_MS,
+  BACKGROUND_AGENT_KEEPER_TASKKILL_TIMEOUT_MS,
+  BACKGROUND_AGENT_KEEPER_WMIC_TIMEOUT_MS,
+  backgroundAgentKeeperPipePath,
+} from "./background-agent-keeper-protocol.js";
 
 export const DEFAULT_HEARTBEAT_INTERVAL_MS = 5000;
 export const DEFAULT_HEARTBEAT_STALE_MS = 120000;
@@ -127,7 +132,11 @@ function defaultReadProcessStartTimeMs(pid) {
           "CreationDate",
           "/value",
         ],
-        { windowsHide: true, encoding: "utf8", timeout: 5000 },
+        {
+          windowsHide: true,
+          encoding: "utf8",
+          timeout: BACKGROUND_AGENT_KEEPER_WMIC_TIMEOUT_MS,
+        },
         "background-agent:process-start-time",
       );
       if (!r.error && r.status === 0) {
@@ -145,7 +154,11 @@ function defaultReadProcessStartTimeMs(pid) {
       const r = runSupervisorCommand(
         "powershell",
         ["-NoProfile", "-NonInteractive", "-Command", script],
-        { windowsHide: true, encoding: "utf8", timeout: 10000 },
+        {
+          windowsHide: true,
+          encoding: "utf8",
+          timeout: BACKGROUND_AGENT_KEEPER_POWERSHELL_TIMEOUT_MS,
+        },
         "background-agent:process-start-time",
       );
       if (!r.error && r.status === 0) {
@@ -277,6 +290,7 @@ function defaultKillProcessTree(pid, signal = "SIGKILL") {
         {
           windowsHide: true,
           encoding: "utf8",
+          timeout: BACKGROUND_AGENT_KEEPER_TASKKILL_TIMEOUT_MS,
         },
         "background-agent:process-tree-kill",
       );
@@ -334,6 +348,7 @@ export function stopBackgroundAgentChildTree(
       {
         windowsHide: true,
         encoding: "utf8",
+        timeout: BACKGROUND_AGENT_KEEPER_TASKKILL_TIMEOUT_MS,
       },
       "background-agent:session-stop-tree",
     );
@@ -2685,7 +2700,11 @@ function signalBackgroundProcessTree(pid, signal = "SIGTERM") {
     const killed = runSupervisorCommand(
       "taskkill",
       ["/PID", String(target), "/T", "/F"],
-      { windowsHide: true, encoding: "utf8" },
+      {
+        windowsHide: true,
+        encoding: "utf8",
+        timeout: BACKGROUND_AGENT_KEEPER_TASKKILL_TIMEOUT_MS,
+      },
       "background-agent:stop-tree",
     );
     if (killed.error || (killed.status !== 0 && isProcessAlive(target))) {

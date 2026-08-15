@@ -25,11 +25,13 @@ import {
 import {
   BACKGROUND_AGENT_KEEPER_ARM,
   BACKGROUND_AGENT_KEEPER_ARMED,
+  BACKGROUND_AGENT_KEEPER_CLEANUP_CONFIRM_TIMEOUT_MS,
   BACKGROUND_AGENT_KEEPER_HELLO,
   BACKGROUND_AGENT_KEEPER_PROTOCOL_VERSION,
   BACKGROUND_AGENT_KEEPER_READY,
   BACKGROUND_AGENT_KEEPER_RETIRE,
   BACKGROUND_AGENT_KEEPER_RETIRED,
+  BACKGROUND_AGENT_KEEPER_STATE_LOCK_TIMEOUT_MS,
   createBackgroundAgentKeeperMessage,
   normalizeBackgroundAgentKeeperHello,
   normalizeBackgroundAgentKeeperTurn,
@@ -37,7 +39,6 @@ import {
 } from "../lib/background-agent-keeper-protocol.js";
 
 const STARTUP_TIMEOUT_MS = 30_000;
-const CLEANUP_CONFIRM_TIMEOUT_MS = 2_000;
 const HEARTBEAT_INTERVAL_MS = 1_000;
 
 function writeMessage(socket, message) {
@@ -74,15 +75,19 @@ function stateOwnsTurn(state, turn) {
 }
 
 function persistKeeperTurn(job, turn, patch) {
-  return mutateBackgroundAgentState(job.id, (current) => {
-    if (
-      !stateOwnsTurn(current, turn) ||
-      Number(current.keeperPid) !== process.pid
-    ) {
-      return null;
-    }
-    return { ...current, ...patch };
-  });
+  return mutateBackgroundAgentState(
+    job.id,
+    (current) => {
+      if (
+        !stateOwnsTurn(current, turn) ||
+        Number(current.keeperPid) !== process.pid
+      ) {
+        return null;
+      }
+      return { ...current, ...patch };
+    },
+    { timeoutMs: BACKGROUND_AGENT_KEEPER_STATE_LOCK_TIMEOUT_MS },
+  );
 }
 
 async function cleanupTurn(job, turn, reason) {
@@ -115,7 +120,8 @@ async function cleanupTurn(job, turn, reason) {
     }
   }
 
-  const deadline = Date.now() + CLEANUP_CONFIRM_TIMEOUT_MS;
+  const deadline =
+    Date.now() + BACKGROUND_AGENT_KEEPER_CLEANUP_CONFIRM_TIMEOUT_MS;
   let alive = targets.filter((target) =>
     isBackgroundProcessTreeExecutionAlive(target.pid, target.startedAt),
   );
