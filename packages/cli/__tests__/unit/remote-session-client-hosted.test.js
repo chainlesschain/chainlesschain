@@ -6,9 +6,13 @@
  * server-hosted mirror path.
  */
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RemoteSessionRegistry } from "../../src/harness/remote-session-registry.js";
 import { RemoteSessionAuditLog } from "../../src/harness/remote-session-audit.js";
+import { DurableRemoteMembershipAuthority } from "../../src/lib/remote-membership-authority.js";
 import {
   handleRemoteSessionCreate,
   handleRemoteSessionJoin,
@@ -23,12 +27,20 @@ describe("client-hosted remote session control forwarding", () => {
   let server;
   let host;
   let phone;
+  let stateRoot;
 
   beforeEach(() => {
+    stateRoot = fs.mkdtempSync(
+      path.join(os.tmpdir(), "cc-client-hosted-membership-"),
+    );
     host = socket("host");
     phone = socket("phone");
     server = {
-      remoteSessions: new RemoteSessionRegistry(),
+      remoteSessions: new RemoteSessionRegistry({
+        membershipAuthority: new DurableRemoteMembershipAuthority({
+          filePath: path.join(stateRoot, "membership.json"),
+        }),
+      }),
       clients: new Map([
         ["host", { ws: host }],
         ["phone", { ws: phone }],
@@ -48,11 +60,16 @@ describe("client-hosted remote session control forwarding", () => {
     };
   });
 
+  afterEach(() => {
+    fs.rmSync(stateRoot, { recursive: true, force: true });
+  });
+
   function createAndJoin(scopes = ["observe", "approve", "prompt"]) {
     handleRemoteSessionCreate(server, "host", host, {
       id: "create-1",
       sessionId: "local-agent-1",
       scopes,
+      requireDurableMembershipAuthority: true,
     });
     const created = host.sent.at(-1);
     handleRemoteSessionJoin(server, "phone", phone, {
@@ -77,6 +94,9 @@ describe("client-hosted remote session control forwarding", () => {
       remoteSessionId,
       agentSessionId: "local-agent-1",
       from: "phone",
+      membershipAuthority: "durable-monotonic-membership-epoch-v1",
+      sessionEpoch: expect.stringMatching(/^\d+$/),
+      membershipEpoch: expect.stringMatching(/^\d+$/),
       event: { type: "approval.resolve", requestId: "ra-1", answer: true },
     });
     expect(phone.sent.at(-1)).toMatchObject({
@@ -91,9 +111,43 @@ describe("client-hosted remote session control forwarding", () => {
       audits.some(
         (entry) =>
           entry.action === "control.approval" &&
-          entry.detail?.forwarded === true,
+          entry.detail?.forwarded === true &&
+          entry.detail?.authority?.includes("membership-epoch="),
       ),
     ).toBe(true);
+  });
+
+  it("refuses to forward a client-hosted approval without durable membership", async () => {
+    handleRemoteSessionCreate(server, "host", host, {
+      id: "legacy-create",
+      sessionId: "legacy-local-agent",
+      scopes: ["observe", "approve"],
+    });
+    const created = host.sent.at(-1);
+    handleRemoteSessionJoin(server, "phone", phone, {
+      id: "legacy-join",
+      remoteSessionId: created.session.sessionId,
+      token: created.pairing.token,
+    });
+
+    await handleRemoteSessionPublish(server, "phone", phone, {
+      id: "legacy-approve",
+      remoteSessionId: created.session.sessionId,
+      event: { type: "approval.resolve", requestId: "ra-legacy", answer: true },
+    });
+
+    expect(phone.sent.at(-1)).toMatchObject({
+      type: "error",
+      code: "REMOTE_SESSION_PUBLISH_ERROR",
+      message: expect.stringMatching(/durable.*membership/i),
+    });
+    expect(
+      host.sent.some(
+        (message) =>
+          message.type === "remote-session-control" &&
+          message.event?.requestId === "ra-legacy",
+      ),
+    ).toBe(false);
   });
 
   it("forwards prompts and interrupts the same way", async () => {

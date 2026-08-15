@@ -129,6 +129,10 @@ export function handleRemoteSessionCreate(server, clientId, ws, message) {
       agentSessionId: message.sessionId,
       name: message.name,
       scopes: message.scopes,
+      // A local/headless approval bridge asks the server to persist a
+      // principal/session epoch before it exposes pairing credentials. Older
+      // or ordinary server-hosted sessions remain on their in-memory path.
+      durableMembership: message.requireDurableMembershipAuthority === true,
     });
     audit(server, {
       sessionId: result.session.sessionId,
@@ -446,7 +450,7 @@ export async function handleRemoteSessionPublish(
       return;
     }
     const requiredScope = CLIENT_EVENT_SCOPES[message.event.type];
-    const { session } = server.remoteSessions.authorize(
+    const { session, membership } = server.remoteSessions.authorize(
       message.remoteSessionId,
       clientId,
       requiredScope || "observe",
@@ -508,6 +512,13 @@ export async function handleRemoteSessionPublish(
           scopes: ["approve"],
           principalId: clientId,
           sessionId: message.remoteSessionId,
+          ...(membership
+            ? {
+                remoteSessionId: membership.sessionId,
+                sessionEpoch: membership.sessionEpoch,
+                membershipEpoch: membership.membershipEpoch,
+              }
+            : {}),
         };
         const approved = message.event.answer ?? message.event.approved;
         if (approved === true || approved === "true" || approved === "yes") {
@@ -536,6 +547,11 @@ export async function handleRemoteSessionPublish(
         if (!hostTarget) {
           throw new Error(
             "Remote session host is not reachable for this control event",
+          );
+        }
+        if (message.event.type === "approval.resolve" && !membership) {
+          throw new Error(
+            "Durable Remote membership authority is required before forwarding an approval",
           );
         }
       }
@@ -594,6 +610,13 @@ export async function handleRemoteSessionPublish(
             remoteSessionId: message.remoteSessionId,
             agentSessionId: session.agentSessionId,
             from: clientId,
+            ...(membership
+              ? {
+                  membershipAuthority: membership.authorityVersion,
+                  sessionEpoch: membership.sessionEpoch,
+                  membershipEpoch: membership.membershipEpoch,
+                }
+              : {}),
             event: message.event,
           });
           reply(server, ws, message.id, "remote-session-published", {

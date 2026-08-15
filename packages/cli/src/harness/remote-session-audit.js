@@ -16,6 +16,7 @@ export const REMOTE_SESSION_AUDIT_ACTIONS = Object.freeze([
   "device.joined",
   "device.revoked",
   "device.disconnected",
+  "membership.state-error",
   "session.closed",
   "control.prompt",
   "control.approval",

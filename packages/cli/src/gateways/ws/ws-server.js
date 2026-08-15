@@ -37,6 +37,7 @@ import {
   isApprovalRequestEvent,
 } from "../../harness/remote-session-push.js";
 import { createRemoteSessionPushSender } from "../../harness/remote-session-push-senders.js";
+import { DurableRemoteMembershipAuthority } from "../../lib/remote-membership-authority.js";
 import { RemoteSessionRelay } from "../remote-session-relay.js";
 import { handleRemoteSessionPublish } from "./remote-session-protocol.js";
 import { handleTaskDetail, handleTaskHistory } from "./task-protocol.js";
@@ -273,7 +274,19 @@ export class ChainlessChainWSServer extends EventEmitter {
     /** Local authorization state for multi-device Remote Sessions. */
     this.remoteSessions =
       options.remoteSessionRegistry ||
-      new RemoteSessionRegistry({ policy: this.remoteSessionPolicy });
+      new RemoteSessionRegistry({
+        policy: this.remoteSessionPolicy,
+        membershipAuthority:
+          options.remoteMembershipAuthority === null
+            ? null
+            : () =>
+                options.remoteMembershipAuthority ||
+                new DurableRemoteMembershipAuthority(
+                  options.remoteMembershipStateFile
+                    ? { filePath: options.remoteMembershipStateFile }
+                    : {},
+                ),
+      });
     /**
      * Optional durable sink (JSONL) for the audit trail. Enabled only when a
      * sink is injected or CHAINLESSCHAIN_REMOTE_SESSION_AUDIT_FILE is set; the
@@ -502,16 +515,36 @@ export class ChainlessChainWSServer extends EventEmitter {
       // remaining clients finalizes itself).
       cleanupBgAttachments(client);
       this.clients.delete(clientId);
-      for (const affected of this.remoteSessions.removeClient(clientId)) {
-        if (affected.closed)
-          this.remoteSessionCrypto.delete(affected.sessionId);
-        if (affected.closed)
-          this.remoteSessionPairingSecrets.delete(affected.sessionId);
+      try {
+        for (const affected of this.remoteSessions.removeClient(clientId)) {
+          if (affected.closed)
+            this.remoteSessionCrypto.delete(affected.sessionId);
+          if (affected.closed)
+            this.remoteSessionPairingSecrets.delete(affected.sessionId);
+          this.remoteSessionAudit?.record({
+            sessionId: affected.sessionId,
+            actor: clientId,
+            action: affected.closed ? "session.closed" : "device.disconnected",
+            detail: { reason: "disconnect" },
+          });
+        }
+      } catch (error) {
+        // A durable membership transition that cannot be committed must never
+        // be represented as a successful revoke/close. The socket is already
+        // gone (so this principal cannot send another frame), and every future
+        // durable authorization still re-checks the authority store.
         this.remoteSessionAudit?.record({
-          sessionId: affected.sessionId,
+          sessionId: null,
           actor: clientId,
-          action: affected.closed ? "session.closed" : "device.disconnected",
-          detail: { reason: "disconnect" },
+          action: "membership.state-error",
+          detail: {
+            reason: "disconnect-transition-failed",
+            errorCode: error?.code || null,
+          },
+        });
+        this.emit("client-error", {
+          clientId,
+          error: error?.message || String(error),
         });
       }
       this.emit("disconnection", { clientId });

@@ -167,6 +167,12 @@ function publicSession(session) {
     createdAt: session.createdAt,
     expiresAt: session.expiresAt,
     memberCount: session.members.size,
+    ...(session.membershipAuthority
+      ? {
+          membershipAuthority: session.membershipAuthority,
+          sessionEpoch: session.sessionEpoch,
+        }
+      : {}),
   };
 }
 
@@ -177,21 +183,54 @@ export class RemoteSessionRegistry {
     this.tokenTtlMs = options.tokenTtlMs || DEFAULT_TOKEN_TTL_MS;
     this.sessionTtlMs = options.sessionTtlMs || DEFAULT_SESSION_TTL_MS;
     this.policy = options.policy || new RemoteSessionPolicy();
+    // A factory keeps ordinary/in-memory Remote Session tests and deployments
+    // from touching the machine security store. Client-hosted approval bridges
+    // explicitly require this authority and trigger its lazy construction.
+    this._membershipAuthority = options.membershipAuthority ?? null;
     this.sessions = new Map();
     this.tokens = new Map();
   }
 
-  create({ hostClientId, agentSessionId, name, scopes } = {}) {
+  _requireMembershipAuthority() {
+    if (typeof this._membershipAuthority === "function") {
+      this._membershipAuthority = this._membershipAuthority();
+    }
+    if (!this._membershipAuthority) {
+      throw new Error(
+        "Durable Remote membership authority is required for client-hosted approvals",
+      );
+    }
+    return this._membershipAuthority;
+  }
+
+  create({
+    hostClientId,
+    agentSessionId,
+    name,
+    scopes,
+    durableMembership = false,
+  } = {}) {
     if (!hostClientId) throw new Error("hostClientId is required");
     if (!agentSessionId) throw new Error("agentSessionId is required");
     const now = this.now();
+    const expiresAt = now + this.policy.capSessionTtl(this.sessionTtlMs);
+    const sessionId = randomUUID();
+    const durable = durableMembership
+      ? this._requireMembershipAuthority().createSession({
+          sessionId,
+          agentSessionId,
+          hostPrincipalId: hostClientId,
+          scopes: REMOTE_SESSION_SCOPES,
+          expiresAt,
+        })
+      : null;
     const session = {
-      sessionId: randomUUID(),
+      sessionId,
       agentSessionId,
       name: name || agentSessionId,
       hostClientId,
       createdAt: now,
-      expiresAt: now + this.policy.capSessionTtl(this.sessionTtlMs),
+      expiresAt,
       members: new Map([
         [
           hostClientId,
@@ -199,9 +238,16 @@ export class RemoteSessionRegistry {
             clientId: hostClientId,
             scopes: REMOTE_SESSION_SCOPES,
             joinedAt: now,
+            ...(durable ? { membershipEpoch: durable.membershipEpoch } : {}),
           },
         ],
       ]),
+      ...(durable
+        ? {
+            membershipAuthority: durable.authorityVersion,
+            sessionEpoch: durable.sessionEpoch,
+          }
+        : {}),
     };
     this.sessions.set(session.sessionId, session);
     return {
@@ -251,6 +297,9 @@ export class RemoteSessionRegistry {
     if (!tokensMatch(token, pairing.digest)) {
       throw new Error("Invalid pairing token");
     }
+    if (clientId === session.hostClientId) {
+      throw new Error("Cannot replace the host membership through pairing");
+    }
     // Org policy is enforced only after the token proves the caller is invited,
     // so a device-limit / relay-disabled message never leaks to unauthenticated
     // probes. Existing (non-host) devices count against the limit.
@@ -258,8 +307,17 @@ export class RemoteSessionRegistry {
       (member) => member.clientId !== session.hostClientId,
     ).length;
     this.policy.enforceJoin({ deviceCount, via });
+    const durable = session.membershipAuthority
+      ? this._requireMembershipAuthority().joinMember({
+          sessionId,
+          principalId: clientId,
+          scopes: pairing.scopes,
+          expectedSessionEpoch: session.sessionEpoch,
+        })
+      : null;
     // Pairing credentials are deliberately one-time. The host must explicitly
-    // issue another token for each additional device.
+    // issue another token for each additional device. For durable sessions the
+    // authority commit happens first, so a persistence failure stays retryable.
     this.tokens.delete(sessionId);
     const member = {
       clientId,
@@ -267,6 +325,7 @@ export class RemoteSessionRegistry {
       joinedAt: this.now(),
       pushToken: pushToken || null,
       pushProvider: pushToken ? pushProvider || null : null,
+      ...(durable ? { membershipEpoch: durable.membershipEpoch } : {}),
     };
     session.members.set(clientId, member);
     return { session: publicSession(session), member: { ...member } };
@@ -311,13 +370,41 @@ export class RemoteSessionRegistry {
 
   authorize(sessionId, clientId, scope) {
     const session = this.requireSession(sessionId);
+    if (session.membershipQuarantined) {
+      throw new Error(
+        "Remote membership session is quarantined after an unknown durable transition",
+      );
+    }
     const member = session.members.get(clientId);
     if (!member)
       throw new Error("Client is not paired with this remote session");
+    if (member.membershipQuarantined) {
+      throw new Error(
+        "Remote membership is quarantined after an unknown durable transition",
+      );
+    }
     if (!member.scopes.includes(scope)) {
       throw new Error(`Remote session scope required: ${scope}`);
     }
-    return { session, member };
+    let membership = null;
+    if (session.membershipAuthority) {
+      const verdict = this._requireMembershipAuthority().readMembership(
+        {
+          sessionId,
+          principalId: clientId,
+          sessionEpoch: session.sessionEpoch,
+          membershipEpoch: member.membershipEpoch,
+        },
+        scope,
+      );
+      if (!verdict.ok) {
+        throw new Error(
+          `Remote membership authority denied: ${verdict.reason}`,
+        );
+      }
+      membership = verdict.binding;
+    }
+    return { session, member, membership };
   }
 
   members(sessionId) {
@@ -364,6 +451,21 @@ export class RemoteSessionRegistry {
     const member = session.members.get(clientId);
     if (!member)
       throw new Error("Device is not paired with this remote session");
+    if (session.membershipAuthority) {
+      try {
+        this._requireMembershipAuthority().revokeMember({
+          sessionId,
+          principalId: clientId,
+          expectedSessionEpoch: session.sessionEpoch,
+          expectedMembershipEpoch: member.membershipEpoch,
+        });
+      } catch (error) {
+        // The durable outcome may be unknown. Keep the record for diagnostics,
+        // but locally quarantine it so no later frame can authorize.
+        member.membershipQuarantined = true;
+        throw error;
+      }
+    }
     session.members.delete(clientId);
     return { session: publicSession(session), member: { ...member } };
   }
@@ -385,12 +487,39 @@ export class RemoteSessionRegistry {
   removeClient(clientId) {
     const affected = [];
     for (const [sessionId, session] of this.sessions) {
-      if (!session.members.delete(clientId)) continue;
+      const member = session.members.get(clientId);
+      if (!member) continue;
       if (session.hostClientId === clientId) {
+        if (session.membershipAuthority) {
+          try {
+            this._requireMembershipAuthority().closeSession({
+              sessionId,
+              hostPrincipalId: clientId,
+              expectedSessionEpoch: session.sessionEpoch,
+            });
+          } catch (error) {
+            session.membershipQuarantined = true;
+            throw error;
+          }
+        }
         this.sessions.delete(sessionId);
         this.tokens.delete(sessionId);
         affected.push({ sessionId, closed: true });
       } else {
+        if (session.membershipAuthority) {
+          try {
+            this._requireMembershipAuthority().revokeMember({
+              sessionId,
+              principalId: clientId,
+              expectedSessionEpoch: session.sessionEpoch,
+              expectedMembershipEpoch: member.membershipEpoch,
+            });
+          } catch (error) {
+            member.membershipQuarantined = true;
+            throw error;
+          }
+        }
+        session.members.delete(clientId);
         affected.push({ sessionId, closed: false });
       }
     }
@@ -402,6 +531,18 @@ export class RemoteSessionRegistry {
     if (session.hostClientId !== clientId) {
       throw new Error("Only the host can close a Remote Session");
     }
+    if (session.membershipAuthority) {
+      try {
+        this._requireMembershipAuthority().closeSession({
+          sessionId,
+          hostPrincipalId: clientId,
+          expectedSessionEpoch: session.sessionEpoch,
+        });
+      } catch (error) {
+        session.membershipQuarantined = true;
+        throw error;
+      }
+    }
     this.sessions.delete(sessionId);
     this.tokens.delete(sessionId);
     return publicSession(session);
@@ -411,6 +552,18 @@ export class RemoteSessionRegistry {
     const session = this.sessions.get(sessionId);
     if (!session) throw new Error("Remote session not found");
     if (session.expiresAt <= this.now()) {
+      if (session.membershipAuthority) {
+        try {
+          this._requireMembershipAuthority().closeSession({
+            sessionId,
+            hostPrincipalId: session.hostClientId,
+            expectedSessionEpoch: session.sessionEpoch,
+          });
+        } catch (error) {
+          session.membershipQuarantined = true;
+          throw error;
+        }
+      }
       this.sessions.delete(sessionId);
       this.tokens.delete(sessionId);
       throw new Error("Remote session expired");

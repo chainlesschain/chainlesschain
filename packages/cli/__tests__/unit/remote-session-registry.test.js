@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   REMOTE_SESSION_PROTOCOL_VERSION,
+  REMOTE_SESSION_SCOPES,
   RemoteSessionPolicy,
   RemoteSessionRegistry,
 } from "../../src/harness/remote-session-registry.js";
@@ -54,6 +55,25 @@ describe("RemoteSessionRegistry", () => {
         token: created.pairing.token,
       }),
     ).toThrow(/missing or expired/);
+  });
+
+  it("never lets a pairing identity replace the host membership", () => {
+    const registry = new RemoteSessionRegistry();
+    const created = registry.create({
+      hostClientId: "host",
+      agentSessionId: "agent-1",
+    });
+    expect(() =>
+      registry.join({
+        sessionId: created.session.sessionId,
+        clientId: "host",
+        token: created.pairing.token,
+      }),
+    ).toThrow(/host membership/);
+    expect(
+      registry.authorize(created.session.sessionId, "host", "interrupt").member
+        .scopes,
+    ).toEqual(REMOTE_SESSION_SCOPES);
   });
 
   it("rejects invalid and expired pairing credentials", () => {
@@ -179,6 +199,57 @@ describe("RemoteSessionRegistry", () => {
     expect(() => registry.revokeMember(sessionId, "host", "unknown")).toThrow(
       /not paired/,
     );
+  });
+
+  it("quarantines a disconnected member when its durable revoke outcome is unknown", () => {
+    const transitionError = new Error("simulated durable write failure");
+    transitionError.code = "CC_REMOTE_MEMBERSHIP_AUTHORITY_UNAVAILABLE";
+    const membershipAuthority = {
+      createSession: vi.fn(() => ({
+        authorityVersion: "durable-monotonic-membership-epoch-v1",
+        sessionEpoch: "1",
+        membershipEpoch: "1",
+      })),
+      joinMember: vi.fn(() => ({
+        authorityVersion: "durable-monotonic-membership-epoch-v1",
+        sessionEpoch: "1",
+        membershipEpoch: "2",
+      })),
+      readMembership: vi.fn(() => ({
+        ok: true,
+        binding: {
+          authorityVersion: "durable-monotonic-membership-epoch-v1",
+          sessionId: "ignored",
+          principalId: "phone",
+          sessionEpoch: "1",
+          membershipEpoch: "2",
+        },
+      })),
+      revokeMember: vi.fn(() => {
+        throw transitionError;
+      }),
+    };
+    const registry = new RemoteSessionRegistry({ membershipAuthority });
+    const created = registry.create({
+      hostClientId: "host",
+      agentSessionId: "agent-1",
+      durableMembership: true,
+    });
+    registry.join({
+      sessionId: created.session.sessionId,
+      clientId: "phone",
+      token: created.pairing.token,
+    });
+
+    expect(() => registry.removeClient("phone")).toThrow(transitionError);
+    expect(() =>
+      registry.authorize(created.session.sessionId, "phone", "approve"),
+    ).toThrow(/quarantined/);
+    expect(
+      registry
+        .members(created.session.sessionId)
+        .find((member) => member.clientId === "phone"),
+    ).toMatchObject({ membershipQuarantined: true });
   });
 
   it("narrows pairing-token scopes to the org policy at issue time", () => {
