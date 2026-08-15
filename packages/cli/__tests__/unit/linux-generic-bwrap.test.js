@@ -7,6 +7,7 @@ import {
   verifyIssuedLinuxGenericSandboxExecutionContract,
   verifyLinuxGenericBubblewrapPlan,
 } from "../../src/lib/process-execution-broker/linux-generic-bwrap.js";
+import { parseLinuxBwrapDescriptorScrubbedLaunch } from "../../src/lib/process-execution-broker/linux-bwrap-descriptor-launch.js";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
 import runtimeProvenanceLedger from "../../src/lib/runtime-provenance-ledger.js";
 
@@ -144,6 +145,14 @@ function resources(contract, overrides = {}) {
       identity: rootOwnedFile("/usr/bin/bwrap", 10),
       sha256: "b".repeat(64),
       bytes: 1024,
+    },
+    descriptorScrubber: {
+      probeFd: 106,
+      finalFd: 206,
+      identity: rootOwnedFile("/usr/bin/bash", 15),
+      sha256: "c".repeat(64),
+      bytes: 2048,
+      mtimeMs: 1,
     },
     workspace: {
       probeFd: 101,
@@ -425,7 +434,26 @@ describe("Linux generic bubblewrap exact mount plan", () => {
 
     expect(plan.applied).toBe(true);
     expect(plan.command).toBe("/proc/self/fd/3");
-    expect(plan.args.slice(0, 2)).toEqual(["--ctty", "/proc/self/fd/4"]);
+    expect(plan.args.slice(0, 2)).toEqual(["--ctty", "/proc/self/fd/9"]);
+    const descriptorLaunch = parseLinuxBwrapDescriptorScrubbedLaunch(
+      plan.args[1],
+      plan.args.slice(2),
+      plan.options,
+    );
+    expect(descriptorLaunch).toMatchObject({
+      scrubberChildFd: 9,
+      preservedMaxFd: 8,
+      executableChildFd: 4,
+    });
+    const ptyLauncherDestination = descriptorLaunch.executableArgs.indexOf(
+      "/run/.chainless-pty-launcher",
+    );
+    expect(
+      descriptorLaunch.executableArgs.slice(
+        ptyLauncherDestination - 2,
+        ptyLauncherDestination + 1,
+      ),
+    ).toEqual(["--file", "3", "/run/.chainless-pty-launcher"]);
     expect(plan.args).toContain("--die-with-parent");
     expect(plan.args).not.toContain("--new-session");
     expect(plan.args).toContain("/run/.chainless-pty-launcher");
@@ -455,6 +483,9 @@ describe("Linux generic bubblewrap exact mount plan", () => {
         environment: {
           HOME: "/home/alice",
           LD_PRELOAD: "/tmp/evil.so",
+          LD_PROFILE: "/tmp/profile",
+          NODE_CHANNEL_FD: "99",
+          NODE_CHANNEL_SERIALIZATION_MODE: "advanced",
           SAFE_FLAG: "yes",
         },
         probe: successfulProbe,
@@ -519,6 +550,11 @@ describe("Linux generic bubblewrap exact mount plan", () => {
     expect(plan.args).not.toContain(hostHomeSecret);
     expect(plan.args).not.toContain(outsideMarker);
     expect(plan.args).not.toContain("/tmp/evil.so");
+    expect(plan.args).not.toContain("/tmp/profile");
+    expect(plan.args).not.toContain("99");
+    expect(plan.args).not.toContain("advanced");
+    expect(plan.args).not.toContain("NODE_CHANNEL_FD");
+    expect(plan.args).not.toContain("NODE_CHANNEL_SERIALIZATION_MODE");
     expect(plan.args).toContain("/etc/passwd");
     for (const exactFile of ["/etc/passwd", "/etc/group", "/etc/hosts"]) {
       expect(
@@ -535,7 +571,15 @@ describe("Linux generic bubblewrap exact mount plan", () => {
     );
     expect(broadEtcBind).toBe(false);
     expect(verifyLinuxGenericBubblewrapPlan(plan)).toBe(true);
-    const validatedPlan = executionBroker._validateSandboxPlan(plan);
+    const trustedLaunchContext = {
+      builtInSandboxAdapter: true,
+      executionContract: commandContract,
+      cwd: CWD,
+    };
+    const validatedPlan = executionBroker._validateSandboxPlan(
+      plan,
+      trustedLaunchContext,
+    );
     expect(validatedPlan).toMatchObject({
       backend: "linux-bwrap-workspace",
       policyAttested: true,
@@ -601,81 +645,105 @@ describe("Linux generic bubblewrap exact mount plan", () => {
       "/var/tmp",
     ]);
     expect(() =>
-      executionBroker._validateSandboxPlan({
-        ...plan,
-        filesystemPolicy: {
-          ...plan.filesystemPolicy,
-          anonymousWritablePaths: [
-            ...plan.filesystemPolicy.anonymousWritablePaths,
-            "/host-forgery",
-          ],
+      executionBroker._validateSandboxPlan(
+        {
+          ...plan,
+          filesystemPolicy: {
+            ...plan.filesystemPolicy,
+            anonymousWritablePaths: [
+              ...plan.filesystemPolicy.anonymousWritablePaths,
+              "/host-forgery",
+            ],
+          },
         },
-      }),
+        trustedLaunchContext,
+      ),
     ).toThrow(/typed descriptor-bound empty-root contract/);
     expect(() =>
-      executionBroker._validateSandboxPlan({
-        ...plan,
-        filesystemPolicy: {
-          ...plan.filesystemPolicy,
-          sourceMountSetDigest: "invalid",
+      executionBroker._validateSandboxPlan(
+        {
+          ...plan,
+          filesystemPolicy: {
+            ...plan.filesystemPolicy,
+            sourceMountSetDigest: "invalid",
+          },
         },
-      }),
+        trustedLaunchContext,
+      ),
     ).toThrow(/typed descriptor-bound empty-root contract/);
     expect(() =>
-      executionBroker._validateSandboxPlan({
-        ...plan,
-        runtimeProbe: {
-          ...plan.runtimeProbe,
-          sourceMountPropagationPrivateAtAttestation: false,
+      executionBroker._validateSandboxPlan(
+        {
+          ...plan,
+          runtimeProbe: {
+            ...plan.runtimeProbe,
+            sourceMountPropagationPrivateAtAttestation: false,
+          },
         },
-      }),
+        trustedLaunchContext,
+      ),
     ).toThrow(/typed descriptor-bound empty-root contract/);
     expect(() =>
-      executionBroker._validateSandboxPlan({
-        ...plan,
-        args: plan.args.filter((value) => value !== "--unshare-pid"),
-      }),
+      executionBroker._validateSandboxPlan(
+        {
+          ...plan,
+          args: plan.args.filter((value) => value !== "--unshare-pid"),
+        },
+        trustedLaunchContext,
+      ),
     ).toThrow(/typed descriptor-bound empty-root contract/);
     expect(() =>
-      executionBroker._validateSandboxPlan({
-        ...plan,
-        runtimeProbe: {
-          ...plan.runtimeProbe,
-          pidNamespaceChanged: false,
+      executionBroker._validateSandboxPlan(
+        {
+          ...plan,
+          runtimeProbe: {
+            ...plan.runtimeProbe,
+            pidNamespaceChanged: false,
+          },
         },
-      }),
+        trustedLaunchContext,
+      ),
     ).toThrow(/typed descriptor-bound empty-root contract/);
     expect(() =>
-      executionBroker._validateSandboxPlan({
-        ...plan,
-        processTreePolicy: {
-          ...plan.processTreePolicy,
-          closeFence: "unproven",
+      executionBroker._validateSandboxPlan(
+        {
+          ...plan,
+          processTreePolicy: {
+            ...plan.processTreePolicy,
+            closeFence: "unproven",
+          },
         },
-      }),
+        trustedLaunchContext,
+      ),
     ).toThrow(/typed descriptor-bound empty-root contract/);
     expect(() =>
-      executionBroker._validateSandboxPlan({
-        ...plan,
-        runtimeProbe: {
-          ...plan.runtimeProbe,
-          mountTopologyDigest: "0".repeat(64),
+      executionBroker._validateSandboxPlan(
+        {
+          ...plan,
+          runtimeProbe: {
+            ...plan.runtimeProbe,
+            mountTopologyDigest: "0".repeat(64),
+          },
         },
-      }),
+        trustedLaunchContext,
+      ),
     ).toThrow(/typed descriptor-bound empty-root contract/);
     expect(() =>
-      executionBroker._validateSandboxPlan({
-        ...plan,
-        enforcement: "other-backend",
-        backend: "other-backend",
-        runtimeProbe: {
-          kind: "other-policy-v1",
-          attempted: true,
-          runnable: true,
-          reason: null,
-          contractDigest: plan.runtimeProbe.contractDigest,
+      executionBroker._validateSandboxPlan(
+        {
+          ...plan,
+          enforcement: "other-backend",
+          backend: "other-backend",
+          runtimeProbe: {
+            kind: "other-policy-v1",
+            attempted: true,
+            runnable: true,
+            reason: null,
+            contractDigest: plan.runtimeProbe.contractDigest,
+          },
         },
-      }),
+        trustedLaunchContext,
+      ),
     ).toThrow(
       /generic workspace evidence requires its typed runtime probe kind/,
     );
@@ -700,14 +768,35 @@ describe("Linux generic bubblewrap exact mount plan", () => {
 
     expect(plan.applied).toBe(true);
     expect(plan.options.stdio.slice(0, 4)).toEqual(stdio);
-    expect(plan.command).toBe("/proc/self/fd/4");
-    expect(plan.options.stdio.slice(4)).toEqual([200, 201, 202, 203, 204]);
+    expect(plan.command).toBe("/proc/self/fd/9");
+    expect(plan.options.stdio.slice(4)).toEqual([200, 201, 202, 203, 204, 206]);
     expect(seen[0].options.stdio.slice(0, 4)).toEqual([
       "ignore",
       "pipe",
       "pipe",
-      "ignore",
+      "pipe",
     ]);
+    expect(
+      parseLinuxBwrapDescriptorScrubbedLaunch(
+        plan.command,
+        plan.args,
+        plan.options,
+        { activeStdioThrough: 3 },
+      ),
+    ).toMatchObject({
+      scrubberChildFd: 9,
+      preservedMaxFd: 8,
+      activeStdioThrough: 3,
+      nodeIpcChildFd: 3,
+      executableChildFd: 4,
+    });
+    expect(plan.runtimeProbe.descriptorScrubber).toMatchObject({
+      callerEnvironmentFixed: true,
+      nodeRuntimeEnvironmentInjection: "node-child-process-exact-ipc-v1",
+      nodeIpcChildFd: 3,
+      nodeIpcSerializationMode: "json",
+      policyBound: true,
+    });
     const channelIndex = plan.args.indexOf("NODE_CHANNEL_FD");
     expect(plan.args[channelIndex + 1]).toBe("3");
   });
@@ -988,12 +1077,42 @@ describe("Linux generic bubblewrap exact mount plan", () => {
     expect(() => issue({ stdio: "inherit" })).toThrow(
       /requires pipe\/ignore\/array stdio/,
     );
+    expect(() =>
+      issue({ stdio: ["ignore", "pipe", "pipe", "ignore"] }),
+    ).toThrow(/rejects non-overwriting stdio at fd 3/);
+    expect(() =>
+      issue({ stdio: ["ignore", "pipe", "pipe", undefined] }),
+    ).toThrow(/rejects non-overwriting stdio at fd 3/);
+    const sparseStdio = ["ignore", "pipe", "pipe"];
+    sparseStdio.length = 4;
+    expect(() => issue({ stdio: sparseStdio })).toThrow(
+      /rejects sparse\/accessor stdio at fd 3/,
+    );
+    const deletedStdio = ["ignore", "pipe", "pipe", "pipe", "pipe"];
+    delete deletedStdio[3];
+    expect(() => issue({ stdio: deletedStdio })).toThrow(
+      /rejects sparse\/accessor stdio at fd 3/,
+    );
+    const sparseArgs = ["server.js"];
+    sparseArgs.length = 2;
+    expect(() => issue({ args: sparseArgs })).toThrow(
+      /args\[1\] must be an own data property/,
+    );
+    expect(() => issue({ args: [7] })).toThrow(
+      /args\[0\] must be a non-empty NUL-free string/,
+    );
+    expect(() =>
+      issue({
+        sync: true,
+        stdio: ["ignore", "pipe", "pipe", "ipc"],
+      }),
+    ).toThrow(/IPC cannot be synchronous/);
     expect(() => issue({ detached: true })).toThrow(
       /rejects detached\/identity\/argv0\/serialization overrides/,
     );
   });
 
-  it("releases parent mount descriptors immediately after async spawn returns", () => {
+  it("rejects an injected adapter's generic plan and releases every parent descriptor", () => {
     const planningContract = issue();
     const acquiredResources = resources(planningContract);
     const plan = planLinuxGenericBubblewrap(
@@ -1034,22 +1153,21 @@ describe("Linux generic bubblewrap exact mount plan", () => {
         postSpawnSandbox: vi.fn(),
       };
 
-      const returned = executionBroker.spawn("node", ["server.js"], {
-        origin: "plugin:mcp",
-        cwd: CWD,
-        shell: false,
-        stdio: ["pipe", "pipe", "pipe"],
-        policy: "allow",
-        sandboxPolicy: {
-          requiredBoundaries: ["filesystem", "network"],
-        },
-        sandboxExecutionContract: launchContract,
-      });
+      expect(() =>
+        executionBroker.spawn("node", ["server.js"], {
+          origin: "plugin:mcp",
+          cwd: CWD,
+          shell: false,
+          stdio: ["pipe", "pipe", "pipe"],
+          policy: "allow",
+          sandboxPolicy: {
+            requiredBoundaries: ["filesystem", "network"],
+          },
+          sandboxExecutionContract: launchContract,
+        }),
+      ).toThrow(/require the built-in sandbox adapter/);
 
-      expect(returned).toBe(child);
-      expect(nativeSpawn).toHaveBeenCalledOnce();
-      expect(acquiredResources.cleanup).toHaveBeenCalledOnce();
-      child.emit("exit", 0, null);
+      expect(nativeSpawn).not.toHaveBeenCalled();
       expect(acquiredResources.cleanup).toHaveBeenCalledOnce();
     } finally {
       executionBroker._native = previous.native;

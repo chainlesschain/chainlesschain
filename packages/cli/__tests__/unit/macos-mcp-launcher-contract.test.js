@@ -20,6 +20,7 @@ import {
 import {
   generatedMacosMcpLauncherHeader,
   loadMacosMcpLauncherBuildInputs,
+  macosMcpLauncherCompilerArguments,
 } from "../../scripts/macos-mcp-launcher-build.mjs";
 
 const temporaryRoots = [];
@@ -101,6 +102,34 @@ function writeGate(child) {
     child.stdio[6].once("error", reject);
     child.stdio[6].write("G", (error) => (error ? reject(error) : resolve()));
   });
+}
+
+function spawnGatedEntry(entryFd) {
+  // Match the C helper's fixed descriptor plan exactly. `ignore` does not
+  // guarantee an open fd above stderr on POSIX; leaving 3/5 vacant lets Node
+  // reuse one for its epoll backend, and the bootstrap's contractually required
+  // close would then abort the runtime instead of closing a null placeholder.
+  const nullFd = fs.openSync(os.devNull, "r");
+  try {
+    return spawn(
+      process.execPath,
+      ["-e", MCP_STDIO_MACOS_GATED_ENTRY_BOOTSTRAP, "--"],
+      {
+        stdio: [
+          "ignore",
+          "pipe",
+          "pipe",
+          nullFd,
+          entryFd,
+          nullFd,
+          "pipe",
+          "pipe",
+        ],
+      },
+    );
+  } finally {
+    fs.closeSync(nullFd);
+  }
 }
 
 function releaseRequirement(teamIdentifier = "ABCDEFGHIJ") {
@@ -193,6 +222,28 @@ describe("signed macOS MCP launcher contract", () => {
     );
   });
 
+  it("compiles against the explicit macOS SDK selected by xcrun", () => {
+    const args = macosMcpLauncherCompilerArguments({
+      sdkPath: "/Applications/Xcode.app/SDKs/MacOSX.sdk",
+      temporaryRoot: "/private/tmp/launcher-build",
+      sourcePath: "/repo/macos-mcp-launcher.c",
+      outputPath: "/private/tmp/macos-mcp-launcher",
+    });
+    expect(args).toContain("-Werror");
+    expect(args).toContain("-mmacosx-version-min=13.0");
+    expect(
+      args.slice(args.indexOf("-isysroot"), args.indexOf("-isysroot") + 2),
+    ).toEqual(["-isysroot", "/Applications/Xcode.app/SDKs/MacOSX.sdk"]);
+    expect(() =>
+      macosMcpLauncherCompilerArguments({
+        sdkPath: "relative-sdk",
+        temporaryRoot: "/private/tmp/launcher-build",
+        sourcePath: "/repo/macos-mcp-launcher.c",
+        outputPath: "/private/tmp/macos-mcp-launcher",
+      }),
+    ).toThrow(/sdkPath must be an absolute path/u);
+  });
+
   it("requires the exact signed/root/notarized live-gate install contract", () => {
     const contract = validInstallContract();
     expect(verifyMacosMcpLauncherInstallContract(contract)).toBe(contract);
@@ -259,24 +310,7 @@ describe("signed macOS MCP launcher contract", () => {
     fs.unlinkSync(snapshot);
     fs.writeFileSync(original, 'process.stdout.write("replaced-entry");\n');
 
-    const child = trackChild(
-      spawn(
-        process.execPath,
-        ["-e", MCP_STDIO_MACOS_GATED_ENTRY_BOOTSTRAP, "--"],
-        {
-          stdio: [
-            "ignore",
-            "pipe",
-            "pipe",
-            "ignore",
-            entryFd,
-            "ignore",
-            "pipe",
-            "pipe",
-          ],
-        },
-      ),
-    );
+    const child = trackChild(spawnGatedEntry(entryFd));
     fs.closeSync(entryFd);
     let stdout = "";
     child.stdout.setEncoding("utf8");
@@ -309,24 +343,7 @@ describe("signed macOS MCP launcher contract", () => {
     fs.writeFileSync(snapshot, 'process.stdout.write("must-not-run");\n');
     const entryFd = fs.openSync(snapshot, "r");
     fs.unlinkSync(snapshot);
-    const child = trackChild(
-      spawn(
-        process.execPath,
-        ["-e", MCP_STDIO_MACOS_GATED_ENTRY_BOOTSTRAP, "--"],
-        {
-          stdio: [
-            "ignore",
-            "pipe",
-            "pipe",
-            "ignore",
-            entryFd,
-            "ignore",
-            "pipe",
-            "pipe",
-          ],
-        },
-      ),
-    );
+    const child = trackChild(spawnGatedEntry(entryFd));
     fs.closeSync(entryFd);
     let stdout = "";
     child.stdout.setEncoding("utf8");
@@ -372,8 +389,18 @@ describe("signed macOS MCP launcher contract", () => {
     expect(source).toContain("CC_CALLER_LIFELINE_FD");
     expect(source).toContain("F_SETFL, control_flags | O_NONBLOCK");
     expect(source).toContain("POLLIN | POLLHUP | POLLERR | POLLNVAL");
-    expect(source).toContain("closefrom(CC_CALLER_LIFELINE_FD)");
-    expect(source).toContain("closefrom(CC_CALLER_LIFELINE_FD + 1)");
+    expect(source).toContain("close_descriptors_from(CC_CALLER_LIFELINE_FD)");
+    expect(source).toContain(
+      "close_descriptors_from(CC_CALLER_LIFELINE_FD + 1)",
+    );
+    expect(source).toContain('opendir("/dev/fd")');
+    expect(source).toContain("candidate == directory_fd");
+    expect(source).toContain("scan_descriptor_directory(minimum_fd, 0)");
+    expect(source).not.toMatch(/\bclosefrom\s*\(/u);
+    expect(source.match(/close_descriptors_from\s*\(/gu)).toHaveLength(5);
+    expect(
+      source.match(/if\s*\(close_descriptors_from\([^)]*\)\s*!=\s*0\)/gu),
+    ).toHaveLength(4);
     expect(source).toContain('open("/dev/null", O_RDONLY | O_CLOEXEC)');
     expect(source).toContain("install_null_placeholders() != 0");
     expect(source).toContain("runtimeAndCapsuleSlotsNullBeforeExec");

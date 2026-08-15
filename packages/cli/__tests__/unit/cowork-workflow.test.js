@@ -25,10 +25,62 @@ import {
   evalLoopContinue,
   runLoopStep,
   runPipeline,
+  workflowStoragePathIsContained,
   MAX_FAN_OUT,
   MAX_LOOP_ITERATIONS,
   _deps,
 } from "../../src/lib/cowork-workflow.js";
+
+it("canonicalizes 8.3-style roots and candidates through the same native realpath", () => {
+  const realpath = vi.fn((value) => value);
+  realpath.native = vi.fn((value) =>
+    value.replace("/RUNNER~1/", "/runneradmin/"),
+  );
+
+  expect(
+    workflowStoragePathIsContained(
+      "/tmp/RUNNER~1/project",
+      "/tmp/runneradmin/project/.chainlesschain/cowork/workflows/wf.json",
+      realpath,
+    ),
+  ).toBe(true);
+  expect(
+    workflowStoragePathIsContained(
+      "/tmp/RUNNER~1/project",
+      "/tmp/runneradmin/project-escape/wf.json",
+      realpath,
+    ),
+  ).toBe(false);
+  expect(realpath).not.toHaveBeenCalled();
+  expect(realpath.native).toHaveBeenCalledTimes(4);
+});
+
+it("fails closed on native realpath errors and uses one fallback projection", () => {
+  const failingRealpath = vi.fn(() => "/legacy-must-not-run");
+  failingRealpath.native = vi.fn(() => {
+    throw new Error("native realpath unavailable");
+  });
+  expect(() =>
+    workflowStoragePathIsContained(
+      "/tmp/project",
+      "/tmp/project/workflow.json",
+      failingRealpath,
+    ),
+  ).toThrow("native realpath unavailable");
+  expect(failingRealpath).not.toHaveBeenCalled();
+
+  const fallbackRealpath = vi.fn((value) =>
+    value.replace("/RUNNER~1/", "/runneradmin/"),
+  );
+  expect(
+    workflowStoragePathIsContained(
+      "/tmp/RUNNER~1/project",
+      "/tmp/runneradmin/project/workflow.json",
+      fallbackRealpath,
+    ),
+  ).toBe(true);
+  expect(fallbackRealpath).toHaveBeenCalledTimes(2);
+});
 
 function installFakeFs() {
   const files = new Map();

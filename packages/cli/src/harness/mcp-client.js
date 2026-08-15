@@ -2541,10 +2541,17 @@ export class MCPClient extends EventEmitter {
           MCP_STDIO_CAPSULE_REQUIRED_BOUNDARIES.every((boundary) =>
             effectiveRuntimeSandboxBoundaries.has(boundary),
           );
+        const capsuleUsesMacProcessTreeSandbox =
+          Boolean(stdioCapsuleSandboxExecutionContract) &&
+          process.platform === "darwin" &&
+          MCP_STDIO_CAPSULE_REQUIRED_BOUNDARIES.every((boundary) =>
+            effectiveRuntimeSandboxBoundaries.has(boundary),
+          );
         const capsuleUsesPosixProcessGroup =
           Boolean(stdioCapsuleSandboxExecutionContract) &&
           process.platform !== "win32" &&
-          !capsuleUsesLinuxProcessTreeSandbox;
+          !capsuleUsesLinuxProcessTreeSandbox &&
+          !capsuleUsesMacProcessTreeSandbox;
         const launchOptions = {
           ...spawnOptions,
           detached:

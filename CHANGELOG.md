@@ -7,6 +7,73 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI 0.164.0: governed marketplace, execution authority, and native isolation hardening
+
+> `chainlesschain` **0.163.8 → 0.164.0** (candidate; not yet published,
+> 2026-08-15).
+> CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.57**
+> and `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **Native clipboard images**: `/paste-image` can attach bounded PNG, JPEG,
+  GIF, and WebP clipboard payloads to the next vision turn. Windows, macOS,
+  Wayland, and X11 host adapters use literal arguments, private temporary
+  files, signature checks, byte/count limits, and the Process Broker boundary.
+- **Scoped execution and context authority**: runtime permissions now expose
+  exact side-effect explanations and scoped decisions, while session execution
+  locations, IDE context-center evidence, prompt interactions, and durable
+  workflow definitions carry versioned identities instead of ambient context.
+- **Governed plugin marketplace**: catalog, multi-registry candidate selection,
+  install authority, update-impact review, artifact byte readback, and remote
+  artifact verification bind publisher, digest, signature, source, policy, and
+  approval evidence before plugin installation or update.
+- **Background keeper containment**: an independent keeper records Worker and
+  descendant PIDs, retires interrupted turns under bounded Windows identity and
+  cleanup budgets, and emits strict formal/smoke evidence contracts. The local
+  real-spawn regression is green; the three-platform formal keeper aggregate is
+  still required before P1-2 can be marked complete.
+- **MCP capsule boundary evidence**: materialized capsules bind the exact Node
+  builtin capability set and OS execution-context requirements. Formal evidence
+  now hashes and reparses each live result and schedules three independent
+  fresh-isolate probes per platform across a two-hour span; smoke evidence is
+  explicitly non-qualifying.
+- **Session and remote-approval hardening**: canonical session persistence gains
+  additional crash and anti-rollback checks. Client-hosted remote approval uses
+  durable same-machine membership epochs and fails closed on stale, revoked, or
+  unavailable authority. Signed coordinator/host lease modules are included as
+  a foundation only; they are not yet wired as a complete cross-host dispatch
+  fence and do not claim distributed consensus or revoke closure.
+- **Linux dynamic-native isolation candidate**: strict Linux native execution
+  recursively attests the ELF startup graph, snapshots caller-owned runtime and
+  plugin bytes, exposes only a read-only descriptor-bound namespace, and blocks
+  loader-input acquisition and nested mount namespaces with a dynamic-only
+  seccomp profile. The typed claim is limited to pathname-visible loader input;
+  broad `sharedLibraryClosure` remains false, JIT/custom loaders are excluded,
+  and packed Linux runtimes fail closed until separately supported.
+- **macOS signed launcher candidate**: a fixed signed/root helper contract can
+  copy and hash runtime and entry descriptors into root-protected snapshots,
+  gate entry until the runtime pathname is removed, supervise the target, and
+  fail closed when ownership, receipt, protocol, or signing evidence differs.
+  It remains disabled until the protected x64/arm64 workflow proves Developer
+  ID signing, notarization, root package installation, and the full live race
+  matrix; it does not claim shared-library closure.
+- **Compatibility and reliability boundary**: reaching the documented
+  `0.164.0` removal floor does not replace representative telemetry. All 25
+  compatibility aliases remain retained because approved cohort export,
+  three-platform reporting coverage, accepted points, and per-command usage are
+  still absent. The scheduler campaign remains incomplete, and the uncommitted
+  remote `run_shell` lease-consumption vertical is excluded after its expanded
+  parallel matrix did not finish fully green.
+- **Release authority hardening**: manual npm workflow runs are dry-run only;
+  production packaging and publishing require an immutable `v-npm-*` tag-push
+  event. Operator-controlled version text is no longer interpolated into shell
+  scripts, release Actions are commit-pinned, and independent readback validates
+  a canonical numeric SemVer before resolving the tag and attested artifact.
+- **Release status**: final tag, source SHA, workflow run IDs, package digests,
+  provenance, and registry readback are intentionally omitted until the exact
+  `0.164.0` release merge commit passes complete `CLI CI` and
+  `CLI Strict Sandbox` matrices on Linux, Windows, and macOS, followed by the
+  dedicated npm release and independent public readback workflows.
+
 ### Added — native clipboard image paste (source-only)
 
 > Source-only increment at exact mainline commit

@@ -9,6 +9,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { performance } from "node:perf_hooks";
 import { runMcpSecurityMatrix } from "./ide-roadmap-mcp-security-gate.mjs";
+import {
+  sameFileStatIdentity,
+  samePathHandleFileIdentity,
+  withTrustedFileParentSync,
+} from "../src/lib/secure-file-identity.js";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "../../..");
@@ -243,61 +248,70 @@ function exactKeys(value, expected) {
 
 function readBoundedJsonEvidence(filePath, label) {
   const resolved = path.resolve(String(filePath || ""));
-  let descriptor;
-  try {
-    const pathStat = fs.lstatSync(resolved);
-    if (pathStat.isSymbolicLink() || !pathStat.isFile()) {
-      throw new Error(`${label} must be a regular non-symlink file`);
-    }
-    const noFollow = fs.constants.O_NOFOLLOW || 0;
-    descriptor = fs.openSync(resolved, fs.constants.O_RDONLY | noFollow);
-    const openedStat = fs.fstatSync(descriptor);
-    if (
-      !openedStat.isFile() ||
-      openedStat.size <= 0 ||
-      openedStat.size > maximumExecutionContextReportBytes
-    ) {
-      throw new Error(
-        `${label} must contain 1-${maximumExecutionContextReportBytes} bytes`,
-      );
-    }
-    if (
-      pathStat.dev !== openedStat.dev ||
-      pathStat.ino !== openedStat.ino ||
-      pathStat.size !== openedStat.size
-    ) {
-      throw new Error(`${label} identity changed while opening`);
-    }
-    const bytes = fs.readFileSync(descriptor);
-    const finalStat = fs.fstatSync(descriptor);
-    if (
-      finalStat.dev !== openedStat.dev ||
-      finalStat.ino !== openedStat.ino ||
-      finalStat.size !== openedStat.size ||
-      bytes.length !== openedStat.size
-    ) {
-      throw new Error(`${label} changed while reading`);
-    }
-    let text;
-    try {
-      text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-    } catch (cause) {
-      throw new Error(`${label} is not valid UTF-8`, { cause });
-    }
-    let value;
-    try {
-      value = JSON.parse(text);
-    } catch (cause) {
-      throw new Error(`${label} is not valid JSON`, { cause });
-    }
-    return Object.freeze({
-      resolved,
-      value,
-      sha256: sha256Bytes(bytes),
-    });
-  } finally {
-    if (descriptor !== undefined) fs.closeSync(descriptor);
-  }
+  return withTrustedFileParentSync(
+    fs,
+    resolved,
+    ({ canonicalPath, parentDevice }) => {
+      const pathStat = fs.lstatSync(canonicalPath, { bigint: true });
+      if (
+        pathStat.isSymbolicLink() ||
+        !pathStat.isFile() ||
+        Number(pathStat.nlink) !== 1
+      ) {
+        throw new Error(`${label} must be a regular, single-link file`);
+      }
+      let descriptor;
+      try {
+        const noFollow = fs.constants.O_NOFOLLOW || 0;
+        descriptor = fs.openSync(
+          canonicalPath,
+          fs.constants.O_RDONLY | noFollow,
+        );
+        const openedStat = fs.fstatSync(descriptor, { bigint: true });
+        const openedBytes = Number(openedStat.size);
+        if (
+          !openedStat.isFile() ||
+          Number(openedStat.nlink) !== 1 ||
+          openedBytes <= 0 ||
+          openedBytes > maximumExecutionContextReportBytes
+        ) {
+          throw new Error(
+            `${label} must contain 1-${maximumExecutionContextReportBytes} bytes`,
+          );
+        }
+        if (!samePathHandleFileIdentity(pathStat, openedStat, parentDevice)) {
+          throw new Error(`${label} identity changed while opening`);
+        }
+        const bytes = fs.readFileSync(descriptor);
+        const finalStat = fs.fstatSync(descriptor, { bigint: true });
+        if (
+          !sameFileStatIdentity(openedStat, finalStat) ||
+          bytes.length !== openedBytes
+        ) {
+          throw new Error(`${label} changed while reading`);
+        }
+        let text;
+        try {
+          text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+        } catch (cause) {
+          throw new Error(`${label} is not valid UTF-8`, { cause });
+        }
+        let value;
+        try {
+          value = JSON.parse(text);
+        } catch (cause) {
+          throw new Error(`${label} is not valid JSON`, { cause });
+        }
+        return Object.freeze({
+          resolved: canonicalPath,
+          value,
+          sha256: sha256Bytes(bytes),
+        });
+      } finally {
+        if (descriptor !== undefined) fs.closeSync(descriptor);
+      }
+    },
+  );
 }
 
 function expectedExecutionContextAssertions(operatingSystem) {

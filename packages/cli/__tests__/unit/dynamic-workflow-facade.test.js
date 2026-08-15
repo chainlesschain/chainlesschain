@@ -170,6 +170,23 @@ describe("dynamic workflow manifest", () => {
 });
 
 describe("dynamic workflow preflight", () => {
+  it("rejects an undeclared parallel capability derived from the DAG", () => {
+    const workflow = structuredClone(WORKFLOW);
+    workflow.facade.requirements.capabilities =
+      workflow.facade.requirements.capabilities.filter(
+        (capability) => capability !== "parallel",
+      );
+
+    const preflight = buildDynamicWorkflowPreflight({
+      workflow,
+      executionLocation: executionLocation(),
+      maxParallel: 2,
+    });
+
+    expect(preflight.allowed).toBe(false);
+    expect(preflight.blockers).toContain("undeclared-capability:parallel");
+  });
+
   it("allows a fully declared workflow within capability, scale, and cost budgets", () => {
     const preflight = buildDynamicWorkflowPreflight({
       workflow: WORKFLOW,

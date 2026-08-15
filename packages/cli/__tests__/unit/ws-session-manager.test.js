@@ -79,16 +79,13 @@ vi.mock("../../src/lib/git-integration.js", () => ({
 vi.mock("fs", async (importOriginal) => {
   const actual = await importOriginal();
   const existsSync = vi.fn(() => false);
-  const readFileSync = vi.fn(() => "");
   return {
     ...actual,
     default: {
       ...actual.default,
       existsSync,
-      readFileSync,
     },
     existsSync,
-    readFileSync,
   };
 });
 
@@ -198,10 +195,12 @@ describe("WSSessionManager", () => {
       const a = m.createSession();
       m.createSession();
       expect(() => m.createSession()).toThrow(/max_sessions_exceeded/);
-      // Closing one frees a slot.
+      // Closing one frees a slot. Four full session lifecycle operations can
+      // exceed Vitest's generic 5s ceiling on cold, contended CI workers;
+      // this resource-cap assertion is not a latency contract.
       m.closeSession(a.sessionId);
       expect(() => m.createSession()).not.toThrow();
-    });
+    }, 15_000);
   });
 
   describe("patch bookkeeping caps (resource-exhaustion guard)", () => {
@@ -1005,6 +1004,10 @@ describe("WSSessionManager", () => {
       vi.advanceTimersByTime(1000);
       manager.persistMessages(sessionId);
       vi.useRealTimers();
+
+      expect(Date.parse(session.lastActivity)).toBeGreaterThan(
+        Date.parse(before),
+      );
 
       expect(dbSaveMessages).toHaveBeenCalledWith(
         mockDb,

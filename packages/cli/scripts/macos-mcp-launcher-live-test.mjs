@@ -403,6 +403,62 @@ function verifyInstalledContractBinding() {
   });
 }
 
+function verifyInstalledProbeClosesInheritedSentinelFd() {
+  const nonce = crypto.randomBytes(32).toString("hex");
+  const sentinelRoot = fs.mkdtempSync(
+    path.join(os.tmpdir(), "cc-macos-mcp-probe-fd-"),
+  );
+  const sentinelPath = path.join(sentinelRoot, "sentinel");
+  let sentinelFd;
+  try {
+    fs.writeFileSync(sentinelPath, "fd9-sentinel", {
+      encoding: "utf8",
+      flag: "wx",
+      mode: 0o600,
+    });
+    sentinelFd = fs.openSync(sentinelPath, "r");
+    const result = spawnSync(
+      protocol.helperInstallPath,
+      ["--probe-v1", nonce],
+      {
+        encoding: "utf8",
+        env: { ...safeEnvironment },
+        timeout: 20_000,
+        stdio: [
+          "ignore",
+          "pipe",
+          "pipe",
+          "ignore",
+          "ignore",
+          "ignore",
+          "ignore",
+          "ignore",
+          "ignore",
+          sentinelFd, // fd 9 must be closed by the helper's descriptor sweep.
+        ],
+      },
+    );
+    assert(
+      !result.error && result.status === 0 && result.signal === null,
+      `installed helper fd9 probe failed: ${result.error?.message || result.status || result.signal}:${result.stderr}`,
+    );
+    assert(
+      result.stderr.trim() === "",
+      "installed helper fd9 probe wrote stderr",
+    );
+    const probe = JSON.parse(result.stdout);
+    assert(
+      probe.schema === "chainlesschain.macos-mcp-launcher-probe.v1" &&
+        probe.nonce === nonce,
+      "installed helper fd9 probe returned mismatched evidence",
+    );
+    return true;
+  } finally {
+    if (sentinelFd !== undefined) fs.closeSync(sentinelFd);
+    fs.rmSync(sentinelRoot, { recursive: true, force: true });
+  }
+}
+
 function verifyInvalidDirectInvocationHasNoRootEffects() {
   const before = sudoSnapshotState();
   const invalid = spawnSync(protocol.helperInstallPath, ["--invalid"], {
@@ -1040,6 +1096,8 @@ async function main({ signedPackage, packedRuntime }) {
   );
   verifyInstalledModes();
   const installation = verifyInstalledContractBinding();
+  const probeSentinelFd9ClosedAndNoResidual =
+    verifyInstalledProbeClosesInheritedSentinelFd();
   verifyInvalidDirectInvocationHasNoRootEffects();
 
   const createdRoot = fs.mkdtempSync(
@@ -1094,6 +1152,7 @@ async function main({ signedPackage, packedRuntime }) {
           packedRuntimeSha256: sha256File(packedRuntime),
           sandboxExecutable: protocol.sandboxExecutable,
           signedRootInstall: true,
+          probeSentinelFd9ClosedAndNoResidual,
           brokerOneShotAdmission: true,
           brokerCallerLifelineRetained: true,
           parentDeathKillsTarget: true,

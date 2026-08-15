@@ -21,6 +21,12 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import {
+  buildLinuxBwrapDescriptorScrubbedLaunch,
+  LINUX_BWRAP_DESCRIPTOR_SCRUBBER_PATH,
+  linuxBwrapDescriptorScrubberPolicyBinding,
+  parseLinuxBwrapDescriptorScrubbedLaunch,
+} from "./linux-bwrap-descriptor-launch.js";
 
 export const LINUX_GENERIC_BWRAP_BACKEND = "linux-bwrap-workspace";
 export const LINUX_GENERIC_CONTRACT_KIND = "strict-workspace-command";
@@ -86,6 +92,8 @@ const ENV_DENYLIST = new Set([
   "LD_DEBUG",
   "LD_LIBRARY_PATH",
   "LD_PRELOAD",
+  "NODE_CHANNEL_FD",
+  "NODE_CHANNEL_SERIALIZATION_MODE",
   "NODE_OPTIONS",
   "NODE_PATH",
   "PERL5OPT",
@@ -165,12 +173,18 @@ function assertString(value, label) {
 }
 
 function normalizeArgs(args) {
-  if (!Array.isArray(args)) {
+  if (!Array.isArray(args) || Object.getPrototypeOf(args) !== Array.prototype) {
     throw new TypeError("args must be an array");
   }
-  return Object.freeze(
-    args.map((value, index) => assertString(String(value), `args[${index}]`)),
-  );
+  const normalized = [];
+  for (let index = 0; index < args.length; index += 1) {
+    const descriptor = Object.getOwnPropertyDescriptor(args, index);
+    if (!descriptor || !("value" in descriptor)) {
+      throw new TypeError(`args[${index}] must be an own data property`);
+    }
+    normalized.push(assertString(descriptor.value, `args[${index}]`));
+  }
+  return Object.freeze(normalized);
 }
 
 function normalizeBoundaries(boundaries) {
@@ -209,7 +223,19 @@ function normalizeStdio(stdio) {
   } else if (stdio === "ignore") {
     entries = ["ignore", "ignore", "ignore"];
   } else if (Array.isArray(stdio)) {
-    entries = [...stdio];
+    if (Object.getPrototypeOf(stdio) !== Array.prototype) {
+      throw new TypeError("stdio must use the canonical array prototype");
+    }
+    entries = [];
+    for (let index = 0; index < stdio.length; index += 1) {
+      const descriptor = Object.getOwnPropertyDescriptor(stdio, index);
+      if (!descriptor || !("value" in descriptor)) {
+        throw new TypeError(
+          `strong Linux workspace sandbox rejects sparse/accessor stdio at fd ${index}`,
+        );
+      }
+      entries.push(descriptor.value);
+    }
     while (entries.length < 3) entries.push(undefined);
   } else {
     throw new TypeError(
@@ -220,9 +246,17 @@ function normalizeStdio(stdio) {
   let ipcCount = 0;
   const normalized = entries.map((entry, index) => {
     if (entry === undefined || entry === null) {
-      return index < 3 ? "pipe" : "ignore";
+      if (index < 3) return "pipe";
+      throw new TypeError(
+        `strong Linux workspace sandbox rejects non-overwriting stdio at fd ${index}`,
+      );
     }
-    if (entry === "pipe" || entry === "ignore") return entry;
+    if (entry === "pipe" || (entry === "ignore" && index < 3)) return entry;
+    if (entry === "ignore") {
+      throw new TypeError(
+        `strong Linux workspace sandbox rejects non-overwriting stdio at fd ${index}`,
+      );
+    }
     if (entry === "ipc" && index >= 3) {
       ipcCount += 1;
       return entry;
@@ -337,6 +371,9 @@ export function issueLinuxGenericSandboxExecutionContract(
     throw new TypeError("strong Linux workspace PTY cannot be synchronous");
   }
   const stdio = normalizeStdio(spec?.stdio);
+  if (sync && stdio.includes("ipc")) {
+    throw new TypeError("strong Linux workspace IPC cannot be synchronous");
+  }
   const requiredBoundaries = normalizeBoundaries(spec?.requiredBoundaries);
   if (
     spec?.detached === true ||
@@ -611,6 +648,32 @@ function validateResourceContract(resources, issued) {
   ) {
     throw new Error("bubblewrap supervisor is not root-owned and pinned");
   }
+  if (
+    resources.descriptorScrubber?.identity?.realPath !==
+      LINUX_BWRAP_DESCRIPTOR_SCRUBBER_PATH ||
+    !validateRootOwnedIdentity(resources.descriptorScrubber?.identity, {
+      directory: false,
+    }) ||
+    (Number(resources.descriptorScrubber.identity.mode) & 0o111) === 0 ||
+    !/^[a-f0-9]{64}$/.test(resources.descriptorScrubber?.sha256 || "") ||
+    !Number.isSafeInteger(resources.descriptorScrubber?.bytes) ||
+    resources.descriptorScrubber.bytes <= 0 ||
+    !Number.isFinite(resources.descriptorScrubber?.mtimeMs) ||
+    !Number.isInteger(resources.descriptorScrubber?.probeFd) ||
+    !Number.isInteger(resources.descriptorScrubber?.finalFd)
+  ) {
+    throw new Error("descriptor scrubber is not root-owned and pinned");
+  }
+  const descriptorScrubber = {
+    path: resources.descriptorScrubber.identity.realPath,
+    fileId: resources.descriptorScrubber.identity.fileId,
+    sha256: resources.descriptorScrubber.sha256,
+    bytes: resources.descriptorScrubber.bytes,
+    mtimeMs: resources.descriptorScrubber.mtimeMs,
+    mode: Number(resources.descriptorScrubber.identity.mode),
+    uid: Number(resources.descriptorScrubber.identity.uid),
+    gid: Number(resources.descriptorScrubber.identity.gid),
+  };
   let ptyLauncher = null;
   if (issued.pty) {
     if (
@@ -713,6 +776,7 @@ function validateResourceContract(resources, issued) {
       sha256: resources.supervisor.sha256,
       bytes: resources.supervisor.bytes,
     },
+    descriptorScrubber,
     ptyLauncher,
     system,
     symlinks,
@@ -732,6 +796,8 @@ function sanitizedEnvironment(environment, stdio) {
     if (
       !/^[A-Za-z_][A-Za-z0-9_]*$/.test(key) ||
       ENV_DENYLIST.has(key) ||
+      key.startsWith("LD_") ||
+      key.startsWith("BASH_FUNC_") ||
       value === undefined ||
       value === null ||
       String(value).includes("\0")
@@ -838,6 +904,11 @@ function descriptorLayout(stdio, resources, validated, workspaceRoot, phase) {
     {
       kind: "seccomp",
       fd: resources.seccomp[`${phase}Fd`],
+      destination: null,
+    },
+    {
+      kind: "descriptorScrubber",
+      fd: resources.descriptorScrubber[`${phase}Fd`],
       destination: null,
     },
   ];
@@ -988,12 +1059,14 @@ function policyBinding({
   environment,
   requiredBoundaries,
   policyArgs,
+  descriptorScrubber,
 }) {
   return {
     version: PLAN_VERSION,
     backend: LINUX_GENERIC_BWRAP_BACKEND,
     contractDigest: issued.contractDigest,
     supervisor: validated.supervisor,
+    descriptorScrubber,
     workspace: {
       root: issued.workspaceRoot,
       cwd: issued.workingDirectory,
@@ -1144,6 +1217,23 @@ export function planLinuxGenericBubblewrap(
     environment: targetEnvironment,
     requiredBoundaries,
     policyArgs,
+    descriptorScrubber: linuxBwrapDescriptorScrubberPolicyBinding(
+      validated.descriptorScrubber,
+      {
+        scrubberChildFd: finalDescriptors.find(
+          (entry) => entry.kind === "descriptorScrubber",
+        ).childFd,
+        preservedMaxFd:
+          finalDescriptors.find((entry) => entry.kind === "descriptorScrubber")
+            .childFd - 1,
+        activeStdioThrough: issued.stdio.length - 1,
+        nodeIpcChildFd:
+          issued.stdio.indexOf("ipc") >= 3 ? issued.stdio.indexOf("ipc") : null,
+        executableChildFd: finalDescriptors.find(
+          (entry) => entry.kind === "supervisor",
+        ).childFd,
+      },
+    ),
   });
   const policyDigest = sha256(stableJson(binding));
   const probePolicyArgs = buildPolicyArgs({
@@ -1152,9 +1242,6 @@ export function planLinuxGenericBubblewrap(
     descriptors: probeDescriptors,
     environment: targetEnvironment,
   });
-  const probeCommand = `/proc/self/fd/${
-    probeDescriptors.find((entry) => entry.kind === "supervisor").childFd
-  }`;
   const probeOptions = {
     cwd: "/",
     shell: false,
@@ -1162,19 +1249,31 @@ export function planLinuxGenericBubblewrap(
     timeout: 10_000,
     stdio: [
       ...issued.stdio.map((_, index) =>
-        index === 1 || index === 2 ? "pipe" : "ignore",
+        index === 1 || index === 2 || index >= 3 ? "pipe" : "ignore",
       ),
       ...probeDescriptors.map((descriptor) => descriptor.fd),
     ],
     env: { PATH: "/usr/bin:/bin", LANG: "C", LC_ALL: "C" },
   };
+  const probeLaunch = buildLinuxBwrapDescriptorScrubbedLaunch({
+    scrubberChildFd: probeDescriptors.find(
+      (entry) => entry.kind === "descriptorScrubber",
+    ).childFd,
+    preservedMaxFd:
+      probeDescriptors.find((entry) => entry.kind === "descriptorScrubber")
+        .childFd - 1,
+    executableChildFd: probeDescriptors.find(
+      (entry) => entry.kind === "supervisor",
+    ).childFd,
+    executableArgs: probePolicyArgs,
+  });
   let probeResult;
   try {
     probeResult =
       typeof probe === "function"
         ? probe({
-            command: probeCommand,
-            args: probePolicyArgs,
+            command: probeLaunch.command,
+            args: probeLaunch.args,
             options: probeOptions,
             policyDigest,
             contractDigest: issued.contractDigest,
@@ -1237,18 +1336,28 @@ export function planLinuxGenericBubblewrap(
   const ptyLauncher = finalDescriptors.find(
     (entry) => entry.kind === "ptyLauncher",
   );
-  const supervisorCommand = `/proc/self/fd/${supervisor.childFd}`;
-  const command = issued.pty
-    ? `/proc/self/fd/${ptyLauncher.childFd}`
-    : supervisorCommand;
+  const descriptorScrubber = finalDescriptors.find(
+    (entry) => entry.kind === "descriptorScrubber",
+  );
   const bwrapArgs = [
     ...policyArgs,
     "--",
     validated.target.resolvedCommand,
     ...validated.target.args,
   ];
+  const scrubbedLaunch = buildLinuxBwrapDescriptorScrubbedLaunch({
+    scrubberChildFd: descriptorScrubber.childFd,
+    preservedMaxFd: descriptorScrubber.childFd - 1,
+    executableChildFd: supervisor.childFd,
+    executableArgs: bwrapArgs,
+  });
+  const command = issued.pty
+    ? `/proc/self/fd/${ptyLauncher.childFd}`
+    : scrubbedLaunch.command;
   const args = Object.freeze(
-    issued.pty ? ["--ctty", supervisorCommand, ...bwrapArgs] : bwrapArgs,
+    issued.pty
+      ? ["--ctty", scrubbedLaunch.command, ...scrubbedLaunch.args]
+      : [...scrubbedLaunch.args],
   );
   const options = Object.freeze({
     ...passthroughSpawnOptions(spawnOptions),
@@ -1298,6 +1407,7 @@ export function planLinuxGenericBubblewrap(
       mountTopologyAtomic: false,
       contractDigest: issued.contractDigest,
       policyDigest,
+      descriptorScrubber: binding.descriptorScrubber,
       mountTopologyDigest: validated.workspaceMountTopology.digest,
       sourceMountSetDigest:
         validated.workspaceMountTopology.sourceMountSetDigest,
@@ -1384,8 +1494,39 @@ export function planLinuxGenericBubblewrap(
 }
 
 export function verifyLinuxGenericBubblewrapPlan(plan) {
+  const descriptorScrubber = plan?.runtimeProbe?.descriptorScrubber;
+  const scrubbedLaunch = plan?.ptyPolicy
+    ? parseLinuxBwrapDescriptorScrubbedLaunch(
+        plan.args?.[1],
+        plan.args?.slice(2),
+        plan.options,
+        { activeStdioThrough: descriptorScrubber?.activeStdioThrough },
+      )
+    : parseLinuxBwrapDescriptorScrubbedLaunch(
+        plan?.command,
+        plan?.args,
+        plan?.options,
+        { activeStdioThrough: descriptorScrubber?.activeStdioThrough },
+      );
   return (
     plannedPolicies.get(plan) === plan?.policyDigest &&
+    scrubbedLaunch !== null &&
+    descriptorScrubber?.scrubberChildFd === scrubbedLaunch.scrubberChildFd &&
+    descriptorScrubber?.preservedMaxFd === scrubbedLaunch.preservedMaxFd &&
+    descriptorScrubber?.activeStdioThrough ===
+      scrubbedLaunch.activeStdioThrough &&
+    descriptorScrubber?.nodeIpcChildFd === scrubbedLaunch.nodeIpcChildFd &&
+    descriptorScrubber?.nodeIpcSerializationMode ===
+      (scrubbedLaunch.nodeIpcChildFd === null ? null : "json") &&
+    descriptorScrubber?.nodeRuntimeEnvironmentInjection ===
+      (scrubbedLaunch.nodeIpcChildFd === null
+        ? "none"
+        : "node-child-process-exact-ipc-v1") &&
+    descriptorScrubber?.executableChildFd ===
+      scrubbedLaunch.executableChildFd &&
+    Object.isFrozen(descriptorScrubber) &&
+    Object.isFrozen(descriptorScrubber.executableIdentity) &&
+    Object.isFrozen(descriptorScrubber.executableIdentity.fileId) &&
     Object.isFrozen(plan) &&
     Object.isFrozen(plan.args) &&
     Object.isFrozen(plan.options) &&
