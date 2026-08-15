@@ -639,14 +639,19 @@ async function main() {
   const evidenceDirectory = join(root, "evidence");
   const backgroundDirectory = join(root, "background-agents");
   const home = join(root, "home");
+  const securityAnchorHome = join(root, "security-anchors");
   const fakeAgent = join(root, "fake-background-agent.mjs");
   mkdirSync(evidenceDirectory, { recursive: true });
+  mkdirSync(securityAnchorHome, { recursive: true });
   initializeFixtureRepository(repository);
   writeFakeAgent(fakeAgent);
 
   const previousHome = process.env.CHAINLESSCHAIN_HOME;
+  const previousSecurityAnchorHome =
+    process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME;
   const previousBackgroundDirectory = process.env.CC_BACKGROUND_AGENTS_DIR;
   process.env.CHAINLESSCHAIN_HOME = home;
+  process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME = securityAnchorHome;
   process.env.CC_BACKGROUND_AGENTS_DIR = backgroundDirectory;
 
   const harnessBefore = {
@@ -875,6 +880,12 @@ async function main() {
   } finally {
     if (previousHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
     else process.env.CHAINLESSCHAIN_HOME = previousHome;
+    if (previousSecurityAnchorHome === undefined) {
+      delete process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME;
+    } else {
+      process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME =
+        previousSecurityAnchorHome;
+    }
     if (previousBackgroundDirectory === undefined) {
       delete process.env.CC_BACKGROUND_AGENTS_DIR;
     } else {

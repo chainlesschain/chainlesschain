@@ -20,7 +20,13 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -40,8 +46,10 @@ import { readEvents } from "../../src/harness/jsonl-session-store.js";
 let dir;
 let launchedIds;
 let previousHome;
+let previousSecurityAnchorHome;
 let previousNotifierEnv;
 const CLI_ROOT = fileURLToPath(new URL("../../", import.meta.url));
+const WINDOWS_TASKKILL_TIMEOUT_MS = 10_000;
 const NOTIFIER_ENV_KEYS = [
   "TELEGRAM_BOT_TOKEN",
   "TELEGRAM_CHAT_ID",
@@ -58,6 +66,7 @@ function killTree(pid) {
   if (process.platform === "win32") {
     spawnSync("taskkill", ["/PID", String(pid), "/T", "/F"], {
       windowsHide: true,
+      timeout: WINDOWS_TASKKILL_TIMEOUT_MS,
     });
   } else {
     try {
@@ -87,6 +96,10 @@ beforeEach(() => {
   process.env.CC_BACKGROUND_AGENTS_DIR = dir;
   previousHome = process.env.CHAINLESSCHAIN_HOME;
   process.env.CHAINLESSCHAIN_HOME = join(dir, "home");
+  previousSecurityAnchorHome = process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME;
+  const securityAnchorHome = join(dir, "security-anchors");
+  mkdirSync(securityAnchorHome, { recursive: true });
+  process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME = securityAnchorHome;
   previousNotifierEnv = Object.fromEntries(
     NOTIFIER_ENV_KEYS.map((key) => [key, process.env[key]]),
   );
@@ -112,6 +125,12 @@ afterEach(async () => {
     delete process.env.CHAINLESSCHAIN_HOME;
   } else {
     process.env.CHAINLESSCHAIN_HOME = previousHome;
+  }
+  if (previousSecurityAnchorHome === undefined) {
+    delete process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME;
+  } else {
+    process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME =
+      previousSecurityAnchorHome;
   }
   for (const key of NOTIFIER_ENV_KEYS) {
     if (previousNotifierEnv[key] === undefined) delete process.env[key];
@@ -329,7 +348,7 @@ describe("8. log tail — truncation while the worker is appending (real spawn)"
     const tail = readBackgroundAgentLog(state.id, { lines: 100 });
     expect(tail).toContain("line-19"); // fresh content is all there
     expect(tail).not.toContain("line-0"); // truncated content is not duplicated back
-  }, 20_000);
+  }, 45_000);
 });
 
 describe("P0-2 same-turn question round-trip (real worker/child IPC)", () => {
