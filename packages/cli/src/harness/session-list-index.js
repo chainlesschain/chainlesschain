@@ -9,14 +9,23 @@
 
 import {
   appendFileSync,
+  closeSync,
+  constants as fsConstants,
   existsSync,
+  fstatSync,
+  fsyncSync,
+  lstatSync,
+  openSync,
   readFileSync,
+  renameSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { join } from "node:path";
+import { randomUUID } from "node:crypto";
+import { basename, dirname, join } from "node:path";
 import { iterateFileLinesReverseSync } from "../lib/file-lines.js";
 import { ensurePrivateFile } from "../lib/secure-fs.js";
+import { isAffectedWindowsZeroDeviceStatRuntime } from "../lib/secure-file-identity.js";
 
 export const SESSION_INDEX_SCHEMA = 2;
 export const SESSION_INDEX_FILE = ".sessions-index-v2.ndjson";
@@ -31,6 +40,14 @@ export const SESSION_GENERATION_AUTHORITY_SCHEMA =
 // Keeping the injection immediately around the production sidecar/journal
 // boundary makes that gate deterministic without replacing either write.
 export const _sessionScaleFaultHooks = Object.seal({
+  afterMetaTempFsync: null,
+  afterMetaRename: null,
+  afterMetaDirectoryFsync: null,
+  afterTombstoneTempFsync: null,
+  afterTombstoneRename: null,
+  afterTombstoneDirectoryFsync: null,
+  afterTombstoneRemoval: null,
+  afterTombstoneRemovalDirectoryFsync: null,
   afterMetaSnapshot: null,
 });
 
@@ -38,6 +55,157 @@ function runSessionScaleFaultHook(name, payload) {
   if (process.env.CC_SESSION_SCALE_FAULT_INJECTION !== "1") return;
   const hook = _sessionScaleFaultHooks[name];
   if (typeof hook === "function") hook(payload);
+}
+
+function annotateSnapshotFailure(
+  cause,
+  { targetPath, renamed, directorySynced },
+) {
+  const error = cause instanceof Error ? cause : new Error(String(cause));
+  if (!error.commitState) {
+    // Before rename the public snapshot is unchanged. POSIX needs the parent
+    // directory fsync to make the rename durable; Windows exposes no usable
+    // directory fsync through Node, so a flushed atomic rename is its complete
+    // host boundary. A hook after that boundary models response loss.
+    error.commitState = !renamed
+      ? "not-committed"
+      : directorySynced
+        ? "committed"
+        : "unknown";
+  }
+  if (!error.persistenceTarget) error.persistenceTarget = targetPath;
+  return error;
+}
+
+function syncParentDirectory(targetPath) {
+  if (process.platform === "win32") return false;
+  let descriptor = null;
+  try {
+    const flags =
+      fsConstants.O_RDONLY |
+      Number(fsConstants.O_DIRECTORY ?? 0) |
+      Number(fsConstants.O_NOFOLLOW ?? 0);
+    descriptor = openSync(dirname(targetPath), flags);
+    if (!fstatSync(descriptor).isDirectory()) {
+      throw new Error("Session snapshot parent is not a directory");
+    }
+    fsyncSync(descriptor);
+    return true;
+  } finally {
+    if (descriptor !== null) closeSync(descriptor);
+  }
+}
+
+function assertSnapshotPathMatchesDescriptor(
+  filePath,
+  descriptorStats,
+  serialized,
+) {
+  const published = lstatSync(filePath, { bigint: true });
+  const usefulIdentity =
+    descriptorStats.dev !== 0n ||
+    descriptorStats.ino !== 0n ||
+    published.dev !== 0n ||
+    published.ino !== 0n;
+  const deviceMatches =
+    String(descriptorStats.dev) === String(published.dev) ||
+    (isAffectedWindowsZeroDeviceStatRuntime() &&
+      String(descriptorStats.dev) !== "0" &&
+      String(published.dev) === "0");
+  const identityMatches =
+    deviceMatches &&
+    String(descriptorStats.ino) === String(published.ino) &&
+    String(descriptorStats.mode) === String(published.mode);
+  const expectedBytes = BigInt(Buffer.byteLength(serialized, "utf8"));
+  if (
+    published.isSymbolicLink() ||
+    !published.isFile() ||
+    (usefulIdentity && !identityMatches) ||
+    descriptorStats.size !== expectedBytes ||
+    published.size !== expectedBytes ||
+    readFileSync(filePath, "utf8") !== serialized
+  ) {
+    throw new Error(
+      "Session snapshot path no longer identifies the flushed payload",
+    );
+  }
+}
+
+/**
+ * Publish one authority snapshot without ever exposing a partial JSON file.
+ * The temporary file lives beside the destination so rename remains atomic.
+ * Activity ordering is intentionally outside this helper: that journal is a
+ * rebuildable cache and must not be confused with the durable snapshot.
+ */
+function writeSnapshotDurably(
+  filePath,
+  serialized,
+  { kind, sessionId, status, afterTempFsync, afterRename, afterDirectoryFsync },
+) {
+  const temporaryPath = join(
+    dirname(filePath),
+    `.${basename(filePath)}.${process.pid}.${randomUUID()}.tmp`,
+  );
+  const payload = Object.freeze({
+    kind,
+    sessionId,
+    status,
+    targetPath: filePath,
+    temporaryPath,
+  });
+  let descriptor = null;
+  let descriptorStats = null;
+  let renamed = false;
+  let directorySynced = process.platform === "win32";
+  try {
+    descriptor = openSync(temporaryPath, "wx", 0o600);
+    writeFileSync(descriptor, serialized, "utf8");
+    ensurePrivateFile(temporaryPath);
+    fsyncSync(descriptor);
+    descriptorStats = fstatSync(descriptor, { bigint: true });
+    runSessionScaleFaultHook(afterTempFsync, payload);
+    assertSnapshotPathMatchesDescriptor(
+      temporaryPath,
+      descriptorStats,
+      serialized,
+    );
+
+    // Both files are in the same directory; rename atomically replaces an old
+    // snapshot or publishes a first generation without a partial target.
+    // The temp already has the final owner-only permissions before publication.
+    renameSync(temporaryPath, filePath);
+    renamed = true;
+    assertSnapshotPathMatchesDescriptor(filePath, descriptorStats, serialized);
+    closeSync(descriptor);
+    descriptor = null;
+    runSessionScaleFaultHook(afterRename, payload);
+    if (process.platform !== "win32") {
+      directorySynced = syncParentDirectory(filePath);
+      runSessionScaleFaultHook(afterDirectoryFsync, payload);
+    }
+  } catch (cause) {
+    throw annotateSnapshotFailure(cause, {
+      targetPath: filePath,
+      renamed,
+      directorySynced,
+    });
+  } finally {
+    if (descriptor !== null) {
+      try {
+        closeSync(descriptor);
+      } catch {
+        // Preserve the persistence failure that stopped publication.
+      }
+    }
+    if (!renamed) {
+      try {
+        rmSync(temporaryPath, { force: true });
+      } catch {
+        // A crash may leave an ignored same-directory temp file. Never replace
+        // the original persistence failure with best-effort cleanup failure.
+      }
+    }
+  }
 }
 
 export function sessionMetaPath(dir, sessionId) {
@@ -189,6 +357,7 @@ function writeMetaSnapshot(dir, meta) {
   // that publication fails. Remove it only after a live generation snapshot
   // commits, so crashes can cause an extra candidate read but never hide a
   // successfully committed tombstone.
+  let tombstonePublished = false;
   if (meta.deleted === true) {
     const generation = normalizeSessionGenerationAuthority(meta.generation);
     const marker = {
@@ -206,21 +375,71 @@ function writeMetaSnapshot(dir, meta) {
         Number(meta.deleted_at_ms || meta.updated_at_ms) || 0,
       ),
     };
-    writeFileSync(tombstoneMarker, `${JSON.stringify(marker)}\n`, {
-      encoding: "utf8",
-      mode: 0o600,
+    writeSnapshotDurably(tombstoneMarker, `${JSON.stringify(marker)}\n`, {
+      kind: "tombstone",
+      sessionId: meta.id,
+      status: "deleted",
+      afterTempFsync: "afterTombstoneTempFsync",
+      afterRename: "afterTombstoneRename",
+      afterDirectoryFsync: "afterTombstoneDirectoryFsync",
     });
-    ensurePrivateFile(tombstoneMarker);
+    tombstonePublished = true;
   }
-  // The owning transcript lock serializes this derived snapshot. It need not
-  // use a second temp+rename protocol: interruption can only corrupt a cache,
-  // which readSessionMeta rejects and rebuildSessionMeta regenerates.
-  writeFileSync(filePath, `${JSON.stringify(meta)}\n`, {
-    encoding: "utf8",
-    mode: 0o600,
-  });
-  ensurePrivateFile(filePath);
-  if (meta.deleted !== true) rmSync(tombstoneMarker, { force: true });
+  try {
+    writeSnapshotDurably(filePath, `${JSON.stringify(meta)}\n`, {
+      kind: "meta",
+      sessionId: meta.id,
+      status: meta.deleted === true ? "deleted" : "live",
+      afterTempFsync: "afterMetaTempFsync",
+      afterRename: "afterMetaRename",
+      afterDirectoryFsync: "afterMetaDirectoryFsync",
+    });
+  } catch (cause) {
+    // A durable marker is already a conservative deletion fence. If the meta
+    // publication then fails, the composite mutation is partial/unknown even
+    // when the old meta path itself was left byte-for-byte unchanged.
+    if (tombstonePublished && cause?.commitState === "not-committed") {
+      cause.commitState = "unknown";
+    }
+    throw cause;
+  }
+
+  if (meta.deleted !== true && existsSync(tombstoneMarker)) {
+    const payload = Object.freeze({
+      kind: "tombstone-removal",
+      sessionId: meta.id,
+      status: "live",
+      targetPath: tombstoneMarker,
+      parentDirectory: dirname(tombstoneMarker),
+    });
+    let removed = false;
+    let directorySynced = process.platform === "win32";
+    try {
+      rmSync(tombstoneMarker, { force: true });
+      removed = true;
+      runSessionScaleFaultHook("afterTombstoneRemoval", payload);
+      if (process.platform !== "win32") {
+        directorySynced = syncParentDirectory(tombstoneMarker);
+        runSessionScaleFaultHook(
+          "afterTombstoneRemovalDirectoryFsync",
+          payload,
+        );
+      }
+    } catch (cause) {
+      const error = cause instanceof Error ? cause : new Error(String(cause));
+      if (!error.commitState) {
+        // The live meta was already durably published. Retaining the marker is
+        // fail-closed; removing it without a POSIX directory barrier is an
+        // unknown publication, while a post-barrier hook is response loss.
+        error.commitState =
+          removed && directorySynced ? "committed" : "unknown";
+      }
+      if (!error.persistenceTarget) {
+        error.persistenceTarget = tombstoneMarker;
+      }
+      throw error;
+    }
+  }
 }
 
 /**
