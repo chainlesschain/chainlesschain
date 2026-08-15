@@ -166,6 +166,26 @@ function catalogAuthorityFromPreflight(preflight, impact = null) {
     governanceStatus: preflight.governance.status,
     registryStatus: preflight.registry.status,
     versionAuthority: preflight.versionAuthority,
+    artifactExpectations: {
+      manifest: {
+        status: preflight.integrity.digest.status,
+        sha256: preflight.integrity.digest.value,
+      },
+      signature: {
+        status: preflight.integrity.signature.status,
+        algorithm: preflight.integrity.signature.algorithm,
+        publicKeySha256: preflight.integrity.signature.publicKeySha256,
+      },
+      sbom: {
+        status: preflight.integrity.sbom.status,
+        format: preflight.integrity.sbom.format,
+        sha256: preflight.integrity.sbom.digest,
+      },
+      license: {
+        status: preflight.license.status,
+        expression: preflight.license.expression,
+      },
+    },
     ...(preflight.selectionDigest
       ? {
           selectionDigest: preflight.selectionDigest,
@@ -1873,6 +1893,83 @@ export function registerPluginCommand(program) {
         logger.log(
           `  ${ok} ${chalk.cyan(r.name)} v${r.version} ${chalk.gray(`[${r.scope}]`)} ${state} ${trust} ${signed}${policy ? ` ${policy}` : ""}`,
         );
+      }
+    });
+
+  // plugin evidence — compare persisted registry artifact expectations with
+  // actual bytes in the active immutable install. Remote artifacts are not
+  // fetched here and remain explicitly partial/non-comparable.
+  plugin
+    .command("evidence <name>")
+    .description(
+      "Read back installed manifest, license, signature, and payload-SBOM evidence",
+    )
+    .option("--scope <scope>", "Installed plugin scope", "user")
+    .option(
+      "--strict",
+      "Return a non-zero status when any artifact expectation is partial",
+    )
+    .option("--json", "Output the versioned artifact readback as JSON")
+    .action(async (name, options) => {
+      try {
+        const { listInstalled } =
+          await import("../lib/plugin-runtime/install.js");
+        const installed = listInstalled({
+          cwd: process.cwd(),
+          scopes: [options.scope],
+        }).find(
+          (candidate) =>
+            candidate.name === name && candidate.scope === options.scope,
+        );
+        if (!installed) {
+          throw new Error(`${name} is not installed at ${options.scope} scope`);
+        }
+        const { buildPluginMarketplaceArtifactReadback } =
+          await import("../lib/plugin-runtime/marketplace-artifact-readback.js");
+        const evidence = buildPluginMarketplaceArtifactReadback({
+          root: installed.dir,
+          scope: installed.scope,
+          source: installed.source,
+        });
+        if (options.json) {
+          console.log(JSON.stringify(evidence, null, 2));
+        } else {
+          logger.log(
+            chalk.bold(
+              `${name}: marketplace artifact evidence ${evidence.status}`,
+            ),
+          );
+          for (const [kind, comparison] of Object.entries(
+            evidence.comparisons,
+          )) {
+            logger.log(
+              `  ${kind}: ${comparison.status}${comparison.comparable ? " (exact comparison)" : ""}`,
+            );
+          }
+          logger.log(
+            `  signature: ${evidence.actual.signature.verified ? "cryptographically verified" : evidence.actual.signature.reason}`,
+          );
+          logger.log(
+            `  payload SBOM: ${evidence.actual.payloadSbom.digest} (${evidence.actual.payloadSbom.fileCount} files)`,
+          );
+          logger.log(
+            chalk.gray(`  evidence digest: ${evidence.evidenceDigest}`),
+          );
+          logger.log(
+            chalk.gray(
+              "  Registry publisher identity and remote signature/SBOM artifacts are not verified by this local readback.",
+            ),
+          );
+        }
+        if (
+          evidence.status === "failed" ||
+          (options.strict && evidence.status !== "matched")
+        ) {
+          process.exitCode = 2;
+        }
+      } catch (error) {
+        logger.error(`Marketplace artifact evidence failed: ${error.message}`);
+        process.exitCode = 1;
       }
     });
 

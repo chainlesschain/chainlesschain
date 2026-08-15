@@ -763,6 +763,9 @@ function normalizeCatalogAuthority(value) {
   const candidateDigest = cleanBounded(value.candidateDigest, 64);
   const selectionDigest = cleanBounded(value.selectionDigest, 64);
   const updateImpactDigest = cleanBounded(value.updateImpactDigest, 64);
+  const artifactExpectations = normalizeArtifactExpectations(
+    value.artifactExpectations,
+  );
   if (!/^[a-f0-9]{64}$/.test(catalogDigest || "")) {
     throw new Error(
       "catalogAuthority.catalogDigest must be a SHA-256 hex digest",
@@ -828,10 +831,56 @@ function normalizeCatalogAuthority(value) {
         }
       : {}),
     ...(updateImpactDigest ? { updateImpactDigest } : {}),
+    ...(artifactExpectations ? { artifactExpectations } : {}),
     preflightStatus: "allowed",
     governanceStatus,
     registryStatus,
     versionAuthority,
+  };
+}
+
+function normalizeArtifactExpectations(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const digest = (candidate, label) => {
+    const normalized = cleanBounded(candidate, 64);
+    if (normalized && !/^[a-f0-9]{64}$/i.test(normalized)) {
+      throw new Error(`${label} must be a SHA-256 hex digest`);
+    }
+    return normalized?.toLowerCase() || null;
+  };
+  const status = (candidate) =>
+    ["declared", "missing"].includes(candidate) ? candidate : "missing";
+  const manifestSha256 = digest(
+    value.manifest?.sha256,
+    "catalogAuthority.artifactExpectations.manifest.sha256",
+  );
+  const signatureKeySha256 = digest(
+    value.signature?.publicKeySha256,
+    "catalogAuthority.artifactExpectations.signature.publicKeySha256",
+  );
+  const sbomSha256 = digest(
+    value.sbom?.sha256,
+    "catalogAuthority.artifactExpectations.sbom.sha256",
+  );
+  return {
+    manifest: {
+      status: status(value.manifest?.status),
+      sha256: manifestSha256,
+    },
+    signature: {
+      status: status(value.signature?.status),
+      algorithm: cleanBounded(value.signature?.algorithm, 64),
+      publicKeySha256: signatureKeySha256,
+    },
+    sbom: {
+      status: status(value.sbom?.status),
+      format: cleanBounded(value.sbom?.format, 128),
+      sha256: sbomSha256,
+    },
+    license: {
+      status: status(value.license?.status),
+      expression: cleanBounded(value.license?.expression, 256),
+    },
   };
 }
 
