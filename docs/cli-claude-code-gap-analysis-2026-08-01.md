@@ -1425,6 +1425,9 @@ Windows helper follow-up 的当前审计事实与安全边界如下：
 以 merge SHA `7d3120fc1ed7ef1c32c183d3235ced4a39589e1f` 保留 bounded worker fatal、stderr、recent-event
 与 parse-error 诊断，并在该 exact SHA 重新调度正式
 [Scheduler Kernel Soak `31821080101`](https://github.com/chainlesschain/chainlesschain/actions/runs/31821080101)。
+同一 exact SHA 的 [CLI CI `31820917554`](https://github.com/chainlesschain/chainlesschain/actions/runs/31820917554)
+整体成功，[CLI Strict Sandbox `31821000763`](https://github.com/chainlesschain/chainlesschain/actions/runs/31821000763)
+为 Ubuntu 24.04、macOS 15、Windows **3/3 success**；没有借用旧 SHA 或单门结果。
 该 run 的 Linux、macOS、Windows 与 aggregate 四个 jobs 全部成功；artifact
 `cli-scheduler-soak-aggregate-7d3120fc1ed7ef1c32c183d3235ced4a39589e1f-1`（ID `9230910714`，
 digest `sha256:f90462a1f23ceb6a59fd07f65643a80a523ee92cdbae403ddc201124142c59dc`）回读为
