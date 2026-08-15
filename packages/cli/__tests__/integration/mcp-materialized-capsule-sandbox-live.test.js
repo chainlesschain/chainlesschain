@@ -2297,7 +2297,7 @@ describe.runIf(LIVE && SUPPORTED)(
         nonce: probeNonce,
       });
       expect(materialized.identity.capsule).toMatchObject({
-        schema: "chainlesschain.mcp-stdio-node-capsule/v2",
+        schema: "chainlesschain.mcp-stdio-node-capsule/v3",
         builder: "esbuild-wasm",
         builderVersion: "0.28.1",
       });

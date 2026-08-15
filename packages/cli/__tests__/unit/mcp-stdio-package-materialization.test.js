@@ -430,7 +430,7 @@ describe("MCP stdio fixed npm package materialization", () => {
     expect(result.identity.fileCount).toBeGreaterThanOrEqual(7);
     expect(result.identity.closureDigest).toMatch(/^[a-f0-9]{64}$/);
     expect(result.identity.capsule).toMatchObject({
-      schema: "chainlesschain.mcp-stdio-node-capsule/v2",
+      schema: "chainlesschain.mcp-stdio-node-capsule/v3",
       relativePath: "capsule/server.cjs",
       builder: "esbuild-wasm",
       builderVersion: "0.28.1",
@@ -439,6 +439,11 @@ describe("MCP stdio fixed npm package materialization", () => {
       resolverSchema: "chainlesschain.mcp-stdio-immutable-vfs-resolver/v1",
       wrapperSchema: "chainlesschain.mcp-stdio-capsule-stdin-wrapper/v1",
       wrapperSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+      builtinPolicy: {
+        schema: "chainlesschain.mcp-stdio-static-builtin-policy/v1",
+        mode: "static-external-only",
+        allowedBuiltins: [],
+      },
     });
     expect(result.identity.capsule.builderWasmSha256).toMatch(/^[a-f0-9]{64}$/);
     expect(result.identity.capsule.builderApiSha256).toMatch(/^[a-f0-9]{64}$/);
@@ -700,7 +705,7 @@ describe("MCP stdio fixed npm package materialization", () => {
     });
 
     expect(result.identity.capsule).toMatchObject({
-      schema: "chainlesschain.mcp-stdio-node-capsule/v2",
+      schema: "chainlesschain.mcp-stdio-node-capsule/v3",
       inputCount: 3,
     });
     expect(divergentPathStats).toBeGreaterThan(0);
@@ -1182,6 +1187,80 @@ describe("MCP stdio fixed npm package materialization", () => {
     30_000,
   );
 
+  it("binds process.getBuiltinModule to the statically imported builtin set", async () => {
+    const config = {
+      command: "npx",
+      args: ["@scope/mcp-server@1.2.3"],
+      transport: "stdio",
+    };
+    const authority = approved(config, "builtin-policy-server");
+    const builtinInstall = (input) => {
+      fakeInstall(input);
+      fs.writeFileSync(
+        path.join(
+          input.directory,
+          "node_modules",
+          "@scope",
+          "mcp-server",
+          "bin",
+          "server.js",
+        ),
+        `#!/usr/bin/env node
+const path = require("node:path");
+const operation = process.argv[2];
+if (operation === "allowed") {
+  process.stdout.write(process.getBuiltinModule("path") === path ? "allowed" : "mismatch");
+} else if (operation === "unlisted") {
+  process.getBuiltinModule("node:fs");
+} else if (operation === "unlisted-require") {
+  require(process.argv[3]);
+} else if (operation === "binding") {
+  process.binding("fs");
+} else if (operation === "linked-binding") {
+  process._linkedBinding("fs");
+}
+`,
+        "utf8",
+      );
+    };
+
+    const result = await materializeMcpStdioNpmPackage({
+      approvalRecord: authority.approvalRecord,
+      config: authority.invocation,
+      packageSpec: "@scope/mcp-server@1.2.3",
+      binName: "scope-mcp",
+      root: materializationRoot,
+      indexPath,
+      npmCli,
+      installRunner: builtinInstall,
+    });
+    expect(result.identity.capsule.builtinPolicy).toEqual({
+      schema: "chainlesschain.mcp-stdio-static-builtin-policy/v1",
+      mode: "static-external-only",
+      allowedBuiltins: ["node:path", "path"],
+    });
+    const capsule = path.join(result.root, "capsule", "server.cjs");
+    const allowed = spawnSync(process.execPath, [capsule, "allowed"], {
+      encoding: "utf8",
+    });
+    expect(allowed).toMatchObject({ status: 0, stdout: "allowed" });
+
+    for (const [operation, extraArgs] of [
+      ["unlisted", []],
+      ["unlisted-require", ["node:fs"]],
+      ["binding", []],
+      ["linked-binding", []],
+    ]) {
+      const denied = spawnSync(
+        process.execPath,
+        [capsule, operation, ...extraArgs],
+        { encoding: "utf8" },
+      );
+      expect(denied.status).not.toBe(0);
+      expect(denied.stderr).toContain("CC_MCP_STDIO_BUILTIN_MODULE_BLOCKED");
+    }
+  }, 30_000);
+
   it("rejects a changed snapshot-root substitution after VFS capture", async () => {
     const config = {
       command: "npx",
@@ -1406,6 +1485,20 @@ describe("MCP stdio fixed npm package materialization", () => {
   });
 
   it.each([
+    [
+      "missing builtin-policy marker",
+      () => {},
+      "did not retain exactly one host builtin-policy marker",
+    ],
+    [
+      "duplicate builtin-policy marker",
+      (result) => {
+        result.output = new TextEncoder().encode(
+          '"__CHAINLESSCHAIN_MCP_STATIC_BUILTIN_ALLOWLIST_8F43C70E__" + "__CHAINLESSCHAIN_MCP_STATIC_BUILTIN_ALLOWLIST_8F43C70E__";',
+        );
+      },
+      "did not retain exactly one host builtin-policy marker",
+    ],
     [
       "non-VFS metafile input",
       (result) => {

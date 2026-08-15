@@ -36,9 +36,9 @@ export const MCP_STDIO_PACKAGE_MATERIALIZATION_CHANGED_CODE =
   "CC_MCP_STDIO_PACKAGE_MATERIALIZATION_CHANGED";
 
 const MATERIALIZATION_SCHEMA =
-  "chainlesschain.mcp-stdio-package-materialization/v3";
-const MATERIALIZATION_VERSION = 3;
-const CAPSULE_SCHEMA = "chainlesschain.mcp-stdio-node-capsule/v2";
+  "chainlesschain.mcp-stdio-package-materialization/v4";
+const MATERIALIZATION_VERSION = 4;
+const CAPSULE_SCHEMA = "chainlesschain.mcp-stdio-node-capsule/v3";
 const CAPSULE_RELATIVE_PATH = "capsule/server.cjs";
 const CAPSULE_BUILDER = "esbuild-wasm";
 const CAPSULE_BUILDER_VERSION = "0.28.1";
@@ -64,6 +64,10 @@ const CAPSULE_RESOLVER_SHA256 =
 const CAPSULE_RESOLVER_BYTES = 24_417;
 const CAPSULE_STDIN_WRAPPER_SCHEMA =
   "chainlesschain.mcp-stdio-capsule-stdin-wrapper/v1";
+const CAPSULE_BUILTIN_POLICY_SCHEMA =
+  "chainlesschain.mcp-stdio-static-builtin-policy/v1";
+const CAPSULE_BUILTIN_ALLOWLIST_MARKER =
+  "__CHAINLESSCHAIN_MCP_STATIC_BUILTIN_ALLOWLIST_8F43C70E__";
 const INDEX_LABEL = "MCP stdio package materialization index";
 const MANIFEST_LABEL = "MCP stdio package materialization manifest";
 const MAX_FILES = 10_000;
@@ -128,7 +132,7 @@ export function getMcpStdioPackageMaterializationRoot(options = {}) {
   return path.resolve(
     options.root ||
       process.env.CC_MCP_PACKAGE_MATERIALIZATION_ROOT ||
-      path.join(getCacheDir(), "mcp-stdio-package-materializations-v3"),
+      path.join(getCacheDir(), "mcp-stdio-package-materializations-v4"),
   );
 }
 
@@ -138,7 +142,7 @@ export function getMcpStdioPackageMaterializationIndexPath(options = {}) {
       process.env.CC_MCP_PACKAGE_MATERIALIZATION_INDEX ||
       path.join(
         getMachineSecurityAnchorDir(),
-        "mcp-stdio-package-materializations-v3.json",
+        "mcp-stdio-package-materializations-v4.json",
       ),
   );
 }
@@ -1036,20 +1040,32 @@ async function runCapsuleBuilderWorker({
 function capsuleRuntimeGuard() {
   return `;(() => {
   const Module = require("node:module");
-  const allowed = new Set(Module.builtinModules.flatMap((name) => [name, name.startsWith("node:") ? name : "node:" + name]));
+  const known = new Set(Module.builtinModules.flatMap((name) => [name, name.startsWith("node:") ? name : "node:" + name]));
+  const allowed = new Set(${CAPSULE_BUILTIN_ALLOWLIST_MARKER});
   const originalLoad = Module._load;
   const originalResolveFilename = Module._resolveFilename;
   const blocked = (kind, request) => {
     const error = new Error("MCP stdio capsule blocked " + kind + (request === undefined ? "" : ": " + String(request)));
-    error.code = kind === "native module loading" ? "CC_MCP_STDIO_NATIVE_MODULE_BLOCKED" : "CC_MCP_STDIO_EXTERNAL_MODULE_BLOCKED";
+    error.code = kind === "native module loading"
+      ? "CC_MCP_STDIO_NATIVE_MODULE_BLOCKED"
+      : kind === "builtin module loading" || kind === "internal binding loading"
+        ? "CC_MCP_STDIO_BUILTIN_MODULE_BLOCKED"
+        : "CC_MCP_STDIO_EXTERNAL_MODULE_BLOCKED";
     throw error;
+  };
+  const assertAllowedModule = (kind, request) => {
+    if (typeof request !== "string") blocked(kind, request);
+    if (known.has(request) && !allowed.has(request)) {
+      blocked("builtin module loading", request);
+    }
+    if (!known.has(request)) blocked(kind, request);
   };
   Object.defineProperty(Module, "_load", {
     configurable: false,
     enumerable: false,
     writable: false,
     value: function(request) {
-      if (typeof request !== "string" || !allowed.has(request)) blocked("external module loading", request);
+      assertAllowedModule("external module loading", request);
       return Reflect.apply(originalLoad, this, arguments);
     },
   });
@@ -1058,10 +1074,33 @@ function capsuleRuntimeGuard() {
     enumerable: false,
     writable: false,
     value: function(request) {
-      if (typeof request !== "string" || !allowed.has(request)) blocked("external module resolution", request);
+      assertAllowedModule("external module resolution", request);
       return Reflect.apply(originalResolveFilename, this, arguments);
     },
   });
+  if (typeof process.getBuiltinModule === "function") {
+    const originalGetBuiltinModule = process.getBuiltinModule;
+    Object.defineProperty(process, "getBuiltinModule", {
+      configurable: false,
+      enumerable: false,
+      writable: false,
+      value: function(request) {
+        if (typeof request !== "string" || !allowed.has(request)) {
+          blocked("builtin module loading", request);
+        }
+        return Reflect.apply(originalGetBuiltinModule, this, arguments);
+      },
+    });
+  }
+  for (const bindingName of ["binding", "_linkedBinding"]) {
+    if (typeof process[bindingName] !== "function") continue;
+    Object.defineProperty(process, bindingName, {
+      configurable: false,
+      enumerable: false,
+      writable: false,
+      value: function(request) { blocked("internal binding loading", request); },
+    });
+  }
   Object.defineProperty(process, "dlopen", {
     configurable: false,
     enumerable: false,
@@ -1069,6 +1108,41 @@ function capsuleRuntimeGuard() {
     value: function() { blocked("native module loading"); },
   });
 })();`;
+}
+
+function expandBuiltinAllowlist(externalBuiltins) {
+  const allowed = new Set();
+  for (const name of externalBuiltins) {
+    const canonical = name.startsWith("node:") ? name.slice(5) : name;
+    allowed.add(canonical);
+    allowed.add(`node:${canonical}`);
+  }
+  return Object.freeze([...allowed].sort());
+}
+
+function bindCapsuleBuiltinAllowlist(outputBytes, allowedBuiltins) {
+  const source = Buffer.from(
+    outputBytes.buffer,
+    outputBytes.byteOffset,
+    outputBytes.byteLength,
+  ).toString("utf8");
+  const markerCount = source.split(CAPSULE_BUILTIN_ALLOWLIST_MARKER).length - 1;
+  if (markerCount !== 1) {
+    throw new Error(
+      "MCP capsule output did not retain exactly one host builtin-policy marker",
+    );
+  }
+  const output = Buffer.from(
+    source.replace(
+      CAPSULE_BUILTIN_ALLOWLIST_MARKER,
+      JSON.stringify(allowedBuiltins),
+    ),
+    "utf8",
+  );
+  if (output.length <= 0 || output.length > MAX_CAPSULE_BYTES) {
+    throw new Error("MCP capsule output exceeds its post-policy byte limit");
+  }
+  return output;
 }
 
 export function esbuildRelativeEntrypointArg(
@@ -1318,11 +1392,11 @@ async function buildCapsule({
     }
   }
 
-  const output = Buffer.from(
-    result.output.buffer,
-    result.output.byteOffset,
-    result.output.byteLength,
+  const normalizedExternalBuiltins = Object.freeze(
+    [...new Set(externalBuiltins)].sort(),
   );
+  const allowedBuiltins = expandBuiltinAllowlist(normalizedExternalBuiltins);
+  const output = bindCapsuleBuiltinAllowlist(result.output, allowedBuiltins);
   let descriptor;
   try {
     descriptor = _deps.fs.openSync(
@@ -1388,7 +1462,12 @@ async function buildCapsule({
     nodeTarget: "node22",
     inputCount: inputs.length,
     inputDigest: sha256(canonicalJson(inputs)),
-    externalBuiltins: Object.freeze([...new Set(externalBuiltins)].sort()),
+    externalBuiltins: normalizedExternalBuiltins,
+    builtinPolicy: Object.freeze({
+      schema: CAPSULE_BUILTIN_POLICY_SCHEMA,
+      mode: "static-external-only",
+      allowedBuiltins,
+    }),
   });
 }
 
@@ -1446,6 +1525,12 @@ function validateManifest(manifest) {
     manifest.capsule.externalBuiltins.some(
       (name) => typeof name !== "string" || !NODE_BUILTINS.has(name),
     ) ||
+    manifest.capsule?.builtinPolicy?.schema !== CAPSULE_BUILTIN_POLICY_SCHEMA ||
+    manifest.capsule?.builtinPolicy?.mode !== "static-external-only" ||
+    !Array.isArray(manifest.capsule?.builtinPolicy?.allowedBuiltins) ||
+    manifest.capsule.builtinPolicy.allowedBuiltins.some(
+      (name) => typeof name !== "string" || !NODE_BUILTINS.has(name),
+    ) ||
     !Array.isArray(manifest.files) ||
     !Number.isSafeInteger(manifest.fileCount) ||
     !Number.isSafeInteger(manifest.totalBytes) ||
@@ -1464,6 +1549,10 @@ function validateManifest(manifest) {
     manifest.capsule.inputCount > manifest.fileCount ||
     canonicalJson(manifest.capsule.externalBuiltins) !==
       canonicalJson([...new Set(manifest.capsule.externalBuiltins)].sort()) ||
+    canonicalJson(manifest.capsule.builtinPolicy.allowedBuiltins) !==
+      canonicalJson(
+        expandBuiltinAllowlist(manifest.capsule.externalBuiltins),
+      ) ||
     sha256(canonicalJson(manifest.files)) !== manifest.closureDigest
   ) {
     throw materializationError(
@@ -1591,6 +1680,12 @@ function verifyPublishedGeneration(root, record, expectedFingerprint) {
       capsule: Object.freeze({
         ...manifest.capsule,
         externalBuiltins: Object.freeze([...manifest.capsule.externalBuiltins]),
+        builtinPolicy: Object.freeze({
+          ...manifest.capsule.builtinPolicy,
+          allowedBuiltins: Object.freeze([
+            ...manifest.capsule.builtinPolicy.allowedBuiltins,
+          ]),
+        }),
       }),
       closureDigest: manifest.closureDigest,
       fileCount: manifest.fileCount,
