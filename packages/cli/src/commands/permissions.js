@@ -6,12 +6,14 @@
  *   cc permissions test <tool> <args...>        dry-run: which rule decides?
  *   cc permissions add <allow|ask|deny> <rule>  append a rule to a settings file
  *   cc permissions allow|ask|deny <rule>        convenience aliases for add
+ *   cc permissions scoped <decision> <rule>     add a workspace-bound TTL rule
+ *   cc permissions revoke <id> --revision <n>  CAS-revoke a scoped rule
  *       [--local | --user]                      (default target: project)
  *
- * The ruleset is loaded by settings-loader (user < project < local < env) and
- * evaluated by permission-rules (deny > ask > allow). This command only reads
- * and edits the files / runs the engine — it does not yet gate the agent tool
- * loop (that wiring is a separate, riskier step).
+ * The ruleset is loaded by the shared permission authority resolver and
+ * evaluated by permission-rules (deny > ask > allow). Scoped mutations are
+ * CLI-owned and live outside the repository; IDE clients call this surface
+ * instead of editing authority files directly.
  */
 
 import chalk from "chalk";
@@ -24,7 +26,37 @@ const KIND_COLOR = {
 };
 
 const RUNTIME_ADVISORY =
-  "settings rules are enforced by the Agent Core when loaded into the active runtime; managed host policy and ApprovalGate still apply.";
+  "permission rules are enforced by Agent Core; scoped rules are refreshed before every tool call, while managed host policy and ApprovalGate still apply.";
+
+const DURATION_UNITS = Object.freeze({
+  s: 1000,
+  m: 60 * 1000,
+  h: 60 * 60 * 1000,
+  d: 24 * 60 * 60 * 1000,
+});
+
+function parseDurationMs(value) {
+  const match = String(value || "")
+    .trim()
+    .toLowerCase()
+    .match(/^(\d+)(s|m|h|d)$/);
+  if (!match) {
+    throw new Error("duration must be an integer followed by s, m, h, or d");
+  }
+  const duration = Number(match[1]) * DURATION_UNITS[match[2]];
+  if (!Number.isSafeInteger(duration) || duration < 1000) {
+    throw new Error("duration must be at least 1s and within the safe range");
+  }
+  return duration;
+}
+
+function parseNonNegativeInteger(value, label) {
+  const number = Number(value);
+  if (!Number.isSafeInteger(number) || number < 0) {
+    throw new Error(`${label} must be a non-negative integer`);
+  }
+  return number;
+}
 
 function printRuntimeAdvisory() {
   logger.log(chalk.yellow(RUNTIME_ADVISORY));
@@ -49,7 +81,12 @@ function buildArgs(tool, positional, rulesMod) {
   return {};
 }
 
-async function persistPermissionRule(decision, rule, options, operation = "add") {
+async function persistPermissionRule(
+  decision,
+  rule,
+  options,
+  operation = "add",
+) {
   try {
     const kind = String(decision || "").toLowerCase();
     if (!["allow", "ask", "deny"].includes(kind)) {
@@ -110,11 +147,13 @@ export function registerPermissionsCommand(program) {
     .option("--settings <file>", "Also merge an explicit settings file")
     .action(async (options) => {
       try {
-        const { loadSettings } = await import("../lib/settings-loader.cjs");
-        const { rules, sources, files, managed, managedFile } = loadSettings({
-          cwd: process.cwd(),
-          settingsFile: options.settings,
-        });
+        const { loadPermissionAuthority } =
+          await import("../lib/permission-authority.js");
+        const { rules, sources, files, managed, managedFile, scoped } =
+          loadPermissionAuthority({
+            cwd: process.cwd(),
+            settingsFile: options.settings,
+          });
         if (options.json) {
           console.log(
             JSON.stringify(
@@ -124,8 +163,9 @@ export function registerPermissionsCommand(program) {
                 files,
                 managed,
                 managedFile,
+                scoped,
                 enforcement: {
-                  status: "advisory/not enforced",
+                  status: "enforced",
                   note: RUNTIME_ADVISORY,
                 },
               },
@@ -144,7 +184,7 @@ export function registerPermissionsCommand(program) {
                 "(or create .claude/settings.json with a permissions block)",
             ),
           );
-          return;
+          if (!scoped?.rules?.length) return;
         }
         for (const kind of ["deny", "ask", "allow"]) {
           if (rules[kind].length === 0) continue;
@@ -190,6 +230,17 @@ export function registerPermissionsCommand(program) {
               chalk.yellow("  managed plugin supply-chain policy active"),
             );
           }
+        }
+        if (scoped?.rules?.length) {
+          logger.log(chalk.bold("\nworkspace-scoped rules"));
+          for (const record of scoped.rules) {
+            const status = record.effectiveStatus || record.status;
+            const color = status === "active" ? chalk.green : chalk.gray;
+            logger.log(
+              `  ${color(status.padEnd(28))} ${record.id} r${record.revision} ${record.decision} ${record.rule}`,
+            );
+          }
+          logger.log(chalk.dim(`  authority: ${scoped.file}`));
         }
       } catch (err) {
         logger.error(chalk.red(`permissions list failed: ${err.message}`));
@@ -256,13 +307,14 @@ export function registerPermissionsCommand(program) {
     .option("--settings <file>", "Also merge an explicit settings file")
     .action(async (tool, args, options) => {
       try {
-        const { loadSettings, ruleSource } =
-          await import("../lib/settings-loader.cjs");
+        const { ruleSource } = await import("../lib/settings-loader.cjs");
+        const { loadPermissionAuthority } =
+          await import("../lib/permission-authority.js");
         // .cjs default-export interop: module.exports surfaces as `.default`.
         const rulesMod = await import("../lib/permission-rules.cjs");
         const mod = rulesMod.default || rulesMod;
 
-        const { rules, sources } = loadSettings({
+        const { rules, sources } = loadPermissionAuthority({
           cwd: process.cwd(),
           settingsFile: options.settings,
         });
@@ -392,4 +444,99 @@ export function registerPermissionsCommand(program) {
         await persistPermissionRule(decision, rule, options, decision);
       });
   }
+
+  cmd
+    .command("scoped <decision> <rule>")
+    .description(
+      "Create a workspace-bound, expiring rule in the CLI security store",
+    )
+    .requiredOption(
+      "--expires-in <duration>",
+      "TTL such as 30s, 15m, 2h, or 1d",
+    )
+    .option("--reason <text>", "Human-readable reason for the grant")
+    .option(
+      "--expected-generation <n>",
+      "Create only if the store generation still matches",
+    )
+    .option("--json", "Output as JSON")
+    .action(async (decision, rule, options) => {
+      try {
+        const ttlMs = parseDurationMs(options.expiresIn);
+        const expectedGeneration =
+          options.expectedGeneration === undefined
+            ? null
+            : parseNonNegativeInteger(
+                options.expectedGeneration,
+                "expected generation",
+              );
+        const { ScopedPermissionStore } =
+          await import("../lib/scoped-permission-store.js");
+        const store = new ScopedPermissionStore({ cwd: process.cwd() });
+        const record = store.add({
+          decision,
+          rule,
+          expiresAt: Date.now() + ttlMs,
+          reason: options.reason || "",
+          expectedGeneration,
+        });
+        if (options.json) {
+          console.log(
+            JSON.stringify(
+              {
+                record,
+                authority: {
+                  file: store.filePath,
+                  workspace: store.workspace,
+                },
+              },
+              null,
+              2,
+            ),
+          );
+          return;
+        }
+        logger.log(
+          `${KIND_COLOR[record.decision].bold("✓ scoped " + record.decision)} ${record.rule}`,
+        );
+        logger.log(
+          chalk.gray(
+            `  ${record.id} r${record.revision}; expires ${new Date(record.expiresAt).toISOString()}`,
+          ),
+        );
+      } catch (err) {
+        logger.error(chalk.red(`permissions scoped failed: ${err.message}`));
+        process.exitCode = 1;
+      }
+    });
+
+  cmd
+    .command("revoke <id>")
+    .description("Revoke a workspace-scoped rule with revision CAS")
+    .requiredOption("--revision <n>", "Expected record revision")
+    .option("--json", "Output as JSON")
+    .action(async (id, options) => {
+      try {
+        const expectedRevision = parseNonNegativeInteger(
+          options.revision,
+          "revision",
+        );
+        const { ScopedPermissionStore } =
+          await import("../lib/scoped-permission-store.js");
+        const store = new ScopedPermissionStore({ cwd: process.cwd() });
+        const record = store.revoke({ id, expectedRevision });
+        if (options.json) {
+          console.log(JSON.stringify({ record }, null, 2));
+          return;
+        }
+        logger.log(
+          chalk.green(
+            `Revoked ${record.id} at revision ${record.revision} (${record.rule})`,
+          ),
+        );
+      } catch (err) {
+        logger.error(chalk.red(`permissions revoke failed: ${err.message}`));
+        process.exitCode = 1;
+      }
+    });
 }

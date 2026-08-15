@@ -143,11 +143,13 @@ describe("ideMentionMatches", () => {
       "selection",
       "diagnostics",
       "terminal",
+      "context",
     ]);
     expect(ideMentionMatches(null)).toEqual([
       "selection",
       "diagnostics",
       "terminal",
+      "context",
     ]);
   });
 
@@ -156,6 +158,7 @@ describe("ideMentionMatches", () => {
     expect(ideMentionMatches("DIAG")).toEqual(["diagnostics"]);
     expect(ideMentionMatches("sel")).toEqual(["selection"]);
     expect(ideMentionMatches("t")).toEqual(["terminal"]);
+    expect(ideMentionMatches("c")).toEqual(["context"]);
   });
 
   it("returns nothing when the prefix can't start either keyword", () => {

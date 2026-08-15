@@ -1608,33 +1608,27 @@ async function runAgentHeadlessStreamInWorkspace(
   // .claude/settings.json permission rules (deny > ask > allow); see
   // runAgentHeadless for the full semantics. null = no file → unchanged.
   let permissionRules = options.permissionRules || null;
+  let permissionRulesProvider = options.permissionRulesProvider || null;
   let managedSettings = null;
   let settingsFiles = [];
-  try {
-    const { loadSettings, applyManagedPermissionPolicy } =
-      await import("../lib/settings-loader.cjs");
-    const loaded = loadSettings({
-      cwd,
-      settingsFile: options.settingsFile,
-      managedSettingsFile: options.managedSettingsFile,
-    });
-    managedSettings = loaded.managed;
-    settingsFiles = Array.isArray(loaded.files) ? loaded.files : [];
-    if (!permissionRules) {
-      const total =
-        loaded.rules.allow.length +
-        loaded.rules.ask.length +
-        loaded.rules.deny.length;
-      permissionRules = total > 0 ? loaded.rules : null;
-    } else if (managedSettings) {
-      permissionRules = applyManagedPermissionPolicy(
-        permissionRules,
-        managedSettings,
-      );
-    }
-  } catch (error) {
-    if (error?.code === "CC_MANAGED_SETTINGS_INVALID") throw error;
-    // Preserve caller-provided rules; absent settings keep legacy behavior.
+  const { createPermissionRulesProvider, loadPermissionAuthority } =
+    await import("../lib/permission-authority.js");
+  const authorityOptions = {
+    cwd,
+    settingsFile: options.settingsFile,
+    managedSettingsFile: options.managedSettingsFile,
+    baseRules: options.permissionRules || null,
+  };
+  const loadedPermissionAuthority = loadPermissionAuthority(authorityOptions);
+  managedSettings = loadedPermissionAuthority.managed;
+  settingsFiles = Array.isArray(loadedPermissionAuthority.files)
+    ? loadedPermissionAuthority.files
+    : [];
+  permissionRules = loadedPermissionAuthority.hasRules
+    ? loadedPermissionAuthority.rules
+    : null;
+  if (!permissionRulesProvider) {
+    permissionRulesProvider = createPermissionRulesProvider(authorityOptions);
   }
 
   // .claude/settings.json `hooks` block (decision-capable PreToolUse/PostToolUse).
@@ -2791,6 +2785,7 @@ async function runAgentHeadlessStreamInWorkspace(
     hookDb: db,
     approvalGate,
     permissionRules,
+    permissionRulesProvider,
     settingsHooks,
     toolAdmission: options.toolAdmission || null,
     classifyAllShell,

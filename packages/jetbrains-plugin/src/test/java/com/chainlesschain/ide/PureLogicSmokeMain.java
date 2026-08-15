@@ -67,6 +67,7 @@ public final class PureLogicSmokeMain {
         whatsNew();
         ideDoctor();
         ideContextV2();
+        contextCenter();
         teamMonitor();
         backgroundAgents();
         activityLog();
@@ -286,9 +287,11 @@ public final class PureLogicSmokeMain {
                 "src/", "folder basename ranks first");
 
         // ideMentionMatches
-        eq(Mentions.ideMentionMatches("").size(), 2, "empty -> both ide mentions");
+        eq(Mentions.ideMentionMatches("").size(), 4, "empty -> all ide mentions");
         eq(Mentions.ideMentionMatches("s"), Arrays.asList("selection"), "@s -> selection");
         eq(Mentions.ideMentionMatches("d"), Arrays.asList("diagnostics"), "@d -> diagnostics");
+        eq(Mentions.ideMentionMatches("t"), Arrays.asList("terminal"), "@t -> terminal");
+        eq(Mentions.ideMentionMatches("c"), Arrays.asList("context"), "@c -> context");
 
         // applyMention: splice with trailing space
         Mentions.AtToken at = Mentions.detectAtToken("look @ap");
@@ -2184,6 +2187,28 @@ public final class PureLogicSmokeMain {
                 + "\"bySkill\":[],\"bySubagent\":[],\"tools\":{}}}";
         check(UsageReport.deriveUsageHints(UsageReport.parseUsageJson(atThreshold)).isEmpty(),
                 "share exactly at threshold stays silent");
+    }
+
+    private static void contextCenter() {
+        System.out.println("ContextCenter (persistent preferences):");
+        Map<String, Object> raw = new LinkedHashMap<String, Object>();
+        raw.put("tokenBudget", Long.valueOf(12));
+        raw.put("pinnedIds", Arrays.asList(
+                "ctx_aaaaaaaaaaaaaaaa", "ctx_bbbbbbbbbbbbbbbb", "bad"));
+        raw.put("removedIds", Arrays.asList("ctx_aaaaaaaaaaaaaaaa"));
+        Map<String, Object> normalized = ContextCenter.normalizePreferences(raw);
+        eq(normalized.get("pinnedIds"),
+                Arrays.asList("ctx_bbbbbbbbbbbbbbbb"),
+                "removed wins over pinned");
+        eq(normalized.get("tokenBudget"), Long.valueOf(12),
+                "valid token budget survives");
+        Map<String, Object> removed = ContextCenter.updatePreferences(
+                normalized, "remove", "ctx_bbbbbbbbbbbbbbbb");
+        eq(removed.get("pinnedIds"), new ArrayList<String>(),
+                "remove clears pin");
+        eq(removed.get("removedIds"),
+                Arrays.asList("ctx_aaaaaaaaaaaaaaaa", "ctx_bbbbbbbbbbbbbbbb"),
+                "remove persists deterministic ids");
     }
 
     private static void bundleParity() {

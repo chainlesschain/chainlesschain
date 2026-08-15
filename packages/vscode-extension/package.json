@@ -130,6 +130,11 @@
         "icon": "$(law)"
       },
       {
+        "command": "chainlesschain.context.show",
+        "title": "%cmd.context.show.title%",
+        "icon": "$(layers)"
+      },
+      {
         "command": "chainlesschain.workspace.scanAutoExec",
         "title": "%cmd.workspace.scanAutoExec.title%",
         "icon": "$(shield)"

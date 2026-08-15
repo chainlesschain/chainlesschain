@@ -28,7 +28,15 @@ class PolicyViewerTest {
             "\"managed\":{\"allowManagedPermissionRulesOnly\":true," +
             "\"disableBypassPermissionsMode\":\"disable\"," +
             "\"requireSignedPlugins\":true,\"allowedPlugins\":[]}," +
-            "\"managedFile\":\"C:/managed/policy.json\"}";
+            "\"managedFile\":\"C:/managed/policy.json\"," +
+            "\"scoped\":{\"generation\":7," +
+            "\"file\":\"C:/security/permission-center/workspace.json\"," +
+            "\"rules\":[{\"id\":\"spr_0123456789abcdef0123456789abcdef\"," +
+            "\"revision\":2,\"decision\":\"allow\"," +
+            "\"rule\":\"Read(./src/**)\",\"status\":\"active\"," +
+            "\"effectiveStatus\":\"active\",\"expiresAt\":" +
+            (NOW + 900_000L) + ",\"reason\":\"inspect source\"," +
+            "\"source\":\"cli-security-store\",\"scope\":\"workspace\"}]}}";
 
     private static final String DENIALS_JSON = "{\"file\":\"x\",\"count\":2," +
             "\"denials\":[" +
@@ -81,6 +89,11 @@ class PolicyViewerTest {
         assertTrue(p.managedFlags.contains("signed plugin manifests required"));
         assertTrue(p.managedFlags.contains("managed plugin supply-chain policy active"));
         assertFalse(p.managedFlags.contains("only managed hooks may run"));
+        assertEquals(7L, p.scopedGeneration);
+        assertEquals("C:/security/permission-center/workspace.json", p.scopedFile);
+        assertEquals(1, p.scopedRules.size());
+        assertEquals("active", p.scopedRules.get(0).status);
+        assertEquals(2L, p.scopedRules.get(0).revision);
     }
 
     @Test
@@ -197,6 +210,9 @@ class PolicyViewerTest {
         assertTrue(text.contains("[.claude/settings.json]"));
         assertTrue(text.contains("[managed]"));
         assertTrue(text.contains("user/project permission rules disabled"));
+        assertTrue(text.contains("Workspace-scoped authority"));
+        assertTrue(text.contains("spr_0123456789abcdef0123456789abcdef r2"));
+        assertTrue(text.contains("inspect source"));
         // denials render most-recent first with count/mode/relative time
         int newest = text.indexOf("write_file /etc/passwd");
         int older = text.indexOf("run_shell rm -rf /");
@@ -243,7 +259,7 @@ class PolicyViewerTest {
                 PolicyViewer.parsePermissions(PERMISSIONS_JSON),
                 PolicyViewer.parseDenials(DENIALS_JSON),
                 PolicyViewer.parseAutoMode(AUTOMODE_JSON));
-        assertEquals("permissions: 2 allow / 1 ask / 1 deny · 2 recent denials"
+        assertEquals("permissions: 2 allow / 1 ask / 1 deny · 1/1 scoped active · 2 recent denials"
                 + " · auto-mode: customized (+1 fine-grained)", s);
         assertEquals("permissions: n/a · denials: n/a · auto-mode: n/a",
                 PolicyViewer.summaryLine(null, null, null));
@@ -259,6 +275,16 @@ class PolicyViewerTest {
                 PolicyViewer.buildRecentDenialsArgs(50));
         assertEquals(List.of("permissions", "recent", "--json", "-n", "1"),
                 PolicyViewer.buildRecentDenialsArgs(0));
+        assertEquals(List.of("permissions", "scoped", "allow", "Read(./src/**)",
+                        "--expires-in", "15m", "--reason", "inspect source",
+                        "--expected-generation", "7", "--json"),
+                PolicyViewer.buildScopedPermissionCreateArgs("allow",
+                        "Read(./src/**)", "15m", "inspect source", 7));
+        assertEquals(List.of("permissions", "revoke",
+                        "spr_0123456789abcdef0123456789abcdef",
+                        "--revision", "2", "--json"),
+                PolicyViewer.buildScopedPermissionRevokeArgs(
+                        "spr_0123456789abcdef0123456789abcdef", 2));
         assertEquals(List.of("auto-mode", "config", "--json"),
                 PolicyViewer.buildAutoModeConfigArgs());
         assertEquals(List.of("auto-mode", "defaults"),

@@ -37,6 +37,7 @@ const BRIDGE_TOOL_FEATURES = [
   ["getCallHierarchy", "semantic_call_hierarchy"],
   ["getSymbolInfo", "semantic_symbols"],
   ["getProjectModel", "project_model"],
+  ["getContextCenter", "context_center"],
 ];
 
 const VSCODE_COMMANDS = [
@@ -58,6 +59,7 @@ const VSCODE_COMMANDS = [
   "chainlesschain.chrome.connector",
   "chainlesschain.artifacts.show",
   "chainlesschain.policy.show",
+  "chainlesschain.context.show",
   "chainlesschain.workspace.scanAutoExec",
   "chainlesschain.remote.doctor",
   "chainlesschain.lens.explain",
@@ -106,6 +108,7 @@ const JETBRAINS_ACTIONS = [
   "chainlesschain.usage.Show",
   "chainlesschain.artifacts.Browse",
   "chainlesschain.policy.Viewer",
+  "chainlesschain.context.Center",
   "chainlesschain.plugins.Manage",
   "chainlesschain.worktree.Tasks",
   "chainlesschain.chrome.Connector",

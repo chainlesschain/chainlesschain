@@ -33,6 +33,7 @@ public final class IdeCapabilities {
         TOOL_FEATURES.put("getCallHierarchy", "semantic_call_hierarchy");
         TOOL_FEATURES.put("getSymbolInfo", "semantic_symbols");
         TOOL_FEATURES.put("getProjectModel", "project_model");
+        TOOL_FEATURES.put("getContextCenter", "context_center");
     }
 
     private IdeCapabilities() {}

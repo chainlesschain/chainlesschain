@@ -10,6 +10,8 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
   buildPolicyArgs,
+  buildScopedPermissionCreateArgs,
+  buildScopedPermissionRevokeArgs,
   shapePermissionRules,
   shapeDenials,
   shapeAutoMode,
@@ -42,6 +44,24 @@ const PERM_JSON = {
     requireSignedPlugins: true,
   },
   managedFile: "C:/managed/managed-settings.json",
+  scoped: {
+    generation: 7,
+    file: "C:/security/permission-center/workspace.json",
+    rules: [
+      {
+        id: "spr_0123456789abcdef0123456789abcdef",
+        revision: 2,
+        decision: "allow",
+        rule: "Read(./src/**)",
+        status: "active",
+        effectiveStatus: "active",
+        expiresAt: NOW + 15 * 60 * 1000,
+        reason: "inspect source",
+        scope: "workspace",
+        source: "cli-security-store",
+      },
+    ],
+  },
 };
 
 const RECENT_JSON = {
@@ -132,6 +152,53 @@ describe("buildPolicyArgs", () => {
     });
     expect(buildPolicyArgs({ denialLimit: 5 }).recentDenials).toContain("5");
   });
+
+  it("builds exact CLI-owned scoped create/revoke argv", () => {
+    expect(
+      buildScopedPermissionCreateArgs({
+        decision: "allow",
+        rule: "Read(./src/**)",
+        expiresIn: "15m",
+        reason: "inspect source",
+        expectedGeneration: 7,
+      }),
+    ).toEqual([
+      "permissions",
+      "scoped",
+      "allow",
+      "Read(./src/**)",
+      "--expires-in",
+      "15m",
+      "--reason",
+      "inspect source",
+      "--expected-generation",
+      "7",
+      "--json",
+    ]);
+    expect(
+      buildScopedPermissionRevokeArgs({
+        id: "spr_0123456789abcdef0123456789abcdef",
+        revision: 2,
+      }),
+    ).toEqual([
+      "permissions",
+      "revoke",
+      "spr_0123456789abcdef0123456789abcdef",
+      "--revision",
+      "2",
+      "--json",
+    ]);
+    expect(() =>
+      buildScopedPermissionCreateArgs({
+        decision: "allow",
+        rule: "Read\nBash",
+        expiresIn: "forever",
+      }),
+    ).toThrow();
+    expect(() =>
+      buildScopedPermissionRevokeArgs({ id: "../state", revision: 1 }),
+    ).toThrow();
+  });
 });
 
 describe("shapePermissionRules", () => {
@@ -155,6 +222,12 @@ describe("shapePermissionRules", () => {
     );
     expect(shaped.managedFlags).toContain("signed plugin manifests required");
     expect(shaped.managedFile).toBe("C:/managed/managed-settings.json");
+    expect(shaped.scopedGeneration).toBe(7);
+    expect(shaped.scopedRules[0]).toMatchObject({
+      id: "spr_0123456789abcdef0123456789abcdef",
+      status: "active",
+      revision: 2,
+    });
   });
 
   it("tolerates junk payloads", () => {
@@ -278,6 +351,10 @@ describe("renderPolicyHtml (escaping + per-source failure tolerance)", () => {
   it("renders all four sections with the shaped content", () => {
     const html = renderPolicyHtml(fullModel(), { now: NOW });
     expect(html).toContain("Permission rules");
+    expect(html).toContain("Workspace-scoped authority");
+    expect(html).toContain("spr_0123456789abcdef0123456789abcdef");
+    expect(html).toContain("expires 2026-07-11T12:15:00.000Z");
+    expect(html).toContain('class="revoke-scoped"');
     expect(html).toContain("Bash(rm:*)");
     expect(html).toContain(">managed</span>");
     expect(html).toContain("Recent denials");

@@ -82,9 +82,11 @@ class MentionsTest {
 
     @Test
     void ideMentionMatchesByPrefix() {
-        assertEquals(2, Mentions.ideMentionMatches("").size());
+        assertEquals(4, Mentions.ideMentionMatches("").size());
         assertEquals(Arrays.asList("selection"), Mentions.ideMentionMatches("s"));
         assertEquals(Arrays.asList("diagnostics"), Mentions.ideMentionMatches("d"));
+        assertEquals(Arrays.asList("terminal"), Mentions.ideMentionMatches("t"));
+        assertEquals(Arrays.asList("context"), Mentions.ideMentionMatches("c"));
     }
 
     @Test

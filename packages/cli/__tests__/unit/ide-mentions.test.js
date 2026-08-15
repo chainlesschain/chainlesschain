@@ -10,6 +10,7 @@ import {
   formatSelectionMention,
   formatDiagnosticsMention,
   formatTerminalMention,
+  formatContextCenterMention,
   expandIdeMentions,
 } from "../../src/lib/ide-context.js";
 
@@ -85,6 +86,11 @@ describe("findIdeMentions", () => {
     expect(
       findIdeMentions("@diagnostics then @selection then @diagnostics"),
     ).toEqual(["diagnostics", "selection"]);
+  });
+
+  it("recognizes the fixed-budget @context pseudo-mention", () => {
+    expect(findIdeMentions("review @context now")).toEqual(["context"]);
+    expect(findIdeMentions("user@context.example")).toEqual([]);
   });
 
   it("does not match glued/email-like or unknown tokens", () => {
@@ -298,5 +304,95 @@ describe("@terminal mention", () => {
     expect(r.block).toBeNull();
     expect(r.expanded).not.toContain("terminal");
     expect(r.warnings.some((w) => w.includes("@terminal"))).toBe(true);
+  });
+});
+
+// ─── @context ──────────────────────────────────────────────────────────────
+
+const CONTEXT_CENTER = {
+  schema: "cc-context-center/v1",
+  workspaceId: "ws-c52ddf65534b7b46",
+  selectionAlgorithm: "priority-stable-v1",
+  budget: {
+    limitTokens: 4096,
+    allocatedTokens: 6,
+    remainingTokens: 4090,
+  },
+  chips: [
+    {
+      id: "ctx_aaaaaaaaaaaaaaaa",
+      kind: "selection",
+      label: "Editor selection",
+      source: "vscode.selection",
+      scope: "C:/proj/src/app.js:10-12",
+      freshness: {
+        state: "live-buffer",
+        capturedAt: "2026-08-15T00:00:00.000Z",
+      },
+      range: SELECTION.selection,
+      estimatedTokens: 6,
+      allocatedTokens: 6,
+      status: "included",
+      pinned: false,
+      refreshable: true,
+      reason: "auto:explicit editor selection",
+      content: "const answer = 42;",
+      contentTruncated: false,
+    },
+  ],
+};
+
+function fakeIdeMcpContext(data = CONTEXT_CENTER) {
+  const calls = [];
+  return {
+    mcpClient: {
+      callTool: async (server, tool, args) => {
+        calls.push({ tool, args });
+        return tool === "getContextCenter" ? txt(data) : txt(null);
+      },
+    },
+    externalToolExecutors: {
+      mcp__ide__getContextCenter: {
+        kind: "mcp",
+        serverName: "ide",
+        toolName: "getContextCenter",
+      },
+    },
+    calls,
+  };
+}
+
+describe("@context mention", () => {
+  it("renders the versioned chip metadata and content", () => {
+    const block = formatContextCenterMention(CONTEXT_CENTER);
+    expect(block).toContain("<ide-context-center");
+    expect(block).toContain('"schema": "cc-context-center/v1"');
+    expect(block).toContain('"source": "vscode.selection"');
+    expect(block).toContain('"scope": "C:/proj/src/app.js:10-12"');
+    expect(block).toContain("auto:explicit editor selection");
+  });
+
+  it("expands with the fixed 4096-token budget", async () => {
+    const mcp = fakeIdeMcpContext();
+    const result = await expandIdeMentions("use @context", mcp);
+    expect(result.expanded).toEqual(["context"]);
+    expect(result.block).toContain("<ide-context-center");
+    expect(mcp.calls).toEqual([
+      { tool: "getContextCenter", args: { budgetTokens: 4096 } },
+    ]);
+  });
+
+  it("redacts secret-shaped chip content before prompt injection", () => {
+    const data = structuredClone(CONTEXT_CENTER);
+    data.chips[0].content = "sk-ant-api03-abcdefghij0123456789";
+    const block = formatContextCenterMention(data);
+    expect(block).toContain("[REDACTED]");
+    expect(block).not.toContain("sk-ant-api03");
+  });
+
+  it("warns when Context Center is unavailable", async () => {
+    const result = await expandIdeMentions("use @context", fakeIdeMcp());
+    expect(result.block).toBeNull();
+    expect(result.warnings.join(" ")).toContain("@context");
   });
 });

@@ -10,6 +10,7 @@ function fakeIpcEndpoint() {
   const endpoint = new EventEmitter();
   endpoint.connected = true;
   endpoint.sent = [];
+  endpoint.channel = { ref: vi.fn(), unref: vi.fn() };
   endpoint.send = vi.fn((message, callback) => {
     endpoint.sent.push(message);
     callback?.();
@@ -53,6 +54,7 @@ describe("background interaction child client", () => {
       timeoutMs: 5_000,
     });
     const request = processLike.sent[0];
+    expect(processLike.channel.ref).toHaveBeenCalledTimes(1);
     expect(request.sessionHostWriteDelegation).toEqual(
       sessionHostWriteDelegation,
     );
@@ -82,6 +84,7 @@ describe("background interaction child client", () => {
 
     await expect(answerPromise).resolves.toBe("yes");
     expect(client.pendingCount()).toBe(0);
+    expect(processLike.channel.unref).toHaveBeenCalledTimes(1);
     client.close();
   });
 

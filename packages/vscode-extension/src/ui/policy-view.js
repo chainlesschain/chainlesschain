@@ -11,13 +11,17 @@
  *                                    panel.
  *
  * All five sources load in parallel; each failure becomes a warning row.
- * Read-only v1 — no editing (edits go through `cc permissions add` etc.).
+ * Scoped mutations use validated `cc permissions scoped|revoke` argv. The
+ * extension never reads or edits the authority file directly.
  * Model shaping/rendering is pure and lives in ../policy-viewer.js.
  */
 const { execFile } = require("child_process");
 const { hardenedEnv } = require("../hardened-env");
+const { escapeCmdArgs } = require("../win-shell");
 const {
   buildPolicyArgs,
+  buildScopedPermissionCreateArgs,
+  buildScopedPermissionRevokeArgs,
   shapePermissionRules,
   shapeDenials,
   shapeAutoMode,
@@ -40,14 +44,15 @@ function cliCommand(vscode) {
 
 /** Run a `cc …` command, resolve {ok, json|raw, error}. Never rejects. */
 function runCliJson(vscode, args, { timeoutMs = 15000 } = {}) {
+  const useShell = process.platform === "win32"; // cc is a .cmd shim on Windows
   return new Promise((resolve) => {
     execFile(
       cliCommand(vscode),
-      args,
+      useShell ? escapeCmdArgs(args) : args,
       {
         timeout: timeoutMs,
         windowsHide: true,
-        shell: process.platform === "win32", // cc is a .cmd shim on Windows
+        shell: useShell,
         env: hardenedEnv(process.env),
         maxBuffer: 4 * 1024 * 1024,
       },
@@ -152,12 +157,56 @@ async function loadData(vscode) {
     type: "rows",
     html: renderPolicyHtml(model, { now: Date.now() }),
     summary: summarizePolicy(model),
+    scopedGeneration: model.permissions.scopedGeneration,
   });
 }
 
 async function handleMessage(vscode, msg) {
   if (!msg || typeof msg !== "object") return;
   if (msg.command === "refresh") await loadData(vscode);
+  if (msg.command === "createScoped") {
+    try {
+      const args = buildScopedPermissionCreateArgs({
+        decision: msg.decision,
+        rule: msg.rule,
+        expiresIn: msg.expiresIn,
+        reason: msg.reason,
+        expectedGeneration: msg.expectedGeneration,
+      });
+      const result = await runCliJson(vscode, args);
+      if (!result.ok || !result.json?.record) {
+        throw new Error(result.error || "CLI returned no scoped rule");
+      }
+      post({ type: "mutation", ok: true, message: "Scoped rule created." });
+      await loadData(vscode);
+    } catch (error) {
+      post({
+        type: "mutation",
+        ok: false,
+        message: String(error?.message || error).slice(0, 400),
+      });
+    }
+  }
+  if (msg.command === "revokeScoped") {
+    try {
+      const args = buildScopedPermissionRevokeArgs({
+        id: msg.id,
+        revision: msg.revision,
+      });
+      const result = await runCliJson(vscode, args);
+      if (!result.ok || result.json?.record?.status !== "revoked") {
+        throw new Error(result.error || "CLI did not confirm revocation");
+      }
+      post({ type: "mutation", ok: true, message: "Scoped rule revoked." });
+      await loadData(vscode);
+    } catch (error) {
+      post({
+        type: "mutation",
+        ok: false,
+        message: String(error?.message || error).slice(0, 400),
+      });
+    }
+  }
 }
 
 function openPolicyViewer(vscode) {
@@ -213,6 +262,9 @@ function renderPageHtml() {
   .badge.alt { background: var(--vscode-charts-blue,#3794ff); color:#fff; }
   .muted { opacity:.55; }
   .warn { color: var(--vscode-editorWarning-foreground, orange); margin-bottom:6px; }
+  .form { display:grid; grid-template-columns:90px minmax(220px,1fr) 70px minmax(140px,1fr) auto; gap:6px; margin:10px 0; }
+  input, select { background:var(--vscode-input-background); color:var(--vscode-input-foreground); border:1px solid var(--vscode-input-border,transparent); padding:4px 6px; }
+  #mutation.error { color:var(--vscode-errorForeground,#f85149); }
   ol.chain { margin:4px 0 0 18px; padding:0; }
   ol.chain li { margin:2px 0; }
   button { background: var(--vscode-button-secondaryBackground, #3a3d41); color: var(--vscode-button-secondaryForeground, #ccc);
@@ -222,17 +274,54 @@ function renderPageHtml() {
 </style>
 </head>
 <body>
-  <h1>Permissions &amp; Policy <span class="muted">(read-only)</span></h1>
+  <h1>Permissions &amp; Policy</h1>
   <div class="bar"><div id="summary"></div><button id="refresh">Refresh</button></div>
+  <div class="form" aria-label="Create scoped permission rule">
+    <select id="decision"><option>allow</option><option>ask</option><option>deny</option></select>
+    <input id="rule" placeholder="Tool(pattern), e.g. Read(./src/**)" />
+    <input id="ttl" value="15m" aria-label="TTL" />
+    <input id="reason" placeholder="Reason (optional)" />
+    <button id="createScoped" disabled>Create scoped rule</button>
+  </div>
+  <div id="mutation" class="muted"></div>
   <div id="list"><p class="muted">Loading…</p></div>
 <script nonce="${n}">
   const vscode = acquireVsCodeApi();
+  let scopedGeneration = null;
   document.getElementById('refresh').addEventListener('click', ()=>vscode.postMessage({command:'refresh'}));
+  document.getElementById('createScoped').addEventListener('click', ()=>{
+    if (!Number.isInteger(scopedGeneration)) return;
+    vscode.postMessage({
+      command:'createScoped',
+      decision:document.getElementById('decision').value,
+      rule:document.getElementById('rule').value,
+      expiresIn:document.getElementById('ttl').value,
+      reason:document.getElementById('reason').value,
+      expectedGeneration:scopedGeneration,
+    });
+  });
+  document.getElementById('list').addEventListener('click', (ev)=>{
+    if (!(ev.target instanceof Element)) return;
+    const button = ev.target.closest('.revoke-scoped');
+    if (!button) return;
+    vscode.postMessage({
+      command:'revokeScoped',
+      id:button.dataset.ruleId,
+      revision:Number(button.dataset.revision),
+    });
+  });
   window.addEventListener('message', (ev)=>{
     const m = ev.data || {};
     if (m.type==='rows') {
       document.getElementById('list').innerHTML = m.html;
       document.getElementById('summary').textContent = m.summary || '';
+      scopedGeneration = Number.isInteger(m.scopedGeneration) ? m.scopedGeneration : null;
+      document.getElementById('createScoped').disabled = !Number.isInteger(scopedGeneration);
+    }
+    if (m.type==='mutation') {
+      const status = document.getElementById('mutation');
+      status.textContent = m.message || '';
+      status.className = m.ok ? 'muted' : 'error';
     }
   });
 </script>

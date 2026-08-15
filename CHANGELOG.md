@@ -7,11 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — native clipboard image paste (source-only)
+
+> Source-only increment at exact mainline commit
+> `affafa7f0f6fede3274e503d2387ce493e74bfd0` (2026-08-14). This change is
+> newer than the immutable `chainlesschain@0.163.8` tarball and is not part of
+> the current npm installation contract.
+
+- **Native terminal clipboard image attachment**: interactive Agent REPL users
+  can copy an image, run `/paste-image`, and attach the bounded data-image block
+  to the next vision-model turn. Windows uses a guarded built-in PowerShell
+  bridge, macOS uses `/usr/bin/osascript` with AppKit/ImageIO, and Linux uses an
+  available `wl-paste` or `xclip` reader under the current Wayland/X11 display.
+- **Bounded and verified payloads**: PNG, JPEG, GIF, and WebP signatures are
+  checked against the declared media type. Each image is limited to 20 MiB;
+  one prompt may queue at most four images and 40 MiB total, with a 10-second
+  read timeout. Private temporary-file handling, literal argv, `shell:false`,
+  and the Process Broker boundary prevent clipboard metadata from becoming a
+  command or remote URL.
+- **Validation boundary**: final merge SHA
+  `affafa7f0f6fede3274e503d2387ce493e74bfd0` passed the dedicated native
+  Linux/Windows/macOS host workflow (`31813967006`), `CLI CI` (`31810849262`),
+  and `CLI Strict Sandbox` (`31810848956`). A later npm release must still
+  repeat its own exact-SHA publication and public-readback gates before this
+  source increment becomes a stable installation promise.
+
 ### Added — cc CLI 0.163.8: governed recovery, merge review, and MCP resource templates
 
-> `chainlesschain` **0.163.7 → 0.163.8** (candidate; not yet published,
-> 2026-08-14).
-> CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.57**
+> `chainlesschain` **0.163.7 → 0.163.8** (published from exact SHA
+> `a0631cb4f97f45ff7fcef9c19d346ed2b8387da6`, 2026-08-14).
+> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.57**
 > and `@chainlesschain/agent-sdk` remains **0.1.7**.
 
 - **Crash-safe scheduler source persistence**: Agenda and Cowork authoritative
@@ -63,13 +88,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Release boundary**: the scheduler soak implementation and smoke matrices are
   present, but the required 72-hour formal campaign has not completed; P2-4
   therefore remains partially complete. Signed native distribution,
-  representative alias-removal telemetry, and the entire unmerged P2-2 native
-  clipboard-image host work remain outside this candidate.
-- **Release status**: final tag, source SHA, workflow run IDs, package digests,
-  provenance, and registry readback are intentionally omitted until the exact
-  `0.163.8` release merge commit passes complete `CLI CI` and
-  `CLI Strict Sandbox` matrices on Linux, Windows, and macOS, followed by the
-  dedicated npm release and independent public readback workflows.
+  representative alias-removal telemetry, and the later P2-2 native
+  clipboard-image host work remain outside this immutable release.
+- **Published release evidence**: immutable tag `v-npm-0-163-8` resolves to
+  exact source commit `a0631cb4f97f45ff7fcef9c19d346ed2b8387da6`. Its
+  three-OS `CLI CI` (`31804468633`) and `CLI Strict Sandbox` (`31804468464`)
+  matrices passed; the dedicated npm release (`31806101423`) and independent
+  public readback (`31807574517`) succeeded. npm reports `latest=0.163.8`;
+  tarball SHA-1 is `655557b5c5b897b23a29975708abbf8d5cd31e88` and SHA-256
+  is `862a0f450da013740a1c21d084233b002982b4b816f156e4949b6110eda80e12`.
 
 ### Fixed — scheduler disk-fault closure
 

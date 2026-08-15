@@ -4,6 +4,7 @@ import com.chainlesschain.ide.DiffApplyGuard;
 import com.chainlesschain.ide.DiffHunks;
 import com.chainlesschain.ide.EditorFacade;
 import com.chainlesschain.ide.IdeContextV2;
+import com.chainlesschain.ide.MiniJson;
 import com.chainlesschain.ide.MultiDiff;
 import com.chainlesschain.ide.ReviewNote;
 import com.intellij.diff.DiffContentFactory;
@@ -162,6 +163,187 @@ public final class IntellijEditorFacade implements EditorFacade {
             out.put("cursor", pos(doc, editor.getCaretModel().getOffset()));
             return out;
         });
+    }
+
+    @Override
+    public boolean supportsContextCenter() {
+        return true;
+    }
+
+    @Override
+    public Map<String, Object> getContextCenterPreferences() {
+        return ContextCenterPersistence.load(project);
+    }
+
+    @Override
+    public List<Map<String, Object>> getContextCandidates() {
+        String capturedAt = java.time.Instant.now().toString();
+        List<Map<String, Object>> candidates = new ArrayList<>();
+        try {
+            Map<String, Object> selection = getSelection();
+            if (selection != null && selection.get("text") instanceof String
+                    && !((String) selection.get("text")).isEmpty()) {
+                addContextCandidate(
+                        candidates, "selection", "Editor selection",
+                        "jetbrains.selection",
+                        String.valueOf(selection.get("file")) + ":"
+                                + MiniJson.stringify(selection.get("selection")),
+                        (String) selection.get("text"),
+                        selection.get("selection"), "live-buffer",
+                        "explicit editor selection", capturedAt);
+            }
+        } catch (Throwable ignored) {
+            // Per-source failure tolerance: keep gathering other chips.
+        }
+        try {
+            Map<String, Object> active = getActiveFile();
+            if (active != null && active.get("file") != null) {
+                String content = String.valueOf(active.get("file"))
+                        + "\nlanguage=" + String.valueOf(active.get("languageId"))
+                        + "\ndirty=" + Boolean.TRUE.equals(active.get("isDirty"))
+                        + "\ncursor=" + MiniJson.stringify(active.get("cursor"));
+                Map<String, Object> range = new LinkedHashMap<>();
+                range.put("cursor", active.get("cursor"));
+                addContextCandidate(
+                        candidates, "active-file", "Active file",
+                        "jetbrains.active-editor",
+                        String.valueOf(active.get("file")), content,
+                        range, "live-buffer", "active editor", capturedAt);
+            }
+        } catch (Throwable ignored) {
+            // Continue with other sources.
+        }
+        try {
+            List<Map<String, Object>> editors = getOpenEditors();
+            if (editors != null && !editors.isEmpty()) {
+                StringBuilder content = new StringBuilder();
+                for (Map<String, Object> editor : editors) {
+                    if (content.length() > 0) content.append('\n');
+                    if (Boolean.TRUE.equals(editor.get("active"))) content.append("* ");
+                    content.append(String.valueOf(editor.get("file")));
+                    if (Boolean.TRUE.equals(editor.get("isDirty"))) {
+                        content.append(" [dirty]");
+                    }
+                }
+                addContextCandidate(
+                        candidates, "open-tabs", "Open tabs",
+                        "jetbrains.file-editor-manager", "workspace-open-tabs",
+                        content.toString(), null, "live-host",
+                        "open editor inventory", capturedAt);
+            }
+        } catch (Throwable ignored) {
+            // Continue with other sources.
+        }
+        try {
+            List<Map<String, Object>> diagnostics = getDiagnostics(null);
+            if (diagnostics != null && !diagnostics.isEmpty()) {
+                StringBuilder content = new StringBuilder();
+                for (Map<String, Object> item : diagnostics) {
+                    if (content.length() > 0) content.append('\n');
+                    content.append(String.valueOf(item.get("severity"))).append(' ')
+                            .append(String.valueOf(item.get("file"))).append(':')
+                            .append(String.valueOf(item.get("line"))).append(' ')
+                            .append(String.valueOf(item.get("message")));
+                }
+                addContextCandidate(
+                        candidates, "diagnostics", "Diagnostics",
+                        "jetbrains.daemon-highlights", "workspace-diagnostics",
+                        content.toString(), null, "live-host",
+                        "live errors or warnings are present", capturedAt);
+            }
+        } catch (Throwable ignored) {
+            // Continue with other sources.
+        }
+        try {
+            Map<String, Object> terminal = getTerminalOutput(3);
+            Object terminals = terminal == null ? null : terminal.get("terminals");
+            if (terminals instanceof List && !((List<?>) terminals).isEmpty()) {
+                addContextCandidate(
+                        candidates, "terminal-selection", "Recent terminal output",
+                        "jetbrains-terminal-buffer", "recent-terminals",
+                        MiniJson.stringify(terminals), null, "live-host",
+                        "recent integrated-terminal evidence", capturedAt);
+            }
+        } catch (Throwable ignored) {
+            // Continue with other sources.
+        }
+        try {
+            Map<String, Object> tests = getTestResults(5);
+            Object runs = tests == null ? null : tests.get("runs");
+            if (Boolean.TRUE.equals(tests == null ? null : tests.get("available"))
+                    || runs instanceof List && !((List<?>) runs).isEmpty()) {
+                addContextCandidate(
+                        candidates, "test-debug", "Recent test results",
+                        tests.get("source") == null
+                                ? "jetbrains-test-runner"
+                                : String.valueOf(tests.get("source")),
+                        "recent-tests", MiniJson.stringify(tests), null,
+                        "live-host", "recent IDE test evidence", capturedAt);
+            }
+        } catch (Throwable ignored) {
+            // Continue with other sources.
+        }
+        try {
+            Map<String, Object> debug = getDebugState();
+            Object breakpoints = debug == null ? null : debug.get("breakpoints");
+            if (debug != null && (debug.get("session") != null
+                    || breakpoints instanceof List
+                            && !((List<?>) breakpoints).isEmpty())) {
+                addContextCandidate(
+                        candidates, "test-debug", "Debugger state",
+                        debug.get("source") == null
+                                ? "jetbrains-debugger"
+                                : String.valueOf(debug.get("source")),
+                        "debug-state", MiniJson.stringify(debug), null,
+                        "live-host", "active debugger or breakpoint evidence",
+                        capturedAt);
+            }
+        } catch (Throwable ignored) {
+            // Continue with other sources.
+        }
+        try {
+            Map<String, Object> preview = getPreviewState();
+            if (preview != null && (Boolean.TRUE.equals(preview.get("running"))
+                    || preview.get("url") != null
+                    || preview.get("output") instanceof String
+                            && !((String) preview.get("output")).isEmpty())) {
+                addContextCandidate(
+                        candidates, "preview-evidence", "Preview evidence",
+                        "jetbrains-app-preview", "app-preview",
+                        MiniJson.stringify(preview), null, "live-host",
+                        "active preview or recent preview output", capturedAt);
+            }
+        } catch (Throwable ignored) {
+            // Continue with other sources.
+        }
+        return candidates;
+    }
+
+    private static void addContextCandidate(
+            List<Map<String, Object>> candidates,
+            String kind,
+            String label,
+            String source,
+            String identity,
+            String content,
+            Object range,
+            String freshnessState,
+            String autoReason,
+            String capturedAt) {
+        Map<String, Object> freshness = new LinkedHashMap<>();
+        freshness.put("state", freshnessState);
+        freshness.put("capturedAt", capturedAt);
+        Map<String, Object> candidate = new LinkedHashMap<>();
+        candidate.put("kind", kind);
+        candidate.put("label", label);
+        candidate.put("source", source);
+        candidate.put("identity", identity);
+        candidate.put("content", content == null ? "" : content);
+        candidate.put("range", range);
+        candidate.put("freshness", freshness);
+        candidate.put("autoReason", autoReason);
+        candidate.put("refreshable", Boolean.TRUE);
+        candidates.add(candidate);
     }
 
     /** Terminal-plugin classes may be absent (bundled plugin disabled) — the

@@ -2,7 +2,7 @@
 
 这是ChainlessChain项目的官方文档网站，使用VitePress构建。
 
-> 当前文档快照（2026-08-14）：产品源码 `v5.0.3.135`，npm `latest` 与生产推荐 CLI 为 `0.163.7`；Open VSX 为 `0.37.51`，JetBrains Marketplace 为 `0.4.87`。`0.163.7` 已公开 scheduler outcome-unknown 裁决、五域迁移/回滚与因果观测；`main` 的磁盘故障加固、Automation runtime/incident 恢复和三平台 soak 证据框架按发布后源码能力单独标注。
+> 当前文档快照（2026-08-14）：产品源码 `v5.0.3.135`，npm `latest` 与生产推荐 CLI 为 `0.163.8`；Open VSX 为 `0.37.51`，JetBrains Marketplace 为 `0.4.87`。`0.163.8` 已公开磁盘故障闭环、Automation 恢复、受治理 merge review 与 MCP resource templates；`main@affafa7f0f` 的原生剪贴板图片粘贴按发布后源码能力单独标注。
 
 ## 📚 文档内容
 

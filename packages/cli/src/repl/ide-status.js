@@ -45,7 +45,7 @@ export function renderIdeStatus(mcp, diag = null) {
     lines.push(`  tools: ${tools.map((t) => IDE_PREFIX + t).join(", ")}`);
     lines.push(
       "  selection/diagnostics auto-share each turn · " +
-        "@selection / @diagnostics expand on demand",
+        "@selection / @diagnostics / @terminal / @context expand on demand",
     );
     return lines.join("\n");
   }

@@ -25,17 +25,17 @@ final class IdeCapabilitiesTest {
     @Test
     void derivesFeaturesFromRegisteredTools() {
         Map<String, Object> manifest = IdeCapabilities.build(Arrays.asList(
-                tool("getProjectModel"), tool("openDiff"),
+                tool("getProjectModel"), tool("getContextCenter"), tool("openDiff"),
                 tool("getTestResults"), tool("getCoverage"),
                 tool("getDebugState"), tool("unknown")
         ));
         assertEquals(1, manifest.get("schemaVersion"));
         assertEquals(Arrays.asList(
-                        "getCoverage", "getDebugState", "getProjectModel",
+                        "getContextCenter", "getCoverage", "getDebugState", "getProjectModel",
                         "getTestResults", "openDiff", "unknown"),
                 manifest.get("tools"));
         assertEquals(Arrays.asList(
-                        "coverage", "debug_state", "native_diff",
+                        "context_center", "coverage", "debug_state", "native_diff",
                         "project_model", "test_results"),
                 manifest.get("features"));
     }

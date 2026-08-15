@@ -635,10 +635,10 @@ const packs = [
           当前 CLI 搭载 PDH 0.4.57：来源别名、raw observation、字段级冲突决策、引用重写与最终实体在同一事务提交；桌面端、Web Panel 与命令行共用实时采集协议，临时 Cookie/OAuth 不落配置；部分读取、不可读数据库或不完整分页保留旧水位，可在下一轮安全续扫。
         </p>
         <p class="mt-4 text-lg text-muted">
-          稳定版 <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> 在五域统一 Scheduler authority 之上，公开 outcome-unknown 人工裁决、schema-v5 migration journal、target-first 受治理回滚、因果交付报告与 fail-closed call-ledger。裁决和回滚都要求精确 evidence/CAS，不扩张为全局 exactly-once、跨独立存储的原子事务或语义因果证明；同一精确 SHA 的三平台 CLI/Strict、npm 发布与独立回读均成功。
+          稳定版 <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> 在裁决、迁移/回滚和因果观测之上，正式加入确定性 Scheduler 磁盘故障闭环、exact-fence Automation pause/resume、scheduler-backed incident retry/cancel、<code class="font-mono text-sm">cc team merge-review preview|show|apply|rollback</code> 与只读 MCP resource templates。选择、发布和回滚都绑定精确 revision/digest；同一精确 SHA 的三平台 CLI/Strict、npm 发布与独立回读均成功。
         </p>
         <p class="mt-4 text-lg text-muted">
-          <code class="font-mono text-sm">main@12109a5d9e</code> 的发布后源码另关闭确定性磁盘故障矩阵，为 Automation Center 增加 exact-fence checkpoint pause/resume 与 scheduler-backed incident retry/cancel，并加入 Linux/Windows/macOS soak campaign gate。正式关闭长期 soak 仍需至少 72 小时、4 个 formal segment、最大段间隔 30 小时的证据；这些命令与证据框架不属于 npm <code class="font-mono text-sm">{CLI_VERSION}</code> 不可变 tarball。
+          <code class="font-mono text-sm">main@affafa7f0f</code> 的发布后源码新增交互式 <code class="font-mono text-sm">/paste-image</code>：复制图片后可把经 magic-byte 校验的 PNG/JPEG/GIF/WebP 附到下一轮视觉模型请求。单图最多 20 MiB，每轮最多 4 张/40 MiB，10 秒超时；Windows/macOS/Linux 分别使用受控系统宿主。该能力不属于 npm <code class="font-mono text-sm">{CLI_VERSION}</code> 不可变 tarball。三平台 Scheduler 正式长期 soak 仍需至少 72 小时、4 个 formal segment、最大段间隔 30 小时。
         </p>
       </div>
     </div>

@@ -21,6 +21,8 @@ let tmp;
 let cwdSpy;
 let logSpy;
 let errSpy;
+let securityAnchorBefore;
+let securityAnchor;
 const originalDenialStoreDeps = { ...denialStoreDeps };
 
 function makeProgram() {
@@ -40,6 +42,9 @@ async function run(...argv) {
 
 beforeEach(() => {
   tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cc-perms-"));
+  securityAnchorBefore = process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME;
+  securityAnchor = `${tmp}-security-anchor`;
+  process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME = securityAnchor;
   cwdSpy = vi.spyOn(process, "cwd").mockReturnValue(tmp);
   denialStoreDeps.getHomeDir = () => path.join(tmp, "cc-home");
   logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
@@ -52,8 +57,14 @@ afterEach(() => {
   Object.assign(denialStoreDeps, originalDenialStoreDeps);
   logSpy.mockRestore();
   errSpy.mockRestore();
+  if (securityAnchorBefore === undefined) {
+    delete process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME;
+  } else {
+    process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME = securityAnchorBefore;
+  }
   try {
     fs.rmSync(tmp, { recursive: true, force: true });
+    fs.rmSync(securityAnchor, { recursive: true, force: true });
   } catch {
     /* best-effort */
   }
@@ -154,6 +165,51 @@ describe("cc permissions list", () => {
     const parsed = JSON.parse(out);
     expect(parsed.rules.deny).toContain("Bash(rm:*)");
     expect(parsed.rules.allow).toContain("Read");
+  });
+});
+
+describe("cc permissions scoped authority", () => {
+  it("creates, lists, and CAS-revokes an expiring workspace rule", async () => {
+    const createdOutput = await run(
+      "scoped",
+      "allow",
+      "Bash(git status:*)",
+      "--expires-in",
+      "15m",
+      "--reason",
+      "inspect worktree",
+      "--expected-generation",
+      "0",
+      "--json",
+    );
+    const created = JSON.parse(createdOutput).record;
+    expect(created).toMatchObject({
+      decision: "allow",
+      revision: 1,
+      status: "active",
+      scope: "workspace",
+    });
+
+    const listed = JSON.parse(await run("list", "--json"));
+    expect(listed.enforcement.status).toBe("enforced");
+    expect(listed.rules.allow).toContain("Bash(git status:*)");
+    expect(listed.scoped.rules[0].id).toBe(created.id);
+
+    const revokedOutput = await run(
+      "revoke",
+      created.id,
+      "--revision",
+      "1",
+      "--json",
+    );
+    expect(JSON.parse(revokedOutput).record).toMatchObject({
+      revision: 2,
+      status: "revoked",
+    });
+
+    const afterRevoke = JSON.parse(await run("list", "--json"));
+    expect(afterRevoke.rules.allow).not.toContain("Bash(git status:*)");
+    expect(afterRevoke.scoped.rules[0].effectiveStatus).toBe("revoked");
   });
 });
 

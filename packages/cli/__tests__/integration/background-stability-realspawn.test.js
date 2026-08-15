@@ -101,7 +101,11 @@ afterEach(async () => {
   for (const id of launchedIds) {
     const state = readBackgroundAgentState(id);
     killTree(state?.pid);
+    if (state?.workerWrapperPid) killTree(state.workerWrapperPid);
     if (state?.agentPid) killTree(state.agentPid);
+    if (state?.agentRuntimePid) killTree(state.agentRuntimePid);
+    if (state?.keeperPid) killTree(state.keeperPid);
+    if (state?.keeperWrapperPid) killTree(state.keeperWrapperPid);
   }
   delete process.env.CC_BACKGROUND_AGENTS_DIR;
   if (previousHome === undefined) {
@@ -227,7 +231,16 @@ describe("6. needs-input phase — turn → idle → finalize (real spawn)", () 
     expect(conn.hello).toMatchObject({ type: "hello", interactive: true });
 
     // during turn 1 the persisted phase is "turn"
-    const inTurn = readBackgroundAgentState(state.id);
+    const inTurn = await pollUntil(() => {
+      const current = readBackgroundAgentState(state.id);
+      return current?.phase === "turn" && current?.turnCount === 1
+        ? current
+        : null;
+    });
+    expect(
+      inTurn,
+      `state=${JSON.stringify(readBackgroundAgentState(state.id))} log=${readBackgroundAgentLog(state.id)}`,
+    ).not.toBeNull();
     expect(inTurn.status).toBe("running");
     expect(inTurn.phase).toBe("turn");
     expect(inTurn.turnCount).toBe(1);
@@ -470,6 +483,10 @@ describe("P0-2 same-turn question round-trip (real worker/child IPC)", () => {
       },
       { timeoutMs: 60_000 },
     );
+    expect(
+      completed,
+      `state=${JSON.stringify(readBackgroundAgentState(state.id))} log=${readBackgroundAgentLog(state.id)}`,
+    ).not.toBeNull();
     expect(completed?.turnCount).toBe(1);
     expect(completed?.needsInputIncident).toMatchObject({
       requestId: firstRequest.requestId,

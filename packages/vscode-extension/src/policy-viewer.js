@@ -1,5 +1,5 @@
 /**
- * Permission / policy viewer core (gap #10) — pure logic for the read-only
+ * Permission / policy viewer core (gap #10) — pure logic for the
  * `chainlesschain.policy.show` panel. Joins four CLI surfaces:
  *
  *  - permission rules   `cc permissions list --json`
@@ -15,25 +15,100 @@
  *                       bootstraps the CLI DB and may legitimately fail; a
  *                       failure becomes a warning row, never a blank panel)
  *
- * Read-only v1 — no editing. Pure Node (no `vscode`) → unit-testable; the
+ * Scoped mutations are emitted only as validated CLI argv; the IDE never
+ * edits policy state directly. Pure Node (no `vscode`) → unit-testable; the
  * webview glue lives in ui/policy-view.js. Everything that reaches HTML goes
  * through escapeHtml — rules/paths/denial summaries are user-controlled.
  */
 
-const { escapeHtml, formatRelativeTime, toEpoch } = require("./sessions-workbench.js");
+const {
+  escapeHtml,
+  formatRelativeTime,
+  toEpoch,
+} = require("./sessions-workbench.js");
 
 const RULE_KINDS = ["deny", "ask", "allow"];
 const RISK_LEVELS = ["low", "medium", "high"];
+const SCOPED_RULE_ID = /^spr_[0-9a-f]{32}$/;
+const SCOPED_DURATION = /^\d+(s|m|h|d)$/;
 
 /** The `cc …` argv arrays the panel spawns (all read-only). */
 function buildPolicyArgs({ denialLimit = 20 } = {}) {
   return {
     permissionsList: ["permissions", "list", "--json"],
-    recentDenials: ["permissions", "recent", "--json", "-n", String(denialLimit)],
+    recentDenials: [
+      "permissions",
+      "recent",
+      "--json",
+      "-n",
+      String(denialLimit),
+    ],
     autoModeConfig: ["auto-mode", "config", "--json"],
     autoModeDefaults: ["auto-mode", "defaults"],
     mcpServers: ["mcp", "servers", "--json"],
   };
+}
+
+function buildScopedPermissionCreateArgs({
+  decision,
+  rule,
+  expiresIn,
+  reason = "",
+  expectedGeneration = null,
+} = {}) {
+  const kind = String(decision || "")
+    .trim()
+    .toLowerCase();
+  const normalizedRule = String(rule || "").trim();
+  const duration = String(expiresIn || "")
+    .trim()
+    .toLowerCase();
+  if (!RULE_KINDS.includes(kind)) throw new Error("invalid decision");
+  if (!normalizedRule || /[\r\n\0]/.test(normalizedRule)) {
+    throw new Error("a single-line permission rule is required");
+  }
+  if (!SCOPED_DURATION.test(duration)) throw new Error("invalid TTL");
+  const args = [
+    "permissions",
+    "scoped",
+    kind,
+    normalizedRule,
+    "--expires-in",
+    duration,
+  ];
+  const normalizedReason = String(reason || "").trim();
+  if (normalizedReason) {
+    if (normalizedReason.length > 500 || /[\r\n\0]/.test(normalizedReason)) {
+      throw new Error("reason must be one line and at most 500 characters");
+    }
+    args.push("--reason", normalizedReason);
+  }
+  if (expectedGeneration !== null && expectedGeneration !== undefined) {
+    const generation = Number(expectedGeneration);
+    if (!Number.isSafeInteger(generation) || generation < 0) {
+      throw new Error("invalid expected generation");
+    }
+    args.push("--expected-generation", String(generation));
+  }
+  args.push("--json");
+  return args;
+}
+
+function buildScopedPermissionRevokeArgs({ id, revision } = {}) {
+  const normalizedId = String(id || "").trim();
+  const normalizedRevision = Number(revision);
+  if (!SCOPED_RULE_ID.test(normalizedId)) throw new Error("invalid rule id");
+  if (!Number.isSafeInteger(normalizedRevision) || normalizedRevision < 1) {
+    throw new Error("invalid rule revision");
+  }
+  return [
+    "permissions",
+    "revoke",
+    normalizedId,
+    "--revision",
+    String(normalizedRevision),
+    "--json",
+  ];
 }
 
 /** `cc permissions list --json` → { groups, files, managedFile, managedFlags }. */
@@ -81,11 +156,56 @@ function shapePermissionRules(payload) {
       managedFlags.push("signed plugin manifests required");
     }
   }
+  const scopedPayload =
+    payload?.scoped && typeof payload.scoped === "object"
+      ? payload.scoped
+      : null;
+  const scopedRules = (
+    Array.isArray(scopedPayload?.rules) ? scopedPayload.rules : []
+  )
+    .filter(
+      (record) =>
+        record &&
+        SCOPED_RULE_ID.test(record.id || "") &&
+        RULE_KINDS.includes(record.decision) &&
+        typeof record.rule === "string" &&
+        record.rule,
+    )
+    .map((record) => ({
+      id: record.id,
+      revision:
+        Number.isSafeInteger(record.revision) && record.revision > 0
+          ? record.revision
+          : 0,
+      decision: record.decision,
+      rule: record.rule,
+      status:
+        typeof record.effectiveStatus === "string"
+          ? record.effectiveStatus
+          : typeof record.status === "string"
+            ? record.status
+            : "unknown",
+      expiresAt: Number.isFinite(record.expiresAt) ? record.expiresAt : 0,
+      reason: typeof record.reason === "string" ? record.reason : "",
+      source:
+        typeof record.source === "string"
+          ? record.source
+          : "cli-security-store",
+      scope: typeof record.scope === "string" ? record.scope : "workspace",
+    }));
   return {
     groups,
     files: Array.isArray(payload?.files) ? payload.files.filter(Boolean) : [],
     managedFile,
     managedFlags,
+    scopedRules,
+    scopedGeneration:
+      Number.isSafeInteger(scopedPayload?.generation) &&
+      scopedPayload.generation >= 0
+        ? scopedPayload.generation
+        : null,
+    scopedFile:
+      typeof scopedPayload?.file === "string" ? scopedPayload.file : null,
   };
 }
 
@@ -118,7 +238,10 @@ function describeRuleMatch(match) {
   if (!match || typeof match !== "object") return "";
   return ["tool", "commandPattern", "riskLevel"]
     .filter((k) => typeof match[k] === "string" && match[k])
-    .map((k) => `${k === "commandPattern" ? "command" : k === "riskLevel" ? "risk" : k}=${match[k]}`)
+    .map(
+      (k) =>
+        `${k === "commandPattern" ? "command" : k === "riskLevel" ? "risk" : k}=${match[k]}`,
+    )
     .join(" ");
 }
 
@@ -141,7 +264,9 @@ function shapeAutoMode(configPayload, defaultsPayload) {
       source: typeof d?.source === "string" ? d.source : "default",
     };
   });
-  const fineRules = (Array.isArray(configPayload?.rules) ? configPayload.rules : [])
+  const fineRules = (
+    Array.isArray(configPayload?.rules) ? configPayload.rules : []
+  )
     .filter((r) => r && typeof r === "object")
     .map((r) => ({
       match: describeRuleMatch(r.match),
@@ -200,19 +325,25 @@ function buildPolicyModel({
   errors = [],
 } = {}) {
   return {
-    permissions:
-      permissions || { groups: { deny: [], ask: [], allow: [] }, files: [], managedFile: null, managedFlags: [] },
+    permissions: permissions || {
+      groups: { deny: [], ask: [], allow: [] },
+      files: [],
+      managedFile: null,
+      managedFlags: [],
+      scopedRules: [],
+      scopedGeneration: null,
+      scopedFile: null,
+    },
     denials: Array.isArray(denials) ? denials : [],
-    autoMode:
-      autoMode || {
-        decisions: [],
-        fineRules: [],
-        precedence: [],
-        customized: false,
-        classifyAllShell: false,
-        files: [],
-        managedFile: null,
-      },
+    autoMode: autoMode || {
+      decisions: [],
+      fineRules: [],
+      precedence: [],
+      customized: false,
+      classifyAllShell: false,
+      files: [],
+      managedFile: null,
+    },
     mcpServers: Array.isArray(mcpServers) ? mcpServers : null, // null = source unavailable
     errors: Array.isArray(errors) ? errors : [],
   };
@@ -230,6 +361,14 @@ function summarizePolicy(model) {
   if (Array.isArray(model?.mcpServers)) {
     parts.push(`${model.mcpServers.length} MCP servers`);
   }
+  const scoped = Array.isArray(model?.permissions?.scopedRules)
+    ? model.permissions.scopedRules
+    : [];
+  if (scoped.length) {
+    parts.push(
+      `${scoped.filter((record) => record.status === "active").length}/${scoped.length} scoped active`,
+    );
+  }
   return parts.join(" · ");
 }
 
@@ -239,6 +378,29 @@ function ruleRow(kind, r) {
     `<tr><td><span class="st ${escapeHtml(kind)}">${escapeHtml(kind)}</span></td>` +
     `<td><code>${escapeHtml(r.rule)}</code>${badge}</td>` +
     `<td class="muted">${escapeHtml(r.source || "?")}</td></tr>`
+  );
+}
+
+function scopedRuleRow(record) {
+  let expiry = "?";
+  try {
+    if (record.expiresAt) expiry = new Date(record.expiresAt).toISOString();
+  } catch {
+    expiry = "?";
+  }
+  const revoke =
+    record.status === "active" && record.revision > 0
+      ? `<button class="revoke-scoped" data-rule-id="${escapeHtml(record.id)}" data-revision="${record.revision}">Revoke</button>`
+      : "";
+  return (
+    `<tr><td><span class="st ${escapeHtml(record.decision)}">${escapeHtml(record.decision)}</span></td>` +
+    `<td><code>${escapeHtml(record.rule)}</code>` +
+    (record.reason
+      ? `<div class="muted">${escapeHtml(record.reason)}</div>`
+      : "") +
+    `</td><td><code>${escapeHtml(record.status)}</code><div class="muted">expires ${escapeHtml(expiry)}</div></td>` +
+    `<td><code>${escapeHtml(record.id)}</code> r${record.revision}<div class="muted">${escapeHtml(record.scope)} · ${escapeHtml(record.source)}</div></td>` +
+    `<td>${revoke}</td></tr>`
   );
 }
 
@@ -284,6 +446,21 @@ function renderPolicyHtml(model, { now = Date.now() } = {}) {
   }
   for (const flag of m.permissions.managedFlags) {
     parts.push(`<div class="warn">${escapeHtml(flag)}</div>`);
+  }
+  parts.push("<h2>Workspace-scoped authority</h2>");
+  if (!m.permissions.scopedRules?.length) {
+    parts.push('<p class="muted">No scoped rules.</p>');
+  } else {
+    parts.push(
+      "<table><thead><tr><th>decision</th><th>rule</th><th>status / expiry</th><th>authority</th><th></th></tr></thead><tbody>" +
+        m.permissions.scopedRules.map(scopedRuleRow).join("") +
+        "</tbody></table>",
+    );
+  }
+  if (m.permissions.scopedFile) {
+    parts.push(
+      `<div class="muted">CLI authority: ${escapeHtml(m.permissions.scopedFile)} · generation ${escapeHtml(m.permissions.scopedGeneration)}</div>`,
+    );
   }
 
   // (b) recent denials
@@ -395,6 +572,8 @@ module.exports = {
   RULE_KINDS,
   RISK_LEVELS,
   buildPolicyArgs,
+  buildScopedPermissionCreateArgs,
+  buildScopedPermissionRevokeArgs,
   shapePermissionRules,
   shapeDenials,
   shapeAutoMode,

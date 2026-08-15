@@ -17,6 +17,7 @@
  *   getTestResults?({ limit? })         -> cc-ide-quality/v1 test-results snapshot
  *   getCoverage?({ path? })             -> cc-ide-quality/v1 coverage snapshot
  *   getDebugState?()                    -> cc-ide-quality/v1 debug-state snapshot
+ *   getContextCandidates?()             -> Context Center candidate records
  *   executeCode?({ code, timeoutMs? })  -> { success, outputs:[{mime,text}] }
  *     OPTIONAL — when absent (e.g. the JetBrains plugin, or a VS Code host
  *     without notebook support) the executeCode tool is simply not exposed,
@@ -32,6 +33,11 @@
 const { buildSemanticTools } = require("./semantic-tools");
 const { validateIdeToolPath } = require("./ide-path-guard");
 const { buildDiffReviewAudit } = require("./diff-review-audit");
+const {
+  DEFAULT_TOKEN_BUDGET,
+  buildContextCenter,
+  normalizeContextCenterPreferences,
+} = require("./context-center");
 
 /**
  * Resolve the workspace folders that bound where the path-taking IDE tools
@@ -86,6 +92,12 @@ async function resolveWorkspaceFolders(editor, options) {
 }
 
 function buildIdeTools(editor, options = {}) {
+  function contextIds(value) {
+    return (Array.isArray(value) ? value : [])
+      .filter((item) => typeof item === "string")
+      .slice(0, 64);
+  }
+
   async function contextMetadata(file, tool) {
     if (typeof editor.getContextMetadata !== "function") return null;
     try {
@@ -479,6 +491,79 @@ function buildIdeTools(editor, options = {}) {
                 safeFiles,
                 "openMultiDiff",
               );
+            },
+          },
+        ]
+      : []),
+    // Conditional: one deterministic, budgeted projection over every context
+    // source the host can currently read. Pin/remove/refresh are request-local
+    // intent; the host is re-read on every call.
+    ...(typeof editor.getContextCandidates === "function"
+      ? [
+          {
+            name: "getContextCenter",
+            description:
+              "Return cc-context-center/v1 chips for the live IDE context. " +
+              "Each chip explains source, freshness, range, token allocation " +
+              "and why it was included, trimmed, removed, or excluded. " +
+              "Use pinnedIds/removedIds/refreshedIds to reproduce an explicit " +
+              "user selection under one fixed token budget.",
+            inputSchema: {
+              type: "object",
+              properties: {
+                budgetTokens: {
+                  type: "number",
+                  description: `Fixed content budget (default ${DEFAULT_TOKEN_BUDGET}, maximum 32768).`,
+                },
+                pinnedIds: {
+                  type: "array",
+                  items: { type: "string" },
+                },
+                removedIds: {
+                  type: "array",
+                  items: { type: "string" },
+                },
+                refreshedIds: {
+                  type: "array",
+                  items: { type: "string" },
+                },
+              },
+            },
+            handler: async (args = {}) => {
+              const preferences = normalizeContextCenterPreferences(
+                typeof editor.getContextCenterPreferences === "function"
+                  ? await editor.getContextCenterPreferences()
+                  : {},
+              );
+              const candidates = await editor.getContextCandidates();
+              if (!Array.isArray(candidates)) {
+                throw new Error(
+                  "getContextCenter: host returned an invalid candidate set",
+                );
+              }
+              const metadata = await contextMetadata(null, "getContextCenter");
+              const has = (key) =>
+                Object.prototype.hasOwnProperty.call(args, key);
+              const rawBudget = Number(
+                has("budgetTokens")
+                  ? args.budgetTokens
+                  : preferences.tokenBudget,
+              );
+              const budgetTokens = Number.isFinite(rawBudget)
+                ? Math.floor(rawBudget)
+                : DEFAULT_TOKEN_BUDGET;
+              return buildContextCenter({
+                workspaceId: metadata?.workspaceId || null,
+                candidates,
+                tokenBudget: budgetTokens,
+                pinnedIds: has("pinnedIds")
+                  ? contextIds(args.pinnedIds)
+                  : preferences.pinnedIds,
+                removedIds: has("removedIds")
+                  ? contextIds(args.removedIds)
+                  : preferences.removedIds,
+                refreshedIds: contextIds(args.refreshedIds),
+              });
             },
           },
         ]

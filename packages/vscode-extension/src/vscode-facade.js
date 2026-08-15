@@ -224,7 +224,7 @@ function createVscodeEditorFacade(vscode, opts = {}) {
     }
   };
 
-  return {
+  const facade = {
     async getContextMetadata({ file, tool } = {}) {
       const documents = vscode.workspace.textDocuments || [];
       const activeDocument = vscode.window.activeTextEditor?.document || null;
@@ -1313,6 +1313,180 @@ function createVscodeEditorFacade(vscode, opts = {}) {
       };
     },
 
+    /**
+     * Gather the host-owned sources consumed by cc-context-center/v1. Each
+     * source is independently best-effort; the deterministic projection owns
+     * the global token budget and content trimming.
+     */
+    async getContextCandidates() {
+      const capturedAt = new Date(now()).toISOString();
+      const candidates = [];
+      const add = (
+        kind,
+        label,
+        source,
+        identity,
+        content,
+        { range = null, state = "live-host", autoReason = "" } = {},
+      ) => {
+        candidates.push({
+          kind,
+          label,
+          source,
+          identity,
+          content: String(content || ""),
+          range,
+          freshness: { state, capturedAt },
+          autoReason,
+          refreshable: true,
+        });
+      };
+      const safe = async (reader) => {
+        try {
+          return await reader();
+        } catch {
+          return null;
+        }
+      };
+
+      const selection = await safe(() => facade.getSelection());
+      if (selection?.text) {
+        add(
+          "selection",
+          "Editor selection",
+          "vscode.selection",
+          `${selection.file || ""}:${JSON.stringify(selection.selection || null)}`,
+          selection.text,
+          {
+            range: selection.selection || null,
+            state: "live-buffer",
+            autoReason: "explicit editor selection",
+          },
+        );
+      }
+
+      const active = await safe(() => facade.getActiveFile());
+      if (active?.file) {
+        add(
+          "active-file",
+          "Active file",
+          "vscode.active-editor",
+          active.file,
+          [
+            active.file,
+            active.languageId ? `language=${active.languageId}` : "",
+            `dirty=${Boolean(active.isDirty)}`,
+            active.cursor ? `cursor=${JSON.stringify(active.cursor)}` : "",
+          ]
+            .filter(Boolean)
+            .join("\n"),
+          {
+            range: active.cursor ? { cursor: active.cursor } : null,
+            state: "live-buffer",
+            autoReason: "active editor",
+          },
+        );
+      }
+
+      const editors = await safe(() => facade.getOpenEditors());
+      if (Array.isArray(editors) && editors.length) {
+        add(
+          "open-tabs",
+          "Open tabs",
+          "vscode.tab-groups",
+          "workspace-open-tabs",
+          editors
+            .map(
+              (editor) =>
+                `${editor.active ? "* " : ""}${editor.file || editor.documentUri || "unknown"}${editor.isDirty ? " [dirty]" : ""}`,
+            )
+            .join("\n"),
+          { autoReason: "open editor inventory" },
+        );
+      }
+
+      const diagnostics = await safe(() => facade.getDiagnostics());
+      if (Array.isArray(diagnostics) && diagnostics.length) {
+        add(
+          "diagnostics",
+          "Diagnostics",
+          "vscode.languages.getDiagnostics",
+          "workspace-diagnostics",
+          diagnostics
+            .map(
+              (item) =>
+                `${item.severity || "diagnostic"} ${item.file || ""}:${Number(item.line) + 1 || "?"}:${Number(item.character) + 1 || "?"} ${item.message || ""}`,
+            )
+            .join("\n"),
+          { autoReason: "live errors or warnings are present" },
+        );
+      }
+
+      const terminal = await safe(() => facade.getTerminalOutput({ limit: 3 }));
+      if (Array.isArray(terminal?.terminals) && terminal.terminals.length) {
+        add(
+          "terminal-selection",
+          "Recent terminal output",
+          "vscode.shell-integration",
+          "recent-terminals",
+          terminal.terminals
+            .map(
+              (item) =>
+                `${item.terminal || "terminal"}${item.command ? ` $ ${item.command}` : ""}\n${item.output || ""}`,
+            )
+            .join("\n\n"),
+          { autoReason: "recent integrated-terminal evidence" },
+        );
+      }
+
+      if (typeof facade.getTestResults === "function") {
+        const tests = await safe(() => facade.getTestResults({ limit: 5 }));
+        if (tests?.available || tests?.runs?.length) {
+          add(
+            "test-debug",
+            "Recent test results",
+            tests.source || "vscode-test-api",
+            "recent-tests",
+            JSON.stringify(tests),
+            { autoReason: "recent IDE test evidence" },
+          );
+        }
+      }
+
+      if (typeof facade.getDebugState === "function") {
+        const debug = await safe(() => facade.getDebugState());
+        if (debug?.session || debug?.breakpoints?.length) {
+          add(
+            "test-debug",
+            "Debugger state",
+            debug.source || "vscode-debug-api",
+            "debug-state",
+            JSON.stringify(debug),
+            { autoReason: "active debugger or breakpoint evidence" },
+          );
+        }
+      }
+
+      const preview = await safe(() => facade.getPreviewState());
+      if (preview?.running || preview?.url || preview?.output) {
+        add(
+          "preview-evidence",
+          "Preview evidence",
+          "vscode-app-preview",
+          "app-preview",
+          JSON.stringify(preview),
+          { autoReason: "active preview or recent preview output" },
+        );
+      }
+      return candidates;
+    },
+
+    async getContextCenterPreferences() {
+      if (typeof deps.getContextCenterPreferences !== "function") return {};
+      const value = await deps.getContextCenterPreferences();
+      return value && typeof value === "object" ? value : {};
+    },
+
     // Semantic navigation capability (gap #7): raw language-server queries
     // via VS Code's built-in `vscode.execute…Provider` commands. This is a
     // thin adapter — all validation / shaping / caps live in the pure
@@ -1418,6 +1592,7 @@ function createVscodeEditorFacade(vscode, opts = {}) {
       _terminalDisposables.length = 0;
     },
   };
+  return facade;
 }
 
 /**

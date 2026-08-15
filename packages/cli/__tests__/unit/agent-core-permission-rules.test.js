@@ -196,3 +196,75 @@ describe("host policy vs settings precedence (most-restrictive-wins)", () => {
     expect(confirmCalled).toBe(false);
   });
 });
+
+describe("live scoped permission authority", () => {
+  it("re-resolves before every tool call and exposes scoped provenance", async () => {
+    let revoked = false;
+    const permissionRulesProvider = async () =>
+      revoked
+        ? {
+            rules: { allow: [], ask: [], deny: [] },
+            sources: {},
+            scoped: { rules: [] },
+          }
+        : {
+            rules: { allow: [], ask: [], deny: ["Read"] },
+            sources: { "deny:Read": "scoped:spr_test" },
+            scoped: {
+              rules: [
+                {
+                  id: "spr_test",
+                  revision: 3,
+                  decision: "deny",
+                  rule: "Read",
+                  status: "active",
+                  expiresAt: 123456,
+                },
+              ],
+            },
+          };
+
+    const denied = await executeTool(
+      "read_file",
+      { path: file },
+      { cwd: tmp, permissionRulesProvider },
+    );
+    expect(denied.policy).toMatchObject({
+      decision: "deny",
+      source: "scoped:spr_test",
+      scopedRuleId: "spr_test",
+      revision: 3,
+      expiresAt: 123456,
+    });
+
+    revoked = true;
+    const afterRevoke = await executeTool(
+      "read_file",
+      { path: file },
+      { cwd: tmp, permissionRulesProvider },
+    );
+    expect(afterRevoke.error).toBeUndefined();
+  });
+
+  it("fails closed when live authority cannot be read", async () => {
+    const result = await executeTool(
+      "read_file",
+      { path: file },
+      {
+        cwd: tmp,
+        permissionRulesProvider: async () => {
+          const error = new Error("corrupt security state");
+          error.code = "CC_SCOPED_PERMISSION_CORRUPT";
+          throw error;
+        },
+      },
+    );
+
+    expect(result.error).toContain("current permission authority");
+    expect(result.policy).toMatchObject({
+      decision: "blocked",
+      via: "permission-authority-load",
+      code: "CC_SCOPED_PERMISSION_CORRUPT",
+    });
+  });
+});

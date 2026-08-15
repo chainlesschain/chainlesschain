@@ -50,6 +50,7 @@ import {
   stripBackgroundLaunchSecrets,
   verifyBackgroundLaunchProfileSources,
 } from "./background-launch-profile.js";
+import { backgroundAgentKeeperPipePath } from "./background-agent-keeper-protocol.js";
 
 export const DEFAULT_HEARTBEAT_INTERVAL_MS = 5000;
 export const DEFAULT_HEARTBEAT_STALE_MS = 120000;
@@ -421,6 +422,131 @@ export function logPath(id) {
 
 const TERMINAL_STATUSES = new Set(["completed", "failed", "stopped", "lost"]);
 
+const KEEPER_TERMINAL_STATUSES = new Set([
+  "closed",
+  "worker-disconnected",
+  "startup-timeout",
+  "spawn-error",
+  "exited",
+]);
+
+const TURN_PROCESS_PROJECTION_FIELDS = [
+  "agentPid",
+  "agentStartedAt",
+  "agentRuntimePid",
+  "agentRuntimeStartedAt",
+  "turnBootstrapStatus",
+  "turnBootstrapCommittedAt",
+  "turnKeeperStatus",
+  "turnKeeperPid",
+  "turnKeeperArmedAt",
+  "turnKeeperCleanupReason",
+  "turnKeeperCleanupRequestedAt",
+  "turnKeeperCleanupConfirmedAt",
+  "turnKeeperCleanupError",
+];
+
+function keeperLifecycleStage(state) {
+  if (KEEPER_TERMINAL_STATUSES.has(state?.keeperStatus)) return 4;
+  if (state?.keeperStatus === "ready") return 3;
+  if (state?.keeperStatus === "listening") return 2;
+  if (state?.keeperStatus === "starting") return 1;
+  return 0;
+}
+
+function keeperLifecycleClock(state) {
+  return Math.max(
+    0,
+    Number(state?.keeperStartedAt || 0),
+    Number(state?.keeperHeartbeatAt || 0),
+    Number(state?.keeperReadyAt || 0),
+    Number(state?.keeperEndedAt || 0),
+  );
+}
+
+function turnProcessProjectionStage(state) {
+  if (
+    ["terminated", "not-spawned"].includes(state?.turnLaunchResolution?.outcome)
+  ) {
+    return 100;
+  }
+  if (
+    state?.turnLaunchResolution?.outcome === "spawned" &&
+    state?.agentPid == null &&
+    state?.agentRuntimePid == null &&
+    state?.turnBootstrapStatus == null &&
+    state?.turnKeeperStatus == null &&
+    ["idle", "needs_input"].includes(state?.phase)
+  ) {
+    return 90;
+  }
+  if (state?.turnKeeperStatus === "cleanup-unconfirmed") return 85;
+  if (state?.turnKeeperStatus === "retired") return 80;
+  if (state?.turnKeeperStatus === "cleanup-requested") return 70;
+  if (state?.turnBootstrapStatus === "released") return 60;
+  if (state?.turnKeeperStatus === "armed") return 50;
+  if (
+    state?.turnKeeperStatus === "arming" ||
+    state?.turnBootstrapStatus === "awaiting-keeper"
+  ) {
+    return 40;
+  }
+  if (Number(state?.agentRuntimePid) > 0) return 30;
+  if (
+    state?.turnBootstrapStatus === "awaiting-ready" ||
+    state?.turnKeeperStatus === "waiting-for-runtime"
+  ) {
+    return 20;
+  }
+  if (Number(state?.agentPid) > 0) return 10;
+  return 0;
+}
+
+function turnProcessProjectionClock(state) {
+  return Math.max(
+    0,
+    Number(state?.agentStartedAt || 0),
+    Number(state?.agentRuntimeStartedAt || 0),
+    Number(state?.turnBootstrapCommittedAt || 0),
+    Number(state?.turnKeeperArmedAt || 0),
+    Number(state?.turnKeeperCleanupRequestedAt || 0),
+    Number(state?.turnKeeperCleanupConfirmedAt || 0),
+  );
+}
+
+function turnProjectionIdentity(state) {
+  const resolvedRecord = state?.turnLaunchResolution;
+  if (
+    turnProcessProjectionStage(state) > 0 &&
+    Number.isInteger(Number(resolvedRecord?.attempt))
+  ) {
+    return {
+      attempt: Number(resolvedRecord.attempt),
+      token: resolvedRecord.token || null,
+    };
+  }
+  const records = [state?.turnLaunchIntent, state?.turnLaunchResolution].filter(
+    (record) => Number.isInteger(Number(record?.attempt)),
+  );
+  const record = records.sort(
+    (left, right) => Number(right.attempt) - Number(left.attempt),
+  )[0];
+  const attempt = Number(record?.attempt ?? state?.turnLaunchAttempt);
+  if (!Number.isInteger(attempt) || attempt <= 0) return null;
+  return { attempt, token: record?.token || null };
+}
+
+function sameTurnProjectionIdentity(leftIdentity, rightIdentity) {
+  return Boolean(
+    leftIdentity &&
+    rightIdentity &&
+    leftIdentity.attempt === rightIdentity.attempt &&
+    (!leftIdentity.token ||
+      !rightIdentity.token ||
+      leftIdentity.token === rightIdentity.token),
+  );
+}
+
 function readBackgroundAgentStateResult(id) {
   const target = statePath(id);
   if (!existsSync(target)) return { state: null, missing: true, error: null };
@@ -533,6 +659,9 @@ function mergeBackgroundAgentState(current, requested) {
     if (current.workerGeneration) {
       next = { ...next, workerGeneration: current.workerGeneration };
     }
+    if (current.keeperGeneration) {
+      next = { ...next, keeperGeneration: current.keeperGeneration };
+    }
     const claimedWorkerPid = Number(current.workerClaimedPid);
     if (
       current.workerClaimedPid != null &&
@@ -543,6 +672,43 @@ function mergeBackgroundAgentState(current, requested) {
         ...next,
         workerClaimedPid: claimedWorkerPid,
         workerClaimedAt: current.workerClaimedAt,
+      };
+    }
+    // Wrapper and keeper identities are write-once ownership evidence for this
+    // generation. In particular, a title/pin writer holding the pre-claim
+    // launch snapshot must not drop the independent process that owns cleanup.
+    if (Number(current.workerWrapperPid) > 0) {
+      next = { ...next, workerWrapperPid: Number(current.workerWrapperPid) };
+    }
+    if (Number(current.keeperPid) > 0) {
+      next = {
+        ...next,
+        keeperPid: Number(current.keeperPid),
+        keeperStartedAt: current.keeperStartedAt,
+      };
+    }
+    if (Number(current.keeperWrapperPid) > 0) {
+      next = {
+        ...next,
+        keeperWrapperPid: Number(current.keeperWrapperPid),
+      };
+    }
+    const currentKeeperStage = keeperLifecycleStage(current);
+    const requestedKeeperStage = keeperLifecycleStage(next);
+    if (
+      currentKeeperStage > requestedKeeperStage ||
+      (currentKeeperStage === requestedKeeperStage &&
+        keeperLifecycleClock(current) > keeperLifecycleClock(next))
+    ) {
+      next = {
+        ...next,
+        keeperStatus: current.keeperStatus,
+        keeperHeartbeatAt: current.keeperHeartbeatAt,
+        keeperReadyAt: current.keeperReadyAt,
+        keeperEndedAt: current.keeperEndedAt,
+        keeperExitCode: current.keeperExitCode,
+        keeperSignal: current.keeperSignal,
+        keeperError: current.keeperError,
       };
     }
     // A turn launch uses a durable prepare/resolve record. The prepare must
@@ -557,9 +723,25 @@ function mergeBackgroundAgentState(current, requested) {
         : 0,
     );
     const requestedTurnAttempt = Number(next.turnLaunchAttempt);
+    // Capture each writer's process projection identity before the durable
+    // launch record below is reconciled. Otherwise replacing a stale
+    // resolution with the current token can accidentally relabel old PIDs as
+    // belonging to the newest turn.
+    const currentProcessProjectionIdentity = turnProjectionIdentity(current);
+    const requestedProcessProjectionIdentity = turnProjectionIdentity(next);
+    const currentProcessProjectionStage = turnProcessProjectionStage(current);
+    const requestedProcessProjectionStage = turnProcessProjectionStage(next);
+    const currentProcessProjectionClock = turnProcessProjectionClock(current);
+    const requestedProcessProjectionClock = turnProcessProjectionClock(next);
     const currentTurnIntent = current.turnLaunchIntent;
     const requestedTurnIntent = next.turnLaunchIntent;
     const requestedTurnResolution = next.turnLaunchResolution;
+    const requestedCarriesCurrentTurnIntent = Boolean(
+      currentTurnIntent &&
+      requestedTurnIntent?.token === currentTurnIntent.token &&
+      Number(requestedTurnIntent?.attempt) ===
+        Number(currentTurnIntent.attempt),
+    );
     const resolvesCurrentTurnIntent =
       currentTurnIntent &&
       requestedTurnIntent === null &&
@@ -591,6 +773,9 @@ function mergeBackgroundAgentState(current, requested) {
         ...(current.turnLaunchResolution !== undefined
           ? { turnLaunchResolution: current.turnLaunchResolution }
           : {}),
+        ...(!requestedCarriesCurrentTurnIntent && current.phase !== undefined
+          ? { phase: current.phase }
+          : {}),
       };
     } else if (
       !currentTurnIntent &&
@@ -611,6 +796,59 @@ function mergeBackgroundAgentState(current, requested) {
         turnLaunchAttempt: currentTurnAttempt,
         turnLaunchIntent: null,
       };
+    }
+    // The target cannot execute Agent main until these fields reach `released`,
+    // and the keeper cannot relinquish ownership until cleanup is confirmed.
+    // Keep that same-turn projection monotonic across stale generic writers.
+    // `retired` -> idle is the only intentional projection clear; once idle,
+    // an old active snapshot may not resurrect already-reaped process ids.
+    const sameProcessProjection = sameTurnProjectionIdentity(
+      currentProcessProjectionIdentity,
+      requestedProcessProjectionIdentity,
+    );
+    const currentProjectionIsNewer = Boolean(
+      currentProcessProjectionIdentity &&
+      (!requestedProcessProjectionIdentity ||
+        currentProcessProjectionIdentity.attempt >
+          requestedProcessProjectionIdentity.attempt ||
+        (currentProcessProjectionIdentity.attempt ===
+          requestedProcessProjectionIdentity.attempt &&
+          currentProcessProjectionIdentity.token &&
+          requestedProcessProjectionIdentity.token &&
+          currentProcessProjectionIdentity.token !==
+            requestedProcessProjectionIdentity.token)),
+    );
+    if (sameProcessProjection || currentProjectionIsNewer) {
+      const intentionalIdleClear =
+        sameProcessProjection &&
+        requestedProcessProjectionStage === 90 &&
+        currentProcessProjectionStage === 80 &&
+        current.turnKeeperStatus === "retired" &&
+        Number(current.turnKeeperCleanupConfirmedAt) > 0;
+      const preserveCurrentProjection =
+        currentProjectionIsNewer ||
+        (!intentionalIdleClear &&
+          (currentProcessProjectionStage > requestedProcessProjectionStage ||
+            (currentProcessProjectionStage ===
+              requestedProcessProjectionStage &&
+              currentProcessProjectionClock >
+                requestedProcessProjectionClock)));
+      if (preserveCurrentProjection) {
+        next = {
+          ...next,
+          ...((currentProjectionIsNewer ||
+            currentProcessProjectionStage === 90) &&
+          next.status === "running"
+            ? { phase: current.phase }
+            : {}),
+          ...Object.fromEntries(
+            TURN_PROCESS_PROJECTION_FIELDS.map((field) => [
+              field,
+              current[field],
+            ]),
+          ),
+        };
+      }
     }
     const turnTerminationConfirmed =
       next.turnLaunchFinalizationUncertain === false &&
@@ -1087,15 +1325,36 @@ function inspectDestructiveProcessIdentity(
  * @returns {boolean} true when a kill was actually issued
  */
 export function reclaimOrphanAgentProcess(state) {
-  const agentPid = Number(state?.agentPid);
-  if (!Number.isInteger(agentPid) || agentPid <= 0) return false;
-  if (agentPid === Number(state?.pid)) return false; // never the worker itself
-  const anchor = Number(state?.agentStartedAt);
-  if (!Number.isFinite(anchor) || anchor <= 0) return false; // fail closed
-  if (inspectDestructiveProcessIdentity(agentPid, anchor).status !== "match") {
-    return false;
+  const targets = [
+    {
+      pid: Number(state?.agentRuntimePid),
+      startedAt: Number(state?.agentRuntimeStartedAt),
+    },
+    {
+      pid: Number(state?.agentPid),
+      startedAt: Number(state?.agentStartedAt),
+    },
+  ].filter(
+    (target, index, values) =>
+      Number.isInteger(target.pid) &&
+      target.pid > 0 &&
+      target.pid !== Number(state?.pid) &&
+      values.findIndex((candidate) => candidate.pid === target.pid) === index,
+  );
+  let killed = false;
+  for (const target of targets) {
+    // Destructive recovery never falls back to a naked PID. Every target must
+    // retain a positive creation-time anchor and pass the fresh OS probe.
+    if (!Number.isFinite(target.startedAt) || target.startedAt <= 0) continue;
+    if (
+      inspectDestructiveProcessIdentity(target.pid, target.startedAt).status !==
+      "match"
+    ) {
+      continue;
+    }
+    killed = _deps.killProcessTree(target.pid, "SIGKILL") === true || killed;
   }
-  return _deps.killProcessTree(agentPid, "SIGKILL") === true;
+  return killed;
 }
 
 export function normalizeBackgroundAgentTitle(title) {
@@ -1859,20 +2118,33 @@ export function isBackgroundWorkerStartedError(error) {
 async function settleUncertainBackgroundLaunch({
   id,
   jobFile,
+  jobFiles,
   spawnedProcess,
+  spawnedProcesses,
   error,
 }) {
-  let termination;
+  const owned = (spawnedProcesses || [spawnedProcess]).filter(Boolean);
+  let terminations;
   try {
-    termination = await _deps.terminateOwnedProcessTree(spawnedProcess, {
-      treeMode: process.platform === "win32" ? "windows-tree" : "posix-group",
-    });
+    terminations = await Promise.all(
+      owned.map((processHandle) =>
+        _deps.terminateOwnedProcessTree(processHandle, {
+          treeMode:
+            process.platform === "win32" ? "windows-tree" : "posix-group",
+        }),
+      ),
+    );
   } catch {
     return;
   }
-  if (termination?.confirmed !== true) return;
+  if (
+    terminations.length !== owned.length ||
+    terminations.some((termination) => termination?.confirmed !== true)
+  ) {
+    return;
+  }
   try {
-    const workerPid = Number(spawnedProcess?.pid);
+    const workerPid = Number(owned[0]?.pid);
     const current = readBackgroundAgentState(id);
     if (!current || current.launchFinalizationUncertain !== true) return;
     if (
@@ -1901,15 +2173,25 @@ async function settleUncertainBackgroundLaunch({
       launchFinalizationUncertain: false,
       launchTermination: {
         confirmed: true,
-        treeMode: termination.treeMode || null,
-        closed: termination.closed === true,
-        treeTerminated: termination.treeTerminated === true,
+        treeMode:
+          terminations.length === 1
+            ? terminations[0].treeMode || null
+            : "multiple-owned-trees",
+        closed: terminations.every(
+          (termination) => termination.closed === true,
+        ),
+        treeTerminated: terminations.every(
+          (termination) => termination.treeTerminated === true,
+        ),
+        ownedTreeCount: terminations.length,
         settledAt: Date.now(),
       },
     });
     // State is the durable cleanup authority; remove the one-shot job only
     // after the terminal/ownership evidence is safely persisted.
-    rmSync(jobFile, { force: true });
+    for (const file of jobFiles || [jobFile]) {
+      if (file) rmSync(file, { force: true });
+    }
   } catch {
     // Persistence failure must retain the original uncertainty fence and must
     // never become an unhandled rejection in the launching CLI process.
@@ -1976,9 +2258,16 @@ export function launchBackgroundAgent({
     fingerprintBackgroundLaunchProfile(launchProfileState);
   const dir = backgroundAgentsDir();
   const workerGeneration = randomBytes(16).toString("hex");
+  const keeperGeneration = randomBytes(16).toString("hex");
+  const keeperToken = randomBytes(32).toString("hex");
+  const keeperPipePath = backgroundAgentKeeperPipePath(id, dir);
   const jobFile = join(dir, `${id}.job.${process.pid}.json`);
+  const keeperJobFile = join(dir, `${id}.keeper.${process.pid}.json`);
   const worker = fileURLToPath(
     new URL("../workers/background-agent-worker.js", import.meta.url),
+  );
+  const keeper = fileURLToPath(
+    new URL("../workers/background-agent-keeper.js", import.meta.url),
   );
   const job = {
     id,
@@ -1990,6 +2279,11 @@ export function launchBackgroundAgent({
     title: title || "Background agent",
     cliEntry: cliEntry || process.argv[1],
     logFile: logPath(id),
+    keeper: {
+      generation: keeperGeneration,
+      pipePath: keeperPipePath,
+      token: keeperToken,
+    },
     ...(worktreeState || {}),
     governance: governanceState,
     // Present = interactive attach can start follow-up turns; absent = the
@@ -1998,7 +2292,24 @@ export function launchBackgroundAgent({
       ? { followUpArgv: followUpSecrets.argv }
       : {}),
   };
-  writeFileSync(jobFile, JSON.stringify(job), { mode: 0o600 });
+  try {
+    writeFileSync(jobFile, JSON.stringify(job), { mode: 0o600 });
+    writeFileSync(
+      keeperJobFile,
+      JSON.stringify({
+        id,
+        workerGeneration,
+        keeperGeneration,
+        pipePath: keeperPipePath,
+        token: keeperToken,
+      }),
+      { mode: 0o600 },
+    );
+  } catch (error) {
+    rmSync(jobFile, { force: true });
+    rmSync(keeperJobFile, { force: true });
+    throw error;
+  }
   // Write the initial state BEFORE spawning so the worker's own merges (the
   // transport endpoint lands within its first ~100ms) can never be clobbered
   // by a late launcher write racing the worker.
@@ -2013,6 +2324,13 @@ export function launchBackgroundAgent({
     workerPid: null,
     workerClaimedPid: null,
     workerClaimedAt: null,
+    workerWrapperPid: null,
+    keeperGeneration,
+    keeperPid: null,
+    keeperStartedAt: null,
+    keeperWrapperPid: null,
+    keeperStatus: "launching",
+    keeperHeartbeatAt: null,
     turnLaunchAttempt: 0,
     turnLaunchIntent: null,
     turnLaunchResolution: null,
@@ -2036,10 +2354,13 @@ export function launchBackgroundAgent({
     writeBackgroundAgentState(state, { createIfMissing: true });
   } catch (error) {
     rmSync(jobFile, { force: true });
+    rmSync(keeperJobFile, { force: true });
     rmSync(statePath(id), { force: true });
     throw error;
   }
   let child;
+  let keeperChild;
+  let keeperStartedAt = null;
   let workerLogFd;
   let postSpawnError = null;
   try {
@@ -2061,13 +2382,29 @@ export function launchBackgroundAgent({
       scope: "background-agent",
       shell: false,
     });
+    keeperStartedAt = Date.now();
+    keeperChild = _deps.spawn(process.execPath, [keeper, keeperJobFile], {
+      cwd,
+      detached: true,
+      stdio: ["ignore", workerLogFd, workerLogFd],
+      windowsHide: true,
+      origin: "background-agent:keeper",
+      policy: "allow",
+      scope: "background-agent",
+      shell: false,
+    });
   } catch (error) {
-    if (error?.spawnedProcess) {
+    const ownedProcesses = [child, keeperChild, error?.spawnedProcess].filter(
+      (processHandle, index, values) =>
+        processHandle && values.indexOf(processHandle) === index,
+    );
+    if (ownedProcesses.length > 0) {
       // The broker can fail a post-spawn sandbox handshake only after native
       // spawn returned. It requests termination, but this synchronous caller
-      // cannot prove the close fence has settled; retain state/job/worktree so
-      // cleanup never races a process that may still hold cwd.
-      const workerPid = Number(error.spawnedProcess.pid);
+      // cannot prove every close fence has settled; retain state/jobs/worktree
+      // so cleanup never races a process that may still hold cwd.
+      const workerPid = Number(child?.pid || error?.spawnedProcess?.pid);
+      const keeperPid = Number(keeperChild?.pid);
       try {
         const current = readBackgroundAgentState(id) || state;
         writeBackgroundAgentState({
@@ -2075,6 +2412,9 @@ export function launchBackgroundAgent({
           pid: Number.isInteger(workerPid) && workerPid > 0 ? workerPid : null,
           workerPid:
             Number.isInteger(workerPid) && workerPid > 0 ? workerPid : null,
+          keeperPid:
+            Number.isInteger(keeperPid) && keeperPid > 0 ? keeperPid : null,
+          keeperStartedAt,
           launchFinalizationUncertain: true,
         });
       } catch {
@@ -2083,8 +2423,8 @@ export function launchBackgroundAgent({
       }
       void settleUncertainBackgroundLaunch({
         id,
-        jobFile,
-        spawnedProcess: error.spawnedProcess,
+        jobFiles: [jobFile, keeperJobFile],
+        spawnedProcesses: ownedProcesses,
         error,
       });
       throw new BackgroundWorkerStartedError(error, {
@@ -2093,6 +2433,7 @@ export function launchBackgroundAgent({
       });
     }
     rmSync(jobFile, { force: true });
+    rmSync(keeperJobFile, { force: true });
     rmSync(statePath(id), { force: true });
     throw error;
   } finally {
@@ -2102,7 +2443,7 @@ export function launchBackgroundAgent({
       } catch (error) {
         // Once spawn returned a child, even fd-finalization errors are
         // post-transfer: the worker may already be using the worktree.
-        if (child) postSpawnError = error;
+        if (child || keeperChild) postSpawnError = error;
       }
     }
   }
@@ -2173,6 +2514,44 @@ export function launchBackgroundAgent({
         }
       });
     }
+    if (typeof keeperChild.on === "function") {
+      keeperChild.on("error", (error) => {
+        try {
+          mutateBackgroundAgentState(id, (current) =>
+            current?.status === "running" &&
+            current.keeperGeneration === keeperGeneration
+              ? {
+                  ...current,
+                  keeperStatus: "spawn-error",
+                  keeperError: error?.message || String(error),
+                  keeperEndedAt: Date.now(),
+                }
+              : null,
+          );
+        } catch {
+          /* worker-side channel failure remains authoritative */
+        }
+      });
+      keeperChild.on("exit", (code, signal) => {
+        try {
+          mutateBackgroundAgentState(id, (current) =>
+            current?.status === "running" &&
+            current.keeperGeneration === keeperGeneration
+              ? {
+                  ...current,
+                  keeperStatus:
+                    current.keeperStatus === "closed" ? "closed" : "exited",
+                  keeperExitCode: Number.isInteger(code) ? code : null,
+                  keeperSignal: signal || null,
+                  keeperEndedAt: Date.now(),
+                }
+              : null,
+          );
+        } catch {
+          /* worker-side channel failure remains authoritative */
+        }
+      });
+    }
     // Read child.pid before entering the state transaction. A platform wrapper
     // (notably the Windows Job Object adapter) can return from spawn just as the
     // real worker claims the state record. Finalize the wrapper pid against the
@@ -2180,6 +2559,7 @@ export function launchBackgroundAgent({
     // worker already published (agentPid, pendingQuestion, recovery marker,
     // turnCount, ...).
     const spawnedWorkerPid = child.pid;
+    const spawnedKeeperPid = keeperChild.pid;
     const pidFinalization = mutateBackgroundAgentState(id, (current) => {
       if (
         !current ||
@@ -2195,6 +2575,17 @@ export function launchBackgroundAgent({
         // platform child returned by spawn.
         pid: current.pid ?? spawnedWorkerPid,
         workerPid: current.workerPid ?? spawnedWorkerPid,
+        workerWrapperPid:
+          current.workerWrapperPid ?? child.sandboxWrapperPid ?? null,
+        keeperPid: current.keeperPid ?? spawnedKeeperPid,
+        keeperStartedAt: current.keeperStartedAt ?? keeperStartedAt,
+        keeperWrapperPid:
+          current.keeperWrapperPid ?? keeperChild.sandboxWrapperPid ?? null,
+        keeperStatus:
+          current.keeperStatus === "listening" ||
+          current.keeperStatus === "ready"
+            ? current.keeperStatus
+            : "starting",
         launchFinalizationUncertain: false,
       };
     });
@@ -2205,6 +2596,7 @@ export function launchBackgroundAgent({
     }
     withPid = pidFinalization.state;
     child.unref();
+    keeperChild.unref();
   } catch (error) {
     postSpawnError ||= error;
   }
@@ -2228,12 +2620,32 @@ export function readBackgroundAgentLog(id, options = {}) {
 
 function recordedBackgroundProcessIdentities(state) {
   const records = [
+    {
+      role: "agent-runtime",
+      pid: state?.agentRuntimePid,
+      startedAt: state?.agentRuntimeStartedAt,
+    },
     { role: "agent", pid: state?.agentPid, startedAt: state?.agentStartedAt },
     { role: "worker", pid: state?.pid, startedAt: state?.startedAt },
     {
-      role: "worker-wrapper",
+      role: "worker-published",
       pid: state?.workerPid,
       startedAt: state?.startedAt,
+    },
+    {
+      role: "worker-wrapper",
+      pid: state?.workerWrapperPid,
+      startedAt: state?.startedAt,
+    },
+    {
+      role: "keeper",
+      pid: state?.keeperPid,
+      startedAt: state?.keeperStartedAt,
+    },
+    {
+      role: "keeper-wrapper",
+      pid: state?.keeperWrapperPid,
+      startedAt: state?.keeperStartedAt,
     },
   ];
   const seen = new Set();
@@ -2259,7 +2671,7 @@ function recordedBackgroundProcessesAlive(state) {
   );
 }
 
-function isRecordedProcessTreeExecutionAlive(pid, startedAt) {
+export function isBackgroundProcessTreeExecutionAlive(pid, startedAt) {
   const identity = inspectDestructiveProcessIdentity(pid, startedAt);
   // `unverifiable` includes a vanished/zombie POSIX leader whose process group
   // is still executable or whose group snapshot failed. Both must block
@@ -2493,6 +2905,7 @@ export function stopBackgroundAgent(id) {
     }
     const primaryWorker =
       inspected.find(({ role }) => role === "worker") ||
+      inspected.find(({ role }) => role === "worker-published") ||
       inspected.find(({ role }) => role === "worker-wrapper");
     if (primaryWorker?.identity.status === "reused") workerPidReused = true;
     const targets = inspected.filter(
@@ -2624,16 +3037,46 @@ function activeWorktreeProcesses(state) {
   if (
     Number.isInteger(Number(state?.pid)) &&
     Number(state.pid) > 0 &&
-    isRecordedProcessTreeExecutionAlive(state.pid, state.startedAt)
+    isBackgroundProcessTreeExecutionAlive(state.pid, state.startedAt)
   ) {
     active.push("worker");
   }
   if (
     Number.isInteger(Number(state?.agentPid)) &&
     Number(state.agentPid) > 0 &&
-    isRecordedProcessTreeExecutionAlive(state.agentPid, state.agentStartedAt)
+    isBackgroundProcessTreeExecutionAlive(state.agentPid, state.agentStartedAt)
   ) {
     active.push("agent");
+  }
+  if (
+    Number.isInteger(Number(state?.keeperPid)) &&
+    Number(state.keeperPid) > 0 &&
+    isBackgroundProcessTreeExecutionAlive(
+      state.keeperPid,
+      state.keeperStartedAt,
+    )
+  ) {
+    active.push("keeper");
+  }
+  if (
+    Number.isInteger(Number(state?.workerWrapperPid)) &&
+    Number(state.workerWrapperPid) > 0 &&
+    isBackgroundProcessTreeExecutionAlive(
+      state.workerWrapperPid,
+      state.startedAt,
+    )
+  ) {
+    active.push("worker-wrapper");
+  }
+  if (
+    Number.isInteger(Number(state?.keeperWrapperPid)) &&
+    Number(state.keeperWrapperPid) > 0 &&
+    isBackgroundProcessTreeExecutionAlive(
+      state.keeperWrapperPid,
+      state.keeperStartedAt,
+    )
+  ) {
+    active.push("keeper-wrapper");
   }
   return active;
 }

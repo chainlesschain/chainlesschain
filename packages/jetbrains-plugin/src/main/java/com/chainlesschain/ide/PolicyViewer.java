@@ -7,10 +7,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
- * Permission/policy viewer core (gap #10) — one read-only picture of the four
- * policy surfaces the cc CLI exposes:
+ * Permission/policy viewer core (gap #10) — one picture of the four policy
+ * surfaces the cc CLI exposes, plus validated argv builders for CLI-owned
+ * workspace-scoped permission mutations:
  *
  * <ul>
  *   <li>{@code cc permissions list --json} → merged
@@ -37,6 +39,10 @@ public final class PolicyViewer {
 
     private static final List<String> RULE_KINDS = List.of("deny", "ask", "allow");
     private static final List<String> RISK_LEVELS = List.of("low", "medium", "high");
+    private static final Pattern SCOPED_RULE_ID =
+            Pattern.compile("^spr_[0-9a-f]{32}$");
+    private static final Pattern SCOPED_DURATION =
+            Pattern.compile("^\\d+(s|m|h|d)$");
 
     // ------------------------------------------------------------- sections
 
@@ -53,6 +59,33 @@ public final class PolicyViewer {
         }
     }
 
+    /** One CLI-owned workspace rule with TTL/revocation authority metadata. */
+    public static final class ScopedRule {
+        public final String id;
+        public final long revision;
+        public final String decision;
+        public final String rule;
+        public final String status;
+        public final long expiresAt;
+        public final String reason;
+        public final String source;
+        public final String scope;
+
+        ScopedRule(String id, long revision, String decision, String rule,
+                String status, long expiresAt, String reason, String source,
+                String scope) {
+            this.id = nz(id);
+            this.revision = Math.max(0L, revision);
+            this.decision = nz(decision);
+            this.rule = nz(rule);
+            this.status = nz(status);
+            this.expiresAt = Math.max(0L, expiresAt);
+            this.reason = nz(reason);
+            this.source = nz(source);
+            this.scope = nz(scope);
+        }
+    }
+
     /** Parsed {@code cc permissions list --json}. */
     public static final class PermissionsSection {
         /** Rules grouped deny → ask → allow (render order). */
@@ -61,13 +94,22 @@ public final class PolicyViewer {
         public final String managedFile;
         /** Human-readable managed-policy restrictions in effect. */
         public final List<String> managedFlags;
+        public final List<ScopedRule> scopedRules;
+        public final long scopedGeneration;
+        public final String scopedFile;
 
         PermissionsSection(List<RuleEntry> rules, List<String> files,
-                String managedFile, List<String> managedFlags) {
+                String managedFile, List<String> managedFlags,
+                List<ScopedRule> scopedRules, long scopedGeneration,
+                String scopedFile) {
             this.rules = Collections.unmodifiableList(new ArrayList<RuleEntry>(rules));
             this.files = Collections.unmodifiableList(new ArrayList<String>(files));
             this.managedFile = nz(managedFile);
             this.managedFlags = Collections.unmodifiableList(new ArrayList<String>(managedFlags));
+            this.scopedRules = Collections.unmodifiableList(
+                    new ArrayList<ScopedRule>(scopedRules));
+            this.scopedGeneration = Math.max(0L, scopedGeneration);
+            this.scopedFile = nz(scopedFile);
         }
 
         public int count(String kind) {
@@ -201,7 +243,34 @@ public final class PolicyViewer {
                 flags.add("managed plugin supply-chain policy active");
             }
         }
-        return new PermissionsSection(out, files, managedFile, flags);
+        List<ScopedRule> scopedRules = new ArrayList<ScopedRule>();
+        long scopedGeneration = 0L;
+        String scopedFile = "";
+        if (root.get("scoped") instanceof Map) {
+            Map<?, ?> scoped = (Map<?, ?>) root.get("scoped");
+            scopedGeneration = num(scoped.get("generation"));
+            scopedFile = str(scoped.get("file"));
+            if (scoped.get("rules") instanceof List) {
+                for (Object value : (List<?>) scoped.get("rules")) {
+                    if (!(value instanceof Map)) continue;
+                    Map<?, ?> record = (Map<?, ?>) value;
+                    String id = str(record.get("id"));
+                    String decision = str(record.get("decision"));
+                    String rule = str(record.get("rule"));
+                    if (!SCOPED_RULE_ID.matcher(id).matches()
+                            || !RULE_KINDS.contains(decision)
+                            || rule.isEmpty()) continue;
+                    String status = str(record.get("effectiveStatus"));
+                    if (status.isEmpty()) status = str(record.get("status"));
+                    scopedRules.add(new ScopedRule(id, num(record.get("revision")),
+                            decision, rule, status, num(record.get("expiresAt")),
+                            str(record.get("reason")), str(record.get("source")),
+                            str(record.get("scope"))));
+                }
+            }
+        }
+        return new PermissionsSection(out, files, managedFile, flags,
+                scopedRules, scopedGeneration, scopedFile);
     }
 
     /**
@@ -295,6 +364,12 @@ public final class PolicyViewer {
             sb.append("permissions: ").append(perm.count("allow")).append(" allow / ")
                     .append(perm.count("ask")).append(" ask / ")
                     .append(perm.count("deny")).append(" deny");
+            if (!perm.scopedRules.isEmpty()) {
+                long active = perm.scopedRules.stream()
+                        .filter(r -> "active".equals(r.status)).count();
+                sb.append(" · ").append(active).append('/')
+                        .append(perm.scopedRules.size()).append(" scoped active");
+            }
         }
         sb.append(" · ");
         sb.append(denials == null ? "denials: n/a" : denials.size() + " recent denials");
@@ -347,6 +422,27 @@ public final class PolicyViewer {
                 for (String flag : perm.managedFlags) {
                     sb.append("  - ").append(flag).append('\n');
                 }
+            }
+            sb.append("\n== Workspace-scoped authority ==\n");
+            if (perm.scopedRules.isEmpty()) {
+                sb.append("  (no scoped rules)\n");
+            } else {
+                for (ScopedRule rule : perm.scopedRules) {
+                    sb.append("  ").append(rule.decision).append(' ')
+                            .append(rule.rule).append("  [")
+                            .append(rule.status).append("; ")
+                            .append(rule.id).append(" r").append(rule.revision)
+                            .append("; expires ").append(rule.expiresAt)
+                            .append("]\n");
+                    if (!rule.reason.isEmpty()) {
+                        sb.append("      ").append(rule.reason).append('\n');
+                    }
+                }
+            }
+            if (!perm.scopedFile.isEmpty()) {
+                sb.append("CLI authority: ").append(perm.scopedFile)
+                        .append(" · generation ").append(perm.scopedGeneration)
+                        .append('\n');
             }
         }
 
@@ -487,6 +583,55 @@ public final class PolicyViewer {
     public static List<String> buildRecentDenialsArgs(int limit) {
         return Arrays.asList("permissions", "recent", "--json",
                 "-n", String.valueOf(Math.max(1, limit)));
+    }
+
+    public static List<String> buildScopedPermissionCreateArgs(String decision,
+            String rule, String expiresIn, String reason,
+            long expectedGeneration) {
+        String kind = nz(decision).trim().toLowerCase(Locale.ROOT);
+        String normalizedRule = nz(rule).trim();
+        String duration = nz(expiresIn).trim().toLowerCase(Locale.ROOT);
+        String normalizedReason = nz(reason).trim();
+        if (!RULE_KINDS.contains(kind)) {
+            throw new IllegalArgumentException("invalid decision");
+        }
+        if (normalizedRule.isEmpty() || containsControlLine(normalizedRule)) {
+            throw new IllegalArgumentException("a single-line rule is required");
+        }
+        if (!SCOPED_DURATION.matcher(duration).matches()) {
+            throw new IllegalArgumentException("invalid TTL");
+        }
+        if (normalizedReason.length() > 500 || containsControlLine(normalizedReason)) {
+            throw new IllegalArgumentException("invalid reason");
+        }
+        if (expectedGeneration < 0) {
+            throw new IllegalArgumentException("invalid expected generation");
+        }
+        List<String> args = new ArrayList<String>(Arrays.asList("permissions",
+                "scoped", kind, normalizedRule, "--expires-in", duration));
+        if (!normalizedReason.isEmpty()) {
+            args.add("--reason");
+            args.add(normalizedReason);
+        }
+        args.add("--expected-generation");
+        args.add(String.valueOf(expectedGeneration));
+        args.add("--json");
+        return Collections.unmodifiableList(args);
+    }
+
+    public static List<String> buildScopedPermissionRevokeArgs(String id,
+            long revision) {
+        String normalizedId = nz(id).trim();
+        if (!SCOPED_RULE_ID.matcher(normalizedId).matches() || revision < 1) {
+            throw new IllegalArgumentException("invalid scoped rule authority");
+        }
+        return Arrays.asList("permissions", "revoke", normalizedId,
+                "--revision", String.valueOf(revision), "--json");
+    }
+
+    private static boolean containsControlLine(String value) {
+        return value.indexOf('\n') >= 0 || value.indexOf('\r') >= 0
+                || value.indexOf('\0') >= 0;
     }
 
     public static List<String> buildAutoModeConfigArgs() {

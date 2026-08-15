@@ -1,11 +1,99 @@
 import { EventEmitter } from "node:events";
 import { describe, expect, it, vi } from "vitest";
 import {
+  attachTurnChildBootstrapRelease,
   attachTurnChildTerminationSettlement,
   deliverAfterDurableInteractionCleanup,
 } from "../../src/workers/background-agent-worker.js";
+import {
+  BACKGROUND_TURN_BOOTSTRAP_PROTOCOL_VERSION,
+  BACKGROUND_TURN_BOOTSTRAP_READY,
+  BACKGROUND_TURN_BOOTSTRAP_RELEASE,
+} from "../../src/lib/background-turn-bootstrap-protocol.js";
 
 describe("background agent worker child termination settlement", () => {
+  it("commits the actual runtime pid before releasing pre-main execution", async () => {
+    const child = new EventEmitter();
+    const sent = [];
+    child.send = vi.fn((message, callback) => {
+      sent.push(message);
+      callback?.(null);
+    });
+    let finishDurableCommit;
+    const commitReady = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          finishDurableCommit = resolve;
+        }),
+    );
+    const onFailure = vi.fn();
+    attachTurnChildBootstrapRelease(
+      child,
+      { nonce: "nonce-1", workerGeneration: "generation-1", attempt: 2 },
+      commitReady,
+      onFailure,
+    );
+
+    const ready = {
+      type: BACKGROUND_TURN_BOOTSTRAP_READY,
+      protocolVersion: BACKGROUND_TURN_BOOTSTRAP_PROTOCOL_VERSION,
+      nonce: "nonce-1",
+      workerGeneration: "generation-1",
+      attempt: 2,
+      pid: 4321,
+    };
+    child.emit("message", ready);
+    child.emit("message", ready);
+
+    await vi.waitFor(() => expect(commitReady).toHaveBeenCalledOnce());
+    expect(sent).toEqual([]);
+    finishDurableCommit(true);
+    await vi.waitFor(() => expect(sent).toHaveLength(1));
+
+    expect(commitReady).toHaveBeenCalledOnce();
+    expect(commitReady).toHaveBeenCalledWith({
+      nonce: "nonce-1",
+      workerGeneration: "generation-1",
+      attempt: 2,
+      pid: 4321,
+    });
+    expect(sent).toEqual([
+      {
+        type: BACKGROUND_TURN_BOOTSTRAP_RELEASE,
+        protocolVersion: BACKGROUND_TURN_BOOTSTRAP_PROTOCOL_VERSION,
+        nonce: "nonce-1",
+        workerGeneration: "generation-1",
+        attempt: 2,
+        pid: 4321,
+      },
+    ]);
+    expect(onFailure).not.toHaveBeenCalled();
+  });
+
+  it("fails closed without release when the runtime pid commit is rejected", async () => {
+    const child = new EventEmitter();
+    child.send = vi.fn();
+    const onFailure = vi.fn();
+    attachTurnChildBootstrapRelease(
+      child,
+      { nonce: "nonce-2", workerGeneration: "generation-2", attempt: 3 },
+      () => false,
+      onFailure,
+    );
+    child.emit("message", {
+      type: BACKGROUND_TURN_BOOTSTRAP_READY,
+      protocolVersion: BACKGROUND_TURN_BOOTSTRAP_PROTOCOL_VERSION,
+      nonce: "nonce-2",
+      workerGeneration: "generation-2",
+      attempt: 3,
+      pid: 7654,
+    });
+    await vi.waitFor(() => expect(onFailure).toHaveBeenCalledOnce());
+    expect(child.send).not.toHaveBeenCalled();
+    expect(onFailure).toHaveBeenCalledOnce();
+    expect(onFailure.mock.calls[0][0].message).toMatch(/commit was rejected/u);
+  });
+
   it("settles error followed by close even when exit is never emitted", () => {
     const child = new EventEmitter();
     const settlementOrder = [];

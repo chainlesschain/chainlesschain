@@ -408,9 +408,11 @@ export async function runReplDirectToolWithLedger({
 let _hookDb = null;
 let _compressor = null;
 let _approvalGate = null;
-// .claude/settings.json permission rules (deny > ask > allow) + an interactive
-// confirmer for `ask` matches. Loaded once at REPL startup; null = no file.
+// Static + CLI-owned scoped permission rules (deny > ask > allow) and an
+// interactive confirmer for `ask` matches. Scoped rules are refreshed at each
+// tool boundary so TTL expiry and external revocation affect a live session.
 let _permissionRules = null;
+let _permissionRulesProvider = null;
 let _permissionConfirm = null;
 let _managedPermissionRulesOnly = false;
 // .claude/settings.json `hooks` block (decision-capable PreToolUse/PostToolUse).
@@ -547,6 +549,7 @@ async function executeTool(name, args) {
     cwd: process.cwd(),
     approvalGate: _approvalGate,
     permissionRules: _permissionRules,
+    permissionRulesProvider: _permissionRulesProvider,
     permissionConfirm: _permissionConfirm,
     settingsHooks: _settingsHooks,
     classifyAllShell: _classifyAllShell,
@@ -3272,9 +3275,14 @@ async function startAgentReplInWorkspaceOwned(
   // Load .claude/settings.json permission rules + wire an interactive confirmer
   // so `ask` rules prompt (rather than fall closed like headless does).
   try {
-    const { loadSettings, readBooleanSetting } =
-      await import("../lib/settings-loader.cjs");
-    const loaded = loadSettings({ cwd: process.cwd() });
+    const { readBooleanSetting } = await import("../lib/settings-loader.cjs");
+    const { createPermissionRulesProvider, loadPermissionAuthority } =
+      await import("../lib/permission-authority.js");
+    const permissionAuthorityOptions = { cwd: process.cwd() };
+    const loaded = loadPermissionAuthority(permissionAuthorityOptions);
+    _permissionRulesProvider = createPermissionRulesProvider(
+      permissionAuthorityOptions,
+    );
     _managedPermissionRulesOnly =
       loaded.managed?.allowManagedPermissionRulesOnly === true;
     // Claude-Code 2.1.186 respondToBashCommands (default OFF / opt-in when unset).
@@ -3357,8 +3365,16 @@ async function startAgentReplInWorkspaceOwned(
       });
     };
   } catch (_err) {
-    if (_err?.code === "CC_MANAGED_SETTINGS_INVALID") throw _err;
+    if (
+      _err?.code === "CC_MANAGED_SETTINGS_INVALID" ||
+      _err?.code === "CONFIG_HOME_UNSAFE" ||
+      String(_err?.code || "").startsWith("CC_SCOPED_PERMISSION_") ||
+      String(_err?.code || "").startsWith("DURABLE_SECURITY_STORE_")
+    ) {
+      throw _err;
+    }
     _permissionRules = null;
+    _permissionRulesProvider = null;
     _permissionConfirm = null;
     _managedPermissionRulesOnly = false;
   }
@@ -9064,6 +9080,7 @@ async function startAgentReplInWorkspaceOwned(
         prepareCall,
         approvalGate: _approvalGate,
         permissionRules: _permissionRules,
+        permissionRulesProvider: _permissionRulesProvider,
         permissionConfirm: _permissionConfirm,
         settingsHooks: _settingsHooks,
         hookSupervisor: _asyncHookSupervisor,

@@ -5,13 +5,23 @@
 
 ## [Unreleased]
 
-#### Added — `main` 发布后 Scheduler/Automation 恢复与 soak 证据门
+#### Added — `main@affafa7f0f` 发布后原生剪贴板图片
 
-> 当前源码 HEAD 为 [`12109a5d9e`](https://github.com/chainlesschain/chainlesschain/commit/12109a5d9ef7e24d344db624cb6f67bbb2387b9e)；以下能力均晚于 `0.163.7` 不可变 npm tarball，不能写成已发布安装契约。
+> 当前 GitHub `main` 为 [`d2b2057af5`](https://github.com/chainlesschain/chainlesschain/commit/d2b2057af5d9a2cf2d5f631d40b45b37de104bee)，原生剪贴板图片的精确实现提交为 [`affafa7f0f`](https://github.com/chainlesschain/chainlesschain/commit/affafa7f0f6fede3274e503d2387ce493e74bfd0)；该能力晚于 `0.163.8` 不可变 npm tarball，不能写成已发布安装契约。
 
-- **磁盘故障闭环（PR #186）**：Agenda/Cowork 权威写入使用 private temp、完整 short-write loop、file fsync、atomic rename 与 POSIX directory fsync；确定性矩阵覆盖 ENOSPC、partial write、file/directory fsync、rename、损坏记录、原生 SQLite `SQLITE_FULL` 回滚、Automation source 原子恢复、数据库截断与 reopen fail-closed。
-- **受治理 Automation 恢复（PR #187）**：Automation Center 投影 exact occurrence fence、control revision 与 `checkpoint_v1` safe point；`center-runtime-action` 提供合作式 pause/resume，`center-incident-action` 只对证据仍匹配的 scheduler-backed dead letter 提供幂等 retry/cancel。manual incident 不允许 retry，IDE 不读取 authority/boundary/detail evidence。
-- **Scheduler soak 证据门（PR #188）**：Linux/Windows/macOS 矩阵验证双 worker contention、higher-fence recovery、stale settlement、outcome-unknown no-replay、heartbeat、DST、backlog、数据库完整性、后代回收和资源趋势。正式 campaign 至少需要 72 小时、4 个 formal segment，且段间不超过 30 小时；框架已合并，但正式观察证据尚未完成。
+- **交互式粘贴**：把图片复制到系统剪贴板后，在 Agent REPL 运行 `/paste-image`；通过校验的本地 data-image block 会附到下一轮 vision model 请求。每张最多 20 MiB，每轮最多 4 张、总计 40 MiB，读取超时 10 秒。
+- **平台宿主**：Windows 使用受控 PowerShell，macOS 固定 `/usr/bin/osascript` 并经 AppKit/ImageIO 读取 PNG/TIFF，Linux 在当前 Wayland/X11 display 下使用可用的 `wl-paste` 或 `xclip`。PNG/JPEG/GIF/WebP 会校验真实 magic bytes。
+- **边界**：最终 merge SHA `affafa7f0f6fede3274e503d2387ce493e74bfd0` 的专用 Linux/Windows/macOS host workflow（`31813967006`）、CLI CI（`31810849262`）与 CLI Strict Sandbox（`31810848956`）均通过，但该能力没有进入 `v-npm-0-163-8`；稳定用户仍应等待后续 exact-SHA 发布与公网回读。
+
+#### Added — CLI 0.163.8 正式发布：受治理恢复、merge review 与 MCP resource templates
+
+> `chainlesschain@0.163.8` 已成为 npm `latest` 与生产推荐版。不可变 tag `v-npm-0-163-8` 精确指向 [`a0631cb4f9`](https://github.com/chainlesschain/chainlesschain/commit/a0631cb4f97f45ff7fcef9c19d346ed2b8387da6)；该 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31804468633)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31804468464)、[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/31806101423)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/31807574517)均成功。公网 tarball SHA-1 为 `655557b5c5b897b23a29975708abbf8d5cd31e88`。
+
+- **磁盘与事务 fence**：Agenda/Cowork 权威写入完成 short-write、fsync、rename 与 corruption/`SQLITE_FULL` 故障闭环；claim/renew/settlement 在写事务内取 lease clock。
+- **Automation 恢复**：checkpoint pause/resume 绑定 exact fence、control revision 与 capability；incident retry/cancel 只对证据仍匹配的 scheduler-backed dead letter 开放，manual incident 不盲目 replay。
+- **受治理 merge review**：`cc team merge-review preview|show|apply|rollback` 支持稳定 file/hunk 选择、digest 绑定决策、冲突证据、跨 branch 原子发布和保留历史的受控回滚。
+- **MCP resource templates**：`list_mcp_resource_templates {server?}` 只读有界 discovery cache，用户或模型选定具体 URI 后仍通过 `read_mcp_resource` 读取；不自动展开、订阅或发起隐式网络请求。
+- **剩余边界**：三平台长期 scheduler soak 仍需至少 72 小时、4 个 formal segment 且段间不超过 30 小时；签名 Desktop/native 发行与代表性 alias telemetry 也未关闭。
 
 #### Added — CLI 0.163.7 正式发布：迁移/回滚与因果可观测性
 

@@ -109,6 +109,11 @@ export function createBackgroundInteractionClient(options = {}) {
   let sequence = 0;
   let closed = false;
 
+  const refChannel = () => processLike?.channel?.ref?.();
+  const unrefIdleChannel = () => {
+    if (pending.size === 0) processLike?.channel?.unref?.();
+  };
+
   const removeMessageListener = () => {
     if (typeof processLike?.off === "function") {
       processLike.off("message", onMessage);
@@ -122,6 +127,7 @@ export function createBackgroundInteractionClient(options = {}) {
     entry.settled = true;
     clearTimeout(entry.timer);
     pending.delete(entry.requestId);
+    unrefIdleChannel();
     action(value);
   }
 
@@ -204,6 +210,11 @@ export function createBackgroundInteractionClient(options = {}) {
         }, timeoutMs);
         entry.timer.unref?.();
         pending.set(requestId, entry);
+        // The bootstrap channel is unref'd after Agent main is released so a
+        // naturally completed turn can exit. A suspended interaction is live
+        // work, however, and must keep that channel/process alive until its
+        // exact response, timeout, or close settles it.
+        refChannel();
 
         const sent = sendIpc(
           processLike,
@@ -262,6 +273,7 @@ export function createBackgroundInteractionClient(options = {}) {
           protocolError(reason, "INTERACTION_CHANNEL_CLOSED"),
         );
       }
+      unrefIdleChannel();
     },
   };
 }

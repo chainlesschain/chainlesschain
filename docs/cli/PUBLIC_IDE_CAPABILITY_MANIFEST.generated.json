@@ -48,7 +48,8 @@
       ["renamePreview", "semantic_rename"],
       ["getCallHierarchy", "semantic_call_hierarchy"],
       ["getSymbolInfo", "semantic_symbols"],
-      ["getProjectModel", "project_model"]
+      ["getProjectModel", "project_model"],
+      ["getContextCenter", "context_center"]
     ]
   },
   "surfaces": {
@@ -84,6 +85,7 @@
         "chainlesschain.chrome.connector",
         "chainlesschain.artifacts.show",
         "chainlesschain.policy.show",
+        "chainlesschain.context.show",
         "chainlesschain.workspace.scanAutoExec",
         "chainlesschain.remote.doctor",
         "chainlesschain.lens.explain",
@@ -142,6 +144,7 @@
         "chainlesschain.usage.Show",
         "chainlesschain.artifacts.Browse",
         "chainlesschain.policy.Viewer",
+        "chainlesschain.context.Center",
         "chainlesschain.plugins.Manage",
         "chainlesschain.worktree.Tasks",
         "chainlesschain.chrome.Connector",
