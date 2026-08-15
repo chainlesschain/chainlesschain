@@ -57,6 +57,9 @@ export function verifyPluginManifest({
   expectedSha256,
   signatureFile,
   publicKeyFile,
+  expectedSignatureSha256 = null,
+  expectedPublicKeyDocumentSha256 = null,
+  expectedPublicKeySha256 = null,
   requireSignature = false,
   trustedKeySha256 = null,
   requireTrustedKey = false,
@@ -78,11 +81,19 @@ export function verifyPluginManifest({
     );
   }
 
-  const wantsSignature = requireSignature || signatureFile || publicKeyFile;
+  const wantsSignature =
+    requireSignature ||
+    signatureFile ||
+    publicKeyFile ||
+    expectedSignatureSha256 ||
+    expectedPublicKeyDocumentSha256 ||
+    expectedPublicKeySha256;
   let signatureVerified = false;
   let signature = null;
   let publicKeyPem = null;
   let publicKeySha256 = null;
+  let signatureSha256 = null;
+  let publicKeyDocumentSha256 = null;
   if (wantsSignature) {
     if (!signatureFile || !publicKeyFile) {
       throw new Error(
@@ -90,11 +101,42 @@ export function verifyPluginManifest({
       );
     }
     signature = readFileSync(signatureFile);
-    publicKeyPem = readFileSync(publicKeyFile, "utf8");
-    const keyObject = createPublicKey(publicKeyPem);
+    const publicKeyDocument = readFileSync(publicKeyFile);
+    signatureSha256 = createHash("sha256").update(signature).digest("hex");
+    publicKeyDocumentSha256 = createHash("sha256")
+      .update(publicKeyDocument)
+      .digest("hex");
+    assertExpectedDigest(
+      signatureSha256,
+      expectedSignatureSha256,
+      "plugin detached signature",
+    );
+    assertExpectedDigest(
+      publicKeyDocumentSha256,
+      expectedPublicKeyDocumentSha256,
+      "plugin public-key document",
+    );
+    const publicKeyDocumentText = publicKeyDocument.toString("utf8");
+    const publicKeyContainer = publicKeyDocumentText.trim();
+    if (
+      !/^-----BEGIN PUBLIC KEY-----\r?\n(?:[A-Za-z0-9+/=]+\r?\n)+-----END PUBLIC KEY-----$/.test(
+        publicKeyContainer,
+      )
+    ) {
+      throw new Error(
+        "plugin public-key document must be a PEM SPKI PUBLIC KEY container",
+      );
+    }
+    const keyObject = createPublicKey(publicKeyContainer);
     publicKeySha256 = createHash("sha256")
       .update(keyObject.export({ type: "spki", format: "der" }))
       .digest("hex");
+    assertExpectedDigest(
+      publicKeySha256,
+      expectedPublicKeySha256,
+      "plugin public-key SPKI",
+    );
+    publicKeyPem = publicKeyDocumentText;
     const trusted = stringSet(trustedKeySha256);
     if (requireTrustedKey && (!trusted || trusted.size === 0)) {
       throw new Error(
@@ -114,12 +156,27 @@ export function verifyPluginManifest({
     sha256,
     signatureVerified,
     publicKeySha256: signatureVerified ? publicKeySha256 : null,
+    signatureSha256: signatureVerified ? signatureSha256 : null,
+    publicKeyDocumentSha256: signatureVerified ? publicKeyDocumentSha256 : null,
     // The raw signature material, so the installer can persist it and load-time
     // enforcement can CRYPTOGRAPHICALLY re-verify (not merely trust a recorded
     // boolean, which a hand-written lock file could forge).
     signatureBase64: signatureVerified ? signature.toString("base64") : null,
     publicKeyPem: signatureVerified ? publicKeyPem : null,
   };
+}
+
+function assertExpectedDigest(actual, expected, label) {
+  if (expected == null || String(expected).trim() === "") return;
+  const normalized = String(expected).trim().toLowerCase();
+  if (!/^[a-f0-9]{64}$/.test(normalized)) {
+    throw new Error(`${label} expected SHA-256 is invalid`);
+  }
+  if (actual !== normalized) {
+    throw new Error(
+      `${label} SHA-256 mismatch (expected ${normalized}, got ${actual})`,
+    );
+  }
 }
 
 export function loadPluginManagedPolicy(options = {}) {

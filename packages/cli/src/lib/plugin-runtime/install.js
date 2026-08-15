@@ -19,6 +19,7 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
+import crypto from "node:crypto";
 import { parsePluginManifest, isWithin } from "./manifest.js";
 import {
   pluginNameDir,
@@ -108,11 +109,16 @@ export function installFromDirectory(srcDir, opts = {}) {
       expectedSha256: sig.sha256,
       signatureFile: sig.signatureFile,
       publicKeyFile: sig.publicKeyFile,
+      expectedSignatureSha256: sig.expectedSignatureSha256 || null,
+      expectedPublicKeyDocumentSha256:
+        sig.expectedPublicKeyDocumentSha256 || null,
+      expectedPublicKeySha256: sig.expectedPublicKeySha256 || null,
       requireSignature: sig.requireSignature === true,
       trustedKeySha256: sig.trustedKeySha256 || null,
       requireTrustedKey: sig.requireTrustedKey === true,
     });
   }
+  assertRemoteSignatureInstallBinding(sourceMetadata, verification);
 
   const dest = pluginVersionDir(scope, name, version, { cwd: opts.cwd });
   const destExists = _deps.existsSync(dest);
@@ -245,13 +251,14 @@ export function installFromSource(source, opts = {}) {
           : { type: "local", source: path.resolve(String(source || "")) },
       );
     const res = installFromDirectory(dir, { ...opts, sourceMetadata });
-    return info
-      ? {
-          ...res,
-          source: sourceMetadata?.source || null,
-          ref: sourceMetadata?.ref || null,
-        }
-      : res;
+    if (!info) return res;
+    const result = {
+      ...res,
+      source: sourceMetadata?.source || null,
+      ref: sourceMetadata?.ref || null,
+    };
+    transferPendingTransaction(res, result);
+    return result;
   });
 }
 
@@ -751,7 +758,104 @@ function normalizeSourceMetadata(value) {
       value.catalogAuthority,
     );
   }
+  assertCatalogRemoteArtifactBindings(metadata);
   return metadata;
+}
+
+function assertCatalogRemoteArtifactBindings(metadata) {
+  const authority = metadata.catalogAuthority;
+  const evidence = authority?.remoteArtifactEvidence;
+  if (!evidence) return;
+  if (metadata.type !== "registry" || !metadata.registry) {
+    throw new Error(
+      "remote marketplace artifact evidence requires registry source metadata",
+    );
+  }
+  let registryOrigin;
+  try {
+    registryOrigin = new URL(metadata.registry).origin;
+  } catch {
+    throw new Error("remote marketplace artifact registry URL is invalid");
+  }
+  if (registryOrigin !== evidence.registryOrigin) {
+    throw new Error(
+      "remote marketplace artifact evidence registry origin does not match the selected registry",
+    );
+  }
+
+  const expectations = authority.artifactExpectations || {};
+  const expectedSignature = expectations.signature || {};
+  const expectsRemoteSignature = Boolean(
+    expectedSignature.url &&
+    expectedSignature.publicKeyUrl &&
+    expectedSignature.publicKeySha256,
+  );
+  if (expectsRemoteSignature !== Boolean(evidence.signature)) {
+    throw new Error(
+      "remote signature evidence does not match the catalog artifact declaration",
+    );
+  }
+  if (evidence.signature) {
+    const actual = evidence.signature;
+    if (
+      actual.url !== expectedSignature.url ||
+      actual.publicKey.url !== expectedSignature.publicKeyUrl ||
+      actual.publicKey.spkiSha256 !== expectedSignature.publicKeySha256 ||
+      (expectedSignature.documentSha256 &&
+        actual.signatureSha256 !== expectedSignature.documentSha256) ||
+      (expectedSignature.publicKeyDocumentSha256 &&
+        actual.publicKey.documentSha256 !==
+          expectedSignature.publicKeyDocumentSha256)
+    ) {
+      throw new Error(
+        "remote signature evidence does not match catalog URL or digest expectations",
+      );
+    }
+  }
+
+  const expectedSbom = expectations.sbom || {};
+  const expectsRemoteSbom = Boolean(
+    expectedSbom.url && expectedSbom.documentSha256,
+  );
+  if (expectsRemoteSbom !== Boolean(evidence.sbom)) {
+    throw new Error(
+      "remote SBOM evidence does not match the catalog artifact declaration",
+    );
+  }
+  if (evidence.sbom) {
+    const actual = evidence.sbom;
+    if (
+      actual.url !== expectedSbom.url ||
+      actual.expectedDocumentSha256 !== expectedSbom.documentSha256 ||
+      actual.documentSha256 !== expectedSbom.documentSha256 ||
+      actual.format !== expectedSbom.format
+    ) {
+      throw new Error(
+        "remote SBOM evidence does not match catalog URL, format, or digest expectations",
+      );
+    }
+  }
+}
+
+function assertRemoteSignatureInstallBinding(sourceMetadata, verification) {
+  const signature =
+    sourceMetadata?.catalogAuthority?.remoteArtifactEvidence?.signature;
+  if (!signature) return;
+  if (verification?.signatureVerified !== true) {
+    throw new Error(
+      "remote marketplace signature was not verified against the fetched plugin manifest",
+    );
+  }
+  if (
+    verification.signatureSha256 !== signature.signatureSha256 ||
+    verification.publicKeyDocumentSha256 !==
+      signature.publicKey.documentSha256 ||
+    verification.publicKeySha256 !== signature.publicKey.spkiSha256
+  ) {
+    throw new Error(
+      "remote marketplace signature bytes changed before installer verification",
+    );
+  }
 }
 
 function normalizeCatalogAuthority(value) {
@@ -765,6 +869,9 @@ function normalizeCatalogAuthority(value) {
   const updateImpactDigest = cleanBounded(value.updateImpactDigest, 64);
   const artifactExpectations = normalizeArtifactExpectations(
     value.artifactExpectations,
+  );
+  const remoteArtifactEvidence = normalizeRemoteArtifactEvidence(
+    value.remoteArtifactEvidence,
   );
   if (!/^[a-f0-9]{64}$/.test(catalogDigest || "")) {
     throw new Error(
@@ -832,6 +939,7 @@ function normalizeCatalogAuthority(value) {
       : {}),
     ...(updateImpactDigest ? { updateImpactDigest } : {}),
     ...(artifactExpectations ? { artifactExpectations } : {}),
+    ...(remoteArtifactEvidence ? { remoteArtifactEvidence } : {}),
     preflightStatus: "allowed",
     governanceStatus,
     registryStatus,
@@ -859,8 +967,20 @@ function normalizeArtifactExpectations(value) {
     "catalogAuthority.artifactExpectations.signature.publicKeySha256",
   );
   const sbomSha256 = digest(
-    value.sbom?.sha256,
+    value.sbom?.payloadSha256 ?? value.sbom?.sha256,
     "catalogAuthority.artifactExpectations.sbom.sha256",
+  );
+  const signatureDocumentSha256 = digest(
+    value.signature?.documentSha256,
+    "catalogAuthority.artifactExpectations.signature.documentSha256",
+  );
+  const signaturePublicKeyDocumentSha256 = digest(
+    value.signature?.publicKeyDocumentSha256,
+    "catalogAuthority.artifactExpectations.signature.publicKeyDocumentSha256",
+  );
+  const sbomDocumentSha256 = digest(
+    value.sbom?.documentSha256,
+    "catalogAuthority.artifactExpectations.sbom.documentSha256",
   );
   return {
     manifest: {
@@ -871,17 +991,223 @@ function normalizeArtifactExpectations(value) {
       status: status(value.signature?.status),
       algorithm: cleanBounded(value.signature?.algorithm, 64),
       publicKeySha256: signatureKeySha256,
+      documentSha256: signatureDocumentSha256,
+      publicKeyDocumentSha256: signaturePublicKeyDocumentSha256,
+      url: sanitizeSource(value.signature?.url),
+      publicKeyUrl: sanitizeSource(value.signature?.publicKeyUrl),
     },
     sbom: {
       status: status(value.sbom?.status),
       format: cleanBounded(value.sbom?.format, 128),
       sha256: sbomSha256,
+      payloadSha256: sbomSha256,
+      documentSha256: sbomDocumentSha256,
+      url: sanitizeSource(value.sbom?.url),
     },
     license: {
       status: status(value.license?.status),
       expression: cleanBounded(value.license?.expression, 256),
     },
   };
+}
+
+function normalizeRemoteArtifactEvidence(value) {
+  if (value == null) return null;
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(
+      "catalogAuthority.remoteArtifactEvidence must be an object",
+    );
+  }
+  if (
+    value.schemaVersion !== "cc-plugin-marketplace-remote-artifact-evidence/v1"
+  ) {
+    throw new Error(
+      "catalogAuthority.remoteArtifactEvidence schemaVersion is invalid",
+    );
+  }
+  const digest = (candidate, label) => {
+    const normalized = cleanBounded(candidate, 64)?.toLowerCase() || null;
+    if (!normalized || !/^[a-f0-9]{64}$/.test(normalized)) {
+      throw new Error(`${label} must be a SHA-256 hex digest`);
+    }
+    return normalized;
+  };
+  const boundedBytes = (candidate, maximum, label) => {
+    if (
+      !Number.isSafeInteger(candidate) ||
+      candidate < 0 ||
+      candidate > maximum
+    ) {
+      throw new Error(`${label} is outside the allowed byte limit`);
+    }
+    return candidate;
+  };
+  const normalizeArtifactUrl = (candidate, label) => {
+    const sanitized = sanitizeSource(candidate);
+    if (!sanitized || !/^https?:\/\//i.test(sanitized)) {
+      throw new Error(`${label} must be an http(s) URL`);
+    }
+    return sanitized;
+  };
+  const normalizeRegistryOrigin = (candidate) => {
+    const sanitized = normalizeArtifactUrl(
+      candidate,
+      "catalogAuthority.remoteArtifactEvidence.registryOrigin",
+    );
+    return new URL(sanitized).origin;
+  };
+  const signature = value.signature
+    ? {
+        status:
+          value.signature.status === "fetched"
+            ? "fetched"
+            : (() => {
+                throw new Error(
+                  "catalogAuthority.remoteArtifactEvidence.signature.status is invalid",
+                );
+              })(),
+        url: normalizeArtifactUrl(
+          value.signature.url,
+          "catalogAuthority.remoteArtifactEvidence.signature.url",
+        ),
+        signatureSha256: digest(
+          value.signature.signatureSha256,
+          "catalogAuthority.remoteArtifactEvidence.signature.signatureSha256",
+        ),
+        bytes: boundedBytes(
+          value.signature.bytes,
+          16 * 1024,
+          "catalogAuthority.remoteArtifactEvidence.signature.bytes",
+        ),
+        fromCache: value.signature.fromCache === true,
+        publicKey: {
+          url: normalizeArtifactUrl(
+            value.signature.publicKey?.url,
+            "catalogAuthority.remoteArtifactEvidence.signature.publicKey.url",
+          ),
+          documentSha256: digest(
+            value.signature.publicKey?.documentSha256,
+            "catalogAuthority.remoteArtifactEvidence.signature.publicKey.documentSha256",
+          ),
+          spkiSha256: digest(
+            value.signature.publicKey?.spkiSha256,
+            "catalogAuthority.remoteArtifactEvidence.signature.publicKey.spkiSha256",
+          ),
+          bytes: boundedBytes(
+            value.signature.publicKey?.bytes,
+            64 * 1024,
+            "catalogAuthority.remoteArtifactEvidence.signature.publicKey.bytes",
+          ),
+          fromCache: value.signature.publicKey?.fromCache === true,
+        },
+      }
+    : null;
+  const sbom = value.sbom
+    ? {
+        status:
+          value.sbom.status === "digest-verified"
+            ? "digest-verified"
+            : (() => {
+                throw new Error(
+                  "catalogAuthority.remoteArtifactEvidence.sbom.status is invalid",
+                );
+              })(),
+        url: normalizeArtifactUrl(
+          value.sbom.url,
+          "catalogAuthority.remoteArtifactEvidence.sbom.url",
+        ),
+        format: cleanBounded(value.sbom.format, 128),
+        expectedDocumentSha256: digest(
+          value.sbom.expectedDocumentSha256,
+          "catalogAuthority.remoteArtifactEvidence.sbom.expectedDocumentSha256",
+        ),
+        documentSha256: digest(
+          value.sbom.documentSha256,
+          "catalogAuthority.remoteArtifactEvidence.sbom.documentSha256",
+        ),
+        bytes: boundedBytes(
+          value.sbom.bytes,
+          16 * 1024 * 1024,
+          "catalogAuthority.remoteArtifactEvidence.sbom.bytes",
+        ),
+        fromCache: value.sbom.fromCache === true,
+      }
+    : null;
+  if (!signature && !sbom) {
+    throw new Error(
+      "catalogAuthority.remoteArtifactEvidence must bind at least one artifact",
+    );
+  }
+  if (sbom && sbom.expectedDocumentSha256 !== sbom.documentSha256) {
+    throw new Error(
+      "catalogAuthority.remoteArtifactEvidence SBOM digest is not verified",
+    );
+  }
+  const claims = {
+    publisherIdentityVerified: value.claims?.publisherIdentityVerified === true,
+    signatureBytesFetched: value.claims?.signatureBytesFetched === true,
+    publicKeyFingerprintVerified:
+      value.claims?.publicKeyFingerprintVerified === true,
+    manifestSignatureVerified: value.claims?.manifestSignatureVerified === true,
+    sbomDocumentDigestVerified:
+      value.claims?.sbomDocumentDigestVerified === true,
+    sbomPayloadCompared: value.claims?.sbomPayloadCompared === true,
+  };
+  if (claims.publisherIdentityVerified || claims.manifestSignatureVerified) {
+    throw new Error(
+      "remote artifact fetch evidence cannot assert publisher identity or manifest verification",
+    );
+  }
+  if (
+    (!signature &&
+      (claims.signatureBytesFetched || claims.publicKeyFingerprintVerified)) ||
+    (!sbom && claims.sbomDocumentDigestVerified) ||
+    claims.sbomPayloadCompared
+  ) {
+    throw new Error(
+      "remote artifact fetch evidence claims do not match the recorded artifacts",
+    );
+  }
+  if (
+    signature &&
+    (!claims.signatureBytesFetched || !claims.publicKeyFingerprintVerified)
+  ) {
+    throw new Error(
+      "remote signature artifact evidence is missing verification claims",
+    );
+  }
+  if (sbom && !claims.sbomDocumentDigestVerified) {
+    throw new Error(
+      "remote SBOM artifact evidence is missing digest verification",
+    );
+  }
+  if (value.status !== "verified") {
+    throw new Error(
+      "catalogAuthority.remoteArtifactEvidence.status must be verified",
+    );
+  }
+  const authority = {
+    schemaVersion: "cc-plugin-marketplace-remote-artifact-evidence/v1",
+    status: "verified",
+    registryOrigin: normalizeRegistryOrigin(value.registryOrigin),
+    signature,
+    sbom,
+    claims,
+  };
+  const evidenceDigest = digest(
+    value.evidenceDigest,
+    "catalogAuthority.remoteArtifactEvidence.evidenceDigest",
+  );
+  const actualDigest = crypto
+    .createHash("sha256")
+    .update(canonicalJson(authority))
+    .digest("hex");
+  if (evidenceDigest !== actualDigest) {
+    throw new Error(
+      "catalogAuthority.remoteArtifactEvidence.evidenceDigest does not match its authority",
+    );
+  }
+  return { ...authority, evidenceDigest };
 }
 
 function sanitizeSource(value, preservePath = false) {
@@ -904,6 +1230,17 @@ function cleanBounded(value, max) {
   if (typeof value !== "string") return null;
   const clean = value.replace(/\p{Cc}/gu, "").trim();
   return clean ? clean.slice(0, max) : null;
+}
+
+function canonicalJson(value) {
+  if (value == null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => canonicalJson(item)).join(",")}]`;
+  }
+  return `{${Object.keys(value)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`)
+    .join(",")}}`;
 }
 
 function assertExpectedPluginIdentity(name, version, expectedIdentity) {

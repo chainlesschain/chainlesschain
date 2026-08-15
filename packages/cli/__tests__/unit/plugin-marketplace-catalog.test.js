@@ -31,6 +31,7 @@ function governedEntry(overrides = {}) {
     sbom: {
       format: "cyclonedx-json",
       digest: SHA_B,
+      documentSha256: SHA_B,
       url: "https://registry.example/sbom/acme.json?token=secret",
     },
     license: "Apache-2.0",
@@ -124,6 +125,8 @@ describe("plugin marketplace catalog governance projection", () => {
     expect(candidate.integrity.sbom).toMatchObject({
       status: "declared",
       digest: SHA_B,
+      documentSha256: SHA_B,
+      payloadSha256: SHA_B,
       url: "https://registry.example/sbom/acme.json",
     });
     expect(candidate.license).toMatchObject({
@@ -161,6 +164,274 @@ describe("plugin marketplace catalog governance projection", () => {
         }),
       ]),
     );
+  });
+
+  it("requires a complete remote signature bundle and sanitizes both artifact URLs", () => {
+    const complete = buildPluginMarketplaceInstallPreflight({
+      registryUrl: "https://registry.example/index.json",
+      entry: governedEntry({
+        dependencies: {},
+        signature: {
+          algorithm: "ed25519",
+          url: "https://registry.example/signatures/acme.sig?token=secret",
+          publicKeyUrl:
+            "https://registry.example/keys/acme.pem?token=secret#download",
+          publicKeySha256: KEY_SHA,
+        },
+      }),
+      hostVersion: "0.163.8",
+    }).preflight;
+    expect(complete.status).toBe("allowed");
+    expect(complete.integrity.signature).toMatchObject({
+      url: "https://registry.example/signatures/acme.sig",
+      publicKeyUrl: "https://registry.example/keys/acme.pem",
+      publicKeySha256: KEY_SHA,
+    });
+
+    const incomplete = buildPluginMarketplaceInstallPreflight({
+      registryUrl: "https://registry.example/index.json",
+      entry: governedEntry({
+        dependencies: {},
+        signature: {
+          algorithm: "ed25519",
+          url: "https://registry.example/signatures/acme.sig",
+          publicKeySha256: KEY_SHA,
+        },
+      }),
+      hostVersion: "0.163.8",
+    }).preflight;
+    expect(incomplete.status).toBe("allowed");
+    expect(incomplete.governance.missing).toContain("signature-artifact");
+    expect(incomplete.warnings.map((warning) => warning.code)).toContain(
+      "REMOTE_SIGNATURE_ARTIFACT_INCOMPLETE",
+    );
+
+    const strictIncomplete = buildPluginMarketplaceInstallPreflight({
+      registryUrl: "https://registry.example/index.json",
+      entry: governedEntry({
+        dependencies: {},
+        signature: {
+          algorithm: "ed25519",
+          url: "https://registry.example/signatures/acme.sig",
+          publicKeySha256: KEY_SHA,
+        },
+      }),
+      hostVersion: "0.163.8",
+      strict: true,
+    }).preflight;
+    expect(strictIncomplete.status).toBe("blocked");
+    expect(strictIncomplete.blockers.map((blocker) => blocker.code)).toContain(
+      "STRICT_GOVERNANCE_METADATA_REQUIRED",
+    );
+  });
+
+  it("requires a document digest for a remotely fetched SBOM", () => {
+    const { preflight } = buildPluginMarketplaceInstallPreflight({
+      registryUrl: "https://registry.example/index.json",
+      entry: governedEntry({
+        dependencies: {},
+        sbom: {
+          format: "cyclonedx-json",
+          url: "https://registry.example/sbom/acme.json",
+        },
+      }),
+      hostVersion: "0.163.8",
+    });
+
+    expect(preflight.status).toBe("allowed");
+    expect(preflight.integrity.sbom).toMatchObject({
+      payloadSha256: null,
+      documentSha256: null,
+      remoteVerification: "incomplete",
+    });
+    expect(preflight.warnings.map((warning) => warning.code)).toContain(
+      "REMOTE_SBOM_ARTIFACT_INCOMPLETE",
+    );
+
+    const legacy = buildPluginMarketplaceInstallPreflight({
+      registryUrl: "https://registry.example/index.json",
+      entry: governedEntry({
+        dependencies: {},
+        sbom: {
+          format: "cyclonedx-json",
+          url: "https://registry.example/sbom/acme.json",
+          digest: SHA_B,
+        },
+      }),
+      hostVersion: "0.163.8",
+    }).preflight;
+    expect(legacy.status).toBe("allowed");
+    expect(legacy.integrity.sbom).toMatchObject({
+      payloadSha256: SHA_B,
+      documentSha256: null,
+      remoteVerification: "incomplete",
+    });
+  });
+
+  it("requires every digest alias for one semantic value to agree", () => {
+    const consistent = buildPluginMarketplaceInstallPreflight({
+      registryUrl: "https://registry.example/index.json",
+      entry: governedEntry({
+        dependencies: {},
+        digest: { sha256: SHA_A.toUpperCase() },
+        signature: {
+          algorithm: "ed25519",
+          publicKeySha256: KEY_SHA,
+          documentSha256: SHA_A,
+          sha256: SHA_A.toUpperCase(),
+          digest: SHA_A,
+          publicKeyDocumentSha256: SHA_B,
+          publicKey: {
+            documentSha256: SHA_B.toUpperCase(),
+            sha256: SHA_B,
+          },
+        },
+        sbom: {
+          format: "cyclonedx-json",
+          payloadSha256: SHA_A,
+          payloadDigest: SHA_A.toUpperCase(),
+          digest: SHA_A,
+          sha256: SHA_A,
+          documentSha256: SHA_B,
+          documentDigest: SHA_B.toUpperCase(),
+          url: "https://registry.example/sbom/acme.json",
+        },
+      }),
+      hostVersion: "0.163.8",
+    }).preflight;
+
+    expect(consistent.status).toBe("allowed");
+    expect(consistent.integrity.sbom).toMatchObject({
+      payloadSha256: SHA_A,
+      documentSha256: SHA_B,
+      remoteVerification: "complete",
+    });
+
+    const conflicts = [
+      {
+        code: "CONFLICTING_MANIFEST_DIGEST_DECLARATIONS",
+        entry: governedEntry({
+          dependencies: {},
+          digest: { sha256: SHA_B },
+        }),
+      },
+      {
+        code: "CONFLICTING_SIGNATURE_DIGEST_DECLARATIONS",
+        entry: governedEntry({
+          dependencies: {},
+          signature: {
+            algorithm: "ed25519",
+            publicKeySha256: KEY_SHA,
+            documentSha256: SHA_A,
+            sha256: SHA_B,
+          },
+        }),
+      },
+      {
+        code: "CONFLICTING_PUBLIC_KEY_DOCUMENT_DIGEST_DECLARATIONS",
+        entry: governedEntry({
+          dependencies: {},
+          signature: {
+            algorithm: "ed25519",
+            publicKeySha256: KEY_SHA,
+            publicKeyDocumentSha256: SHA_A,
+            publicKey: { documentSha256: SHA_B },
+          },
+        }),
+      },
+      {
+        code: "CONFLICTING_SBOM_PAYLOAD_DIGEST_DECLARATIONS",
+        entry: governedEntry({
+          dependencies: {},
+          sbom: { payloadSha256: SHA_A, digest: SHA_B },
+        }),
+      },
+      {
+        code: "CONFLICTING_SBOM_DOCUMENT_DIGEST_DECLARATIONS",
+        entry: governedEntry({
+          dependencies: {},
+          sbom: {
+            payloadSha256: SHA_A,
+            documentSha256: SHA_A,
+            documentDigest: SHA_B,
+            url: "https://registry.example/sbom/acme.json",
+          },
+        }),
+      },
+    ];
+
+    for (const { code, entry } of conflicts) {
+      const preflight = buildPluginMarketplaceInstallPreflight({
+        registryUrl: "https://registry.example/index.json",
+        entry,
+        hostVersion: "0.163.8",
+      }).preflight;
+      expect(preflight.status).toBe("blocked");
+      expect(preflight.blockers.map((blocker) => blocker.code)).toContain(code);
+    }
+  });
+
+  it("marks an unlocatable document-only SBOM incomplete without conflating payload and document digests", () => {
+    const documentOnly = buildPluginMarketplaceInstallPreflight({
+      registryUrl: "https://registry.example/index.json",
+      entry: governedEntry({
+        dependencies: {},
+        sbom: {
+          format: "cyclonedx-json",
+          documentSha256: SHA_B,
+        },
+      }),
+      hostVersion: "0.163.8",
+    }).preflight;
+    expect(documentOnly.status).toBe("allowed");
+    expect(documentOnly.integrity.sbom).toMatchObject({
+      payloadSha256: null,
+      documentSha256: SHA_B,
+      url: null,
+      remoteVerification: "incomplete",
+    });
+    expect(documentOnly.governance.missing).toContain("sbom-artifact-url");
+    expect(documentOnly.warnings.map((warning) => warning.code)).toContain(
+      "REMOTE_SBOM_ARTIFACT_INCOMPLETE",
+    );
+
+    const strictDocumentOnly = buildPluginMarketplaceInstallPreflight({
+      registryUrl: "https://registry.example/index.json",
+      entry: governedEntry({
+        dependencies: {},
+        sbom: {
+          format: "cyclonedx-json",
+          documentSha256: SHA_B,
+        },
+      }),
+      hostVersion: "0.163.8",
+      strict: true,
+    }).preflight;
+    expect(strictDocumentOnly.status).toBe("blocked");
+    expect(
+      strictDocumentOnly.blockers.map((blocker) => blocker.code),
+    ).toContain("STRICT_GOVERNANCE_METADATA_REQUIRED");
+
+    const mixed = buildPluginMarketplaceInstallPreflight({
+      registryUrl: "https://registry.example/index.json",
+      entry: governedEntry({
+        dependencies: {},
+        sbom: {
+          format: "cc-plugin-marketplace-payload-sbom/v1",
+          payloadSha256: SHA_A,
+          documentSha256: SHA_B,
+        },
+      }),
+      hostVersion: "0.163.8",
+      strict: true,
+    }).preflight;
+    expect(mixed.status).toBe("allowed");
+    expect(mixed.integrity.sbom).toMatchObject({
+      payloadSha256: SHA_A,
+      documentSha256: SHA_B,
+      remoteVerification: "not-requested",
+    });
+    expect(mixed.governance.missing).not.toContain("sbom-artifact-url");
   });
 
   it("has a stable authority digest independent of observation time", () => {

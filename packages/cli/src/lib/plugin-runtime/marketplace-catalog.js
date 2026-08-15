@@ -44,6 +44,7 @@ export function buildPluginMarketplaceInstallPreflight({
   fromCache = false,
   installed = {},
   hostVersion = null,
+  strict = false,
   observedAt = new Date().toISOString(),
 } = {}) {
   const catalog = buildPluginMarketplaceCatalog({
@@ -56,6 +57,7 @@ export function buildPluginMarketplaceInstallPreflight({
     ],
     installed,
     hostVersion,
+    strict,
     generatedAt: observedAt,
   });
   const candidate = catalog.candidates[0];
@@ -439,7 +441,7 @@ function normalizeCandidate(entry, context) {
     blockers.push(issue("SOURCE_CREDENTIALS_EMBEDDED"));
   }
 
-  const integrity = normalizeIntegrity(raw, blockers);
+  const integrity = normalizeIntegrity(raw, blockers, warnings);
   const license = normalizeLicense(raw.license);
   const capabilitiesDeclared = hasCapabilityDeclaration(raw);
   const capabilities = normalizeCapabilities(
@@ -512,6 +514,14 @@ function normalizeCandidate(entry, context) {
     missingGovernance.push("signature");
   }
   if (integrity.sbom.status !== "declared") missingGovernance.push("sbom");
+  if (integrity.signature.remoteVerification === "incomplete") {
+    missingGovernance.push("signature-artifact");
+  }
+  if (integrity.sbom.remoteVerification === "incomplete") {
+    missingGovernance.push(
+      integrity.sbom.url ? "sbom-document-digest" : "sbom-artifact-url",
+    );
+  }
   if (license.status !== "declared") missingGovernance.push("license");
   if (!capabilitiesDeclared) missingGovernance.push("capabilities");
   if (missingGovernance.length) {
@@ -639,8 +649,15 @@ function normalizeCandidate(entry, context) {
   return candidate;
 }
 
-function normalizeIntegrity(raw, blockers) {
-  const digestValue = boundedString(raw.sha256 ?? raw.digest?.sha256, 128);
+function normalizeIntegrity(raw, blockers, warnings) {
+  const digestValue = normalizeDigestAliases(
+    [
+      ["sha256", raw.sha256],
+      ["digest.sha256", raw.digest?.sha256],
+    ],
+    blockers,
+    "CONFLICTING_MANIFEST_DIGEST_DECLARATIONS",
+  );
   const digestStatus = !digestValue
     ? "missing"
     : SHA256_RE.test(digestValue)
@@ -657,11 +674,36 @@ function normalizeIntegrity(raw, blockers) {
   const signatureKeyId = boundedString(signatureRaw?.keyId, 256) || null;
   const signatureKeyDigest =
     boundedString(signatureRaw?.publicKeySha256, 128) || null;
-  const signatureUrl = sanitizeUrl(signatureRaw?.url) || null;
+  const signatureUrl = sanitizeHttpUrl(signatureRaw?.url) || null;
+  const signaturePublicKeyUrl =
+    sanitizeHttpUrl(
+      signatureRaw?.publicKeyUrl ?? signatureRaw?.publicKey?.url,
+    ) || null;
+  const signatureDocumentSha256 = normalizeDigestAliases(
+    [
+      ["documentSha256", signatureRaw?.documentSha256],
+      ["sha256", signatureRaw?.sha256],
+      ["digest", signatureRaw?.digest],
+    ],
+    blockers,
+    "CONFLICTING_SIGNATURE_DIGEST_DECLARATIONS",
+  );
+  const signaturePublicKeyDocumentSha256 = normalizeDigestAliases(
+    [
+      ["publicKeyDocumentSha256", signatureRaw?.publicKeyDocumentSha256],
+      ["publicKey.documentSha256", signatureRaw?.publicKey?.documentSha256],
+      ["publicKey.sha256", signatureRaw?.publicKey?.sha256],
+    ],
+    blockers,
+    "CONFLICTING_PUBLIC_KEY_DOCUMENT_DIGEST_DECLARATIONS",
+  );
   const signatureDeclared = Boolean(
     signatureObject &&
     signatureAlgorithm &&
-    (signatureKeyId || signatureKeyDigest || signatureUrl),
+    (signatureKeyId ||
+      signatureKeyDigest ||
+      signatureUrl ||
+      signaturePublicKeyUrl),
   );
   const signature = {
     status: signatureDeclared ? "declared" : "missing",
@@ -671,34 +713,117 @@ function normalizeIntegrity(raw, blockers) {
     keyId: signatureKeyId,
     publicKeySha256: signatureKeyDigest,
     url: signatureUrl,
+    publicKeyUrl: signaturePublicKeyUrl,
+    documentSha256: signatureDocumentSha256,
+    publicKeyDocumentSha256: signaturePublicKeyDocumentSha256,
+    remoteVerification:
+      signatureUrl && signaturePublicKeyUrl && signatureKeyDigest
+        ? "complete"
+        : signatureUrl || signaturePublicKeyUrl
+          ? "incomplete"
+          : "not-requested",
   };
   if (signature.publicKeySha256 && !SHA256_RE.test(signature.publicKeySha256)) {
     signature.status = "invalid";
     blockers.push(issue("INVALID_SIGNATURE_KEY_DIGEST"));
   }
-  if (signatureDeclared && signature.algorithm.toLowerCase() !== "ed25519") {
+  if (signatureDeclared && signature.algorithm?.toLowerCase() !== "ed25519") {
     signature.status = "invalid";
     blockers.push(issue("UNSUPPORTED_SIGNATURE_ALGORITHM"));
+  }
+  if (signature.documentSha256 && !SHA256_RE.test(signature.documentSha256)) {
+    signature.status = "invalid";
+    blockers.push(issue("INVALID_SIGNATURE_DIGEST"));
+  }
+  if (
+    signature.publicKeyDocumentSha256 &&
+    !SHA256_RE.test(signature.publicKeyDocumentSha256)
+  ) {
+    signature.status = "invalid";
+    blockers.push(issue("INVALID_PUBLIC_KEY_DOCUMENT_DIGEST"));
+  }
+  if (signature.remoteVerification === "incomplete") {
+    warnings.push(issue("REMOTE_SIGNATURE_ARTIFACT_INCOMPLETE"));
+  }
+  if (
+    (signatureRaw?.url && !signature.url) ||
+    ((signatureRaw?.publicKeyUrl || signatureRaw?.publicKey?.url) &&
+      !signature.publicKeyUrl)
+  ) {
+    signature.status = "invalid";
+    blockers.push(issue("INVALID_REMOTE_ARTIFACT_URL"));
+  }
+  if (
+    hasUrlCredentials(signatureRaw?.url) ||
+    hasUrlCredentials(
+      signatureRaw?.publicKeyUrl ?? signatureRaw?.publicKey?.url,
+    )
+  ) {
+    signature.status = "invalid";
+    blockers.push(issue("REMOTE_ARTIFACT_URL_CREDENTIALS_EMBEDDED"));
   }
 
   const sbomRaw = raw.sbom;
   const sbomObject =
     sbomRaw && typeof sbomRaw === "object" && !Array.isArray(sbomRaw);
-  const sbomDigest = boundedString(sbomRaw?.digest ?? sbomRaw?.sha256, 128);
   const sbomFormat = boundedString(sbomRaw?.format, 128) || null;
-  const sbomUrl = sanitizeUrl(sbomRaw?.url) || null;
-  const sbomDeclared = Boolean(sbomObject && (sbomDigest || sbomUrl));
+  const sbomUrl = sanitizeHttpUrl(sbomRaw?.url) || null;
+  const sbomDocumentSha256 = normalizeDigestAliases(
+    [
+      ["documentSha256", sbomRaw?.documentSha256],
+      ["documentDigest", sbomRaw?.documentDigest],
+    ],
+    blockers,
+    "CONFLICTING_SBOM_DOCUMENT_DIGEST_DECLARATIONS",
+  );
+  const sbomPayloadSha256 = normalizeDigestAliases(
+    [
+      ["payloadSha256", sbomRaw?.payloadSha256],
+      ["payloadDigest", sbomRaw?.payloadDigest],
+      ["digest", sbomRaw?.digest],
+      ["sha256", sbomRaw?.sha256],
+    ],
+    blockers,
+    "CONFLICTING_SBOM_PAYLOAD_DIGEST_DECLARATIONS",
+  );
+  const sbomDigest = sbomPayloadSha256;
+  const sbomDeclared = Boolean(
+    sbomObject && (sbomDigest || sbomUrl || sbomDocumentSha256),
+  );
   const sbom = {
     status: sbomDeclared ? "declared" : "missing",
     verification: "not-verified-at-catalog-time",
     subject: "plugin-files",
     format: sbomFormat,
     digest: sbomDigest || null,
+    documentSha256: sbomDocumentSha256,
+    payloadSha256: sbomPayloadSha256,
     url: sbomUrl,
+    remoteVerification:
+      sbomUrl && sbomDocumentSha256
+        ? "complete"
+        : sbomUrl || (sbomDocumentSha256 && !sbomPayloadSha256)
+          ? "incomplete"
+          : "not-requested",
   };
-  if (sbomDigest && !SHA256_RE.test(sbomDigest)) {
+  if (
+    [sbomDocumentSha256, sbomPayloadSha256].some(
+      (digest) => digest && !SHA256_RE.test(digest),
+    )
+  ) {
     sbom.status = "invalid";
     blockers.push(issue("INVALID_SBOM_DIGEST"));
+  }
+  if (sbom.remoteVerification === "incomplete") {
+    warnings.push(issue("REMOTE_SBOM_ARTIFACT_INCOMPLETE"));
+  }
+  if (sbomRaw?.url && !sbom.url) {
+    sbom.status = "invalid";
+    blockers.push(issue("INVALID_REMOTE_ARTIFACT_URL"));
+  }
+  if (hasUrlCredentials(sbomRaw?.url)) {
+    sbom.status = "invalid";
+    blockers.push(issue("REMOTE_ARTIFACT_URL_CREDENTIALS_EMBEDDED"));
   }
 
   return {
@@ -973,9 +1098,25 @@ function boundedString(value, max) {
   return clean.slice(0, max);
 }
 
+function normalizeDigestAliases(entries, blockers, conflictCode) {
+  const declared = entries
+    .map(([name, value]) => [name, boundedString(value, 128)])
+    .filter(([, value]) => Boolean(value));
+  const distinct = new Set(declared.map(([, value]) => value.toLowerCase()));
+  if (distinct.size > 1) {
+    blockers.push(
+      issue(conflictCode, declared.map(([name]) => name).join(", ")),
+    );
+  }
+  return declared[0]?.[1] || null;
+}
+
 function sanitizeUrl(value) {
-  const raw = boundedString(value, 4096);
+  const raw = String(value == null ? "" : value)
+    .replace(/\p{Cc}/gu, "")
+    .trim();
   if (!raw) return null;
+  if (raw.length > 4096) return null;
   try {
     const parsed = new URL(raw);
     parsed.username = "";
@@ -983,6 +1124,19 @@ function sanitizeUrl(value) {
     parsed.search = "";
     parsed.hash = "";
     return parsed.toString();
+  } catch {
+    return null;
+  }
+}
+
+function sanitizeHttpUrl(value) {
+  const sanitized = sanitizeUrl(value);
+  if (!sanitized) return null;
+  try {
+    const parsed = new URL(sanitized);
+    return parsed.protocol === "https:" || parsed.protocol === "http:"
+      ? parsed.toString()
+      : null;
   } catch {
     return null;
   }

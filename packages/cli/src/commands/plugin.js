@@ -46,6 +46,82 @@ async function loadOptionalPluginConfig() {
   }
 }
 
+async function fetchRegistryRemoteArtifacts(
+  registryUrl,
+  entry,
+  { token, allowInsecure = false } = {},
+) {
+  if (!registryUrl || !entry || typeof entry !== "object") return null;
+  const rawSignature =
+    entry.signature && typeof entry.signature === "object"
+      ? entry.signature
+      : null;
+  const signatureUrl = rawSignature?.url;
+  const publicKeyUrl =
+    rawSignature?.publicKeyUrl ?? rawSignature?.publicKey?.url;
+  const publicKeySha256 = rawSignature?.publicKeySha256;
+  const signature =
+    signatureUrl && publicKeyUrl && publicKeySha256
+      ? {
+          algorithm: rawSignature.algorithm,
+          url: signatureUrl,
+          sha256:
+            rawSignature.documentSha256 ??
+            rawSignature.sha256 ??
+            rawSignature.digest,
+          publicKeyUrl,
+          publicKeySha256,
+          publicKeyDocumentSha256:
+            rawSignature.publicKeyDocumentSha256 ??
+            rawSignature.publicKey?.documentSha256 ??
+            rawSignature.publicKey?.sha256,
+        }
+      : null;
+  const rawSbom =
+    entry.sbom && typeof entry.sbom === "object" ? entry.sbom : null;
+  const sbomDocumentSha256 = rawSbom?.documentSha256 ?? rawSbom?.documentDigest;
+  const sbom =
+    rawSbom?.url && sbomDocumentSha256
+      ? {
+          format: rawSbom.format,
+          url: rawSbom.url,
+          digest: sbomDocumentSha256,
+        }
+      : null;
+  if (!signature && !sbom) return null;
+  const config = await loadOptionalPluginConfig();
+  const { resolveRegistryToken } =
+    await import("../lib/plugin-runtime/remote-source.js");
+  const { fetchPluginMarketplaceRemoteArtifacts } =
+    await import("../lib/plugin-runtime/marketplace-remote-artifacts.js");
+  return fetchPluginMarketplaceRemoteArtifacts({
+    registryUrl,
+    token: resolveRegistryToken(registryUrl, { token, config }),
+    allowInsecure,
+    signature,
+    sbom,
+  });
+}
+
+function cleanupRegistryRemoteArtifacts(remoteArtifacts) {
+  if (!remoteArtifacts?.cleanup) return;
+  try {
+    remoteArtifacts.cleanup();
+  } catch {
+    logger.warn(
+      "Verified marketplace artifact temporary files could not be removed; cleanup can be retried safely.",
+    );
+  }
+}
+
+function registryManifestDigestConflict(registrySha256, optionSha256) {
+  if (!registrySha256 || !optionSha256) return false;
+  return (
+    String(registrySha256).trim().toLowerCase() !==
+    String(optionSha256).trim().toLowerCase()
+  );
+}
+
 async function discoverInstalledPluginVersions(cwd) {
   const { discoverPlugins } = await import("../lib/plugin-runtime/scopes.js");
   const installed = {};
@@ -158,7 +234,11 @@ async function buildRegistryInstallPreflight(url, resolved, cwd) {
   }).preflight;
 }
 
-function catalogAuthorityFromPreflight(preflight, impact = null) {
+function catalogAuthorityFromPreflight(
+  preflight,
+  impact = null,
+  remoteArtifactEvidence = null,
+) {
   return {
     catalogDigest: preflight.catalogDigest,
     candidateId: preflight.candidateId,
@@ -175,11 +255,19 @@ function catalogAuthorityFromPreflight(preflight, impact = null) {
         status: preflight.integrity.signature.status,
         algorithm: preflight.integrity.signature.algorithm,
         publicKeySha256: preflight.integrity.signature.publicKeySha256,
+        url: preflight.integrity.signature.url,
+        publicKeyUrl: preflight.integrity.signature.publicKeyUrl,
+        documentSha256: preflight.integrity.signature.documentSha256,
+        publicKeyDocumentSha256:
+          preflight.integrity.signature.publicKeyDocumentSha256,
       },
       sbom: {
         status: preflight.integrity.sbom.status,
         format: preflight.integrity.sbom.format,
-        sha256: preflight.integrity.sbom.digest,
+        sha256: preflight.integrity.sbom.payloadSha256,
+        payloadSha256: preflight.integrity.sbom.payloadSha256,
+        documentSha256: preflight.integrity.sbom.documentSha256,
+        url: preflight.integrity.sbom.url,
       },
       license: {
         status: preflight.license.status,
@@ -193,6 +281,7 @@ function catalogAuthorityFromPreflight(preflight, impact = null) {
         }
       : {}),
     ...(impact ? { updateImpactDigest: impact.impactDigest } : {}),
+    ...(remoteArtifactEvidence ? { remoteArtifactEvidence } : {}),
   };
 }
 
@@ -229,6 +318,7 @@ async function installedCatalogAuthorityMatches(
   cwd,
   preflight,
   impact = null,
+  remoteArtifactEvidence = null,
 ) {
   if (!preflight) return null;
   try {
@@ -244,6 +334,9 @@ async function installedCatalogAuthorityMatches(
       (!preflight.selectionDigest ||
         authority?.selectionDigest === preflight.selectionDigest) &&
       (!impact || authority?.updateImpactDigest === impact.impactDigest) &&
+      (!remoteArtifactEvidence ||
+        authority?.remoteArtifactEvidence?.evidenceDigest ===
+          remoteArtifactEvidence.evidenceDigest) &&
       authority?.preflightStatus === "allowed"
     );
   } catch {
@@ -265,6 +358,7 @@ async function buildInstalledMarketplaceSnapshot(name, scope, cwd) {
     includeDisabled: true,
   }).find((candidate) => candidate.name === name && candidate.scope === scope);
   let dependencies = {};
+  let payloadSbom = null;
   if (discovered?.manifest?.manifestPath) {
     try {
       const fs = await import("node:fs");
@@ -286,12 +380,28 @@ async function buildInstalledMarketplaceSnapshot(name, scope, cwd) {
       dependencies = {};
     }
   }
+  if (row.dir) {
+    try {
+      const { buildMarketplacePayloadSbom } =
+        await import("../lib/plugin-runtime/marketplace-artifact-readback.js");
+      payloadSbom = buildMarketplacePayloadSbom(row.dir);
+    } catch {
+      payloadSbom = null;
+    }
+  }
   return {
     name: row.name,
     version: row.version,
     scope: row.scope,
     source: row.source,
-    integrity: row.integrity,
+    integrity: {
+      ...row.integrity,
+      sbom: {
+        ...row.integrity?.sbom,
+        payloadSha256: payloadSbom?.digest || null,
+        payloadSchema: payloadSbom?.schemaVersion || null,
+      },
+    },
     license: {
       expression: discovered?.manifest?.metadata?.license || null,
     },
@@ -1191,7 +1301,7 @@ export function registerPluginCommand(program) {
     )
     .option("--json", "Output as JSON")
     .action(async (source, options) => {
-      const { installFromSource, setPluginEnabled } =
+      const { installFromSource, finalizePluginUpdate, rollbackPluginUpdate } =
         await import("../lib/plugin-runtime/install.js");
 
       // Remote resolution: a registry/manifest URL (or --registry <url> with a
@@ -1201,6 +1311,8 @@ export function registerPluginCommand(program) {
       let sourceMetadata = null;
       let expectedIdentity = null;
       let marketplacePreflight = null;
+      let remoteArtifactRequest = null;
+      let remoteArtifacts = null;
       const registryUrls = normalizeRegistryUrls(options.registry);
       const { isRemoteSource, resolveRemoteSource } =
         await import("../lib/plugin-runtime/remote-source.js");
@@ -1246,6 +1358,11 @@ export function registerPluginCommand(program) {
           }
           installSource = resolved.source;
           integritySha = resolved.sha256;
+          if (registryManifestDigestConflict(integritySha, options.sha256)) {
+            throw new Error(
+              "registry artifact verification failed: --sha256 does not match the registry-declared manifest SHA-256",
+            );
+          }
           if (marketplacePreflight.status !== "allowed") {
             throw new Error(
               `registry candidate preflight blocked: ${marketplacePreflightBlockerMessage(marketplacePreflight)}`,
@@ -1265,6 +1382,10 @@ export function registerPluginCommand(program) {
               "registry-declared-unverified"
                 ? marketplacePreflight.registryVersion
                 : null,
+          };
+          remoteArtifactRequest = {
+            registryUrl: url,
+            entry: resolved.entry,
           };
           sourceMetadata = {
             type: "registry",
@@ -1306,24 +1427,72 @@ export function registerPluginCommand(program) {
       const requiresManagedSignature =
         managed?.requireSignedPlugins === true ||
         managed?.requireSignedPlugins === "require";
+      try {
+        if (remoteArtifactRequest) {
+          remoteArtifacts = await fetchRegistryRemoteArtifacts(
+            remoteArtifactRequest.registryUrl,
+            remoteArtifactRequest.entry,
+            {
+              token: options.token,
+              allowInsecure: options.allowInsecureRegistry === true,
+            },
+          );
+          if (
+            remoteArtifacts?.signatureFile &&
+            (options.signature || options.publicKey)
+          ) {
+            throw new Error(
+              "registry remote signature artifacts cannot be combined with --signature/--public-key",
+            );
+          }
+          if (remoteArtifacts?.authority && sourceMetadata?.catalogAuthority) {
+            sourceMetadata.catalogAuthority = catalogAuthorityFromPreflight(
+              marketplacePreflight,
+              null,
+              remoteArtifacts.authority,
+            );
+          }
+        }
+      } catch (err) {
+        cleanupRegistryRemoteArtifacts(remoteArtifacts);
+        logger.error(`Registry artifact verification failed: ${err.message}`);
+        process.exitCode = 1;
+        return;
+      }
       const signature =
         options.sha256 ||
         options.signature ||
         options.publicKey ||
+        remoteArtifacts?.signatureFile ||
+        remoteArtifacts?.publicKeyFile ||
         integritySha ||
         requiresManagedSignature
           ? {
               sha256: options.sha256 || integritySha,
-              signatureFile: options.signature,
-              publicKeyFile: options.publicKey,
+              signatureFile:
+                remoteArtifacts?.signatureFile || options.signature,
+              publicKeyFile:
+                remoteArtifacts?.publicKeyFile || options.publicKey,
+              expectedSignatureSha256:
+                remoteArtifacts?.authority?.signature?.signatureSha256 || null,
+              expectedPublicKeyDocumentSha256:
+                remoteArtifacts?.authority?.signature?.publicKey
+                  ?.documentSha256 || null,
+              expectedPublicKeySha256:
+                remoteArtifacts?.authority?.signature?.publicKey?.spkiSha256 ||
+                null,
               requireSignature:
-                Boolean(options.signature) || requiresManagedSignature,
+                Boolean(remoteArtifacts?.signatureFile || options.signature) ||
+                requiresManagedSignature,
               trustedKeySha256: managed?.trustedPluginKeySha256 || null,
               requireTrustedKey: requiresManagedSignature,
             }
           : null;
+      let res = null;
+      let marketplaceTransactionFinalized = false;
+      let marketplaceCleanupPending = false;
       try {
-        const res = installFromSource(installSource, {
+        res = installFromSource(installSource, {
           scope: options.scope,
           cwd: process.cwd(),
           force: options.force === true,
@@ -1332,6 +1501,7 @@ export function registerPluginCommand(program) {
           expectedIdentity,
           managedPolicy: managed,
           policySource: sourceMetadata?.registry || source,
+          transactional: Boolean(marketplacePreflight),
         });
         const marketplaceAuthorityPersisted = marketplacePreflight
           ? res.sourceMetadata?.catalogAuthority?.catalogDigest ===
@@ -1342,16 +1512,14 @@ export function registerPluginCommand(program) {
               marketplacePreflight.candidateDigest &&
             (!marketplacePreflight.selectionDigest ||
               res.sourceMetadata?.catalogAuthority?.selectionDigest ===
-                marketplacePreflight.selectionDigest)
+                marketplacePreflight.selectionDigest) &&
+            (!remoteArtifacts?.authority ||
+              res.sourceMetadata?.catalogAuthority?.remoteArtifactEvidence
+                ?.evidenceDigest === remoteArtifacts.authority.evidenceDigest)
           : null;
         if (marketplacePreflight && !marketplaceAuthorityPersisted) {
-          setPluginEnabled(res.name, false, {
-            scope: res.scope,
-            cwd: process.cwd(),
-            reason: "marketplace catalog authority persistence failed",
-          });
           throw new Error(
-            "installed plugin was disabled because marketplace catalog authority was not persisted",
+            "marketplace install rejected because catalog and remote artifact authority was not persisted",
           );
         }
         const capNotice = await resolvePluginCapabilityNotice(
@@ -1370,12 +1538,23 @@ export function registerPluginCommand(program) {
               res.scope,
               process.cwd(),
             );
+          if (marketplacePreflight) {
+            const finalization = finalizePluginUpdate(res);
+            if (!finalization.finalized) {
+              throw new Error(
+                "marketplace install transaction could not be finalized",
+              );
+            }
+            marketplaceCleanupPending = finalization.cleanupPending === true;
+            marketplaceTransactionFinalized = true;
+          }
           console.log(
             JSON.stringify(
               {
                 ...res,
                 marketplacePreflight,
                 marketplaceAuthorityPersisted,
+                marketplaceCleanupPending,
                 capabilities: capNotice,
                 capabilitiesGranted,
               },
@@ -1384,6 +1563,26 @@ export function registerPluginCommand(program) {
             ),
           );
         } else {
+          await applyCapabilityConsentGate(
+            res.name,
+            res.scope,
+            capNotice,
+            process.cwd(),
+            {
+              grant: options.grantCapabilities === true,
+              interactive: Boolean(process.stdin.isTTY),
+            },
+          );
+          if (marketplacePreflight) {
+            const finalization = finalizePluginUpdate(res);
+            if (!finalization.finalized) {
+              throw new Error(
+                "marketplace install transaction could not be finalized",
+              );
+            }
+            marketplaceCleanupPending = finalization.cleanupPending === true;
+            marketplaceTransactionFinalized = true;
+          }
           logger.success(
             `Installed ${res.name} v${res.version} (${res.scope} scope)` +
               (res.signatureVerified ? chalk.green(" ✔ signed") : ""),
@@ -1405,20 +1604,25 @@ export function registerPluginCommand(program) {
           }
           for (const w of res.warnings || [])
             logger.log(chalk.yellow(`  ⚠ ${w}`));
-          await applyCapabilityConsentGate(
-            res.name,
-            res.scope,
-            capNotice,
-            process.cwd(),
-            {
-              grant: options.grantCapabilities === true,
-              interactive: Boolean(process.stdin.isTTY),
-            },
-          );
         }
       } catch (err) {
-        logger.error(`Install failed: ${err.message}`);
+        let recoveryNote = "";
+        if (res && marketplacePreflight && !marketplaceTransactionFinalized) {
+          try {
+            const recovery = rollbackPluginUpdate(res);
+            if (recovery.rolledBack) {
+              recoveryNote = recovery.version
+                ? `; restored v${recovery.version}`
+                : "; removed the rejected install";
+            }
+          } catch (recoveryError) {
+            recoveryNote = `; automatic recovery failed: ${recoveryError.message}`;
+          }
+        }
+        logger.error(`Install failed: ${err.message}${recoveryNote}`);
         process.exitCode = 1;
+      } finally {
+        cleanupRegistryRemoteArtifacts(remoteArtifacts);
       }
     });
 
@@ -1898,7 +2102,9 @@ export function registerPluginCommand(program) {
 
   // plugin evidence — compare persisted registry artifact expectations with
   // actual bytes in the active immutable install. Remote artifacts are not
-  // fetched here and remain explicitly partial/non-comparable.
+  // re-fetched here. The signature record is bound to the locally re-verified
+  // lock; the external SBOM digest remains an install-time record because its
+  // document bytes are not retained.
   plugin
     .command("evidence <name>")
     .description(
@@ -1955,9 +2161,27 @@ export function registerPluginCommand(program) {
           logger.log(
             chalk.gray(`  evidence digest: ${evidence.evidenceDigest}`),
           );
+          const remoteKinds = [
+            evidence.claims.remoteSignatureFetched ? "signature" : null,
+            evidence.claims.remoteSbomFetched ? "SBOM" : null,
+          ].filter(Boolean);
+          const remoteDetail = [
+            evidence.claims.remoteSignatureFetched
+              ? `signature bytes/key ${
+                  evidence.claims.remoteSignatureBoundToInstalledLock
+                    ? "are bound to the current installed lock"
+                    : "are not fully bound to the current installed lock"
+                }`
+              : null,
+            evidence.claims.remoteSbomFetched
+              ? "the SBOM digest is an install-time record and was not re-hashed here"
+              : null,
+          ].filter(Boolean);
           logger.log(
             chalk.gray(
-              "  Registry publisher identity and remote signature/SBOM artifacts are not verified by this local readback.",
+              remoteKinds.length
+                ? `  Install-time remote ${remoteKinds.join("/")} evidence is present: ${remoteDetail.join("; ")}. Remote documents were not re-fetched; publisher identity remains unverified.`
+                : "  No valid install-time remote signature/SBOM evidence is available; publisher identity remains unverified.",
             ),
           );
         }
@@ -2420,6 +2644,8 @@ export function registerPluginCommand(program) {
       let expectedIdentity = null;
       let marketplacePreflight = null;
       let marketplaceImpact = null;
+      let remoteArtifactRequest = null;
+      let remoteArtifacts = null;
       const registryUrls = normalizeRegistryUrls(options.registry);
       const { isRemoteSource, resolveRemoteSource } =
         await import("../lib/plugin-runtime/remote-source.js");
@@ -2465,6 +2691,11 @@ export function registerPluginCommand(program) {
           }
           installSource = resolved.source;
           integritySha = resolved.sha256;
+          if (registryManifestDigestConflict(integritySha, options.sha256)) {
+            throw new Error(
+              "registry artifact verification failed: --sha256 does not match the registry-declared manifest SHA-256",
+            );
+          }
           if (marketplacePreflight.status !== "allowed") {
             throw new Error(
               `registry candidate preflight blocked: ${marketplacePreflightBlockerMessage(marketplacePreflight)}`,
@@ -2523,6 +2754,10 @@ export function registerPluginCommand(program) {
                 ? marketplacePreflight.registryVersion
                 : null,
           };
+          remoteArtifactRequest = {
+            registryUrl: url,
+            entry: resolved.entry,
+          };
           sourceMetadata = {
             type: "registry",
             source: url,
@@ -2565,18 +2800,63 @@ export function registerPluginCommand(program) {
       const requiresManagedSignature =
         managed?.requireSignedPlugins === true ||
         managed?.requireSignedPlugins === "require";
+      try {
+        if (remoteArtifactRequest) {
+          remoteArtifacts = await fetchRegistryRemoteArtifacts(
+            remoteArtifactRequest.registryUrl,
+            remoteArtifactRequest.entry,
+            {
+              token: options.token,
+              allowInsecure: options.allowInsecureRegistry === true,
+            },
+          );
+          if (
+            remoteArtifacts?.signatureFile &&
+            (options.signature || options.publicKey)
+          ) {
+            throw new Error(
+              "registry remote signature artifacts cannot be combined with --signature/--public-key",
+            );
+          }
+          if (remoteArtifacts?.authority && sourceMetadata?.catalogAuthority) {
+            sourceMetadata.catalogAuthority = catalogAuthorityFromPreflight(
+              marketplacePreflight,
+              marketplaceImpact,
+              remoteArtifacts.authority,
+            );
+          }
+        }
+      } catch (err) {
+        cleanupRegistryRemoteArtifacts(remoteArtifacts);
+        logger.error(`Registry artifact verification failed: ${err.message}`);
+        process.exitCode = 1;
+        return;
+      }
       const signature =
         options.sha256 ||
         options.signature ||
         options.publicKey ||
+        remoteArtifacts?.signatureFile ||
+        remoteArtifacts?.publicKeyFile ||
         integritySha ||
         requiresManagedSignature
           ? {
               sha256: options.sha256 || integritySha,
-              signatureFile: options.signature,
-              publicKeyFile: options.publicKey,
+              signatureFile:
+                remoteArtifacts?.signatureFile || options.signature,
+              publicKeyFile:
+                remoteArtifacts?.publicKeyFile || options.publicKey,
+              expectedSignatureSha256:
+                remoteArtifacts?.authority?.signature?.signatureSha256 || null,
+              expectedPublicKeyDocumentSha256:
+                remoteArtifacts?.authority?.signature?.publicKey
+                  ?.documentSha256 || null,
+              expectedPublicKeySha256:
+                remoteArtifacts?.authority?.signature?.publicKey?.spkiSha256 ||
+                null,
               requireSignature:
-                Boolean(options.signature) || requiresManagedSignature,
+                Boolean(remoteArtifacts?.signatureFile || options.signature) ||
+                requiresManagedSignature,
               trustedKeySha256: managed?.trustedPluginKeySha256 || null,
               requireTrustedKey: requiresManagedSignature,
             }
@@ -2587,7 +2867,7 @@ export function registerPluginCommand(program) {
         res = updatePlugin(installSource, {
           scope: options.scope,
           cwd: process.cwd(),
-          force: options.force,
+          force: options.force === true || Boolean(remoteArtifacts?.authority),
           signature,
           sourceMetadata,
           expectedIdentity,
@@ -2601,6 +2881,7 @@ export function registerPluginCommand(program) {
           process.cwd(),
           marketplacePreflight,
           marketplaceImpact,
+          remoteArtifacts?.authority || null,
         );
         if (marketplacePreflight && !marketplaceAuthorityPersisted) {
           throw new Error(
@@ -2670,6 +2951,7 @@ export function registerPluginCommand(program) {
               process.cwd(),
               marketplacePreflight,
               marketplaceImpact,
+              remoteArtifacts?.authority || null,
             );
         } else {
           cleanupPending = finalizePluginUpdate(res).cleanupPending === true;
@@ -2752,6 +3034,8 @@ export function registerPluginCommand(program) {
         }
         logger.error(`Upgrade failed: ${err.message}${recoveryNote}`);
         process.exitCode = 1;
+      } finally {
+        cleanupRegistryRemoteArtifacts(remoteArtifacts);
       }
     });
 

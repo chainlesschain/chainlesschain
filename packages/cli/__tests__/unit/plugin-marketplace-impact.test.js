@@ -56,7 +56,11 @@ function installed(overrides = {}) {
     },
     integrity: {
       signature: { verified: true, manifestSha256: sha("a") },
-      sbom: { digest: sha("e") },
+      sbom: {
+        digest: sha("f"),
+        payloadSha256: sha("e"),
+        payloadSchema: "cc-plugin-marketplace-payload-sbom/v1",
+      },
     },
     license: { expression: "MIT" },
     capabilities: {
@@ -121,6 +125,96 @@ describe("plugin marketplace update impact", () => {
     expect(impact.requiredApprovals).toContainEqual({
       code: "SOURCE_SWITCH_APPROVAL_REQUIRED",
       detail: "source-switch",
+    });
+  });
+
+  it("keeps remote SBOM document hashes separate from local payload hashes", () => {
+    const documentSha256 = sha("d");
+    const impact = buildPluginMarketplaceUpdateImpact({
+      preflight: preflight(
+        candidate({
+          sbom: {
+            format: "cyclonedx-json",
+            url: "https://registry.example/artifacts/plugin.cdx.json",
+            documentSha256,
+          },
+        }),
+      ),
+      installed: installed({
+        source: {
+          ...installed().source,
+          catalogAuthority: {
+            remoteArtifactEvidence: {
+              evidenceDigest: sha("f"),
+              sbom: { documentSha256 },
+            },
+          },
+        },
+        integrity: {
+          signature: { verified: true, manifestSha256: sha("a") },
+          sbom: { digest: documentSha256 },
+        },
+      }),
+    });
+
+    expect(impact.changes.integrity.sbomDigest).toMatchObject({
+      from: null,
+      to: null,
+      status: "unknown",
+      changed: false,
+    });
+    expect(impact.changes.integrity.sbomDocumentDigest).toMatchObject({
+      from: documentSha256,
+      to: documentSha256,
+      status: "same",
+      changed: false,
+    });
+  });
+
+  it("compares payload digests only when both sides use the marketplace payload schema", () => {
+    const payloadSha256 = sha("d");
+    const impact = buildPluginMarketplaceUpdateImpact({
+      preflight: preflight(candidate({ sbom: { digest: payloadSha256 } })),
+      installed: installed({
+        integrity: {
+          signature: { verified: true, manifestSha256: sha("a") },
+          sbom: {
+            digest: sha("f"),
+            payloadSha256,
+            payloadSchema: "cc-plugin-marketplace-payload-sbom/v1",
+          },
+        },
+      }),
+    });
+
+    expect(impact.changes.integrity.sbomDigest).toMatchObject({
+      from: payloadSha256,
+      to: payloadSha256,
+      status: "same",
+      changed: false,
+    });
+  });
+
+  it("does not compare a payload digest labeled with another schema", () => {
+    const payloadSha256 = sha("d");
+    const impact = buildPluginMarketplaceUpdateImpact({
+      preflight: preflight(candidate({ sbom: { digest: payloadSha256 } })),
+      installed: installed({
+        integrity: {
+          signature: { verified: true, manifestSha256: sha("a") },
+          sbom: {
+            payloadSha256,
+            payloadSchema: "cyclonedx-json",
+          },
+        },
+      }),
+    });
+
+    expect(impact.changes.integrity.sbomDigest).toMatchObject({
+      from: null,
+      to: payloadSha256,
+      status: "unknown",
+      changed: false,
     });
   });
 
