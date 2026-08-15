@@ -35,6 +35,7 @@
     "test:cli-session-host-consistency": "node packages/cli/scripts/session-host-consistency-gate.mjs",
     "test:cli-team-soak": "node packages/cli/scripts/team-distributed-soak.mjs",
     "test:cli-reliability-soak": "node packages/cli/scripts/cli-reliability-soak.mjs",
+    "test:cli-background-keeper-soak": "node packages/cli/scripts/background-agent-keeper-soak.mjs",
     "test:cli-mcp-security-soak": "node packages/cli/scripts/cli-mcp-security-soak.mjs",
     "test:cli-scheduler-reliability-soak": "node packages/cli/scripts/scheduler-reliability-soak.mjs",
     "test:cli-scheduler-soak": "node packages/cli/scripts/scheduler-kernel-soak.mjs",

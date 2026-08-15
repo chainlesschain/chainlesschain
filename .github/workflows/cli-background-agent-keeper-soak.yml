@@ -1,0 +1,103 @@
+name: CLI Background Agent Keeper Soak
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cli-background-agent-keeper-soak.yml"
+      - ".github/actions/setup-node-deps/action.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "packages/cli/scripts/background-agent-keeper-soak.mjs"
+      - "packages/cli/scripts/soak-host-metrics.mjs"
+      - "packages/cli/scripts/cli-reliability-soak.mjs"
+      - "packages/cli/src/lib/agent-worktree.js"
+      - "packages/cli/src/lib/background-agent-keeper-*.js"
+      - "packages/cli/src/lib/background-agent-supervisor.js"
+      - "packages/cli/src/lib/background-interaction-*.js"
+      - "packages/cli/src/lib/background-session-transport.js"
+      - "packages/cli/src/lib/background-turn-bootstrap-protocol.js"
+      - "packages/cli/src/workers/background-agent-*.js"
+      - "packages/cli/src/workers/background-turn-bootstrap.js"
+      - "packages/cli/__tests__/unit/background-agent-keeper-soak.test.js"
+  schedule:
+    - cron: "41 4 * * 2"
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "Exact full commit SHA to test (blank uses selected ref)"
+        required: false
+        type: string
+      duration_seconds:
+        description: "Minimum keeper soak duration on each operating system"
+        required: true
+        default: "7200"
+        type: choice
+        options: ["600", "1800", "7200", "14400"]
+      agents:
+        description: "Concurrent background Agent slots (formal floor is 20)"
+        required: true
+        default: "20"
+        type: choice
+        options: ["20", "24", "32"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  keeper-soak:
+    name: "spawn/PID/keeper/restart soak (${{ matrix.os }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 270
+    env:
+      CC_BACKGROUND_KEEPER_SOAK_MODE: ${{ github.event_name == 'pull_request' && 'smoke' || 'formal' }}
+      CC_BACKGROUND_KEEPER_SOAK_DURATION_SECONDS: ${{ github.event_name == 'pull_request' && '5' || inputs.duration_seconds || '7200' }}
+      CC_BACKGROUND_KEEPER_SOAK_AGENTS: ${{ github.event_name == 'pull_request' && '3' || inputs.agents || '20' }}
+      CC_BACKGROUND_KEEPER_SOAK_MIN_CYCLES: ${{ github.event_name == 'pull_request' && '2' || '1000' }}
+      CC_BACKGROUND_KEEPER_SOAK_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+      CC_BACKGROUND_KEEPER_SOAK_CLEANUP_DEADLINE_MS: "30000"
+      CC_BACKGROUND_KEEPER_SOAK_MAX_RSS_GROWTH_MB: "192"
+      CC_BACKGROUND_KEEPER_SOAK_MAX_RESOURCE_GROWTH: "12"
+    steps:
+      - name: Checkout exact keeper soak commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CC_BACKGROUND_KEEPER_SOAK_EXPECTED_SHA }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Verify exact source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_sha="$(printf '%s' "${CC_BACKGROUND_KEEPER_SOAK_EXPECTED_SHA}" | tr '[:upper:]' '[:lower:]')"
+          [[ "${expected_sha}" =~ ^[0-9a-f]{40,64}$ ]]
+          test "$(git rev-parse HEAD | tr '[:upper:]' '[:lower:]')" = "${expected_sha}"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Run real background Agent keeper soak
+        env:
+          CC_BACKGROUND_KEEPER_SOAK_OUTPUT: ${{ runner.temp }}/background-agent-keeper-soak-${{ runner.os }}.json
+        run: npm run test:cli-background-keeper-soak
+
+      - name: Upload exact-SHA keeper evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: cli-background-agent-keeper-soak-${{ matrix.os }}-${{ env.CC_BACKGROUND_KEEPER_SOAK_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/background-agent-keeper-soak-${{ runner.os }}.json
+          if-no-files-found: error
+          retention-days: 30

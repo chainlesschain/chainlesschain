@@ -16,6 +16,7 @@ import { createNdjsonReader } from "../lib/background-session-transport.js";
 import {
   isBackgroundProcessTreeExecutionAlive,
   isProcessAlive,
+  isSameProcess,
   mutateBackgroundAgentState,
   readBackgroundAgentState,
   removeJobFile,
@@ -47,6 +48,14 @@ function writeMessage(socket, message) {
   } catch {
     return false;
   }
+}
+
+export function keeperWorkerIdentityAlive(
+  workerPid,
+  workerStartedAt,
+  probe = isSameProcess,
+) {
+  return probe(Number(workerPid), Number(workerStartedAt));
 }
 
 function stateOwnsTurn(state, turn) {
@@ -166,6 +175,7 @@ export async function runBackgroundAgentKeeper(jobFile, options = {}) {
   let workerSocket = null;
   let candidateSocket = null;
   let authenticatedHello = null;
+  let authenticatedWorkerStartedAt = null;
   let armedTurn = null;
   let finishing = false;
   let finishResolve;
@@ -185,6 +195,24 @@ export async function runBackgroundAgentKeeper(jobFile, options = {}) {
       }
       return { ...current, ...patch };
     });
+
+  const finishForWorkerDisconnect = () => {
+    if (finishing) return false;
+    finishing = true;
+    const active = armedTurn;
+    void (
+      active
+        ? cleanupTurn(job, active, "worker-disconnected")
+        : Promise.resolve({ confirmed: true })
+    ).finally(() => {
+      persistKeeper({
+        keeperStatus: active ? "worker-disconnected" : "closed",
+        keeperEndedAt: Date.now(),
+      });
+      server.close(() => finishResolve({ status: "closed" }));
+    });
+    return true;
+  };
 
   const server = net.createServer((socket) => {
     let authenticated = false;
@@ -232,6 +260,7 @@ export async function runBackgroundAgentKeeper(jobFile, options = {}) {
             }
             authenticated = true;
             authenticatedHello = hello;
+            authenticatedWorkerStartedAt = Number(current.startedAt);
             workerSocket = socket;
             clearTimeout(helloTimer);
             persistKeeper({ keeperStatus: "ready", keeperReadyAt: Date.now() });
@@ -372,25 +401,30 @@ export async function runBackgroundAgentKeeper(jobFile, options = {}) {
       clearTimeout(helloTimer);
       if (candidateSocket === socket) candidateSocket = null;
       if (workerSocket !== socket || finishing) return;
-      finishing = true;
-      const active = armedTurn;
-      void (
-        active
-          ? cleanupTurn(job, active, "worker-disconnected")
-          : Promise.resolve({ confirmed: true })
-      ).finally(() => {
-        persistKeeper({
-          keeperStatus: active ? "worker-disconnected" : "closed",
-          keeperEndedAt: Date.now(),
-        });
-        server.close(() => finishResolve({ status: "closed" }));
-      });
+      finishForWorkerDisconnect();
     };
     socket.once("close", disconnected);
     socket.once("error", disconnected);
   });
 
   const heartbeat = setInterval(() => {
+    if (
+      workerSocket &&
+      authenticatedHello &&
+      armedTurn &&
+      !keeperWorkerIdentityAlive(
+        authenticatedHello.workerPid,
+        authenticatedWorkerStartedAt,
+      )
+    ) {
+      // A Windows named-pipe handle can remain open after its worker dies if a
+      // platform helper retained a duplicate. Socket EOF alone is therefore
+      // not a sufficient lifetime signal. The generation-bound worker PID and
+      // its durable launch anchor provide an independent identity fence.
+      finishForWorkerDisconnect();
+      workerSocket.destroy();
+      return;
+    }
     persistKeeper({ keeperHeartbeatAt: Date.now() });
   }, HEARTBEAT_INTERVAL_MS);
   heartbeat.unref?.();

@@ -1,10 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   backgroundAgentKeeperPipePath,
   normalizeBackgroundAgentKeeperHello,
   normalizeBackgroundAgentKeeperTurn,
   sameBackgroundAgentKeeperTurn,
 } from "../../src/lib/background-agent-keeper-protocol.js";
+import { keeperWorkerIdentityAlive } from "../../src/workers/background-agent-keeper.js";
 
 const turn = {
   id: "bg-keeper-test",
@@ -44,5 +45,11 @@ describe("background agent keeper protocol", () => {
     expect(() => backgroundAgentKeeperPipePath("../escape", "C:\\tmp")).toThrow(
       /id/u,
     );
+  });
+
+  it("checks worker liveness against its durable launch anchor", () => {
+    const probe = vi.fn(() => false);
+    expect(keeperWorkerIdentityAlive(2468, 1_234_567, probe)).toBe(false);
+    expect(probe).toHaveBeenCalledWith(2468, 1_234_567);
   });
 });
