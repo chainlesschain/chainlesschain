@@ -22,6 +22,8 @@
  * @module cowork-workflow
  */
 
+import { createHash } from "node:crypto";
+import { types as utilTypes } from "node:util";
 import {
   existsSync,
   mkdirSync,
@@ -47,6 +49,7 @@ import {
   normalizeWorkflowDefinitionDigest,
   verifyCoworkWorkflowRecord,
 } from "./workflow-definition-contract.js";
+import { canonicalJson } from "./scheduler-kernel/contract.js";
 
 /** Maximum number of items a single forEach step can expand into. */
 export const MAX_FAN_OUT = 500;
@@ -54,6 +57,508 @@ export const MAX_FAN_OUT = 500;
 /** Absolute ceiling on a single loop step's iterations (infinite-loop guard). */
 export const MAX_LOOP_ITERATIONS = 100;
 export const COWORK_WORKFLOW_RUN_RECORD_SCHEMA = "cc-cowork-workflow-run/v1";
+export const COWORK_WORKFLOW_RUN_ADMISSION_INVALID_CODE =
+  "COWORK_WORKFLOW_RUN_ADMISSION_INVALID";
+export const COWORK_WORKFLOW_RUN_RESULT_INVALID_CODE =
+  "COWORK_WORKFLOW_RUN_RESULT_INVALID";
+
+const DYNAMIC_WORKFLOW_RUN_ADMISSION_SCHEMA =
+  "cc-dynamic-workflow-run-admission/v1";
+const EXECUTION_LOCATION_AUTHORITY_SCHEMA =
+  "cc-session-execution-location-authority/v1";
+const EXECUTION_LOCATION_BINDING_SCHEMA = "cc-execution-location-binding/v1";
+const COWORK_WORKFLOW_RECORD_SCHEMA = "cc-cowork-workflow-record/v1";
+const RUN_ADMISSION_FIELDS = new Set([
+  "schema",
+  "definition",
+  "executionLocation",
+  "executionPolicy",
+  "definitionDigest",
+  "executionLocationDigest",
+  "preflightDigest",
+  "maxParallel",
+  "credentialValuesTransferred",
+  "admissionDigest",
+]);
+const RUN_ADMISSION_DEFINITION_FIELDS = new Set([
+  "schema",
+  "definitionDigest",
+  "authority",
+]);
+const RUN_ADMISSION_DEFINITION_AUTHORITY_FIELDS = new Set([
+  "status",
+  "recordSchema",
+  "definitionSchema",
+  "definitionDigest",
+]);
+const RUN_ADMISSION_EXECUTION_LOCATION_FIELDS = new Set([
+  "authoritySchema",
+  "authority",
+  "session",
+  "bindingSchema",
+  "location",
+]);
+const RUN_ADMISSION_SESSION_FIELDS = new Set([
+  "sessionId",
+  "headHash",
+  "eventCount",
+]);
+const RUN_ADMISSION_EXECUTION_POLICY_FIELDS = new Set([
+  "cwd",
+  "continueOnError",
+  "pipeline",
+  "provider",
+  "model",
+]);
+const RUN_ADMISSION_LLM_OPTION_FIELDS = new Set(["provider", "model"]);
+const ADMITTED_TASK_ENTRY_REQUIRED_FIELDS = new Set([
+  "taskId",
+  "status",
+  "result",
+]);
+const ADMITTED_STEP_STATUSES = new Set([
+  "completed",
+  "failed",
+  "partial",
+  "skipped",
+]);
+const MAX_ADMITTED_RUN_STEPS = 64;
+const MAX_ADMITTED_SNAPSHOT_NODES = 25_000;
+const MAX_ADMITTED_SNAPSHOT_BYTES = 1024 * 1024;
+const STEP_TIMEOUT_CODE = "COWORK_WORKFLOW_STEP_TIMEOUT";
+
+function runAdmissionError(message) {
+  const error = new Error(message);
+  error.code = COWORK_WORKFLOW_RUN_ADMISSION_INVALID_CODE;
+  return error;
+}
+
+function runResultError(message) {
+  const error = new Error(message);
+  error.code = COWORK_WORKFLOW_RUN_RESULT_INVALID_CODE;
+  return error;
+}
+
+/**
+ * Snapshot an admitted runner value without invoking accessors or accepting
+ * proxies/non-JSON values. The returned graph is detached and deeply frozen,
+ * so callbacks and a hostile runner cannot mutate executor control state.
+ */
+function snapshotAdmittedCanonicalValue(
+  value,
+  name,
+  {
+    maxNodes = MAX_ADMITTED_SNAPSHOT_NODES,
+    maxBytes = MAX_ADMITTED_SNAPSHOT_BYTES,
+  } = {},
+) {
+  const seen = new WeakSet();
+  let nodes = 0;
+  let roughCharacters = 0;
+  const invalid = (reason) => {
+    throw runResultError(`${name} ${reason}`);
+  };
+  const account = (characters = 1) => {
+    nodes += 1;
+    roughCharacters += characters;
+    if (nodes > maxNodes || roughCharacters > maxBytes) {
+      invalid("exceeds snapshot limits");
+    }
+  };
+  const visit = (current, depth) => {
+    if (depth > 64) invalid("exceeds snapshot depth");
+    if (current === null || typeof current === "boolean") {
+      account();
+      return current;
+    }
+    if (typeof current === "string") {
+      account(current.length);
+      return current;
+    }
+    if (typeof current === "number") {
+      if (!Number.isFinite(current)) invalid("contains a non-finite number");
+      account();
+      return current;
+    }
+    if (!current || typeof current !== "object" || utilTypes.isProxy(current)) {
+      invalid("must contain only non-proxy canonical JSON values");
+    }
+    if (seen.has(current)) invalid("contains a cycle or repeated reference");
+    seen.add(current);
+    account();
+
+    if (Array.isArray(current)) {
+      if (Object.getPrototypeOf(current) !== Array.prototype) {
+        invalid("contains a non-plain array");
+      }
+      if (current.length > maxNodes) invalid("contains an oversized array");
+      const keys = Reflect.ownKeys(current);
+      if (keys.length !== current.length + 1) {
+        invalid("contains a sparse or extended array");
+      }
+      const output = [];
+      for (let index = 0; index < current.length; index += 1) {
+        const descriptor = Object.getOwnPropertyDescriptor(
+          current,
+          String(index),
+        );
+        if (
+          !descriptor ||
+          descriptor.enumerable !== true ||
+          !Object.hasOwn(descriptor, "value")
+        ) {
+          invalid("contains an accessor or sparse array entry");
+        }
+        output.push(visit(descriptor.value, depth + 1));
+      }
+      return Object.freeze(output);
+    }
+
+    const prototype = Object.getPrototypeOf(current);
+    if (prototype !== Object.prototype && prototype !== null) {
+      invalid("contains a non-plain object");
+    }
+    const output = {};
+    for (const key of Reflect.ownKeys(current)) {
+      if (typeof key !== "string") invalid("contains a symbol key");
+      const descriptor = Object.getOwnPropertyDescriptor(current, key);
+      if (
+        !descriptor ||
+        descriptor.enumerable !== true ||
+        !Object.hasOwn(descriptor, "value")
+      ) {
+        invalid("contains an accessor or non-enumerable property");
+      }
+      roughCharacters += key.length;
+      if (roughCharacters > maxBytes) invalid("exceeds snapshot limits");
+      output[key] = visit(descriptor.value, depth + 1);
+    }
+    return Object.freeze(output);
+  };
+
+  const snapshot = visit(value, 0);
+  let serialized;
+  try {
+    serialized = JSON.stringify(snapshot);
+  } catch {
+    invalid("cannot be serialized");
+  }
+  if (Buffer.byteLength(serialized, "utf8") > maxBytes) {
+    invalid("exceeds snapshot limits");
+  }
+  return snapshot;
+}
+
+function safeRunErrorMessage(error) {
+  if (!error || typeof error !== "object" || utilTypes.isProxy(error)) {
+    return "task failed";
+  }
+  const descriptor = Object.getOwnPropertyDescriptor(error, "message");
+  if (
+    descriptor &&
+    Object.hasOwn(descriptor, "value") &&
+    typeof descriptor.value === "string"
+  ) {
+    return descriptor.value.slice(0, 4096);
+  }
+  return "task failed";
+}
+
+function normalizeAdmittedTaskEntry(value) {
+  const entry = snapshotAdmittedCanonicalValue(value, "task result");
+  if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+    throw runResultError("task result must be a plain object");
+  }
+  if (
+    [...ADMITTED_TASK_ENTRY_REQUIRED_FIELDS].some(
+      (field) => !Object.hasOwn(entry, field),
+    ) ||
+    (entry.status !== "completed" && entry.status !== "failed") ||
+    typeof entry.taskId !== "string" ||
+    entry.taskId.length === 0 ||
+    entry.taskId.length > 512 ||
+    !entry.result ||
+    typeof entry.result !== "object" ||
+    Array.isArray(entry.result)
+  ) {
+    throw runResultError("task result has an invalid schema");
+  }
+  return Object.freeze({
+    taskId: entry.taskId,
+    status: entry.status,
+    result: entry.result,
+  });
+}
+
+function normalizeAdmittedOutcome(value, name = "workflow step outcome") {
+  const outcome = snapshotAdmittedCanonicalValue(value, name);
+  if (
+    !outcome ||
+    typeof outcome !== "object" ||
+    Array.isArray(outcome) ||
+    Reflect.ownKeys(outcome).length !== 4 ||
+    !["id", "status", "taskId", "result"].every((field) =>
+      Object.hasOwn(outcome, field),
+    ) ||
+    typeof outcome.id !== "string" ||
+    outcome.id.length === 0 ||
+    outcome.id.length > 512 ||
+    !ADMITTED_STEP_STATUSES.has(outcome.status) ||
+    (outcome.taskId !== null &&
+      (typeof outcome.taskId !== "string" ||
+        outcome.taskId.length === 0 ||
+        outcome.taskId.length > 512)) ||
+    !outcome.result ||
+    typeof outcome.result !== "object" ||
+    Array.isArray(outcome.result)
+  ) {
+    throw runResultError(`${name} has an invalid schema`);
+  }
+  return outcome;
+}
+
+function notifyWorkflowCallback(callback, value, admitted, name) {
+  if (typeof callback !== "function") return;
+  const view = admitted
+    ? snapshotAdmittedCanonicalValue(value, `${name} callback view`)
+    : value;
+  try {
+    callback(view);
+  } catch {
+    // Observation callbacks must not mutate or steer workflow control flow.
+  }
+}
+
+function assertAdmissionObject(value, fields, name) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(value)) ||
+    Object.keys(value).length !== fields.size ||
+    Object.keys(value).some((key) => !fields.has(key))
+  ) {
+    throw runAdmissionError(`${name} is invalid`);
+  }
+}
+
+function normalizeAdmittedLlmOptions(value) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    utilTypes.isProxy(value) ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(value))
+  ) {
+    throw runAdmissionError("admitted workflow llmOptions is invalid");
+  }
+  const keys = Reflect.ownKeys(value);
+  if (
+    keys.length !== RUN_ADMISSION_LLM_OPTION_FIELDS.size ||
+    keys.some(
+      (key) =>
+        typeof key !== "string" || !RUN_ADMISSION_LLM_OPTION_FIELDS.has(key),
+    )
+  ) {
+    throw runAdmissionError("admitted workflow llmOptions is not exact");
+  }
+  const snapshot = {};
+  for (const key of RUN_ADMISSION_LLM_OPTION_FIELDS) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (
+      !descriptor ||
+      !Object.hasOwn(descriptor, "value") ||
+      descriptor.enumerable !== true
+    ) {
+      throw runAdmissionError(
+        "admitted workflow llmOptions must use enumerable data properties",
+      );
+    }
+    snapshot[key] = descriptor.value;
+  }
+  return Object.freeze(snapshot);
+}
+
+function normalizeAdmissionDigest(value, name) {
+  const digest = normalizeWorkflowDefinitionDigest(value);
+  if (!digest || digest !== value) {
+    throw runAdmissionError(`${name} is invalid`);
+  }
+  return digest;
+}
+
+function admissionDigest(material) {
+  return `sha256:${createHash("sha256")
+    .update("chainlesschain.dynamic-workflow.admission.v1\0", "utf8")
+    .update(canonicalJson(material, "dynamicWorkflowAdmission"), "utf8")
+    .digest("hex")}`;
+}
+
+function normalizeWorkflowRunAdmission(
+  value,
+  definitionAuthority,
+  maxParallel,
+  execution,
+) {
+  try {
+    value = structuredClone(value);
+  } catch {
+    throw runAdmissionError("run admission could not be safely snapshotted");
+  }
+  assertAdmissionObject(value, RUN_ADMISSION_FIELDS, "run admission");
+  assertAdmissionObject(
+    value.definition,
+    RUN_ADMISSION_DEFINITION_FIELDS,
+    "run admission definition",
+  );
+  assertAdmissionObject(
+    value.definition.authority,
+    RUN_ADMISSION_DEFINITION_AUTHORITY_FIELDS,
+    "run admission definition authority",
+  );
+  assertAdmissionObject(
+    value.executionLocation,
+    RUN_ADMISSION_EXECUTION_LOCATION_FIELDS,
+    "run admission execution location",
+  );
+  assertAdmissionObject(
+    value.executionLocation.session,
+    RUN_ADMISSION_SESSION_FIELDS,
+    "run admission session proof",
+  );
+  assertAdmissionObject(
+    value.executionPolicy,
+    RUN_ADMISSION_EXECUTION_POLICY_FIELDS,
+    "run admission execution policy",
+  );
+  assertAdmissionObject(
+    execution.llmOptions,
+    RUN_ADMISSION_LLM_OPTION_FIELDS,
+    "admitted workflow llmOptions",
+  );
+
+  const definitionDigest = normalizeAdmissionDigest(
+    value.definitionDigest,
+    "run admission definition digest",
+  );
+  const executionLocationDigest = normalizeAdmissionDigest(
+    value.executionLocationDigest,
+    "run admission execution-location digest",
+  );
+  const preflightDigest = normalizeAdmissionDigest(
+    value.preflightDigest,
+    "run admission preflight digest",
+  );
+  const declaredAdmissionDigest = normalizeAdmissionDigest(
+    value.admissionDigest,
+    "run admission digest",
+  );
+  const authority = value.definition.authority;
+  const session = value.executionLocation.session;
+  const executionPolicy = value.executionPolicy;
+  const hasControlCharacters = (input) =>
+    [...input].some((character) => {
+      const codePoint = character.codePointAt(0);
+      return codePoint <= 0x1f || codePoint === 0x7f;
+    });
+  const validOptionalString = (input) =>
+    input === null ||
+    (typeof input === "string" &&
+      input.length > 0 &&
+      input.trim() === input &&
+      !hasControlCharacters(input));
+
+  if (
+    value.schema !== DYNAMIC_WORKFLOW_RUN_ADMISSION_SCHEMA ||
+    value.definition.schema !== definitionAuthority.schema ||
+    value.definition.definitionDigest !== definitionDigest ||
+    definitionDigest !== definitionAuthority.definitionDigest ||
+    authority.status !== "versioned" ||
+    authority.recordSchema !== COWORK_WORKFLOW_RECORD_SCHEMA ||
+    authority.definitionSchema !== definitionAuthority.schema ||
+    authority.definitionDigest !== definitionDigest ||
+    value.executionLocation.authoritySchema !==
+      EXECUTION_LOCATION_AUTHORITY_SCHEMA ||
+    value.executionLocation.authority !== "verified-session-start" ||
+    value.executionLocation.bindingSchema !==
+      EXECUTION_LOCATION_BINDING_SCHEMA ||
+    typeof value.executionLocation.location !== "string" ||
+    value.executionLocation.location.trim() !==
+      value.executionLocation.location ||
+    value.executionLocation.location.length === 0 ||
+    typeof session.sessionId !== "string" ||
+    session.sessionId.trim() !== session.sessionId ||
+    session.sessionId.length === 0 ||
+    !/^[a-f0-9]{64}$/u.test(session.headHash) ||
+    !Number.isSafeInteger(session.eventCount) ||
+    session.eventCount < 1 ||
+    typeof executionPolicy.cwd !== "string" ||
+    executionPolicy.cwd.length === 0 ||
+    hasControlCharacters(executionPolicy.cwd) ||
+    typeof executionPolicy.continueOnError !== "boolean" ||
+    typeof executionPolicy.pipeline !== "boolean" ||
+    !validOptionalString(executionPolicy.provider) ||
+    !validOptionalString(executionPolicy.model) ||
+    executionPolicy.cwd !== execution.cwd ||
+    executionPolicy.continueOnError !== execution.continueOnError ||
+    executionPolicy.pipeline !== execution.pipeline ||
+    executionPolicy.provider !== execution.llmOptions.provider ||
+    executionPolicy.model !== execution.llmOptions.model ||
+    !Number.isSafeInteger(maxParallel) ||
+    maxParallel < 1 ||
+    maxParallel > 64 ||
+    value.maxParallel !== maxParallel ||
+    value.credentialValuesTransferred !== false
+  ) {
+    throw runAdmissionError(
+      "run admission does not match the workflow definition or execution options",
+    );
+  }
+
+  const normalized = Object.freeze({
+    schema: DYNAMIC_WORKFLOW_RUN_ADMISSION_SCHEMA,
+    definition: Object.freeze({
+      schema: definitionAuthority.schema,
+      definitionDigest,
+      authority: Object.freeze({
+        status: "versioned",
+        recordSchema: COWORK_WORKFLOW_RECORD_SCHEMA,
+        definitionSchema: definitionAuthority.schema,
+        definitionDigest,
+      }),
+    }),
+    executionLocation: Object.freeze({
+      authoritySchema: EXECUTION_LOCATION_AUTHORITY_SCHEMA,
+      authority: "verified-session-start",
+      session: Object.freeze({
+        sessionId: session.sessionId,
+        headHash: session.headHash,
+        eventCount: session.eventCount,
+      }),
+      bindingSchema: EXECUTION_LOCATION_BINDING_SCHEMA,
+      location: value.executionLocation.location,
+    }),
+    executionPolicy: Object.freeze({
+      cwd: executionPolicy.cwd,
+      continueOnError: executionPolicy.continueOnError,
+      pipeline: executionPolicy.pipeline,
+      provider: executionPolicy.provider,
+      model: executionPolicy.model,
+    }),
+    definitionDigest,
+    executionLocationDigest,
+    preflightDigest,
+    maxParallel,
+    credentialValuesTransferred: false,
+  });
+  if (admissionDigest(normalized) !== declaredAdmissionDigest) {
+    throw runAdmissionError("run admission digest does not match its material");
+  }
+  return Object.freeze({
+    ...normalized,
+    admissionDigest: declaredAdmissionDigest,
+  });
+}
 
 export const _deps = {
   existsSync,
@@ -722,7 +1227,9 @@ export async function withTimeout(factory, timeoutMs) {
   let timer = null;
   const timeout = new Promise((_resolve, reject) => {
     timer = _deps.setTimeout(() => {
-      reject(new Error(`step timed out after ${timeoutMs}ms`));
+      const error = new Error(`step timed out after ${timeoutMs}ms`);
+      error.code = STEP_TIMEOUT_CODE;
+      reject(error);
     }, timeoutMs);
   });
   try {
@@ -733,36 +1240,102 @@ export async function withTimeout(factory, timeoutMs) {
   }
 }
 
+function createWorkflowTaskSemaphore(limit) {
+  let active = 0;
+  const waiters = [];
+  return Object.freeze({
+    acquire() {
+      return new Promise((resolve) => {
+        const grant = () => {
+          active += 1;
+          let released = false;
+          resolve(() => {
+            if (released) return;
+            released = true;
+            active -= 1;
+            const next = waiters.shift();
+            if (next) next();
+          });
+        };
+        if (active < limit) grant();
+        else waiters.push(grant);
+      });
+    },
+  });
+}
+
 /**
  * Run one step's task with optional `timeoutMs` and `retries` (with `fixed` or
  * `exponential` `retryDelayMs` backoff). An attempt counts as a failure if the
  * task throws, times out, or returns a non-`completed` status. Returns
  * `{ ok, entry?, error?, attempts }`. `attempts` is the total number of tries.
  */
-export async function runStepWithRetry({ step, message, cwd, llmOptions }) {
+export async function runStepWithRetry({
+  step,
+  message,
+  cwd,
+  llmOptions,
+  taskSemaphore,
+  runTask = _deps.runTask,
+  recordId = step.id,
+  onTaskStart,
+  admitted = false,
+}) {
   const maxRetries = Math.max(0, Math.floor(Number(step.retries) || 0));
   const timeoutMs = Number(step.timeoutMs) || 0;
   let lastEntry = null;
   let lastErr = null;
   for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+    let taskPromise = null;
+    let abortController = null;
+    let release = null;
     try {
-      const entry = await withTimeout(
-        () =>
-          _deps.runTask({
-            templateId: step.templateId || null,
-            userMessage: message,
-            files: step.files || [],
-            cwd,
-            llmOptions,
-          }),
-        timeoutMs,
+      release = taskSemaphore ? await taskSemaphore.acquire() : () => {};
+      if (admitted && timeoutMs > 0) abortController = new AbortController();
+      if (attempt === 1) {
+        notifyWorkflowCallback(
+          onTaskStart,
+          Object.freeze({ stepId: recordId, message }),
+          admitted,
+          "step start",
+        );
+      }
+      taskPromise = Promise.resolve().then(() =>
+        runTask({
+          templateId: step.templateId || null,
+          userMessage: message,
+          files: step.files || [],
+          cwd,
+          llmOptions,
+          ...(abortController ? { signal: abortController.signal } : {}),
+        }),
       );
+      // A timeout abandons only the caller's wait. Keep the physical task's
+      // permit until its promise really settles; retries and parallel children
+      // must queue behind that late task instead of exceeding maxParallel.
+      taskPromise.then(release, release);
+      release = null; // the physical task now owns the permit
+      const rawEntry = await withTimeout(() => taskPromise, timeoutMs);
+      const entry = admitted ? normalizeAdmittedTaskEntry(rawEntry) : rawEntry;
       if (entry && entry.status === "completed") {
         return { ok: true, entry, attempts: attempt };
       }
       lastEntry = entry; // ran but not completed → retry-eligible
       lastErr = null;
     } catch (err) {
+      if (release) release();
+      if (err?.code === COWORK_WORKFLOW_RUN_RESULT_INVALID_CODE) throw err;
+      if (admitted && err?.code === STEP_TIMEOUT_CODE && taskPromise != null) {
+        abortController.abort(err);
+        // A terminal admitted record must never be written while the physical
+        // task can still produce side effects. Confirm settlement before a
+        // retry or final failure; a runner that ignores abort safely blocks.
+        try {
+          await taskPromise;
+        } catch {
+          // The timeout remains the attempt's externally visible failure.
+        }
+      }
       lastErr = err; // threw or timed out → retry-eligible
       lastEntry = null;
     }
@@ -784,24 +1357,27 @@ function _withAttempts(result, attempts) {
 }
 
 /** Build a single-step outcome object from a `runStepWithRetry` result. */
-function outcomeFromRetry(recordId, r) {
+function outcomeFromRetry(recordId, r, admitted = false) {
+  let outcome;
   if (r.ok || r.entry) {
-    return {
+    outcome = {
       id: recordId,
       status: r.entry.status,
       taskId: r.entry.taskId,
       result: _withAttempts(r.entry.result, r.attempts),
     };
+  } else {
+    outcome = {
+      id: recordId,
+      status: "failed",
+      taskId: null,
+      result: _withAttempts(
+        { summary: `Step threw: ${safeRunErrorMessage(r.error)}` },
+        r.attempts,
+      ),
+    };
   }
-  return {
-    id: recordId,
-    status: "failed",
-    taskId: null,
-    result: _withAttempts(
-      { summary: `Step threw: ${r.error.message}` },
-      r.attempts,
-    ),
-  };
+  return admitted ? normalizeAdmittedOutcome(outcome) : outcome;
 }
 
 // ─── while / until loop nodes ──────────────────────────────────────────────────
@@ -872,11 +1448,16 @@ export async function runLoopStep({
   cwd,
   llmOptions,
   resultsById,
+  taskSemaphore,
+  runTask = _deps.runTask,
+  onStepStart,
+  admitted = false,
 }) {
   const cap = loopIterationCap(step);
   let last = null;
   let iterations = 0;
   let stopReason = "cap";
+  let startAnnounced = false;
   for (let iter = 1; iter <= cap; iter++) {
     iterations = iter;
     const withSelf = substituteLoopVars(step.message, {
@@ -885,8 +1466,22 @@ export async function runLoopStep({
       resultsById,
     });
     const message = substitutePlaceholders(withSelf, resultsById);
-    const r = await runStepWithRetry({ step, message, cwd, llmOptions });
-    last = outcomeFromRetry(recordId, r);
+    const r = await runStepWithRetry({
+      step,
+      message,
+      cwd,
+      llmOptions,
+      taskSemaphore,
+      runTask,
+      recordId,
+      onTaskStart: (event) => {
+        if (startAnnounced) return;
+        startAnnounced = true;
+        notifyWorkflowCallback(onStepStart, event, admitted, "step start");
+      },
+      admitted,
+    });
+    last = outcomeFromRetry(recordId, r, admitted);
     resultsById.set(recordId, last);
     if (last.status === "failed") {
       stopReason = "failed";
@@ -913,7 +1508,7 @@ export async function runLoopStep({
       break;
     }
   }
-  return {
+  const outcome = {
     id: recordId,
     status: last ? last.status : "skipped",
     taskId: last?.taskId ?? null,
@@ -924,6 +1519,7 @@ export async function runLoopStep({
       loopStop: stopReason,
     },
   };
+  return admitted ? normalizeAdmittedOutcome(outcome) : outcome;
 }
 
 // ─── Step node + no-barrier pipeline ──────────────────────────────────────────
@@ -937,7 +1533,16 @@ export async function runLoopStep({
  * is not "completed". Used by the no-barrier pipeline scheduler.
  */
 export async function runStepNode(step, ctx) {
-  const { resultsById, cwd, llmOptions, onStepStart, onStepComplete } = ctx;
+  const {
+    resultsById,
+    cwd,
+    llmOptions,
+    onStepStart,
+    onStepComplete,
+    taskSemaphore,
+    runTask,
+    admitted = false,
+  } = ctx;
   const recordId = step.id;
   const single = (status, summary) => {
     const o = { id: recordId, status, taskId: null, result: { summary } };
@@ -957,16 +1562,19 @@ export async function runStepNode(step, ctx) {
   if (!runThis) return single("skipped", "when-condition false");
 
   if (isLoopStep(step)) {
-    if (onStepStart) onStepStart({ stepId: recordId, message: step.message });
     const o = await runLoopStep({
       step,
       recordId,
       cwd,
       llmOptions,
       resultsById,
+      taskSemaphore,
+      runTask,
+      onStepStart,
+      admitted,
     });
     resultsById.set(recordId, o);
-    if (onStepComplete) onStepComplete(o);
+    notifyWorkflowCallback(onStepComplete, o, admitted, "step complete");
     return {
       outcomes: [o],
       failed: o.status !== "completed" && o.status !== "skipped",
@@ -986,16 +1594,20 @@ export async function runStepNode(step, ctx) {
         const childId = `${recordId}[${k}]`;
         const withItem = substituteItem(step.message, item);
         const msg = substitutePlaceholders(withItem, resultsById);
-        if (onStepStart) onStepStart({ stepId: childId, message: msg });
         const r = await runStepWithRetry({
           step,
           message: msg,
           cwd,
           llmOptions,
+          taskSemaphore,
+          runTask,
+          recordId: childId,
+          onTaskStart: onStepStart,
+          admitted,
         });
-        const co = outcomeFromRetry(childId, r);
+        const co = outcomeFromRetry(childId, r, admitted);
         resultsById.set(childId, co);
-        if (onStepComplete) onStepComplete(co);
+        notifyWorkflowCallback(onStepComplete, co, admitted, "step complete");
         return co;
       }),
     );
@@ -1017,11 +1629,20 @@ export async function runStepNode(step, ctx) {
   }
 
   const message = substitutePlaceholders(step.message, resultsById);
-  if (onStepStart) onStepStart({ stepId: recordId, message });
-  const r = await runStepWithRetry({ step, message, cwd, llmOptions });
-  const o = outcomeFromRetry(recordId, r);
+  const r = await runStepWithRetry({
+    step,
+    message,
+    cwd,
+    llmOptions,
+    taskSemaphore,
+    runTask,
+    recordId,
+    onTaskStart: onStepStart,
+    admitted,
+  });
+  const o = outcomeFromRetry(recordId, r, admitted);
   resultsById.set(recordId, o);
-  if (onStepComplete) onStepComplete(o);
+  notifyWorkflowCallback(onStepComplete, o, admitted, "step complete");
   return { outcomes: [o], failed: o.status !== "completed" };
 }
 
@@ -1042,6 +1663,9 @@ export async function runPipeline({
   llmOptions = {},
   onStepStart,
   onStepComplete,
+  taskSemaphore,
+  runTask = _deps.runTask,
+  admitted = false,
 }) {
   const limit = Math.max(1, Math.floor(maxParallel) || 1);
   const remainingDeps = new Map(
@@ -1058,8 +1682,9 @@ export async function runPipeline({
   let anyFailure = false;
   let halted = false;
   let active = 0;
+  let fatalError = null;
 
-  await new Promise((resolve) => {
+  await new Promise((resolve, reject) => {
     function pump() {
       if (!halted) {
         for (const s of steps) {
@@ -1072,6 +1697,10 @@ export async function runPipeline({
         }
       }
       if (active === 0 && (halted || scheduled.size === steps.length)) {
+        if (fatalError) {
+          reject(fatalError);
+          return;
+        }
         for (const s of steps) {
           if (scheduled.has(s.id)) continue;
           const o = {
@@ -1097,13 +1726,23 @@ export async function runPipeline({
           llmOptions,
           onStepStart,
           onStepComplete,
+          taskSemaphore,
+          runTask,
+          admitted,
         });
       } catch (err) {
+        if (err?.code === COWORK_WORKFLOW_RUN_RESULT_INVALID_CODE) {
+          fatalError = err;
+          halted = true;
+          active--;
+          pump();
+          return;
+        }
         const o = {
           id: step.id,
           status: "failed",
           taskId: null,
-          result: { summary: `Step threw: ${err.message}` },
+          result: { summary: `Step threw: ${safeRunErrorMessage(err)}` },
         };
         resultsById.set(step.id, o);
         res = { outcomes: [o], failed: true };
@@ -1127,6 +1766,98 @@ export async function runPipeline({
 }
 
 // ─── Execution ───────────────────────────────────────────────────────────────
+
+function normalizeAdmittedRunRecord(
+  value,
+  runtimeWorkflow,
+  definitionAuthority,
+  runAdmission,
+) {
+  const record = snapshotAdmittedCanonicalValue(value, "workflow run record");
+  const expectedFields = new Set([
+    "schema",
+    "workflowId",
+    "workflowName",
+    "definitionSchema",
+    "definitionDigest",
+    "runAdmission",
+    "status",
+    "steps",
+    "startedAt",
+    "finishedAt",
+  ]);
+  if (
+    !record ||
+    typeof record !== "object" ||
+    Array.isArray(record) ||
+    Reflect.ownKeys(record).length !== expectedFields.size ||
+    Reflect.ownKeys(record).some(
+      (field) => typeof field !== "string" || !expectedFields.has(field),
+    ) ||
+    record.schema !== COWORK_WORKFLOW_RUN_RECORD_SCHEMA ||
+    record.workflowId !== runtimeWorkflow.id ||
+    record.workflowName !== runtimeWorkflow.name ||
+    record.definitionSchema !== definitionAuthority.schema ||
+    record.definitionDigest !== definitionAuthority.definitionDigest ||
+    !["completed", "failed", "partial"].includes(record.status) ||
+    !Array.isArray(record.steps) ||
+    record.steps.length === 0 ||
+    record.steps.length > MAX_ADMITTED_RUN_STEPS ||
+    typeof record.startedAt !== "string" ||
+    typeof record.finishedAt !== "string" ||
+    !Number.isFinite(Date.parse(record.startedAt)) ||
+    !Number.isFinite(Date.parse(record.finishedAt)) ||
+    new Date(record.startedAt).toISOString() !== record.startedAt ||
+    new Date(record.finishedAt).toISOString() !== record.finishedAt ||
+    Date.parse(record.finishedAt) < Date.parse(record.startedAt) ||
+    canonicalJson(record.runAdmission, "recordRunAdmission") !==
+      canonicalJson(runAdmission, "admittedRunAdmission")
+  ) {
+    throw runResultError("workflow run record has an invalid schema");
+  }
+
+  const outcomeIds = new Set();
+  for (const [index, outcome] of record.steps.entries()) {
+    normalizeAdmittedOutcome(outcome, `workflow run record step ${index}`);
+    if (outcomeIds.has(outcome.id)) {
+      throw runResultError("workflow run record contains duplicate step ids");
+    }
+    outcomeIds.add(outcome.id);
+  }
+
+  for (const step of runtimeWorkflow.steps) {
+    if (step.forEach === undefined) {
+      if (!outcomeIds.has(step.id)) {
+        throw runResultError("workflow run record is missing a step outcome");
+      }
+      continue;
+    }
+    const childPrefix = `${step.id}[`;
+    if (
+      !outcomeIds.has(step.id) &&
+      ![...outcomeIds].some(
+        (outcomeId) =>
+          outcomeId.startsWith(childPrefix) && outcomeId.endsWith("]"),
+      )
+    ) {
+      throw runResultError("workflow run record is missing a forEach outcome");
+    }
+  }
+
+  const expectedStatus = record.steps.every(
+    (outcome) => outcome.status === "completed",
+  )
+    ? "completed"
+    : record.steps.some((outcome) => outcome.status === "completed")
+      ? "partial"
+      : "failed";
+  if (record.status !== expectedStatus) {
+    throw runResultError(
+      "workflow run record status does not match its step outcomes",
+    );
+  }
+  return record;
+}
 
 /**
  * Execute a workflow. The runner for individual tasks must be injected via
@@ -1157,6 +1888,9 @@ export async function runPipeline({
  * @param {object} [options.llmOptions] - Forwarded to each task
  * @param {function} [options.onStepStart]
  * @param {function} [options.onStepComplete]
+ * @param {object} [options.runAdmission] - Secret-free, digest-bound dynamic
+ *   workflow admission. Production entry points require this even though the
+ *   low-level executor keeps it optional for existing library callers.
  * @returns {Promise<{
  *   workflowId: string,
  *   status: "completed"|"failed"|"partial",
@@ -1176,11 +1910,22 @@ export async function executeWorkflow(options = {}) {
     onStepStart,
     onStepComplete,
     pipeline,
+    runAdmission,
+    runTask: requestedRunTask,
   } = options;
 
-  const { valid, errors } = validateWorkflow(workflow);
-  if (!valid) throw new Error(`Invalid workflow: ${errors.join("; ")}`);
   const definitionAuthority = createWorkflowDefinitionAuthority(workflow);
+  const runtimeWorkflow = definitionAuthority.definition;
+  const { valid, errors } = validateWorkflow(runtimeWorkflow);
+  if (!valid) throw new Error(`Invalid workflow: ${errors.join("; ")}`);
+  const numericMaxParallel = Number(maxParallel);
+  const concurrencyLimit =
+    Number.isSafeInteger(numericMaxParallel) && numericMaxParallel > 0
+      ? numericMaxParallel
+      : 1;
+  const usePipeline = pipeline ?? runtimeWorkflow.pipeline ?? false;
+  const runtimeLlmOptions =
+    runAdmission == null ? llmOptions : normalizeAdmittedLlmOptions(llmOptions);
   if (requestedDefinitionDigest != null) {
     const normalizedDigest = normalizeWorkflowDefinitionDigest(
       requestedDefinitionDigest,
@@ -1192,13 +1937,28 @@ export async function executeWorkflow(options = {}) {
       throw new Error("workflow definition digest mismatch");
     }
   }
-  if (typeof _deps.runTask !== "function") {
+  const verifiedRunAdmission =
+    runAdmission == null
+      ? null
+      : normalizeWorkflowRunAdmission(
+          runAdmission,
+          definitionAuthority,
+          concurrencyLimit,
+          {
+            cwd,
+            continueOnError,
+            pipeline: usePipeline,
+            llmOptions: runtimeLlmOptions,
+          },
+        );
+  const runtimeRunTask = requestedRunTask ?? _deps.runTask;
+  if (typeof runtimeRunTask !== "function") {
     throw new Error(
-      "cowork-workflow: _deps.runTask is not injected (wire runCoworkTask in CLI before executing)",
+      "cowork-workflow: runTask is not available (wire runCoworkTask before executing)",
     );
   }
 
-  const usePipeline = pipeline ?? workflow.pipeline ?? false;
+  const taskSemaphore = createWorkflowTaskSemaphore(concurrencyLimit);
   const resultsById = new Map();
   const startedAt = new Date(_deps.now()).toISOString();
   let stepOutcomes;
@@ -1206,24 +1966,27 @@ export async function executeWorkflow(options = {}) {
 
   if (usePipeline) {
     ({ stepOutcomes, anyFailure } = await runPipeline({
-      steps: workflow.steps,
+      steps: runtimeWorkflow.steps,
       resultsById,
-      maxParallel,
+      maxParallel: concurrencyLimit,
       continueOnError,
       cwd,
-      llmOptions,
+      llmOptions: runtimeLlmOptions,
       onStepStart,
       onStepComplete,
+      taskSemaphore,
+      runTask: runtimeRunTask,
+      admitted: verifiedRunAdmission != null,
     }));
   } else {
     stepOutcomes = [];
     anyFailure = false;
-    const batches = planBatches(workflow.steps);
+    const batches = planBatches(runtimeWorkflow.steps);
     for (const batch of batches) {
       // Respect maxParallel by slicing batch into chunks
       const chunks = [];
-      for (let i = 0; i < batch.length; i += maxParallel) {
-        chunks.push(batch.slice(i, i + maxParallel));
+      for (let i = 0; i < batch.length; i += concurrencyLimit) {
+        chunks.push(batch.slice(i, i + concurrencyLimit));
       }
 
       for (const chunk of chunks) {
@@ -1328,33 +2091,55 @@ export async function executeWorkflow(options = {}) {
 
         const promises = runnable.map(
           async ({ step, message, recordId, isLoop }) => {
-            if (onStepStart) onStepStart({ stepId: recordId, message });
             let outcome;
             if (isLoop) {
               outcome = await runLoopStep({
                 step,
                 recordId,
                 cwd,
-                llmOptions,
+                llmOptions: runtimeLlmOptions,
                 resultsById,
+                taskSemaphore,
+                runTask: runtimeRunTask,
+                onStepStart,
+                admitted: verifiedRunAdmission != null,
               });
             } else {
               const r = await runStepWithRetry({
                 step,
                 message,
                 cwd,
-                llmOptions,
+                llmOptions: runtimeLlmOptions,
+                taskSemaphore,
+                runTask: runtimeRunTask,
+                recordId,
+                onTaskStart: onStepStart,
+                admitted: verifiedRunAdmission != null,
               });
-              outcome = outcomeFromRetry(recordId, r);
+              outcome = outcomeFromRetry(
+                recordId,
+                r,
+                verifiedRunAdmission != null,
+              );
             }
             if (outcome.status !== "completed") anyFailure = true;
             resultsById.set(recordId, outcome);
-            if (onStepComplete) onStepComplete(outcome);
+            notifyWorkflowCallback(
+              onStepComplete,
+              outcome,
+              verifiedRunAdmission != null,
+              "step complete",
+            );
             return outcome;
           },
         );
 
-        const results = await Promise.all(promises);
+        const settledResults = await Promise.allSettled(promises);
+        const rejected = settledResults.find(
+          (settled) => settled.status === "rejected",
+        );
+        if (rejected) throw rejected.reason;
+        const results = settledResults.map((settled) => settled.value);
         stepOutcomes.push(...preOutcomes, ...results);
 
         // Aggregate forEach children into a parent entry so downstream
@@ -1381,8 +2166,6 @@ export async function executeWorkflow(options = {}) {
           });
         }
       }
-
-      if (anyFailure && !continueOnError) break;
     }
   }
 
@@ -1396,17 +2179,26 @@ export async function executeWorkflow(options = {}) {
 
   const record = {
     schema: COWORK_WORKFLOW_RUN_RECORD_SCHEMA,
-    workflowId: workflow.id,
-    workflowName: workflow.name,
+    workflowId: runtimeWorkflow.id,
+    workflowName: runtimeWorkflow.name,
     definitionSchema: definitionAuthority.schema,
     definitionDigest: definitionAuthority.definitionDigest,
+    ...(verifiedRunAdmission ? { runAdmission: verifiedRunAdmission } : {}),
     status,
     steps: stepOutcomes,
     startedAt,
     finishedAt,
   };
-  _appendHistory(cwd, record);
-  return record;
+  const finalRecord = verifiedRunAdmission
+    ? normalizeAdmittedRunRecord(
+        record,
+        runtimeWorkflow,
+        definitionAuthority,
+        verifiedRunAdmission,
+      )
+    : record;
+  _appendHistory(cwd, finalRecord);
+  return finalRecord;
 }
 
 function _appendHistory(cwd, record) {

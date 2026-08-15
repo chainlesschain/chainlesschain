@@ -296,6 +296,169 @@ function _sendError(server, ws, id, code, message) {
   server._send(ws, { id, type: "error", code, message });
 }
 
+const WORKFLOW_EXECUTION_AUTHORITY_SCHEMA =
+  "cc-session-execution-location-authority/v1";
+const WORKFLOW_FORBIDDEN_EXECUTION_INPUT_KEYS = new Set([
+  "execution",
+  "llmoptions",
+  "provider",
+  "model",
+  "apikey",
+  "token",
+  "password",
+  "secret",
+  "credential",
+  "credentials",
+  "credentialvalue",
+  "credentialvalues",
+]);
+
+function hasForbiddenWorkflowExecutionInput(value, seen = new WeakSet()) {
+  if (!value || typeof value !== "object") return false;
+  if (seen.has(value)) return true;
+  seen.add(value);
+  for (const key of Reflect.ownKeys(value)) {
+    if (typeof key !== "string") return true;
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (!descriptor || !Object.hasOwn(descriptor, "value")) return true;
+    const normalizedKey = key
+      .replaceAll("_", "")
+      .replaceAll("-", "")
+      .toLowerCase();
+    if (WORKFLOW_FORBIDDEN_EXECUTION_INPUT_KEYS.has(normalizedKey)) {
+      return true;
+    }
+    if (hasForbiddenWorkflowExecutionInput(descriptor.value, seen)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function _sendWorkflowBlocked(server, ws, id, details = {}) {
+  server._send(ws, {
+    id,
+    type: "workflow:blocked",
+    code: details.code || "WORKFLOW_RUN_BLOCKED",
+    message: details.message || "workflow execution was blocked",
+    workflowId: details.workflowId,
+    definitionDigest: details.definitionDigest || null,
+    admissionDigest: details.admissionDigest || null,
+    preflightDigest: details.preflightDigest || null,
+    executionLocationDigest: details.executionLocationDigest || null,
+    preflight: details.preflight || null,
+  });
+}
+
+function _sendWorkflowFailed(server, ws, id, details = {}) {
+  server._send(ws, {
+    id,
+    type: "workflow:failed",
+    code: details.code || "WORKFLOW_RUN_FAILED",
+    message: details.message || "workflow execution failed",
+    runId: details.runId,
+    workflowId: details.workflowId,
+    executionStarted: true,
+    definitionDigest: details.definitionDigest || null,
+    admissionDigest: details.admissionDigest || null,
+    preflightDigest: details.preflightDigest || null,
+    executionLocationDigest: details.executionLocationDigest || null,
+  });
+}
+
+async function _resolveWorkflowExecutionAuthority(server, sessionId) {
+  if (typeof sessionId !== "string" || sessionId.trim() === "") {
+    const error = new Error("executionAuthoritySessionId is required");
+    error.code = "WORKFLOW_EXECUTION_AUTHORITY_MISSING";
+    throw error;
+  }
+  let provider;
+  if (Object.hasOwn(server, "workflowExecutionAuthorityProvider")) {
+    const descriptor = Object.getOwnPropertyDescriptor(
+      server,
+      "workflowExecutionAuthorityProvider",
+    );
+    if (!descriptor || !Object.hasOwn(descriptor, "value")) {
+      const error = new Error(
+        "workflow execution authority provider seam must be a data property",
+      );
+      error.code = "WORKFLOW_EXECUTION_AUTHORITY_PROVIDER_INVALID";
+      throw error;
+    }
+    provider = descriptor.value;
+  } else {
+    ({ getVerifiedSessionExecutionLocationAuthority: provider } =
+      await import("../../harness/jsonl-session-store.js"));
+  }
+  if (typeof provider !== "function") {
+    const error = new Error(
+      "workflow execution authority provider is unavailable",
+    );
+    error.code = "WORKFLOW_EXECUTION_AUTHORITY_PROVIDER_INVALID";
+    throw error;
+  }
+  const verifiedProof = await provider(sessionId);
+  let proof;
+  try {
+    proof = structuredClone(verifiedProof);
+  } catch {
+    const error = new Error(
+      "verified execution authority could not be safely snapshotted",
+    );
+    error.code = "WORKFLOW_EXECUTION_AUTHORITY_INVALID";
+    throw error;
+  }
+  if (proof?.sessionId !== sessionId) {
+    const error = new Error(
+      "verified execution authority does not match the requested session",
+    );
+    error.code = "WORKFLOW_EXECUTION_AUTHORITY_SESSION_MISMATCH";
+    throw error;
+  }
+  return Object.freeze({
+    schema: WORKFLOW_EXECUTION_AUTHORITY_SCHEMA,
+    authority: "verified-session-start",
+    sessionId: proof.sessionId,
+    headHash: proof.headHash,
+    eventCount: proof.eventCount,
+    binding: proof.binding,
+  });
+}
+
+async function _verifyWorkflowRunAuthorities(
+  server,
+  cwd,
+  { workflowId, definitionDigest, executionAuthoritySessionId },
+) {
+  const { getWorkflowVersion } = await import("../../lib/cowork-workflow.js");
+  // Resolve the asynchronous session proof first. The immutable workflow
+  // version is the final read in this verifier, leaving no await window in
+  // which it can be replaced after verification but before it is returned.
+  const executionLocationAuthority = await _resolveWorkflowExecutionAuthority(
+    server,
+    executionAuthoritySessionId,
+  );
+  const definitionAuthority = getWorkflowVersion(
+    cwd,
+    workflowId,
+    definitionDigest,
+  );
+  if (
+    !definitionAuthority ||
+    definitionAuthority.definitionDigest !== definitionDigest
+  ) {
+    const error = new Error(
+      "the exact admitted workflow definition version is no longer available",
+    );
+    error.code = "CC_DYNAMIC_WORKFLOW_DEFINITION_AUTHORITY_DRIFT";
+    throw error;
+  }
+  return Object.freeze({
+    definitionAuthority,
+    executionLocationAuthority,
+  });
+}
+
 export async function handleWorkflowList(server, id, ws) {
   try {
     const { listWorkflows } = await import("../../lib/cowork-workflow.js");
@@ -382,13 +545,74 @@ export async function handleWorkflowRemove(server, id, ws, message) {
 }
 
 export async function handleWorkflowRun(server, id, ws, message) {
-  const { id: wfId, definitionDigest } = message || {};
+  const {
+    id: wfId,
+    definitionDigest,
+    executionAuthoritySessionId,
+    maxParallel,
+  } = message || {};
   if (!wfId) return _sendError(server, ws, id, "MISSING_ID", "id required");
+  if (
+    [
+      "binding",
+      "executionLocation",
+      "executionLocationAuthority",
+      "executionLocationBinding",
+    ].some((field) => Object.hasOwn(message || {}, field))
+  ) {
+    return _sendWorkflowBlocked(server, ws, id, {
+      code: "WORKFLOW_EXECUTION_AUTHORITY_INLINE_FORBIDDEN",
+      message:
+        "execution authority must be selected by executionAuthoritySessionId",
+      workflowId: wfId,
+    });
+  }
+  if (hasForbiddenWorkflowExecutionInput(message)) {
+    return _sendWorkflowBlocked(server, ws, id, {
+      code: "WORKFLOW_EXECUTION_SECRET_INPUT_FORBIDDEN",
+      message:
+        "workflow execution options and credential values are not accepted over WS",
+      workflowId: wfId,
+    });
+  }
+  if (
+    typeof executionAuthoritySessionId !== "string" ||
+    executionAuthoritySessionId.trim() === ""
+  ) {
+    return _sendWorkflowBlocked(server, ws, id, {
+      code: "WORKFLOW_EXECUTION_AUTHORITY_MISSING",
+      message: "executionAuthoritySessionId is required",
+      workflowId: wfId,
+    });
+  }
 
+  let executionStarted = false;
+  let definitionRecord = null;
+  let runId = null;
+  let eventDigests = null;
   try {
     const { getWorkflowRecord, getWorkflowVersion, executeWorkflow } =
       await import("../../lib/cowork-workflow.js");
-    const definitionRecord = definitionDigest
+    const { executeDynamicWorkflowWithAdmission } =
+      await import("../../lib/dynamic-workflow-facade.js");
+    let workflowRunTask;
+    if (Object.hasOwn(server, "workflowRunTask")) {
+      const descriptor = Object.getOwnPropertyDescriptor(
+        server,
+        "workflowRunTask",
+      );
+      if (!descriptor || !Object.hasOwn(descriptor, "value")) {
+        throw new Error("Workflow task runner seam must be a data property");
+      }
+      workflowRunTask = descriptor.value;
+    } else {
+      ({ runCoworkTask: workflowRunTask } =
+        await import("../../lib/cowork-task-runner.js"));
+    }
+    if (typeof workflowRunTask !== "function") {
+      throw new Error("Workflow task runner is unavailable");
+    }
+    definitionRecord = definitionDigest
       ? getWorkflowVersion(_cwd(server), wfId, definitionDigest)
       : getWorkflowRecord(_cwd(server), wfId);
     if (!definitionRecord) {
@@ -401,14 +625,7 @@ export async function handleWorkflowRun(server, id, ws, message) {
       );
     }
 
-    const runId = `wf-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    server._send(ws, {
-      id,
-      type: "workflow:started",
-      runId,
-      workflowId: wfId,
-      definitionDigest: definitionRecord.definitionDigest,
-    });
+    runId = `wf-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
     const onStepStart = ({ stepId, message: stepMessage }) => {
       server._send(ws, {
@@ -417,6 +634,7 @@ export async function handleWorkflowRun(server, id, ws, message) {
         runId,
         stepId,
         message: stepMessage,
+        ...eventDigests,
       });
     };
     const onStepComplete = (outcome) => {
@@ -427,16 +645,57 @@ export async function handleWorkflowRun(server, id, ws, message) {
         stepId: outcome?.id,
         status: outcome?.status,
         summary: outcome?.result?.summary,
+        ...eventDigests,
       });
     };
 
-    const record = await executeWorkflow({
-      workflow: definitionRecord.definition,
-      definitionDigest: definitionRecord.definitionDigest,
-      cwd: _cwd(server),
-      onStepStart,
-      onStepComplete,
-    });
+    const outcome = await executeDynamicWorkflowWithAdmission(
+      {
+        definitionAuthority: definitionRecord,
+        executionAuthoritySessionId,
+        maxParallel,
+        execution: {
+          cwd: _cwd(server),
+          onStepStart,
+          onStepComplete,
+        },
+        onAdmitted(admission) {
+          executionStarted = true;
+          eventDigests = Object.freeze({
+            definitionDigest: admission.definitionDigest,
+            admissionDigest: admission.admissionDigest,
+            preflightDigest: admission.preflightDigest,
+            executionLocationDigest: admission.executionLocationDigest,
+          });
+          server._send(ws, {
+            id,
+            type: "workflow:started",
+            runId,
+            workflowId: wfId,
+            ...eventDigests,
+          });
+        },
+      },
+      {
+        executeWorkflow: (execution) =>
+          executeWorkflow({ ...execution, runTask: workflowRunTask }),
+        verifyAuthorities: (lookup) =>
+          _verifyWorkflowRunAuthorities(server, _cwd(server), lookup),
+      },
+    );
+    if (!outcome.allowed) {
+      return _sendWorkflowBlocked(server, ws, id, {
+        code: outcome.error?.code,
+        message: outcome.error?.message,
+        workflowId: wfId,
+        definitionDigest: outcome.definitionDigest,
+        admissionDigest: outcome.admissionDigest,
+        preflightDigest: outcome.preflightDigest,
+        executionLocationDigest: outcome.executionLocationDigest,
+        preflight: outcome.preflight,
+      });
+    }
+    const record = outcome.record;
 
     server._send(ws, {
       id,
@@ -444,9 +703,24 @@ export async function handleWorkflowRun(server, id, ws, message) {
       runId,
       status: record?.status || "completed",
       steps: record?.steps || [],
-      definitionDigest: record?.definitionDigest,
+      ...eventDigests,
     });
   } catch (err) {
-    _sendError(server, ws, id, "WORKFLOW_RUN_FAILED", err.message);
+    if (!executionStarted && err.executionStarted !== true) {
+      _sendWorkflowBlocked(server, ws, id, {
+        code: err.code || "WORKFLOW_RUN_ADMISSION_FAILED",
+        message: err.message,
+        workflowId: wfId,
+        definitionDigest: definitionRecord?.definitionDigest,
+      });
+      return;
+    }
+    _sendWorkflowFailed(server, ws, id, {
+      code: err.code,
+      message: err.message,
+      runId,
+      workflowId: wfId,
+      ...eventDigests,
+    });
   }
 }

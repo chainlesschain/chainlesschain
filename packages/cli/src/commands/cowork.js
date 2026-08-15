@@ -9,6 +9,71 @@ import fs from "fs";
 import path from "path";
 import { logger } from "../lib/logger.js";
 
+const SESSION_EXECUTION_LOCATION_AUTHORITY_SCHEMA =
+  "cc-session-execution-location-authority/v1";
+
+function workflowAuthorityError(code, message) {
+  const error = new Error(message);
+  error.code = code;
+  error.executionStarted = false;
+  return error;
+}
+
+function requireWorkflowExecutionAuthoritySession(sessionId) {
+  if (typeof sessionId !== "string" || sessionId.trim() === "") {
+    throw workflowAuthorityError(
+      "CC_DYNAMIC_WORKFLOW_EXECUTION_AUTHORITY_MISSING",
+      "--execution-authority-session <id> is required",
+    );
+  }
+  return sessionId;
+}
+
+function projectWorkflowExecutionAuthority(sessionId, verifiedProof) {
+  requireWorkflowExecutionAuthoritySession(sessionId);
+  let proof;
+  try {
+    proof = structuredClone(verifiedProof);
+  } catch {
+    throw workflowAuthorityError(
+      "CC_DYNAMIC_WORKFLOW_EXECUTION_AUTHORITY_INVALID",
+      "verified execution authority could not be safely snapshotted",
+    );
+  }
+  if (proof?.sessionId !== sessionId) {
+    throw workflowAuthorityError(
+      "CC_DYNAMIC_WORKFLOW_EXECUTION_AUTHORITY_SESSION_MISMATCH",
+      "verified execution authority does not match the requested session",
+    );
+  }
+  return Object.freeze({
+    schema: SESSION_EXECUTION_LOCATION_AUTHORITY_SCHEMA,
+    authority: "verified-session-start",
+    sessionId: proof.sessionId,
+    headHash: proof.headHash,
+    eventCount: proof.eventCount,
+    binding: proof.binding,
+  });
+}
+
+function renderWorkflowPreflight(preflight) {
+  const color = preflight.allowed ? chalk.green : chalk.red;
+  logger.log(color(preflight.allowed ? "READY" : "BLOCKED"));
+  logger.log(`  definition:  ${preflight.definition.definitionDigest}`);
+  logger.log(
+    `  task calls: ${preflight.scale.worstCaseTaskCalls ?? "unknown"}`,
+  );
+  logger.log(
+    `  tokens/USD: ${preflight.cost.projectedTokens ?? "unknown"} / ${preflight.cost.projectedUsd ?? "unknown"}`,
+  );
+  for (const blocker of preflight.blockers) {
+    logger.log(chalk.red(`  blocker: ${blocker}`));
+  }
+  for (const warning of preflight.warnings) {
+    logger.log(chalk.yellow(`  warning: ${warning}`));
+  }
+}
+
 async function loadCoworkWorkflowRecord(cwd, id, definitionDigest) {
   const { getWorkflowRecord, getWorkflowVersion } =
     await import("../lib/cowork-workflow.js");
@@ -17,7 +82,38 @@ async function loadCoworkWorkflowRecord(cwd, id, definitionDigest) {
     : getWorkflowRecord(cwd, id);
 }
 
-export function registerCoworkCommand(program) {
+function verifyWorkflowRunAuthorities(
+  cwd,
+  { workflowId, definitionDigest, executionAuthoritySessionId },
+  deps,
+) {
+  const definitionAuthority = deps.getWorkflowVersion(
+    cwd,
+    workflowId,
+    definitionDigest,
+  );
+  if (
+    !definitionAuthority ||
+    definitionAuthority.definitionDigest !== definitionDigest
+  ) {
+    throw workflowAuthorityError(
+      "CC_DYNAMIC_WORKFLOW_DEFINITION_AUTHORITY_DRIFT",
+      "the exact admitted workflow definition version is no longer available",
+    );
+  }
+  const executionLocationAuthority = projectWorkflowExecutionAuthority(
+    executionAuthoritySessionId,
+    deps.getVerifiedSessionExecutionLocationAuthority(
+      executionAuthoritySessionId,
+    ),
+  );
+  return Object.freeze({
+    definitionAuthority,
+    executionLocationAuthority,
+  });
+}
+
+export function registerCoworkCommand(program, commandDeps = {}) {
   const cowork = program
     .command("cowork")
     .description(
@@ -896,53 +992,96 @@ export function registerCoworkCommand(program) {
       "--definition-digest <sha256>",
       "Preflight an immutable saved definition version",
     )
+    .option(
+      "--execution-authority-session <id>",
+      "Verified session whose start event anchors execution authority",
+    )
     .option("--max-parallel <n>", "Requested maximum parallel steps", "4")
     .option("--json", "Machine-readable JSON output")
     .action(async (id, options) => {
       try {
         const [
-          { buildDynamicWorkflowPreflight },
-          { captureAmbientExecutionLocation },
+          { buildDynamicWorkflowRunAdmission },
+          { getWorkflowVersion },
+          { getVerifiedSessionExecutionLocationAuthority },
           record,
         ] = await Promise.all([
           import("../lib/dynamic-workflow-facade.js"),
-          import("../lib/execution-location-runtime.js"),
+          import("../lib/cowork-workflow.js"),
+          import("../harness/jsonl-session-store.js"),
           loadCoworkWorkflowRecord(process.cwd(), id, options.definitionDigest),
         ]);
         if (!record) {
-          logger.error(`Workflow not found: ${id}`);
+          if (options.json) {
+            console.log(
+              JSON.stringify(
+                {
+                  schema: "cc-dynamic-workflow-run-admission-error/v1",
+                  allowed: false,
+                  executionStarted: false,
+                  code: "WORKFLOW_NOT_FOUND",
+                  message: `Workflow not found: ${id}`,
+                },
+                null,
+                2,
+              ),
+            );
+          } else {
+            logger.error(`Workflow not found: ${id}`);
+          }
           process.exitCode = 1;
           return;
         }
-        const preflight = buildDynamicWorkflowPreflight({
-          workflow: record.definition,
-          definitionAuthority: record,
-          executionLocation: captureAmbientExecutionLocation(),
-          maxParallel: options.maxParallel,
-        });
+        const executionAuthoritySessionId =
+          requireWorkflowExecutionAuthoritySession(
+            options.executionAuthoritySession,
+          );
+        const admission = buildDynamicWorkflowRunAdmission(
+          {
+            definitionAuthority: record,
+            executionAuthoritySessionId,
+            maxParallel: options.maxParallel,
+            execution: {
+              cwd: process.cwd(),
+              continueOnError: false,
+              pipeline: record.definition.pipeline === true,
+            },
+          },
+          {
+            verifyAuthorities: (lookup) =>
+              verifyWorkflowRunAuthorities(process.cwd(), lookup, {
+                getWorkflowVersion,
+                getVerifiedSessionExecutionLocationAuthority,
+              }),
+          },
+        );
+        const preflight = admission.preflight;
         if (options.json) {
           console.log(JSON.stringify(preflight, null, 2));
         } else {
-          const color = preflight.allowed ? chalk.green : chalk.red;
-          logger.log(color(preflight.allowed ? "READY" : "BLOCKED"));
-          logger.log(`  definition:  ${preflight.definition.definitionDigest}`);
-          logger.log(
-            `  task calls: ${preflight.scale.worstCaseTaskCalls ?? "unknown"}`,
-          );
-          logger.log(
-            `  tokens/USD: ${preflight.cost.projectedTokens ?? "unknown"} / ${preflight.cost.projectedUsd ?? "unknown"}`,
-          );
-          for (const blocker of preflight.blockers) {
-            logger.log(chalk.red(`  blocker: ${blocker}`));
-          }
-          for (const warning of preflight.warnings) {
-            logger.log(chalk.yellow(`  warning: ${warning}`));
-          }
+          renderWorkflowPreflight(preflight);
         }
-        process.exitCode = preflight.allowed ? 0 : 2;
+        process.exitCode = admission.allowed ? 0 : 2;
       } catch (err) {
-        logger.error(err.message);
-        process.exitCode = 1;
+        const code = err.code || "WORKFLOW_PREFLIGHT_BLOCKED";
+        if (options.json) {
+          console.log(
+            JSON.stringify(
+              {
+                schema: "cc-dynamic-workflow-run-admission-error/v1",
+                allowed: false,
+                executionStarted: false,
+                code,
+                message: err.message,
+              },
+              null,
+              2,
+            ),
+          );
+        } else {
+          logger.error(`${code}: ${err.message}`);
+        }
+        process.exitCode = 2;
       }
     });
 
@@ -983,6 +1122,10 @@ export function registerCoworkCommand(program) {
       "--definition-digest <sha256>",
       "Replay an immutable saved definition version",
     )
+    .option(
+      "--execution-authority-session <id>",
+      "Verified session whose start event anchors execution authority",
+    )
     .option("--continue-on-error", "Keep running after a step fails", false)
     .option("--max-parallel <n>", "Max parallel steps per batch", "4")
     .option(
@@ -991,12 +1134,64 @@ export function registerCoworkCommand(program) {
       false,
     )
     .action(async (id, options) => {
-      const [{ executeWorkflow, _deps: wfDeps }, { runCoworkTask }] =
-        await Promise.all([
-          import("../lib/cowork-workflow.js"),
-          import("../lib/cowork-task-runner.js"),
-        ]);
+      let executionStarted = false;
       try {
+        let workflowExecutionAuthorityModule;
+        if (Object.hasOwn(commandDeps, "workflowExecutionAuthorityProvider")) {
+          const descriptor = Object.getOwnPropertyDescriptor(
+            commandDeps,
+            "workflowExecutionAuthorityProvider",
+          );
+          if (!descriptor || !Object.hasOwn(descriptor, "value")) {
+            throw new Error(
+              "Cowork workflow authority provider seam must be a data property",
+            );
+          }
+          workflowExecutionAuthorityModule = Promise.resolve({
+            getVerifiedSessionExecutionLocationAuthority: descriptor.value,
+          });
+        } else {
+          workflowExecutionAuthorityModule =
+            import("../harness/jsonl-session-store.js");
+        }
+        let workflowRunTaskModule;
+        if (Object.hasOwn(commandDeps, "workflowRunTask")) {
+          const descriptor = Object.getOwnPropertyDescriptor(
+            commandDeps,
+            "workflowRunTask",
+          );
+          if (!descriptor || !Object.hasOwn(descriptor, "value")) {
+            throw new Error(
+              "Cowork workflow task runner seam must be a data property",
+            );
+          }
+          workflowRunTaskModule = Promise.resolve({
+            runCoworkTask: descriptor.value,
+          });
+        } else {
+          workflowRunTaskModule = import("../lib/cowork-task-runner.js");
+        }
+        const [
+          { executeWorkflow: executeCoworkWorkflow, getWorkflowVersion },
+          { executeDynamicWorkflowWithAdmission },
+          { getVerifiedSessionExecutionLocationAuthority },
+          { runCoworkTask },
+        ] = await Promise.all([
+          import("../lib/cowork-workflow.js"),
+          import("../lib/dynamic-workflow-facade.js"),
+          workflowExecutionAuthorityModule,
+          workflowRunTaskModule,
+        ]);
+        if (typeof runCoworkTask !== "function") {
+          throw new Error("Cowork workflow task runner is unavailable");
+        }
+        if (
+          typeof getVerifiedSessionExecutionLocationAuthority !== "function"
+        ) {
+          throw new Error(
+            "Cowork workflow execution authority provider is unavailable",
+          );
+        }
         const record = await loadCoworkWorkflowRecord(
           process.cwd(),
           id,
@@ -1008,33 +1203,58 @@ export function registerCoworkCommand(program) {
           return;
         }
         const wf = record.definition;
-        wfDeps.runTask = runCoworkTask;
-        logger.log(
-          chalk.bold(
-            `\nExecuting workflow '${wf.name}' (${wf.steps.length} steps, ${record.definitionDigest})...`,
-          ),
-        );
-        const result = await executeWorkflow({
-          workflow: wf,
-          definitionDigest: record.definitionDigest,
-          cwd: process.cwd(),
-          maxParallel: parseInt(options.maxParallel, 10) || 4,
-          continueOnError: !!options.continueOnError,
-          // undefined (not false) when the flag is absent, so a workflow-level
-          // `pipeline: true` in the JSON definition still takes effect.
-          pipeline: options.pipeline ? true : undefined,
-          onStepStart: ({ stepId }) =>
-            logger.log(chalk.gray(`  → step ${stepId} ...`)),
-          onStepComplete: (out) => {
-            const flag =
-              out.status === "completed"
-                ? chalk.green("✓")
-                : out.status === "skipped"
-                  ? chalk.gray("—")
-                  : chalk.red("✗");
-            logger.log(`  ${flag} ${out.id}  (${out.status})`);
+        const executionAuthoritySessionId =
+          requireWorkflowExecutionAuthoritySession(
+            options.executionAuthoritySession,
+          );
+        const outcome = await executeDynamicWorkflowWithAdmission(
+          {
+            definitionAuthority: record,
+            executionAuthoritySessionId,
+            maxParallel: options.maxParallel,
+            execution: {
+              cwd: process.cwd(),
+              continueOnError: !!options.continueOnError,
+              // Omit (rather than pass undefined) when absent so a
+              // workflow-level `pipeline: true` remains authoritative.
+              ...(options.pipeline ? { pipeline: true } : {}),
+              onStepStart: ({ stepId }) =>
+                logger.log(chalk.gray(`  → step ${stepId} ...`)),
+              onStepComplete: (out) => {
+                const flag =
+                  out.status === "completed"
+                    ? chalk.green("✓")
+                    : out.status === "skipped"
+                      ? chalk.gray("—")
+                      : chalk.red("✗");
+                logger.log(`  ${flag} ${out.id}  (${out.status})`);
+              },
+            },
+            onAdmitted: () => {
+              executionStarted = true;
+              logger.log(
+                chalk.bold(
+                  `\nExecuting workflow '${wf.name}' (${wf.steps.length} steps, ${record.definitionDigest})...`,
+                ),
+              );
+            },
           },
-        });
+          {
+            verifyAuthorities: (lookup) =>
+              verifyWorkflowRunAuthorities(process.cwd(), lookup, {
+                getWorkflowVersion,
+                getVerifiedSessionExecutionLocationAuthority,
+              }),
+            executeWorkflow: (execution) =>
+              executeCoworkWorkflow({ ...execution, runTask: runCoworkTask }),
+          },
+        );
+        if (!outcome.allowed) {
+          renderWorkflowPreflight(outcome.preflight);
+          process.exitCode = 2;
+          return;
+        }
+        const result = outcome.record;
         const color =
           result.status === "completed"
             ? chalk.green
@@ -1042,9 +1262,11 @@ export function registerCoworkCommand(program) {
               ? chalk.yellow
               : chalk.red;
         logger.log(color(`\nWorkflow ${result.status}.\n`));
+        process.exitCode = result.status === "completed" ? 0 : 1;
       } catch (err) {
-        logger.error(err.message);
-        process.exit(1);
+        logger.error(`${err.code || "WORKFLOW_RUN_FAILED"}: ${err.message}`);
+        process.exitCode =
+          executionStarted || err.executionStarted === true ? 1 : 2;
       }
     });
 
