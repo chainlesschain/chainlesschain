@@ -178,6 +178,11 @@ outcome-unknown dead letter
 - 支持 PNG/JPEG/GIF/WebP 并校验 magic bytes。单图最多 20 MiB，每轮最多 4 张、总计 40 MiB，读取最多 10 秒；macOS 额外限制 TIFF 源、像素数、尺寸、行字节与解码预算，临时目录/文件要求 owner-private 并在使用后清理。
 - PR #190 最终 merge SHA 的专用原生 host workflow `31813967006` 已通过 Linux、Windows、macOS 与 aggregate，CLI CI `31810849262` 和 CLI Strict Sandbox `31810848956` 也已通过。由于变更晚于 `v-npm-0-163-8`，当前只能标为源码能力；后续版本仍须在自己的最终 exact SHA 重新完成发布与公网回读。
 
+## 2026-08-15 发布后安全候选
+
+- **后台 hard-kill keeper**：`1724f05300` 在 native child 进入用户代码前建立 bootstrap barrier，并由 sibling keeper 在 supervisor PID commit 前持有 process-tree cleanup authority；`0edc932aa5` 增加 20-Agent、7200 秒、1000-cycle 的三平台 exact-SHA formal workflow。实现已提交，但 CLI CI、Strict Sandbox 与 keeper formal artifact 尚未在该最终 SHA 上形成，因此 P1-2 仍为部分完成。
+- **Node capsule builtin policy**：`b22e65d1e9` 将 materialization/capsule 升到 v4/v3，把构建期静态 external builtin 集绑定为最终 allowlist，并同时约束 `Module._load`、`Module._resolveFilename`、`process.getBuiltinModule`、internal bindings 与 `process.dlopen`。它关闭当前 capsule 的直接 builtin loader 旁路；允许 `worker_threads` / `child_process` 时的新 JS 上下文传递隔离、macOS atomic exec、任意 shared-library closure、远端 distributed authority 和 exact-SHA 三平台恶意矩阵仍未关闭。
+
 ## 已落地能力
 
 ### 1. 命令分发
