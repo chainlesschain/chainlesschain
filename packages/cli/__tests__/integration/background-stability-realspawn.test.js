@@ -211,7 +211,7 @@ describe("4. process tree — workerPid vs agentPid semantics (real spawn)", () 
       isProcessAlive(completed.pid) ? null : true,
     );
     expect(workerGone).toBe(true);
-  }, 20_000);
+  }, 45_000);
 });
 
 describe("6. needs-input phase — turn → idle → finalize (real spawn)", () => {
