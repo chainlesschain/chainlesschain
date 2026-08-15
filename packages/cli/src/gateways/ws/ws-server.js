@@ -539,11 +539,12 @@ export class ChainlessChainWSServer extends EventEmitter {
     return this._dispatcher.dispatch(clientId, ws, message);
   }
 
-  /** Read the same .claude settings rules used by the Agent Core. */
+  /** Read the same static + scoped authority used by the Agent Core. */
   async _handlePermissionRulesGet(id, ws) {
     try {
-      const { loadSettings } = await import("../../lib/settings-loader.cjs");
-      const loaded = loadSettings({ cwd: this.projectRoot });
+      const { loadPermissionAuthority } =
+        await import("../../lib/permission-authority.js");
+      const loaded = loadPermissionAuthority({ cwd: this.projectRoot });
       this._send(ws, {
         id,
         type: "permission-rules",
@@ -551,6 +552,8 @@ export class ChainlessChainWSServer extends EventEmitter {
         sources: loaded.sources,
         files: loaded.files,
         managed: loaded.managed || null,
+        managedFile: loaded.managedFile || null,
+        scoped: loaded.scoped || null,
       });
     } catch (error) {
       this._send(ws, {

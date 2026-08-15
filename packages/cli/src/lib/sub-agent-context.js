@@ -323,6 +323,7 @@ export class SubAgentContext {
     // parent's policy, Plan lock, workspace sandbox, or unattended boundary.
     this._parentAuthority = Object.freeze({
       permissionRules: options.permissionRules || null,
+      permissionRulesProvider: options.permissionRulesProvider || null,
       hostManagedToolPolicy: options.hostManagedToolPolicy || null,
       planManager: options.planManager || null,
       sandbox: options.sandbox || null,
@@ -617,6 +618,9 @@ export class SubAgentContext {
     const authority = this._parentAuthority;
     if (authority.permissionRules) {
       options.permissionRules = authority.permissionRules;
+    }
+    if (authority.permissionRulesProvider) {
+      options.permissionRulesProvider = authority.permissionRulesProvider;
     }
     if (authority.hostManagedToolPolicy) {
       options.hostManagedToolPolicy = authority.hostManagedToolPolicy;

@@ -738,34 +738,26 @@ async function runAgentHeadlessInWorkspace(
   let permissionRules = hermeticExecution
     ? null
     : options.permissionRules || null;
+  let permissionRulesProvider = hermeticExecution
+    ? null
+    : options.permissionRulesProvider || null;
   let managedSettings = null;
   let settingsFiles = [];
   if (!hermeticExecution) {
-    try {
-      const { loadSettings, applyManagedPermissionPolicy } =
-        await import("../lib/settings-loader.cjs");
-      const loaded = loadSettings({
-        cwd,
-        settingsFile: options.settingsFile,
-        managedSettingsFile: options.managedSettingsFile,
-      });
-      managedSettings = loaded.managed;
-      settingsFiles = Array.isArray(loaded.files) ? loaded.files : [];
-      if (!permissionRules) {
-        const total =
-          loaded.rules.allow.length +
-          loaded.rules.ask.length +
-          loaded.rules.deny.length;
-        permissionRules = total > 0 ? loaded.rules : null;
-      } else if (managedSettings) {
-        permissionRules = applyManagedPermissionPolicy(
-          permissionRules,
-          managedSettings,
-        );
-      }
-    } catch (error) {
-      if (error?.code === "CC_MANAGED_SETTINGS_INVALID") throw error;
-      // Preserve caller-provided rules; absent settings keep legacy behavior.
+    const { createPermissionRulesProvider, loadPermissionAuthority } =
+      await import("../lib/permission-authority.js");
+    const authorityOptions = {
+      cwd,
+      settingsFile: options.settingsFile,
+      managedSettingsFile: options.managedSettingsFile,
+      baseRules: options.permissionRules || null,
+    };
+    const loaded = loadPermissionAuthority(authorityOptions);
+    managedSettings = loaded.managed;
+    settingsFiles = Array.isArray(loaded.files) ? loaded.files : [];
+    permissionRules = loaded.hasRules ? loaded.rules : null;
+    if (!permissionRulesProvider) {
+      permissionRulesProvider = createPermissionRulesProvider(authorityOptions);
     }
   }
 
@@ -2163,6 +2155,7 @@ async function runAgentHeadlessInWorkspace(
     hookDb: hermeticExecution ? null : db,
     approvalGate: hermeticExecution ? null : approvalGate,
     permissionRules: hermeticExecution ? null : permissionRules,
+    permissionRulesProvider: hermeticExecution ? null : permissionRulesProvider,
     settingsHooks: hermeticExecution ? null : settingsHooks,
     // Seed the subagent-contract CEILING with this run's permission mode so a
     // spawned sub-agent inherits/tightens from it (tighten-only): a

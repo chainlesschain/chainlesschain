@@ -2401,20 +2401,88 @@ export async function executeTool(name, args, context = {}) {
   //                         shell-policy denylist also still applies.
   // No matching rule + no host policy → every existing layer runs unchanged
   // (default behaviour is byte-for-byte).
-  const settingsVerdict = context.permissionRules
+  let permissionAuthority = null;
+  let effectivePermissionRules = context.permissionRules || null;
+  if (typeof context.permissionRulesProvider === "function") {
+    try {
+      permissionAuthority = await context.permissionRulesProvider({
+        cwd,
+        tool: name,
+        args,
+      });
+      effectivePermissionRules =
+        permissionAuthority?.rules || permissionAuthority || null;
+      if (
+        effectivePermissionRules &&
+        (!Array.isArray(effectivePermissionRules.allow) ||
+          !Array.isArray(effectivePermissionRules.ask) ||
+          !Array.isArray(effectivePermissionRules.deny))
+      ) {
+        throw new TypeError(
+          "permission authority provider returned an invalid ruleset",
+        );
+      }
+    } catch (error) {
+      return {
+        error:
+          `[Permission Authority] Tool "${name}" was blocked because the current permission authority could not be resolved. ` +
+          "No tool side effect was started.",
+        policy: {
+          decision: "blocked",
+          via: "permission-authority-load",
+          code: error?.code || "CC_PERMISSION_AUTHORITY_UNAVAILABLE",
+        },
+      };
+    }
+  }
+  const evaluatedSettingsVerdict = effectivePermissionRules
     ? evaluatePermissionRules({
         tool: name,
         args,
         cwd,
-        rules: context.permissionRules,
+        rules: effectivePermissionRules,
       })
     : { decision: null, rule: null };
+  const permissionRuleSource = evaluatedSettingsVerdict.rule
+    ? permissionAuthority?.sources?.[
+        `${evaluatedSettingsVerdict.decision}:${evaluatedSettingsVerdict.rule}`
+      ] || null
+    : null;
+  const matchedScopedRule = permissionRuleSource?.startsWith("scoped:")
+    ? permissionAuthority?.scoped?.rules?.find(
+        (record) =>
+          record.status === "active" &&
+          `scoped:${record.id}` === permissionRuleSource,
+      )
+    : null;
+  const settingsVerdict = {
+    ...evaluatedSettingsVerdict,
+    source: permissionRuleSource,
+    priority:
+      evaluatedSettingsVerdict.decision === "deny"
+        ? 1
+        : evaluatedSettingsVerdict.decision === "ask"
+          ? 3
+          : evaluatedSettingsVerdict.decision === "allow"
+            ? 4
+            : null,
+    scopedRule: matchedScopedRule || null,
+  };
 
   // 1. settings deny
   if (settingsVerdict.decision === "deny") {
     return {
       error: `[Permission] Tool "${name}" denied by settings rule: ${settingsVerdict.rule}. This is a configured policy — retrying won't help; tell the user if the task genuinely needs it.`,
-      policy: { decision: "deny", rule: settingsVerdict.rule, via: "settings" },
+      policy: {
+        decision: "deny",
+        rule: settingsVerdict.rule,
+        via: "settings",
+        source: settingsVerdict.source,
+        priority: settingsVerdict.priority,
+        scopedRuleId: settingsVerdict.scopedRule?.id || null,
+        revision: settingsVerdict.scopedRule?.revision || null,
+        expiresAt: settingsVerdict.scopedRule?.expiresAt || null,
+      },
     };
   }
 
@@ -2523,6 +2591,11 @@ export async function executeTool(name, args, context = {}) {
           decision: "ask",
           rule: settingsVerdict.rule,
           via: "settings",
+          source: settingsVerdict.source,
+          priority: settingsVerdict.priority,
+          scopedRuleId: settingsVerdict.scopedRule?.id || null,
+          revision: settingsVerdict.scopedRule?.revision || null,
+          expiresAt: settingsVerdict.scopedRule?.expiresAt || null,
         },
       };
     }
@@ -2865,6 +2938,7 @@ export async function executeTool(name, args, context = {}) {
       backgroundUsageFailureState: context.backgroundUsageFailureState || null,
       planManager,
       permissionRules: context.permissionRules || null,
+      permissionRulesProvider: context.permissionRulesProvider || null,
       effectiveAllowedToolNames: context.effectiveAllowedToolNames ?? null,
       hostManagedToolPolicy: context.hostManagedToolPolicy || null,
       externalToolDescriptors: context.externalToolDescriptors || null,
@@ -8719,6 +8793,9 @@ async function _executeSpawnSubAgent(args, ctx) {
     // Parent execution authority is inherited as a tighten-only bundle and is
     // re-enforced by the child's executeTool path on every provider tool call.
     ...(ctx.permissionRules ? { permissionRules: ctx.permissionRules } : {}),
+    ...(ctx.permissionRulesProvider
+      ? { permissionRulesProvider: ctx.permissionRulesProvider }
+      : {}),
     ...(childHostManagedToolPolicy
       ? { hostManagedToolPolicy: childHostManagedToolPolicy }
       : {}),
@@ -11351,6 +11428,9 @@ export async function* agentLoop(messages, options) {
       : options.additionalDirectories || null,
     sandbox: options.sandbox || null,
     permissionRules: hermeticExecution ? null : options.permissionRules || null,
+    permissionRulesProvider: hermeticExecution
+      ? null
+      : options.permissionRulesProvider || null,
     permissionConfirm: hermeticExecution
       ? null
       : options.permissionConfirm || null,
