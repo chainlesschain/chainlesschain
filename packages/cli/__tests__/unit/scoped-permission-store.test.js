@@ -55,10 +55,13 @@ describe("ScopedPermissionStore", () => {
     const listed = store().list();
     expect(listed.generation).toBe(1);
     expect(listed.rules).toHaveLength(1);
+    const expectedWorkspaceRoot = path.normalize(
+      fs.realpathSync.native(workspace),
+    );
     expect(listed.workspace.root).toBe(
       process.platform === "win32"
-        ? path.resolve(workspace).toLowerCase()
-        : path.resolve(workspace),
+        ? expectedWorkspaceRoot.toLowerCase()
+        : expectedWorkspaceRoot,
     );
   });
 
