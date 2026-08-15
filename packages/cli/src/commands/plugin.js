@@ -28,6 +28,10 @@ import {
   getPluginSkills,
 } from "../harness/plugin-manager.js";
 
+function collectRepeatableOption(value, previous = []) {
+  return [...previous, value];
+}
+
 /**
  * After an install/upgrade, resolve the just-installed plugin's DECLARED
  * capabilities and its current consent status, so `cc plugin add`/`upgrade`
@@ -1120,6 +1124,192 @@ export function registerPluginCommand(program) {
       } catch (err) {
         logger.error(`Registry search failed: ${err.message}`);
         process.exitCode = 1;
+      }
+    });
+
+  // plugin catalog — merge one or more registries into a bounded, versioned
+  // governance projection. Registry assertions remain explicitly unverified;
+  // signature/SBOM verification still happens only after bytes are fetched.
+  plugin
+    .command("catalog [query]")
+    .description(
+      "Review digest, signature, SBOM, license, capability, dependency, and health metadata across registries",
+    )
+    .option(
+      "--registry <url>",
+      "Registry URL to include (repeatable; earlier sources have higher priority)",
+      collectRepeatableOption,
+      [],
+    )
+    .option("--token <token>", "Bearer token for private registries")
+    .option(
+      "--allow-insecure-registry",
+      "Allow plain-HTTP registry URLs (MITM risk — trusted networks only)",
+    )
+    .option(
+      "--strict",
+      "Block candidates missing digest, signature, SBOM, license, or capabilities",
+    )
+    .option("--json", "Output the versioned catalog projection as JSON")
+    .action(async (query, options) => {
+      const registryUrls = Array.isArray(options.registry)
+        ? options.registry
+        : [];
+      if (registryUrls.length === 0) {
+        logger.error("At least one --registry <url> is required");
+        process.exitCode = 1;
+        return;
+      }
+
+      const { fetchRegistry, resolveRegistryToken } =
+        await import("../lib/plugin-runtime/remote-source.js");
+      const { buildPluginMarketplaceCatalog, MAX_MARKETPLACE_CATALOG_SOURCES } =
+        await import("../lib/plugin-runtime/marketplace-catalog.js");
+      if (registryUrls.length > MAX_MARKETPLACE_CATALOG_SOURCES) {
+        logger.error(
+          `At most ${MAX_MARKETPLACE_CATALOG_SOURCES} --registry sources are allowed`,
+        );
+        process.exitCode = 1;
+        return;
+      }
+      const { discoverPlugins } =
+        await import("../lib/plugin-runtime/scopes.js");
+      const { VERSION } = await import("../constants.js");
+      let config = null;
+      try {
+        const cm = await import("../lib/config-manager.js");
+        config = cm.loadConfig();
+      } catch {
+        config = null;
+      }
+
+      const sources = await Promise.all(
+        registryUrls.map(async (url) => {
+          try {
+            const token = resolveRegistryToken(url, {
+              token: options.token,
+              config,
+            });
+            const resolved = await fetchRegistry(url, {
+              token,
+              allowInsecure: options.allowInsecureRegistry === true,
+            });
+            return { url, ...resolved };
+          } catch (error) {
+            return {
+              url,
+              error: {
+                code: "REGISTRY_FETCH_FAILED",
+                message: error.message,
+              },
+            };
+          }
+        }),
+      );
+
+      const installed = {};
+      try {
+        for (const pluginRow of discoverPlugins({
+          cwd: process.cwd(),
+          skipPolicy: true,
+        })) {
+          installed[pluginRow.name] = pluginRow.version;
+        }
+      } catch {
+        /* dependency projection stays conservative with an empty inventory */
+      }
+
+      const catalog = buildPluginMarketplaceCatalog({
+        sources,
+        installed,
+        hostVersion: VERSION,
+        query,
+        strict: options.strict === true,
+      });
+      if (options.json) {
+        console.log(JSON.stringify(catalog, null, 2));
+      } else {
+        logger.log(
+          chalk.bold(
+            `Marketplace candidates (${catalog.summary.candidateCount}) — ${catalog.mode}`,
+          ),
+        );
+        for (const source of catalog.sources) {
+          const mark =
+            source.status === "online"
+              ? chalk.green("online")
+              : source.status === "cached"
+                ? chalk.yellow("cached")
+                : chalk.red("unavailable");
+          logger.log(
+            `  source ${chalk.cyan(source.sourceId)} [${mark}] ${source.url}`,
+          );
+          if (source.error) {
+            logger.log(
+              chalk.red(`    ${source.error.code}: ${source.error.message}`),
+            );
+          }
+        }
+        for (const candidate of catalog.candidates) {
+          const allowed =
+            candidate.installability.status === "allowed"
+              ? chalk.green("allowed")
+              : chalk.red("blocked");
+          logger.log(
+            `\n  ${chalk.cyan(candidate.name)} v${candidate.version || "?"} [${allowed}]`,
+          );
+          logger.log(
+            `    source: ${candidate.registry.sourceId} → ${candidate.package.source || "missing"}${candidate.package.ref ? `#${candidate.package.ref}` : ""}`,
+          );
+          logger.log(
+            `    digest (${candidate.integrity.digest.subject}): ${candidate.integrity.digest.status}${candidate.integrity.digest.value ? ` sha256:${candidate.integrity.digest.value}` : ""}`,
+          );
+          logger.log(
+            `    signature: ${candidate.integrity.signature.status} (${candidate.integrity.signature.verification})`,
+          );
+          logger.log(
+            `    SBOM: ${candidate.integrity.sbom.status} (${candidate.integrity.sbom.verification})`,
+          );
+          logger.log(
+            `    license: ${candidate.license.expression || candidate.license.status}`,
+          );
+          logger.log(
+            `    capabilities: ${candidate.capabilities.declared ? candidate.capabilities.summary.join("; ") || "declared none" : "missing"}`,
+          );
+          logger.log(
+            `    compatibility: ${candidate.compatibility.status}${candidate.compatibility.range ? ` (${candidate.compatibility.range})` : ""}; dependencies: ${candidate.dependencies.status}; health: ${candidate.health.status}`,
+          );
+          if (candidate.installability.blockers.length) {
+            logger.log(
+              chalk.red(
+                `    blockers: ${candidate.installability.blockers.map((item) => item.code).join(", ")}`,
+              ),
+            );
+          }
+          if (candidate.governance.missing.length) {
+            logger.log(
+              chalk.yellow(
+                `    missing governance metadata: ${candidate.governance.missing.join(", ")}`,
+              ),
+            );
+          }
+        }
+        logger.log(
+          chalk.gray(
+            `\nCatalog ${catalog.catalogDigest}; registry metadata is unverified until install/load verification.`,
+          ),
+        );
+      }
+
+      if (catalog.summary.availableSourceCount === 0) {
+        process.exitCode = 1;
+      } else if (
+        options.strict &&
+        (catalog.summary.unavailableSourceCount > 0 ||
+          catalog.summary.blockedCandidateCount > 0 ||
+          catalog.summary.incompleteCandidateCount > 0)
+      ) {
+        process.exitCode = 2;
       }
     });
 
