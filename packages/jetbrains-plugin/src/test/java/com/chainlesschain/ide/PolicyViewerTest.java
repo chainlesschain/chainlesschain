@@ -285,8 +285,10 @@ class PolicyViewerTest {
         assertTrue(text.contains("tool=run_shell"));
         assertTrue(text.contains("high"));
         assertTrue(text.contains("managed-settings > permission-rules.deny"));
-        // fully healthy render carries no warning marker
-        assertFalse(text.contains("⚠"));
+        // Every source is healthy. The partial recovery entry above still
+        // carries its intentional "not restored" warning, but no source may
+        // be reported as unavailable.
+        assertFalse(text.contains("⚠ unavailable"));
     }
 
     @Test
