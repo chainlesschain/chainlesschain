@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const IDE_ROADMAP_SCHEMA_VERSION = 1;
-export const IDE_ROADMAP_MANIFEST_VERSION = "1.2.0";
+export const IDE_ROADMAP_MANIFEST_VERSION = "1.3.0";
 export const IDE_ROADMAP_MANIFEST_PATH =
   "tests/fixtures/ide-roadmap/manifest.json";
 export const IDE_ROADMAP_RUNTIME_EVIDENCE_SCHEMA =

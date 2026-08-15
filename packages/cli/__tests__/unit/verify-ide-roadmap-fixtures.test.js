@@ -212,8 +212,8 @@ describe("IDE roadmap fixture contract", () => {
 
     expect(result).toMatchObject({
       schemaVersion: 1,
-      manifestVersion: "1.2.0",
-      caseCount: 8,
+      manifestVersion: "1.3.0",
+      caseCount: 9,
       releaseReadiness: { status: "not-evaluated" },
     });
     expect(result.cases.map((entry) => entry.id)).toEqual([
@@ -223,6 +223,7 @@ describe("IDE roadmap fixture contract", () => {
       "s0-subtree-preflight",
       "s0-persistence-replay",
       "s0-semantic-handoff",
+      "s0-live-provider-trajectory",
       "p0-host-local-evidence",
       "p0-host-remote-evidence",
     ]);
@@ -238,7 +239,7 @@ describe("IDE roadmap fixture contract", () => {
       /schemaVersion must equal supported version 1/,
     );
     expect(() => verifyIdeRoadmapFixtures({ repoRoot: corpus.root })).toThrow(
-      /manifestVersion must equal supported version "1\.2\.0"/,
+      /manifestVersion must equal supported version "1\.3\.0"/,
     );
   });
 

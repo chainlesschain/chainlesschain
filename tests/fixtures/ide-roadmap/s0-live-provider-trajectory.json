@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "case": "s0-live-provider-trajectory",
+  "trajectoryVersion": "1.0.0",
+  "noiseMessagesPerCycle": 56,
+  "cycles": [
+    {
+      "id": "cycle-1",
+      "factDelta": {
+        "objective": "[OBJ-001] Exercise production agentLoop semantic compaction across a safe read-only provider trajectory.",
+        "constraints": [
+          "[CON-001] The trajectory may expose only the built-in read_file tool."
+        ],
+        "keyDecisions": [
+          "[DEC-001] Use strict structured handoff JSON before any count-based truncation."
+        ],
+        "changedFiles": [
+          "[FILE-001] tests/fixtures/ide-roadmap/s0-live-provider-trajectory.json"
+        ],
+        "tests": [
+          "[TEST-001] Record compaction, usage, read_file, and completion event order."
+        ],
+        "unresolvedSideEffects": [
+          "[SIDE-001] Real-provider evidence remains external and exact-commit bound."
+        ],
+        "checkpoints": [
+          "[CHK-001] The first semantic handoff retains every cycle-1 fact in its canonical field."
+        ],
+        "blockers": [
+          "[BLK-001] A missing provider credential must fail without synthetic success evidence."
+        ],
+        "nextSteps": [
+          "[NEXT-001] Read the trusted trajectory sentinel exactly once and complete cycle 1."
+        ]
+      },
+      "tool": {
+        "name": "read_file",
+        "path": "trajectory-evidence.txt",
+        "content": "CC_LIVE_TRAJECTORY_TOOL_SENTINEL_V1\n",
+        "completionMarker": "CC_LIVE_TRAJECTORY_CYCLE_1_COMPLETE"
+      }
+    },
+    {
+      "id": "cycle-2",
+      "factDelta": {
+        "constraints": [
+          "[CON-002] Evidence must contain digests and fact identifiers, never raw prompts, responses, headers, or credentials."
+        ],
+        "keyDecisions": [
+          "[DEC-002] Fold the first canonical handoff into a second production semantic compaction."
+        ],
+        "changedFiles": [
+          "[FILE-002] packages/cli/scripts/ide-roadmap-live-provider-trajectory.mjs"
+        ],
+        "tests": [
+          "[TEST-002] Reject wrong commit, fixture drift, duplicate run IDs, incomplete cells, and unsafe evidence fields."
+        ],
+        "unresolvedSideEffects": [
+          "[SIDE-002] One scheduled provider run does not satisfy the manifest's 100-run release matrix."
+        ],
+        "checkpoints": [
+          "[CHK-002] The second semantic handoff retains all cycle-1 and cycle-2 facts in their canonical fields."
+        ],
+        "blockers": [
+          "[BLK-002] Loopback transport is production-path regression evidence, not real-provider evidence."
+        ],
+        "nextSteps": [
+          "[NEXT-002] Read the trusted trajectory sentinel exactly once and complete cycle 2."
+        ]
+      },
+      "tool": {
+        "name": "read_file",
+        "path": "trajectory-evidence.txt",
+        "content": "CC_LIVE_TRAJECTORY_TOOL_SENTINEL_V1\n",
+        "completionMarker": "CC_LIVE_TRAJECTORY_CYCLE_2_COMPLETE"
+      }
+    }
+  ],
+  "expected": {
+    "semanticCompactionCount": 2,
+    "structuredHandoffSchemaStable": true,
+    "frozenFactRetentionRate": 1,
+    "silentLossCount": 0,
+    "providerUsageKnown": true,
+    "readOnlyToolSequenceCount": 2,
+    "credentialLeakCount": 0
+  }
+}
