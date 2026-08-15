@@ -3,8 +3,8 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 425 (runtime: 265, tooling: 130, test: 30).
-Runtime audit: brokered: 191, audited-exemption: 34, non-executable: 40, unreviewed: 0.
+Total matches: 424 (runtime: 265, tooling: 129, test: 30).
+Runtime audit: brokered: 191, audited-exemption: 35, non-executable: 39, unreviewed: 0.
 
 ## Policy
 
@@ -148,7 +148,7 @@ Runtime audit: brokered: 191, audited-exemption: 34, non-executable: 40, unrevie
 | `packages/cli/src/lib/mcp-headers-helper.js` | 548 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `child = spawn(invocation.file, invocation.argv, {` |
 | `packages/cli/src/lib/mcp-oauth.js` | 39 | `brokered` | call targets ProcessExecutionBroker | `executionBroker.spawn(command, args, {` |
 | `packages/cli/src/lib/mcp-oauth.js` | 694 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const child = _deps.spawn(cmd, args, { stdio: "ignore", detached: true });` |
-| `packages/cli/src/lib/mcp-stdio-package-materialization.js` | 77 | `non-executable` | declaration/comment/type/regex lexical match | `"child_process",` |
+| `packages/cli/src/lib/mcp-stdio-package-materialization.js` | 77 | `audited-exemption` | mcp-static-execution-context-builtin: This exact marked line is a static builtin-policy name inside CAPSULE_EXECUTION_CONTEXT_BUILTINS, not a module load or process call; execution-context capsules remain bound to the mandatory Process Broker OS sandbox contract. | `"child_process", // spawn-inventory-audit: static-execution-context-builtin` |
 | `packages/cli/src/lib/orchestrator.js` | 34 | `brokered` | call targets ProcessExecutionBroker | `execSync: (...args) => executionBroker.execSync(...args),` |
 | `packages/cli/src/lib/orchestrator.js` | 384 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const output = _deps.execSync(this.ciCommand, {` |
 | `packages/cli/src/lib/packer/native-prebuild-collector.js` | 257 | `non-executable` | declaration/comment/type/regex lexical match | `// Generic fallback — a native fork (e.g. better-sqlite3-multiple-ciphers)` |
@@ -363,8 +363,7 @@ Runtime audit: brokered: 191, audited-exemption: 34, non-executable: 40, unrevie
 | `packages/cli/scripts/gen-process-spawn-inventory.mjs` | 3 | `* Generate (or byte-diff-check) an inventory of direct child_process usage.` |
 | `packages/cli/scripts/gen-process-spawn-inventory.mjs` | 36 | `/(?:child_process\|node:child_process\|\b(?:cpDefault\|childProcess\|_deps\|deps)\.(?:spawn\|spawnSync\|exec\|execFile\|execSync\|execFileSync\|fork)\b\|\b(?:spawn\|spawnSync\|execFile\|execSync\|execFileSync\|fork)\s*\()/;` |
 | `packages/cli/scripts/gen-process-spawn-inventory.mjs` | 105 | `/(?:child_process\|node:child_process)/.test(trimmed)` |
-| `packages/cli/scripts/gen-process-spawn-inventory.mjs` | 118 | `/^message:\s*["'`].*child_process/.test(trimmed) \|\|` |
-| `packages/cli/scripts/gen-process-spawn-inventory.mjs` | 119 | `/^["'`](?:node:)?child_process["'`],?$/.test(trimmed)` |
+| `packages/cli/scripts/gen-process-spawn-inventory.mjs` | 118 | `/^message:\s*["'`].*child_process/.test(trimmed)` |
 | `packages/cli/scripts/ide-roadmap-mcp-security-gate.mjs` | 3 | `import { execFileSync, spawn } from "node:child_process";` |
 | `packages/cli/scripts/ide-roadmap-mcp-security-gate.mjs` | 92 | `const child = spawn(plan.command, plan.args, plan.options);` |
 | `packages/cli/scripts/ide-roadmap-mcp-security-gate.mjs` | 412 | `execFileSync("git", ["rev-parse", "HEAD"], {` |

@@ -74,7 +74,7 @@ const CAPSULE_EXECUTION_CONTEXT_ISOLATION =
 // manifest and is admissible only through the product's mandatory
 // filesystem/network/process-tree/code-snapshot OS sandbox contract.
 const CAPSULE_EXECUTION_CONTEXT_BUILTINS = new Set([
-  "child_process",
+  "child_process", // spawn-inventory-audit: static-execution-context-builtin
   "cluster",
   "inspector",
   "inspector/promises",

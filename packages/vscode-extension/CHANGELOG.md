@@ -2,6 +2,30 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.54] - Context and side-effect centers (2026-08-16)
+
+- Add an interactive Context Center backed by a deterministic, versioned
+  CLI/IDE contract. It shows context source, scope, freshness, token allocation,
+  and inclusion reason while persisting explicit per-workspace pin/remove
+  choices.
+- Collect bounded Git diff, project-memory, and metadata-only MCP resource
+  evidence for the Context Center without importing MCP payloads or credential
+  values into the IDE projection.
+- Add extension-side support for a bounded Permission and Side-effect Center
+  that can display CLI-authoritative filesystem, network, process/runtime,
+  credential-name, irreversibility, decision-source, call-chain, and
+  per-resource recovery evidence.
+- Add extension-side workspace-scoped permission controls that create or revoke
+  rules only through validated CLI commands bound to the expected authority
+  generation and rule revision; the extension never edits the authority file
+  directly.
+- Keep those new activity and scoped-permission surfaces unavailable with a
+  fail-soft warning until a subsequent exact-gated CLI release provides their
+  authority contracts and commands. Public CLI `0.163.8` continues to support
+  the existing policy view and Context Center.
+- Keep unknown, malformed, oversized, and cross-version projections fail closed
+  across the extension host and Webview boundary.
+
 ## [0.37.53] - Governed multi-agent merge review (2026-08-14)
 
 - Add a CLI-authoritative multi-agent merge review surface with stable file
