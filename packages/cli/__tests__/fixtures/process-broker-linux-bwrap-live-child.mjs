@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { spawn as nativeSpawn } from "node:child_process";
 import fs from "node:fs";
 import { executeTool } from "../../src/runtime/agent-core.js";
 import {
@@ -270,8 +271,16 @@ function summarizeLinuxSupervisorPlan(plan) {
     (argument, index) =>
       argument === "--tmpfs" && planArgs[index + 1] === "/run",
   );
+  const tmpfsTargets = [];
+  const remountReadOnlyTargets = [];
   const descriptorChildFds = [];
   for (let index = 0; index < planArgs.length; index += 1) {
+    if (planArgs[index] === "--tmpfs") {
+      tmpfsTargets.push(planArgs[index + 1]);
+    }
+    if (planArgs[index] === "--remount-ro") {
+      remountReadOnlyTargets.push(planArgs[index + 1]);
+    }
     if (
       planArgs[index] === "--ro-bind-fd" ||
       planArgs[index] === "--ro-bind-data" ||
@@ -298,7 +307,13 @@ function summarizeLinuxSupervisorPlan(plan) {
     },
     runDirectoryIndex,
     runTmpfsIndex,
+    tmpfsTargets,
+    remountReadOnlyTargets,
+    procMounted: planArgs.includes("--proc"),
+    devMounted: planArgs.includes("--dev"),
     descriptorChildFds,
+    maxDescriptorChildFd:
+      descriptorChildFds.length > 0 ? Math.max(...descriptorChildFds) : null,
   };
 }
 
@@ -416,6 +431,8 @@ if (mode === "positive") {
 } else if (mode === "plugin-command-snapshot-race") {
   const request = JSON.parse(extra);
   const originalApplySandbox = executionBroker._sandboxAdapter.applySandbox;
+  const originalNative = executionBroker._native;
+  const underlyingSpawn = originalNative?.spawn || nativeSpawn;
   let mutation = null;
   let entryBindings = null;
   let dependencyMutation = null;
@@ -423,44 +440,63 @@ if (mode === "positive") {
   let runtimeBindings = null;
   let pluginFileBindings = null;
   let supervisorPlan = null;
+  let admittedPlan = null;
+  let mutationPhase = null;
+  let mutationLaunchBinding = null;
   let mutated = false;
   executionBroker._sandboxAdapter.applySandbox = (...adapterArgs) => {
     const plan = originalApplySandbox(...adapterArgs);
     supervisorPlan = summarizeLinuxSupervisorPlan(plan) || supervisorPlan;
-    if (mutated) return plan;
-    mutated = true;
-    try {
-      const planArgs = Array.isArray(plan?.args) ? plan.args : [];
-      pluginFileBindings = summarizePluginFileBindings(planArgs);
-      entryBindings = summarizeDestinationBindings(
+    const planArgs = Array.isArray(plan?.args) ? plan.args : [];
+    pluginFileBindings = summarizePluginFileBindings(planArgs);
+    entryBindings = summarizeDestinationBindings(planArgs, request.destination);
+    if (request.dependencyDestination) {
+      dependencyBindings = summarizeDestinationBindings(
         planArgs,
-        request.destination,
+        request.dependencyDestination,
       );
-      if (request.dependencyDestination) {
-        dependencyBindings = summarizeDestinationBindings(
-          planArgs,
-          request.dependencyDestination,
-        );
-      }
-      if (request.runtimeDestination) {
-        runtimeBindings = summarizeDestinationBindings(
-          planArgs,
-          request.runtimeDestination,
-        );
-      }
-
-      mutation = rewriteSameInode(request.entryPath, request.replacementPath);
-      if (request.dependencyPath && request.dependencyReplacementPath) {
-        dependencyMutation = rewriteSameInode(
-          request.dependencyPath,
-          request.dependencyReplacementPath,
-        );
-      }
-      return plan;
-    } catch (error) {
-      plan?.cleanup?.();
-      throw error;
     }
+    if (request.runtimeDestination) {
+      runtimeBindings = summarizeDestinationBindings(
+        planArgs,
+        request.runtimeDestination,
+      );
+    }
+    admittedPlan = plan;
+    return plan;
+  };
+  executionBroker._native = {
+    ...(originalNative || {}),
+    spawn(command, args, options) {
+      const launchArgs = Array.isArray(args) ? args : [];
+      const planArgs = Array.isArray(admittedPlan?.args)
+        ? admittedPlan.args
+        : [];
+      const launchMatchesPlan =
+        admittedPlan !== null &&
+        command === admittedPlan.command &&
+        JSON.stringify(launchArgs) === JSON.stringify(planArgs);
+      if (!mutated && launchMatchesPlan) {
+        mutated = true;
+        mutationPhase = "after-broker-plan-admission-before-native-spawn";
+        mutationLaunchBinding = {
+          commandMatchesPlan: true,
+          argsMatchPlan: true,
+        };
+        // ProcessExecutionBroker invokes its native spawn only after
+        // _prepareSandboxPlan has validated the adapter plan. Mutating here
+        // therefore proves that both the entry and dependency bytes remain
+        // descriptor-pinned across the final admission-to-spawn window.
+        mutation = rewriteSameInode(request.entryPath, request.replacementPath);
+        if (request.dependencyPath && request.dependencyReplacementPath) {
+          dependencyMutation = rewriteSameInode(
+            request.dependencyPath,
+            request.dependencyReplacementPath,
+          );
+        }
+      }
+      return underlyingSpawn(command, launchArgs, options);
+    },
   };
   let result;
   try {
@@ -471,6 +507,7 @@ if (mode === "positive") {
     );
   } finally {
     executionBroker._sandboxAdapter.applySandbox = originalApplySandbox;
+    executionBroker._native = originalNative;
   }
   writeResult({
     result,
@@ -481,6 +518,8 @@ if (mode === "positive") {
     runtimeBindings,
     pluginFileBindings,
     supervisorPlan,
+    mutationPhase,
+    mutationLaunchBinding,
     audit: executionBroker.getAuditLog(1)[0] || null,
   });
 } else if (mode === "generic-parent-exit") {

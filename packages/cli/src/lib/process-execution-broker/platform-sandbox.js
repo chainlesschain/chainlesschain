@@ -6,10 +6,12 @@
  * - Linux: prlimit resource-limit wrapper, plus a narrow bubblewrap backend
  *   for an attested direct strict Plugin Node bin or a narrow static/dynamic
  *   ELF native bin. Dynamic acceptance recursively parses PT_INTERP and every
- *   startup DT_NEEDED edge against the exact descriptor-bound system graph;
- *   runtime dlopen, broader loader surfaces, shells, broader working
- *   directories, host-writable paths, inherited descriptors, and network
- *   egress remain outside that narrow startup-graph evidence or fail-closed.
+ *   startup DT_NEEDED edge against the exact descriptor-bound system graph.
+ *   Dynamic native launches additionally use a read-only final mount namespace
+ *   with no procfs, devfs, or writable scratch: every pathname-visible regular
+ *   file is descriptor-pinned, hashed, and policy-bound. This closes the ELF
+ *   loader/dlopen pathname surface, but deliberately does not claim to prevent
+ *   anonymous JIT code or a custom in-process ELF loader.
  * - Windows: Win32 Job Object + restricted-token wrapper, with an attested
  *   zero-capability AppContainer for explicit filesystem/network boundaries
  *
@@ -31,6 +33,22 @@ import {
   applyLinuxGenericWorkspaceSandbox,
   isLinuxGenericWorkspaceContract,
 } from "./linux-generic-bwrap-runtime.js";
+import {
+  MCP_STDIO_FD_ENTRY_BOOTSTRAP,
+  MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256,
+  MCP_STDIO_MACOS_GATED_ENTRY_BOOTSTRAP_SHA256,
+} from "./mcp-fd-entry-bootstrap.js";
+import {
+  MACOS_MCP_LAUNCHER_INPUTS,
+  macosMcpLauncherPolicyDigest,
+  verifyMacosMcpLauncherInstallContract,
+} from "./macos-mcp-launcher-contract.js";
+
+export {
+  MCP_STDIO_FD_ENTRY_BOOTSTRAP,
+  MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256,
+  MCP_STDIO_MACOS_GATED_ENTRY_BOOTSTRAP_SHA256,
+} from "./mcp-fd-entry-bootstrap.js";
 
 /**
  * Stable boundary identifiers shared by broker policies, platform plans, and
@@ -162,6 +180,8 @@ const LINUX_BWRAP_BACKEND = "linux-bwrap";
 const LINUX_BWRAP_NODE_PROBE_SENTINEL = "chainless-linux-bwrap-plugin-node-v1";
 const LINUX_BWRAP_CHILD_RUNTIME_PROBE_SENTINEL =
   "chainless-linux-bwrap-child-runtime-v1";
+const LINUX_BWRAP_NATIVE_RUNTIME_CLOSURE_PROBE_SENTINEL =
+  "chainless-linux-bwrap-native-runtime-pathname-closure-v1";
 const LINUX_BWRAP_CHILD_RUNTIME_PROBE_FAILURE_STATUS = 86;
 const LINUX_BWRAP_MAX_PLUGIN_ENTRIES = 512;
 const LINUX_PLUGIN_TREE_SNAPSHOT_MAX_FILES = 256;
@@ -179,15 +199,12 @@ const LINUX_ENTRY_SNAPSHOT_SOURCE_MODE = 0o400;
 const LINUX_EXECUTABLE_SNAPSHOT_SOURCE_MODE = 0o500;
 const LINUX_MCP_CAPSULE_BACKEND = "linux-fd-code-snapshot";
 const LINUX_MCP_RUNTIME_SNAPSHOT_SCOPE = "mcp-node-runtime-executable";
+const LINUX_PLUGIN_RUNTIME_SNAPSHOT_SCOPE =
+  "plugin-probe-node-runtime-executable";
 const LINUX_MCP_CAPSULE_SNAPSHOT_MECHANISM =
   "verified-o_tmpfile-copy-inherited-fd-module-compile-v1";
-const MACOS_MCP_CAPSULE_BACKEND = "macos-fd-code-snapshot";
-export const MCP_STDIO_FD_ENTRY_BOOTSTRAP =
-  'const fs=require("node:fs");const Module=require("node:module");const filename="/chainlesschain/mcp-capsule.cjs";const source=fs.readFileSync(4,"utf8");process.argv.splice(1,0,filename);const target=new Module(filename,module);target.filename=filename;target.paths=[];target._compile(source,filename);';
-export const MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256 = crypto
-  .createHash("sha256")
-  .update(MCP_STDIO_FD_ENTRY_BOOTSTRAP)
-  .digest("hex");
+const MACOS_MCP_CAPSULE_CANDIDATE_BACKEND = "macos-fd-code-snapshot";
+const MACOS_MCP_CAPSULE_BACKEND = MACOS_MCP_LAUNCHER_INPUTS.protocol.backend;
 const LINUX_NODE_ENTRY_SNAPSHOT_SCOPE = "plugin-entry-source";
 const LINUX_NATIVE_ENTRY_SNAPSHOT_SCOPE = "plugin-entry-executable";
 const LINUX_PLUGIN_TREE_SNAPSHOT_SCOPE = "all-pinned-plugin-regular-files";
@@ -238,6 +255,19 @@ const LINUX_NATIVE_DYNAMIC_RECURSIVE_SYSTEM_GRAPH_SCOPE =
   "initial-pt_interp-and-recursive-dt_needed-attested-system-graph";
 const LINUX_NATIVE_DYNAMIC_RECURSIVE_SYSTEM_GRAPH_MECHANISM =
   "recursive-parsed-elf-system-graph-to-attested-runtime-fds-v1";
+const LINUX_NATIVE_RUNTIME_PATHNAME_CLOSURE_SCOPE =
+  "all-pathname-visible-regular-files-in-read-only-bwrap-namespace";
+// In addition to the immutable mount set, the dynamic-only seccomp program
+// blocks every descriptor-acquisition syscall that could import a loader input
+// through SCM_RIGHTS, another process, or a filesystem handle. It also blocks
+// mount/user namespace mutation: otherwise an untrusted target could create a
+// nested user namespace, mount a writable tmpfs over /run, and dlopen a drop-in.
+// This remains a pathname-loader claim: anonymous JIT/custom in-process loaders
+// are excluded.
+const LINUX_NATIVE_RUNTIME_PATHNAME_CLOSURE_MECHANISM =
+  "descriptor-pinned-hashed-ro-mount-set-plus-loader-fd-and-namespace-mutation-seccomp-v2";
+const LINUX_NATIVE_RUNTIME_PATHNAME_CLOSURE_MAX_FILES = 512;
+const LINUX_NATIVE_RUNTIME_PATHNAME_CLOSURE_MAX_BYTES = 1024 * 1024 * 1024;
 const LINUX_ELF_MACHINES = Object.freeze({
   x64: 62,
   arm64: 183,
@@ -247,11 +277,32 @@ const LINUX_ELF_MACHINES = Object.freeze({
 // x64, arm64, and riscv64 use this value; unsupported seccomp architectures
 // already fail closed before the anonymous filter is created.
 const LINUX_O_TMPFILE = 0x410000;
+const LINUX_CLONE_NEWNS = 0x00020000;
+const LINUX_CLONE_NEWUSER = 0x10000000;
+const LINUX_NAMESPACE_CLONE_FLAGS = LINUX_CLONE_NEWNS | LINUX_CLONE_NEWUSER;
 const LINUX_SECCOMP_FILTERS = Object.freeze({
   x64: Object.freeze({
     auditArch: 0xc000003e,
     socketSyscall: 41,
     socketpairSyscall: 53,
+    recvmsgSyscall: 47,
+    recvmmsgSyscall: 299,
+    openByHandleAtSyscall: 304,
+    pidfdGetfdSyscall: 438,
+    cloneSyscall: 56,
+    clone3Syscall: 435,
+    unshareSyscall: 272,
+    setnsSyscall: 308,
+    mountSyscall: 165,
+    umount2Syscall: 166,
+    pivotRootSyscall: 155,
+    openTreeSyscall: 428,
+    moveMountSyscall: 429,
+    fsopenSyscall: 430,
+    fsconfigSyscall: 431,
+    fsmountSyscall: 432,
+    fspickSyscall: 433,
+    mountSetattrSyscall: 442,
     ioUringSetupSyscall: 425,
     x32SyscallBit: 0x40000000,
   }),
@@ -259,12 +310,48 @@ const LINUX_SECCOMP_FILTERS = Object.freeze({
     auditArch: 0xc00000b7,
     socketSyscall: 198,
     socketpairSyscall: 199,
+    recvmsgSyscall: 212,
+    recvmmsgSyscall: 243,
+    openByHandleAtSyscall: 265,
+    pidfdGetfdSyscall: 438,
+    cloneSyscall: 220,
+    clone3Syscall: 435,
+    unshareSyscall: 97,
+    setnsSyscall: 268,
+    mountSyscall: 40,
+    umount2Syscall: 39,
+    pivotRootSyscall: 41,
+    openTreeSyscall: 428,
+    moveMountSyscall: 429,
+    fsopenSyscall: 430,
+    fsconfigSyscall: 431,
+    fsmountSyscall: 432,
+    fspickSyscall: 433,
+    mountSetattrSyscall: 442,
     ioUringSetupSyscall: 425,
   }),
   riscv64: Object.freeze({
     auditArch: 0xc00000f3,
     socketSyscall: 198,
     socketpairSyscall: 199,
+    recvmsgSyscall: 212,
+    recvmmsgSyscall: 243,
+    openByHandleAtSyscall: 265,
+    pidfdGetfdSyscall: 438,
+    cloneSyscall: 220,
+    clone3Syscall: 435,
+    unshareSyscall: 97,
+    setnsSyscall: 268,
+    mountSyscall: 40,
+    umount2Syscall: 39,
+    pivotRootSyscall: 41,
+    openTreeSyscall: 428,
+    moveMountSyscall: 429,
+    fsopenSyscall: 430,
+    fsconfigSyscall: 431,
+    fsmountSyscall: 432,
+    fspickSyscall: 433,
+    mountSetattrSyscall: 442,
     ioUringSetupSyscall: 425,
   }),
 });
@@ -283,6 +370,8 @@ const LINUX_LOCAL_FILESYSTEM_TYPES = new Set([
 const DEFAULT_RUNTIME = Object.freeze({
   platform: os.platform(),
   arch: process.arch,
+  pkg: process.pkg || null,
+  env: process.env,
   fs,
   tmpdir: () => os.tmpdir(),
   homedir: () => os.homedir(),
@@ -297,6 +386,8 @@ const DEFAULT_RUNTIME = Object.freeze({
   sleepSync: (milliseconds) =>
     Atomics.wait(WINDOWS_IDENTITY_WAIT, 0, 0, milliseconds),
   spawnSync: nativeSpawnSync,
+  getuid: () => process.getuid?.() ?? null,
+  getgid: () => process.getgid?.() ?? null,
   warn: (message) => process.emitWarning(message),
 });
 
@@ -306,6 +397,7 @@ const windowsTemporaryCleanupBacklog = new Set();
 let windowsTemporaryCleanupRetryTimer = null;
 const windowsAppContainerCleanupBacklog = new Set();
 const issuedWindowsMcpCodeSnapshotPlans = new WeakMap();
+const issuedMacMcpCodeSnapshotPlans = new WeakMap();
 // Only the unified production adapter can register a Windows MCP launch
 // capability. Direct callers of the exported platform-specific helper (and
 // callers that inject a test/runtime facade into applySandbox) may exercise
@@ -313,6 +405,7 @@ const issuedWindowsMcpCodeSnapshotPlans = new WeakMap();
 const WINDOWS_MCP_CODE_SNAPSHOT_ISSUER = Symbol(
   "windows-mcp-code-snapshot-issuer",
 );
+const MACOS_MCP_CODE_SNAPSHOT_ISSUER = Symbol("macos-mcp-code-snapshot-issuer");
 // Each AppContainer retry starts a synchronous, digest-attested PowerShell
 // helper. Bound automatic retries so a permanently unsupported Windows host
 // cannot repeatedly block a long-lived CLI; explicit cleanup/reset and process
@@ -862,6 +955,650 @@ export function generateMacSeatbeltProfile(opts = {}, runtimeOverrides = {}) {
   return lines.join("\n");
 }
 
+function macMode(stat) {
+  return Number(stat.mode) & 0o7777;
+}
+
+function macSameOpenIdentity(left, right) {
+  return (
+    linuxOpenStatMatches(left, right) &&
+    String(left.uid) === String(right.uid) &&
+    String(left.gid) === String(right.gid)
+  );
+}
+
+function macFixedPathStat(runtime, candidate, options) {
+  const resolved = linuxRealpath(runtime, candidate);
+  const stat = runtime.fs.lstatSync(candidate);
+  const kindMatches =
+    options.kind === "directory" ? stat.isDirectory() : stat.isFile();
+  if (
+    resolved !== candidate ||
+    stat.isSymbolicLink?.() ||
+    !kindMatches ||
+    Number(stat.uid) !== 0 ||
+    Number(stat.gid) !== 0 ||
+    (options.mode !== undefined && macMode(stat) !== options.mode) ||
+    (options.mode === undefined && (macMode(stat) & 0o022) !== 0) ||
+    (options.nlink !== undefined && Number(stat.nlink) !== options.nlink)
+  ) {
+    throw new Error(options.reason || "macos_fixed_path_untrusted");
+  }
+  return stat;
+}
+
+function macOpenPinnedFile(runtime, candidate, options = {}) {
+  let fd;
+  try {
+    const namedBefore = macFixedPathStat(runtime, candidate, {
+      kind: "file",
+      mode: options.mode,
+      nlink: options.nlink,
+      reason: options.reason,
+    });
+    const constants = runtime.fs.constants || fs.constants;
+    fd = runtime.fs.openSync(
+      candidate,
+      Number(constants.O_RDONLY) |
+        Number(constants.O_NOFOLLOW || 0) |
+        Number(constants.O_CLOEXEC || 0) |
+        Number(constants.O_NONBLOCK || 0),
+    );
+    const before = runtime.fs.fstatSync(fd);
+    const bytes = Number(before.size);
+    if (
+      !before.isFile() ||
+      !macSameOpenIdentity(namedBefore, before) ||
+      (options.executable === true && (Number(before.mode) & 0o111) === 0) ||
+      !Number.isSafeInteger(bytes) ||
+      bytes < (options.minimumBytes ?? 1) ||
+      bytes > (options.maximumBytes ?? 16 * 1024 * 1024) ||
+      (options.expectedBytes !== undefined && bytes !== options.expectedBytes)
+    ) {
+      throw new Error(options.reason || "macos_fixed_file_untrusted");
+    }
+    const digest = hashLinuxOpenFile(runtime, fd, bytes);
+    const after = runtime.fs.fstatSync(fd);
+    const namedAfter = runtime.fs.lstatSync(candidate);
+    if (
+      !macSameOpenIdentity(before, after) ||
+      !macSameOpenIdentity(after, namedAfter) ||
+      linuxRealpath(runtime, candidate) !== candidate ||
+      (options.expectedSha256 !== undefined &&
+        digest !== options.expectedSha256)
+    ) {
+      throw new Error(options.reason || "macos_fixed_file_changed");
+    }
+    return {
+      fd,
+      stat: after,
+      sha256: digest,
+      bytes,
+      fileId: { dev: String(after.dev), ino: String(after.ino) },
+      mtimeMs: Number(after.mtimeMs),
+    };
+  } catch (error) {
+    if (fd !== undefined) {
+      try {
+        runtime.fs.closeSync(fd);
+      } catch {
+        // best effort
+      }
+    }
+    throw error;
+  }
+}
+
+function macReadPinnedUtf8(runtime, pin, maximumBytes) {
+  if (pin.bytes > maximumBytes) throw new Error("macos_contract_too_large");
+  const buffer = Buffer.alloc(pin.bytes);
+  let offset = 0;
+  while (offset < buffer.length) {
+    const read = runtime.fs.readSync(
+      pin.fd,
+      buffer,
+      offset,
+      buffer.length - offset,
+      offset,
+    );
+    if (read <= 0) throw new Error("macos_contract_ended_early");
+    offset += read;
+  }
+  return buffer.toString("utf8");
+}
+
+function macSpawnAttestation(runtime, command, args) {
+  const result = runtime.spawnSync(command, args, {
+    cwd: "/",
+    shell: false,
+    encoding: "utf8",
+    timeout: 15_000,
+    env: { PATH: "/usr/bin:/bin", LANG: "C", LC_ALL: "C" },
+  });
+  if (result?.error || result?.signal || result?.status !== 0) {
+    throw new Error("macos_helper_attestation_command_failed");
+  }
+  return {
+    stdout: String(result.stdout || ""),
+    stderr: String(result.stderr || ""),
+  };
+}
+
+function macExactObjectKeys(value, keys) {
+  return (
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    JSON.stringify(Object.keys(value).sort()) ===
+      JSON.stringify([...keys].sort())
+  );
+}
+
+function verifyMacHelperProbe(probe, nonce, contract, runtime) {
+  const keys = [
+    "schema",
+    "nonce",
+    "protocolVersion",
+    "protocolSha256",
+    "sourceSha256",
+    "gateBootstrapSha256",
+    "selfSha256",
+    "realUid",
+    "effectiveUid",
+    "realGid",
+    "effectiveGid",
+    "installedMode",
+    "snapshotRootMode",
+    "readyGate",
+    "rootWatchdog",
+    "staleCleanupBounded",
+    "maximumStaleSnapshots",
+    "globalLaunchLock",
+    "callerLifelineFd",
+    "callerLifelineWatched",
+    "signalRelayNonblocking",
+    "relayParentCredentialsDropped",
+    "entryRootOwnedAnonymousSnapshot",
+    "entrySourcePrePostStat",
+    "entryWriterClosedBeforeReadonlyReopen",
+    "entryReadonlyIdentityRechecked",
+    "entryUnlinkedAndDirectoryFsyncedBeforeTarget",
+    "targetInheritedEntrySnapshotOnly",
+    "runtimeAndCapsuleSlotsNullBeforeExec",
+    "bootstrapClosesNullAndReadyDescriptors",
+    "processForkExplicitlyDenied",
+  ];
+  const callerUid = runtime.getuid();
+  const callerGid = runtime.getgid();
+  if (
+    !macExactObjectKeys(probe, keys) ||
+    !Number.isSafeInteger(callerUid) ||
+    callerUid <= 0 ||
+    !Number.isSafeInteger(callerGid) ||
+    callerGid <= 0 ||
+    probe.schema !== "chainlesschain.macos-mcp-launcher-probe.v1" ||
+    probe.nonce !== nonce ||
+    probe.protocolVersion !== 1 ||
+    probe.protocolSha256 !== MACOS_MCP_LAUNCHER_INPUTS.protocolSha256 ||
+    probe.sourceSha256 !== MACOS_MCP_LAUNCHER_INPUTS.sourceSha256 ||
+    probe.gateBootstrapSha256 !==
+      MCP_STDIO_MACOS_GATED_ENTRY_BOOTSTRAP_SHA256 ||
+    probe.selfSha256 !== contract.helperSha256 ||
+    probe.realUid !== callerUid ||
+    probe.effectiveUid !== 0 ||
+    probe.realGid !== callerGid ||
+    probe.effectiveGid !== callerGid ||
+    probe.installedMode !== "4555" ||
+    probe.snapshotRootMode !== "0711" ||
+    probe.readyGate !== true ||
+    probe.rootWatchdog !== true ||
+    probe.staleCleanupBounded !== true ||
+    probe.maximumStaleSnapshots !==
+      MACOS_MCP_LAUNCHER_INPUTS.protocol.maximumStaleSnapshots ||
+    probe.globalLaunchLock !== true ||
+    probe.callerLifelineFd !==
+      MACOS_MCP_LAUNCHER_INPUTS.protocol.callerLifelineFd ||
+    probe.callerLifelineWatched !== true ||
+    probe.signalRelayNonblocking !== true ||
+    probe.relayParentCredentialsDropped !== true ||
+    probe.entryRootOwnedAnonymousSnapshot !== true ||
+    probe.entrySourcePrePostStat !== true ||
+    probe.entryWriterClosedBeforeReadonlyReopen !== true ||
+    probe.entryReadonlyIdentityRechecked !== true ||
+    probe.entryUnlinkedAndDirectoryFsyncedBeforeTarget !== true ||
+    probe.targetInheritedEntrySnapshotOnly !== true ||
+    probe.runtimeAndCapsuleSlotsNullBeforeExec !== true ||
+    probe.bootstrapClosesNullAndReadyDescriptors !== true ||
+    probe.processForkExplicitlyDenied !== true
+  ) {
+    throw new Error("macos_helper_probe_contract_mismatch");
+  }
+  return probe;
+}
+
+function attestInstalledMacMcpLauncher(runtime) {
+  const protocol = MACOS_MCP_LAUNCHER_INPUTS.protocol;
+  let contractPin;
+  let helperPin;
+  try {
+    for (const directory of [
+      "/Library",
+      "/Library/PrivilegedHelperTools",
+      "/Library/Application Support",
+      "/Library/Application Support/ChainlessChain",
+      "/Library/Application Support/ChainlessChain/McpLauncher",
+    ]) {
+      macFixedPathStat(runtime, directory, {
+        kind: "directory",
+        mode: 0o755,
+        reason: "macos_helper_install_directory_untrusted",
+      });
+    }
+    macFixedPathStat(runtime, protocol.snapshotRoot, {
+      kind: "directory",
+      mode: 0o711,
+      reason: "macos_helper_snapshot_root_untrusted",
+    });
+    macFixedPathStat(
+      runtime,
+      path.posix.join(protocol.snapshotRoot, protocol.snapshotLockName),
+      {
+        kind: "file",
+        mode: 0o600,
+        nlink: 1,
+        reason: "macos_helper_snapshot_lock_untrusted",
+      },
+    );
+    macFixedPathStat(runtime, protocol.sandboxExecutable, {
+      kind: "file",
+      reason: "macos_sandbox_exec_untrusted",
+    });
+    for (const tool of [
+      "/usr/bin/codesign",
+      "/usr/sbin/pkgutil",
+      "/usr/sbin/spctl",
+    ]) {
+      macFixedPathStat(runtime, tool, {
+        kind: "file",
+        reason: "macos_signature_tool_untrusted",
+      });
+    }
+    contractPin = macOpenPinnedFile(runtime, protocol.installContractPath, {
+      mode: 0o444,
+      nlink: 1,
+      maximumBytes: 64 * 1024,
+      reason: "macos_helper_install_contract_untrusted",
+    });
+    const contractText = macReadPinnedUtf8(runtime, contractPin, 64 * 1024);
+    const contract = verifyMacosMcpLauncherInstallContract(
+      JSON.parse(contractText),
+    );
+    const receiptResult = macSpawnAttestation(runtime, "/usr/sbin/pkgutil", [
+      "--pkg-info",
+      contract.packageIdentifier,
+    ]);
+    const receipt = Object.fromEntries(
+      receiptResult.stdout
+        .split(/\r?\n/u)
+        .map((line) => line.match(/^([^:]+):\s*(.*)$/u))
+        .filter(Boolean)
+        .map((match) => [match[1], match[2]]),
+    );
+    if (
+      receipt["package-id"] !== contract.packageIdentifier ||
+      receipt.version !== contract.packageVersion ||
+      receipt.volume !== "/"
+    ) {
+      throw new Error("macos_helper_package_receipt_mismatch");
+    }
+    helperPin = macOpenPinnedFile(runtime, protocol.helperInstallPath, {
+      mode: 0o4555,
+      nlink: 1,
+      executable: true,
+      expectedBytes: contract.helperBytes,
+      expectedSha256: contract.helperSha256,
+      reason: "macos_helper_binary_untrusted",
+    });
+    macSpawnAttestation(runtime, "/usr/bin/codesign", [
+      "--verify",
+      "--strict",
+      "--verbose=4",
+      `-R=${contract.designatedRequirement}`,
+      protocol.helperInstallPath,
+    ]);
+    const description = macSpawnAttestation(runtime, "/usr/bin/codesign", [
+      "-dvvv",
+      protocol.helperInstallPath,
+    ]);
+    const details = `${description.stdout}\n${description.stderr}`;
+    const teamIdentifier = details.match(/^TeamIdentifier=(.+)$/mu)?.[1];
+    const signingIdentifier = details.match(/^Identifier=(.+)$/mu)?.[1];
+    if (
+      teamIdentifier !== contract.teamIdentifier ||
+      signingIdentifier !== contract.signingIdentifier ||
+      !/^CodeDirectory .+ flags=.+\(runtime\)/mu.test(details)
+    ) {
+      throw new Error("macos_helper_signature_identity_mismatch");
+    }
+    const requirementOutput = macSpawnAttestation(
+      runtime,
+      "/usr/bin/codesign",
+      ["-dr", "-", protocol.helperInstallPath],
+    );
+    const designatedRequirement =
+      `${requirementOutput.stdout}\n${requirementOutput.stderr}`.match(
+        /^designated => (.+)$/mu,
+      )?.[1];
+    if (designatedRequirement !== contract.designatedRequirement) {
+      throw new Error("macos_helper_designated_requirement_mismatch");
+    }
+    const gatekeeper = macSpawnAttestation(runtime, "/usr/sbin/spctl", [
+      "--assess",
+      "--type",
+      "execute",
+      "--verbose=4",
+      protocol.helperInstallPath,
+    ]);
+    const gatekeeperEvidence = `${gatekeeper.stdout}\n${gatekeeper.stderr}`;
+    if (
+      !/\baccepted\b/iu.test(gatekeeperEvidence) ||
+      !/source=Notarized Developer ID/iu.test(gatekeeperEvidence)
+    ) {
+      throw new Error("macos_helper_notarization_unattested");
+    }
+    const nonce = runtime.randomBytes(32).toString("hex");
+    const probeResult = macSpawnAttestation(
+      runtime,
+      protocol.helperInstallPath,
+      ["--probe-v1", nonce],
+    );
+    if (probeResult.stderr.trim() !== "") {
+      throw new Error("macos_helper_probe_stderr");
+    }
+    const probe = verifyMacHelperProbe(
+      JSON.parse(probeResult.stdout),
+      nonce,
+      contract,
+      runtime,
+    );
+    if (
+      hashLinuxOpenFile(runtime, helperPin.fd, helperPin.bytes) !==
+        helperPin.sha256 ||
+      !macSameOpenIdentity(
+        helperPin.stat,
+        runtime.fs.fstatSync(helperPin.fd),
+      ) ||
+      !macSameOpenIdentity(
+        helperPin.stat,
+        macFixedPathStat(runtime, protocol.helperInstallPath, {
+          kind: "file",
+          mode: 0o4555,
+          nlink: 1,
+          reason: "macos_helper_binary_changed",
+        }),
+      ) ||
+      !macSameOpenIdentity(
+        contractPin.stat,
+        macFixedPathStat(runtime, protocol.installContractPath, {
+          kind: "file",
+          mode: 0o444,
+          nlink: 1,
+          reason: "macos_helper_install_contract_changed",
+        }),
+      )
+    ) {
+      throw new Error("macos_helper_installation_changed_during_attestation");
+    }
+    const installContractSha256 = crypto
+      .createHash("sha256")
+      .update(contractText)
+      .digest("hex");
+    return Object.freeze({
+      contract,
+      probe,
+      helper: Object.freeze({
+        path: protocol.helperInstallPath,
+        sha256: helperPin.sha256,
+        bytes: helperPin.bytes,
+        fileId: Object.freeze({ ...helperPin.fileId }),
+        mode: macMode(helperPin.stat),
+        uid: Number(helperPin.stat.uid),
+        gid: Number(helperPin.stat.gid),
+        signingIdentifier,
+        teamIdentifier,
+        packageIdentifier: contract.packageIdentifier,
+        packageVersion: contract.packageVersion,
+        designatedRequirementSha256: crypto
+          .createHash("sha256")
+          .update(designatedRequirement)
+          .digest("hex"),
+      }),
+      installContractSha256,
+    });
+  } finally {
+    for (const pin of [helperPin, contractPin]) {
+      if (pin?.fd !== undefined) {
+        try {
+          runtime.fs.closeSync(pin.fd);
+        } catch {
+          // best effort; launch admission still fails if later pinning fails
+        }
+      }
+    }
+  }
+}
+
+function macPinContractFile(runtime, identity, options = {}) {
+  let fd;
+  try {
+    if (
+      !identity ||
+      typeof identity.realPath !== "string" ||
+      !path.posix.isAbsolute(identity.realPath) ||
+      !/^[a-f0-9]{64}$/u.test(identity.sha256 || "") ||
+      !identity.fileId ||
+      !Number.isSafeInteger(identity.bytes) ||
+      identity.bytes < (options.minimumBytes ?? 0) ||
+      identity.bytes > options.maximumBytes ||
+      linuxRealpath(runtime, identity.realPath) !== identity.realPath
+    ) {
+      throw new Error("macos_contract_file_identity_invalid");
+    }
+    const namedBefore = runtime.fs.lstatSync(identity.realPath);
+    const constants = runtime.fs.constants || fs.constants;
+    if (namedBefore.isSymbolicLink?.() || !namedBefore.isFile()) {
+      throw new Error("macos_contract_file_identity_invalid");
+    }
+    fd = runtime.fs.openSync(
+      identity.realPath,
+      Number(constants.O_RDONLY) |
+        Number(constants.O_NOFOLLOW || 0) |
+        Number(constants.O_CLOEXEC || 0) |
+        Number(constants.O_NONBLOCK || 0),
+    );
+    const before = runtime.fs.fstatSync(fd);
+    if (
+      !before.isFile() ||
+      !macSameOpenIdentity(namedBefore, before) ||
+      String(before.dev) !== String(identity.fileId.dev) ||
+      String(before.ino) !== String(identity.fileId.ino) ||
+      Number(before.size) !== identity.bytes ||
+      Number(before.mtimeMs) !== Number(identity.mtimeMs) ||
+      (options.executable === true && (Number(before.mode) & 0o111) === 0)
+    ) {
+      throw new Error("macos_contract_file_identity_changed");
+    }
+    const sha256 = hashLinuxOpenFile(runtime, fd, identity.bytes);
+    const after = runtime.fs.fstatSync(fd);
+    const namedAfter = runtime.fs.lstatSync(identity.realPath);
+    if (
+      sha256 !== identity.sha256 ||
+      !macSameOpenIdentity(before, after) ||
+      !macSameOpenIdentity(after, namedAfter) ||
+      linuxRealpath(runtime, identity.realPath) !== identity.realPath
+    ) {
+      throw new Error("macos_contract_file_identity_changed");
+    }
+    return {
+      fd,
+      sha256,
+      bytes: identity.bytes,
+      fileId: { dev: String(after.dev), ino: String(after.ino) },
+      mtimeMs: Number(after.mtimeMs),
+      mode: Number(after.mode),
+    };
+  } catch (error) {
+    if (fd !== undefined) {
+      try {
+        runtime.fs.closeSync(fd);
+      } catch {
+        // best effort
+      }
+    }
+    throw error;
+  }
+}
+
+function macPinCapsuleDirectory(runtime, contract, callerUid) {
+  let fd;
+  try {
+    const root = contract.pluginRoot;
+    const identity = contract.rootIdentity;
+    if (
+      typeof root !== "string" ||
+      linuxRealpath(runtime, root) !== root ||
+      !identity?.fileId ||
+      identity.realPath !== root
+    ) {
+      throw new Error("macos_capsule_root_identity_invalid");
+    }
+    const namedBefore = runtime.fs.lstatSync(root);
+    const constants = runtime.fs.constants || fs.constants;
+    if (
+      namedBefore.isSymbolicLink?.() ||
+      !namedBefore.isDirectory() ||
+      Number(namedBefore.uid) !== callerUid ||
+      (Number(namedBefore.mode) & 0o022) !== 0
+    ) {
+      throw new Error("macos_capsule_root_identity_invalid");
+    }
+    fd = runtime.fs.openSync(
+      root,
+      Number(constants.O_RDONLY) |
+        Number(constants.O_DIRECTORY || 0) |
+        Number(constants.O_NOFOLLOW || 0) |
+        Number(constants.O_CLOEXEC || 0) |
+        Number(constants.O_NONBLOCK || 0),
+    );
+    const before = runtime.fs.fstatSync(fd);
+    const namedAfter = runtime.fs.lstatSync(root);
+    if (
+      !before.isDirectory() ||
+      !macSameOpenIdentity(namedBefore, before) ||
+      !macSameOpenIdentity(before, namedAfter) ||
+      String(before.dev) !== String(identity.fileId.dev) ||
+      String(before.ino) !== String(identity.fileId.ino) ||
+      linuxRealpath(runtime, root) !== root
+    ) {
+      throw new Error("macos_capsule_root_identity_changed");
+    }
+    return {
+      fd,
+      fileId: { dev: String(before.dev), ino: String(before.ino) },
+      mode: Number(before.mode),
+      uid: Number(before.uid),
+      gid: Number(before.gid),
+    };
+  } catch (error) {
+    if (fd !== undefined) {
+      try {
+        runtime.fs.closeSync(fd);
+      } catch {
+        // best effort
+      }
+    }
+    throw error;
+  }
+}
+
+function macStandardStdio(stdio) {
+  if (Array.isArray(stdio)) {
+    return [stdio[0] ?? "pipe", stdio[1] ?? "pipe", stdio[2] ?? "pipe"];
+  }
+  const value = stdio ?? "pipe";
+  return [value, value, value];
+}
+
+function macEnvironmentDigest(environment) {
+  const normalized = Object.fromEntries(
+    Object.entries(environment || {})
+      .map(([key, value]) => [key, String(value)])
+      .sort(([left], [right]) => left.localeCompare(right)),
+  );
+  return crypto
+    .createHash("sha256")
+    .update(JSON.stringify(normalized))
+    .digest("hex");
+}
+
+export const MACOS_PKG_EXECPATH_MAGIC = "PKG_INVOKE_NODEJS";
+
+export function macMcpTargetEnvironment(
+  environment,
+  { packaged = false, inheritedEnvironment = process.env } = {},
+) {
+  if (!packaged) return environment;
+  const base = environment ?? inheritedEnvironment;
+  if (!base || typeof base !== "object" || Array.isArray(base)) {
+    throw new TypeError("packaged macOS MCP environment must be an object");
+  }
+  return {
+    ...base,
+    PKG_EXECPATH: MACOS_PKG_EXECPATH_MAGIC,
+  };
+}
+
+function sameMacStdio(left, right) {
+  return (
+    Array.isArray(left) &&
+    Array.isArray(right) &&
+    left.length === 9 &&
+    right.length === 9 &&
+    left.every((value, index) => value === right[index])
+  );
+}
+
+export function consumeMacMcpCodeSnapshotPlanBinding(plan, expected = {}) {
+  const issued = issuedMacMcpCodeSnapshotPlans.get(plan);
+  if (!issued) return false;
+  issuedMacMcpCodeSnapshotPlans.delete(plan);
+  return (
+    issued.executionContract === expected.executionContract &&
+    issued.originalCommand === expected.command &&
+    sameStringArray(issued.originalArgs, expected.args) &&
+    issued.originalCwd === (expected.cwd ?? null) &&
+    issued.originalShell === (expected.shell ?? null) &&
+    issued.originalDetached === (expected.detached ?? null) &&
+    issued.profile === expected.profile &&
+    sameStringArray(issued.requiredBoundaries, expected.requiredBoundaries) &&
+    issued.sync === (expected.sync === true) &&
+    plan.backend === MACOS_MCP_CAPSULE_BACKEND &&
+    plan.enforcement === MACOS_MCP_CAPSULE_BACKEND &&
+    plan.policyAttested === true &&
+    plan.policyDigest === issued.policyDigest &&
+    plan.command === issued.helperCommand &&
+    sameStringArray(plan.args, issued.helperArgs) &&
+    plan.options?.cwd === "/" &&
+    plan.options?.shell === false &&
+    plan.options?.detached !== true &&
+    macEnvironmentDigest(plan.options?.env) === issued.environmentDigest &&
+    sameMacStdio(issued.stdio, plan.options?.stdio) &&
+    plan.postSpawn?.required === false &&
+    plan.postSpawn?.mode === "none" &&
+    plan.runtimeProbe?.planBindingDigest === issued.planBindingDigest
+  );
+}
+
 function validateMacMcpCapsuleContract(
   command,
   args,
@@ -878,6 +1615,7 @@ function validateMacMcpCapsuleContract(
     !linuxStdioIsNarrow(spawnOpts?.stdio) ||
     spawnOpts?.serialization !== undefined ||
     spawnOpts?.argv0 !== undefined ||
+    spawnOpts?.detached === true ||
     spawnOpts?.uid !== undefined ||
     spawnOpts?.gid !== undefined ||
     !Array.isArray(args) ||
@@ -941,6 +1679,7 @@ function applyMacMcpCapsuleCodeSnapshot(
   sandboxOpts,
   runtime,
   base,
+  planBindingAuthority = null,
 ) {
   const contract = sandboxOpts.executionContract;
   const validation = validateMacMcpCapsuleContract(
@@ -955,7 +1694,7 @@ function applyMacMcpCapsuleCodeSnapshot(
     createSandboxPlan({
       ...base,
       backend: null,
-      candidateBackend: MACOS_MCP_CAPSULE_BACKEND,
+      candidateBackend: MACOS_MCP_CAPSULE_CANDIDATE_BACKEND,
       policyAttested: false,
       runtimeProbe: runtimeProbe
         ? {
@@ -982,22 +1721,279 @@ function applyMacMcpCapsuleCodeSnapshot(
     });
   }
 
-  // Darwin exposes only pathname-based exec/spawn APIs to an unprivileged
-  // process. An inherited descriptor can bind the entry source, but public
-  // APIs cannot bind the verified Node runtime descriptor to the image that
-  // executes. Private temporary paths and Seatbelt still leave a same-UID
-  // pathname-replacement window, so they cannot satisfy CODE_SNAPSHOT.
-  return unavailable("macos_atomic_runtime_exec_unavailable", {
-    attempted: true,
-    runnable: false,
-    reason: "public_api_has_no_descriptor_bound_exec",
-    contentSnapshot: false,
-    handleAtomic: false,
-    entrySnapshotAtomic: false,
-    runtimeLaunchAtomic: false,
-    runtimeLaunchMechanism: "darwin-public-api-pathname-exec-only-v1",
-    sharedLibraryClosure: false,
-  });
+  const protocol = MACOS_MCP_LAUNCHER_INPUTS.protocol;
+  const legacyUnavailable = () =>
+    unavailable("macos_atomic_runtime_exec_unavailable", {
+      attempted: true,
+      runnable: false,
+      reason: "public_api_has_no_descriptor_bound_exec",
+      contentSnapshot: false,
+      handleAtomic: false,
+      entrySnapshotAtomic: false,
+      runtimeLaunchAtomic: false,
+      runtimeLaunchMechanism: "darwin-public-api-pathname-exec-only-v1",
+      sharedLibraryClosure: false,
+    });
+  if (
+    typeof runtime.fs.existsSync !== "function" ||
+    !runtime.fs.existsSync(protocol.helperInstallPath) ||
+    !runtime.fs.existsSync(protocol.installContractPath)
+  ) {
+    // Darwin public APIs still provide no descriptor-bound exec. Production is
+    // enabled only by the separately signed, root-installed release contract.
+    return legacyUnavailable();
+  }
+
+  let runtimePin;
+  let entryPin;
+  let capsulePin;
+  try {
+    const callerUid = runtime.getuid();
+    const callerGid = runtime.getgid();
+    if (
+      !Number.isSafeInteger(callerUid) ||
+      callerUid <= 0 ||
+      !Number.isSafeInteger(callerGid) ||
+      callerGid <= 0
+    ) {
+      throw new Error("macos_helper_caller_credentials_invalid");
+    }
+    const installation = attestInstalledMacMcpLauncher(runtime);
+    runtimePin = macPinContractFile(runtime, contract.runtimeIdentity, {
+      executable: true,
+      minimumBytes: 1,
+      maximumBytes: protocol.maximumRuntimeBytes,
+    });
+    entryPin = macPinContractFile(runtime, contract.entryIdentity, {
+      minimumBytes: 0,
+      maximumBytes: protocol.maximumEntryBytes,
+    });
+    capsulePin = macPinCapsuleDirectory(runtime, contract, callerUid);
+    const nonce = runtime.randomBytes(32).toString("hex");
+    if (!/^[a-f0-9]{64}$/u.test(nonce)) {
+      throw new Error("macos_helper_nonce_generation_failed");
+    }
+    const snapshotPath = path.posix.join(protocol.snapshotRoot, nonce, "node");
+    const policyDigest = macosMcpLauncherPolicyDigest({
+      snapshotPath,
+      capsulePath: contract.pluginRoot,
+    });
+    const helperArgs = [
+      "--launch-v1",
+      nonce,
+      MACOS_MCP_LAUNCHER_INPUTS.protocolSha256,
+      runtimePin.sha256,
+      String(runtimePin.bytes),
+      entryPin.sha256,
+      String(entryPin.bytes),
+      String(callerUid),
+      String(callerGid),
+      policyDigest,
+      ...args.slice(1),
+    ];
+    const stdio = [
+      ...macStandardStdio(spawnOpts?.stdio),
+      runtimePin.fd,
+      entryPin.fd,
+      capsulePin.fd,
+      "ignore",
+      "ignore",
+      "pipe",
+    ];
+    const packagedRuntime = Boolean(runtime.pkg);
+    const targetEnvironment = macMcpTargetEnvironment(spawnOpts?.env, {
+      packaged: packagedRuntime,
+      inheritedEnvironment: runtime.env,
+    });
+    const options = {
+      ...(spawnOpts || {}),
+      cwd: "/",
+      shell: false,
+      detached: false,
+      stdio,
+      ...(targetEnvironment === undefined ? {} : { env: targetEnvironment }),
+    };
+    const installAttestationDigest = crypto
+      .createHash("sha256")
+      .update(
+        JSON.stringify({
+          version: 1,
+          protocolSha256: MACOS_MCP_LAUNCHER_INPUTS.protocolSha256,
+          sourceSha256: MACOS_MCP_LAUNCHER_INPUTS.sourceSha256,
+          gateBootstrapSha256: MCP_STDIO_MACOS_GATED_ENTRY_BOOTSTRAP_SHA256,
+          helper: installation.helper,
+          installContractSha256: installation.installContractSha256,
+        }),
+      )
+      .digest("hex");
+    const environmentDigest = macEnvironmentDigest(options.env);
+    const planBindingDigest = crypto
+      .createHash("sha256")
+      .update(
+        JSON.stringify({
+          version: 1,
+          backend: MACOS_MCP_CAPSULE_BACKEND,
+          helperArgs,
+          policyDigest,
+          installAttestationDigest,
+          environmentDigest,
+          runtimeFd: runtimePin.fd,
+          entryFd: entryPin.fd,
+          capsuleRootFd: capsulePin.fd,
+          callerLifelineFd: protocol.callerLifelineFd,
+        }),
+      )
+      .digest("hex");
+    let cleaned = false;
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      for (const pin of [runtimePin, entryPin, capsulePin]) {
+        if (pin?.fd !== undefined) {
+          try {
+            runtime.fs.closeSync(pin.fd);
+          } catch {
+            // Closing an already-duplicated parent descriptor is best effort.
+          }
+        }
+      }
+    };
+    const runtimeProbe = {
+      kind: "darwin-mcp-capsule-code-snapshot-v2",
+      attempted: true,
+      runnable: true,
+      reason: null,
+      probeRuntime: "node",
+      targetRuntime: "node",
+      targetRuntimeInvocationMode: packagedRuntime
+        ? "pkg-copied-executable-eval-v1"
+        : "node-executable-eval-v1",
+      pkgExecPathMagicBound: packagedRuntime,
+      contentSnapshot: true,
+      contentSnapshotScope: "mcp-capsule-entry-and-node-runtime",
+      contentSnapshotMechanism:
+        "signed-root-runtime-path-and-anonymous-entry-fd-snapshots-v1",
+      handleAtomic: true,
+      entrySnapshotAtomic: true,
+      runtimeLaunchAtomic: true,
+      runtimeLaunchMechanism:
+        "signed-root-helper-fd-copy-protected-path-ready-gate-v1",
+      runtimeLaunchPath: snapshotPath,
+      entrySnapshotPath: "anonymous-root-owned-fd4",
+      runtimeSnapshotSha256: runtimePin.sha256,
+      runtimeSnapshotBytes: runtimePin.bytes,
+      entrySnapshotSha256: entryPin.sha256,
+      entrySnapshotBytes: entryPin.bytes,
+      entrySnapshotBootstrapSha256:
+        MCP_STDIO_MACOS_GATED_ENTRY_BOOTSTRAP_SHA256,
+      sharedLibraryClosure: false,
+      rootProtectedRuntimeSnapshot: true,
+      entryRootOwnedAnonymousSnapshot: true,
+      entrySourcePrePostStat: true,
+      entryWriterClosedBeforeReadonlyReopen: true,
+      entryReadonlyIdentityRechecked: true,
+      entryUnlinkedAndDirectoryFsyncedBeforeTarget: true,
+      targetInheritedEntrySnapshotOnly: true,
+      runtimeAndCapsuleSlotsNullBeforeExec: true,
+      bootstrapClosesNullAndReadyDescriptors: true,
+      actualRuntimeReadyHandshake: true,
+      runtimeSnapshotUnlinkedBeforeEntryRelease: true,
+      callerCredentialDropIrreversible: true,
+      relayParentCredentialsDropped: true,
+      callerLifelineWatched: true,
+      signalRelayNonblocking: true,
+      targetDescriptorAllowlist:
+        "stdio-fd3-null-fd4-entry-fd5-null-fd6-gate-fd7-ready",
+      capsuleRootDescriptorBound: true,
+      capsulePathObjectAtomic: false,
+      sandboxProfileFixedAndDigestBound: true,
+      processForkExplicitlyDenied: true,
+      sandboxExecLiveGateContract: true,
+      globalLaunchSerialization: true,
+      maximumStaleSnapshots: protocol.maximumStaleSnapshots,
+      helperSha256: installation.helper.sha256,
+      helperSourceSha256: MACOS_MCP_LAUNCHER_INPUTS.sourceSha256,
+      helperProtocolSha256: MACOS_MCP_LAUNCHER_INPUTS.protocolSha256,
+      helperInstallContractSha256: installation.installContractSha256,
+      helperDesignatedRequirementSha256:
+        installation.helper.designatedRequirementSha256,
+      helperTeamIdentifier: installation.helper.teamIdentifier,
+      helperPackageIdentifier: installation.helper.packageIdentifier,
+      helperPackageVersion: installation.helper.packageVersion,
+      installAttestationDigest,
+      planBindingMechanism: "macos-mcp-code-snapshot-plan-binding-v1",
+      planBindingDigest,
+    };
+    const plan = createSandboxPlan({
+      ...base,
+      applied: true,
+      enforcement: MACOS_MCP_CAPSULE_BACKEND,
+      backend: MACOS_MCP_CAPSULE_BACKEND,
+      candidateBackend: null,
+      policyAttested: true,
+      policyDigest,
+      command: protocol.helperInstallPath,
+      args: helperArgs,
+      options,
+      runtimeProbe,
+      guarantees: [
+        SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+        SANDBOX_BOUNDARIES.FILESYSTEM,
+        SANDBOX_BOUNDARIES.NETWORK,
+        SANDBOX_BOUNDARIES.PROCESS_EXEC,
+        SANDBOX_BOUNDARIES.PROCESS_TREE,
+        SANDBOX_BOUNDARIES.PRIVILEGE_REDUCTION,
+      ],
+      cleanup,
+    });
+    if (planBindingAuthority === MACOS_MCP_CODE_SNAPSHOT_ISSUER) {
+      issuedMacMcpCodeSnapshotPlans.set(
+        plan,
+        Object.freeze({
+          executionContract: contract,
+          originalCommand: command,
+          originalArgs: Object.freeze([...args]),
+          originalCwd: spawnOpts?.cwd ?? null,
+          originalShell: spawnOpts?.shell ?? null,
+          originalDetached: spawnOpts?.detached ?? null,
+          profile: base.profile,
+          requiredBoundaries: Object.freeze([
+            ...(sandboxOpts.requiredBoundaries || []),
+          ]),
+          sync: sandboxOpts.sync === true,
+          policyDigest,
+          helperCommand: protocol.helperInstallPath,
+          helperArgs: Object.freeze([...helperArgs]),
+          environmentDigest,
+          stdio: Object.freeze([...stdio]),
+          planBindingDigest,
+        }),
+      );
+    }
+    return plan;
+  } catch (error) {
+    for (const pin of [runtimePin, entryPin, capsulePin]) {
+      if (pin?.fd !== undefined) {
+        try {
+          runtime.fs.closeSync(pin.fd);
+        } catch {
+          // best effort
+        }
+      }
+    }
+    return unavailable("macos_atomic_runtime_exec_unavailable", {
+      kind: "darwin-mcp-capsule-code-snapshot-v2",
+      attempted: true,
+      runnable: false,
+      reason: error?.message || "signed_root_helper_unattested",
+      contentSnapshot: false,
+      handleAtomic: false,
+      entrySnapshotAtomic: false,
+      runtimeLaunchAtomic: false,
+      runtimeLaunchMechanism: "signed-root-helper-unattested-v1",
+      sharedLibraryClosure: false,
+    });
+  }
 }
 
 /**
@@ -1018,6 +2014,7 @@ export function applyMacSandbox(
   spawnOpts,
   sandboxOpts = {},
   runtimeOverrides = {},
+  planBindingAuthority = null,
 ) {
   const runtime = resolveRuntime(runtimeOverrides);
   const invocation = normalizeWrappedInvocation(
@@ -1052,6 +2049,7 @@ export function applyMacSandbox(
       sandboxOpts,
       runtime,
       base,
+      planBindingAuthority,
     );
   }
 
@@ -3887,6 +4885,7 @@ function linuxBubblewrapProbe(
   supervisorBinding = null,
   pluginTreeSnapshot = null,
   nativeDynamicClosure = null,
+  runtimeLoadSet = null,
   runtimeDetachedChildSpawnVerified = false,
 ) {
   const native =
@@ -3944,6 +4943,26 @@ function linuxBubblewrapProbe(
     nativeDynamicClosure.bytes <= LINUX_ELF_MAX_INITIAL_CLOSURE_BYTES &&
     typeof nativeDynamicClosure?.digest === "string" &&
     /^[a-f0-9]{64}$/.test(nativeDynamicClosure.digest);
+  const runtimeSharedLibraryPathnameClosure =
+    initialDynamicLoadClosureDescriptorBound &&
+    pluginTreeContentSnapshot &&
+    runtimeLoadSet?.scope === LINUX_NATIVE_RUNTIME_PATHNAME_CLOSURE_SCOPE &&
+    runtimeLoadSet?.mechanism ===
+      LINUX_NATIVE_RUNTIME_PATHNAME_CLOSURE_MECHANISM &&
+    Number.isSafeInteger(runtimeLoadSet?.files) &&
+    runtimeLoadSet.files > 0 &&
+    runtimeLoadSet.files <= LINUX_NATIVE_RUNTIME_PATHNAME_CLOSURE_MAX_FILES &&
+    Number.isSafeInteger(runtimeLoadSet?.bytes) &&
+    runtimeLoadSet.bytes > 0 &&
+    runtimeLoadSet.bytes <= LINUX_NATIVE_RUNTIME_PATHNAME_CLOSURE_MAX_BYTES &&
+    typeof runtimeLoadSet?.digest === "string" &&
+    /^[a-f0-9]{64}$/.test(runtimeLoadSet.digest) &&
+    runtimeLoadSet.policyBound === true &&
+    runtimeLoadSet.writableFilesystems === false &&
+    runtimeLoadSet.procfsMounted === false &&
+    runtimeLoadSet.devfsMounted === false &&
+    runtimeLoadSet.scratchWritable === false &&
+    runtimeLoadSet.descriptorReopenPaths === false;
   return {
     kind: dynamicNative
       ? "linux-bwrap-plugin-native-dynamic-elf-policy-v1"
@@ -3988,9 +5007,29 @@ function linuxBubblewrapProbe(
           initialDynamicRuntimeFileCount: nativeDynamicClosure.files,
           initialDynamicRuntimeBytes: nativeDynamicClosure.bytes,
           initialDynamicLoadClosureDigest: nativeDynamicClosure.digest,
-          // This evidence covers the loader's recursively reachable startup
-          // graph only. It must never be promoted to arbitrary dlopen closure.
+          // The legacy aggregate field is intentionally kept false: this
+          // production slice closes libc/ELF-loader pathname resolution, not
+          // anonymous JIT mappings or a malicious custom in-process loader.
           sharedLibraryClosure: false,
+          ...(runtimeSharedLibraryPathnameClosure
+            ? {
+                runtimeSharedLibraryPathnameClosure: true,
+                runtimeSharedLibraryPathnameClosureExcludes:
+                  "anonymous-jit-and-custom-in-process-loader",
+                runtimeSharedLibraryClosureScope: runtimeLoadSet.scope,
+                runtimeSharedLibraryClosureMechanism: runtimeLoadSet.mechanism,
+                runtimeSharedLibraryLoadSetFiles: runtimeLoadSet.files,
+                runtimeSharedLibraryLoadSetBytes: runtimeLoadSet.bytes,
+                runtimeSharedLibraryLoadSetDigest: runtimeLoadSet.digest,
+                runtimeLoadSetPolicyBound: runtimeLoadSet.policyBound,
+                runtimeWritableFilesystems: runtimeLoadSet.writableFilesystems,
+                runtimeProcfsMounted: runtimeLoadSet.procfsMounted,
+                runtimeDevfsMounted: runtimeLoadSet.devfsMounted,
+                runtimeScratchWritable: runtimeLoadSet.scratchWritable,
+                runtimeDescriptorReopenPaths:
+                  runtimeLoadSet.descriptorReopenPaths,
+              }
+            : {}),
         }
       : {}),
     supervisorDescriptorBound,
@@ -4003,8 +5042,9 @@ function linuxBubblewrapProbe(
           supervisorDescriptorConsumedBeforeTarget: runnable,
           supervisorStagingPathHidden: runnable,
           supervisorTemporaryCopyObscured: runnable,
-          supervisorPid1ExecutableExposure:
-            supervisorBinding.pid1ExecutableExposure,
+          supervisorPid1ExecutableExposure: runtimeSharedLibraryPathnameClosure
+            ? "procfs-not-mounted"
+            : supervisorBinding.pid1ExecutableExposure,
           supervisorExecutableIdentity: {
             path: supervisorBinding.path,
             fileId: supervisorBinding.fileId,
@@ -4568,6 +5608,16 @@ function linuxMcpRuntimeSnapshotContract() {
   };
 }
 
+function linuxPluginRuntimeSnapshotContract() {
+  return {
+    scope: LINUX_PLUGIN_RUNTIME_SNAPSHOT_SCOPE,
+    targetMode: "0500",
+    sourceMode: LINUX_EXECUTABLE_SNAPSHOT_SOURCE_MODE,
+    minimumBytes: 1,
+    errorPrefix: "plugin_node_runtime_snapshot",
+  };
+}
+
 function createLinuxRegularFileSnapshot(
   runtime,
   entryMount,
@@ -4643,7 +5693,8 @@ function createLinuxRegularFileSnapshot(
     }
     if (
       (snapshotContract.scope === LINUX_NATIVE_ENTRY_SNAPSHOT_SCOPE ||
-        snapshotContract.scope === LINUX_MCP_RUNTIME_SNAPSHOT_SCOPE) &&
+        snapshotContract.scope === LINUX_MCP_RUNTIME_SNAPSHOT_SCOPE ||
+        snapshotContract.scope === LINUX_PLUGIN_RUNTIME_SNAPSHOT_SCOPE) &&
       (sourceFileMode & 0o111) === 0
     ) {
       throw snapshotError("source_mode_changed");
@@ -6111,7 +7162,10 @@ function pinLinuxPluginTree(runtime, pluginRoot, rootIdentity) {
   }
 }
 
-function buildLinuxNetworkSeccompFilter(arch) {
+function buildLinuxNetworkSeccompFilter(
+  arch,
+  { runtimePathnameClosure = false } = {},
+) {
   const architecture = LINUX_SECCOMP_FILTERS[arch];
   if (!architecture) {
     throw new Error(`unsupported_seccomp_architecture:${String(arch)}`);
@@ -6140,8 +7194,54 @@ function buildLinuxNetworkSeccompFilter(arch) {
     // syscall. No ring descriptor is inherited by this narrow launch route.
     [0x15, 0, 1, architecture.ioUringSetupSyscall],
     [0x06, 0, 0, 0x00050001],
-    [0x06, 0, 0, 0x7fff0000],
   );
+  if (runtimePathnameClosure) {
+    // clone3 receives a pointer to struct clone_args, which classic seccomp BPF
+    // cannot safely dereference. Make the syscall unavailable so glibc can
+    // fall back to classic clone for ordinary threads; the classic call below
+    // rejects only namespace-producing flags.
+    instructions.push(
+      [0x15, 0, 1, architecture.clone3Syscall],
+      [0x06, 0, 0, 0x00050026],
+    );
+    for (const syscall of [
+      // recvmsg(2) and recvmmsg(2) are the two receive APIs capable of
+      // importing SCM_RIGHTS descriptors. recvfrom/read cannot receive
+      // ancillary descriptors, and sendmsg does not import one.
+      architecture.recvmsgSyscall,
+      architecture.recvmmsgSyscall,
+      architecture.pidfdGetfdSyscall,
+      architecture.openByHandleAtSyscall,
+      // A read-only outer namespace is not a closure if the target can create
+      // or join another namespace and mount writable bytes over a visible path.
+      architecture.unshareSyscall,
+      architecture.setnsSyscall,
+      architecture.mountSyscall,
+      architecture.umount2Syscall,
+      architecture.pivotRootSyscall,
+      architecture.openTreeSyscall,
+      architecture.moveMountSyscall,
+      architecture.fsopenSyscall,
+      architecture.fsconfigSyscall,
+      architecture.fsmountSyscall,
+      architecture.fspickSyscall,
+      architecture.mountSetattrSyscall,
+    ]) {
+      instructions.push([0x15, 0, 1, syscall], [0x06, 0, 0, 0x00050001]);
+    }
+    instructions.push(
+      // seccomp_data.args[0] starts at byte 16. All supported ABIs are
+      // little-endian, so loading this word inspects the low classic-clone
+      // flags. Preserve fork/pthread clone calls while rejecting NEWUSER/NEWNS.
+      [0x15, 0, 5, architecture.cloneSyscall],
+      [0x20, 0, 0, 16],
+      [0x54, 0, 0, LINUX_NAMESPACE_CLONE_FLAGS],
+      [0x15, 1, 0, 0],
+      [0x06, 0, 0, 0x00050001],
+      [0x06, 0, 0, 0x7fff0000],
+    );
+  }
+  instructions.push([0x06, 0, 0, 0x7fff0000]);
   const buffer = Buffer.alloc(instructions.length * 8);
   instructions.forEach(([code, jumpTrue, jumpFalse, value], index) => {
     const offset = index * 8;
@@ -6157,8 +7257,8 @@ function buildLinuxNetworkSeccompFilter(arch) {
   };
 }
 
-function pinLinuxNetworkSeccompFilter(runtime) {
-  const filter = buildLinuxNetworkSeccompFilter(runtime.arch);
+function pinLinuxNetworkSeccompFilter(runtime, options = {}) {
+  const filter = buildLinuxNetworkSeccompFilter(runtime.arch, options);
   let fd;
   try {
     for (const method of [
@@ -6228,7 +7328,9 @@ function pinLinuxNetworkSeccompFilter(runtime) {
       childFd: null,
       arch: filter.arch,
       sha256: filter.sha256,
-      policy: "deny-network-creation",
+      policy: options.runtimePathnameClosure
+        ? "deny-network-creation-loader-fd-acquisition-and-namespace-mutation"
+        : "deny-network-creation",
     };
   } catch (error) {
     if (fd !== undefined) {
@@ -6633,7 +7735,7 @@ function collectLinuxNodeRuntimeMounts(runtime, runtimeIdentity) {
   )) {
     if (
       path.posix.normalize(destination) !== destination ||
-      !["/lib/", "/lib64/", "/usr/lib/"].some((prefix) =>
+      !["/lib/", "/lib64/", "/usr/lib/", "/usr/lib64/"].some((prefix) =>
         destination.startsWith(prefix),
       )
     ) {
@@ -6882,6 +7984,146 @@ function bindLinuxNativeDynamicRuntime(
   });
 }
 
+/**
+ * Hash every regular file that will remain pathname-visible to a dynamic
+ * native target. The final namespace is built only from these descriptor
+ * mounts and a read-only synthetic root, so this set is the complete input to
+ * the kernel ELF loader and libc dlopen pathname resolution. Anonymous
+ * executable memory and a malicious program's own ELF loader are intentionally
+ * outside this narrower, enforceable claim.
+ */
+function buildLinuxRuntimePathnameLoadSet(
+  runtime,
+  pinnedMounts,
+  pluginTreeSnapshot,
+  nativeDynamicClosure,
+) {
+  if (
+    nativeDynamicClosure?.scope !==
+      LINUX_NATIVE_DYNAMIC_RECURSIVE_SYSTEM_GRAPH_SCOPE ||
+    nativeDynamicClosure?.mechanism !==
+      LINUX_NATIVE_DYNAMIC_RECURSIVE_SYSTEM_GRAPH_MECHANISM ||
+    pluginTreeSnapshot?.scope !== LINUX_PLUGIN_TREE_SNAPSHOT_SCOPE ||
+    !Array.isArray(pinnedMounts) ||
+    pinnedMounts.length < 1 ||
+    pinnedMounts.length > LINUX_NATIVE_RUNTIME_PATHNAME_CLOSURE_MAX_FILES
+  ) {
+    throw new Error("native_runtime_pathname_load_set_invalid");
+  }
+  const destinations = new Set();
+  let totalBytes = 0;
+  const members = pinnedMounts.map((mount) => {
+    const destination = mount?.destination;
+    const pluginFile =
+      typeof destination === "string" &&
+      linuxPathWithin("/opt/chainless/plugin", destination);
+    const runtimeFile = destination === "/opt/chainless/runtime/node";
+    const systemLibrary = linuxSystemDynamicPath(destination);
+    const loaderCache = destination === "/etc/ld.so.cache";
+    if (
+      typeof destination !== "string" ||
+      !path.posix.isAbsolute(destination) ||
+      path.posix.normalize(destination) !== destination ||
+      destinations.has(destination) ||
+      (!pluginFile && !runtimeFile && !systemLibrary && !loaderCache) ||
+      !Number.isInteger(mount?.fd)
+    ) {
+      throw new Error("native_runtime_pathname_load_set_member_invalid");
+    }
+    destinations.add(destination);
+    const before = runtime.fs.fstatSync(mount.fd);
+    const bytes = Number(before.size);
+    if (
+      !before.isFile() ||
+      !Number.isSafeInteger(bytes) ||
+      bytes < 0 ||
+      bytes > LINUX_ATTESTED_FILE_MAX_BYTES ||
+      String(before.dev) !== String(mount.fileId?.dev) ||
+      String(before.ino) !== String(mount.fileId?.ino) ||
+      bytes !== Number(mount.bytes) ||
+      Number(before.mtimeMs) !== Number(mount.mtimeMs) ||
+      totalBytes > LINUX_NATIVE_RUNTIME_PATHNAME_CLOSURE_MAX_BYTES - bytes
+    ) {
+      throw new Error("native_runtime_pathname_load_set_member_changed");
+    }
+    const sha256 = hashLinuxOpenFile(runtime, mount.fd, bytes);
+    const after = runtime.fs.fstatSync(mount.fd);
+    if (
+      !linuxOpenStatMatches(before, after) ||
+      ((pluginFile || runtimeFile) &&
+        (mount.contentSnapshot?.mechanism !== LINUX_ENTRY_SNAPSHOT_MECHANISM ||
+          mount.contentSnapshot?.sha256 !== sha256 ||
+          (runtimeFile &&
+            mount.contentSnapshot?.scope !==
+              LINUX_PLUGIN_RUNTIME_SNAPSHOT_SCOPE)))
+    ) {
+      throw new Error("native_runtime_pathname_load_set_member_changed");
+    }
+    totalBytes += bytes;
+    return {
+      destination,
+      sourceKind: pluginFile
+        ? "plugin-content-snapshot"
+        : runtimeFile
+          ? "broker-node-runtime"
+          : systemLibrary
+            ? "root-owned-system-library"
+            : "root-owned-loader-cache",
+      fileId: {
+        dev: String(after.dev),
+        ino: String(after.ino),
+      },
+      sha256,
+      bytes,
+      mtimeMs: Number(after.mtimeMs),
+      mountMode:
+        mount.mountMode === "ro-bind-data" ? "ro-bind-data" : "ro-bind-fd",
+    };
+  });
+  members.sort((left, right) =>
+    left.destination.localeCompare(right.destination),
+  );
+  const loaderCacheVisible = members.some(
+    ({ sourceKind }) => sourceKind === "root-owned-loader-cache",
+  );
+  if (
+    totalBytes < 1 ||
+    !members.some(
+      ({ sourceKind }) => sourceKind === "plugin-content-snapshot",
+    ) ||
+    !members.some(({ sourceKind }) => sourceKind === "broker-node-runtime") ||
+    loaderCacheVisible !== runtime.fs.existsSync("/etc/ld.so.cache")
+  ) {
+    throw new Error("native_runtime_pathname_load_set_incomplete");
+  }
+  const digest = crypto
+    .createHash("sha256")
+    .update(
+      JSON.stringify({
+        version: 1,
+        scope: LINUX_NATIVE_RUNTIME_PATHNAME_CLOSURE_SCOPE,
+        mechanism: LINUX_NATIVE_RUNTIME_PATHNAME_CLOSURE_MECHANISM,
+        initialDynamicLoadClosureDigest: nativeDynamicClosure.digest,
+        pluginTreeContentSnapshotDigest: pluginTreeSnapshot.digest,
+        members,
+      }),
+    )
+    .digest("hex");
+  return Object.freeze({
+    scope: LINUX_NATIVE_RUNTIME_PATHNAME_CLOSURE_SCOPE,
+    mechanism: LINUX_NATIVE_RUNTIME_PATHNAME_CLOSURE_MECHANISM,
+    files: members.length,
+    bytes: totalBytes,
+    digest,
+    policyBound: true,
+    writableFilesystems: false,
+    procfsMounted: false,
+    devfsMounted: false,
+    scratchWritable: false,
+    descriptorReopenPaths: false,
+  });
+}
+
 function linuxSandboxEnvironment() {
   return {
     HOME: "/home/sandbox",
@@ -6900,6 +8142,7 @@ function buildLinuxBubblewrapPolicyArgs(
   pinnedMounts,
   environment,
   seccompFilter,
+  { runtimePathnameClosure = false } = {},
 ) {
   const directories = new Set([
     "/opt",
@@ -6951,9 +8194,9 @@ function buildLinuxBubblewrapPolicyArgs(
   }
   // FD 3 is also the descriptor-backed executable used to start bubblewrap.
   // Consume and close it during setup, then obscure this staging copy with the
-  // later /run tmpfs. The target can still observe bubblewrap itself as the
-  // PID-namespace supervisor through procfs; this only contains the inherited
-  // launch descriptor and its temporary setup path.
+  // later /run tmpfs. The ordinary profile can still observe bubblewrap itself
+  // as the PID-namespace supervisor through procfs. The dynamic-native runtime
+  // closure profile does not mount procfs at all.
   args.push(
     "--perms",
     "0000",
@@ -6974,40 +8217,56 @@ function buildLinuxBubblewrapPolicyArgs(
       args.push("--ro-bind-fd", String(mount.childFd), mount.destination);
     }
   }
-  args.push(
-    "--seccomp",
-    String(seccompFilter.childFd),
-    "--remount-ro",
-    "/",
-    "--perms",
-    "1777",
-    "--size",
-    String(64 * 1024 * 1024),
-    "--tmpfs",
-    "/tmp",
-    "--perms",
-    "0755",
-    "--size",
-    String(16 * 1024 * 1024),
-    "--tmpfs",
-    "/run",
-    "--perms",
-    "1777",
-    "--size",
-    String(32 * 1024 * 1024),
-    "--tmpfs",
-    "/var/tmp",
-    "--perms",
-    "0700",
-    "--size",
-    String(16 * 1024 * 1024),
-    "--tmpfs",
-    "/home/sandbox",
-    "--proc",
-    "/proc",
-    "--dev",
-    "/dev",
-  );
+  args.push("--seccomp", String(seccompFilter.childFd), "--remount-ro", "/");
+  if (runtimePathnameClosure) {
+    // bubblewrap creates its root tmpfs with MS_NOSUID|MS_NODEV, not NOEXEC.
+    // Keeping any writable tmpfs would therefore let an untrusted native write
+    // a new .so and dlopen it. Only an empty /run overlay is retained to hide
+    // the consumed supervisor staging copy, and it is remounted read-only
+    // before the target starts. /tmp, /var/tmp, HOME, procfs, and devfs remain
+    // empty directories on the read-only synthetic root.
+    args.push(
+      "--perms",
+      "0755",
+      "--size",
+      String(16 * 1024 * 1024),
+      "--tmpfs",
+      "/run",
+      "--remount-ro",
+      "/run",
+    );
+  } else {
+    args.push(
+      "--perms",
+      "1777",
+      "--size",
+      String(64 * 1024 * 1024),
+      "--tmpfs",
+      "/tmp",
+      "--perms",
+      "0755",
+      "--size",
+      String(16 * 1024 * 1024),
+      "--tmpfs",
+      "/run",
+      "--perms",
+      "1777",
+      "--size",
+      String(32 * 1024 * 1024),
+      "--tmpfs",
+      "/var/tmp",
+      "--perms",
+      "0700",
+      "--size",
+      String(16 * 1024 * 1024),
+      "--tmpfs",
+      "/home/sandbox",
+      "--proc",
+      "/proc",
+      "--dev",
+      "/dev",
+    );
+  }
   for (const key of Object.keys(environment).sort()) {
     args.push("--setenv", key, environment[key]);
   }
@@ -7179,7 +8438,96 @@ function probeLinuxBubblewrapPolicy(
     supervisorBinding,
     null,
     null,
+    null,
     true,
+  );
+}
+
+function probeLinuxRuntimePathnameClosurePolicy(
+  runtime,
+  supervisorLaunch,
+  supervisorBinding,
+  policyArgs,
+  pinnedDescriptors,
+  targetRuntime,
+  contentSnapshot = null,
+) {
+  const probeSource = [
+    'const fs = require("node:fs");',
+    `const sentinel = ${JSON.stringify(
+      LINUX_BWRAP_NATIVE_RUNTIME_CLOSURE_PROBE_SENTINEL,
+    )};`,
+    "const writableCandidates = [",
+    '  "/unapproved-runtime.so", "/tmp/unapproved-runtime.so",',
+    '  "/run/unapproved-runtime.so", "/var/tmp/unapproved-runtime.so",',
+    '  "/home/sandbox/unapproved-runtime.so",',
+    '  "/opt/chainless/plugin/unapproved-runtime.so",',
+    "];",
+    "for (const candidate of writableCandidates) {",
+    "  try {",
+    '    fs.writeFileSync(candidate, "not-approved");',
+    "    process.exit(71);",
+    "  } catch {}",
+    "}",
+    "const absentPaths = [",
+    '  "/proc/self/exe", "/proc/1/exe", "/proc/self/fd/0",',
+    '  "/dev/null", "/dev/fd/0",',
+    `  ${JSON.stringify(LINUX_BWRAP_SUPERVISOR_HIDDEN_PATH)},`,
+    "];",
+    "for (const candidate of absentPaths) {",
+    "  try {",
+    "    fs.lstatSync(candidate);",
+    "    process.exit(72);",
+    "  } catch (error) {",
+    '    if (error?.code !== "ENOENT") process.exit(73);',
+    "  }",
+    "}",
+    'if (fs.readdirSync("/proc").length !== 0) process.exit(74);',
+    'if (fs.readdirSync("/dev").length !== 0) process.exit(75);',
+    "process.stdout.write(sentinel);",
+  ].join("\n");
+  let result;
+  try {
+    result = runtime.spawnSync(
+      supervisorLaunch.command,
+      [...policyArgs, "--", "/opt/chainless/runtime/node", "-e", probeSource],
+      {
+        cwd: "/",
+        shell: false,
+        encoding: "utf8",
+        stdio: linuxStdioWithPinnedMounts(null, pinnedDescriptors, {
+          probe: true,
+          supervisorFd: supervisorLaunch.fd,
+        }),
+        timeout: 15_000,
+        env: {
+          PATH: "/usr/bin:/bin",
+          LANG: "C",
+          LC_ALL: "C",
+        },
+      },
+    );
+  } catch {
+    return linuxBubblewrapProbe(
+      true,
+      false,
+      "runtime_pathname_closure_probe_spawn_failed",
+      targetRuntime,
+      contentSnapshot,
+      supervisorBinding,
+    );
+  }
+  const runnable =
+    !result?.error &&
+    result?.status === 0 &&
+    String(result.stdout) === LINUX_BWRAP_NATIVE_RUNTIME_CLOSURE_PROBE_SENTINEL;
+  return linuxBubblewrapProbe(
+    true,
+    runnable,
+    runnable ? null : "runtime_pathname_closure_probe_failed",
+    targetRuntime,
+    contentSnapshot,
+    supervisorBinding,
   );
 }
 
@@ -7431,6 +8779,7 @@ export function applyLinuxSandbox(
     }
 
     let entrySnapshot = null;
+    let runtimeFileSnapshot = null;
     let pluginTreeSnapshot = null;
     const pluginTreeFileSnapshots = [];
     let probePinnedMounts = pinnedMounts;
@@ -7510,6 +8859,24 @@ export function applyLinuxSandbox(
         finalMounts[index] = fileSnapshot.finalMount;
         probeMounts[index] = fileSnapshot.probeMount;
       }
+      let rawRuntimeMount = null;
+      if (validation.entryRuntime === "native-dynamic-elf") {
+        const runtimeIndex = pinnedMounts.findIndex(
+          (mount) => mount.destination === "/opt/chainless/runtime/node",
+        );
+        if (runtimeIndex < 0) {
+          throw new Error("native_runtime_snapshot_mount_missing");
+        }
+        rawRuntimeMount = pinnedMounts[runtimeIndex];
+        runtimeFileSnapshot = createLinuxRegularFileSnapshot(
+          runtime,
+          rawRuntimeMount,
+          validation.contract.runtimeIdentity,
+          linuxPluginRuntimeSnapshotContract(),
+        );
+        finalMounts[runtimeIndex] = runtimeFileSnapshot.finalMount;
+        probeMounts[runtimeIndex] = runtimeFileSnapshot.probeMount;
+      }
       pluginTreeSnapshot = buildLinuxPluginTreeSnapshotAttestation(
         finalMounts,
         sandboxEntry,
@@ -7518,12 +8885,14 @@ export function applyLinuxSandbox(
       pinnedMounts = finalMounts;
       probePinnedMounts = probeMounts;
       entryMount = entrySnapshot.finalMount;
-      closeLinuxPinnedMounts(runtime, rawPluginMounts);
+      closeLinuxPinnedMounts(runtime, [...rawPluginMounts, rawRuntimeMount]);
     } catch (error) {
       closeLinuxPinnedMounts(runtime, pinnedMounts);
       closeLinuxPinnedMounts(runtime, [
         entrySnapshot?.probeMount,
         entrySnapshot?.finalMount,
+        runtimeFileSnapshot?.probeMount,
+        runtimeFileSnapshot?.finalMount,
         ...pluginTreeFileSnapshots.flatMap((snapshot) => [
           snapshot.probeMount,
           snapshot.finalMount,
@@ -7545,14 +8914,53 @@ export function applyLinuxSandbox(
       });
     }
 
+    let runtimePathnameLoadSet = null;
+    if (validation.entryRuntime === "native-dynamic-elf") {
+      try {
+        runtimePathnameLoadSet = buildLinuxRuntimePathnameLoadSet(
+          runtime,
+          pinnedMounts,
+          pluginTreeSnapshot,
+          nativeDynamicClosure,
+        );
+      } catch (error) {
+        closeLinuxPinnedMounts(runtime, pinnedMounts);
+        closeLinuxPinnedMounts(runtime, [
+          entrySnapshot?.probeMount,
+          runtimeFileSnapshot?.probeMount,
+          ...pluginTreeFileSnapshots.map((snapshot) => snapshot.probeMount),
+        ]);
+        return createSandboxPlan({
+          ...base,
+          backend: null,
+          candidateBackend: LINUX_BWRAP_BACKEND,
+          policyAttested: false,
+          runtimeProbe: linuxBubblewrapProbe(
+            false,
+            false,
+            error.message || "native_runtime_pathname_load_set_unattested",
+            validation.entryRuntime,
+          ),
+          reason: "linux_bwrap_native_runtime_load_set_unattested",
+          guarantees: [],
+        });
+      }
+    }
+
     let probeSeccompFilter;
     let seccompFilter;
     const pluginTreeProbeMounts = pluginTreeFileSnapshots.map(
       (snapshot) => snapshot.probeMount,
     );
     try {
-      probeSeccompFilter = pinLinuxNetworkSeccompFilter(runtime);
-      seccompFilter = pinLinuxNetworkSeccompFilter(runtime);
+      const runtimePathnameClosure =
+        validation.entryRuntime === "native-dynamic-elf";
+      probeSeccompFilter = pinLinuxNetworkSeccompFilter(runtime, {
+        runtimePathnameClosure,
+      });
+      seccompFilter = pinLinuxNetworkSeccompFilter(runtime, {
+        runtimePathnameClosure,
+      });
       const seccompChildFd = LINUX_BWRAP_FIRST_MOUNT_FD + pinnedMounts.length;
       probeSeccompFilter.childFd = seccompChildFd;
       seccompFilter.childFd = seccompChildFd;
@@ -7565,6 +8973,7 @@ export function applyLinuxSandbox(
         runtime,
         [
           entrySnapshot?.probeMount,
+          runtimeFileSnapshot?.probeMount,
           ...pluginTreeProbeMounts,
           probeSeccompFilter,
           seccompFilter,
@@ -7592,6 +9001,7 @@ export function applyLinuxSandbox(
         ...pinnedDescriptors,
         probeSeccompFilter,
         entrySnapshot?.probeMount,
+        runtimeFileSnapshot?.probeMount,
         ...pluginTreeProbeMounts,
         ...extra,
       ]);
@@ -7670,12 +9080,49 @@ export function applyLinuxSandbox(
       });
     }
     const environment = linuxSandboxEnvironment();
+    const runtimePathnameClosure =
+      validation.entryRuntime === "native-dynamic-elf" &&
+      runtimePathnameLoadSet !== null;
     const policyArgs = buildLinuxBubblewrapPolicyArgs(
       pluginTree.directories,
       pinnedMounts,
       environment,
       seccompFilter,
+      { runtimePathnameClosure },
     );
+    const probePolicyArgs = buildLinuxBubblewrapPolicyArgs(
+      pluginTree.directories,
+      probePinnedMounts,
+      environment,
+      probeSeccompFilter,
+      { runtimePathnameClosure },
+    );
+    // The closure probe must exercise the exact ordered mount policy later
+    // used for the untrusted target. Only the backing parent descriptors,
+    // stdio, and command differ between the two launches; their child FD
+    // numbers and every bwrap policy option are identical.
+    if (
+      runtimePathnameClosure &&
+      JSON.stringify(probePolicyArgs) !== JSON.stringify(policyArgs)
+    ) {
+      closeStrongLinuxResources(supervisorPin, probeLaunch);
+      return createSandboxPlan({
+        ...base,
+        backend: null,
+        candidateBackend: LINUX_BWRAP_BACKEND,
+        policyAttested: false,
+        runtimeProbe: linuxBubblewrapProbe(
+          true,
+          false,
+          "runtime_pathname_closure_probe_policy_mismatch",
+          validation.entryRuntime,
+          null,
+          supervisorPin.attestation,
+        ),
+        reason: "linux_bwrap_policy_probe_failed",
+        guarantees: [],
+      });
+    }
     const targetArgs = validation.entryRuntime.startsWith("native-")
       ? [sandboxEntry, ...args]
       : ["/opt/chainless/runtime/node", sandboxEntry, ...args.slice(1)];
@@ -7698,7 +9145,7 @@ export function applyLinuxSandbox(
       .createHash("sha256")
       .update(
         JSON.stringify({
-          version: 4,
+          version: 5,
           backend: LINUX_BWRAP_BACKEND,
           supervisor: supervisorPin.attestation,
           contract: {
@@ -7742,6 +9189,9 @@ export function applyLinuxSandbox(
           ...(nativeDynamicClosure
             ? { initialDynamicLoadClosure: nativeDynamicClosure }
             : {}),
+          ...(runtimePathnameLoadSet
+            ? { runtimeSharedLibraryPathnameLoadSet: runtimePathnameLoadSet }
+            : {}),
           pluginTreeContentSnapshot: pluginTreeSnapshot,
           seccomp: {
             arch: seccompFilter.arch,
@@ -7756,19 +9206,30 @@ export function applyLinuxSandbox(
       )
       .digest("hex");
     const policyProbe = Object.freeze(
-      probeLinuxBubblewrapPolicy(
-        runtime,
-        probeLaunch,
-        supervisorPin.attestation,
-        policyArgs,
-        probeDescriptors,
-        validation.entryRuntime,
-      ),
+      runtimePathnameClosure
+        ? probeLinuxRuntimePathnameClosurePolicy(
+            runtime,
+            probeLaunch,
+            supervisorPin.attestation,
+            probePolicyArgs,
+            probeDescriptors,
+            validation.entryRuntime,
+            entrySnapshot?.attestation,
+          )
+        : probeLinuxBubblewrapPolicy(
+            runtime,
+            probeLaunch,
+            supervisorPin.attestation,
+            probePolicyArgs,
+            probeDescriptors,
+            validation.entryRuntime,
+          ),
     );
     closeLinuxPinnedMounts(runtime, [
       probeLaunch,
       probeSeccompFilter,
       entrySnapshot?.probeMount,
+      runtimeFileSnapshot?.probeMount,
       ...pluginTreeProbeMounts,
     ]);
     probeLaunch = null;
@@ -7815,6 +9276,14 @@ export function applyLinuxSandbox(
       });
     }
     try {
+      if (runtimeFileSnapshot) {
+        attestLinuxRegularFileSnapshot(
+          runtime,
+          runtimeFileSnapshot.finalMount,
+          runtimeFileSnapshot.attestation,
+          linuxPluginRuntimeSnapshotContract(),
+        );
+      }
       attestLinuxPluginTreeSnapshot(
         runtime,
         pinnedMounts,
@@ -7900,6 +9369,7 @@ export function applyLinuxSandbox(
       supervisorBinding,
       pluginTreeSnapshot,
       nativeDynamicClosure,
+      runtimePathnameLoadSet,
       policyProbe.runtimeDetachedChildSpawnVerified === true,
     );
     const runtimeProbe = Object.freeze(
@@ -8096,7 +9566,14 @@ export function applySandbox(
 
   // Dispatch to platform handler
   if (runtime.platform === "darwin") {
-    return applyMacSandbox(command, args, spawnOpts, profile, runtimeOverrides);
+    return applyMacSandbox(
+      command,
+      args,
+      spawnOpts,
+      profile,
+      runtimeOverrides,
+      runtimeInjected ? null : MACOS_MCP_CODE_SNAPSHOT_ISSUER,
+    );
   }
   if (runtime.platform === "win32") {
     return applyWindowsSandbox(

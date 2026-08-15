@@ -36,11 +36,18 @@ const require = createRequire(import.meta.url);
 // platform-sandbox.js exports: applySandbox, postSpawnSandbox
 import {
   applySandbox as _applySandbox,
+  consumeMacMcpCodeSnapshotPlanBinding,
   consumeWindowsMcpCodeSnapshotPlanBinding,
   postSpawnSandbox as _postSpawnSandbox,
   MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256,
+  MCP_STDIO_MACOS_GATED_ENTRY_BOOTSTRAP_SHA256,
+  MACOS_PKG_EXECPATH_MAGIC,
   SANDBOX_BOUNDARIES,
 } from "./platform-sandbox.js";
+import {
+  MACOS_MCP_LAUNCHER_INPUTS,
+  isMacosMcpLauncherPackageVersion,
+} from "./macos-mcp-launcher-contract.js";
 import {
   admitLinuxGenericSandboxExecutionContract,
   issueLinuxGenericSandboxExecutionContract,
@@ -65,6 +72,226 @@ const SUPPORTED_SANDBOX_PROFILES = new Set([
 // Broker-private admission state. Public runtime-probe fields are audit
 // evidence, not authority to invoke a privileged post-spawn closure.
 const admittedWindowsMcpCodeSnapshotPlans = new WeakSet();
+const admittedMacMcpCodeSnapshotPlans = new WeakSet();
+
+const LINUX_RUNTIME_PATHNAME_POLICY_PREFIX = Object.freeze([
+  "--die-with-parent",
+  "--new-session",
+  "--unshare-user",
+  "--disable-userns",
+  "--assert-userns-disabled",
+  "--unshare-pid",
+  "--unshare-ipc",
+  "--unshare-net",
+  "--unshare-uts",
+  "--unshare-cgroup-try",
+  "--cap-drop",
+  "ALL",
+  "--hostname",
+  "chainless-sandbox",
+  "--clearenv",
+]);
+const LINUX_RUNTIME_PATHNAME_POLICY_DIRECTORIES = Object.freeze([
+  "/opt",
+  "/opt/chainless",
+  "/opt/chainless/runtime",
+  "/opt/chainless/plugin",
+  "/home",
+  "/home/sandbox",
+  "/tmp",
+  "/run",
+  "/var",
+  "/var/tmp",
+  "/proc",
+  "/dev",
+]);
+const LINUX_RUNTIME_PATHNAME_POLICY_ENVIRONMENT = Object.freeze([
+  ["CHAINLESS_SANDBOXED", "1"],
+  ["HOME", "/home/sandbox"],
+  ["LANG", "C.UTF-8"],
+  ["LC_ALL", "C.UTF-8"],
+  ["OPENSSL_CONF", "/dev/null"],
+  ["PATH", "/opt/chainless/runtime"],
+  ["TMPDIR", "/tmp"],
+  ["TZ", "UTC"],
+]);
+
+function parseLinuxRuntimePathnameClosurePolicyArgs(
+  args,
+  expectedLoadSetFiles,
+) {
+  if (
+    !Array.isArray(args) ||
+    !Number.isSafeInteger(expectedLoadSetFiles) ||
+    expectedLoadSetFiles < 1 ||
+    expectedLoadSetFiles > 512
+  ) {
+    return null;
+  }
+  const targetSeparator = args.indexOf("--");
+  if (targetSeparator < 1) return null;
+  const policyArgs = args.slice(0, targetSeparator);
+  let index = 0;
+  const consume = (...expected) => {
+    if (
+      expected.some(
+        (expectedValue, offset) => policyArgs[index + offset] !== expectedValue,
+      )
+    ) {
+      return false;
+    }
+    index += expected.length;
+    return true;
+  };
+  if (!consume(...LINUX_RUNTIME_PATHNAME_POLICY_PREFIX)) return null;
+
+  const directories = [];
+  while (policyArgs[index] === "--dir") {
+    const directory = policyArgs[index + 1];
+    if (
+      typeof directory !== "string" ||
+      !path.posix.isAbsolute(directory) ||
+      path.posix.normalize(directory) !== directory ||
+      directory === "/"
+    ) {
+      return null;
+    }
+    directories.push(directory);
+    index += 2;
+  }
+  const orderedDirectories = [...directories].sort((left, right) => {
+    const depth =
+      left.split("/").filter(Boolean).length -
+      right.split("/").filter(Boolean).length;
+    return depth || left.localeCompare(right);
+  });
+  if (
+    directories.length < LINUX_RUNTIME_PATHNAME_POLICY_DIRECTORIES.length ||
+    new Set(directories).size !== directories.length ||
+    JSON.stringify(directories) !== JSON.stringify(orderedDirectories) ||
+    !LINUX_RUNTIME_PATHNAME_POLICY_DIRECTORIES.every((directory) =>
+      directories.includes(directory),
+    )
+  ) {
+    return null;
+  }
+
+  if (
+    !consume(
+      "--perms",
+      "0000",
+      "--file",
+      "3",
+      "/run/.chainless-bwrap-supervisor",
+    )
+  ) {
+    return null;
+  }
+  const permittedLoadDestination = (destination) =>
+    typeof destination === "string" &&
+    path.posix.isAbsolute(destination) &&
+    path.posix.normalize(destination) === destination &&
+    (destination === "/opt/chainless/runtime/node" ||
+      destination === "/etc/ld.so.cache" ||
+      destination.startsWith("/opt/chainless/plugin/") ||
+      ["/lib/", "/lib64/", "/usr/lib/", "/usr/lib64/"].some((prefix) =>
+        destination.startsWith(prefix),
+      ));
+  const loadDestinations = [];
+  for (let mountIndex = 0; mountIndex < expectedLoadSetFiles; mountIndex += 1) {
+    const expectedChildFd = String(4 + mountIndex);
+    let destination;
+    let mountMode;
+    let permissions = null;
+    if (policyArgs[index] === "--ro-bind-fd") {
+      if (policyArgs[index + 1] !== expectedChildFd) return null;
+      mountMode = "ro-bind-fd";
+      destination = policyArgs[index + 2];
+      index += 3;
+    } else if (policyArgs[index] === "--perms") {
+      permissions = policyArgs[index + 1];
+      if (
+        (permissions !== "0400" && permissions !== "0500") ||
+        policyArgs[index + 2] !== "--ro-bind-data" ||
+        policyArgs[index + 3] !== expectedChildFd
+      ) {
+        return null;
+      }
+      mountMode = "ro-bind-data";
+      destination = policyArgs[index + 4];
+      index += 5;
+    } else {
+      return null;
+    }
+    if (!permittedLoadDestination(destination)) return null;
+    const runtimeSnapshotDestination =
+      destination === "/opt/chainless/runtime/node";
+    const pluginSnapshotDestination = destination.startsWith(
+      "/opt/chainless/plugin/",
+    );
+    if (
+      (runtimeSnapshotDestination &&
+        (mountMode !== "ro-bind-data" || permissions !== "0500")) ||
+      (pluginSnapshotDestination && mountMode !== "ro-bind-data") ||
+      (!runtimeSnapshotDestination &&
+        !pluginSnapshotDestination &&
+        mountMode !== "ro-bind-fd")
+    ) {
+      return null;
+    }
+    loadDestinations.push(destination);
+  }
+  if (new Set(loadDestinations).size !== loadDestinations.length) return null;
+
+  const requiredDirectories = new Set(
+    LINUX_RUNTIME_PATHNAME_POLICY_DIRECTORIES,
+  );
+  for (const destination of loadDestinations) {
+    let parent = path.posix.dirname(destination);
+    while (parent !== "/") {
+      requiredDirectories.add(parent);
+      parent = path.posix.dirname(parent);
+    }
+  }
+  if (
+    ![...requiredDirectories].every((directory) =>
+      directories.includes(directory),
+    ) ||
+    directories.some(
+      (directory) =>
+        !requiredDirectories.has(directory) &&
+        !directory.startsWith("/opt/chainless/plugin/"),
+    )
+  ) {
+    return null;
+  }
+
+  if (
+    !consume("--seccomp", String(4 + expectedLoadSetFiles)) ||
+    !consume("--remount-ro", "/") ||
+    !consume(
+      "--perms",
+      "0755",
+      "--size",
+      String(16 * 1024 * 1024),
+      "--tmpfs",
+      "/run",
+      "--remount-ro",
+      "/run",
+    )
+  ) {
+    return null;
+  }
+  for (const [key, value] of LINUX_RUNTIME_PATHNAME_POLICY_ENVIRONMENT) {
+    if (!consume("--setenv", key, value)) return null;
+  }
+  if (!consume("--chdir", "/opt/chainless/plugin")) return null;
+  if (index !== policyArgs.length) return null;
+  return Object.freeze({
+    targetSeparator,
+    loadDestinations: Object.freeze(loadDestinations),
+  });
+}
 
 // Keep the broker on the shared CommonJS trace singleton so CommonJS and ESM
 // consumers observe the same AsyncLocalStorage without loader warnings.
@@ -1166,6 +1393,7 @@ class ProcessExecutionBroker extends EventEmitter {
     let sanitizedProcessTreePolicy = null;
     let sanitizedPtyPolicy = null;
     let windowsPlanBindingConsumed = false;
+    let macPlanBindingConsumed = false;
     if (plan.runtimeProbe !== null && plan.runtimeProbe !== undefined) {
       if (
         typeof plan.runtimeProbe !== "object" ||
@@ -1196,6 +1424,14 @@ class ProcessExecutionBroker extends EventEmitter {
         "initialDynamicLoadClosureScope",
         "initialDynamicLoadClosureMechanism",
         "initialDynamicInterpreter",
+        "runtimeSharedLibraryPathnameClosureExcludes",
+        "runtimeSharedLibraryClosureScope",
+        "runtimeSharedLibraryClosureMechanism",
+        "targetDescriptorAllowlist",
+        "targetRuntimeInvocationMode",
+        "helperTeamIdentifier",
+        "helperPackageIdentifier",
+        "helperPackageVersion",
       ]) {
         if (
           plan.runtimeProbe[field] !== undefined &&
@@ -1220,6 +1456,35 @@ class ProcessExecutionBroker extends EventEmitter {
         "runtimeLaunchAtomic",
         "mcpCapsuleCodeSnapshot",
         "runtimeDetachedChildSpawnVerified",
+        "runtimeSharedLibraryPathnameClosure",
+        "runtimeLoadSetPolicyBound",
+        "runtimeWritableFilesystems",
+        "runtimeProcfsMounted",
+        "runtimeDevfsMounted",
+        "runtimeScratchWritable",
+        "runtimeDescriptorReopenPaths",
+        "rootProtectedRuntimeSnapshot",
+        "entryRootOwnedAnonymousSnapshot",
+        "entrySourcePrePostStat",
+        "entryWriterClosedBeforeReadonlyReopen",
+        "entryReadonlyIdentityRechecked",
+        "entryUnlinkedAndDirectoryFsyncedBeforeTarget",
+        "targetInheritedEntrySnapshotOnly",
+        "runtimeAndCapsuleSlotsNullBeforeExec",
+        "bootstrapClosesNullAndReadyDescriptors",
+        "actualRuntimeReadyHandshake",
+        "runtimeSnapshotUnlinkedBeforeEntryRelease",
+        "callerCredentialDropIrreversible",
+        "relayParentCredentialsDropped",
+        "callerLifelineWatched",
+        "signalRelayNonblocking",
+        "pkgExecPathMagicBound",
+        "capsuleRootDescriptorBound",
+        "capsulePathObjectAtomic",
+        "sandboxProfileFixedAndDigestBound",
+        "processForkExplicitlyDenied",
+        "sandboxExecLiveGateContract",
+        "globalLaunchSerialization",
       ]) {
         if (
           plan.runtimeProbe[field] !== undefined &&
@@ -1237,10 +1502,13 @@ class ProcessExecutionBroker extends EventEmitter {
         "initialDynamicDependencyCount",
         "initialDynamicRuntimeFileCount",
         "initialDynamicRuntimeBytes",
+        "runtimeSharedLibraryLoadSetFiles",
+        "runtimeSharedLibraryLoadSetBytes",
         "runtimeSnapshotBytes",
         "runtimeAttestedBytes",
         "entrySnapshotBytes",
         "capabilityCount",
+        "maximumStaleSnapshots",
       ]) {
         if (
           plan.runtimeProbe[field] !== undefined &&
@@ -1257,6 +1525,13 @@ class ProcessExecutionBroker extends EventEmitter {
         "runtimeSnapshotSha256",
         "runtimeAttestedSha256",
         "entrySnapshotSha256",
+        "entrySnapshotBootstrapSha256",
+        "helperSha256",
+        "helperSourceSha256",
+        "helperProtocolSha256",
+        "helperInstallContractSha256",
+        "helperDesignatedRequirementSha256",
+        "installAttestationDigest",
         "planBindingDigest",
       ]) {
         if (
@@ -1273,17 +1548,22 @@ class ProcessExecutionBroker extends EventEmitter {
       const planBindingDeclared =
         plan.runtimeProbe.planBindingMechanism !== undefined ||
         plan.runtimeProbe.planBindingDigest !== undefined;
+      const typedCodeSnapshotPlanBinding =
+        (plan.platform === "win32" &&
+          plan.runtimeProbe.planBindingMechanism ===
+            "windows-mcp-code-snapshot-plan-binding-v1") ||
+        (plan.platform === "darwin" &&
+          plan.runtimeProbe.planBindingMechanism ===
+            "macos-mcp-code-snapshot-plan-binding-v1");
       if (
         planBindingDeclared &&
-        (plan.platform !== "win32" ||
+        (!typedCodeSnapshotPlanBinding ||
           !guarantees.includes(SANDBOX_BOUNDARIES.CODE_SNAPSHOT) ||
-          plan.runtimeProbe.planBindingMechanism !==
-            "windows-mcp-code-snapshot-plan-binding-v1" ||
           !/^[a-f0-9]{64}$/.test(plan.runtimeProbe.planBindingDigest || ""))
       ) {
         throw this._sandboxError(
           "invalid_sandbox_plan",
-          "Sandbox runtime probe plan binding must use the typed Windows MCP code-snapshot contract",
+          "Sandbox runtime probe plan binding must use a typed platform MCP code-snapshot contract",
         );
       }
       if (
@@ -1310,6 +1590,19 @@ class ProcessExecutionBroker extends EventEmitter {
         throw this._sandboxError(
           "invalid_sandbox_plan",
           "Sandbox runtime probe initialDynamicLoadClosureDigest must be a lowercase SHA-256 value",
+        );
+      }
+      if (
+        plan.runtimeProbe.runtimeSharedLibraryLoadSetDigest !== undefined &&
+        (typeof plan.runtimeProbe.runtimeSharedLibraryLoadSetDigest !==
+          "string" ||
+          !/^[a-f0-9]{64}$/.test(
+            plan.runtimeProbe.runtimeSharedLibraryLoadSetDigest,
+          ))
+      ) {
+        throw this._sandboxError(
+          "invalid_sandbox_plan",
+          "Sandbox runtime probe runtimeSharedLibraryLoadSetDigest must be a lowercase SHA-256 value",
         );
       }
       const pluginTreeSnapshot =
@@ -1487,6 +1780,8 @@ class ProcessExecutionBroker extends EventEmitter {
       }
       const supervisorBound =
         plan.runtimeProbe.supervisorDescriptorBound === true;
+      const runtimeSharedLibraryPathnameClosure =
+        plan.runtimeProbe.runtimeSharedLibraryPathnameClosure === true;
       if (
         supervisorBound &&
         (plan.runtimeProbe.supervisorExecutablePinned !== true ||
@@ -1495,7 +1790,10 @@ class ProcessExecutionBroker extends EventEmitter {
             "host-path-replacement" ||
           plan.runtimeProbe.supervisorDescriptorBindingMechanism !==
             "pinned-child-fd3-file-consume-run-overmount-v1" ||
-          plan.runtimeProbe.supervisorPid1ExecutableExposure !== "procfs")
+          plan.runtimeProbe.supervisorPid1ExecutableExposure !==
+            (runtimeSharedLibraryPathnameClosure
+              ? "procfs-not-mounted"
+              : "procfs"))
       ) {
         throw this._sandboxError(
           "invalid_sandbox_plan",
@@ -1616,6 +1914,82 @@ class ProcessExecutionBroker extends EventEmitter {
           "Sandbox runtime probe successful dynamic ELF evidence requires a descriptor-bound initial recursive system graph",
         );
       }
+      const runtimePathnameClosureEvidenceFields = [
+        "runtimeSharedLibraryPathnameClosureExcludes",
+        "runtimeSharedLibraryClosureScope",
+        "runtimeSharedLibraryClosureMechanism",
+        "runtimeSharedLibraryLoadSetFiles",
+        "runtimeSharedLibraryLoadSetBytes",
+        "runtimeSharedLibraryLoadSetDigest",
+        "runtimeLoadSetPolicyBound",
+        "runtimeWritableFilesystems",
+        "runtimeProcfsMounted",
+        "runtimeDevfsMounted",
+        "runtimeScratchWritable",
+        "runtimeDescriptorReopenPaths",
+      ];
+      const runtimePathnameMountPolicy =
+        parseLinuxRuntimePathnameClosurePolicyArgs(
+          plan.args,
+          plan.runtimeProbe.runtimeSharedLibraryLoadSetFiles,
+        ) !== null;
+      if (
+        runtimeSharedLibraryPathnameClosure &&
+        (!successfulDynamicProbe ||
+          !initialDynamicLoadClosureBound ||
+          plan.runtimeProbe.sharedLibraryClosure !== false ||
+          plan.runtimeProbe.runtimeSharedLibraryPathnameClosureExcludes !==
+            "anonymous-jit-and-custom-in-process-loader" ||
+          plan.runtimeProbe.runtimeSharedLibraryClosureScope !==
+            "all-pathname-visible-regular-files-in-read-only-bwrap-namespace" ||
+          plan.runtimeProbe.runtimeSharedLibraryClosureMechanism !==
+            "descriptor-pinned-hashed-ro-mount-set-plus-loader-fd-and-namespace-mutation-seccomp-v2" ||
+          !Number.isSafeInteger(
+            plan.runtimeProbe.runtimeSharedLibraryLoadSetFiles,
+          ) ||
+          plan.runtimeProbe.runtimeSharedLibraryLoadSetFiles < 1 ||
+          plan.runtimeProbe.runtimeSharedLibraryLoadSetFiles > 512 ||
+          !Number.isSafeInteger(
+            plan.runtimeProbe.runtimeSharedLibraryLoadSetBytes,
+          ) ||
+          plan.runtimeProbe.runtimeSharedLibraryLoadSetBytes < 1 ||
+          plan.runtimeProbe.runtimeSharedLibraryLoadSetBytes >
+            1024 * 1024 * 1024 ||
+          !/^[a-f0-9]{64}$/.test(
+            plan.runtimeProbe.runtimeSharedLibraryLoadSetDigest || "",
+          ) ||
+          plan.runtimeProbe.runtimeLoadSetPolicyBound !== true ||
+          plan.runtimeProbe.runtimeWritableFilesystems !== false ||
+          plan.runtimeProbe.runtimeProcfsMounted !== false ||
+          plan.runtimeProbe.runtimeDevfsMounted !== false ||
+          plan.runtimeProbe.runtimeScratchWritable !== false ||
+          plan.runtimeProbe.runtimeDescriptorReopenPaths !== false ||
+          plan.runtimeProbe.supervisorPid1ExecutableExposure !==
+            "procfs-not-mounted" ||
+          !runtimePathnameMountPolicy)
+      ) {
+        throw this._sandboxError(
+          "invalid_sandbox_plan",
+          "Sandbox runtime probe pathname shared-library closure must use the typed read-only no-proc bwrap contract",
+        );
+      }
+      if (
+        !runtimeSharedLibraryPathnameClosure &&
+        runtimePathnameClosureEvidenceFields.some(
+          (field) => plan.runtimeProbe[field] !== undefined,
+        )
+      ) {
+        throw this._sandboxError(
+          "invalid_sandbox_plan",
+          "Sandbox runtime probe pathname shared-library evidence requires runtimeSharedLibraryPathnameClosure",
+        );
+      }
+      if (successfulDynamicProbe && !runtimeSharedLibraryPathnameClosure) {
+        throw this._sandboxError(
+          "invalid_sandbox_plan",
+          "Successful dynamic ELF evidence requires a runtime pathname shared-library closure",
+        );
+      }
       const codeSnapshotGuaranteed = guarantees.includes(
         SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
       );
@@ -1628,11 +2002,28 @@ class ProcessExecutionBroker extends EventEmitter {
           plan.platform === "win32" &&
           (plan.runtimeProbe.planBindingMechanism !== undefined ||
             plan.runtimeProbe.planBindingDigest !== undefined);
-        // Consume before evaluating any other Windows evidence. A genuine
+        const macPlanBindingDeclared =
+          plan.platform === "darwin" &&
+          (plan.runtimeProbe.planBindingMechanism !== undefined ||
+            plan.runtimeProbe.planBindingDigest !== undefined);
+        // Consume before evaluating any other privileged-helper evidence. A genuine
         // one-launch plan is therefore burned by its first admission attempt,
         // including an attempt with a mismatched command or contract.
         windowsPlanBindingConsumed = windowsPlanBindingDeclared
           ? consumeWindowsMcpCodeSnapshotPlanBinding(plan, {
+              command: launchContext.command,
+              args: launchArgs,
+              cwd: launchContext.cwd,
+              shell: launchContext.shell,
+              detached: launchContext.detached,
+              executionContract,
+              profile: launchContext.profile,
+              requiredBoundaries: launchContext.requiredBoundaries,
+              sync: launchContext.sync,
+            })
+          : false;
+        macPlanBindingConsumed = macPlanBindingDeclared
+          ? consumeMacMcpCodeSnapshotPlanBinding(plan, {
               command: launchContext.command,
               args: launchArgs,
               cwd: launchContext.cwd,
@@ -1679,6 +2070,8 @@ class ProcessExecutionBroker extends EventEmitter {
             executionContract?.runtimeIdentity?.bytes &&
           plan.runtimeProbe.runtimeAttestedSha256 === undefined &&
           plan.runtimeProbe.runtimeAttestedBytes === undefined;
+        const macRuntimeSnapshotContractBound =
+          linuxRuntimeSnapshotContractBound;
         const windowsRuntimeAttestationContractBound =
           plan.runtimeProbe.runtimeAttestedSha256 ===
             executionContract?.runtimeIdentity?.sha256 &&
@@ -1790,6 +2183,123 @@ class ProcessExecutionBroker extends EventEmitter {
           passthroughArgsMatch(
             plan.args.slice(linuxBubblewrapTargetSeparator + 3),
           );
+        const macProtocol = MACOS_MCP_LAUNCHER_INPUTS.protocol;
+        const macStdio = plan.options?.stdio;
+        const macSnapshotPath = path.posix.join(
+          macProtocol.snapshotRoot,
+          plan.args[1] || "invalid",
+          "node",
+        );
+        const macSnapshotEvidence =
+          plan.platform === "darwin" &&
+          backend === macProtocol.backend &&
+          plan.enforcement === macProtocol.backend &&
+          policyAttested === true &&
+          policyDigest !== null &&
+          plan.runtimeProbe.kind === "darwin-mcp-capsule-code-snapshot-v2" &&
+          plan.runtimeProbe.contentSnapshotScope ===
+            "mcp-capsule-entry-and-node-runtime" &&
+          plan.runtimeProbe.contentSnapshotMechanism ===
+            "signed-root-runtime-path-and-anonymous-entry-fd-snapshots-v1" &&
+          plan.runtimeProbe.handleAtomic === true &&
+          plan.runtimeProbe.entrySnapshotAtomic === true &&
+          plan.runtimeProbe.runtimeLaunchAtomic === true &&
+          plan.runtimeProbe.runtimeLaunchMechanism ===
+            "signed-root-helper-fd-copy-protected-path-ready-gate-v1" &&
+          plan.runtimeProbe.entrySnapshotBootstrapSha256 ===
+            MCP_STDIO_MACOS_GATED_ENTRY_BOOTSTRAP_SHA256 &&
+          macRuntimeSnapshotContractBound &&
+          plan.runtimeProbe.runtimeSnapshotBytes > 0 &&
+          plan.runtimeProbe.runtimeSnapshotBytes <= 256 * 1024 * 1024 &&
+          plan.runtimeProbe.entrySnapshotBytes <= 64 * 1024 * 1024 &&
+          plan.runtimeProbe.rootProtectedRuntimeSnapshot === true &&
+          plan.runtimeProbe.entryRootOwnedAnonymousSnapshot === true &&
+          plan.runtimeProbe.entrySourcePrePostStat === true &&
+          plan.runtimeProbe.entryWriterClosedBeforeReadonlyReopen === true &&
+          plan.runtimeProbe.entryReadonlyIdentityRechecked === true &&
+          plan.runtimeProbe.entryUnlinkedAndDirectoryFsyncedBeforeTarget ===
+            true &&
+          plan.runtimeProbe.targetInheritedEntrySnapshotOnly === true &&
+          plan.runtimeProbe.runtimeAndCapsuleSlotsNullBeforeExec === true &&
+          plan.runtimeProbe.bootstrapClosesNullAndReadyDescriptors === true &&
+          plan.runtimeProbe.actualRuntimeReadyHandshake === true &&
+          plan.runtimeProbe.runtimeSnapshotUnlinkedBeforeEntryRelease ===
+            true &&
+          plan.runtimeProbe.callerCredentialDropIrreversible === true &&
+          plan.runtimeProbe.relayParentCredentialsDropped === true &&
+          plan.runtimeProbe.callerLifelineWatched === true &&
+          plan.runtimeProbe.signalRelayNonblocking === true &&
+          ((plan.runtimeProbe.targetRuntimeInvocationMode ===
+            "node-executable-eval-v1" &&
+            plan.runtimeProbe.pkgExecPathMagicBound === false) ||
+            (plan.runtimeProbe.targetRuntimeInvocationMode ===
+              "pkg-copied-executable-eval-v1" &&
+              plan.runtimeProbe.pkgExecPathMagicBound === true &&
+              plan.options?.env?.PKG_EXECPATH === MACOS_PKG_EXECPATH_MAGIC)) &&
+          plan.runtimeProbe.targetDescriptorAllowlist ===
+            "stdio-fd3-null-fd4-entry-fd5-null-fd6-gate-fd7-ready" &&
+          plan.runtimeProbe.capsuleRootDescriptorBound === true &&
+          plan.runtimeProbe.capsulePathObjectAtomic === false &&
+          plan.runtimeProbe.sandboxProfileFixedAndDigestBound === true &&
+          plan.runtimeProbe.processForkExplicitlyDenied === true &&
+          plan.runtimeProbe.sandboxExecLiveGateContract === true &&
+          plan.runtimeProbe.globalLaunchSerialization === true &&
+          plan.runtimeProbe.maximumStaleSnapshots === 8 &&
+          plan.runtimeProbe.helperSourceSha256 ===
+            MACOS_MCP_LAUNCHER_INPUTS.sourceSha256 &&
+          plan.runtimeProbe.helperProtocolSha256 ===
+            MACOS_MCP_LAUNCHER_INPUTS.protocolSha256 &&
+          [
+            "helperSha256",
+            "helperInstallContractSha256",
+            "helperDesignatedRequirementSha256",
+            "installAttestationDigest",
+            "planBindingDigest",
+          ].every((field) =>
+            /^[a-f0-9]{64}$/.test(plan.runtimeProbe[field] || ""),
+          ) &&
+          /^[A-Z0-9]{10}$/.test(plan.runtimeProbe.helperTeamIdentifier || "") &&
+          plan.runtimeProbe.helperPackageIdentifier ===
+            macProtocol.packageIdentifier &&
+          isMacosMcpLauncherPackageVersion(
+            plan.runtimeProbe.helperPackageVersion,
+          ) &&
+          plan.runtimeProbe.planBindingMechanism ===
+            "macos-mcp-code-snapshot-plan-binding-v1" &&
+          plan.runtimeProbe.runtimeLaunchPath === macSnapshotPath &&
+          plan.runtimeProbe.entrySnapshotPath === "anonymous-root-owned-fd4" &&
+          plan.command === macProtocol.helperInstallPath &&
+          plan.args.length >= 10 &&
+          plan.args[0] === "--launch-v1" &&
+          /^[a-f0-9]{64}$/.test(plan.args[1] || "") &&
+          plan.args[2] === MACOS_MCP_LAUNCHER_INPUTS.protocolSha256 &&
+          plan.args[3] === executionContract.runtimeIdentity.sha256 &&
+          plan.args[4] === String(executionContract.runtimeIdentity.bytes) &&
+          plan.args[5] === executionContract.entryIdentity.sha256 &&
+          plan.args[6] === String(executionContract.entryIdentity.bytes) &&
+          /^[1-9]\d*$/.test(plan.args[7] || "") &&
+          /^[1-9]\d*$/.test(plan.args[8] || "") &&
+          plan.args[9] === policyDigest &&
+          passthroughArgsMatch(plan.args.slice(10)) &&
+          plan.options?.cwd === "/" &&
+          plan.options?.shell === false &&
+          plan.options?.detached === false &&
+          Array.isArray(macStdio) &&
+          macStdio.length === 9 &&
+          macStdio
+            .slice(0, 3)
+            .every((value) => ["pipe", "ignore"].includes(value)) &&
+          macStdio.slice(3, 6).every(Number.isInteger) &&
+          macStdio[6] === "ignore" &&
+          macStdio[7] === "ignore" &&
+          macStdio[8] === "pipe" &&
+          launchContext.builtInSandboxAdapter === true &&
+          macPlanBindingConsumed &&
+          guarantees.includes(SANDBOX_BOUNDARIES.FILESYSTEM) &&
+          guarantees.includes(SANDBOX_BOUNDARIES.NETWORK) &&
+          guarantees.includes(SANDBOX_BOUNDARIES.PROCESS_EXEC) &&
+          guarantees.includes(SANDBOX_BOUNDARIES.PROCESS_TREE) &&
+          guarantees.includes(SANDBOX_BOUNDARIES.PRIVILEGE_REDUCTION);
         const windowsSnapshotEvidence =
           plan.platform === "win32" &&
           [
@@ -1831,6 +2341,7 @@ class ProcessExecutionBroker extends EventEmitter {
           !exactSnapshotEvidence ||
           (!linuxSnapshotEvidence &&
             !linuxBubblewrapSnapshotEvidence &&
+            !macSnapshotEvidence &&
             !windowsSnapshotEvidence)
         ) {
           throw this._sandboxError(
@@ -2235,6 +2746,54 @@ class ProcessExecutionBroker extends EventEmitter {
           runtimeProbe[field] = plan.runtimeProbe[field];
         }
       }
+      for (const field of [
+        "runtimeSharedLibraryPathnameClosure",
+        ...runtimePathnameClosureEvidenceFields,
+      ]) {
+        if (plan.runtimeProbe[field] !== undefined) {
+          runtimeProbe[field] = plan.runtimeProbe[field];
+        }
+      }
+      for (const field of [
+        "rootProtectedRuntimeSnapshot",
+        "entryRootOwnedAnonymousSnapshot",
+        "entrySourcePrePostStat",
+        "entryWriterClosedBeforeReadonlyReopen",
+        "entryReadonlyIdentityRechecked",
+        "entryUnlinkedAndDirectoryFsyncedBeforeTarget",
+        "targetInheritedEntrySnapshotOnly",
+        "runtimeAndCapsuleSlotsNullBeforeExec",
+        "bootstrapClosesNullAndReadyDescriptors",
+        "actualRuntimeReadyHandshake",
+        "runtimeSnapshotUnlinkedBeforeEntryRelease",
+        "callerCredentialDropIrreversible",
+        "relayParentCredentialsDropped",
+        "callerLifelineWatched",
+        "signalRelayNonblocking",
+        "targetRuntimeInvocationMode",
+        "pkgExecPathMagicBound",
+        "targetDescriptorAllowlist",
+        "capsuleRootDescriptorBound",
+        "capsulePathObjectAtomic",
+        "sandboxProfileFixedAndDigestBound",
+        "processForkExplicitlyDenied",
+        "sandboxExecLiveGateContract",
+        "globalLaunchSerialization",
+        "maximumStaleSnapshots",
+        "helperSha256",
+        "helperSourceSha256",
+        "helperProtocolSha256",
+        "helperInstallContractSha256",
+        "helperDesignatedRequirementSha256",
+        "helperTeamIdentifier",
+        "helperPackageIdentifier",
+        "helperPackageVersion",
+        "installAttestationDigest",
+      ]) {
+        if (plan.runtimeProbe[field] !== undefined) {
+          runtimeProbe[field] = plan.runtimeProbe[field];
+        }
+      }
       for (const field of genericWorkspaceEvidenceFields) {
         if (plan.runtimeProbe[field] !== undefined) {
           runtimeProbe[field] = plan.runtimeProbe[field];
@@ -2310,6 +2869,14 @@ class ProcessExecutionBroker extends EventEmitter {
       };
       admittedWindowsMcpCodeSnapshotPlans.add(validatedPlan);
     }
+    if (macPlanBindingConsumed) {
+      const upstreamCleanup = validatedPlan.cleanup;
+      validatedPlan.cleanup = (...args) => {
+        admittedMacMcpCodeSnapshotPlans.delete(validatedPlan);
+        return upstreamCleanup?.(...args);
+      };
+      admittedMacMcpCodeSnapshotPlans.add(validatedPlan);
+    }
     return validatedPlan;
   }
 
@@ -2357,6 +2924,15 @@ class ProcessExecutionBroker extends EventEmitter {
         return upstreamCleanup?.(...args);
       };
       admittedWindowsMcpCodeSnapshotPlans.add(assertedPlan);
+    }
+    if (admittedMacMcpCodeSnapshotPlans.has(plan)) {
+      admittedMacMcpCodeSnapshotPlans.delete(plan);
+      const upstreamCleanup = assertedPlan.cleanup;
+      assertedPlan.cleanup = (...args) => {
+        admittedMacMcpCodeSnapshotPlans.delete(assertedPlan);
+        return upstreamCleanup?.(...args);
+      };
+      admittedMacMcpCodeSnapshotPlans.add(assertedPlan);
     }
     return assertedPlan;
   }
@@ -3437,6 +4013,21 @@ class ProcessExecutionBroker extends EventEmitter {
     let proc;
     let workspaceProcessClosed = null;
     try {
+      const macPlanBindingDeclared =
+        sandboxPlan.platform === "darwin" &&
+        sandboxPlan.runtimeProbe?.planBindingMechanism ===
+          "macos-mcp-code-snapshot-plan-binding-v1";
+      const builtInMacMcpPlan =
+        admittedMacMcpCodeSnapshotPlans.has(sandboxPlan);
+      if (macPlanBindingDeclared && !builtInMacMcpPlan) {
+        throw this._sandboxError(
+          "macos_mcp_plan_binding_consumed",
+          "macOS MCP sandbox plan binding is unavailable or already consumed",
+        );
+      }
+      if (builtInMacMcpPlan) {
+        admittedMacMcpCodeSnapshotPlans.delete(sandboxPlan);
+      }
       if (mcpStdioExecutableIdentityAuthority !== undefined) {
         const admitted = consumeMcpStdioExecutableIdentityAuthority(
           mcpStdioExecutableIdentityAuthority,
@@ -3449,6 +4040,31 @@ class ProcessExecutionBroker extends EventEmitter {
         auditEntry.mcpStdioExecutableIdentityDigest = admitted.identityDigest;
       }
       proc = nativeSpawnFn(command, args, optsForSpawn);
+      if (builtInMacMcpPlan) {
+        const callerLifeline = proc?.stdio?.[8];
+        if (
+          !callerLifeline ||
+          typeof callerLifeline !== "object" ||
+          callerLifeline.destroyed === true ||
+          typeof callerLifeline.destroy !== "function"
+        ) {
+          try {
+            proc?.kill?.("SIGKILL");
+          } catch {
+            // The missing lifeline is already a fail-closed launch failure.
+          }
+          throw this._sandboxError(
+            "macos_mcp_caller_lifeline_unavailable",
+            "macOS MCP launch did not retain its Broker-side caller lifeline",
+          );
+        }
+        Object.defineProperty(proc, "macosMcpCallerLifeline", {
+          configurable: false,
+          enumerable: false,
+          writable: false,
+          value: callerLifeline,
+        });
+      }
       workspaceProcessClosed = this._createWorkspaceProcessCloseFence(
         auditEntry,
         proc,
@@ -3482,15 +4098,16 @@ class ProcessExecutionBroker extends EventEmitter {
         sandboxPlan.applied === true &&
         (sandboxPlan.backend === "linux-bwrap-workspace" ||
           sandboxPlan.backend === "linux-bwrap" ||
-          sandboxPlan.backend === "linux-fd-code-snapshot") &&
+          sandboxPlan.backend === "linux-fd-code-snapshot" ||
+          sandboxPlan.backend === "macos-signed-root-fd-launcher") &&
         sandboxPlan.postSpawn.required === false
       ) {
         // child_process.spawn() has synchronously duplicated every stdio entry
         // into the launched process before returning. The generic/direct bwrap
-        // backends and the MCP anonymous-code snapshot backend are complete
-        // pre-spawn plans with no parent-side enforcement handle. Retaining
-        // their pinned descriptors until a long-lived process exits would turn
-        // each child into an avoidable FD leak.
+        // backends and the MCP code-snapshot backends are complete pre-spawn
+        // plans. macOS retains its independently created stdio[8] lifeline on
+        // ChildProcess for the full process lifetime; cleanup closes only the
+        // three already-duplicated source pins.
         cleanupSandbox();
       }
       try {
@@ -3740,6 +4357,23 @@ class ProcessExecutionBroker extends EventEmitter {
 
     const nativeSpawnSyncFn = this._native?.spawnSync || nativeSpawnSync;
     try {
+      const macPlanBindingDeclared =
+        sandboxPlan.platform === "darwin" &&
+        sandboxPlan.runtimeProbe?.planBindingMechanism ===
+          "macos-mcp-code-snapshot-plan-binding-v1";
+      const builtInMacMcpPlan =
+        admittedMacMcpCodeSnapshotPlans.has(sandboxPlan);
+      if (macPlanBindingDeclared && !builtInMacMcpPlan) {
+        throw this._sandboxError(
+          "macos_mcp_plan_binding_consumed",
+          "macOS MCP sandbox plan binding is unavailable or already consumed",
+        );
+      }
+      if (builtInMacMcpPlan) {
+        // spawnSync owns the parent endpoint for stdio[8] until the helper
+        // exits; burning before entry prevents replay on every outcome.
+        admittedMacMcpCodeSnapshotPlans.delete(sandboxPlan);
+      }
       const result = nativeSpawnSyncFn(command, args, optsForSync);
       this._settleWorkspaceTransactionSpawn(auditEntry, {
         exitCode: result.status,

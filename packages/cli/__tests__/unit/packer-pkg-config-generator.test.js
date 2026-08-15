@@ -147,6 +147,20 @@ describe("generatePkgConfig", () => {
     ).toEqual([recoveryInstaller]);
   });
 
+  it("embeds the raw macOS launcher contract inputs required at module load", () => {
+    const r = callGenerator();
+    const synth = JSON.parse(fs.readFileSync(r.pkgConfigFile, "utf-8"));
+    const brokerRoot = path
+      .join(cliRoot, "src", "lib", "process-execution-broker")
+      .replace(/\\/g, "/");
+    expect(synth.pkg.assets).toEqual(
+      expect.arrayContaining([
+        `${brokerRoot}/macos-mcp-launcher.c`,
+        `${brokerRoot}/macos-mcp-launcher-protocol.json`,
+      ]),
+    );
+  });
+
   it("embeds every raw capsule asset under one canonical identity", () => {
     const aliasParent = fs.mkdtempSync(
       path.join(os.tmpdir(), "cc-posix-cli-alias-"),

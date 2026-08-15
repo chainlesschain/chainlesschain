@@ -1,0 +1,645 @@
+name: CLI macOS MCP Launcher Release Gate
+
+on:
+  pull_request:
+    paths:
+      - "packages/cli/src/lib/process-execution-broker/macos-mcp-launcher.c"
+      - "packages/cli/src/lib/process-execution-broker/macos-mcp-launcher-contract.js"
+      - "packages/cli/src/lib/process-execution-broker/macos-mcp-launcher-protocol.json"
+      - "packages/cli/src/lib/process-execution-broker/mcp-fd-entry-bootstrap.js"
+      - "packages/cli/src/lib/process-execution-broker/platform-sandbox.js"
+      - "packages/cli/src/lib/process-execution-broker/index.js"
+      - "packages/cli/src/lib/packer/pkg-config-generator.js"
+      - "packages/cli/scripts/macos-mcp-launcher-*.mjs"
+      - "packages/cli/scripts/macos-mcp-launcher-*.sh"
+      - "packages/cli/__tests__/unit/macos-mcp-launcher-contract.test.js"
+      - "packages/cli/__tests__/unit/packer-pkg-config-generator.test.js"
+      - "packages/cli/__tests__/unit/process-execution-broker-platform-sandbox.test.js"
+      - ".github/workflows/cli-macos-mcp-launcher-release.yml"
+  push:
+    branches: [main]
+    tags:
+      - "cli-v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  compile-contract:
+    name: unsigned contract (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15-intel
+            arch: x64
+            uname_arch: x86_64
+          - os: macos-15
+            arch: arm64
+            uname_arch: arm64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: chainlesschain/chainlesschain
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.14.0"
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Require the declared macOS primitives
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = "${{ matrix.uname_arch }}"
+          test -x /usr/bin/sandbox-exec
+          /usr/bin/xcrun --find clang
+
+      - name: Compile helper with the formal warnings gate
+        working-directory: packages/cli
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/macos-mcp-launcher-build.mjs build "$RUNNER_TEMP/macos-mcp-launcher"
+          file "$RUNNER_TEMP/macos-mcp-launcher" | grep -F 'Mach-O 64-bit executable'
+          test ! -u "$RUNNER_TEMP/macos-mcp-launcher"
+
+      - name: Run shared-source, packer-asset, and Broker admission contracts
+        working-directory: packages/cli
+        shell: bash
+        run: >-
+          node ../../node_modules/vitest/vitest.mjs run
+          __tests__/unit/macos-mcp-launcher-contract.test.js
+          __tests__/unit/packer-pkg-config-generator.test.js
+          __tests__/unit/process-execution-broker-platform-sandbox.test.js
+          --testNamePattern
+          "signed macOS MCP launcher contract|raw macOS launcher contract inputs|macOS signed-root MCP authority|burns and validates macOS MCP plan bindings"
+
+  release-readiness:
+    name: protected tag identity
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/cli-v')
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.identity.outputs.version }}
+      tag: ${{ steps.identity.outputs.tag }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: chainlesschain/chainlesschain
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - id: identity
+        name: Bind protected tag, exact SHA, and CLI package version
+        shell: bash
+        env:
+          RELEASE_REPOSITORY: ${{ github.repository }}
+          RELEASE_REF: ${{ github.ref }}
+          RELEASE_REF_PROTECTED: ${{ github.ref_protected }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          test "$RELEASE_REPOSITORY" = "chainlesschain/chainlesschain"
+          test "$RELEASE_REF_PROTECTED" = "true"
+          test "$RELEASE_REF" = "refs/tags/$RELEASE_TAG"
+          [[ "$RELEASE_SHA" =~ ^[a-f0-9]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
+          test "$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")" = "$RELEASE_SHA"
+          VERSION=$(node -p "require('./packages/cli/package.json').version")
+          node --input-type=module - "$RELEASE_TAG" "$VERSION" <<'NODE'
+          const [tag, version] = process.argv.slice(2);
+          if (!/^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$/u.test(version)) {
+            throw new Error("CLI package version must be strict x.y.z semver");
+          }
+          if (tag !== `cli-v${version}`) {
+            throw new Error(`release tag ${tag} does not match package version ${version}`);
+          }
+          NODE
+          printf 'version=%s\n' "$VERSION" >> "$GITHUB_OUTPUT"
+          printf 'tag=%s\n' "$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+
+  exact-sha-gate:
+    name: exact-SHA CLI release gates
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/cli-v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: chainlesschain/chainlesschain
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.14.0"
+      - name: Verify CLI CI and CLI Strict Sandbox for this exact SHA
+        run: node packages/cli/scripts/verify-release-gates.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CC_RELEASE_GATE_OUTPUT: cli-macos-mcp-launcher-release-gates.json
+          CC_RELEASE_GATE_WAIT_MS: "2700000"
+          CC_RELEASE_GATE_POLL_MS: "30000"
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: cli-macos-mcp-launcher-gates-${{ github.ref_name }}-${{ github.sha }}
+          path: cli-macos-mcp-launcher-release-gates.json
+          if-no-files-found: error
+          retention-days: 90
+
+  signed-root-live:
+    name: signed root live (${{ matrix.arch }})
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/cli-v')
+    needs: [compile-contract, release-readiness, exact-sha-gate]
+    environment: cli-macos-mcp-launcher-production
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15-intel
+            arch: x64
+            pkg_target: node22-macos-x64
+          - os: macos-15
+            arch: arm64
+            pkg_target: node22-macos-arm64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 75
+    env:
+      PACKAGE_VERSION: ${{ needs.release-readiness.outputs.version }}
+      RELEASE_TAG: ${{ needs.release-readiness.outputs.tag }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: chainlesschain/chainlesschain
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.14.0"
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Revalidate protected release inputs and signing prerequisites
+        shell: bash
+        env:
+          RELEASE_REPOSITORY: ${{ github.repository }}
+          RELEASE_REF_PROTECTED: ${{ github.ref_protected }}
+          APP_CERT_B64: ${{ secrets.CLI_MACOS_SIGNING_CERT_P12_B64 }}
+          APP_CERT_PASSWORD: ${{ secrets.CLI_MACOS_SIGNING_CERT_PASSWORD }}
+          APP_SIGNING_IDENTITY: ${{ secrets.CLI_MACOS_SIGNING_IDENTITY }}
+          INSTALLER_CERT_B64: ${{ secrets.CLI_MACOS_INSTALLER_CERT_P12_B64 }}
+          INSTALLER_CERT_PASSWORD: ${{ secrets.CLI_MACOS_INSTALLER_CERT_PASSWORD }}
+          INSTALLER_SIGNING_IDENTITY: ${{ secrets.CLI_MACOS_INSTALLER_SIGNING_IDENTITY }}
+          TEAM_IDENTIFIER: ${{ vars.CLI_MACOS_TEAM_IDENTIFIER }}
+          DEVELOPER_ID_AUTHORITY: ${{ vars.CLI_MACOS_DEVELOPER_ID_AUTHORITY }}
+          DESIGNATED_REQUIREMENT: ${{ vars.CLI_MACOS_MCP_LAUNCHER_DESIGNATED_REQUIREMENT }}
+          NOTARY_APPLE_ID: ${{ secrets.CLI_MACOS_NOTARY_APPLE_ID }}
+          NOTARY_TEAM_ID: ${{ secrets.CLI_MACOS_NOTARY_TEAM_ID }}
+          NOTARY_PASSWORD: ${{ secrets.CLI_MACOS_NOTARY_APP_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test "$RELEASE_REPOSITORY" = "chainlesschain/chainlesschain"
+          test "$RELEASE_REF_PROTECTED" = "true"
+          test "$RELEASE_TAG" = "cli-v$PACKAGE_VERSION"
+          node -e 'if(!/^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$/.test(process.argv[1]))process.exit(1)' "$PACKAGE_VERSION"
+          for name in APP_CERT_B64 APP_CERT_PASSWORD APP_SIGNING_IDENTITY \
+            INSTALLER_CERT_B64 INSTALLER_CERT_PASSWORD INSTALLER_SIGNING_IDENTITY \
+            TEAM_IDENTIFIER DEVELOPER_ID_AUTHORITY DESIGNATED_REQUIREMENT \
+            NOTARY_APPLE_ID NOTARY_TEAM_ID NOTARY_PASSWORD; do
+            test -n "${!name:-}"
+          done
+          [[ "$TEAM_IDENTIFIER" =~ ^[A-Z0-9]{10}$ ]]
+          test "$TEAM_IDENTIFIER" = "$NOTARY_TEAM_ID"
+
+      - name: Import Developer ID application and installer identities
+        shell: bash
+        env:
+          APP_CERT_B64: ${{ secrets.CLI_MACOS_SIGNING_CERT_P12_B64 }}
+          APP_CERT_PASSWORD: ${{ secrets.CLI_MACOS_SIGNING_CERT_PASSWORD }}
+          INSTALLER_CERT_B64: ${{ secrets.CLI_MACOS_INSTALLER_CERT_P12_B64 }}
+          INSTALLER_CERT_PASSWORD: ${{ secrets.CLI_MACOS_INSTALLER_CERT_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN="$RUNNER_TEMP/mcp-launcher-signing.keychain-db"
+          node -e 'require("fs").writeFileSync(process.argv[1],Buffer.from(process.env.APP_CERT_B64,"base64"))' "$RUNNER_TEMP/application.p12"
+          node -e 'require("fs").writeFileSync(process.argv[1],Buffer.from(process.env.INSTALLER_CERT_B64,"base64"))' "$RUNNER_TEMP/installer.p12"
+          security create-keychain -p temporary "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p temporary "$KEYCHAIN"
+          security import "$RUNNER_TEMP/application.p12" -k "$KEYCHAIN" -P "$APP_CERT_PASSWORD" -T /usr/bin/codesign
+          security import "$RUNNER_TEMP/installer.p12" -k "$KEYCHAIN" -P "$INSTALLER_CERT_PASSWORD" -T /usr/bin/productsign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k temporary "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
+          security find-identity -v "$KEYCHAIN"
+
+      - name: Build copied @yao-pkg Node-mode runtime fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/mcp-release"
+          ENTRY="$RUNNER_TEMP/packed-default.cjs"
+          RAW="$RUNNER_TEMP/packed-node-raw-${{ matrix.arch }}"
+          PACKED="$RUNNER_TEMP/mcp-release/packed-node-${{ matrix.arch }}"
+          node -e 'require("fs").writeFileSync(process.argv[1],"process.stdout.write(\"PACKED_DEFAULT_ENTRY\\n\")\n")' "$ENTRY"
+          PKG_BIN=$(node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          import path from "node:path";
+          import { createRequire } from "node:module";
+          const require = createRequire(path.resolve("packages/cli/package.json"));
+          let root = path.dirname(require.resolve("@yao-pkg/pkg"));
+          while (!fs.existsSync(path.join(root, "package.json"))) {
+            const parent = path.dirname(root);
+            if (parent === root) throw new Error("cannot locate @yao-pkg/pkg root");
+            root = parent;
+          }
+          const metadata = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+          const relative = typeof metadata.bin === "string" ? metadata.bin : metadata.bin?.pkg;
+          if (!relative) throw new Error("@yao-pkg/pkg has no pkg bin");
+          process.stdout.write(path.resolve(root, relative));
+          NODE
+          )
+          node "$PKG_BIN" "$ENTRY" --targets "${{ matrix.pkg_target }}" --output "$RAW"
+          cp "$RAW" "$PACKED"
+          test "$("$PACKED")" = "PACKED_DEFAULT_ENTRY"
+          test "$(PKG_EXECPATH=PKG_INVOKE_NODEJS "$PACKED" -e 'process.stdout.write("READY")')" = "READY"
+          test "$(stat -f '%d:%i' "$PACKED")" != "$(stat -f '%d:%i' "$RAW")"
+          cmp -s "$PACKED" "$RAW"
+
+      - name: Build, sign, and bind the helper contract
+        shell: bash
+        env:
+          APP_SIGNING_IDENTITY: ${{ secrets.CLI_MACOS_SIGNING_IDENTITY }}
+          TEAM_IDENTIFIER: ${{ vars.CLI_MACOS_TEAM_IDENTIFIER }}
+          DEVELOPER_ID_AUTHORITY: ${{ vars.CLI_MACOS_DEVELOPER_ID_AUTHORITY }}
+          DESIGNATED_REQUIREMENT: ${{ vars.CLI_MACOS_MCP_LAUNCHER_DESIGNATED_REQUIREMENT }}
+        run: |
+          set -euo pipefail
+          HELPER="$RUNNER_TEMP/mcp-release/com.chainlesschain.cli.mcp-launcher"
+          CONTRACT="$RUNNER_TEMP/mcp-release/com.chainlesschain.cli.mcp-launcher.json"
+          node packages/cli/scripts/macos-mcp-launcher-build.mjs build "$HELPER"
+          codesign --force --timestamp --options runtime \
+            --identifier com.chainlesschain.cli.mcp-launcher \
+            --sign "$APP_SIGNING_IDENTITY" "$HELPER"
+          codesign --verify --strict --verbose=4 -R="$DESIGNATED_REQUIREMENT" "$HELPER"
+          DETAILS=$(codesign -dvvv "$HELPER" 2>&1)
+          REQUIREMENT=$(codesign -dr - "$HELPER" 2>&1 | sed -n 's/^designated => //p')
+          test "$(printf '%s\n' "$DETAILS" | sed -n 's/^TeamIdentifier=//p')" = "$TEAM_IDENTIFIER"
+          test "$(printf '%s\n' "$DETAILS" | sed -n 's/^Authority=//p' | head -n 1)" = "$DEVELOPER_ID_AUTHORITY"
+          printf '%s\n' "$DETAILS" | grep -E '^CodeDirectory .+ flags=.+\(runtime\)'
+          test "$REQUIREMENT" = "$DESIGNATED_REQUIREMENT"
+          node packages/cli/scripts/macos-mcp-launcher-build.mjs contract \
+            "$HELPER" "$TEAM_IDENTIFIER" "$DESIGNATED_REQUIREMENT" \
+            "$PACKAGE_VERSION" "$CONTRACT"
+
+      - name: Build a fixed-mode installer that preserves the lock inode
+        shell: bash
+        env:
+          INSTALLER_SIGNING_IDENTITY: ${{ secrets.CLI_MACOS_INSTALLER_SIGNING_IDENTITY }}
+        run: |
+          set -euo pipefail
+          PKGROOT="$RUNNER_TEMP/mcp-pkgroot"
+          SCRIPTS="$RUNNER_TEMP/mcp-pkg-scripts"
+          UNSIGNED="$RUNNER_TEMP/mcp-release/macos-mcp-launcher-unsigned.pkg"
+          SIGNED="$RUNNER_TEMP/mcp-release/macos-mcp-launcher-${{ matrix.arch }}.pkg"
+          sudo install -d -o root -g wheel -m 0755 \
+            "$PKGROOT/Library/PrivilegedHelperTools" \
+            "$PKGROOT/Library/Application Support/ChainlessChain" \
+            "$PKGROOT/Library/Application Support/ChainlessChain/McpLauncher"
+          sudo install -d -o root -g wheel -m 0711 \
+            "$PKGROOT/Library/Application Support/ChainlessChain/McpLauncher/runtime"
+          sudo install -o root -g wheel -m 4555 \
+            "$RUNNER_TEMP/mcp-release/com.chainlesschain.cli.mcp-launcher" \
+            "$PKGROOT/Library/PrivilegedHelperTools/com.chainlesschain.cli.mcp-launcher"
+          sudo install -o root -g wheel -m 0444 \
+            "$RUNNER_TEMP/mcp-release/com.chainlesschain.cli.mcp-launcher.json" \
+            "$PKGROOT/Library/PrivilegedHelperTools/com.chainlesschain.cli.mcp-launcher.json"
+          test ! -e "$PKGROOT/Library/Application Support/ChainlessChain/McpLauncher/runtime/launcher.lock"
+          mkdir -p "$SCRIPTS"
+          install -m 0755 packages/cli/scripts/macos-mcp-launcher-preinstall.sh "$SCRIPTS/preinstall"
+          install -m 0755 packages/cli/scripts/macos-mcp-launcher-postinstall.sh "$SCRIPTS/postinstall"
+          sudo pkgbuild --root "$PKGROOT" --ownership preserve --scripts "$SCRIPTS" \
+            --identifier com.chainlesschain.cli.mcp-launcher.pkg \
+            --version "$PACKAGE_VERSION" --install-location / "$UNSIGNED"
+          sudo chown "$(id -u):$(id -g)" "$UNSIGNED"
+          productsign --sign "$INSTALLER_SIGNING_IDENTITY" "$UNSIGNED" "$SIGNED"
+          pkgutil --check-signature "$SIGNED"
+
+      - name: Notarize and staple the installer
+        shell: bash
+        env:
+          NOTARY_APPLE_ID: ${{ secrets.CLI_MACOS_NOTARY_APPLE_ID }}
+          NOTARY_TEAM_ID: ${{ secrets.CLI_MACOS_NOTARY_TEAM_ID }}
+          NOTARY_PASSWORD: ${{ secrets.CLI_MACOS_NOTARY_APP_PASSWORD }}
+        run: |
+          set -euo pipefail
+          SIGNED="$RUNNER_TEMP/mcp-release/macos-mcp-launcher-${{ matrix.arch }}.pkg"
+          RESULT="$RUNNER_TEMP/mcp-release/notarization-${{ matrix.arch }}.json"
+          xcrun notarytool submit "$SIGNED" --apple-id "$NOTARY_APPLE_ID" \
+            --team-id "$NOTARY_TEAM_ID" --password "$NOTARY_PASSWORD" \
+            --wait --output-format json > "$RESULT"
+          node --input-type=module - "$RESULT" <<'NODE'
+          import fs from "node:fs";
+          const result = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          if (result.status !== "Accepted" || !/^[0-9a-f-]{36}$/iu.test(result.id || "")) {
+            throw new Error(`notarization rejected: ${JSON.stringify(result)}`);
+          }
+          NODE
+          xcrun stapler staple "$SIGNED"
+          xcrun stapler validate "$SIGNED"
+          spctl --assess --type install --verbose=4 "$SIGNED"
+
+      - name: Prove untrusted pre-existing install trees fail closed
+        shell: bash
+        run: |
+          set -euo pipefail
+          SIGNED="$RUNNER_TEMP/mcp-release/macos-mcp-launcher-${{ matrix.arch }}.pkg"
+          ATTACKER="$RUNNER_TEMP/mcp-installer-attacker"
+          PRODUCT='/Library/Application Support/ChainlessChain'
+          test ! -e "$PRODUCT" && test ! -L "$PRODUCT"
+          mkdir -p "$ATTACKER"
+          sudo ln -s "$ATTACKER" "$PRODUCT"
+          if sudo installer -pkg "$SIGNED" -target /; then exit 1; fi
+          test ! -e '/Library/PrivilegedHelperTools/com.chainlesschain.cli.mcp-launcher'
+          test ! -e "$ATTACKER/McpLauncher"
+          sudo unlink "$PRODUCT"
+          sudo mkdir "$PRODUCT"
+          sudo chown "$(id -u):$(id -g)" "$PRODUCT"
+          if sudo installer -pkg "$SIGNED" -target /; then exit 1; fi
+          test "$(stat -f '%u' "$PRODUCT")" = "$(id -u)"
+          test ! -e '/Library/PrivilegedHelperTools/com.chainlesschain.cli.mcp-launcher'
+          sudo rmdir "$PRODUCT"
+
+      - name: Install and verify the signed root package
+        shell: bash
+        env:
+          DESIGNATED_REQUIREMENT: ${{ vars.CLI_MACOS_MCP_LAUNCHER_DESIGNATED_REQUIREMENT }}
+        run: |
+          set -euo pipefail
+          SIGNED="$RUNNER_TEMP/mcp-release/macos-mcp-launcher-${{ matrix.arch }}.pkg"
+          HELPER='/Library/PrivilegedHelperTools/com.chainlesschain.cli.mcp-launcher'
+          sudo installer -pkg "$SIGNED" -target /
+          pkgutil --pkg-info com.chainlesschain.cli.mcp-launcher.pkg | grep -F "version: $PACKAGE_VERSION"
+          codesign --verify --strict --verbose=4 -R="$DESIGNATED_REQUIREMENT" "$HELPER"
+          spctl --assess --type execute --verbose=4 "$HELPER"
+          test "$(stat -f '%u:%g:%Lp:%l' "$HELPER")" = '0:0:4555:1'
+          test "$(stat -f '%u:%g:%Lp:%l' "$HELPER.json")" = '0:0:444:1'
+          test "$(stat -f '%u:%g:%Lp' '/Library/Application Support/ChainlessChain/McpLauncher/runtime')" = '0:0:711'
+          test "$(stat -f '%u:%g:%Lp:%l' '/Library/Application Support/ChainlessChain/McpLauncher/runtime/launcher.lock')" = '0:0:600:1'
+
+      - name: Run real packed Broker, helper, race, crash, signal, and upgrade gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          PACKED="$RUNNER_TEMP/mcp-release/packed-node-${{ matrix.arch }}"
+          SIGNED="$RUNNER_TEMP/mcp-release/macos-mcp-launcher-${{ matrix.arch }}.pkg"
+          PKG_EXECPATH=PKG_INVOKE_NODEJS "$PACKED" \
+            packages/cli/scripts/macos-mcp-launcher-live-test.mjs \
+            --signed-pkg "$SIGNED" --packed-runtime "$PACKED" \
+            > "$RUNNER_TEMP/mcp-release/live-${{ matrix.arch }}.json"
+
+      - name: Bind release metadata and evidence to tag, SHA, version, and arch
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
+          RELEASE_ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          node --input-type=module - "$RUNNER_TEMP/mcp-release" <<'NODE'
+          import crypto from "node:crypto";
+          import fs from "node:fs";
+          import path from "node:path";
+          import { createRequire } from "node:module";
+          const root = process.argv[2];
+          const arch = process.env.RELEASE_ARCH;
+          const digest = (file) => crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
+          const contractPath = path.join(root, "com.chainlesschain.cli.mcp-launcher.json");
+          const pkgPath = path.join(root, `macos-mcp-launcher-${arch}.pkg`);
+          const livePath = path.join(root, `live-${arch}.json`);
+          const packedPath = path.join(root, `packed-node-${arch}`);
+          const notaryPath = path.join(root, `notarization-${arch}.json`);
+          const contract = JSON.parse(fs.readFileSync(contractPath, "utf8"));
+          const live = JSON.parse(fs.readFileSync(livePath, "utf8"));
+          const contractSha256 = digest(contractPath);
+          const packedRuntimeSha256 = digest(packedPath);
+          const require = createRequire(path.resolve("packages/cli/package.json"));
+          let pkgRoot = path.dirname(require.resolve("@yao-pkg/pkg"));
+          while (!fs.existsSync(path.join(pkgRoot, "package.json"))) pkgRoot = path.dirname(pkgRoot);
+          const yaoPkgVersion = JSON.parse(fs.readFileSync(path.join(pkgRoot, "package.json"), "utf8")).version;
+          if (contract.packageVersion !== process.env.PACKAGE_VERSION ||
+              contract.packageIdentifier !== "com.chainlesschain.cli.mcp-launcher.pkg" ||
+              live.protocolSha256 !== contract.protocolSha256 ||
+              live.sourceSha256 !== contract.sourceSha256 ||
+              live.gateBootstrapSha256 !== contract.gateBootstrapSha256 ||
+              live.helperSha256 !== contract.helperSha256 ||
+              live.installContractSha256 !== contractSha256 ||
+              live.packageIdentifier !== contract.packageIdentifier ||
+              live.packageVersion !== contract.packageVersion ||
+              live.packedRuntimeSha256 !== packedRuntimeSha256 ||
+              live.packedRuntimeNodeModeVerified !== true ||
+              live.snapshotLockInodeStableAcrossUpgrade !== true ||
+              live.processForkAndSetsidDenied !== true) {
+            throw new Error("release evidence does not match its signed contract");
+          }
+          const evidence = {
+            schema: "chainlesschain.macos-mcp-launcher-release-evidence.v1",
+            repository: process.env.RELEASE_REPOSITORY,
+            sha: process.env.RELEASE_SHA,
+            tag: process.env.RELEASE_TAG,
+            version: process.env.PACKAGE_VERSION,
+            arch,
+            pkgTarget: arch === "x64" ? "node22-macos-x64" : "node22-macos-arm64",
+            yaoPkgVersion,
+            protocolSha256: contract.protocolSha256,
+            sourceSha256: contract.sourceSha256,
+            gateBootstrapSha256: contract.gateBootstrapSha256,
+            contractSha256,
+            packageSha256: digest(pkgPath),
+            liveSha256: digest(livePath),
+            packedRuntimeSha256,
+            notarizationSha256: digest(notaryPath),
+            helperSha256: contract.helperSha256,
+          };
+          fs.writeFileSync(path.join(root, `release-evidence-${arch}.json`), `${JSON.stringify(evidence, null, 2)}\n`);
+          NODE
+
+      - name: Upload signed package and bound live evidence
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: macos-mcp-launcher-${{ matrix.arch }}-${{ needs.release-readiness.outputs.tag }}-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/mcp-release/macos-mcp-launcher-${{ matrix.arch }}.pkg
+            ${{ runner.temp }}/mcp-release/com.chainlesschain.cli.mcp-launcher.json
+            ${{ runner.temp }}/mcp-release/notarization-${{ matrix.arch }}.json
+            ${{ runner.temp }}/mcp-release/live-${{ matrix.arch }}.json
+            ${{ runner.temp }}/mcp-release/packed-node-${{ matrix.arch }}
+            ${{ runner.temp }}/mcp-release/release-evidence-${{ matrix.arch }}.json
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Delete temporary signing material
+        if: always()
+        shell: bash
+        run: |
+          security delete-keychain "$RUNNER_TEMP/mcp-launcher-signing.keychain-db" || true
+          rm -f "$RUNNER_TEMP/application.p12" "$RUNNER_TEMP/installer.p12"
+
+  aggregate-signed-root-evidence:
+    name: sealed x64 + arm64 release evidence
+    if: always() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/cli-v')
+    needs: [release-readiness, signed-root-live]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.14.0"
+      - name: Require both protected matrix jobs to succeed
+        env:
+          SIGNED_ROOT_RESULT: ${{ needs.signed-root-live.result }}
+        run: test "$SIGNED_ROOT_RESULT" = "success"
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          pattern: macos-mcp-launcher-*-${{ needs.release-readiness.outputs.tag }}-${{ github.sha }}
+          path: signed-root-artifacts
+          merge-multiple: false
+      - name: Recompute and seal the exact two-architecture evidence set
+        shell: bash
+        env:
+          RELEASE_REPOSITORY: ${{ github.repository }}
+          RELEASE_SHA: ${{ github.sha }}
+          RELEASE_TAG: ${{ needs.release-readiness.outputs.tag }}
+          PACKAGE_VERSION: ${{ needs.release-readiness.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p aggregate-evidence
+          node --input-type=module <<'NODE'
+          import crypto from "node:crypto";
+          import fs from "node:fs";
+          import path from "node:path";
+          const root = path.resolve("signed-root-artifacts");
+          const sha256 = (file) => crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
+          const parse = (file) => JSON.parse(fs.readFileSync(file, "utf8"));
+          const expected = new Map([
+            ["x64", "node22-macos-x64"],
+            ["arm64", "node22-macos-arm64"],
+          ]);
+          const directories = fs.readdirSync(root, { withFileTypes: true }).filter((entry) => entry.isDirectory());
+          if (directories.length !== 2) throw new Error(`expected exactly two arch artifacts, observed ${directories.length}`);
+          const children = [];
+          const observed = new Set();
+          let sharedByteContract;
+          for (const [arch, pkgTarget] of expected) {
+            const artifactName = `macos-mcp-launcher-${arch}-${process.env.RELEASE_TAG}-${process.env.RELEASE_SHA}`;
+            const directory = path.join(root, artifactName);
+            if (!fs.statSync(directory).isDirectory()) throw new Error(`missing ${artifactName}`);
+            const evidencePath = path.join(directory, `release-evidence-${arch}.json`);
+            const contractPath = path.join(directory, "com.chainlesschain.cli.mcp-launcher.json");
+            const packagePath = path.join(directory, `macos-mcp-launcher-${arch}.pkg`);
+            const livePath = path.join(directory, `live-${arch}.json`);
+            const packedPath = path.join(directory, `packed-node-${arch}`);
+            const notaryPath = path.join(directory, `notarization-${arch}.json`);
+            const evidence = parse(evidencePath);
+            const contract = parse(contractPath);
+            const live = parse(livePath);
+            const notarization = parse(notaryPath);
+            const keys = Object.keys(evidence).sort();
+            const expectedKeys = [
+              "arch", "contractSha256", "gateBootstrapSha256", "helperSha256",
+              "liveSha256", "notarizationSha256", "packageSha256",
+              "packedRuntimeSha256", "pkgTarget", "protocolSha256", "repository",
+              "schema", "sha", "sourceSha256", "tag", "version", "yaoPkgVersion",
+            ].sort();
+            if (JSON.stringify(keys) !== JSON.stringify(expectedKeys)) throw new Error(`${arch} evidence fields changed`);
+            if (evidence.schema !== "chainlesschain.macos-mcp-launcher-release-evidence.v1" ||
+                evidence.repository !== process.env.RELEASE_REPOSITORY ||
+                evidence.sha !== process.env.RELEASE_SHA || evidence.tag !== process.env.RELEASE_TAG ||
+                evidence.version !== process.env.PACKAGE_VERSION || evidence.arch !== arch ||
+                evidence.pkgTarget !== pkgTarget || observed.has(arch) ||
+                !/^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$/u.test(evidence.yaoPkgVersion)) {
+              throw new Error(`${arch} release identity mismatch`);
+            }
+            observed.add(arch);
+            const recomputed = {
+              contractSha256: sha256(contractPath), packageSha256: sha256(packagePath),
+              liveSha256: sha256(livePath), packedRuntimeSha256: sha256(packedPath),
+              notarizationSha256: sha256(notaryPath),
+            };
+            for (const [field, value] of Object.entries(recomputed)) {
+              if (evidence[field] !== value) throw new Error(`${arch} ${field} mismatch`);
+            }
+            if (contract.packageIdentifier !== "com.chainlesschain.cli.mcp-launcher.pkg" ||
+                contract.packageVersion !== evidence.version ||
+                contract.protocolSha256 !== evidence.protocolSha256 ||
+                contract.sourceSha256 !== evidence.sourceSha256 ||
+                contract.gateBootstrapSha256 !== evidence.gateBootstrapSha256 ||
+                contract.helperSha256 !== evidence.helperSha256 ||
+                live.protocolSha256 !== contract.protocolSha256 ||
+                live.sourceSha256 !== contract.sourceSha256 ||
+                live.gateBootstrapSha256 !== contract.gateBootstrapSha256 ||
+                live.helperSha256 !== contract.helperSha256 ||
+                live.installContractSha256 !== evidence.contractSha256 ||
+                live.packedRuntimeSha256 !== evidence.packedRuntimeSha256 ||
+                live.packageIdentifier !== contract.packageIdentifier ||
+                live.packageVersion !== contract.packageVersion ||
+                live.packedRuntimeNodeModeVerified !== true ||
+                live.snapshotLockInodeStableAcrossUpgrade !== true ||
+                live.globalSerializationStableAcrossUpgrade !== true ||
+                live.processForkAndSetsidDenied !== true ||
+                live.runtimeSnapshotMutationDenied !== true) {
+              throw new Error(`${arch} live/contract binding mismatch`);
+            }
+            if (notarization.status !== "Accepted" || !/^[0-9a-f-]{36}$/iu.test(notarization.id || "")) {
+              throw new Error(`${arch} notarization was not accepted`);
+            }
+            const byteContract = {
+              protocolSha256: evidence.protocolSha256,
+              sourceSha256: evidence.sourceSha256,
+              gateBootstrapSha256: evidence.gateBootstrapSha256,
+            };
+            if (sharedByteContract === undefined) {
+              sharedByteContract = byteContract;
+            } else if (JSON.stringify(byteContract) !== JSON.stringify(sharedByteContract)) {
+              throw new Error(`${arch} byte contract differs across architectures`);
+            }
+            children.push({
+              artifactName,
+              ...evidence,
+              evidenceSha256: sha256(evidencePath),
+              notarizationId: notarization.id,
+              notarizationStatus: notarization.status,
+            });
+          }
+          if (observed.size !== 2) throw new Error("duplicate or missing architecture evidence");
+          children.sort((left, right) => left.arch.localeCompare(right.arch));
+          const aggregate = {
+            schema: "chainlesschain.macos-mcp-launcher-release-aggregate.v1",
+            repository: process.env.RELEASE_REPOSITORY,
+            sha: process.env.RELEASE_SHA,
+            tag: process.env.RELEASE_TAG,
+            version: process.env.PACKAGE_VERSION,
+            architectures: ["arm64", "x64"],
+            byteContract: sharedByteContract,
+            children,
+          };
+          fs.writeFileSync("aggregate-evidence/macos-mcp-launcher-release-aggregate.json", `${JSON.stringify(aggregate, null, 2)}\n`);
+          NODE
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: macos-mcp-launcher-aggregate-${{ needs.release-readiness.outputs.tag }}-${{ github.sha }}
+          path: aggregate-evidence/macos-mcp-launcher-release-aggregate.json
+          if-no-files-found: error
+          retention-days: 90

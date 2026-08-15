@@ -1,0 +1,23 @@
+{
+  "schema": "chainlesschain.macos-mcp-launcher-protocol.v1",
+  "protocolVersion": 1,
+  "backend": "macos-signed-root-fd-launcher",
+  "packageIdentifier": "com.chainlesschain.cli.mcp-launcher.pkg",
+  "helperInstallPath": "/Library/PrivilegedHelperTools/com.chainlesschain.cli.mcp-launcher",
+  "installContractPath": "/Library/PrivilegedHelperTools/com.chainlesschain.cli.mcp-launcher.json",
+  "snapshotRoot": "/Library/Application Support/ChainlessChain/McpLauncher/runtime",
+  "snapshotLockName": "launcher.lock",
+  "sandboxExecutable": "/usr/bin/sandbox-exec",
+  "runtimeFd": 3,
+  "entryFd": 4,
+  "capsuleRootFd": 5,
+  "gateFd": 6,
+  "readyFd": 7,
+  "callerLifelineFd": 8,
+  "maximumRuntimeBytes": 268435456,
+  "maximumEntryBytes": 67108864,
+  "maximumPassthroughArgs": 128,
+  "maximumStaleSnapshots": 8,
+  "readyTimeoutMs": 15000,
+  "profileTemplateVersion": 1
+}
