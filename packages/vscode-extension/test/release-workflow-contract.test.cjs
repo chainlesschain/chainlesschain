@@ -50,20 +50,22 @@ test("every IDE gate checks out and records the exact source commit", () => {
     /CC_RELEASE_COMMIT: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/u,
   );
   assert.equal(
-    workflow.match(/uses: actions\/checkout@v5/gu)?.length,
-    8,
+    workflow.match(
+      /uses: actions\/checkout@(?:v5|fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)/gu,
+    )?.length,
+    10,
     "every IDE job must use the pinned checkout action",
   );
   assert.equal(
     workflow.match(/ref: \$\{\{ env\.IDE_RELEASE_COMMIT \}\}/gu)?.length,
-    8,
+    10,
     "every IDE job must check out the explicit source commit",
   );
   assert.equal(
     workflow.match(/--release-commit \$\{\{ env\.IDE_RELEASE_COMMIT \}\}/gu)
       ?.length,
     8,
-    "all six VS Code and two JetBrains host journeys must record that commit",
+    "all six local VS Code and two JetBrains host journeys must record that commit",
   );
 });
 
@@ -124,7 +126,7 @@ test("one immutable VSIX candidate gates every release host and publisher", () =
   assert.match(packageJob, /packages\/vscode-extension\/manifest\.json/u);
   assert.match(
     releaseJob,
-    /needs: \[vscode-package, vscode-windows-smoke, vscode-macos-smoke\]/u,
+    /needs:[\s\S]*?vscode-package,[\s\S]*?vscode-windows-smoke,[\s\S]*?vscode-macos-smoke,[\s\S]*?vscode-remote-ssh-container,[\s\S]*?ide-roadmap-evidence-aggregate,/u,
   );
 
   for (const [name, job] of [

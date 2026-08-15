@@ -9,6 +9,7 @@ import {
   fsyncSync,
   chmodSync,
   linkSync,
+  lstatSync,
   mkdirSync,
   openSync,
   readFileSync,
@@ -25,8 +26,8 @@ import { pathToFileURL } from "node:url";
 
 export const IDE_JOURNEY_EVIDENCE_SCHEMA =
   "chainlesschain.ide-journey-evidence";
-export const IDE_JOURNEY_EVIDENCE_VERSION = 1;
-export const IDE_JOURNEY_MANIFEST_VERSION = "1.0.0";
+export const IDE_JOURNEY_EVIDENCE_VERSION = 2;
+export const IDE_JOURNEY_MANIFEST_VERSION = "1.4.0";
 
 const EXACT_COMMIT = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
 const TEXT_EXTENSIONS = new Set([
@@ -42,6 +43,15 @@ const TEXT_EXTENSIONS = new Set([
 const MAX_SOURCE_FILES = 100;
 const MAX_TEXT_BYTES = 256 * 1024;
 const MAX_BINARY_BYTES = 20 * 1024 * 1024;
+const GITHUB_REPOSITORY = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
+const GITHUB_WORKFLOW_REF =
+  /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/\.github\/workflows\/[A-Za-z0-9_.\/-]+\.ya?ml@\S+$/;
+const GITHUB_RUN_NUMBER = /^[1-9]\d*$/;
+const GITHUB_JOB = /^[A-Za-z0-9_-]+$/;
+const STRICT_SEMVER =
+  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
+const CREDENTIAL_TOKEN_PATTERN =
+  /\b(?:(?:ovsxat_|github_pat_|gh[pousr]_|npm_)[A-Za-z0-9._-]{8,}|glpat-[A-Za-z0-9_-]{8,}|xox[baprs]-[A-Za-z0-9-]{8,}|sk-[A-Za-z0-9._-]{8,}|AKIA[0-9A-Z]{16})\b/g;
 
 function stableValue(value) {
   if (Array.isArray(value)) return value.map(stableValue);
@@ -67,6 +77,64 @@ function sha256File(filePath) {
   return sha256Buffer(readFileSync(filePath));
 }
 
+function copyBoundArtifact({
+  sourcePath,
+  artifactDir,
+  relativeDirectory,
+  outputName,
+  kind,
+  name,
+}) {
+  const source = path.resolve(sourcePath);
+  const sourceStats = lstatSync(source, { throwIfNoEntry: false });
+  if (!sourceStats?.isFile() || sourceStats.isSymbolicLink()) {
+    throw new Error(
+      `bound artifact must be a regular non-symlink file: ${source}`,
+    );
+  }
+  const directory = path.join(artifactDir, relativeDirectory);
+  mkdirSync(directory, { recursive: true, mode: 0o700 });
+  const destination = path.join(directory, outputName);
+  copyFileSync(source, destination, fsConstants.COPYFILE_EXCL);
+  chmodSync(destination, 0o600);
+  return {
+    kind,
+    ...(name ? { name } : {}),
+    path: path.posix.join(relativeDirectory, outputName),
+    sha256: sha256File(destination),
+    bytes: statSync(destination).size,
+  };
+}
+
+function normalizeGithubActionsProvenance(options, incidents) {
+  const env = options.env || process.env;
+  const raw = options.ciProvenance || {};
+  const provenance = {
+    provider: "github-actions",
+    repository: String(raw.repository || env.GITHUB_REPOSITORY || ""),
+    workflowRef: String(raw.workflowRef || env.GITHUB_WORKFLOW_REF || ""),
+    workflowSha: String(
+      raw.workflowSha || env.GITHUB_WORKFLOW_SHA || "",
+    ).toLowerCase(),
+    runId: String(raw.runId || env.GITHUB_RUN_ID || ""),
+    runAttempt: String(raw.runAttempt || env.GITHUB_RUN_ATTEMPT || ""),
+    job: String(raw.job || env.GITHUB_JOB || ""),
+    artifactName: String(raw.artifactName || ""),
+    eventName: String(raw.eventName || env.GITHUB_EVENT_NAME || ""),
+  };
+  const valid =
+    GITHUB_REPOSITORY.test(provenance.repository) &&
+    GITHUB_WORKFLOW_REF.test(provenance.workflowRef) &&
+    EXACT_COMMIT.test(provenance.workflowSha) &&
+    GITHUB_RUN_NUMBER.test(provenance.runId) &&
+    GITHUB_RUN_NUMBER.test(provenance.runAttempt) &&
+    GITHUB_JOB.test(provenance.job) &&
+    /^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$/.test(provenance.artifactName) &&
+    /^[A-Za-z0-9_]+$/.test(provenance.eventName);
+  if (!valid) incidents.push({ code: "trusted-ci-provenance-invalid" });
+  return valid ? provenance : null;
+}
+
 export function redactDiagnosticText(value) {
   return String(value)
     .replace(/(authorization\s*[:=]\s*bearer\s+)[^\s"']+/gi, "$1[REDACTED]")
@@ -74,11 +142,11 @@ export function redactDiagnosticText(value) {
       /((?:token|api[_-]?key|secret|password)\s*["']?\s*[:=]\s*["']?)[^\s,"'}]+/gi,
       "$1[REDACTED]",
     )
+    .replace(CREDENTIAL_TOKEN_PATTERN, "[REDACTED_CREDENTIAL]")
     .replace(
-      /\b(?:ovsxat_|github_pat_|ghp_|sk-)[A-Za-z0-9._-]{8,}\b/g,
-      "[REDACTED_CREDENTIAL]",
-    )
-    .replace(/([?&](?:access_token|api_key|token)=)[^&#\s]+/gi, "$1[REDACTED]");
+      /([?&](?:access_token|api_key|client_secret|refresh_token|token)=)[^&#\s]+/gi,
+      "$1[REDACTED]",
+    );
 }
 
 function safeSegment(value, fallback = "artifact") {
@@ -260,10 +328,11 @@ function exactHostVersion(value) {
 }
 
 function exactPackageVersion(value) {
-  return (
-    requiredText(value) &&
-    /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(value.trim())
-  );
+  return requiredText(value) && STRICT_SEMVER.test(value);
+}
+
+export function isStrictSemver(value) {
+  return exactPackageVersion(value);
 }
 
 function normalizeResult(value) {
@@ -310,6 +379,33 @@ function normalizeWorkspaceEvidence(value, incidents) {
   };
 }
 
+function normalizeRemoteWorkspaceEvidence(value, incidents) {
+  if (value === undefined) return null;
+  if (
+    !Array.isArray(value) ||
+    value.length === 0 ||
+    value.some(
+      (workspaceFolder) =>
+        !requiredText(workspaceFolder) ||
+        !workspaceFolder.startsWith("/") ||
+        workspaceFolder.includes("\\") ||
+        path.posix.normalize(workspaceFolder) !== workspaceFolder,
+    )
+  ) {
+    incidents.push({ code: "workspace-coordinate-invalid" });
+    return null;
+  }
+  if (new Set(value).size !== value.length) {
+    incidents.push({ code: "workspace-coordinate-invalid" });
+    return null;
+  }
+  return {
+    layout: value.length > 1 ? "multi-root" : "single-root",
+    rootCount: value.length,
+    orderedRootsDigest: sha256Buffer(canonicalJson(value)),
+  };
+}
+
 /** Build and atomically write one immutable, content-addressed evidence file. */
 export function writeIdeJourneyEvidence(options = {}) {
   const artifactDir = path.resolve(options.artifactDir);
@@ -331,27 +427,71 @@ export function writeIdeJourneyEvidence(options = {}) {
   );
   const artifacts = [...captured.records];
   const incidents = [...captured.incidents];
-  const workspace = normalizeWorkspaceEvidence(
-    options.workspaceFolders,
-    incidents,
-  );
+  const provenance = options.requireTrustedProvenance
+    ? normalizeGithubActionsProvenance(options, incidents)
+    : null;
+  const workspace = options.remoteWorkspaceFolders
+    ? normalizeRemoteWorkspaceEvidence(
+        options.remoteWorkspaceFolders,
+        incidents,
+      )
+    : normalizeWorkspaceEvidence(options.workspaceFolders, incidents);
 
-  for (const rawPath of options.artifactPaths || []) {
+  for (const [artifactIndex, rawPath] of (
+    options.artifactPaths || []
+  ).entries()) {
     const filePath = path.resolve(rawPath);
     try {
       if (!statSync(filePath, { throwIfNoEntry: false })?.isFile()) {
         incidents.push({ code: "required-artifact-missing" });
         continue;
       }
-      artifacts.push({
-        kind: "release-artifact",
-        name: path.basename(filePath),
-        sha256: sha256File(filePath),
-        bytes: statSync(filePath).size,
-      });
+      artifacts.push(
+        copyBoundArtifact({
+          sourcePath: filePath,
+          artifactDir,
+          relativeDirectory: "release-artifacts",
+          outputName: `${String(artifactIndex + 1).padStart(3, "0")}-${safeSegment(path.basename(filePath))}`,
+          kind: "release-artifact",
+          name: path.basename(filePath),
+        }),
+      );
     } catch (error) {
       incidents.push({
         code: "required-artifact-unreadable",
+        messageDigest: sha256Buffer(String(error?.message || error)),
+      });
+    }
+  }
+
+  const roadmapArtifacts = {};
+  for (const [artifactIndex, [name, rawPath]] of Object.entries(
+    options.roadmapArtifactPaths || {},
+  ).entries()) {
+    if (!/^[a-z][a-z0-9-]*$/.test(name)) {
+      incidents.push({ code: "roadmap-artifact-name-invalid" });
+      continue;
+    }
+    try {
+      const extension = path.extname(String(rawPath)).toLowerCase();
+      const record = copyBoundArtifact({
+        sourcePath: rawPath,
+        artifactDir,
+        relativeDirectory: "roadmap-artifacts",
+        outputName: `${String(artifactIndex + 1).padStart(3, "0")}-${name}${safeSegment(extension, "")}`,
+        kind: "roadmap-artifact",
+        name,
+      });
+      artifacts.push(record);
+      roadmapArtifacts[name] = {
+        path: record.path,
+        sha256: record.sha256,
+        bytes: record.bytes,
+      };
+    } catch (error) {
+      incidents.push({
+        code: "roadmap-artifact-unreadable",
+        name,
         messageDigest: sha256Buffer(String(error?.message || error)),
       });
     }
@@ -367,6 +507,12 @@ export function writeIdeJourneyEvidence(options = {}) {
     incidents.push({ code: "cli-version-missing" });
   } else if (!exactPackageVersion(options.cliVersion)) {
     incidents.push({ code: "cli-version-invalid" });
+  }
+  if (
+    options.extensionVersion !== undefined &&
+    !exactPackageVersion(options.extensionVersion)
+  ) {
+    incidents.push({ code: "extension-version-invalid" });
   }
   if (artifacts.length === 0) {
     incidents.push({ code: "evidence-artifacts-missing" });
@@ -386,9 +532,13 @@ export function writeIdeJourneyEvidence(options = {}) {
     "host-version-not-exact",
     "cli-version-missing",
     "cli-version-invalid",
+    "extension-version-invalid",
     "evidence-artifacts-missing",
     "host-diagnostics-missing",
     "workspace-coordinate-invalid",
+    "trusted-ci-provenance-invalid",
+    "roadmap-artifact-name-invalid",
+    "roadmap-artifact-unreadable",
   ]);
 
   const result = normalizeResult(options.result);
@@ -396,9 +546,26 @@ export function writeIdeJourneyEvidence(options = {}) {
     Boolean(releaseCommit) &&
     exactHostVersion(options.hostVersion) &&
     exactPackageVersion(options.cliVersion) &&
+    (options.extensionVersion === undefined ||
+      exactPackageVersion(options.extensionVersion)) &&
     artifacts.length > 0 &&
     result !== "unknown" &&
+    (!options.requireTrustedProvenance || Boolean(provenance)) &&
     !incidents.some((incident) => criticalIncidentCodes.has(incident.code));
+  const artifactBundleDigest = sha256Buffer(
+    canonicalJson(
+      artifacts
+        .filter((artifact) => artifact.path)
+        .map(({ kind, name = null, path: artifactPath, sha256, bytes }) => ({
+          kind,
+          name,
+          path: artifactPath,
+          sha256,
+          bytes,
+        }))
+        .sort((left, right) => left.path.localeCompare(right.path)),
+    ),
+  );
   const core = {
     schema: IDE_JOURNEY_EVIDENCE_SCHEMA,
     schemaVersion: IDE_JOURNEY_EVIDENCE_VERSION,
@@ -414,12 +581,18 @@ export function writeIdeJourneyEvidence(options = {}) {
       transport: options.transport || "local",
     },
     ...(workspace ? { workspace } : {}),
+    ...(provenance ? { provenance } : {}),
+    ...(Object.keys(roadmapArtifacts).length > 0 ? { roadmapArtifacts } : {}),
+    ...(Array.isArray(options.dependencies)
+      ? { dependencies: structuredClone(options.dependencies) }
+      : {}),
     cliVersion: options.cliVersion || null,
     extensionVersion: options.extensionVersion || null,
     startedAt,
     finishedAt,
     result,
     evidenceComplete,
+    artifactBundleDigest,
     artifacts,
     incidents,
   };

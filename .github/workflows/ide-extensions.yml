@@ -30,6 +30,8 @@ on:
       - "docs/cli/PUBLIC_IDE_CAPABILITY_MANIFEST.generated.json"
       - "package.json"
       - "scripts/ide-journey-evidence.mjs"
+      - "packages/vscode-extension/test/remote-ssh-container/**"
+      - "packages/vscode-extension/test/remote-ssh-container.test.cjs"
       - "scripts/verify-ide-marketplace.mjs"
       - "tests/fixtures/ide-roadmap/**"
       - ".github/workflows/ide-extensions.yml"
@@ -52,6 +54,8 @@ on:
       - "docs/cli/PUBLIC_IDE_CAPABILITY_MANIFEST.generated.json"
       - "package.json"
       - "scripts/ide-journey-evidence.mjs"
+      - "packages/vscode-extension/test/remote-ssh-container/**"
+      - "packages/vscode-extension/test/remote-ssh-container.test.cjs"
       - "scripts/verify-ide-marketplace.mjs"
       - "tests/fixtures/ide-roadmap/**"
       - ".github/workflows/ide-extensions.yml"
@@ -286,10 +290,184 @@ jobs:
           path: packages/vscode-extension/build/reports/extension-host/
           if-no-files-found: error
 
+  vscode-remote-ssh-container:
+    name: VS Code Remote-SSH container (scoped trusted cell)
+    needs: vscode-package
+    if: ${{ !startsWith(github.ref, 'refs/tags/ide-jetbrains-v') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: packages/vscode-extension
+    env:
+      CC_REMOTE_EVIDENCE_ARTIFACT: vscode-remote-ssh-container-evidence-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.IDE_RELEASE_COMMIT }}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+      - name: Download immutable .vsix candidate
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: chainlesschain-ide-vscode-candidate
+          path: ${{ runner.temp }}/cc-vscode-candidate
+      - name: Verify immutable candidate manifest
+        run: >-
+          node scripts/vsix-release-artifact.mjs verify
+          "$RUNNER_TEMP/cc-vscode-candidate/chainlesschain-ide.vsix"
+          "$RUNNER_TEMP/cc-vscode-candidate/manifest.json"
+      - name: Verify Remote-SSH driver contract
+        run: node --test test/remote-ssh-container.test.cjs
+      - name: Install exact host-test runtime and Xvfb
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          npm install --no-save --no-package-lock @vscode/test-electron@3.1.0
+      - name: Download and verify official Remote-SSH transport and install bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_url='https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-vscode-remote/vsextensions/remote-ssh/0.120.0/vspackage'
+          curl --fail --location --silent --show-error \
+            "$source_url" --output "$RUNNER_TEMP/remote-ssh-0.120.0.vsix.gz"
+          echo "4caa944dc6c81c8e1a345f3aefed2c0b8efacfe91ba46dff04cb6da2238b949e  $RUNNER_TEMP/remote-ssh-0.120.0.vsix.gz" | sha256sum --check --strict
+          gzip -dc "$RUNNER_TEMP/remote-ssh-0.120.0.vsix.gz" > "$RUNNER_TEMP/remote-ssh-0.120.0.vsix"
+          echo "0fd6262ca183b486f6c067cb3516dccea2f87f32c049b642ff9eb77b0cea195d  $RUNNER_TEMP/remote-ssh-0.120.0.vsix" | sha256sum --check --strict
+      - name: Run installed VSIX in a genuine Remote-SSH container extension host
+        timeout-minutes: 30
+        run: |
+          xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
+            node test/remote-ssh-container/run.cjs \
+              --vsix "$RUNNER_TEMP/cc-vscode-candidate/chainlesschain-ide.vsix" \
+              --candidate-manifest "$RUNNER_TEMP/cc-vscode-candidate/manifest.json" \
+              --remote-ssh-payload "$RUNNER_TEMP/remote-ssh-0.120.0.vsix.gz" \
+              --remote-ssh-vsix "$RUNNER_TEMP/remote-ssh-0.120.0.vsix" \
+              --artifact-dir build/reports/remote-ssh-container/journey \
+              --release-commit "$IDE_RELEASE_COMMIT" \
+              --repository "$GITHUB_REPOSITORY" \
+              --workflow-ref "$GITHUB_WORKFLOW_REF" \
+              --workflow-sha "$GITHUB_WORKFLOW_SHA" \
+              --run-id "$GITHUB_RUN_ID" \
+              --run-attempt "$GITHUB_RUN_ATTEMPT" \
+              --job "$GITHUB_JOB" \
+              --artifact-name "$CC_REMOTE_EVIDENCE_ARTIFACT" \
+              --event-name "$GITHUB_EVENT_NAME" \
+              --server-url "$GITHUB_SERVER_URL"
+      - name: Bridge rehashed journey bytes into the scoped roadmap envelope
+        run: |
+          node ../../packages/cli/scripts/verify-ide-roadmap-fixtures.mjs \
+            --bridge-journey-evidence build/reports/remote-ssh-container/journey/journey-evidence.json \
+            --bridge-case q4a-vscode-remote-ssh-container \
+            --output build/reports/remote-ssh-container/roadmap-runtime-evidence.json \
+            --release-commit "$IDE_RELEASE_COMMIT" \
+            --trusted-repository "$GITHUB_REPOSITORY" \
+            --trusted-workflow-ref "$GITHUB_WORKFLOW_REF" \
+            --trusted-workflow-sha "$GITHUB_WORKFLOW_SHA" \
+            --trusted-run-id "$GITHUB_RUN_ID" \
+            --trusted-run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --trusted-job "$GITHUB_JOB" \
+            --trusted-artifact-name "$CC_REMOTE_EVIDENCE_ARTIFACT" \
+            --trusted-event-name "$GITHUB_EVENT_NAME"
+      - name: Upload Remote-SSH diagnostics and trusted evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ${{ env.CC_REMOTE_EVIDENCE_ARTIFACT }}
+          path: packages/vscode-extension/build/reports/remote-ssh-container/
+          if-no-files-found: error
+
+  ide-roadmap-evidence-aggregate:
+    name: IDE roadmap evidence (trusted scoped aggregate)
+    needs: vscode-remote-ssh-container
+    if: >-
+      ${{
+        always() &&
+        needs.vscode-remote-ssh-container.result == 'success' &&
+        !startsWith(github.ref, 'refs/tags/ide-jetbrains-v')
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CC_REMOTE_EVIDENCE_ARTIFACT: vscode-remote-ssh-container-evidence-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.IDE_RELEASE_COMMIT }}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+      - name: Download exact producer artifact from this workflow run
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: ${{ env.CC_REMOTE_EVIDENCE_ARTIFACT }}
+          path: ${{ runner.temp }}/cc-remote-ssh-evidence
+      - name: Rehash artifact bytes and assert release readiness
+        if: >-
+          github.event_name == 'push' ||
+          (github.event_name == 'workflow_dispatch' &&
+          startsWith(github.ref, 'refs/tags/ide-vscode-v'))
+        run: |
+          node packages/cli/scripts/verify-ide-roadmap-fixtures.mjs \
+            --verify-runtime-evidence-dir "$RUNNER_TEMP/cc-remote-ssh-evidence" \
+            --release-commit "$IDE_RELEASE_COMMIT" \
+            --case q4a-vscode-remote-ssh-container \
+            --require-release-ready \
+            --output "$RUNNER_TEMP/cc-remote-ssh-aggregate.json" \
+            --trusted-repository "$GITHUB_REPOSITORY" \
+            --trusted-workflow-ref "$GITHUB_WORKFLOW_REF" \
+            --trusted-workflow-sha "$GITHUB_WORKFLOW_SHA" \
+            --trusted-run-id "$GITHUB_RUN_ID" \
+            --trusted-run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --trusted-job vscode-remote-ssh-container \
+            --trusted-artifact-name "$CC_REMOTE_EVIDENCE_ARTIFACT" \
+            --trusted-event-name "$GITHUB_EVENT_NAME"
+      - name: Rehash artifact bytes as advisory evidence
+        if: >-
+          github.event_name == 'pull_request' ||
+          (github.event_name == 'workflow_dispatch' &&
+          !startsWith(github.ref, 'refs/tags/ide-vscode-v'))
+        run: |
+          node packages/cli/scripts/verify-ide-roadmap-fixtures.mjs \
+            --verify-runtime-evidence-dir "$RUNNER_TEMP/cc-remote-ssh-evidence" \
+            --release-commit "$IDE_RELEASE_COMMIT" \
+            --case q4a-vscode-remote-ssh-container \
+            --output "$RUNNER_TEMP/cc-remote-ssh-aggregate.json" \
+            --trusted-repository "$GITHUB_REPOSITORY" \
+            --trusted-workflow-ref "$GITHUB_WORKFLOW_REF" \
+            --trusted-workflow-sha "$GITHUB_WORKFLOW_SHA" \
+            --trusted-run-id "$GITHUB_RUN_ID" \
+            --trusted-run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --trusted-job vscode-remote-ssh-container \
+            --trusted-artifact-name "$CC_REMOTE_EVIDENCE_ARTIFACT" \
+            --trusted-event-name "$GITHUB_EVENT_NAME"
+      - name: Upload trusted scoped aggregate
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: vscode-remote-ssh-container-aggregate-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/cc-remote-ssh-aggregate.json
+          if-no-files-found: error
+
   vscode:
     name: VS Code extension (Linux host gate + publish)
-    needs: [vscode-package, vscode-windows-smoke, vscode-macos-smoke]
-    if: ${{ !startsWith(github.ref, 'refs/tags/ide-jetbrains-v') }}
+    needs:
+      [
+        vscode-package,
+        vscode-windows-smoke,
+        vscode-macos-smoke,
+        vscode-remote-ssh-container,
+        ide-roadmap-evidence-aggregate,
+      ]
+    if: >-
+      ${{
+        !startsWith(github.ref, 'refs/tags/ide-jetbrains-v') &&
+        needs.vscode-package.result == 'success' &&
+        needs.vscode-windows-smoke.result == 'success' &&
+        needs.vscode-macos-smoke.result == 'success' &&
+        needs.vscode-remote-ssh-container.result == 'success' &&
+        needs.ide-roadmap-evidence-aggregate.result == 'success'
+      }}
     runs-on: ubuntu-latest
     timeout-minutes: 70
     defaults:

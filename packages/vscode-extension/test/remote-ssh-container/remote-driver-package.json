@@ -1,0 +1,21 @@
+{
+  "name": "chainlesschain-remote-ssh-container-driver",
+  "displayName": "ChainlessChain Remote SSH Container Driver",
+  "version": "0.0.0",
+  "publisher": "chainlesschain-tests",
+  "private": true,
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "extensionKind": ["workspace"],
+  "main": "./noop.cjs",
+  "activationEvents": ["onCommand:chainlesschainTests.runHostJourney"],
+  "contributes": {
+    "commands": [
+      {
+        "command": "chainlesschainTests.runHostJourney",
+        "title": "ChainlessChain Tests: Run Remote Host Journey"
+      }
+    ]
+  }
+}

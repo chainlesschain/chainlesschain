@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "manifestVersion": "1.3.0",
+  "manifestVersion": "1.4.0",
   "baselineCommit": "eb0bc663b6eb794b1b62ba2bfc7a1267c699d25d",
   "releaseEvidence": {
     "commitSource": "git-head-at-run",
@@ -14,14 +14,18 @@
       "startedAt",
       "finishedAt",
       "result",
-      "artifactDigests"
+      "artifactDigests",
+      "artifactFiles",
+      "provenance"
     ]
   },
   "runtimeEvidence": {
     "schema": "chainlesschain.ide-roadmap-runtime-evidence.v1",
     "evidenceSource": "external-ci-artifacts",
-    "verificationScope": "structural-envelope-only",
-    "releaseReadiness": "unsupported-without-trusted-provenance"
+    "verificationScope": "trusted-ci-provenance-and-artifact-bytes",
+    "releaseReadiness": "selected-complete-matrix-only",
+    "trustedProvider": "github-actions",
+    "trustedWorkflow": ".github/workflows/ide-extensions.yml"
   },
   "cases": [
     {
@@ -330,6 +334,46 @@
         "remote-environment",
         "redacted-diagnostics",
         "artifact-digests",
+        "journey-evidence"
+      ]
+    },
+    {
+      "id": "q4a-vscode-remote-ssh-container",
+      "priority": "P0",
+      "required": true,
+      "evidenceStatus": "external-evidence-required",
+      "evidenceNotes": "This is one exact Linux VS Code Remote-SSH container cell with trusted same-run GitHub Actions provenance and byte-reverified artifacts. It intentionally does not close the wider remote IDE matrix.",
+      "fixture": "tests/fixtures/ide-roadmap/q4a-vscode-remote-ssh-container.json",
+      "fixtureDigest": "sha256:7091024fe1740af155e4ed3f754c803243e5ebc4233d3944bb5af43618dcff7a",
+      "seed": 2026080110,
+      "minimumIndependentRuns": 1,
+      "matrix": {
+        "hosts": ["vscode"],
+        "operatingSystems": ["linux"],
+        "transports": ["remote-ssh-container"]
+      },
+      "expectedOutcome": {
+        "missingRequiredArtifactsFail": true,
+        "credentialLeakCount": 0,
+        "wrongCommitBindingCount": 0,
+        "evidenceReplacementCount": 0,
+        "orderedWorkspaceRootsBound": true,
+        "workspaceRootCount": 2,
+        "remoteTransportExercised": true
+      },
+      "testFiles": [
+        "packages/cli/__tests__/unit/verify-ide-roadmap-fixtures.test.js",
+        "packages/vscode-extension/test/remote-ssh-container.test.cjs"
+      ],
+      "requiredArtifacts": [
+        "exact-commit",
+        "host-environment",
+        "remote-environment",
+        "outcome-observations",
+        "redacted-diagnostics",
+        "artifact-digests",
+        "candidate-vsix",
+        "candidate-manifest",
         "journey-evidence"
       ]
     }

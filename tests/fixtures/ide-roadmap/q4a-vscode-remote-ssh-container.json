@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "case": "q4a-vscode-remote-ssh-container",
+  "description": "One deliberately scoped Linux VS Code cell must execute the installed candidate in a genuine Remote-SSH workspace extension host inside an isolated SSH container. It does not satisfy the wider remote IDE matrix.",
+  "inputs": {
+    "host": "vscode",
+    "operatingSystem": "linux",
+    "transport": "remote-ssh-container",
+    "minimumIndependentRunsPerCell": 1,
+    "evidenceSource": "exact-run-github-actions-artifact",
+    "remoteSshExtension": "ms-vscode-remote.remote-ssh@0.120.0"
+  },
+  "expectedOutcome": {
+    "missingRequiredArtifactsFail": true,
+    "credentialLeakCount": 0,
+    "wrongCommitBindingCount": 0,
+    "evidenceReplacementCount": 0,
+    "orderedWorkspaceRootsBound": true,
+    "workspaceRootCount": 2,
+    "remoteTransportExercised": true
+  }
+}

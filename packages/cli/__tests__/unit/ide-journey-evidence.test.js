@@ -29,12 +29,16 @@ describe("IDE journey evidence", () => {
     const commit = "a".repeat(40);
     const digest = "b".repeat(64);
     const redacted = redactDiagnosticText(
-      `Authorization: Bearer very-secret token=abc123 sk-live-secret ${commit} ${digest}`,
+      `Authorization: Bearer very-secret token=abc123 sk-live-secret gho_1234567890 glpat-1234567890 xoxb-1234567890 AKIA1234567890ABCDEF ${commit} ${digest}`,
     );
 
     expect(redacted).not.toContain("very-secret");
     expect(redacted).not.toContain("abc123");
     expect(redacted).not.toContain("sk-live-secret");
+    expect(redacted).not.toContain("gho_1234567890");
+    expect(redacted).not.toContain("glpat-1234567890");
+    expect(redacted).not.toContain("xoxb-1234567890");
+    expect(redacted).not.toContain("AKIA1234567890ABCDEF");
     expect(redacted).toContain(commit);
     expect(redacted).toContain(digest);
   });
@@ -78,7 +82,7 @@ describe("IDE journey evidence", () => {
 
     expect(result.evidence).toMatchObject({
       schema: IDE_JOURNEY_EVIDENCE_SCHEMA,
-      schemaVersion: 1,
+      schemaVersion: 2,
       journeyId: "vscode-activation",
       releaseCommit: "c".repeat(40),
       result: "passed",
@@ -99,6 +103,16 @@ describe("IDE journey evidence", () => {
         ),
       ),
     );
+    const releaseArtifact = result.evidence.artifacts.find(
+      (artifact) => artifact.kind === "release-artifact",
+    );
+    expect(releaseArtifact).toMatchObject({
+      name: "extension.vsix",
+      bytes: Buffer.byteLength("vsix bytes"),
+    });
+    expect(
+      fs.readFileSync(path.join(artifactDir, releaseArtifact.path), "utf8"),
+    ).toBe("vsix bytes");
     const persisted = fs.readFileSync(result.destination, "utf8");
     const copiedLog = fs.readFileSync(
       path.join(
@@ -184,6 +198,78 @@ describe("IDE journey evidence", () => {
         "host-version-missing",
         "cli-version-missing",
         "evidence-artifacts-missing",
+      ]),
+    );
+  });
+
+  it("rejects non-canonical semantic versions", () => {
+    for (const invalidVersion of [
+      "01.2.3",
+      "1.02.3",
+      "1.2.03",
+      "1.2.3-01",
+      "1.2.3-",
+      "1.2",
+    ]) {
+      const root = temporaryRoot();
+      const diagnostics = path.join(root, "diagnostics");
+      const artifact = path.join(root, "artifact.bin");
+      fs.mkdirSync(diagnostics);
+      fs.writeFileSync(path.join(diagnostics, "host.log"), "ready\n", "utf8");
+      fs.writeFileSync(artifact, "bytes", "utf8");
+      const { evidence } = writeIdeJourneyEvidence({
+        artifactDir: path.join(root, "evidence"),
+        journeyId: "strict-semver",
+        host: "vscode",
+        hostVersion: "1.96.4",
+        cliVersion: invalidVersion,
+        extensionVersion: invalidVersion,
+        result: "passed",
+        releaseCommit: "c".repeat(40),
+        sourceRoots: [diagnostics],
+        artifactPaths: [artifact],
+      });
+      expect(evidence.evidenceComplete).toBe(false);
+      expect(evidence.incidents.map((incident) => incident.code)).toEqual(
+        expect.arrayContaining([
+          "cli-version-invalid",
+          "extension-version-invalid",
+        ]),
+      );
+    }
+  });
+
+  it("rejects host aliases and incomplete trusted CI provenance", () => {
+    const root = temporaryRoot();
+    const diagnostics = path.join(root, "diagnostics-src");
+    const artifact = path.join(root, "extension.vsix");
+    fs.mkdirSync(diagnostics);
+    fs.writeFileSync(path.join(diagnostics, "host.log"), "ready\n", "utf8");
+    fs.writeFileSync(artifact, "vsix bytes", "utf8");
+
+    const { evidence } = writeIdeJourneyEvidence({
+      artifactDir: path.join(root, "evidence"),
+      journeyId: "untrusted-alias",
+      host: "vscode",
+      hostVersion: "stable",
+      cliVersion: "0.200.0",
+      result: "passed",
+      releaseCommit: "c".repeat(40),
+      sourceRoots: [diagnostics],
+      artifactPaths: [artifact],
+      requireTrustedProvenance: true,
+      ciProvenance: {
+        repository: "chainlesschain/chainlesschain",
+        workflowRef:
+          "chainlesschain/chainlesschain/.github/workflows/ide-extensions.yml@refs/heads/main",
+      },
+    });
+
+    expect(evidence.evidenceComplete).toBe(false);
+    expect(evidence.incidents.map((incident) => incident.code)).toEqual(
+      expect.arrayContaining([
+        "host-version-not-exact",
+        "trusted-ci-provenance-invalid",
       ]),
     );
   });
