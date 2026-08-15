@@ -189,6 +189,13 @@
                 activeConversation?.runtimeStatus.agentLabel || "ChainlessChain"
               }}
             </div>
+            <label
+              v-if="selectedFileContext?.content"
+              class="cb-shell__context-toggle"
+            >
+              <input v-model="includeFileContext" type="checkbox" />
+              包含当前文件：{{ selectedFileContext.name }}
+            </label>
             <div class="cb-shell__composer-input">
               <textarea
                 v-model="draft"
@@ -467,9 +474,10 @@ import {
   streamAvailable as isStreamAvailable,
   toBridgeMessages,
 } from "./services/llm-preview-bridge";
-import { flatFilesToTree } from "./services/flatToTree";
+import { flatFilesToTree, type FlatProjectFile } from "./services/flatToTree";
 import { useProjectsQuickStore } from "../stores/projectsQuick";
 import type { ProjectSummary } from "../stores/projectsQuick";
+import { composeDesktopContextPrompt } from "../shell/helpers/desktopContextCenter";
 import "./themes.css";
 
 interface FlatFileNode {
@@ -486,6 +494,7 @@ interface LlmApiSurface {
 
 interface ProjectApiSurface {
   getFiles?: (projectId: string) => Promise<unknown>;
+  getFile?: (fileId: string) => Promise<unknown>;
 }
 
 interface ModelOption {
@@ -540,12 +549,14 @@ const activeConversation = computed(() => conversationStore.active);
 const activeArtifact = computed(() => activeConversation.value?.artifact);
 
 const realFiles = ref<PreviewFileNode[]>([]);
+const projectFileById = ref(new Map<string, FlatProjectFile>());
 const filesLoading = ref(false);
 const filesError = ref<string | null>(null);
 const projectPickerOpen = ref(false);
 const createInlineOpen = ref(false);
 const createName = ref("");
 let filesLoadToken = 0;
+let selectedFileLoadToken = 0;
 
 const activeProjectName = computed(() => {
   const conversation = activeConversation.value;
@@ -573,6 +584,12 @@ const artifactOpen = ref(false);
 const paletteOpen = ref(false);
 const activeEntryId = ref<DecentralEntryId | null>(null);
 const selectedFileId = ref<string | null>(null);
+const selectedFileContext = ref<{
+  name: string;
+  path?: string;
+  content?: string;
+} | null>(null);
+const includeFileContext = ref(false);
 const fileArtifact = ref<{ title: string; content: string } | null>(null);
 const activeWidget = computed(() =>
   activeEntryId.value ? getPreviewWidget(activeEntryId.value) : undefined,
@@ -683,30 +700,94 @@ function flattenFiles(nodes: PreviewFileNode[], depth = 0): FlatFileNode[] {
   });
 }
 
+function resetSelectedFileState() {
+  selectedFileLoadToken += 1;
+  selectedFileId.value = null;
+  fileArtifact.value = null;
+  selectedFileContext.value = null;
+  includeFileContext.value = false;
+}
+
 function selectConversation(id: string) {
   conversationStore.select(id);
+  resetSelectedFileState();
 }
 
 function deleteConversation(id: string) {
   conversationStore.remove(id);
-  if (!conversationStore.active) {
-    selectedFileId.value = null;
-    fileArtifact.value = null;
-  }
+  resetSelectedFileState();
   loadProjectFiles(activeConversation.value?.projectId ?? null);
 }
 
-function onFileClick(file: FlatFileNode) {
+function readFileRecord(value: unknown): FlatProjectFile | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  const nested = record.file;
+  if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+    return nested as FlatProjectFile;
+  }
+  return record as FlatProjectFile;
+}
+
+async function onFileClick(file: FlatFileNode) {
+  selectedFileLoadToken += 1;
+  const token = selectedFileLoadToken;
   selectedFileId.value = file.id;
   if (file.kind === "folder") {
+    selectedFileContext.value = null;
+    includeFileContext.value = false;
+    fileArtifact.value = null;
     return;
   }
+
+  selectedFileContext.value = null;
+  includeFileContext.value = false;
   fileArtifact.value = {
     title: file.name,
-    content: `(暂无 "${file.name}" 的内容预览)`,
+    content: `正在读取 "${file.name}"...`,
   };
   activeEntryId.value = null;
   artifactOpen.value = true;
+
+  const metadata = projectFileById.value.get(file.id);
+  const project = getProjectApi();
+  try {
+    const response = project?.getFile
+      ? await project.getFile(file.id)
+      : metadata;
+    if (token !== selectedFileLoadToken) return;
+    const detail = readFileRecord(response) ?? metadata ?? null;
+    const isBase64 = detail?.is_base64 === true || detail?.is_base64 === 1;
+    const content =
+      !isBase64 && typeof detail?.content === "string"
+        ? detail.content
+        : undefined;
+    const path =
+      typeof detail?.file_path === "string" && detail.file_path
+        ? detail.file_path
+        : typeof metadata?.file_path === "string" && metadata.file_path
+          ? metadata.file_path
+          : file.name;
+    selectedFileContext.value = {
+      name: file.name,
+      path,
+      content,
+    };
+    fileArtifact.value = {
+      title: file.name,
+      content: isBase64
+        ? `(二进制文件 "${file.name}" 不会加入模型上下文)`
+        : content || `(暂无 "${file.name}" 的内容预览)`,
+    };
+  } catch (err) {
+    if (token !== selectedFileLoadToken) return;
+    selectedFileContext.value = null;
+    fileArtifact.value = {
+      title: file.name,
+      content: `(无法读取 "${file.name}": ${err instanceof Error ? err.message : String(err)})`,
+    };
+    console.error("[shell-preview] getFile failed:", err);
+  }
 }
 
 function getLlmApi() {
@@ -730,10 +811,12 @@ function getProjectApi(): ProjectApiSurface | null {
 
 async function loadProjectFiles(projectId: string | null | undefined) {
   filesLoadToken += 1;
+  selectedFileLoadToken += 1;
   const token = filesLoadToken;
 
   if (!projectId) {
     realFiles.value = [];
+    projectFileById.value = new Map();
     filesError.value = null;
     filesLoading.value = false;
     return;
@@ -742,6 +825,7 @@ async function loadProjectFiles(projectId: string | null | undefined) {
   const project = getProjectApi();
   if (!project?.getFiles) {
     realFiles.value = [];
+    projectFileById.value = new Map();
     filesError.value = "Electron 项目接口不可用";
     filesLoading.value = false;
     return;
@@ -762,6 +846,13 @@ async function loadProjectFiles(projectId: string | null | undefined) {
           )
         ? ((response as { files: unknown[] }).files as unknown[])
         : [];
+    const fileEntries: Array<[string, FlatProjectFile]> = [];
+    for (const file of list as FlatProjectFile[]) {
+      if (typeof file.id === "string" && file.id) {
+        fileEntries.push([file.id, file]);
+      }
+    }
+    projectFileById.value = new Map(fileEntries);
     realFiles.value = flatFilesToTree(
       list as Parameters<typeof flatFilesToTree>[0],
     );
@@ -770,6 +861,7 @@ async function loadProjectFiles(projectId: string | null | undefined) {
       return;
     }
     realFiles.value = [];
+    projectFileById.value = new Map();
     filesError.value = err instanceof Error ? err.message : String(err);
     console.error("[shell-preview] loadProjectFiles failed:", err);
   } finally {
@@ -827,6 +919,7 @@ function pickProject(project: ProjectSummary) {
       ? project.name
       : "未命名项目";
   conversationStore.bindProject(project.id, name);
+  resetSelectedFileState();
   closeProjectPicker();
   loadProjectFiles(project.id);
 }
@@ -836,6 +929,7 @@ function unbindActiveProject() {
     return;
   }
   conversationStore.bindProject(null);
+  resetSelectedFileState();
   loadProjectFiles(null);
 }
 
@@ -923,8 +1017,7 @@ function newConversation() {
   conversationStore.createBlank();
   artifactOpen.value = false;
   activeEntryId.value = null;
-  fileArtifact.value = null;
-  selectedFileId.value = null;
+  resetSelectedFileState();
 }
 
 async function sendDraft() {
@@ -934,7 +1027,23 @@ async function sendDraft() {
   }
 
   const history = conversationStore.active?.messages ?? [];
-  const payload = toBridgeMessages(history, text);
+  let outboundText = text;
+  try {
+    const contextual = await composeDesktopContextPrompt(text, {
+      enabled: includeFileContext.value,
+      workspaceId: activeConversation.value?.projectId ?? null,
+      document: selectedFileContext.value
+        ? {
+            ...selectedFileContext.value,
+            source: "desktop.v6-preview.selected-file",
+          }
+        : null,
+    });
+    outboundText = contextual.prompt;
+  } catch {
+    // Context is optional; a crypto/collection failure keeps the raw prompt.
+  }
+  const payload = toBridgeMessages(history, outboundText);
 
   conversationStore.appendMessage("user", text);
   draft.value = "";
@@ -952,7 +1061,7 @@ async function sendDraft() {
     if (isStreamAvailable()) {
       const streamId = conversationStore.beginStreamingAssistant();
       if (streamId) {
-        const result = await sendLlmChatStream(text, (liveText) => {
+        const result = await sendLlmChatStream(outboundText, (liveText) => {
           conversationStore.updateAssistantContent(streamId, liveText);
         });
         if (result.ok === true) {
@@ -1486,6 +1595,20 @@ onBeforeUnmount(() => {
 .cb-shell__composer-label {
   font-size: 24px;
   color: var(--cc-preview-text-secondary);
+}
+
+.cb-shell__context-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 8px;
+  color: var(--cc-preview-text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.cb-shell__context-toggle input {
+  accent-color: var(--cc-preview-accent);
 }
 
 .cb-shell__composer-input {

@@ -330,12 +330,12 @@ import {
   createIntentConfirmationMessage,
 } from "../utils/messageTypes";
 import {
-  buildActiveFileContext,
   buildExportMarkdown,
   chatErrorMessage,
   extractRagContext,
   formatChatTime,
 } from "./helpers/chatPanelHelpers";
+import { composeDesktopContextPrompt } from "./helpers/desktopContextCenter";
 
 const props = defineProps<{
   open: boolean;
@@ -731,28 +731,37 @@ async function dispatchToLLM(text: string): Promise<void> {
     // RAG failure does not break the send path
   }
 
-  // Active-file context (Claude-Code-style "the agent sees what you're looking
-  // at"): when the user picks "file" context mode and a project file is open,
-  // inline its content into the LLM prompt only — ephemeral, the stored user
-  // message stays the original text. Surfaced as a reference so the inclusion
-  // is visible. No-op when no file is open; never breaks the send path.
+  // Project all available active-document evidence through the same fixed-
+  // budget cc-context-center/v1 contract used by the other desktop shells.
+  // The stored user message stays raw; only the outbound prompt is enriched.
   if (contextMode.value === "file") {
     try {
       const doc = activeContextStore.document;
-      const block = doc
-        ? buildActiveFileContext({
-            file_name: doc.name,
-            file_path: doc.path,
-            content: doc.content,
-          })
-        : null;
-      if (block && doc) {
-        prompt = `${block}\n\n${prompt}`;
+      const contextual = await composeDesktopContextPrompt(prompt, {
+        enabled: true,
+        document: doc
+          ? {
+              name: doc.name,
+              path: doc.path,
+              content: doc.content,
+              source: doc.source || "desktop.v2.active-document",
+              selectionText: doc.selectionText,
+              selection: doc.selection,
+              diagnostics: doc.diagnostics,
+              gitDiff: doc.gitDiff,
+            }
+          : null,
+      });
+      prompt = contextual.prompt;
+      const included = contextual.projection?.chips.filter(
+        (chip) => chip.content.length > 0,
+      );
+      if (included?.length) {
         retrievedDocs = [
-          {
-            id: doc.path || doc.name || "active-file",
-            title: `📄 ${doc.name || doc.path || "current file"}`,
-          },
+          ...included.map((chip) => ({
+            id: chip.id,
+            title: `📎 ${chip.label}`,
+          })),
           ...retrievedDocs,
         ];
       }

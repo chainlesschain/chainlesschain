@@ -1187,7 +1187,7 @@ import {
   FileTextOutlined,
 } from "@ant-design/icons-vue";
 import { useProjectStore } from "@/stores/project";
-import { composeWithFileContext } from "@/shell/helpers/chatPanelHelpers";
+import { composeDesktopContextPrompt } from "@/shell/helpers/desktopContextCenter";
 import ConversationInput from "@/components/projects/ConversationInput.vue";
 import BrowserPreview from "@/components/projects/BrowserPreview.vue";
 import StepDisplay from "@/components/projects/StepDisplay.vue";
@@ -1219,18 +1219,32 @@ const projectStore = useProjectStore();
 // working on"). Sources the last-opened project file (projectStore.currentFile,
 // which persists across navigation — the chat is a separate page from the
 // project view). The toggle only shows when a file is available; when on, the
-// file's content is inlined into the LLM message (ephemeral — the stored user
-// message stays the original text).
+// selected evidence is projected through cc-context-center/v1 (ephemeral — the
+// stored user message stays the original text).
 const includeFileContext = ref(false);
 const currentFileName = computed(
   () => projectStore.currentFile?.file_name ?? null,
 );
-function withFileContext(raw) {
-  return composeWithFileContext(
-    raw,
-    projectStore.currentFile,
-    includeFileContext.value,
-  );
+async function withFileContext(raw) {
+  const result = await composeDesktopContextPrompt(raw, {
+    enabled: includeFileContext.value,
+    workspaceId: projectStore.currentProject?.id
+      ? String(projectStore.currentProject.id)
+      : null,
+    document: projectStore.currentFile
+      ? {
+          name: projectStore.currentFile.file_name,
+          path: projectStore.currentFile.file_path,
+          content: projectStore.currentFile.content,
+          source: "desktop.legacy.active-file",
+          selectionText: projectStore.currentFile.selectionText,
+          selection: projectStore.currentFile.selection,
+          diagnostics: projectStore.currentFile.diagnostics,
+          gitDiff: projectStore.currentFile.gitDiff,
+        }
+      : null,
+  });
+  return result.prompt;
 }
 const agentLogger = createLogger("AIChatPageCodingAgent");
 
@@ -2012,12 +2026,11 @@ const handleSubmitAgentAwareMessage = async ({ text, attachments }) => {
         isThinking.value = false;
         return;
       }
-      // Inline the active-file context (when the toggle is on) into the
-      // agent-bound text too — the displayed/persisted user message above stays
-      // the original `text`. Previously the Agent branch sent raw `text`,
-      // silently dropping the "include current file" context the chat branch
-      // honored (see docs/CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS P0-1).
-      const result = await codingAgentStore.sendMessage(withFileContext(text));
+      // Project the selected evidence into the agent-bound text too. The
+      // displayed/persisted user message above stays the original `text`.
+      const result = await codingAgentStore.sendMessage(
+        await withFileContext(text),
+      );
       if (!result?.success) {
         throw new Error(result?.error || "Failed to send coding agent message");
       }
@@ -2030,7 +2043,7 @@ const handleSubmitAgentAwareMessage = async ({ text, attachments }) => {
 
     const response = await window.electronAPI.llm.chat({
       conversationId: activeConversationId.value,
-      message: withFileContext(text),
+      message: await withFileContext(text),
       attachments: attachments,
     });
 

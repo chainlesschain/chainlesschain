@@ -14,6 +14,16 @@ export interface ActiveDocument {
   name: string;
   path?: string;
   content?: string;
+  /** Optional live evidence; Context Center prioritizes it over whole-file text. */
+  selectionText?: string;
+  selection?: Record<string, unknown> | null;
+  diagnostics?: Array<{
+    severity?: string;
+    message?: string;
+    line?: number;
+    character?: number;
+  }>;
+  gitDiff?: string;
 }
 
 interface ActiveContextState {
