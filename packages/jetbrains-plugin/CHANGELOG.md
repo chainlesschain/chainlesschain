@@ -1,5 +1,17 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.90] - Context Center and runtime authority evidence (2026-08-15)
+
+- Add a native, read-only Context Center for inspecting the CLI-owned context
+  envelope, included sources, symbol/file evidence, and bounded diagnostics
+  without reconstructing authority inside the plugin.
+- Explain workspace-scoped runtime permission authority, actual resource and
+  side-effect evidence, recovery coverage, unresolved resources, and call-chain
+  provenance while keeping unavailable sources visibly fail-closed.
+- Preserve exact schema/version checks and bounded rendering for every new
+  projection, and fix the release test so an intentional partial-recovery
+  warning is not mistaken for an unavailable evidence source.
+
 ## [0.4.89] - Governed multi-agent merge review (2026-08-14)
 
 - Add a CLI-authoritative multi-agent merge review surface with stable file
