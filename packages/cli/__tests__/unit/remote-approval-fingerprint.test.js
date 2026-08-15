@@ -10,6 +10,10 @@ import path from "node:path";
 import { afterEach, describe, it, expect } from "vitest";
 import { RemoteApprovalBridge } from "../../src/lib/remote-approval-bridge.js";
 import { computeOperationFingerprint } from "../../src/lib/operation-fingerprint.js";
+import {
+  DurableRemoteMembershipAuthority,
+  REMOTE_MEMBERSHIP_AUTHORITY_VERSION,
+} from "../../src/lib/remote-membership-authority.js";
 
 const bridges = [];
 const temporaryDirectories = [];
@@ -26,14 +30,39 @@ function makeBridge(now, options = {}) {
     path.join(os.tmpdir(), "cc-remote-approval-"),
   );
   temporaryDirectories.push(directory);
+  const clock = now || Date.now;
+  const membershipStateFile = path.join(directory, "membership-state.json");
+  const membershipAuthority = new DurableRemoteMembershipAuthority({
+    filePath: membershipStateFile,
+    now: clock,
+  });
+  const sessionMembership = membershipAuthority.createSession({
+    sessionId: "rs-1",
+    agentSessionId: "offline-1",
+    hostPrincipalId: "bridge-host",
+    scopes: ["observe", "prompt", "approve", "interrupt"],
+    expiresAt: clock() + 100_000_000,
+  });
+  const deviceMembership = membershipAuthority.joinMember({
+    sessionId: "rs-1",
+    principalId: "paired-device-1",
+    scopes: ["observe", "approve"],
+    expectedSessionEpoch: sessionMembership.sessionEpoch,
+  });
   const bridge = new RemoteApprovalBridge({
     wsUrl: "ws://127.0.0.1:1",
     agentSessionId: "offline-1",
     approvalStateFile: path.join(directory, "approval-state.json"),
+    membershipAuthority,
     ...(now ? { now } : {}),
     ...options,
   });
   bridge.remoteSessionId = "rs-1"; // pretend a session is registered
+  bridge._testMembership = {
+    filePath: membershipStateFile,
+    sessionEpoch: sessionMembership.sessionEpoch,
+    membershipEpoch: deviceMembership.membershipEpoch,
+  };
   bridge._captured = [];
   bridge._publish = (event) => bridge._captured.push(event);
   bridges.push(bridge);
@@ -46,7 +75,7 @@ function lastRequest(bridge) {
     .find((e) => e.type === "permission.request");
 }
 
-function resolveFrame(request, extra = {}) {
+function resolveFrame(request, extra = {}, frameExtra = {}) {
   const requestId = typeof request === "string" ? request : request?.requestId;
   const tuple =
     request && typeof request === "object"
@@ -59,7 +88,12 @@ function resolveFrame(request, extra = {}) {
   return {
     type: "remote-session-control",
     remoteSessionId: "rs-1",
+    agentSessionId: "offline-1",
     from: "paired-device-1",
+    membershipAuthority: REMOTE_MEMBERSHIP_AUTHORITY_VERSION,
+    sessionEpoch: "1",
+    membershipEpoch: "2",
+    ...frameExtra,
     event: {
       type: "approval.resolve",
       requestId,
@@ -93,6 +127,45 @@ describe("remote approval fingerprint binding (§8.2 full tuple)", () => {
       approved: true,
       via: "remote",
     });
+    expect(
+      bridge._approvalStore.getRequest(req.requestId, { bestEffort: false })
+        .resolvedAuthority,
+    ).toContain("membership-epoch=2");
+  });
+
+  it("performs the durable approval CAS while the membership fence is held", async () => {
+    const bridge = makeBridge();
+    const authority = bridge._membershipAuthority;
+    let insideMembershipFence = false;
+    bridge._membershipAuthority = {
+      withActiveMembership(binding, scope, task) {
+        return authority.withActiveMembership(binding, scope, (membership) => {
+          insideMembershipFence = true;
+          try {
+            return task(membership);
+          } finally {
+            insideMembershipFence = false;
+          }
+        });
+      },
+    };
+    const resolveRequest = bridge._approvalStore.resolveRequest.bind(
+      bridge._approvalStore,
+    );
+    bridge._approvalStore.resolveRequest = (...args) => {
+      expect(insideMembershipFence).toBe(true);
+      return resolveRequest(...args);
+    };
+    const decision = bridge.requestDecision({
+      tool: "run_shell",
+      detail: "npm publish",
+      timeoutMs: 5_000,
+    });
+
+    bridge._onServerEvent(resolveFrame(lastRequest(bridge)));
+
+    await expect(decision).resolves.toMatchObject({ approved: true });
+    expect(insideMembershipFence).toBe(false);
   });
 
   it("rejects a resolve whose fingerprint is for a DIFFERENT operation", async () => {
@@ -167,6 +240,151 @@ describe("remote approval fingerprint binding (§8.2 full tuple)", () => {
         }),
       ]),
     );
+  });
+
+  it("rejects a server frame that omits its durable membership binding", async () => {
+    const bridge = makeBridge();
+    const decision = bridge.requestDecision({
+      tool: "run_shell",
+      timeoutMs: 120,
+    });
+    const frame = resolveFrame(lastRequest(bridge));
+    delete frame.membershipEpoch;
+    bridge._onServerEvent(frame);
+
+    await expect(decision).resolves.toEqual({
+      approved: false,
+      via: "timeout",
+      from: null,
+    });
+    expect(bridge.getSecurityErrors()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ reason: "membership-binding-required" }),
+      ]),
+    );
+  });
+
+  it("fences a late forwarded approval after durable member revocation", async () => {
+    const bridge = makeBridge();
+    const decision = bridge.requestDecision({
+      tool: "run_shell",
+      detail: "deploy",
+      timeoutMs: 150,
+    });
+    const request = lastRequest(bridge);
+    bridge._membershipAuthority.revokeMember({
+      sessionId: "rs-1",
+      principalId: "paired-device-1",
+      expectedSessionEpoch: bridge._testMembership.sessionEpoch,
+      expectedMembershipEpoch: bridge._testMembership.membershipEpoch,
+    });
+
+    bridge._onServerEvent(resolveFrame(request));
+    bridge._onServerEvent(resolveFrame(request));
+
+    expect(
+      bridge._approvalStore.getRequest(request.requestId, {
+        bestEffort: false,
+      }),
+    ).toMatchObject({ status: "pending", revision: 1 });
+
+    await expect(decision).resolves.toEqual({
+      approved: false,
+      via: "timeout",
+      from: null,
+    });
+    expect(bridge.getSecurityErrors()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          requestId: request.requestId,
+          reason: "membership-revoked",
+        }),
+      ]),
+    );
+  });
+
+  it("rejects an out-of-order old epoch after rejoin but accepts the new epoch", async () => {
+    const bridge = makeBridge();
+    const decision = bridge.requestDecision({
+      tool: "run_shell",
+      detail: "deploy",
+      timeoutMs: 5_000,
+    });
+    const request = lastRequest(bridge);
+    bridge._membershipAuthority.revokeMember({
+      sessionId: "rs-1",
+      principalId: "paired-device-1",
+      expectedSessionEpoch: bridge._testMembership.sessionEpoch,
+      expectedMembershipEpoch: bridge._testMembership.membershipEpoch,
+    });
+    const rejoined = bridge._membershipAuthority.joinMember({
+      sessionId: "rs-1",
+      principalId: "paired-device-1",
+      scopes: ["observe", "approve"],
+      expectedSessionEpoch: bridge._testMembership.sessionEpoch,
+    });
+
+    bridge._onServerEvent(resolveFrame(request));
+    expect(await raced(decision)).toEqual({ settled: false });
+    bridge._onServerEvent(
+      resolveFrame(request, {}, { membershipEpoch: rejoined.membershipEpoch }),
+    );
+
+    await expect(decision).resolves.toMatchObject({
+      approved: true,
+      via: "remote",
+      from: "paired-device-1",
+    });
+    expect(bridge.getSecurityErrors()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ reason: "stale-membership-epoch" }),
+      ]),
+    );
+  });
+
+  it("rechecks the durable membership after the authority object restarts", async () => {
+    const bridge = makeBridge();
+    const decision = bridge.requestDecision({
+      tool: "run_shell",
+      detail: "deploy",
+      timeoutMs: 5_000,
+    });
+    const request = lastRequest(bridge);
+    bridge._membershipAuthority = new DurableRemoteMembershipAuthority({
+      filePath: bridge._testMembership.filePath,
+    });
+
+    bridge._onServerEvent(resolveFrame(request));
+
+    await expect(decision).resolves.toMatchObject({
+      approved: true,
+      via: "remote",
+    });
+  });
+
+  it("settles fail-closed when durable membership state is unavailable", async () => {
+    const stateError = new Error("simulated membership lock failure");
+    stateError.code = "CC_REMOTE_MEMBERSHIP_AUTHORITY_UNAVAILABLE";
+    const bridge = makeBridge(null, {
+      membershipAuthority: {
+        withActiveMembership() {
+          throw stateError;
+        },
+      },
+    });
+    const decision = bridge.requestDecision({
+      tool: "run_shell",
+      detail: "deploy",
+      timeoutMs: 5_000,
+    });
+    bridge._onServerEvent(resolveFrame(lastRequest(bridge)));
+
+    await expect(decision).resolves.toEqual({
+      approved: false,
+      via: "state-error",
+      from: null,
+      errorCode: "CC_REMOTE_MEMBERSHIP_AUTHORITY_UNAVAILABLE",
+    });
   });
 
   it("rejects a resolve after the validity window expired", async () => {

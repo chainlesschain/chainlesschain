@@ -775,6 +775,23 @@ per-client ACL 属于后续兼容性、部署或产品边界工作。具有同 U
 marker 写入失败，可能留下 marker-0 orphan，但后续同名创建会 fail-closed，属于可用性而非
 authority 提升。
 
+**2026-08-15 未发布源码候选补充**：Linux `dynamic-native` 已实现窄口径的
+**runtime pathname loader closure candidate**。最终 bwrap namespace 只暴露逐文件
+descriptor-pinned、SHA-256 绑定的 Plugin 全树、Node runtime、system DSO 与 loader cache；根与
+唯一 `/run` tmpfs 在启动目标前均只读，`/tmp`、`/var/tmp`、HOME、procfs、devfs 与 writable
+scratch 不可用。dynamic-only seccomp 另以 `EPERM` 拒绝 `recvmsg`/`recvmmsg` 的
+`SCM_RIGHTS`、`pidfd_getfd`、`open_by_handle_at`、user/mount namespace 与 mount mutation
+syscall，并让不可检查 flags 指针的 `clone3` 以 `ENOSYS` 失败、仅允许 classic `clone` 的非
+namespace flags；live 合同要求 approved `.so` 的
+`dlopen`/`dlsym` 成功，而 host-only、drop-in、`/proc/self/fd`、`/dev/fd` 与 admission 后路径替换
+均不能改变已 pin 的加载字节。该声明只覆盖 libc/ELF loader 的 pathname resolution；legacy/
+broad `sharedLibraryClosure` 继续固定为 `false`，匿名 JIT 与自制 in-process loader 明确排除。
+Windows DLL/delay-load/`LoadLibrary` 和 macOS `@rpath`/`dlopen`/dyld 仍为 NO-GO。本机没有可用
+bwrap，且尚无包含该候选的最终 clean exact-SHA Linux CI live artifact，因此原任务状态、计数与
+整体 NO-GO 判定不变。
+当前只验证 plain Node runtime；yao-pkg packed `process.execPath` 因未设置
+`PKG_EXECPATH=PKG_INVOKE_NODEJS` 会 probe fail-closed，尚未支持。
+
 本机验证覆盖 Desktop 9 个文件 257/257；background supervisor 为 34 passed / 1 skipped，
 raw PTY 聚焦为 2 passed / 2 Linux-only skipped。与当前 Strict workflow 一致的 30 文件选择为
 898 passed / 5 skipped / 4 failed；4 项均来自 Windows 本机真实 helper 的目标 application path

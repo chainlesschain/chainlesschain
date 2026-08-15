@@ -428,6 +428,8 @@ export function generatePkgConfig(ctx) {
     `${posixify(cliRoot)}/src/lib/process-execution-broker/windows-sandbox-helper.dll`,
     `${posixify(cliRoot)}/src/lib/process-execution-broker/windows-sandbox-helper.exe`,
     `${posixify(cliRoot)}/src/lib/process-execution-broker/windows-sandbox.cs`,
+    `${posixify(cliRoot)}/src/lib/process-execution-broker/macos-mcp-launcher.c`,
+    `${posixify(cliRoot)}/src/lib/process-execution-broker/macos-mcp-launcher-protocol.json`,
     `${posixify(cliRoot)}/install/install.ps1`,
     ...capsuleBuilderAssets(cliRoot).map(posixify),
   ];

@@ -59,6 +59,10 @@ describe("remote approval bridge (integration)", () => {
       port: 0, // OS-assigned; server.port is read back after start()
       host: "127.0.0.1",
       token: TOKEN,
+      remoteMembershipStateFile: path.join(
+        approvalDirectory,
+        "membership-state.json",
+      ),
     });
     await server.start();
 
@@ -68,6 +72,10 @@ describe("remote approval bridge (integration)", () => {
       agentSessionId: "headless-local-1",
       scopes: ["observe", "approve"],
       approvalStateFile: path.join(approvalDirectory, "approval-state.json"),
+      membershipStateFile: path.join(
+        approvalDirectory,
+        "membership-state.json",
+      ),
     });
     await bridge.start();
 

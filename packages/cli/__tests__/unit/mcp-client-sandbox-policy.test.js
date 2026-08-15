@@ -204,7 +204,7 @@ describe("MCPClient plugin sandbox policy", () => {
         ...launchOptions.sandboxPolicy.requiredBoundaries,
       ]),
     ).toEqual(new Set(MCP_STDIO_CAPSULE_REQUIRED_BOUNDARIES));
-    if (!["linux", "win32"].includes(process.platform)) {
+    if (!["darwin", "linux", "win32"].includes(process.platform)) {
       expect(launchOptions.detached).toBe(true);
       expect(connection._stdioTreeMode).toBe("posix-group");
     } else {

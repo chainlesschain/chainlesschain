@@ -72,6 +72,7 @@ const DEFAULT_HARD_TASK_LIMIT = 64;
 function safeString(value, max = 256) {
   if (typeof value !== "string") return null;
   const output = value.trim();
+  // eslint-disable-next-line no-control-regex -- rejecting ASCII controls is the validation boundary
   if (!output || output.length > max || /[\u0000-\u001f\u007f]/u.test(output)) {
     return null;
   }
@@ -98,7 +99,9 @@ function uniqueNames(values) {
 
 function usedCapabilities(workflow, batches) {
   const capabilities = new Set(["cowork-task", "dag", "variables"]);
-  if (batches.some((batch) => batch.length > 1)) capabilities.add("parallel");
+  if (batches.some((batch) => batch.steps.length > 1)) {
+    capabilities.add("parallel");
+  }
   if (workflow.pipeline === true) capabilities.add("pipeline");
   for (const step of workflow.steps) {
     if (step.when != null) capabilities.add("condition");

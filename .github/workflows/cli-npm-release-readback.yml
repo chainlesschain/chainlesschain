@@ -34,12 +34,12 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout verification implementation and tags
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           fetch-depth: 0
 
       - name: Setup Node.js and npm attestation support
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "22.14.0"
           registry-url: "https://registry.npmjs.org"
@@ -52,15 +52,21 @@ jobs:
       - name: Resolve immutable release identity
         id: identity
         shell: bash
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
-          VERSION="${{ inputs.version }}"
+          VERSION="$REQUESTED_VERSION"
           if [ -z "$VERSION" ]; then
             if [ "${{ github.event_name }}" = "pull_request" ]; then
               VERSION=$(npm view chainlesschain version)
             else
               VERSION=$(node -p "require('./packages/cli/package.json').version")
             fi
+          fi
+          if ! [[ "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "Version must be a canonical numeric SemVer triplet, got: $VERSION" >&2
+            exit 1
           fi
           TAG="v-npm-${VERSION//./-}"
           TAG_SHA=$(git rev-parse "${TAG}^{commit}")
@@ -111,7 +117,7 @@ jobs:
           echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
 
       - name: Download immutable artifact from the attested publish run
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:
           name: chainlesschain-npm-${{ steps.identity.outputs.tag_sha }}
           path: source-artifact
@@ -147,7 +153,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload bounded public readback evidence
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: cli-npm-public-readback-${{ steps.identity.outputs.tag_sha }}
           path: readback/

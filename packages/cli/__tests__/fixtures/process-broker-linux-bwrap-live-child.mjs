@@ -1,10 +1,15 @@
 import crypto from "node:crypto";
+import {
+  spawn as nativeSpawn,
+  spawnSync as nativeSpawnSync,
+} from "node:child_process";
 import fs from "node:fs";
 import { executeTool } from "../../src/runtime/agent-core.js";
 import {
   executionBroker,
   SANDBOX_BOUNDARIES,
 } from "../../src/lib/process-execution-broker/index.js";
+import { parseLinuxBwrapDescriptorScrubbedLaunch } from "../../src/lib/process-execution-broker/linux-bwrap-descriptor-launch.js";
 
 const [mode, value, extra] = process.argv.slice(2);
 const BWRAP_SUPERVISOR_CHILD_FD = 3;
@@ -108,6 +113,52 @@ async function warmBrokerAsyncRuntime(cwd) {
 
 function sha256(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
+}
+
+function ambientDescriptorEvidence() {
+  const rawFd = process.env.CC_TEST_AMBIENT_SENTINEL_FD;
+  const expectedPath = process.env.CC_TEST_AMBIENT_SENTINEL_PATH;
+  if (rawFd === undefined && expectedPath === undefined) return null;
+  const childFd = Number(rawFd);
+  if (
+    !/^[1-9]\d*$/.test(rawFd || "") ||
+    !Number.isSafeInteger(childFd) ||
+    childFd < 3 ||
+    typeof expectedPath !== "string" ||
+    !pathIsAbsolute(expectedPath)
+  ) {
+    return {
+      childFd: Number.isSafeInteger(childFd) ? childFd : null,
+      openBeforeLaunch: false,
+      targetMatchesSentinel: false,
+      reason: "ambient_descriptor_contract_invalid",
+    };
+  }
+  try {
+    const expectedTarget = fs.realpathSync(expectedPath);
+    const target = fs.readlinkSync(`/proc/self/fd/${childFd}`);
+    const stat = fs.fstatSync(childFd);
+    return {
+      childFd,
+      openBeforeLaunch: true,
+      target,
+      expectedTarget,
+      targetMatchesSentinel: target === expectedTarget,
+      isFifo: stat.isFIFO(),
+      reason: null,
+    };
+  } catch (error) {
+    return {
+      childFd,
+      openBeforeLaunch: false,
+      targetMatchesSentinel: false,
+      reason: error?.code || error?.message || "ambient_descriptor_unavailable",
+    };
+  }
+}
+
+function pathIsAbsolute(value) {
+  return typeof value === "string" && value.startsWith("/");
 }
 
 function hostDescendants(rootPid) {
@@ -255,7 +306,13 @@ function rewriteSameInode(filePath, replacementPath) {
 function summarizeLinuxSupervisorPlan(plan) {
   if (plan?.backend !== "linux-bwrap") return null;
 
-  const planArgs = Array.isArray(plan.args) ? plan.args : [];
+  const descriptorLaunch = parseLinuxBwrapDescriptorScrubbedLaunch(
+    plan.command,
+    plan.args,
+    plan.options,
+  );
+  if (!descriptorLaunch) return null;
+  const planArgs = descriptorLaunch.executableArgs;
   const stdio = Array.isArray(plan.options?.stdio) ? plan.options.stdio : [];
   const supervisorFileIndex = planArgs.findIndex(
     (argument, index) =>
@@ -270,8 +327,16 @@ function summarizeLinuxSupervisorPlan(plan) {
     (argument, index) =>
       argument === "--tmpfs" && planArgs[index + 1] === "/run",
   );
+  const tmpfsTargets = [];
+  const remountReadOnlyTargets = [];
   const descriptorChildFds = [];
   for (let index = 0; index < planArgs.length; index += 1) {
+    if (planArgs[index] === "--tmpfs") {
+      tmpfsTargets.push(planArgs[index + 1]);
+    }
+    if (planArgs[index] === "--remount-ro") {
+      remountReadOnlyTargets.push(planArgs[index + 1]);
+    }
     if (
       planArgs[index] === "--ro-bind-fd" ||
       planArgs[index] === "--ro-bind-data" ||
@@ -282,7 +347,24 @@ function summarizeLinuxSupervisorPlan(plan) {
   }
 
   return {
-    command: plan.command,
+    rawScrubberCommand: plan.command,
+    logicalBwrapCommand: descriptorLaunch
+      ? `/proc/self/fd/${descriptorLaunch.executableChildFd}`
+      : null,
+    descriptorScrubberLayout: descriptorLaunch
+      ? {
+          scrubberChildFd: descriptorLaunch.scrubberChildFd,
+          preservedMaxFd: descriptorLaunch.preservedMaxFd,
+          activeStdioThrough: descriptorLaunch.activeStdioThrough,
+          executableChildFd: descriptorLaunch.executableChildFd,
+          rawCommandMatchesLayout:
+            plan.command ===
+            `/proc/self/fd/${descriptorLaunch.scrubberChildFd}`,
+          scrubberChildFdMapped: Number.isInteger(
+            stdio[descriptorLaunch.scrubberChildFd],
+          ),
+        }
+      : null,
     childFd3Mapped: Number.isInteger(stdio[BWRAP_SUPERVISOR_CHILD_FD]),
     supervisorFile: {
       index: supervisorFileIndex,
@@ -298,17 +380,44 @@ function summarizeLinuxSupervisorPlan(plan) {
     },
     runDirectoryIndex,
     runTmpfsIndex,
+    tmpfsTargets,
+    remountReadOnlyTargets,
+    procMounted: planArgs.includes("--proc"),
+    devMounted: planArgs.includes("--dev"),
     descriptorChildFds,
+    maxDescriptorChildFd:
+      descriptorChildFds.length > 0 ? Math.max(...descriptorChildFds) : null,
   };
 }
 
 async function executeWithSupervisorPlan(execute) {
-  const originalApplySandbox = executionBroker._sandboxAdapter.applySandbox;
+  const originalNative = executionBroker._native;
+  const underlyingSpawn = originalNative?.spawn || nativeSpawn;
+  const underlyingSpawnSync = originalNative?.spawnSync || nativeSpawnSync;
   let supervisorPlan = null;
-  executionBroker._sandboxAdapter.applySandbox = (...adapterArgs) => {
-    const plan = originalApplySandbox(...adapterArgs);
-    supervisorPlan = summarizeLinuxSupervisorPlan(plan) || supervisorPlan;
-    return plan;
+  const capturePlan = (command, args, options) => {
+    // This fixture exercises the platform-native launch on every supported OS.
+    // Only Linux's final launch is the descriptor-scrubbed bwrap contract.
+    if (process.platform !== "linux") return;
+    const summary = summarizeLinuxSupervisorPlan({
+      backend: "linux-bwrap",
+      command,
+      args,
+      options,
+    });
+    if (!summary) throw new Error("final_descriptor_launch_unparseable");
+    supervisorPlan = summary;
+  };
+  executionBroker._native = {
+    ...(originalNative || {}),
+    spawn(command, args, options) {
+      capturePlan(command, args, options);
+      return underlyingSpawn(command, args, options);
+    },
+    spawnSync(command, args, options) {
+      capturePlan(command, args, options);
+      return underlyingSpawnSync(command, args, options);
+    },
   };
   try {
     return {
@@ -316,7 +425,7 @@ async function executeWithSupervisorPlan(execute) {
       supervisorPlan,
     };
   } finally {
-    executionBroker._sandboxAdapter.applySandbox = originalApplySandbox;
+    executionBroker._native = originalNative;
   }
 }
 
@@ -415,7 +524,10 @@ if (mode === "positive") {
   });
 } else if (mode === "plugin-command-snapshot-race") {
   const request = JSON.parse(extra);
-  const originalApplySandbox = executionBroker._sandboxAdapter.applySandbox;
+  const ambientDescriptorBeforeLaunch = ambientDescriptorEvidence();
+  const originalNative = executionBroker._native;
+  const underlyingSpawn = originalNative?.spawn || nativeSpawn;
+  const underlyingSpawnSync = originalNative?.spawnSync || nativeSpawnSync;
   let mutation = null;
   let entryBindings = null;
   let dependencyMutation = null;
@@ -423,32 +535,53 @@ if (mode === "positive") {
   let runtimeBindings = null;
   let pluginFileBindings = null;
   let supervisorPlan = null;
+  let mutationPhase = null;
+  let mutationLaunchBinding = null;
   let mutated = false;
-  executionBroker._sandboxAdapter.applySandbox = (...adapterArgs) => {
-    const plan = originalApplySandbox(...adapterArgs);
-    supervisorPlan = summarizeLinuxSupervisorPlan(plan) || supervisorPlan;
-    if (mutated) return plan;
-    mutated = true;
-    try {
-      const planArgs = Array.isArray(plan?.args) ? plan.args : [];
-      pluginFileBindings = summarizePluginFileBindings(planArgs);
-      entryBindings = summarizeDestinationBindings(
+  const captureFinalLaunchAndMutate = (command, args, options) => {
+    const observedPlan = {
+      backend: "linux-bwrap",
+      command,
+      args,
+      options,
+    };
+    const observedSupervisorPlan = summarizeLinuxSupervisorPlan(observedPlan);
+    if (!observedSupervisorPlan) {
+      throw new Error("final_descriptor_launch_unparseable");
+    }
+    supervisorPlan = observedSupervisorPlan;
+    const descriptorLaunch = parseLinuxBwrapDescriptorScrubbedLaunch(
+      command,
+      args,
+      options,
+    );
+    const planArgs = descriptorLaunch?.executableArgs || [];
+    pluginFileBindings = summarizePluginFileBindings(planArgs);
+    entryBindings = summarizeDestinationBindings(planArgs, request.destination);
+    if (request.dependencyDestination) {
+      dependencyBindings = summarizeDestinationBindings(
         planArgs,
-        request.destination,
+        request.dependencyDestination,
       );
-      if (request.dependencyDestination) {
-        dependencyBindings = summarizeDestinationBindings(
-          planArgs,
-          request.dependencyDestination,
-        );
-      }
-      if (request.runtimeDestination) {
-        runtimeBindings = summarizeDestinationBindings(
-          planArgs,
-          request.runtimeDestination,
-        );
-      }
-
+    }
+    if (request.runtimeDestination) {
+      runtimeBindings = summarizeDestinationBindings(
+        planArgs,
+        request.runtimeDestination,
+      );
+    }
+    const launchArgs = Array.isArray(args) ? args : [];
+    if (!mutated) {
+      mutated = true;
+      mutationPhase = "after-broker-plan-admission-before-native-spawn";
+      mutationLaunchBinding = {
+        commandMatchesPlan: true,
+        argsMatchPlan: true,
+      };
+      // ProcessExecutionBroker invokes its native launch only after
+      // _prepareSandboxPlan has validated the adapter plan. Mutating here
+      // therefore proves that both the entry and dependency bytes remain
+      // descriptor-pinned across the final admission-to-launch window.
       mutation = rewriteSameInode(request.entryPath, request.replacementPath);
       if (request.dependencyPath && request.dependencyReplacementPath) {
         dependencyMutation = rewriteSameInode(
@@ -456,11 +589,25 @@ if (mode === "positive") {
           request.dependencyReplacementPath,
         );
       }
-      return plan;
-    } catch (error) {
-      plan?.cleanup?.();
-      throw error;
     }
+    return launchArgs;
+  };
+  executionBroker._native = {
+    ...(originalNative || {}),
+    spawn(command, args, options) {
+      return underlyingSpawn(
+        command,
+        captureFinalLaunchAndMutate(command, args, options),
+        options,
+      );
+    },
+    spawnSync(command, args, options) {
+      return underlyingSpawnSync(
+        command,
+        captureFinalLaunchAndMutate(command, args, options),
+        options,
+      );
+    },
   };
   let result;
   try {
@@ -470,7 +617,7 @@ if (mode === "positive") {
       { cwd: value },
     );
   } finally {
-    executionBroker._sandboxAdapter.applySandbox = originalApplySandbox;
+    executionBroker._native = originalNative;
   }
   writeResult({
     result,
@@ -481,6 +628,101 @@ if (mode === "positive") {
     runtimeBindings,
     pluginFileBindings,
     supervisorPlan,
+    ambientDescriptorBeforeLaunch,
+    mutationPhase,
+    mutationLaunchBinding,
+    audit: executionBroker.getAuditLog(1)[0] || null,
+  });
+} else if (mode === "generic-fd-scrub") {
+  const ambientDescriptorBeforeLaunch = ambientDescriptorEvidence();
+  const command = "/usr/bin/python3";
+  const args = [
+    "-I",
+    "-S",
+    "-c",
+    [
+      "import json, os",
+      "fds = []",
+      "for entry in os.listdir('/proc/self/fd'):",
+      " try:",
+      "  fd = int(entry)",
+      "  if fd <= 2: continue",
+      "  os.fstat(fd)",
+      " except (OSError, ValueError):",
+      "  continue",
+      " fds.append(fd)",
+      "print(json.dumps({'fds': sorted(fds), 'nonStdioOpenFds': len(fds)}, sort_keys=True), end='')",
+    ].join("\n"),
+  ];
+  const options = {
+    cwd: value,
+    shell: false,
+    stdio: ["ignore", "pipe", "pipe"],
+    encoding: "utf8",
+    origin: "test:linux-generic-fd-scrub-live",
+    scope: "sandbox-test",
+    policy: "allow",
+    timeout: 120_000,
+    sandboxPolicy: {
+      profile: "strict",
+      requiredBoundaries: [
+        SANDBOX_BOUNDARIES.FILESYSTEM,
+        SANDBOX_BOUNDARIES.NETWORK,
+      ],
+    },
+  };
+  const contract = executionBroker.issueLinuxWorkspaceSandboxExecutionContract(
+    command,
+    args,
+    options,
+    value,
+    { sync: true },
+  );
+  const originalNative = executionBroker._native;
+  const underlyingSpawnSync = originalNative?.spawnSync || nativeSpawnSync;
+  let descriptorPlan = null;
+  executionBroker._native = {
+    ...(originalNative || {}),
+    spawnSync(command, launchArgs, launchOptions) {
+      const launch = parseLinuxBwrapDescriptorScrubbedLaunch(
+        command,
+        launchArgs,
+        launchOptions,
+        { activeStdioThrough: 2 },
+      );
+      if (!launch) throw new Error("final_descriptor_launch_unparseable");
+      descriptorPlan = {
+        rawScrubberCommand: command,
+        logicalBwrapCommand: `/proc/self/fd/${launch.executableChildFd}`,
+        scrubberChildFd: launch.scrubberChildFd,
+        preservedMaxFd: launch.preservedMaxFd,
+        activeStdioThrough: launch.activeStdioThrough,
+        executableChildFd: launch.executableChildFd,
+        rawCommandMatchesLayout:
+          command === `/proc/self/fd/${launch.scrubberChildFd}`,
+      };
+      return underlyingSpawnSync(command, launchArgs, launchOptions);
+    },
+  };
+  let result;
+  try {
+    result = executionBroker.spawnSync(command, args, {
+      ...options,
+      sandboxExecutionContract: contract,
+    });
+  } finally {
+    executionBroker._native = originalNative;
+  }
+  writeResult({
+    ambientDescriptorBeforeLaunch,
+    descriptorPlan,
+    result: {
+      status: result?.status ?? null,
+      signal: result?.signal ?? null,
+      error: result?.error?.message || null,
+      stdout: String(result?.stdout || ""),
+      stderr: String(result?.stderr || ""),
+    },
     audit: executionBroker.getAuditLog(1)[0] || null,
   });
 } else if (mode === "generic-parent-exit") {

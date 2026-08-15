@@ -4,17 +4,13 @@ on:
   push:
     tags:
       - "v-npm-*"
+  # Manual runs are intentionally dry-run only. A production release must be
+  # a push of the immutable v-npm-* tag so npm provenance and source identity
+  # cannot diverge after an operator-controlled dispatch.
   workflow_dispatch:
-    inputs:
-      version:
-        description: "Version to publish (e.g., 0.37.9). Leave empty to use package.json version."
-        required: false
-        type: string
-      dry-run:
-        description: "Dry run (npm publish --dry-run)"
-        required: false
-        type: boolean
-        default: false
+
+permissions:
+  contents: read
 
 jobs:
   # Run tests before publishing
@@ -22,10 +18,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "22.12.0"
 
@@ -83,19 +79,19 @@ jobs:
         run: npx vitest run --silent=passed-only
 
   exact-sha-gate:
-    if: ${{ inputs.dry-run != true }}
+    if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-latest
     permissions:
       actions: read
       contents: read
     steps:
       - name: Checkout exact release commit
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ github.sha }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "22.14.0"
 
@@ -120,7 +116,7 @@ jobs:
           CC_RELEASE_GATE_POLL_MS: "30000"
 
       - name: Upload exact-SHA gate attestation
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: cli-release-gate-${{ github.sha }}
           path: cli-release-gate.json
@@ -133,12 +129,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout exact release commit
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ github.sha }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "22.14.0"
 
@@ -161,14 +157,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          VERSION="${{ inputs.version }}"
-          COMMITTED_VERSION=$(node -p "require('./packages/cli/package.json').version")
-          if [ -z "$VERSION" ]; then
-            VERSION="$COMMITTED_VERSION"
-          elif [ "$VERSION" != "$COMMITTED_VERSION" ]; then
-            echo "Requested version $VERSION differs from exact-SHA package version $COMMITTED_VERSION" >&2
-            exit 1
-          fi
+          VERSION=$(node -p "require('./packages/cli/package.json').version")
           mkdir -p release-artifacts
           PACK_METADATA=$(mktemp)
           trap 'rm -f "$PACK_METADATA"' EXIT
@@ -217,7 +206,7 @@ jobs:
           ' release-artifacts/chainlesschain-sbom.cdx.json "$VERSION"
 
       - name: Upload immutable CLI release artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: chainlesschain-npm-${{ github.sha }}
           path: release-artifacts/
@@ -225,14 +214,14 @@ jobs:
           retention-days: 90
 
   dry-run:
-    if: ${{ inputs.dry-run == true }}
+    if: ${{ github.event_name == 'workflow_dispatch' && needs.test.result == 'success' }}
     needs: [test]
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "22.14.0"
       - run: npm install --legacy-peer-deps
@@ -246,17 +235,17 @@ jobs:
   # configured for this workflow.
   publish:
     needs: [test, exact-sha-gate, package-cli]
-    if: ${{ inputs.dry-run != true && needs.test.result == 'success' && needs.exact-sha-gate.result == 'success' && needs.package-cli.result == 'success' }}
+    if: ${{ github.event_name == 'push' && needs.test.result == 'success' && needs.exact-sha-gate.result == 'success' && needs.package-cli.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           # npm Trusted Publishing requires Node.js 22.14.0 or newer.
           node-version: "22.14.0"
@@ -273,7 +262,7 @@ jobs:
           npm install @rollup/rollup-linux-x64-gnu --no-save --legacy-peer-deps || true
 
       - name: Download exact verified CLI tarball
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:
           name: chainlesschain-npm-${{ github.sha }}
           path: release-artifacts
@@ -290,11 +279,7 @@ jobs:
       - name: Resolve version
         id: version
         run: |
-          if [ -n "${{ inputs.version }}" ]; then
-            VERSION="${{ inputs.version }}"
-          else
-            VERSION=$(node -p "require('./packages/cli/package.json').version")
-          fi
+          VERSION=$(node -p "require('./packages/cli/package.json').version")
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "Publishing version: $VERSION"
 
@@ -316,7 +301,7 @@ jobs:
         run: |
           PKG_VER=$(node -p "require('./package.json').version")
           echo "target: @chainlesschain/core-env@$PKG_VER"
-          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/core-env@$PKG_VER" version >/dev/null 2>&1; then
+          if npm view "@chainlesschain/core-env@$PKG_VER" version >/dev/null 2>&1; then
             echo "Exact version already published, skipping"
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
@@ -330,7 +315,7 @@ jobs:
         run: |
           PKG_VER=$(node -p "require('./package.json').version")
           echo "target: @chainlesschain/core-mtc@$PKG_VER"
-          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/core-mtc@$PKG_VER" version >/dev/null 2>&1; then
+          if npm view "@chainlesschain/core-mtc@$PKG_VER" version >/dev/null 2>&1; then
             echo "Exact version already published, skipping"
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
@@ -345,7 +330,7 @@ jobs:
         run: |
           PKG_VER=$(node -p "require('./package.json').version")
           echo "target: @chainlesschain/core-multisig@$PKG_VER"
-          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/core-multisig@$PKG_VER" version >/dev/null 2>&1; then
+          if npm view "@chainlesschain/core-multisig@$PKG_VER" version >/dev/null 2>&1; then
             echo "Exact version already published, skipping"
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
@@ -360,7 +345,7 @@ jobs:
         run: |
           PKG_VER=$(node -p "require('./package.json').version")
           echo "target: @chainlesschain/core-settlement@$PKG_VER"
-          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/core-settlement@$PKG_VER" version >/dev/null 2>&1; then
+          if npm view "@chainlesschain/core-settlement@$PKG_VER" version >/dev/null 2>&1; then
             echo "Exact version already published, skipping"
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
@@ -373,7 +358,7 @@ jobs:
         run: |
           PKG_VER=$(node -p "require('./package.json').version")
           echo "target: @chainlesschain/shared-logger@$PKG_VER"
-          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/shared-logger@$PKG_VER" version >/dev/null 2>&1; then
+          if npm view "@chainlesschain/shared-logger@$PKG_VER" version >/dev/null 2>&1; then
             echo "Exact version already published, skipping"
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
@@ -386,7 +371,7 @@ jobs:
         run: |
           PKG_VER=$(node -p "require('./package.json').version")
           echo "target: @chainlesschain/core-config@$PKG_VER"
-          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/core-config@$PKG_VER" version >/dev/null 2>&1; then
+          if npm view "@chainlesschain/core-config@$PKG_VER" version >/dev/null 2>&1; then
             echo "Exact version already published, skipping"
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
@@ -399,7 +384,7 @@ jobs:
         run: |
           PKG_VER=$(node -p "require('./package.json').version")
           echo "target: @chainlesschain/core-db@$PKG_VER"
-          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/core-db@$PKG_VER" version >/dev/null 2>&1; then
+          if npm view "@chainlesschain/core-db@$PKG_VER" version >/dev/null 2>&1; then
             echo "Exact version already published, skipping"
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
@@ -412,7 +397,7 @@ jobs:
         run: |
           PKG_VER=$(node -p "require('./package.json').version")
           echo "target: @chainlesschain/core-infra@$PKG_VER"
-          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/core-infra@$PKG_VER" version >/dev/null 2>&1; then
+          if npm view "@chainlesschain/core-infra@$PKG_VER" version >/dev/null 2>&1; then
             echo "Exact version already published, skipping"
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
@@ -425,7 +410,7 @@ jobs:
         run: |
           PKG_VER=$(node -p "require('./package.json').version")
           echo "target: @chainlesschain/session-core@$PKG_VER"
-          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/session-core@$PKG_VER" version >/dev/null 2>&1; then
+          if npm view "@chainlesschain/session-core@$PKG_VER" version >/dev/null 2>&1; then
             echo "Exact version already published, skipping"
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
@@ -443,14 +428,8 @@ jobs:
         run: |
           PKG_VER=$(node -p "require('./package.json').version")
           echo "target: @chainlesschain/agent-sdk@$PKG_VER"
-          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/agent-sdk@$PKG_VER" version >/dev/null 2>&1; then
+          if npm view "@chainlesschain/agent-sdk@$PKG_VER" version >/dev/null 2>&1; then
             echo "Exact version already published, skipping"
-          elif [ "${{ inputs.dry-run }}" = "true" ]; then
-            # Validate the standalone package tarball without asking npm to
-            # publish an already-published scoped version.
-            npm install --no-audit --no-fund
-            npm run build
-            npm pack --dry-run
           else
             npm install --no-audit --no-fund
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
@@ -467,7 +446,7 @@ jobs:
         run: |
           PKG_VER=$(node -p "require('./package.json').version")
           echo "target: @chainlesschain/personal-data-hub@$PKG_VER"
-          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/personal-data-hub@$PKG_VER" version >/dev/null 2>&1; then
+          if npm view "@chainlesschain/personal-data-hub@$PKG_VER" version >/dev/null 2>&1; then
             echo "Exact version already published, skipping"
           else
             npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
@@ -550,7 +529,7 @@ jobs:
           test "$VERIFIED" = true
 
       - name: Upload public npm readback evidence
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: chainlesschain-npm-readback-${{ github.sha }}
           path: |
@@ -609,7 +588,6 @@ jobs:
       # cosmetic-green-ok: intentional best-effort, each result written to
       # GITHUB_STEP_SUMMARY below.
       - name: "Sync published packages to npmmirror"
-        if: ${{ inputs.dry-run != true }}
         run: |
           set +e
           PKGS=(

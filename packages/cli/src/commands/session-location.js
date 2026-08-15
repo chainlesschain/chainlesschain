@@ -7,7 +7,11 @@ import {
 } from "../lib/execution-location-contract.js";
 import { captureAmbientExecutionLocation } from "../lib/execution-location-runtime.js";
 import { getVerifiedSessionExecutionLocationAuthority } from "../harness/jsonl-session-store.js";
-import { sameFileStatIdentity } from "../lib/secure-file-identity.js";
+import {
+  sameFileStatIdentity,
+  samePathHandleFileIdentity,
+  withTrustedFileParentSync,
+} from "../lib/secure-file-identity.js";
 
 const MAX_HANDOFF_FACTS_BYTES = 1024 * 1024;
 export const SESSION_EXECUTION_LOCATION_AUTHORITY_SCHEMA =
@@ -15,67 +19,79 @@ export const SESSION_EXECUTION_LOCATION_AUTHORITY_SCHEMA =
 
 function readHandoffFacts(filePath, deps = {}) {
   const runtimeFs = deps.fs || fs;
-  const absolute = path.resolve(filePath);
-  const before = runtimeFs.lstatSync(absolute, { bigint: true });
-  if (
-    before.isSymbolicLink() ||
-    !before.isFile() ||
-    Number(before.nlink) !== 1
-  ) {
-    throw new Error("handoff facts must be a regular, single-link file");
-  }
-  const size = Number(before.size);
-  if (size <= 0 || size > MAX_HANDOFF_FACTS_BYTES) {
-    throw new Error(
-      `handoff facts must be 1..${MAX_HANDOFF_FACTS_BYTES} bytes`,
-    );
-  }
-  let descriptor = null;
-  try {
-    descriptor = runtimeFs.openSync(
-      absolute,
-      runtimeFs.constants.O_RDONLY |
-        Number(runtimeFs.constants.O_NOFOLLOW || 0),
-    );
-    const opened = runtimeFs.fstatSync(descriptor, { bigint: true });
-    if (
-      !opened.isFile() ||
-      Number(opened.nlink) !== 1 ||
-      !(deps.sameFileStatIdentity || sameFileStatIdentity)(before, opened)
-    ) {
-      throw new Error("handoff facts identity changed while opening");
-    }
-    const bounded = Buffer.allocUnsafe(MAX_HANDOFF_FACTS_BYTES + 1);
-    let bytesRead = 0;
-    while (bytesRead < bounded.length) {
-      const count = runtimeFs.readSync(
-        descriptor,
-        bounded,
-        bytesRead,
-        bounded.length - bytesRead,
-        null,
-      );
-      if (count === 0) break;
-      bytesRead += count;
-    }
-    if (bytesRead > MAX_HANDOFF_FACTS_BYTES) {
-      throw new Error(`handoff facts exceed ${MAX_HANDOFF_FACTS_BYTES} bytes`);
-    }
-    const after = runtimeFs.fstatSync(descriptor, { bigint: true });
-    if (
-      Number(after.size) !== bytesRead ||
-      !(deps.sameFileStatIdentity || sameFileStatIdentity)(opened, after)
-    ) {
-      throw new Error("handoff facts changed while being read");
-    }
-    return JSON.parse(
-      new TextDecoder("utf-8", { fatal: true }).decode(
-        bounded.subarray(0, bytesRead),
-      ),
-    );
-  } finally {
-    if (descriptor !== null) runtimeFs.closeSync(descriptor);
-  }
+  const withTrustedParent =
+    deps.withTrustedFileParentSync || withTrustedFileParentSync;
+  return withTrustedParent(
+    runtimeFs,
+    path.resolve(filePath),
+    ({ canonicalPath, parentDevice }) => {
+      const before = runtimeFs.lstatSync(canonicalPath, { bigint: true });
+      if (
+        before.isSymbolicLink() ||
+        !before.isFile() ||
+        Number(before.nlink) !== 1
+      ) {
+        throw new Error("handoff facts must be a regular, single-link file");
+      }
+      const size = Number(before.size);
+      if (size <= 0 || size > MAX_HANDOFF_FACTS_BYTES) {
+        throw new Error(
+          `handoff facts must be 1..${MAX_HANDOFF_FACTS_BYTES} bytes`,
+        );
+      }
+      let descriptor = null;
+      try {
+        descriptor = runtimeFs.openSync(
+          canonicalPath,
+          runtimeFs.constants.O_RDONLY |
+            Number(runtimeFs.constants.O_NOFOLLOW || 0),
+        );
+        const opened = runtimeFs.fstatSync(descriptor, { bigint: true });
+        const samePathHandle =
+          deps.samePathHandleFileIdentity || samePathHandleFileIdentity;
+        if (
+          !opened.isFile() ||
+          Number(opened.nlink) !== 1 ||
+          !samePathHandle(before, opened, parentDevice, deps.runtime)
+        ) {
+          throw new Error("handoff facts identity changed while opening");
+        }
+        const bounded = Buffer.allocUnsafe(MAX_HANDOFF_FACTS_BYTES + 1);
+        let bytesRead = 0;
+        while (bytesRead < bounded.length) {
+          const count = runtimeFs.readSync(
+            descriptor,
+            bounded,
+            bytesRead,
+            bounded.length - bytesRead,
+            null,
+          );
+          if (count === 0) break;
+          bytesRead += count;
+        }
+        if (bytesRead > MAX_HANDOFF_FACTS_BYTES) {
+          throw new Error(
+            `handoff facts exceed ${MAX_HANDOFF_FACTS_BYTES} bytes`,
+          );
+        }
+        const after = runtimeFs.fstatSync(descriptor, { bigint: true });
+        if (
+          Number(after.size) !== bytesRead ||
+          !(deps.sameFileStatIdentity || sameFileStatIdentity)(opened, after)
+        ) {
+          throw new Error("handoff facts changed while being read");
+        }
+        return JSON.parse(
+          new TextDecoder("utf-8", { fatal: true }).decode(
+            bounded.subarray(0, bytesRead),
+          ),
+        );
+      } finally {
+        if (descriptor !== null) runtimeFs.closeSync(descriptor);
+      }
+    },
+    { runtime: deps.runtime },
+  );
 }
 
 export function projectCurrentExecutionLocation(options = {}, deps = {}) {

@@ -17,6 +17,10 @@ import {
   LINUX_GENERIC_PTY_LAUNCHER_PATH,
   planLinuxGenericBubblewrap,
 } from "./linux-generic-bwrap.js";
+import {
+  buildLinuxBwrapDescriptorScrubbedLaunch,
+  LINUX_BWRAP_DESCRIPTOR_SCRUBBER_PATH,
+} from "./linux-bwrap-descriptor-launch.js";
 
 const BWRAP_PATH = "/usr/bin/bwrap";
 const MAX_ATTESTED_FILE_BYTES = 256 * 1024 * 1024;
@@ -831,6 +835,71 @@ function createTrustedResources(
       bytes: supervisorBytes,
     });
 
+    const descriptorScrubber = openPair(LINUX_BWRAP_DESCRIPTOR_SCRUBBER_PATH, {
+      directory: false,
+      rootRequired: true,
+      executable: true,
+    });
+    const descriptorScrubberStat = runtime.fs.fstatSync(
+      descriptorScrubber.finalFd,
+    );
+    const descriptorScrubberBytes = Number(descriptorScrubberStat.size);
+    const descriptorScrubberProbeDigest = hashOpenFile(
+      runtime,
+      descriptorScrubber.probeFd,
+      descriptorScrubberBytes,
+    );
+    const descriptorScrubberFinalDigest = hashOpenFile(
+      runtime,
+      descriptorScrubber.finalFd,
+      descriptorScrubberBytes,
+    );
+    if (descriptorScrubberProbeDigest !== descriptorScrubberFinalDigest) {
+      throw new Error("descriptor_scrubber_digest_mismatch");
+    }
+    descriptorScrubber.identity = Object.freeze({
+      ...descriptorScrubber.identity,
+      sha256: descriptorScrubberFinalDigest,
+      bytes: descriptorScrubberBytes,
+      mtimeMs: Number(descriptorScrubberStat.mtimeMs),
+    });
+
+    const spawnScrubbedCapability = (executableFd, executableArgs) => {
+      const scrubberFd = runtime.fs.openSync(
+        LINUX_BWRAP_DESCRIPTOR_SCRUBBER_PATH,
+        openFlags({ directory: false }),
+      );
+      ownedFds.add(scrubberFd);
+      try {
+        const scrubberStat = runtime.fs.fstatSync(scrubberFd);
+        if (
+          !statMatchesIdentity(scrubberStat, descriptorScrubber.identity, {
+            directory: false,
+          }) ||
+          hashOpenFile(runtime, scrubberFd, descriptorScrubberBytes) !==
+            descriptorScrubberFinalDigest
+        ) {
+          throw new Error("descriptor_scrubber_capability_reader_unattested");
+        }
+        const stdio = ["ignore", "pipe", "pipe", executableFd, scrubberFd];
+        const launch = buildLinuxBwrapDescriptorScrubbedLaunch({
+          scrubberChildFd: 4,
+          preservedMaxFd: 3,
+          executableChildFd: 3,
+          executableArgs,
+        });
+        return runtime.spawnSync(launch.command, launch.args, {
+          shell: false,
+          encoding: "utf8",
+          stdio,
+          timeout: 10_000,
+          env: { PATH: "/usr/bin:/bin", LANG: "C", LC_ALL: "C" },
+        });
+      } finally {
+        closeFd(scrubberFd);
+      }
+    };
+
     const capabilityFd = runtime.fs.openSync(
       BWRAP_PATH,
       openFlags({ directory: false }),
@@ -846,13 +915,7 @@ function createTrustedResources(
     ) {
       throw new Error("bubblewrap_capability_reader_unattested");
     }
-    const capabilityResult = runtime.spawnSync("/proc/self/fd/3", ["--help"], {
-      shell: false,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe", capabilityFd],
-      timeout: 10_000,
-      env: { PATH: "/usr/bin:/bin", LANG: "C", LC_ALL: "C" },
-    });
+    const capabilityResult = spawnScrubbedCapability(capabilityFd, ["--help"]);
     closeFd(capabilityFd);
     if (capabilityResult?.error || capabilityResult?.status !== 0) {
       const error = new Error("bubblewrap_capability_probe_failed");
@@ -916,16 +979,9 @@ function createTrustedResources(
       ) {
         throw new Error("pty_launcher_capability_reader_unattested");
       }
-      const launcherCapabilityResult = runtime.spawnSync(
-        "/proc/self/fd/3",
+      const launcherCapabilityResult = spawnScrubbedCapability(
+        launcherCapabilityFd,
         ["--help"],
-        {
-          shell: false,
-          encoding: "utf8",
-          stdio: ["ignore", "pipe", "pipe", launcherCapabilityFd],
-          timeout: 10_000,
-          env: { PATH: "/usr/bin:/bin", LANG: "C", LC_ALL: "C" },
-        },
       );
       closeFd(launcherCapabilityFd);
       const launcherHelp =
@@ -1201,6 +1257,16 @@ function createTrustedResources(
         !descriptorAttested(supervisor.finalFd, supervisor.identity, false) ||
         hashOpenFile(runtime, supervisor.finalFd, supervisorBytes) !==
           supervisorFinalDigest ||
+        !descriptorAttested(
+          descriptorScrubber.finalFd,
+          descriptorScrubber.identity,
+          false,
+        ) ||
+        hashOpenFile(
+          runtime,
+          descriptorScrubber.finalFd,
+          descriptorScrubberBytes,
+        ) !== descriptorScrubberFinalDigest ||
         (sandboxOpts?.pty === true &&
           (!descriptorAttested(
             ptyLauncher?.finalFd,
@@ -1473,6 +1539,14 @@ function createTrustedResources(
         identity: supervisor.identity,
         sha256: supervisorFinalDigest,
         bytes: supervisorBytes,
+      },
+      descriptorScrubber: {
+        probeFd: descriptorScrubber.probeFd,
+        finalFd: descriptorScrubber.finalFd,
+        identity: descriptorScrubber.identity,
+        sha256: descriptorScrubberFinalDigest,
+        bytes: descriptorScrubberBytes,
+        mtimeMs: Number(descriptorScrubberStat.mtimeMs),
       },
       ...(ptyLauncher
         ? {

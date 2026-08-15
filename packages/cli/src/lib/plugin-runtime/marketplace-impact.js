@@ -6,6 +6,7 @@
 import crypto from "node:crypto";
 import semver from "semver";
 import { diffCapabilities, normalizeCapabilities } from "./capabilities.js";
+import { PLUGIN_MARKETPLACE_PAYLOAD_SBOM_SCHEMA } from "./marketplace-artifact-readback.js";
 import { PLUGIN_MARKETPLACE_INSTALL_PREFLIGHT_SCHEMA } from "./marketplace-catalog.js";
 
 export const PLUGIN_MARKETPLACE_UPDATE_IMPACT_SCHEMA =
@@ -27,7 +28,11 @@ export function buildPluginMarketplaceUpdateImpact({
   const current = normalizeInstalled(installed);
   const version = compareVersion(current?.version, preflight.registryVersion);
   const source = compareSource(current?.source, preflight);
-  const integrity = compareIntegrity(current?.integrity, preflight.integrity);
+  const integrity = compareIntegrity(
+    current?.integrity,
+    preflight.integrity,
+    current?.source,
+  );
   const license = compareScalar(
     current?.license?.expression,
     preflight.license?.expression,
@@ -74,6 +79,9 @@ export function buildPluginMarketplaceUpdateImpact({
     schemaVersion: PLUGIN_MARKETPLACE_UPDATE_IMPACT_SCHEMA,
     candidateDigest: preflight.candidateDigest,
     catalogDigest: preflight.catalogDigest,
+    ...(preflight.selectionDigest
+      ? { selectionDigest: preflight.selectionDigest }
+      : {}),
     installed: current,
     changes,
     blockers: preflight.blockers,
@@ -93,6 +101,12 @@ export function buildPluginMarketplaceUpdateImpact({
       candidateId: preflight.candidateId,
       candidateDigest: preflight.candidateDigest,
       catalogDigest: preflight.catalogDigest,
+      ...(preflight.selectionDigest
+        ? {
+            selectionDigest: preflight.selectionDigest,
+            selectionSourceCount: preflight.selectionSourceCount,
+          }
+        : {}),
       name: preflight.name,
       version: preflight.registryVersion,
       registry: preflight.registry,
@@ -145,6 +159,22 @@ function normalizeInstalledSource(value) {
             candidateDigest: clean(authority.candidateDigest, 64) || null,
             updateImpactDigest: clean(authority.updateImpactDigest, 64) || null,
             governanceStatus: clean(authority.governanceStatus, 32) || null,
+            remoteArtifactEvidence:
+              authority.remoteArtifactEvidence &&
+              typeof authority.remoteArtifactEvidence === "object"
+                ? {
+                    evidenceDigest:
+                      clean(
+                        authority.remoteArtifactEvidence.evidenceDigest,
+                        64,
+                      ) || null,
+                    sbomDocumentSha256:
+                      clean(
+                        authority.remoteArtifactEvidence.sbom?.documentSha256,
+                        64,
+                      ) || null,
+                  }
+                : null,
           }
         : null,
   };
@@ -152,6 +182,7 @@ function normalizeInstalledSource(value) {
 
 function normalizeInstalledIntegrity(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const payloadSchema = clean(value.sbom?.payloadSchema, 128) || null;
   return {
     signature: {
       present: value.signature?.present === true,
@@ -162,6 +193,11 @@ function normalizeInstalledIntegrity(value) {
     sbom: {
       present: value.sbom?.present === true,
       digest: clean(value.sbom?.digest, 128) || null,
+      payloadSha256:
+        payloadSchema === PLUGIN_MARKETPLACE_PAYLOAD_SBOM_SCHEMA
+          ? clean(value.sbom?.payloadSha256, 128) || null
+          : null,
+      payloadSchema,
       fileCount: Number.isSafeInteger(value.sbom?.fileCount)
         ? value.sbom.fileCount
         : null,
@@ -244,11 +280,16 @@ function compareSource(current, preflight) {
   };
 }
 
-function compareIntegrity(current, candidate) {
+function compareIntegrity(current, candidate, currentSource = null) {
   const installedManifest = clean(current?.signature?.manifestSha256, 128);
   const candidateManifest = clean(candidate?.digest?.value, 128);
-  const installedSbom = clean(current?.sbom?.digest, 128);
-  const candidateSbom = clean(candidate?.sbom?.digest, 128);
+  const installedSbom = clean(current?.sbom?.payloadSha256, 128);
+  const candidatePayloadSbom = clean(candidate?.sbom?.payloadSha256, 128);
+  const installedSbomDocument = clean(
+    currentSource?.catalogAuthority?.remoteArtifactEvidence?.sbomDocumentSha256,
+    128,
+  );
+  const candidateSbomDocument = clean(candidate?.sbom?.documentSha256, 128);
   const signingKey = compareScalar(
     current?.signature?.publicKeySha256,
     candidate?.signature?.publicKeySha256,
@@ -267,7 +308,11 @@ function compareIntegrity(current, candidate) {
         candidate?.signature?.status !== "declared",
     },
     signingKey,
-    sbomDigest: compareScalar(installedSbom, candidateSbom),
+    sbomDigest: compareScalar(installedSbom, candidatePayloadSbom),
+    sbomDocumentDigest: compareScalar(
+      installedSbomDocument,
+      candidateSbomDocument,
+    ),
   };
 }
 
@@ -326,6 +371,7 @@ function countChanges(changes) {
   if (changes.integrity.signature.changed) count += 1;
   if (changes.integrity.signingKey.changed) count += 1;
   if (changes.integrity.sbomDigest.changed) count += 1;
+  if (changes.integrity.sbomDocumentDigest.changed) count += 1;
   if (changes.license.changed) count += 1;
   count +=
     changes.capabilities.added.length + changes.capabilities.removed.length;

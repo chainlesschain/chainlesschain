@@ -269,6 +269,9 @@ describe("describeAuthorityChain", () => {
       origin: ORIGIN.REMOTE,
       principalId: "dev-abc",
       sessionId: "sess-9",
+      remoteSessionId: "remote-3",
+      sessionEpoch: "7",
+      membershipEpoch: "11",
       parentAgentId: "agent-root",
       correlationId: "corr-5",
       authenticated: true,
@@ -277,6 +280,9 @@ describe("describeAuthorityChain", () => {
     expect(s).toContain("origin=remote");
     expect(s).toContain("principal=dev-abc");
     expect(s).toContain("session=sess-9");
+    expect(s).toContain("remote-session=remote-3");
+    expect(s).toContain("session-epoch=7");
+    expect(s).toContain("membership-epoch=11");
     expect(s).toContain("parent=agent-root");
     expect(s).toContain("authority=approve");
   });

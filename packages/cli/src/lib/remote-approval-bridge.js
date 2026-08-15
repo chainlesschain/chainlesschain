@@ -30,6 +30,11 @@ import {
 } from "./approval-authority-store.js";
 import { OperationApprovalRegistry } from "./operation-fingerprint.js";
 import {
+  DurableRemoteMembershipAuthority,
+  REMOTE_MEMBERSHIP_AUTHORITY_UNAVAILABLE_CODE,
+  REMOTE_MEMBERSHIP_AUTHORITY_VERSION,
+} from "./remote-membership-authority.js";
+import {
   buildDirectPairingUri,
   pickLanAddress,
   renderQrCode,
@@ -50,6 +55,8 @@ export class RemoteApprovalBridge {
     now = Date.now,
     approvalStore = undefined,
     approvalStateFile = null,
+    membershipAuthority = undefined,
+    membershipStateFile = null,
     onSecurityError = null,
   } = {}) {
     if (!wsUrl) throw new Error("wsUrl is required");
@@ -71,6 +78,13 @@ export class RemoteApprovalBridge {
     this._securityErrors = [];
     this._onSecurityError =
       typeof onSecurityError === "function" ? onSecurityError : null;
+    this._membershipAuthority =
+      membershipAuthority === undefined
+        ? () =>
+            new DurableRemoteMembershipAuthority(
+              membershipStateFile ? { filePath: membershipStateFile } : {},
+            )
+        : membershipAuthority;
     const durableStore =
       approvalStore === undefined
         ? new ApprovalAuthorityStore({
@@ -98,6 +112,23 @@ export class RemoteApprovalBridge {
       store: durableStore,
     });
     this._approvalStore = durableStore;
+  }
+
+  _requireMembershipAuthority() {
+    if (typeof this._membershipAuthority === "function") {
+      this._membershipAuthority = this._membershipAuthority();
+    }
+    if (
+      !this._membershipAuthority ||
+      typeof this._membershipAuthority.withActiveMembership !== "function"
+    ) {
+      const error = new Error(
+        "Durable Remote membership authority is unavailable; remote approval is denied",
+      );
+      error.code = REMOTE_MEMBERSHIP_AUTHORITY_UNAVAILABLE_CODE;
+      throw error;
+    }
+    return this._membershipAuthority;
   }
 
   _recordSecurityError({ action, requestId = null, reason, errorCode = null }) {
@@ -139,7 +170,17 @@ export class RemoteApprovalBridge {
       sessionId: this.agentSessionId,
       name: this.name,
       scopes: this.scopes,
+      requireDurableMembershipAuthority: true,
     });
+    if (
+      created.session?.membershipAuthority !==
+        REMOTE_MEMBERSHIP_AUTHORITY_VERSION ||
+      typeof created.session?.sessionEpoch !== "string"
+    ) {
+      throw new Error(
+        "Remote Session server did not establish durable membership authority",
+      );
+    }
     this.remoteSessionId = created.session.sessionId;
     this.pairing = created.pairing;
     return this;
@@ -181,6 +222,28 @@ export class RemoteApprovalBridge {
     const requestId = message.event.requestId || message.event.approvalId;
     const pending = requestId ? this._pending.get(requestId) : null;
     if (!pending) return;
+    if (message.agentSessionId !== this.agentSessionId) {
+      this._recordSecurityError({
+        action: "approval.resolve",
+        requestId,
+        reason: "membership-agent-session-mismatch",
+      });
+      return;
+    }
+    if (
+      message.membershipAuthority !== REMOTE_MEMBERSHIP_AUTHORITY_VERSION ||
+      typeof message.from !== "string" ||
+      !message.from ||
+      typeof message.sessionEpoch !== "string" ||
+      typeof message.membershipEpoch !== "string"
+    ) {
+      this._recordSecurityError({
+        action: "approval.resolve",
+        requestId,
+        reason: "membership-binding-required",
+      });
+      return;
+    }
     // The device must echo the complete durable capability tuple. Missing,
     // mismatched, stale, duplicate, or expired resolutions never settle an
     // approval; only the store's successful CAS can return approved=true.
@@ -202,23 +265,66 @@ export class RemoteApprovalBridge {
     }
     const decision =
       rawAnswer === true || rawAnswer === "true" || rawAnswer === "yes";
-    const authority = {
-      origin: ORIGIN.REMOTE,
-      authenticated: true,
-      scopes: ["approve"],
-      principalId: message.from || "paired-device",
-      sessionId: this.agentSessionId,
-    };
-    const verdict = this._registry.resolve(pending.fingerprint, {
-      requestId,
-      fingerprint: message.event.fingerprint,
-      binding: message.event.binding,
-      sessionId: this.agentSessionId,
-      decision,
-      authority,
-      expectedRevision: message.event.revision,
-      now: this._now(),
-    });
+    let fenced;
+    try {
+      // The membership lock encloses the approval-store CAS. Therefore a
+      // revoke either commits first and suppresses this CAS, or waits behind an
+      // approval that has already linearized. No server-forwarded `from`
+      // string can authorize a side effect on its own.
+      fenced = this._requireMembershipAuthority().withActiveMembership(
+        {
+          sessionId: this.remoteSessionId,
+          principalId: message.from,
+          sessionEpoch: message.sessionEpoch,
+          membershipEpoch: message.membershipEpoch,
+        },
+        "approve",
+        (membership) => {
+          const authority = {
+            origin: ORIGIN.REMOTE,
+            authenticated: true,
+            scopes: ["approve"],
+            principalId: membership.principalId,
+            sessionId: this.agentSessionId,
+            remoteSessionId: membership.sessionId,
+            sessionEpoch: membership.sessionEpoch,
+            membershipEpoch: membership.membershipEpoch,
+          };
+          return this._registry.resolve(pending.fingerprint, {
+            requestId,
+            fingerprint: message.event.fingerprint,
+            binding: message.event.binding,
+            sessionId: this.agentSessionId,
+            decision,
+            authority,
+            expectedRevision: message.event.revision,
+            now: this._now(),
+          });
+        },
+      );
+    } catch (error) {
+      const verdict = {
+        reason: "membership-state-unavailable",
+        errorCode: error?.code || REMOTE_MEMBERSHIP_AUTHORITY_UNAVAILABLE_CODE,
+      };
+      this._recordSecurityError({
+        action: "approval.resolve",
+        requestId,
+        reason: verdict.reason,
+        errorCode: verdict.errorCode,
+      });
+      this._settleDeniedForStateFailure(requestId, pending, verdict);
+      return;
+    }
+    if (!fenced.ok) {
+      this._recordSecurityError({
+        action: "approval.resolve",
+        requestId,
+        reason: fenced.reason,
+      });
+      return;
+    }
+    const verdict = fenced.value;
     if (!verdict.ok) {
       this._recordSecurityError({
         action: "approval.resolve",

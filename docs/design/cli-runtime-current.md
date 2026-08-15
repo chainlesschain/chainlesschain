@@ -182,6 +182,8 @@ outcome-unknown dead letter
 
 - **后台 hard-kill keeper**：`1724f05300` 在 native child 进入用户代码前建立 bootstrap barrier，并由 sibling keeper 在 supervisor PID commit 前持有 process-tree cleanup authority；`0edc932aa5` 增加 20-Agent、7200 秒、1000-cycle 的三平台 exact-SHA formal workflow。实现已提交，但 CLI CI、Strict Sandbox 与 keeper formal artifact 尚未在该最终 SHA 上形成，因此 P1-2 仍为部分完成。
 - **Node capsule builtin policy**：`b22e65d1e9` 将构建期静态 external builtin 集绑定为最终 allowlist，并同时约束 `Module._load`、`Module._resolveFilename`、`process.getBuiltinModule`、internal bindings 与 `process.dlopen`。`2d4dff4052` 进一步把 `worker_threads` / `child_process` 等新执行上下文显式归入强制 OS sandbox contract，并用 fresh-isolate Worker 直接尝试未列入父 allowlist 的文件/网络访问。实现候选已关闭直接 loader 与执行上下文归属歧义；macOS atomic exec、任意 shared-library closure、远端 distributed authority 和该最终 exact SHA 的三平台恶意矩阵仍未关闭。
+- **Linux dynamic-native pathname loader closure candidate**：未发布源码候选把 Plugin 全树、Node runtime、system DSO 与 loader cache 逐文件 descriptor-pin、hash 并挂入只读 synthetic namespace；dynamic-only seccomp 拒绝 `recvmsg`/`recvmmsg` 的 `SCM_RIGHTS`、`pidfd_getfd`、`open_by_handle_at`、user/mount namespace 与 mount mutation syscall，并以 `clone3=ENOSYS` 保留 glibc classic-clone fallback、只允许 classic `clone` 的非 namespace flags。live 合同覆盖 approved `dlopen`、host/drop-in/proc/dev FD/nested tmpfs 拒绝和 admission 后替换仍执行 pinned bytes。该能力只声明 runtime pathname resolution closure，legacy/broad `sharedLibraryClosure=false`，明确排除匿名 JIT/custom loader。Windows DLL/delay-load/`LoadLibrary` 与 macOS `@rpath`/`dlopen`/dyld 仍为 NO-GO；本机无 bwrap，最终 clean exact-SHA Linux CI artifact 尚未形成，因此当前计数和完整产品 NO-GO 不变。
+- 当前只验证 plain Node runtime；yao-pkg packed `process.execPath` 因未设置 `PKG_EXECPATH=PKG_INVOKE_NODEJS` 会 probe fail-closed，尚未支持。
 
 ## 已落地能力
 

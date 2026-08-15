@@ -33,6 +33,7 @@ import {
   renameBackgroundAgent,
   resumeBackgroundAgent,
   sessionLifecycleState,
+  signalBackgroundProcessTree,
   statePath,
   stopBackgroundAgent,
   stopBackgroundAgentChildTree,
@@ -50,6 +51,9 @@ const writeBackgroundAgentState = (state) =>
   persistBackgroundAgentState(state, { createIfMissing: true });
 
 let dir;
+let identityDir;
+let previousChainlessChainHome;
+let previousSecurityAnchorHome;
 const originalSpawn = _deps.spawn;
 const originalSpawnSync = _deps.spawnSync;
 const originalReadStart = _deps.readProcessStartTimeMs;
@@ -60,6 +64,7 @@ const originalKillTree = _deps.killProcessTree;
 const originalKill = _deps.kill;
 const originalGetSessionPresence = _deps.getSessionPresence;
 const originalTerminateOwnedProcessTree = _deps.terminateOwnedProcessTree;
+const originalWithSessionHostRecoveryLease = _deps.withSessionHostRecoveryLease;
 
 // Pids of processes REALLY spawned by a test (via the tracking wrapper installed
 // in beforeEach). Only state records that carry one of these pids are reaped in
@@ -200,7 +205,16 @@ function reapLaunchedAgents(stateDir) {
 
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "cc-bg-agent-"));
+  identityDir = mkdtempSync(join(tmpdir(), "cc-bg-agent-identity-"));
   process.env.CC_BACKGROUND_AGENTS_DIR = dir;
+  previousChainlessChainHome = process.env.CHAINLESSCHAIN_HOME;
+  const isolatedHome = join(identityDir, "home");
+  mkdirSync(isolatedHome, { recursive: true });
+  process.env.CHAINLESSCHAIN_HOME = isolatedHome;
+  previousSecurityAnchorHome = process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME;
+  const securityAnchorHome = join(identityDir, "security-anchors");
+  mkdirSync(securityAnchorHome, { recursive: true });
+  process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME = securityAnchorHome;
   // Hermetic pid-identity probe: null = "unknown" → fail-open, i.e. exactly
   // the pre-Gap-1 kill(pid,0) semantics every legacy fixture here assumes.
   // Identity tests inject their own probe explicitly.
@@ -210,6 +224,7 @@ beforeEach(() => {
   // avoids scanning or depending on unrelated CI-runner processes.
   _deps.readProcessGroupStates = () => [];
   _deps.getSessionPresence = () => SESSION_PRESENCE.ABSENT;
+  _deps.withSessionHostRecoveryLease = (_sessionId, task) => task();
   // Hermetic kills: NO unit test in this file may deliver a real signal —
   // stop-flow fixtures record live-looking pids, and before this seam existed
   // the un-interceptable `process.kill` inside stopBackgroundAgent SIGTERMed
@@ -237,6 +252,7 @@ afterEach(async () => {
   _deps.kill = originalKill;
   _deps.getSessionPresence = originalGetSessionPresence;
   _deps.terminateOwnedProcessTree = originalTerminateOwnedProcessTree;
+  _deps.withSessionHostRecoveryLease = originalWithSessionHostRecoveryLease;
   // Reap real detached worker+agent trees BEFORE removing the state dir (raw
   // state files carry the pids — needed for agent GRANDCHILDREN a real worker
   // spawned itself), then every directly-tracked spawn (covers sleepers whose
@@ -249,16 +265,29 @@ afterEach(async () => {
   await waitForLaunchedProcessesToExit();
   launchedPids.clear();
   delete process.env.CC_BACKGROUND_AGENTS_DIR;
+  if (previousChainlessChainHome === undefined) {
+    delete process.env.CHAINLESSCHAIN_HOME;
+  } else {
+    process.env.CHAINLESSCHAIN_HOME = previousChainlessChainHome;
+  }
+  if (previousSecurityAnchorHome === undefined) {
+    delete process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME;
+  } else {
+    process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME =
+      previousSecurityAnchorHome;
+  }
   // Windows can keep the worker's former cwd locked for several seconds even
   // after taskkill has completed and the pid no longer exists. Retry only that
   // transient EBUSY; permission/path errors still fail immediately.
-  for (let attempt = 0; attempt < 150; attempt++) {
-    try {
-      rmSync(dir, { recursive: true, force: true });
-      break;
-    } catch (error) {
-      if (error?.code !== "EBUSY" || attempt === 149) throw error;
-      await new Promise((resolve) => setTimeout(resolve, 100));
+  for (const cleanupDir of [dir, identityDir]) {
+    for (let attempt = 0; attempt < 150; attempt++) {
+      try {
+        rmSync(cleanupDir, { recursive: true, force: true });
+        break;
+      } catch (error) {
+        if (error?.code !== "EBUSY" || attempt === 149) throw error;
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
     }
   }
 });
@@ -2425,6 +2454,32 @@ describe("background agent supervisor", () => {
     },
   );
 
+  it("accepts ESRCH when an exact POSIX target exits between probe and signal", () => {
+    const missing = Object.assign(new Error("kill ESRCH"), { code: "ESRCH" });
+    _deps.kill = vi.fn(() => {
+      throw missing;
+    });
+
+    expect(
+      signalBackgroundProcessTree(4242, "SIGTERM", { platform: "linux" }),
+    ).toBe("already-exited");
+    expect(_deps.kill).toHaveBeenNthCalledWith(1, -4242, "SIGTERM");
+    expect(_deps.kill).toHaveBeenNthCalledWith(2, 4242, "SIGTERM");
+  });
+
+  it("does not fall back from a POSIX process-group permission failure", () => {
+    const denied = Object.assign(new Error("kill EPERM"), { code: "EPERM" });
+    _deps.kill = vi.fn(() => {
+      throw denied;
+    });
+
+    expect(() =>
+      signalBackgroundProcessTree(4242, "SIGTERM", { platform: "linux" }),
+    ).toThrow(denied);
+    expect(_deps.kill).toHaveBeenCalledTimes(1);
+    expect(_deps.kill).toHaveBeenCalledWith(-4242, "SIGTERM");
+  });
+
   it.skipIf(process.platform === "win32")(
     "reads POSIX group states through the constrained execution broker",
     () => {
@@ -3304,29 +3359,15 @@ describe("prompt queue backpressure (Gap 4, supervisor gap 2026-07-11)", () => {
     expect(errors[0].message).toMatch(/prompt queue full/);
 
     conn.close();
-    const stopSnapshot = readBackgroundAgentState(state.id) || state;
+    // This test owns every PID in the freshly launched record. Process
+    // identity admission has dedicated coverage above; return a fresh
+    // in-window creation time here so a worker turn-state update cannot make
+    // this queue/backpressure test depend on a second OS identity probe.
     _deps.readProcessStartTimeMs = vi.fn((pid) => {
       const target = Number(pid);
-      if (target === Number(stopSnapshot.agentPid)) {
-        return Number(stopSnapshot.agentStartedAt);
-      }
-      if (target === Number(stopSnapshot.agentRuntimePid)) {
-        return Number(stopSnapshot.agentRuntimeStartedAt);
-      }
-      if (
-        target === Number(stopSnapshot.pid) ||
-        target === Number(stopSnapshot.workerPid) ||
-        target === Number(stopSnapshot.workerWrapperPid)
-      ) {
-        return Number(stopSnapshot.startedAt);
-      }
-      if (
-        target === Number(stopSnapshot.keeperPid) ||
-        target === Number(stopSnapshot.keeperWrapperPid)
-      ) {
-        return Number(stopSnapshot.keeperStartedAt);
-      }
-      return null;
+      return Number.isInteger(target) && target > 0 && target !== process.pid
+        ? Date.now()
+        : null;
     });
     // Reap the worker tree so the 20s turn + 100 queued turns never run on.
     if (process.platform === "win32") {
@@ -3359,6 +3400,18 @@ describe("prompt queue backpressure (Gap 4, supervisor gap 2026-07-11)", () => {
       _deps.kill = (pid, signal) => process.kill(pid, signal);
     }
     const stopped = stopBackgroundAgent(state.id);
-    expect(stopped).toMatchObject({ stopped: true, status: "stopped" });
+    expect(
+      stopped,
+      `stop=${JSON.stringify({
+        status: stopped.status,
+        stopped: stopped.stopped,
+        phase: stopped.phase,
+        stopPending: stopped.stopPending,
+        stopPendingReason: stopped.stopPendingReason,
+        stopError: stopped.stopError,
+        processIdentityError: stopped.processIdentityError,
+        interactionRecovery: stopped.interactionRecovery,
+      })}`,
+    ).toMatchObject({ stopped: true, status: "stopped" });
   }, 30000);
 });

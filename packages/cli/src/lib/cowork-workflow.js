@@ -22,7 +22,7 @@
  * @module cowork-workflow
  */
 
-import {
+import fs, {
   existsSync,
   mkdirSync,
   readFileSync,
@@ -39,6 +39,11 @@ import {
   constants as fsConstants,
 } from "node:fs";
 import { isAbsolute, join, relative } from "node:path";
+import {
+  sameFileStatIdentity,
+  samePathHandleFileIdentity,
+  withTrustedFileParentSync,
+} from "./secure-file-identity.js";
 import { evaluate as evalExpr, resolveReference } from "./workflow-expr.js";
 import {
   MAX_WORKFLOW_DEFINITION_BYTES,
@@ -116,18 +121,29 @@ function _parseBoundedWorkflowJson(raw) {
   return JSON.parse(text);
 }
 
-function _sameFileIdentity(left, right) {
-  return (
-    Number(left.dev) === Number(right.dev) &&
-    Number(left.ino) === Number(right.ino) &&
-    Number(left.size) === Number(right.size) &&
-    Number(left.mtimeMs) === Number(right.mtimeMs)
-  );
-}
-
 function _pathIsInside(root, candidate) {
   const offset = relative(root, candidate);
   return offset === "" || (!offset.startsWith("..") && !isAbsolute(offset));
+}
+
+function _canonicalWorkflowStoragePath(candidate, runtimeRealpath) {
+  const nativeRealpath = runtimeRealpath?.native;
+  return typeof nativeRealpath === "function"
+    ? nativeRealpath(candidate)
+    : runtimeRealpath(candidate);
+}
+
+export function workflowStoragePathIsContained(
+  cwd,
+  candidate,
+  runtimeRealpath = realpathSync,
+) {
+  const realRoot = _canonicalWorkflowStoragePath(cwd, runtimeRealpath);
+  const realCandidate = _canonicalWorkflowStoragePath(
+    candidate,
+    runtimeRealpath,
+  );
+  return _pathIsInside(realRoot, realCandidate);
 }
 
 function _assertWorkflowStoragePath(cwd, candidate) {
@@ -136,9 +152,11 @@ function _assertWorkflowStoragePath(cwd, candidate) {
     _deps.realpathSync === realpathSync &&
     _deps.lstatSync === lstatSync;
   if (!usingRuntimeFs) return;
-  const realRoot = _deps.realpathSync(cwd);
-  const realCandidate = _deps.realpathSync(candidate);
-  if (!_pathIsInside(realRoot, realCandidate)) {
+  // Canonicalize both sides through the same native API. Windows hosted
+  // runners can expose cwd through an 8.3 alias while a trusted-parent read
+  // returns the expanded path; mixing legacy/native realpath projections can
+  // otherwise misclassify the same directory as an escape.
+  if (!workflowStoragePathIsContained(cwd, candidate, _deps.realpathSync)) {
     throw new Error("workflow storage path escapes the working directory");
   }
 }
@@ -170,45 +188,56 @@ function _readBoundedWorkflowJson(cwd, file) {
   }
 
   _assertWorkflowStoragePath(cwd, file);
-  const before = _deps.lstatSync(file);
-  if (
-    !before.isFile() ||
-    before.isSymbolicLink() ||
-    Number(before.nlink) !== 1
-  ) {
-    throw new Error("workflow record must be a regular, single-link file");
-  }
-  if (
-    Number(before.size) <= 0 ||
-    Number(before.size) > MAX_WORKFLOW_DEFINITION_BYTES
-  ) {
-    throw new Error(
-      `workflow record must be 1..${MAX_WORKFLOW_DEFINITION_BYTES} bytes`,
-    );
-  }
+  return withTrustedFileParentSync(
+    fs,
+    file,
+    ({ canonicalPath, parentDevice }) => {
+      _assertWorkflowStoragePath(cwd, canonicalPath);
+      const before = _deps.lstatSync(canonicalPath, { bigint: true });
+      if (
+        !before.isFile() ||
+        before.isSymbolicLink() ||
+        Number(before.nlink) !== 1
+      ) {
+        throw new Error("workflow record must be a regular, single-link file");
+      }
+      if (
+        Number(before.size) <= 0 ||
+        Number(before.size) > MAX_WORKFLOW_DEFINITION_BYTES
+      ) {
+        throw new Error(
+          `workflow record must be 1..${MAX_WORKFLOW_DEFINITION_BYTES} bytes`,
+        );
+      }
 
-  let descriptor;
-  try {
-    let flags = Number(_deps.fsConstants.O_RDONLY || 0);
-    if (typeof _deps.fsConstants.O_NOFOLLOW === "number") {
-      flags |= _deps.fsConstants.O_NOFOLLOW;
-    }
-    descriptor = _deps.openSync(file, flags);
-    const opened = _deps.fstatSync(descriptor);
-    if (!_sameFileIdentity(before, opened)) {
-      throw new Error("workflow record identity changed while opening");
-    }
-    const value = _parseBoundedWorkflowJson(
-      _deps.readFileSync(descriptor, "utf8"),
-    );
-    const after = _deps.fstatSync(descriptor);
-    if (!_sameFileIdentity(opened, after)) {
-      throw new Error("workflow record changed while being read");
-    }
-    return value;
-  } finally {
-    if (descriptor !== undefined) _deps.closeSync(descriptor);
-  }
+      let descriptor;
+      try {
+        let flags = Number(_deps.fsConstants.O_RDONLY || 0);
+        if (typeof _deps.fsConstants.O_NOFOLLOW === "number") {
+          flags |= _deps.fsConstants.O_NOFOLLOW;
+        }
+        descriptor = _deps.openSync(canonicalPath, flags);
+        const opened = _deps.fstatSync(descriptor, { bigint: true });
+        if (
+          !opened.isFile() ||
+          Number(opened.nlink) !== 1 ||
+          !samePathHandleFileIdentity(before, opened, parentDevice)
+        ) {
+          throw new Error("workflow record identity changed while opening");
+        }
+        const value = _parseBoundedWorkflowJson(
+          _deps.readFileSync(descriptor, "utf8"),
+        );
+        const after = _deps.fstatSync(descriptor, { bigint: true });
+        if (!sameFileStatIdentity(opened, after)) {
+          throw new Error("workflow record changed while being read");
+        }
+        return value;
+      } finally {
+        if (descriptor !== undefined) _deps.closeSync(descriptor);
+      }
+    },
+  );
 }
 
 // ─── Paths ───────────────────────────────────────────────────────────────────
@@ -587,7 +616,7 @@ export function listWorkflows(cwd) {
         expectedId: id,
       });
       out.push(record.definition);
-    } catch (_e) {
+    } catch {
       // skip malformed files
     }
   }
@@ -603,7 +632,7 @@ export function getWorkflowRecord(cwd, id) {
 export function getWorkflow(cwd, id) {
   try {
     return getWorkflowRecord(cwd, id)?.definition || null;
-  } catch (_e) {
+  } catch {
     return null;
   }
 }
@@ -1418,7 +1447,7 @@ function _appendHistory(cwd, record) {
       JSON.stringify(record) + "\n",
       "utf-8",
     );
-  } catch (_e) {
+  } catch {
     // best-effort
   }
 }

@@ -18,12 +18,22 @@ import {
 import {
   applySandbox,
   applyWindowsSandbox,
+  consumeMacMcpCodeSnapshotPlanBinding,
   consumeWindowsMcpCodeSnapshotPlanBinding,
   MCP_STDIO_FD_ENTRY_BOOTSTRAP,
   MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256,
+  MCP_STDIO_MACOS_GATED_ENTRY_BOOTSTRAP_SHA256,
+  MACOS_PKG_EXECPATH_MAGIC,
+  macMcpTargetEnvironment,
   resetWindowsSandboxAdapterCache,
   SANDBOX_BOUNDARIES,
 } from "../../src/lib/process-execution-broker/platform-sandbox.js";
+import { MACOS_MCP_LAUNCHER_INPUTS } from "../../src/lib/process-execution-broker/macos-mcp-launcher-contract.js";
+import {
+  buildLinuxBwrapDescriptorScrubbedLaunch,
+  linuxBwrapDescriptorScrubberPolicyBinding,
+  parseLinuxBwrapDescriptorScrubbedLaunch,
+} from "../../src/lib/process-execution-broker/linux-bwrap-descriptor-launch.js";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
 import { installWindowsSandboxAdapterTestRoot } from "../../test/helpers/windows-sandbox-adapter-temp-root.js";
 
@@ -406,6 +416,7 @@ function createLinuxStaticPieElf64({
   interpreterPath = "/lib64/ld-linux-x86-64.so.2",
   dynamicNeeded = false,
   dynamicNeededNames = null,
+  dynamicSoname = null,
   dynamicRunpath = false,
   dynamicFlags1 = 0x08000000n,
   dynamicTerminated = true,
@@ -425,14 +436,26 @@ function createLinuxStaticPieElf64({
     stringParts.push(encoded);
     stringBytes += encoded.length;
   }
+  let sonameOffset = null;
+  if (dynamicSoname !== null) {
+    sonameOffset = stringBytes;
+    const encoded = Buffer.from(`${dynamicSoname}\0`, "ascii");
+    stringParts.push(encoded);
+    stringBytes += encoded.length;
+  }
   const stringTable =
-    neededNames.length > 0 ? Buffer.concat(stringParts) : Buffer.alloc(0);
+    neededNames.length > 0 || sonameOffset !== null
+      ? Buffer.concat(stringParts)
+      : Buffer.alloc(0);
   const dynamicEntries = [];
   if (dynamicNeeded) dynamicEntries.push([1n, 0n]);
   neededOffsets.forEach((offset) => {
     dynamicEntries.push([1n, BigInt(offset)]);
   });
-  if (neededNames.length > 0) {
+  if (sonameOffset !== null) {
+    dynamicEntries.push([14n, BigInt(sonameOffset)]);
+  }
+  if (neededNames.length > 0 || sonameOffset !== null) {
     dynamicEntries.push([5n, 0n], [10n, BigInt(stringTable.length)]);
   }
   if (dynamicRunpath) dynamicEntries.push([29n, 0n]);
@@ -646,10 +669,14 @@ function createLinuxStrongHarness({
   failSnapshotReopenForContents = null,
   nativeEntry = createLinuxStaticElf64(),
   nativeEntryMode = 0o100755,
+  runtimeLibc = createLinuxStaticPieElf64({ dynamicFlags1: null }),
+  runtimeLoader = createLinuxStaticPieElf64({ dynamicFlags1: null }),
+  additionalRuntimeFiles = [],
   bwrapDevice = 11,
   bwrapInode = null,
   linuxPageSize = 4096,
   contractKind = null,
+  onPolicyProbeComplete = null,
 } = {}) {
   const nativeStatic = entryRuntime !== "node";
   const entryPath = nativeStatic ? "/plugin/bin/tool" : "/plugin/bin/tool.js";
@@ -679,9 +706,10 @@ function createLinuxStrongHarness({
     ["/plugin/lib/value.cjs", Buffer.from(nodeDependency)],
     ["/runtime/node", Buffer.from("attested-node-runtime")],
     ["/usr/bin/bwrap", Buffer.from("bubblewrap")],
+    ["/usr/bin/bash", Buffer.from("bash")],
     ["/usr/bin/ldd", Buffer.from("ldd")],
-    ["/lib/libc.so.6", Buffer.from("libc")],
-    ["/lib64/ld-linux.so.2", Buffer.from("loader")],
+    ["/lib/libc.so.6", Buffer.from(runtimeLibc)],
+    ["/lib64/ld-linux.so.2", Buffer.from(runtimeLoader)],
     ["/etc/ld.so.cache", Buffer.from("loader-cache")],
     ["/proc/self/auxv", createLinuxAuxv64(linuxPageSize)],
     [
@@ -693,6 +721,21 @@ function createLinuxStrongHarness({
   const fileModes = new Map([
     ["/plugin/lib/value.cjs", regularFileMode(nodeDependencyMode)],
   ]);
+  for (const runtimeFile of additionalRuntimeFiles) {
+    const filePath = String(runtimeFile.path);
+    files.set(filePath, Buffer.from(runtimeFile.contents));
+    fileModes.set(
+      filePath,
+      regularFileMode(
+        runtimeFile.mode === undefined ? 0o100755 : runtimeFile.mode,
+      ),
+    );
+    let parent = path.posix.dirname(filePath);
+    while (parent !== "/" && parent !== ".") {
+      directories.add(parent);
+      parent = path.posix.dirname(parent);
+    }
+  }
   for (const pluginFile of additionalPluginFiles) {
     const filePath = String(pluginFile.path);
     files.set(filePath, Buffer.from(pluginFile.contents));
@@ -1193,9 +1236,18 @@ function createLinuxStrongHarness({
         stderr: "",
       };
     }
-    if (isBwrapCommand(command)) {
+    const scrubbed = parseLinuxBwrapDescriptorScrubbedLaunch(
+      command,
+      args,
+      options,
+    );
+    const logicalCommand = scrubbed
+      ? `/proc/self/fd/${scrubbed.executableChildFd}`
+      : command;
+    const logicalArgs = scrubbed ? scrubbed.executableArgs : args;
+    if (isBwrapCommand(logicalCommand)) {
       const descriptorChildFd = Number(
-        String(command).match(/^\/proc\/self\/fd\/(\d+)$/)?.[1],
+        String(logicalCommand).match(/^\/proc\/self\/fd\/(\d+)$/)?.[1],
       );
       const descriptorBacked = Number.isInteger(descriptorChildFd);
       const supervisorParentFd = descriptorBacked
@@ -1214,8 +1266,9 @@ function createLinuxStrongHarness({
             statFor(supervisorSourcePath, { bigint: true })
           : statFor("/usr/bin/bwrap", { bigint: true });
       const invocation = {
-        command,
-        args: [...(args || [])],
+        command: logicalCommand,
+        args: [...(logicalArgs || [])],
+        scrubbed,
         descriptorBacked,
         childFd: descriptorBacked ? descriptorChildFd : null,
         parentFd: supervisorParentFd,
@@ -1232,14 +1285,14 @@ function createLinuxStrongHarness({
           ? fdOffsets.get(supervisorParentFd)
           : null,
         stage:
-          args?.[0] === "--help"
+          logicalArgs?.[0] === "--help"
             ? "capability"
             : bwrapInvocationCount === 0
               ? "probe"
               : "final",
       };
       bwrapInvocations.push(invocation);
-      if (args?.[0] === "--help") {
+      if (logicalArgs?.[0] === "--help") {
         return {
           status: 0,
           stdout: bwrapHelp,
@@ -1248,17 +1301,17 @@ function createLinuxStrongHarness({
       }
       bwrapInvocationCount += 1;
       if (descriptorBacked) {
-        const supervisorFileIndex = args.findIndex(
+        const supervisorFileIndex = logicalArgs.findIndex(
           (value, index) =>
             value === "--file" &&
-            Number(args[index + 1]) === descriptorChildFd &&
-            args[index + 2] === "/run/.chainless-bwrap-supervisor",
+            Number(logicalArgs[index + 1]) === descriptorChildFd &&
+            logicalArgs[index + 2] === "/run/.chainless-bwrap-supervisor",
         );
-        const runTmpfsIndex = args.findIndex(
+        const runTmpfsIndex = logicalArgs.findIndex(
           (value, index) =>
             index > supervisorFileIndex &&
             value === "--tmpfs" &&
-            args[index + 1] === "/run",
+            logicalArgs[index + 1] === "/run",
         );
         const accessMode =
           Number(openFlags.get(supervisorParentFd)) &
@@ -1283,11 +1336,13 @@ function createLinuxStrongHarness({
           flags: openFlags.get(supervisorParentFd),
           permissions:
             supervisorFileIndex >= 2 &&
-            args[supervisorFileIndex - 2] === "--perms"
-              ? args[supervisorFileIndex - 1]
+            logicalArgs[supervisorFileIndex - 2] === "--perms"
+              ? logicalArgs[supervisorFileIndex - 1]
               : null,
           destination:
-            supervisorFileIndex >= 0 ? args[supervisorFileIndex + 2] : null,
+            supervisorFileIndex >= 0
+              ? logicalArgs[supervisorFileIndex + 2]
+              : null,
           fileIndex: supervisorFileIndex,
           runTmpfsIndex,
         };
@@ -1313,10 +1368,10 @@ function createLinuxStrongHarness({
         // reopened parent OFD records the consumed offset for this invocation.
         fdOffsets.set(supervisorParentFd, supervisorContents.length);
       }
-      for (let index = 0; index < args.length; index += 1) {
-        if (args[index] !== "--ro-bind-data") continue;
-        const childFd = Number(args[index + 1]);
-        const destination = args[index + 2];
+      for (let index = 0; index < logicalArgs.length; index += 1) {
+        if (logicalArgs[index] !== "--ro-bind-data") continue;
+        const childFd = Number(logicalArgs[index + 1]);
+        const destination = logicalArgs[index + 2];
         const parentFd = options?.stdio?.[childFd];
         const sourcePath = openFiles.get(parentFd);
         const contents =
@@ -1337,7 +1392,10 @@ function createLinuxStrongHarness({
           offsetBefore,
           bytesRead,
           flags: openFlags.get(parentFd),
-          permissions: args[index - 2] === "--perms" ? args[index - 1] : null,
+          permissions:
+            logicalArgs[index - 2] === "--perms"
+              ? logicalArgs[index - 1]
+              : null,
           sha256:
             contents && Number.isInteger(offsetBefore)
               ? crypto
@@ -1360,8 +1418,8 @@ function createLinuxStrongHarness({
         }
         fdOffsets.set(parentFd, contents.length);
       }
-      const seccompIndex = args.indexOf("--seccomp");
-      const seccompChildFd = Number(args[seccompIndex + 1]);
+      const seccompIndex = logicalArgs.indexOf("--seccomp");
+      const seccompChildFd = Number(logicalArgs[seccompIndex + 1]);
       const seccompParentFd = options?.stdio?.[seccompChildFd];
       const seccompContents = detachedContents.get(seccompParentFd);
       const seccompOffset = fdOffsets.get(seccompParentFd);
@@ -1394,7 +1452,21 @@ function createLinuxStrongHarness({
           files.set(snapshotRead.sourcePath, snapshotContents);
         }
       }
-      return { status: bwrapStatus, stdout: bwrapStdout, stderr: "" };
+      if (bwrapInvocationCount === 1) {
+        onPolicyProbeComplete?.();
+      }
+      const runtimePathnameClosureProbe = logicalArgs.some((value) =>
+        String(value).includes(
+          "chainless-linux-bwrap-native-runtime-pathname-closure-v1",
+        ),
+      );
+      return {
+        status: bwrapStatus,
+        stdout: runtimePathnameClosureProbe
+          ? "chainless-linux-bwrap-native-runtime-pathname-closure-v1"
+          : bwrapStdout,
+        stderr: "",
+      };
     }
     throw new Error(`unexpected command ${command}`);
   });
@@ -1476,7 +1548,11 @@ function createLinuxStrongHarness({
   };
 }
 
-function applyLinuxStrongNativeHarness(harness, args = ["--label", "ready"]) {
+function applyLinuxStrongNativeHarness(
+  harness,
+  args = ["--label", "ready"],
+  arch = "x64",
+) {
   const requiredBoundaries = [
     SANDBOX_BOUNDARIES.FILESYSTEM,
     SANDBOX_BOUNDARIES.NETWORK,
@@ -1498,7 +1574,7 @@ function applyLinuxStrongNativeHarness(harness, args = ["--label", "ready"]) {
     },
     {
       platform: "linux",
-      arch: "x64",
+      arch,
       fs: harness.fsRuntime,
       homedir: () => "/home/tester",
       spawnSync: harness.spawnSync,
@@ -1713,6 +1789,47 @@ function createLinuxSupervisorExecutableIdentity(overrides = {}) {
   };
 }
 
+function createLinuxDescriptorScrubberExecutableIdentity(overrides = {}) {
+  return {
+    path: "/usr/bin/bash",
+    fileId: {
+      dev: "11",
+      ino: "702",
+    },
+    sha256: "9".repeat(64),
+    bytes: 12,
+    mtimeMs: 1234,
+    mode: 0o100755,
+    uid: 0,
+    gid: 0,
+    ...overrides,
+  };
+}
+
+function createLinuxDescriptorScrubberRuntimeEvidence(
+  layout = {
+    scrubberChildFd: 4,
+    preservedMaxFd: 3,
+    activeStdioThrough: 2,
+    nodeIpcChildFd: null,
+    executableChildFd: 3,
+  },
+) {
+  return linuxBwrapDescriptorScrubberPolicyBinding(
+    createLinuxDescriptorScrubberExecutableIdentity(),
+    layout,
+  );
+}
+
+function expectedLinuxDescriptorRuntimeProbe(runtimeProbe) {
+  return {
+    ...Object.fromEntries(
+      Object.entries(runtimeProbe).filter(([, value]) => value !== undefined),
+    ),
+    descriptorScrubber: createLinuxDescriptorScrubberRuntimeEvidence(),
+  };
+}
+
 function createLinuxSupervisorRuntimeProbe(overrides = {}) {
   return {
     kind: "linux-bwrap-plugin-node-policy-v1",
@@ -1777,13 +1894,32 @@ function createLinuxDynamicNativeRuntimeProbe(overrides = {}) {
     pluginTreeSnapshotAtomic: false,
     initialDynamicLoadClosureDescriptorBound: true,
     initialDynamicLoadClosureScope:
-      "initial-pt_interp-and-direct-dt_needed-attested-system-set",
+      "initial-pt_interp-and-recursive-dt_needed-attested-system-graph",
     initialDynamicLoadClosureMechanism:
-      "parsed-elf-direct-system-set-to-attested-node-runtime-fds-v1",
+      "recursive-parsed-elf-system-graph-to-attested-runtime-fds-v1",
     initialDynamicInterpreter: "/lib64/ld-linux-x86-64.so.2",
     initialDynamicDependencyCount: 2,
     initialDynamicRuntimeFileCount: 3,
+    initialDynamicRuntimeBytes: 300,
     initialDynamicLoadClosureDigest: "d".repeat(64),
+    sharedLibraryClosure: false,
+    runtimeSharedLibraryPathnameClosure: true,
+    runtimeSharedLibraryPathnameClosureExcludes:
+      "anonymous-jit-and-custom-in-process-loader",
+    runtimeSharedLibraryClosureScope:
+      "all-pathname-visible-regular-files-in-read-only-bwrap-namespace",
+    runtimeSharedLibraryClosureMechanism:
+      "descriptor-pinned-hashed-ro-mount-set-plus-loader-fd-and-namespace-mutation-seccomp-v2",
+    runtimeSharedLibraryLoadSetFiles: 5,
+    runtimeSharedLibraryLoadSetBytes: 500,
+    runtimeSharedLibraryLoadSetDigest: "f".repeat(64),
+    runtimeLoadSetPolicyBound: true,
+    runtimeWritableFilesystems: false,
+    runtimeProcfsMounted: false,
+    runtimeDevfsMounted: false,
+    runtimeScratchWritable: false,
+    runtimeDescriptorReopenPaths: false,
+    supervisorPid1ExecutableExposure: "procfs-not-mounted",
     ...overrides,
   });
 }
@@ -1798,7 +1934,22 @@ function createLinuxStaticNativeRuntimeProbe(overrides = {}) {
     initialDynamicInterpreter: undefined,
     initialDynamicDependencyCount: undefined,
     initialDynamicRuntimeFileCount: undefined,
+    initialDynamicRuntimeBytes: undefined,
     initialDynamicLoadClosureDigest: undefined,
+    runtimeSharedLibraryPathnameClosure: undefined,
+    runtimeSharedLibraryPathnameClosureExcludes: undefined,
+    runtimeSharedLibraryClosureScope: undefined,
+    runtimeSharedLibraryClosureMechanism: undefined,
+    runtimeSharedLibraryLoadSetFiles: undefined,
+    runtimeSharedLibraryLoadSetBytes: undefined,
+    runtimeSharedLibraryLoadSetDigest: undefined,
+    runtimeLoadSetPolicyBound: undefined,
+    runtimeWritableFilesystems: undefined,
+    runtimeProcfsMounted: undefined,
+    runtimeDevfsMounted: undefined,
+    runtimeScratchWritable: undefined,
+    runtimeDescriptorReopenPaths: undefined,
+    supervisorPid1ExecutableExposure: "procfs",
     ...overrides,
   });
 }
@@ -1859,28 +2010,225 @@ function appliedPlan(command, args, options, overrides = {}) {
   };
 }
 
+function appliedLinuxDescriptorScrubbedPlan(
+  executableArgs,
+  options,
+  runtimeProbe,
+  overrides,
+) {
+  const originalStdio = Array.isArray(options?.stdio)
+    ? Array.from(options.stdio)
+    : ["pipe", "pipe", "pipe", 41];
+  while (originalStdio.length < 4) originalStdio.push(undefined);
+  const usedParentFds = new Set();
+  let nextParentFd = 41;
+  const allocateParentFd = () => {
+    while (usedParentFds.has(nextParentFd)) nextParentFd += 1;
+    const result = nextParentFd;
+    usedParentFds.add(result);
+    nextParentFd += 1;
+    return result;
+  };
+  const stdio = Array.from(originalStdio, (value, index) => {
+    if (index < 3) return value;
+    if (
+      Number.isSafeInteger(value) &&
+      value >= 0 &&
+      !usedParentFds.has(value)
+    ) {
+      usedParentFds.add(value);
+      return value;
+    }
+    return allocateParentFd();
+  });
+  const scrubberChildFd = stdio.length;
+  stdio.push(allocateParentFd());
+  const layout = Object.freeze({
+    scrubberChildFd,
+    preservedMaxFd: scrubberChildFd - 1,
+    activeStdioThrough: 2,
+    nodeIpcChildFd: null,
+    executableChildFd: 3,
+  });
+  const launch = buildLinuxBwrapDescriptorScrubbedLaunch({
+    ...layout,
+    executableArgs,
+  });
+  return appliedPlan(
+    launch.command,
+    launch.args,
+    {
+      ...options,
+      shell: false,
+      env: {
+        PATH: "/usr/bin:/bin",
+        LANG: "C",
+        LC_ALL: "C",
+      },
+      stdio,
+    },
+    {
+      ...overrides,
+      runtimeProbe: {
+        ...runtimeProbe,
+        descriptorScrubber:
+          runtimeProbe?.descriptorScrubber ??
+          createLinuxDescriptorScrubberRuntimeEvidence(layout),
+      },
+    },
+  );
+}
+
+function appliedMacSignedRootMcpPlan(
+  command,
+  args,
+  options,
+  contract,
+  overrides = {},
+) {
+  const protocol = MACOS_MCP_LAUNCHER_INPUTS.protocol;
+  const nonce = "c".repeat(64);
+  const policyDigest = "d".repeat(64);
+  const helperArgs = [
+    "--launch-v1",
+    nonce,
+    MACOS_MCP_LAUNCHER_INPUTS.protocolSha256,
+    contract.runtimeIdentity.sha256,
+    String(contract.runtimeIdentity.bytes),
+    contract.entryIdentity.sha256,
+    String(contract.entryIdentity.bytes),
+    "501",
+    "20",
+    policyDigest,
+    ...args.slice(1),
+  ];
+  return appliedPlan(
+    protocol.helperInstallPath,
+    helperArgs,
+    {
+      ...options,
+      cwd: "/",
+      shell: false,
+      detached: false,
+      stdio: ["pipe", "pipe", "pipe", 31, 32, 33, "ignore", "ignore", "pipe"],
+    },
+    {
+      platform: "darwin",
+      enforcement: protocol.backend,
+      backend: protocol.backend,
+      candidateBackend: null,
+      policyAttested: true,
+      policyDigest,
+      guarantees: [
+        SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+        SANDBOX_BOUNDARIES.FILESYSTEM,
+        SANDBOX_BOUNDARIES.NETWORK,
+        SANDBOX_BOUNDARIES.PROCESS_EXEC,
+        SANDBOX_BOUNDARIES.PROCESS_TREE,
+        SANDBOX_BOUNDARIES.PRIVILEGE_REDUCTION,
+      ],
+      runtimeProbe: {
+        kind: "darwin-mcp-capsule-code-snapshot-v2",
+        attempted: true,
+        runnable: true,
+        reason: null,
+        probeRuntime: "node",
+        targetRuntime: "node",
+        contentSnapshot: true,
+        contentSnapshotScope: "mcp-capsule-entry-and-node-runtime",
+        contentSnapshotMechanism:
+          "signed-root-runtime-path-and-anonymous-entry-fd-snapshots-v1",
+        handleAtomic: true,
+        entrySnapshotAtomic: true,
+        runtimeLaunchAtomic: true,
+        runtimeLaunchMechanism:
+          "signed-root-helper-fd-copy-protected-path-ready-gate-v1",
+        runtimeLaunchPath: path.posix.join(
+          protocol.snapshotRoot,
+          nonce,
+          "node",
+        ),
+        entrySnapshotPath: "anonymous-root-owned-fd4",
+        runtimeSnapshotSha256: contract.runtimeIdentity.sha256,
+        runtimeSnapshotBytes: contract.runtimeIdentity.bytes,
+        entrySnapshotSha256: contract.entryIdentity.sha256,
+        entrySnapshotBytes: contract.entryIdentity.bytes,
+        entrySnapshotBootstrapSha256:
+          MCP_STDIO_MACOS_GATED_ENTRY_BOOTSTRAP_SHA256,
+        sharedLibraryClosure: false,
+        rootProtectedRuntimeSnapshot: true,
+        entryRootOwnedAnonymousSnapshot: true,
+        entrySourcePrePostStat: true,
+        entryWriterClosedBeforeReadonlyReopen: true,
+        entryReadonlyIdentityRechecked: true,
+        entryUnlinkedAndDirectoryFsyncedBeforeTarget: true,
+        targetInheritedEntrySnapshotOnly: true,
+        runtimeAndCapsuleSlotsNullBeforeExec: true,
+        bootstrapClosesNullAndReadyDescriptors: true,
+        actualRuntimeReadyHandshake: true,
+        runtimeSnapshotUnlinkedBeforeEntryRelease: true,
+        callerCredentialDropIrreversible: true,
+        relayParentCredentialsDropped: true,
+        callerLifelineWatched: true,
+        signalRelayNonblocking: true,
+        targetRuntimeInvocationMode: "node-executable-eval-v1",
+        pkgExecPathMagicBound: false,
+        targetDescriptorAllowlist:
+          "stdio-fd3-null-fd4-entry-fd5-null-fd6-gate-fd7-ready",
+        capsuleRootDescriptorBound: true,
+        capsulePathObjectAtomic: false,
+        sandboxProfileFixedAndDigestBound: true,
+        processForkExplicitlyDenied: true,
+        sandboxExecLiveGateContract: true,
+        globalLaunchSerialization: true,
+        maximumStaleSnapshots: protocol.maximumStaleSnapshots,
+        helperSha256: "e".repeat(64),
+        helperSourceSha256: MACOS_MCP_LAUNCHER_INPUTS.sourceSha256,
+        helperProtocolSha256: MACOS_MCP_LAUNCHER_INPUTS.protocolSha256,
+        helperInstallContractSha256: "f".repeat(64),
+        helperDesignatedRequirementSha256: "1".repeat(64),
+        helperTeamIdentifier: "ABCDEFGHIJ",
+        helperPackageIdentifier: protocol.packageIdentifier,
+        helperPackageVersion: "0.163.8",
+        installAttestationDigest: "2".repeat(64),
+        planBindingMechanism: "macos-mcp-code-snapshot-plan-binding-v1",
+        planBindingDigest: "3".repeat(64),
+      },
+      ...overrides,
+    },
+  );
+}
+
 function appliedLinuxBwrapPluginTreePlan(
   command,
   args,
   options,
   overrides = {},
 ) {
-  return appliedPlan("/proc/self/fd/3", ["--", command, ...args], options, {
-    platform: "linux",
-    profile: "strict",
-    enforcement: "linux-bwrap",
-    backend: "linux-bwrap",
-    candidateBackend: null,
-    policyAttested: true,
-    policyDigest: "c".repeat(64),
-    guarantees: [
-      SANDBOX_BOUNDARIES.FILESYSTEM,
-      SANDBOX_BOUNDARIES.NETWORK,
-      SANDBOX_BOUNDARIES.PROCESS_TREE,
-    ],
-    runtimeProbe: createLinuxPluginTreeRuntimeProbe(),
-    ...overrides,
-  });
+  const {
+    runtimeProbe = createLinuxPluginTreeRuntimeProbe(),
+    ...planOverrides
+  } = overrides;
+  return appliedLinuxDescriptorScrubbedPlan(
+    ["--", command, ...args],
+    options,
+    runtimeProbe,
+    {
+      platform: "linux",
+      profile: "strict",
+      enforcement: "linux-bwrap",
+      backend: "linux-bwrap",
+      candidateBackend: null,
+      policyAttested: true,
+      policyDigest: "c".repeat(64),
+      guarantees: [
+        SANDBOX_BOUNDARIES.FILESYSTEM,
+        SANDBOX_BOUNDARIES.NETWORK,
+        SANDBOX_BOUNDARIES.PROCESS_TREE,
+      ],
+      ...planOverrides,
+    },
+  );
 }
 
 function appliedLinuxBwrapDynamicNativePlan(
@@ -1889,9 +2237,154 @@ function appliedLinuxBwrapDynamicNativePlan(
   options,
   overrides = {},
 ) {
-  return appliedLinuxBwrapPluginTreePlan(command, args, options, {
-    runtimeProbe: createLinuxDynamicNativeRuntimeProbe(),
-    ...overrides,
+  const {
+    runtimeProbe = createLinuxDynamicNativeRuntimeProbe(),
+    ...planOverrides
+  } = overrides;
+  return appliedLinuxDescriptorScrubbedPlan(
+    [
+      "--die-with-parent",
+      "--new-session",
+      "--unshare-user",
+      "--disable-userns",
+      "--assert-userns-disabled",
+      "--unshare-pid",
+      "--unshare-ipc",
+      "--unshare-net",
+      "--unshare-uts",
+      "--unshare-cgroup-try",
+      "--cap-drop",
+      "ALL",
+      "--hostname",
+      "chainless-sandbox",
+      "--clearenv",
+      ...[
+        "/dev",
+        "/etc",
+        "/home",
+        "/lib",
+        "/opt",
+        "/proc",
+        "/run",
+        "/tmp",
+        "/var",
+        "/home/sandbox",
+        "/opt/chainless",
+        "/var/tmp",
+        "/opt/chainless/plugin",
+        "/opt/chainless/runtime",
+        "/opt/chainless/plugin/bin",
+        "/opt/chainless/plugin/lib",
+      ].flatMap((directory) => ["--dir", directory]),
+      "--perms",
+      "0000",
+      "--file",
+      "3",
+      "/run/.chainless-bwrap-supervisor",
+      "--perms",
+      "0500",
+      "--ro-bind-data",
+      "4",
+      "/opt/chainless/runtime/node",
+      "--ro-bind-fd",
+      "5",
+      "/etc/ld.so.cache",
+      "--perms",
+      "0500",
+      "--ro-bind-data",
+      "6",
+      "/opt/chainless/plugin/bin/tool",
+      "--perms",
+      "0400",
+      "--ro-bind-data",
+      "7",
+      "/opt/chainless/plugin/lib/approved.so",
+      "--ro-bind-fd",
+      "8",
+      "/lib/libc.so.6",
+      "--seccomp",
+      "9",
+      "--remount-ro",
+      "/",
+      "--perms",
+      "0755",
+      "--size",
+      String(16 * 1024 * 1024),
+      "--tmpfs",
+      "/run",
+      "--remount-ro",
+      "/run",
+      "--setenv",
+      "CHAINLESS_SANDBOXED",
+      "1",
+      "--setenv",
+      "HOME",
+      "/home/sandbox",
+      "--setenv",
+      "LANG",
+      "C.UTF-8",
+      "--setenv",
+      "LC_ALL",
+      "C.UTF-8",
+      "--setenv",
+      "OPENSSL_CONF",
+      "/dev/null",
+      "--setenv",
+      "PATH",
+      "/opt/chainless/runtime",
+      "--setenv",
+      "TMPDIR",
+      "/tmp",
+      "--setenv",
+      "TZ",
+      "UTC",
+      "--chdir",
+      "/opt/chainless/plugin",
+      "--",
+      command,
+      ...args,
+    ],
+    options,
+    runtimeProbe,
+    {
+      platform: "linux",
+      profile: "strict",
+      enforcement: "linux-bwrap",
+      backend: "linux-bwrap",
+      candidateBackend: null,
+      policyAttested: true,
+      policyDigest: "c".repeat(64),
+      guarantees: [
+        SANDBOX_BOUNDARIES.FILESYSTEM,
+        SANDBOX_BOUNDARIES.NETWORK,
+        SANDBOX_BOUNDARIES.PROCESS_TREE,
+      ],
+      ...planOverrides,
+    },
+  );
+}
+
+function trustedBuiltInLinuxLaunchContext({
+  command = "tool",
+  args = ["run"],
+  cwd,
+  shell = false,
+  detached = false,
+  executionContract = null,
+  requiredBoundaries = [SANDBOX_BOUNDARIES.FILESYSTEM],
+  sync = false,
+} = {}) {
+  return Object.freeze({
+    command,
+    args: Object.freeze([...args]),
+    cwd,
+    shell,
+    detached,
+    executionContract,
+    profile: "strict",
+    requiredBoundaries: Object.freeze([...requiredBoundaries]),
+    sync,
+    builtInSandboxAdapter: true,
   });
 }
 
@@ -2130,6 +2623,91 @@ describe("platform sandbox adapter contract", () => {
     expect(probeSpawnSync).not.toHaveBeenCalled();
   });
 
+  it("fails closed and releases every pin when argv becomes sparse after the policy probe", () => {
+    const launchArgs = ["/plugin/bin/tool.js", "--label", "ready"];
+    const harness = createLinuxStrongHarness({
+      onPolicyProbeComplete() {
+        delete launchArgs[1];
+      },
+    });
+    const plan = applySandbox(
+      "/runtime/node",
+      launchArgs,
+      { cwd: "/plugin", shell: false },
+      {
+        profile: "strict",
+        requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+      },
+      {
+        platform: "linux",
+        fs: harness.fsRuntime,
+        homedir: () => "/home/tester",
+        spawnSync: harness.spawnSync,
+      },
+      {
+        profile: "strict",
+        requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+        sync: true,
+        executionContract: harness.contract,
+      },
+    );
+
+    expect(plan).toMatchObject({
+      applied: false,
+      candidateBackend: "linux-bwrap",
+      reason: "linux_bwrap_execution_contract_changed",
+      guarantees: [],
+    });
+    expect(harness.openFiles.size).toBe(0);
+  });
+
+  it.each([
+    ["throwing slice getter", "slice"],
+    ["throwing Symbol.iterator getter", Symbol.iterator],
+  ])(
+    "rejects an argv array with a %s without opening resources",
+    (_label, key) => {
+      const launchArgs = ["/plugin/bin/tool.js", "--label", "ready"];
+      Object.defineProperty(launchArgs, key, {
+        configurable: true,
+        get() {
+          throw new Error("argv_property_must_not_be_read");
+        },
+      });
+      const harness = createLinuxStrongHarness();
+
+      const plan = applySandbox(
+        "/runtime/node",
+        launchArgs,
+        { cwd: "/plugin", shell: false },
+        {
+          profile: "strict",
+          requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+        },
+        {
+          platform: "linux",
+          fs: harness.fsRuntime,
+          homedir: () => "/home/tester",
+          spawnSync: harness.spawnSync,
+        },
+        {
+          profile: "strict",
+          requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+          sync: true,
+          executionContract: harness.contract,
+        },
+      );
+
+      expect(plan).toMatchObject({
+        applied: false,
+        candidateBackend: "linux-bwrap",
+        reason: "linux_bwrap_execution_contract_invalid",
+        guarantees: [],
+      });
+      expect(harness.openFiles.size).toBe(0);
+    },
+  );
+
   it("builds an attested empty-root bwrap plan for one direct Plugin Node bin", () => {
     const harness = createLinuxStrongHarness();
     const plan = applySandbox(
@@ -2210,26 +2788,55 @@ describe("platform sandbox adapter contract", () => {
           path: "/usr/bin/bwrap",
           sha256: harness.originalBwrapSha256,
         },
+        descriptorScrubber: {
+          kind: "linux-bwrap-inherited-fd-scrubber-v1",
+          executableIdentity: {
+            path: "/usr/bin/bash",
+            uid: 0,
+          },
+          executablePinned: true,
+          argvFixed: true,
+          callerEnvironmentFixed: true,
+          nodeRuntimeEnvironmentInjection: "none",
+          nodeIpcChildFd: null,
+          nodeIpcSerializationMode: null,
+          procSelfFdPasses: 3,
+          closesUnknownInheritedDescriptors: true,
+          verificationPassesFailClosed: true,
+          policyBound: true,
+          executableChildFd: 3,
+        },
         handleAtomic: false,
       },
     });
     expect(plan.policyDigest).toMatch(/^[a-f0-9]{64}$/);
-    expect(plan.command).toBe("/proc/self/fd/3");
-    expectLinuxBwrapSupervisorPolicy(plan.args);
-    expect(plan.args).toContain("--unshare-user");
-    expect(plan.args).toContain("--disable-userns");
-    expect(plan.args).toContain("--unshare-net");
-    expect(plan.args).toContain("--seccomp");
-    expect(plan.args).toContain("--clearenv");
-    expect(plan.args).toContain("--remount-ro");
-    expect(plan.args.join("\0")).not.toContain("--ro-bind\0/\0/");
-    const entryDataIndex = plan.args.findIndex(
+    const scrubbedLaunch = parseLinuxBwrapDescriptorScrubbedLaunch(
+      plan.command,
+      plan.args,
+      plan.options,
+    );
+    expect(scrubbedLaunch).toMatchObject({
+      scrubberChildFd: plan.options.stdio.length - 1,
+      preservedMaxFd: plan.options.stdio.length - 2,
+      executableChildFd: 3,
+    });
+    expect(plan.command).toBe(`/proc/self/fd/${plan.options.stdio.length - 1}`);
+    const bwrapArgs = scrubbedLaunch.executableArgs;
+    expectLinuxBwrapSupervisorPolicy(bwrapArgs);
+    expect(bwrapArgs).toContain("--unshare-user");
+    expect(bwrapArgs).toContain("--disable-userns");
+    expect(bwrapArgs).toContain("--unshare-net");
+    expect(bwrapArgs).toContain("--seccomp");
+    expect(bwrapArgs).toContain("--clearenv");
+    expect(bwrapArgs).toContain("--remount-ro");
+    expect(bwrapArgs.join("\0")).not.toContain("--ro-bind\0/\0/");
+    const entryDataIndex = bwrapArgs.findIndex(
       (value, index) =>
         value === "--ro-bind-data" &&
-        plan.args[index + 2] === "/opt/chainless/plugin/bin/tool.js",
+        bwrapArgs[index + 2] === "/opt/chainless/plugin/bin/tool.js",
     );
     expect(entryDataIndex).toBeGreaterThanOrEqual(2);
-    expect(plan.args.slice(entryDataIndex - 2, entryDataIndex + 3)).toEqual([
+    expect(bwrapArgs.slice(entryDataIndex - 2, entryDataIndex + 3)).toEqual([
       "--perms",
       "0400",
       "--ro-bind-data",
@@ -2237,23 +2844,23 @@ describe("platform sandbox adapter contract", () => {
       "/opt/chainless/plugin/bin/tool.js",
     ]);
     expect(
-      plan.args.some(
+      bwrapArgs.some(
         (value, index) =>
           value === "--ro-bind-fd" &&
-          plan.args[index + 2] === "/opt/chainless/plugin/bin/tool.js",
+          bwrapArgs[index + 2] === "/opt/chainless/plugin/bin/tool.js",
       ),
     ).toBe(false);
-    expect(plan.args).not.toContain("/plugin");
-    const libDirectoryIndex = plan.args.findIndex(
-      (value, index) => value === "--dir" && plan.args[index + 1] === "/lib",
+    expect(bwrapArgs).not.toContain("/plugin");
+    const libDirectoryIndex = bwrapArgs.findIndex(
+      (value, index) => value === "--dir" && bwrapArgs[index + 1] === "/lib",
     );
-    const libBindIndex = plan.args.findIndex(
+    const libBindIndex = bwrapArgs.findIndex(
       (value, index) =>
-        value === "--ro-bind-fd" && plan.args[index + 2] === "/lib/libc.so.6",
+        value === "--ro-bind-fd" && bwrapArgs[index + 2] === "/lib/libc.so.6",
     );
     expect(libDirectoryIndex).toBeGreaterThan(-1);
     expect(libBindIndex).toBeGreaterThan(libDirectoryIndex);
-    expect(plan.args.slice(-5)).toEqual([
+    expect(bwrapArgs.slice(-5)).toEqual([
       "--",
       "/opt/chainless/runtime/node",
       "/opt/chainless/plugin/bin/tool.js",
@@ -2270,27 +2877,44 @@ describe("platform sandbox adapter contract", () => {
         LC_ALL: "C",
       },
     });
-    expect(plan.args.join("\0")).not.toContain("NODE_OPTIONS");
-    expect(plan.args.join("\0")).not.toContain("SSH_AUTH_SOCK");
-    expect(plan.args.join("\0")).not.toContain("CC_SESSION_ID");
-    expect(harness.spawnSync.mock.calls.map(([command]) => command)).toEqual([
-      "/usr/bin/ldd",
-      "/proc/self/fd/3",
-      "/proc/self/fd/3",
-    ]);
+    expect(bwrapArgs.join("\0")).not.toContain("NODE_OPTIONS");
+    expect(bwrapArgs.join("\0")).not.toContain("SSH_AUTH_SOCK");
+    expect(bwrapArgs.join("\0")).not.toContain("CC_SESSION_ID");
+    expect(harness.spawnSync.mock.calls[0][0]).toBe("/usr/bin/ldd");
+    expect(
+      harness.spawnSync.mock.calls
+        .slice(1)
+        .every(([command, launchArgs, options]) =>
+          Boolean(
+            parseLinuxBwrapDescriptorScrubbedLaunch(
+              command,
+              launchArgs,
+              options,
+            ),
+          ),
+        ),
+    ).toBe(true);
     expectLinuxBwrapSupervisorInvocations(harness, ["capability", "probe"]);
     const policyProbeCall = harness.spawnSync.mock.calls.find(
-      ([command, probeArgs]) =>
-        harness.isBwrapCommand(command) && probeArgs?.[0] !== "--help",
+      ([command, probeArgs, options]) => {
+        const launch = parseLinuxBwrapDescriptorScrubbedLaunch(
+          command,
+          probeArgs,
+          options,
+        );
+        return launch && launch.executableArgs[0] !== "--help";
+      },
     );
-    const policyProbeSeparator = policyProbeCall[1].lastIndexOf("--");
-    const policyProbeSource = policyProbeCall[1][policyProbeSeparator + 3];
+    const policyProbeArgs = parseLinuxBwrapDescriptorScrubbedLaunch(
+      policyProbeCall[0],
+      policyProbeCall[1],
+      policyProbeCall[2],
+    ).executableArgs;
+    const policyProbeSeparator = policyProbeArgs.lastIndexOf("--");
+    const policyProbeSource = policyProbeArgs[policyProbeSeparator + 3];
     expect(() => new Script(policyProbeSource)).not.toThrow();
     expect(
-      policyProbeCall[1].slice(
-        policyProbeSeparator + 1,
-        policyProbeSeparator + 3,
-      ),
+      policyProbeArgs.slice(policyProbeSeparator + 1, policyProbeSeparator + 3),
     ).toEqual(["/opt/chainless/runtime/node", "-e"]);
     expect(policyProbeSource).toContain(
       'spawnSync("/opt/chainless/runtime/node", ["-e"',
@@ -2344,7 +2968,7 @@ describe("platform sandbox adapter contract", () => {
     expect(
       probeSnapshotRead.flags & harness.fsRuntime.constants.O_ACCMODE,
     ).toBe(harness.fsRuntime.constants.O_RDONLY);
-    const finalSnapshotChildFd = Number(plan.args[entryDataIndex + 1]);
+    const finalSnapshotChildFd = Number(bwrapArgs[entryDataIndex + 1]);
     const finalSnapshotFd = plan.options.stdio[finalSnapshotChildFd];
     expect(finalSnapshotFd).not.toBe(probeSnapshotRead.parentFd);
     expect(harness.fdOffsets.get(finalSnapshotFd)).toBe(0);
@@ -2372,12 +2996,12 @@ describe("platform sandbox adapter contract", () => {
     );
     expect(anonymousFilterOpens).toHaveLength(4);
     expect(harness.fsRuntime.mkdtempSync).not.toHaveBeenCalled();
-    const seccompIndex = plan.args.indexOf("--seccomp");
-    expect(plan.args[seccompIndex + 1]).toBe(
-      String(plan.options.stdio.length - 1),
+    const seccompIndex = bwrapArgs.indexOf("--seccomp");
+    expect(bwrapArgs[seccompIndex + 1]).toBe(
+      String(plan.options.stdio.length - 2),
     );
     const actualSeccompFd =
-      plan.options.stdio[Number(plan.args[seccompIndex + 1])];
+      plan.options.stdio[Number(bwrapArgs[seccompIndex + 1])];
     expect(harness.fdOffsets.get(actualSeccompFd)).toBe(0);
     const seccompProgram = harness.detachedContents.get(actualSeccompFd);
     expect(seccompProgram.length % 8).toBe(0);
@@ -2739,6 +3363,369 @@ describe("platform sandbox adapter contract", () => {
       expect(harness.anonymousFiles.size).toBe(0);
     },
   );
+
+  it("recursively binds cyclic second-level DT_NEEDED edges and survives dependency pathname replacement", () => {
+    const alpha = createLinuxStaticPieElf64({
+      dynamicFlags1: null,
+      dynamicNeededNames: ["libbeta.so"],
+    });
+    const beta = createLinuxStaticPieElf64({
+      dynamicFlags1: null,
+      dynamicNeededNames: ["libalpha.so"],
+    });
+    const harness = createLinuxStrongHarness({
+      entryRuntime: "native-dynamic-elf",
+      nativeEntry: createLinuxStaticPieElf64({
+        includeInterp: true,
+        interpreterPath: "/lib64/ld-linux.so.2",
+        dynamicNeededNames: ["libalpha.so"],
+      }),
+      lddStdout: [
+        "libalpha.so => /lib/libalpha.so (0x1)",
+        "libbeta.so => /lib/libbeta.so (0x2)",
+        "/lib64/ld-linux.so.2 (0x3)",
+      ].join("\n"),
+      additionalRuntimeFiles: [
+        { path: "/lib/libalpha.so", contents: alpha },
+        { path: "/lib/libbeta.so", contents: beta },
+      ],
+    });
+    const plan = applyLinuxStrongNativeHarness(harness);
+
+    expect(plan).toMatchObject({
+      applied: true,
+      runtimeProbe: {
+        initialDynamicLoadClosureDescriptorBound: true,
+        initialDynamicDependencyCount: 3,
+        initialDynamicRuntimeFileCount: 3,
+        sharedLibraryClosure: false,
+      },
+    });
+    const betaMount = linuxBwrapFileMounts(plan.args).find(
+      ({ destination }) => destination === "/lib/libbeta.so",
+    );
+    const betaParentFd = plan.options.stdio[betaMount.childFd];
+    const betaBefore = Buffer.from(beta);
+    harness.replaceFileAtPath(
+      "/lib/libbeta.so",
+      createLinuxStaticPieElf64({
+        dynamicFlags1: null,
+        dynamicRunpath: true,
+      }),
+    );
+
+    expect(harness.detachedContents.get(betaParentFd)).toEqual(betaBefore);
+    expect(harness.files.get("/lib/libbeta.so")).not.toEqual(betaBefore);
+    expect(
+      harness.spawnSync(plan.command, plan.args, plan.options).status,
+    ).toBe(0);
+
+    plan.cleanup();
+    expect(harness.openFiles.size).toBe(0);
+  });
+
+  it.each([
+    [
+      "a missing second-level dependency",
+      createLinuxStaticPieElf64({
+        dynamicFlags1: null,
+        dynamicNeededNames: ["libmissing-secondary.so"],
+      }),
+      "native_dynamic_recursive_dependency_outside_system_graph",
+      [
+        "libalpha.so => /lib/libalpha.so (0x1)",
+        "/lib64/ld-linux.so.2 (0x2)",
+      ].join("\n"),
+      [],
+    ],
+    [
+      "a second-level DT_RUNPATH directive",
+      createLinuxStaticPieElf64({
+        dynamicFlags1: null,
+        dynamicRunpath: true,
+      }),
+      "native_dependency_dynamic_loader_directive_unsupported",
+      [
+        "libalpha.so => /lib/libalpha.so (0x1)",
+        "/lib64/ld-linux.so.2 (0x2)",
+      ].join("\n"),
+      [],
+    ],
+    [
+      "a second-level DT_SONAME alias",
+      createLinuxStaticPieElf64({
+        dynamicFlags1: null,
+        dynamicSoname: "libalias.so",
+      }),
+      "native_dependency_soname_alias_unsupported",
+      [
+        "libalpha.so => /lib/libalpha.so (0x1)",
+        "/lib64/ld-linux.so.2 (0x2)",
+      ].join("\n"),
+      [],
+    ],
+    [
+      "an ambiguous second-level basename",
+      createLinuxStaticPieElf64({
+        dynamicFlags1: null,
+        dynamicNeededNames: ["libbeta.so"],
+      }),
+      "runtime_dependency_resolution_ambiguous",
+      [
+        "libalpha.so => /lib/libalpha.so (0x1)",
+        "libbeta.so => /lib/libbeta.so (0x2)",
+        "libbeta.so => /usr/lib/libbeta.so (0x3)",
+        "/lib64/ld-linux.so.2 (0x4)",
+      ].join("\n"),
+      [
+        {
+          path: "/lib/libbeta.so",
+          contents: createLinuxStaticPieElf64({ dynamicFlags1: null }),
+        },
+        {
+          path: "/usr/lib/libbeta.so",
+          contents: createLinuxStaticPieElf64({ dynamicFlags1: null }),
+        },
+      ],
+    ],
+  ])(
+    "fails closed for %s in the recursive native loader graph",
+    (_label, alpha, expectedReason, lddStdout, extraFiles) => {
+      const harness = createLinuxStrongHarness({
+        entryRuntime: "native-dynamic-elf",
+        nativeEntry: createLinuxStaticPieElf64({
+          includeInterp: true,
+          interpreterPath: "/lib64/ld-linux.so.2",
+          dynamicNeededNames: ["libalpha.so"],
+        }),
+        lddStdout,
+        additionalRuntimeFiles: [
+          { path: "/lib/libalpha.so", contents: alpha },
+          ...extraFiles,
+        ],
+      });
+      const plan = applyLinuxStrongNativeHarness(harness);
+      const resolutionRejectedBeforePin = expectedReason.startsWith(
+        "runtime_dependency_resolution_",
+      );
+
+      expect(plan).toMatchObject({
+        applied: false,
+        backend: null,
+        candidateBackend: "linux-bwrap",
+        policyAttested: false,
+        reason: resolutionRejectedBeforePin
+          ? "linux_bwrap_runtime_unattested"
+          : "linux_bwrap_native_runtime_unattested",
+        guarantees: [],
+        runtimeProbe: {
+          attempted: false,
+          runnable: false,
+          reason: expectedReason,
+          targetRuntime: "native-dynamic-elf",
+          contentSnapshot: false,
+          handleAtomic: false,
+        },
+      });
+      expect(
+        harness.spawnSync.mock.calls.some(([, spawnArgs]) =>
+          spawnArgs?.includes("/opt/chainless/plugin/bin/tool"),
+        ),
+      ).toBe(false);
+      expect(harness.openFiles.size).toBe(0);
+    },
+  );
+
+  it.each([
+    {
+      arch: "x64",
+      auditArch: 0xc000003e,
+      socketSyscall: 41,
+      socketpairSyscall: 53,
+      syscallMask: 0xbfffffff,
+      cloneSyscall: 56,
+      deniedSyscalls: [
+        47, 299, 438, 304, 272, 308, 165, 166, 155, 428, 429, 430, 431, 432,
+        433, 442,
+      ],
+    },
+    {
+      arch: "arm64",
+      auditArch: 0xc00000b7,
+      socketSyscall: 198,
+      socketpairSyscall: 199,
+      syscallMask: null,
+      cloneSyscall: 220,
+      deniedSyscalls: [
+        212, 243, 438, 265, 97, 268, 40, 39, 41, 428, 429, 430, 431, 432, 433,
+        442,
+      ],
+    },
+    {
+      arch: "riscv64",
+      auditArch: 0xc00000f3,
+      socketSyscall: 198,
+      socketpairSyscall: 199,
+      syscallMask: null,
+      cloneSyscall: 220,
+      deniedSyscalls: [
+        212, 243, 438, 265, 97, 268, 40, 39, 41, 428, 429, 430, 431, 432, 433,
+        442,
+      ],
+    },
+  ])(
+    "adds loader-FD and nested namespace denials to the dynamic pathname cBPF program for $arch",
+    ({
+      arch,
+      auditArch,
+      socketSyscall,
+      socketpairSyscall,
+      syscallMask,
+      cloneSyscall,
+      deniedSyscalls,
+    }) => {
+      const machine = { x64: 62, arm64: 183, riscv64: 243 }[arch];
+      const harness = createLinuxStrongHarness({
+        entryRuntime: "native-dynamic-elf",
+        nativeEntry: createLinuxStaticPieElf64({
+          machine,
+          includeInterp: true,
+          interpreterPath: "/lib64/ld-linux.so.2",
+          dynamicNeededNames: ["libc.so.6"],
+        }),
+        runtimeLibc: createLinuxStaticPieElf64({
+          machine,
+          dynamicFlags1: null,
+        }),
+        runtimeLoader: createLinuxStaticPieElf64({
+          machine,
+          dynamicFlags1: null,
+        }),
+      });
+      const plan = applyLinuxStrongNativeHarness(
+        harness,
+        ["--label", "ready"],
+        arch,
+      );
+
+      expect(plan.applied).toBe(true);
+      expect(plan.runtimeProbe).toMatchObject({
+        targetRuntime: "native-dynamic-elf",
+        runtimeSharedLibraryPathnameClosure: true,
+        sharedLibraryClosure: false,
+      });
+      const seccompIndex = plan.args.indexOf("--seccomp");
+      const seccompFd = plan.options.stdio[Number(plan.args[seccompIndex + 1])];
+      const program = harness.detachedContents.get(seccompFd);
+      const decoded = [];
+      for (let offset = 0; offset < program.length; offset += 8) {
+        decoded.push([
+          program.readUInt16LE(offset),
+          program.readUInt8(offset + 2),
+          program.readUInt8(offset + 3),
+          program.readUInt32LE(offset + 4),
+        ]);
+      }
+      expect(decoded).toEqual([
+        [0x20, 0, 0, 4],
+        [0x15, 1, 0, auditArch],
+        [0x06, 0, 0, 0x80000000],
+        [0x20, 0, 0, 0],
+        ...(syscallMask === null ? [] : [[0x54, 0, 0, syscallMask]]),
+        [0x15, 0, 1, socketSyscall],
+        [0x06, 0, 0, 0x00050001],
+        [0x15, 0, 1, socketpairSyscall],
+        [0x06, 0, 0, 0x00050001],
+        [0x15, 0, 1, 425],
+        [0x06, 0, 0, 0x00050001],
+        [0x15, 0, 1, 435],
+        [0x06, 0, 0, 0x00050026],
+        ...deniedSyscalls.flatMap((syscall) => [
+          [0x15, 0, 1, syscall],
+          [0x06, 0, 0, 0x00050001],
+        ]),
+        [0x15, 0, 5, cloneSyscall],
+        [0x20, 0, 0, 16],
+        [0x54, 0, 0, 0x10020000],
+        [0x15, 1, 0, 0],
+        [0x06, 0, 0, 0x00050001],
+        [0x06, 0, 0, 0x7fff0000],
+        [0x06, 0, 0, 0x7fff0000],
+      ]);
+
+      const staticHarness = createLinuxStrongHarness({
+        entryRuntime: "native-static-elf",
+        nativeEntry: createLinuxStaticElf64({ machine }),
+      });
+      const staticPlan = applyLinuxStrongNativeHarness(
+        staticHarness,
+        ["--label", "ready"],
+        arch,
+      );
+      expect(staticPlan.applied).toBe(true);
+      const staticSeccompIndex = staticPlan.args.indexOf("--seccomp");
+      const staticSeccompFd =
+        staticPlan.options.stdio[
+          Number(staticPlan.args[staticSeccompIndex + 1])
+        ];
+      const staticProgram = staticHarness.detachedContents.get(staticSeccompFd);
+      const runtimePathnameDenialBytes =
+        (2 + deniedSyscalls.length * 2 + 6) * 8;
+      expect(staticProgram).toEqual(
+        Buffer.concat([
+          program.subarray(0, program.length - 8 - runtimePathnameDenialBytes),
+          program.subarray(program.length - 8),
+        ]),
+      );
+
+      plan.cleanup();
+      staticPlan.cleanup();
+      expect(harness.openFiles.size).toBe(0);
+      expect(staticHarness.openFiles.size).toBe(0);
+    },
+  );
+
+  it("binds and hashes ld.so.cache as a pathname-visible load-set member", () => {
+    const nativeEntry = createLinuxStaticPieElf64({
+      includeInterp: true,
+      interpreterPath: "/lib64/ld-linux.so.2",
+      dynamicNeededNames: ["libc.so.6"],
+    });
+    const baselineHarness = createLinuxStrongHarness({
+      entryRuntime: "native-dynamic-elf",
+      nativeEntry,
+    });
+    const hostileCacheHarness = createLinuxStrongHarness({
+      entryRuntime: "native-dynamic-elf",
+      nativeEntry,
+    });
+    hostileCacheHarness.files.set(
+      "/etc/ld.so.cache",
+      Buffer.from("cache-entry:/host/unmounted/libhostile.so"),
+    );
+
+    const baselinePlan = applyLinuxStrongNativeHarness(baselineHarness);
+    const hostileCachePlan = applyLinuxStrongNativeHarness(hostileCacheHarness);
+
+    expect(baselinePlan.applied).toBe(true);
+    expect(hostileCachePlan.applied).toBe(true);
+    expect(
+      linuxBwrapFileMounts(baselinePlan.args).filter(
+        ({ destination }) => destination === "/etc/ld.so.cache",
+      ),
+    ).toHaveLength(1);
+    expect(
+      baselinePlan.runtimeProbe.runtimeSharedLibraryLoadSetDigest,
+    ).not.toBe(hostileCachePlan.runtimeProbe.runtimeSharedLibraryLoadSetDigest);
+    expect(baselinePlan.runtimeProbe.runtimeSharedLibraryLoadSetFiles).toBe(
+      linuxBwrapFileMounts(baselinePlan.args).length,
+    );
+
+    baselinePlan.cleanup();
+    hostileCachePlan.cleanup();
+    expect(baselineHarness.openFiles.size).toBe(0);
+    expect(hostileCacheHarness.openFiles.size).toBe(0);
+  });
 
   it.each([
     [
@@ -3275,11 +4262,10 @@ describe("platform sandbox adapter contract", () => {
     expect(harness.fsRuntime.statSync).toHaveBeenCalledWith("/usr/bin/bwrap", {
       bigint: true,
     });
-    const policyProbeCall = harness.spawnSync.mock.calls.find(
-      ([command, args]) =>
-        command === "/proc/self/fd/3" && args?.[0] !== "--help",
+    const policyProbeInvocation = harness.bwrapInvocations.find(
+      ({ stage }) => stage === "probe",
     );
-    expect(policyProbeCall[1].join("\n")).toContain(
+    expect(policyProbeInvocation.args.join("\n")).toContain(
       "fstatSync(Number(name), { bigint: true })",
     );
 
@@ -3339,8 +4325,15 @@ describe("platform sandbox adapter contract", () => {
         handleAtomic: false,
       },
     });
-    expect(plan.command).toBe("/proc/self/fd/3");
-    expectLinuxBwrapSupervisorPolicy(plan.args);
+    const scrubbedLaunch = parseLinuxBwrapDescriptorScrubbedLaunch(
+      plan.command,
+      plan.args,
+      plan.options,
+    );
+    expect(scrubbedLaunch).not.toBeNull();
+    expect(scrubbedLaunch.executableChildFd).toBe(3);
+    const bwrapArgs = scrubbedLaunch.executableArgs;
+    expectLinuxBwrapSupervisorPolicy(bwrapArgs);
     expectLinuxBwrapSupervisorInvocations(harness, ["capability", "probe"]);
     expect(plan.options.stdio[3]).not.toBe(
       harness.bwrapInvocations[0].parentFd,
@@ -3349,19 +4342,19 @@ describe("platform sandbox adapter contract", () => {
       harness.bwrapInvocations[1].parentFd,
     );
     expect(harness.fdOffsets.get(plan.options.stdio[3])).toBe(0);
-    const entryDataIndex = plan.args.findIndex(
+    const entryDataIndex = bwrapArgs.findIndex(
       (value, index) =>
         value === "--ro-bind-data" &&
-        plan.args[index + 2] === "/opt/chainless/plugin/bin/tool",
+        bwrapArgs[index + 2] === "/opt/chainless/plugin/bin/tool",
     );
-    expect(plan.args.slice(entryDataIndex - 2, entryDataIndex + 3)).toEqual([
+    expect(bwrapArgs.slice(entryDataIndex - 2, entryDataIndex + 3)).toEqual([
       "--perms",
       "0500",
       "--ro-bind-data",
       expect.any(String),
       "/opt/chainless/plugin/bin/tool",
     ]);
-    const nativeMounts = linuxBwrapFileMounts(plan.args);
+    const nativeMounts = linuxBwrapFileMounts(bwrapArgs);
     expect(nativeMounts.filter(({ mode }) => mode === "ro-bind-data")).toEqual(
       expect.arrayContaining([
         {
@@ -3378,24 +4371,23 @@ describe("platform sandbox adapter contract", () => {
         },
       ]),
     );
-    expect(plan.args.slice(-4)).toEqual([
+    expect(bwrapArgs.slice(-4)).toEqual([
       "--",
       "/opt/chainless/plugin/bin/tool",
       "--label",
       "ready",
     ]);
-    expect(plan.args.join("\0")).not.toContain("LD_LIBRARY_PATH");
+    expect(bwrapArgs.join("\0")).not.toContain("LD_LIBRARY_PATH");
     expect(harness.lddInspectionSources).toEqual(["/runtime/node"]);
-    const policyProbeCall = harness.spawnSync.mock.calls.find(
-      ([command, probeArgs]) =>
-        harness.isBwrapCommand(command) && probeArgs?.[0] !== "--help",
-    );
-    const probeSeparator = policyProbeCall[1].lastIndexOf("--");
+    const policyProbeArgs = harness.bwrapInvocations.find(
+      ({ stage }) => stage === "probe",
+    ).args;
+    const probeSeparator = policyProbeArgs.lastIndexOf("--");
     expect(
-      policyProbeCall[1].slice(probeSeparator + 1, probeSeparator + 3),
+      policyProbeArgs.slice(probeSeparator + 1, probeSeparator + 3),
     ).toEqual(["/opt/chainless/runtime/node", "-e"]);
     expect(
-      policyProbeCall[1]
+      policyProbeArgs
         .slice(probeSeparator + 1)
         .includes("/opt/chainless/plugin/bin/tool"),
     ).toBe(false);
@@ -3414,7 +4406,7 @@ describe("platform sandbox adapter contract", () => {
     expect(
       probeSnapshotRead.flags & harness.fsRuntime.constants.O_ACCMODE,
     ).toBe(harness.fsRuntime.constants.O_RDONLY);
-    const finalSnapshotChildFd = Number(plan.args[entryDataIndex + 1]);
+    const finalSnapshotChildFd = Number(bwrapArgs[entryDataIndex + 1]);
     const finalSnapshotFd = plan.options.stdio[finalSnapshotChildFd];
     expect(finalSnapshotFd).not.toBe(probeSnapshotRead.parentFd);
     expect(harness.fdOffsets.get(finalSnapshotFd)).toBe(0);
@@ -3595,10 +4587,15 @@ describe("platform sandbox adapter contract", () => {
       const originalSpawnSync = harness.spawnSync.getMockImplementation();
       let replacement;
       harness.spawnSync.mockImplementation((command, args, options) => {
+        const scrubbedLaunch = parseLinuxBwrapDescriptorScrubbedLaunch(
+          command,
+          args,
+          options,
+        );
         if (
           !replacement &&
-          command === "/proc/self/fd/3" &&
-          args?.[0] === "--help"
+          scrubbedLaunch?.executableChildFd === 3 &&
+          scrubbedLaunch.executableArgs[0] === "--help"
         ) {
           replacement = harness.replaceFileAtPath(
             "/usr/bin/bwrap",
@@ -3618,7 +4615,6 @@ describe("platform sandbox adapter contract", () => {
       });
       expect(plan).toMatchObject({
         applied: true,
-        command: "/proc/self/fd/3",
         runtimeProbe: {
           runnable: true,
           targetRuntime: entryRuntime,
@@ -3628,7 +4624,13 @@ describe("platform sandbox adapter contract", () => {
       });
       expect(replacement.after.ino).not.toBe(replacement.before.ino);
       expect(replacement.afterSha256).not.toBe(replacement.beforeSha256);
-      expectLinuxBwrapSupervisorPolicy(plan.args);
+      const finalLaunch = parseLinuxBwrapDescriptorScrubbedLaunch(
+        plan.command,
+        plan.args,
+        plan.options,
+      );
+      expect(finalLaunch).not.toBeNull();
+      expectLinuxBwrapSupervisorPolicy(finalLaunch.executableArgs);
       expectLinuxBwrapSupervisorInvocations(harness, ["capability", "probe"]);
       expect(
         harness.bwrapInvocations.every(
@@ -3726,7 +4728,7 @@ describe("platform sandbox adapter contract", () => {
     ["dynamic PIE ET_DYN", {}],
     ["dynamic non-PIE ET_EXEC", { elfType: 2, dynamicFlags1: null }],
   ])(
-    "binds a %s interpreter and direct DT_NEEDED set to pinned trusted runtime files",
+    "binds a %s interpreter and recursive DT_NEEDED graph to pinned trusted runtime files",
     (_label, elfOptions) => {
       const harness = createLinuxStrongHarness({
         entryRuntime: "native-dynamic-elf",
@@ -3762,14 +4764,34 @@ describe("platform sandbox adapter contract", () => {
           contentSnapshotScope: "plugin-entry-executable",
           initialDynamicLoadClosureDescriptorBound: true,
           initialDynamicLoadClosureScope:
-            "initial-pt_interp-and-direct-dt_needed-attested-system-set",
+            "initial-pt_interp-and-recursive-dt_needed-attested-system-graph",
           initialDynamicLoadClosureMechanism:
-            "parsed-elf-direct-system-set-to-attested-node-runtime-fds-v1",
+            "recursive-parsed-elf-system-graph-to-attested-runtime-fds-v1",
           initialDynamicInterpreter: "/lib64/ld-linux.so.2",
           initialDynamicDependencyCount: 1,
           initialDynamicRuntimeFileCount: 2,
+          initialDynamicRuntimeBytes: expect.any(Number),
           initialDynamicLoadClosureDigest:
             expect.stringMatching(/^[a-f0-9]{64}$/),
+          sharedLibraryClosure: false,
+          runtimeSharedLibraryPathnameClosure: true,
+          runtimeSharedLibraryPathnameClosureExcludes:
+            "anonymous-jit-and-custom-in-process-loader",
+          runtimeSharedLibraryClosureScope:
+            "all-pathname-visible-regular-files-in-read-only-bwrap-namespace",
+          runtimeSharedLibraryClosureMechanism:
+            "descriptor-pinned-hashed-ro-mount-set-plus-loader-fd-and-namespace-mutation-seccomp-v2",
+          runtimeSharedLibraryLoadSetFiles: expect.any(Number),
+          runtimeSharedLibraryLoadSetBytes: expect.any(Number),
+          runtimeSharedLibraryLoadSetDigest:
+            expect.stringMatching(/^[a-f0-9]{64}$/),
+          runtimeLoadSetPolicyBound: true,
+          runtimeWritableFilesystems: false,
+          runtimeProcfsMounted: false,
+          runtimeDevfsMounted: false,
+          runtimeScratchWritable: false,
+          runtimeDescriptorReopenPaths: false,
+          supervisorPid1ExecutableExposure: "procfs-not-mounted",
           handleAtomic: false,
         },
       });
@@ -3779,6 +4801,10 @@ describe("platform sandbox adapter contract", () => {
         "--label",
         "ready",
       ]);
+      expect(plan.runtimeProbe.initialDynamicRuntimeBytes).toBe(
+        harness.files.get("/lib/libc.so.6").length +
+          harness.files.get("/lib64/ld-linux.so.2").length,
+      );
       expect(linuxBwrapFileMounts(plan.args)).toEqual(
         expect.arrayContaining([
           {
@@ -3799,18 +4825,197 @@ describe("platform sandbox adapter contract", () => {
             destination: "/opt/chainless/plugin/bin/tool",
             permissions: "0500",
           },
+          {
+            mode: "ro-bind-data",
+            childFd: expect.any(Number),
+            destination: "/opt/chainless/runtime/node",
+            permissions: "0500",
+          },
         ]),
       );
       expect(harness.lddInspectionSources).toEqual(["/runtime/node"]);
       expect(harness.lddInspectionSources.includes(harness.entryPath)).toBe(
         false,
       );
-      expect(plan.args.join("\0")).not.toContain("LD_LIBRARY_PATH");
+      const finalLaunch = parseLinuxBwrapDescriptorScrubbedLaunch(
+        plan.command,
+        plan.args,
+        plan.options,
+      );
+      expect(finalLaunch).not.toBeNull();
+      const bwrapArgs = finalLaunch.executableArgs;
+      expect(bwrapArgs.join("\0")).not.toContain("LD_LIBRARY_PATH");
+      const targetSeparator = bwrapArgs.indexOf("--");
+      const finalPolicyArgs = bwrapArgs.slice(0, targetSeparator);
+      const policyTargets = (option) =>
+        finalPolicyArgs.flatMap((value, index) =>
+          value === option ? [finalPolicyArgs[index + 1]] : [],
+        );
+      expect(policyTargets("--tmpfs")).toEqual(["/run"]);
+      expect(policyTargets("--remount-ro")).toEqual(["/", "/run"]);
+      expect(finalPolicyArgs).not.toContain("--proc");
+      expect(finalPolicyArgs).not.toContain("--dev");
+      expect(finalPolicyArgs).not.toContain("--bind");
+      expect(finalPolicyArgs).not.toContain("--dev-bind");
+      expect(finalPolicyArgs.indexOf("--remount-ro")).toBeLessThan(
+        finalPolicyArgs.indexOf("--tmpfs"),
+      );
+      const probeInvocation = harness.bwrapInvocations.find(
+        ({ stage }) => stage === "probe",
+      );
+      const probeSeparator = probeInvocation.args.indexOf("--");
+      expect(probeInvocation.args.slice(0, probeSeparator)).toEqual(
+        finalPolicyArgs,
+      );
+      expect(probeInvocation.args.join("\n")).toContain(
+        "chainless-linux-bwrap-native-runtime-pathname-closure-v1",
+      );
+      expect(probeInvocation.args.join("\n")).toContain('"/proc/self/fd/0"');
+      expect(plan.runtimeProbe.runtimeSharedLibraryLoadSetFiles).toBe(
+        linuxBwrapFileMounts(bwrapArgs).length,
+      );
 
       plan.cleanup();
       expect(harness.openFiles.size).toBe(0);
     },
   );
+
+  it("accepts a trusted dependency whose unused PT_INTERP is a valid system loader path", () => {
+    const harness = createLinuxStrongHarness({
+      entryRuntime: "native-dynamic-elf",
+      nativeEntry: createLinuxStaticPieElf64({
+        includeInterp: true,
+        interpreterPath: "/lib64/ld-linux.so.2",
+        dynamicNeededNames: ["libc.so.6"],
+      }),
+      runtimeLibc: createLinuxStaticPieElf64({
+        dynamicFlags1: null,
+        includeInterp: true,
+        interpreterPath: "/lib64/ld-linux.so.2",
+      }),
+    });
+    const plan = applyLinuxStrongNativeHarness(harness);
+
+    expect(plan).toMatchObject({
+      applied: true,
+      backend: "linux-bwrap",
+      runtimeProbe: {
+        targetRuntime: "native-dynamic-elf",
+        initialDynamicLoadClosureDescriptorBound: true,
+        initialDynamicRuntimeFileCount: 2,
+      },
+    });
+    plan.cleanup();
+    expect(harness.openFiles.size).toBe(0);
+  });
+
+  it("rejects an unused dependency PT_INTERP outside trusted system roots", () => {
+    const harness = createLinuxStrongHarness({
+      entryRuntime: "native-dynamic-elf",
+      nativeEntry: createLinuxStaticPieElf64({
+        includeInterp: true,
+        interpreterPath: "/lib64/ld-linux.so.2",
+        dynamicNeededNames: ["libc.so.6"],
+      }),
+      runtimeLibc: createLinuxStaticPieElf64({
+        dynamicFlags1: null,
+        includeInterp: true,
+        interpreterPath: "/tmp/untrusted-loader",
+      }),
+    });
+    const plan = applyLinuxStrongNativeHarness(harness);
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "linux_bwrap_native_runtime_unattested",
+      runtimeProbe: {
+        attempted: false,
+        runnable: false,
+        reason: "native_entry_interpreter_outside_system_roots",
+      },
+    });
+    expect(harness.openFiles.size).toBe(0);
+  });
+
+  it("keeps the visible dynamic probe Node runtime on an immutable snapshot across a same-inode host rewrite", () => {
+    const harness = createLinuxStrongHarness({
+      entryRuntime: "native-dynamic-elf",
+      nativeEntry: createLinuxStaticPieElf64({
+        includeInterp: true,
+        interpreterPath: "/lib64/ld-linux.so.2",
+        dynamicNeededNames: ["libc.so.6"],
+      }),
+    });
+    const originalRuntime = Buffer.from(harness.files.get("/runtime/node"));
+    const originalRuntimeSha256 = crypto
+      .createHash("sha256")
+      .update(originalRuntime)
+      .digest("hex");
+    const replacementRuntime = Buffer.from("replacement-node-runtime");
+    const plan = applyLinuxStrongNativeHarness(harness);
+
+    expect(plan.applied).toBe(true);
+    const runtimeMounts = linuxBwrapFileMounts(plan.args).filter(
+      ({ destination }) => destination === "/opt/chainless/runtime/node",
+    );
+    expect(runtimeMounts).toEqual([
+      {
+        mode: "ro-bind-data",
+        childFd: expect.any(Number),
+        destination: "/opt/chainless/runtime/node",
+        permissions: "0500",
+      },
+    ]);
+    const runtimeMount = runtimeMounts[0];
+    const probeRead = harness.bwrapDataReads.find(
+      ({ stage, destination }) =>
+        stage === "probe" && destination === "/opt/chainless/runtime/node",
+    );
+    expect(probeRead).toMatchObject({
+      bytesRead: originalRuntime.length,
+      permissions: "0500",
+      sha256: originalRuntimeSha256,
+    });
+    const finalRuntimeFd = plan.options.stdio[runtimeMount.childFd];
+    expect(finalRuntimeFd).not.toBe(probeRead.parentFd);
+    const finalRuntimeSnapshotPath = harness.openFiles.get(finalRuntimeFd);
+    expect(finalRuntimeSnapshotPath).toBe(probeRead.sourcePath);
+    expect(harness.files.get(finalRuntimeSnapshotPath)).toEqual(
+      originalRuntime,
+    );
+    expect(harness.statFor(finalRuntimeSnapshotPath)).toMatchObject({
+      nlink: 0,
+      mode: 0o100500,
+      size: originalRuntime.length,
+    });
+    expect([...harness.openFiles.values()]).not.toContain("/runtime/node");
+
+    const mutation = harness.rewriteFileInPlace(
+      "/runtime/node",
+      replacementRuntime,
+    );
+    expect(mutation.after.ino).toBe(mutation.before.ino);
+    expect(mutation.afterSha256).not.toBe(mutation.beforeSha256);
+
+    const result = harness.spawnSync(plan.command, plan.args, plan.options);
+    expect(result.status).toBe(0);
+    expect(
+      harness.bwrapDataReads.find(
+        ({ stage, destination }) =>
+          stage === "final" && destination === "/opt/chainless/runtime/node",
+      ),
+    ).toMatchObject({
+      parentFd: finalRuntimeFd,
+      bytesRead: originalRuntime.length,
+      permissions: "0500",
+      sha256: originalRuntimeSha256,
+    });
+    expect(harness.files.get("/runtime/node")).toEqual(replacementRuntime);
+
+    plan.cleanup();
+    expect(harness.openFiles.size).toBe(0);
+    expect(harness.anonymousFiles.size).toBe(0);
+  });
 
   it.each([
     [
@@ -10319,9 +11524,8 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
     expect(nativeSpawn).toHaveBeenCalledOnce();
   });
 
-  it("releases direct Linux bwrap descriptors immediately after async spawn duplication", () => {
-    const child = createChild();
-    const nativeSpawn = vi.fn(() => child);
+  it("rejects a structurally valid Linux bwrap plan from an injected adapter", () => {
+    const nativeSpawn = vi.fn();
     const cleanup = vi.fn();
     const plan = appliedLinuxBwrapPluginTreePlan(
       "tool",
@@ -10333,27 +11537,298 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       },
       { cleanup },
     );
+    expect(
+      executionBroker._validateSandboxPlan(
+        plan,
+        trustedBuiltInLinuxLaunchContext({
+          cwd: "/workspace",
+          requiredBoundaries: [
+            SANDBOX_BOUNDARIES.FILESYSTEM,
+            SANDBOX_BOUNDARIES.NETWORK,
+          ],
+        }),
+      ),
+    ).toMatchObject({
+      applied: true,
+      backend: "linux-bwrap",
+    });
     executionBroker._native = { spawn: nativeSpawn };
     executionBroker._sandboxAdapter = {
       applySandbox: vi.fn(() => plan),
       postSpawnSandbox: vi.fn(),
     };
 
-    const returned = executionBroker.spawn("tool", ["run"], {
-      origin: "plugin:bin",
-      policy: "allow",
-      cwd: "/workspace",
-      shell: false,
-      requiredBoundaries: [
-        SANDBOX_BOUNDARIES.FILESYSTEM,
-        SANDBOX_BOUNDARIES.NETWORK,
-      ],
-    });
-
-    expect(returned).toBe(child);
-    expect(nativeSpawn).toHaveBeenCalledOnce();
+    expect(() =>
+      executionBroker.spawn("tool", ["run"], {
+        origin: "plugin:bin",
+        policy: "allow",
+        cwd: "/workspace",
+        shell: false,
+        requiredBoundaries: [
+          SANDBOX_BOUNDARIES.FILESYSTEM,
+          SANDBOX_BOUNDARIES.NETWORK,
+        ],
+      }),
+    ).toThrow(
+      "Applied Linux bubblewrap plans require the built-in sandbox adapter",
+    );
+    expect(nativeSpawn).not.toHaveBeenCalled();
     expect(cleanup).toHaveBeenCalledOnce();
-    child.emit("exit", 0, null);
+  });
+
+  it("rejects a reserved bwrap backend declared for another platform", () => {
+    const nativeSpawn = vi.fn();
+    const cleanup = vi.fn();
+    const plan = appliedPlan(
+      "/bin/evil",
+      [],
+      {},
+      {
+        platform: "darwin",
+        enforcement: "linux-bwrap",
+        backend: "linux-bwrap",
+        guarantees: [SANDBOX_BOUNDARIES.FILESYSTEM],
+        cleanup,
+      },
+    );
+    executionBroker._native = { spawn: nativeSpawn };
+    executionBroker._sandboxAdapter = {
+      applySandbox: vi.fn(() => plan),
+      postSpawnSandbox: vi.fn(),
+    };
+
+    expect(() =>
+      executionBroker.spawn("tool", ["run"], {
+        origin: "test:cross-platform-reserved-bwrap",
+        policy: "allow",
+        sandboxPolicy: {
+          requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+        },
+      }),
+    ).toThrow("Reserved Linux bubblewrap backends require platform linux");
+    expect(nativeSpawn).not.toHaveBeenCalled();
+    expect(cleanup).toHaveBeenCalledOnce();
+  });
+
+  it("rejects the reserved Linux FD snapshot backend outside its built-in Linux authority", () => {
+    const nativeSpawn = vi.fn();
+    const nativeSpawnSync = vi.fn();
+    const asyncCleanup = vi.fn();
+    const syncCleanup = vi.fn();
+    const createForgedPlan = (cleanup) =>
+      appliedPlan(
+        "/bin/evil",
+        [],
+        {},
+        {
+          platform: "darwin",
+          enforcement: "linux-fd-code-snapshot",
+          backend: "linux-fd-code-snapshot",
+          guarantees: [SANDBOX_BOUNDARIES.FILESYSTEM],
+          cleanup,
+        },
+      );
+    executionBroker._native = {
+      spawn: nativeSpawn,
+      spawnSync: nativeSpawnSync,
+    };
+    executionBroker._sandboxAdapter = {
+      applySandbox: vi
+        .fn()
+        .mockReturnValueOnce(createForgedPlan(asyncCleanup))
+        .mockReturnValueOnce(createForgedPlan(syncCleanup)),
+      postSpawnSandbox: vi.fn(),
+    };
+    const options = {
+      origin: "test:cross-platform-reserved-fd-snapshot",
+      policy: "allow",
+      sandboxPolicy: {
+        requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+      },
+    };
+
+    expect(() => executionBroker.spawn("tool", ["run"], options)).toThrow(
+      "Reserved Linux FD code snapshot backend requires platform linux",
+    );
+    expect(() => executionBroker.spawnSync("tool", ["run"], options)).toThrow(
+      "Reserved Linux FD code snapshot backend requires platform linux",
+    );
+    expect(nativeSpawn).not.toHaveBeenCalled();
+    expect(nativeSpawnSync).not.toHaveBeenCalled();
+    expect(asyncCleanup).toHaveBeenCalledOnce();
+    expect(syncCleanup).toHaveBeenCalledOnce();
+
+    expect(() =>
+      executionBroker._validateSandboxPlan(
+        {
+          ...createForgedPlan(vi.fn()),
+          platform: "linux",
+        },
+        trustedBuiltInLinuxLaunchContext(),
+      ),
+    ).toThrow(
+      "Reserved Linux FD code snapshot backend requires the code-snapshot guarantee",
+    );
+
+    const missingBackendPlan = {
+      ...createForgedPlan(vi.fn()),
+      platform: "linux",
+      guarantees: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+    };
+    delete missingBackendPlan.backend;
+    for (const mismatchedPlan of [
+      missingBackendPlan,
+      { ...missingBackendPlan, backend: undefined },
+      { ...missingBackendPlan, backend: null },
+      {
+        ...missingBackendPlan,
+        backend: "linux-fd-code-snapshot",
+        enforcement: "not-linux-fd-code-snapshot",
+      },
+    ]) {
+      expect(() =>
+        executionBroker._validateSandboxPlan(
+          mismatchedPlan,
+          trustedBuiltInLinuxLaunchContext({
+            requiredBoundaries: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+          }),
+        ),
+      ).toThrow(
+        "Reserved Linux FD code snapshot backend requires exact backend and enforcement names",
+      );
+    }
+  });
+
+  it("rejects plugin bwrap plans that attach a workspace-only PTY policy", () => {
+    const nativeSpawn = vi.fn();
+    const cleanup = vi.fn();
+    const plan = appliedLinuxBwrapPluginTreePlan(
+      "tool",
+      ["run"],
+      {
+        cwd: "/workspace",
+        shell: false,
+        stdio: ["pipe", "pipe", "pipe", 41, 42],
+      },
+      {
+        cleanup,
+        ptyPolicy: { mode: "dedicated-controlling-terminal" },
+      },
+    );
+    expect(plan.ptyPolicy).toEqual({
+      mode: "dedicated-controlling-terminal",
+    });
+    expect(() =>
+      executionBroker._validateSandboxPlan(
+        plan,
+        trustedBuiltInLinuxLaunchContext(),
+      ),
+    ).toThrow(
+      "Applied Linux bubblewrap plans require the exact typed descriptor scrubber launch contract",
+    );
+    executionBroker._native = { spawn: nativeSpawn };
+    executionBroker._sandboxAdapter = {
+      applySandbox: vi.fn(() => plan),
+      postSpawnSandbox: vi.fn(),
+    };
+
+    expect(() =>
+      executionBroker.spawn("tool", ["run"], {
+        origin: "test:plugin-bwrap-forged-pty-policy",
+        policy: "allow",
+        sandboxPolicy: {
+          requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+        },
+      }),
+    ).toThrow(
+      "Applied Linux bubblewrap plans require the built-in sandbox adapter",
+    );
+    expect(nativeSpawn).not.toHaveBeenCalled();
+    expect(cleanup).toHaveBeenCalledOnce();
+  });
+
+  it("rejects a stateful sandbox-plan command getter before native launch", () => {
+    const nativeSpawn = vi.fn();
+    const cleanup = vi.fn();
+    const plan = appliedLinuxBwrapPluginTreePlan(
+      "tool",
+      ["run"],
+      {
+        cwd: "/workspace",
+        shell: false,
+        stdio: ["pipe", "pipe", "pipe", 41, 42],
+      },
+      { cleanup },
+    );
+    const validCommand = plan.command;
+    let commandReads = 0;
+    Object.defineProperty(plan, "command", {
+      configurable: true,
+      enumerable: true,
+      get() {
+        commandReads += 1;
+        return commandReads === 1 ? validCommand : "/bin/evil";
+      },
+    });
+    executionBroker._native = { spawn: nativeSpawn };
+    executionBroker._sandboxAdapter = {
+      applySandbox: vi.fn(() => plan),
+      postSpawnSandbox: vi.fn(),
+    };
+
+    expect(() =>
+      executionBroker.spawn("tool", ["run"], {
+        origin: "test:stateful-sandbox-command-getter",
+        policy: "allow",
+        sandboxPolicy: {
+          requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+        },
+      }),
+    ).toThrow("Sandbox spawn plan must use own data properties");
+    expect(commandReads).toBe(0);
+    expect(nativeSpawn).not.toHaveBeenCalled();
+    expect(cleanup).toHaveBeenCalledOnce();
+  });
+
+  it("rejects a stateful sandbox-plan applied getter before native launch", () => {
+    const nativeSpawn = vi.fn();
+    const cleanup = vi.fn();
+    const plan = appliedLinuxBwrapPluginTreePlan(
+      "tool",
+      ["run"],
+      {
+        cwd: "/workspace",
+        shell: false,
+        stdio: ["pipe", "pipe", "pipe", 41, 42],
+      },
+      { cleanup },
+    );
+    let appliedReads = 0;
+    Object.defineProperty(plan, "applied", {
+      configurable: true,
+      enumerable: true,
+      get() {
+        appliedReads += 1;
+        return appliedReads >= 6;
+      },
+    });
+    executionBroker._native = { spawn: nativeSpawn };
+    executionBroker._sandboxAdapter = {
+      applySandbox: vi.fn(() => plan),
+      postSpawnSandbox: vi.fn(),
+    };
+
+    expect(() =>
+      executionBroker.spawn("tool", ["run"], {
+        origin: "test:stateful-sandbox-applied-getter",
+        policy: "allow",
+        sandboxPolicy: {
+          requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+        },
+      }),
+    ).toThrow("Sandbox spawn plan must use own data properties");
+    expect(appliedReads).toBe(0);
+    expect(nativeSpawn).not.toHaveBeenCalled();
     expect(cleanup).toHaveBeenCalledOnce();
   });
 
@@ -10394,43 +11869,44 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
     });
   });
 
-  it("preserves complete Node plugin-tree snapshot evidence in the audit log", () => {
-    const child = createChild();
-    const nativeSpawn = vi.fn(() => child);
+  it("validates Node plugin-tree evidence but rejects its injected adapter", () => {
+    const nativeSpawn = vi.fn();
+    const cleanup = vi.fn();
     const runtimeProbe = createLinuxPluginTreeRuntimeProbe();
+    const plan = appliedLinuxBwrapPluginTreePlan(
+      "tool",
+      ["run"],
+      {},
+      {
+        runtimeProbe,
+        cleanup,
+      },
+    );
+    expect(
+      executionBroker._validateSandboxPlan(
+        plan,
+        trustedBuiltInLinuxLaunchContext(),
+      ).runtimeProbe,
+    ).toEqual(expectedLinuxDescriptorRuntimeProbe(runtimeProbe));
     executionBroker._native = { spawn: nativeSpawn };
     executionBroker._sandboxAdapter = {
-      applySandbox: vi.fn((command, args, options) =>
-        appliedLinuxBwrapPluginTreePlan(command, args, options, {
-          runtimeProbe,
-        }),
-      ),
+      applySandbox: vi.fn(() => plan),
       postSpawnSandbox: vi.fn(),
     };
 
-    const returned = executionBroker.spawn("tool", ["run"], {
-      origin: "test:plugin-tree-runtime-probe",
-      policy: "allow",
-    });
-
-    expect(returned).toBe(child);
-    expect(nativeSpawn).toHaveBeenCalledOnce();
-    const auditEntry = executionBroker.getAuditLog(1)[0];
-    expect(auditEntry).toMatchObject({
-      sandboxed: true,
-      sandboxProfile: "strict",
-      sandboxEnforcement: "linux-bwrap",
-      sandboxBackend: "linux-bwrap",
-      sandboxCandidateBackend: null,
-      sandboxPolicyAttested: true,
-      sandboxPolicyDigest: "c".repeat(64),
-      sandboxGuarantees: [
-        SANDBOX_BOUNDARIES.FILESYSTEM,
-        SANDBOX_BOUNDARIES.NETWORK,
-        SANDBOX_BOUNDARIES.PROCESS_TREE,
-      ],
-    });
-    expect(auditEntry.sandboxRuntimeProbe).toEqual(runtimeProbe);
+    expect(() =>
+      executionBroker.spawn("tool", ["run"], {
+        origin: "test:plugin-tree-runtime-probe",
+        policy: "allow",
+        sandboxPolicy: {
+          requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+        },
+      }),
+    ).toThrow(
+      "Applied Linux bubblewrap plans require the built-in sandbox adapter",
+    );
+    expect(nativeSpawn).not.toHaveBeenCalled();
+    expect(cleanup).toHaveBeenCalledOnce();
   });
 
   it.each([
@@ -10547,55 +12023,74 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
     (_label, runtimeProbeOverrides, planOverrides = {}) => {
       const nativeSpawn = vi.fn();
       executionBroker._native = { spawn: nativeSpawn };
-      executionBroker._sandboxAdapter = {
-        applySandbox: vi.fn((command, args, options) =>
-          appliedLinuxBwrapPluginTreePlan(command, args, options, {
-            runtimeProbe: createLinuxPluginTreeRuntimeProbe(
-              runtimeProbeOverrides,
-            ),
-            ...planOverrides,
-          }),
-        ),
-        postSpawnSandbox: vi.fn(),
-      };
+      const plan = appliedLinuxBwrapPluginTreePlan(
+        "tool",
+        ["run"],
+        {},
+        {
+          runtimeProbe: createLinuxPluginTreeRuntimeProbe(
+            runtimeProbeOverrides,
+          ),
+          ...planOverrides,
+        },
+      );
 
       expect(() =>
-        executionBroker.spawn("tool", ["run"], {
-          origin: `test:invalid-plugin-tree-runtime-probe-${_label}`,
-          policy: "allow",
-          sandboxPolicy: {
+        executionBroker._validateSandboxPlan(
+          plan,
+          trustedBuiltInLinuxLaunchContext({
             requiredBoundaries: [SANDBOX_BOUNDARIES.PROCESS_TREE],
-          },
-        }),
-      ).toThrow(/plugin tree snapshot evidence/);
+          }),
+        ),
+      ).toThrow(
+        _label === "on a non-Linux platform"
+          ? /Reserved Linux bubblewrap backends require platform linux/
+          : _label === "from a non-bwrap backend"
+            ? /descriptor scrubber evidence requires an applied bubblewrap backend/
+            : /plugin tree snapshot evidence/,
+      );
       expect(nativeSpawn).not.toHaveBeenCalled();
     },
   );
 
-  it("preserves descriptor-bound dynamic ELF direct-system-set evidence in the audit log", () => {
-    const child = createChild();
-    const nativeSpawn = vi.fn(() => child);
+  it("validates dynamic ELF graph evidence but rejects its injected adapter", () => {
+    const nativeSpawn = vi.fn();
+    const cleanup = vi.fn();
     const runtimeProbe = createLinuxDynamicNativeRuntimeProbe();
+    const plan = appliedLinuxBwrapDynamicNativePlan(
+      "tool",
+      ["run"],
+      {},
+      {
+        runtimeProbe,
+        cleanup,
+      },
+    );
+    expect(
+      executionBroker._validateSandboxPlan(
+        plan,
+        trustedBuiltInLinuxLaunchContext(),
+      ).runtimeProbe,
+    ).toEqual(expectedLinuxDescriptorRuntimeProbe(runtimeProbe));
     executionBroker._native = { spawn: nativeSpawn };
     executionBroker._sandboxAdapter = {
-      applySandbox: vi.fn((command, args, options) =>
-        appliedLinuxBwrapDynamicNativePlan(command, args, options, {
-          runtimeProbe,
-        }),
-      ),
+      applySandbox: vi.fn(() => plan),
       postSpawnSandbox: vi.fn(),
     };
 
-    const returned = executionBroker.spawn("tool", ["run"], {
-      origin: "test:dynamic-native-runtime-probe",
-      policy: "allow",
-    });
-
-    expect(returned).toBe(child);
-    expect(nativeSpawn).toHaveBeenCalledOnce();
-    expect(executionBroker.getAuditLog(1)[0].sandboxRuntimeProbe).toEqual(
-      runtimeProbe,
+    expect(() =>
+      executionBroker.spawn("tool", ["run"], {
+        origin: "test:dynamic-native-runtime-probe",
+        policy: "allow",
+        sandboxPolicy: {
+          requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+        },
+      }),
+    ).toThrow(
+      "Applied Linux bubblewrap plans require the built-in sandbox adapter",
     );
+    expect(nativeSpawn).not.toHaveBeenCalled();
+    expect(cleanup).toHaveBeenCalledOnce();
   });
 
   it("preserves a zero-capability runtime attestation through plan validation", () => {
@@ -10673,30 +12168,44 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
     );
   });
 
-  it("preserves complete static native plugin-tree evidence in the audit log", () => {
-    const child = createChild();
-    const nativeSpawn = vi.fn(() => child);
+  it("validates static native tree evidence but rejects its injected adapter", () => {
+    const nativeSpawn = vi.fn();
+    const cleanup = vi.fn();
     const runtimeProbe = createLinuxStaticNativeRuntimeProbe();
+    const plan = appliedLinuxBwrapPluginTreePlan(
+      "tool",
+      ["run"],
+      {},
+      {
+        runtimeProbe,
+        cleanup,
+      },
+    );
+    expect(
+      executionBroker._validateSandboxPlan(
+        plan,
+        trustedBuiltInLinuxLaunchContext(),
+      ).runtimeProbe,
+    ).toEqual(expectedLinuxDescriptorRuntimeProbe(runtimeProbe));
     executionBroker._native = { spawn: nativeSpawn };
     executionBroker._sandboxAdapter = {
-      applySandbox: vi.fn((command, args, options) =>
-        appliedLinuxBwrapPluginTreePlan(command, args, options, {
-          runtimeProbe,
-        }),
-      ),
+      applySandbox: vi.fn(() => plan),
       postSpawnSandbox: vi.fn(),
     };
 
-    const returned = executionBroker.spawn("tool", ["run"], {
-      origin: "test:static-native-tree-runtime-probe",
-      policy: "allow",
-    });
-
-    expect(returned).toBe(child);
-    expect(nativeSpawn).toHaveBeenCalledOnce();
-    expect(executionBroker.getAuditLog(1)[0].sandboxRuntimeProbe).toEqual(
-      runtimeProbe,
+    expect(() =>
+      executionBroker.spawn("tool", ["run"], {
+        origin: "test:static-native-tree-runtime-probe",
+        policy: "allow",
+        sandboxPolicy: {
+          requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+        },
+      }),
+    ).toThrow(
+      "Applied Linux bubblewrap plans require the built-in sandbox adapter",
     );
+    expect(nativeSpawn).not.toHaveBeenCalled();
+    expect(cleanup).toHaveBeenCalledOnce();
   });
 
   it.each([
@@ -10725,26 +12234,190 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
     (_label, runtimeProbeOverrides, expectedError) => {
       const nativeSpawn = vi.fn();
       executionBroker._native = { spawn: nativeSpawn };
-      executionBroker._sandboxAdapter = {
-        applySandbox: vi.fn((command, args, options) =>
-          appliedLinuxBwrapDynamicNativePlan(command, args, options, {
-            runtimeProbe: createLinuxDynamicNativeRuntimeProbe(
-              runtimeProbeOverrides,
-            ),
-          }),
-        ),
-        postSpawnSandbox: vi.fn(),
-      };
+      const plan = appliedLinuxBwrapDynamicNativePlan(
+        "tool",
+        ["run"],
+        {},
+        {
+          runtimeProbe: createLinuxDynamicNativeRuntimeProbe(
+            runtimeProbeOverrides,
+          ),
+        },
+      );
 
       expect(() =>
-        executionBroker.spawn("tool", ["run"], {
-          origin: `test:invalid-dynamic-native-tree-${_label}`,
-          policy: "allow",
-          sandboxPolicy: {
-            requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
-          },
-        }),
+        executionBroker._validateSandboxPlan(
+          plan,
+          trustedBuiltInLinuxLaunchContext(),
+        ),
       ).toThrow(expectedError);
+      expect(nativeSpawn).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    [
+      "a missing pathname-closure discriminator",
+      {
+        runtimeSharedLibraryPathnameClosure: undefined,
+        supervisorPid1ExecutableExposure: "procfs",
+      },
+      /pathname shared-library evidence requires runtimeSharedLibraryPathnameClosure/,
+    ],
+    [
+      "a forged exclusion boundary",
+      { runtimeSharedLibraryPathnameClosureExcludes: "all-executable-memory" },
+    ],
+    [
+      "a forged pathname scope",
+      { runtimeSharedLibraryClosureScope: "all-native-code" },
+    ],
+    [
+      "a forged enforcement mechanism",
+      { runtimeSharedLibraryClosureMechanism: "startup-graph-scan" },
+    ],
+    ["an empty load set", { runtimeSharedLibraryLoadSetFiles: 0 }],
+    ["an oversized load set", { runtimeSharedLibraryLoadSetFiles: 513 }],
+    ["zero attested bytes", { runtimeSharedLibraryLoadSetBytes: 0 }],
+    [
+      "an oversized byte aggregate",
+      { runtimeSharedLibraryLoadSetBytes: 1024 * 1024 * 1024 + 1 },
+    ],
+    [
+      "an invalid load-set digest",
+      { runtimeSharedLibraryLoadSetDigest: "F".repeat(64) },
+      /runtimeSharedLibraryLoadSetDigest must be a lowercase SHA-256 value/,
+    ],
+    ["an unbound load set", { runtimeLoadSetPolicyBound: false }],
+    ["a writable filesystem", { runtimeWritableFilesystems: true }],
+    ["a mounted procfs", { runtimeProcfsMounted: true }],
+    ["a mounted devfs", { runtimeDevfsMounted: true }],
+    ["writable scratch", { runtimeScratchWritable: true }],
+    ["descriptor reopen paths", { runtimeDescriptorReopenPaths: true }],
+    [
+      "procfs supervisor exposure",
+      { supervisorPid1ExecutableExposure: "procfs" },
+      /bound supervisor evidence/,
+    ],
+  ])(
+    "rejects dynamic runtime pathname closure evidence with %s",
+    (_label, runtimeProbeOverrides, expectedError) => {
+      const nativeSpawn = vi.fn();
+      executionBroker._native = { spawn: nativeSpawn };
+      const plan = appliedLinuxBwrapDynamicNativePlan(
+        "tool",
+        ["run"],
+        {},
+        {
+          runtimeProbe: createLinuxDynamicNativeRuntimeProbe(
+            runtimeProbeOverrides,
+          ),
+        },
+      );
+
+      expect(() =>
+        executionBroker._validateSandboxPlan(
+          plan,
+          trustedBuiltInLinuxLaunchContext(),
+        ),
+      ).toThrow(expectedError || /typed read-only no-proc bwrap contract/);
+      expect(nativeSpawn).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    [
+      "a procfs mount",
+      (args, separator) => args.splice(separator, 0, "--proc", "/proc"),
+    ],
+    [
+      "an unknown future bwrap option",
+      (args, separator) =>
+        args.splice(separator, 0, "--future-filesystem-option", "/unapproved"),
+    ],
+    [
+      "an injected loader environment variable",
+      (args, separator) =>
+        args.splice(separator, 0, "--setenv", "LD_PRELOAD", "/unapproved.so"),
+    ],
+    [
+      "an unapproved writable tmpfs",
+      (args) => {
+        args[args.indexOf("/run", args.indexOf("--tmpfs"))] = "/tmp";
+      },
+    ],
+    [
+      "an unbound host pathname mount",
+      (args, separator) =>
+        args.splice(
+          separator,
+          0,
+          "--ro-bind",
+          "/host/unapproved.so",
+          "/lib/unapproved.so",
+        ),
+    ],
+    [
+      "an extra descriptor-created regular file",
+      (args, separator) =>
+        args.splice(
+          separator,
+          0,
+          "--file",
+          "10",
+          "/opt/chainless/plugin/unapproved.so",
+        ),
+    ],
+    [
+      "a non-sequential load-set descriptor",
+      (args) => {
+        args[args.indexOf("--ro-bind-fd") + 1] = "8";
+      },
+    ],
+    [
+      "a caller-owned raw Node runtime descriptor",
+      (args) => {
+        const runtimeDestination = args.indexOf("/opt/chainless/runtime/node");
+        args.splice(
+          runtimeDestination - 4,
+          5,
+          "--ro-bind-fd",
+          "4",
+          "/opt/chainless/runtime/node",
+        );
+      },
+    ],
+    [
+      "a mismatched seccomp descriptor",
+      (args) => {
+        args[args.indexOf("--seccomp") + 1] = "10";
+      },
+    ],
+    [
+      "remount ordering after the writable overlay",
+      (args) => {
+        const rootRemount = args.indexOf("--remount-ro");
+        const pair = args.splice(rootRemount, 2);
+        const runRemount = args.lastIndexOf("--remount-ro");
+        args.splice(runRemount + 2, 0, ...pair);
+      },
+    ],
+  ])(
+    "rejects a dynamic runtime pathname closure plan with %s",
+    (_label, mutateArgs) => {
+      const nativeSpawn = vi.fn();
+      executionBroker._native = { spawn: nativeSpawn };
+      const plan = appliedLinuxBwrapDynamicNativePlan("tool", ["run"], {});
+      const forgedArgs = [...plan.args];
+      mutateArgs(forgedArgs, forgedArgs.indexOf("--"));
+      const forgedPlan = { ...plan, args: forgedArgs };
+
+      expect(() =>
+        executionBroker._validateSandboxPlan(
+          forgedPlan,
+          trustedBuiltInLinuxLaunchContext(),
+        ),
+      ).toThrow(/typed read-only no-proc bwrap contract/);
       expect(nativeSpawn).not.toHaveBeenCalled();
     },
   );
@@ -10775,22 +12448,33 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       },
     ],
     [
-      "dependency count above 128",
+      "dependency edge count above 1024",
       {
-        initialDynamicDependencyCount: 129,
+        initialDynamicDependencyCount: 1025,
       },
     ],
     [
-      "runtime file count above the direct system set",
+      "runtime file count above 256",
       {
-        initialDynamicRuntimeFileCount: 4,
+        initialDynamicRuntimeFileCount: 257,
       },
     ],
     [
-      "runtime file count below the unique direct dependency set",
+      "aggregate runtime bytes above 512 MiB",
       {
-        initialDynamicDependencyCount: 3,
-        initialDynamicRuntimeFileCount: 2,
+        initialDynamicRuntimeBytes: 512 * 1024 * 1024 + 1,
+      },
+    ],
+    [
+      "missing aggregate runtime bytes",
+      {
+        initialDynamicRuntimeBytes: undefined,
+      },
+    ],
+    [
+      "a forged arbitrary shared-library closure claim",
+      {
+        sharedLibraryClosure: true,
       },
     ],
     [
@@ -10827,65 +12511,60 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       },
     ],
   ])(
-    "rejects dynamic ELF direct-system-set evidence with %s before native spawn",
+    "rejects dynamic ELF recursive startup-graph evidence with %s before native spawn",
     (_label, runtimeProbeOverrides, expectedError) => {
       const nativeSpawn = vi.fn();
       executionBroker._native = { spawn: nativeSpawn };
-      executionBroker._sandboxAdapter = {
-        applySandbox: vi.fn((command, args, options) =>
-          appliedLinuxBwrapDynamicNativePlan(command, args, options, {
-            runtimeProbe: createLinuxDynamicNativeRuntimeProbe(
-              runtimeProbeOverrides,
-            ),
-          }),
-        ),
-        postSpawnSandbox: vi.fn(),
-      };
+      const plan = appliedLinuxBwrapDynamicNativePlan(
+        "tool",
+        ["run"],
+        {},
+        {
+          runtimeProbe: createLinuxDynamicNativeRuntimeProbe(
+            runtimeProbeOverrides,
+          ),
+        },
+      );
 
       expect(() =>
-        executionBroker.spawn("tool", ["run"], {
-          origin: `test:invalid-dynamic-native-runtime-probe-${_label}`,
-          policy: "allow",
-          sandboxPolicy: {
-            requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
-          },
-        }),
+        executionBroker._validateSandboxPlan(
+          plan,
+          trustedBuiltInLinuxLaunchContext(),
+        ),
       ).toThrow(
         expectedError ||
-          /initialDynamicLoadClosure|initial dynamic direct system set/,
+          /initialDynamicLoadClosure|initial recursive dynamic system graph/,
       );
       expect(nativeSpawn).not.toHaveBeenCalled();
     },
   );
 
-  it("rejects successful dynamic ELF evidence without a descriptor-bound direct system set", () => {
+  it("rejects successful dynamic ELF evidence without a descriptor-bound recursive startup graph", () => {
     const nativeSpawn = vi.fn();
     executionBroker._native = { spawn: nativeSpawn };
-    executionBroker._sandboxAdapter = {
-      applySandbox: vi.fn((command, args, options) =>
-        appliedLinuxBwrapDynamicNativePlan(command, args, options, {
-          runtimeProbe: createLinuxDynamicNativeRuntimeProbe({
-            initialDynamicLoadClosureDescriptorBound: undefined,
-            initialDynamicLoadClosureScope: undefined,
-            initialDynamicLoadClosureMechanism: undefined,
-            initialDynamicInterpreter: undefined,
-            initialDynamicDependencyCount: undefined,
-            initialDynamicRuntimeFileCount: undefined,
-            initialDynamicLoadClosureDigest: undefined,
-          }),
+    const plan = appliedLinuxBwrapDynamicNativePlan(
+      "tool",
+      ["run"],
+      {},
+      {
+        runtimeProbe: createLinuxDynamicNativeRuntimeProbe({
+          initialDynamicLoadClosureDescriptorBound: undefined,
+          initialDynamicLoadClosureScope: undefined,
+          initialDynamicLoadClosureMechanism: undefined,
+          initialDynamicInterpreter: undefined,
+          initialDynamicDependencyCount: undefined,
+          initialDynamicRuntimeFileCount: undefined,
+          initialDynamicRuntimeBytes: undefined,
+          initialDynamicLoadClosureDigest: undefined,
         }),
-      ),
-      postSpawnSandbox: vi.fn(),
-    };
+      },
+    );
 
     expect(() =>
-      executionBroker.spawn("tool", ["run"], {
-        origin: "test:missing-dynamic-native-runtime-probe-closure",
-        policy: "allow",
-        sandboxPolicy: {
-          requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
-        },
-      }),
+      executionBroker._validateSandboxPlan(
+        plan,
+        trustedBuiltInLinuxLaunchContext(),
+      ),
     ).toThrow(/successful dynamic ELF evidence/);
     expect(nativeSpawn).not.toHaveBeenCalled();
   });
@@ -11190,177 +12869,152 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
     });
   });
 
-  it("accepts and audits typed atomic Linux MCP capsule evidence", async () => {
-    const child = createChild();
-    const nativeSpawn = vi.fn(() => child);
+  it("validates Linux FD snapshots but rejects their injected adapter", () => {
+    const nativeSpawn = vi.fn();
     const cleanup = vi.fn();
     const runtimePath = "/runtime/node";
     const entryPath = "/plugin/server.cjs";
+    const executionContract = normalizedMcpCapsuleContract({
+      runtimePath,
+      entryPath,
+    });
     normalizeSandboxExecutionContract = vi
       .spyOn(executionBroker, "_normalizeSandboxExecutionContract")
-      .mockReturnValue(
-        normalizedMcpCapsuleContract({ runtimePath, entryPath }),
-      );
-    executionBroker._native = { spawn: nativeSpawn };
-    executionBroker._sandboxAdapter = {
-      applySandbox: vi.fn((_command, _args, options) =>
-        appliedPlan(
-          "/proc/self/fd/3",
-          ["-e", MCP_STDIO_FD_ENTRY_BOOTSTRAP, "--", "--stdio"],
-          options,
-          {
-            platform: "linux",
-            enforcement: "linux-fd-code-snapshot",
-            backend: "linux-fd-code-snapshot",
-            candidateBackend: null,
-            policyAttested: true,
-            policyDigest: "9".repeat(64),
-            guarantees: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
-            cleanup,
-            runtimeProbe: {
-              kind: "linux-mcp-capsule-code-snapshot-v1",
-              attempted: true,
-              runnable: true,
-              reason: null,
-              probeRuntime: "node",
-              targetRuntime: "node",
-              contentSnapshot: true,
-              contentSnapshotScope: "mcp-capsule-entry-and-node-runtime",
-              contentSnapshotMechanism:
-                "verified-o_tmpfile-copy-inherited-fd-module-compile-v1",
-              handleAtomic: true,
-              entrySnapshotAtomic: true,
-              runtimeLaunchAtomic: true,
-              runtimeLaunchMechanism: "inherited-executable-fd-v1",
-              entrySnapshotBootstrapSha256: MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256,
-              sharedLibraryClosure: false,
-              runtimeSnapshotSha256: "a".repeat(64),
-              runtimeSnapshotBytes: 100,
-              entrySnapshotSha256: "b".repeat(64),
-              entrySnapshotBytes: 200,
-            },
-          },
-        ),
-      ),
-      postSpawnSandbox: vi.fn(),
-    };
-
-    executionBroker.spawn(runtimePath, [entryPath, "--stdio"], {
-      origin: "test:mcp-code-snapshot",
-      policy: "allow",
+      .mockReturnValue(executionContract);
+    const validPlan = appliedPlan(
+      "/proc/self/fd/3",
+      ["-e", MCP_STDIO_FD_ENTRY_BOOTSTRAP, "--", "--stdio"],
+      { shell: false },
+      {
+        platform: "linux",
+        enforcement: "linux-fd-code-snapshot",
+        backend: "linux-fd-code-snapshot",
+        candidateBackend: null,
+        policyAttested: true,
+        policyDigest: "9".repeat(64),
+        guarantees: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+        cleanup,
+        runtimeProbe: {
+          kind: "linux-mcp-capsule-code-snapshot-v1",
+          attempted: true,
+          runnable: true,
+          reason: null,
+          probeRuntime: "node",
+          targetRuntime: "node",
+          contentSnapshot: true,
+          contentSnapshotScope: "mcp-capsule-entry-and-node-runtime",
+          contentSnapshotMechanism:
+            "verified-o_tmpfile-copy-inherited-fd-module-compile-v1",
+          handleAtomic: true,
+          entrySnapshotAtomic: true,
+          runtimeLaunchAtomic: true,
+          runtimeLaunchMechanism: "inherited-executable-fd-v1",
+          entrySnapshotBootstrapSha256: MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256,
+          sharedLibraryClosure: false,
+          runtimeSnapshotSha256: "a".repeat(64),
+          runtimeSnapshotBytes: 100,
+          entrySnapshotSha256: "b".repeat(64),
+          entrySnapshotBytes: 200,
+        },
+      },
+    );
+    const launchContext = trustedBuiltInLinuxLaunchContext({
+      command: runtimePath,
+      args: [entryPath, "--stdio"],
       shell: false,
+      executionContract,
       requiredBoundaries: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
-      sandboxExecutionContract: Object.freeze({}),
     });
-
-    expect(nativeSpawn).toHaveBeenCalledOnce();
-    expect(cleanup).toHaveBeenCalledOnce();
-    expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
-      sandboxed: true,
-      sandboxBackend: "linux-fd-code-snapshot",
-      sandboxRequired: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
-      sandboxGuarantees: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
-      sandboxRuntimeProbe: {
+    expect(
+      executionBroker._validateSandboxPlan(validPlan, launchContext),
+    ).toMatchObject({
+      applied: true,
+      backend: "linux-fd-code-snapshot",
+      runtimeProbe: {
         handleAtomic: true,
-        sharedLibraryClosure: false,
         runtimeSnapshotSha256: "a".repeat(64),
         entrySnapshotSha256: "b".repeat(64),
       },
     });
-    await expect(child.sandboxReady).resolves.toMatchObject({
-      applied: true,
-      backend: "linux-fd-code-snapshot",
-    });
+    executionBroker._native = { spawn: nativeSpawn };
+    executionBroker._sandboxAdapter = {
+      applySandbox: vi.fn(() => validPlan),
+      postSpawnSandbox: vi.fn(),
+    };
 
-    normalizeSandboxExecutionContract.mockReturnValue(
-      normalizedMcpCapsuleContract({
-        runtimePath,
-        entryPath,
-        entrySha256: "c".repeat(64),
-      }),
-    );
     expect(() =>
       executionBroker.spawn(runtimePath, [entryPath, "--stdio"], {
-        origin: "test:mismatched-mcp-code-snapshot-contract",
+        origin: "test:mcp-code-snapshot",
         policy: "allow",
         shell: false,
         requiredBoundaries: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
         sandboxExecutionContract: Object.freeze({}),
       }),
     ).toThrow(
-      "Code snapshot guarantee requires typed atomic MCP capsule evidence",
+      "Applied Linux FD code snapshot plans require the built-in sandbox adapter",
     );
-    expect(nativeSpawn).toHaveBeenCalledOnce();
-
-    normalizeSandboxExecutionContract.mockReturnValue(
-      normalizedMcpCapsuleContract({ runtimePath, entryPath }),
-    );
-    const applyValidPlan = executionBroker._sandboxAdapter.applySandbox;
-    executionBroker._sandboxAdapter.applySandbox = vi.fn((...adapterArgs) => {
-      const validPlan = applyValidPlan(...adapterArgs);
-      return Object.freeze({
-        ...validPlan,
-        args: Object.freeze([
-          "-e",
-          MCP_STDIO_FD_ENTRY_BOOTSTRAP,
-          "--",
-          "--tampered",
-        ]),
-      });
-    });
+    expect(nativeSpawn).not.toHaveBeenCalled();
+    expect(cleanup).toHaveBeenCalledOnce();
     expect(() =>
-      executionBroker.spawn(runtimePath, [entryPath, "--stdio"], {
-        origin: "test:tampered-mcp-code-snapshot-args",
-        policy: "allow",
-        shell: false,
-        requiredBoundaries: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
-        sandboxExecutionContract: Object.freeze({}),
-      }),
-    ).toThrow(
-      "Code snapshot guarantee requires typed atomic MCP capsule evidence",
-    );
-    expect(nativeSpawn).toHaveBeenCalledOnce();
-
-    executionBroker._sandboxAdapter.applySandbox = vi.fn((...adapterArgs) => {
-      const validPlan = applyValidPlan(...adapterArgs);
-      return Object.freeze({
-        ...validPlan,
-        runtimeProbe: Object.freeze({
-          ...validPlan.runtimeProbe,
-          runtimeAttestedSha256: "a".repeat(64),
-          runtimeAttestedBytes: 100,
+      executionBroker._validateSandboxPlan(
+        validPlan,
+        trustedBuiltInLinuxLaunchContext({
+          command: runtimePath,
+          args: [entryPath, "--stdio"],
+          shell: false,
+          executionContract: normalizedMcpCapsuleContract({
+            runtimePath,
+            entryPath,
+            entrySha256: "c".repeat(64),
+          }),
+          requiredBoundaries: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
         }),
-      });
-    });
-    expect(() =>
-      executionBroker.spawn(runtimePath, [entryPath, "--stdio"], {
-        origin: "test:mixed-runtime-evidence-family",
-        policy: "allow",
-        shell: false,
-        requiredBoundaries: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
-        sandboxExecutionContract: Object.freeze({}),
-      }),
+      ),
     ).toThrow(
       "Code snapshot guarantee requires typed atomic MCP capsule evidence",
     );
-    expect(nativeSpawn).toHaveBeenCalledOnce();
+    expect(() =>
+      executionBroker._validateSandboxPlan(
+        {
+          ...validPlan,
+          args: ["-e", MCP_STDIO_FD_ENTRY_BOOTSTRAP, "--", "--tampered"],
+        },
+        launchContext,
+      ),
+    ).toThrow(
+      "Code snapshot guarantee requires typed atomic MCP capsule evidence",
+    );
+    expect(() =>
+      executionBroker._validateSandboxPlan(
+        {
+          ...validPlan,
+          runtimeProbe: {
+            ...validPlan.runtimeProbe,
+            runtimeAttestedSha256: "a".repeat(64),
+            runtimeAttestedBytes: 100,
+          },
+        },
+        launchContext,
+      ),
+    ).toThrow(
+      "Code snapshot guarantee requires typed atomic MCP capsule evidence",
+    );
   });
 
-  it("accepts only typed Linux bwrap plus MCP capsule snapshot evidence", async () => {
-    const child = createChild();
-    const nativeSpawn = vi.fn(() => child);
+  it("validates Linux bwrap snapshots but rejects their injected adapter", () => {
+    const nativeSpawn = vi.fn();
+    const cleanup = vi.fn();
     const runtimePath = "/opt/chainless/runtime/node";
     const entryPath = "/opt/chainless/plugin/server.cjs";
     const sourceRuntimePath = "/runtime/node";
     const sourceEntryPath = "/plugin/server.cjs";
+    const executionContract = normalizedMcpCapsuleContract({
+      runtimePath: sourceRuntimePath,
+      entryPath: sourceEntryPath,
+    });
     normalizeSandboxExecutionContract = vi
       .spyOn(executionBroker, "_normalizeSandboxExecutionContract")
-      .mockReturnValue(
-        normalizedMcpCapsuleContract({
-          runtimePath: sourceRuntimePath,
-          entryPath: sourceEntryPath,
-        }),
-      );
+      .mockReturnValue(executionContract);
     const runtimeProbe = createLinuxPluginTreeRuntimeProbe({
       mcpCapsuleCodeSnapshot: true,
       entrySnapshotAtomic: true,
@@ -11374,54 +13028,41 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       runtimeLaunchPath: runtimePath,
       entrySnapshotPath: entryPath,
     });
-    executionBroker._native = { spawn: nativeSpawn };
-    executionBroker._sandboxAdapter = {
-      applySandbox: vi.fn((_command, _args, options) =>
-        appliedLinuxBwrapPluginTreePlan(
-          runtimePath,
-          [entryPath, "--", "--stdio"],
-          options,
-          {
-            guarantees: [
-              SANDBOX_BOUNDARIES.FILESYSTEM,
-              SANDBOX_BOUNDARIES.NETWORK,
-              SANDBOX_BOUNDARIES.PROCESS_TREE,
-              SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
-            ],
-            runtimeProbe,
-          },
-        ),
-      ),
-      postSpawnSandbox: vi.fn(),
-    };
-
-    executionBroker.spawn(
-      sourceRuntimePath,
-      [sourceEntryPath, "--", "--stdio"],
-      {
-        origin: "test:linux-bwrap-mcp-code-snapshot",
-        policy: "allow",
-        shell: false,
-        requiredBoundaries: [
-          SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
-          SANDBOX_BOUNDARIES.FILESYSTEM,
-          SANDBOX_BOUNDARIES.NETWORK,
-        ],
-        sandboxExecutionContract: Object.freeze({}),
-      },
-    );
-
-    expect(nativeSpawn).toHaveBeenCalledOnce();
-    expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
-      sandboxed: true,
-      sandboxBackend: "linux-bwrap",
-      sandboxGuarantees: [
+    const buildPlan = (probe = runtimeProbe, planOverrides = {}) =>
+      appliedLinuxBwrapPluginTreePlan(
+        runtimePath,
+        [entryPath, "--", "--stdio"],
+        { shell: false },
+        {
+          guarantees: [
+            SANDBOX_BOUNDARIES.FILESYSTEM,
+            SANDBOX_BOUNDARIES.NETWORK,
+            SANDBOX_BOUNDARIES.PROCESS_TREE,
+            SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+          ],
+          runtimeProbe: probe,
+          cleanup,
+          ...planOverrides,
+        },
+      );
+    const validPlan = buildPlan();
+    const launchContext = trustedBuiltInLinuxLaunchContext({
+      command: sourceRuntimePath,
+      args: [sourceEntryPath, "--", "--stdio"],
+      shell: false,
+      executionContract,
+      requiredBoundaries: [
+        SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
         SANDBOX_BOUNDARIES.FILESYSTEM,
         SANDBOX_BOUNDARIES.NETWORK,
-        SANDBOX_BOUNDARIES.PROCESS_TREE,
-        SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
       ],
-      sandboxRuntimeProbe: {
+    });
+    expect(
+      executionBroker._validateSandboxPlan(validPlan, launchContext),
+    ).toMatchObject({
+      applied: true,
+      backend: "linux-bwrap",
+      runtimeProbe: {
         mcpCapsuleCodeSnapshot: true,
         entrySnapshotAtomic: true,
         runtimeLaunchAtomic: true,
@@ -11429,31 +13070,12 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
         entrySnapshotPath: entryPath,
       },
     });
-    await expect(child.sandboxReady).resolves.toMatchObject({
-      applied: true,
-      backend: "linux-bwrap",
-    });
+    executionBroker._native = { spawn: nativeSpawn };
+    executionBroker._sandboxAdapter = {
+      applySandbox: vi.fn(() => validPlan),
+      postSpawnSandbox: vi.fn(),
+    };
 
-    executionBroker._sandboxAdapter.applySandbox = vi.fn(
-      (_command, _args, options) =>
-        appliedLinuxBwrapPluginTreePlan(
-          runtimePath,
-          [entryPath, "--", "--stdio"],
-          options,
-          {
-            guarantees: [
-              SANDBOX_BOUNDARIES.FILESYSTEM,
-              SANDBOX_BOUNDARIES.NETWORK,
-              SANDBOX_BOUNDARIES.PROCESS_TREE,
-              SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
-            ],
-            runtimeProbe: {
-              ...runtimeProbe,
-              runtimeLaunchAtomic: false,
-            },
-          },
-        ),
-    );
     expect(() =>
       executionBroker.spawn(
         sourceRuntimePath,
@@ -11471,70 +13093,24 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
         },
       ),
     ).toThrow(
-      "Code snapshot guarantee requires typed atomic MCP capsule evidence",
+      "Applied Linux bubblewrap plans require the built-in sandbox adapter",
     );
-    expect(nativeSpawn).toHaveBeenCalledOnce();
+    expect(nativeSpawn).not.toHaveBeenCalled();
+    expect(cleanup).toHaveBeenCalledOnce();
 
-    executionBroker._sandboxAdapter.applySandbox = vi.fn(
-      (_command, _args, options) =>
-        appliedLinuxBwrapPluginTreePlan(
-          runtimePath,
-          [entryPath, "--", "--stdio"],
-          options,
-          {
-            guarantees: [
-              SANDBOX_BOUNDARIES.FILESYSTEM,
-              SANDBOX_BOUNDARIES.NETWORK,
-              SANDBOX_BOUNDARIES.PROCESS_TREE,
-              SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
-            ],
-            runtimeProbe: {
-              ...runtimeProbe,
-              runtimeDetachedChildSpawnVerified: false,
-            },
-          },
-        ),
-    );
     expect(() =>
-      executionBroker.spawn(
-        sourceRuntimePath,
-        [sourceEntryPath, "--", "--stdio"],
-        {
-          origin: "test:unverified-linux-detached-runtime-child",
-          policy: "allow",
-          shell: false,
-          requiredBoundaries: [
-            SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
-            SANDBOX_BOUNDARIES.FILESYSTEM,
-            SANDBOX_BOUNDARIES.NETWORK,
-          ],
-          sandboxExecutionContract: Object.freeze({}),
-        },
+      executionBroker._validateSandboxPlan(
+        buildPlan({ ...runtimeProbe, runtimeLaunchAtomic: false }),
+        launchContext,
       ),
     ).toThrow(
       "Code snapshot guarantee requires typed atomic MCP capsule evidence",
     );
-    expect(nativeSpawn).toHaveBeenCalledOnce();
-
-    executionBroker._sandboxAdapter.applySandbox = vi.fn(
-      (_command, _args, options) => {
-        const validPlan = appliedLinuxBwrapPluginTreePlan(
-          runtimePath,
-          [entryPath, "--", "--stdio"],
-          options,
-          {
-            guarantees: [
-              SANDBOX_BOUNDARIES.FILESYSTEM,
-              SANDBOX_BOUNDARIES.NETWORK,
-              SANDBOX_BOUNDARIES.PROCESS_TREE,
-              SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
-            ],
-            runtimeProbe,
-          },
-        );
-        return Object.freeze({
+    expect(() =>
+      executionBroker._validateSandboxPlan(
+        {
           ...validPlan,
-          args: Object.freeze([
+          args: [
             "--",
             "/bin/evil",
             "--",
@@ -11542,71 +13118,32 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
             entryPath,
             "--",
             "--stdio",
-          ]),
-        });
-      },
-    );
-    expect(() =>
-      executionBroker.spawn(
-        sourceRuntimePath,
-        [sourceEntryPath, "--", "--stdio"],
-        {
-          origin: "test:double-separator-linux-bwrap-code-snapshot",
-          policy: "allow",
-          shell: false,
-          requiredBoundaries: [
-            SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
-            SANDBOX_BOUNDARIES.FILESYSTEM,
-            SANDBOX_BOUNDARIES.NETWORK,
           ],
-          sandboxExecutionContract: Object.freeze({}),
         },
+        launchContext,
       ),
     ).toThrow(
-      "Code snapshot guarantee requires typed atomic MCP capsule evidence",
+      "Applied Linux bubblewrap plans require the exact typed descriptor scrubber launch contract",
     );
-    expect(nativeSpawn).toHaveBeenCalledOnce();
-
-    executionBroker._sandboxAdapter.applySandbox = vi.fn(
-      (_command, _args, options) =>
+    expect(() =>
+      executionBroker._validateSandboxPlan(
         appliedLinuxBwrapPluginTreePlan(
           runtimePath,
           ["/opt/chainless/plugin/../evil", "--", "--stdio"],
-          options,
+          { shell: false },
           {
-            guarantees: [
-              SANDBOX_BOUNDARIES.FILESYSTEM,
-              SANDBOX_BOUNDARIES.NETWORK,
-              SANDBOX_BOUNDARIES.PROCESS_TREE,
-              SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
-            ],
+            guarantees: validPlan.guarantees,
             runtimeProbe: {
               ...runtimeProbe,
               entrySnapshotPath: "/opt/chainless/plugin/../evil",
             },
           },
         ),
-    );
-    expect(() =>
-      executionBroker.spawn(
-        sourceRuntimePath,
-        [sourceEntryPath, "--", "--stdio"],
-        {
-          origin: "test:escaping-linux-bwrap-entry-snapshot",
-          policy: "allow",
-          shell: false,
-          requiredBoundaries: [
-            SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
-            SANDBOX_BOUNDARIES.FILESYSTEM,
-            SANDBOX_BOUNDARIES.NETWORK,
-          ],
-          sandboxExecutionContract: Object.freeze({}),
-        },
+        launchContext,
       ),
     ).toThrow(
       "Code snapshot guarantee requires typed atomic MCP capsule evidence",
     );
-    expect(nativeSpawn).toHaveBeenCalledOnce();
   });
 
   it("rejects macOS CODE_SNAPSHOT evidence without an atomic runtime launch", () => {
@@ -11731,6 +13268,178 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       },
     });
     expect(nativeSpawn).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [
+      "a structurally complete unissued plan",
+      (plan, context) => ({ plan, context }),
+    ],
+    [
+      "mutated helper arguments",
+      (plan, context) => ({
+        plan: { ...plan, args: [...plan.args, "--forged"] },
+        context,
+      }),
+    ],
+    [
+      "mutated caller-lifeline stdio",
+      (plan, context) => {
+        const stdio = [...plan.options.stdio];
+        stdio[8] = "ignore";
+        return {
+          plan: { ...plan, options: { ...plan.options, stdio } },
+          context,
+        };
+      },
+    ],
+    [
+      "mutated environment",
+      (plan, context) => ({
+        plan: {
+          ...plan,
+          options: {
+            ...plan.options,
+            env: { ...plan.options.env, DYLD_INSERT_LIBRARIES: "/tmp/evil" },
+          },
+        },
+        context,
+      }),
+    ],
+    [
+      "a different execution-contract object",
+      (plan, context) => ({
+        plan,
+        context: {
+          ...context,
+          executionContract: { ...context.executionContract },
+        },
+      }),
+    ],
+  ])("rejects macOS signed-root MCP authority from %s", (_label, mutate) => {
+    const runtimePath = "/usr/local/bin/node";
+    const entryPath = "/Users/test/capsule/server.cjs";
+    const contract = normalizedMcpCapsuleContract({ runtimePath, entryPath });
+    const originalArgs = [entryPath, "--stdio"];
+    const originalOptions = {
+      cwd: contract.pluginRoot,
+      shell: false,
+      detached: false,
+      stdio: ["pipe", "pipe", "pipe"],
+      env: { PATH: "/usr/bin:/bin" },
+    };
+    const requiredBoundaries = [
+      SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+      SANDBOX_BOUNDARIES.FILESYSTEM,
+      SANDBOX_BOUNDARIES.NETWORK,
+    ];
+    const basePlan = appliedMacSignedRootMcpPlan(
+      runtimePath,
+      originalArgs,
+      originalOptions,
+      contract,
+    );
+    const baseContext = {
+      command: runtimePath,
+      args: originalArgs,
+      cwd: contract.pluginRoot,
+      shell: false,
+      detached: false,
+      executionContract: contract,
+      profile: "default",
+      requiredBoundaries,
+      sync: false,
+      builtInSandboxAdapter: true,
+    };
+    const { plan, context } = mutate(basePlan, baseContext);
+
+    expect(
+      consumeMacMcpCodeSnapshotPlanBinding(plan, {
+        ...context,
+      }),
+    ).toBe(false);
+    expect(() => executionBroker._validateSandboxPlan(plan, context)).toThrow(
+      "Code snapshot guarantee requires typed atomic MCP capsule evidence",
+    );
+  });
+
+  it("burns and validates macOS MCP plan bindings before native spawn", () => {
+    expect(
+      macMcpTargetEnvironment(
+        { PATH: "/usr/bin", PKG_EXECPATH: "/forged/executable" },
+        { packaged: true, inheritedEnvironment: {} },
+      ),
+    ).toEqual({
+      PATH: "/usr/bin",
+      PKG_EXECPATH: MACOS_PKG_EXECPATH_MAGIC,
+    });
+    expect(
+      macMcpTargetEnvironment({ PATH: "/usr/bin" }, { packaged: false }),
+    ).toEqual({ PATH: "/usr/bin" });
+    expect(processExecutionBrokerSource).toContain(
+      "isMacosMcpLauncherPackageVersion(",
+    );
+    const consumeStart = platformSandboxSource.indexOf(
+      "export function consumeMacMcpCodeSnapshotPlanBinding(",
+    );
+    const consumeEnd = platformSandboxSource.indexOf(
+      "function validateMacMcpCapsuleContract(",
+      consumeStart,
+    );
+    const consumeSource = platformSandboxSource.slice(consumeStart, consumeEnd);
+    expect(
+      consumeSource.indexOf("issuedMacMcpCodeSnapshotPlans.delete(plan)"),
+    ).toBeLessThan(consumeSource.indexOf("return ("));
+    expect(consumeSource).toContain(
+      "issued.executionContract === expected.executionContract",
+    );
+    expect(consumeSource).toContain(
+      "sameStringArray(plan.args, issued.helperArgs)",
+    );
+    expect(consumeSource).toContain(
+      "macEnvironmentDigest(plan.options?.env) === issued.environmentDigest",
+    );
+    expect(consumeSource).toContain(
+      "sameMacStdio(issued.stdio, plan.options?.stdio)",
+    );
+
+    const asyncAdmissionStart = processExecutionBrokerSource.indexOf(
+      "const macPlanBindingDeclared =",
+      processExecutionBrokerSource.indexOf("spawn(command"),
+    );
+    const asyncSpawn = processExecutionBrokerSource.indexOf(
+      "proc = nativeSpawnFn(command, args, optsForSpawn)",
+      asyncAdmissionStart,
+    );
+    const asyncAdmission = processExecutionBrokerSource.slice(
+      asyncAdmissionStart,
+      asyncSpawn,
+    );
+    expect(asyncAdmission).toContain(
+      "admittedMacMcpCodeSnapshotPlans.delete(sandboxPlan)",
+    );
+    expect(processExecutionBrokerSource.slice(asyncSpawn)).toContain(
+      "const callerLifeline = proc?.stdio?.[8]",
+    );
+    expect(processExecutionBrokerSource.slice(asyncSpawn)).toContain(
+      'Object.defineProperty(proc, "macosMcpCallerLifeline"',
+    );
+    const syncSpawn = processExecutionBrokerSource.indexOf(
+      "const result = nativeSpawnSyncFn(command, args, optsForSync)",
+    );
+    const syncAdmission = processExecutionBrokerSource.slice(
+      processExecutionBrokerSource.lastIndexOf(
+        "const macPlanBindingDeclared =",
+        syncSpawn,
+      ),
+      syncSpawn,
+    );
+    expect(syncAdmission).toContain(
+      "admittedMacMcpCodeSnapshotPlans.delete(sandboxPlan)",
+    );
+    expect(syncAdmission).toContain(
+      "spawnSync owns the parent endpoint for stdio[8]",
+    );
   });
 
   it("rejects Windows MCP authority minted through an injected runtime adapter", () => {
@@ -12036,37 +13745,55 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
 
   it("rejects a forged code snapshot guarantee before native spawn", () => {
     const nativeSpawn = vi.fn();
-    executionBroker._native = { spawn: nativeSpawn };
-    executionBroker._sandboxAdapter = {
-      applySandbox: vi.fn((_command, _args, options) =>
-        appliedPlan("/proc/self/fd/3", ["/proc/self/fd/4"], options, {
-          platform: "linux",
-          enforcement: "linux-fd-code-snapshot",
-          backend: "linux-fd-code-snapshot",
-          candidateBackend: null,
-          policyAttested: true,
-          policyDigest: "9".repeat(64),
-          guarantees: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
-          runtimeProbe: {
-            kind: "linux-mcp-capsule-code-snapshot-v1",
-            attempted: true,
-            runnable: true,
-            reason: null,
-            probeRuntime: "node",
-            targetRuntime: "node",
-            contentSnapshot: true,
-            contentSnapshotScope: "mcp-capsule-entry-and-node-runtime",
-            contentSnapshotMechanism:
-              "verified-o_tmpfile-copy-inherited-fd-exec-v1",
-            handleAtomic: false,
-            sharedLibraryClosure: false,
-            runtimeSnapshotSha256: "a".repeat(64),
-            runtimeSnapshotBytes: 100,
-            entrySnapshotSha256: "b".repeat(64),
-            entrySnapshotBytes: 200,
-          },
+    const cleanup = vi.fn();
+    const plan = appliedPlan(
+      "/proc/self/fd/3",
+      ["/proc/self/fd/4"],
+      { shell: false },
+      {
+        platform: "linux",
+        enforcement: "linux-fd-code-snapshot",
+        backend: "linux-fd-code-snapshot",
+        candidateBackend: null,
+        policyAttested: true,
+        policyDigest: "9".repeat(64),
+        guarantees: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+        cleanup,
+        runtimeProbe: {
+          kind: "linux-mcp-capsule-code-snapshot-v1",
+          attempted: true,
+          runnable: true,
+          reason: null,
+          probeRuntime: "node",
+          targetRuntime: "node",
+          contentSnapshot: true,
+          contentSnapshotScope: "mcp-capsule-entry-and-node-runtime",
+          contentSnapshotMechanism:
+            "verified-o_tmpfile-copy-inherited-fd-exec-v1",
+          handleAtomic: false,
+          sharedLibraryClosure: false,
+          runtimeSnapshotSha256: "a".repeat(64),
+          runtimeSnapshotBytes: 100,
+          entrySnapshotSha256: "b".repeat(64),
+          entrySnapshotBytes: 200,
+        },
+      },
+    );
+    expect(() =>
+      executionBroker._validateSandboxPlan(
+        plan,
+        trustedBuiltInLinuxLaunchContext({
+          command: "node",
+          args: ["server.cjs"],
+          requiredBoundaries: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
         }),
       ),
+    ).toThrow(
+      "Code snapshot guarantee requires typed atomic MCP capsule evidence",
+    );
+    executionBroker._native = { spawn: nativeSpawn };
+    executionBroker._sandboxAdapter = {
+      applySandbox: vi.fn(() => plan),
       postSpawnSandbox: vi.fn(),
     };
 
@@ -12078,28 +13805,45 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
         requiredBoundaries: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
       }),
     ).toThrow(
-      "Code snapshot guarantee requires typed atomic MCP capsule evidence",
+      "Applied Linux FD code snapshot plans require the built-in sandbox adapter",
     );
     expect(nativeSpawn).not.toHaveBeenCalled();
+    expect(cleanup).toHaveBeenCalledOnce();
   });
 
   it("rejects a code snapshot guarantee with no runtime evidence", () => {
     const nativeSpawn = vi.fn();
     const cleanup = vi.fn();
-    executionBroker._native = { spawn: nativeSpawn };
-    executionBroker._sandboxAdapter = {
-      applySandbox: vi.fn((_command, _args, options) =>
-        appliedPlan("/proc/self/fd/3", ["/proc/self/fd/4"], options, {
-          platform: "linux",
-          enforcement: "linux-fd-code-snapshot",
-          backend: "linux-fd-code-snapshot",
-          candidateBackend: null,
-          policyAttested: true,
-          policyDigest: "9".repeat(64),
-          guarantees: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
-          cleanup,
+    const plan = appliedPlan(
+      "/proc/self/fd/3",
+      ["/proc/self/fd/4"],
+      { shell: false },
+      {
+        platform: "linux",
+        enforcement: "linux-fd-code-snapshot",
+        backend: "linux-fd-code-snapshot",
+        candidateBackend: null,
+        policyAttested: true,
+        policyDigest: "9".repeat(64),
+        guarantees: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+        cleanup,
+      },
+    );
+    expect(() =>
+      executionBroker._validateSandboxPlan(
+        plan,
+        trustedBuiltInLinuxLaunchContext({
+          command: "node",
+          args: ["server.cjs"],
+          requiredBoundaries: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
         }),
       ),
+    ).toThrow(
+      "Code snapshot guarantee requires typed atomic MCP capsule evidence",
+    );
+    executionBroker._native = { spawn: nativeSpawn };
+    executionBroker._sandboxAdapter = {
+      applySandbox: vi.fn(() => plan),
       postSpawnSandbox: vi.fn(),
     };
 
@@ -12111,7 +13855,7 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
         requiredBoundaries: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
       }),
     ).toThrow(
-      "Code snapshot guarantee requires typed atomic MCP capsule evidence",
+      "Applied Linux FD code snapshot plans require the built-in sandbox adapter",
     );
     expect(nativeSpawn).not.toHaveBeenCalled();
     expect(cleanup).toHaveBeenCalledOnce();

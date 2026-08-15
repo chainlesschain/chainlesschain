@@ -41,6 +41,7 @@ const LINUX_BWRAP_SUPERVISOR_BINDING =
   "pinned-child-fd3-file-consume-run-overmount-v1";
 const LINUX_ENTRY_SNAPSHOT_MECHANISM =
   "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1";
+const LINUX_AMBIENT_SENTINEL_CHILD_FD = 142;
 
 afterAll(() => {
   expect(resetWindowsSandboxAdapterCache()).toBe(true);
@@ -81,6 +82,46 @@ function fileIdentity(filePath) {
     mtimeMs: stat.mtimeMs,
     attestation: "realpath-file-id-sha256",
   };
+}
+
+function inheritedSentinelStdio(parentFd) {
+  const stdio = Array.from(
+    { length: LINUX_AMBIENT_SENTINEL_CHILD_FD + 1 },
+    () => "ignore",
+  );
+  stdio[1] = "pipe";
+  stdio[2] = "pipe";
+  stdio[LINUX_AMBIENT_SENTINEL_CHILD_FD] = parentFd;
+  return stdio;
+}
+
+function createLiveFifo(fifoPath) {
+  const result = nativeSpawnSync(
+    "/usr/bin/python3",
+    [
+      "-I",
+      "-S",
+      "-c",
+      "import os, sys; os.mkfifo(sys.argv[1], 0o600)",
+      fifoPath,
+    ],
+    { encoding: "utf8", timeout: 10_000 },
+  );
+  if (result.error || result.status !== 0) {
+    throw new Error(
+      `Unable to create live FIFO ${fifoPath}: ${result.error?.message || result.stderr || result.status}`,
+    );
+  }
+}
+
+function verifyLiveFifoRoundTrip(fd, payload) {
+  const expected = Buffer.from(payload);
+  expect(fs.writeSync(fd, expected, 0, expected.length)).toBe(expected.length);
+  const received = Buffer.alloc(expected.length);
+  expect(fs.readSync(fd, received, 0, received.length, null)).toBe(
+    expected.length,
+  );
+  expect(received).toEqual(expected);
 }
 
 async function warmBrokerAsyncRuntime(cwd) {
@@ -143,7 +184,13 @@ async function warmBrokerAsyncRuntime(cwd) {
 
 function expectLinuxSupervisorPlan(supervisorPlan) {
   expect(supervisorPlan).toMatchObject({
-    command: "/proc/self/fd/3",
+    logicalBwrapCommand: "/proc/self/fd/3",
+    descriptorScrubberLayout: {
+      activeStdioThrough: 2,
+      executableChildFd: 3,
+      rawCommandMatchesLayout: true,
+      scrubberChildFdMapped: true,
+    },
     childFd3Mapped: true,
     supervisorFile: {
       childFd: "3",
@@ -151,6 +198,12 @@ function expectLinuxSupervisorPlan(supervisorPlan) {
       permissions: "0000",
     },
   });
+  expect(supervisorPlan.descriptorScrubberLayout.scrubberChildFd).toBe(
+    supervisorPlan.descriptorScrubberLayout.preservedMaxFd + 1,
+  );
+  expect(supervisorPlan.rawScrubberCommand).toBe(
+    `/proc/self/fd/${supervisorPlan.descriptorScrubberLayout.scrubberChildFd}`,
+  );
   expect(supervisorPlan.runDirectoryIndex).toBeGreaterThanOrEqual(0);
   expect(supervisorPlan.supervisorFile.index).toBeGreaterThan(
     supervisorPlan.runDirectoryIndex,
@@ -166,7 +219,11 @@ function expectLinuxSupervisorPlan(supervisorPlan) {
   ).toBe(true);
 }
 
-function expectLinuxSupervisorAudit(audit, supervisorIdentity) {
+function expectLinuxSupervisorAudit(
+  audit,
+  supervisorIdentity,
+  { pid1ExecutableExposure = "procfs" } = {},
+) {
   expect(audit.sandboxRuntimeProbe).toMatchObject({
     supervisorDescriptorBound: true,
     supervisorExecutablePinned: true,
@@ -176,7 +233,7 @@ function expectLinuxSupervisorAudit(audit, supervisorIdentity) {
     supervisorDescriptorConsumedBeforeTarget: true,
     supervisorStagingPathHidden: true,
     supervisorTemporaryCopyObscured: true,
-    supervisorPid1ExecutableExposure: "procfs",
+    supervisorPid1ExecutableExposure: pid1ExecutableExposure,
     supervisorExecutableIdentity: {
       path: LINUX_BWRAP_PATH,
       fileId: supervisorIdentity.fileId,
@@ -849,6 +906,7 @@ describe.runIf(LIVE && SUPPORTED)(
           expect(coordinator.error, failureContext).toBeUndefined();
           expect(coordinator.status, failureContext).toBe(0);
           const envelope = JSON.parse(coordinator.stdout);
+          expect(envelope.supervisorPlan).toBeNull();
           expect(envelope.result).toMatchObject({
             plugin_bin: {
               plugin: "strict-live",
@@ -2432,6 +2490,15 @@ describe.runIf(LIVE && SUPPORTED)(
               direct_argv: true,
             },
           });
+          expect(envelope.mutationPhase, failureContext).toBe(
+            "after-broker-plan-admission-before-native-spawn",
+          );
+          expect(envelope.mutationLaunchBinding, failureContext).toEqual({
+            commandMatchesPlan: true,
+            argsMatchPlan: true,
+          });
+          expect(envelope.mutation, failureContext).not.toBeNull();
+          expect(envelope.dependencyMutation, failureContext).not.toBeNull();
           const report = JSON.parse(envelope.result.stdout);
           expect(report).toMatchObject({
             entryVersion: "original",
@@ -2631,7 +2698,7 @@ describe.runIf(LIVE && SUPPORTED)(
     );
 
     it.runIf(process.platform === "linux")(
-      "runs attested static and direct-system-set dynamic Plugin native ELFs and rejects scripted entries",
+      "runs static and runtime-pathname-closed dynamic Plugin native ELFs and rejects scripted entries",
       () => {
         const nonce = `${process.pid}-${Date.now()}`;
         const workspace = fs.mkdtempSync(
@@ -2649,6 +2716,26 @@ describe.runIf(LIVE && SUPPORTED)(
         const dynamicEntry = path.join(binDirectory, "dynamic-native");
         const dynamicPieEntry = path.join(binDirectory, "dynamic-pie-native");
         const scriptEntry = path.join(binDirectory, "script-native");
+        const libraryDirectory = path.join(pluginRoot, "lib");
+        const approvedLibrary = path.join(
+          libraryDirectory,
+          "libchainless-approved.so",
+        );
+        const replacementApprovedLibrary = path.join(
+          workspace,
+          "replacement-approved.so",
+        );
+        const unmountedSameSonameLibrary = path.join(
+          workspace,
+          "unmounted-same-soname.so",
+        );
+        const unmountedDifferentSonameLibrary = path.join(
+          workspace,
+          "unmounted-different-soname.so",
+        );
+        const sandboxApprovedLibrary =
+          "/opt/chainless/plugin/lib/libchainless-approved.so";
+        const sandboxRuntimePath = "/opt/chainless/runtime/node";
         const replacementEntry = path.join(workspace, "replacement-native");
         const replacementAllowedPath = path.join(
           workspace,
@@ -2683,6 +2770,12 @@ describe.runIf(LIVE && SUPPORTED)(
             import.meta.url,
           ),
         );
+        const dlopenLibrarySource = fileURLToPath(
+          new URL(
+            "../fixtures/process-broker-linux-bwrap-native-dlopen-library.c",
+            import.meta.url,
+          ),
+        );
         const runPluginCommand = (command) =>
           nativeSpawnSync(
             process.execPath,
@@ -2699,7 +2792,7 @@ describe.runIf(LIVE && SUPPORTED)(
               },
             },
           );
-        const commandArgs = [
+        const baseCommandArgs = [
           "allowed.txt",
           secretPath,
           sandboxPluginMarker,
@@ -2711,6 +2804,7 @@ describe.runIf(LIVE && SUPPORTED)(
 
         try {
           fs.mkdirSync(binDirectory, { recursive: true });
+          fs.mkdirSync(libraryDirectory, { recursive: true });
           fs.writeFileSync(allowedPath, "allowed-native-data", "utf8");
           fs.writeFileSync(
             replacementAllowedPath,
@@ -2737,6 +2831,48 @@ describe.runIf(LIVE && SUPPORTED)(
             }),
             "utf8",
           );
+
+          const buildDlopenLibrary = (output, soname, variant) => {
+            const build = nativeSpawnSync(
+              "/usr/bin/cc",
+              [
+                "-shared",
+                "-fPIC",
+                `-Wl,-soname,${soname}`,
+                `-DCHAINLESS_DLOPEN_VARIANT=${variant}`,
+                "-Wl,-z,noexecstack",
+                "-O2",
+                "-Wall",
+                "-Wextra",
+                "-o",
+                output,
+                dlopenLibrarySource,
+              ],
+              { encoding: "utf8", timeout: 60_000 },
+            );
+            expect(
+              build.error,
+              `${build.stdout}\n${build.stderr}`,
+            ).toBeUndefined();
+            expect(build.status, build.stderr).toBe(0);
+          };
+          buildDlopenLibrary(approvedLibrary, "libchainless-approved.so", 0);
+          buildDlopenLibrary(
+            replacementApprovedLibrary,
+            "libchainless-approved.so",
+            1,
+          );
+          buildDlopenLibrary(
+            unmountedSameSonameLibrary,
+            "libchainless-approved.so",
+            2,
+          );
+          buildDlopenLibrary(
+            unmountedDifferentSonameLibrary,
+            "libchainless-unapproved.so",
+            3,
+          );
+          const approvedLibraryOriginal = fs.readFileSync(approvedLibrary);
 
           const staticBuild = nativeSpawnSync(
             "/usr/bin/cc",
@@ -2836,12 +2972,16 @@ describe.runIf(LIVE && SUPPORTED)(
           const dynamicBuild = nativeSpawnSync(
             "/usr/bin/cc",
             [
+              "-DCHAINLESS_DLOPEN_PROBE=1",
               "-no-pie",
               "-Wl,-z,noexecstack",
               "-O2",
+              "-Wall",
+              "-Wextra",
               "-o",
               dynamicEntry,
               nativeSource,
+              "-ldl",
             ],
             { encoding: "utf8", timeout: 60_000 },
           );
@@ -2853,13 +2993,17 @@ describe.runIf(LIVE && SUPPORTED)(
           const dynamicPieBuild = nativeSpawnSync(
             "/usr/bin/cc",
             [
+              "-DCHAINLESS_DLOPEN_PROBE=1",
               "-fPIE",
               "-pie",
               "-Wl,-z,noexecstack",
               "-O2",
+              "-Wall",
+              "-Wextra",
               "-o",
               dynamicPieEntry,
               nativeSource,
+              "-ldl",
             ],
             { encoding: "utf8", timeout: 60_000 },
           );
@@ -2870,6 +3014,53 @@ describe.runIf(LIVE && SUPPORTED)(
           expect(dynamicPieBuild.status, dynamicPieBuild.stderr).toBe(0);
           const dynamicPieImage = fs.readFileSync(dynamicPieEntry);
           expect(dynamicPieImage.readUInt16LE(16)).toBe(3);
+          const nestedNamespaceControl = nativeSpawnSync(
+            dynamicEntry,
+            ["--nested-namespace-control", approvedLibrary],
+            { encoding: "utf8", timeout: 60_000 },
+          );
+          const nestedNamespaceControlContext = JSON.stringify({
+            status: nestedNamespaceControl.status,
+            signal: nestedNamespaceControl.signal,
+            error: nestedNamespaceControl.error?.message,
+            stdout: nestedNamespaceControl.stdout,
+            stderr: nestedNamespaceControl.stderr,
+          });
+          expect(
+            nestedNamespaceControl.error,
+            nestedNamespaceControlContext,
+          ).toBeUndefined();
+          expect(
+            nestedNamespaceControl.status,
+            nestedNamespaceControlContext,
+          ).toBe(0);
+          const nestedNamespaceControlReport = JSON.parse(
+            nestedNamespaceControl.stdout,
+          );
+          expect(
+            nestedNamespaceControlReport.nestedNamespaceControlSupported,
+          ).toEqual(expect.any(Boolean));
+          if (nestedNamespaceControlReport.nestedNamespaceControlSupported) {
+            // When the host permits unprivileged user namespaces, prove the
+            // adversarial fixture is not a constant-false dlopen check.
+            expect(nestedNamespaceControlReport).toMatchObject({
+              stage: "complete",
+              errno: 0,
+              dropinWritten: true,
+              dropinDlopen: true,
+            });
+          } else {
+            // Host userns/AppArmor policy may independently close the attack.
+            // Record that as unsupported rather than counting it as seccomp
+            // evidence; the sandboxed syscall probes below remain mandatory.
+            expect(["unshare", "id-map", "mkdtemp", "mount"]).toContain(
+              nestedNamespaceControlReport.stage,
+            );
+            expect(Number.isInteger(nestedNamespaceControlReport.errno)).toBe(
+              true,
+            );
+            expect(nestedNamespaceControlReport.errno).toBeGreaterThan(0);
+          }
           fs.writeFileSync(
             scriptEntry,
             `#!/bin/sh\nprintf launched > ${quotePosix(scriptMarker)}\n`,
@@ -2883,6 +3074,19 @@ describe.runIf(LIVE && SUPPORTED)(
             ["dynamic-pie-native", dynamicPieEntry, "native-dynamic-elf"],
           ]) {
             fs.writeFileSync(allowedPath, "allowed-native-data", "utf8");
+            const dynamicRuntime = targetRuntime === "native-dynamic-elf";
+            if (dynamicRuntime) {
+              fs.writeFileSync(approvedLibrary, approvedLibraryOriginal);
+              fs.chmodSync(approvedLibrary, 0o755);
+            }
+            const commandArgs = dynamicRuntime
+              ? [
+                  ...baseCommandArgs,
+                  sandboxApprovedLibrary,
+                  unmountedSameSonameLibrary,
+                  unmountedDifferentSonameLibrary,
+                ]
+              : baseCommandArgs;
             const destination = `/opt/chainless/plugin/bin/${path.basename(
               entryPath,
             )}`;
@@ -2894,6 +3098,7 @@ describe.runIf(LIVE && SUPPORTED)(
               dynamicEntry,
               dynamicPieEntry,
               scriptEntry,
+              approvedLibrary,
             ];
             const expectedPluginTreeSnapshotBytes =
               pluginTreeSnapshotMembers.reduce(
@@ -2920,34 +3125,64 @@ describe.runIf(LIVE && SUPPORTED)(
               .sort((left, right) =>
                 left.destination.localeCompare(right.destination),
               );
-            const positive = nativeSpawnSync(
-              process.execPath,
-              [
-                childFixture,
-                "plugin-command-snapshot-race",
-                workspace,
-                JSON.stringify({
-                  command: [alias, ...commandArgs].join(" "),
-                  entryPath,
-                  replacementPath: replacementEntry,
-                  destination,
-                  dependencyPath: allowedPath,
-                  dependencyReplacementPath: replacementAllowedPath,
-                  dependencyDestination: sandboxAllowedPath,
-                }),
-              ],
-              {
-                encoding: "utf8",
-                timeout: 60_000,
-                windowsHide: true,
-                env: {
-                  ...process.env,
-                  CC_SANDBOX_STRICT: "1",
-                  LD_LIBRARY_PATH: "/host/sensitive/library-path",
-                  CC_TEST_SENSITIVE_ENV: "must-not-cross-boundary",
-                },
-              },
+            const ambientSentinelPath = path.join(
+              workspace,
+              `.ambient-fd-sentinel-${alias}`,
             );
+            createLiveFifo(ambientSentinelPath);
+            const ambientSentinelFd = fs.openSync(
+              ambientSentinelPath,
+              fs.constants.O_RDWR | fs.constants.O_NONBLOCK,
+            );
+            let positive;
+            try {
+              positive = nativeSpawnSync(
+                process.execPath,
+                [
+                  childFixture,
+                  "plugin-command-snapshot-race",
+                  workspace,
+                  JSON.stringify({
+                    command: [alias, ...commandArgs].join(" "),
+                    entryPath,
+                    replacementPath: replacementEntry,
+                    destination,
+                    dependencyPath: dynamicRuntime
+                      ? approvedLibrary
+                      : allowedPath,
+                    dependencyReplacementPath: dynamicRuntime
+                      ? replacementApprovedLibrary
+                      : replacementAllowedPath,
+                    dependencyDestination: dynamicRuntime
+                      ? sandboxApprovedLibrary
+                      : sandboxAllowedPath,
+                    runtimeDestination: sandboxRuntimePath,
+                  }),
+                ],
+                {
+                  encoding: "utf8",
+                  timeout: 60_000,
+                  windowsHide: true,
+                  stdio: inheritedSentinelStdio(ambientSentinelFd),
+                  env: {
+                    ...process.env,
+                    CC_SANDBOX_STRICT: "1",
+                    CC_TEST_AMBIENT_SENTINEL_FD: String(
+                      LINUX_AMBIENT_SENTINEL_CHILD_FD,
+                    ),
+                    CC_TEST_AMBIENT_SENTINEL_PATH: ambientSentinelPath,
+                    LD_LIBRARY_PATH: "/host/sensitive/library-path",
+                    CC_TEST_SENSITIVE_ENV: "must-not-cross-boundary",
+                  },
+                },
+              );
+              verifyLiveFifoRoundTrip(
+                ambientSentinelFd,
+                `parent-still-owns-${alias}`,
+              );
+            } finally {
+              fs.closeSync(ambientSentinelFd);
+            }
             const positiveContext = JSON.stringify({
               alias,
               status: positive.status,
@@ -2959,6 +3194,15 @@ describe.runIf(LIVE && SUPPORTED)(
             expect(positive.error, positiveContext).toBeUndefined();
             expect(positive.status, positiveContext).toBe(0);
             const envelope = JSON.parse(positive.stdout);
+            expect(envelope.ambientDescriptorBeforeLaunch).toEqual({
+              childFd: LINUX_AMBIENT_SENTINEL_CHILD_FD,
+              openBeforeLaunch: true,
+              target: ambientSentinelPath,
+              expectedTarget: ambientSentinelPath,
+              targetMatchesSentinel: true,
+              isFifo: true,
+              reason: null,
+            });
             expect(envelope.result).toMatchObject({
               plugin_bin: {
                 plugin: "strict-native",
@@ -2968,6 +3212,15 @@ describe.runIf(LIVE && SUPPORTED)(
                 direct_argv: true,
               },
             });
+            expect(envelope.mutationPhase, positiveContext).toBe(
+              "after-broker-plan-admission-before-native-spawn",
+            );
+            expect(envelope.mutationLaunchBinding, positiveContext).toEqual({
+              commandMatchesPlan: true,
+              argsMatchPlan: true,
+            });
+            expect(envelope.mutation, positiveContext).not.toBeNull();
+            expect(envelope.dependencyMutation, positiveContext).not.toBeNull();
             const nativeReport = JSON.parse(envelope.result.stdout);
             expect(nativeReport).toMatchObject({
               allowedReadable: true,
@@ -2980,7 +3233,7 @@ describe.runIf(LIVE && SUPPORTED)(
               hostRootReadable: false,
               pluginWritable: false,
               hostWritable: false,
-              tmpWritable: true,
+              tmpWritable: !dynamicRuntime,
               networkErrno: 1,
               entryMode: "0500",
               entryWritable: false,
@@ -2988,18 +3241,116 @@ describe.runIf(LIVE && SUPPORTED)(
               supervisorFdScanOk: true,
               supervisorFdMatches: 0,
               supervisorFdScanErrno: 0,
+              nonStdioOpenFds: 0,
+              nonStdioRegularFds: 0,
+              fdScanUpperBound: 1024,
               supervisorStagingPathVisible: false,
               supervisorStagingPathErrno: 2,
-              pid1ExecutableStatOk: expect.any(Boolean),
-              pid1ExecutableMatchesSupervisor: expect.any(Boolean),
+              ...(dynamicRuntime
+                ? {
+                    pid1ExecutableStatOk: false,
+                    pid1ExecutableMatchesSupervisor: false,
+                    pid1ExecutableErrno: 2,
+                    approvedDlopenOriginal: true,
+                    hostSameSonameDlopen: false,
+                    hostDifferentSonameDlopen: false,
+                    tmpDropinWritten: false,
+                    tmpDropinDlopen: false,
+                    varTmpDropinWritten: false,
+                    varTmpDropinDlopen: false,
+                    runDropinWritten: false,
+                    runDropinDlopen: false,
+                    homeDropinWritten: false,
+                    homeDropinDlopen: false,
+                    homePluginDirectoryWritable: false,
+                    homePluginDropinWritten: false,
+                    homePluginDropinDlopen: false,
+                    pluginDropinWritten: false,
+                    pluginDropinDlopen: false,
+                    procFdPathMissing: true,
+                    procFdPathErrno: 2,
+                    devFdPathMissing: true,
+                    devFdPathErrno: 2,
+                    procFdDlopen: false,
+                    devFdDlopen: false,
+                    unixSocketpairCreated: false,
+                    unixSocketpairErrno: 1,
+                    recvmsgErrno: 1,
+                    recvmmsgErrno: 1,
+                    pidfdDuplicatedFds: 0,
+                    pidfdRegularFds: 0,
+                    nameToHandleSucceeded: expect.any(Boolean),
+                    openByHandleMountFdSucceeded: expect.any(Boolean),
+                    openByHandleSucceeded: false,
+                    namespaceProbeErrno: 0,
+                    unshareErrno: 1,
+                    namespaceCloneErrno: 1,
+                    clone3Errno: 38,
+                    setnsErrno: 1,
+                    mountErrno: 1,
+                    umount2Errno: 1,
+                    pivotRootErrno: 1,
+                    openTreeErrno: 1,
+                    moveMountErrno: 1,
+                    fsopenErrno: 1,
+                    fsconfigErrno: 1,
+                    fsmountErrno: 1,
+                    fspickErrno: 1,
+                    mountSetattrErrno: 1,
+                    nestedNamespaceDropinWritten: false,
+                    nestedNamespaceDropinDlopen: false,
+                  }
+                : {
+                    pid1ExecutableStatOk: expect.any(Boolean),
+                    pid1ExecutableMatchesSupervisor: expect.any(Boolean),
+                  }),
             });
-            // `/proc/1/exe` can identify bwrap's PID 1 and is intentionally
-            // diagnostic only; it is not an assertion that the executable's
-            // bytes or all paths to it are invisible inside the sandbox.
+            // Static profiles retain procfs for compatibility and treat PID 1
+            // identity as diagnostic only. Dynamic pathname-closure profiles
+            // require the same lookup to fail because procfs is not mounted.
             expect(Number.isInteger(nativeReport.pid1ExecutableErrno)).toBe(
               true,
             );
+            if (dynamicRuntime) {
+              expect(Number.isInteger(nativeReport.pidfdErrno)).toBe(true);
+              if (nativeReport.pidfdOpened) {
+                // A live pidfd alone is not evidence: every getfd attempt must
+                // be rejected by the kernel policy, not merely miss an FD.
+                expect(nativeReport.pidfdErrno).toBe(1);
+              } else {
+                // Keep unsupported/unavailable kernels explicit instead of
+                // treating a zero-result scan as enforcement evidence.
+                expect([1, 3, 13, 38]).toContain(nativeReport.pidfdErrno);
+              }
+              expect(Number.isInteger(nativeReport.openByHandleErrno)).toBe(
+                true,
+              );
+              if (nativeReport.nameToHandleSucceeded) {
+                expect(nativeReport.openByHandleMountFdSucceeded).toBe(true);
+                expect(nativeReport.openByHandleErrno).toBe(1);
+              } else {
+                expect(nativeReport.openByHandleMountFdSucceeded).toBe(false);
+              }
+            }
             expectLinuxSupervisorPlan(envelope.supervisorPlan);
+            if (dynamicRuntime) {
+              expect(envelope.supervisorPlan).toMatchObject({
+                tmpfsTargets: ["/run"],
+                remountReadOnlyTargets: ["/", "/run"],
+                procMounted: false,
+                devMounted: false,
+              });
+              expect(envelope.supervisorPlan.maxDescriptorChildFd).toBeLessThan(
+                nativeReport.fdScanUpperBound,
+              );
+            }
+            expect(envelope.mutationPhase).toBe(
+              "after-broker-plan-admission-before-native-spawn",
+            );
+            expect(envelope.mutationLaunchBinding).toEqual({
+              commandMatchesPlan: true,
+              argsMatchPlan: true,
+            });
             expect(envelope.mutation).toMatchObject({
               sameDevice: true,
               sameInode: true,
@@ -3030,17 +3381,35 @@ describe.runIf(LIVE && SUPPORTED)(
               envelope.dependencyMutation.afterSha256,
             );
             expect(envelope.dependencyMutation.afterSha256).toBe(
-              fileSha256(replacementAllowedPath),
+              fileSha256(
+                dynamicRuntime
+                  ? replacementApprovedLibrary
+                  : replacementAllowedPath,
+              ),
             );
             expect(envelope.dependencyBindings).toEqual({
-              destination: sandboxAllowedPath,
+              destination: dynamicRuntime
+                ? sandboxApprovedLibrary
+                : sandboxAllowedPath,
               roBindData: [
                 {
                   childFd: expect.any(String),
-                  permissions: "0400",
+                  permissions: dynamicRuntime ? "0500" : "0400",
                 },
               ],
               roBindFd: [],
+            });
+            expect(envelope.runtimeBindings).toEqual({
+              destination: sandboxRuntimePath,
+              roBindData: dynamicRuntime
+                ? [
+                    {
+                      childFd: expect.any(String),
+                      permissions: "0500",
+                    },
+                  ]
+                : [],
+              roBindFd: dynamicRuntime ? [] : [{ childFd: expect.any(String) }],
             });
             expect(envelope.pluginFileBindings).toEqual(
               expectedPluginFileBindings,
@@ -3088,28 +3457,70 @@ describe.runIf(LIVE && SUPPORTED)(
                   ? {
                       initialDynamicLoadClosureDescriptorBound: true,
                       initialDynamicLoadClosureScope:
-                        "initial-pt_interp-and-direct-dt_needed-attested-system-set",
+                        "initial-pt_interp-and-recursive-dt_needed-attested-system-graph",
                       initialDynamicLoadClosureMechanism:
-                        "parsed-elf-direct-system-set-to-attested-node-runtime-fds-v1",
+                        "recursive-parsed-elf-system-graph-to-attested-runtime-fds-v1",
                       initialDynamicInterpreter: expect.stringMatching(
                         /^\/(?:usr\/)?lib(?:64)?\//,
                       ),
                       initialDynamicDependencyCount: expect.any(Number),
                       initialDynamicRuntimeFileCount: expect.any(Number),
+                      initialDynamicRuntimeBytes: expect.any(Number),
                       initialDynamicLoadClosureDigest:
                         expect.stringMatching(/^[a-f0-9]{64}$/),
+                      sharedLibraryClosure: false,
+                      runtimeSharedLibraryPathnameClosure: true,
+                      runtimeSharedLibraryPathnameClosureExcludes:
+                        "anonymous-jit-and-custom-in-process-loader",
+                      runtimeSharedLibraryClosureScope:
+                        "all-pathname-visible-regular-files-in-read-only-bwrap-namespace",
+                      runtimeSharedLibraryClosureMechanism:
+                        "descriptor-pinned-hashed-ro-mount-set-plus-loader-fd-and-namespace-mutation-seccomp-v2",
+                      runtimeSharedLibraryLoadSetFiles: expect.any(Number),
+                      runtimeSharedLibraryLoadSetBytes: expect.any(Number),
+                      runtimeSharedLibraryLoadSetDigest:
+                        expect.stringMatching(/^[a-f0-9]{64}$/),
+                      runtimeLoadSetPolicyBound: true,
+                      runtimeWritableFilesystems: false,
+                      runtimeProcfsMounted: false,
+                      runtimeDevfsMounted: false,
+                      runtimeScratchWritable: false,
+                      runtimeDescriptorReopenPaths: false,
                     }
                   : {}),
                 handleAtomic: false,
               },
             });
-            expectLinuxSupervisorAudit(envelope.audit, supervisorIdentity);
+            expectLinuxSupervisorAudit(envelope.audit, supervisorIdentity, {
+              pid1ExecutableExposure: dynamicRuntime
+                ? "procfs-not-mounted"
+                : "procfs",
+            });
+            if (dynamicRuntime) {
+              const runtimeProbe = envelope.audit.sandboxRuntimeProbe;
+              expect(runtimeProbe.runtimeSharedLibraryLoadSetFiles).toBe(
+                envelope.supervisorPlan.descriptorChildFds.length - 1,
+              );
+              expect(
+                runtimeProbe.runtimeSharedLibraryLoadSetFiles,
+              ).toBeLessThanOrEqual(512);
+              expect(envelope.supervisorPlan.maxDescriptorChildFd).toBe(
+                4 + runtimeProbe.runtimeSharedLibraryLoadSetFiles,
+              );
+            }
             expect(envelope.audit.sandboxPolicyDigest).toMatch(
               /^[a-f0-9]{64}$/,
             );
             expect(fs.readFileSync(allowedPath, "utf8")).toBe(
-              "replacement-native-data",
+              dynamicRuntime
+                ? "allowed-native-data"
+                : "replacement-native-data",
             );
+            if (dynamicRuntime) {
+              expect(fileSha256(approvedLibrary)).toBe(
+                fileSha256(replacementApprovedLibrary),
+              );
+            }
 
             const replaced = nativeSpawnSync(entryPath, [], {
               encoding: "utf8",
@@ -3124,7 +3535,7 @@ describe.runIf(LIVE && SUPPORTED)(
             ["script-native", "native_entry_not_elf"],
           ]) {
             const negative = runPluginCommand(
-              [alias, ...commandArgs].join(" "),
+              [alias, ...baseCommandArgs].join(" "),
             );
             const negativeContext = JSON.stringify({
               alias,
@@ -4067,6 +4478,106 @@ describe.runIf(LIVE && SUPPORTED)(
         }
       },
       60_000,
+    );
+
+    it.runIf(process.platform === "linux")(
+      "scrubs a real inherited high descriptor before a generic bwrap target",
+      () => {
+        const workspace = fs.mkdtempSync(
+          path.join(os.tmpdir(), "cc-linux-generic-fd-scrub-live-"),
+        );
+        const sentinelPath = path.join(workspace, "ambient-sentinel.txt");
+        const childFixture = fileURLToPath(
+          new URL(
+            "../fixtures/process-broker-linux-bwrap-live-child.mjs",
+            import.meta.url,
+          ),
+        );
+        let sentinelFd = null;
+        try {
+          createLiveFifo(sentinelPath);
+          sentinelFd = fs.openSync(
+            sentinelPath,
+            fs.constants.O_RDWR | fs.constants.O_NONBLOCK,
+          );
+          const coordinator = nativeSpawnSync(
+            process.execPath,
+            [childFixture, "generic-fd-scrub", workspace],
+            {
+              encoding: "utf8",
+              timeout: 90_000,
+              windowsHide: true,
+              stdio: inheritedSentinelStdio(sentinelFd),
+              env: {
+                ...process.env,
+                CC_SANDBOX_STRICT: "1",
+                CC_TEST_AMBIENT_SENTINEL_FD: String(
+                  LINUX_AMBIENT_SENTINEL_CHILD_FD,
+                ),
+                CC_TEST_AMBIENT_SENTINEL_PATH: sentinelPath,
+              },
+            },
+          );
+          const failureContext = JSON.stringify({
+            status: coordinator.status,
+            signal: coordinator.signal,
+            error: coordinator.error?.message,
+            stdout: coordinator.stdout,
+            stderr: coordinator.stderr,
+          });
+          expect(coordinator.error, failureContext).toBeUndefined();
+          expect(coordinator.status, failureContext).toBe(0);
+          verifyLiveFifoRoundTrip(sentinelFd, "generic-parent-still-owns-fifo");
+          const envelope = JSON.parse(coordinator.stdout);
+          expect(envelope.ambientDescriptorBeforeLaunch).toEqual({
+            childFd: LINUX_AMBIENT_SENTINEL_CHILD_FD,
+            openBeforeLaunch: true,
+            target: sentinelPath,
+            expectedTarget: sentinelPath,
+            targetMatchesSentinel: true,
+            isFifo: true,
+            reason: null,
+          });
+          expect(envelope.result, failureContext).toMatchObject({
+            status: 0,
+            signal: null,
+            error: null,
+            stderr: "",
+          });
+          expect(JSON.parse(envelope.result.stdout)).toEqual({
+            fds: [],
+            nonStdioOpenFds: 0,
+          });
+          expect(envelope.descriptorPlan).toMatchObject({
+            logicalBwrapCommand: expect.stringMatching(
+              /^\/proc\/self\/fd\/\d+$/,
+            ),
+            activeStdioThrough: 2,
+            rawCommandMatchesLayout: true,
+          });
+          expect(envelope.descriptorPlan.rawScrubberCommand).toBe(
+            `/proc/self/fd/${envelope.descriptorPlan.scrubberChildFd}`,
+          );
+          expect(envelope.descriptorPlan.preservedMaxFd).toBe(
+            envelope.descriptorPlan.scrubberChildFd - 1,
+          );
+          expect(envelope.audit).toMatchObject({
+            sandboxed: true,
+            sandboxBackend: "linux-bwrap-workspace",
+            sandboxRuntimeProbe: {
+              descriptorScrubber: {
+                closesUnknownInheritedDescriptors: true,
+                verificationPassesFailClosed: true,
+                policyBound: true,
+              },
+            },
+          });
+        } finally {
+          if (sentinelFd !== null) fs.closeSync(sentinelFd);
+          fs.rmSync(workspace, { recursive: true, force: true });
+        }
+      },
+      90_000,
     );
 
     it.runIf(process.platform === "linux")(

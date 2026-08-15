@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import os from "node:os";
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 import {
   installFromDirectory,
   installFromSource,
@@ -44,6 +45,55 @@ function makeSource(name, version, { withSkill = true, extra = {} } = {}) {
     );
   }
   return dir;
+}
+
+function canonicalJson(value) {
+  if (value == null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => canonicalJson(item)).join(",")}]`;
+  }
+  return `{${Object.keys(value)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`)
+    .join(",")}}`;
+}
+
+function remoteSbomEvidence({
+  registryOrigin = "https://registry.example",
+  url = "https://registry.example/plugin.cdx.json",
+  format = "cyclonedx-json",
+  digest = "e".repeat(64),
+} = {}) {
+  const authority = {
+    schemaVersion: "cc-plugin-marketplace-remote-artifact-evidence/v1",
+    status: "verified",
+    registryOrigin,
+    signature: null,
+    sbom: {
+      status: "digest-verified",
+      url,
+      format,
+      expectedDocumentSha256: digest,
+      documentSha256: digest,
+      bytes: 128,
+      fromCache: false,
+    },
+    claims: {
+      publisherIdentityVerified: false,
+      signatureBytesFetched: false,
+      publicKeyFingerprintVerified: false,
+      manifestSignatureVerified: false,
+      sbomDocumentDigestVerified: true,
+      sbomPayloadCompared: false,
+    },
+  };
+  return {
+    ...authority,
+    evidenceDigest: crypto
+      .createHash("sha256")
+      .update(canonicalJson(authority))
+      .digest("hex"),
+  };
 }
 
 beforeEach(() => {
@@ -215,6 +265,7 @@ describe("installFromSource", () => {
     const catalogDigest = "a".repeat(64);
     const candidateId = `candidate-${"b".repeat(20)}`;
     const candidateDigest = "c".repeat(64);
+    const selectionDigest = "d".repeat(64);
     installFromSource(src, {
       scope: "project",
       cwd,
@@ -229,6 +280,8 @@ describe("installFromSource", () => {
           catalogDigest,
           candidateId,
           candidateDigest,
+          selectionDigest,
+          selectionSourceCount: 2,
           governanceStatus: "complete",
           registryStatus: "online",
           versionAuthority: "registry-declared-unverified",
@@ -247,6 +300,9 @@ describe("installFromSource", () => {
         catalogDigest,
         candidateId,
         candidateDigest,
+        selectionSchemaVersion: "cc-plugin-marketplace-candidate-selection/v1",
+        selectionDigest,
+        selectionSourceCount: 2,
         preflightStatus: "allowed",
         governanceStatus: "complete",
       },
@@ -277,7 +333,80 @@ describe("installFromSource", () => {
         },
       }),
     ).toThrow(/catalogAuthority\.catalogDigest/);
+    expect(() =>
+      installFromSource(src, {
+        scope: "project",
+        cwd,
+        sourceMetadata: {
+          type: "registry",
+          source: "https://registry.example/index.json",
+          catalogAuthority: {
+            catalogDigest: "a".repeat(64),
+            candidateId: `candidate-${"b".repeat(20)}`,
+            selectionDigest: "d".repeat(64),
+            selectionSourceCount: 17,
+          },
+        },
+      }),
+    ).toThrow(/catalogAuthority\.selectionSourceCount/);
     expect(listInstalled({ cwd, scopes: ["project"] })).toEqual([]);
+  });
+
+  it("cross-binds remote artifact evidence to the selected registry and catalog declaration", () => {
+    const src = makeSource("remote-sbom", "1.0.0");
+    const artifactUrl = "https://registry.example/plugin.cdx.json";
+    const documentSha256 = "e".repeat(64);
+    const catalogAuthority = (evidence) => ({
+      catalogDigest: "a".repeat(64),
+      candidateId: `candidate-${"b".repeat(20)}`,
+      candidateDigest: "c".repeat(64),
+      governanceStatus: "complete",
+      registryStatus: "online",
+      versionAuthority: "registry-declared-unverified",
+      artifactExpectations: {
+        sbom: {
+          status: "declared",
+          format: "cyclonedx-json",
+          url: artifactUrl,
+          documentSha256,
+        },
+      },
+      remoteArtifactEvidence: evidence,
+    });
+    const sourceMetadata = (evidence) => ({
+      type: "registry",
+      source: "https://registry.example/index.json",
+      registry: "https://registry.example/index.json",
+      package: "remote-sbom",
+      catalogAuthority: catalogAuthority(evidence),
+    });
+
+    expect(() =>
+      installFromSource(src, {
+        scope: "project",
+        cwd,
+        sourceMetadata: sourceMetadata(
+          remoteSbomEvidence({ url: "https://other.example/plugin.cdx.json" }),
+        ),
+      }),
+    ).toThrow(/does not match catalog URL, format, or digest expectations/);
+    expect(() =>
+      installFromSource(src, {
+        scope: "project",
+        cwd,
+        sourceMetadata: sourceMetadata(
+          remoteSbomEvidence({ registryOrigin: "https://other.example" }),
+        ),
+      }),
+    ).toThrow(/registry origin does not match/);
+    expect(listInstalled({ cwd, scopes: ["project"] })).toEqual([]);
+
+    installFromSource(src, {
+      scope: "project",
+      cwd,
+      sourceMetadata: sourceMetadata(remoteSbomEvidence()),
+    });
+    expect(listInstalled({ cwd, scopes: ["project"] })).toHaveLength(1);
   });
 
   it("errors on a plain non-remote, non-existent source", () => {
@@ -625,6 +754,29 @@ describe("installFromSource — git (mocked clone)", () => {
         shell: false,
       }),
     ]);
+  });
+
+  it("transfers a transactional clone handle to the returned install result", () => {
+    installDeps.spawnSync = (_cmd, args) => {
+      const dir = args[args.length - 1];
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(
+        path.join(dir, "plugin.json"),
+        JSON.stringify({ name: "transactional-remote", version: "1.0.0" }),
+        "utf8",
+      );
+      return { status: 0, stdout: "", stderr: "" };
+    };
+
+    const result = installFromSource("acme/transactional", {
+      scope: "project",
+      cwd,
+      transactional: true,
+    });
+    expect(finalizePluginUpdate(result)).toMatchObject({ finalized: true });
+    expect(
+      getActiveVersion("transactional-remote", { scope: "project", cwd }),
+    ).toBe("1.0.0");
   });
 
   it("reports a clear error when git is not installed", () => {

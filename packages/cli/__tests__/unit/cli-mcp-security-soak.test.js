@@ -4,8 +4,10 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  buildMcpExecutionContextSoakEvidence,
   parseMcpExecutionContextVitestEvidence,
   resolveMcpSecuritySoakProfile,
+  runMcpSecuritySoak,
   securitySoakCycleDelayMs,
   verifyMcpSecuritySoakEvidenceSet,
 } from "../../scripts/cli-mcp-security-soak.mjs";
@@ -14,13 +16,18 @@ const repositoryRoot = resolve(
   fileURLToPath(new URL("../../../../", import.meta.url)),
 );
 const releaseCommit = "a".repeat(40);
+const executionContextBaseTimeMs = Date.parse("2026-08-15T00:00:00.000Z");
 const executionContextTestRelativePath =
   "packages/cli/__tests__/integration/mcp-materialized-capsule-sandbox-live.test.js";
-const executionContextReportFiles = {
-  linux: "mcp-materialized-capsule-live-Linux.json",
-  macos: "mcp-materialized-capsule-live-macOS.json",
-  windows: "mcp-materialized-capsule-live-Windows.json",
+const executionContextReportPrefixes = {
+  linux: "mcp-materialized-capsule-live-Linux",
+  macos: "mcp-materialized-capsule-live-macOS",
+  windows: "mcp-materialized-capsule-live-Windows",
 };
+
+function executionContextReportFile(operatingSystem, sampleIndex) {
+  return `${executionContextReportPrefixes[operatingSystem]}-${String(sampleIndex).padStart(3, "0")}.json`;
+}
 const executionContextAssertions = [
   {
     ancestor: "live materialized MCP capsule sandbox chain",
@@ -54,7 +61,10 @@ const executionContextAssertions = [
   },
 ];
 
-function executionContextVitestReport(operatingSystem) {
+function executionContextVitestReport(
+  operatingSystem,
+  runStartedAtMs = executionContextBaseTimeMs + 10_000,
+) {
   const assertionResults = executionContextAssertions.map((assertion) => ({
     ancestorTitles: [assertion.ancestor],
     fullName: `${assertion.ancestor} ${assertion.title}`,
@@ -76,39 +86,82 @@ function executionContextVitestReport(operatingSystem) {
     numFailedTests: 0,
     numPendingTests: skippedTests,
     numTodoTests: 0,
+    startTime: runStartedAtMs,
     success: true,
     testResults: [
       {
         name: executionContextTestRelativePath,
         status: "passed",
+        startTime: runStartedAtMs + 100,
+        endTime: runStartedAtMs + 500,
         assertionResults,
       },
     ],
   };
 }
 
-function writeExecutionContextReport(directory, operatingSystem, report) {
+function writeExecutionContextReport(
+  directory,
+  operatingSystem,
+  sampleIndex = 0,
+  report,
+) {
   const filePath = join(
     directory,
-    executionContextReportFiles[operatingSystem],
+    executionContextReportFile(operatingSystem, sampleIndex),
   );
   writeFileSync(
     filePath,
-    JSON.stringify(report || executionContextVitestReport(operatingSystem)),
+    JSON.stringify(
+      report ||
+        executionContextVitestReport(
+          operatingSystem,
+          executionContextBaseTimeMs + (10 + sampleIndex * 3_600) * 1_000,
+        ),
+    ),
   );
   return filePath;
 }
 
-function writeFormalEvidenceSet(evidenceDirectory, rawDirectory) {
-  for (const operatingSystem of ["linux", "macos", "windows"]) {
+function formalExecutionContextBoundary(rawDirectory, operatingSystem) {
+  const samples = Array.from({ length: 3 }, (_, sampleIndex) => {
+    const startedElapsedSeconds = 10 + sampleIndex * 3_600;
+    const finishedElapsedSeconds = startedElapsedSeconds + 2;
     const rawReport = writeExecutionContextReport(
       rawDirectory,
       operatingSystem,
+      sampleIndex,
     );
-    const executionContextBoundary = parseMcpExecutionContextVitestEvidence({
+    return parseMcpExecutionContextVitestEvidence({
       filePath: rawReport,
       operatingSystem,
+      releaseCommit,
+      sampleIndex,
+      scheduledElapsedSeconds: startedElapsedSeconds,
+      startedAt: new Date(
+        executionContextBaseTimeMs + startedElapsedSeconds * 1_000,
+      ).toISOString(),
+      finishedAt: new Date(
+        executionContextBaseTimeMs + finishedElapsedSeconds * 1_000,
+      ).toISOString(),
+      startedElapsedSeconds,
+      finishedElapsedSeconds,
     });
+  });
+  return buildMcpExecutionContextSoakEvidence({
+    operatingSystem,
+    releaseCommit,
+    durationSeconds: 7_200,
+    samples,
+  });
+}
+
+function writeFormalEvidenceSet(evidenceDirectory, rawDirectory) {
+  for (const operatingSystem of ["linux", "macos", "windows"]) {
+    const executionContextBoundary = formalExecutionContextBoundary(
+      rawDirectory,
+      operatingSystem,
+    );
     writeFileSync(
       join(evidenceDirectory, `${operatingSystem}.json`),
       JSON.stringify(
@@ -235,9 +288,13 @@ function soakEvidence(
   const formal = mode === "formal";
   return {
     schema: formal
-      ? "chainlesschain.cli-mcp-security-soak-formal.v2"
-      : "chainlesschain.cli-mcp-security-soak-smoke-non-qualifying.v1",
+      ? "chainlesschain.cli-mcp-security-soak-formal.v3"
+      : "chainlesschain.cli-mcp-security-soak-smoke-non-qualifying.v2",
     status: "passed",
+    startedAt: "2026-08-15T00:00:00.000Z",
+    finishedAt: formal
+      ? "2026-08-15T02:00:12.000Z"
+      : "2026-08-15T00:00:05.000Z",
     qualifyingEvidence: formal,
     releaseGateEligible: formal,
     releaseCommit,
@@ -256,8 +313,9 @@ function soakEvidence(
       durationSeconds: formal ? 7_200 : 5,
       cycles,
       checkpointIntervalSeconds: formal ? 60 : 1,
+      executionContextSamples: formal ? 3 : 0,
     },
-    continuousDurationSeconds: formal ? 7_200 : 5,
+    continuousDurationSeconds: formal ? 7_212 : 5,
     cycles: Array.from({ length: cycles }, (_, index) => ({
       index,
       evidence: innerEvidence(operatingSystem),
@@ -275,13 +333,19 @@ function soakEvidence(
       atomicPathReplacementEscapes: 0,
     },
     executionContextBoundary: executionContextBoundary || {
-      schema: "chainlesschain.cli-mcp-execution-context-live-sample.v1",
+      schema: "chainlesschain.cli-mcp-execution-context-live-soak.v2",
       result: "not_run_non_qualifying_smoke",
       scope: "pr-smoke-without-live-execution-context-sample",
       sampleCount: 0,
+      minimumSampleCount: 3,
+      minimumStartSpanSeconds: 7_200,
+      observedStartSpanSeconds: 0,
       longRunning: false,
+      freshIsolatePerSample: false,
       qualifyingForSingleLiveSample: false,
       qualifyingForLongRunningMatrix: false,
+      completeSkillMcpSecurityClosure: false,
+      samples: [],
     },
     violations: [],
   };
@@ -301,6 +365,7 @@ describe("CLI malicious MCP security soak", () => {
       durationSeconds: 7_200,
       cycles: 100,
       checkpointIntervalSeconds: 60,
+      executionContextSamples: 3,
     });
   });
 
@@ -328,7 +393,7 @@ describe("CLI malicious MCP security soak", () => {
       });
       expect(aggregate).toMatchObject({
         schema:
-          "chainlesschain.cli-mcp-security-soak-smoke-aggregate-non-qualifying.v1",
+          "chainlesschain.cli-mcp-security-soak-smoke-aggregate-non-qualifying.v2",
         result: "non_qualifying_smoke_passed",
         qualifyingEvidence: false,
         releaseGateEligible: false,
@@ -363,7 +428,7 @@ describe("CLI malicious MCP security soak", () => {
     }
   });
 
-  it("strictly parses and hashes a platform-bound single live sample", () => {
+  it("strictly parses and hashes one exact-SHA platform-bound live slot", () => {
     const directory = mkdtempSync(
       join(tmpdir(), "cc-mcp-execution-context-test-"),
     );
@@ -373,15 +438,25 @@ describe("CLI malicious MCP security soak", () => {
         parseMcpExecutionContextVitestEvidence({
           filePath,
           operatingSystem: "windows",
+          releaseCommit,
+          sampleIndex: 0,
+          scheduledElapsedSeconds: 10,
+          startedAt: "2026-08-15T00:00:10.000Z",
+          finishedAt: "2026-08-15T00:00:12.000Z",
+          startedElapsedSeconds: 10,
+          finishedElapsedSeconds: 12,
         }),
       ).toMatchObject({
         result: "passed",
-        scope: "single-live-sample-before-time-based-host-race-soak",
-        sampleCount: 1,
-        longRunning: false,
-        qualifyingForSingleLiveSample: true,
-        qualifyingForLongRunningMatrix: false,
-        rawReportFile: executionContextReportFiles.windows,
+        releaseCommit,
+        operatingSystem: "windows",
+        sampleIndex: 0,
+        scheduledElapsedSeconds: 10,
+        startedElapsedSeconds: 10,
+        finishedElapsedSeconds: 12,
+        freshIsolate: true,
+        invocation: "spawned-node-vitest-process",
+        rawReportFile: executionContextReportFile("windows", 0),
         rawReportSha256: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
         reporter: {
           totalTestSuites: 1,
@@ -424,12 +499,20 @@ describe("CLI malicious MCP security soak", () => {
       const filePath = writeExecutionContextReport(
         directory,
         "windows",
+        0,
         report,
       );
       expect(() =>
         parseMcpExecutionContextVitestEvidence({
           filePath,
           operatingSystem: "windows",
+          releaseCommit,
+          sampleIndex: 0,
+          scheduledElapsedSeconds: 10,
+          startedAt: "2026-08-15T00:00:10.000Z",
+          finishedAt: "2026-08-15T00:00:12.000Z",
+          startedElapsedSeconds: 10,
+          finishedElapsedSeconds: 12,
         }),
       ).toThrow("windows-live-observer-calibration status skipped");
     } finally {
@@ -452,19 +535,24 @@ describe("CLI malicious MCP security soak", () => {
         releaseCommit,
       });
       expect(aggregate).toMatchObject({
-        schema: "chainlesschain.cli-mcp-security-soak-formal-aggregate.v2",
+        schema: "chainlesschain.cli-mcp-security-soak-formal-aggregate.v3",
         result: "passed",
         qualifyingEvidence: true,
         releaseGateEligible: true,
         hostCycles: 300,
         executionContextBoundary: {
           scope:
-            "single-live-sample-per-platform-before-time-based-host-race-soak",
-          sampleCount: 3,
-          samplesPerOperatingSystem: 1,
-          longRunning: false,
+            "fresh-isolate-live-samples-spanning-formal-soak-on-each-platform",
+          sampleCount: 9,
+          samplesPerOperatingSystem: 3,
+          minimumSamplesPerOperatingSystem: 3,
+          minimumStartSpanSeconds: 7_200,
+          minimumObservedStartSpanSeconds: 7_200,
+          longRunning: true,
+          freshIsolatePerSample: true,
           qualifyingForSingleLiveSample: true,
-          qualifyingForLongRunningMatrix: false,
+          qualifyingForLongRunningMatrix: true,
+          completeSkillMcpSecurityClosure: false,
           operatingSystems: ["linux", "macos", "windows"],
           evidence: [
             expect.objectContaining({ operatingSystem: "linux" }),
@@ -473,10 +561,33 @@ describe("CLI malicious MCP security soak", () => {
           ],
         },
       });
+      for (const platform of aggregate.executionContextBoundary.evidence) {
+        expect(platform).toMatchObject({
+          releaseCommit,
+          sampleCount: 3,
+          observedStartSpanSeconds: 7_200,
+          samples: Array.from({ length: 3 }, (_, sampleIndex) =>
+            expect.objectContaining({
+              releaseCommit,
+              operatingSystem: platform.operatingSystem,
+              sampleIndex,
+              freshIsolate: true,
+              invocation: "spawned-node-vitest-process",
+              rawReportSha256: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
+              requiredAssertions: expect.any(Array),
+            }),
+          ),
+        });
+      }
 
       writeFileSync(
-        join(rawDirectory, executionContextReportFiles.linux),
-        `${JSON.stringify(executionContextVitestReport("linux"))}\n`,
+        join(rawDirectory, executionContextReportFile("linux", 1)),
+        `${JSON.stringify(
+          executionContextVitestReport(
+            "linux",
+            executionContextBaseTimeMs + 3_610_000,
+          ),
+        )}\n`,
       );
       expect(() =>
         verifyMcpSecuritySoakEvidenceSet({
@@ -485,8 +596,133 @@ describe("CLI malicious MCP security soak", () => {
           releaseCommit,
         }),
       ).toThrow(
-        "linux execution-context raw report does not match its platform soak evidence",
+        "linux execution-context raw reports do not match their platform soak evidence",
       );
+    } finally {
+      rmSync(evidenceDirectory, { recursive: true, force: true });
+      rmSync(rawDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("runs fresh isolates at start, midpoint, and the two-hour floor", async () => {
+    const directory = mkdtempSync(join(tmpdir(), "cc-mcp-live-schedule-test-"));
+    const rawDirectory = join(directory, "raw");
+    let elapsedMs = 0;
+    const baseTimeMs = Date.parse("2026-08-15T00:00:00.000Z");
+    try {
+      const evidence = await runMcpSecuritySoak({
+        profile: {
+          mode: "formal",
+          durationSeconds: 7_200,
+          cycles: 3,
+          checkpointIntervalSeconds: 1,
+          executionContextSamples: 3,
+        },
+        releaseCommit,
+        output: join(directory, "outer.json"),
+        executionContextDirectory: rawDirectory,
+        operatingSystem: "windows",
+        monotonicNow: () => elapsedMs,
+        wallNowIso: () => new Date(baseTimeMs + elapsedMs).toISOString(),
+        waitForDelay: async (delayMs, _checkpointIntervalMs, checkpoint) => {
+          elapsedMs += delayMs;
+          checkpoint();
+        },
+        gitHead: () => releaseCommit,
+        gitWorktreeChanges: () => [],
+        runSecurityMatrix: async () => innerEvidence("windows"),
+        runExecutionContextProbe: ({ outputFile, sampleIndex }) => {
+          const runStartedAtMs = baseTimeMs + elapsedMs;
+          writeFileSync(
+            outputFile,
+            JSON.stringify(
+              executionContextVitestReport("windows", runStartedAtMs),
+            ),
+          );
+          expect(outputFile).toContain(
+            executionContextReportFile("windows", sampleIndex),
+          );
+          elapsedMs += 1_000;
+        },
+      });
+      expect(
+        evidence.executionContextBoundary.samples.map(
+          (sample) => sample.startedElapsedSeconds,
+        ),
+      ).toEqual([0, 3_600, 7_200]);
+      expect(evidence.executionContextBoundary).toMatchObject({
+        sampleCount: 3,
+        minimumStartSpanSeconds: 7_200,
+        observedStartSpanSeconds: 7_200,
+        maximumObservedSchedulingLatenessSeconds: 0,
+        longRunning: true,
+        freshIsolatePerSample: true,
+        qualifyingForLongRunningMatrix: true,
+        completeSkillMcpSecurityClosure: false,
+      });
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects live schedules below the time floor or above lateness budget", () => {
+    const directory = mkdtempSync(
+      join(tmpdir(), "cc-mcp-execution-context-test-"),
+    );
+    try {
+      const boundary = formalExecutionContextBoundary(directory, "linux");
+      expect(() =>
+        buildMcpExecutionContextSoakEvidence({
+          operatingSystem: "linux",
+          releaseCommit,
+          durationSeconds: 7_201,
+          samples: boundary.samples,
+        }),
+      ).toThrow("not on the evenly-spaced formal schedule");
+
+      const lateSamples = structuredClone(boundary.samples);
+      lateSamples[1].startedElapsedSeconds += 1_201;
+      lateSamples[1].finishedElapsedSeconds += 1_201;
+      lateSamples[1].schedulingLatenessSeconds += 1_201;
+      expect(() =>
+        buildMcpExecutionContextSoakEvidence({
+          operatingSystem: "linux",
+          releaseCommit,
+          durationSeconds: 7_200,
+          samples: lateSamples,
+        }),
+      ).toThrow("scheduling exceeded 1200 seconds");
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects missing, duplicate, or extra raw live JSON slots", () => {
+    const evidenceDirectory = mkdtempSync(
+      join(tmpdir(), "cc-mcp-security-soak-test-"),
+    );
+    const rawDirectory = mkdtempSync(
+      join(tmpdir(), "cc-mcp-execution-context-test-"),
+    );
+    try {
+      writeFormalEvidenceSet(evidenceDirectory, rawDirectory);
+      rmSync(join(rawDirectory, executionContextReportFile("macos", 2)));
+      expect(() =>
+        verifyMcpSecuritySoakEvidenceSet({
+          evidenceDir: evidenceDirectory,
+          executionContextEvidenceDir: rawDirectory,
+          releaseCommit,
+        }),
+      ).toThrow("execution-context evidence must contain exactly");
+      writeExecutionContextReport(rawDirectory, "macos", 2);
+      writeFileSync(join(rawDirectory, "unexpected.json"), "{}\n");
+      expect(() =>
+        verifyMcpSecuritySoakEvidenceSet({
+          evidenceDir: evidenceDirectory,
+          executionContextEvidenceDir: rawDirectory,
+          releaseCommit,
+        }),
+      ).toThrow("execution-context evidence must contain exactly");
     } finally {
       rmSync(evidenceDirectory, { recursive: true, force: true });
       rmSync(rawDirectory, { recursive: true, force: true });
@@ -542,17 +778,21 @@ describe("CLI malicious MCP security soak", () => {
     );
     expect(mcpJob).toContain("CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA");
     expect(mcpJob).toContain("CC_CLI_MCP_SECURITY_SOAK_CYCLES");
+    expect(mcpJob).toContain(
+      "CC_CLI_MCP_SECURITY_SOAK_EXECUTION_CONTEXT_SAMPLES",
+    );
     expect(mcpJob).toContain("npm run test:cli-mcp-security-soak");
     expect(mcpJob).toContain(
-      "Run exact-SHA materialized capsule execution-context boundary",
-    );
-    expect(mcpJob).toContain("if: github.event_name != 'pull_request'");
-    expect(mcpJob).toContain('CC_SANDBOX_LIVE: "1"');
-    expect(mcpJob).toContain(
-      "CC_CLI_MCP_SECURITY_SOAK_EXECUTION_CONTEXT_RESULT: ${{ runner.temp }}/mcp-materialized-capsule-live-${{ runner.os }}.json",
+      "Run time-based MCP host/race soak with repeated fresh isolates",
     );
     expect(mcpJob).toContain(
-      "__tests__/integration/mcp-materialized-capsule-sandbox-live.test.js",
+      "CC_CLI_MCP_SECURITY_SOAK_EXECUTION_CONTEXT_DIR: ${{ runner.temp }}/cli-mcp-execution-context-live-${{ runner.os }}",
+    );
+    expect(mcpJob).toContain(
+      "${{ runner.temp }}/cli-mcp-execution-context-live-${{ runner.os }}/*.json",
+    );
+    expect(mcpJob).not.toContain(
+      "CC_CLI_MCP_SECURITY_SOAK_EXECUTION_CONTEXT_RESULT",
     );
     expect(mcpJob).toContain(
       "cli-mcp-execution-context-live-${{ matrix.os }}-${{ env.CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA }}-${{ github.run_attempt }}",

@@ -266,6 +266,12 @@ export function describeAuthorityChain(envelope = {}) {
   const parts = [`origin=${envelope.origin || "unknown"}`];
   if (envelope.principalId) parts.push(`principal=${envelope.principalId}`);
   if (envelope.sessionId) parts.push(`session=${envelope.sessionId}`);
+  if (envelope.remoteSessionId)
+    parts.push(`remote-session=${envelope.remoteSessionId}`);
+  if (envelope.sessionEpoch)
+    parts.push(`session-epoch=${envelope.sessionEpoch}`);
+  if (envelope.membershipEpoch)
+    parts.push(`membership-epoch=${envelope.membershipEpoch}`);
   if (envelope.parentAgentId) parts.push(`parent=${envelope.parentAgentId}`);
   if (envelope.correlationId) parts.push(`corr=${envelope.correlationId}`);
   parts.push(`authority=${authorityForOrigin(envelope.origin, envelope)}`);

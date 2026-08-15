@@ -534,13 +534,16 @@ describe("agent-core strict plugin bin route", () => {
         (command, launchArgs, options, profile, _runtime, request) => ({
           contractVersion: 1,
           applied: true,
-          platform: "linux",
+          // This injected adapter verifies the agent-core invocation contract.
+          // Reserved Linux backend authority is covered by the built-in
+          // platform adapter and Broker contract suites.
+          platform: "test",
           profile,
           command,
           args: launchArgs,
           options,
-          enforcement: "linux-bwrap",
-          backend: "linux-bwrap",
+          enforcement: "test-attested-sandbox",
+          backend: "test-attested-sandbox",
           guarantees: [...request.requiredBoundaries],
           policyAttested: true,
           reason: null,
