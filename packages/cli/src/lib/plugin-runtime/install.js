@@ -760,6 +760,8 @@ function normalizeCatalogAuthority(value) {
   }
   const catalogDigest = cleanBounded(value.catalogDigest, 64);
   const candidateId = cleanBounded(value.candidateId, 64);
+  const candidateDigest = cleanBounded(value.candidateDigest, 64);
+  const updateImpactDigest = cleanBounded(value.updateImpactDigest, 64);
   if (!/^[a-f0-9]{64}$/.test(catalogDigest || "")) {
     throw new Error(
       "catalogAuthority.catalogDigest must be a SHA-256 hex digest",
@@ -767,6 +769,16 @@ function normalizeCatalogAuthority(value) {
   }
   if (!/^candidate-[a-f0-9]{20}$/.test(candidateId || "")) {
     throw new Error("catalogAuthority.candidateId is invalid");
+  }
+  if (candidateDigest && !/^[a-f0-9]{64}$/.test(candidateDigest)) {
+    throw new Error(
+      "catalogAuthority.candidateDigest must be a SHA-256 hex digest",
+    );
+  }
+  if (updateImpactDigest && !/^[a-f0-9]{64}$/.test(updateImpactDigest)) {
+    throw new Error(
+      "catalogAuthority.updateImpactDigest must be a SHA-256 hex digest",
+    );
   }
   const governanceStatus = ["complete", "incomplete"].includes(
     value.governanceStatus,
@@ -787,6 +799,8 @@ function normalizeCatalogAuthority(value) {
     installPreflightSchemaVersion: "cc-plugin-marketplace-install-preflight/v1",
     catalogDigest,
     candidateId,
+    ...(candidateDigest ? { candidateDigest } : {}),
+    ...(updateImpactDigest ? { updateImpactDigest } : {}),
     preflightStatus: "allowed",
     governanceStatus,
     registryStatus,

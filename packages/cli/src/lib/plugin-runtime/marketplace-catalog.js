@@ -75,6 +75,9 @@ export function buildPluginMarketplaceInstallPreflight({
     catalogSchemaVersion: catalog.schemaVersion,
     catalogDigest: catalog.catalogDigest,
     candidateId: candidate.candidateId,
+    candidateDigest: candidate.candidateDigest,
+    contentDigest: candidate.contentDigest,
+    name: candidate.name,
     registry: candidate.registry,
     package: candidate.package,
     registryVersion: candidate.version,
@@ -455,15 +458,37 @@ function normalizeCandidate(entry, context) {
     installability: { status: "allowed", blockers },
   };
   candidate.installability.status = blockers.length ? "blocked" : "allowed";
+  const contentAuthority = {
+    schemaVersion: PLUGIN_MARKETPLACE_CATALOG_SCHEMA,
+    name: candidate.name,
+    version: candidate.version,
+    package: candidate.package,
+    integrity: candidate.integrity,
+    license: candidate.license,
+    capabilities: candidate.capabilities,
+    compatibility: {
+      range: candidate.compatibility.range,
+    },
+    dependencies: {
+      declared: candidate.dependencies.declared,
+      errors: candidate.dependencies.errors,
+    },
+    publisherHealth: candidate.health.publisher,
+    governance: candidate.governance,
+  };
+  candidate.contentDigest = sha256Canonical(contentAuthority);
+  candidate.candidateDigest = sha256Canonical({
+    schemaVersion: PLUGIN_MARKETPLACE_CATALOG_SCHEMA,
+    sourceId: candidate.registry.sourceId,
+    registryUrl: candidate.registry.url,
+    contentDigest: candidate.contentDigest,
+  });
   Object.defineProperty(candidate, "_identity", {
     value: identity,
     enumerable: false,
   });
   Object.defineProperty(candidate, "_fingerprint", {
-    value: sha256Canonical({
-      package: candidate.package,
-      integrity: candidate.integrity,
-    }),
+    value: candidate.contentDigest,
     enumerable: false,
   });
   return candidate;

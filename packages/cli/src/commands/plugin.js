@@ -54,13 +54,15 @@ async function buildRegistryInstallPreflight(url, resolved, cwd) {
   }).preflight;
 }
 
-function catalogAuthorityFromPreflight(preflight) {
+function catalogAuthorityFromPreflight(preflight, impact = null) {
   return {
     catalogDigest: preflight.catalogDigest,
     candidateId: preflight.candidateId,
+    candidateDigest: preflight.candidateDigest,
     governanceStatus: preflight.governance.status,
     registryStatus: preflight.registry.status,
     versionAuthority: preflight.versionAuthority,
+    ...(impact ? { updateImpactDigest: impact.impactDigest } : {}),
   };
 }
 
@@ -72,7 +74,13 @@ function marketplacePreflightBlockerMessage(preflight) {
     .join(", ");
 }
 
-async function installedCatalogAuthorityMatches(name, scope, cwd, preflight) {
+async function installedCatalogAuthorityMatches(
+  name,
+  scope,
+  cwd,
+  preflight,
+  impact = null,
+) {
   if (!preflight) return null;
   try {
     const { listInstalled } = await import("../lib/plugin-runtime/install.js");
@@ -83,11 +91,69 @@ async function installedCatalogAuthorityMatches(name, scope, cwd, preflight) {
     return (
       authority?.catalogDigest === preflight.catalogDigest &&
       authority?.candidateId === preflight.candidateId &&
+      authority?.candidateDigest === preflight.candidateDigest &&
+      (!impact || authority?.updateImpactDigest === impact.impactDigest) &&
       authority?.preflightStatus === "allowed"
     );
   } catch {
     return false;
   }
+}
+
+async function buildInstalledMarketplaceSnapshot(name, scope, cwd) {
+  const { listInstalled } = await import("../lib/plugin-runtime/install.js");
+  const { discoverPlugins } = await import("../lib/plugin-runtime/scopes.js");
+  const row = listInstalled({ cwd, scopes: [scope] }).find(
+    (candidate) => candidate.name === name && candidate.scope === scope,
+  );
+  if (!row) return null;
+  const discovered = discoverPlugins({
+    cwd,
+    scopes: [scope],
+    skipPolicy: true,
+    includeDisabled: true,
+  }).find((candidate) => candidate.name === name && candidate.scope === scope);
+  let dependencies = {};
+  if (discovered?.manifest?.manifestPath) {
+    try {
+      const fs = await import("node:fs");
+      const raw = JSON.parse(
+        fs.readFileSync(discovered.manifest.manifestPath, "utf8"),
+      );
+      if (
+        raw.dependencies &&
+        typeof raw.dependencies === "object" &&
+        !Array.isArray(raw.dependencies)
+      ) {
+        dependencies = Object.fromEntries(
+          Object.entries(raw.dependencies).filter(
+            ([dependency]) => dependency !== "host" && dependency !== "cc",
+          ),
+        );
+      }
+    } catch {
+      dependencies = {};
+    }
+  }
+  return {
+    name: row.name,
+    version: row.version,
+    scope: row.scope,
+    source: row.source,
+    integrity: row.integrity,
+    license: {
+      expression: discovered?.manifest?.metadata?.license || null,
+    },
+    capabilities: discovered?.manifest?.capabilities || null,
+    dependencies,
+  };
+}
+
+async function buildRegistryUpdateImpact(preflight, name, scope, cwd) {
+  const { buildPluginMarketplaceUpdateImpact } =
+    await import("../lib/plugin-runtime/marketplace-impact.js");
+  const installed = await buildInstalledMarketplaceSnapshot(name, scope, cwd);
+  return buildPluginMarketplaceUpdateImpact({ preflight, installed });
 }
 
 /**
@@ -1093,7 +1159,9 @@ export function registerPluginCommand(program) {
           ? res.sourceMetadata?.catalogAuthority?.catalogDigest ===
               marketplacePreflight.catalogDigest &&
             res.sourceMetadata?.catalogAuthority?.candidateId ===
-              marketplacePreflight.candidateId
+              marketplacePreflight.candidateId &&
+            res.sourceMetadata?.catalogAuthority?.candidateDigest ===
+              marketplacePreflight.candidateDigest
           : null;
         if (marketplacePreflight && !marketplaceAuthorityPersisted) {
           setPluginEnabled(res.name, false, {
@@ -1430,6 +1498,100 @@ export function registerPluginCommand(program) {
           catalog.summary.incompleteCandidateCount > 0)
       ) {
         process.exitCode = 2;
+      }
+    });
+
+  // plugin impact — compare one registry candidate with the active immutable
+  // install before upgrade. This never clones or executes candidate bytes.
+  plugin
+    .command("impact <name>")
+    .description(
+      "Preview version, source, integrity, license, capability, and dependency impact before a registry upgrade",
+    )
+    .requiredOption("--registry <url>", "Registry URL containing the candidate")
+    .option("--scope <scope>", "Installed plugin scope", "user")
+    .option("--token <token>", "Bearer token for a private registry")
+    .option(
+      "--allow-insecure-registry",
+      "Allow a plain-HTTP registry URL (MITM risk — trusted networks only)",
+    )
+    .option("--json", "Output the versioned update-impact projection as JSON")
+    .action(async (name, options) => {
+      const { resolveRemoteSource } =
+        await import("../lib/plugin-runtime/remote-source.js");
+      let config = null;
+      try {
+        const cm = await import("../lib/config-manager.js");
+        config = cm.loadConfig();
+      } catch {
+        config = null;
+      }
+      try {
+        const resolved = await resolveRemoteSource(options.registry, {
+          name,
+          token: options.token,
+          config,
+          allowInsecure: options.allowInsecureRegistry === true,
+        });
+        const preflight = await buildRegistryInstallPreflight(
+          options.registry,
+          resolved,
+          process.cwd(),
+        );
+        const impact = await buildRegistryUpdateImpact(
+          preflight,
+          name,
+          options.scope,
+          process.cwd(),
+        );
+        if (options.json) {
+          console.log(JSON.stringify(impact, null, 2));
+        } else {
+          logger.log(
+            chalk.bold(
+              `${name}: ${impact.status} (${impact.changeCount} material changes)`,
+            ),
+          );
+          logger.log(
+            `  version: ${impact.changes.version.from || "not installed"} → ${impact.changes.version.to || "manifest-deferred"} [${impact.changes.version.kind}]`,
+          );
+          logger.log(
+            `  source: ${impact.changes.source.kind}${impact.changes.source.requiresApproval ? " (explicit approval required)" : ""}`,
+          );
+          logger.log(
+            `  license: ${impact.changes.license.from || "unknown"} → ${impact.changes.license.to || "unknown"}`,
+          );
+          logger.log(
+            `  capabilities: +${impact.changes.capabilities.added.join(", ") || "none"}; -${impact.changes.capabilities.removed.join(", ") || "none"}`,
+          );
+          logger.log(
+            `  dependencies: +${impact.changes.dependencies.added.length} / -${impact.changes.dependencies.removed.length} / changed ${impact.changes.dependencies.changed.length}`,
+          );
+          if (impact.blockers.length) {
+            logger.log(
+              chalk.red(
+                `  blockers: ${impact.blockers.map((blocker) => blocker.code).join(", ")}`,
+              ),
+            );
+          }
+          if (impact.requiredApprovals.length) {
+            logger.log(
+              chalk.yellow(
+                `  approvals: ${impact.requiredApprovals.map((approval) => approval.code).join(", ")}`,
+              ),
+            );
+          }
+          logger.log(chalk.gray(`  impact digest: ${impact.impactDigest}`));
+          logger.log(
+            chalk.gray(
+              "  Candidate registry metadata is unverified; no candidate bytes were fetched or executed.",
+            ),
+          );
+        }
+        if (impact.status === "blocked") process.exitCode = 2;
+      } catch (error) {
+        logger.error(`Marketplace impact failed: ${error.message}`);
+        process.exitCode = 1;
       }
     });
 
@@ -1896,6 +2058,15 @@ export function registerPluginCommand(program) {
       "Allow a plain-HTTP registry URL (MITM risk — trusted networks only)",
     )
     .option(
+      "--allow-source-switch",
+      "Explicitly approve changing registry/source authority",
+    )
+    .option("--allow-downgrade", "Explicitly approve a version downgrade")
+    .option(
+      "--expected-impact-digest <sha256>",
+      "Require the exact digest from a prior `cc plugin impact` review",
+    )
+    .option(
       "--grant-capabilities",
       "Grant any newly declared capabilities during the upgrade (no separate consent step)",
     )
@@ -1908,6 +2079,7 @@ export function registerPluginCommand(program) {
       let sourceMetadata = null;
       let expectedIdentity = null;
       let marketplacePreflight = null;
+      let marketplaceImpact = null;
       const { isRemoteSource, resolveRemoteSource } =
         await import("../lib/plugin-runtime/remote-source.js");
       if (options.registry || isRemoteSource(source)) {
@@ -1939,6 +2111,44 @@ export function registerPluginCommand(program) {
               `registry candidate preflight blocked: ${marketplacePreflightBlockerMessage(marketplacePreflight)}`,
             );
           }
+          marketplaceImpact = await buildRegistryUpdateImpact(
+            marketplacePreflight,
+            resolved.entry.name,
+            options.scope,
+            process.cwd(),
+          );
+          if (
+            marketplaceImpact.changes.source.requiresApproval &&
+            options.allowSourceSwitch !== true
+          ) {
+            throw new Error(
+              `registry candidate preflight blocked: SOURCE_SWITCH_APPROVAL_REQUIRED (${marketplaceImpact.changes.source.kind}); pass --allow-source-switch after reviewing cc plugin impact`,
+            );
+          }
+          if (
+            marketplaceImpact.changes.version.kind === "downgrade" &&
+            options.allowDowngrade !== true
+          ) {
+            throw new Error(
+              "registry candidate preflight blocked: VERSION_DOWNGRADE_APPROVAL_REQUIRED; pass --allow-downgrade after reviewing cc plugin impact",
+            );
+          }
+          if (
+            options.expectedImpactDigest &&
+            !/^[a-f0-9]{64}$/.test(options.expectedImpactDigest)
+          ) {
+            throw new Error(
+              "registry candidate preflight blocked: INVALID_EXPECTED_IMPACT_DIGEST",
+            );
+          }
+          if (
+            options.expectedImpactDigest &&
+            options.expectedImpactDigest !== marketplaceImpact.impactDigest
+          ) {
+            throw new Error(
+              `registry candidate preflight blocked: UPDATE_IMPACT_DIGEST_MISMATCH (expected ${options.expectedImpactDigest}, actual ${marketplaceImpact.impactDigest})`,
+            );
+          }
           expectedIdentity = {
             name:
               typeof resolved.entry.name === "string"
@@ -1962,8 +2172,10 @@ export function registerPluginCommand(program) {
                 resolved.source.slice(resolved.source.indexOf("#") + 1)) ||
               null,
             offline: resolved.fromCache === true,
-            catalogAuthority:
-              catalogAuthorityFromPreflight(marketplacePreflight),
+            catalogAuthority: catalogAuthorityFromPreflight(
+              marketplacePreflight,
+              marketplaceImpact,
+            ),
           };
           if (resolved.fromCache && !options.json) {
             logger.warn(
@@ -2025,6 +2237,7 @@ export function registerPluginCommand(program) {
           options.scope,
           process.cwd(),
           marketplacePreflight,
+          marketplaceImpact,
         );
         if (marketplacePreflight && !marketplaceAuthorityPersisted) {
           throw new Error(
@@ -2093,6 +2306,7 @@ export function registerPluginCommand(program) {
               options.scope,
               process.cwd(),
               marketplacePreflight,
+              marketplaceImpact,
             );
         } else {
           cleanupPending = finalizePluginUpdate(res).cleanupPending === true;
@@ -2105,6 +2319,7 @@ export function registerPluginCommand(program) {
                 ...res,
                 scope: options.scope,
                 marketplacePreflight,
+                marketplaceImpact,
                 marketplaceAuthorityPersisted,
                 capabilities: upgradeNotice,
                 capabilitiesGranted,
@@ -2133,6 +2348,9 @@ export function registerPluginCommand(program) {
               ),
             );
           }
+          logger.log(
+            chalk.gray(`  reviewed impact: ${marketplaceImpact.impactDigest}`),
+          );
         }
 
         if (activationStatus === "rolled_back") {

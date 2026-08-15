@@ -214,6 +214,7 @@ describe("installFromSource", () => {
     const src = makeSource("governed", "2.0.0");
     const catalogDigest = "a".repeat(64);
     const candidateId = `candidate-${"b".repeat(20)}`;
+    const candidateDigest = "c".repeat(64);
     installFromSource(src, {
       scope: "project",
       cwd,
@@ -227,6 +228,7 @@ describe("installFromSource", () => {
         catalogAuthority: {
           catalogDigest,
           candidateId,
+          candidateDigest,
           governanceStatus: "complete",
           registryStatus: "online",
           versionAuthority: "registry-declared-unverified",
@@ -244,6 +246,7 @@ describe("installFromSource", () => {
           "cc-plugin-marketplace-install-preflight/v1",
         catalogDigest,
         candidateId,
+        candidateDigest,
         preflightStatus: "allowed",
         governanceStatus: "complete",
       },

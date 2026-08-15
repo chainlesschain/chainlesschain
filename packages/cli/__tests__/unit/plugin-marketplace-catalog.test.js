@@ -65,6 +65,8 @@ describe("plugin marketplace catalog governance projection", () => {
       },
     });
     expect(preflight.catalogDigest).toMatch(/^[a-f0-9]{64}$/);
+    expect(preflight.candidateDigest).toMatch(/^[a-f0-9]{64}$/);
+    expect(preflight.contentDigest).toMatch(/^[a-f0-9]{64}$/);
   });
 
   it("blocks a registry install before clone on dependency and host failures", () => {
@@ -139,6 +141,8 @@ describe("plugin marketplace catalog governance projection", () => {
       status: "allowed",
       blockers: [],
     });
+    expect(candidate.candidateDigest).toMatch(/^[a-f0-9]{64}$/);
+    expect(candidate.contentDigest).toMatch(/^[a-f0-9]{64}$/);
     expect(catalog.dependencyGraph.edges).toHaveLength(1);
     expect(catalog.dependencyGraph.edges[0]).toMatchObject({
       dependency: "shared-tools",
@@ -176,6 +180,9 @@ describe("plugin marketplace catalog governance projection", () => {
       generatedAt: "2026-08-16T00:00:00.000Z",
     });
     expect(first.catalogDigest).toBe(second.catalogDigest);
+    expect(first.candidates[0].candidateDigest).toBe(
+      second.candidates[0].candidateDigest,
+    );
   });
 
   it("fails source conflicts closed when the same version resolves differently", () => {
