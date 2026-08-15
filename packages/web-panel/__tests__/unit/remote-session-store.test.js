@@ -343,6 +343,7 @@ describe("remoteSession store", () => {
     expect(store.status).toBe("connected");
     expect(FakeRelay.lastJoin).toMatchObject({
       type: "pair.join",
+      capabilities: ["approval-binding-v1"],
       pushToken: '{"endpoint":"https://p.test"}',
       pushProvider: "web",
     });

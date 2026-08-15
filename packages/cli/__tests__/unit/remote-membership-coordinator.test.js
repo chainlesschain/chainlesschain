@@ -73,14 +73,18 @@ function fixture() {
   };
 }
 
-function createSession(fixtureValue) {
+function createSession(
+  fixtureValue,
+  { sessionId = "remote-1", joinPolicy = null } = {},
+) {
   const hostCredential = createRemoteMembershipPrincipalCredential();
   const created = fixtureValue.coordinator.createSession({
-    sessionId: "remote-1",
+    sessionId,
     agentSessionId: "agent-1",
     scopes: ["observe", "prompt", "approve", "interrupt"],
     expiresAt: 100_000,
     hostCredentialPublicKeySpki: hostCredential.publicKey,
+    joinPolicy,
   });
   fixtureValue.host.pinTrust(created.trust);
   fixtureValue.host.recordBootstrap({
@@ -106,6 +110,7 @@ function joinDevice(fixtureValue, created) {
     sessionId: created.sessionId,
     expectedSessionEpoch: created.sessionEpoch,
     scopes: ["observe", "approve"],
+    capabilities: ["approval-binding-v1"],
     credentialPublicKey: credential.publicKey,
     connectionNonce,
   });
@@ -291,6 +296,211 @@ afterEach(async () => {
 });
 
 describe("cross-host Remote membership coordinator", () => {
+  it("negotiates approval-binding-v1 exactly and strips approve from legacy durable clients", () => {
+    const value = fixture();
+    const created = createSession(value);
+    const join = (connectionNonce, capabilities) => {
+      const credential = createRemoteMembershipPrincipalCredential();
+      const challenge = value.coordinator.issueMemberJoinChallenge({
+        sessionId: created.sessionId,
+        expectedSessionEpoch: created.sessionEpoch,
+        scopes: ["observe", "approve"],
+        capabilities,
+        credentialPublicKey: credential.publicKey,
+        connectionNonce,
+      });
+      return value.coordinator.joinMember({
+        challengeId: challenge.challengeId,
+        connectionNonce,
+        signature: signRemoteMembershipAuthenticationChallenge(
+          challenge,
+          credential.privateKeyPkcs8,
+        ),
+      });
+    };
+
+    expect(join("legacy-client", null)).toMatchObject({
+      scopes: ["observe"],
+      capabilities: [],
+    });
+    expect(join("bound-client", ["approval-binding-v1"])).toMatchObject({
+      scopes: ["approve", "observe"],
+      capabilities: ["approval-binding-v1"],
+    });
+    expect(() => join("invalid-client", "approval-binding-v1")).toThrow(
+      /bounded array/,
+    );
+  });
+
+  it("strips approve while replaying a pre-capability member event", () => {
+    const value = fixture();
+    const created = createSession(value);
+    const joined = joinDevice(value, created);
+    const { eventHash, replayStore } = _remoteMembershipCoordinatorInternals;
+    const store = JSON.parse(
+      fs.readFileSync(value.coordinatorPaths.stateFile, "utf8"),
+    );
+    const legacyJoin = store.events.find(
+      (event) =>
+        event.type === "member.joined" &&
+        event.principalId === joined.principalId,
+    );
+    for (const field of [
+      "capabilities",
+      "joinVia",
+      "policyAllowedScopes",
+      "policyAllowRelayPairing",
+      "policyMaxDevices",
+      "policyVersion",
+    ]) {
+      delete legacyJoin[field];
+    }
+    legacyJoin.eventHash = eventHash(legacyJoin);
+    store.headHash = legacyJoin.eventHash;
+
+    const replayed = replayStore(store, created.trust.coordinatorId);
+    expect(
+      replayed.sessions.get(created.sessionId).members.get(joined.principalId),
+    ).toMatchObject({
+      status: "active",
+      scopes: ["observe"],
+      capabilities: [],
+    });
+  });
+
+  it("revalidates maxDevices against the current CAS state after stale cross-server challenges", () => {
+    const value = fixture();
+    const joinPolicy = {
+      policyVersion: "policy-v1",
+      allowedScopes: ["observe", "approve"],
+      maxDevices: 1,
+      allowRelayPairing: true,
+    };
+    const created = createSession(value, { joinPolicy });
+    const peer = new DurableRemoteMembershipCoordinator({
+      ...value.coordinatorPaths,
+      now: () => value.getNow(),
+    });
+    const credentials = [
+      createRemoteMembershipPrincipalCredential(),
+      createRemoteMembershipPrincipalCredential(),
+    ];
+    const coordinators = [value.coordinator, peer];
+    const challenges = coordinators.map((coordinator, index) =>
+      coordinator.issueMemberJoinChallenge({
+        sessionId: created.sessionId,
+        expectedSessionEpoch: created.sessionEpoch,
+        scopes: ["observe", "approve"],
+        capabilities: ["approval-binding-v1"],
+        joinPolicy,
+        credentialPublicKey: credentials[index].publicKey,
+        connectionNonce: `cross-server-${index}`,
+      }),
+    );
+    const complete = (index) =>
+      coordinators[index].joinMember({
+        challengeId: challenges[index].challengeId,
+        connectionNonce: `cross-server-${index}`,
+        signature: signRemoteMembershipAuthenticationChallenge(
+          challenges[index],
+          credentials[index].privateKeyPkcs8,
+        ),
+      });
+
+    expect(complete(0).scopes).toEqual(["approve", "observe"]);
+    let denied;
+    try {
+      complete(1);
+    } catch (error) {
+      denied = error;
+    }
+    expect(denied).toMatchObject({
+      code: REMOTE_MEMBERSHIP_COORDINATOR_UNAVAILABLE_CODE,
+      cause: expect.objectContaining({
+        message: expect.stringMatching(/device limit reached/),
+      }),
+    });
+  });
+
+  it("recovers a signed close tombstone after response loss and safely re-enables on restart", () => {
+    const value = fixture();
+    const created = createSession(value);
+    const joined = joinDevice(value, created);
+    let crashAfterCommit = true;
+    const crashy = new DurableRemoteMembershipCoordinator({
+      ...value.coordinatorPaths,
+      now: () => value.getNow(),
+      faultHooks: {
+        afterStateCommit() {
+          if (crashAfterCommit) throw new Error("simulated lost close reply");
+        },
+      },
+    });
+
+    expect(() =>
+      crashy.closeSession({
+        sessionId: created.sessionId,
+        hostPrincipalId: created.hostPrincipalId,
+        expectedSessionEpoch: created.sessionEpoch,
+        expectedHostMembershipEpoch: created.membershipEpoch,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: REMOTE_MEMBERSHIP_COORDINATOR_UNAVAILABLE_CODE,
+        commitState: "unknown",
+      }),
+    );
+    crashAfterCommit = false;
+
+    const restarted = new DurableRemoteMembershipCoordinator({
+      ...value.coordinatorPaths,
+      now: () => value.getNow(),
+    });
+    const terminal = restarted.getSessionSnapshot(created.sessionId);
+    expect(terminal.session).toMatchObject({
+      status: "closed",
+      sessionEpoch: "2",
+    });
+    value.host.adopt(terminal.statement, {
+      expectedKind: "session.snapshot",
+      expectedSessionId: created.sessionId,
+    });
+
+    const connectionNonce = "reenable-after-lost-close";
+    const challenge = restarted.issueSessionReenableChallenge({
+      sessionId: created.sessionId,
+      principalId: created.hostPrincipalId,
+      connectionNonce,
+      scopes: ["observe", "prompt", "approve", "interrupt"],
+      expiresAt: 200_000,
+    });
+    const reenabled = restarted.reenableSession({
+      challengeId: challenge.challengeId,
+      connectionNonce,
+      signature: signRemoteMembershipAuthenticationChallenge(
+        challenge,
+        created.hostCredential.privateKeyPkcs8,
+      ),
+    });
+    expect(reenabled).toMatchObject({
+      sessionEpoch: "3",
+      hostPrincipalId: created.hostPrincipalId,
+      membershipEpoch: "2",
+    });
+    value.host.adopt(reenabled.statement, {
+      expectedKind: "session.snapshot",
+      expectedSessionId: created.sessionId,
+    });
+    expect(
+      restarted.readMembership({
+        sessionId: created.sessionId,
+        sessionEpoch: "3",
+        principalId: joined.principalId,
+        membershipEpoch: joined.membershipEpoch,
+      }),
+    ).toMatchObject({ ok: false });
+  });
+
   it("pins an independent trust root and requires durable adopt + ACK + online consume", () => {
     const value = fixture();
     const created = createSession(value);
@@ -642,8 +852,13 @@ describe("cross-host Remote membership coordinator", () => {
     const envelope = mobileCrypto.encrypt("host-peer", {
       type: "pair.join",
       token,
+      capabilities: ["approval-binding-v1"],
     });
-    expect(hostCrypto.decrypt(envelope)).toEqual({ type: "pair.join", token });
+    expect(hostCrypto.decrypt(envelope)).toEqual({
+      type: "pair.join",
+      token,
+      capabilities: ["approval-binding-v1"],
+    });
     const capability = hostCrypto.takeRelayPossessionCapability("mobile-peer");
     const args = {
       sessionId: created.sessionId,
@@ -652,6 +867,7 @@ describe("cross-host Remote membership coordinator", () => {
       mobilePeerId: "mobile-peer",
       mobilePublicKey: mobileCrypto.publicKey,
       pairingTokenDigest: remoteSessionPairingTokenDigest(token),
+      capabilities: ["approval-binding-v1"],
     };
     expect(() =>
       value.coordinator.joinRelayMember({
@@ -667,6 +883,8 @@ describe("cross-host Remote membership coordinator", () => {
       principalId: expect.stringMatching(/^relay-x25519:[0-9a-f]{64}$/),
       credentialType: "relay-x25519",
       membershipEpoch: "1",
+      scopes: ["approve", "observe"],
+      capabilities: ["approval-binding-v1"],
     });
     value.host.adopt(joined.statement, { expectedKind: "session.snapshot" });
     expect(() =>
@@ -676,6 +894,37 @@ describe("cross-host Remote membership coordinator", () => {
       }),
     ).toThrow();
     expect(() => hostCrypto.decrypt(envelope)).toThrow(/replay|out-of-order/);
+  });
+
+  it("strips approve from a durable relay join that omits approval-binding-v1", () => {
+    const value = fixture();
+    const created = createSession(value);
+    const { hostCrypto, mobileCrypto, token } = relayHandshake(
+      created,
+      value.coordinator.relayAuthorityDescriptor(),
+      "legacy-relay-token",
+    );
+    hostCrypto.decrypt(
+      mobileCrypto.encrypt("host-peer", {
+        type: "pair.join",
+        token,
+      }),
+    );
+    const joined = value.coordinator.joinRelayMember({
+      sessionId: created.sessionId,
+      expectedSessionEpoch: created.sessionEpoch,
+      scopes: ["observe", "approve"],
+      mobilePeerId: "mobile-peer",
+      mobilePublicKey: mobileCrypto.publicKey,
+      pairingTokenDigest: remoteSessionPairingTokenDigest(token),
+      possessionCapability:
+        hostCrypto.takeRelayPossessionCapability("mobile-peer"),
+    });
+
+    expect(joined).toMatchObject({
+      scopes: ["observe"],
+      capabilities: [],
+    });
   });
 
   it("consumes and rejects relay capability on peer, key, token, or session mismatch and never mints one for a wrong join token", () => {
@@ -1381,6 +1630,7 @@ describe("cross-host Remote membership coordinator", () => {
       sessionId: created.sessionId,
       expectedSessionEpoch: created.sessionEpoch,
       scopes: ["observe", "approve"],
+      capabilities: ["approval-binding-v1"],
       credentialPublicKey: credential.publicKey,
       connectionNonce: "unknown-commit",
     });

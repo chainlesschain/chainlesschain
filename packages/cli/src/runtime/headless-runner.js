@@ -1460,6 +1460,8 @@ async function runAgentHeadlessInWorkspace(
   if (!hermeticExecution) {
     try {
       approvalGate = await getApprovalGate();
+      approvalGate =
+        approvalGate?.createSessionScope?.(sessionId) || approvalGate;
       if (approvalGate && (options.permissionMode || "default") === "auto") {
         // autoMode.decisions: user-configured riskLevel → allow/ask/deny
         // classifier. Only wrap when settings actually customize the map so the
@@ -1483,6 +1485,7 @@ async function runAgentHeadlessInWorkspace(
         }
       }
       if (approvalGate) {
+        approvalGate.setAuthorizationConsumer?.(null);
         if (typeof approvalGate.setSessionPolicy === "function") {
           approvalGate.setSessionPolicy(sessionId, perm.sessionPolicy);
         }
@@ -1980,6 +1983,18 @@ async function runAgentHeadlessInWorkspace(
     !options.permissionPromptTool
   ) {
     try {
+      if (
+        !approvalGate ||
+        typeof approvalGate.setConfirmer !== "function" ||
+        typeof approvalGate.setAuthorizationConsumer !== "function" ||
+        typeof approvalGate.consumeAuthorization !== "function"
+      ) {
+        const error = new Error(
+          "installed session-core cannot bind and consume durable remote approval",
+        );
+        error.code = "CC_REMOTE_APPROVAL_GATE_UNAVAILABLE";
+        throw error;
+      }
       const { startHeadlessRemoteApproval } =
         await import("../lib/remote-approval-bridge.js");
       _remoteApproval = await (
@@ -1989,11 +2004,12 @@ async function runAgentHeadlessInWorkspace(
         writeErr,
         isText,
       });
-      if (approvalGate && typeof approvalGate.setConfirmer === "function") {
-        approvalGate.setConfirmer(
-          _bgPhase.wrapConfirmer(_remoteApproval.confirmer),
-        );
-      }
+      approvalGate.setConfirmer(
+        _bgPhase.wrapConfirmer(_remoteApproval.confirmer),
+      );
+      approvalGate.setAuthorizationConsumer(
+        _remoteApproval.consumeAuthorization,
+      );
     } catch (err) {
       // Remote approval could not come up → keep headless fail-closed rather
       // than running un-gated; say why so the user can fix pairing.
@@ -3274,6 +3290,7 @@ async function runAgentHeadlessInWorkspace(
     await cleanupDeadline.run("remote-approval", () =>
       _remoteApproval?.close?.(),
     );
+    approvalGate?.setAuthorizationConsumer?.(null);
     // settings.json Stop + SessionEnd hooks when the run finishes. Stop is the
     // canonical async-hook trigger ("run the test suite at turn end"); fire its
     // async hooks fire-and-forget, then settle so a fast background check can

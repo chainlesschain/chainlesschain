@@ -99,13 +99,22 @@ class RemoteSessionClientIdempotencyTest {
         val host = pair()
         val before = sockets.last().sent.size
         client.sendPrompt("continue")
-        client.resolveApproval("req-1", true)
+        client.resolveApproval(
+            requestId = "req-1",
+            approved = true,
+            fingerprint = "sha256:request-1",
+            binding = "binding-1",
+            revision = 3,
+        )
         client.interrupt()
 
         val controls = decryptControls(host, before)
         assertEquals(3, controls.size)
         assertEquals("prompt", controls[0].getString("type"))
         assertEquals("approval.resolve", controls[1].getString("type"))
+        assertEquals("sha256:request-1", controls[1].getString("fingerprint"))
+        assertEquals("binding-1", controls[1].getString("binding"))
+        assertEquals(3, controls[1].getInt("revision"))
         assertEquals("interrupt", controls[2].getString("type"))
         for (event in controls) {
             assertTrue("commandId must be a real id", event.getString("commandId").length > 8)
@@ -114,6 +123,20 @@ class RemoteSessionClientIdempotencyTest {
         assertNotEquals(controls[0].getString("commandId"), controls[1].getString("commandId"))
         assertNotEquals(controls[1].getString("commandId"), controls[2].getString("commandId"))
         assertEquals(listOf(1L, 2L, 3L), controls.map { it.getLong("seq") })
+    }
+
+    @Test
+    fun `partial durable approval tuple is rejected before send`() {
+        val host = pair()
+        val before = sockets.last().sent.size
+        assertTrue(
+            !client.resolveApproval(
+                requestId = "req-partial",
+                approved = true,
+                fingerprint = "sha256:partial",
+            ),
+        )
+        assertTrue(decryptControls(host, before).isEmpty())
     }
 
     @Test

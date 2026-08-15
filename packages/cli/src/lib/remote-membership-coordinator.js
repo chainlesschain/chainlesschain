@@ -62,6 +62,7 @@ const NON_NEGATIVE_RE = /^(?:0|[1-9]\d*)$/;
 const VALID_SCOPES = new Set(["observe", "prompt", "approve", "interrupt"]);
 const VALID_TYPES = new Set([
   "session.created",
+  "session.reenabled",
   "member.joined",
   "member.revoked",
   "session.closed",
@@ -75,6 +76,19 @@ const MAX_LEASE_TTL_MS = 60_000;
 const DEFAULT_CHALLENGE_TTL_MS = 30_000;
 const MAX_CHALLENGE_TTL_MS = 60_000;
 const BASE64URL_RE = /^[A-Za-z0-9_-]+$/;
+export const REMOTE_APPROVAL_BINDING_CAPABILITY = "approval-binding-v1";
+const DEFAULT_JOIN_POLICY_VERSION = "remote-session-policy:unrestricted-v1";
+const JOIN_POLICY_EVENT_FIELDS = Object.freeze([
+  "policyAllowedScopes",
+  "policyAllowRelayPairing",
+  "policyMaxDevices",
+  "policyVersion",
+]);
+const MEMBER_JOIN_AUTHORITY_FIELDS = Object.freeze([
+  "capabilities",
+  "joinVia",
+  ...JOIN_POLICY_EVENT_FIELDS,
+]);
 
 const COMMON_EVENT_FIELDS = Object.freeze([
   "eventHash",
@@ -97,6 +111,22 @@ const EVENT_FIELDS = Object.freeze({
     "hostCredentialType",
     "hostPrincipalId",
     "membershipEpoch",
+    ...JOIN_POLICY_EVENT_FIELDS,
+    "scopes",
+    "sessionEpoch",
+  ]),
+  "session.reenabled": Object.freeze([
+    ...COMMON_EVENT_FIELDS,
+    "expectedHostMembershipEpoch",
+    "expectedSessionEpoch",
+    "expiresAt",
+    "hostPrincipalId",
+    "membershipEpoch",
+    "nextHostCredentialDigest",
+    "nextHostCredentialPublicKey",
+    "nextHostCredentialType",
+    "nextHostPrincipalId",
+    ...JOIN_POLICY_EVENT_FIELDS,
     "scopes",
     "sessionEpoch",
   ]),
@@ -109,6 +139,7 @@ const EVENT_FIELDS = Object.freeze({
     "membershipEpoch",
     "previousMembershipEpoch",
     "principalId",
+    ...MEMBER_JOIN_AUTHORITY_FIELDS,
     "scopes",
   ]),
   "member.revoked": Object.freeze([
@@ -170,6 +201,19 @@ const EVENT_FIELDS = Object.freeze({
     "leaseId",
     "reason",
   ]),
+});
+
+const LEGACY_EVENT_FIELDS = Object.freeze({
+  "session.created": Object.freeze(
+    EVENT_FIELDS["session.created"].filter(
+      (field) => !JOIN_POLICY_EVENT_FIELDS.includes(field),
+    ),
+  ),
+  "member.joined": Object.freeze(
+    EVENT_FIELDS["member.joined"].filter(
+      (field) => !MEMBER_JOIN_AUTHORITY_FIELDS.includes(field),
+    ),
+  ),
 });
 
 function coordinatorError(code, message, cause = null, details = {}) {
@@ -242,6 +286,141 @@ function normalizeScopes(scopes) {
     }
   }
   return normalized;
+}
+
+function normalizeCapabilities(capabilities) {
+  if (capabilities == null) return [];
+  if (!Array.isArray(capabilities) || capabilities.length > 32) {
+    throw new TypeError("membership capabilities must be a bounded array");
+  }
+  return [
+    ...new Set(
+      capabilities.map((capability) => {
+        if (typeof capability !== "string") {
+          throw new TypeError("membership capability must be a string");
+        }
+        return requiredString(capability, "membership capability", 128);
+      }),
+    ),
+  ].sort();
+}
+
+function normalizeJoinPolicy(policy = null) {
+  const value = policy || {};
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new TypeError("membership join policy must be an object");
+  }
+  const allowedScopes =
+    value.allowedScopes == null ? null : normalizeScopes(value.allowedScopes);
+  const maxDevices = value.maxDevices == null ? null : value.maxDevices;
+  if (
+    maxDevices !== null &&
+    (!Number.isSafeInteger(maxDevices) ||
+      maxDevices < 0 ||
+      maxDevices > 1_000_000)
+  ) {
+    throw new TypeError(
+      "membership policy maxDevices must be a bounded integer",
+    );
+  }
+  if (
+    value.allowRelayPairing != null &&
+    typeof value.allowRelayPairing !== "boolean"
+  ) {
+    throw new TypeError("membership policy allowRelayPairing must be boolean");
+  }
+  return Object.freeze({
+    policyVersion:
+      value.policyVersion == null
+        ? DEFAULT_JOIN_POLICY_VERSION
+        : requiredString(value.policyVersion, "policyVersion", 512),
+    allowedScopes:
+      allowedScopes === null ? null : Object.freeze([...allowedScopes]),
+    maxDevices,
+    allowRelayPairing: value.allowRelayPairing !== false,
+  });
+}
+
+function joinPolicyEventFields(policy) {
+  const normalized = normalizeJoinPolicy(policy);
+  return {
+    policyVersion: normalized.policyVersion,
+    policyAllowedScopes:
+      normalized.allowedScopes === null ? null : [...normalized.allowedScopes],
+    policyMaxDevices: normalized.maxDevices,
+    policyAllowRelayPairing: normalized.allowRelayPairing,
+  };
+}
+
+function joinPolicyFromEvent(event, label) {
+  const present = JOIN_POLICY_EVENT_FIELDS.filter((field) =>
+    Object.prototype.hasOwnProperty.call(event, field),
+  );
+  if (present.length === 0) return null;
+  if (present.length !== JOIN_POLICY_EVENT_FIELDS.length) {
+    throw new TypeError(`${label} has an incomplete membership join policy`);
+  }
+  return normalizeJoinPolicy({
+    policyVersion: event.policyVersion,
+    allowedScopes: event.policyAllowedScopes,
+    maxDevices: event.policyMaxDevices,
+    allowRelayPairing: event.policyAllowRelayPairing,
+  });
+}
+
+function joinPoliciesMatch(left, right) {
+  return (
+    canonicalJson(normalizeJoinPolicy(left)) ===
+    canonicalJson(normalizeJoinPolicy(right))
+  );
+}
+
+function enforceJoinAuthority(session, { scopes, via, capabilities, policy }) {
+  const normalizedPolicy = normalizeJoinPolicy(policy);
+  if (
+    session.joinPolicy &&
+    !joinPoliciesMatch(session.joinPolicy, normalizedPolicy)
+  ) {
+    throw new Error("Remote membership policy version or authority changed");
+  }
+  if (via !== "direct" && via !== "relay") {
+    throw new TypeError("membership join transport is unsupported");
+  }
+  if (via === "relay" && !normalizedPolicy.allowRelayPairing) {
+    throw new Error("Relay pairing is disabled by membership policy");
+  }
+  const normalizedCapabilities = normalizeCapabilities(capabilities);
+  let grantedScopes = normalizeScopes(scopes);
+  if (normalizedPolicy.allowedScopes !== null) {
+    grantedScopes = grantedScopes.filter((scope) =>
+      normalizedPolicy.allowedScopes.includes(scope),
+    );
+  }
+  if (!normalizedCapabilities.includes(REMOTE_APPROVAL_BINDING_CAPABILITY)) {
+    grantedScopes = grantedScopes.filter((scope) => scope !== "approve");
+  }
+  if (grantedScopes.length === 0) {
+    throw new Error(
+      "Remote membership scopes are denied by policy or capability",
+    );
+  }
+  const deviceCount = [...session.members.values()].filter(
+    (member) =>
+      member.principalId !== session.hostPrincipalId &&
+      member.status === "active",
+  ).length;
+  if (
+    normalizedPolicy.maxDevices !== null &&
+    deviceCount >= normalizedPolicy.maxDevices
+  ) {
+    throw new Error("Remote membership device limit reached");
+  }
+  return Object.freeze({
+    policy: normalizedPolicy,
+    scopes: Object.freeze([...grantedScopes]),
+    capabilities: Object.freeze([...normalizedCapabilities]),
+    via,
+  });
 }
 
 function canonicalJson(value) {
@@ -469,7 +648,13 @@ function replayStore(store, coordinatorId, { missing = false } = {}) {
     if (event.schema !== EVENT_SCHEMA || !VALID_TYPES.has(event.type)) {
       throw new TypeError(`${label} has an unsupported schema or type`);
     }
-    if (!hasExactKeys(event, EVENT_FIELDS[event.type])) {
+    if (
+      !hasExactKeys(event, EVENT_FIELDS[event.type]) &&
+      !(
+        LEGACY_EVENT_FIELDS[event.type] &&
+        hasExactKeys(event, LEGACY_EVENT_FIELDS[event.type])
+      )
+    ) {
       throw new TypeError(
         `${label} has non-canonical fields for ${event.type}`,
       );
@@ -554,6 +739,7 @@ function replayStore(store, coordinatorId, { missing = false } = {}) {
         createdAt: event.occurredAtMs,
         expiresAt,
         status: "active",
+        joinPolicy: joinPolicyFromEvent(event, label),
         members: new Map([
           [
             hostPrincipalId,
@@ -565,6 +751,7 @@ function replayStore(store, coordinatorId, { missing = false } = {}) {
               credentialType: hostCredential.type,
               credentialPublicKey: hostCredential.publicKey,
               credentialDigest: hostCredential.digest,
+              capabilities: [],
             },
           ],
         ]),
@@ -584,12 +771,83 @@ function replayStore(store, coordinatorId, { missing = false } = {}) {
       }
       if (
         event.type !== "session.closed" &&
+        event.type !== "session.reenabled" &&
         event.occurredAtMs >= session.expiresAt
       ) {
         throw new TypeError(`${label} occurs after session expiry`);
       }
 
-      if (event.type === "member.joined") {
+      if (event.type === "session.reenabled") {
+        if (session.status !== "closed") {
+          throw new TypeError(`${label} re-enables an active session`);
+        }
+        const currentHost = session.members.get(session.hostPrincipalId);
+        if (
+          event.hostPrincipalId !== session.hostPrincipalId ||
+          !currentHost ||
+          event.expectedHostMembershipEpoch !== currentHost.membershipEpoch
+        ) {
+          throw new TypeError(
+            `${label} was not re-enabled by the current host`,
+          );
+        }
+        const nextSessionEpoch = String(
+          canonicalEpoch(event.sessionEpoch, `${label}.sessionEpoch`),
+        );
+        if (nextSessionEpoch !== String(BigInt(session.sessionEpoch) + 1n)) {
+          throw new TypeError(`${label} does not advance the session epoch`);
+        }
+        const nextHost = normalizePrincipalCredential(
+          {
+            type: event.nextHostCredentialType,
+            publicKey: event.nextHostCredentialPublicKey,
+          },
+          `${label}.nextHostCredential`,
+        );
+        if (
+          nextHost.digest !== event.nextHostCredentialDigest ||
+          nextHost.principalId !== event.nextHostPrincipalId
+        ) {
+          throw new TypeError(`${label}.nextHostPrincipalId is not key-bound`);
+        }
+        const priorNextHost = session.members.get(nextHost.principalId) || null;
+        const nextMembershipEpoch = String(
+          canonicalEpoch(event.membershipEpoch, `${label}.membershipEpoch`),
+        );
+        const expectedMembershipEpoch = priorNextHost
+          ? String(BigInt(priorNextHost.membershipEpoch) + 1n)
+          : "1";
+        if (nextMembershipEpoch !== expectedMembershipEpoch) {
+          throw new TypeError(`${label} does not advance the new host epoch`);
+        }
+        const expiresAt = safeTimestamp(event.expiresAt, `${label}.expiresAt`);
+        if (expiresAt <= event.occurredAtMs) {
+          throw new TypeError(`${label}.expiresAt must be in the future`);
+        }
+        for (const member of session.members.values()) {
+          if (member.status === "active") {
+            member.status = "revoked";
+            member.membershipEpoch = String(
+              BigInt(member.membershipEpoch) + 1n,
+            );
+          }
+        }
+        session.members.set(nextHost.principalId, {
+          principalId: nextHost.principalId,
+          membershipEpoch: nextMembershipEpoch,
+          status: "active",
+          scopes: normalizeScopes(event.scopes),
+          credentialType: nextHost.type,
+          credentialPublicKey: nextHost.publicKey,
+          credentialDigest: nextHost.digest,
+          capabilities: [],
+        });
+        session.hostPrincipalId = nextHost.principalId;
+        session.sessionEpoch = nextSessionEpoch;
+        session.expiresAt = expiresAt;
+        session.status = "active";
+        session.joinPolicy = joinPolicyFromEvent(event, label);
+      } else if (event.type === "member.joined") {
         if (session.status !== "active") {
           throw new TypeError(`${label} joins a closed session`);
         }
@@ -638,14 +896,56 @@ function replayStore(store, coordinatorId, { missing = false } = {}) {
         if (membershipEpoch !== expected) {
           throw new TypeError(`${label} does not advance the principal epoch`);
         }
+        const eventPolicy = joinPolicyFromEvent(event, label);
+        const joinVia = Object.prototype.hasOwnProperty.call(event, "joinVia")
+          ? requiredString(event.joinVia, `${label}.joinVia`, 16)
+          : "direct";
+        const capabilities = Object.prototype.hasOwnProperty.call(
+          event,
+          "capabilities",
+        )
+          ? normalizeCapabilities(event.capabilities)
+          : [];
+        const declaredScopes = normalizeScopes(event.scopes);
+        // Pre-capability stores could persist `approve` without proving that the
+        // client understood the exact approval tuple. Preserve non-approval
+        // membership on upgrade, but never grandfather that authority through
+        // replay. A legacy approve-only member remains counted as active with no
+        // usable scopes rather than silently freeing the device-cap slot.
+        const replayedScopes = eventPolicy
+          ? declaredScopes
+          : declaredScopes.filter((scope) => scope !== "approve");
+        if (eventPolicy) {
+          if (
+            session.joinPolicy &&
+            !joinPoliciesMatch(session.joinPolicy, eventPolicy)
+          ) {
+            throw new TypeError(`${label} changes the session join policy`);
+          }
+          session.joinPolicy = eventPolicy;
+          const authority = enforceJoinAuthority(session, {
+            scopes: event.scopes,
+            via: joinVia,
+            capabilities,
+            policy: eventPolicy,
+          });
+          if (
+            canonicalJson(authority.scopes) !== canonicalJson(declaredScopes)
+          ) {
+            throw new TypeError(
+              `${label} grants scopes outside join authority`,
+            );
+          }
+        }
         session.members.set(principalId, {
           principalId,
           membershipEpoch,
           status: "active",
-          scopes: normalizeScopes(event.scopes),
+          scopes: replayedScopes,
           credentialType: credential.type,
           credentialPublicKey: credential.publicKey,
           credentialDigest: credential.digest,
+          capabilities,
         });
       } else if (event.type === "member.revoked") {
         if (session.status !== "active") {
@@ -1461,6 +1761,11 @@ export class DurableRemoteMembershipCoordinator {
     member,
     credential,
     scopes = null,
+    capabilities = null,
+    joinPolicy = null,
+    joinVia = null,
+    nextCredential = null,
+    nextSessionExpiresAt = null,
     connectionNonce,
     now,
     ttlMs = null,
@@ -1506,6 +1811,20 @@ export class DurableRemoteMembershipCoordinator {
       connectionNonce: requiredString(connectionNonce, "connectionNonce", 4096),
       serverNonce: requiredString(this._createSecret(), "serverNonce", 4096),
       scopes: scopes === null ? null : Object.freeze([...scopes]),
+      capabilities:
+        capabilities === null
+          ? null
+          : Object.freeze([...normalizeCapabilities(capabilities)]),
+      joinPolicy:
+        joinPolicy === null
+          ? null
+          : Object.freeze({ ...normalizeJoinPolicy(joinPolicy) }),
+      joinVia,
+      nextCredentialType: nextCredential?.type || null,
+      nextCredentialPublicKey: nextCredential?.publicKey || null,
+      nextCredentialKeySha256: nextCredential?.digest || null,
+      nextPrincipalId: nextCredential?.principalId || null,
+      nextSessionExpiresAt,
       issuedAtMs: now,
       expiresAtMs,
     });
@@ -1520,12 +1839,16 @@ export class DurableRemoteMembershipCoordinator {
     credentialPublicKey,
     connectionNonce,
     ttlMs = null,
+    capabilities = null,
+    joinPolicy = null,
   } = {}) {
     const normalizedSessionId = requiredString(sessionId, "sessionId");
     const sessionEpoch = String(
       canonicalEpoch(expectedSessionEpoch, "expectedSessionEpoch"),
     );
     const normalizedScopes = normalizeScopes(scopes);
+    const normalizedCapabilities = normalizeCapabilities(capabilities);
+    const normalizedJoinPolicy = normalizeJoinPolicy(joinPolicy);
     const credential = normalizePrincipalCredential(
       { type: "ed25519", publicKey: credentialPublicKey },
       "credential",
@@ -1544,6 +1867,12 @@ export class DurableRemoteMembershipCoordinator {
       if (prior?.status === "active") {
         throw new Error("Remote membership principal is already active");
       }
+      enforceJoinAuthority(session, {
+        scopes: normalizedScopes,
+        via: "direct",
+        capabilities: normalizedCapabilities,
+        policy: normalizedJoinPolicy,
+      });
       return this._newAuthenticationChallenge({
         purpose: "member.join",
         session,
@@ -1554,6 +1883,9 @@ export class DurableRemoteMembershipCoordinator {
         },
         credential,
         scopes: normalizedScopes,
+        capabilities: normalizedCapabilities,
+        joinPolicy: normalizedJoinPolicy,
+        joinVia: "direct",
         connectionNonce,
         now,
         ttlMs,
@@ -1600,6 +1932,65 @@ export class DurableRemoteMembershipCoordinator {
     });
   }
 
+  issueSessionReenableChallenge({
+    sessionId,
+    principalId,
+    connectionNonce,
+    newHostCredentialPublicKeySpki = null,
+    scopes,
+    expiresAt,
+    joinPolicy = null,
+    ttlMs = null,
+  } = {}) {
+    const normalizedSessionId = requiredString(sessionId, "sessionId");
+    const normalizedPrincipal = requiredString(principalId, "principalId");
+    const normalizedScopes = normalizeScopes(scopes);
+    const normalizedExpiresAt = safeTimestamp(expiresAt, "expiresAt");
+    const normalizedJoinPolicy = normalizeJoinPolicy(joinPolicy);
+    return this._withRead((snapshot, now) => {
+      const session = snapshot.sessions.get(normalizedSessionId);
+      const member = session?.members.get(normalizedPrincipal);
+      if (
+        !session ||
+        session.status !== "closed" ||
+        session.hostPrincipalId !== normalizedPrincipal ||
+        !member ||
+        member.status !== "active" ||
+        member.credentialType !== "ed25519" ||
+        normalizedExpiresAt <= now
+      ) {
+        throw new Error("Remote membership session re-enable challenge denied");
+      }
+      const nextCredential = normalizePrincipalCredential(
+        {
+          type: "ed25519",
+          publicKey:
+            newHostCredentialPublicKeySpki || member.credentialPublicKey,
+        },
+        "nextHostCredential",
+      );
+      return this._newAuthenticationChallenge({
+        purpose: "session.reenable",
+        session,
+        member,
+        credential: normalizePrincipalCredential(
+          {
+            type: member.credentialType,
+            publicKey: member.credentialPublicKey,
+          },
+          "memberCredential",
+        ),
+        scopes: normalizedScopes,
+        joinPolicy: normalizedJoinPolicy,
+        nextCredential,
+        nextSessionExpiresAt: normalizedExpiresAt,
+        connectionNonce,
+        now,
+        ttlMs,
+      });
+    });
+  }
+
   _consumeAuthenticationChallenge(
     snapshot,
     now,
@@ -1622,10 +2013,11 @@ export class DurableRemoteMembershipCoordinator {
       throw new Error("Remote membership authentication challenge denied");
     }
     const session = snapshot.sessions.get(challenge.sessionId);
+    const reenable = expectedPurpose === "session.reenable";
     if (
       !session ||
-      session.status !== "active" ||
-      session.expiresAt <= now ||
+      (reenable ? session.status !== "closed" : session.status !== "active") ||
+      (!reenable && session.expiresAt <= now) ||
       session.sessionEpoch !== challenge.sessionEpoch
     ) {
       throw new Error("Remote membership authentication session is stale");
@@ -1643,7 +2035,8 @@ export class DurableRemoteMembershipCoordinator {
       !current ||
       current.status !== "active" ||
       current.membershipEpoch !== challenge.membershipEpoch ||
-      current.credentialDigest !== challenge.credentialKeySha256
+      current.credentialDigest !== challenge.credentialKeySha256 ||
+      (reenable && session.hostPrincipalId !== challenge.principalId)
     ) {
       throw new Error("Remote membership resume challenge is stale");
     }
@@ -1685,11 +2078,13 @@ export class DurableRemoteMembershipCoordinator {
     expiresAt,
     hostPrincipalId = null,
     hostCredentialPublicKeySpki,
+    joinPolicy = null,
   } = {}) {
     const normalizedSessionId = requiredString(sessionId, "sessionId");
     const normalizedAgent = requiredString(agentSessionId, "agentSessionId");
     const normalizedScopes = normalizeScopes(scopes);
     const normalizedExpiresAt = safeTimestamp(expiresAt, "expiresAt");
+    const normalizedJoinPolicy = normalizeJoinPolicy(joinPolicy);
     const hostCredential = normalizePrincipalCredential(
       {
         type: "ed25519",
@@ -1722,6 +2117,7 @@ export class DurableRemoteMembershipCoordinator {
         hostCredentialDigest: hostCredential.digest,
         sessionEpoch: "1",
         membershipEpoch: "1",
+        ...joinPolicyEventFields(normalizedJoinPolicy),
         scopes: normalizedScopes,
         expiresAt: normalizedExpiresAt,
       };
@@ -1774,6 +2170,73 @@ export class DurableRemoteMembershipCoordinator {
     }
   }
 
+  reenableSession({ challengeId, connectionNonce, signature } = {}) {
+    const result = this._mutate((snapshot, _generation, now) => {
+      const authenticated = this._consumeAuthenticationChallenge(
+        snapshot,
+        now,
+        { challengeId, connectionNonce, signature },
+        "session.reenable",
+      );
+      const { challenge, session } = authenticated;
+      const nextCredential = normalizePrincipalCredential(
+        {
+          type: challenge.nextCredentialType,
+          publicKey: challenge.nextCredentialPublicKey,
+        },
+        "nextHostCredential",
+      );
+      if (
+        nextCredential.digest !== challenge.nextCredentialKeySha256 ||
+        nextCredential.principalId !== challenge.nextPrincipalId ||
+        challenge.nextSessionExpiresAt <= now
+      ) {
+        throw new Error("Remote membership session re-enable binding changed");
+      }
+      const priorNextHost =
+        session.members.get(nextCredential.principalId) || null;
+      return {
+        type: "session.reenabled",
+        sessionId: session.sessionId,
+        expectedSessionEpoch: session.sessionEpoch,
+        hostPrincipalId: session.hostPrincipalId,
+        expectedHostMembershipEpoch: challenge.membershipEpoch,
+        nextHostPrincipalId: nextCredential.principalId,
+        nextHostCredentialType: nextCredential.type,
+        nextHostCredentialPublicKey: nextCredential.publicKey,
+        nextHostCredentialDigest: nextCredential.digest,
+        sessionEpoch: String(BigInt(session.sessionEpoch) + 1n),
+        membershipEpoch: priorNextHost
+          ? String(BigInt(priorNextHost.membershipEpoch) + 1n)
+          : "1",
+        scopes: [...challenge.scopes],
+        expiresAt: challenge.nextSessionExpiresAt,
+        ...joinPolicyEventFields(challenge.joinPolicy),
+      };
+    });
+    const session = result.snapshot.sessions.get(result.event.sessionId);
+    const host = session.members.get(session.hostPrincipalId);
+    return Object.freeze({
+      authorityVersion: REMOTE_MEMBERSHIP_COORDINATOR_VERSION,
+      trust: this.trustDescriptor(),
+      sessionId: session.sessionId,
+      sessionEpoch: session.sessionEpoch,
+      hostPrincipalId: session.hostPrincipalId,
+      membershipEpoch: host.membershipEpoch,
+      hostCredentialPublicKeySpki: host.credentialPublicKey,
+      nextConnectionNonce: requiredString(
+        this._createSecret(),
+        "nextConnectionNonce",
+        4096,
+      ),
+      statement: this._snapshotStatement(
+        session,
+        result.snapshot.generation,
+        result.event.occurredAtMs,
+      ),
+    });
+  }
+
   joinMember({ challengeId, connectionNonce, signature } = {}) {
     const result = this._mutate((snapshot, _generation, now) => {
       const authenticated = this._consumeAuthenticationChallenge(
@@ -1786,6 +2249,12 @@ export class DurableRemoteMembershipCoordinator {
       if (session.hostPrincipalId === challenge.principalId) {
         throw new Error("Cannot replace the host membership");
       }
+      const authority = enforceJoinAuthority(session, {
+        scopes: challenge.scopes,
+        via: challenge.joinVia,
+        capabilities: challenge.capabilities,
+        policy: challenge.joinPolicy,
+      });
       return {
         type: "member.joined",
         sessionId: session.sessionId,
@@ -1796,7 +2265,10 @@ export class DurableRemoteMembershipCoordinator {
         credentialType: credential.type,
         credentialPublicKey: credential.publicKey,
         credentialDigest: credential.digest,
-        scopes: challenge.scopes,
+        ...joinPolicyEventFields(authority.policy),
+        joinVia: authority.via,
+        capabilities: [...authority.capabilities],
+        scopes: [...authority.scopes],
       };
     });
     const session = result.snapshot.sessions.get(result.event.sessionId);
@@ -1808,6 +2280,8 @@ export class DurableRemoteMembershipCoordinator {
       credentialPublicKey: member.credentialPublicKey,
       sessionEpoch: session.sessionEpoch,
       membershipEpoch: member.membershipEpoch,
+      scopes: Object.freeze([...member.scopes]),
+      capabilities: Object.freeze([...(member.capabilities || [])]),
       nextConnectionNonce: requiredString(
         this._createSecret(),
         "nextConnectionNonce",
@@ -1829,12 +2303,16 @@ export class DurableRemoteMembershipCoordinator {
     mobilePublicKey,
     pairingTokenDigest,
     possessionCapability,
+    capabilities = null,
+    joinPolicy = null,
   } = {}) {
     const normalizedSessionId = requiredString(sessionId, "sessionId");
     const sessionEpoch = String(
       canonicalEpoch(expectedSessionEpoch, "expectedSessionEpoch"),
     );
     const normalizedScopes = normalizeScopes(scopes);
+    const normalizedCapabilities = normalizeCapabilities(capabilities);
+    const normalizedJoinPolicy = normalizeJoinPolicy(joinPolicy);
     const normalizedPeer = requiredString(mobilePeerId, "mobilePeerId");
     if (!DIGEST_RE.test(String(pairingTokenDigest))) {
       throw new TypeError("pairingTokenDigest must be a SHA-256 digest");
@@ -1880,6 +2358,12 @@ export class DurableRemoteMembershipCoordinator {
           "Remote relay transcript proof is malformed, expired, or over-scoped",
         );
       }
+      const authority = enforceJoinAuthority(session, {
+        scopes: normalizedScopes,
+        via: "relay",
+        capabilities: normalizedCapabilities,
+        policy: normalizedJoinPolicy,
+      });
       return {
         type: "member.joined",
         sessionId: normalizedSessionId,
@@ -1892,7 +2376,10 @@ export class DurableRemoteMembershipCoordinator {
         credentialType: credential.type,
         credentialPublicKey: credential.publicKey,
         credentialDigest: credential.digest,
-        scopes: normalizedScopes,
+        ...joinPolicyEventFields(authority.policy),
+        joinVia: authority.via,
+        capabilities: [...authority.capabilities],
+        scopes: [...authority.scopes],
       };
     });
     const session = result.snapshot.sessions.get(normalizedSessionId);
@@ -1904,6 +2391,8 @@ export class DurableRemoteMembershipCoordinator {
       credentialPublicKey: member.credentialPublicKey,
       sessionEpoch: session.sessionEpoch,
       membershipEpoch: member.membershipEpoch,
+      scopes: Object.freeze([...member.scopes]),
+      capabilities: Object.freeze([...(member.capabilities || [])]),
       statement: this._snapshotStatement(
         session,
         result.snapshot.generation,
@@ -2036,41 +2525,81 @@ export class DurableRemoteMembershipCoordinator {
         "expectedHostMembershipEpoch",
       ),
     );
-    const result = this._mutate((snapshot) => {
-      const session = snapshot.sessions.get(normalizedSessionId);
-      const host = session?.members.get(normalizedHost);
-      if (
-        !session ||
-        session.status !== "active" ||
-        session.hostPrincipalId !== normalizedHost ||
-        session.sessionEpoch !== sessionEpoch ||
-        !host ||
-        host.status !== "active" ||
-        host.membershipEpoch !== hostMembershipEpoch
-      ) {
-        throw new Error("Remote membership session close denied");
-      }
-      const cancelledLeaseIds = [...session.leases.values()]
-        .filter(
-          (lease) => lease.status === "active" || lease.status === "acked",
-        )
-        .map((lease) => lease.leaseId)
-        .sort();
-      return {
-        type: "session.closed",
-        sessionId: normalizedSessionId,
-        expectedSessionEpoch: sessionEpoch,
-        hostPrincipalId: normalizedHost,
-        expectedHostMembershipEpoch: hostMembershipEpoch,
-        sessionEpoch: String(BigInt(sessionEpoch) + 1n),
-        cancelledLeaseIds,
-      };
-    });
+    let result;
+    try {
+      result = this._mutate((snapshot) => {
+        const session = snapshot.sessions.get(normalizedSessionId);
+        const host = session?.members.get(normalizedHost);
+        if (
+          !session ||
+          session.status !== "active" ||
+          session.hostPrincipalId !== normalizedHost ||
+          session.sessionEpoch !== sessionEpoch ||
+          !host ||
+          host.status !== "active" ||
+          host.membershipEpoch !== hostMembershipEpoch
+        ) {
+          throw new Error("Remote membership session close denied");
+        }
+        const cancelledLeaseIds = [...session.leases.values()]
+          .filter(
+            (lease) => lease.status === "active" || lease.status === "acked",
+          )
+          .map((lease) => lease.leaseId)
+          .sort();
+        return {
+          type: "session.closed",
+          sessionId: normalizedSessionId,
+          expectedSessionEpoch: sessionEpoch,
+          hostPrincipalId: normalizedHost,
+          expectedHostMembershipEpoch: hostMembershipEpoch,
+          sessionEpoch: String(BigInt(sessionEpoch) + 1n),
+          cancelledLeaseIds,
+        };
+      });
+    } catch (cause) {
+      if (cause?.commitState === "unknown") throw cause;
+      const terminal = this._withRead((snapshot, now) => {
+        const session = snapshot.sessions.get(normalizedSessionId);
+        const host = session?.members.get(normalizedHost);
+        if (
+          !session ||
+          session.status !== "closed" ||
+          session.hostPrincipalId !== normalizedHost ||
+          session.sessionEpoch !== String(BigInt(sessionEpoch) + 1n) ||
+          !host ||
+          host.membershipEpoch !== hostMembershipEpoch
+        ) {
+          return null;
+        }
+        return Object.freeze({
+          authorityVersion: REMOTE_MEMBERSHIP_COORDINATOR_VERSION,
+          sessionEpoch: session.sessionEpoch,
+          cancelledLeaseIds: Object.freeze(
+            [...session.leases.values()]
+              .filter(
+                (lease) =>
+                  lease.cancelReason === "session-closed" &&
+                  lease.terminalGeneration === String(snapshot.generation),
+              )
+              .map((lease) => lease.leaseId)
+              .sort(),
+          ),
+          terminal: true,
+          alreadyClosed: true,
+          statement: this._snapshotStatement(session, snapshot.generation, now),
+        });
+      });
+      if (terminal) return terminal;
+      throw cause;
+    }
     const session = result.snapshot.sessions.get(normalizedSessionId);
     return Object.freeze({
       authorityVersion: REMOTE_MEMBERSHIP_COORDINATOR_VERSION,
       sessionEpoch: session.sessionEpoch,
       cancelledLeaseIds: Object.freeze([...result.event.cancelledLeaseIds]),
+      terminal: true,
+      alreadyClosed: false,
       statement: this._snapshotStatement(
         session,
         result.snapshot.generation,
@@ -2396,6 +2925,35 @@ export class DurableRemoteMembershipCoordinator {
         statement: this._snapshotStatement(session, snapshot.generation, now),
       });
     });
+  }
+
+  getSessionSnapshot(sessionId) {
+    const normalizedSessionId = requiredString(sessionId, "sessionId");
+    return this._withRead((snapshot, now) => {
+      const session = snapshot.sessions.get(normalizedSessionId);
+      if (!session) return null;
+      return Object.freeze({
+        session: publicSessionSnapshot(session, snapshot.generation),
+        statement: this._snapshotStatement(session, snapshot.generation, now),
+      });
+    });
+  }
+
+  /**
+   * Enumerate coordinator-owned session snapshots for server-process recovery.
+   * The caller receives immutable public projections only; live transport
+   * attachment remains a registry concern and is deliberately not persisted
+   * here. Reading also exercises the normal clock/witness rollback checks.
+   */
+  listSessionSnapshots({ activeOnly = true } = {}) {
+    return this._withRead((snapshot) =>
+      Object.freeze(
+        [...snapshot.sessions.values()]
+          .filter((session) => !activeOnly || session.status === "active")
+          .map((session) => publicSessionSnapshot(session, snapshot.generation))
+          .sort((left, right) => left.sessionId.localeCompare(right.sessionId)),
+      ),
+    );
   }
 }
 

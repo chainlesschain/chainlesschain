@@ -107,6 +107,7 @@ const LEASE_FIELDS = Object.freeze([
 ]);
 const AUTHENTICATION_CHALLENGE_FIELDS = Object.freeze([
   "authorityVersion",
+  "capabilities",
   "challengeId",
   "connectionNonce",
   "coordinatorId",
@@ -116,6 +117,13 @@ const AUTHENTICATION_CHALLENGE_FIELDS = Object.freeze([
   "expiresAtMs",
   "issuedAtMs",
   "membershipEpoch",
+  "joinPolicy",
+  "joinVia",
+  "nextCredentialKeySha256",
+  "nextCredentialPublicKey",
+  "nextCredentialType",
+  "nextPrincipalId",
+  "nextSessionExpiresAt",
   "principalId",
   "purpose",
   "schema",
@@ -873,13 +881,20 @@ function replayHostStore(store, { missing = false } = {}) {
           throw new TypeError(`${label} has an invalid session snapshot`);
         }
         if (sessionSnapshot) {
+          const priorSessionEpoch = BigInt(sessionSnapshot.sessionEpoch);
+          const nextSessionEpoch = BigInt(payload.sessionEpoch);
+          const reenabled =
+            sessionSnapshot.status === "closed" &&
+            payload.status === "active" &&
+            nextSessionEpoch === priorSessionEpoch + 1n;
           if (
             payload.sessionId !== sessionSnapshot.sessionId ||
             payload.agentSessionId !== sessionSnapshot.agentSessionId ||
             payload.hostPrincipalId !== sessionSnapshot.hostPrincipalId ||
             payload.createdAt !== sessionSnapshot.createdAt ||
-            payload.expiresAt !== sessionSnapshot.expiresAt ||
-            BigInt(payload.sessionEpoch) < BigInt(sessionSnapshot.sessionEpoch)
+            (!reenabled && payload.expiresAt !== sessionSnapshot.expiresAt) ||
+            (reenabled && payload.expiresAt < sessionSnapshot.expiresAt) ||
+            nextSessionEpoch < priorSessionEpoch
           ) {
             throw new TypeError(`${label} rolls back the session identity`);
           }
@@ -905,7 +920,12 @@ function replayHostStore(store, { missing = false } = {}) {
               (nextEpoch === priorEpoch &&
                 canonicalJson(current) !== canonicalJson(previous)) ||
               (nextEpoch === priorEpoch + 1n &&
-                current.status === previous.status)
+                current.status === previous.status &&
+                !(
+                  reenabled &&
+                  current.principalId === payload.hostPrincipalId &&
+                  current.status === "active"
+                ))
             ) {
               throw new TypeError(`${label} forks or skips a principal epoch`);
             }
@@ -920,16 +940,16 @@ function replayHostStore(store, { missing = false } = {}) {
               );
             }
           }
-          const priorSessionEpoch = BigInt(sessionSnapshot.sessionEpoch);
-          const nextSessionEpoch = BigInt(payload.sessionEpoch);
           if (
             nextSessionEpoch > priorSessionEpoch + 1n ||
             (nextSessionEpoch === priorSessionEpoch &&
               payload.status !== sessionSnapshot.status) ||
             (nextSessionEpoch === priorSessionEpoch + 1n &&
-              (sessionSnapshot.status !== "active" ||
-                payload.status !== "closed")) ||
-            sessionSnapshot.status === "closed"
+              !(
+                (sessionSnapshot.status === "active" &&
+                  payload.status === "closed") ||
+                reenabled
+              ))
           ) {
             throw new TypeError(`${label} forks or reopens the session epoch`);
           }
@@ -1591,8 +1611,17 @@ export class DurableRemoteMembershipHostStore {
         challenge.credentialType !== "ed25519" ||
         challenge.credentialPublicKey !==
           bootstrap.hostCredentialPublicKeySpki ||
-        challenge.purpose !== "session.resume" ||
-        challenge.scopes !== null
+        !["session.resume", "session.reenable"].includes(challenge.purpose) ||
+        (challenge.purpose === "session.resume" &&
+          (challenge.scopes !== null ||
+            challenge.capabilities !== null ||
+            challenge.joinPolicy !== null ||
+            challenge.joinVia !== null ||
+            challenge.nextCredentialType !== null ||
+            challenge.nextCredentialPublicKey !== null ||
+            challenge.nextCredentialKeySha256 !== null ||
+            challenge.nextPrincipalId !== null ||
+            challenge.nextSessionExpiresAt !== null))
       ) {
         throw trustRejected("authentication challenge is not host-bound");
       }
@@ -1604,6 +1633,26 @@ export class DurableRemoteMembershipHostStore {
       canonicalInteger(challenge.membershipEpoch, "challenge.membershipEpoch");
       safeTimestamp(challenge.issuedAtMs, "challenge.issuedAtMs");
       safeTimestamp(challenge.expiresAtMs, "challenge.expiresAtMs");
+      if (challenge.purpose === "session.reenable") {
+        if (
+          !Array.isArray(challenge.scopes) ||
+          challenge.scopes.length === 0 ||
+          challenge.capabilities !== null ||
+          challenge.joinVia !== null ||
+          !challenge.joinPolicy ||
+          typeof challenge.joinPolicy !== "object" ||
+          Array.isArray(challenge.joinPolicy) ||
+          challenge.nextCredentialType !== "ed25519" ||
+          typeof challenge.nextCredentialPublicKey !== "string" ||
+          !DIGEST_RE.test(String(challenge.nextCredentialKeySha256)) ||
+          challenge.nextPrincipalId !==
+            `ed25519:${challenge.nextCredentialKeySha256}` ||
+          !Number.isSafeInteger(challenge.nextSessionExpiresAt) ||
+          challenge.nextSessionExpiresAt <= challenge.issuedAtMs
+        ) {
+          throw trustRejected("re-enable challenge is malformed");
+        }
+      }
       if (
         challenge.expiresAtMs <= challenge.issuedAtMs ||
         challenge.expiresAtMs <= safeTimestamp(this._now(), "host clock") ||

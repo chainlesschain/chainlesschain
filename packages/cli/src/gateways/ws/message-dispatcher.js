@@ -13,11 +13,21 @@ import {
   handleRemoteSessionClose,
   handleRemoteSessionDevices,
   handleRemoteSessionJoin,
+  handleRemoteSessionJoinChallenge,
+  handleRemoteSessionLeaseAck,
+  handleRemoteSessionLeaseCancel,
+  handleRemoteSessionLeaseConsume,
+  handleRemoteSessionMembershipSnapshot,
   handleRemoteSessionPairingToken,
   handleRemoteSessionPolicy,
   handleRemoteSessionPublish,
   handleRemoteSessionPushRegister,
+  handleRemoteSessionResume,
+  handleRemoteSessionResumeChallenge,
+  handleRemoteSessionReenable,
+  handleRemoteSessionReenableChallenge,
   handleRemoteSessionRevoke,
+  handleRemoteSessionTerminal,
 } from "./remote-session-protocol.js";
 import { RemoteCommandLedger } from "../../harness/remote-command-ledger.js";
 
@@ -123,6 +133,26 @@ export function createWsMessageDispatcher(server) {
           handleRemoteSessionPairingToken(server, clientId, ws, message),
         "remote-session-join": () =>
           handleRemoteSessionJoin(server, clientId, ws, message),
+        "remote-session-join-challenge": () =>
+          handleRemoteSessionJoinChallenge(server, clientId, ws, message),
+        "remote-session-resume-challenge": () =>
+          handleRemoteSessionResumeChallenge(server, clientId, ws, message),
+        "remote-session-resume": () =>
+          handleRemoteSessionResume(server, clientId, ws, message),
+        "remote-session-reenable-challenge": () =>
+          handleRemoteSessionReenableChallenge(server, clientId, ws, message),
+        "remote-session-reenable": () =>
+          handleRemoteSessionReenable(server, clientId, ws, message),
+        "remote-session-lease-ack": () =>
+          handleRemoteSessionLeaseAck(server, clientId, ws, message),
+        "remote-session-lease-consume": () =>
+          handleRemoteSessionLeaseConsume(server, clientId, ws, message),
+        "remote-session-lease-cancel": () =>
+          handleRemoteSessionLeaseCancel(server, clientId, ws, message),
+        "remote-session-membership-snapshot": () =>
+          handleRemoteSessionMembershipSnapshot(server, clientId, ws, message),
+        "remote-session-terminal": () =>
+          handleRemoteSessionTerminal(server, clientId, ws, message),
         "remote-session-devices": () =>
           handleRemoteSessionDevices(server, clientId, ws, message),
         "remote-session-audit": () =>

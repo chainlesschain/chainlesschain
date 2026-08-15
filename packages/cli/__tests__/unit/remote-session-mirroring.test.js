@@ -134,6 +134,42 @@ describe("Remote Session automatic Agent event mirroring", () => {
     expect(actions).toContain("push.sent");
   });
 
+  it("revalidates each recipient at send time and drops revoked WS and push output", async () => {
+    const sender = vi.fn(async () => ({ id: "must-not-send" }));
+    const server = new ChainlessChainWSServer({
+      remoteSessionPushSender: sender,
+    });
+    const host = socket();
+    const phone = socket();
+    server.clients.set("host", { ws: host, authenticated: true });
+    server.clients.set("phone", { ws: phone, authenticated: true });
+    const created = server.remoteSessions.create({
+      hostClientId: "host",
+      agentSessionId: "agent-1",
+      scopes: ["observe", "approve"],
+    });
+    server.remoteSessions.join({
+      sessionId: created.session.sessionId,
+      clientId: "phone",
+      token: created.pairing.token,
+      pushToken: "revoked-token",
+      pushProvider: "fcm",
+    });
+    vi.spyOn(server.remoteSessions, "authorize").mockImplementation(() => {
+      throw new Error("membership revoked after recipient enumeration");
+    });
+
+    server._send(host, {
+      type: "approval_request",
+      sessionId: "agent-1",
+      requestId: "revoked-request",
+    });
+    await flush();
+
+    expect(phone.messages).toEqual([]);
+    expect(sender).not.toHaveBeenCalled();
+  });
+
   it("prunes a device token the vendor reports as unregistered", async () => {
     const sender = vi.fn(async () => {
       const error = new Error("token gone");

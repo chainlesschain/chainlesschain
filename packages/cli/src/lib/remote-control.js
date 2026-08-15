@@ -142,6 +142,7 @@ export function buildDirectPairingUri({
   pairingToken,
   scopes,
   expiresAt,
+  durableMembership = false,
 }) {
   if (!wsUrl || !remoteSessionId || !pairingToken) {
     throw new Error("wsUrl, remoteSessionId and pairingToken are required");
@@ -156,6 +157,7 @@ export function buildDirectPairingUri({
     pairingToken,
     scopes: Array.isArray(scopes) ? scopes : null,
     expiresAt: expiresAt ?? null,
+    durableMembership: durableMembership === true,
   };
   return REMOTE_CONTROL_PAIRING_SCHEME + b64url(JSON.stringify(payload));
 }

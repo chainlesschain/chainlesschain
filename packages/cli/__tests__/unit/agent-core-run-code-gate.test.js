@@ -6,9 +6,18 @@
  * through the same tier gate; headless (interactiveApproval=false) keeps its
  * existing per-permission-mode behavior.
  */
-import { describe, it, expect } from "vitest";
-import { executeTool } from "../../src/runtime/agent-core.js";
-import { APPROVAL_DECISION } from "@chainlesschain/session-core";
+import { describe, it, expect, vi } from "vitest";
+import fs from "node:fs";
+import { createHash } from "node:crypto";
+import {
+  _agentToolProcessDeps,
+  executeTool,
+} from "../../src/runtime/agent-core.js";
+import {
+  ApprovalGate,
+  APPROVAL_DECISION,
+  APPROVAL_POLICY,
+} from "@chainlesschain/session-core";
 
 const NODE_OK = { language: "node", code: "console.log('RC_OK')" };
 
@@ -32,6 +41,36 @@ function gateWithConfirmer(decision, hasConfirmer) {
 }
 
 describe("run_code ApprovalGate gate (interactive-only)", () => {
+  it("fails closed without launching code when durable remote approval has no run_code lease support", async () => {
+    const originalRunCode = _agentToolProcessDeps.runCode;
+    const runCode = vi.fn();
+    _agentToolProcessDeps.runCode = runCode;
+    const approvalGate = new ApprovalGate({
+      defaultPolicy: APPROVAL_POLICY.STRICT,
+      confirm: async () => ({
+        approved: false,
+        via: "lease-unavailable",
+      }),
+      consumeAuthorization: async () => true,
+    });
+
+    try {
+      const res = await executeTool("run_code", NODE_OK, {
+        cwd: process.cwd(),
+        approvalGate,
+        interactiveApproval: false,
+      });
+      expect(res.error).toMatch(/\[ApprovalGate\] run_code denied/);
+      expect(res.approval).toMatchObject({
+        decision: APPROVAL_DECISION.DENY,
+        via: "lease-unavailable",
+      });
+      expect(runCode).not.toHaveBeenCalled();
+    } finally {
+      _agentToolProcessDeps.runCode = originalRunCode;
+    }
+  });
+
   it("denies run_code when interactive + gate denies (not executed)", async () => {
     const g = gate(APPROVAL_DECISION.DENY);
     const res = await executeTool("run_code", NODE_OK, {
@@ -49,14 +88,119 @@ describe("run_code ApprovalGate gate (interactive-only)", () => {
   });
 
   it("proceeds when interactive + gate allows", async () => {
+    const originalRunCode = _agentToolProcessDeps.runCode;
+    const runCode = vi.fn(() => "RC_OK");
+    _agentToolProcessDeps.runCode = runCode;
     const g = gate(APPROVAL_DECISION.ALLOW);
-    const res = await executeTool("run_code", NODE_OK, {
-      cwd: process.cwd(),
-      approvalGate: g,
-      interactiveApproval: true,
+    try {
+      const res = await executeTool("run_code", NODE_OK, {
+        cwd: process.cwd(),
+        approvalGate: g,
+        interactiveApproval: true,
+      });
+      expect(res.error || "").not.toMatch(/ApprovalGate/);
+      expect(g.calls.length).toBe(1);
+      expect(runCode).toHaveBeenCalledOnce();
+    } finally {
+      _agentToolProcessDeps.runCode = originalRunCode;
+    }
+  });
+
+  it("snapshots code and cwd before awaiting interactive approval", async () => {
+    const originalRunCode = _agentToolProcessDeps.runCode;
+    let resolveGate;
+    let gateRequest;
+    let gateStarted;
+    const started = new Promise((resolve) => {
+      gateStarted = resolve;
     });
-    expect(res.error || "").not.toMatch(/ApprovalGate/);
-    expect(g.calls.length).toBe(1);
+    const executed = [];
+    _agentToolProcessDeps.runCode = vi.fn((_file, argv, options) => {
+      executed.push({
+        code: fs.readFileSync(argv[0], "utf8"),
+        cwd: options.cwd,
+      });
+      return "ok";
+    });
+    const args = {
+      language: "node",
+      code: "console.log('approved')",
+      timeout: 5,
+      persist: false,
+    };
+    const g = {
+      decide: vi.fn((request) => {
+        gateRequest = request;
+        gateStarted();
+        return new Promise((resolve) => {
+          resolveGate = resolve;
+        });
+      }),
+    };
+
+    try {
+      const pending = executeTool("run_code", args, {
+        cwd: process.cwd(),
+        approvalGate: g,
+        interactiveApproval: true,
+      });
+      await started;
+      args.language = "bash";
+      args.code = "echo mutated";
+      args.timeout = 300;
+      args.persist = true;
+      resolveGate({ decision: APPROVAL_DECISION.ALLOW, via: "local" });
+      await expect(pending).resolves.toMatchObject({ success: true });
+
+      expect(gateRequest.args).toMatchObject({
+        language: "node",
+        codeSha256: createHash("sha256")
+          .update("console.log('approved')", "utf8")
+          .digest("hex"),
+        codeBytes: Buffer.byteLength("console.log('approved')"),
+        timeout: 5,
+        persist: false,
+        cwd: fs.realpathSync.native(process.cwd()),
+      });
+      expect(executed).toEqual([
+        {
+          code: "console.log('approved')",
+          cwd: fs.realpathSync.native(process.cwd()),
+        },
+      ]);
+    } finally {
+      _agentToolProcessDeps.runCode = originalRunCode;
+    }
+  });
+
+  it("does not execute a structured durable allow without consuming it", async () => {
+    const originalRunCode = _agentToolProcessDeps.runCode;
+    const runCode = vi.fn();
+    const consumeAuthorization = vi.fn(async () => true);
+    _agentToolProcessDeps.runCode = runCode;
+    const g = {
+      hasAuthorizationConsumer: () => true,
+      decide: async () => ({
+        decision: APPROVAL_DECISION.ALLOW,
+        via: "remote",
+        authorization: Object.freeze({ kind: "opaque" }),
+      }),
+      consumeAuthorization,
+    };
+    try {
+      const result = await executeTool("run_code", NODE_OK, {
+        cwd: process.cwd(),
+        approvalGate: g,
+        interactiveApproval: false,
+      });
+      expect(result.policy).toMatchObject({
+        code: "CC_RUN_CODE_AUTHORIZATION_CONSUME_UNSUPPORTED",
+      });
+      expect(runCode).not.toHaveBeenCalled();
+      expect(consumeAuthorization).not.toHaveBeenCalled();
+    } finally {
+      _agentToolProcessDeps.runCode = originalRunCode;
+    }
   });
 
   it("does NOT gate run_code in headless (interactiveApproval false)", async () => {

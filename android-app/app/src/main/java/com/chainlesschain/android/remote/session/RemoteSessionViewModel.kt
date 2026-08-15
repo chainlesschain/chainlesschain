@@ -52,7 +52,7 @@ class RemoteSessionViewModel(application: Application) : AndroidViewModel(applic
         }
         viewModelScope.launch {
             client.events.collect { event ->
-                if (event.optString("type").contains("approval")) {
+                if (isApprovalRequest(event)) {
                     notifier.notifyApproval(event)
                 }
                 _uiState.update { it.copy(events = (it.events + event).takeLast(200)) }
@@ -90,9 +90,27 @@ class RemoteSessionViewModel(application: Application) : AndroidViewModel(applic
         }
     }
 
-    fun approve(requestId: String, approved: Boolean) {
-        client.resolveApproval(requestId, approved)
-        notifier.cancel(requestId)
+    fun approve(request: JSONObject, approved: Boolean) {
+        val requestId = request.optString("requestId", request.optString("approvalId"))
+        if (requestId.isBlank()) return
+        val fingerprint = request.optString("fingerprint").takeIf { it.isNotBlank() }
+        val binding = request.optString("binding").takeIf { it.isNotBlank() }
+        val revision = request.opt("revision").takeUnless { it == null || it == JSONObject.NULL }
+        if (
+            client.resolveApproval(
+                requestId = requestId,
+                approved = approved,
+                fingerprint = fingerprint,
+                binding = binding,
+                revision = revision,
+            )
+        ) {
+            notifier.cancel(requestId)
+        } else {
+            _uiState.update {
+                it.copy(error = "Approval request binding is incomplete or the session is disconnected")
+            }
+        }
     }
 
     fun interrupt() {
@@ -116,5 +134,9 @@ class RemoteSessionViewModel(application: Application) : AndroidViewModel(applic
         // Vendor push token resolution is normally cached + instant; cap it so
         // pairing is never blocked on a slow network.
         const val TOKEN_TIMEOUT_MS = 3_000L
+
+        fun isApprovalRequest(event: JSONObject): Boolean =
+            event.optString("type") == "permission.request" ||
+                event.optString("type").contains("approval")
     }
 }

@@ -68,7 +68,24 @@ describe("describeAskContext", () => {
       tool: "run_shell",
       action: "high-risk",
       detail: "npm publish",
+      operationArgs: { command: "npm publish" },
+      workspace: null,
+      session: null,
+      targetEnv: null,
+      policyVersion: null,
     });
+  });
+
+  it("preserves the gate action used by the later authorization consume", () => {
+    expect(
+      describeAskContext({
+        tool: "run_shell",
+        args: { command: "npm publish" },
+        action: "high-risk",
+        riskLevel: "low",
+        reason: "different fallback",
+      }).action,
+    ).toBe("high-risk");
   });
 
   it("falls back to args.path, then a JSON slice", () => {
@@ -95,6 +112,30 @@ describe("describeAskContext", () => {
       tool: null,
       action: null,
       detail: null,
+      operationArgs: null,
+      workspace: null,
+      session: null,
+      targetEnv: null,
+      policyVersion: null,
+    });
+  });
+
+  it("preserves the complete durable approval authority tuple", () => {
+    expect(
+      describeAskContext({
+        tool: "run_shell",
+        args: { command: "npm publish" },
+        action: "high-risk",
+        cwd: "C:/repo",
+        sessionId: "session-1",
+        targetEnv: "local",
+        policyVersion: "cc-shell-policy-authority/v1:abc",
+      }),
+    ).toMatchObject({
+      workspace: "C:/repo",
+      session: "session-1",
+      targetEnv: "local",
+      policyVersion: "cc-shell-policy-authority/v1:abc",
     });
   });
 });
@@ -120,7 +161,11 @@ describe("raceLocalAndRemote", () => {
       writeOut: (t) => out.push(t),
     });
     remote({ approved: false, via: "remote", from: "device-1" });
-    await expect(race).resolves.toBe(false);
+    await expect(race).resolves.toEqual({
+      approved: false,
+      via: "remote",
+      from: "device-1",
+    });
     expect(cancel).toHaveBeenCalledTimes(1);
     expect(out.join("")).toContain("denied from paired device");
   });
@@ -177,5 +222,19 @@ describe("raceLocalAndRemote", () => {
     answer(true);
     await expect(race).resolves.toBe(false);
     expect(resolveLocally).not.toHaveBeenCalled();
+  });
+
+  it("uses the local answer when the tool has no remote lease support", async () => {
+    for (const approved of [true, false]) {
+      const { bridge, remote, resolveLocally } = fakeBridge({
+        requestId: null,
+      });
+      const { local, answer } = pendingLocal();
+      const race = raceLocalAndRemote({ bridge, ask: {}, local });
+      remote({ approved: false, via: "lease-unavailable", from: null });
+      answer(approved);
+      await expect(race).resolves.toBe(approved);
+      expect(resolveLocally).not.toHaveBeenCalled();
+    }
   });
 });

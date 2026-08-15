@@ -10,6 +10,7 @@ import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import okio.ByteString
+import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
 import java.util.concurrent.Executors
@@ -141,12 +142,33 @@ class RemoteSessionClient(
         JSONObject().put("type", "prompt").put("content", content),
     )
 
-    fun resolveApproval(requestId: String, approved: Boolean) = sendControl(
-        JSONObject()
+    fun resolveApproval(
+        requestId: String,
+        approved: Boolean,
+        fingerprint: String? = null,
+        binding: String? = null,
+        revision: Any? = null,
+    ): Boolean {
+        val hasDurableTuple = fingerprint != null || binding != null || revision != null
+        if (hasDurableTuple && (
+                fingerprint.isNullOrBlank() ||
+                    binding.isNullOrBlank() ||
+                    !isPositiveRevision(revision)
+                )
+        ) {
+            return false
+        }
+        val event = JSONObject()
             .put("type", "approval.resolve")
             .put("requestId", requestId)
-            .put("approved", approved),
-    )
+            .put("approved", approved)
+        if (hasDurableTuple) {
+            event.put("fingerprint", fingerprint)
+            event.put("binding", binding)
+            event.put("revision", revision)
+        }
+        return sendControl(event)
+    }
 
     fun interrupt() = sendControl(JSONObject().put("type", "interrupt"))
 
@@ -190,6 +212,7 @@ class RemoteSessionClient(
             .put("type", "pair.join")
             .put("remoteSessionId", activePairing.remoteSessionId)
             .put("token", activePairing.pairingToken)
+            .put("capabilities", JSONArray().put("approval-binding-v1"))
         pushToken?.let { joinPayload.put("pushToken", it) }
         pushProvider?.let { joinPayload.put("pushProvider", it) }
         val envelope = activeCrypto.encrypt(joinPayload)
@@ -274,6 +297,15 @@ class RemoteSessionClient(
     private fun cancelReconnect() {
         reconnectTask?.close()
         reconnectTask = null
+    }
+
+    private fun isPositiveRevision(value: Any?): Boolean = when (value) {
+        is Byte -> value > 0
+        is Short -> value > 0
+        is Int -> value > 0
+        is Long -> value > 0
+        is String -> value.matches(Regex("^[1-9]\\d*$"))
+        else -> false
     }
 
     private val listener = object : WebSocketListener() {

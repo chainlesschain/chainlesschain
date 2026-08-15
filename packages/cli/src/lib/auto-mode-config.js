@@ -284,6 +284,31 @@ export function createAutoModeApprovalGate(inner, resolved, opts = {}) {
   const isActive =
     typeof opts.isActive === "function" ? opts.isActive : () => true;
   let confirm = null;
+  let authorizationConsumerRequired = false;
+  const authorityConfig = Object.freeze({
+    map: Object.freeze(
+      Object.fromEntries(
+        RISK_LEVELS.map((riskLevel) => [
+          riskLevel,
+          Object.freeze({
+            decision: map[riskLevel]?.decision || null,
+            reason: map[riskLevel]?.reason || null,
+            source: map[riskLevel]?.source || null,
+          }),
+        ]),
+      ),
+    ),
+    rules: Object.freeze(
+      rules.map((rule) =>
+        Object.freeze({
+          decision: rule.decision || null,
+          reason: rule.reason || null,
+          source: rule.source || null,
+          match: rule.match ? Object.freeze({ ...rule.match }) : null,
+        }),
+      ),
+    ),
+  });
 
   return {
     isAutoModeGate: true,
@@ -302,6 +327,37 @@ export function createAutoModeApprovalGate(inner, resolved, opts = {}) {
     },
     hasConfirmer() {
       return typeof confirm === "function";
+    },
+    setAuthorizationConsumer(fn) {
+      authorizationConsumerRequired = typeof fn === "function";
+      return inner?.setAuthorizationConsumer?.(fn);
+    },
+    hasAuthorizationConsumer() {
+      return authorizationConsumerRequired;
+    },
+    getAuthorizationPolicySnapshot(sessionId = null) {
+      return Object.freeze({
+        schema: "chainlesschain.approval-policy-authority/v1",
+        kind: "auto-mode",
+        active: isActive() === true,
+        config: authorityConfig,
+        inner:
+          inner?.getAuthorizationPolicySnapshot?.(sessionId) ||
+          Object.freeze({
+            schema: "chainlesschain.approval-policy-authority/v1",
+            kind: "unobserved-inner",
+            sessionId: sessionId ? String(sessionId) : null,
+          }),
+      });
+    },
+    consumeAuthorization(authorization, ctx) {
+      if (typeof inner?.consumeAuthorization !== "function") {
+        throw new Error("Approval authorization consumer is unavailable");
+      }
+      return inner.consumeAuthorization(authorization, ctx);
+    },
+    createAuthorizationBinder() {
+      return inner?.createAuthorizationBinder?.() || null;
     },
     async decide(ctx = {}) {
       if (!isActive()) return inner.decide(ctx);
@@ -365,7 +421,15 @@ export function createAutoModeApprovalGate(inner, resolved, opts = {}) {
       }
       // ask — same confirm semantics as the session-core gate: no confirmer
       // means fail-closed deny (headless installs a deny-confirmer anyway).
-      if (typeof confirm !== "function") {
+      // Snapshot both mutable callbacks before the first await. A concurrent
+      // stop/start or session reconfiguration must not retarget an in-flight
+      // remote approval to a different authorization consumer generation.
+      const confirmer = confirm;
+      const consumerRequired = authorizationConsumerRequired;
+      const bindAuthorization = consumerRequired
+        ? inner?.createAuthorizationBinder?.()
+        : null;
+      if (typeof confirmer !== "function") {
         return {
           decision: "deny",
           via: "no-confirmer",
@@ -374,8 +438,38 @@ export function createAutoModeApprovalGate(inner, resolved, opts = {}) {
         };
       }
       let ok = false;
+      let authorization = null;
+      let confirmationVia = null;
       try {
-        ok = await confirm(ctx);
+        const confirmation = await confirmer(ctx);
+        if (confirmation && typeof confirmation === "object") {
+          ok = confirmation.approved === true;
+          confirmationVia = confirmation.via || null;
+          if (ok && !confirmation.authorization) {
+            return {
+              decision: "deny",
+              via: "authorization-missing",
+              base: "confirm",
+              ...common,
+            };
+          }
+          if (
+            ok &&
+            (!consumerRequired || typeof bindAuthorization !== "function")
+          ) {
+            return {
+              decision: "deny",
+              via: "authorization-consumer-missing",
+              base: "confirm",
+              ...common,
+            };
+          }
+          if (ok) {
+            authorization = bindAuthorization(confirmation.authorization);
+          }
+        } else {
+          ok = confirmation === true;
+        }
       } catch (error) {
         return {
           decision: "deny",
@@ -387,8 +481,9 @@ export function createAutoModeApprovalGate(inner, resolved, opts = {}) {
       }
       return {
         decision: ok ? "allow" : "deny",
-        via: ok ? "user-confirm" : "user-deny",
+        via: confirmationVia || (ok ? "user-confirm" : "user-deny"),
         base: "confirm",
+        ...(authorization ? { authorization } : {}),
         ...common,
       };
     },

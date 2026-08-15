@@ -19,14 +19,21 @@
 /**
  * Normalize the shapes the REPL's two confirmers receive (ApprovalGate
  * `{tool, args, riskLevel}` / settings-hook `{tool, args, rule, reason}`)
- * into the bridge's `{tool, action, detail}` ask payload.
+ * into the bridge's exact durable ask payload.
  */
 export function describeAskContext({
   tool,
   args,
+  action = null,
   rule = null,
   reason = null,
   riskLevel = null,
+  cwd = null,
+  workspace = null,
+  sessionId = null,
+  session = null,
+  targetEnv = null,
+  policyVersion = null,
 } = {}) {
   const detail =
     typeof args?.command === "string"
@@ -38,17 +45,24 @@ export function describeAskContext({
           : null;
   return {
     tool: tool || null,
-    action: rule
-      ? `ask-rule:${rule}`
-      : reason || (riskLevel ? `${riskLevel}-risk` : null),
+    action:
+      action ||
+      (rule
+        ? `ask-rule:${rule}`
+        : reason || (riskLevel ? `${riskLevel}-risk` : null)),
     detail,
+    operationArgs: args === undefined ? null : structuredClone(args),
+    workspace: workspace || cwd || null,
+    session: session || sessionId || null,
+    targetEnv: targetEnv || null,
+    policyVersion: policyVersion || null,
   };
 }
 
 // These outcomes are not a remote human decision. The terminal may still
 // answer, but its result is accepted only if resolveLocally can durably settle
 // the same live card.
-const NON_DECISIVE_REMOTE = new Set(["timeout", "closed"]);
+const NON_DECISIVE_REMOTE = new Set(["timeout", "closed", "lease-unavailable"]);
 
 /**
  * Race the local interactive prompt against the paired-device decision.
@@ -83,14 +97,22 @@ export async function raceLocalAndRemote({
     () => ({ src: "local", approved: false }),
   );
   let winner = await Promise.race([remoteLeg, localLeg]);
+  let remoteUnavailableWithoutCard = false;
   if (
     winner.src === "remote" &&
     NON_DECISIVE_REMOTE.has(winner.decision?.via)
   ) {
+    remoteUnavailableWithoutCard =
+      winner.decision?.via === "lease-unavailable" && !requestId;
     winner = await localLeg;
   }
   if (winner.src === "local") {
-    if (!requestId) return false;
+    // Unsupported tools have no durable remote card to settle. In that exact
+    // lease-unavailable case, preserve the existing local confirmation path;
+    // timeout/closed responses without a request id remain fail-closed.
+    if (!requestId) {
+      return remoteUnavailableWithoutCard && winner.approved === true;
+    }
     try {
       const persisted = bridge.resolveLocally(requestId, winner.approved);
       return persisted === true && winner.approved === true;
@@ -107,5 +129,5 @@ export async function raceLocalAndRemote({
   writeOut(
     `\n  ✓ ${winner.decision.approved ? "allowed" : "denied"} from paired device\n`,
   );
-  return winner.decision.approved === true;
+  return winner.decision;
 }

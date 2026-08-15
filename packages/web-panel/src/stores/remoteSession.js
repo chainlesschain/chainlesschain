@@ -9,13 +9,13 @@
 //
 //   DIRECT (chainlesschain://remote-control/pair#…)  — LAN mode from
 //   `cc remote-control` / `cc agent --remote-control` / REPL `/remote-control`:
-//   connects straight to the host's WS endpoint, authenticates with the
-//   embedded server token, joins with the ONE-TIME pairing token, and speaks
-//   the plaintext-over-WS remote-session protocol (auth → remote-session-join
-//   → remote-session-event frames; controls via remote-session-publish with a
-//   TOP-LEVEL commandId+seq for the host's idempotency ledger). Because the
-//   pairing token is one-time, an unexpected drop cannot re-join — the store
-//   reports `disconnected` with a re-pair hint instead of auto-reconnecting.
+//   connects straight to the host's WS endpoint and authenticates with the
+//   embedded server token. Legacy sessions consume the one-time pairing token
+//   and cannot rejoin after a drop. Durable sessions bind a non-extractable
+//   browser credential during that first join, then reconnect with fresh
+//   possession challenges instead of replaying the token. Both speak the
+//   plaintext-over-WS remote-session protocol and send controls with a
+//   TOP-LEVEL commandId+seq for the host's idempotency ledger.
 //
 // Both transports feed the same event log and the same `pendingApprovals`
 // cards: a `permission.request` runtime event (RemoteApprovalBridge) opens a
@@ -32,6 +32,12 @@ import {
   isDirectPairingUri,
   parseDirectPairingUri,
 } from "../utils/remote-control-pairing.js";
+import {
+  forgetRemoteMembershipCredential,
+  getOrCreateRemoteMembershipCredential,
+  rememberRemoteMembershipPrincipal,
+  signRemoteMembershipChallenge,
+} from "../utils/remote-membership-credential.js";
 
 const RECONNECT_BASE_MS = 1_000;
 const RECONNECT_MAX_MS = 30_000;
@@ -94,6 +100,8 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
   // Direct-mode internals.
   let directSocket = null;
   let directPairing = null;
+  let directCredential = null;
+  let directPrincipalId = null;
   let directPending = new Map(); // id → {resolve, reject, timer}
   let directCounter = 0;
 
@@ -125,6 +133,9 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
             action: event.action || null,
             detail: event.detail || null,
             askedAt: event.askedAt || Date.now(),
+            fingerprint: event.fingerprint || null,
+            binding: event.binding || null,
+            revision: event.revision ?? null,
           },
         ];
       }
@@ -262,12 +273,25 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
   // Revive a relay pairing whose reconnect loop hit the attempt cap (or that
   // dropped while nobody was looking). Called on view mount, so leaving the
   // page bounds the background churn yet coming back picks the session up
-  // with a fresh attempt budget. No-op while connected/connecting, after an
-  // explicit disconnect/revocation, and for direct transport (its one-time
-  // pairing token cannot re-join anyway).
+  // with a fresh attempt budget. Durable direct membership uses the same entry
+  // point but resumes with a fresh possession challenge instead of replaying
+  // its one-time pairing token.
   function resumeReconnect() {
-    if (transport.value !== "relay" || !pairing || closedExplicitly) return;
-    if (socket || reconnectTimer) return;
+    if (closedExplicitly || reconnectTimer) return;
+    if (transport.value === "direct") {
+      if (
+        !directPairing?.durableMembership ||
+        !directPrincipalId ||
+        directSocket
+      ) {
+        return;
+      }
+      reconnectAttempts = 0;
+      error.value = "";
+      connectDirect(directPairing, { resumeOnly: true });
+      return;
+    }
+    if (transport.value !== "relay" || !pairing || socket) return;
     reconnectAttempts = 0;
     error.value = "";
     status.value = "connecting";
@@ -331,6 +355,7 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
       type: "pair.join",
       remoteSessionId: pairing.remoteSessionId,
       token: pairing.pairingToken,
+      capabilities: ["approval-binding-v1"],
     };
     if (pushCredentials?.token) {
       join.pushToken = pushCredentials.token;
@@ -431,24 +456,57 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
       message.remoteSessionId === directPairing?.remoteSessionId
     ) {
       closedExplicitly = true;
+      const revokedSessionId = directPairing.remoteSessionId;
+      directPrincipalId = null;
+      directCredential = null;
+      void forgetRemoteMembershipCredential(revokedSessionId);
       if (directSocket) directSocket.close();
       directSocket = null;
       status.value = "revoked";
     }
   }
 
-  function connectDirect(parsed) {
+  function scheduleDirectReconnect() {
+    if (
+      closedExplicitly ||
+      reconnectTimer ||
+      !directPairing?.durableMembership ||
+      !directPrincipalId
+    ) {
+      return;
+    }
+    if (reconnectAttempts >= RECONNECT_MAX_ATTEMPTS) {
+      status.value = "disconnected";
+      error.value =
+        "Durable Remote Session reconnect attempts were exhausted; retry from this page.";
+      return;
+    }
+    const delay = Math.min(
+      RECONNECT_BASE_MS * 2 ** reconnectAttempts,
+      RECONNECT_MAX_MS,
+    );
+    reconnectAttempts += 1;
+    status.value = "reconnecting";
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = null;
+      if (!closedExplicitly && directPairing) {
+        connectDirect(directPairing, { resumeOnly: true });
+      }
+    }, delay);
+  }
+
+  function connectDirect(parsed, { resumeOnly = false } = {}) {
     directPairing = parsed;
     remoteSessionId.value = parsed.remoteSessionId;
     transport.value = "direct";
     scopes.value = parsed.scopes;
-    status.value = "connecting";
+    status.value = resumeOnly ? "reconnecting" : "connecting";
     const ws = new WebSocket(parsed.wsUrl);
     directSocket = ws;
     ws.addEventListener("open", async () => {
       if (ws !== directSocket) return;
       try {
-        status.value = "pairing";
+        status.value = resumeOnly ? "reconnecting" : "pairing";
         if (parsed.serverToken) {
           const auth = await directRequest("auth", {
             token: parsed.serverToken,
@@ -457,23 +515,103 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
             throw new Error(auth.message || "authentication failed");
           }
         }
-        const joined = await directRequest("remote-session-join", {
-          remoteSessionId: parsed.remoteSessionId,
-          token: parsed.pairingToken,
-        });
+        let joined;
+        if (parsed.durableMembership) {
+          directCredential =
+            directCredential ||
+            (await getOrCreateRemoteMembershipCredential(
+              parsed.remoteSessionId,
+            ));
+          directPrincipalId =
+            directPrincipalId || directCredential.principalId || null;
+          const joinWithFreshPairingToken = async () => {
+            const challenged = await directRequest(
+              "remote-session-join-challenge",
+              {
+                remoteSessionId: parsed.remoteSessionId,
+                token: parsed.pairingToken,
+                credentialPublicKey: directCredential.publicKey,
+                capabilities: ["approval-binding-v1"],
+              },
+            );
+            const signature = await signRemoteMembershipChallenge(
+              challenged.challenge,
+              directCredential.privateKey,
+            );
+            const result = await directRequest("remote-session-join", {
+              remoteSessionId: parsed.remoteSessionId,
+              challengeId: challenged.challenge.challengeId,
+              signature,
+            });
+            const joinedPrincipal =
+              result.member?.principalId || result.member?.clientId || null;
+            directCredential = await rememberRemoteMembershipPrincipal(
+              parsed.remoteSessionId,
+              joinedPrincipal,
+            );
+            directPrincipalId = directCredential.principalId;
+            return result;
+          };
+          if (directPrincipalId) {
+            try {
+              const challenged = await directRequest(
+                "remote-session-resume-challenge",
+                {
+                  remoteSessionId: parsed.remoteSessionId,
+                  principalId: directPrincipalId,
+                },
+              );
+              const signature = await signRemoteMembershipChallenge(
+                challenged.challenge,
+                directCredential.privateKey,
+              );
+              joined = await directRequest("remote-session-resume", {
+                remoteSessionId: parsed.remoteSessionId,
+                challengeId: challenged.challenge.challengeId,
+                signature,
+              });
+            } catch (resumeError) {
+              // Automatic reconnect is resume-only: it must never consume or
+              // retry a one-time token. A freshly scanned URI is different — a
+              // host close then re-enable intentionally revokes the old membership,
+              // so reuse the same non-extractable key to rejoin at epoch+1.
+              if (resumeOnly) throw resumeError;
+              joined = await joinWithFreshPairingToken();
+            }
+          } else {
+            if (resumeOnly) {
+              throw new Error(
+                "Durable Remote Session principal binding is unavailable",
+              );
+            }
+            joined = await joinWithFreshPairingToken();
+          }
+        } else {
+          joined = await directRequest("remote-session-join", {
+            remoteSessionId: parsed.remoteSessionId,
+            token: parsed.pairingToken,
+          });
+        }
         if (ws !== directSocket) return;
         scopes.value = joined.member?.scopes || parsed.scopes;
+        reconnectAttempts = 0;
+        error.value = "";
         status.value = "connected";
       } catch (cause) {
         if (ws !== directSocket) return;
-        status.value = "error";
         error.value = cause?.message || "Direct pairing failed";
+        failDirectPending(error.value);
+        directSocket = null;
         try {
           ws.close();
         } catch {
           /* already closing */
         }
-        directSocket = null;
+        if (resumeOnly && !closedExplicitly) {
+          scheduleDirectReconnect();
+        } else {
+          status.value = "error";
+        }
       }
     });
     ws.addEventListener("message", (event) => {
@@ -488,10 +626,18 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
         if (status.value !== "revoked") status.value = "disconnected";
         return;
       }
+      if (parsed.durableMembership && directPrincipalId) {
+        scheduleDirectReconnect();
+        return;
+      }
       // The pairing token was one-time (consumed by the join), so a dropped
       // direct connection CANNOT silently re-join — surface it honestly
       // instead of auto-reconnect-looping into join errors.
-      if (status.value === "connected" || status.value === "pairing") {
+      if (
+        ["connected", "connecting", "pairing", "reconnecting"].includes(
+          status.value,
+        )
+      ) {
         status.value = "disconnected";
         error.value =
           "直连会话已断开 — 配对码为一次性，请在主机端重新生成配对链接";
@@ -528,6 +674,9 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
       closedExplicitly = false;
       controlSeq = 0;
       if (isDirectPairingUri(uri)) {
+        directCredential = null;
+        directPrincipalId = null;
+        reconnectAttempts = 0;
         connectDirect(parseDirectPairingUri(uri));
         return true;
       }
@@ -585,13 +734,25 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
         requestId,
         answer: approved,
         approved,
+        fingerprint: card?.fingerprint || null,
+        binding: card?.binding || null,
+        revision: card?.revision ?? null,
       }).then((result) => {
         // sendDirectControl resolves null on failure (error.value already set).
         if (result === null) restoreApprovalCard(card);
       });
       return;
     }
-    if (!sendControl({ type: "approval.resolve", requestId, approved })) {
+    if (
+      !sendControl({
+        type: "approval.resolve",
+        requestId,
+        approved,
+        fingerprint: card?.fingerprint || null,
+        binding: card?.binding || null,
+        revision: card?.revision ?? null,
+      })
+    ) {
       error.value = "Remote Session is not connected";
       restoreApprovalCard(card);
     }
@@ -676,6 +837,8 @@ export const useRemoteSessionStore = defineStore("remoteSession", () => {
     }
     directSocket = null;
     directPairing = null;
+    directCredential = null;
+    directPrincipalId = null;
     failDirectPending("disconnected");
     if (status.value !== "revoked") status.value = "disconnected";
   }

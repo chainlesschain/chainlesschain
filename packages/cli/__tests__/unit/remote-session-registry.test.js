@@ -6,7 +6,87 @@ import {
   RemoteSessionRegistry,
 } from "../../src/harness/remote-session-registry.js";
 
+function durableSnapshot(sessionId = "durable-late") {
+  return {
+    sessionId,
+    agentSessionId: "agent-1",
+    hostPrincipalId: `ed25519:${"a".repeat(64)}`,
+    sessionEpoch: "1",
+    createdAt: 1_000,
+    expiresAt: 100_000,
+    status: "active",
+    authorityGeneration: "1",
+    members: [
+      {
+        principalId: `ed25519:${"a".repeat(64)}`,
+        membershipEpoch: "1",
+        status: "active",
+        scopes: [...REMOTE_SESSION_SCOPES],
+        credentialKeySha256: "a".repeat(64),
+      },
+    ],
+    leases: [],
+  };
+}
+
+function fakeCoordinator({ listSessionSnapshots, getSessionSnapshot }) {
+  return {
+    listSessionSnapshots,
+    getSessionSnapshot,
+    trustDescriptor: () => ({
+      authorityVersion: "durable-monotonic-membership-epoch-v1",
+    }),
+  };
+}
+
 describe("RemoteSessionRegistry", () => {
+  it("discovers a durable session created after this server completed its initial hydration", () => {
+    let current = null;
+    const coordinator = fakeCoordinator({
+      listSessionSnapshots: vi.fn(() => []),
+      getSessionSnapshot: vi.fn(() =>
+        current ? { session: current, statement: {} } : null,
+      ),
+    });
+    const serverB = new RemoteSessionRegistry({
+      now: () => 1_000,
+      membershipCoordinator: coordinator,
+    });
+    current = durableSnapshot();
+
+    expect(serverB.requireSession(current.sessionId)).toMatchObject({
+      sessionId: current.sessionId,
+      sessionEpoch: "1",
+      status: "active",
+    });
+    expect(coordinator.getSessionSnapshot).toHaveBeenCalledWith(
+      current.sessionId,
+    );
+  });
+
+  it("retries a failed coordinator hydration instead of permanently caching partial state", () => {
+    const current = durableSnapshot("durable-retry");
+    let attempts = 0;
+    const coordinator = fakeCoordinator({
+      listSessionSnapshots: vi.fn(() => {
+        attempts += 1;
+        if (attempts === 1) throw new Error("temporary coordinator outage");
+        return [current];
+      }),
+      getSessionSnapshot: vi.fn(() => ({ session: current, statement: {} })),
+    });
+    const registry = new RemoteSessionRegistry({
+      now: () => 1_000,
+      membershipCoordinator: coordinator,
+    });
+
+    expect(registry.requireSession(current.sessionId)).toMatchObject({
+      sessionId: current.sessionId,
+      status: "active",
+    });
+    expect(coordinator.listSessionSnapshots).toHaveBeenCalledTimes(2);
+  });
+
   it("creates a session and pairs one remote client with explicit scopes", () => {
     const registry = new RemoteSessionRegistry();
     const created = registry.create({

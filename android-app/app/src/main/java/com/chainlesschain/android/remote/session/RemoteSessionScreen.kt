@@ -100,11 +100,13 @@ fun RemoteSessionScreen(
                         Column(Modifier.padding(12.dp)) {
                             Text(event.optString("type", "event"))
                             Text(event.optString("content", event.optJSONObject("payload")?.optString("content") ?: ""))
-                            if (event.optString("type").contains("approval")) {
-                                val requestId = event.optString("requestId", event.optString("approvalId"))
+                            if (
+                                event.optString("type") == "permission.request" ||
+                                event.optString("type").contains("approval")
+                            ) {
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Button(onClick = { viewModel.approve(requestId, true) }) { Text("Approve") }
-                                    OutlinedButton(onClick = { viewModel.approve(requestId, false) }) { Text("Reject") }
+                                    Button(onClick = { viewModel.approve(event, true) }) { Text("Approve") }
+                                    OutlinedButton(onClick = { viewModel.approve(event, false) }) { Text("Reject") }
                                 }
                             }
                         }

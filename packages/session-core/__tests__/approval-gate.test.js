@@ -70,11 +70,237 @@ describe("baseDecision", () => {
 
 describe("ApprovalGate constructor", () => {
   it("rejects invalid defaultPolicy", () => {
-    expect(() => new ApprovalGate({ defaultPolicy: "bogus" })).toThrow(/invalid/);
+    expect(() => new ApprovalGate({ defaultPolicy: "bogus" })).toThrow(
+      /invalid/,
+    );
   });
   it("defaults to strict", () => {
     const g = new ApprovalGate();
     expect(g.getSessionPolicy("any")).toBe(POLICY.STRICT);
+  });
+  it("rejects an invalid authorization consumer", () => {
+    expect(() => new ApprovalGate({ consumeAuthorization: true })).toThrow(
+      /function or null/,
+    );
+  });
+});
+
+describe("ApprovalGate durable authorization", () => {
+  const context = { sessionId: "s1", riskLevel: RISK.HIGH };
+
+  it("keeps legacy boolean confirmer approvals compatible", async () => {
+    const g = new ApprovalGate({
+      confirm: async () => true,
+    });
+
+    await expect(g.decide(context)).resolves.toMatchObject({
+      decision: DECISION.ALLOW,
+      via: "user-confirm",
+    });
+  });
+
+  it("never treats a truthy object as a legacy approval", async () => {
+    const g = new ApprovalGate({
+      confirm: async () => ({ approved: true, via: "third-party" }),
+    });
+
+    await expect(g.decide(context)).resolves.toMatchObject({
+      decision: DECISION.DENY,
+      via: "authorization-missing",
+    });
+  });
+
+  it("denies an explicit durable approval without an authorization", async () => {
+    const g = new ApprovalGate({
+      confirm: async () => ({
+        approved: true,
+        via: "remote",
+        authorizationRequired: true,
+      }),
+    });
+
+    await expect(g.decide(context)).resolves.toMatchObject({
+      decision: DECISION.DENY,
+      via: "authorization-missing",
+    });
+  });
+
+  it("denies a structured approval missing authorization while a consumer is active", async () => {
+    const g = new ApprovalGate({
+      confirm: async () => ({ approved: true, via: "remote" }),
+      consumeAuthorization: async () => true,
+    });
+
+    await expect(g.decide(context)).resolves.toMatchObject({
+      decision: DECISION.DENY,
+      via: "authorization-missing",
+    });
+  });
+
+  it("denies a structured authorization when no consumer can be bound", async () => {
+    const g = new ApprovalGate({
+      confirm: async () => ({
+        approved: true,
+        via: "remote",
+        authorization: Object.freeze({ kind: "opaque-test" }),
+      }),
+    });
+
+    await expect(g.decide(context)).resolves.toMatchObject({
+      decision: DECISION.DENY,
+      via: "authorization-consumer-missing",
+    });
+  });
+
+  it("preserves an opaque authorization and delegates its one-shot consume", async () => {
+    const authorization = Object.freeze({ kind: "opaque-test" });
+    const consumeAuthorization = vi.fn(async () => true);
+    const g = new ApprovalGate({
+      confirm: async () => ({
+        approved: true,
+        via: "remote",
+        authorizationRequired: true,
+        authorization,
+      }),
+      consumeAuthorization,
+    });
+    expect(g.hasAuthorizationConsumer()).toBe(true);
+
+    const decision = await g.decide(context);
+    expect(decision).toMatchObject({
+      decision: DECISION.ALLOW,
+      via: "remote",
+      authorization: {
+        kind: "chainlesschain.approval-gate.bound-authorization/v1",
+      },
+    });
+    const dispatchContext = { tool: "run_shell", args: { command: "pwd" } };
+    // Reconfiguring the singleton after decide cannot retarget or remove the
+    // consumer already bound to this opaque authorization.
+    g.setAuthorizationConsumer(null);
+    await expect(
+      g.consumeAuthorization(decision.authorization, dispatchContext),
+    ).resolves.toBe(true);
+    expect(consumeAuthorization).toHaveBeenCalledWith(
+      authorization,
+      dispatchContext,
+    );
+    expect(g.hasAuthorizationConsumer()).toBe(false);
+  });
+
+  it("keeps a deterministic failed consume retryable with the correct context", async () => {
+    const authorization = Object.freeze({ kind: "opaque-test" });
+    const consumeAuthorization = vi.fn(async (_authorization, ctx) => {
+      if (ctx.action !== "high-risk") throw new Error("dispatch mismatch");
+      return true;
+    });
+    const g = new ApprovalGate({
+      confirm: async () => ({ approved: true, authorization }),
+      consumeAuthorization,
+    });
+    const decision = await g.decide(context);
+
+    await expect(
+      g.consumeAuthorization(decision.authorization, { action: null }),
+    ).rejects.toThrow(/mismatch/);
+    await expect(
+      g.consumeAuthorization(decision.authorization, { action: "high-risk" }),
+    ).resolves.toBe(true);
+    expect(consumeAuthorization).toHaveBeenCalledTimes(2);
+    await expect(
+      g.consumeAuthorization(decision.authorization, { action: "high-risk" }),
+    ).rejects.toThrow(/replayed/);
+  });
+
+  it("isolates concurrent session-scoped confirmers and consumers", async () => {
+    const gate = new ApprovalGate();
+    const scopeA = gate.createSessionScope("session-a");
+    const scopeB = gate.createSessionScope("session-b");
+    const rawA = Object.freeze({ kind: "raw-a" });
+    const rawB = Object.freeze({ kind: "raw-b" });
+    let resolveA;
+    let resolveB;
+    const consumerA = vi.fn(async () => true);
+    const consumerB = vi.fn(async () => true);
+    scopeA.setAuthorizationConsumer(consumerA);
+    scopeB.setAuthorizationConsumer(consumerB);
+    scopeA.setConfirmer(
+      () =>
+        new Promise((resolve) => {
+          resolveA = resolve;
+        }),
+    );
+    scopeB.setConfirmer(
+      () =>
+        new Promise((resolve) => {
+          resolveB = resolve;
+        }),
+    );
+
+    const pendingA = scopeA.decide({ riskLevel: RISK.HIGH });
+    const pendingB = scopeB.decide({ riskLevel: RISK.HIGH });
+    resolveB({ approved: true, authorization: rawB, via: "remote-b" });
+    resolveA({ approved: true, authorization: rawA, via: "remote-a" });
+    const [decisionA, decisionB] = await Promise.all([pendingA, pendingB]);
+
+    // Teardown/reconfiguration of either scope after decide cannot alter the
+    // consumer captured by the other authorization.
+    scopeA.setAuthorizationConsumer(null);
+    scopeB.setAuthorizationConsumer(async () => {
+      throw new Error("replacement must not run");
+    });
+    await expect(
+      scopeA.consumeAuthorization(decisionA.authorization, { session: "a" }),
+    ).resolves.toBe(true);
+    await expect(
+      scopeB.consumeAuthorization(decisionB.authorization, { session: "b" }),
+    ).resolves.toBe(true);
+    expect(consumerA).toHaveBeenCalledWith(rawA, { session: "a" });
+    expect(consumerB).toHaveBeenCalledWith(rawB, { session: "b" });
+  });
+
+  it("creates a binder pinned to the current consumer generation", async () => {
+    const gate = new ApprovalGate();
+    const scope = gate.createSessionScope("session-a");
+    const raw = Object.freeze({ kind: "raw-a" });
+    const consumerA = vi.fn(async () => true);
+    const consumerB = vi.fn(async () => {
+      throw new Error("replacement must not run");
+    });
+    scope.setAuthorizationConsumer(consumerA);
+    const bind = scope.createAuthorizationBinder();
+    scope.setAuthorizationConsumer(consumerB);
+
+    const authorization = bind(raw);
+    await expect(
+      scope.consumeAuthorization(authorization, { session: "a" }),
+    ).resolves.toBe(true);
+    expect(consumerA).toHaveBeenCalledWith(raw, { session: "a" });
+    expect(consumerB).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when consume is absent, negative, or throws", async () => {
+    const authorization = Object.freeze({ kind: "opaque-test" });
+    const noConsumer = new ApprovalGate();
+    await expect(
+      noConsumer.consumeAuthorization(authorization, {}),
+    ).rejects.toThrow(/unavailable/);
+
+    const negative = new ApprovalGate({
+      consumeAuthorization: async () => false,
+    });
+    await expect(
+      negative.consumeAuthorization(authorization, {}),
+    ).rejects.toThrow(/not confirmed/);
+
+    const unknown = new ApprovalGate({
+      consumeAuthorization: async () => {
+        throw new Error("unknown commit");
+      },
+    });
+    await expect(
+      unknown.consumeAuthorization(authorization, {}),
+    ).rejects.toThrow(/unknown commit/);
   });
 });
 

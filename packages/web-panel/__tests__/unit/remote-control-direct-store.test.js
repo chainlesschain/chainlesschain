@@ -48,6 +48,7 @@ class FakeDirectServer {
   static instances = [];
   static rejectJoin = null;
   static rejectPublish = null;
+  static rejectResumeChallenge = null;
 
   constructor(url) {
     this.url = url;
@@ -94,6 +95,53 @@ class FakeDirectServer {
       });
       return;
     }
+    if (msg.type === "remote-session-join-challenge") {
+      this.deliver({
+        id: msg.id,
+        type: "remote-session-join-challenge",
+        challenge: {
+          challengeId: "join-challenge-1",
+          purpose: "member.join",
+          remoteSessionId: msg.remoteSessionId || SESSION_ID,
+        },
+      });
+      return;
+    }
+    if (msg.type === "remote-session-resume-challenge") {
+      if (FakeDirectServer.rejectResumeChallenge) {
+        this.deliver({
+          id: msg.id,
+          type: "error",
+          code: "REMOTE_SESSION_RESUME_ERROR",
+          message: FakeDirectServer.rejectResumeChallenge,
+        });
+        return;
+      }
+      this.deliver({
+        id: msg.id,
+        type: "remote-session-resume-challenge",
+        challenge: {
+          challengeId: "resume-challenge-1",
+          purpose: "session.resume",
+          remoteSessionId: msg.remoteSessionId || SESSION_ID,
+          principalId: msg.principalId,
+        },
+      });
+      return;
+    }
+    if (msg.type === "remote-session-resume") {
+      this.deliver({
+        id: msg.id,
+        type: "remote-session-resumed",
+        session: { sessionId: msg.remoteSessionId || SESSION_ID },
+        member: {
+          clientId: "principal-web-1",
+          principalId: "principal-web-1",
+          scopes: ["observe", "approve"],
+        },
+      });
+      return;
+    }
     if (msg.type === "remote-session-join") {
       if (FakeDirectServer.rejectJoin) {
         this.deliver({
@@ -107,8 +155,14 @@ class FakeDirectServer {
       this.deliver({
         id: msg.id,
         type: "remote-session-joined",
-        session: { sessionId: SESSION_ID },
-        member: { clientId: "web-client", scopes: ["observe", "approve"] },
+        session: { sessionId: msg.remoteSessionId || SESSION_ID },
+        member: msg.challengeId
+          ? {
+              clientId: "principal-web-1",
+              principalId: "principal-web-1",
+              scopes: ["observe", "approve"],
+            }
+          : { clientId: "web-client", scopes: ["observe", "approve"] },
       });
       return;
     }
@@ -185,6 +239,7 @@ describe("remoteSession store — direct transport", () => {
     FakeDirectServer.instances = [];
     FakeDirectServer.rejectJoin = null;
     FakeDirectServer.rejectPublish = null;
+    FakeDirectServer.rejectResumeChallenge = null;
     vi.stubGlobal("WebSocket", FakeDirectServer);
   });
 
@@ -205,6 +260,114 @@ describe("remoteSession store — direct transport", () => {
       type: "remote-session-join",
       remoteSessionId: SESSION_ID,
       token: PAIRING_TOKEN,
+    });
+  });
+
+  it("uses possession-proof join and resumes durable direct membership after a drop", async () => {
+    const store = useRemoteSessionStore();
+    const first = await connectDirect(
+      store,
+      directUri({ durableMembership: true }),
+    );
+    await vi.waitFor(() => expect(store.status).toBe("connected"));
+    expect(first.frames.map((frame) => frame.type)).toEqual([
+      "auth",
+      "remote-session-join-challenge",
+      "remote-session-join",
+    ]);
+    const join = first.frames.at(-1);
+    expect(join).toMatchObject({
+      type: "remote-session-join",
+      challengeId: "join-challenge-1",
+    });
+    expect(first.frames[1]).toMatchObject({
+      capabilities: ["approval-binding-v1"],
+    });
+    expect(typeof join.signature).toBe("string");
+    expect(join).not.toHaveProperty("token");
+
+    vi.useFakeTimers();
+    const before = FakeDirectServer.instances.length;
+    first.close();
+    expect(store.status).toBe("reconnecting");
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(FakeDirectServer.instances).toHaveLength(before + 1);
+    const resumed = FakeDirectServer.instances.at(-1);
+    vi.useRealTimers();
+    resumed.open();
+    await vi.waitFor(() => expect(store.status).toBe("connected"));
+    expect(resumed.frames.map((frame) => frame.type)).toEqual([
+      "auth",
+      "remote-session-resume-challenge",
+      "remote-session-resume",
+    ]);
+    expect(resumed.frames.at(-1)).toMatchObject({
+      challengeId: "resume-challenge-1",
+    });
+    expect(typeof resumed.frames.at(-1).signature).toBe("string");
+  });
+
+  it("rejoins with the stored key when a fresh URI follows host close and re-enable", async () => {
+    const store = useRemoteSessionStore();
+    const reenabledSessionId = `${SESSION_ID}-reenable`;
+    const first = await connectDirect(
+      store,
+      directUri({
+        remoteSessionId: reenabledSessionId,
+        durableMembership: true,
+      }),
+    );
+    await vi.waitFor(() => expect(store.status).toBe("connected"));
+    const firstPublicKey = first.frames.find(
+      (frame) => frame.type === "remote-session-join-challenge",
+    ).credentialPublicKey;
+    store.disconnect();
+
+    FakeDirectServer.rejectResumeChallenge = "membership was revoked on close";
+    const reenabled = await connectDirect(
+      store,
+      directUri({
+        remoteSessionId: reenabledSessionId,
+        durableMembership: true,
+        pairingToken: "reenabled-one-time-token",
+      }),
+    );
+    await vi.waitFor(() => expect(store.status).toBe("connected"));
+
+    expect(reenabled.frames.map((frame) => frame.type)).toEqual([
+      "auth",
+      "remote-session-resume-challenge",
+      "remote-session-join-challenge",
+      "remote-session-join",
+    ]);
+    expect(reenabled.frames[2]).toMatchObject({
+      token: "reenabled-one-time-token",
+      credentialPublicKey: firstPublicKey,
+      capabilities: ["approval-binding-v1"],
+    });
+    expect(reenabled.frames[3]).not.toHaveProperty("token");
+  });
+
+  it("echoes the immutable durable approval tuple", async () => {
+    const store = useRemoteSessionStore();
+    const active = await connectDirect(store);
+    active.pushEvent({
+      type: "permission.request",
+      requestId: "durable-approval-1",
+      tool: "run_shell",
+      fingerprint: "sha256:request",
+      binding: "binding-v1",
+      revision: 7,
+    });
+
+    store.approve("durable-approval-1", true);
+    await flush();
+    expect(active.published.at(-1).event).toMatchObject({
+      type: "approval.resolve",
+      requestId: "durable-approval-1",
+      fingerprint: "sha256:request",
+      binding: "binding-v1",
+      revision: 7,
     });
   });
 

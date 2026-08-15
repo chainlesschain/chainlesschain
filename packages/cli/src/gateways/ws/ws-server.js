@@ -11,7 +11,7 @@
  */
 
 import { EventEmitter } from "node:events";
-import { createHash, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { WebSocketServer } from "ws";
@@ -38,6 +38,8 @@ import {
 } from "../../harness/remote-session-push.js";
 import { createRemoteSessionPushSender } from "../../harness/remote-session-push-senders.js";
 import { DurableRemoteMembershipAuthority } from "../../lib/remote-membership-authority.js";
+import { DurableRemoteMembershipCoordinator } from "../../lib/remote-membership-coordinator.js";
+import { remoteSessionPairingTokenDigest } from "../../harness/remote-session-crypto.js";
 import { RemoteSessionRelay } from "../remote-session-relay.js";
 import { handleRemoteSessionPublish } from "./remote-session-protocol.js";
 import { handleTaskDetail, handleTaskHistory } from "./task-protocol.js";
@@ -271,11 +273,26 @@ export class ChainlessChainWSServer extends EventEmitter {
     /** Org-policy constraints for Remote Sessions (scopes, device cap, TTL). */
     this.remoteSessionPolicy =
       options.remoteSessionPolicy || RemoteSessionPolicy.fromEnv(process.env);
+    /**
+     * Server-authoritative durable membership/lease coordinator. Constructed
+     * lazily so ordinary WS deployments that never enable Remote Approval do
+     * not create a machine-security root as a constructor side effect.
+     */
+    this._remoteMembershipCoordinatorOption =
+      options.remoteMembershipCoordinator === null
+        ? null
+        : options.remoteMembershipCoordinator || undefined;
+    this._remoteMembershipCoordinatorOptions =
+      options.remoteMembershipCoordinatorOptions || {};
     /** Local authorization state for multi-device Remote Sessions. */
     this.remoteSessions =
       options.remoteSessionRegistry ||
       new RemoteSessionRegistry({
         policy: this.remoteSessionPolicy,
+        membershipCoordinator:
+          options.remoteMembershipCoordinator === null
+            ? null
+            : () => this._requireRemoteMembershipCoordinator(),
         membershipAuthority:
           options.remoteMembershipAuthority === null
             ? null
@@ -341,6 +358,20 @@ export class ChainlessChainWSServer extends EventEmitter {
 
     this._heartbeatTimer = null;
     this._clientCounter = 0;
+  }
+
+  _requireRemoteMembershipCoordinator() {
+    if (typeof this._remoteMembershipCoordinatorOption === "function") {
+      this._remoteMembershipCoordinatorOption =
+        this._remoteMembershipCoordinatorOption();
+    }
+    if (!this._remoteMembershipCoordinatorOption) {
+      this._remoteMembershipCoordinatorOption =
+        new DurableRemoteMembershipCoordinator(
+          this._remoteMembershipCoordinatorOptions,
+        );
+    }
+    return this._remoteMembershipCoordinatorOption;
   }
 
   /** Start the WebSocket server */
@@ -465,6 +496,7 @@ export class ChainlessChainWSServer extends EventEmitter {
       ip: clientIp,
       alive: true,
       authTimer: null,
+      membershipConnectionNonce: randomBytes(32).toString("base64url"),
     };
     this.clients.set(clientId, client);
 
@@ -1329,10 +1361,17 @@ export class ChainlessChainWSServer extends EventEmitter {
       data.sessionId,
       hostClientId,
     )) {
-      for (const member of remoteSession.members.values()) {
+      for (const memberView of this.remoteSessions.members(
+        remoteSession.sessionId,
+      )) {
+        const memberTransportId =
+          memberView.transportClientId || memberView.clientId;
+        if (remoteSession.hostPrincipalId && !memberView.transportClientId) {
+          continue;
+        }
         if (
-          member.clientId === hostClientId ||
-          !member.scopes.includes("observe")
+          memberTransportId === hostClientId ||
+          !memberView.scopes.includes("observe")
         ) {
           continue;
         }
@@ -1340,27 +1379,47 @@ export class ChainlessChainWSServer extends EventEmitter {
         // Independent of the WS mirror below — a relay-paired mobile app may
         // report a live socket while its process is suspended and will never
         // read the mirrored event until the user taps the push.
-        if (member.pushToken && isApprovalRequestEvent(data.type)) {
-          this._dispatchApprovalPush(remoteSession, member, data);
+        if (memberView.pushToken && isApprovalRequestEvent(data.type)) {
+          this._dispatchApprovalPush(remoteSession, memberView, data);
         }
-        const target = this.clients.get(member.clientId);
+        const target = this.clients.get(memberTransportId);
         if (!target && this.remoteSessionRelay) {
           const crypto = this.remoteSessionCrypto.get(remoteSession.sessionId);
           if (crypto) {
-            this.remoteSessionRelay.sendEncrypted(
-              member.clientId,
-              crypto.encrypt(member.clientId, data),
-            );
+            try {
+              this.remoteSessions.authorize(
+                remoteSession.sessionId,
+                memberTransportId,
+                "observe",
+              );
+              this.remoteSessionRelay.sendEncrypted(
+                memberTransportId,
+                crypto.encrypt(memberTransportId, data),
+              );
+            } catch {
+              // Revoked/closed between enumeration and the physical send.
+            }
           }
           continue;
         }
         if (!target) continue;
-        this._send(target.ws, {
-          type: "remote-session-event",
-          remoteSessionId: remoteSession.sessionId,
-          agentSessionId: remoteSession.agentSessionId,
-          event: data,
-        });
+        try {
+          this.remoteSessions.authorize(
+            remoteSession.sessionId,
+            memberTransportId,
+            "observe",
+          );
+          const currentTarget = this.clients.get(memberTransportId);
+          if (!currentTarget || currentTarget.ws !== target.ws) continue;
+          this._send(currentTarget.ws, {
+            type: "remote-session-event",
+            remoteSessionId: remoteSession.sessionId,
+            agentSessionId: remoteSession.agentSessionId,
+            event: data,
+          });
+        } catch {
+          // Current durable membership is the send-time authority.
+        }
       }
     }
   }
@@ -1373,14 +1432,26 @@ export class ChainlessChainWSServer extends EventEmitter {
   _dispatchApprovalPush(remoteSession, member, data) {
     const dispatcher = this.remoteSessionPush;
     if (!dispatcher || !dispatcher.enabled) return;
+    let authorized;
+    try {
+      authorized = this.remoteSessions.authorize(
+        remoteSession.sessionId,
+        member.transportClientId || member.clientId,
+        "observe",
+      );
+    } catch {
+      return;
+    }
+    const currentMember = authorized.member;
+    if (!currentMember.pushToken) return;
     const requestId =
       data.requestId || data.approvalId || data.id || `approval:${data.type}`;
     dispatcher
       .dispatch({
-        token: member.pushToken,
-        provider: member.pushProvider,
+        token: currentMember.pushToken,
+        provider: currentMember.pushProvider,
         sessionId: remoteSession.sessionId,
-        clientId: member.clientId,
+        clientId: currentMember.principalId || currentMember.clientId,
         dedupeKey: requestId,
         notification: {
           title: "Approval requested",
@@ -1394,7 +1465,7 @@ export class ChainlessChainWSServer extends EventEmitter {
           try {
             this.remoteSessions.registerPush(
               remoteSession.sessionId,
-              member.clientId,
+              currentMember.principalId || currentMember.clientId,
               { token: null },
             );
           } catch {
@@ -1402,15 +1473,15 @@ export class ChainlessChainWSServer extends EventEmitter {
           }
           this.remoteSessionAudit?.record({
             sessionId: remoteSession.sessionId,
-            actor: member.clientId,
+            actor: currentMember.principalId || currentMember.clientId,
             action: "push.unregistered",
-            detail: { provider: member.pushProvider || null },
+            detail: { provider: currentMember.pushProvider || null },
           });
           return;
         }
         this.remoteSessionAudit?.record({
           sessionId: remoteSession.sessionId,
-          actor: member.clientId,
+          actor: currentMember.principalId || currentMember.clientId,
           action:
             outcome.status === "sent"
               ? "push.sent"
@@ -1418,7 +1489,7 @@ export class ChainlessChainWSServer extends EventEmitter {
                 ? "push.failed"
                 : "push.skipped",
           detail: {
-            provider: member.pushProvider || null,
+            provider: currentMember.pushProvider || null,
             reason: outcome.reason || null,
             error: outcome.error || null,
           },
@@ -1459,19 +1530,52 @@ export class ChainlessChainWSServer extends EventEmitter {
     const token = this.remoteSessionPairingSecrets.get(sessionId);
     if (!crypto || !token)
       throw new Error("Remote Session pairing is unavailable or expired");
-    crypto.pair(payload.mobilePeerId, payload.mobilePublicKey, token);
+    const invitation = this.remoteSessions.pairingInvitation(sessionId, token);
+    const durableMembership = Boolean(invitation.session.hostPrincipalId);
+    if (durableMembership) {
+      crypto.pairForDurableMembership(
+        payload.mobilePeerId,
+        payload.mobilePublicKey,
+        token,
+        {
+          authorizedScopes: invitation.scopes,
+          expiresAtMs: invitation.expiresAt,
+          ...this._requireRemoteMembershipCoordinator().relayAuthorityDescriptor(),
+        },
+      );
+    } else {
+      crypto.pair(payload.mobilePeerId, payload.mobilePublicKey, token);
+    }
     const join = crypto.decrypt(payload.envelope);
     if (join.type !== "pair.join" || join.token !== token) {
       throw new Error("Invalid encrypted Remote Session pairing request");
     }
-    const relayMember = this.remoteSessions.join({
-      sessionId,
-      clientId: payload.mobilePeerId,
-      token: join.token,
-      via: "relay",
-      pushToken: join.pushToken,
-      pushProvider: join.pushProvider,
-    });
+    const relayPossessionCapability = durableMembership
+      ? crypto.takeRelayPossessionCapability(payload.mobilePeerId)
+      : null;
+    const relayMember = durableMembership
+      ? this.remoteSessions.joinRelayMember({
+          sessionId,
+          transportClientId: payload.mobilePeerId,
+          token: join.token,
+          // Mobile/web clients send a raw 32-byte X25519 key. The authenticated
+          // relay transcript canonicalizes that key to SPKI; use the bound proof
+          // value rather than reparsing the untrusted transport representation.
+          mobilePublicKey: relayPossessionCapability.mobilePublicKey,
+          pairingTokenDigest: remoteSessionPairingTokenDigest(join.token),
+          possessionCapability: relayPossessionCapability,
+          capabilities: join.capabilities,
+          pushToken: join.pushToken,
+          pushProvider: join.pushProvider,
+        })
+      : this.remoteSessions.join({
+          sessionId,
+          clientId: payload.mobilePeerId,
+          token: join.token,
+          via: "relay",
+          pushToken: join.pushToken,
+          pushProvider: join.pushProvider,
+        });
     this.remoteSessionAudit?.record({
       sessionId,
       actor: payload.mobilePeerId,
@@ -1479,6 +1583,8 @@ export class ChainlessChainWSServer extends EventEmitter {
       detail: {
         via: "relay",
         hasPush: relayMember?.member?.pushToken ? true : false,
+        scopes: relayMember?.member?.scopes || null,
+        capabilities: relayMember?.capabilities || [],
       },
     });
     this.remoteSessionPairingSecrets.delete(sessionId);
@@ -1487,6 +1593,8 @@ export class ChainlessChainWSServer extends EventEmitter {
       crypto.encrypt(payload.mobilePeerId, {
         type: "pair.accepted",
         remoteSessionId: sessionId,
+        scopes: relayMember?.member?.scopes || null,
+        capabilities: relayMember?.capabilities || [],
       }),
     );
   }
@@ -1500,6 +1608,11 @@ export class ChainlessChainWSServer extends EventEmitter {
       readyState: 1,
       send: (raw) => {
         const response = JSON.parse(raw);
+        try {
+          this.remoteSessions.authorize(envelope.sessionId, from, "observe");
+        } catch {
+          return;
+        }
         this.remoteSessionRelay.sendEncrypted(
           from,
           crypto.encrypt(from, response),

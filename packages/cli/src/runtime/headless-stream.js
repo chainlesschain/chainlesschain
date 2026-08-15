@@ -2059,6 +2059,8 @@ async function runAgentHeadlessStreamInWorkspace(
   let approvalGate = null;
   try {
     approvalGate = await getApprovalGate();
+    approvalGate =
+      approvalGate?.createSessionScope?.(sessionId) || approvalGate;
     if (approvalGate && (options.permissionMode || "default") === "auto") {
       // autoMode.decisions: user-configured riskLevel → allow/ask/deny
       // classifier (same wiring as headless-runner). Only wrap when settings
@@ -2082,6 +2084,7 @@ async function runAgentHeadlessStreamInWorkspace(
       }
     }
     if (approvalGate) {
+      approvalGate.setAuthorizationConsumer?.(null);
       approvalGate.setSessionPolicy?.(sessionId, perm.sessionPolicy);
       approvalGate.setConfirmer?.(
         interactive && perm.allowInteractiveApprovals
@@ -2742,6 +2745,18 @@ async function runAgentHeadlessStreamInWorkspace(
     options.interactiveApprovals !== true
   ) {
     try {
+      if (
+        !approvalGate ||
+        typeof approvalGate.setConfirmer !== "function" ||
+        typeof approvalGate.setAuthorizationConsumer !== "function" ||
+        typeof approvalGate.consumeAuthorization !== "function"
+      ) {
+        const error = new Error(
+          "installed session-core cannot bind and consume durable remote approval",
+        );
+        error.code = "CC_REMOTE_APPROVAL_GATE_UNAVAILABLE";
+        throw error;
+      }
       const startRemoteApproval =
         deps.startHeadlessRemoteApproval ||
         (await import("../lib/remote-approval-bridge.js"))
@@ -2757,9 +2772,10 @@ async function runAgentHeadlessStreamInWorkspace(
         remote_session_id: _remoteApproval.pairing.remoteSessionId,
         expires_at: _remoteApproval.pairing.expiresAt,
       });
-      if (approvalGate && typeof approvalGate.setConfirmer === "function") {
-        approvalGate.setConfirmer(_remoteApproval.confirmer);
-      }
+      approvalGate.setConfirmer(_remoteApproval.confirmer);
+      approvalGate.setAuthorizationConsumer(
+        _remoteApproval.consumeAuthorization,
+      );
     } catch (err) {
       emit({
         type: "remote_control",

@@ -32,6 +32,74 @@ function audit(server, entry) {
   server.remoteSessionAudit?.record(entry);
 }
 
+function approvalRequestKey(remoteSessionId, requestId) {
+  return JSON.stringify([String(remoteSessionId), String(requestId)]);
+}
+
+function rememberRemoteApprovalRequest(server, session, member, event) {
+  const requestId = event?.requestId;
+  if (
+    typeof requestId !== "string" ||
+    !requestId ||
+    typeof event.fingerprint !== "string" ||
+    !event.fingerprint ||
+    typeof event.binding !== "string" ||
+    !event.binding ||
+    !(
+      (Number.isSafeInteger(event.revision) && event.revision > 0) ||
+      (typeof event.revision === "string" && /^[1-9]\d*$/.test(event.revision))
+    ) ||
+    !Number.isSafeInteger(event.notAfter) ||
+    event.notAfter <= Date.now()
+  ) {
+    throw new Error("Complete durable approval request binding is required");
+  }
+  if (!server._remoteApprovalRequests) {
+    server._remoteApprovalRequests = new Map();
+  }
+  const key = approvalRequestKey(session.sessionId, requestId);
+  const prior = server._remoteApprovalRequests.get(key);
+  const record = Object.freeze({
+    remoteSessionId: session.sessionId,
+    agentSessionId: session.agentSessionId,
+    hostPrincipalId: member.principalId,
+    hostMembershipEpoch: member.membershipEpoch,
+    sessionEpoch: session.sessionEpoch,
+    requestId,
+    fingerprint: event.fingerprint,
+    binding: event.binding,
+    revision: event.revision,
+    expiresAt: event.notAfter,
+  });
+  if (prior && JSON.stringify(prior) !== JSON.stringify(record)) {
+    throw new Error("Remote approval request binding changed");
+  }
+  server._remoteApprovalRequests.set(key, record);
+  return record;
+}
+
+function requireRemoteApprovalRequest(server, session, event) {
+  const requestId = event?.requestId || event?.approvalId;
+  const record = server._remoteApprovalRequests?.get(
+    approvalRequestKey(session.sessionId, requestId),
+  );
+  if (
+    !record ||
+    record.agentSessionId !== session.agentSessionId ||
+    record.sessionEpoch !== session.sessionEpoch ||
+    record.requestId !== requestId ||
+    record.fingerprint !== event.fingerprint ||
+    record.binding !== event.binding ||
+    record.revision !== event.revision ||
+    record.expiresAt <= Date.now()
+  ) {
+    throw new Error(
+      "Remote approval response does not match a live host request",
+    );
+  }
+  return record;
+}
+
 /**
  * Apply a remote-client control event (prompt / approval.resolve /
  * question.answer / interrupt)
@@ -133,6 +201,7 @@ export function handleRemoteSessionCreate(server, clientId, ws, message) {
       // principal/session epoch before it exposes pairing credentials. Older
       // or ordinary server-hosted sessions remain on their in-memory path.
       durableMembership: message.requireDurableMembershipAuthority === true,
+      hostCredentialPublicKeySpki: message.hostCredentialPublicKeySpki,
     });
     audit(server, {
       sessionId: result.session.sessionId,
@@ -155,14 +224,150 @@ export function handleRemoteSessionCreate(server, clientId, ws, message) {
   }
 }
 
+export function handleRemoteSessionJoinChallenge(
+  server,
+  clientId,
+  ws,
+  message,
+) {
+  try {
+    const client = server.clients.get(clientId);
+    if (!client?.membershipConnectionNonce) {
+      throw new Error("Remote membership connection nonce is unavailable");
+    }
+    const challenge = server.remoteSessions.issueMemberJoinChallenge({
+      sessionId: message.remoteSessionId,
+      transportClientId: clientId,
+      token: message.token,
+      credentialPublicKey: message.credentialPublicKey,
+      connectionNonce: client.membershipConnectionNonce,
+      capabilities: message.capabilities,
+    });
+    reply(server, ws, message.id, "remote-session-join-challenge", {
+      challenge,
+    });
+  } catch (error) {
+    reply(server, ws, message.id, "error", {
+      code: "REMOTE_SESSION_JOIN_CHALLENGE_ERROR",
+      message: error.message,
+    });
+  }
+}
+
+export function handleRemoteSessionResumeChallenge(
+  server,
+  clientId,
+  ws,
+  message,
+) {
+  try {
+    const client = server.clients.get(clientId);
+    if (!client?.membershipConnectionNonce) {
+      throw new Error("Remote membership connection nonce is unavailable");
+    }
+    const challenge = server.remoteSessions.issueSessionResumeChallenge({
+      sessionId: message.remoteSessionId,
+      principalId: message.principalId,
+      transportClientId: clientId,
+      connectionNonce: client.membershipConnectionNonce,
+    });
+    reply(server, ws, message.id, "remote-session-resume-challenge", {
+      challenge,
+    });
+  } catch (error) {
+    reply(server, ws, message.id, "error", {
+      code: "REMOTE_SESSION_RESUME_CHALLENGE_ERROR",
+      message: error.message,
+    });
+  }
+}
+
+export function handleRemoteSessionResume(server, clientId, ws, message) {
+  try {
+    const client = server.clients.get(clientId);
+    if (!client?.membershipConnectionNonce) {
+      throw new Error("Remote membership connection nonce is unavailable");
+    }
+    const result = server.remoteSessions.completeSessionResume({
+      challengeId: message.challengeId,
+      transportClientId: clientId,
+      connectionNonce: client.membershipConnectionNonce,
+      signature: message.signature,
+    });
+    client.membershipConnectionNonce = result.nextConnectionNonce;
+    reply(server, ws, message.id, "remote-session-resumed", result);
+  } catch (error) {
+    reply(server, ws, message.id, "error", {
+      code: "REMOTE_SESSION_RESUME_ERROR",
+      message: error.message,
+    });
+  }
+}
+
+export function handleRemoteSessionReenableChallenge(
+  server,
+  clientId,
+  ws,
+  message,
+) {
+  try {
+    const client = server.clients.get(clientId);
+    if (!client?.membershipConnectionNonce) {
+      throw new Error("Remote membership connection nonce is unavailable");
+    }
+    const challenge = server.remoteSessions.issueSessionReenableChallenge({
+      sessionId: message.remoteSessionId,
+      principalId: message.principalId,
+      transportClientId: clientId,
+      connectionNonce: client.membershipConnectionNonce,
+      newHostCredentialPublicKeySpki:
+        message.newHostCredentialPublicKeySpki || null,
+    });
+    reply(server, ws, message.id, "remote-session-reenable-challenge", {
+      challenge,
+    });
+  } catch (error) {
+    reply(server, ws, message.id, "error", {
+      code: "REMOTE_SESSION_REENABLE_CHALLENGE_ERROR",
+      message: error.message,
+    });
+  }
+}
+
+export function handleRemoteSessionReenable(server, clientId, ws, message) {
+  try {
+    const client = server.clients.get(clientId);
+    if (!client?.membershipConnectionNonce) {
+      throw new Error("Remote membership connection nonce is unavailable");
+    }
+    const result = server.remoteSessions.completeSessionReenable({
+      challengeId: message.challengeId,
+      transportClientId: clientId,
+      connectionNonce: client.membershipConnectionNonce,
+      signature: message.signature,
+    });
+    client.membershipConnectionNonce = result.nextConnectionNonce;
+    reply(server, ws, message.id, "remote-session-reenabled", result);
+  } catch (error) {
+    reply(server, ws, message.id, "error", {
+      code: "REMOTE_SESSION_REENABLE_ERROR",
+      message: error.message,
+    });
+  }
+}
+
 export function handleRemoteSessionPairingToken(server, clientId, ws, message) {
   try {
-    const { session } = server.remoteSessions.authorize(
+    const { session, member } = server.remoteSessions.authorize(
       message.remoteSessionId,
       clientId,
       "observe",
     );
-    if (session.hostClientId !== clientId) {
+    if (
+      session.hostPrincipalId
+        ? member.principalId !== session.hostPrincipalId
+        : session.hostClientId !== clientId
+    ) {
       throw new Error("Only the host can issue pairing tokens");
     }
     const pairing = server.remoteSessions.issuePairingToken(
@@ -194,13 +399,26 @@ export function handleRemoteSessionPairingToken(server, clientId, ws, message) {
 
 export function handleRemoteSessionJoin(server, clientId, ws, message) {
   try {
-    const result = server.remoteSessions.join({
-      sessionId: message.remoteSessionId,
-      clientId,
-      token: message.token,
-      pushToken: message.pushToken,
-      pushProvider: message.pushProvider,
-    });
+    const client = server.clients.get(clientId);
+    const result = message.challengeId
+      ? server.remoteSessions.completeMemberJoin({
+          challengeId: message.challengeId,
+          transportClientId: clientId,
+          connectionNonce: client?.membershipConnectionNonce,
+          signature: message.signature,
+          pushToken: message.pushToken,
+          pushProvider: message.pushProvider,
+        })
+      : server.remoteSessions.join({
+          sessionId: message.remoteSessionId,
+          clientId,
+          token: message.token,
+          pushToken: message.pushToken,
+          pushProvider: message.pushProvider,
+        });
+    if (message.challengeId && client) {
+      client.membershipConnectionNonce = result.nextConnectionNonce;
+    }
     audit(server, {
       sessionId: message.remoteSessionId,
       actor: clientId,
@@ -215,6 +433,160 @@ export function handleRemoteSessionJoin(server, clientId, ws, message) {
   } catch (error) {
     reply(server, ws, message.id, "error", {
       code: "REMOTE_SESSION_JOIN_ERROR",
+      message: error.message,
+    });
+  }
+}
+
+export function handleRemoteSessionLeaseAck(server, clientId, ws, message) {
+  try {
+    const { session, member, membership } = server.remoteSessions.authorize(
+      message.remoteSessionId,
+      clientId,
+      "observe",
+    );
+    if (
+      !membership ||
+      member.principalId !== session.hostPrincipalId ||
+      membership.principalId !== session.hostPrincipalId
+    ) {
+      throw new Error("Only the durable host may ACK an approval lease");
+    }
+    const result = server
+      ._requireRemoteMembershipCoordinator()
+      .ackApprovalLease({
+        sessionId: session.sessionId,
+        leaseId: message.leaseId,
+        hostPrincipalId: membership.principalId,
+        expectedHostMembershipEpoch: membership.membershipEpoch,
+        expectedCreatedGeneration: message.expectedCreatedGeneration,
+        hostReceiptDigest: message.hostReceiptDigest,
+      });
+    reply(server, ws, message.id, "remote-session-lease-acked", result);
+  } catch (error) {
+    reply(server, ws, message.id, "error", {
+      code: "REMOTE_SESSION_LEASE_ACK_ERROR",
+      message: error.message,
+    });
+  }
+}
+
+export function handleRemoteSessionLeaseConsume(server, clientId, ws, message) {
+  try {
+    const { session, member, membership } = server.remoteSessions.authorize(
+      message.remoteSessionId,
+      clientId,
+      "observe",
+    );
+    if (
+      !membership ||
+      member.principalId !== session.hostPrincipalId ||
+      membership.principalId !== session.hostPrincipalId
+    ) {
+      throw new Error("Only the durable host may consume an approval lease");
+    }
+    const result = server
+      ._requireRemoteMembershipCoordinator()
+      .consumeApprovalLease({
+        sessionId: session.sessionId,
+        leaseId: message.leaseId,
+        hostPrincipalId: membership.principalId,
+        expectedHostMembershipEpoch: membership.membershipEpoch,
+        expectedAckedGeneration: message.expectedAckedGeneration,
+        expectedMembershipEpoch: message.expectedMembershipEpoch,
+        requestId: message.requestId,
+        fingerprint: message.fingerprint,
+        binding: message.binding,
+      });
+    reply(server, ws, message.id, "remote-session-lease-consumed", result);
+  } catch (error) {
+    reply(server, ws, message.id, "error", {
+      code: "REMOTE_SESSION_LEASE_CONSUME_ERROR",
+      message: error.message,
+    });
+  }
+}
+
+export function handleRemoteSessionLeaseCancel(server, clientId, ws, message) {
+  try {
+    const { session, member, membership } = server.remoteSessions.authorize(
+      message.remoteSessionId,
+      clientId,
+      "observe",
+    );
+    if (
+      !membership ||
+      member.principalId !== session.hostPrincipalId ||
+      membership.principalId !== session.hostPrincipalId
+    ) {
+      throw new Error("Only the durable host may cancel an approval lease");
+    }
+    const result = server
+      ._requireRemoteMembershipCoordinator()
+      .cancelApprovalLease({
+        sessionId: session.sessionId,
+        leaseId: message.leaseId,
+        hostPrincipalId: membership.principalId,
+        expectedHostMembershipEpoch: membership.membershipEpoch,
+        reason: message.reason || "host-cancelled",
+      });
+    reply(server, ws, message.id, "remote-session-lease-cancelled", result);
+  } catch (error) {
+    reply(server, ws, message.id, "error", {
+      code: "REMOTE_SESSION_LEASE_CANCEL_ERROR",
+      message: error.message,
+    });
+  }
+}
+
+export function handleRemoteSessionMembershipSnapshot(
+  server,
+  clientId,
+  ws,
+  message,
+) {
+  try {
+    const { session, member, membership } = server.remoteSessions.authorize(
+      message.remoteSessionId,
+      clientId,
+      "observe",
+    );
+    if (
+      !membership ||
+      member.principalId !== session.hostPrincipalId ||
+      membership.principalId !== session.hostPrincipalId
+    ) {
+      throw new Error("Only the durable host may read a membership snapshot");
+    }
+    const snapshot = server
+      ._requireRemoteMembershipCoordinator()
+      .snapshotSession(session.sessionId);
+    reply(server, ws, message.id, "remote-session-membership-snapshot", {
+      ...snapshot,
+    });
+  } catch (error) {
+    reply(server, ws, message.id, "error", {
+      code: "REMOTE_SESSION_MEMBERSHIP_SNAPSHOT_ERROR",
+      message: error.message,
+    });
+  }
+}
+
+export function handleRemoteSessionTerminal(server, _clientId, ws, message) {
+  try {
+    const terminal = server.remoteSessions.terminalSnapshot(
+      message.remoteSessionId,
+    );
+    if (
+      message.principalId &&
+      terminal.session.hostPrincipalId !== message.principalId
+    ) {
+      throw new Error("Remote membership terminal principal changed");
+    }
+    reply(server, ws, message.id, "remote-session-terminal", terminal);
+  } catch (error) {
+    reply(server, ws, message.id, "error", {
+      code: "REMOTE_SESSION_TERMINAL_ERROR",
       message: error.message,
     });
   }
@@ -278,12 +650,16 @@ export function handleRemoteSessionPolicy(server, clientId, ws, message) {
 export function handleRemoteSessionAudit(server, clientId, ws, message) {
   try {
     // Host-only: authorize proves membership, the host check proves ownership.
-    const { session } = server.remoteSessions.authorize(
+    const { session, member } = server.remoteSessions.authorize(
       message.remoteSessionId,
       clientId,
       "observe",
     );
-    if (session.hostClientId !== clientId) {
+    if (
+      session.hostPrincipalId
+        ? member.principalId !== session.hostPrincipalId
+        : session.hostClientId !== clientId
+    ) {
       throw new Error("Only the host can read the audit log");
     }
     const auditLog = server.remoteSessionAudit;
@@ -346,7 +722,7 @@ function notifyRevokedDevice(
 export function handleRemoteSessionRevoke(server, clientId, ws, message) {
   try {
     const targetClientId = message.clientId || message.deviceId;
-    const { session, member } = server.remoteSessions.revokeMember(
+    const { session, member, statement } = server.remoteSessions.revokeMember(
       message.remoteSessionId,
       clientId,
       targetClientId,
@@ -355,7 +731,7 @@ export function handleRemoteSessionRevoke(server, clientId, ws, message) {
       server,
       message.remoteSessionId,
       session.agentSessionId,
-      member.clientId,
+      member.transportClientId || member.clientId,
     );
     audit(server, {
       sessionId: message.remoteSessionId,
@@ -366,6 +742,7 @@ export function handleRemoteSessionRevoke(server, clientId, ws, message) {
     reply(server, ws, message.id, "remote-session-revoked", {
       session,
       revoked: member.clientId,
+      ...(statement ? { statement } : {}),
       devices: server.remoteSessions.listDevices(
         message.remoteSessionId,
         clientId,
@@ -381,10 +758,11 @@ export function handleRemoteSessionRevoke(server, clientId, ws, message) {
 
 export function handleRemoteSessionClose(server, clientId, ws, message) {
   try {
-    const session = server.remoteSessions.close(
+    const closed = server.remoteSessions.close(
       message.remoteSessionId,
       clientId,
     );
+    const session = closed?.session || closed;
     server.remoteSessionCrypto.delete(message.remoteSessionId);
     server.remoteSessionPairingSecrets.delete(message.remoteSessionId);
     audit(server, {
@@ -393,7 +771,12 @@ export function handleRemoteSessionClose(server, clientId, ws, message) {
       action: "session.closed",
       detail: { reason: "host-closed" },
     });
-    reply(server, ws, message.id, "remote-session-closed", { session });
+    reply(server, ws, message.id, "remote-session-closed", {
+      session,
+      ...(closed?.statement ? { statement: closed.statement } : {}),
+      ...(closed?.terminal ? { terminal: true } : {}),
+      ...(closed?.alreadyClosed ? { alreadyClosed: true } : {}),
+    });
   } catch (error) {
     reply(server, ws, message.id, "error", {
       code: "REMOTE_SESSION_CLOSE_ERROR",
@@ -450,18 +833,41 @@ export async function handleRemoteSessionPublish(
       return;
     }
     const requiredScope = CLIENT_EVENT_SCOPES[message.event.type];
-    const { session, membership } = server.remoteSessions.authorize(
+    const { session, member, membership } = server.remoteSessions.authorize(
       message.remoteSessionId,
       clientId,
       requiredScope || "observe",
     );
     // Runtime/output events are host-only. Remote clients may publish only the
     // explicitly scoped control event types above.
-    if (!requiredScope && session.hostClientId !== clientId) {
+    const actorIsHost = session.hostPrincipalId
+      ? member.principalId === session.hostPrincipalId
+      : session.hostClientId === clientId;
+    if (!requiredScope && !actorIsHost) {
       throw new Error("Only the host can publish runtime events");
     }
 
-    if (requiredScope && session.hostClientId !== clientId) {
+    if (
+      !requiredScope &&
+      session.hostPrincipalId &&
+      message.event.type === "permission.request"
+    ) {
+      if (!membership) {
+        throw new Error(
+          "Durable coordinator membership is required for a remote approval request",
+        );
+      }
+      rememberRemoteApprovalRequest(server, session, member, message.event);
+    } else if (!requiredScope && message.event.type === "permission.resolved") {
+      server._remoteApprovalRequests?.delete(
+        approvalRequestKey(
+          session.sessionId,
+          message.event.requestId || message.event.approvalId,
+        ),
+      );
+    }
+
+    if (requiredScope && !actorIsHost) {
       const controlMessage = {
         id: message.id,
         sessionId: session.agentSessionId,
@@ -490,7 +896,7 @@ export async function handleRemoteSessionPublish(
           origin: ORIGIN.REMOTE,
           authenticated: true,
           scopes: ["prompt"],
-          principalId: clientId,
+          principalId: member.principalId || clientId,
           sessionId: message.remoteSessionId,
         });
       }
@@ -510,7 +916,8 @@ export async function handleRemoteSessionPublish(
           origin: ORIGIN.REMOTE,
           authenticated: true,
           scopes: ["approve"],
-          principalId: clientId,
+          principalId:
+            membership?.principalId || member.principalId || clientId,
           sessionId: message.remoteSessionId,
           ...(membership
             ? {
@@ -523,6 +930,9 @@ export async function handleRemoteSessionPublish(
         const approved = message.event.answer ?? message.event.approved;
         if (approved === true || approved === "true" || approved === "yes") {
           assertCanApprove(approvalEnvelope);
+          if (session.hostPrincipalId) {
+            requireRemoteApprovalRequest(server, session, message.event);
+          }
         }
       }
       // CLIENT-HOSTED sessions (第四阶段 #2): when the agent session does not
@@ -554,6 +964,17 @@ export async function handleRemoteSessionPublish(
             "Durable Remote membership authority is required before forwarding an approval",
           );
         }
+      } else if (
+        session.hostPrincipalId &&
+        message.event.type === "approval.resolve" &&
+        (message.event.answer === true ||
+          message.event.answer === "true" ||
+          message.event.answer === "yes" ||
+          message.event.approved === true)
+      ) {
+        throw new Error(
+          "Server-hosted remote approval is disabled until its dispatch path consumes a durable lease",
+        );
       }
       // Idempotent forward: a control event with a stable commandId runs its
       // side effect (audit + dispatch into the host agent) AT MOST ONCE, so a
@@ -561,6 +982,41 @@ export async function handleRemoteSessionPublish(
       // `replayed` ack instead of a second agent turn. No commandId → forwarded
       // directly, byte-identical to before.
       await applyControlIdempotent(server, clientId, ws, message, async () => {
+        let approvalLease = null;
+        if (
+          session.hostPrincipalId &&
+          message.event.type === "approval.resolve" &&
+          !serverHosted
+        ) {
+          const rawDecision = message.event.answer ?? message.event.approved;
+          const approved =
+            rawDecision === true ||
+            rawDecision === "true" ||
+            rawDecision === "yes";
+          const request = requireRemoteApprovalRequest(
+            server,
+            session,
+            message.event,
+          );
+          if (approved) {
+            approvalLease = server
+              ._requireRemoteMembershipCoordinator()
+              .createApprovalLease({
+                sessionId: session.sessionId,
+                sessionEpoch: membership.sessionEpoch,
+                principalId: membership.principalId,
+                membershipEpoch: membership.membershipEpoch,
+                hostPrincipalId: request.hostPrincipalId,
+                requestId: request.requestId,
+                fingerprint: request.fingerprint,
+                binding: request.binding,
+                expiresAt: request.expiresAt,
+              });
+          }
+          server._remoteApprovalRequests.delete(
+            approvalRequestKey(session.sessionId, request.requestId),
+          );
+        }
         if (!serverHosted) {
           // Audit the control action with the same taxonomy as server-hosted
           // dispatch, then hand the event to the host process.
@@ -574,7 +1030,7 @@ export async function handleRemoteSessionPublish(
                   : "control.interrupt";
           audit(server, {
             sessionId: message.remoteSessionId,
-            actor: clientId,
+            actor: membership?.principalId || member.principalId || clientId,
             action: auditAction,
             detail:
               message.event.type === "prompt"
@@ -605,11 +1061,31 @@ export async function handleRemoteSessionPublish(
           // Hand the event to the host process. `message.event` carries any
           // echoed approval or interaction binding, so the host gate can
           // reject a stale / tampered verdict.
-          server._send(hostTarget.ws, {
+          server.remoteSessions.authorize(
+            message.remoteSessionId,
+            clientId,
+            requiredScope || "observe",
+          );
+          const currentSession = server.remoteSessions.requireSession(
+            message.remoteSessionId,
+          );
+          const currentHostTransport = currentSession.hostClientId;
+          server.remoteSessions.authorize(
+            message.remoteSessionId,
+            currentHostTransport,
+            "observe",
+          );
+          const currentHostTarget = server.clients.get(currentHostTransport);
+          if (!currentHostTarget || currentHostTarget.ws !== hostTarget.ws) {
+            throw new Error(
+              "Remote session host transport changed before delivery",
+            );
+          }
+          server._send(currentHostTarget.ws, {
             type: "remote-session-control",
             remoteSessionId: message.remoteSessionId,
             agentSessionId: session.agentSessionId,
-            from: clientId,
+            from: membership?.principalId || member.principalId || clientId,
             ...(membership
               ? {
                   membershipAuthority: membership.authorityVersion,
@@ -618,6 +1094,9 @@ export async function handleRemoteSessionPublish(
                 }
               : {}),
             event: message.event,
+            ...(approvalLease
+              ? { approvalLeaseStatement: approvalLease.statement }
+              : {}),
           });
           reply(server, ws, message.id, "remote-session-published", {
             delivered: 1,
@@ -698,7 +1177,11 @@ export async function handleRemoteSessionPublish(
     for (const member of server.remoteSessions.members(
       message.remoteSessionId,
     )) {
-      if (member.clientId === clientId) continue;
+      if (
+        member.transportClientId === clientId ||
+        (!member.transportClientId && member.clientId === clientId)
+      )
+        continue;
       // Wake a backgrounded device for approval/permission requests — parity
       // with the server-hosted mirror path (_mirrorRemoteSessionEvent). A
       // client-hosted session publishing `permission.request` must reach a
@@ -710,7 +1193,8 @@ export async function handleRemoteSessionPublish(
       ) {
         server._dispatchApprovalPush(session, member, message.event);
       }
-      const target = server.clients.get(member.clientId);
+      const transportClientId = member.transportClientId || member.clientId;
+      const target = server.clients.get(transportClientId);
       if (!target) {
         // Relay-paired mobiles have no local socket — deliver over the E2EE
         // relay like the mirror path does; without this, host-published
@@ -721,9 +1205,14 @@ export async function handleRemoteSessionPublish(
           );
           if (crypto) {
             try {
+              server.remoteSessions.authorize(
+                message.remoteSessionId,
+                transportClientId,
+                "observe",
+              );
               server.remoteSessionRelay.sendEncrypted(
-                member.clientId,
-                crypto.encrypt(member.clientId, {
+                transportClientId,
+                crypto.encrypt(transportClientId, {
                   type: "remote-session-event",
                   remoteSessionId: message.remoteSessionId,
                   agentSessionId: session.agentSessionId,
@@ -738,13 +1227,24 @@ export async function handleRemoteSessionPublish(
         }
         continue;
       }
-      server._send(target.ws, {
-        type: "remote-session-event",
-        remoteSessionId: message.remoteSessionId,
-        agentSessionId: session.agentSessionId,
-        event: message.event,
-      });
-      delivered += 1;
+      try {
+        server.remoteSessions.authorize(
+          message.remoteSessionId,
+          transportClientId,
+          "observe",
+        );
+        const currentTarget = server.clients.get(transportClientId);
+        if (!currentTarget || currentTarget.ws !== target.ws) continue;
+        server._send(currentTarget.ws, {
+          type: "remote-session-event",
+          remoteSessionId: message.remoteSessionId,
+          agentSessionId: session.agentSessionId,
+          event: message.event,
+        });
+        delivered += 1;
+      } catch {
+        // Revoked/closed after enumeration: do not deliver to the old socket.
+      }
     }
     reply(server, ws, message.id, "remote-session-published", { delivered });
   } catch (error) {

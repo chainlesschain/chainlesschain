@@ -3175,6 +3175,11 @@ async function startAgentReplInWorkspaceOwned(
     const { getApprovalGate } =
       await import("../lib/session-core-singletons.js");
     _approvalGate = await getApprovalGate();
+    _approvalGate =
+      _approvalGate?.createSessionScope?.(
+        sessionId || `repl-scope:${randomUUID()}`,
+      ) || _approvalGate;
+    _approvalGate?.setAuthorizationConsumer?.(null);
     // autoMode.decisions: wrap the gate with the configurable classifier
     // BEFORE setConfirmer so the wrapper captures the interactive confirmer.
     // Inactive (delegating) unless the session mode is "auto"; not installed
@@ -3252,29 +3257,53 @@ async function startAgentReplInWorkspaceOwned(
           },
         };
       };
-      _approvalGate.setConfirmer(async ({ tool, args, riskLevel }) => {
-        if (_dontAskActive()) {
-          process.stdout.write(
-            chalk.yellow(
-              `\n  ✕ denied without asking (dontAsk mode): ${riskLevel || "medium"}-risk ${tool || "run_shell"}${args?.command ? " — " + args.command : ""}\n`,
-            ),
+      _approvalGate.setConfirmer(
+        async ({
+          tool,
+          args,
+          riskLevel,
+          action,
+          cwd,
+          workspace,
+          sessionId,
+          session,
+          targetEnv,
+          policyVersion,
+        }) => {
+          if (_dontAskActive()) {
+            process.stdout.write(
+              chalk.yellow(
+                `\n  ✕ denied without asking (dontAsk mode): ${riskLevel || "medium"}-risk ${tool || "run_shell"}${args?.command ? " — " + args.command : ""}\n`,
+              ),
+            );
+            return false;
+          }
+          await _fireNotification(
+            `Permission needed: ${riskLevel || "medium"}-risk ${tool || "run_shell"}${args?.command ? " — " + args.command : ""}`,
+            "info",
+            _sessionHandle,
           );
-          return false;
-        }
-        await _fireNotification(
-          `Permission needed: ${riskLevel || "medium"}-risk ${tool || "run_shell"}${args?.command ? " — " + args.command : ""}`,
-          "info",
-          _sessionHandle,
-        );
-        const local = askGateApprovalLocally({ tool, args, riskLevel });
-        if (!_remoteApproval?.bridge) return local.promise;
-        return raceLocalAndRemote({
-          bridge: _remoteApproval.bridge,
-          ask: describeAskContext({ tool, args, riskLevel }),
-          local,
-          writeOut: (text) => process.stdout.write(chalk.cyan(text)),
-        });
-      });
+          const local = askGateApprovalLocally({ tool, args, riskLevel });
+          if (!_remoteApproval?.bridge) return local.promise;
+          return raceLocalAndRemote({
+            bridge: _remoteApproval.bridge,
+            ask: describeAskContext({
+              tool,
+              args,
+              riskLevel,
+              action,
+              cwd,
+              workspace,
+              sessionId,
+              session,
+              targetEnv,
+              policyVersion,
+            }),
+            local,
+            writeOut: (text) => process.stdout.write(chalk.cyan(text)),
+          });
+        },
+      );
     }
   } catch (_err) {
     _approvalGate = null;
@@ -3364,13 +3393,11 @@ async function startAgentReplInWorkspaceOwned(
         _sessionHandle,
       );
       const local = askPermissionLocally({ tool, args, rule, reason });
-      if (!_remoteApproval?.bridge) return local.promise;
-      return raceLocalAndRemote({
-        bridge: _remoteApproval.bridge,
-        ask: describeAskContext({ tool, args, rule, reason }),
-        local,
-        writeOut: (text) => process.stdout.write(chalk.cyan(text)),
-      });
+      // This confirmer is consumed as a legacy boolean by settings/hook
+      // admission. A remote lease must never be flattened there and then skip
+      // the ApprovalGate consume, so this path remains local-only until it can
+      // carry the opaque authorization through its own dispatch boundary.
+      return local.promise;
     };
   } catch (_err) {
     if (
@@ -3568,6 +3595,18 @@ async function startAgentReplInWorkspaceOwned(
   // purely how the confirmers consume it — they RACE the terminal prompt
   // against the paired device instead of gating on the remote alone.
   const _startRemoteApproval = async () => {
+    if (
+      !_approvalGate ||
+      typeof _approvalGate.setConfirmer !== "function" ||
+      typeof _approvalGate.setAuthorizationConsumer !== "function" ||
+      typeof _approvalGate.consumeAuthorization !== "function"
+    ) {
+      const error = new Error(
+        "installed session-core cannot bind and consume durable remote approval",
+      );
+      error.code = "CC_REMOTE_APPROVAL_GATE_UNAVAILABLE";
+      throw error;
+    }
     const { startHeadlessRemoteApproval } =
       await import("../lib/remote-approval-bridge.js");
     const started = await startHeadlessRemoteApproval({
@@ -3580,6 +3619,7 @@ async function startAgentReplInWorkspaceOwned(
       pairing: started.pairing,
       close: started.close,
     };
+    _approvalGate.setAuthorizationConsumer(started.consumeAuthorization);
     logger.log(
       chalk.cyan(
         "  remote-control: permission prompts can be answered from a paired device (first answer — terminal or device — wins)",
@@ -3597,6 +3637,7 @@ async function startAgentReplInWorkspaceOwned(
   const _stopRemoteApproval = async () => {
     const active = _remoteApproval;
     _remoteApproval = null; // confirmers fall back to local-only immediately
+    _approvalGate?.setAuthorizationConsumer?.(null);
     if (active) await active.close().catch(() => undefined);
   };
 

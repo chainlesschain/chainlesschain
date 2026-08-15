@@ -28,12 +28,20 @@ import {
   ApprovalAuthorityStore,
   defaultApprovalAuthorityStatePath,
 } from "./approval-authority-store.js";
-import { OperationApprovalRegistry } from "./operation-fingerprint.js";
 import {
-  DurableRemoteMembershipAuthority,
-  REMOTE_MEMBERSHIP_AUTHORITY_UNAVAILABLE_CODE,
-  REMOTE_MEMBERSHIP_AUTHORITY_VERSION,
-} from "./remote-membership-authority.js";
+  computeOperationFingerprint,
+  fingerprintsMatch,
+  OperationApprovalRegistry,
+} from "./operation-fingerprint.js";
+import {
+  createRemoteMembershipPrincipalCredential,
+  REMOTE_MEMBERSHIP_COORDINATOR_UNAVAILABLE_CODE,
+  REMOTE_MEMBERSHIP_COORDINATOR_VERSION,
+} from "./remote-membership-coordinator.js";
+import {
+  DurableRemoteMembershipHostStore,
+  REMOTE_MEMBERSHIP_HOST_UNAVAILABLE_CODE,
+} from "./remote-membership-host-store.js";
 import {
   buildDirectPairingUri,
   pickLanAddress,
@@ -42,6 +50,34 @@ import {
 } from "./remote-control.js";
 
 const DEFAULT_DECISION_TIMEOUT_MS = 5 * 60 * 1000;
+const REMOTE_LEASE_AUTHORIZATION_KIND =
+  "chainlesschain.remote-approval-lease-authorization/v1";
+const SUPPORTED_REMOTE_LEASE_TOOLS = new Set(["run_shell"]);
+const remoteLeaseAuthorizations = new WeakMap();
+
+function buildApprovalBinding({
+  requestId,
+  tool,
+  action,
+  params,
+  workspace,
+  session,
+  targetEnv,
+  policyVersion,
+}) {
+  return approvalBindingDigest({
+    toolCallId: requestId,
+    args: {
+      tool: tool || null,
+      action: action || null,
+      params: params ?? null,
+      workspace: workspace || null,
+      session: session || null,
+      targetEnv: targetEnv || null,
+    },
+    policyDigest: policyVersion || null,
+  });
+}
 
 export class RemoteApprovalBridge {
   constructor({
@@ -55,8 +91,11 @@ export class RemoteApprovalBridge {
     now = Date.now,
     approvalStore = undefined,
     approvalStateFile = null,
-    membershipAuthority = undefined,
-    membershipStateFile = null,
+    membershipHostStore = undefined,
+    membershipHostStateFile = null,
+    membershipHostWitnessFile = null,
+    membershipHostAuthorityLockFile = null,
+    expectedCoordinatorPublicKeySha256 = null,
     onSecurityError = null,
   } = {}) {
     if (!wsUrl) throw new Error("wsUrl is required");
@@ -78,13 +117,28 @@ export class RemoteApprovalBridge {
     this._securityErrors = [];
     this._onSecurityError =
       typeof onSecurityError === "function" ? onSecurityError : null;
-    this._membershipAuthority =
-      membershipAuthority === undefined
+    this._membershipHostStore =
+      membershipHostStore === undefined
         ? () =>
-            new DurableRemoteMembershipAuthority(
-              membershipStateFile ? { filePath: membershipStateFile } : {},
-            )
-        : membershipAuthority;
+            new DurableRemoteMembershipHostStore({
+              agentSessionId,
+              ...(membershipHostStateFile
+                ? { stateFile: membershipHostStateFile }
+                : {}),
+              ...(membershipHostWitnessFile
+                ? { witnessFile: membershipHostWitnessFile }
+                : {}),
+              ...(membershipHostAuthorityLockFile
+                ? { authorityLockFile: membershipHostAuthorityLockFile }
+                : {}),
+              ...(expectedCoordinatorPublicKeySha256
+                ? {
+                    expectedPublicKeySha256: expectedCoordinatorPublicKeySha256,
+                  }
+                : {}),
+              now: () => this._now(),
+            })
+        : membershipHostStore;
     const durableStore =
       approvalStore === undefined
         ? new ApprovalAuthorityStore({
@@ -114,21 +168,22 @@ export class RemoteApprovalBridge {
     this._approvalStore = durableStore;
   }
 
-  _requireMembershipAuthority() {
-    if (typeof this._membershipAuthority === "function") {
-      this._membershipAuthority = this._membershipAuthority();
+  _requireMembershipHostStore() {
+    if (typeof this._membershipHostStore === "function") {
+      this._membershipHostStore = this._membershipHostStore();
     }
     if (
-      !this._membershipAuthority ||
-      typeof this._membershipAuthority.withActiveMembership !== "function"
+      !this._membershipHostStore ||
+      typeof this._membershipHostStore.adopt !== "function" ||
+      typeof this._membershipHostStore.requireConsumableLease !== "function"
     ) {
       const error = new Error(
-        "Durable Remote membership authority is unavailable; remote approval is denied",
+        "Durable Remote membership host store is unavailable; remote approval is denied",
       );
-      error.code = REMOTE_MEMBERSHIP_AUTHORITY_UNAVAILABLE_CODE;
+      error.code = REMOTE_MEMBERSHIP_HOST_UNAVAILABLE_CODE;
       throw error;
     }
-    return this._membershipAuthority;
+    return this._membershipHostStore;
   }
 
   _recordSecurityError({ action, requestId = null, reason, errorCode = null }) {
@@ -165,24 +220,126 @@ export class RemoteApprovalBridge {
     this.client = this._createClient(this.wsUrl);
     await this.client.connect();
     await this.client.auth(this.token);
-    this.client.onEvent((message) => this._onServerEvent(message));
-    const created = await this.client.request("remote-session-create", {
-      sessionId: this.agentSessionId,
-      name: this.name,
-      scopes: this.scopes,
-      requireDurableMembershipAuthority: true,
+    this.client.onEvent((message) => {
+      Promise.resolve(this._onServerEvent(message)).catch((error) => {
+        this._recordSecurityError({
+          action: "approval.resolve",
+          reason: "host-event-processing-failed",
+          errorCode: error?.code || null,
+        });
+      });
     });
-    if (
-      created.session?.membershipAuthority !==
-        REMOTE_MEMBERSHIP_AUTHORITY_VERSION ||
-      typeof created.session?.sessionEpoch !== "string"
-    ) {
-      throw new Error(
-        "Remote Session server did not establish durable membership authority",
-      );
+    const hostStore = this._requireMembershipHostStore();
+    const bootstrap = hostStore.getBootstrap();
+    let pairing = null;
+    if (bootstrap) {
+      if (bootstrap.agentSessionId !== this.agentSessionId) {
+        throw new Error(
+          "Durable Remote host bootstrap belongs to another agent session",
+        );
+      }
+      this.remoteSessionId = bootstrap.sessionId;
+    } else {
+      const credential = createRemoteMembershipPrincipalCredential();
+      const created = await this.client.request("remote-session-create", {
+        sessionId: this.agentSessionId,
+        name: this.name,
+        scopes: this.scopes,
+        requireDurableMembershipAuthority: true,
+        hostCredentialPublicKeySpki: credential.publicKey,
+      });
+      if (
+        created.session?.membershipAuthority !==
+          REMOTE_MEMBERSHIP_COORDINATOR_VERSION ||
+        typeof created.session?.sessionEpoch !== "string" ||
+        !created.bootstrap?.trust ||
+        !created.bootstrap?.statement
+      ) {
+        throw new Error(
+          "Remote Session server did not establish a signed durable membership",
+        );
+      }
+      hostStore.pinTrust(created.bootstrap.trust);
+      hostStore.recordBootstrap({
+        coordinatorId: created.bootstrap.trust.coordinatorId,
+        sessionId: created.session.sessionId,
+        agentSessionId: this.agentSessionId,
+        hostPrincipalId: created.bootstrap.hostPrincipalId,
+        hostCredentialPublicKeySpki:
+          created.bootstrap.hostCredentialPublicKeySpki,
+        hostCredentialPrivateKeyPkcs8: credential.privateKeyPkcs8,
+        statement: created.bootstrap.statement,
+      });
+      hostStore.adopt(created.bootstrap.statement, {
+        expectedKind: "session.snapshot",
+        expectedSessionId: created.session.sessionId,
+      });
+      this.remoteSessionId = created.session.sessionId;
+      pairing = created.pairing;
     }
-    this.remoteSessionId = created.session.sessionId;
-    this.pairing = created.pairing;
+    const currentBootstrap = hostStore.getBootstrap();
+    let resumed;
+    try {
+      const challenged = await this.client.request(
+        "remote-session-resume-challenge",
+        {
+          remoteSessionId: this.remoteSessionId,
+          principalId: currentBootstrap.hostPrincipalId,
+        },
+      );
+      const signature = hostStore.signAuthenticationChallenge(
+        challenged.challenge,
+      );
+      resumed = await this.client.request("remote-session-resume", {
+        remoteSessionId: this.remoteSessionId,
+        challengeId: challenged.challenge.challengeId,
+        signature,
+      });
+    } catch (resumeError) {
+      if (!bootstrap) throw resumeError;
+      const terminal = await this.client.request("remote-session-terminal", {
+        remoteSessionId: this.remoteSessionId,
+        principalId: currentBootstrap.hostPrincipalId,
+      });
+      hostStore.adopt(terminal.statement, {
+        expectedKind: "session.snapshot",
+        expectedSessionId: this.remoteSessionId,
+      });
+      const challenged = await this.client.request(
+        "remote-session-reenable-challenge",
+        {
+          remoteSessionId: this.remoteSessionId,
+          principalId: currentBootstrap.hostPrincipalId,
+        },
+      );
+      const signature = hostStore.signAuthenticationChallenge(
+        challenged.challenge,
+      );
+      resumed = await this.client.request("remote-session-reenable", {
+        remoteSessionId: this.remoteSessionId,
+        challengeId: challenged.challenge.challengeId,
+        signature,
+      });
+    }
+    if (
+      resumed.session?.membershipAuthority !==
+        REMOTE_MEMBERSHIP_COORDINATOR_VERSION ||
+      resumed.member?.principalId !== currentBootstrap.hostPrincipalId
+    ) {
+      throw new Error("Remote Session host resume binding changed");
+    }
+    hostStore.adopt(resumed.statement, {
+      expectedKind: "session.snapshot",
+      expectedSessionId: this.remoteSessionId,
+    });
+    if (!pairing) {
+      const issued = await this.client.request("remote-session-pairing-token", {
+        remoteSessionId: this.remoteSessionId,
+        scopes: this.scopes,
+      });
+      pairing = issued.pairing;
+    }
+    this.pairing = pairing;
     return this;
   }
 
@@ -202,6 +359,7 @@ export class RemoteApprovalBridge {
         pairingToken: this.pairing.token,
         scopes: this.pairing.scopes,
         expiresAt: this.pairing.expiresAt,
+        durableMembership: true,
       });
     return {
       uri,
@@ -211,7 +369,7 @@ export class RemoteApprovalBridge {
     };
   }
 
-  _onServerEvent(message) {
+  async _onServerEvent(message) {
     if (
       message?.type !== "remote-session-control" ||
       message.remoteSessionId !== this.remoteSessionId ||
@@ -231,7 +389,7 @@ export class RemoteApprovalBridge {
       return;
     }
     if (
-      message.membershipAuthority !== REMOTE_MEMBERSHIP_AUTHORITY_VERSION ||
+      message.membershipAuthority !== REMOTE_MEMBERSHIP_COORDINATOR_VERSION ||
       typeof message.from !== "string" ||
       !message.from ||
       typeof message.sessionEpoch !== "string" ||
@@ -265,47 +423,85 @@ export class RemoteApprovalBridge {
     }
     const decision =
       rawAnswer === true || rawAnswer === "true" || rawAnswer === "yes";
-    let fenced;
+    let ackedLease = null;
+    // The server creates the lease before forwarding the resolve frame. Keep a
+    // strictly request-bound cancellation handle even when durable adoption of
+    // that statement fails before it can return a trusted payload.
+    let leaseForFailure = this._stateFailureLeaseCandidate(
+      message,
+      requestId,
+      pending,
+    );
     try {
-      // The membership lock encloses the approval-store CAS. Therefore a
-      // revoke either commits first and suppresses this CAS, or waits behind an
-      // approval that has already linearized. No server-forwarded `from`
-      // string can authorize a side effect on its own.
-      fenced = this._requireMembershipAuthority().withActiveMembership(
-        {
-          sessionId: this.remoteSessionId,
-          principalId: message.from,
-          sessionEpoch: message.sessionEpoch,
-          membershipEpoch: message.membershipEpoch,
-        },
-        "approve",
-        (membership) => {
-          const authority = {
-            origin: ORIGIN.REMOTE,
-            authenticated: true,
-            scopes: ["approve"],
-            principalId: membership.principalId,
-            sessionId: this.agentSessionId,
-            remoteSessionId: membership.sessionId,
-            sessionEpoch: membership.sessionEpoch,
-            membershipEpoch: membership.membershipEpoch,
-          };
-          return this._registry.resolve(pending.fingerprint, {
-            requestId,
-            fingerprint: message.event.fingerprint,
-            binding: message.event.binding,
-            sessionId: this.agentSessionId,
-            decision,
-            authority,
-            expectedRevision: message.event.revision,
-            now: this._now(),
-          });
-        },
-      );
+      if (decision) {
+        if (!message.approvalLeaseStatement) {
+          throw new Error(
+            "Approved remote response did not carry a signed execution lease",
+          );
+        }
+        const hostStore = this._requireMembershipHostStore();
+        const adopted = hostStore.adopt(message.approvalLeaseStatement, {
+          expectedKind: "lease.created",
+          expectedSessionId: this.remoteSessionId,
+        });
+        const createdLease = adopted.payload;
+        if (
+          createdLease.status !== "active" ||
+          createdLease.sessionId !== this.remoteSessionId ||
+          createdLease.sessionEpoch !== message.sessionEpoch ||
+          createdLease.principalId !== message.from ||
+          createdLease.membershipEpoch !== message.membershipEpoch ||
+          createdLease.requestId !== requestId ||
+          !fingerprintsMatch(createdLease.fingerprint, pending.fingerprint) ||
+          createdLease.fingerprint !== message.event.fingerprint ||
+          createdLease.binding !== pending.binding ||
+          createdLease.binding !== message.event.binding ||
+          createdLease.expiresAt > pending.descriptor.notAfter
+        ) {
+          throw new Error(
+            "Signed remote execution lease does not match the pending operation",
+          );
+        }
+        leaseForFailure = createdLease;
+        const bootstrap = hostStore.getBootstrap();
+        if (
+          !bootstrap ||
+          createdLease.hostPrincipalId !== bootstrap.hostPrincipalId
+        ) {
+          throw new Error("Signed remote execution lease targets another host");
+        }
+        const acked = await this.client.request("remote-session-lease-ack", {
+          remoteSessionId: this.remoteSessionId,
+          leaseId: createdLease.leaseId,
+          expectedCreatedGeneration: createdLease.createdGeneration,
+          hostReceiptDigest: adopted.receiptHash,
+        });
+        const ackReceipt = hostStore.adopt(acked.statement, {
+          expectedKind: "lease.acked",
+          expectedSessionId: this.remoteSessionId,
+        });
+        ackedLease = ackReceipt.payload;
+        leaseForFailure = ackedLease;
+        if (
+          acked.dispatchAuthorized === true ||
+          ackedLease.status !== "acked" ||
+          ackedLease.leaseId !== createdLease.leaseId ||
+          ackedLease.createdGeneration !== createdLease.createdGeneration ||
+          ackedLease.principalId !== createdLease.principalId ||
+          ackedLease.membershipEpoch !== createdLease.membershipEpoch ||
+          ackedLease.requestId !== createdLease.requestId ||
+          ackedLease.fingerprint !== createdLease.fingerprint ||
+          ackedLease.binding !== createdLease.binding ||
+          ackedLease.expiresAt !== createdLease.expiresAt
+        ) {
+          throw new Error("Remote execution lease ACK binding changed");
+        }
+      }
     } catch (error) {
       const verdict = {
-        reason: "membership-state-unavailable",
-        errorCode: error?.code || REMOTE_MEMBERSHIP_AUTHORITY_UNAVAILABLE_CODE,
+        reason: `lease-adopt-or-ack-failed:${error?.cause?.message || error?.message || "unknown"}`,
+        errorCode:
+          error?.code || REMOTE_MEMBERSHIP_COORDINATOR_UNAVAILABLE_CODE,
       };
       this._recordSecurityError({
         action: "approval.resolve",
@@ -313,18 +509,31 @@ export class RemoteApprovalBridge {
         reason: verdict.reason,
         errorCode: verdict.errorCode,
       });
-      this._settleDeniedForStateFailure(requestId, pending, verdict);
-      return;
-    }
-    if (!fenced.ok) {
-      this._recordSecurityError({
-        action: "approval.resolve",
-        requestId,
-        reason: fenced.reason,
+      await this._settleDeniedForStateFailure(requestId, pending, verdict, {
+        lease: leaseForFailure,
       });
       return;
     }
-    const verdict = fenced.value;
+    const authority = {
+      origin: ORIGIN.REMOTE,
+      authenticated: true,
+      scopes: ["approve"],
+      principalId: message.from,
+      sessionId: this.agentSessionId,
+      remoteSessionId: this.remoteSessionId,
+      sessionEpoch: message.sessionEpoch,
+      membershipEpoch: message.membershipEpoch,
+    };
+    const verdict = this._registry.resolve(pending.fingerprint, {
+      requestId,
+      fingerprint: message.event.fingerprint,
+      binding: message.event.binding,
+      sessionId: this.agentSessionId,
+      decision,
+      authority,
+      expectedRevision: message.event.revision,
+      now: this._now(),
+    });
     if (!verdict.ok) {
       this._recordSecurityError({
         action: "approval.resolve",
@@ -333,7 +542,20 @@ export class RemoteApprovalBridge {
         errorCode: verdict.errorCode,
       });
       if (verdict.reason === "state-unavailable") {
-        this._settleDeniedForStateFailure(requestId, pending, verdict);
+        await this._settleDeniedForStateFailure(requestId, pending, verdict, {
+          lease: ackedLease,
+        });
+      } else if (ackedLease) {
+        await this._cancelLeaseBestEffort(
+          ackedLease,
+          `approval-store-${verdict.reason || "rejected"}`,
+          {
+            requestId,
+            fingerprint: pending.fingerprint,
+            binding: pending.binding,
+            revision: pending.revision,
+          },
+        );
       }
       return;
     }
@@ -343,17 +565,237 @@ export class RemoteApprovalBridge {
       approved: verdict.ok === true && verdict.approved === true,
       via: "remote",
       from: message.from || null,
+      authorizationRequired: verdict.approved === true,
+      ...(verdict.approved === true && ackedLease
+        ? {
+            authorization: this._createLeaseAuthorization({
+              lease: ackedLease,
+              descriptor: pending.descriptor,
+              action: pending.action,
+            }),
+          }
+        : {}),
     });
   }
 
-  _settleDeniedForStateFailure(requestId, pending, verdict) {
+  _stateFailureLeaseCandidate(message, requestId, pending) {
+    const event = message?.event;
+    const lease = message?.approvalLeaseStatement?.payload;
+    if (
+      !pending ||
+      event?.requestId !== requestId ||
+      event.fingerprint !== pending.fingerprint ||
+      event.binding !== pending.binding ||
+      event.revision !== pending.revision ||
+      !lease ||
+      typeof lease.leaseId !== "string" ||
+      !lease.leaseId ||
+      lease.status !== "active" ||
+      lease.sessionId !== this.remoteSessionId ||
+      lease.sessionEpoch !== message.sessionEpoch ||
+      lease.principalId !== message.from ||
+      lease.membershipEpoch !== message.membershipEpoch ||
+      lease.requestId !== requestId ||
+      lease.fingerprint !== pending.fingerprint ||
+      lease.binding !== pending.binding
+    ) {
+      return null;
+    }
+    return structuredClone(lease);
+  }
+
+  _leaseMatchesApproval(lease, approval) {
+    return Boolean(
+      lease &&
+      approval &&
+      typeof lease.leaseId === "string" &&
+      lease.leaseId &&
+      Number.isInteger(approval.revision) &&
+      approval.revision > 0 &&
+      lease.requestId === approval.requestId &&
+      lease.fingerprint === approval.fingerprint &&
+      lease.binding === approval.binding,
+    );
+  }
+
+  async _cancelLeaseBestEffort(lease, reason, approval) {
+    if (
+      !this.client ||
+      !this._leaseMatchesApproval(lease, approval) ||
+      lease.sessionId !== this.remoteSessionId
+    ) {
+      this._recordSecurityError({
+        action: "lease.cancel",
+        requestId: approval?.requestId || lease?.requestId || null,
+        reason: "lease-cancel-binding-mismatch",
+      });
+      return false;
+    }
+    try {
+      const cancelled = await this.client.request(
+        "remote-session-lease-cancel",
+        {
+          remoteSessionId: this.remoteSessionId,
+          leaseId: lease.leaseId,
+          reason,
+          requestId: approval.requestId,
+          fingerprint: approval.fingerprint,
+          binding: approval.binding,
+          approvalRevision: approval.revision,
+        },
+      );
+      const receipt = this._requireMembershipHostStore().adopt(
+        cancelled.statement,
+        {
+          expectedKind: "lease.cancelled",
+          expectedSessionId: this.remoteSessionId,
+        },
+      );
+      if (
+        receipt.payload.status !== "cancelled" ||
+        receipt.payload.leaseId !== lease.leaseId ||
+        !this._leaseMatchesApproval(receipt.payload, approval)
+      ) {
+        throw new Error("Cancelled Remote approval lease binding changed");
+      }
+      return true;
+    } catch (error) {
+      // The cancel RPC may have committed while its response (or the local
+      // cancellation receipt) failed. Reconcile from a signed session snapshot
+      // before declaring the terminal outcome unknown. This also lets a host
+      // that missed `lease.created` adopt the final cancelled lease directly.
+      try {
+        const snapshot = await this._refreshMembershipSnapshot();
+        const observed = snapshot.payload.leases.find(
+          (candidate) => candidate.leaseId === lease.leaseId,
+        );
+        if (
+          observed &&
+          !["active", "acked"].includes(observed.status) &&
+          this._leaseMatchesApproval(observed, approval)
+        ) {
+          return true;
+        }
+      } catch {
+        // Report the original cancellation failure below. The approval itself
+        // still settles denied; no authorization handle is ever returned.
+      }
+      this._recordSecurityError({
+        action: "lease.cancel",
+        requestId: approval.requestId,
+        reason: "lease-cancel-unknown",
+        errorCode: error?.code || null,
+      });
+      return false;
+    }
+  }
+
+  _createLeaseAuthorization({ lease, descriptor, action }) {
+    const authorization = Object.freeze({
+      kind: REMOTE_LEASE_AUTHORIZATION_KIND,
+    });
+    remoteLeaseAuthorizations.set(
+      authorization,
+      Object.freeze({
+        lease: structuredClone(lease),
+        descriptor: structuredClone(descriptor),
+        action: action ?? null,
+      }),
+    );
+    return authorization;
+  }
+
+  _cancelApprovalForStateFailure(requestId, pending) {
+    let cancellation;
+    try {
+      cancellation = this._registry.cancel(pending.fingerprint, {
+        requestId,
+        fingerprint: pending.fingerprint,
+        binding: pending.binding,
+        expectedRevision: pending.revision,
+        reason: "state-failure",
+        now: this._now(),
+      });
+    } catch (error) {
+      cancellation = {
+        ok: false,
+        reason: "state-unavailable",
+        errorCode: error?.code || "CC_APPROVAL_STATE_UNKNOWN",
+      };
+    }
+    if (cancellation.ok) return true;
+
+    // A failed resolve may have committed before reporting an unknown write
+    // outcome. Accept that only as an exact, one-revision terminal record; a
+    // mismatched request/fingerprint/binding never counts as cleanup.
+    let terminal = false;
+    try {
+      const record = this._approvalStore?.getRequest?.(requestId, {
+        bestEffort: false,
+      });
+      terminal = Boolean(
+        record &&
+        record.requestId === requestId &&
+        record.fingerprint === pending.fingerprint &&
+        record.binding === pending.binding &&
+        record.revision === pending.revision + 1 &&
+        ["cancelled", "expired", "resolved", "rejected"].includes(
+          record.status,
+        ),
+      );
+    } catch {
+      terminal = false;
+    }
+    if (!terminal) {
+      this._recordSecurityError({
+        action: "approval.cancel",
+        requestId,
+        reason: cancellation.reason || "state-unavailable",
+        errorCode: cancellation.errorCode || null,
+      });
+    }
+    return terminal;
+  }
+
+  async _settleDeniedForStateFailure(
+    requestId,
+    pending,
+    verdict,
+    { lease = null } = {},
+  ) {
+    if (!pending || this._pending.get(requestId) !== pending) return false;
     this._pending.delete(requestId);
     clearTimeout(pending.timer);
+    this._cancelApprovalForStateFailure(requestId, pending);
+    if (lease) {
+      await this._cancelLeaseBestEffort(
+        lease,
+        `approval-state-${verdict?.reason || "failure"}`,
+        {
+          requestId,
+          fingerprint: pending.fingerprint,
+          binding: pending.binding,
+          revision: pending.revision,
+        },
+      );
+    }
     pending.resolve({
       approved: false,
       via: "state-error",
       from: null,
       errorCode: verdict?.errorCode || null,
+    });
+    return true;
+  }
+
+  async _refreshMembershipSnapshot() {
+    const result = await this.client.request(
+      "remote-session-membership-snapshot",
+      { remoteSessionId: this.remoteSessionId },
+    );
+    return this._requireMembershipHostStore().adopt(result.statement, {
+      expectedKind: "session.snapshot",
+      expectedSessionId: this.remoteSessionId,
     });
   }
 
@@ -380,6 +822,7 @@ export class RemoteApprovalBridge {
     tool,
     action = null,
     detail = null,
+    operationArgs = undefined,
     workspace = null,
     session = null,
     targetEnv = null,
@@ -387,6 +830,13 @@ export class RemoteApprovalBridge {
     timeoutMs,
     onRequestId = null,
   } = {}) {
+    if (!SUPPORTED_REMOTE_LEASE_TOOLS.has(tool)) {
+      return Promise.resolve({
+        approved: false,
+        via: "lease-unavailable",
+        from: null,
+      });
+    }
     const requestId = `ra-${process.pid}-${++this._counter}-${randomBytes(4).toString("hex")}`;
     const askedAt = this._now();
     const effectiveTimeout = timeoutMs || this.decisionTimeoutMs;
@@ -395,9 +845,11 @@ export class RemoteApprovalBridge {
     // approval never carries over to a different operation OR a changed context.
     // The validity window rides the ask lifetime — a resolve after it expires is
     // rejected `expired`.
+    const params =
+      operationArgs === undefined ? detail : structuredClone(operationArgs);
     const desc = {
       toolName: tool,
-      params: detail,
+      params,
       workspace,
       session: session || this.agentSessionId,
       targetEnv,
@@ -408,17 +860,15 @@ export class RemoteApprovalBridge {
           ? askedAt + effectiveTimeout
           : null,
     };
-    const binding = approvalBindingDigest({
-      toolCallId: requestId,
-      args: {
-        tool: tool || null,
-        action,
-        detail,
-        workspace,
-        session: desc.session,
-        targetEnv,
-      },
-      policyDigest: policyVersion,
+    const binding = buildApprovalBinding({
+      requestId,
+      tool,
+      action,
+      params,
+      workspace,
+      session: desc.session,
+      targetEnv,
+      policyVersion,
     });
     let card;
     try {
@@ -482,6 +932,8 @@ export class RemoteApprovalBridge {
         fingerprint: card.fingerprint,
         binding,
         revision: card.revision,
+        descriptor: structuredClone(desc),
+        action,
         resolve: (decision) => {
           this._publish({
             type: "permission.resolved",
@@ -492,7 +944,7 @@ export class RemoteApprovalBridge {
           resolve(decision);
         },
       });
-      this._publish({
+      const requestEvent = {
         type: "permission.request",
         requestId,
         tool: tool || null,
@@ -508,7 +960,169 @@ export class RemoteApprovalBridge {
         notBefore: desc.notBefore,
         notAfter: desc.notAfter,
         askedAt,
+      };
+      this._refreshMembershipSnapshot()
+        .then(() => {
+          if (this._pending.get(requestId)) this._publish(requestEvent);
+        })
+        .catch(async (error) => {
+          const pending = this._pending.get(requestId);
+          if (!pending) return;
+          this._recordSecurityError({
+            action: "approval.request",
+            requestId,
+            reason: "membership-snapshot-unavailable",
+            errorCode: error?.code || null,
+          });
+          await this._settleDeniedForStateFailure(requestId, pending, {
+            errorCode: error?.code || null,
+          });
+        });
+    });
+  }
+
+  /**
+   * Consume one opaque approval authorization online immediately before the
+   * exact side effect is dispatched. Pure/local tuple mismatches leave the
+   * handle retryable; it is burned immediately before network I/O so an
+   * unknown coordinator outcome can never be retried into a second spawn.
+   */
+  async consumeAuthorization(authorization, context = {}) {
+    const granted = remoteLeaseAuthorizations.get(authorization);
+    if (!granted || authorization?.kind !== REMOTE_LEASE_AUTHORIZATION_KIND) {
+      throw new Error("Remote approval authorization is invalid or replayed");
+    }
+    const descriptor = {
+      toolName: context.tool || null,
+      params: structuredClone(context.args ?? null),
+      workspace: context.workspace || null,
+      session: context.session || this.agentSessionId,
+      targetEnv: context.targetEnv || null,
+      policyVersion: context.policyVersion || null,
+      notBefore: granted.descriptor.notBefore,
+      notAfter: granted.descriptor.notAfter,
+    };
+    const lease = granted.lease;
+    const fingerprint = computeOperationFingerprint(descriptor);
+    const binding = buildApprovalBinding({
+      requestId: lease.requestId,
+      tool: descriptor.toolName,
+      action: context.action ?? null,
+      params: descriptor.params,
+      workspace: descriptor.workspace,
+      session: descriptor.session,
+      targetEnv: descriptor.targetEnv,
+      policyVersion: descriptor.policyVersion,
+    });
+    if (
+      (context.action ?? null) !== (granted.action ?? null) ||
+      !fingerprintsMatch(fingerprint, lease.fingerprint) ||
+      binding !== lease.binding
+    ) {
+      throw new Error(
+        "Remote approval authorization does not match the dispatch operation",
+      );
+    }
+    const hostStore = this._requireMembershipHostStore();
+    const durableLease = hostStore.requireConsumableLease(lease.leaseId);
+    const bootstrap = hostStore.getBootstrap();
+    if (
+      !bootstrap ||
+      durableLease.status !== "acked" ||
+      durableLease.sessionId !== this.remoteSessionId ||
+      durableLease.hostPrincipalId !== bootstrap.hostPrincipalId ||
+      durableLease.leaseId !== lease.leaseId ||
+      durableLease.sessionEpoch !== lease.sessionEpoch ||
+      durableLease.principalId !== lease.principalId ||
+      durableLease.membershipEpoch !== lease.membershipEpoch ||
+      durableLease.ackedGeneration !== lease.ackedGeneration ||
+      durableLease.requestId !== lease.requestId ||
+      durableLease.fingerprint !== fingerprint ||
+      durableLease.binding !== binding ||
+      durableLease.expiresAt !== lease.expiresAt
+    ) {
+      throw new Error("Durable Remote approval receipt binding changed");
+    }
+    // Everything above is deterministic local validation. Preserve the
+    // opaque handle on a mismatch so the caller can retry the same approved
+    // operation tuple. From this point onward the coordinator outcome may be
+    // unknown, so burn before issuing the online consume request.
+    remoteLeaseAuthorizations.delete(authorization);
+    let consumed;
+    try {
+      consumed = await this.client.request("remote-session-lease-consume", {
+        remoteSessionId: this.remoteSessionId,
+        leaseId: durableLease.leaseId,
+        expectedAckedGeneration: durableLease.ackedGeneration,
+        expectedMembershipEpoch: durableLease.membershipEpoch,
+        requestId: durableLease.requestId,
+        fingerprint: durableLease.fingerprint,
+        binding: durableLease.binding,
       });
+    } catch (error) {
+      this._recordSecurityError({
+        action: "lease.consume",
+        requestId: durableLease.requestId,
+        reason: "consume-outcome-unknown",
+        errorCode: error?.code || null,
+      });
+      throw error;
+    }
+    if (consumed.dispatchAuthorized !== true || !consumed.statement) {
+      throw new Error(
+        "Remote coordinator did not return linearized dispatch authority",
+      );
+    }
+    const adopted = hostStore.adopt(consumed.statement, {
+      expectedKind: "lease.consumed",
+      expectedSessionId: this.remoteSessionId,
+    });
+    const consumedLease = adopted.payload;
+    if (
+      consumedLease.status !== "consumed" ||
+      consumedLease.leaseId !== durableLease.leaseId ||
+      consumedLease.ackedGeneration !== durableLease.ackedGeneration ||
+      consumedLease.requestId !== durableLease.requestId ||
+      consumedLease.fingerprint !== durableLease.fingerprint ||
+      consumedLease.binding !== durableLease.binding
+    ) {
+      throw new Error("Consumed Remote approval statement binding changed");
+    }
+    return true;
+  }
+
+  /**
+   * Revoke one stable device principal through the coordinator and durably
+   * adopt the resulting membership epoch before returning to the host UI.
+   */
+  async revokeMember(principalId) {
+    if (!this.client || !this.remoteSessionId) {
+      throw new Error("Remote approval bridge is not connected");
+    }
+    const result = await this.client.request("remote-session-revoke", {
+      remoteSessionId: this.remoteSessionId,
+      clientId: principalId,
+    });
+    if (!result.statement) {
+      throw new Error(
+        "Remote coordinator did not return a signed revocation statement",
+      );
+    }
+    const adopted = this._requireMembershipHostStore().adopt(result.statement, {
+      expectedKind: "session.snapshot",
+      expectedSessionId: this.remoteSessionId,
+    });
+    if (
+      adopted.payload.members?.find(
+        (member) => member.principalId === principalId,
+      )?.status !== "revoked"
+    ) {
+      throw new Error("Signed revocation statement did not revoke the device");
+    }
+    return Object.freeze({
+      principalId,
+      authorityGeneration: adopted.authorityGeneration,
+      session: result.session,
     });
   }
 
@@ -538,7 +1152,7 @@ export class RemoteApprovalBridge {
         errorCode: verdict.errorCode,
       });
       if (verdict.reason === "state-unavailable") {
-        this._settleDeniedForStateFailure(requestId, pending, verdict);
+        void this._settleDeniedForStateFailure(requestId, pending, verdict);
       }
       return false;
     }
@@ -579,12 +1193,19 @@ export class RemoteApprovalBridge {
         detail:
           typeof ctx?.command === "string"
             ? ctx.command
-            : ctx?.args
-              ? JSON.stringify(ctx.args).slice(0, 2000)
+            : typeof ctx?.args?.command === "string"
+              ? ctx.args.command
+              : null,
+        operationArgs:
+          ctx?.args !== undefined
+            ? structuredClone(ctx.args)
+            : typeof ctx?.command === "string"
+              ? { command: ctx.command }
               : null,
         // §8.2 context that binds the fingerprint (session defaults to this
         // bridge's agent session inside requestDecision).
         workspace: ctx?.cwd || ctx?.workspace || null,
+        session: ctx?.session || ctx?.sessionId || null,
         targetEnv: ctx?.targetEnv || null,
         policyVersion: ctx?.policyVersion || null,
       };
@@ -595,6 +1216,9 @@ export class RemoteApprovalBridge {
           // observer only
         }
       }
+      if (!SUPPORTED_REMOTE_LEASE_TOOLS.has(ask.tool) && fallback) {
+        return fallback(ctx);
+      }
       let requestId = null;
       const remote = this.requestDecision({
         ...ask,
@@ -604,13 +1228,18 @@ export class RemoteApprovalBridge {
         },
       });
       if (!fallback) {
-        const decision = await remote;
-        return decision.approved;
+        return remote;
       }
       const local = Promise.resolve()
         .then(() => fallback(ctx))
         .then((approved) => ({ approved: approved === true, via: "local" }));
-      const decision = await Promise.race([remote, local]);
+      let decision = await Promise.race([remote, local]);
+      if (
+        decision.via !== "local" &&
+        ["timeout", "closed", "lease-unavailable"].includes(decision.via)
+      ) {
+        decision = await local;
+      }
       // Local answer won → settle the remote ask too (publishes
       // permission.resolved so device UIs clear the pending card).
       if (decision.via === "local") {
@@ -618,7 +1247,7 @@ export class RemoteApprovalBridge {
         const persisted = this.resolveLocally(requestId, decision.approved);
         return persisted && decision.approved === true;
       }
-      return decision.approved === true;
+      return decision;
     };
   }
 
@@ -645,11 +1274,17 @@ export class RemoteApprovalBridge {
     }
     try {
       if (this.client && this.remoteSessionId) {
-        await this.client
+        const closed = await this.client
           .request("remote-session-close", {
             remoteSessionId: this.remoteSessionId,
           })
-          .catch(() => undefined);
+          .catch(() => null);
+        if (closed?.statement) {
+          this._requireMembershipHostStore().adopt(closed.statement, {
+            expectedKind: "session.snapshot",
+            expectedSessionId: this.remoteSessionId,
+          });
+        }
       }
     } finally {
       this.client?.close();
@@ -723,6 +1358,8 @@ export async function startHeadlessRemoteApproval({
         }
       },
     }),
+    consumeAuthorization: (authorization, context) =>
+      bridge.consumeAuthorization(authorization, context),
     close: async () => {
       await bridge.close().catch(() => undefined);
       await server.stop().catch(() => undefined);

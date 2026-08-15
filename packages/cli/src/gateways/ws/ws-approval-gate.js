@@ -121,6 +121,11 @@ export async function createWsApprovalGate({
         }),
       hasConfirmer: () => gate.hasConfirmer(),
       setConfirmer: (fn) => gate.setConfirmer(fn),
+      setAuthorizationConsumer: (fn) => gate.setAuthorizationConsumer?.(fn),
+      hasAuthorizationConsumer: () =>
+        gate.hasAuthorizationConsumer?.() === true,
+      consumeAuthorization: (authorization, ctx) =>
+        gate.consumeAuthorization(authorization, ctx),
       getSessionPolicy: (sid) => inner.getSessionPolicy(sid || sessionId),
       setSessionPolicy: (sid, policy) =>
         inner.setSessionPolicy(sid || sessionId, policy),

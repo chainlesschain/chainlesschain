@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import sessionCore from "@chainlesschain/session-core";
 import settingsLoader from "../../src/lib/settings-loader.cjs";
 import {
   autoModeDefaultsDocument,
@@ -285,6 +286,38 @@ describe("createAutoModeApprovalGate", () => {
     });
     const errored = await gate.decide({ riskLevel: "medium" });
     expect(errored).toMatchObject({ decision: "deny", via: "confirm-error" });
+  });
+
+  it("pins a structured approval to the consumer active before confirmation", async () => {
+    const inner = new sessionCore.ApprovalGate();
+    const gate = createAutoModeApprovalGate(
+      inner,
+      resolveAutoModeDecisions({ decisions: { medium: "ask" } }),
+    );
+    const raw = Object.freeze({ kind: "raw-authorization" });
+    const consumerA = vi.fn(async () => true);
+    const consumerB = vi.fn(async () => {
+      throw new Error("replacement must not run");
+    });
+    let resolveConfirmation;
+    gate.setAuthorizationConsumer(consumerA);
+    gate.setConfirmer(
+      () =>
+        new Promise((resolve) => {
+          resolveConfirmation = resolve;
+        }),
+    );
+
+    const pending = gate.decide({ riskLevel: "medium", tool: "run_shell" });
+    gate.setAuthorizationConsumer(consumerB);
+    resolveConfirmation({ approved: true, via: "remote", authorization: raw });
+    const decision = await pending;
+
+    await expect(
+      gate.consumeAuthorization(decision.authorization, { action: "shell" }),
+    ).resolves.toBe(true);
+    expect(consumerA).toHaveBeenCalledWith(raw, { action: "shell" });
+    expect(consumerB).not.toHaveBeenCalled();
   });
 
   it("forwards session-policy and confirmer wiring to the inner gate", () => {

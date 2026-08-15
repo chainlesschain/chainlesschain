@@ -16,6 +16,7 @@ import {
   formatToolArgs,
 } from "../../src/runtime/agent-core.js";
 import { _deps as chromeDeps } from "../../src/lib/chrome-connector.js";
+import { ApprovalGate, APPROVAL_POLICY } from "@chainlesschain/session-core";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
@@ -221,6 +222,33 @@ describe("browser_act dispatch (faked playwright via _deps)", () => {
     expect(res.approval).toMatchObject({ decision: "deny", riskLevel: "high" });
     expect(seen.riskLevel).toBe("high");
     expect(seen.tool).toBe("browser_act");
+    expect(connectCalls).toHaveLength(0);
+  });
+
+  it("fails closed before browser dispatch when durable remote approval has no browser lease support", async () => {
+    const connectCalls = [];
+    chromeDeps.importPlaywright = async () =>
+      fakePlaywright(fakePage(), { connectCalls });
+    const approvalGate = new ApprovalGate({
+      defaultPolicy: APPROVAL_POLICY.STRICT,
+      confirm: async () => ({
+        approved: false,
+        via: "lease-unavailable",
+      }),
+      consumeAuthorization: async () => true,
+    });
+
+    const res = await executeTool(
+      "browser_act",
+      { actions: [{ type: "click", selector: "#must-not-run" }] },
+      { approvalGate },
+    );
+
+    expect(res.error).toMatch(/\[ApprovalGate\] browser_act denied/);
+    expect(res.approval).toMatchObject({
+      decision: "deny",
+      via: "lease-unavailable",
+    });
     expect(connectCalls).toHaveLength(0);
   });
 

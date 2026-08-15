@@ -19,6 +19,9 @@ describe("RemoteSessionPolicy", () => {
       maxSessionTtlMs: null,
       maxTokenTtlMs: null,
       allowRelayPairing: true,
+      policyVersion: expect.stringMatching(
+        /^remote-session-policy:sha256:[0-9a-f]{64}$/,
+      ),
     });
   });
 
@@ -99,6 +102,9 @@ describe("RemoteSessionPolicy", () => {
       maxSessionTtlMs: 60000,
       maxTokenTtlMs: null,
       allowRelayPairing: false,
+      policyVersion: expect.stringMatching(
+        /^remote-session-policy:sha256:[0-9a-f]{64}$/,
+      ),
     });
   });
 
@@ -109,6 +115,9 @@ describe("RemoteSessionPolicy", () => {
       maxSessionTtlMs: null,
       maxTokenTtlMs: null,
       allowRelayPairing: true,
+      policyVersion: expect.stringMatching(
+        /^remote-session-policy:sha256:[0-9a-f]{64}$/,
+      ),
     });
   });
 });

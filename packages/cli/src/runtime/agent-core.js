@@ -18,7 +18,7 @@ import fs from "fs";
 import path from "path";
 import broker from "../lib/process-execution-broker/index.js";
 import os from "os";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { isProxy } from "node:util/types";
 import sharedCodingAgentPolicy from "./coding-agent-policy.cjs";
 import sharedShellPolicy from "./coding-agent-shell-policy.cjs";
@@ -28,6 +28,12 @@ import sharedHookRunner from "../lib/hook-runner.js";
 import sharedHookEvents from "../lib/settings-hook-events.js";
 import { mergeProviderOptions } from "../lib/provider-options.js";
 import { applyCredentialProxy } from "../lib/credential-proxy.js";
+import {
+  commitShellApprovalSideEffects,
+  createShellExecutionDescriptor,
+  evaluateShellCommandWithApproval,
+  snapshotShellExecutionArgs,
+} from "../lib/shell-approval.js";
 import { describeBackgroundCommand } from "../lib/terminal-context.js";
 import { buildTelemetryAttributes } from "../lib/telemetry-ids.js";
 import {
@@ -228,6 +234,36 @@ function collectWorkspacePluginBinSandboxPolicy(
     { requiredBoundaries: [...pluginPolicyBoundaries] },
     { cwd: resolvedWorkspaceCwd },
   );
+}
+
+function projectPluginBinInvocationAuthority(invocation) {
+  if (!invocation) return null;
+  const identity = invocation.executableIdentity || {};
+  return {
+    command: invocation.command || null,
+    runtime: invocation.runtime || null,
+    shell: invocation.shell === true,
+    pluginId: invocation.pluginId || null,
+    pluginVersion: invocation.pluginVersion || null,
+    pluginSource: invocation.pluginSource || null,
+    scope: invocation.scope || null,
+    binName: invocation.binName || null,
+    binPath: invocation.binPath || null,
+    pluginRoot: invocation.pluginRoot || null,
+    args: Array.isArray(invocation.args) ? [...invocation.args] : [],
+    requiredBoundaries: [
+      ...(invocation.sandboxPolicy?.requiredBoundaries || []),
+    ].sort(),
+    executableIdentity: {
+      realPath: identity.realPath || null,
+      sha256: identity.sha256 || null,
+      bytes: identity.bytes ?? null,
+      dev: identity.dev ?? null,
+      ino: identity.ino ?? null,
+      mtimeMs: identity.mtimeMs ?? null,
+      mode: identity.mode ?? null,
+    },
+  };
 }
 
 function rethrowRunCodeSandboxFailure(error) {
@@ -2223,6 +2259,302 @@ function attachDiffReviewAudit(result, audit) {
   return result;
 }
 
+const RUN_CODE_ARGUMENT_KEYS = new Set([
+  "language",
+  "code",
+  "timeout",
+  "persist",
+]);
+
+function snapshotRunCodeExecutionArgs(args) {
+  if (
+    !args ||
+    typeof args !== "object" ||
+    Array.isArray(args) ||
+    isProxy(args)
+  ) {
+    throw new TypeError("run_code arguments must be a plain data object");
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(args);
+  for (const key of Reflect.ownKeys(descriptors)) {
+    if (typeof key !== "string" || !RUN_CODE_ARGUMENT_KEYS.has(key)) {
+      throw new TypeError(`run_code contains unsupported field ${String(key)}`);
+    }
+    if (!Object.hasOwn(descriptors[key], "value")) {
+      throw new TypeError(`run_code field ${key} must be a data property`);
+    }
+  }
+  const language = descriptors.language?.value;
+  const code = descriptors.code?.value;
+  if (typeof language !== "string" || !language) {
+    throw new TypeError("run_code language must be a non-empty string");
+  }
+  if (typeof code !== "string") {
+    throw new TypeError("run_code code must be a string");
+  }
+  const snapshot = { language, code };
+  if (descriptors.timeout) {
+    const timeout = descriptors.timeout.value;
+    if (typeof timeout !== "number" || !Number.isFinite(timeout)) {
+      throw new TypeError("run_code timeout must be a finite number");
+    }
+    snapshot.timeout = timeout;
+  }
+  if (descriptors.persist) {
+    const persist = descriptors.persist.value;
+    if (typeof persist !== "boolean") {
+      throw new TypeError("run_code persist must be a boolean");
+    }
+    snapshot.persist = persist;
+  }
+  return Object.freeze(snapshot);
+}
+
+function runCodeApprovalDescriptor(args, cwd) {
+  return Object.freeze({
+    language: args.language,
+    codeSha256: createHash("sha256").update(args.code, "utf8").digest("hex"),
+    codeBytes: Buffer.byteLength(args.code, "utf8"),
+    timeout: Math.min(Math.max(args.timeout || 60, 1), 300),
+    persist: args.persist === true,
+    cwd,
+  });
+}
+
+function canonicalPolicyAuthorityData(value, state = null, depth = 0) {
+  const budget = state || { nodes: 0, seen: new WeakSet() };
+  budget.nodes += 1;
+  if (budget.nodes > 4096 || depth > 12) {
+    throw new TypeError("policy authority exceeds canonical bounds");
+  }
+  if (value === null) return "null";
+  if (value === undefined) return '"$undefined"';
+  if (typeof value === "string" || typeof value === "boolean") {
+    return JSON.stringify(value);
+  }
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) {
+      throw new TypeError("policy authority contains a non-finite number");
+    }
+    return JSON.stringify(value);
+  }
+  if (typeof value !== "object" || isProxy(value)) {
+    throw new TypeError("policy authority must contain data objects only");
+  }
+  if (budget.seen.has(value)) {
+    throw new TypeError("policy authority must not contain cycles");
+  }
+  budget.seen.add(value);
+  try {
+    const descriptors = Object.getOwnPropertyDescriptors(value);
+    const keys = Reflect.ownKeys(descriptors);
+    if (keys.some((key) => typeof key !== "string") || keys.length > 512) {
+      throw new TypeError("policy authority contains invalid keys");
+    }
+    if (Array.isArray(value)) {
+      const length = descriptors.length?.value;
+      if (!Number.isSafeInteger(length) || length < 0 || length > 512) {
+        throw new TypeError("policy authority array exceeds bounds");
+      }
+      const entries = [];
+      for (let index = 0; index < length; index += 1) {
+        const descriptor = descriptors[String(index)];
+        if (!descriptor || !Object.hasOwn(descriptor, "value")) {
+          throw new TypeError("policy authority arrays must be dense data");
+        }
+        entries.push(
+          canonicalPolicyAuthorityData(descriptor.value, budget, depth + 1),
+        );
+      }
+      const allowedKeys = new Set([
+        "length",
+        ...Array.from({ length }, (_, index) => String(index)),
+      ]);
+      if (keys.some((key) => !allowedKeys.has(key))) {
+        throw new TypeError("policy authority arrays contain extra fields");
+      }
+      return `[${entries.join(",")}]`;
+    }
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) {
+      throw new TypeError("policy authority must contain plain objects");
+    }
+    return `{${keys
+      .sort()
+      .map((key) => {
+        const descriptor = descriptors[key];
+        if (!Object.hasOwn(descriptor, "value")) {
+          throw new TypeError("policy authority accessors are not allowed");
+        }
+        return `${JSON.stringify(key)}:${canonicalPolicyAuthorityData(
+          descriptor.value,
+          budget,
+          depth + 1,
+        )}`;
+      })
+      .join(",")}}`;
+  } finally {
+    budget.seen.delete(value);
+  }
+}
+
+function digestPolicyAuthority(projection) {
+  return createHash("sha256")
+    .update("chainlesschain.shell-policy-authority.v1\0", "utf8")
+    .update(canonicalPolicyAuthorityData(projection), "utf8")
+    .digest("hex");
+}
+
+function validatePermissionRuleset(rules) {
+  if (
+    rules &&
+    (!Array.isArray(rules.allow) ||
+      !Array.isArray(rules.ask) ||
+      !Array.isArray(rules.deny))
+  ) {
+    throw new TypeError(
+      "permission authority provider returned an invalid ruleset",
+    );
+  }
+  return rules;
+}
+
+function projectPermissionAuthority({ authority, rules, tool, args, cwd }) {
+  const verdict = rules
+    ? evaluatePermissionRules({ tool, args, cwd, rules })
+    : { decision: null, rule: null };
+  const source = verdict.rule
+    ? authority?.sources?.[`${verdict.decision}:${verdict.rule}`] || null
+    : null;
+  const scopedRule = source?.startsWith("scoped:")
+    ? authority?.scoped?.rules?.find(
+        (record) =>
+          record.status === "active" && `scoped:${record.id}` === source,
+      ) || null
+    : null;
+  return {
+    rules: rules || null,
+    sources: authority?.sources || null,
+    scoped: authority?.scoped || null,
+    version: authority?.version || authority?.policyVersion || null,
+    revision: authority?.revision ?? null,
+    headHash: authority?.headHash || null,
+    verdict: {
+      decision: verdict.decision || null,
+      rule: verdict.rule || null,
+      source,
+      scopedRule: scopedRule
+        ? {
+            id: scopedRule.id || null,
+            revision: scopedRule.revision ?? null,
+            expiresAt: scopedRule.expiresAt ?? null,
+            status: scopedRule.status || null,
+          }
+        : null,
+    },
+  };
+}
+
+function selectedHostToolPolicy(hostAuthority, tool) {
+  const policies = hostAuthority?.tools || hostAuthority?.toolPolicies || null;
+  return policies && typeof policies === "object"
+    ? policies[tool] || null
+    : null;
+}
+
+function snapshotPlanToolAuthority(planManager, tool, args) {
+  const active = planManager?.isActive?.() === true;
+  return {
+    active,
+    executionLockActive: planManager?.executionLock != null,
+    toolAllowed:
+      !active || (tool === "git" && isReadOnlyGitCommand(args?.command))
+        ? true
+        : planManager?.isToolAllowed?.(tool) === true,
+  };
+}
+
+function snapshotEffectiveToolSetAuthority(effectiveAllowedToolNames, tool) {
+  const enforced = Array.isArray(effectiveAllowedToolNames);
+  return {
+    enforced,
+    allowed: !enforced || effectiveAllowedToolNames.includes(tool),
+  };
+}
+
+function evaluateSelectedToolAdmissionAuthority({
+  admission,
+  tool,
+  runtimeDescriptor,
+  localToolDescriptor,
+  hostManagedToolPolicy,
+}) {
+  if (admission?.enforce !== true) {
+    return {
+      override: {},
+      decision: null,
+      projection: { enforce: false },
+    };
+  }
+  const override =
+    admission.tools && typeof admission.tools === "object"
+      ? admission.tools[tool] || {}
+      : {};
+  const tier =
+    override.tier ||
+    runtimeDescriptor?.tier ||
+    getCodingAgentToolPolicy(tool)?.tier ||
+    (localToolDescriptor ? "extension" : "mvp");
+  const inputs = {
+    capabilityGranted:
+      override.capabilityGranted ?? admission.capabilityGranted,
+    policyAllowed:
+      override.policyAllowed ??
+      (hostManagedToolPolicy
+        ? (hostManagedToolPolicy?.tools ||
+            hostManagedToolPolicy?.toolPolicies ||
+            {})[tool]?.allowed !== false
+        : admission.policyAllowed),
+    permissionGranted:
+      override.permissionGranted ?? admission.permissionGranted,
+    budgetOk: override.budgetOk ?? admission.budgetOk,
+    uiSupported: override.uiSupported ?? admission.uiSupported,
+  };
+  const decision = admitTool({ tool, tier, ...inputs });
+  return {
+    override,
+    decision,
+    projection: {
+      enforce: true,
+      tier: decision.tier,
+      capabilityGranted: inputs.capabilityGranted === true,
+      policyAllowed: inputs.policyAllowed === true,
+      permissionGranted: inputs.permissionGranted === true,
+      budgetOk: inputs.budgetOk === true,
+      uiSupported: inputs.uiSupported === true,
+      admitted: decision.admitted === true,
+      unmet: [...decision.unmet],
+    },
+  };
+}
+
+function snapshotApprovalPolicyAuthority(approvalGate, sessionId) {
+  if (!approvalGate) return null;
+  const snapshot = approvalGate.getAuthorizationPolicySnapshot?.(sessionId);
+  if (snapshot && typeof snapshot.then === "function") {
+    throw new TypeError("approval policy snapshot must be synchronous");
+  }
+  if (snapshot) return snapshot;
+  return {
+    schema: "chainlesschain.approval-policy-authority/v1",
+    kind: "legacy-gate",
+    sessionId: sessionId ? String(sessionId) : null,
+    policy: approvalGate.getSessionPolicy?.(sessionId) || null,
+    hasAuthorizationConsumer:
+      approvalGate.hasAuthorizationConsumer?.() === true,
+  };
+}
+
 /**
  * Execute a single tool call with plan-mode filtering and hook pipeline.
  *
@@ -2235,9 +2567,86 @@ function attachDiffReviewAudit(result, audit) {
  * @returns {Promise<object>} tool result
  */
 export async function executeTool(name, args, context = {}) {
+  const liveExecutionContext = context;
+  // run_shell can cross several asynchronous permission/hook boundaries before
+  // reaching executeToolInner. Capture its declared tuple and working directory
+  // before any of them so an in-process caller cannot swap the approved command
+  // or reinterpret a relative cwd after process.chdir().
+  let shellAuthorityCwd = null;
+  let runCodeAuthorityCwd = null;
+  if (name === "run_shell") {
+    try {
+      const entryProcessCwd = process.cwd();
+      const declared = snapshotShellExecutionArgs(args);
+      const contextCwd =
+        context.cwd === undefined || context.cwd === null
+          ? entryProcessCwd
+          : context.cwd;
+      if (typeof contextCwd !== "string" || !contextCwd) {
+        throw new TypeError("run_shell context cwd must be a non-empty string");
+      }
+      if (
+        declared.cwd !== undefined &&
+        (typeof declared.cwd !== "string" || !declared.cwd)
+      ) {
+        throw new TypeError("run_shell cwd must be a non-empty string");
+      }
+      const requestedCwd = path.resolve(
+        entryProcessCwd,
+        contextCwd,
+        declared.cwd || ".",
+      );
+      shellAuthorityCwd = fs.realpathSync.native(requestedCwd);
+      if (!fs.statSync(shellAuthorityCwd).isDirectory()) {
+        throw new Error("run_shell cwd is not a directory");
+      }
+      args = snapshotShellExecutionArgs({
+        ...declared,
+        cwd: shellAuthorityCwd,
+      });
+    } catch (error) {
+      return {
+        error: `[Shell Dispatch] ${error?.message || "invalid execution arguments"}`,
+        policy: {
+          decision: "blocked",
+          via: "shell-execution-snapshot",
+          code: "CC_SHELL_EXECUTION_SNAPSHOT_INVALID",
+        },
+      };
+    }
+  }
+  if (name === "run_code") {
+    try {
+      const entryProcessCwd = process.cwd();
+      args = snapshotRunCodeExecutionArgs(args);
+      const contextCwd =
+        context.cwd === undefined || context.cwd === null
+          ? entryProcessCwd
+          : context.cwd;
+      if (typeof contextCwd !== "string" || !contextCwd) {
+        throw new TypeError("run_code context cwd must be a non-empty string");
+      }
+      runCodeAuthorityCwd = fs.realpathSync.native(
+        path.resolve(entryProcessCwd, contextCwd),
+      );
+      if (!fs.statSync(runCodeAuthorityCwd).isDirectory()) {
+        throw new Error("run_code cwd is not a directory");
+      }
+    } catch (error) {
+      return {
+        error: `[Run Code Dispatch] ${error?.message || "invalid execution arguments"}`,
+        policy: {
+          decision: "blocked",
+          via: "run-code-execution-snapshot",
+          code: "CC_RUN_CODE_EXECUTION_SNAPSHOT_INVALID",
+        },
+      };
+    }
+  }
   const hookDb = context.hookDb || null;
   const skillLoader = context.skillLoader || _defaultSkillLoader;
-  const cwd = context.cwd || process.cwd();
+  const cwd =
+    shellAuthorityCwd || runCodeAuthorityCwd || context.cwd || process.cwd();
   const planManager = context.planManager || getPlanModeManager();
   // The provider receives a filtered schema, but an untrusted/buggy model can
   // still emit an arbitrary tool_call. Reuse the same pure preflight that the
@@ -2247,6 +2656,27 @@ export async function executeTool(name, args, context = {}) {
     cwd,
   });
   if (authorityDenial) return authorityDenial;
+  let admittedEffectiveToolSetDigest = null;
+  if (name === "run_shell") {
+    try {
+      admittedEffectiveToolSetDigest = digestPolicyAuthority(
+        snapshotEffectiveToolSetAuthority(
+          context.effectiveAllowedToolNames,
+          name,
+        ),
+      );
+    } catch (error) {
+      return {
+        error:
+          "[Shell Dispatch] The effective tool capability ceiling could not be bound. No command side effect was started.",
+        policy: {
+          decision: "blocked",
+          via: "shell-policy-authority",
+          code: error?.code || "CC_SHELL_POLICY_AUTHORITY_UNAVAILABLE",
+        },
+      };
+    }
+  }
   const localToolDescriptor =
     context.externalToolDescriptors &&
     typeof context.externalToolDescriptors === "object"
@@ -2259,41 +2689,41 @@ export async function executeTool(name, args, context = {}) {
       : null;
   const runtimeDescriptor =
     getRuntimeToolDescriptor(name) || localToolDescriptor;
-  const admission = context.toolAdmission;
-  if (admission?.enforce === true) {
-    const override =
-      admission.tools && typeof admission.tools === "object"
-        ? admission.tools[name] || {}
-        : {};
-    const tier =
-      override.tier ||
-      runtimeDescriptor?.tier ||
-      getCodingAgentToolPolicy(name)?.tier ||
-      (localToolDescriptor ? "extension" : "mvp");
-    const decision = admitTool({
+  let admittedToolAdmissionDigest = null;
+  let toolAdmissionEvaluation;
+  try {
+    toolAdmissionEvaluation = evaluateSelectedToolAdmissionAuthority({
+      admission: context.toolAdmission,
       tool: name,
-      tier,
-      capabilityGranted:
-        override.capabilityGranted ?? admission.capabilityGranted,
-      policyAllowed:
-        override.policyAllowed ??
-        (context.hostManagedToolPolicy
-          ? (context.hostManagedToolPolicy?.tools ||
-              context.hostManagedToolPolicy?.toolPolicies ||
-              {})[name]?.allowed !== false
-          : admission.policyAllowed),
-      permissionGranted:
-        override.permissionGranted ?? admission.permissionGranted,
-      budgetOk: override.budgetOk ?? admission.budgetOk,
-      uiSupported: override.uiSupported ?? admission.uiSupported,
+      runtimeDescriptor,
+      localToolDescriptor,
+      hostManagedToolPolicy: context.hostManagedToolPolicy,
     });
+    if (name === "run_shell") {
+      admittedToolAdmissionDigest = digestPolicyAuthority(
+        toolAdmissionEvaluation.projection,
+      );
+    }
+  } catch (error) {
+    return {
+      error:
+        "[Tool Admission] The selected tool authority could not be bound. No tool side effect was started.",
+      policy: {
+        decision: "blocked",
+        via: "tool-admission",
+        code: error?.code || "CC_TOOL_ADMISSION_AUTHORITY_UNAVAILABLE",
+      },
+    };
+  }
+  if (toolAdmissionEvaluation.decision) {
+    const { override, decision } = toolAdmissionEvaluation;
     const attribution = buildToolAttribution({
       tool: name,
       source:
         override.source ||
         runtimeDescriptor?.source ||
         localToolDescriptor?.source ||
-        admission.source ||
+        context.toolAdmission?.source ||
         null,
       version: override.version || runtimeDescriptor?.version || null,
       scope: override.scope || localToolDescriptor?.scope || null,
@@ -2468,6 +2898,30 @@ export async function executeTool(name, args, context = {}) {
             : null,
     scopedRule: matchedScopedRule || null,
   };
+  let admittedPermissionPolicyDigest = null;
+  if (name === "run_shell") {
+    try {
+      admittedPermissionPolicyDigest = digestPolicyAuthority(
+        projectPermissionAuthority({
+          authority: permissionAuthority,
+          rules: validatePermissionRuleset(effectivePermissionRules),
+          tool: name,
+          args,
+          cwd,
+        }),
+      );
+    } catch (error) {
+      return {
+        error:
+          "[Shell Dispatch] The evaluated permission authority could not be bound. No command side effect was started.",
+        policy: {
+          decision: "blocked",
+          via: "shell-policy-authority",
+          code: error?.code || "CC_SHELL_POLICY_AUTHORITY_UNAVAILABLE",
+        },
+      };
+    }
+  }
 
   // 1. settings deny
   if (settingsVerdict.decision === "deny") {
@@ -2497,6 +2951,22 @@ export async function executeTool(name, args, context = {}) {
     toolPolicies && typeof toolPolicies === "object"
       ? toolPolicies[name]
       : null;
+  let admittedHostPolicyDigest = null;
+  if (name === "run_shell") {
+    try {
+      admittedHostPolicyDigest = digestPolicyAuthority(hostToolPolicy);
+    } catch (error) {
+      return {
+        error:
+          "[Shell Dispatch] The evaluated host policy could not be bound. No command side effect was started.",
+        policy: {
+          decision: "blocked",
+          via: "shell-policy-authority",
+          code: error?.code || "CC_SHELL_POLICY_AUTHORITY_UNAVAILABLE",
+        },
+      };
+    }
+  }
   const hostPolicyAllowsReadOnlyGit =
     name === "git" &&
     hostToolPolicy?.planModeBehavior === "readonly-conditional" &&
@@ -2530,6 +3000,24 @@ export async function executeTool(name, args, context = {}) {
     planManager.isActive() && !executionLockActive;
   const externalToolBlockedDuringPlanning =
     planReadOnlyFenceActive && !STATIC_AGENT_TOOL_NAMES.has(name);
+  let admittedPlanPolicyDigest = null;
+  if (name === "run_shell") {
+    try {
+      admittedPlanPolicyDigest = digestPolicyAuthority(
+        snapshotPlanToolAuthority(planManager, name, args),
+      );
+    } catch (error) {
+      return {
+        error:
+          "[Shell Dispatch] The evaluated plan authority could not be bound. No command side effect was started.",
+        policy: {
+          decision: "blocked",
+          via: "shell-policy-authority",
+          code: error?.code || "CC_SHELL_POLICY_AUTHORITY_UNAVAILABLE",
+        },
+      };
+    }
+  }
   context = { ...context, planReadOnlyFenceActive };
   if (
     planManager.isActive() &&
@@ -2828,6 +3316,160 @@ export async function executeTool(name, args, context = {}) {
     if (instructionPreflight) return instructionPreflight;
   }
 
+  let shellDispatchPolicyAuthority = null;
+  if (name === "run_shell") {
+    try {
+      const permissionRulesProvider = context.permissionRulesProvider || null;
+      const approvalGate = context.approvalGate || null;
+      const initialProjection = {
+        permission: projectPermissionAuthority({
+          authority: permissionAuthority,
+          rules: validatePermissionRuleset(effectivePermissionRules),
+          tool: name,
+          args,
+          cwd,
+        }),
+        host: selectedHostToolPolicy(
+          context.hostManagedToolPolicy || null,
+          name,
+        ),
+        plan: snapshotPlanToolAuthority(planManager, name, args),
+        effectiveToolSet: snapshotEffectiveToolSetAuthority(
+          context.effectiveAllowedToolNames,
+          name,
+        ),
+        toolAdmission: evaluateSelectedToolAdmissionAuthority({
+          admission: context.toolAdmission,
+          tool: name,
+          runtimeDescriptor,
+          localToolDescriptor,
+          hostManagedToolPolicy: context.hostManagedToolPolicy,
+        }).projection,
+        approval: snapshotApprovalPolicyAuthority(
+          approvalGate,
+          context.sessionId || null,
+        ),
+        unattended: context.unattendedActionPolicy || null,
+        shellPolicyOverrides: context.shellPolicyOverrides || null,
+        classifyAllShell: context.classifyAllShell === true,
+      };
+      if (
+        digestPolicyAuthority(initialProjection.permission) !==
+          admittedPermissionPolicyDigest ||
+        digestPolicyAuthority(initialProjection.host) !==
+          admittedHostPolicyDigest ||
+        digestPolicyAuthority(initialProjection.plan) !==
+          admittedPlanPolicyDigest ||
+        digestPolicyAuthority(initialProjection.effectiveToolSet) !==
+          admittedEffectiveToolSetDigest ||
+        digestPolicyAuthority(initialProjection.toolAdmission) !==
+          admittedToolAdmissionDigest
+      ) {
+        const error = new Error(
+          "Shell policy authority changed while an earlier confirmation was pending",
+        );
+        error.code = "CC_SHELL_POLICY_AUTHORITY_CHANGED";
+        throw error;
+      }
+      const initialDigest = digestPolicyAuthority(initialProjection);
+      shellDispatchPolicyAuthority = Object.freeze({
+        policyVersion: `cc-shell-policy-authority/v1:${initialDigest}`,
+        async revalidate() {
+          try {
+            if (
+              (liveExecutionContext.permissionRulesProvider || null) !==
+                permissionRulesProvider ||
+              (liveExecutionContext.approvalGate || null) !== approvalGate ||
+              (liveExecutionContext.planManager || getPlanModeManager()) !==
+                planManager
+            ) {
+              const error = new Error("policy authority provider changed");
+              error.code = "CC_SHELL_POLICY_AUTHORITY_CHANGED";
+              throw error;
+            }
+            let currentPermissionAuthority = null;
+            let currentPermissionRules =
+              liveExecutionContext.permissionRules || null;
+            if (permissionRulesProvider) {
+              currentPermissionAuthority = await permissionRulesProvider({
+                cwd,
+                tool: name,
+                args,
+              });
+              currentPermissionRules =
+                currentPermissionAuthority?.rules ||
+                currentPermissionAuthority ||
+                null;
+            }
+            const currentProjection = {
+              permission: projectPermissionAuthority({
+                authority: currentPermissionAuthority,
+                rules: validatePermissionRuleset(currentPermissionRules),
+                tool: name,
+                args,
+                cwd,
+              }),
+              host: selectedHostToolPolicy(
+                liveExecutionContext.hostManagedToolPolicy || null,
+                name,
+              ),
+              plan: snapshotPlanToolAuthority(planManager, name, args),
+              effectiveToolSet: snapshotEffectiveToolSetAuthority(
+                liveExecutionContext.effectiveAllowedToolNames,
+                name,
+              ),
+              toolAdmission: evaluateSelectedToolAdmissionAuthority({
+                admission: liveExecutionContext.toolAdmission,
+                tool: name,
+                runtimeDescriptor,
+                localToolDescriptor,
+                hostManagedToolPolicy:
+                  liveExecutionContext.hostManagedToolPolicy,
+              }).projection,
+              approval: snapshotApprovalPolicyAuthority(
+                approvalGate,
+                context.sessionId || null,
+              ),
+              unattended: liveExecutionContext.unattendedActionPolicy || null,
+              shellPolicyOverrides:
+                liveExecutionContext.shellPolicyOverrides || null,
+              classifyAllShell: liveExecutionContext.classifyAllShell === true,
+            };
+            if (digestPolicyAuthority(currentProjection) !== initialDigest) {
+              const error = new Error(
+                "Shell permission authority changed after initial admission",
+              );
+              error.code = "CC_SHELL_POLICY_AUTHORITY_CHANGED";
+              throw error;
+            }
+            return true;
+          } catch (error) {
+            if (error?.code === "CC_SHELL_POLICY_AUTHORITY_CHANGED") {
+              throw error;
+            }
+            const wrapped = new Error(
+              "Current shell permission authority could not be revalidated",
+              { cause: error },
+            );
+            wrapped.code =
+              error?.code || "CC_SHELL_POLICY_AUTHORITY_UNAVAILABLE";
+            throw wrapped;
+          }
+        },
+      });
+    } catch (error) {
+      return {
+        error:
+          "[Shell Dispatch] The current permission authority could not be bound. No command side effect was started.",
+        policy: {
+          decision: "blocked",
+          via: "shell-policy-authority",
+          code: error?.code || "CC_SHELL_POLICY_AUTHORITY_UNAVAILABLE",
+        },
+      };
+    }
+  }
+
   // PreToolUse hooks. DB hooks (cc hook add) stay observe-only — a failure
   // never blocks. settings.json hooks (context.settingsHooks) are decision-
   // capable: a `block` (exit 2 / {decision:block}) stops the tool here, an
@@ -2951,12 +3593,14 @@ export async function executeTool(name, args, context = {}) {
       subtreeInstructionScope:
         context.subtreeInstructionScope || context.sessionId || "__legacy__",
       shellPolicyOverrides: context.shellPolicyOverrides || null,
+      classifyAllShell: context.classifyAllShell === true,
       approvalGate: context.approvalGate || null,
       shellConfirm: context.shellConfirm || null,
       additionalDirectories: context.additionalDirectories || null,
       sandbox: context.sandbox || null,
       ruleAllowed,
       settingsVerdict,
+      shellDispatchPolicyAuthority,
       subAgentDepth: context.subAgentDepth || 0,
       subAgentBudget: context.subAgentBudget || null,
       sessionBudget: context.sessionBudget || null,
@@ -4331,6 +4975,7 @@ async function executeToolInner(
     sandbox,
     ruleAllowed = false,
     settingsVerdict = null,
+    shellDispatchPolicyAuthority = null,
     subAgentDepth = 0,
     subAgentBudget = null,
     sessionBudget = null,
@@ -4812,6 +5457,9 @@ async function executeToolInner(
     }
 
     case "run_shell": {
+      // Bound the declared run_shell data once. Approval and dispatch never
+      // observe later mutation of the caller-owned tool arguments.
+      args = Object.isFrozen(args) ? args : snapshotShellExecutionArgs(args);
       if (unattendedActionPolicy?.unattended === true) {
         const unattendedVerdict = evaluateUnattendedShellAction(args.command, {
           ...unattendedActionPolicy,
@@ -4829,12 +5477,12 @@ async function executeToolInner(
         }
       }
 
-      const shellPolicyOpts = {
+      const shellPolicyOpts = Object.freeze({
         ...(shellPolicyOverrides
-          ? { overrideRuleIds: shellPolicyOverrides }
+          ? { overrideRuleIds: Object.freeze([...shellPolicyOverrides]) }
           : {}),
         ...(classifyAllShell ? { classifyAllShell: true } : {}),
-      };
+      });
       // Layer-by-layer explanation chain for a blocked command: which layers
       // were consulted and what each said (settings rules → shell policy →
       // approval gate). Attached to denial results so `/permissions denials`
@@ -4870,60 +5518,80 @@ async function executeToolInner(
         return chain;
       };
       const override = getRuntimeToolDescriptorByCommand(args.command);
-      let shellPolicy;
+      let shellPolicy = evaluateShellCommandPolicy(
+        args.command,
+        shellPolicyOpts,
+      );
       let approvalOutcome = null;
+      let approvalAuthorization = null;
+      let approvalAuthorizationContext = null;
+      let approvalGateResult = null;
       // A settings `allow` rule (ruleAllowed) pre-authorizes: skip the
       // ApprovalGate tier confirm, but still run the hard shell-policy denylist
       // below so an allow rule can never re-enable a blocked unsafe command.
-      if (approvalGate && !ruleAllowed) {
-        const { evaluateShellCommandWithApproval } =
-          await import("../lib/shell-approval.js");
-        const gated = await evaluateShellCommandWithApproval({
-          command: args.command,
-          sessionId,
-          approvalGate,
-          shellPolicyOptions: shellPolicyOpts,
-        });
-        shellPolicy = gated.shellPolicy;
-        approvalOutcome = {
-          decision: gated.decision,
-          via: gated.via,
-          riskLevel: gated.riskLevel,
-          policy: gated.policy,
-        };
-        if (!gated.allowed) {
-          // Make a policy denial ACTIONABLE for the model (Claude-Code 2.1.193
-          // "denial reasons to transcripts"): tell it this won't change on
-          // retry and to involve the user, so it stops re-issuing the same
-          // blocked command (which otherwise just burns turns + tokens).
-          const tierLabel =
-            typeof gated.policy === "string" ? `"${gated.policy}" ` : "";
-          return attachDescriptor(
-            {
-              error:
-                gated.via === "shell-policy"
-                  ? `[Shell Policy] ${gated.reason} This command is blocked by policy and will not run — do not retry it; find another approach.`
-                  : `[ApprovalGate] command denied by the ${tierLabel}approval policy (via ${gated.via}). Retrying the same command will not help — it needs user approval. Tell the user (they can run it themselves, approve it, or relax the policy) and continue with other work.`,
-              shellCommandPolicy: shellPolicy,
-              approval: approvalOutcome,
-              permissionChain: buildPermissionChain(gated),
-            },
-            override || runtimeDescriptor,
+      const requestShellApproval = async (operationArgs) => {
+        await shellDispatchPolicyAuthority?.revalidate?.();
+        if (approvalGate && !ruleAllowed) {
+          const approvalPolicyVersion = `${shellDispatchPolicyAuthority?.policyVersion || "cc-shell-policy-authority/v1:unobserved"}:shell:${shellPolicy.decision}:${shellPolicy.ruleId || "none"}`;
+          const gated = await evaluateShellCommandWithApproval({
+            command: args.command,
+            args: operationArgs,
+            sessionId,
+            approvalGate,
+            shellPolicyOptions: shellPolicyOpts,
+            workspace: args.cwd || cwd,
+            policyEnv: shellParentEnvironment,
+            policyVersion: approvalPolicyVersion,
+            deferSideEffects: true,
+          });
+          approvalGateResult = gated;
+          shellPolicy = gated.shellPolicy;
+          approvalOutcome = {
+            decision: gated.decision,
+            via: gated.via,
+            riskLevel: gated.riskLevel,
+            policy: gated.policy,
+          };
+          approvalAuthorization = gated.authorization;
+          approvalAuthorizationContext = gated.authorizationContext;
+          if (!gated.allowed) {
+            // Make a policy denial ACTIONABLE for the model (Claude-Code 2.1.193
+            // "denial reasons to transcripts"): tell it this won't change on
+            // retry and to involve the user, so it stops re-issuing the same
+            // blocked command (which otherwise just burns turns + tokens).
+            const tierLabel =
+              typeof gated.policy === "string" ? `"${gated.policy}" ` : "";
+            return attachDescriptor(
+              {
+                error:
+                  gated.via === "shell-policy"
+                    ? `[Shell Policy] ${gated.reason} This command is blocked by policy and will not run — do not retry it; find another approach.`
+                    : `[ApprovalGate] command denied by the ${tierLabel}approval policy (via ${gated.via}). Retrying the same command will not help — it needs user approval. Tell the user (they can run it themselves, approve it, or relax the policy) and continue with other work.`,
+                shellCommandPolicy: shellPolicy,
+                approval: approvalOutcome,
+                permissionChain: buildPermissionChain(gated),
+              },
+              override || runtimeDescriptor,
+            );
+          }
+        } else {
+          shellPolicy = evaluateShellCommandPolicy(
+            args.command,
+            shellPolicyOpts,
           );
+          if (!shellPolicy.allowed) {
+            return attachDescriptor(
+              {
+                error: `[Shell Policy] ${shellPolicy.reason} This command is blocked by policy and will not run — do not retry it; find another approach.`,
+                shellCommandPolicy: shellPolicy,
+                permissionChain: buildPermissionChain(null),
+              },
+              override || runtimeDescriptor,
+            );
+          }
         }
-      } else {
-        shellPolicy = evaluateShellCommandPolicy(args.command, shellPolicyOpts);
-        if (!shellPolicy.allowed) {
-          return attachDescriptor(
-            {
-              error: `[Shell Policy] ${shellPolicy.reason} This command is blocked by policy and will not run — do not retry it; find another approach.`,
-              shellCommandPolicy: shellPolicy,
-              permissionChain: buildPermissionChain(null),
-            },
-            override || runtimeDescriptor,
-          );
-        }
-      }
+        return null;
+      };
 
       // P1 #8 Windows/PowerShell first-class: per-call args.shell or the
       // configured settings `shell.windowsDefault` may route this command
@@ -4932,7 +5600,7 @@ async function executeToolInner(
       // the historical default shell byte-identical (useDefaultShell=true).
       const { resolveShellInvocation } =
         await import("../lib/shell-selector.cjs");
-      const shellInv = resolveShellInvocation({
+      let shellInv = resolveShellInvocation({
         command: args.command,
         requested: args.shell,
         cwd: args.cwd || cwd,
@@ -4949,12 +5617,12 @@ async function executeToolInner(
       // Resolver failures for a matching strict alias are terminal — falling
       // back to a shell would bypass target identity and manifest requirements.
       let pluginBinInvocation = null;
-      let reattestPluginBinInvocation = null;
+      let pluginBinRuntime = null;
       let pluginBinSandboxPolicy = null;
       let pluginBinSandboxExecutionContract = null;
       try {
         const pluginBin = await import("../lib/plugin-runtime/bin.js");
-        reattestPluginBinInvocation = pluginBin.reattestPluginBinInvocation;
+        pluginBinRuntime = pluginBin;
         pluginBinSandboxPolicy = collectWorkspacePluginBinSandboxPolicy(
           pluginBin,
           cwd,
@@ -5024,7 +5692,7 @@ async function executeToolInner(
       const processOrigin = pluginBinInvocation
         ? "plugin:bin"
         : "tool:run_shell";
-      const processProvenance = {
+      let processProvenance = {
         ...(pluginBinInvocation
           ? {
               pluginId: pluginBinInvocation.pluginId,
@@ -5058,11 +5726,256 @@ async function executeToolInner(
           }
         : {};
 
+      // Snapshot process-derived execution inputs before confirmation. The
+      // descriptor carries only an opaque, secret-free environment reference;
+      // the actual child environment remains in this invocation-local closure.
+      const shellParentEnvironment = Object.freeze({ ...process.env });
+      const agentIdentityEnvironment = Object.freeze({
+        CLAUDECODE: "1",
+        ...(sessionId
+          ? {
+              CC_SESSION_ID: String(sessionId),
+              CLAUDE_CODE_SESSION_ID: String(sessionId),
+            }
+          : {}),
+      });
+      const credentialProxyResult = applyCredentialProxy(
+        {
+          ...shellParentEnvironment,
+          ...agentIdentityEnvironment,
+        },
+        { env: shellParentEnvironment },
+      );
+      const shellChildEnvironment = Object.freeze({
+        ...credentialProxyResult.env,
+      });
+      const sandboxChildEnvironment = agentIdentityEnvironment;
+      const shellExecutionDescriptor = createShellExecutionDescriptor({
+        args,
+        workspace: args.cwd || cwd,
+        shellInvocation: shellInv,
+        pluginInvocation: pluginBinInvocation,
+        pluginSandboxPolicy: pluginBinSandboxPolicy,
+        pluginSandboxExecutionContract: pluginBinSandboxExecutionContract,
+        sandbox,
+        environmentRef: {
+          id: `run-shell-env:${randomUUID()}`,
+          inheritance: sandbox ? "sandbox-minimal" : "host-snapshot",
+          credentialProxy: credentialProxyResult.enabled === true,
+          maskedNames: Object.freeze([...credentialProxyResult.masked]),
+        },
+      });
+      // From here onward the descriptor itself is the tool-argument snapshot.
+      args = shellExecutionDescriptor;
+      shellInv = shellExecutionDescriptor.execution.shell;
+      const shellSandbox = shellExecutionDescriptor.execution.sandbox;
+      const executionPlugin = shellExecutionDescriptor.execution.plugin;
+      const approvedPluginProjection = executionPlugin
+        ? canonicalPolicyAuthorityData(executionPlugin)
+        : null;
+      const approvedWorkspacePluginPolicy = canonicalPolicyAuthorityData(
+        pluginBinSandboxPolicy,
+      );
+      const approvedPluginInvocationAuthority = pluginBinInvocation
+        ? canonicalPolicyAuthorityData(
+            projectPluginBinInvocationAuthority(pluginBinInvocation),
+          )
+        : null;
+      const refreshPluginBinExecution = () => {
+        if (!executionPlugin) return;
+        if (!pluginBinRuntime) {
+          const error = new Error(
+            "Plugin bin runtime is unavailable during launch revalidation",
+          );
+          error.code = "ERR_PLUGIN_BIN_DISCOVERY_FAILED";
+          error.pluginBinFailClosed = true;
+          throw error;
+        }
+        const freshInvocation = pluginBinRuntime.resolvePluginBinInvocation(
+          shellExecutionDescriptor.command,
+          {
+            cwd,
+            commandCwd: shellExecutionDescriptor.cwd || cwd,
+            failClosed: true,
+          },
+        );
+        if (!freshInvocation) {
+          const error = new Error(
+            "Approved plugin bin alias is no longer available",
+          );
+          error.code = "ERR_PLUGIN_BIN_LAUNCH_AUTHORITY_CHANGED";
+          error.pluginBinFailClosed = true;
+          throw error;
+        }
+        if (
+          canonicalPolicyAuthorityData(
+            projectPluginBinInvocationAuthority(freshInvocation),
+          ) !== approvedPluginInvocationAuthority
+        ) {
+          const error = new Error(
+            "Plugin bin manifest, trust, alias, or sandbox authority changed after approval",
+          );
+          error.code = "ERR_PLUGIN_BIN_LAUNCH_AUTHORITY_CHANGED";
+          error.pluginBinFailClosed = true;
+          throw error;
+        }
+        let freshPolicy = collectWorkspacePluginBinSandboxPolicy(
+          pluginBinRuntime,
+          cwd,
+          shellExecutionDescriptor.cwd || cwd,
+        );
+        if (freshInvocation.sandboxPolicy) {
+          freshPolicy = pluginBinRuntime.pinPluginBinSandboxPolicy(
+            {
+              requiredBoundaries: [
+                ...(freshPolicy?.requiredBoundaries || []),
+                ...(freshInvocation.sandboxPolicy.requiredBoundaries || []),
+              ],
+            },
+            { cwd },
+          );
+        }
+        let freshContract = null;
+        if (
+          freshInvocation.sandboxPolicy &&
+          (process.platform === "linux" ||
+            (process.platform === "win32" &&
+              freshInvocation.runtime === "node"))
+        ) {
+          freshContract = pluginBinRuntime.createPluginSandboxExecutionContract(
+            freshInvocation,
+            { sync: shellExecutionDescriptor.run_in_background !== true },
+          );
+        }
+        const freshProjection = createShellExecutionDescriptor({
+          args: shellExecutionDescriptor,
+          workspace: shellExecutionDescriptor.execution.workspace,
+          shellInvocation: shellExecutionDescriptor.execution.shell,
+          pluginInvocation: freshInvocation,
+          pluginSandboxPolicy: freshPolicy,
+          pluginSandboxExecutionContract: freshContract,
+          sandbox: shellExecutionDescriptor.execution.sandbox,
+          environmentRef: shellExecutionDescriptor.execution.environment,
+        }).execution.plugin;
+        if (
+          canonicalPolicyAuthorityData(freshProjection) !==
+          approvedPluginProjection
+        ) {
+          const error = new Error(
+            "Plugin bin manifest, trust, alias, or sandbox authority changed after approval",
+          );
+          error.code = "ERR_PLUGIN_BIN_LAUNCH_AUTHORITY_CHANGED";
+          error.pluginBinFailClosed = true;
+          throw error;
+        }
+        pluginBinInvocation = freshInvocation;
+        pluginBinSandboxPolicy = freshPolicy;
+        pluginBinSandboxExecutionContract = freshContract;
+        processProvenance = {
+          pluginId: freshInvocation.pluginId,
+          pluginVersion: freshInvocation.pluginVersion,
+          pluginSource: freshInvocation.pluginSource,
+          pluginExecutableIdentity: freshInvocation.executableIdentity,
+          ...(freshPolicy ? { sandboxPolicy: freshPolicy } : {}),
+          ...(freshContract ? { sandboxExecutionContract: freshContract } : {}),
+        };
+      };
+      const refreshPluginExecutionAuthority = () => {
+        if (executionPlugin) {
+          refreshPluginBinExecution();
+          return;
+        }
+        if (!pluginBinRuntime) return;
+        const freshPolicy = collectWorkspacePluginBinSandboxPolicy(
+          pluginBinRuntime,
+          cwd,
+          shellExecutionDescriptor.cwd || cwd,
+        );
+        if (
+          canonicalPolicyAuthorityData(freshPolicy) !==
+          approvedWorkspacePluginPolicy
+        ) {
+          const error = new Error(
+            "Workspace plugin sandbox authority changed after approval",
+          );
+          error.code = "ERR_PLUGIN_BIN_LAUNCH_AUTHORITY_CHANGED";
+          error.pluginBinFailClosed = true;
+          throw error;
+        }
+        pluginBinSandboxPolicy = freshPolicy;
+        processProvenance = freshPolicy ? { sandboxPolicy: freshPolicy } : {};
+      };
+
+      const approvalDenial = await requestShellApproval(
+        shellExecutionDescriptor,
+      );
+      if (approvalDenial) return approvalDenial;
+
+      let shellDispatchAdmitted = false;
+      const admitShellDispatch = async () => {
+        if (shellDispatchAdmitted) {
+          throw new Error("Shell dispatch authorization was already consumed");
+        }
+        await shellDispatchPolicyAuthority?.revalidate?.();
+        refreshPluginExecutionAuthority();
+        const revalidated = evaluateShellCommandPolicy(
+          shellExecutionDescriptor.command,
+          shellPolicyOpts,
+        );
+        if (
+          !revalidated.allowed ||
+          revalidated.decision !== shellPolicy.decision ||
+          (revalidated.ruleId || null) !== (shellPolicy.ruleId || null)
+        ) {
+          const error = new Error(
+            "Shell policy changed after approval; command dispatch was denied",
+          );
+          error.code = "ERR_SHELL_POLICY_REVALIDATION_FAILED";
+          throw error;
+        }
+        if (approvalAuthorization) {
+          if (typeof approvalGate?.consumeAuthorization !== "function") {
+            throw new Error(
+              "Remote shell approval cannot be consumed by this ApprovalGate",
+            );
+          }
+          await approvalGate.consumeAuthorization(
+            approvalAuthorization,
+            approvalAuthorizationContext,
+          );
+          approvalAuthorization = null;
+        }
+        await shellDispatchPolicyAuthority?.revalidate?.();
+        refreshPluginExecutionAuthority();
+        const finalPolicy = evaluateShellCommandPolicy(
+          shellExecutionDescriptor.command,
+          shellPolicyOpts,
+        );
+        if (
+          !finalPolicy.allowed ||
+          finalPolicy.decision !== shellPolicy.decision ||
+          (finalPolicy.ruleId || null) !== (shellPolicy.ruleId || null)
+        ) {
+          const error = new Error(
+            "Shell policy changed while authorization was consumed; command dispatch was denied",
+          );
+          error.code = "ERR_SHELL_POLICY_REVALIDATION_FAILED";
+          throw error;
+        }
+        // Auditing is intentionally committed only after durable authorization
+        // consumption and immediately before the first external side effect.
+        commitShellApprovalSideEffects(approvalGateResult);
+        if (pluginBinInvocation) {
+          pluginBinResult.plugin_bin.launch_identity_reattested = true;
+        }
+        shellDispatchAdmitted = true;
+      };
+
       // Background: spawn, register, return a task_id immediately. The agent
       // polls output + completion via check_shell. No timeout — that's the whole
       // point of backgrounding (builds, test suites, dev servers).
       if (args.run_in_background === true) {
-        if (sandbox) {
+        if (shellSandbox) {
           return attachDescriptor({
             error:
               "[Sandbox] Background shell tasks are not supported in the ephemeral sandbox. Run in the foreground or explicitly disable --sandbox.",
@@ -5124,16 +6037,7 @@ async function executeToolInner(
             cwd: workingDirectory,
             shell: false,
             windowsHide: true,
-            env: applyCredentialProxy({
-              ...process.env,
-              CLAUDECODE: "1",
-              ...(sessionId
-                ? {
-                    CC_SESSION_ID: String(sessionId),
-                    CLAUDE_CODE_SESSION_ID: String(sessionId),
-                  }
-                : {}),
-            }).env,
+            env: shellChildEnvironment,
             detached: false,
             origin: "tool:run_shell",
             policy: "allow",
@@ -5188,6 +6092,9 @@ async function executeToolInner(
             },
           };
         }
+        // Admission precedes task cleanup, sequence allocation, listener
+        // registration, proxy startup and process creation.
+        await admitShellDispatch();
         // Free memory from idle background tasks before adding another, so a
         // long agent run can't accumulate forgotten dev servers (no-op unless
         // the machine is actually under memory pressure).
@@ -5199,7 +6106,7 @@ async function executeToolInner(
           cwd:
             linuxGenericBackgroundLaunch?.options.cwd ||
             (linuxDirectPluginStrongBackground
-              ? pluginBinSandboxExecutionContract.workingDirectory
+              ? executionPlugin.sandboxExecution.workingDirectory
               : args.cwd || cwd),
           status: "running",
           exitCode: null,
@@ -5230,16 +6137,7 @@ async function executeToolInner(
                 // Credential proxy (opt-in, CC_CREDENTIAL_PROXY): keeps the agent's
                 // real long-lived secrets out of the spawned command's env — a
                 // no-op (same object) when disabled. See credential-proxy.js.
-                env: applyCredentialProxy({
-                  ...process.env,
-                  CLAUDECODE: "1",
-                  ...(sessionId
-                    ? {
-                        CC_SESSION_ID: String(sessionId),
-                        CLAUDE_CODE_SESSION_ID: String(sessionId),
-                      }
-                    : {}),
-                }).env,
+                env: shellChildEnvironment,
                 // POSIX: own process group so check_shell{kill}/teardown can signal
                 // the whole tree (shell + its grandchild command). No-op on Windows
                 // where the tree is killed via taskkill /T instead.
@@ -5266,18 +6164,16 @@ async function executeToolInner(
               linuxGenericBackgroundLaunch.options,
             );
           } else if (pluginBinInvocation) {
-            reattestPluginBinInvocation(pluginBinInvocation);
-            pluginBinResult.plugin_bin.launch_identity_reattested = true;
             child = broker.spawn(
-              pluginBinSandboxExecutionContract?.kind ===
+              executionPlugin.sandboxExecution?.kind ===
                 "strict-plugin-node-bin"
-                ? pluginBinSandboxExecutionContract.runtimePath
-                : pluginBinInvocation.command,
-              pluginBinInvocation.args,
+                ? executionPlugin.sandboxExecution.runtimePath
+                : executionPlugin.command,
+              executionPlugin.argv,
               {
                 ...brokerOpts,
                 cwd:
-                  pluginBinSandboxExecutionContract?.workingDirectory ||
+                  executionPlugin.sandboxExecution?.workingDirectory ||
                   brokerOpts.cwd,
                 shell: false,
               },
@@ -5373,7 +6269,7 @@ async function executeToolInner(
         );
       }
 
-      if (sandbox) {
+      if (shellSandbox) {
         if (pluginBinSandboxPolicy) {
           return attachDescriptor(
             {
@@ -5391,15 +6287,16 @@ async function executeToolInner(
             override || runtimeDescriptor,
           );
         }
+        await admitShellDispatch();
         const { executeSandboxedShell, sandboxSummary } =
           await import("../lib/agent-sandbox.js");
         // Domain-restricted networking is ENFORCED by routing the sandboxed
         // process's egress through a local filtering proxy (see
         // sandbox-egress-proxy.js). Start it only when the policy actually
         // restricts domains and network is on; tear it down after the command.
-        const sboxPolicy = sandbox.policy || {};
+        const sboxPolicy = shellSandbox.policy || {};
         const needsEgress =
-          sandbox.network === true &&
+          shellSandbox.network === true &&
           (sboxPolicy.allowedDomains?.length || 0) +
             (sboxPolicy.deniedDomains?.length || 0) >
             0;
@@ -5428,20 +6325,25 @@ async function executeToolInner(
         }
         let result;
         try {
-          result = executeSandboxedShell(args.command, sandbox, {
+          // Proxy startup and dynamic imports are asynchronous. Re-read the
+          // live authority once more after they settle and immediately before
+          // the synchronous sandbox dispatch.
+          await shellDispatchPolicyAuthority?.revalidate?.();
+          refreshPluginExecutionAuthority();
+          if (pluginBinSandboxPolicy) {
+            const error = new Error(
+              "A plugin sandbox authority appeared while the legacy shell sandbox was starting",
+            );
+            error.code = "ERR_PLUGIN_BIN_SANDBOX_ROUTE_CONFLICT";
+            error.pluginBinFailClosed = true;
+            throw error;
+          }
+          result = executeSandboxedShell(args.command, shellSandbox, {
             cwd: args.cwd || cwd,
             timeout: _resolveShellTimeout(args.timeout),
             maxBuffer: 1024 * 1024,
             egressProxy,
-            env: {
-              CLAUDECODE: "1",
-              ...(sessionId
-                ? {
-                    CC_SESSION_ID: String(sessionId),
-                    CLAUDE_CODE_SESSION_ID: String(sessionId),
-                  }
-                : {}),
-            },
+            env: sandboxChildEnvironment,
           });
         } finally {
           if (proxyHandle) {
@@ -5453,7 +6355,7 @@ async function executeToolInner(
           }
         }
         const common = {
-          sandbox: sandboxSummary(sandbox),
+          sandbox: sandboxSummary(shellSandbox),
           shellCommandPolicy: shellPolicy,
           approval: approvalOutcome,
           policyTrace: ["shell-policy", "approval", "sandbox"],
@@ -5492,18 +6394,10 @@ async function executeToolInner(
           // Credential proxy (opt-in, CC_CREDENTIAL_PROXY): keeps the agent's
           // real long-lived secrets out of the shell's env — a no-op (same
           // object) when disabled. See credential-proxy.js.
-          env: applyCredentialProxy({
-            ...process.env,
-            CLAUDECODE: "1",
-            ...(sessionId
-              ? {
-                  CC_SESSION_ID: String(sessionId),
-                  CLAUDE_CODE_SESSION_ID: String(sessionId),
-                }
-              : {}),
-          }).env,
+          env: shellChildEnvironment,
         };
         let output;
+        await admitShellDispatch();
         const brokerExecOpts = {
           ...fgExecOpts,
           origin: processOrigin,
@@ -5512,17 +6406,15 @@ async function executeToolInner(
           ...processProvenance,
         };
         if (pluginBinInvocation) {
-          reattestPluginBinInvocation(pluginBinInvocation);
-          pluginBinResult.plugin_bin.launch_identity_reattested = true;
           const res = broker.spawnSync(
-            pluginBinSandboxExecutionContract?.kind === "strict-plugin-node-bin"
-              ? pluginBinSandboxExecutionContract.runtimePath
-              : pluginBinInvocation.command,
-            pluginBinInvocation.args,
+            executionPlugin.sandboxExecution?.kind === "strict-plugin-node-bin"
+              ? executionPlugin.sandboxExecution.runtimePath
+              : executionPlugin.command,
+            executionPlugin.argv,
             {
               ...brokerExecOpts,
               cwd:
-                pluginBinSandboxExecutionContract?.workingDirectory ||
+                executionPlugin.sandboxExecution?.workingDirectory ||
                 brokerExecOpts.cwd,
               shell: false,
               windowsHide: true,
@@ -5601,6 +6493,15 @@ async function executeToolInner(
               : {}),
             stderr: (err.stderr || "").substring(0, 2000),
             exitCode: err.status,
+            ...(typeof err.code === "string" && err.code
+              ? {
+                  policy: {
+                    decision: "deny",
+                    via: "dispatch-revalidation",
+                    code: err.code,
+                  },
+                }
+              : {}),
             ...shellMeta,
             ...pluginBinResult,
             shellCommandPolicy: shellPolicy,
@@ -5724,8 +6625,18 @@ async function executeToolInner(
         approvalGate &&
         typeof approvalGate.hasConfirmer === "function" &&
         !approvalGate.hasConfirmer();
+      // A durable remote-approval consumer is an explicit fail-closed mode.
+      // run_code does not yet carry an exact lease tuple, so it must still
+      // consult the remote confirmer in headless sessions; that confirmer
+      // returns lease-unavailable and no code is persisted or launched.
+      const durableAuthorizationGate =
+        approvalGate &&
+        typeof approvalGate.hasAuthorizationConsumer === "function" &&
+        approvalGate.hasAuthorizationConsumer() === true;
       if (
-        (interactiveApproval || policyGateNoConfirmer) &&
+        (interactiveApproval ||
+          policyGateNoConfirmer ||
+          durableAuthorizationGate) &&
         approvalGate &&
         !ruleAllowed &&
         typeof approvalGate.decide === "function"
@@ -5736,7 +6647,7 @@ async function executeToolInner(
           sessionId,
           riskLevel: APPROVAL_RISK.HIGH,
           tool: "run_code",
-          args: { language: args.language },
+          args: runCodeApprovalDescriptor(args, cwd),
         });
         if (gate.decision !== APPROVAL_DECISION.ALLOW) {
           // Actionable denial (matches run_shell, Claude-Code 2.1.193): tell the
@@ -5750,6 +6661,23 @@ async function executeToolInner(
               via: gate.via,
               riskLevel: "high",
               policy: gate.policy,
+            },
+          });
+        }
+        if (gate.authorization) {
+          return attachDescriptor({
+            error:
+              "[ApprovalGate] run_code received a durable authorization, but this tool does not yet implement an exact one-shot consume tuple. No code was launched.",
+            approval: {
+              decision: APPROVAL_DECISION.DENY,
+              via: "authorization-consume-unsupported",
+              riskLevel: "high",
+              policy: gate.policy,
+            },
+            policy: {
+              decision: "deny",
+              via: "authorization-consume-unsupported",
+              code: "CC_RUN_CODE_AUTHORIZATION_CONSUME_UNSUPPORTED",
             },
           });
         }

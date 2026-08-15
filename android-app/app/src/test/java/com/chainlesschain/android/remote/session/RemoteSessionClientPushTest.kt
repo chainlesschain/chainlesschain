@@ -69,6 +69,7 @@ class RemoteSessionClientPushTest {
         val join = capturePairJoin { it.setPushCredentials("fcm-token-xyz", "fcm") }
         assertEquals("pair.join", join.getString("type"))
         assertEquals("token-abc", join.getString("token"))
+        assertEquals("approval-binding-v1", join.getJSONArray("capabilities").getString(0))
         assertEquals("fcm-token-xyz", join.getString("pushToken"))
         assertEquals("fcm", join.getString("pushProvider"))
     }

@@ -339,6 +339,44 @@ describe("host publish parity (relay + push wake)", () => {
     });
   });
 
+  it("drops relay and local delivery when membership is revoked after enumeration", async () => {
+    const remoteSessionId = createSessionWithRelayMember();
+    const sendEncrypted = vi.fn();
+    const encrypt = vi.fn((to, data) => ({ enc: true, to, data }));
+    server.remoteSessionRelay = { sendEncrypted };
+    server.remoteSessionCrypto.set(remoteSessionId, { encrypt });
+    const authorize = server.remoteSessions.authorize.bind(
+      server.remoteSessions,
+    );
+    vi.spyOn(server.remoteSessions, "authorize").mockImplementation(
+      (sessionId, clientId, scope) => {
+        if (clientId === "relay-phone") {
+          throw new Error("membership revoked after enumeration");
+        }
+        return authorize(sessionId, clientId, scope);
+      },
+    );
+
+    await handleRemoteSessionPublish(server, "host", host, {
+      id: "revoked-relay",
+      remoteSessionId,
+      event: { type: "assistant.delta", content: "secret" },
+    });
+    expect(encrypt).not.toHaveBeenCalled();
+    expect(sendEncrypted).not.toHaveBeenCalled();
+    expect(host.sent.at(-1)).toMatchObject({ delivered: 0 });
+
+    const staleSocket = socket("relay-phone");
+    server.clients.set("relay-phone", { ws: staleSocket });
+    await handleRemoteSessionPublish(server, "host", host, {
+      id: "revoked-local",
+      remoteSessionId,
+      event: { type: "assistant.delta", content: "secret" },
+    });
+    expect(staleSocket.sent).toEqual([]);
+    expect(host.sent.at(-1)).toMatchObject({ delivered: 0 });
+  });
+
   it("wakes push-registered members for permission.request events only", async () => {
     const remoteSessionId = createSessionWithRelayMember();
 

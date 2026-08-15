@@ -137,5 +137,6 @@ export function parseDirectPairingUri(uri, now = Date.now()) {
     pairingToken: payload.pairingToken,
     scopes: Array.isArray(payload.scopes) ? payload.scopes : null,
     expiresAt: payload.expiresAt ?? null,
+    durableMembership: payload.durableMembership === true,
   };
 }
