@@ -115,8 +115,7 @@ function isNonExecutableMatch(text) {
   }
   if (
     /^(?:pattern:\s*)?\/.*\/[dgimsuvy]*,?$/.test(trimmed) ||
-    /^message:\s*["'`].*child_process/.test(trimmed) ||
-    /^["'`](?:node:)?child_process["'`],?$/.test(trimmed)
+    /^message:\s*["'`].*child_process/.test(trimmed)
   ) {
     return true;
   }

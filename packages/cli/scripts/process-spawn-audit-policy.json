@@ -26,6 +26,15 @@
       "reviewedAt": "2026-07-26"
     },
     {
+      "id": "mcp-static-execution-context-builtin",
+      "disposition": "audited-exemption",
+      "path": "packages/cli/src/lib/mcp-stdio-package-materialization.js",
+      "match": "^\\\"child_process\\\", // spawn-inventory-audit: static-execution-context-builtin$",
+      "reason": "This exact marked line is a static builtin-policy name inside CAPSULE_EXECUTION_CONTEXT_BUILTINS, not a module load or process call; execution-context capsules remain bound to the mandatory Process Broker OS sandbox contract.",
+      "owner": "cli-security",
+      "reviewedAt": "2026-08-16"
+    },
+    {
       "id": "secure-fs-windows-acl-boundary",
       "disposition": "audited-exemption",
       "path": "packages/cli/src/lib/secure-fs.js",
