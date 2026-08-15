@@ -156,6 +156,82 @@ function sameStringArray(left, right) {
   );
 }
 
+function relayCredentialDigest(publicKey) {
+  return createHash("sha256").update(unb64(publicKey)).digest("hex");
+}
+
+function samePendingRelayRequest(left, right) {
+  return (
+    left.peerId === right.peerId &&
+    left.key.equals(right.key) &&
+    left.mobilePublicKey === right.mobilePublicKey &&
+    left.pairingTokenDigest === right.pairingTokenDigest &&
+    left.initialEnvelopeSequence === right.initialEnvelopeSequence &&
+    left.initialEnvelopeTranscriptHash ===
+      right.initialEnvelopeTranscriptHash &&
+    left.expectedPrincipalId === right.expectedPrincipalId &&
+    left.expectedCredentialDigest === right.expectedCredentialDigest &&
+    left.expectedSessionEpoch === right.expectedSessionEpoch &&
+    left.expectedMembershipEpoch === right.expectedMembershipEpoch &&
+    left.baselineAuthorityGeneration === right.baselineAuthorityGeneration &&
+    left.baselineMembershipEpoch === right.baselineMembershipEpoch &&
+    left.baselineMembershipStatus === right.baselineMembershipStatus &&
+    sameStringArray(left.expectedScopes, right.expectedScopes) &&
+    sameStringArray(left.expectedCapabilities, right.expectedCapabilities) &&
+    sameStringArray(
+      left.authority.authorizedScopes,
+      right.authority.authorizedScopes,
+    ) &&
+    left.authority.expiresAtMs === right.authority.expiresAtMs &&
+    left.authority.coordinatorId === right.authority.coordinatorId &&
+    left.authority.serverInstanceId === right.authority.serverInstanceId &&
+    left.authority.authorityVersion === right.authority.authorityVersion
+  );
+}
+
+function createRelayMembershipAcceptance(
+  sessionId,
+  peerId,
+  {
+    mobilePublicKey,
+    pairingTokenDigest,
+    principalId,
+    sessionEpoch,
+    membershipEpoch,
+    scopes,
+    capabilities,
+    statement = null,
+  } = {},
+) {
+  const normalizedPublicKey = canonicalPublicKey(mobilePublicKey);
+  const normalizedScopes = normalizeRelayAuthorityScopes(scopes);
+  const normalizedCapabilities = normalizeRelayCapabilities(capabilities);
+  if (
+    typeof pairingTokenDigest !== "string" ||
+    !/^[0-9a-f]{64}$/.test(pairingTokenDigest) ||
+    typeof principalId !== "string" ||
+    principalId.length === 0 ||
+    typeof sessionEpoch !== "string" ||
+    !/^[1-9]\d*$/.test(sessionEpoch) ||
+    typeof membershipEpoch !== "string" ||
+    !/^[1-9]\d*$/.test(membershipEpoch)
+  ) {
+    throw new Error("Remote relay membership acceptance binding is invalid");
+  }
+  return Object.freeze({
+    sessionId,
+    mobilePeerId: peerId,
+    mobilePublicKey: normalizedPublicKey,
+    pairingTokenDigest,
+    principalId,
+    sessionEpoch,
+    membershipEpoch,
+    scopes: normalizedScopes,
+    capabilities: normalizedCapabilities,
+    statement,
+  });
+}
+
 function decryptEnvelopeWithKey(
   sessionId,
   key,
@@ -284,6 +360,7 @@ export class RemoteSessionCryptoContext {
     privateKey,
     publicKey,
     now = () => Date.now(),
+    faultHooks = null,
   } = {}) {
     if (!sessionId || !localPeerId)
       throw new Error("sessionId and localPeerId are required");
@@ -298,10 +375,12 @@ export class RemoteSessionCryptoContext {
     });
     this.publicKey = publicKey || keyPair.publicKey;
     this._now = now;
+    this._faultHooks = faultHooks || {};
     this.keys = new Map();
     this.pairingMaterial = new Map();
     this.relayPeerBindings = new Map();
     this.acceptedRelayMemberships = new Map();
+    this.pendingCommittedRelayAcceptances = new Map();
     this.pendingRelayCapabilities = new Map();
     this.outstandingRelayCapabilities = new Map();
     this.sendSequence = 0;
@@ -364,6 +443,7 @@ export class RemoteSessionCryptoContext {
     this.outstandingRelayCapabilities.delete(peerId);
     const normalizedPublicKey = canonicalPublicKey(peerPublicKey);
     this.acceptedRelayMemberships.delete(peerId);
+    this.discardPendingRelayMembershipCommit(peerId);
     this.keys.set(
       peerId,
       deriveKey(
@@ -389,8 +469,18 @@ export class RemoteSessionCryptoContext {
   }
 
   encrypt(peerId, message) {
+    const revokesThisPeer =
+      message?.type === "session.revoked" &&
+      message.remoteSessionId === this.sessionId;
     const key = this.keys.get(peerId);
-    if (!key) throw new Error(`No encryption key for peer: ${peerId}`);
+    if (!key) {
+      // A durable join can be authoritative while its candidate key is still
+      // pending publication. A courtesy revoke cannot be encrypted in that
+      // window, but it must still retire the process-local recovery marker so
+      // a later, legitimately re-authorized generation is not blocked.
+      if (revokesThisPeer) this.clearRelayPeer(peerId);
+      throw new Error(`No encryption key for peer: ${peerId}`);
+    }
     const sequence = ++this.sendSequence;
     const nonce = randomBytes(12);
     const cipher = createCipheriv("aes-256-gcm", key, nonce);
@@ -399,7 +489,7 @@ export class RemoteSessionCryptoContext {
       cipher.update(JSON.stringify(message), "utf8"),
       cipher.final(),
     ]);
-    return {
+    const envelope = {
       v: 1,
       sessionId: this.sessionId,
       senderId: this.localPeerId,
@@ -408,6 +498,12 @@ export class RemoteSessionCryptoContext {
       ciphertext: b64(ciphertext),
       tag: b64(cipher.getAuthTag()),
     };
+    if (revokesThisPeer) {
+      // The ciphertext is complete; remove every local generation for this
+      // peer before the courtesy revoke frame is physically sent.
+      this.clearRelayPeer(peerId);
+    }
+    return envelope;
   }
 
   decrypt(envelope) {
@@ -560,6 +656,9 @@ export class RemoteSessionCryptoContext {
       mobilePublicKey: normalizedPublicKey,
       pairingTokenDigest,
       envelopeSequence: envelope.sequence,
+      envelopeTranscriptHash: relayEnvelopeTranscriptHash(envelope),
+      authority,
+      possessionCapability,
     });
     return Object.freeze({
       message,
@@ -590,6 +689,363 @@ export class RemoteSessionCryptoContext {
     });
     this.receivedSequences.set(candidate.peerId, candidate.envelopeSequence);
     this.acceptedRelayMemberships.delete(candidate.peerId);
+    this.discardPendingRelayMembershipCommit(candidate.peerId);
+  }
+
+  /**
+   * Arm recovery before invoking the durable coordinator/registry. This moves
+   * the verified candidate out of the opaque stage and binds its exact request,
+   * authority instance, and pre-join authority generation without publishing
+   * a live peer key, replay high-water mark, or acceptance receipt.
+   */
+  armPendingRelayMembershipCommit(
+    stage,
+    { authoritySnapshot, scopes, capabilities } = {},
+  ) {
+    const candidate = stagedRelayPairings.get(stage);
+    const snapshot = authoritySnapshot;
+    if (
+      !candidate ||
+      candidate.owner !== this ||
+      !candidate.authority ||
+      snapshot?.sessionId !== this.sessionId ||
+      snapshot.status !== "active" ||
+      !/^[1-9]\d*$/.test(String(snapshot.sessionEpoch)) ||
+      !/^\d+$/.test(String(snapshot.authorityGeneration)) ||
+      !Array.isArray(snapshot.members)
+    ) {
+      throw new Error("Remote relay pairing stage is invalid or stale");
+    }
+    const expectedScopes = normalizeRelayAuthorityScopes(scopes);
+    const expectedCapabilities = normalizeRelayCapabilities(capabilities);
+    if (
+      expectedScopes.some(
+        (scope) => !candidate.authority.authorizedScopes.includes(scope),
+      )
+    ) {
+      throw new Error("Remote relay membership request exceeds its authority");
+    }
+    const expectedCredentialDigest = relayCredentialDigest(
+      candidate.mobilePublicKey,
+    );
+    const expectedPrincipalId = `relay-x25519:${expectedCredentialDigest}`;
+    const baselineMember = snapshot.members.find(
+      (member) => member.principalId === expectedPrincipalId,
+    );
+    if (baselineMember?.status === "active") {
+      throw new Error("Remote relay principal is already active");
+    }
+    if (
+      baselineMember &&
+      baselineMember.credentialKeySha256 !== expectedCredentialDigest
+    ) {
+      throw new Error("Remote relay authority credential binding changed");
+    }
+    const pending = Object.freeze({
+      phase: "prepared",
+      peerId: candidate.peerId,
+      key: candidate.key,
+      mobilePublicKey: candidate.mobilePublicKey,
+      pairingTokenDigest: candidate.pairingTokenDigest,
+      initialEnvelopeSequence: candidate.envelopeSequence,
+      initialEnvelopeTranscriptHash: candidate.envelopeTranscriptHash,
+      localHighWater: candidate.envelopeSequence,
+      authority: candidate.authority,
+      possessionCapability: candidate.possessionCapability,
+      expectedPrincipalId,
+      expectedCredentialDigest,
+      expectedSessionEpoch: String(snapshot.sessionEpoch),
+      expectedMembershipEpoch: baselineMember
+        ? String(BigInt(baselineMember.membershipEpoch) + 1n)
+        : "1",
+      expectedScopes,
+      expectedCapabilities,
+      baselineAuthorityGeneration: String(snapshot.authorityGeneration),
+      baselineMembershipEpoch: baselineMember?.membershipEpoch || null,
+      baselineMembershipStatus: baselineMember?.status || null,
+      receipt: null,
+    });
+    const existing = this.pendingCommittedRelayAcceptances.get(
+      candidate.peerId,
+    );
+    if (existing && !samePendingRelayRequest(existing, pending)) {
+      throw new Error(
+        "Remote relay peer already has a different pending membership commit",
+      );
+    }
+    if (!existing) {
+      this.pendingCommittedRelayAcceptances.set(candidate.peerId, pending);
+    } else if (candidate.possessionCapability) {
+      relayPossessionCapabilities.delete(candidate.possessionCapability);
+    }
+    stagedRelayPairings.delete(stage);
+    return existing || pending;
+  }
+
+  completePendingCommittedRelayAcceptance(peerId, acceptance) {
+    const pending = this.pendingCommittedRelayAcceptances.get(peerId);
+    if (!pending) {
+      throw new Error("Remote relay committed acceptance is unavailable");
+    }
+    // This boundary is deliberately after RemoteSessionRegistry.joinRelayMember
+    // has returned (including its local transport attachment). A coordinator
+    // commit that fails before registry attachment remains fail-closed because
+    // this three-file slice has no trusted public reattach operation.
+    this._faultHooks.afterRelayRegistryCommit?.({
+      sessionId: this.sessionId,
+      peerId,
+      expectedPrincipalId: pending.expectedPrincipalId,
+      expectedSessionEpoch: pending.expectedSessionEpoch,
+      expectedMembershipEpoch: pending.expectedMembershipEpoch,
+    });
+    const receipt = createRelayMembershipAcceptance(
+      this.sessionId,
+      peerId,
+      acceptance,
+    );
+    if (
+      receipt.mobilePublicKey !== pending.mobilePublicKey ||
+      receipt.pairingTokenDigest !== pending.pairingTokenDigest ||
+      receipt.principalId !== pending.expectedPrincipalId ||
+      receipt.sessionEpoch !== pending.expectedSessionEpoch ||
+      receipt.membershipEpoch !== pending.expectedMembershipEpoch ||
+      !sameStringArray(receipt.scopes, pending.expectedScopes) ||
+      !sameStringArray(receipt.capabilities, pending.expectedCapabilities)
+    ) {
+      throw new Error("Remote relay membership acceptance binding is invalid");
+    }
+    this.pendingCommittedRelayAcceptances.set(
+      peerId,
+      Object.freeze({ ...pending, phase: "committed", receipt }),
+    );
+    return receipt;
+  }
+
+  resolvePendingRelayMembershipCommit(
+    peerId,
+    authorityRead,
+    authorityDescriptor,
+  ) {
+    const pending = this.pendingCommittedRelayAcceptances.get(peerId);
+    const session = authorityRead?.session;
+    const statement = authorityRead?.statement;
+    if (
+      !pending ||
+      !session ||
+      session.sessionId !== this.sessionId ||
+      authorityDescriptor?.coordinatorId !== pending.authority.coordinatorId ||
+      authorityDescriptor?.serverInstanceId !==
+        pending.authority.serverInstanceId ||
+      authorityDescriptor?.authorityVersion !==
+        pending.authority.authorityVersion ||
+      statement?.coordinatorId !== pending.authority.coordinatorId ||
+      statement?.authorityVersion !== pending.authority.authorityVersion ||
+      statement?.generation !== String(session.authorityGeneration) ||
+      statement?.payload?.sessionId !== session.sessionId ||
+      statement?.payload?.sessionEpoch !== session.sessionEpoch
+    ) {
+      return Object.freeze({ status: "fenced", receipt: null });
+    }
+    const member = session.members?.find(
+      (candidate) => candidate.principalId === pending.expectedPrincipalId,
+    );
+    const generationAdvanced =
+      /^\d+$/.test(String(session.authorityGeneration)) &&
+      BigInt(session.authorityGeneration) >
+        BigInt(pending.baselineAuthorityGeneration);
+    if (
+      generationAdvanced &&
+      session.status === "active" &&
+      String(session.sessionEpoch) === pending.expectedSessionEpoch &&
+      member?.status === "active" &&
+      member.credentialKeySha256 === pending.expectedCredentialDigest &&
+      String(member.membershipEpoch) === pending.expectedMembershipEpoch &&
+      sameStringArray(
+        normalizeRelayAuthorityScopes(member.scopes),
+        pending.expectedScopes,
+      )
+    ) {
+      const receipt = createRelayMembershipAcceptance(this.sessionId, peerId, {
+        mobilePublicKey: pending.mobilePublicKey,
+        pairingTokenDigest: pending.pairingTokenDigest,
+        principalId: pending.expectedPrincipalId,
+        sessionEpoch: pending.expectedSessionEpoch,
+        membershipEpoch: pending.expectedMembershipEpoch,
+        scopes: pending.expectedScopes,
+        capabilities: pending.expectedCapabilities,
+        statement: authorityRead.statement || null,
+      });
+      this.pendingCommittedRelayAcceptances.set(
+        peerId,
+        Object.freeze({ ...pending, phase: "committed", receipt }),
+      );
+      return Object.freeze({ status: "committed", receipt });
+    }
+    const baselineMemberUnchanged = pending.baselineMembershipEpoch
+      ? member?.status === pending.baselineMembershipStatus &&
+        String(member.membershipEpoch) === pending.baselineMembershipEpoch &&
+        member.credentialKeySha256 === pending.expectedCredentialDigest
+      : !member;
+    if (
+      session.status === "active" &&
+      String(session.sessionEpoch) === pending.expectedSessionEpoch &&
+      baselineMemberUnchanged
+    ) {
+      return Object.freeze({ status: "not-committed", receipt: null });
+    }
+    return Object.freeze({ status: "fenced", receipt: null });
+  }
+
+  discardPendingRelayMembershipCommit(peerId) {
+    const pending = this.pendingCommittedRelayAcceptances.get(peerId);
+    if (!pending) return false;
+    if (pending.possessionCapability) {
+      relayPossessionCapabilities.delete(pending.possessionCapability);
+    }
+    this.pendingCommittedRelayAcceptances.delete(peerId);
+    return true;
+  }
+
+  /**
+   * Publish a previously armed durable outcome. Pending is deleted last, so a
+   * synchronous failure at either injected boundary can safely re-enter this
+   * method without lowering an already-observed replay high-water mark.
+   */
+  finalizeCommittedRelayAcceptance(peerId) {
+    const pending = this.pendingCommittedRelayAcceptances.get(peerId);
+    if (!pending) {
+      const accepted = this.acceptedRelayMemberships.get(peerId);
+      if (accepted) return accepted;
+      throw new Error("Remote relay committed acceptance is unavailable");
+    }
+    if (pending.phase !== "committed" || !pending.receipt) {
+      throw new Error("Remote relay committed acceptance is not authoritative");
+    }
+    const outstandingCapability = this.outstandingRelayCapabilities.get(peerId);
+    if (outstandingCapability) {
+      relayPossessionCapabilities.delete(outstandingCapability);
+    }
+    this.pendingRelayCapabilities.delete(peerId);
+    this.outstandingRelayCapabilities.delete(peerId);
+    this.pairingMaterial.delete(peerId);
+    this.keys.set(peerId, pending.key);
+    this.relayPeerBindings.set(peerId, {
+      mobilePublicKey: pending.mobilePublicKey,
+      pairingTokenDigest: pending.pairingTokenDigest,
+    });
+    // The candidate key starts a distinct sequence generation. Never mix an
+    // old live key's high-water into it; pending-local authenticated progress
+    // becomes live only with the exact committed authority tuple.
+    this.receivedSequences.set(peerId, pending.localHighWater);
+    this.acceptedRelayMemberships.delete(peerId);
+    this._faultHooks.afterCommittedRelayKeyPublication?.({
+      sessionId: this.sessionId,
+      peerId,
+      principalId: pending.receipt.principalId,
+      sessionEpoch: pending.receipt.sessionEpoch,
+      membershipEpoch: pending.receipt.membershipEpoch,
+    });
+    this.acceptedRelayMemberships.set(peerId, pending.receipt);
+    this.pendingCommittedRelayAcceptances.delete(peerId);
+    this._faultHooks.afterCommittedRelayReceiptPublication?.({
+      sessionId: this.sessionId,
+      peerId,
+      principalId: pending.receipt.principalId,
+      sessionEpoch: pending.receipt.sessionEpoch,
+      membershipEpoch: pending.receipt.membershipEpoch,
+    });
+    return pending.receipt;
+  }
+
+  decryptPendingCommittedRelayAcceptance(peerId, envelope) {
+    const pending = this.pendingCommittedRelayAcceptances.get(peerId);
+    if (!pending || envelope?.senderId !== peerId) {
+      throw new Error("Remote relay committed acceptance is unavailable");
+    }
+    const previous = pending.localHighWater;
+    const message = decryptEnvelopeWithKey(
+      this.sessionId,
+      pending.key,
+      envelope,
+      previous,
+    );
+    // Keep retry progress isolated from the live key generation until fresh
+    // authority readback and exact tuple validation permit final publication.
+    this.pendingCommittedRelayAcceptances.set(
+      peerId,
+      Object.freeze({ ...pending, localHighWater: envelope.sequence }),
+    );
+    return message;
+  }
+
+  readPendingCommittedRelayAcceptance(
+    peerId,
+    { mobilePublicKey, pairingTokenDigest, capabilities } = {},
+  ) {
+    const receipt =
+      this.pendingCommittedRelayAcceptances.get(peerId)?.receipt || null;
+    const normalizedPublicKey = canonicalPublicKey(mobilePublicKey);
+    const normalizedCapabilities = normalizeRelayCapabilities(capabilities);
+    if (
+      !receipt ||
+      receipt.mobilePublicKey !== normalizedPublicKey ||
+      receipt.pairingTokenDigest !== pairingTokenDigest ||
+      !sameStringArray(receipt.capabilities, normalizedCapabilities)
+    ) {
+      throw new Error(
+        "Remote relay committed acceptance is unavailable or mismatched",
+      );
+    }
+    return receipt;
+  }
+
+  hasPendingCommittedRelayAcceptance(peerId) {
+    return this.pendingCommittedRelayAcceptances.has(peerId);
+  }
+
+  readPendingRelayMembershipRequest(
+    peerId,
+    { mobilePublicKey, pairingTokenDigest, capabilities } = {},
+  ) {
+    const pending = this.pendingCommittedRelayAcceptances.get(peerId) || null;
+    const normalizedPublicKey = canonicalPublicKey(mobilePublicKey);
+    const normalizedCapabilities = normalizeRelayCapabilities(capabilities);
+    if (
+      !pending ||
+      pending.mobilePublicKey !== normalizedPublicKey ||
+      pending.pairingTokenDigest !== pairingTokenDigest ||
+      !sameStringArray(pending.expectedCapabilities, normalizedCapabilities)
+    ) {
+      throw new Error(
+        "Remote relay pending membership request is unavailable or mismatched",
+      );
+    }
+    return Object.freeze({
+      sessionId: this.sessionId,
+      mobilePeerId: peerId,
+      pairingTokenDigest: pending.pairingTokenDigest,
+      expectedPrincipalId: pending.expectedPrincipalId,
+      expectedSessionEpoch: pending.expectedSessionEpoch,
+      expectedMembershipEpoch: pending.expectedMembershipEpoch,
+      scopes: pending.expectedScopes,
+      capabilities: pending.expectedCapabilities,
+      phase: pending.phase,
+    });
+  }
+
+  clearRelayPeer(peerId) {
+    const outstandingCapability = this.outstandingRelayCapabilities.get(peerId);
+    if (outstandingCapability) {
+      relayPossessionCapabilities.delete(outstandingCapability);
+    }
+    this.discardPendingRelayMembershipCommit(peerId);
+    this.pendingRelayCapabilities.delete(peerId);
+    this.outstandingRelayCapabilities.delete(peerId);
+    this.pairingMaterial.delete(peerId);
+    this.keys.delete(peerId);
+    this.relayPeerBindings.delete(peerId);
+    this.receivedSequences.delete(peerId);
+    this.acceptedRelayMemberships.delete(peerId);
   }
 
   takeRelayPossessionCapability(peerId) {
@@ -622,34 +1078,23 @@ export class RemoteSessionCryptoContext {
     } = {},
   ) {
     const peer = this.relayPeerBindings.get(peerId);
-    const normalizedPublicKey = canonicalPublicKey(mobilePublicKey);
-    const normalizedScopes = normalizeRelayAuthorityScopes(scopes);
-    const normalizedCapabilities = normalizeRelayCapabilities(capabilities);
-    if (
-      !peer ||
-      peer.mobilePublicKey !== normalizedPublicKey ||
-      peer.pairingTokenDigest !== pairingTokenDigest ||
-      typeof principalId !== "string" ||
-      principalId.length === 0 ||
-      typeof sessionEpoch !== "string" ||
-      !/^[1-9]\d*$/.test(sessionEpoch) ||
-      typeof membershipEpoch !== "string" ||
-      !/^[1-9]\d*$/.test(membershipEpoch)
-    ) {
-      throw new Error("Remote relay membership acceptance binding is invalid");
-    }
-    const receipt = Object.freeze({
-      sessionId: this.sessionId,
-      mobilePeerId: peerId,
-      mobilePublicKey: normalizedPublicKey,
+    const receipt = createRelayMembershipAcceptance(this.sessionId, peerId, {
+      mobilePublicKey,
       pairingTokenDigest,
       principalId,
       sessionEpoch,
       membershipEpoch,
-      scopes: normalizedScopes,
-      capabilities: normalizedCapabilities,
+      scopes,
+      capabilities,
       statement,
     });
+    if (
+      !peer ||
+      peer.mobilePublicKey !== receipt.mobilePublicKey ||
+      peer.pairingTokenDigest !== receipt.pairingTokenDigest
+    ) {
+      throw new Error("Remote relay membership acceptance binding is invalid");
+    }
     this.acceptedRelayMemberships.set(peerId, receipt);
     return receipt;
   }
