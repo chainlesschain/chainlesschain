@@ -32,11 +32,22 @@ function collectRepeatableOption(value, previous = []) {
   return [...previous, value];
 }
 
-async function buildRegistryInstallPreflight(url, resolved, cwd) {
+function normalizeRegistryUrls(value) {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  return value ? [value] : [];
+}
+
+async function loadOptionalPluginConfig() {
+  try {
+    const cm = await import("../lib/config-manager.js");
+    return cm.loadConfig();
+  } catch {
+    return null;
+  }
+}
+
+async function discoverInstalledPluginVersions(cwd) {
   const { discoverPlugins } = await import("../lib/plugin-runtime/scopes.js");
-  const { VERSION } = await import("../constants.js");
-  const { buildPluginMarketplaceInstallPreflight } =
-    await import("../lib/plugin-runtime/marketplace-catalog.js");
   const installed = {};
   try {
     for (const row of discoverPlugins({ cwd, skipPolicy: true })) {
@@ -45,6 +56,99 @@ async function buildRegistryInstallPreflight(url, resolved, cwd) {
   } catch {
     /* an empty inventory conservatively leaves declared dependencies missing */
   }
+  return installed;
+}
+
+async function buildRegistrySetSelection(
+  registryUrls,
+  name,
+  cwd,
+  { token, allowInsecure = false, strict = false } = {},
+) {
+  const { fetchRegistry, resolveRegistryToken } =
+    await import("../lib/plugin-runtime/remote-source.js");
+  const {
+    buildPluginMarketplaceCatalog,
+    buildPluginMarketplaceCandidateSelection,
+    buildPluginMarketplaceInstallPreflightFromSelection,
+    MAX_MARKETPLACE_CATALOG_SOURCES,
+  } = await import("../lib/plugin-runtime/marketplace-catalog.js");
+  if (registryUrls.length === 0) {
+    throw new Error("at least one registry source is required");
+  }
+  if (registryUrls.length > MAX_MARKETPLACE_CATALOG_SOURCES) {
+    throw new Error(
+      `at most ${MAX_MARKETPLACE_CATALOG_SOURCES} registry sources are allowed`,
+    );
+  }
+  const config = await loadOptionalPluginConfig();
+  const sources = await Promise.all(
+    registryUrls.map(async (url) => {
+      try {
+        const resolvedToken = resolveRegistryToken(url, { token, config });
+        const resolved = await fetchRegistry(url, {
+          token: resolvedToken,
+          allowInsecure,
+        });
+        return { url, ...resolved };
+      } catch (error) {
+        return {
+          url,
+          error: {
+            code: "REGISTRY_FETCH_FAILED",
+            message: error.message,
+          },
+        };
+      }
+    }),
+  );
+  const { VERSION } = await import("../constants.js");
+  const catalog = buildPluginMarketplaceCatalog({
+    sources,
+    installed: await discoverInstalledPluginVersions(cwd),
+    hostVersion: VERSION,
+    strict,
+  });
+  const selection = buildPluginMarketplaceCandidateSelection({
+    catalog,
+    name,
+  });
+  if (!selection.selected) {
+    return { catalog, selection, preflight: null, resolved: null };
+  }
+  const preflight = buildPluginMarketplaceInstallPreflightFromSelection({
+    catalog,
+    selection,
+  }).preflight;
+  const sourceIndex = selection.selected.registry.priority;
+  const entryIndex = selection.selected.registry.entryIndex;
+  const source = sources[sourceIndex];
+  const entry = source?.registry?.plugins?.[entryIndex];
+  if (!entry || entry.name !== selection.selected.name) {
+    throw new Error(
+      "selected registry entry no longer matches catalog authority",
+    );
+  }
+  return {
+    catalog,
+    selection,
+    preflight,
+    resolved: {
+      registryUrl: registryUrls[sourceIndex],
+      source: entry.ref ? `${entry.source}#${entry.ref}` : entry.source,
+      ref: entry.ref || null,
+      sha256: entry.sha256 || null,
+      entry,
+      fromCache: source.fromCache === true,
+    },
+  };
+}
+
+async function buildRegistryInstallPreflight(url, resolved, cwd) {
+  const { VERSION } = await import("../constants.js");
+  const { buildPluginMarketplaceInstallPreflight } =
+    await import("../lib/plugin-runtime/marketplace-catalog.js");
+  const installed = await discoverInstalledPluginVersions(cwd);
   return buildPluginMarketplaceInstallPreflight({
     registryUrl: url,
     entry: resolved.entry,
@@ -62,6 +166,12 @@ function catalogAuthorityFromPreflight(preflight, impact = null) {
     governanceStatus: preflight.governance.status,
     registryStatus: preflight.registry.status,
     versionAuthority: preflight.versionAuthority,
+    ...(preflight.selectionDigest
+      ? {
+          selectionDigest: preflight.selectionDigest,
+          selectionSourceCount: preflight.selectionSourceCount,
+        }
+      : {}),
     ...(impact ? { updateImpactDigest: impact.impactDigest } : {}),
   };
 }
@@ -72,6 +182,25 @@ function marketplacePreflightBlockerMessage(preflight) {
       blocker.detail ? `${blocker.code} (${blocker.detail})` : blocker.code,
     )
     .join(", ");
+}
+
+function assertExpectedSelectionDigest(expectedDigest, preflight) {
+  if (!expectedDigest) return;
+  if (!/^[a-f0-9]{64}$/.test(expectedDigest)) {
+    throw new Error(
+      "registry candidate preflight blocked: INVALID_EXPECTED_SELECTION_DIGEST",
+    );
+  }
+  if (!preflight?.selectionDigest) {
+    throw new Error(
+      "registry candidate preflight blocked: EXPECTED_SELECTION_DIGEST_REQUIRES_REGISTRY_SET",
+    );
+  }
+  if (expectedDigest !== preflight.selectionDigest) {
+    throw new Error(
+      `registry candidate preflight blocked: MARKETPLACE_SELECTION_DIGEST_MISMATCH (expected ${expectedDigest}, actual ${preflight.selectionDigest})`,
+    );
+  }
 }
 
 async function installedCatalogAuthorityMatches(
@@ -92,6 +221,8 @@ async function installedCatalogAuthorityMatches(
       authority?.catalogDigest === preflight.catalogDigest &&
       authority?.candidateId === preflight.candidateId &&
       authority?.candidateDigest === preflight.candidateDigest &&
+      (!preflight.selectionDigest ||
+        authority?.selectionDigest === preflight.selectionDigest) &&
       (!impact || authority?.updateImpactDigest === impact.impactDigest) &&
       authority?.preflightStatus === "allowed"
     );
@@ -1017,7 +1148,9 @@ export function registerPluginCommand(program) {
     .option("--public-key <path>", "Public key for signature verification")
     .option(
       "--registry <url>",
-      "Resolve <source> as a plugin NAME in this registry URL",
+      "Registry URL used to resolve <source> as a plugin name (repeatable)",
+      collectRepeatableOption,
+      [],
     )
     .option(
       "--name <plugin>",
@@ -1027,6 +1160,10 @@ export function registerPluginCommand(program) {
     .option(
       "--allow-insecure-registry",
       "Allow a plain-HTTP registry URL (MITM risk — trusted networks only)",
+    )
+    .option(
+      "--expected-selection-digest <sha256>",
+      "Require the exact digest from a prior multi-registry `cc plugin select` review",
     )
     .option(
       "--grant-capabilities",
@@ -1044,39 +1181,60 @@ export function registerPluginCommand(program) {
       let sourceMetadata = null;
       let expectedIdentity = null;
       let marketplacePreflight = null;
+      const registryUrls = normalizeRegistryUrls(options.registry);
       const { isRemoteSource, resolveRemoteSource } =
         await import("../lib/plugin-runtime/remote-source.js");
-      if (options.registry || isRemoteSource(source)) {
-        const url = options.registry || source;
-        // With --registry the positional arg is the plugin NAME; otherwise the
-        // URL is positional and --name selects.
-        const name = options.registry ? source : options.name;
-        let config = null;
+      if (registryUrls.length || isRemoteSource(source)) {
         try {
-          ({ loadConfig: config } = await import("../lib/config-manager.js"));
-          config = config();
-        } catch {
-          config = null; // config is optional — token can come from --token/env
-        }
-        try {
-          const resolved = await resolveRemoteSource(url, {
-            name,
-            token: options.token,
-            config,
-            allowInsecure: options.allowInsecureRegistry === true,
-          });
+          let resolved;
+          let url;
+          let name;
+          if (registryUrls.length) {
+            name = source;
+            const selected = await buildRegistrySetSelection(
+              registryUrls,
+              name,
+              process.cwd(),
+              {
+                token: options.token,
+                allowInsecure: options.allowInsecureRegistry === true,
+              },
+            );
+            resolved = selected.resolved;
+            marketplacePreflight = selected.preflight;
+            url = resolved?.registryUrl;
+            if (!marketplacePreflight || !resolved) {
+              throw new Error(
+                `registry candidate preflight blocked: ${selected.selection.blockers.map((blocker) => blocker.code).join(", ") || "PLUGIN_NOT_FOUND"}`,
+              );
+            }
+          } else {
+            url = source;
+            name = options.name;
+            const config = await loadOptionalPluginConfig();
+            resolved = await resolveRemoteSource(url, {
+              name,
+              token: options.token,
+              config,
+              allowInsecure: options.allowInsecureRegistry === true,
+            });
+            marketplacePreflight = await buildRegistryInstallPreflight(
+              url,
+              resolved,
+              process.cwd(),
+            );
+          }
           installSource = resolved.source;
           integritySha = resolved.sha256;
-          marketplacePreflight = await buildRegistryInstallPreflight(
-            url,
-            resolved,
-            process.cwd(),
-          );
           if (marketplacePreflight.status !== "allowed") {
             throw new Error(
               `registry candidate preflight blocked: ${marketplacePreflightBlockerMessage(marketplacePreflight)}`,
             );
           }
+          assertExpectedSelectionDigest(
+            options.expectedSelectionDigest,
+            marketplacePreflight,
+          );
           expectedIdentity = {
             name:
               typeof resolved.entry.name === "string"
@@ -1153,7 +1311,7 @@ export function registerPluginCommand(program) {
           sourceMetadata,
           expectedIdentity,
           managedPolicy: managed,
-          policySource: options.registry || source,
+          policySource: sourceMetadata?.registry || source,
         });
         const marketplaceAuthorityPersisted = marketplacePreflight
           ? res.sourceMetadata?.catalogAuthority?.catalogDigest ===
@@ -1161,7 +1319,10 @@ export function registerPluginCommand(program) {
             res.sourceMetadata?.catalogAuthority?.candidateId ===
               marketplacePreflight.candidateId &&
             res.sourceMetadata?.catalogAuthority?.candidateDigest ===
-              marketplacePreflight.candidateDigest
+              marketplacePreflight.candidateDigest &&
+            (!marketplacePreflight.selectionDigest ||
+              res.sourceMetadata?.catalogAuthority?.selectionDigest ===
+                marketplacePreflight.selectionDigest)
           : null;
         if (marketplacePreflight && !marketplaceAuthorityPersisted) {
           setPluginEnabled(res.name, false, {
@@ -1501,6 +1662,81 @@ export function registerPluginCommand(program) {
       }
     });
 
+  // plugin select — deterministically select one exact plugin across a
+  // requested registry set and expose the stable pre-clone authority digest.
+  plugin
+    .command("select <name>")
+    .description(
+      "Select the highest-ranked install candidate across an exact registry set",
+    )
+    .option(
+      "--registry <url>",
+      "Registry URL to include (repeatable; earlier sources win version ties)",
+      collectRepeatableOption,
+      [],
+    )
+    .option("--token <token>", "Bearer token for private registries")
+    .option(
+      "--allow-insecure-registry",
+      "Allow plain-HTTP registry URLs (MITM risk — trusted networks only)",
+    )
+    .option(
+      "--strict",
+      "Block candidates missing digest, signature, SBOM, license, or capabilities",
+    )
+    .option("--json", "Output the versioned candidate selection as JSON")
+    .action(async (name, options) => {
+      try {
+        const result = await buildRegistrySetSelection(
+          normalizeRegistryUrls(options.registry),
+          name,
+          process.cwd(),
+          {
+            token: options.token,
+            allowInsecure: options.allowInsecureRegistry === true,
+            strict: options.strict === true,
+          },
+        );
+        const { selection } = result;
+        if (options.json) {
+          console.log(JSON.stringify(selection, null, 2));
+        } else {
+          logger.log(
+            chalk.bold(
+              `${name}: ${selection.status} across ${selection.sourceCount} registries`,
+            ),
+          );
+          if (selection.selected) {
+            logger.log(
+              `  selected: v${selection.selected.version || "manifest-deferred"} from ${selection.selected.registry.sourceId}`,
+            );
+            logger.log(
+              `  package: ${selection.selected.package.source || "missing"}${selection.selected.package.ref ? `#${selection.selected.package.ref}` : ""}`,
+            );
+          }
+          if (selection.blockers.length) {
+            logger.log(
+              chalk.red(
+                `  blockers: ${selection.blockers.map((blocker) => blocker.code).join(", ")}`,
+              ),
+            );
+          }
+          logger.log(
+            chalk.gray(`  selection digest: ${selection.selectionDigest}`),
+          );
+          logger.log(
+            chalk.gray(
+              "  Registry metadata is unverified; no candidate bytes were fetched or executed.",
+            ),
+          );
+        }
+        if (selection.status === "blocked") process.exitCode = 2;
+      } catch (error) {
+        logger.error(`Marketplace selection failed: ${error.message}`);
+        process.exitCode = 1;
+      }
+    });
+
   // plugin impact — compare one registry candidate with the active immutable
   // install before upgrade. This never clones or executes candidate bytes.
   plugin
@@ -1508,7 +1744,12 @@ export function registerPluginCommand(program) {
     .description(
       "Preview version, source, integrity, license, capability, and dependency impact before a registry upgrade",
     )
-    .requiredOption("--registry <url>", "Registry URL containing the candidate")
+    .option(
+      "--registry <url>",
+      "Registry URL containing the candidate (repeatable)",
+      collectRepeatableOption,
+      [],
+    )
     .option("--scope <scope>", "Installed plugin scope", "user")
     .option("--token <token>", "Bearer token for a private registry")
     .option(
@@ -1517,27 +1758,23 @@ export function registerPluginCommand(program) {
     )
     .option("--json", "Output the versioned update-impact projection as JSON")
     .action(async (name, options) => {
-      const { resolveRemoteSource } =
-        await import("../lib/plugin-runtime/remote-source.js");
-      let config = null;
       try {
-        const cm = await import("../lib/config-manager.js");
-        config = cm.loadConfig();
-      } catch {
-        config = null;
-      }
-      try {
-        const resolved = await resolveRemoteSource(options.registry, {
+        const registryUrls = normalizeRegistryUrls(options.registry);
+        const selected = await buildRegistrySetSelection(
+          registryUrls,
           name,
-          token: options.token,
-          config,
-          allowInsecure: options.allowInsecureRegistry === true,
-        });
-        const preflight = await buildRegistryInstallPreflight(
-          options.registry,
-          resolved,
           process.cwd(),
+          {
+            token: options.token,
+            allowInsecure: options.allowInsecureRegistry === true,
+          },
         );
+        if (!selected.preflight) {
+          throw new Error(
+            `registry candidate preflight blocked: ${selected.selection.blockers.map((blocker) => blocker.code).join(", ") || "PLUGIN_NOT_FOUND"}`,
+          );
+        }
+        const preflight = selected.preflight;
         const impact = await buildRegistryUpdateImpact(
           preflight,
           name,
@@ -2046,7 +2283,9 @@ export function registerPluginCommand(program) {
     .option("--public-key <path>", "Public key for signature verification")
     .option(
       "--registry <url>",
-      "Resolve <source> as a plugin NAME in this registry URL",
+      "Registry URL used to resolve <source> as a plugin name (repeatable)",
+      collectRepeatableOption,
+      [],
     )
     .option(
       "--name <plugin>",
@@ -2067,6 +2306,10 @@ export function registerPluginCommand(program) {
       "Require the exact digest from a prior `cc plugin impact` review",
     )
     .option(
+      "--expected-selection-digest <sha256>",
+      "Require the exact digest from a prior multi-registry `cc plugin select` review",
+    )
+    .option(
       "--grant-capabilities",
       "Grant any newly declared capabilities during the upgrade (no separate consent step)",
     )
@@ -2080,37 +2323,60 @@ export function registerPluginCommand(program) {
       let expectedIdentity = null;
       let marketplacePreflight = null;
       let marketplaceImpact = null;
+      const registryUrls = normalizeRegistryUrls(options.registry);
       const { isRemoteSource, resolveRemoteSource } =
         await import("../lib/plugin-runtime/remote-source.js");
-      if (options.registry || isRemoteSource(source)) {
-        const url = options.registry || source;
-        const name = options.registry ? source : options.name;
-        let config = null;
+      if (registryUrls.length || isRemoteSource(source)) {
         try {
-          const cm = await import("../lib/config-manager.js");
-          config = cm.loadConfig();
-        } catch {
-          config = null;
-        }
-        try {
-          const resolved = await resolveRemoteSource(url, {
-            name,
-            token: options.token,
-            config,
-            allowInsecure: options.allowInsecureRegistry === true,
-          });
+          let resolved;
+          let url;
+          let name;
+          if (registryUrls.length) {
+            name = source;
+            const selected = await buildRegistrySetSelection(
+              registryUrls,
+              name,
+              process.cwd(),
+              {
+                token: options.token,
+                allowInsecure: options.allowInsecureRegistry === true,
+              },
+            );
+            resolved = selected.resolved;
+            marketplacePreflight = selected.preflight;
+            url = resolved?.registryUrl;
+            if (!marketplacePreflight || !resolved) {
+              throw new Error(
+                `registry candidate preflight blocked: ${selected.selection.blockers.map((blocker) => blocker.code).join(", ") || "PLUGIN_NOT_FOUND"}`,
+              );
+            }
+          } else {
+            url = source;
+            name = options.name;
+            const config = await loadOptionalPluginConfig();
+            resolved = await resolveRemoteSource(url, {
+              name,
+              token: options.token,
+              config,
+              allowInsecure: options.allowInsecureRegistry === true,
+            });
+            marketplacePreflight = await buildRegistryInstallPreflight(
+              url,
+              resolved,
+              process.cwd(),
+            );
+          }
           installSource = resolved.source;
           integritySha = resolved.sha256;
-          marketplacePreflight = await buildRegistryInstallPreflight(
-            url,
-            resolved,
-            process.cwd(),
-          );
           if (marketplacePreflight.status !== "allowed") {
             throw new Error(
               `registry candidate preflight blocked: ${marketplacePreflightBlockerMessage(marketplacePreflight)}`,
             );
           }
+          assertExpectedSelectionDigest(
+            options.expectedSelectionDigest,
+            marketplacePreflight,
+          );
           marketplaceImpact = await buildRegistryUpdateImpact(
             marketplacePreflight,
             resolved.entry.name,
@@ -2229,7 +2495,7 @@ export function registerPluginCommand(program) {
           sourceMetadata,
           expectedIdentity,
           managedPolicy: managed,
-          policySource: options.registry || source,
+          policySource: sourceMetadata?.registry || source,
           transactional: true,
         });
         marketplaceAuthorityPersisted = await installedCatalogAuthorityMatches(

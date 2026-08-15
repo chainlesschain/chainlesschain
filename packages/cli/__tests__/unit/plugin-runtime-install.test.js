@@ -215,6 +215,7 @@ describe("installFromSource", () => {
     const catalogDigest = "a".repeat(64);
     const candidateId = `candidate-${"b".repeat(20)}`;
     const candidateDigest = "c".repeat(64);
+    const selectionDigest = "d".repeat(64);
     installFromSource(src, {
       scope: "project",
       cwd,
@@ -229,6 +230,8 @@ describe("installFromSource", () => {
           catalogDigest,
           candidateId,
           candidateDigest,
+          selectionDigest,
+          selectionSourceCount: 2,
           governanceStatus: "complete",
           registryStatus: "online",
           versionAuthority: "registry-declared-unverified",
@@ -247,6 +250,9 @@ describe("installFromSource", () => {
         catalogDigest,
         candidateId,
         candidateDigest,
+        selectionSchemaVersion: "cc-plugin-marketplace-candidate-selection/v1",
+        selectionDigest,
+        selectionSourceCount: 2,
         preflightStatus: "allowed",
         governanceStatus: "complete",
       },
@@ -277,6 +283,22 @@ describe("installFromSource", () => {
         },
       }),
     ).toThrow(/catalogAuthority\.catalogDigest/);
+    expect(() =>
+      installFromSource(src, {
+        scope: "project",
+        cwd,
+        sourceMetadata: {
+          type: "registry",
+          source: "https://registry.example/index.json",
+          catalogAuthority: {
+            catalogDigest: "a".repeat(64),
+            candidateId: `candidate-${"b".repeat(20)}`,
+            selectionDigest: "d".repeat(64),
+            selectionSourceCount: 17,
+          },
+        },
+      }),
+    ).toThrow(/catalogAuthority\.selectionSourceCount/);
     expect(listInstalled({ cwd, scopes: ["project"] })).toEqual([]);
   });
 

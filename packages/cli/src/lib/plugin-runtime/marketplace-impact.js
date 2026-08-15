@@ -74,6 +74,9 @@ export function buildPluginMarketplaceUpdateImpact({
     schemaVersion: PLUGIN_MARKETPLACE_UPDATE_IMPACT_SCHEMA,
     candidateDigest: preflight.candidateDigest,
     catalogDigest: preflight.catalogDigest,
+    ...(preflight.selectionDigest
+      ? { selectionDigest: preflight.selectionDigest }
+      : {}),
     installed: current,
     changes,
     blockers: preflight.blockers,
@@ -93,6 +96,12 @@ export function buildPluginMarketplaceUpdateImpact({
       candidateId: preflight.candidateId,
       candidateDigest: preflight.candidateDigest,
       catalogDigest: preflight.catalogDigest,
+      ...(preflight.selectionDigest
+        ? {
+            selectionDigest: preflight.selectionDigest,
+            selectionSourceCount: preflight.selectionSourceCount,
+          }
+        : {}),
       name: preflight.name,
       version: preflight.registryVersion,
       registry: preflight.registry,

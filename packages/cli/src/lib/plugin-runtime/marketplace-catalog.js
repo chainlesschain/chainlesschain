@@ -19,10 +19,13 @@ export const PLUGIN_MARKETPLACE_CATALOG_SCHEMA =
   "cc-plugin-marketplace-catalog/v1";
 export const PLUGIN_MARKETPLACE_INSTALL_PREFLIGHT_SCHEMA =
   "cc-plugin-marketplace-install-preflight/v1";
+export const PLUGIN_MARKETPLACE_CANDIDATE_SELECTION_SCHEMA =
+  "cc-plugin-marketplace-candidate-selection/v1";
 export const MAX_MARKETPLACE_CATALOG_SOURCES = 16;
 export const MAX_MARKETPLACE_CANDIDATES_PER_SOURCE = 2048;
 export const MAX_MARKETPLACE_DEPENDENCIES_PER_CANDIDATE = 128;
 export const MAX_MARKETPLACE_GRAPH_EDGES = 65_536;
+export const MAX_MARKETPLACE_SELECTION_CANDIDATES = 1024;
 
 const SHA256_RE = /^[a-f0-9]{64}$/i;
 const HEALTH_STATES = new Set(["healthy", "degraded", "unhealthy", "unknown"]);
@@ -59,6 +62,132 @@ export function buildPluginMarketplaceInstallPreflight({
   if (!candidate) {
     throw new Error("registry candidate preflight produced no candidate");
   }
+  return buildInstallPreflight({ catalog, candidate, observedAt });
+}
+
+/**
+ * Resolve one exact plugin name across a previously-built multi-registry
+ * catalog. Selection is deterministic: the catalog's version-descending,
+ * source-priority order is authoritative. An unavailable requested source or
+ * a blocked highest-ranked candidate fails closed instead of silently falling
+ * back to a lower version/source.
+ */
+export function buildPluginMarketplaceCandidateSelection({
+  catalog,
+  name,
+  observedAt = new Date().toISOString(),
+} = {}) {
+  if (catalog?.schemaVersion !== PLUGIN_MARKETPLACE_CATALOG_SCHEMA) {
+    throw new Error("candidate selection requires a marketplace catalog/v1");
+  }
+  const requestedName = boundedString(name, 256);
+  if (!requestedName) throw new Error("candidate selection requires a name");
+
+  const matching = catalog.candidates.filter(
+    (candidate) => candidate.name === requestedName,
+  );
+  const selected = matching[0] || null;
+  const blockers = [];
+  const unavailableSourceIds = catalog.sources
+    .filter((source) => source.status === "unavailable")
+    .map((source) => source.sourceId)
+    .sort();
+  if (unavailableSourceIds.length) {
+    blockers.push(
+      issue("REGISTRY_SET_INCOMPLETE", unavailableSourceIds.join(", ")),
+    );
+  }
+  if (matching.length === 0) blockers.push(issue("PLUGIN_NOT_FOUND"));
+  if (matching.length > MAX_MARKETPLACE_SELECTION_CANDIDATES) {
+    blockers.push(
+      issue(
+        "SELECTION_CANDIDATE_LIMIT",
+        `${matching.length} > ${MAX_MARKETPLACE_SELECTION_CANDIDATES}`,
+      ),
+    );
+  }
+  if (selected) {
+    for (const blocker of effectiveInstallBlockers(selected)) {
+      blockers.push({
+        code: blocker.code,
+        ...(blocker.detail ? { detail: blocker.detail } : {}),
+      });
+    }
+  }
+  const uniqueBlockers = dedupeIssues(blockers);
+  const alternatives = matching
+    .slice(0, MAX_MARKETPLACE_SELECTION_CANDIDATES)
+    .map((candidate) => ({
+      candidateId: candidate.candidateId,
+      candidateDigest: candidate.candidateDigest,
+      contentDigest: candidate.contentDigest,
+      version: candidate.version,
+      registry: candidate.registry,
+      installability: candidate.installability.status,
+      selected: candidate.candidateId === selected?.candidateId,
+    }));
+  const authority = {
+    schemaVersion: PLUGIN_MARKETPLACE_CANDIDATE_SELECTION_SCHEMA,
+    algorithm: "highest-version-then-registry-priority/v1",
+    name: requestedName,
+    catalogDigest: catalog.catalogDigest,
+    sourceIds: catalog.sources.map((source) => source.sourceId),
+    selectedCandidateId: selected?.candidateId || null,
+    selectedCandidateDigest: selected?.candidateDigest || null,
+    alternatives: alternatives.map((candidate) => ({
+      candidateId: candidate.candidateId,
+      candidateDigest: candidate.candidateDigest,
+    })),
+  };
+  return {
+    schemaVersion: PLUGIN_MARKETPLACE_CANDIDATE_SELECTION_SCHEMA,
+    observedAt,
+    status: uniqueBlockers.length ? "blocked" : "allowed",
+    algorithm: authority.algorithm,
+    name: requestedName,
+    catalogSchemaVersion: catalog.schemaVersion,
+    catalogDigest: catalog.catalogDigest,
+    selectionDigest: sha256Canonical(authority),
+    sourceCount: catalog.sources.length,
+    candidateCount: matching.length,
+    selected,
+    alternatives,
+    blockers: uniqueBlockers,
+    claims: {
+      registryMetadataVerified: false,
+      candidateBytesFetched: false,
+      candidateCodeExecuted: false,
+      unavailableRequestedSourcesIgnored: false,
+      lowerRankedFallbackAllowed: false,
+    },
+  };
+}
+
+/** Bind a multi-registry selection to the existing pre-clone authority. */
+export function buildPluginMarketplaceInstallPreflightFromSelection({
+  catalog,
+  selection,
+  observedAt = new Date().toISOString(),
+} = {}) {
+  if (
+    selection?.schemaVersion !==
+      PLUGIN_MARKETPLACE_CANDIDATE_SELECTION_SCHEMA ||
+    selection.catalogDigest !== catalog?.catalogDigest
+  ) {
+    throw new Error("install preflight selection/catalog authority mismatch");
+  }
+  if (!selection.selected) {
+    throw new Error("install preflight selection produced no candidate");
+  }
+  return buildInstallPreflight({
+    catalog,
+    candidate: selection.selected,
+    observedAt,
+    selection,
+  });
+}
+
+function buildInstallPreflight({ catalog, candidate, observedAt, selection }) {
   const deferred = candidate.installability.blockers.filter(
     (blocker) =>
       INSTALL_DEFERRED_BLOCKERS.has(blocker.code) && !candidate.version,
@@ -68,12 +197,24 @@ export function buildPluginMarketplaceInstallPreflight({
       !INSTALL_DEFERRED_BLOCKERS.has(blocker.code) ||
       Boolean(candidate.version),
   );
+  const selectionBlockers = selection?.blockers || [];
+  const effectiveBlockers = selection
+    ? dedupeIssues([...blockers, ...selectionBlockers])
+    : blockers;
   const preflight = {
     schemaVersion: PLUGIN_MARKETPLACE_INSTALL_PREFLIGHT_SCHEMA,
     observedAt,
-    status: blockers.length ? "blocked" : "allowed",
+    status: effectiveBlockers.length ? "blocked" : "allowed",
     catalogSchemaVersion: catalog.schemaVersion,
     catalogDigest: catalog.catalogDigest,
+    ...(selection
+      ? {
+          selectionSchemaVersion: selection.schemaVersion,
+          selectionDigest: selection.selectionDigest,
+          selectionAlgorithm: selection.algorithm,
+          selectionSourceCount: selection.sourceCount,
+        }
+      : {}),
     candidateId: candidate.candidateId,
     candidateDigest: candidate.candidateDigest,
     contentDigest: candidate.contentDigest,
@@ -91,7 +232,7 @@ export function buildPluginMarketplaceInstallPreflight({
     compatibility: candidate.compatibility,
     dependencies: candidate.dependencies,
     health: candidate.health,
-    blockers,
+    blockers: effectiveBlockers,
     deferred,
     warnings: candidate.warnings,
     claims: catalog.claims,
@@ -483,6 +624,10 @@ function normalizeCandidate(entry, context) {
     registryUrl: candidate.registry.url,
     contentDigest: candidate.contentDigest,
   });
+  Object.defineProperty(candidate.registry, "entryIndex", {
+    value: context.entryIndex,
+    enumerable: false,
+  });
   Object.defineProperty(candidate, "_identity", {
     value: identity,
     enumerable: false,
@@ -789,6 +934,31 @@ function compareCandidates(a, b) {
     String(a.version || ""),
   );
   return version || a.registry.priority - b.registry.priority;
+}
+
+function effectiveInstallBlockers(candidate) {
+  return candidate.installability.blockers.filter(
+    (blocker) =>
+      !INSTALL_DEFERRED_BLOCKERS.has(blocker.code) ||
+      Boolean(candidate.version),
+  );
+}
+
+function dedupeIssues(issues) {
+  const seen = new Set();
+  const result = [];
+  for (const candidate of issues) {
+    const normalized = issue(candidate.code, candidate.detail);
+    const key = `${normalized.code}\0${normalized.detail || ""}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(normalized);
+  }
+  return result.sort((a, b) =>
+    `${a.code}\0${a.detail || ""}`.localeCompare(
+      `${b.code}\0${b.detail || ""}`,
+    ),
+  );
 }
 
 function issue(code, detail = null) {

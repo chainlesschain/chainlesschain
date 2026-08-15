@@ -761,6 +761,7 @@ function normalizeCatalogAuthority(value) {
   const catalogDigest = cleanBounded(value.catalogDigest, 64);
   const candidateId = cleanBounded(value.candidateId, 64);
   const candidateDigest = cleanBounded(value.candidateDigest, 64);
+  const selectionDigest = cleanBounded(value.selectionDigest, 64);
   const updateImpactDigest = cleanBounded(value.updateImpactDigest, 64);
   if (!/^[a-f0-9]{64}$/.test(catalogDigest || "")) {
     throw new Error(
@@ -773,6 +774,11 @@ function normalizeCatalogAuthority(value) {
   if (candidateDigest && !/^[a-f0-9]{64}$/.test(candidateDigest)) {
     throw new Error(
       "catalogAuthority.candidateDigest must be a SHA-256 hex digest",
+    );
+  }
+  if (selectionDigest && !/^[a-f0-9]{64}$/.test(selectionDigest)) {
+    throw new Error(
+      "catalogAuthority.selectionDigest must be a SHA-256 hex digest",
     );
   }
   if (updateImpactDigest && !/^[a-f0-9]{64}$/.test(updateImpactDigest)) {
@@ -794,12 +800,33 @@ function normalizeCatalogAuthority(value) {
   ].includes(value.versionAuthority)
     ? value.versionAuthority
     : "deferred-to-plugin-manifest";
+  const selectionSourceCount = Number.isInteger(value.selectionSourceCount)
+    ? value.selectionSourceCount
+    : null;
+  if (
+    selectionDigest &&
+    (!selectionSourceCount ||
+      selectionSourceCount < 1 ||
+      selectionSourceCount > 16)
+  ) {
+    throw new Error(
+      "catalogAuthority.selectionSourceCount must be between 1 and 16",
+    );
+  }
   return {
     schemaVersion: "cc-plugin-marketplace-catalog/v1",
     installPreflightSchemaVersion: "cc-plugin-marketplace-install-preflight/v1",
     catalogDigest,
     candidateId,
     ...(candidateDigest ? { candidateDigest } : {}),
+    ...(selectionDigest
+      ? {
+          selectionSchemaVersion:
+            "cc-plugin-marketplace-candidate-selection/v1",
+          selectionDigest,
+          selectionSourceCount,
+        }
+      : {}),
     ...(updateImpactDigest ? { updateImpactDigest } : {}),
     preflightStatus: "allowed",
     governanceStatus,
