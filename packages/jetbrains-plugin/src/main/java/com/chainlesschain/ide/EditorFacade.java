@@ -51,6 +51,11 @@ public interface EditorFacade {
         return new java.util.ArrayList<Map<String, Object>>();
     }
 
+    /** Workspace-scoped pin/remove/budget intent persisted by the IDE host. */
+    default Map<String, Object> getContextCenterPreferences() {
+        return new java.util.LinkedHashMap<String, Object>();
+    }
+
     /** [{ file, severity, message, line, character, source? }], optionally scoped. */
     List<Map<String, Object>> getDiagnostics(String path);
 

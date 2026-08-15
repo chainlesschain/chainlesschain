@@ -9,6 +9,7 @@ const crypto = require("node:crypto");
 
 const CONTEXT_CENTER_SCHEMA = "cc-context-center/v1";
 const SELECTION_ALGORITHM = "priority-stable-v1";
+const CONTEXT_CENTER_STATE_KEY = "chainlesschain.contextCenter.v1";
 const DEFAULT_TOKEN_BUDGET = 4096;
 const MAX_TOKEN_BUDGET = 32768;
 const MAX_CANDIDATES = 64;
@@ -77,6 +78,57 @@ function normalizeIdSet(values) {
       .filter((value) => CHIP_ID.test(value))
       .slice(0, MAX_CANDIDATES),
   );
+}
+
+function normalizeContextCenterPreferences(value = {}) {
+  const raw = value && typeof value === "object" ? value : {};
+  const parsedBudget = Number(raw.tokenBudget);
+  const tokenBudget = Number.isSafeInteger(parsedBudget)
+    ? Math.max(0, Math.min(MAX_TOKEN_BUDGET, parsedBudget))
+    : DEFAULT_TOKEN_BUDGET;
+  const removed = normalizeIdSet(raw.removedIds);
+  const pinned = normalizeIdSet(raw.pinnedIds);
+  for (const id of removed) pinned.delete(id);
+  return {
+    tokenBudget,
+    pinnedIds: [...pinned].sort(),
+    removedIds: [...removed].sort(),
+  };
+}
+
+function updateContextCenterPreferences(value, action, id = null) {
+  const current = normalizeContextCenterPreferences(value);
+  const pinned = new Set(current.pinnedIds);
+  const removed = new Set(current.removedIds);
+  if (action === "reset") {
+    return normalizeContextCenterPreferences({
+      tokenBudget: DEFAULT_TOKEN_BUDGET,
+    });
+  }
+  if (action === "budget") {
+    return normalizeContextCenterPreferences({
+      ...current,
+      tokenBudget: id,
+    });
+  }
+  const chipId = String(id || "").trim();
+  if (!CHIP_ID.test(chipId)) return current;
+  if (action === "pin") {
+    removed.delete(chipId);
+    pinned.add(chipId);
+  } else if (action === "unpin") {
+    pinned.delete(chipId);
+  } else if (action === "remove") {
+    pinned.delete(chipId);
+    removed.add(chipId);
+  } else if (action === "restore") {
+    removed.delete(chipId);
+  }
+  return normalizeContextCenterPreferences({
+    tokenBudget: current.tokenBudget,
+    pinnedIds: [...pinned],
+    removedIds: [...removed],
+  });
 }
 
 function normalizeCandidate(candidate) {
@@ -152,7 +204,9 @@ function buildContextCenter({
         a.content.localeCompare(b.content) ||
         a.label.localeCompare(b.label),
     );
-  const unique = [...new Map(normalized.map((item) => [item.id, item])).values()];
+  const unique = [
+    ...new Map(normalized.map((item) => [item.id, item])).values(),
+  ];
   unique.sort((a, b) => {
     const aRemoved = removed.has(a.id) ? 1 : 0;
     const bRemoved = removed.has(b.id) ? 1 : 0;
@@ -170,7 +224,8 @@ function buildContextCenter({
   let allocated = 0;
   const chips = unique.map((candidate) => {
     const isRemoved = removed.has(candidate.id);
-    const isPinned = !isRemoved && (pinned.has(candidate.id) || candidate.pinned);
+    const isPinned =
+      !isRemoved && (pinned.has(candidate.id) || candidate.pinned);
     let allocatedTokens = 0;
     let status = "removed";
     if (!isRemoved && remaining > 0) {
@@ -229,10 +284,13 @@ function buildContextCenter({
 
 module.exports = {
   CONTEXT_CENTER_SCHEMA,
+  CONTEXT_CENTER_STATE_KEY,
   CONTEXT_KINDS,
   DEFAULT_TOKEN_BUDGET,
   MAX_TOKEN_BUDGET,
   buildContextCenter,
+  normalizeContextCenterPreferences,
   stableChipId,
   truncateUtf8,
+  updateContextCenterPreferences,
 };

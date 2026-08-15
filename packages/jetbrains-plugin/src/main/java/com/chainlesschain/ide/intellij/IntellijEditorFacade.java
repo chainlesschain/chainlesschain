@@ -171,6 +171,11 @@ public final class IntellijEditorFacade implements EditorFacade {
     }
 
     @Override
+    public Map<String, Object> getContextCenterPreferences() {
+        return ContextCenterPersistence.load(project);
+    }
+
+    @Override
     public List<Map<String, Object>> getContextCandidates() {
         String capturedAt = java.time.Instant.now().toString();
         List<Map<String, Object>> candidates = new ArrayList<>();

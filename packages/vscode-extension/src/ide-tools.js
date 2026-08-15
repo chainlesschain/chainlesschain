@@ -36,6 +36,7 @@ const { buildDiffReviewAudit } = require("./diff-review-audit");
 const {
   DEFAULT_TOKEN_BUDGET,
   buildContextCenter,
+  normalizeContextCenterPreferences,
 } = require("./context-center");
 
 /**
@@ -529,17 +530,25 @@ function buildIdeTools(editor, options = {}) {
               },
             },
             handler: async (args = {}) => {
+              const preferences = normalizeContextCenterPreferences(
+                typeof editor.getContextCenterPreferences === "function"
+                  ? await editor.getContextCenterPreferences()
+                  : {},
+              );
               const candidates = await editor.getContextCandidates();
               if (!Array.isArray(candidates)) {
                 throw new Error(
                   "getContextCenter: host returned an invalid candidate set",
                 );
               }
-              const metadata = await contextMetadata(
-                null,
-                "getContextCenter",
+              const metadata = await contextMetadata(null, "getContextCenter");
+              const has = (key) =>
+                Object.prototype.hasOwnProperty.call(args, key);
+              const rawBudget = Number(
+                has("budgetTokens")
+                  ? args.budgetTokens
+                  : preferences.tokenBudget,
               );
-              const rawBudget = Number(args.budgetTokens);
               const budgetTokens = Number.isFinite(rawBudget)
                 ? Math.floor(rawBudget)
                 : DEFAULT_TOKEN_BUDGET;
@@ -547,8 +556,12 @@ function buildIdeTools(editor, options = {}) {
                 workspaceId: metadata?.workspaceId || null,
                 candidates,
                 tokenBudget: budgetTokens,
-                pinnedIds: contextIds(args.pinnedIds),
-                removedIds: contextIds(args.removedIds),
+                pinnedIds: has("pinnedIds")
+                  ? contextIds(args.pinnedIds)
+                  : preferences.pinnedIds,
+                removedIds: has("removedIds")
+                  ? contextIds(args.removedIds)
+                  : preferences.removedIds,
                 refreshedIds: contextIds(args.refreshedIds),
               });
             },

@@ -40,6 +40,7 @@ const { InlineChatDecorator } = require("./chat/inline-chat");
 const {
   promptForWindowReloadAfterExtensionUpgrade,
 } = require("./webview-upgrade-reload");
+const { CONTEXT_CENTER_STATE_KEY } = require("./context-center");
 
 let _server = null;
 let _port = null;
@@ -195,6 +196,8 @@ async function startBridge(context) {
     // getPreviewState reads the App Preview controller lazily — it is created
     // by the preview.start command, possibly after the bridge is up.
     getPreview: () => _preview,
+    getContextCenterPreferences: () =>
+      context.workspaceState?.get?.(CONTEXT_CENTER_STATE_KEY, {}) || {},
   });
   _facade = facade;
   const tools = buildIdeTools(facade);
@@ -762,6 +765,13 @@ function activate(context) {
     vscode.commands.registerCommand("chainlesschain.policy.show", () => {
       const { openPolicyViewer } = require("./ui/policy-view.js");
       openPolicyViewer(vscode);
+    }),
+    vscode.commands.registerCommand("chainlesschain.context.show", () => {
+      const { openContextCenter } = require("./ui/context-center-view.js");
+      return openContextCenter(vscode, {
+        getFacade: () => _facade,
+        state: context.workspaceState,
+      });
     }),
     // Chrome connector (P1 #8): drive `cc browse chrome` — launch a
     // debuggable Chrome (dedicated profile keeps login state), check the CDP

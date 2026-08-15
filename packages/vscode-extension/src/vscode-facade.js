@@ -1481,6 +1481,12 @@ function createVscodeEditorFacade(vscode, opts = {}) {
       return candidates;
     },
 
+    async getContextCenterPreferences() {
+      if (typeof deps.getContextCenterPreferences !== "function") return {};
+      const value = await deps.getContextCenterPreferences();
+      return value && typeof value === "object" ? value : {};
+    },
+
     // Semantic navigation capability (gap #7): raw language-server queries
     // via VS Code's built-in `vscode.execute…Provider` commands. This is a
     // thin adapter — all validation / shaping / caps live in the pure

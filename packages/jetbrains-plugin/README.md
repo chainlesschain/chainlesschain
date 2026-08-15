@@ -71,6 +71,9 @@ uses them on its own:
   deterministic 4,096-token budget, per-chip source/scope/freshness/range,
   allocation status, and inclusion reason. `@selection`, `@diagnostics`, and
   `@terminal` remain available for focused references.
+- **Tools → ChainlessChain: Context Center** opens the project chip list with
+  pin/unpin, remove/restore, refresh, and fixed-budget controls. Preferences
+  persist in project state and become the default for `getContextCenter`.
 
 Set `CC_IDE_CONTEXT=0` to turn the automatic sharing off.
 
@@ -183,7 +186,7 @@ This summary is pinned to the repository's versioned, secret-free
 [`PUBLIC_IDE_CAPABILITY_MANIFEST.generated.json`](../../docs/cli/PUBLIC_IDE_CAPABILITY_MANIFEST.generated.json).
 The base IDE/Doctor contract requires `cc >= 0.162.47`; feature-specific sections below may require a newer CLI.
 
-- JetBrains actions: **34** registered entries
+- JetBrains actions: **35** registered entries
 - Doctor entries: `chainlesschain.ide.DiagnoseBridge`
 - Bridge capability schema: **v1** (20 mapped tools)
 - Drift check: `npm run ide:capabilities:check` from the repository root
@@ -202,6 +205,7 @@ The base IDE/Doctor contract requires `cc >= 0.162.47`; feature-specific section
 - `chainlesschain.usage.Show`
 - `chainlesschain.artifacts.Browse`
 - `chainlesschain.policy.Viewer`
+- `chainlesschain.context.Center`
 - `chainlesschain.plugins.Manage`
 - `chainlesschain.worktree.Tasks`
 - `chainlesschain.chrome.Connector`

@@ -30,6 +30,68 @@ public final class ContextCenter {
 
     private ContextCenter() {}
 
+    /** Normalize the host-persisted, workspace-scoped Context Center intent. */
+    public static Map<String, Object> normalizePreferences(
+            Map<String, Object> value) {
+        Map<String, Object> raw = value == null
+                ? Collections.emptyMap() : value;
+        int tokenBudget = DEFAULT_TOKEN_BUDGET;
+        Object rawBudget = raw.get("tokenBudget");
+        if (rawBudget instanceof Number) {
+            double parsed = ((Number) rawBudget).doubleValue();
+            if (Double.isFinite(parsed) && Math.rint(parsed) == parsed
+                    && parsed >= 0 && parsed <= MAX_TOKEN_BUDGET) {
+                tokenBudget = (int) parsed;
+            }
+        }
+        Set<String> removed = idSet(stringValues(raw.get("removedIds")));
+        Set<String> pinned = idSet(stringValues(raw.get("pinnedIds")));
+        pinned.removeAll(removed);
+        List<String> pinnedIds = new ArrayList<String>(pinned);
+        List<String> removedIds = new ArrayList<String>(removed);
+        Collections.sort(pinnedIds);
+        Collections.sort(removedIds);
+        Map<String, Object> out = new LinkedHashMap<String, Object>();
+        out.put("tokenBudget", Long.valueOf(tokenBudget));
+        out.put("pinnedIds", pinnedIds);
+        out.put("removedIds", removedIds);
+        return out;
+    }
+
+    /** Apply one UI action without allowing malformed or overlapping IDs. */
+    public static Map<String, Object> updatePreferences(
+            Map<String, Object> value, String action, Object target) {
+        Map<String, Object> current = normalizePreferences(value);
+        if ("reset".equals(action)) {
+            return normalizePreferences(Collections.emptyMap());
+        }
+        if ("budget".equals(action)) {
+            Map<String, Object> next = new LinkedHashMap<String, Object>(current);
+            next.put("tokenBudget", target);
+            return normalizePreferences(next);
+        }
+        String id = text(target).trim();
+        if (!CHIP_ID.matcher(id).matches()) return current;
+        Set<String> pinned = idSet(stringValues(current.get("pinnedIds")));
+        Set<String> removed = idSet(stringValues(current.get("removedIds")));
+        if ("pin".equals(action)) {
+            removed.remove(id);
+            pinned.add(id);
+        } else if ("unpin".equals(action)) {
+            pinned.remove(id);
+        } else if ("remove".equals(action)) {
+            pinned.remove(id);
+            removed.add(id);
+        } else if ("restore".equals(action)) {
+            removed.remove(id);
+        }
+        Map<String, Object> next = new LinkedHashMap<String, Object>();
+        next.put("tokenBudget", current.get("tokenBudget"));
+        next.put("pinnedIds", new ArrayList<String>(pinned));
+        next.put("removedIds", new ArrayList<String>(removed));
+        return normalizePreferences(next);
+    }
+
     public static Map<String, Object> build(
             String workspaceId,
             List<Map<String, Object>> candidates,
@@ -183,6 +245,15 @@ public final class ContextCenter {
         for (int i = 0; i < values.size() && i < MAX_CANDIDATES; i++) {
             String value = values.get(i) == null ? "" : values.get(i).trim();
             if (CHIP_ID.matcher(value).matches()) out.add(value);
+        }
+        return out;
+    }
+
+    private static List<String> stringValues(Object value) {
+        List<String> out = new ArrayList<String>();
+        if (!(value instanceof List)) return out;
+        for (Object item : (List<?>) value) {
+            out.add(item == null ? "" : String.valueOf(item));
         }
         return out;
     }

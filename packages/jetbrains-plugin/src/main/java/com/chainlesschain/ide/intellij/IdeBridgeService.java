@@ -27,6 +27,7 @@ public final class IdeBridgeService implements Disposable {
     // dashboard parity). Project-lived so counts survive a bridge restart.
     private final ActivityLog activity = new ActivityLog(200);
     private McpServer server;
+    private IntellijEditorFacade facade;
     private int port = -1;
     private String token;
 
@@ -51,7 +52,7 @@ public final class IdeBridgeService implements Disposable {
                 // best-effort — pruning must never block bridge start
             }
             token = LockfileWriter.generateToken();
-            IntellijEditorFacade facade = new IntellijEditorFacade(project);
+            facade = new IntellijEditorFacade(project);
             // PSI-backed semantic tools (hover/definition/references/rename
             // preview/call hierarchy/symbol info/project model) — conditional
             // registration, same as the terminal/preview tools.
@@ -94,6 +95,7 @@ public final class IdeBridgeService implements Disposable {
             server.stop();
             server = null;
         }
+        facade = null;
         BridgeStatusBarWidgetFactory.refresh(project);
     }
 
@@ -105,6 +107,8 @@ public final class IdeBridgeService implements Disposable {
     public synchronized int getPort() { return port; }
 
     public synchronized String getToken() { return token; }
+
+    synchronized IntellijEditorFacade getFacade() { return facade; }
 
     /** The tool-call activity ring buffer (for the "Show Activity" dialog). */
     public ActivityLog getActivity() { return activity; }

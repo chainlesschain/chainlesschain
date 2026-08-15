@@ -298,8 +298,12 @@ public final class IdeTools {
                             + "an explicit selection under one fixed token budget.",
                     contextCenterSchema()) {
                 @Override public Object call(Map<String, Object> args) {
-                    int budget = ContextCenter.DEFAULT_TOKEN_BUDGET;
-                    Object raw = args == null ? null : args.get("budgetTokens");
+                    Map<String, Object> preferences = ContextCenter.normalizePreferences(
+                            editor.getContextCenterPreferences());
+                    boolean hasBudget = args != null
+                            && args.containsKey("budgetTokens");
+                    int budget = ((Number) preferences.get("tokenBudget")).intValue();
+                    Object raw = hasBudget ? args.get("budgetTokens") : null;
                     if (raw instanceof Number) {
                         double value = ((Number) raw).doubleValue();
                         if (Double.isFinite(value) && Math.rint(value) == value
@@ -320,8 +324,12 @@ public final class IdeTools {
                             ? null : stringValue(metadata.get("workspaceId"));
                     return ContextCenter.build(
                             workspaceId, candidates, budget,
-                            stringListArg(args, "pinnedIds"),
-                            stringListArg(args, "removedIds"),
+                            args != null && args.containsKey("pinnedIds")
+                                    ? stringListArg(args, "pinnedIds")
+                                    : stringListArg(preferences, "pinnedIds"),
+                            args != null && args.containsKey("removedIds")
+                                    ? stringListArg(args, "removedIds")
+                                    : stringListArg(preferences, "removedIds"),
                             stringListArg(args, "refreshedIds"));
                 }
             });

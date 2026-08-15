@@ -81,6 +81,27 @@ class ContextCenterTest {
     }
 
     @Test
+    void preferencesAreNormalizedAndUpdated() {
+        Map<String, Object> raw = new java.util.LinkedHashMap<String, Object>();
+        raw.put("tokenBudget", Long.valueOf(12));
+        raw.put("pinnedIds", List.of(
+                "ctx_aaaaaaaaaaaaaaaa", "ctx_bbbbbbbbbbbbbbbb", "bad"));
+        raw.put("removedIds", List.of("ctx_aaaaaaaaaaaaaaaa"));
+        Map<String, Object> normalized = ContextCenter.normalizePreferences(raw);
+        assertEquals(Long.valueOf(12), normalized.get("tokenBudget"));
+        assertEquals(List.of("ctx_bbbbbbbbbbbbbbbb"), normalized.get("pinnedIds"));
+        assertEquals(List.of("ctx_aaaaaaaaaaaaaaaa"), normalized.get("removedIds"));
+
+        Map<String, Object> restored = ContextCenter.updatePreferences(
+                normalized, "restore", "ctx_aaaaaaaaaaaaaaaa");
+        assertEquals(List.of(), restored.get("removedIds"));
+        Map<String, Object> removed = ContextCenter.updatePreferences(
+                restored, "remove", "ctx_bbbbbbbbbbbbbbbb");
+        assertEquals(List.of(), removed.get("pinnedIds"));
+        assertEquals(List.of("ctx_bbbbbbbbbbbbbbbb"), removed.get("removedIds"));
+    }
+
+    @Test
     void ideToolProjectsHostCandidates() throws Exception {
         Map<String, Object> fixtureInput =
                 (Map<String, Object>) cases().get(0).get("input");
@@ -90,6 +111,12 @@ class ContextCenterTest {
             @Override public boolean supportsContextCenter() { return true; }
             @Override public List<Map<String, Object>> getContextCandidates() {
                 return fixtureCandidates;
+            }
+            @Override public Map<String, Object> getContextCenterPreferences() {
+                return Map.of(
+                        "tokenBudget", Long.valueOf(3),
+                        "pinnedIds", List.of("ctx_bbbbbbbbbbbbbbbb"),
+                        "removedIds", List.of("ctx_aaaaaaaaaaaaaaaa"));
             }
             @Override public Map<String, Object> getContextMetadata(
                     String file, String tool) {
@@ -113,6 +140,22 @@ class ContextCenterTest {
             if ("getContextCenter".equals(candidate.name())) tool = candidate;
         }
         assertNotNull(tool);
+        Map<String, Object> preferred =
+                (Map<String, Object>) tool.call(Map.of());
+        assertEquals(Long.valueOf(3),
+                ((Map<?, ?>) preferred.get("budget")).get("limitTokens"));
+        assertEquals(Boolean.TRUE,
+                ((Map<?, ?>) ((List<?>) preferred.get("chips")).get(0)).get("pinned"));
+        Map<?, ?> removedByPreference = null;
+        for (Object item : (List<?>) preferred.get("chips")) {
+            Map<?, ?> chip = (Map<?, ?>) item;
+            if ("ctx_aaaaaaaaaaaaaaaa".equals(chip.get("id"))) {
+                removedByPreference = chip;
+            }
+        }
+        assertNotNull(removedByPreference);
+        assertEquals("removed", removedByPreference.get("status"));
+
         Map<String, Object> args = new java.util.LinkedHashMap<String, Object>();
         args.put("budgetTokens", Long.valueOf(6));
         args.put("pinnedIds", List.of("ctx_bbbbbbbbbbbbbbbb"));

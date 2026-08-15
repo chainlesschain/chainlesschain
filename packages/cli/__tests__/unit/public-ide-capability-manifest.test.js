@@ -45,8 +45,8 @@ describe("public IDE capability manifest", () => {
   it("renders both host summaries from the same minimum and entry lists", () => {
     const vscode = renderPublicIdeReadmeBlock("vscode");
     const jetbrains = renderPublicIdeReadmeBlock("jetbrains");
-    expect(vscode).toContain("VS Code commands: **51**");
-    expect(jetbrains).toContain("JetBrains actions: **34**");
+    expect(vscode).toContain("VS Code commands: **52**");
+    expect(jetbrains).toContain("JetBrains actions: **35**");
     for (const text of [vscode, jetbrains]) {
       expect(text).toContain("cc >= 0.162.47");
       expect(text).toContain("Bridge capability schema: **v1**");
