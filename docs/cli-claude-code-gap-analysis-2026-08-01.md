@@ -1590,7 +1590,7 @@ seed `1592598566` 与 campaign `p2-4-scheduler-long-soak-7d3120fc`。
 
 ### 18.16 2026-08-15 外部前置复核
 
-- 公网 npm `latest` 仍为 `chainlesschain@0.163.8`，没有 `0.164.0`。现有 `0.163.1` alias 生命周期报告只观察到 `0.162` / `0.163` 两个 minor，且没有获批的代表性 Collector export：eligible/reporting installs、accepted metric points 与 sample rate 均为 0，Linux/macOS/Windows coverage 均缺失。因此当前决策仍是 **25/25 retain、0 remove**，不能仅因时间经过而删除入口。
+- 公网 npm `latest` 仍为 `chainlesschain@0.163.8`，没有 `0.164.0`。现有 `0.163.1` alias 生命周期报告只观察到 `0.162` / `0.163` 两个 minor，且没有获批的代表性 Collector export：eligible/reporting installs、accepted metric points 与 sample rate 均为 0，Linux/macOS/Windows coverage 均缺失。因此正式判定是 **0 retain / 0 remove / 25 insufficient-data**；操作结果仍是 25/25 compatibility alias 全部保留，不能仅因时间经过而删除入口。
 - GitHub 仓库没有 `native-production` environment；现有 repository secrets/variables 也没有可用于六目标公开发行的 macOS Developer ID/notarization、Windows Authenticode、Linux signing/updater 与公开渠道凭据。仓库内 preflight 能在凭据缺失时拒绝发布，但无法自行生成组织签名身份或渠道授权。因此 P0-3/P1-5 仍是明确的外部前置 blocker，不能用 unsigned validation、npm provenance 或本地构建代替。
 
 ### 18.17 2026-08-15 Node 新执行上下文的 OS 边界绑定
@@ -1599,3 +1599,8 @@ seed `1592598566` 与 campaign `p2-4-scheduler-long-soak-7d3120fc`。
 - 该设计不声称 JavaScript patch 会跨 isolate/process 传播。materialized capsule 的生产启动本来就必须携带 `code-snapshot / filesystem / network / process-tree` 四边界 contract；新字段把会逃出同 realm guard 的 builtin 明确归入这套 host-owned 权限边界。真实恶意 fixture 现在除既有 detached Node child 外，再启动一个 `eval` Worker；Worker 内直接加载未出现在父 bundle 静态 allowlist 的 `node:fs` / `node:net`，尝试读取 private canary、写入 host marker 并连接两个已由 host 证明可达的 endpoint。Linux/Windows 只有在 Worker 仍被 OS filesystem/network 边界阻断、canary 零传播且 marker 不存在时才通过；macOS 仍必须在启动前因 atomic runtime exec 不可证明而失败关闭。
 - 本地 materialization/capsule 聚焦矩阵为 **4 files / 76 passed**；关闭 live 条件的 helper/integration 为 **18 passed / 3 skipped**；目标 ESLint 0 errors，Node syntax、Prettier 与 `git diff --check` 通过。真实 Worker 越界断言属于 `CC_SANDBOX_LIVE=1` 路径，本机 Windows 的 WMI/AppContainer 服务前置仍不可用，因此没有把本地结果冒充三平台通过。该提交还必须在自己的最终 exact SHA 上通过 CLI CI、CLI Strict Sandbox 与 Linux/Windows/macOS 恶意矩阵 artifact，才能把“受信 Node builtin 最终跨平台隔离”从证据清单删除。
 - 后继 workflow 切片已把上述 `CC_SANDBOX_LIVE=1` materialized-capsule 测试接入 scheduled/manual `mcp-security-soak` 的 Linux/Windows/macOS formal job，并为每个平台单独上传包含 OS 与 expected SHA 的 JSON artifact；PR smoke 不重复这条昂贵路径，仍由 CLI Strict Sandbox 承担。aggregate 继续通过三平台 job success 拒绝任一 live boundary 或两小时恶意 soak 失败。该门当前只是仓库内候选，尚未产生自身 exact SHA 的远端三平台 artifact，不能据此改写 NO-GO；它也不替代 macOS atomic exec、任意 shared-library closure 与远端 distributed authority。
+
+### 18.18 2026-08-15 定时 soak 失败与最终 exact-SHA 适用范围
+
+- [Scheduler Kernel Soak `31865856769`](https://github.com/chainlesschain/chainlesschain/actions/runs/31865856769) 于 `2026-08-15T05:00:23Z` 由 schedule 触发，但 repository variables 为空：Ubuntu/Windows 在 `Require lowercase exact-SHA scheduler soak identities` 失败，macOS checkout 默认分支后在 exact-SHA binding 失败，aggregate 随后拒绝不完整矩阵。三平台均未执行 soak，artifact upload 也失败，因此该 run **不计 segment**，冻结的 `7d3120fc1e` campaign 历史计数仍为 1/4；下一原定 `T0+25h` 窗口是 `2026-08-15T17:48:54Z`。不得把 schedule 到点本身当作观察证据，也不得在未获准的情况下设置会持续消耗 CI 的长期 repository variables。
+- `54fc71fc41` 在上述 `T0` 之后修改了 scheduler-soak 明确监听的 `jsonl-session-store.js`，为 `session_start` 增加 execution-location authority 及新模块依赖。该变更不直接改 scheduler 算法，但旧 `7d3120fc1e` segment 不能自动证明后继最终 tree；完成口径必须在最终相关 SHA 冻结后重新取得四段同 SHA campaign，或者先形成可审计的非影响证明并由正式门接受。当前不存在这两类证据，因此历史 1/4 只能描述旧冻结 tree 的进度，不能关闭当前 HEAD 的 P2-4。
