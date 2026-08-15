@@ -19,6 +19,13 @@ import path from "node:path";
 import { Command } from "commander";
 
 let tmpHome;
+let previousHome;
+let previousSecurityAnchorHome;
+
+function restoreEnvironment(name, value) {
+  if (value === undefined) delete process.env[name];
+  else process.env[name] = value;
+}
 
 function mockPaths() {
   vi.doMock("../../src/lib/paths.js", () => ({
@@ -50,16 +57,36 @@ function captureStdout(fn) {
     });
 }
 
-beforeEach(() => {
+beforeEach(async () => {
+  previousHome = process.env.CHAINLESSCHAIN_HOME;
+  previousSecurityAnchorHome = process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME;
   tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "cli-usage-attr-"));
+  // Keep the real path fallback isolated too. This protects the test when a
+  // transitive module was instantiated before the per-test paths mock.
+  process.env.CHAINLESSCHAIN_HOME = tmpHome;
+  process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME = `${tmpHome}-security-anchors`;
   vi.resetModules();
   mockPaths();
+  const { _registerTestScopedSessionAntiRollbackDirectory } =
+    await import("../../src/lib/session-anti-rollback-anchor.js");
+  _registerTestScopedSessionAntiRollbackDirectory({
+    homeDir: tmpHome,
+    anchorBase: `${tmpHome}-security-anchors`,
+  });
 });
 
 afterEach(() => {
-  fs.rmSync(tmpHome, { recursive: true, force: true });
-  fs.rmSync(`${tmpHome}-security-anchors`, { recursive: true, force: true });
-  vi.doUnmock("../../src/lib/paths.js");
+  try {
+    fs.rmSync(tmpHome, { recursive: true, force: true });
+    fs.rmSync(`${tmpHome}-security-anchors`, { recursive: true, force: true });
+  } finally {
+    restoreEnvironment("CHAINLESSCHAIN_HOME", previousHome);
+    restoreEnvironment(
+      "CHAINLESSCHAIN_SECURITY_ANCHOR_HOME",
+      previousSecurityAnchorHome,
+    );
+    vi.doUnmock("../../src/lib/paths.js");
+  }
 });
 
 /** Build a transcript via the real store: 1 turn, tools, main + attributed usage. */
