@@ -78,6 +78,8 @@ describe("workflow WS handlers (N1)", () => {
       type: "workflow:save",
       saved: true,
       workflowId: "wf1",
+      definitionSchema: "cc-dynamic-workflow-definition/v1",
+      definitionDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
     });
     await handleWorkflowList(server, "2", {});
     const listMsg = server._sent[1];
@@ -127,6 +129,7 @@ describe("workflow WS handlers (N1)", () => {
       id: "1",
       type: "workflow:get",
       workflow: null,
+      definitionAuthority: null,
     });
   });
 
@@ -175,6 +178,52 @@ describe("workflow WS handlers (N1)", () => {
     expect(types).toContain("workflow:done");
     const done = server._sent.find((m) => m.type === "workflow:done");
     expect(done.status).toBe("completed");
+    const started = server._sent.find((m) => m.type === "workflow:started");
+    expect(started.definitionDigest).toMatch(/^sha256:[a-f0-9]{64}$/);
+    expect(done.definitionDigest).toBe(started.definitionDigest);
+  });
+
+  it("workflow-run replays an exact immutable definition digest", async () => {
+    const messages = [];
+    wfDeps.runTask = vi.fn(async ({ userMessage }) => {
+      messages.push(userMessage);
+      return {
+        taskId: "t1",
+        status: "completed",
+        result: { summary: userMessage },
+      };
+    });
+    const first = {
+      id: "wf-replay",
+      name: "Replay",
+      steps: [{ id: "s1", message: "v1" }],
+    };
+    const second = {
+      ...first,
+      steps: [{ id: "s1", message: "v2" }],
+    };
+    await handleWorkflowSave(server, "1", {}, { workflow: first });
+    const firstDigest = server._sent[0].definitionDigest;
+    await handleWorkflowSave(server, "2", {}, { workflow: second });
+    await handleWorkflowRun(
+      server,
+      "3",
+      {},
+      {
+        id: "wf-replay",
+        definitionDigest: firstDigest,
+      },
+    );
+
+    expect(messages).toEqual(["v1"]);
+    expect(
+      server._sent.find((message) => message.type === "workflow:started")
+        .definitionDigest,
+    ).toBe(firstDigest);
+    expect(
+      server._sent.find((message) => message.type === "workflow:done")
+        .definitionDigest,
+    ).toBe(firstDigest);
   });
 
   it("workflow-run errors when workflow not found", async () => {

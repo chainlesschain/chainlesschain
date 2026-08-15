@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import {
   MAX_FAN_OUT,
   loopIterationCap,
@@ -11,9 +10,14 @@ import {
   redactCredentialRefs,
 } from "./execution-location.js";
 import { normalizeExecutionLocationBinding } from "./execution-location-contract.js";
+import {
+  COWORK_WORKFLOW_RECORD_SCHEMA,
+  WORKFLOW_DEFINITION_SCHEMA,
+  createWorkflowDefinitionAuthority,
+  normalizeWorkflowDefinitionDigest,
+} from "./workflow-definition-contract.js";
 
-export const DYNAMIC_WORKFLOW_DEFINITION_SCHEMA =
-  "cc-dynamic-workflow-definition/v1";
+export const DYNAMIC_WORKFLOW_DEFINITION_SCHEMA = WORKFLOW_DEFINITION_SCHEMA;
 export const DYNAMIC_WORKFLOW_PREFLIGHT_SCHEMA =
   "cc-dynamic-workflow-preflight/v1";
 
@@ -79,69 +83,6 @@ function finiteNumber(value, { integer = false, min = 0 } = {}) {
   if (!Number.isFinite(output) || output < min) return null;
   if (integer && !Number.isSafeInteger(output)) return null;
   return output;
-}
-
-function stableJsonValue(value, state = { nodes: 0, depth: 0 }) {
-  state.nodes += 1;
-  if (state.nodes > 20_000 || state.depth > 32) {
-    throw new TypeError("workflow definition exceeds canonicalization limits");
-  }
-  if (
-    value === null ||
-    typeof value === "boolean" ||
-    typeof value === "string"
-  ) {
-    return value;
-  }
-  if (typeof value === "number") {
-    if (!Number.isFinite(value)) {
-      throw new TypeError("workflow definition contains a non-finite number");
-    }
-    return Object.is(value, -0) ? 0 : value;
-  }
-  if (Array.isArray(value)) {
-    const childState = { ...state, depth: state.depth + 1 };
-    const output = value.map((item) => stableJsonValue(item, childState));
-    state.nodes = childState.nodes;
-    return output;
-  }
-  if (value && typeof value === "object") {
-    const prototype = Object.getPrototypeOf(value);
-    if (prototype !== Object.prototype && prototype !== null) {
-      throw new TypeError(
-        "workflow definition must contain plain JSON objects",
-      );
-    }
-    const childState = { ...state, depth: state.depth + 1 };
-    const output = {};
-    for (const key of Object.keys(value).sort()) {
-      const child = value[key];
-      if (child === undefined) continue;
-      if (["function", "symbol", "bigint"].includes(typeof child)) {
-        throw new TypeError("workflow definition contains a non-JSON value");
-      }
-      output[key] = stableJsonValue(child, childState);
-    }
-    state.nodes = childState.nodes;
-    return output;
-  }
-  throw new TypeError("workflow definition contains a non-JSON value");
-}
-
-function stableJson(value) {
-  return JSON.stringify(stableJsonValue(value));
-}
-
-function deepFreeze(value) {
-  if (!value || typeof value !== "object" || Object.isFrozen(value)) {
-    return value;
-  }
-  for (const child of Object.values(value)) deepFreeze(child);
-  return Object.freeze(value);
-}
-
-function digestJson(value) {
-  return `sha256:${createHash("sha256").update(stableJson(value)).digest("hex")}`;
 }
 
 function uniqueNames(values) {
@@ -378,7 +319,8 @@ export function createDynamicWorkflowManifest(workflow) {
       "workflow credential requirements must not contain values",
     );
   }
-  const definition = deepFreeze(stableJsonValue(workflow));
+  const authority = createWorkflowDefinitionAuthority(workflow);
+  const definition = authority.definition;
   const batches = planBatches(workflow.steps).map((batch, index) =>
     Object.freeze({
       index,
@@ -396,7 +338,7 @@ export function createDynamicWorkflowManifest(workflow) {
   return Object.freeze({
     schema: DYNAMIC_WORKFLOW_DEFINITION_SCHEMA,
     adapter: "cowork-workflow",
-    definitionDigest: digestJson(definition),
+    definitionDigest: authority.definitionDigest,
     definition,
     engineCapabilities: DYNAMIC_WORKFLOW_ENGINE_CAPABILITIES,
     usedCapabilities: Object.freeze(usedCapabilities(workflow, batches)),
@@ -491,12 +433,39 @@ export function buildDynamicWorkflowPreflight(input = {}) {
   const budget = governance.budget;
   const blockers = [];
   const warnings = [];
+  const definitionAuthority = input.definitionAuthority
+    ? Object.freeze({
+        status:
+          input.definitionAuthority.status === "versioned"
+            ? "versioned"
+            : "legacy-unversioned",
+        recordSchema: safeString(input.definitionAuthority.recordSchema),
+        definitionSchema: safeString(
+          input.definitionAuthority.definitionSchema,
+        ),
+        definitionDigest: normalizeWorkflowDefinitionDigest(
+          input.definitionAuthority.definitionDigest,
+        ),
+      })
+    : null;
 
   if (
     suppliedManifest &&
     suppliedManifest.definitionDigest !== manifest.definitionDigest
   ) {
     addUnique(blockers, "definition-digest-mismatch");
+  }
+  if (definitionAuthority) {
+    if (definitionAuthority.status !== "versioned") {
+      addUnique(blockers, "definition-authority-unversioned");
+    }
+    if (
+      definitionAuthority.recordSchema !== COWORK_WORKFLOW_RECORD_SCHEMA ||
+      definitionAuthority.definitionSchema !== manifest.schema ||
+      definitionAuthority.definitionDigest !== manifest.definitionDigest
+    ) {
+      addUnique(blockers, "definition-authority-mismatch");
+    }
   }
 
   if (requirements.capabilities.length === 0) {
@@ -636,6 +605,7 @@ export function buildDynamicWorkflowPreflight(input = {}) {
       id: manifest.definition.id,
       name: manifest.definition.name,
       definitionDigest: manifest.definitionDigest,
+      authority: definitionAuthority,
     }),
     executionLocation: Object.freeze({
       schema: binding.schema,

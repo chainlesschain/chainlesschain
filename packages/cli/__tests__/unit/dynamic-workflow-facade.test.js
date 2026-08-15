@@ -7,6 +7,10 @@ import {
   createDynamicWorkflowManifest,
 } from "../../src/lib/dynamic-workflow-facade.js";
 import { createExecutionLocationBinding } from "../../src/lib/execution-location-contract.js";
+import {
+  createCoworkWorkflowRecord,
+  verifyCoworkWorkflowRecord,
+} from "../../src/lib/workflow-definition-contract.js";
 
 const WORKFLOW = JSON.parse(
   readFileSync(
@@ -112,6 +116,31 @@ describe("dynamic workflow preflight", () => {
       projectedDurationSlots: 3,
     });
     expect(preflight.permissions.credentialValuesTransferred).toBe(false);
+  });
+
+  it("binds preflight to versioned persistence and blocks legacy authority", () => {
+    const versioned = verifyCoworkWorkflowRecord(
+      createCoworkWorkflowRecord(WORKFLOW),
+    );
+    const legacy = verifyCoworkWorkflowRecord(WORKFLOW, {
+      allowLegacy: true,
+    });
+    const allowed = buildDynamicWorkflowPreflight({
+      workflow: WORKFLOW,
+      definitionAuthority: versioned,
+      executionLocation: executionLocation(),
+      maxParallel: 2,
+    });
+    const blocked = buildDynamicWorkflowPreflight({
+      workflow: WORKFLOW,
+      definitionAuthority: legacy,
+      executionLocation: executionLocation(),
+      maxParallel: 2,
+    });
+
+    expect(allowed.allowed).toBe(true);
+    expect(allowed.definition.authority.status).toBe("versioned");
+    expect(blocked.blockers).toContain("definition-authority-unversioned");
   });
 
   it("blocks parallel and token budget overruns", () => {

@@ -310,9 +310,21 @@ export async function handleWorkflowGet(server, id, ws, message) {
   const { id: wfId } = message || {};
   if (!wfId) return _sendError(server, ws, id, "MISSING_ID", "id required");
   try {
-    const { getWorkflow } = await import("../../lib/cowork-workflow.js");
-    const workflow = getWorkflow(_cwd(server), wfId);
-    server._send(ws, { id, type: "workflow:get", workflow: workflow || null });
+    const { getWorkflowRecord } = await import("../../lib/cowork-workflow.js");
+    const record = getWorkflowRecord(_cwd(server), wfId);
+    server._send(ws, {
+      id,
+      type: "workflow:get",
+      workflow: record?.definition || null,
+      definitionAuthority: record
+        ? {
+            status: record.status,
+            recordSchema: record.recordSchema,
+            definitionSchema: record.definitionSchema,
+            definitionDigest: record.definitionDigest,
+          }
+        : null,
+    });
   } catch (err) {
     _sendError(server, ws, id, "WORKFLOW_GET_FAILED", err.message);
   }
@@ -330,7 +342,7 @@ export async function handleWorkflowSave(server, id, ws, message) {
     );
   }
   try {
-    const { validateWorkflow, saveWorkflow } =
+    const { getWorkflowRecord, validateWorkflow, saveWorkflow } =
       await import("../../lib/cowork-workflow.js");
     const result = validateWorkflow(workflow);
     if (!result.valid) {
@@ -343,11 +355,14 @@ export async function handleWorkflowSave(server, id, ws, message) {
       );
     }
     saveWorkflow(_cwd(server), workflow);
+    const record = getWorkflowRecord(_cwd(server), workflow.id);
     server._send(ws, {
       id,
       type: "workflow:save",
       saved: true,
       workflowId: workflow.id,
+      definitionDigest: record.definitionDigest,
+      definitionSchema: record.definitionSchema,
     });
   } catch (err) {
     _sendError(server, ws, id, "WORKFLOW_SAVE_FAILED", err.message);
@@ -367,14 +382,16 @@ export async function handleWorkflowRemove(server, id, ws, message) {
 }
 
 export async function handleWorkflowRun(server, id, ws, message) {
-  const { id: wfId } = message || {};
+  const { id: wfId, definitionDigest } = message || {};
   if (!wfId) return _sendError(server, ws, id, "MISSING_ID", "id required");
 
   try {
-    const { getWorkflow, executeWorkflow } =
+    const { getWorkflowRecord, getWorkflowVersion, executeWorkflow } =
       await import("../../lib/cowork-workflow.js");
-    const workflow = getWorkflow(_cwd(server), wfId);
-    if (!workflow) {
+    const definitionRecord = definitionDigest
+      ? getWorkflowVersion(_cwd(server), wfId, definitionDigest)
+      : getWorkflowRecord(_cwd(server), wfId);
+    if (!definitionRecord) {
       return _sendError(
         server,
         ws,
@@ -385,7 +402,13 @@ export async function handleWorkflowRun(server, id, ws, message) {
     }
 
     const runId = `wf-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    server._send(ws, { id, type: "workflow:started", runId, workflowId: wfId });
+    server._send(ws, {
+      id,
+      type: "workflow:started",
+      runId,
+      workflowId: wfId,
+      definitionDigest: definitionRecord.definitionDigest,
+    });
 
     const onStepStart = ({ stepId, message: stepMessage }) => {
       server._send(ws, {
@@ -408,7 +431,8 @@ export async function handleWorkflowRun(server, id, ws, message) {
     };
 
     const record = await executeWorkflow({
-      workflow,
+      workflow: definitionRecord.definition,
+      definitionDigest: definitionRecord.definitionDigest,
       cwd: _cwd(server),
       onStepStart,
       onStepComplete,
@@ -420,6 +444,7 @@ export async function handleWorkflowRun(server, id, ws, message) {
       runId,
       status: record?.status || "completed",
       steps: record?.steps || [],
+      definitionDigest: record?.definitionDigest,
     });
   } catch (err) {
     _sendError(server, ws, id, "WORKFLOW_RUN_FAILED", err.message);

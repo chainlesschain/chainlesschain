@@ -9,6 +9,14 @@ import fs from "fs";
 import path from "path";
 import { logger } from "../lib/logger.js";
 
+async function loadCoworkWorkflowRecord(cwd, id, definitionDigest) {
+  const { getWorkflowRecord, getWorkflowVersion } =
+    await import("../lib/cowork-workflow.js");
+  return definitionDigest
+    ? getWorkflowVersion(cwd, id, definitionDigest)
+    : getWorkflowRecord(cwd, id);
+}
+
 export function registerCoworkCommand(program) {
   const cowork = program
     .command("cowork")
@@ -800,25 +808,63 @@ export function registerCoworkCommand(program) {
     });
 
   workflow
+    .command("versions <id>")
+    .description("List immutable saved definition versions")
+    .option("--json", "Machine-readable JSON output")
+    .action(async (id, options) => {
+      try {
+        const { listWorkflowVersions } =
+          await import("../lib/cowork-workflow.js");
+        const versions = listWorkflowVersions(process.cwd(), id);
+        if (options.json) {
+          console.log(JSON.stringify(versions, null, 2));
+          return;
+        }
+        if (versions.length === 0) {
+          logger.log(chalk.gray(`No versioned definitions found for '${id}'.`));
+          return;
+        }
+        logger.log(chalk.bold(`${versions.length} immutable version(s):`));
+        for (const version of versions) {
+          logger.log(`  ${version.definitionDigest}  ${version.name}`);
+        }
+      } catch (err) {
+        logger.error(err.message);
+        process.exitCode = 1;
+      }
+    });
+
+  workflow
     .command("manifest <id>")
     .description(
       "Project a versioned, digest-bound workflow definition and DAG plan",
     )
+    .option(
+      "--definition-digest <sha256>",
+      "Inspect an immutable saved definition version",
+    )
     .option("--json", "Machine-readable JSON output")
     .action(async (id, options) => {
-      const [{ getWorkflow }, { createDynamicWorkflowManifest }] =
-        await Promise.all([
-          import("../lib/cowork-workflow.js"),
-          import("../lib/dynamic-workflow-facade.js"),
-        ]);
-      const wf = getWorkflow(process.cwd(), id);
-      if (!wf) {
-        logger.error(`Workflow not found: ${id}`);
-        process.exitCode = 1;
-        return;
-      }
       try {
-        const manifest = createDynamicWorkflowManifest(wf);
+        const [{ createDynamicWorkflowManifest }, record] = await Promise.all([
+          import("../lib/dynamic-workflow-facade.js"),
+          loadCoworkWorkflowRecord(process.cwd(), id, options.definitionDigest),
+        ]);
+        if (!record) {
+          logger.error(`Workflow not found: ${id}`);
+          process.exitCode = 1;
+          return;
+        }
+        const projected = createDynamicWorkflowManifest(record.definition);
+        const manifest = Object.freeze({
+          ...projected,
+          definitionAuthority: Object.freeze({
+            status: record.status,
+            recordSchema: record.recordSchema,
+            definitionSchema: record.definitionSchema,
+            definitionDigest: record.definitionDigest,
+          }),
+        });
         if (options.json) {
           console.log(JSON.stringify(manifest, null, 2));
           return;
@@ -826,6 +872,7 @@ export function registerCoworkCommand(program) {
         logger.log(chalk.bold(`${manifest.definition.name}`));
         logger.log(`  schema:      ${manifest.schema}`);
         logger.log(`  digest:      ${manifest.definitionDigest}`);
+        logger.log(`  authority:   ${record.status}`);
         logger.log(`  adapter:     ${manifest.adapter}`);
         logger.log(`  plan:        ${manifest.plan.mode}`);
         logger.log(
@@ -845,27 +892,31 @@ export function registerCoworkCommand(program) {
     .description(
       "Evaluate capability, permission, sandbox, scale, and cost gates",
     )
+    .option(
+      "--definition-digest <sha256>",
+      "Preflight an immutable saved definition version",
+    )
     .option("--max-parallel <n>", "Requested maximum parallel steps", "4")
     .option("--json", "Machine-readable JSON output")
     .action(async (id, options) => {
-      const [
-        { getWorkflow },
-        { buildDynamicWorkflowPreflight },
-        { captureAmbientExecutionLocation },
-      ] = await Promise.all([
-        import("../lib/cowork-workflow.js"),
-        import("../lib/dynamic-workflow-facade.js"),
-        import("../lib/execution-location-runtime.js"),
-      ]);
-      const wf = getWorkflow(process.cwd(), id);
-      if (!wf) {
-        logger.error(`Workflow not found: ${id}`);
-        process.exitCode = 1;
-        return;
-      }
       try {
+        const [
+          { buildDynamicWorkflowPreflight },
+          { captureAmbientExecutionLocation },
+          record,
+        ] = await Promise.all([
+          import("../lib/dynamic-workflow-facade.js"),
+          import("../lib/execution-location-runtime.js"),
+          loadCoworkWorkflowRecord(process.cwd(), id, options.definitionDigest),
+        ]);
+        if (!record) {
+          logger.error(`Workflow not found: ${id}`);
+          process.exitCode = 1;
+          return;
+        }
         const preflight = buildDynamicWorkflowPreflight({
-          workflow: wf,
+          workflow: record.definition,
+          definitionAuthority: record,
           executionLocation: captureAmbientExecutionLocation(),
           maxParallel: options.maxParallel,
         });
@@ -928,6 +979,10 @@ export function registerCoworkCommand(program) {
   workflow
     .command("run <id>")
     .description("Execute a saved workflow end-to-end")
+    .option(
+      "--definition-digest <sha256>",
+      "Replay an immutable saved definition version",
+    )
     .option("--continue-on-error", "Keep running after a step fails", false)
     .option("--max-parallel <n>", "Max parallel steps per batch", "4")
     .option(
@@ -936,28 +991,32 @@ export function registerCoworkCommand(program) {
       false,
     )
     .action(async (id, options) => {
-      const [
-        { getWorkflow, executeWorkflow, _deps: wfDeps },
-        { runCoworkTask },
-      ] = await Promise.all([
-        import("../lib/cowork-workflow.js"),
-        import("../lib/cowork-task-runner.js"),
-      ]);
-      const wf = getWorkflow(process.cwd(), id);
-      if (!wf) {
-        logger.error(`Workflow not found: ${id}`);
-        process.exit(1);
-      }
-      wfDeps.runTask = runCoworkTask;
-
-      logger.log(
-        chalk.bold(
-          `\nExecuting workflow '${wf.name}' (${wf.steps.length} steps)...`,
-        ),
-      );
+      const [{ executeWorkflow, _deps: wfDeps }, { runCoworkTask }] =
+        await Promise.all([
+          import("../lib/cowork-workflow.js"),
+          import("../lib/cowork-task-runner.js"),
+        ]);
       try {
+        const record = await loadCoworkWorkflowRecord(
+          process.cwd(),
+          id,
+          options.definitionDigest,
+        );
+        if (!record) {
+          logger.error(`Workflow not found: ${id}`);
+          process.exitCode = 1;
+          return;
+        }
+        const wf = record.definition;
+        wfDeps.runTask = runCoworkTask;
+        logger.log(
+          chalk.bold(
+            `\nExecuting workflow '${wf.name}' (${wf.steps.length} steps, ${record.definitionDigest})...`,
+          ),
+        );
         const result = await executeWorkflow({
           workflow: wf,
+          definitionDigest: record.definitionDigest,
           cwd: process.cwd(),
           maxParallel: parseInt(options.maxParallel, 10) || 4,
           continueOnError: !!options.continueOnError,

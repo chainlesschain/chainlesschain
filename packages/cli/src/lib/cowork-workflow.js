@@ -11,9 +11,10 @@
  *   3. substitutes placeholders in `message` from completed step outputs
  *   4. halts on first failure unless `continueOnError` is set
  *
- * Persistence mirrors the cron scheduler: one JSON file per workflow under
- * `.chainlesschain/cowork/workflows/<id>.json`, plus a `run-history.jsonl`
- * capturing each execution.
+ * Persistence keeps a versioned current envelope under
+ * `.chainlesschain/cowork/workflows/<id>.json`, immutable content-addressed
+ * definitions under `workflow-versions/<id>/<digest>.json`, plus a
+ * `run-history.jsonl` capturing each execution.
  *
  * The runner itself is injected via `_deps.runTask` to avoid a circular import
  * with `cowork-task-runner.js`.
@@ -30,15 +31,29 @@ import {
   unlinkSync,
   appendFileSync,
   renameSync,
+  lstatSync,
+  openSync,
+  fstatSync,
+  closeSync,
+  realpathSync,
+  constants as fsConstants,
 } from "node:fs";
-import { join } from "node:path";
+import { isAbsolute, join, relative } from "node:path";
 import { evaluate as evalExpr, resolveReference } from "./workflow-expr.js";
+import {
+  MAX_WORKFLOW_DEFINITION_BYTES,
+  createCoworkWorkflowRecord,
+  createWorkflowDefinitionAuthority,
+  normalizeWorkflowDefinitionDigest,
+  verifyCoworkWorkflowRecord,
+} from "./workflow-definition-contract.js";
 
 /** Maximum number of items a single forEach step can expand into. */
 export const MAX_FAN_OUT = 500;
 
 /** Absolute ceiling on a single loop step's iterations (infinite-loop guard). */
 export const MAX_LOOP_ITERATIONS = 100;
+export const COWORK_WORKFLOW_RUN_RECORD_SCHEMA = "cc-cowork-workflow-run/v1";
 
 export const _deps = {
   existsSync,
@@ -49,6 +64,12 @@ export const _deps = {
   unlinkSync,
   appendFileSync,
   renameSync,
+  lstatSync,
+  openSync,
+  fstatSync,
+  closeSync,
+  realpathSync,
+  fsConstants,
   now: () => Date.now(),
   runTask: null, // injected by CLI
   // Timer seams (injectable for deterministic retry/timeout tests).
@@ -83,14 +104,150 @@ function _atomicWriteJson(file, data) {
   }
 }
 
+function _parseBoundedWorkflowJson(raw) {
+  const text =
+    typeof raw === "string" ? raw : Buffer.from(raw).toString("utf8");
+  const bytes = Buffer.byteLength(text, "utf8");
+  if (bytes <= 0 || bytes > MAX_WORKFLOW_DEFINITION_BYTES) {
+    throw new Error(
+      `workflow record must be 1..${MAX_WORKFLOW_DEFINITION_BYTES} bytes`,
+    );
+  }
+  return JSON.parse(text);
+}
+
+function _sameFileIdentity(left, right) {
+  return (
+    Number(left.dev) === Number(right.dev) &&
+    Number(left.ino) === Number(right.ino) &&
+    Number(left.size) === Number(right.size) &&
+    Number(left.mtimeMs) === Number(right.mtimeMs)
+  );
+}
+
+function _pathIsInside(root, candidate) {
+  const offset = relative(root, candidate);
+  return offset === "" || (!offset.startsWith("..") && !isAbsolute(offset));
+}
+
+function _assertWorkflowStoragePath(cwd, candidate) {
+  const usingRuntimeFs =
+    _deps.readFileSync === readFileSync &&
+    _deps.realpathSync === realpathSync &&
+    _deps.lstatSync === lstatSync;
+  if (!usingRuntimeFs) return;
+  const realRoot = _deps.realpathSync(cwd);
+  const realCandidate = _deps.realpathSync(candidate);
+  if (!_pathIsInside(realRoot, realCandidate)) {
+    throw new Error("workflow storage path escapes the working directory");
+  }
+}
+
+function _assertWorkflowStorageDirectory(cwd, directory) {
+  _assertWorkflowStoragePath(cwd, directory);
+  if (
+    _deps.readFileSync === readFileSync &&
+    _deps.lstatSync === lstatSync &&
+    _deps.realpathSync === realpathSync
+  ) {
+    const stat = _deps.lstatSync(directory);
+    if (!stat.isDirectory() || stat.isSymbolicLink()) {
+      throw new Error("workflow storage directory must not be a symlink");
+    }
+  }
+}
+
+function _readBoundedWorkflowJson(cwd, file) {
+  const usingRuntimeFs =
+    _deps.readFileSync === readFileSync &&
+    _deps.lstatSync === lstatSync &&
+    _deps.openSync === openSync &&
+    _deps.fstatSync === fstatSync &&
+    _deps.closeSync === closeSync &&
+    _deps.realpathSync === realpathSync;
+  if (!usingRuntimeFs) {
+    return _parseBoundedWorkflowJson(_deps.readFileSync(file, "utf8"));
+  }
+
+  _assertWorkflowStoragePath(cwd, file);
+  const before = _deps.lstatSync(file);
+  if (
+    !before.isFile() ||
+    before.isSymbolicLink() ||
+    Number(before.nlink) !== 1
+  ) {
+    throw new Error("workflow record must be a regular, single-link file");
+  }
+  if (
+    Number(before.size) <= 0 ||
+    Number(before.size) > MAX_WORKFLOW_DEFINITION_BYTES
+  ) {
+    throw new Error(
+      `workflow record must be 1..${MAX_WORKFLOW_DEFINITION_BYTES} bytes`,
+    );
+  }
+
+  let descriptor;
+  try {
+    let flags = Number(_deps.fsConstants.O_RDONLY || 0);
+    if (typeof _deps.fsConstants.O_NOFOLLOW === "number") {
+      flags |= _deps.fsConstants.O_NOFOLLOW;
+    }
+    descriptor = _deps.openSync(file, flags);
+    const opened = _deps.fstatSync(descriptor);
+    if (!_sameFileIdentity(before, opened)) {
+      throw new Error("workflow record identity changed while opening");
+    }
+    const value = _parseBoundedWorkflowJson(
+      _deps.readFileSync(descriptor, "utf8"),
+    );
+    const after = _deps.fstatSync(descriptor);
+    if (!_sameFileIdentity(opened, after)) {
+      throw new Error("workflow record changed while being read");
+    }
+    return value;
+  } finally {
+    if (descriptor !== undefined) _deps.closeSync(descriptor);
+  }
+}
+
 // ─── Paths ───────────────────────────────────────────────────────────────────
 
 function workflowsDir(cwd) {
   return join(cwd, ".chainlesschain", "cowork", "workflows");
 }
 
+function assertWorkflowId(id) {
+  if (
+    typeof id !== "string" ||
+    !/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/u.test(id) ||
+    id.includes("..")
+  ) {
+    throw new TypeError(
+      "workflow id must be 1..128 safe filename characters without '..'",
+    );
+  }
+  return id;
+}
+
 function workflowFile(cwd, id) {
-  return join(workflowsDir(cwd), `${id}.json`);
+  return join(workflowsDir(cwd), `${assertWorkflowId(id)}.json`);
+}
+
+function workflowVersionsDir(cwd, id) {
+  return join(
+    cwd,
+    ".chainlesschain",
+    "cowork",
+    "workflow-versions",
+    assertWorkflowId(id),
+  );
+}
+
+function workflowVersionFile(cwd, id, definitionDigest) {
+  const digest = normalizeWorkflowDefinitionDigest(definitionDigest);
+  if (!digest) throw new TypeError("workflow definition digest is invalid");
+  return join(workflowVersionsDir(cwd, id), `${digest.slice(7)}.json`);
 }
 
 function historyFile(cwd) {
@@ -107,7 +264,15 @@ export function validateWorkflow(wf) {
   if (!wf || typeof wf !== "object") {
     return { valid: false, errors: ["workflow must be an object"] };
   }
-  if (!wf.id || typeof wf.id !== "string") errors.push("id required");
+  if (!wf.id || typeof wf.id !== "string") {
+    errors.push("id required");
+  } else {
+    try {
+      assertWorkflowId(wf.id);
+    } catch (error) {
+      errors.push(error.message);
+    }
+  }
   if (!wf.name || typeof wf.name !== "string") errors.push("name required");
   if (!Array.isArray(wf.steps) || wf.steps.length === 0) {
     errors.push("steps must be a non-empty array");
@@ -375,6 +540,40 @@ export function substitutePlaceholders(template, resultsById) {
 
 // ─── Persistence ─────────────────────────────────────────────────────────────
 
+function _storedWorkflowError(message) {
+  const error = new Error(message);
+  error.code = "WORKFLOW_DEFINITION_INTEGRITY";
+  return error;
+}
+
+function _readStoredWorkflowRecord(
+  cwd,
+  file,
+  { allowLegacy = true, expectedId, expectedDigest } = {},
+) {
+  const record = verifyCoworkWorkflowRecord(
+    _readBoundedWorkflowJson(cwd, file),
+    {
+      allowLegacy,
+    },
+  );
+  const validation = validateWorkflow(record.definition);
+  if (!validation.valid) {
+    throw _storedWorkflowError(
+      `stored workflow is invalid: ${validation.errors.join("; ")}`,
+    );
+  }
+  if (expectedId && record.definition.id !== expectedId) {
+    throw _storedWorkflowError("stored workflow id does not match its path");
+  }
+  if (expectedDigest && record.definitionDigest !== expectedDigest) {
+    throw _storedWorkflowError(
+      "stored workflow digest does not match its version path",
+    );
+  }
+  return record;
+}
+
 export function listWorkflows(cwd) {
   const dir = workflowsDir(cwd);
   if (!_deps.existsSync(dir)) return [];
@@ -383,8 +582,11 @@ export function listWorkflows(cwd) {
   for (const name of entries) {
     if (!name.endsWith(".json")) continue;
     try {
-      const body = _deps.readFileSync(join(dir, name), "utf-8");
-      out.push(JSON.parse(body));
+      const id = name.slice(0, -5);
+      const record = _readStoredWorkflowRecord(cwd, join(dir, name), {
+        expectedId: id,
+      });
+      out.push(record.definition);
     } catch (_e) {
       // skip malformed files
     }
@@ -392,11 +594,15 @@ export function listWorkflows(cwd) {
   return out;
 }
 
-export function getWorkflow(cwd, id) {
+export function getWorkflowRecord(cwd, id) {
   const file = workflowFile(cwd, id);
   if (!_deps.existsSync(file)) return null;
+  return _readStoredWorkflowRecord(cwd, file, { expectedId: id });
+}
+
+export function getWorkflow(cwd, id) {
   try {
-    return JSON.parse(_deps.readFileSync(file, "utf-8"));
+    return getWorkflowRecord(cwd, id)?.definition || null;
   } catch (_e) {
     return null;
   }
@@ -405,14 +611,82 @@ export function getWorkflow(cwd, id) {
 export function saveWorkflow(cwd, wf) {
   const { valid, errors } = validateWorkflow(wf);
   if (!valid) throw new Error(`Invalid workflow: ${errors.join("; ")}`);
+  const record = createCoworkWorkflowRecord(wf);
+  const serialized = JSON.stringify(record, null, 2);
   const dir = workflowsDir(cwd);
   _deps.mkdirSync(dir, { recursive: true });
-  _atomicWriteJson(workflowFile(cwd, wf.id), JSON.stringify(wf, null, 2));
+  _assertWorkflowStorageDirectory(cwd, dir);
+  const versionDir = workflowVersionsDir(cwd, wf.id);
+  _deps.mkdirSync(versionDir, { recursive: true });
+  _assertWorkflowStorageDirectory(cwd, versionDir);
+  const versionFile = workflowVersionFile(cwd, wf.id, record.definitionDigest);
+  if (_deps.existsSync(versionFile)) {
+    _readStoredWorkflowRecord(cwd, versionFile, {
+      allowLegacy: false,
+      expectedId: wf.id,
+      expectedDigest: record.definitionDigest,
+    });
+  } else {
+    _atomicWriteJson(versionFile, serialized);
+  }
+  const currentFile = workflowFile(cwd, wf.id);
+  if (_deps.existsSync(currentFile)) {
+    _readStoredWorkflowRecord(cwd, currentFile, {
+      expectedId: wf.id,
+    });
+  }
+  _atomicWriteJson(currentFile, serialized);
   return wf;
 }
 
+export function getWorkflowVersion(cwd, id, definitionDigest) {
+  const digest = normalizeWorkflowDefinitionDigest(definitionDigest);
+  if (!digest) throw new TypeError("workflow definition digest is invalid");
+  const file = workflowVersionFile(cwd, id, digest);
+  if (!_deps.existsSync(file)) return null;
+  return _readStoredWorkflowRecord(cwd, file, {
+    allowLegacy: false,
+    expectedId: id,
+    expectedDigest: digest,
+  });
+}
+
+export function listWorkflowVersions(cwd, id) {
+  const dir = workflowVersionsDir(cwd, id);
+  if (!_deps.existsSync(dir)) return [];
+  const versions = [];
+  for (const name of _deps.readdirSync(dir) || []) {
+    const match = /^([a-f0-9]{64})\.json$/u.exec(name);
+    if (!match) continue;
+    const digest = `sha256:${match[1]}`;
+    const record = _readStoredWorkflowRecord(cwd, join(dir, name), {
+      allowLegacy: false,
+      expectedId: id,
+      expectedDigest: digest,
+    });
+    versions.push(
+      Object.freeze({
+        status: record.status,
+        recordSchema: record.recordSchema,
+        definitionSchema: record.definitionSchema,
+        definitionDigest: record.definitionDigest,
+        id: record.definition.id,
+        name: record.definition.name,
+      }),
+    );
+  }
+  return versions.sort((left, right) =>
+    left.definitionDigest.localeCompare(right.definitionDigest),
+  );
+}
+
 export function removeWorkflow(cwd, id) {
-  const file = workflowFile(cwd, id);
+  let file;
+  try {
+    file = workflowFile(cwd, id);
+  } catch {
+    return false;
+  }
   if (!_deps.existsSync(file)) return false;
   _deps.unlinkSync(file);
   return true;
@@ -872,6 +1146,7 @@ export async function runPipeline({
  *
  * @param {object} options
  * @param {object} options.workflow - Workflow definition
+ * @param {string} [options.definitionDigest] - Exact definition digest to bind
  * @param {string} [options.cwd] - Working directory for history
  * @param {number} [options.maxParallel] - Max parallel steps (per batch, or
  *   concurrent step nodes in pipeline mode)
@@ -893,6 +1168,7 @@ export async function runPipeline({
 export async function executeWorkflow(options = {}) {
   const {
     workflow,
+    definitionDigest: requestedDefinitionDigest,
     cwd = process.cwd(),
     maxParallel = 4,
     continueOnError = false,
@@ -904,6 +1180,18 @@ export async function executeWorkflow(options = {}) {
 
   const { valid, errors } = validateWorkflow(workflow);
   if (!valid) throw new Error(`Invalid workflow: ${errors.join("; ")}`);
+  const definitionAuthority = createWorkflowDefinitionAuthority(workflow);
+  if (requestedDefinitionDigest != null) {
+    const normalizedDigest = normalizeWorkflowDefinitionDigest(
+      requestedDefinitionDigest,
+    );
+    if (!normalizedDigest) {
+      throw new Error("workflow definition digest is invalid");
+    }
+    if (normalizedDigest !== definitionAuthority.definitionDigest) {
+      throw new Error("workflow definition digest mismatch");
+    }
+  }
   if (typeof _deps.runTask !== "function") {
     throw new Error(
       "cowork-workflow: _deps.runTask is not injected (wire runCoworkTask in CLI before executing)",
@@ -1107,8 +1395,11 @@ export async function executeWorkflow(options = {}) {
       : "failed";
 
   const record = {
+    schema: COWORK_WORKFLOW_RUN_RECORD_SCHEMA,
     workflowId: workflow.id,
     workflowName: workflow.name,
+    definitionSchema: definitionAuthority.schema,
+    definitionDigest: definitionAuthority.definitionDigest,
     status,
     steps: stepOutcomes,
     startedAt,

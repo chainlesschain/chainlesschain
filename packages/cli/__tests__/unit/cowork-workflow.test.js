@@ -7,6 +7,9 @@ import {
   substitutePlaceholders,
   listWorkflows,
   getWorkflow,
+  getWorkflowRecord,
+  getWorkflowVersion,
+  listWorkflowVersions,
   saveWorkflow,
   removeWorkflow,
   executeWorkflow,
@@ -192,8 +195,48 @@ describe("persistence", () => {
     const files = installFakeFs();
     saveWorkflow("/project", VALID_WF);
     expect(getWorkflow("/project", "wf-1")).toEqual(VALID_WF);
+    const record = getWorkflowRecord("/project", "wf-1");
+    expect(record).toMatchObject({
+      status: "versioned",
+      recordSchema: "cc-cowork-workflow-record/v1",
+      definitionSchema: "cc-dynamic-workflow-definition/v1",
+    });
+    expect(listWorkflowVersions("/project", "wf-1")).toEqual([
+      expect.objectContaining({ definitionDigest: record.definitionDigest }),
+    ]);
     // Atomic write: the temp sibling was renamed away, none left behind.
     expect([...files.keys()].some((k) => k.endsWith(".tmp"))).toBe(false);
+  });
+
+  it("keeps immutable versions and reads an exact older digest", () => {
+    saveWorkflow("/project", VALID_WF);
+    const first = getWorkflowRecord("/project", "wf-1");
+    const updated = { ...VALID_WF, name: "Updated pipeline" };
+    saveWorkflow("/project", updated);
+    const second = getWorkflowRecord("/project", "wf-1");
+
+    expect(second.definitionDigest).not.toBe(first.definitionDigest);
+    expect(
+      getWorkflowVersion("/project", "wf-1", first.definitionDigest).definition,
+    ).toEqual(VALID_WF);
+    expect(
+      getWorkflowVersion("/project", "wf-1", second.definitionDigest)
+        .definition,
+    ).toEqual(updated);
+    expect(listWorkflowVersions("/project", "wf-1")).toHaveLength(2);
+  });
+
+  it("reads legacy JSON without claiming versioned persistence", () => {
+    const files = installFakeFs();
+    files.set(
+      join("/project", ".chainlesschain", "cowork", "workflows", "wf-1.json"),
+      JSON.stringify(VALID_WF),
+    );
+
+    expect(getWorkflowRecord("/project", "wf-1")).toMatchObject({
+      status: "legacy-unversioned",
+      definition: VALID_WF,
+    });
   });
 
   it("listWorkflows returns [] when dir missing", () => {
@@ -217,8 +260,18 @@ describe("persistence", () => {
 
   it("removeWorkflow removes the file", () => {
     saveWorkflow("/project", VALID_WF);
+    const digest = getWorkflowRecord("/project", "wf-1").definitionDigest;
     expect(removeWorkflow("/project", "wf-1")).toBe(true);
     expect(getWorkflow("/project", "wf-1")).toBeNull();
+    expect(getWorkflowVersion("/project", "wf-1", digest).definition).toEqual(
+      VALID_WF,
+    );
+  });
+
+  it("rejects path traversal ids", () => {
+    expect(() =>
+      saveWorkflow("/project", { ...VALID_WF, id: "../../escape" }),
+    ).toThrow(/safe filename/);
   });
 });
 
@@ -320,7 +373,22 @@ describe("executeWorkflow", () => {
     expect(files.has(histPath)).toBe(true);
     const lines = files.get(histPath).trim().split("\n");
     expect(lines).toHaveLength(1);
-    expect(JSON.parse(lines[0]).workflowId).toBe("wf-1");
+    expect(JSON.parse(lines[0])).toMatchObject({
+      schema: "cc-cowork-workflow-run/v1",
+      workflowId: "wf-1",
+      definitionSchema: "cc-dynamic-workflow-definition/v1",
+      definitionDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+    });
+  });
+
+  it("rejects execution when a pinned definition digest drifts", async () => {
+    await expect(
+      executeWorkflow({
+        workflow: VALID_WF,
+        definitionDigest: `sha256:${"f".repeat(64)}`,
+        cwd: "/project",
+      }),
+    ).rejects.toThrow(/digest mismatch/);
   });
 });
 

@@ -86,8 +86,9 @@ describe("workflow WS handlers — integration (real fs)", () => {
     );
     expect(existsSync(filePath)).toBe(true);
     const onDisk = JSON.parse(readFileSync(filePath, "utf-8"));
-    expect(onDisk.id).toBe("wf-int");
-    expect(onDisk.steps[0].message).toBe("greet");
+    expect(onDisk.schema).toBe("cc-cowork-workflow-record/v1");
+    expect(onDisk.definition.id).toBe("wf-int");
+    expect(onDisk.definition.steps[0].message).toBe("greet");
 
     // list now returns it
     await handleWorkflowList(server, "3", {});
@@ -128,6 +129,8 @@ describe("workflow WS handlers — integration (real fs)", () => {
 
     const done = server._sent.find((m) => m.type === "workflow:done");
     expect(done.status).toBe("completed");
+    const started = server._sent.find((m) => m.type === "workflow:started");
+    expect(done.definitionDigest).toBe(started.definitionDigest);
 
     // run-history.jsonl should exist
     const historyPath = join(
@@ -196,7 +199,7 @@ describe("workflow WS handlers — integration (real fs)", () => {
       "ow.json",
     );
     const onDisk = JSON.parse(readFileSync(filePath, "utf-8"));
-    expect(onDisk.steps[0].message).toBe("v2");
+    expect(onDisk.definition.steps[0].message).toBe("v2");
   });
 
   it("run bubbles WORKFLOW_NOT_FOUND for missing id", async () => {
