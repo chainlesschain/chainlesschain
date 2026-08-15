@@ -72,6 +72,14 @@ export function hasIdeTerminalTool(mcp) {
   );
 }
 
+/** Does this MCP surface expose the fixed-budget Context Center projection? */
+export function hasIdeContextCenterTool(mcp) {
+  return !!(
+    mcp?.mcpClient?.callTool &&
+    mcp.externalToolExecutors?.mcp__ide__getContextCenter?.kind === "mcp"
+  );
+}
+
 /**
  * Read an MCP tools/call result's first text block as JSON. The IDE bridge
  * servers always wrap handler data as
@@ -756,15 +764,18 @@ const WORKSPACE_DIAG_CAP = 50;
 const TERMINAL_MENTION_LIMIT = 5;
 /** And a roomier per-command output cap, since the user asked for it. */
 const TERMINAL_MENTION_OUTPUT_CAP = 2000;
+/** Explicit @context uses the shared deterministic Context Center budget. */
+const CONTEXT_MENTION_TOKEN_BUDGET = 4096;
 
-// `@selection` / `@diagnostics` / `@terminal` preceded by start / whitespace /
-// opening bracket-quote (so `foo@selection` and email-like text never match),
-// each taken as a whole word.
-const IDE_MENTION_RE = /(^|[\s("'`[{])@(selection|diagnostics|terminal)\b/gi;
+// IDE pseudo-mentions preceded by start / whitespace / opening bracket-quote
+// (so `foo@selection` and email-like text never match), each taken as a whole
+// word.
+const IDE_MENTION_RE =
+  /(^|[\s("'`[{])@(selection|diagnostics|terminal|context)\b/gi;
 
 /**
  * Unique IDE pseudo-mentions in the text, in first-seen order. Returns a
- * subset of `["selection", "diagnostics", "terminal"]`.
+ * subset of `["selection", "diagnostics", "terminal", "context"]`.
  */
 export function findIdeMentions(text) {
   const src = typeof text === "string" ? text : "";
@@ -870,7 +881,66 @@ export function formatTerminalMention(data) {
 }
 
 /**
- * Expand `@selection` / `@diagnostics` / `@terminal` mentions found in `text`
+ * Render the versioned Context Center projection for an explicit `@context`.
+ * The bridge already applies the fixed content budget; this formatter keeps a
+ * strict field allowlist and redacts secret-shaped text before prompt injection.
+ */
+export function formatContextCenterMention(data, opts = {}) {
+  if (
+    data?.schema !== "cc-context-center/v1" ||
+    !Array.isArray(data.chips) ||
+    data.chips.length === 0
+  ) {
+    return null;
+  }
+  const env = opts.env || process.env;
+  const chips = data.chips
+    .slice(0, 64)
+    .filter((chip) => chip && typeof chip === "object")
+    .map((chip) => ({
+      id: String(chip.id || ""),
+      kind: String(chip.kind || ""),
+      label: String(chip.label || ""),
+      source: String(chip.source || ""),
+      scope: String(chip.scope || ""),
+      freshness:
+        chip.freshness && typeof chip.freshness === "object"
+          ? chip.freshness
+          : null,
+      range: chip.range && typeof chip.range === "object" ? chip.range : null,
+      estimatedTokens: Number(chip.estimatedTokens) || 0,
+      allocatedTokens: Number(chip.allocatedTokens) || 0,
+      status: String(chip.status || ""),
+      pinned: chip.pinned === true,
+      refreshable: chip.refreshable !== false,
+      reason: String(chip.reason || ""),
+      content: redactSecretsInText(String(chip.content || ""), { env }),
+      contentTruncated: chip.contentTruncated === true,
+    }));
+  if (chips.length === 0) return null;
+  const payload = {
+    schema: data.schema,
+    workspaceId:
+      typeof data.workspaceId === "string" ? data.workspaceId : null,
+    selectionAlgorithm: String(data.selectionAlgorithm || ""),
+    budget:
+      data.budget && typeof data.budget === "object" ? data.budget : null,
+    chips,
+  };
+  const json = JSON.stringify(payload, null, 2).replace(
+    /<\/ide-context-center/gi,
+    "<\\/ide-context-center",
+  );
+  return (
+    '<ide-context-center note="referenced via @context — deterministic live IDE context">\n' +
+    json +
+    "\n</ide-context-center>"
+  );
+}
+
+/**
+ * Expand `@selection` / `@diagnostics` / `@terminal` / `@context` mentions
+ * found in `text`
  * against the connected IDE. Returns
  *   { block: string|null, expanded: string[], warnings: string[] }
  * where `block` is the concatenated context block(s) to APPEND to the user
@@ -957,6 +1027,26 @@ export async function expandIdeMentions(text, mcp, opts = {}) {
           out.expanded.push("terminal");
         } else {
           out.warnings.push("@terminal — no recent commands (left as-is)");
+        }
+      } else if (kind === "context") {
+        if (!hasIdeContextCenterTool(mcp)) {
+          out.warnings.push(
+            "@context — no IDE bridge / Context Center support (left as-is)",
+          );
+          continue;
+        }
+        const data = await callIdeToolJson(
+          mcp,
+          "mcp__ide__getContextCenter",
+          { budgetTokens: CONTEXT_MENTION_TOKEN_BUDGET },
+          timeoutMs,
+        );
+        const b = formatContextCenterMention(data, { env });
+        if (b) {
+          blocks.push(b);
+          out.expanded.push("context");
+        } else {
+          out.warnings.push("@context — no live context chips (left as-is)");
         }
       }
     } catch {

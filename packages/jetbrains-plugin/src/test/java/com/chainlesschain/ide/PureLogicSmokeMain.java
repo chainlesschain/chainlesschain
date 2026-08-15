@@ -286,9 +286,11 @@ public final class PureLogicSmokeMain {
                 "src/", "folder basename ranks first");
 
         // ideMentionMatches
-        eq(Mentions.ideMentionMatches("").size(), 2, "empty -> both ide mentions");
+        eq(Mentions.ideMentionMatches("").size(), 4, "empty -> all ide mentions");
         eq(Mentions.ideMentionMatches("s"), Arrays.asList("selection"), "@s -> selection");
         eq(Mentions.ideMentionMatches("d"), Arrays.asList("diagnostics"), "@d -> diagnostics");
+        eq(Mentions.ideMentionMatches("t"), Arrays.asList("terminal"), "@t -> terminal");
+        eq(Mentions.ideMentionMatches("c"), Arrays.asList("context"), "@c -> context");
 
         // applyMention: splice with trailing space
         Mentions.AtToken at = Mentions.detectAtToken("look @ap");

@@ -498,8 +498,18 @@ Permission & Side Effect Center：
 保存 workspace 绑定、TTL 到期和 revision/generation CAS 的 scoped rule；REPL、headless、stream、WS 与子 Agent
 在每次工具调用前重新解析 authority，撤销、到期或存储损坏分别即时生效或 fail closed。VS Code 与 JetBrains
 展示 rule source/status/expiry/revision，并且只通过经过校验的 `cc permissions scoped|revoke` argv 修改 authority；
-managed-only 与 deny 优先级继续收紧，不能被 workspace rule 放宽。P1-4 仍未关闭：统一 context chips、确定性
-token 裁剪、实际资源/credential、side effect 与恢复覆盖解释尚待完成。
+managed-only 与 deny 优先级继续收紧，不能被 workspace rule 放宽。
+
+同日，Context Center foundation 子切片已实现：VS Code 与 JetBrains 通过同一
+`cc-context-center/v1` contract 和 `priority-stable-v1` 算法返回稳定 chip id、source、scope、range、freshness、
+estimated/allocated token、include/trim/remove 状态和自动加入原因；pin/remove/refresh 意图在每次请求中显式传入，
+固定 budget 下的排序与 UTF-8 裁剪由同一 JSON fixture 在 Node/Java 两端验证。双 IDE 当前从宿主实时采集 selection、
+active file、open tabs、diagnostics、terminal、test/debug 与 preview evidence，并把能力发布为
+`getContextCenter/context_center`；Chat 的 `@context` 以固定 4,096-token budget 消费该 projection，并在注入前执行
+secret-shaped text redaction。
+
+P1-4 仍未关闭：可交互 chips 面板及持久 pin/remove/refresh 偏好、Git diff/memory/MCP resource 三类实际采集、
+legacy/`/v2`/`/v6-preview` 对同一 contract 的消费，以及实际 resource/credential、side effect 与恢复覆盖解释仍待完成。
 
 ### P1-5：Marketplace 发现与组织治理
 

@@ -30,6 +30,7 @@ const TOOL_FEATURES = new Map([
   ["getCallHierarchy", "semantic_call_hierarchy"],
   ["getSymbolInfo", "semantic_symbols"],
   ["getProjectModel", "project_model"],
+  ["getContextCenter", "context_center"],
 ]);
 
 function buildIdeCapabilities(tools = []) {

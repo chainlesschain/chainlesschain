@@ -105,10 +105,12 @@ final class ChatMentionPopups {
         // Candidates carry a display label + the value spliced on choose. Files
         // and PSI symbols both resolve to a file path (cc expands it); a symbol
         // entry just adds a name-based way to find that file (e.g. type a class
-        // name). IDE pseudo-mentions splice @selection / @diagnostics.
+        // name). IDE pseudo-mentions splice live host context references.
         List<Mentions.MentionItem> candidates = new java.util.ArrayList<>();
         candidates.add(Mentions.MentionItem.symbol("selection", "selection"));
         candidates.add(Mentions.MentionItem.symbol("diagnostics", "diagnostics"));
+        candidates.add(Mentions.MentionItem.symbol("terminal", "terminal"));
+        candidates.add(Mentions.MentionItem.symbol("context", "context"));
         candidates.addAll(symbolCandidates());
         // Offer ancestor folders (as @folder/) ahead of the files — typing
         // "@src" surfaces the directory too; cc expands it into a bounded tree.

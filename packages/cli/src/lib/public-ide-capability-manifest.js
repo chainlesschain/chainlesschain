@@ -37,6 +37,7 @@ const BRIDGE_TOOL_FEATURES = [
   ["getCallHierarchy", "semantic_call_hierarchy"],
   ["getSymbolInfo", "semantic_symbols"],
   ["getProjectModel", "project_model"],
+  ["getContextCenter", "context_center"],
 ];
 
 const VSCODE_COMMANDS = [

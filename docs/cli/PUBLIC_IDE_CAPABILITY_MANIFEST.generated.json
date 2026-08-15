@@ -48,7 +48,8 @@
       ["renamePreview", "semantic_rename"],
       ["getCallHierarchy", "semantic_call_hierarchy"],
       ["getSymbolInfo", "semantic_symbols"],
-      ["getProjectModel", "project_model"]
+      ["getProjectModel", "project_model"],
+      ["getContextCenter", "context_center"]
     ]
   },
   "surfaces": {

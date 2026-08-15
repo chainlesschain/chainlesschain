@@ -133,7 +133,8 @@ The extension also supports a custom binary through `chainlesschain.cli.path`.
 
 The Chat view maintains a persistent `cc agent` stream-json process per
 conversation. Prompts can include `@file`, `@file#L5-10`, `@selection`,
-`@diagnostics`, `@terminal`, images, and workspace symbols. Sessions survive
+`@diagnostics`, `@terminal`, `@context` (the deterministic fixed-budget Context
+Center projection), images, and workspace symbols. Sessions survive
 editor restarts and are visible across supported IDEs through the shared IDE
 session index.
 
@@ -273,7 +274,7 @@ The base IDE/Doctor contract requires `cc >= 0.162.47`; feature-specific section
 
 - VS Code commands: **51** registered entries
 - Doctor entries: `chainlesschain.ide.doctor`, `chainlesschain.remote.doctor`
-- Bridge capability schema: **v1** (19 mapped tools)
+- Bridge capability schema: **v1** (20 mapped tools)
 - Drift check: `npm run ide:capabilities:check` from the repository root
 
 <details><summary>VS Code commands</summary>

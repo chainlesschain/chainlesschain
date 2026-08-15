@@ -1,0 +1,224 @@
+[
+  {
+    "name": "pin remove priority and fixed-budget trimming",
+    "input": {
+      "workspaceId": "ws-c52ddf65534b7b46",
+      "tokenBudget": 6,
+      "pinnedIds": ["ctx_bbbbbbbbbbbbbbbb"],
+      "removedIds": ["ctx_dddddddddddddddd"],
+      "candidates": [
+        {
+          "id": "ctx_cccccccccccccccc",
+          "kind": "diagnostics",
+          "label": "Diagnostics",
+          "source": "ide.diagnostics",
+          "identity": "workspace",
+          "content": "diagnostic payload",
+          "estimatedTokens": 4,
+          "freshness": {
+            "state": "live-host",
+            "capturedAt": "2026-08-15T00:00:00.000Z"
+          },
+          "autoReason": "errors are present"
+        },
+        {
+          "id": "ctx_aaaaaaaaaaaaaaaa",
+          "kind": "selection",
+          "label": "Selection",
+          "source": "ide.selection",
+          "identity": "a.js:1-3",
+          "content": "abcdefghijklmnopqrst",
+          "estimatedTokens": 5,
+          "range": {
+            "start": { "line": 1, "character": 0 },
+            "end": { "line": 3, "character": 0 }
+          },
+          "freshness": {
+            "state": "live-buffer",
+            "capturedAt": "2026-08-15T00:00:00.000Z"
+          },
+          "autoReason": "explicit editor selection"
+        },
+        {
+          "id": "ctx_dddddddddddddddd",
+          "kind": "open-tabs",
+          "label": "Open tabs",
+          "source": "ide.tabs",
+          "identity": "workspace",
+          "content": "a.js\nb.js",
+          "estimatedTokens": 2,
+          "freshness": {
+            "state": "live-host",
+            "capturedAt": "2026-08-15T00:00:00.000Z"
+          },
+          "autoReason": "open editor inventory"
+        },
+        {
+          "id": "ctx_bbbbbbbbbbbbbbbb",
+          "kind": "active-file",
+          "label": "Active file",
+          "source": "ide.active-file",
+          "identity": "a.js",
+          "content": "active-file",
+          "estimatedTokens": 3,
+          "freshness": {
+            "state": "live-buffer",
+            "capturedAt": "2026-08-15T00:00:00.000Z"
+          },
+          "autoReason": "active editor"
+        }
+      ]
+    },
+    "expected": {
+      "schema": "cc-context-center/v1",
+      "workspaceId": "ws-c52ddf65534b7b46",
+      "selectionAlgorithm": "priority-stable-v1",
+      "budget": {
+        "limitTokens": 6,
+        "allocatedTokens": 6,
+        "remainingTokens": 0
+      },
+      "chips": [
+        {
+          "id": "ctx_bbbbbbbbbbbbbbbb",
+          "kind": "active-file",
+          "label": "Active file",
+          "source": "ide.active-file",
+          "scope": "a.js",
+          "freshness": {
+            "state": "live-buffer",
+            "capturedAt": "2026-08-15T00:00:00.000Z"
+          },
+          "range": null,
+          "estimatedTokens": 3,
+          "allocatedTokens": 3,
+          "status": "included",
+          "pinned": true,
+          "refreshable": true,
+          "reason": "user-pinned",
+          "content": "active-file",
+          "contentTruncated": false
+        },
+        {
+          "id": "ctx_aaaaaaaaaaaaaaaa",
+          "kind": "selection",
+          "label": "Selection",
+          "source": "ide.selection",
+          "scope": "a.js:1-3",
+          "freshness": {
+            "state": "live-buffer",
+            "capturedAt": "2026-08-15T00:00:00.000Z"
+          },
+          "range": {
+            "start": { "line": 1, "character": 0 },
+            "end": { "line": 3, "character": 0 }
+          },
+          "estimatedTokens": 5,
+          "allocatedTokens": 3,
+          "status": "trimmed",
+          "pinned": false,
+          "refreshable": true,
+          "reason": "auto:explicit editor selection",
+          "content": "abcdefghijkl",
+          "contentTruncated": true
+        },
+        {
+          "id": "ctx_cccccccccccccccc",
+          "kind": "diagnostics",
+          "label": "Diagnostics",
+          "source": "ide.diagnostics",
+          "scope": "workspace",
+          "freshness": {
+            "state": "live-host",
+            "capturedAt": "2026-08-15T00:00:00.000Z"
+          },
+          "range": null,
+          "estimatedTokens": 4,
+          "allocatedTokens": 0,
+          "status": "excluded-budget",
+          "pinned": false,
+          "refreshable": true,
+          "reason": "budget-exhausted",
+          "content": "",
+          "contentTruncated": true
+        },
+        {
+          "id": "ctx_dddddddddddddddd",
+          "kind": "open-tabs",
+          "label": "Open tabs",
+          "source": "ide.tabs",
+          "scope": "workspace",
+          "freshness": {
+            "state": "live-host",
+            "capturedAt": "2026-08-15T00:00:00.000Z"
+          },
+          "range": null,
+          "estimatedTokens": 2,
+          "allocatedTokens": 0,
+          "status": "removed",
+          "pinned": false,
+          "refreshable": true,
+          "reason": "removed-by-user",
+          "content": "",
+          "contentTruncated": true
+        }
+      ]
+    }
+  },
+  {
+    "name": "UTF-8 trimming does not split a code point",
+    "input": {
+      "workspaceId": null,
+      "tokenBudget": 1,
+      "refreshedIds": ["ctx_eeeeeeeeeeeeeeee"],
+      "candidates": [
+        {
+          "id": "ctx_eeeeeeeeeeeeeeee",
+          "kind": "mcp-resource",
+          "label": "Resource",
+          "source": "mcp.docs",
+          "identity": "resource://one",
+          "content": "你好a",
+          "estimatedTokens": 2,
+          "freshness": {
+            "state": "cached",
+            "capturedAt": null
+          },
+          "autoReason": "explicit resource"
+        }
+      ]
+    },
+    "expected": {
+      "schema": "cc-context-center/v1",
+      "workspaceId": null,
+      "selectionAlgorithm": "priority-stable-v1",
+      "budget": {
+        "limitTokens": 1,
+        "allocatedTokens": 1,
+        "remainingTokens": 0
+      },
+      "chips": [
+        {
+          "id": "ctx_eeeeeeeeeeeeeeee",
+          "kind": "mcp-resource",
+          "label": "Resource",
+          "source": "mcp.docs",
+          "scope": "resource://one",
+          "freshness": {
+            "state": "cached",
+            "capturedAt": null
+          },
+          "range": null,
+          "estimatedTokens": 2,
+          "allocatedTokens": 1,
+          "status": "trimmed",
+          "pinned": false,
+          "refreshable": true,
+          "reason": "user-refreshed",
+          "content": "你",
+          "contentTruncated": true
+        }
+      ]
+    }
+  }
+]

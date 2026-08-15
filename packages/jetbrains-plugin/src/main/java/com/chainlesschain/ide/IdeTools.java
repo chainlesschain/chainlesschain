@@ -286,6 +286,47 @@ public final class IdeTools {
             }
         });
 
+        // Deterministic, fixed-budget Context Center. The host is re-read on
+        // every call; pin/remove/refresh lists are request-local user intent.
+        if (editor.supportsContextCenter()) {
+            tools.add(new BaseTool(
+                    "getContextCenter",
+                    "Return cc-context-center/v1 chips for the live IDE context. "
+                            + "Each chip explains source, freshness, range, token "
+                            + "allocation and why it was included, trimmed, removed, "
+                            + "or excluded. pinnedIds/removedIds/refreshedIds reproduce "
+                            + "an explicit selection under one fixed token budget.",
+                    contextCenterSchema()) {
+                @Override public Object call(Map<String, Object> args) {
+                    int budget = ContextCenter.DEFAULT_TOKEN_BUDGET;
+                    Object raw = args == null ? null : args.get("budgetTokens");
+                    if (raw instanceof Number) {
+                        double value = ((Number) raw).doubleValue();
+                        if (Double.isFinite(value) && Math.rint(value) == value
+                                && value >= Integer.MIN_VALUE
+                                && value <= Integer.MAX_VALUE) {
+                            budget = (int) value;
+                        }
+                    }
+                    List<Map<String, Object>> candidates =
+                            editor.getContextCandidates();
+                    if (candidates == null) {
+                        throw new IllegalStateException(
+                                "getContextCenter: host returned an invalid candidate set");
+                    }
+                    Map<String, Object> metadata = contextMetadata(
+                            editor, null, "getContextCenter");
+                    String workspaceId = metadata == null
+                            ? null : stringValue(metadata.get("workspaceId"));
+                    return ContextCenter.build(
+                            workspaceId, candidates, budget,
+                            stringListArg(args, "pinnedIds"),
+                            stringListArg(args, "removedIds"),
+                            stringListArg(args, "refreshedIds"));
+                }
+            });
+        }
+
         // Conditional: recent terminal output. Only exposed when the facade
         // supports it (terminal plugin present) — VS Code twin gates the same
         // way on shell integration.
@@ -513,6 +554,35 @@ public final class IdeTools {
         s.put("type", "object");
         s.put("properties", props);
         return s;
+    }
+
+    private static Map<String, Object> contextCenterSchema() {
+        Map<String, Object> props = new LinkedHashMap<>();
+        props.put("budgetTokens", Map.of(
+                "type", "number",
+                "description", "Fixed content budget (default 4096, maximum 32768)."));
+        Map<String, Object> ids = new LinkedHashMap<>();
+        ids.put("type", "array");
+        ids.put("items", Map.of("type", "string"));
+        props.put("pinnedIds", ids);
+        props.put("removedIds", new LinkedHashMap<String, Object>(ids));
+        props.put("refreshedIds", new LinkedHashMap<String, Object>(ids));
+        Map<String, Object> schema = new LinkedHashMap<>();
+        schema.put("type", "object");
+        schema.put("properties", props);
+        return schema;
+    }
+
+    private static List<String> stringListArg(
+            Map<String, Object> args, String key) {
+        List<String> out = new ArrayList<String>();
+        Object value = args == null ? null : args.get(key);
+        if (!(value instanceof List)) return out;
+        for (Object item : (List<?>) value) {
+            if (item instanceof String) out.add((String) item);
+            if (out.size() >= 64) break;
+        }
+        return out;
     }
 
     private static Map<String, Object> qualityLimitSchema() {

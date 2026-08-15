@@ -37,6 +37,20 @@ public interface EditorFacade {
         return out;
     }
 
+    /** Whether the host can gather a unified Context Center projection. */
+    default boolean supportsContextCenter() {
+        return false;
+    }
+
+    /**
+     * Live host candidates consumed by {@code cc-context-center/v1}. Content
+     * bounding and deterministic token allocation are owned by
+     * {@link ContextCenter}, not by callers of this facade.
+     */
+    default List<Map<String, Object>> getContextCandidates() {
+        return new java.util.ArrayList<Map<String, Object>>();
+    }
+
     /** [{ file, severity, message, line, character, source? }], optionally scoped. */
     List<Map<String, Object>> getDiagnostics(String path);
 

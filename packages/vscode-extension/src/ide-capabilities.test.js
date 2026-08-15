@@ -7,6 +7,7 @@ const { buildIdeCapabilities } = require("./ide-capabilities");
 test("capability manifest is derived from registered tools", () => {
   const manifest = buildIdeCapabilities([
     { name: "getActiveFile" },
+    { name: "getContextCenter" },
     { name: "openDiff" },
     { name: "getProjectModel" },
     { name: "getTestResults" },
@@ -18,6 +19,7 @@ test("capability manifest is derived from registered tools", () => {
   assert.equal(manifest.schemaVersion, 1);
   assert.deepEqual(manifest.tools, [
     "getActiveFile",
+    "getContextCenter",
     "getCoverage",
     "getDebugState",
     "getProjectModel",
@@ -27,6 +29,7 @@ test("capability manifest is derived from registered tools", () => {
   ]);
   assert.deepEqual(manifest.features, [
     "active_file",
+    "context_center",
     "coverage",
     "debug_state",
     "native_diff",

@@ -11,7 +11,8 @@ import java.util.regex.Pattern;
  * Pure logic for the chat input's {@code @}-mention completion — a Java port of
  * the VS Code extension's at-mention.js + symbol-mentions.js. Detect an
  * in-progress {@code @token}, rank workspace files against it, offer the IDE
- * pseudo-mentions ({@code @selection}/{@code @diagnostics}), format workspace
+ * pseudo-mentions ({@code @selection}/{@code @diagnostics}/{@code @terminal}/
+ * {@code @context}), format workspace
  * symbols into "find a file by symbol name" items, and dedupe. No IntelliJ SDK
  * (the glue feeds symbols from PSI); compiles + tests with plain {@code javac}.
  *
@@ -138,7 +139,8 @@ public final class Mentions {
     }
 
     // IDE pseudo-mentions the CLI expands server-side (lib/ide-context.js).
-    private static final String[] IDE_MENTIONS = {"selection", "diagnostics"};
+    private static final String[] IDE_MENTIONS = {
+            "selection", "diagnostics", "terminal", "context"};
 
     /** IDE keyword mentions whose name starts with the typed prefix (empty matches all). */
     public static List<String> ideMentionMatches(String prefix) {

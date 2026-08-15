@@ -79,9 +79,10 @@
 
   // IDE pseudo-mentions the CLI expands server-side (lib/ide-context.js):
   // @selection = the active editor selection, @diagnostics = the whole
-  // workspace's current problems. Offered as completions so the feature is
-  // discoverable, not just typeable from memory.
-  var IDE_MENTIONS = ["selection", "diagnostics", "terminal"];
+  // workspace's current problems, @terminal = recent command evidence, and
+  // @context = the deterministic fixed-budget Context Center projection.
+  // Offered as completions so the feature is discoverable.
+  var IDE_MENTIONS = ["selection", "diagnostics", "terminal", "context"];
 
   /**
    * IDE keyword mentions whose name starts with the typed prefix (empty prefix

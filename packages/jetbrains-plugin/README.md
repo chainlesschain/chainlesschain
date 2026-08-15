@@ -67,6 +67,10 @@ uses them on its own:
   file, the IDE's fresh errors/warnings are attached to the tool result so the
   model fixes what it just broke in the same run.
 - **REPL `@` tab-completion prefers your open tabs.**
+- **`@context` expands the live `cc-context-center/v1` projection** with a
+  deterministic 4,096-token budget, per-chip source/scope/freshness/range,
+  allocation status, and inclusion reason. `@selection`, `@diagnostics`, and
+  `@terminal` remain available for focused references.
 
 Set `CC_IDE_CONTEXT=0` to turn the automatic sharing off.
 
@@ -181,7 +185,7 @@ The base IDE/Doctor contract requires `cc >= 0.162.47`; feature-specific section
 
 - JetBrains actions: **34** registered entries
 - Doctor entries: `chainlesschain.ide.DiagnoseBridge`
-- Bridge capability schema: **v1** (19 mapped tools)
+- Bridge capability schema: **v1** (20 mapped tools)
 - Drift check: `npm run ide:capabilities:check` from the repository root
 
 <details><summary>JetBrains actions</summary>

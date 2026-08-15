@@ -62,7 +62,7 @@ describe("renderIdeStatus — connected", () => {
     );
     expect(out).toContain("workspace: /proj");
     expect(out).toContain("mcp__ide__getSelection");
-    expect(out).toContain("@selection / @diagnostics");
+    expect(out).toContain("@selection / @diagnostics / @terminal / @context");
   });
 
   it("still reports connected via in-session tools when diag is missing", () => {
