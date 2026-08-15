@@ -12,9 +12,10 @@ the corresponding exact-gated CLI command, as documented below.
 
 ## Release compatibility
 
-Plugin **0.4.89** is the source candidate that carries forward governed
-automatic ghost-text completion and the Automation Center for CLI-owned, versioned
-Automation and Routine projections. It shows preflight and history, then routes
+Plugin **0.4.90** is the source candidate that adds the read-only Context
+Center and runtime permission/side-effect evidence while carrying forward
+governed automatic ghost-text completion and the Automation Center for
+CLI-owned, versioned Automation and Routine projections. It shows preflight and history, then routes
 run-now, failed-run retry, pause/resume, disable, delete, and revision-CAS
 create/edit operations through exact CLI-issued arguments. Cron, one-shot,
 webhook, and GitHub triggers share the same fail-closed surface.
@@ -22,11 +23,11 @@ webhook, and GitHub triggers share the same fail-closed surface.
 The fully gated public CLI `chainlesschain@0.163.7` contains the governed
 Automation/Routine commands, unified scheduler authority, timezone/missed-run
 semantics, and shared permission/budget enforcement required by the Automation
-Center. It emits the released Automation Center v2 projection: `0.4.89`
+Center. It emits the released Automation Center v2 projection: `0.4.90`
 preserves the existing item controls with empty incidents/runtime and does not
 invent the new actions.
 
-The `0.4.89` source accepts only the exact released v2/schemaVersion 2 pair or
+The `0.4.90` source accepts only the exact released v2/schemaVersion 2 pair or
 the new v3/schemaVersion 3 pair; unknown and cross-paired versions fail closed.
 With v3 it shows sanitized run incidents and bounded live scheduler occurrences.
 Incident retry/cancel and cooperative occurrence pause/resume appear only when
@@ -36,7 +37,7 @@ derives argv from display data or imports scheduler payload, authority, or
 checkpoint evidence. These v3 controls require a subsequent exact-gated CLI
 release; CLI `0.163.7` remains fully usable through v2 without showing them.
 
-Version `0.4.89` also consumes only strict, CLI-issued multi-agent merge-review
+Version `0.4.90` also consumes only strict, CLI-issued multi-agent merge-review
 evidence. It displays stable file/hunk choices, persistent conflict explanations,
 and exact apply/rollback previews, then refreshes the evidence before executing
 the exact argv. It never runs or derives `git merge`, `merge-tree`, or
