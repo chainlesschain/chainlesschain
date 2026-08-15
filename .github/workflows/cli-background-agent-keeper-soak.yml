@@ -101,3 +101,64 @@ jobs:
           path: ${{ runner.temp }}/background-agent-keeper-soak-${{ runner.os }}.json
           if-no-files-found: error
           retention-days: 30
+
+  keeper-soak-aggregate:
+    name: Background Agent keeper soak aggregate
+    if: always()
+    needs: keeper-soak
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CC_BACKGROUND_KEEPER_SOAK_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Refuse an incomplete keeper soak platform matrix
+        if: needs.keeper-soak.result != 'success'
+        shell: bash
+        run: |
+          echo "::error::At least one background Agent keeper soak platform failed or did not finish"
+          exit 1
+
+      - name: Checkout exact keeper soak commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CC_BACKGROUND_KEEPER_SOAK_EXPECTED_SHA }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Verify exact aggregate source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_sha="$(printf '%s' "${CC_BACKGROUND_KEEPER_SOAK_EXPECTED_SHA}" | tr '[:upper:]' '[:lower:]')"
+          [[ "${expected_sha}" =~ ^[0-9a-f]{40,64}$ ]]
+          test "$(git rev-parse HEAD | tr '[:upper:]' '[:lower:]')" = "${expected_sha}"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Download exact-SHA Linux, macOS and Windows keeper evidence
+        uses: actions/download-artifact@v7
+        with:
+          pattern: cli-background-agent-keeper-soak-*-${{ env.CC_BACKGROUND_KEEPER_SOAK_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/background-agent-keeper-soak-evidence
+          merge-multiple: true
+
+      - name: Verify formal release evidence or isolated non-qualifying PR smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          node packages/cli/scripts/background-agent-keeper-soak.mjs \
+            --verify-evidence-dir "${RUNNER_TEMP}/background-agent-keeper-soak-evidence" \
+            --release-commit "${CC_BACKGROUND_KEEPER_SOAK_EXPECTED_SHA}" \
+            ${{ github.event_name == 'pull_request' && '--allow-smoke' || '' }} \
+            --output "${RUNNER_TEMP}/background-agent-keeper-soak-aggregate.json"
+
+      - name: Upload immutable keeper soak aggregate
+        uses: actions/upload-artifact@v6
+        with:
+          name: cli-background-agent-keeper-soak-${{ github.event_name == 'pull_request' && 'smoke-non-qualifying' || 'formal-aggregate' }}-${{ env.CC_BACKGROUND_KEEPER_SOAK_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/background-agent-keeper-soak-aggregate.json
+          if-no-files-found: error
+          retention-days: 90
