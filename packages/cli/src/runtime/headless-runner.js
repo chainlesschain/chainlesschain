@@ -106,6 +106,7 @@ import {
   exitCodeForEndReason,
 } from "../lib/exit-codes.cjs";
 import { isolationLevel } from "../lib/agent-sandbox.js";
+import { captureAmbientExecutionLocation } from "../lib/execution-location-runtime.js";
 import { createBackgroundPhaseReporter } from "../lib/background-phase-reporter.js";
 import { createBackgroundInteractionClient } from "../lib/background-interaction-resolver.js";
 import { withQuietStdout } from "./quiet-stdout.js";
@@ -1712,6 +1713,10 @@ async function runAgentHeadlessInWorkspace(
           provider,
           model,
           observabilityScope: options.observabilityScope,
+          executionLocation: captureAmbientExecutionLocation({
+            provider,
+            model,
+          }),
         });
       }
       // Persist the expanded content so a resumed session faithfully replays

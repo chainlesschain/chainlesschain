@@ -55,6 +55,7 @@ import {
 import { installPipeSafety } from "../runtime/pipe-safety.js";
 import { installOutputBackpressure } from "../runtime/output-backpressure.js";
 import { assertChatSessionUsageAdmission } from "../lib/chat-session-admission.js";
+import { captureAmbientExecutionLocation } from "../lib/execution-location-runtime.js";
 
 const SLASH_COMMANDS = {
   "/exit": "Exit the chat",
@@ -114,6 +115,7 @@ export async function startChatRepl(options = {}) {
         title: "chat-repl",
         provider,
         model,
+        executionLocation: captureAmbientExecutionLocation({ provider, model }),
       });
     } catch {
       sessionId = null;

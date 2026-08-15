@@ -60,6 +60,7 @@ import {
   expandIdeMentions,
 } from "../lib/ide-context.js";
 import { detectVersionSkew, versionSkewMessage } from "../lib/version-skew.js";
+import { captureAmbientExecutionLocation } from "../lib/execution-location-runtime.js";
 import {
   resolveAgentMcp,
   resolvePermissionPromptTool,
@@ -2369,6 +2370,10 @@ async function runAgentHeadlessStreamInWorkspace(
             provider,
             model,
             observabilityScope: options.observabilityScope,
+            executionLocation: captureAmbientExecutionLocation({
+              provider,
+              model,
+            }),
           }),
           "startSession",
         );

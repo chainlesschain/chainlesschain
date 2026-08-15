@@ -25,6 +25,7 @@ import path from "path";
 import { randomUUID } from "node:crypto";
 import { isPromise, isProxy } from "node:util/types";
 import { logger } from "../lib/logger.js";
+import { captureAmbientExecutionLocation } from "../lib/execution-location-runtime.js";
 import { issueMcpStdioExecutionAuthority } from "../lib/mcp-stdio-execution-authority.js";
 import { getPlanModeManager, PlanState } from "../lib/plan-mode.js";
 import { createVimState, feedNormalKey } from "../lib/repl-vim.js";
@@ -3499,6 +3500,7 @@ async function startAgentReplInWorkspaceOwned(
       title: `Agent ${new Date().toISOString().slice(0, 10)}`,
       provider,
       model,
+      executionLocation: captureAmbientExecutionLocation({ provider, model }),
     };
     if (useJsonl) {
       sessionId = startReplJsonlSession(

@@ -1,0 +1,38 @@
+{
+  "schema": "cc-execution-location-handoff-facts/v1",
+  "authority": {
+    "sessionId": "session-1",
+    "headHash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "eventCount": 4
+  },
+  "target": {
+    "configured": true,
+    "evidenceId": "ssh-attestation-fixture-1",
+    "networkPolicy": "restricted",
+    "sandboxStrength": "strong",
+    "dataBoundary": {
+      "kind": "declared",
+      "root": "/srv/repo"
+    },
+    "capabilities": ["node"]
+  },
+  "git": {
+    "status": "clean",
+    "baseCommit": "dddddddddddddddddddddddddddddddddddddddd"
+  },
+  "strategy": {
+    "kind": "commit",
+    "ref": "dddddddddddddddddddddddddddddddddddddddd"
+  },
+  "summary": {
+    "included": true,
+    "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "permissions": {
+    "included": true,
+    "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "artifacts": [],
+  "credentials": [],
+  "requiredCapabilities": ["node"]
+}

@@ -70,6 +70,7 @@ import {
 import { createSessionPersistenceFailure } from "../lib/session-persistence-failure.js";
 import { withSessionHostWriteAuthority } from "../lib/session-host-lease.js";
 import { createSessionTranscriptStructureProjection } from "../lib/session-transcript-structure.js";
+import { normalizeExecutionLocationBinding } from "../lib/execution-location-contract.js";
 import {
   listSessionAntiRollbackIds,
   publishSessionAntiRollbackAnchor,
@@ -2464,9 +2465,57 @@ export function startSession(sessionId, meta = {}) {
           usageTelemetryVersion: 1,
         }
       : {}),
+    ...(meta.executionLocation != null
+      ? {
+          executionLocation: normalizeExecutionLocationBinding(
+            meta.executionLocation,
+          ),
+        }
+      : {}),
   });
 
   return id;
+}
+
+/** Return the immutable execution-location facts anchored by session_start. */
+export function getVerifiedSessionExecutionLocationAuthority(sessionId) {
+  return readVerifiedProjection(sessionId, () => {
+    let sessionStartSeen = false;
+    let hasExecutionLocation = false;
+    let executionLocation = null;
+    return {
+      accept(event) {
+        if (event?.type === "session_start" && !sessionStartSeen) {
+          sessionStartSeen = true;
+          if (Object.hasOwn(event.data || {}, "executionLocation")) {
+            hasExecutionLocation = true;
+            executionLocation = event.data.executionLocation;
+          }
+        }
+      },
+      finish(authority) {
+        if (!authority.headHash || authority.eventCount <= 0) {
+          throw unverifiedTranscriptError(sessionId, {
+            status: "empty",
+            reason: "session has no anchored transcript events",
+          });
+        }
+        if (!hasExecutionLocation) {
+          const error = new Error(
+            `session ${sessionId} has no execution-location binding`,
+          );
+          error.code = "SESSION_EXECUTION_LOCATION_MISSING";
+          throw error;
+        }
+        return Object.freeze({
+          sessionId,
+          headHash: authority.headHash,
+          eventCount: authority.eventCount,
+          binding: normalizeExecutionLocationBinding(executionLocation),
+        });
+      },
+    };
+  });
 }
 
 /** Return the anchored transcript revision used by delivery causality bindings. */

@@ -173,7 +173,13 @@ describe("headless observability persistence", () => {
     expect(outcome.exitCode).toBe(0);
     expect(startSession).toHaveBeenCalledWith(
       expect.any(String),
-      expect.objectContaining({ observabilityScope: SCOPE }),
+      expect.objectContaining({
+        observabilityScope: SCOPE,
+        executionLocation: expect.objectContaining({
+          schema: "cc-execution-location-binding/v1",
+          observed: true,
+        }),
+      }),
     );
     expect(agentLoop).toHaveBeenCalledOnce();
   });
@@ -247,7 +253,13 @@ describe("stream observability persistence", () => {
     expect(outcome).toEqual({ exitCode: 0, turns: 1 });
     expect(startSession).toHaveBeenCalledWith(
       expect.any(String),
-      expect.objectContaining({ observabilityScope: SCOPE }),
+      expect.objectContaining({
+        observabilityScope: SCOPE,
+        executionLocation: expect.objectContaining({
+          schema: "cc-execution-location-binding/v1",
+          observed: true,
+        }),
+      }),
     );
     expect(agentLoop).toHaveBeenCalledOnce();
   });

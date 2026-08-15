@@ -46,6 +46,7 @@ const {
   readEvents,
   readVerifiedEvents,
   getVerifiedSessionObservabilityAuthority,
+  getVerifiedSessionExecutionLocationAuthority,
   readVerifiedTranscriptBytes,
   readVerifiedWsTurnState,
   computeWsTurnInputDigest,
@@ -577,6 +578,34 @@ describe("jsonl-session-store", () => {
       expect(events[0].data.title).toBe("Chat");
       expect(events[0].data.provider).toBe("ollama");
       expect(events[0].timestamp).toBeGreaterThan(0);
+    });
+
+    it("anchors a normalized execution-location binding in session_start", () => {
+      const id = startSession("execution-location-bound", {
+        executionLocation: {
+          schema: "cc-execution-location-binding/v1",
+          location: "localhost",
+          observed: true,
+          observedAt: "2026-08-15T00:00:00.000Z",
+          source: {
+            cwd: "/repo",
+            git: { root: "/repo", head: "refs/heads/main" },
+          },
+          runtime: { platform: "linux", arch: "x64", tools: ["node"] },
+          policy: {
+            network: "restricted",
+            sandbox: "strong",
+            dataBoundary: { kind: "repository", root: "/repo" },
+          },
+        },
+      });
+
+      expect(readEvents(id)[0].data.executionLocation).toMatchObject({
+        schema: "cc-execution-location-binding/v1",
+        location: "local",
+        source: { cwd: "/repo" },
+        policy: { network: "restricted", sandbox: "strong" },
+      });
     });
 
     it("persists a normalized observability scope in session_start", () => {
@@ -1134,6 +1163,40 @@ describe("jsonl-session-store", () => {
   });
 
   describe("readVerifiedEvents", () => {
+    it("returns the verified execution-location binding and fails closed for legacy sessions", () => {
+      const id = startSession("execution-location-authority", {
+        executionLocation: {
+          schema: "cc-execution-location-binding/v1",
+          location: "wsl",
+          observed: true,
+          observedAt: "2026-08-15T00:00:00.000Z",
+          source: { cwd: "/repo" },
+          runtime: { platform: "linux", arch: "x64", tools: ["node"] },
+          policy: {
+            network: "unknown",
+            sandbox: "unknown",
+            dataBoundary: { kind: "working-directory", root: "/repo" },
+          },
+        },
+      });
+      appendUserMessage(id, "hello");
+
+      expect(getVerifiedSessionExecutionLocationAuthority(id)).toMatchObject({
+        sessionId: id,
+        eventCount: 2,
+        binding: { location: "wsl", source: { cwd: "/repo" } },
+      });
+
+      const legacy = startSession("execution-location-legacy");
+      expect(() =>
+        getVerifiedSessionExecutionLocationAuthority(legacy),
+      ).toThrowError(
+        expect.objectContaining({
+          code: "SESSION_EXECUTION_LOCATION_MISSING",
+        }),
+      );
+    });
+
     it("returns the anchored observability scope and exact transcript revision", () => {
       const id = startSession("observability-authority", {
         observabilityScope: {

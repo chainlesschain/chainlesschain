@@ -66,6 +66,7 @@ import { executionBroker } from "../lib/process-execution-broker/index.js";
 import { registerSessionMcpRecoveryCommands } from "./session-mcp-recovery.js";
 import { registerSessionShowSubcommand } from "./session-show.js";
 import { registerSessionObservabilitySubcommand } from "./session-observability.js";
+import { registerSessionLocationSubcommands } from "./session-location.js";
 
 export const _deps = {
   execFileSync: (...args) => executionBroker.execFileSync(...args),
@@ -222,6 +223,7 @@ export function registerSessionCommand(program) {
     .description("Conversation session management");
 
   registerSessionMcpRecoveryCommands(session);
+  registerSessionLocationSubcommands(session);
 
   // session list
   session
