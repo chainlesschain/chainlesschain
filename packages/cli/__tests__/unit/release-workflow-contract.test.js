@@ -394,6 +394,27 @@ describe("CLI release workflow contracts", () => {
     );
   });
 
+  it("triggers the strict gate when either native loader fixture changes", () => {
+    const text = workflow("cli-strict-sandbox.yml");
+    const jobsStart = text.indexOf("\njobs:");
+    expect(jobsStart).toBeGreaterThan(0);
+    const triggers = text.slice(0, jobsStart);
+    const pullRequestStart = triggers.indexOf("\n  pull_request:");
+    const dispatchStart = triggers.indexOf("\n  workflow_dispatch:");
+    expect(pullRequestStart).toBeGreaterThan(0);
+    expect(dispatchStart).toBeGreaterThan(pullRequestStart);
+    const pushTriggers = triggers.slice(0, pullRequestStart);
+    const pullRequestTriggers = triggers.slice(pullRequestStart, dispatchStart);
+
+    for (const fixture of [
+      "packages/cli/__tests__/fixtures/process-broker-linux-bwrap-native-live.c",
+      "packages/cli/__tests__/fixtures/process-broker-linux-bwrap-native-dlopen-library.c",
+    ]) {
+      expect(pushTriggers.split(`- "${fixture}"`).length - 1).toBe(1);
+      expect(pullRequestTriggers.split(`- "${fixture}"`).length - 1).toBe(1);
+    }
+  });
+
   it("runs the session resource budget authority in the strict gate", () => {
     const text = workflow("cli-strict-sandbox.yml");
     const jobsStart = text.indexOf("\njobs:");
