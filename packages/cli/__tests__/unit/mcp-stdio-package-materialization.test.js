@@ -430,7 +430,7 @@ describe("MCP stdio fixed npm package materialization", () => {
     expect(result.identity.fileCount).toBeGreaterThanOrEqual(7);
     expect(result.identity.closureDigest).toMatch(/^[a-f0-9]{64}$/);
     expect(result.identity.capsule).toMatchObject({
-      schema: "chainlesschain.mcp-stdio-node-capsule/v3",
+      schema: "chainlesschain.mcp-stdio-node-capsule/v4",
       relativePath: "capsule/server.cjs",
       builder: "esbuild-wasm",
       builderVersion: "0.28.1",
@@ -440,9 +440,11 @@ describe("MCP stdio fixed npm package materialization", () => {
       wrapperSchema: "chainlesschain.mcp-stdio-capsule-stdin-wrapper/v1",
       wrapperSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
       builtinPolicy: {
-        schema: "chainlesschain.mcp-stdio-static-builtin-policy/v1",
+        schema: "chainlesschain.mcp-stdio-static-builtin-policy/v2",
         mode: "static-external-only",
         allowedBuiltins: [],
+        executionContextBuiltins: [],
+        transitiveIsolation: "not-required",
       },
     });
     expect(result.identity.capsule.builderWasmSha256).toMatch(/^[a-f0-9]{64}$/);
@@ -705,7 +707,7 @@ describe("MCP stdio fixed npm package materialization", () => {
     });
 
     expect(result.identity.capsule).toMatchObject({
-      schema: "chainlesschain.mcp-stdio-node-capsule/v3",
+      schema: "chainlesschain.mcp-stdio-node-capsule/v4",
       inputCount: 3,
     });
     expect(divergentPathStats).toBeGreaterThan(0);
@@ -1235,9 +1237,11 @@ if (operation === "allowed") {
       installRunner: builtinInstall,
     });
     expect(result.identity.capsule.builtinPolicy).toEqual({
-      schema: "chainlesschain.mcp-stdio-static-builtin-policy/v1",
+      schema: "chainlesschain.mcp-stdio-static-builtin-policy/v2",
       mode: "static-external-only",
       allowedBuiltins: ["node:path", "path"],
+      executionContextBuiltins: [],
+      transitiveIsolation: "not-required",
     });
     const capsule = path.join(result.root, "capsule", "server.cjs");
     const allowed = spawnSync(process.execPath, [capsule, "allowed"], {
@@ -1259,6 +1263,56 @@ if (operation === "allowed") {
       expect(denied.status).not.toBe(0);
       expect(denied.stderr).toContain("CC_MCP_STDIO_BUILTIN_MODULE_BLOCKED");
     }
+  }, 30_000);
+
+  it("binds execution-context builtins to the mandatory OS sandbox contract", async () => {
+    const config = {
+      command: "npx",
+      args: ["@scope/mcp-server@1.2.3"],
+      transport: "stdio",
+    };
+    const authority = approved(config, "execution-context-policy-server");
+    const executionContextInstall = (input) => {
+      fakeInstall(input);
+      fs.writeFileSync(
+        path.join(
+          input.directory,
+          "node_modules",
+          "@scope",
+          "mcp-server",
+          "bin",
+          "server.js",
+        ),
+        `#!/usr/bin/env node
+require("node:child_process");
+require("node:worker_threads");
+`,
+        "utf8",
+      );
+    };
+
+    const result = await materializeMcpStdioNpmPackage({
+      approvalRecord: authority.approvalRecord,
+      config: authority.invocation,
+      packageSpec: "@scope/mcp-server@1.2.3",
+      binName: "scope-mcp",
+      root: materializationRoot,
+      indexPath,
+      npmCli,
+      installRunner: executionContextInstall,
+    });
+    expect(result.identity.capsule.builtinPolicy).toEqual({
+      schema: "chainlesschain.mcp-stdio-static-builtin-policy/v2",
+      mode: "static-external-only",
+      allowedBuiltins: [
+        "child_process",
+        "node:child_process",
+        "node:worker_threads",
+        "worker_threads",
+      ],
+      executionContextBuiltins: ["node:child_process", "node:worker_threads"],
+      transitiveIsolation: "required-mcp-os-sandbox-boundaries-v1",
+    });
   }, 30_000);
 
   it("rejects a changed snapshot-root substitution after VFS capture", async () => {

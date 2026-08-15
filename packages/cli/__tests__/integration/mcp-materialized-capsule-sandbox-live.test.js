@@ -16,6 +16,7 @@ import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import vm from "node:vm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { MCPClient } from "../../src/harness/mcp-client.js";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
@@ -1344,6 +1345,7 @@ function installProbePackage({
   secretPath,
   markerPath,
   childMarkerPath,
+  workerMarkerPath,
   networkTargets,
   nonce,
 }) {
@@ -1379,6 +1381,7 @@ function installProbePackage({
     secretPath,
     markerPath,
     childMarkerPath,
+    workerMarkerPath,
     networkTargets,
     nonce,
   });
@@ -1402,6 +1405,7 @@ function materializeProbe({
   secretPath,
   markerPath,
   childMarkerPath,
+  workerMarkerPath,
   networkTargets,
   nonce,
 }) {
@@ -1420,6 +1424,7 @@ function materializeProbe({
         secretPath,
         markerPath,
         childMarkerPath,
+        workerMarkerPath,
         networkTargets,
         nonce,
       }),
@@ -1483,6 +1488,17 @@ describe("materialized MCP capsule host observer helpers", () => {
     const fixtureSource = fs.readFileSync(fixturePath, "utf8");
     expect(fixtureSource).toContain("}) + String.fromCharCode(10));");
     expect(fixtureSource).not.toContain('}) + "\\\\n");');
+  });
+
+  it("keeps the fresh-isolate Worker probe syntactically valid", () => {
+    const fixtureSource = fs.readFileSync(fixturePath, "utf8");
+    const match = fixtureSource.match(
+      /const workerProgram = String\.raw`([\s\S]*?)`;\r?\n\r?\nfunction launchWorkerProbe/,
+    );
+    expect(match).not.toBeNull();
+    expect(
+      () => new vm.Script(match[1], { filename: "mcp-live-worker.cjs" }),
+    ).not.toThrow();
   });
 
   it("keeps child-report envelope fields parent-owned", () => {
@@ -2140,6 +2156,7 @@ describe.runIf(LIVE && SUPPORTED)(
     let secretPath;
     let markerPath;
     let childMarkerPath;
+    let workerMarkerPath;
     let secretCanary;
     let probeNonce;
     let previousEnvironment;
@@ -2163,12 +2180,14 @@ describe.runIf(LIVE && SUPPORTED)(
       secretPath = path.join(root, "host-secret.txt");
       markerPath = path.join(root, "root-escape.txt");
       childMarkerPath = path.join(root, "child-escape.txt");
+      workerMarkerPath = path.join(root, "worker-escape.txt");
       secretCanary = crypto.randomBytes(32).toString("hex");
       probeNonce = crypto.randomBytes(24).toString("hex");
       fs.writeFileSync(npmCli, "// live fixture npm cli\n", "utf8");
       fs.writeFileSync(secretPath, secretCanary, { mode: 0o600 });
       fs.rmSync(markerPath, { force: true });
       fs.rmSync(childMarkerPath, { force: true });
+      fs.rmSync(workerMarkerPath, { force: true });
 
       const keys = [
         "CC_SANDBOX_STRICT",
@@ -2293,13 +2312,22 @@ describe.runIf(LIVE && SUPPORTED)(
         secretPath,
         markerPath,
         childMarkerPath,
+        workerMarkerPath,
         networkTargets,
         nonce: probeNonce,
       });
       expect(materialized.identity.capsule).toMatchObject({
-        schema: "chainlesschain.mcp-stdio-node-capsule/v3",
+        schema: "chainlesschain.mcp-stdio-node-capsule/v4",
         builder: "esbuild-wasm",
         builderVersion: "0.28.1",
+        builtinPolicy: {
+          schema: "chainlesschain.mcp-stdio-static-builtin-policy/v2",
+          executionContextBuiltins: [
+            "node:child_process",
+            "node:worker_threads",
+          ],
+          transitiveIsolation: "required-mcp-os-sandbox-boundaries-v1",
+        },
       });
 
       const connectConfig = {
@@ -2353,6 +2381,7 @@ describe.runIf(LIVE && SUPPORTED)(
         ).toBe(false);
         expect(fs.existsSync(markerPath)).toBe(false);
         expect(fs.existsSync(childMarkerPath)).toBe(false);
+        expect(fs.existsSync(workerMarkerPath)).toBe(false);
         return;
       }
 
@@ -2423,6 +2452,17 @@ describe.runIf(LIVE && SUPPORTED)(
       const networkProbeEvidence = [
         expectNetworkProbeResults(report.root.networks, networkTargets),
       ];
+      expect(report.worker).toMatchObject({
+        event: "worker-ready",
+        filesystem: {
+          readDenied: true,
+          canaryCandidate: null,
+          writeDenied: true,
+        },
+      });
+      networkProbeEvidence.push(
+        expectNetworkProbeResults(report.worker.networks, networkTargets),
+      );
       if (process.platform === "linux") {
         expect(report.child).toMatchObject({
           spawnDenied: false,
@@ -2511,6 +2551,7 @@ describe.runIf(LIVE && SUPPORTED)(
       expect(fs.readFileSync(secretPath, "utf8") === secretCanary).toBe(true);
       expect(fs.existsSync(markerPath)).toBe(false);
       expect(fs.existsSync(childMarkerPath)).toBe(false);
+      expect(fs.existsSync(workerMarkerPath)).toBe(false);
 
       const auditLog = executionBroker.getAuditLog();
       const audit = auditLog.find(
@@ -2609,6 +2650,7 @@ describe.runIf(LIVE && SUPPORTED)(
       await waitForNonceProcessesGone(probeNonce);
       expect(fs.existsSync(markerPath)).toBe(false);
       expect(fs.existsSync(childMarkerPath)).toBe(false);
+      expect(fs.existsSync(workerMarkerPath)).toBe(false);
     }, 360_000);
 
     it("rejects a materialized capsule byte replacement before Broker spawn", async () => {
@@ -2627,6 +2669,7 @@ describe.runIf(LIVE && SUPPORTED)(
         secretPath,
         markerPath,
         childMarkerPath,
+        workerMarkerPath,
         networkTargets,
         nonce: probeNonce,
       });
@@ -2673,6 +2716,7 @@ describe.runIf(LIVE && SUPPORTED)(
       ).toBe(false);
       expect(fs.existsSync(markerPath)).toBe(false);
       expect(fs.existsSync(childMarkerPath)).toBe(false);
+      expect(fs.existsSync(workerMarkerPath)).toBe(false);
     }, 180_000);
   },
 );

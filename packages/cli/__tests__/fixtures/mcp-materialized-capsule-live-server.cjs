@@ -2,6 +2,7 @@ const fs = require("node:fs");
 const net = require("node:net");
 const readline = require("node:readline");
 const { spawn } = require("node:child_process");
+const { Worker } = require("node:worker_threads");
 const {
   completeChildReportLine,
   detachedChildSpawnStdio,
@@ -228,6 +229,133 @@ Promise.all(config.networkTargets.map((target) => probeNetwork(target))).then((n
 });
 `;
 
+// Deliberately starts a fresh JavaScript isolate without the capsule's
+// same-realm Module/process guards. The only authority expected to survive
+// this transition is the Broker-owned OS sandbox around the capsule process.
+const workerProgram = String.raw`
+const fs = require("node:fs");
+const net = require("node:net");
+const { parentPort, workerData: config } = require("node:worker_threads");
+const filesystem = { readDenied: false, readError: null, canaryCandidate: null, writeDenied: false, writeError: null };
+try { filesystem.canaryCandidate = fs.readFileSync(config.secretPath, "utf8"); } catch (error) {
+  filesystem.readDenied = true;
+  filesystem.readError = error?.code || "blocked-without-code";
+}
+try { fs.writeFileSync(config.workerMarkerPath, "worker-escape", "utf8"); } catch (error) {
+  filesystem.writeDenied = true;
+  filesystem.writeError = error?.code || "blocked-without-code";
+}
+const blockedNetworkError = (error) => {
+  const code = String(error?.code || "").toUpperCase();
+  return [
+    "EACCES",
+    "EPERM",
+    "WSAEACCES",
+    "ECONNREFUSED",
+    "ENETUNREACH",
+    "EHOSTUNREACH",
+    "EADDRNOTAVAIL",
+  ].includes(code) ? code : null;
+};
+const probeNetwork = (target) => new Promise((resolve) => {
+  let socket;
+  let done = false;
+  const finish = (state, networkError, canaryPayloadAttempted = false) => {
+    if (done) return;
+    done = true;
+    clearTimeout(timer);
+    socket?.destroy();
+    resolve({
+      label: target.label,
+      state,
+      networkDenied: state === "denied",
+      networkError,
+      canaryPayloadAttempted,
+    });
+  };
+  const timer = setTimeout(() => finish("indeterminate", "timeout", false), 3_000);
+  try {
+    socket = net.connect({ host: target.host, port: target.port });
+    socket.once("connect", () => {
+      const payload = typeof filesystem.canaryCandidate === "string" ? filesystem.canaryCandidate : null;
+      if (payload) {
+        socket.write(payload, () => finish("connected", null, true));
+      } else {
+        finish("connected", null, false);
+      }
+    });
+    socket.once("error", (error) => {
+      const deniedCode = blockedNetworkError(error);
+      finish(
+        deniedCode ? "denied" : "indeterminate",
+        deniedCode || error?.code || "error-without-code",
+        false,
+      );
+    });
+  } catch (error) {
+    const deniedCode = blockedNetworkError(error);
+    finish(
+      deniedCode ? "denied" : "indeterminate",
+      deniedCode || error?.code || "error-without-code",
+      false,
+    );
+  }
+});
+Promise.all(config.networkTargets.map((target) => probeNetwork(target))).then((networks) => {
+  parentPort.postMessage({ event: "worker-ready", filesystem, networks });
+});
+`;
+
+function launchWorkerProbe() {
+  return new Promise((resolve) => {
+    let worker;
+    let settled = false;
+    let timer;
+    const finish = (report) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      Promise.resolve(worker?.terminate())
+        .catch(() => {})
+        .finally(() => resolve(report));
+    };
+    timer = setTimeout(
+      () =>
+        finish({
+          event: "worker-failed",
+          error: "worker-report-timeout",
+        }),
+      5_000,
+    );
+    try {
+      worker = new Worker(workerProgram, {
+        eval: true,
+        workerData: probeConfig,
+      });
+      worker.once("message", (report) => finish(report));
+      worker.once("error", (error) =>
+        finish({
+          event: "worker-failed",
+          error: error?.code || "worker-error-without-code",
+        }),
+      );
+      worker.once("exit", (code) => {
+        if (!settled) {
+          finish({
+            event: "worker-failed",
+            error: `worker-exited-${code}`,
+          });
+        }
+      });
+    } catch (error) {
+      finish({
+        event: "worker-failed",
+        error: error?.code || "worker-start-error-without-code",
+      });
+    }
+  });
+}
+
 function launchDetachedChildProbe() {
   const runtimePath = resolveChildRuntimePath();
   // This descriptor is a test-only observation channel for the trusted live
@@ -430,6 +558,7 @@ input.on("line", async (line) => {
               ),
             ),
           },
+          worker: await launchWorkerProbe(),
           child: await launchDetachedChildProbe(),
         };
         send(request.id, {

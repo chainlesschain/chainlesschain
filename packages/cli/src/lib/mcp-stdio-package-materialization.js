@@ -36,9 +36,9 @@ export const MCP_STDIO_PACKAGE_MATERIALIZATION_CHANGED_CODE =
   "CC_MCP_STDIO_PACKAGE_MATERIALIZATION_CHANGED";
 
 const MATERIALIZATION_SCHEMA =
-  "chainlesschain.mcp-stdio-package-materialization/v4";
-const MATERIALIZATION_VERSION = 4;
-const CAPSULE_SCHEMA = "chainlesschain.mcp-stdio-node-capsule/v3";
+  "chainlesschain.mcp-stdio-package-materialization/v5";
+const MATERIALIZATION_VERSION = 5;
+const CAPSULE_SCHEMA = "chainlesschain.mcp-stdio-node-capsule/v4";
 const CAPSULE_RELATIVE_PATH = "capsule/server.cjs";
 const CAPSULE_BUILDER = "esbuild-wasm";
 const CAPSULE_BUILDER_VERSION = "0.28.1";
@@ -65,7 +65,22 @@ const CAPSULE_RESOLVER_BYTES = 24_417;
 const CAPSULE_STDIN_WRAPPER_SCHEMA =
   "chainlesschain.mcp-stdio-capsule-stdin-wrapper/v1";
 const CAPSULE_BUILTIN_POLICY_SCHEMA =
-  "chainlesschain.mcp-stdio-static-builtin-policy/v1";
+  "chainlesschain.mcp-stdio-static-builtin-policy/v2";
+const CAPSULE_EXECUTION_CONTEXT_ISOLATION =
+  "required-mcp-os-sandbox-boundaries-v1";
+// These builtins can create a fresh JavaScript isolate/process or evaluate
+// code through a privileged runtime surface. Same-realm Module guards do not
+// propagate there, so their presence is bound explicitly to the capsule
+// manifest and is admissible only through the product's mandatory
+// filesystem/network/process-tree/code-snapshot OS sandbox contract.
+const CAPSULE_EXECUTION_CONTEXT_BUILTINS = new Set([
+  "child_process",
+  "cluster",
+  "inspector",
+  "inspector/promises",
+  "vm",
+  "worker_threads",
+]);
 const CAPSULE_BUILTIN_ALLOWLIST_MARKER =
   "__CHAINLESSCHAIN_MCP_STATIC_BUILTIN_ALLOWLIST_8F43C70E__";
 const INDEX_LABEL = "MCP stdio package materialization index";
@@ -132,7 +147,7 @@ export function getMcpStdioPackageMaterializationRoot(options = {}) {
   return path.resolve(
     options.root ||
       process.env.CC_MCP_PACKAGE_MATERIALIZATION_ROOT ||
-      path.join(getCacheDir(), "mcp-stdio-package-materializations-v4"),
+      path.join(getCacheDir(), "mcp-stdio-package-materializations-v5"),
   );
 }
 
@@ -142,7 +157,7 @@ export function getMcpStdioPackageMaterializationIndexPath(options = {}) {
       process.env.CC_MCP_PACKAGE_MATERIALIZATION_INDEX ||
       path.join(
         getMachineSecurityAnchorDir(),
-        "mcp-stdio-package-materializations-v4.json",
+        "mcp-stdio-package-materializations-v5.json",
       ),
   );
 }
@@ -1120,6 +1135,19 @@ function expandBuiltinAllowlist(externalBuiltins) {
   return Object.freeze([...allowed].sort());
 }
 
+function executionContextBuiltins(externalBuiltins) {
+  return Object.freeze(
+    [
+      ...new Set(
+        externalBuiltins
+          .map((name) => (name.startsWith("node:") ? name.slice(5) : name))
+          .filter((name) => CAPSULE_EXECUTION_CONTEXT_BUILTINS.has(name))
+          .map((name) => `node:${name}`),
+      ),
+    ].sort(),
+  );
+}
+
 function bindCapsuleBuiltinAllowlist(outputBytes, allowedBuiltins) {
   const source = Buffer.from(
     outputBytes.buffer,
@@ -1396,6 +1424,9 @@ async function buildCapsule({
     [...new Set(externalBuiltins)].sort(),
   );
   const allowedBuiltins = expandBuiltinAllowlist(normalizedExternalBuiltins);
+  const transitiveBuiltins = executionContextBuiltins(
+    normalizedExternalBuiltins,
+  );
   const output = bindCapsuleBuiltinAllowlist(result.output, allowedBuiltins);
   let descriptor;
   try {
@@ -1467,6 +1498,11 @@ async function buildCapsule({
       schema: CAPSULE_BUILTIN_POLICY_SCHEMA,
       mode: "static-external-only",
       allowedBuiltins,
+      executionContextBuiltins: transitiveBuiltins,
+      transitiveIsolation:
+        transitiveBuiltins.length > 0
+          ? CAPSULE_EXECUTION_CONTEXT_ISOLATION
+          : "not-required",
     }),
   });
 }
@@ -1531,6 +1567,16 @@ function validateManifest(manifest) {
     manifest.capsule.builtinPolicy.allowedBuiltins.some(
       (name) => typeof name !== "string" || !NODE_BUILTINS.has(name),
     ) ||
+    !Array.isArray(manifest.capsule?.builtinPolicy?.executionContextBuiltins) ||
+    manifest.capsule.builtinPolicy.executionContextBuiltins.some(
+      (name) =>
+        typeof name !== "string" ||
+        !name.startsWith("node:") ||
+        !CAPSULE_EXECUTION_CONTEXT_BUILTINS.has(name.slice(5)),
+    ) ||
+    !["not-required", CAPSULE_EXECUTION_CONTEXT_ISOLATION].includes(
+      manifest.capsule?.builtinPolicy?.transitiveIsolation,
+    ) ||
     !Array.isArray(manifest.files) ||
     !Number.isSafeInteger(manifest.fileCount) ||
     !Number.isSafeInteger(manifest.totalBytes) ||
@@ -1553,6 +1599,14 @@ function validateManifest(manifest) {
       canonicalJson(
         expandBuiltinAllowlist(manifest.capsule.externalBuiltins),
       ) ||
+    canonicalJson(manifest.capsule.builtinPolicy.executionContextBuiltins) !==
+      canonicalJson(
+        executionContextBuiltins(manifest.capsule.externalBuiltins),
+      ) ||
+    manifest.capsule.builtinPolicy.transitiveIsolation !==
+      (manifest.capsule.builtinPolicy.executionContextBuiltins.length > 0
+        ? CAPSULE_EXECUTION_CONTEXT_ISOLATION
+        : "not-required") ||
     sha256(canonicalJson(manifest.files)) !== manifest.closureDigest
   ) {
     throw materializationError(
@@ -1684,6 +1738,9 @@ function verifyPublishedGeneration(root, record, expectedFingerprint) {
           ...manifest.capsule.builtinPolicy,
           allowedBuiltins: Object.freeze([
             ...manifest.capsule.builtinPolicy.allowedBuiltins,
+          ]),
+          executionContextBuiltins: Object.freeze([
+            ...manifest.capsule.builtinPolicy.executionContextBuiltins,
           ]),
         }),
       }),
