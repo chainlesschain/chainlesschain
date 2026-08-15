@@ -65,6 +65,24 @@ class PolicyViewerTest {
             "\"permission-rules.ask\",\"permission-rules.allow\"," +
             "\"shell-policy\",\"approval-gate\",\"hooks\"]}";
 
+    private static final String SIDE_EFFECTS_JSON = "{" +
+            "\"schema\":\"cc-permission-side-effect-center/v1\"," +
+            "\"authority\":\"cli\",\"sessionId\":\"sess-1\"," +
+            "\"entries\":[{\"opId\":\"op-1\",\"tool\":\"run_shell\"," +
+            "\"kind\":\"shell\",\"state\":\"unknown\"," +
+            "\"irreversible\":true,\"resources\":{" +
+            "\"files\":[\"C:/repo\"],\"network\":[\"https://registry.test\"]," +
+            "\"processes\":[\"npm\"],\"credentials\":[\"NPM_TOKEN\"]}," +
+            "\"unresolvedResources\":[],\"decision\":{" +
+            "\"decision\":\"ask\",\"via\":\"approval-gate\"," +
+            "\"rule\":\"Bash(npm publish:*)\",\"source\":\"settings.json\"," +
+            "\"reason\":\"external publish\"},\"callChain\":{" +
+            "\"sessionId\":\"sess-1\",\"turnId\":\"turn-1\"," +
+            "\"toolUseId\":\"tool-1\"},\"recovery\":{" +
+            "\"coverage\":\"partial\",\"action\":\"inspect\"," +
+            "\"reason\":\"effect may have applied\",\"checkpointId\":\"cp-1\"," +
+            "\"uncoveredResources\":[\"network:https://registry.test\"]}}]}";
+
     // ------------------------------------------------------- permissions
 
     @Test
@@ -148,6 +166,40 @@ class PolicyViewerTest {
         assertEquals(1, mixed.size());
     }
 
+    // ------------------------------------------------------ actual effects
+
+    @Test
+    void parseSideEffectsKeepsResourcesDecisionChainAndRecovery() {
+        PolicyViewer.SideEffectSection section =
+                PolicyViewer.parseSideEffects(SIDE_EFFECTS_JSON);
+        assertNotNull(section);
+        assertEquals("sess-1", section.sessionId);
+        assertEquals(1, section.entries.size());
+        PolicyViewer.SideEffectEntry entry = section.entries.get(0);
+        assertEquals("run_shell", entry.tool);
+        assertTrue(entry.irreversible);
+        assertEquals(List.of("NPM_TOKEN"), entry.resources.get("credentials"));
+        assertEquals("ask", entry.decision);
+        assertEquals("approval-gate", entry.decisionVia);
+        assertEquals("turn-1", entry.turnId);
+        assertEquals("partial", entry.coverage);
+        assertEquals("inspect", entry.recoveryAction);
+        assertEquals(List.of("network:https://registry.test"),
+                entry.uncoveredResources);
+    }
+
+    @Test
+    void parseSideEffectsRejectsUnsupportedAuthorityAndSchema() {
+        assertNull(PolicyViewer.parseSideEffects(null));
+        assertNull(PolicyViewer.parseSideEffects("{}"));
+        assertNull(PolicyViewer.parseSideEffects(
+                SIDE_EFFECTS_JSON.replace("\"authority\":\"cli\"",
+                        "\"authority\":\"ide\"")));
+        assertNull(PolicyViewer.parseSideEffects(
+                SIDE_EFFECTS_JSON.replace(
+                        "cc-permission-side-effect-center/v1", "future/v2")));
+    }
+
     // ---------------------------------------------------------- auto-mode
 
     @Test
@@ -203,6 +255,7 @@ class PolicyViewerTest {
         String text = PolicyViewer.describe(
                 PolicyViewer.parsePermissions(PERMISSIONS_JSON),
                 PolicyViewer.parseDenials(DENIALS_JSON),
+                PolicyViewer.parseSideEffects(SIDE_EFFECTS_JSON),
                 PolicyViewer.parseAutoMode(AUTOMODE_JSON),
                 PolicyViewer.parsePrecedence(DEFAULTS_JSON), NOW);
         assertTrue(text.contains("deny (1):"));
@@ -220,6 +273,12 @@ class PolicyViewerTest {
         assertTrue(text.contains("x3"));
         assertTrue(text.contains("mode auto"));
         assertTrue(text.contains("1m ago"));
+        assertTrue(text.contains("Actual resources & side effects"));
+        assertTrue(text.contains("https://registry.test"));
+        assertTrue(text.contains("credentials: NPM_TOKEN"));
+        assertTrue(text.contains("recovery: partial / inspect"));
+        assertTrue(text.contains("not restored: network:https://registry.test"));
+        assertTrue(text.contains("turn turn-1 · call tool-1"));
         // auto-mode matrix + fine rule + precedence chain
         assertTrue(text.contains("autoMode.decisions (customized)"));
         assertTrue(text.contains("classifyAllShell: true"));
@@ -263,6 +322,12 @@ class PolicyViewerTest {
                 + " · auto-mode: customized (+1 fine-grained)", s);
         assertEquals("permissions: n/a · denials: n/a · auto-mode: n/a",
                 PolicyViewer.summaryLine(null, null, null));
+        String withEffects = PolicyViewer.summaryLine(
+                PolicyViewer.parsePermissions(PERMISSIONS_JSON),
+                PolicyViewer.parseDenials(DENIALS_JSON),
+                PolicyViewer.parseSideEffects(SIDE_EFFECTS_JSON),
+                PolicyViewer.parseAutoMode(AUTOMODE_JSON));
+        assertTrue(withEffects.contains("1 actual effects / 1 inspect"));
     }
 
     // --------------------------------------------------------------- args
@@ -275,6 +340,9 @@ class PolicyViewerTest {
                 PolicyViewer.buildRecentDenialsArgs(50));
         assertEquals(List.of("permissions", "recent", "--json", "-n", "1"),
                 PolicyViewer.buildRecentDenialsArgs(0));
+        assertEquals(List.of("permissions", "activity", "--session", "sess-1",
+                        "--limit", "50", "--json"),
+                PolicyViewer.buildPermissionActivityArgs("sess-1", 50));
         assertEquals(List.of("permissions", "scoped", "allow", "Read(./src/**)",
                         "--expires-in", "15m", "--reason", "inspect source",
                         "--expected-generation", "7", "--json"),

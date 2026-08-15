@@ -877,6 +877,12 @@ describe("agent-repl module exports", () => {
       state: "committed",
       meta: {
         tool: "write_file",
+        resources: {
+          files: ["result.txt"],
+          network: [],
+          processes: [],
+          credentials: [],
+        },
         idempotencyKey: expect.stringMatching(/^op_[0-9a-f]{40}$/),
       },
     });

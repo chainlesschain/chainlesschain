@@ -65,6 +65,7 @@ import {
   reconcileSideEffects,
   classifyToolSideEffect,
 } from "../lib/side-effect-ledger.js";
+import { collectToolResourceIdentifiers } from "../lib/permission-side-effect-center.js";
 import { DiffReviewFollowUpTracker } from "../lib/diff-review-follow-up.js";
 import { SIDE_EFFECT_LEDGER_EVENT } from "../lib/side-effect-ledger-store.js";
 import {
@@ -2751,6 +2752,12 @@ async function runAgentHeadlessInWorkspace(
                     // and countDuplicateCommittedEffects can measure `0` repeats.
                     meta: {
                       tool: event.tool,
+                      toolUseId: telemetryToolId,
+                      turnId: event.turn_id || null,
+                      resources: collectToolResourceIdentifiers(
+                        event.tool,
+                        event.args,
+                      ),
                       idempotencyKey: operationIdempotencyKey({
                         tool: event.tool,
                         args: event.args,

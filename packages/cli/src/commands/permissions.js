@@ -3,6 +3,7 @@
  * permission ruleset (Claude-Code `permissions.{allow,ask,deny}` parity).
  *
  *   cc permissions list [--json]                merged ruleset + source file
+ *   cc permissions activity [--session <id>]    actual resources/effects/recovery
  *   cc permissions test <tool> <args...>        dry-run: which rule decides?
  *   cc permissions add <allow|ask|deny> <rule>  append a rule to a settings file
  *   cc permissions allow|ask|deny <rule>        convenience aliases for add
@@ -293,6 +294,82 @@ export function registerPermissionsCommand(program) {
         logger.log(chalk.gray(`  source: ${recentDenialsPath()}`));
       } catch (err) {
         logger.error(chalk.red(`permissions recent failed: ${err.message}`));
+        process.exitCode = 1;
+      }
+    });
+
+  // ── activity ──────────────────────────────────────────────────────────
+  cmd
+    .command("activity")
+    .description(
+      "Show actual resource, side-effect, permission, and recovery evidence",
+    )
+    .option("-s, --session <id>", "Persisted CLI session", "default")
+    .option("-n, --limit <n>", "Maximum side-effect records", "50")
+    .option("--json", "Output the versioned center projection as JSON")
+    .action(async (options) => {
+      try {
+        const sessionId = String(options.session || "default").trim();
+        const limit = Math.max(
+          1,
+          Math.min(100, parseNonNegativeInteger(options.limit, "limit")),
+        );
+        const { loadSideEffectLedger } =
+          await import("../lib/side-effect-ledger-store.js");
+        const { loadTurnBindingLog } =
+          await import("../lib/turn-binding-store.js");
+        const { loadMcpLedgerRecovery } =
+          await import("../lib/mcp-call-ledger-store.js");
+        const { sessionExists } =
+          await import("../harness/jsonl-session-store.js");
+        const { buildPermissionSideEffectCenter } =
+          await import("../lib/permission-side-effect-center.js");
+        const mcpRecords = sessionExists(sessionId)
+          ? loadMcpLedgerRecovery(sessionId).records
+          : [];
+        const projection = buildPermissionSideEffectCenter({
+          sessionId,
+          operations: loadSideEffectLedger(sessionId).list(),
+          mcpRecords,
+          turns: loadTurnBindingLog(sessionId).list(),
+          limit,
+        });
+        if (options.json) {
+          console.log(JSON.stringify(projection, null, 2));
+          return;
+        }
+        if (projection.entries.length === 0) {
+          logger.log(
+            chalk.gray(`No side-effect evidence for session ${sessionId}.`),
+          );
+          return;
+        }
+        logger.log(
+          chalk.bold(
+            `${projection.entries.length} actual side effect(s) · ${projection.summary.irreversible} irreversible · ${projection.summary.inspect} need inspection`,
+          ),
+        );
+        for (const entry of projection.entries) {
+          const coverage =
+            entry.recovery.coverage === "full"
+              ? chalk.green(entry.recovery.coverage)
+              : entry.recovery.coverage === "partial"
+                ? chalk.yellow(entry.recovery.coverage)
+                : chalk.red(entry.recovery.coverage);
+          logger.log(
+            `${chalk.cyan(entry.tool)} ${entry.kind} ${entry.state} · recovery ${coverage}/${entry.recovery.action}`,
+          );
+          for (const [kind, values] of Object.entries(entry.resources)) {
+            if (values.length) {
+              logger.log(chalk.gray(`  ${kind}: ${values.join(", ")}`));
+            }
+          }
+          for (const warning of entry.unresolvedResources) {
+            logger.log(chalk.yellow(`  unresolved: ${warning}`));
+          }
+        }
+      } catch (err) {
+        logger.error(chalk.red(`permissions activity failed: ${err.message}`));
         process.exitCode = 1;
       }
     });

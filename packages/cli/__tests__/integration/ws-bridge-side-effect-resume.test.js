@@ -436,11 +436,18 @@ describe("WS bridge side-effect resume", () => {
         {
           type: "tool-executing",
           tool: "write_file",
+          tool_use_id: "call-7",
           args: { path: "a.js", content: "x" },
         },
         {
           type: "tool-result",
           tool: "write_file",
+          permission_decision: {
+            decision: "allow",
+            via: "settings-rules",
+            rule: "Write(./a.js)",
+            source: ".claude/settings.json",
+          },
           result: { ok: true, _diffReviewAudit: audit },
         },
       ]),
@@ -452,7 +459,22 @@ describe("WS bridge side-effect resume", () => {
       .find((event) => event.type === "side_effect_ledger");
     expect(snapshot.data.ops[0]).toMatchObject({
       state: "committed",
-      meta: { diffReview: audit },
+      meta: {
+        toolUseId: "call-7",
+        resources: {
+          files: ["a.js"],
+          network: [],
+          processes: [],
+          credentials: [],
+        },
+        permissionDecision: {
+          decision: "allow",
+          via: "settings-rules",
+          rule: "Write(./a.js)",
+          source: ".claude/settings.json",
+        },
+        diffReview: audit,
+      },
     });
   });
 

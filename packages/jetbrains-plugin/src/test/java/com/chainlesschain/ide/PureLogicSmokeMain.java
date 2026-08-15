@@ -1756,6 +1756,27 @@ public final class PureLogicSmokeMain {
         eq(denials.get(0).count, 3L, "pv denial count");
         check(PolicyViewer.parseDenials("oops") == null, "pv denials malformed null");
 
+        PolicyViewer.SideEffectSection sideEffects = PolicyViewer.parseSideEffects(
+                "{\"schema\":\"cc-permission-side-effect-center/v1\","
+                        + "\"authority\":\"cli\",\"sessionId\":\"sess-1\","
+                        + "\"entries\":[{\"tool\":\"run_shell\",\"kind\":\"shell\","
+                        + "\"state\":\"unknown\",\"irreversible\":true,"
+                        + "\"resources\":{\"files\":[\"C:/repo\"],"
+                        + "\"network\":[\"https://registry.test\"],"
+                        + "\"processes\":[\"npm\"],\"credentials\":[\"NPM_TOKEN\"]},"
+                        + "\"decision\":{\"decision\":\"ask\",\"via\":\"approval-gate\"},"
+                        + "\"callChain\":{\"turnId\":\"turn-1\",\"toolUseId\":\"tool-1\"},"
+                        + "\"recovery\":{\"coverage\":\"none\",\"action\":\"inspect\","
+                        + "\"uncoveredResources\":[\"network:https://registry.test\"]}}]}");
+        check(sideEffects != null && sideEffects.entries.size() == 1,
+                "pv side effects parsed");
+        eq(sideEffects.entries.get(0).resources.get("credentials"),
+                Arrays.asList("NPM_TOKEN"), "pv credential identifier");
+        check(PolicyViewer.parseSideEffects(
+                "{\"schema\":\"cc-permission-side-effect-center/v1\","
+                        + "\"authority\":\"ide\",\"entries\":[]}") == null,
+                "pv side effects authority fail closed");
+
         PolicyViewer.AutoModeSection auto = PolicyViewer.parseAutoMode(
                 "{\"effective\":{\"classifyAllShell\":true},\"files\":[],"
                         + "\"decisions\":{\"low\":{\"decision\":\"allow\","
@@ -1782,6 +1803,14 @@ public final class PureLogicSmokeMain {
         check(text.contains("2m ago"), "pv describe relative time");
         check(text.contains("[managed]"), "pv describe managed badge");
         check(text.contains("managed-settings > hooks"), "pv describe precedence");
+        String effectText = PolicyViewer.describe(
+                perm, denials, sideEffects, auto, prec, now);
+        check(effectText.contains("Actual resources & side effects"),
+                "pv describe actual effects");
+        check(effectText.contains("network:https://registry.test"),
+                "pv describe uncovered resource");
+        check(effectText.contains("turn turn-1 · call tool-1"),
+                "pv describe effect call chain");
         String degraded = PolicyViewer.describe(null, denials, null, null, now);
         check(degraded.contains("⚠ unavailable"), "pv failed source warns");
         check(degraded.contains("run_shell rm -rf"), "pv healthy section still renders");
@@ -1793,6 +1822,13 @@ public final class PureLogicSmokeMain {
         eq(PolicyViewer.summaryLine(null, null, null),
                 "permissions: n/a · denials: n/a · auto-mode: n/a",
                 "pv summary n/a");
+        check(PolicyViewer.summaryLine(perm, denials, sideEffects, auto)
+                        .contains("1 actual effects / 1 inspect"),
+                "pv summary actual effects");
+        eq(PolicyViewer.buildPermissionActivityArgs("sess-1", 500),
+                Arrays.asList("permissions", "activity", "--session", "sess-1",
+                        "--limit", "100", "--json"),
+                "pv side effect argv");
     }
 
     /**

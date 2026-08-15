@@ -16,6 +16,8 @@ import {
   _deps as denialStoreDeps,
   appendRecentDenials,
 } from "../../src/lib/permission-denial-store.js";
+import { _deps as sideEffectStoreDeps } from "../../src/lib/side-effect-ledger-store.js";
+import { _deps as turnBindingStoreDeps } from "../../src/lib/turn-binding-store.js";
 
 let tmp;
 let cwdSpy;
@@ -24,6 +26,8 @@ let errSpy;
 let securityAnchorBefore;
 let securityAnchor;
 const originalDenialStoreDeps = { ...denialStoreDeps };
+const originalSideEffectStoreDeps = { ...sideEffectStoreDeps };
+const originalTurnBindingStoreDeps = { ...turnBindingStoreDeps };
 
 function makeProgram() {
   const program = new Command();
@@ -55,6 +59,8 @@ beforeEach(() => {
 afterEach(() => {
   cwdSpy.mockRestore();
   Object.assign(denialStoreDeps, originalDenialStoreDeps);
+  Object.assign(sideEffectStoreDeps, originalSideEffectStoreDeps);
+  Object.assign(turnBindingStoreDeps, originalTurnBindingStoreDeps);
   logSpy.mockRestore();
   errSpy.mockRestore();
   if (securityAnchorBefore === undefined) {
@@ -165,6 +171,72 @@ describe("cc permissions list", () => {
     const parsed = JSON.parse(out);
     expect(parsed.rules.deny).toContain("Bash(rm:*)");
     expect(parsed.rules.allow).toContain("Read");
+  });
+});
+
+describe("cc permissions activity", () => {
+  it("emits the versioned actual-resource and recovery projection", async () => {
+    sideEffectStoreDeps.findLatestEvent = () => ({
+      type: "side_effect_ledger",
+      data: {
+        ops: [
+          {
+            opId: "op-activity",
+            kind: "file-write",
+            key: "src/a.js",
+            state: "committed",
+            idempotent: true,
+            meta: {
+              tool: "write_file",
+              toolUseId: "call-activity",
+              turnId: "turn-activity",
+              resources: {
+                files: ["src/a.js"],
+                network: [],
+                processes: [],
+                credentials: [],
+              },
+            },
+          },
+        ],
+      },
+    });
+    turnBindingStoreDeps.findLatestEvent = () => ({
+      type: "turn_checkpoint_binding",
+      data: {
+        turns: [
+          {
+            turnId: "turn-activity",
+            fileCheckpointId: "cp-activity",
+            toolCallIds: ["call-activity"],
+            _flags: { mutatedFiles: true, hasFileCheckpoint: true },
+          },
+        ],
+      },
+    });
+
+    const out = await run(
+      "activity",
+      "--session",
+      "permissions-command-activity-fixture",
+      "--json",
+    );
+    expect(JSON.parse(out)).toMatchObject({
+      schema: "cc-permission-side-effect-center/v1",
+      authority: "cli",
+      sessionId: "permissions-command-activity-fixture",
+      entries: [
+        {
+          opId: "op-activity",
+          resources: { files: ["src/a.js"] },
+          recovery: {
+            coverage: "full",
+            action: "skip",
+            checkpointId: "cp-activity",
+          },
+        },
+      ],
+    });
   });
 });
 

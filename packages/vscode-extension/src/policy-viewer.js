@@ -1,12 +1,14 @@
 /**
  * Permission / policy viewer core (gap #10) — pure logic for the
- * `chainlesschain.policy.show` panel. Joins four CLI surfaces:
+ * `chainlesschain.policy.show` panel. Joins the CLI policy/effect surfaces:
  *
  *  - permission rules   `cc permissions list --json`
  *                       → { rules:{allow,ask,deny}, sources{"kind:rule"→file},
  *                           files, managed, managedFile }
  *  - recent denials     `cc permissions recent --json -n 20`
  *                       → { file, count, denials:[{at,tool,summary,via,rule,…}] }
+ *  - actual effects     `cc permissions activity --session <id> --json`
+ *                       → resources, decisions, call chain, rollback coverage
  *  - auto-mode          `cc auto-mode config --json` (effective decisions map
  *                       + fine-grained rules) and `cc auto-mode defaults`
  *                       (always JSON — carries the precedence chain, which the
@@ -31,9 +33,14 @@ const RULE_KINDS = ["deny", "ask", "allow"];
 const RISK_LEVELS = ["low", "medium", "high"];
 const SCOPED_RULE_ID = /^spr_[0-9a-f]{32}$/;
 const SCOPED_DURATION = /^\d+(s|m|h|d)$/;
+const SIDE_EFFECT_SCHEMA = "cc-permission-side-effect-center/v1";
 
 /** The `cc …` argv arrays the panel spawns (all read-only). */
-function buildPolicyArgs({ denialLimit = 20 } = {}) {
+function buildPolicyArgs({
+  denialLimit = 20,
+  activityLimit = 50,
+  sessionId = "default",
+} = {}) {
   return {
     permissionsList: ["permissions", "list", "--json"],
     recentDenials: [
@@ -42,6 +49,15 @@ function buildPolicyArgs({ denialLimit = 20 } = {}) {
       "--json",
       "-n",
       String(denialLimit),
+    ],
+    permissionActivity: [
+      "permissions",
+      "activity",
+      "--session",
+      String(sessionId || "default"),
+      "--limit",
+      String(activityLimit),
+      "--json",
     ],
     autoModeConfig: ["auto-mode", "config", "--json"],
     autoModeDefaults: ["auto-mode", "defaults"],
@@ -233,6 +249,102 @@ function shapeDenials(payload) {
     .reverse(); // store appends → last entry is the most recent
 }
 
+function stringList(value, limit = 32) {
+  return (Array.isArray(value) ? value : [])
+    .filter((item) => typeof item === "string" && item)
+    .slice(0, limit)
+    .map((item) => item.slice(0, 512));
+}
+
+/** `cc permissions activity --json` → bounded actual side-effect rows. */
+function shapeSideEffectActivity(payload) {
+  if (
+    !payload ||
+    payload.schema !== SIDE_EFFECT_SCHEMA ||
+    payload.authority !== "cli"
+  ) {
+    return null;
+  }
+  return {
+    sessionId:
+      typeof payload.sessionId === "string"
+        ? payload.sessionId.slice(0, 320)
+        : "",
+    entries: (Array.isArray(payload.entries) ? payload.entries : [])
+      .filter((entry) => entry && typeof entry === "object")
+      .slice(0, 100)
+      .map((entry) => ({
+        opId: typeof entry.opId === "string" ? entry.opId.slice(0, 320) : "",
+        tool: typeof entry.tool === "string" ? entry.tool.slice(0, 128) : "?",
+        kind: typeof entry.kind === "string" ? entry.kind.slice(0, 80) : "?",
+        state: typeof entry.state === "string" ? entry.state.slice(0, 32) : "?",
+        irreversible: entry.irreversible === true,
+        resources: {
+          files: stringList(entry.resources?.files),
+          network: stringList(entry.resources?.network),
+          processes: stringList(entry.resources?.processes),
+          credentials: stringList(entry.resources?.credentials),
+        },
+        unresolvedResources: stringList(entry.unresolvedResources),
+        decision: {
+          decision:
+            typeof entry.decision?.decision === "string"
+              ? entry.decision.decision.slice(0, 32)
+              : "unknown",
+          via:
+            typeof entry.decision?.via === "string"
+              ? entry.decision.via.slice(0, 120)
+              : "policy",
+          rule:
+            typeof entry.decision?.rule === "string"
+              ? entry.decision.rule.slice(0, 256)
+              : null,
+          source:
+            typeof entry.decision?.source === "string"
+              ? entry.decision.source.slice(0, 512)
+              : null,
+          reason:
+            typeof entry.decision?.reason === "string"
+              ? entry.decision.reason.slice(0, 500)
+              : "",
+        },
+        callChain: {
+          sessionId:
+            typeof entry.callChain?.sessionId === "string"
+              ? entry.callChain.sessionId.slice(0, 320)
+              : "",
+          turnId:
+            typeof entry.callChain?.turnId === "string"
+              ? entry.callChain.turnId.slice(0, 320)
+              : null,
+          toolUseId:
+            typeof entry.callChain?.toolUseId === "string"
+              ? entry.callChain.toolUseId.slice(0, 320)
+              : null,
+        },
+        recovery: {
+          coverage: ["full", "partial", "none", "unknown"].includes(
+            entry.recovery?.coverage,
+          )
+            ? entry.recovery.coverage
+            : "unknown",
+          action: ["redo", "inspect", "skip"].includes(entry.recovery?.action)
+            ? entry.recovery.action
+            : "inspect",
+          reason:
+            typeof entry.recovery?.reason === "string"
+              ? entry.recovery.reason.slice(0, 500)
+              : "",
+          checkpointId:
+            typeof entry.recovery?.checkpointId === "string"
+              ? entry.recovery.checkpointId.slice(0, 320)
+              : null,
+          uncoveredResources: stringList(entry.recovery?.uncoveredResources),
+        },
+      })),
+  };
+}
+
 /** Human label for a fine-grained auto-mode rule's match object. */
 function describeRuleMatch(match) {
   if (!match || typeof match !== "object") return "";
@@ -320,6 +432,7 @@ function shapeMcpServers(payload) {
 function buildPolicyModel({
   permissions = null,
   denials = null,
+  activity = null,
   autoMode = null,
   mcpServers = null,
   errors = [],
@@ -335,6 +448,10 @@ function buildPolicyModel({
       scopedFile: null,
     },
     denials: Array.isArray(denials) ? denials : [],
+    activity:
+      activity && Array.isArray(activity.entries)
+        ? activity
+        : { sessionId: "", entries: [] },
     autoMode: autoMode || {
       decisions: [],
       fineRules: [],
@@ -360,6 +477,11 @@ function summarizePolicy(model) {
   ];
   if (Array.isArray(model?.mcpServers)) {
     parts.push(`${model.mcpServers.length} MCP servers`);
+  }
+  if (model?.activity?.entries?.length) {
+    parts.push(
+      `${model.activity.entries.length} actual effects / ${model.activity.entries.filter((entry) => entry.recovery.action === "inspect").length} inspect`,
+    );
   }
   const scoped = Array.isArray(model?.permissions?.scopedRules)
     ? model.permissions.scopedRules
@@ -495,7 +617,78 @@ function renderPolicyHtml(model, { now = Date.now() } = {}) {
     );
   }
 
-  // (c) auto-mode
+  // (c) actual resources, decisions, side effects, and recovery coverage
+  parts.push("<h2>Actual resources &amp; side effects</h2>");
+  if (!m.activity.entries.length) {
+    parts.push(
+      `<p class="muted">No side-effect evidence for session ${escapeHtml(m.activity.sessionId || "default")}.</p>`,
+    );
+  } else {
+    const rows = m.activity.entries
+      .map((entry) => {
+        const resources = Object.entries(entry.resources)
+          .flatMap(([kind, values]) =>
+            values.map(
+              (value) =>
+                `<div><span class="muted">${escapeHtml(kind)}</span> <code>${escapeHtml(value)}</code></div>`,
+            ),
+          )
+          .join("");
+        const unresolved = entry.unresolvedResources
+          .map(
+            (value) =>
+              `<div class="warn">unresolved: ${escapeHtml(value)}</div>`,
+          )
+          .join("");
+        const decision = [
+          entry.decision.via,
+          entry.decision.rule,
+          entry.decision.source,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+        const chain = [
+          entry.callChain.sessionId
+            ? `session ${entry.callChain.sessionId}`
+            : "",
+          entry.callChain.turnId ? `turn ${entry.callChain.turnId}` : "",
+          entry.callChain.toolUseId ? `call ${entry.callChain.toolUseId}` : "",
+        ]
+          .filter(Boolean)
+          .join(" · ");
+        const uncovered = entry.recovery.uncoveredResources.length
+          ? `<div class="warn">not restored: ${escapeHtml(entry.recovery.uncoveredResources.join(", "))}</div>`
+          : "";
+        return (
+          `<tr><td><code>${escapeHtml(entry.tool)}</code><div class="muted">${escapeHtml(entry.kind)} · ${escapeHtml(entry.state)}</div>` +
+          (entry.irreversible
+            ? '<span class="st deny">irreversible</span>'
+            : "") +
+          `</td><td>${resources || '<span class="muted">none recorded</span>'}${unresolved}</td>` +
+          `<td><span class="st ${escapeHtml(entry.decision.decision)}">${escapeHtml(entry.decision.decision)}</span>` +
+          (decision ? `<div class="muted">${escapeHtml(decision)}</div>` : "") +
+          (entry.decision.reason
+            ? `<div class="muted">${escapeHtml(entry.decision.reason)}</div>`
+            : "") +
+          `</td><td><code>${escapeHtml(entry.recovery.coverage)}</code> / <code>${escapeHtml(entry.recovery.action)}</code>` +
+          (entry.recovery.checkpointId
+            ? `<div class="muted">checkpoint ${escapeHtml(entry.recovery.checkpointId)}</div>`
+            : "") +
+          (entry.recovery.reason
+            ? `<div class="muted">${escapeHtml(entry.recovery.reason)}</div>`
+            : "") +
+          `${uncovered}</td><td class="muted">${escapeHtml(chain)}</td></tr>`
+        );
+      })
+      .join("");
+    parts.push(
+      "<table><thead><tr><th>effect</th><th>actual resources</th><th>decision</th><th>recovery</th><th>call chain</th></tr></thead><tbody>" +
+        rows +
+        "</tbody></table>",
+    );
+  }
+
+  // (d) auto-mode
   parts.push("<h2>Auto-mode decisions</h2>");
   parts.push(
     `<div class="muted">classifier: ${m.autoMode.customized ? "autoMode.decisions (customized)" : "trusted policy (defaults)"} · classifyAllShell: ${m.autoMode.classifyAllShell}</div>`,
@@ -538,7 +731,7 @@ function renderPolicyHtml(model, { now = Date.now() } = {}) {
     );
   }
 
-  // (d) MCP servers (optional — only when the source loaded)
+  // (e) MCP servers (optional — only when the source loaded)
   if (Array.isArray(m.mcpServers)) {
     parts.push("<h2>MCP servers</h2>");
     if (!m.mcpServers.length) {
@@ -576,6 +769,7 @@ module.exports = {
   buildScopedPermissionRevokeArgs,
   shapePermissionRules,
   shapeDenials,
+  shapeSideEffectActivity,
   shapeAutoMode,
   shapeMcpServers,
   buildPolicyModel,

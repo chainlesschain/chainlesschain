@@ -27,9 +27,10 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Permissions and Policy viewer (Tools menu, gap #10) — monospace
- * dialog over the four cc policy surfaces ({@code permissions list --json},
+ * dialog over the cc policy/effect surfaces ({@code permissions list --json},
  * {@code permissions recent --json}, {@code auto-mode config --json},
- * {@code auto-mode defaults}), gathered sequentially off-EDT and rendered by
+ * {@code auto-mode defaults}, and {@code permissions activity --json}),
+ * gathered sequentially off-EDT and rendered by
  * the pure {@link PolicyViewer} core (summary line + grouped rules with
  * source/managed badges + recent denials + risk→decision matrix +
  * fine-grained rules + precedence chain). Same dialog shape as
@@ -70,19 +71,26 @@ public final class PolicyViewerAction extends AnAction implements DumbAware {
         createBtn.setEnabled(false);
         final Runnable gather = () -> {
             refreshBtn.setEnabled(false);
+            final String sessionId = ChatToolWindowFactory.activeSessionIdFor(project);
             ApplicationManager.getApplication().executeOnPooledThread(() -> {
                 PolicyViewer.PermissionsSection perm = PolicyViewer.parsePermissions(
                         run(PolicyViewer.buildPermissionsListArgs(), cwd));
                 List<PolicyViewer.Denial> denials = PolicyViewer.parseDenials(
                         run(PolicyViewer.buildRecentDenialsArgs(DENIAL_LIMIT), cwd));
+                PolicyViewer.SideEffectSection sideEffects =
+                        PolicyViewer.parseSideEffects(run(
+                                PolicyViewer.buildPermissionActivityArgs(
+                                        sessionId, DENIAL_LIMIT), cwd));
                 PolicyViewer.AutoModeSection auto = PolicyViewer.parseAutoMode(
                         run(PolicyViewer.buildAutoModeConfigArgs(), cwd));
                 List<String> precedence = PolicyViewer.parsePrecedence(
                         run(PolicyViewer.buildAutoModeDefaultsArgs(), cwd));
                 long now = System.currentTimeMillis();
-                final String text = PolicyViewer.summaryLine(perm, denials, auto)
+                final String text = PolicyViewer.summaryLine(
+                        perm, denials, sideEffects, auto)
                         + "\n\n"
-                        + PolicyViewer.describe(perm, denials, auto, precedence, now);
+                        + PolicyViewer.describe(
+                                perm, denials, sideEffects, auto, precedence, now);
                 ApplicationManager.getApplication().invokeLater(() -> {
                     area.setText(text);
                     area.setCaretPosition(0);

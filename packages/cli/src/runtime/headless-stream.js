@@ -114,6 +114,7 @@ import {
   reconcileSideEffects,
   classifyToolSideEffect,
 } from "../lib/side-effect-ledger.js";
+import { collectToolResourceIdentifiers } from "../lib/permission-side-effect-center.js";
 import { DiffReviewFollowUpTracker } from "../lib/diff-review-follow-up.js";
 import {
   loadSideEffectLedger,
@@ -909,6 +910,12 @@ async function runTurn(
                 // and countDuplicateCommittedEffects can measure `0` repeats.
                 meta: {
                   tool: event.tool,
+                  toolUseId: toolUseId || null,
+                  turnId: event.turn_id || null,
+                  resources: collectToolResourceIdentifiers(
+                    event.tool,
+                    event.args,
+                  ),
                   idempotencyKey: operationIdempotencyKey({
                     tool: event.tool,
                     args: event.args,

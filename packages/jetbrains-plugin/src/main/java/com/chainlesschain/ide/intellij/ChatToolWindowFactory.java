@@ -73,6 +73,14 @@ public final class ChatToolWindowFactory implements ToolWindowFactory, DumbAware
         return c != null ? c.mode : "default";
     }
 
+    /** Current CLI session identity for CLI-owned auxiliary viewers. */
+    static String activeSessionIdFor(Project project) {
+        ChatPanel panel = REGISTRY.get(project);
+        ConversationManager.Conversation c =
+                panel != null ? panel.conversations.active() : null;
+        return c != null && c.sessionId != null ? c.sessionId : "default";
+    }
+
     /** Ask every live foreground chat child to re-scan plugin components. */
     static int reloadPluginRuntimes(Project project) {
         ChatPanel panel = REGISTRY.get(project);

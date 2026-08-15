@@ -10,7 +10,8 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
- * Permission/policy viewer core (gap #10) — one picture of the four policy
+ * Permission/policy viewer core (gap #10) — one picture of the policy,
+ * actual-resource, side-effect, and recovery surfaces
  * surfaces the cc CLI exposes, plus validated argv builders for CLI-owned
  * workspace-scoped permission mutations:
  *
@@ -43,6 +44,8 @@ public final class PolicyViewer {
             Pattern.compile("^spr_[0-9a-f]{32}$");
     private static final Pattern SCOPED_DURATION =
             Pattern.compile("^\\d+(s|m|h|d)$");
+    private static final String SIDE_EFFECT_SCHEMA =
+            "cc-permission-side-effect-center/v1";
 
     // ------------------------------------------------------------- sections
 
@@ -141,6 +144,74 @@ public final class PolicyViewer {
             this.rule = nz(rule);
             this.count = Math.max(1L, count);
             this.permissionMode = nz(permissionMode);
+        }
+    }
+
+    /** One actual CLI-ledger side effect with bounded resource identities. */
+    public static final class SideEffectEntry {
+        public final String tool;
+        public final String kind;
+        public final String state;
+        public final boolean irreversible;
+        public final Map<String, List<String>> resources;
+        public final List<String> unresolvedResources;
+        public final String decision;
+        public final String decisionVia;
+        public final String decisionRule;
+        public final String decisionSource;
+        public final String decisionReason;
+        public final String turnId;
+        public final String toolUseId;
+        public final String coverage;
+        public final String recoveryAction;
+        public final String recoveryReason;
+        public final String checkpointId;
+        public final List<String> uncoveredResources;
+
+        SideEffectEntry(String tool, String kind, String state,
+                boolean irreversible, Map<String, List<String>> resources,
+                List<String> unresolvedResources, String decision,
+                String decisionVia, String decisionRule, String decisionSource,
+                String decisionReason, String turnId, String toolUseId,
+                String coverage, String recoveryAction, String recoveryReason,
+                String checkpointId, List<String> uncoveredResources) {
+            this.tool = nz(tool);
+            this.kind = nz(kind);
+            this.state = nz(state);
+            this.irreversible = irreversible;
+            Map<String, List<String>> copied = new LinkedHashMap<String, List<String>>();
+            for (Map.Entry<String, List<String>> entry : resources.entrySet()) {
+                copied.put(entry.getKey(), Collections.unmodifiableList(
+                        new ArrayList<String>(entry.getValue())));
+            }
+            this.resources = Collections.unmodifiableMap(copied);
+            this.unresolvedResources = Collections.unmodifiableList(
+                    new ArrayList<String>(unresolvedResources));
+            this.decision = nz(decision);
+            this.decisionVia = nz(decisionVia);
+            this.decisionRule = nz(decisionRule);
+            this.decisionSource = nz(decisionSource);
+            this.decisionReason = nz(decisionReason);
+            this.turnId = nz(turnId);
+            this.toolUseId = nz(toolUseId);
+            this.coverage = nz(coverage);
+            this.recoveryAction = nz(recoveryAction);
+            this.recoveryReason = nz(recoveryReason);
+            this.checkpointId = nz(checkpointId);
+            this.uncoveredResources = Collections.unmodifiableList(
+                    new ArrayList<String>(uncoveredResources));
+        }
+    }
+
+    /** Parsed {@code cc permissions activity --json}. */
+    public static final class SideEffectSection {
+        public final String sessionId;
+        public final List<SideEffectEntry> entries;
+
+        SideEffectSection(String sessionId, List<SideEffectEntry> entries) {
+            this.sessionId = nz(sessionId);
+            this.entries = Collections.unmodifiableList(
+                    new ArrayList<SideEffectEntry>(entries));
         }
     }
 
@@ -295,6 +366,55 @@ public final class PolicyViewer {
         return out;
     }
 
+    /** Parse the versioned CLI-owned actual-resource/side-effect projection. */
+    public static SideEffectSection parseSideEffects(String stdout) {
+        Map<String, Object> root = obj(stdout);
+        if (root == null || !SIDE_EFFECT_SCHEMA.equals(root.get("schema"))
+                || !"cli".equals(root.get("authority"))
+                || !(root.get("entries") instanceof List)) return null;
+        List<SideEffectEntry> entries = new ArrayList<SideEffectEntry>();
+        for (Object value : (List<?>) root.get("entries")) {
+            if (!(value instanceof Map) || entries.size() >= 100) continue;
+            Map<?, ?> entry = (Map<?, ?>) value;
+            Map<?, ?> rawResources = entry.get("resources") instanceof Map
+                    ? (Map<?, ?>) entry.get("resources") : Map.of();
+            Map<String, List<String>> resources =
+                    new LinkedHashMap<String, List<String>>();
+            for (String kind : List.of("files", "network", "processes", "credentials")) {
+                resources.put(kind, boundedStrList(rawResources.get(kind), 32, 512));
+            }
+            Map<?, ?> decision = entry.get("decision") instanceof Map
+                    ? (Map<?, ?>) entry.get("decision") : Map.of();
+            Map<?, ?> chain = entry.get("callChain") instanceof Map
+                    ? (Map<?, ?>) entry.get("callChain") : Map.of();
+            Map<?, ?> recovery = entry.get("recovery") instanceof Map
+                    ? (Map<?, ?>) entry.get("recovery") : Map.of();
+            String coverage = bounded(recovery.get("coverage"), 16);
+            if (!List.of("full", "partial", "none", "unknown").contains(coverage)) {
+                coverage = "unknown";
+            }
+            String action = bounded(recovery.get("action"), 16);
+            if (!List.of("redo", "inspect", "skip").contains(action)) {
+                action = "inspect";
+            }
+            entries.add(new SideEffectEntry(
+                    bounded(entry.get("tool"), 128), bounded(entry.get("kind"), 80),
+                    bounded(entry.get("state"), 32), isTrue(entry.get("irreversible")),
+                    resources, boundedStrList(entry.get("unresolvedResources"), 32, 512),
+                    bounded(decision.get("decision"), 32),
+                    bounded(decision.get("via"), 120),
+                    bounded(decision.get("rule"), 256),
+                    bounded(decision.get("source"), 512),
+                    bounded(decision.get("reason"), 500),
+                    bounded(chain.get("turnId"), 320),
+                    bounded(chain.get("toolUseId"), 320), coverage, action,
+                    bounded(recovery.get("reason"), 500),
+                    bounded(recovery.get("checkpointId"), 320),
+                    boundedStrList(recovery.get("uncoveredResources"), 32, 512)));
+        }
+        return new SideEffectSection(bounded(root.get("sessionId"), 320), entries);
+    }
+
     /** Parse {@code cc auto-mode config --json}; null on malformed/missing. */
     public static AutoModeSection parseAutoMode(String stdout) {
         Map<String, Object> root = obj(stdout);
@@ -357,6 +477,17 @@ public final class PolicyViewer {
      */
     public static String summaryLine(PermissionsSection perm, List<Denial> denials,
             AutoModeSection auto) {
+        return summaryLineInternal(perm, denials, null, auto, false);
+    }
+
+    public static String summaryLine(PermissionsSection perm, List<Denial> denials,
+            SideEffectSection sideEffects, AutoModeSection auto) {
+        return summaryLineInternal(perm, denials, sideEffects, auto, true);
+    }
+
+    private static String summaryLineInternal(PermissionsSection perm,
+            List<Denial> denials, SideEffectSection sideEffects,
+            AutoModeSection auto, boolean includeSideEffects) {
         StringBuilder sb = new StringBuilder();
         if (perm == null) {
             sb.append("permissions: n/a");
@@ -373,6 +504,17 @@ public final class PolicyViewer {
         }
         sb.append(" · ");
         sb.append(denials == null ? "denials: n/a" : denials.size() + " recent denials");
+        if (includeSideEffects) {
+            sb.append(" · ");
+            if (sideEffects == null) {
+                sb.append("effects: n/a");
+            } else {
+                long inspect = sideEffects.entries.stream()
+                        .filter(entry -> "inspect".equals(entry.recoveryAction)).count();
+                sb.append(sideEffects.entries.size()).append(" actual effects / ")
+                        .append(inspect).append(" inspect");
+            }
+        }
         sb.append(" · ");
         if (auto == null) {
             sb.append("auto-mode: n/a");
@@ -393,6 +535,21 @@ public final class PolicyViewer {
      */
     public static String describe(PermissionsSection perm, List<Denial> denials,
             AutoModeSection auto, List<String> precedence, long nowMs) {
+        return describeInternal(perm, denials, null, auto, precedence, nowMs,
+                false);
+    }
+
+    public static String describe(PermissionsSection perm, List<Denial> denials,
+            SideEffectSection sideEffects, AutoModeSection auto,
+            List<String> precedence, long nowMs) {
+        return describeInternal(perm, denials, sideEffects, auto, precedence,
+                nowMs, true);
+    }
+
+    private static String describeInternal(PermissionsSection perm,
+            List<Denial> denials, SideEffectSection sideEffects,
+            AutoModeSection auto, List<String> precedence, long nowMs,
+            boolean includeSideEffects) {
         StringBuilder sb = new StringBuilder();
 
         sb.append("== Permission rules (permissions.{allow,ask,deny}) ==\n");
@@ -471,6 +628,78 @@ public final class PolicyViewer {
             }
         }
 
+        if (includeSideEffects) {
+            sb.append("\n== Actual resources & side effects ==\n");
+        }
+        if (includeSideEffects && sideEffects == null) {
+            sb.append(WARN).append("unavailable (cc permissions activity failed"
+                    + " or returned unsupported JSON)\n");
+        } else if (includeSideEffects && sideEffects.entries.isEmpty()) {
+            sb.append("  (no side-effect evidence for session ")
+                    .append(sideEffects.sessionId.isEmpty()
+                            ? "default" : sideEffects.sessionId)
+                    .append(")\n");
+        } else if (includeSideEffects) {
+            for (SideEffectEntry entry : sideEffects.entries) {
+                sb.append("  - ").append(entry.tool.isEmpty() ? "?" : entry.tool)
+                        .append(' ').append(entry.kind).append(' ')
+                        .append(entry.state);
+                if (entry.irreversible) sb.append("  [irreversible]");
+                sb.append('\n');
+                for (Map.Entry<String, List<String>> resource :
+                        entry.resources.entrySet()) {
+                    if (!resource.getValue().isEmpty()) {
+                        sb.append("      ").append(resource.getKey()).append(": ")
+                                .append(String.join(", ", resource.getValue()))
+                                .append('\n');
+                    }
+                }
+                for (String unresolved : entry.unresolvedResources) {
+                    sb.append(WARN).append("    unresolved: ")
+                            .append(unresolved).append('\n');
+                }
+                sb.append("      decision: ").append(entry.decision)
+                        .append(" via ").append(entry.decisionVia);
+                if (!entry.decisionRule.isEmpty()) {
+                    sb.append(" · rule ").append(entry.decisionRule);
+                }
+                if (!entry.decisionSource.isEmpty()) {
+                    sb.append(" · source ").append(entry.decisionSource);
+                }
+                sb.append('\n');
+                if (!entry.decisionReason.isEmpty()) {
+                    sb.append("        ").append(entry.decisionReason).append('\n');
+                }
+                sb.append("      recovery: ").append(entry.coverage).append(" / ")
+                        .append(entry.recoveryAction);
+                if (!entry.checkpointId.isEmpty()) {
+                    sb.append(" · checkpoint ").append(entry.checkpointId);
+                }
+                sb.append('\n');
+                if (!entry.recoveryReason.isEmpty()) {
+                    sb.append("        ").append(entry.recoveryReason).append('\n');
+                }
+                if (!entry.uncoveredResources.isEmpty()) {
+                    sb.append(WARN).append("    not restored: ")
+                            .append(String.join(", ", entry.uncoveredResources))
+                            .append('\n');
+                }
+                if (!entry.turnId.isEmpty() || !entry.toolUseId.isEmpty()) {
+                    sb.append("      call chain:");
+                    if (!sideEffects.sessionId.isEmpty()) {
+                        sb.append(" session ").append(sideEffects.sessionId);
+                    }
+                    if (!entry.turnId.isEmpty()) {
+                        sb.append(" · turn ").append(entry.turnId);
+                    }
+                    if (!entry.toolUseId.isEmpty()) {
+                        sb.append(" · call ").append(entry.toolUseId);
+                    }
+                    sb.append('\n');
+                }
+            }
+        }
+
         sb.append("\n== Auto mode (--permission-mode auto) ==\n");
         if (auto == null) {
             sb.append(WARN).append("unavailable (cc auto-mode config failed"
@@ -540,6 +769,22 @@ public final class PolicyViewer {
         return out;
     }
 
+    private static List<String> boundedStrList(Object value, int limit, int length) {
+        List<String> out = new ArrayList<String>();
+        if (!(value instanceof List)) return out;
+        for (Object item : (List<?>) value) {
+            String text = bounded(item, length);
+            if (!text.isEmpty() && !out.contains(text)) out.add(text);
+            if (out.size() >= limit) break;
+        }
+        return out;
+    }
+
+    private static String bounded(Object value, int limit) {
+        String text = str(value);
+        return text.length() <= limit ? text : text.substring(0, limit);
+    }
+
     private static boolean isTrue(Object v) {
         return Boolean.TRUE.equals(v);
     }
@@ -583,6 +828,18 @@ public final class PolicyViewer {
     public static List<String> buildRecentDenialsArgs(int limit) {
         return Arrays.asList("permissions", "recent", "--json",
                 "-n", String.valueOf(Math.max(1, limit)));
+    }
+
+    public static List<String> buildPermissionActivityArgs(String sessionId,
+            int limit) {
+        String session = nz(sessionId).trim();
+        if (session.isEmpty()) session = "default";
+        if (session.length() > 320 || containsControlLine(session)) {
+            throw new IllegalArgumentException("invalid session id");
+        }
+        return Arrays.asList("permissions", "activity", "--session", session,
+                "--limit", String.valueOf(Math.max(1, Math.min(100, limit))),
+                "--json");
     }
 
     public static List<String> buildScopedPermissionCreateArgs(String decision,

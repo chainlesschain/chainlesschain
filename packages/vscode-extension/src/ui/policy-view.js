@@ -2,6 +2,7 @@
  * Permission / policy viewer webview (gap #10) — read-only panel over:
  *  - `cc permissions list --json`    merged allow/ask/deny rules + sources
  *  - `cc permissions recent --json`  recent policy denials
+ *  - `cc permissions activity`       actual resources/effects/recovery
  *  - `cc auto-mode config --json`    effective risk→decision map + fine rules
  *  - `cc auto-mode defaults`         precedence chain (config json omits it)
  *  - `cc mcp servers --json`         optional section — this call bootstraps
@@ -10,7 +11,7 @@
  *                                    that into a warning row, never a blank
  *                                    panel.
  *
- * All five sources load in parallel; each failure becomes a warning row.
+ * All six sources load in parallel; each failure becomes a warning row.
  * Scoped mutations use validated `cc permissions scoped|revoke` argv. The
  * extension never reads or edits the authority file directly.
  * Model shaping/rendering is pure and lives in ../policy-viewer.js.
@@ -24,6 +25,7 @@ const {
   buildScopedPermissionRevokeArgs,
   shapePermissionRules,
   shapeDenials,
+  shapeSideEffectActivity,
   shapeAutoMode,
   shapeMcpServers,
   buildPolicyModel,
@@ -32,6 +34,7 @@ const {
 } = require("../policy-viewer.js");
 
 let _panel = null;
+let _getSessionId = () => null;
 
 function cliCommand(vscode) {
   const { getResolvedCli } = require("../cli-binary");
@@ -82,14 +85,21 @@ function post(message) {
   if (_panel) _panel.webview.postMessage(message);
 }
 
-/** Load all five sources in parallel; per-source failures → warning rows. */
+/** Load all six sources in parallel; per-source failures → warning rows. */
 async function loadData(vscode) {
-  const args = buildPolicyArgs();
+  let sessionId = null;
+  try {
+    sessionId = _getSessionId();
+  } catch {
+    sessionId = null;
+  }
+  const args = buildPolicyArgs({ sessionId: sessionId || "default" });
   const errors = [];
-  const [permRes, recentRes, configRes, defaultsRes, mcpRes] =
+  const [permRes, recentRes, activityRes, configRes, defaultsRes, mcpRes] =
     await Promise.all([
       runCliJson(vscode, args.permissionsList),
       runCliJson(vscode, args.recentDenials),
+      runCliJson(vscode, args.permissionActivity),
       runCliJson(vscode, args.autoModeConfig),
       runCliJson(vscode, args.autoModeDefaults),
       // mcp servers bootstraps the CLI DB — give it a longer leash.
@@ -146,9 +156,21 @@ async function loadData(vscode) {
     });
   }
 
+  let activity = null;
+  if (activityRes.ok && activityRes.json) {
+    activity = shapeSideEffectActivity(activityRes.json);
+  }
+  if (!activity) {
+    errors.push({
+      source: "cc permissions activity",
+      message: activityRes.error || "no supported JSON output",
+    });
+  }
+
   const model = buildPolicyModel({
     permissions,
     denials,
+    activity,
     autoMode,
     mcpServers,
     errors,
@@ -209,7 +231,9 @@ async function handleMessage(vscode, msg) {
   }
 }
 
-function openPolicyViewer(vscode) {
+function openPolicyViewer(vscode, { getSessionId = () => null } = {}) {
+  _getSessionId =
+    typeof getSessionId === "function" ? getSessionId : () => null;
   if (_panel) {
     _panel.reveal();
     loadData(vscode);

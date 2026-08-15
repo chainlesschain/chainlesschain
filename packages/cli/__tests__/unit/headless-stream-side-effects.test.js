@@ -461,6 +461,13 @@ describe("stream side-effect ledger — turn-time recording", () => {
     expect(op.kind).toBe("file-write");
     expect(op.key).toBe("a.txt");
     expect(op.meta.tool).toBe("write_file");
+    expect(op.meta.resources).toEqual({
+      files: ["a.txt"],
+      network: [],
+      processes: [],
+      credentials: [],
+    });
+    expect(op.meta.toolUseId).toBeTruthy();
     expect(op.meta.idempotencyKey).toBeTruthy();
   });
 
@@ -615,6 +622,7 @@ describe("stream side-effect ledger — turn-time recording", () => {
     expect(ledger.list()[0].meta.permissionDecision).toEqual(
       permissionDecision,
     );
+    expect(ledger.list()[0].meta.resources.processes).toEqual(["npm"]);
     expect(
       h.events().find((event) => event.type === "tool_result"),
     ).toMatchObject({

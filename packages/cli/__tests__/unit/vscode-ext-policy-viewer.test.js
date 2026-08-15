@@ -14,6 +14,7 @@ import {
   buildScopedPermissionRevokeArgs,
   shapePermissionRules,
   shapeDenials,
+  shapeSideEffectActivity,
   shapeAutoMode,
   shapeMcpServers,
   buildPolicyModel,
@@ -141,16 +142,78 @@ const MCP_JSON = [
   },
 ];
 
+const ACTIVITY_JSON = {
+  schema: "cc-permission-side-effect-center/v1",
+  authority: "cli",
+  sessionId: "sess-1",
+  entries: [
+    {
+      opId: "op-1",
+      tool: "run_shell",
+      kind: "shell",
+      state: "unknown",
+      irreversible: true,
+      resources: {
+        files: ["C:/repo"],
+        network: ["https://registry.example.test"],
+        processes: ["npm"],
+        credentials: ["NPM_TOKEN"],
+      },
+      unresolvedResources: [],
+      decision: {
+        decision: "ask",
+        via: "approval-gate",
+        rule: "Bash(npm publish:*)",
+        source: "C:/repo/.claude/settings.json",
+        reason: "external publish",
+      },
+      callChain: {
+        sessionId: "sess-1",
+        turnId: "turn-1",
+        toolUseId: "tool-1",
+      },
+      recovery: {
+        coverage: "partial",
+        action: "inspect",
+        reason: "effect may have applied",
+        checkpointId: "cp-1",
+        uncoveredResources: ["network:https://registry.example.test"],
+      },
+    },
+  ],
+};
+
 describe("buildPolicyArgs", () => {
   it("returns the exact read-only cc argv arrays the panel spawns", () => {
     expect(buildPolicyArgs()).toEqual({
       permissionsList: ["permissions", "list", "--json"],
       recentDenials: ["permissions", "recent", "--json", "-n", "20"],
+      permissionActivity: [
+        "permissions",
+        "activity",
+        "--session",
+        "default",
+        "--limit",
+        "50",
+        "--json",
+      ],
       autoModeConfig: ["auto-mode", "config", "--json"],
       autoModeDefaults: ["auto-mode", "defaults"],
       mcpServers: ["mcp", "servers", "--json"],
     });
     expect(buildPolicyArgs({ denialLimit: 5 }).recentDenials).toContain("5");
+    expect(
+      buildPolicyArgs({ sessionId: "sess-1", activityLimit: 7 })
+        .permissionActivity,
+    ).toEqual([
+      "permissions",
+      "activity",
+      "--session",
+      "sess-1",
+      "--limit",
+      "7",
+      "--json",
+    ]);
   });
 
   it("builds exact CLI-owned scoped create/revoke argv", () => {
@@ -291,6 +354,31 @@ describe("shapeAutoMode / describeRuleMatch", () => {
   });
 });
 
+describe("shapeSideEffectActivity", () => {
+  it("keeps bounded actual resources, decision, call chain, and recovery", () => {
+    const shaped = shapeSideEffectActivity(ACTIVITY_JSON);
+    expect(shaped.sessionId).toBe("sess-1");
+    expect(shaped.entries[0]).toMatchObject({
+      tool: "run_shell",
+      irreversible: true,
+      resources: { credentials: ["NPM_TOKEN"] },
+      decision: { decision: "ask", via: "approval-gate" },
+      callChain: { turnId: "turn-1", toolUseId: "tool-1" },
+      recovery: { coverage: "partial", action: "inspect" },
+    });
+  });
+
+  it("rejects non-CLI or unsupported schemas", () => {
+    expect(shapeSideEffectActivity(null)).toBeNull();
+    expect(
+      shapeSideEffectActivity({ ...ACTIVITY_JSON, authority: "ide" }),
+    ).toBeNull();
+    expect(
+      shapeSideEffectActivity({ ...ACTIVITY_JSON, schema: "future/v2" }),
+    ).toBeNull();
+  });
+});
+
 describe("shapeMcpServers", () => {
   it("shapes stdio and http servers with policy verdicts", () => {
     const rows = shapeMcpServers(MCP_JSON);
@@ -320,6 +408,7 @@ describe("buildPolicyModel / summarizePolicy", () => {
     buildPolicyModel({
       permissions: shapePermissionRules(PERM_JSON),
       denials: shapeDenials(RECENT_JSON),
+      activity: shapeSideEffectActivity(ACTIVITY_JSON),
       autoMode: shapeAutoMode(AUTOMODE_CONFIG_JSON, AUTOMODE_DEFAULTS_JSON),
       mcpServers: shapeMcpServers(MCP_JSON),
     });
@@ -330,6 +419,7 @@ describe("buildPolicyModel / summarizePolicy", () => {
     expect(s).toContain("2 recent denials");
     expect(s).toContain("auto-mode customized");
     expect(s).toContain("2 MCP servers");
+    expect(s).toContain("1 actual effects / 1 inspect");
   });
 
   it("omits the MCP count when that source is unavailable (null)", () => {
@@ -344,11 +434,12 @@ describe("renderPolicyHtml (escaping + per-source failure tolerance)", () => {
     buildPolicyModel({
       permissions: shapePermissionRules(PERM_JSON),
       denials: shapeDenials(RECENT_JSON),
+      activity: shapeSideEffectActivity(ACTIVITY_JSON),
       autoMode: shapeAutoMode(AUTOMODE_CONFIG_JSON, AUTOMODE_DEFAULTS_JSON),
       mcpServers: shapeMcpServers(MCP_JSON),
     });
 
-  it("renders all four sections with the shaped content", () => {
+  it("renders every section with the shaped content", () => {
     const html = renderPolicyHtml(fullModel(), { now: NOW });
     expect(html).toContain("Permission rules");
     expect(html).toContain("Workspace-scoped authority");
@@ -362,6 +453,12 @@ describe("renderPolicyHtml (escaping + per-source failure tolerance)", () => {
     expect(html).toContain("×3");
     expect(html).toContain("1h ago");
     expect(html).toContain("Auto-mode decisions");
+    expect(html).toContain("Actual resources &amp; side effects");
+    expect(html).toContain("https://registry.example.test");
+    expect(html).toContain("NPM_TOKEN");
+    expect(html).toContain("partial");
+    expect(html).toContain("inspect");
+    expect(html).toContain("not restored");
     expect(html).toContain("autoMode.decisions (customized)");
     expect(html).toContain("Fine-grained rules");
     expect(html).toContain("Precedence chain");
@@ -391,14 +488,30 @@ describe("renderPolicyHtml (escaping + per-source failure tolerance)", () => {
           },
         ],
       }),
+      activity: shapeSideEffectActivity({
+        ...ACTIVITY_JSON,
+        entries: [
+          {
+            ...ACTIVITY_JSON.entries[0],
+            resources: {
+              files: ['<img src=x onerror="activity">'],
+              credentials: ["TOKEN<script>"],
+            },
+          },
+        ],
+      }),
     });
     const html = renderPolicyHtml(model, { now: NOW });
     expect(html).not.toContain("<img");
     expect(html).not.toContain("<script>evil");
     expect(html).not.toContain('"onmouseover="alert');
+    expect(html).not.toContain('<img src=x onerror="activity">');
+    expect(html).not.toContain("TOKEN<script>");
     expect(html).toContain("&lt;img src=x onerror=alert(1)&gt;");
     expect(html).toContain("&lt;script&gt;evil&lt;/script&gt;");
     expect(html).toContain("&quot;onmouseover=&quot;alert(1)");
+    expect(html).toContain("&lt;img src=x onerror=&quot;activity&quot;&gt;");
+    expect(html).toContain("TOKEN&lt;script&gt;");
   });
 
   it("failed sources become warning rows, never a blank panel", () => {

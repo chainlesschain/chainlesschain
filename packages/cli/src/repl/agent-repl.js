@@ -88,6 +88,7 @@ import {
   persistSideEffectLedger,
 } from "../lib/side-effect-ledger-store.js";
 import { operationIdempotencyKey } from "../lib/idempotency.js";
+import { collectToolResourceIdentifiers } from "../lib/permission-side-effect-center.js";
 import {
   preserveDurableSystemMessageProvenance,
   projectCanonicalResumeMessages,
@@ -774,6 +775,12 @@ export async function agentLoop(messages, options) {
               key: sideEffect.key,
               meta: {
                 tool: event.tool,
+                toolUseId: event.tool_use_id || null,
+                turnId: event.turn_id || null,
+                resources: collectToolResourceIdentifiers(
+                  event.tool,
+                  event.args,
+                ),
                 idempotencyKey: operationIdempotencyKey({
                   tool: event.tool,
                   args: event.args,

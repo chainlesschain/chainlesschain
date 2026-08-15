@@ -289,6 +289,11 @@ class ChatViewProvider {
     return this.opts.state?.get?.("chainlesschain.chat.sessionId") || null;
   }
 
+  /** Current CLI session identity for CLI-owned auxiliary viewers. */
+  activeSessionId() {
+    return this._convs.active()?.sessionId || this._storedSessionId();
+  }
+
   _rememberSessionId(id) {
     this.opts.state?.update?.("chainlesschain.chat.sessionId", id || null);
   }

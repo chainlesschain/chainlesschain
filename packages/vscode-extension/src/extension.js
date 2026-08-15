@@ -775,7 +775,9 @@ function activate(context) {
     // denials, the auto-mode decision matrix and precedence chain.
     vscode.commands.registerCommand("chainlesschain.policy.show", () => {
       const { openPolicyViewer } = require("./ui/policy-view.js");
-      openPolicyViewer(vscode);
+      openPolicyViewer(vscode, {
+        getSessionId: () => chatProvider.activeSessionId(),
+      });
     }),
     vscode.commands.registerCommand("chainlesschain.context.show", () => {
       const { openContextCenter } = require("./ui/context-center-view.js");
