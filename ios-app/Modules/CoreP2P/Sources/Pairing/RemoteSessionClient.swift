@@ -149,8 +149,33 @@ public final class RemoteSessionClient: RemoteSessionWebSocketListener {
     }
 
     @discardableResult
-    public func resolveApproval(requestId: String, approved: Bool) -> Bool {
-        sendControl(["type": "approval.resolve", "requestId": requestId, "approved": approved])
+    public func resolveApproval(
+        requestId: String,
+        approved: Bool,
+        fingerprint: String? = nil,
+        binding: String? = nil,
+        revision: Any? = nil
+    ) -> Bool {
+        let hasDurableTuple = fingerprint != nil || binding != nil || revision != nil
+        if hasDurableTuple {
+            guard let fingerprint, !fingerprint.isEmpty,
+                  let binding, !binding.isEmpty,
+                  let revision = normalizedApprovalRevision(revision)
+            else { return false }
+            return sendControl([
+                "type": "approval.resolve",
+                "requestId": requestId,
+                "approved": approved,
+                "fingerprint": fingerprint,
+                "binding": binding,
+                "revision": revision,
+            ])
+        }
+        return sendControl([
+            "type": "approval.resolve",
+            "requestId": requestId,
+            "approved": approved,
+        ])
     }
 
     @discardableResult
@@ -177,6 +202,7 @@ public final class RemoteSessionClient: RemoteSessionWebSocketListener {
             "type": "pair.join",
             "remoteSessionId": pairing.remoteSessionId,
             "token": pairing.pairingToken,
+            "capabilities": ["approval-binding-v1"],
         ]
         if let pushToken { joinPayload["pushToken"] = pushToken }
         if let pushProvider { joinPayload["pushProvider"] = pushProvider }
@@ -197,6 +223,21 @@ public final class RemoteSessionClient: RemoteSessionWebSocketListener {
               let text = String(data: data, encoding: .utf8)
         else { return "{}" }
         return text
+    }
+
+    private func normalizedApprovalRevision(_ value: Any?) -> Any? {
+        if value is Bool { return nil }
+        if let value = value as? Int, value > 0 { return value }
+        if let value = value as? Int64, value > 0 { return value }
+        if let value = value as? NSNumber {
+            let integer = value.int64Value
+            if integer > 0, value.doubleValue == Double(integer) { return integer }
+        }
+        if let value = value as? String,
+           value.range(of: #"^[1-9]\d*$"#, options: .regularExpression) != nil {
+            return value
+        }
+        return nil
     }
 
     // MARK: Inbound

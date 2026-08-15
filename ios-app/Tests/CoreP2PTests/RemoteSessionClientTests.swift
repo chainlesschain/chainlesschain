@@ -154,6 +154,7 @@ final class RemoteSessionClientTests: XCTestCase {
         XCTAssertEqual(join["type"] as? String, "pair.join")
         XCTAssertEqual(join["remoteSessionId"] as? String, remoteSessionId)
         XCTAssertEqual(join["token"] as? String, pairingToken)
+        XCTAssertEqual(join["capabilities"] as? [String], ["approval-binding-v1"])
         XCTAssertNil(join["pushToken"])
     }
 
@@ -201,6 +202,41 @@ final class RemoteSessionClientTests: XCTestCase {
         let event = try XCTUnwrap((try JSONSerialization.jsonObject(with: plaintext)) as? [String: Any])
         XCTAssertEqual(event["type"] as? String, "prompt")
         XCTAssertEqual(event["content"] as? String, "hello host")
+    }
+
+    func testResolveApprovalEchoesCompleteDurableBindingAndRejectsPartialTuple() throws {
+        let (client, socket, host) = makeHarness()
+        try client.connect(pairingURI(hostPublicKey: host.publicKeyBase64()))
+        socket.listener?.webSocketDidOpen(socket)
+        socket.listener?.webSocket(socket, didReceiveText: #"{"type":"registered"}"#)
+        _ = try decryptPairJoin(socket, host: host)
+        try deliverEncrypted(["type": "pair.accepted"], from: host, to: socket)
+
+        XCTAssertFalse(client.resolveApproval(
+            requestId: "partial",
+            approved: true,
+            fingerprint: "sha256:partial"
+        ))
+        XCTAssertTrue(client.resolveApproval(
+            requestId: "approval-1",
+            approved: true,
+            fingerprint: "sha256:approval-1",
+            binding: "binding-1",
+            revision: 4
+        ))
+
+        let control = try XCTUnwrap(socket.payload(ofType: "remote-session.encrypted"))
+        let envelope = try RemoteEncryptedEnvelope.fromJSONObject(
+            try XCTUnwrap(control["envelope"] as? [String: Any])
+        )
+        let event = try XCTUnwrap(
+            (try JSONSerialization.jsonObject(with: try host.decrypt(envelope))) as? [String: Any]
+        )
+        XCTAssertEqual(event["type"] as? String, "approval.resolve")
+        XCTAssertEqual(event["requestId"] as? String, "approval-1")
+        XCTAssertEqual(event["fingerprint"] as? String, "sha256:approval-1")
+        XCTAssertEqual(event["binding"] as? String, "binding-1")
+        XCTAssertEqual(event["revision"] as? Int, 4)
     }
 
     // MARK: Inbound events
