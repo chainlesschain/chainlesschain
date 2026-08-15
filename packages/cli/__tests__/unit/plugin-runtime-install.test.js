@@ -210,6 +210,73 @@ describe("installFromSource", () => {
     expect(row.source.source).not.toContain("attacker.invalid");
   });
 
+  it("persists validated marketplace catalog authority and exact registry identity", () => {
+    const src = makeSource("governed", "2.0.0");
+    const catalogDigest = "a".repeat(64);
+    const candidateId = `candidate-${"b".repeat(20)}`;
+    installFromSource(src, {
+      scope: "project",
+      cwd,
+      expectedIdentity: { name: "governed", version: "2.0.0" },
+      sourceMetadata: {
+        type: "registry",
+        source: "https://registry.example/index.json?token=secret",
+        registry: "https://registry.example/index.json?token=secret",
+        package: "governed",
+        resolvedSource: "https://git.example/governed.git#v2.0.0",
+        catalogAuthority: {
+          catalogDigest,
+          candidateId,
+          governanceStatus: "complete",
+          registryStatus: "online",
+          versionAuthority: "registry-declared-unverified",
+        },
+      },
+    });
+
+    const [row] = listInstalled({ cwd, scopes: ["project"] });
+    expect(row.source).toMatchObject({
+      type: "registry",
+      source: "https://registry.example/index.json",
+      catalogAuthority: {
+        schemaVersion: "cc-plugin-marketplace-catalog/v1",
+        installPreflightSchemaVersion:
+          "cc-plugin-marketplace-install-preflight/v1",
+        catalogDigest,
+        candidateId,
+        preflightStatus: "allowed",
+        governanceStatus: "complete",
+      },
+    });
+    expect(JSON.stringify(row.source)).not.toContain("secret");
+  });
+
+  it("rejects registry identity drift and malformed catalog authority before install", () => {
+    const src = makeSource("actual-name", "1.0.0");
+    expect(() =>
+      installFromSource(src, {
+        scope: "project",
+        cwd,
+        expectedIdentity: { name: "claimed-name", version: "1.0.0" },
+      }),
+    ).toThrow(/plugin identity mismatch/);
+    expect(() =>
+      installFromSource(src, {
+        scope: "project",
+        cwd,
+        sourceMetadata: {
+          type: "registry",
+          source: "https://registry.example/index.json",
+          catalogAuthority: {
+            catalogDigest: "not-a-digest",
+            candidateId: `candidate-${"b".repeat(20)}`,
+          },
+        },
+      }),
+    ).toThrow(/catalogAuthority\.catalogDigest/);
+    expect(listInstalled({ cwd, scopes: ["project"] })).toEqual([]);
+  });
+
   it("errors on a plain non-remote, non-existent source", () => {
     // A bare word is neither a directory nor a git URL.
     expect(() =>

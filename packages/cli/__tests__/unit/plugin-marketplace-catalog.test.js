@@ -3,7 +3,9 @@ import {
   MAX_MARKETPLACE_CATALOG_SOURCES,
   MAX_MARKETPLACE_DEPENDENCIES_PER_CANDIDATE,
   PLUGIN_MARKETPLACE_CATALOG_SCHEMA,
+  PLUGIN_MARKETPLACE_INSTALL_PREFLIGHT_SCHEMA,
   buildPluginMarketplaceCatalog,
+  buildPluginMarketplaceInstallPreflight,
 } from "../../src/lib/plugin-runtime/marketplace-catalog.js";
 
 const SHA_A = "a".repeat(64);
@@ -42,6 +44,46 @@ function governedEntry(overrides = {}) {
 }
 
 describe("plugin marketplace catalog governance projection", () => {
+  it("derives a pre-clone install authority and defers only a legacy missing version", () => {
+    const { preflight } = buildPluginMarketplaceInstallPreflight({
+      registryUrl: "https://registry.example/index.json",
+      entry: governedEntry({ version: undefined, dependencies: {} }),
+      hostVersion: "0.163.8",
+      observedAt: "2026-08-15T00:00:00.000Z",
+    });
+
+    expect(preflight).toMatchObject({
+      schemaVersion: PLUGIN_MARKETPLACE_INSTALL_PREFLIGHT_SCHEMA,
+      status: "allowed",
+      versionAuthority: "deferred-to-plugin-manifest",
+      blockers: [],
+      deferred: [{ code: "INVALID_VERSION" }],
+      claims: {
+        registryMetadataVerified: false,
+        pluginBytesFetched: false,
+        pluginCodeExecuted: false,
+      },
+    });
+    expect(preflight.catalogDigest).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it("blocks a registry install before clone on dependency and host failures", () => {
+    const { preflight } = buildPluginMarketplaceInstallPreflight({
+      registryUrl: "https://registry.example/index.json",
+      entry: governedEntry({
+        dependencies: { missing: "^2.0.0" },
+        compatibility: { cc: ">=9.0.0" },
+      }),
+      installed: {},
+      hostVersion: "0.163.8",
+    });
+
+    expect(preflight.status).toBe("blocked");
+    expect(preflight.blockers.map((blocker) => blocker.code)).toEqual(
+      expect.arrayContaining(["MISSING_DEPENDENCY", "HOST_INCOMPATIBLE"]),
+    );
+  });
+
   it("projects every governed field without claiming registry assertions are verified", () => {
     const catalog = buildPluginMarketplaceCatalog({
       sources: [

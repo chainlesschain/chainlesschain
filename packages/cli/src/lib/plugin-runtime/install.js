@@ -65,7 +65,7 @@ const pendingPluginTransactions = new WeakMap();
 /**
  * Install a plugin from a local directory into a scope's immutable version dir.
  * @param {string} srcDir  directory containing the plugin (with its manifest)
- * @param {object} opts     { scope="user", cwd, force=false }
+ * @param {object} opts     { scope="user", cwd, force=false, expectedIdentity? }
  * @returns {{ name, version, scope, dir, warnings }}
  */
 export function installFromDirectory(srcDir, opts = {}) {
@@ -82,6 +82,7 @@ export function installFromDirectory(srcDir, opts = {}) {
     );
   }
   const { name, version } = manifest.metadata;
+  assertExpectedPluginIdentity(name, version, opts.expectedIdentity);
   const sourceMetadata = normalizeSourceMetadata(opts.sourceMetadata);
   if (opts.managedPolicy) {
     enforcePluginPolicy(
@@ -148,10 +149,11 @@ export function installFromDirectory(srcDir, opts = {}) {
       );
     }
 
-    // Record the verified signature into the staged immutable version. The
-    // manifest and complete component SBOM are re-verified below before any
-    // active bytes or pointer can change.
-    if (verification) {
+    // Record only a cryptographically verified signature into the staged
+    // immutable version. A hash-only registry check is re-run below but must
+    // not create a signature lock or imply that the publisher was verified.
+    // Signed installs also bind the complete component SBOM before activation.
+    if (verification?.signatureVerified === true) {
       const stagedManifest = path.join(
         staged,
         path.relative(src, manifest.manifestPath),
@@ -300,6 +302,7 @@ export function updatePlugin(source, opts = {}) {
       );
     }
     const { name, version } = manifest.metadata;
+    assertExpectedPluginIdentity(name, version, opts.expectedIdentity);
     const sourceMetadata =
       normalizeSourceMetadata(opts.sourceMetadata) ||
       normalizeSourceMetadata(
@@ -743,7 +746,52 @@ function normalizeSourceMetadata(value) {
   if (resolvedSource) metadata.resolvedSource = resolvedSource;
   if (packageName) metadata.package = packageName;
   if (value.offline === true) metadata.offline = true;
+  if (value.catalogAuthority != null) {
+    metadata.catalogAuthority = normalizeCatalogAuthority(
+      value.catalogAuthority,
+    );
+  }
   return metadata;
+}
+
+function normalizeCatalogAuthority(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("catalogAuthority must be an object");
+  }
+  const catalogDigest = cleanBounded(value.catalogDigest, 64);
+  const candidateId = cleanBounded(value.candidateId, 64);
+  if (!/^[a-f0-9]{64}$/.test(catalogDigest || "")) {
+    throw new Error(
+      "catalogAuthority.catalogDigest must be a SHA-256 hex digest",
+    );
+  }
+  if (!/^candidate-[a-f0-9]{20}$/.test(candidateId || "")) {
+    throw new Error("catalogAuthority.candidateId is invalid");
+  }
+  const governanceStatus = ["complete", "incomplete"].includes(
+    value.governanceStatus,
+  )
+    ? value.governanceStatus
+    : "incomplete";
+  const registryStatus = ["online", "cached"].includes(value.registryStatus)
+    ? value.registryStatus
+    : "online";
+  const versionAuthority = [
+    "registry-declared-unverified",
+    "deferred-to-plugin-manifest",
+  ].includes(value.versionAuthority)
+    ? value.versionAuthority
+    : "deferred-to-plugin-manifest";
+  return {
+    schemaVersion: "cc-plugin-marketplace-catalog/v1",
+    installPreflightSchemaVersion: "cc-plugin-marketplace-install-preflight/v1",
+    catalogDigest,
+    candidateId,
+    preflightStatus: "allowed",
+    governanceStatus,
+    registryStatus,
+    versionAuthority,
+  };
 }
 
 function sanitizeSource(value, preservePath = false) {
@@ -766,6 +814,21 @@ function cleanBounded(value, max) {
   if (typeof value !== "string") return null;
   const clean = value.replace(/\p{Cc}/gu, "").trim();
   return clean ? clean.slice(0, max) : null;
+}
+
+function assertExpectedPluginIdentity(name, version, expectedIdentity) {
+  const expectedName = cleanBounded(expectedIdentity?.name, 256);
+  const expectedVersion = cleanBounded(expectedIdentity?.version, 128);
+  if (expectedName && name !== expectedName) {
+    throw new Error(
+      `plugin identity mismatch: registry selected ${expectedName}, fetched manifest declares ${name}`,
+    );
+  }
+  if (expectedVersion && version !== expectedVersion) {
+    throw new Error(
+      `plugin version mismatch: registry selected ${expectedVersion}, fetched manifest declares ${version}`,
+    );
+  }
 }
 
 // ── guarded recursive copy ────────────────────────────────────────────────
@@ -801,11 +864,22 @@ function validateStagedInstall(root, { name, version, verification }) {
       : "";
     throw new Error(`staged plugin failed load validation${details}`);
   }
-  if (verification) {
+  if (verification?.signatureVerified === true) {
     const signature = verifyInstalledSignature({ root });
     if (!signature.signed) {
       throw new Error(
         `staged plugin failed signature/SBOM validation: ${signature.reason || "unknown error"}`,
+      );
+    }
+  } else if (verification?.sha256) {
+    try {
+      verifyPluginManifest({
+        manifestFile: parsed.manifestPath,
+        expectedSha256: verification.sha256,
+      });
+    } catch (error) {
+      throw new Error(
+        `staged plugin failed manifest digest validation: ${error.message}`,
       );
     }
   }

@@ -315,6 +315,24 @@ describe("install with a real Ed25519 signature → lock → load enforcement", 
     expect(dropped[0].reason).toMatch(/requireSignedPlugins/);
   });
 
+  it("accepts a matching manifest digest without minting an unsigned signature lock", () => {
+    const src = fs.mkdtempSync(path.join(dir, "hash-only-"));
+    const manifest = JSON.stringify({ name: "hash-only", version: "1.0.0" });
+    fs.writeFileSync(path.join(src, "plugin.json"), manifest, "utf8");
+    const installed = installFromDirectory(src, {
+      scope: "local",
+      cwd,
+      signature: { sha256: sha256(Buffer.from(manifest)) },
+    });
+
+    expect(installed.signatureVerified).toBe(false);
+    expect(readPluginLock(installed.dir)).toBeNull();
+    expect(verifyInstalledSignature({ root: installed.dir })).toMatchObject({
+      signed: false,
+      reason: "no signature lock",
+    });
+  });
+
   it("records an SBOM and rejects tampered component files", () => {
     const signed = makeSignedSource("sbom-plugin", "1.0.0");
     const { privateKey, publicKey } = generateKeyPairSync("ed25519");
@@ -337,14 +355,31 @@ describe("install with a real Ed25519 signature → lock → load enforcement", 
     });
     const lock = readPluginLock(installed.dir);
     expect(lock.sbom?.version).toBe(1);
-    expect(verifyInstalledSignature({ root: installed.dir }, {
-      trustedKeys: new Set([lock.publicKeySha256]),
-    }).signed).toBe(true);
+    expect(
+      verifyInstalledSignature(
+        { root: installed.dir },
+        {
+          trustedKeys: new Set([lock.publicKeySha256]),
+        },
+      ).signed,
+    ).toBe(true);
 
-    fs.writeFileSync(path.join(installed.dir, "tampered.js"), "malicious", "utf8");
-    expect(verifyInstalledSignature({ root: installed.dir }, {
-      trustedKeys: new Set([lock.publicKeySha256]),
-    })).toMatchObject({ signed: false, reason: "plugin component SBOM mismatch" });
+    fs.writeFileSync(
+      path.join(installed.dir, "tampered.js"),
+      "malicious",
+      "utf8",
+    );
+    expect(
+      verifyInstalledSignature(
+        { root: installed.dir },
+        {
+          trustedKeys: new Set([lock.publicKeySha256]),
+        },
+      ),
+    ).toMatchObject({
+      signed: false,
+      reason: "plugin component SBOM mismatch",
+    });
   });
 
   it("FAIL-CLOSED: requireSignedPlugins with NO pinned keys drops everything", () => {

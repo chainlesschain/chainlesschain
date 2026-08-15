@@ -17,6 +17,8 @@ import { describeCapabilities, normalizeCapabilities } from "./capabilities.js";
 
 export const PLUGIN_MARKETPLACE_CATALOG_SCHEMA =
   "cc-plugin-marketplace-catalog/v1";
+export const PLUGIN_MARKETPLACE_INSTALL_PREFLIGHT_SCHEMA =
+  "cc-plugin-marketplace-install-preflight/v1";
 export const MAX_MARKETPLACE_CATALOG_SOURCES = 16;
 export const MAX_MARKETPLACE_CANDIDATES_PER_SOURCE = 2048;
 export const MAX_MARKETPLACE_DEPENDENCIES_PER_CANDIDATE = 128;
@@ -24,6 +26,75 @@ export const MAX_MARKETPLACE_GRAPH_EDGES = 65_536;
 
 const SHA256_RE = /^[a-f0-9]{64}$/i;
 const HEALTH_STATES = new Set(["healthy", "degraded", "unhealthy", "unknown"]);
+const INSTALL_DEFERRED_BLOCKERS = new Set(["INVALID_VERSION"]);
+
+/**
+ * Derive the fail-closed pre-clone authority for one registry-selected entry.
+ * A legacy registry may omit version because the fetched plugin manifest is
+ * the actual version authority; that one catalog blocker is therefore
+ * deferred. Integrity, dependency, compatibility, source, and health blockers
+ * are enforced before any clone/process execution.
+ */
+export function buildPluginMarketplaceInstallPreflight({
+  registryUrl,
+  entry,
+  fromCache = false,
+  installed = {},
+  hostVersion = null,
+  observedAt = new Date().toISOString(),
+} = {}) {
+  const catalog = buildPluginMarketplaceCatalog({
+    sources: [
+      {
+        url: registryUrl,
+        registry: { plugins: [entry] },
+        fromCache,
+      },
+    ],
+    installed,
+    hostVersion,
+    generatedAt: observedAt,
+  });
+  const candidate = catalog.candidates[0];
+  if (!candidate) {
+    throw new Error("registry candidate preflight produced no candidate");
+  }
+  const deferred = candidate.installability.blockers.filter(
+    (blocker) =>
+      INSTALL_DEFERRED_BLOCKERS.has(blocker.code) && !candidate.version,
+  );
+  const blockers = candidate.installability.blockers.filter(
+    (blocker) =>
+      !INSTALL_DEFERRED_BLOCKERS.has(blocker.code) ||
+      Boolean(candidate.version),
+  );
+  const preflight = {
+    schemaVersion: PLUGIN_MARKETPLACE_INSTALL_PREFLIGHT_SCHEMA,
+    observedAt,
+    status: blockers.length ? "blocked" : "allowed",
+    catalogSchemaVersion: catalog.schemaVersion,
+    catalogDigest: catalog.catalogDigest,
+    candidateId: candidate.candidateId,
+    registry: candidate.registry,
+    package: candidate.package,
+    registryVersion: candidate.version,
+    versionAuthority: candidate.version
+      ? "registry-declared-unverified"
+      : "deferred-to-plugin-manifest",
+    governance: candidate.governance,
+    integrity: candidate.integrity,
+    license: candidate.license,
+    capabilities: candidate.capabilities,
+    compatibility: candidate.compatibility,
+    dependencies: candidate.dependencies,
+    health: candidate.health,
+    blockers,
+    deferred,
+    warnings: candidate.warnings,
+    claims: catalog.claims,
+  };
+  return { catalog, candidate, preflight };
+}
 
 /**
  * Build a deterministic governance projection from already-fetched registries.
@@ -199,16 +270,24 @@ function normalizeCatalogSource(input, priority) {
 
 function normalizeCandidate(entry, context) {
   const raw = entry && typeof entry === "object" ? entry : {};
-  const name = boundedString(raw.name, 256) || "(invalid-name)";
-  const version = boundedString(raw.version, 128) || null;
+  const rawName =
+    typeof raw.name === "string" ? boundedString(raw.name, 256) : "";
+  const name = rawName || "(invalid-name)";
+  const version =
+    typeof raw.version === "string"
+      ? boundedString(raw.version, 128) || null
+      : null;
   const description = boundedString(raw.description, 2048);
-  const sourceValue = boundedString(raw.source, 4096);
+  const sourceValue =
+    typeof raw.source === "string" ? boundedString(raw.source, 4096) : "";
   const sourceUrl = sanitizeUrl(sourceValue) || sourceValue || null;
   const ref = boundedString(raw.ref, 256) || null;
   const blockers = [];
   const warnings = [];
 
-  if (!boundedString(raw.name, 256)) blockers.push(issue("INVALID_NAME"));
+  if (!rawName || !/^[a-zA-Z0-9._@/-]+$/.test(rawName)) {
+    blockers.push(issue("INVALID_NAME"));
+  }
   if (!version || !semver.valid(version))
     blockers.push(issue("INVALID_VERSION"));
   if (!sourceValue) blockers.push(issue("MISSING_PACKAGE_SOURCE"));

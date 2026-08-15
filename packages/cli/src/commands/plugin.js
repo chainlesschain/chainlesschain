@@ -32,6 +32,64 @@ function collectRepeatableOption(value, previous = []) {
   return [...previous, value];
 }
 
+async function buildRegistryInstallPreflight(url, resolved, cwd) {
+  const { discoverPlugins } = await import("../lib/plugin-runtime/scopes.js");
+  const { VERSION } = await import("../constants.js");
+  const { buildPluginMarketplaceInstallPreflight } =
+    await import("../lib/plugin-runtime/marketplace-catalog.js");
+  const installed = {};
+  try {
+    for (const row of discoverPlugins({ cwd, skipPolicy: true })) {
+      installed[row.name] = row.version;
+    }
+  } catch {
+    /* an empty inventory conservatively leaves declared dependencies missing */
+  }
+  return buildPluginMarketplaceInstallPreflight({
+    registryUrl: url,
+    entry: resolved.entry,
+    fromCache: resolved.fromCache === true,
+    installed,
+    hostVersion: VERSION,
+  }).preflight;
+}
+
+function catalogAuthorityFromPreflight(preflight) {
+  return {
+    catalogDigest: preflight.catalogDigest,
+    candidateId: preflight.candidateId,
+    governanceStatus: preflight.governance.status,
+    registryStatus: preflight.registry.status,
+    versionAuthority: preflight.versionAuthority,
+  };
+}
+
+function marketplacePreflightBlockerMessage(preflight) {
+  return preflight.blockers
+    .map((blocker) =>
+      blocker.detail ? `${blocker.code} (${blocker.detail})` : blocker.code,
+    )
+    .join(", ");
+}
+
+async function installedCatalogAuthorityMatches(name, scope, cwd, preflight) {
+  if (!preflight) return null;
+  try {
+    const { listInstalled } = await import("../lib/plugin-runtime/install.js");
+    const installed = listInstalled({ cwd, scopes: [scope] }).find(
+      (row) => row.name === name && row.scope === scope,
+    );
+    const authority = installed?.source?.catalogAuthority;
+    return (
+      authority?.catalogDigest === preflight.catalogDigest &&
+      authority?.candidateId === preflight.candidateId &&
+      authority?.preflightStatus === "allowed"
+    );
+  } catch {
+    return false;
+  }
+}
+
 /**
  * After an install/upgrade, resolve the just-installed plugin's DECLARED
  * capabilities and its current consent status, so `cc plugin add`/`upgrade`
@@ -910,7 +968,7 @@ export function registerPluginCommand(program) {
     )
     .option("--json", "Output as JSON")
     .action(async (source, options) => {
-      const { installFromSource } =
+      const { installFromSource, setPluginEnabled } =
         await import("../lib/plugin-runtime/install.js");
 
       // Remote resolution: a registry/manifest URL (or --registry <url> with a
@@ -918,6 +976,8 @@ export function registerPluginCommand(program) {
       let installSource = source;
       let integritySha = null;
       let sourceMetadata = null;
+      let expectedIdentity = null;
+      let marketplacePreflight = null;
       const { isRemoteSource, resolveRemoteSource } =
         await import("../lib/plugin-runtime/remote-source.js");
       if (options.registry || isRemoteSource(source)) {
@@ -941,6 +1001,27 @@ export function registerPluginCommand(program) {
           });
           installSource = resolved.source;
           integritySha = resolved.sha256;
+          marketplacePreflight = await buildRegistryInstallPreflight(
+            url,
+            resolved,
+            process.cwd(),
+          );
+          if (marketplacePreflight.status !== "allowed") {
+            throw new Error(
+              `registry candidate preflight blocked: ${marketplacePreflightBlockerMessage(marketplacePreflight)}`,
+            );
+          }
+          expectedIdentity = {
+            name:
+              typeof resolved.entry.name === "string"
+                ? resolved.entry.name
+                : null,
+            version:
+              marketplacePreflight.versionAuthority ===
+              "registry-declared-unverified"
+                ? marketplacePreflight.registryVersion
+                : null,
+          };
           sourceMetadata = {
             type: "registry",
             source: url,
@@ -953,6 +1034,8 @@ export function registerPluginCommand(program) {
                 resolved.source.slice(resolved.source.indexOf("#") + 1)) ||
               null,
             offline: resolved.fromCache === true,
+            catalogAuthority:
+              catalogAuthorityFromPreflight(marketplacePreflight),
           };
           if (resolved.fromCache) {
             logger.warn(
@@ -1002,9 +1085,26 @@ export function registerPluginCommand(program) {
           force: options.force === true,
           signature,
           sourceMetadata,
+          expectedIdentity,
           managedPolicy: managed,
           policySource: options.registry || source,
         });
+        const marketplaceAuthorityPersisted = marketplacePreflight
+          ? res.sourceMetadata?.catalogAuthority?.catalogDigest ===
+              marketplacePreflight.catalogDigest &&
+            res.sourceMetadata?.catalogAuthority?.candidateId ===
+              marketplacePreflight.candidateId
+          : null;
+        if (marketplacePreflight && !marketplaceAuthorityPersisted) {
+          setPluginEnabled(res.name, false, {
+            scope: res.scope,
+            cwd: process.cwd(),
+            reason: "marketplace catalog authority persistence failed",
+          });
+          throw new Error(
+            "installed plugin was disabled because marketplace catalog authority was not persisted",
+          );
+        }
         const capNotice = await resolvePluginCapabilityNotice(
           res.name,
           res.scope,
@@ -1023,7 +1123,13 @@ export function registerPluginCommand(program) {
             );
           console.log(
             JSON.stringify(
-              { ...res, capabilities: capNotice, capabilitiesGranted },
+              {
+                ...res,
+                marketplacePreflight,
+                marketplaceAuthorityPersisted,
+                capabilities: capNotice,
+                capabilitiesGranted,
+              },
               null,
               2,
             ),
@@ -1034,6 +1140,20 @@ export function registerPluginCommand(program) {
               (res.signatureVerified ? chalk.green(" ✔ signed") : ""),
           );
           logger.log(chalk.gray(`  → ${res.dir}`));
+          if (marketplacePreflight) {
+            logger.log(
+              chalk.gray(
+                `  catalog: ${marketplacePreflight.catalogDigest} (${marketplacePreflight.governance.status}; authority persisted)`,
+              ),
+            );
+            if (marketplacePreflight.governance.missing.length) {
+              logger.log(
+                chalk.yellow(
+                  `  ⚠ registry governance metadata missing: ${marketplacePreflight.governance.missing.join(", ")}`,
+                ),
+              );
+            }
+          }
           for (const w of res.warnings || [])
             logger.log(chalk.yellow(`  ⚠ ${w}`));
           await applyCapabilityConsentGate(
@@ -1786,6 +1906,8 @@ export function registerPluginCommand(program) {
       let installSource = source;
       let integritySha = null;
       let sourceMetadata = null;
+      let expectedIdentity = null;
+      let marketplacePreflight = null;
       const { isRemoteSource, resolveRemoteSource } =
         await import("../lib/plugin-runtime/remote-source.js");
       if (options.registry || isRemoteSource(source)) {
@@ -1807,6 +1929,27 @@ export function registerPluginCommand(program) {
           });
           installSource = resolved.source;
           integritySha = resolved.sha256;
+          marketplacePreflight = await buildRegistryInstallPreflight(
+            url,
+            resolved,
+            process.cwd(),
+          );
+          if (marketplacePreflight.status !== "allowed") {
+            throw new Error(
+              `registry candidate preflight blocked: ${marketplacePreflightBlockerMessage(marketplacePreflight)}`,
+            );
+          }
+          expectedIdentity = {
+            name:
+              typeof resolved.entry.name === "string"
+                ? resolved.entry.name
+                : null,
+            version:
+              marketplacePreflight.versionAuthority ===
+              "registry-declared-unverified"
+                ? marketplacePreflight.registryVersion
+                : null,
+          };
           sourceMetadata = {
             type: "registry",
             source: url,
@@ -1819,6 +1962,8 @@ export function registerPluginCommand(program) {
                 resolved.source.slice(resolved.source.indexOf("#") + 1)) ||
               null,
             offline: resolved.fromCache === true,
+            catalogAuthority:
+              catalogAuthorityFromPreflight(marketplacePreflight),
           };
           if (resolved.fromCache && !options.json) {
             logger.warn(
@@ -1862,6 +2007,7 @@ export function registerPluginCommand(program) {
             }
           : null;
       let res = null;
+      let marketplaceAuthorityPersisted = null;
       try {
         res = updatePlugin(installSource, {
           scope: options.scope,
@@ -1869,10 +2015,22 @@ export function registerPluginCommand(program) {
           force: options.force,
           signature,
           sourceMetadata,
+          expectedIdentity,
           managedPolicy: managed,
           policySource: options.registry || source,
           transactional: true,
         });
+        marketplaceAuthorityPersisted = await installedCatalogAuthorityMatches(
+          res.name,
+          options.scope,
+          process.cwd(),
+          marketplacePreflight,
+        );
+        if (marketplacePreflight && !marketplaceAuthorityPersisted) {
+          throw new Error(
+            "registry candidate matched existing immutable bytes without the exact catalog authority; retry with --force to verify and persist this source",
+          );
+        }
         const upgradeNotice = await resolvePluginCapabilityNotice(
           res.name,
           options.scope,
@@ -1929,6 +2087,13 @@ export function registerPluginCommand(program) {
           }
           activationStatus = "rolled_back";
           rollbackVersion = recovery.version;
+          marketplaceAuthorityPersisted =
+            await installedCatalogAuthorityMatches(
+              res.name,
+              options.scope,
+              process.cwd(),
+              marketplacePreflight,
+            );
         } else {
           cleanupPending = finalizePluginUpdate(res).cleanupPending === true;
         }
@@ -1939,6 +2104,8 @@ export function registerPluginCommand(program) {
               {
                 ...res,
                 scope: options.scope,
+                marketplacePreflight,
+                marketplaceAuthorityPersisted,
                 capabilities: upgradeNotice,
                 capabilitiesGranted,
                 activationStatus,
@@ -1951,6 +2118,21 @@ export function registerPluginCommand(program) {
             ),
           );
           return;
+        }
+
+        if (marketplacePreflight) {
+          logger.log(
+            chalk.gray(
+              `  catalog: ${marketplacePreflight.catalogDigest} (${marketplacePreflight.governance.status}; ${marketplaceAuthorityPersisted ? "authority active" : "activation rolled back"})`,
+            ),
+          );
+          if (marketplacePreflight.governance.missing.length) {
+            logger.log(
+              chalk.yellow(
+                `  ⚠ registry governance metadata missing: ${marketplacePreflight.governance.missing.join(", ")}`,
+              ),
+            );
+          }
         }
 
         if (activationStatus === "rolled_back") {
