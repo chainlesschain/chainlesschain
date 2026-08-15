@@ -35,6 +35,17 @@ export const SESSION_ANTI_ROLLBACK_DETECTED_CODE =
 export const SESSION_ANTI_ROLLBACK_UNAVAILABLE_CODE =
   "CC_SESSION_ANTI_ROLLBACK_UNAVAILABLE";
 
+// Test-only seams for deterministic durability failures. Production callers
+// never assign these hooks; keeping them immediately before the two fsync
+// boundaries lets tests exercise the real append and rollback path without
+// replacing node:fs for the namespace or lock stores.
+export const _sessionAntiRollbackFaultHooks = Object.seal({
+  afterRecordOpen: null,
+  beforeRecordFsync: null,
+  beforeRecordDirectoryFsync: null,
+  beforeRecordRollback: null,
+});
+
 const NAMESPACE_VERSION = 1;
 const ANCHOR_SCHEMA = "chainlesschain.session-anti-rollback-anchor/v1";
 const GENERATION_SCHEMA = "chainlesschain.session-generation-authority/v1";
@@ -59,12 +70,19 @@ function anchorError(code, message, cause = null, details = {}) {
 
 function unavailable(cause, filePath = null) {
   if (cause?.code === SESSION_ANTI_ROLLBACK_DETECTED_CODE) return cause;
-  return anchorError(
+  const error = anchorError(
     SESSION_ANTI_ROLLBACK_UNAVAILABLE_CODE,
     "Session anti-rollback witness is unavailable; canonical session access is denied",
     cause,
     filePath ? { filePath } : {},
   );
+  for (const key of ["commitState", "rollbackState", "persistenceTarget"]) {
+    if (cause?.[key] != null) error[key] = cause[key];
+  }
+  if (cause?.rollbackCause) {
+    error.rollbackErrorCode = cause.rollbackCause?.code || null;
+  }
+  return error;
 }
 
 function rollback(sessionId, message, current = null, candidate = null) {
@@ -628,11 +646,173 @@ function appendRecord(location, record) {
   return appendRecordAtPath(location.recordPath, record, null);
 }
 
-function appendRecordAtPath(recordPath, record, parentDevice) {
+function settleExistingRecord(location, record) {
+  if (isAffectedWindowsZeroDeviceStatRuntime()) {
+    return withTrustedFileParentSync(
+      fs,
+      location.recordPath,
+      ({ canonicalPath, parentDevice }) =>
+        settleExistingRecordAtPath(canonicalPath, record, parentDevice),
+    );
+  }
+  return settleExistingRecordAtPath(location.recordPath, record, null);
+}
+
+function runFaultHook(name, payload) {
+  if (process.env.CC_SESSION_ANTI_ROLLBACK_FAULT_INJECTION !== "1") return;
+  const hook = _sessionAntiRollbackFaultHooks[name];
+  if (typeof hook === "function") hook(payload);
+}
+
+function fsyncDirectory(directory) {
+  const descriptor = fs.openSync(directory, "r");
+  try {
+    fs.fsyncSync(descriptor);
+  } finally {
+    fs.closeSync(descriptor);
+  }
+}
+
+function settleExistingRecordAtPath(recordPath, record, parentDevice) {
   let descriptor = null;
   try {
+    let flags = fs.constants.O_RDWR;
+    if (typeof fs.constants.O_NOFOLLOW === "number") {
+      flags |= fs.constants.O_NOFOLLOW;
+    }
+    descriptor = fs.openSync(recordPath, flags);
+    const opened = fs.fstatSync(descriptor, { bigint: true });
+    const published = fs.lstatSync(recordPath, { bigint: true });
+    const identityMatches =
+      parentDevice === null
+        ? String(opened.dev) === String(published.dev) &&
+          String(opened.ino) === String(published.ino)
+        : samePathHandleStableFileIdentity(published, opened, parentDevice);
+    if (
+      !opened.isFile() ||
+      published.isSymbolicLink() ||
+      !published.isFile() ||
+      !identityMatches
+    ) {
+      throw new Error("session anti-rollback record identity changed");
+    }
+    runFaultHook("beforeRecordFsync", {
+      recordPath,
+      record,
+      createsRecord: false,
+      unchanged: true,
+    });
+    fs.fsyncSync(descriptor);
+    const after = fs.lstatSync(recordPath, { bigint: true });
+    const afterIdentityMatches =
+      parentDevice === null
+        ? String(opened.dev) === String(after.dev) &&
+          String(opened.ino) === String(after.ino)
+        : samePathHandleStableFileIdentity(after, opened, parentDevice);
+    if (after.isSymbolicLink() || !after.isFile() || !afterIdentityMatches) {
+      throw new Error("session anti-rollback record identity changed");
+    }
+    // A complete revision-1 line can survive a process death before either
+    // the file fsync or the first directory-entry barrier. Replaying the exact
+    // candidate must settle both boundaries before reporting success.
+    if (record.revision === "1" && process.platform !== "win32") {
+      runFaultHook("beforeRecordDirectoryFsync", {
+        recordPath,
+        record,
+        createsRecord: false,
+        recoveredCompleteRecord: true,
+      });
+      fsyncDirectory(path.dirname(recordPath));
+    }
+  } catch (cause) {
+    if (cause && typeof cause === "object" && !cause.commitState) {
+      cause.commitState = "unknown";
+      cause.rollbackState = "not-required";
+      cause.persistenceTarget = recordPath;
+    }
+    throw cause;
+  } finally {
+    if (descriptor !== null) fs.closeSync(descriptor);
+  }
+}
+
+function rollbackRecordAppend({
+  recordPath,
+  opened,
+  initialSize,
+  createsRecord,
+  parentDevice,
+}) {
+  runFaultHook("beforeRecordRollback", {
+    recordPath,
+    initialSize,
+    createsRecord,
+  });
+  let descriptor = null;
+  try {
+    let flags = fs.constants.O_RDWR;
+    if (typeof fs.constants.O_NOFOLLOW === "number") {
+      flags |= fs.constants.O_NOFOLLOW;
+    }
+    descriptor = fs.openSync(recordPath, flags);
+    const rollbackOpened = fs.fstatSync(descriptor, { bigint: true });
+    const published = fs.lstatSync(recordPath, { bigint: true });
+    const identityMatches =
+      !published.isSymbolicLink() &&
+      published.isFile() &&
+      String(opened.dev) === String(rollbackOpened.dev) &&
+      String(opened.ino) === String(rollbackOpened.ino) &&
+      (parentDevice === null
+        ? String(rollbackOpened.dev) === String(published.dev) &&
+          String(rollbackOpened.ino) === String(published.ino)
+        : samePathHandleStableFileIdentity(
+            published,
+            rollbackOpened,
+            parentDevice,
+          ));
+    if (!identityMatches) {
+      throw new Error("session anti-rollback rollback record identity changed");
+    }
+    fs.ftruncateSync(descriptor, initialSize);
+    fs.fsyncSync(descriptor);
+  } finally {
+    if (descriptor !== null) fs.closeSync(descriptor);
+  }
+  if (createsRecord) {
+    fs.unlinkSync(recordPath);
+    if (process.platform !== "win32") {
+      fsyncDirectory(path.dirname(recordPath));
+    }
+  }
+}
+
+function rollbackEmptyCreatedRecord(recordPath) {
+  const published = fs.lstatSync(recordPath, { bigint: true });
+  if (
+    published.isSymbolicLink() ||
+    !published.isFile() ||
+    published.size !== 0n
+  ) {
+    throw new Error(
+      "session anti-rollback unverified first record cannot be removed",
+    );
+  }
+  fs.unlinkSync(recordPath);
+  if (process.platform !== "win32") {
+    fsyncDirectory(path.dirname(recordPath));
+  }
+}
+
+function appendRecordAtPath(recordPath, record, parentDevice) {
+  let descriptor = null;
+  let recordOpened = false;
+  let createsRecord = false;
+  let requiresDirectoryPublication = false;
+  let initialSize = 0;
+  let opened = null;
+  try {
     let flags = fs.constants.O_WRONLY | fs.constants.O_APPEND;
-    const createsRecord = !fs.existsSync(recordPath);
+    createsRecord = !fs.existsSync(recordPath);
     if (createsRecord) {
       flags |= fs.constants.O_CREAT | fs.constants.O_EXCL;
     }
@@ -640,7 +820,18 @@ function appendRecordAtPath(recordPath, record, parentDevice) {
       flags |= fs.constants.O_NOFOLLOW;
     }
     descriptor = fs.openSync(recordPath, flags, 0o600);
-    const opened = fs.fstatSync(descriptor, { bigint: true });
+    recordOpened = true;
+    runFaultHook("afterRecordOpen", { recordPath, record, createsRecord });
+    opened = fs.fstatSync(descriptor, { bigint: true });
+    if (!opened.isFile()) {
+      throw new Error("session anti-rollback append target is not a file");
+    }
+    initialSize = Number(opened.size);
+    // A previous process can die immediately after O_CREAT|O_EXCL and leave a
+    // visible zero-byte entry before its parent-directory fsync. Treat that
+    // exact crash residue like a first publication: the retry must flush the
+    // directory entry after it writes and fsyncs revision 1.
+    requiresDirectoryPublication = createsRecord || opened.size === 0n;
     const payload = Buffer.from(`${JSON.stringify(record)}\n`, "utf8");
     let offset = 0;
     while (offset < payload.length) {
@@ -657,6 +848,11 @@ function appendRecordAtPath(recordPath, record, parentDevice) {
       }
       offset += written;
     }
+    runFaultHook("beforeRecordFsync", {
+      recordPath,
+      record,
+      createsRecord,
+    });
     fs.fsyncSync(descriptor);
     const published = fs.lstatSync(recordPath, { bigint: true });
     const identityMatches =
@@ -667,14 +863,64 @@ function appendRecordAtPath(recordPath, record, parentDevice) {
     if (published.isSymbolicLink() || !published.isFile() || !identityMatches) {
       throw new Error("session anti-rollback record identity changed");
     }
-    if (createsRecord && process.platform !== "win32") {
+    if (requiresDirectoryPublication && process.platform !== "win32") {
       const directoryDescriptor = fs.openSync(path.dirname(recordPath), "r");
       try {
+        runFaultHook("beforeRecordDirectoryFsync", {
+          recordPath,
+          record,
+          createsRecord,
+          recoveredEmptyRecord: !createsRecord,
+        });
         fs.fsyncSync(directoryDescriptor);
       } finally {
         fs.closeSync(directoryDescriptor);
       }
     }
+  } catch (cause) {
+    // A completed JSON line is immediately readable even when its fsync (or a
+    // first-record directory fsync) reports failure. Best-effort rollback to
+    // the pre-append byte boundary prevents that unacknowledged record from
+    // becoming the next readback authority in the still-running process. If
+    // this was the first record, remove the empty entry and durably publish
+    // that removal on POSIX so a retry recreates and flushes the entry again.
+    try {
+      if (descriptor !== null) {
+        fs.closeSync(descriptor);
+        descriptor = null;
+      }
+      if (opened !== null) {
+        rollbackRecordAppend({
+          recordPath,
+          opened,
+          initialSize,
+          createsRecord,
+          parentDevice,
+        });
+      } else if (recordOpened && createsRecord) {
+        rollbackEmptyCreatedRecord(recordPath);
+      }
+      if (cause && typeof cause === "object") {
+        cause.commitState = "not-committed";
+        cause.rollbackState = "restored";
+        cause.persistenceTarget = recordPath;
+      }
+    } catch (rollbackCause) {
+      if (cause && typeof cause === "object") {
+        cause.rollbackCause = rollbackCause;
+        cause.commitState = "unknown";
+        cause.rollbackState = "failed";
+        cause.persistenceTarget = recordPath;
+      }
+    }
+    if (cause && typeof cause === "object" && !cause.commitState) {
+      // open/fstat failures happen before any payload write. A successfully
+      // opened first entry is removed above before reporting this state.
+      cause.commitState = "not-committed";
+      cause.rollbackState = "not-required";
+      cause.persistenceTarget = recordPath;
+    }
+    throw cause;
   } finally {
     if (descriptor !== null) fs.closeSync(descriptor);
   }
@@ -708,7 +954,18 @@ export function publishSessionAntiRollbackAnchor(
           current.headHash === candidate.headHash &&
           current.eventCount === candidate.eventCount &&
           current.deletedAtMs === candidate.deletedAtMs;
-        if (unchanged) return current;
+        // Revision 1 is the only record that can carry an unsettled first
+        // directory entry. Settle it before either acknowledging an exact
+        // replay or advancing directly to a proven successor.
+        if (current?.revision === "1") {
+          settleExistingRecord(location, current);
+        }
+        if (unchanged) {
+          if (current.revision !== "1") {
+            settleExistingRecord(location, current);
+          }
+          return current;
+        }
         if (current === null) ensureNamespaceEntry(location);
         const core = recordCore(
           location,

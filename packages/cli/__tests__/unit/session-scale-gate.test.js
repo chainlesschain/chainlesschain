@@ -145,7 +145,15 @@ describe("cli-session-scale gate", () => {
     expect(result.scenarios.crashRepair).toMatchObject({
       pass: true,
       byteCutCoverage: { exhaustive: false, failures: [] },
-      actualProcessKillsTotal: 3,
+      actualProcessKillsTotal: process.platform === "win32" ? 6 : 8,
+      faultModel: {
+        kind: "process-sigkill-at-production-persistence-boundary",
+        namedHostCallCompletesBeforeKill: true,
+        physicalPowerLossSimulated: false,
+        preexistingDurableStateRootsRequired: true,
+        windowsDirectoryFsyncAvailableThroughNode: false,
+        allowedRestartOutcomes: ["exact-old", "exact-new", "blocked"],
+      },
       honestRepairGuards: {
         interiorTamper: { healthy: false, changed: false },
         multiplePartialRecords: { healthy: false, discardedRecords: 1 },
@@ -154,20 +162,209 @@ describe("cli-session-scale gate", () => {
     expect(result.scenarios.crashRepair.partialRecordProcessKills).toHaveLength(
       1,
     );
+    for (const item of result.scenarios.crashRepair.partialRecordProcessKills) {
+      expect(item).toMatchObject({
+        killRequested: true,
+        killConfirmed: true,
+        signal: "SIGKILL",
+      });
+    }
     expect(result.scenarios.crashRepair.productionAppendPipelineKills).toEqual([
       expect.objectContaining({
         pass: true,
-        point: "after-transcript",
+        point: "after-new-transcript-file-fsync",
+        productionAppendEvent: true,
+        staleOwnerLockRecovered: true,
+        adjudication: {
+          recoveredEvents: 1,
+          externalAnchorEvents: 1,
+          exactHead: true,
+        },
+      }),
+      process.platform === "win32"
+        ? expect.objectContaining({
+            pass: true,
+            point: "after-new-transcript-directory-fsync",
+            productionAppendEvent: true,
+            skipped: true,
+          })
+        : expect.objectContaining({
+            pass: true,
+            point: "after-new-transcript-directory-fsync",
+            productionAppendEvent: true,
+            staleOwnerLockRecovered: true,
+            adjudication: {
+              recoveredEvents: 1,
+              externalAnchorEvents: 1,
+              exactHead: true,
+            },
+          }),
+      expect.objectContaining({
+        pass: true,
+        point: "after-transcript-fsync",
         productionAppendEvent: true,
         staleOwnerLockRecovered: true,
       }),
       expect.objectContaining({
         pass: true,
-        point: "after-sidecar",
+        point: "after-meta-temp-fsync",
         productionAppendEvent: true,
         staleOwnerLockRecovered: true,
       }),
+      expect.objectContaining({
+        pass: true,
+        point: "after-meta-rename",
+        productionAppendEvent: true,
+        staleOwnerLockRecovered: true,
+      }),
+      process.platform === "win32"
+        ? expect.objectContaining({
+            pass: true,
+            point: "after-meta-directory-fsync",
+            productionAppendEvent: true,
+            skipped: true,
+          })
+        : expect.objectContaining({
+            pass: true,
+            point: "after-meta-directory-fsync",
+            productionAppendEvent: true,
+            staleOwnerLockRecovered: true,
+          }),
+      expect.objectContaining({
+        pass: true,
+        point: "after-anchor",
+        productionAppendEvent: true,
+        staleOwnerLockRecovered: true,
+        adjudication: {
+          recoveredEvents: 2,
+          externalAnchorEvents: 2,
+          exactHead: true,
+        },
+      }),
     ]);
+    const pipelineByPoint = new Map(
+      result.scenarios.crashRepair.productionAppendPipelineKills.map((item) => [
+        item.point,
+        item,
+      ]),
+    );
+    for (const item of pipelineByPoint.values()) {
+      if (item.skipped) continue;
+      expect(item).toMatchObject({
+        killRequested: true,
+        killConfirmed: true,
+        signal: "SIGKILL",
+      });
+    }
+    const rebuiltIndex = {
+      dryRun: {
+        action: "rebuild-index",
+        changed: false,
+        wouldChange: true,
+        healthy: false,
+        bytesPreserved: true,
+      },
+      repair: {
+        action: "rebuild-index",
+        physicalChanged: false,
+        indexRebuilt: true,
+        healthy: true,
+        bytesPreserved: true,
+        authorityAnchored: true,
+      },
+    };
+    for (const point of [
+      "after-new-transcript-file-fsync",
+      ...(process.platform === "win32"
+        ? []
+        : ["after-new-transcript-directory-fsync"]),
+    ]) {
+      expect(pipelineByPoint.get(point)).toMatchObject({
+        stateBeforeRepair: {
+          transcriptEvents: 1,
+          sidecarEvents: null,
+          activityEvents: null,
+          externalAnchorEvents: null,
+          externalAnchorEventsAfterPresence: null,
+        },
+        ...rebuiltIndex,
+        repair: { ...rebuiltIndex.repair, externalAnchorEvents: 1 },
+        adjudication: {
+          recoveredEvents: 1,
+          externalAnchorEvents: 1,
+          exactHead: true,
+        },
+      });
+    }
+    for (const point of ["after-transcript-fsync", "after-meta-temp-fsync"]) {
+      expect(pipelineByPoint.get(point)).toMatchObject({
+        stateBeforeRepair: {
+          transcriptEvents: 2,
+          sidecarEvents: 1,
+          activityEvents: 1,
+          externalAnchorEvents: 1,
+          externalAnchorEventsAfterPresence: 1,
+        },
+        ...rebuiltIndex,
+        repair: { ...rebuiltIndex.repair, externalAnchorEvents: 2 },
+        adjudication: {
+          recoveredEvents: 2,
+          externalAnchorEvents: 2,
+          exactHead: true,
+        },
+      });
+    }
+    for (const point of [
+      "after-meta-rename",
+      ...(process.platform === "win32" ? [] : ["after-meta-directory-fsync"]),
+    ]) {
+      expect(pipelineByPoint.get(point)).toMatchObject({
+        stateBeforeRepair: {
+          transcriptEvents: 2,
+          sidecarEvents: 2,
+          activityEvents: 1,
+          externalAnchorEvents: 1,
+          externalAnchorEventsAfterPresence: 2,
+        },
+        ...rebuiltIndex,
+        repair: { ...rebuiltIndex.repair, externalAnchorEvents: 2 },
+        adjudication: {
+          recoveredEvents: 2,
+          externalAnchorEvents: 2,
+          exactHead: true,
+        },
+      });
+    }
+    expect(pipelineByPoint.get("after-anchor")).toMatchObject({
+      stateBeforeRepair: {
+        transcriptEvents: 2,
+        sidecarEvents: 2,
+        activityEvents: 2,
+        externalAnchorEvents: 2,
+        externalAnchorEventsAfterPresence: 2,
+      },
+      dryRun: {
+        action: "none",
+        changed: false,
+        wouldChange: false,
+        healthy: true,
+        bytesPreserved: true,
+      },
+      repair: {
+        action: "none",
+        physicalChanged: false,
+        indexRebuilt: false,
+        healthy: true,
+        bytesPreserved: true,
+        authorityAnchored: true,
+        externalAnchorEvents: 2,
+      },
+      adjudication: {
+        recoveredEvents: 2,
+        externalAnchorEvents: 2,
+        exactHead: true,
+      },
+    });
     expect(result.scenarios.crashRepair.byteCutCoverage.lastCut).toBe(
       result.scenarios.crashRepair.recordBytes,
     );

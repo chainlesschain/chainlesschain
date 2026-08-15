@@ -1780,6 +1780,9 @@ async function sshScenario(baseUrl, home, profile) {
     "--output-format",
     "json",
   ];
+  const normalRemoteScript =
+    `cd ${shellQuote(REPOSITORY_ROOT)} && exec ` +
+    remoteArgs.map(shellQuote).join(" ");
   const child = trackProcess(
     spawn(
       "ssh",
@@ -1787,7 +1790,9 @@ async function sshScenario(baseUrl, home, profile) {
         "-tt",
         ...sshOptions(identity),
         target,
-        remoteArgs.map(shellQuote).join(" "),
+        "sh",
+        "-lc",
+        shellQuote(normalRemoteScript),
       ],
       {
         cwd: REPOSITORY_ROOT,
@@ -1826,7 +1831,8 @@ async function sshScenario(baseUrl, home, profile) {
       "--include-partial-messages",
     ];
     const remoteScript =
-      `printf 'CC_RELIABILITY_REMOTE_PID=%s\\n' "$$"; exec ` +
+      `cd ${shellQuote(REPOSITORY_ROOT)} && ` +
+      `printf 'CC_RELIABILITY_REMOTE_PID=%s\\n' "$$" && exec ` +
       command.map(shellQuote).join(" ");
     const disconnected = trackProcess(
       spawn(

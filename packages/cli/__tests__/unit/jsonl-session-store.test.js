@@ -92,8 +92,11 @@ const { readSessionHostResumeState } =
   await import("../../src/lib/session-host-snapshot.js");
 const {
   _registerTestScopedSessionAntiRollbackDirectory,
+  _sessionAntiRollbackFaultHooks,
   readSessionAntiRollbackAnchor,
 } = await import("../../src/lib/session-anti-rollback-anchor.js");
+const { _sessionScaleFaultHooks: sessionListIndexFaultHooks } =
+  await import("../../src/harness/session-list-index.js");
 _registerTestScopedSessionAntiRollbackDirectory({
   homeDir: testDir,
   anchorBase: securityAnchorDir,
@@ -149,13 +152,12 @@ describe("jsonl-session-store", () => {
   });
 
   afterEach(() => {
-    _sessionScaleFaultHooks.beforeTranscriptAppend = null;
-    _sessionScaleFaultHooks.beforeTranscriptFsync = null;
-    _sessionScaleFaultHooks.afterTranscriptFsync = null;
-    _sessionScaleFaultHooks.beforeTranscriptDirectoryFsync = null;
-    _sessionScaleFaultHooks.afterTranscriptDirectoryFsync = null;
-    _sessionScaleFaultHooks.afterTranscriptAppend = null;
-    _sessionScaleFaultHooks.beforeVerifiedProjectionRepair = null;
+    for (const hookName of Object.keys(_sessionScaleFaultHooks)) {
+      _sessionScaleFaultHooks[hookName] = null;
+    }
+    for (const hookName of Object.keys(_sessionAntiRollbackFaultHooks)) {
+      _sessionAntiRollbackFaultHooks[hookName] = null;
+    }
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }
@@ -250,6 +252,64 @@ describe("jsonl-session-store", () => {
         expect(readSessionAntiRollbackAnchor(id)).toBeNull();
       },
     );
+
+    it("exposes the committed authority after both canonical append paths", () => {
+      const id = startSession("disk-publish-hook", { title: "disk" });
+      const observed = [];
+      const previous = process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+      process.env.CC_SESSION_SCALE_FAULT_INJECTION = "1";
+      _sessionScaleFaultHooks.afterAntiRollbackPublish = (payload) => {
+        observed.push({
+          payload,
+          anchor: readSessionAntiRollbackAnchor(payload.sessionId),
+        });
+      };
+
+      try {
+        appendAssistantMessage(id, "ordinary canonical append");
+        const expectedHead = readEvents(id).at(-1).hash;
+        const user = "claimed canonical append";
+        claimWsTurnIfHead(
+          id,
+          {
+            requestId: "req-publish-hook",
+            user,
+            inputDigest: computeWsTurnInputDigest(user),
+            opaqueClaimId: createWsTurnClaimId(),
+          },
+          expectedHead,
+        );
+      } finally {
+        _sessionScaleFaultHooks.afterAntiRollbackPublish = null;
+        if (previous === undefined) {
+          delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+        } else {
+          process.env.CC_SESSION_SCALE_FAULT_INJECTION = previous;
+        }
+      }
+
+      expect(observed).toHaveLength(2);
+      expect(observed.map(({ payload }) => payload.type)).toEqual([
+        "assistant_message",
+        "ws_turn_claim",
+      ]);
+      for (const { payload, anchor } of observed) {
+        expect(Object.isFrozen(payload)).toBe(true);
+        expect(payload).toMatchObject({
+          sessionId: id,
+          hash: payload.event.hash,
+          filePath: sessionPath(id),
+          meta: {
+            last_hash: payload.hash,
+          },
+        });
+        expect(anchor).toMatchObject({
+          status: "live",
+          headHash: payload.hash,
+          eventCount: payload.meta.event_count,
+        });
+      }
+    });
 
     it("accepts a legacy physical witness and upgrades it on append", () => {
       const id = startSession("disk-legacy-witness", { title: "disk" });
@@ -2601,6 +2661,157 @@ describe("jsonl-session-store", () => {
       );
     });
 
+    it.skipIf(process.platform === "win32")(
+      "does not publish a tombstone before the transcript unlink is directory-fsynced",
+      () => {
+        const id = startSession("delete-directory-fsync", {
+          title: "Delete durability",
+        });
+        appendUserMessage(id, "durable predecessor");
+        const metaFile = join(sessionsDir, `${id}.meta.json`);
+        const metaBefore = readFileSync(metaFile, "utf8");
+        const anchorBefore = readSessionAntiRollbackAnchor(id);
+        const previous = process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+        const retryHooks = [];
+        process.env.CC_SESSION_SCALE_FAULT_INJECTION = "1";
+        _sessionScaleFaultHooks.beforeDeleteDirectoryFsync = () => {
+          const error = new Error("injected delete directory fsync failure");
+          error.code = "EIO";
+          throw error;
+        };
+
+        try {
+          expect(() => deleteJsonlSession(id)).toThrow(
+            expect.objectContaining({
+              code: "EIO",
+              message: "injected delete directory fsync failure",
+            }),
+          );
+          expect(existsSync(sessionPath(id))).toBe(false);
+          expect(readFileSync(metaFile, "utf8")).toBe(metaBefore);
+          expect(readSessionAntiRollbackAnchor(id)).toEqual(anchorBefore);
+
+          _sessionScaleFaultHooks.beforeDeleteDirectoryFsync = () => {
+            retryHooks.push("before");
+          };
+          _sessionScaleFaultHooks.afterDeleteDirectoryFsync = () => {
+            retryHooks.push("after");
+          };
+          expect(deleteJsonlSession(id)).toBe(true);
+        } finally {
+          _sessionScaleFaultHooks.beforeDeleteDirectoryFsync = null;
+          _sessionScaleFaultHooks.afterDeleteDirectoryFsync = null;
+          if (previous === undefined) {
+            delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+          } else {
+            process.env.CC_SESSION_SCALE_FAULT_INJECTION = previous;
+          }
+        }
+
+        expect(retryHooks).toEqual(["before", "after"]);
+        expect(getSessionPresence(id)).toBe("tombstoned");
+        expect(readSessionAntiRollbackAnchor(id)).toMatchObject({
+          status: "deleted",
+        });
+      },
+    );
+
+    it("settles the external tombstone when a delete retry inherits deleted meta", () => {
+      const id = startSession("delete-meta-retry", {
+        title: "Delete meta retry",
+      });
+      appendUserMessage(id, "durable predecessor");
+      const liveAnchor = readSessionAntiRollbackAnchor(id);
+      const previous = process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+      process.env.CC_SESSION_SCALE_FAULT_INJECTION = "1";
+      let injected = false;
+      sessionListIndexFaultHooks.afterMetaRename = () => {
+        if (injected) return;
+        injected = true;
+        throw new Error("injected delete post-meta publication failure");
+      };
+
+      try {
+        expect(() => deleteJsonlSession(id)).toThrow(
+          "injected delete post-meta publication failure",
+        );
+      } finally {
+        sessionListIndexFaultHooks.afterMetaRename = null;
+        if (previous === undefined) {
+          delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+        } else {
+          process.env.CC_SESSION_SCALE_FAULT_INJECTION = previous;
+        }
+      }
+
+      expect(existsSync(sessionPath(id))).toBe(false);
+      const deletedMeta = JSON.parse(
+        readFileSync(join(sessionsDir, `${id}.meta.json`), "utf8"),
+      );
+      expect(deletedMeta.deleted).toBe(true);
+      expect(readSessionAntiRollbackAnchor(id)).toEqual(liveAnchor);
+
+      expect(deleteJsonlSession(id)).toBe(true);
+      expect(readSessionAntiRollbackAnchor(id)).toMatchObject({
+        status: "deleted",
+        headHash: deletedMeta.last_hash,
+        eventCount: deletedMeta.event_count,
+        deletedAtMs: deletedMeta.deleted_at_ms,
+      });
+      expect(deleteJsonlSession(id)).toBe(false);
+    });
+
+    it("settles a readable deleted anchor after an unknown pre-fsync commit", () => {
+      const id = startSession("delete-anchor-retry", {
+        title: "Delete anchor retry",
+      });
+      appendUserMessage(id, "durable predecessor");
+      const previous = process.env.CC_SESSION_ANTI_ROLLBACK_FAULT_INJECTION;
+      process.env.CC_SESSION_ANTI_ROLLBACK_FAULT_INJECTION = "1";
+      let deletedFsyncAttempts = 0;
+      let exactReplayFsyncs = 0;
+      let rollbackInjected = false;
+      _sessionAntiRollbackFaultHooks.beforeRecordFsync = ({
+        record,
+        unchanged,
+      }) => {
+        if (record.status !== "deleted") return;
+        deletedFsyncAttempts += 1;
+        if (deletedFsyncAttempts === 1) {
+          const error = new Error("injected deleted anchor fsync failure");
+          error.code = "EIO";
+          throw error;
+        }
+        if (unchanged === true) exactReplayFsyncs += 1;
+      };
+      _sessionAntiRollbackFaultHooks.beforeRecordRollback = () => {
+        if (rollbackInjected) return;
+        rollbackInjected = true;
+        throw new Error("injected deleted anchor rollback failure");
+      };
+
+      try {
+        expect(deleteJsonlSession(id)).toBe(true);
+        expect(readSessionAntiRollbackAnchor(id)?.status).toBe("deleted");
+        expect(deletedFsyncAttempts).toBe(2);
+        expect(exactReplayFsyncs).toBe(1);
+
+        // A completed delete still enters the lock and exact-replays the
+        // readable tombstone before preserving the public false result.
+        expect(deleteJsonlSession(id)).toBe(false);
+        expect(deletedFsyncAttempts).toBe(3);
+        expect(exactReplayFsyncs).toBe(2);
+      } finally {
+        _sessionAntiRollbackFaultHooks.beforeRecordFsync = null;
+        _sessionAntiRollbackFaultHooks.beforeRecordRollback = null;
+        if (previous === undefined) {
+          delete process.env.CC_SESSION_ANTI_ROLLBACK_FAULT_INJECTION;
+        } else {
+          process.env.CC_SESSION_ANTI_ROLLBACK_FAULT_INJECTION = previous;
+        }
+      }
+    });
+
     it("retains a tombstone namespace when its metadata sidecar is lost", () => {
       startSession("marker-only-tombstone");
       const oldStart = readVerifiedEvents("marker-only-tombstone")[0];
@@ -2999,8 +3210,15 @@ describe("jsonl-session-store", () => {
     it("recovers the same successor across every fork publication crash window", () => {
       const hookNames = [
         "afterForkCopy",
+        "beforeForkCopyFsync",
+        "afterForkCopyFsync",
         "afterForkLineage",
+        "beforeForkLineageFsync",
+        "afterForkLineageFsync",
         "afterForkPublish",
+        ...(process.platform === "win32"
+          ? []
+          : ["beforeForkDirectoryFsync", "afterForkDirectoryFsync"]),
         "afterForkMeta",
       ];
       process.env.CC_SESSION_SCALE_FAULT_INJECTION = "1";
@@ -3054,6 +3272,14 @@ describe("jsonl-session-store", () => {
           );
           const recovered = forkSession(sourceId, {
             requestId: "stable-request",
+          });
+          const recoveredMeta = JSON.parse(
+            readFileSync(join(sessionsDir, `${recovered}.meta.json`), "utf8"),
+          );
+          expect(readSessionAntiRollbackAnchor(recovered)).toMatchObject({
+            status: "live",
+            headHash: recoveredMeta.last_hash,
+            eventCount: recoveredMeta.event_count,
           });
           const replay = forkSession(sourceId, {
             requestId: "stable-request",
@@ -3934,6 +4160,106 @@ describe("jsonl-session-store", () => {
       expect(readFileSync(sessionPath(id), "utf8").endsWith("\n")).toBe(true);
     });
 
+    it("file-fsyncs both physical tail repair mutations before success", () => {
+      const observed = [];
+      const previous = process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+      process.env.CC_SESSION_SCALE_FAULT_INJECTION = "1";
+      _sessionScaleFaultHooks.beforeTailRepairFsync = ({ action }) => {
+        observed.push(`before:${action}`);
+      };
+      _sessionScaleFaultHooks.afterTailRepairFsync = ({ action }) => {
+        observed.push(`after:${action}`);
+      };
+
+      try {
+        const partialId = startSession("chain-tail-fsync-partial", {
+          title: "Partial",
+        });
+        appendFileSync(sessionPath(partialId), '{"type":"assistant', "utf8");
+        const partialRepair = repairSession(partialId);
+        expect(partialRepair).toMatchObject({
+          healthy: true,
+          action: "discard-partial-record",
+          indexRebuilt: true,
+          authorityAnchored: true,
+        });
+        expect(readVerifiedEvents(partialId)).toHaveLength(1);
+        expect(readSessionAntiRollbackAnchor(partialId)).toMatchObject({
+          eventCount: 1,
+          headHash: readEvents(partialId).at(-1).hash,
+        });
+
+        const newlineId = startSession("chain-tail-fsync-newline", {
+          title: "Newline",
+        });
+        const bytes = readFileSync(sessionPath(newlineId));
+        writeFileSync(
+          sessionPath(newlineId),
+          bytes.subarray(0, bytes.length - 1),
+        );
+        const newlineRepair = repairSession(newlineId);
+        expect(newlineRepair).toMatchObject({
+          healthy: true,
+          action: "normalize-newline",
+          indexRebuilt: true,
+          authorityAnchored: true,
+        });
+        expect(readVerifiedEvents(newlineId)).toHaveLength(1);
+      } finally {
+        _sessionScaleFaultHooks.beforeTailRepairFsync = null;
+        _sessionScaleFaultHooks.afterTailRepairFsync = null;
+        if (previous === undefined) {
+          delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+        } else {
+          process.env.CC_SESSION_SCALE_FAULT_INJECTION = previous;
+        }
+      }
+
+      expect(observed).toEqual([
+        "before:discard-partial-record",
+        "after:discard-partial-record",
+        "before:normalize-newline",
+        "after:normalize-newline",
+      ]);
+    });
+
+    it("fails closed when a physical tail repair cannot cross its fsync boundary", () => {
+      const id = startSession("chain-tail-fsync-failure", {
+        title: "Fsync failure",
+      });
+      appendFileSync(sessionPath(id), '{"type":"assistant', "utf8");
+      const previous = process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+      let afterFsync = false;
+      process.env.CC_SESSION_SCALE_FAULT_INJECTION = "1";
+      _sessionScaleFaultHooks.beforeTailRepairFsync = () => {
+        const error = new Error("injected tail repair fsync failure");
+        error.code = "EIO";
+        throw error;
+      };
+      _sessionScaleFaultHooks.afterTailRepairFsync = () => {
+        afterFsync = true;
+      };
+
+      try {
+        expect(() => repairSession(id)).toThrow(
+          expect.objectContaining({
+            code: "EIO",
+            message: "injected tail repair fsync failure",
+          }),
+        );
+      } finally {
+        _sessionScaleFaultHooks.beforeTailRepairFsync = null;
+        _sessionScaleFaultHooks.afterTailRepairFsync = null;
+        if (previous === undefined) {
+          delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+        } else {
+          process.env.CC_SESSION_SCALE_FAULT_INJECTION = previous;
+        }
+      }
+
+      expect(afterFsync).toBe(false);
+    });
+
     it("rebuilds stale derived indexes after a complete record survives a crash", () => {
       const id = startSession("chain-index-crash", { title: "Before" });
       const previous = readEvents(id).at(-1).hash;
@@ -3965,13 +4291,19 @@ describe("jsonl-session-store", () => {
         indexAction: "rebuild-index",
         indexRepairRequired: true,
       });
-      expect(repairSession(id)).toMatchObject({
+      const repaired = repairSession(id);
+      expect(repaired).toMatchObject({
         healthy: true,
         changed: true,
         physicalChanged: false,
         indexChanged: true,
         indexRebuilt: true,
         indexAction: "rebuild-index",
+        authorityAnchored: true,
+      });
+      expect(readSessionAntiRollbackAnchor(id)).toMatchObject({
+        eventCount: 2,
+        headHash: readEvents(id).at(-1).hash,
       });
       expect(readVerifiedEvents(id)).toHaveLength(2);
       expect(getJsonlSessionMetadata(id)).toMatchObject({ message_count: 1 });

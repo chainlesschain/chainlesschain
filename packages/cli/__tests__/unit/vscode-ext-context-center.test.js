@@ -104,7 +104,7 @@ describe("cc-context-center/v1 shared twin fixture", () => {
         removedIds: [removed],
       }),
     ).toEqual({
-      tokenBudget: 4096,
+      tokenBudget: 32768,
       pinnedIds: [pinned],
       removedIds: [removed],
     });
@@ -285,7 +285,10 @@ describe("getContextCenter IDE tool", () => {
     ]);
     expect(candidates[0]).toMatchObject({
       content: "pick",
-      range,
+      range: {
+        start: range.start,
+        end: range.end,
+      },
       freshness: {
         state: "live-buffer",
         capturedAt: "1970-01-01T00:00:01.000Z",
