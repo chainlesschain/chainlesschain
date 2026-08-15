@@ -55,7 +55,11 @@ describe("ScopedPermissionStore", () => {
     const listed = store().list();
     expect(listed.generation).toBe(1);
     expect(listed.rules).toHaveLength(1);
-    expect(listed.workspace.root).toBe(path.resolve(workspace));
+    expect(listed.workspace.root).toBe(
+      process.platform === "win32"
+        ? path.resolve(workspace).toLowerCase()
+        : path.resolve(workspace),
+    );
   });
 
   it("expires a rule without mutating durable history", () => {
@@ -85,7 +89,11 @@ describe("ScopedPermissionStore", () => {
 
     expect(() =>
       store().revoke({ id: created.id, expectedRevision: 1 }),
-    ).toMatchObject({ code: SCOPED_PERMISSION_ERROR_CODES.CONFLICT });
+    ).toThrow(
+      expect.objectContaining({
+        code: SCOPED_PERMISSION_ERROR_CODES.CONFLICT,
+      }),
+    );
   });
 
   it("rejects a stale store generation on create", () => {
@@ -104,7 +112,11 @@ describe("ScopedPermissionStore", () => {
         expiresAt: now + 60_000,
         expectedGeneration: 0,
       }),
-    ).toMatchObject({ code: SCOPED_PERMISSION_ERROR_CODES.CONFLICT });
+    ).toThrow(
+      expect.objectContaining({
+        code: SCOPED_PERMISSION_ERROR_CODES.CONFLICT,
+      }),
+    );
   });
 
   it("fails closed on corrupt state or a different workspace binding", () => {
@@ -125,7 +137,9 @@ describe("ScopedPermissionStore", () => {
         cwd: otherWorkspace,
         filePath: stateFile,
       }).list(),
-    ).toMatchObject({ code: SCOPED_PERMISSION_ERROR_CODES.CORRUPT });
+    ).toThrow(
+      expect.objectContaining({ code: SCOPED_PERMISSION_ERROR_CODES.CORRUPT }),
+    );
   });
 });
 
