@@ -68,6 +68,7 @@ public final class PureLogicSmokeMain {
         ideDoctor();
         ideContextV2();
         contextCenter();
+        contextExternalSources();
         teamMonitor();
         backgroundAgents();
         activityLog();
@@ -2211,6 +2212,37 @@ public final class PureLogicSmokeMain {
                 "remove persists deterministic ids");
     }
 
+    private static void contextExternalSources() {
+        System.out.println("ContextExternalSources (metadata-only MCP catalog):");
+        String json = "[{\"uri\":\"resource://guide\",\"server\":\"docs\","
+                + "\"name\":\"Guide\",\"description\":\"Project docs\"},"
+                + "{\"server\":\"broken\"}]";
+        List<Map<String, Object>> candidates =
+                ContextExternalSources.parseMcpResources(
+                        json, "2026-08-15T00:00:00Z");
+        eq(candidates.size(), 1, "invalid resources are dropped");
+        eq(candidates.get(0).get("kind"), "mcp-resource",
+                "resource becomes a context chip");
+        eq(candidates.get(0).get("source"), "mcp:docs",
+                "owning server remains explicit");
+        check(!String.valueOf(candidates.get(0).get("content"))
+                        .contains("contents"),
+                "catalog chip contains no resource body");
+        check(ContextExternalSources.parseMcpResources("not-json", null)
+                        .isEmpty(),
+                "invalid catalog fails closed");
+        String fixtureText = readSharedContextFixture("external-sources.json");
+        check(fixtureText != null, "shared external-source fixture is readable");
+        if (fixtureText != null) {
+            Map<String, Object> fixture = MiniJson.parseObject(fixtureText);
+            eq(ContextExternalSources.parseMcpResources(
+                            MiniJson.stringify(fixture.get("input")),
+                            String.valueOf(fixture.get("capturedAt"))),
+                    fixture.get("expected"),
+                    "Node/Java external-source fixture parity");
+        }
+    }
+
     private static void bundleParity() {
         System.out.println("bundleParity (l10n action keys en <-> zh <-> plugin.xml)");
         java.util.Properties en = loadProps("src/main/resources/messages/CcBundle.properties");
@@ -2269,6 +2301,23 @@ public final class PureLogicSmokeMain {
         } catch (java.io.IOException e) {
             return null;
         }
+    }
+
+    private static String readSharedContextFixture(String name) {
+        for (String root : new String[] {
+                "../vscode-extension/src/__fixtures__/context-center/",
+                "packages/vscode-extension/src/__fixtures__/context-center/",
+                "../../packages/vscode-extension/src/__fixtures__/context-center/" }) {
+            java.io.File file = new java.io.File(root + name);
+            if (!file.isFile()) continue;
+            try {
+                return java.nio.file.Files.readString(
+                        file.toPath(), java.nio.charset.StandardCharsets.UTF_8);
+            } catch (java.io.IOException ignored) {
+                return null;
+            }
+        }
+        return null;
     }
 
     /** Tolerate cwd = plugin dir OR repo root (gradle vs manual repro). */

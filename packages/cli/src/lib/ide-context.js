@@ -920,11 +920,9 @@ export function formatContextCenterMention(data, opts = {}) {
   if (chips.length === 0) return null;
   const payload = {
     schema: data.schema,
-    workspaceId:
-      typeof data.workspaceId === "string" ? data.workspaceId : null,
+    workspaceId: typeof data.workspaceId === "string" ? data.workspaceId : null,
     selectionAlgorithm: String(data.selectionAlgorithm || ""),
-    budget:
-      data.budget && typeof data.budget === "object" ? data.budget : null,
+    budget: data.budget && typeof data.budget === "object" ? data.budget : null,
     chips,
   };
   const json = JSON.stringify(payload, null, 2).replace(
@@ -1039,7 +1037,7 @@ export async function expandIdeMentions(text, mcp, opts = {}) {
           mcp,
           "mcp__ide__getContextCenter",
           { budgetTokens: CONTEXT_MENTION_TOKEN_BUDGET },
-          timeoutMs,
+          Math.max(timeoutMs, 6000),
         );
         const b = formatContextCenterMention(data, { env });
         if (b) {

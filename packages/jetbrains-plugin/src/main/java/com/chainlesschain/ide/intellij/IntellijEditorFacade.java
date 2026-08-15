@@ -3,6 +3,8 @@ package com.chainlesschain.ide.intellij;
 import com.chainlesschain.ide.DiffApplyGuard;
 import com.chainlesschain.ide.DiffHunks;
 import com.chainlesschain.ide.EditorFacade;
+import com.chainlesschain.ide.AgentChatSession;
+import com.chainlesschain.ide.ContextExternalSources;
 import com.chainlesschain.ide.IdeContextV2;
 import com.chainlesschain.ide.MiniJson;
 import com.chainlesschain.ide.MultiDiff;
@@ -29,12 +31,16 @@ import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.LocalFileSystem;
+import com.intellij.openapi.vcs.changes.Change;
+import com.intellij.openapi.vcs.changes.ChangeListManager;
+import com.intellij.openapi.vcs.changes.ContentRevision;
 
 import javax.swing.BoxLayout;
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -62,7 +68,14 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public final class IntellijEditorFacade implements EditorFacade {
 
+    private static final int MAX_CONTEXT_SOURCE_BYTES = 64 * 1024;
+    private static final int MAX_MEMORY_FILES = 20;
+    private static final long MCP_RESOURCE_CACHE_MS = 30_000L;
+
     private final Project project;
+    private final Object mcpResourceLock = new Object();
+    private List<Map<String, Object>> cachedMcpResourceCandidates = List.of();
+    private long mcpResourceExpiresAt = 0L;
 
     public IntellijEditorFacade(Project project) {
         this.project = project;
@@ -316,7 +329,188 @@ public final class IntellijEditorFacade implements EditorFacade {
         } catch (Throwable ignored) {
             // Continue with other sources.
         }
+        try {
+            addGitDiffCandidate(candidates, capturedAt);
+        } catch (Throwable ignored) {
+            // Version-control integration is optional.
+        }
+        try {
+            addMemoryCandidates(candidates, capturedAt);
+        } catch (Throwable ignored) {
+            // Project memory is optional and independently best-effort.
+        }
+        try {
+            candidates.addAll(getMcpResourceCandidates());
+        } catch (Throwable ignored) {
+            // Connected MCP resources are optional catalog metadata.
+        }
         return candidates;
+    }
+
+    private List<Map<String, Object>> getMcpResourceCandidates() {
+        synchronized (mcpResourceLock) {
+            long now = System.currentTimeMillis();
+            if (now < mcpResourceExpiresAt) {
+                return new ArrayList<Map<String, Object>>(
+                        cachedMcpResourceCandidates);
+            }
+            String base = project.getBasePath();
+            File cwd = base == null || base.isEmpty() ? null : new File(base);
+            String json = AgentChatSession.runCapture(
+                    List.of("mcp", "resources", "--json"), cwd, 5_000L);
+            cachedMcpResourceCandidates = ContextExternalSources.parseMcpResources(
+                    json, java.time.Instant.ofEpochMilli(now).toString());
+            mcpResourceExpiresAt = System.currentTimeMillis()
+                    + MCP_RESOURCE_CACHE_MS;
+            return new ArrayList<Map<String, Object>>(
+                    cachedMcpResourceCandidates);
+        }
+    }
+
+    private void addGitDiffCandidate(
+            List<Map<String, Object>> candidates, String capturedAt) {
+        List<Change> changes = ApplicationManager.getApplication().runReadAction(
+                (com.intellij.openapi.util.Computable<List<Change>>) () ->
+                        new ArrayList<Change>(ChangeListManager.getInstance(project)
+                                .getAllChanges()));
+        if (changes.isEmpty()) return;
+        StringBuilder content = new StringBuilder();
+        int shownChanges = 0;
+        for (Change change : changes) {
+            if (shownChanges >= 32 || content.length() >= MAX_CONTEXT_SOURCE_BYTES) break;
+            ContentRevision beforeRevision = change.getBeforeRevision();
+            ContentRevision afterRevision = change.getAfterRevision();
+            String path = afterRevision != null
+                    ? afterRevision.getFile().getPath()
+                    : beforeRevision == null ? "unknown" : beforeRevision.getFile().getPath();
+            String before = revisionContent(beforeRevision);
+            String after = revisionContent(afterRevision);
+            if (content.length() > 0) content.append('\n');
+            content.append("file ").append(path)
+                    .append(" [").append(change.getType()).append("]\n");
+            List<DiffHunks.Hunk> hunks = DiffHunks.computeHunks(before, after);
+            for (DiffHunks.Hunk hunk : hunks) {
+                if (content.length() >= MAX_CONTEXT_SOURCE_BYTES) break;
+                content.append("@@ ").append(hunk.header).append(" @@\n");
+                appendHunkLines(content, '-', hunk.oldLines);
+                appendHunkLines(content, '+', hunk.newLines);
+            }
+            shownChanges++;
+        }
+        if (content.length() == 0) return;
+        if (changes.size() > shownChanges) {
+            content.append("\n…(").append(changes.size() - shownChanges)
+                    .append(" more changes)");
+        }
+        String base = project.getBasePath();
+        addContextCandidate(
+                candidates, "git-diff", "Git diff",
+                "jetbrains.vcs-change-list",
+                base == null ? "workspace" : base,
+                truncateContextContent(content.toString()), null, "live-vcs",
+                "uncommitted version-control changes", capturedAt);
+    }
+
+    private static String revisionContent(ContentRevision revision) {
+        if (revision == null) return "";
+        try {
+            return truncateContextContent(revision.getContent());
+        } catch (Throwable ignored) {
+            return "";
+        }
+    }
+
+    private static void appendHunkLines(
+            StringBuilder content, char prefix, List<String> lines) {
+        int shown = 0;
+        for (String line : lines) {
+            if (shown >= 40 || content.length() >= MAX_CONTEXT_SOURCE_BYTES) break;
+            content.append(prefix).append(line).append('\n');
+            shown++;
+        }
+        if (lines.size() > shown && content.length() < MAX_CONTEXT_SOURCE_BYTES) {
+            content.append(prefix).append("…(")
+                    .append(lines.size() - shown).append(" more lines)\n");
+        }
+    }
+
+    private void addMemoryCandidates(
+            List<Map<String, Object>> candidates, String capturedAt) {
+        String baseValue = project.getBasePath();
+        if (baseValue == null || baseValue.isEmpty()) return;
+        Path base = Path.of(baseValue);
+        List<Path> requested = new ArrayList<Path>();
+        requested.add(base.resolve("cc.md"));
+        requested.add(base.resolve("CLAUDE.md"));
+        requested.add(base.resolve("AGENTS.md"));
+        requested.add(base.resolve(".chainlesschain").resolve("rules.md"));
+        java.io.File rules = base.resolve(".claude").resolve("rules").toFile();
+        java.io.File[] ruleFiles = rules.listFiles(
+                file -> file.isFile() && file.getName().toLowerCase().endsWith(".md"));
+        if (ruleFiles != null) {
+            java.util.Arrays.sort(ruleFiles,
+                    java.util.Comparator.comparing(java.io.File::getName));
+            for (java.io.File rule : ruleFiles) requested.add(rule.toPath());
+        }
+        int added = 0;
+        for (Path requestedFile : requested) {
+            if (added >= MAX_MEMORY_FILES) break;
+            MemoryFile memory = readMemoryFile(base, requestedFile);
+            if (memory == null) continue;
+            addContextCandidate(
+                    candidates, "memory",
+                    "Project memory: " + memory.relative,
+                    "project-memory", memory.path,
+                    memory.content + (memory.truncated ? "\n…(file truncated)" : ""),
+                    null, "disk", "project instructions loaded by the agent",
+                    capturedAt);
+            added++;
+        }
+    }
+
+    private static MemoryFile readMemoryFile(Path base, Path requested) {
+        try {
+            Path realBase = base.toRealPath();
+            Path realFile = requested.toRealPath();
+            if (!realFile.startsWith(realBase)
+                    || !Files.isRegularFile(realFile, LinkOption.NOFOLLOW_LINKS)) {
+                return null;
+            }
+            long size = Files.size(realFile);
+            byte[] bytes;
+            try (InputStream input = Files.newInputStream(realFile)) {
+                bytes = input.readNBytes(MAX_CONTEXT_SOURCE_BYTES);
+            }
+            return new MemoryFile(
+                    realFile.toString(),
+                    realBase.relativize(realFile).toString().replace('\\', '/'),
+                    new String(bytes, StandardCharsets.UTF_8),
+                    size > bytes.length);
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private static String truncateContextContent(String value) {
+        String text = value == null ? "" : value;
+        byte[] bytes = text.getBytes(StandardCharsets.UTF_8);
+        if (bytes.length <= MAX_CONTEXT_SOURCE_BYTES) return text;
+        return new String(bytes, 0, MAX_CONTEXT_SOURCE_BYTES,
+                StandardCharsets.UTF_8);
+    }
+
+    private static final class MemoryFile {
+        final String path;
+        final String relative;
+        final String content;
+        final boolean truncated;
+
+        MemoryFile(String path, String relative, String content, boolean truncated) {
+            this.path = path;
+            this.relative = relative;
+            this.content = content;
+            this.truncated = truncated;
+        }
     }
 
     private static void addContextCandidate(

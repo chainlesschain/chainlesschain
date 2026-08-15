@@ -192,12 +192,23 @@ async function startBridge(context) {
       /* best-effort */
     }
   })().catch(() => {});
+  const { runCliText } = require("./chat/introspect-commands.js");
+  const { getResolvedCli } = require("./cli-binary.js");
+  const {
+    createMcpResourceCandidateProvider,
+  } = require("./context-external-sources.js");
+  const getMcpResourceCandidates = createMcpResourceCandidateProvider({
+    runCliText,
+    getCommand: getResolvedCli,
+    getCwd: () => vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath,
+  });
   const facade = createVscodeEditorFacade(vscode, {
     // getPreviewState reads the App Preview controller lazily — it is created
     // by the preview.start command, possibly after the bridge is up.
     getPreview: () => _preview,
     getContextCenterPreferences: () =>
       context.workspaceState?.get?.(CONTEXT_CENTER_STATE_KEY, {}) || {},
+    getExternalContextCandidates: getMcpResourceCandidates,
   });
   _facade = facade;
   const tools = buildIdeTools(facade);

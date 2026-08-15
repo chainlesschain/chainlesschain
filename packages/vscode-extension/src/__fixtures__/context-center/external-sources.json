@@ -1,0 +1,52 @@
+{
+  "capturedAt": "2026-08-15T00:00:00.000Z",
+  "input": [
+    {
+      "uri": "resource://guide",
+      "server": "docs",
+      "name": "Project guide",
+      "description": "Current project documentation",
+      "mimeType": "text/markdown"
+    },
+    {
+      "uri": "db://schema/users",
+      "server": "database",
+      "name": "",
+      "description": "Users table schema"
+    },
+    {
+      "server": "broken",
+      "name": "missing URI"
+    }
+  ],
+  "expected": [
+    {
+      "kind": "mcp-resource",
+      "label": "MCP resource: db://schema/users",
+      "source": "mcp:database",
+      "identity": "db://schema/users",
+      "content": "{\"server\":\"database\",\"uri\":\"db://schema/users\",\"name\":null,\"description\":\"Users table schema\",\"mimeType\":null}",
+      "range": null,
+      "freshness": {
+        "state": "connected-catalog",
+        "capturedAt": "2026-08-15T00:00:00.000Z"
+      },
+      "autoReason": "resource advertised by a connected MCP server",
+      "refreshable": true
+    },
+    {
+      "kind": "mcp-resource",
+      "label": "MCP resource: Project guide",
+      "source": "mcp:docs",
+      "identity": "resource://guide",
+      "content": "{\"server\":\"docs\",\"uri\":\"resource://guide\",\"name\":\"Project guide\",\"description\":\"Current project documentation\",\"mimeType\":\"text/markdown\"}",
+      "range": null,
+      "freshness": {
+        "state": "connected-catalog",
+        "capturedAt": "2026-08-15T00:00:00.000Z"
+      },
+      "autoReason": "resource advertised by a connected MCP server",
+      "refreshable": true
+    }
+  ]
+}

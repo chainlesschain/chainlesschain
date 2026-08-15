@@ -73,7 +73,10 @@ uses them on its own:
   `@terminal` remain available for focused references.
 - **Tools → ChainlessChain: Context Center** opens the project chip list with
   pin/unpin, remove/restore, refresh, and fixed-budget controls. Preferences
-  persist in project state and become the default for `getContextCenter`.
+  persist in project state and become the default for `getContextCenter`. The
+  list includes VCS change-list hunks, bounded project instruction files, and
+  connected MCP resource metadata; it never reads MCP resource bodies
+  automatically.
 
 Set `CC_IDE_CONTEXT=0` to turn the automatic sharing off.
 

@@ -141,7 +141,10 @@ session index.
 Run **ChainlessChain: Context Center** to inspect the live chips, their source,
 scope, freshness, token allocation, and inclusion reason. Pin/remove choices
 and the fixed token budget persist per workspace; explicit MCP arguments can
-still override them for one request.
+still override them for one request. Sources include the built-in Git API's
+uncommitted patch, bounded workspace instruction files, and the connected MCP
+resource catalog. MCP chips contain metadata only; resource bodies are never
+read automatically.
 
 Set `CC_IDE_CONTEXT=0` to disable automatic context injection while keeping the
 explicit `mcp__ide__*` tools available.

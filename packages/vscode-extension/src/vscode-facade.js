@@ -19,6 +19,68 @@ const MAX_TEST_ITEMS = 500;
 const MAX_TEST_MESSAGES = 8;
 const MAX_COVERAGE_FILES = 500;
 const MAX_BREAKPOINTS = 200;
+const MAX_CONTEXT_SOURCE_BYTES = 64 * 1024;
+const MAX_MEMORY_FILES = 20;
+
+function readBoundedWorkspaceFile(root, file) {
+  try {
+    const realRoot = fs.realpathSync(root);
+    const realFile = fs.realpathSync(file);
+    const relative = nodePath.relative(realRoot, realFile);
+    if (
+      !relative ||
+      relative.startsWith("..") ||
+      nodePath.isAbsolute(relative)
+    ) {
+      return null;
+    }
+    const stat = fs.statSync(realFile);
+    if (!stat.isFile()) return null;
+    const handle = fs.openSync(realFile, "r");
+    try {
+      const buffer = Buffer.alloc(
+        Math.min(MAX_CONTEXT_SOURCE_BYTES, Math.max(0, stat.size)),
+      );
+      const bytes = fs.readSync(handle, buffer, 0, buffer.length, 0);
+      return {
+        file: realFile,
+        relative: relative.replace(/\\/g, "/"),
+        content: buffer.subarray(0, bytes).toString("utf8"),
+        truncated: stat.size > bytes,
+      };
+    } finally {
+      fs.closeSync(handle);
+    }
+  } catch {
+    return null;
+  }
+}
+
+function workspaceMemoryFiles(root) {
+  const requested = [
+    "cc.md",
+    "CLAUDE.md",
+    "AGENTS.md",
+    ".chainlesschain/rules.md",
+  ];
+  try {
+    const rules = nodePath.join(root, ".claude", "rules");
+    for (const entry of fs.readdirSync(rules, { withFileTypes: true })) {
+      if (entry.isFile() && entry.name.toLowerCase().endsWith(".md")) {
+        requested.push(nodePath.join(".claude", "rules", entry.name));
+      }
+    }
+  } catch {
+    // Optional path-scoped rules directory is absent or unreadable.
+  }
+  return requested
+    .sort()
+    .slice(0, MAX_MEMORY_FILES)
+    .map((relative) =>
+      readBoundedWorkspaceFile(root, nodePath.join(root, relative)),
+    )
+    .filter(Boolean);
+}
 
 function boundedText(value, limit = 2000) {
   if (value === null || value === undefined) return null;
@@ -1478,12 +1540,79 @@ function createVscodeEditorFacade(vscode, opts = {}) {
           { autoReason: "active preview or recent preview output" },
         );
       }
+
+      const gitRepositories = await safe(async () => {
+        const extension = vscode.extensions?.getExtension?.("vscode.git");
+        if (!extension) return [];
+        const exports = extension.isActive
+          ? extension.exports
+          : await extension.activate();
+        const api = exports?.getAPI?.(1);
+        return Array.isArray(api?.repositories) ? api.repositories : [];
+      });
+      for (const repository of (gitRepositories || [])
+        .slice(0, 8)
+        .sort((a, b) =>
+          String(a?.rootUri?.fsPath || "").localeCompare(
+            String(b?.rootUri?.fsPath || ""),
+          ),
+        )) {
+        const root = repository?.rootUri?.fsPath;
+        const patch = await safe(() => repository.diffWithHEAD());
+        const untracked = (repository?.state?.untrackedChanges || [])
+          .slice(0, 50)
+          .map((change) => change?.uri?.fsPath || change?.uri?.path)
+          .filter(Boolean);
+        const content = [
+          boundedText(patch, MAX_CONTEXT_SOURCE_BYTES),
+          untracked.length ? `Untracked files:\n${untracked.join("\n")}` : "",
+        ]
+          .filter(Boolean)
+          .join("\n\n");
+        if (root && content) {
+          add(
+            "git-diff",
+            `Git diff: ${nodePath.basename(root)}`,
+            "vscode.git",
+            root,
+            content,
+            {
+              state: "live-vcs",
+              autoReason: "uncommitted version-control changes",
+            },
+          );
+        }
+      }
+
+      for (const folder of vscode.workspace.workspaceFolders || []) {
+        const root = folder?.uri?.fsPath;
+        if (!root) continue;
+        for (const memory of workspaceMemoryFiles(root)) {
+          add(
+            "memory",
+            `Project memory: ${memory.relative}`,
+            "project-memory",
+            memory.file,
+            memory.content + (memory.truncated ? "\n…(file truncated)" : ""),
+            {
+              state: "disk",
+              autoReason: "project instructions loaded by the agent",
+            },
+          );
+        }
+      }
+      const externalCandidates = await safe(() =>
+        opts.getExternalContextCandidates?.(),
+      );
+      if (Array.isArray(externalCandidates)) {
+        candidates.push(...externalCandidates.slice(0, 20));
+      }
       return candidates;
     },
 
     async getContextCenterPreferences() {
-      if (typeof deps.getContextCenterPreferences !== "function") return {};
-      const value = await deps.getContextCenterPreferences();
+      if (typeof opts.getContextCenterPreferences !== "function") return {};
+      const value = await opts.getContextCenterPreferences();
       return value && typeof value === "object" ? value : {};
     },
 

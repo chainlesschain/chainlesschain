@@ -1,4 +1,6 @@
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -8,6 +10,10 @@ import {
   stableChipId,
   updateContextCenterPreferences,
 } from "../../../vscode-extension/src/context-center.js";
+import {
+  createMcpResourceCandidateProvider,
+  parseMcpResourceCandidates,
+} from "../../../vscode-extension/src/context-external-sources.js";
 import { buildIdeTools } from "../../../vscode-extension/src/ide-tools.js";
 import { createVscodeEditorFacade } from "../../../vscode-extension/src/vscode-facade.js";
 import { contextCenterItems } from "../../../vscode-extension/src/ui/context-center-view.js";
@@ -19,6 +25,57 @@ const fixturePath = fileURLToPath(
   ),
 );
 const cases = JSON.parse(fs.readFileSync(fixturePath, "utf8"));
+const externalSourcesFixture = JSON.parse(
+  fs.readFileSync(
+    fileURLToPath(
+      new URL(
+        "../../../vscode-extension/src/__fixtures__/context-center/external-sources.json",
+        import.meta.url,
+      ),
+    ),
+    "utf8",
+  ),
+);
+
+describe("Context Center external source catalog", () => {
+  it("normalizes MCP resource metadata through the shared fixture", () => {
+    expect(
+      parseMcpResourceCandidates(
+        externalSourcesFixture.input,
+        externalSourcesFixture.capturedAt,
+      ),
+    ).toEqual(externalSourcesFixture.expected);
+  });
+
+  it("uses the canonical read-only CLI catalog with bounded caching", async () => {
+    let clock = Date.parse(externalSourcesFixture.capturedAt);
+    const runCliText = vi.fn(async () =>
+      JSON.stringify(externalSourcesFixture.input),
+    );
+    const provider = createMcpResourceCandidateProvider({
+      runCliText,
+      getCommand: () => "cc-test",
+      getCwd: () => "/workspace",
+      now: () => clock,
+    });
+    const [first, concurrent] = await Promise.all([provider(), provider()]);
+    expect(first).toEqual(externalSourcesFixture.expected);
+    expect(concurrent).toEqual(first);
+    expect(runCliText).toHaveBeenCalledTimes(1);
+    expect(runCliText).toHaveBeenCalledWith({
+      command: "cc-test",
+      args: ["mcp", "resources", "--json"],
+      cwd: "/workspace",
+      timeoutMs: 5000,
+    });
+
+    await provider();
+    expect(runCliText).toHaveBeenCalledTimes(1);
+    clock += 30_000;
+    await provider();
+    expect(runCliText).toHaveBeenCalledTimes(2);
+  });
+});
 
 describe("cc-context-center/v1 shared twin fixture", () => {
   for (const item of cases) {
@@ -213,8 +270,12 @@ describe("getContextCenter IDE tool", () => {
       getPreview: () => ({
         state: () => ({ running: true, url: "http://127.0.0.1:3000" }),
       }),
+      getContextCenterPreferences: () => ({ tokenBudget: 2048 }),
     });
     const candidates = await facade.getContextCandidates();
+    expect(await facade.getContextCenterPreferences()).toEqual({
+      tokenBudget: 2048,
+    });
     expect(candidates.map((candidate) => candidate.kind)).toEqual([
       "selection",
       "active-file",
@@ -230,5 +291,70 @@ describe("getContextCenter IDE tool", () => {
         capturedAt: "1970-01-01T00:00:01.000Z",
       },
     });
+  });
+
+  it("gathers bounded Git diff and project-memory sources", async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-context-sources-"));
+    try {
+      fs.writeFileSync(path.join(root, "cc.md"), "# Project memory\n", "utf8");
+      const repository = {
+        rootUri: { fsPath: root },
+        diffWithHEAD: vi.fn(async () => "@@ -1 +1 @@\n-old\n+new\n"),
+        state: {
+          untrackedChanges: [
+            { uri: { fsPath: path.join(root, "new-file.js") } },
+          ],
+        },
+      };
+      const vscode = {
+        commands: { executeCommand: vi.fn() },
+        extensions: {
+          getExtension: () => ({
+            isActive: true,
+            exports: { getAPI: () => ({ repositories: [repository] }) },
+          }),
+        },
+        languages: { getDiagnostics: () => [] },
+        window: {
+          activeTextEditor: null,
+          visibleTextEditors: [],
+          tabGroups: { all: [] },
+        },
+        workspace: {
+          isTrusted: true,
+          workspaceFolders: [{ uri: { fsPath: root } }],
+          textDocuments: [],
+        },
+      };
+      const facade = createVscodeEditorFacade(vscode, {
+        now: () => 1000,
+        getExternalContextCandidates: async () =>
+          externalSourcesFixture.expected,
+      });
+      const candidates = await facade.getContextCandidates();
+      const git = candidates.find((candidate) => candidate.kind === "git-diff");
+      const memory = candidates.find(
+        (candidate) => candidate.kind === "memory",
+      );
+      const mcpResource = candidates.find(
+        (candidate) => candidate.kind === "mcp-resource",
+      );
+      expect(git).toMatchObject({
+        source: "vscode.git",
+        identity: root,
+        freshness: { state: "live-vcs" },
+      });
+      expect(git.content).toContain("+new");
+      expect(git.content).toContain("new-file.js");
+      expect(memory).toMatchObject({
+        label: "Project memory: cc.md",
+        source: "project-memory",
+        freshness: { state: "disk" },
+      });
+      expect(memory.content).toContain("# Project memory");
+      expect(mcpResource).toEqual(externalSourcesFixture.expected[0]);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
   });
 });
