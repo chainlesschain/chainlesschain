@@ -1,0 +1,48 @@
+{
+  "id": "release-review",
+  "name": "Release review",
+  "steps": [
+    {
+      "id": "collect",
+      "message": "Collect release evidence"
+    },
+    {
+      "id": "scan",
+      "message": "Scan changed files"
+    },
+    {
+      "id": "review",
+      "message": "Review ${step.collect.summary} and ${step.scan.summary}",
+      "dependsOn": ["collect", "scan"],
+      "retries": 1
+    }
+  ],
+  "facade": {
+    "requirements": {
+      "capabilities": ["cowork-task", "dag", "parallel", "retry", "variables"],
+      "executionLocations": ["local"],
+      "permissions": {
+        "file": "read",
+        "shell": false,
+        "network": false,
+        "mcp": false,
+        "externalSystems": false
+      },
+      "sandbox": "strong",
+      "dataBoundary": "repository",
+      "credentials": []
+    },
+    "estimates": {
+      "tokensPerTask": 100,
+      "usdPerTask": 0.01,
+      "durationMsPerTask": 1000
+    },
+    "budget": {
+      "maxExpandedTasks": 10,
+      "maxParallel": 2,
+      "maxTokens": 1000,
+      "maxUsd": 1,
+      "maxDurationMs": 10000
+    }
+  }
+}

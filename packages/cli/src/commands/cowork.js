@@ -800,6 +800,102 @@ export function registerCoworkCommand(program) {
     });
 
   workflow
+    .command("manifest <id>")
+    .description(
+      "Project a versioned, digest-bound workflow definition and DAG plan",
+    )
+    .option("--json", "Machine-readable JSON output")
+    .action(async (id, options) => {
+      const [{ getWorkflow }, { createDynamicWorkflowManifest }] =
+        await Promise.all([
+          import("../lib/cowork-workflow.js"),
+          import("../lib/dynamic-workflow-facade.js"),
+        ]);
+      const wf = getWorkflow(process.cwd(), id);
+      if (!wf) {
+        logger.error(`Workflow not found: ${id}`);
+        process.exitCode = 1;
+        return;
+      }
+      try {
+        const manifest = createDynamicWorkflowManifest(wf);
+        if (options.json) {
+          console.log(JSON.stringify(manifest, null, 2));
+          return;
+        }
+        logger.log(chalk.bold(`${manifest.definition.name}`));
+        logger.log(`  schema:      ${manifest.schema}`);
+        logger.log(`  digest:      ${manifest.definitionDigest}`);
+        logger.log(`  adapter:     ${manifest.adapter}`);
+        logger.log(`  plan:        ${manifest.plan.mode}`);
+        logger.log(
+          `  task calls:  ${manifest.plan.worstCaseTaskCalls ?? "unknown"}`,
+        );
+        logger.log(
+          `  resumable:   ${manifest.runtimeClaims.durablePauseResume ? "yes" : "no"}`,
+        );
+      } catch (err) {
+        logger.error(err.message);
+        process.exitCode = 1;
+      }
+    });
+
+  workflow
+    .command("preflight <id>")
+    .description(
+      "Evaluate capability, permission, sandbox, scale, and cost gates",
+    )
+    .option("--max-parallel <n>", "Requested maximum parallel steps", "4")
+    .option("--json", "Machine-readable JSON output")
+    .action(async (id, options) => {
+      const [
+        { getWorkflow },
+        { buildDynamicWorkflowPreflight },
+        { captureAmbientExecutionLocation },
+      ] = await Promise.all([
+        import("../lib/cowork-workflow.js"),
+        import("../lib/dynamic-workflow-facade.js"),
+        import("../lib/execution-location-runtime.js"),
+      ]);
+      const wf = getWorkflow(process.cwd(), id);
+      if (!wf) {
+        logger.error(`Workflow not found: ${id}`);
+        process.exitCode = 1;
+        return;
+      }
+      try {
+        const preflight = buildDynamicWorkflowPreflight({
+          workflow: wf,
+          executionLocation: captureAmbientExecutionLocation(),
+          maxParallel: options.maxParallel,
+        });
+        if (options.json) {
+          console.log(JSON.stringify(preflight, null, 2));
+        } else {
+          const color = preflight.allowed ? chalk.green : chalk.red;
+          logger.log(color(preflight.allowed ? "READY" : "BLOCKED"));
+          logger.log(`  definition:  ${preflight.definition.definitionDigest}`);
+          logger.log(
+            `  task calls: ${preflight.scale.worstCaseTaskCalls ?? "unknown"}`,
+          );
+          logger.log(
+            `  tokens/USD: ${preflight.cost.projectedTokens ?? "unknown"} / ${preflight.cost.projectedUsd ?? "unknown"}`,
+          );
+          for (const blocker of preflight.blockers) {
+            logger.log(chalk.red(`  blocker: ${blocker}`));
+          }
+          for (const warning of preflight.warnings) {
+            logger.log(chalk.yellow(`  warning: ${warning}`));
+          }
+        }
+        process.exitCode = preflight.allowed ? 0 : 2;
+      } catch (err) {
+        logger.error(err.message);
+        process.exitCode = 1;
+      }
+    });
+
+  workflow
     .command("add <file>")
     .description("Add a workflow from a JSON definition file")
     .action(async (file) => {
