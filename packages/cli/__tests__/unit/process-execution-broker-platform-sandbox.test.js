@@ -406,6 +406,7 @@ function createLinuxStaticPieElf64({
   interpreterPath = "/lib64/ld-linux-x86-64.so.2",
   dynamicNeeded = false,
   dynamicNeededNames = null,
+  dynamicSoname = null,
   dynamicRunpath = false,
   dynamicFlags1 = 0x08000000n,
   dynamicTerminated = true,
@@ -425,14 +426,26 @@ function createLinuxStaticPieElf64({
     stringParts.push(encoded);
     stringBytes += encoded.length;
   }
+  let sonameOffset = null;
+  if (dynamicSoname !== null) {
+    sonameOffset = stringBytes;
+    const encoded = Buffer.from(`${dynamicSoname}\0`, "ascii");
+    stringParts.push(encoded);
+    stringBytes += encoded.length;
+  }
   const stringTable =
-    neededNames.length > 0 ? Buffer.concat(stringParts) : Buffer.alloc(0);
+    neededNames.length > 0 || sonameOffset !== null
+      ? Buffer.concat(stringParts)
+      : Buffer.alloc(0);
   const dynamicEntries = [];
   if (dynamicNeeded) dynamicEntries.push([1n, 0n]);
   neededOffsets.forEach((offset) => {
     dynamicEntries.push([1n, BigInt(offset)]);
   });
-  if (neededNames.length > 0) {
+  if (sonameOffset !== null) {
+    dynamicEntries.push([14n, BigInt(sonameOffset)]);
+  }
+  if (neededNames.length > 0 || sonameOffset !== null) {
     dynamicEntries.push([5n, 0n], [10n, BigInt(stringTable.length)]);
   }
   if (dynamicRunpath) dynamicEntries.push([29n, 0n]);
@@ -646,6 +659,9 @@ function createLinuxStrongHarness({
   failSnapshotReopenForContents = null,
   nativeEntry = createLinuxStaticElf64(),
   nativeEntryMode = 0o100755,
+  runtimeLibc = createLinuxStaticPieElf64({ dynamicFlags1: null }),
+  runtimeLoader = createLinuxStaticPieElf64({ dynamicFlags1: null }),
+  additionalRuntimeFiles = [],
   bwrapDevice = 11,
   bwrapInode = null,
   linuxPageSize = 4096,
@@ -680,8 +696,8 @@ function createLinuxStrongHarness({
     ["/runtime/node", Buffer.from("attested-node-runtime")],
     ["/usr/bin/bwrap", Buffer.from("bubblewrap")],
     ["/usr/bin/ldd", Buffer.from("ldd")],
-    ["/lib/libc.so.6", Buffer.from("libc")],
-    ["/lib64/ld-linux.so.2", Buffer.from("loader")],
+    ["/lib/libc.so.6", Buffer.from(runtimeLibc)],
+    ["/lib64/ld-linux.so.2", Buffer.from(runtimeLoader)],
     ["/etc/ld.so.cache", Buffer.from("loader-cache")],
     ["/proc/self/auxv", createLinuxAuxv64(linuxPageSize)],
     [
@@ -693,6 +709,21 @@ function createLinuxStrongHarness({
   const fileModes = new Map([
     ["/plugin/lib/value.cjs", regularFileMode(nodeDependencyMode)],
   ]);
+  for (const runtimeFile of additionalRuntimeFiles) {
+    const filePath = String(runtimeFile.path);
+    files.set(filePath, Buffer.from(runtimeFile.contents));
+    fileModes.set(
+      filePath,
+      regularFileMode(
+        runtimeFile.mode === undefined ? 0o100755 : runtimeFile.mode,
+      ),
+    );
+    let parent = path.posix.dirname(filePath);
+    while (parent !== "/" && parent !== ".") {
+      directories.add(parent);
+      parent = path.posix.dirname(parent);
+    }
+  }
   for (const pluginFile of additionalPluginFiles) {
     const filePath = String(pluginFile.path);
     files.set(filePath, Buffer.from(pluginFile.contents));
@@ -1777,13 +1808,15 @@ function createLinuxDynamicNativeRuntimeProbe(overrides = {}) {
     pluginTreeSnapshotAtomic: false,
     initialDynamicLoadClosureDescriptorBound: true,
     initialDynamicLoadClosureScope:
-      "initial-pt_interp-and-direct-dt_needed-attested-system-set",
+      "initial-pt_interp-and-recursive-dt_needed-attested-system-graph",
     initialDynamicLoadClosureMechanism:
-      "parsed-elf-direct-system-set-to-attested-node-runtime-fds-v1",
+      "recursive-parsed-elf-system-graph-to-attested-runtime-fds-v1",
     initialDynamicInterpreter: "/lib64/ld-linux-x86-64.so.2",
     initialDynamicDependencyCount: 2,
     initialDynamicRuntimeFileCount: 3,
+    initialDynamicRuntimeBytes: 300,
     initialDynamicLoadClosureDigest: "d".repeat(64),
+    sharedLibraryClosure: false,
     ...overrides,
   });
 }
@@ -1798,6 +1831,7 @@ function createLinuxStaticNativeRuntimeProbe(overrides = {}) {
     initialDynamicInterpreter: undefined,
     initialDynamicDependencyCount: undefined,
     initialDynamicRuntimeFileCount: undefined,
+    initialDynamicRuntimeBytes: undefined,
     initialDynamicLoadClosureDigest: undefined,
     ...overrides,
   });
@@ -2737,6 +2771,178 @@ describe("platform sandbox adapter contract", () => {
       plan.cleanup();
       expect(harness.openFiles.size).toBe(0);
       expect(harness.anonymousFiles.size).toBe(0);
+    },
+  );
+
+  it("recursively binds cyclic second-level DT_NEEDED edges and survives dependency pathname replacement", () => {
+    const alpha = createLinuxStaticPieElf64({
+      dynamicFlags1: null,
+      dynamicNeededNames: ["libbeta.so"],
+    });
+    const beta = createLinuxStaticPieElf64({
+      dynamicFlags1: null,
+      dynamicNeededNames: ["libalpha.so"],
+    });
+    const harness = createLinuxStrongHarness({
+      entryRuntime: "native-dynamic-elf",
+      nativeEntry: createLinuxStaticPieElf64({
+        includeInterp: true,
+        interpreterPath: "/lib64/ld-linux.so.2",
+        dynamicNeededNames: ["libalpha.so"],
+      }),
+      lddStdout: [
+        "libalpha.so => /lib/libalpha.so (0x1)",
+        "libbeta.so => /lib/libbeta.so (0x2)",
+        "/lib64/ld-linux.so.2 (0x3)",
+      ].join("\n"),
+      additionalRuntimeFiles: [
+        { path: "/lib/libalpha.so", contents: alpha },
+        { path: "/lib/libbeta.so", contents: beta },
+      ],
+    });
+    const plan = applyLinuxStrongNativeHarness(harness);
+
+    expect(plan).toMatchObject({
+      applied: true,
+      runtimeProbe: {
+        initialDynamicLoadClosureDescriptorBound: true,
+        initialDynamicDependencyCount: 3,
+        initialDynamicRuntimeFileCount: 3,
+        sharedLibraryClosure: false,
+      },
+    });
+    const betaMount = linuxBwrapFileMounts(plan.args).find(
+      ({ destination }) => destination === "/lib/libbeta.so",
+    );
+    const betaParentFd = plan.options.stdio[betaMount.childFd];
+    const betaBefore = Buffer.from(beta);
+    harness.replaceFileAtPath(
+      "/lib/libbeta.so",
+      createLinuxStaticPieElf64({
+        dynamicFlags1: null,
+        dynamicRunpath: true,
+      }),
+    );
+
+    expect(harness.detachedContents.get(betaParentFd)).toEqual(betaBefore);
+    expect(harness.files.get("/lib/libbeta.so")).not.toEqual(betaBefore);
+    expect(
+      harness.spawnSync(plan.command, plan.args, plan.options).status,
+    ).toBe(0);
+
+    plan.cleanup();
+    expect(harness.openFiles.size).toBe(0);
+  });
+
+  it.each([
+    [
+      "a missing second-level dependency",
+      createLinuxStaticPieElf64({
+        dynamicFlags1: null,
+        dynamicNeededNames: ["libmissing-secondary.so"],
+      }),
+      "native_dynamic_recursive_dependency_outside_system_graph",
+      [
+        "libalpha.so => /lib/libalpha.so (0x1)",
+        "/lib64/ld-linux.so.2 (0x2)",
+      ].join("\n"),
+      [],
+    ],
+    [
+      "a second-level DT_RUNPATH directive",
+      createLinuxStaticPieElf64({
+        dynamicFlags1: null,
+        dynamicRunpath: true,
+      }),
+      "native_dependency_dynamic_loader_directive_unsupported",
+      [
+        "libalpha.so => /lib/libalpha.so (0x1)",
+        "/lib64/ld-linux.so.2 (0x2)",
+      ].join("\n"),
+      [],
+    ],
+    [
+      "a second-level DT_SONAME alias",
+      createLinuxStaticPieElf64({
+        dynamicFlags1: null,
+        dynamicSoname: "libalias.so",
+      }),
+      "native_dependency_soname_alias_unsupported",
+      [
+        "libalpha.so => /lib/libalpha.so (0x1)",
+        "/lib64/ld-linux.so.2 (0x2)",
+      ].join("\n"),
+      [],
+    ],
+    [
+      "an ambiguous second-level basename",
+      createLinuxStaticPieElf64({
+        dynamicFlags1: null,
+        dynamicNeededNames: ["libbeta.so"],
+      }),
+      "runtime_dependency_resolution_ambiguous",
+      [
+        "libalpha.so => /lib/libalpha.so (0x1)",
+        "libbeta.so => /lib/libbeta.so (0x2)",
+        "libbeta.so => /usr/lib/libbeta.so (0x3)",
+        "/lib64/ld-linux.so.2 (0x4)",
+      ].join("\n"),
+      [
+        {
+          path: "/lib/libbeta.so",
+          contents: createLinuxStaticPieElf64({ dynamicFlags1: null }),
+        },
+        {
+          path: "/usr/lib/libbeta.so",
+          contents: createLinuxStaticPieElf64({ dynamicFlags1: null }),
+        },
+      ],
+    ],
+  ])(
+    "fails closed for %s in the recursive native loader graph",
+    (_label, alpha, expectedReason, lddStdout, extraFiles) => {
+      const harness = createLinuxStrongHarness({
+        entryRuntime: "native-dynamic-elf",
+        nativeEntry: createLinuxStaticPieElf64({
+          includeInterp: true,
+          interpreterPath: "/lib64/ld-linux.so.2",
+          dynamicNeededNames: ["libalpha.so"],
+        }),
+        lddStdout,
+        additionalRuntimeFiles: [
+          { path: "/lib/libalpha.so", contents: alpha },
+          ...extraFiles,
+        ],
+      });
+      const plan = applyLinuxStrongNativeHarness(harness);
+      const resolutionRejectedBeforePin = expectedReason.startsWith(
+        "runtime_dependency_resolution_",
+      );
+
+      expect(plan).toMatchObject({
+        applied: false,
+        backend: null,
+        candidateBackend: "linux-bwrap",
+        policyAttested: false,
+        reason: resolutionRejectedBeforePin
+          ? "linux_bwrap_runtime_unattested"
+          : "linux_bwrap_native_runtime_unattested",
+        guarantees: [],
+        runtimeProbe: {
+          attempted: false,
+          runnable: false,
+          reason: expectedReason,
+          targetRuntime: "native-dynamic-elf",
+          contentSnapshot: false,
+          handleAtomic: false,
+        },
+      });
+      expect(
+        harness.spawnSync.mock.calls.some(([, spawnArgs]) =>
+          spawnArgs?.includes("/opt/chainless/plugin/bin/tool"),
+        ),
+      ).toBe(false);
+      expect(harness.openFiles.size).toBe(0);
     },
   );
 
@@ -3726,7 +3932,7 @@ describe("platform sandbox adapter contract", () => {
     ["dynamic PIE ET_DYN", {}],
     ["dynamic non-PIE ET_EXEC", { elfType: 2, dynamicFlags1: null }],
   ])(
-    "binds a %s interpreter and direct DT_NEEDED set to pinned trusted runtime files",
+    "binds a %s interpreter and recursive DT_NEEDED graph to pinned trusted runtime files",
     (_label, elfOptions) => {
       const harness = createLinuxStrongHarness({
         entryRuntime: "native-dynamic-elf",
@@ -3762,14 +3968,16 @@ describe("platform sandbox adapter contract", () => {
           contentSnapshotScope: "plugin-entry-executable",
           initialDynamicLoadClosureDescriptorBound: true,
           initialDynamicLoadClosureScope:
-            "initial-pt_interp-and-direct-dt_needed-attested-system-set",
+            "initial-pt_interp-and-recursive-dt_needed-attested-system-graph",
           initialDynamicLoadClosureMechanism:
-            "parsed-elf-direct-system-set-to-attested-node-runtime-fds-v1",
+            "recursive-parsed-elf-system-graph-to-attested-runtime-fds-v1",
           initialDynamicInterpreter: "/lib64/ld-linux.so.2",
           initialDynamicDependencyCount: 1,
           initialDynamicRuntimeFileCount: 2,
+          initialDynamicRuntimeBytes: expect.any(Number),
           initialDynamicLoadClosureDigest:
             expect.stringMatching(/^[a-f0-9]{64}$/),
+          sharedLibraryClosure: false,
           handleAtomic: false,
         },
       });
@@ -3779,6 +3987,10 @@ describe("platform sandbox adapter contract", () => {
         "--label",
         "ready",
       ]);
+      expect(plan.runtimeProbe.initialDynamicRuntimeBytes).toBe(
+        harness.files.get("/lib/libc.so.6").length +
+          harness.files.get("/lib64/ld-linux.so.2").length,
+      );
       expect(linuxBwrapFileMounts(plan.args)).toEqual(
         expect.arrayContaining([
           {
@@ -10572,7 +10784,7 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
     },
   );
 
-  it("preserves descriptor-bound dynamic ELF direct-system-set evidence in the audit log", () => {
+  it("preserves descriptor-bound recursive dynamic ELF graph evidence in the audit log", () => {
     const child = createChild();
     const nativeSpawn = vi.fn(() => child);
     const runtimeProbe = createLinuxDynamicNativeRuntimeProbe();
@@ -10775,22 +10987,33 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       },
     ],
     [
-      "dependency count above 128",
+      "dependency edge count above 1024",
       {
-        initialDynamicDependencyCount: 129,
+        initialDynamicDependencyCount: 1025,
       },
     ],
     [
-      "runtime file count above the direct system set",
+      "runtime file count above 256",
       {
-        initialDynamicRuntimeFileCount: 4,
+        initialDynamicRuntimeFileCount: 257,
       },
     ],
     [
-      "runtime file count below the unique direct dependency set",
+      "aggregate runtime bytes above 512 MiB",
       {
-        initialDynamicDependencyCount: 3,
-        initialDynamicRuntimeFileCount: 2,
+        initialDynamicRuntimeBytes: 512 * 1024 * 1024 + 1,
+      },
+    ],
+    [
+      "missing aggregate runtime bytes",
+      {
+        initialDynamicRuntimeBytes: undefined,
+      },
+    ],
+    [
+      "a forged arbitrary shared-library closure claim",
+      {
+        sharedLibraryClosure: true,
       },
     ],
     [
@@ -10827,7 +11050,7 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       },
     ],
   ])(
-    "rejects dynamic ELF direct-system-set evidence with %s before native spawn",
+    "rejects dynamic ELF recursive startup-graph evidence with %s before native spawn",
     (_label, runtimeProbeOverrides, expectedError) => {
       const nativeSpawn = vi.fn();
       executionBroker._native = { spawn: nativeSpawn };
@@ -10852,13 +11075,13 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
         }),
       ).toThrow(
         expectedError ||
-          /initialDynamicLoadClosure|initial dynamic direct system set/,
+          /initialDynamicLoadClosure|initial recursive dynamic system graph/,
       );
       expect(nativeSpawn).not.toHaveBeenCalled();
     },
   );
 
-  it("rejects successful dynamic ELF evidence without a descriptor-bound direct system set", () => {
+  it("rejects successful dynamic ELF evidence without a descriptor-bound recursive startup graph", () => {
     const nativeSpawn = vi.fn();
     executionBroker._native = { spawn: nativeSpawn };
     executionBroker._sandboxAdapter = {
@@ -10871,6 +11094,7 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
             initialDynamicInterpreter: undefined,
             initialDynamicDependencyCount: undefined,
             initialDynamicRuntimeFileCount: undefined,
+            initialDynamicRuntimeBytes: undefined,
             initialDynamicLoadClosureDigest: undefined,
           }),
         }),

@@ -5,10 +5,11 @@
  * - macOS: Seatbelt sandbox-exec profiles
  * - Linux: prlimit resource-limit wrapper, plus a narrow bubblewrap backend
  *   for an attested direct strict Plugin Node bin or a narrow static/dynamic
- *   ELF native bin. Dynamic acceptance binds PT_INTERP plus the entry's direct
- *   DT_NEEDED names to an attested system-file set; broader loader surfaces,
- *   shells, broader working directories, host-writable paths, inherited
- *   descriptors, and network egress remain fail-closed.
+ *   ELF native bin. Dynamic acceptance recursively parses PT_INTERP and every
+ *   startup DT_NEEDED edge against the exact descriptor-bound system graph;
+ *   runtime dlopen, broader loader surfaces, shells, broader working
+ *   directories, host-writable paths, inherited descriptors, and network
+ *   egress remain outside that narrow startup-graph evidence or fail-closed.
  * - Windows: Win32 Job Object + restricted-token wrapper, with an attested
  *   zero-capability AppContainer for explicit filesystem/network boundaries
  *
@@ -199,6 +200,9 @@ const LINUX_ELF64_DYNAMIC_ENTRY_BYTES = 16;
 const LINUX_ELF_MAX_PROGRAM_HEADERS = 128;
 const LINUX_ELF_MAX_DYNAMIC_ENTRIES = 4096;
 const LINUX_ELF_MAX_NEEDED_ENTRIES = 128;
+const LINUX_ELF_MAX_INITIAL_CLOSURE_FILES = 256;
+const LINUX_ELF_MAX_INITIAL_CLOSURE_EDGES = 1024;
+const LINUX_ELF_MAX_INITIAL_CLOSURE_BYTES = 512 * 1024 * 1024;
 const LINUX_ELF_MAX_INTERPRETER_BYTES = 4096;
 const LINUX_ELF_MAX_STRING_TABLE_BYTES = 1024 * 1024;
 const LINUX_AUXV_ENTRY_BYTES = 16;
@@ -217,6 +221,7 @@ const LINUX_ELF_DYNAMIC_NULL = 0n;
 const LINUX_ELF_DYNAMIC_NEEDED = 1n;
 const LINUX_ELF_DYNAMIC_STRTAB = 5n;
 const LINUX_ELF_DYNAMIC_STRSZ = 10n;
+const LINUX_ELF_DYNAMIC_SONAME = 14n;
 const LINUX_ELF_DYNAMIC_RPATH = 15n;
 const LINUX_ELF_DYNAMIC_TEXTREL = 22n;
 const LINUX_ELF_DYNAMIC_FLAGS = 30n;
@@ -229,10 +234,10 @@ const LINUX_ELF_DYNAMIC_AUXILIARY = 0x7ffffffdn;
 const LINUX_ELF_DYNAMIC_FILTER = 0x7fffffffn;
 const LINUX_ELF_DYNAMIC_FLAG_TEXTREL = 0x4n;
 const LINUX_ELF_DYNAMIC_FLAG_PIE = 0x08000000n;
-const LINUX_NATIVE_DYNAMIC_DIRECT_SYSTEM_SET_SCOPE =
-  "initial-pt_interp-and-direct-dt_needed-attested-system-set";
-const LINUX_NATIVE_DYNAMIC_DIRECT_SYSTEM_SET_MECHANISM =
-  "parsed-elf-direct-system-set-to-attested-node-runtime-fds-v1";
+const LINUX_NATIVE_DYNAMIC_RECURSIVE_SYSTEM_GRAPH_SCOPE =
+  "initial-pt_interp-and-recursive-dt_needed-attested-system-graph";
+const LINUX_NATIVE_DYNAMIC_RECURSIVE_SYSTEM_GRAPH_MECHANISM =
+  "recursive-parsed-elf-system-graph-to-attested-runtime-fds-v1";
 const LINUX_ELF_MACHINES = Object.freeze({
   x64: 62,
   arm64: 183,
@@ -3923,16 +3928,20 @@ function linuxBubblewrapProbe(
     reason === null &&
     supervisorDescriptorBound &&
     nativeDynamicClosure?.mechanism ===
-      LINUX_NATIVE_DYNAMIC_DIRECT_SYSTEM_SET_MECHANISM &&
+      LINUX_NATIVE_DYNAMIC_RECURSIVE_SYSTEM_GRAPH_MECHANISM &&
     nativeDynamicClosure?.scope ===
-      LINUX_NATIVE_DYNAMIC_DIRECT_SYSTEM_SET_SCOPE &&
+      LINUX_NATIVE_DYNAMIC_RECURSIVE_SYSTEM_GRAPH_SCOPE &&
     typeof nativeDynamicClosure?.interpreter === "string" &&
     path.posix.isAbsolute(nativeDynamicClosure.interpreter) &&
     Number.isSafeInteger(nativeDynamicClosure?.dependencies) &&
     nativeDynamicClosure.dependencies >= 0 &&
-    nativeDynamicClosure.dependencies <= LINUX_ELF_MAX_NEEDED_ENTRIES &&
+    nativeDynamicClosure.dependencies <= LINUX_ELF_MAX_INITIAL_CLOSURE_EDGES &&
     Number.isSafeInteger(nativeDynamicClosure?.files) &&
     nativeDynamicClosure.files >= 1 &&
+    nativeDynamicClosure.files <= LINUX_ELF_MAX_INITIAL_CLOSURE_FILES &&
+    Number.isSafeInteger(nativeDynamicClosure?.bytes) &&
+    nativeDynamicClosure.bytes > 0 &&
+    nativeDynamicClosure.bytes <= LINUX_ELF_MAX_INITIAL_CLOSURE_BYTES &&
     typeof nativeDynamicClosure?.digest === "string" &&
     /^[a-f0-9]{64}$/.test(nativeDynamicClosure.digest);
   return {
@@ -3977,7 +3986,11 @@ function linuxBubblewrapProbe(
           initialDynamicInterpreter: nativeDynamicClosure.interpreter,
           initialDynamicDependencyCount: nativeDynamicClosure.dependencies,
           initialDynamicRuntimeFileCount: nativeDynamicClosure.files,
+          initialDynamicRuntimeBytes: nativeDynamicClosure.bytes,
           initialDynamicLoadClosureDigest: nativeDynamicClosure.digest,
+          // This evidence covers the loader's recursively reachable startup
+          // graph only. It must never be promoted to arbitrary dlopen closure.
+          sharedLibraryClosure: false,
         }
       : {}),
     supervisorDescriptorBound,
@@ -5406,9 +5419,14 @@ function linuxSystemDynamicPath(value) {
  * to a host inspection utility. Besides conventional fully static ET_EXEC and
  * static-PIE-shaped ET_DYN images, the parser can describe a narrow dynamic
  * executable. The caller must separately prove that its PT_INTERP and every
- * direct DT_NEEDED member are present in a pinned, attested system-file set.
+ * recursively reachable startup DT_NEEDED member resolve through a pinned,
+ * attested system-file graph.
  */
-function inspectLinuxNativeElf(runtime, fd, identity) {
+function inspectLinuxNativeElf(runtime, fd, identity, { role = "entry" } = {}) {
+  const dependencyObject = role === "dependency";
+  if (!dependencyObject && role !== "entry") {
+    throw new Error("native_elf_inspection_role_invalid");
+  }
   const expectedMachine = LINUX_ELF_MACHINES[runtime.arch];
   if (!expectedMachine) {
     throw new Error(`unsupported_elf_architecture:${String(runtime.arch)}`);
@@ -5417,8 +5435,11 @@ function inspectLinuxNativeElf(runtime, fd, identity) {
   const before = runtime.fs.fstatSync(fd);
   if (
     !before.isFile() ||
-    Number(before.nlink) !== 1 ||
-    (Number(before.mode) & 0o111) === 0 ||
+    (dependencyObject
+      ? Number(before.nlink) < 1 ||
+        Number(before.uid) !== 0 ||
+        (Number(before.mode) & 0o022) !== 0
+      : Number(before.nlink) !== 1 || (Number(before.mode) & 0o111) === 0) ||
     (Number(before.mode) & 0o6000) !== 0 ||
     String(before.dev) !== String(identity?.fileId?.dev) ||
     String(before.ino) !== String(identity?.fileId?.ino) ||
@@ -5446,6 +5467,9 @@ function inspectLinuxNativeElf(runtime, fd, identity) {
   const elfType = header.readUInt16LE(16);
   if (elfType !== LINUX_ELF_TYPE_EXEC && elfType !== LINUX_ELF_TYPE_DYN) {
     throw new Error("native_entry_unsupported_elf_type");
+  }
+  if (dependencyObject && elfType !== LINUX_ELF_TYPE_DYN) {
+    throw new Error("native_dependency_not_shared_object");
   }
   if (header.readUInt16LE(18) !== expectedMachine) {
     throw new Error("native_entry_architecture_mismatch");
@@ -5551,7 +5575,7 @@ function inspectLinuxNativeElf(runtime, fd, identity) {
     }
   }
   attestLinuxElfLoadMappings(loadSegments, runtimePageSize);
-  if (!executableLoad || !entryInExecutableLoad) {
+  if (!executableLoad || (!dependencyObject && !entryInExecutableLoad)) {
     throw new Error("native_entry_has_no_executable_entry_segment");
   }
   if (!nonExecutableStack) {
@@ -5560,6 +5584,9 @@ function inspectLinuxNativeElf(runtime, fd, identity) {
 
   if (interpreterSegments.length > 1) {
     throw new Error("native_entry_interpreter_ambiguous");
+  }
+  if (dependencyObject && interpreterSegments.length !== 0) {
+    throw new Error("native_dependency_interpreter_unsupported");
   }
   let interpreter = null;
   if (interpreterSegments.length === 1) {
@@ -5590,17 +5617,24 @@ function inspectLinuxNativeElf(runtime, fd, identity) {
     }
   }
 
-  const staticPie = elfType === LINUX_ELF_TYPE_DYN && interpreter === null;
-  const dynamicExecutable = interpreter !== null;
+  const staticPie =
+    !dependencyObject && elfType === LINUX_ELF_TYPE_DYN && interpreter === null;
+  const dynamicExecutable = !dependencyObject && interpreter !== null;
   let dynamicMetadata = null;
-  if (elfType === LINUX_ELF_TYPE_EXEC && !dynamicExecutable) {
+  if (
+    !dependencyObject &&
+    elfType === LINUX_ELF_TYPE_EXEC &&
+    !dynamicExecutable
+  ) {
     if (dynamicSegments.length > 0) {
       throw new Error("native_entry_dynamic_elf_unsupported");
     }
   } else {
-    const prefix = staticPie
-      ? "native_entry_static_pie"
-      : "native_entry_dynamic";
+    const prefix = dependencyObject
+      ? "native_dependency_dynamic"
+      : staticPie
+        ? "native_entry_static_pie"
+        : "native_entry_dynamic";
     if (dynamicSegments.length === 0) {
       throw new Error(`${prefix}_dynamic_segment_missing`);
     }
@@ -5668,6 +5702,7 @@ function inspectLinuxNativeElf(runtime, fd, identity) {
       Number(dynamic.fileOffset),
     );
     const neededOffsets = [];
+    let sonameOffset = null;
     const forbiddenDependencyTags = new Set([
       LINUX_ELF_DYNAMIC_RPATH,
       LINUX_ELF_DYNAMIC_RUNPATH,
@@ -5704,6 +5739,11 @@ function inspectLinuxNativeElf(runtime, fd, identity) {
         if (neededOffsets.length > LINUX_ELF_MAX_NEEDED_ENTRIES) {
           throw new Error(`${prefix}_dependency_count_exceeded`);
         }
+      } else if (tag === LINUX_ELF_DYNAMIC_SONAME) {
+        if (sonameOffset !== null) {
+          throw new Error(`${prefix}_soname_ambiguous`);
+        }
+        sonameOffset = value;
       } else if (tag === LINUX_ELF_DYNAMIC_STRTAB) {
         if (stringTableAddress !== null) {
           throw new Error(`${prefix}_string_table_ambiguous`);
@@ -5733,17 +5773,19 @@ function inspectLinuxNativeElf(runtime, fd, identity) {
       throw new Error(`${prefix}_text_relocation_unsupported`);
     }
     if (
+      !dependencyObject &&
       elfType === LINUX_ELF_TYPE_DYN &&
       (flags1 === null || (flags1 & LINUX_ELF_DYNAMIC_FLAG_PIE) === 0n)
     ) {
       throw new Error(`${prefix}_flag_missing`);
     }
-    if (staticPie && neededOffsets.length > 0) {
+    if (!dependencyObject && staticPie && neededOffsets.length > 0) {
       throw new Error("native_entry_static_pie_dependency_unsupported");
     }
 
     let needed = [];
-    if (neededOffsets.length > 0) {
+    let soname = null;
+    if (neededOffsets.length > 0 || sonameOffset !== null) {
       if (
         stringTableAddress === null ||
         stringTableBytes === null ||
@@ -5793,34 +5835,61 @@ function inspectLinuxNativeElf(runtime, fd, identity) {
       if (new Set(needed).size !== needed.length) {
         throw new Error("native_entry_dynamic_dependency_ambiguous");
       }
+      if (sonameOffset !== null) {
+        if (sonameOffset > BigInt(Number.MAX_SAFE_INTEGER)) {
+          throw new Error(`${prefix}_soname_string_out_of_bounds`);
+        }
+        soname = readLinuxElfString(
+          stringTable,
+          Number(sonameOffset),
+          "dynamic_soname",
+        );
+        if (
+          !/^[A-Za-z0-9][A-Za-z0-9._+-]{0,254}$/.test(soname) ||
+          path.posix.basename(soname) !== soname
+        ) {
+          throw new Error(`${prefix}_soname_invalid`);
+        }
+      }
     }
 
-    if (dynamicExecutable) {
+    if (dynamicExecutable || dependencyObject) {
       dynamicMetadata = Object.freeze({
-        interpreter,
+        ...(dynamicExecutable ? { interpreter } : {}),
         needed: Object.freeze(needed),
+        soname,
       });
     }
   }
 
   const sha256 = hashLinuxOpenFile(runtime, fd, Number(before.size));
   const after = runtime.fs.fstatSync(fd);
-  if (!linuxOpenStatMatches(before, after) || sha256 !== identity.sha256) {
+  if (
+    !linuxOpenStatMatches(before, after) ||
+    (identity.sha256 !== undefined && sha256 !== identity.sha256)
+  ) {
     throw new Error("native_entry_changed_during_elf_attestation");
   }
   return Object.freeze({
-    runtime: dynamicExecutable ? "native-dynamic-elf" : "native-static-elf",
-    format: dynamicExecutable
-      ? elfType === LINUX_ELF_TYPE_DYN
-        ? "elf64-dynamic-pie-et-dyn"
-        : "elf64-dynamic-et-exec"
-      : elfType === LINUX_ELF_TYPE_DYN
-        ? "elf64-static-pie-shaped-et-dyn"
-        : "elf64-static-et-exec",
+    runtime: dependencyObject
+      ? "native-shared-object"
+      : dynamicExecutable
+        ? "native-dynamic-elf"
+        : "native-static-elf",
+    format: dependencyObject
+      ? "elf64-shared-object-et-dyn"
+      : dynamicExecutable
+        ? elfType === LINUX_ELF_TYPE_DYN
+          ? "elf64-dynamic-pie-et-dyn"
+          : "elf64-dynamic-et-exec"
+        : elfType === LINUX_ELF_TYPE_DYN
+          ? "elf64-static-pie-shaped-et-dyn"
+          : "elf64-static-et-exec",
     architecture: runtime.arch,
     machine: expectedMachine,
     loaderPageBytes: Number(runtimePageSize),
     programHeaders: programHeaderCount,
+    sha256,
     ...(dynamicMetadata || {}),
   });
 }
@@ -6452,18 +6521,65 @@ function attestLinuxBubblewrapCapabilities(runtime, supervisorLaunch) {
   return { ok: true, reason: null };
 }
 
-function parseLinuxLddPaths(output) {
-  const paths = new Set();
-  for (const line of String(output || "").split(/\r?\n/)) {
+function parseLinuxLddResolution(output) {
+  const byDestination = new Map();
+  const byLoaderName = new Map();
+  const byBasename = new Map();
+  for (const rawLine of String(output || "").split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line) continue;
     if (line.includes("=> not found")) {
       throw new Error("runtime_dependency_missing");
     }
-    const resolved = line.match(/=>\s+(\/[^\s(]+)\s+\(/)?.[1];
-    const loader = line.match(/^\s*(\/[^\s(]+)\s+\(/)?.[1];
-    if (resolved) paths.add(resolved);
-    if (loader) paths.add(loader);
+    if (/^linux-vdso(?:\.so(?:\.\d+)?)?\s+\(/.test(line)) continue;
+    const resolved = line.match(
+      /^([A-Za-z0-9][A-Za-z0-9._+-]{0,254})\s+=>\s+(\/[^\s(]+)\s+\(/,
+    );
+    const direct = line.match(/^(\/[^\s(]+)\s+\(/);
+    if (!resolved && !direct) {
+      throw new Error("runtime_dependency_resolution_output_invalid");
+    }
+    const loaderName = resolved?.[1] || path.posix.basename(direct[1]);
+    const destination = resolved?.[2] || direct[1];
+    if (path.posix.normalize(destination) !== destination) {
+      throw new Error("runtime_dependency_outside_system_library_roots");
+    }
+    if (
+      !/^[A-Za-z0-9][A-Za-z0-9._+-]{0,254}$/.test(loaderName) ||
+      path.posix.basename(destination) !== loaderName
+    ) {
+      throw new Error("runtime_dependency_resolution_alias_unsupported");
+    }
+    const priorLoaderDestination = byLoaderName.get(loaderName);
+    if (
+      priorLoaderDestination !== undefined &&
+      priorLoaderDestination !== destination
+    ) {
+      throw new Error("runtime_dependency_resolution_ambiguous");
+    }
+    const basename = path.posix.basename(destination);
+    const priorBasenameDestination = byBasename.get(basename);
+    if (
+      priorBasenameDestination !== undefined &&
+      priorBasenameDestination !== destination
+    ) {
+      throw new Error("runtime_dependency_resolution_ambiguous");
+    }
+    byLoaderName.set(loaderName, destination);
+    byBasename.set(basename, destination);
+    const existing = byDestination.get(destination) || new Set();
+    existing.add(loaderName);
+    byDestination.set(destination, existing);
   }
-  return [...paths];
+  if (byDestination.size === 0) {
+    throw new Error("runtime_dependency_resolution_empty");
+  }
+  return [...byDestination.entries()]
+    .map(([destination, loaderNames]) => ({
+      destination,
+      loaderNames: [...loaderNames].sort(),
+    }))
+    .sort((left, right) => left.destination.localeCompare(right.destination));
 }
 
 function collectLinuxNodeRuntimeMounts(runtime, runtimeIdentity) {
@@ -6509,9 +6625,12 @@ function collectLinuxNodeRuntimeMounts(runtime, runtimeIdentity) {
     {
       source: runtimeIdentity.realPath,
       destination: "/opt/chainless/runtime/node",
+      loaderNames: [],
     },
   ];
-  for (const destination of parseLinuxLddPaths(result.stdout)) {
+  for (const { destination, loaderNames } of parseLinuxLddResolution(
+    result.stdout,
+  )) {
     if (
       path.posix.normalize(destination) !== destination ||
       !["/lib/", "/lib64/", "/usr/lib/"].some((prefix) =>
@@ -6524,14 +6643,18 @@ function collectLinuxNodeRuntimeMounts(runtime, runtimeIdentity) {
     if (!source) {
       throw new Error("runtime_dependency_unattested");
     }
-    mounts.push({ source, destination });
+    mounts.push({ source, destination, loaderNames });
   }
   if (runtime.fs.existsSync("/etc/ld.so.cache")) {
     const source = attestLinuxRootOwnedFile(runtime, "/etc/ld.so.cache");
     if (!source) {
       throw new Error("loader_cache_unattested");
     }
-    mounts.push({ source, destination: "/etc/ld.so.cache" });
+    mounts.push({
+      source,
+      destination: "/etc/ld.so.cache",
+      loaderNames: [],
+    });
   }
   const byDestination = new Map();
   for (const mount of mounts) {
@@ -6539,7 +6662,16 @@ function collectLinuxNodeRuntimeMounts(runtime, runtimeIdentity) {
     if (existing && existing.source !== mount.source) {
       throw new Error("runtime_mount_collision");
     }
-    byDestination.set(mount.destination, mount);
+    if (existing) {
+      existing.loaderNames = [
+        ...new Set([
+          ...(existing.loaderNames || []),
+          ...(mount.loaderNames || []),
+        ]),
+      ].sort();
+    } else {
+      byDestination.set(mount.destination, mount);
+    }
   }
   return [...byDestination.values()].sort((left, right) =>
     left.destination.localeCompare(right.destination),
@@ -6559,9 +6691,15 @@ function pinLinuxRuntimeMounts(runtime, runtimeMounts, runtimeIdentity) {
               mtimeMs: runtimeIdentity.mtimeMs,
             }
           : runtime.fs.statSync(mount.source);
-      mounts.push(
-        pinLinuxRegularFile(runtime, mount.source, mount.destination, expected),
-      );
+      mounts.push({
+        ...pinLinuxRegularFile(
+          runtime,
+          mount.source,
+          mount.destination,
+          expected,
+        ),
+        loaderNames: Object.freeze([...(mount.loaderNames || [])]),
+      });
     }
     return mounts;
   } catch (error) {
@@ -6570,15 +6708,22 @@ function pinLinuxRuntimeMounts(runtime, runtimeMounts, runtimeIdentity) {
   }
 }
 
-// Bind only the kernel-selected interpreter and the entry ELF's direct
-// DT_NEEDED names. This deliberately does not claim transitive or dlopen-time
-// closure; handleAtomic remains false for the wider launch chain.
-function bindLinuxNativeDynamicRuntime(entryFormat, pinnedRuntimeMounts) {
+// Bind the kernel-selected interpreter and recursively parse every DT_NEEDED
+// edge reachable from the entry through the exact root-owned descriptors that
+// will be mounted into the sandbox. This proves only the loader's initial ELF
+// graph. It deliberately does not claim runtime dlopen closure; writable
+// scratch mounts and executable-created code remain outside this evidence.
+function bindLinuxNativeDynamicRuntime(
+  runtime,
+  entryFormat,
+  pinnedRuntimeMounts,
+) {
   if (entryFormat?.runtime !== "native-dynamic-elf") return null;
   if (
     !linuxSystemDynamicPath(entryFormat.interpreter) ||
     !Array.isArray(entryFormat.needed) ||
-    entryFormat.needed.length > LINUX_ELF_MAX_NEEDED_ENTRIES
+    entryFormat.needed.length > LINUX_ELF_MAX_NEEDED_ENTRIES ||
+    entryFormat.soname !== null
   ) {
     throw new Error("native_dynamic_metadata_invalid");
   }
@@ -6590,63 +6735,149 @@ function bindLinuxNativeDynamicRuntime(entryFormat, pinnedRuntimeMounts) {
       typeof mount?.fileId?.ino === "string" &&
       Number.isSafeInteger(mount?.bytes) &&
       mount.bytes > 0 &&
-      Number.isFinite(mount?.mtimeMs),
+      Number.isFinite(mount?.mtimeMs) &&
+      Array.isArray(mount?.loaderNames) &&
+      mount.loaderNames.every(
+        (name) =>
+          typeof name === "string" &&
+          /^[A-Za-z0-9][A-Za-z0-9._+-]{0,254}$/.test(name),
+      ),
   );
+  const resolveDependency = (dependency, { direct = false } = {}) => {
+    if (
+      typeof dependency !== "string" ||
+      !/^[A-Za-z0-9][A-Za-z0-9._+-]{0,254}$/.test(dependency) ||
+      path.posix.basename(dependency) !== dependency
+    ) {
+      throw new Error("native_dynamic_dependency_name_invalid");
+    }
+    const matches = systemMounts.filter(
+      (mount) =>
+        path.posix.basename(mount.destination) === dependency &&
+        mount.loaderNames.includes(dependency),
+    );
+    if (matches.length === 0) {
+      throw new Error(
+        direct
+          ? "native_dynamic_dependency_outside_direct_system_set"
+          : "native_dynamic_recursive_dependency_outside_system_graph",
+      );
+    }
+    if (matches.length !== 1) {
+      throw new Error(
+        direct
+          ? "native_dynamic_dependency_runtime_ambiguous"
+          : "native_dynamic_recursive_dependency_runtime_ambiguous",
+      );
+    }
+    return matches[0];
+  };
   const interpreterMount = systemMounts.find(
     (mount) => mount.destination === entryFormat.interpreter,
   );
   if (!interpreterMount) {
     throw new Error("native_dynamic_interpreter_outside_direct_system_set");
   }
-  const selected = new Map([[interpreterMount.destination, interpreterMount]]);
-  for (const dependency of entryFormat.needed) {
+  const selected = new Map();
+  const pending = [];
+  let selectedBytes = 0;
+  const select = (mount) => {
+    if (selected.has(mount.destination)) return;
+    if (selected.size >= LINUX_ELF_MAX_INITIAL_CLOSURE_FILES) {
+      throw new Error("native_dynamic_recursive_file_count_exceeded");
+    }
     if (
-      typeof dependency !== "string" ||
-      !/^[A-Za-z0-9][A-Za-z0-9._+-]{0,254}$/.test(dependency)
+      !Number.isSafeInteger(mount.bytes) ||
+      mount.bytes <= 0 ||
+      selectedBytes > LINUX_ELF_MAX_INITIAL_CLOSURE_BYTES - mount.bytes
     ) {
-      throw new Error("native_dynamic_dependency_name_invalid");
+      throw new Error("native_dynamic_recursive_bytes_exceeded");
     }
-    const matches = systemMounts.filter(
-      (mount) => path.posix.basename(mount.destination) === dependency,
-    );
-    if (matches.length === 0) {
-      throw new Error("native_dynamic_dependency_outside_direct_system_set");
+    selectedBytes += mount.bytes;
+    selected.set(mount.destination, mount);
+    pending.push(mount);
+  };
+  select(interpreterMount);
+  const edges = [];
+  for (const dependency of entryFormat.needed) {
+    const target = resolveDependency(dependency, { direct: true });
+    edges.push({ from: "$entry", name: dependency, to: target.destination });
+    select(target);
+  }
+  const parsed = new Map();
+  for (let index = 0; index < pending.length; index += 1) {
+    const mount = pending[index];
+    const metadata = inspectLinuxNativeElf(runtime, mount.fd, mount, {
+      role: "dependency",
+    });
+    if (
+      metadata.soname !== null &&
+      (metadata.soname !== path.posix.basename(mount.destination) ||
+        !mount.loaderNames.includes(metadata.soname))
+    ) {
+      throw new Error("native_dependency_soname_alias_unsupported");
     }
-    if (matches.length !== 1) {
-      throw new Error("native_dynamic_dependency_runtime_ambiguous");
+    parsed.set(mount.destination, metadata);
+    for (const dependency of metadata.needed || []) {
+      if (edges.length >= LINUX_ELF_MAX_INITIAL_CLOSURE_EDGES) {
+        throw new Error("native_dynamic_recursive_edge_count_exceeded");
+      }
+      const target = resolveDependency(dependency);
+      edges.push({
+        from: mount.destination,
+        name: dependency,
+        to: target.destination,
+      });
+      select(target);
     }
-    selected.set(matches[0].destination, matches[0]);
   }
   const members = [...selected.values()]
-    .map((mount) => ({
-      destination: mount.destination,
-      fileId: {
-        dev: mount.fileId.dev,
-        ino: mount.fileId.ino,
-      },
-      bytes: mount.bytes,
-      mtimeMs: mount.mtimeMs,
-    }))
+    .map((mount) => {
+      const metadata = parsed.get(mount.destination);
+      if (!metadata) {
+        throw new Error("native_dynamic_recursive_member_unparsed");
+      }
+      return {
+        destination: mount.destination,
+        fileId: {
+          dev: mount.fileId.dev,
+          ino: mount.fileId.ino,
+        },
+        bytes: mount.bytes,
+        mtimeMs: mount.mtimeMs,
+        sha256: metadata.sha256,
+        loaderNames: [...mount.loaderNames],
+        needed: [...(metadata.needed || [])].sort(),
+        soname: metadata.soname,
+      };
+    })
     .sort((left, right) => left.destination.localeCompare(right.destination));
+  const orderedEdges = edges.sort((left, right) =>
+    `${left.from}\0${left.name}\0${left.to}`.localeCompare(
+      `${right.from}\0${right.name}\0${right.to}`,
+    ),
+  );
   const digest = crypto
     .createHash("sha256")
     .update(
       JSON.stringify({
         version: 1,
-        scope: LINUX_NATIVE_DYNAMIC_DIRECT_SYSTEM_SET_SCOPE,
-        mechanism: LINUX_NATIVE_DYNAMIC_DIRECT_SYSTEM_SET_MECHANISM,
+        scope: LINUX_NATIVE_DYNAMIC_RECURSIVE_SYSTEM_GRAPH_SCOPE,
+        mechanism: LINUX_NATIVE_DYNAMIC_RECURSIVE_SYSTEM_GRAPH_MECHANISM,
         interpreter: entryFormat.interpreter,
-        needed: [...entryFormat.needed].sort(),
+        directNeeded: [...entryFormat.needed].sort(),
         members,
+        edges: orderedEdges,
       }),
     )
     .digest("hex");
   return Object.freeze({
-    scope: LINUX_NATIVE_DYNAMIC_DIRECT_SYSTEM_SET_SCOPE,
-    mechanism: LINUX_NATIVE_DYNAMIC_DIRECT_SYSTEM_SET_MECHANISM,
+    scope: LINUX_NATIVE_DYNAMIC_RECURSIVE_SYSTEM_GRAPH_SCOPE,
+    mechanism: LINUX_NATIVE_DYNAMIC_RECURSIVE_SYSTEM_GRAPH_MECHANISM,
     interpreter: entryFormat.interpreter,
-    dependencies: entryFormat.needed.length,
+    dependencies: orderedEdges.length,
     files: members.length,
+    bytes: selectedBytes,
     digest,
   });
 }
@@ -7106,6 +7337,7 @@ export function applyLinuxSandbox(
     let nativeDynamicClosure = null;
     try {
       nativeDynamicClosure = bindLinuxNativeDynamicRuntime(
+        runtime,
         validation.entryFormat,
         pinnedRuntimeMounts,
       );
@@ -7119,7 +7351,7 @@ export function applyLinuxSandbox(
         runtimeProbe: linuxBubblewrapProbe(
           false,
           false,
-          error.message || "native_dynamic_direct_system_set_unattested",
+          error.message || "native_dynamic_recursive_system_graph_unattested",
           validation.entryRuntime,
         ),
         reason: "linux_bwrap_native_runtime_unattested",

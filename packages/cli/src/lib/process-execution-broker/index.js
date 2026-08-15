@@ -1236,6 +1236,7 @@ class ProcessExecutionBroker extends EventEmitter {
         "pluginTreeContentSnapshotBytes",
         "initialDynamicDependencyCount",
         "initialDynamicRuntimeFileCount",
+        "initialDynamicRuntimeBytes",
         "runtimeSnapshotBytes",
         "runtimeAttestedBytes",
         "entrySnapshotBytes",
@@ -1527,6 +1528,7 @@ class ProcessExecutionBroker extends EventEmitter {
         "initialDynamicInterpreter",
         "initialDynamicDependencyCount",
         "initialDynamicRuntimeFileCount",
+        "initialDynamicRuntimeBytes",
         "initialDynamicLoadClosureDigest",
       ];
       const initialDynamicInterpreter =
@@ -1535,6 +1537,8 @@ class ProcessExecutionBroker extends EventEmitter {
         plan.runtimeProbe.initialDynamicDependencyCount;
       const initialDynamicRuntimeFileCount =
         plan.runtimeProbe.initialDynamicRuntimeFileCount;
+      const initialDynamicRuntimeBytes =
+        plan.runtimeProbe.initialDynamicRuntimeBytes;
       const successfulDynamicProbe =
         plan.applied === true &&
         plan.runtimeProbe.kind ===
@@ -1564,11 +1568,12 @@ class ProcessExecutionBroker extends EventEmitter {
           plan.runtimeProbe.contentSnapshotMechanism !==
             "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1" ||
           plan.runtimeProbe.handleAtomic !== false ||
+          plan.runtimeProbe.sharedLibraryClosure !== false ||
           !supervisorBound ||
           plan.runtimeProbe.initialDynamicLoadClosureScope !==
-            "initial-pt_interp-and-direct-dt_needed-attested-system-set" ||
+            "initial-pt_interp-and-recursive-dt_needed-attested-system-graph" ||
           plan.runtimeProbe.initialDynamicLoadClosureMechanism !==
-            "parsed-elf-direct-system-set-to-attested-node-runtime-fds-v1" ||
+            "recursive-parsed-elf-system-graph-to-attested-runtime-fds-v1" ||
           typeof initialDynamicInterpreter !== "string" ||
           !path.posix.isAbsolute(initialDynamicInterpreter) ||
           path.posix.normalize(initialDynamicInterpreter) !==
@@ -1578,20 +1583,20 @@ class ProcessExecutionBroker extends EventEmitter {
           ) ||
           !Number.isSafeInteger(initialDynamicDependencyCount) ||
           initialDynamicDependencyCount < 0 ||
-          initialDynamicDependencyCount > 128 ||
+          initialDynamicDependencyCount > 1024 ||
           !Number.isSafeInteger(initialDynamicRuntimeFileCount) ||
           initialDynamicRuntimeFileCount < 1 ||
-          initialDynamicRuntimeFileCount > 129 ||
-          initialDynamicRuntimeFileCount <
-            Math.max(1, initialDynamicDependencyCount) ||
-          initialDynamicRuntimeFileCount > initialDynamicDependencyCount + 1 ||
+          initialDynamicRuntimeFileCount > 256 ||
+          !Number.isSafeInteger(initialDynamicRuntimeBytes) ||
+          initialDynamicRuntimeBytes < 1 ||
+          initialDynamicRuntimeBytes > 512 * 1024 * 1024 ||
           !/^[a-f0-9]{64}$/.test(
             plan.runtimeProbe.initialDynamicLoadClosureDigest || "",
           ))
       ) {
         throw this._sandboxError(
           "invalid_sandbox_plan",
-          "Sandbox runtime probe initial dynamic direct system set evidence must use the typed descriptor-bound contract",
+          "Sandbox runtime probe initial recursive dynamic system graph evidence must use the typed descriptor-bound contract",
         );
       }
       if (
@@ -1602,13 +1607,13 @@ class ProcessExecutionBroker extends EventEmitter {
       ) {
         throw this._sandboxError(
           "invalid_sandbox_plan",
-          "Sandbox runtime probe initial dynamic direct system set evidence requires initialDynamicLoadClosureDescriptorBound",
+          "Sandbox runtime probe initial recursive dynamic system graph evidence requires initialDynamicLoadClosureDescriptorBound",
         );
       }
       if (successfulDynamicProbe && !initialDynamicLoadClosureBound) {
         throw this._sandboxError(
           "invalid_sandbox_plan",
-          "Sandbox runtime probe successful dynamic ELF evidence requires a descriptor-bound initial direct system set",
+          "Sandbox runtime probe successful dynamic ELF evidence requires a descriptor-bound initial recursive system graph",
         );
       }
       const codeSnapshotGuaranteed = guarantees.includes(
