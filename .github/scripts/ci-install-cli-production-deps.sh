@@ -18,6 +18,17 @@ workspace_packages=(
   "$repo_root/packages/session-core"
   "$repo_root/packages/shared-logger"
 )
+mode="${1:-install}"
+candidate_directory="${2:-}"
+
+if [[ "$mode" != "install" && "$mode" != "--pack-candidates" ]]; then
+  echo "usage: $0 [--pack-candidates OUTPUT_DIRECTORY]" >&2
+  exit 2
+fi
+if [[ "$mode" == "--pack-candidates" && -z "$candidate_directory" ]]; then
+  echo "--pack-candidates requires an output directory" >&2
+  exit 2
+fi
 
 # Fail closed when the CLI's direct internal dependency set or an exact version
 # diverges from the checked-out workspace packages. This prevents a missing
@@ -58,6 +69,25 @@ for (const { manifest } of workspaceManifests) {
   }
 }
 NODE
+
+if [[ "$mode" == "--pack-candidates" ]]; then
+  mkdir -p "$candidate_directory"
+  shopt -s nullglob
+  existing_candidates=("$candidate_directory"/*.tgz)
+  if (( ${#existing_candidates[@]} > 0 )); then
+    echo "candidate directory must not contain existing tarballs: $candidate_directory" >&2
+    exit 1
+  fi
+  npm pack "${workspace_packages[@]}" "$cli_dir" \
+    --pack-destination "$candidate_directory"
+  packed_candidates=("$candidate_directory"/*.tgz)
+  expected_candidate_count=$(( ${#workspace_packages[@]} + 1 ))
+  if (( ${#packed_candidates[@]} != expected_candidate_count )); then
+    echo "expected $expected_candidate_count candidate tarballs, got ${#packed_candidates[@]}" >&2
+    exit 1
+  fi
+  exit 0
+fi
 
 (
   cd "$cli_dir"

@@ -218,17 +218,15 @@ jobs:
         with:
           node-version: "22.x"
 
-      - name: Pack CLI tarball
-        working-directory: ./packages/cli
+      - name: Pack CLI and exact internal dependency candidates
         shell: bash
-        run: |
-          npm pack
-          ls chainlesschain-*.tgz
+        run: >-
+          bash "$GITHUB_WORKSPACE/.github/scripts/ci-install-cli-production-deps.sh"
+          --pack-candidates "$RUNNER_TEMP/cli-global-install-candidates"
 
       - name: Global install from tarball (exercises postinstall)
-        working-directory: ./packages/cli
         shell: bash
-        run: npm install -g ./chainlesschain-*.tgz
+        run: npm install -g "$RUNNER_TEMP/cli-global-install-candidates/"*.tgz
 
       - name: Verify CLI executable
         shell: bash
