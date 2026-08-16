@@ -14,7 +14,9 @@ import {
   BACKGROUND_AGENT_KEEPER_RETIRE,
   BACKGROUND_AGENT_KEEPER_RETIRED,
   backgroundAgentKeeperPipePath,
+  cleanupBackgroundAgentKeeperPipeDirectory,
   createBackgroundAgentKeeperMessage,
+  prepareBackgroundAgentKeeperPipePath,
 } from "../../src/lib/background-agent-keeper-protocol.js";
 import { createNdjsonReader } from "../../src/lib/background-session-transport.js";
 
@@ -45,6 +47,7 @@ async function startFixtureKeeper({ retireDelayMs = 0, replyToRetire = true }) {
     identity.id,
     identity.directory,
   );
+  prepareBackgroundAgentKeeperPipePath(pipePath);
   const sockets = new Set();
   const messages = [];
   const server = net.createServer((socket) => {
@@ -109,6 +112,7 @@ async function startFixtureKeeper({ retireDelayMs = 0, replyToRetire = true }) {
     sockets,
     clients: [],
     messages,
+    pipePath,
   };
   resources.push(resource);
   return { identity, pipePath, resource };
@@ -134,6 +138,7 @@ afterEach(async () => {
     await new Promise((resolvePromise) =>
       resource.server.close(resolvePromise),
     );
+    cleanupBackgroundAgentKeeperPipeDirectory(resource.pipePath);
     rmSync(resource.directory, { recursive: true, force: true });
   }
 });

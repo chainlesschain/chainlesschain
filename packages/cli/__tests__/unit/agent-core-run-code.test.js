@@ -245,9 +245,11 @@ describe("getBaseSystemPrompt — environment section", () => {
 
 describe("executeTool — run_code enhancements", () => {
   let tempDir;
+  let canonicalTempDir;
 
   beforeEach(() => {
     tempDir = mkdtempSync(join(tmpdir(), "cc-run-code-test-"));
+    canonicalTempDir = fs.realpathSync.native(tempDir);
     _resetCachedPythonForTests();
     _resetPluginBinSandboxPolicyPins();
     detectPythonMock.mockClear();
@@ -315,7 +317,7 @@ describe("executeTool — run_code enhancements", () => {
         "python3",
         [expect.stringMatching(/cc-agent-\d+\.py$/)],
         expect.objectContaining({
-          cwd: tempDir,
+          cwd: canonicalTempDir,
           origin: "agent-core:run-code",
           policy: "allow",
           scope: "agent-core",
@@ -342,7 +344,7 @@ describe("executeTool — run_code enhancements", () => {
         "python3",
         [expect.stringMatching(/cc-agent-\d+\.py$/)],
         expect.objectContaining({
-          cwd: tempDir,
+          cwd: canonicalTempDir,
           origin: "agent-core:run-code",
           policy: "allow",
           scope: "agent-core",
@@ -470,7 +472,7 @@ describe("executeTool — run_code enhancements", () => {
         "node",
         [expect.stringMatching(/cc-agent-\d+\.js$/)],
         expect.objectContaining({
-          cwd: tempDir,
+          cwd: canonicalTempDir,
           origin: "agent-core:run-code",
           policy: "allow",
           scope: "agent-core",
