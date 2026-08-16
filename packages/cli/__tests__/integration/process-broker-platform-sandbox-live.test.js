@@ -84,6 +84,19 @@ function fileIdentity(filePath) {
   };
 }
 
+function activateManualPluginFixture(pluginRoot, version = "1.0.0") {
+  fs.writeFileSync(
+    path.join(pluginRoot, ".plugin-source.json"),
+    JSON.stringify({ type: "local", source: pluginRoot }),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(path.dirname(pluginRoot), ".active"),
+    version,
+    "utf8",
+  );
+}
+
 function inheritedSentinelStdio(parentFd) {
   const stdio = Array.from(
     { length: LINUX_AMBIENT_SENTINEL_CHILD_FD + 1 },
@@ -867,6 +880,7 @@ describe.runIf(LIVE && SUPPORTED)(
             }),
             "utf8",
           );
+          activateManualPluginFixture(pluginRoot);
           fs.writeFileSync(
             pluginEntry,
             [
@@ -1846,6 +1860,7 @@ describe.runIf(LIVE && SUPPORTED)(
             }),
             "utf8",
           );
+          activateManualPluginFixture(pluginRoot);
           fs.writeFileSync(
             configPath,
             JSON.stringify({
@@ -2115,6 +2130,7 @@ describe.runIf(LIVE && SUPPORTED)(
             }),
             "utf8",
           );
+          activateManualPluginFixture(pluginRoot);
           fs.writeFileSync(
             pluginEntry,
             [
@@ -2391,6 +2407,10 @@ describe.runIf(LIVE && SUPPORTED)(
                 destination: sandboxManifestPath,
               },
               {
+                sourcePath: path.join(pluginRoot, ".plugin-source.json"),
+                destination: "/opt/chainless/plugin/.plugin-source.json",
+              },
+              {
                 sourcePath: pluginEntry,
                 destination: sandboxEntryPath,
               },
@@ -2592,7 +2612,7 @@ describe.runIf(LIVE && SUPPORTED)(
             roBindData: [],
             roBindFd: [{ childFd: expect.any(String) }],
           });
-          expect(expectedPluginFileBindings).toHaveLength(5);
+          expect(expectedPluginFileBindings).toHaveLength(6);
           expect(
             expectedPluginFileBindings.every(
               (binding) =>
@@ -2831,6 +2851,7 @@ describe.runIf(LIVE && SUPPORTED)(
             }),
             "utf8",
           );
+          activateManualPluginFixture(pluginRoot);
 
           const buildDlopenLibrary = (output, soname, variant) => {
             const build = nativeSpawnSync(
@@ -3092,6 +3113,7 @@ describe.runIf(LIVE && SUPPORTED)(
             )}`;
             const pluginTreeSnapshotMembers = [
               path.join(pluginRoot, "plugin.json"),
+              path.join(pluginRoot, ".plugin-source.json"),
               allowedPath,
               staticEntry,
               staticPieEntry,
