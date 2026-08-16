@@ -303,7 +303,7 @@
     "yjs": "^13.6.20"
   },
   "optionalDependencies": {
-    "pkcs11js": "^2.3.0",
+    "pkcs11js": "^2.1.7",
     "robotjs": "^0.6.0"
   },
   "devDependencies": {
