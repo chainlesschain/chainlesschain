@@ -32,6 +32,7 @@ import {
   BACKGROUND_AGENT_KEEPER_RETIRE,
   BACKGROUND_AGENT_KEEPER_RETIRED,
   BACKGROUND_AGENT_KEEPER_STATE_LOCK_TIMEOUT_MS,
+  cleanupBackgroundAgentKeeperPipeDirectory,
   createBackgroundAgentKeeperMessage,
   normalizeBackgroundAgentKeeperHello,
   normalizeBackgroundAgentKeeperTurn,
@@ -463,6 +464,11 @@ export async function runBackgroundAgentKeeper(jobFile, options = {}) {
       unlinkSync(job.pipePath);
     } catch {
       // Already removed or never materialized.
+    }
+    try {
+      cleanupBackgroundAgentKeeperPipeDirectory(job.pipePath);
+    } catch {
+      // Another keeper can still own a sibling socket in the shared namespace.
     }
   }
   return {
