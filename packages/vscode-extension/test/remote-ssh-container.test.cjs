@@ -133,6 +133,23 @@ test("remote workspace binds every root to the selected SSH authority", () => {
   );
 });
 
+test("container marker digest binds the exact bytes written remotely", () => {
+  const marker = runner.createContainerMarker("a".repeat(24));
+
+  assert.equal(
+    marker,
+    "chainlesschain-remote-ssh-container:aaaaaaaaaaaaaaaaaaaaaaaa",
+  );
+  assert.doesNotMatch(marker, /\r|\n/u);
+
+  const orchestrator = read(
+    "packages/vscode-extension/test/remote-ssh-container/run.cjs",
+  );
+  assert.match(orchestrator, /const markerDigest = sha256Buffer\(marker\)/u);
+  assert.match(orchestrator, /printf '%s' '\$\{marker\}'/u);
+  assert.doesNotMatch(orchestrator, /marker\.trim\(\)/u);
+});
+
 test("failed Remote-SSH host runs retain local and container diagnostics", () => {
   const orchestrator = read(
     "packages/vscode-extension/test/remote-ssh-container/run.cjs",
