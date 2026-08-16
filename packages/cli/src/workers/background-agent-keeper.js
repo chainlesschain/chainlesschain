@@ -95,14 +95,18 @@ export function stopBackgroundAgentKeeperTurnTrees(targets, options = {}) {
   const processAlive = options.isProcessAlive || isProcessAlive;
   const stopTree = options.stopProcessTree || stopBackgroundAgentChildTree;
   const failures = [];
+  let precedingTreeStopSucceeded = false;
   for (const target of targets) {
     // On Windows the wrapper's taskkill /T also retires its runtime child.
     // Avoid starting a second bounded taskkill for a target the first tree
     // operation already proved absent; under 20-way churn that redundant
-    // command can consume the keeper's entire cleanup SLO.
-    if (!processAlive(target.pid)) continue;
+    // command can consume the keeper's entire cleanup SLO. Never skip the
+    // first root merely because its leader exited: POSIX descendants can keep
+    // executing in the leader's process group and still require a group kill.
+    if (precedingTreeStopSucceeded && !processAlive(target.pid)) continue;
     try {
       stopTree(target.pid, { signal: "SIGKILL" });
+      precedingTreeStopSucceeded = true;
     } catch (error) {
       // A preceding wrapper/group signal may already have retired this root.
       if (processAlive(target.pid)) {

@@ -118,6 +118,25 @@ describe("background agent keeper protocol", () => {
     expect(stopProcessTree).toHaveBeenCalledWith(4321, { signal: "SIGKILL" });
   });
 
+  it("still signals the first POSIX group after its leader pid retires", () => {
+    const stopProcessTree = vi.fn();
+
+    expect(
+      stopBackgroundAgentKeeperTurnTrees(
+        [
+          { pid: 4321, startedAt: 1_000 },
+          { pid: 5432, startedAt: 1_001 },
+        ],
+        {
+          isProcessAlive: () => false,
+          stopProcessTree,
+        },
+      ),
+    ).toEqual([]);
+    expect(stopProcessTree).toHaveBeenCalledOnce();
+    expect(stopProcessTree).toHaveBeenCalledWith(4321, { signal: "SIGKILL" });
+  });
+
   it("keeps a keeper cleanup failure only while the target remains alive", () => {
     const alive = new Set([4321]);
     const stopProcessTree = vi

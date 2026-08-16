@@ -539,6 +539,7 @@ async function waitForCleanup(slot, profile, startedAt, method) {
       turnKeeperStatus: state?.turnKeeperStatus || null,
       turnKeeperCleanupReason: state?.turnKeeperCleanupReason || null,
       turnKeeperCleanupConfirmedAt: state?.turnKeeperCleanupConfirmedAt || null,
+      turnKeeperCleanupError: state?.turnKeeperCleanupError || null,
       keeperStatus: state?.keeperStatus || null,
       processes,
     };
