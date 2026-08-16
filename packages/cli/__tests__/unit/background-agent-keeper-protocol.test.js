@@ -15,7 +15,10 @@ import {
   resolveBackgroundAgentKeeperRetireTimeoutMs,
   sameBackgroundAgentKeeperTurn,
 } from "../../src/lib/background-agent-keeper-protocol.js";
-import { keeperWorkerIdentityAlive } from "../../src/workers/background-agent-keeper.js";
+import {
+  keeperWorkerIdentityAlive,
+  stopBackgroundAgentKeeperTurnTrees,
+} from "../../src/workers/background-agent-keeper.js";
 
 const turn = {
   id: "bg-keeper-test",
@@ -90,6 +93,56 @@ describe("background agent keeper protocol", () => {
     const probe = vi.fn(() => false);
     expect(keeperWorkerIdentityAlive(2468, 1_234_567, probe)).toBe(false);
     expect(probe).toHaveBeenCalledWith(2468, 1_234_567);
+  });
+
+  it("skips a runtime target already retired by the preceding tree stop", () => {
+    const alive = new Set([4321, 5432]);
+    const stopProcessTree = vi.fn((pid) => {
+      expect(pid).toBe(4321);
+      alive.clear();
+    });
+
+    expect(
+      stopBackgroundAgentKeeperTurnTrees(
+        [
+          { pid: 4321, startedAt: 1_000 },
+          { pid: 5432, startedAt: 1_001 },
+        ],
+        {
+          isProcessAlive: (pid) => alive.has(pid),
+          stopProcessTree,
+        },
+      ),
+    ).toEqual([]);
+    expect(stopProcessTree).toHaveBeenCalledOnce();
+    expect(stopProcessTree).toHaveBeenCalledWith(4321, { signal: "SIGKILL" });
+  });
+
+  it("keeps a keeper cleanup failure only while the target remains alive", () => {
+    const alive = new Set([4321]);
+    const stopProcessTree = vi
+      .fn()
+      .mockImplementationOnce(() => {
+        alive.delete(4321);
+        throw new Error("retired during taskkill");
+      })
+      .mockImplementationOnce(() => {
+        throw new Error("persistent denial");
+      });
+
+    expect(
+      stopBackgroundAgentKeeperTurnTrees([{ pid: 4321 }], {
+        isProcessAlive: (pid) => alive.has(pid),
+        stopProcessTree,
+      }),
+    ).toEqual([]);
+    alive.add(5432);
+    expect(
+      stopBackgroundAgentKeeperTurnTrees([{ pid: 5432 }], {
+        isProcessAlive: (pid) => alive.has(pid),
+        stopProcessTree,
+      }),
+    ).toEqual(["persistent denial"]);
   });
 
   it("gives RETIRE an independent budget covering bounded Windows cleanup", () => {

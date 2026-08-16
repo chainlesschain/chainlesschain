@@ -91,6 +91,28 @@ function persistKeeperTurn(job, turn, patch) {
   );
 }
 
+export function stopBackgroundAgentKeeperTurnTrees(targets, options = {}) {
+  const processAlive = options.isProcessAlive || isProcessAlive;
+  const stopTree = options.stopProcessTree || stopBackgroundAgentChildTree;
+  const failures = [];
+  for (const target of targets) {
+    // On Windows the wrapper's taskkill /T also retires its runtime child.
+    // Avoid starting a second bounded taskkill for a target the first tree
+    // operation already proved absent; under 20-way churn that redundant
+    // command can consume the keeper's entire cleanup SLO.
+    if (!processAlive(target.pid)) continue;
+    try {
+      stopTree(target.pid, { signal: "SIGKILL" });
+    } catch (error) {
+      // A preceding wrapper/group signal may already have retired this root.
+      if (processAlive(target.pid)) {
+        failures.push(error?.message || String(error));
+      }
+    }
+  }
+  return failures;
+}
+
 async function cleanupTurn(job, turn, reason) {
   const requestedAt = Date.now();
   persistKeeperTurn(job, turn, {
@@ -109,17 +131,7 @@ async function cleanupTurn(job, turn, reason) {
     (target, index, values) =>
       values.findIndex((candidate) => candidate.pid === target.pid) === index,
   );
-  const failures = [];
-  for (const target of targets) {
-    try {
-      stopBackgroundAgentChildTree(target.pid, { signal: "SIGKILL" });
-    } catch (error) {
-      // A preceding wrapper/group signal may already have retired this root.
-      if (isProcessAlive(target.pid)) {
-        failures.push(error?.message || String(error));
-      }
-    }
-  }
+  const failures = stopBackgroundAgentKeeperTurnTrees(targets);
 
   const deadline =
     Date.now() + BACKGROUND_AGENT_KEEPER_CLEANUP_CONFIRM_TIMEOUT_MS;

@@ -416,6 +416,30 @@ describe("withFileLock", () => {
     expect(_fs.dirs.has(lockDir)).toBe(true);
   });
 
+  it("lets a strict caller reclaim a lock after proving the owner pid was reused", () => {
+    const _fs = fakeLockFs();
+    const lockDir = "/critical.json.lock";
+    const owner = {
+      pid: 4242,
+      startedAt: 1_000,
+      token: "reused-owner-token-0001",
+    };
+    _fs.dirs.set(lockDir, 0);
+    _fs.writeFileSync(`${lockDir}/owner.json`, JSON.stringify(owner));
+    const isOwnerAlive = vi.fn(() => false);
+
+    expect(
+      withFileLock("/critical.json", (ctx) => ctx.locked, {
+        _fs,
+        _isProcessAlive: () => true,
+        _isOwnerAlive: isOwnerAlive,
+        failIfUnavailable: true,
+      }),
+    ).toBe(true);
+    expect(isOwnerAlive).toHaveBeenCalledWith(owner);
+    expect(_fs.dirs.has(lockDir)).toBe(false);
+  });
+
   it("a delayed dead-owner reclaimer never deletes a replacement owner", () => {
     const _fs = fakeLockFs();
     const lockDir = "/critical.json.lock";

@@ -970,6 +970,20 @@ function persistBackgroundAgentState(target, next) {
   return next;
 }
 
+function isBackgroundAgentStateLockOwnerAlive(owner) {
+  const target = Number(owner?.pid);
+  if (!isProcessExecutionAlive(target)) return false;
+  const acquiredAt = Number(owner?.startedAt);
+  if (!Number.isFinite(acquiredAt) || acquiredAt <= 0) return true;
+  const actualStartedAt = processStartTimeMs(target, { fresh: true });
+  if (actualStartedAt === PROCESS_START_TIME_ABSENT) return false;
+  if (!Number.isFinite(actualStartedAt)) return true;
+  // owner.startedAt is written only after this process acquired the lock. A
+  // live process created later therefore proves PID reuse; retaining that
+  // stale lock would permanently fence the state after high-churn workers.
+  return actualStartedAt <= acquiredAt;
+}
+
 /**
  * Strict cross-process read/mutate/write transaction for one supervisor state.
  * Returning null from `updater` leaves the record untouched. Missing and
@@ -1005,6 +1019,10 @@ export function mutateBackgroundAgentState(id, updater, options = {}) {
       // the critical section, so use the supervisor's execution-state probe
       // (which treats only Z/X as dead and keeps unknown states fail-closed).
       _isProcessAlive: isProcessExecutionAlive,
+      // A live numeric pid can belong to a later process after the lock owner
+      // was killed. Use the lock acquisition timestamp as a one-sided identity
+      // fence so only an owner which existed before acquisition still blocks.
+      _isOwnerAlive: isBackgroundAgentStateLockOwnerAlive,
     },
   );
 }

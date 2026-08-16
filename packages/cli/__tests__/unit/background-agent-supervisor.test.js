@@ -327,6 +327,40 @@ describe("background agent supervisor", () => {
     });
   });
 
+  it("reclaims a strict state lock after its live numeric owner pid was reused", () => {
+    const id = "bg-reused-lock-owner";
+    writeBackgroundAgentState({
+      id,
+      title: "before",
+      status: "running",
+      pid: 4242,
+    });
+    const sleeperPid = spawnSleeperPid();
+    const lockAcquiredAt = Date.now() - 10_000;
+    const lockDir = `${statePath(id)}.lock`;
+    mkdirSync(lockDir);
+    writeFileSync(
+      join(lockDir, "owner.json"),
+      JSON.stringify({
+        pid: sleeperPid,
+        startedAt: lockAcquiredAt,
+        token: "reused-lock-owner-token-0001",
+      }),
+    );
+    _deps.readProcessStartTimeMs = vi.fn(() => lockAcquiredAt + 5_000);
+
+    const mutation = mutateBackgroundAgentState(
+      id,
+      (current) => ({ ...current, title: "after" }),
+      { timeoutMs: 100 },
+    );
+
+    expect(mutation).toMatchObject({
+      applied: true,
+      state: { id, title: "after" },
+    });
+  });
+
   it("rejects ephemeral initial and follow-up argv before worker spawn", () => {
     _deps.spawn = vi.fn(() => ({ pid: 43210, unref: vi.fn() }));
     expect(() =>

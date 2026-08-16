@@ -37,6 +37,10 @@ export function withFileLock(targetPath, fn, opts = {}) {
     _ownerToken = () => randomUUID(),
     failIfUnavailable = false,
   } = opts;
+  const isOwnerAlive =
+    typeof opts._isOwnerAlive === "function"
+      ? opts._isOwnerAlive
+      : (candidate) => _isProcessAlive(candidate.pid);
 
   const lockDir = `${targetPath}.lock`;
   const ownerPath = path.join(lockDir, "owner.json");
@@ -108,8 +112,8 @@ export function withFileLock(targetPath, fn, opts = {}) {
       const incumbent = ownerRead.owner;
       acquisitionError = ownerRead.error;
       if (incumbent) {
-        if (!_isProcessAlive(incumbent.pid)) {
-          if (reclaimOwnedDirectory(_fs, lockDir, incumbent, _isProcessAlive)) {
+        if (!isOwnerAlive(incumbent)) {
+          if (reclaimOwnedDirectory(_fs, lockDir, incumbent, isOwnerAlive)) {
             continue;
           }
         }
@@ -310,7 +314,7 @@ function writeOwnerMarker(_fs, markerPath, owner) {
   });
 }
 
-function reclaimOwnedDirectory(_fs, lockDir, owner, processAlive) {
+function reclaimOwnedDirectory(_fs, lockDir, owner, ownerAlive) {
   const markerPath = path.join(lockDir, `.reclaim-${owner.token}`);
   try {
     writeOwnerMarker(_fs, markerPath, owner);
@@ -319,7 +323,7 @@ function reclaimOwnedDirectory(_fs, lockDir, owner, processAlive) {
     throw error;
   }
   const current = readOwner(_fs, path.join(lockDir, "owner.json"));
-  if (!sameOwner(current, owner) || processAlive(owner.pid)) {
+  if (!sameOwner(current, owner) || ownerAlive(owner)) {
     removeOwnMarker(_fs, markerPath, owner);
     return false;
   }
