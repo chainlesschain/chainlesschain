@@ -4028,6 +4028,7 @@ describe("background agent supervisor", () => {
       _deps.readProcessState = vi
         .fn()
         .mockReturnValueOnce("S")
+        .mockReturnValueOnce("S")
         .mockReturnValue("Z");
       _deps.readProcessGroupStates = vi.fn(() => ["Z"]);
       _deps.kill = vi.fn();
@@ -4053,6 +4054,7 @@ describe("background agent supervisor", () => {
       _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
       _deps.readProcessState = vi
         .fn()
+        .mockReturnValueOnce("S")
         .mockReturnValueOnce("S")
         .mockReturnValue("Z");
       _deps.readProcessGroupStates = vi.fn(() => ["Z", "S"]);
@@ -4085,6 +4087,7 @@ describe("background agent supervisor", () => {
       _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
       _deps.readProcessState = vi
         .fn()
+        .mockReturnValueOnce("S")
         .mockReturnValueOnce("S")
         .mockReturnValue("Z");
       _deps.readProcessGroupStates = vi.fn(() => null);
