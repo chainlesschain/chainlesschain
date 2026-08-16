@@ -5,6 +5,8 @@ import {
   BACKGROUND_AGENT_KEEPER_ARM,
   BACKGROUND_AGENT_KEEPER_ARMED,
   BACKGROUND_AGENT_KEEPER_HELLO,
+  BACKGROUND_AGENT_KEEPER_HEARTBEAT,
+  BACKGROUND_AGENT_KEEPER_HEARTBEAT_INTERVAL_MS,
   BACKGROUND_AGENT_KEEPER_PROTOCOL_VERSION,
   BACKGROUND_AGENT_KEEPER_READY,
   BACKGROUND_AGENT_KEEPER_RETIRE,
@@ -76,11 +78,17 @@ export async function connectBackgroundAgentKeeper(options = {}) {
   const retireTimeoutMs = resolveBackgroundAgentKeeperRetireTimeoutMs(
     options.retireTimeoutMs,
   );
+  const heartbeatIntervalMs = Math.max(
+    10,
+    Number(options.heartbeatIntervalMs) ||
+      BACKGROUND_AGENT_KEEPER_HEARTBEAT_INTERVAL_MS,
+  );
   const socket = await connectWithDeadline(options.pipePath, connectTimeoutMs);
   const pending = new Map();
   let ready = false;
   let closing = false;
   let activeTurn = null;
+  let heartbeatTimer = null;
   let readyResolve;
   let readyReject;
   const readyPromise = new Promise((resolve, reject) => {
@@ -89,6 +97,8 @@ export async function connectBackgroundAgentKeeper(options = {}) {
   });
 
   const failPending = (error) => {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
     readyReject(error);
     for (const entry of pending.values()) {
       clearTimeout(entry.timer);
@@ -171,6 +181,23 @@ export async function connectBackgroundAgentKeeper(options = {}) {
   );
   helloTimer.unref?.();
   await readyPromise.finally(() => clearTimeout(helloTimer));
+  const sendHeartbeat = () => {
+    try {
+      writeMessage(
+        socket,
+        createBackgroundAgentKeeperMessage(BACKGROUND_AGENT_KEEPER_HEARTBEAT, {
+          id: hello.id,
+          workerGeneration: hello.workerGeneration,
+          workerPid: hello.workerPid,
+        }),
+      );
+    } catch (error) {
+      socket.destroy(error);
+    }
+  };
+  sendHeartbeat();
+  heartbeatTimer = setInterval(sendHeartbeat, heartbeatIntervalMs);
+  heartbeatTimer.unref?.();
 
   const request = (
     type,
@@ -241,6 +268,8 @@ export async function connectBackgroundAgentKeeper(options = {}) {
     close() {
       if (closing) return;
       closing = true;
+      clearInterval(heartbeatTimer);
+      heartbeatTimer = null;
       socket.end();
     },
     activeTurn: () => activeTurn,
