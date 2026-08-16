@@ -793,12 +793,13 @@ async function main() {
       flags: "wx",
       mode: 0o600,
     });
+    const remoteDriverUri = `vscode-remote://${remoteAuthority}${REMOTE_DRIVER}`;
     let vscodeRunError = null;
     try {
       await runTests({
         vscodeExecutablePath,
-        extensionDevelopmentPath: REMOTE_DRIVER,
-        extensionTestsPath: `${REMOTE_DRIVER}/remote-runner.cjs`,
+        extensionDevelopmentPath: remoteDriverUri,
+        extensionTestsPath: `${remoteDriverUri}/remote-runner.cjs`,
         launchArgs: [
           `--extensions-dir=${localExtensions}`,
           `--user-data-dir=${userData}`,

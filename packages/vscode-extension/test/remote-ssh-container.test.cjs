@@ -77,7 +77,19 @@ test("remote driver calls the existing real host journey after proving remote id
   assert.match(remoteRunner, /require\("\.\/smoke\.cjs"\)/u);
   assert.match(remoteRunner, /"bridge-verified"/u);
   assert.match(orchestrator, /--file-uri=vscode-remote:\/\//u);
-  assert.match(orchestrator, /extensionDevelopmentPath: REMOTE_DRIVER/u);
+  assert.match(
+    orchestrator,
+    /remoteDriverUri = `vscode-remote:\/\/\$\{remoteAuthority\}\$\{REMOTE_DRIVER\}`/u,
+  );
+  assert.match(orchestrator, /extensionDevelopmentPath: remoteDriverUri/u);
+  assert.match(
+    orchestrator,
+    /extensionTestsPath: `\$\{remoteDriverUri\}\/remote-runner\.cjs`/u,
+  );
+  assert.doesNotMatch(
+    orchestrator,
+    /extension(?:Development|Tests)Path:\s*(?:REMOTE_DRIVER|`\$\{REMOTE_DRIVER\})/u,
+  );
   assert.match(orchestrator, /docker[\s\S]*?openssh-server/u);
   assert.match(orchestrator, /\/etc\/chainlesschain-remote-id/u);
   assert.match(orchestrator, /ssh_host_ed25519_key\.pub/u);
