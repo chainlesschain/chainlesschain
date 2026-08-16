@@ -167,7 +167,9 @@ async function executeAuthorized(args, gate, extraContext = {}) {
 }
 
 beforeEach(() => {
-  cwd = fs.mkdtempSync(path.join(os.tmpdir(), "cc-remote-shell-auth-"));
+  cwd = fs.realpathSync.native(
+    fs.mkdtempSync(path.join(os.tmpdir(), "cc-remote-shell-auth-")),
+  );
   originalBackgroundRun = _backgroundProcessDeps.run;
   originalContractIssuer =
     _backgroundProcessDeps.issueLinuxWorkspaceSandboxExecutionContract;
