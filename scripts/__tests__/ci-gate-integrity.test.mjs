@@ -580,6 +580,20 @@ test("standalone CLI dependency install vendors exact checkout packages", () => 
   assert.match(installer, /--workspaces=false/);
   assert.match(installer, /ci-npm-retry\.sh/);
   assert.match(installer, /isSymbolicLink\(\)/);
+  assert.match(installer, /"\$mode" == "--pack-candidates"/);
+
+  const testWorkflow = fs.readFileSync(
+    path.join(repoRoot, ".github", "workflows", "test.yml"),
+    "utf8",
+  );
+  assert.match(
+    testWorkflow,
+    /name: Pack CLI and exact internal dependency candidates[\s\S]*?ci-install-cli-production-deps\.sh[\s\S]*?--pack-candidates/,
+  );
+  assert.match(
+    testWorkflow,
+    /name: Global install from tarball \(exercises postinstall\)[\s\S]*?npm install -g "\$RUNNER_TEMP\/cli-global-install-candidates\/"\*\.tgz/,
+  );
 });
 
 test("workflow uses step outcomes and a final non-zero verdict", () => {
