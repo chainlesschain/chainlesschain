@@ -2938,6 +2938,11 @@ describe("pid identity — reuse detection (Gap 1, supervisor gap 2026-07-11)", 
     expect(isSameProcess(process.pid, undefined)).toBe(true);
   });
 
+  it("treats an authoritative absent process probe as dead", () => {
+    _deps.readProcessStartTimeMs = vi.fn(() => ({ status: "absent" }));
+    expect(isSameProcess(process.pid, Date.now())).toBe(false);
+  });
+
   it.skipIf(process.platform !== "win32")(
     "stop refuses to taskkill a reused pid — even when the pre-stop reconcile just passed",
     () => {
