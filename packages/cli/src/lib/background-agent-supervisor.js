@@ -1266,7 +1266,7 @@ function inspectDestructiveProcessIdentity(
   const leaderCanExecute =
     leaderAlive && leaderState !== "Z" && leaderState !== "X";
   if (!leaderCanExecute) {
-    if (process.platform === "win32") {
+    if (process.platform === "win32" || options.processGroup === false) {
       return { status: "dead", reason: "not-executing", pid: target };
     }
     const group = inspectProcessGroupExecution(target);
@@ -1323,7 +1323,7 @@ function inspectDestructiveProcessIdentity(
     ? Number(options.toleranceMs)
     : PID_IDENTITY_TOLERANCE_MS;
   if (Math.abs(actual - expected) > tolerance) {
-    if (process.platform !== "win32") {
+    if (process.platform !== "win32" && options.processGroup !== false) {
       const group = inspectProcessGroupExecution(target);
       // The leader PID can be reused while descendants from its detached
       // process group still execute under the old PGID. We can prove the new
@@ -2676,33 +2676,50 @@ export function readBackgroundAgentLog(id, options = {}) {
 }
 
 function recordedBackgroundProcessIdentities(state) {
+  const hasRecordedAgentTree =
+    Number(state?.agentPid) > 0 || Number(state?.agentRuntimePid) > 0;
   const records = [
+    {
+      role: "agent",
+      pid: state?.agentPid,
+      startedAt: state?.agentStartedAt,
+      signalAsGroup: true,
+    },
     {
       role: "agent-runtime",
       pid: state?.agentRuntimePid,
       startedAt: state?.agentRuntimeStartedAt,
+      signalAsGroup: false,
     },
-    { role: "agent", pid: state?.agentPid, startedAt: state?.agentStartedAt },
-    { role: "worker", pid: state?.pid, startedAt: state?.startedAt },
+    {
+      role: "worker",
+      pid: state?.pid,
+      startedAt: state?.startedAt,
+      signalAsGroup: !hasRecordedAgentTree,
+    },
     {
       role: "worker-published",
       pid: state?.workerPid,
       startedAt: state?.startedAt,
+      signalAsGroup: !hasRecordedAgentTree,
     },
     {
       role: "worker-wrapper",
       pid: state?.workerWrapperPid,
       startedAt: state?.startedAt,
+      signalAsGroup: true,
     },
     {
       role: "keeper",
       pid: state?.keeperPid,
       startedAt: state?.keeperStartedAt,
+      signalAsGroup: false,
     },
     {
       role: "keeper-wrapper",
       pid: state?.keeperWrapperPid,
       startedAt: state?.keeperStartedAt,
+      signalAsGroup: true,
     },
   ];
   const seen = new Set();
@@ -2718,7 +2735,9 @@ function recordedBackgroundProcessIdentities(state) {
 function inspectRecordedBackgroundProcesses(state) {
   return recordedBackgroundProcessIdentities(state).map((record) => ({
     ...record,
-    identity: inspectDestructiveProcessIdentity(record.pid, record.startedAt),
+    identity: inspectDestructiveProcessIdentity(record.pid, record.startedAt, {
+      processGroup: record.signalAsGroup,
+    }),
   }));
 }
 
@@ -2739,7 +2758,7 @@ export function isBackgroundProcessTreeExecutionAlive(pid, startedAt) {
 export function signalBackgroundProcessTree(
   pid,
   signal = "SIGTERM",
-  { platform = process.platform } = {},
+  { platform = process.platform, processGroup = true } = {},
 ) {
   const target = Number(pid);
   if (platform === "win32") {
@@ -2761,6 +2780,15 @@ export function signalBackgroundProcessTree(
       );
     }
     return "process-tree";
+  }
+  if (processGroup !== true) {
+    try {
+      _deps.kill(target, signal);
+      return "process";
+    } catch (error) {
+      if (error?.code === "ESRCH") return "already-exited";
+      throw error;
+    }
   }
   try {
     _deps.kill(-target, signal);
@@ -2845,6 +2873,7 @@ function waitForSignalledProcessesToExit(
     const identity = inspectDestructiveProcessIdentity(
       target.pid,
       target.startedAt,
+      { processGroup: target.signalledAsGroup },
     );
     return ["match", "unverifiable", "self"].includes(identity.status);
   });
@@ -2993,11 +3022,15 @@ export function stopBackgroundAgent(id) {
     if (targets.length === 0) break;
     try {
       // The child is detached into its own group and therefore gets its own
-      // exact-identity signal before the worker tree is terminated.
+      // exact-identity signal before the worker tree is terminated. The
+      // turn's detached agent root owns its tool descendants; the worker and
+      // independent keeper do not. Signal those single processes directly so
+      // a rapidly recycled pid cannot address an unrelated POSIX group.
       for (const target of targets) {
         target.signalledAsGroup =
-          signalBackgroundProcessTree(target.pid, "SIGTERM") ===
-          "process-group";
+          signalBackgroundProcessTree(target.pid, "SIGTERM", {
+            processGroup: target.signalAsGroup,
+          }) === "process-group";
         signalledPids.add(target.pid);
       }
     } catch (error) {

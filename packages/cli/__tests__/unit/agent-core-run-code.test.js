@@ -315,7 +315,7 @@ describe("executeTool — run_code enhancements", () => {
         "python3",
         [expect.stringMatching(/cc-agent-\d+\.py$/)],
         expect.objectContaining({
-          cwd: tempDir,
+          cwd: fs.realpathSync.native(tempDir),
           origin: "agent-core:run-code",
           policy: "allow",
           scope: "agent-core",
@@ -342,7 +342,7 @@ describe("executeTool — run_code enhancements", () => {
         "python3",
         [expect.stringMatching(/cc-agent-\d+\.py$/)],
         expect.objectContaining({
-          cwd: tempDir,
+          cwd: fs.realpathSync.native(tempDir),
           origin: "agent-core:run-code",
           policy: "allow",
           scope: "agent-core",
@@ -470,7 +470,7 @@ describe("executeTool — run_code enhancements", () => {
         "node",
         [expect.stringMatching(/cc-agent-\d+\.js$/)],
         expect.objectContaining({
-          cwd: tempDir,
+          cwd: fs.realpathSync.native(tempDir),
           origin: "agent-core:run-code",
           policy: "allow",
           scope: "agent-core",

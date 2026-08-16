@@ -2502,6 +2502,76 @@ describe("background agent supervisor", () => {
     expect(_deps.kill).toHaveBeenNthCalledWith(2, 4242, "SIGTERM");
   });
 
+  it("can signal an exact POSIX target without addressing a process group", () => {
+    _deps.kill = vi.fn();
+
+    expect(
+      signalBackgroundProcessTree(4242, "SIGTERM", {
+        platform: "darwin",
+        processGroup: false,
+      }),
+    ).toBe("process");
+    expect(_deps.kill).toHaveBeenCalledOnce();
+    expect(_deps.kill).toHaveBeenCalledWith(4242, "SIGTERM");
+  });
+
+  it.skipIf(process.platform === "win32")(
+    "signals the detached turn as a group but stops its worker and keeper by exact pid",
+    () => {
+      const startedAt = Date.now();
+      const alive = new Set([10101, 20202, 30303]);
+      const missing = () =>
+        Object.assign(new Error("kill ESRCH"), { code: "ESRCH" });
+      _deps.kill = vi.fn((pid, signal) => {
+        const target = Math.abs(Number(pid));
+        if (signal === 0) {
+          if (!alive.has(target)) throw missing();
+          return true;
+        }
+        alive.delete(target);
+        return true;
+      });
+      _deps.readProcessState = vi.fn((pid) =>
+        alive.has(Number(pid)) ? "S" : null,
+      );
+      _deps.readProcessGroupStates = vi.fn((pid) => {
+        const target = Number(pid);
+        if (target === 30303) return alive.has(target) ? ["S"] : ["Z"];
+        // Simulate an unrelated live POSIX group whose PGID happens to equal
+        // the now-retired worker/keeper pid. Direct targets must not inherit
+        // that group's liveness after their exact process exits.
+        return ["S"];
+      });
+      _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+      writeBackgroundAgentState({
+        id: "bg-stop-owned-turn",
+        status: "running",
+        pid: 10101,
+        workerPid: 10101,
+        startedAt,
+        keeperPid: 20202,
+        keeperStartedAt: startedAt,
+        agentPid: 30303,
+        agentStartedAt: startedAt,
+        agentRuntimePid: 30303,
+        agentRuntimeStartedAt: startedAt,
+      });
+
+      expect(stopBackgroundAgent("bg-stop-owned-turn")).toMatchObject({
+        status: "stopped",
+        stopped: true,
+      });
+      const terminationSignals = _deps.kill.mock.calls.filter(
+        ([, signal]) => signal !== 0,
+      );
+      expect(terminationSignals).toEqual([
+        [-30303, "SIGTERM"],
+        [10101, "SIGTERM"],
+        [20202, "SIGTERM"],
+      ]);
+    },
+  );
+
   it("does not fall back from a POSIX process-group permission failure", () => {
     const denied = Object.assign(new Error("kill EPERM"), { code: "EPERM" });
     _deps.kill = vi.fn(() => {

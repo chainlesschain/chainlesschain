@@ -487,19 +487,37 @@ async function launchSlot(slot, fakeAgent, profile) {
 async function waitForCleanup(slot, profile, startedAt, method) {
   let observation = null;
   let lastState;
+  let lastStopRetryAt = 0;
   try {
     lastState = await pollUntil(
       () => {
-        const state = readBackgroundAgentState(slot.state.id);
-        const identities = processIdentities(
-          state || slot.state,
-          slot.evidence,
-        );
-        const processes = identities.map((identity) => ({
+        let state = readBackgroundAgentState(slot.state.id);
+        let identities = processIdentities(state || slot.state, slot.evidence);
+        let processes = identities.map((identity) => ({
           ...identity,
           alive: ownedIdentityAlive(identity),
         }));
-        const allRetired = processes.every(({ alive }) => !alive);
+        let allRetired = processes.every(({ alive }) => !alive);
+        const now = Date.now();
+        if (
+          method === "stop" &&
+          allRetired &&
+          state?.status === "running" &&
+          now - lastStopRetryAt >= 250
+        ) {
+          // The first bounded stop can legitimately return `stopPending` while
+          // a just-signalled tree is still exiting. Once every exact-owned pid
+          // is retired, retry the idempotent durable stop so the record cannot
+          // remain forever in a stale running/armed projection.
+          lastStopRetryAt = now;
+          state = stopBackgroundAgent(slot.state.id);
+          identities = processIdentities(state || slot.state, slot.evidence);
+          processes = identities.map((identity) => ({
+            ...identity,
+            alive: ownedIdentityAlive(identity),
+          }));
+          allRetired = processes.every(({ alive }) => !alive);
+        }
         const keeperSettled =
           method === "hard-kill"
             ? state?.turnKeeperStatus === "retired" &&
