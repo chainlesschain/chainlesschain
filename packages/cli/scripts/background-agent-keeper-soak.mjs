@@ -64,6 +64,8 @@ const DEFAULT_OUTPUT = join(
   `cc-background-keeper-soak-${process.platform}-${process.pid}.json`,
 );
 const HARNESS_RESOURCE_SETTLE_MS = 1_000;
+export const BACKGROUND_KEEPER_FORMAL_CHECKPOINT_INTERVAL_MS = 5 * 60 * 1_000;
+export const BACKGROUND_KEEPER_FORMAL_CHECKPOINT_CYCLES = 1_000;
 // The 120s RETIRE contract includes strict preflight/confirmation probes and
 // both cleanup persistence windows. A
 // worker-disconnect path has one additional 15s final keeper-status write;
@@ -213,6 +215,32 @@ export function resolveBackgroundKeeperSoakProfile(environment = process.env) {
       { integer: true },
     ),
   });
+}
+
+export function shouldWriteBackgroundKeeperCheckpoint({
+  mode,
+  force = false,
+  cycleCount = 0,
+  lastCycleCount = 0,
+  nowMs,
+  lastCheckpointAtMs,
+}) {
+  if (force || mode !== "formal" || lastCheckpointAtMs == null) return true;
+  if (
+    !Number.isFinite(nowMs) ||
+    !Number.isFinite(lastCheckpointAtMs) ||
+    !Number.isFinite(cycleCount) ||
+    !Number.isFinite(lastCycleCount) ||
+    nowMs < lastCheckpointAtMs ||
+    cycleCount < lastCycleCount
+  ) {
+    return true;
+  }
+  return (
+    cycleCount - lastCycleCount >= BACKGROUND_KEEPER_FORMAL_CHECKPOINT_CYCLES ||
+    nowMs - lastCheckpointAtMs >=
+      BACKGROUND_KEEPER_FORMAL_CHECKPOINT_INTERVAL_MS
+  );
 }
 
 export function nearestRankPercentile(values, percentile) {
@@ -524,6 +552,18 @@ function sampleProcess(identity) {
     descendantCount: descendants.available ? descendants.pids.length : null,
     descendantSource: descendants.source || null,
     descendantReason: descendants.reason || null,
+  };
+}
+
+function sampleHarnessProcess() {
+  const memory = process.memoryUsage();
+  return {
+    rssBytes: memory.rss,
+    heapTotalBytes: memory.heapTotal,
+    heapUsedBytes: memory.heapUsed,
+    externalBytes: memory.external,
+    arrayBuffersBytes: memory.arrayBuffers,
+    resource: resourceCount(process.pid),
   };
 }
 
@@ -988,9 +1028,23 @@ export async function terminateSlotBatch(plans, profile, dependencies = {}) {
       observeSlotTermination(attempt, profile, observerDependencies));
   const epochNow = dependencies.epochNow || Date.now;
   const monotonicNow = dependencies.monotonicNow || (() => performance.now());
+  const captureObservation = async (attempt, observerDeadlineAtMonotonicMs) => {
+    try {
+      return {
+        status: "fulfilled",
+        value: await observe(attempt, profile, {
+          ...dependencies,
+          observerDeadlineAtMonotonicMs,
+        }),
+      };
+    } catch (reason) {
+      return { status: "rejected", reason };
+    }
+  };
 
   const prepared = plans.map((plan) => prepare(plan, profile));
   const attempts = new Array(prepared.length);
+  const observations = new Array(prepared.length);
   const triggerOrder = prepared
     .map((entry, index) => ({ entry, index }))
     // Hard kills only dispatch one signal and let independent keepers settle.
@@ -1002,6 +1056,35 @@ export async function terminateSlotBatch(plans, profile, dependencies = {}) {
         Number(right.entry.method === "hard-kill") -
           Number(left.entry.method === "hard-kill") || left.index - right.index,
     );
+  // Bound the serial cooperative-stop phase without starving later healthy
+  // stops. Each attempt may use the observer budget from its own trigger, but
+  // the batch as a whole gets only one observer budget plus one independent
+  // product-cleanup window for each remaining stop. Persistent failures cannot
+  // multiply the 140-second observer allowance by the whole cohort.
+  const batchObserverStartedAtMonotonicMs = monotonicNow();
+  const cooperativeStopCount = prepared.filter(
+    (attempt) => attempt.method === "stop",
+  ).length;
+  const cleanupDeadlineMs = Math.min(
+    Number.isFinite(Number(profile.cleanupDeadlineMs)) &&
+      Number(profile.cleanupDeadlineMs) > 0
+      ? Number(profile.cleanupDeadlineMs)
+      : 30_000,
+    30_000,
+  );
+  const batchObserverDeadlineAtMonotonicMs =
+    batchObserverStartedAtMonotonicMs +
+    profile.cleanupObserverDeadlineMs +
+    Math.max(0, cooperativeStopCount - 1) * cleanupDeadlineMs;
+  const observerDeadlineFor = (attempt) => {
+    const attemptStartedAt = Number(attempt?.terminationStartedAtMonotonicMs);
+    const perAttemptDeadline =
+      (Number.isFinite(attemptStartedAt)
+        ? attemptStartedAt
+        : batchObserverStartedAtMonotonicMs) +
+      profile.cleanupObserverDeadlineMs;
+    return Math.min(perAttemptDeadline, batchObserverDeadlineAtMonotonicMs);
+  };
   for (const { entry, index } of triggerOrder) {
     const terminationRequestedAt = epochNow();
     const terminationStartedAtMonotonicMs = monotonicNow();
@@ -1016,16 +1099,36 @@ export async function terminateSlotBatch(plans, profile, dependencies = {}) {
         triggerError,
       });
     }
+    const attempt = attempts[index];
+    const stopRequestedAt = Number(attempt?.state?.stopRequestedAt);
+    if (
+      attempt?.method === "stop" &&
+      Number.isFinite(stopRequestedAt) &&
+      stopRequestedAt > 0 &&
+      !hasValidBackgroundAgentStopCleanupProof(attempt.state)
+    ) {
+      // A cooperative stop may return a durable stop fence while its bounded
+      // process-exit wait is still pending. On Windows, dispatching the other
+      // synchronous stop calls before re-entering that fence can charge their
+      // CIM/taskkill work to the first slot's 30-second cleanup measurement.
+      // The complete hard-kill cohort has already been dispatched by the sort
+      // above. Settle this one fenced stop through the existing strict observer
+      // before starting the next cooperative stop; a failed observation is
+      // retained while the rest of the batch still gets its cleanup attempt.
+      observations[index] = await captureObservation(
+        attempt,
+        observerDeadlineFor(attempt),
+      );
+    }
   }
-  const observerDeadlineAtMonotonicMs =
-    monotonicNow() + profile.cleanupObserverDeadlineMs;
-  const observations = await Promise.allSettled(
-    attempts.map((attempt) =>
-      observe(attempt, profile, {
-        ...dependencies,
-        observerDeadlineAtMonotonicMs,
-      }),
-    ),
+  await Promise.all(
+    attempts.map(async (attempt, index) => {
+      if (observations[index]) return;
+      observations[index] = await captureObservation(
+        attempt,
+        observerDeadlineFor(attempt),
+      );
+    }),
   );
   const errors = [
     ...attempts.map((attempt) => attempt?.triggerError).filter(Boolean),
@@ -1609,10 +1712,7 @@ async function main() {
   process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME = securityAnchorHome;
   process.env.CC_BACKGROUND_AGENTS_DIR = backgroundDirectory;
 
-  const harnessBefore = {
-    rssBytes: process.memoryUsage().rss,
-    resource: resourceCount(process.pid),
-  };
+  const harnessBefore = sampleHarnessProcess();
   const report = {
     schema:
       profile.mode === "formal"
@@ -1647,11 +1747,30 @@ async function main() {
     cycles: [],
     violations: [],
   };
-  const checkpoint = () => {
+  let lastCheckpointAtMs = null;
+  let lastCheckpointCycleCount = 0;
+  const checkpoint = ({ force = false } = {}) => {
+    const nowMs = performance.now();
+    const cycleCount = report.cycles.length;
+    if (
+      !shouldWriteBackgroundKeeperCheckpoint({
+        mode: profile.mode,
+        force,
+        cycleCount,
+        lastCycleCount: lastCheckpointCycleCount,
+        nowMs,
+        lastCheckpointAtMs,
+      })
+    ) {
+      return false;
+    }
     sealBackgroundKeeperSoakDocument(report);
     atomicWriteJson(output, report);
+    lastCheckpointAtMs = nowMs;
+    lastCheckpointCycleCount = cycleCount;
+    return true;
   };
-  checkpoint();
+  checkpoint({ force: true });
 
   const slots = [];
   let signal = null;
@@ -1694,7 +1813,7 @@ async function main() {
       readinessMs: slots[index].readinessMs,
       reconnectVerified: true,
     }));
-    checkpoint();
+    checkpoint({ force: true });
 
     const deadline = Date.now() + profile.durationSeconds * 1_000;
     let cycle = 0;
@@ -1817,10 +1936,7 @@ async function main() {
     await new Promise((resolvePromise) =>
       setTimeout(resolvePromise, HARNESS_RESOURCE_SETTLE_MS),
     );
-    const harnessAfter = {
-      rssBytes: process.memoryUsage().rss,
-      resource: resourceCount(process.pid),
-    };
+    const harnessAfter = sampleHarnessProcess();
     const allSamples = [
       ...report.cycles,
       ...report.slots.map((slot) => ({
@@ -1919,7 +2035,7 @@ async function main() {
     report.continuousDurationSeconds =
       Math.round((performance.now() - started) * 1_000) / 1_000_000;
     report.finishedAt = new Date().toISOString();
-    checkpoint();
+    checkpoint({ force: true });
     if (fixtureCleanupAllowed) {
       for (let attempt = 0; attempt < 40; attempt += 1) {
         try {
@@ -1929,7 +2045,7 @@ async function main() {
           if (attempt === 39) {
             report.status = "failed";
             report.violations.push(`fixture cleanup failed: ${error.message}`);
-            checkpoint();
+            checkpoint({ force: true });
             break;
           }
           await new Promise((resolvePromise) => setTimeout(resolvePromise, 50));
@@ -1937,7 +2053,7 @@ async function main() {
       }
     } else {
       report.fixtureRetainedAt = root;
-      checkpoint();
+      checkpoint({ force: true });
     }
   }
   process.stdout.write(

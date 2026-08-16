@@ -76,8 +76,86 @@ export const DEFAULT_HEARTBEAT_STALE_MS = 120000;
  */
 export const PID_IDENTITY_TOLERANCE_MS = 60000;
 
-const START_TIME_CACHE_TTL_MS = 10000;
-const _startTimeCache = new Map();
+export const PROCESS_START_TIME_CACHE_TTL_MS = 10_000;
+export const PROCESS_START_TIME_CACHE_MAX_ENTRIES = 4_096;
+
+/**
+ * A bounded FIFO/TTL cache for process creation-time probes.
+ *
+ * Probe timestamps use a monotonic clock. Deleting and re-inserting an
+ * existing pid refreshes its FIFO position without increasing the number of
+ * retained keys. Expired entries are removed from the oldest edge, making
+ * cleanup amortized O(1) because insertion timestamps are monotonic.
+ */
+export class ProcessStartTimeCache {
+  constructor({
+    ttlMs = PROCESS_START_TIME_CACHE_TTL_MS,
+    maxEntries = PROCESS_START_TIME_CACHE_MAX_ENTRIES,
+    now = () => performance.now(),
+  } = {}) {
+    if (!Number.isFinite(Number(ttlMs)) || Number(ttlMs) <= 0) {
+      throw new TypeError("process start-time cache ttlMs must be positive");
+    }
+    if (!Number.isSafeInteger(Number(maxEntries)) || Number(maxEntries) <= 0) {
+      throw new TypeError(
+        "process start-time cache maxEntries must be a positive integer",
+      );
+    }
+    if (typeof now !== "function") {
+      throw new TypeError("process start-time cache now must be a function");
+    }
+    this.ttlMs = Number(ttlMs);
+    this.maxEntries = Number(maxEntries);
+    this._now = now;
+    this._entries = new Map();
+  }
+
+  _at(value) {
+    const at = value === undefined ? Number(this._now()) : Number(value);
+    if (!Number.isFinite(at)) {
+      throw new TypeError("process start-time cache time must be finite");
+    }
+    return at;
+  }
+
+  _evictExpired(at) {
+    for (const [key, entry] of this._entries) {
+      if (at - entry.at < this.ttlMs) break;
+      this._entries.delete(key);
+    }
+  }
+
+  read(key, atValue) {
+    const at = this._at(atValue);
+    this._evictExpired(at);
+    const entry = this._entries.get(key);
+    return entry ? { hit: true, value: entry.value } : { hit: false };
+  }
+
+  set(key, value, atValue) {
+    const at = this._at(atValue);
+    this._evictExpired(at);
+    // Map preserves insertion order. Refresh the same pid at the newest edge
+    // so capacity eviction cannot discard a just-probed identity.
+    this._entries.delete(key);
+    while (this._entries.size >= this.maxEntries) {
+      const oldest = this._entries.keys().next().value;
+      this._entries.delete(oldest);
+    }
+    this._entries.set(key, { at, value });
+    return value;
+  }
+
+  get size() {
+    return this._entries.size;
+  }
+
+  clear() {
+    this._entries.clear();
+  }
+}
+
+const _startTimeCache = new ProcessStartTimeCache();
 const PROCESS_START_TIME_ABSENT = Symbol("process-start-time-absent");
 const WINDOWS_PROCESS_ABSENT_MARKER = "__CC_PROCESS_ABSENT__";
 
@@ -421,16 +499,16 @@ function processStartTimeMs(pid, options = {}) {
     return normalize(_deps.readProcessStartTimeMs(pid));
   }
   const key = Number(pid);
-  const at = Date.now();
+  const at = performance.now();
   if (options.fresh === true) {
     const value = normalize(defaultReadProcessStartTimeMs(key));
-    _startTimeCache.set(key, { at, value });
+    _startTimeCache.set(key, value, at);
     return value;
   }
-  const hit = _startTimeCache.get(key);
-  if (hit && at - hit.at < START_TIME_CACHE_TTL_MS) return hit.value;
+  const hit = _startTimeCache.read(key, at);
+  if (hit.hit) return hit.value;
   const value = normalize(defaultReadProcessStartTimeMs(key));
-  _startTimeCache.set(key, { at, value });
+  _startTimeCache.set(key, value, at);
   return value;
 }
 

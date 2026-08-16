@@ -13,6 +13,8 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   BACKGROUND_KEEPER_SOAK_AGGREGATE_SCHEMA,
+  BACKGROUND_KEEPER_FORMAL_CHECKPOINT_CYCLES,
+  BACKGROUND_KEEPER_FORMAL_CHECKPOINT_INTERVAL_MS,
   BACKGROUND_KEEPER_SOAK_OPERATING_SYSTEMS,
   BACKGROUND_KEEPER_SOAK_RESULT_SCHEMA,
   BACKGROUND_KEEPER_SOAK_SMOKE_AGGREGATE_SCHEMA,
@@ -28,6 +30,7 @@ import {
   resolveBackgroundKeeperSoakProfile,
   sealBackgroundKeeperSoakDocument,
   shouldDeferHardKillCleanupIdentityProbe,
+  shouldWriteBackgroundKeeperCheckpoint,
   summarizeKeeperSoakSamples,
   terminateSlotBatch,
   verifyBackgroundKeeperSoakEvidenceSet,
@@ -269,6 +272,74 @@ describe("background Agent keeper soak contract", () => {
     });
   });
 
+  it("bounds formal progress checkpoints by elapsed time or completed cycles", () => {
+    const baseline = {
+      mode: "formal",
+      cycleCount: 999,
+      lastCycleCount: 0,
+      nowMs: BACKGROUND_KEEPER_FORMAL_CHECKPOINT_INTERVAL_MS - 1,
+      lastCheckpointAtMs: 0,
+    };
+
+    expect(shouldWriteBackgroundKeeperCheckpoint(baseline)).toBe(false);
+    expect(
+      shouldWriteBackgroundKeeperCheckpoint({
+        ...baseline,
+        cycleCount: BACKGROUND_KEEPER_FORMAL_CHECKPOINT_CYCLES,
+      }),
+    ).toBe(true);
+    expect(
+      shouldWriteBackgroundKeeperCheckpoint({
+        ...baseline,
+        nowMs: BACKGROUND_KEEPER_FORMAL_CHECKPOINT_INTERVAL_MS,
+      }),
+    ).toBe(true);
+  });
+
+  it("keeps smoke and forced terminal checkpoints eager", () => {
+    const unchanged = {
+      cycleCount: 20,
+      lastCycleCount: 20,
+      nowMs: 10,
+      lastCheckpointAtMs: 10,
+    };
+
+    expect(
+      shouldWriteBackgroundKeeperCheckpoint({
+        ...unchanged,
+        mode: "smoke",
+      }),
+    ).toBe(true);
+    expect(
+      shouldWriteBackgroundKeeperCheckpoint({
+        ...unchanged,
+        mode: "formal",
+        force: true,
+      }),
+    ).toBe(true);
+  });
+
+  it("fails safe when the checkpoint clock or cycle count moves backward", () => {
+    expect(
+      shouldWriteBackgroundKeeperCheckpoint({
+        mode: "formal",
+        cycleCount: 99,
+        lastCycleCount: 100,
+        nowMs: 99,
+        lastCheckpointAtMs: 100,
+      }),
+    ).toBe(true);
+    expect(
+      shouldWriteBackgroundKeeperCheckpoint({
+        mode: "formal",
+        cycleCount: Number.NaN,
+        lastCycleCount: 100,
+        nowMs: 100,
+        lastCheckpointAtMs: 100,
+      }),
+    ).toBe(true);
+  });
+
   it("allows a 120-second formal readiness budget without widening smoke evidence", () => {
     const formalReports = completeEvidenceSet();
     for (const report of formalReports) {
@@ -435,7 +506,7 @@ describe("background Agent keeper soak contract", () => {
     });
   });
 
-  it("runs every prepare before any trigger and every trigger before observation", async () => {
+  it("prepares the batch before triggering and defers observations without a pending fence", async () => {
     const events = [];
     const plans = Array.from({ length: 3 }, (_, index) => ({
       cycleNumber: index + 1,
@@ -482,7 +553,7 @@ describe("background Agent keeper soak contract", () => {
     expect(settlements).toEqual([{ slot: 0 }, { slot: 1 }, { slot: 2 }]);
   });
 
-  it("repairs the first cooperative stop after all twenty triggers dispatch", async () => {
+  it("repairs a fenced cooperative stop before dispatching the next stop", async () => {
     const events = [];
     const slots = Array.from({ length: 20 }, (_, index) => ({
       index,
@@ -525,6 +596,7 @@ describe("background Agent keeper soak contract", () => {
           events.push(`trigger:${prepared.key.slot}`);
           return {
             ...prepared,
+            ...(prepared.key.slot === 1 ? { state: stopState } : {}),
             terminationRequestedAt: 1_000,
             terminationStartedAtMonotonicMs: 0,
             triggerError: null,
@@ -554,19 +626,246 @@ describe("background Agent keeper soak contract", () => {
       },
     );
 
-    expect(events.slice(0, 20)).toEqual([
+    expect(events.slice(0, 13)).toEqual([
+      ...Array.from({ length: 10 }, (_, index) => `trigger:${index * 2}`),
+      "trigger:1",
+      "observe:1",
+      "trigger:3",
+    ]);
+    expect(events.filter((event) => event.startsWith("trigger:"))).toEqual([
       ...Array.from({ length: 10 }, (_, index) => `trigger:${index * 2}`),
       ...Array.from({ length: 10 }, (_, index) => `trigger:${index * 2 + 1}`),
     ]);
-    expect(events.slice(20)).toEqual(
-      Array.from({ length: 20 }, (_, index) => `observe:${index}`),
+    expect(events.filter((event) => event.startsWith("observe:"))).toHaveLength(
+      20,
     );
+    expect(events.filter((event) => event === "observe:1")).toHaveLength(1);
     expect(stop).toHaveBeenCalledOnce();
     expect(settlements[1]).toMatchObject({
       terminationRequestedAt: 1_000,
       durableCleanupRequestedAt: 1_001,
       cleanupConfirmedAt: 1_010,
     });
+  });
+
+  it("does not block later cooperative triggers when the first stop already has proof", async () => {
+    const events = [];
+    const plans = [1, 3].map((index) => ({
+      slot: { index, state: { id: `bg-proven-stop-${index}` } },
+      method: "stop",
+    }));
+
+    const settlements = await terminateSlotBatch(
+      plans,
+      { cleanupObserverDeadlineMs: 140_000 },
+      {
+        monotonicNow: () => 10,
+        prepareTermination(plan) {
+          return {
+            key: { id: plan.slot.state.id, slot: plan.slot.index },
+            ...plan,
+          };
+        },
+        triggerTermination(prepared) {
+          events.push(`trigger:${prepared.key.slot}`);
+          return {
+            ...prepared,
+            state: {
+              id: prepared.key.id,
+              status: "stopped",
+              stopRequestedAt: 1_000,
+              stopCleanupConfirmedAt: 1_010,
+            },
+            triggerError: null,
+          };
+        },
+        async observeTermination(attempt) {
+          events.push(`observe:${attempt.key.slot}`);
+          return { slot: attempt.key.slot };
+        },
+      },
+    );
+
+    expect(events).toEqual([
+      "trigger:1",
+      "trigger:3",
+      "observe:1",
+      "observe:3",
+    ]);
+    expect(settlements).toEqual([{ slot: 1 }, { slot: 3 }]);
+  });
+
+  it("continues the batch and aggregates an early fenced-stop observation failure", async () => {
+    const events = [];
+    const plans = [
+      {
+        slot: { index: 0, state: { id: "bg-observe-hard-kill" } },
+        method: "hard-kill",
+      },
+      {
+        slot: { index: 1, state: { id: "bg-observe-fenced-stop" } },
+        method: "stop",
+      },
+      {
+        slot: { index: 3, state: { id: "bg-observe-proven-stop" } },
+        method: "stop",
+      },
+    ];
+    let failure;
+
+    try {
+      await terminateSlotBatch(
+        plans,
+        { cleanupObserverDeadlineMs: 140_000 },
+        {
+          epochNow: () => 1_000,
+          monotonicNow: () => 10,
+          prepareTermination(plan) {
+            return {
+              key: { id: plan.slot.state.id, slot: plan.slot.index },
+              ...plan,
+            };
+          },
+          triggerTermination(prepared) {
+            events.push(`trigger:${prepared.key.slot}`);
+            const state =
+              prepared.key.slot === 1
+                ? {
+                    id: prepared.key.id,
+                    status: "running",
+                    stopRequestedAt: 1_000,
+                    stopPending: true,
+                    stopPendingReason: "process-exit",
+                  }
+                : prepared.method === "stop"
+                  ? {
+                      id: prepared.key.id,
+                      status: "stopped",
+                      stopRequestedAt: 1_000,
+                      stopCleanupConfirmedAt: 1_010,
+                    }
+                  : prepared.state;
+            return { ...prepared, state, triggerError: null };
+          },
+          async observeTermination(attempt) {
+            events.push(`observe:${attempt.key.slot}`);
+            if (attempt.key.slot === 1) {
+              throw new Error("fenced stop did not converge");
+            }
+            return { slot: attempt.key.slot };
+          },
+        },
+      );
+    } catch (error) {
+      failure = error;
+    }
+
+    expect(failure).toBeInstanceOf(AggregateError);
+    expect(failure.errors).toHaveLength(1);
+    expect(failure.errors[0].message).toBe("fenced stop did not converge");
+    expect(events).toEqual([
+      "trigger:0",
+      "trigger:1",
+      "observe:1",
+      "trigger:3",
+      "observe:0",
+      "observe:3",
+    ]);
+  });
+
+  it("preserves each healthy fenced stop's observer window within the batch cap", async () => {
+    let now = 0;
+    const deadlines = [];
+    const plans = Array.from({ length: 10 }, (_, offset) => 2 * offset + 1).map(
+      (index) => ({
+        slot: { index, state: { id: `bg-shared-deadline-${index}` } },
+        method: "stop",
+      }),
+    );
+
+    await terminateSlotBatch(
+      plans,
+      { cleanupDeadlineMs: 30, cleanupObserverDeadlineMs: 140 },
+      {
+        monotonicNow: () => now,
+        prepareTermination(plan) {
+          return {
+            key: { id: plan.slot.state.id, slot: plan.slot.index },
+            ...plan,
+          };
+        },
+        triggerTermination(prepared) {
+          return {
+            ...prepared,
+            terminationStartedAtMonotonicMs: now,
+            state: {
+              id: prepared.key.id,
+              status: "running",
+              stopRequestedAt: 1_000,
+              stopPending: true,
+            },
+            triggerError: null,
+          };
+        },
+        async observeTermination(attempt, _profile, dependencies) {
+          deadlines.push(dependencies.observerDeadlineAtMonotonicMs);
+          now += 25;
+          return { slot: attempt.key.slot };
+        },
+      },
+    );
+
+    expect(deadlines).toEqual(
+      Array.from({ length: 10 }, (_, index) => 140 + index * 25),
+    );
+    expect(deadlines.at(-1)).toBeLessThanOrEqual(410);
+  });
+
+  it("caps persistent serial fenced stops to one observer plus product windows", async () => {
+    let now = 0;
+    const deadlines = [];
+    const plans = Array.from({ length: 10 }, (_, offset) => ({
+      slot: {
+        index: 2 * offset + 1,
+        state: { id: `bg-bounded-deadline-${offset}` },
+      },
+      method: "stop",
+    }));
+
+    await terminateSlotBatch(
+      plans,
+      { cleanupDeadlineMs: 30, cleanupObserverDeadlineMs: 140 },
+      {
+        monotonicNow: () => now,
+        prepareTermination(plan) {
+          return {
+            key: { id: plan.slot.state.id, slot: plan.slot.index },
+            ...plan,
+          };
+        },
+        triggerTermination(prepared) {
+          return {
+            ...prepared,
+            terminationStartedAtMonotonicMs: now,
+            state: {
+              id: prepared.key.id,
+              status: "running",
+              stopRequestedAt: 1_000,
+              stopPending: true,
+            },
+            triggerError: null,
+          };
+        },
+        async observeTermination(attempt, _profile, dependencies) {
+          deadlines.push(dependencies.observerDeadlineAtMonotonicMs);
+          now += 140;
+          return { slot: attempt.key.slot };
+        },
+      },
+    );
+
+    expect(deadlines.slice(0, 3)).toEqual([140, 280, 410]);
+    expect(Math.max(...deadlines)).toBe(410);
   });
 
   it("observes every trigger attempt before reporting a trigger failure", async () => {

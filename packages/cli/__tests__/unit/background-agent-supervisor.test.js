@@ -28,6 +28,8 @@ import {
   logPath,
   mutateBackgroundAgentState,
   normalizeBackgroundAgentTitle,
+  PROCESS_START_TIME_CACHE_MAX_ENTRIES,
+  ProcessStartTimeCache,
   readBackgroundAgentLog,
   readBackgroundAgentState,
   removeBackgroundAgent,
@@ -298,6 +300,59 @@ afterEach(async () => {
 }, 40_000);
 
 describe("background agent supervisor", () => {
+  it("expires old process start-time probes and refreshes a pid in place", () => {
+    const cache = new ProcessStartTimeCache({ ttlMs: 100, maxEntries: 3 });
+    cache.set(1, "one", 0);
+    cache.set(2, null, 10);
+
+    expect(cache.read(1, 50)).toEqual({ hit: true, value: "one" });
+    expect(cache.read(2, 50)).toEqual({ hit: true, value: null });
+
+    cache.set(1, "one-refreshed", 60);
+    cache.set(3, "three", 70);
+    cache.set(4, "four", 80);
+
+    expect(cache.size).toBe(3);
+    expect(cache.read(2, 80)).toEqual({ hit: false });
+    expect(cache.read(1, 80)).toEqual({
+      hit: true,
+      value: "one-refreshed",
+    });
+
+    expect(cache.read(1, 160)).toEqual({ hit: false });
+    expect(cache.read(3, 160)).toEqual({ hit: true, value: "three" });
+    expect(cache.read(4, 181)).toEqual({ hit: false });
+    expect(cache.size).toBe(0);
+  });
+
+  it("hard-caps the process start-time cache at 4096 refreshed pids", () => {
+    const cache = new ProcessStartTimeCache({ ttlMs: 60_000 });
+    for (let pid = 1; pid <= PROCESS_START_TIME_CACHE_MAX_ENTRIES; pid += 1) {
+      cache.set(pid, pid, pid);
+    }
+    cache.set(1, "refreshed", PROCESS_START_TIME_CACHE_MAX_ENTRIES + 1);
+    cache.set(
+      PROCESS_START_TIME_CACHE_MAX_ENTRIES + 1,
+      "newest",
+      PROCESS_START_TIME_CACHE_MAX_ENTRIES + 2,
+    );
+
+    expect(cache.size).toBe(PROCESS_START_TIME_CACHE_MAX_ENTRIES);
+    expect(cache.read(2, PROCESS_START_TIME_CACHE_MAX_ENTRIES + 2)).toEqual({
+      hit: false,
+    });
+    expect(cache.read(1, PROCESS_START_TIME_CACHE_MAX_ENTRIES + 2)).toEqual({
+      hit: true,
+      value: "refreshed",
+    });
+    expect(
+      cache.read(
+        PROCESS_START_TIME_CACHE_MAX_ENTRIES + 1,
+        PROCESS_START_TIME_CACHE_MAX_ENTRIES + 2,
+      ),
+    ).toEqual({ hit: true, value: "newest" });
+  });
+
   it("reclaims a strict state lock owned only by a zombie process identity", () => {
     const id = "bg-zombie-lock-owner";
     writeBackgroundAgentState({
