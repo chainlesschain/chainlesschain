@@ -55,6 +55,8 @@ import {
   BACKGROUND_AGENT_KEEPER_TASKKILL_TIMEOUT_MS,
   BACKGROUND_AGENT_KEEPER_WMIC_TIMEOUT_MS,
   backgroundAgentKeeperPipePath,
+  cleanupBackgroundAgentKeeperPipeDirectory,
+  prepareBackgroundAgentKeeperPipePath,
 } from "./background-agent-keeper-protocol.js";
 
 export const DEFAULT_HEARTBEAT_INTERVAL_MS = 5000;
@@ -2288,6 +2290,7 @@ export function launchBackgroundAgent({
   const keeperGeneration = randomBytes(16).toString("hex");
   const keeperToken = randomBytes(32).toString("hex");
   const keeperPipePath = backgroundAgentKeeperPipePath(id, dir);
+  prepareBackgroundAgentKeeperPipePath(keeperPipePath);
   const jobFile = join(dir, `${id}.job.${process.pid}.json`);
   const keeperJobFile = join(dir, `${id}.keeper.${process.pid}.json`);
   const worker = fileURLToPath(
@@ -2335,6 +2338,7 @@ export function launchBackgroundAgent({
   } catch (error) {
     rmSync(jobFile, { force: true });
     rmSync(keeperJobFile, { force: true });
+    cleanupBackgroundAgentKeeperPipeDirectory(keeperPipePath);
     throw error;
   }
   // Write the initial state BEFORE spawning so the worker's own merges (the
@@ -2383,6 +2387,7 @@ export function launchBackgroundAgent({
     rmSync(jobFile, { force: true });
     rmSync(keeperJobFile, { force: true });
     rmSync(statePath(id), { force: true });
+    cleanupBackgroundAgentKeeperPipeDirectory(keeperPipePath);
     throw error;
   }
   let child;
@@ -2462,6 +2467,7 @@ export function launchBackgroundAgent({
     rmSync(jobFile, { force: true });
     rmSync(keeperJobFile, { force: true });
     rmSync(statePath(id), { force: true });
+    cleanupBackgroundAgentKeeperPipeDirectory(keeperPipePath);
     throw error;
   } finally {
     if (Number.isInteger(workerLogFd)) {

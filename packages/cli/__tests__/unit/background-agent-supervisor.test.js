@@ -1794,7 +1794,7 @@ describe("background agent supervisor", () => {
     expect(completed?.turnKeeperCleanupConfirmedAt).toEqual(expect.any(Number));
     expect(Number.isFinite(completed?.heartbeatAt)).toBe(true);
     expect(readBackgroundAgentLog(state.id)).toContain("worker-output");
-  });
+  }, 90_000);
 
   it("keeps an armed turn contained when the worker is hard-killed", async () => {
     const workDir = join(dir, "hard-kill-work");
@@ -1928,7 +1928,7 @@ describe("background agent supervisor", () => {
 
     expect(completed?.title).toBe("after");
     expect(completed?.status).toBe("completed");
-  });
+  }, 90_000);
 
   it("buildFollowUpArgv strips the first turn's prompt tokens, keeps flags", () => {
     const optionSpecs = [

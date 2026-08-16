@@ -8,6 +8,7 @@ import {
   BACKGROUND_AGENT_KEEPER_STATE_LOCK_TIMEOUT_MS,
   BACKGROUND_AGENT_KEEPER_TASKKILL_TIMEOUT_MS,
   BACKGROUND_AGENT_KEEPER_WMIC_TIMEOUT_MS,
+  POSIX_KEEPER_SOCKET_PATH_MAX_BYTES,
   backgroundAgentKeeperPipePath,
   normalizeBackgroundAgentKeeperHello,
   normalizeBackgroundAgentKeeperTurn,
@@ -54,6 +55,35 @@ describe("background agent keeper protocol", () => {
     expect(() => backgroundAgentKeeperPipePath("../escape", "C:\\tmp")).toThrow(
       /id/u,
     );
+  });
+
+  it("hashes long POSIX endpoints before Darwin can truncate their identity", () => {
+    const directory = `/private/var/folders/${"nested/".repeat(12)}background-agents`;
+    const options = { platform: "darwin", tempDirectory: "/tmp", uid: 501 };
+    const first = backgroundAgentKeeperPipePath(
+      "bg-1786854302136-5be605",
+      directory,
+      options,
+    );
+    const second = backgroundAgentKeeperPipePath(
+      "bg-1786854302136-5be606",
+      directory,
+      options,
+    );
+    const otherRoot = backgroundAgentKeeperPipePath(
+      "bg-1786854302136-5be605",
+      `${directory}-other`,
+      options,
+    );
+
+    expect(first).toMatch(/^\/tmp\/cc-bgk-[a-f0-9]{24}\/[a-f0-9]{32}\.sock$/u);
+    expect(Buffer.byteLength(first, "utf8")).toBeLessThanOrEqual(
+      POSIX_KEEPER_SOCKET_PATH_MAX_BYTES,
+    );
+    expect(new Set([first, second, otherRoot]).size).toBe(3);
+    expect(
+      backgroundAgentKeeperPipePath("bg-short", "/tmp/agents", options),
+    ).toBe("/tmp/agents/bg-short.keeper.sock");
   });
 
   it("checks worker liveness against its durable launch anchor", () => {
