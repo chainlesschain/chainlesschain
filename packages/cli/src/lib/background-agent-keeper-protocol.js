@@ -16,9 +16,9 @@ export const BACKGROUND_AGENT_KEEPER_RETIRED =
 // deadline and is derived from every synchronous operation on the longest
 // Windows path:
 //
-//   2 targets * (taskkill + WMIC + PowerShell) +
-//   2 durable state-lock acquisitions + cleanup confirmation + scheduling
-//   margin = 70 seconds.
+//   2 targets * (strict identity + taskkill + cleanup confirmation identity) +
+//   2 cleanup-critical persistence retry windows + cleanup confirmation +
+//   scheduling margin = 120 seconds.
 //
 // Keeping these limits in the shared protocol contract prevents either side
 // from silently reintroducing the old 10-second client / longer keeper race.
@@ -26,15 +26,19 @@ export const BACKGROUND_AGENT_KEEPER_CLEANUP_TARGET_LIMIT = 2;
 export const BACKGROUND_AGENT_KEEPER_TASKKILL_TIMEOUT_MS = 10_000;
 export const BACKGROUND_AGENT_KEEPER_WMIC_TIMEOUT_MS = 5_000;
 export const BACKGROUND_AGENT_KEEPER_POWERSHELL_TIMEOUT_MS = 10_000;
+export const BACKGROUND_AGENT_KEEPER_IDENTITY_PROBE_TIMEOUT_MS =
+  BACKGROUND_AGENT_KEEPER_WMIC_TIMEOUT_MS +
+  BACKGROUND_AGENT_KEEPER_POWERSHELL_TIMEOUT_MS;
 export const BACKGROUND_AGENT_KEEPER_STATE_LOCK_TIMEOUT_MS = 5_000;
+export const BACKGROUND_AGENT_KEEPER_PERSIST_RETRY_TIMEOUT_MS =
+  3 * BACKGROUND_AGENT_KEEPER_STATE_LOCK_TIMEOUT_MS;
 export const BACKGROUND_AGENT_KEEPER_CLEANUP_CONFIRM_TIMEOUT_MS = 2_000;
 export const BACKGROUND_AGENT_KEEPER_RETIRE_TIMEOUT_MARGIN_MS = 8_000;
 export const BACKGROUND_AGENT_KEEPER_RETIRE_TIMEOUT_MS =
   BACKGROUND_AGENT_KEEPER_CLEANUP_TARGET_LIMIT *
     (BACKGROUND_AGENT_KEEPER_TASKKILL_TIMEOUT_MS +
-      BACKGROUND_AGENT_KEEPER_WMIC_TIMEOUT_MS +
-      BACKGROUND_AGENT_KEEPER_POWERSHELL_TIMEOUT_MS) +
-  2 * BACKGROUND_AGENT_KEEPER_STATE_LOCK_TIMEOUT_MS +
+      2 * BACKGROUND_AGENT_KEEPER_IDENTITY_PROBE_TIMEOUT_MS) +
+  2 * BACKGROUND_AGENT_KEEPER_PERSIST_RETRY_TIMEOUT_MS +
   BACKGROUND_AGENT_KEEPER_CLEANUP_CONFIRM_TIMEOUT_MS +
   BACKGROUND_AGENT_KEEPER_RETIRE_TIMEOUT_MARGIN_MS;
 

@@ -337,6 +337,8 @@ export const _deps = {
   readProcessState: defaultReadProcessState,
   readProcessGroupStates: defaultReadProcessGroupStates,
   processExitWaitDeadlineMs: 2_000,
+  posixPermissionRetryNowMs: () => performance.now(),
+  posixPermissionRetrySleep: sleepSyncMs,
   killProcessTree: defaultKillProcessTree,
   terminateOwnedProcessTree,
   withSessionHostRecoveryLease,
@@ -349,13 +351,29 @@ export const _deps = {
  */
 export function stopBackgroundAgentChildTree(
   pid,
-  { platform = process.platform, signal = "SIGTERM" } = {},
+  {
+    platform = process.platform,
+    signal = "SIGTERM",
+    expectedStartedAt,
+    processGroup = true,
+    strictIdentity = false,
+    allowDirectFallback = true,
+  } = {},
 ) {
   const target = Number(pid);
   if (!Number.isInteger(target) || target <= 0 || target === process.pid) {
     const error = new Error("background_agent_child_pid_invalid");
     error.code = "ERR_BACKGROUND_AGENT_CHILD_PID_INVALID";
     throw error;
+  }
+  if (strictIdentity === true) {
+    signalExactBackgroundProcessTree(target, signal, {
+      platform,
+      expectedStartedAt,
+      processGroup,
+      allowDirectFallback,
+    });
+    return true;
   }
   if (platform === "win32") {
     const result = runSupervisorCommand(
@@ -381,11 +399,14 @@ export function stopBackgroundAgentChildTree(
     }
     return true;
   }
-  try {
-    _deps.kill(-target, signal);
-  } catch {
-    _deps.kill(target, signal);
-  }
+  // Preserve the legacy caller contract while sharing the safe POSIX tree
+  // primitive: permission/invalid-signal failures remain fatal, and only a
+  // genuinely absent process group may use the historical direct fallback.
+  signalBackgroundProcessTree(target, signal, {
+    platform,
+    processGroup,
+    allowDirectFallback,
+  });
   return true;
 }
 
@@ -459,6 +480,7 @@ const TERMINAL_STATUSES = new Set(["completed", "failed", "stopped", "lost"]);
 const KEEPER_TERMINAL_STATUSES = new Set([
   "closed",
   "worker-disconnected",
+  "cleanup-unconfirmed",
   "startup-timeout",
   "spawn-error",
   "exited",
@@ -628,6 +650,9 @@ function mergeBackgroundAgentState(current, requested) {
         ...next,
         status: current.status,
         endedAt: current.endedAt ?? next.endedAt ?? null,
+        ...(current.stopCleanupConfirmedAt !== undefined
+          ? { stopCleanupConfirmedAt: current.stopCleanupConfirmedAt }
+          : {}),
         exitCode: current.exitCode ?? next.exitCode ?? null,
         ...(current.signal !== undefined ? { signal: current.signal } : {}),
         ...(current.error !== undefined ? { error: current.error } : {}),
@@ -2785,7 +2810,11 @@ export function isBackgroundProcessTreeExecutionAlive(pid, startedAt) {
 export function signalBackgroundProcessTree(
   pid,
   signal = "SIGTERM",
-  { platform = process.platform, processGroup = true } = {},
+  {
+    platform = process.platform,
+    processGroup = true,
+    allowDirectFallback = true,
+  } = {},
 ) {
   const target = Number(pid);
   if (platform === "win32") {
@@ -2824,7 +2853,9 @@ export function signalBackgroundProcessTree(
     // A denied/invalid group signal can leave descendants executing even if a
     // direct leader signal would succeed. Only ESRCH proves that there is no
     // process group to terminate and permits the single-process fallback.
-    if (groupError?.code !== "ESRCH") throw groupError;
+    if (groupError?.code !== "ESRCH" || allowDirectFallback !== true) {
+      throw groupError;
+    }
     try {
       _deps.kill(target, signal);
       return "process";
@@ -2835,6 +2866,131 @@ export function signalBackgroundProcessTree(
       // left to terminate; permission and all other failures remain fatal.
       if (error?.code === "ESRCH") return "already-exited";
       throw error;
+    }
+  }
+}
+
+function signalExactBackgroundProcessTree(
+  pid,
+  signal,
+  {
+    platform = process.platform,
+    expectedStartedAt,
+    processGroup = true,
+    allowDirectFallback = false,
+  } = {},
+) {
+  const target = Number(pid);
+  const mode = processGroup === true ? "process-group" : "direct";
+  const permissionRetryDeadline =
+    _deps.posixPermissionRetryNowMs() +
+    Math.max(0, Number(_deps.processExitWaitDeadlineMs) || 0);
+  let permissionRetries = 0;
+  let lastIdentity = null;
+  let retryStoppedBy = "preflight";
+  const inspectIdentity = () =>
+    inspectDestructiveProcessIdentity(target, expectedStartedAt, {
+      processGroup,
+    });
+  const alreadyRetired = (identity) =>
+    ["dead", "reused"].includes(identity?.status);
+  const failure = (cause) => {
+    const reason = cause?.message || String(cause);
+    const error = new Error(
+      `background_agent_child_tree_stop_failed: ${reason} (${mode} pid ${target}, permission retries ${permissionRetries}, last identity ${lastIdentity?.status || "not-probed"}/${lastIdentity?.reason || "no-reason"}, retry stopped by ${retryStoppedBy})`,
+      { cause },
+    );
+    error.code = "ERR_BACKGROUND_AGENT_CHILD_TREE_STOP_FAILED";
+    return error;
+  };
+
+  // Unlike the legacy tree helper, the keeper's destructive path owns a
+  // persisted creation-time anchor. Re-authorize the initial signal from a
+  // fresh exact snapshot so a stale/reused PID can never address a stranger.
+  lastIdentity = inspectIdentity();
+  if (alreadyRetired(lastIdentity)) {
+    return { alreadyRetired: true, signalledAsGroup: processGroup === true };
+  }
+  if (lastIdentity.status !== "match") {
+    retryStoppedBy = "identity";
+    throw failure(
+      new Error(
+        `destructive process identity is ${lastIdentity.status}: ${lastIdentity.reason || "unknown"}`,
+      ),
+    );
+  }
+
+  for (;;) {
+    try {
+      const result = signalBackgroundProcessTree(target, signal, {
+        platform,
+        processGroup,
+        allowDirectFallback,
+      });
+      return {
+        alreadyRetired: result === "already-exited",
+        signalledAsGroup: result === "process-group",
+        permissionRetries,
+      };
+    } catch (cause) {
+      if (platform !== "win32" && cause?.code === "EPERM") {
+        lastIdentity = inspectIdentity();
+        if (alreadyRetired(lastIdentity)) {
+          return {
+            alreadyRetired: true,
+            signalledAsGroup: processGroup === true,
+            permissionRetries,
+          };
+        }
+        const remaining =
+          permissionRetryDeadline - _deps.posixPermissionRetryNowMs();
+        if (lastIdentity.status === "match" && remaining > 0) {
+          const retryDelayMs = Math.min(
+            remaining,
+            10 * 2 ** Math.min(permissionRetries, 4),
+          );
+          _deps.posixPermissionRetrySleep(retryDelayMs);
+          lastIdentity = inspectIdentity();
+          if (alreadyRetired(lastIdentity)) {
+            return {
+              alreadyRetired: true,
+              signalledAsGroup: processGroup === true,
+              permissionRetries,
+            };
+          }
+          if (
+            lastIdentity.status === "match" &&
+            _deps.posixPermissionRetryNowMs() < permissionRetryDeadline
+          ) {
+            permissionRetries += 1;
+            continue;
+          }
+        }
+        retryStoppedBy =
+          lastIdentity.status === "match" ? "deadline" : "identity";
+        throw failure(cause);
+      }
+      if (
+        processGroup === true &&
+        allowDirectFallback !== true &&
+        cause?.code === "ESRCH"
+      ) {
+        // A group may disappear between the exact preflight and signal. It is
+        // safe to accept only a fresh dead/reused result; a still-live leader
+        // is never converted to a direct kill on the keeper path.
+        lastIdentity = inspectIdentity();
+        if (alreadyRetired(lastIdentity)) {
+          return {
+            alreadyRetired: true,
+            signalledAsGroup: true,
+            permissionRetries,
+          };
+        }
+        retryStoppedBy = "identity";
+      } else {
+        retryStoppedBy = "signal";
+      }
+      throw failure(cause);
     }
   }
 }
@@ -3018,6 +3174,7 @@ export function stopBackgroundAgent(id) {
   let postKill = state;
   let workerPidReused = false;
   const signalledPids = new Set();
+  let activeTerminationContext = null;
   // A worker may publish a just-spawned child identity while the stop fence is
   // being observed. Re-read once after the first termination round so that a
   // newly durable, exact-owned agent tree is also terminated before recovery.
@@ -3054,7 +3211,20 @@ export function stopBackgroundAgent(id) {
       // independent keeper do not. Signal those single processes directly so
       // a rapidly recycled pid cannot address an unrelated POSIX group.
       for (const target of targets) {
+        // This monotonic deadline bounds signal *resends for one target*.
+        // A fresh OS identity probe has its own bounded command timeout and
+        // may return after this instant, but no further signal is authorized
+        // once the resend window has elapsed.
+        const permissionRetryDeadline =
+          _deps.posixPermissionRetryNowMs() +
+          Math.max(0, Number(_deps.processExitWaitDeadlineMs) || 0);
         let permissionRetries = 0;
+        activeTerminationContext = {
+          role: target.role,
+          pid: target.pid,
+          mode: target.signalAsGroup ? "process-group" : "direct",
+          permissionRetries,
+        };
         while (true) {
           try {
             target.signalledAsGroup =
@@ -3080,12 +3250,14 @@ export function stopBackgroundAgent(id) {
                 signalledPids.add(target.pid);
                 break;
               }
-              if (
-                refreshedIdentity.status === "match" &&
-                permissionRetries < 3
-              ) {
-                permissionRetries += 1;
-                sleepSyncMs(10 * permissionRetries);
+              const remaining =
+                permissionRetryDeadline - _deps.posixPermissionRetryNowMs();
+              if (refreshedIdentity.status === "match" && remaining > 0) {
+                const retryDelayMs = Math.min(
+                  remaining,
+                  10 * 2 ** Math.min(permissionRetries, 4),
+                );
+                _deps.posixPermissionRetrySleep(retryDelayMs);
                 refreshedIdentity = inspectDestructiveProcessIdentity(
                   target.pid,
                   target.startedAt,
@@ -3096,7 +3268,32 @@ export function stopBackgroundAgent(id) {
                   signalledPids.add(target.pid);
                   break;
                 }
-                if (refreshedIdentity.status === "match") continue;
+                if (
+                  refreshedIdentity.status === "match" &&
+                  _deps.posixPermissionRetryNowMs() < permissionRetryDeadline
+                ) {
+                  permissionRetries += 1;
+                  activeTerminationContext.permissionRetries =
+                    permissionRetries;
+                  continue;
+                }
+                activeTerminationContext.lastIdentityStatus =
+                  refreshedIdentity.status;
+                activeTerminationContext.lastIdentityReason =
+                  refreshedIdentity.reason || null;
+                activeTerminationContext.retryStoppedBy =
+                  refreshedIdentity.status === "match"
+                    ? "deadline"
+                    : "identity";
+              } else {
+                activeTerminationContext.lastIdentityStatus =
+                  refreshedIdentity.status;
+                activeTerminationContext.lastIdentityReason =
+                  refreshedIdentity.reason || null;
+                activeTerminationContext.retryStoppedBy =
+                  refreshedIdentity.status === "match"
+                    ? "deadline"
+                    : "identity";
               }
             }
             throw error;
@@ -3104,6 +3301,11 @@ export function stopBackgroundAgent(id) {
         }
       }
     } catch (error) {
+      const failureMessage = `Failed to stop background agent ${id}${
+        activeTerminationContext
+          ? ` (${activeTerminationContext.role} pid ${activeTerminationContext.pid}, ${activeTerminationContext.mode}, permission retries ${activeTerminationContext.permissionRetries}, last identity ${activeTerminationContext.lastIdentityStatus || "not-probed"}/${activeTerminationContext.lastIdentityReason || "no-reason"}, retry stopped by ${activeTerminationContext.retryStoppedBy || "non-permission-error"})`
+          : ""
+      }: ${error.message}`;
       try {
         mutateBackgroundAgentState(id, (current) =>
           current
@@ -3112,16 +3314,14 @@ export function stopBackgroundAgent(id) {
                 phase: "stop_failed",
                 stopPending: true,
                 stopPendingReason: "process-termination",
-                stopError: error?.message || String(error),
+                stopError: failureMessage,
               }
             : null,
         );
       } catch {
         /* the durable stopRequestedAt fence already blocks new turns */
       }
-      throw new Error(
-        `Failed to stop background agent ${id}: ${error.message}`,
-      );
+      throw new Error(failureMessage);
     }
     const stillAlive = waitForSignalledProcessesToExit(targets);
     postKill = readBackgroundAgentState(id) || postKill;
@@ -3196,6 +3396,11 @@ export function stopBackgroundAgent(id) {
           ...current,
           status: "stopped",
           endedAt: current.endedAt || Date.now(),
+          // `endedAt` belongs to the worker/session lifecycle and may predate
+          // retirement of a detached child. Publish a distinct durable proof
+          // only after every exact-owned process identity has been observed
+          // non-executable above.
+          stopCleanupConfirmedAt: Date.now(),
           stoppedByUser: true,
           lostReason: null,
           phase: null,

@@ -17,14 +17,18 @@ import {
   BACKGROUND_KEEPER_SOAK_RESULT_SCHEMA,
   BACKGROUND_KEEPER_SOAK_SMOKE_AGGREGATE_SCHEMA,
   BACKGROUND_KEEPER_SOAK_SMOKE_RESULT_SCHEMA,
+  assertKeeperCleanupWithinDeadline,
   backgroundKeeperSoakDocumentSha256,
   confirmKeeperSoakWorktreeRemoval,
   createBackgroundKeeperSoakRoot,
+  keeperCleanupTiming,
   nearestRankPercentile,
+  pollUntil,
   resolveBackgroundKeeperSoakProfile,
   sealBackgroundKeeperSoakDocument,
   shouldDeferHardKillCleanupIdentityProbe,
   summarizeKeeperSoakSamples,
+  terminateSlotBatch,
   verifyBackgroundKeeperSoakEvidenceSet,
 } from "../../scripts/background-agent-keeper-soak.mjs";
 
@@ -56,37 +60,65 @@ function fixtureEvidence(operatingSystem, mode = "formal") {
     durationSeconds,
     minimumCycles: cycleCount,
     cleanupDeadlineMs: 30_000,
+    cleanupObserverDeadlineMs: formal ? 140_000 : 60_000,
     readinessDeadlineMs: 60_000,
     maxHarnessRssGrowthMb: 192,
     maxHarnessResourceGrowth: 12,
   };
-  const cycles = Array.from({ length: cycleCount }, (_, index) => ({
-    cycle: index + 1,
-    slot: index % agents,
-    generation: Math.floor(index / agents) + 1,
-    method: index % 2 === 0 ? "hard-kill" : "stop",
-    readinessMs: 20,
-    cleanupMs: 10,
-    knownIdentityCount: 6,
-    allKnownPidsRetired: true,
-    recordRemoved: true,
-    worktreeRetained: true,
-    rssBytes: 1_024,
-    resourceKind,
-    resourceCount: 5,
-  }));
-  const slots = Array.from({ length: agents }, (_, index) => ({
-    index,
-    readinessMs: 20,
-    reconnectVerified: true,
-    finalCleanupMs: 10,
-    allKnownPidsRetired: true,
-    worktreeRemoved: true,
-  }));
+  const cycles = Array.from({ length: cycleCount }, (_, index) => {
+    const hardKill = index % 2 === 0;
+    const terminationRequestedAt = 1_000_000 + index * 100;
+    const durableCleanupRequestedAt = terminationRequestedAt + 2;
+    const cleanupConfirmedAt = terminationRequestedAt + 10;
+    return {
+      cycle: index + 1,
+      slot: index % agents,
+      generation: Math.floor(index / agents) + 1,
+      method: hardKill ? "hard-kill" : "stop",
+      readinessMs: 20,
+      cleanupMs: 10,
+      durableCleanupMs: 8,
+      cleanupObservationMs: 12,
+      terminationRequestedAt,
+      durableCleanupRequestedAt,
+      cleanupConfirmedAt,
+      cleanupReason: hardKill ? "worker-disconnected" : null,
+      knownIdentityCount: 6,
+      allKnownPidsRetired: true,
+      recordRemoved: true,
+      worktreeRetained: true,
+      rssBytes: 1_024,
+      resourceKind,
+      resourceCount: 5,
+    };
+  });
+  const slots = Array.from({ length: agents }, (_, index) => {
+    const hardKill = index % 2 === 0;
+    const finalTerminationRequestedAt = 2_000_000 + index * 100;
+    const finalDurableCleanupRequestedAt = finalTerminationRequestedAt + 2;
+    const finalCleanupConfirmedAt = finalTerminationRequestedAt + 10;
+    return {
+      index,
+      readinessMs: 20,
+      reconnectVerified: true,
+      finalMethod: hardKill ? "hard-kill" : "stop",
+      finalCleanupMs: 10,
+      finalDurableCleanupMs: 8,
+      finalCleanupObservationMs: 12,
+      finalTerminationRequestedAt,
+      finalDurableCleanupRequestedAt,
+      finalCleanupConfirmedAt,
+      finalCleanupReason: hardKill ? "worker-disconnected" : null,
+      allKnownPidsRetired: true,
+      worktreeRemoved: true,
+    };
+  });
   const metrics = summarizeKeeperSoakSamples([
     ...cycles,
     ...slots.map((slot) => ({
       cleanupMs: slot.finalCleanupMs,
+      durableCleanupMs: slot.finalDurableCleanupMs,
+      cleanupObservationMs: slot.finalCleanupObservationMs,
       readinessMs: slot.readinessMs,
       rssBytes: null,
       resourceCount: null,
@@ -166,6 +198,22 @@ function completeEvidenceSet(mode = "formal") {
   );
 }
 
+function refreshEvidenceMetrics(report) {
+  const metrics = summarizeKeeperSoakSamples([
+    ...report.cycles,
+    ...report.slots.map((slot) => ({
+      cleanupMs: slot.finalCleanupMs,
+      durableCleanupMs: slot.finalDurableCleanupMs,
+      cleanupObservationMs: slot.finalCleanupObservationMs,
+      readinessMs: slot.readinessMs,
+      rssBytes: null,
+      resourceCount: null,
+    })),
+  ]);
+  report.metrics = { ...report.metrics, ...metrics };
+  return sealBackgroundKeeperSoakDocument(report);
+}
+
 describe("background Agent keeper soak contract", () => {
   it("canonicalizes a filesystem alias above owner-only soak state", () => {
     const parent = mkdtempSync(join(tmpdir(), "cc-keeper-root-alias-"));
@@ -198,6 +246,7 @@ describe("background Agent keeper soak contract", () => {
       agents: 3,
       durationSeconds: 2,
       minimumCycles: 2,
+      cleanupObserverDeadlineMs: 60_000,
     });
   });
 
@@ -214,6 +263,7 @@ describe("background Agent keeper soak contract", () => {
       agents: 20,
       durationSeconds: 7_200,
       minimumCycles: 1_000,
+      cleanupObserverDeadlineMs: 140_000,
     });
   });
 
@@ -353,12 +403,16 @@ describe("background Agent keeper soak contract", () => {
       summarizeKeeperSoakSamples([
         {
           cleanupMs: 20,
+          durableCleanupMs: 15,
+          cleanupObservationMs: 25,
           readinessMs: 50,
           rssBytes: 100,
           resourceCount: 4,
         },
         {
           cleanupMs: 40,
+          durableCleanupMs: 30,
+          cleanupObservationMs: 45,
           readinessMs: 70,
           rssBytes: 200,
           resourceCount: 6,
@@ -368,15 +422,235 @@ describe("background Agent keeper soak contract", () => {
       count: 2,
       cleanupP95Ms: 40,
       cleanupMaximumMs: 40,
+      durableCleanupP95Ms: 30,
+      durableCleanupMaximumMs: 30,
+      cleanupObservationP95Ms: 45,
+      cleanupObservationMaximumMs: 45,
       readinessP95Ms: 70,
       readinessMaximumMs: 70,
       rssMaximumBytes: 200,
       resourceMaximum: 6,
     });
   });
+
+  it("runs every prepare before any trigger and every trigger before observation", async () => {
+    const events = [];
+    const plans = Array.from({ length: 3 }, (_, index) => ({
+      cycleNumber: index + 1,
+      slot: { index },
+      method: index % 2 === 0 ? "hard-kill" : "stop",
+    }));
+    let monotonic = 0;
+    const settlements = await terminateSlotBatch(
+      plans,
+      { cleanupObserverDeadlineMs: 140_000 },
+      {
+        epochNow: () => 1_000 + monotonic,
+        monotonicNow: () => monotonic++,
+        prepareTermination(plan) {
+          events.push(`prepare:${plan.slot.index}`);
+          return { key: { slot: plan.slot.index }, ...plan };
+        },
+        triggerTermination(prepared) {
+          events.push(`trigger:${prepared.key.slot}`);
+          return {
+            ...prepared,
+            terminationRequestedAt: 1_000,
+            terminationStartedAtMonotonicMs: 0,
+            triggerError: null,
+          };
+        },
+        async observeTermination(attempt) {
+          events.push(`observe:${attempt.key.slot}`);
+          return { slot: attempt.key.slot };
+        },
+      },
+    );
+    expect(events).toEqual([
+      "prepare:0",
+      "prepare:1",
+      "prepare:2",
+      "trigger:0",
+      "trigger:2",
+      "trigger:1",
+      "observe:0",
+      "observe:1",
+      "observe:2",
+    ]);
+    expect(settlements).toEqual([{ slot: 0 }, { slot: 1 }, { slot: 2 }]);
+  });
+
+  it("observes every trigger attempt before reporting a trigger failure", async () => {
+    const events = [];
+    const plans = [0, 1].map((index) => ({
+      slot: { index },
+      method: "hard-kill",
+    }));
+    await expect(
+      terminateSlotBatch(
+        plans,
+        { cleanupObserverDeadlineMs: 140_000 },
+        {
+          epochNow: () => 1_000,
+          monotonicNow: () => 10,
+          prepareTermination(plan) {
+            return { key: { slot: plan.slot.index }, ...plan };
+          },
+          triggerTermination(prepared) {
+            events.push(`trigger:${prepared.key.slot}`);
+            if (prepared.key.slot === 0) {
+              throw new Error("signal outcome unknown");
+            }
+            return { ...prepared, triggerError: null };
+          },
+          async observeTermination(attempt) {
+            events.push(`observe:${attempt.key.slot}`);
+            return { slot: attempt.key.slot };
+          },
+        },
+      ),
+    ).rejects.toThrow("keeper soak termination batch failed");
+    expect(events).toEqual([
+      "trigger:0",
+      "trigger:1",
+      "observe:0",
+      "observe:1",
+    ]);
+  });
+
+  it("takes a final terminal probe after observer expiry and rejects late durable cleanup", async () => {
+    let now = 0;
+    let probes = 0;
+    const terminal = { turnKeeperStatus: "retired" };
+    const observed = await pollUntil(
+      () => {
+        probes += 1;
+        return probes === 2 ? terminal : null;
+      },
+      30,
+      "late terminal",
+      10,
+      {
+        now: () => now,
+        wait: async () => {
+          now = 31;
+        },
+      },
+    );
+    expect(observed).toBe(terminal);
+    const timing = keeperCleanupTiming(
+      {
+        key: { slot: 0 },
+        method: "hard-kill",
+        terminationRequestedAt: 1_000,
+        terminationStartedAtMonotonicMs: 0,
+      },
+      {
+        turnKeeperCleanupRequestedAt: 1_000,
+        turnKeeperCleanupConfirmedAt: 31_001,
+      },
+      31_100,
+    );
+    expect(timing).toMatchObject({
+      cleanupMs: 30_001,
+      durableCleanupMs: 30_001,
+      cleanupObservationMs: 31_100,
+    });
+    expect(() =>
+      assertKeeperCleanupWithinDeadline(timing, {
+        cleanupDeadlineMs: 30_000,
+      }),
+    ).toThrow(/durableCleanupMs 30001ms/u);
+  });
+
+  it("does not use an early worker endedAt as cooperative-stop cleanup proof", () => {
+    const attempt = {
+      key: { slot: 0 },
+      method: "stop",
+      terminationRequestedAt: 1_000,
+      terminationStartedAtMonotonicMs: 0,
+    };
+    expect(() =>
+      keeperCleanupTiming(
+        attempt,
+        {
+          stopRequestedAt: 1_000,
+          endedAt: 1_010,
+        },
+        45_000,
+      ),
+    ).toThrow(/invalid stop cleanup timestamps/u);
+
+    const timing = keeperCleanupTiming(
+      attempt,
+      {
+        stopRequestedAt: 1_000,
+        endedAt: 1_010,
+        stopCleanupConfirmedAt: 46_000,
+      },
+      45_000,
+    );
+    expect(timing).toMatchObject({
+      cleanupMs: 45_000,
+      durableCleanupMs: 45_000,
+      cleanupObservationMs: 45_000,
+    });
+    expect(() =>
+      assertKeeperCleanupWithinDeadline(timing, {
+        cleanupDeadlineMs: 30_000,
+      }),
+    ).toThrow(/durableCleanupMs 45000ms/u);
+  });
+
+  it("fails closed when the independent observer budget finds no terminal state", async () => {
+    let now = 0;
+    let probes = 0;
+    await expect(
+      pollUntil(
+        () => {
+          probes += 1;
+          return null;
+        },
+        30,
+        "missing terminal",
+        10,
+        {
+          now: () => now,
+          wait: async (delayMs) => {
+            now += delayMs;
+          },
+        },
+      ),
+    ).rejects.toThrow("missing terminal timed out after 30ms");
+    expect(probes).toBe(5);
+  });
 });
 
 describe("background Agent keeper soak aggregate contract", () => {
+  it("uses v2 contracts and rejects resealed legacy v1 evidence", () => {
+    expect([
+      BACKGROUND_KEEPER_SOAK_RESULT_SCHEMA,
+      BACKGROUND_KEEPER_SOAK_SMOKE_RESULT_SCHEMA,
+      BACKGROUND_KEEPER_SOAK_AGGREGATE_SCHEMA,
+      BACKGROUND_KEEPER_SOAK_SMOKE_AGGREGATE_SCHEMA,
+    ]).toEqual([
+      "chainlesschain.background-agent-keeper-soak.v2",
+      "chainlesschain.background-agent-keeper-soak-smoke.v2",
+      "chainlesschain.background-agent-keeper-soak-aggregate.v2",
+      "chainlesschain.background-agent-keeper-soak-smoke-aggregate.v2",
+    ]);
+
+    const reports = completeEvidenceSet();
+    reports[0].schema = "chainlesschain.background-agent-keeper-soak.v1";
+    sealBackgroundKeeperSoakDocument(reports[0]);
+    expect(() =>
+      verifyBackgroundKeeperSoakEvidenceSet({
+        evidenceDir: writeEvidenceSet(reports),
+        releaseCommit: RELEASE_COMMIT,
+      }),
+    ).toThrow(/schema/u);
+  });
+
   it("accepts exactly three sealed formal reports bound to one exact SHA", () => {
     const evidenceDir = writeEvidenceSet(completeEvidenceSet());
     const output = join(evidenceDir, "..", `aggregate-${Date.now()}.json`);
@@ -504,6 +778,12 @@ describe("background Agent keeper soak aggregate contract", () => {
         report.violations.push("synthetic violation");
       },
       (report) => {
+        for (const cycle of report.cycles) {
+          cycle.method = "hard-kill";
+          cycle.cleanupReason = "worker-disconnected";
+        }
+      },
+      (report) => {
         report.slots[0].allKnownPidsRetired = false;
       },
       (report) => {
@@ -529,6 +809,64 @@ describe("background Agent keeper soak aggregate contract", () => {
     }
   });
 
+  it("rejects one over-deadline cycle even when p95 remains below the deadline", () => {
+    const reports = completeEvidenceSet();
+    const slow = reports[0].cycles.at(-1);
+    slow.durableCleanupRequestedAt = slow.terminationRequestedAt;
+    slow.cleanupConfirmedAt = slow.terminationRequestedAt + 30_001;
+    slow.cleanupMs = 30_001;
+    slow.durableCleanupMs = 30_001;
+    slow.cleanupObservationMs = 30_100;
+    refreshEvidenceMetrics(reports[0]);
+    expect(reports[0].metrics.cleanupP95Ms).toBe(10);
+    expect(reports[0].metrics.cleanupMaximumMs).toBe(30_001);
+    const evidenceDir = writeEvidenceSet(reports);
+    expect(() =>
+      verifyBackgroundKeeperSoakEvidenceSet({
+        evidenceDir,
+        releaseCommit: RELEASE_COMMIT,
+      }),
+    ).toThrow(/cycle count, metrics or cleanup/u);
+  });
+
+  it("rejects one over-deadline final cleanup even when p95 remains below the deadline", () => {
+    const reports = completeEvidenceSet();
+    const slow = reports[0].slots.at(-1);
+    slow.finalDurableCleanupRequestedAt = slow.finalTerminationRequestedAt;
+    slow.finalCleanupConfirmedAt = slow.finalTerminationRequestedAt + 30_001;
+    slow.finalCleanupMs = 30_001;
+    slow.finalDurableCleanupMs = 30_001;
+    slow.finalCleanupObservationMs = 30_100;
+    refreshEvidenceMetrics(reports[0]);
+    expect(reports[0].metrics.cleanupP95Ms).toBe(10);
+    expect(reports[0].metrics.cleanupMaximumMs).toBe(30_001);
+    const evidenceDir = writeEvidenceSet(reports);
+    expect(() =>
+      verifyBackgroundKeeperSoakEvidenceSet({
+        evidenceDir,
+        releaseCommit: RELEASE_COMMIT,
+      }),
+    ).toThrow(/final PID\/worktree cleanup/u);
+  });
+
+  it("accepts an exact 30-second cleanup boundary", () => {
+    const reports = completeEvidenceSet();
+    const boundary = reports[0].cycles.at(-1);
+    boundary.durableCleanupRequestedAt = boundary.terminationRequestedAt;
+    boundary.cleanupConfirmedAt = boundary.terminationRequestedAt + 30_000;
+    boundary.cleanupMs = 30_000;
+    boundary.durableCleanupMs = 30_000;
+    boundary.cleanupObservationMs = 30_050;
+    refreshEvidenceMetrics(reports[0]);
+    const evidenceDir = writeEvidenceSet(reports);
+    expect(
+      verifyBackgroundKeeperSoakEvidenceSet({
+        evidenceDir,
+        releaseCommit: RELEASE_COMMIT,
+      }).result,
+    ).toBe("passed");
+  });
+
   it("downloads the exact-SHA matrix and verifies it in an always-run aggregate job", () => {
     const workflow = readFileSync(
       join(
@@ -543,6 +881,9 @@ describe("background Agent keeper soak aggregate contract", () => {
 
     expect(workflow).toContain(
       'CC_BACKGROUND_KEEPER_SOAK_CLEANUP_DEADLINE_MS: "30000"',
+    );
+    expect(workflow).toContain(
+      "CC_BACKGROUND_KEEPER_SOAK_CLEANUP_OBSERVER_DEADLINE_MS: ${{ github.event_name == 'pull_request' && '60000' || '140000' }}",
     );
     expect(workflow).toContain(
       "CC_BACKGROUND_KEEPER_SOAK_READINESS_DEADLINE_MS: ${{ github.event_name == 'pull_request' && '60000' || '120000' }}",

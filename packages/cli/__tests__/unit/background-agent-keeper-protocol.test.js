@@ -2,12 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 import {
   BACKGROUND_AGENT_KEEPER_CLEANUP_CONFIRM_TIMEOUT_MS,
   BACKGROUND_AGENT_KEEPER_CLEANUP_TARGET_LIMIT,
-  BACKGROUND_AGENT_KEEPER_POWERSHELL_TIMEOUT_MS,
+  BACKGROUND_AGENT_KEEPER_IDENTITY_PROBE_TIMEOUT_MS,
+  BACKGROUND_AGENT_KEEPER_PERSIST_RETRY_TIMEOUT_MS,
   BACKGROUND_AGENT_KEEPER_RETIRE_TIMEOUT_MARGIN_MS,
   BACKGROUND_AGENT_KEEPER_RETIRE_TIMEOUT_MS,
   BACKGROUND_AGENT_KEEPER_STATE_LOCK_TIMEOUT_MS,
   BACKGROUND_AGENT_KEEPER_TASKKILL_TIMEOUT_MS,
-  BACKGROUND_AGENT_KEEPER_WMIC_TIMEOUT_MS,
   POSIX_KEEPER_SOCKET_PATH_MAX_BYTES,
   backgroundAgentKeeperPipePath,
   normalizeBackgroundAgentKeeperHello,
@@ -17,6 +17,8 @@ import {
 } from "../../src/lib/background-agent-keeper-protocol.js";
 import {
   keeperWorkerIdentityAlive,
+  retryKeeperPersistence,
+  runBackgroundAgentKeeperHeartbeat,
   stopBackgroundAgentKeeperTurnTrees,
 } from "../../src/workers/background-agent-keeper.js";
 
@@ -95,6 +97,107 @@ describe("background agent keeper protocol", () => {
     expect(probe).toHaveBeenCalledWith(2468, 1_234_567);
   });
 
+  it("retries cleanup-critical persistence through a transient lock fence", async () => {
+    let clock = 0;
+    const sleep = vi.fn(async (ms) => {
+      clock += ms;
+    });
+    const operation = vi
+      .fn()
+      .mockImplementationOnce(() => {
+        throw Object.assign(new Error("locked"), {
+          code: "STATE_LOCK_UNAVAILABLE",
+        });
+      })
+      .mockImplementationOnce(() => {
+        throw Object.assign(new Error("still locked"), {
+          code: "STATE_LOCK_UNAVAILABLE",
+        });
+      })
+      .mockReturnValue({ applied: true });
+
+    await expect(
+      retryKeeperPersistence(operation, {
+        timeoutMs: 20,
+        retryDelayMs: 5,
+        now: () => clock,
+        sleep,
+      }),
+    ).resolves.toEqual({
+      result: { applied: true },
+      error: null,
+      attempts: 3,
+    });
+    expect(sleep).toHaveBeenCalledTimes(2);
+  });
+
+  it("fails closed when cleanup-critical persistence exhausts its deadline", async () => {
+    let clock = 0;
+    const sleep = vi.fn(async (ms) => {
+      clock += ms;
+    });
+    const unavailable = Object.assign(new Error("lock stayed unavailable"), {
+      code: "STATE_LOCK_UNAVAILABLE",
+    });
+    const operation = vi.fn(() => {
+      throw unavailable;
+    });
+
+    await expect(
+      retryKeeperPersistence(operation, {
+        timeoutMs: 10,
+        retryDelayMs: 5,
+        now: () => clock,
+        sleep,
+      }),
+    ).resolves.toEqual({
+      result: null,
+      error: unavailable,
+      attempts: 3,
+    });
+    expect(operation).toHaveBeenCalledTimes(3);
+    expect(sleep).toHaveBeenCalledTimes(2);
+  });
+
+  it("skips heartbeat persistence immediately after finishing starts", () => {
+    const persistKeeper = vi.fn();
+    const workerIdentityAlive = vi.fn();
+
+    expect(
+      runBackgroundAgentKeeperHeartbeat({
+        finishing: true,
+        persistKeeper,
+        workerIdentityAlive,
+      }),
+    ).toBe(false);
+    expect(workerIdentityAlive).not.toHaveBeenCalled();
+    expect(persistKeeper).not.toHaveBeenCalled();
+  });
+
+  it("contains and reports heartbeat persistence errors", () => {
+    const persistenceError = Object.assign(new Error("lock unavailable"), {
+      code: "STATE_LOCK_UNAVAILABLE",
+    });
+    const persistKeeper = vi.fn(() => {
+      throw persistenceError;
+    });
+    const reportPersistenceFailure = vi.fn();
+
+    expect(
+      runBackgroundAgentKeeperHeartbeat({
+        finishing: false,
+        persistKeeper,
+        now: () => 1_234,
+        reportPersistenceFailure,
+      }),
+    ).toBe(false);
+    expect(persistKeeper).toHaveBeenCalledWith({ keeperHeartbeatAt: 1_234 });
+    expect(reportPersistenceFailure).toHaveBeenCalledWith(
+      "heartbeat",
+      persistenceError,
+    );
+  });
+
   it("skips a runtime target already retired by the preceding tree stop", () => {
     const alive = new Set([4321, 5432]);
     const stopProcessTree = vi.fn((pid) => {
@@ -105,8 +208,8 @@ describe("background agent keeper protocol", () => {
     expect(
       stopBackgroundAgentKeeperTurnTrees(
         [
-          { pid: 4321, startedAt: 1_000 },
-          { pid: 5432, startedAt: 1_001 },
+          { pid: 4321, startedAt: 1_000, processGroup: true },
+          { pid: 5432, startedAt: 1_001, processGroup: false },
         ],
         {
           isProcessAlive: (pid) => alive.has(pid),
@@ -115,7 +218,13 @@ describe("background agent keeper protocol", () => {
       ),
     ).toEqual([]);
     expect(stopProcessTree).toHaveBeenCalledOnce();
-    expect(stopProcessTree).toHaveBeenCalledWith(4321, { signal: "SIGKILL" });
+    expect(stopProcessTree).toHaveBeenCalledWith(4321, {
+      signal: "SIGKILL",
+      expectedStartedAt: 1_000,
+      processGroup: true,
+      strictIdentity: true,
+      allowDirectFallback: false,
+    });
   });
 
   it("still signals the first POSIX group after its leader pid retires", () => {
@@ -124,8 +233,8 @@ describe("background agent keeper protocol", () => {
     expect(
       stopBackgroundAgentKeeperTurnTrees(
         [
-          { pid: 4321, startedAt: 1_000 },
-          { pid: 5432, startedAt: 1_001 },
+          { pid: 4321, startedAt: 1_000, processGroup: true },
+          { pid: 5432, startedAt: 1_001, processGroup: false },
         ],
         {
           isProcessAlive: () => false,
@@ -134,7 +243,13 @@ describe("background agent keeper protocol", () => {
       ),
     ).toEqual([]);
     expect(stopProcessTree).toHaveBeenCalledOnce();
-    expect(stopProcessTree).toHaveBeenCalledWith(4321, { signal: "SIGKILL" });
+    expect(stopProcessTree).toHaveBeenCalledWith(4321, {
+      signal: "SIGKILL",
+      expectedStartedAt: 1_000,
+      processGroup: true,
+      strictIdentity: true,
+      allowDirectFallback: false,
+    });
   });
 
   it("keeps a keeper cleanup failure only while the target remains alive", () => {
@@ -150,36 +265,62 @@ describe("background agent keeper protocol", () => {
       });
 
     expect(
-      stopBackgroundAgentKeeperTurnTrees([{ pid: 4321 }], {
-        isProcessAlive: (pid) => alive.has(pid),
-        stopProcessTree,
-      }),
+      stopBackgroundAgentKeeperTurnTrees(
+        [{ pid: 4321, startedAt: 1_000, processGroup: true }],
+        {
+          isProcessAlive: (pid) => alive.has(pid),
+          stopProcessTree,
+        },
+      ),
     ).toEqual([]);
     alive.add(5432);
     expect(
-      stopBackgroundAgentKeeperTurnTrees([{ pid: 5432 }], {
-        isProcessAlive: (pid) => alive.has(pid),
-        stopProcessTree,
-      }),
+      stopBackgroundAgentKeeperTurnTrees(
+        [{ pid: 5432, startedAt: 1_001, processGroup: false }],
+        {
+          isProcessAlive: (pid) => alive.has(pid),
+          stopProcessTree,
+        },
+      ),
     ).toEqual(["persistent denial"]);
+    expect(stopProcessTree).toHaveBeenNthCalledWith(1, 4321, {
+      signal: "SIGKILL",
+      expectedStartedAt: 1_000,
+      processGroup: true,
+      strictIdentity: true,
+      allowDirectFallback: false,
+    });
+    expect(stopProcessTree).toHaveBeenNthCalledWith(2, 5432, {
+      signal: "SIGKILL",
+      expectedStartedAt: 1_001,
+      processGroup: false,
+      strictIdentity: true,
+      allowDirectFallback: false,
+    });
   });
 
   it("gives RETIRE an independent budget covering bounded Windows cleanup", () => {
     const boundedCleanupMs =
       BACKGROUND_AGENT_KEEPER_CLEANUP_TARGET_LIMIT *
         (BACKGROUND_AGENT_KEEPER_TASKKILL_TIMEOUT_MS +
-          BACKGROUND_AGENT_KEEPER_WMIC_TIMEOUT_MS +
-          BACKGROUND_AGENT_KEEPER_POWERSHELL_TIMEOUT_MS) +
-      2 * BACKGROUND_AGENT_KEEPER_STATE_LOCK_TIMEOUT_MS +
+          2 * BACKGROUND_AGENT_KEEPER_IDENTITY_PROBE_TIMEOUT_MS) +
+      2 * BACKGROUND_AGENT_KEEPER_PERSIST_RETRY_TIMEOUT_MS +
       BACKGROUND_AGENT_KEEPER_CLEANUP_CONFIRM_TIMEOUT_MS;
 
+    expect(BACKGROUND_AGENT_KEEPER_PERSIST_RETRY_TIMEOUT_MS).toBe(
+      3 * BACKGROUND_AGENT_KEEPER_STATE_LOCK_TIMEOUT_MS,
+    );
+    expect(BACKGROUND_AGENT_KEEPER_PERSIST_RETRY_TIMEOUT_MS).toBe(15_000);
     expect(BACKGROUND_AGENT_KEEPER_RETIRE_TIMEOUT_MS).toBe(
       boundedCleanupMs + BACKGROUND_AGENT_KEEPER_RETIRE_TIMEOUT_MARGIN_MS,
     );
-    expect(BACKGROUND_AGENT_KEEPER_RETIRE_TIMEOUT_MS).toBe(70_000);
-    expect(resolveBackgroundAgentKeeperRetireTimeoutMs(undefined)).toBe(70_000);
-    expect(resolveBackgroundAgentKeeperRetireTimeoutMs(Infinity)).toBe(70_000);
-    expect(resolveBackgroundAgentKeeperRetireTimeoutMs(100_000)).toBe(70_000);
+    expect(BACKGROUND_AGENT_KEEPER_RETIRE_TIMEOUT_MS).toBe(120_000);
+    expect(resolveBackgroundAgentKeeperRetireTimeoutMs(undefined)).toBe(
+      120_000,
+    );
+    expect(resolveBackgroundAgentKeeperRetireTimeoutMs(Infinity)).toBe(120_000);
+    expect(resolveBackgroundAgentKeeperRetireTimeoutMs(200_000)).toBe(120_000);
+    expect(resolveBackgroundAgentKeeperRetireTimeoutMs(100_000)).toBe(100_000);
     expect(resolveBackgroundAgentKeeperRetireTimeoutMs(1_234.9)).toBe(1_234);
   });
 });

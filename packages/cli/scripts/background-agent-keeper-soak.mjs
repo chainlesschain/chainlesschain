@@ -26,6 +26,10 @@ import {
   removeBackgroundAgent,
   stopBackgroundAgent,
 } from "../src/lib/background-agent-supervisor.js";
+import {
+  BACKGROUND_AGENT_KEEPER_PERSIST_RETRY_TIMEOUT_MS,
+  BACKGROUND_AGENT_KEEPER_RETIRE_TIMEOUT_MS,
+} from "../src/lib/background-agent-keeper-protocol.js";
 import { connectBackgroundSession } from "../src/lib/background-session-transport.js";
 import {
   finishAgentWorktree,
@@ -42,13 +46,13 @@ import { ioSnapshot } from "./cli-reliability-soak.mjs";
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPOSITORY_ROOT = resolve(SCRIPT_DIR, "../../..");
 export const BACKGROUND_KEEPER_SOAK_RESULT_SCHEMA =
-  "chainlesschain.background-agent-keeper-soak.v1";
+  "chainlesschain.background-agent-keeper-soak.v2";
 export const BACKGROUND_KEEPER_SOAK_SMOKE_RESULT_SCHEMA =
-  "chainlesschain.background-agent-keeper-soak-smoke.v1";
+  "chainlesschain.background-agent-keeper-soak-smoke.v2";
 export const BACKGROUND_KEEPER_SOAK_AGGREGATE_SCHEMA =
-  "chainlesschain.background-agent-keeper-soak-aggregate.v1";
+  "chainlesschain.background-agent-keeper-soak-aggregate.v2";
 export const BACKGROUND_KEEPER_SOAK_SMOKE_AGGREGATE_SCHEMA =
-  "chainlesschain.background-agent-keeper-soak-smoke-aggregate.v1";
+  "chainlesschain.background-agent-keeper-soak-smoke-aggregate.v2";
 export const BACKGROUND_KEEPER_SOAK_OPERATING_SYSTEMS = Object.freeze([
   "linux",
   "macos",
@@ -59,6 +63,14 @@ const DEFAULT_OUTPUT = join(
   `cc-background-keeper-soak-${process.platform}-${process.pid}.json`,
 );
 const HARNESS_RESOURCE_SETTLE_MS = 1_000;
+// The 120s RETIRE contract includes strict preflight/confirmation probes and
+// both cleanup persistence windows. A
+// worker-disconnect path has one additional 15s final keeper-status write;
+// add 5s scheduling margin without widening the independent 30s product gate.
+const DEFAULT_CLEANUP_OBSERVER_DEADLINE_MS =
+  BACKGROUND_AGENT_KEEPER_RETIRE_TIMEOUT_MS +
+  BACKGROUND_AGENT_KEEPER_PERSIST_RETRY_TIMEOUT_MS +
+  5_000;
 
 export function createBackgroundKeeperSoakRoot(tempDirectory = tmpdir()) {
   // macOS exposes its temporary directory through /var while the owner-only
@@ -137,6 +149,15 @@ export function resolveBackgroundKeeperSoakProfile(environment = process.env) {
     ),
     formal ? 20 : 2,
   );
+  const cleanupDeadlineMs = Math.min(
+    30_000,
+    positiveNumber(
+      environment.CC_BACKGROUND_KEEPER_SOAK_CLEANUP_DEADLINE_MS,
+      30_000,
+      "cleanup deadline",
+      { integer: true },
+    ),
+  );
   return Object.freeze({
     mode,
     agents,
@@ -157,13 +178,17 @@ export function resolveBackgroundKeeperSoakProfile(environment = process.env) {
       ),
       formal ? 1_000 : 1,
     ),
-    cleanupDeadlineMs: Math.min(
-      60_000,
-      positiveNumber(
-        environment.CC_BACKGROUND_KEEPER_SOAK_CLEANUP_DEADLINE_MS,
-        30_000,
-        "cleanup deadline",
-        { integer: true },
+    cleanupDeadlineMs,
+    cleanupObserverDeadlineMs: Math.min(
+      300_000,
+      Math.max(
+        positiveNumber(
+          environment.CC_BACKGROUND_KEEPER_SOAK_CLEANUP_OBSERVER_DEADLINE_MS,
+          formal ? DEFAULT_CLEANUP_OBSERVER_DEADLINE_MS : 60_000,
+          "cleanup observer deadline",
+          { integer: true },
+        ),
+        formal ? DEFAULT_CLEANUP_OBSERVER_DEADLINE_MS : cleanupDeadlineMs,
       ),
     ),
     readinessDeadlineMs: Math.min(
@@ -205,6 +230,10 @@ export function nearestRankPercentile(values, percentile) {
 
 export function summarizeKeeperSoakSamples(samples = []) {
   const cleanup = samples.map((sample) => sample.cleanupMs);
+  const durableCleanup = samples.map((sample) => sample.durableCleanupMs);
+  const cleanupObservation = samples.map(
+    (sample) => sample.cleanupObservationMs,
+  );
   const readiness = samples.map((sample) => sample.readinessMs);
   const rss = samples.map((sample) => sample.rssBytes);
   const resources = samples.map((sample) => sample.resourceCount);
@@ -212,6 +241,12 @@ export function summarizeKeeperSoakSamples(samples = []) {
     count: samples.length,
     cleanupP95Ms: nearestRankPercentile(cleanup, 95),
     cleanupMaximumMs: cleanup.length > 0 ? Math.max(...cleanup) : null,
+    durableCleanupP95Ms: nearestRankPercentile(durableCleanup, 95),
+    durableCleanupMaximumMs:
+      durableCleanup.length > 0 ? Math.max(...durableCleanup) : null,
+    cleanupObservationP95Ms: nearestRankPercentile(cleanupObservation, 95),
+    cleanupObservationMaximumMs:
+      cleanupObservation.length > 0 ? Math.max(...cleanupObservation) : null,
     readinessP95Ms: nearestRankPercentile(readiness, 95),
     readinessMaximumMs: readiness.length > 0 ? Math.max(...readiness) : null,
     rssMaximumBytes: rss.filter(Number.isFinite).length
@@ -308,19 +343,38 @@ function writeFakeAgent(entryPath) {
   );
 }
 
-async function pollUntil(operation, timeoutMs, label, intervalMs = 50) {
-  const deadline = Date.now() + timeoutMs;
+export async function pollUntil(
+  operation,
+  timeoutMs,
+  label,
+  intervalMs = 50,
+  dependencies = {},
+) {
+  const now = dependencies.now || (() => performance.now());
+  const wait =
+    dependencies.wait ||
+    ((delayMs) =>
+      new Promise((resolvePromise) => setTimeout(resolvePromise, delayMs)));
+  const deadline = now() + timeoutMs;
   let lastError = null;
-  while (Date.now() <= deadline) {
+  while (now() <= deadline) {
     try {
       const result = await operation();
       if (result) return result;
     } catch (error) {
       lastError = error;
     }
-    await new Promise((resolvePromise) =>
-      setTimeout(resolvePromise, intervalMs),
-    );
+    const remainingMs = deadline - now();
+    if (remainingMs <= 0) break;
+    await wait(Math.min(intervalMs, remainingMs));
+  }
+  // Synchronous Windows host probes can starve this observer. Take one final
+  // terminal snapshot, then let persisted timestamps enforce the 30s gate.
+  try {
+    const result = await operation();
+    if (result) return result;
+  } catch (error) {
+    lastError = error;
   }
   throw new Error(
     `${label} timed out after ${timeoutMs}ms${lastError ? `: ${lastError.message}` : ""}`,
@@ -620,7 +674,8 @@ async function waitForCleanup(slot, profile, startedAt, method) {
           ...identity,
           alive: ownedIdentityAlive(identity),
         }));
-        let allRetired = processes.every(({ alive }) => !alive);
+        let allRetired =
+          processes.length > 0 && processes.every(({ alive }) => !alive);
         // Windows identity probes are synchronous and can consume most of the
         // cleanup deadline when 20 slots retire together. The independent
         // keeper can persist `retired` while those probes are running, so do
@@ -647,7 +702,8 @@ async function waitForCleanup(slot, profile, startedAt, method) {
             ...identity,
             alive: ownedIdentityAlive(identity),
           }));
-          allRetired = processes.every(({ alive }) => !alive);
+          allRetired =
+            processes.length > 0 && processes.every(({ alive }) => !alive);
         }
         const keeperSettled =
           method === "hard-kill"
@@ -675,43 +731,266 @@ async function waitForCleanup(slot, profile, startedAt, method) {
   return performance.now() - startedAt;
 }
 
-async function terminateSlot(slot, profile, method) {
-  const state = readBackgroundAgentState(slot.state.id) || slot.state;
-  slot.state = state;
-  const sampleIdentity =
-    processIdentities(state, slot.evidence).find(
-      ({ role }) => role === (slot.index % 2 === 0 ? "keeper" : "worker"),
-    ) || processIdentities(state, slot.evidence)[0];
-  const metrics = sampleIdentity ? sampleProcess(sampleIdentity) : null;
-  const started = performance.now();
-  if (method === "hard-kill") {
-    const workerPid = Number(state.workerClaimedPid ?? state.workerPid);
-    if (!Number.isSafeInteger(workerPid) || workerPid <= 0) {
-      throw new Error(`agent ${slot.index} has no claimed worker pid`);
-    }
-    process.kill(workerPid, "SIGKILL");
-  } else {
-    stopBackgroundAgent(state.id);
-  }
-  const cleanupMs = await waitForCleanup(slot, profile, started, method);
-  const cleanupState =
-    effectiveBackgroundAgentState(
-      readBackgroundAgentState(state.id) || slot.state,
-    ) || slot.state;
+export function keeperCleanupTiming(attempt, state, observedAtMonotonicMs) {
+  const terminationRequestedAt = Number(attempt?.terminationRequestedAt);
+  const terminationStartedAtMonotonicMs = Number(
+    attempt?.terminationStartedAtMonotonicMs,
+  );
+  const cleanupObservationMs =
+    Number(observedAtMonotonicMs) - terminationStartedAtMonotonicMs;
+  const durableCleanupRequestedAt = Number(
+    attempt?.method === "hard-kill"
+      ? state?.turnKeeperCleanupRequestedAt
+      : state?.stopRequestedAt,
+  );
+  const cleanupConfirmedAt = Number(
+    attempt?.method === "hard-kill"
+      ? state?.turnKeeperCleanupConfirmedAt
+      : state?.stopCleanupConfirmedAt,
+  );
   if (
-    cleanupState.turnKeeperCleanupReason !== "worker-disconnected" &&
-    method === "hard-kill"
+    ![
+      terminationRequestedAt,
+      durableCleanupRequestedAt,
+      cleanupConfirmedAt,
+    ].every((value) => Number.isFinite(value) && value > 0) ||
+    durableCleanupRequestedAt < terminationRequestedAt ||
+    cleanupConfirmedAt < durableCleanupRequestedAt
   ) {
     throw new Error(
-      `agent ${slot.index} keeper recorded ${cleanupState.turnKeeperCleanupReason || "no cleanup reason"}`,
+      `agent ${attempt?.key?.slot ?? "unknown"} published invalid ${attempt?.method || "unknown"} cleanup timestamps`,
     );
   }
-  if (cleanupState.status === "running") stopBackgroundAgent(state.id);
-  const terminal = readBackgroundAgentState(state.id) || cleanupState;
-  if (terminal.status === "running") {
-    throw new Error(`agent ${slot.index} remained running after cleanup`);
+  if (!Number.isFinite(cleanupObservationMs) || cleanupObservationMs < 0) {
+    throw new Error(
+      `agent ${attempt?.key?.slot ?? "unknown"} produced an invalid cleanup observation duration`,
+    );
   }
-  return { cleanupMs, cleanupState: terminal, metrics };
+  return Object.freeze({
+    terminationRequestedAt,
+    durableCleanupRequestedAt,
+    cleanupConfirmedAt,
+    cleanupMs: cleanupConfirmedAt - terminationRequestedAt,
+    durableCleanupMs: cleanupConfirmedAt - durableCleanupRequestedAt,
+    cleanupObservationMs,
+  });
+}
+
+export function assertKeeperCleanupWithinDeadline(
+  sample,
+  profile,
+  label = "cleanup",
+) {
+  const deadlineMs = Math.min(Number(profile?.cleanupDeadlineMs), 30_000);
+  if (!Number.isFinite(deadlineMs) || deadlineMs <= 0) {
+    throw new Error(`${label} has an invalid cleanup deadline`);
+  }
+  for (const field of ["durableCleanupMs", "cleanupMs"]) {
+    const value = sample?.[field];
+    if (!Number.isFinite(value) || value < 0 || value > deadlineMs) {
+      throw new Error(
+        `${label} ${field} ${Number.isFinite(value) ? `${value}ms` : "is unavailable"} exceeded the ${deadlineMs}ms deadline`,
+      );
+    }
+  }
+  if (
+    !Number.isFinite(sample?.cleanupObservationMs) ||
+    sample.cleanupObservationMs < 0
+  ) {
+    throw new Error(`${label} cleanupObservationMs is unavailable`);
+  }
+  return sample;
+}
+
+export function prepareSlotTermination(plan, dependencies = {}) {
+  const slot = plan?.slot;
+  const method = plan?.method;
+  if (!slot?.state?.id || !new Set(["hard-kill", "stop"]).has(method)) {
+    throw new Error("keeper soak termination plan is invalid");
+  }
+  const readState =
+    dependencies.readBackgroundAgentState || readBackgroundAgentState;
+  const inspectProcesses = dependencies.processIdentities || processIdentities;
+  const captureMetrics = dependencies.sampleProcess || sampleProcess;
+  const state = readState(slot.state.id) || slot.state;
+  const identities = inspectProcesses(state, slot.evidence);
+  if (identities.length === 0) {
+    throw new Error(`agent ${slot.index} has no owned process identity`);
+  }
+  const sampleIdentity =
+    identities.find(
+      ({ role }) => role === (slot.index % 2 === 0 ? "keeper" : "worker"),
+    ) || identities[0];
+  slot.state = state;
+  return Object.freeze({
+    key: Object.freeze({
+      cycle: Number(plan.cycleNumber) || null,
+      slot: slot.index,
+      generation: slot.generation,
+      id: state.id,
+    }),
+    slot,
+    method,
+    state,
+    metrics: captureMetrics(sampleIdentity),
+  });
+}
+
+export function triggerSlotTermination(prepared, dependencies = {}) {
+  const readState =
+    dependencies.readBackgroundAgentState || readBackgroundAgentState;
+  const stop = dependencies.stopBackgroundAgent || stopBackgroundAgent;
+  const kill = dependencies.kill || process.kill.bind(process);
+  const epochNow = dependencies.epochNow || Date.now;
+  const monotonicNow = dependencies.monotonicNow || (() => performance.now());
+  const state = readState(prepared.key.id) || prepared.state;
+  const terminationRequestedAt = epochNow();
+  const terminationStartedAtMonotonicMs = monotonicNow();
+  let triggerState = state;
+  let triggerError = null;
+  try {
+    if (state.id !== prepared.key.id || state.status !== "running") {
+      throw new Error(
+        `agent ${prepared.key.slot} changed before termination trigger`,
+      );
+    }
+    if (prepared.method === "hard-kill") {
+      const workerPid = Number(state.workerClaimedPid ?? state.workerPid);
+      if (!Number.isSafeInteger(workerPid) || workerPid <= 0) {
+        throw new Error(`agent ${prepared.key.slot} has no claimed worker pid`);
+      }
+      kill(workerPid, "SIGKILL");
+    } else {
+      triggerState = stop(state.id);
+    }
+  } catch (error) {
+    triggerError = error;
+  }
+  prepared.slot.state = triggerState || state;
+  return Object.freeze({
+    ...prepared,
+    state: triggerState || state,
+    terminationRequestedAt,
+    terminationStartedAtMonotonicMs,
+    terminationDispatchMs: monotonicNow() - terminationStartedAtMonotonicMs,
+    triggerError,
+  });
+}
+
+export async function observeSlotTermination(
+  attempt,
+  profile,
+  dependencies = {},
+) {
+  const monotonicNow = dependencies.monotonicNow || (() => performance.now());
+  const observerDeadlineAtMonotonicMs = Number(
+    dependencies.observerDeadlineAtMonotonicMs,
+  );
+  const observerBudgetMs = Number.isFinite(observerDeadlineAtMonotonicMs)
+    ? Math.max(0, observerDeadlineAtMonotonicMs - monotonicNow())
+    : profile.cleanupObserverDeadlineMs;
+  await waitForCleanup(
+    attempt.slot,
+    { ...profile, cleanupDeadlineMs: observerBudgetMs },
+    attempt.terminationStartedAtMonotonicMs,
+    attempt.method,
+  );
+  const readState =
+    dependencies.readBackgroundAgentState || readBackgroundAgentState;
+  const stop = dependencies.stopBackgroundAgent || stopBackgroundAgent;
+  const cleanupState =
+    effectiveBackgroundAgentState(
+      readState(attempt.key.id) || attempt.slot.state,
+    ) || attempt.slot.state;
+  if (
+    cleanupState.turnKeeperCleanupReason !== "worker-disconnected" &&
+    attempt.method === "hard-kill"
+  ) {
+    throw new Error(
+      `agent ${attempt.key.slot} keeper recorded ${cleanupState.turnKeeperCleanupReason || "no cleanup reason"}`,
+    );
+  }
+  if (cleanupState.status === "running") stop(attempt.key.id);
+  const terminal = readState(attempt.key.id) || cleanupState;
+  if (terminal.status === "running") {
+    throw new Error(`agent ${attempt.key.slot} remained running after cleanup`);
+  }
+  const timing = keeperCleanupTiming(attempt, terminal, monotonicNow());
+  return Object.freeze({
+    ...timing,
+    cleanupState: terminal,
+    metrics: attempt.metrics,
+    triggerError: attempt.triggerError,
+  });
+}
+
+export async function terminateSlotBatch(plans, profile, dependencies = {}) {
+  const prepare =
+    dependencies.prepareTermination ||
+    ((plan) => prepareSlotTermination(plan, dependencies));
+  const trigger =
+    dependencies.triggerTermination ||
+    ((prepared) => triggerSlotTermination(prepared, dependencies));
+  const observe =
+    dependencies.observeTermination ||
+    ((attempt, _profile, observerDependencies) =>
+      observeSlotTermination(attempt, profile, observerDependencies));
+  const epochNow = dependencies.epochNow || Date.now;
+  const monotonicNow = dependencies.monotonicNow || (() => performance.now());
+
+  const prepared = plans.map((plan) => prepare(plan, profile));
+  const attempts = new Array(prepared.length);
+  const triggerOrder = prepared
+    .map((entry, index) => ({ entry, index }))
+    // Hard kills only dispatch one signal and let independent keepers settle.
+    // Start that whole cohort before synchronous cooperative stop calls so
+    // the formal matrix still exercises concurrent keeper cleanup without
+    // charging any slot for another slot's preflight sampling.
+    .sort(
+      (left, right) =>
+        Number(right.entry.method === "hard-kill") -
+          Number(left.entry.method === "hard-kill") || left.index - right.index,
+    );
+  for (const { entry, index } of triggerOrder) {
+    const terminationRequestedAt = epochNow();
+    const terminationStartedAtMonotonicMs = monotonicNow();
+    try {
+      attempts[index] = trigger(entry, profile);
+    } catch (triggerError) {
+      attempts[index] = Object.freeze({
+        ...entry,
+        terminationRequestedAt,
+        terminationStartedAtMonotonicMs,
+        terminationDispatchMs: monotonicNow() - terminationStartedAtMonotonicMs,
+        triggerError,
+      });
+    }
+  }
+  const observerDeadlineAtMonotonicMs =
+    monotonicNow() + profile.cleanupObserverDeadlineMs;
+  const observations = await Promise.allSettled(
+    attempts.map((attempt) =>
+      observe(attempt, profile, {
+        ...dependencies,
+        observerDeadlineAtMonotonicMs,
+      }),
+    ),
+  );
+  const errors = [
+    ...attempts.map((attempt) => attempt?.triggerError).filter(Boolean),
+    ...observations
+      .filter((observation) => observation.status === "rejected")
+      .map((observation) => observation.reason),
+  ];
+  if (errors.length > 0) {
+    throw new AggregateError(
+      errors,
+      `keeper soak termination batch failed: ${errors
+        .map((error) => error?.message || String(error))
+        .join("; ")}`,
+    );
+  }
+  return observations.map((observation) => observation.value);
 }
 
 async function removeRetiredSlotRecord(slot, keepWorktree) {
@@ -828,6 +1107,44 @@ function validateDocumentIntegrity(value, issues) {
   }
 }
 
+function validCleanupEvidence(sample, deadlineMs) {
+  const terminationRequestedAt = sample?.terminationRequestedAt;
+  const durableCleanupRequestedAt = sample?.durableCleanupRequestedAt;
+  const cleanupConfirmedAt = sample?.cleanupConfirmedAt;
+  const cleanupMs = sample?.cleanupMs;
+  const durableCleanupMs = sample?.durableCleanupMs;
+  const cleanupObservationMs = sample?.cleanupObservationMs;
+  return Boolean(
+    Number.isFinite(terminationRequestedAt) &&
+    terminationRequestedAt > 0 &&
+    Number.isFinite(durableCleanupRequestedAt) &&
+    durableCleanupRequestedAt >= terminationRequestedAt &&
+    Number.isFinite(cleanupConfirmedAt) &&
+    cleanupConfirmedAt >= durableCleanupRequestedAt &&
+    Number.isFinite(cleanupMs) &&
+    cleanupMs >= 0 &&
+    cleanupMs <= deadlineMs &&
+    cleanupMs === cleanupConfirmedAt - terminationRequestedAt &&
+    Number.isFinite(durableCleanupMs) &&
+    durableCleanupMs >= 0 &&
+    durableCleanupMs <= deadlineMs &&
+    durableCleanupMs === cleanupConfirmedAt - durableCleanupRequestedAt &&
+    Number.isFinite(cleanupObservationMs) &&
+    cleanupObservationMs >= 0,
+  );
+}
+
+function finalSlotCleanupEvidence(slot) {
+  return {
+    terminationRequestedAt: slot?.finalTerminationRequestedAt,
+    durableCleanupRequestedAt: slot?.finalDurableCleanupRequestedAt,
+    cleanupConfirmedAt: slot?.finalCleanupConfirmedAt,
+    cleanupMs: slot?.finalCleanupMs,
+    durableCleanupMs: slot?.finalDurableCleanupMs,
+    cleanupObservationMs: slot?.finalCleanupObservationMs,
+  };
+}
+
 function validateKeeperSoakEvidence(
   value,
   { releaseCommit, allowSmoke = false },
@@ -891,6 +1208,12 @@ function validateKeeperSoakEvidence(
     !Number.isInteger(profile?.cleanupDeadlineMs) ||
     profile.cleanupDeadlineMs <= 0 ||
     profile.cleanupDeadlineMs > 30_000 ||
+    !Number.isInteger(profile?.cleanupObserverDeadlineMs) ||
+    profile.cleanupObserverDeadlineMs <
+      (formal
+        ? DEFAULT_CLEANUP_OBSERVER_DEADLINE_MS
+        : profile.cleanupDeadlineMs) ||
+    profile.cleanupObserverDeadlineMs > 300_000 ||
     !Number.isInteger(profile?.readinessDeadlineMs) ||
     profile.readinessDeadlineMs <= 0 ||
     profile.readinessDeadlineMs > (formal ? 120_000 : 60_000) ||
@@ -926,14 +1249,28 @@ function validateKeeperSoakEvidence(
       (slot) =>
         slot?.reconnectVerified !== true ||
         slot?.allKnownPidsRetired !== true ||
-        slot?.worktreeRemoved !== true,
+        slot?.worktreeRemoved !== true ||
+        !new Set(["hard-kill", "stop"]).has(slot?.finalMethod) ||
+        !validCleanupEvidence(
+          finalSlotCleanupEvidence(slot),
+          profile?.cleanupDeadlineMs,
+        ) ||
+        (slot?.finalMethod === "hard-kill" &&
+          slot?.finalCleanupReason !== "worker-disconnected"),
     )
   ) {
     issues.push("final PID/worktree cleanup");
   }
+  const cycleMethods = new Set(
+    Array.isArray(value?.cycles)
+      ? value.cycles.map((cycle) => cycle?.method)
+      : [],
+  );
   if (
     !Array.isArray(value?.cycles) ||
     value.cycles.length < profile?.minimumCycles ||
+    !cycleMethods.has("hard-kill") ||
+    !cycleMethods.has("stop") ||
     value.cycles.some(
       (cycle, index) =>
         cycle?.cycle !== index + 1 ||
@@ -941,6 +1278,10 @@ function validateKeeperSoakEvidence(
         cycle?.recordRemoved !== true ||
         !Number.isInteger(cycle?.knownIdentityCount) ||
         cycle.knownIdentityCount <= 0 ||
+        !new Set(["hard-kill", "stop"]).has(cycle?.method) ||
+        !validCleanupEvidence(cycle, profile?.cleanupDeadlineMs) ||
+        (cycle?.method === "hard-kill" &&
+          cycle?.cleanupReason !== "worker-disconnected") ||
         !Number.isFinite(cycle?.rssBytes) ||
         cycle?.resourceKind !==
           (operatingSystem === "windows" ? "handle" : "fd") ||
@@ -992,6 +1333,8 @@ function validateKeeperSoakEvidence(
       ...value.cycles,
       ...value.slots.map((slot) => ({
         cleanupMs: slot.finalCleanupMs,
+        durableCleanupMs: slot.finalDurableCleanupMs,
+        cleanupObservationMs: slot.finalCleanupObservationMs,
         readinessMs: slot.readinessMs,
         rssBytes: null,
         resourceCount: null,
@@ -1001,6 +1344,10 @@ function validateKeeperSoakEvidence(
       "count",
       "cleanupP95Ms",
       "cleanupMaximumMs",
+      "durableCleanupP95Ms",
+      "durableCleanupMaximumMs",
+      "cleanupObservationP95Ms",
+      "cleanupObservationMaximumMs",
       "readinessP95Ms",
       "readinessMaximumMs",
       "rssMaximumBytes",
@@ -1011,6 +1358,9 @@ function validateKeeperSoakEvidence(
       !Number.isFinite(metrics?.rssMaximumBytes) ||
       !Number.isFinite(metrics?.resourceMaximum) ||
       metrics?.cleanupP95Ms > profile?.cleanupDeadlineMs ||
+      metrics?.cleanupMaximumMs > profile?.cleanupDeadlineMs ||
+      metrics?.durableCleanupP95Ms > profile?.cleanupDeadlineMs ||
+      metrics?.durableCleanupMaximumMs > profile?.cleanupDeadlineMs ||
       metrics?.readinessMaximumMs > profile?.readinessDeadlineMs
     ) {
       issues.push("metrics");
@@ -1312,9 +1662,7 @@ async function main() {
           method: (cycleNumber - 1) % 2 === 0 ? "hard-kill" : "stop",
         };
       });
-      const terminated = await Promise.all(
-        plans.map(({ slot, method }) => terminateSlot(slot, profile, method)),
-      );
+      const terminated = await terminateSlotBatch(plans, profile);
       const removals = await Promise.all(
         plans.map(({ slot }) => removeRetiredSlotRecord(slot, true)),
       );
@@ -1329,9 +1677,12 @@ async function main() {
           method,
           readinessMs: slot.readinessMs,
           cleanupMs: settlement.cleanupMs,
+          durableCleanupMs: settlement.durableCleanupMs,
+          cleanupObservationMs: settlement.cleanupObservationMs,
+          terminationRequestedAt: settlement.terminationRequestedAt,
+          durableCleanupRequestedAt: settlement.durableCleanupRequestedAt,
           cleanupReason: settlement.cleanupState.turnKeeperCleanupReason,
-          cleanupConfirmedAt:
-            settlement.cleanupState.turnKeeperCleanupConfirmedAt || null,
+          cleanupConfirmedAt: settlement.cleanupConfirmedAt,
           knownIdentityCount: slot.knownIdentities.size,
           allKnownPidsRetired: [...slot.knownIdentities.values()].every(
             (identity) => !ownedIdentityAlive(identity),
@@ -1341,8 +1692,13 @@ async function main() {
           ...(settlement.metrics || {}),
         };
       });
+      report.cycles.push(...samples);
       for (const sample of samples) {
-        report.cycles.push(sample);
+        assertKeeperCleanupWithinDeadline(
+          sample,
+          profile,
+          `cycle ${sample.cycle}`,
+        );
         if (!sample.allKnownPidsRetired) {
           throw new Error(`cycle ${sample.cycle} retained an owned pid`);
         }
@@ -1358,11 +1714,11 @@ async function main() {
       checkpoint();
     }
 
-    const finalSettlements = await Promise.all(
-      slots.map((slot, index) =>
-        terminateSlot(slot, profile, index % 2 === 0 ? "hard-kill" : "stop"),
-      ),
-    );
+    const finalPlans = slots.map((slot, index) => ({
+      slot,
+      method: index % 2 === 0 ? "hard-kill" : "stop",
+    }));
+    const finalSettlements = await terminateSlotBatch(finalPlans, profile);
     for (let index = 0; index < slots.length; index += 1) {
       const slot = slots[index];
       const settlement = finalSettlements[index];
@@ -1374,7 +1730,13 @@ async function main() {
       );
       report.slots[index] = {
         ...report.slots[index],
+        finalMethod: finalPlans[index].method,
         finalCleanupMs: settlement.cleanupMs,
+        finalDurableCleanupMs: settlement.durableCleanupMs,
+        finalCleanupObservationMs: settlement.cleanupObservationMs,
+        finalTerminationRequestedAt: settlement.terminationRequestedAt,
+        finalDurableCleanupRequestedAt: settlement.durableCleanupRequestedAt,
+        finalCleanupConfirmedAt: settlement.cleanupConfirmedAt,
         finalCleanupReason: settlement.cleanupState.turnKeeperCleanupReason,
         allKnownPidsRetired: [...slot.knownIdentities.values()].every(
           (identity) => !ownedIdentityAlive(identity),
@@ -1383,6 +1745,17 @@ async function main() {
         worktreeRemovalReason: worktreeRemoval.reason,
         worktreeRemovalFallbackAttempts: worktreeRemoval.fallbackAttempts,
       };
+    }
+    for (const slot of report.slots) {
+      assertKeeperCleanupWithinDeadline(
+        {
+          cleanupMs: slot.finalCleanupMs,
+          durableCleanupMs: slot.finalDurableCleanupMs,
+          cleanupObservationMs: slot.finalCleanupObservationMs,
+        },
+        profile,
+        `agent ${slot.index} final cleanup`,
+      );
     }
 
     // The final Windows identity/CIM sweep is synchronous. It can prove every
@@ -1401,6 +1774,8 @@ async function main() {
       ...report.cycles,
       ...report.slots.map((slot) => ({
         cleanupMs: slot.finalCleanupMs,
+        durableCleanupMs: slot.finalDurableCleanupMs,
+        cleanupObservationMs: slot.finalCleanupObservationMs,
         readinessMs: slot.readinessMs,
         rssBytes: null,
         resourceCount: null,
@@ -1425,8 +1800,13 @@ async function main() {
             : null,
       },
     };
-    if (report.metrics.cleanupP95Ms > profile.cleanupDeadlineMs) {
-      report.violations.push("cleanup p95 exceeded the owned deadline");
+    if (report.metrics.cleanupMaximumMs > profile.cleanupDeadlineMs) {
+      report.violations.push("cleanup maximum exceeded the owned deadline");
+    }
+    if (report.metrics.durableCleanupMaximumMs > profile.cleanupDeadlineMs) {
+      report.violations.push(
+        "durable cleanup maximum exceeded the owned deadline",
+      );
     }
     if (
       report.metrics.harness.rssGrowthBytes >

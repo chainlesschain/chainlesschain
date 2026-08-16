@@ -63,6 +63,7 @@ jobs:
       CC_BACKGROUND_KEEPER_SOAK_MIN_CYCLES: ${{ github.event_name == 'pull_request' && '2' || '1000' }}
       CC_BACKGROUND_KEEPER_SOAK_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
       CC_BACKGROUND_KEEPER_SOAK_CLEANUP_DEADLINE_MS: "30000"
+      CC_BACKGROUND_KEEPER_SOAK_CLEANUP_OBSERVER_DEADLINE_MS: ${{ github.event_name == 'pull_request' && '60000' || '140000' }}
       CC_BACKGROUND_KEEPER_SOAK_READINESS_DEADLINE_MS: ${{ github.event_name == 'pull_request' && '60000' || '120000' }}
       CC_BACKGROUND_KEEPER_SOAK_MAX_RSS_GROWTH_MB: "192"
       CC_BACKGROUND_KEEPER_SOAK_MAX_RESOURCE_GROWTH: "12"
