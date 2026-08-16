@@ -1376,7 +1376,8 @@ function verifyRemoteSshRuntimeIdentity(
       !Number.isSafeInteger(remoteEnvironment.extensionHostPid) ||
       remoteEnvironment.extensionHostPid < 1 ||
       typeof remoteEnvironment.extensionHostCwd !== "string" ||
-      !remoteEnvironment.extensionHostCwd.startsWith("/home/cc-roadmap/") ||
+      (remoteEnvironment.extensionHostCwd !== "/home/cc-roadmap" &&
+        !remoteEnvironment.extensionHostCwd.startsWith("/home/cc-roadmap/")) ||
       typeof remoteEnvironment.extensionPath !== "string" ||
       remoteEnvironment.extensionPath !==
         `/home/cc-roadmap/.vscode-server/extensions/chainlesschain.chainlesschain-ide-${journey.extensionVersion}` ||
