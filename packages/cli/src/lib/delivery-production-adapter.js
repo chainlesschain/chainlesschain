@@ -121,6 +121,14 @@ function normalizedRepoPath(value) {
     .trim();
 }
 
+function githubRepositoryFromRemoteUrl(value) {
+  const remoteUrl = String(value || "").trim();
+  const match = remoteUrl.match(
+    /^(?:https:\/\/github\.com\/|git@github\.com:|ssh:\/\/git@github\.com\/)([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+?)(?:\.git)?\/?$/u,
+  );
+  return match ? `${match[1]}/${match[2]}` : null;
+}
+
 function normalizedPathSet(values) {
   return uniqueStrings(values).map(normalizedRepoPath).filter(Boolean).sort();
 }
@@ -210,6 +218,13 @@ export function validateGitHubDeliveryProductionConfig(config) {
     )
   ) {
     unmet.push("github-repo-invalid");
+  }
+  if (
+    !/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/u.test(
+      String(config.git?.remote || "origin").trim(),
+    )
+  ) {
+    unmet.push("git-remote-invalid");
   }
   const requiredChecks = Array.isArray(config.ci?.requiredChecks)
     ? config.ci.requiredChecks.map((item) => String(item).trim())
@@ -421,6 +436,25 @@ export class GitHubDeliveryProductionAdapter {
 
   _git(args, label = args[0]) {
     return this._read("git", args, `git-${label}`);
+  }
+
+  _verifiedPushRemote() {
+    const remote = String(this.config.git?.remote || "origin").trim();
+    const remoteUrl = this._git(
+      ["remote", "get-url", "--push", remote],
+      "push-remote",
+    ).trim();
+    const actualRepository = githubRepositoryFromRemoteUrl(remoteUrl);
+    const expectedRepository = String(this.config.github?.repo || "").trim();
+    if (
+      !actualRepository ||
+      actualRepository.toLowerCase() !== expectedRepository.toLowerCase()
+    ) {
+      throw new Error(
+        "configured Git push remote is not bound to the authoritative GitHub repository",
+      );
+    }
+    return remote;
   }
 
   _gh(args, label = args[0]) {
@@ -1202,9 +1236,10 @@ export class GitHubDeliveryProductionAdapter {
     if (context.state?.pr?.number) {
       const branch = this._git(["branch", "--show-current"], "branch").trim();
       if (!branch) throw new Error("cannot push a fix from detached HEAD");
+      const remote = this._verifiedPushRemote();
       this._mutate(
         "git",
-        ["push", "origin", `${nextCommit}:refs/heads/${branch}`],
+        ["push", remote, `${nextCommit}:refs/heads/${branch}`],
         "git-push-fix",
       );
       const pr = this._readPr(context.state.pr.number);
@@ -1438,9 +1473,10 @@ export class GitHubDeliveryProductionAdapter {
         commitSha: payload.commitSha,
       });
     }
+    const remote = this._verifiedPushRemote();
     this._mutate(
       "git",
-      ["push", "origin", `${payload.commitSha}:refs/heads/${branch}`],
+      ["push", remote, `${payload.commitSha}:refs/heads/${branch}`],
       "git-push-pr",
     );
     const sideEffects = [
