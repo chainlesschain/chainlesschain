@@ -19,6 +19,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { performance } from "node:perf_hooks";
 import {
   effectiveBackgroundAgentState,
+  hasValidBackgroundAgentStopCleanupProof,
   isSameProcess,
   launchBackgroundAgent,
   readBackgroundAgentLog,
@@ -626,7 +627,26 @@ export function shouldDeferHardKillCleanupIdentityProbe(state, method) {
   );
 }
 
-async function waitForCleanup(slot, profile, startedAt, method) {
+export function hasSettledCooperativeStopCleanup(state) {
+  return Boolean(
+    state?.status === "stopped" &&
+    hasValidBackgroundAgentStopCleanupProof(state),
+  );
+}
+
+export async function waitForCleanup(
+  slot,
+  profile,
+  startedAt,
+  method,
+  dependencies = {},
+) {
+  const readState =
+    dependencies.readBackgroundAgentState || readBackgroundAgentState;
+  const inspectProcesses = dependencies.processIdentities || processIdentities;
+  const identityAlive = dependencies.ownedIdentityAlive || ownedIdentityAlive;
+  const stop = dependencies.stopBackgroundAgent || stopBackgroundAgent;
+  const readLog = dependencies.readBackgroundAgentLog || readBackgroundAgentLog;
   let observation = null;
   let lastState;
   let lastStopRetryAt = 0;
@@ -635,6 +655,7 @@ async function waitForCleanup(slot, profile, startedAt, method) {
       status: state?.status || null,
       phase: state?.phase || null,
       stopRequestedAt: state?.stopRequestedAt || null,
+      stopCleanupConfirmedAt: state?.stopCleanupConfirmedAt || null,
       stopPending: state?.stopPending === true,
       stopPendingReason: state?.stopPendingReason || null,
       launchFinalizationUncertain: state?.launchFinalizationUncertain === true,
@@ -653,7 +674,7 @@ async function waitForCleanup(slot, profile, startedAt, method) {
   try {
     lastState = await pollUntil(
       () => {
-        let state = readBackgroundAgentState(slot.state.id);
+        let state = readState(slot.state.id);
         if (shouldDeferHardKillCleanupIdentityProbe(state, method)) {
           // Twenty concurrent Windows hard-kill slots otherwise serialize
           // hundreds of synchronous WMIC/PowerShell identity probes while
@@ -663,16 +684,16 @@ async function waitForCleanup(slot, profile, startedAt, method) {
           // observer starving the process responsible for producing it.
           recordObservation(
             state,
-            processIdentities(state || slot.state, slot.evidence).map(
+            inspectProcesses(state || slot.state, slot.evidence).map(
               (identity) => ({ ...identity, alive: null }),
             ),
           );
           return null;
         }
-        let identities = processIdentities(state || slot.state, slot.evidence);
+        let identities = inspectProcesses(state || slot.state, slot.evidence);
         let processes = identities.map((identity) => ({
           ...identity,
-          alive: ownedIdentityAlive(identity),
+          alive: identityAlive(identity),
         }));
         let allRetired =
           processes.length > 0 && processes.every(({ alive }) => !alive);
@@ -683,24 +704,33 @@ async function waitForCleanup(slot, profile, startedAt, method) {
         // operation is allowed to cross pollUntil's deadline and still return
         // success; refreshing here converts that completed cleanup into the
         // authoritative result instead of reporting a false timeout.
-        state = readBackgroundAgentState(slot.state.id) || state;
+        state = readState(slot.state.id) || state;
         const now = Date.now();
+        const stopCleanupSettled = hasSettledCooperativeStopCleanup(state);
+        const retryableUnconfirmedStop = Boolean(
+          state?.status === "stopped" &&
+          Number.isFinite(Number(state?.stopRequestedAt)) &&
+          Number(state.stopRequestedAt) > 0 &&
+          !stopCleanupSettled,
+        );
         if (
           method === "stop" &&
-          allRetired &&
-          state?.status === "running" &&
+          ((allRetired && state?.status === "running") ||
+            retryableUnconfirmedStop) &&
+          !stopCleanupSettled &&
           now - lastStopRetryAt >= 250
         ) {
           // The first bounded stop can legitimately return `stopPending` while
-          // a just-signalled tree is still exiting. Once every exact-owned pid
-          // is retired, retry the idempotent durable stop so the record cannot
-          // remain forever in a stale running/armed projection.
+          // a just-signalled tree is still exiting. A running projection is
+          // finalized once every exact-owned pid retires; a terminal-looking
+          // record without proof is re-entered immediately so production's
+          // exact-identity path owns any remaining signal and confirmation.
           lastStopRetryAt = now;
-          state = stopBackgroundAgent(slot.state.id);
-          identities = processIdentities(state || slot.state, slot.evidence);
+          state = stop(slot.state.id);
+          identities = inspectProcesses(state || slot.state, slot.evidence);
           processes = identities.map((identity) => ({
             ...identity,
-            alive: ownedIdentityAlive(identity),
+            alive: identityAlive(identity),
           }));
           allRetired =
             processes.length > 0 && processes.every(({ alive }) => !alive);
@@ -709,7 +739,7 @@ async function waitForCleanup(slot, profile, startedAt, method) {
           method === "hard-kill"
             ? state?.turnKeeperStatus === "retired" &&
               Number(state.turnKeeperCleanupConfirmedAt) > 0
-            : state?.status === "stopped";
+            : hasSettledCooperativeStopCleanup(state);
         recordObservation(state, processes);
         if (allRetired && keeperSettled) {
           markKnownIdentitiesRetired(slot, identities);
@@ -721,9 +751,7 @@ async function waitForCleanup(slot, profile, startedAt, method) {
       `agent ${slot.index} cleanup`,
     );
   } catch (error) {
-    const logTail = readBackgroundAgentLog(slot.state.id, { lines: 40 }).slice(
-      -4_000,
-    );
+    const logTail = readLog(slot.state.id, { lines: 40 }).slice(-4_000);
     error.message = `${error.message}; last observation: ${JSON.stringify(observation)}; log tail: ${JSON.stringify(logTail)}`;
     throw error;
   }
@@ -757,8 +785,21 @@ export function keeperCleanupTiming(attempt, state, observedAtMonotonicMs) {
     durableCleanupRequestedAt < terminationRequestedAt ||
     cleanupConfirmedAt < durableCleanupRequestedAt
   ) {
+    const details = {
+      id: attempt?.key?.id ?? state?.id ?? null,
+      status: state?.status ?? null,
+      terminationRequestedAt: attempt?.terminationRequestedAt ?? null,
+      durableCleanupRequestedAt:
+        attempt?.method === "hard-kill"
+          ? (state?.turnKeeperCleanupRequestedAt ?? null)
+          : (state?.stopRequestedAt ?? null),
+      cleanupConfirmedAt:
+        attempt?.method === "hard-kill"
+          ? (state?.turnKeeperCleanupConfirmedAt ?? null)
+          : (state?.stopCleanupConfirmedAt ?? null),
+    };
     throw new Error(
-      `agent ${attempt?.key?.slot ?? "unknown"} published invalid ${attempt?.method || "unknown"} cleanup timestamps`,
+      `agent ${attempt?.key?.slot ?? "unknown"} published invalid ${attempt?.method || "unknown"} cleanup timestamps: ${JSON.stringify(details)}`,
     );
   }
   if (!Number.isFinite(cleanupObservationMs) || cleanupObservationMs < 0) {
@@ -894,6 +935,7 @@ export async function observeSlotTermination(
     { ...profile, cleanupDeadlineMs: observerBudgetMs },
     attempt.terminationStartedAtMonotonicMs,
     attempt.method,
+    dependencies,
   );
   const readState =
     dependencies.readBackgroundAgentState || readBackgroundAgentState;

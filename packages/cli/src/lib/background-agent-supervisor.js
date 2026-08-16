@@ -486,6 +486,48 @@ const KEEPER_TERMINAL_STATUSES = new Set([
   "exited",
 ]);
 
+export function hasValidBackgroundAgentStopCleanupProof(state) {
+  const requestedAt = Number(state?.stopRequestedAt);
+  const confirmedAt = Number(state?.stopCleanupConfirmedAt);
+  return Boolean(
+    Number.isFinite(requestedAt) &&
+    requestedAt > 0 &&
+    Number.isFinite(confirmedAt) &&
+    confirmedAt >= requestedAt,
+  );
+}
+
+function isBackgroundAgentStopCleanupUnconfirmed(state) {
+  return Boolean(
+    state?.status === "stopped" &&
+    Number.isFinite(Number(state?.stopRequestedAt)) &&
+    Number(state.stopRequestedAt) > 0 &&
+    !hasValidBackgroundAgentStopCleanupProof(state),
+  );
+}
+
+function selectBackgroundAgentStopCleanupProof(current, requested) {
+  if (hasValidBackgroundAgentStopCleanupProof(current)) {
+    return current.stopCleanupConfirmedAt;
+  }
+  const requestedAt = Number(
+    Number.isFinite(Number(current?.stopRequestedAt)) &&
+      Number(current.stopRequestedAt) > 0
+      ? current.stopRequestedAt
+      : requested?.stopRequestedAt,
+  );
+  const requestedProof = Number(requested?.stopCleanupConfirmedAt);
+  if (
+    Number.isFinite(requestedAt) &&
+    requestedAt > 0 &&
+    Number.isFinite(requestedProof) &&
+    requestedProof >= requestedAt
+  ) {
+    return requestedProof;
+  }
+  return current?.stopCleanupConfirmedAt;
+}
+
 const TURN_PROCESS_PROJECTION_FIELDS = [
   "agentPid",
   "agentStartedAt",
@@ -646,12 +688,16 @@ function mergeBackgroundAgentState(current, requested) {
       current.stopRequestedAt &&
       requested.stopRequestedAt === current.stopRequestedAt;
     if (TERMINAL_STATUSES.has(current.status) && !explicitHeartbeatStop) {
+      const stopCleanupConfirmedAt = selectBackgroundAgentStopCleanupProof(
+        current,
+        requested,
+      );
       next = {
         ...next,
         status: current.status,
         endedAt: current.endedAt ?? next.endedAt ?? null,
-        ...(current.stopCleanupConfirmedAt !== undefined
-          ? { stopCleanupConfirmedAt: current.stopCleanupConfirmedAt }
+        ...(stopCleanupConfirmedAt !== undefined
+          ? { stopCleanupConfirmedAt }
           : {}),
         exitCode: current.exitCode ?? next.exitCode ?? null,
         ...(current.signal !== undefined ? { signal: current.signal } : {}),
@@ -961,6 +1007,26 @@ function mergeBackgroundAgentState(current, requested) {
           endedAt: next.endedAt || Date.now(),
           phase: null,
           transport: null,
+        };
+      }
+      if (
+        current.status === "running" &&
+        next.status === "stopped" &&
+        !hasValidBackgroundAgentStopCleanupProof(next)
+      ) {
+        // A worker or read-side reconciliation can publish a terminal outcome
+        // after an explicit stop fence wins but before the stopper has observed
+        // every exact-owned process retire. Keep that record durably fenced
+        // and retryable; only stopBackgroundAgent may publish `stopped`
+        // together with cleanup proof.
+        next = {
+          ...next,
+          status: "running",
+          stoppedByUser: false,
+          phase: "stop_waiting_for_exit",
+          transport: null,
+          stopPending: true,
+          stopPendingReason: "process-exit",
         };
       }
     }
@@ -1659,6 +1725,16 @@ export function effectiveBackgroundAgentState(state, options = {}) {
     ) {
       return recoverTerminalBackgroundInteractions(state, options);
     }
+    return state;
+  }
+  if (
+    Number.isFinite(Number(state.stopRequestedAt)) &&
+    Number(state.stopRequestedAt) > 0 &&
+    !hasValidBackgroundAgentStopCleanupProof(state)
+  ) {
+    // A durable stop fence transfers terminal reconciliation to the explicit
+    // stopper. A concurrent list/view must not persist `lost` before that path
+    // has verified every exact-owned process and published cleanup proof.
     return state;
   }
   // OS identity probes can take seconds on Windows. Perform them outside the
@@ -3092,7 +3168,12 @@ export function stopBackgroundAgent(id) {
   if (!state) throw new Error(`Background agent not found: ${id}`);
   const staleHeartbeatOwner =
     state.status === "lost" && state.lostReason === "heartbeat-stale";
-  if (state.status !== "running" && !staleHeartbeatOwner) {
+  const cleanupUnconfirmedStop = isBackgroundAgentStopCleanupUnconfirmed(state);
+  if (
+    state.status !== "running" &&
+    !staleHeartbeatOwner &&
+    !cleanupUnconfirmedStop
+  ) {
     // Gap 2: stopping an already-lost session still reaps a leaked agent
     // child recorded before the worker died (identity-guarded inside).
     if (state.status === "lost") {
@@ -3117,7 +3198,8 @@ export function stopBackgroundAgent(id) {
       (current.status !== "running" &&
         !(
           current.status === "lost" && current.lostReason === "heartbeat-stale"
-        ))
+        ) &&
+        !isBackgroundAgentStopCleanupUnconfirmed(current))
     ) {
       return null;
     }
@@ -3136,6 +3218,8 @@ export function stopBackgroundAgent(id) {
     return { ...fence.state, stopped: false };
   }
   state = fence.state;
+  const repairingUnconfirmedStop =
+    cleanupUnconfirmedStop || isBackgroundAgentStopCleanupUnconfirmed(state);
   if (state.launchFinalizationUncertain === true || state.turnLaunchIntent) {
     // The worker has durably announced that native spawn is prepared or that
     // post-spawn pid persistence is unresolved. Killing the worker from this
@@ -3338,7 +3422,7 @@ export function stopBackgroundAgent(id) {
     return persistStopPending(postKill, "process-exit");
   }
 
-  if (workerPidReused) {
+  if (workerPidReused && !repairingUnconfirmedStop) {
     const lostMutation = mutateBackgroundAgentState(id, (current) =>
       current
         ? {

@@ -19,6 +19,7 @@ import {
   cleanupBackgroundAgentWorktree,
   claimBackgroundAgentHeartbeat,
   effectiveBackgroundAgentState,
+  hasValidBackgroundAgentStopCleanupProof,
   isSameProcess,
   isBackgroundWorkerStartedError,
   insertArgumentsBeforeOptionTerminator,
@@ -807,6 +808,84 @@ describe("background agent supervisor", () => {
 
     expect(staleHeartbeat.status).toBe("stopped");
     expect(readBackgroundAgentState(id).status).toBe("stopped");
+  });
+
+  it.each(["completed", "failed", "stopped"])(
+    "keeps a %s worker terminal write cleanup-pending behind a stop fence",
+    (workerStatus) => {
+      const id = `bg-stop-proof-race-${workerStatus}`;
+      const stopRequestedAt = Date.now();
+      writeBackgroundAgentState({
+        id,
+        status: "running",
+        pid: null,
+        workerPid: null,
+        workerGeneration: "generation-stop-proof",
+        startedAt: stopRequestedAt - 100,
+        heartbeatAt: stopRequestedAt - 10,
+        stopRequestedAt,
+        stopRequestedBy: "user",
+        phase: "stopping",
+      });
+
+      const raced = persistBackgroundAgentState({
+        ...readBackgroundAgentState(id),
+        status: workerStatus,
+        endedAt: stopRequestedAt + 1,
+        exitCode: workerStatus === "completed" ? 0 : 1,
+        phase: null,
+        transport: null,
+      });
+
+      expect(raced).toMatchObject({
+        status: "running",
+        phase: "stop_waiting_for_exit",
+        stopPending: true,
+        stopPendingReason: "process-exit",
+        stopRequestedAt,
+      });
+      expect(raced.stopCleanupConfirmedAt).toBeUndefined();
+      expect(
+        claimBackgroundAgentHeartbeat(id, {
+          pid: 43212,
+          workerPid: 43212,
+          workerGeneration: "generation-stop-proof",
+        }).applied,
+      ).toBe(false);
+    },
+  );
+
+  it("keeps read-side lost reconciliation behind the stop proof fence", () => {
+    const id = "bg-stop-proof-effective-lost-race";
+    const stopRequestedAt = Date.now() - 1;
+    writeBackgroundAgentState({
+      id,
+      status: "running",
+      pid: 987_654_321,
+      workerPid: 987_654_321,
+      workerGeneration: "generation-effective-stop-proof",
+      startedAt: stopRequestedAt - 100,
+      heartbeatAt: stopRequestedAt - 10,
+      stopRequestedAt,
+      stopRequestedBy: "user",
+      phase: "stopping",
+    });
+
+    const reconciled = effectiveBackgroundAgentState(
+      readBackgroundAgentState(id),
+      { now: stopRequestedAt + 1_000 },
+    );
+
+    expect(reconciled).toMatchObject({
+      status: "running",
+      phase: "stopping",
+      stopRequestedAt,
+    });
+    expect(reconciled.stopCleanupConfirmedAt).toBeUndefined();
+
+    const stopped = stopBackgroundAgent(id);
+    expect(stopped).toMatchObject({ status: "stopped", stopped: true });
+    expect(hasValidBackgroundAgentStopCleanupProof(stopped)).toBe(true);
   });
 
   it("rejects a different worker generation and a durable stop fence", () => {
@@ -1769,6 +1848,153 @@ describe("background agent supervisor", () => {
       status: "stopped",
       stopCleanupConfirmedAt: stopped.stopCleanupConfirmedAt,
     });
+  });
+
+  it("re-enters an unconfirmed stopped record and publishes proof after exact retirement", () => {
+    const sleeperPid = spawnSleeperPid();
+    const startedAt = Date.now();
+    const stopRequestedAt = startedAt + 1;
+    writeBackgroundAgentState({
+      id: "bg-unconfirmed-stop-reentry",
+      status: "stopped",
+      pid: sleeperPid,
+      workerPid: sleeperPid,
+      startedAt,
+      heartbeatAt: startedAt,
+      endedAt: stopRequestedAt,
+      stopRequestedAt,
+      stopRequestedBy: "user",
+      stoppedByUser: true,
+    });
+    _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+    if (process.platform === "win32") {
+      _deps.spawnSync = vi.fn((_file, args) => {
+        process.kill(Number(args[1]), "SIGKILL");
+        return { status: 0 };
+      });
+    } else {
+      _deps.kill = vi.fn((pid, signal) => process.kill(pid, signal));
+    }
+
+    const stopped = stopBackgroundAgent("bg-unconfirmed-stop-reentry");
+
+    expect(stopped).toMatchObject({ status: "stopped", stopped: true });
+    expect(stopped.stopCleanupConfirmedAt).toEqual(expect.any(Number));
+    expect(stopped.stopCleanupConfirmedAt).toBeGreaterThanOrEqual(
+      stopRequestedAt,
+    );
+    expect(
+      readBackgroundAgentState("bg-unconfirmed-stop-reentry"),
+    ).toMatchObject({
+      status: "stopped",
+      stopPending: false,
+      stopCleanupConfirmedAt: stopped.stopCleanupConfirmedAt,
+    });
+  });
+
+  it("keeps an unconfirmed stopped record fail-closed without an identity anchor", () => {
+    const sleeperPid = spawnSleeperPid();
+    const stopRequestedAt = Date.now();
+    writeBackgroundAgentState({
+      id: "bg-unconfirmed-stop-no-anchor",
+      status: "stopped",
+      pid: sleeperPid,
+      workerPid: sleeperPid,
+      heartbeatAt: stopRequestedAt,
+      endedAt: stopRequestedAt,
+      stopRequestedAt,
+      stopRequestedBy: "user",
+      stoppedByUser: true,
+    });
+
+    const stopped = stopBackgroundAgent("bg-unconfirmed-stop-no-anchor");
+
+    expect(stopped).toMatchObject({
+      status: "stopped",
+      stopped: false,
+      stopPending: true,
+      stopPendingReason: "identity-unverifiable",
+    });
+    expect(stopped.stopCleanupConfirmedAt).toBeUndefined();
+    expect(_deps.kill).not.toHaveBeenCalledWith(
+      expect.any(Number),
+      expect.stringMatching(/^SIG/u),
+    );
+  });
+
+  it("repairs an invalid stop proof and keeps the valid replacement absorbing", () => {
+    const id = "bg-invalid-stop-proof-reentry";
+    const stopRequestedAt = Date.now() - 10;
+    writeBackgroundAgentState({
+      id,
+      status: "stopped",
+      pid: null,
+      workerPid: null,
+      startedAt: stopRequestedAt - 100,
+      endedAt: stopRequestedAt,
+      stopRequestedAt,
+      stopCleanupConfirmedAt: stopRequestedAt - 1,
+      stopRequestedBy: "user",
+      stoppedByUser: true,
+    });
+    const stale = readBackgroundAgentState(id);
+
+    const stopped = stopBackgroundAgent(id);
+
+    expect(stopped).toMatchObject({ status: "stopped", stopped: true });
+    expect(hasValidBackgroundAgentStopCleanupProof(stopped)).toBe(true);
+    expect(stopped.stopCleanupConfirmedAt).toBeGreaterThanOrEqual(
+      stopRequestedAt,
+    );
+
+    persistBackgroundAgentState({
+      ...stale,
+      title: "stale invalid proof after repair",
+    });
+    const afterStaleWrite = readBackgroundAgentState(id);
+    expect(hasValidBackgroundAgentStopCleanupProof(afterStaleWrite)).toBe(true);
+    expect(afterStaleWrite.stopCleanupConfirmedAt).toBe(
+      stopped.stopCleanupConfirmedAt,
+    );
+  });
+
+  it("treats a reused worker as retired while repairing an unconfirmed stop", () => {
+    const id = "bg-unconfirmed-stop-reused-worker";
+    const sleeperPid = spawnSleeperPid();
+    const actualStartedAt = Date.now();
+    const recordedStartedAt = actualStartedAt - 120_000;
+    const stopRequestedAt = actualStartedAt + 1;
+    writeBackgroundAgentState({
+      id,
+      status: "stopped",
+      pid: sleeperPid,
+      workerPid: sleeperPid,
+      agentPid: 987_654_321,
+      agentStartedAt: actualStartedAt,
+      startedAt: recordedStartedAt,
+      heartbeatAt: recordedStartedAt,
+      endedAt: stopRequestedAt,
+      stopRequestedAt,
+      stopRequestedBy: "user",
+      stoppedByUser: true,
+    });
+    _deps.readProcessStartTimeMs = vi.fn((pid) =>
+      Number(pid) === sleeperPid ? actualStartedAt : { status: "absent" },
+    );
+    if (process.platform !== "win32") {
+      _deps.readProcessGroupStates = vi.fn(() => []);
+    }
+
+    const stopped = stopBackgroundAgent(id);
+
+    expect(stopped).toMatchObject({ status: "stopped", stopped: true });
+    expect(hasValidBackgroundAgentStopCleanupProof(stopped)).toBe(true);
+    expect(stopped.lostReason ?? null).toBeNull();
+    expect(isProcessStillAlive(sleeperPid)).toBe(true);
+    expect(_deps.kill).not.toHaveBeenCalledWith(
+      expect.any(Number),
+      expect.stringMatching(/^SIG/u),
+    );
   });
 
   it("fails closed without a destructive process identity anchor", () => {

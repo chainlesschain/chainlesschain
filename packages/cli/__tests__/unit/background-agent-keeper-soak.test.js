@@ -21,6 +21,7 @@ import {
   backgroundKeeperSoakDocumentSha256,
   confirmKeeperSoakWorktreeRemoval,
   createBackgroundKeeperSoakRoot,
+  hasSettledCooperativeStopCleanup,
   keeperCleanupTiming,
   nearestRankPercentile,
   pollUntil,
@@ -30,6 +31,7 @@ import {
   summarizeKeeperSoakSamples,
   terminateSlotBatch,
   verifyBackgroundKeeperSoakEvidenceSet,
+  waitForCleanup,
 } from "../../scripts/background-agent-keeper-soak.mjs";
 
 const TEST_DIR = dirname(fileURLToPath(import.meta.url));
@@ -480,6 +482,93 @@ describe("background Agent keeper soak contract", () => {
     expect(settlements).toEqual([{ slot: 0 }, { slot: 1 }, { slot: 2 }]);
   });
 
+  it("repairs the first cooperative stop after all twenty triggers dispatch", async () => {
+    const events = [];
+    const slots = Array.from({ length: 20 }, (_, index) => ({
+      index,
+      state: { id: `bg-batch-stop-proof-${index}` },
+      evidence: null,
+      knownIdentities: new Map(),
+    }));
+    const plans = slots.map((slot, index) => ({
+      cycleNumber: index + 1,
+      slot,
+      method: index % 2 === 0 ? "hard-kill" : "stop",
+    }));
+    let stopState = {
+      id: slots[1].state.id,
+      status: "stopped",
+      stopRequestedAt: 1_001,
+    };
+    const stop = vi.fn(() => {
+      stopState = { ...stopState, stopCleanupConfirmedAt: 1_010 };
+      return stopState;
+    });
+
+    const settlements = await terminateSlotBatch(
+      plans,
+      { cleanupDeadlineMs: 1_000, cleanupObserverDeadlineMs: 1_000 },
+      {
+        epochNow: () => 1_000,
+        monotonicNow: () => 20,
+        prepareTermination(plan) {
+          return {
+            key: {
+              id: plan.slot.state.id,
+              slot: plan.slot.index,
+              cycle: plan.cycleNumber,
+            },
+            ...plan,
+          };
+        },
+        triggerTermination(prepared) {
+          events.push(`trigger:${prepared.key.slot}`);
+          return {
+            ...prepared,
+            terminationRequestedAt: 1_000,
+            terminationStartedAtMonotonicMs: 0,
+            triggerError: null,
+          };
+        },
+        async observeTermination(attempt) {
+          events.push(`observe:${attempt.key.slot}`);
+          if (attempt.key.slot !== 1) return { slot: attempt.key.slot };
+          attempt.slot.state = stopState;
+          await waitForCleanup(
+            attempt.slot,
+            { cleanupDeadlineMs: 1_000 },
+            attempt.terminationStartedAtMonotonicMs,
+            attempt.method,
+            {
+              readBackgroundAgentState: () => stopState,
+              processIdentities: () => [
+                { role: "worker", pid: 123, startedAt: 900 },
+              ],
+              ownedIdentityAlive: () => false,
+              stopBackgroundAgent: stop,
+              readBackgroundAgentLog: () => "",
+            },
+          );
+          return keeperCleanupTiming(attempt, stopState, 20);
+        },
+      },
+    );
+
+    expect(events.slice(0, 20)).toEqual([
+      ...Array.from({ length: 10 }, (_, index) => `trigger:${index * 2}`),
+      ...Array.from({ length: 10 }, (_, index) => `trigger:${index * 2 + 1}`),
+    ]);
+    expect(events.slice(20)).toEqual(
+      Array.from({ length: 20 }, (_, index) => `observe:${index}`),
+    );
+    expect(stop).toHaveBeenCalledOnce();
+    expect(settlements[1]).toMatchObject({
+      terminationRequestedAt: 1_000,
+      durableCleanupRequestedAt: 1_001,
+      cleanupConfirmedAt: 1_010,
+    });
+  });
+
   it("observes every trigger attempt before reporting a trigger failure", async () => {
     const events = [];
     const plans = [0, 1].map((index) => ({
@@ -600,6 +689,123 @@ describe("background Agent keeper soak contract", () => {
         cleanupDeadlineMs: 30_000,
       }),
     ).toThrow(/durableCleanupMs 45000ms/u);
+  });
+
+  it("requires durable proof before a cooperative stop is considered settled", () => {
+    expect(
+      hasSettledCooperativeStopCleanup({
+        status: "stopped",
+        stopRequestedAt: 1_000,
+      }),
+    ).toBe(false);
+    expect(
+      hasSettledCooperativeStopCleanup({
+        status: "stopped",
+        stopRequestedAt: 1_000,
+        stopCleanupConfirmedAt: 999,
+      }),
+    ).toBe(false);
+    expect(
+      hasSettledCooperativeStopCleanup({
+        status: "stopped",
+        stopRequestedAt: 1_000,
+        stopCleanupConfirmedAt: 1_001,
+      }),
+    ).toBe(true);
+  });
+
+  it("retries an all-retired unconfirmed stop until durable proof is published", async () => {
+    const unconfirmed = {
+      id: "bg-delayed-stop-proof",
+      status: "stopped",
+      stopRequestedAt: 1_000,
+    };
+    const confirmed = {
+      ...unconfirmed,
+      stopCleanupConfirmedAt: 1_010,
+    };
+    let current = unconfirmed;
+    const stop = vi.fn(() => {
+      current = confirmed;
+      return current;
+    });
+    const slot = {
+      index: 1,
+      state: unconfirmed,
+      evidence: null,
+      knownIdentities: new Map(),
+    };
+
+    await waitForCleanup(slot, { cleanupDeadlineMs: 1_000 }, 0, "stop", {
+      readBackgroundAgentState: () => current,
+      processIdentities: () => [{ role: "worker", pid: 123, startedAt: 900 }],
+      ownedIdentityAlive: () => false,
+      stopBackgroundAgent: stop,
+      readBackgroundAgentLog: () => "",
+    });
+
+    expect(stop).toHaveBeenCalledOnce();
+    expect(slot.state).toBe(confirmed);
+    expect(hasSettledCooperativeStopCleanup(slot.state)).toBe(true);
+  });
+
+  it("re-enters a live unconfirmed stop before waiting for retirement", async () => {
+    const unconfirmed = {
+      id: "bg-live-delayed-stop-proof",
+      status: "stopped",
+      stopRequestedAt: 2_000,
+    };
+    const confirmed = {
+      ...unconfirmed,
+      stopCleanupConfirmedAt: 2_010,
+    };
+    let current = unconfirmed;
+    let alive = true;
+    const stop = vi.fn(() => {
+      alive = false;
+      current = confirmed;
+      return current;
+    });
+    const slot = {
+      index: 1,
+      state: unconfirmed,
+      evidence: null,
+      knownIdentities: new Map(),
+    };
+
+    await waitForCleanup(slot, { cleanupDeadlineMs: 1_000 }, 0, "stop", {
+      readBackgroundAgentState: () => current,
+      processIdentities: () => [{ role: "worker", pid: 456, startedAt: 1_900 }],
+      ownedIdentityAlive: () => alive,
+      stopBackgroundAgent: stop,
+      readBackgroundAgentLog: () => "",
+    });
+
+    expect(stop).toHaveBeenCalledOnce();
+    expect(alive).toBe(false);
+    expect(slot.state).toBe(confirmed);
+    expect(hasSettledCooperativeStopCleanup(slot.state)).toBe(true);
+  });
+
+  it("includes the rejected stop proof tuple in the failure diagnostic", () => {
+    expect(() =>
+      keeperCleanupTiming(
+        {
+          key: { id: "bg-invalid-stop-proof", slot: 1 },
+          method: "stop",
+          terminationRequestedAt: 1_000,
+          terminationStartedAtMonotonicMs: 0,
+        },
+        {
+          id: "bg-invalid-stop-proof",
+          status: "stopped",
+          stopRequestedAt: 1_001,
+        },
+        10,
+      ),
+    ).toThrow(
+      /"id":"bg-invalid-stop-proof".*"status":"stopped".*"terminationRequestedAt":1000.*"durableCleanupRequestedAt":1001.*"cleanupConfirmedAt":null/u,
+    );
   });
 
   it("fails closed when the independent observer budget finds no terminal state", async () => {
