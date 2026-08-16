@@ -49,9 +49,15 @@ async function run() {
   assert.equal(os.hostname(), config.containerHostname);
   const marker = fs.readFileSync(config.containerMarkerPath);
   assert.equal(sha256(marker), config.containerMarkerDigest);
+  const remoteHome = fs.realpathSync(path.dirname(config.runtimeDirectory));
+  const extensionHostCwd = fs.realpathSync(process.cwd());
+  const cwdRelativeToRemoteHome = path.relative(remoteHome, extensionHostCwd);
   assert.ok(
-    process.cwd().startsWith("/home/cc-roadmap/"),
-    `extension-host cwd is not inside the container user home: ${process.cwd()}`,
+    cwdRelativeToRemoteHome === "" ||
+      (cwdRelativeToRemoteHome !== ".." &&
+        !cwdRelativeToRemoteHome.startsWith(`..${path.sep}`) &&
+        !path.isAbsolute(cwdRelativeToRemoteHome)),
+    `extension-host cwd is not inside the container user home: ${extensionHostCwd}`,
   );
 
   const extension = vscode.extensions.getExtension(EXTENSION_ID);
@@ -79,7 +85,7 @@ async function run() {
     workspaceSchemes: workspaceFolders.map((folder) => folder.uri.scheme),
     orderedWorkspacePaths: workspaceFolders.map((folder) => folder.uri.fsPath),
     extensionHostPid: process.pid,
-    extensionHostCwd: process.cwd(),
+    extensionHostCwd,
     extensionPath: fs.realpathSync(extension.extensionPath),
     extensionVersion: extension.packageJSON.version,
     candidateVsixSha256: sha256(remoteCandidateBytes),

@@ -66,6 +66,14 @@ test("remote driver calls the existing real host journey after proving remote id
   assert.match(remoteRunner, /config\.containerMarkerPath/u);
   assert.match(remoteRunner, /config\.candidateVsixSha256/u);
   assert.match(remoteRunner, /config\.candidateVsixBytes/u);
+  assert.match(
+    remoteRunner,
+    /path\.relative\(remoteHome, extensionHostCwd\)[\s\S]*?cwdRelativeToRemoteHome === ""/u,
+  );
+  assert.doesNotMatch(
+    remoteRunner,
+    /process\.cwd\(\)\.startsWith\("\/home\/cc-roadmap\/"\)/u,
+  );
   assert.match(remoteRunner, /require\("\.\/smoke\.cjs"\)/u);
   assert.match(remoteRunner, /"bridge-verified"/u);
   assert.match(orchestrator, /--file-uri=vscode-remote:\/\//u);
