@@ -1,6 +1,14 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import {
@@ -10,6 +18,7 @@ import {
   BACKGROUND_KEEPER_SOAK_SMOKE_AGGREGATE_SCHEMA,
   BACKGROUND_KEEPER_SOAK_SMOKE_RESULT_SCHEMA,
   backgroundKeeperSoakDocumentSha256,
+  createBackgroundKeeperSoakRoot,
   nearestRankPercentile,
   resolveBackgroundKeeperSoakProfile,
   sealBackgroundKeeperSoakDocument,
@@ -156,6 +165,24 @@ function completeEvidenceSet(mode = "formal") {
 }
 
 describe("background Agent keeper soak contract", () => {
+  it("canonicalizes a filesystem alias above owner-only soak state", () => {
+    const parent = mkdtempSync(join(tmpdir(), "cc-keeper-root-alias-"));
+    temporaryDirectories.push(parent);
+    const canonical = join(parent, "canonical");
+    const alias = join(parent, "alias");
+    mkdirSync(canonical);
+    symlinkSync(
+      canonical,
+      alias,
+      process.platform === "win32" ? "junction" : "dir",
+    );
+
+    const root = createBackgroundKeeperSoakRoot(alias);
+
+    expect(root).toBe(realpathSync(root));
+    expect(root.startsWith(`${realpathSync(canonical)}${sep}`)).toBe(true);
+  });
+
   it("keeps smoke profiles small but non-trivial", () => {
     expect(
       resolveBackgroundKeeperSoakProfile({

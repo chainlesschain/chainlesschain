@@ -6,6 +6,7 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   renameSync,
   rmSync,
   writeFileSync,
@@ -56,6 +57,16 @@ const DEFAULT_OUTPUT = join(
   tmpdir(),
   `cc-background-keeper-soak-${process.platform}-${process.pid}.json`,
 );
+
+export function createBackgroundKeeperSoakRoot(tempDirectory = tmpdir()) {
+  // macOS exposes its temporary directory through /var while the owner-only
+  // state policy correctly rejects link traversal. Resolve only the harness's
+  // newly-created root so CHAINLESSCHAIN_HOME and the security anchor use the
+  // canonical /private/var namespace without weakening secure-fs.
+  return realpathSync(
+    mkdtempSync(join(tempDirectory, "cc-background-keeper-soak-")),
+  );
+}
 
 function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
@@ -1030,7 +1041,7 @@ async function main() {
 
   const output = process.env.CC_BACKGROUND_KEEPER_SOAK_OUTPUT || DEFAULT_OUTPUT;
   const started = performance.now();
-  const root = mkdtempSync(join(tmpdir(), "cc-background-keeper-soak-"));
+  const root = createBackgroundKeeperSoakRoot();
   const repository = join(root, "repository");
   const evidenceDirectory = join(root, "evidence");
   const backgroundDirectory = join(root, "background-agents");
