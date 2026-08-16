@@ -1013,7 +1013,16 @@ export function mutateBackgroundAgentState(id, updater, options = {}) {
     },
     {
       failIfUnavailable: true,
-      timeoutMs: options.timeoutMs ?? 5_000,
+      // Startup has three independent writers (launcher, worker and keeper),
+      // while stop/turn settlement adds another contender. Hosted Windows can
+      // otherwise starve a first heartbeat for the old five-second budget when
+      // the full strict matrix is saturating the runner. Keep the lock strict
+      // and bounded, but give default callers one full ten-second contention
+      // window; keeper cleanup keeps its explicit protocol-bound five seconds.
+      timeoutMs: options.timeoutMs ?? 10_000,
+      // Release before yielding so an already-waiting process gets a scheduling
+      // opportunity instead of letting a heartbeat loop immediately reacquire.
+      yieldAfterReleaseMs: 2,
       // A stopped POSIX worker can remain as a zombie long enough for
       // kill(pid, 0) to report it as alive.  Such a process cannot still own
       // the critical section, so use the supervisor's execution-state probe

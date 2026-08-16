@@ -3621,7 +3621,29 @@ describe("prompt queue backpressure (Gap 4, supervisor gap 2026-07-11)", () => {
     } else {
       _deps.kill = (pid, signal) => process.kill(pid, signal);
     }
-    const stopped = stopBackgroundAgent(state.id);
+    let stopped = stopBackgroundAgent(state.id);
+    // Under a fully parallel strict-sandbox shard the worker can be inside the
+    // durable prepare->spawn window when cleanup starts. The production stop
+    // contract deliberately fences that window and returns stopPending rather
+    // than signalling an unowned child. Wait for the worker to settle that
+    // intent, then retry only once the durable record says signalling is safe.
+    const stopDeadline = Date.now() + 5_000;
+    while (!stopped.stopped && Date.now() < stopDeadline) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      const latest = readBackgroundAgentState(state.id);
+      if (latest?.status === "stopped") {
+        stopped = { ...latest, stopped: true };
+        break;
+      }
+      if (
+        latest?.status === "running" &&
+        !latest.turnLaunchIntent &&
+        latest.turnLaunchFinalizationUncertain !== true &&
+        latest.launchFinalizationUncertain !== true
+      ) {
+        stopped = stopBackgroundAgent(state.id);
+      }
+    }
     expect(
       stopped,
       `stop=${JSON.stringify({

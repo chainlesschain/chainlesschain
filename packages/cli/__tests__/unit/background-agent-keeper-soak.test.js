@@ -438,6 +438,12 @@ describe("background Agent keeper soak aggregate contract", () => {
       workflow.indexOf("  keeper-soak-aggregate:"),
     );
 
+    expect(workflow).toContain(
+      'CC_BACKGROUND_KEEPER_SOAK_CLEANUP_DEADLINE_MS: "30000"',
+    );
+    expect(workflow).toContain(
+      'CC_BACKGROUND_KEEPER_SOAK_READINESS_DEADLINE_MS: "120000"',
+    );
     expect(aggregateJob).toContain("if: always()");
     expect(aggregateJob).toContain("needs: keeper-soak");
     expect(aggregateJob).toContain("needs.keeper-soak.result != 'success'");
