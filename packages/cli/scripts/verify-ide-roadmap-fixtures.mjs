@@ -1326,6 +1326,14 @@ function verifyRemoteSshRuntimeIdentity(
   if (!isRecord(remoteEnvironment)) {
     issues.push("remote-environment artifact must be an object");
   } else {
+    if (
+      remoteEnvironment.schema !==
+      "chainlesschain.remote-ssh-container-observation.v2"
+    ) {
+      issues.push(
+        'remote-environment.schema must equal "chainlesschain.remote-ssh-container-observation.v2"',
+      );
+    }
     if (remoteEnvironment.remoteName !== "ssh-remote") {
       issues.push('remote-environment.remoteName must equal "ssh-remote"');
     }
@@ -1338,14 +1346,19 @@ function verifyRemoteSshRuntimeIdentity(
       );
     }
     if (
+      remoteEnvironment.workspaceUriPresentation !==
+        "remote-extension-host-native-file" ||
       !Array.isArray(remoteEnvironment.workspaceSchemes) ||
       remoteEnvironment.workspaceSchemes.length !== 2 ||
-      remoteEnvironment.workspaceSchemes.some(
-        (scheme) => scheme !== "vscode-remote",
+      remoteEnvironment.workspaceSchemes.some((scheme) => scheme !== "file") ||
+      !Array.isArray(remoteEnvironment.workspaceAuthorities) ||
+      remoteEnvironment.workspaceAuthorities.length !== 2 ||
+      remoteEnvironment.workspaceAuthorities.some(
+        (authority) => authority !== "",
       )
     ) {
       issues.push(
-        "remote-environment must prove two vscode-remote workspace URIs",
+        "remote-environment must prove two native file roots inside the remote extension host",
       );
     }
     if (

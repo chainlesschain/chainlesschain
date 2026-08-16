@@ -40,12 +40,19 @@ async function run() {
   assert.equal(workspaceFolders.length, 2, "two remote roots are required");
   assert.deepEqual(
     workspaceFolders.map((folder) => folder.uri.scheme),
-    ["vscode-remote", "vscode-remote"],
-    "workspace roots must be VS Code remote resources",
+    ["file", "file"],
+    "the remote extension host must expose workspace roots as native files",
   );
-  for (const folder of workspaceFolders) {
-    assert.equal(folder.uri.authority, config.remoteAuthority);
-  }
+  assert.deepEqual(
+    workspaceFolders.map((folder) => folder.uri.authority),
+    ["", ""],
+    "native remote-host workspace files must not retain the client authority",
+  );
+  assert.deepEqual(
+    workspaceFolders.map((folder) => folder.uri.fsPath),
+    config.workspacePaths,
+    "the ordered remote-host workspace roots must match the scoped journey",
+  );
   assert.equal(os.hostname(), config.containerHostname);
   const marker = fs.readFileSync(config.containerMarkerPath);
   assert.equal(sha256(marker), config.containerMarkerDigest);
@@ -79,10 +86,14 @@ async function run() {
     "remote-environment.json",
   );
   const base = {
-    schema: "chainlesschain.remote-ssh-container-observation.v1",
+    schema: "chainlesschain.remote-ssh-container-observation.v2",
     remoteName: vscode.env.remoteName,
-    remoteAuthority: workspaceFolders[0].uri.authority,
+    remoteAuthority: config.remoteAuthority,
+    workspaceUriPresentation: "remote-extension-host-native-file",
     workspaceSchemes: workspaceFolders.map((folder) => folder.uri.scheme),
+    workspaceAuthorities: workspaceFolders.map(
+      (folder) => folder.uri.authority,
+    ),
     orderedWorkspacePaths: workspaceFolders.map((folder) => folder.uri.fsPath),
     extensionHostPid: process.pid,
     extensionHostCwd,

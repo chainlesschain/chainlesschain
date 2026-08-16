@@ -650,6 +650,7 @@ async function main() {
       candidateVsixSha256: candidateBinding.vsixSha256,
       candidateVsixBytes: candidateBinding.vsixBytes,
       remoteAuthority,
+      workspacePaths: REMOTE_WORKSPACES,
       containerHostname,
       containerMarkerPath: "/etc/chainlesschain-remote-id",
       containerMarkerDigest: markerDigest,
@@ -951,7 +952,7 @@ async function main() {
   writeJson(
     remoteEnvironmentPath,
     remoteEnvironment || {
-      schema: "chainlesschain.remote-ssh-container-observation.v1",
+      schema: "chainlesschain.remote-ssh-container-observation.v2",
       journeyPassed: false,
       failureDigest: sha256Buffer(String(journeyError?.stack || journeyError)),
     },
