@@ -10,7 +10,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   BACKGROUND_KEEPER_SOAK_AGGREGATE_SCHEMA,
   BACKGROUND_KEEPER_SOAK_OPERATING_SYSTEMS,
@@ -18,6 +18,7 @@ import {
   BACKGROUND_KEEPER_SOAK_SMOKE_AGGREGATE_SCHEMA,
   BACKGROUND_KEEPER_SOAK_SMOKE_RESULT_SCHEMA,
   backgroundKeeperSoakDocumentSha256,
+  confirmKeeperSoakWorktreeRemoval,
   createBackgroundKeeperSoakRoot,
   nearestRankPercentile,
   resolveBackgroundKeeperSoakProfile,
@@ -241,6 +242,81 @@ describe("background Agent keeper soak contract", () => {
         allowSmoke: true,
       }),
     ).toThrow(/profile floors/u);
+  });
+
+  it("accepts an idempotently absent final worktree path", async () => {
+    const finish = vi.fn();
+    const result = await confirmKeeperSoakWorktreeRemoval(
+      { path: "/owned/worktree" },
+      {
+        worktree: {
+          removed: false,
+          kept: false,
+          reason: "worktree path already missing",
+        },
+      },
+      { pathExists: () => false, finishAgentWorktree: finish },
+    );
+
+    expect(result).toMatchObject({
+      removed: true,
+      initialRemoved: false,
+      fallbackAttempts: 0,
+      reason: "worktree path already missing",
+    });
+    expect(finish).not.toHaveBeenCalled();
+  });
+
+  it("retries only through the verified worktree cleanup seam", async () => {
+    let pathPresent = true;
+    const worktree = { path: "/owned/worktree" };
+    const finish = vi
+      .fn()
+      .mockReturnValueOnce({
+        removed: false,
+        kept: true,
+        reason: "cleanup failed: transient",
+      })
+      .mockImplementationOnce(() => {
+        pathPresent = false;
+        return { removed: true, kept: false, reason: "no changes" };
+      });
+
+    const result = await confirmKeeperSoakWorktreeRemoval(worktree, null, {
+      pathExists: () => pathPresent,
+      finishAgentWorktree: finish,
+      timeoutMs: 100,
+      intervalMs: 1,
+    });
+
+    expect(result).toMatchObject({
+      removed: true,
+      initialRemoved: false,
+      fallbackAttempts: 2,
+      reason: "no changes",
+    });
+    expect(finish).toHaveBeenCalledTimes(2);
+    expect(finish).toHaveBeenNthCalledWith(1, worktree);
+    expect(finish).toHaveBeenNthCalledWith(2, worktree);
+  });
+
+  it("fails closed when the cleanup result claims removal but the path survives", async () => {
+    const worktree = { path: "/owned/worktree" };
+    const finish = vi.fn(() => ({
+      removed: true,
+      kept: false,
+      reason: "synthetic stale projection",
+    }));
+
+    await expect(
+      confirmKeeperSoakWorktreeRemoval(worktree, null, {
+        pathExists: () => true,
+        finishAgentWorktree: finish,
+        timeoutMs: 5,
+        intervalMs: 1,
+      }),
+    ).rejects.toThrow(/cleanup timed out/u);
+    expect(finish).toHaveBeenCalled();
   });
 
   it("uses nearest-rank percentiles and ignores non-finite samples", () => {

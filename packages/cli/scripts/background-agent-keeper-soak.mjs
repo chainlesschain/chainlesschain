@@ -327,6 +327,58 @@ async function pollUntil(operation, timeoutMs, label, intervalMs = 50) {
   );
 }
 
+export async function confirmKeeperSoakWorktreeRemoval(
+  worktree,
+  initialRemoval,
+  options = {},
+) {
+  const worktreePath = worktree?.path || worktree?.worktreePath;
+  if (!worktreePath) {
+    throw new TypeError("keeper soak worktree path is required");
+  }
+  const pathExists = options.pathExists || existsSync;
+  const finish = options.finishAgentWorktree || finishAgentWorktree;
+  const timeoutMs = Number.isFinite(Number(options.timeoutMs))
+    ? Math.max(1, Number(options.timeoutMs))
+    : 30_000;
+  const intervalMs = Number.isFinite(Number(options.intervalMs))
+    ? Math.max(1, Number(options.intervalMs))
+    : 50;
+  let latestRemoval = initialRemoval?.worktree ?? initialRemoval ?? null;
+  let fallbackAttempts = 0;
+  await pollUntil(
+    () => {
+      // Physical absence is the release invariant. removeBackgroundAgent can
+      // legitimately report the idempotent "path already missing" projection
+      // when another exact-owned cleanup retired it between probes.
+      if (!pathExists(worktreePath)) return true;
+      fallbackAttempts += 1;
+      // A surviving path is never removed directly. Re-enter the production
+      // worktree closer, which revalidates repository registration, branch,
+      // base SHA and cleanliness before every destructive attempt.
+      latestRemoval = finish(worktree);
+      if (latestRemoval?.removed === true && !pathExists(worktreePath)) {
+        return true;
+      }
+      throw new Error(
+        `verified worktree cleanup did not retire the path: ${latestRemoval?.reason || "unknown reason"}`,
+      );
+    },
+    timeoutMs,
+    `agent worktree ${worktreePath} cleanup`,
+    intervalMs,
+  );
+  return {
+    removed: true,
+    path: worktreePath,
+    initialRemoved: initialRemoval?.worktree?.removed === true,
+    fallbackAttempts,
+    reason:
+      latestRemoval?.reason ||
+      (fallbackAttempts === 0 ? "path already absent" : "path retired"),
+  };
+}
+
 function readEvidence(filePath, generation) {
   if (!existsSync(filePath)) return null;
   for (const line of readFileSync(filePath, "utf8")
@@ -1315,6 +1367,11 @@ async function main() {
       const slot = slots[index];
       const settlement = finalSettlements[index];
       const removal = await removeRetiredSlotRecord(slot, false);
+      const worktreeRemoval = await confirmKeeperSoakWorktreeRemoval(
+        slot.worktree,
+        removal,
+        { timeoutMs: profile.cleanupDeadlineMs },
+      );
       report.slots[index] = {
         ...report.slots[index],
         finalCleanupMs: settlement.cleanupMs,
@@ -1322,8 +1379,9 @@ async function main() {
         allKnownPidsRetired: [...slot.knownIdentities.values()].every(
           (identity) => !ownedIdentityAlive(identity),
         ),
-        worktreeRemoved:
-          removal.worktree?.removed === true && !existsSync(slot.worktree.path),
+        worktreeRemoved: worktreeRemoval.removed,
+        worktreeRemovalReason: worktreeRemoval.reason,
+        worktreeRemovalFallbackAttempts: worktreeRemoval.fallbackAttempts,
       };
     }
 
