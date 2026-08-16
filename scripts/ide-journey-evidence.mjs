@@ -45,7 +45,7 @@ const MAX_TEXT_BYTES = 256 * 1024;
 const MAX_BINARY_BYTES = 20 * 1024 * 1024;
 const GITHUB_REPOSITORY = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 const GITHUB_WORKFLOW_REF =
-  /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/\.github\/workflows\/[A-Za-z0-9_.\/-]+\.ya?ml@\S+$/;
+  /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/\.github\/workflows\/[A-Za-z0-9_./-]+\.ya?ml@\S+$/;
 const GITHUB_RUN_NUMBER = /^[1-9]\d*$/;
 const GITHUB_JOB = /^[A-Za-z0-9_-]+$/;
 const STRICT_SEMVER =
@@ -155,6 +155,11 @@ function safeSegment(value, fallback = "artifact") {
     .replace(/^\.+/, "")
     .slice(0, 160);
   return segment || fallback;
+}
+
+function safeExtension(value) {
+  const extension = String(value || "").toLowerCase();
+  return /^\.[a-z0-9]{1,16}$/u.test(extension) ? extension : "";
 }
 
 function boundedTail(filePath, maxBytes = MAX_TEXT_BYTES) {
@@ -478,7 +483,7 @@ export function writeIdeJourneyEvidence(options = {}) {
         sourcePath: rawPath,
         artifactDir,
         relativeDirectory: "roadmap-artifacts",
-        outputName: `${String(artifactIndex + 1).padStart(3, "0")}-${name}${safeSegment(extension, "")}`,
+        outputName: `${String(artifactIndex + 1).padStart(3, "0")}-${name}${safeExtension(extension)}`,
         kind: "roadmap-artifact",
         name,
       });
