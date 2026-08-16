@@ -341,10 +341,12 @@ function createRemoteSshRuntimeCorpus() {
     dockerImageId: `sha256:${"c".repeat(64)}`,
   });
   const remoteEnvironment = writeSourceJson("remote-environment", {
-    schema: "chainlesschain.remote-ssh-container-observation.v1",
+    schema: "chainlesschain.remote-ssh-container-observation.v2",
     remoteName: "ssh-remote",
     remoteAuthority: `ssh-remote+${containerHostname}`,
-    workspaceSchemes: ["vscode-remote", "vscode-remote"],
+    workspaceUriPresentation: "remote-extension-host-native-file",
+    workspaceSchemes: ["file", "file"],
+    workspaceAuthorities: ["", ""],
     orderedWorkspacePaths: [
       "/home/cc-roadmap/workspace-primary",
       "/home/cc-roadmap/workspace-secondary",

@@ -62,7 +62,11 @@ test("remote driver calls the existing real host journey after proving remote id
 
   assert.deepEqual(driverManifest.extensionKind, ["workspace"]);
   assert.match(remoteRunner, /vscode\.env\.remoteName[\s\S]*?"ssh-remote"/u);
-  assert.match(remoteRunner, /\["vscode-remote", "vscode-remote"\]/u);
+  assert.match(remoteRunner, /\["file", "file"\]/u);
+  assert.match(
+    remoteRunner,
+    /workspaceUriPresentation: "remote-extension-host-native-file"/u,
+  );
   assert.match(remoteRunner, /config\.containerMarkerPath/u);
   assert.match(remoteRunner, /config\.candidateVsixSha256/u);
   assert.match(remoteRunner, /config\.candidateVsixBytes/u);
