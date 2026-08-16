@@ -5,10 +5,14 @@ import os from "node:os";
 import path from "node:path";
 import {
   PLUGIN_MARKETPLACE_ARTIFACT_READBACK_SCHEMA,
+  PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
   PLUGIN_MARKETPLACE_PAYLOAD_SBOM_SCHEMA,
+  PLUGIN_MARKETPLACE_REMOTE_SBOM_PAYLOAD_COMPARISON_SCHEMA,
   buildMarketplacePayloadSbom,
   buildPluginMarketplaceArtifactReadback,
+  parseMarketplacePayloadSbomDocument,
 } from "../../src/lib/plugin-runtime/marketplace-artifact-readback.js";
+import { buildPluginSbom } from "../../src/lib/plugin-runtime/signature.js";
 import {
   installFromSource,
   listInstalled,
@@ -25,6 +29,7 @@ let publicKeyPem;
 let publicKeyDocumentSha256;
 let signatureBytes;
 let signatureSha256;
+let remoteSbomBytes;
 let remoteSbomDocumentSha256;
 let payloadSbom;
 
@@ -73,7 +78,7 @@ function remoteArtifactEvidence(mutate = null) {
       format: PLUGIN_MARKETPLACE_PAYLOAD_SBOM_SCHEMA,
       expectedDocumentSha256: remoteSbomDocumentSha256,
       documentSha256: remoteSbomDocumentSha256,
-      bytes: 31,
+      bytes: remoteSbomBytes.length,
       fromCache: false,
     },
     claims: {
@@ -139,6 +144,31 @@ function sourceMetadata({ remoteExpectations = false, evidence = false } = {}) {
   };
 }
 
+function canonicalSourceMetadata() {
+  payloadSbom = buildMarketplacePayloadSbom(source, {
+    schemaVersion: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+  });
+  remoteSbomBytes = Buffer.from(JSON.stringify(payloadSbom));
+  remoteSbomDocumentSha256 = sha256(remoteSbomBytes);
+  const metadata = sourceMetadata({ remoteExpectations: true, evidence: true });
+  metadata.catalogAuthority.artifactExpectations.sbom = {
+    ...metadata.catalogAuthority.artifactExpectations.sbom,
+    format: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+    payloadSha256: payloadSbom.digest,
+  };
+  const evidenceAuthority = {
+    ...metadata.catalogAuthority.remoteArtifactEvidence,
+  };
+  delete evidenceAuthority.evidenceDigest;
+  evidenceAuthority.sbom.format =
+    PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA;
+  metadata.catalogAuthority.remoteArtifactEvidence = {
+    ...evidenceAuthority,
+    evidenceDigest: sha256(canonicalJson(evidenceAuthority)),
+  };
+  return metadata;
+}
+
 function installSigned(metadata = sourceMetadata()) {
   installFromSource(source, {
     scope: "project",
@@ -151,6 +181,9 @@ function installSigned(metadata = sourceMetadata()) {
       publicKeyFile,
       requireSignature: true,
     },
+    remoteSbomBytes: metadata.catalogAuthority.remoteArtifactEvidence?.sbom
+      ? remoteSbomBytes
+      : null,
   });
   return listInstalled({ cwd, scopes: ["project"] })[0];
 }
@@ -192,8 +225,9 @@ beforeEach(() => {
   publicKeySha256 = sha256(publicKey.export({ type: "spki", format: "der" }));
   publicKeyDocumentSha256 = sha256(Buffer.from(publicKeyPem));
   signatureSha256 = sha256(signatureBytes);
-  remoteSbomDocumentSha256 = sha256(Buffer.from('{"bomFormat":"CycloneDX"}\n'));
   payloadSbom = buildMarketplacePayloadSbom(source);
+  remoteSbomBytes = Buffer.from(JSON.stringify(payloadSbom));
+  remoteSbomDocumentSha256 = sha256(remoteSbomBytes);
 });
 
 afterEach(() => {
@@ -274,6 +308,7 @@ describe("marketplace artifact readback", () => {
       comparisons: {
         remoteSignature: { status: "matched", comparable: true },
         remoteSbom: { status: "matched", comparable: true },
+        remoteSbomPayload: { status: "matched", comparable: true },
       },
       actual: {
         remoteArtifacts: {
@@ -287,6 +322,9 @@ describe("marketplace artifact readback", () => {
           },
           sbom: {
             digestVerifiedAtInstallRecorded: true,
+            payloadComparisonPresent: true,
+            payloadComparisonValid: true,
+            currentPayloadMatches: true,
             currentDocumentBytesAvailable: false,
             currentDocumentRehashed: false,
           },
@@ -298,6 +336,23 @@ describe("marketplace artifact readback", () => {
         remoteSbomFetched: true,
         remoteArtifactEvidenceSelfConsistent: true,
         remoteSbomDigestVerifiedAtInstallRecorded: true,
+        remoteSbomPayloadComparisonRecorded: true,
+        remoteSbomPayloadComparisonSelfConsistent: true,
+        remoteSbomRecordedPayloadMatchesCurrentInstall: true,
+      },
+    });
+    expect(result.remoteSbomPayloadComparison).toMatchObject({
+      present: true,
+      valid: true,
+      currentPayloadMatches: true,
+      authority: {
+        schemaVersion: PLUGIN_MARKETPLACE_REMOTE_SBOM_PAYLOAD_COMPARISON_SCHEMA,
+        status: "matched",
+        remotePayload: {
+          digest: payloadSbom.digest,
+          fileCount: payloadSbom.fileCount,
+          totalBytes: payloadSbom.totalBytes,
+        },
       },
     });
     expect(result.claims).not.toHaveProperty(
@@ -308,22 +363,42 @@ describe("marketplace artifact readback", () => {
     );
   });
 
-  it("keeps legacy URL expectations without remote evidence partial and non-blocking", () => {
-    const installed = installSigned(
-      sourceMetadata({ remoteExpectations: true }),
-    );
+  it.each([".plugin-lock.json", ".git"])(
+    "rejects an unsafe semantic-install %s directory instead of excluding it from evidence",
+    (entryName) => {
+      const installed = installSigned(canonicalSourceMetadata());
+      const unsafePath = path.join(installed.dir, entryName);
+      fs.rmSync(unsafePath, { recursive: true, force: true });
+      fs.mkdirSync(unsafePath);
+      fs.writeFileSync(path.join(unsafePath, "hidden.js"), "hidden\n", "utf8");
+
+      expect(() =>
+        buildPluginMarketplaceArtifactReadback({
+          root: installed.dir,
+          scope: installed.scope,
+          source: installed.source,
+        }),
+      ).toThrow(/EXISTING_VERSION_UNSAFE_ENTRY/);
+    },
+  );
+
+  it("fails complete legacy v1 URL expectations without remote evidence", () => {
+    const installed = installSigned(sourceMetadata());
 
     const result = buildPluginMarketplaceArtifactReadback({
       root: installed.dir,
       scope: installed.scope,
-      source: installed.source,
+      source: sourceMetadata({ remoteExpectations: true }),
     });
 
-    expect(result.status).toBe("partial");
-    expect(result.blockers).toEqual([]);
+    expect(result.status).toBe("failed");
+    expect(result.blockers).toContainEqual({
+      code: "REMOTE_SBOM_PAYLOAD_COMPARISON_MISSING",
+    });
     expect(result.comparisons).toMatchObject({
       remoteSignature: { status: "not-observed", comparable: false },
       remoteSbom: { status: "not-observed", comparable: false },
+      remoteSbomPayload: { status: "mismatch", comparable: true },
     });
     expect(result.claims).toMatchObject({
       remoteSignatureFetched: false,
@@ -331,6 +406,57 @@ describe("marketplace artifact readback", () => {
       remoteSbomFetched: false,
       remoteArtifactEvidenceSelfConsistent: false,
       remoteSbomDigestVerifiedAtInstallRecorded: false,
+    });
+  });
+
+  it("fails when evidence and comparison are deleted from a complete v1 binding", () => {
+    const installed = installSigned(
+      sourceMetadata({ remoteExpectations: true, evidence: true }),
+    );
+    const strippedSource = structuredClone(installed.source);
+    delete strippedSource.catalogAuthority.remoteArtifactEvidence;
+    delete strippedSource.catalogAuthority.remoteSbomPayloadComparison;
+
+    const result = buildPluginMarketplaceArtifactReadback({
+      root: installed.dir,
+      scope: installed.scope,
+      source: strippedSource,
+    });
+
+    expect(result.status).toBe("failed");
+    expect(result.comparisons.remoteSbomPayload).toMatchObject({
+      status: "mismatch",
+      comparable: true,
+    });
+    expect(result.blockers).toContainEqual({
+      code: "REMOTE_SBOM_PAYLOAD_COMPARISON_MISSING",
+    });
+  });
+
+  it("fails when a v2 declaration is stripped to an incomplete expectation", () => {
+    const installed = installSigned(sourceMetadata());
+    const strippedSource = structuredClone(installed.source);
+    strippedSource.catalogAuthority.artifactExpectations.sbom = {
+      status: "declared",
+      format: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+      payloadSha256: payloadSbom.digest,
+    };
+    delete strippedSource.catalogAuthority.remoteArtifactEvidence;
+    delete strippedSource.catalogAuthority.remoteSbomPayloadComparison;
+
+    const result = buildPluginMarketplaceArtifactReadback({
+      root: installed.dir,
+      scope: installed.scope,
+      source: strippedSource,
+    });
+
+    expect(result.status).toBe("failed");
+    expect(result.comparisons.remoteSbomPayload).toMatchObject({
+      status: "mismatch",
+      comparable: true,
+    });
+    expect(result.blockers).toContainEqual({
+      code: "REMOTE_SBOM_PAYLOAD_COMPARISON_MISSING",
     });
   });
 
@@ -533,6 +659,168 @@ describe("marketplace artifact readback", () => {
     );
   });
 
+  it("fails closed when the persisted semantic comparison checksum is corrupted", () => {
+    const installed = installSigned(
+      sourceMetadata({ remoteExpectations: true, evidence: true }),
+    );
+    const forgedSource = {
+      ...installed.source,
+      catalogAuthority: {
+        ...installed.source.catalogAuthority,
+        remoteSbomPayloadComparison: {
+          ...installed.source.catalogAuthority.remoteSbomPayloadComparison,
+          comparisonDigest: "0".repeat(64),
+        },
+      },
+    };
+
+    const result = buildPluginMarketplaceArtifactReadback({
+      root: installed.dir,
+      scope: installed.scope,
+      source: forgedSource,
+    });
+
+    expect(result.status).toBe("failed");
+    expect(result.remoteSbomPayloadComparison).toMatchObject({
+      present: true,
+      valid: false,
+      reason: "comparison digest is invalid",
+    });
+    expect(result.comparisons.remoteSbomPayload).toMatchObject({
+      status: "mismatch",
+      comparable: true,
+    });
+    expect(result.blockers.map((blocker) => blocker.code)).toEqual(
+      expect.arrayContaining([
+        "REMOTE_SBOM_PAYLOAD_COMPARISON_INVALID",
+        "REMOTE_SBOM_PAYLOAD_MISMATCH",
+      ]),
+    );
+    expect(result.claims).toMatchObject({
+      remoteSbomPayloadComparisonRecorded: false,
+      remoteSbomPayloadComparisonSelfConsistent: false,
+      remoteSbomRecordedPayloadMatchesCurrentInstall: false,
+    });
+  });
+
+  it("detects current payload drift even when the catalog omitted a payload digest", () => {
+    const metadata = sourceMetadata({
+      remoteExpectations: true,
+      evidence: true,
+    });
+    delete metadata.catalogAuthority.artifactExpectations.sbom.sha256;
+    const installed = installSigned(metadata);
+    fs.writeFileSync(path.join(installed.dir, "drift.js"), "drift\n", "utf8");
+
+    const result = buildPluginMarketplaceArtifactReadback({
+      root: installed.dir,
+      scope: installed.scope,
+      source: installed.source,
+    });
+
+    expect(result.status).toBe("failed");
+    expect(result.comparisons.sbom).toMatchObject({
+      status: "unbound",
+      comparable: false,
+    });
+    expect(result.remoteSbomPayloadComparison).toMatchObject({
+      present: true,
+      valid: true,
+      currentPayloadMatches: false,
+    });
+    expect(result.comparisons.remoteSbomPayload).toMatchObject({
+      status: "mismatch",
+      comparable: true,
+    });
+    expect(result.blockers).toContainEqual({
+      code: "REMOTE_SBOM_PAYLOAD_MISMATCH",
+    });
+    expect(result.claims.remoteSbomRecordedPayloadMatchesCurrentInstall).toBe(
+      false,
+    );
+  });
+
+  it("keeps the comparison explicitly local when every writable record is recomputed", () => {
+    const installed = installSigned(
+      sourceMetadata({ remoteExpectations: true, evidence: true }),
+    );
+    fs.writeFileSync(path.join(installed.dir, "drift.js"), "drift\n", "utf8");
+
+    // The source metadata, comparison checksum, and component SBOM are all
+    // locally writable and unkeyed. Recomputing every one can restore a
+    // self-consistent readback, so none of these fields may claim publisher
+    // authentication or prove what bytes were present at install time.
+    const metadataPath = path.join(installed.dir, ".plugin-source.json");
+    const rewritten = JSON.parse(fs.readFileSync(metadataPath, "utf8"));
+    const rewrittenPayload = buildMarketplacePayloadSbom(installed.dir);
+    const pretendRemoteBytes = Buffer.from(JSON.stringify(rewrittenPayload));
+    const pretendDocumentSha256 = sha256(pretendRemoteBytes);
+    const oldEvidenceAuthority = structuredClone(
+      rewritten.catalogAuthority.remoteArtifactEvidence,
+    );
+    delete oldEvidenceAuthority.evidenceDigest;
+    const evidenceAuthority = {
+      ...oldEvidenceAuthority,
+      sbom: {
+        ...oldEvidenceAuthority.sbom,
+        expectedDocumentSha256: pretendDocumentSha256,
+        documentSha256: pretendDocumentSha256,
+        bytes: pretendRemoteBytes.length,
+      },
+    };
+    const rewrittenEvidence = {
+      ...evidenceAuthority,
+      evidenceDigest: sha256(canonicalJson(evidenceAuthority)),
+    };
+    const payloadSummary = {
+      schemaVersion: rewrittenPayload.schemaVersion,
+      digest: rewrittenPayload.digest,
+      fileCount: rewrittenPayload.fileCount,
+      totalBytes: rewrittenPayload.totalBytes,
+    };
+    const comparisonAuthority = {
+      schemaVersion: PLUGIN_MARKETPLACE_REMOTE_SBOM_PAYLOAD_COMPARISON_SCHEMA,
+      status: "matched",
+      remoteArtifactEvidenceDigest: rewrittenEvidence.evidenceDigest,
+      format: PLUGIN_MARKETPLACE_PAYLOAD_SBOM_SCHEMA,
+      documentSha256: pretendDocumentSha256,
+      remotePayload: payloadSummary,
+      installedPayload: payloadSummary,
+    };
+    rewritten.catalogAuthority.artifactExpectations.sbom = {
+      ...rewritten.catalogAuthority.artifactExpectations.sbom,
+      sha256: rewrittenPayload.digest,
+      payloadSha256: rewrittenPayload.digest,
+      documentSha256: pretendDocumentSha256,
+    };
+    rewritten.catalogAuthority.remoteArtifactEvidence = rewrittenEvidence;
+    rewritten.catalogAuthority.remoteSbomPayloadComparison = {
+      ...comparisonAuthority,
+      comparisonDigest: sha256(canonicalJson(comparisonAuthority)),
+    };
+    fs.writeFileSync(metadataPath, JSON.stringify(rewritten, null, 2), "utf8");
+
+    const lockPath = path.join(installed.dir, ".plugin-lock.json");
+    const lock = JSON.parse(fs.readFileSync(lockPath, "utf8"));
+    lock.sbom = buildPluginSbom(installed.dir);
+    fs.writeFileSync(lockPath, JSON.stringify(lock, null, 2), "utf8");
+
+    const [rewrittenInstall] = listInstalled({ cwd, scopes: ["project"] });
+    const result = buildPluginMarketplaceArtifactReadback({
+      root: rewrittenInstall.dir,
+      scope: rewrittenInstall.scope,
+      source: rewrittenInstall.source,
+    });
+
+    expect(result.status).toBe("matched");
+    expect(result.claims).toMatchObject({
+      registryPublisherIdentityVerified: false,
+      remoteSbomPayloadComparisonRecorded: true,
+      remoteSbomPayloadComparisonSelfConsistent: true,
+      remoteSbomRecordedPayloadMatchesCurrentInstall: true,
+    });
+  });
+
   it("marks external SBOM assertions partial instead of claiming a comparison", () => {
     installFromSource(source, {
       scope: "project",
@@ -567,5 +855,146 @@ describe("marketplace artifact readback", () => {
       comparable: false,
     });
     expect(evidence.claims.externalSbomDigestComparable).toBe(false);
+  });
+});
+
+describe("repository marketplace payload SBOM parser", () => {
+  it("preserves v1 documents while v2 excludes VCS metadata and binds entry types", () => {
+    fs.mkdirSync(path.join(source, ".git"));
+    fs.writeFileSync(path.join(source, ".git", "config"), "fixture\n", "utf8");
+
+    const legacy = buildMarketplacePayloadSbom(source);
+    const typed = buildMarketplacePayloadSbom(source, {
+      schemaVersion: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+    });
+
+    expect(legacy).toMatchObject({
+      schemaVersion: PLUGIN_MARKETPLACE_PAYLOAD_SBOM_SCHEMA,
+      exclusions: [".plugin-lock.json", ".plugin-source.json"],
+    });
+    expect(legacy.files).toContainEqual(
+      expect.objectContaining({ path: ".git/config" }),
+    );
+    expect(legacy.files[0]).not.toHaveProperty("type");
+    expect(typed).toMatchObject({
+      schemaVersion: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+      exclusions: [".git", ".plugin-lock.json", ".plugin-source.json"],
+    });
+    expect(typed.files.map((file) => file.path)).not.toContain(".git/config");
+    expect(typed.files.every((file) => file.type === "file")).toBe(true);
+    expect(
+      parseMarketplacePayloadSbomDocument(Buffer.from(JSON.stringify(legacy)), {
+        format: PLUGIN_MARKETPLACE_PAYLOAD_SBOM_SCHEMA,
+      }),
+    ).toEqual(legacy);
+    expect(
+      parseMarketplacePayloadSbomDocument(Buffer.from(JSON.stringify(typed)), {
+        format: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+      }),
+    ).toEqual(typed);
+  });
+
+  it.skipIf(process.platform === "win32")(
+    "distinguishes a symlink from a regular file with identical bytes",
+    () => {
+      const linkPath = path.join(source, "link.txt");
+      fs.writeFileSync(linkPath, "target.txt", "utf8");
+      const regular = buildMarketplacePayloadSbom(source, {
+        schemaVersion: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+      });
+      fs.unlinkSync(linkPath);
+      fs.symlinkSync("target.txt", linkPath);
+      const linked = buildMarketplacePayloadSbom(source, {
+        schemaVersion: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+      });
+
+      expect(
+        regular.files.find((file) => file.path === "link.txt"),
+      ).toMatchObject({ type: "file" });
+      expect(
+        linked.files.find((file) => file.path === "link.txt"),
+      ).toMatchObject({ type: "symlink" });
+      expect(linked.digest).not.toBe(regular.digest);
+
+      fs.unlinkSync(linkPath);
+      const rawTarget = Buffer.from([0xff]);
+      fs.symlinkSync(rawTarget, linkPath);
+      const rawLinked = buildMarketplacePayloadSbom(source, {
+        schemaVersion: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+      });
+      expect(
+        rawLinked.files.find((file) => file.path === "link.txt"),
+      ).toMatchObject({
+        type: "symlink",
+        bytes: rawTarget.length,
+        sha256: sha256(rawTarget),
+      });
+    },
+  );
+
+  it("rejects an unknown v2 entry type", () => {
+    const typed = buildMarketplacePayloadSbom(source, {
+      schemaVersion: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+    });
+    typed.files[0].type = "device";
+
+    expect(() =>
+      parseMarketplacePayloadSbomDocument(Buffer.from(JSON.stringify(typed)), {
+        format: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+      }),
+    ).toThrow(/file type is invalid/i);
+  });
+
+  it.each([
+    {
+      label: "unexpected fields",
+      mutate(value) {
+        value.untrusted = true;
+      },
+      message: /shape is invalid/i,
+    },
+    {
+      label: "traversal paths",
+      mutate(value) {
+        value.files[0].path = "../plugin.json";
+      },
+      message: /file path is invalid/i,
+    },
+    {
+      label: "uppercase file digests",
+      mutate(value) {
+        value.files[0].sha256 = value.files[0].sha256.toUpperCase();
+      },
+      message: /file digest is invalid/i,
+    },
+    {
+      label: "forged inventory digests",
+      mutate(value) {
+        value.digest = "0".repeat(64);
+      },
+      message: /digest mismatch/i,
+    },
+  ])("rejects $label", ({ mutate, message }) => {
+    const value = structuredClone(payloadSbom);
+    mutate(value);
+
+    expect(() =>
+      parseMarketplacePayloadSbomDocument(Buffer.from(JSON.stringify(value)), {
+        format: PLUGIN_MARKETPLACE_PAYLOAD_SBOM_SCHEMA,
+      }),
+    ).toThrow(message);
+  });
+
+  it("rejects invalid UTF-8 and ignores formats without repository semantics", () => {
+    expect(() =>
+      parseMarketplacePayloadSbomDocument(Buffer.from([0xff]), {
+        format: PLUGIN_MARKETPLACE_PAYLOAD_SBOM_SCHEMA,
+      }),
+    ).toThrow(/valid UTF-8/i);
+    expect(
+      parseMarketplacePayloadSbomDocument(Buffer.from("not json"), {
+        format: "cyclonedx-json",
+      }),
+    ).toBeNull();
   });
 });

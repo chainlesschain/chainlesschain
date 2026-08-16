@@ -20,6 +20,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import crypto from "node:crypto";
+import semver from "semver";
 import { parsePluginManifest, isWithin } from "./manifest.js";
 import {
   pluginNameDir,
@@ -41,6 +42,17 @@ import {
   verifyInstalledSignature,
 } from "./signature.js";
 import { loadManagedPluginPolicy, filterByManagedPolicy } from "./policy.js";
+import {
+  PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+  PLUGIN_MARKETPLACE_PAYLOAD_SBOM_SCHEMA,
+  PLUGIN_MARKETPLACE_STAGED_SOURCE_EXCLUSIONS,
+  assertSafeInstalledPluginStructure,
+  assertRemoteSbomPayloadComparison,
+  buildMarketplacePayloadSbom,
+  buildRemoteSbomPayloadComparison,
+  isMarketplacePayloadSbomFormat,
+  validateRemoteSbomPayloadComparison,
+} from "./marketplace-artifact-readback.js";
 import { managedSettingsPath } from "../settings-loader.cjs";
 import executionBroker from "../process-execution-broker/index.js";
 
@@ -84,7 +96,29 @@ export function installFromDirectory(srcDir, opts = {}) {
   }
   const { name, version } = manifest.metadata;
   assertExpectedPluginIdentity(name, version, opts.expectedIdentity);
-  const sourceMetadata = normalizeSourceMetadata(opts.sourceMetadata);
+  let sourceMetadata = normalizeSourceMetadata(
+    opts.sourceMetadata ?? { type: "local", source: src },
+  );
+  if (!sourceMetadata) {
+    throw new Error("plugin source metadata has no valid source identity");
+  }
+  assertSemanticPayloadReplacement({
+    name,
+    version,
+    scope,
+    cwd: opts.cwd,
+    candidateSourceMetadata: sourceMetadata,
+  });
+  assertReplacementApprovals({
+    name,
+    version,
+    scope,
+    cwd: opts.cwd,
+    candidateSourceMetadata: sourceMetadata,
+    enforce: opts.enforceUpdateApprovals === true,
+    allowSourceSwitch: opts.allowSourceSwitch === true,
+    allowDowngrade: opts.allowDowngrade === true,
+  });
   if (opts.managedPolicy) {
     enforcePluginPolicy(
       {
@@ -146,6 +180,27 @@ export function installFromDirectory(srcDir, opts = {}) {
     // and may ship its own `.plugin-lock.json` or provenance metadata.
     _deps.rmSync(path.join(staged, LOCK_FILENAME), { force: true });
     _deps.rmSync(path.join(staged, SOURCE_METADATA_FILENAME), { force: true });
+
+    const remoteSbomPayloadComparison = buildRemoteSbomPayloadComparison({
+      remoteArtifactEvidence:
+        sourceMetadata?.catalogAuthority?.remoteArtifactEvidence,
+      remoteSbomBytes: opts.remoteSbomBytes,
+      installedRoot: staged,
+      expectedSbom:
+        sourceMetadata?.catalogAuthority?.artifactExpectations?.sbom,
+      expectedPayloadSha256:
+        sourceMetadata?.catalogAuthority?.artifactExpectations?.sbom
+          ?.payloadSha256,
+    });
+    if (remoteSbomPayloadComparison) {
+      sourceMetadata = normalizeSourceMetadata({
+        ...sourceMetadata,
+        catalogAuthority: {
+          ...sourceMetadata.catalogAuthority,
+          remoteSbomPayloadComparison,
+        },
+      });
+    }
 
     if (sourceMetadata) {
       _deps.writeFileSync(
@@ -318,10 +373,37 @@ export function updatePlugin(source, opts = {}) {
           : { type: "local", source: path.resolve(String(source || "")) },
       );
     const previousVersion = getActiveVersion(name, { scope, cwd: opts.cwd });
+    assertReplacementApprovals({
+      name,
+      version,
+      scope,
+      cwd: opts.cwd,
+      candidateSourceMetadata: sourceMetadata,
+      enforce: opts.enforceUpdateApprovals === true,
+      allowSourceSwitch: opts.allowSourceSwitch === true,
+      allowDowngrade: opts.allowDowngrade === true,
+    });
     const dest = pluginVersionDir(scope, name, version, { cwd: opts.cwd });
     const sameVersionExists = _deps.existsSync(dest);
 
     if (sameVersionExists && !opts.force) {
+      assertExistingTargetMatchesCandidate(dir, dest);
+      assertPointerActivationApprovals({
+        name,
+        version,
+        scope,
+        cwd: opts.cwd,
+        candidateSourceMetadata: sourceMetadata,
+        enforce: opts.enforceUpdateApprovals === true,
+        allowSourceSwitch: opts.allowSourceSwitch === true,
+        allowDowngrade: opts.allowDowngrade === true,
+      });
+      assertSemanticPayloadActivation({
+        name,
+        scope,
+        cwd: opts.cwd,
+        targetVersion: version,
+      });
       // Already at this version — make sure it's the active one, but don't
       // reinstall an immutable dir.
       if (previousVersion !== version) {
@@ -476,7 +558,21 @@ export function fetchGitRepo(url, ref) {
       shell: false,
     });
 
-  const cloneArgs = ["clone", "--depth", "1"];
+  // Reduce host-specific checkout differences before the v2 inventory hashes
+  // the materialized staged bytes. Repository .gitattributes may still define
+  // transformations; an SBOM produced from different bytes then fails the
+  // exact pre-activation comparison instead of being treated as equivalent.
+  // Symlink blobs are materialized as inert regular files so installed plugins
+  // never gain link traversal semantics from a Git source.
+  const canonicalCheckoutArgs = [
+    "-c",
+    "core.autocrlf=false",
+    "-c",
+    "core.eol=lf",
+    "-c",
+    "core.symlinks=false",
+  ];
+  const cloneArgs = [...canonicalCheckoutArgs, "clone", "--depth", "1"];
   if (ref) cloneArgs.push("--branch", ref);
   cloneArgs.push(url, dir);
   let res = run(cloneArgs);
@@ -492,9 +588,9 @@ export function fetchGitRepo(url, ref) {
       } catch {
         /* ignore */
       }
-      const full = run(["clone", url, dir]);
+      const full = run([...canonicalCheckoutArgs, "clone", url, dir]);
       if (!full.error && full.status === 0) {
-        const co = run(["-C", dir, "checkout", ref]);
+        const co = run([...canonicalCheckoutArgs, "-C", dir, "checkout", ref]);
         if (co.status === 0) return dir;
       }
     }
@@ -722,14 +818,291 @@ export function getActiveVersion(name, opts = {}) {
 }
 
 function readSourceMetadata(versionDir) {
-  const file = path.join(versionDir, SOURCE_METADATA_FILENAME);
-  if (!_deps.existsSync(file)) return null;
   try {
-    return normalizeSourceMetadata(
-      JSON.parse(_deps.readFileSync(file, "utf8")),
-    );
+    return readSourceMetadataStrict(versionDir);
   } catch {
     return null;
+  }
+}
+
+export function readSourceMetadataStrict(
+  versionDir,
+  { required = false, requireRegistryAuthority = false } = {},
+) {
+  const file = path.join(versionDir, SOURCE_METADATA_FILENAME);
+  if (!_deps.existsSync(file)) {
+    if (required) {
+      throw new Error(
+        "plugin source metadata is missing; remove and reinstall the plugin to restore provenance",
+      );
+    }
+    return null;
+  }
+  try {
+    const raw = JSON.parse(_deps.readFileSync(file, "utf8"));
+    if (!raw || !["local", "git", "registry"].includes(raw.type)) {
+      throw new Error("source metadata type is invalid");
+    }
+    if (
+      requireRegistryAuthority &&
+      raw.type !== "registry" &&
+      (raw.registry != null ||
+        raw.package != null ||
+        raw.catalogAuthority != null)
+    ) {
+      throw new Error("registry-shaped source metadata has an invalid type");
+    }
+    const normalized = normalizeSourceMetadata(raw);
+    if (!normalized) {
+      throw new Error("source metadata has no valid source identity");
+    }
+    if (requireRegistryAuthority && normalized.type === "registry") {
+      if (!normalized.registry) {
+        throw new Error("registry source metadata is missing registry URL");
+      }
+      if (
+        !normalized.catalogAuthority ||
+        !normalized.catalogAuthority.artifactExpectations
+      ) {
+        throw new Error(
+          "registry source metadata is missing catalog artifact authority",
+        );
+      }
+    }
+    return normalized;
+  } catch (error) {
+    throw new Error(`plugin source metadata is invalid: ${error.message}`, {
+      cause: error,
+    });
+  }
+}
+
+function semanticPayloadStrength(format) {
+  if (format === PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA) return 2;
+  if (format === PLUGIN_MARKETPLACE_PAYLOAD_SBOM_SCHEMA) return 1;
+  return 0;
+}
+
+function installedSemanticPayloadFormat(sourceMetadata, root) {
+  const authority = sourceMetadata?.catalogAuthority;
+  const expected = authority?.artifactExpectations?.sbom;
+  const expectedFormat = expected?.format;
+  if (!isMarketplacePayloadSbomFormat(expectedFormat)) return null;
+  if (
+    expectedFormat === PLUGIN_MARKETPLACE_PAYLOAD_SBOM_SCHEMA &&
+    (!expected.url || !expected.documentSha256)
+  ) {
+    return null;
+  }
+  assertSafeInstalledPluginStructure(root);
+  const comparison = authority?.remoteSbomPayloadComparison;
+  const validation = validateRemoteSbomPayloadComparison(comparison, {
+    remoteArtifactEvidence: authority?.remoteArtifactEvidence,
+    expectedPayloadSha256: authority?.artifactExpectations?.sbom?.payloadSha256,
+    currentPayloadSbom: buildMarketplacePayloadSbom(root, {
+      schemaVersion: expectedFormat,
+    }),
+  });
+  if (!validation.valid || !validation.currentPayloadMatches) {
+    throw new Error("INSTALLED_SEMANTIC_SBOM_EVIDENCE_INVALID");
+  }
+  return expectedFormat;
+}
+
+function candidateSemanticPayloadFormat(sourceMetadata) {
+  const authority = sourceMetadata?.catalogAuthority;
+  const expected = authority?.artifactExpectations?.sbom;
+  const evidence = authority?.remoteArtifactEvidence?.sbom;
+  if (
+    !isMarketplacePayloadSbomFormat(expected?.format) ||
+    expected.status !== "declared" ||
+    !expected.url ||
+    !expected.documentSha256 ||
+    evidence?.format !== expected.format ||
+    evidence.url !== expected.url ||
+    evidence.expectedDocumentSha256 !== expected.documentSha256 ||
+    evidence.documentSha256 !== expected.documentSha256
+  ) {
+    return null;
+  }
+  return expected.format;
+}
+
+function strictInstalledSourceMetadata(name, version, { scope, cwd }) {
+  return readSourceMetadataStrict(
+    pluginVersionDir(scope, name, version, { cwd }),
+    { required: true, requireRegistryAuthority: true },
+  );
+}
+
+/**
+ * Payload-bound bytes may only be replaced by an equally strong (or stronger)
+ * payload binding. Keeping this below the command layer prevents add/upgrade
+ * aliases and direct library callers from silently erasing that authority.
+ */
+function assertSemanticPayloadReplacement({
+  name,
+  version,
+  scope,
+  cwd,
+  candidateSourceMetadata,
+}) {
+  const active = getActiveVersion(name, { scope, cwd });
+  const to = candidateSemanticPayloadFormat(candidateSourceMetadata);
+  const protectedVersions = new Set();
+  if (active) protectedVersions.add(active);
+  const targetDir = pluginVersionDir(scope, name, version, { cwd });
+  if (_deps.existsSync(targetDir)) protectedVersions.add(version);
+  for (const installedVersion of protectedVersions) {
+    const installedSource = strictInstalledSourceMetadata(
+      name,
+      installedVersion,
+      { scope, cwd },
+    );
+    const installedRoot = pluginVersionDir(scope, name, installedVersion, {
+      cwd,
+    });
+    const from = installedSemanticPayloadFormat(installedSource, installedRoot);
+    if (semanticPayloadStrength(from) > semanticPayloadStrength(to)) {
+      throw new Error(
+        `SEMANTIC_SBOM_BINDING_DOWNGRADE (${from} -> ${to || "unbound"})`,
+      );
+    }
+  }
+}
+
+/** Guard the pointer-only update path against activating weaker saved bytes. */
+function assertSemanticPayloadActivation({ name, scope, cwd, targetVersion }) {
+  const active = getActiveVersion(name, { scope, cwd });
+  if (!active || active === targetVersion) return;
+  const activeSource = strictInstalledSourceMetadata(name, active, {
+    scope,
+    cwd,
+  });
+  const activeRoot = pluginVersionDir(scope, name, active, { cwd });
+  const from = installedSemanticPayloadFormat(activeSource, activeRoot);
+  if (!from) return;
+  const targetSource = strictInstalledSourceMetadata(name, targetVersion, {
+    scope,
+    cwd,
+  });
+  const targetRoot = pluginVersionDir(scope, name, targetVersion, { cwd });
+  const to = installedSemanticPayloadFormat(targetSource, targetRoot);
+  if (semanticPayloadStrength(from) > semanticPayloadStrength(to)) {
+    throw new Error(
+      `SEMANTIC_SBOM_BINDING_DOWNGRADE (${from} -> ${to || "unbound"})`,
+    );
+  }
+}
+
+function sameSourceAuthority(current, candidate) {
+  if (current?.type !== candidate?.type) return false;
+  if (current.type === "registry") {
+    return Boolean(
+      current.registry &&
+      candidate.registry &&
+      current.registry === candidate.registry,
+    );
+  }
+  if (current.type === "git") return current.source === candidate.source;
+  return current.type === "local" && current.source === candidate.source;
+}
+
+function assertReplacementApprovals({
+  name,
+  version,
+  scope,
+  cwd,
+  candidateSourceMetadata,
+  enforce,
+  allowSourceSwitch,
+  allowDowngrade,
+}) {
+  if (!enforce) return;
+  const active = getActiveVersion(name, { scope, cwd });
+  if (!active) return;
+  const installedSource = strictInstalledSourceMetadata(name, active, {
+    scope,
+    cwd,
+  });
+  if (
+    !sameSourceAuthority(installedSource, candidateSourceMetadata) &&
+    !allowSourceSwitch
+  ) {
+    throw new Error(
+      "SOURCE_SWITCH_APPROVAL_REQUIRED; use plugin upgrade --allow-source-switch",
+    );
+  }
+  const from = semver.valid(active);
+  const to = semver.valid(version);
+  if (from && to && semver.gt(from, to) && !allowDowngrade) {
+    throw new Error(
+      "VERSION_DOWNGRADE_APPROVAL_REQUIRED; use plugin upgrade --allow-downgrade",
+    );
+  }
+}
+
+function assertPointerActivationApprovals({
+  name,
+  version,
+  scope,
+  cwd,
+  candidateSourceMetadata,
+  enforce,
+  allowSourceSwitch,
+  allowDowngrade,
+}) {
+  if (!enforce) return;
+  const targetSource = strictInstalledSourceMetadata(name, version, {
+    scope,
+    cwd,
+  });
+  if (!sameSourceAuthority(targetSource, candidateSourceMetadata)) {
+    throw new Error(
+      "EXISTING_VERSION_SOURCE_MISMATCH; use --force to reinstall the provided source",
+    );
+  }
+  assertReplacementApprovals({
+    name,
+    version,
+    scope,
+    cwd,
+    candidateSourceMetadata: targetSource,
+    enforce,
+    allowSourceSwitch,
+    allowDowngrade,
+  });
+}
+
+function assertExistingTargetMatchesCandidate(candidateRoot, targetRoot) {
+  const schemaVersion = PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA;
+  assertSafeInstalledPluginStructure(targetRoot);
+  const candidate = buildSanitizedCandidatePayloadSbom(candidateRoot);
+  const target = buildMarketplacePayloadSbom(targetRoot, { schemaVersion });
+  if (
+    candidate.digest !== target.digest ||
+    candidate.fileCount !== target.fileCount ||
+    candidate.totalBytes !== target.totalBytes
+  ) {
+    throw new Error(
+      "EXISTING_VERSION_PAYLOAD_MISMATCH; use --force to reinstall the reviewed candidate bytes",
+    );
+  }
+}
+
+function buildSanitizedCandidatePayloadSbom(candidateRoot) {
+  const temporaryRoot = _deps.mkdtempSync(
+    path.join(os.tmpdir(), "cc-plugin-pointer-"),
+  );
+  const staged = path.join(temporaryRoot, "staged");
+  try {
+    _deps.mkdirSync(staged, { recursive: true });
+    copyDirGuarded(candidateRoot, staged, staged);
+    return buildMarketplacePayloadSbom(staged, {
+      schemaVersion: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+    });
+  } finally {
+    _deps.rmSync(temporaryRoot, { recursive: true, force: true });
   }
 }
 
@@ -873,6 +1246,13 @@ function normalizeCatalogAuthority(value) {
   const remoteArtifactEvidence = normalizeRemoteArtifactEvidence(
     value.remoteArtifactEvidence,
   );
+  const remoteSbomPayloadComparison = assertRemoteSbomPayloadComparison(
+    value.remoteSbomPayloadComparison,
+    {
+      remoteArtifactEvidence,
+      expectedPayloadSha256: artifactExpectations?.sbom?.payloadSha256,
+    },
+  );
   if (!/^[a-f0-9]{64}$/.test(catalogDigest || "")) {
     throw new Error(
       "catalogAuthority.catalogDigest must be a SHA-256 hex digest",
@@ -940,6 +1320,7 @@ function normalizeCatalogAuthority(value) {
     ...(updateImpactDigest ? { updateImpactDigest } : {}),
     ...(artifactExpectations ? { artifactExpectations } : {}),
     ...(remoteArtifactEvidence ? { remoteArtifactEvidence } : {}),
+    ...(remoteSbomPayloadComparison ? { remoteSbomPayloadComparison } : {}),
     preflightStatus: "allowed",
     governanceStatus,
     registryStatus,
@@ -1264,15 +1645,19 @@ function assertExpectedPluginIdentity(name, version, expectedIdentity) {
  * Copy `src` → `dst`, refusing to write outside `root` and skipping symlinks
  * (which could later resolve outside the plugin sandbox). Directories recurse.
  */
-function copyDirGuarded(src, dst, root) {
+function copyDirGuarded(src, dst, root, sourceRoot = src) {
   for (const entry of _deps.readdirSync(src, { withFileTypes: true })) {
     const from = path.join(src, entry.name);
     const to = path.join(dst, entry.name);
+    const relative = path.relative(sourceRoot, from).replace(/\\/g, "/");
     if (!isWithin(root, to)) continue; // never escape the version dir
     if (entry.isSymbolicLink()) continue; // do not copy symlinks
+    if (PLUGIN_MARKETPLACE_STAGED_SOURCE_EXCLUSIONS.includes(relative)) {
+      continue;
+    }
     if (entry.isDirectory()) {
       _deps.mkdirSync(to, { recursive: true });
-      copyDirGuarded(from, to, root);
+      copyDirGuarded(from, to, root, sourceRoot);
     } else if (entry.isFile()) {
       _deps.copyFileSync(from, to);
     }

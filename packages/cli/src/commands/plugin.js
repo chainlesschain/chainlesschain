@@ -27,6 +27,11 @@ import {
   removePluginSkills,
   getPluginSkills,
 } from "../harness/plugin-manager.js";
+import {
+  PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+  PLUGIN_MARKETPLACE_PAYLOAD_SBOM_SCHEMA,
+  isMarketplacePayloadSbomFormat,
+} from "../lib/plugin-runtime/marketplace-artifact-readback.js";
 
 function collectRepeatableOption(value, previous = []) {
   return [...previous, value];
@@ -112,6 +117,32 @@ function cleanupRegistryRemoteArtifacts(remoteArtifacts) {
       "Verified marketplace artifact temporary files could not be removed; cleanup can be retried safely.",
     );
   }
+}
+
+function remoteSbomComparisonAuthorityMatches(
+  catalogAuthority,
+  remoteArtifactEvidence,
+  expectedSbom = null,
+) {
+  const sbom = remoteArtifactEvidence?.sbom;
+  const semanticFormat = sbom?.format || expectedSbom?.format;
+  if (!isMarketplacePayloadSbomFormat(semanticFormat)) return true;
+  if (!sbom) {
+    const comparisonRequired =
+      semanticFormat === PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA ||
+      (semanticFormat === PLUGIN_MARKETPLACE_PAYLOAD_SBOM_SCHEMA &&
+        Boolean(expectedSbom?.url && expectedSbom?.documentSha256));
+    return !comparisonRequired;
+  }
+  const comparison = catalogAuthority?.remoteSbomPayloadComparison;
+  return (
+    comparison?.status === "matched" &&
+    comparison.format === sbom.format &&
+    comparison.remoteArtifactEvidenceDigest ===
+      remoteArtifactEvidence.evidenceDigest &&
+    comparison.documentSha256 === sbom.documentSha256 &&
+    comparison.remotePayload?.digest === comparison.installedPayload?.digest
+  );
 }
 
 function registryManifestDigestConflict(registrySha256, optionSha256) {
@@ -337,6 +368,11 @@ async function installedCatalogAuthorityMatches(
       (!remoteArtifactEvidence ||
         authority?.remoteArtifactEvidence?.evidenceDigest ===
           remoteArtifactEvidence.evidenceDigest) &&
+      remoteSbomComparisonAuthorityMatches(
+        authority,
+        remoteArtifactEvidence,
+        preflight.integrity?.sbom,
+      ) &&
       authority?.preflightStatus === "allowed"
     );
   } catch {
@@ -345,12 +381,37 @@ async function installedCatalogAuthorityMatches(
 }
 
 async function buildInstalledMarketplaceSnapshot(name, scope, cwd) {
-  const { listInstalled } = await import("../lib/plugin-runtime/install.js");
+  const { listInstalled, readSourceMetadataStrict } =
+    await import("../lib/plugin-runtime/install.js");
   const { discoverPlugins } = await import("../lib/plugin-runtime/scopes.js");
   const row = listInstalled({ cwd, scopes: [scope] }).find(
     (candidate) => candidate.name === name && candidate.scope === scope,
   );
   if (!row) return null;
+  const installedSource = readSourceMetadataStrict(row.dir, {
+    required: true,
+    requireRegistryAuthority: true,
+  });
+  const installedAuthority = installedSource.catalogAuthority;
+  const installedExpectedSbom =
+    installedAuthority?.artifactExpectations?.sbom || null;
+  const installedSemanticComparisonRequired =
+    installedExpectedSbom?.format ===
+      PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA ||
+    (installedExpectedSbom?.format === PLUGIN_MARKETPLACE_PAYLOAD_SBOM_SCHEMA &&
+      Boolean(
+        installedExpectedSbom.url && installedExpectedSbom.documentSha256,
+      ));
+  if (
+    installedSemanticComparisonRequired &&
+    !remoteSbomComparisonAuthorityMatches(
+      installedAuthority,
+      installedAuthority?.remoteArtifactEvidence,
+      installedExpectedSbom,
+    )
+  ) {
+    throw new Error("INSTALLED_SEMANTIC_SBOM_EVIDENCE_INVALID");
+  }
   const discovered = discoverPlugins({
     cwd,
     scopes: [scope],
@@ -359,6 +420,7 @@ async function buildInstalledMarketplaceSnapshot(name, scope, cwd) {
   }).find((candidate) => candidate.name === name && candidate.scope === scope);
   let dependencies = {};
   let payloadSbom = null;
+  let semanticPayloadFormat = null;
   if (discovered?.manifest?.manifestPath) {
     try {
       const fs = await import("node:fs");
@@ -381,25 +443,53 @@ async function buildInstalledMarketplaceSnapshot(name, scope, cwd) {
     }
   }
   if (row.dir) {
-    try {
-      const { buildMarketplacePayloadSbom } =
-        await import("../lib/plugin-runtime/marketplace-artifact-readback.js");
-      payloadSbom = buildMarketplacePayloadSbom(row.dir);
-    } catch {
-      payloadSbom = null;
+    const {
+      assertSafeInstalledPluginStructure,
+      buildMarketplacePayloadSbom,
+      isMarketplacePayloadSbomFormat,
+      validateRemoteSbomPayloadComparison,
+    } = await import("../lib/plugin-runtime/marketplace-artifact-readback.js");
+    const recordedFormat =
+      installedSource?.catalogAuthority?.remoteSbomPayloadComparison?.format;
+    semanticPayloadFormat = isMarketplacePayloadSbomFormat(recordedFormat)
+      ? recordedFormat
+      : null;
+    if (semanticPayloadFormat) {
+      assertSafeInstalledPluginStructure(row.dir);
+      payloadSbom = buildMarketplacePayloadSbom(row.dir, {
+        schemaVersion: semanticPayloadFormat,
+      });
+      const comparison = validateRemoteSbomPayloadComparison(
+        installedAuthority?.remoteSbomPayloadComparison,
+        {
+          remoteArtifactEvidence: installedAuthority?.remoteArtifactEvidence,
+          expectedPayloadSha256: installedExpectedSbom?.payloadSha256,
+          currentPayloadSbom: payloadSbom,
+        },
+      );
+      if (!comparison.valid || !comparison.currentPayloadMatches) {
+        throw new Error("INSTALLED_SEMANTIC_SBOM_EVIDENCE_INVALID");
+      }
+    } else {
+      try {
+        payloadSbom = buildMarketplacePayloadSbom(row.dir);
+      } catch {
+        payloadSbom = null;
+      }
     }
   }
   return {
     name: row.name,
     version: row.version,
     scope: row.scope,
-    source: row.source,
+    source: installedSource,
     integrity: {
       ...row.integrity,
       sbom: {
         ...row.integrity?.sbom,
         payloadSha256: payloadSbom?.digest || null,
         payloadSchema: payloadSbom?.schemaVersion || null,
+        semanticPayloadFormat,
       },
     },
     license: {
@@ -1311,6 +1401,7 @@ export function registerPluginCommand(program) {
       let sourceMetadata = null;
       let expectedIdentity = null;
       let marketplacePreflight = null;
+      let marketplaceImpact = null;
       let remoteArtifactRequest = null;
       let remoteArtifacts = null;
       const registryUrls = normalizeRegistryUrls(options.registry);
@@ -1372,6 +1463,41 @@ export function registerPluginCommand(program) {
             options.expectedSelectionDigest,
             marketplacePreflight,
           );
+          marketplaceImpact = await buildRegistryUpdateImpact(
+            marketplacePreflight,
+            resolved.entry.name,
+            options.scope,
+            process.cwd(),
+          );
+          if (
+            marketplaceImpact.blockers.some(
+              (blocker) => blocker.code === "SEMANTIC_SBOM_BINDING_DOWNGRADE",
+            )
+          ) {
+            throw new Error(
+              "registry candidate preflight blocked: SEMANTIC_SBOM_BINDING_DOWNGRADE",
+            );
+          }
+          if (
+            marketplaceImpact.blockers.some(
+              (blocker) =>
+                blocker.code === "REGISTRY_VERSION_REQUIRED_FOR_UPDATE",
+            )
+          ) {
+            throw new Error(
+              "registry candidate preflight blocked: REGISTRY_VERSION_REQUIRED_FOR_UPDATE",
+            );
+          }
+          if (marketplaceImpact.changes.source.requiresApproval) {
+            throw new Error(
+              `registry candidate preflight blocked: SOURCE_SWITCH_APPROVAL_REQUIRED (${marketplaceImpact.changes.source.kind}); use cc plugin upgrade --allow-source-switch`,
+            );
+          }
+          if (marketplaceImpact.changes.version.kind === "downgrade") {
+            throw new Error(
+              "registry candidate preflight blocked: VERSION_DOWNGRADE_APPROVAL_REQUIRED; use cc plugin upgrade --allow-downgrade",
+            );
+          }
           expectedIdentity = {
             name:
               typeof resolved.entry.name === "string"
@@ -1399,8 +1525,10 @@ export function registerPluginCommand(program) {
                 resolved.source.slice(resolved.source.indexOf("#") + 1)) ||
               null,
             offline: resolved.fromCache === true,
-            catalogAuthority:
-              catalogAuthorityFromPreflight(marketplacePreflight),
+            catalogAuthority: catalogAuthorityFromPreflight(
+              marketplacePreflight,
+              marketplaceImpact,
+            ),
           };
           if (resolved.fromCache) {
             logger.warn(
@@ -1448,7 +1576,7 @@ export function registerPluginCommand(program) {
           if (remoteArtifacts?.authority && sourceMetadata?.catalogAuthority) {
             sourceMetadata.catalogAuthority = catalogAuthorityFromPreflight(
               marketplacePreflight,
-              null,
+              marketplaceImpact,
               remoteArtifacts.authority,
             );
           }
@@ -1501,7 +1629,9 @@ export function registerPluginCommand(program) {
           expectedIdentity,
           managedPolicy: managed,
           policySource: sourceMetadata?.registry || source,
+          remoteSbomBytes: remoteArtifacts?.sbomBytes || null,
           transactional: Boolean(marketplacePreflight),
+          enforceUpdateApprovals: true,
         });
         const marketplaceAuthorityPersisted = marketplacePreflight
           ? res.sourceMetadata?.catalogAuthority?.catalogDigest ===
@@ -1513,9 +1643,17 @@ export function registerPluginCommand(program) {
             (!marketplacePreflight.selectionDigest ||
               res.sourceMetadata?.catalogAuthority?.selectionDigest ===
                 marketplacePreflight.selectionDigest) &&
+            res.sourceMetadata?.catalogAuthority?.updateImpactDigest ===
+              marketplaceImpact?.impactDigest &&
             (!remoteArtifacts?.authority ||
               res.sourceMetadata?.catalogAuthority?.remoteArtifactEvidence
-                ?.evidenceDigest === remoteArtifacts.authority.evidenceDigest)
+                ?.evidenceDigest ===
+                remoteArtifacts.authority.evidenceDigest) &&
+            remoteSbomComparisonAuthorityMatches(
+              res.sourceMetadata?.catalogAuthority,
+              remoteArtifacts?.authority,
+              marketplacePreflight.integrity?.sbom,
+            )
           : null;
         if (marketplacePreflight && !marketplaceAuthorityPersisted) {
           throw new Error(
@@ -1553,6 +1691,7 @@ export function registerPluginCommand(program) {
               {
                 ...res,
                 marketplacePreflight,
+                marketplaceImpact,
                 marketplaceAuthorityPersisted,
                 marketplaceCleanupPending,
                 capabilities: capNotice,
@@ -2101,7 +2240,7 @@ export function registerPluginCommand(program) {
     });
 
   // plugin evidence — compare persisted registry artifact expectations with
-  // actual bytes in the active immutable install. Remote artifacts are not
+  // actual bytes in the active on-disk install. Remote artifacts are not
   // re-fetched here. The signature record is bound to the locally re-verified
   // lock; the external SBOM digest remains an install-time record because its
   // document bytes are not retained.
@@ -2118,7 +2257,7 @@ export function registerPluginCommand(program) {
     .option("--json", "Output the versioned artifact readback as JSON")
     .action(async (name, options) => {
       try {
-        const { listInstalled } =
+        const { listInstalled, readSourceMetadataStrict } =
           await import("../lib/plugin-runtime/install.js");
         const installed = listInstalled({
           cwd: process.cwd(),
@@ -2130,12 +2269,16 @@ export function registerPluginCommand(program) {
         if (!installed) {
           throw new Error(`${name} is not installed at ${options.scope} scope`);
         }
+        const source = readSourceMetadataStrict(installed.dir, {
+          required: true,
+          requireRegistryAuthority: true,
+        });
         const { buildPluginMarketplaceArtifactReadback } =
           await import("../lib/plugin-runtime/marketplace-artifact-readback.js");
         const evidence = buildPluginMarketplaceArtifactReadback({
           root: installed.dir,
           scope: installed.scope,
-          source: installed.source,
+          source,
         });
         if (options.json) {
           console.log(JSON.stringify(evidence, null, 2));
@@ -2174,7 +2317,7 @@ export function registerPluginCommand(program) {
                 }`
               : null,
             evidence.claims.remoteSbomFetched
-              ? "the SBOM digest is an install-time record and was not re-hashed here"
+              ? "the remote SBOM document digest is an install-time record; its document bytes were not retained or re-hashed, while the installed payload inventory above was freshly computed"
               : null,
           ].filter(Boolean);
           logger.log(
@@ -2712,6 +2855,25 @@ export function registerPluginCommand(program) {
             process.cwd(),
           );
           if (
+            marketplaceImpact.blockers.some(
+              (blocker) => blocker.code === "SEMANTIC_SBOM_BINDING_DOWNGRADE",
+            )
+          ) {
+            throw new Error(
+              "registry candidate preflight blocked: SEMANTIC_SBOM_BINDING_DOWNGRADE",
+            );
+          }
+          if (
+            marketplaceImpact.blockers.some(
+              (blocker) =>
+                blocker.code === "REGISTRY_VERSION_REQUIRED_FOR_UPDATE",
+            )
+          ) {
+            throw new Error(
+              "registry candidate preflight blocked: REGISTRY_VERSION_REQUIRED_FOR_UPDATE",
+            );
+          }
+          if (
             marketplaceImpact.changes.source.requiresApproval &&
             options.allowSourceSwitch !== true
           ) {
@@ -2873,7 +3035,11 @@ export function registerPluginCommand(program) {
           expectedIdentity,
           managedPolicy: managed,
           policySource: sourceMetadata?.registry || source,
+          remoteSbomBytes: remoteArtifacts?.sbomBytes || null,
           transactional: true,
+          enforceUpdateApprovals: true,
+          allowSourceSwitch: options.allowSourceSwitch === true,
+          allowDowngrade: options.allowDowngrade === true,
         });
         marketplaceAuthorityPersisted = await installedCatalogAuthorityMatches(
           res.name,
