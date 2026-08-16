@@ -3,12 +3,13 @@ import { randomBytes } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { connectBackgroundAgentKeeper } from "../../src/lib/background-agent-keeper-client.js";
 import {
   BACKGROUND_AGENT_KEEPER_ARM,
   BACKGROUND_AGENT_KEEPER_ARMED,
   BACKGROUND_AGENT_KEEPER_HELLO,
+  BACKGROUND_AGENT_KEEPER_HEARTBEAT,
   BACKGROUND_AGENT_KEEPER_READY,
   BACKGROUND_AGENT_KEEPER_RETIRE,
   BACKGROUND_AGENT_KEEPER_RETIRED,
@@ -48,12 +49,14 @@ async function startFixtureKeeper({ retireDelayMs = 0, replyToRetire = true }) {
   );
   prepareBackgroundAgentKeeperPipePath(pipePath);
   const sockets = new Set();
+  const messages = [];
   const server = net.createServer((socket) => {
     sockets.add(socket);
     socket.once("close", () => sockets.delete(socket));
     socket.on(
       "data",
       createNdjsonReader((message) => {
+        messages.push(message);
         if (message.type === BACKGROUND_AGENT_KEEPER_HELLO) {
           socket.write(
             `${JSON.stringify(
@@ -109,6 +112,7 @@ async function startFixtureKeeper({ retireDelayMs = 0, replyToRetire = true }) {
     server,
     sockets,
     clients: [],
+    messages,
   };
   resources.push(resource);
   return { identity, pipePath, resource };
@@ -140,6 +144,33 @@ afterEach(async () => {
 });
 
 describe("background agent keeper client deadlines", () => {
+  it("emits authenticated worker heartbeats on the keeper channel", async () => {
+    const { identity, pipePath, resource } = await startFixtureKeeper({});
+    const client = await connectBackgroundAgentKeeper({
+      ...identity,
+      pipePath,
+      heartbeatIntervalMs: 10,
+    });
+    resource.clients.push(client);
+
+    await vi.waitFor(() => {
+      expect(
+        resource.messages.filter(
+          (message) => message.type === BACKGROUND_AGENT_KEEPER_HEARTBEAT,
+        ).length,
+      ).toBeGreaterThanOrEqual(2);
+    });
+    expect(
+      resource.messages.find(
+        (message) => message.type === BACKGROUND_AGENT_KEEPER_HEARTBEAT,
+      ),
+    ).toMatchObject({
+      id: identity.id,
+      workerGeneration: identity.workerGeneration,
+      workerPid: identity.workerPid,
+    });
+  });
+
   it("uses the independent RETIRE timeout after the shorter ARM deadline", async () => {
     const { identity, pipePath, resource } = await startFixtureKeeper({
       retireDelayMs: 300,
