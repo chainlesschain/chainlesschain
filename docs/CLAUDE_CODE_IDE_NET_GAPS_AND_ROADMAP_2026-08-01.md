@@ -1985,3 +1985,62 @@ P0-1/Q1、P0-2/Q2、P1-3/R4、P2-1/R5、P2-2/R5、P2-3/R5 和 P2-5；当前剩�
 P2-5 的产品定位关闭不解除任何安全、可信分发或外部交付门。S0-1～S0-3、Q0、Q3、Q4b 与 P1-5 等退出条件仍未闭合，
 因此整体产品发布结论继续为 **NO-GO**。本节计数在 PR #209 exact-head required checks 成功并合并后生效；合并前
 `main` 仍保留第十六节的历史计数。
+
+## 十八、2026-08-17 P1-5 同作用域激活生命周期子门复核（`07:22 +08:00`）
+
+本节继续第十七节的 P1-5 收口，但不改写其历史快照。实现冻结点为 exact commit
+`f6e01da1f4403adbe4e68056c22bc6b661c76521`；承载本节的后继文档提交仍须在 PR
+[#209](https://github.com/chainlesschain/chainlesschain/pull/209) 上取得 exact-head `CLI CI` 与
+`CLI Strict Sandbox` 三平台终态绿色后方可合并。本节关闭的是**单进程、同 name/scope、串行 activation
+lifecycle** 子门，不把它外推成跨进程、跨 scope 或完整 Marketplace 产品化完成。
+
+### 本轮关闭的 activation lifecycle 子门
+
+- **显式激活与自动 fallback 统一 fail closed。** `plugin use`、版本卸载后的 active fallback、普通与
+  pointer-only update activation 都要求目标版本存在、目录结构安全、manifest name/version 精确匹配、
+  `.plugin-source.json` 严格有效；完整 v1/v2 语义绑定会重新哈希当前 payload，semantic strength 不得降低，
+  source switch 必须显式批准。缺失、损坏、悬空、非普通文件或超长 `.active` 不再静默选择最高 semver。
+- **公共 mutation 默认执行审批与路径约束。** `installFromDirectory`、`installFromSource`、`updatePlugin`
+  的 direct API 默认拒绝未批准的 source switch 与 version downgrade；name/version traversal、编码碰撞、
+  symlink/junction ancestor、manifest identity mismatch 与不安全保存目标在写 pointer、覆盖或删除前拒绝。
+- **同进程事务由恢复 namespace 串行化。** 普通 replacement 与 pointer-only transaction 均持有
+  `.install-*` sentinel；除 transaction-owned activation、`finalize`、`rollback` 和整名恢复性卸载外，后续
+  use/install/update/enable/version-uninstall 全部拒绝。默认 runtime discovery 在该 namespace 存在时阻断该
+  plugin，命令内部只在审阅 capability/catalog authority 时显式读取 transaction-owned candidate。
+- **失败恢复保留精确前驱并可重试。** rollback 先恢复/隔离 bytes，再恢复精确 pointer snapshot，并核对
+  pointer generation、candidate/predecessor payload 与 source digest；candidate quarantine、predecessor publish
+  或 pointer quarantine 的组合 I/O 失败不会把被拒 payload 暴露给 runtime，保留 topology 可在同一 handle
+  上重试。卸载 fallback 同样先隔离版本、再原子提交 pointer，双失败留下 `.uninstall-*` 恢复证据。
+- **恢复债务可见，已提交清理债务不再锁死。** `listInstalled` 与 doctor 会显示
+  `runtimeBlocked/recovery-required`、inspection version 和精确 recovery path；整名 uninstall 是缺少安全自动
+  判断时的显式修复边界。成功 finalize/rollback/install/uninstall 会先把事务目录原子退役为 inert
+  `.cleanup-*` 后再 best-effort 删除；删除失败会在下次 mutation 重试，但不再被误判为未完成 authority。
+  若退役 rename 与删除同时失败，原 `.install-*` 保持 authoritative、runtime 继续阻断且管理面可见。
+
+### 仓库内验证与独立复审
+
+- exact code commit 上全部 21 个 `plugin-runtime-*` 单测文件为 **383 passed / 3 skipped**。
+- Marketplace impact/readback/remote-artifact 三文件为 **72 passed / 1 skipped**；doctor、manifest 与 lifecycle
+  command 三文件为 **66 passed / 3 skipped**。独立终审另复跑五个聚焦文件，得到
+  **179 passed / 4 skipped**，并对 pointer-only sentinel、install/uninstall 双失败、cleanup retirement、
+  recovery inventory/doctor 与 whole-name remediation 做了故障注入复核。
+- 所有变更 JavaScript 通过 Prettier check；ESLint 为 **0 errors**（doctor 仅保留 6 条既有 unused-parameter
+  warnings）；`git diff --check` 通过。GitHub Actions exact-head 三平台结果仍待本节文档提交后取得，故这些
+  本地证据不替代正式 release gate。
+
+### P1-5 仍未关闭的边界
+
+1. **跨进程与崩溃一致性：** 仍没有覆盖 command validation→consent→finalize/rollback 全生命周期的 OS 级
+   per-name/scope lock、durable journal、owner token、generation CAS 与 crash recovery。WeakMap handle 和目录
+   sentinel 只证明串行同进程路径；并发 CLI、进程崩溃、断电与 fsync durability 仍是明确残余。
+2. **cross-scope effective authority：** 当前审批与 semantic baseline 仍限定于目标 scope；`local > project > user`
+   shadowing、disable/uninstall 后暴露低优先级同名 plugin、以及全 scope 物理 inventory/blocked diagnostics
+   尚未统一进入 effective-authority preflight。
+3. **legacy metadata migration：** 缺失或无效 provenance 继续 fail closed，并要求整名移除后从可信来源重装；
+   尚无签名、事务化、可审计的旧安装 metadata backfill/migration。
+4. **外部 Marketplace 产品化：** 真实 private registry TLS/auth、publisher/组织 trust root、key revocation、
+   代理/PAC/custom CA、air-gapped/offline/cache、依赖冲突、供应链故障与干净外部宿主矩阵仍未完成。
+
+因此，第十七节中的 “activation-only” 剩余项由本节的**同作用域串行子门**取代并关闭；P1-5 整项仍为
+**部分完成**。总计数保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体发布结论继续为
+**NO-GO**。本节不关闭 P2-4，也不改变 P2-5 已由 Accepted ADR 完成的结论。
