@@ -2320,6 +2320,7 @@ describe("background agent supervisor", () => {
         process.env.CHAINLESSCHAIN_HOME = previousHome;
       }
     }
+    expect(state.cwd).toBe(state.launchProfile.workspace.cwd);
 
     // Wait for the worker to publish its transport endpoint.
     let transport = null;

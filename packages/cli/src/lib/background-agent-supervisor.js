@@ -2275,6 +2275,12 @@ export function launchBackgroundAgent({
       omitted: [...launchProfileState.omitted, "apiKey"],
     });
   }
+  const launchCwd = launchProfileState.workspace.cwd;
+  if (canonicalPath(cwd) !== canonicalPath(launchCwd)) {
+    throw new Error(
+      "Cannot launch background agent: launch profile cwd does not match the requested cwd",
+    );
+  }
   const configFingerprint =
     fingerprintBackgroundLaunchProfile(launchProfileState);
   const dir = backgroundAgentsDir();
@@ -2294,7 +2300,7 @@ export function launchBackgroundAgent({
     id,
     workerGeneration,
     argv: initialSecrets.argv,
-    cwd,
+    cwd: launchCwd,
     sessionId,
     sessionBootstrapExpected,
     title: title || "Background agent",
@@ -2340,7 +2346,7 @@ export function launchBackgroundAgent({
     sessionId,
     sessionBootstrapExpected,
     title: job.title,
-    cwd,
+    cwd: launchCwd,
     pid: null,
     workerPid: null,
     workerClaimedPid: null,
@@ -2391,7 +2397,7 @@ export function launchBackgroundAgent({
     // hosted process' possibly absent standard handles.
     workerLogFd = openSync(job.logFile, "a");
     child = _deps.spawn(process.execPath, [worker, jobFile], {
-      cwd,
+      cwd: launchCwd,
       detached: true,
       stdio: ["ignore", workerLogFd, workerLogFd],
       windowsHide: true,
@@ -2405,7 +2411,7 @@ export function launchBackgroundAgent({
     });
     keeperStartedAt = Date.now();
     keeperChild = _deps.spawn(process.execPath, [keeper, keeperJobFile], {
-      cwd,
+      cwd: launchCwd,
       detached: true,
       stdio: ["ignore", workerLogFd, workerLogFd],
       windowsHide: true,
