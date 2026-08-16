@@ -216,6 +216,33 @@ describe("background Agent keeper soak contract", () => {
     });
   });
 
+  it("allows a 120-second formal readiness budget without widening smoke evidence", () => {
+    const formalReports = completeEvidenceSet();
+    for (const report of formalReports) {
+      report.profile.readinessDeadlineMs = 120_000;
+      sealBackgroundKeeperSoakDocument(report);
+    }
+    expect(
+      verifyBackgroundKeeperSoakEvidenceSet({
+        evidenceDir: writeEvidenceSet(formalReports),
+        releaseCommit: RELEASE_COMMIT,
+      }),
+    ).toMatchObject({ result: "passed", releaseGateEligible: true });
+
+    const smokeReports = completeEvidenceSet("smoke");
+    for (const report of smokeReports) {
+      report.profile.readinessDeadlineMs = 120_000;
+      sealBackgroundKeeperSoakDocument(report);
+    }
+    expect(() =>
+      verifyBackgroundKeeperSoakEvidenceSet({
+        evidenceDir: writeEvidenceSet(smokeReports),
+        releaseCommit: RELEASE_COMMIT,
+        allowSmoke: true,
+      }),
+    ).toThrow(/profile floors/u);
+  });
+
   it("uses nearest-rank percentiles and ignores non-finite samples", () => {
     expect(nearestRankPercentile([40, 10, Number.NaN, 20, 30], 95)).toBe(40);
     expect(nearestRankPercentile([], 95)).toBeNull();
@@ -442,7 +469,7 @@ describe("background Agent keeper soak aggregate contract", () => {
       'CC_BACKGROUND_KEEPER_SOAK_CLEANUP_DEADLINE_MS: "30000"',
     );
     expect(workflow).toContain(
-      'CC_BACKGROUND_KEEPER_SOAK_READINESS_DEADLINE_MS: "120000"',
+      "CC_BACKGROUND_KEEPER_SOAK_READINESS_DEADLINE_MS: ${{ github.event_name == 'pull_request' && '60000' || '120000' }}",
     );
     expect(aggregateJob).toContain("if: always()");
     expect(aggregateJob).toContain("needs: keeper-soak");

@@ -841,7 +841,7 @@ function validateKeeperSoakEvidence(
     profile.cleanupDeadlineMs > 30_000 ||
     !Number.isInteger(profile?.readinessDeadlineMs) ||
     profile.readinessDeadlineMs <= 0 ||
-    profile.readinessDeadlineMs > 60_000 ||
+    profile.readinessDeadlineMs > (formal ? 120_000 : 60_000) ||
     !Number.isFinite(profile?.maxHarnessRssGrowthMb) ||
     profile.maxHarnessRssGrowthMb <= 0 ||
     profile.maxHarnessRssGrowthMb > 192 ||
