@@ -44,6 +44,23 @@ function fakeLockFs() {
       }
       files.set(p, String(value));
     }),
+    renameSync: vi.fn((from, to) => {
+      from = normalize(from);
+      to = normalize(to);
+      if (!dirs.has(from)) throw enoent();
+      if (dirs.has(to)) {
+        const error = new Error("ENOTEMPTY");
+        error.code = "ENOTEMPTY";
+        throw error;
+      }
+      dirs.set(to, dirs.get(from));
+      dirs.delete(from);
+      for (const [file, value] of Array.from(files.entries())) {
+        if (!file.startsWith(`${from}/`)) continue;
+        files.delete(file);
+        files.set(`${to}${file.slice(from.length)}`, value);
+      }
+    }),
     rmSync: vi.fn((p) => {
       p = normalize(p);
       if (files.delete(p)) return;
@@ -83,6 +100,40 @@ describe("withFileLock", () => {
       ),
     ).toThrow("boom");
     expect(_fs.dirs.has("/s.json.lock")).toBe(false);
+  });
+
+  it("publishes owner metadata atomically and leaves no lock path when staging is interrupted", () => {
+    const _fs = fakeLockFs();
+    const originalWrite = _fs.writeFileSync;
+    let observedCandidate = null;
+    _fs.writeFileSync = vi.fn((target, value, options) => {
+      if (String(target).includes(".lock.acquire-")) {
+        observedCandidate = String(target).replaceAll("\\", "/");
+        const error = new Error("acquirer terminated before publication");
+        error.code = "EIO";
+        throw error;
+      }
+      return originalWrite(target, value, options);
+    });
+
+    expect(() =>
+      withFileLock("/atomic.json", () => true, {
+        _fs,
+        failIfUnavailable: true,
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "STATE_LOCK_UNAVAILABLE",
+        cause: expect.objectContaining({ code: "EIO" }),
+      }),
+    );
+    expect(observedCandidate).toContain("/atomic.json.lock.acquire-");
+    expect(_fs.dirs.has("/atomic.json.lock")).toBe(false);
+    expect(
+      [..._fs.dirs.keys()].some((entry) =>
+        entry.startsWith("/atomic.json.lock.acquire-"),
+      ),
+    ).toBe(false);
   });
 
   it("does not swallow a falsy thrown value and still releases the lock", () => {

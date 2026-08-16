@@ -12,10 +12,13 @@
  * `timeoutMs`, it proceeds unlocked. Callers that set `failIfUnavailable` get a
  * strict lock: every owner has a PID + unguessable token, a live owner is never
  * reclaimed merely because the directory is old, and corrupt ownership fails
- * closed. Confirmed-dead owners are reclaimed with an exact-token marker inside
- * the lock directory so a delayed contender cannot delete a replacement lock.
- * Strict callers may use bounded jittered retries and an after-release yield to
- * avoid Windows sharing transients and fixed-interval lock convoys.
+ * closed. The default filesystem publishes a fully populated, uniquely staged
+ * directory in one rename so a process killed during acquisition cannot expose
+ * an ownerless lock. Confirmed-dead owners are reclaimed with an exact-token
+ * marker inside the lock directory so a delayed contender cannot delete a
+ * replacement lock. Strict callers may use bounded jittered retries and an
+ * after-release yield to avoid Windows sharing transients and fixed-interval
+ * lock convoys.
  *
  * @param {string} targetPath  the file being guarded (lock is `${targetPath}.lock`)
  * @param {(ctx:{locked:boolean})=>T} fn  critical section; receives whether the lock was held
@@ -56,36 +59,9 @@ export function withFileLock(targetPath, fn, opts = {}) {
 
   for (;;) {
     try {
-      _fs.mkdirSync(lockDir);
-      try {
-        _fs.writeFileSync(ownerPath, JSON.stringify(owner), {
-          encoding: "utf8",
-          mode: 0o600,
-          flag: "wx",
-        });
-        held = true;
-        break;
-      } catch (error) {
-        _fs.rmSync(lockDir, { recursive: true, force: true });
-        acquisitionError = error;
-        if (
-          failIfUnavailable &&
-          isTransientLockError(error) &&
-          waitForRetry({
-            _now,
-            _sleep,
-            _random,
-            deadline,
-            retryAttempt: retryAttempt++,
-            retryMs,
-            maxRetryMs,
-            retryJitterMs,
-          })
-        ) {
-          continue;
-        }
-        break;
-      }
+      acquireOwnedDirectory(_fs, lockDir, owner);
+      held = true;
+      break;
     } catch (error) {
       if (!error || error.code !== "EEXIST") {
         acquisitionError = error;
@@ -203,6 +179,61 @@ const defaultFs = {
   renameSync: (from, to) => fs.renameSync(from, to),
   rmSync: (p, o) => fs.rmSync(p, o),
 };
+
+function acquireOwnedDirectory(_fs, lockDir, owner) {
+  const serializedOwner = JSON.stringify(owner);
+  // Injected legacy filesystems used by a few consumers may not implement
+  // rename. Keep their old acquire path, while the real Node filesystem always
+  // uses the crash-safe staged publication below.
+  if (typeof _fs.renameSync !== "function") {
+    _fs.mkdirSync(lockDir);
+    try {
+      _fs.writeFileSync(path.join(lockDir, "owner.json"), serializedOwner, {
+        encoding: "utf8",
+        mode: 0o600,
+        flag: "wx",
+      });
+      return;
+    } catch (error) {
+      _fs.rmSync(lockDir, { recursive: true, force: true });
+      throw error;
+    }
+  }
+
+  const candidateDir = `${lockDir}.acquire-${owner.token}`;
+  try {
+    _fs.mkdirSync(candidateDir);
+    _fs.writeFileSync(path.join(candidateDir, "owner.json"), serializedOwner, {
+      encoding: "utf8",
+      mode: 0o600,
+      flag: "wx",
+    });
+    _fs.renameSync(candidateDir, lockDir);
+  } catch (error) {
+    try {
+      _fs.rmSync(candidateDir, { recursive: true, force: true });
+    } catch {
+      /* uniquely-tokened acquisition debris cannot block the lock path */
+    }
+    if (directoryExists(_fs, lockDir)) {
+      const contention = new Error("State lock already exists", {
+        cause: error,
+      });
+      contention.code = "EEXIST";
+      throw contention;
+    }
+    throw error;
+  }
+}
+
+function directoryExists(_fs, target) {
+  try {
+    _fs.statSync(target);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function isProcessAlive(pid) {
   try {
