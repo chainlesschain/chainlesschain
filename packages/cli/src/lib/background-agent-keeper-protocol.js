@@ -51,8 +51,8 @@ export function resolveBackgroundAgentKeeperRetireTimeoutMs(value) {
 
 const SAFE_ID = /^[A-Za-z0-9_-]{1,256}$/u;
 const SAFE_TOKEN = /^[a-f0-9]{64}$/u;
-const POSIX_KEEPER_DIRECTORY = /^cc-bgk-[a-f0-9]{24}$/u;
-const POSIX_KEEPER_SOCKET = /^[a-f0-9]{32}\.sock$/u;
+const POSIX_LOCAL_PIPE_DIRECTORY = /^cc-bg[ks]-[a-f0-9]{24}$/u;
+const POSIX_LOCAL_PIPE_SOCKET = /^[a-f0-9]{32}\.sock$/u;
 
 // Darwin's sockaddr_un.sun_path has 104 bytes including the trailing NUL.
 // Linux allows a few more bytes, but the conservative cross-platform ceiling
@@ -96,14 +96,15 @@ function requiredPosixDirectory(value, label) {
   return posix.resolve(normalized.replaceAll("\\", "/"));
 }
 
-export function backgroundAgentKeeperPipePath(id, directory, options = {}) {
+function backgroundAgentPosixPipePath(
+  id,
+  directory,
+  options,
+  { candidateSuffix, fallbackPrefix, tooLongMessage },
+) {
   const safeId = requiredSafeString(id, "id");
-  const platform = options.platform || process.platform;
-  if (platform === "win32") {
-    return `\\\\.\\pipe\\cc-bg-keeper-${safeId}`;
-  }
   const stateDirectory = requiredPosixDirectory(directory, "state directory");
-  const candidate = posix.join(stateDirectory, `${safeId}.keeper.sock`);
+  const candidate = posix.join(stateDirectory, `${safeId}${candidateSuffix}`);
   if (
     Buffer.byteLength(candidate, "utf8") <= POSIX_KEEPER_SOCKET_PATH_MAX_BYTES
   ) {
@@ -124,34 +125,60 @@ export function backgroundAgentKeeperPipePath(id, directory, options = {}) {
   const socketId = digestKeeperPath(safeId, 32);
   const fallback = posix.join(
     shortTempDirectory,
-    `cc-bgk-${namespace}`,
+    `${fallbackPrefix}-${namespace}`,
     `${socketId}.sock`,
   );
   if (
     Buffer.byteLength(fallback, "utf8") > POSIX_KEEPER_SOCKET_PATH_MAX_BYTES
   ) {
-    throw new Error("background agent keeper fallback socket path is too long");
+    throw new Error(tooLongMessage);
   }
   return fallback;
 }
 
-function fallbackKeeperDirectory(pipePath) {
+export function backgroundAgentKeeperPipePath(id, directory, options = {}) {
+  const safeId = requiredSafeString(id, "id");
+  const platform = options.platform || process.platform;
+  if (platform === "win32") {
+    return `\\\\.\\pipe\\cc-bg-keeper-${safeId}`;
+  }
+  return backgroundAgentPosixPipePath(id, directory, options, {
+    candidateSuffix: ".keeper.sock",
+    fallbackPrefix: "cc-bgk",
+    tooLongMessage: "background agent keeper fallback socket path is too long",
+  });
+}
+
+export function backgroundAgentSessionPipePath(id, directory, options = {}) {
+  const safeId = requiredSafeString(id, "id");
+  const platform = options.platform || process.platform;
+  if (platform === "win32") {
+    return `\\\\.\\pipe\\cc-bg-${safeId}`;
+  }
+  return backgroundAgentPosixPipePath(id, directory, options, {
+    candidateSuffix: ".sock",
+    fallbackPrefix: "cc-bgs",
+    tooLongMessage: "background agent session fallback socket path is too long",
+  });
+}
+
+function fallbackLocalPipeDirectory(pipePath) {
   const normalized = posix.resolve(
     String(pipePath || "").replaceAll("\\", "/"),
   );
   const directory = posix.dirname(normalized);
-  return POSIX_KEEPER_DIRECTORY.test(posix.basename(directory)) &&
-    POSIX_KEEPER_SOCKET.test(posix.basename(normalized))
+  return POSIX_LOCAL_PIPE_DIRECTORY.test(posix.basename(directory)) &&
+    POSIX_LOCAL_PIPE_SOCKET.test(posix.basename(normalized))
     ? directory
     : null;
 }
 
-export function prepareBackgroundAgentKeeperPipePath(
+export function prepareBackgroundAgentLocalPipePath(
   pipePath,
   { platform = process.platform } = {},
 ) {
   if (platform === "win32") return pipePath;
-  const directory = fallbackKeeperDirectory(pipePath);
+  const directory = fallbackLocalPipeDirectory(pipePath);
   if (!directory) return pipePath;
   try {
     mkdirSync(directory, { mode: 0o700 });
@@ -166,17 +193,17 @@ export function prepareBackgroundAgentKeeperPipePath(
     (uid !== null && stat.uid !== uid) ||
     (stat.mode & 0o077) !== 0
   ) {
-    throw new Error("background agent keeper socket directory is not private");
+    throw new Error("background agent socket directory is not private");
   }
   return pipePath;
 }
 
-export function cleanupBackgroundAgentKeeperPipeDirectory(
+export function cleanupBackgroundAgentLocalPipeDirectory(
   pipePath,
   { platform = process.platform } = {},
 ) {
   if (platform === "win32") return false;
-  const directory = fallbackKeeperDirectory(pipePath);
+  const directory = fallbackLocalPipeDirectory(pipePath);
   if (!directory) return false;
   try {
     rmdirSync(directory);
@@ -185,6 +212,14 @@ export function cleanupBackgroundAgentKeeperPipeDirectory(
     if (error?.code === "ENOENT" || error?.code === "ENOTEMPTY") return false;
     throw error;
   }
+}
+
+export function prepareBackgroundAgentKeeperPipePath(pipePath, options) {
+  return prepareBackgroundAgentLocalPipePath(pipePath, options);
+}
+
+export function cleanupBackgroundAgentKeeperPipeDirectory(pipePath, options) {
+  return cleanupBackgroundAgentLocalPipeDirectory(pipePath, options);
 }
 
 export function normalizeBackgroundAgentKeeperAuthority(value = {}) {
