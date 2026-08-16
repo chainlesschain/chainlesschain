@@ -22,6 +22,7 @@ import {
   nearestRankPercentile,
   resolveBackgroundKeeperSoakProfile,
   sealBackgroundKeeperSoakDocument,
+  shouldDeferHardKillCleanupIdentityProbe,
   summarizeKeeperSoakSamples,
   verifyBackgroundKeeperSoakEvidenceSet,
 } from "../../scripts/background-agent-keeper-soak.mjs";
@@ -218,6 +219,30 @@ describe("background Agent keeper soak contract", () => {
   it("uses nearest-rank percentiles and ignores non-finite samples", () => {
     expect(nearestRankPercentile([40, 10, Number.NaN, 20, 30], 95)).toBe(40);
     expect(nearestRankPercentile([], 95)).toBeNull();
+  });
+
+  it("defers expensive hard-kill identity probes until the keeper is durably terminal", () => {
+    expect(
+      shouldDeferHardKillCleanupIdentityProbe(
+        {
+          turnKeeperStatus: "cleanup-requested",
+          keeperStatus: "ready",
+        },
+        "hard-kill",
+      ),
+    ).toBe(true);
+    expect(
+      shouldDeferHardKillCleanupIdentityProbe(
+        {
+          turnKeeperStatus: "retired",
+          turnKeeperCleanupConfirmedAt: Date.now(),
+          keeperStatus: "worker-disconnected",
+          keeperEndedAt: Date.now(),
+        },
+        "hard-kill",
+      ),
+    ).toBe(false);
+    expect(shouldDeferHardKillCleanupIdentityProbe({}, "stop")).toBe(false);
   });
 
   it("summarizes cleanup, readiness, RSS and FD/handle evidence", () => {

@@ -510,14 +510,58 @@ async function launchSlot(slot, fakeAgent, profile) {
   return slot.readinessMs;
 }
 
+export function shouldDeferHardKillCleanupIdentityProbe(state, method) {
+  if (method !== "hard-kill") return false;
+  return !(
+    state?.turnKeeperStatus === "retired" &&
+    Number(state.turnKeeperCleanupConfirmedAt) > 0 &&
+    Number(state.keeperEndedAt) > 0 &&
+    ["worker-disconnected", "closed"].includes(state.keeperStatus)
+  );
+}
+
 async function waitForCleanup(slot, profile, startedAt, method) {
   let observation = null;
   let lastState;
   let lastStopRetryAt = 0;
+  const recordObservation = (state, processes) => {
+    observation = {
+      status: state?.status || null,
+      phase: state?.phase || null,
+      stopRequestedAt: state?.stopRequestedAt || null,
+      stopPending: state?.stopPending === true,
+      stopPendingReason: state?.stopPendingReason || null,
+      launchFinalizationUncertain: state?.launchFinalizationUncertain === true,
+      turnLaunchIntent: state?.turnLaunchIntent || null,
+      turnLaunchFinalizationUncertain:
+        state?.turnLaunchFinalizationUncertain === true,
+      turnLaunchTermination: state?.turnLaunchTermination || null,
+      turnKeeperStatus: state?.turnKeeperStatus || null,
+      turnKeeperCleanupReason: state?.turnKeeperCleanupReason || null,
+      turnKeeperCleanupConfirmedAt: state?.turnKeeperCleanupConfirmedAt || null,
+      keeperStatus: state?.keeperStatus || null,
+      processes,
+    };
+  };
   try {
     lastState = await pollUntil(
       () => {
         let state = readBackgroundAgentState(slot.state.id);
+        if (shouldDeferHardKillCleanupIdentityProbe(state, method)) {
+          // Twenty concurrent Windows hard-kill slots otherwise serialize
+          // hundreds of synchronous WMIC/PowerShell identity probes while
+          // their keepers are still performing the bounded cleanup. Wait for
+          // the keeper's durable terminal projection first, then verify every
+          // exact-owned pid; this preserves the same exit proof without the
+          // observer starving the process responsible for producing it.
+          recordObservation(
+            state,
+            processIdentities(state || slot.state, slot.evidence).map(
+              (identity) => ({ ...identity, alive: null }),
+            ),
+          );
+          return null;
+        }
         let identities = processIdentities(state || slot.state, slot.evidence);
         let processes = identities.map((identity) => ({
           ...identity,
@@ -557,25 +601,7 @@ async function waitForCleanup(slot, profile, startedAt, method) {
             ? state?.turnKeeperStatus === "retired" &&
               Number(state.turnKeeperCleanupConfirmedAt) > 0
             : state?.status === "stopped";
-        observation = {
-          status: state?.status || null,
-          phase: state?.phase || null,
-          stopRequestedAt: state?.stopRequestedAt || null,
-          stopPending: state?.stopPending === true,
-          stopPendingReason: state?.stopPendingReason || null,
-          launchFinalizationUncertain:
-            state?.launchFinalizationUncertain === true,
-          turnLaunchIntent: state?.turnLaunchIntent || null,
-          turnLaunchFinalizationUncertain:
-            state?.turnLaunchFinalizationUncertain === true,
-          turnLaunchTermination: state?.turnLaunchTermination || null,
-          turnKeeperStatus: state?.turnKeeperStatus || null,
-          turnKeeperCleanupReason: state?.turnKeeperCleanupReason || null,
-          turnKeeperCleanupConfirmedAt:
-            state?.turnKeeperCleanupConfirmedAt || null,
-          keeperStatus: state?.keeperStatus || null,
-          processes,
-        };
+        recordObservation(state, processes);
         if (allRetired && keeperSettled) {
           markKnownIdentitiesRetired(slot, identities);
           return state;
