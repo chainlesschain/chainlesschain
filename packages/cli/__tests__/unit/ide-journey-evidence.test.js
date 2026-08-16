@@ -78,6 +78,7 @@ describe("IDE journey evidence", () => {
       finishedAt: "2026-08-01T00:00:01.000Z",
       sourceRoots: [diagnostics],
       artifactPaths: [vsix],
+      roadmapArtifactPaths: { "candidate-vsix": vsix },
     });
 
     expect(result.evidence).toMatchObject({
@@ -112,6 +113,11 @@ describe("IDE journey evidence", () => {
     });
     expect(
       fs.readFileSync(path.join(artifactDir, releaseArtifact.path), "utf8"),
+    ).toBe("vsix bytes");
+    const roadmapVsix = result.evidence.roadmapArtifacts["candidate-vsix"];
+    expect(roadmapVsix.path).toMatch(/\.vsix$/u);
+    expect(
+      fs.readFileSync(path.join(artifactDir, roadmapVsix.path), "utf8"),
     ).toBe("vsix bytes");
     const persisted = fs.readFileSync(result.destination, "utf8");
     const copiedLog = fs.readFileSync(
