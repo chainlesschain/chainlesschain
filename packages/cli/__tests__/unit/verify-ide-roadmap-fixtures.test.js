@@ -352,7 +352,7 @@ function createRemoteSshRuntimeCorpus() {
       "/home/cc-roadmap/workspace-secondary",
     ],
     extensionHostPid: 123,
-    extensionHostCwd: "/home/cc-roadmap/workspace-primary",
+    extensionHostCwd: "/home/cc-roadmap",
     extensionPath:
       "/home/cc-roadmap/.vscode-server/extensions/chainlesschain.chainlesschain-ide-0.37.53",
     extensionVersion: candidateVersion,
