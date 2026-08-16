@@ -78,6 +78,8 @@ export const PID_IDENTITY_TOLERANCE_MS = 60000;
 
 const START_TIME_CACHE_TTL_MS = 10000;
 const _startTimeCache = new Map();
+const PROCESS_START_TIME_ABSENT = Symbol("process-start-time-absent");
+const WINDOWS_PROCESS_ABSENT_MARKER = "__CC_PROCESS_ABSENT__";
 
 function runSupervisorCommand(file, args, options, origin) {
   return _deps.spawnSync(file, args, {
@@ -110,7 +112,8 @@ export function parseCimDateToMs(raw) {
 }
 
 /**
- * Read a process's creation time (epoch ms) with ONE synchronous probe, or
+ * Read a process's creation time (epoch ms) with ONE synchronous probe,
+ * `{status:"absent"}` when the OS authoritatively reports no such process, or
  * null when it cannot be determined (missing tools, permissions, platform
  * quirks). Callers must treat null as "unknown" and FAIL OPEN to the legacy
  * kill(pid, 0) answer — a broken probe must never declare a live worker dead
@@ -142,9 +145,13 @@ function defaultReadProcessStartTimeMs(pid) {
         "background-agent:process-start-time",
       );
       if (!r.error && r.status === 0) {
-        const m = /CreationDate=([^\r\n]+)/.exec(r.stdout || "");
+        const stdout = String(r.stdout || "");
+        const m = /CreationDate=([^\r\n]+)/.exec(stdout);
         const ms = m ? parseCimDateToMs(m[1]) : null;
         if (ms !== null) return ms;
+        if (/No Instance\(s\) Available/u.test(stdout)) {
+          return { status: "absent" };
+        }
       }
     } catch {
       /* fall through to PowerShell */
@@ -152,7 +159,9 @@ function defaultReadProcessStartTimeMs(pid) {
     try {
       const script =
         `$p = Get-CimInstance Win32_Process -Filter 'ProcessId=${target}' -ErrorAction SilentlyContinue; ` +
-        "if ($p -and $p.CreationDate) { [DateTimeOffset]::new($p.CreationDate).ToUnixTimeMilliseconds() }";
+        `if (-not $p) { '${WINDOWS_PROCESS_ABSENT_MARKER}' } ` +
+        "elseif ($p.CreationDate) { [DateTimeOffset]::new($p.CreationDate).ToUnixTimeMilliseconds() } " +
+        "else { exit 2 }";
       const r = runSupervisorCommand(
         "powershell",
         ["-NoProfile", "-NonInteractive", "-Command", script],
@@ -164,7 +173,11 @@ function defaultReadProcessStartTimeMs(pid) {
         "background-agent:process-start-time",
       );
       if (!r.error && r.status === 0) {
-        const n = Number(String(r.stdout || "").trim());
+        const output = String(r.stdout || "").trim();
+        if (output === WINDOWS_PROCESS_ABSENT_MARKER) {
+          return { status: "absent" };
+        }
+        const n = Number(output);
         if (Number.isFinite(n) && n > 0) return n;
       }
     } catch {
@@ -378,21 +391,24 @@ export function stopBackgroundAgentChildTree(
 
 /** Cached probe (default impl only — injected probes run uncached for tests). */
 function processStartTimeMs(pid, options = {}) {
+  const normalize = (raw) => {
+    if (raw?.status === "absent") return PROCESS_START_TIME_ABSENT;
+    const value = Number(raw);
+    return Number.isFinite(value) && value > 0 ? value : null;
+  };
   if (_deps.readProcessStartTimeMs !== defaultReadProcessStartTimeMs) {
-    const raw = _deps.readProcessStartTimeMs(pid);
-    const n = Number(raw);
-    return Number.isFinite(n) && n > 0 ? n : null;
+    return normalize(_deps.readProcessStartTimeMs(pid));
   }
   const key = Number(pid);
   const at = Date.now();
   if (options.fresh === true) {
-    const value = defaultReadProcessStartTimeMs(key);
+    const value = normalize(defaultReadProcessStartTimeMs(key));
     _startTimeCache.set(key, { at, value });
     return value;
   }
   const hit = _startTimeCache.get(key);
   if (hit && at - hit.at < START_TIME_CACHE_TTL_MS) return hit.value;
-  const value = defaultReadProcessStartTimeMs(key);
+  const value = normalize(defaultReadProcessStartTimeMs(key));
   _startTimeCache.set(key, { at, value });
   return value;
 }
@@ -1215,6 +1231,7 @@ export function isSameProcess(pid, expectedStartedAtMs, options = {}) {
   const expected = Number(expectedStartedAtMs);
   if (!Number.isFinite(expected) || expected <= 0) return true;
   const actual = processStartTimeMs(pid);
+  if (actual === PROCESS_START_TIME_ABSENT) return false;
   if (actual === null) return true;
   const tolerance = Number.isFinite(Number(options.toleranceMs))
     ? Number(options.toleranceMs)
@@ -1287,6 +1304,13 @@ function inspectDestructiveProcessIdentity(
     };
   }
   const actual = processStartTimeMs(target, { fresh: true });
+  if (actual === PROCESS_START_TIME_ABSENT) {
+    return {
+      status: "dead",
+      reason: "process-not-observed",
+      pid: target,
+    };
+  }
   if (actual === null) {
     return {
       status: "unverifiable",
