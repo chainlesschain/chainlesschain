@@ -51,16 +51,19 @@ jobs:
   test-ubuntu:
     uses: ./.github/workflows/_cli-test.yml
     with:
+      commit_sha: ${{ github.event.pull_request.head.sha || github.sha }}
       runs-on: ubuntu-latest
 
   test-windows:
     uses: ./.github/workflows/_cli-test.yml
     with:
+      commit_sha: ${{ github.event.pull_request.head.sha || github.sha }}
       runs-on: windows-latest
 
   test-macos:
     uses: ./.github/workflows/_cli-test.yml
     with:
+      commit_sha: ${{ github.event.pull_request.head.sha || github.sha }}
       runs-on: macos-latest
 
   verify-cli:
@@ -72,6 +75,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact source identity
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
       - uses: actions/setup-node@v5
         with:
           node-version: "22.12.0"
@@ -111,6 +119,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Verify exact source identity
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -148,6 +162,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Verify exact source identity
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
