@@ -17,6 +17,8 @@
 
 import { describe, it, expect, afterEach } from "vitest";
 import { spawn } from "node:child_process";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import WebSocket from "ws";
@@ -31,10 +33,16 @@ function nextPort() {
   return E2E_PORT_BASE + portCounter++;
 }
 
-function startServer(port) {
+function startServer(port, runtimeRoot) {
   return spawn(process.execPath, [bin, "serve", "--port", String(port)], {
     stdio: ["pipe", "pipe", "pipe"],
-    env: { ...process.env, FORCE_COLOR: "0" },
+    cwd: runtimeRoot,
+    env: {
+      ...process.env,
+      FORCE_COLOR: "0",
+      CHAINLESSCHAIN_HOME: join(runtimeRoot, "home"),
+      CHAINLESSCHAIN_SECURITY_ANCHOR_HOME: join(runtimeRoot, "anchors"),
+    },
   });
 }
 
@@ -116,23 +124,34 @@ function isUnifiedEnvelope(msg) {
 describe("E2E: Coding Agent unified envelope round-trip", () => {
   let child;
   let ws;
+  let runtimeRoot;
+
+  function startIsolatedServer(port) {
+    runtimeRoot = mkdtempSync(join(tmpdir(), "cc-envelope-e2e-"));
+    return startServer(port, runtimeRoot);
+  }
 
   afterEach(async () => {
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.close();
     }
-    if (child && !child.killed) {
+    if (child && child.exitCode === null) {
       child.kill("SIGTERM");
       await new Promise((resolve) => {
         child.on("exit", resolve);
         setTimeout(resolve, 2000);
       });
+      if (child.exitCode === null) child.kill("SIGKILL");
     }
+    if (runtimeRoot) rmSync(runtimeRoot, { recursive: true, force: true });
+    child = null;
+    ws = null;
+    runtimeRoot = null;
   });
 
   it("session-create response is a v1.0 envelope with correct shape", async () => {
     const port = nextPort();
-    child = startServer(port);
+    child = startIsolatedServer(port);
     ws = await waitForReady(port);
 
     // First request bears the cold-start cost of the test process (Node
@@ -169,7 +188,7 @@ describe("E2E: Coding Agent unified envelope round-trip", () => {
 
   it("session-list response is a v1.0 envelope with payload.sessions", async () => {
     const port = nextPort();
-    child = startServer(port);
+    child = startIsolatedServer(port);
     ws = await waitForReady(port);
 
     // Seed at least one session so the list is meaningful.
@@ -196,7 +215,7 @@ describe("E2E: Coding Agent unified envelope round-trip", () => {
 
   it("session-close response is a command.response envelope", async () => {
     const port = nextPort();
-    child = startServer(port);
+    child = startIsolatedServer(port);
     ws = await waitForReady(port);
 
     const create = await sendAndCorrelate(ws, {
@@ -224,7 +243,7 @@ describe("E2E: Coding Agent unified envelope round-trip", () => {
 
   it("malformed session-create (no provider) still produces an envelope error", async () => {
     const port = nextPort();
-    child = startServer(port);
+    child = startIsolatedServer(port);
     ws = await waitForReady(port);
 
     // Provider may be optional in some configurations, but missing apiKey
@@ -248,7 +267,7 @@ describe("E2E: Coding Agent unified envelope round-trip", () => {
 
   it("worktree-list response is a worktree.list envelope", async () => {
     const port = nextPort();
-    child = startServer(port);
+    child = startIsolatedServer(port);
     ws = await waitForReady(port);
 
     const response = await sendAndCorrelate(ws, {
@@ -265,7 +284,7 @@ describe("E2E: Coding Agent unified envelope round-trip", () => {
 
   it("worktree-diff without branch returns an error envelope with NO_BRANCH", async () => {
     const port = nextPort();
-    child = startServer(port);
+    child = startIsolatedServer(port);
     ws = await waitForReady(port);
 
     const response = await sendAndCorrelate(ws, {
@@ -283,7 +302,7 @@ describe("E2E: Coding Agent unified envelope round-trip", () => {
 
   it("task graph create → add → update → advance round-trips as envelopes", async () => {
     const port = nextPort();
-    child = startServer(port);
+    child = startIsolatedServer(port);
     ws = await waitForReady(port);
 
     // First, seed a session so the task graph has somewhere to live.
@@ -363,7 +382,7 @@ describe("E2E: Coding Agent unified envelope round-trip", () => {
 
   it("task-graph-create without nodes returns an envelope error", async () => {
     const port = nextPort();
-    child = startServer(port);
+    child = startIsolatedServer(port);
     ws = await waitForReady(port);
 
     const create = await sendAndCorrelate(ws, {
@@ -390,7 +409,7 @@ describe("E2E: Coding Agent unified envelope round-trip", () => {
 
   it("task-graph-state on a session with no graph returns null graph", async () => {
     const port = nextPort();
-    child = startServer(port);
+    child = startIsolatedServer(port);
     ws = await waitForReady(port);
 
     const create = await sendAndCorrelate(ws, {
@@ -421,7 +440,7 @@ describe("E2E: Coding Agent unified envelope round-trip", () => {
 
   it("envelope eventIds are unique across responses on the same socket", async () => {
     const port = nextPort();
-    child = startServer(port);
+    child = startIsolatedServer(port);
     ws = await waitForReady(port);
 
     const r1 = await sendAndCorrelate(ws, {

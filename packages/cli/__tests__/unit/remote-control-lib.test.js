@@ -105,6 +105,7 @@ describe("direct pairing URI", () => {
       pairingToken: "pair-token",
       scopes: ["observe", "approve"],
       expiresAt: 1234567890,
+      durableMembership: true,
     });
     expect(uri).toMatch(/^chainlesschain:\/\/remote-control\/pair#/);
     expect(parseDirectPairingUri(uri)).toEqual({
@@ -117,6 +118,7 @@ describe("direct pairing URI", () => {
       pairingToken: "pair-token",
       scopes: ["observe", "approve"],
       expiresAt: 1234567890,
+      durableMembership: true,
     });
   });
 

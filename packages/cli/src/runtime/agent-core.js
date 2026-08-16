@@ -2406,17 +2406,23 @@ function digestPolicyAuthority(projection) {
 }
 
 function validatePermissionRuleset(rules) {
-  if (
-    rules &&
-    (!Array.isArray(rules.allow) ||
-      !Array.isArray(rules.ask) ||
-      !Array.isArray(rules.deny))
-  ) {
+  if (!rules) return null;
+  if (typeof rules !== "object" || Array.isArray(rules)) {
     throw new TypeError(
       "permission authority provider returned an invalid ruleset",
     );
   }
-  return rules;
+  const normalized = {};
+  for (const key of ["allow", "ask", "deny"]) {
+    const value = rules[key];
+    if (value !== undefined && !Array.isArray(value)) {
+      throw new TypeError(
+        "permission authority provider returned an invalid ruleset",
+      );
+    }
+    normalized[key] = value ? [...value] : [];
+  }
+  return normalized;
 }
 
 function projectPermissionAuthority({ authority, rules, tool, args, cwd }) {

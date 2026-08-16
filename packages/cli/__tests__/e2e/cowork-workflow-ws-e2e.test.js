@@ -191,12 +191,12 @@ describe("Workflow WS protocol — E2E", () => {
     expect(list.workflows.find((w) => w.id === "e2e-wf")).toBeFalsy();
   });
 
-  it("workflow-run on missing workflow emits WORKFLOW_NOT_FOUND", async () => {
+  it("workflow-run without execution authority fails closed before lookup", async () => {
     const res = await sendAndWait(ws, {
       type: "workflow-run",
       id: "ghost",
     });
-    expect(res.type).toBe("error");
-    expect(res.code).toBe("WORKFLOW_NOT_FOUND");
+    expect(res.type).toBe("workflow:blocked");
+    expect(res.code).toBe("WORKFLOW_EXECUTION_AUTHORITY_MISSING");
   });
 });
