@@ -1,25 +1,42 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Command } from "commander";
 import crypto from "node:crypto";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import http from "node:http";
 import os from "node:os";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { registerPluginCommand } from "../../src/commands/plugin.js";
 import {
   getActiveVersion,
   listInstalled,
 } from "../../src/lib/plugin-runtime/install.js";
-import { buildMarketplacePayloadSbom } from "../../src/lib/plugin-runtime/marketplace-artifact-readback.js";
+import {
+  PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+  PLUGIN_MARKETPLACE_PAYLOAD_SBOM_SCHEMA,
+  PLUGIN_MARKETPLACE_REMOTE_SBOM_PAYLOAD_COMPARISON_SCHEMA,
+  buildMarketplacePayloadSbom,
+} from "../../src/lib/plugin-runtime/marketplace-artifact-readback.js";
+import { buildPluginSbom } from "../../src/lib/plugin-runtime/signature.js";
 
 const REMOTE_ARTIFACT_EVIDENCE_SCHEMA =
   "cc-plugin-marketplace-remote-artifact-evidence/v1";
 const PLUGIN_NAME = "remote-artifact-plugin";
 const PLUGIN_VERSION = "1.0.0";
+const GIT_AVAILABLE = (() => {
+  try {
+    execFileSync("git", ["--version"], { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+})();
 
 let cwd;
 let sourceRoot;
 let source;
+let registrySource;
 let server;
 let baseUrl;
 let registryUrl;
@@ -29,6 +46,7 @@ let requestUrls;
 let signatureDeclarationMode;
 let sbomDeclarationMode;
 let registryVersion;
+let omitRegistryVersion;
 let originalAppData;
 let originalXdgConfigHome;
 let manifestBytes;
@@ -41,6 +59,7 @@ let publicKeySpkiSha256;
 let sbomBytes;
 let sbomSha256;
 let legacyPayloadSha256;
+let canonicalPayloadSha256;
 let signingPrivateKey;
 
 function sha256(value) {
@@ -87,28 +106,52 @@ function prepareRegistryVersion(version) {
   manifestSha256 = sha256(manifestBytes);
   signatureBytes = crypto.sign(null, manifestBytes, signingPrivateKey);
   signatureSha256 = sha256(signatureBytes);
+  const legacyPayloadSbom = buildMarketplacePayloadSbom(source);
+  const canonicalPayloadSbom = buildMarketplacePayloadSbom(source, {
+    schemaVersion: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+  });
+  legacyPayloadSha256 = legacyPayloadSbom.digest;
+  canonicalPayloadSha256 = canonicalPayloadSbom.digest;
+  const semanticPayloadSbom =
+    sbomDeclarationMode === "payload-bound-v1"
+      ? legacyPayloadSbom
+      : canonicalPayloadSbom;
   sbomBytes = Buffer.from(
-    JSON.stringify({
-      bomFormat: "CycloneDX",
-      specVersion: "1.5",
-      version: 1,
-      metadata: {
-        component: {
-          type: "application",
-          name: PLUGIN_NAME,
-          version,
-        },
-      },
-      components: [],
-    }),
+    JSON.stringify(
+      ["payload-bound", "payload-bound-v1"].includes(sbomDeclarationMode)
+        ? semanticPayloadSbom
+        : {
+            bomFormat: "CycloneDX",
+            specVersion: "1.5",
+            version: 1,
+            metadata: {
+              component: {
+                type: "application",
+                name: PLUGIN_NAME,
+                version,
+              },
+            },
+            components: [],
+          },
+    ),
   );
   sbomSha256 = sha256(sbomBytes);
-  legacyPayloadSha256 = buildMarketplacePayloadSbom(source).digest;
 }
 
 function registrySbomDeclaration() {
+  if (sbomDeclarationMode === "v2-incomplete") {
+    return {
+      format: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+      digest: canonicalPayloadSha256,
+    };
+  }
   const declaration = {
-    format: "cyclonedx-json",
+    format:
+      sbomDeclarationMode === "payload-bound"
+        ? PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA
+        : sbomDeclarationMode === "payload-bound-v1"
+          ? PLUGIN_MARKETPLACE_PAYLOAD_SBOM_SCHEMA
+          : "cyclonedx-json",
     url: declaredArtifactUrl("/artifacts/plugin.cdx.json", "sbom_token"),
   };
   if (sbomDeclarationMode === "legacy-payload-digest") {
@@ -147,8 +190,8 @@ function registryDocument() {
     plugins: [
       {
         name: PLUGIN_NAME,
-        version: registryVersion,
-        source,
+        ...(omitRegistryVersion ? {} : { version: registryVersion }),
+        source: registrySource,
         sha256: manifestSha256,
         license: "Apache-2.0",
         permissions: {},
@@ -183,6 +226,7 @@ beforeEach(async () => {
   );
   source = path.join(sourceRoot, "plugin");
   fs.mkdirSync(source);
+  registrySource = source;
 
   const { privateKey, publicKey } = crypto.generateKeyPairSync("ed25519");
   signingPrivateKey = privateKey;
@@ -193,6 +237,7 @@ beforeEach(async () => {
   );
   signatureDeclarationMode = "remote-bundle";
   sbomDeclarationMode = "document-digest";
+  omitRegistryVersion = false;
   prepareRegistryVersion(PLUGIN_VERSION);
   requestUrls = [];
 
@@ -351,6 +396,861 @@ describe("cc plugin remote marketplace artifact journey", () => {
         signatureCryptographicallyReverified: true,
       },
     });
+  });
+
+  it("compares a repository payload SBOM with staged bytes before activation and persists readback authority", async () => {
+    sbomDeclarationMode = "payload-bound";
+    prepareRegistryVersion(PLUGIN_VERSION);
+
+    const installRun = await run(
+      "add",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--scope",
+      "project",
+      "--json",
+    );
+
+    expect(installRun.exitCode, installRun.stderr).toBe(0);
+    expect(JSON.parse(installRun.stdout)).toMatchObject({
+      marketplaceAuthorityPersisted: true,
+      marketplacePreflight: {
+        integrity: {
+          sbom: {
+            format: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+            documentSha256: sbomSha256,
+            payloadSha256: null,
+            remoteVerification: "complete",
+          },
+        },
+      },
+    });
+
+    const [installed] = listInstalled({ cwd, scopes: ["project"] });
+    const comparison =
+      installed.source.catalogAuthority.remoteSbomPayloadComparison;
+    expect(comparison).toMatchObject({
+      schemaVersion: PLUGIN_MARKETPLACE_REMOTE_SBOM_PAYLOAD_COMPARISON_SCHEMA,
+      status: "matched",
+      remoteArtifactEvidenceDigest:
+        installed.source.catalogAuthority.remoteArtifactEvidence.evidenceDigest,
+      format: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+      documentSha256: sbomSha256,
+      remotePayload: {
+        digest: canonicalPayloadSha256,
+        fileCount: 1,
+        totalBytes: manifestBytes.length,
+      },
+      installedPayload: {
+        digest: canonicalPayloadSha256,
+        fileCount: 1,
+        totalBytes: manifestBytes.length,
+      },
+    });
+    expect(comparison.comparisonDigest).toMatch(/^[a-f0-9]{64}$/);
+
+    const evidenceRun = await run(
+      "evidence",
+      PLUGIN_NAME,
+      "--scope",
+      "project",
+      "--json",
+    );
+    expect(evidenceRun.exitCode, evidenceRun.stderr).toBe(0);
+    expect(JSON.parse(evidenceRun.stdout)).toMatchObject({
+      status: "matched",
+      comparisons: {
+        remoteSbom: { status: "matched", comparable: true },
+        remoteSbomPayload: { status: "matched", comparable: true },
+      },
+      actual: {
+        remoteArtifacts: {
+          sbom: {
+            payloadComparisonPresent: true,
+            payloadComparisonValid: true,
+            currentPayload: {
+              schemaVersion: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+              digest: canonicalPayloadSha256,
+            },
+            currentPayloadMatches: true,
+          },
+        },
+      },
+      claims: {
+        remoteSbomPayloadComparisonRecorded: true,
+        remoteSbomPayloadComparisonSelfConsistent: true,
+        remoteSbomRecordedPayloadMatchesCurrentInstall: true,
+      },
+    });
+  });
+
+  it("rolls back a v2 declaration without fetchable semantic evidence", async () => {
+    sbomDeclarationMode = "v2-incomplete";
+    prepareRegistryVersion(PLUGIN_VERSION);
+
+    const installRun = await run(
+      "add",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--scope",
+      "project",
+      "--json",
+    );
+
+    expect(installRun.exitCode).toBe(1);
+    expect(installRun.stderr).toMatch(
+      /payload SBOM v2 requires complete bound remote evidence/i,
+    );
+    expect(requestedPathnames()).not.toContain("/artifacts/plugin.cdx.json");
+    expect(listInstalled({ cwd, scopes: ["project"] })).toEqual([]);
+  });
+
+  it.each([
+    { label: "comparison", removeEvidence: false },
+    { label: "comparison and evidence", removeEvidence: true },
+  ])(
+    "fails readback when a v2 install loses its persisted $label",
+    async ({ removeEvidence }) => {
+      sbomDeclarationMode = "payload-bound";
+      prepareRegistryVersion(PLUGIN_VERSION);
+      const installRun = await run(
+        "add",
+        PLUGIN_NAME,
+        "--registry",
+        registryUrl,
+        "--scope",
+        "project",
+        "--json",
+      );
+      expect(installRun.exitCode, installRun.stderr).toBe(0);
+
+      const [installed] = listInstalled({ cwd, scopes: ["project"] });
+      const metadataPath = path.join(installed.dir, ".plugin-source.json");
+      const metadata = JSON.parse(fs.readFileSync(metadataPath, "utf8"));
+      delete metadata.catalogAuthority.remoteSbomPayloadComparison;
+      if (removeEvidence) {
+        delete metadata.catalogAuthority.remoteArtifactEvidence;
+      }
+      fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2), "utf8");
+      const lockPath = path.join(installed.dir, ".plugin-lock.json");
+      const lock = JSON.parse(fs.readFileSync(lockPath, "utf8"));
+      lock.sbom = buildPluginSbom(installed.dir);
+      fs.writeFileSync(lockPath, JSON.stringify(lock, null, 2), "utf8");
+
+      const evidenceRun = await run(
+        "evidence",
+        PLUGIN_NAME,
+        "--scope",
+        "project",
+        "--json",
+      );
+      expect(evidenceRun.exitCode, evidenceRun.stderr).toBe(2);
+      expect(JSON.parse(evidenceRun.stdout)).toMatchObject({
+        status: "failed",
+        comparisons: {
+          remoteSbomPayload: { status: "mismatch", comparable: true },
+        },
+        blockers: [{ code: "REMOTE_SBOM_PAYLOAD_COMPARISON_MISSING" }],
+      });
+    },
+  );
+
+  it("fails the command when persisted semantic metadata is invalid", async () => {
+    sbomDeclarationMode = "payload-bound";
+    prepareRegistryVersion(PLUGIN_VERSION);
+    const installRun = await run(
+      "add",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--scope",
+      "project",
+      "--json",
+    );
+    expect(installRun.exitCode, installRun.stderr).toBe(0);
+
+    const [installed] = listInstalled({ cwd, scopes: ["project"] });
+    const metadataPath = path.join(installed.dir, ".plugin-source.json");
+    const metadata = JSON.parse(fs.readFileSync(metadataPath, "utf8"));
+    metadata.catalogAuthority.remoteSbomPayloadComparison.comparisonDigest =
+      "0".repeat(64);
+    fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2), "utf8");
+
+    const evidenceRun = await run(
+      "evidence",
+      PLUGIN_NAME,
+      "--scope",
+      "project",
+      "--json",
+    );
+    expect(evidenceRun.exitCode).toBe(1);
+    expect(evidenceRun.stderr).toMatch(
+      /plugin source metadata is invalid.*comparison digest is invalid/i,
+    );
+  });
+
+  it("fails the command when registry catalog authority is deleted", async () => {
+    const installRun = await run(
+      "add",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--scope",
+      "project",
+      "--json",
+    );
+    expect(installRun.exitCode, installRun.stderr).toBe(0);
+
+    const [installed] = listInstalled({ cwd, scopes: ["project"] });
+    const metadataPath = path.join(installed.dir, ".plugin-source.json");
+    const metadata = JSON.parse(fs.readFileSync(metadataPath, "utf8"));
+    delete metadata.catalogAuthority;
+    fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2), "utf8");
+
+    const evidenceRun = await run(
+      "evidence",
+      PLUGIN_NAME,
+      "--scope",
+      "project",
+      "--json",
+    );
+    expect(evidenceRun.exitCode).toBe(1);
+    expect(evidenceRun.stderr).toMatch(
+      /registry source metadata is missing catalog artifact authority/i,
+    );
+  });
+
+  it("rejects registry-shaped metadata relabeled as a Git source", async () => {
+    const installRun = await run(
+      "add",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--scope",
+      "project",
+      "--json",
+    );
+    expect(installRun.exitCode, installRun.stderr).toBe(0);
+
+    const [installed] = listInstalled({ cwd, scopes: ["project"] });
+    const metadataPath = path.join(installed.dir, ".plugin-source.json");
+    const metadata = JSON.parse(fs.readFileSync(metadataPath, "utf8"));
+    metadata.type = "git";
+    delete metadata.catalogAuthority;
+    fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2), "utf8");
+
+    const evidenceRun = await run(
+      "evidence",
+      PLUGIN_NAME,
+      "--scope",
+      "project",
+      "--json",
+    );
+    expect(evidenceRun.exitCode).toBe(1);
+    expect(evidenceRun.stderr).toMatch(
+      /registry-shaped source metadata has an invalid type/i,
+    );
+  });
+
+  it("fails the command when installed source metadata is deleted", async () => {
+    const installRun = await run(
+      "add",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--scope",
+      "project",
+      "--json",
+    );
+    expect(installRun.exitCode, installRun.stderr).toBe(0);
+
+    const [installed] = listInstalled({ cwd, scopes: ["project"] });
+    fs.unlinkSync(path.join(installed.dir, ".plugin-source.json"));
+    const evidenceRun = await run(
+      "evidence",
+      PLUGIN_NAME,
+      "--scope",
+      "project",
+      "--json",
+    );
+
+    expect(evidenceRun.exitCode).toBe(1);
+    expect(evidenceRun.stderr).toMatch(/plugin source metadata is missing/i);
+  });
+
+  it("keeps valid local-install evidence partial and non-blocking", async () => {
+    const installRun = await run("add", source, "--scope", "project", "--json");
+    expect(installRun.exitCode, installRun.stderr).toBe(0);
+
+    const evidenceRun = await run(
+      "evidence",
+      PLUGIN_NAME,
+      "--scope",
+      "project",
+      "--json",
+    );
+    expect(evidenceRun.exitCode, evidenceRun.stderr).toBe(0);
+    expect(JSON.parse(evidenceRun.stdout)).toMatchObject({
+      status: "partial",
+      blockers: [],
+    });
+  });
+
+  it.skipIf(!GIT_AVAILABLE)(
+    "compares a v2 materialized payload from a real Git clone without VCS metadata",
+    async () => {
+      sbomDeclarationMode = "payload-bound";
+      prepareRegistryVersion(PLUGIN_VERSION);
+      execFileSync("git", ["init", "-q"], { cwd: source, stdio: "ignore" });
+      execFileSync("git", ["add", "plugin.json"], {
+        cwd: source,
+        stdio: "ignore",
+      });
+      execFileSync(
+        "git",
+        [
+          "-c",
+          "user.email=tests@chainlesschain.invalid",
+          "-c",
+          "user.name=ChainlessChain Tests",
+          "commit",
+          "-q",
+          "-m",
+          "fixture",
+        ],
+        { cwd: source, stdio: "ignore" },
+      );
+      // Rebuild the publisher document from the committed checkout so the
+      // producer-side v2 walk also proves that top-level .git is excluded.
+      prepareRegistryVersion(PLUGIN_VERSION);
+      const publishedPayload = JSON.parse(sbomBytes.toString("utf8"));
+      expect(publishedPayload).toMatchObject({
+        schemaVersion: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+        exclusions: expect.arrayContaining([".git"]),
+        files: [expect.objectContaining({ path: "plugin.json", type: "file" })],
+      });
+      registrySource = pathToFileURL(source).href;
+
+      const installRun = await run(
+        "add",
+        PLUGIN_NAME,
+        "--registry",
+        registryUrl,
+        "--scope",
+        "project",
+        "--json",
+      );
+
+      expect(installRun.exitCode, installRun.stderr).toBe(0);
+      const [installed] = listInstalled({ cwd, scopes: ["project"] });
+      expect(fs.existsSync(path.join(installed.dir, ".git"))).toBe(false);
+      expect(
+        installed.source.catalogAuthority.remoteSbomPayloadComparison,
+      ).toMatchObject({
+        status: "matched",
+        remotePayload: { digest: canonicalPayloadSha256, fileCount: 1 },
+        installedPayload: { digest: canonicalPayloadSha256, fileCount: 1 },
+      });
+    },
+  );
+
+  it("rejects a repository payload SBOM whose inventory differs from staged plugin bytes", async () => {
+    sbomDeclarationMode = "payload-bound";
+    prepareRegistryVersion(PLUGIN_VERSION);
+    fs.writeFileSync(path.join(source, "undeclared.js"), "export default 1;\n");
+
+    const installRun = await run(
+      "add",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--scope",
+      "project",
+      "--json",
+    );
+
+    expect(installRun.exitCode).toBe(1);
+    expect(installRun.stderr).toMatch(
+      /payload SBOM does not match staged plugin bytes/i,
+    );
+    expect(requestedPathnames()).toContain("/artifacts/plugin.cdx.json");
+    expect(listInstalled({ cwd, scopes: ["project"] })).toEqual([]);
+  });
+
+  it("repeats the semantic payload comparison before activating an upgrade", async () => {
+    sbomDeclarationMode = "payload-bound";
+    prepareRegistryVersion(PLUGIN_VERSION);
+    const installedV1 = await run(
+      "add",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--scope",
+      "project",
+      "--json",
+    );
+    expect(installedV1.exitCode, installedV1.stderr).toBe(0);
+
+    prepareRegistryVersion("2.0.0");
+    requestUrls = [];
+    const upgraded = await run(
+      "upgrade",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--scope",
+      "project",
+      "--allow-source-switch",
+      "--json",
+    );
+
+    expect(upgraded.exitCode, upgraded.stderr).toBe(0);
+    expect(JSON.parse(upgraded.stdout)).toMatchObject({
+      version: "2.0.0",
+      activationStatus: "activated",
+      marketplaceAuthorityPersisted: true,
+    });
+    expect(requestedPathnames()).toContain("/artifacts/plugin.cdx.json");
+    expect(getActiveVersion(PLUGIN_NAME, { scope: "project", cwd })).toBe(
+      "2.0.0",
+    );
+    const active = listInstalled({ cwd, scopes: ["project"] })[0];
+    expect(
+      active.source.catalogAuthority.remoteSbomPayloadComparison,
+    ).toMatchObject({
+      schemaVersion: PLUGIN_MARKETPLACE_REMOTE_SBOM_PAYLOAD_COMPARISON_SCHEMA,
+      status: "matched",
+      documentSha256: sbomSha256,
+      installedPayload: {
+        digest: canonicalPayloadSha256,
+        fileCount: 1,
+        totalBytes: manifestBytes.length,
+      },
+    });
+  });
+
+  it("keeps the prior active version when an upgrade payload differs from its semantic SBOM", async () => {
+    sbomDeclarationMode = "payload-bound";
+    prepareRegistryVersion(PLUGIN_VERSION);
+    const installedV1 = await run(
+      "add",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--scope",
+      "project",
+      "--json",
+    );
+    expect(installedV1.exitCode, installedV1.stderr).toBe(0);
+
+    prepareRegistryVersion("2.0.0");
+    fs.writeFileSync(path.join(source, "undeclared-v2.js"), "v2 drift\n");
+    requestUrls = [];
+    const rejected = await run(
+      "upgrade",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--scope",
+      "project",
+      "--allow-source-switch",
+      "--json",
+    );
+
+    expect(rejected.exitCode).toBe(1);
+    expect(rejected.stderr).toMatch(
+      /payload SBOM does not match staged plugin bytes/i,
+    );
+    expect(requestedPathnames()).toContain("/artifacts/plugin.cdx.json");
+    expect(getActiveVersion(PLUGIN_NAME, { scope: "project", cwd })).toBe(
+      PLUGIN_VERSION,
+    );
+    expect(listInstalled({ cwd, scopes: ["project"] })).toEqual([
+      expect.objectContaining({
+        name: PLUGIN_NAME,
+        version: PLUGIN_VERSION,
+        versions: [PLUGIN_VERSION],
+      }),
+    ]);
+  });
+
+  it("blocks an upgrade that removes the installed v2 semantic binding", async () => {
+    sbomDeclarationMode = "payload-bound";
+    prepareRegistryVersion(PLUGIN_VERSION);
+    const installedV1 = await run(
+      "add",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--scope",
+      "project",
+      "--json",
+    );
+    expect(installedV1.exitCode, installedV1.stderr).toBe(0);
+
+    sbomDeclarationMode = "document-digest";
+    prepareRegistryVersion("2.0.0");
+    requestUrls = [];
+    const impactRun = await run(
+      "impact",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--scope",
+      "project",
+      "--json",
+    );
+    expect(impactRun.exitCode, impactRun.stderr).toBe(2);
+    const impact = JSON.parse(impactRun.stdout);
+    expect(impact).toMatchObject({
+      status: "blocked",
+      changes: {
+        integrity: {
+          semanticPayloadBinding: {
+            from: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+            to: null,
+            kind: "removed",
+            downgraded: true,
+          },
+        },
+      },
+      blockers: [{ code: "SEMANTIC_SBOM_BINDING_DOWNGRADE" }],
+    });
+
+    requestUrls = [];
+    const rejected = await run(
+      "upgrade",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--scope",
+      "project",
+      "--allow-source-switch",
+      "--allow-downgrade",
+      "--expected-impact-digest",
+      impact.impactDigest,
+      "--json",
+    );
+
+    expect(rejected.exitCode).toBe(1);
+    expect(rejected.stderr).toMatch(/SEMANTIC_SBOM_BINDING_DOWNGRADE/);
+    expect(requestedPathnames()).toContain("/registry.json");
+    expect(requestedPathnames()).not.toContain(
+      "/artifacts/plugin-manifest.sig",
+    );
+    expect(requestedPathnames()).not.toContain("/artifacts/plugin.cdx.json");
+    expect(getActiveVersion(PLUGIN_NAME, { scope: "project", cwd })).toBe(
+      PLUGIN_VERSION,
+    );
+  });
+
+  it.each([
+    { label: "a newer version", version: "2.0.0", extraArgs: [] },
+    {
+      label: "the same version with --force",
+      version: PLUGIN_VERSION,
+      extraArgs: ["--force"],
+    },
+  ])(
+    "blocks registry add from replacing a v2 binding with $label before artifact fetch",
+    async ({ version, extraArgs }) => {
+      sbomDeclarationMode = "payload-bound";
+      prepareRegistryVersion(PLUGIN_VERSION);
+      const installedV1 = await run(
+        "add",
+        PLUGIN_NAME,
+        "--registry",
+        registryUrl,
+        "--scope",
+        "project",
+        "--json",
+      );
+      expect(installedV1.exitCode, installedV1.stderr).toBe(0);
+      const installedOutput = JSON.parse(installedV1.stdout);
+      expect(installedOutput.marketplaceImpact?.impactDigest).toBe(
+        installedOutput.sourceMetadata.catalogAuthority.updateImpactDigest,
+      );
+      const [prior] = listInstalled({ cwd, scopes: ["project"] });
+      const metadataPath = path.join(prior.dir, ".plugin-source.json");
+      const priorMetadata = fs.readFileSync(metadataPath, "utf8");
+      const priorManifest = fs.readFileSync(
+        path.join(prior.dir, "plugin.json"),
+        "utf8",
+      );
+
+      sbomDeclarationMode = "document-digest";
+      prepareRegistryVersion(version);
+      requestUrls = [];
+      const rejected = await run(
+        "add",
+        PLUGIN_NAME,
+        "--registry",
+        registryUrl,
+        "--scope",
+        "project",
+        ...extraArgs,
+        "--json",
+      );
+
+      expect(rejected.exitCode).toBe(1);
+      expect(rejected.stderr).toMatch(/SEMANTIC_SBOM_BINDING_DOWNGRADE/);
+      expect(requestedPathnames()).toContain("/registry.json");
+      expect(requestedPathnames()).not.toContain(
+        "/artifacts/plugin-manifest.sig",
+      );
+      expect(requestedPathnames()).not.toContain("/artifacts/plugin.cdx.json");
+      expect(getActiveVersion(PLUGIN_NAME, { scope: "project", cwd })).toBe(
+        PLUGIN_VERSION,
+      );
+      const [after] = listInstalled({ cwd, scopes: ["project"] });
+      expect(after.versions).toEqual([PLUGIN_VERSION]);
+      expect(fs.readFileSync(metadataPath, "utf8")).toBe(priorMetadata);
+      expect(fs.readFileSync(path.join(after.dir, "plugin.json"), "utf8")).toBe(
+        priorManifest,
+      );
+    },
+  );
+
+  it("blocks an update whose registry defers the candidate version before artifact fetch", async () => {
+    sbomDeclarationMode = "payload-bound";
+    prepareRegistryVersion("2.0.0");
+    const installedV2 = await run(
+      "add",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--scope",
+      "project",
+      "--json",
+    );
+    expect(installedV2.exitCode, installedV2.stderr).toBe(0);
+
+    prepareRegistryVersion("1.0.0");
+    omitRegistryVersion = true;
+    requestUrls = [];
+    const rejected = await run(
+      "upgrade",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--scope",
+      "project",
+      "--allow-source-switch",
+      "--allow-downgrade",
+      "--json",
+    );
+
+    expect(rejected.exitCode).toBe(1);
+    expect(rejected.stderr).toMatch(/REGISTRY_VERSION_REQUIRED_FOR_UPDATE/);
+    expect(requestedPathnames()).toContain("/registry.json");
+    expect(requestedPathnames()).not.toContain(
+      "/artifacts/plugin-manifest.sig",
+    );
+    expect(requestedPathnames()).not.toContain("/artifacts/plugin.cdx.json");
+    expect(getActiveVersion(PLUGIN_NAME, { scope: "project", cwd })).toBe(
+      "2.0.0",
+    );
+  });
+
+  it.each([
+    {
+      label: "comparison",
+      mutate(metadata) {
+        delete metadata.catalogAuthority.remoteSbomPayloadComparison;
+      },
+      error: /INSTALLED_SEMANTIC_SBOM_EVIDENCE_INVALID/,
+    },
+    {
+      label: "comparison and evidence",
+      mutate(metadata) {
+        delete metadata.catalogAuthority.remoteSbomPayloadComparison;
+        delete metadata.catalogAuthority.remoteArtifactEvidence;
+      },
+      error: /INSTALLED_SEMANTIC_SBOM_EVIDENCE_INVALID/,
+    },
+    {
+      label: "comparison checksum",
+      mutate(metadata) {
+        metadata.catalogAuthority.remoteSbomPayloadComparison.comparisonDigest =
+          "0".repeat(64);
+      },
+      error: /plugin source metadata is invalid.*comparison digest is invalid/i,
+    },
+    {
+      label: "catalog authority",
+      mutate(metadata) {
+        delete metadata.catalogAuthority;
+      },
+      error: /registry source metadata is missing catalog artifact authority/i,
+    },
+    {
+      label: "registry type and catalog authority",
+      mutate(metadata) {
+        metadata.type = "git";
+        delete metadata.catalogAuthority;
+      },
+      error: /registry-shaped source metadata has an invalid type/i,
+    },
+  ])(
+    "blocks a nonsemantic upgrade when installed v2 $label is missing or invalid",
+    async ({ mutate, error }) => {
+      sbomDeclarationMode = "payload-bound";
+      prepareRegistryVersion(PLUGIN_VERSION);
+      const installedV1 = await run(
+        "add",
+        PLUGIN_NAME,
+        "--registry",
+        registryUrl,
+        "--scope",
+        "project",
+        "--json",
+      );
+      expect(installedV1.exitCode, installedV1.stderr).toBe(0);
+
+      const [installed] = listInstalled({ cwd, scopes: ["project"] });
+      const metadataPath = path.join(installed.dir, ".plugin-source.json");
+      const metadata = JSON.parse(fs.readFileSync(metadataPath, "utf8"));
+      mutate(metadata);
+      fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2), "utf8");
+      const lockPath = path.join(installed.dir, ".plugin-lock.json");
+      const lock = JSON.parse(fs.readFileSync(lockPath, "utf8"));
+      lock.sbom = buildPluginSbom(installed.dir);
+      fs.writeFileSync(lockPath, JSON.stringify(lock, null, 2), "utf8");
+
+      sbomDeclarationMode = "document-digest";
+      prepareRegistryVersion("2.0.0");
+      requestUrls = [];
+      const rejected = await run(
+        "upgrade",
+        PLUGIN_NAME,
+        "--registry",
+        registryUrl,
+        "--scope",
+        "project",
+        "--allow-source-switch",
+        "--allow-downgrade",
+        "--json",
+      );
+
+      expect(rejected.exitCode).toBe(1);
+      expect(rejected.stderr).toMatch(error);
+      expect(requestedPathnames()).toContain("/registry.json");
+      expect(requestedPathnames()).not.toContain(
+        "/artifacts/plugin-manifest.sig",
+      );
+      expect(requestedPathnames()).not.toContain("/artifacts/plugin.cdx.json");
+      expect(getActiveVersion(PLUGIN_NAME, { scope: "project", cwd })).toBe(
+        PLUGIN_VERSION,
+      );
+    },
+  );
+
+  it("rejects a tampered installed semantic payload during impact before artifact fetch", async () => {
+    sbomDeclarationMode = "payload-bound";
+    prepareRegistryVersion(PLUGIN_VERSION);
+    const installedV1 = await run(
+      "add",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--scope",
+      "project",
+      "--json",
+    );
+    expect(installedV1.exitCode, installedV1.stderr).toBe(0);
+
+    const [installed] = listInstalled({ cwd, scopes: ["project"] });
+    fs.writeFileSync(path.join(installed.dir, "payload-drift.js"), "drift\n");
+    prepareRegistryVersion("2.0.0");
+
+    requestUrls = [];
+    const impactRun = await run(
+      "impact",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--scope",
+      "project",
+      "--json",
+    );
+    expect(impactRun.exitCode).toBe(1);
+    expect(impactRun.stderr).toMatch(
+      /INSTALLED_SEMANTIC_SBOM_EVIDENCE_INVALID/,
+    );
+    expect(requestedPathnames()).toEqual(["/registry.json"]);
+
+    requestUrls = [];
+    const rejected = await run(
+      "upgrade",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--scope",
+      "project",
+      "--json",
+    );
+    expect(rejected.exitCode).toBe(1);
+    expect(rejected.stderr).toMatch(/INSTALLED_SEMANTIC_SBOM_EVIDENCE_INVALID/);
+    expect(requestedPathnames()).toEqual(["/registry.json"]);
+    expect(getActiveVersion(PLUGIN_NAME, { scope: "project", cwd })).toBe(
+      PLUGIN_VERSION,
+    );
+    expect(
+      fs.readFileSync(path.join(installed.dir, "payload-drift.js"), "utf8"),
+    ).toBe("drift\n");
+  });
+
+  it("blocks a complete v1 binding whose evidence and comparison were deleted before artifact fetch", async () => {
+    sbomDeclarationMode = "payload-bound-v1";
+    prepareRegistryVersion(PLUGIN_VERSION);
+    const installedV1 = await run(
+      "add",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--scope",
+      "project",
+      "--json",
+    );
+    expect(installedV1.exitCode, installedV1.stderr).toBe(0);
+
+    const [installed] = listInstalled({ cwd, scopes: ["project"] });
+    const metadataPath = path.join(installed.dir, ".plugin-source.json");
+    const metadata = JSON.parse(fs.readFileSync(metadataPath, "utf8"));
+    delete metadata.catalogAuthority.remoteArtifactEvidence;
+    delete metadata.catalogAuthority.remoteSbomPayloadComparison;
+    fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2), "utf8");
+    const lockPath = path.join(installed.dir, ".plugin-lock.json");
+    const lock = JSON.parse(fs.readFileSync(lockPath, "utf8"));
+    lock.sbom = buildPluginSbom(installed.dir);
+    fs.writeFileSync(lockPath, JSON.stringify(lock, null, 2), "utf8");
+
+    sbomDeclarationMode = "document-digest";
+    prepareRegistryVersion("2.0.0");
+    requestUrls = [];
+    const rejected = await run(
+      "upgrade",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--scope",
+      "project",
+      "--allow-source-switch",
+      "--json",
+    );
+
+    expect(rejected.exitCode).toBe(1);
+    expect(rejected.stderr).toMatch(/INSTALLED_SEMANTIC_SBOM_EVIDENCE_INVALID/);
+    expect(requestedPathnames()).toContain("/registry.json");
+    expect(requestedPathnames()).not.toContain(
+      "/artifacts/plugin-manifest.sig",
+    );
+    expect(requestedPathnames()).not.toContain("/artifacts/plugin.cdx.json");
+    expect(getActiveVersion(PLUGIN_NAME, { scope: "project", cwd })).toBe(
+      PLUGIN_VERSION,
+    );
   });
 
   it("fetches only the SBOM when signature authority is metadata-only", async () => {

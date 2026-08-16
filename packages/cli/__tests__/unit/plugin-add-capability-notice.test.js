@@ -174,6 +174,7 @@ describe("cc plugin upgrade — capability diff", () => {
       makeSource("greeter", "2.0.0", { process: true, network: "*" }),
       "--scope",
       "project",
+      "--allow-source-switch",
     );
     expect(text).not.toMatch(/Updated greeter/);
     expect(text).toMatch(/capability consent required/);
@@ -202,6 +203,7 @@ describe("cc plugin upgrade — capability diff", () => {
         }),
         "--scope",
         "project",
+        "--allow-source-switch",
         "--json",
       ),
     );
@@ -236,6 +238,7 @@ describe("cc plugin upgrade — capability diff", () => {
       makeSource("greeter", "2.0.0", { process: true, network: "*" }),
       "--scope",
       "project",
+      "--allow-source-switch",
       "--grant-capabilities",
     );
     expect(text).toMatch(/Updated greeter/);
@@ -269,6 +272,7 @@ describe("cc plugin upgrade — capability diff", () => {
         }),
         "--scope",
         "project",
+        "--allow-source-switch",
         "--grant-capabilities",
         "--json",
       ),
@@ -303,6 +307,7 @@ describe("cc plugin upgrade — capability diff", () => {
         }),
         "--scope",
         "project",
+        "--allow-source-switch",
         "--force",
         "--json",
       ),
@@ -344,6 +349,7 @@ describe("cc plugin upgrade — capability diff", () => {
       makeSource("greeter", "2.0.0", { process: true }),
       "--scope",
       "project",
+      "--allow-source-switch",
     );
     expect(text).toMatch(/Updated greeter/);
     expect(text).toMatch(/capability consent:/);
