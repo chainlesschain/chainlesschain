@@ -356,6 +356,15 @@ function createRemoteWorkspaceDefinition(remoteAuthority) {
   };
 }
 
+function createContainerMarker(nonce) {
+  assert.match(
+    nonce,
+    /^[a-f0-9]{24}$/u,
+    "invalid Remote-SSH container marker nonce",
+  );
+  return `chainlesschain-remote-ssh-container:${nonce}`;
+}
+
 const REQUIRED_ARTIFACT_NAMES = Object.freeze([
   "exact-commit",
   "host-environment",
@@ -495,7 +504,7 @@ async function main() {
   const container = `cc-roadmap-ssh-${nonce}`;
   const containerHostname = container;
   const remoteAuthority = `ssh-remote+${container}`;
-  const marker = `chainlesschain-remote-ssh-container:${nonce}\n`;
+  const marker = createContainerMarker(nonce);
   const markerDigest = sha256Buffer(marker);
   const extensionManifest = JSON.parse(
     fs.readFileSync(path.join(PACKAGE_ROOT, "package.json"), "utf8"),
@@ -593,7 +602,7 @@ async function main() {
     );
     dockerExec(
       container,
-      `install -d -m 700 -o ${REMOTE_USER} -g ${REMOTE_USER} ${REMOTE_HOME}/.ssh; install -m 600 -o ${REMOTE_USER} -g ${REMOTE_USER} /tmp/authorized_key ${REMOTE_HOME}/.ssh/authorized_keys; printf '%s' '${marker.trim()}' > /etc/chainlesschain-remote-id; chmod 0444 /etc/chainlesschain-remote-id; ssh-keygen -A`,
+      `install -d -m 700 -o ${REMOTE_USER} -g ${REMOTE_USER} ${REMOTE_HOME}/.ssh; install -m 600 -o ${REMOTE_USER} -g ${REMOTE_USER} /tmp/authorized_key ${REMOTE_HOME}/.ssh/authorized_keys; printf '%s' '${marker}' > /etc/chainlesschain-remote-id; chmod 0444 /etc/chainlesschain-remote-id; ssh-keygen -A`,
       diagnostics,
     );
     runCommand(
@@ -1047,6 +1056,7 @@ module.exports = {
   assertPinnedRemoteSshPayload,
   assertCandidateReleaseBindingUnchanged,
   assertRequiredArtifacts,
+  createContainerMarker,
   createRemoteWorkspaceDefinition,
   createKnownHostsEntry,
   parseArgs,
