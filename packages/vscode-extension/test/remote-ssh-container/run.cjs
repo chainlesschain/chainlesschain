@@ -424,7 +424,11 @@ async function writeJourneyEvidence({
     result: semanticPaths.remoteJourneyPassed ? "passed" : "failed",
     startedAt,
     finishedAt: new Date().toISOString(),
-    sourceRoots: [path.join(runRoot, "remote-runtime"), diagnosticsPath],
+    sourceRoots: [
+      path.join(runRoot, "remote-runtime"),
+      path.join(runRoot, "vscode-remote-ssh.log"),
+      diagnosticsPath,
+    ],
     artifactPaths: [remoteSshPayload, remoteSshVsix],
     roadmapArtifactPaths: Object.fromEntries(
       Object.entries(semanticPaths).filter(
@@ -779,10 +783,13 @@ async function main() {
         .includes(`${PINNED_REMOTE_SSH.id}@${PINNED_REMOTE_SSH.version}`),
       "pinned Remote-SSH extension was not installed",
     );
-    const vscodeLog = fs.createWriteStream(
-      path.join(runRoot, "vscode-remote-ssh.log"),
-      { flags: "wx", mode: 0o600 },
-    );
+    const vscodeLogPath = path.join(runRoot, "vscode-remote-ssh.log");
+    const remoteRuntimePath = path.join(runRoot, "remote-runtime");
+    const vscodeLog = fs.createWriteStream(vscodeLogPath, {
+      flags: "wx",
+      mode: 0o600,
+    });
+    let vscodeRunError = null;
     try {
       await runTests({
         vscodeExecutablePath,
@@ -801,24 +808,48 @@ async function main() {
         stdout: vscodeLog,
         stderr: vscodeLog,
       });
+    } catch (error) {
+      vscodeRunError = error;
     } finally {
       await new Promise((resolve) => vscodeLog.end(resolve));
     }
-    runCommand(
-      "docker",
-      [
-        "cp",
-        `${container}:${REMOTE_RUNTIME}`,
-        path.join(runRoot, "remote-runtime"),
-      ],
-      { diagnostics },
-    );
-    remoteEnvironment = JSON.parse(
-      fs.readFileSync(
-        path.join(runRoot, "remote-runtime", "remote-environment.json"),
-        "utf8",
-      ),
-    );
+    let remoteCaptureError = null;
+    try {
+      const copyResult = runCommand(
+        "docker",
+        ["cp", `${container}:${REMOTE_RUNTIME}`, remoteRuntimePath],
+        { diagnostics, allowFailure: true },
+      );
+      if (copyResult.status !== 0) {
+        throw new Error(
+          `docker failed to capture remote runtime with exit code ${String(copyResult.status)}`,
+        );
+      }
+      const remoteEnvironmentPath = path.join(
+        remoteRuntimePath,
+        "remote-environment.json",
+      );
+      if (
+        !fs.statSync(remoteEnvironmentPath, { throwIfNoEntry: false })?.isFile()
+      ) {
+        throw new Error(
+          "remote runtime capture is missing remote-environment.json",
+        );
+      }
+      remoteEnvironment = JSON.parse(
+        fs.readFileSync(remoteEnvironmentPath, "utf8"),
+      );
+    } catch (error) {
+      remoteCaptureError = error;
+    }
+    if (vscodeRunError && remoteCaptureError) {
+      throw new AggregateError(
+        [vscodeRunError, remoteCaptureError],
+        "Remote-SSH host run and runtime evidence capture failed",
+      );
+    }
+    if (vscodeRunError) throw vscodeRunError;
+    if (remoteCaptureError) throw remoteCaptureError;
     assert.equal(remoteEnvironment.journeyPassed, true);
   } catch (error) {
     journeyError = error;

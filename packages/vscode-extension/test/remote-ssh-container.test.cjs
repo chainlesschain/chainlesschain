@@ -86,6 +86,25 @@ test("remote driver calls the existing real host journey after proving remote id
   assert.doesNotMatch(orchestrator, /transport:\s*"remote"/u);
 });
 
+test("failed Remote-SSH host runs retain local and container diagnostics", () => {
+  const orchestrator = read(
+    "packages/vscode-extension/test/remote-ssh-container/run.cjs",
+  );
+
+  assert.match(
+    orchestrator,
+    /sourceRoots:[\s\S]*?remote-runtime[\s\S]*?vscode-remote-ssh\.log[\s\S]*?diagnosticsPath/u,
+  );
+  assert.match(
+    orchestrator,
+    /catch \(error\) \{\s+vscodeRunError = error;[\s\S]*?"cp"[\s\S]*?allowFailure: true/u,
+  );
+  assert.match(
+    orchestrator,
+    /new AggregateError\(\s*\[vscodeRunError, remoteCaptureError\]/u,
+  );
+});
+
 test("workflow preserves diagnostics and aggregates one exact producer provenance", () => {
   const workflow = read(".github/workflows/ide-extensions.yml");
   const remoteJob = workflow.slice(
