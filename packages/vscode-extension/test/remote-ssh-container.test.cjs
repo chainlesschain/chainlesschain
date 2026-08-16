@@ -93,7 +93,7 @@ test("failed Remote-SSH host runs retain local and container diagnostics", () =>
 
   assert.match(
     orchestrator,
-    /sourceRoots:[\s\S]*?remote-runtime[\s\S]*?vscode-remote-ssh\.log[\s\S]*?diagnosticsPath/u,
+    /sourceRoots:[\s\S]*?remote-runtime[\s\S]*?vscode-remote-ssh\.log[\s\S]*?user-data[\s\S]*?remote-vscode-logs[\s\S]*?diagnosticsPath[\s\S]*?fs\.existsSync/u,
   );
   assert.match(
     orchestrator,
@@ -102,6 +102,11 @@ test("failed Remote-SSH host runs retain local and container diagnostics", () =>
   assert.match(
     orchestrator,
     /new AggregateError\(\s*\[vscodeRunError, remoteCaptureError\]/u,
+  );
+  assert.match(orchestrator, /"remote\.SSH\.loglevel": "trace"/u);
+  assert.match(
+    orchestrator,
+    /\.vscode-server\/data\/logs[\s\S]*?allowFailure: true/u,
   );
 });
 

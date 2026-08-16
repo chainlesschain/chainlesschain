@@ -427,8 +427,10 @@ async function writeJourneyEvidence({
     sourceRoots: [
       path.join(runRoot, "remote-runtime"),
       path.join(runRoot, "vscode-remote-ssh.log"),
+      path.join(runRoot, "user-data", "logs"),
+      path.join(runRoot, "remote-vscode-logs"),
       diagnosticsPath,
-    ],
+    ].filter((sourcePath) => fs.existsSync(sourcePath)),
     artifactPaths: [remoteSshPayload, remoteSshVsix],
     roadmapArtifactPaths: Object.fromEntries(
       Object.entries(semanticPaths).filter(
@@ -750,6 +752,7 @@ async function main() {
           "remote.SSH.localServerDownload": "always",
           "remote.SSH.useLocalServer": false,
           "remote.SSH.enableDynamicForwarding": true,
+          "remote.SSH.loglevel": "trace",
           "telemetry.telemetryLevel": "off",
           "update.mode": "none",
         },
@@ -785,6 +788,7 @@ async function main() {
     );
     const vscodeLogPath = path.join(runRoot, "vscode-remote-ssh.log");
     const remoteRuntimePath = path.join(runRoot, "remote-runtime");
+    const remoteVscodeLogsPath = path.join(runRoot, "remote-vscode-logs");
     const vscodeLog = fs.createWriteStream(vscodeLogPath, {
       flags: "wx",
       mode: 0o600,
@@ -815,6 +819,22 @@ async function main() {
     }
     let remoteCaptureError = null;
     try {
+      try {
+        runCommand(
+          "docker",
+          [
+            "cp",
+            `${container}:${REMOTE_HOME}/.vscode-server/data/logs`,
+            remoteVscodeLogsPath,
+          ],
+          { diagnostics, allowFailure: true },
+        );
+      } catch (error) {
+        diagnostics.push({
+          command: "remote-vscode-log-capture",
+          error: redact(error?.message || error),
+        });
+      }
       const copyResult = runCommand(
         "docker",
         ["cp", `${container}:${REMOTE_RUNTIME}`, remoteRuntimePath],
