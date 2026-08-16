@@ -3054,31 +3054,53 @@ export function stopBackgroundAgent(id) {
       // independent keeper do not. Signal those single processes directly so
       // a rapidly recycled pid cannot address an unrelated POSIX group.
       for (const target of targets) {
-        try {
-          target.signalledAsGroup =
-            signalBackgroundProcessTree(target.pid, "SIGTERM", {
-              processGroup: target.signalAsGroup,
-            }) === "process-group";
-          signalledPids.add(target.pid);
-        } catch (error) {
-          // macOS can report EPERM when the exact target retires after the
-          // destructive identity probe but before the group signal reaches
-          // the kernel. Never weaken signalBackgroundProcessTree's fail-closed
-          // behavior: accept the race only after a new strict identity probe
-          // proves the recorded process/group is dead or safely reused.
-          if (process.platform !== "win32" && error?.code === "EPERM") {
-            const refreshedIdentity = inspectDestructiveProcessIdentity(
-              target.pid,
-              target.startedAt,
-              { processGroup: target.signalAsGroup },
-            );
-            if (["dead", "reused"].includes(refreshedIdentity.status)) {
-              target.signalledAsGroup = target.signalAsGroup === true;
-              signalledPids.add(target.pid);
-              continue;
+        let permissionRetries = 0;
+        while (true) {
+          try {
+            target.signalledAsGroup =
+              signalBackgroundProcessTree(target.pid, "SIGTERM", {
+                processGroup: target.signalAsGroup,
+              }) === "process-group";
+            signalledPids.add(target.pid);
+            break;
+          } catch (error) {
+            // POSIX can report EPERM while a just-retiring target is still
+            // visible to the creation-time probe. Retry only through a tiny
+            // bounded window, and re-authorize every new signal from a fresh
+            // exact identity snapshot after the delay. A persistent denial or
+            // any unverifiable identity remains a fail-closed stop failure.
+            if (process.platform !== "win32" && error?.code === "EPERM") {
+              let refreshedIdentity = inspectDestructiveProcessIdentity(
+                target.pid,
+                target.startedAt,
+                { processGroup: target.signalAsGroup },
+              );
+              if (["dead", "reused"].includes(refreshedIdentity.status)) {
+                target.signalledAsGroup = target.signalAsGroup === true;
+                signalledPids.add(target.pid);
+                break;
+              }
+              if (
+                refreshedIdentity.status === "match" &&
+                permissionRetries < 3
+              ) {
+                permissionRetries += 1;
+                sleepSyncMs(10 * permissionRetries);
+                refreshedIdentity = inspectDestructiveProcessIdentity(
+                  target.pid,
+                  target.startedAt,
+                  { processGroup: target.signalAsGroup },
+                );
+                if (["dead", "reused"].includes(refreshedIdentity.status)) {
+                  target.signalledAsGroup = target.signalAsGroup === true;
+                  signalledPids.add(target.pid);
+                  break;
+                }
+                if (refreshedIdentity.status === "match") continue;
+              }
             }
+            throw error;
           }
-          throw error;
         }
       }
     } catch (error) {

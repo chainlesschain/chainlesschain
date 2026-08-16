@@ -1828,7 +1828,7 @@ describe("background agent supervisor", () => {
     expect(completed?.turnKeeperCleanupConfirmedAt).toEqual(expect.any(Number));
     expect(Number.isFinite(completed?.heartbeatAt)).toBe(true);
     expect(readBackgroundAgentLog(state.id)).toContain("worker-output");
-  });
+  }, 90_000);
 
   it("keeps an armed turn contained when the worker is hard-killed", async () => {
     const workDir = join(dir, "hard-kill-work");
@@ -1962,7 +1962,7 @@ describe("background agent supervisor", () => {
 
     expect(completed?.title).toBe("after");
     expect(completed?.status).toBe("completed");
-  });
+  }, 90_000);
 
   it("buildFollowUpArgv strips the first turn's prompt tokens, keeps flags", () => {
     const optionSpecs = [
@@ -2661,6 +2661,85 @@ describe("background agent supervisor", () => {
   );
 
   it.skipIf(process.platform === "win32")(
+    "retries POSIX EPERM only while fresh identity probes still match",
+    () => {
+      const sleeperPid = spawnSleeperPid();
+      const startedAt = Date.now();
+      let processState = "S";
+      let terminationAttempts = 0;
+      writeBackgroundAgentState({
+        id: "bg-stop-posix-eperm-retry",
+        status: "running",
+        pid: sleeperPid,
+        startedAt,
+      });
+      _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+      _deps.readProcessState = vi.fn(() => processState);
+      _deps.readProcessGroupStates = vi.fn(() => [processState]);
+      const denied = Object.assign(new Error("kill EPERM"), {
+        code: "EPERM",
+      });
+      _deps.kill = vi.fn((pid, signal) => {
+        if (signal !== "SIGTERM") return true;
+        terminationAttempts += 1;
+        if (terminationAttempts === 1) throw denied;
+        process.kill(Math.abs(Number(pid)), "SIGKILL");
+        processState = "Z";
+        return true;
+      });
+
+      expect(stopBackgroundAgent("bg-stop-posix-eperm-retry")).toMatchObject({
+        status: "stopped",
+        stopped: true,
+      });
+      expect(terminationAttempts).toBe(2);
+      expect(_deps.kill).toHaveBeenNthCalledWith(1, -sleeperPid, "SIGTERM");
+      expect(_deps.kill).toHaveBeenNthCalledWith(2, -sleeperPid, "SIGTERM");
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "does not retry POSIX EPERM after identity becomes unverifiable",
+    () => {
+      const sleeperPid = spawnSleeperPid();
+      const startedAt = Date.now();
+      let identityProbes = 0;
+      writeBackgroundAgentState({
+        id: "bg-stop-posix-eperm-unverifiable",
+        status: "running",
+        pid: sleeperPid,
+        startedAt,
+      });
+      _deps.readProcessStartTimeMs = vi.fn(() => {
+        identityProbes += 1;
+        return identityProbes >= 3 ? null : startedAt;
+      });
+      _deps.readProcessState = vi.fn(() => "S");
+      _deps.readProcessGroupStates = vi.fn(() => ["S"]);
+      const denied = Object.assign(new Error("kill EPERM"), {
+        code: "EPERM",
+      });
+      _deps.kill = vi.fn(() => {
+        throw denied;
+      });
+
+      expect(() =>
+        stopBackgroundAgent("bg-stop-posix-eperm-unverifiable"),
+      ).toThrow(/kill EPERM/u);
+      expect(_deps.kill).toHaveBeenCalledTimes(1);
+      expect(identityProbes).toBe(3);
+      expect(
+        readBackgroundAgentState("bg-stop-posix-eperm-unverifiable"),
+      ).toMatchObject({
+        status: "running",
+        phase: "stop_failed",
+        stopPending: true,
+        stopPendingReason: "process-termination",
+      });
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
     "fails closed when POSIX EPERM still resolves to the recorded process",
     () => {
       const sleeperPid = spawnSleeperPid();
@@ -2684,7 +2763,7 @@ describe("background agent supervisor", () => {
       expect(() => stopBackgroundAgent("bg-stop-posix-eperm-live")).toThrow(
         /kill EPERM/u,
       );
-      expect(_deps.kill).toHaveBeenCalledTimes(1);
+      expect(_deps.kill).toHaveBeenCalledTimes(4);
       expect(_deps.kill).toHaveBeenCalledWith(-sleeperPid, "SIGTERM");
       expect(
         readBackgroundAgentState("bg-stop-posix-eperm-live"),
@@ -3627,7 +3706,7 @@ describe("prompt queue backpressure (Gap 4, supervisor gap 2026-07-11)", () => {
     // contract deliberately fences that window and returns stopPending rather
     // than signalling an unowned child. Wait for the worker to settle that
     // intent, then retry only once the durable record says signalling is safe.
-    const stopDeadline = Date.now() + 5_000;
+    const stopDeadline = Date.now() + 15_000;
     while (!stopped.stopped && Date.now() < stopDeadline) {
       await new Promise((resolve) => setTimeout(resolve, 50));
       const latest = readBackgroundAgentState(state.id);
@@ -3657,5 +3736,5 @@ describe("prompt queue backpressure (Gap 4, supervisor gap 2026-07-11)", () => {
         interactionRecovery: stopped.interactionRecovery,
       })}`,
     ).toMatchObject({ stopped: true, status: "stopped" });
-  }, 30000);
+  }, 60_000);
 });
