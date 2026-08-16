@@ -5,13 +5,35 @@
 
 ## [Unreleased]
 
-#### Added — `main@affafa7f0f` 发布后原生剪贴板图片
+#### Fixed — `0.164.0` 发布后的源码增量
 
-> 当前 GitHub `main` 为 [`d2b2057af5`](https://github.com/chainlesschain/chainlesschain/commit/d2b2057af5d9a2cf2d5f631d40b45b37de104bee)，原生剪贴板图片的精确实现提交为 [`affafa7f0f`](https://github.com/chainlesschain/chainlesschain/commit/affafa7f0f6fede3274e503d2387ce493e74bfd0)；该能力晚于 `0.163.8` 不可变 npm tarball，不能写成已发布安装契约。
+> 不可变 tag `v-npm-0-164-0` 精确停在 `313dec85cf`；以下能力已进入本次部署快照 `HEAD@99f5bf8214`，但不反写成 `chainlesschain@0.164.0` tarball 内容。
+
+- **远程审批与成员关系对账**：Android、iOS、Web Panel 与 CLI relay 把审批响应绑定到持久 membership epoch；断线重连会补齐丢失的 join，relay 在确认前先提交成员关系。过期、已撤销、身份不匹配或权威不可用时继续失败闭合；这不等于分布式共识或完整跨主机撤销闭环。
+- **动态工作流运行准入**：Cowork workflow 在真正运行时重新核验不可变 definition digest、execution-authority session、权限、sandbox、规模与成本门，不把旧 preflight 当成持续授权。
+- **工作区权威规范化**：`run_shell` 后台/沙箱与 plugin-bin 路径在执行前比较 canonical workspace authority，词法别名不能静默扩大已批准根目录。
+- **发布门隔离与 canonical 测试夹具**：权限规则会规范化缺省列表但继续拒绝非法类型；E2E server 使用隔离 runtime home，Windows 临时路径在权威比较前解析真实文件系统身份。这些修复稳定源码门禁，不改变已发布 `0.164.0` 制品。
+- **交付仓库权威**：GitHub delivery 在创建或更新 PR 分支前验证配置的 push remote 确实指向权威 `github.repo`，不再硬编码假设 `origin`。
+- **zombie-safe supervisor lock**：后台 Agent 状态变更使用 execution-state probe，已停止的 POSIX zombie 不再长期占有临界区锁；未知进程状态仍保持失败闭合。
+- **IDE 发布证据加固**：VS Code 发布链保留 Remote-SSH trace 与远程宿主失败诊断，只接受 canonical extension cwd 位于 remote home 内，并在 containment 校验前规范化顶层/嵌套 evidence root；这是门禁增强，不是 npm CLI 新内容。
+
+#### Added — CLI 0.164.0 正式发布：受治理市场、执行权威与原生隔离
+
+> `chainlesschain@0.164.0` 已成为 npm `latest` 与生产推荐版。不可变 tag `v-npm-0-164-0` 精确指向 [`313dec85cf`](https://github.com/chainlesschain/chainlesschain/commit/313dec85cffa09dbb183be17d2b6597e303bed5f)；同一 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31912844177)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31912844034)、[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/31912844032)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/31913903124)均成功。公网 tarball SHA-1 为 `2d13836305c6841b7fe5bcd059bc8ef25127fc3d`，SHA-256 为 `4d7f36f11bd2bfc1b85eee87392b74bd948e7cc33698cd35c87bff72fb3b4c16`。
+
+- **有界剪贴板图片**：`/paste-image` 把经 magic-byte 校验的 PNG/JPEG/GIF/WebP 附到下一轮视觉请求；单图 20 MiB，每轮 4 张/40 MiB，Windows/macOS/Linux 宿主均受 Process Broker 边界约束。
+- **作用域执行与上下文权威**：权限中心可解释实际资源、副作用、恢复覆盖与决策来源；workspace-scoped 规则、执行位置、IDE Context Center 和持久 workflow definition 均携带版本化身份。
+- **受治理插件市场**：`plugin catalog|select|impact|evidence` 在安装或升级前绑定 registry 集合、publisher、digest、signature、SBOM、license、capability、dependency、policy 与审批证据。
+- **后台与 MCP 原生隔离**：keeper 持有 Worker/后代 PID 清理权威；MCP capsule 绑定 Node builtin 与 execution context；Linux dynamic-native 与 macOS signed launcher 仍按有限声明/门禁候选处理，不外推为任意 shared-library closure 或已完成签名 native 发行。
+- **发布边界**：25 个兼容 alias 因缺少代表性遥测继续保留；72 小时 scheduler campaign、三平台 keeper formal aggregate、macOS 受保护 helper 完整证据与签名 Desktop/native 分发仍未闭环。
+
+#### Added — 原生剪贴板图片进入 0.164.0 稳定契约
+
+> 原生剪贴板图片最初在精确提交 [`affafa7f0f`](https://github.com/chainlesschain/chainlesschain/commit/affafa7f0f6fede3274e503d2387ce493e74bfd0) 以 `0.163.8` 发布后源码增量落地，现已包含在不可变 `chainlesschain@0.164.0` 中。
 
 - **交互式粘贴**：把图片复制到系统剪贴板后，在 Agent REPL 运行 `/paste-image`；通过校验的本地 data-image block 会附到下一轮 vision model 请求。每张最多 20 MiB，每轮最多 4 张、总计 40 MiB，读取超时 10 秒。
 - **平台宿主**：Windows 使用受控 PowerShell，macOS 固定 `/usr/bin/osascript` 并经 AppKit/ImageIO 读取 PNG/TIFF，Linux 在当前 Wayland/X11 display 下使用可用的 `wl-paste` 或 `xclip`。PNG/JPEG/GIF/WebP 会校验真实 magic bytes。
-- **边界**：最终 merge SHA `affafa7f0f6fede3274e503d2387ce493e74bfd0` 的专用 Linux/Windows/macOS host workflow（`31813967006`）、CLI CI（`31810849262`）与 CLI Strict Sandbox（`31810848956`）均通过，但该能力没有进入 `v-npm-0-163-8`；稳定用户仍应等待后续 exact-SHA 发布与公网回读。
+- **边界**：最终 merge SHA `affafa7f0f6fede3274e503d2387ce493e74bfd0` 的专用 Linux/Windows/macOS host workflow（`31813967006`）、CLI CI（`31810849262`）与 CLI Strict Sandbox（`31810848956`）均通过；稳定安装权威由后续 `0.164.0` 的 exact-SHA 发布与公网回读链给出。
 
 #### Added — CLI 0.163.8 正式发布：受治理恢复、merge review 与 MCP resource templates
 

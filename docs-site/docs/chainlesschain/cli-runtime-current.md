@@ -1,6 +1,6 @@
-# CLI Runtime 当前实现（0.163.8）
+# CLI Runtime 当前实现（0.164.0）
 
-> 更新时间：2026-08-14。npm `latest`、生产推荐版与主线包元数据均为 `0.163.8`。稳定能力以不可变 tag `v-npm-0-163-8` 的精确 SHA [`a0631cb4f9`](https://github.com/chainlesschain/chainlesschain/commit/a0631cb4f97f45ff7fcef9c19d346ed2b8387da6) 为准。`main@affafa7f0f` 的原生剪贴板图片粘贴晚于该不可变 tarball，本文会明确区分源码能力与稳定安装契约。
+> 更新时间：2026-08-16。npm `latest`、生产推荐版与仓库包元数据均为 `0.164.0`。稳定能力以不可变 tag `v-npm-0-164-0` 的精确 SHA [`313dec85cf`](https://github.com/chainlesschain/chainlesschain/commit/313dec85cffa09dbb183be17d2b6597e303bed5f) 为准。本次部署快照 `HEAD@99f5bf8214` 的远程成员对账、workflow 运行准入、canonical workspace/delivery authority、zombie-safe supervisor lock 与 Remote-SSH/canonical evidence root 修复晚于该不可变 tarball，本文会明确区分源码能力与稳定安装契约。
 
 ## 概述
 
@@ -8,21 +8,21 @@
 
 ## 安装版本怎么选
 
-| 用途                | 版本      | 说明                                                                                                                |
-| ------------------- | --------- | ------------------------------------------------------------------------------------------------------------------- |
-| 生产 / 日常稳定使用 | `0.163.8` | `v-npm-0-163-8` 的同一 exact SHA 已完成 Linux、Windows、macOS CLI CI、Strict Sandbox、制品与发布门 |
-| npm `latest`        | `0.163.8` | registry、tag、provenance、tarball 与授权 workflow 已交叉回读                                      |
-| IDE 工作台          | CLI `0.163.8` + VS Code `0.37.51` / JetBrains `0.4.87` | Automation Center + 默认关闭的受治理自动 ghost-text |
-| Runtime / Agent Team | `0.163.8` | scheduler 恢复、`team merge-review` 与 MCP resource templates 已发布 |
-| 原生剪贴板图片      | `main@affafa7f0f` | `/paste-image` 仅供源码验证；不属于 `0.163.8` tarball |
+| 用途                 | 版本                                                   | 说明                                                                                                              |
+| -------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| 生产 / 日常稳定使用  | `0.164.0`                                              | `v-npm-0-164-0` 的同一 exact SHA 已完成 Linux、Windows、macOS CLI CI、Strict Sandbox、制品与发布门                |
+| npm `latest`         | `0.164.0`                                              | registry、tag、provenance、tarball 与授权 workflow 已交叉回读                                                     |
+| IDE 工作台           | CLI `0.164.0` + VS Code `0.37.54` / JetBrains `0.4.90` | Context Center、权限/副作用证据与 Automation Center                                                               |
+| Runtime / Agent Team | `0.164.0`                                              | 作用域执行权威、受治理市场、keeper、merge review 与 MCP templates 已发布                                          |
+| 发布后源码增量       | `HEAD@99f5bf8214`                                      | 成员对账、run admission、workspace/delivery authority、supervisor 与 canonical IDE 证据；不属于 `0.164.0` tarball |
 
 生产安装建议显式固定：
 
 ```bash
-npm i -g chainlesschain@0.163.8
+npm i -g chainlesschain@0.164.0
 ```
 
-已安装 `0.163.8` 的用户就是当前生产推荐版。`0.163.7` 是上一完整门禁基线；旧的失败 tag 保持不可变，不移动或复用。
+已安装 `0.164.0` 的用户就是当前生产推荐版。`0.163.8` 是上一完整门禁基线；旧的失败 tag 保持不可变，不移动或复用。
 
 ## 核心特性
 
@@ -53,7 +53,11 @@ npm i -g chainlesschain@0.163.8
 - `0.163.8` 磁盘与 Automation 恢复：Agenda/Cowork 权威写入使用 private temp、完整 short-write、fsync 与 atomic rename，确定性 fault matrix 已关闭；Automation Center 另新增 exact fence/control revision/capability 约束的 checkpoint pause/resume，以及只对 scheduler-backed dead letter 安全开放的 incident retry/cancel。
 - `0.163.8` merge review 与 MCP templates：`cc team merge-review preview|show|apply|rollback` 以 revision/digest 绑定 file/hunk 选择、原子发布和受控回滚；`list_mcp_resource_templates {server?}` 只读有界模板缓存，具体资源仍由 `read_mcp_resource` 读取。
 - `0.163.8` scheduler soak framework：Linux/Windows/macOS workflow 已覆盖双 worker contention、higher-fence recovery、stale settlement、no-replay、heartbeat、DST、backlog、数据库完整性、后代回收和资源趋势；首次 formal run `31807830251` 因 Windows worker 提前退出而无效，Ubuntu/macOS 随后取消。后继 exact-main run `31821080101` 三平台及 aggregate 全部成功并定义新 `T0`，正式计数为 `1/4`；退出仍需其余三个 segment、至少 72 小时观察、最大段间隔 30 小时和最终 campaign verifier。
-- `main@affafa7f0f` 原生剪贴板图片：交互式 Agent REPL 的 `/paste-image` 可从受控 Windows/macOS/Linux 宿主桥读取 PNG/JPEG/GIF/WebP。单图 20 MiB、每轮 4 张/40 MiB、10 秒超时；最终 merge SHA 的 host workflow、CLI CI 与 CLI Strict Sandbox 均通过，但它仍属于发布后源码能力。
+- `0.164.0` 原生剪贴板图片：交互式 Agent REPL 的 `/paste-image` 可从受控 Windows/macOS/Linux 宿主桥读取 PNG/JPEG/GIF/WebP。单图 20 MiB、每轮 4 张/40 MiB、10 秒超时；该能力已进入当前稳定 tarball。
+- `0.164.0` 作用域执行权威：`permissions activity|scoped|revoke` 展示实际资源、副作用、恢复覆盖和决策来源，并用 workspace、generation、revision 与 TTL 约束临时规则；`session location current|show|compare|handoff` 显示已验证执行位置与安全交接预览。
+- `0.164.0` 受治理插件市场：`plugin catalog|select|impact|evidence` 在安装/升级前绑定 registry、publisher、digest、signature、SBOM、license、capability、dependency、policy 与审批证据；partial 或过期投影不能授权 mutation。
+- `0.164.0` keeper / capsule：后台 keeper 在用户代码前取得 Worker/后代清理权威；MCP capsule 绑定 Node builtin 与 execution-context sandbox 要求。Linux dynamic-native 和 macOS signed launcher 保持有限/禁用边界，不宣称完整 native closure。
+- `HEAD@99f5bf8214` 发布后源码：远程审批 membership epoch、断线成员对账、workflow run-time readmission、relay 成员持久提交、canonical workspace/delivery authority、zombie-safe supervisor lock 与 Remote-SSH/canonical evidence root 修复尚未进入 `0.164.0` tarball。
 - 原生发行边界：unsigned 六目标 native validation 与三系统两小时可靠性门已在同一精确 SHA 成功，但 validation 固定 `signed=false`、`releaseEligible=false`；Windows Authenticode、macOS signing/notarization、updater key 与公开原生 fresh install/upgrade/rollback 回读仍未完成。
 - 跨平台 sandbox 与 credential agent：前台、后台、hook、MCP、monitor、LSP、PTY 和插件 bin 都通过统一 broker 执行。
 - 强执行路径补齐：插件异步/后台进程、通用后台任务、CLI PTY 与桌面项目 PTY 共用失败闭合边界；未经证明的项目根和远端 metadata 不能获得本机 PTY 权限。
@@ -177,9 +181,50 @@ list_mcp_resource_templates {"server":"docs"}
 
 返回值来自连接阶段的有界 discovery cache。模型或用户选择参数并形成具体 URI 后，再调用 `read_mcp_resource`；CLI 不会自动枚举模板参数、订阅资源或因为列模板而发起额外网络请求。resource subscriptions、peer-controlled logging、completion 与 MCP sampling 仍不在该稳定契约中。
 
-## 发布后源码：从系统剪贴板附图
+## 作用域权限、执行位置与工作流准入
 
-`main@affafa7f0f` 的交互式 Agent REPL 支持以下流程，但 npm `0.163.8` 用户需要等待后续版本发布：
+先读取当前证据，再使用输出中的 generation/revision 做 mutation：
+
+```bash
+cc permissions activity --session <id> --json
+cc permissions scoped ask "Bash(git push:*)" --expires-in 30m --reason "release review" --expected-generation <n> --json
+cc permissions revoke <rule-id> --revision <n> --json
+
+cc session location current --json
+cc session location show <session-id> --json
+cc session location compare --json
+cc session location handoff <session-id> ssh --json
+```
+
+workspace-scoped 规则不会写回 `.claude/settings.json`，且只在 canonical workspace、TTL、store generation 与 record revision 全部匹配时生效。`permissions activity` 的 credential 只显示名称，不输出值；`session location handoff` 只给无密钥预览，不会自行迁移进程或秘密。
+
+Cowork workflow 的保存版本、preflight 和 run 使用同一 definition digest 与 execution-authority session：
+
+```bash
+cc cowork workflow versions <workflow-id> --json
+cc cowork workflow manifest <workflow-id> --json
+cc cowork workflow preflight <workflow-id> --definition-digest sha256:<digest> --execution-authority-session <session-id> --json
+cc cowork workflow run <workflow-id> --definition-digest sha256:<digest> --execution-authority-session <session-id>
+```
+
+当前稳定版会验证保存的版本与运行参数；HEAD 在真正 dispatch 前再做一次动态准入属于 `0.164.0` 发布后源码增量。
+
+## 受治理插件市场
+
+面向远程 registry 的推荐顺序是：审目录、选候选、看升级影响、执行安装/升级，再回读已安装 bytes：
+
+```bash
+cc plugin catalog search-term --registry https://registry.example/plugins --strict --json
+cc plugin select plugin-name --registry https://registry.example/plugins --strict --json
+cc plugin impact plugin-name --registry https://registry.example/plugins --scope user --json
+cc plugin evidence plugin-name --scope user --strict --json
+```
+
+`--registry` 可重复，早出现的源只在版本相同的 tie-break 中优先；选择结果绑定完整 registry set。`--allow-insecure-registry` 只适合明确受信的隔离网络。catalog/search/impact 输出是证据投影，不是永久授权；安装或升级时仍会复验 publisher、digest、signature、SBOM、license、capability、dependency、policy 与审批状态。
+
+## 从系统剪贴板附图
+
+`0.164.0` 的交互式 Agent REPL 支持以下流程：
 
 1. 在截图工具、浏览器或图片应用中复制图片。
 2. 在 Agent REPL 输入 `/paste-image`；看到 `Image attached from clipboard` 后继续输入问题。
@@ -187,7 +232,7 @@ list_mcp_resource_templates {"server":"docs"}
 
 支持 PNG、JPEG、GIF 与 WebP。每张最多 20 MiB，每轮最多 4 张且总计不超过 40 MiB，读取超时 10 秒。Windows 使用系统 PowerShell；macOS 使用系统 `osascript`；Linux 需要有效 Wayland/X11 display，并安装 `wl-paste`（Wayland）或 `xclip`（X11）。剪贴板为空、类型不支持、magic bytes 不匹配、宿主工具缺失或超过上限时会明确失败，不会把错误内容发送给模型。
 
-最终 merge SHA `affafa7f0f6fede3274e503d2387ce493e74bfd0` 的专用三平台 host workflow `31813967006`、CLI CI `31810849262` 与 CLI Strict Sandbox `31810848956` 均成功。这证明当前主线源码边界，不改变 npm `0.163.8` tarball 内容；后续稳定版仍须在自己的最终 exact SHA 完成发布与公网回读。
+原始实现 merge SHA `affafa7f0f6fede3274e503d2387ce493e74bfd0` 的专用三平台 host workflow `31813967006`、CLI CI `31810849262` 与 CLI Strict Sandbox `31810848956` 均成功；后续 `0.164.0` exact-SHA 发布与公网回读已把它纳入稳定安装契约。
 
 ## 关键文件
 
@@ -205,6 +250,10 @@ list_mcp_resource_templates {"server":"docs"}
 - `packages/cli/src/lib/agent-team/`、`packages/cli/src/commands/team.js`：Agent Team、本地 authority、分布式 queue 与人工裁决。
 - `packages/cli/src/commands/team-merge-review.js`、`lib/agent-team/team-merge-review*.js`：`0.163.8` 的 file/hunk 审查、持久证据、原子发布与受控回滚。
 - `packages/cli/src/lib/plugin-runtime/`：插件安装、scope、来源与 sandbox 策略。
+- `packages/cli/src/lib/plugin-runtime/marketplace-*.js`：目录、候选选择、升级影响、制品回读与远程 artifact 证据。
+- `packages/cli/src/lib/permission-side-effect-center.js`、`scoped-permission-store.js`：实际副作用投影与 workspace-scoped 权威。
+- `packages/cli/src/lib/execution-location-*.js`、`dynamic-workflow-facade.js`：执行位置、无密钥 handoff 与 workflow definition/preflight/run admission。
+- `packages/cli/src/lib/background-agent-keeper-*.js`、`workers/background-agent-keeper.js`：后台 bootstrap/keeper cleanup authority。
 - `packages/cli/src/lib/plugin-usage-attribution.js`：插件调用归因。
 - `packages/cli/src/lib/skill-execution-authority.js`、`skill-execution-identity.js`：Skill 执行权威、外部 owner-private 状态与身份校验。
 - `packages/cli/src/lib/session-host-lease.js`、`session-anti-rollback-anchor.js`：发布后源码中的单宿主租约与会话 anti-rollback witness。
@@ -264,7 +313,7 @@ source 配置中的 `requiredBoundaries` 当前只接受 `filesystem` 和 `netwo
 
 ## 在 IDE 中查看质量、插件、Worktree 与 Agent Teams
 
-Open VSX 当前公开 VS Code `0.37.51`，JetBrains Marketplace 当前公开 `0.4.87`。生产建议搭配 CLI `0.163.8`：
+Open VSX 当前公开 VS Code `0.37.54`，JetBrains Marketplace 当前公开 `0.4.90`。生产建议搭配 CLI `0.164.0`：
 
 - 质量上下文只发送有界的测试结果、覆盖率与调试器快照，并标注新鲜度；VS Code Notebook 使用当前 notebook 的真实执行上下文。
 - Installation Doctor 会同时检查 Node/Java、managed CLI 与插件 registry 离线恢复状态，不从工作区目录探测可执行文件。
@@ -273,7 +322,7 @@ Open VSX 当前公开 VS Code `0.37.51`，JetBrains Marketplace 当前公开 `0.
 - Team Monitor 只读观察本地 v6 或 queue v1 原始状态；takeover、managed checkpoint recovery 与 side-effect adjudication 通过解析出的 CLI 执行，并绑定精确 authority digest、lease 和 evidence fence。IDE 不直接改写权威 JSON。
 - 用量视图显示真实工具耗时、观测重试与实际 provider/model 的脱敏 retry 原因。
 - Sessions Workbench 只消费 CLI-owned session projection，并按 exact revision 决定 resume、attach、delivery 与 remote-control 动作；可恢复 delivery 覆盖 GitHub、Gitee、configured remote 与 manual handoff，rewind/branch timeline 绑定 session、workspace、repository head、checkpoint revision 与 manifest digest。
-- VS Code `0.37.50` / JetBrains `0.4.86` 公开版新增 Automation Center，并继续认证 local/background/remote/team/workflow 五类 canonical session、artifact/PR 回读、独立 IDE 进程重启恢复及真实宿主聚合。
+- VS Code `0.37.54` / JetBrains `0.4.90` 公开版新增 Context Center 与权限/副作用证据，并继续认证 Automation Center、local/background/remote/team/workflow 五类 canonical session、artifact/PR 回读、独立 IDE 进程重启恢复及真实宿主聚合。
 
 ## 托管回滚与 Agent Team 边界
 
@@ -357,18 +406,18 @@ cc daemon scheduler adjudication show <occurrence-id>
 
 ## 故障排查
 
-| 症状                               | 排查与处理                                                                                                        |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `cc` 命令或帮助与源码不一致        | 比较 `cc --version` 与 `packages/cli/package.json`；源码运行使用 `node packages/cli/bin/chainlesschain.js --help` |
-| 后台 `attach` 只能跟随日志         | 检查 session 状态与本地控制通道；worker 已退出或通道不可用时降级为日志跟随是预期行为                              |
-| strict sandbox 启动即拒绝          | 运行 `cc doctor`，检查 Docker/bubblewrap/AppContainer 与平台证明；不要通过降低策略掩盖生产配置错误                |
-| checkpoint 显示 `partial` / `none` | 检查 writer 是否由 Broker 管理、是否位于声明 workspace，以及是否存在外部副作用                                    |
-| Team task 停在 adjudication        | 重新读取 status、authority digest、attempt 和 evidence，再显式 retry、accept 或 cancel                            |
-| Scheduler 出现 outcome-unknown 死信 | `0.163.7` 先停全部 host、排空 dispatch、外部核验，再执行 `adjudication show/decide`；禁止盲目重跑或直接改存储 |
-| pause/resume 提示 fence/revision conflict | 重新读取 `center-projection` 并使用最新 exact argv；不要复用旧投影或自行改 fence |
-| incident retry 被拒绝               | 只有与 scheduler dead letter 的 occurrence/job/run/fence/error code 全部匹配才可重试；manual incident 只能 cancel |
-| `CC_SKILL_DIRECT_HANDLER_BLOCKED`  | 当前 production 不执行 direct handler；改用受支持的隔离 Skill 工具，不要修改 handler 绕过检查                     |
-| 会话或预算状态异常                 | 在同一 `CHAINLESSCHAIN_HOME` 下检查 session JSONL、状态日志和目录权限，避免混用多个运行目录                       |
+| 症状                                      | 排查与处理                                                                                                        |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `cc` 命令或帮助与源码不一致               | 比较 `cc --version` 与 `packages/cli/package.json`；源码运行使用 `node packages/cli/bin/chainlesschain.js --help` |
+| 后台 `attach` 只能跟随日志                | 检查 session 状态与本地控制通道；worker 已退出或通道不可用时降级为日志跟随是预期行为                              |
+| strict sandbox 启动即拒绝                 | 运行 `cc doctor`，检查 Docker/bubblewrap/AppContainer 与平台证明；不要通过降低策略掩盖生产配置错误                |
+| checkpoint 显示 `partial` / `none`        | 检查 writer 是否由 Broker 管理、是否位于声明 workspace，以及是否存在外部副作用                                    |
+| Team task 停在 adjudication               | 重新读取 status、authority digest、attempt 和 evidence，再显式 retry、accept 或 cancel                            |
+| Scheduler 出现 outcome-unknown 死信       | `0.163.7` 先停全部 host、排空 dispatch、外部核验，再执行 `adjudication show/decide`；禁止盲目重跑或直接改存储     |
+| pause/resume 提示 fence/revision conflict | 重新读取 `center-projection` 并使用最新 exact argv；不要复用旧投影或自行改 fence                                  |
+| incident retry 被拒绝                     | 只有与 scheduler dead letter 的 occurrence/job/run/fence/error code 全部匹配才可重试；manual incident 只能 cancel |
+| `CC_SKILL_DIRECT_HANDLER_BLOCKED`         | 当前 production 不执行 direct handler；改用受支持的隔离 Skill 工具，不要修改 handler 绕过检查                     |
+| 会话或预算状态异常                        | 在同一 `CHAINLESSCHAIN_HOME` 下检查 session JSONL、状态日志和目录权限，避免混用多个运行目录                       |
 
 ## 测试覆盖
 
@@ -381,7 +430,7 @@ npm run test:integration
 npm run test:e2e
 ```
 
-`0.163.8` 的权威发布提交为 [`a0631cb4f97f45ff7fcef9c19d346ed2b8387da6`](https://github.com/chainlesschain/chainlesschain/commit/a0631cb4f97f45ff7fcef9c19d346ed2b8387da6)。同一 `head_sha` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31804468633)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31804468464)、[npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/31806101423)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/31807574517)均成功。npm 公网回读为 `latest=0.163.8`，tarball SHA-1 为 `655557b5c5b897b23a29975708abbf8d5cd31e88`，SHA-256 为 `862a0f450da013740a1c21d084233b002982b4b816f156e4949b6110eda80e12`。Linux、Windows、macOS 的权威矩阵必须绑定精确提交；本地结果和发布后源码门只能补充，不能替代发布授权。
+`0.164.0` 的权威发布提交为 [`313dec85cffa09dbb183be17d2b6597e303bed5f`](https://github.com/chainlesschain/chainlesschain/commit/313dec85cffa09dbb183be17d2b6597e303bed5f)。同一 `head_sha` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31912844177)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31912844034)、[npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/31912844032)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/31913903124)均成功。npm 公网回读为 `latest=0.164.0`，tarball SHA-1 为 `2d13836305c6841b7fe5bcd059bc8ef25127fc3d`，SHA-256 为 `4d7f36f11bd2bfc1b85eee87392b74bd948e7cc33698cd35c87bff72fb3b4c16`。Linux、Windows、macOS 的权威矩阵必须绑定精确提交；本地结果和发布后源码门只能补充，不能替代发布授权。
 
 ## 相关文档
 
