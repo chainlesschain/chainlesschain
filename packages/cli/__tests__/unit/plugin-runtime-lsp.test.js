@@ -24,6 +24,7 @@ let cwd;
 function installLspPlugin(scope, name, lsp, { manifest = {} } = {}) {
   const dir = pluginVersionDir(scope, name, "1.0.0", { cwd });
   fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(path.dirname(dir), ".active"), "1.0.0", "utf8");
   fs.writeFileSync(
     path.join(dir, "plugin.json"),
     JSON.stringify({ name, version: "1.0.0", ...manifest }),

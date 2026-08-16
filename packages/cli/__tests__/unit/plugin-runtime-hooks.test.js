@@ -23,6 +23,7 @@ const originalReadFileSync = pluginHookDeps.readFileSync;
 function installHookPlugin(scope, name, hooksJson, { manifest = {} } = {}) {
   const dir = pluginVersionDir(scope, name, "1.0.0", { cwd });
   fs.mkdirSync(path.join(dir, "hooks"), { recursive: true });
+  fs.writeFileSync(path.join(path.dirname(dir), ".active"), "1.0.0", "utf8");
   fs.writeFileSync(
     path.join(dir, "plugin.json"),
     JSON.stringify({ name, version: "1.0.0", ...manifest }),
@@ -342,6 +343,7 @@ describe("collectPluginHooks", () => {
     // hooks silently never fire.
     const dir = pluginVersionDir("local", "inlinehooks", "1.0.0", { cwd });
     fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(path.dirname(dir), ".active"), "1.0.0", "utf8");
     fs.writeFileSync(
       path.join(dir, "plugin.json"),
       JSON.stringify({

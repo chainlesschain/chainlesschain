@@ -7,9 +7,18 @@ import {
 } from "../../src/lib/doctor-checkup.js";
 import { _deps as registryDeps } from "../../src/lib/lsp/lsp-server-registry.js";
 import { getConfigPath, getHomeDir } from "../../src/lib/paths.js";
+import { installFromDirectory } from "../../src/lib/plugin-runtime/install.js";
 import { join } from "node:path";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
+import { generateKeyPairSync, sign as signBytes } from "node:crypto";
 
 /** Dir-agnostic fake fs deps: nothing exists except what the test opts into. */
 function fakeDeps(overrides = {}) {
@@ -50,6 +59,175 @@ describe("doctor-checkup", () => {
       for (const c of s.checks) {
         expect(Object.values(CHECK_LEVELS)).toContain(c.level);
       }
+    }
+  });
+
+  it("recognizes installer-verified signature material in plugin health", async () => {
+    const previousHome = process.env.CHAINLESSCHAIN_HOME;
+    const root = mkdtempSync(join(tmpdir(), "cc-doctor-signed-plugin-"));
+    const cwd = join(root, "project");
+    const source = join(root, "source");
+    process.env.CHAINLESSCHAIN_HOME = join(root, "home");
+    mkdirSync(cwd, { recursive: true });
+    mkdirSync(source, { recursive: true });
+    const manifest = Buffer.from(
+      JSON.stringify({ name: "doctor-signed", version: "1.0.0" }),
+      "utf8",
+    );
+    writeFileSync(join(source, "plugin.json"), manifest);
+    const { privateKey, publicKey } = generateKeyPairSync("ed25519");
+    const signatureFile = join(root, "manifest.sig");
+    const publicKeyFile = join(root, "public.pem");
+    writeFileSync(signatureFile, signBytes(null, manifest, privateKey));
+    writeFileSync(
+      publicKeyFile,
+      publicKey.export({ type: "spki", format: "pem" }),
+    );
+
+    try {
+      installFromDirectory(source, {
+        scope: "project",
+        cwd,
+        signature: {
+          signatureFile,
+          publicKeyFile,
+          requireSignature: true,
+        },
+      });
+      const sections = await collectCheckupSections({ deps: fakeDeps(), cwd });
+      const finding = sections
+        .find((section) => section.id === "plugins")
+        .checks.find((entry) => entry.id === "plugins");
+      expect(finding).toMatchObject({ level: CHECK_LEVELS.OK });
+      expect(finding.detail).toContain(
+        "all active plugins have signature locks",
+      );
+    } finally {
+      if (previousHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+      else process.env.CHAINLESSCHAIN_HOME = previousHome;
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("surfaces runtime-blocked plugin rows instead of counting inspected bytes as active", async () => {
+    const previousHome = process.env.CHAINLESSCHAIN_HOME;
+    const root = mkdtempSync(join(tmpdir(), "cc-doctor-blocked-plugin-"));
+    const cwd = join(root, "project");
+    const source = join(root, "source");
+    process.env.CHAINLESSCHAIN_HOME = join(root, "home");
+    mkdirSync(cwd, { recursive: true });
+    mkdirSync(source, { recursive: true });
+    writeFileSync(
+      join(source, "plugin.json"),
+      JSON.stringify({ name: "doctor-blocked", version: "1.0.0" }),
+      "utf8",
+    );
+
+    try {
+      const installed = installFromDirectory(source, {
+        scope: "project",
+        cwd,
+      });
+      rmSync(join(installed.dir, "plugin.json"));
+      const sections = await collectCheckupSections({ deps: fakeDeps(), cwd });
+      const finding = sections
+        .find((section) => section.id === "plugins")
+        .checks.find((entry) => entry.id === "plugins");
+      expect(finding).toMatchObject({ level: CHECK_LEVELS.WARN });
+      expect(finding.detail).toContain("runtime blocked: doctor-blocked");
+      expect(finding.detail).toContain("manifest-invalid");
+    } finally {
+      if (previousHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+      else process.env.CHAINLESSCHAIN_HOME = previousHome;
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("reports retained install recovery state as blocked management debt", async () => {
+    const previousHome = process.env.CHAINLESSCHAIN_HOME;
+    const root = mkdtempSync(join(tmpdir(), "cc-doctor-plugin-recovery-"));
+    const cwd = join(root, "project");
+    const source = join(root, "source");
+    process.env.CHAINLESSCHAIN_HOME = join(root, "home");
+    mkdirSync(cwd, { recursive: true });
+    mkdirSync(source, { recursive: true });
+    writeFileSync(
+      join(source, "plugin.json"),
+      JSON.stringify({ name: "doctor-recovery", version: "1.0.0" }),
+      "utf8",
+    );
+
+    try {
+      const installed = installFromDirectory(source, {
+        scope: "project",
+        cwd,
+      });
+      const recoveryRoot = join(join(installed.dir, ".."), ".install-retained");
+      mkdirSync(recoveryRoot);
+      const previous = join(recoveryRoot, "previous");
+      renameSync(installed.dir, previous);
+
+      const sections = await collectCheckupSections({ deps: fakeDeps(), cwd });
+      const finding = sections
+        .find((section) => section.id === "plugins")
+        .checks.find((entry) => entry.id === "plugins");
+      expect(finding).toMatchObject({ level: CHECK_LEVELS.WARN });
+      expect(finding.detail).toContain("runtime blocked: doctor-recovery");
+      expect(finding.detail).toContain("recovery-required");
+    } finally {
+      if (previousHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+      else process.env.CHAINLESSCHAIN_HOME = previousHome;
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("reports retained recovery even when the raw active pointer is valid", async () => {
+    const previousHome = process.env.CHAINLESSCHAIN_HOME;
+    const root = mkdtempSync(join(tmpdir(), "cc-doctor-active-recovery-"));
+    const cwd = join(root, "project");
+    const source = join(root, "source");
+    process.env.CHAINLESSCHAIN_HOME = join(root, "home");
+    mkdirSync(cwd, { recursive: true });
+    mkdirSync(source, { recursive: true });
+    writeFileSync(
+      join(source, "plugin.json"),
+      JSON.stringify({ name: "doctor-active-recovery", version: "1.0.0" }),
+      "utf8",
+    );
+
+    try {
+      const installed = installFromDirectory(source, {
+        scope: "project",
+        cwd,
+      });
+      const recoveryRoot = join(
+        join(installed.dir, ".."),
+        ".install-retained",
+        "previous",
+      );
+      mkdirSync(recoveryRoot, { recursive: true });
+      writeFileSync(
+        join(recoveryRoot, "plugin.json"),
+        JSON.stringify({
+          name: "doctor-active-recovery",
+          version: "1.0.0",
+        }),
+        "utf8",
+      );
+
+      const sections = await collectCheckupSections({ deps: fakeDeps(), cwd });
+      const finding = sections
+        .find((section) => section.id === "plugins")
+        .checks.find((entry) => entry.id === "plugins");
+      expect(finding).toMatchObject({ level: CHECK_LEVELS.WARN });
+      expect(finding.detail).toContain(
+        "runtime blocked: doctor-active-recovery",
+      );
+      expect(finding.detail).toContain("retained install recovery");
+    } finally {
+      if (previousHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+      else process.env.CHAINLESSCHAIN_HOME = previousHome;
+      rmSync(root, { recursive: true, force: true });
     }
   });
 

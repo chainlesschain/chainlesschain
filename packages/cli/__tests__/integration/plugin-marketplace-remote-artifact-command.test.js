@@ -1202,6 +1202,59 @@ describe("cc plugin remote marketplace artifact journey", () => {
     ).toBe("drift\n");
   });
 
+  it("rejects a blocked active pointer before marketplace artifact fetch", async () => {
+    sbomDeclarationMode = "payload-bound";
+    prepareRegistryVersion(PLUGIN_VERSION);
+    const installedV1 = await run(
+      "add",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--scope",
+      "project",
+      "--json",
+    );
+    expect(installedV1.exitCode, installedV1.stderr).toBe(0);
+
+    const [installed] = listInstalled({ cwd, scopes: ["project"] });
+    const activeFile = path.join(path.dirname(installed.dir), ".active");
+    fs.writeFileSync(activeFile, "9.9.9", "utf8");
+    prepareRegistryVersion("2.0.0");
+
+    requestUrls = [];
+    const impactRun = await run(
+      "impact",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--scope",
+      "project",
+      "--json",
+    );
+    expect(impactRun.exitCode).toBe(1);
+    expect(impactRun.stderr).toMatch(
+      /INSTALLED_PLUGIN_RUNTIME_BLOCKED.*dangling/,
+    );
+    expect(requestedPathnames()).toEqual(["/registry.json"]);
+
+    requestUrls = [];
+    const rejected = await run(
+      "upgrade",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--scope",
+      "project",
+      "--json",
+    );
+    expect(rejected.exitCode).toBe(1);
+    expect(rejected.stderr).toMatch(
+      /INSTALLED_PLUGIN_RUNTIME_BLOCKED.*dangling/,
+    );
+    expect(requestedPathnames()).toEqual(["/registry.json"]);
+    expect(fs.readFileSync(activeFile, "utf8")).toBe("9.9.9");
+  });
+
   it("blocks a complete v1 binding whose evidence and comparison were deleted before artifact fetch", async () => {
     sbomDeclarationMode = "payload-bound-v1";
     prepareRegistryVersion(PLUGIN_VERSION);

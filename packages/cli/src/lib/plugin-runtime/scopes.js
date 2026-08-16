@@ -16,7 +16,9 @@
  *
  * so an in-flight session keeps running its version even while another is
  * installed. The active version per (scope,name) is the one named by a
- * `.active` file, or the highest semver present if none is set.
+ * `.active` file. Missing, unreadable, or dangling pointers fail closed instead
+ * of silently selecting another payload; legacy directories must be repaired
+ * by a reviewed install/use flow.
  */
 
 import fs from "fs";
@@ -38,7 +40,10 @@ export const _deps = {
   readdirSync: fs.readdirSync,
   readFileSync: fs.readFileSync,
   statSync: fs.statSync,
+  lstatSync: fs.lstatSync,
 };
+
+const MAX_ACTIVE_POINTER_BYTES = 256;
 
 // Lowest → highest precedence.
 export const SCOPES = ["user", "project", "local"];
@@ -46,7 +51,11 @@ export const DISABLED_FILENAME = ".disabled";
 
 /** Filesystem-safe encoding of a (possibly scoped, e.g. @org/name) plugin name. */
 export function encodeName(name) {
-  return String(name || "").replace(/[^a-zA-Z0-9._-]/g, "__");
+  const encoded = String(name || "").replace(/[^a-zA-Z0-9._-]/g, "__");
+  if (!encoded || encoded === "." || encoded === "..") {
+    throw new Error(`invalid plugin name: ${String(name || "")}`);
+  }
+  return encoded;
 }
 
 /**
@@ -75,13 +84,21 @@ export function pluginNameDir(scope, name, opts = {}) {
 
 /** Immutable install dir for a specific plugin version. */
 export function pluginVersionDir(scope, name, version, opts = {}) {
-  return path.join(pluginNameDir(scope, name, opts), String(version));
+  const value = String(version || "");
+  if (!semver.valid(value)) {
+    throw new Error(`invalid plugin version: ${value}`);
+  }
+  return path.join(pluginNameDir(scope, name, opts), value);
 }
 
 /** Versions present on disk for a plugin, newest semver first. */
 export function listInstalledVersions(scope, name, opts = {}) {
   const dir = pluginNameDir(scope, name, opts);
   if (!dirExists(dir)) return [];
+  return listVersionsForDir(dir);
+}
+
+function listVersionsForDir(dir) {
   return _deps
     .readdirSync(dir, { withFileTypes: true })
     .filter((e) => e.isDirectory())
@@ -90,20 +107,53 @@ export function listInstalledVersions(scope, name, opts = {}) {
     .sort(semver.rcompare);
 }
 
-/** The active version for a plugin: `.active` file if valid, else highest semver. */
-export function activeVersion(scope, name, opts = {}) {
-  const versions = listInstalledVersions(scope, name, opts);
-  if (versions.length === 0) return null;
-  const activeFile = path.join(pluginNameDir(scope, name, opts), ".active");
-  if (_deps.existsSync(activeFile)) {
-    try {
-      const pinned = _deps.readFileSync(activeFile, "utf8").trim();
-      if (versions.includes(pinned)) return pinned;
-    } catch {
-      /* fall through to highest */
-    }
+/** Inspect pointer authority without silently selecting another payload. */
+export function inspectActivePointer(scope, name, opts = {}) {
+  return inspectActivePointerForDir(pluginNameDir(scope, name, opts), {
+    strictIo: opts.strictIo === true,
+  });
+}
+
+function inspectActivePointerForDir(nameDir, { strictIo = false } = {}) {
+  if (!dirExists(nameDir, strictIo)) {
+    return { status: "absent", version: null, versions: [] };
   }
-  return versions[0];
+  const versions = listVersionsForDir(nameDir);
+  if (versions.length === 0) {
+    return { status: "absent", version: null, versions };
+  }
+  const activeFile = path.join(nameDir, ".active");
+  if (!_deps.existsSync(activeFile)) {
+    return { status: "missing", version: null, versions };
+  }
+  let pinned;
+  try {
+    const stat = _deps.lstatSync(activeFile);
+    if (!stat.isFile() || stat.size > MAX_ACTIVE_POINTER_BYTES) {
+      return { status: "unsafe", version: null, versions };
+    }
+    pinned = _deps.readFileSync(activeFile, "utf8").trim();
+  } catch (error) {
+    if (strictIo) throw error;
+    return {
+      status: "unreadable",
+      version: null,
+      versions,
+      errorCode: error?.code || null,
+    };
+  }
+  if (!semver.valid(pinned)) {
+    return { status: "corrupt", version: null, versions };
+  }
+  if (!versions.includes(pinned)) {
+    return { status: "dangling", version: null, versions, pinned };
+  }
+  return { status: "valid", version: pinned, versions };
+}
+
+/** The active version for a plugin; invalid/missing authority fails closed. */
+export function activeVersion(scope, name, opts = {}) {
+  return inspectActivePointer(scope, name, opts).version;
 }
 
 /** Whether one scoped plugin install is eligible for runtime discovery. */
@@ -140,8 +190,16 @@ export function discoverPlugins(opts = {}) {
   ) {
     return [];
   }
-  const scopes = opts.scopes || SCOPES;
+  const requestedScopes = new Set(opts.scopes || SCOPES);
+  for (const requested of requestedScopes) {
+    if (!SCOPES.includes(requested)) {
+      throw new Error(`unknown plugin scope: ${requested}`);
+    }
+  }
+  // A caller may select a subset, but cannot reverse canonical precedence.
+  const scopes = SCOPES.filter((scope) => requestedScopes.has(scope));
   const byName = new Map(); // name → record (later scope overrides earlier)
+  const nameByEncoded = new Map();
   for (const scope of scopes) {
     const root = scopeRoot(scope, opts);
     if (!dirExists(root, opts.strictIo === true)) continue;
@@ -149,8 +207,59 @@ export function discoverPlugins(opts = {}) {
       const nameDir = path.join(root, encoded);
       const enabled = !_deps.existsSync(path.join(nameDir, DISABLED_FILENAME));
       if (!enabled && opts.includeDisabled !== true) continue;
-      const version = activeVersionForDir(nameDir, opts.strictIo === true);
-      if (!version) continue;
+      const pointer = inspectActivePointerForDir(nameDir, {
+        strictIo: opts.strictIo === true,
+      });
+      const version = pointer.version;
+      if (!version) {
+        const recovery = findRecoveryInspection(nameDir, encoded);
+        const pointerStatus = recovery ? "recovery-required" : pointer.status;
+        // A broken higher-precedence install reserves its encoded identity.
+        // Falling through would silently activate lower-scope bytes. Remove
+        // only that name; unrelated plugins remain discoverable.
+        const shadowedName = nameByEncoded.get(encoded);
+        if (shadowedName) byName.delete(shadowedName);
+        nameByEncoded.delete(encoded);
+        opts.onBlocked?.({
+          scope,
+          encodedName: encoded,
+          pointerStatus,
+          versions: [...pointer.versions],
+        });
+        if (
+          opts.includeBlocked === true &&
+          (pointer.versions.length > 0 || recovery)
+        ) {
+          const inspectionVersion = recovery?.version || pointer.versions[0];
+          const inspectionRoot =
+            recovery?.root ||
+            (inspectionVersion
+              ? path.join(nameDir, inspectionVersion)
+              : recovery?.transactionRoot);
+          const inspectionManifest =
+            recovery?.manifest || parsePluginManifest(inspectionRoot);
+          inspectionManifest.scope = scope;
+          const inspectedName =
+            inspectionManifest.ok === true &&
+            encodeName(inspectionManifest.metadata?.name) === encoded
+              ? inspectionManifest.metadata.name
+              : shadowedName || encoded;
+          nameByEncoded.set(encoded, inspectedName);
+          byName.set(inspectedName, {
+            scope,
+            name: inspectedName,
+            version: null,
+            inspectionVersion,
+            root: inspectionRoot,
+            manifest: inspectionManifest,
+            enabled,
+            runtimeBlocked: true,
+            pointerStatus,
+            recoveryRoot: recovery?.root || recovery?.transactionRoot || null,
+          });
+        }
+        continue;
+      }
       const versionDir = path.join(nameDir, version);
       const manifest = parsePluginManifest(versionDir);
       if (opts.strictIo === true && manifest.ok !== true) {
@@ -160,8 +269,69 @@ export function discoverPlugins(opts = {}) {
           }`,
         );
       }
+      const manifestName = manifest.metadata?.name || null;
+      if (manifest.ok !== true || encodeName(manifestName) !== encoded) {
+        const shadowedName = nameByEncoded.get(encoded);
+        if (shadowedName) byName.delete(shadowedName);
+        nameByEncoded.delete(encoded);
+        const pointerStatus =
+          manifest.ok === true ? "identity-mismatch" : "manifest-invalid";
+        opts.onBlocked?.({
+          scope,
+          encodedName: encoded,
+          pointerStatus,
+          versions: [...pointer.versions],
+        });
+        if (opts.includeBlocked === true) {
+          const inspectedName = shadowedName || encoded;
+          nameByEncoded.set(encoded, inspectedName);
+          byName.set(inspectedName, {
+            scope,
+            name: inspectedName,
+            version: null,
+            inspectionVersion: version,
+            root: versionDir,
+            manifest,
+            enabled,
+            runtimeBlocked: true,
+            pointerStatus,
+          });
+        }
+        continue;
+      }
       manifest.scope = scope;
-      const name = manifest.metadata?.name || encoded;
+      const name = manifestName;
+      const retainedRecovery = findRecoveryInspection(nameDir, encoded);
+      const priorForEncoded = nameByEncoded.get(encoded);
+      if (priorForEncoded && priorForEncoded !== name) {
+        byName.delete(priorForEncoded);
+      }
+      nameByEncoded.set(encoded, name);
+      if (retainedRecovery && opts.allowRetainedInstall !== true) {
+        if (priorForEncoded) byName.delete(priorForEncoded);
+        opts.onBlocked?.({
+          scope,
+          encodedName: encoded,
+          pointerStatus: "recovery-required",
+          versions: [...pointer.versions],
+        });
+        if (opts.includeBlocked === true) {
+          byName.set(name, {
+            scope,
+            name,
+            version: null,
+            inspectionVersion: version,
+            root: versionDir,
+            manifest,
+            enabled,
+            runtimeBlocked: true,
+            pointerStatus: "recovery-required",
+            recoveryRoot:
+              retainedRecovery.root || retainedRecovery.transactionRoot,
+          });
+        }
+        continue;
+      }
       byName.set(name, {
         scope,
         name,
@@ -169,6 +339,10 @@ export function discoverPlugins(opts = {}) {
         root: versionDir,
         manifest,
         enabled,
+        runtimeBlocked: false,
+        pointerStatus: "valid",
+        recoveryRoot:
+          retainedRecovery?.root || retainedRecovery?.transactionRoot || null,
       });
     }
   }
@@ -206,28 +380,6 @@ export function discoverPlugins(opts = {}) {
 
 // ── internals ────────────────────────────────────────────────────────────
 
-function activeVersionForDir(nameDir, strictIo = false) {
-  if (!dirExists(nameDir, strictIo)) return null;
-  const versions = _deps
-    .readdirSync(nameDir, { withFileTypes: true })
-    .filter((e) => e.isDirectory())
-    .map((e) => e.name)
-    .filter((v) => semver.valid(v))
-    .sort(semver.rcompare);
-  if (versions.length === 0) return null;
-  const activeFile = path.join(nameDir, ".active");
-  if (_deps.existsSync(activeFile)) {
-    try {
-      const pinned = _deps.readFileSync(activeFile, "utf8").trim();
-      if (versions.includes(pinned)) return pinned;
-    } catch (error) {
-      if (strictIo) throw error;
-      /* fall through */
-    }
-  }
-  return versions[0];
-}
-
 function dirExists(dir, strictIo = false) {
   try {
     return _deps.existsSync(dir) && _deps.statSync(dir).isDirectory();
@@ -235,6 +387,79 @@ function dirExists(dir, strictIo = false) {
     if (strictIo) throw error;
     return false;
   }
+}
+
+function findRecoveryInspection(nameDir, encodedName) {
+  let entries;
+  try {
+    entries = _deps
+      .readdirSync(nameDir, { withFileTypes: true })
+      .filter(
+        (entry) =>
+          entry.isDirectory() &&
+          (entry.name.startsWith(".install-") ||
+            entry.name.startsWith(".uninstall-")),
+      )
+      .sort((left, right) => right.name.localeCompare(left.name));
+  } catch {
+    return null;
+  }
+
+  let fallback = null;
+  for (const entry of entries.slice(0, 64)) {
+    const transactionRoot = path.join(nameDir, entry.name);
+    try {
+      const transactionStat = _deps.lstatSync(transactionRoot);
+      if (transactionStat.isSymbolicLink() || !transactionStat.isDirectory()) {
+        continue;
+      }
+    } catch {
+      continue;
+    }
+    if (!fallback) {
+      fallback = {
+        root: null,
+        version: null,
+        manifest: null,
+        transactionRoot,
+      };
+    }
+    let recoveryChildren = ["previous", "rejected", "staged"];
+    if (entry.name.startsWith(".uninstall-")) {
+      try {
+        recoveryChildren = _deps
+          .readdirSync(transactionRoot, { withFileTypes: true })
+          .filter((child) => child.isDirectory() && semver.valid(child.name))
+          .map((child) => child.name)
+          .sort(semver.rcompare);
+      } catch {
+        recoveryChildren = [];
+      }
+    }
+    for (const child of recoveryChildren) {
+      const root = path.join(transactionRoot, child);
+      let stat;
+      try {
+        stat = _deps.lstatSync(root);
+      } catch {
+        continue;
+      }
+      if (stat.isSymbolicLink() || !stat.isDirectory()) continue;
+      const manifest = parsePluginManifest(root);
+      const version = semver.valid(manifest.metadata?.version)
+        ? manifest.metadata.version
+        : null;
+      const candidate = { root, version, manifest, transactionRoot };
+      if (!fallback?.root) fallback = candidate;
+      if (
+        manifest.ok === true &&
+        encodeName(manifest.metadata?.name) === encodedName
+      ) {
+        return candidate;
+      }
+    }
+  }
+  return fallback;
 }
 
 function listDirs(dir, strictIo = false) {

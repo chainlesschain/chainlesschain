@@ -123,7 +123,9 @@ export function parsePluginManifest(root) {
   // ── metadata ──
   const name = typeof manifest.name === "string" ? manifest.name.trim() : "";
   if (!name) errors.push("manifest.name is required");
-  else if (!/^[a-zA-Z0-9._@/-]+$/.test(name)) {
+  else if (name === "." || name === "..") {
+    errors.push(`manifest.name is unsafe: "${name}"`);
+  } else if (!/^[a-zA-Z0-9._@/-]+$/.test(name)) {
     errors.push(`manifest.name has invalid characters: "${name}"`);
   }
   const version =

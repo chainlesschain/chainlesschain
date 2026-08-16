@@ -26,6 +26,7 @@ function installStrictNodeBin() {
   const root = pluginVersionDir("local", "strict-bin", "1.0.0", { cwd });
   const target = path.join(root, "bin", "strict-tool.js");
   fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.writeFileSync(path.join(path.dirname(root), ".active"), "1.0.0", "utf8");
   fs.writeFileSync(target, "process.stdout.write('real target');\n", "utf8");
   fs.writeFileSync(
     path.join(root, "plugin.json"),
@@ -47,6 +48,7 @@ function installStrictNativeBin() {
   const root = pluginVersionDir("local", "strict-native", "1.0.0", { cwd });
   const target = path.join(root, "bin", "strict-native-tool");
   fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.writeFileSync(path.join(path.dirname(root), ".active"), "1.0.0", "utf8");
   const elfHeader = Buffer.alloc(64);
   elfHeader.set([0x7f, 0x45, 0x4c, 0x46, 2, 1, 1, 0]);
   elfHeader.writeUInt16LE(2, 16);
@@ -83,6 +85,7 @@ function installMalformedPlugin() {
     cwd,
   });
   fs.mkdirSync(root, { recursive: true });
+  fs.writeFileSync(path.join(path.dirname(root), ".active"), "1.0.0", "utf8");
   fs.writeFileSync(path.join(root, "plugin.json"), "{", "utf8");
 }
 

@@ -354,9 +354,12 @@ async function installedCatalogAuthorityMatches(
   if (!preflight) return null;
   try {
     const { listInstalled } = await import("../lib/plugin-runtime/install.js");
-    const installed = listInstalled({ cwd, scopes: [scope] }).find(
-      (row) => row.name === name && row.scope === scope,
-    );
+    const installed = listInstalled({
+      cwd,
+      scopes: [scope],
+      allowRetainedInstall: true,
+    }).find((row) => row.name === name && row.scope === scope);
+    if (installed?.runtimeBlocked === true) return false;
     const authority = installed?.source?.catalogAuthority;
     return (
       authority?.catalogDigest === preflight.catalogDigest &&
@@ -388,6 +391,11 @@ async function buildInstalledMarketplaceSnapshot(name, scope, cwd) {
     (candidate) => candidate.name === name && candidate.scope === scope,
   );
   if (!row) return null;
+  if (row.runtimeBlocked === true) {
+    throw new Error(
+      `INSTALLED_PLUGIN_RUNTIME_BLOCKED (${row.activePointer?.status || "unknown"})`,
+    );
+  }
   const installedSource = readSourceMetadataStrict(row.dir, {
     required: true,
     requireRegistryAuthority: true,
@@ -527,9 +535,11 @@ async function resolvePluginCapabilityNotice(
     const { describeCapabilities } =
       await import("../lib/plugin-runtime/capabilities.js");
     const consent = await import("../lib/plugin-runtime/capability-consent.js");
-    const installed = discoverPlugins({ cwd, skipPolicy: true }).find(
-      (p) => p.name === name && p.scope === scope,
-    );
+    const installed = discoverPlugins({
+      cwd,
+      skipPolicy: true,
+      allowRetainedInstall: true,
+    }).find((p) => p.name === name && p.scope === scope);
     if (!installed) {
       if (strict) {
         throw new Error(`${name} is not discoverable at ${scope} scope`);
@@ -622,9 +632,11 @@ async function grantInstalledPluginCapabilities(name, scope, cwd) {
   try {
     const { discoverPlugins } = await import("../lib/plugin-runtime/scopes.js");
     const consent = await import("../lib/plugin-runtime/capability-consent.js");
-    const installed = discoverPlugins({ cwd, skipPolicy: true }).find(
-      (p) => p.name === name && p.scope === scope,
-    );
+    const installed = discoverPlugins({
+      cwd,
+      skipPolicy: true,
+      allowRetainedInstall: true,
+    }).find((p) => p.name === name && p.scope === scope);
     if (!installed) return false;
     const declared = installed.manifest?.capabilities;
     if (!declared || consent.capabilitiesAreEmpty(declared)) return false;
@@ -1619,6 +1631,7 @@ export function registerPluginCommand(program) {
       let res = null;
       let marketplaceTransactionFinalized = false;
       let marketplaceCleanupPending = false;
+      let marketplaceCleanupPath = null;
       try {
         res = installFromSource(installSource, {
           scope: options.scope,
@@ -1684,6 +1697,7 @@ export function registerPluginCommand(program) {
               );
             }
             marketplaceCleanupPending = finalization.cleanupPending === true;
+            marketplaceCleanupPath = finalization.cleanupPath || null;
             marketplaceTransactionFinalized = true;
           }
           console.log(
@@ -1694,6 +1708,9 @@ export function registerPluginCommand(program) {
                 marketplaceImpact,
                 marketplaceAuthorityPersisted,
                 marketplaceCleanupPending,
+                cleanupPending:
+                  res.cleanupPending === true || marketplaceCleanupPending,
+                cleanupPath: res.cleanupPath || marketplaceCleanupPath,
                 capabilities: capNotice,
                 capabilitiesGranted,
               },
@@ -1720,6 +1737,7 @@ export function registerPluginCommand(program) {
               );
             }
             marketplaceCleanupPending = finalization.cleanupPending === true;
+            marketplaceCleanupPath = finalization.cleanupPath || null;
             marketplaceTransactionFinalized = true;
           }
           logger.success(
@@ -1741,6 +1759,11 @@ export function registerPluginCommand(program) {
               );
             }
           }
+          if (res.cleanupPending === true || marketplaceCleanupPending) {
+            logger.warn(
+              `Install committed; inert cleanup remains at ${res.cleanupPath || marketplaceCleanupPath || "an internal cleanup directory"} and will be retried on the next mutation`,
+            );
+          }
           for (const w of res.warnings || [])
             logger.log(chalk.yellow(`  ⚠ ${w}`));
         }
@@ -1753,6 +1776,9 @@ export function registerPluginCommand(program) {
               recoveryNote = recovery.version
                 ? `; restored v${recovery.version}`
                 : "; removed the rejected install";
+              if (recovery.cleanupPending) {
+                recoveryNote += `; inert cleanup retained at ${recovery.cleanupPath || "an internal cleanup directory"}`;
+              }
             }
           } catch (recoveryError) {
             recoveryNote = `; automatic recovery failed: ${recoveryError.message}`;
@@ -2216,6 +2242,17 @@ export function registerPluginCommand(program) {
         await import("../lib/plugin-runtime/trust.js");
       logger.log(chalk.bold(`Installed plugins (${rows.length}):`));
       for (const r of rows) {
+        if (r.runtimeBlocked === true) {
+          const status = r.activePointer?.status || "unknown";
+          const inspectionVersion = r.activePointer?.inspectionVersion;
+          const inspection = inspectionVersion
+            ? `, inspect=v${inspectionVersion}`
+            : "";
+          logger.log(
+            `  ${chalk.red("!")} ${chalk.cyan(r.name)} ${chalk.gray(`[${r.scope}]`)} ${chalk.red(`active=blocked (${status})`)}${inspection}`,
+          );
+          continue;
+        }
         const ok = r.ok ? chalk.green("✔") : chalk.red("✖");
         const trust = isPluginTrusted(r)
           ? chalk.green("trusted")
@@ -2268,6 +2305,11 @@ export function registerPluginCommand(program) {
         );
         if (!installed) {
           throw new Error(`${name} is not installed at ${options.scope} scope`);
+        }
+        if (installed.runtimeBlocked === true) {
+          throw new Error(
+            `${name} runtime is blocked by active pointer status ${installed.activePointer?.status || "unknown"}; repair it with plugin use before reading active evidence`,
+          );
         }
         const source = readSourceMetadataStrict(installed.dir, {
           required: true,
@@ -2717,13 +2759,29 @@ export function registerPluginCommand(program) {
     .description(`Uninstall a runtime plugin from a scope (${SCOPES})`)
     .option("--scope <scope>", "Scope to remove from", "user")
     .option("--version <version>", "Remove only this version (default: all)")
+    .option(
+      "--allow-source-switch",
+      "Approve a different-source fallback when removing the active version",
+    )
     .action(async (name, options) => {
-      const { uninstall } = await import("../lib/plugin-runtime/install.js");
+      const { listInstalled, uninstall } =
+        await import("../lib/plugin-runtime/install.js");
       try {
+        const blockedRow = listInstalled({
+          cwd: process.cwd(),
+          scopes: [options.scope],
+        }).find(
+          (row) =>
+            row.name === name &&
+            row.scope === options.scope &&
+            row.runtimeBlocked === true,
+        );
         const res = uninstall(name, {
           scope: options.scope,
           cwd: process.cwd(),
           version: options.version,
+          allowSourceSwitch: options.allowSourceSwitch === true,
+          allowBlockedIdentity: Boolean(blockedRow),
         });
         logger.success(
           `Uninstalled ${name} (${res.removed.join(", ") || "nothing"}) from ${options.scope} scope`,
@@ -3103,6 +3161,7 @@ export function registerPluginCommand(program) {
         let activationStatus = changed ? "activated" : "unchanged";
         let rollbackVersion = null;
         let cleanupPending = false;
+        let cleanupPath = null;
         if (rollbackReason) {
           const recovery = rollbackPluginUpdate(res);
           if (!recovery.rolledBack) {
@@ -3110,6 +3169,8 @@ export function registerPluginCommand(program) {
           }
           activationStatus = "rolled_back";
           rollbackVersion = recovery.version;
+          cleanupPending = recovery.cleanupPending === true;
+          cleanupPath = recovery.cleanupPath || null;
           marketplaceAuthorityPersisted =
             await installedCatalogAuthorityMatches(
               res.name,
@@ -3120,7 +3181,9 @@ export function registerPluginCommand(program) {
               remoteArtifacts?.authority || null,
             );
         } else {
-          cleanupPending = finalizePluginUpdate(res).cleanupPending === true;
+          const finalization = finalizePluginUpdate(res);
+          cleanupPending = finalization.cleanupPending === true;
+          cleanupPath = finalization.cleanupPath || null;
         }
 
         if (options.json) {
@@ -3138,6 +3201,7 @@ export function registerPluginCommand(program) {
                 rollbackVersion,
                 rollbackReason,
                 cleanupPending,
+                cleanupPath,
               },
               null,
               2,
@@ -3184,6 +3248,11 @@ export function registerPluginCommand(program) {
             `${res.name} is already up to date at v${res.version} (use --force to reinstall)`,
           );
         }
+        if (cleanupPending) {
+          logger.warn(
+            `Plugin state committed; inert cleanup remains at ${cleanupPath || "an internal cleanup directory"} and will be retried on the next mutation`,
+          );
+        }
       } catch (err) {
         let recoveryNote = "";
         if (res) {
@@ -3193,6 +3262,9 @@ export function registerPluginCommand(program) {
               recoveryNote = recovery.version
                 ? `; restored v${recovery.version}`
                 : "; removed the rejected install";
+              if (recovery.cleanupPending) {
+                recoveryNote += `; inert cleanup retained at ${recovery.cleanupPath || "an internal cleanup directory"}`;
+              }
             }
           } catch (recoveryError) {
             recoveryNote = `; automatic recovery failed: ${recoveryError.message}`;
@@ -3210,6 +3282,10 @@ export function registerPluginCommand(program) {
     .command("use <name> <version>")
     .description("Pin a plugin's active version (rollback or switch)")
     .option("--scope <scope>", "Scope", "user")
+    .option(
+      "--allow-source-switch",
+      "Approve activating an installed version from a different source",
+    )
     .action(async (name, version, options) => {
       const { setActiveVersion } =
         await import("../lib/plugin-runtime/install.js");
@@ -3217,6 +3293,7 @@ export function registerPluginCommand(program) {
         setActiveVersion(name, version, {
           scope: options.scope,
           cwd: process.cwd(),
+          allowSourceSwitch: options.allowSourceSwitch === true,
         });
         logger.success(
           `${name} active version → v${version} (${options.scope} scope)`,
