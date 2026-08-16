@@ -21,6 +21,7 @@ import {
   effectiveBackgroundAgentState,
   isSameProcess,
   launchBackgroundAgent,
+  readBackgroundAgentLog,
   readBackgroundAgentState,
   removeBackgroundAgent,
   stopBackgroundAgent,
@@ -576,7 +577,10 @@ async function waitForCleanup(slot, profile, startedAt, method) {
       `agent ${slot.index} cleanup`,
     );
   } catch (error) {
-    error.message = `${error.message}; last observation: ${JSON.stringify(observation)}`;
+    const logTail = readBackgroundAgentLog(slot.state.id, { lines: 40 }).slice(
+      -4_000,
+    );
+    error.message = `${error.message}; last observation: ${JSON.stringify(observation)}; log tail: ${JSON.stringify(logTail)}`;
     throw error;
   }
   slot.state = lastState;

@@ -41,6 +41,50 @@ import {
 
 const STARTUP_TIMEOUT_MS = 30_000;
 const HEARTBEAT_INTERVAL_MS = 1_000;
+const KEEPER_PERSIST_RETRY_TIMEOUT_MS =
+  3 * BACKGROUND_AGENT_KEEPER_STATE_LOCK_TIMEOUT_MS;
+const KEEPER_PERSIST_RETRY_DELAY_MS = 50;
+
+function delay(ms) {
+  return new Promise((resolvePromise) => setTimeout(resolvePromise, ms));
+}
+
+/**
+ * Retry a cleanup-critical state mutation after a worker is hard-killed.
+ *
+ * A worker can disappear while it owns the cross-process state lock. Windows
+ * may keep that terminated PID observable briefly, so the strict lock cannot
+ * immediately prove the owner dead and correctly fails closed. The keeper is
+ * the only remaining owner of the armed turn; it must wait for that transient
+ * fence instead of turning a lock exception into an unhandled rejection and
+ * exiting with the durable projection still `armed`.
+ */
+export async function retryKeeperPersistence(operation, options = {}) {
+  const now = options.now || Date.now;
+  const sleep = options.sleep || delay;
+  const timeoutMs = Math.max(
+    0,
+    Number(options.timeoutMs ?? KEEPER_PERSIST_RETRY_TIMEOUT_MS),
+  );
+  const retryDelayMs = Math.max(
+    1,
+    Number(options.retryDelayMs ?? KEEPER_PERSIST_RETRY_DELAY_MS),
+  );
+  const deadline = now() + timeoutMs;
+  let attempts = 0;
+  let error = null;
+  for (;;) {
+    attempts += 1;
+    try {
+      return { result: operation(), error: null, attempts };
+    } catch (cause) {
+      error = cause;
+    }
+    const remaining = deadline - now();
+    if (remaining <= 0) return { result: null, error, attempts };
+    await sleep(Math.min(retryDelayMs, remaining));
+  }
+}
 
 function writeMessage(socket, message) {
   if (!socket || socket.destroyed) return false;
@@ -93,11 +137,13 @@ function persistKeeperTurn(job, turn, patch) {
 
 async function cleanupTurn(job, turn, reason) {
   const requestedAt = Date.now();
-  persistKeeperTurn(job, turn, {
-    turnKeeperStatus: "cleanup-requested",
-    turnKeeperCleanupReason: reason,
-    turnKeeperCleanupRequestedAt: requestedAt,
-  });
+  const requestedPersistence = await retryKeeperPersistence(() =>
+    persistKeeperTurn(job, turn, {
+      turnKeeperStatus: "cleanup-requested",
+      turnKeeperCleanupReason: reason,
+      turnKeeperCleanupRequestedAt: requestedAt,
+    }),
+  );
 
   const targets = [
     { pid: turn.agentPid, startedAt: turn.agentStartedAt },
@@ -133,19 +179,37 @@ async function cleanupTurn(job, turn, reason) {
     );
   }
   const confirmed = alive.length === 0 && failures.length === 0;
-  persistKeeperTurn(job, turn, {
-    turnKeeperStatus: confirmed ? "retired" : "cleanup-unconfirmed",
-    turnKeeperCleanupReason: reason,
-    turnKeeperCleanupRequestedAt: requestedAt,
-    turnKeeperCleanupConfirmedAt: confirmed ? Date.now() : null,
-    turnKeeperCleanupError:
-      failures.length > 0
-        ? failures.join("; ").slice(0, 1_000)
-        : alive.length > 0
-          ? `process tree still executable: ${alive.map(({ pid }) => pid).join(",")}`
-          : null,
+  let finalPersistenceAttempts = 0;
+  const finalPersistence = await retryKeeperPersistence(() => {
+    finalPersistenceAttempts += 1;
+    return persistKeeperTurn(job, turn, {
+      turnKeeperStatus: confirmed ? "retired" : "cleanup-unconfirmed",
+      turnKeeperCleanupReason: reason,
+      turnKeeperCleanupRequestedAt: requestedAt,
+      turnKeeperCleanupConfirmedAt: confirmed ? Date.now() : null,
+      turnKeeperCleanupError:
+        failures.length > 0
+          ? failures.join("; ").slice(0, 1_000)
+          : alive.length > 0
+            ? `process tree still executable: ${alive.map(({ pid }) => pid).join(",")}`
+            : null,
+      turnKeeperPersistenceRetries:
+        Math.max(0, requestedPersistence.attempts - 1) +
+        Math.max(0, finalPersistenceAttempts - 1),
+    });
   });
-  return { confirmed, failures, alive };
+  const persistenceError = finalPersistence.error
+    ? finalPersistence.error?.message || String(finalPersistence.error)
+    : finalPersistence.result?.applied === false
+      ? "keeper cleanup state no longer owned"
+      : null;
+  if (persistenceError) failures.push(persistenceError);
+  return {
+    confirmed: confirmed && !persistenceError,
+    failures,
+    alive,
+    persistenceError,
+  };
 }
 
 export async function runBackgroundAgentKeeper(jobFile, options = {}) {
@@ -207,17 +271,50 @@ export async function runBackgroundAgentKeeper(jobFile, options = {}) {
     if (finishing) return false;
     finishing = true;
     const active = armedTurn;
-    void (
-      active
-        ? cleanupTurn(job, active, "worker-disconnected")
-        : Promise.resolve({ confirmed: true })
-    ).finally(() => {
-      persistKeeper({
-        keeperStatus: active ? "worker-disconnected" : "closed",
-        keeperEndedAt: Date.now(),
-      });
+    void (async () => {
+      let cleanup;
+      try {
+        cleanup = active
+          ? await cleanupTurn(job, active, "worker-disconnected")
+          : { confirmed: true, failures: [], alive: [] };
+      } catch (error) {
+        cleanup = {
+          confirmed: false,
+          failures: [error?.message || String(error)],
+          alive: [],
+        };
+      }
+      // Closing the keeper must never be skipped because one final metadata
+      // update throws. Retry the critical status write, retain the failure in
+      // the log, and always settle the server promise without an unhandled
+      // rejection.
+      const persisted = await retryKeeperPersistence(() =>
+        persistKeeper({
+          keeperStatus: active
+            ? cleanup.confirmed
+              ? "worker-disconnected"
+              : "cleanup-unconfirmed"
+            : "closed",
+          keeperEndedAt: Date.now(),
+          ...(cleanup.failures.length > 0
+            ? {
+                keeperError: cleanup.failures.join("; ").slice(0, 1_000),
+              }
+            : {}),
+        }),
+      );
+      if (persisted.error) {
+        try {
+          writeSync(
+            2,
+            `[background-agent-keeper] final state persistence failed: ${persisted.error?.stack || persisted.error?.message || String(persisted.error)}\n`,
+          );
+        } catch {
+          // The inherited diagnostic handle may already be closed.
+        }
+      }
       server.close(() => finishResolve({ status: "closed" }));
-    });
+    })();
     return true;
   };
 
