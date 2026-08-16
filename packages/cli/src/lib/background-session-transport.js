@@ -25,15 +25,18 @@
 
 import net from "node:net";
 import { unlinkSync } from "node:fs";
-import { join } from "node:path";
+import {
+  backgroundAgentSessionPipePath,
+  cleanupBackgroundAgentLocalPipeDirectory,
+  prepareBackgroundAgentLocalPipePath,
+} from "./background-agent-keeper-protocol.js";
 
 const HELLO_TIMEOUT_MS = 5000;
 const MAX_LINE_BYTES = 1024 * 1024;
 
 /** Pipe endpoint for a session id (Windows named pipe / POSIX socket file). */
-export function transportPipePath(id, dir) {
-  if (process.platform === "win32") return `\\\\.\\pipe\\cc-bg-${id}`;
-  return join(dir, `${id}.sock`);
+export function transportPipePath(id, dir, options = {}) {
+  return backgroundAgentSessionPipePath(id, dir, options);
 }
 
 /**
@@ -106,6 +109,7 @@ export function startBackgroundSessionServer(opts) {
     getStatus,
   } = opts;
   const pipePath = opts.pipePath || transportPipePath(id, dir);
+  prepareBackgroundAgentLocalPipePath(pipePath);
   if (process.platform !== "win32") {
     try {
       unlinkSync(pipePath); // stale socket from a crashed prior worker
@@ -259,9 +263,17 @@ export function startBackgroundSessionServer(opts) {
   });
 
   return new Promise((resolve, reject) => {
-    server.once("error", reject);
+    const rejectListen = (error) => {
+      try {
+        cleanupBackgroundAgentLocalPipeDirectory(pipePath);
+      } catch {
+        /* preserve the original listen error */
+      }
+      reject(error);
+    };
+    server.once("error", rejectListen);
     server.listen(pipePath, () => {
-      server.removeListener("error", reject);
+      server.removeListener("error", rejectListen);
       server.on("error", () => {
         /* post-listen errors must not crash the worker */
       });
@@ -298,6 +310,11 @@ export function startBackgroundSessionServer(opts) {
                   unlinkSync(pipePath);
                 } catch {
                   /* already gone */
+                }
+                try {
+                  cleanupBackgroundAgentLocalPipeDirectory(pipePath);
+                } catch {
+                  /* best-effort cleanup after the server has closed */
                 }
               }
               done();
