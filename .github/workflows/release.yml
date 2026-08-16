@@ -285,8 +285,7 @@ jobs:
           # standalone, then extraResources copies the whole tree into the bundle.
           # --workspaces=false escapes the workspace context that would otherwise
           # hoist back to root.
-          bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh \
-            npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps
+          bash "$GITHUB_WORKSPACE/.github/scripts/ci-install-cli-production-deps.sh"
 
       - name: Rebuild bs3mc native bindings for Electron ABI (Windows)
         # Why: electron-builder.yml sets `npmRebuild: false` (cross-platform
@@ -547,8 +546,7 @@ jobs:
           # standalone, then extraResources copies the whole tree into the bundle.
           # --workspaces=false escapes the workspace context that would otherwise
           # hoist back to root.
-          bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh \
-            npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps
+          bash "$GITHUB_WORKSPACE/.github/scripts/ci-install-cli-production-deps.sh"
 
       - name: Rebuild bs3mc native bindings for Electron ABI (macOS)
         # See Windows job for full rationale. Strategy here: rebuild
@@ -805,8 +803,7 @@ jobs:
           # standalone, then extraResources copies the whole tree into the bundle.
           # --workspaces=false escapes the workspace context that would otherwise
           # hoist back to root.
-          bash $GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh \
-            npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps
+          bash "$GITHUB_WORKSPACE/.github/scripts/ci-install-cli-production-deps.sh"
 
       - name: Rebuild bs3mc native bindings for Electron ABI (Linux)
         # See Windows job for full rationale. Linux is single-arch x64.

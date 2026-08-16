@@ -55,9 +55,7 @@ jobs:
       - name: Install packages/cli production dependencies standalone
         working-directory: ./packages/cli
         shell: bash
-        run: |
-          bash "$GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh" \
-            npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/ci-install-cli-production-deps.sh"
 
       - name: Run TypeScript type check
         working-directory: ./desktop-app-vue
@@ -368,9 +366,7 @@ jobs:
       - name: Install packages/cli production dependencies standalone
         working-directory: ./packages/cli
         shell: bash
-        run: |
-          bash "$GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh" \
-            npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/ci-install-cli-production-deps.sh"
 
       - name: Run all unit tests
         working-directory: ./desktop-app-vue

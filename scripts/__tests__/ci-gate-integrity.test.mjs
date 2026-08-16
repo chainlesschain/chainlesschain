@@ -551,6 +551,37 @@ test("auto-fix command is diagnostic-only and fails when no safe fix exists", as
   assert.deepEqual(reportAfterRetry, report);
 });
 
+test("standalone CLI dependency install vendors exact checkout packages", () => {
+  const installer = fs.readFileSync(
+    path.join(
+      repoRoot,
+      ".github",
+      "scripts",
+      "ci-install-cli-production-deps.sh",
+    ),
+    "utf8",
+  );
+  const cliManifest = JSON.parse(
+    fs.readFileSync(path.join(repoRoot, "packages", "cli", "package.json")),
+  );
+  const internalPackages = Object.keys(cliManifest.dependencies).filter(
+    (name) => name.startsWith("@chainlesschain/"),
+  );
+
+  for (const packageName of internalPackages) {
+    const directoryName = packageName.slice("@chainlesschain/".length);
+    assert.ok(
+      installer.includes(`"$repo_root/packages/${directoryName}"`),
+      `${packageName} must be installed from the exact checkout`,
+    );
+  }
+  assert.match(installer, /expectedVersion !== manifest\.version/);
+  assert.match(installer, /--install-links/);
+  assert.match(installer, /--workspaces=false/);
+  assert.match(installer, /ci-npm-retry\.sh/);
+  assert.match(installer, /isSymbolicLink\(\)/);
+});
+
 test("workflow uses step outcomes and a final non-zero verdict", () => {
   const workflow = fs.readFileSync(
     path.join(repoRoot, ".github", "workflows", "test-automation-full.yml"),
@@ -565,7 +596,7 @@ test("workflow uses step outcomes and a final non-zero verdict", () => {
   );
   assert.match(
     workflow,
-    /name: Install packages\/cli production dependencies standalone[\s\S]*?working-directory: \.\/packages\/cli[\s\S]*?npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps/,
+    /name: Install packages\/cli production dependencies standalone[\s\S]*?working-directory: \.\/packages\/cli[\s\S]*?ci-install-cli-production-deps\.sh/,
   );
   assert.match(workflow, /Re-run tests for failure diagnosis/);
   assert.match(workflow, /TEST_REPORT_SUFFIX: retry/);
@@ -637,7 +668,7 @@ test("unit workflow distinguishes selected-test failures from fail-closed fallba
   );
   assert.match(
     workflow,
-    /name: Install packages\/cli production dependencies standalone[\s\S]*?working-directory: \.\/packages\/cli[\s\S]*?ci-npm-retry\.sh" \\\n\s+npm install --no-package-lock --no-save --omit=dev --workspaces=false --legacy-peer-deps/,
+    /name: Install packages\/cli production dependencies standalone[\s\S]*?working-directory: \.\/packages\/cli[\s\S]*?ci-install-cli-production-deps\.sh/,
   );
   assert.match(
     workflow,
