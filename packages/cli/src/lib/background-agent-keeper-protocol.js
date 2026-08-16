@@ -5,11 +5,15 @@ import { posix } from "node:path";
 export const BACKGROUND_AGENT_KEEPER_PROTOCOL_VERSION = 1;
 export const BACKGROUND_AGENT_KEEPER_HELLO = "background-agent-keeper-hello";
 export const BACKGROUND_AGENT_KEEPER_READY = "background-agent-keeper-ready";
+export const BACKGROUND_AGENT_KEEPER_HEARTBEAT =
+  "background-agent-keeper-heartbeat";
 export const BACKGROUND_AGENT_KEEPER_ARM = "background-agent-keeper-arm";
 export const BACKGROUND_AGENT_KEEPER_ARMED = "background-agent-keeper-armed";
 export const BACKGROUND_AGENT_KEEPER_RETIRE = "background-agent-keeper-retire";
 export const BACKGROUND_AGENT_KEEPER_RETIRED =
   "background-agent-keeper-retired";
+export const BACKGROUND_AGENT_KEEPER_HEARTBEAT_INTERVAL_MS = 1_000;
+export const BACKGROUND_AGENT_KEEPER_HEARTBEAT_TIMEOUT_MS = 15_000;
 
 // RETIRE is the only keeper request that performs destructive OS cleanup. Its
 // deadline is deliberately independent from the short HELLO/ARM request

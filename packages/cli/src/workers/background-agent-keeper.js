@@ -27,6 +27,8 @@ import {
   BACKGROUND_AGENT_KEEPER_ARMED,
   BACKGROUND_AGENT_KEEPER_CLEANUP_CONFIRM_TIMEOUT_MS,
   BACKGROUND_AGENT_KEEPER_HELLO,
+  BACKGROUND_AGENT_KEEPER_HEARTBEAT,
+  BACKGROUND_AGENT_KEEPER_HEARTBEAT_TIMEOUT_MS,
   BACKGROUND_AGENT_KEEPER_PROTOCOL_VERSION,
   BACKGROUND_AGENT_KEEPER_READY,
   BACKGROUND_AGENT_KEEPER_RETIRE,
@@ -183,6 +185,7 @@ export async function runBackgroundAgentKeeper(jobFile, options = {}) {
   let candidateSocket = null;
   let authenticatedHello = null;
   let authenticatedWorkerStartedAt = null;
+  let workerHeartbeatAt = null;
   let armedTurn = null;
   let finishing = false;
   let finishResolve;
@@ -268,6 +271,7 @@ export async function runBackgroundAgentKeeper(jobFile, options = {}) {
             authenticated = true;
             authenticatedHello = hello;
             authenticatedWorkerStartedAt = Number(current.startedAt);
+            workerHeartbeatAt = Date.now();
             workerSocket = socket;
             clearTimeout(helloTimer);
             persistKeeper({ keeperStatus: "ready", keeperReadyAt: Date.now() });
@@ -282,6 +286,20 @@ export async function runBackgroundAgentKeeper(jobFile, options = {}) {
                 },
               ),
             );
+            return;
+          }
+
+          if (message.type === BACKGROUND_AGENT_KEEPER_HEARTBEAT) {
+            if (
+              message.id !== authenticatedHello.id ||
+              message.workerGeneration !==
+                authenticatedHello.workerGeneration ||
+              Number(message.workerPid) !== authenticatedHello.workerPid
+            ) {
+              socket.destroy();
+              return;
+            }
+            workerHeartbeatAt = Date.now();
             return;
           }
 
@@ -415,19 +433,28 @@ export async function runBackgroundAgentKeeper(jobFile, options = {}) {
   });
 
   const heartbeat = setInterval(() => {
+    const workerHeartbeatExpired =
+      workerSocket &&
+      authenticatedHello &&
+      Number.isFinite(workerHeartbeatAt) &&
+      Date.now() - workerHeartbeatAt >
+        BACKGROUND_AGENT_KEEPER_HEARTBEAT_TIMEOUT_MS;
     if (
       workerSocket &&
       authenticatedHello &&
-      armedTurn &&
-      !keeperWorkerIdentityAlive(
-        authenticatedHello.workerPid,
-        authenticatedWorkerStartedAt,
-      )
+      (workerHeartbeatExpired ||
+        (armedTurn &&
+          !keeperWorkerIdentityAlive(
+            authenticatedHello.workerPid,
+            authenticatedWorkerStartedAt,
+          )))
     ) {
-      // A Windows named-pipe handle can remain open after its worker dies if a
-      // platform helper retained a duplicate. Socket EOF alone is therefore
-      // not a sufficient lifetime signal. The generation-bound worker PID and
-      // its durable launch anchor provide an independent identity fence.
+      // A Windows named-pipe handle and process object can remain observable
+      // after its worker dies if a platform helper retained a duplicate.
+      // Socket EOF and PID visibility are therefore not sufficient lifetime
+      // signals. The authenticated application heartbeat provides an
+      // independent bounded fence, while the PID/start anchor remains the
+      // immediate path on platforms that report death promptly.
       finishForWorkerDisconnect();
       workerSocket.destroy();
       return;
