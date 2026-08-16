@@ -22,6 +22,7 @@ function installStrictNodeBin() {
   const root = pluginVersionDir("local", "strict-background-bin", "1.0.0", {
     cwd,
   });
+  const nameRoot = path.dirname(root);
   const target = path.join(root, "bin", "strict-background-tool.js");
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.writeFileSync(target, "process.stdout.write('real target');\n", "utf8");
@@ -40,6 +41,12 @@ function installStrictNodeBin() {
     }),
     "utf8",
   );
+  fs.writeFileSync(
+    path.join(root, ".plugin-source.json"),
+    JSON.stringify({ type: "local", source: root }),
+    "utf8",
+  );
+  fs.writeFileSync(path.join(nameRoot, ".active"), "1.0.0", "utf8");
 }
 
 function fakeStream() {
