@@ -1097,6 +1097,58 @@ describe("IDE roadmap fixture contract", () => {
     );
   });
 
+  it("accepts a filesystem alias above the runtime evidence root", () => {
+    const aliasContainer = temporaryRoot();
+    const canonicalTemp = path.join(aliasContainer, "canonical-temp");
+    const aliasTemp = path.join(aliasContainer, "alias-temp");
+    fs.mkdirSync(canonicalTemp);
+    fs.symlinkSync(
+      canonicalTemp,
+      aliasTemp,
+      process.platform === "win32" ? "junction" : "dir",
+    );
+    const previousTemp = Object.fromEntries(
+      ["TMPDIR", "TMP", "TEMP"].map((name) => [name, process.env[name]]),
+    );
+    Object.assign(process.env, {
+      TMPDIR: aliasTemp,
+      TMP: aliasTemp,
+      TEMP: aliasTemp,
+    });
+
+    try {
+      const runtime = createRemoteSshRuntimeCorpus();
+      expect(path.resolve(runtime.runtimeDirectory)).not.toBe(
+        fs.realpathSync(runtime.runtimeDirectory),
+      );
+      expect(
+        verifyIdeRoadmapRuntimeEvidence({
+          repoRoot: runtime.corpus.root,
+          manifestPath: runtime.corpus.manifestPath,
+          evidenceDir: runtime.runtimeDirectory,
+          releaseCommit: runtime.corpus.manifest.baselineCommit,
+          caseIds: [IDE_ROADMAP_REMOTE_SSH_CONTAINER_CASE],
+          requireReleaseReady: true,
+          trustedProvenance: runtime.trustedProvenance,
+          execFileSync: (_command, args) =>
+            args[0] === "rev-parse"
+              ? `${runtime.corpus.manifest.baselineCommit}\n`
+              : "",
+          inspectVsix: runtime.inspectVsix,
+          remoteSshTrust: runtime.remoteSshTrust,
+        }),
+      ).toMatchObject({
+        releaseReady: true,
+        verificationMode: "release-ready",
+      });
+    } finally {
+      for (const [name, value] of Object.entries(previousTemp)) {
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      }
+    }
+  });
+
   it("rejects an envelope that replaces the journey evidence digest", () => {
     const runtime = createRemoteSshRuntimeCorpus();
     const envelope = JSON.parse(fs.readFileSync(runtime.envelopePath, "utf8"));
