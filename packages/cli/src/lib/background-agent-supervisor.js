@@ -3063,6 +3063,113 @@ function isRecoverableCreationTimeIdentityProbe(identity) {
   );
 }
 
+function isRecoverableInitialDestructiveIdentityProbe(identity) {
+  // These outcomes come only from read-only OS observations. Retrying them
+  // cannot address a process, and the caller still requires two consecutive
+  // fresh exact matches before it may issue the first signal.
+  return (
+    identity?.status === "unverifiable" &&
+    ["creation-time-probe-failed", "process-group-state-probe-failed"].includes(
+      identity?.reason,
+    )
+  );
+}
+
+function createPosixProbeRetryBudget(deadline) {
+  const configuredRetryWindow = Math.max(
+    0,
+    Number(_deps.processExitWaitDeadlineMs) || 0,
+  );
+  let remainingSleepBudget = Math.min(
+    configuredRetryWindow,
+    Math.max(0, deadline - _deps.posixPermissionRetryNowMs()),
+  );
+  let retryWaits = 0;
+
+  return {
+    wait() {
+      const remaining = Math.min(
+        remainingSleepBudget,
+        deadline - _deps.posixPermissionRetryNowMs(),
+      );
+      if (!(remaining > 0)) return false;
+      const retryDelayMs = Math.min(
+        remaining,
+        10 * 2 ** Math.min(retryWaits, 4),
+      );
+      _deps.posixPermissionRetrySleep(retryDelayMs);
+      remainingSleepBudget -= retryDelayMs;
+      retryWaits += 1;
+      return true;
+    },
+    hasRemaining() {
+      return (
+        remainingSleepBudget > 0 && _deps.posixPermissionRetryNowMs() < deadline
+      );
+    },
+  };
+}
+
+/**
+ * Retry an observational failure before the first POSIX signal. Unknown
+ * identity never authorizes a signal: only two consecutive delayed fresh
+ * matches do. A dead/reused target converges without signalling, while every
+ * non-observational identity failure remains immediately fail-closed.
+ */
+function retryRecoverableInitialPosixIdentity({
+  inspectIdentity,
+  initialIdentity,
+  deadline,
+}) {
+  let lastIdentity = initialIdentity;
+  let identityProbeRetries = 0;
+  const retryBudget = createPosixProbeRetryBudget(deadline);
+  const outcome = (status, retryStoppedBy) => ({
+    status,
+    lastIdentity,
+    identityProbeRetries,
+    retryStoppedBy,
+  });
+
+  for (;;) {
+    if (isDestructiveIdentityRetired(lastIdentity)) {
+      return outcome("retired", "retired");
+    }
+    if (
+      lastIdentity?.status !== "match" &&
+      !isRecoverableInitialDestructiveIdentityProbe(lastIdentity)
+    ) {
+      return outcome("failed", "preflight-identity");
+    }
+    if (!retryBudget.wait()) {
+      return outcome("failed", "initial-identity-probe-deadline");
+    }
+
+    const identityBeforeDelay = lastIdentity;
+    identityProbeRetries += 1;
+    lastIdentity = inspectIdentity();
+
+    if (isDestructiveIdentityRetired(lastIdentity)) {
+      return outcome("retired", "retired");
+    }
+    if (
+      lastIdentity?.status !== "match" &&
+      !isRecoverableInitialDestructiveIdentityProbe(lastIdentity)
+    ) {
+      return outcome("failed", "preflight-identity");
+    }
+    if (
+      identityBeforeDelay?.status === "match" &&
+      lastIdentity?.status === "match"
+    ) {
+      if (!retryBudget.hasRemaining()) {
+        return outcome("failed", "initial-identity-probe-deadline");
+      }
+      return outcome("matched", "consecutive-match");
+    }
+  }
+}
+
 /**
  * Recover from a transient POSIX EPERM without ever signalling from unknown
  * identity evidence. Probe-only waits may bridge a transient creation-time
@@ -3078,15 +3185,7 @@ function retryExactPosixSignalAfterPermissionError({
   let lastIdentity = inspectIdentity();
   let signalResends = 0;
   let identityProbeRetries = 0;
-  let retryWaits = 0;
-  const configuredRetryWindow = Math.max(
-    0,
-    Number(_deps.processExitWaitDeadlineMs) || 0,
-  );
-  let remainingSleepBudget = Math.min(
-    configuredRetryWindow,
-    Math.max(0, deadline - _deps.posixPermissionRetryNowMs()),
-  );
+  const retryBudget = createPosixProbeRetryBudget(deadline);
 
   const outcome = (status, retryStoppedBy, extra = {}) => ({
     status,
@@ -3109,11 +3208,7 @@ function retryExactPosixSignalAfterPermissionError({
       return outcome("failed", "identity");
     }
 
-    const remaining = Math.min(
-      remainingSleepBudget,
-      deadline - _deps.posixPermissionRetryNowMs(),
-    );
-    if (!(remaining > 0)) {
+    if (!retryBudget.wait()) {
       return outcome(
         "failed",
         lastIdentity?.status === "match"
@@ -3123,10 +3218,6 @@ function retryExactPosixSignalAfterPermissionError({
     }
 
     const identityBeforeDelay = lastIdentity;
-    const retryDelayMs = Math.min(remaining, 10 * 2 ** Math.min(retryWaits, 4));
-    _deps.posixPermissionRetrySleep(retryDelayMs);
-    remainingSleepBudget -= retryDelayMs;
-    retryWaits += 1;
     identityProbeRetries += 1;
     lastIdentity = inspectIdentity();
 
@@ -3148,13 +3239,9 @@ function retryExactPosixSignalAfterPermissionError({
     ) {
       continue;
     }
-    if (
-      !(remainingSleepBudget > 0) ||
-      !(_deps.posixPermissionRetryNowMs() < deadline)
-    ) {
+    if (!retryBudget.hasRemaining()) {
       return outcome("failed", "signal-retry-deadline");
     }
-
     signalResends += 1;
     try {
       const signalResult = sendSignal();
@@ -3187,9 +3274,10 @@ function signalExactBackgroundProcessTree(
 ) {
   const target = Number(pid);
   const mode = processGroup === true ? "process-group" : "direct";
-  const permissionRetryDeadline =
+  const posixRetryDeadline =
     _deps.posixPermissionRetryNowMs() +
     Math.max(0, Number(_deps.processExitWaitDeadlineMs) || 0);
+  let initialSignalAttempts = 0;
   let signalResends = 0;
   let identityProbeRetries = 0;
   let lastIdentity = null;
@@ -3201,7 +3289,7 @@ function signalExactBackgroundProcessTree(
   const failure = (cause) => {
     const reason = cause?.message || String(cause);
     const error = new Error(
-      `background_agent_child_tree_stop_failed: ${reason} (${mode} pid ${target}, signal resends ${signalResends}, identity probe retries ${identityProbeRetries}, last identity ${lastIdentity?.status || "not-probed"}/${lastIdentity?.reason || "no-reason"}, retry stopped by ${retryStoppedBy})`,
+      `background_agent_child_tree_stop_failed: ${reason} (${mode} pid ${target}, initial signal attempts ${initialSignalAttempts}, signal resends ${signalResends}, identity probe retries ${identityProbeRetries}, last identity ${lastIdentity?.status || "not-probed"}/${lastIdentity?.reason || "no-reason"}, retry stopped by ${retryStoppedBy})`,
       { cause },
     );
     error.code = "ERR_BACKGROUND_AGENT_CHILD_TREE_STOP_FAILED";
@@ -3216,12 +3304,35 @@ function signalExactBackgroundProcessTree(
     return { alreadyRetired: true, signalledAsGroup: processGroup === true };
   }
   if (lastIdentity.status !== "match") {
-    retryStoppedBy = "identity";
-    throw failure(
-      new Error(
-        `destructive process identity is ${lastIdentity.status}: ${lastIdentity.reason || "unknown"}`,
-      ),
-    );
+    if (
+      platform === "win32" ||
+      !isRecoverableInitialDestructiveIdentityProbe(lastIdentity)
+    ) {
+      retryStoppedBy = "preflight-identity";
+      throw failure(
+        new Error(
+          `destructive process identity is ${lastIdentity.status}: ${lastIdentity.reason || "unknown"}`,
+        ),
+      );
+    }
+    const retry = retryRecoverableInitialPosixIdentity({
+      inspectIdentity,
+      initialIdentity: lastIdentity,
+      deadline: posixRetryDeadline,
+    });
+    identityProbeRetries += retry.identityProbeRetries;
+    lastIdentity = retry.lastIdentity;
+    retryStoppedBy = retry.retryStoppedBy;
+    if (retry.status === "retired") {
+      return { alreadyRetired: true, signalledAsGroup: processGroup === true };
+    }
+    if (retry.status !== "matched") {
+      throw failure(
+        new Error(
+          `destructive process identity is ${lastIdentity.status}: ${lastIdentity.reason || "unknown"}`,
+        ),
+      );
+    }
   }
 
   const sendSignal = () =>
@@ -3231,7 +3342,9 @@ function signalExactBackgroundProcessTree(
       allowDirectFallback,
     });
 
+  retryStoppedBy = "initial-signal";
   try {
+    initialSignalAttempts += 1;
     const result = sendSignal();
     return {
       alreadyRetired: result === "already-exited",
@@ -3243,11 +3356,11 @@ function signalExactBackgroundProcessTree(
       const retry = retryExactPosixSignalAfterPermissionError({
         inspectIdentity,
         sendSignal,
-        deadline: permissionRetryDeadline,
+        deadline: posixRetryDeadline,
         initialCause: cause,
       });
       signalResends = retry.signalResends;
-      identityProbeRetries = retry.identityProbeRetries;
+      identityProbeRetries += retry.identityProbeRetries;
       lastIdentity = retry.lastIdentity;
       retryStoppedBy = retry.retryStoppedBy;
       cause = retry.cause;
@@ -3280,8 +3393,6 @@ function signalExactBackgroundProcessTree(
         };
       }
       retryStoppedBy = "identity";
-    } else if (retryStoppedBy === "preflight") {
-      retryStoppedBy = "signal";
     }
     throw failure(cause);
   }

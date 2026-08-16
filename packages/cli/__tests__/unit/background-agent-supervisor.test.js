@@ -3029,6 +3029,283 @@ describe("background agent supervisor", () => {
   });
 
   it.skipIf(process.platform === "win32")(
+    "settles an initially unknown strict process group as dead without signalling",
+    () => {
+      const sleeperPid = spawnSleeperPid();
+      const startedAt = Date.now();
+      let groupProbes = 0;
+      let retryClock = 0;
+      _deps.processExitWaitDeadlineMs = 100;
+      _deps.posixPermissionRetryNowMs = vi.fn(() => retryClock);
+      _deps.posixPermissionRetrySleep = vi.fn((ms) => {
+        retryClock += ms;
+      });
+      _deps.readProcessState = vi.fn(() => "Z");
+      _deps.readProcessGroupStates = vi.fn(() => {
+        groupProbes += 1;
+        return groupProbes === 1 ? null : [];
+      });
+      _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+      _deps.kill = vi.fn();
+
+      expect(
+        stopBackgroundAgentChildTree(sleeperPid, {
+          platform: "linux",
+          signal: "SIGKILL",
+          expectedStartedAt: startedAt,
+          processGroup: true,
+          strictIdentity: true,
+          allowDirectFallback: false,
+        }),
+      ).toBe(true);
+      expect(_deps.readProcessGroupStates).toHaveBeenCalledTimes(2);
+      expect(_deps.readProcessStartTimeMs).not.toHaveBeenCalled();
+      expect(_deps.posixPermissionRetrySleep.mock.calls).toEqual([[10]]);
+      expect(_deps.kill).not.toHaveBeenCalled();
+    },
+  );
+
+  it("settles an initially unknown strict identity as reused without signalling", () => {
+    const sleeperPid = spawnSleeperPid();
+    const startedAt = Date.now();
+    let identityProbes = 0;
+    let retryClock = 0;
+    _deps.processExitWaitDeadlineMs = 100;
+    _deps.posixPermissionRetryNowMs = vi.fn(() => retryClock);
+    _deps.posixPermissionRetrySleep = vi.fn((ms) => {
+      retryClock += ms;
+    });
+    _deps.readProcessState = vi.fn(() => "S");
+    _deps.readProcessGroupStates = vi.fn(() => []);
+    _deps.readProcessStartTimeMs = vi.fn(() => {
+      identityProbes += 1;
+      return identityProbes === 1 ? null : startedAt + 120_000;
+    });
+    _deps.kill = vi.fn();
+
+    expect(
+      stopBackgroundAgentChildTree(sleeperPid, {
+        platform: "linux",
+        signal: "SIGKILL",
+        expectedStartedAt: startedAt,
+        processGroup: true,
+        strictIdentity: true,
+        allowDirectFallback: false,
+      }),
+    ).toBe(true);
+    expect(_deps.posixPermissionRetrySleep.mock.calls).toEqual([[10]]);
+    expect(_deps.readProcessStartTimeMs).toHaveBeenCalledTimes(2);
+    expect(_deps.kill).not.toHaveBeenCalled();
+  });
+
+  it("requires two fresh matches after an initially unknown strict identity before one group signal", () => {
+    const sleeperPid = spawnSleeperPid();
+    const startedAt = Date.now();
+    let identityProbes = 0;
+    let retryClock = 0;
+    const events = [];
+    _deps.processExitWaitDeadlineMs = 100;
+    _deps.posixPermissionRetryNowMs = vi.fn(() => retryClock);
+    _deps.posixPermissionRetrySleep = vi.fn((ms) => {
+      events.push(`sleep:${ms}`);
+      retryClock += ms;
+    });
+    _deps.readProcessState = vi.fn(() => "S");
+    _deps.readProcessGroupStates = vi.fn(() => ["S"]);
+    _deps.readProcessStartTimeMs = vi.fn(() => {
+      identityProbes += 1;
+      const value = identityProbes === 1 ? null : startedAt;
+      events.push(value === null ? "probe:unknown" : "probe:match");
+      return value;
+    });
+    _deps.kill = vi.fn((pid) => {
+      events.push(`signal:${Number(pid) < 0 ? "group" : "direct"}`);
+      return true;
+    });
+
+    expect(
+      stopBackgroundAgentChildTree(sleeperPid, {
+        platform: "linux",
+        signal: "SIGKILL",
+        expectedStartedAt: startedAt,
+        processGroup: true,
+        strictIdentity: true,
+        allowDirectFallback: false,
+      }),
+    ).toBe(true);
+    expect(events).toEqual([
+      "probe:unknown",
+      "sleep:10",
+      "probe:match",
+      "sleep:20",
+      "probe:match",
+      "signal:group",
+    ]);
+    expect(_deps.kill.mock.calls).toEqual([[-sleeperPid, "SIGKILL"]]);
+  });
+
+  it.skipIf(process.platform === "win32")(
+    "fails a persistently unknown initial strict process group at the probe deadline without signalling",
+    () => {
+      const sleeperPid = spawnSleeperPid();
+      const startedAt = Date.now();
+      let retryClock = 0;
+      _deps.processExitWaitDeadlineMs = 35;
+      _deps.posixPermissionRetryNowMs = vi.fn(() => retryClock);
+      _deps.posixPermissionRetrySleep = vi.fn((ms) => {
+        retryClock += ms;
+      });
+      _deps.readProcessState = vi.fn(() => "Z");
+      _deps.readProcessGroupStates = vi.fn(() => null);
+      _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+      _deps.kill = vi.fn();
+
+      expect(() =>
+        stopBackgroundAgentChildTree(sleeperPid, {
+          platform: "linux",
+          signal: "SIGKILL",
+          expectedStartedAt: startedAt,
+          processGroup: true,
+          strictIdentity: true,
+          allowDirectFallback: false,
+        }),
+      ).toThrow(
+        /initial signal attempts 0, signal resends 0, identity probe retries 3, last identity unverifiable\/process-group-state-probe-failed, retry stopped by initial-identity-probe-deadline/u,
+      );
+      expect(_deps.posixPermissionRetrySleep.mock.calls).toEqual([
+        [10],
+        [20],
+        [5],
+      ]);
+      expect(_deps.readProcessStartTimeMs).not.toHaveBeenCalled();
+      expect(_deps.kill).not.toHaveBeenCalled();
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "fails when an initially unknown process group loses its verifiable owner",
+    () => {
+      const absentPid = 2_147_483_647;
+      const startedAt = Date.now();
+      let groupProbes = 0;
+      let retryClock = 0;
+      _deps.processExitWaitDeadlineMs = 100;
+      _deps.posixPermissionRetryNowMs = vi.fn(() => retryClock);
+      _deps.posixPermissionRetrySleep = vi.fn((ms) => {
+        retryClock += ms;
+      });
+      _deps.readProcessGroupStates = vi.fn(() => {
+        groupProbes += 1;
+        return groupProbes === 1 ? null : ["S"];
+      });
+      _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+      _deps.kill = vi.fn();
+
+      expect(() =>
+        stopBackgroundAgentChildTree(absentPid, {
+          platform: "linux",
+          signal: "SIGKILL",
+          expectedStartedAt: startedAt,
+          processGroup: true,
+          strictIdentity: true,
+          allowDirectFallback: false,
+        }),
+      ).toThrow(
+        /initial signal attempts 0, signal resends 0, identity probe retries 1, last identity unverifiable\/process-group-owner-not-verifiable, retry stopped by preflight-identity/u,
+      );
+      expect(_deps.posixPermissionRetrySleep.mock.calls).toEqual([[10]]);
+      expect(_deps.readProcessGroupStates).toHaveBeenCalledTimes(2);
+      expect(_deps.readProcessStartTimeMs).not.toHaveBeenCalled();
+      expect(_deps.kill).not.toHaveBeenCalled();
+    },
+  );
+
+  it("fails a nonrecoverable strict preflight immediately without group or direct fallback", () => {
+    const sleeperPid = spawnSleeperPid();
+    _deps.processExitWaitDeadlineMs = 100;
+    _deps.posixPermissionRetryNowMs = vi.fn(() => 0);
+    _deps.posixPermissionRetrySleep = vi.fn();
+    _deps.readProcessState = vi.fn(() => "S");
+    _deps.readProcessGroupStates = vi.fn(() => ["S"]);
+    _deps.readProcessStartTimeMs = vi.fn();
+    _deps.kill = vi.fn();
+
+    expect(() =>
+      stopBackgroundAgentChildTree(sleeperPid, {
+        platform: "linux",
+        signal: "SIGKILL",
+        processGroup: true,
+        strictIdentity: true,
+        allowDirectFallback: false,
+      }),
+    ).toThrow(
+      /initial signal attempts 0, signal resends 0, identity probe retries 0, last identity unverifiable\/started-at-missing, retry stopped by preflight-identity/u,
+    );
+    expect(_deps.posixPermissionRetrySleep).not.toHaveBeenCalled();
+    expect(_deps.readProcessStartTimeMs).not.toHaveBeenCalled();
+    expect(_deps.kill).not.toHaveBeenCalled();
+  });
+
+  it("does not retry an initially unknown strict identity on Windows", () => {
+    const sleeperPid = spawnSleeperPid();
+    const startedAt = Date.now();
+    _deps.processExitWaitDeadlineMs = 100;
+    _deps.posixPermissionRetryNowMs = vi.fn(() => 0);
+    _deps.posixPermissionRetrySleep = vi.fn();
+    _deps.readProcessState = vi.fn(() => "S");
+    _deps.readProcessStartTimeMs = vi.fn(() => null);
+    _deps.kill = vi.fn();
+    _deps.spawnSync = vi.fn();
+
+    expect(() =>
+      stopBackgroundAgentChildTree(sleeperPid, {
+        platform: "win32",
+        signal: "SIGKILL",
+        expectedStartedAt: startedAt,
+        processGroup: true,
+        strictIdentity: true,
+        allowDirectFallback: false,
+      }),
+    ).toThrow(
+      /initial signal attempts 0, signal resends 0, identity probe retries 0, last identity unverifiable\/creation-time-probe-failed, retry stopped by preflight-identity/u,
+    );
+    expect(_deps.readProcessStartTimeMs).toHaveBeenCalledOnce();
+    expect(_deps.posixPermissionRetrySleep).not.toHaveBeenCalled();
+    expect(_deps.kill).not.toHaveBeenCalled();
+    expect(_deps.spawnSync).not.toHaveBeenCalled();
+  });
+
+  it("reports one initial strict signal and no resend for a non-EPERM failure", () => {
+    const sleeperPid = spawnSleeperPid();
+    const startedAt = Date.now();
+    _deps.processExitWaitDeadlineMs = 100;
+    _deps.posixPermissionRetryNowMs = vi.fn(() => 0);
+    _deps.posixPermissionRetrySleep = vi.fn();
+    _deps.readProcessState = vi.fn(() => "S");
+    _deps.readProcessGroupStates = vi.fn(() => ["S"]);
+    _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+    const denied = Object.assign(new Error("kill EACCES"), { code: "EACCES" });
+    _deps.kill = vi.fn(() => {
+      throw denied;
+    });
+
+    expect(() =>
+      stopBackgroundAgentChildTree(sleeperPid, {
+        platform: "linux",
+        signal: "SIGKILL",
+        expectedStartedAt: startedAt,
+        processGroup: true,
+        strictIdentity: true,
+        allowDirectFallback: false,
+      }),
+    ).toThrow(
+      /kill EACCES.*initial signal attempts 1, signal resends 0, identity probe retries 0, last identity match\/no-reason, retry stopped by initial-signal/u,
+    );
+    expect(_deps.kill.mock.calls).toEqual([[-sleeperPid, "SIGKILL"]]);
+    expect(_deps.posixPermissionRetrySleep).not.toHaveBeenCalled();
+  });
+
+  it.skipIf(process.platform === "win32")(
     "retries a strict keeper group signal only with fresh exact identity",
     () => {
       const sleeperPid = spawnSleeperPid();
