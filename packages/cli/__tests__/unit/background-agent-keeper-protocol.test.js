@@ -252,6 +252,28 @@ describe("background agent keeper protocol", () => {
     });
   });
 
+  it("retains a strict group-stop failure while leaderless descendants execute", () => {
+    const stopError = new Error(
+      "process-group-owner-not-verifiable for pid 4321",
+    );
+    const processTreeExecutionAlive = vi.fn(() => true);
+
+    expect(
+      stopBackgroundAgentKeeperTurnTrees(
+        [{ pid: 4321, startedAt: 1_000, processGroup: true }],
+        {
+          platform: "linux",
+          isProcessAlive: () => false,
+          isProcessTreeExecutionAlive: processTreeExecutionAlive,
+          stopProcessTree: () => {
+            throw stopError;
+          },
+        },
+      ),
+    ).toEqual([stopError.message]);
+    expect(processTreeExecutionAlive).toHaveBeenCalledWith(4321, 1_000);
+  });
+
   it("keeps a keeper cleanup failure only while the target remains alive", () => {
     const alive = new Set([4321]);
     const stopProcessTree = vi
@@ -269,6 +291,7 @@ describe("background agent keeper protocol", () => {
         [{ pid: 4321, startedAt: 1_000, processGroup: true }],
         {
           isProcessAlive: (pid) => alive.has(pid),
+          isProcessTreeExecutionAlive: (pid) => alive.has(pid),
           stopProcessTree,
         },
       ),

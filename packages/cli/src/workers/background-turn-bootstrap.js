@@ -14,6 +14,7 @@ import {
   BACKGROUND_TURN_BOOTSTRAP_RELEASE,
   backgroundTurnBootstrapBindingFromEnvironment,
   clearBackgroundTurnBootstrapEnvironment,
+  containReleasedBackgroundTurnDisconnect,
   createBackgroundTurnBootstrapMessage,
   matchesBackgroundTurnBootstrapMessage,
   removeBackgroundTurnBootstrapImport,
@@ -31,12 +32,16 @@ function releaseTimeoutMs() {
   return Math.max(10, Math.min(TEST_RELEASE_TIMEOUT_MAX_MS, requested));
 }
 
-function failClosed(message) {
+function reportFailure(message) {
   try {
     writeSync(2, `[background-turn-bootstrap] ${message}\n`);
   } catch {
     // The inherited diagnostic handle may already be closed.
   }
+}
+
+function failClosed(message) {
+  reportFailure(message);
   process.exit(1);
 }
 
@@ -66,6 +71,28 @@ await new Promise((resolve) => {
     if (timer) clearTimeout(timer);
     if (readyTimer) clearInterval(readyTimer);
     failClosed(message);
+  };
+
+  const containDisconnectOnce = (message) => {
+    if (failed) return;
+    failed = true;
+    if (timer) clearTimeout(timer);
+    if (readyTimer) clearInterval(readyTimer);
+    // Emit the original diagnostic before SIGSTOP freezes this process and
+    // every descendant in its detached POSIX group. If the stop fails (or a
+    // later SIGCONT lets the helper's fail-safe SIGKILL fail), retain the
+    // historical single-process fail-closed exit.
+    reportFailure(message);
+    if (
+      containReleasedBackgroundTurnDisconnect({
+        released,
+        currentPid: binding.pid,
+        onResumedKillFailure: () => process.exit(1),
+      })
+    ) {
+      return;
+    }
+    process.exit(1);
   };
 
   const onMessage = (message) => {
@@ -109,7 +136,7 @@ await new Promise((resolve) => {
   // supervising worker remains fail-closed even after the real CLI starts.
   process.on("message", onMessage);
   process.once("disconnect", () =>
-    failOnce("worker IPC disconnected before turn completion"),
+    containDisconnectOnce("worker IPC disconnected before turn completion"),
   );
   timer = setTimeout(
     () => failOnce("timed out waiting for durable turn release"),

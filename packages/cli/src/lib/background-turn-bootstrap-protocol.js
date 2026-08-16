@@ -124,3 +124,67 @@ export function clearBackgroundTurnBootstrapEnvironment(environment) {
     delete environment[key];
   }
 }
+
+/**
+ * Freeze a released POSIX turn in its detached process group when its worker
+ * disappears. The worker's detached-spawn contract makes the positive current
+ * PID the group ID; using its negative form fails with ESRCH if that invariant
+ * is ever broken instead of stopping an unrelated worker/runner group.
+ *
+ * Register the SIGCONT fail-safe before SIGSTOP because Node's process.kill()
+ * can return to JavaScript before the stop is delivered. If the group is ever
+ * resumed, immediately SIGKILL it instead of letting the Agent or one of its
+ * descendants continue without supervision.
+ */
+export function containReleasedBackgroundTurnDisconnect(options = {}) {
+  const released = options.released === true;
+  const platform = options.platform || process.platform;
+  const currentPid = Number(options.currentPid ?? process.pid);
+  const signalProcessGroup =
+    options.signalProcessGroup || process.kill.bind(process);
+  const resumeSignalTarget = options.resumeSignalTarget || process;
+  const onResumedKillFailure =
+    options.onResumedKillFailure || (() => process.exit(1));
+  if (
+    !released ||
+    platform === "win32" ||
+    !Number.isSafeInteger(currentPid) ||
+    currentPid <= 0
+  ) {
+    return false;
+  }
+  const groupPid = -currentPid;
+  const killAfterResume = () => {
+    try {
+      signalProcessGroup(groupPid, "SIGKILL");
+    } catch {
+      onResumedKillFailure();
+    }
+  };
+  try {
+    resumeSignalTarget.once("SIGCONT", killAfterResume);
+  } catch {
+    try {
+      signalProcessGroup(groupPid, "SIGKILL");
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  try {
+    signalProcessGroup(groupPid, "SIGSTOP");
+    return true;
+  } catch {
+    try {
+      resumeSignalTarget.removeListener("SIGCONT", killAfterResume);
+    } catch {
+      // The same group SIGKILL below remains the containment fallback.
+    }
+    try {
+      signalProcessGroup(groupPid, "SIGKILL");
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}

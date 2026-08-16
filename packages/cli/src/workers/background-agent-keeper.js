@@ -191,7 +191,11 @@ function persistKeeperTurn(job, turn, patch) {
 }
 
 export function stopBackgroundAgentKeeperTurnTrees(targets, options = {}) {
+  const platform = options.platform || process.platform;
   const processAlive = options.isProcessAlive || isProcessAlive;
+  const processTreeExecutionAlive =
+    options.isProcessTreeExecutionAlive ||
+    isBackgroundProcessTreeExecutionAlive;
   const stopTree = options.stopProcessTree || stopBackgroundAgentChildTree;
   const failures = [];
   let precedingTreeStopSucceeded = false;
@@ -213,8 +217,17 @@ export function stopBackgroundAgentKeeperTurnTrees(targets, options = {}) {
       });
       precedingTreeStopSucceeded = true;
     } catch (error) {
-      // A preceding wrapper/group signal may already have retired this root.
-      if (processAlive(target.pid)) {
+      // A detached POSIX group can keep executing after its leader exits. Do
+      // not discard the strict stop failure from a leader-only liveness probe;
+      // the group-aware residual check preserves the actionable identity
+      // reason while descendants remain executable.
+      const leaderAlive = processAlive(target.pid);
+      const residualAlive =
+        leaderAlive ||
+        (platform !== "win32" &&
+          target.processGroup === true &&
+          processTreeExecutionAlive(target.pid, target.startedAt));
+      if (residualAlive) {
         failures.push(error?.message || String(error));
       }
     }
