@@ -3027,11 +3027,32 @@ export function stopBackgroundAgent(id) {
       // independent keeper do not. Signal those single processes directly so
       // a rapidly recycled pid cannot address an unrelated POSIX group.
       for (const target of targets) {
-        target.signalledAsGroup =
-          signalBackgroundProcessTree(target.pid, "SIGTERM", {
-            processGroup: target.signalAsGroup,
-          }) === "process-group";
-        signalledPids.add(target.pid);
+        try {
+          target.signalledAsGroup =
+            signalBackgroundProcessTree(target.pid, "SIGTERM", {
+              processGroup: target.signalAsGroup,
+            }) === "process-group";
+          signalledPids.add(target.pid);
+        } catch (error) {
+          // macOS can report EPERM when the exact target retires after the
+          // destructive identity probe but before the group signal reaches
+          // the kernel. Never weaken signalBackgroundProcessTree's fail-closed
+          // behavior: accept the race only after a new strict identity probe
+          // proves the recorded process/group is dead or safely reused.
+          if (process.platform !== "win32" && error?.code === "EPERM") {
+            const refreshedIdentity = inspectDestructiveProcessIdentity(
+              target.pid,
+              target.startedAt,
+              { processGroup: target.signalAsGroup },
+            );
+            if (["dead", "reused"].includes(refreshedIdentity.status)) {
+              target.signalledAsGroup = target.signalAsGroup === true;
+              signalledPids.add(target.pid);
+              continue;
+            }
+          }
+          throw error;
+        }
       }
     } catch (error) {
       try {

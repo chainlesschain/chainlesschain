@@ -2593,6 +2593,77 @@ describe("background agent supervisor", () => {
   });
 
   it.skipIf(process.platform === "win32")(
+    "accepts POSIX EPERM only after a fresh identity probe proves the target retired",
+    () => {
+      const sleeperPid = spawnSleeperPid();
+      const startedAt = Date.now();
+      let processState = "S";
+      writeBackgroundAgentState({
+        id: "bg-stop-posix-eperm-retired",
+        status: "running",
+        pid: sleeperPid,
+        startedAt,
+      });
+      _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+      _deps.readProcessState = vi.fn(() => processState);
+      _deps.readProcessGroupStates = vi.fn(() => [processState]);
+      const denied = Object.assign(new Error("kill EPERM"), {
+        code: "EPERM",
+      });
+      _deps.kill = vi.fn((pid, signal) => {
+        if (signal === "SIGTERM") {
+          process.kill(Math.abs(Number(pid)), "SIGKILL");
+          processState = "Z";
+          throw denied;
+        }
+      });
+
+      expect(stopBackgroundAgent("bg-stop-posix-eperm-retired")).toMatchObject({
+        status: "stopped",
+        stopped: true,
+      });
+      expect(_deps.kill).toHaveBeenCalledWith(-sleeperPid, "SIGTERM");
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "fails closed when POSIX EPERM still resolves to the recorded process",
+    () => {
+      const sleeperPid = spawnSleeperPid();
+      const startedAt = Date.now();
+      writeBackgroundAgentState({
+        id: "bg-stop-posix-eperm-live",
+        status: "running",
+        pid: sleeperPid,
+        startedAt,
+      });
+      _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+      _deps.readProcessState = vi.fn(() => "S");
+      _deps.readProcessGroupStates = vi.fn(() => ["S"]);
+      const denied = Object.assign(new Error("kill EPERM"), {
+        code: "EPERM",
+      });
+      _deps.kill = vi.fn(() => {
+        throw denied;
+      });
+
+      expect(() => stopBackgroundAgent("bg-stop-posix-eperm-live")).toThrow(
+        /kill EPERM/u,
+      );
+      expect(_deps.kill).toHaveBeenCalledTimes(1);
+      expect(_deps.kill).toHaveBeenCalledWith(-sleeperPid, "SIGTERM");
+      expect(
+        readBackgroundAgentState("bg-stop-posix-eperm-live"),
+      ).toMatchObject({
+        status: "running",
+        phase: "stop_failed",
+        stopPending: true,
+        stopPendingReason: "process-termination",
+      });
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
     "reads POSIX group states through the constrained execution broker",
     () => {
       _deps.spawnSync = vi.fn(() => ({
