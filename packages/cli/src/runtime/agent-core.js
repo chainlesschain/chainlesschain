@@ -5639,6 +5639,10 @@ async function executeToolInner(
       let pluginBinRuntime = null;
       let pluginBinSandboxPolicy = null;
       let pluginBinSandboxExecutionContract = null;
+      const backgroundPlatform =
+        typeof _backgroundProcessDeps.platform === "function"
+          ? _backgroundProcessDeps.platform()
+          : process.platform;
       try {
         const pluginBin = await import("../lib/plugin-runtime/bin.js");
         pluginBinRuntime = pluginBin;
@@ -5665,8 +5669,8 @@ async function executeToolInner(
             { cwd },
           );
           if (
-            process.platform === "linux" ||
-            (process.platform === "win32" &&
+            backgroundPlatform === "linux" ||
+            (backgroundPlatform === "win32" &&
               pluginBinInvocation.runtime === "node")
           ) {
             try {
@@ -5857,8 +5861,8 @@ async function executeToolInner(
         let freshContract = null;
         if (
           freshInvocation.sandboxPolicy &&
-          (process.platform === "linux" ||
-            (process.platform === "win32" &&
+          (backgroundPlatform === "linux" ||
+            (backgroundPlatform === "win32" &&
               freshInvocation.runtime === "node"))
         ) {
           freshContract = pluginBinRuntime.createPluginSandboxExecutionContract(
@@ -6001,10 +6005,6 @@ async function executeToolInner(
             policy: { decision: "deny", via: "sandbox" },
           });
         }
-        const backgroundPlatform =
-          typeof _backgroundProcessDeps.platform === "function"
-            ? _backgroundProcessDeps.platform()
-            : process.platform;
         const pinnedBackgroundBoundaries = [
           ...(pluginBinSandboxPolicy?.requiredBoundaries || []),
         ];
