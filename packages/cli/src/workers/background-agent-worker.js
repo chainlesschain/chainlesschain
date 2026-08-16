@@ -1472,6 +1472,13 @@ async function main() {
       },
       onStop: () => {
         if (!child) return;
+        // An explicit stop owns this turn's termination. Detach the bootstrap
+        // release callback before killing the child so a late IPC EPIPE cannot
+        // reclassify the intentional stop as a post-spawn launch failure. The
+        // child termination settlement remains attached and advances any
+        // queued follow-up turn after the tree is confirmed closed.
+        detachTurnBootstrapHandler?.();
+        detachTurnBootstrapHandler = null;
         // The agent child is detached into its own group on POSIX; Windows
         // requires brokered taskkill /T /F so tool grandchildren cannot
         // survive an attached-session stop.
