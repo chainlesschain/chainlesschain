@@ -15,13 +15,14 @@ vi.mock("../../src/lib/project-detector.js", () => ({
   isInsideProject: vi.fn(() => false),
 }));
 
-vi.mock("../../src/lib/plan-mode.js", () => ({
-  getPlanModeManager: vi.fn(() => ({
+vi.mock("../../src/lib/plan-mode.js", () => {
+  const planModeManager = {
     isActive: () => false,
     isToolAllowed: () => true,
     addPlanItem: vi.fn(),
-  })),
-}));
+  };
+  return { getPlanModeManager: vi.fn(() => planModeManager) };
+});
 
 vi.mock("../../src/lib/hook-manager.js", () => ({
   executeHooks: vi.fn().mockResolvedValue(undefined),

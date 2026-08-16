@@ -21,13 +21,14 @@ import {
 } from "../../src/lib/session-message-provenance.js";
 
 // Mock plan-mode, skill-loader, hook-manager, project-detector before importing agent-core
-vi.mock("../../src/lib/plan-mode.js", () => ({
-  getPlanModeManager: vi.fn(() => ({
+vi.mock("../../src/lib/plan-mode.js", () => {
+  const planModeManager = {
     isActive: () => false,
     isToolAllowed: () => true,
     addPlanItem: vi.fn(),
-  })),
-}));
+  };
+  return { getPlanModeManager: vi.fn(() => planModeManager) };
+});
 
 const _mockSkills = [
   {

@@ -22,13 +22,14 @@ import { tmpdir } from "node:os";
 import { listCodingAgentToolNames } from "../../src/runtime/coding-agent-contract.js";
 
 // Mock plan-mode (required by agent-core)
-vi.mock("../../src/lib/plan-mode.js", () => ({
-  getPlanModeManager: vi.fn(() => ({
+vi.mock("../../src/lib/plan-mode.js", () => {
+  const planModeManager = {
     isActive: () => false,
     isToolAllowed: () => true,
     addPlanItem: vi.fn(),
-  })),
-}));
+  };
+  return { getPlanModeManager: vi.fn(() => planModeManager) };
+});
 
 // Mock hook-manager (required by agent-core)
 vi.mock("../../src/lib/hook-manager.js", () => ({
