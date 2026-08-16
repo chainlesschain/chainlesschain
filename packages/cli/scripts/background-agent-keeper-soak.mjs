@@ -58,6 +58,7 @@ const DEFAULT_OUTPUT = join(
   tmpdir(),
   `cc-background-keeper-soak-${process.platform}-${process.pid}.json`,
 );
+const HARNESS_RESOURCE_SETTLE_MS = 1_000;
 
 export function createBackgroundKeeperSoakRoot(tempDirectory = tmpdir()) {
   // macOS exposes its temporary directory through /var while the owner-only
@@ -1299,6 +1300,14 @@ async function main() {
       };
     }
 
+    // The final Windows identity/CIM sweep is synchronous. It can prove every
+    // child dead before libuv gets a turn to deliver the corresponding close
+    // callbacks, so an immediate process-handle sample counts already-retired
+    // worker/keeper handles as growth. Drain one bounded event-loop interval;
+    // the unchanged resource cap still rejects handles that remain open.
+    await new Promise((resolvePromise) =>
+      setTimeout(resolvePromise, HARNESS_RESOURCE_SETTLE_MS),
+    );
     const harnessAfter = {
       rssBytes: process.memoryUsage().rss,
       resource: resourceCount(process.pid),
