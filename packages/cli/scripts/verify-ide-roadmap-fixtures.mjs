@@ -761,7 +761,13 @@ function validateEvidenceArtifactFile({
   const documentDirectory = path.dirname(documentPath);
   const candidate = path.resolve(documentDirectory, ...portable.split("/"));
   const root = path.resolve(evidenceRoot);
-  if (!isWithin(root, candidate)) {
+  const canonicalRoot = fs.realpathSync(root);
+  const canonicalDocumentDirectory = fs.realpathSync(documentDirectory);
+  const canonicalCandidate = path.resolve(
+    canonicalDocumentDirectory,
+    ...portable.split("/"),
+  );
+  if (!isWithin(canonicalRoot, canonicalCandidate)) {
     issues.push(`${label} escapes the runtime evidence directory`);
     return null;
   }
@@ -783,9 +789,8 @@ function validateEvidenceArtifactFile({
     issues.push(`${label} must identify a regular file: ${portable}`);
     return null;
   }
-  const realRoot = fs.realpathSync(root);
   const realCandidate = fs.realpathSync(candidate);
-  if (!isWithin(realRoot, realCandidate)) {
+  if (!isWithin(canonicalRoot, realCandidate)) {
     issues.push(`${label} resolves outside the runtime evidence directory`);
     return null;
   }
