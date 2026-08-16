@@ -523,6 +523,14 @@ async function waitForCleanup(slot, profile, startedAt, method) {
           alive: ownedIdentityAlive(identity),
         }));
         let allRetired = processes.every(({ alive }) => !alive);
+        // Windows identity probes are synchronous and can consume most of the
+        // cleanup deadline when 20 slots retire together. The independent
+        // keeper can persist `retired` while those probes are running, so do
+        // not judge settlement from the pre-probe `armed` snapshot. A single
+        // operation is allowed to cross pollUntil's deadline and still return
+        // success; refreshing here converts that completed cleanup into the
+        // authoritative result instead of reporting a false timeout.
+        state = readBackgroundAgentState(slot.state.id) || state;
         const now = Date.now();
         if (
           method === "stop" &&

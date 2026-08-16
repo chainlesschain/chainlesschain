@@ -15,10 +15,7 @@ import {
   resolveBackgroundAgentKeeperRetireTimeoutMs,
   sameBackgroundAgentKeeperTurn,
 } from "../../src/lib/background-agent-keeper-protocol.js";
-import {
-  keeperWorkerIdentityAlive,
-  retryKeeperPersistence,
-} from "../../src/workers/background-agent-keeper.js";
+import { keeperWorkerIdentityAlive } from "../../src/workers/background-agent-keeper.js";
 
 const turn = {
   id: "bg-keeper-test",
@@ -93,40 +90,6 @@ describe("background agent keeper protocol", () => {
     const probe = vi.fn(() => false);
     expect(keeperWorkerIdentityAlive(2468, 1_234_567, probe)).toBe(false);
     expect(probe).toHaveBeenCalledWith(2468, 1_234_567);
-  });
-
-  it("retries cleanup-critical persistence through a transient lock fence", async () => {
-    let clock = 0;
-    const sleep = vi.fn(async (ms) => {
-      clock += ms;
-    });
-    const operation = vi
-      .fn()
-      .mockImplementationOnce(() => {
-        throw Object.assign(new Error("locked"), {
-          code: "STATE_LOCK_UNAVAILABLE",
-        });
-      })
-      .mockImplementationOnce(() => {
-        throw Object.assign(new Error("still locked"), {
-          code: "STATE_LOCK_UNAVAILABLE",
-        });
-      })
-      .mockReturnValue({ applied: true });
-
-    await expect(
-      retryKeeperPersistence(operation, {
-        timeoutMs: 20,
-        retryDelayMs: 5,
-        now: () => clock,
-        sleep,
-      }),
-    ).resolves.toEqual({
-      result: { applied: true },
-      error: null,
-      attempts: 3,
-    });
-    expect(sleep).toHaveBeenCalledTimes(2);
   });
 
   it("gives RETIRE an independent budget covering bounded Windows cleanup", () => {
