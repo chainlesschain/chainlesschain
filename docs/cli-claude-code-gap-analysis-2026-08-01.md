@@ -1650,3 +1650,27 @@ seed `1592598566` 与 campaign `p2-4-scheduler-long-soak-7d3120fc`。
 - Linux 新 capability 仍只声明 pathname-visible loader input；legacy/broad `sharedLibraryClosure=false`，JIT/custom loader、Windows DLL/delay-load/`LoadLibrary` 和 macOS dyld/`@rpath`/`dlopen` 均不在闭包内。macOS helper 在 Developer ID、notary Accepted、root-owned pkg 安装、x64/arm64 packed runtime 与 race/lifeline/signal/fork 实机矩阵完成前保持 fail-closed，普通 npm 发布不能冒充 signed native closure。
 - 当前只是发布候选，尚未创建 tag、上传 npm 或取得公网回读。专用 npm workflow 已把 `workflow_dispatch` 固定为无发布凭据的 dry-run；生产 package/publish 只接受不可变 `v-npm-*` tag push，删除 operator version shell interpolation，并把发布与 readback 使用的外部 Actions 固定到完整 commit SHA。只有最终 PR head 和最终 merge SHA 分别通过完整 `CLI CI` 与 `CLI Strict Sandbox` 的 Linux、Windows、macOS 全矩阵，才允许创建不可变轻量 tag `v-npm-0-164-0`；随后仍须由专用 npm workflow 完成 exact-SHA gate、不可变 tarball、SBOM、Trusted Publishing/provenance、registry 字节校验，并由独立 readback workflow 再次确认。任一矩阵失败、超时、属于旧 SHA 或仅有本地结果时都不授权发布。
 - 本候选不改变当前总数：原始 15 项仍为 **10 完成 / 5 部分完成 / 0 完全未开始**，六项专项仍为 **3 完成 / 3 未完成**，完整产品继续 **NO-GO**。P1-2 formal keeper、P2-4 最终相关 SHA 的四段 72h campaign、Skill/MCP 剩余平台边界、代表性 alias telemetry 与签名 native 公开发行仍各自等待权威退出证据。
+
+### 18.26 2026-08-16 未完成项归并复核与 `0.164.0` 运行态
+
+本节记录 `2026-08-16 07:02 +08:00` 的复核快照，优先于第 18.25 节中的“尚未创建 tag”候选状态，但不改写前述历史证据。复核时本地 `main` 与 `github/main` 同步于 `697416bd5a85b0f6a50fc4367adbd97dffc3b2f2`；CLI 源码版本已是 `0.164.0`，不可变 tag `v-npm-0-164-0` 已存在并指向 `313dec85cffa09dbb183be17d2b6597e303bed5f`，但公网 npm `latest` 仍为 `chainlesschain@0.163.8`。
+
+将原始 15 项与第 16.8 节六项产品任务的重叠范围合并后，当前实际剩余 **5 个不重复工作包**：
+
+| 归并后的工作包                       | 对应原始/产品项        | 当前状态             | 尚缺的权威退出证据                                                                                                                                                                                                                                                                |
+| ------------------------------------ | ---------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Native 签名、可信更新与公开发行链 | P0-3、P1-5、产品任务 4 | **部分完成 / NO-GO** | updater Ed25519；Windows Authenticode；macOS Developer ID/notarization；Linux/Sigstore；签名后的 fresh install/upgrade/rollback；Homebrew、WinGet 等公开渠道实际发布及资产逐字节回读。三项属于一个主要交付包，不应重复估算。                                                      |
+| 2. Alias telemetry 与最终删除决策    | P1-1、产品任务 5       | **部分完成 / NO-GO** | `0.164.0` removal floor 已满足，但仍缺获批的代表性 Collector/cohort、Linux/macOS/Windows reporting coverage、非零 accepted points、sample rate 与逐命令 legacy/replacement usage；在证据完整前继续保留 25/25 compatibility alias。                                                |
+| 3. Background Agent keeper 正式矩阵  | P1-2                   | **部分完成**         | 同一最终 exact SHA 同时通过 CLI CI、CLI Strict Sandbox，以及 Linux/macOS/Windows 的 20-Agent、7200 秒、1000-cycle formal keeper soak；随后回读三平台 aggregate、kill/restart/并发清理和资源趋势 artifact。                                                                        |
+| 4. Scheduler kernel 72 小时 campaign | P2-4                   | **部分完成**         | 历史冻结 SHA `7d3120fc1e` 只有 1/4 segment；后续 `54fc71fc41` 修改了 soak 明确监听的源文件，因此当前最终相关 SHA 必须重新取得 4 个同 SHA segment 并通过 campaign verifier，或形成被正式门接受的可审计非影响证明。当前两类证据都不存在。                                           |
+| 5. Skill/MCP 真实恶意安全矩阵        | 产品任务 3             | **部分完成 / NO-GO** | macOS atomic runtime `exec/open`；跨平台任意 native/shared-library 递归闭包；远端 durable distributed revoke authority；同一 exact SHA 的三平台长期重复 fresh-isolate 恶意 artifact。当前实现仍显式保留 `sharedLibraryClosure=false` 与 `completeSkillMcpSecurityClosure=false`。 |
+
+关键失败证据仍然有效：
+
+- [Scheduler Kernel Soak `31865856769`](https://github.com/chainlesschain/chainlesschain/actions/runs/31865856769) 因 repository variables 为空，在真正执行 soak 前失败，不计正式 segment；旧冻结 tree 的 1/4 也不能关闭当前 HEAD。
+- [Background Agent Keeper Soak `31904827937`](https://github.com/chainlesschain/chainlesschain/actions/runs/31904827937) 在旧 SHA `e9ddcab` 失败，不能作为 P1-2 的正式三平台退出证据。
+- 最新 `main@697416bd5a` 的 [CLI Strict Sandbox `31913015310`](https://github.com/chainlesschain/chainlesschain/actions/runs/31913015310) 已完成且结论为 failure，Ubuntu 24.04、macOS 15、Windows 三个 `strict native boundary` job 全部失败；[CLI CI `31913015413`](https://github.com/chainlesschain/chainlesschain/actions/runs/31913015413) 尚未形成最终结论，且已经出现 Ubuntu e2e shard 2/4 与 macOS unit shard 2/4 failure。因此该最新 HEAD 当前没有可用于发布或关闭剩余任务的完整双绿色门禁。
+
+`0.164.0` 另有一个不增加原始未完成项计数的**发布运行态子任务**：[Publish CLI release to npm `31912844032`](https://github.com/chainlesschain/chainlesschain/actions/runs/31912844032) 绑定 tag SHA `313dec85cffa09dbb183be17d2b6597e303bed5f`；截至本节快照，`exact-sha-gate`、`test`、`package-cli` 已成功，`publish` job 尚在队列中，公网 registry 仍回读为 `0.163.8`。只有 publish 成功、npm `latest` 变为 `0.164.0`，并完成独立公网 tarball/provenance/字节回读，才能关闭该发布子任务；它本身不能替代上述五个工作包的退出条件。
+
+因此统计结论保持不变：原始 15 项为 **10 完成 / 5 部分完成 / 0 完全未开始**，六项产品任务为 **3 完成 / 3 未完成**；去重后的实施队列是上述 **5 个工作包**。完整 CLI 产品与 native 公开发行继续判定为 **NO-GO**。

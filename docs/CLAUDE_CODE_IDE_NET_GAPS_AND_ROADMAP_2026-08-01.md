@@ -1829,3 +1829,34 @@ R0～R5 只是阶段别名，不重复计数。“部分完成”表示已有实
 建议关闭顺序为：先完成 **S0-1～S0-3、Q0、Q3** 的安全、可信分发和真实交付门，再用 **Q4a/Q4b**
 关闭远程、故障与长期宿主证据，随后推进 **P1-1～P1-5** 的产品化，最后处理 **P2-4～P2-5**。
 在 Q0、Q3 和 Q4b 的外部证据未闭合前，整体产品发布结论保持 **NO-GO**。
+
+## 十四、2026-08-16 最新未完成项复核（`07:17 +08:00`）
+
+本节以 `main@697416bd5a85b0f6a50fc4367adbd97dffc3b2f2` 为当前源码基线，补充第十三节之后的公开发布与 Actions 运行状态；它优先于第十二、十三节中的旧版本运行态，但不改写已经取得的历史证据。复核后仍是 **13/19 项尚未关闭、6/19 项完成**，没有新增整项关闭。已完成项继续是 P0-1/Q1 Workbench、P0-2/Q2 Rewind、P1-3/R4 Automation Center、P2-1/R5 因果可观测性、P2-2/R5 自动补全和 P2-3/R5 多 Agent 合并审阅。
+
+| #   | 未完成路线项                         | 当前判定                         | 最新核验后的主要关闭条件                                                                                                                                                                                                      |
+| --- | ------------------------------------ | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | S0-1：Plan、权限与运行时正确性       | **部分完成 / P0 release gate**   | `697416bd5a` 已进一步加固 durable relay membership commit、恢复与 candidate key/replay 隔离，但仍须完成跨宿主 distributed revoke/人工裁决、真实物理断电与跨设备 fsync、强篡改者、长期安全矩阵、iOS transient resume/生产 UI。 |
+| 2   | S0-2：Skill/MCP 信任边界             | **部分完成 / P0 release gate**   | 当前实现仍显式保留 `sharedLibraryClosure=false`；补齐 macOS 签名后的原子 runtime `exec/open`、跨平台任意 native/shared-library 闭包、distributed authority 与长期恶意矩阵，并取得当前 exact SHA 的完整绿色安全门。            |
+| 3   | S0-3：持久状态、语义压缩与 handoff   | **部分完成 / P0 foundation**     | 在同一 exact SHA 上完成至少 100 次真实 provider 长会话、可验收 structured handoff/live trajectory 与全宿主长期一致性；三平台 100-run loopback 只能验证执行路径和证据合同，不能代替真实 provider。                             |
+| 4   | Q0：可信入口与 Microsoft Marketplace | **部分完成 / 外部阻塞**          | 配置 `VSCE_PAT`，把同一已验证 VSIX 发布到 Microsoft Marketplace，并完成 exact publisher/version/digest 回读，以及 stock VS Code 的搜索、fresh-profile 安装、升级和回滚。                                                      |
+| 5   | Q3：Evidence-Driven Delivery Loop    | **部分完成 / live journey 延后** | 通过生产入口真实执行 gates→preview→review→fix→PR/CI→受控 merge→archive，绑定 exact head，并验证 ruleset/branch protection、required checks/review、权限与外部不可变/WORM 归档。                                               |
+| 6   | Q4a：真实宿主验收基础设施            | **部分完成**                     | 先取得当前 exact SHA 的 Remote-SSH/container producer 与 trusted aggregate；随后完成 WSL/devcontainer/Codespaces、JetBrains Gateway、更多 Remote/SSH、失败 artifact、网络故障和可重放矩阵。                                   |
+| 7   | Q4b：完整发布与用户旅程门            | **部分完成 / 外部阻塞**          | 完成 Microsoft Marketplace、JetBrains 作者签名、Desktop/native x64+ARM64 签名与公证、公开渠道 fresh-profile 升降级/回滚、网络抖动/重连/Bridge 与 CLI restart、8 小时 IDE soak 和 nightly live-provider trajectory。           |
+| 8   | P1-1：Dynamic Workflow façade        | **部分完成**                     | 实现并验证真实宿主 attestation、自然语言生成/审阅、运行中 pause/resume/stop/restart、恢复后阶段最多一次、durable lineage、Workbench/双 IDE 消费、跨 host 与 plugin/marketplace 分发。                                         |
+| 9   | P1-2：一等 Execution Location        | **部分完成**                     | 完成 WSL/SSH/Cloud/Container 的真实 launch/resume、跨宿主 commit/diff/summary/artifact/evidence/authority 继承、Preview/Computer Use、IDE/Desktop 创建面及长期故障矩阵。                                                      |
+| 10  | P1-4：Context 与 Permission Center   | **部分完成**                     | 补齐长期并发、真实宿主、故障注入和跨入口矩阵；证明凭据值/完整命令始终不泄露，外部副作用不会被本地 checkpoint 误报为可回滚。                                                                                                   |
+| 11  | P1-5：Marketplace 组织治理           | **部分完成**                     | 完成真实 private registry TLS/auth、publisher/组织 trust root 与 key revocation、代理/PAC/custom CA、air-gapped/offline、依赖/网络/cache/供应链故障矩阵，以及远端 SBOM payload 语义绑定。                                     |
+| 12  | P2-4：可访问性与性能                 | **部分完成**                     | 完成键盘全路径、屏幕阅读器、焦点恢复、长会话虚拟化、大 diff/日志和 100+ session 量化验收，并覆盖真实宿主与长期运行。                                                                                                          |
+| 13  | P2-5：WebIDE 定位                    | **未决**                         | 作出产品决策：没有独立浏览器 IDE 目标时收敛为 Preview/Artifact；若继续投入，则补齐仓库树、搜索、诊断、Git/Diff、Terminal 与 session 绑定。                                                                                    |
+
+本次运行态复核带来以下更新，但不减少上述 13 项：
+
+- CLI `chainlesschain@0.164.0` 已由 tag `v-npm-0-164-0` 的 exact SHA `313dec85cffa09dbb183be17d2b6597e303bed5f` 发布；[npm workflow `31912844032`](https://github.com/chainlesschain/chainlesschain/actions/runs/31912844032) 与[独立公网 readback `31913903124`](https://github.com/chainlesschain/chainlesschain/actions/runs/31913903124)均成功，公网 `latest` 已回读为 `0.164.0`。这只更新 Q4b 的 CLI npm 基础，不替代签名 native、IDE Marketplace 或真实用户旅程。
+- Open VSX 公网 `latest` 在本次快照仍为 `0.37.53`；tag `ide-vscode-v0.37.54` 已存在，但对应 [IDE Extensions `31913429988`](https://github.com/chainlesschain/chainlesschain/actions/runs/31913429988)仍未终态。仓库 secrets/variables 仍无 `VSCE_PAT`，所以即使 Open VSX `0.37.54` 发布成功也不能关闭 Q0。
+- 当前 `main@697416bd5a` 的 [CLI Strict Sandbox `31913015310`](https://github.com/chainlesschain/chainlesschain/actions/runs/31913015310) 已失败，Ubuntu 24.04、macOS 15、Windows 三个 `strict native boundary` job 全部为 failure；故 S0-2 没有当前 HEAD 的完整绿色安全门。当前 main 的 macOS launcher gate 成功只覆盖 unsigned contract/负向边界，不是 Developer ID、notary Accepted 与 root-installed signed package 的正式发行证据。
+- [IDE Roadmap Live Provider Trajectory `31913015319`](https://github.com/chainlesschain/chainlesschain/actions/runs/31913015319) 已成功，但本次 push 只执行 Linux、Windows、macOS 各 100 次 production-path loopback；real-provider 与 verifier jobs 被跳过。因此该 run 不计 S0-3 所需的 100 次真实 provider 证据。
+- 当前 main 的 [IDE Extensions `31913015336`](https://github.com/chainlesschain/chainlesschain/actions/runs/31913015336) 尚未终态；其中 `VS Code Remote-SSH container (scoped trusted cell)` 在最近一次回读仍为 queued。即使该单格最终成功，也只关闭 Q4a 的一个 Remote-SSH/container 子门，不代表 WSL、devcontainer、Codespaces、Gateway 与网络故障矩阵完成。
+- Dynamic Workflow manifest 仍明确为 `durablePauseResume=false`、`exactlyOnceAfterResume=false`、`needsInputBetweenStages=false`；Marketplace 远端 artifact evidence 仍明确为 `publisherIdentityVerified=false`、`sbomPayloadCompared=false`。因此 P1-1 与 P1-5 均不能从已有 catalog/preflight/replay/readback 子门外推为完成。
+
+建议执行顺序保持为：先修复当前 exact-SHA 安全门并完成 **S0-1～S0-3**，再关闭 **Q0、Q3** 的可信分发和真实交付；随后用 **Q4a/Q4b** 完成远程、故障、签名与长期宿主证据，再推进 **P1-1、P1-2、P1-4、P1-5**，最后处理 **P2-4** 和 **P2-5**。在 Q0、Q3、Q4b 及 P0 安全退出条件未闭合前，整体产品发布结论继续为 **NO-GO**。
