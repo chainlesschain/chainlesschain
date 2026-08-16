@@ -2573,6 +2573,7 @@ export async function executeTool(name, args, context = {}) {
   // before any of them so an in-process caller cannot swap the approved command
   // or reinterpret a relative cwd after process.chdir().
   let shellAuthorityCwd = null;
+  let shellAuthorityWorkspaceCwd = null;
   let runCodeAuthorityCwd = null;
   if (name === "run_shell") {
     try {
@@ -2591,9 +2592,14 @@ export async function executeTool(name, args, context = {}) {
       ) {
         throw new TypeError("run_shell cwd must be a non-empty string");
       }
+      shellAuthorityWorkspaceCwd = fs.realpathSync.native(
+        path.resolve(entryProcessCwd, contextCwd),
+      );
+      if (!fs.statSync(shellAuthorityWorkspaceCwd).isDirectory()) {
+        throw new Error("run_shell context cwd is not a directory");
+      }
       const requestedCwd = path.resolve(
-        entryProcessCwd,
-        contextCwd,
+        shellAuthorityWorkspaceCwd,
         declared.cwd || ".",
       );
       shellAuthorityCwd = fs.realpathSync.native(requestedCwd);
@@ -2645,8 +2651,15 @@ export async function executeTool(name, args, context = {}) {
   }
   const hookDb = context.hookDb || null;
   const skillLoader = context.skillLoader || _defaultSkillLoader;
+  // Keep the authority-bearing workspace root distinct from the command's
+  // requested cwd. A command may run in a nested directory, but Plugin policy
+  // discovery and strong-sandbox issuance must remain anchored to the host
+  // workspace that admitted the tool call.
   const cwd =
-    shellAuthorityCwd || runCodeAuthorityCwd || context.cwd || process.cwd();
+    shellAuthorityWorkspaceCwd ||
+    runCodeAuthorityCwd ||
+    context.cwd ||
+    process.cwd();
   const planManager = context.planManager || getPlanModeManager();
   // The provider receives a filtered schema, but an untrusted/buggy model can
   // still emit an arbitrary tool_call. Reuse the same pure preflight that the
