@@ -1201,7 +1201,13 @@ function writeImmutableJson(destination, value) {
 }
 
 function portableRelativePath(fromDirectory, target, label) {
-  const relative = path.relative(fromDirectory, target);
+  // Hosted macOS exposes the temporary directory through /var while its
+  // canonical path is rooted at /private/var. Artifact verification returns
+  // canonical paths, so compare both sides in the same filesystem namespace
+  // before emitting the portable path stored in the evidence envelope.
+  const canonicalDirectory = fs.realpathSync(path.resolve(fromDirectory));
+  const canonicalTarget = fs.realpathSync(path.resolve(target));
+  const relative = path.relative(canonicalDirectory, canonicalTarget);
   if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) {
     throw new Error(`${label} must stay below the runtime envelope directory`);
   }
