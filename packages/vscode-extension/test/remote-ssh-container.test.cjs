@@ -243,3 +243,56 @@ test("missing semantic artifacts fail the scoped negative control", () => {
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("outcome evidence closes its self-reference before trusted evidence is emitted", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-remote-outcome-"));
+  try {
+    const paths = Object.fromEntries(
+      [
+        "exact-commit",
+        "host-environment",
+        "remote-environment",
+        "outcome-observations",
+        "redacted-diagnostics",
+        "artifact-digests",
+        "candidate-vsix",
+        "candidate-manifest",
+      ].map((name) => [name, path.join(root, `${name}.json`)]),
+    );
+    for (const [name, filePath] of Object.entries(paths)) {
+      if (name !== "outcome-observations") {
+        fs.writeFileSync(filePath, "{}\n", "utf8");
+      }
+    }
+
+    assert.throws(
+      () => runner.requiredArtifactNegativeControl(paths),
+      /missing required artifact: outcome-observations/u,
+    );
+    runner.writeOutcomeObservations(paths, {
+      credentialLeakCount: 0,
+      remoteTransportExercised: true,
+    });
+    assert.deepEqual(
+      JSON.parse(fs.readFileSync(paths["outcome-observations"], "utf8")),
+      {
+        schema: "chainlesschain.ide-roadmap-outcome-observations.v1",
+        credentialLeakCount: 0,
+        remoteTransportExercised: true,
+        missingRequiredArtifactsFail: true,
+      },
+    );
+    assert.doesNotThrow(() => runner.assertRequiredArtifacts(paths));
+
+    fs.unlinkSync(paths["remote-environment"]);
+    assert.throws(
+      () =>
+        runner.requiredArtifactNegativeControl(paths, {
+          outcomePending: true,
+        }),
+      /missing required artifact: remote-environment/u,
+    );
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});

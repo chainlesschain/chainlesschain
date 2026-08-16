@@ -332,32 +332,62 @@ function createRemoteWorkspace(runRoot, cliVersion) {
   return staged;
 }
 
-function requiredArtifactNegativeControl(paths) {
-  const names = [
-    "exact-commit",
-    "host-environment",
-    "remote-environment",
-    "outcome-observations",
-    "redacted-diagnostics",
-    "artifact-digests",
-    "candidate-vsix",
-    "candidate-manifest",
-  ];
-  const assertComplete = (candidate) => {
-    for (const name of names) {
-      if (
-        !candidate[name] ||
-        !fs.statSync(candidate[name], { throwIfNoEntry: false })?.isFile()
-      ) {
-        throw new Error(`missing required artifact: ${name}`);
-      }
+const REQUIRED_ARTIFACT_NAMES = Object.freeze([
+  "exact-commit",
+  "host-environment",
+  "remote-environment",
+  "outcome-observations",
+  "redacted-diagnostics",
+  "artifact-digests",
+  "candidate-vsix",
+  "candidate-manifest",
+]);
+
+function assertRequiredArtifacts(paths, { outcomePending = false } = {}) {
+  for (const name of REQUIRED_ARTIFACT_NAMES) {
+    // The outcome records this negative control, so it cannot exist while the
+    // control is being evaluated. This exception is deliberately limited to
+    // that one self-referential file; the complete set is asserted after the
+    // outcome is written and before any trusted evidence is emitted.
+    if (outcomePending && name === "outcome-observations") continue;
+    if (
+      !paths[name] ||
+      !fs.statSync(paths[name], { throwIfNoEntry: false })?.isFile()
+    ) {
+      throw new Error(`missing required artifact: ${name}`);
     }
-  };
-  assertComplete(paths);
+  }
+}
+
+function requiredArtifactNegativeControl(
+  paths,
+  { outcomePending = false } = {},
+) {
+  assertRequiredArtifacts(paths, { outcomePending });
   const incomplete = { ...paths };
   delete incomplete["remote-environment"];
-  assert.throws(() => assertComplete(incomplete), /missing required artifact/u);
+  assert.throws(
+    () => assertRequiredArtifacts(incomplete, { outcomePending }),
+    /missing required artifact/u,
+  );
   return true;
+}
+
+function writeOutcomeObservations(semanticPaths, observations) {
+  const outcomePath = semanticPaths["outcome-observations"];
+  if (typeof outcomePath !== "string" || !outcomePath) {
+    throw new Error("missing required artifact path: outcome-observations");
+  }
+  const missingRequiredArtifactsFail = requiredArtifactNegativeControl(
+    semanticPaths,
+    { outcomePending: true },
+  );
+  writeJson(outcomePath, {
+    schema: "chainlesschain.ide-roadmap-outcome-observations.v1",
+    ...observations,
+    missingRequiredArtifactsFail,
+  });
+  assertRequiredArtifacts(semanticPaths);
 }
 
 async function writeJourneyEvidence({
@@ -912,10 +942,7 @@ async function main() {
           0),
       0,
     );
-  writeJson(outcomePath, {
-    schema: "chainlesschain.ide-roadmap-outcome-observations.v1",
-    missingRequiredArtifactsFail:
-      requiredArtifactNegativeControl(semanticPaths),
+  writeOutcomeObservations(semanticPaths, {
     credentialLeakCount,
     wrongCommitBindingCount:
       remoteEnvironment?.releaseCommit === options.releaseCommit ? 0 : 1,
@@ -956,11 +983,13 @@ module.exports = {
   assertPinnedRemoteSshVsix,
   assertPinnedRemoteSshPayload,
   assertCandidateReleaseBindingUnchanged,
+  assertRequiredArtifacts,
   createKnownHostsEntry,
   parseArgs,
   requiredArtifactNegativeControl,
   verifyCandidateReleaseBinding,
   waitForSshReady,
+  writeOutcomeObservations,
 };
 
 if (require.main === module) {
