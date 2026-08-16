@@ -106,6 +106,29 @@ test("remote driver calls the existing real host journey after proving remote id
   assert.doesNotMatch(orchestrator, /transport:\s*"remote"/u);
 });
 
+test("remote workspace binds every root to the selected SSH authority", () => {
+  const workspace = runner.createRemoteWorkspaceDefinition(
+    "ssh-remote+cc-roadmap-test",
+  );
+
+  assert.equal(workspace.remoteAuthority, "ssh-remote+cc-roadmap-test");
+  assert.deepEqual(workspace.folders, [
+    {
+      name: "primary",
+      uri: "vscode-remote://ssh-remote+cc-roadmap-test/home/cc-roadmap/workspace-primary",
+    },
+    {
+      name: "secondary",
+      uri: "vscode-remote://ssh-remote+cc-roadmap-test/home/cc-roadmap/workspace-secondary",
+    },
+  ]);
+  assert.ok(workspace.folders.every((folder) => !("path" in folder)));
+  assert.throws(
+    () => runner.createRemoteWorkspaceDefinition("file"),
+    /workspace authority/u,
+  );
+});
+
 test("failed Remote-SSH host runs retain local and container diagnostics", () => {
   const orchestrator = read(
     "packages/vscode-extension/test/remote-ssh-container/run.cjs",

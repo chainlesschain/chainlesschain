@@ -332,6 +332,30 @@ function createRemoteWorkspace(runRoot, cliVersion) {
   return staged;
 }
 
+function createRemoteWorkspaceDefinition(remoteAuthority) {
+  assert.match(
+    remoteAuthority,
+    /^ssh-remote\+[A-Za-z0-9._-]+$/u,
+    "invalid Remote-SSH workspace authority",
+  );
+  return {
+    folders: REMOTE_WORKSPACES.map((folder, index) => ({
+      name: index === 0 ? "primary" : "secondary",
+      uri: `vscode-remote://${remoteAuthority}${folder}`,
+    })),
+    remoteAuthority,
+    settings: {
+      "chainlesschain.ide.enabled": true,
+      "chainlesschain.cli.managed.enabled": false,
+      "chainlesschain.cli.path": `${REMOTE_HOME}/bin/cc`,
+      "extensions.autoCheckUpdates": false,
+      "extensions.autoUpdate": false,
+      "telemetry.telemetryLevel": "off",
+      "update.mode": "none",
+    },
+  };
+}
+
 const REQUIRED_ARTIFACT_NAMES = Object.freeze([
   "exact-commit",
   "host-environment",
@@ -701,21 +725,7 @@ async function main() {
       ],
       { diagnostics },
     );
-    const workspace = {
-      folders: REMOTE_WORKSPACES.map((folder, index) => ({
-        name: index === 0 ? "primary" : "secondary",
-        path: folder,
-      })),
-      settings: {
-        "chainlesschain.ide.enabled": true,
-        "chainlesschain.cli.managed.enabled": false,
-        "chainlesschain.cli.path": `${REMOTE_HOME}/bin/cc`,
-        "extensions.autoCheckUpdates": false,
-        "extensions.autoUpdate": false,
-        "telemetry.telemetryLevel": "off",
-        "update.mode": "none",
-      },
-    };
+    const workspace = createRemoteWorkspaceDefinition(remoteAuthority);
     const workspaceFile = path.join(runRoot, "chainlesschain.code-workspace");
     fs.writeFileSync(workspaceFile, `${JSON.stringify(workspace, null, 2)}\n`);
     runCommand(
@@ -1036,6 +1046,7 @@ module.exports = {
   assertPinnedRemoteSshPayload,
   assertCandidateReleaseBindingUnchanged,
   assertRequiredArtifacts,
+  createRemoteWorkspaceDefinition,
   createKnownHostsEntry,
   parseArgs,
   requiredArtifactNegativeControl,
