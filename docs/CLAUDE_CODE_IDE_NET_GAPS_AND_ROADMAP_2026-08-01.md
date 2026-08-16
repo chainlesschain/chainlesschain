@@ -1875,3 +1875,24 @@ R0～R5 只是阶段别名，不重复计数。“部分完成”表示已有实
 - **Q0 / Q4b 公开渠道状态更正：** [IDE Extensions `31913429988`](https://github.com/chainlesschain/chainlesschain/actions/runs/31913429988) 已终态成功，Open VSX `0.37.54` 已完成 publish、listing 与下载回读；CLI npm `0.164.0` 的发布与独立公网回读也已成功。Microsoft Marketplace 仍未配置 `VSCE_PAT`，JetBrains 仍无作者签名，Desktop/native 仍缺 x64+ARM64 签名与公证，因此 Q0/Q4b 状态不变。
 
 当前候选的最短关闭路径是：先让 `34f55fe3c0`（或仅含本节文档的后继 SHA）的 `CLI CI`、`CLI Strict Sandbox`、`IDE Roadmap Safety Matrix`、`CLI Background Agent Keeper Soak` 与 Remote-SSH producer/aggregate 全部取得同 SHA 终态绿色；再由有权限的发布方补齐 Microsoft Marketplace、签名/公证、Q3 生产交付/WORM 和 S0-3 至少 100 次真实 provider 证据。任何旧 SHA 的成功、取消中的 job、局部 OS 成功或 loopback 结果均不得外推为整项完成或 release GO。
+
+## 十六、2026-08-16 发布门修复收口复核（`14:52 +08:00`）
+
+本节以 PR [#209](https://github.com/chainlesschain/chainlesschain/pull/209) 的运行时代码冻结点
+`21f3eb73aaac16bae5602a753d5f7ae8e5c2185a` 为准，取代第十五节尚未终态的候选运行证据。PR 使用精确基线分支
+`fix/roadmap-release-gates-base-818bcc3@818bcc3ed6d1a5cd611b2960ebc1f662b99dd42a`，没有覆盖并发演进的旧候选分支。此次只关闭已经暴露的 keeper、Remote-SSH 与证据桥回归；外部发布 authority、真实生产交付、真实 provider、签名/公证和完整长期矩阵仍未完成。因此总数继续是 **13/19 项尚未关闭、6/19 项完成**，整体发布结论继续为 **NO-GO**。
+
+- **后台 keeper 当前 exact-SHA 子门已恢复：** [CLI Background Agent Keeper Soak `31931762868`](https://github.com/chainlesschain/chainlesschain/actions/runs/31931762868) 在 Ubuntu、Windows、macOS 三个 producer 及 `Background Agent keeper soak aggregate` 全部成功。修复把 Darwin 超过 `sockaddr_un` 上限的 keeper/attach socket 映射到独立、私有、按 state-root/user/id 哈希的短路径，并为 Windows worker 增加认证 heartbeat，使 PID/start-anchor 探针不可用或延迟时仍可在有界时间内判定 worker 丢失；secure-fs 的 owner、mode、symlink/reparse 与 containment 拒绝条件没有放宽。本地 keeper/transport 定向集为 **27/27**，完整 supervisor 为 **79 passed / 7 skipped**；Windows 三 Agent 真进程 smoke 完成 ready、reconnect、hard-kill 清理，最大观察清理约 24.1 秒，低于 30 秒门限。手工 20-Agent run [31928109052](https://github.com/chainlesschain/chainlesschain/actions/runs/31928109052) 在 Windows 诊断失败后取消，不能计作 Q4b 的正式长时 soak，也不关闭物理断电、分布式撤权或长期对抗矩阵。
+- **Remote-SSH producer 与 trusted aggregate 已在同一 SHA 成功：** [IDE Extensions `31931762904`](https://github.com/chainlesschain/chainlesschain/actions/runs/31931762904) 整体终态成功，其中不可变 VSIX、Windows/macOS/Linux VS Code host、`VS Code Remote-SSH container (scoped trusted cell)` 与 `IDE roadmap evidence (trusted scoped aggregate)` 均成功。runner 先把 development driver、test runner、workspace file 和两根 workspace 绑定为所选 `ssh-remote+...` authority；远端 workspace extension host 再以其原生 `file:` 资源呈现两根路径，并由 `vscode.env.remoteName=ssh-remote`、容器 hostname/marker、`.vscode-server` 精确安装路径、候选 VSIX 摘要/字节数与完整 host-journey stages 共同证明实际远端执行。修复同时统一 marker 的精确写入字节、允许 extension cwd 等于 remote home 或其 canonical 子目录，并让 roadmap artifact 保留受控 `.vsix` 扩展名供后置 inspector 重验。最终 journey 证明 activation、commands、bridge、view dispatch 和 phase completion 全部完成，credential leak、wrong-commit binding 与 evidence replacement 均为 0；本地 Remote 合同为 **10/10**，journey evidence 与 runtime verifier 定向集为 **36/36**。
+- **同一运行时代码点的安全与 PR 基础门已成功：** [IDE Roadmap Safety Matrix `31931762870`](https://github.com/chainlesschain/chainlesschain/actions/runs/31931762870) 的 Ubuntu、Windows、macOS producer 及正式 aggregate 全部成功；[PR Tests `31931762876`](https://github.com/chainlesschain/chainlesschain/actions/runs/31931762876) 的 Code Quality 与 Quick Tests 全部成功。最终仅文档后继 SHA 仍须按仓库发布规则取得完整三平台 `CLI CI` 与 `CLI Strict Sandbox`；本地结果、旧 SHA、部分 OS 或取消的 run 不能替代该 exact-SHA 发布门。
+- **公开渠道结论不变：** Open VSX `0.37.54` 已完成发布、listing 与下载回读，CLI npm `0.164.0` 已完成发布和独立公网回读；Microsoft Marketplace 仍没有 `VSCE_PAT`，JetBrains 仍缺作者签名，Desktop/native 仍缺 x64+ARM64 签名与公证。已有公开子门不能替代 Microsoft Marketplace 的 exact publisher/version/digest、stock VS Code 搜索及 fresh-profile 安装、升级、回滚。
+
+本次收口后仍需完成的范围保持如下：
+
+1. **S0-1～S0-3：** 完成跨宿主 distributed revoke、真实物理断电/跨设备 fsync、强篡改者与 iOS transient resume/生产 UI；关闭当前仍显式为 `sharedLibraryClosure=false` 的任意 native/shared-library 递归闭包、签名后的 macOS 原子 `exec/open` 和长期恶意矩阵；在同一 exact SHA 上取得至少 100 次真实 provider 长会话与 structured handoff，三平台 loopback 不计真实 provider。
+2. **Q0 / Q3：** 由有权限的发布方补齐 Microsoft Marketplace；再从生产入口真实执行 gates→preview→review→fix→PR/CI→受控 merge→外部不可变/WORM archive。当前 branch protection 的 review、admin enforcement、signature 与 ruleset 仍不足，不能把 adapter 单测当作 live journey。
+3. **Q4a / Q4b：** 本次只关闭一个严格 scoped 的 Linux Remote-SSH/container cell。仍须覆盖 WSL、devcontainer、Codespaces、JetBrains Gateway、更多 SSH/Remote 宿主、网络故障/重连/可重放矩阵、公开渠道 fresh-profile 升降级/回滚、Desktop/native 与 JetBrains 签名、8 小时 IDE soak 和 nightly real-provider trajectory。
+4. **P1-1、P1-2、P1-4、P1-5：** 继续完成 durable pause/resume/exactly-once/lineage、真实 WSL/SSH/Cloud/Container launch 与 handoff、长期 Context/Permission 故障矩阵，以及 private registry publisher/组织 trust root、key revocation、TLS/auth、代理/PAC/custom CA、offline 与 SBOM payload 语义绑定。
+5. **P2-4 / P2-5：** 完成键盘/屏幕阅读器/焦点恢复、长会话与大 diff/日志/100+ session 量化验收；同时作出 WebIDE 独立产品或 Preview/Artifact 收敛的明确决策。
+
+后续关闭顺序仍为：先在文档后继 SHA 上补齐 `CLI CI` 与 `CLI Strict Sandbox`，再由相应 authority 关闭 S0-1～S0-3、Q0、Q3 和 Q4b 的外部证据；随后推进剩余 P1 与 P2 项。在这些退出条件全部满足前，任何 scoped producer/aggregate 成功都不得把整体结论改写为 release GO。
