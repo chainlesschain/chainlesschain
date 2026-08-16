@@ -2969,6 +2969,134 @@ export function signalBackgroundProcessTree(
   }
 }
 
+function isDestructiveIdentityRetired(identity) {
+  return ["dead", "reused"].includes(identity?.status);
+}
+
+function isRecoverableCreationTimeIdentityProbe(identity) {
+  // A one-shot `ps -o lstart=` failure is observational: it says nothing about
+  // whether the exact target is still present. Other unverifiable outcomes can
+  // mean a missing durable anchor, a vanished group owner, PID reuse with a
+  // surviving group, or an untrusted group snapshot; those remain immediately
+  // fail-closed rather than being promoted into the resend path.
+  return (
+    identity?.status === "unverifiable" &&
+    identity?.reason === "creation-time-probe-failed"
+  );
+}
+
+/**
+ * Recover from a transient POSIX EPERM without ever signalling from unknown
+ * identity evidence. Probe-only waits may bridge a transient creation-time
+ * lookup failure, but a resend requires two consecutive fresh exact matches.
+ */
+function retryExactPosixSignalAfterPermissionError({
+  inspectIdentity,
+  sendSignal,
+  deadline,
+  initialCause,
+}) {
+  let cause = initialCause;
+  let lastIdentity = inspectIdentity();
+  let signalResends = 0;
+  let identityProbeRetries = 0;
+  let retryWaits = 0;
+  const configuredRetryWindow = Math.max(
+    0,
+    Number(_deps.processExitWaitDeadlineMs) || 0,
+  );
+  let remainingSleepBudget = Math.min(
+    configuredRetryWindow,
+    Math.max(0, deadline - _deps.posixPermissionRetryNowMs()),
+  );
+
+  const outcome = (status, retryStoppedBy, extra = {}) => ({
+    status,
+    cause,
+    lastIdentity,
+    signalResends,
+    identityProbeRetries,
+    retryStoppedBy,
+    ...extra,
+  });
+
+  for (;;) {
+    if (isDestructiveIdentityRetired(lastIdentity)) {
+      return outcome("retired", "retired");
+    }
+    if (
+      lastIdentity?.status !== "match" &&
+      !isRecoverableCreationTimeIdentityProbe(lastIdentity)
+    ) {
+      return outcome("failed", "identity");
+    }
+
+    const remaining = Math.min(
+      remainingSleepBudget,
+      deadline - _deps.posixPermissionRetryNowMs(),
+    );
+    if (!(remaining > 0)) {
+      return outcome(
+        "failed",
+        lastIdentity?.status === "match"
+          ? "signal-retry-deadline"
+          : "identity-probe-deadline",
+      );
+    }
+
+    const identityBeforeDelay = lastIdentity;
+    const retryDelayMs = Math.min(remaining, 10 * 2 ** Math.min(retryWaits, 4));
+    _deps.posixPermissionRetrySleep(retryDelayMs);
+    remainingSleepBudget -= retryDelayMs;
+    retryWaits += 1;
+    identityProbeRetries += 1;
+    lastIdentity = inspectIdentity();
+
+    if (isDestructiveIdentityRetired(lastIdentity)) {
+      return outcome("retired", "retired");
+    }
+    if (
+      lastIdentity?.status !== "match" &&
+      !isRecoverableCreationTimeIdentityProbe(lastIdentity)
+    ) {
+      return outcome("failed", "identity");
+    }
+
+    // A target that moved from unknown to match gets one more probe-only
+    // interval. Only match -> fresh match authorizes the next signal syscall.
+    if (
+      identityBeforeDelay?.status !== "match" ||
+      lastIdentity?.status !== "match"
+    ) {
+      continue;
+    }
+    if (
+      !(remainingSleepBudget > 0) ||
+      !(_deps.posixPermissionRetryNowMs() < deadline)
+    ) {
+      return outcome("failed", "signal-retry-deadline");
+    }
+
+    signalResends += 1;
+    try {
+      const signalResult = sendSignal();
+      return outcome(
+        signalResult === "already-exited" ? "retired" : "signalled",
+        "completed",
+        { signalResult },
+      );
+    } catch (error) {
+      cause = error;
+      if (error?.code !== "EPERM") {
+        return outcome("failed", "signal");
+      }
+      // The failed resend has no authority value. Start the next decision from
+      // a fresh probe, then require another delayed fresh match before signalling.
+      lastIdentity = inspectIdentity();
+    }
+  }
+}
+
 function signalExactBackgroundProcessTree(
   pid,
   signal,
@@ -2984,19 +3112,18 @@ function signalExactBackgroundProcessTree(
   const permissionRetryDeadline =
     _deps.posixPermissionRetryNowMs() +
     Math.max(0, Number(_deps.processExitWaitDeadlineMs) || 0);
-  let permissionRetries = 0;
+  let signalResends = 0;
+  let identityProbeRetries = 0;
   let lastIdentity = null;
   let retryStoppedBy = "preflight";
   const inspectIdentity = () =>
     inspectDestructiveProcessIdentity(target, expectedStartedAt, {
       processGroup,
     });
-  const alreadyRetired = (identity) =>
-    ["dead", "reused"].includes(identity?.status);
   const failure = (cause) => {
     const reason = cause?.message || String(cause);
     const error = new Error(
-      `background_agent_child_tree_stop_failed: ${reason} (${mode} pid ${target}, permission retries ${permissionRetries}, last identity ${lastIdentity?.status || "not-probed"}/${lastIdentity?.reason || "no-reason"}, retry stopped by ${retryStoppedBy})`,
+      `background_agent_child_tree_stop_failed: ${reason} (${mode} pid ${target}, signal resends ${signalResends}, identity probe retries ${identityProbeRetries}, last identity ${lastIdentity?.status || "not-probed"}/${lastIdentity?.reason || "no-reason"}, retry stopped by ${retryStoppedBy})`,
       { cause },
     );
     error.code = "ERR_BACKGROUND_AGENT_CHILD_TREE_STOP_FAILED";
@@ -3007,7 +3134,7 @@ function signalExactBackgroundProcessTree(
   // persisted creation-time anchor. Re-authorize the initial signal from a
   // fresh exact snapshot so a stale/reused PID can never address a stranger.
   lastIdentity = inspectIdentity();
-  if (alreadyRetired(lastIdentity)) {
+  if (isDestructiveIdentityRetired(lastIdentity)) {
     return { alreadyRetired: true, signalledAsGroup: processGroup === true };
   }
   if (lastIdentity.status !== "match") {
@@ -3019,78 +3146,66 @@ function signalExactBackgroundProcessTree(
     );
   }
 
-  for (;;) {
-    try {
-      const result = signalBackgroundProcessTree(target, signal, {
-        platform,
-        processGroup,
-        allowDirectFallback,
+  const sendSignal = () =>
+    signalBackgroundProcessTree(target, signal, {
+      platform,
+      processGroup,
+      allowDirectFallback,
+    });
+
+  try {
+    const result = sendSignal();
+    return {
+      alreadyRetired: result === "already-exited",
+      signalledAsGroup: result === "process-group",
+    };
+  } catch (initialCause) {
+    let cause = initialCause;
+    if (platform !== "win32" && cause?.code === "EPERM") {
+      const retry = retryExactPosixSignalAfterPermissionError({
+        inspectIdentity,
+        sendSignal,
+        deadline: permissionRetryDeadline,
+        initialCause: cause,
       });
-      return {
-        alreadyRetired: result === "already-exited",
-        signalledAsGroup: result === "process-group",
-        permissionRetries,
-      };
-    } catch (cause) {
-      if (platform !== "win32" && cause?.code === "EPERM") {
-        lastIdentity = inspectIdentity();
-        if (alreadyRetired(lastIdentity)) {
-          return {
-            alreadyRetired: true,
-            signalledAsGroup: processGroup === true,
-            permissionRetries,
-          };
-        }
-        const remaining =
-          permissionRetryDeadline - _deps.posixPermissionRetryNowMs();
-        if (lastIdentity.status === "match" && remaining > 0) {
-          const retryDelayMs = Math.min(
-            remaining,
-            10 * 2 ** Math.min(permissionRetries, 4),
-          );
-          _deps.posixPermissionRetrySleep(retryDelayMs);
-          lastIdentity = inspectIdentity();
-          if (alreadyRetired(lastIdentity)) {
-            return {
-              alreadyRetired: true,
-              signalledAsGroup: processGroup === true,
-              permissionRetries,
-            };
-          }
-          if (
-            lastIdentity.status === "match" &&
-            _deps.posixPermissionRetryNowMs() < permissionRetryDeadline
-          ) {
-            permissionRetries += 1;
-            continue;
-          }
-        }
-        retryStoppedBy =
-          lastIdentity.status === "match" ? "deadline" : "identity";
-        throw failure(cause);
+      signalResends = retry.signalResends;
+      identityProbeRetries = retry.identityProbeRetries;
+      lastIdentity = retry.lastIdentity;
+      retryStoppedBy = retry.retryStoppedBy;
+      cause = retry.cause;
+      if (retry.status === "retired") {
+        return {
+          alreadyRetired: true,
+          signalledAsGroup: processGroup === true,
+        };
       }
-      if (
-        processGroup === true &&
-        allowDirectFallback !== true &&
-        cause?.code === "ESRCH"
-      ) {
-        // A group may disappear between the exact preflight and signal. It is
-        // safe to accept only a fresh dead/reused result; a still-live leader
-        // is never converted to a direct kill on the keeper path.
-        lastIdentity = inspectIdentity();
-        if (alreadyRetired(lastIdentity)) {
-          return {
-            alreadyRetired: true,
-            signalledAsGroup: true,
-            permissionRetries,
-          };
-        }
-        retryStoppedBy = "identity";
-      } else {
-        retryStoppedBy = "signal";
+      if (retry.status === "signalled") {
+        return {
+          alreadyRetired: retry.signalResult === "already-exited",
+          signalledAsGroup: retry.signalResult === "process-group",
+        };
       }
-      throw failure(cause);
     }
+    if (
+      processGroup === true &&
+      allowDirectFallback !== true &&
+      cause?.code === "ESRCH"
+    ) {
+      // A group may disappear between the exact preflight and signal. It is
+      // safe to accept only a fresh dead/reused result; a still-live leader
+      // is never converted to a direct kill on the keeper path.
+      lastIdentity = inspectIdentity();
+      if (isDestructiveIdentityRetired(lastIdentity)) {
+        return {
+          alreadyRetired: true,
+          signalledAsGroup: true,
+        };
+      }
+      retryStoppedBy = "identity";
+    } else if (retryStoppedBy === "preflight") {
+      retryStoppedBy = "signal";
+    }
+    throw failure(cause);
   }
 }
 
@@ -3331,99 +3446,115 @@ export function stopBackgroundAgent(id) {
       // independent keeper do not. Signal those single processes directly so
       // a rapidly recycled pid cannot address an unrelated POSIX group.
       for (const target of targets) {
-        // This monotonic deadline bounds signal *resends for one target*.
-        // A fresh OS identity probe has its own bounded command timeout and
-        // may return after this instant, but no further signal is authorized
-        // once the resend window has elapsed.
-        const permissionRetryDeadline =
-          _deps.posixPermissionRetryNowMs() +
-          Math.max(0, Number(_deps.processExitWaitDeadlineMs) || 0);
-        let permissionRetries = 0;
+        let permissionRetryDeadline = 0;
+        const inspectIdentity = () =>
+          inspectDestructiveProcessIdentity(target.pid, target.startedAt, {
+            processGroup: target.signalAsGroup,
+          });
+        const sendInitialSignal = () =>
+          signalBackgroundProcessTree(target.pid, "SIGTERM", {
+            processGroup: target.signalAsGroup,
+            // Preserve the pre-existing ESRCH behavior. EPERM itself never
+            // enters this fallback because the tree primitive rethrows it.
+            allowDirectFallback: true,
+          });
+        const resendSignal = () =>
+          signalBackgroundProcessTree(target.pid, "SIGTERM", {
+            processGroup: target.signalAsGroup,
+            // After EPERM, every resend is a newly authorized action. A group
+            // ESRCH must be resolved by fresh identity evidence, never by
+            // changing that action into a direct leader signal.
+            allowDirectFallback: false,
+          });
         activeTerminationContext = {
           role: target.role,
           pid: target.pid,
           mode: target.signalAsGroup ? "process-group" : "direct",
-          permissionRetries,
+          signalResends: 0,
+          identityProbeRetries: 0,
         };
-        while (true) {
-          try {
-            target.signalledAsGroup =
-              signalBackgroundProcessTree(target.pid, "SIGTERM", {
-                processGroup: target.signalAsGroup,
-              }) === "process-group";
+        try {
+          const preflightIdentity = inspectIdentity();
+          activeTerminationContext.lastIdentityStatus =
+            preflightIdentity.status;
+          activeTerminationContext.lastIdentityReason =
+            preflightIdentity.reason || null;
+          if (isDestructiveIdentityRetired(preflightIdentity)) {
+            if (
+              preflightIdentity.status === "reused" &&
+              primaryWorker?.pid === target.pid &&
+              !signalledPids.has(target.pid)
+            ) {
+              workerPidReused = true;
+            }
+            target.retiredBeforeWait = true;
             signalledPids.add(target.pid);
-            break;
-          } catch (error) {
-            // POSIX can report EPERM while a just-retiring target is still
-            // visible to the creation-time probe. Retry only through a tiny
-            // bounded window, and re-authorize every new signal from a fresh
-            // exact identity snapshot after the delay. A persistent denial or
-            // any unverifiable identity remains a fail-closed stop failure.
-            if (process.platform !== "win32" && error?.code === "EPERM") {
-              let refreshedIdentity = inspectDestructiveProcessIdentity(
-                target.pid,
-                target.startedAt,
-                { processGroup: target.signalAsGroup },
-              );
-              if (["dead", "reused"].includes(refreshedIdentity.status)) {
-                target.signalledAsGroup = target.signalAsGroup === true;
+            continue;
+          }
+          if (preflightIdentity.status !== "match") {
+            activeTerminationContext.retryStoppedBy = "preflight-identity";
+            throw new Error(
+              `destructive process identity is ${preflightIdentity.status}: ${preflightIdentity.reason || "unknown"}`,
+            );
+          }
+          permissionRetryDeadline =
+            _deps.posixPermissionRetryNowMs() +
+            Math.max(0, Number(_deps.processExitWaitDeadlineMs) || 0);
+          target.signalledAsGroup = sendInitialSignal() === "process-group";
+          signalledPids.add(target.pid);
+        } catch (error) {
+          if (process.platform !== "win32" && error?.code === "EPERM") {
+            const retry = retryExactPosixSignalAfterPermissionError({
+              inspectIdentity,
+              sendSignal: resendSignal,
+              deadline: permissionRetryDeadline,
+              initialCause: error,
+            });
+            activeTerminationContext.signalResends = retry.signalResends;
+            activeTerminationContext.identityProbeRetries =
+              retry.identityProbeRetries;
+            activeTerminationContext.lastIdentityStatus =
+              retry.lastIdentity?.status;
+            activeTerminationContext.lastIdentityReason =
+              retry.lastIdentity?.reason || null;
+            activeTerminationContext.retryStoppedBy = retry.retryStoppedBy;
+            if (retry.status === "retired") {
+              target.signalledAsGroup = retry.signalResult
+                ? retry.signalResult === "process-group"
+                : target.signalAsGroup === true;
+              signalledPids.add(target.pid);
+              continue;
+            }
+            if (retry.status === "signalled") {
+              target.signalledAsGroup = retry.signalResult === "process-group";
+              signalledPids.add(target.pid);
+              continue;
+            }
+            if (
+              target.signalAsGroup === true &&
+              retry.cause?.code === "ESRCH"
+            ) {
+              const refreshedIdentity = inspectIdentity();
+              activeTerminationContext.lastIdentityStatus =
+                refreshedIdentity.status;
+              activeTerminationContext.lastIdentityReason =
+                refreshedIdentity.reason || null;
+              activeTerminationContext.retryStoppedBy = "identity";
+              if (isDestructiveIdentityRetired(refreshedIdentity)) {
+                target.signalledAsGroup = true;
                 signalledPids.add(target.pid);
-                break;
-              }
-              const remaining =
-                permissionRetryDeadline - _deps.posixPermissionRetryNowMs();
-              if (refreshedIdentity.status === "match" && remaining > 0) {
-                const retryDelayMs = Math.min(
-                  remaining,
-                  10 * 2 ** Math.min(permissionRetries, 4),
-                );
-                _deps.posixPermissionRetrySleep(retryDelayMs);
-                refreshedIdentity = inspectDestructiveProcessIdentity(
-                  target.pid,
-                  target.startedAt,
-                  { processGroup: target.signalAsGroup },
-                );
-                if (["dead", "reused"].includes(refreshedIdentity.status)) {
-                  target.signalledAsGroup = target.signalAsGroup === true;
-                  signalledPids.add(target.pid);
-                  break;
-                }
-                if (
-                  refreshedIdentity.status === "match" &&
-                  _deps.posixPermissionRetryNowMs() < permissionRetryDeadline
-                ) {
-                  permissionRetries += 1;
-                  activeTerminationContext.permissionRetries =
-                    permissionRetries;
-                  continue;
-                }
-                activeTerminationContext.lastIdentityStatus =
-                  refreshedIdentity.status;
-                activeTerminationContext.lastIdentityReason =
-                  refreshedIdentity.reason || null;
-                activeTerminationContext.retryStoppedBy =
-                  refreshedIdentity.status === "match"
-                    ? "deadline"
-                    : "identity";
-              } else {
-                activeTerminationContext.lastIdentityStatus =
-                  refreshedIdentity.status;
-                activeTerminationContext.lastIdentityReason =
-                  refreshedIdentity.reason || null;
-                activeTerminationContext.retryStoppedBy =
-                  refreshedIdentity.status === "match"
-                    ? "deadline"
-                    : "identity";
+                continue;
               }
             }
-            throw error;
+            throw retry.cause;
           }
+          throw error;
         }
       }
     } catch (error) {
       const failureMessage = `Failed to stop background agent ${id}${
         activeTerminationContext
-          ? ` (${activeTerminationContext.role} pid ${activeTerminationContext.pid}, ${activeTerminationContext.mode}, permission retries ${activeTerminationContext.permissionRetries}, last identity ${activeTerminationContext.lastIdentityStatus || "not-probed"}/${activeTerminationContext.lastIdentityReason || "no-reason"}, retry stopped by ${activeTerminationContext.retryStoppedBy || "non-permission-error"})`
+          ? ` (${activeTerminationContext.role} pid ${activeTerminationContext.pid}, ${activeTerminationContext.mode}, signal resends ${activeTerminationContext.signalResends}, identity probe retries ${activeTerminationContext.identityProbeRetries}, last identity ${activeTerminationContext.lastIdentityStatus || "not-probed"}/${activeTerminationContext.lastIdentityReason || "no-reason"}, retry stopped by ${activeTerminationContext.retryStoppedBy || "non-permission-error"})`
           : ""
       }: ${error.message}`;
       try {
@@ -3443,7 +3574,9 @@ export function stopBackgroundAgent(id) {
       }
       throw new Error(failureMessage);
     }
-    const stillAlive = waitForSignalledProcessesToExit(targets);
+    const stillAlive = waitForSignalledProcessesToExit(
+      targets.filter((target) => target.retiredBeforeWait !== true),
+    );
     postKill = readBackgroundAgentState(id) || postKill;
     if (stillAlive.length > 0) {
       return persistStopPending(postKill, "process-exit", {
