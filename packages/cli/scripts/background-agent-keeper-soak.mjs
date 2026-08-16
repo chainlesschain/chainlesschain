@@ -374,8 +374,29 @@ function processIdentities(state, evidence = null) {
     });
 }
 
+function processIdentityKey(identity) {
+  return `${identity.pid}:${identity.startedAt}`;
+}
+
 function ownedIdentityAlive(identity) {
+  // Retirement of one exact pid/start-time pair is absorbing. The formal
+  // harness intentionally churns thousands of short-lived processes, so a
+  // host can reuse the numeric pid immediately after cleanup. Re-probing a
+  // previously retired record would then confuse the new process with the old
+  // one through the supervisor's intentionally conservative read-only
+  // identity tolerance/cache. The product's destructive signal path remains
+  // fresh and strict; this flag records that the old identity was already
+  // authoritatively observed dead/reused before the next launch batch.
+  if (identity?.retired === true) return false;
   return isSameProcess(identity.pid, identity.startedAt);
+}
+
+function markKnownIdentitiesRetired(slot, identities) {
+  for (const identity of identities) {
+    const key = processIdentityKey(identity);
+    const known = slot.knownIdentities.get(key);
+    if (known) known.retired = true;
+  }
 }
 
 function sampleProcess(identity) {
@@ -425,7 +446,10 @@ async function waitForReady(slot, profile) {
         `agent ${slot.index} ${identity.role} omitted a process start anchor`,
       );
     }
-    slot.knownIdentities.set(`${identity.pid}:${identity.startedAt}`, identity);
+    slot.knownIdentities.set(processIdentityKey(identity), {
+      ...identity,
+      retired: false,
+    });
   }
   return performance.now() - started;
 }
@@ -526,6 +550,15 @@ async function waitForCleanup(slot, profile, startedAt, method) {
         observation = {
           status: state?.status || null,
           phase: state?.phase || null,
+          stopRequestedAt: state?.stopRequestedAt || null,
+          stopPending: state?.stopPending === true,
+          stopPendingReason: state?.stopPendingReason || null,
+          launchFinalizationUncertain:
+            state?.launchFinalizationUncertain === true,
+          turnLaunchIntent: state?.turnLaunchIntent || null,
+          turnLaunchFinalizationUncertain:
+            state?.turnLaunchFinalizationUncertain === true,
+          turnLaunchTermination: state?.turnLaunchTermination || null,
           turnKeeperStatus: state?.turnKeeperStatus || null,
           turnKeeperCleanupReason: state?.turnKeeperCleanupReason || null,
           turnKeeperCleanupConfirmedAt:
@@ -533,7 +566,11 @@ async function waitForCleanup(slot, profile, startedAt, method) {
           keeperStatus: state?.keeperStatus || null,
           processes,
         };
-        return allRetired && keeperSettled ? state : null;
+        if (allRetired && keeperSettled) {
+          markKnownIdentitiesRetired(slot, identities);
+          return state;
+        }
+        return null;
       },
       profile.cleanupDeadlineMs,
       `agent ${slot.index} cleanup`,
@@ -638,7 +675,7 @@ async function cleanupAfterFailure(slots, profile) {
               }
             }
             for (const identity of processIdentities(state, slot.evidence)) {
-              identities.set(`${identity.pid}:${identity.startedAt}`, identity);
+              identities.set(processIdentityKey(identity), identity);
             }
           }
         }
