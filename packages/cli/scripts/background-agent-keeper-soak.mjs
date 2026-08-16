@@ -707,24 +707,23 @@ export async function waitForCleanup(
         state = readState(slot.state.id) || state;
         const now = Date.now();
         const stopCleanupSettled = hasSettledCooperativeStopCleanup(state);
-        const retryableUnconfirmedStop = Boolean(
-          state?.status === "stopped" &&
+        const retryableStopFence = Boolean(
           Number.isFinite(Number(state?.stopRequestedAt)) &&
           Number(state.stopRequestedAt) > 0 &&
-          !stopCleanupSettled,
+          !hasValidBackgroundAgentStopCleanupProof(state),
         );
         if (
           method === "stop" &&
-          ((allRetired && state?.status === "running") ||
-            retryableUnconfirmedStop) &&
+          ((allRetired && state?.status === "running") || retryableStopFence) &&
           !stopCleanupSettled &&
           now - lastStopRetryAt >= 250
         ) {
           // The first bounded stop can legitimately return `stopPending` while
           // a just-signalled tree is still exiting. A running projection is
-          // finalized once every exact-owned pid retires; a terminal-looking
-          // record without proof is re-entered immediately so production's
-          // exact-identity path owns any remaining signal and confirmation.
+          // finalized once every exact-owned pid retires. A preexisting stop
+          // fence is re-entered even while an exact-owned pid remains live;
+          // production re-authorizes every signal from a fresh strict identity
+          // probe and owns the eventual confirmation.
           lastStopRetryAt = now;
           state = stop(slot.state.id);
           identities = inspectProcesses(state || slot.state, slot.evidence);
@@ -741,6 +740,16 @@ export async function waitForCleanup(
               Number(state.turnKeeperCleanupConfirmedAt) > 0
             : hasSettledCooperativeStopCleanup(state);
         recordObservation(state, processes);
+        if (
+          method === "stop" &&
+          allRetired &&
+          state?.status !== "stopped" &&
+          hasValidBackgroundAgentStopCleanupProof(state)
+        ) {
+          throw new Error(
+            `agent ${slot.index} retained unexpected terminal status ${JSON.stringify(state?.status ?? null)} after stop cleanup proof`,
+          );
+        }
         if (allRetired && keeperSettled) {
           markKnownIdentitiesRetired(slot, identities);
           return state;

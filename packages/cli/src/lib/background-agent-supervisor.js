@@ -497,12 +497,18 @@ export function hasValidBackgroundAgentStopCleanupProof(state) {
   );
 }
 
-function isBackgroundAgentStopCleanupUnconfirmed(state) {
+function hasBackgroundAgentStopFenceWithoutCleanupProof(state) {
   return Boolean(
-    state?.status === "stopped" &&
     Number.isFinite(Number(state?.stopRequestedAt)) &&
     Number(state.stopRequestedAt) > 0 &&
     !hasValidBackgroundAgentStopCleanupProof(state),
+  );
+}
+
+function isBackgroundAgentStopCleanupUnconfirmed(state) {
+  return Boolean(
+    state?.status === "stopped" &&
+    hasBackgroundAgentStopFenceWithoutCleanupProof(state),
   );
 }
 
@@ -526,6 +532,16 @@ function selectBackgroundAgentStopCleanupProof(current, requested) {
     return requestedProof;
   }
   return current?.stopCleanupConfirmedAt;
+}
+
+function backgroundAgentStopCleanupConfirmationTimestamp(
+  state,
+  now = Date.now(),
+) {
+  const requestedAt = Number(state?.stopRequestedAt);
+  return Number.isFinite(requestedAt) && requestedAt > 0
+    ? Math.max(now, requestedAt)
+    : now;
 }
 
 const TURN_PROCESS_PROJECTION_FIELDS = [
@@ -2111,6 +2127,13 @@ export function resumeBackgroundAgent(id, prompt, options = {}) {
     heartbeatStaleMs: options.heartbeatStaleMs,
   });
   if (!state) throw new Error(`Background agent not found: ${id}`);
+  if (hasBackgroundAgentStopFenceWithoutCleanupProof(state)) {
+    const error = new Error(
+      `Background agent ${id} stop cleanup is still pending; retry stop and wait for durable cleanup confirmation before resuming`,
+    );
+    error.code = "BACKGROUND_AGENT_STOP_CLEANUP_PENDING";
+    throw error;
+  }
   if (state.status === "running") {
     throw new Error(
       `Background agent ${id} is still running — use cc attach ${id} to send follow-up prompts instead`,
@@ -3168,11 +3191,12 @@ export function stopBackgroundAgent(id) {
   if (!state) throw new Error(`Background agent not found: ${id}`);
   const staleHeartbeatOwner =
     state.status === "lost" && state.lostReason === "heartbeat-stale";
-  const cleanupUnconfirmedStop = isBackgroundAgentStopCleanupUnconfirmed(state);
+  const preexistingStopCleanupRepair =
+    hasBackgroundAgentStopFenceWithoutCleanupProof(state);
   if (
     state.status !== "running" &&
     !staleHeartbeatOwner &&
-    !cleanupUnconfirmedStop
+    !preexistingStopCleanupRepair
   ) {
     // Gap 2: stopping an already-lost session still reaps a leaked agent
     // child recorded before the worker died (identity-guarded inside).
@@ -3199,7 +3223,7 @@ export function stopBackgroundAgent(id) {
         !(
           current.status === "lost" && current.lostReason === "heartbeat-stale"
         ) &&
-        !isBackgroundAgentStopCleanupUnconfirmed(current))
+        !hasBackgroundAgentStopFenceWithoutCleanupProof(current))
     ) {
       return null;
     }
@@ -3219,7 +3243,9 @@ export function stopBackgroundAgent(id) {
   }
   state = fence.state;
   const repairingUnconfirmedStop =
-    cleanupUnconfirmedStop || isBackgroundAgentStopCleanupUnconfirmed(state);
+    preexistingStopCleanupRepair ||
+    hasBackgroundAgentStopFenceWithoutCleanupProof(fence.previous) ||
+    isBackgroundAgentStopCleanupUnconfirmed(state);
   if (state.launchFinalizationUncertain === true || state.turnLaunchIntent) {
     // The worker has durably announced that native spawn is prepared or that
     // post-spawn pid persistence is unresolved. Killing the worker from this
@@ -3282,7 +3308,17 @@ export function stopBackgroundAgent(id) {
       inspected.find(({ role }) => role === "worker") ||
       inspected.find(({ role }) => role === "worker-published") ||
       inspected.find(({ role }) => role === "worker-wrapper");
-    if (primaryWorker?.identity.status === "reused") workerPidReused = true;
+    if (
+      primaryWorker?.identity.status === "reused" &&
+      !signalledPids.has(primaryWorker.pid)
+    ) {
+      // A fresh stop must refuse a worker pid that was already reused at the
+      // first strict probe. If the exact worker matched and was signalled in an
+      // earlier round, however, observing that numeric pid reused afterward is
+      // evidence that the owned process retired, not grounds to discard the
+      // durable cleanup proof.
+      workerPidReused = true;
+    }
     const targets = inspected.filter(
       ({ pid, identity }) =>
         identity.status === "match" && !signalledPids.has(pid),
@@ -3484,7 +3520,8 @@ export function stopBackgroundAgent(id) {
           // retirement of a detached child. Publish a distinct durable proof
           // only after every exact-owned process identity has been observed
           // non-executable above.
-          stopCleanupConfirmedAt: Date.now(),
+          stopCleanupConfirmedAt:
+            backgroundAgentStopCleanupConfirmationTimestamp(current),
           stoppedByUser: true,
           lostReason: null,
           phase: null,

@@ -1853,7 +1853,7 @@ describe("background agent supervisor", () => {
   it("re-enters an unconfirmed stopped record and publishes proof after exact retirement", () => {
     const sleeperPid = spawnSleeperPid();
     const startedAt = Date.now();
-    const stopRequestedAt = startedAt + 1;
+    const stopRequestedAt = startedAt;
     writeBackgroundAgentState({
       id: "bg-unconfirmed-stop-reentry",
       status: "stopped",
@@ -1958,12 +1958,34 @@ describe("background agent supervisor", () => {
     );
   });
 
+  it("keeps cleanup proof ordered when the wall clock moves behind the stop request", () => {
+    const id = "bg-stop-proof-clock-rollback";
+    const stopRequestedAt = Date.now() + 10_000;
+    writeBackgroundAgentState({
+      id,
+      status: "stopped",
+      pid: null,
+      workerPid: null,
+      startedAt: stopRequestedAt - 100,
+      endedAt: stopRequestedAt,
+      stopRequestedAt,
+      stopRequestedBy: "user",
+      stoppedByUser: true,
+    });
+
+    const stopped = stopBackgroundAgent(id);
+
+    expect(stopped).toMatchObject({ status: "stopped", stopped: true });
+    expect(stopped.stopCleanupConfirmedAt).toBe(stopRequestedAt);
+    expect(hasValidBackgroundAgentStopCleanupProof(stopped)).toBe(true);
+  });
+
   it("treats a reused worker as retired while repairing an unconfirmed stop", () => {
     const id = "bg-unconfirmed-stop-reused-worker";
     const sleeperPid = spawnSleeperPid();
     const actualStartedAt = Date.now();
     const recordedStartedAt = actualStartedAt - 120_000;
-    const stopRequestedAt = actualStartedAt + 1;
+    const stopRequestedAt = actualStartedAt;
     writeBackgroundAgentState({
       id,
       status: "stopped",
@@ -1995,6 +2017,136 @@ describe("background agent supervisor", () => {
       expect.any(Number),
       expect.stringMatching(/^SIG/u),
     );
+  });
+
+  it("treats a reused worker as retired while repairing a preexisting running stop fence", () => {
+    const id = "bg-running-stop-fence-reused-worker";
+    const sleeperPid = spawnSleeperPid();
+    const actualStartedAt = Date.now();
+    const recordedStartedAt = actualStartedAt - 120_000;
+    const stopRequestedAt = actualStartedAt;
+    writeBackgroundAgentState({
+      id,
+      status: "running",
+      phase: "stop_waiting_for_exit",
+      pid: sleeperPid,
+      workerPid: sleeperPid,
+      startedAt: recordedStartedAt,
+      heartbeatAt: recordedStartedAt,
+      stopRequestedAt,
+      stopRequestedBy: "user",
+      stopPending: true,
+      stopPendingReason: "process-exit",
+    });
+    _deps.readProcessStartTimeMs = vi.fn(() => actualStartedAt);
+
+    const stopped = stopBackgroundAgent(id);
+
+    expect(stopped).toMatchObject({ status: "stopped", stopped: true });
+    expect(hasValidBackgroundAgentStopCleanupProof(stopped)).toBe(true);
+    expect(stopped.lostReason ?? null).toBeNull();
+    expect(isProcessStillAlive(sleeperPid)).toBe(true);
+    expect(_deps.kill).not.toHaveBeenCalledWith(
+      expect.any(Number),
+      expect.stringMatching(/^SIG/u),
+    );
+  });
+
+  it("grafts proof onto a legacy lost stop fence before allowing resume", () => {
+    const id = "bg-lost-stop-fence-reused-worker";
+    const sleeperPid = spawnSleeperPid();
+    const actualStartedAt = Date.now();
+    const recordedStartedAt = actualStartedAt - 120_000;
+    const stopRequestedAt = actualStartedAt;
+    writeBackgroundAgentState({
+      id,
+      status: "lost",
+      lostReason: "pid-reused",
+      pid: sleeperPid,
+      workerPid: sleeperPid,
+      sessionId: "sess-lost-stop-fence",
+      cwd: dir,
+      startedAt: recordedStartedAt,
+      heartbeatAt: recordedStartedAt,
+      endedAt: stopRequestedAt,
+      stopRequestedAt,
+      stopRequestedBy: "user",
+      stopPending: false,
+    });
+    _deps.readProcessStartTimeMs = vi.fn(() => actualStartedAt);
+
+    const repaired = stopBackgroundAgent(id);
+
+    expect(repaired).toMatchObject({
+      status: "lost",
+      stopped: false,
+      lostReason: "pid-reused",
+    });
+    expect(hasValidBackgroundAgentStopCleanupProof(repaired)).toBe(true);
+    expect(isProcessStillAlive(sleeperPid)).toBe(true);
+    expect(_deps.kill).not.toHaveBeenCalledWith(
+      expect.any(Number),
+      expect.stringMatching(/^SIG/u),
+    );
+
+    _deps.spawn = vi.fn(() => ({ pid: 777, unref: vi.fn() }));
+    const resumed = resumeBackgroundAgent(id, "continue after cleanup proof");
+    expect(resumed).toMatchObject({
+      status: "running",
+      sessionId: "sess-lost-stop-fence",
+    });
+    expect(_deps.spawn).toHaveBeenCalledTimes(2);
+  });
+
+  it("publishes proof when an exact worker pid is reused after this stop signals it", () => {
+    const id = "bg-stop-post-signal-worker-reuse";
+    const sleeperPid = spawnSleeperPid();
+    const recordedStartedAt = Date.now();
+    const reusedStartedAt = recordedStartedAt + 120_000;
+    writeBackgroundAgentState({
+      id,
+      status: "running",
+      pid: sleeperPid,
+      workerPid: sleeperPid,
+      startedAt: recordedStartedAt,
+      heartbeatAt: recordedStartedAt,
+    });
+
+    let signalIssued = false;
+    let postSignalStateProbes = 0;
+    let startTimeProbes = 0;
+    _deps.readProcessState = vi.fn(() => {
+      if (!signalIssued) return "S";
+      postSignalStateProbes += 1;
+      return postSignalStateProbes <= 2 ? "Z" : "S";
+    });
+    _deps.readProcessStartTimeMs = vi.fn(() => {
+      startTimeProbes += 1;
+      return startTimeProbes === 1 ? recordedStartedAt : reusedStartedAt;
+    });
+    _deps.readProcessGroupStates = vi.fn(() => []);
+    if (process.platform === "win32") {
+      _deps.spawnSync = vi.fn(() => {
+        signalIssued = true;
+        return { status: 0 };
+      });
+    } else {
+      _deps.kill = vi.fn(() => {
+        signalIssued = true;
+      });
+    }
+
+    const stopped = stopBackgroundAgent(id);
+
+    expect(stopped).toMatchObject({ status: "stopped", stopped: true });
+    expect(hasValidBackgroundAgentStopCleanupProof(stopped)).toBe(true);
+    expect(stopped.lostReason ?? null).toBeNull();
+    expect(isProcessStillAlive(sleeperPid)).toBe(true);
+    if (process.platform === "win32") {
+      expect(_deps.spawnSync).toHaveBeenCalledOnce();
+    } else {
+      expect(_deps.kill).toHaveBeenCalledOnce();
+    }
   });
 
   it("fails closed without a destructive process identity anchor", () => {
@@ -2595,6 +2747,67 @@ describe("background agent supervisor", () => {
     expect(() => resumeBackgroundAgent("bg-done2-abc", "   ")).toThrow(
       /requires a prompt/,
     );
+  });
+
+  it("resumeBackgroundAgent refuses an unconfirmed stop cleanup", () => {
+    const sleeperPid = spawnSleeperPid();
+    const startedAt = Date.now();
+    writeBackgroundAgentState({
+      id: "bg-resume-stop-cleanup-pending",
+      status: "stopped",
+      pid: sleeperPid,
+      workerPid: sleeperPid,
+      sessionId: "sess-stop-cleanup-pending",
+      cwd: dir,
+      startedAt,
+      endedAt: startedAt + 1,
+      stopRequestedAt: startedAt + 1,
+      stopRequestedBy: "user",
+      stoppedByUser: true,
+    });
+    _deps.spawn = vi.fn(() => ({ pid: 777, unref: vi.fn() }));
+
+    let caught;
+    try {
+      resumeBackgroundAgent("bg-resume-stop-cleanup-pending", "continue");
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toMatchObject({
+      code: "BACKGROUND_AGENT_STOP_CLEANUP_PENDING",
+    });
+    expect(caught.message).toMatch(/stop cleanup is still pending/u);
+    expect(_deps.spawn).not.toHaveBeenCalled();
+    expect(isProcessStillAlive(sleeperPid)).toBe(true);
+  });
+
+  it("resumeBackgroundAgent accepts a stopped record with durable cleanup proof", () => {
+    writeBackgroundAgentState({
+      id: "bg-resume-stop-cleanup-confirmed",
+      status: "stopped",
+      sessionId: "sess-stop-cleanup-confirmed",
+      cwd: dir,
+      startedAt: 1,
+      endedAt: 2,
+      stopRequestedAt: 2,
+      stopCleanupConfirmedAt: 3,
+      stopRequestedBy: "user",
+      stoppedByUser: true,
+    });
+    _deps.spawn = vi.fn(() => ({ pid: 777, unref: vi.fn() }));
+
+    const resumed = resumeBackgroundAgent(
+      "bg-resume-stop-cleanup-confirmed",
+      "continue",
+    );
+
+    expect(resumed).toMatchObject({
+      status: "running",
+      sessionId: "sess-stop-cleanup-confirmed",
+    });
+    expect(resumed.id).not.toBe("bg-resume-stop-cleanup-confirmed");
+    expect(_deps.spawn).toHaveBeenCalledTimes(2);
   });
 
   it("runs follow-up turns over the session transport and finalizes on detach", async () => {

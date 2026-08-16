@@ -787,6 +787,92 @@ describe("background Agent keeper soak contract", () => {
     expect(hasSettledCooperativeStopCleanup(slot.state)).toBe(true);
   });
 
+  it("re-enters a live running stop fence before waiting for retirement", async () => {
+    const pending = {
+      id: "bg-live-running-stop-fence",
+      status: "running",
+      phase: "stop_waiting_for_exit",
+      stopRequestedAt: 3_000,
+      stopPending: true,
+      stopPendingReason: "process-exit",
+    };
+    const confirmed = {
+      ...pending,
+      status: "stopped",
+      phase: null,
+      stopPending: false,
+      stopPendingReason: null,
+      stopCleanupConfirmedAt: 3_010,
+    };
+    let current = pending;
+    let alive = true;
+    const stop = vi.fn(() => {
+      alive = false;
+      current = confirmed;
+      return current;
+    });
+    const slot = {
+      index: 1,
+      state: pending,
+      evidence: null,
+      knownIdentities: new Map(),
+    };
+
+    await waitForCleanup(slot, { cleanupDeadlineMs: 1_000 }, 0, "stop", {
+      readBackgroundAgentState: () => current,
+      processIdentities: () => [{ role: "worker", pid: 789, startedAt: 2_900 }],
+      ownedIdentityAlive: () => alive,
+      stopBackgroundAgent: stop,
+      readBackgroundAgentLog: () => "",
+    });
+
+    expect(stop).toHaveBeenCalledOnce();
+    expect(alive).toBe(false);
+    expect(slot.state).toBe(confirmed);
+    expect(hasSettledCooperativeStopCleanup(slot.state)).toBe(true);
+  });
+
+  it("repairs but rejects a lost terminal stop fence as non-qualifying", async () => {
+    const pending = {
+      id: "bg-lost-stop-fence",
+      status: "lost",
+      lostReason: "pid-reused",
+      stopRequestedAt: 4_000,
+    };
+    const repaired = {
+      ...pending,
+      stopCleanupConfirmedAt: 4_010,
+    };
+    let current = pending;
+    const stop = vi.fn(() => {
+      current = repaired;
+      return current;
+    });
+    const slot = {
+      index: 2,
+      state: pending,
+      evidence: null,
+      knownIdentities: new Map(),
+    };
+
+    await expect(
+      waitForCleanup(slot, { cleanupDeadlineMs: 1_000 }, 0, "stop", {
+        readBackgroundAgentState: () => current,
+        processIdentities: () => [
+          { role: "worker", pid: 890, startedAt: 3_900 },
+        ],
+        ownedIdentityAlive: () => false,
+        stopBackgroundAgent: stop,
+        readBackgroundAgentLog: () => "",
+      }),
+    ).rejects.toThrow(
+      /retained unexpected terminal status "lost" after stop cleanup proof/u,
+    );
+
+    expect(stop).toHaveBeenCalledOnce();
+    expect(hasSettledCooperativeStopCleanup(repaired)).toBe(false);
+  });
+
   it("includes the rejected stop proof tuple in the failure diagnostic", () => {
     expect(() =>
       keeperCleanupTiming(
