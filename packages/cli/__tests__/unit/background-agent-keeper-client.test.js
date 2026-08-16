@@ -113,6 +113,7 @@ async function startFixtureKeeper({ retireDelayMs = 0, replyToRetire = true }) {
     sockets,
     clients: [],
     messages,
+    pipePath,
   };
   resources.push(resource);
   return { identity, pipePath, resource };
