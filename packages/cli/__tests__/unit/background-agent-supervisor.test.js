@@ -3661,13 +3661,17 @@ describe("prompt queue backpressure (Gap 4, supervisor gap 2026-07-11)", () => {
 
     conn.close();
     // This test owns every PID in the freshly launched record. Process
-    // identity admission has dedicated coverage above; return a fresh
-    // in-window creation time here so a worker turn-state update cannot make
-    // this queue/backpressure test depend on a second OS identity probe.
+    // identity admission has dedicated coverage above; return one stable,
+    // in-window creation-time anchor so a worker turn-state update cannot make
+    // this queue/backpressure test depend on a second OS identity probe. This
+    // seam also validates state-lock owners: advancing Date.now() on every
+    // call would falsely classify a live owner as PID reuse after it acquired
+    // the lock and let a stale writer overwrite the durable stop fence.
+    const fixtureProcessStartedAt = Number(state.startedAt);
     _deps.readProcessStartTimeMs = vi.fn((pid) => {
       const target = Number(pid);
       return Number.isInteger(target) && target > 0 && target !== process.pid
-        ? Date.now()
+        ? fixtureProcessStartedAt
         : null;
     });
     // Reap the worker tree so the 20s turn + 100 queued turns never run on.
