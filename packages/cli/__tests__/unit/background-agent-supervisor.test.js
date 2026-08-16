@@ -2519,7 +2519,14 @@ describe("background agent supervisor", () => {
     "signals the detached turn as a group but stops its worker and keeper by exact pid",
     () => {
       const startedAt = Date.now();
-      const alive = new Set([10101, 20202, 30303]);
+      // The production liveness guard intentionally probes the kernel directly
+      // instead of the injectable signal seam. Use real detached sleepers so
+      // this POSIX-only fixture exercises that guard without depending on a
+      // fabricated pid being absent (or accidentally colliding on a runner).
+      const workerPid = spawnSleeperPid();
+      const keeperPid = spawnSleeperPid();
+      const agentPid = spawnSleeperPid();
+      const alive = new Set([workerPid, keeperPid, agentPid]);
       const missing = () =>
         Object.assign(new Error("kill ESRCH"), { code: "ESRCH" });
       _deps.kill = vi.fn((pid, signal) => {
@@ -2532,11 +2539,11 @@ describe("background agent supervisor", () => {
         return true;
       });
       _deps.readProcessState = vi.fn((pid) =>
-        alive.has(Number(pid)) ? "S" : null,
+        alive.has(Number(pid)) ? "S" : "Z",
       );
       _deps.readProcessGroupStates = vi.fn((pid) => {
         const target = Number(pid);
-        if (target === 30303) return alive.has(target) ? ["S"] : ["Z"];
+        if (target === agentPid) return alive.has(target) ? ["S"] : ["Z"];
         // Simulate an unrelated live POSIX group whose PGID happens to equal
         // the now-retired worker/keeper pid. Direct targets must not inherit
         // that group's liveness after their exact process exits.
@@ -2546,14 +2553,14 @@ describe("background agent supervisor", () => {
       writeBackgroundAgentState({
         id: "bg-stop-owned-turn",
         status: "running",
-        pid: 10101,
-        workerPid: 10101,
+        pid: workerPid,
+        workerPid,
         startedAt,
-        keeperPid: 20202,
+        keeperPid,
         keeperStartedAt: startedAt,
-        agentPid: 30303,
+        agentPid,
         agentStartedAt: startedAt,
-        agentRuntimePid: 30303,
+        agentRuntimePid: agentPid,
         agentRuntimeStartedAt: startedAt,
       });
 
@@ -2565,9 +2572,9 @@ describe("background agent supervisor", () => {
         ([, signal]) => signal !== 0,
       );
       expect(terminationSignals).toEqual([
-        [-30303, "SIGTERM"],
-        [10101, "SIGTERM"],
-        [20202, "SIGTERM"],
+        [-agentPid, "SIGTERM"],
+        [workerPid, "SIGTERM"],
+        [keeperPid, "SIGTERM"],
       ]);
     },
   );
