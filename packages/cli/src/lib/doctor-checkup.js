@@ -462,7 +462,6 @@ async function pluginSection(opts, _deps2) {
   const checks = [];
   try {
     const { listInstalled } = await import("./plugin-runtime/install.js");
-    const { readPluginLock } = await import("./plugin-runtime/signature.js");
     const plugins = listInstalled({ cwd: opts.cwd || process.cwd() }) || [];
     if (plugins.length === 0) {
       checks.push(
@@ -475,22 +474,47 @@ async function pluginSection(opts, _deps2) {
       );
     } else {
       let unsigned = 0;
+      const runtimeBlocked = [];
+      const retainedRecovery = [];
       for (const p of plugins) {
-        try {
-          const lock = p.dir ? readPluginLock(p.dir) : null;
-          if (!lock || !lock.signature) unsigned++;
-        } catch {
-          unsigned++;
+        if (p.activePointer?.recoveryPath) {
+          retainedRecovery.push(`${p.name} (${p.activePointer.recoveryPath})`);
         }
+        if (p.runtimeBlocked === true) {
+          runtimeBlocked.push(
+            `${p.name} (${p.activePointer?.status || "unknown pointer state"})`,
+          );
+          continue;
+        }
+        if (p.integrity?.signature?.present !== true) unsigned++;
       }
       checks.push(
         check(
           "plugins",
           `Installed plugins: ${plugins.length}`,
-          unsigned > 0 ? CHECK_LEVELS.WARN : CHECK_LEVELS.OK,
-          unsigned > 0
-            ? `${unsigned} without a signature lock — they will be refused if plugins.requireSignedPlugins is enabled`
-            : "all have signature locks",
+          unsigned > 0 ||
+            runtimeBlocked.length > 0 ||
+            retainedRecovery.length > 0
+            ? CHECK_LEVELS.WARN
+            : CHECK_LEVELS.OK,
+          [
+            runtimeBlocked.length > 0
+              ? `runtime blocked: ${runtimeBlocked.join(", ")}`
+              : null,
+            retainedRecovery.length > 0
+              ? `retained install recovery: ${retainedRecovery.join(", ")}; remove the blocked plugin before another mutation`
+              : null,
+            unsigned > 0
+              ? `${unsigned} active without a signature lock — they will be refused if plugins.requireSignedPlugins is enabled`
+              : null,
+            runtimeBlocked.length === 0 &&
+            retainedRecovery.length === 0 &&
+            unsigned === 0
+              ? "all active plugins have signature locks"
+              : null,
+          ]
+            .filter(Boolean)
+            .join("; "),
         ),
       );
     }

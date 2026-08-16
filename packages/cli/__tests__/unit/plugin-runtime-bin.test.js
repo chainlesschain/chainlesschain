@@ -33,6 +33,10 @@ let cwd;
 let storeFile;
 let savedStorePath;
 
+function activateFixture(dir) {
+  fs.writeFileSync(path.join(path.dirname(dir), ".active"), "1.0.0", "utf8");
+}
+
 function installBinPlugin(
   scope,
   name,
@@ -41,6 +45,7 @@ function installBinPlugin(
 ) {
   const dir = pluginVersionDir(scope, name, "1.0.0", { cwd: rootCwd });
   fs.mkdirSync(path.join(dir, "bin"), { recursive: true });
+  fs.writeFileSync(path.join(path.dirname(dir), ".active"), "1.0.0", "utf8");
   fs.writeFileSync(
     path.join(dir, "plugin.json"),
     JSON.stringify({ name, version: "1.0.0", ...manifest }),
@@ -383,6 +388,7 @@ describe("resolvePluginBinInvocation", () => {
   it("resolves a declared alias to exact argv and attests a Node target", () => {
     const dir = pluginVersionDir("local", "toolkit", "1.0.0", { cwd });
     fs.mkdirSync(path.join(dir, "bin"), { recursive: true });
+    activateFixture(dir);
     const source = "process.stdout.write(process.argv.slice(2).join('|'));\n";
     fs.writeFileSync(path.join(dir, "bin", "entry.js"), source, "utf8");
     fs.writeFileSync(
@@ -704,6 +710,7 @@ describe("resolvePluginBinInvocation", () => {
     const dir = pluginVersionDir("local", "toolkit", "1.0.0", { cwd });
     const entryPath = path.join(dir, "bin", "entry.js");
     fs.mkdirSync(path.dirname(entryPath), { recursive: true });
+    activateFixture(dir);
     fs.writeFileSync(entryPath, "process.stdout.write('ready');\n", "utf8");
     fs.writeFileSync(
       path.join(dir, "plugin.json"),
@@ -817,6 +824,7 @@ describe("resolvePluginBinInvocation", () => {
       [second, "two"],
     ]) {
       fs.mkdirSync(path.join(dir, "bin"), { recursive: true });
+      activateFixture(dir);
       fs.writeFileSync(path.join(dir, "bin", "entry.js"), "", "utf8");
       fs.writeFileSync(
         path.join(dir, "plugin.json"),
@@ -840,6 +848,7 @@ describe("resolvePluginBinInvocation", () => {
   it("collects exact aliases instead of every sibling file in a bin dir", () => {
     const dir = pluginVersionDir("local", "toolkit", "1.0.0", { cwd });
     fs.mkdirSync(path.join(dir, "bin"), { recursive: true });
+    activateFixture(dir);
     fs.writeFileSync(path.join(dir, "bin", "entry.js"), "", "utf8");
     fs.writeFileSync(path.join(dir, "bin", "undeclared.js"), "", "utf8");
     fs.writeFileSync(
@@ -886,6 +895,7 @@ describe("resolvePluginBinInvocation", () => {
       const dir = pluginVersionDir("local", "toolkit", "1.0.0", { cwd });
       const target = path.join(dir, "bin", "native.exe");
       fs.mkdirSync(path.join(dir, "bin"), { recursive: true });
+      activateFixture(dir);
       fs.writeFileSync(target, "MZ", "utf8");
       fs.writeFileSync(
         path.join(dir, "plugin.json"),
@@ -914,6 +924,7 @@ describe("resolvePluginBinInvocation", () => {
   it("detects a target mutation in the second pre-launch attestation", () => {
     const dir = pluginVersionDir("local", "toolkit", "1.0.0", { cwd });
     fs.mkdirSync(path.join(dir, "bin"), { recursive: true });
+    activateFixture(dir);
     const target = path.join(dir, "bin", "entry.js");
     fs.writeFileSync(target, "process.stdout.write('before');\n", "utf8");
     fs.writeFileSync(
@@ -947,6 +958,7 @@ describe("resolvePluginBinInvocation", () => {
     const source = "process.stdout.write('same');\n";
     const fixedTime = new Date("2024-01-01T00:00:00.000Z");
     fs.mkdirSync(binDir, { recursive: true });
+    activateFixture(dir);
     fs.writeFileSync(target, source, "utf8");
     fs.writeFileSync(replacement, source, "utf8");
     fs.utimesSync(target, fixedTime, fixedTime);
@@ -985,6 +997,7 @@ describe("resolvePluginBinInvocation", () => {
     const dir = pluginVersionDir("local", "toolkit", "1.0.0", { cwd });
     const outside = path.join(cwd, "outside-bin");
     fs.mkdirSync(dir, { recursive: true });
+    activateFixture(dir);
     fs.mkdirSync(outside, { recursive: true });
     fs.writeFileSync(path.join(outside, "entry.js"), "", "utf8");
     fs.symlinkSync(
@@ -1015,6 +1028,7 @@ describe("resolvePluginBinInvocation", () => {
     const dir = pluginVersionDir("local", "toolkit", "1.0.0", { cwd });
     const outside = path.join(cwd, "outside.js");
     fs.mkdirSync(path.join(dir, "bin"), { recursive: true });
+    activateFixture(dir);
     fs.writeFileSync(outside, "", "utf8");
     fs.linkSync(outside, path.join(dir, "bin", "entry.js"));
     fs.writeFileSync(
