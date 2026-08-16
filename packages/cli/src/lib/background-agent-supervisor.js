@@ -982,6 +982,11 @@ export function mutateBackgroundAgentState(id, updater, options = {}) {
     {
       failIfUnavailable: true,
       timeoutMs: options.timeoutMs ?? 5_000,
+      // A stopped POSIX worker can remain as a zombie long enough for
+      // kill(pid, 0) to report it as alive.  Such a process cannot still own
+      // the critical section, so use the supervisor's execution-state probe
+      // (which treats only Z/X as dead and keeps unknown states fail-closed).
+      _isProcessAlive: isProcessExecutionAlive,
     },
   );
 }

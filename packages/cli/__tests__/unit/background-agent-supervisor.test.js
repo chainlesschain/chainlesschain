@@ -290,9 +290,43 @@ afterEach(async () => {
       }
     }
   }
-});
+}, 40_000);
 
 describe("background agent supervisor", () => {
+  it("reclaims a strict state lock owned only by a zombie process identity", () => {
+    const id = "bg-zombie-lock-owner";
+    writeBackgroundAgentState({
+      id,
+      title: "before",
+      status: "running",
+      pid: 4242,
+    });
+    const lockDir = `${statePath(id)}.lock`;
+    mkdirSync(lockDir);
+    writeFileSync(
+      join(lockDir, "owner.json"),
+      JSON.stringify({
+        pid: process.pid,
+        startedAt: Date.now(),
+        token: "zombie-lock-owner-token-0001",
+      }),
+    );
+    _deps.readProcessState = vi.fn((pid) =>
+      Number(pid) === process.pid ? "Z" : null,
+    );
+
+    const mutation = mutateBackgroundAgentState(
+      id,
+      (current) => ({ ...current, title: "after" }),
+      { timeoutMs: 100 },
+    );
+
+    expect(mutation).toMatchObject({
+      applied: true,
+      state: { id, title: "after" },
+    });
+  });
+
   it("rejects ephemeral initial and follow-up argv before worker spawn", () => {
     _deps.spawn = vi.fn(() => ({ pid: 43210, unref: vi.fn() }));
     expect(() =>
