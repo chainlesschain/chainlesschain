@@ -77,7 +77,12 @@ async function launchGenericBackground(extraArgs = {}, context = { cwd }) {
 }
 
 beforeEach(() => {
-  cwd = fs.mkdtempSync(path.join(os.tmpdir(), "cc-agent-bg-sandbox-"));
+  // Production pins the authority-bearing workspace to its canonical
+  // filesystem identity. Keep expectations independent of macOS /var aliases
+  // and Windows 8.3 temporary paths by canonicalizing the fixture as well.
+  cwd = fs.realpathSync.native(
+    fs.mkdtempSync(path.join(os.tmpdir(), "cc-agent-bg-sandbox-")),
+  );
   originalBackgroundRun = _backgroundProcessDeps.run;
   originalContractIssuer =
     _backgroundProcessDeps.issueLinuxWorkspaceSandboxExecutionContract;
