@@ -17,13 +17,14 @@ import { tmpdir } from "node:os";
 import { execSync } from "node:child_process";
 
 // Mock plan-mode (required by agent-core at import time)
-vi.mock("../../src/lib/plan-mode.js", () => ({
-  getPlanModeManager: vi.fn(() => ({
+vi.mock("../../src/lib/plan-mode.js", () => {
+  const planModeManager = {
     isActive: () => false,
     isToolAllowed: () => true,
     addPlanItem: vi.fn(),
-  })),
-}));
+  };
+  return { getPlanModeManager: vi.fn(() => planModeManager) };
+});
 
 // Mock hook-manager (required by agent-core at import time)
 vi.mock("../../src/lib/hook-manager.js", () => ({

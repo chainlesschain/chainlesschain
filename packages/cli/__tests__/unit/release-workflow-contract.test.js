@@ -176,6 +176,31 @@ describe("CLI release workflow contracts", () => {
     }
   });
 
+  it("checks out and verifies the exact event commit in both CLI release gates", () => {
+    const eventSha = "${{ github.event.pull_request.head.sha || github.sha }}";
+    const cliCi = workflow("cli-ci.yml");
+    const reusable = workflow("_cli-test.yml");
+    const strict = workflow("cli-strict-sandbox.yml");
+
+    expect(cliCi.split(`commit_sha: ${eventSha}`)).toHaveLength(4);
+    expect(cliCi.split(`ref: ${eventSha}`)).toHaveLength(4);
+    expect(cliCi.match(/name: Verify exact source identity/gu)).toHaveLength(3);
+
+    expect(reusable).toContain("commit_sha:\n");
+    expect(reusable).toContain('description: "Exact full caller commit SHA"');
+    expect(
+      reusable.match(/ref: \$\{\{ inputs\.commit_sha \}\}/gu),
+    ).toHaveLength(3);
+    expect(reusable.match(/name: Verify exact source identity/gu)).toHaveLength(
+      3,
+    );
+
+    expect(strict).toContain(`ref: ${eventSha}`);
+    expect(strict.match(/name: Verify exact source identity/gu)).toHaveLength(
+      1,
+    );
+  });
+
   it("keeps generic workspace publishing outside the CLI release authority", () => {
     const generic = workflow("workspace-npm-publish.yml");
     const detector = fs.readFileSync(

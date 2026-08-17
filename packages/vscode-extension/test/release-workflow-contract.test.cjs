@@ -272,6 +272,11 @@ test("IDE release tags are isolated and manual Marketplace backfill is tag-bound
     releaseJob,
     /verify-ide-marketplace\.mjs open-vsx "\$version" --artifact chainlesschain-ide\.vsix/u,
   );
+  assert.match(
+    releaseJob,
+    /CC_MARKETPLACE_VERIFY_ATTEMPTS: "90"[\s\S]*?CC_MARKETPLACE_VERIFY_DELAY_MS: "30000"[\s\S]*?CC_OPEN_VSX_LISTING_VERIFY_ATTEMPTS: "75"[\s\S]*?CC_OPEN_VSX_LISTING_VERIFY_DELAY_MS: "60000"/u,
+    "Open VSX readback must use independent activation and one-hour listing-cache budgets",
+  );
 });
 
 test("VS Code host gates pin macOS Intel and share the main-world relay", () => {

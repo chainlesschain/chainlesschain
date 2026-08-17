@@ -1,17 +1,17 @@
 ﻿# 设计文档
 
-> 本目录是 ChainlessChain 的研发设计入口，也是用户文档站与设计文档站的共享设计源。CLI Runtime 核对已更新到 2026-08-14：npm `latest` 与生产推荐版为 `0.163.8`，发布证据绑定不可变 tag `v-npm-0-163-8` 的精确 SHA `a0631cb4f9`；磁盘故障闭环、Automation 恢复、受治理 merge review 与 MCP resource templates 已进入公开契约，`main@affafa7f0f` 的原生剪贴板图片粘贴按发布后源码能力单独标注。
+> 本目录是 ChainlessChain 的研发设计入口，也是用户文档站与设计文档站的共享设计源。CLI Runtime 核对已更新到 2026-08-16：npm `latest` 与生产推荐版为 `0.164.0`，发布证据绑定不可变 tag `v-npm-0-164-0` 的精确 SHA `313dec85cf`；原生剪贴板图片、作用域执行权威、受治理插件市场、后台 keeper 与 MCP capsule 加固已进入公开契约。本次文档快照 `HEAD@99f5bf8214` 的远程成员对账、workflow 运行准入、canonical workspace/delivery authority、zombie-safe supervisor lock 与 Remote-SSH/canonical evidence root 修复按发布后源码能力单独标注。
 
 ## 当前重点
 
 - CLI Agent Runtime、Cowork Runtime、Web Panel、Hooks、Workflow 等主线设计仍以 `docs/design/modules/` 为准。
 - P2-14 已按限定范围完成：Process Broker 为其管理的声明 workspace writer 提供持久 checkpoint、分层 coverage 与 fenced rollback/recovery；外部副作用不在回滚承诺内。
 - P2-16 已完成本地 Agent Team v6 authority、分布式 queue v1、预算/lease/wall fencing、两阶段 worktree 清理、交互式裁决与三平台长期 soak；10k task / 64 worker 是单进程规模验证，长期 soak 使用 2 个真实 OS worker。
-- CLI `0.163.6` 已把 Agenda monitor、Loop、Automation cron、Routine GitHub、channel automation event 与 standalone daemon 接入统一 Scheduler；Agenda/Cowork 同时公开 IANA timezone、DST 与 missed-run collapse 语义。
-- 精确发布 SHA `85c3577c88` 的三平台 CLI CI、Strict Sandbox、npm 发布与独立公网回读均已闭环；公开 tarball SHA-1 为 `18bb9d807a4a35a36cf9049dcc15f67eb47bbfa6`。原生证据仍固定 `signed=false`、`releaseEligible=false`，不等于 Desktop/native 签名发行完成。
-- Agenda、Routine、Cowork、Automation 与 Loop 共用 revision-bound permission/budget authority；`0.163.8` 已发布 outcome-unknown 裁决、五域迁移/回滚、确定性磁盘故障闭环与受治理恢复。三系统 72 小时长期 soak 仍未关闭。
+- CLI `0.164.0` 完整承接统一 Scheduler、裁决/迁移/回滚、磁盘故障闭环、Automation 恢复、merge review 与 MCP resource templates，并新增作用域执行/副作用权威、版本化执行位置、受治理插件市场、后台 keeper 与 MCP capsule 证据加固。
+- 精确发布 SHA `313dec85cf` 的三平台 CLI CI `31912844177`、Strict Sandbox `31912844034`、npm 发布 `31912844032` 与独立公网回读 `31913903124` 均已闭环；公开 tarball SHA-1 为 `2d13836305c6841b7fe5bcd059bc8ef25127fc3d`。npm 证据不等于 Desktop/native 签名发行完成。
+- Agenda、Routine、Cowork、Automation 与 Loop 继续共用 revision-bound permission/budget authority；三系统 72 小时 scheduler campaign、keeper formal aggregate、macOS 受保护 helper 和签名 native 分发仍未关闭。
 - Checkpoint 的直接恢复与 timeline restore 共用 hash-chained CAS saga，并新增 `cc checkpoint recovery list|show|abort|resume|rollback|release`。恢复动作绑定 workspace prestate、owner/owner absence、seq/head fence 与持久 Git/copy engine；它仍只是文件恢复闭包，不是通用多资源事务。
-- Open VSX 当前公开 `0.37.51`，JetBrains Marketplace 当前公开 `0.4.87`。双 tag 指向精确提交 `dd0adad7b1`；Automation Center 与默认关闭的受治理自动 ghost-text 已完成真实宿主矩阵和市场回读。微软 VS Code Marketplace 与 JetBrains 作者签名仍未完成。
+- Open VSX 当前公开 `0.37.54`，JetBrains Marketplace 当前公开 `0.4.90`。tag 分别指向精确提交 `98c6a126b0` 与 `7d21c7a9ae`；Context Center、权限/副作用证据、Automation Center 与真实宿主矩阵已完成市场回读，VS Code 发布链另有可信 Remote-SSH/container journey。微软 VS Code Marketplace 与 JetBrains 作者签名仍未完成。
 - Managed Agents 对标已新增独立模块 `91_Managed_Agents对标计划.md`，底层能力沉到共享包 `@chainlesschain/session-core`。
 - `session-core` 当前已覆盖 SessionHandle、TraceStore、SessionManager、IdleParker、AgentGroup、SharedTaskList、MemoryStore、MemoryConsolidator、ApprovalGate、BetaFlags、StreamRouter、file-adapters。
 - CLI 已接入 `memory recall/store`、`session policy`、`config beta list|enable|disable`；Desktop 仍处于 shim + 后续收口阶段。
@@ -20,14 +20,14 @@
 
 ### `cli-runtime-current.md`
 
-- 生产基线更新为 CLI `0.163.8`；npm `latest`、主线包元数据与完整门禁公开版已对齐，`main@affafa7f0f` 的 `/paste-image` 保持发布后源码标注。
+- 生产基线更新为 CLI `0.164.0`；npm `latest`、主线包元数据与完整门禁公开版已对齐，本次文档快照 `HEAD@99f5bf8214` 的 tag 后修复保持发布后源码标注。
 - 补充类型化 secret 配置、MCP `ws/wss` 与恢复裁决、canonical session/budget、受控 Skill 子 Agent、checkpoint restore saga 与保守 recovery CLI。
 - 明确 `CHAINLESSCHAIN_HOME` 是完整运行目录覆盖值，测试夹具不得写入真实 home。
 - 补充 process-execution-broker 的非秘密会话标识 allowlist 与默认凭据过滤边界。
 - 明确 production `run_skill` 不 import `handler.js`，隔离 Skill 只获得三个只读文件工具；历史 `shell-exec` metadata 不产生 process authority，无消费方的 `skill-process-broker` façade 已删除。
 - 记录 CLI-Anything/CLI Pack legacy handler 仍可生成但不会由 production `run_skill` 执行；未来恢复前必须重新满足可执行身份、完整进程树、宿主 dispose 与三平台门禁。
 - 记录异步 hook 的 POSIX 进程组 / Windows `taskkill` + 后代快照 fallback 设计。
-- 记录 unit / integration / E2E 三平台分层门禁、P2-14/P2-16 专项门、打包/启动校验，以及 0.163.6 的 exact-SHA、不可变制品、provenance 与 registry 回读边界。
+- 记录 unit / integration / E2E 三平台分层门禁、P2-14/P2-16 专项门、打包/启动校验，以及 0.164.0 的 exact-SHA、不可变制品、provenance 与 registry 回读边界。
 
 ### `CLAUDE_CODE_CLI_PARITY_OPTIMIZATION_PLAN.md`
 
@@ -37,7 +37,7 @@
 
 ### `modules/98_IDE桥接对标方案.md`
 
-- 页首记录已对齐状态：Open VSX VS Code `0.37.50`，JetBrains Marketplace `0.4.86`。
+- 页首记录已对齐状态：Open VSX VS Code `0.37.54`，JetBrains Marketplace `0.4.90`。
 - 记录 Automation Center、CLI-owned Sessions Workbench、可恢复交付、canonical rewind/branch timeline、VS Code 内联聊天，以及五类 session 的 reply/artifact/PR/重启恢复真实宿主 journey；这些能力已进入公开稳定版。
 - 初版 Phase 0–7、`0.2.x` / `0.1.0` 和当时的 Marketplace 待审状态继续保留为历史首发记录，不再冒充当前版本。
 
@@ -84,8 +84,8 @@
 
 近期与本目录直接相关的新增验证包括：
 
-- CLI `0.163.6` exact-SHA：CLI CI 的 Ubuntu/Windows/macOS unit、integration、E2E 与打包/安装门，三平台 CLI Strict Sandbox，以及 npm exact-SHA、不可变制品、provenance、registry readback 全绿
-- IDE：Open VSX `0.37.50` 与 JetBrains Marketplace `0.4.86` 的真实宿主矩阵、不可变制品、发布与公开回读全绿；截至 2026-08-12，Open VSX 累计下载已突破 2.4 万
+- CLI `0.164.0` exact-SHA：CLI CI 的 Ubuntu/Windows/macOS unit、integration、E2E 与打包/安装门，三平台 CLI Strict Sandbox，以及 npm exact-SHA、不可变制品、provenance、registry readback 全绿
+- IDE：Open VSX `0.37.54` 与 JetBrains Marketplace `0.4.90` 的真实宿主矩阵、不可变制品、发布与公开回读全绿；Open VSX 累计下载保持 2.4 万以上
 
 - `@chainlesschain/session-core`: `293/293`
 - CLI unit: `session-core-singletons.test.js` `4/4`

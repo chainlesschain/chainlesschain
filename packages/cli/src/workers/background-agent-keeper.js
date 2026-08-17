@@ -27,11 +27,13 @@ import {
   BACKGROUND_AGENT_KEEPER_ARMED,
   BACKGROUND_AGENT_KEEPER_CLEANUP_CONFIRM_TIMEOUT_MS,
   BACKGROUND_AGENT_KEEPER_HELLO,
+  BACKGROUND_AGENT_KEEPER_PERSIST_RETRY_TIMEOUT_MS,
   BACKGROUND_AGENT_KEEPER_PROTOCOL_VERSION,
   BACKGROUND_AGENT_KEEPER_READY,
   BACKGROUND_AGENT_KEEPER_RETIRE,
   BACKGROUND_AGENT_KEEPER_RETIRED,
   BACKGROUND_AGENT_KEEPER_STATE_LOCK_TIMEOUT_MS,
+  cleanupBackgroundAgentKeeperPipeDirectory,
   createBackgroundAgentKeeperMessage,
   normalizeBackgroundAgentKeeperHello,
   normalizeBackgroundAgentKeeperTurn,
@@ -40,6 +42,50 @@ import {
 
 const STARTUP_TIMEOUT_MS = 30_000;
 const HEARTBEAT_INTERVAL_MS = 1_000;
+const KEEPER_PERSIST_RETRY_DELAY_MS = 50;
+
+function delay(ms) {
+  return new Promise((resolvePromise) => setTimeout(resolvePromise, ms));
+}
+
+/**
+ * Retry a cleanup-critical state mutation after a worker is hard-killed.
+ *
+ * A worker can disappear while it owns the cross-process state lock. Windows
+ * may keep that terminated PID observable briefly, so the strict lock cannot
+ * immediately prove the owner dead and correctly fails closed. The keeper is
+ * the only remaining owner of the armed turn; it must wait for that transient
+ * fence instead of turning a lock exception into an unhandled rejection and
+ * exiting with the durable projection still `armed`.
+ */
+export async function retryKeeperPersistence(operation, options = {}) {
+  const now = options.now || Date.now;
+  const sleep = options.sleep || delay;
+  const timeoutMs = Math.max(
+    0,
+    Number(
+      options.timeoutMs ?? BACKGROUND_AGENT_KEEPER_PERSIST_RETRY_TIMEOUT_MS,
+    ),
+  );
+  const retryDelayMs = Math.max(
+    1,
+    Number(options.retryDelayMs ?? KEEPER_PERSIST_RETRY_DELAY_MS),
+  );
+  const deadline = now() + timeoutMs;
+  let attempts = 0;
+  let error = null;
+  for (;;) {
+    attempts += 1;
+    try {
+      return { result: operation(), error: null, attempts };
+    } catch (cause) {
+      error = cause;
+    }
+    const remaining = deadline - now();
+    if (remaining <= 0) return { result: null, error, attempts };
+    await sleep(Math.min(retryDelayMs, remaining));
+  }
+}
 
 function writeMessage(socket, message) {
   if (!socket || socket.destroyed) return false;
@@ -57,6 +103,60 @@ export function keeperWorkerIdentityAlive(
   probe = isSameProcess,
 ) {
   return probe(Number(workerPid), Number(workerStartedAt));
+}
+
+function reportKeeperPersistenceFailure(stage, error) {
+  try {
+    writeSync(
+      2,
+      `[background-agent-keeper] ${stage} persistence failed: ${error?.stack || error?.message || String(error)}\n`,
+    );
+  } catch {
+    // The inherited diagnostic handle may already be closed.
+  }
+}
+
+export function runBackgroundAgentKeeperHeartbeat({
+  finishing,
+  workerSocket,
+  authenticatedHello,
+  authenticatedWorkerStartedAt,
+  armedTurn,
+  persistKeeper,
+  finishForWorkerDisconnect,
+  now = Date.now,
+  workerIdentityAlive = keeperWorkerIdentityAlive,
+  reportPersistenceFailure = reportKeeperPersistenceFailure,
+}) {
+  if (finishing) return false;
+  if (
+    workerSocket &&
+    authenticatedHello &&
+    armedTurn &&
+    !workerIdentityAlive(
+      authenticatedHello.workerPid,
+      authenticatedWorkerStartedAt,
+    )
+  ) {
+    // A Windows named-pipe handle can remain open after its worker dies if a
+    // platform helper retained a duplicate. Socket EOF alone is therefore
+    // not a sufficient lifetime signal. The generation-bound worker PID and
+    // its durable launch anchor provide an independent identity fence.
+    finishForWorkerDisconnect();
+    workerSocket.destroy();
+    return false;
+  }
+  try {
+    persistKeeper({ keeperHeartbeatAt: now() });
+    return true;
+  } catch (error) {
+    try {
+      reportPersistenceFailure("heartbeat", error);
+    } catch {
+      // Diagnostics are best effort and must not escape the timer callback.
+    }
+    return false;
+  }
 }
 
 function stateOwnsTurn(state, turn) {
@@ -90,35 +190,77 @@ function persistKeeperTurn(job, turn, patch) {
   );
 }
 
+export function stopBackgroundAgentKeeperTurnTrees(targets, options = {}) {
+  const platform = options.platform || process.platform;
+  const processAlive = options.isProcessAlive || isProcessAlive;
+  const processTreeExecutionAlive =
+    options.isProcessTreeExecutionAlive ||
+    isBackgroundProcessTreeExecutionAlive;
+  const stopTree = options.stopProcessTree || stopBackgroundAgentChildTree;
+  const failures = [];
+  let precedingTreeStopSucceeded = false;
+  for (const target of targets) {
+    // On Windows the wrapper's taskkill /T also retires its runtime child.
+    // Avoid starting a second bounded taskkill for a target the first tree
+    // operation already proved absent; under 20-way churn that redundant
+    // command can consume the keeper's entire cleanup SLO. Never skip the
+    // first root merely because its leader exited: POSIX descendants can keep
+    // executing in the leader's process group and still require a group kill.
+    if (precedingTreeStopSucceeded && !processAlive(target.pid)) continue;
+    try {
+      stopTree(target.pid, {
+        signal: "SIGKILL",
+        expectedStartedAt: target.startedAt,
+        processGroup: target.processGroup,
+        strictIdentity: true,
+        allowDirectFallback: false,
+      });
+      precedingTreeStopSucceeded = true;
+    } catch (error) {
+      // A detached POSIX group can keep executing after its leader exits. Do
+      // not discard the strict stop failure from a leader-only liveness probe;
+      // the group-aware residual check preserves the actionable identity
+      // reason while descendants remain executable.
+      const leaderAlive = processAlive(target.pid);
+      const residualAlive =
+        leaderAlive ||
+        (platform !== "win32" &&
+          target.processGroup === true &&
+          processTreeExecutionAlive(target.pid, target.startedAt));
+      if (residualAlive) {
+        failures.push(error?.message || String(error));
+      }
+    }
+  }
+  return failures;
+}
+
 async function cleanupTurn(job, turn, reason) {
   const requestedAt = Date.now();
-  persistKeeperTurn(job, turn, {
-    turnKeeperStatus: "cleanup-requested",
-    turnKeeperCleanupReason: reason,
-    turnKeeperCleanupRequestedAt: requestedAt,
-  });
+  const requestedPersistence = await retryKeeperPersistence(() =>
+    persistKeeperTurn(job, turn, {
+      turnKeeperStatus: "cleanup-requested",
+      turnKeeperCleanupReason: reason,
+      turnKeeperCleanupRequestedAt: requestedAt,
+    }),
+  );
 
   const targets = [
-    { pid: turn.agentPid, startedAt: turn.agentStartedAt },
+    {
+      pid: turn.agentPid,
+      startedAt: turn.agentStartedAt,
+      processGroup: true,
+    },
     {
       pid: turn.agentRuntimePid,
       startedAt: turn.agentRuntimeStartedAt,
+      processGroup: false,
     },
   ].filter(
     (target, index, values) =>
       values.findIndex((candidate) => candidate.pid === target.pid) === index,
   );
-  const failures = [];
-  for (const target of targets) {
-    try {
-      stopBackgroundAgentChildTree(target.pid, { signal: "SIGKILL" });
-    } catch (error) {
-      // A preceding wrapper/group signal may already have retired this root.
-      if (isProcessAlive(target.pid)) {
-        failures.push(error?.message || String(error));
-      }
-    }
-  }
+  const failures = stopBackgroundAgentKeeperTurnTrees(targets);
 
   const deadline =
     Date.now() + BACKGROUND_AGENT_KEEPER_CLEANUP_CONFIRM_TIMEOUT_MS;
@@ -132,19 +274,37 @@ async function cleanupTurn(job, turn, reason) {
     );
   }
   const confirmed = alive.length === 0 && failures.length === 0;
-  persistKeeperTurn(job, turn, {
-    turnKeeperStatus: confirmed ? "retired" : "cleanup-unconfirmed",
-    turnKeeperCleanupReason: reason,
-    turnKeeperCleanupRequestedAt: requestedAt,
-    turnKeeperCleanupConfirmedAt: confirmed ? Date.now() : null,
-    turnKeeperCleanupError:
-      failures.length > 0
-        ? failures.join("; ").slice(0, 1_000)
-        : alive.length > 0
-          ? `process tree still executable: ${alive.map(({ pid }) => pid).join(",")}`
-          : null,
+  let finalPersistenceAttempts = 0;
+  const finalPersistence = await retryKeeperPersistence(() => {
+    finalPersistenceAttempts += 1;
+    return persistKeeperTurn(job, turn, {
+      turnKeeperStatus: confirmed ? "retired" : "cleanup-unconfirmed",
+      turnKeeperCleanupReason: reason,
+      turnKeeperCleanupRequestedAt: requestedAt,
+      turnKeeperCleanupConfirmedAt: confirmed ? Date.now() : null,
+      turnKeeperCleanupError:
+        failures.length > 0
+          ? failures.join("; ").slice(0, 1_000)
+          : alive.length > 0
+            ? `process tree still executable: ${alive.map(({ pid }) => pid).join(",")}`
+            : null,
+      turnKeeperPersistenceRetries:
+        Math.max(0, requestedPersistence.attempts - 1) +
+        Math.max(0, finalPersistenceAttempts - 1),
+    });
   });
-  return { confirmed, failures, alive };
+  const persistenceError = finalPersistence.error
+    ? finalPersistence.error?.message || String(finalPersistence.error)
+    : finalPersistence.result?.applied === false
+      ? "keeper cleanup state no longer owned"
+      : null;
+  if (persistenceError) failures.push(persistenceError);
+  return {
+    confirmed: confirmed && !persistenceError,
+    failures,
+    alive,
+    persistenceError,
+  };
 }
 
 export async function runBackgroundAgentKeeper(jobFile, options = {}) {
@@ -206,17 +366,50 @@ export async function runBackgroundAgentKeeper(jobFile, options = {}) {
     if (finishing) return false;
     finishing = true;
     const active = armedTurn;
-    void (
-      active
-        ? cleanupTurn(job, active, "worker-disconnected")
-        : Promise.resolve({ confirmed: true })
-    ).finally(() => {
-      persistKeeper({
-        keeperStatus: active ? "worker-disconnected" : "closed",
-        keeperEndedAt: Date.now(),
-      });
+    void (async () => {
+      let cleanup;
+      try {
+        cleanup = active
+          ? await cleanupTurn(job, active, "worker-disconnected")
+          : { confirmed: true, failures: [], alive: [] };
+      } catch (error) {
+        cleanup = {
+          confirmed: false,
+          failures: [error?.message || String(error)],
+          alive: [],
+        };
+      }
+      // Closing the keeper must never be skipped because one final metadata
+      // update throws. Retry the critical status write, retain the failure in
+      // the log, and always settle the server promise without an unhandled
+      // rejection.
+      const persisted = await retryKeeperPersistence(() =>
+        persistKeeper({
+          keeperStatus: active
+            ? cleanup.confirmed
+              ? "worker-disconnected"
+              : "cleanup-unconfirmed"
+            : "closed",
+          keeperEndedAt: Date.now(),
+          ...(cleanup.failures.length > 0
+            ? {
+                keeperError: cleanup.failures.join("; ").slice(0, 1_000),
+              }
+            : {}),
+        }),
+      );
+      if (persisted.error) {
+        try {
+          writeSync(
+            2,
+            `[background-agent-keeper] final state persistence failed: ${persisted.error?.stack || persisted.error?.message || String(persisted.error)}\n`,
+          );
+        } catch {
+          // The inherited diagnostic handle may already be closed.
+        }
+      }
       server.close(() => finishResolve({ status: "closed" }));
-    });
+    })();
     return true;
   };
 
@@ -413,26 +606,19 @@ export async function runBackgroundAgentKeeper(jobFile, options = {}) {
     socket.once("error", disconnected);
   });
 
-  const heartbeat = setInterval(() => {
-    if (
-      workerSocket &&
-      authenticatedHello &&
-      armedTurn &&
-      !keeperWorkerIdentityAlive(
-        authenticatedHello.workerPid,
+  const heartbeat = setInterval(
+    () =>
+      runBackgroundAgentKeeperHeartbeat({
+        finishing,
+        workerSocket,
+        authenticatedHello,
         authenticatedWorkerStartedAt,
-      )
-    ) {
-      // A Windows named-pipe handle can remain open after its worker dies if a
-      // platform helper retained a duplicate. Socket EOF alone is therefore
-      // not a sufficient lifetime signal. The generation-bound worker PID and
-      // its durable launch anchor provide an independent identity fence.
-      finishForWorkerDisconnect();
-      workerSocket.destroy();
-      return;
-    }
-    persistKeeper({ keeperHeartbeatAt: Date.now() });
-  }, HEARTBEAT_INTERVAL_MS);
+        armedTurn,
+        persistKeeper,
+        finishForWorkerDisconnect,
+      }),
+    HEARTBEAT_INTERVAL_MS,
+  );
   heartbeat.unref?.();
   const startupTimer = setTimeout(
     () => {
@@ -463,6 +649,11 @@ export async function runBackgroundAgentKeeper(jobFile, options = {}) {
       unlinkSync(job.pipePath);
     } catch {
       // Already removed or never materialized.
+    }
+    try {
+      cleanupBackgroundAgentKeeperPipeDirectory(job.pipePath);
+    } catch {
+      // Another keeper can still own a sibling socket in the shared namespace.
     }
   }
   return {

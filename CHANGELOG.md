@@ -7,11 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — post-0.164.0 source increments
+
+> Source-only changes after immutable tag `v-npm-0-164-0` at exact commit
+> `313dec85cffa09dbb183be17d2b6597e303bed5f`. They are present at repository
+> HEAD `99f5bf8214824f21fa7462072f4177e81e80166b` but are not retroactively part
+> of the published `chainlesschain@0.164.0` tarball.
+
+- **Remote approval and membership reconciliation**: Android, iOS, Web Panel,
+  and the CLI relay now bind approval responses to durable membership epochs,
+  reconcile joins lost across reconnects, and commit relay membership changes
+  before acknowledging them. Stale, revoked, mismatched, or unavailable
+  authority continues to fail closed; this does not claim distributed
+  consensus or complete cross-host revocation closure.
+- **Dynamic workflow run admission**: Cowork workflow execution revalidates the
+  immutable definition digest, execution-authority session, permissions,
+  sandbox, scale, and cost gates at run admission instead of treating an older
+  preflight result as continuing authority.
+- **Workspace authority canonicalization**: `run_shell` background/sandbox and
+  plugin-bin paths compare canonical workspace authority before execution so a
+  lexical alias cannot silently widen the approved root.
+- **Release-gate isolation and canonical fixtures**: permission rulesets now
+  normalize omitted lists without weakening invalid-type rejection, isolated
+  E2E servers use private runtime homes, and Windows temporary-path fixtures
+  resolve their canonical filesystem identity before authority comparisons.
+  These changes stabilize source release gates; they do not alter the published
+  `0.164.0` artifact.
+- **Delivery repository authority**: GitHub delivery verifies that the
+  configured push remote resolves to the authoritative `github.repo` before
+  creating or updating a pull-request branch; it no longer assumes `origin`.
+- **Zombie-safe supervisor locks**: background-agent state mutation uses the
+  supervisor execution-state probe so a stopped POSIX zombie cannot retain a
+  critical-section lock, while unknown process states still fail closed.
+- **IDE release evidence hardening**: the VS Code release path adds a trusted
+  Remote-SSH/container journey, retains trace and remote-host diagnostics when
+  that journey fails, accepts only a canonical extension cwd inside the remote
+  home, canonicalizes top-level and nested evidence roots before containment
+  checks, and tightens marketplace evidence verification. These are
+  release-gate improvements, not new npm CLI tarball contents.
+
 ### Added — cc CLI 0.164.0: governed marketplace, execution authority, and native isolation hardening
 
-> `chainlesschain` **0.163.8 → 0.164.0** (candidate; not yet published,
-> 2026-08-15).
-> CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.57**
+> `chainlesschain` **0.163.8 → 0.164.0** (published from exact SHA
+> `313dec85cffa09dbb183be17d2b6597e303bed5f`, 2026-08-16).
+> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.57**
 > and `@chainlesschain/agent-sdk` remains **0.1.7**.
 
 - **Native clipboard images**: `/paste-image` can attach bounded PNG, JPEG,
@@ -68,18 +107,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   event. Operator-controlled version text is no longer interpolated into shell
   scripts, release Actions are commit-pinned, and independent readback validates
   a canonical numeric SemVer before resolving the tag and attested artifact.
-- **Release status**: final tag, source SHA, workflow run IDs, package digests,
-  provenance, and registry readback are intentionally omitted until the exact
-  `0.164.0` release merge commit passes complete `CLI CI` and
-  `CLI Strict Sandbox` matrices on Linux, Windows, and macOS, followed by the
-  dedicated npm release and independent public readback workflows.
+- **Published release evidence**: immutable tag `v-npm-0-164-0` resolves to
+  exact source commit `313dec85cffa09dbb183be17d2b6597e303bed5f`. Its
+  Linux, Windows, and macOS `CLI CI` (`31912844177`) and
+  `CLI Strict Sandbox` (`31912844034`) matrices passed; the dedicated npm
+  release (`31912844032`) and independent public readback (`31913903124`)
+  succeeded. npm reports `latest=0.164.0`; the public tarball SHA-1 is
+  `2d13836305c6841b7fe5bcd059bc8ef25127fc3d` and SHA-256 is
+  `4d7f36f11bd2bfc1b85eee87392b74bd948e7cc33698cd35c87bff72fb3b4c16`.
 
-### Added — native clipboard image paste (source-only)
+### Added — native clipboard image paste release lineage
 
-> Source-only increment at exact mainline commit
-> `affafa7f0f6fede3274e503d2387ce493e74bfd0` (2026-08-14). This change is
-> newer than the immutable `chainlesschain@0.163.8` tarball and is not part of
-> the current npm installation contract.
+> Originally landed as a source-only increment at exact mainline commit
+> `affafa7f0f6fede3274e503d2387ce493e74bfd0` (2026-08-14). It was newer than
+> `chainlesschain@0.163.8` and is now included in the immutable
+> `chainlesschain@0.164.0` release.
 
 - **Native terminal clipboard image attachment**: interactive Agent REPL users
   can copy an image, run `/paste-image`, and attach the bounded data-image block
@@ -92,12 +134,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   read timeout. Private temporary-file handling, literal argv, `shell:false`,
   and the Process Broker boundary prevent clipboard metadata from becoming a
   command or remote URL.
-- **Validation boundary**: final merge SHA
+- **Validation and release boundary**: final merge SHA
   `affafa7f0f6fede3274e503d2387ce493e74bfd0` passed the dedicated native
   Linux/Windows/macOS host workflow (`31813967006`), `CLI CI` (`31810849262`),
-  and `CLI Strict Sandbox` (`31810848956`). A later npm release must still
-  repeat its own exact-SHA publication and public-readback gates before this
-  source increment becomes a stable installation promise.
+  and `CLI Strict Sandbox` (`31810848956`). Stable installation authority now
+  comes from the later `0.164.0` exact-SHA publication and public-readback
+  chain documented above.
 
 ### Added — cc CLI 0.163.8: governed recovery, merge review, and MCP resource templates
 

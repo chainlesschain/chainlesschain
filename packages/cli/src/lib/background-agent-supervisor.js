@@ -55,6 +55,8 @@ import {
   BACKGROUND_AGENT_KEEPER_TASKKILL_TIMEOUT_MS,
   BACKGROUND_AGENT_KEEPER_WMIC_TIMEOUT_MS,
   backgroundAgentKeeperPipePath,
+  cleanupBackgroundAgentKeeperPipeDirectory,
+  prepareBackgroundAgentKeeperPipePath,
 } from "./background-agent-keeper-protocol.js";
 
 export const DEFAULT_HEARTBEAT_INTERVAL_MS = 5000;
@@ -74,8 +76,88 @@ export const DEFAULT_HEARTBEAT_STALE_MS = 120000;
  */
 export const PID_IDENTITY_TOLERANCE_MS = 60000;
 
-const START_TIME_CACHE_TTL_MS = 10000;
-const _startTimeCache = new Map();
+export const PROCESS_START_TIME_CACHE_TTL_MS = 10_000;
+export const PROCESS_START_TIME_CACHE_MAX_ENTRIES = 4_096;
+
+/**
+ * A bounded FIFO/TTL cache for process creation-time probes.
+ *
+ * Probe timestamps use a monotonic clock. Deleting and re-inserting an
+ * existing pid refreshes its FIFO position without increasing the number of
+ * retained keys. Expired entries are removed from the oldest edge, making
+ * cleanup amortized O(1) because insertion timestamps are monotonic.
+ */
+export class ProcessStartTimeCache {
+  constructor({
+    ttlMs = PROCESS_START_TIME_CACHE_TTL_MS,
+    maxEntries = PROCESS_START_TIME_CACHE_MAX_ENTRIES,
+    now = () => performance.now(),
+  } = {}) {
+    if (!Number.isFinite(Number(ttlMs)) || Number(ttlMs) <= 0) {
+      throw new TypeError("process start-time cache ttlMs must be positive");
+    }
+    if (!Number.isSafeInteger(Number(maxEntries)) || Number(maxEntries) <= 0) {
+      throw new TypeError(
+        "process start-time cache maxEntries must be a positive integer",
+      );
+    }
+    if (typeof now !== "function") {
+      throw new TypeError("process start-time cache now must be a function");
+    }
+    this.ttlMs = Number(ttlMs);
+    this.maxEntries = Number(maxEntries);
+    this._now = now;
+    this._entries = new Map();
+  }
+
+  _at(value) {
+    const at = value === undefined ? Number(this._now()) : Number(value);
+    if (!Number.isFinite(at)) {
+      throw new TypeError("process start-time cache time must be finite");
+    }
+    return at;
+  }
+
+  _evictExpired(at) {
+    for (const [key, entry] of this._entries) {
+      if (at - entry.at < this.ttlMs) break;
+      this._entries.delete(key);
+    }
+  }
+
+  read(key, atValue) {
+    const at = this._at(atValue);
+    this._evictExpired(at);
+    const entry = this._entries.get(key);
+    return entry ? { hit: true, value: entry.value } : { hit: false };
+  }
+
+  set(key, value, atValue) {
+    const at = this._at(atValue);
+    this._evictExpired(at);
+    // Map preserves insertion order. Refresh the same pid at the newest edge
+    // so capacity eviction cannot discard a just-probed identity.
+    this._entries.delete(key);
+    while (this._entries.size >= this.maxEntries) {
+      const oldest = this._entries.keys().next().value;
+      this._entries.delete(oldest);
+    }
+    this._entries.set(key, { at, value });
+    return value;
+  }
+
+  get size() {
+    return this._entries.size;
+  }
+
+  clear() {
+    this._entries.clear();
+  }
+}
+
+const _startTimeCache = new ProcessStartTimeCache();
+const PROCESS_START_TIME_ABSENT = Symbol("process-start-time-absent");
+const WINDOWS_PROCESS_ABSENT_MARKER = "__CC_PROCESS_ABSENT__";
 
 function runSupervisorCommand(file, args, options, origin) {
   return _deps.spawnSync(file, args, {
@@ -108,7 +190,8 @@ export function parseCimDateToMs(raw) {
 }
 
 /**
- * Read a process's creation time (epoch ms) with ONE synchronous probe, or
+ * Read a process's creation time (epoch ms) with ONE synchronous probe,
+ * `{status:"absent"}` when the OS authoritatively reports no such process, or
  * null when it cannot be determined (missing tools, permissions, platform
  * quirks). Callers must treat null as "unknown" and FAIL OPEN to the legacy
  * kill(pid, 0) answer — a broken probe must never declare a live worker dead
@@ -140,9 +223,13 @@ function defaultReadProcessStartTimeMs(pid) {
         "background-agent:process-start-time",
       );
       if (!r.error && r.status === 0) {
-        const m = /CreationDate=([^\r\n]+)/.exec(r.stdout || "");
+        const stdout = String(r.stdout || "");
+        const m = /CreationDate=([^\r\n]+)/.exec(stdout);
         const ms = m ? parseCimDateToMs(m[1]) : null;
         if (ms !== null) return ms;
+        if (/No Instance\(s\) Available/u.test(stdout)) {
+          return { status: "absent" };
+        }
       }
     } catch {
       /* fall through to PowerShell */
@@ -150,7 +237,9 @@ function defaultReadProcessStartTimeMs(pid) {
     try {
       const script =
         `$p = Get-CimInstance Win32_Process -Filter 'ProcessId=${target}' -ErrorAction SilentlyContinue; ` +
-        "if ($p -and $p.CreationDate) { [DateTimeOffset]::new($p.CreationDate).ToUnixTimeMilliseconds() }";
+        `if (-not $p) { '${WINDOWS_PROCESS_ABSENT_MARKER}' } ` +
+        "elseif ($p.CreationDate) { [DateTimeOffset]::new($p.CreationDate).ToUnixTimeMilliseconds() } " +
+        "else { exit 2 }";
       const r = runSupervisorCommand(
         "powershell",
         ["-NoProfile", "-NonInteractive", "-Command", script],
@@ -162,7 +251,11 @@ function defaultReadProcessStartTimeMs(pid) {
         "background-agent:process-start-time",
       );
       if (!r.error && r.status === 0) {
-        const n = Number(String(r.stdout || "").trim());
+        const output = String(r.stdout || "").trim();
+        if (output === WINDOWS_PROCESS_ABSENT_MARKER) {
+          return { status: "absent" };
+        }
+        const n = Number(output);
         if (Number.isFinite(n) && n > 0) return n;
       }
     } catch {
@@ -322,6 +415,8 @@ export const _deps = {
   readProcessState: defaultReadProcessState,
   readProcessGroupStates: defaultReadProcessGroupStates,
   processExitWaitDeadlineMs: 2_000,
+  posixPermissionRetryNowMs: () => performance.now(),
+  posixPermissionRetrySleep: sleepSyncMs,
   killProcessTree: defaultKillProcessTree,
   terminateOwnedProcessTree,
   withSessionHostRecoveryLease,
@@ -334,13 +429,29 @@ export const _deps = {
  */
 export function stopBackgroundAgentChildTree(
   pid,
-  { platform = process.platform, signal = "SIGTERM" } = {},
+  {
+    platform = process.platform,
+    signal = "SIGTERM",
+    expectedStartedAt,
+    processGroup = true,
+    strictIdentity = false,
+    allowDirectFallback = true,
+  } = {},
 ) {
   const target = Number(pid);
   if (!Number.isInteger(target) || target <= 0 || target === process.pid) {
     const error = new Error("background_agent_child_pid_invalid");
     error.code = "ERR_BACKGROUND_AGENT_CHILD_PID_INVALID";
     throw error;
+  }
+  if (strictIdentity === true) {
+    signalExactBackgroundProcessTree(target, signal, {
+      platform,
+      expectedStartedAt,
+      processGroup,
+      allowDirectFallback,
+    });
+    return true;
   }
   if (platform === "win32") {
     const result = runSupervisorCommand(
@@ -366,32 +477,38 @@ export function stopBackgroundAgentChildTree(
     }
     return true;
   }
-  try {
-    _deps.kill(-target, signal);
-  } catch {
-    _deps.kill(target, signal);
-  }
+  // Preserve the legacy caller contract while sharing the safe POSIX tree
+  // primitive: permission/invalid-signal failures remain fatal, and only a
+  // genuinely absent process group may use the historical direct fallback.
+  signalBackgroundProcessTree(target, signal, {
+    platform,
+    processGroup,
+    allowDirectFallback,
+  });
   return true;
 }
 
 /** Cached probe (default impl only — injected probes run uncached for tests). */
 function processStartTimeMs(pid, options = {}) {
+  const normalize = (raw) => {
+    if (raw?.status === "absent") return PROCESS_START_TIME_ABSENT;
+    const value = Number(raw);
+    return Number.isFinite(value) && value > 0 ? value : null;
+  };
   if (_deps.readProcessStartTimeMs !== defaultReadProcessStartTimeMs) {
-    const raw = _deps.readProcessStartTimeMs(pid);
-    const n = Number(raw);
-    return Number.isFinite(n) && n > 0 ? n : null;
+    return normalize(_deps.readProcessStartTimeMs(pid));
   }
   const key = Number(pid);
-  const at = Date.now();
+  const at = performance.now();
   if (options.fresh === true) {
-    const value = defaultReadProcessStartTimeMs(key);
-    _startTimeCache.set(key, { at, value });
+    const value = normalize(defaultReadProcessStartTimeMs(key));
+    _startTimeCache.set(key, value, at);
     return value;
   }
-  const hit = _startTimeCache.get(key);
-  if (hit && at - hit.at < START_TIME_CACHE_TTL_MS) return hit.value;
-  const value = defaultReadProcessStartTimeMs(key);
-  _startTimeCache.set(key, { at, value });
+  const hit = _startTimeCache.read(key, at);
+  if (hit.hit) return hit.value;
+  const value = normalize(defaultReadProcessStartTimeMs(key));
+  _startTimeCache.set(key, value, at);
   return value;
 }
 
@@ -441,10 +558,69 @@ const TERMINAL_STATUSES = new Set(["completed", "failed", "stopped", "lost"]);
 const KEEPER_TERMINAL_STATUSES = new Set([
   "closed",
   "worker-disconnected",
+  "cleanup-unconfirmed",
   "startup-timeout",
   "spawn-error",
   "exited",
 ]);
+
+export function hasValidBackgroundAgentStopCleanupProof(state) {
+  const requestedAt = Number(state?.stopRequestedAt);
+  const confirmedAt = Number(state?.stopCleanupConfirmedAt);
+  return Boolean(
+    Number.isFinite(requestedAt) &&
+    requestedAt > 0 &&
+    Number.isFinite(confirmedAt) &&
+    confirmedAt >= requestedAt,
+  );
+}
+
+function hasBackgroundAgentStopFenceWithoutCleanupProof(state) {
+  return Boolean(
+    Number.isFinite(Number(state?.stopRequestedAt)) &&
+    Number(state.stopRequestedAt) > 0 &&
+    !hasValidBackgroundAgentStopCleanupProof(state),
+  );
+}
+
+function isBackgroundAgentStopCleanupUnconfirmed(state) {
+  return Boolean(
+    state?.status === "stopped" &&
+    hasBackgroundAgentStopFenceWithoutCleanupProof(state),
+  );
+}
+
+function selectBackgroundAgentStopCleanupProof(current, requested) {
+  if (hasValidBackgroundAgentStopCleanupProof(current)) {
+    return current.stopCleanupConfirmedAt;
+  }
+  const requestedAt = Number(
+    Number.isFinite(Number(current?.stopRequestedAt)) &&
+      Number(current.stopRequestedAt) > 0
+      ? current.stopRequestedAt
+      : requested?.stopRequestedAt,
+  );
+  const requestedProof = Number(requested?.stopCleanupConfirmedAt);
+  if (
+    Number.isFinite(requestedAt) &&
+    requestedAt > 0 &&
+    Number.isFinite(requestedProof) &&
+    requestedProof >= requestedAt
+  ) {
+    return requestedProof;
+  }
+  return current?.stopCleanupConfirmedAt;
+}
+
+function backgroundAgentStopCleanupConfirmationTimestamp(
+  state,
+  now = Date.now(),
+) {
+  const requestedAt = Number(state?.stopRequestedAt);
+  return Number.isFinite(requestedAt) && requestedAt > 0
+    ? Math.max(now, requestedAt)
+    : now;
+}
 
 const TURN_PROCESS_PROJECTION_FIELDS = [
   "agentPid",
@@ -606,10 +782,17 @@ function mergeBackgroundAgentState(current, requested) {
       current.stopRequestedAt &&
       requested.stopRequestedAt === current.stopRequestedAt;
     if (TERMINAL_STATUSES.has(current.status) && !explicitHeartbeatStop) {
+      const stopCleanupConfirmedAt = selectBackgroundAgentStopCleanupProof(
+        current,
+        requested,
+      );
       next = {
         ...next,
         status: current.status,
         endedAt: current.endedAt ?? next.endedAt ?? null,
+        ...(stopCleanupConfirmedAt !== undefined
+          ? { stopCleanupConfirmedAt }
+          : {}),
         exitCode: current.exitCode ?? next.exitCode ?? null,
         ...(current.signal !== undefined ? { signal: current.signal } : {}),
         ...(current.error !== undefined ? { error: current.error } : {}),
@@ -920,6 +1103,26 @@ function mergeBackgroundAgentState(current, requested) {
           transport: null,
         };
       }
+      if (
+        current.status === "running" &&
+        next.status === "stopped" &&
+        !hasValidBackgroundAgentStopCleanupProof(next)
+      ) {
+        // A worker or read-side reconciliation can publish a terminal outcome
+        // after an explicit stop fence wins but before the stopper has observed
+        // every exact-owned process retire. Keep that record durably fenced
+        // and retryable; only stopBackgroundAgent may publish `stopped`
+        // together with cleanup proof.
+        next = {
+          ...next,
+          status: "running",
+          stoppedByUser: false,
+          phase: "stop_waiting_for_exit",
+          transport: null,
+          stopPending: true,
+          stopPendingReason: "process-exit",
+        };
+      }
     }
   }
   return next;
@@ -952,6 +1155,20 @@ function persistBackgroundAgentState(target, next) {
   return next;
 }
 
+function isBackgroundAgentStateLockOwnerAlive(owner) {
+  const target = Number(owner?.pid);
+  if (!isProcessExecutionAlive(target)) return false;
+  const acquiredAt = Number(owner?.startedAt);
+  if (!Number.isFinite(acquiredAt) || acquiredAt <= 0) return true;
+  const actualStartedAt = processStartTimeMs(target, { fresh: true });
+  if (actualStartedAt === PROCESS_START_TIME_ABSENT) return false;
+  if (!Number.isFinite(actualStartedAt)) return true;
+  // owner.startedAt is written only after this process acquired the lock. A
+  // live process created later therefore proves PID reuse; retaining that
+  // stale lock would permanently fence the state after high-churn workers.
+  return actualStartedAt <= acquiredAt;
+}
+
 /**
  * Strict cross-process read/mutate/write transaction for one supervisor state.
  * Returning null from `updater` leaves the record untouched. Missing and
@@ -981,7 +1198,25 @@ export function mutateBackgroundAgentState(id, updater, options = {}) {
     },
     {
       failIfUnavailable: true,
-      timeoutMs: options.timeoutMs ?? 5_000,
+      // Startup has three independent writers (launcher, worker and keeper),
+      // while stop/turn settlement adds another contender. Hosted Windows can
+      // otherwise starve a first heartbeat for the old five-second budget when
+      // the full strict matrix is saturating the runner. Keep the lock strict
+      // and bounded, but give default callers one full ten-second contention
+      // window; keeper cleanup keeps its explicit protocol-bound five seconds.
+      timeoutMs: options.timeoutMs ?? 10_000,
+      // Release before yielding so an already-waiting process gets a scheduling
+      // opportunity instead of letting a heartbeat loop immediately reacquire.
+      yieldAfterReleaseMs: 2,
+      // A stopped POSIX worker can remain as a zombie long enough for
+      // kill(pid, 0) to report it as alive.  Such a process cannot still own
+      // the critical section, so use the supervisor's execution-state probe
+      // (which treats only Z/X as dead and keeps unknown states fail-closed).
+      _isProcessAlive: isProcessExecutionAlive,
+      // A live numeric pid can belong to a later process after the lock owner
+      // was killed. Use the lock acquisition timestamp as a one-sided identity
+      // fence so only an owner which existed before acquisition still blocks.
+      _isOwnerAlive: isBackgroundAgentStateLockOwnerAlive,
     },
   );
 }
@@ -1208,6 +1443,7 @@ export function isSameProcess(pid, expectedStartedAtMs, options = {}) {
   const expected = Number(expectedStartedAtMs);
   if (!Number.isFinite(expected) || expected <= 0) return true;
   const actual = processStartTimeMs(pid);
+  if (actual === PROCESS_START_TIME_ABSENT) return false;
   if (actual === null) return true;
   const tolerance = Number.isFinite(Number(options.toleranceMs))
     ? Number(options.toleranceMs)
@@ -1242,7 +1478,7 @@ function inspectDestructiveProcessIdentity(
   const leaderCanExecute =
     leaderAlive && leaderState !== "Z" && leaderState !== "X";
   if (!leaderCanExecute) {
-    if (process.platform === "win32") {
+    if (process.platform === "win32" || options.processGroup === false) {
       return { status: "dead", reason: "not-executing", pid: target };
     }
     const group = inspectProcessGroupExecution(target);
@@ -1280,6 +1516,13 @@ function inspectDestructiveProcessIdentity(
     };
   }
   const actual = processStartTimeMs(target, { fresh: true });
+  if (actual === PROCESS_START_TIME_ABSENT) {
+    return {
+      status: "dead",
+      reason: "process-not-observed",
+      pid: target,
+    };
+  }
   if (actual === null) {
     return {
       status: "unverifiable",
@@ -1292,7 +1535,7 @@ function inspectDestructiveProcessIdentity(
     ? Number(options.toleranceMs)
     : PID_IDENTITY_TOLERANCE_MS;
   if (Math.abs(actual - expected) > tolerance) {
-    if (process.platform !== "win32") {
+    if (process.platform !== "win32" && options.processGroup !== false) {
       const group = inspectProcessGroupExecution(target);
       // The leader PID can be reused while descendants from its detached
       // process group still execute under the old PGID. We can prove the new
@@ -1576,6 +1819,16 @@ export function effectiveBackgroundAgentState(state, options = {}) {
     ) {
       return recoverTerminalBackgroundInteractions(state, options);
     }
+    return state;
+  }
+  if (
+    Number.isFinite(Number(state.stopRequestedAt)) &&
+    Number(state.stopRequestedAt) > 0 &&
+    !hasValidBackgroundAgentStopCleanupProof(state)
+  ) {
+    // A durable stop fence transfers terminal reconciliation to the explicit
+    // stopper. A concurrent list/view must not persist `lost` before that path
+    // has verified every exact-owned process and published cleanup proof.
     return state;
   }
   // OS identity probes can take seconds on Windows. Perform them outside the
@@ -1952,6 +2205,13 @@ export function resumeBackgroundAgent(id, prompt, options = {}) {
     heartbeatStaleMs: options.heartbeatStaleMs,
   });
   if (!state) throw new Error(`Background agent not found: ${id}`);
+  if (hasBackgroundAgentStopFenceWithoutCleanupProof(state)) {
+    const error = new Error(
+      `Background agent ${id} stop cleanup is still pending; retry stop and wait for durable cleanup confirmation before resuming`,
+    );
+    error.code = "BACKGROUND_AGENT_STOP_CLEANUP_PENDING";
+    throw error;
+  }
   if (state.status === "running") {
     throw new Error(
       `Background agent ${id} is still running — use cc attach ${id} to send follow-up prompts instead`,
@@ -2270,6 +2530,12 @@ export function launchBackgroundAgent({
       omitted: [...launchProfileState.omitted, "apiKey"],
     });
   }
+  const launchCwd = launchProfileState.workspace.cwd;
+  if (canonicalPath(cwd) !== canonicalPath(launchCwd)) {
+    throw new Error(
+      "Cannot launch background agent: launch profile cwd does not match the requested cwd",
+    );
+  }
   const configFingerprint =
     fingerprintBackgroundLaunchProfile(launchProfileState);
   const dir = backgroundAgentsDir();
@@ -2277,6 +2543,7 @@ export function launchBackgroundAgent({
   const keeperGeneration = randomBytes(16).toString("hex");
   const keeperToken = randomBytes(32).toString("hex");
   const keeperPipePath = backgroundAgentKeeperPipePath(id, dir);
+  prepareBackgroundAgentKeeperPipePath(keeperPipePath);
   const jobFile = join(dir, `${id}.job.${process.pid}.json`);
   const keeperJobFile = join(dir, `${id}.keeper.${process.pid}.json`);
   const worker = fileURLToPath(
@@ -2289,7 +2556,7 @@ export function launchBackgroundAgent({
     id,
     workerGeneration,
     argv: initialSecrets.argv,
-    cwd,
+    cwd: launchCwd,
     sessionId,
     sessionBootstrapExpected,
     title: title || "Background agent",
@@ -2324,6 +2591,7 @@ export function launchBackgroundAgent({
   } catch (error) {
     rmSync(jobFile, { force: true });
     rmSync(keeperJobFile, { force: true });
+    cleanupBackgroundAgentKeeperPipeDirectory(keeperPipePath);
     throw error;
   }
   // Write the initial state BEFORE spawning so the worker's own merges (the
@@ -2335,7 +2603,7 @@ export function launchBackgroundAgent({
     sessionId,
     sessionBootstrapExpected,
     title: job.title,
-    cwd,
+    cwd: launchCwd,
     pid: null,
     workerPid: null,
     workerClaimedPid: null,
@@ -2372,6 +2640,7 @@ export function launchBackgroundAgent({
     rmSync(jobFile, { force: true });
     rmSync(keeperJobFile, { force: true });
     rmSync(statePath(id), { force: true });
+    cleanupBackgroundAgentKeeperPipeDirectory(keeperPipePath);
     throw error;
   }
   let child;
@@ -2386,7 +2655,7 @@ export function launchBackgroundAgent({
     // hosted process' possibly absent standard handles.
     workerLogFd = openSync(job.logFile, "a");
     child = _deps.spawn(process.execPath, [worker, jobFile], {
-      cwd,
+      cwd: launchCwd,
       detached: true,
       stdio: ["ignore", workerLogFd, workerLogFd],
       windowsHide: true,
@@ -2400,7 +2669,7 @@ export function launchBackgroundAgent({
     });
     keeperStartedAt = Date.now();
     keeperChild = _deps.spawn(process.execPath, [keeper, keeperJobFile], {
-      cwd,
+      cwd: launchCwd,
       detached: true,
       stdio: ["ignore", workerLogFd, workerLogFd],
       windowsHide: true,
@@ -2451,6 +2720,7 @@ export function launchBackgroundAgent({
     rmSync(jobFile, { force: true });
     rmSync(keeperJobFile, { force: true });
     rmSync(statePath(id), { force: true });
+    cleanupBackgroundAgentKeeperPipeDirectory(keeperPipePath);
     throw error;
   } finally {
     if (Number.isInteger(workerLogFd)) {
@@ -2635,33 +2905,50 @@ export function readBackgroundAgentLog(id, options = {}) {
 }
 
 function recordedBackgroundProcessIdentities(state) {
+  const hasRecordedAgentTree =
+    Number(state?.agentPid) > 0 || Number(state?.agentRuntimePid) > 0;
   const records = [
+    {
+      role: "agent",
+      pid: state?.agentPid,
+      startedAt: state?.agentStartedAt,
+      signalAsGroup: true,
+    },
     {
       role: "agent-runtime",
       pid: state?.agentRuntimePid,
       startedAt: state?.agentRuntimeStartedAt,
+      signalAsGroup: false,
     },
-    { role: "agent", pid: state?.agentPid, startedAt: state?.agentStartedAt },
-    { role: "worker", pid: state?.pid, startedAt: state?.startedAt },
+    {
+      role: "worker",
+      pid: state?.pid,
+      startedAt: state?.startedAt,
+      signalAsGroup: !hasRecordedAgentTree,
+    },
     {
       role: "worker-published",
       pid: state?.workerPid,
       startedAt: state?.startedAt,
+      signalAsGroup: !hasRecordedAgentTree,
     },
     {
       role: "worker-wrapper",
       pid: state?.workerWrapperPid,
       startedAt: state?.startedAt,
+      signalAsGroup: true,
     },
     {
       role: "keeper",
       pid: state?.keeperPid,
       startedAt: state?.keeperStartedAt,
+      signalAsGroup: false,
     },
     {
       role: "keeper-wrapper",
       pid: state?.keeperWrapperPid,
       startedAt: state?.keeperStartedAt,
+      signalAsGroup: true,
     },
   ];
   const seen = new Set();
@@ -2677,7 +2964,9 @@ function recordedBackgroundProcessIdentities(state) {
 function inspectRecordedBackgroundProcesses(state) {
   return recordedBackgroundProcessIdentities(state).map((record) => ({
     ...record,
-    identity: inspectDestructiveProcessIdentity(record.pid, record.startedAt),
+    identity: inspectDestructiveProcessIdentity(record.pid, record.startedAt, {
+      processGroup: record.signalAsGroup,
+    }),
   }));
 }
 
@@ -2698,7 +2987,11 @@ export function isBackgroundProcessTreeExecutionAlive(pid, startedAt) {
 export function signalBackgroundProcessTree(
   pid,
   signal = "SIGTERM",
-  { platform = process.platform } = {},
+  {
+    platform = process.platform,
+    processGroup = true,
+    allowDirectFallback = true,
+  } = {},
 ) {
   const target = Number(pid);
   if (platform === "win32") {
@@ -2721,6 +3014,15 @@ export function signalBackgroundProcessTree(
     }
     return "process-tree";
   }
+  if (processGroup !== true) {
+    try {
+      _deps.kill(target, signal);
+      return "process";
+    } catch (error) {
+      if (error?.code === "ESRCH") return "already-exited";
+      throw error;
+    }
+  }
   try {
     _deps.kill(-target, signal);
     return "process-group";
@@ -2728,7 +3030,9 @@ export function signalBackgroundProcessTree(
     // A denied/invalid group signal can leave descendants executing even if a
     // direct leader signal would succeed. Only ESRCH proves that there is no
     // process group to terminate and permits the single-process fallback.
-    if (groupError?.code !== "ESRCH") throw groupError;
+    if (groupError?.code !== "ESRCH" || allowDirectFallback !== true) {
+      throw groupError;
+    }
     try {
       _deps.kill(target, signal);
       return "process";
@@ -2740,6 +3044,357 @@ export function signalBackgroundProcessTree(
       if (error?.code === "ESRCH") return "already-exited";
       throw error;
     }
+  }
+}
+
+function isDestructiveIdentityRetired(identity) {
+  return ["dead", "reused"].includes(identity?.status);
+}
+
+function isRecoverableCreationTimeIdentityProbe(identity) {
+  // A one-shot `ps -o lstart=` failure is observational: it says nothing about
+  // whether the exact target is still present. Other unverifiable outcomes can
+  // mean a missing durable anchor, a vanished group owner, PID reuse with a
+  // surviving group, or an untrusted group snapshot; those remain immediately
+  // fail-closed rather than being promoted into the resend path.
+  return (
+    identity?.status === "unverifiable" &&
+    identity?.reason === "creation-time-probe-failed"
+  );
+}
+
+function isRecoverableInitialDestructiveIdentityProbe(identity) {
+  // These outcomes come only from read-only OS observations. Retrying them
+  // cannot address a process, and the caller still requires two consecutive
+  // fresh exact matches before it may issue the first signal.
+  return (
+    identity?.status === "unverifiable" &&
+    ["creation-time-probe-failed", "process-group-state-probe-failed"].includes(
+      identity?.reason,
+    )
+  );
+}
+
+function createPosixProbeRetryBudget(deadline) {
+  const configuredRetryWindow = Math.max(
+    0,
+    Number(_deps.processExitWaitDeadlineMs) || 0,
+  );
+  let remainingSleepBudget = Math.min(
+    configuredRetryWindow,
+    Math.max(0, deadline - _deps.posixPermissionRetryNowMs()),
+  );
+  let retryWaits = 0;
+
+  return {
+    wait() {
+      const remaining = Math.min(
+        remainingSleepBudget,
+        deadline - _deps.posixPermissionRetryNowMs(),
+      );
+      if (!(remaining > 0)) return false;
+      const retryDelayMs = Math.min(
+        remaining,
+        10 * 2 ** Math.min(retryWaits, 4),
+      );
+      _deps.posixPermissionRetrySleep(retryDelayMs);
+      remainingSleepBudget -= retryDelayMs;
+      retryWaits += 1;
+      return true;
+    },
+    hasRemaining() {
+      return (
+        remainingSleepBudget > 0 && _deps.posixPermissionRetryNowMs() < deadline
+      );
+    },
+  };
+}
+
+/**
+ * Retry an observational failure before the first POSIX signal. Unknown
+ * identity never authorizes a signal: only two consecutive delayed fresh
+ * matches do. A dead/reused target converges without signalling, while every
+ * non-observational identity failure remains immediately fail-closed.
+ */
+function retryRecoverableInitialPosixIdentity({
+  inspectIdentity,
+  initialIdentity,
+  deadline,
+}) {
+  let lastIdentity = initialIdentity;
+  let identityProbeRetries = 0;
+  const retryBudget = createPosixProbeRetryBudget(deadline);
+  const outcome = (status, retryStoppedBy) => ({
+    status,
+    lastIdentity,
+    identityProbeRetries,
+    retryStoppedBy,
+  });
+
+  for (;;) {
+    if (isDestructiveIdentityRetired(lastIdentity)) {
+      return outcome("retired", "retired");
+    }
+    if (
+      lastIdentity?.status !== "match" &&
+      !isRecoverableInitialDestructiveIdentityProbe(lastIdentity)
+    ) {
+      return outcome("failed", "preflight-identity");
+    }
+    if (!retryBudget.wait()) {
+      return outcome("failed", "initial-identity-probe-deadline");
+    }
+
+    const identityBeforeDelay = lastIdentity;
+    identityProbeRetries += 1;
+    lastIdentity = inspectIdentity();
+
+    if (isDestructiveIdentityRetired(lastIdentity)) {
+      return outcome("retired", "retired");
+    }
+    if (
+      lastIdentity?.status !== "match" &&
+      !isRecoverableInitialDestructiveIdentityProbe(lastIdentity)
+    ) {
+      return outcome("failed", "preflight-identity");
+    }
+    if (
+      identityBeforeDelay?.status === "match" &&
+      lastIdentity?.status === "match"
+    ) {
+      if (!retryBudget.hasRemaining()) {
+        return outcome("failed", "initial-identity-probe-deadline");
+      }
+      return outcome("matched", "consecutive-match");
+    }
+  }
+}
+
+/**
+ * Recover from a transient POSIX EPERM without ever signalling from unknown
+ * identity evidence. Probe-only waits may bridge a transient creation-time
+ * lookup failure, but a resend requires two consecutive fresh exact matches.
+ */
+function retryExactPosixSignalAfterPermissionError({
+  inspectIdentity,
+  sendSignal,
+  deadline,
+  initialCause,
+}) {
+  let cause = initialCause;
+  let lastIdentity = inspectIdentity();
+  let signalResends = 0;
+  let identityProbeRetries = 0;
+  const retryBudget = createPosixProbeRetryBudget(deadline);
+
+  const outcome = (status, retryStoppedBy, extra = {}) => ({
+    status,
+    cause,
+    lastIdentity,
+    signalResends,
+    identityProbeRetries,
+    retryStoppedBy,
+    ...extra,
+  });
+
+  for (;;) {
+    if (isDestructiveIdentityRetired(lastIdentity)) {
+      return outcome("retired", "retired");
+    }
+    if (
+      lastIdentity?.status !== "match" &&
+      !isRecoverableCreationTimeIdentityProbe(lastIdentity)
+    ) {
+      return outcome("failed", "identity");
+    }
+
+    if (!retryBudget.wait()) {
+      return outcome(
+        "failed",
+        lastIdentity?.status === "match"
+          ? "signal-retry-deadline"
+          : "identity-probe-deadline",
+      );
+    }
+
+    const identityBeforeDelay = lastIdentity;
+    identityProbeRetries += 1;
+    lastIdentity = inspectIdentity();
+
+    if (isDestructiveIdentityRetired(lastIdentity)) {
+      return outcome("retired", "retired");
+    }
+    if (
+      lastIdentity?.status !== "match" &&
+      !isRecoverableCreationTimeIdentityProbe(lastIdentity)
+    ) {
+      return outcome("failed", "identity");
+    }
+
+    // A target that moved from unknown to match gets one more probe-only
+    // interval. Only match -> fresh match authorizes the next signal syscall.
+    if (
+      identityBeforeDelay?.status !== "match" ||
+      lastIdentity?.status !== "match"
+    ) {
+      continue;
+    }
+    if (!retryBudget.hasRemaining()) {
+      return outcome("failed", "signal-retry-deadline");
+    }
+    signalResends += 1;
+    try {
+      const signalResult = sendSignal();
+      return outcome(
+        signalResult === "already-exited" ? "retired" : "signalled",
+        "completed",
+        { signalResult },
+      );
+    } catch (error) {
+      cause = error;
+      if (error?.code !== "EPERM") {
+        return outcome("failed", "signal");
+      }
+      // The failed resend has no authority value. Start the next decision from
+      // a fresh probe, then require another delayed fresh match before signalling.
+      lastIdentity = inspectIdentity();
+    }
+  }
+}
+
+function signalExactBackgroundProcessTree(
+  pid,
+  signal,
+  {
+    platform = process.platform,
+    expectedStartedAt,
+    processGroup = true,
+    allowDirectFallback = false,
+  } = {},
+) {
+  const target = Number(pid);
+  const mode = processGroup === true ? "process-group" : "direct";
+  const posixRetryDeadline =
+    _deps.posixPermissionRetryNowMs() +
+    Math.max(0, Number(_deps.processExitWaitDeadlineMs) || 0);
+  let initialSignalAttempts = 0;
+  let signalResends = 0;
+  let identityProbeRetries = 0;
+  let lastIdentity = null;
+  let retryStoppedBy = "preflight";
+  const inspectIdentity = () =>
+    inspectDestructiveProcessIdentity(target, expectedStartedAt, {
+      processGroup,
+    });
+  const failure = (cause) => {
+    const reason = cause?.message || String(cause);
+    const error = new Error(
+      `background_agent_child_tree_stop_failed: ${reason} (${mode} pid ${target}, initial signal attempts ${initialSignalAttempts}, signal resends ${signalResends}, identity probe retries ${identityProbeRetries}, last identity ${lastIdentity?.status || "not-probed"}/${lastIdentity?.reason || "no-reason"}, retry stopped by ${retryStoppedBy})`,
+      { cause },
+    );
+    error.code = "ERR_BACKGROUND_AGENT_CHILD_TREE_STOP_FAILED";
+    return error;
+  };
+
+  // Unlike the legacy tree helper, the keeper's destructive path owns a
+  // persisted creation-time anchor. Re-authorize the initial signal from a
+  // fresh exact snapshot so a stale/reused PID can never address a stranger.
+  lastIdentity = inspectIdentity();
+  if (isDestructiveIdentityRetired(lastIdentity)) {
+    return { alreadyRetired: true, signalledAsGroup: processGroup === true };
+  }
+  if (lastIdentity.status !== "match") {
+    if (
+      platform === "win32" ||
+      !isRecoverableInitialDestructiveIdentityProbe(lastIdentity)
+    ) {
+      retryStoppedBy = "preflight-identity";
+      throw failure(
+        new Error(
+          `destructive process identity is ${lastIdentity.status}: ${lastIdentity.reason || "unknown"}`,
+        ),
+      );
+    }
+    const retry = retryRecoverableInitialPosixIdentity({
+      inspectIdentity,
+      initialIdentity: lastIdentity,
+      deadline: posixRetryDeadline,
+    });
+    identityProbeRetries += retry.identityProbeRetries;
+    lastIdentity = retry.lastIdentity;
+    retryStoppedBy = retry.retryStoppedBy;
+    if (retry.status === "retired") {
+      return { alreadyRetired: true, signalledAsGroup: processGroup === true };
+    }
+    if (retry.status !== "matched") {
+      throw failure(
+        new Error(
+          `destructive process identity is ${lastIdentity.status}: ${lastIdentity.reason || "unknown"}`,
+        ),
+      );
+    }
+  }
+
+  const sendSignal = () =>
+    signalBackgroundProcessTree(target, signal, {
+      platform,
+      processGroup,
+      allowDirectFallback,
+    });
+
+  retryStoppedBy = "initial-signal";
+  try {
+    initialSignalAttempts += 1;
+    const result = sendSignal();
+    return {
+      alreadyRetired: result === "already-exited",
+      signalledAsGroup: result === "process-group",
+    };
+  } catch (initialCause) {
+    let cause = initialCause;
+    if (platform !== "win32" && cause?.code === "EPERM") {
+      const retry = retryExactPosixSignalAfterPermissionError({
+        inspectIdentity,
+        sendSignal,
+        deadline: posixRetryDeadline,
+        initialCause: cause,
+      });
+      signalResends = retry.signalResends;
+      identityProbeRetries += retry.identityProbeRetries;
+      lastIdentity = retry.lastIdentity;
+      retryStoppedBy = retry.retryStoppedBy;
+      cause = retry.cause;
+      if (retry.status === "retired") {
+        return {
+          alreadyRetired: true,
+          signalledAsGroup: processGroup === true,
+        };
+      }
+      if (retry.status === "signalled") {
+        return {
+          alreadyRetired: retry.signalResult === "already-exited",
+          signalledAsGroup: retry.signalResult === "process-group",
+        };
+      }
+    }
+    if (
+      processGroup === true &&
+      allowDirectFallback !== true &&
+      cause?.code === "ESRCH"
+    ) {
+      // A group may disappear between the exact preflight and signal. It is
+      // safe to accept only a fresh dead/reused result; a still-live leader
+      // is never converted to a direct kill on the keeper path.
+      lastIdentity = inspectIdentity();
+      if (isDestructiveIdentityRetired(lastIdentity)) {
+        return {
+          alreadyRetired: true,
+          signalledAsGroup: true,
+        };
+      }
+      retryStoppedBy = "identity";
+    }
+    throw failure(cause);
   }
 }
 
@@ -2804,6 +3459,7 @@ function waitForSignalledProcessesToExit(
     const identity = inspectDestructiveProcessIdentity(
       target.pid,
       target.startedAt,
+      { processGroup: target.signalledAsGroup },
     );
     return ["match", "unverifiable", "self"].includes(identity.status);
   });
@@ -2839,7 +3495,13 @@ export function stopBackgroundAgent(id) {
   if (!state) throw new Error(`Background agent not found: ${id}`);
   const staleHeartbeatOwner =
     state.status === "lost" && state.lostReason === "heartbeat-stale";
-  if (state.status !== "running" && !staleHeartbeatOwner) {
+  const preexistingStopCleanupRepair =
+    hasBackgroundAgentStopFenceWithoutCleanupProof(state);
+  if (
+    state.status !== "running" &&
+    !staleHeartbeatOwner &&
+    !preexistingStopCleanupRepair
+  ) {
     // Gap 2: stopping an already-lost session still reaps a leaked agent
     // child recorded before the worker died (identity-guarded inside).
     if (state.status === "lost") {
@@ -2864,7 +3526,8 @@ export function stopBackgroundAgent(id) {
       (current.status !== "running" &&
         !(
           current.status === "lost" && current.lostReason === "heartbeat-stale"
-        ))
+        ) &&
+        !hasBackgroundAgentStopFenceWithoutCleanupProof(current))
     ) {
       return null;
     }
@@ -2883,6 +3546,10 @@ export function stopBackgroundAgent(id) {
     return { ...fence.state, stopped: false };
   }
   state = fence.state;
+  const repairingUnconfirmedStop =
+    preexistingStopCleanupRepair ||
+    hasBackgroundAgentStopFenceWithoutCleanupProof(fence.previous) ||
+    isBackgroundAgentStopCleanupUnconfirmed(state);
   if (state.launchFinalizationUncertain === true || state.turnLaunchIntent) {
     // The worker has durably announced that native spawn is prepared or that
     // post-spawn pid persistence is unresolved. Killing the worker from this
@@ -2921,6 +3588,7 @@ export function stopBackgroundAgent(id) {
   let postKill = state;
   let workerPidReused = false;
   const signalledPids = new Set();
+  let activeTerminationContext = null;
   // A worker may publish a just-spawned child identity while the stop fence is
   // being observed. Re-read once after the first termination round so that a
   // newly durable, exact-owned agent tree is also terminated before recovery.
@@ -2944,7 +3612,17 @@ export function stopBackgroundAgent(id) {
       inspected.find(({ role }) => role === "worker") ||
       inspected.find(({ role }) => role === "worker-published") ||
       inspected.find(({ role }) => role === "worker-wrapper");
-    if (primaryWorker?.identity.status === "reused") workerPidReused = true;
+    if (
+      primaryWorker?.identity.status === "reused" &&
+      !signalledPids.has(primaryWorker.pid)
+    ) {
+      // A fresh stop must refuse a worker pid that was already reused at the
+      // first strict probe. If the exact worker matched and was signalled in an
+      // earlier round, however, observing that numeric pid reused afterward is
+      // evidence that the owned process retired, not grounds to discard the
+      // durable cleanup proof.
+      workerPidReused = true;
+    }
     const targets = inspected.filter(
       ({ pid, identity }) =>
         identity.status === "match" && !signalledPids.has(pid),
@@ -2952,14 +3630,122 @@ export function stopBackgroundAgent(id) {
     if (targets.length === 0) break;
     try {
       // The child is detached into its own group and therefore gets its own
-      // exact-identity signal before the worker tree is terminated.
+      // exact-identity signal before the worker tree is terminated. The
+      // turn's detached agent root owns its tool descendants; the worker and
+      // independent keeper do not. Signal those single processes directly so
+      // a rapidly recycled pid cannot address an unrelated POSIX group.
       for (const target of targets) {
-        target.signalledAsGroup =
-          signalBackgroundProcessTree(target.pid, "SIGTERM") ===
-          "process-group";
-        signalledPids.add(target.pid);
+        let permissionRetryDeadline = 0;
+        const inspectIdentity = () =>
+          inspectDestructiveProcessIdentity(target.pid, target.startedAt, {
+            processGroup: target.signalAsGroup,
+          });
+        const sendInitialSignal = () =>
+          signalBackgroundProcessTree(target.pid, "SIGTERM", {
+            processGroup: target.signalAsGroup,
+            // Preserve the pre-existing ESRCH behavior. EPERM itself never
+            // enters this fallback because the tree primitive rethrows it.
+            allowDirectFallback: true,
+          });
+        const resendSignal = () =>
+          signalBackgroundProcessTree(target.pid, "SIGTERM", {
+            processGroup: target.signalAsGroup,
+            // After EPERM, every resend is a newly authorized action. A group
+            // ESRCH must be resolved by fresh identity evidence, never by
+            // changing that action into a direct leader signal.
+            allowDirectFallback: false,
+          });
+        activeTerminationContext = {
+          role: target.role,
+          pid: target.pid,
+          mode: target.signalAsGroup ? "process-group" : "direct",
+          signalResends: 0,
+          identityProbeRetries: 0,
+        };
+        try {
+          const preflightIdentity = inspectIdentity();
+          activeTerminationContext.lastIdentityStatus =
+            preflightIdentity.status;
+          activeTerminationContext.lastIdentityReason =
+            preflightIdentity.reason || null;
+          if (isDestructiveIdentityRetired(preflightIdentity)) {
+            if (
+              preflightIdentity.status === "reused" &&
+              primaryWorker?.pid === target.pid &&
+              !signalledPids.has(target.pid)
+            ) {
+              workerPidReused = true;
+            }
+            target.retiredBeforeWait = true;
+            signalledPids.add(target.pid);
+            continue;
+          }
+          if (preflightIdentity.status !== "match") {
+            activeTerminationContext.retryStoppedBy = "preflight-identity";
+            throw new Error(
+              `destructive process identity is ${preflightIdentity.status}: ${preflightIdentity.reason || "unknown"}`,
+            );
+          }
+          permissionRetryDeadline =
+            _deps.posixPermissionRetryNowMs() +
+            Math.max(0, Number(_deps.processExitWaitDeadlineMs) || 0);
+          target.signalledAsGroup = sendInitialSignal() === "process-group";
+          signalledPids.add(target.pid);
+        } catch (error) {
+          if (process.platform !== "win32" && error?.code === "EPERM") {
+            const retry = retryExactPosixSignalAfterPermissionError({
+              inspectIdentity,
+              sendSignal: resendSignal,
+              deadline: permissionRetryDeadline,
+              initialCause: error,
+            });
+            activeTerminationContext.signalResends = retry.signalResends;
+            activeTerminationContext.identityProbeRetries =
+              retry.identityProbeRetries;
+            activeTerminationContext.lastIdentityStatus =
+              retry.lastIdentity?.status;
+            activeTerminationContext.lastIdentityReason =
+              retry.lastIdentity?.reason || null;
+            activeTerminationContext.retryStoppedBy = retry.retryStoppedBy;
+            if (retry.status === "retired") {
+              target.signalledAsGroup = retry.signalResult
+                ? retry.signalResult === "process-group"
+                : target.signalAsGroup === true;
+              signalledPids.add(target.pid);
+              continue;
+            }
+            if (retry.status === "signalled") {
+              target.signalledAsGroup = retry.signalResult === "process-group";
+              signalledPids.add(target.pid);
+              continue;
+            }
+            if (
+              target.signalAsGroup === true &&
+              retry.cause?.code === "ESRCH"
+            ) {
+              const refreshedIdentity = inspectIdentity();
+              activeTerminationContext.lastIdentityStatus =
+                refreshedIdentity.status;
+              activeTerminationContext.lastIdentityReason =
+                refreshedIdentity.reason || null;
+              activeTerminationContext.retryStoppedBy = "identity";
+              if (isDestructiveIdentityRetired(refreshedIdentity)) {
+                target.signalledAsGroup = true;
+                signalledPids.add(target.pid);
+                continue;
+              }
+            }
+            throw retry.cause;
+          }
+          throw error;
+        }
       }
     } catch (error) {
+      const failureMessage = `Failed to stop background agent ${id}${
+        activeTerminationContext
+          ? ` (${activeTerminationContext.role} pid ${activeTerminationContext.pid}, ${activeTerminationContext.mode}, signal resends ${activeTerminationContext.signalResends}, identity probe retries ${activeTerminationContext.identityProbeRetries}, last identity ${activeTerminationContext.lastIdentityStatus || "not-probed"}/${activeTerminationContext.lastIdentityReason || "no-reason"}, retry stopped by ${activeTerminationContext.retryStoppedBy || "non-permission-error"})`
+          : ""
+      }: ${error.message}`;
       try {
         mutateBackgroundAgentState(id, (current) =>
           current
@@ -2968,18 +3754,18 @@ export function stopBackgroundAgent(id) {
                 phase: "stop_failed",
                 stopPending: true,
                 stopPendingReason: "process-termination",
-                stopError: error?.message || String(error),
+                stopError: failureMessage,
               }
             : null,
         );
       } catch {
         /* the durable stopRequestedAt fence already blocks new turns */
       }
-      throw new Error(
-        `Failed to stop background agent ${id}: ${error.message}`,
-      );
+      throw new Error(failureMessage);
     }
-    const stillAlive = waitForSignalledProcessesToExit(targets);
+    const stillAlive = waitForSignalledProcessesToExit(
+      targets.filter((target) => target.retiredBeforeWait !== true),
+    );
     postKill = readBackgroundAgentState(id) || postKill;
     if (stillAlive.length > 0) {
       return persistStopPending(postKill, "process-exit", {
@@ -2994,7 +3780,7 @@ export function stopBackgroundAgent(id) {
     return persistStopPending(postKill, "process-exit");
   }
 
-  if (workerPidReused) {
+  if (workerPidReused && !repairingUnconfirmedStop) {
     const lostMutation = mutateBackgroundAgentState(id, (current) =>
       current
         ? {
@@ -3052,6 +3838,12 @@ export function stopBackgroundAgent(id) {
           ...current,
           status: "stopped",
           endedAt: current.endedAt || Date.now(),
+          // `endedAt` belongs to the worker/session lifecycle and may predate
+          // retirement of a detached child. Publish a distinct durable proof
+          // only after every exact-owned process identity has been observed
+          // non-executable above.
+          stopCleanupConfirmedAt:
+            backgroundAgentStopCleanupConfirmationTimestamp(current),
           stoppedByUser: true,
           lostReason: null,
           phase: null,

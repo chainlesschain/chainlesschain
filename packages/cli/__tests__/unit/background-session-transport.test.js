@@ -172,4 +172,31 @@ describe("background session transport", () => {
       expect(path).toBe("/tmp/dir/bg-x.sock");
     }
   });
+
+  it("hashes long POSIX attach endpoints before Darwin can truncate them", () => {
+    const directory = `/private/var/folders/${"nested/".repeat(12)}background-agents`;
+    const options = { platform: "darwin", tempDirectory: "/tmp", uid: 501 };
+    const first = transportPipePath(
+      "bg-1786854302136-5be605",
+      directory,
+      options,
+    );
+    const second = transportPipePath(
+      "bg-1786854302136-5be606",
+      directory,
+      options,
+    );
+    const otherRoot = transportPipePath(
+      "bg-1786854302136-5be605",
+      `${directory}-other`,
+      options,
+    );
+
+    expect(first).toMatch(/^\/tmp\/cc-bgs-[a-f0-9]{24}\/[a-f0-9]{32}\.sock$/u);
+    expect(Buffer.byteLength(first, "utf8")).toBeLessThanOrEqual(103);
+    expect(new Set([first, second, otherRoot]).size).toBe(3);
+    expect(transportPipePath("bg-short", "/tmp/agents", options)).toBe(
+      "/tmp/agents/bg-short.sock",
+    );
+  });
 });

@@ -77,7 +77,12 @@ async function launchGenericBackground(extraArgs = {}, context = { cwd }) {
 }
 
 beforeEach(() => {
-  cwd = fs.mkdtempSync(path.join(os.tmpdir(), "cc-agent-bg-sandbox-"));
+  // Production pins the authority-bearing workspace to its canonical
+  // filesystem identity. Keep expectations independent of macOS /var aliases
+  // and Windows 8.3 temporary paths by canonicalizing the fixture as well.
+  cwd = fs.realpathSync.native(
+    fs.mkdtempSync(path.join(os.tmpdir(), "cc-agent-bg-sandbox-")),
+  );
   originalBackgroundRun = _backgroundProcessDeps.run;
   originalContractIssuer =
     _backgroundProcessDeps.issueLinuxWorkspaceSandboxExecutionContract;
@@ -211,46 +216,65 @@ describe("agent-core Linux generic strong background shell route", () => {
     installStrictNodeBin();
     const issuer = vi.fn(() => Object.freeze({ kind: "must-not-issue" }));
     const run = vi.fn();
+    const escapedCwd = fs.mkdtempSync(
+      path.join(os.tmpdir(), "cc-agent-bg-escape-"),
+    );
     _backgroundProcessDeps.issueLinuxWorkspaceSandboxExecutionContract = issuer;
     _backgroundProcessDeps.run = run;
 
-    await expect(
-      launchGenericBackground({
-        cwd: path.resolve(cwd, "..", "escaped-background-cwd"),
-      }),
-    ).rejects.toMatchObject({
-      code: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
-      sandboxFailClosed: true,
-      sandboxReason: "background_working_directory_escape",
-      requiredBoundaries: ["filesystem", "network"],
-    });
-    expect(issuer).not.toHaveBeenCalled();
-    expect(run).not.toHaveBeenCalled();
+    try {
+      await expect(
+        launchGenericBackground({ cwd: escapedCwd }),
+      ).rejects.toMatchObject({
+        code: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
+        sandboxFailClosed: true,
+        sandboxReason: "background_working_directory_escape",
+        requiredBoundaries: ["filesystem", "network"],
+      });
+      expect(issuer).not.toHaveBeenCalled();
+      expect(run).not.toHaveBeenCalled();
+    } finally {
+      fs.rmSync(escapedCwd, { recursive: true, force: true });
+    }
   });
 
-  it("rejects a non-absolute host workspace root even when it resolves to the pinned workspace", async () => {
+  it("canonicalizes a relative host workspace before issuing the strong contract", async () => {
     fs.rmSync(cwd, { recursive: true, force: true });
     cwd = fs.mkdtempSync(
       path.join(process.cwd(), ".cc-agent-bg-relative-root-"),
     );
     installStrictNodeBin();
-    const issuer = vi.fn(() => Object.freeze({ kind: "must-not-issue" }));
-    const run = vi.fn();
+    const issuedContract = Object.freeze({ kind: "issued-contract" });
+    const issuer = vi.fn(() => issuedContract);
+    const child = fakeChild();
+    const run = vi.fn(() => child);
     const relativeWorkspace = path.relative(process.cwd(), cwd);
     expect(path.isAbsolute(relativeWorkspace)).toBe(false);
     _backgroundProcessDeps.issueLinuxWorkspaceSandboxExecutionContract = issuer;
     _backgroundProcessDeps.run = run;
 
-    await expect(
-      launchGenericBackground({}, { cwd: relativeWorkspace }),
-    ).rejects.toMatchObject({
-      code: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
-      sandboxFailClosed: true,
-      sandboxReason: "background_workspace_root_untrusted",
-      requiredBoundaries: ["filesystem", "network"],
+    const result = await launchGenericBackground(
+      {},
+      { cwd: relativeWorkspace },
+    );
+
+    expect(result).toMatchObject({
+      background: true,
+      status: "running",
     });
-    expect(issuer).not.toHaveBeenCalled();
-    expect(run).not.toHaveBeenCalled();
+    expect(issuer).toHaveBeenCalledOnce();
+    expect(issuer.mock.calls[0][3]).toBe(path.resolve(cwd));
+    expect(run).toHaveBeenCalledOnce();
+    expect(run.mock.calls[0][2]).toMatchObject({
+      cwd: path.resolve(cwd),
+      sandboxExecutionContract: issuedContract,
+    });
+    const checked = await executeTool(
+      "check_shell",
+      { task_id: result.task_id, kill: true },
+      { cwd },
+    );
+    expect(checked.killed).toBe(true);
   });
 
   it("fails closed when the trusted contract issuer is missing", async () => {

@@ -62,14 +62,38 @@ test("remote driver calls the existing real host journey after proving remote id
 
   assert.deepEqual(driverManifest.extensionKind, ["workspace"]);
   assert.match(remoteRunner, /vscode\.env\.remoteName[\s\S]*?"ssh-remote"/u);
-  assert.match(remoteRunner, /\["vscode-remote", "vscode-remote"\]/u);
+  assert.match(remoteRunner, /\["file", "file"\]/u);
+  assert.match(
+    remoteRunner,
+    /workspaceUriPresentation: "remote-extension-host-native-file"/u,
+  );
   assert.match(remoteRunner, /config\.containerMarkerPath/u);
   assert.match(remoteRunner, /config\.candidateVsixSha256/u);
   assert.match(remoteRunner, /config\.candidateVsixBytes/u);
+  assert.match(
+    remoteRunner,
+    /path\.relative\(remoteHome, extensionHostCwd\)[\s\S]*?cwdRelativeToRemoteHome === ""/u,
+  );
+  assert.doesNotMatch(
+    remoteRunner,
+    /process\.cwd\(\)\.startsWith\("\/home\/cc-roadmap\/"\)/u,
+  );
   assert.match(remoteRunner, /require\("\.\/smoke\.cjs"\)/u);
   assert.match(remoteRunner, /"bridge-verified"/u);
   assert.match(orchestrator, /--file-uri=vscode-remote:\/\//u);
-  assert.match(orchestrator, /extensionDevelopmentPath: REMOTE_DRIVER/u);
+  assert.match(
+    orchestrator,
+    /remoteDriverUri = `vscode-remote:\/\/\$\{remoteAuthority\}\$\{REMOTE_DRIVER\}`/u,
+  );
+  assert.match(orchestrator, /extensionDevelopmentPath: remoteDriverUri/u);
+  assert.match(
+    orchestrator,
+    /extensionTestsPath: `\$\{remoteDriverUri\}\/remote-runner\.cjs`/u,
+  );
+  assert.doesNotMatch(
+    orchestrator,
+    /extension(?:Development|Tests)Path:\s*(?:REMOTE_DRIVER|`\$\{REMOTE_DRIVER\})/u,
+  );
   assert.match(orchestrator, /docker[\s\S]*?openssh-server/u);
   assert.match(orchestrator, /\/etc\/chainlesschain-remote-id/u);
   assert.match(orchestrator, /ssh_host_ed25519_key\.pub/u);
@@ -84,6 +108,70 @@ test("remote driver calls the existing real host journey after proving remote id
     /ubuntu@sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467/u,
   );
   assert.doesNotMatch(orchestrator, /transport:\s*"remote"/u);
+});
+
+test("remote workspace binds every root to the selected SSH authority", () => {
+  const workspace = runner.createRemoteWorkspaceDefinition(
+    "ssh-remote+cc-roadmap-test",
+  );
+
+  assert.equal(workspace.remoteAuthority, "ssh-remote+cc-roadmap-test");
+  assert.deepEqual(workspace.folders, [
+    {
+      name: "primary",
+      uri: "vscode-remote://ssh-remote+cc-roadmap-test/home/cc-roadmap/workspace-primary",
+    },
+    {
+      name: "secondary",
+      uri: "vscode-remote://ssh-remote+cc-roadmap-test/home/cc-roadmap/workspace-secondary",
+    },
+  ]);
+  assert.ok(workspace.folders.every((folder) => !("path" in folder)));
+  assert.throws(
+    () => runner.createRemoteWorkspaceDefinition("file"),
+    /workspace authority/u,
+  );
+});
+
+test("container marker digest binds the exact bytes written remotely", () => {
+  const marker = runner.createContainerMarker("a".repeat(24));
+
+  assert.equal(
+    marker,
+    "chainlesschain-remote-ssh-container:aaaaaaaaaaaaaaaaaaaaaaaa",
+  );
+  assert.doesNotMatch(marker, /\r|\n/u);
+
+  const orchestrator = read(
+    "packages/vscode-extension/test/remote-ssh-container/run.cjs",
+  );
+  assert.match(orchestrator, /const markerDigest = sha256Buffer\(marker\)/u);
+  assert.match(orchestrator, /printf '%s' '\$\{marker\}'/u);
+  assert.doesNotMatch(orchestrator, /marker\.trim\(\)/u);
+});
+
+test("failed Remote-SSH host runs retain local and container diagnostics", () => {
+  const orchestrator = read(
+    "packages/vscode-extension/test/remote-ssh-container/run.cjs",
+  );
+
+  assert.match(
+    orchestrator,
+    /sourceRoots:[\s\S]*?remote-runtime[\s\S]*?vscode-remote-ssh\.log[\s\S]*?user-data[\s\S]*?remote-vscode-logs[\s\S]*?diagnosticsPath[\s\S]*?fs\.existsSync/u,
+  );
+  assert.match(
+    orchestrator,
+    /catch \(error\) \{\s+vscodeRunError = error;[\s\S]*?"cp"[\s\S]*?allowFailure: true/u,
+  );
+  assert.match(
+    orchestrator,
+    /new AggregateError\(\s*\[vscodeRunError, remoteCaptureError\]/u,
+  );
+  assert.match(orchestrator, /"remote\.SSH\.loglevel": "trace"/u);
+  assert.match(
+    orchestrator,
+    /\.vscode-server\/data\/logs[\s\S]*?allowFailure: true/u,
+  );
 });
 
 test("workflow preserves diagnostics and aggregates one exact producer provenance", () => {
@@ -238,6 +326,59 @@ test("missing semantic artifacts fail the scoped negative control", () => {
     assert.throws(
       () => runner.requiredArtifactNegativeControl(paths),
       /missing required artifact/u,
+    );
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("outcome evidence closes its self-reference before trusted evidence is emitted", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-remote-outcome-"));
+  try {
+    const paths = Object.fromEntries(
+      [
+        "exact-commit",
+        "host-environment",
+        "remote-environment",
+        "outcome-observations",
+        "redacted-diagnostics",
+        "artifact-digests",
+        "candidate-vsix",
+        "candidate-manifest",
+      ].map((name) => [name, path.join(root, `${name}.json`)]),
+    );
+    for (const [name, filePath] of Object.entries(paths)) {
+      if (name !== "outcome-observations") {
+        fs.writeFileSync(filePath, "{}\n", "utf8");
+      }
+    }
+
+    assert.throws(
+      () => runner.requiredArtifactNegativeControl(paths),
+      /missing required artifact: outcome-observations/u,
+    );
+    runner.writeOutcomeObservations(paths, {
+      credentialLeakCount: 0,
+      remoteTransportExercised: true,
+    });
+    assert.deepEqual(
+      JSON.parse(fs.readFileSync(paths["outcome-observations"], "utf8")),
+      {
+        schema: "chainlesschain.ide-roadmap-outcome-observations.v1",
+        credentialLeakCount: 0,
+        remoteTransportExercised: true,
+        missingRequiredArtifactsFail: true,
+      },
+    );
+    assert.doesNotThrow(() => runner.assertRequiredArtifacts(paths));
+
+    fs.unlinkSync(paths["remote-environment"]);
+    assert.throws(
+      () =>
+        runner.requiredArtifactNegativeControl(paths, {
+          outcomePending: true,
+        }),
+      /missing required artifact: remote-environment/u,
     );
   } finally {
     fs.rmSync(root, { recursive: true, force: true });

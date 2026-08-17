@@ -66,6 +66,14 @@ const retryDelayMs = positiveInteger(
   process.env.CC_MARKETPLACE_VERIFY_DELAY_MS,
   channel === "open-vsx" || channel === "vscode-marketplace" ? 20_000 : 10_000,
 );
+const openVsxListingRetryAttempts = positiveInteger(
+  process.env.CC_OPEN_VSX_LISTING_VERIFY_ATTEMPTS,
+  75,
+);
+const openVsxListingRetryDelayMs = positiveInteger(
+  process.env.CC_OPEN_VSX_LISTING_VERIFY_DELAY_MS,
+  60_000,
+);
 
 if (!["open-vsx", "vscode-marketplace", "jetbrains"].includes(channel)) {
   console.error(
@@ -166,6 +174,58 @@ async function fetchBuffer(url, label) {
     throw new Error(`${label} returned HTTP ${response.status}`);
   }
   return Buffer.from(await response.arrayBuffer());
+}
+
+async function fetchOpenVsxExactMetadata({
+  baseEndpoint,
+  expectedVersion,
+  fetchJsonFn = fetchJson,
+}) {
+  // The latest-extension response is cached by Open VSX for up to an hour.
+  // Do not read (and potentially populate) that cache while asynchronous
+  // scanning still leaves the exact version inactive. The exact endpoint is
+  // the activation fence; only after it is public do we inspect the listing.
+  const versionPayload = await fetchJsonFn(
+    `${baseEndpoint}/${encodeURIComponent(expectedVersion)}`,
+    "Open VSX version endpoint",
+  );
+  if (
+    versionPayload?.version !== expectedVersion ||
+    versionPayload?.downloadable !== true
+  ) {
+    throw new Error(
+      `Open VSX exact version is not ready: expected ${expectedVersion}, ` +
+        `version=${versionPayload?.version}, downloadable=${versionPayload?.downloadable === true}`,
+    );
+  }
+  return versionPayload;
+}
+
+async function fetchOpenVsxMetadata({
+  baseEndpoint,
+  expectedVersion,
+  fetchJsonFn = fetchJson,
+}) {
+  const versionPayload = await fetchOpenVsxExactMetadata({
+    baseEndpoint,
+    expectedVersion,
+    fetchJsonFn,
+  });
+  const listingPayload = await fetchJsonFn(baseEndpoint, "open-vsx registry");
+  return { listingPayload, versionPayload };
+}
+
+function classifyOpenVsxListing(payload, expectedVersion) {
+  const latest = payload?.version;
+  const listed =
+    payload?.allVersions &&
+    Object.prototype.hasOwnProperty.call(payload.allVersions, expectedVersion);
+  if (latest !== expectedVersion || !listed) {
+    throw new Error(
+      `Open VSX listing is not ready: expected ${expectedVersion}, latest=${latest}, listed=${listed}`,
+    );
+  }
+  return { latest, listed };
 }
 
 function canonicalEntriesSha256(entries) {
@@ -338,17 +398,13 @@ async function inspectMarketplace() {
     };
   }
 
-  const payload = await fetchJson(endpoint, `${channel} registry`);
-
   if (channel === "open-vsx") {
-    const latest = payload?.version;
-    const listed =
-      payload?.allVersions &&
-      Object.prototype.hasOwnProperty.call(payload.allVersions, version);
-    const versionPayload = await fetchJson(
-      `${endpoint}/${encodeURIComponent(version)}`,
-      "Open VSX version endpoint",
-    );
+    const { listingPayload: payload, versionPayload } =
+      await fetchOpenVsxMetadata({
+        baseEndpoint: endpoint,
+        expectedVersion: version,
+      });
+    const { latest, listed } = classifyOpenVsxListing(payload, version);
     const downloadable = versionPayload?.downloadable === true;
     let registryArchiveSha256 = null;
     let registryContentSha256 = null;
@@ -391,7 +447,12 @@ async function inspectMarketplace() {
         );
       }
     }
-    if (versionPayload?.version !== version || !downloadable || !listed) {
+    if (
+      versionPayload?.version !== version ||
+      !downloadable ||
+      latest !== version ||
+      !listed
+    ) {
       throw new Error(
         `Open VSX mismatch: expected ${version}, version=${versionPayload?.version}, latest=${latest}, ` +
           `downloadable=${downloadable}, listed=${listed}`,
@@ -413,6 +474,7 @@ async function inspectMarketplace() {
     };
   }
 
+  const payload = await fetchJson(endpoint, `${channel} registry`);
   return classifyJetBrainsPayload(payload, version);
 }
 
@@ -473,13 +535,36 @@ function classifyJetBrainsPayload(payload, expectedVersion) {
 }
 
 let record;
-for (let attempt = 1; attempt <= retryAttempts; attempt += 1) {
+if (channel === "open-vsx") {
+  for (let attempt = 1; attempt <= retryAttempts; attempt += 1) {
+    try {
+      await fetchOpenVsxExactMetadata({
+        baseEndpoint: endpoint,
+        expectedVersion: version,
+      });
+      break;
+    } catch (error) {
+      if (attempt === retryAttempts) throw error;
+      console.error(
+        `[verify-ide-marketplace] exact activation attempt ${attempt}/${retryAttempts} failed: ${error.message}; ` +
+          `retrying in ${retryDelayMs}ms`,
+      );
+      await sleep(retryDelayMs);
+    }
+  }
+}
+
+const inspectionAttempts =
+  channel === "open-vsx" ? openVsxListingRetryAttempts : retryAttempts;
+const inspectionDelayMs =
+  channel === "open-vsx" ? openVsxListingRetryDelayMs : retryDelayMs;
+for (let attempt = 1; attempt <= inspectionAttempts; attempt += 1) {
   try {
     record = await inspectMarketplace();
     break;
   } catch (error) {
     if (error instanceof MarketplaceFatalError) throw error;
-    if (attempt === retryAttempts) {
+    if (attempt === inspectionAttempts) {
       if (
         allowPending &&
         channel === "jetbrains" &&
@@ -488,7 +573,7 @@ for (let attempt = 1; attempt <= retryAttempts; attempt += 1) {
         record = {
           status: "pending",
           ...error.details,
-          attempts: retryAttempts,
+          attempts: inspectionAttempts,
         };
         console.error(
           `[verify-ide-marketplace] ${error.message}; --allow-pending requested, reporting pending review without failing`,
@@ -498,10 +583,10 @@ for (let attempt = 1; attempt <= retryAttempts; attempt += 1) {
       throw error;
     }
     console.error(
-      `[verify-ide-marketplace] attempt ${attempt}/${retryAttempts} failed: ${error.message}; ` +
-        `retrying in ${retryDelayMs}ms`,
+      `[verify-ide-marketplace] attempt ${attempt}/${inspectionAttempts} failed: ${error.message}; ` +
+        `retrying in ${inspectionDelayMs}ms`,
     );
-    await sleep(retryDelayMs);
+    await sleep(inspectionDelayMs);
   }
 }
 
@@ -618,6 +703,78 @@ async function runSelfTest() {
   );
   assert.equal(positiveInteger("7", 3), 7);
   assert.equal(positiveInteger("0", 3), 3);
+  const openVsxFetchOrder = [];
+  const openVsxMetadata = await fetchOpenVsxMetadata({
+    baseEndpoint: "https://registry.example/api/publisher/extension",
+    expectedVersion: "1.2.3",
+    fetchJsonFn: async (url) => {
+      openVsxFetchOrder.push(url);
+      return url.endsWith("/1.2.3")
+        ? { version: "1.2.3", downloadable: true }
+        : { version: "1.2.3", allVersions: { "1.2.3": url } };
+    },
+  });
+  assert.deepEqual(openVsxFetchOrder, [
+    "https://registry.example/api/publisher/extension/1.2.3",
+    "https://registry.example/api/publisher/extension",
+  ]);
+  assert.equal(openVsxMetadata.versionPayload.version, "1.2.3");
+  const preActivationFetchOrder = [];
+  await assert.rejects(
+    fetchOpenVsxMetadata({
+      baseEndpoint: "https://registry.example/api/publisher/extension",
+      expectedVersion: "1.2.3",
+      fetchJsonFn: async (url) => {
+        preActivationFetchOrder.push(url);
+        throw new Error("Open VSX version endpoint returned HTTP 404");
+      },
+    }),
+    /returned HTTP 404/u,
+  );
+  assert.deepEqual(preActivationFetchOrder, [
+    "https://registry.example/api/publisher/extension/1.2.3",
+  ]);
+  for (const exactPayload of [
+    { version: "1.2.2", downloadable: true },
+    { version: "1.2.3", downloadable: false },
+  ]) {
+    const nonReadyFetchOrder = [];
+    await assert.rejects(
+      fetchOpenVsxMetadata({
+        baseEndpoint: "https://registry.example/api/publisher/extension",
+        expectedVersion: "1.2.3",
+        fetchJsonFn: async (url) => {
+          nonReadyFetchOrder.push(url);
+          return exactPayload;
+        },
+      }),
+      /exact version is not ready/u,
+    );
+    assert.deepEqual(nonReadyFetchOrder, [
+      "https://registry.example/api/publisher/extension/1.2.3",
+    ]);
+  }
+  assert.throws(
+    () =>
+      classifyOpenVsxListing(
+        {
+          version: "1.2.2",
+          allVersions: { "1.2.3": "https://registry.example/1.2.3" },
+        },
+        "1.2.3",
+      ),
+    /latest=1\.2\.2, listed=true/u,
+  );
+  assert.deepEqual(
+    classifyOpenVsxListing(
+      {
+        version: "1.2.3",
+        allVersions: { "1.2.3": "https://registry.example/1.2.3" },
+      },
+      "1.2.3",
+    ),
+    { latest: "1.2.3", listed: true },
+  );
   const canonicalA = canonicalEntriesSha256([
     ["extension/b.txt", Buffer.from("two")],
     ["extension/a.txt", Buffer.from("one")],

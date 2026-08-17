@@ -761,7 +761,13 @@ function validateEvidenceArtifactFile({
   const documentDirectory = path.dirname(documentPath);
   const candidate = path.resolve(documentDirectory, ...portable.split("/"));
   const root = path.resolve(evidenceRoot);
-  if (!isWithin(root, candidate)) {
+  const canonicalRoot = fs.realpathSync(root);
+  const canonicalDocumentDirectory = fs.realpathSync(documentDirectory);
+  const canonicalCandidate = path.resolve(
+    canonicalDocumentDirectory,
+    ...portable.split("/"),
+  );
+  if (!isWithin(canonicalRoot, canonicalCandidate)) {
     issues.push(`${label} escapes the runtime evidence directory`);
     return null;
   }
@@ -783,9 +789,8 @@ function validateEvidenceArtifactFile({
     issues.push(`${label} must identify a regular file: ${portable}`);
     return null;
   }
-  const realRoot = fs.realpathSync(root);
   const realCandidate = fs.realpathSync(candidate);
-  if (!isWithin(realRoot, realCandidate)) {
+  if (!isWithin(canonicalRoot, realCandidate)) {
     issues.push(`${label} resolves outside the runtime evidence directory`);
     return null;
   }
@@ -1201,7 +1206,13 @@ function writeImmutableJson(destination, value) {
 }
 
 function portableRelativePath(fromDirectory, target, label) {
-  const relative = path.relative(fromDirectory, target);
+  // Hosted macOS exposes the temporary directory through /var while its
+  // canonical path is rooted at /private/var. Artifact verification returns
+  // canonical paths, so compare both sides in the same filesystem namespace
+  // before emitting the portable path stored in the evidence envelope.
+  const canonicalDirectory = fs.realpathSync(path.resolve(fromDirectory));
+  const canonicalTarget = fs.realpathSync(path.resolve(target));
+  const relative = path.relative(canonicalDirectory, canonicalTarget);
   if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) {
     throw new Error(`${label} must stay below the runtime envelope directory`);
   }
@@ -1315,6 +1326,14 @@ function verifyRemoteSshRuntimeIdentity(
   if (!isRecord(remoteEnvironment)) {
     issues.push("remote-environment artifact must be an object");
   } else {
+    if (
+      remoteEnvironment.schema !==
+      "chainlesschain.remote-ssh-container-observation.v2"
+    ) {
+      issues.push(
+        'remote-environment.schema must equal "chainlesschain.remote-ssh-container-observation.v2"',
+      );
+    }
     if (remoteEnvironment.remoteName !== "ssh-remote") {
       issues.push('remote-environment.remoteName must equal "ssh-remote"');
     }
@@ -1327,14 +1346,19 @@ function verifyRemoteSshRuntimeIdentity(
       );
     }
     if (
+      remoteEnvironment.workspaceUriPresentation !==
+        "remote-extension-host-native-file" ||
       !Array.isArray(remoteEnvironment.workspaceSchemes) ||
       remoteEnvironment.workspaceSchemes.length !== 2 ||
-      remoteEnvironment.workspaceSchemes.some(
-        (scheme) => scheme !== "vscode-remote",
+      remoteEnvironment.workspaceSchemes.some((scheme) => scheme !== "file") ||
+      !Array.isArray(remoteEnvironment.workspaceAuthorities) ||
+      remoteEnvironment.workspaceAuthorities.length !== 2 ||
+      remoteEnvironment.workspaceAuthorities.some(
+        (authority) => authority !== "",
       )
     ) {
       issues.push(
-        "remote-environment must prove two vscode-remote workspace URIs",
+        "remote-environment must prove two native file roots inside the remote extension host",
       );
     }
     if (
@@ -1352,7 +1376,8 @@ function verifyRemoteSshRuntimeIdentity(
       !Number.isSafeInteger(remoteEnvironment.extensionHostPid) ||
       remoteEnvironment.extensionHostPid < 1 ||
       typeof remoteEnvironment.extensionHostCwd !== "string" ||
-      !remoteEnvironment.extensionHostCwd.startsWith("/home/cc-roadmap/") ||
+      (remoteEnvironment.extensionHostCwd !== "/home/cc-roadmap" &&
+        !remoteEnvironment.extensionHostCwd.startsWith("/home/cc-roadmap/")) ||
       typeof remoteEnvironment.extensionPath !== "string" ||
       remoteEnvironment.extensionPath !==
         `/home/cc-roadmap/.vscode-server/extensions/chainlesschain.chainlesschain-ide-${journey.extensionVersion}` ||

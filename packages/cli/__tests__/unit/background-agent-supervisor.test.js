@@ -19,6 +19,7 @@ import {
   cleanupBackgroundAgentWorktree,
   claimBackgroundAgentHeartbeat,
   effectiveBackgroundAgentState,
+  hasValidBackgroundAgentStopCleanupProof,
   isSameProcess,
   isBackgroundWorkerStartedError,
   insertArgumentsBeforeOptionTerminator,
@@ -27,6 +28,8 @@ import {
   logPath,
   mutateBackgroundAgentState,
   normalizeBackgroundAgentTitle,
+  PROCESS_START_TIME_CACHE_MAX_ENTRIES,
+  ProcessStartTimeCache,
   readBackgroundAgentLog,
   readBackgroundAgentState,
   removeBackgroundAgent,
@@ -60,6 +63,8 @@ const originalReadStart = _deps.readProcessStartTimeMs;
 const originalReadProcessState = _deps.readProcessState;
 const originalReadProcessGroupStates = _deps.readProcessGroupStates;
 const originalProcessExitWaitDeadlineMs = _deps.processExitWaitDeadlineMs;
+const originalPosixPermissionRetryNowMs = _deps.posixPermissionRetryNowMs;
+const originalPosixPermissionRetrySleep = _deps.posixPermissionRetrySleep;
 const originalKillTree = _deps.killProcessTree;
 const originalKill = _deps.kill;
 const originalGetSessionPresence = _deps.getSessionPresence;
@@ -248,6 +253,8 @@ afterEach(async () => {
   _deps.readProcessState = originalReadProcessState;
   _deps.readProcessGroupStates = originalReadProcessGroupStates;
   _deps.processExitWaitDeadlineMs = originalProcessExitWaitDeadlineMs;
+  _deps.posixPermissionRetryNowMs = originalPosixPermissionRetryNowMs;
+  _deps.posixPermissionRetrySleep = originalPosixPermissionRetrySleep;
   _deps.killProcessTree = originalKillTree;
   _deps.kill = originalKill;
   _deps.getSessionPresence = originalGetSessionPresence;
@@ -290,9 +297,130 @@ afterEach(async () => {
       }
     }
   }
-});
+}, 40_000);
 
 describe("background agent supervisor", () => {
+  it("expires old process start-time probes and refreshes a pid in place", () => {
+    const cache = new ProcessStartTimeCache({ ttlMs: 100, maxEntries: 3 });
+    cache.set(1, "one", 0);
+    cache.set(2, null, 10);
+
+    expect(cache.read(1, 50)).toEqual({ hit: true, value: "one" });
+    expect(cache.read(2, 50)).toEqual({ hit: true, value: null });
+
+    cache.set(1, "one-refreshed", 60);
+    cache.set(3, "three", 70);
+    cache.set(4, "four", 80);
+
+    expect(cache.size).toBe(3);
+    expect(cache.read(2, 80)).toEqual({ hit: false });
+    expect(cache.read(1, 80)).toEqual({
+      hit: true,
+      value: "one-refreshed",
+    });
+
+    expect(cache.read(1, 160)).toEqual({ hit: false });
+    expect(cache.read(3, 160)).toEqual({ hit: true, value: "three" });
+    expect(cache.read(4, 181)).toEqual({ hit: false });
+    expect(cache.size).toBe(0);
+  });
+
+  it("hard-caps the process start-time cache at 4096 refreshed pids", () => {
+    const cache = new ProcessStartTimeCache({ ttlMs: 60_000 });
+    for (let pid = 1; pid <= PROCESS_START_TIME_CACHE_MAX_ENTRIES; pid += 1) {
+      cache.set(pid, pid, pid);
+    }
+    cache.set(1, "refreshed", PROCESS_START_TIME_CACHE_MAX_ENTRIES + 1);
+    cache.set(
+      PROCESS_START_TIME_CACHE_MAX_ENTRIES + 1,
+      "newest",
+      PROCESS_START_TIME_CACHE_MAX_ENTRIES + 2,
+    );
+
+    expect(cache.size).toBe(PROCESS_START_TIME_CACHE_MAX_ENTRIES);
+    expect(cache.read(2, PROCESS_START_TIME_CACHE_MAX_ENTRIES + 2)).toEqual({
+      hit: false,
+    });
+    expect(cache.read(1, PROCESS_START_TIME_CACHE_MAX_ENTRIES + 2)).toEqual({
+      hit: true,
+      value: "refreshed",
+    });
+    expect(
+      cache.read(
+        PROCESS_START_TIME_CACHE_MAX_ENTRIES + 1,
+        PROCESS_START_TIME_CACHE_MAX_ENTRIES + 2,
+      ),
+    ).toEqual({ hit: true, value: "newest" });
+  });
+
+  it("reclaims a strict state lock owned only by a zombie process identity", () => {
+    const id = "bg-zombie-lock-owner";
+    writeBackgroundAgentState({
+      id,
+      title: "before",
+      status: "running",
+      pid: 4242,
+    });
+    const lockDir = `${statePath(id)}.lock`;
+    mkdirSync(lockDir);
+    writeFileSync(
+      join(lockDir, "owner.json"),
+      JSON.stringify({
+        pid: process.pid,
+        startedAt: Date.now(),
+        token: "zombie-lock-owner-token-0001",
+      }),
+    );
+    _deps.readProcessState = vi.fn((pid) =>
+      Number(pid) === process.pid ? "Z" : null,
+    );
+
+    const mutation = mutateBackgroundAgentState(
+      id,
+      (current) => ({ ...current, title: "after" }),
+      { timeoutMs: 100 },
+    );
+
+    expect(mutation).toMatchObject({
+      applied: true,
+      state: { id, title: "after" },
+    });
+  });
+
+  it("reclaims a strict state lock after its live numeric owner pid was reused", () => {
+    const id = "bg-reused-lock-owner";
+    writeBackgroundAgentState({
+      id,
+      title: "before",
+      status: "running",
+      pid: 4242,
+    });
+    const sleeperPid = spawnSleeperPid();
+    const lockAcquiredAt = Date.now() - 10_000;
+    const lockDir = `${statePath(id)}.lock`;
+    mkdirSync(lockDir);
+    writeFileSync(
+      join(lockDir, "owner.json"),
+      JSON.stringify({
+        pid: sleeperPid,
+        startedAt: lockAcquiredAt,
+        token: "reused-lock-owner-token-0001",
+      }),
+    );
+    _deps.readProcessStartTimeMs = vi.fn(() => lockAcquiredAt + 5_000);
+
+    const mutation = mutateBackgroundAgentState(
+      id,
+      (current) => ({ ...current, title: "after" }),
+      { timeoutMs: 100 },
+    );
+
+    expect(mutation).toMatchObject({
+      applied: true,
+      state: { id, title: "after" },
+    });
+  });
+
   it("rejects ephemeral initial and follow-up argv before worker spawn", () => {
     _deps.spawn = vi.fn(() => ({ pid: 43210, unref: vi.fn() }));
     expect(() =>
@@ -737,6 +865,84 @@ describe("background agent supervisor", () => {
     expect(readBackgroundAgentState(id).status).toBe("stopped");
   });
 
+  it.each(["completed", "failed", "stopped"])(
+    "keeps a %s worker terminal write cleanup-pending behind a stop fence",
+    (workerStatus) => {
+      const id = `bg-stop-proof-race-${workerStatus}`;
+      const stopRequestedAt = Date.now();
+      writeBackgroundAgentState({
+        id,
+        status: "running",
+        pid: null,
+        workerPid: null,
+        workerGeneration: "generation-stop-proof",
+        startedAt: stopRequestedAt - 100,
+        heartbeatAt: stopRequestedAt - 10,
+        stopRequestedAt,
+        stopRequestedBy: "user",
+        phase: "stopping",
+      });
+
+      const raced = persistBackgroundAgentState({
+        ...readBackgroundAgentState(id),
+        status: workerStatus,
+        endedAt: stopRequestedAt + 1,
+        exitCode: workerStatus === "completed" ? 0 : 1,
+        phase: null,
+        transport: null,
+      });
+
+      expect(raced).toMatchObject({
+        status: "running",
+        phase: "stop_waiting_for_exit",
+        stopPending: true,
+        stopPendingReason: "process-exit",
+        stopRequestedAt,
+      });
+      expect(raced.stopCleanupConfirmedAt).toBeUndefined();
+      expect(
+        claimBackgroundAgentHeartbeat(id, {
+          pid: 43212,
+          workerPid: 43212,
+          workerGeneration: "generation-stop-proof",
+        }).applied,
+      ).toBe(false);
+    },
+  );
+
+  it("keeps read-side lost reconciliation behind the stop proof fence", () => {
+    const id = "bg-stop-proof-effective-lost-race";
+    const stopRequestedAt = Date.now() - 1;
+    writeBackgroundAgentState({
+      id,
+      status: "running",
+      pid: 987_654_321,
+      workerPid: 987_654_321,
+      workerGeneration: "generation-effective-stop-proof",
+      startedAt: stopRequestedAt - 100,
+      heartbeatAt: stopRequestedAt - 10,
+      stopRequestedAt,
+      stopRequestedBy: "user",
+      phase: "stopping",
+    });
+
+    const reconciled = effectiveBackgroundAgentState(
+      readBackgroundAgentState(id),
+      { now: stopRequestedAt + 1_000 },
+    );
+
+    expect(reconciled).toMatchObject({
+      status: "running",
+      phase: "stopping",
+      stopRequestedAt,
+    });
+    expect(reconciled.stopCleanupConfirmedAt).toBeUndefined();
+
+    const stopped = stopBackgroundAgent(id);
+    expect(stopped).toMatchObject({ status: "stopped", stopped: true });
+    expect(hasValidBackgroundAgentStopCleanupProof(stopped)).toBe(true);
+  });
+
   it("rejects a different worker generation and a durable stop fence", () => {
     const id = "bg-worker-generation-fence";
     writeBackgroundAgentState({
@@ -1082,6 +1288,44 @@ describe("background agent supervisor", () => {
     expect(readBackgroundAgentState(id)).toMatchObject({
       status: "completed",
       phase: null,
+    });
+  });
+
+  it("keeps cleanup-unconfirmed as a terminal keeper projection", () => {
+    const id = "bg-keeper-cleanup-unconfirmed";
+    writeBackgroundAgentState({
+      id,
+      status: "running",
+      phase: "turn",
+      pid: 43212,
+      workerPid: 43212,
+      workerGeneration: "generation-owner",
+      keeperPid: 43214,
+      keeperStartedAt: 10,
+      keeperStatus: "ready",
+      keeperReadyAt: 20,
+      keeperHeartbeatAt: 20,
+      startedAt: 1,
+      heartbeatAt: 20,
+    });
+    const staleReady = readBackgroundAgentState(id);
+
+    persistBackgroundAgentState({
+      ...staleReady,
+      keeperStatus: "cleanup-unconfirmed",
+      keeperEndedAt: 40,
+      keeperError: "owned process tree remained executable",
+    });
+    persistBackgroundAgentState({
+      ...staleReady,
+      title: "stale ready writer",
+      heartbeatAt: 50,
+    });
+
+    expect(readBackgroundAgentState(id)).toMatchObject({
+      keeperStatus: "cleanup-unconfirmed",
+      keeperEndedAt: 40,
+      keeperError: "owned process tree remained executable",
     });
   });
 
@@ -1645,9 +1889,321 @@ describe("background agent supervisor", () => {
       _deps.kill = vi.fn((pid, signal) => process.kill(pid, signal));
     }
 
+    const stale = readBackgroundAgentState("bg-stale-explicit-stop");
     const stopped = stopBackgroundAgent("bg-stale-explicit-stop");
     expect(stopped).toMatchObject({ status: "stopped", stopped: true });
     expect(stopped.stopRequestedAt).toEqual(expect.any(Number));
+    expect(stopped.stopCleanupConfirmedAt).toEqual(expect.any(Number));
+
+    persistBackgroundAgentState({
+      ...stale,
+      title: "stale projection after cleanup confirmation",
+    });
+    expect(readBackgroundAgentState("bg-stale-explicit-stop")).toMatchObject({
+      status: "stopped",
+      stopCleanupConfirmedAt: stopped.stopCleanupConfirmedAt,
+    });
+  });
+
+  it("re-enters an unconfirmed stopped record and publishes proof after exact retirement", () => {
+    const sleeperPid = spawnSleeperPid();
+    const startedAt = Date.now();
+    const stopRequestedAt = startedAt;
+    writeBackgroundAgentState({
+      id: "bg-unconfirmed-stop-reentry",
+      status: "stopped",
+      pid: sleeperPid,
+      workerPid: sleeperPid,
+      startedAt,
+      heartbeatAt: startedAt,
+      endedAt: stopRequestedAt,
+      stopRequestedAt,
+      stopRequestedBy: "user",
+      stoppedByUser: true,
+    });
+    _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+    if (process.platform === "win32") {
+      _deps.spawnSync = vi.fn((_file, args) => {
+        process.kill(Number(args[1]), "SIGKILL");
+        return { status: 0 };
+      });
+    } else {
+      _deps.kill = vi.fn((pid, signal) => process.kill(pid, signal));
+    }
+
+    const stopped = stopBackgroundAgent("bg-unconfirmed-stop-reentry");
+
+    expect(stopped).toMatchObject({ status: "stopped", stopped: true });
+    expect(stopped.stopCleanupConfirmedAt).toEqual(expect.any(Number));
+    expect(stopped.stopCleanupConfirmedAt).toBeGreaterThanOrEqual(
+      stopRequestedAt,
+    );
+    expect(
+      readBackgroundAgentState("bg-unconfirmed-stop-reentry"),
+    ).toMatchObject({
+      status: "stopped",
+      stopPending: false,
+      stopCleanupConfirmedAt: stopped.stopCleanupConfirmedAt,
+    });
+  });
+
+  it("keeps an unconfirmed stopped record fail-closed without an identity anchor", () => {
+    const sleeperPid = spawnSleeperPid();
+    const stopRequestedAt = Date.now();
+    writeBackgroundAgentState({
+      id: "bg-unconfirmed-stop-no-anchor",
+      status: "stopped",
+      pid: sleeperPid,
+      workerPid: sleeperPid,
+      heartbeatAt: stopRequestedAt,
+      endedAt: stopRequestedAt,
+      stopRequestedAt,
+      stopRequestedBy: "user",
+      stoppedByUser: true,
+    });
+
+    const stopped = stopBackgroundAgent("bg-unconfirmed-stop-no-anchor");
+
+    expect(stopped).toMatchObject({
+      status: "stopped",
+      stopped: false,
+      stopPending: true,
+      stopPendingReason: "identity-unverifiable",
+    });
+    expect(stopped.stopCleanupConfirmedAt).toBeUndefined();
+    expect(_deps.kill).not.toHaveBeenCalledWith(
+      expect.any(Number),
+      expect.stringMatching(/^SIG/u),
+    );
+  });
+
+  it("repairs an invalid stop proof and keeps the valid replacement absorbing", () => {
+    const id = "bg-invalid-stop-proof-reentry";
+    const stopRequestedAt = Date.now() - 10;
+    writeBackgroundAgentState({
+      id,
+      status: "stopped",
+      pid: null,
+      workerPid: null,
+      startedAt: stopRequestedAt - 100,
+      endedAt: stopRequestedAt,
+      stopRequestedAt,
+      stopCleanupConfirmedAt: stopRequestedAt - 1,
+      stopRequestedBy: "user",
+      stoppedByUser: true,
+    });
+    const stale = readBackgroundAgentState(id);
+
+    const stopped = stopBackgroundAgent(id);
+
+    expect(stopped).toMatchObject({ status: "stopped", stopped: true });
+    expect(hasValidBackgroundAgentStopCleanupProof(stopped)).toBe(true);
+    expect(stopped.stopCleanupConfirmedAt).toBeGreaterThanOrEqual(
+      stopRequestedAt,
+    );
+
+    persistBackgroundAgentState({
+      ...stale,
+      title: "stale invalid proof after repair",
+    });
+    const afterStaleWrite = readBackgroundAgentState(id);
+    expect(hasValidBackgroundAgentStopCleanupProof(afterStaleWrite)).toBe(true);
+    expect(afterStaleWrite.stopCleanupConfirmedAt).toBe(
+      stopped.stopCleanupConfirmedAt,
+    );
+  });
+
+  it("keeps cleanup proof ordered when the wall clock moves behind the stop request", () => {
+    const id = "bg-stop-proof-clock-rollback";
+    const stopRequestedAt = Date.now() + 10_000;
+    writeBackgroundAgentState({
+      id,
+      status: "stopped",
+      pid: null,
+      workerPid: null,
+      startedAt: stopRequestedAt - 100,
+      endedAt: stopRequestedAt,
+      stopRequestedAt,
+      stopRequestedBy: "user",
+      stoppedByUser: true,
+    });
+
+    const stopped = stopBackgroundAgent(id);
+
+    expect(stopped).toMatchObject({ status: "stopped", stopped: true });
+    expect(stopped.stopCleanupConfirmedAt).toBe(stopRequestedAt);
+    expect(hasValidBackgroundAgentStopCleanupProof(stopped)).toBe(true);
+  });
+
+  it("treats a reused worker as retired while repairing an unconfirmed stop", () => {
+    const id = "bg-unconfirmed-stop-reused-worker";
+    const sleeperPid = spawnSleeperPid();
+    const actualStartedAt = Date.now();
+    const recordedStartedAt = actualStartedAt - 120_000;
+    const stopRequestedAt = actualStartedAt;
+    writeBackgroundAgentState({
+      id,
+      status: "stopped",
+      pid: sleeperPid,
+      workerPid: sleeperPid,
+      agentPid: 987_654_321,
+      agentStartedAt: actualStartedAt,
+      startedAt: recordedStartedAt,
+      heartbeatAt: recordedStartedAt,
+      endedAt: stopRequestedAt,
+      stopRequestedAt,
+      stopRequestedBy: "user",
+      stoppedByUser: true,
+    });
+    _deps.readProcessStartTimeMs = vi.fn((pid) =>
+      Number(pid) === sleeperPid ? actualStartedAt : { status: "absent" },
+    );
+    if (process.platform !== "win32") {
+      _deps.readProcessGroupStates = vi.fn(() => []);
+    }
+
+    const stopped = stopBackgroundAgent(id);
+
+    expect(stopped).toMatchObject({ status: "stopped", stopped: true });
+    expect(hasValidBackgroundAgentStopCleanupProof(stopped)).toBe(true);
+    expect(stopped.lostReason ?? null).toBeNull();
+    expect(isProcessStillAlive(sleeperPid)).toBe(true);
+    expect(_deps.kill).not.toHaveBeenCalledWith(
+      expect.any(Number),
+      expect.stringMatching(/^SIG/u),
+    );
+  });
+
+  it("treats a reused worker as retired while repairing a preexisting running stop fence", () => {
+    const id = "bg-running-stop-fence-reused-worker";
+    const sleeperPid = spawnSleeperPid();
+    const actualStartedAt = Date.now();
+    const recordedStartedAt = actualStartedAt - 120_000;
+    const stopRequestedAt = actualStartedAt;
+    writeBackgroundAgentState({
+      id,
+      status: "running",
+      phase: "stop_waiting_for_exit",
+      pid: sleeperPid,
+      workerPid: sleeperPid,
+      startedAt: recordedStartedAt,
+      heartbeatAt: recordedStartedAt,
+      stopRequestedAt,
+      stopRequestedBy: "user",
+      stopPending: true,
+      stopPendingReason: "process-exit",
+    });
+    _deps.readProcessStartTimeMs = vi.fn(() => actualStartedAt);
+
+    const stopped = stopBackgroundAgent(id);
+
+    expect(stopped).toMatchObject({ status: "stopped", stopped: true });
+    expect(hasValidBackgroundAgentStopCleanupProof(stopped)).toBe(true);
+    expect(stopped.lostReason ?? null).toBeNull();
+    expect(isProcessStillAlive(sleeperPid)).toBe(true);
+    expect(_deps.kill).not.toHaveBeenCalledWith(
+      expect.any(Number),
+      expect.stringMatching(/^SIG/u),
+    );
+  });
+
+  it("grafts proof onto a legacy lost stop fence before allowing resume", () => {
+    const id = "bg-lost-stop-fence-reused-worker";
+    const sleeperPid = spawnSleeperPid();
+    const actualStartedAt = Date.now();
+    const recordedStartedAt = actualStartedAt - 120_000;
+    const stopRequestedAt = actualStartedAt;
+    writeBackgroundAgentState({
+      id,
+      status: "lost",
+      lostReason: "pid-reused",
+      pid: sleeperPid,
+      workerPid: sleeperPid,
+      sessionId: "sess-lost-stop-fence",
+      cwd: dir,
+      startedAt: recordedStartedAt,
+      heartbeatAt: recordedStartedAt,
+      endedAt: stopRequestedAt,
+      stopRequestedAt,
+      stopRequestedBy: "user",
+      stopPending: false,
+    });
+    _deps.readProcessStartTimeMs = vi.fn(() => actualStartedAt);
+
+    const repaired = stopBackgroundAgent(id);
+
+    expect(repaired).toMatchObject({
+      status: "lost",
+      stopped: false,
+      lostReason: "pid-reused",
+    });
+    expect(hasValidBackgroundAgentStopCleanupProof(repaired)).toBe(true);
+    expect(isProcessStillAlive(sleeperPid)).toBe(true);
+    expect(_deps.kill).not.toHaveBeenCalledWith(
+      expect.any(Number),
+      expect.stringMatching(/^SIG/u),
+    );
+
+    _deps.spawn = vi.fn(() => ({ pid: 777, unref: vi.fn() }));
+    const resumed = resumeBackgroundAgent(id, "continue after cleanup proof");
+    expect(resumed).toMatchObject({
+      status: "running",
+      sessionId: "sess-lost-stop-fence",
+    });
+    expect(_deps.spawn).toHaveBeenCalledTimes(2);
+  });
+
+  it("publishes proof when an exact worker pid is reused after this stop signals it", () => {
+    const id = "bg-stop-post-signal-worker-reuse";
+    const sleeperPid = spawnSleeperPid();
+    const recordedStartedAt = Date.now();
+    const reusedStartedAt = recordedStartedAt + 120_000;
+    writeBackgroundAgentState({
+      id,
+      status: "running",
+      pid: sleeperPid,
+      workerPid: sleeperPid,
+      startedAt: recordedStartedAt,
+      heartbeatAt: recordedStartedAt,
+    });
+
+    let signalIssued = false;
+    let postSignalStateProbes = 0;
+    let startTimeProbes = 0;
+    _deps.readProcessState = vi.fn(() => {
+      if (!signalIssued) return "S";
+      postSignalStateProbes += 1;
+      return postSignalStateProbes <= 2 ? "Z" : "S";
+    });
+    _deps.readProcessStartTimeMs = vi.fn(() => {
+      startTimeProbes += 1;
+      // The batch snapshot and the per-target preflight both match; reuse is
+      // observed only after this stop has issued the signal.
+      return startTimeProbes <= 2 ? recordedStartedAt : reusedStartedAt;
+    });
+    _deps.readProcessGroupStates = vi.fn(() => []);
+    if (process.platform === "win32") {
+      _deps.spawnSync = vi.fn(() => {
+        signalIssued = true;
+        return { status: 0 };
+      });
+    } else {
+      _deps.kill = vi.fn(() => {
+        signalIssued = true;
+      });
+    }
+
+    const stopped = stopBackgroundAgent(id);
+
+    expect(stopped).toMatchObject({ status: "stopped", stopped: true });
+    expect(hasValidBackgroundAgentStopCleanupProof(stopped)).toBe(true);
+    expect(stopped.lostReason ?? null).toBeNull();
+    expect(isProcessStillAlive(sleeperPid)).toBe(true);
+    if (process.platform === "win32") {
+      expect(_deps.spawnSync).toHaveBeenCalledOnce();
+    } else {
+      expect(_deps.kill).toHaveBeenCalledOnce();
+    }
   });
 
   it("fails closed without a destructive process identity anchor", () => {
@@ -1760,7 +2316,7 @@ describe("background agent supervisor", () => {
     expect(completed?.turnKeeperCleanupConfirmedAt).toEqual(expect.any(Number));
     expect(Number.isFinite(completed?.heartbeatAt)).toBe(true);
     expect(readBackgroundAgentLog(state.id)).toContain("worker-output");
-  });
+  }, 90_000);
 
   it("keeps an armed turn contained when the worker is hard-killed", async () => {
     const workDir = join(dir, "hard-kill-work");
@@ -1894,7 +2450,7 @@ describe("background agent supervisor", () => {
 
     expect(completed?.title).toBe("after");
     expect(completed?.status).toBe("completed");
-  });
+  }, 90_000);
 
   it("buildFollowUpArgv strips the first turn's prompt tokens, keeps flags", () => {
     const optionSpecs = [
@@ -2250,6 +2806,67 @@ describe("background agent supervisor", () => {
     );
   });
 
+  it("resumeBackgroundAgent refuses an unconfirmed stop cleanup", () => {
+    const sleeperPid = spawnSleeperPid();
+    const startedAt = Date.now();
+    writeBackgroundAgentState({
+      id: "bg-resume-stop-cleanup-pending",
+      status: "stopped",
+      pid: sleeperPid,
+      workerPid: sleeperPid,
+      sessionId: "sess-stop-cleanup-pending",
+      cwd: dir,
+      startedAt,
+      endedAt: startedAt + 1,
+      stopRequestedAt: startedAt + 1,
+      stopRequestedBy: "user",
+      stoppedByUser: true,
+    });
+    _deps.spawn = vi.fn(() => ({ pid: 777, unref: vi.fn() }));
+
+    let caught;
+    try {
+      resumeBackgroundAgent("bg-resume-stop-cleanup-pending", "continue");
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toMatchObject({
+      code: "BACKGROUND_AGENT_STOP_CLEANUP_PENDING",
+    });
+    expect(caught.message).toMatch(/stop cleanup is still pending/u);
+    expect(_deps.spawn).not.toHaveBeenCalled();
+    expect(isProcessStillAlive(sleeperPid)).toBe(true);
+  });
+
+  it("resumeBackgroundAgent accepts a stopped record with durable cleanup proof", () => {
+    writeBackgroundAgentState({
+      id: "bg-resume-stop-cleanup-confirmed",
+      status: "stopped",
+      sessionId: "sess-stop-cleanup-confirmed",
+      cwd: dir,
+      startedAt: 1,
+      endedAt: 2,
+      stopRequestedAt: 2,
+      stopCleanupConfirmedAt: 3,
+      stopRequestedBy: "user",
+      stoppedByUser: true,
+    });
+    _deps.spawn = vi.fn(() => ({ pid: 777, unref: vi.fn() }));
+
+    const resumed = resumeBackgroundAgent(
+      "bg-resume-stop-cleanup-confirmed",
+      "continue",
+    );
+
+    expect(resumed).toMatchObject({
+      status: "running",
+      sessionId: "sess-stop-cleanup-confirmed",
+    });
+    expect(resumed.id).not.toBe("bg-resume-stop-cleanup-confirmed");
+    expect(_deps.spawn).toHaveBeenCalledTimes(2);
+  });
+
   it("runs follow-up turns over the session transport and finalizes on detach", async () => {
     const workDir = join(dir, "interactive-work");
     const isolatedHome = join(dir, "interactive-home");
@@ -2286,6 +2903,7 @@ describe("background agent supervisor", () => {
         process.env.CHAINLESSCHAIN_HOME = previousHome;
       }
     }
+    expect(state.cwd).toBe(state.launchProfile.workspace.cwd);
 
     // Wait for the worker to publish its transport endpoint.
     let transport = null;
@@ -2398,6 +3016,614 @@ describe("background agent supervisor", () => {
     );
   });
 
+  it("does not turn a POSIX group permission failure into a direct leader kill", () => {
+    const denied = Object.assign(new Error("kill EPERM"), { code: "EPERM" });
+    _deps.kill = vi.fn(() => {
+      throw denied;
+    });
+
+    expect(() =>
+      stopBackgroundAgentChildTree(4242, { platform: "linux" }),
+    ).toThrow(/kill EPERM/u);
+    expect(_deps.kill.mock.calls).toEqual([[-4242, "SIGTERM"]]);
+  });
+
+  it.skipIf(process.platform === "win32")(
+    "settles an initially unknown strict process group as dead without signalling",
+    () => {
+      const sleeperPid = spawnSleeperPid();
+      const startedAt = Date.now();
+      let groupProbes = 0;
+      let retryClock = 0;
+      _deps.processExitWaitDeadlineMs = 100;
+      _deps.posixPermissionRetryNowMs = vi.fn(() => retryClock);
+      _deps.posixPermissionRetrySleep = vi.fn((ms) => {
+        retryClock += ms;
+      });
+      _deps.readProcessState = vi.fn(() => "Z");
+      _deps.readProcessGroupStates = vi.fn(() => {
+        groupProbes += 1;
+        return groupProbes === 1 ? null : [];
+      });
+      _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+      _deps.kill = vi.fn();
+
+      expect(
+        stopBackgroundAgentChildTree(sleeperPid, {
+          platform: "linux",
+          signal: "SIGKILL",
+          expectedStartedAt: startedAt,
+          processGroup: true,
+          strictIdentity: true,
+          allowDirectFallback: false,
+        }),
+      ).toBe(true);
+      expect(_deps.readProcessGroupStates).toHaveBeenCalledTimes(2);
+      expect(_deps.readProcessStartTimeMs).not.toHaveBeenCalled();
+      expect(_deps.posixPermissionRetrySleep.mock.calls).toEqual([[10]]);
+      expect(_deps.kill).not.toHaveBeenCalled();
+    },
+  );
+
+  it("settles an initially unknown strict identity as reused without signalling", () => {
+    const sleeperPid = spawnSleeperPid();
+    const startedAt = Date.now();
+    let identityProbes = 0;
+    let retryClock = 0;
+    _deps.processExitWaitDeadlineMs = 100;
+    _deps.posixPermissionRetryNowMs = vi.fn(() => retryClock);
+    _deps.posixPermissionRetrySleep = vi.fn((ms) => {
+      retryClock += ms;
+    });
+    _deps.readProcessState = vi.fn(() => "S");
+    _deps.readProcessGroupStates = vi.fn(() => []);
+    _deps.readProcessStartTimeMs = vi.fn(() => {
+      identityProbes += 1;
+      return identityProbes === 1 ? null : startedAt + 120_000;
+    });
+    _deps.kill = vi.fn();
+
+    expect(
+      stopBackgroundAgentChildTree(sleeperPid, {
+        platform: "linux",
+        signal: "SIGKILL",
+        expectedStartedAt: startedAt,
+        processGroup: true,
+        strictIdentity: true,
+        allowDirectFallback: false,
+      }),
+    ).toBe(true);
+    expect(_deps.posixPermissionRetrySleep.mock.calls).toEqual([[10]]);
+    expect(_deps.readProcessStartTimeMs).toHaveBeenCalledTimes(2);
+    expect(_deps.kill).not.toHaveBeenCalled();
+  });
+
+  it("requires two fresh matches after an initially unknown strict identity before one group signal", () => {
+    const sleeperPid = spawnSleeperPid();
+    const startedAt = Date.now();
+    let identityProbes = 0;
+    let retryClock = 0;
+    const events = [];
+    _deps.processExitWaitDeadlineMs = 100;
+    _deps.posixPermissionRetryNowMs = vi.fn(() => retryClock);
+    _deps.posixPermissionRetrySleep = vi.fn((ms) => {
+      events.push(`sleep:${ms}`);
+      retryClock += ms;
+    });
+    _deps.readProcessState = vi.fn(() => "S");
+    _deps.readProcessGroupStates = vi.fn(() => ["S"]);
+    _deps.readProcessStartTimeMs = vi.fn(() => {
+      identityProbes += 1;
+      const value = identityProbes === 1 ? null : startedAt;
+      events.push(value === null ? "probe:unknown" : "probe:match");
+      return value;
+    });
+    _deps.kill = vi.fn((pid) => {
+      events.push(`signal:${Number(pid) < 0 ? "group" : "direct"}`);
+      return true;
+    });
+
+    expect(
+      stopBackgroundAgentChildTree(sleeperPid, {
+        platform: "linux",
+        signal: "SIGKILL",
+        expectedStartedAt: startedAt,
+        processGroup: true,
+        strictIdentity: true,
+        allowDirectFallback: false,
+      }),
+    ).toBe(true);
+    expect(events).toEqual([
+      "probe:unknown",
+      "sleep:10",
+      "probe:match",
+      "sleep:20",
+      "probe:match",
+      "signal:group",
+    ]);
+    expect(_deps.kill.mock.calls).toEqual([[-sleeperPid, "SIGKILL"]]);
+  });
+
+  it.skipIf(process.platform === "win32")(
+    "fails a persistently unknown initial strict process group at the probe deadline without signalling",
+    () => {
+      const sleeperPid = spawnSleeperPid();
+      const startedAt = Date.now();
+      let retryClock = 0;
+      _deps.processExitWaitDeadlineMs = 35;
+      _deps.posixPermissionRetryNowMs = vi.fn(() => retryClock);
+      _deps.posixPermissionRetrySleep = vi.fn((ms) => {
+        retryClock += ms;
+      });
+      _deps.readProcessState = vi.fn(() => "Z");
+      _deps.readProcessGroupStates = vi.fn(() => null);
+      _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+      _deps.kill = vi.fn();
+
+      expect(() =>
+        stopBackgroundAgentChildTree(sleeperPid, {
+          platform: "linux",
+          signal: "SIGKILL",
+          expectedStartedAt: startedAt,
+          processGroup: true,
+          strictIdentity: true,
+          allowDirectFallback: false,
+        }),
+      ).toThrow(
+        /initial signal attempts 0, signal resends 0, identity probe retries 3, last identity unverifiable\/process-group-state-probe-failed, retry stopped by initial-identity-probe-deadline/u,
+      );
+      expect(_deps.posixPermissionRetrySleep.mock.calls).toEqual([
+        [10],
+        [20],
+        [5],
+      ]);
+      expect(_deps.readProcessStartTimeMs).not.toHaveBeenCalled();
+      expect(_deps.kill).not.toHaveBeenCalled();
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "fails when an initially unknown process group loses its verifiable owner",
+    () => {
+      const absentPid = 2_147_483_647;
+      const startedAt = Date.now();
+      let groupProbes = 0;
+      let retryClock = 0;
+      _deps.processExitWaitDeadlineMs = 100;
+      _deps.posixPermissionRetryNowMs = vi.fn(() => retryClock);
+      _deps.posixPermissionRetrySleep = vi.fn((ms) => {
+        retryClock += ms;
+      });
+      _deps.readProcessGroupStates = vi.fn(() => {
+        groupProbes += 1;
+        return groupProbes === 1 ? null : ["S"];
+      });
+      _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+      _deps.kill = vi.fn();
+
+      expect(() =>
+        stopBackgroundAgentChildTree(absentPid, {
+          platform: "linux",
+          signal: "SIGKILL",
+          expectedStartedAt: startedAt,
+          processGroup: true,
+          strictIdentity: true,
+          allowDirectFallback: false,
+        }),
+      ).toThrow(
+        /initial signal attempts 0, signal resends 0, identity probe retries 1, last identity unverifiable\/process-group-owner-not-verifiable, retry stopped by preflight-identity/u,
+      );
+      expect(_deps.posixPermissionRetrySleep.mock.calls).toEqual([[10]]);
+      expect(_deps.readProcessGroupStates).toHaveBeenCalledTimes(2);
+      expect(_deps.readProcessStartTimeMs).not.toHaveBeenCalled();
+      expect(_deps.kill).not.toHaveBeenCalled();
+    },
+  );
+
+  it("fails a nonrecoverable strict preflight immediately without group or direct fallback", () => {
+    const sleeperPid = spawnSleeperPid();
+    _deps.processExitWaitDeadlineMs = 100;
+    _deps.posixPermissionRetryNowMs = vi.fn(() => 0);
+    _deps.posixPermissionRetrySleep = vi.fn();
+    _deps.readProcessState = vi.fn(() => "S");
+    _deps.readProcessGroupStates = vi.fn(() => ["S"]);
+    _deps.readProcessStartTimeMs = vi.fn();
+    _deps.kill = vi.fn();
+
+    expect(() =>
+      stopBackgroundAgentChildTree(sleeperPid, {
+        platform: "linux",
+        signal: "SIGKILL",
+        processGroup: true,
+        strictIdentity: true,
+        allowDirectFallback: false,
+      }),
+    ).toThrow(
+      /initial signal attempts 0, signal resends 0, identity probe retries 0, last identity unverifiable\/started-at-missing, retry stopped by preflight-identity/u,
+    );
+    expect(_deps.posixPermissionRetrySleep).not.toHaveBeenCalled();
+    expect(_deps.readProcessStartTimeMs).not.toHaveBeenCalled();
+    expect(_deps.kill).not.toHaveBeenCalled();
+  });
+
+  it("does not retry an initially unknown strict identity on Windows", () => {
+    const sleeperPid = spawnSleeperPid();
+    const startedAt = Date.now();
+    _deps.processExitWaitDeadlineMs = 100;
+    _deps.posixPermissionRetryNowMs = vi.fn(() => 0);
+    _deps.posixPermissionRetrySleep = vi.fn();
+    _deps.readProcessState = vi.fn(() => "S");
+    _deps.readProcessStartTimeMs = vi.fn(() => null);
+    _deps.kill = vi.fn();
+    _deps.spawnSync = vi.fn();
+
+    expect(() =>
+      stopBackgroundAgentChildTree(sleeperPid, {
+        platform: "win32",
+        signal: "SIGKILL",
+        expectedStartedAt: startedAt,
+        processGroup: true,
+        strictIdentity: true,
+        allowDirectFallback: false,
+      }),
+    ).toThrow(
+      /initial signal attempts 0, signal resends 0, identity probe retries 0, last identity unverifiable\/creation-time-probe-failed, retry stopped by preflight-identity/u,
+    );
+    expect(_deps.readProcessStartTimeMs).toHaveBeenCalledOnce();
+    expect(_deps.posixPermissionRetrySleep).not.toHaveBeenCalled();
+    expect(_deps.kill).not.toHaveBeenCalled();
+    expect(_deps.spawnSync).not.toHaveBeenCalled();
+  });
+
+  it("reports one initial strict signal and no resend for a non-EPERM failure", () => {
+    const sleeperPid = spawnSleeperPid();
+    const startedAt = Date.now();
+    _deps.processExitWaitDeadlineMs = 100;
+    _deps.posixPermissionRetryNowMs = vi.fn(() => 0);
+    _deps.posixPermissionRetrySleep = vi.fn();
+    _deps.readProcessState = vi.fn(() => "S");
+    _deps.readProcessGroupStates = vi.fn(() => ["S"]);
+    _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+    const denied = Object.assign(new Error("kill EACCES"), { code: "EACCES" });
+    _deps.kill = vi.fn(() => {
+      throw denied;
+    });
+
+    expect(() =>
+      stopBackgroundAgentChildTree(sleeperPid, {
+        platform: "linux",
+        signal: "SIGKILL",
+        expectedStartedAt: startedAt,
+        processGroup: true,
+        strictIdentity: true,
+        allowDirectFallback: false,
+      }),
+    ).toThrow(
+      /kill EACCES.*initial signal attempts 1, signal resends 0, identity probe retries 0, last identity match\/no-reason, retry stopped by initial-signal/u,
+    );
+    expect(_deps.kill.mock.calls).toEqual([[-sleeperPid, "SIGKILL"]]);
+    expect(_deps.posixPermissionRetrySleep).not.toHaveBeenCalled();
+  });
+
+  it.skipIf(process.platform === "win32")(
+    "retries a strict keeper group signal only with fresh exact identity",
+    () => {
+      const sleeperPid = spawnSleeperPid();
+      const startedAt = Date.now();
+      let processState = "S";
+      let attempts = 0;
+      let retryClock = 0;
+      _deps.processExitWaitDeadlineMs = 500;
+      _deps.posixPermissionRetryNowMs = vi.fn(() => retryClock);
+      _deps.posixPermissionRetrySleep = vi.fn((ms) => {
+        retryClock += ms;
+      });
+      _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+      _deps.readProcessState = vi.fn(() => processState);
+      _deps.readProcessGroupStates = vi.fn(() => [processState]);
+      const denied = Object.assign(new Error("kill EPERM"), {
+        code: "EPERM",
+      });
+      _deps.kill = vi.fn((pid) => {
+        attempts += 1;
+        if (attempts <= 4) throw denied;
+        process.kill(Math.abs(Number(pid)), "SIGKILL");
+        processState = "Z";
+        return true;
+      });
+
+      expect(
+        stopBackgroundAgentChildTree(sleeperPid, {
+          platform: "linux",
+          signal: "SIGKILL",
+          expectedStartedAt: startedAt,
+          processGroup: true,
+          strictIdentity: true,
+          allowDirectFallback: false,
+        }),
+      ).toBe(true);
+      expect(_deps.kill.mock.calls).toEqual(
+        Array.from({ length: 5 }, () => [-sleeperPid, "SIGKILL"]),
+      );
+      expect(_deps.readProcessStartTimeMs).toHaveBeenCalledTimes(9);
+      expect(_deps.posixPermissionRetrySleep.mock.calls).toEqual([
+        [10],
+        [20],
+        [40],
+        [80],
+      ]);
+    },
+  );
+
+  it("waits probe-only through a transient strict keeper identity lookup failure", () => {
+    const sleeperPid = spawnSleeperPid();
+    const startedAt = Date.now();
+    let processState = "S";
+    let signalAttempts = 0;
+    let identityProbes = 0;
+    let retryClock = 0;
+    const events = [];
+    _deps.processExitWaitDeadlineMs = 100;
+    _deps.posixPermissionRetryNowMs = vi.fn(() => retryClock);
+    _deps.posixPermissionRetrySleep = vi.fn((ms) => {
+      events.push(`sleep:${ms}`);
+      retryClock += ms;
+    });
+    _deps.readProcessStartTimeMs = vi.fn(() => {
+      identityProbes += 1;
+      const value = identityProbes === 2 ? null : startedAt;
+      events.push(value === null ? "probe:unknown" : "probe:match");
+      return value;
+    });
+    _deps.readProcessState = vi.fn(() => processState);
+    _deps.readProcessGroupStates = vi.fn(() => [processState]);
+    const denied = Object.assign(new Error("kill EPERM"), {
+      code: "EPERM",
+    });
+    _deps.kill = vi.fn((pid, signal) => {
+      if (signal !== "SIGKILL") return true;
+      signalAttempts += 1;
+      events.push(`signal:${Number(pid) < 0 ? "group" : "direct"}`);
+      if (signalAttempts === 1) throw denied;
+      process.kill(Math.abs(Number(pid)), "SIGKILL");
+      processState = "Z";
+      return true;
+    });
+
+    expect(
+      stopBackgroundAgentChildTree(sleeperPid, {
+        platform: "linux",
+        signal: "SIGKILL",
+        expectedStartedAt: startedAt,
+        processGroup: true,
+        strictIdentity: true,
+        allowDirectFallback: false,
+      }),
+    ).toBe(true);
+    expect(events).toEqual([
+      "probe:match",
+      "signal:group",
+      "probe:unknown",
+      "sleep:10",
+      "probe:match",
+      "sleep:20",
+      "probe:match",
+      "signal:group",
+    ]);
+    expect(_deps.kill.mock.calls).not.toContainEqual([sleeperPid, "SIGKILL"]);
+  });
+
+  it("fails a persistent strict keeper identity lookup failure without resending", () => {
+    const sleeperPid = spawnSleeperPid();
+    const startedAt = Date.now();
+    let identityProbes = 0;
+    let retryClock = 0;
+    _deps.processExitWaitDeadlineMs = 35;
+    _deps.posixPermissionRetryNowMs = vi.fn(() => retryClock);
+    _deps.posixPermissionRetrySleep = vi.fn((ms) => {
+      retryClock += ms;
+    });
+    _deps.readProcessStartTimeMs = vi.fn(() => {
+      identityProbes += 1;
+      return identityProbes === 1 ? startedAt : null;
+    });
+    _deps.readProcessState = vi.fn(() => "S");
+    _deps.readProcessGroupStates = vi.fn(() => ["S"]);
+    const denied = Object.assign(new Error("kill EPERM"), {
+      code: "EPERM",
+    });
+    _deps.kill = vi.fn(() => {
+      throw denied;
+    });
+
+    expect(() =>
+      stopBackgroundAgentChildTree(sleeperPid, {
+        platform: "linux",
+        signal: "SIGKILL",
+        expectedStartedAt: startedAt,
+        processGroup: true,
+        strictIdentity: true,
+        allowDirectFallback: false,
+      }),
+    ).toThrow(
+      /signal resends 0, identity probe retries 3.*creation-time-probe-failed.*identity-probe-deadline/u,
+    );
+    expect(_deps.kill.mock.calls).toEqual([[-sleeperPid, "SIGKILL"]]);
+    expect(_deps.posixPermissionRetrySleep.mock.calls).toEqual([
+      [10],
+      [20],
+      [5],
+    ]);
+  });
+
+  it("settles transient unknown identity as dead or reused without resending", () => {
+    const startedAt = Date.now();
+    for (const terminalIdentity of [
+      { status: "absent" },
+      startedAt + 120_000,
+    ]) {
+      const sleeperPid = spawnSleeperPid();
+      let identityProbes = 0;
+      let retryClock = 0;
+      _deps.processExitWaitDeadlineMs = 100;
+      _deps.posixPermissionRetryNowMs = vi.fn(() => retryClock);
+      _deps.posixPermissionRetrySleep = vi.fn((ms) => {
+        retryClock += ms;
+      });
+      _deps.readProcessStartTimeMs = vi.fn(() => {
+        identityProbes += 1;
+        if (identityProbes === 1) return startedAt;
+        if (identityProbes === 2) return null;
+        return terminalIdentity;
+      });
+      _deps.readProcessState = vi.fn(() => "S");
+      _deps.readProcessGroupStates = vi.fn(() => []);
+      const denied = Object.assign(new Error("kill EPERM"), {
+        code: "EPERM",
+      });
+      _deps.kill = vi.fn(() => {
+        throw denied;
+      });
+
+      expect(
+        stopBackgroundAgentChildTree(sleeperPid, {
+          platform: "linux",
+          signal: "SIGKILL",
+          expectedStartedAt: startedAt,
+          processGroup: true,
+          strictIdentity: true,
+          allowDirectFallback: false,
+        }),
+      ).toBe(true);
+      expect(_deps.kill.mock.calls).toEqual([[-sleeperPid, "SIGKILL"]]);
+      expect(_deps.posixPermissionRetrySleep).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it.skipIf(process.platform === "win32")(
+    "fails a strict keeper group signal at the resend deadline without direct fallback",
+    () => {
+      const sleeperPid = spawnSleeperPid();
+      const startedAt = Date.now();
+      let retryClock = 0;
+      _deps.processExitWaitDeadlineMs = 35;
+      _deps.posixPermissionRetryNowMs = vi.fn(() => retryClock);
+      _deps.posixPermissionRetrySleep = vi.fn((ms) => {
+        retryClock += ms;
+      });
+      _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+      _deps.readProcessState = vi.fn(() => "S");
+      _deps.readProcessGroupStates = vi.fn(() => ["S"]);
+      const denied = Object.assign(new Error("kill EPERM"), {
+        code: "EPERM",
+      });
+      _deps.kill = vi.fn(() => {
+        throw denied;
+      });
+
+      expect(() =>
+        stopBackgroundAgentChildTree(sleeperPid, {
+          platform: "linux",
+          signal: "SIGKILL",
+          expectedStartedAt: startedAt,
+          processGroup: true,
+          strictIdentity: true,
+          allowDirectFallback: false,
+        }),
+      ).toThrow(
+        /signal resends 2, identity probe retries 3.*retry stopped by signal-retry-deadline/u,
+      );
+      expect(_deps.kill.mock.calls).toEqual(
+        Array.from({ length: 3 }, () => [-sleeperPid, "SIGKILL"]),
+      );
+      expect(_deps.posixPermissionRetrySleep.mock.calls).toEqual([
+        [10],
+        [20],
+        [5],
+      ]);
+      expect(_deps.kill).not.toHaveBeenCalledWith(sleeperPid, "SIGKILL");
+    },
+  );
+
+  it("does not authorize an extra resend when the retry clock is frozen", () => {
+    const sleeperPid = spawnSleeperPid();
+    const startedAt = Date.now();
+    _deps.processExitWaitDeadlineMs = 35;
+    _deps.posixPermissionRetryNowMs = vi.fn(() => 0);
+    _deps.posixPermissionRetrySleep = vi.fn();
+    _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+    _deps.readProcessState = vi.fn(() => "S");
+    _deps.readProcessGroupStates = vi.fn(() => ["S"]);
+    const denied = Object.assign(new Error("kill EPERM"), {
+      code: "EPERM",
+    });
+    _deps.kill = vi.fn(() => {
+      throw denied;
+    });
+
+    expect(() =>
+      stopBackgroundAgentChildTree(sleeperPid, {
+        platform: "linux",
+        signal: "SIGKILL",
+        expectedStartedAt: startedAt,
+        processGroup: true,
+        strictIdentity: true,
+        allowDirectFallback: false,
+      }),
+    ).toThrow(
+      /signal resends 2, identity probe retries 3.*retry stopped by signal-retry-deadline/u,
+    );
+    expect(_deps.kill.mock.calls).toEqual(
+      Array.from({ length: 3 }, () => [-sleeperPid, "SIGKILL"]),
+    );
+    expect(_deps.posixPermissionRetrySleep.mock.calls).toEqual([
+      [10],
+      [20],
+      [5],
+    ]);
+  });
+
+  it("preserves direct mode for a strict keeper runtime target", () => {
+    const sleeperPid = spawnSleeperPid();
+    const startedAt = Date.now();
+    let processState = "S";
+    let attempts = 0;
+    let retryClock = 0;
+    _deps.processExitWaitDeadlineMs = 100;
+    _deps.posixPermissionRetryNowMs = vi.fn(() => retryClock);
+    _deps.posixPermissionRetrySleep = vi.fn((ms) => {
+      retryClock += ms;
+    });
+    _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+    _deps.readProcessState = vi.fn(() => processState);
+    const denied = Object.assign(new Error("kill EPERM"), {
+      code: "EPERM",
+    });
+    _deps.kill = vi.fn((pid) => {
+      attempts += 1;
+      if (attempts === 1) throw denied;
+      process.kill(Number(pid), "SIGKILL");
+      processState = "Z";
+      return true;
+    });
+
+    expect(
+      stopBackgroundAgentChildTree(sleeperPid, {
+        platform: "linux",
+        signal: "SIGKILL",
+        expectedStartedAt: startedAt,
+        processGroup: false,
+        strictIdentity: true,
+        allowDirectFallback: false,
+      }),
+    ).toBe(true);
+    expect(_deps.kill.mock.calls).toEqual([
+      [sleeperPid, "SIGKILL"],
+      [sleeperPid, "SIGKILL"],
+    ]);
+    expect(_deps.kill).not.toHaveBeenCalledWith(-sleeperPid, "SIGKILL");
+  });
+
   it("fails closed when the bounded Windows taskkill times out", () => {
     const timeout = Object.assign(new Error("taskkill timed out"), {
       code: "ETIMEDOUT",
@@ -2467,6 +3693,98 @@ describe("background agent supervisor", () => {
     expect(_deps.kill).toHaveBeenNthCalledWith(2, 4242, "SIGTERM");
   });
 
+  it("can forbid the POSIX group-to-leader ESRCH fallback", () => {
+    const missing = Object.assign(new Error("kill ESRCH"), { code: "ESRCH" });
+    _deps.kill = vi.fn(() => {
+      throw missing;
+    });
+
+    expect(() =>
+      signalBackgroundProcessTree(4242, "SIGKILL", {
+        platform: "linux",
+        allowDirectFallback: false,
+      }),
+    ).toThrow(missing);
+    expect(_deps.kill.mock.calls).toEqual([[-4242, "SIGKILL"]]);
+  });
+
+  it("can signal an exact POSIX target without addressing a process group", () => {
+    _deps.kill = vi.fn();
+
+    expect(
+      signalBackgroundProcessTree(4242, "SIGTERM", {
+        platform: "darwin",
+        processGroup: false,
+      }),
+    ).toBe("process");
+    expect(_deps.kill).toHaveBeenCalledOnce();
+    expect(_deps.kill).toHaveBeenCalledWith(4242, "SIGTERM");
+  });
+
+  it.skipIf(process.platform === "win32")(
+    "signals the detached turn as a group but stops its worker and keeper by exact pid",
+    () => {
+      const startedAt = Date.now();
+      // The production liveness guard intentionally probes the kernel directly
+      // instead of the injectable signal seam. Use real detached sleepers so
+      // this POSIX-only fixture exercises that guard without depending on a
+      // fabricated pid being absent (or accidentally colliding on a runner).
+      const workerPid = spawnSleeperPid();
+      const keeperPid = spawnSleeperPid();
+      const agentPid = spawnSleeperPid();
+      const alive = new Set([workerPid, keeperPid, agentPid]);
+      const missing = () =>
+        Object.assign(new Error("kill ESRCH"), { code: "ESRCH" });
+      _deps.kill = vi.fn((pid, signal) => {
+        const target = Math.abs(Number(pid));
+        if (signal === 0) {
+          if (!alive.has(target)) throw missing();
+          return true;
+        }
+        alive.delete(target);
+        return true;
+      });
+      _deps.readProcessState = vi.fn((pid) =>
+        alive.has(Number(pid)) ? "S" : "Z",
+      );
+      _deps.readProcessGroupStates = vi.fn((pid) => {
+        const target = Number(pid);
+        if (target === agentPid) return alive.has(target) ? ["S"] : ["Z"];
+        // Simulate an unrelated live POSIX group whose PGID happens to equal
+        // the now-retired worker/keeper pid. Direct targets must not inherit
+        // that group's liveness after their exact process exits.
+        return ["S"];
+      });
+      _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+      writeBackgroundAgentState({
+        id: "bg-stop-owned-turn",
+        status: "running",
+        pid: workerPid,
+        workerPid,
+        startedAt,
+        keeperPid,
+        keeperStartedAt: startedAt,
+        agentPid,
+        agentStartedAt: startedAt,
+        agentRuntimePid: agentPid,
+        agentRuntimeStartedAt: startedAt,
+      });
+
+      expect(stopBackgroundAgent("bg-stop-owned-turn")).toMatchObject({
+        status: "stopped",
+        stopped: true,
+      });
+      const terminationSignals = _deps.kill.mock.calls.filter(
+        ([, signal]) => signal !== 0,
+      );
+      expect(terminationSignals).toEqual([
+        [-agentPid, "SIGTERM"],
+        [workerPid, "SIGTERM"],
+        [keeperPid, "SIGTERM"],
+      ]);
+    },
+  );
+
   it("does not fall back from a POSIX process-group permission failure", () => {
     const denied = Object.assign(new Error("kill EPERM"), { code: "EPERM" });
     _deps.kill = vi.fn(() => {
@@ -2479,6 +3797,531 @@ describe("background agent supervisor", () => {
     expect(_deps.kill).toHaveBeenCalledTimes(1);
     expect(_deps.kill).toHaveBeenCalledWith(-4242, "SIGTERM");
   });
+
+  it.skipIf(process.platform === "win32")(
+    "accepts POSIX EPERM only after a fresh identity probe proves the target retired",
+    () => {
+      const sleeperPid = spawnSleeperPid();
+      const startedAt = Date.now();
+      let processState = "S";
+      writeBackgroundAgentState({
+        id: "bg-stop-posix-eperm-retired",
+        status: "running",
+        pid: sleeperPid,
+        startedAt,
+      });
+      _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+      _deps.readProcessState = vi.fn(() => processState);
+      _deps.readProcessGroupStates = vi.fn(() => [processState]);
+      const denied = Object.assign(new Error("kill EPERM"), {
+        code: "EPERM",
+      });
+      _deps.kill = vi.fn((pid, signal) => {
+        if (signal === "SIGTERM") {
+          process.kill(Math.abs(Number(pid)), "SIGKILL");
+          processState = "Z";
+          throw denied;
+        }
+      });
+
+      expect(stopBackgroundAgent("bg-stop-posix-eperm-retired")).toMatchObject({
+        status: "stopped",
+        stopped: true,
+      });
+      expect(_deps.kill).toHaveBeenCalledWith(-sleeperPid, "SIGTERM");
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "uses probe-only recovery before retrying a POSIX EPERM group signal",
+    () => {
+      const sleeperPid = spawnSleeperPid();
+      const startedAt = Date.now();
+      let processState = "S";
+      let terminationAttempts = 0;
+      let identityProbes = 0;
+      let retryClock = 0;
+      const events = [];
+      writeBackgroundAgentState({
+        id: "bg-stop-posix-eperm-retry",
+        status: "running",
+        pid: sleeperPid,
+        startedAt,
+      });
+      _deps.processExitWaitDeadlineMs = 100;
+      _deps.posixPermissionRetryNowMs = vi.fn(() => retryClock);
+      _deps.posixPermissionRetrySleep = vi.fn((ms) => {
+        events.push(`sleep:${ms}`);
+        retryClock += ms;
+      });
+      _deps.readProcessStartTimeMs = vi.fn(() => {
+        identityProbes += 1;
+        const value = identityProbes === 3 ? null : startedAt;
+        events.push(value === null ? "probe:unknown" : "probe:match");
+        return value;
+      });
+      _deps.readProcessState = vi.fn(() => processState);
+      _deps.readProcessGroupStates = vi.fn(() => [processState]);
+      const denied = Object.assign(new Error("kill EPERM"), {
+        code: "EPERM",
+      });
+      _deps.kill = vi.fn((pid, signal) => {
+        if (signal !== "SIGTERM") return true;
+        terminationAttempts += 1;
+        events.push(`signal:${Number(pid) < 0 ? "group" : "direct"}`);
+        if (terminationAttempts === 1) throw denied;
+        process.kill(Math.abs(Number(pid)), "SIGKILL");
+        processState = "Z";
+        return true;
+      });
+
+      expect(stopBackgroundAgent("bg-stop-posix-eperm-retry")).toMatchObject({
+        status: "stopped",
+        stopped: true,
+      });
+      expect(terminationAttempts).toBe(2);
+      expect(_deps.kill).toHaveBeenNthCalledWith(1, -sleeperPid, "SIGTERM");
+      expect(_deps.kill).toHaveBeenNthCalledWith(2, -sleeperPid, "SIGTERM");
+      expect(events.slice(0, 8)).toEqual([
+        "probe:match",
+        "probe:match",
+        "signal:group",
+        "probe:unknown",
+        "sleep:10",
+        "probe:match",
+        "sleep:20",
+        "probe:match",
+      ]);
+      expect(events).not.toContain("signal:direct");
+    },
+  );
+
+  it("freshly rejects a later target reused while an earlier EPERM retry waits", () => {
+    const agentPid = spawnSleeperPid();
+    const workerPid = spawnSleeperPid();
+    const startedAt = Date.now();
+    const alive = new Set([agentPid, workerPid]);
+    let workerReused = false;
+    let agentTerminationAttempts = 0;
+    let retryClock = 0;
+    writeBackgroundAgentState({
+      id: "bg-stop-posix-eperm-later-reused",
+      status: "running",
+      pid: workerPid,
+      workerPid,
+      startedAt,
+      agentPid,
+      agentStartedAt: startedAt,
+      agentRuntimePid: agentPid,
+      agentRuntimeStartedAt: startedAt,
+    });
+    _deps.processExitWaitDeadlineMs = 100;
+    _deps.posixPermissionRetryNowMs = vi.fn(() => retryClock);
+    _deps.posixPermissionRetrySleep = vi.fn((ms) => {
+      retryClock += ms;
+      workerReused = true;
+    });
+    _deps.readProcessStartTimeMs = vi.fn((pid) =>
+      Number(pid) === workerPid && workerReused
+        ? startedAt + 120_000
+        : startedAt,
+    );
+    _deps.readProcessState = vi.fn((pid) =>
+      alive.has(Number(pid)) ? "S" : "Z",
+    );
+    _deps.readProcessGroupStates = vi.fn((pid) =>
+      alive.has(Number(pid)) ? ["S"] : ["Z"],
+    );
+    const denied = Object.assign(new Error("kill EPERM"), {
+      code: "EPERM",
+    });
+    _deps.kill = vi.fn((pid, signal) => {
+      if (signal !== "SIGTERM") return true;
+      const target = Math.abs(Number(pid));
+      if (target === agentPid) {
+        agentTerminationAttempts += 1;
+        if (agentTerminationAttempts === 1) throw denied;
+        process.kill(target, "SIGKILL");
+        alive.delete(target);
+        return true;
+      }
+      throw new Error("later reused worker must not be signalled");
+    });
+
+    const platformDescriptor = Object.getOwnPropertyDescriptor(
+      process,
+      "platform",
+    );
+    let result;
+    try {
+      Object.defineProperty(process, "platform", {
+        ...platformDescriptor,
+        value: "linux",
+      });
+      result = stopBackgroundAgent("bg-stop-posix-eperm-later-reused");
+    } finally {
+      Object.defineProperty(process, "platform", platformDescriptor);
+    }
+    expect(result).toMatchObject({
+      status: "lost",
+      lostReason: "pid-reused",
+      stopped: false,
+    });
+    expect(agentTerminationAttempts).toBe(2);
+    expect(
+      _deps.kill.mock.calls.filter(
+        ([pid, signal]) =>
+          Math.abs(Number(pid)) === workerPid && signal === "SIGTERM",
+      ),
+    ).toEqual([]);
+    expect(_deps.posixPermissionRetrySleep).toHaveBeenCalledWith(10);
+  });
+
+  it.skipIf(process.platform === "win32")(
+    "never turns a post-EPERM group ESRCH into a direct signal",
+    () => {
+      for (const finalIdentity of ["match", "unverifiable"]) {
+        const sleeperPid = spawnSleeperPid();
+        const startedAt = Date.now();
+        const id = `bg-stop-posix-eperm-esrch-${finalIdentity}`;
+        let identityProbes = 0;
+        let terminationAttempts = 0;
+        let retryClock = 0;
+        writeBackgroundAgentState({
+          id,
+          status: "running",
+          pid: sleeperPid,
+          startedAt,
+        });
+        _deps.processExitWaitDeadlineMs = 100;
+        _deps.posixPermissionRetryNowMs = vi.fn(() => retryClock);
+        _deps.posixPermissionRetrySleep = vi.fn((ms) => {
+          retryClock += ms;
+        });
+        _deps.readProcessStartTimeMs = vi.fn(() => {
+          identityProbes += 1;
+          return identityProbes >= 5 && finalIdentity === "unverifiable"
+            ? null
+            : startedAt;
+        });
+        _deps.readProcessState = vi.fn(() => "S");
+        _deps.readProcessGroupStates = vi.fn(() => ["S"]);
+        const denied = Object.assign(new Error("kill EPERM"), {
+          code: "EPERM",
+        });
+        const missing = Object.assign(new Error("kill ESRCH"), {
+          code: "ESRCH",
+        });
+        _deps.kill = vi.fn((pid, signal) => {
+          if (signal !== "SIGTERM") return true;
+          terminationAttempts += 1;
+          if (terminationAttempts === 1) throw denied;
+          throw missing;
+        });
+
+        expect(() => stopBackgroundAgent(id)).toThrow(/kill ESRCH/u);
+        expect(
+          _deps.kill.mock.calls.filter(([, signal]) => signal === "SIGTERM"),
+        ).toEqual([
+          [-sleeperPid, "SIGTERM"],
+          [-sleeperPid, "SIGTERM"],
+        ]);
+        expect(_deps.kill).not.toHaveBeenCalledWith(sleeperPid, "SIGTERM");
+        expect(readBackgroundAgentState(id)).toMatchObject({
+          phase: "stop_failed",
+          stopPending: true,
+          stopPendingReason: "process-termination",
+        });
+      }
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "settles a post-EPERM group ESRCH only after fresh dead or reused identity",
+    () => {
+      for (const finalIdentity of ["dead", "reused"]) {
+        const sleeperPid = spawnSleeperPid();
+        const startedAt = Date.now();
+        const reusedStartedAt = startedAt + 120_000;
+        const id = `bg-stop-posix-eperm-esrch-${finalIdentity}`;
+        let terminationAttempts = 0;
+        let postResend = false;
+        let postResendStateProbes = 0;
+        let retryClock = 0;
+        writeBackgroundAgentState({
+          id,
+          status: "running",
+          pid: sleeperPid,
+          startedAt,
+        });
+        _deps.processExitWaitDeadlineMs = 100;
+        _deps.posixPermissionRetryNowMs = vi.fn(() => retryClock);
+        _deps.posixPermissionRetrySleep = vi.fn((ms) => {
+          retryClock += ms;
+        });
+        _deps.readProcessState = vi.fn(() => {
+          if (!postResend) return "S";
+          postResendStateProbes += 1;
+          if (finalIdentity === "reused" && postResendStateProbes === 1) {
+            return "S";
+          }
+          return "Z";
+        });
+        _deps.readProcessStartTimeMs = vi.fn(() =>
+          postResend && finalIdentity === "reused"
+            ? reusedStartedAt
+            : startedAt,
+        );
+        _deps.readProcessGroupStates = vi.fn(() => (postResend ? [] : ["S"]));
+        const denied = Object.assign(new Error("kill EPERM"), {
+          code: "EPERM",
+        });
+        const missing = Object.assign(new Error("kill ESRCH"), {
+          code: "ESRCH",
+        });
+        _deps.kill = vi.fn((pid, signal) => {
+          if (signal !== "SIGTERM") return true;
+          terminationAttempts += 1;
+          if (terminationAttempts === 1) throw denied;
+          postResend = true;
+          throw missing;
+        });
+
+        expect(stopBackgroundAgent(id)).toMatchObject({
+          status: "stopped",
+          stopped: true,
+        });
+        expect(
+          _deps.kill.mock.calls.filter(([, signal]) => signal === "SIGTERM"),
+        ).toEqual([
+          [-sleeperPid, "SIGTERM"],
+          [-sleeperPid, "SIGTERM"],
+        ]);
+        expect(_deps.kill).not.toHaveBeenCalledWith(sleeperPid, "SIGTERM");
+      }
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "keeps retrying POSIX EPERM through the bounded exit window",
+    () => {
+      const sleeperPid = spawnSleeperPid();
+      const startedAt = Date.now();
+      let processState = "S";
+      let terminationAttempts = 0;
+      writeBackgroundAgentState({
+        id: "bg-stop-posix-eperm-window",
+        status: "running",
+        pid: sleeperPid,
+        startedAt,
+      });
+      _deps.processExitWaitDeadlineMs = 500;
+      let retryClock = 0;
+      _deps.posixPermissionRetryNowMs = vi.fn(() => retryClock);
+      _deps.posixPermissionRetrySleep = vi.fn((ms) => {
+        retryClock += ms;
+      });
+      _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+      _deps.readProcessState = vi.fn(() => processState);
+      _deps.readProcessGroupStates = vi.fn(() => [processState]);
+      const denied = Object.assign(new Error("kill EPERM"), {
+        code: "EPERM",
+      });
+      _deps.kill = vi.fn((pid, signal) => {
+        if (signal !== "SIGTERM") return true;
+        terminationAttempts += 1;
+        if (terminationAttempts <= 4) throw denied;
+        process.kill(Math.abs(Number(pid)), "SIGKILL");
+        processState = "Z";
+        return true;
+      });
+
+      expect(stopBackgroundAgent("bg-stop-posix-eperm-window")).toMatchObject({
+        status: "stopped",
+        stopped: true,
+      });
+      expect(terminationAttempts).toBe(5);
+      expect(
+        _deps.kill.mock.calls.filter(([, signal]) => signal === "SIGTERM"),
+      ).toEqual(Array.from({ length: 5 }, () => [-sleeperPid, "SIGTERM"]));
+      expect(_deps.readProcessStartTimeMs).toHaveBeenCalledTimes(10);
+      expect(_deps.posixPermissionRetrySleep.mock.calls).toEqual([
+        [10],
+        [20],
+        [40],
+        [80],
+      ]);
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "preserves direct signal mode across POSIX EPERM retries",
+    () => {
+      const agentPid = spawnSleeperPid();
+      const workerPid = spawnSleeperPid();
+      const keeperPid = spawnSleeperPid();
+      const startedAt = Date.now();
+      const alive = new Set([agentPid, workerPid, keeperPid]);
+      let workerTerminationAttempts = 0;
+      writeBackgroundAgentState({
+        id: "bg-stop-posix-eperm-direct",
+        status: "running",
+        pid: workerPid,
+        workerPid,
+        startedAt,
+        keeperPid,
+        keeperStartedAt: startedAt,
+        agentPid,
+        agentStartedAt: startedAt,
+        agentRuntimePid: agentPid,
+        agentRuntimeStartedAt: startedAt,
+      });
+      _deps.processExitWaitDeadlineMs = 500;
+      let retryClock = 0;
+      _deps.posixPermissionRetryNowMs = vi.fn(() => retryClock);
+      _deps.posixPermissionRetrySleep = vi.fn((ms) => {
+        retryClock += ms;
+      });
+      _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+      _deps.readProcessState = vi.fn((pid) =>
+        alive.has(Number(pid)) ? "S" : "Z",
+      );
+      _deps.readProcessGroupStates = vi.fn((pid) =>
+        alive.has(Number(pid)) ? ["S"] : ["Z"],
+      );
+      const denied = Object.assign(new Error("kill EPERM"), {
+        code: "EPERM",
+      });
+      _deps.kill = vi.fn((pid, signal) => {
+        if (signal !== "SIGTERM") return true;
+        const target = Math.abs(Number(pid));
+        if (target === workerPid) {
+          workerTerminationAttempts += 1;
+          if (workerTerminationAttempts <= 4) throw denied;
+        }
+        process.kill(target, "SIGKILL");
+        alive.delete(target);
+        return true;
+      });
+
+      expect(stopBackgroundAgent("bg-stop-posix-eperm-direct")).toMatchObject({
+        status: "stopped",
+        stopped: true,
+      });
+      const workerSignals = _deps.kill.mock.calls.filter(
+        ([pid, signal]) => Number(pid) === workerPid && signal === "SIGTERM",
+      );
+      expect(workerSignals).toEqual(
+        Array.from({ length: 5 }, () => [workerPid, "SIGTERM"]),
+      );
+      expect(_deps.kill).not.toHaveBeenCalledWith(-workerPid, "SIGTERM");
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "fails a persistent POSIX creation-time probe outage without resending",
+    () => {
+      const sleeperPid = spawnSleeperPid();
+      const startedAt = Date.now();
+      let identityProbes = 0;
+      writeBackgroundAgentState({
+        id: "bg-stop-posix-eperm-unverifiable",
+        status: "running",
+        pid: sleeperPid,
+        startedAt,
+      });
+      _deps.readProcessStartTimeMs = vi.fn(() => {
+        identityProbes += 1;
+        return identityProbes >= 3 ? null : startedAt;
+      });
+      _deps.readProcessState = vi.fn(() => "S");
+      _deps.readProcessGroupStates = vi.fn(() => ["S"]);
+      _deps.processExitWaitDeadlineMs = 35;
+      let retryClock = 0;
+      _deps.posixPermissionRetryNowMs = vi.fn(() => retryClock);
+      _deps.posixPermissionRetrySleep = vi.fn((ms) => {
+        retryClock += ms;
+      });
+      const denied = Object.assign(new Error("kill EPERM"), {
+        code: "EPERM",
+      });
+      _deps.kill = vi.fn(() => {
+        throw denied;
+      });
+
+      expect(() =>
+        stopBackgroundAgent("bg-stop-posix-eperm-unverifiable"),
+      ).toThrow(
+        /worker pid .*process-group.*signal resends 0.*identity probe retries 3.*creation-time-probe-failed.*identity-probe-deadline.*kill EPERM/u,
+      );
+      expect(_deps.kill).toHaveBeenCalledTimes(1);
+      expect(identityProbes).toBe(6);
+      expect(_deps.posixPermissionRetrySleep.mock.calls).toEqual([
+        [10],
+        [20],
+        [5],
+      ]);
+      expect(
+        readBackgroundAgentState("bg-stop-posix-eperm-unverifiable"),
+      ).toMatchObject({
+        status: "running",
+        phase: "stop_failed",
+        stopPending: true,
+        stopPendingReason: "process-termination",
+      });
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "fails closed when POSIX EPERM still resolves to the recorded process",
+    () => {
+      const sleeperPid = spawnSleeperPid();
+      const startedAt = Date.now();
+      writeBackgroundAgentState({
+        id: "bg-stop-posix-eperm-live",
+        status: "running",
+        pid: sleeperPid,
+        startedAt,
+      });
+      _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+      _deps.readProcessState = vi.fn(() => "S");
+      _deps.readProcessGroupStates = vi.fn(() => ["S"]);
+      _deps.processExitWaitDeadlineMs = 35;
+      let retryClock = 0;
+      _deps.posixPermissionRetryNowMs = vi.fn(() => retryClock);
+      _deps.posixPermissionRetrySleep = vi.fn((ms) => {
+        retryClock += ms;
+      });
+      const denied = Object.assign(new Error("kill EPERM"), {
+        code: "EPERM",
+      });
+      _deps.kill = vi.fn(() => {
+        throw denied;
+      });
+
+      expect(() => stopBackgroundAgent("bg-stop-posix-eperm-live")).toThrow(
+        /worker pid .*process-group.*signal resends 2.*identity probe retries 3.*last identity match.*retry stopped by signal-retry-deadline.*kill EPERM/u,
+      );
+      expect(_deps.kill).toHaveBeenCalledTimes(3);
+      expect(_deps.kill).toHaveBeenCalledWith(-sleeperPid, "SIGTERM");
+      expect(_deps.posixPermissionRetrySleep.mock.calls).toEqual([
+        [10],
+        [20],
+        [5],
+      ]);
+      expect(
+        readBackgroundAgentState("bg-stop-posix-eperm-live"),
+      ).toMatchObject({
+        status: "running",
+        phase: "stop_failed",
+        stopPending: true,
+        stopPendingReason: "process-termination",
+        stopError: expect.stringMatching(
+          /process-group.*signal resends 2.*identity probe retries 3.*signal-retry-deadline/u,
+        ),
+      });
+    },
+  );
 
   it.skipIf(process.platform === "win32")(
     "reads POSIX group states through the constrained execution broker",
@@ -2517,6 +4360,7 @@ describe("background agent supervisor", () => {
       _deps.readProcessState = vi
         .fn()
         .mockReturnValueOnce("S")
+        .mockReturnValueOnce("S")
         .mockReturnValue("Z");
       _deps.readProcessGroupStates = vi.fn(() => ["Z"]);
       _deps.kill = vi.fn();
@@ -2542,6 +4386,7 @@ describe("background agent supervisor", () => {
       _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
       _deps.readProcessState = vi
         .fn()
+        .mockReturnValueOnce("S")
         .mockReturnValueOnce("S")
         .mockReturnValue("Z");
       _deps.readProcessGroupStates = vi.fn(() => ["Z", "S"]);
@@ -2574,6 +4419,7 @@ describe("background agent supervisor", () => {
       _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
       _deps.readProcessState = vi
         .fn()
+        .mockReturnValueOnce("S")
         .mockReturnValueOnce("S")
         .mockReturnValue("Z");
       _deps.readProcessGroupStates = vi.fn(() => null);
@@ -2901,6 +4747,11 @@ describe("pid identity — reuse detection (Gap 1, supervisor gap 2026-07-11)", 
     expect(isSameProcess(999999999, now)).toBe(false);
     // no anchor → legacy semantics (alive is enough)
     expect(isSameProcess(process.pid, undefined)).toBe(true);
+  });
+
+  it("treats an authoritative absent process probe as dead", () => {
+    _deps.readProcessStartTimeMs = vi.fn(() => ({ status: "absent" }));
+    expect(isSameProcess(process.pid, Date.now())).toBe(false);
   });
 
   it.skipIf(process.platform !== "win32")(
@@ -3360,13 +5211,17 @@ describe("prompt queue backpressure (Gap 4, supervisor gap 2026-07-11)", () => {
 
     conn.close();
     // This test owns every PID in the freshly launched record. Process
-    // identity admission has dedicated coverage above; return a fresh
-    // in-window creation time here so a worker turn-state update cannot make
-    // this queue/backpressure test depend on a second OS identity probe.
+    // identity admission has dedicated coverage above; return one stable,
+    // in-window creation-time anchor so a worker turn-state update cannot make
+    // this queue/backpressure test depend on a second OS identity probe. This
+    // seam also validates state-lock owners: advancing Date.now() on every
+    // call would falsely classify a live owner as PID reuse after it acquired
+    // the lock and let a stale writer overwrite the durable stop fence.
+    const fixtureProcessStartedAt = Number(state.startedAt);
     _deps.readProcessStartTimeMs = vi.fn((pid) => {
       const target = Number(pid);
       return Number.isInteger(target) && target > 0 && target !== process.pid
-        ? Date.now()
+        ? fixtureProcessStartedAt
         : null;
     });
     // Reap the worker tree so the 20s turn + 100 queued turns never run on.
@@ -3399,7 +5254,29 @@ describe("prompt queue backpressure (Gap 4, supervisor gap 2026-07-11)", () => {
     } else {
       _deps.kill = (pid, signal) => process.kill(pid, signal);
     }
-    const stopped = stopBackgroundAgent(state.id);
+    let stopped = stopBackgroundAgent(state.id);
+    // Under a fully parallel strict-sandbox shard the worker can be inside the
+    // durable prepare->spawn window when cleanup starts. The production stop
+    // contract deliberately fences that window and returns stopPending rather
+    // than signalling an unowned child. Wait for the worker to settle that
+    // intent, then retry only once the durable record says signalling is safe.
+    const stopDeadline = Date.now() + 15_000;
+    while (!stopped.stopped && Date.now() < stopDeadline) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      const latest = readBackgroundAgentState(state.id);
+      if (latest?.status === "stopped") {
+        stopped = { ...latest, stopped: true };
+        break;
+      }
+      if (
+        latest?.status === "running" &&
+        !latest.turnLaunchIntent &&
+        latest.turnLaunchFinalizationUncertain !== true &&
+        latest.launchFinalizationUncertain !== true
+      ) {
+        stopped = stopBackgroundAgent(state.id);
+      }
+    }
     expect(
       stopped,
       `stop=${JSON.stringify({
@@ -3413,5 +5290,5 @@ describe("prompt queue backpressure (Gap 4, supervisor gap 2026-07-11)", () => {
         interactionRecovery: stopped.interactionRecovery,
       })}`,
     ).toMatchObject({ stopped: true, status: "stopped" });
-  }, 30000);
+  }, 60_000);
 });

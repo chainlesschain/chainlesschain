@@ -1,8 +1,8 @@
 # 权限规则（cc permissions）
 
-> **状态: ✅ 生产可用 | Claude-Code `permissions.{allow,ask,deny}` 平价 | deny > ask > allow | 65 测试全绿**
+> **状态: ✅ CLI 0.164.0 生产可用 | Claude-Code `permissions.{allow,ask,deny}` 平价 | deny > ask > allow | workspace-scoped authority + Side-effect Center**
 >
-> `cc permissions`（别名 `cc perms`）查看、干跑、编辑 `.claude/settings.json` 的权限规则集。规则引擎已接入 agent 工具循环（`executeTool` seam）：`deny` 硬拦截、`ask` 弹确认（headless 无确认器时 fail-closed）、`allow` 预授权短路 plan-mode 拦截与 run_shell 审批门——但**永不**重开 shell 硬黑名单。注意与 `cc perm`（[RBAC V2 治理](./cli-perm.md)）是两套完全独立的系统。
+> `cc permissions`（别名 `cc perms`）查看、干跑、编辑 `.claude/settings.json` 的权限规则集，也能创建有 TTL 的 workspace-scoped 规则并读取实际资源/副作用证据。规则引擎已接入 agent 工具循环：`deny` 硬拦截、`ask` 弹确认（headless 无确认器时 fail-closed）、`allow` 预授权短路 plan-mode 拦截与 run_shell 审批门——但**永不**重开 shell 硬黑名单。注意与 `cc perm`（[RBAC V2 治理](./cli-perm.md)）是两套完全独立的系统。
 
 ## 概述
 
@@ -30,6 +30,8 @@ Bash                          → 所有 run_shell 调用
 - 🤝 **交互 always-allow**：REPL 风险确认升级为 `[y]es once / [a]lways allow / [N]o`，选 `[a]` 经 `suggestAllowRule` 推导规则（命令 → `Bash(git push:*)`，对 git/npm/docker 等 16 个分发器保留 2 token 前缀；路径 → `<Umbrella>(<dir>/**)`；URL → `WebFetch(domain:host)`）写入 `.claude/settings.local.json`，本会话即时生效
 - 🛡️ **fail-open 加载 / fail-closed 执行**：坏 settings 文件警告后跳过（绝不卡死 agent，回落既有风险逻辑）；`ask` 规则在 headless 无确认器时直接拒绝
 - ⚙️ **附带配置覆盖**：同一批 settings 文件还可携带 `model` 与 `env`（`loadSettingsConfig`，后读覆盖先读），一次性覆盖运行配置
+- 🧭 **Side-effect Center（0.164.0）**：`cc permissions activity` 按持久 session 展示实际 filesystem/network/process/runtime/credential-name 资源、副作用、irreversibility、decision source、call chain 与 recovery coverage；敏感凭据只显示名称，不显示值
+- ⏱️ **Workspace-scoped 规则（0.164.0）**：`cc permissions scoped` 创建绑定 canonical workspace、store generation、TTL 与理由的临时 allow/ask/deny；`revoke` 使用 record revision CAS，过期投影不能撤销或覆盖新状态
 
 ## 命令参考
 
@@ -40,6 +42,10 @@ cc permissions test <tool> [args...] [--json]        # 干跑：哪条规则决�
 cc permissions add <allow|ask|deny> <rule>           # 追加规则（默认写 project 文件）
     [--local]                                        #   写 .claude/settings.local.json（个人，gitignored）
     [--user]                                         #   写 ~/.claude/settings.json（全项目）
+cc permissions activity --session <id> [--limit 50] [--json]
+cc permissions scoped <allow|ask|deny> <rule> --expires-in <30s|15m|2h|1d>
+    [--reason <text>] [--expected-generation <n>] [--json]
+cc permissions revoke <rule-id> --revision <n> [--json]
 ```
 
 `.claude/settings.json` 中的规则块：
@@ -94,6 +100,9 @@ CC_PERMISSIONS_ALLOW/_ASK/_DENY    (env kill-switch，最高)
 | 环境变量      | `CC_PERMISSIONS_ALLOW` / `CC_PERMISSIONS_ASK` / `CC_PERMISSIONS_DENY` | 逗号/换行分隔的规则列表，最高优先级 kill-switch       |
 | CLI flag      | `cc agent --settings <file>`                                          | 在层级里追加一个显式 settings 文件                    |
 | CLI flag      | `cc permissions add --local / --user`                                 | 写入目标：local（个人）/ user（全项目）/ 默认 project |
+| CLI command   | `cc permissions activity --session <id>`                              | 读取有界实际资源、副作用、权限与恢复证据              |
+| CLI command   | `cc permissions scoped ... --expires-in <duration>`                   | 创建 workspace-scoped 临时规则                        |
+| CLI command   | `cc permissions revoke <id> --revision <n>`                           | 以 revision CAS 撤销临时规则                          |
 
 路径模式语义：`./x` 与 `x` 相对 cwd 解析；`//abs/x` 绝对路径（Claude-Code 约定，首个 `/` 去掉）；`~/x` 解析到 home。命令模式：`prefix:*` 前缀匹配；含 `*` 走 glob；否则全等。URL 模式：`domain:host`（host 可含 glob）或对整个 URL 的 glob。
 
@@ -128,6 +137,8 @@ npx vitest run __tests__/unit/permission-rules.test.js __tests__/unit/settings-l
 - **加载 fail-open、不破坏可用性**：坏 settings 文件只警告并跳过——损坏的配置文件绝不让 agent 卡死，回落到默认风险逻辑（仍然有保护）。
 - **写入拒绝践踏坏文件**：`addRule` 发现目标文件是非法 JSON 时抛错拒写，防止把用户手写配置静默清空。
 - **显式 UTF-8 读写**，规避 Windows GBK 编码陷阱。
+- **临时规则不是 settings 覆盖**：scoped store 与 `.claude/settings*.json` 分离；workspace、generation、revision 或 TTL 不匹配时失败闭合，且不能移除静态 deny。
+- **证据投影不泄密**：activity 只记录 bounded resource 与 credential name，不记录 credential value；`partial` / `unknown` recovery coverage 不能被解释为可回滚。
 - **敏感文件写入守卫（v0.162.46+）**：`write_file`/`edit_file` 指向 shell 启动文件（`.bashrc`/`.zshenv` 族、PowerShell profile、fish 配置）或 `.git/hooks`、`.husky` 钩子（`.husky/_` 除外）时，即使其它流程已放行也**强制确认** —— 防植入代码在下次开 shell / 提交时执行。唯一旁路是显式 settings `allow` 规则；headless 无确认器时 fail-closed。模式集刻意保守（`Makefile`/`package.json` 等日常文件不拦）。
 
 ## 故障排除
@@ -179,6 +190,19 @@ CC_PERMISSIONS_DENY="WebFetch,Bash(curl:*)" cc agent -p "运行测试并总结"
 
 # 7) 带显式 settings 文件跑 agent
 cc agent --settings ./ci-permissions.json -p "构建并部署到 staging"
+
+# 8) 查看当前 session 实际触达的资源和副作用
+cc permissions activity --session release-review --json
+
+# 9) 根据最新投影 generation 创建 30 分钟、仅当前 workspace 有效的 ask 规则
+cc permissions scoped ask "Bash(git push:*)" \
+  --expires-in 30m \
+  --reason "release review" \
+  --expected-generation <generation> \
+  --json
+
+# 10) 撤销前重新读取规则，再使用最新 revision
+cc permissions revoke <rule-id> --revision <revision> --json
 ```
 
 ## 相关文档

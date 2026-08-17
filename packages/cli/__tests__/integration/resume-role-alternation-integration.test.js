@@ -15,13 +15,14 @@
 
 import { describe, it, expect, vi, afterEach } from "vitest";
 
-vi.mock("../../src/lib/plan-mode.js", () => ({
-  getPlanModeManager: vi.fn(() => ({
+vi.mock("../../src/lib/plan-mode.js", () => {
+  const planModeManager = {
     isActive: () => false,
     isToolAllowed: () => true,
     addPlanItem: vi.fn(),
-  })),
-}));
+  };
+  return { getPlanModeManager: vi.fn(() => planModeManager) };
+});
 
 vi.mock("../../src/lib/skill-loader.js", () => ({
   CLISkillLoader: vi.fn(function () {

@@ -8,13 +8,14 @@ import { _resetPluginBinSandboxPolicyPins } from "../../src/lib/plugin-runtime/b
 import { pluginVersionDir } from "../../src/lib/plugin-runtime/scopes.js";
 
 // Mock plan-mode, skill-loader, hook-manager before importing agent-core
-vi.mock("../../src/lib/plan-mode.js", () => ({
-  getPlanModeManager: vi.fn(() => ({
+vi.mock("../../src/lib/plan-mode.js", () => {
+  const planModeManager = {
     isActive: () => false,
     isToolAllowed: () => true,
     addPlanItem: vi.fn(),
-  })),
-}));
+  };
+  return { getPlanModeManager: vi.fn(() => planModeManager) };
+});
 
 vi.mock("../../src/lib/skill-loader.js", () => ({
   CLISkillLoader: vi.fn(function () {
@@ -314,7 +315,7 @@ describe("executeTool — run_code enhancements", () => {
         "python3",
         [expect.stringMatching(/cc-agent-\d+\.py$/)],
         expect.objectContaining({
-          cwd: tempDir,
+          cwd: fs.realpathSync.native(tempDir),
           origin: "agent-core:run-code",
           policy: "allow",
           scope: "agent-core",
@@ -341,7 +342,7 @@ describe("executeTool — run_code enhancements", () => {
         "python3",
         [expect.stringMatching(/cc-agent-\d+\.py$/)],
         expect.objectContaining({
-          cwd: tempDir,
+          cwd: fs.realpathSync.native(tempDir),
           origin: "agent-core:run-code",
           policy: "allow",
           scope: "agent-core",
@@ -469,7 +470,7 @@ describe("executeTool — run_code enhancements", () => {
         "node",
         [expect.stringMatching(/cc-agent-\d+\.js$/)],
         expect.objectContaining({
-          cwd: tempDir,
+          cwd: fs.realpathSync.native(tempDir),
           origin: "agent-core:run-code",
           policy: "allow",
           scope: "agent-core",

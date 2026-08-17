@@ -1,6 +1,6 @@
 # CLI 命令行工具
 
-> **当前版本边界（2026-08-14）：产品 v5.0.3.135 / 推荐 CLI 0.163.8（npm latest、主线包元数据与完整门禁已对齐）| 175 命令 | Node.js ≥ 22.12.0。`main@affafa7f0f` 的 `/paste-image` 晚于稳定 tarball。**
+> **当前版本边界（2026-08-16）：产品 v5.0.3.135 / 推荐 CLI 0.164.0（npm latest、主线包元数据与完整门禁已对齐）| 175 命令 | Node.js ≥ 22.12.0。本次部署快照 `HEAD@99f5bf8214` 的远程审批成员 epoch、Cowork 动态准入复验、canonical workspace/delivery authority、zombie-safe supervisor lock 与 Remote-SSH/canonical evidence root 修复晚于稳定 tarball。**
 
 ## 概述
 
@@ -409,7 +409,7 @@ chainlesschain --quiet      # 静默模式
 | `serve`             | WebSocket 服务器 (远程CLI调用/流式/认证)                                                                                                                     | [WebSocket服务器](./cli-serve) |
 | `ui`                | Web 管理界面 (浏览器端/项目&全局模式)                                                                                                                        | [Web管理界面](./cli-ui)        |
 
-> `0.163.8` 已发布 `cc team merge-review preview|show|apply|rollback` 与 MCP `list_mcp_resource_templates` 只读工具面。源码 `main@affafa7f0f` 还允许在交互式 Agent REPL 中复制图片后运行 `/paste-image`；支持 PNG/JPEG/GIF/WebP，单图 20 MiB、每轮 4 张/40 MiB、10 秒超时，但该能力尚未进入当前 npm tarball。
+> `0.164.0` 已发布交互式 Agent REPL 原生 `/paste-image`（PNG/JPEG/GIF/WebP，单图 20 MiB、每轮 4 张/40 MiB、10 秒超时）、作用域执行与上下文权限、受治理插件市场、后台 keeper 收口及 MCP capsule 证据。精确 SHA `313dec85cf` 已通过三平台 CLI CI、Strict Sandbox、npm 发布与独立 registry 回读。当前主线的新远程审批成员 epoch、Cowork 动态准入复验和 canonical workspace authority 仍按发布后源码增量说明。
 
 ---
 

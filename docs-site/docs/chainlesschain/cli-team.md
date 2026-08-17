@@ -1,6 +1,6 @@
 # Agent Team：声明式任务图协作（`cc team`）
 
-> 状态：P2-16 已完成并随 CLI `0.162.189` 首次公开；当前生产推荐版为 `0.163.8`（2026-08-14）。`0.163.8` 新增受治理的 file/hunk merge review；实现候选
+> 状态：P2-16 已完成并随 CLI `0.162.189` 首次公开；当前生产推荐版为 `0.164.0`（2026-08-16）。`0.163.8` 新增受治理的 file/hunk merge review，`0.164.0` 进一步加入作用域执行与上下文权限；实现候选
 > `7df6feced4670ac71d19548752d18ac4cc225025` 的三平台短门与各 120 分钟 soak
 > 均成功；最终发布提交
 > [`2607af0dadeb951583139942e5f2add3e95e1208`](https://github.com/chainlesschain/chainlesschain/commit/2607af0dadeb951583139942e5f2add3e95e1208)
@@ -781,18 +781,18 @@ npm run test:integration -- team
 
 ## 关键文件
 
-| 文件                                                         | 职责                                     |
-| ------------------------------------------------------------ | ---------------------------------------- |
-| `packages/cli/src/commands/team.js`                          | `cc team` 命令、参数校验与输出协议       |
-| `packages/cli/src/commands/team-distributed.js`              | `cc team queue` 分布式队列命令           |
-| `packages/cli/src/lib/agent-team/team-runner.js`             | 本地 DAG 调度、并发控制与任务生命周期    |
-| `packages/cli/src/lib/agent-team/team-task-contract.js`      | 任务图规范化、依赖和容量边界校验         |
-| `packages/cli/src/lib/agent-team/team-distributed-queue.js`  | 分布式队列状态、锁与 revision 协议       |
-| `packages/cli/src/lib/agent-team/task-lease.js`              | 租约领取、续租、过期和 fenced completion |
-| `packages/cli/src/lib/agent-team/team-budget.js`             | token、USD、wall time 与任务尝试预算     |
-| `packages/cli/src/lib/agent-team/team-worktree.js`           | Git worktree 隔离与最终发布              |
-| `packages/cli/src/lib/agent-team/team-process-checkpoint.js` | 托管执行、checkpoint 与回滚边界          |
-| `packages/cli/src/lib/agent-team/team-adjudication.js`       | 不确定结果的证据绑定和裁决               |
+| 文件                                                         | 职责                                       |
+| ------------------------------------------------------------ | ------------------------------------------ |
+| `packages/cli/src/commands/team.js`                          | `cc team` 命令、参数校验与输出协议         |
+| `packages/cli/src/commands/team-distributed.js`              | `cc team queue` 分布式队列命令             |
+| `packages/cli/src/lib/agent-team/team-runner.js`             | 本地 DAG 调度、并发控制与任务生命周期      |
+| `packages/cli/src/lib/agent-team/team-task-contract.js`      | 任务图规范化、依赖和容量边界校验           |
+| `packages/cli/src/lib/agent-team/team-distributed-queue.js`  | 分布式队列状态、锁与 revision 协议         |
+| `packages/cli/src/lib/agent-team/task-lease.js`              | 租约领取、续租、过期和 fenced completion   |
+| `packages/cli/src/lib/agent-team/team-budget.js`             | token、USD、wall time 与任务尝试预算       |
+| `packages/cli/src/lib/agent-team/team-worktree.js`           | Git worktree 隔离与最终发布                |
+| `packages/cli/src/lib/agent-team/team-process-checkpoint.js` | 托管执行、checkpoint 与回滚边界            |
+| `packages/cli/src/lib/agent-team/team-adjudication.js`       | 不确定结果的证据绑定和裁决                 |
 | `packages/cli/src/commands/team-merge-review.js`             | merge review 命令、严格参数和输出 envelope |
 | `packages/cli/src/lib/agent-team/team-merge-review*.js`      | file/hunk 计划、状态、发布事务与受控回滚   |
 

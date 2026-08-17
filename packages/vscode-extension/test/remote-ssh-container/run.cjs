@@ -332,32 +332,95 @@ function createRemoteWorkspace(runRoot, cliVersion) {
   return staged;
 }
 
-function requiredArtifactNegativeControl(paths) {
-  const names = [
-    "exact-commit",
-    "host-environment",
-    "remote-environment",
-    "outcome-observations",
-    "redacted-diagnostics",
-    "artifact-digests",
-    "candidate-vsix",
-    "candidate-manifest",
-  ];
-  const assertComplete = (candidate) => {
-    for (const name of names) {
-      if (
-        !candidate[name] ||
-        !fs.statSync(candidate[name], { throwIfNoEntry: false })?.isFile()
-      ) {
-        throw new Error(`missing required artifact: ${name}`);
-      }
-    }
+function createRemoteWorkspaceDefinition(remoteAuthority) {
+  assert.match(
+    remoteAuthority,
+    /^ssh-remote\+[A-Za-z0-9._-]+$/u,
+    "invalid Remote-SSH workspace authority",
+  );
+  return {
+    folders: REMOTE_WORKSPACES.map((folder, index) => ({
+      name: index === 0 ? "primary" : "secondary",
+      uri: `vscode-remote://${remoteAuthority}${folder}`,
+    })),
+    remoteAuthority,
+    settings: {
+      "chainlesschain.ide.enabled": true,
+      "chainlesschain.cli.managed.enabled": false,
+      "chainlesschain.cli.path": `${REMOTE_HOME}/bin/cc`,
+      "extensions.autoCheckUpdates": false,
+      "extensions.autoUpdate": false,
+      "telemetry.telemetryLevel": "off",
+      "update.mode": "none",
+    },
   };
-  assertComplete(paths);
+}
+
+function createContainerMarker(nonce) {
+  assert.match(
+    nonce,
+    /^[a-f0-9]{24}$/u,
+    "invalid Remote-SSH container marker nonce",
+  );
+  return `chainlesschain-remote-ssh-container:${nonce}`;
+}
+
+const REQUIRED_ARTIFACT_NAMES = Object.freeze([
+  "exact-commit",
+  "host-environment",
+  "remote-environment",
+  "outcome-observations",
+  "redacted-diagnostics",
+  "artifact-digests",
+  "candidate-vsix",
+  "candidate-manifest",
+]);
+
+function assertRequiredArtifacts(paths, { outcomePending = false } = {}) {
+  for (const name of REQUIRED_ARTIFACT_NAMES) {
+    // The outcome records this negative control, so it cannot exist while the
+    // control is being evaluated. This exception is deliberately limited to
+    // that one self-referential file; the complete set is asserted after the
+    // outcome is written and before any trusted evidence is emitted.
+    if (outcomePending && name === "outcome-observations") continue;
+    if (
+      !paths[name] ||
+      !fs.statSync(paths[name], { throwIfNoEntry: false })?.isFile()
+    ) {
+      throw new Error(`missing required artifact: ${name}`);
+    }
+  }
+}
+
+function requiredArtifactNegativeControl(
+  paths,
+  { outcomePending = false } = {},
+) {
+  assertRequiredArtifacts(paths, { outcomePending });
   const incomplete = { ...paths };
   delete incomplete["remote-environment"];
-  assert.throws(() => assertComplete(incomplete), /missing required artifact/u);
+  assert.throws(
+    () => assertRequiredArtifacts(incomplete, { outcomePending }),
+    /missing required artifact/u,
+  );
   return true;
+}
+
+function writeOutcomeObservations(semanticPaths, observations) {
+  const outcomePath = semanticPaths["outcome-observations"];
+  if (typeof outcomePath !== "string" || !outcomePath) {
+    throw new Error("missing required artifact path: outcome-observations");
+  }
+  const missingRequiredArtifactsFail = requiredArtifactNegativeControl(
+    semanticPaths,
+    { outcomePending: true },
+  );
+  writeJson(outcomePath, {
+    schema: "chainlesschain.ide-roadmap-outcome-observations.v1",
+    ...observations,
+    missingRequiredArtifactsFail,
+  });
+  assertRequiredArtifacts(semanticPaths);
 }
 
 async function writeJourneyEvidence({
@@ -394,7 +457,13 @@ async function writeJourneyEvidence({
     result: semanticPaths.remoteJourneyPassed ? "passed" : "failed",
     startedAt,
     finishedAt: new Date().toISOString(),
-    sourceRoots: [path.join(runRoot, "remote-runtime"), diagnosticsPath],
+    sourceRoots: [
+      path.join(runRoot, "remote-runtime"),
+      path.join(runRoot, "vscode-remote-ssh.log"),
+      path.join(runRoot, "user-data", "logs"),
+      path.join(runRoot, "remote-vscode-logs"),
+      diagnosticsPath,
+    ].filter((sourcePath) => fs.existsSync(sourcePath)),
     artifactPaths: [remoteSshPayload, remoteSshVsix],
     roadmapArtifactPaths: Object.fromEntries(
       Object.entries(semanticPaths).filter(
@@ -435,7 +504,7 @@ async function main() {
   const container = `cc-roadmap-ssh-${nonce}`;
   const containerHostname = container;
   const remoteAuthority = `ssh-remote+${container}`;
-  const marker = `chainlesschain-remote-ssh-container:${nonce}\n`;
+  const marker = createContainerMarker(nonce);
   const markerDigest = sha256Buffer(marker);
   const extensionManifest = JSON.parse(
     fs.readFileSync(path.join(PACKAGE_ROOT, "package.json"), "utf8"),
@@ -533,7 +602,7 @@ async function main() {
     );
     dockerExec(
       container,
-      `install -d -m 700 -o ${REMOTE_USER} -g ${REMOTE_USER} ${REMOTE_HOME}/.ssh; install -m 600 -o ${REMOTE_USER} -g ${REMOTE_USER} /tmp/authorized_key ${REMOTE_HOME}/.ssh/authorized_keys; printf '%s' '${marker.trim()}' > /etc/chainlesschain-remote-id; chmod 0444 /etc/chainlesschain-remote-id; ssh-keygen -A`,
+      `install -d -m 700 -o ${REMOTE_USER} -g ${REMOTE_USER} ${REMOTE_HOME}/.ssh; install -m 600 -o ${REMOTE_USER} -g ${REMOTE_USER} /tmp/authorized_key ${REMOTE_HOME}/.ssh/authorized_keys; printf '%s' '${marker}' > /etc/chainlesschain-remote-id; chmod 0444 /etc/chainlesschain-remote-id; ssh-keygen -A`,
       diagnostics,
     );
     runCommand(
@@ -590,6 +659,7 @@ async function main() {
       candidateVsixSha256: candidateBinding.vsixSha256,
       candidateVsixBytes: candidateBinding.vsixBytes,
       remoteAuthority,
+      workspacePaths: REMOTE_WORKSPACES,
       containerHostname,
       containerMarkerPath: "/etc/chainlesschain-remote-id",
       containerMarkerDigest: markerDigest,
@@ -665,21 +735,7 @@ async function main() {
       ],
       { diagnostics },
     );
-    const workspace = {
-      folders: REMOTE_WORKSPACES.map((folder, index) => ({
-        name: index === 0 ? "primary" : "secondary",
-        path: folder,
-      })),
-      settings: {
-        "chainlesschain.ide.enabled": true,
-        "chainlesschain.cli.managed.enabled": false,
-        "chainlesschain.cli.path": `${REMOTE_HOME}/bin/cc`,
-        "extensions.autoCheckUpdates": false,
-        "extensions.autoUpdate": false,
-        "telemetry.telemetryLevel": "off",
-        "update.mode": "none",
-      },
-    };
+    const workspace = createRemoteWorkspaceDefinition(remoteAuthority);
     const workspaceFile = path.join(runRoot, "chainlesschain.code-workspace");
     fs.writeFileSync(workspaceFile, `${JSON.stringify(workspace, null, 2)}\n`);
     runCommand(
@@ -716,6 +772,7 @@ async function main() {
           "remote.SSH.localServerDownload": "always",
           "remote.SSH.useLocalServer": false,
           "remote.SSH.enableDynamicForwarding": true,
+          "remote.SSH.loglevel": "trace",
           "telemetry.telemetryLevel": "off",
           "update.mode": "none",
         },
@@ -749,15 +806,20 @@ async function main() {
         .includes(`${PINNED_REMOTE_SSH.id}@${PINNED_REMOTE_SSH.version}`),
       "pinned Remote-SSH extension was not installed",
     );
-    const vscodeLog = fs.createWriteStream(
-      path.join(runRoot, "vscode-remote-ssh.log"),
-      { flags: "wx", mode: 0o600 },
-    );
+    const vscodeLogPath = path.join(runRoot, "vscode-remote-ssh.log");
+    const remoteRuntimePath = path.join(runRoot, "remote-runtime");
+    const remoteVscodeLogsPath = path.join(runRoot, "remote-vscode-logs");
+    const vscodeLog = fs.createWriteStream(vscodeLogPath, {
+      flags: "wx",
+      mode: 0o600,
+    });
+    const remoteDriverUri = `vscode-remote://${remoteAuthority}${REMOTE_DRIVER}`;
+    let vscodeRunError = null;
     try {
       await runTests({
         vscodeExecutablePath,
-        extensionDevelopmentPath: REMOTE_DRIVER,
-        extensionTestsPath: `${REMOTE_DRIVER}/remote-runner.cjs`,
+        extensionDevelopmentPath: remoteDriverUri,
+        extensionTestsPath: `${remoteDriverUri}/remote-runner.cjs`,
         launchArgs: [
           `--extensions-dir=${localExtensions}`,
           `--user-data-dir=${userData}`,
@@ -771,24 +833,64 @@ async function main() {
         stdout: vscodeLog,
         stderr: vscodeLog,
       });
+    } catch (error) {
+      vscodeRunError = error;
     } finally {
       await new Promise((resolve) => vscodeLog.end(resolve));
     }
-    runCommand(
-      "docker",
-      [
-        "cp",
-        `${container}:${REMOTE_RUNTIME}`,
-        path.join(runRoot, "remote-runtime"),
-      ],
-      { diagnostics },
-    );
-    remoteEnvironment = JSON.parse(
-      fs.readFileSync(
-        path.join(runRoot, "remote-runtime", "remote-environment.json"),
-        "utf8",
-      ),
-    );
+    let remoteCaptureError = null;
+    try {
+      try {
+        runCommand(
+          "docker",
+          [
+            "cp",
+            `${container}:${REMOTE_HOME}/.vscode-server/data/logs`,
+            remoteVscodeLogsPath,
+          ],
+          { diagnostics, allowFailure: true },
+        );
+      } catch (error) {
+        diagnostics.push({
+          command: "remote-vscode-log-capture",
+          error: redact(error?.message || error),
+        });
+      }
+      const copyResult = runCommand(
+        "docker",
+        ["cp", `${container}:${REMOTE_RUNTIME}`, remoteRuntimePath],
+        { diagnostics, allowFailure: true },
+      );
+      if (copyResult.status !== 0) {
+        throw new Error(
+          `docker failed to capture remote runtime with exit code ${String(copyResult.status)}`,
+        );
+      }
+      const remoteEnvironmentPath = path.join(
+        remoteRuntimePath,
+        "remote-environment.json",
+      );
+      if (
+        !fs.statSync(remoteEnvironmentPath, { throwIfNoEntry: false })?.isFile()
+      ) {
+        throw new Error(
+          "remote runtime capture is missing remote-environment.json",
+        );
+      }
+      remoteEnvironment = JSON.parse(
+        fs.readFileSync(remoteEnvironmentPath, "utf8"),
+      );
+    } catch (error) {
+      remoteCaptureError = error;
+    }
+    if (vscodeRunError && remoteCaptureError) {
+      throw new AggregateError(
+        [vscodeRunError, remoteCaptureError],
+        "Remote-SSH host run and runtime evidence capture failed",
+      );
+    }
+    if (vscodeRunError) throw vscodeRunError;
+    if (remoteCaptureError) throw remoteCaptureError;
     assert.equal(remoteEnvironment.journeyPassed, true);
   } catch (error) {
     journeyError = error;
@@ -859,7 +961,7 @@ async function main() {
   writeJson(
     remoteEnvironmentPath,
     remoteEnvironment || {
-      schema: "chainlesschain.remote-ssh-container-observation.v1",
+      schema: "chainlesschain.remote-ssh-container-observation.v2",
       journeyPassed: false,
       failureDigest: sha256Buffer(String(journeyError?.stack || journeyError)),
     },
@@ -912,10 +1014,7 @@ async function main() {
           0),
       0,
     );
-  writeJson(outcomePath, {
-    schema: "chainlesschain.ide-roadmap-outcome-observations.v1",
-    missingRequiredArtifactsFail:
-      requiredArtifactNegativeControl(semanticPaths),
+  writeOutcomeObservations(semanticPaths, {
     credentialLeakCount,
     wrongCommitBindingCount:
       remoteEnvironment?.releaseCommit === options.releaseCommit ? 0 : 1,
@@ -956,11 +1055,15 @@ module.exports = {
   assertPinnedRemoteSshVsix,
   assertPinnedRemoteSshPayload,
   assertCandidateReleaseBindingUnchanged,
+  assertRequiredArtifacts,
+  createContainerMarker,
+  createRemoteWorkspaceDefinition,
   createKnownHostsEntry,
   parseArgs,
   requiredArtifactNegativeControl,
   verifyCandidateReleaseBinding,
   waitForSshReady,
+  writeOutcomeObservations,
 };
 
 if (require.main === module) {

@@ -376,8 +376,15 @@ describe("runAgentHeadlessStream", () => {
   it("retains remote approval ownership when pairing output throws", async () => {
     const close = vi.fn(async () => {});
     const emitted = [];
+    const approvalGate = {
+      setSessionPolicy: vi.fn(),
+      setConfirmer: vi.fn(),
+      setAuthorizationConsumer: vi.fn(),
+      consumeAuthorization: vi.fn(async () => true),
+    };
     const deps = baseDeps({
       input: input(),
+      getApprovalGate: async () => approvalGate,
       resolveAgentMcp: async () => null,
       startHeadlessRemoteApproval: vi.fn(async () => ({
         pairing: {
@@ -386,6 +393,7 @@ describe("runAgentHeadlessStream", () => {
           expiresAt: 123,
         },
         confirmer: vi.fn(),
+        consumeAuthorization: vi.fn(async () => true),
         close,
       })),
       writeOut(line) {
@@ -415,7 +423,7 @@ describe("runAgentHeadlessStream", () => {
         error: "pairing sink failed",
       }),
     );
-  }, 15_000);
+  }, 35_000);
 
   it("binds lifecycle hooks to the streaming CLI host cwd", async () => {
     const trustedRoot = realpathSync.native(

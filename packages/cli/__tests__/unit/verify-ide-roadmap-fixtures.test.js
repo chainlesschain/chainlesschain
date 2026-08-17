@@ -341,16 +341,18 @@ function createRemoteSshRuntimeCorpus() {
     dockerImageId: `sha256:${"c".repeat(64)}`,
   });
   const remoteEnvironment = writeSourceJson("remote-environment", {
-    schema: "chainlesschain.remote-ssh-container-observation.v1",
+    schema: "chainlesschain.remote-ssh-container-observation.v2",
     remoteName: "ssh-remote",
     remoteAuthority: `ssh-remote+${containerHostname}`,
-    workspaceSchemes: ["vscode-remote", "vscode-remote"],
+    workspaceUriPresentation: "remote-extension-host-native-file",
+    workspaceSchemes: ["file", "file"],
+    workspaceAuthorities: ["", ""],
     orderedWorkspacePaths: [
       "/home/cc-roadmap/workspace-primary",
       "/home/cc-roadmap/workspace-secondary",
     ],
     extensionHostPid: 123,
-    extensionHostCwd: "/home/cc-roadmap/workspace-primary",
+    extensionHostCwd: "/home/cc-roadmap",
     extensionPath:
       "/home/cc-roadmap/.vscode-server/extensions/chainlesschain.chainlesschain-ide-0.37.53",
     extensionVersion: candidateVersion,
@@ -1095,6 +1097,58 @@ describe("IDE roadmap fixture contract", () => {
     expect(verify).toThrow(
       /claims do not match rederived artifact state|cannot be rederived from journey artifact bytes/u,
     );
+  });
+
+  it("accepts a filesystem alias above the runtime evidence root", () => {
+    const aliasContainer = temporaryRoot();
+    const canonicalTemp = path.join(aliasContainer, "canonical-temp");
+    const aliasTemp = path.join(aliasContainer, "alias-temp");
+    fs.mkdirSync(canonicalTemp);
+    fs.symlinkSync(
+      canonicalTemp,
+      aliasTemp,
+      process.platform === "win32" ? "junction" : "dir",
+    );
+    const previousTemp = Object.fromEntries(
+      ["TMPDIR", "TMP", "TEMP"].map((name) => [name, process.env[name]]),
+    );
+    Object.assign(process.env, {
+      TMPDIR: aliasTemp,
+      TMP: aliasTemp,
+      TEMP: aliasTemp,
+    });
+
+    try {
+      const runtime = createRemoteSshRuntimeCorpus();
+      expect(path.resolve(runtime.runtimeDirectory)).not.toBe(
+        fs.realpathSync(runtime.runtimeDirectory),
+      );
+      expect(
+        verifyIdeRoadmapRuntimeEvidence({
+          repoRoot: runtime.corpus.root,
+          manifestPath: runtime.corpus.manifestPath,
+          evidenceDir: runtime.runtimeDirectory,
+          releaseCommit: runtime.corpus.manifest.baselineCommit,
+          caseIds: [IDE_ROADMAP_REMOTE_SSH_CONTAINER_CASE],
+          requireReleaseReady: true,
+          trustedProvenance: runtime.trustedProvenance,
+          execFileSync: (_command, args) =>
+            args[0] === "rev-parse"
+              ? `${runtime.corpus.manifest.baselineCommit}\n`
+              : "",
+          inspectVsix: runtime.inspectVsix,
+          remoteSshTrust: runtime.remoteSshTrust,
+        }),
+      ).toMatchObject({
+        releaseReady: true,
+        verificationMode: "release-ready",
+      });
+    } finally {
+      for (const [name, value] of Object.entries(previousTemp)) {
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      }
+    }
   });
 
   it("rejects an envelope that replaces the journey evidence digest", () => {

@@ -27,6 +27,7 @@ describe("agent-core plan execution lock", () => {
       { command: "node --version" },
       {
         cwd: process.cwd(),
+        planManager: manager,
         permissionRules: { allow: ["run_shell"] },
       },
     );

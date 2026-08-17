@@ -5,6 +5,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   rmSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -117,7 +118,9 @@ describe("cowork workflow Commander admission", () => {
   let exitCodeBefore;
 
   beforeEach(() => {
-    root = mkdtempSync(join(tmpdir(), "cc-cowork-admission-command-"));
+    root = realpathSync.native(
+      mkdtempSync(join(tmpdir(), "cc-cowork-admission-command-")),
+    );
     projectRoot = join(root, "project");
     mkdirSync(projectRoot, { recursive: true });
     previousCwd = process.cwd();

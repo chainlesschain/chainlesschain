@@ -2406,17 +2406,23 @@ function digestPolicyAuthority(projection) {
 }
 
 function validatePermissionRuleset(rules) {
-  if (
-    rules &&
-    (!Array.isArray(rules.allow) ||
-      !Array.isArray(rules.ask) ||
-      !Array.isArray(rules.deny))
-  ) {
+  if (!rules) return null;
+  if (typeof rules !== "object" || Array.isArray(rules)) {
     throw new TypeError(
       "permission authority provider returned an invalid ruleset",
     );
   }
-  return rules;
+  const normalized = {};
+  for (const key of ["allow", "ask", "deny"]) {
+    const value = rules[key];
+    if (value !== undefined && !Array.isArray(value)) {
+      throw new TypeError(
+        "permission authority provider returned an invalid ruleset",
+      );
+    }
+    normalized[key] = value ? [...value] : [];
+  }
+  return normalized;
 }
 
 function projectPermissionAuthority({ authority, rules, tool, args, cwd }) {
@@ -2573,6 +2579,7 @@ export async function executeTool(name, args, context = {}) {
   // before any of them so an in-process caller cannot swap the approved command
   // or reinterpret a relative cwd after process.chdir().
   let shellAuthorityCwd = null;
+  let shellAuthorityWorkspaceCwd = null;
   let runCodeAuthorityCwd = null;
   if (name === "run_shell") {
     try {
@@ -2591,9 +2598,14 @@ export async function executeTool(name, args, context = {}) {
       ) {
         throw new TypeError("run_shell cwd must be a non-empty string");
       }
+      shellAuthorityWorkspaceCwd = fs.realpathSync.native(
+        path.resolve(entryProcessCwd, contextCwd),
+      );
+      if (!fs.statSync(shellAuthorityWorkspaceCwd).isDirectory()) {
+        throw new Error("run_shell context cwd is not a directory");
+      }
       const requestedCwd = path.resolve(
-        entryProcessCwd,
-        contextCwd,
+        shellAuthorityWorkspaceCwd,
         declared.cwd || ".",
       );
       shellAuthorityCwd = fs.realpathSync.native(requestedCwd);
@@ -2645,8 +2657,15 @@ export async function executeTool(name, args, context = {}) {
   }
   const hookDb = context.hookDb || null;
   const skillLoader = context.skillLoader || _defaultSkillLoader;
+  // Keep the authority-bearing workspace root distinct from the command's
+  // requested cwd. A command may run in a nested directory, but Plugin policy
+  // discovery and strong-sandbox issuance must remain anchored to the host
+  // workspace that admitted the tool call.
   const cwd =
-    shellAuthorityCwd || runCodeAuthorityCwd || context.cwd || process.cwd();
+    shellAuthorityWorkspaceCwd ||
+    runCodeAuthorityCwd ||
+    context.cwd ||
+    process.cwd();
   const planManager = context.planManager || getPlanModeManager();
   // The provider receives a filtered schema, but an untrusted/buggy model can
   // still emit an arbitrary tool_call. Reuse the same pure preflight that the
@@ -5620,6 +5639,10 @@ async function executeToolInner(
       let pluginBinRuntime = null;
       let pluginBinSandboxPolicy = null;
       let pluginBinSandboxExecutionContract = null;
+      const backgroundPlatform =
+        typeof _backgroundProcessDeps.platform === "function"
+          ? _backgroundProcessDeps.platform()
+          : process.platform;
       try {
         const pluginBin = await import("../lib/plugin-runtime/bin.js");
         pluginBinRuntime = pluginBin;
@@ -5646,8 +5669,8 @@ async function executeToolInner(
             { cwd },
           );
           if (
-            process.platform === "linux" ||
-            (process.platform === "win32" &&
+            backgroundPlatform === "linux" ||
+            (backgroundPlatform === "win32" &&
               pluginBinInvocation.runtime === "node")
           ) {
             try {
@@ -5838,8 +5861,8 @@ async function executeToolInner(
         let freshContract = null;
         if (
           freshInvocation.sandboxPolicy &&
-          (process.platform === "linux" ||
-            (process.platform === "win32" &&
+          (backgroundPlatform === "linux" ||
+            (backgroundPlatform === "win32" &&
               freshInvocation.runtime === "node"))
         ) {
           freshContract = pluginBinRuntime.createPluginSandboxExecutionContract(
@@ -5982,10 +6005,6 @@ async function executeToolInner(
             policy: { decision: "deny", via: "sandbox" },
           });
         }
-        const backgroundPlatform =
-          typeof _backgroundProcessDeps.platform === "function"
-            ? _backgroundProcessDeps.platform()
-            : process.platform;
         const pinnedBackgroundBoundaries = [
           ...(pluginBinSandboxPolicy?.requiredBoundaries || []),
         ];

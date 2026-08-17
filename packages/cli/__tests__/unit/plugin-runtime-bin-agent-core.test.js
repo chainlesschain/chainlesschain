@@ -87,7 +87,12 @@ function installMalformedPlugin() {
 }
 
 beforeEach(() => {
-  cwd = fs.mkdtempSync(path.join(os.tmpdir(), "cc-bin-agent-"));
+  // Match the production authority boundary: Broker inputs are rooted at the
+  // canonical filesystem identity, not at an alias such as macOS /var or a
+  // Windows 8.3 temporary path.
+  cwd = fs.realpathSync.native(
+    fs.mkdtempSync(path.join(os.tmpdir(), "cc-bin-agent-")),
+  );
   originalNative = executionBroker._native;
   originalAdapter = executionBroker._sandboxAdapter;
   originalRunCode = _agentToolProcessDeps.runCode;

@@ -86,6 +86,7 @@ function flowConfig() {
 function providerConfig() {
   return {
     github: { repo: "chainlesschain/chainlesschain" },
+    git: { remote: "delivery-origin" },
     gates: [
       {
         id: "cli-ci",
@@ -176,7 +177,19 @@ function createProcessDouble(repository) {
         );
       }
       if (args[0] === "branch") return success("feature/delivery\n");
+      if (args[0] === "remote" && args[1] === "get-url") {
+        expect(args).toEqual([
+          "remote",
+          "get-url",
+          "--push",
+          "delivery-origin",
+        ]);
+        return success(
+          `${repository.remoteUrl || "https://github.com/chainlesschain/chainlesschain.git"}\n`,
+        );
+      }
       if (args[0] === "push") {
+        expect(args[1]).toBe("delivery-origin");
         repository.remoteHead = repository.head;
         return success("pushed");
       }
@@ -280,6 +293,42 @@ describe("GitHubDeliveryProductionAdapter", () => {
         unmet: expect.arrayContaining(["fix-allowed-paths-invalid"]),
       });
     }
+    expect(
+      validateGitHubDeliveryProductionConfig({
+        ...providerConfig(),
+        git: { remote: "unsafe remote" },
+      }),
+    ).toMatchObject({
+      valid: false,
+      unmet: expect.arrayContaining(["git-remote-invalid"]),
+    });
+  });
+
+  it("rejects a push remote that is not bound to the configured GitHub repository", async () => {
+    const repository = {
+      head: HEAD,
+      remoteHead: null,
+      remoteUrl: "git@github.com:other-owner/other-repository.git",
+      modified: false,
+      pr: null,
+    };
+    const runProcess = createProcessDouble(repository);
+    const adapter = createGitHubDeliveryProductionAdapter(
+      { cwd: process.cwd(), config: providerConfig() },
+      { runProcess },
+    );
+
+    await expect(
+      adapter.createPr(
+        { commitSha: HEAD },
+        { effect: { id: `sha256:${"2".repeat(64)}` } },
+      ),
+    ).rejects.toThrow(/push remote is not bound/u);
+    expect(
+      runProcess.mock.calls.filter(
+        ([file, args]) => file === "git" && args[0] === "push",
+      ),
+    ).toHaveLength(0);
   });
 
   it("maps all nine actions through an exact-head production lifecycle", async () => {

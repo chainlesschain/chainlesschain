@@ -73,12 +73,30 @@ describe("interactive questions round-trip", () => {
     agentLoop = askingLoop,
     options = {},
     extraDeps = {},
+    onEvent,
   }) {
     const lines = [];
+    let eventBuffer = "";
     const deps = {
       bootstrap: async () => ({ db: null }),
       getApprovalGate: async () => null,
-      writeOut: (s) => lines.push(s),
+      writeOut: (s) => {
+        lines.push(s);
+        if (!onEvent) return;
+        eventBuffer += s;
+        for (;;) {
+          const newline = eventBuffer.indexOf("\n");
+          if (newline < 0) break;
+          const line = eventBuffer.slice(0, newline);
+          eventBuffer = eventBuffer.slice(newline + 1);
+          if (!line) continue;
+          try {
+            onEvent(JSON.parse(line));
+          } catch {
+            // Observation must never change the behavior of the output seam.
+          }
+        }
+      },
       writeErr: () => {},
       agentLoop,
       input: inputGen(),
@@ -221,7 +239,8 @@ describe("interactive questions round-trip", () => {
     const listeners = new Map();
     const h = harness({
       inputGen: async function* () {
-        yield JSON.stringify({ type: "user", text: "trigger lifecycle" }) + "\n";
+        yield JSON.stringify({ type: "user", text: "trigger lifecycle" }) +
+          "\n";
       },
       agentLoop: async function* () {
         listeners.get("elicitation-deferred")({
@@ -382,14 +401,44 @@ describe("interactive questions round-trip", () => {
 
   it("timeout → USER_TIMEOUT, model proceeds", async () => {
     process.env.CC_QUESTION_TIMEOUT_MS = "60";
+    let releaseStdin;
+    const holdStdinOpen = new Promise((resolve) => {
+      releaseStdin = resolve;
+    });
+    let observedResolution = null;
+    let watchdogExpired = null;
+    let watchdog;
+    const armWatchdog = (phase, delayMs) => {
+      clearTimeout(watchdog);
+      watchdog = setTimeout(() => {
+        watchdogExpired = phase;
+        releaseStdin();
+      }, delayMs);
+    };
+    armWatchdog("question_request", 45_000);
     try {
       const h = harness({
+        onEvent: (event) => {
+          if (event.type === "question_request") {
+            armWatchdog("question timeout", 3000);
+          }
+          if (event.type === "question_resolved") {
+            clearTimeout(watchdog);
+            observedResolution = event;
+            releaseStdin();
+          }
+        },
         inputGen: async function* () {
           yield JSON.stringify({ type: "user", text: "ASK" }) + "\n";
-          await sleep(400); // keep stdin open past the question timeout
+          await holdStdinOpen;
         },
       });
       await h.run();
+      expect(
+        watchdogExpired,
+        `watchdog expired while waiting for ${watchdogExpired}`,
+      ).toBe(null);
+      expect(observedResolution).toMatchObject({ via: "timeout" });
       expect(
         h.events().find((e) => e.type === "question_resolved"),
       ).toMatchObject({ via: "timeout" });
@@ -397,9 +446,10 @@ describe("interactive questions round-trip", () => {
         "proceeded (USER_TIMEOUT)",
       );
     } finally {
+      clearTimeout(watchdog);
       delete process.env.CC_QUESTION_TIMEOUT_MS;
     }
-  });
+  }, 90_000);
 
   it("stdin close while pending → USER_TIMEOUT (no hang)", async () => {
     const h = harness({

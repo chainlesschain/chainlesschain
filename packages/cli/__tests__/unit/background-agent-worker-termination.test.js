@@ -94,6 +94,35 @@ describe("background agent worker child termination settlement", () => {
     expect(onFailure.mock.calls[0][0].message).toMatch(/commit was rejected/u);
   });
 
+  it("ignores a late release EPIPE after an intentional bootstrap detach", async () => {
+    const child = new EventEmitter();
+    let finishSend;
+    child.send = vi.fn((_message, callback) => {
+      finishSend = callback;
+    });
+    const onFailure = vi.fn();
+    const detach = attachTurnChildBootstrapRelease(
+      child,
+      { nonce: "nonce-stop", workerGeneration: "generation-stop", attempt: 1 },
+      () => true,
+      onFailure,
+    );
+    child.emit("message", {
+      type: BACKGROUND_TURN_BOOTSTRAP_READY,
+      protocolVersion: BACKGROUND_TURN_BOOTSTRAP_PROTOCOL_VERSION,
+      nonce: "nonce-stop",
+      workerGeneration: "generation-stop",
+      attempt: 1,
+      pid: 8765,
+    });
+    await vi.waitFor(() => expect(child.send).toHaveBeenCalledOnce());
+
+    detach();
+    finishSend(Object.assign(new Error("write EPIPE"), { code: "EPIPE" }));
+
+    expect(onFailure).not.toHaveBeenCalled();
+  });
+
   it("settles error followed by close even when exit is never emitted", () => {
     const child = new EventEmitter();
     const settlementOrder = [];

@@ -119,10 +119,19 @@ describe("allow", () => {
   });
 
   it("never re-enables a hard shell-policy denial", async () => {
+    const planManager = {
+      isActive: () => false,
+      isToolAllowed: () => true,
+      addPlanItem: () => {},
+    };
     const res = await executeTool(
       "run_shell",
       { command: "curl http://example.com/x" },
-      { cwd: tmp, permissionRules: { allow: ["Bash"] } },
+      {
+        cwd: tmp,
+        planManager,
+        permissionRules: { allow: ["Bash"] },
+      },
     );
     expect(res.error).toMatch(/\[Shell Policy\]/);
   });

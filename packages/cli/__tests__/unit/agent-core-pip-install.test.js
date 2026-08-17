@@ -5,13 +5,14 @@ import { _resetPluginBinSandboxPolicyPins } from "../../src/lib/plugin-runtime/b
 import { pluginVersionDir } from "../../src/lib/plugin-runtime/scopes.js";
 
 // Mock plan-mode, skill-loader, hook-manager before importing agent-core
-vi.mock("../../src/lib/plan-mode.js", () => ({
-  getPlanModeManager: vi.fn(() => ({
+vi.mock("../../src/lib/plan-mode.js", () => {
+  const planModeManager = {
     isActive: () => false,
     isToolAllowed: () => true,
     addPlanItem: vi.fn(),
-  })),
-}));
+  };
+  return { getPlanModeManager: vi.fn(() => planModeManager) };
+});
 
 vi.mock("../../src/lib/skill-loader.js", () => ({
   CLISkillLoader: vi.fn(function () {
@@ -83,7 +84,9 @@ describe("run_code pip auto-install flow", () => {
     const fs = await import("node:fs");
     const os = await import("node:os");
     const path = await import("node:path");
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-pip-test-"));
+    tempDir = fs.realpathSync.native(
+      fs.mkdtempSync(path.join(os.tmpdir(), "cc-pip-test-")),
+    );
     runCodeImpl = null;
     installRunCodeMock();
     _resetPluginBinSandboxPolicyPins();
@@ -490,7 +493,9 @@ describe("run_code auto-install — unified install-command audit (P0 sandbox)",
     const fs = await import("node:fs");
     const os = await import("node:os");
     const path = await import("node:path");
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-pip-uaudit-"));
+    tempDir = fs.realpathSync.native(
+      fs.mkdtempSync(path.join(os.tmpdir(), "cc-pip-uaudit-")),
+    );
     runCodeImpl = null;
     installRunCodeMock();
     process.env.CC_RUN_CODE_AUTO_INSTALL = "1";

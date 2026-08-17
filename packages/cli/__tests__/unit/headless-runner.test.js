@@ -2000,6 +2000,8 @@ describe("headless-runner — background phase reporter wiring", () => {
     const gate = {
       setSessionPolicy: () => {},
       setConfirmer: (fn) => confirmers.push(fn),
+      setAuthorizationConsumer: () => {},
+      consumeAuthorization: async () => true,
       decide: async () => ({ decision: "allow", via: "test", policy: "test" }),
     };
     const { deps } = makeDeps(replyText("done"), gate);
@@ -2020,6 +2022,7 @@ describe("headless-runner — background phase reporter wiring", () => {
         await humanDecision;
         return true;
       },
+      consumeAuthorization: async () => true,
       close: async () => {},
     });
 
@@ -2057,6 +2060,8 @@ describe("headless-runner — background phase reporter wiring", () => {
     const gate = {
       setSessionPolicy: () => {},
       setConfirmer: (fn) => confirmers.push(fn),
+      setAuthorizationConsumer: () => {},
+      consumeAuthorization: async () => true,
       decide: async () => ({ decision: "allow", via: "test", policy: "test" }),
     };
     const { deps } = makeDeps(replyText("done"), gate);
@@ -2069,6 +2074,7 @@ describe("headless-runner — background phase reporter wiring", () => {
     const remoteConfirmer = async () => true;
     deps.startHeadlessRemoteApproval = async () => ({
       confirmer: remoteConfirmer,
+      consumeAuthorization: async () => true,
       close: async () => {},
     });
 

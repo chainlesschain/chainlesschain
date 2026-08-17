@@ -587,11 +587,14 @@ jobs:
           (github.event_name == 'workflow_dispatch' &&
           inputs.publish_vscode_marketplace))
         env:
-          # Open VSX can accept an upload before allVersions/download metadata
-          # converges. Allow roughly ten minutes instead of a two-minute false
-          # negative while still failing persistent registry/network errors.
-          CC_MARKETPLACE_VERIFY_ATTEMPTS: "30"
-          CC_MARKETPLACE_VERIFY_DELAY_MS: "20000"
+          # Open VSX activates a scanned upload asynchronously and caches the
+          # latest-extension projection for up to one hour. First wait up to
+          # 45 minutes for exact activation without reading that cache, then
+          # start an independent 75-minute latest/listing convergence window.
+          CC_MARKETPLACE_VERIFY_ATTEMPTS: "90"
+          CC_MARKETPLACE_VERIFY_DELAY_MS: "30000"
+          CC_OPEN_VSX_LISTING_VERIFY_ATTEMPTS: "75"
+          CC_OPEN_VSX_LISTING_VERIFY_DELAY_MS: "60000"
         run: |
           set -euo pipefail
           version="$(node -p "require('./package.json').version")"

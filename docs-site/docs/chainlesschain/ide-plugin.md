@@ -1,10 +1,10 @@
 # IDE 插件使用指南（VS Code / JetBrains）
 
-> **当前推荐组合（2026-08-14）：CLI `0.163.8` + VS Code 扩展 `0.37.51`（Open VSX）+ JetBrains 插件 `0.4.87`（JetBrains Marketplace）。IDE 双端提供默认关闭的受治理自动 ghost-text；CLI 的稳定契约以 `v-npm-0-163-8` 的精确 SHA 为准，runtime/incident 恢复、merge review 与 MCP resource templates 已进入该 tarball。**
+> **当前推荐组合（2026-08-16）：CLI `0.164.0` + VS Code 扩展 `0.37.54`（Open VSX）+ JetBrains 插件 `0.4.90`（JetBrains Marketplace）。IDE 双端提供 Context Center、权限/副作用证据、Automation Center 与受治理自动 ghost-text；CLI 的稳定契约以 `v-npm-0-164-0` 的精确 SHA 为准。**
 >
 > 把 ChainlessChain 的 `cc` agent 变成**编辑器里的一等公民**：侧边栏 Chat 面板直接对话、计划以可编辑 Markdown 文档审阅、文件改动走编辑器原生 diff 评审（可逐块接受、可行级批注）、代理自动感知你的选区与诊断。VS Code 与 JetBrains 双端同一套协议、同一套功能面，会话还能跨 IDE 互相续接。
 >
-> **发布提示**：Open VSX `0.37.51` 与 JetBrains Marketplace `0.4.87` 的不可变 tag 均指向 `dd0adad7b1`；截至 2026-08-12，Open VSX 累计下载已突破 **2.4 万**。npm `latest` CLI `0.163.6` 仍是完整门禁版。
+> **发布提示**：Open VSX `0.37.54` 的不可变 tag 指向 `98c6a126b0`，JetBrains Marketplace `0.4.90` 指向 `7d21c7a9ae`；两个市场均已公开回读，Open VSX 累计下载保持 **2.4 万+**。npm `latest` CLI `0.164.0` 已完成三平台完整门禁、发布与独立 registry 回读。微软 VS Code Marketplace 与 JetBrains 作者签名仍未完成。
 
 ## 概述
 
@@ -22,7 +22,7 @@ ChainlessChain IDE 插件是 `cc` CLI 在编辑器内的完整工作台，由两
 ### 1. 安装 / 升级 `cc` CLI
 
 ```bash
-npm i -g chainlesschain@0.163.8  # 需要 Node ≥ 22.12.0；当前完整门禁基线
+npm i -g chainlesschain@0.164.0  # 需要 Node ≥ 22.12.0；当前完整门禁基线
 cc --version                # 建议 ≥ 0.162.157
 cc ide --help               # 确认有 ide 子命令
 ```
@@ -44,7 +44,7 @@ cc ide --help               # 确认有 ide 子命令
 - **已上架 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)**（插件 ID `com.chainlesschain.ide`）：_Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键安装。仅依赖 platform 模块，非 Java IDE 同样可装。
 - 离线 / 源码安装：`./gradlew buildPlugin` 得 `build/distributions/*.zip` → _Settings → Plugins → ⚙ → Install Plugin from Disk_。
 
-当前 VS Code 发布证据 `ide-vscode-v0.37.50` 与 JetBrains `ide-jetbrains-v0.4.86` 精确指向提交 [`074bc47129`](https://github.com/chainlesschain/chainlesschain/commit/074bc471297b4ae0f02445b9bdb30d4dd11d5536)；[Open VSX 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/31589542152)与[JetBrains 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/31589547677)已完成真实宿主、制品、发布与 listing 回读。微软 VS Code Marketplace 未发布，不能把 Open VSX 的公开状态扩写到该渠道。
+当前 VS Code 发布证据 `ide-vscode-v0.37.54` 精确指向提交 [`98c6a126b0`](https://github.com/chainlesschain/chainlesschain/commit/98c6a126b0becc4ec8b23d2217b961deb0c1debe)，[IDE Extensions 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/31913429988)完成 Linux 发布、Windows/macOS host gate 与公开版本回读。JetBrains `ide-jetbrains-v0.4.90` 精确指向 [`7d21c7a9ae`](https://github.com/chainlesschain/chainlesschain/commit/7d21c7a9ae54663d4c57f5203a4b85787748858f)，[发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/31889750517)完成六宿主矩阵、上传与 Marketplace listing 回读。微软 VS Code Marketplace 未发布，不能把 Open VSX 的公开状态扩写到该渠道。
 
 ### 3. 配置大模型（首次）
 
@@ -76,7 +76,9 @@ cc ide doctor       # 发现失败时解释原因
 - **审批卡与提问卡**：危险动作（危险 shell、settings `ask` 规则）弹 Approve/Deny 卡片阻塞等裁决（默认 120s 超时回落拒绝）；agent 拿不准时经 `ask_user_question` 弹单选 / 多选 / 自由文本卡而不是瞎猜。
 - **用量与重试可视化**：工作中实时 token 计数、回合结束 `in→out` 汇总、迭代预算预警、常驻**上下文窗口占用指示条**；CLI `0.162.184+` 还提供真实工具耗时、同轮观测重试，以及不含密钥/参数的流式 LLM retry 原因和实际 provider/model。
 - **后台 tab 信号**：非活动标签回合完成亮绿点、等待审批亮蓝点 + "Show" 提示，不抢焦点。
-- **Governed Automation Center（VS Code 0.37.51 / JetBrains 0.4.87）**：展示 CLI-owned versioned flow/Routine projection、scope、execution preflight 与 history；run-now、失败重试、pause/resume、disable/delete 和 Routine create/edit 都会在确认前重读 revision，并只执行 CLI 提供的 exact argv。过期投影失败闭合，IDE 不直接写权威存储。
+- **Context Center（VS Code 0.37.54 / JetBrains 0.4.90）**：只读展示 CLI-owned context envelope、included source、scope、freshness、token allocation、symbol/file evidence、Git diff、项目记忆、bounded diagnostics 与 metadata-only MCP resource evidence。未知、超限、跨版本或不可用来源显式失败闭合，不把 MCP payload 或凭据值复制进 IDE 投影。
+- **权限与 Side-effect Center（VS Code 0.37.54 / JetBrains 0.4.90）**：解释 workspace-scoped authority、实际 filesystem/network/process/runtime/credential-name 资源、irreversibility、decision source、call chain、recovery coverage 与 unresolved resource。IDE 创建/撤销临时规则时只执行 CLI 提供、绑定 authority generation/rule revision 的 exact argv，不直接编辑 authority store。
+- **Governed Automation Center**：展示 CLI-owned versioned flow/Routine projection、scope、execution preflight 与 history；run-now、失败重试、pause/resume、disable/delete 和 Routine create/edit 都会在确认前重读 revision，并只执行 CLI 提供的 exact argv。过期投影失败闭合，IDE 不直接写权威存储。
 - **CLI-owned Sessions Workbench（VS Code 0.37.50 / JetBrains 0.4.86）**：会话列表只消费 CLI 生成的 immutable projection revision；resume、attach、delivery 与 remote-control 动作必须由该 revision 明确声明，过期按钮失败闭合。公开版覆盖 local/background/remote/team/workflow 五类投影的 Dispatch → `needs_input` → Reply → done、artifact/PR 回读和独立进程重启恢复。
 - **可恢复交付与 rewind timeline（VS Code 0.37.50 / JetBrains 0.4.86）**：交付覆盖 GitHub、Gitee、configured remote 与 manual handoff，每步要求显式确认并校验 result/effect digest；`/rewind` 展开为绑定 session、workspace、repository head、checkpoint revision 与 manifest digest 的 detail/restore/fork 流程。
 - **编辑器内联聊天与 ARM64 宿主门（VS Code 0.37.50）**：在当前选区旁打开独立浮层会话，逐字流式响应，代码块可复制、插入或替换；Explain / Refactor / Fix / Generate Docs / Generate Tests 六个 command 已进入 canonical IDE capability manifest。stable/minimum × 三系统 ARM64 的真实宿主与双端共享聚合证据继续保留。
@@ -120,7 +122,7 @@ settings 权限规则对 `Write`/`Edit` 配了 `ask` 且在交互会话时，终
 - **CodeLens**：函数 / 方法 / 类上方 ✨ **Explain / Refactor** 一键入 Chat（可关）。
 - **快速修复**：诊断行上 **Fix with ChainlessChain**（VS Code 灯泡 / JetBrains Alt+Enter intention），把报错上下文种进 Chat。
 - **右键菜单**：Explain Selection / Refactor Selection / Insert File Reference（`@file#L5-10`）。
-- **Ghost-text 行内补全**：`Alt+\` 手动触发保持不变；`0.37.51 / 0.4.87` 可另行启用默认关闭的自动路径。自动请求等待 650ms、继续输入即取消，按 exact context 去重并缓存，独立限制每小时请求数/上下文字数以及单次输出行数/字符数；超过 5 秒或质量不足时静默丢弃，不阻塞编辑。
+- **Ghost-text 行内补全**：`Alt+\` 手动触发保持不变；当前公开版可另行启用默认关闭的自动路径。自动请求等待 650ms、继续输入即取消，按 exact context 去重并缓存，独立限制每小时请求数/上下文字数以及单次输出行数/字符数；超过 5 秒或质量不足时静默丢弃，不阻塞编辑。
 - **项目记忆**：Generate Project Memory 生成 `cc.md`；Show Project Memory Files 查看记忆链（`cc.md` / `CLAUDE.md` / `AGENTS.md`）。
 - **App Preview**：自动找 dev script 起服务、探测 URL，VS Code 嵌 Simple Browser / JetBrains 嵌 JCEF 面板，支持 HMR、崩溃恢复、一键 Restart，Stop 杀整棵进程树。
 
@@ -231,28 +233,28 @@ JetBrains 纯核在**无 IntelliJ SDK 的机器**上用 `javac --release 8` 编�
 
 ### VS Code 设置（`chainlesschain.*`）
 
-| 设置                                   | 默认   | 作用                                       |
-| -------------------------------------- | ------ | ------------------------------------------ |
-| `chainlesschain.ide.enabled`           | `true` | 是否启动桥接 MCP server                    |
-| `chainlesschain.cli.path`              | `"cc"` | `cc` CLI 路径（不在 PATH 时设绝对路径）    |
-| `chainlesschain.chat.provider`         | `""`   | Chat 面板 LLM 提供商（空 = 跟随 CLI 配置） |
-| `chainlesschain.chat.model`            | `""`   | Chat 面板模型（空 = 跟随 CLI 配置）        |
-| `chainlesschain.chat.contextIndicator` | `true` | Chat 下方常驻上下文窗口占用指示条          |
-| `chainlesschain.codeLens.enabled`      | `true` | 函数上方 ✨ Explain / Refactor CodeLens    |
-| `chainlesschain.completion.enabled`    | `true` | `Alt+\` 手动 ghost-text 补全               |
-| `chainlesschain.completion.automatic.enabled` | `false` | 启用受治理自动 ghost-text；手动补全不受影响 |
-| `chainlesschain.completion.automatic.debounceMs` | `650` | 停止输入后的自动请求延迟（100–3000ms） |
-| `chainlesschain.completion.automatic.maxRequestsPerHour` | `60` | 自动路径每小时请求预算 |
-| `chainlesschain.completion.automatic.maxContextCharsPerHour` | `240000` | 自动路径每小时上下文字符预算 |
-| `chainlesschain.completion.automatic.cacheTtlMs` | `30000` | exact-context 缓存有效期 |
-| `chainlesschain.completion.automatic.maxCompletionChars` / `.maxCompletionLines` | `800` / `12` | 自动建议的字符与行数上限 |
+| 设置                                                                             | 默认         | 作用                                        |
+| -------------------------------------------------------------------------------- | ------------ | ------------------------------------------- |
+| `chainlesschain.ide.enabled`                                                     | `true`       | 是否启动桥接 MCP server                     |
+| `chainlesschain.cli.path`                                                        | `"cc"`       | `cc` CLI 路径（不在 PATH 时设绝对路径）     |
+| `chainlesschain.chat.provider`                                                   | `""`         | Chat 面板 LLM 提供商（空 = 跟随 CLI 配置）  |
+| `chainlesschain.chat.model`                                                      | `""`         | Chat 面板模型（空 = 跟随 CLI 配置）         |
+| `chainlesschain.chat.contextIndicator`                                           | `true`       | Chat 下方常驻上下文窗口占用指示条           |
+| `chainlesschain.codeLens.enabled`                                                | `true`       | 函数上方 ✨ Explain / Refactor CodeLens     |
+| `chainlesschain.completion.enabled`                                              | `true`       | `Alt+\` 手动 ghost-text 补全                |
+| `chainlesschain.completion.automatic.enabled`                                    | `false`      | 启用受治理自动 ghost-text；手动补全不受影响 |
+| `chainlesschain.completion.automatic.debounceMs`                                 | `650`        | 停止输入后的自动请求延迟（100–3000ms）      |
+| `chainlesschain.completion.automatic.maxRequestsPerHour`                         | `60`         | 自动路径每小时请求预算                      |
+| `chainlesschain.completion.automatic.maxContextCharsPerHour`                     | `240000`     | 自动路径每小时上下文字符预算                |
+| `chainlesschain.completion.automatic.cacheTtlMs`                                 | `30000`      | exact-context 缓存有效期                    |
+| `chainlesschain.completion.automatic.maxCompletionChars` / `.maxCompletionLines` | `800` / `12` | 自动建议的字符与行数上限                    |
 
 ### JetBrains 设置（Settings → Tools → ChainlessChain IDE）
 
-| 设置                   | 默认        | 作用                                               |
-| ---------------------- | ----------- | -------------------------------------------------- |
-| cc CLI path            | 空=自动探测 | `cc` / `chainlesschain` 不在 IDE PATH 时设绝对路径 |
-| Show context indicator | `true`      | Chat 面板上下文窗口指示条                          |
+| 设置                   | 默认        | 作用                                                   |
+| ---------------------- | ----------- | ------------------------------------------------------ |
+| cc CLI path            | 空=自动探测 | `cc` / `chainlesschain` 不在 IDE PATH 时设绝对路径     |
+| Show context indicator | `true`      | Chat 面板上下文窗口指示条                              |
 | Automatic ghost text   | `false`     | 启用后可配置 debounce、请求/上下文预算、缓存和输出上限 |
 
 > LLM 配置**不存 IDE 设置**——统一在 `~/.chainlesschain/config.json`（Configure LLM 向导写入，CLI 与双端插件共用）。
@@ -281,15 +283,15 @@ JetBrains 纯核在**无 IntelliJ SDK 的机器**上用 `javac --release 8` 编�
 
 ## 性能指标
 
-| 维度             | 表现                                                                                                            |
-| ---------------- | --------------------------------------------------------------------------------------------------------------- |
-| 桥接发现         | 集成终端 env 直连亚毫秒；lockfile 扫描 < 数毫秒                                                                 |
-| Chat 流式渲染    | 流事件合并到 60fps 批量渲染；转录上限 800 节点防长会话卡顿                                                      |
-| 面板启动         | 首条消息才 spawn `cc agent` 子进程，空面板零开销                                                                |
-| Diff 评审阻塞    | 时长由用户决定；server 端挂起响应不受超时切断，一个阻塞评审不影响其它请求                                       |
+| 维度             | 表现                                                                                                              |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------- |
+| 桥接发现         | 集成终端 env 直连亚毫秒；lockfile 扫描 < 数毫秒                                                                   |
+| Chat 流式渲染    | 流事件合并到 60fps 批量渲染；转录上限 800 节点防长会话卡顿                                                        |
+| 面板启动         | 首条消息才 spawn `cc agent` 子进程，空面板零开销                                                                  |
+| Diff 评审阻塞    | 时长由用户决定；server 端挂起响应不受超时切断，一个阻塞评审不影响其它请求                                         |
 | 补全             | 手动 `Alt+\` 保持 12 秒边界；自动路径默认关闭、5 秒失败静默，并记录至少 20 个样本后的滚动 P50/P95（目标 ≤2s/≤5s） |
-| 资源占用         | 每窗口一个 localhost HTTP server + 每会话 tab 一个子进程；关 tab / Stop 即回收（Windows `taskkill /T /F` 树杀） |
-| JetBrains 兼容性 | since-build 242（2024.2+）无硬上限，Plugin Verifier 对 2025.2 验证通过                                          |
+| 资源占用         | 每窗口一个 localhost HTTP server + 每会话 tab 一个子进程；关 tab / Stop 即回收（Windows `taskkill /T /F` 树杀）   |
+| JetBrains 兼容性 | since-build 242（2024.2+）无硬上限，Plugin Verifier 对 2025.2 验证通过                                            |
 
 ## 测试覆盖
 

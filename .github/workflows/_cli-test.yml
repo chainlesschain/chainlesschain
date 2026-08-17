@@ -27,6 +27,7 @@ name: _CLI Test (reusable)
 #                            default + silent=passed-only).
 #
 # Inputs:
+#   commit_sha — exact caller commit to checkout and verify
 #   runs-on    — runner OS (default ubuntu-latest)
 #   shards     — number of shards per suite (default 4; must match the matrix below)
 #   include-e2e — set false to skip the e2e suite (e.g. for fast PR feedback)
@@ -34,6 +35,10 @@ name: _CLI Test (reusable)
 on:
   workflow_call:
     inputs:
+      commit_sha:
+        description: "Exact full caller commit SHA"
+        required: true
+        type: string
       runs-on:
         description: "Runner OS"
         required: false
@@ -60,6 +65,11 @@ jobs:
         shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.commit_sha }}
+      - name: Verify exact source identity
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${{ inputs.commit_sha }}"
       - uses: actions/setup-node@v5
         with:
           node-version: "22.12.0"
@@ -101,6 +111,11 @@ jobs:
         shard: [1, 2, 3, 4, 5, 6, 7, 8]
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.commit_sha }}
+      - name: Verify exact source identity
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${{ inputs.commit_sha }}"
       - uses: actions/setup-node@v5
         with:
           node-version: "22.12.0"
@@ -129,6 +144,11 @@ jobs:
         shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.commit_sha }}
+      - name: Verify exact source identity
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${{ inputs.commit_sha }}"
       - uses: actions/setup-node@v5
         with:
           node-version: "22.12.0"
