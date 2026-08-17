@@ -1,5 +1,7 @@
 name: CLI Scheduler Kernel Soak Campaign
 
+run-name: "P2-4 scheduler campaign ${{ inputs.campaign }} ${{ inputs.commit_sha }}"
+
 on:
   workflow_dispatch:
     inputs:
