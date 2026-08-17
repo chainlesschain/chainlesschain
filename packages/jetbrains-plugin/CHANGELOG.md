@@ -1,5 +1,18 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.91] - Hardened paired release certification (2026-08-17)
+
+- Publish a maintenance build with no intentional user-facing runtime behavior
+  changes from 0.4.90.
+- Re-certify the six IntelliJ IDEA 2024.2/2025.2 real-host cells, plugin
+  structure/compatibility verification, and the shared 11-cell native ARM64
+  aggregate from the same latest-main source as VS Code 0.37.55.
+- Carry forward the fail-closed release-evidence and Marketplace artifact
+  readback hardening used by the paired VSIX release.
+- Recommend the fully gated public CLI `chainlesschain@0.164.0`, which provides
+  Automation Center v3, governed permission activity/scoped rules, and
+  multi-agent merge review for the existing native IDE surfaces.
+
 ## [0.4.90] - Context Center and runtime authority evidence (2026-08-15)
 
 - Add a native, read-only Context Center for inspecting the CLI-owned context

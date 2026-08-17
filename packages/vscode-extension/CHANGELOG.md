@@ -2,6 +2,21 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.55] - Trusted Remote-SSH release certification (2026-08-17)
+
+- Publish a maintenance build with no intentional user-facing runtime behavior
+  changes from 0.37.54.
+- Add a fail-closed Remote-SSH/container release cell that binds the immutable
+  VSIX, pinned transport and install bytes, host key, remote extension-host
+  identity, workspace roots, container marker bytes, and retained diagnostics
+  into one exact-commit evidence envelope.
+- Re-certify stable/minimum VS Code hosts, the 11-cell native ARM64 aggregate,
+  and the paired JetBrains artifact after hardening Marketplace artifact
+  readback and release-evidence containment.
+- Recommend the fully gated public CLI `chainlesschain@0.164.0`, which supplies
+  Automation Center v3, governed permission activity/scoped rules, and the
+  multi-agent merge-review commands consumed by the existing IDE surfaces.
+
 ## [0.37.54] - Context and side-effect centers (2026-08-16)
 
 - Add an interactive Context Center backed by a deterministic, versioned
