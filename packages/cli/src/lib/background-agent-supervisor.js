@@ -3051,22 +3051,10 @@ function isDestructiveIdentityRetired(identity) {
   return ["dead", "reused"].includes(identity?.status);
 }
 
-function isRecoverableCreationTimeIdentityProbe(identity) {
-  // A one-shot `ps -o lstart=` failure is observational: it says nothing about
-  // whether the exact target is still present. Other unverifiable outcomes can
-  // mean a missing durable anchor, a vanished group owner, PID reuse with a
-  // surviving group, or an untrusted group snapshot; those remain immediately
-  // fail-closed rather than being promoted into the resend path.
-  return (
-    identity?.status === "unverifiable" &&
-    identity?.reason === "creation-time-probe-failed"
-  );
-}
-
-function isRecoverableInitialDestructiveIdentityProbe(identity) {
+function isRecoverableDestructiveIdentityProbe(identity) {
   // These outcomes come only from read-only OS observations. Retrying them
   // cannot address a process, and the caller still requires two consecutive
-  // fresh exact matches before it may issue the first signal.
+  // fresh exact matches before it may issue or reissue a signal.
   return (
     identity?.status === "unverifiable" &&
     ["creation-time-probe-failed", "process-group-state-probe-failed"].includes(
@@ -3137,7 +3125,7 @@ function retryRecoverableInitialPosixIdentity({
     }
     if (
       lastIdentity?.status !== "match" &&
-      !isRecoverableInitialDestructiveIdentityProbe(lastIdentity)
+      !isRecoverableDestructiveIdentityProbe(lastIdentity)
     ) {
       return outcome("failed", "preflight-identity");
     }
@@ -3154,7 +3142,7 @@ function retryRecoverableInitialPosixIdentity({
     }
     if (
       lastIdentity?.status !== "match" &&
-      !isRecoverableInitialDestructiveIdentityProbe(lastIdentity)
+      !isRecoverableDestructiveIdentityProbe(lastIdentity)
     ) {
       return outcome("failed", "preflight-identity");
     }
@@ -3172,8 +3160,9 @@ function retryRecoverableInitialPosixIdentity({
 
 /**
  * Recover from a transient POSIX EPERM without ever signalling from unknown
- * identity evidence. Probe-only waits may bridge a transient creation-time
- * lookup failure, but a resend requires two consecutive fresh exact matches.
+ * identity evidence. Probe-only waits may bridge a transient creation-time or
+ * process-group-state lookup failure, but a resend requires two consecutive
+ * fresh exact matches.
  */
 function retryExactPosixSignalAfterPermissionError({
   inspectIdentity,
@@ -3203,7 +3192,7 @@ function retryExactPosixSignalAfterPermissionError({
     }
     if (
       lastIdentity?.status !== "match" &&
-      !isRecoverableCreationTimeIdentityProbe(lastIdentity)
+      !isRecoverableDestructiveIdentityProbe(lastIdentity)
     ) {
       return outcome("failed", "identity");
     }
@@ -3226,7 +3215,7 @@ function retryExactPosixSignalAfterPermissionError({
     }
     if (
       lastIdentity?.status !== "match" &&
-      !isRecoverableCreationTimeIdentityProbe(lastIdentity)
+      !isRecoverableDestructiveIdentityProbe(lastIdentity)
     ) {
       return outcome("failed", "identity");
     }
@@ -3306,7 +3295,7 @@ function signalExactBackgroundProcessTree(
   if (lastIdentity.status !== "match") {
     if (
       platform === "win32" ||
-      !isRecoverableInitialDestructiveIdentityProbe(lastIdentity)
+      !isRecoverableDestructiveIdentityProbe(lastIdentity)
     ) {
       retryStoppedBy = "preflight-identity";
       throw failure(
@@ -3683,7 +3672,7 @@ export function stopBackgroundAgent(id) {
           if (preflightIdentity.status !== "match") {
             if (
               process.platform === "win32" ||
-              !isRecoverableInitialDestructiveIdentityProbe(preflightIdentity)
+              !isRecoverableDestructiveIdentityProbe(preflightIdentity)
             ) {
               activeTerminationContext.retryStoppedBy = "preflight-identity";
               throw new Error(
