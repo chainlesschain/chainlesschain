@@ -50,6 +50,7 @@ function installStrictPolicyPlugin(cwd) {
   });
   const target = path.join(root, "bin", "strict-run-code.js");
   fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.writeFileSync(path.join(path.dirname(root), ".active"), "1.0.0\n", "utf8");
   fs.writeFileSync(target, "process.stdout.write('strict');\n", "utf8");
   fs.writeFileSync(
     path.join(root, "plugin.json"),
