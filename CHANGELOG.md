@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI 0.165.0: runtime admission, remote authority, and background containment
+
+> `chainlesschain` **0.164.0 → 0.165.0** (candidate; not yet published,
+> 2026-08-17).
+> CLI candidate with `@chainlesschain/personal-data-hub` **0.4.58**;
+> `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **Dynamic workflow run admission**: Cowork workflow execution revalidates the
+  immutable definition digest, execution-authority session, permissions,
+  sandbox, scale, and cost gates when a run starts instead of treating an
+  earlier preflight as continuing authority.
+- **Durable remote authority**: CLI-hosted approval, relay membership, and
+  reconnect reconciliation bind responses and commits to durable membership
+  epochs. Stale, revoked, mismatched, or unavailable authority fails closed.
+- **Canonical execution boundaries**: background `run_shell`, plugin-bin, and
+  delivery paths validate canonical workspace and configured repository
+  authority before executing or pushing. Linux child descriptors not declared
+  by the execution contract are closed before launch.
+- **Background keeper containment**: supervisor state locks publish ownership
+  atomically, distinguish zombies and reused PIDs, preserve POSIX process-group
+  cleanup, contain released turns after Worker loss, and require durable cleanup
+  evidence before retiring worktrees. POSIX socket namespaces and Windows exit
+  settlement are bounded for hosted and local environments.
+- **Cross-platform release evidence**: CLI workflows install the candidate's
+  dependency closure, bind reusable jobs to the exact source SHA, keep each
+  platform's evidence isolated, and retain bounded diagnostics for transient
+  process-identity and cleanup races.
+- **Dependency security closure**: the CLI requires the patched `js-yaml`
+  3.15.1 line, while Personal Data Hub 0.4.58 advances its bounded ZIP adapter
+  to `adm-zip` 0.6.0 so a crafted archive cannot trigger the disclosed 4 GB
+  allocation path before adapter-level entry validation.
+- **Release boundary**: the separate plugin marketplace activation hardening in
+  PR #209 is intentionally excluded because its latest CLI and PR test runs are
+  not green. This candidate does not claim that pending source as published.
+- **Release status**: immutable tag, final source SHA, workflow run IDs, npm
+  provenance, package digests, and registry readback remain intentionally
+  absent until the final merge SHA passes complete `CLI CI` and
+  `CLI Strict Sandbox` matrices on Linux, Windows, and macOS, followed by the
+  dedicated npm release and independent public readback workflows.
+
 ### Fixed — post-0.164.0 source increments
 
 > Source-only changes after immutable tag `v-npm-0-164-0` at exact commit
