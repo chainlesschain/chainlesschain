@@ -281,7 +281,7 @@ describe("cowork durable workflow runtime commands", () => {
     expect(state.status).toBe("completed");
   });
 
-  it("rejects non-serial durable admission and stale control revisions", async () => {
+  it("accepts bounded parallel durable admission and rejects stale control revisions", async () => {
     const runTask = vi.fn(async (args) => completedTask(args));
     await command({
       workflowRunTask: runTask,
@@ -300,8 +300,13 @@ describe("cowork durable workflow runtime commands", () => {
       "--max-parallel",
       "2",
     ]);
-    expect(process.exitCode).toBe(2);
-    expect(runTask).not.toHaveBeenCalled();
+    expect(process.exitCode).toBe(0);
+    expect(runTask).toHaveBeenCalledTimes(2);
+    expect(
+      readDynamicWorkflowRuntimeState(
+        dynamicWorkflowRunStatePath(projectRoot, "command-invalid"),
+      ).status,
+    ).toBe("completed");
 
     process.exitCode = undefined;
     await runDurable("command-stale", runTask);

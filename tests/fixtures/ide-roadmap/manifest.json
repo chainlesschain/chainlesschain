@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "manifestVersion": "1.9.2",
-  "baselineCommit": "eb0bc663b6eb794b1b62ba2bfc7a1267c699d25d",
+  "manifestVersion": "1.9.3",
+  "baselineCommit": "f6421a858187c9a14156a7c680db73ccf704dc41",
   "releaseEvidence": {
     "commitSource": "git-head-at-run",
     "requiredFields": [
@@ -436,9 +436,9 @@
       "priority": "P1",
       "required": true,
       "evidenceStatus": "external-evidence-required",
-      "evidenceNotes": "Repository tests close generated-draft review authority and existing admission/replay behavior only. Release readiness still requires durable pause/resume/stop/restart, at-most-once settlement after crashes, lineage, dual-IDE consumption, plugin distribution, and the declared real-host matrix on the exact release commit.",
+      "evidenceNotes": "Repository tests close generated-draft review authority, exact admission/replay, serial and bounded-parallel request-before-provider persistence, atomic dispatch-batch identity, ordered multi-pending reconciliation, and the pause settlement barrier. Release readiness still requires retry/timeout late-settlement authority, production provider receipt/idempotency consumption, complete artifact/checkpoint/side-effect readback, dual-IDE consumption, plugin distribution, and the declared real-host matrix on the exact release commit.",
       "fixture": "tests/fixtures/ide-roadmap/p1-dynamic-workflow.json",
-      "fixtureDigest": "sha256:df377b8b287343bf3259973e4ab905610c0232db2e6ae994b3cb905eafd98e9f",
+      "fixtureDigest": "sha256:0a5fa27faeb9407b57d0a3e952b286619c8c8786b52280942df978dc39f9dd51",
       "seed": 2026080114,
       "minimumIndependentRuns": 100,
       "matrix": {
@@ -453,6 +453,9 @@
         "unversionedDefinitionExecutionCount": 0,
         "authorityDriftExecutionCount": 0,
         "duplicateStageSettlementCount": 0,
+        "partialBatchPublicationCount": 0,
+        "outOfOrderReconciliationCount": 0,
+        "prematurePauseSettlementCount": 0,
         "stoppedStageCommitCount": 0,
         "budgetOverrunContinuationCount": 0,
         "missingArtifactLineageCount": 0,
@@ -481,6 +484,8 @@
         "run-admission",
         "control-revision-ledger",
         "stage-effect-ledger",
+        "effect-batch-ledger",
+        "settlement-barrier-ledger",
         "checkpoint-lineage",
         "token-time-budget-ledger",
         "artifact-lineage",

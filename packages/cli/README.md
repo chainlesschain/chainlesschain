@@ -909,11 +909,13 @@ chainlesschain cowork workflow review workflow-draft.json \
   --expected-draft-digest sha256:<digest> --reviewer <identity> --accept
 ```
 
-Accepted or hand-authored versioned definitions can opt into the serial durable
-runtime. Every step/iteration/attempt is persisted as a pending effect before
-the provider call. If the provider throws or its settlement response is lost,
-the run becomes `blocked` and will not replay that effect until an operator
-supplies a bounded result file at the exact runtime revision.
+Accepted or hand-authored versioned definitions can opt into the bounded-parallel
+durable runtime. Every concurrently scheduled dispatch group is persisted as one
+atomic effect batch before any provider call. Each step/iteration/attempt keeps
+its own stable effect identity plus batch identity, index, and size. If a
+provider throws or its settlement response is lost, the run becomes `blocked`
+and will not replay any pending effect until an operator supplies bounded result
+files at the exact runtime revisions and in the recorded recovery order.
 
 ```bash
 chainlesschain cowork workflow run <workflow-id> \
@@ -926,13 +928,16 @@ chainlesschain cowork workflow runtime-reconcile <run-id> <effect-id> <result.js
   --expected-revision <n>
 ```
 
-The durable runtime deliberately forces `maxParallel=1`: this closes the
-request-before-provider, safe-point pause/resume/stop, and no-automatic-replay
-semantics without claiming that concurrent external effects are already
-recoverable. Definitions with per-step retry or timeout are also rejected until
-late provider settlement can be distinguished from a genuinely unapplied
-attempt. Reconciliation is an explicit operator assertion about an
-outcome-unknown provider call, not an automatic retry.
+The durable runtime accepts `maxParallel` only within the digest-bound admission,
+the workflow budget, and the hard 64-effect batch limit. A pause remains
+`pause_requested` until every already-requested parallel provider has physically
+settled; an unknown outcome keeps the run blocked. Multi-effect reconciliation
+is ordered by the persisted batch sequence, and the run becomes `ready` only
+after every pending effect is settled. Definitions with per-step retry or
+timeout are still rejected until late provider settlement can be distinguished
+from a genuinely unapplied attempt. Reconciliation is an explicit operator
+assertion about an outcome-unknown provider call, not an automatic retry or a
+third-party receipt.
 
 `runtime-status --json` also returns a digest-bound `observability` projection.
 It exposes effect/result lineage, provider-return versus operator-reconciled
@@ -945,7 +950,7 @@ effects are not represented by the workflow-level effect ledger.
 
 **WS protocol**: `workflow-list` / `workflow-get` / `workflow-save` / `workflow-remove` / `workflow-run` (streams `workflow:started` / `step-start` / `step-complete` / `workflow:done`).
 
-**Key files**: `src/gateways/ws/action-protocol.js` (5 handlers), `src/lib/cowork-workflow.js` (CRUD + `executeWorkflow`), `src/lib/dynamic-workflow-draft.js` (model proposal + human review authority), `src/lib/dynamic-workflow-runtime.js` (serial durable effect protocol), `packages/web-panel/src/stores/workflow.js` (Pinia store + `validateLocal`), `packages/web-panel/src/views/WorkflowEditor.vue`. **Governed CLI regression**: 202 tests across draft/review, durable runtime, façade, DAG, WebSocket, admission, and command routing; the original editor slice retains its 39 backend/frontend/integration/E2E tests.
+**Key files**: `src/gateways/ws/action-protocol.js` (5 handlers), `src/lib/cowork-workflow.js` (CRUD + `executeWorkflow`), `src/lib/dynamic-workflow-draft.js` (model proposal + human review authority), `src/lib/dynamic-workflow-runtime.js` (atomic parallel durable effect protocol), `packages/web-panel/src/stores/workflow.js` (Pinia store + `validateLocal`), `packages/web-panel/src/views/WorkflowEditor.vue`. **Governed CLI regression**: 209 tests across draft/review, durable runtime, façade, DAG, WebSocket, admission, and command routing; the original editor slice retains its 39 backend/frontend/integration/E2E tests.
 
 > Vue Flow visual canvas (drag-to-connect, branch rendering) is planned as M2.
 

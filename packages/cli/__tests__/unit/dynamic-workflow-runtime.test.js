@@ -118,7 +118,12 @@ function executionLocation(projectRoot) {
   });
 }
 
-function admittedExecution(projectRoot, workflow = workflowDefinition()) {
+function admittedExecution(
+  projectRoot,
+  workflow = workflowDefinition(),
+  maxParallel = 1,
+  pipeline = false,
+) {
   const definitionAuthority = verifyCoworkWorkflowRecord(
     createCoworkWorkflowRecord(workflow),
   );
@@ -134,11 +139,11 @@ function admittedExecution(projectRoot, workflow = workflowDefinition()) {
     {
       definitionAuthority,
       executionAuthoritySessionId: "durable-session-1",
-      maxParallel: 1,
+      maxParallel,
       execution: {
         cwd: projectRoot,
         continueOnError: false,
-        pipeline: false,
+        pipeline,
         provider: "fixture",
         model: "fixture-model",
       },
@@ -156,7 +161,7 @@ function admittedExecution(projectRoot, workflow = workflowDefinition()) {
     definitionDigest: definitionAuthority.definitionDigest,
     cwd: projectRoot,
     continueOnError: false,
-    pipeline: false,
+    pipeline,
     llmOptions: { provider: "fixture", model: "fixture-model" },
     runAdmission: admission.admission,
   };
@@ -214,6 +219,339 @@ describe("durable dynamic workflow runtime", () => {
       pendingEffects: [],
       finalRecordStatus: "completed",
     });
+  });
+
+  it("persists each parallel dispatch batch atomically before any provider call", async () => {
+    const workflow = workflowDefinition({
+      steps: [
+        { id: "collect-a", message: "Collect release evidence A" },
+        { id: "collect-b", message: "Collect release evidence B" },
+      ],
+    });
+    workflow.facade.requirements.capabilities.push("parallel");
+    const execution = admittedExecution(projectRoot, workflow, 2);
+    const statePath = dynamicWorkflowRunStatePath(projectRoot, "run-parallel");
+    let releaseProviders;
+    const providersStarted = new Promise((resolve) => {
+      releaseProviders = resolve;
+    });
+    let active = 0;
+    let maxActive = 0;
+    let started = 0;
+    const observedBatches = [];
+    const runTask = vi.fn(async (args) => {
+      active += 1;
+      maxActive = Math.max(maxActive, active);
+      const state = readDynamicWorkflowRuntimeState(statePath);
+      observedBatches.push(
+        state.effects.map((effect) => ({
+          id: effect.id,
+          status: effect.status,
+          batchId: effect.batchId,
+          batchIndex: effect.batchIndex,
+          batchSize: effect.batchSize,
+        })),
+      );
+      started += 1;
+      if (started === 2) releaseProviders();
+      await providersStarted;
+      active -= 1;
+      return completedTask(args);
+    });
+
+    const record = await executeDurableDynamicWorkflow(
+      { statePath, runId: "run-parallel", execution },
+      { runTask, now: clock() },
+    );
+
+    expect(record.status).toBe("completed");
+    expect(runTask).toHaveBeenCalledTimes(2);
+    expect(maxActive).toBe(2);
+    expect(observedBatches).toHaveLength(2);
+    for (const observed of observedBatches) {
+      expect(observed).toHaveLength(2);
+      expect(observed.every((effect) => effect.status === "pending")).toBe(
+        true,
+      );
+      expect(new Set(observed.map((effect) => effect.batchId)).size).toBe(1);
+      expect(observed.map((effect) => effect.batchIndex)).toEqual([0, 1]);
+      expect(observed.map((effect) => effect.batchSize)).toEqual([2, 2]);
+    }
+    const state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.effects).toHaveLength(2);
+    expect(state.effects.every((effect) => effect.status === "settled")).toBe(
+      true,
+    );
+    expect(
+      state.lineage.filter((event) => event.type === "effect-batch-requested"),
+    ).toHaveLength(1);
+  });
+
+  it("keeps multiple unknown outcomes blocked until ordered reconciliation completes", async () => {
+    const workflow = workflowDefinition({
+      steps: [
+        { id: "collect-a", message: "Collect release evidence A" },
+        { id: "collect-b", message: "Collect release evidence B" },
+      ],
+    });
+    workflow.facade.requirements.capabilities.push("parallel");
+    const execution = admittedExecution(projectRoot, workflow, 2);
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-parallel-reconcile",
+    );
+    const runTask = vi.fn(async (args) => completedTask(args));
+
+    await expect(
+      executeDurableDynamicWorkflow(
+        { statePath, runId: "run-parallel-reconcile", execution },
+        {
+          runTask,
+          now: clock(),
+          afterProvider: async () => {
+            await Promise.resolve();
+            throw new Error("provider response lost after parallel dispatch");
+          },
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: DYNAMIC_WORKFLOW_RUNTIME_CONTROL_CODE,
+      reason: "reconciliation-required",
+    });
+    expect(runTask).toHaveBeenCalledTimes(2);
+
+    let state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.status).toBe("blocked");
+    expect(state.effects).toHaveLength(2);
+    expect(state.effects.every((effect) => effect.status === "pending")).toBe(
+      true,
+    );
+    expect(new Set(state.effects.map((effect) => effect.batchId)).size).toBe(1);
+
+    expect(() =>
+      reconcileDurableWorkflowEffect(
+        statePath,
+        {
+          expectedRevision: state.revision,
+          effectId: state.effects[1].id,
+          result: completedTask({
+            workflowEffect: state.effects[1],
+            userMessage: state.effects[1].stepId,
+          }),
+        },
+        { now: clock(Date.parse("2026-08-18T05:40:00.000Z")) },
+      ),
+    ).toThrow(/must be reconciled before/u);
+
+    state = reconcileDurableWorkflowEffect(
+      statePath,
+      {
+        expectedRevision: state.revision,
+        effectId: state.effects[0].id,
+        result: completedTask({
+          workflowEffect: state.effects[0],
+          userMessage: state.effects[0].stepId,
+        }),
+      },
+      { now: clock(Date.parse("2026-08-18T05:41:00.000Z")) },
+    );
+    expect(state.status).toBe("blocked");
+    expect(state.effects.map((effect) => effect.status)).toEqual([
+      "settled",
+      "pending",
+    ]);
+
+    state = reconcileDurableWorkflowEffect(
+      statePath,
+      {
+        expectedRevision: state.revision,
+        effectId: state.effects[1].id,
+        result: completedTask({
+          workflowEffect: state.effects[1],
+          userMessage: state.effects[1].stepId,
+        }),
+      },
+      { now: clock(Date.parse("2026-08-18T05:42:00.000Z")) },
+    );
+    expect(state.status).toBe("ready");
+
+    const replayTask = vi.fn(async (args) => completedTask(args));
+    const record = await executeDurableDynamicWorkflow(
+      { statePath, runId: "run-parallel-reconcile", execution },
+      {
+        runTask: replayTask,
+        now: clock(Date.parse("2026-08-18T05:43:00.000Z")),
+      },
+    );
+    expect(record.status).toBe("completed");
+    expect(replayTask).not.toHaveBeenCalled();
+  });
+
+  it("waits for every in-flight parallel provider to settle before surfacing reconciliation", async () => {
+    const workflow = workflowDefinition({
+      steps: [
+        { id: "collect-a", message: "Collect release evidence A" },
+        { id: "collect-b", message: "Collect release evidence B" },
+      ],
+    });
+    workflow.facade.requirements.capabilities.push("parallel");
+    const execution = admittedExecution(projectRoot, workflow, 2);
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-parallel-barrier",
+    );
+    let releaseSecond;
+    const secondProvider = new Promise((resolve) => {
+      releaseSecond = resolve;
+    });
+    let markBothStarted;
+    const bothStarted = new Promise((resolve) => {
+      markBothStarted = resolve;
+    });
+    let started = 0;
+    const runTask = vi.fn(async (args) => {
+      started += 1;
+      if (started === 2) markBothStarted();
+      if (args.workflowEffect.stepId === "collect-a") {
+        throw new Error("provider A outcome unknown");
+      }
+      await secondProvider;
+      return completedTask(args);
+    });
+    let executionSettled = false;
+    const runPromise = executeDurableDynamicWorkflow(
+      { statePath, runId: "run-parallel-barrier", execution },
+      { runTask, now: clock() },
+    ).finally(() => {
+      executionSettled = true;
+    });
+
+    await bothStarted;
+    await Promise.resolve();
+    expect(executionSettled).toBe(false);
+    let state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.effects.map((effect) => effect.status)).toEqual([
+      "pending",
+      "pending",
+    ]);
+
+    releaseSecond();
+    await expect(runPromise).rejects.toMatchObject({
+      reason: "reconciliation-required",
+    });
+    state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.status).toBe("blocked");
+    expect(state.effects.map((effect) => effect.status)).toEqual([
+      "pending",
+      "settled",
+    ]);
+  });
+
+  it("propagates reconciliation control after parallel pipeline providers settle", async () => {
+    const workflow = workflowDefinition({
+      steps: [
+        { id: "collect-a", message: "Collect release evidence A" },
+        { id: "collect-b", message: "Collect release evidence B" },
+      ],
+    });
+    workflow.facade.requirements.capabilities.push("parallel", "pipeline");
+    workflow.pipeline = true;
+    const execution = admittedExecution(projectRoot, workflow, 2, true);
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-parallel-pipeline",
+    );
+    const runTask = vi.fn(async (args) => {
+      if (args.workflowEffect.stepId === "collect-a") {
+        throw new Error("pipeline provider outcome unknown");
+      }
+      return completedTask(args);
+    });
+
+    await expect(
+      executeDurableDynamicWorkflow(
+        { statePath, runId: "run-parallel-pipeline", execution },
+        { runTask, now: clock() },
+      ),
+    ).rejects.toMatchObject({
+      code: DYNAMIC_WORKFLOW_RUNTIME_CONTROL_CODE,
+      reason: "reconciliation-required",
+    });
+    const state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.status).toBe("blocked");
+    expect(state.effects.map((effect) => effect.status)).toEqual([
+      "pending",
+      "settled",
+    ]);
+    expect(runTask).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps pause requested until the parallel settlement barrier closes", async () => {
+    const workflow = workflowDefinition({
+      steps: [
+        { id: "collect-a", message: "Collect release evidence A" },
+        { id: "collect-b", message: "Collect release evidence B" },
+        {
+          id: "review-a",
+          message: "Review release evidence A",
+          dependsOn: ["collect-a"],
+        },
+      ],
+    });
+    workflow.facade.requirements.capabilities.push("parallel");
+    const execution = admittedExecution(projectRoot, workflow, 2);
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-parallel-pause",
+    );
+    const runtimeClock = clock();
+    let releaseSecond;
+    const secondProvider = new Promise((resolve) => {
+      releaseSecond = resolve;
+    });
+    let markBothStarted;
+    const bothStarted = new Promise((resolve) => {
+      markBothStarted = resolve;
+    });
+    let started = 0;
+    const runTask = vi.fn(async (args) => {
+      started += 1;
+      if (started === 2) markBothStarted();
+      if (args.workflowEffect.stepId === "collect-a") {
+        const state = readDynamicWorkflowRuntimeState(statePath);
+        requestDurableWorkflowPause(statePath, state.revision, {
+          now: runtimeClock,
+        });
+      } else if (args.workflowEffect.stepId === "collect-b") {
+        await secondProvider;
+      }
+      return completedTask(args);
+    });
+    let executionSettled = false;
+    const runPromise = executeDurableDynamicWorkflow(
+      { statePath, runId: "run-parallel-pause", execution },
+      { runTask, now: runtimeClock },
+    ).finally(() => {
+      executionSettled = true;
+    });
+
+    await bothStarted;
+    await Promise.resolve();
+    expect(executionSettled).toBe(false);
+    let state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.status).toBe("pause_requested");
+    expect(state.effects.some((effect) => effect.status === "pending")).toBe(
+      true,
+    );
+
+    releaseSecond();
+    await expect(runPromise).rejects.toMatchObject({ reason: "paused" });
+    state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.status).toBe("paused");
+    expect(state.effects.every((effect) => effect.status === "settled")).toBe(
+      true,
+    );
+    expect(runTask).toHaveBeenCalledTimes(2);
   });
 
   it("never replays an outcome-unknown effect before explicit reconciliation", async () => {

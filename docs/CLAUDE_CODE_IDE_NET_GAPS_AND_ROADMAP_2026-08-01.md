@@ -2953,3 +2953,56 @@ mutation fence**；不把单机本地文件系统结果外推为多主机共享�
 因此，第二十节保留的**跨 scope 并行 fencing**由本节关闭；P1-5 整项仍为**部分完成**。总计数保持
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节不关闭任何外部发布门，
 也不改变 P2-4 与其他 11 个剩余路线项的状态。
+
+## 三十六、2026-08-18 P1-1 并发 durable effect 原子批次与结算屏障子门复核（`07:05 +08:00`）
+
+本节继续第三十一、三十二节的 durable runtime，但不把仓库内并发调度回归外推为真实 provider 已提供幂等 receipt，也不宣称
+retry/timeout、强制取消或完整 P1-1 已关闭。候选位于本地主分支 `f6421a858187c9a14156a7c680db73ccf704dc41` 之上的功能分支，尚无
+本候选 exact-head GitHub Actions。本节关闭的是仓库内**同一调度轮次 effect 的原子 request-before-provider、持久顺序恢复和 pause
+结算屏障**子门。
+
+### 本轮关闭的并发 durable effect 协议
+
+- **并发 dispatch 先作为一个原子批次持久化。** 同一调度轮次进入 durable provider 的 effect 会先按稳定 key 排序，并在一次状态事务中
+  写入全部 pending effect；事务提交后各 provider 才能开始。每条 effect 保留原有 step/iteration/attempt identity，同时新增
+  `batchId`、`batchIndex` 与 `batchSize`。batch digest 绑定 runId、稳定顺序、effect key 和 payload digest；状态回读还会校验完整
+  cardinality、连续 index、共同 requestedAt 与 hard 64 上限，拒绝部分批次或元数据漂移。
+- **显式 bounded parallel 受同一 admission authority 约束。** durable CLI 继续默认 `maxParallel=1`，但显式
+  `--max-parallel <n>` 不再被硬编码拒绝；实际并发值必须同时通过 definition budget、digest-bound run admission 和 runtime 1～64
+  边界，并原样传给 Cowork executor。retry 或 timeout step 仍在创建 runtime state 前 fail closed，避免把晚到 provider settlement
+  误判为从未执行的 attempt。
+- **多个未知 outcome 只能按持久顺序显式 reconcile。** 任一 provider/settlement response 未知都会使 run 保持 `blocked`；operator
+  只能处理 effect ledger 中最早的 pending effect，越序返回
+  `CC_DYNAMIC_WORKFLOW_EFFECT_RECONCILIATION_OUT_OF_ORDER`。处理部分 pending 后状态仍为 `blocked`，只有最后一条完成后才回到
+  `ready`；恢复执行直接消费已持久结果，不重放 provider。
+- **失败和暂停都等待已请求 provider 物理结算。** 一个并发 provider 先失败时，执行 promise 不会在同批其他 provider 仍运行时提前返回；
+  其余成功结果先写为 settled，未知 effect 保留 pending。收到 pause 后状态保持 `pause_requested`，直到全部已请求 effect 已 settled；
+  只有屏障清空后才写 `paused`，若仍有未知 outcome 则转为 reconciliation-required，而不是伪造安全暂停点。
+- **观测投影暴露批次血缘但不夸大 authority。** runtime status 和 observability effect lineage 新增 batch identity/index/size；
+  provider-return 与 operator-reconciled authority、digest-only artifact/checkpoint 以及既有 telemetry gap 继续保持，不把 batch ledger
+  冒充第三方 receipt。
+
+### 仓库内验证与证据边界
+
+- draft/review、durable runtime、facade、Cowork DAG、WebSocket、run admission 与两组 command integration 共八个聚焦文件为
+  **209/209**；其中 durable runtime 单文件 **13/13**，覆盖双 effect 在首个 provider 前原子可见、双未知 outcome 的顺序 reconcile、
+  部分 provider 失败结算屏障、pipeline control signal 传播和并发 pause 屏障；Commander durable command 文件为 **4/4**，覆盖显式
+  `maxParallel=2`。
+- roadmap verifier 与 journey evidence 两文件为 **37/37**；`--contract-only` 回读 manifest `1.9.3` 的
+  **15 cases / 63 referenced test files**，并继续明确 runtime evidence 和 release readiness 未被评估。`p1-dynamic-workflow` fixture
+  新增 partial batch publication、partial provider failure、越序 reconcile 与 pause-during-settlement 故障注入，并要求对应违规计数为 0。
+
+### P1-1 仍未关闭的边界
+
+1. **retry/timeout、取消与真实 provider authority：** late settlement 与 genuinely-unapplied attempt 仍无可验证区分，当前 retry/timeout
+   继续拒绝；stop/pause 不能物理中断不合作的 provider。真实 provider 也尚未消费 effect/batch idempotency key 并返回可独立回读的
+   receipt，因此仓库 ledger 不能证明外部系统的全局 exactly-once。
+2. **完整阶段与制品语义：** 一般阶段间 `needs_input`、restart policy、真实 provider token/USD usage、checkpoint restore、ArtifactStore
+   immutable bytes readback 与嵌套 tool/MCP/external-system side-effect ledger 仍待接线。
+3. **产品消费与外部矩阵：** Workbench/VS Code/JetBrains 的 phase/agent/control UI、plugin/marketplace 分发，以及
+   Local/WSL/SSH/Container/Cloud × 三 OS × 双 IDE 每格 100 次 exact-head 真实 provider/宿主故障矩阵均尚未关闭。
+
+因此，P1-1 的**bounded-parallel 原子 request 批次、持久顺序 reconcile、并发失败结算屏障与 pause settlement barrier**由本节关闭；
+P1-1 整项仍为**部分完成**，完整 exactly-once/durable resume/needs-input 能力不得据此标为完成。总计数保持
+**12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
+Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
