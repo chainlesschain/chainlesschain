@@ -130,6 +130,13 @@ describe("CLI release workflow contracts", () => {
     expect(packageJob.indexOf("npm run build:web-panel:force")).toBeLessThan(
       packageJob.indexOf("npm pack --json"),
     );
+    expect(packageJob).toContain("ci-install-cli-production-deps.sh");
+    expect(packageJob).toContain("--pack-candidates");
+    expect(packageJob).toContain('INTERNAL_CANDIDATES+=("$candidate")');
+    expect(packageJob).toContain("--no-audit --no-fund");
+    expect(packageJob.indexOf("--pack-candidates")).toBeLessThan(
+      packageJob.lastIndexOf("npm sbom --package-lock-only"),
+    );
     expect(packageJob.indexOf("npm pack --json")).toBeLessThan(
       packageJob.indexOf("npm-release-artifact.mjs create"),
     );
