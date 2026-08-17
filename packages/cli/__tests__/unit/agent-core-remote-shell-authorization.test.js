@@ -78,6 +78,7 @@ function installNodeBin({ strict = true } = {}) {
   });
   const target = path.join(root, "bin", "remote-auth-tool.js");
   fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.writeFileSync(path.join(path.dirname(root), ".active"), "1.0.0\n", "utf8");
   fs.writeFileSync(
     target,
     "process.stdout.write('must be brokered');\n",

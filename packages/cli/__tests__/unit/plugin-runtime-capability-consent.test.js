@@ -202,9 +202,7 @@ describe("consent store round-trip", () => {
 
   it("does not overwrite an unavailable or corrupt consent store", () => {
     fs.writeFileSync(store, "{broken", "utf8");
-    expect(
-      isPluginCapabilityConsented(plugin, { process: true }),
-    ).toBe(false);
+    expect(isPluginCapabilityConsented(plugin, { process: true })).toBe(false);
     expect(() =>
       consentPluginCapabilities("greeter", {
         scope: "project",

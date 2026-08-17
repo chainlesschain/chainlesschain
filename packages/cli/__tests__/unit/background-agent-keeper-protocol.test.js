@@ -174,6 +174,32 @@ describe("background agent keeper protocol", () => {
     expect(persistKeeper).not.toHaveBeenCalled();
   });
 
+  it("disconnects a worker after its authenticated heartbeat expires", () => {
+    const persistKeeper = vi.fn();
+    const finishForWorkerDisconnect = vi.fn();
+    const workerSocket = { destroy: vi.fn() };
+    const workerIdentityAlive = vi.fn(() => true);
+
+    expect(
+      runBackgroundAgentKeeperHeartbeat({
+        finishing: false,
+        workerSocket,
+        authenticatedHello: { workerPid: 2468 },
+        authenticatedWorkerStartedAt: 1_234_567,
+        workerHeartbeatAt: 1_000,
+        armedTurn: null,
+        persistKeeper,
+        finishForWorkerDisconnect,
+        now: () => 20_000,
+        workerIdentityAlive,
+      }),
+    ).toBe(false);
+    expect(finishForWorkerDisconnect).toHaveBeenCalledOnce();
+    expect(workerSocket.destroy).toHaveBeenCalledOnce();
+    expect(workerIdentityAlive).not.toHaveBeenCalled();
+    expect(persistKeeper).not.toHaveBeenCalled();
+  });
+
   it("contains and reports heartbeat persistence errors", () => {
     const persistenceError = Object.assign(new Error("lock unavailable"), {
       code: "STATE_LOCK_UNAVAILABLE",

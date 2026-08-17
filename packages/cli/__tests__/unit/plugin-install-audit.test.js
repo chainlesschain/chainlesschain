@@ -137,7 +137,7 @@ describe("cc plugin add — unified install audit", () => {
     const v1 = makeSource("greeter", "1.0.0", null);
     await run("add", v1, "--scope", "local", "--json");
     const v2 = makeSource("greeter", "2.0.0", null);
-    await run("upgrade", v2, "--scope", "local");
+    await run("upgrade", v2, "--scope", "local", "--allow-source-switch");
 
     let records = auditRecords();
     expect(records).toHaveLength(2);
@@ -146,7 +146,7 @@ describe("cc plugin add — unified install audit", () => {
     expect(records[1].install.global).toBe(false); // repo-local scope
 
     // Same version again, no --force → nothing new landed → no record.
-    await run("upgrade", v2, "--scope", "local");
+    await run("upgrade", v2, "--scope", "local", "--allow-source-switch");
     records = auditRecords();
     expect(records).toHaveLength(2);
   });

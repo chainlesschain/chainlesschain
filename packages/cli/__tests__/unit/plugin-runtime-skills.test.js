@@ -10,6 +10,7 @@ let cwd;
 function installPlugin(scope, name, { withSkill = true, manifest = {} } = {}) {
   const dir = pluginVersionDir(scope, name, "1.0.0", { cwd });
   fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(path.dirname(dir), ".active"), "1.0.0", "utf8");
   fs.writeFileSync(
     path.join(dir, "plugin.json"),
     JSON.stringify({ name, version: "1.0.0", ...manifest }),
@@ -86,6 +87,20 @@ describe("discoverPluginSkillLayers", () => {
     });
     expect(layers).toHaveLength(1);
     expect(layers[0].scope).toBe("local");
+  });
+
+  it("blocks one invalid higher-scope name without suppressing unrelated skills", () => {
+    installPlugin("project", "shared");
+    const invalidHigher = installPlugin("local", "shared");
+    fs.rmSync(path.join(path.dirname(invalidHigher), ".active"));
+    installPlugin("project", "healthy");
+
+    const layers = discoverPluginSkillLayers({
+      cwd,
+      scopes: ["project", "local"],
+    });
+
+    expect(layers.map((layer) => layer.name)).toEqual(["healthy"]);
   });
 
   it("returns [] when no plugins are installed", () => {

@@ -6,7 +6,10 @@
 import crypto from "node:crypto";
 import semver from "semver";
 import { diffCapabilities, normalizeCapabilities } from "./capabilities.js";
-import { PLUGIN_MARKETPLACE_PAYLOAD_SBOM_SCHEMA } from "./marketplace-artifact-readback.js";
+import {
+  PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+  isMarketplacePayloadSbomFormat,
+} from "./marketplace-artifact-readback.js";
 import { PLUGIN_MARKETPLACE_INSTALL_PREFLIGHT_SCHEMA } from "./marketplace-catalog.js";
 
 export const PLUGIN_MARKETPLACE_UPDATE_IMPACT_SCHEMA =
@@ -46,6 +49,7 @@ export function buildPluginMarketplaceUpdateImpact({
     preflight.dependencies?.declared || {},
   );
   const approvals = [];
+  const blockers = [...preflight.blockers];
   if (source.requiresApproval) {
     approvals.push({
       code: "SOURCE_SWITCH_APPROVAL_REQUIRED",
@@ -60,6 +64,12 @@ export function buildPluginMarketplaceUpdateImpact({
       code: "CAPABILITY_WIDENING_CONSENT_REQUIRED",
       detail: capabilities.added.join(", "),
     });
+  }
+  if (integrity.semanticPayloadBinding.downgraded) {
+    blockers.push({ code: "SEMANTIC_SBOM_BINDING_DOWNGRADE" });
+  }
+  if (current && version.kind === "candidate-version-deferred") {
+    blockers.push({ code: "REGISTRY_VERSION_REQUIRED_FOR_UPDATE" });
   }
 
   const changes = {
@@ -84,14 +94,14 @@ export function buildPluginMarketplaceUpdateImpact({
       : {}),
     installed: current,
     changes,
-    blockers: preflight.blockers,
+    blockers,
     approvals,
   };
   return {
     schemaVersion: PLUGIN_MARKETPLACE_UPDATE_IMPACT_SCHEMA,
     observedAt,
     impactDigest: sha256Canonical(authority),
-    status: preflight.blockers.length
+    status: blockers.length
       ? "blocked"
       : approvals.length || changeCount
         ? "review-required"
@@ -114,13 +124,13 @@ export function buildPluginMarketplaceUpdateImpact({
     },
     changes,
     changeCount,
-    blockers: preflight.blockers,
+    blockers,
     requiredApprovals: approvals,
     claims: {
       candidateMetadataVerified: false,
       candidateBytesFetched: false,
       candidateCodeExecuted: false,
-      installedEvidenceAuthority: "local-immutable-install",
+      installedEvidenceAuthority: "local-installed-state",
     },
   };
 }
@@ -183,6 +193,7 @@ function normalizeInstalledSource(value) {
 function normalizeInstalledIntegrity(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const payloadSchema = clean(value.sbom?.payloadSchema, 128) || null;
+  const semanticPayloadFormat = clean(value.sbom?.semanticPayloadFormat, 128);
   return {
     signature: {
       present: value.signature?.present === true,
@@ -193,11 +204,15 @@ function normalizeInstalledIntegrity(value) {
     sbom: {
       present: value.sbom?.present === true,
       digest: clean(value.sbom?.digest, 128) || null,
-      payloadSha256:
-        payloadSchema === PLUGIN_MARKETPLACE_PAYLOAD_SBOM_SCHEMA
-          ? clean(value.sbom?.payloadSha256, 128) || null
-          : null,
+      payloadSha256: isMarketplacePayloadSbomFormat(payloadSchema)
+        ? clean(value.sbom?.payloadSha256, 128) || null
+        : null,
       payloadSchema,
+      semanticPayloadFormat: isMarketplacePayloadSbomFormat(
+        semanticPayloadFormat,
+      )
+        ? semanticPayloadFormat
+        : null,
       fileCount: Number.isSafeInteger(value.sbom?.fileCount)
         ? value.sbom.fileCount
         : null,
@@ -294,6 +309,21 @@ function compareIntegrity(current, candidate, currentSource = null) {
     current?.signature?.publicKeySha256,
     candidate?.signature?.publicKeySha256,
   );
+  const installedSemanticFormat = isMarketplacePayloadSbomFormat(
+    current?.sbom?.semanticPayloadFormat,
+  )
+    ? current.sbom.semanticPayloadFormat
+    : null;
+  const candidateSemanticFormat =
+    isMarketplacePayloadSbomFormat(candidate?.sbom?.format) &&
+    candidate?.sbom?.status === "declared" &&
+    candidate?.sbom?.remoteVerification === "complete"
+      ? candidate.sbom.format
+      : null;
+  const semanticPayloadBinding = compareSemanticPayloadBinding(
+    installedSemanticFormat,
+    candidateSemanticFormat,
+  );
   return {
     manifestDigest: compareScalar(installedManifest, candidateManifest),
     signature: {
@@ -313,6 +343,35 @@ function compareIntegrity(current, candidate, currentSource = null) {
       installedSbomDocument,
       candidateSbomDocument,
     ),
+    semanticPayloadBinding,
+  };
+}
+
+function compareSemanticPayloadBinding(from, to) {
+  const strength = (format) =>
+    format === PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA
+      ? 2
+      : isMarketplacePayloadSbomFormat(format)
+        ? 1
+        : 0;
+  const fromStrength = strength(from);
+  const toStrength = strength(to);
+  return {
+    from: from || null,
+    to: to || null,
+    kind: !from
+      ? to
+        ? "added"
+        : "absent"
+      : !to
+        ? "removed"
+        : from === to
+          ? "same"
+          : toStrength < fromStrength
+            ? "weakened"
+            : "changed-format",
+    changed: from !== to,
+    downgraded: fromStrength > toStrength,
   };
 }
 
@@ -372,6 +431,7 @@ function countChanges(changes) {
   if (changes.integrity.signingKey.changed) count += 1;
   if (changes.integrity.sbomDigest.changed) count += 1;
   if (changes.integrity.sbomDocumentDigest.changed) count += 1;
+  if (changes.integrity.semanticPayloadBinding.changed) count += 1;
   if (changes.license.changed) count += 1;
   count +=
     changes.capabilities.added.length + changes.capabilities.removed.length;

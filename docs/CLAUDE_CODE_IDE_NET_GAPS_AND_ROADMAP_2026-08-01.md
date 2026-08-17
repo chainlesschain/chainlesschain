@@ -1875,3 +1875,172 @@ R0～R5 只是阶段别名，不重复计数。“部分完成”表示已有实
 - **Q0 / Q4b 公开渠道状态更正：** [IDE Extensions `31913429988`](https://github.com/chainlesschain/chainlesschain/actions/runs/31913429988) 已终态成功，Open VSX `0.37.54` 已完成 publish、listing 与下载回读；CLI npm `0.164.0` 的发布与独立公网回读也已成功。Microsoft Marketplace 仍未配置 `VSCE_PAT`，JetBrains 仍无作者签名，Desktop/native 仍缺 x64+ARM64 签名与公证，因此 Q0/Q4b 状态不变。
 
 当前候选的最短关闭路径是：先让 `34f55fe3c0`（或仅含本节文档的后继 SHA）的 `CLI CI`、`CLI Strict Sandbox`、`IDE Roadmap Safety Matrix`、`CLI Background Agent Keeper Soak` 与 Remote-SSH producer/aggregate 全部取得同 SHA 终态绿色；再由有权限的发布方补齐 Microsoft Marketplace、签名/公证、Q3 生产交付/WORM 和 S0-3 至少 100 次真实 provider 证据。任何旧 SHA 的成功、取消中的 job、局部 OS 成功或 loopback 结果均不得外推为整项完成或 release GO。
+
+## 十六、2026-08-16 发布门修复收口复核（`14:52 +08:00`）
+
+本节以 PR [#209](https://github.com/chainlesschain/chainlesschain/pull/209) 的运行时代码冻结点
+`21f3eb73aaac16bae5602a753d5f7ae8e5c2185a` 为准，取代第十五节尚未终态的候选运行证据。PR 使用精确基线分支
+`fix/roadmap-release-gates-base-818bcc3@818bcc3ed6d1a5cd611b2960ebc1f662b99dd42a`，没有覆盖并发演进的旧候选分支。此次只关闭已经暴露的 keeper、Remote-SSH 与证据桥回归；外部发布 authority、真实生产交付、真实 provider、签名/公证和完整长期矩阵仍未完成。因此总数继续是 **13/19 项尚未关闭、6/19 项完成**，整体发布结论继续为 **NO-GO**。
+
+- **后台 keeper 当前 exact-SHA 子门已恢复：** [CLI Background Agent Keeper Soak `31931762868`](https://github.com/chainlesschain/chainlesschain/actions/runs/31931762868) 在 Ubuntu、Windows、macOS 三个 producer 及 `Background Agent keeper soak aggregate` 全部成功。修复把 Darwin 超过 `sockaddr_un` 上限的 keeper/attach socket 映射到独立、私有、按 state-root/user/id 哈希的短路径，并为 Windows worker 增加认证 heartbeat，使 PID/start-anchor 探针不可用或延迟时仍可在有界时间内判定 worker 丢失；secure-fs 的 owner、mode、symlink/reparse 与 containment 拒绝条件没有放宽。本地 keeper/transport 定向集为 **27/27**，完整 supervisor 为 **79 passed / 7 skipped**；Windows 三 Agent 真进程 smoke 完成 ready、reconnect、hard-kill 清理，最大观察清理约 24.1 秒，低于 30 秒门限。手工 20-Agent run [31928109052](https://github.com/chainlesschain/chainlesschain/actions/runs/31928109052) 在 Windows 诊断失败后取消，不能计作 Q4b 的正式长时 soak，也不关闭物理断电、分布式撤权或长期对抗矩阵。
+- **Remote-SSH producer 与 trusted aggregate 已在同一 SHA 成功：** [IDE Extensions `31931762904`](https://github.com/chainlesschain/chainlesschain/actions/runs/31931762904) 整体终态成功，其中不可变 VSIX、Windows/macOS/Linux VS Code host、`VS Code Remote-SSH container (scoped trusted cell)` 与 `IDE roadmap evidence (trusted scoped aggregate)` 均成功。runner 先把 development driver、test runner、workspace file 和两根 workspace 绑定为所选 `ssh-remote+...` authority；远端 workspace extension host 再以其原生 `file:` 资源呈现两根路径，并由 `vscode.env.remoteName=ssh-remote`、容器 hostname/marker、`.vscode-server` 精确安装路径、候选 VSIX 摘要/字节数与完整 host-journey stages 共同证明实际远端执行。修复同时统一 marker 的精确写入字节、允许 extension cwd 等于 remote home 或其 canonical 子目录，并让 roadmap artifact 保留受控 `.vsix` 扩展名供后置 inspector 重验。最终 journey 证明 activation、commands、bridge、view dispatch 和 phase completion 全部完成，credential leak、wrong-commit binding 与 evidence replacement 均为 0；本地 Remote 合同为 **10/10**，journey evidence 与 runtime verifier 定向集为 **36/36**。
+- **同一运行时代码点的安全与 PR 基础门已成功：** [IDE Roadmap Safety Matrix `31931762870`](https://github.com/chainlesschain/chainlesschain/actions/runs/31931762870) 的 Ubuntu、Windows、macOS producer 及正式 aggregate 全部成功；[PR Tests `31931762876`](https://github.com/chainlesschain/chainlesschain/actions/runs/31931762876) 的 Code Quality 与 Quick Tests 全部成功。最终仅文档后继 SHA 仍须按仓库发布规则取得完整三平台 `CLI CI` 与 `CLI Strict Sandbox`；本地结果、旧 SHA、部分 OS 或取消的 run 不能替代该 exact-SHA 发布门。
+- **公开渠道结论不变：** Open VSX `0.37.54` 已完成发布、listing 与下载回读，CLI npm `0.164.0` 已完成发布和独立公网回读；Microsoft Marketplace 仍没有 `VSCE_PAT`，JetBrains 仍缺作者签名，Desktop/native 仍缺 x64+ARM64 签名与公证。已有公开子门不能替代 Microsoft Marketplace 的 exact publisher/version/digest、stock VS Code 搜索及 fresh-profile 安装、升级、回滚。
+
+本次收口后仍需完成的范围保持如下：
+
+1. **S0-1～S0-3：** 完成跨宿主 distributed revoke、真实物理断电/跨设备 fsync、强篡改者与 iOS transient resume/生产 UI；关闭当前仍显式为 `sharedLibraryClosure=false` 的任意 native/shared-library 递归闭包、签名后的 macOS 原子 `exec/open` 和长期恶意矩阵；在同一 exact SHA 上取得至少 100 次真实 provider 长会话与 structured handoff，三平台 loopback 不计真实 provider。
+2. **Q0 / Q3：** 由有权限的发布方补齐 Microsoft Marketplace；再从生产入口真实执行 gates→preview→review→fix→PR/CI→受控 merge→外部不可变/WORM archive。当前 branch protection 的 review、admin enforcement、signature 与 ruleset 仍不足，不能把 adapter 单测当作 live journey。
+3. **Q4a / Q4b：** 本次只关闭一个严格 scoped 的 Linux Remote-SSH/container cell。仍须覆盖 WSL、devcontainer、Codespaces、JetBrains Gateway、更多 SSH/Remote 宿主、网络故障/重连/可重放矩阵、公开渠道 fresh-profile 升降级/回滚、Desktop/native 与 JetBrains 签名、8 小时 IDE soak 和 nightly real-provider trajectory。
+4. **P1-1、P1-2、P1-4、P1-5：** 继续完成 durable pause/resume/exactly-once/lineage、真实 WSL/SSH/Cloud/Container launch 与 handoff、长期 Context/Permission 故障矩阵，以及 private registry publisher/组织 trust root、key revocation、TLS/auth、代理/PAC/custom CA、offline 与 SBOM payload 语义绑定。
+5. **P2-4 / P2-5：** 完成键盘/屏幕阅读器/焦点恢复、长会话与大 diff/日志/100+ session 量化验收；同时作出 WebIDE 独立产品或 Preview/Artifact 收敛的明确决策。
+
+后续关闭顺序仍为：先在文档后继 SHA 上补齐 `CLI CI` 与 `CLI Strict Sandbox`，再由相应 authority 关闭 S0-1～S0-3、Q0、Q3 和 Q4b 的外部证据；随后推进剩余 P1 与 P2 项。在这些退出条件全部满足前，任何 scoped producer/aggregate 成功都不得把整体结论改写为 release GO。
+
+## 十七、2026-08-16 P1-5 语义 SBOM 子门与 P2-5 定位收口复核（`18:36 +08:00`）
+
+本节记录第十六节之后的两项变化。实现与定位文档冻结点为 exact commit
+`4b1adbc8124d19f8f2d50a634c6d47b7c5f4268b`；承载本节的后继文档提交仍须在 PR
+[#209](https://github.com/chainlesschain/chainlesschain/pull/209) 上取得 exact-head `CLI CI` 与
+`CLI Strict Sandbox` 三平台终态绿色后方可合并。这里不把本地测试、旧 SHA 或部分矩阵冒充正式发布门。
+
+| 路线项                     | 当前判定     | 本节结论与边界                                                                                                                                                                                                                  |
+| -------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P1-5：Marketplace 组织治理 | **部分完成** | 本轮关闭 repository-defined semantic payload SBOM 的 staged-byte 比较、防降级、严格 readback 与串行 add/upgrade/direct replacement 子门；publisher/组织信任、外部 registry 与长期故障矩阵仍未完成。                             |
+| P2-5：WebIDE 定位          | **完成**     | Accepted [产品定位 ADR](implementation-plans/WEBIDE_PREVIEW_ARTIFACT_POSITIONING_ADR.md) 明确不建设独立浏览器 IDE；旧 `/webide` 保留为固定 HTML/CSS/JavaScript 兼容 playground，规范方向收敛为 session-bound Preview/Artifact。 |
+
+### P1-5 本轮已关闭的仓库内子门
+
+- **语义 payload 合同与 staged-byte 比较。** 新增 `cc-plugin-marketplace-payload-sbom/v2`，显式绑定
+  `file`/`symlink` 类型，排除 installer 自有 provenance 与 VCS metadata，并在任何版本目录替换或 active
+  pointer 更新前，把远端文档、catalog payload digest 与经过 guarded copy 的实际 staged bytes 做 canonical
+  exact comparison。v1 schema 和 parser 行为保持兼容；完整 v1 声明继续受保护，真正不完整的 legacy v1
+  仍按未绑定状态处理，含 Git metadata 的 v1 文档则拒绝用于安装绑定。
+- **串行更新路径防降级。** registry `add` 覆盖既有安装、registry `upgrade`、local/Git direct add/upgrade、
+  force replacement 与 update 内部的既有版本 pointer reuse 均比较 semantic strength；v2→v1、v2/v1→非语义
+  声明被非可覆盖 blocker 拒绝。source switch 与 version downgrade 必须显式批准；既有安装的 registry 候选若
+  延迟到 plugin manifest 才给出版本，则在 artifact/source fetch 前 fail closed，避免把 `to:null` 当成已审阅版本。
+- **当前安装与既有目标不再只信任 metadata。** impact、evidence 和 installer 会重新遍历当前目录并核对
+  persisted comparison；当前/目标 payload 漂移、缺失或损坏 provenance、完整 v1/v2 evidence 丢失均失败。
+  pointer reuse 另外比较 guarded-copy 后的候选与既有目标精确 inventory，并拒绝 root/嵌套 symlink 或 Windows
+  junction、`.git`、特殊文件，以及把 `.plugin-lock.json` / `.plugin-source.json` 伪装成目录的 exclusion
+  smuggling；失败保持原 active bytes 与 authority。
+- **证据表述保持真实。** `comparisonDigest` 只被描述为安装目录内可写记录的 self-consistency checksum，
+  不再称为认证或外部 trust anchor；readback 明确区分安装时远端文档 digest 记录、当前本地 payload 新鲜哈希
+  与没有保留远端文档字节时无法重新验证的事实。
+
+### 本地证据与独立终审
+
+- 最新 12 个相关 CLI 测试文件为 **216 passed / 1 skipped**；其中四个 semantic install/readback/impact/command
+  核心文件的最终复跑为 **125 passed / 1 skipped**。变更 JavaScript 通过 ESLint，全部相关 JavaScript/
+  Markdown 通过 Prettier check，`git diff --check` 通过。
+- 一次完整 `npm test -- --reporter=dot` 在本机运行 604.4 秒后无终态输出超时，故本节明确把它记为
+  **未取得完整结果**，不记为通过；exact-head GitHub Actions 仍是发布 authority。
+- 独立对抗复核对限定范围给出“无剩余高置信 blocker”：串行 registry add/upgrade、direct replacement、
+  update 内 pointer reuse 与 semantic readback 已覆盖 binding downgrade、current/saved drift、candidate-target
+  差异、link/junction、VCS/metadata exclusion smuggling 和完整 v1 evidence loss。该签核没有外推到下列剩余项。
+
+### P1-5 仍未关闭的边界
+
+1. **跨进程事务：** install/upgrade 的 state check、activation、command-level finalize/rollback 尚无覆盖完整事务
+   生命周期的 per-plugin cross-process lock/CAS；并发进程和崩溃恢复仍可能产生 TOCTOU 或 stale rollback。
+2. **activation-only：** 显式 `plugin use`、卸载后的自动 active fallback、缺失/损坏 `.active` 后的版本选择，
+   尚未统一经过 semantic-strength 与 fresh-payload 门；它们不能由本轮 update pointer reuse 测试代替。
+3. **cross-scope：** 当前比较限定于请求 scope，尚未统一裁决 `local > project > user` shadowing 后的 effective
+   plugin authority。
+4. **legacy metadata migration：** 缺失或无效 `.plugin-source.json` 目前 fail closed，并要求移除后从可信来源
+   重装；尚无可审计、事务化的旧安装 metadata backfill/migration。另缺固定历史 v1 digest fixture；v1 parser
+   仍可解析含 `.git/...` 的文档，但完整 install equality 会拒绝其绑定。
+5. **外部信任与环境矩阵：** 仍缺真实 private registry TLS/auth、publisher/组织 trust root、key revocation、
+   代理/PAC/custom CA、air-gapped/offline/cache、依赖冲突、供应链故障和干净外部宿主矩阵。本地可写的
+   source/lock/comparison 记录不是 publisher authentication。
+
+### P2-5 决策关闭边界
+
+P2-5 的退出条件是作出独立浏览器 IDE 或 Preview/Artifact 收敛的明确产品决定；Accepted ADR 已完成该条件。
+兼容页只维护固定 `index.html`、`style.css`、`script.js` 的编辑、预览、Console、本地文件保存与导出原语，
+不再补齐仓库树、全局搜索、诊断、Git/Diff、Terminal、Worktree 或 canonical session runtime。此关闭不表示
+session-bound App Preview 自动“启动→观察→断言→修复→复验→evidence artifact”已经实现，也不表示旧入口迁移、
+Preview 交付验收或 P2-4 的键盘/屏幕阅读器/性能退出条件完成。
+
+因此本候选只新增关闭 P2-5：第十六节的 **13/19 项尚未关闭、6/19 项完成**更新为
+**12/19 项尚未关闭、7/19 项完成**，工程口径更新为 **12 个剩余工作包**。七个完成项是
+P0-1/Q1、P0-2/Q2、P1-3/R4、P2-1/R5、P2-2/R5、P2-3/R5 和 P2-5；当前剩余范围如下：
+
+| #   | 未完成路线项                         | 当前判定                         | 主要剩余关闭条件                                                                                                               |
+| --- | ------------------------------------ | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | S0-1：Plan、权限与运行时正确性       | **部分完成 / P0 release gate**   | distributed revoke、真实物理断电/跨设备 fsync、强篡改者、长期安全矩阵与 iOS transient resume/生产 UI。                         |
+| 2   | S0-2：Skill/MCP 信任边界             | **部分完成 / P0 release gate**   | 任意 native/shared-library 递归闭包、签名后的 macOS 原子 `exec/open`、distributed authority 与长期恶意矩阵。                   |
+| 3   | S0-3：持久状态、语义压缩与 handoff   | **部分完成 / P0 foundation**     | 同一 exact SHA 的至少 100 次真实 provider 长会话、structured handoff/live trajectory 与长期多宿主一致性。                      |
+| 4   | Q0：可信入口与 Microsoft Marketplace | **部分完成 / 外部阻塞**          | `VSCE_PAT`、Microsoft Marketplace exact publisher/version/digest 回读及 stock VS Code fresh-profile 安装、升级、回滚。         |
+| 5   | Q3：Evidence-Driven Delivery Loop    | **部分完成 / live journey 延后** | 生产入口 gates→preview→review→fix→PR/CI→受控 merge→外部不可变/WORM archive 的 exact-head 真实旅程。                            |
+| 6   | Q4a：真实宿主验收基础设施            | **部分完成**                     | WSL、devcontainer、Codespaces、JetBrains Gateway、更多 SSH/Remote 宿主、网络故障、失败 artifact 与可重放矩阵。                 |
+| 7   | Q4b：完整发布与用户旅程门            | **部分完成 / 外部阻塞**          | Microsoft Marketplace、JetBrains/desktop/native 签名公证、公开渠道升降级/回滚、重连、8 小时 soak 与 live-provider trajectory。 |
+| 8   | P1-1：Dynamic Workflow façade        | **部分完成**                     | 真实宿主 attestation、自然语言生成/审阅、durable pause/resume/stop/restart、exactly-once lineage、双 IDE 与 marketplace 分发。 |
+| 9   | P1-2：一等 Execution Location        | **部分完成**                     | WSL/SSH/Cloud/Container 真实 launch/resume、跨宿主 lineage、Preview/Computer Use、IDE/Desktop 创建面与长期故障矩阵。           |
+| 10  | P1-4：Context 与 Permission Center   | **部分完成**                     | 长期并发、真实宿主、故障注入与跨入口矩阵；继续证明 secret/完整命令不泄露，外部副作用不被本地 checkpoint 误报为可回滚。         |
+| 11  | P1-5：Marketplace 组织治理           | **部分完成**                     | 上述跨进程、activation-only、cross-scope、legacy migration、publisher/组织信任、private registry 与网络/供应链长期矩阵。       |
+| 12  | P2-4：可访问性与性能                 | **部分完成**                     | 键盘全路径、屏幕阅读器、焦点恢复、长会话虚拟化、大 diff/日志、100+ session 量化验收，以及真实宿主与长期运行。                  |
+
+P2-5 的产品定位关闭不解除任何安全、可信分发或外部交付门。S0-1～S0-3、Q0、Q3、Q4b 与 P1-5 等退出条件仍未闭合，
+因此整体产品发布结论继续为 **NO-GO**。本节计数在 PR #209 exact-head required checks 成功并合并后生效；合并前
+`main` 仍保留第十六节的历史计数。
+
+## 十八、2026-08-17 P1-5 同作用域激活生命周期子门复核（`07:22 +08:00`）
+
+本节继续第十七节的 P1-5 收口，但不改写其历史快照。实现冻结点为 exact commit
+`f6e01da1f4403adbe4e68056c22bc6b661c76521`；承载本节的后继文档提交仍须在 PR
+[#209](https://github.com/chainlesschain/chainlesschain/pull/209) 上取得 exact-head `CLI CI` 与
+`CLI Strict Sandbox` 三平台终态绿色后方可合并。本节关闭的是**单进程、同 name/scope、串行 activation
+lifecycle** 子门，不把它外推成跨进程、跨 scope 或完整 Marketplace 产品化完成。
+
+### 本轮关闭的 activation lifecycle 子门
+
+- **显式激活与自动 fallback 统一 fail closed。** `plugin use`、版本卸载后的 active fallback、普通与
+  pointer-only update activation 都要求目标版本存在、目录结构安全、manifest name/version 精确匹配、
+  `.plugin-source.json` 严格有效；完整 v1/v2 语义绑定会重新哈希当前 payload，semantic strength 不得降低，
+  source switch 必须显式批准。缺失、损坏、悬空、非普通文件或超长 `.active` 不再静默选择最高 semver。
+- **公共 mutation 默认执行审批与路径约束。** `installFromDirectory`、`installFromSource`、`updatePlugin`
+  的 direct API 默认拒绝未批准的 source switch 与 version downgrade；name/version traversal、编码碰撞、
+  symlink/junction ancestor、manifest identity mismatch 与不安全保存目标在写 pointer、覆盖或删除前拒绝。
+- **同进程事务由恢复 namespace 串行化。** 普通 replacement 与 pointer-only transaction 均持有
+  `.install-*` sentinel；除 transaction-owned activation、`finalize`、`rollback` 和整名恢复性卸载外，后续
+  use/install/update/enable/version-uninstall 全部拒绝。默认 runtime discovery 在该 namespace 存在时阻断该
+  plugin，命令内部只在审阅 capability/catalog authority 时显式读取 transaction-owned candidate。
+- **失败恢复保留精确前驱并可重试。** rollback 先恢复/隔离 bytes，再恢复精确 pointer snapshot，并核对
+  pointer generation、candidate/predecessor payload 与 source digest；candidate quarantine、predecessor publish
+  或 pointer quarantine 的组合 I/O 失败不会把被拒 payload 暴露给 runtime，保留 topology 可在同一 handle
+  上重试。卸载 fallback 同样先隔离版本、再原子提交 pointer，双失败留下 `.uninstall-*` 恢复证据。
+- **恢复债务可见，已提交清理债务不再锁死。** `listInstalled` 与 doctor 会显示
+  `runtimeBlocked/recovery-required`、inspection version 和精确 recovery path；整名 uninstall 是缺少安全自动
+  判断时的显式修复边界。成功 finalize/rollback/install/uninstall 会先把事务目录原子退役为 inert
+  `.cleanup-*` 后再 best-effort 删除；删除失败会在下次 mutation 重试，但不再被误判为未完成 authority。
+  若退役 rename 与删除同时失败，原 `.install-*` 保持 authoritative、runtime 继续阻断且管理面可见。
+
+### 仓库内验证与独立复审
+
+- exact code commit 上全部 21 个 `plugin-runtime-*` 单测文件为 **383 passed / 3 skipped**。
+- Marketplace impact/readback/remote-artifact 三文件为 **72 passed / 1 skipped**；doctor、manifest 与 lifecycle
+  command 三文件为 **66 passed / 3 skipped**。独立终审另复跑五个聚焦文件，得到
+  **179 passed / 4 skipped**，并对 pointer-only sentinel、install/uninstall 双失败、cleanup retirement、
+  recovery inventory/doctor 与 whole-name remediation 做了故障注入复核。
+- 所有变更 JavaScript 通过 Prettier check；ESLint 为 **0 errors**（doctor 仅保留 6 条既有 unused-parameter
+  warnings）；`git diff --check` 通过。GitHub Actions exact-head 三平台结果仍待本节文档提交后取得，故这些
+  本地证据不替代正式 release gate。
+
+### P1-5 仍未关闭的边界
+
+1. **跨进程与崩溃一致性：** 仍没有覆盖 command validation→consent→finalize/rollback 全生命周期的 OS 级
+   per-name/scope lock、durable journal、owner token、generation CAS 与 crash recovery。WeakMap handle 和目录
+   sentinel 只证明串行同进程路径；并发 CLI、进程崩溃、断电与 fsync durability 仍是明确残余。
+2. **cross-scope effective authority：** 当前审批与 semantic baseline 仍限定于目标 scope；`local > project > user`
+   shadowing、disable/uninstall 后暴露低优先级同名 plugin、以及全 scope 物理 inventory/blocked diagnostics
+   尚未统一进入 effective-authority preflight。
+3. **legacy metadata migration：** 缺失或无效 provenance 继续 fail closed，并要求整名移除后从可信来源重装；
+   尚无签名、事务化、可审计的旧安装 metadata backfill/migration。
+4. **外部 Marketplace 产品化：** 真实 private registry TLS/auth、publisher/组织 trust root、key revocation、
+   代理/PAC/custom CA、air-gapped/offline/cache、依赖冲突、供应链故障与干净外部宿主矩阵仍未完成。
+
+因此，第十七节中的 “activation-only” 剩余项由本节的**同作用域串行子门**取代并关闭；P1-5 整项仍为
+**部分完成**。总计数保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体发布结论继续为
+**NO-GO**。本节不关闭 P2-4，也不改变 P2-5 已由 Accepted ADR 完成的结论。

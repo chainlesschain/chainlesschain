@@ -23,6 +23,7 @@ function installMonitorPlugin(
 ) {
   const dir = pluginVersionDir(scope, name, "1.0.0", { cwd });
   fs.mkdirSync(path.join(dir, "monitors"), { recursive: true });
+  fs.writeFileSync(path.join(path.dirname(dir), ".active"), "1.0.0", "utf8");
   fs.writeFileSync(
     path.join(dir, "plugin.json"),
     JSON.stringify({ name, version: "1.0.0", ...manifest }),

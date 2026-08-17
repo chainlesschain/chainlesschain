@@ -4,6 +4,10 @@ import {
   PLUGIN_MARKETPLACE_UPDATE_IMPACT_SCHEMA,
   buildPluginMarketplaceUpdateImpact,
 } from "../../src/lib/plugin-runtime/marketplace-impact.js";
+import {
+  PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+  PLUGIN_MARKETPLACE_PAYLOAD_SBOM_SCHEMA,
+} from "../../src/lib/plugin-runtime/marketplace-artifact-readback.js";
 
 const sha = (character) => character.repeat(64);
 
@@ -218,6 +222,102 @@ describe("plugin marketplace update impact", () => {
     });
   });
 
+  it("preserves a same-format v2 semantic binding without a false SBOM change", () => {
+    const payloadSha256 = sha("d");
+    const impact = buildPluginMarketplaceUpdateImpact({
+      preflight: preflight(
+        candidate({
+          sbom: {
+            format: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+            digest: payloadSha256,
+            url: "https://registry.example/artifacts/plugin.sbom.json",
+            documentSha256: sha("e"),
+          },
+        }),
+      ),
+      installed: installed({
+        integrity: {
+          signature: { verified: true, manifestSha256: sha("a") },
+          sbom: {
+            payloadSha256,
+            payloadSchema: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+            semanticPayloadFormat:
+              PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+          },
+        },
+      }),
+    });
+
+    expect(impact.changes.integrity.sbomDigest).toMatchObject({
+      status: "same",
+      changed: false,
+    });
+    expect(impact.changes.integrity.semanticPayloadBinding).toEqual({
+      from: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+      to: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+      kind: "same",
+      changed: false,
+      downgraded: false,
+    });
+    expect(impact.blockers).not.toContainEqual({
+      code: "SEMANTIC_SBOM_BINDING_DOWNGRADE",
+    });
+  });
+
+  it.each([
+    {
+      label: "an external format",
+      sbom: {
+        format: "cyclonedx-json",
+        url: "https://registry.example/artifacts/plugin.cdx.json",
+        documentSha256: sha("e"),
+      },
+      kind: "removed",
+      to: null,
+    },
+    { label: "a missing declaration", sbom: null, kind: "removed", to: null },
+    {
+      label: "the weaker v1 format",
+      sbom: {
+        format: PLUGIN_MARKETPLACE_PAYLOAD_SBOM_SCHEMA,
+        url: "https://registry.example/artifacts/plugin.sbom.json",
+        documentSha256: sha("e"),
+      },
+      kind: "weakened",
+      to: PLUGIN_MARKETPLACE_PAYLOAD_SBOM_SCHEMA,
+    },
+  ])(
+    "blocks replacing a v2 semantic binding with $label",
+    ({ sbom, kind, to }) => {
+      const impact = buildPluginMarketplaceUpdateImpact({
+        preflight: preflight(candidate({ sbom })),
+        installed: installed({
+          integrity: {
+            signature: { verified: true, manifestSha256: sha("a") },
+            sbom: {
+              payloadSha256: sha("d"),
+              payloadSchema: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+              semanticPayloadFormat:
+                PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+            },
+          },
+        }),
+      });
+
+      expect(impact.status).toBe("blocked");
+      expect(impact.changes.integrity.semanticPayloadBinding).toMatchObject({
+        from: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+        to,
+        kind,
+        changed: true,
+        downgraded: true,
+      });
+      expect(impact.blockers).toContainEqual({
+        code: "SEMANTIC_SBOM_BINDING_DOWNGRADE",
+      });
+    },
+  );
+
   it("requires an explicit approval for a version downgrade", () => {
     const impact = buildPluginMarketplaceUpdateImpact({
       preflight: preflight(candidate({ version: "0.9.0" })),
@@ -227,6 +327,29 @@ describe("plugin marketplace update impact", () => {
     expect(impact.changes.version.kind).toBe("downgrade");
     expect(impact.requiredApprovals).toContainEqual({
       code: "VERSION_DOWNGRADE_APPROVAL_REQUIRED",
+    });
+  });
+
+  it("requires a registry-declared version when updating an existing install", () => {
+    const deferred = preflight(candidate({ version: undefined }));
+    const updateImpact = buildPluginMarketplaceUpdateImpact({
+      preflight: deferred,
+      installed: installed(),
+    });
+    const newInstallImpact = buildPluginMarketplaceUpdateImpact({
+      preflight: deferred,
+      installed: null,
+    });
+
+    expect(updateImpact.status).toBe("blocked");
+    expect(updateImpact.changes.version.kind).toBe(
+      "candidate-version-deferred",
+    );
+    expect(updateImpact.blockers).toContainEqual({
+      code: "REGISTRY_VERSION_REQUIRED_FOR_UPDATE",
+    });
+    expect(newInstallImpact.blockers).not.toContainEqual({
+      code: "REGISTRY_VERSION_REQUIRED_FOR_UPDATE",
     });
   });
 

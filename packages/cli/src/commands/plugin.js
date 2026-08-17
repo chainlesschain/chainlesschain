@@ -27,6 +27,11 @@ import {
   removePluginSkills,
   getPluginSkills,
 } from "../harness/plugin-manager.js";
+import {
+  PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+  PLUGIN_MARKETPLACE_PAYLOAD_SBOM_SCHEMA,
+  isMarketplacePayloadSbomFormat,
+} from "../lib/plugin-runtime/marketplace-artifact-readback.js";
 
 function collectRepeatableOption(value, previous = []) {
   return [...previous, value];
@@ -112,6 +117,32 @@ function cleanupRegistryRemoteArtifacts(remoteArtifacts) {
       "Verified marketplace artifact temporary files could not be removed; cleanup can be retried safely.",
     );
   }
+}
+
+function remoteSbomComparisonAuthorityMatches(
+  catalogAuthority,
+  remoteArtifactEvidence,
+  expectedSbom = null,
+) {
+  const sbom = remoteArtifactEvidence?.sbom;
+  const semanticFormat = sbom?.format || expectedSbom?.format;
+  if (!isMarketplacePayloadSbomFormat(semanticFormat)) return true;
+  if (!sbom) {
+    const comparisonRequired =
+      semanticFormat === PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA ||
+      (semanticFormat === PLUGIN_MARKETPLACE_PAYLOAD_SBOM_SCHEMA &&
+        Boolean(expectedSbom?.url && expectedSbom?.documentSha256));
+    return !comparisonRequired;
+  }
+  const comparison = catalogAuthority?.remoteSbomPayloadComparison;
+  return (
+    comparison?.status === "matched" &&
+    comparison.format === sbom.format &&
+    comparison.remoteArtifactEvidenceDigest ===
+      remoteArtifactEvidence.evidenceDigest &&
+    comparison.documentSha256 === sbom.documentSha256 &&
+    comparison.remotePayload?.digest === comparison.installedPayload?.digest
+  );
 }
 
 function registryManifestDigestConflict(registrySha256, optionSha256) {
@@ -323,9 +354,12 @@ async function installedCatalogAuthorityMatches(
   if (!preflight) return null;
   try {
     const { listInstalled } = await import("../lib/plugin-runtime/install.js");
-    const installed = listInstalled({ cwd, scopes: [scope] }).find(
-      (row) => row.name === name && row.scope === scope,
-    );
+    const installed = listInstalled({
+      cwd,
+      scopes: [scope],
+      allowRetainedInstall: true,
+    }).find((row) => row.name === name && row.scope === scope);
+    if (installed?.runtimeBlocked === true) return false;
     const authority = installed?.source?.catalogAuthority;
     return (
       authority?.catalogDigest === preflight.catalogDigest &&
@@ -337,6 +371,11 @@ async function installedCatalogAuthorityMatches(
       (!remoteArtifactEvidence ||
         authority?.remoteArtifactEvidence?.evidenceDigest ===
           remoteArtifactEvidence.evidenceDigest) &&
+      remoteSbomComparisonAuthorityMatches(
+        authority,
+        remoteArtifactEvidence,
+        preflight.integrity?.sbom,
+      ) &&
       authority?.preflightStatus === "allowed"
     );
   } catch {
@@ -345,12 +384,42 @@ async function installedCatalogAuthorityMatches(
 }
 
 async function buildInstalledMarketplaceSnapshot(name, scope, cwd) {
-  const { listInstalled } = await import("../lib/plugin-runtime/install.js");
+  const { listInstalled, readSourceMetadataStrict } =
+    await import("../lib/plugin-runtime/install.js");
   const { discoverPlugins } = await import("../lib/plugin-runtime/scopes.js");
   const row = listInstalled({ cwd, scopes: [scope] }).find(
     (candidate) => candidate.name === name && candidate.scope === scope,
   );
   if (!row) return null;
+  if (row.runtimeBlocked === true) {
+    throw new Error(
+      `INSTALLED_PLUGIN_RUNTIME_BLOCKED (${row.activePointer?.status || "unknown"})`,
+    );
+  }
+  const installedSource = readSourceMetadataStrict(row.dir, {
+    required: true,
+    requireRegistryAuthority: true,
+  });
+  const installedAuthority = installedSource.catalogAuthority;
+  const installedExpectedSbom =
+    installedAuthority?.artifactExpectations?.sbom || null;
+  const installedSemanticComparisonRequired =
+    installedExpectedSbom?.format ===
+      PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA ||
+    (installedExpectedSbom?.format === PLUGIN_MARKETPLACE_PAYLOAD_SBOM_SCHEMA &&
+      Boolean(
+        installedExpectedSbom.url && installedExpectedSbom.documentSha256,
+      ));
+  if (
+    installedSemanticComparisonRequired &&
+    !remoteSbomComparisonAuthorityMatches(
+      installedAuthority,
+      installedAuthority?.remoteArtifactEvidence,
+      installedExpectedSbom,
+    )
+  ) {
+    throw new Error("INSTALLED_SEMANTIC_SBOM_EVIDENCE_INVALID");
+  }
   const discovered = discoverPlugins({
     cwd,
     scopes: [scope],
@@ -359,6 +428,7 @@ async function buildInstalledMarketplaceSnapshot(name, scope, cwd) {
   }).find((candidate) => candidate.name === name && candidate.scope === scope);
   let dependencies = {};
   let payloadSbom = null;
+  let semanticPayloadFormat = null;
   if (discovered?.manifest?.manifestPath) {
     try {
       const fs = await import("node:fs");
@@ -381,25 +451,53 @@ async function buildInstalledMarketplaceSnapshot(name, scope, cwd) {
     }
   }
   if (row.dir) {
-    try {
-      const { buildMarketplacePayloadSbom } =
-        await import("../lib/plugin-runtime/marketplace-artifact-readback.js");
-      payloadSbom = buildMarketplacePayloadSbom(row.dir);
-    } catch {
-      payloadSbom = null;
+    const {
+      assertSafeInstalledPluginStructure,
+      buildMarketplacePayloadSbom,
+      isMarketplacePayloadSbomFormat,
+      validateRemoteSbomPayloadComparison,
+    } = await import("../lib/plugin-runtime/marketplace-artifact-readback.js");
+    const recordedFormat =
+      installedSource?.catalogAuthority?.remoteSbomPayloadComparison?.format;
+    semanticPayloadFormat = isMarketplacePayloadSbomFormat(recordedFormat)
+      ? recordedFormat
+      : null;
+    if (semanticPayloadFormat) {
+      assertSafeInstalledPluginStructure(row.dir);
+      payloadSbom = buildMarketplacePayloadSbom(row.dir, {
+        schemaVersion: semanticPayloadFormat,
+      });
+      const comparison = validateRemoteSbomPayloadComparison(
+        installedAuthority?.remoteSbomPayloadComparison,
+        {
+          remoteArtifactEvidence: installedAuthority?.remoteArtifactEvidence,
+          expectedPayloadSha256: installedExpectedSbom?.payloadSha256,
+          currentPayloadSbom: payloadSbom,
+        },
+      );
+      if (!comparison.valid || !comparison.currentPayloadMatches) {
+        throw new Error("INSTALLED_SEMANTIC_SBOM_EVIDENCE_INVALID");
+      }
+    } else {
+      try {
+        payloadSbom = buildMarketplacePayloadSbom(row.dir);
+      } catch {
+        payloadSbom = null;
+      }
     }
   }
   return {
     name: row.name,
     version: row.version,
     scope: row.scope,
-    source: row.source,
+    source: installedSource,
     integrity: {
       ...row.integrity,
       sbom: {
         ...row.integrity?.sbom,
         payloadSha256: payloadSbom?.digest || null,
         payloadSchema: payloadSbom?.schemaVersion || null,
+        semanticPayloadFormat,
       },
     },
     license: {
@@ -437,9 +535,11 @@ async function resolvePluginCapabilityNotice(
     const { describeCapabilities } =
       await import("../lib/plugin-runtime/capabilities.js");
     const consent = await import("../lib/plugin-runtime/capability-consent.js");
-    const installed = discoverPlugins({ cwd, skipPolicy: true }).find(
-      (p) => p.name === name && p.scope === scope,
-    );
+    const installed = discoverPlugins({
+      cwd,
+      skipPolicy: true,
+      allowRetainedInstall: true,
+    }).find((p) => p.name === name && p.scope === scope);
     if (!installed) {
       if (strict) {
         throw new Error(`${name} is not discoverable at ${scope} scope`);
@@ -532,9 +632,11 @@ async function grantInstalledPluginCapabilities(name, scope, cwd) {
   try {
     const { discoverPlugins } = await import("../lib/plugin-runtime/scopes.js");
     const consent = await import("../lib/plugin-runtime/capability-consent.js");
-    const installed = discoverPlugins({ cwd, skipPolicy: true }).find(
-      (p) => p.name === name && p.scope === scope,
-    );
+    const installed = discoverPlugins({
+      cwd,
+      skipPolicy: true,
+      allowRetainedInstall: true,
+    }).find((p) => p.name === name && p.scope === scope);
     if (!installed) return false;
     const declared = installed.manifest?.capabilities;
     if (!declared || consent.capabilitiesAreEmpty(declared)) return false;
@@ -1311,6 +1413,7 @@ export function registerPluginCommand(program) {
       let sourceMetadata = null;
       let expectedIdentity = null;
       let marketplacePreflight = null;
+      let marketplaceImpact = null;
       let remoteArtifactRequest = null;
       let remoteArtifacts = null;
       const registryUrls = normalizeRegistryUrls(options.registry);
@@ -1372,6 +1475,41 @@ export function registerPluginCommand(program) {
             options.expectedSelectionDigest,
             marketplacePreflight,
           );
+          marketplaceImpact = await buildRegistryUpdateImpact(
+            marketplacePreflight,
+            resolved.entry.name,
+            options.scope,
+            process.cwd(),
+          );
+          if (
+            marketplaceImpact.blockers.some(
+              (blocker) => blocker.code === "SEMANTIC_SBOM_BINDING_DOWNGRADE",
+            )
+          ) {
+            throw new Error(
+              "registry candidate preflight blocked: SEMANTIC_SBOM_BINDING_DOWNGRADE",
+            );
+          }
+          if (
+            marketplaceImpact.blockers.some(
+              (blocker) =>
+                blocker.code === "REGISTRY_VERSION_REQUIRED_FOR_UPDATE",
+            )
+          ) {
+            throw new Error(
+              "registry candidate preflight blocked: REGISTRY_VERSION_REQUIRED_FOR_UPDATE",
+            );
+          }
+          if (marketplaceImpact.changes.source.requiresApproval) {
+            throw new Error(
+              `registry candidate preflight blocked: SOURCE_SWITCH_APPROVAL_REQUIRED (${marketplaceImpact.changes.source.kind}); use cc plugin upgrade --allow-source-switch`,
+            );
+          }
+          if (marketplaceImpact.changes.version.kind === "downgrade") {
+            throw new Error(
+              "registry candidate preflight blocked: VERSION_DOWNGRADE_APPROVAL_REQUIRED; use cc plugin upgrade --allow-downgrade",
+            );
+          }
           expectedIdentity = {
             name:
               typeof resolved.entry.name === "string"
@@ -1399,8 +1537,10 @@ export function registerPluginCommand(program) {
                 resolved.source.slice(resolved.source.indexOf("#") + 1)) ||
               null,
             offline: resolved.fromCache === true,
-            catalogAuthority:
-              catalogAuthorityFromPreflight(marketplacePreflight),
+            catalogAuthority: catalogAuthorityFromPreflight(
+              marketplacePreflight,
+              marketplaceImpact,
+            ),
           };
           if (resolved.fromCache) {
             logger.warn(
@@ -1448,7 +1588,7 @@ export function registerPluginCommand(program) {
           if (remoteArtifacts?.authority && sourceMetadata?.catalogAuthority) {
             sourceMetadata.catalogAuthority = catalogAuthorityFromPreflight(
               marketplacePreflight,
-              null,
+              marketplaceImpact,
               remoteArtifacts.authority,
             );
           }
@@ -1491,6 +1631,7 @@ export function registerPluginCommand(program) {
       let res = null;
       let marketplaceTransactionFinalized = false;
       let marketplaceCleanupPending = false;
+      let marketplaceCleanupPath = null;
       try {
         res = installFromSource(installSource, {
           scope: options.scope,
@@ -1501,7 +1642,9 @@ export function registerPluginCommand(program) {
           expectedIdentity,
           managedPolicy: managed,
           policySource: sourceMetadata?.registry || source,
+          remoteSbomBytes: remoteArtifacts?.sbomBytes || null,
           transactional: Boolean(marketplacePreflight),
+          enforceUpdateApprovals: true,
         });
         const marketplaceAuthorityPersisted = marketplacePreflight
           ? res.sourceMetadata?.catalogAuthority?.catalogDigest ===
@@ -1513,9 +1656,17 @@ export function registerPluginCommand(program) {
             (!marketplacePreflight.selectionDigest ||
               res.sourceMetadata?.catalogAuthority?.selectionDigest ===
                 marketplacePreflight.selectionDigest) &&
+            res.sourceMetadata?.catalogAuthority?.updateImpactDigest ===
+              marketplaceImpact?.impactDigest &&
             (!remoteArtifacts?.authority ||
               res.sourceMetadata?.catalogAuthority?.remoteArtifactEvidence
-                ?.evidenceDigest === remoteArtifacts.authority.evidenceDigest)
+                ?.evidenceDigest ===
+                remoteArtifacts.authority.evidenceDigest) &&
+            remoteSbomComparisonAuthorityMatches(
+              res.sourceMetadata?.catalogAuthority,
+              remoteArtifacts?.authority,
+              marketplacePreflight.integrity?.sbom,
+            )
           : null;
         if (marketplacePreflight && !marketplaceAuthorityPersisted) {
           throw new Error(
@@ -1546,6 +1697,7 @@ export function registerPluginCommand(program) {
               );
             }
             marketplaceCleanupPending = finalization.cleanupPending === true;
+            marketplaceCleanupPath = finalization.cleanupPath || null;
             marketplaceTransactionFinalized = true;
           }
           console.log(
@@ -1553,8 +1705,12 @@ export function registerPluginCommand(program) {
               {
                 ...res,
                 marketplacePreflight,
+                marketplaceImpact,
                 marketplaceAuthorityPersisted,
                 marketplaceCleanupPending,
+                cleanupPending:
+                  res.cleanupPending === true || marketplaceCleanupPending,
+                cleanupPath: res.cleanupPath || marketplaceCleanupPath,
                 capabilities: capNotice,
                 capabilitiesGranted,
               },
@@ -1581,6 +1737,7 @@ export function registerPluginCommand(program) {
               );
             }
             marketplaceCleanupPending = finalization.cleanupPending === true;
+            marketplaceCleanupPath = finalization.cleanupPath || null;
             marketplaceTransactionFinalized = true;
           }
           logger.success(
@@ -1602,6 +1759,11 @@ export function registerPluginCommand(program) {
               );
             }
           }
+          if (res.cleanupPending === true || marketplaceCleanupPending) {
+            logger.warn(
+              `Install committed; inert cleanup remains at ${res.cleanupPath || marketplaceCleanupPath || "an internal cleanup directory"} and will be retried on the next mutation`,
+            );
+          }
           for (const w of res.warnings || [])
             logger.log(chalk.yellow(`  ⚠ ${w}`));
         }
@@ -1614,6 +1776,9 @@ export function registerPluginCommand(program) {
               recoveryNote = recovery.version
                 ? `; restored v${recovery.version}`
                 : "; removed the rejected install";
+              if (recovery.cleanupPending) {
+                recoveryNote += `; inert cleanup retained at ${recovery.cleanupPath || "an internal cleanup directory"}`;
+              }
             }
           } catch (recoveryError) {
             recoveryNote = `; automatic recovery failed: ${recoveryError.message}`;
@@ -2077,6 +2242,17 @@ export function registerPluginCommand(program) {
         await import("../lib/plugin-runtime/trust.js");
       logger.log(chalk.bold(`Installed plugins (${rows.length}):`));
       for (const r of rows) {
+        if (r.runtimeBlocked === true) {
+          const status = r.activePointer?.status || "unknown";
+          const inspectionVersion = r.activePointer?.inspectionVersion;
+          const inspection = inspectionVersion
+            ? `, inspect=v${inspectionVersion}`
+            : "";
+          logger.log(
+            `  ${chalk.red("!")} ${chalk.cyan(r.name)} ${chalk.gray(`[${r.scope}]`)} ${chalk.red(`active=blocked (${status})`)}${inspection}`,
+          );
+          continue;
+        }
         const ok = r.ok ? chalk.green("✔") : chalk.red("✖");
         const trust = isPluginTrusted(r)
           ? chalk.green("trusted")
@@ -2101,7 +2277,7 @@ export function registerPluginCommand(program) {
     });
 
   // plugin evidence — compare persisted registry artifact expectations with
-  // actual bytes in the active immutable install. Remote artifacts are not
+  // actual bytes in the active on-disk install. Remote artifacts are not
   // re-fetched here. The signature record is bound to the locally re-verified
   // lock; the external SBOM digest remains an install-time record because its
   // document bytes are not retained.
@@ -2118,7 +2294,7 @@ export function registerPluginCommand(program) {
     .option("--json", "Output the versioned artifact readback as JSON")
     .action(async (name, options) => {
       try {
-        const { listInstalled } =
+        const { listInstalled, readSourceMetadataStrict } =
           await import("../lib/plugin-runtime/install.js");
         const installed = listInstalled({
           cwd: process.cwd(),
@@ -2130,12 +2306,21 @@ export function registerPluginCommand(program) {
         if (!installed) {
           throw new Error(`${name} is not installed at ${options.scope} scope`);
         }
+        if (installed.runtimeBlocked === true) {
+          throw new Error(
+            `${name} runtime is blocked by active pointer status ${installed.activePointer?.status || "unknown"}; repair it with plugin use before reading active evidence`,
+          );
+        }
+        const source = readSourceMetadataStrict(installed.dir, {
+          required: true,
+          requireRegistryAuthority: true,
+        });
         const { buildPluginMarketplaceArtifactReadback } =
           await import("../lib/plugin-runtime/marketplace-artifact-readback.js");
         const evidence = buildPluginMarketplaceArtifactReadback({
           root: installed.dir,
           scope: installed.scope,
-          source: installed.source,
+          source,
         });
         if (options.json) {
           console.log(JSON.stringify(evidence, null, 2));
@@ -2174,7 +2359,7 @@ export function registerPluginCommand(program) {
                 }`
               : null,
             evidence.claims.remoteSbomFetched
-              ? "the SBOM digest is an install-time record and was not re-hashed here"
+              ? "the remote SBOM document digest is an install-time record; its document bytes were not retained or re-hashed, while the installed payload inventory above was freshly computed"
               : null,
           ].filter(Boolean);
           logger.log(
@@ -2574,13 +2759,29 @@ export function registerPluginCommand(program) {
     .description(`Uninstall a runtime plugin from a scope (${SCOPES})`)
     .option("--scope <scope>", "Scope to remove from", "user")
     .option("--version <version>", "Remove only this version (default: all)")
+    .option(
+      "--allow-source-switch",
+      "Approve a different-source fallback when removing the active version",
+    )
     .action(async (name, options) => {
-      const { uninstall } = await import("../lib/plugin-runtime/install.js");
+      const { listInstalled, uninstall } =
+        await import("../lib/plugin-runtime/install.js");
       try {
+        const blockedRow = listInstalled({
+          cwd: process.cwd(),
+          scopes: [options.scope],
+        }).find(
+          (row) =>
+            row.name === name &&
+            row.scope === options.scope &&
+            row.runtimeBlocked === true,
+        );
         const res = uninstall(name, {
           scope: options.scope,
           cwd: process.cwd(),
           version: options.version,
+          allowSourceSwitch: options.allowSourceSwitch === true,
+          allowBlockedIdentity: Boolean(blockedRow),
         });
         logger.success(
           `Uninstalled ${name} (${res.removed.join(", ") || "nothing"}) from ${options.scope} scope`,
@@ -2711,6 +2912,25 @@ export function registerPluginCommand(program) {
             options.scope,
             process.cwd(),
           );
+          if (
+            marketplaceImpact.blockers.some(
+              (blocker) => blocker.code === "SEMANTIC_SBOM_BINDING_DOWNGRADE",
+            )
+          ) {
+            throw new Error(
+              "registry candidate preflight blocked: SEMANTIC_SBOM_BINDING_DOWNGRADE",
+            );
+          }
+          if (
+            marketplaceImpact.blockers.some(
+              (blocker) =>
+                blocker.code === "REGISTRY_VERSION_REQUIRED_FOR_UPDATE",
+            )
+          ) {
+            throw new Error(
+              "registry candidate preflight blocked: REGISTRY_VERSION_REQUIRED_FOR_UPDATE",
+            );
+          }
           if (
             marketplaceImpact.changes.source.requiresApproval &&
             options.allowSourceSwitch !== true
@@ -2873,7 +3093,11 @@ export function registerPluginCommand(program) {
           expectedIdentity,
           managedPolicy: managed,
           policySource: sourceMetadata?.registry || source,
+          remoteSbomBytes: remoteArtifacts?.sbomBytes || null,
           transactional: true,
+          enforceUpdateApprovals: true,
+          allowSourceSwitch: options.allowSourceSwitch === true,
+          allowDowngrade: options.allowDowngrade === true,
         });
         marketplaceAuthorityPersisted = await installedCatalogAuthorityMatches(
           res.name,
@@ -2937,6 +3161,7 @@ export function registerPluginCommand(program) {
         let activationStatus = changed ? "activated" : "unchanged";
         let rollbackVersion = null;
         let cleanupPending = false;
+        let cleanupPath = null;
         if (rollbackReason) {
           const recovery = rollbackPluginUpdate(res);
           if (!recovery.rolledBack) {
@@ -2944,6 +3169,8 @@ export function registerPluginCommand(program) {
           }
           activationStatus = "rolled_back";
           rollbackVersion = recovery.version;
+          cleanupPending = recovery.cleanupPending === true;
+          cleanupPath = recovery.cleanupPath || null;
           marketplaceAuthorityPersisted =
             await installedCatalogAuthorityMatches(
               res.name,
@@ -2954,7 +3181,9 @@ export function registerPluginCommand(program) {
               remoteArtifacts?.authority || null,
             );
         } else {
-          cleanupPending = finalizePluginUpdate(res).cleanupPending === true;
+          const finalization = finalizePluginUpdate(res);
+          cleanupPending = finalization.cleanupPending === true;
+          cleanupPath = finalization.cleanupPath || null;
         }
 
         if (options.json) {
@@ -2972,6 +3201,7 @@ export function registerPluginCommand(program) {
                 rollbackVersion,
                 rollbackReason,
                 cleanupPending,
+                cleanupPath,
               },
               null,
               2,
@@ -3018,6 +3248,11 @@ export function registerPluginCommand(program) {
             `${res.name} is already up to date at v${res.version} (use --force to reinstall)`,
           );
         }
+        if (cleanupPending) {
+          logger.warn(
+            `Plugin state committed; inert cleanup remains at ${cleanupPath || "an internal cleanup directory"} and will be retried on the next mutation`,
+          );
+        }
       } catch (err) {
         let recoveryNote = "";
         if (res) {
@@ -3027,6 +3262,9 @@ export function registerPluginCommand(program) {
               recoveryNote = recovery.version
                 ? `; restored v${recovery.version}`
                 : "; removed the rejected install";
+              if (recovery.cleanupPending) {
+                recoveryNote += `; inert cleanup retained at ${recovery.cleanupPath || "an internal cleanup directory"}`;
+              }
             }
           } catch (recoveryError) {
             recoveryNote = `; automatic recovery failed: ${recoveryError.message}`;
@@ -3044,6 +3282,10 @@ export function registerPluginCommand(program) {
     .command("use <name> <version>")
     .description("Pin a plugin's active version (rollback or switch)")
     .option("--scope <scope>", "Scope", "user")
+    .option(
+      "--allow-source-switch",
+      "Approve activating an installed version from a different source",
+    )
     .action(async (name, version, options) => {
       const { setActiveVersion } =
         await import("../lib/plugin-runtime/install.js");
@@ -3051,6 +3293,7 @@ export function registerPluginCommand(program) {
         setActiveVersion(name, version, {
           scope: options.scope,
           cwd: process.cwd(),
+          allowSourceSwitch: options.allowSourceSwitch === true,
         });
         logger.success(
           `${name} active version → v${version} (${options.scope} scope)`,

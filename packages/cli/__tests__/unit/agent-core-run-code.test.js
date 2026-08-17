@@ -62,6 +62,7 @@ function installStrictRunCodePolicy(cwd) {
   });
   const target = join(root, "bin", "strict-python-probe.js");
   fs.mkdirSync(path.dirname(target), { recursive: true });
+  writeFileSync(join(path.dirname(root), ".active"), "1.0.0\n", "utf8");
   writeFileSync(target, "process.stdout.write('strict');\n", "utf8");
   writeFileSync(
     join(root, "plugin.json"),
@@ -245,9 +246,11 @@ describe("getBaseSystemPrompt — environment section", () => {
 
 describe("executeTool — run_code enhancements", () => {
   let tempDir;
+  let canonicalTempDir;
 
   beforeEach(() => {
     tempDir = mkdtempSync(join(tmpdir(), "cc-run-code-test-"));
+    canonicalTempDir = fs.realpathSync.native(tempDir);
     _resetCachedPythonForTests();
     _resetPluginBinSandboxPolicyPins();
     detectPythonMock.mockClear();
@@ -315,7 +318,7 @@ describe("executeTool — run_code enhancements", () => {
         "python3",
         [expect.stringMatching(/cc-agent-\d+\.py$/)],
         expect.objectContaining({
-          cwd: fs.realpathSync.native(tempDir),
+          cwd: canonicalTempDir,
           origin: "agent-core:run-code",
           policy: "allow",
           scope: "agent-core",
@@ -342,7 +345,7 @@ describe("executeTool — run_code enhancements", () => {
         "python3",
         [expect.stringMatching(/cc-agent-\d+\.py$/)],
         expect.objectContaining({
-          cwd: fs.realpathSync.native(tempDir),
+          cwd: canonicalTempDir,
           origin: "agent-core:run-code",
           policy: "allow",
           scope: "agent-core",
@@ -470,7 +473,7 @@ describe("executeTool — run_code enhancements", () => {
         "node",
         [expect.stringMatching(/cc-agent-\d+\.js$/)],
         expect.objectContaining({
-          cwd: fs.realpathSync.native(tempDir),
+          cwd: canonicalTempDir,
           origin: "agent-core:run-code",
           policy: "allow",
           scope: "agent-core",

@@ -569,24 +569,72 @@ function sampleHarnessProcess() {
 
 async function waitForReady(slot, profile) {
   const started = performance.now();
-  const ready = await pollUntil(
-    () => {
-      const state = readBackgroundAgentState(slot.state.id);
-      const evidence = readEvidence(slot.evidencePath, slot.generation);
-      if (
-        state?.status === "running" &&
-        state.turnBootstrapStatus === "released" &&
-        state.turnKeeperStatus === "armed" &&
-        Number(state.agentRuntimePid) === Number(evidence?.runtimePid) &&
-        Number.isSafeInteger(Number(evidence?.descendantPid))
-      ) {
-        return { state, evidence };
-      }
-      return null;
-    },
-    profile.readinessDeadlineMs,
-    `agent ${slot.index} readiness`,
-  );
+  let lastObservation = null;
+  let ready;
+  try {
+    ready = await pollUntil(
+      () => {
+        const state = readBackgroundAgentState(slot.state.id);
+        const evidence = readEvidence(slot.evidencePath, slot.generation);
+        lastObservation = {
+          state: state
+            ? {
+                id: state.id,
+                status: state.status,
+                phase: state.phase || null,
+                lostReason: state.lostReason || null,
+                workerPid: state.workerPid || null,
+                keeperPid: state.keeperPid || null,
+                keeperStatus: state.keeperStatus || null,
+                keeperError: state.keeperError || null,
+                agentPid: state.agentPid || null,
+                agentRuntimePid: state.agentRuntimePid || null,
+                turnBootstrapStatus: state.turnBootstrapStatus || null,
+                turnKeeperStatus: state.turnKeeperStatus || null,
+                launchFinalizationUncertain:
+                  state.launchFinalizationUncertain === true,
+                interactionRecovery: state.interactionRecovery
+                  ? {
+                      status: state.interactionRecovery.status || null,
+                      code: state.interactionRecovery.code || null,
+                      message: state.interactionRecovery.message || null,
+                    }
+                  : null,
+              }
+            : null,
+          evidence: evidence
+            ? {
+                generation: evidence.generation,
+                runtimePid: evidence.runtimePid,
+                descendantPid: evidence.descendantPid,
+              }
+            : null,
+        };
+        if (
+          state?.status === "running" &&
+          state.turnBootstrapStatus === "released" &&
+          state.turnKeeperStatus === "armed" &&
+          Number(state.agentRuntimePid) === Number(evidence?.runtimePid) &&
+          Number.isSafeInteger(Number(evidence?.descendantPid))
+        ) {
+          return { state, evidence };
+        }
+        return null;
+      },
+      profile.readinessDeadlineMs,
+      `agent ${slot.index} readiness`,
+    );
+  } catch (error) {
+    const state = readBackgroundAgentState(slot.state.id);
+    let workerLogTail = null;
+    if (state?.logFile && existsSync(state.logFile)) {
+      workerLogTail = readFileSync(state.logFile)
+        .subarray(-32 * 1024)
+        .toString("utf8");
+    }
+    error.message = `${error.message}; last observation: ${JSON.stringify(lastObservation)}; worker log tail: ${workerLogTail || "<empty>"}`;
+    throw error;
+  }
   slot.state = ready.state;
   slot.evidence = ready.evidence;
   for (const identity of processIdentities(slot.state, slot.evidence)) {

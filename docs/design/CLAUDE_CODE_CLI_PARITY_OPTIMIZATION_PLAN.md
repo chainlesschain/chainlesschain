@@ -512,3 +512,15 @@ Async Hooks / Monitors
 ```
 
 完成上述路线后，ChainlessChain CLI 的竞争点将从“命令和模块数量”转向可验证的编码成功率、安全性、扩展性与跨设备协作能力。
+
+## 9. 2026-08-17 Marketplace 激活生命周期状态补充
+
+Exact code commit `f6e01da1f4403adbe4e68056c22bc6b661c76521` 已关闭单进程、同 name/scope、串行
+Marketplace activation lifecycle 子门：显式 `plugin use`、版本卸载 fallback、普通与 pointer-only update
+统一经过严格 provenance、目录/manifest identity、fresh semantic payload、source-switch 与 downgrade 门；
+`.install-*` / `.uninstall-*` 恢复状态会阻断 runtime 并由 installed/doctor 显示，精确 rollback 可在组合 I/O
+失败后重试，已提交事务则退役为不参与 authority 的 `.cleanup-*`。
+
+该结论不代表 Marketplace 整体完成。跨进程 lifecycle lock/durable journal/CAS、跨 scope effective-authority
+裁决、legacy provenance migration、publisher/组织 trust root、private registry 与长期外部故障矩阵仍是 P1-5
+的明确剩余项；路线图总状态与发布结论仍为 **12/19 未关闭、7/19 完成、NO-GO**。
