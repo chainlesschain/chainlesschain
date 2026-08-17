@@ -101,7 +101,7 @@ describe("cc plugin consent", () => {
     // Upgrade in place to a version that also wants network.
     installFromDirectory(
       makeSource("greeter", "2.0.0", { process: true, network: "*" }),
-      { scope: "project", cwd },
+      { scope: "project", cwd, allowSourceSwitch: true },
     );
     const status = JSON.parse(await run("consent", "greeter", "--json"));
     expect(status.consented).toBe(false);

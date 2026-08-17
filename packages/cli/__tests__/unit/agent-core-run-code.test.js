@@ -62,6 +62,7 @@ function installStrictRunCodePolicy(cwd) {
   });
   const target = join(root, "bin", "strict-python-probe.js");
   fs.mkdirSync(path.dirname(target), { recursive: true });
+  writeFileSync(join(path.dirname(root), ".active"), "1.0.0\n", "utf8");
   writeFileSync(target, "process.stdout.write('strict');\n", "utf8");
   writeFileSync(
     join(root, "plugin.json"),
