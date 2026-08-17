@@ -3798,6 +3798,181 @@ describe("background agent supervisor", () => {
     expect(_deps.kill).toHaveBeenCalledWith(-4242, "SIGTERM");
   });
 
+  it("settles an initial POSIX creation-time probe race as retired without signalling", () => {
+    const sleeperPid = spawnSleeperPid();
+    const startedAt = Date.now();
+    let identityProbes = 0;
+    let retryClock = 0;
+    writeBackgroundAgentState({
+      id: "bg-stop-posix-initial-probe-retired",
+      status: "running",
+      pid: sleeperPid,
+      startedAt,
+    });
+    _deps.processExitWaitDeadlineMs = 100;
+    _deps.posixPermissionRetryNowMs = vi.fn(() => retryClock);
+    _deps.posixPermissionRetrySleep = vi.fn((ms) => {
+      retryClock += ms;
+    });
+    _deps.readProcessStartTimeMs = vi.fn(() => {
+      identityProbes += 1;
+      if (identityProbes === 1) return startedAt;
+      if (identityProbes === 2) return null;
+      return { status: "absent" };
+    });
+    _deps.readProcessState = vi.fn(() => "S");
+    _deps.readProcessGroupStates = vi.fn(() => []);
+    _deps.kill = vi.fn();
+
+    const platformDescriptor = Object.getOwnPropertyDescriptor(
+      process,
+      "platform",
+    );
+    let state;
+    try {
+      Object.defineProperty(process, "platform", {
+        ...platformDescriptor,
+        value: "linux",
+      });
+      state = stopBackgroundAgent("bg-stop-posix-initial-probe-retired");
+    } finally {
+      Object.defineProperty(process, "platform", platformDescriptor);
+    }
+    expect(state).toMatchObject({
+      status: "stopped",
+      stopped: true,
+    });
+    expect(_deps.posixPermissionRetrySleep.mock.calls).toEqual([[10]]);
+    expect(
+      _deps.kill.mock.calls.filter(([, signal]) => signal === "SIGTERM"),
+    ).toEqual([]);
+  });
+
+  it("requires two fresh matches after an initial POSIX stop probe outage", () => {
+    const sleeperPid = spawnSleeperPid();
+    const startedAt = Date.now();
+    let identityProbes = 0;
+    let processState = "S";
+    let retryClock = 0;
+    const events = [];
+    writeBackgroundAgentState({
+      id: "bg-stop-posix-initial-probe-recovered",
+      status: "running",
+      pid: sleeperPid,
+      startedAt,
+    });
+    _deps.processExitWaitDeadlineMs = 100;
+    _deps.posixPermissionRetryNowMs = vi.fn(() => retryClock);
+    _deps.posixPermissionRetrySleep = vi.fn((ms) => {
+      events.push(`sleep:${ms}`);
+      retryClock += ms;
+    });
+    _deps.readProcessStartTimeMs = vi.fn(() => {
+      identityProbes += 1;
+      const value = identityProbes === 2 ? null : startedAt;
+      events.push(value === null ? "probe:unknown" : "probe:match");
+      return value;
+    });
+    _deps.readProcessState = vi.fn(() => processState);
+    _deps.readProcessGroupStates = vi.fn(() => [processState]);
+    _deps.kill = vi.fn((pid, signal) => {
+      if (signal !== "SIGTERM") return true;
+      events.push(`signal:${Number(pid) < 0 ? "group" : "direct"}`);
+      process.kill(sleeperPid, "SIGKILL");
+      processState = "Z";
+      return true;
+    });
+
+    const platformDescriptor = Object.getOwnPropertyDescriptor(
+      process,
+      "platform",
+    );
+    let state;
+    try {
+      Object.defineProperty(process, "platform", {
+        ...platformDescriptor,
+        value: "linux",
+      });
+      state = stopBackgroundAgent("bg-stop-posix-initial-probe-recovered");
+    } finally {
+      Object.defineProperty(process, "platform", platformDescriptor);
+    }
+    expect(state).toMatchObject({
+      status: "stopped",
+      stopped: true,
+    });
+    expect(events.slice(0, 7)).toEqual([
+      "probe:match",
+      "probe:unknown",
+      "sleep:10",
+      "probe:match",
+      "sleep:20",
+      "probe:match",
+      "signal:group",
+    ]);
+    expect(
+      _deps.kill.mock.calls.filter(([, signal]) => signal === "SIGTERM"),
+    ).toEqual([[-sleeperPid, "SIGTERM"]]);
+  });
+
+  it("fails closed when an initial POSIX stop identity outage persists", () => {
+    const sleeperPid = spawnSleeperPid();
+    const startedAt = Date.now();
+    let identityProbes = 0;
+    let retryClock = 0;
+    writeBackgroundAgentState({
+      id: "bg-stop-posix-initial-probe-unverifiable",
+      status: "running",
+      pid: sleeperPid,
+      startedAt,
+    });
+    _deps.processExitWaitDeadlineMs = 35;
+    _deps.posixPermissionRetryNowMs = vi.fn(() => retryClock);
+    _deps.posixPermissionRetrySleep = vi.fn((ms) => {
+      retryClock += ms;
+    });
+    _deps.readProcessStartTimeMs = vi.fn(() => {
+      identityProbes += 1;
+      return identityProbes === 1 ? startedAt : null;
+    });
+    _deps.readProcessState = vi.fn(() => "S");
+    _deps.readProcessGroupStates = vi.fn(() => ["S"]);
+    _deps.kill = vi.fn();
+
+    const platformDescriptor = Object.getOwnPropertyDescriptor(
+      process,
+      "platform",
+    );
+    try {
+      Object.defineProperty(process, "platform", {
+        ...platformDescriptor,
+        value: "linux",
+      });
+      expect(() =>
+        stopBackgroundAgent("bg-stop-posix-initial-probe-unverifiable"),
+      ).toThrow(
+        /worker pid .*process-group.*signal resends 0.*identity probe retries 3.*creation-time-probe-failed.*initial-identity-probe-deadline/u,
+      );
+    } finally {
+      Object.defineProperty(process, "platform", platformDescriptor);
+    }
+    expect(_deps.posixPermissionRetrySleep.mock.calls).toEqual([
+      [10],
+      [20],
+      [5],
+    ]);
+    expect(
+      _deps.kill.mock.calls.filter(([, signal]) => signal === "SIGTERM"),
+    ).toEqual([]);
+    expect(
+      readBackgroundAgentState("bg-stop-posix-initial-probe-unverifiable"),
+    ).toMatchObject({
+      phase: "stop_failed",
+      stopPending: true,
+      stopPendingReason: "process-termination",
+    });
+  });
+
   it.skipIf(process.platform === "win32")(
     "accepts POSIX EPERM only after a fresh identity probe proves the target retired",
     () => {
