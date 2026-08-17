@@ -19,6 +19,9 @@ describe("scheduler kernel soak campaign workflow contract", () => {
   it("accepts only an explicitly pinned four-run campaign identity", () => {
     const workflow = workflowSource();
 
+    expect(workflow).toContain(
+      'run-name: "P2-4 scheduler campaign ${{ inputs.campaign }} ${{ inputs.commit_sha }}"',
+    );
     expect(workflow).toContain("workflow_dispatch:");
     expect(workflow).not.toContain("pull_request:");
     expect(workflow).not.toContain("schedule:");

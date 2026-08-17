@@ -16,10 +16,10 @@ function workflowSource() {
 }
 
 describe("scheduler kernel soak auto-dispatch workflow contract", () => {
-  it("uses one gated daily dispatcher with only the authority it needs", () => {
+  it("uses one gated hourly planner with only the authority it needs", () => {
     const workflow = workflowSource();
 
-    expect(workflow).toContain('cron: "6 15 * * *"');
+    expect(workflow).toContain('cron: "6 * * * *"');
     expect(workflow).toContain("workflow_dispatch:");
     expect(workflow).toContain("actions: write");
     expect(workflow).toContain("contents: read");
@@ -29,6 +29,8 @@ describe("scheduler kernel soak auto-dispatch workflow contract", () => {
     );
     expect(workflow).toContain("cancel-in-progress: false");
     expect(workflow).toContain('MAX_SEGMENTS: "4"');
+    expect(workflow).toContain('MIN_SEGMENT_START_GAP_SECONDS: "86400"');
+    expect(workflow).toContain("elapsedSeconds >= minimumGapSeconds");
   });
 
   it("pins both the tested source and workflow control plane to an immutable tag", () => {
@@ -56,7 +58,7 @@ describe("scheduler kernel soak auto-dispatch workflow contract", () => {
     expect(workflow).toContain('-f campaign="${CAMPAIGN}"');
   });
 
-  it("counts only successful or active exact-SHA dispatches and refuses duplicates", () => {
+  it("counts exact-SHA segments, preserves the start gap, and finalizes once", () => {
     const workflow = workflowSource();
 
     expect(workflow).toContain(
@@ -71,8 +73,19 @@ describe("scheduler kernel soak auto-dispatch workflow contract", () => {
     );
     expect(workflow).toContain("new Set(ids).size !== ids.length");
     expect(workflow).toContain(
-      "eligible.length >= maximum || active.length > 0",
+      "eligible.length > maximum || successful.length > maximum",
     );
     expect(workflow).toContain("if: steps.plan.outputs.action == 'dispatch'");
+    expect(workflow).toContain(
+      "/actions/workflows/cli-scheduler-soak-campaign.yml/runs?event=workflow_dispatch&per_page=100",
+    );
+    expect(workflow).toContain("run?.display_title === expectedTitle");
+    expect(workflow).toContain("verifierRuns.length > 1");
+    expect(workflow).toContain("if: steps.plan.outputs.action == 'verify'");
+    expect(workflow).toContain(
+      "gh workflow run cli-scheduler-soak-campaign.yml",
+    );
+    expect(workflow).toContain('--ref "${DEFAULT_BRANCH}"');
+    expect(workflow).toContain('-f run_ids="${RUN_IDS}"');
   });
 });

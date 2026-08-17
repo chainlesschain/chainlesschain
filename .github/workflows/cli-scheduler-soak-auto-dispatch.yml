@@ -2,10 +2,11 @@ name: CLI Scheduler Soak Auto Dispatch
 
 on:
   schedule:
-    # The first pinned segment started at 2026-08-17T14:56Z. Starting the
-    # remaining daily segments ten minutes later guarantees that four starts
-    # span more than 72 hours while every adjacent gap stays below 30 hours.
-    - cron: "6 15 * * *"
+    # Poll hourly so the verifier starts promptly after segment four. The
+    # planner itself enforces a 24-hour minimum gap between successful segment
+    # starts; the first pinned segment began at 2026-08-17T14:56Z, so the first
+    # eligible scheduled dispatch remains 2026-08-18T15:06Z.
+    - cron: "6 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -27,7 +28,9 @@ jobs:
       PINNED_SHA: ${{ vars.CLI_SCHEDULER_SOAK_PINNED_SHA }}
       CAMPAIGN: ${{ vars.CLI_SCHEDULER_SOAK_CAMPAIGN }}
       SEED: ${{ vars.CLI_SCHEDULER_SOAK_SEED }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
       MAX_SEGMENTS: "4"
+      MIN_SEGMENT_START_GAP_SECONDS: "86400"
     steps:
       - name: Verify the immutable scheduler control ref
         shell: bash
@@ -37,8 +40,10 @@ jobs:
           [[ "${PINNED_SHA}" =~ ^[0-9a-f]{40}$ ]]
           [[ "${CAMPAIGN}" =~ ^[a-zA-Z0-9._:-]{1,128}$ ]]
           [[ "${SEED}" =~ ^(0|[1-9][0-9]*)$ ]]
+          [[ "${DEFAULT_BRANCH}" =~ ^[a-zA-Z0-9][a-zA-Z0-9._/-]{0,254}$ ]]
           test "${SEED}" -le 4294967295
           test "${MAX_SEGMENTS}" -eq 4
+          test "${MIN_SEGMENT_START_GAP_SECONDS}" -eq 86400
 
           ref_json="${RUNNER_TEMP}/scheduler-soak-pinned-ref.json"
           gh api \
@@ -60,32 +65,53 @@ jobs:
           }
           NODE
 
-      - name: Refuse duplicate or excess pinned segments
+      - name: Plan the next pinned campaign action
         id: plan
         shell: bash
         run: |
           set -euo pipefail
           runs_json="${RUNNER_TEMP}/scheduler-soak-pinned-runs.json"
+          campaign_runs_json="${RUNNER_TEMP}/scheduler-soak-campaign-runs.json"
           gh api \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             "/repos/${GITHUB_REPOSITORY}/actions/workflows/cli-scheduler-soak.yml/runs?event=workflow_dispatch&per_page=100" \
             > "${runs_json}"
-          RUNS_JSON="${runs_json}" node --input-type=module <<'NODE'
+          gh api \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/cli-scheduler-soak-campaign.yml/runs?event=workflow_dispatch&per_page=100" \
+            > "${campaign_runs_json}"
+          RUNS_JSON="${runs_json}" CAMPAIGN_RUNS_JSON="${campaign_runs_json}" node --input-type=module <<'NODE'
           import fs from "node:fs";
 
           const payload = JSON.parse(
             fs.readFileSync(process.env.RUNS_JSON, "utf8"),
           );
+          const campaignPayload = JSON.parse(
+            fs.readFileSync(process.env.CAMPAIGN_RUNS_JSON, "utf8"),
+          );
           if (!Array.isArray(payload.workflow_runs)) {
             throw new Error("scheduler soak run listing is invalid");
           }
-          const eligible = payload.workflow_runs.filter(
-            (run) =>
+          if (!Array.isArray(campaignPayload.workflow_runs)) {
+            throw new Error("scheduler campaign run listing is invalid");
+          }
+          const parseStart = (run) => {
+            const value = String(run?.run_started_at || run?.created_at || "");
+            const timestamp = Date.parse(value);
+            if (!Number.isFinite(timestamp)) {
+              throw new Error("scheduler soak run has an invalid start time");
+            }
+            return timestamp;
+          };
+          const eligible = payload.workflow_runs
+            .filter(
+              (run) =>
               run?.path === ".github/workflows/cli-scheduler-soak.yml" &&
               run?.event === "workflow_dispatch" &&
               run?.head_sha === process.env.PINNED_SHA &&
               (run.status !== "completed" || run.conclusion === "success"),
-          );
+            )
+            .sort((left, right) => parseStart(left) - parseStart(right));
           const ids = eligible.map((run) => String(run.id));
           if (ids.some((id) => !/^[1-9][0-9]*$/u.test(id))) {
             throw new Error("scheduler soak run listing contains an invalid run ID");
@@ -94,18 +120,52 @@ jobs:
             throw new Error("scheduler soak run listing contains duplicate run IDs");
           }
           const active = eligible.filter((run) => run.status !== "completed");
+          const successful = eligible.filter(
+            (run) => run.status === "completed" && run.conclusion === "success",
+          );
           const maximum = Number(process.env.MAX_SEGMENTS);
-          const action =
-            eligible.length >= maximum || active.length > 0
-              ? "skip"
-              : "dispatch";
+          const minimumGapSeconds = Number(
+            process.env.MIN_SEGMENT_START_GAP_SECONDS,
+          );
+          if (eligible.length > maximum || successful.length > maximum) {
+            throw new Error("scheduler soak campaign already exceeds four segments");
+          }
+
+          let action = "skip";
+          let runIds = "[]";
+          if (active.length === 0 && successful.length === maximum) {
+            runIds = JSON.stringify(successful.map((run) => String(run.id)));
+            const expectedTitle = `P2-4 scheduler campaign ${process.env.CAMPAIGN} ${process.env.PINNED_SHA}`;
+            const verifierRuns = campaignPayload.workflow_runs.filter(
+              (run) =>
+                run?.path ===
+                  ".github/workflows/cli-scheduler-soak-campaign.yml" &&
+                run?.event === "workflow_dispatch" &&
+                run?.display_title === expectedTitle &&
+                (run.status !== "completed" || run.conclusion === "success"),
+            );
+            if (verifierRuns.length > 1) {
+              throw new Error("scheduler campaign has duplicate verifier runs");
+            }
+            action = verifierRuns.length === 0 ? "verify" : "skip";
+          } else if (active.length === 0 && successful.length < maximum) {
+            const lastStart =
+              successful.length === 0
+                ? null
+                : parseStart(successful[successful.length - 1]);
+            const elapsedSeconds =
+              lastStart === null ? Infinity : (Date.now() - lastStart) / 1000;
+            if (elapsedSeconds >= minimumGapSeconds) {
+              action = "dispatch";
+            }
+          }
           fs.appendFileSync(
             process.env.GITHUB_OUTPUT,
-            `action=${action}\nqualifying_or_active_count=${eligible.length}\n`,
+            `action=${action}\nqualifying_or_active_count=${eligible.length}\nrun_ids=${runIds}\n`,
           );
           fs.appendFileSync(
             process.env.GITHUB_STEP_SUMMARY,
-            `Pinned scheduler segments already successful or active: ${eligible.length}/${maximum}.\n`,
+            `Pinned scheduler segments already successful or active: ${eligible.length}/${maximum}; planned action: ${action}.\n`,
           );
           NODE
 
@@ -123,3 +183,20 @@ jobs:
           printf 'Dispatched pinned scheduler segment %s/4 from %s at %s.\n' \
             "$(( ${{ steps.plan.outputs.qualifying_or_active_count }} + 1 ))" \
             "${PINNED_REF}" "${PINNED_SHA}" >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Dispatch the default-branch campaign verifier
+        if: steps.plan.outputs.action == 'verify'
+        shell: bash
+        env:
+          RUN_IDS: ${{ steps.plan.outputs.run_ids }}
+        run: |
+          set -euo pipefail
+          gh workflow run cli-scheduler-soak-campaign.yml \
+            --ref "${DEFAULT_BRANCH}" \
+            -f commit_sha="${PINNED_SHA}" \
+            -f run_ids="${RUN_IDS}" \
+            -f duration_seconds=7200 \
+            -f seed="${SEED}" \
+            -f campaign="${CAMPAIGN}"
+          printf 'Dispatched the four-segment campaign verifier for %s.\n' \
+            "${PINNED_SHA}" >> "${GITHUB_STEP_SUMMARY}"
