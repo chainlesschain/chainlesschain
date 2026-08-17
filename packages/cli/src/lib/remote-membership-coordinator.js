@@ -8,12 +8,14 @@
  * with a pinned Ed25519 key; WebSocket delivery is transport only and never an
  * authority by itself.
  *
- * Integration status: this module is a deployable contract, but the current
- * remote-session registry, approval bridge, and agent dispatch paths do not
- * call it yet. Cross-host revoke closure therefore remains false until every
- * real side-effect entry point performs the online one-shot consume. A
- * successful consume linearizes dispatch authority; it cannot undo an external
- * effect after that effect has started.
+ * Production integration: the Remote Session registry and WebSocket protocol
+ * use this coordinator, the client-hosted approval bridge durably adopts and
+ * ACKs its signed leases, and Agent shell dispatch consumes the exact one-shot
+ * lease online immediately before the side effect. Side-effect paths without
+ * that consume boundary reject Remote approval instead of falling back to a
+ * cached decision. This provides cross-host revoke fencing under one online,
+ * strongly consistent coordinator; it does not claim quorum availability or
+ * undo an external effect after a successful consume has linearized dispatch.
  */
 
 import fs from "node:fs";
