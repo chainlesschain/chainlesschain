@@ -152,6 +152,26 @@ test("Workbench open-state probe tracks panel disposal", () => {
   assert.equal(isSessionsWorkbenchOpen(), false);
 });
 
+test("Workbench page names controls, regions and loading state", () => {
+  const host = createHost({ deliveryOutputs: [] });
+  const html = host.panel.webview.html;
+
+  assert.match(
+    html,
+    /<label class="sr-only" for="q">Filter sessions<\/label>/u,
+  );
+  assert.match(html, /id="info" role="status" aria-live="polite"/u);
+  assert.match(html, /id="delivery" role="region" aria-label="Delivery flow"/u);
+  assert.match(
+    html,
+    /id="list" role="region" aria-label="Sessions" aria-busy="true"/u,
+  );
+  assert.match(html, /button:focus-visible, input:focus-visible/u);
+  assert.match(html, /list\.setAttribute\('aria-busy','false'\)/u);
+  assert.match(html, /m\.visible \?\? 0/u);
+  host.dispose();
+});
+
 function lastDeliveryPost(host) {
   return host.posts.filter((message) => message.type === "delivery").at(-1);
 }

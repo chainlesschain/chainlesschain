@@ -13,7 +13,7 @@ import {
 import { inspectVsixReleaseArtifact } from "../../vscode-extension/scripts/vsix-release-artifact.mjs";
 
 export const IDE_ROADMAP_SCHEMA_VERSION = 1;
-export const IDE_ROADMAP_MANIFEST_VERSION = "1.4.0";
+export const IDE_ROADMAP_MANIFEST_VERSION = "1.9.2";
 export const IDE_ROADMAP_MANIFEST_PATH =
   "tests/fixtures/ide-roadmap/manifest.json";
 export const IDE_ROADMAP_RUNTIME_EVIDENCE_SCHEMA =
@@ -87,7 +87,8 @@ const CANDIDATE_MANIFEST_FIELDS = Object.freeze([
   "vsixmanifestIdentity",
   "workflowRun",
 ]);
-const TEST_FILE_PATTERN = /\.(?:test|spec)\.(?:[cm]?[jt]sx?)$/;
+const TEST_FILE_PATTERN =
+  /(?:\.(?:test|spec)\.(?:[cm]?[jt]sx?)|(?:Test|Tests|Spec)\.(?:java|kt))$/;
 const EVIDENCE_STATUSES = new Set(["pending", "external-evidence-required"]);
 const DEFAULT_REPO_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -435,6 +436,15 @@ function validateCase({
         `${label}.fixture.case must equal ${JSON.stringify(entry.id)}`,
       );
     }
+    if (
+      fixture.expectedOutcome != null &&
+      canonicalJson(fixture.expectedOutcome) !==
+        canonicalJson(entry.expectedOutcome)
+    ) {
+      issues.push(
+        `${label}.fixture.expectedOutcome must equal ${label}.expectedOutcome`,
+      );
+    }
   }
 
   const testFiles = validateStringArray(
@@ -641,7 +651,8 @@ export function createIdeRoadmapRuntimeEvidenceDigest(evidence) {
   if (!isRecord(evidence)) {
     throw new TypeError("runtime evidence must be an object");
   }
-  const { evidenceDigest: _ignored, ...core } = evidence;
+  const core = { ...evidence };
+  delete core.evidenceDigest;
   return sha256Json(core);
 }
 
@@ -1169,7 +1180,6 @@ function validateRuntimeRun({
       evidenceRoot,
       verifiedArtifactPaths,
       trustedProvenance,
-      requireReleaseReady,
       inspectVsix,
       remoteSshTrust,
       issues,
@@ -1553,7 +1563,6 @@ function validateRemoteSshTrustedRuntimeRun({
   evidenceRoot,
   verifiedArtifactPaths,
   trustedProvenance,
-  requireReleaseReady,
   inspectVsix,
   remoteSshTrust,
   issues,

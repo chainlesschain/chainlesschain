@@ -13,11 +13,13 @@ import {
 import { PLUGIN_MARKETPLACE_INSTALL_PREFLIGHT_SCHEMA } from "./marketplace-catalog.js";
 
 export const PLUGIN_MARKETPLACE_UPDATE_IMPACT_SCHEMA =
-  "cc-plugin-marketplace-update-impact/v1";
+  "cc-plugin-marketplace-update-impact/v2";
 
 export function buildPluginMarketplaceUpdateImpact({
   preflight,
   installed = null,
+  installedScopes = null,
+  targetScope = null,
   observedAt = new Date().toISOString(),
 } = {}) {
   if (
@@ -29,8 +31,25 @@ export function buildPluginMarketplaceUpdateImpact({
     );
   }
   const current = normalizeInstalled(installed);
+  const hasScopedInventory = Array.isArray(installedScopes);
+  const physical = normalizeInstalledScopes(installedScopes, current);
   const version = compareVersion(current?.version, preflight.registryVersion);
-  const source = compareSource(current?.source, preflight);
+  const sourceTransitions = physical.map((entry) => ({
+    scope: entry.scope,
+    transition: compareSource(entry.source, preflight),
+  }));
+  const physicalSourceSwitches = hasScopedInventory
+    ? sourceTransitions
+        .filter(({ transition }) => transition.requiresApproval)
+        .map(({ scope }) => scope)
+    : [];
+  const source = {
+    ...compareSource(current?.source, preflight),
+    requiresApproval:
+      compareSource(current?.source, preflight).requiresApproval ||
+      physicalSourceSwitches.length > 0,
+    physicalSourceSwitches,
+  };
   const integrity = compareIntegrity(
     current?.integrity,
     preflight.integrity,
@@ -51,26 +70,63 @@ export function buildPluginMarketplaceUpdateImpact({
   const approvals = [];
   const blockers = [...preflight.blockers];
   if (source.requiresApproval) {
-    approvals.push({
+    pushUniqueFinding(approvals, {
       code: "SOURCE_SWITCH_APPROVAL_REQUIRED",
-      detail: source.kind,
+      detail:
+        physicalSourceSwitches.length > 0
+          ? `scopes: ${physicalSourceSwitches.join(", ")}`
+          : source.kind,
     });
   }
   if (version.kind === "downgrade") {
-    approvals.push({ code: "VERSION_DOWNGRADE_APPROVAL_REQUIRED" });
+    pushUniqueFinding(approvals, {
+      code: "VERSION_DOWNGRADE_APPROVAL_REQUIRED",
+    });
   }
   if (capabilities.widened) {
-    approvals.push({
+    pushUniqueFinding(approvals, {
       code: "CAPABILITY_WIDENING_CONSENT_REQUIRED",
       detail: capabilities.added.join(", "),
     });
   }
   if (integrity.semanticPayloadBinding.downgraded) {
-    blockers.push({ code: "SEMANTIC_SBOM_BINDING_DOWNGRADE" });
+    pushUniqueFinding(blockers, {
+      code: "SEMANTIC_SBOM_BINDING_DOWNGRADE",
+    });
   }
   if (current && version.kind === "candidate-version-deferred") {
-    blockers.push({ code: "REGISTRY_VERSION_REQUIRED_FOR_UPDATE" });
+    pushUniqueFinding(blockers, {
+      code: "REGISTRY_VERSION_REQUIRED_FOR_UPDATE",
+    });
   }
+
+  const candidateSemanticFormat = candidateSemanticPayloadFormat(preflight);
+  const semanticDowngradeScopes = hasScopedInventory
+    ? physical
+        .filter(
+          (entry) =>
+            semanticPayloadStrength(
+              entry.integrity?.sbom?.semanticPayloadFormat,
+            ) > semanticPayloadStrength(candidateSemanticFormat),
+        )
+        .map((entry) => entry.scope)
+    : [];
+  if (semanticDowngradeScopes.length > 0) {
+    pushUniqueFinding(blockers, {
+      code: "SEMANTIC_SBOM_BINDING_DOWNGRADE",
+      detail: `scopes: ${semanticDowngradeScopes.join(", ")}`,
+    });
+  }
+  const scopeAuthority =
+    hasScopedInventory || targetScope
+      ? buildScopeAuthorityChange({
+          current,
+          physical,
+          targetScope,
+          physicalSourceSwitches,
+          semanticDowngradeScopes,
+        })
+      : null;
 
   const changes = {
     version,
@@ -83,6 +139,7 @@ export function buildPluginMarketplaceUpdateImpact({
       status: preflight.governance.status,
       missing: preflight.governance.missing,
     },
+    ...(scopeAuthority ? { scopeAuthority } : {}),
   };
   const changeCount = countChanges(changes);
   const authority = {
@@ -93,6 +150,7 @@ export function buildPluginMarketplaceUpdateImpact({
       ? { selectionDigest: preflight.selectionDigest }
       : {}),
     installed: current,
+    installedScopes: physical,
     changes,
     blockers,
     approvals,
@@ -107,6 +165,7 @@ export function buildPluginMarketplaceUpdateImpact({
         ? "review-required"
         : "no-change",
     installed: current,
+    installedScopes: physical,
     candidate: {
       candidateId: preflight.candidateId,
       candidateDigest: preflight.candidateDigest,
@@ -141,6 +200,7 @@ function normalizeInstalled(value) {
     name: clean(value.name, 256) || null,
     version: clean(value.version, 128) || null,
     scope: clean(value.scope, 32) || null,
+    enabled: value.enabled !== false,
     source: normalizeInstalledSource(value.source),
     integrity: normalizeInstalledIntegrity(value.integrity),
     license: {
@@ -150,6 +210,22 @@ function normalizeInstalled(value) {
     capabilities: normalizeCapabilities(value.capabilities),
     dependencies: normalizeDependencyMap(value.dependencies),
   };
+}
+
+function normalizeInstalledScopes(values, current) {
+  const normalized = (Array.isArray(values) ? values : [])
+    .map(normalizeInstalled)
+    .filter(Boolean);
+  if (normalized.length === 0 && current) normalized.push(current);
+  const byScope = new Map();
+  for (const entry of normalized) {
+    if (!entry.scope || byScope.has(entry.scope)) continue;
+    byScope.set(entry.scope, entry);
+  }
+  const rank = (scope) => ["user", "project", "local"].indexOf(scope);
+  return [...byScope.values()].sort(
+    (left, right) => rank(left.scope) - rank(right.scope),
+  );
 }
 
 function normalizeInstalledSource(value) {
@@ -348,14 +424,8 @@ function compareIntegrity(current, candidate, currentSource = null) {
 }
 
 function compareSemanticPayloadBinding(from, to) {
-  const strength = (format) =>
-    format === PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA
-      ? 2
-      : isMarketplacePayloadSbomFormat(format)
-        ? 1
-        : 0;
-  const fromStrength = strength(from);
-  const toStrength = strength(to);
+  const fromStrength = semanticPayloadStrength(from);
+  const toStrength = semanticPayloadStrength(to);
   return {
     from: from || null,
     to: to || null,
@@ -373,6 +443,68 @@ function compareSemanticPayloadBinding(from, to) {
     changed: from !== to,
     downgraded: fromStrength > toStrength,
   };
+}
+
+function semanticPayloadStrength(format) {
+  return format === PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA
+    ? 2
+    : isMarketplacePayloadSbomFormat(format)
+      ? 1
+      : 0;
+}
+
+function candidateSemanticPayloadFormat(preflight) {
+  const sbom = preflight.integrity?.sbom;
+  return isMarketplacePayloadSbomFormat(sbom?.format) &&
+    sbom.status === "declared" &&
+    sbom.remoteVerification === "complete"
+    ? sbom.format
+    : null;
+}
+
+function buildScopeAuthorityChange({
+  current,
+  physical,
+  targetScope,
+  physicalSourceSwitches,
+  semanticDowngradeScopes,
+}) {
+  const target = clean(targetScope, 32) || null;
+  if (!target && physical.length === 0) return null;
+  const rank = (scope) => ["user", "project", "local"].indexOf(scope);
+  const targetInstalled = physical.find((entry) => entry.scope === target);
+  const targetEnabled = targetInstalled?.enabled !== false;
+  const candidateWouldBeEffective = Boolean(
+    target &&
+    targetEnabled &&
+    (!current || rank(target) >= rank(current.scope)),
+  );
+  const effectiveTo = candidateWouldBeEffective
+    ? target
+    : current?.scope || null;
+  return {
+    targetScope: target,
+    effectiveFrom: current?.scope || null,
+    effectiveTo,
+    changed: (current?.scope || null) !== effectiveTo,
+    candidateWouldBeEffective,
+    physical: physical.map((entry) => ({
+      scope: entry.scope,
+      version: entry.version,
+      enabled: entry.enabled,
+      sourceType: entry.source?.type || null,
+      sourceRegistry: entry.source?.registry || null,
+      semanticPayloadFormat:
+        entry.integrity?.sbom?.semanticPayloadFormat || null,
+    })),
+    sourceSwitchScopes: physicalSourceSwitches,
+    semanticDowngradeScopes,
+  };
+}
+
+function pushUniqueFinding(list, finding) {
+  if (list.some((entry) => entry?.code === finding.code)) return;
+  list.push(finding);
 }
 
 function compareScalar(fromValue, toValue) {
@@ -439,6 +571,7 @@ function countChanges(changes) {
     changes.dependencies.added.length +
     changes.dependencies.removed.length +
     changes.dependencies.changed.length;
+  if (changes.scopeAuthority?.changed) count += 1;
   return count;
 }
 

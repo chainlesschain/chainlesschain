@@ -13,6 +13,7 @@ import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { getElectronUserDataDir } from "../paths.js";
+import { createMarketplaceNetworkTransport } from "./marketplace-network.js";
 
 export const PLUGIN_MARKETPLACE_REMOTE_ARTIFACT_EVIDENCE_SCHEMA =
   "cc-plugin-marketplace-remote-artifact-evidence/v1";
@@ -87,6 +88,18 @@ export async function fetchPluginMarketplaceRemoteArtifacts(options = {}) {
   let normalizedSbom = null;
   if (sbomRequested) normalizedSbom = normalizeSbomSpec(sbomSpec);
 
+  const networkTransport =
+    options.offline !== true &&
+    typeof options.fetchImpl !== "function" &&
+    (options.proxyUrl || options.pacFile || options.caFile)
+      ? createMarketplaceNetworkTransport({
+          proxyUrl: options.proxyUrl,
+          pacFile: options.pacFile,
+          caFile: options.caFile,
+        })
+      : null;
+  common.fetchImpl = options.fetchImpl || networkTransport?.fetch;
+
   const signaturePromise = normalizedSignature
     ? fetchMarketplaceRemoteArtifact({
         ...common,
@@ -118,8 +131,18 @@ export async function fetchPluginMarketplaceRemoteArtifacts(options = {}) {
       })
     : Promise.resolve(null);
 
-  const [signatureArtifact, publicKeyArtifact, sbomArtifact] =
-    await Promise.all([signaturePromise, publicKeyPromise, sbomPromise]);
+  let signatureArtifact;
+  let publicKeyArtifact;
+  let sbomArtifact;
+  try {
+    [signatureArtifact, publicKeyArtifact, sbomArtifact] = await Promise.all([
+      signaturePromise,
+      publicKeyPromise,
+      sbomPromise,
+    ]);
+  } finally {
+    await networkTransport?.close();
+  }
 
   const signatureAuthority = signatureArtifact
     ? {

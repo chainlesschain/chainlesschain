@@ -111,11 +111,12 @@ describe("execution-location binding and catalog", () => {
     expect(
       catalog.locations.find((entry) => entry.location === "wsl"),
     ).toMatchObject({
-      availability: "unavailable",
+      availability: "requires-configuration",
       capabilities: {
-        launch: "not-implemented",
-        resume: "not-implemented",
+        launch: "requires-configuration",
+        resume: "requires-configuration",
       },
+      mechanism: "wsl-fixed-cli-launcher",
     });
     expect(catalog.controlPlane.remoteControl.executionLocation).toBe(false);
   });

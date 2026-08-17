@@ -36,6 +36,7 @@ const ELICITATION_FORM_SOURCE = fs.readFileSync(
 // Extension Host restart when retainContextWhenHidden is enabled, so this is
 // an explicit UI/Host handshake rather than relying on the extension version.
 const CHAT_UI_PROTOCOL_VERSION = 2;
+const TRANSCRIPT_ENTRY_MAX_CHARS = 200_000;
 
 function migrateBootstrapLastSent(lastSentByTab, activeTabId, nextActiveTabId) {
   if (!lastSentByTab || activeTabId || !nextActiveTabId || !lastSentByTab._) {
@@ -46,6 +47,95 @@ function migrateBootstrapLastSent(lastSentByTab, activeTabId, nextActiveTabId) {
   }
   delete lastSentByTab._;
   return true;
+}
+
+function trimOldestLogNodes(container, maxNodes) {
+  const cap = Number.isSafeInteger(maxNodes) && maxNodes >= 0 ? maxNodes : 0;
+  let removed = 0;
+  while (container.childElementCount > cap && container.firstChild) {
+    container.removeChild(container.firstChild);
+    removed += 1;
+  }
+  return removed;
+}
+
+/**
+ * Append text to a bounded transcript entry without retaining its omitted
+ * middle. The visible marker makes truncation explicit while preserving both
+ * the beginning and the most recent tail of a large diff/log/answer.
+ */
+function appendBoundedTranscriptText(previous, value, maxChars = 200_000) {
+  const cap = Number.isSafeInteger(maxChars) && maxChars >= 0 ? maxChars : 0;
+  const chunk = String(value ?? "");
+  const prior =
+    previous &&
+    typeof previous === "object" &&
+    Number.isSafeInteger(previous.totalChars) &&
+    previous.totalChars >= 0
+      ? previous
+      : {
+          prefix: "",
+          suffix: "",
+          totalChars: 0,
+          truncated: false,
+        };
+  const priorFull = prior.truncated
+    ? String(prior.prefix || "") + String(prior.suffix || "")
+    : String(prior.prefix || "");
+  const totalChars = prior.totalChars + chunk.length;
+
+  if (!prior.truncated && totalChars <= cap) {
+    const text = priorFull + chunk;
+    return {
+      prefix: text,
+      suffix: "",
+      totalChars,
+      truncated: false,
+      text,
+    };
+  }
+
+  const markerFor = (omitted) =>
+    `\n\n… [${omitted} characters omitted from oversized transcript entry] …\n\n`;
+  let omittedChars = Math.max(0, totalChars - cap);
+  let marker = markerFor(omittedChars);
+  for (let iteration = 0; iteration < 3; iteration += 1) {
+    const dataBudget = Math.max(0, cap - marker.length);
+    omittedChars = Math.max(0, totalChars - dataBudget);
+    marker = markerFor(omittedChars);
+  }
+  if (marker.length >= cap) {
+    const text = marker.slice(0, cap);
+    return {
+      prefix: "",
+      suffix: "",
+      totalChars,
+      truncated: true,
+      text,
+    };
+  }
+
+  const dataBudget = cap - marker.length;
+  const headBudget = Math.ceil(dataBudget / 2);
+  const tailBudget = dataBudget - headBudget;
+  const oldHead = prior.truncated ? String(prior.prefix || "") : priorFull;
+  const oldTail = prior.truncated ? String(prior.suffix || "") : priorFull;
+  const prefix =
+    oldHead.length >= headBudget
+      ? oldHead.slice(0, headBudget)
+      : oldHead + chunk.slice(0, headBudget - oldHead.length);
+  const suffix =
+    chunk.length >= tailBudget
+      ? chunk.slice(chunk.length - tailBudget)
+      : oldTail.slice(-(tailBudget - chunk.length)) + chunk;
+  const text = prefix + marker + suffix;
+  return {
+    prefix,
+    suffix,
+    totalChars,
+    truncated: true,
+    text,
+  };
 }
 
 function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
@@ -63,6 +153,9 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   :root { color-scheme: light dark; }
   body { margin:0; font-family: var(--vscode-font-family); color: var(--vscode-foreground);
          display:flex; flex-direction:column; height:100vh; }
+  :focus-visible { outline:2px solid var(--vscode-focusBorder); outline-offset:2px; }
+  .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+             overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
   #log { flex:1; overflow-y:auto; padding:8px; }
   .msg { margin:6px 0; line-height:1.45; white-space:pre-wrap; word-break:break-word; }
   .thinking { opacity:.6; font-size:.92em;
@@ -132,18 +225,19 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   #tabs { display:flex; align-items:center; gap:2px; padding:2px 4px; overflow-x:auto;
           border-bottom:1px solid var(--vscode-panel-border); }
   #tabs:empty { display:none; }
+  #tabs .tabwrap { display:flex; align-items:center; max-width:180px; }
   #tabs .tab { display:flex; align-items:center; gap:4px; padding:2px 6px; max-width:160px;
                border:1px solid transparent; border-radius:4px 4px 0 0; cursor:pointer;
-               white-space:nowrap; font-size:.88em; }
+               white-space:nowrap; font-size:.88em; background:none; color:inherit; }
   #tabs .tab .t { overflow:hidden; text-overflow:ellipsis; max-width:120px; }
   #tabs .tab .dot { color: var(--vscode-charts-green, #3fb950); font-size:.7em; line-height:1; }
   #tabs .tab .dot.approval { color: var(--vscode-charts-blue, #3794ff); }
   #tabs .tab.unread .t { font-weight:600; }
   #tabs .tab.active { background: var(--vscode-tab-activeBackground, var(--vscode-editorWidget-background));
                       border-color: var(--vscode-panel-border); }
-  #tabs .tab .x { opacity:.55; border:none; background:none; color:inherit; cursor:pointer;
+  #tabs .tabwrap .x { opacity:.55; border:none; background:none; color:inherit; cursor:pointer;
                   padding:0 2px; font-size:1em; line-height:1; }
-  #tabs .tab .x:hover { opacity:1; }
+  #tabs .tabwrap .x:hover { opacity:1; }
   #tabs .newtab { border:none; background:none; color:inherit; cursor:pointer; padding:2px 6px;
                   font-size:1.15em; line-height:1; opacity:.7; }
   #tabs .newtab:hover { opacity:1; }
@@ -168,22 +262,26 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
 <script nonce="${nonce}">${SLASH_SOURCE}</script>
 <script nonce="${nonce}">${ELICITATION_SCHEMA_SOURCE}</script>
 <script nonce="${nonce}">${ELICITATION_FORM_SOURCE}</script>
-  <div id="tabs"></div>
-  <div id="log"></div>
-  <div id="plan">
-    <h4>Plan <span id="planState"></span></h4>
+  <div id="tabs" role="tablist" aria-label="Conversation tabs"></div>
+  <div id="log" role="log" aria-live="polite" aria-relevant="additions"
+       aria-label="Conversation transcript" aria-busy="false" tabindex="0"></div>
+  <div id="plan" role="region" aria-labelledby="planHeading">
+    <h4 id="planHeading">Plan <span id="planState"></span></h4>
     <ul id="planItems"></ul>
     <div class="actions">
       <button id="planApprove">Approve &amp; run</button>
       <button id="planReject" class="secondary">Reject</button>
     </div>
   </div>
-  <div id="status">not started — send a message to launch cc agent</div>
-  <div id="ctxbar"></div>
-  <div id="attach"></div>
-  <div id="suggest"></div>
+  <div id="status" role="status" aria-live="polite" aria-atomic="true">not started — send a message to launch cc agent</div>
+  <div id="ctxbar" role="status" aria-live="polite" aria-atomic="true" aria-label="Context window"></div>
+  <div id="attach" role="status" aria-live="polite" aria-label="Attachments"></div>
+  <div id="suggest" role="listbox" aria-label="Composer suggestions"></div>
   <div id="bar">
-    <textarea id="input" placeholder="Ask the agent… (Enter to send, Shift+Enter for newline)"></textarea>
+    <label class="sr-only" for="input">Message the agent</label>
+    <textarea id="input" aria-label="Message the agent" aria-controls="suggest"
+              aria-autocomplete="list" aria-expanded="false"
+              placeholder="Ask the agent… (Enter to send, Shift+Enter for newline)"></textarea>
     <button id="send">Send</button>
     <button id="plan-toggle" class="secondary" title="Plan first: write tools blocked until you approve">Plan</button>
     <button id="stop" class="secondary" title="Interrupt the current turn (conversation keeps going; Esc works too)">Stop</button>
@@ -201,9 +299,11 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   const tabsEl = document.getElementById("tabs");
   let streamEl = null; // the assistant block currently receiving deltas
   let streamRaw = ""; // its raw markdown, re-rendered (coalesced) on deltas
+  let streamTextState = null; // bounded head/tail + full logical char count
   let streamFrame = null; // pending requestAnimationFrame id for a deferred render
   let thinkingEl = null; // <details> reasoning block for this turn (extended thinking)
   let thinkingBody = null; // the body inside it where deltas are appended
+  let thinkingTextState = null; // bounded reasoning block state
   const lastSentByTab = {}; // per-tab last user prompt, for /retry (regenerate)
   const tabKey = () => activeTabId || "_"; // stable key before the first tab bar
   ${migrateBootstrapLastSent.toString()}
@@ -217,6 +317,9 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   // long-session memory growth". add() always re-pins to the bottom, so trimming
   // the oldest (off-screen) nodes never shifts what the user is reading.
   const MAX_LOG_NODES = 800;
+  const MAX_ENTRY_CHARS = ${TRANSCRIPT_ENTRY_MAX_CHARS};
+  ${trimOldestLogNodes.toString()}
+  ${appendBoundedTranscriptText.toString()}
 
   // Conversation tabs: each inactive tab's transcript is kept as DETACHED DOM
   // nodes (tabId -> Node[]), not an innerHTML string — detaching/re-appending
@@ -241,8 +344,17 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   function renderTabBar(tabs, activeId) {
     tabsEl.textContent = "";
     if (!Array.isArray(tabs) || tabs.length === 0) return;
-    for (const t of tabs) {
-      const tab = document.createElement("span");
+    for (let tabIndex = 0; tabIndex < tabs.length; tabIndex += 1) {
+      const t = tabs[tabIndex];
+      const wrap = document.createElement("span");
+      wrap.className = "tabwrap";
+      const tab = document.createElement("button");
+      tab.type = "button";
+      tab.id = "cc-chat-tab-" + tabIndex;
+      tab.setAttribute("role", "tab");
+      tab.setAttribute("aria-controls", "log");
+      tab.setAttribute("aria-selected", t.id === activeId ? "true" : "false");
+      tab.tabIndex = t.id === activeId ? 0 : -1;
       const flagged = t.needsApproval || t.unread;
       tab.className =
         "tab" +
@@ -254,6 +366,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         const dot = document.createElement("span");
         dot.className = "dot" + (t.needsApproval ? " approval" : "");
         dot.textContent = "●";
+        dot.setAttribute("aria-hidden", "true");
         dot.title = t.needsApproval
           ? "this tab is waiting for your approval"
           : "a turn finished in this tab while it was in the background";
@@ -263,26 +376,55 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       label.className = "t";
       label.textContent = t.title || t.id;
       tab.appendChild(label);
+      tab.setAttribute(
+        "aria-label",
+        (t.title || t.id) +
+          (t.needsApproval
+            ? ", waiting for approval"
+            : t.unread
+              ? ", unread response"
+              : ""),
+      );
       tab.addEventListener("click", () => {
         if (t.id !== activeId) vscode.postMessage({ type: "switchTab", id: t.id });
       });
+      tab.addEventListener("keydown", (e) => {
+        const tabButtons = Array.from(tabsEl.querySelectorAll('[role="tab"]'));
+        const current = tabButtons.indexOf(tab);
+        let next = current;
+        if (e.key === "ArrowRight") next = (current + 1) % tabButtons.length;
+        else if (e.key === "ArrowLeft") next = (current - 1 + tabButtons.length) % tabButtons.length;
+        else if (e.key === "Home") next = 0;
+        else if (e.key === "End") next = tabButtons.length - 1;
+        else if (e.key === "Delete" && tabs.length > 1) {
+          e.preventDefault();
+          vscode.postMessage({ type: "closeTab", id: t.id });
+          return;
+        } else return;
+        e.preventDefault();
+        tabButtons[next].focus();
+      });
+      wrap.appendChild(tab);
       if (tabs.length > 1) {
         const x = document.createElement("button");
+        x.type = "button";
         x.className = "x";
         x.textContent = "×"; // ×
-        x.title = "Close tab";
+        x.title = "Close conversation";
+        x.setAttribute("aria-label", "Close " + (t.title || "conversation"));
         x.addEventListener("click", (e) => {
           e.stopPropagation();
           vscode.postMessage({ type: "closeTab", id: t.id });
         });
-        tab.appendChild(x);
+        wrap.appendChild(x);
       }
-      tabsEl.appendChild(tab);
+      tabsEl.appendChild(wrap);
     }
     const plus = document.createElement("button");
     plus.className = "newtab";
     plus.textContent = "+";
     plus.title = "New conversation tab";
+    plus.setAttribute("aria-label", "New conversation");
     plus.addEventListener("click", () => vscode.postMessage({ type: "newTab" }));
     tabsEl.appendChild(plus);
   }
@@ -291,12 +433,23 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   // block and any pending approval/question card are always the NEWEST nodes, so
   // removing from the front never touches live/interactive content.
   function trimLog() {
-    while (log.childElementCount > MAX_LOG_NODES) log.removeChild(log.firstChild);
+    return trimOldestLogNodes(log, MAX_LOG_NODES);
   }
   function add(cls, text) {
     const el = document.createElement("div");
     el.className = "msg " + cls;
-    el.textContent = text;
+    el.setAttribute("role", "article");
+    const accessibleLabels = {
+      user: "User message",
+      assistant: "Assistant response",
+      tool: "Tool activity",
+      error: "Error",
+      info: "Status message",
+    };
+    if (accessibleLabels[cls]) el.setAttribute("aria-label", accessibleLabels[cls]);
+    const bounded = appendBoundedTranscriptText(null, text, MAX_ENTRY_CHARS);
+    el.textContent = bounded.text;
+    if (bounded.truncated) el.dataset.truncated = "true";
     log.appendChild(el);
     trimLog(); // bound long-session memory (keep the most recent MAX_LOG_NODES)
     log.scrollTop = log.scrollHeight;
@@ -305,7 +458,9 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   function ensureStream() {
     if (!streamEl) {
       streamEl = add("assistant", "");
+      streamEl.setAttribute("aria-busy", "true");
       streamRaw = "";
+      streamTextState = null;
     }
     return streamEl;
   }
@@ -359,6 +514,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       log.scrollTop = log.scrollHeight;
       thinkingEl = details;
       thinkingBody = body;
+      thinkingTextState = null;
     }
     return thinkingBody;
   }
@@ -368,6 +524,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
     if (thinkingEl) thinkingEl.open = false;
     thinkingEl = null;
     thinkingBody = null;
+    thinkingTextState = null;
   }
   // Expand/collapse ALL reasoning blocks at once (Claude-Code Ctrl+O parity,
   // also the /expand panel command). If anything is collapsed, reveal all;
@@ -568,6 +725,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
     lastSentByTab[tabKey()] = text; // remember for /retry (per this tab)
     add("user", text + (images.length ? " [📷×" + images.length + "]" : ""));
     streamEl = null;
+    log.setAttribute("aria-busy", "true");
     vscode.postMessage(
       images.length ? { type: "send", text, images } : { type: "send", text },
     );
@@ -656,12 +814,17 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
     sug = { mode: null, at: null, items: [], sel: 0 };
     suggest.style.display = "none";
     suggest.textContent = "";
+    input.setAttribute("aria-expanded", "false");
+    input.removeAttribute("aria-activedescendant");
   }
   function renderSug() {
     suggest.textContent = "";
-    if (!sug.mode || !sug.items.length) { suggest.style.display = "none"; return; }
+    if (!sug.mode || !sug.items.length) { hideSug(); return; }
     sug.items.forEach((f, i) => {
       const row = document.createElement("div");
+      row.id = "cc-chat-suggestion-" + i;
+      row.setAttribute("role", "option");
+      row.setAttribute("aria-selected", i === sug.sel ? "true" : "false");
       row.className = "item" + (i === sug.sel ? " sel" : "");
       if (sug.mode === "slash") {
         const name = document.createElement("span");
@@ -678,6 +841,8 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       suggest.appendChild(row);
     });
     suggest.style.display = "block";
+    input.setAttribute("aria-expanded", "true");
+    input.setAttribute("aria-activedescendant", "cc-chat-suggestion-" + sug.sel);
   }
   function showSlashSug(prefix) {
     const items = ccSlash.filterSlashCommands(prefix);
@@ -829,7 +994,13 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         break;
       case "delta": {
         ensureStream();
-        streamRaw += m.text;
+        streamTextState = appendBoundedTranscriptText(
+          streamTextState,
+          m.text,
+          MAX_ENTRY_CHARS,
+        );
+        streamRaw = streamTextState.text;
+        if (streamTextState.truncated) streamEl.dataset.truncated = "true";
         scheduleStreamRender(); // coalesced: render at most once per frame
         break;
       }
@@ -837,7 +1008,13 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         // Extended-thinking reasoning (when /think is on) — plain dimmed text,
         // separate from the answer; not run through the markdown renderer.
         const el = ensureThinking();
-        el.textContent += m.text;
+        thinkingTextState = appendBoundedTranscriptText(
+          thinkingTextState,
+          m.text,
+          MAX_ENTRY_CHARS,
+        );
+        el.textContent = thinkingTextState.text;
+        if (thinkingTextState.truncated) el.dataset.truncated = "true";
         log.scrollTop = log.scrollHeight;
         break;
       }
@@ -1039,12 +1216,20 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
             add("error", m.text); // errors stay plain text
           } else {
             const el = add("assistant", "");
-            el.innerHTML = mdLite(m.text);
+            const bounded = appendBoundedTranscriptText(
+              null,
+              m.text,
+              MAX_ENTRY_CHARS,
+            );
+            el.innerHTML = mdLite(bounded.text);
+            if (bounded.truncated) el.dataset.truncated = "true";
             decorateCodeBlocks(el);
           }
         }
         flushStream(); // ensure the last streamed tokens are rendered before close
+        if (streamEl) streamEl.setAttribute("aria-busy", "false");
         streamEl = null;
+        log.setAttribute("aria-busy", "false");
         closeThinking(); // tuck the reasoning away now that the answer is in
         status.textContent = m.usage
           ? "ready · " + tokfmt(m.usage.input_tokens||0) + "→" + tokfmt(m.usage.output_tokens||0) + " tokens"
@@ -1079,10 +1264,12 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       }
       case "error":
         add("error", m.text);
+        log.setAttribute("aria-busy", "false");
         status.textContent = "error";
         break;
       case "exited":
         add("info", "agent exited (code " + m.code + ") — next message restarts it");
+        log.setAttribute("aria-busy", "false");
         status.textContent = "stopped";
         flushStream(); // render whatever streamed before the crash/exit
         streamEl = null;
@@ -1196,10 +1383,13 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       case "reset":
         cancelStreamFrame(); // drop a pending render — the log is being cleared
         log.textContent = "";
+        log.setAttribute("aria-busy", "false");
         if (activeTabId) tabNodes[activeTabId] = []; // forget this tab's transcript
         streamEl = null;
+        streamTextState = null;
         thinkingEl = null;
         thinkingBody = null;
+        thinkingTextState = null;
         planBox.style.display = "none";
         status.textContent = "new conversation — send a message to start";
         ctxbar.textContent = ""; // drop the previous conversation's context line
@@ -1223,11 +1413,14 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
           cancelStreamFrame(); // drop the outgoing tab's pending render
           streamEl = null;
           streamRaw = "";
+          streamTextState = null;
           // Also drop the reasoning block pointers — otherwise a mid-thinking
           // stream in the outgoing tab leaves thinkingBody pointing at its
           // detached node, and the incoming tab's reasoning appends into it.
           thinkingEl = null;
           thinkingBody = null;
+          thinkingTextState = null;
+          log.setAttribute("aria-busy", "false");
           planBox.style.display = "none";
           log.scrollTop = log.scrollHeight;
         }
@@ -1256,5 +1449,8 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
 module.exports = {
   buildChatHtml,
   CHAT_UI_PROTOCOL_VERSION,
+  TRANSCRIPT_ENTRY_MAX_CHARS,
   migrateBootstrapLastSent,
+  appendBoundedTranscriptText,
+  trimOldestLogNodes,
 };

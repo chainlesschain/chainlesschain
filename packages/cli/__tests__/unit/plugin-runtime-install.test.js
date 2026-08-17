@@ -10,6 +10,10 @@ import {
   finalizePluginUpdate,
   rollbackPluginUpdate,
   listInstalled,
+  listInstalledAllScopes,
+  migratePluginProvenance,
+  planPluginProvenanceMigration,
+  readSourceMetadataStrict,
   uninstall,
   setActiveVersion,
   setPluginEnabled,
@@ -80,6 +84,26 @@ function makeSource(name, version, { withSkill = true, extra = {} } = {}) {
     );
   }
   return dir;
+}
+
+function signProvenancePlan(plan) {
+  const { privateKey, publicKey } = crypto.generateKeyPairSync("ed25519");
+  const publicKeyPem = publicKey.export({ type: "spki", format: "pem" });
+  const signerPublicKeySha256 = crypto
+    .createHash("sha256")
+    .update(publicKey.export({ type: "spki", format: "der" }))
+    .digest("hex");
+  const signatureBase64 = crypto
+    .sign(null, Buffer.from(plan.signingPayloadBase64, "base64"), privateKey)
+    .toString("base64");
+  return {
+    attestation: {
+      authority: plan.authority,
+      publicKeyPem,
+      signatureBase64,
+    },
+    signerPublicKeySha256,
+  };
 }
 
 function canonicalJson(value) {
@@ -588,6 +612,120 @@ describe("installFromDirectory", () => {
       name: "greeter",
       version: "1.0.0",
     });
+  });
+
+  it("keeps predecessor bytes active when staged file durability fails", () => {
+    const original = makeSource("durability-guard", "1.0.0");
+    fs.writeFileSync(
+      path.join(original, "skills", "hello", "SKILL.md"),
+      "original",
+    );
+    const installed = installFromDirectory(original, {
+      scope: "project",
+      cwd,
+    });
+    const replacement = makeSource("durability-guard", "1.0.0");
+    fs.writeFileSync(
+      path.join(replacement, "skills", "hello", "SKILL.md"),
+      "replacement",
+    );
+
+    const originalOpenSync = installDeps.openSync;
+    const originalFsyncSync = installDeps.fsyncSync;
+    let stagedFileDescriptor = null;
+    installDeps.openSync = (file, ...args) => {
+      const descriptor = originalOpenSync(file, ...args);
+      if (
+        args[0] === "r+" &&
+        path
+          .dirname(String(file))
+          .split(path.sep)
+          .some((part) => part.startsWith(".install-"))
+      ) {
+        stagedFileDescriptor = descriptor;
+      }
+      return descriptor;
+    };
+    installDeps.fsyncSync = (descriptor) => {
+      if (descriptor === stagedFileDescriptor) {
+        stagedFileDescriptor = null;
+        throw new Error("injected staged fsync failure");
+      }
+      return originalFsyncSync(descriptor);
+    };
+    try {
+      expect(() =>
+        installFromDirectory(replacement, {
+          scope: "project",
+          cwd,
+          force: true,
+        }),
+      ).toThrow(/injected staged fsync failure/u);
+    } finally {
+      installDeps.openSync = originalOpenSync;
+      installDeps.fsyncSync = originalFsyncSync;
+    }
+
+    expect(
+      fs.readFileSync(
+        path.join(installed.dir, "skills", "hello", "SKILL.md"),
+        "utf8",
+      ),
+    ).toBe("original");
+    expect(
+      getActiveVersion("durability-guard", { scope: "project", cwd }),
+    ).toBe("1.0.0");
+    expect(
+      fs.existsSync(
+        path.join(path.dirname(installed.dir), ".plugin-transaction-lock"),
+      ),
+    ).toBe(false);
+  });
+
+  it("rolls back an unpublished candidate when active-pointer fsync fails", () => {
+    const source = makeSource("pointer-durability", "1.0.0");
+    const originalOpenSync = installDeps.openSync;
+    const originalFsyncSync = installDeps.fsyncSync;
+    let pointerDescriptor = null;
+    installDeps.openSync = (file, ...args) => {
+      const descriptor = originalOpenSync(file, ...args);
+      if (
+        path.basename(String(file)) === "next" &&
+        path.basename(path.dirname(String(file))).startsWith(".active-")
+      ) {
+        pointerDescriptor = descriptor;
+      }
+      return descriptor;
+    };
+    installDeps.fsyncSync = (descriptor) => {
+      if (descriptor === pointerDescriptor) {
+        pointerDescriptor = null;
+        throw new Error("injected active pointer fsync failure");
+      }
+      return originalFsyncSync(descriptor);
+    };
+    try {
+      expect(() =>
+        installFromDirectory(source, { scope: "project", cwd }),
+      ).toThrow(/injected active pointer fsync failure/u);
+    } finally {
+      installDeps.openSync = originalOpenSync;
+      installDeps.fsyncSync = originalFsyncSync;
+    }
+
+    const nameDir = path.join(
+      cwd,
+      ".chainlesschain",
+      "plugins",
+      "pointer-durability",
+    );
+    expect(
+      getActiveVersion("pointer-durability", { scope: "project", cwd }),
+    ).toBe(null);
+    expect(fs.existsSync(path.join(nameDir, "1.0.0"))).toBe(false);
+    expect(fs.existsSync(path.join(nameDir, ".plugin-transaction-lock"))).toBe(
+      false,
+    );
   });
 
   it("rejects an invalid manifest", () => {
@@ -1693,6 +1831,48 @@ describe("listInstalled", () => {
     expect(row.versions).not.toContain("8.0.0");
     expect(row.versions).not.toContain("7.0.0");
   });
+
+  it("returns every physical scope with effective-authority diagnostics", () => {
+    installFromDirectory(makeSource("scope-inventory", "1.0.0"), {
+      scope: "project",
+      cwd,
+    });
+    installFromDirectory(makeSource("scope-inventory", "2.0.0"), {
+      scope: "local",
+      cwd,
+    });
+
+    expect(listInstalled({ cwd, scopes: ["project", "local"] })).toEqual([
+      expect.objectContaining({
+        name: "scope-inventory",
+        scope: "local",
+        version: "2.0.0",
+      }),
+    ]);
+    expect(
+      listInstalledAllScopes({ cwd, scopes: ["project", "local"] }).map(
+        ({ scope, effectiveAuthority, shadowedByScope, inactiveReason }) => ({
+          scope,
+          effectiveAuthority,
+          shadowedByScope,
+          inactiveReason,
+        }),
+      ),
+    ).toEqual([
+      {
+        scope: "project",
+        effectiveAuthority: false,
+        shadowedByScope: "local",
+        inactiveReason: "shadowed",
+      },
+      {
+        scope: "local",
+        effectiveAuthority: true,
+        shadowedByScope: null,
+        inactiveReason: null,
+      },
+    ]);
+  });
 });
 
 describe("updatePlugin (upgrade from source)", () => {
@@ -2409,6 +2589,177 @@ describe("updatePlugin (upgrade from source)", () => {
   });
 });
 
+describe("signed legacy provenance migration", () => {
+  it("backfills only an exact payload-bound signed authority", () => {
+    const installed = installFromDirectory(
+      makeSource("legacy-provenance", "1.0.0"),
+      { scope: "project", cwd },
+    );
+    fs.rmSync(path.join(installed.dir, ".plugin-source.json"));
+    const plan = planPluginProvenanceMigration("legacy-provenance", {
+      scope: "project",
+      cwd,
+      version: "1.0.0",
+      issuedAt: "2026-08-18T00:00:00.000Z",
+      sourceMetadata: { type: "local", source: "reviewed-legacy-source" },
+    });
+    const signed = signProvenancePlan(plan);
+
+    expect(
+      migratePluginProvenance("legacy-provenance", {
+        scope: "project",
+        cwd,
+        version: "1.0.0",
+        attestation: signed.attestation,
+        expectedSignerSha256: signed.signerPublicKeySha256,
+      }),
+    ).toMatchObject({
+      migrated: true,
+      signerPublicKeySha256: signed.signerPublicKeySha256,
+    });
+    expect(
+      readSourceMetadataStrict(installed.dir, { required: true }),
+    ).toMatchObject({
+      type: "local",
+      source: "reviewed-legacy-source",
+      migrationAttestation: {
+        signerPublicKeySha256: signed.signerPublicKeySha256,
+        authority: {
+          subject: {
+            name: "legacy-provenance",
+            version: "1.0.0",
+            scope: "project",
+          },
+        },
+      },
+    });
+  });
+
+  it("rejects payload drift, signer mismatch, and provenance overwrite", () => {
+    const installed = installFromDirectory(
+      makeSource("legacy-reject", "1.0.0"),
+      { scope: "project", cwd },
+    );
+    expect(() =>
+      planPluginProvenanceMigration("legacy-reject", {
+        scope: "project",
+        cwd,
+        version: "1.0.0",
+        sourceMetadata: { type: "local", source: "reviewed" },
+      }),
+    ).toThrow(/never overwrites provenance/u);
+
+    fs.rmSync(path.join(installed.dir, ".plugin-source.json"));
+    const plan = planPluginProvenanceMigration("legacy-reject", {
+      scope: "project",
+      cwd,
+      version: "1.0.0",
+      issuedAt: "2026-08-18T00:00:00.000Z",
+      sourceMetadata: { type: "local", source: "reviewed" },
+    });
+    const signed = signProvenancePlan(plan);
+    expect(() =>
+      migratePluginProvenance("legacy-reject", {
+        scope: "project",
+        cwd,
+        version: "1.0.0",
+        attestation: signed.attestation,
+        expectedSignerSha256: "0".repeat(64),
+      }),
+    ).toThrow(/pinned fingerprint/u);
+
+    fs.writeFileSync(path.join(installed.dir, "drift.txt"), "changed", "utf8");
+    expect(() =>
+      migratePluginProvenance("legacy-reject", {
+        scope: "project",
+        cwd,
+        version: "1.0.0",
+        attestation: signed.attestation,
+        expectedSignerSha256: signed.signerPublicKeySha256,
+      }),
+    ).toThrow(/does not match installed bytes/u);
+  });
+
+  it("detects a tampered stored migration signature", () => {
+    const installed = installFromDirectory(
+      makeSource("legacy-tamper", "1.0.0"),
+      { scope: "project", cwd },
+    );
+    const metadataFile = path.join(installed.dir, ".plugin-source.json");
+    fs.rmSync(metadataFile);
+    const plan = planPluginProvenanceMigration("legacy-tamper", {
+      scope: "project",
+      cwd,
+      version: "1.0.0",
+      issuedAt: "2026-08-18T00:00:00.000Z",
+      sourceMetadata: { type: "local", source: "reviewed" },
+    });
+    const signed = signProvenancePlan(plan);
+    migratePluginProvenance("legacy-tamper", {
+      scope: "project",
+      cwd,
+      version: "1.0.0",
+      attestation: signed.attestation,
+      expectedSignerSha256: signed.signerPublicKeySha256,
+    });
+    const stored = JSON.parse(fs.readFileSync(metadataFile, "utf8"));
+    stored.migrationAttestation.signatureBase64 = Buffer.alloc(64, 7).toString(
+      "base64",
+    );
+    fs.writeFileSync(metadataFile, JSON.stringify(stored), "utf8");
+
+    expect(() =>
+      readSourceMetadataStrict(installed.dir, { required: true }),
+    ).toThrow(/signature verification failed/u);
+  });
+
+  it("rejects component-SBOM rewrites and linked provenance authority", () => {
+    const locked = installFromDirectory(makeSource("legacy-locked", "1.0.0"), {
+      scope: "project",
+      cwd,
+    });
+    fs.rmSync(path.join(locked.dir, ".plugin-source.json"));
+    fs.writeFileSync(
+      path.join(locked.dir, ".plugin-lock.json"),
+      JSON.stringify({ sbom: { digest: "historical" } }),
+      "utf8",
+    );
+    const plan = planPluginProvenanceMigration("legacy-locked", {
+      scope: "project",
+      cwd,
+      version: "1.0.0",
+      issuedAt: "2026-08-18T00:00:00.000Z",
+      sourceMetadata: { type: "local", source: "reviewed" },
+    });
+    const signed = signProvenancePlan(plan);
+    expect(() =>
+      migratePluginProvenance("legacy-locked", {
+        scope: "project",
+        cwd,
+        version: "1.0.0",
+        attestation: signed.attestation,
+        expectedSignerSha256: signed.signerPublicKeySha256,
+      }),
+    ).toThrow(/component-SBOM lock/u);
+
+    fs.rmSync(path.join(locked.dir, ".plugin-lock.json"));
+    migratePluginProvenance("legacy-locked", {
+      scope: "project",
+      cwd,
+      version: "1.0.0",
+      attestation: signed.attestation,
+      expectedSignerSha256: signed.signerPublicKeySha256,
+    });
+    const metadata = path.join(locked.dir, ".plugin-source.json");
+    const outside = path.join(cwd, "linked-source-metadata.json");
+    fs.renameSync(metadata, outside);
+    fs.linkSync(outside, metadata);
+    expect(() =>
+      readSourceMetadataStrict(locked.dir, { required: true }),
+    ).toThrow(/PLUGIN_SOURCE_METADATA_UNSAFE/u);
+  });
+});
+
 describe("uninstall + rollback", () => {
   it("removes a whole plugin (all versions)", () => {
     installFromDirectory(makeSource("greeter", "1.0.0"), {
@@ -2422,6 +2773,68 @@ describe("uninstall + rollback", () => {
     const res = uninstall("greeter", { scope: "project", cwd });
     expect(res.removed.sort()).toEqual(["1.0.0", "2.0.0"]);
     expect(listInstalled({ cwd, scopes: ["project"] })).toHaveLength(0);
+  });
+
+  it("preflights the lower-scope authority exposed by whole-name uninstall", () => {
+    installFromDirectory(makeSource("scope-uninstall", "1.0.0"), {
+      scope: "project",
+      cwd,
+    });
+    installFromDirectory(makeSource("scope-uninstall", "2.0.0"), {
+      scope: "local",
+      cwd,
+    });
+
+    expect(() => uninstall("scope-uninstall", { scope: "local", cwd })).toThrow(
+      /SOURCE_SWITCH_APPROVAL_REQUIRED/,
+    );
+    expect(getActiveVersion("scope-uninstall", { scope: "local", cwd })).toBe(
+      "2.0.0",
+    );
+
+    uninstall("scope-uninstall", {
+      scope: "local",
+      cwd,
+      allowSourceSwitch: true,
+    });
+    expect(
+      discoverPlugins({ cwd, skipPolicy: true }).find(
+        ({ name }) => name === "scope-uninstall",
+      ),
+    ).toMatchObject({ scope: "project", version: "1.0.0" });
+  });
+
+  it("requires explicit remediation before a blocked higher scope exposes fallback", () => {
+    installFromDirectory(makeSource("scope-blocked-remove", "1.0.0"), {
+      scope: "project",
+      cwd,
+    });
+    const local = installFromDirectory(
+      makeSource("scope-blocked-remove", "2.0.0"),
+      { scope: "local", cwd },
+    );
+    fs.rmSync(path.join(local.dir, "plugin.json"));
+
+    expect(() =>
+      uninstall("scope-blocked-remove", {
+        scope: "local",
+        cwd,
+        allowBlockedIdentity: true,
+      }),
+    ).toThrow(/SOURCE_SWITCH_APPROVAL_REQUIRED/);
+    expect(fs.existsSync(local.dir)).toBe(true);
+
+    uninstall("scope-blocked-remove", {
+      scope: "local",
+      cwd,
+      allowBlockedIdentity: true,
+      allowSourceSwitch: true,
+    });
+    expect(
+      discoverPlugins({ cwd, skipPolicy: true }).find(
+        ({ name }) => name === "scope-blocked-remove",
+      ),
+    ).toMatchObject({ scope: "project", version: "1.0.0" });
   });
 
   it("removes one version and repoints active to the newest remaining", () => {
@@ -2862,6 +3275,94 @@ describe("enable / disable lifecycle", () => {
       setPluginEnabled("missing", false, { scope: "project", cwd }),
     ).toThrow(/not installed/);
   });
+
+  it("does not expose a different lower-scope source without approval", () => {
+    installFromDirectory(makeSource("scope-disable", "1.0.0"), {
+      scope: "project",
+      cwd,
+    });
+    installFromDirectory(makeSource("scope-disable", "2.0.0"), {
+      scope: "local",
+      cwd,
+    });
+
+    expect(() =>
+      setPluginEnabled("scope-disable", false, { scope: "local", cwd }),
+    ).toThrow(/SOURCE_SWITCH_APPROVAL_REQUIRED/);
+    expect(isPluginEnabled("scope-disable", { scope: "local", cwd })).toBe(
+      true,
+    );
+
+    setPluginEnabled("scope-disable", false, {
+      scope: "local",
+      cwd,
+      allowSourceSwitch: true,
+    });
+    expect(
+      discoverPlugins({ cwd, skipPolicy: true }).find(
+        ({ name }) => name === "scope-disable",
+      ),
+    ).toMatchObject({ scope: "project", version: "1.0.0" });
+    expect(
+      listInstalledAllScopes({ cwd, scopes: ["project", "local"] }).find(
+        ({ scope }) => scope === "local",
+      ),
+    ).toMatchObject({
+      enabled: false,
+      effectiveAuthority: false,
+      inactiveReason: "disabled",
+    });
+  });
+
+  it("does not expose a lower-scope semantic downgrade", () => {
+    installFromDirectory(makeSource("scope-semantic-fallback", "1.0.0"), {
+      scope: "project",
+      cwd,
+    });
+    const bound = makeSource("scope-semantic-fallback", "2.0.0");
+    const semantic = semanticSourceMetadata(bound, "scope-semantic-fallback");
+    installFromDirectory(bound, {
+      scope: "local",
+      cwd,
+      sourceMetadata: semantic.metadata,
+      remoteSbomBytes: semantic.bytes,
+    });
+
+    expect(() =>
+      setPluginEnabled("scope-semantic-fallback", false, {
+        scope: "local",
+        cwd,
+        allowSourceSwitch: true,
+      }),
+    ).toThrow(/SEMANTIC_SBOM_BINDING_DOWNGRADE/);
+    expect(
+      isPluginEnabled("scope-semantic-fallback", { scope: "local", cwd }),
+    ).toBe(true);
+  });
+
+  it("rejects a weaker semantic binding installed at a higher scope", () => {
+    const bound = makeSource("scope-semantic", "1.0.0");
+    const semantic = semanticSourceMetadata(bound, "scope-semantic");
+    installFromDirectory(bound, {
+      scope: "project",
+      cwd,
+      sourceMetadata: semantic.metadata,
+      remoteSbomBytes: semantic.bytes,
+    });
+    const unbound = makeSource("scope-semantic", "2.0.0");
+
+    expect(() =>
+      installFromDirectoryImpl(unbound, {
+        scope: "local",
+        cwd,
+        allowSourceSwitch: true,
+        allowDowngrade: true,
+      }),
+    ).toThrow(/SEMANTIC_SBOM_BINDING_DOWNGRADE/);
+    expect(listInstalledVersions("local", "scope-semantic", { cwd })).toEqual(
+      [],
+    );
+  });
 });
 
 describe("parseGitSource", () => {
@@ -2968,6 +3469,30 @@ describe("installFromSource — git (mocked clone)", () => {
     expect(
       getActiveVersion("transactional-remote", { scope: "project", cwd }),
     ).toBe("1.0.0");
+  });
+
+  it("removes lifecycle markers when uninstalling the final disabled version", () => {
+    installFromDirectory(makeSource("final-disabled", "1.0.0"), {
+      scope: "project",
+      cwd,
+    });
+    setPluginEnabled("final-disabled", false, { scope: "project", cwd });
+
+    expect(
+      uninstall("final-disabled", {
+        scope: "project",
+        cwd,
+        version: "1.0.0",
+        allowSourceSwitch: true,
+      }),
+    ).toMatchObject({ removed: ["1.0.0"] });
+    expect(
+      fs.existsSync(
+        path.dirname(
+          pluginVersionDir("project", "final-disabled", "1.0.0", { cwd }),
+        ),
+      ),
+    ).toBe(false);
   });
 
   it("reports a clear error when git is not installed", () => {

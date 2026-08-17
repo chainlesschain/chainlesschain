@@ -787,11 +787,14 @@ export function normalizeSessionExecutionLocationAuthority(value) {
       `executionLocationAuthority must use ${SESSION_EXECUTION_LOCATION_AUTHORITY_SCHEMA}`,
     );
   }
-  const verified = authority.authority === "verified-session-start";
+  const verified = new Set([
+    "verified-session-start",
+    "verified-session-location-handoff",
+  ]).has(authority.authority);
   if (!verified) {
     throw admissionError(
       code,
-      "executionLocationAuthority must be a verified session start",
+      "executionLocationAuthority must be a verified session location authority",
     );
   }
   let binding;
@@ -835,7 +838,7 @@ export function normalizeSessionExecutionLocationAuthority(value) {
   }
   return Object.freeze({
     schema: SESSION_EXECUTION_LOCATION_AUTHORITY_SCHEMA,
-    authority: "verified-session-start",
+    authority: authority.authority,
     sessionId,
     headHash: authority.headHash,
     eventCount: authority.eventCount,
@@ -1143,14 +1146,11 @@ function prepareDynamicWorkflowRun(runInput, verifiedAuthorities, execution) {
     executionLocation: Object.freeze({
       authoritySchema: executionLocationAuthority.schema,
       authority: executionLocationAuthority.authority,
-      session:
-        executionLocationAuthority.authority === "verified-session-start"
-          ? Object.freeze({
-              sessionId: executionLocationAuthority.sessionId,
-              headHash: executionLocationAuthority.headHash,
-              eventCount: executionLocationAuthority.eventCount,
-            })
-          : null,
+      session: Object.freeze({
+        sessionId: executionLocationAuthority.sessionId,
+        headHash: executionLocationAuthority.headHash,
+        eventCount: executionLocationAuthority.eventCount,
+      }),
       bindingSchema: executionLocationAuthority.binding.schema,
       location: executionLocationAuthority.binding.location,
     }),

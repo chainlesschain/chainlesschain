@@ -21,6 +21,7 @@ import {
   readPluginLock,
   verifyInstalledSignature,
 } from "./signature.js";
+import { normalizePublisherAuthority } from "./publisher-trust.js";
 
 export const PLUGIN_MARKETPLACE_ARTIFACT_READBACK_SCHEMA =
   "cc-plugin-marketplace-artifact-readback/v1";
@@ -301,7 +302,9 @@ export function buildPluginMarketplaceArtifactReadback({
     status,
     ...authority,
     claims: {
-      registryPublisherIdentityVerified: false,
+      registryPublisherIdentityVerified: Boolean(
+        source?.catalogAuthority?.publisherAuthority,
+      ),
       remoteSignatureFetched: actual.remoteArtifacts.signature.fetched === true,
       remoteSignatureBoundToInstalledLock:
         remoteArtifactEvidence.valid === true &&
@@ -1288,6 +1291,7 @@ function normalizeCatalogAuthority(value) {
     candidateDigest: cleanDigest(value.candidateDigest),
     selectionDigest: cleanDigest(value.selectionDigest),
     updateImpactDigest: cleanDigest(value.updateImpactDigest),
+    publisherAuthority: normalizePublisherAuthority(value.publisherAuthority),
   };
 }
 

@@ -10,6 +10,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
+  WORKBENCH_SESSION_LIMIT,
   buildWorkbenchArgs,
   parseSessionProjection,
   canRunProjectionAction,
@@ -31,8 +32,9 @@ const NOW = Date.parse("2026-07-11T12:00:00Z");
 describe("buildWorkbenchArgs", () => {
   it("returns the exact cc argv arrays the panel spawns", () => {
     expect(buildWorkbenchArgs()).toEqual({
-      sessionProjection: ["session", "projection", "--json", "-n", "100"],
+      sessionProjection: ["session", "projection", "--json", "-n", "256"],
     });
+    expect(WORKBENCH_SESSION_LIMIT).toBeGreaterThanOrEqual(128);
   });
 
   it("honours a custom session-list limit", () => {
@@ -360,6 +362,24 @@ describe("deriveActions", () => {
 });
 
 describe("renderWorkbenchHtml (escaping!)", () => {
+  it("renders and locally filters a 128-session workbench", () => {
+    const rows = Array.from({ length: 128 }, (_, index) => ({
+      id: `session-${index}`,
+      kind: "local",
+      title: `Scale session ${index}`,
+      workspace: `C:/workspace/${index}`,
+      status: "working",
+      lastActivity: NOW - index,
+      actions: ["dispatch"],
+    }));
+
+    expect(filterRows(rows, "scale session 127")).toHaveLength(1);
+    const html = renderWorkbenchHtml(rows, { now: NOW });
+    expect(html.match(/<tr data-session-row>/gu)).toHaveLength(128);
+    expect(html).toContain('aria-rowcount="128"');
+    expect(html).toContain("Sessions (128)");
+  });
+
   it("escapes hostile titles / workspaces / ids everywhere they appear", () => {
     const rows = aggregateSessions({
       chatSessions: [
@@ -427,6 +447,7 @@ describe("renderWorkbenchHtml (escaping!)", () => {
     expect(html).toContain('data-port="4444"');
     expect(html).toContain(">Attach</button>");
     expect(html).toContain(">Stop</button>");
+    expect(html).toContain('aria-label="Attach worker"');
   });
 
   it("escapeHtml covers the full special-character set", () => {

@@ -2044,3 +2044,912 @@ lifecycle** 子门，不把它外推成跨进程、跨 scope 或完整 Marketpla
 因此，第十七节中的 “activation-only” 剩余项由本节的**同作用域串行子门**取代并关闭；P1-5 整项仍为
 **部分完成**。总计数保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体发布结论继续为
 **NO-GO**。本节不关闭 P2-4，也不改变 P2-5 已由 Accepted ADR 完成的结论。
+
+## 十九、2026-08-17 P1-5 跨作用域 effective authority 子门复核（`23:23 +08:00`）
+
+本节继续第十八节的 P1-5 收口，但不改写此前的历史证据。审计基线为
+`c6ec46ff2d` 之后的本地候选工作树；本节及实现仍须形成不可变提交，并在该 exact head 上取得 `CLI CI` 与
+`CLI Strict Sandbox` 的 Linux、Windows、macOS 全矩阵终态成功，才能成为 npm 发布证据。本节关闭的是
+**单进程、跨 `local > project > user` 作用域的 effective-authority 决策**子门，不把它外推成跨进程事务、
+旧安装迁移或外部 Marketplace 产品化完成。
+
+### 本轮关闭的 cross-scope 子门
+
+- **物理 inventory 与运行时 authority 分离。** `listInstalled` 保持兼容的运行时有效视图；新增
+  `listInstalledAllScopes` 与 `cc plugin installed --all-scopes`，逐作用域显示同名插件的物理安装、disabled/
+  blocked 状态、`effectiveAuthority`、`shadowedByScope` 与 `inactiveReason`。诊断不再因高优先级覆盖而丢失
+  project/user 层的潜在 fallback。
+- **disable/uninstall 在写盘前审阅将被暴露的 authority。** 只有当前有效 scope 被禁用、整名卸载或删除唯一
+  active version 时才计算低优先级 fallback；fallback 的 pointer、目录、manifest identity、provenance 与当前
+  payload 必须严格有效。来源发生变化必须显式传入 `--allow-source-switch`；高优先级安装本身已 blocked 时，
+  整名修复也要求该显式批准，不能把无法认证的当前状态当作静默授权。失败发生在 marker、pointer 或目录删除前，
+  原有效 authority 保持不变。
+- **所有物理 scope 共同形成不可降级基线。** install/replacement、enable/use 与 fallback activation 会遍历同名
+  插件在 user/project/local 的已安装版本；任何完整 semantic payload binding 均不能被较弱格式或 unbound payload
+  取代。source-switch 批准只批准来源变化，不能绕过 `SEMANTIC_SBOM_BINDING_DOWNGRADE`。因此 shadowed payload
+  不能再作为删除高优先级插件后的降级 trampoline。
+- **Marketplace impact 升级为跨作用域 v2。** 当前合同为
+  `cc-plugin-marketplace-update-impact/v2`；历史 v1 记录保持原义。v2 将规范化的 `installedScopes`、目标 scope、
+  effective-from/to、物理 source-switch scopes 与 semantic-downgrade scopes 纳入 canonical impact digest。
+  `plugin add` 的 source switch/version downgrade、`plugin enable/disable` 的 source switch 均需命令行显式批准；
+  `plugin impact` 文本与 JSON 会暴露 scope authority 变化。
+
+### 仓库内验证与证据边界
+
+- 全部 21 个 `plugin-runtime-*` 单测文件最终为 **389 passed / 3 skipped**。其中真实 Node/Broker attestation
+  用例在完整并行矩阵中两次超过默认 5 秒、单文件复跑通过；只为该条真实进程测试设置 15 秒上限后，完整矩阵
+  取得上述终态成功，没有放宽全局超时。
+- remote-artifact command、add capability notice、install audit、artifact readback、impact 与 lifecycle command
+  六文件为 **97 passed / 1 skipped**；install/lifecycle/impact 三个核心文件的最终聚焦复跑为 **119/119**。
+- command manifest 与 help-index freshness 检查通过。变更文件通过 Prettier、ESLint 与 `git diff --check`；这些
+  本地结果不替代 exact-head GitHub Actions。`doctor-checkup.test.js` 的 Windows 默认时限问题不计入上述通过证据，
+  也不在本节中宣称已关闭。
+
+### P1-5 仍未关闭的边界
+
+1. **跨进程与崩溃一致性：** 仍缺覆盖 validation→consent→finalize/rollback 全生命周期的 OS 级 per-name/scope
+   lock、durable journal、owner token、generation CAS、crash recovery、断电与 fsync durability 证明。
+2. **legacy metadata migration：** 缺失或无效 provenance 继续 fail closed；尚无签名、事务化、可审计的旧安装
+   metadata backfill/migration 与固定历史兼容证据。
+3. **外部 Marketplace 产品化：** 真实 private registry TLS/auth、publisher/组织 trust root、key revocation、
+   代理/PAC/custom CA、air-gapped/offline/cache、依赖冲突、供应链故障及干净外部宿主长期矩阵仍未完成。
+
+因此，第十八节的 **cross-scope effective authority** 剩余项由本节关闭；P1-5 整项仍为**部分完成**。总计数
+保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节不关闭
+任何外部发布门，也不改变 P2-4 与其他 11 个剩余路线项的状态。
+
+## 二十、2026-08-18 P1-5 同作用域跨进程 owner 与进程崩溃恢复子门复核（`00:12 +08:00`）
+
+本节继续第十九节的 P1-5 收口，但保留此前各节的历史快照。实现审计起点是 `c6ec46ff2d`；验证期间基线由不重叠的
+release 文档提交前进到 `58cbc7a316`，本节插件候选变更仍位于其未提交工作树之上。实现与本节文档尚未形成不可变提交，
+也没有取得该 exact head 的 GitHub Actions 结果。因此下述证据是仓库内候选验证，
+不能替代 npm 发布要求的 `CLI CI` 与 `CLI Strict Sandbox` Linux、Windows、macOS 全矩阵终态成功。本节只关闭
+**同一 name/scope 下 install/add/upgrade 审阅事务的跨进程 owner 与进程被杀恢复**子门，不把它外推成跨 scope
+同时写入、物理断电、多主机共享存储、
+所有插件生命周期操作的通用崩溃恢复、旧安装迁移或外部 Marketplace 产品化完成。
+
+### 本轮关闭的进程崩溃子门
+
+- **固定 OS 级 per-name/scope owner。** 每个物理插件名称目录使用固定 `.plugin-transaction-lock`，通过同卷 staging、
+  原子目录发布和排他创建建立单写者。`owner.json` 绑定 PID、启动时间、hostname 与随机 owner token；普通 install、
+  update、active-version、enable/disable、uninstall 命令只会拒绝已有 owner，绝不凭 PID 失活自动偷锁。锁目录及 owner、
+  journal、recovery-claim authority 会拒绝 symlink、非预期类型、硬链接和超限文件。
+- **可恢复、带 CAS 的持久 journal。** `cc-plugin-lifecycle-transaction/v1` 记录 operation、phase、revision、前序 digest、
+  owner、transaction root、pointer byte snapshot/file generation、候选与前驱 payload/source digest。每次 phase 迁移先验证
+  exact owner、当前 revision/digest 与 authority 文件，再以新随机临时名写入、文件 `fsync`、原子替换；旧 writer、损坏
+  digest、被替换 pointer/version bytes 或错误 recovery claim 均 fail closed。
+- **审阅事务贯穿 validation→consent→finalize/rollback。** `plugin add` 现在与 `plugin upgrade` 一样始终返回待决事务，
+  capability notice、install audit、Marketplace impact 与用户同意均在同一 owner 下完成；只有 exact candidate/state 仍匹配
+  才能 finalize，拒绝或错误路径执行 rollback。进程在 staging、prepared、前驱 quarantine、候选发布、pointer 已替换但
+  `candidate-active` journal 尚未写入、以及 active 待 finalize 等窗口退出时，恢复器按 journal 和实际字节共同裁决。
+- **恢复 authority 独立且显式。** `cc plugin transaction <name>` 只输出去敏后的 PID/host/liveness、phase、revision 与
+  journal digest，不泄露 owner token。`cc plugin recover <name> --action rollback|finalize|abort` 使用排他 recovery claim；
+  同主机 owner 必须已死亡，跨主机或仍存活 owner 必须经 `--force-owner` 明确覆写。恢复动作继续受观察到的 owner token、
+  journal digest/revision、pointer generation 与候选/前驱状态约束，成功释放时再以原子 rename 退休固定锁。
+- **候选字节和原子指针进入刷盘边界。** staged regular files、版本元数据、active-pointer 临时文件与 disabled marker 在
+  发布前执行文件 `fsync`；候选/前驱 rename、pointer 替换、transaction root 退休及锁发布/释放在平台支持时刷新父目录。
+  staged 文件或 active pointer 刷盘失败会在暴露新 authority 前回滚，保留原有效字节；Windows 明确不支持的目录句柄
+  flush 错误仅作为平台能力缺失返回，不被误写为已证明的目录持久化。
+
+### 仓库内验证与证据边界
+
+- 全部 23 个 `plugin-runtime-*` 单测文件终态为 **410 passed / 3 skipped**。其中真实 child-process fixture 覆盖：并发
+  CLI 拒绝、owner 被杀后的 rollback/finalize、staging 与 prepared kill、active pointer 写入后且 journal 更新前 kill，
+  rollback bytes intent/restore、pointer 已恢复但 terminal journal 尚未写入、finalize cleanup 前后，以及同版本前驱
+  quarantine 后 kill 并恢复 exact 原字节；该真实进程组为 **11/11**。
+- transaction journal 单测为 **6/6**，覆盖排他 owner、digest/revision 链、stale writer、journal 篡改、live/dead owner
+  recovery、recovery-claim fencing/精确回收与硬链接 authority 拒绝；install fault injection 又覆盖 staged-file `fsync`
+  和 active-pointer `fsync` 失败。
+- remote-artifact command、add capability notice、install audit、artifact readback、impact 与 lifecycle command 六文件为
+  **98 passed / 1 skipped**。command manifest 与重新生成后的 175-command help index freshness 检查通过。
+- 上述均为本地候选证据。`doctor-checkup.test.js` 的既有 Windows 默认时限问题没有计入通过数，也没有在本节中宣称
+  关闭；物理断电、文件系统/杀毒软件/网络盘差异、长期矩阵和 exact-head CI 仍须独立验证。
+
+### P1-5 仍未关闭的边界
+
+1. **物理断电、平台目录持久化与共享存储：** 尚无真实突然掉电/硬重启矩阵；Windows 当前不能通过 Node 目录句柄证明
+   parent-directory `fsync`，跨 hostname 的共享/网络文件系统也没有可靠的 owner liveness、fencing 与故障注入证据。
+   不同 scope 当前各自持有独立 owner；会读取其他 scope baseline 的并行 mutation 尚无全局有序 multi-lock/fence，不能从
+   本节同作用域互斥外推为跨 scope 原子决策。
+   enable/disable/uninstall 虽已跨进程串行并保持跨作用域 preflight，但本节也不把它们声明为拥有与 install/add/upgrade
+   相同的逐阶段崩溃恢复协议。
+2. **legacy metadata migration：** 缺失或无效 provenance 继续 fail closed；仍无签名、事务化、可审计的旧安装 metadata
+   backfill/migration 与固定历史兼容矩阵。
+3. **外部 Marketplace 产品化：** 真实 private registry TLS/auth、publisher/组织 trust root、key revocation、代理/PAC/
+   custom CA、air-gapped/offline/cache、依赖冲突、供应链故障及干净外部宿主长期矩阵仍未完成。
+
+因此，第十九节“跨进程与崩溃一致性”剩余项中的**同 name/scope 进程存活期单写者与 process-kill recovery**由本节关闭，
+并将跨 scope 并行 fencing、物理断电、目录持久化与多主机存储证明保留为显式剩余边界。P1-5 整项仍为**部分完成**；总计数保持
+**12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节不关闭任何外部发布门，
+也不改变 P2-4 与其他 11 个剩余路线项的状态。
+
+## 二十四、2026-08-18 P1-5 managed publisher/组织信任与 key revocation 子门复核（`01:41 +08:00`）
+
+本节继续第二十三节，不回写此前历史快照。候选仍是 `58cbc7a316` 之上的未提交工作树，尚无 exact-head GitHub Actions。
+本节关闭的是仓库内**组织管理策略直接绑定 registry publisher identity 与 manifest signing key，并在当前策略下执行 key
+revocation**的子门；它不声称完成真实 private registry 部署、外部透明日志、TLS/代理/offline 或干净外部宿主旅程。
+
+### 本轮关闭的 publisher trust 子门
+
+- **registry 自述不能建立身份。** catalog/preflight 只规范化可选 `publisher.id` 与 `publisher.organizationId` 声明，仍将其视为
+  registry assertion。只有组织控制的 managed settings 中存在 exact `trustRootId + publisherId + organizationId + pluginNames +
+registryOrigins + signingKeySha256 + validity window` 映射，且该 Ed25519 key 真正验证当前 manifest，installer 才生成
+  `cc-plugin-publisher-authority/v1`。
+- **authority 同时绑定四个不可互换维度。** 持久记录包含 publisher/organization、插件 exact name、规范化 registry origin、
+  实际 SPKI SHA-256、组织 trust-root id、规范化 policy digest、验证时间和 authority digest。错误 publisher、错误组织、同 key 的
+  其他插件、镜像 registry、过期/未生效窗口或 registry 仅改 metadata 均不能匹配。
+- **revocation 是当前 admission，而非一次性安装结论。** `revokedPluginPublisherKeys` 接受有界 fingerprint/record 列表；安装前
+  已撤销 key 立即拒绝。strict provenance read 与 runtime managed-policy filter 会重新验证当前 manifest signature、持久 authority
+  和当前组织策略；安装后新增撤销记录、删除/修改 trust mapping、替换 key/manifest 或篡改 authority 都 fail closed。
+- **远端 artifact evidence 继续保持诚实分层。** signature/public-key/SBOM fetch evidence 仍不把 registry metadata 自称为
+  publisher proof；publisher 结论来自单独 managed authority。`plugin evidence` 只有在 strict read 已按当前 managed root 重验后，
+  才报告 `registryPublisherIdentityVerified=true`，否则继续明确为 unverified。
+
+### 仓库内验证与证据边界
+
+- 全部 24 个 `plugin-runtime-*` 文件终态为 **428 passed / 3 skipped**；新增 publisher-trust 文件 **3/3**，覆盖 exact 组织映射、
+  identity/origin/name/key mismatch、validity window、撤销和安装后 manifest/current-policy 重验。
+- Marketplace 六文件为 **100 passed / 1 skipped**；完整 loopback remote-artifact 文件为 **35/35**。新增真实 loopback 旅程使用
+  registry publisher 声明、远端 detached signature/public key、managed organization mapping 完成安装和 evidence readback，随后
+  写入 key revocation 并证明 strict provenance 立即拒绝。
+- catalog 旧兼容矩阵仍为 **16/16**；无 publisher 声明的 registry 保持历史未验证语义，不会被本功能伪装为已验证。任务文件
+  ESLint 通过，只有仓库既有的 `MODULE_TYPELESS_PACKAGE_JSON` 运行时提示。
+
+### P1-5 仍未关闭的边界
+
+1. **物理断电、平台目录持久化与多主机：** Windows 目录句柄 flush、突然掉电/硬重启、网络或共享文件系统 lease/fencing、
+   文件系统/杀毒软件差异及长期矩阵仍无正式证据；当前 authority 只证明同一 OS 用户和本地文件系统。
+2. **外部 Marketplace 产品化剩余项：** 仍需真实 private registry 的 TLS/auth 与干净外部旅程、代理/PAC/custom CA、
+   air-gapped/offline/cache、依赖冲突和供应链故障矩阵，以及组织 key rotation/撤销在独立外部 trust distribution 或透明日志中的
+   长期验证。本节的 managed direct mapping 是仓库内信任根执行核心，不替代这些部署证据。
+
+因此，第二十三节外部 Marketplace 边界中的 **publisher/组织 trust root 与 key revocation 仓库内执行核心**由本节关闭；
+P1-5 整项仍为**部分完成**。总计数保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为
+**NO-GO**。本节不关闭任何外部发布门，也不改变 P2-4 与其他 11 个剩余路线项的状态。
+
+## 二十五、2026-08-18 P1-5 private registry 网络与显式离线核心子门复核（`02:16 +08:00`）
+
+本节继续第二十四节，不回写此前历史快照。候选仍是 `58cbc7a316` 之上的未提交工作树，尚无 exact-head GitHub Actions。
+本节关闭的是仓库内**真实 TLS/auth、显式 proxy/PAC/custom CA 传输，以及 registry/signature/key/SBOM 的 pinned offline
+回放核心**；它不把 loopback 旅程外推成企业外网部署、远端 Git source-package cache、干净外部宿主或长期故障矩阵。
+
+### 本轮关闭的 registry 网络与离线核心
+
+- **registry 缓存从可变 latest 文件升级为不可变 authority。** registry 响应设 4 MiB 硬上限和严格 UTF-8/JSON 校验，按完整 URL
+  hash 与文档 SHA-256 写入单链接、同目录原子发布的不可变条目；读取重新计算 digest 并限制候选数量。显式 `--offline` 在任何
+  cache 检查前都不会构造 transport，同一 URL 存在多个有效历史文档时拒绝猜测，要求 repeatable `--registry-digest
+<url=sha256>` 精确 pin。401/403、malformed response 和 digest mismatch 不再被历史 cache 静默掩盖，只有 transport/timeout/5xx
+  可走隐式 verified-cache fallback。
+- **六个 registry 入口共享显式网络语义。** `browse`、`catalog`、`select`、`impact`、`add` 与 `upgrade` 均支持 offline/pin、
+  `--proxy`、`--pac-file` 和 `--ca-file`；专用环境变量为 `CC_PLUGIN_REGISTRY_PROXY`、`CC_PLUGIN_REGISTRY_PAC_FILE` 与
+  `CC_PLUGIN_REGISTRY_CA_FILE`。ambient `HTTP_PROXY/HTTPS_PROXY` 不会在未审阅时改变 Marketplace authority。注册表文档 digest、
+  去凭据后的 proxy origin、PAC digest 与 CA digest 进入 catalog digest 和最终 provenance；proxy userinfo 只转换为内存中的
+  authorization header，不会写入 authority。
+- **PAC 是有界且可终止的输入。** PAC 只从本地单链接普通文件读取，限制 256 KiB、严格 UTF-8 并要求 `FindProxyForURL`；脚本由
+  QuickJS 在 resource-limited worker 中运行，默认 2 秒硬超时，worker error/exit/死循环均 fail closed。仅接受按顺序解析的
+  `PROXY`、`HTTP`、`HTTPS` 或 `DIRECT` route；显式 proxy 与 PAC 互斥。CA bundle 同样要求单链接、非空、1 MiB 上限，并在联网前
+  创建 TLS context；自定义 CA 追加到系统 roots，而不是删除公共 roots。
+- **离线安装不会在解析后偷跑 Git。** registry、detached signature、public key 与 SBOM 都可从 verified immutable cache 回放；
+  `add/upgrade --offline` 还要求 registry entry 指向已存在的本地插件目录且不得带 git ref。远端 Git/归档 source-package cache
+  尚未实现时，命令会在 clone/process 前明确拒绝，因此本节证明的是零网络的本地 seed 旅程，而不是伪称任意远端源已 air-gapped。
+- **真实请求覆盖 TLS、认证、proxy 与断网回放。** loopback HTTPS 私有 registry 使用运行时生成的自签名证书：默认 trust 失败，
+  exact CA file 加载后成功，并在服务端观察到 Bearer token。独立 HTTP proxy 实际承载 registry 请求；PAC route 也实际穿过该
+  proxy。完整 Marketplace 旅程先在线缓存 registry/signature/public-key/SBOM，关闭服务器后用 registry digest pin 在另一 scope
+  完成安装，服务端请求计数保持 0，持久 evidence 的所有远端文档均标为 cache read。
+
+### 仓库内验证与证据边界
+
+- 全部 24 个 `plugin-runtime-*` 文件终态仍为 **428 passed / 3 skipped**；这次完整重跑覆盖第二十四节之后对 managed-policy
+  无配置路径的 fail-closed 修正。
+- 六个 `plugin-marketplace-*` 单测与完整 remote-artifact 集成文件合计 **122 passed / 1 skipped**；新 network 文件为 **5/5**，
+  真实 loopback remote-artifact 文件为 **36/36**。六个核心/命令/安装聚焦文件另取得 **174/174**。
+- command help index 已按新增参数重生成。任务文件 ESLint 为 **0 errors**；原 catalog 的 unused warning 已清理，只保留仓库根
+  `MODULE_TYPELESS_PACKAGE_JSON` 提示。上述本地证据仍不替代 exact-head `CLI CI` 与 `CLI Strict Sandbox` 的 Linux、Windows、
+  macOS 终态矩阵。
+
+### P1-5 仍未关闭的边界
+
+1. **物理断电、平台目录持久化与多主机：** Windows 目录句柄 flush、突然掉电/硬重启、共享/网络文件系统 lease/fencing、
+   文件系统与安全软件差异及长期矩阵仍无正式证据。
+2. **外部 Marketplace 产品化剩余项：** 当前 TLS/auth/proxy/PAC/custom-CA 是仓库内真实 loopback 核心，不是干净外部企业宿主
+   部署证明；远端 Git/归档 source-package 的 air-gapped seed/cache、依赖冲突与供应链故障矩阵、独立 trust distribution/
+   transparency log、key rotation 以及长期网络退化旅程仍未完成。
+
+因此，第二十四节外部 Marketplace 边界中的 **private registry 网络与 pinned registry/artifact offline 仓库内执行核心**由本节
+关闭；P1-5 整项仍为**部分完成**。总计数保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为
+**NO-GO**。本节不关闭外部发布门，也不改变 P2-4 与其他 11 个剩余路线项的状态。
+
+## 二十六、2026-08-18 P1-5 semantic source-package air-gap 与依赖环阻断子门复核（`02:27 +08:00`）
+
+本节继续第二十五节，不回写此前历史快照。候选仍是 `58cbc7a316` 之上的未提交工作树，尚无 exact-head GitHub Actions。
+本节关闭的是仓库内**以 manifest digest + repository-defined payload SBOM 为双锚的远端 Git source-package cache**，以及把
+已投影的 dependency cycle 升级为安装 blocker；它不声称完成外部企业宿主、任意无 payload anchor 的源包缓存或长期供应链演练。
+
+### 本轮关闭的 source-package 与 dependency 子门
+
+- **远端源只有完整 semantic anchor 才可 seed。** 新 `cc-plugin-marketplace-source-cache/v1` 从 registry provenance 读取 exact
+  resolved source/ref、manifest SHA-256 与 `cc-plugin-marketplace-payload-sbom/v1|v2` digest，形成 content-addressed cache key。
+  缺 manifest digest、缺 semantic payload digest、普通 CycloneDX 或非 registry source 均返回 not-cacheable；它们不能只凭本地
+  cache metadata 自证代码完整性。
+- **cache payload 与 installer staged bytes 使用同一排除语义。** 在线 Git materialization 成功通过 manifest/signature、远端 SBOM
+  staged-byte 比较和安装校验后，source cache 才复制排除 `.git`、signature lock 与 provenance 的 payload。条目先在同根隐藏目录
+  写入，authority 文件 durable 后原子 rename 发布；authority 绑定 source/ref、manifest digest、payload schema/digest、fileCount/
+  totalBytes、cache key 与 authority digest。并发已有条目不会覆盖，而是重新读取并验证。
+- **离线读取不信任本地 authority。** exact cache path 由外部 registry/SBOM 锚点直接计算；读取要求目录非 symlink、authority 为有界
+  单链接普通文件，再重新解析 manifest、重算 manifest SHA-256 和完整 semantic payload SBOM，并与规范 authority 逐字段比较。
+  payload/authority tamper、hardlink、错误 manifest、特殊文件或缺失锚点均在 installer staging/clone 前 fail closed；installer 仍会在
+  cache read 后再次复制并执行原有 signature/SBOM/load validation，避免 read-to-copy race 放宽 authority。
+- **真实 Git air-gap 旅程不依赖原始仓库。** 测试创建真实 Git repository，以 `file://` Git source 走实际 clone 和在线 cache seed；
+  随后原始 repository 被 rename、registry 服务器被关闭。另一 scope 使用 pinned registry、signature/public-key/SBOM cache 与 source
+  cache 完成安装，网络请求为 0，result 报告 exact source-cache hit，最终 provenance 保留 offline 与 matched semantic comparison。
+- **依赖环从可见诊断升级为 admission blocker。** catalog 仍发布有界 dependency nodes/edges/cycles；任何位于 cycle 的候选现在新增
+  `DEPENDENCY_CYCLE` 并标记不可安装，图超过 65,536 edges 时 selection 新增 `DEPENDENCY_GRAPH_TRUNCATED`。现有 missing/mismatch、
+  host incompatibility、same-name/version source conflict、unhealthy publisher 和 source-set incomplete blocker 继续保持 fail closed。
+
+### 仓库内验证与证据边界
+
+- 全部 24 个 `plugin-runtime-*` 文件终态仍为 **428 passed / 3 skipped**；source-cache integration 没有放宽 install、transaction、
+  cross-scope 或 managed-policy 既有矩阵。
+- 七个 `plugin-marketplace-*` 单测与完整 remote-artifact 集成文件合计 **126 passed / 1 skipped**；source-cache 文件 **3/3**，
+  完整 remote-artifact 文件 **37/37**。catalog/source-cache/install/remote-artifact 四文件聚焦回归为 **160/160**。
+- 新增依赖只用于正式运行时：`undici` 提供 request-scoped dispatcher，`pac-resolver` 与 QuickJS 提供隔离 PAC；npm lockfile 已绑定
+  解析结果。本地测试与 lockfile 不替代 exact-head `CLI CI`、`CLI Strict Sandbox` 的 Linux/Windows/macOS 全矩阵和 npm 发布门。
+
+### P1-5 仍未关闭的边界
+
+1. **物理断电、平台目录持久化与多主机：** Windows 目录 flush、突然掉电/硬重启、共享/网络文件系统 lease/fencing、文件系统与
+   安全软件差异及长期矩阵仍无正式证据。
+2. **外部 Marketplace 产品化剩余项：** 当前 private registry、proxy/PAC/CA、四层 offline cache 和 dependency blockers 仍是仓库内
+   loopback/本地 Git 证据；干净外部企业 registry/代理/宿主的安装→升级→回滚、代理中断和 cache corruption 长期矩阵，组织 key
+   rotation、独立 trust distribution/transparency log，以及更广泛供应链事故演练仍未完成。无 semantic payload anchor 的远端源包
+   继续明确不支持离线缓存。
+
+因此，第二十五节保留的 **remote Git source-package air-gap 仓库内执行核心与 dependency-cycle admission**由本节关闭；P1-5
+整项仍为**部分完成**。总计数保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。
+本节不关闭外部发布门，也不改变 P2-4 与其他 11 个剩余路线项的状态。
+
+## 二十七、2026-08-18 P1-5 cache corruption 与供应链矩阵合同子门复核（`02:41 +08:00`）
+
+本节继续第二十六节，不回写其历史测试计数。候选仍位于 `58cbc7a316` 之上的未提交工作树，尚无 exact-head GitHub Actions。
+本节关闭的是仓库内**source-package cache 的 hardlink/TOCTOU 检查**与**供应链故障矩阵的版本化输入合同**；它不会把合同、
+loopback 或本地回归外推成三平台企业网络 100 次独立运行的外部 evidence。
+
+### 本轮关闭的 cache 与矩阵合同
+
+- **缓存 payload 不再只依赖最终 digest 发现链接攻击。** 离线 source-package read 在重算 manifest/SBOM 前递归检查 payload：目录不得
+  是 symlink，每个 payload 文件必须是普通单链接文件，特殊文件、symlink 与 hardlink 均 fail closed。authority read 从
+  `lstat → path read` 改为 `lstat → O_NOFOLLOW open → fstat → descriptor read`，校验 inode 视图中的类型、链接数、大小和严格 UTF-8；
+  exact content-addressed 条目缺失会报告 `OFFLINE_SOURCE_CACHE_MISS`，不再泄漏无语义的原始 `ENOENT`。
+- **代理中断只允许回放外部 pin 已绑定的有效缓存。** 真实 loopback proxy 先承载 registry 请求并 seed immutable cache，proxy 关闭后，
+  exact registry document pin 可从重验后的 cache 回放；随后修改同一 cache bytes，下一次相同中断场景会以
+  `verified immutable cache rejected` 和 digest mismatch 失败，不会把网络退化变成未验证 activation。
+- **供应链故障范围成为可机读 required contract。** roadmap fixture manifest 从 `1.4.0` 升至 `1.5.0`，新增
+  `p1-marketplace-supply-chain`：明确 registry 401/403/5xx/timeout、proxy/PAC/CA、跨 origin redirect、signature/key/SBOM、
+  registry/artifact 文档 cache 与 source cache corruption、依赖缺失/错版/环/同版本来源冲突、未批准来源切换、publisher revocation，及
+  activation/rollback crash 等 24 类注入。要求 Windows/Linux/macOS × private-TLS/explicit-proxy/PAC/air-gap 四类 transport，
+  每个 cell 至少 100 次独立运行，并产出 exact commit、network authority、fault record、redacted diagnostics、artifact/source digest、
+  transaction journal、rollback evidence 与 outcome observations。
+- **fixture 与 manifest 不能各写一套成功标准。** verifier 现在要求 fixture 内的 `expectedOutcome` 与 manifest case 的
+  `expectedOutcome` canonical-equal；只修改一侧即 contract failure。该合同明确以 `external-evidence-required` 保持发布门关闭，
+  仓库测试文件只能证明实现覆盖，不能充当外部运行结果。
+
+### 仓库内验证与证据边界
+
+- 七个 `plugin-marketplace-*` 单测与完整 remote-artifact 集成文件为 **127 passed / 1 skipped**；其中 source-cache 为 **4/4**、
+  network 为 **5/5**、完整 remote-artifact 为 **37/37**。source-cache/install/remote-artifact 三文件加固聚焦回归为 **145/145**。
+- roadmap verifier 文件为 **30/30**；network/source-cache/verifier 三文件合计 **39/39**。`--contract-only` 回读 manifest `1.5.0` 为
+  **11 cases / 39 referenced test files**，并明确报告 runtime evidence 与 release readiness 未被评估。
+- 第二十六节记录的 24 个 `plugin-runtime-*` 文件 **428 passed / 3 skipped**仍是最近完整 runtime 结果；本节没有把未重跑的外部
+  exact-head CI 或三平台 1,200 个供应链样本写成成功。任务文件仍须通过 ESLint、help/command manifest freshness 与 diff 检查后才可交付。
+
+### P1-5 仍未关闭的边界
+
+1. **物理断电、平台目录持久化与多主机：** Windows 目录 flush、突然掉电/硬重启、共享/网络文件系统 lease/fencing、文件系统与
+   安全软件差异及长期矩阵仍无正式证据。
+2. **外部供应链矩阵：** `p1-marketplace-supply-chain` 现在精确定义了 12 个 OS/transport cells 和每格 100 次要求，但尚未取得干净
+   外部企业 registry/代理/宿主的 exact-head evidence；组织 key rotation、独立 trust distribution/transparency log 与真实事故演练
+   仍未完成。manifest `1.5.0` 是门的输入，不是门的通过结果。
+
+因此，第二十六节保留的**本地 cache corruption 防线与供应链矩阵输入合同**由本节关闭；P1-5 整项仍为**部分完成**。总计数保持
+**12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节不关闭外部发布门，也不改变
+P2-4 与其他 11 个剩余路线项的状态。
+
+## 二十八、2026-08-18 P2-4 双 IDE 可访问语义与长会话边界合同子门复核（`03:08 +08:00`）
+
+本节开始推进第二十七节仍保留的 P2-4，但不回写此前历史状态。候选仍位于 `58cbc7a316` 之上的未提交工作树，尚无
+exact-head GitHub Actions。本节关闭的是仓库内**双 IDE 聊天与 Sessions Workbench 入口的可访问语义、焦点生命周期、
+2,000-message 有界 transcript 及 128-session 本地规模实现核心**，并把完整真实宿主验收变成版本化合同；它不把
+DOM/Swing 单测外推为 NVDA、VoiceOver、Orca 或
+八小时真实宿主证据。
+
+### 本轮关闭的可访问性与有界 transcript 子门
+
+- **VS Code Webview 不再只依赖视觉结构。** conversation transcript 现在是可聚焦的 `role=log`，status/context/attachment
+  使用有界 live-region 语义，流式 turn 显式投影 `aria-busy`；composer 与 suggestion list 形成
+  `aria-controls/expanded/activedescendant + listbox/option` 关系，消息、错误和工具活动具有稳定 accessible label，所有键盘焦点
+  使用 IDE focus color。conversation tabs 使用 `tablist/tab/aria-selected`，支持 ArrowLeft/ArrowRight/Home/End 移动焦点、
+  Enter/Space 激活和 Delete 关闭；close button 也有逐 tab 名称。
+- **VS Code 长会话裁剪成为可直接回归的纯函数。** `trimOldestLogNodes` 从生成 HTML 中复用，而不是测试另写一套算法；2,000 个
+  message node 输入会精确移除最旧 1,200 个，只保留最新 800 个。生成后的全部 inline scripts 继续由 `vm.Script` 做语法校验，
+  所以函数源码注入不会把真实 Webview 变成只在源码层看似有效。
+- **单条超大 diff/log 不再绕过 transcript 总量边界。** VS Code streaming answer、thinking、plain command/log 与非流式 final answer
+  共用 200,000 字符 head/tail accumulator；JetBrains active assistant run 与普通 append 采用同一上限。两端都保留开头和最新结尾、
+  不保留被省略的中段，并在正文中显示 `N characters omitted from oversized transcript entry`，因此裁剪不是静默的。纯逻辑以
+  64 MiB ASCII 输入验证完整逻辑计数与有界驻留，JetBrains 另以 16 MiB 分块 assistant stream 验证 finalize 前后均不超过上限。
+- **Sessions Workbench 的 128-session 合同不再超过实现上限。** VS Code 与 JetBrains 的 canonical projection 请求均改为有界
+  256 条；VS Code 以 128 行真实 HTML 回归表格渲染、筛选、caption/column scope、逐操作 accessible label、region/loading
+  `aria-busy` 与可播报计数，JetBrains 以 128 行纯模型回归保留与筛选，并为 root、search、status、session/delivery controls 和
+  动态 delivery action 设置稳定 AccessibleContext 名称。该回归只证明输入不会先被 100/50 条旧默认值截断，不声明 128 条
+  真实宿主延迟或资源 SLO 已通过。
+- **JetBrains Swing 暴露稳定 AccessibleContext。** transcript、composer、send/stop、LLM、context status、approval/question
+  card region、conversation root 与 Sessions Workbench controls 均提供可读名称或说明；screen reader 不再只能猜测匿名
+  `JTextPane/JTextArea/JPanel`。真实
+  `ChatTranscript` 追加 2,000 条固定大小消息后保持在 `TranscriptCap.DEFAULT_MAX_CHARS=200,000` 内，最旧内容被移除且最新
+  message 仍存在。
+- **Desktop 共用焦点工具补齐销毁与恢复边界。** focus history 上限为 32，恢复时跳过已 detach 节点；focus trap 释放后回到仍连接的
+  opener，hidden/inert/disabled/negative-tabindex 元素不会进入顺序。document keyboard listener、延迟 announcer timer 与
+  `DOMContentLoaded` listener 均在 destroy 时移除，singleton 被销毁后会安全重建；document 自身作为 key target 不再触发
+  `tagName` 运行时异常。该项是 Desktop shell 的仓库内补强，不代替双 IDE 真实宿主证据。
+- **P2-4 退出条件成为 external-evidence-required 合同。** roadmap manifest 从 `1.5.0` 升至 `1.6.0`，新增
+  `p2-accessibility-performance`（fixture SHA-256
+  `d8f5045f41e34086b75f8ed09802723be86eeb2ee6105e79e64e751cb1cbad4d`）。合同要求 VS Code/JetBrains ×
+  Windows/Linux/macOS × keyboard-only/screen-reader/long-session-scale 共 18 个 cell；输入固定为每会话 2,000 messages、
+  16 MiB diff、64 MiB log、128 sessions 与 28,800 秒连续运行，并要求 keyboard/action、accessibility tree、screen-reader、
+  focus、P50/P95/P99、RSS/heap、FD/handle 与 orphan-process 证据。Windows/macOS/Linux 分别声明 NVDA、VoiceOver、Orca，
+  manifest/fixture 的 expected outcome 仍须 canonical-equal。
+
+### 仓库内验证与证据边界
+
+- Desktop accessibility 定向为 **12/12**，完整 `vue-tsc --noEmit` 与该目录 ESLint 均通过。
+- VS Code `host-dom-relay` 聚焦文件为 **10/10**，与 `sessions-view-delivery` 合并聚焦为 **16/16**；完整 `test:unit` 为
+  **101/101**，其中包含生成 HTML 脚本语法、固定 DOM relay journey、ARIA/键盘合同、2,000→800 node 裁剪、64 MiB 单条输入和 Workbench
+  region/loading 语义。CLI 侧 Workbench 纯逻辑文件为 **33/33**，包含 256 条默认请求与 128 行 HTML render/filter 回归。
+- JetBrains 完整 JUnit 为 **744 passed / 3 skipped**（747 tests、0 failures、0 errors）；`SessionsWorkbenchTest` 聚焦为
+  **16/16**，`TranscriptCapTest` 为 **9/9**，`ChatTranscriptTest` 为 **5/5**，且 `compileJava/compileKotlin` 在本机 JetBrains
+  Runtime 21 下通过。
+- roadmap verifier 与 journey evidence 两文件为 **37/37**；`--contract-only` 回读 manifest `1.6.0` 为
+  **12 cases / 46 referenced test files**，并明确报告 runtime evidence 与 release readiness 未被评估。任务 JS/TS 文件 ESLint
+  为 0 errors；仓库根仍只有既有 `MODULE_TYPELESS_PACKAGE_JSON` 提示。
+
+### P2-4 仍未关闭的边界
+
+1. **真实 assistive technology 与键盘全路径：** 尚未在 stock/minimum VS Code 与 JetBrains 的 Windows NVDA、macOS VoiceOver、
+   Linux Orca 上完成 chat、approval、question、plan、diff、Workbench 和恢复后的完整语音/焦点旅程；仓库 ARIA/AccessibleContext
+   断言不能替代用户实际听到的顺序、重复率与可操作性。
+2. **性能与长期宿主：** 2,000-message 裁剪、16/64 MiB transcript-entry accumulator 与 128-session render/filter 只证明聊天视图和
+   Workbench 的本地有界实现；它们不等价于真实 diff editor/log artifact surface，也不证明这些输入的 P50/P95/P99、RSS/heap、
+   FD/handle、orphan 或八小时稳定性。18-cell 合同尚无 exact-head 外部 artifact，任何缺失 measurement 必须 fail closed，不能用
+   本地单测补齐。
+
+因此，P2-4 的**仓库内双 IDE accessibility semantics、focus lifecycle、transcript/oversized-entry bound、128-session Workbench
+基线，以及外部验收输入合同**由本节关闭；
+P2-4 整项仍为**部分完成**。总计数保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为
+**NO-GO**。本节也不改变 P1-5、Q0、Q3、Q4a/Q4b 或其他外部发布门的状态。
+
+## 二十九、2026-08-18 Q3 生产交付 live journey 退出合同子门复核（`03:35 +08:00`）
+
+本节继续推进第十八节保留的 Q3 外部交付门，但不把已经存在的 production adapter/runner 仓库实现或其单元测试重写成真实公网
+交付成功。候选仍位于 `58cbc7a316` 之上的未提交工作树，尚无 exact-head GitHub Actions，也没有在本轮调用 GitHub provider、创建
+PR、合并分支或写入外部归档。本节关闭的是**把唯一可接受的生产旅程、仓库保护策略、故障注入和不可变证据输入固化为版本化、
+fail-closed 的 required contract**；Q3 整项仍须由具备相应仓库与归档权限的执行方产生外部证据。
+
+### 本轮关闭的 Q3 退出合同子门
+
+- **生产入口必须执行完整序列，而不是只证明 provider 可构造。** 新增 `q3-production-delivery-live` fixture，固定入口为
+  `cc artifacts delivery-run`、provider 为 `github-production`，要求顺序为
+  `run_gates → run_preview → run_review → apply_fix → run_gates → run_preview → run_review → create_pr → refresh_ci → publish_evidence → merge → archive`。
+  fix 之后的 gates/preview/review 是独立必需阶段，不能以修复前结果复用或省略；所有外部 effect 仍须由 coordinator revision 与
+  exact head 共同约束。
+- **受保护合并条件成为合同输入。** repository policy 明确要求 branch protection、至少一名 approving review、admin enforcement、
+  signed commit 或等价 ruleset，以及精确 required-check 集。结果合同要求 unprotected merge、缺 required review、缺 required check、
+  moved-head mismatch 与 effect replay 均为 0，避免“PR/CI 存在”被误当成“受控交付完成”。
+- **成功响应丢失与外部漂移必须可重放但不可重复执行。** 故障矩阵固定注入 provider 成功但 settlement 前崩溃、settlement response
+  丢失、stale state revision、remote head 移动、重复 required check、缺 review、evidence bytes 篡改和 archive readback mismatch。
+  live evidence 必须能证明 effect ledger 没有重复副作用，并保留 delivery state revisions、gate/preview/review、fix diff digest、PR/CI、
+  merge 与 archive 的完整链路。
+- **archive 必须是外部不可变/WORM authority，而不是本地自述。** 合同要求独立或公开回读、逐字节 digest 重验、exact-commit 绑定、
+  redacted diagnostics 与 outcome observations；缺任一 measurement、回读不一致或 credential 泄漏都不得把场景标记为通过。
+- **roadmap 合同升级到 `1.7.0`。** fixture SHA-256 为
+  `90281a31545d059c72e2a45728bd2af885c5f99d6d36b64440703b9ad911940e`；manifest 将该场景标为
+  `P0 / required / external-evidence-required`。fixture 与 manifest 的 `expectedOutcome` 继续由 verifier 做 canonical-equal 校验，
+  所以修改单边成功标准会直接失败。
+
+### 仓库内验证与证据边界
+
+- `delivery-coordinator`、`delivery-production-adapter`、`delivery-production-runner` 与 `delivery-production-command` 四个聚焦文件为
+  **49/49**。这些测试证明仓库内生产接线、revision-bound settlement 与 fail-closed 行为未被新合同破坏，不证明本次发生了真实外部 effect。
+- roadmap verifier 与 journey evidence 两文件为 **37/37**；`--contract-only` 回读 manifest `1.7.0` 为
+  **13 cases / 50 referenced test files**，并继续明确报告 runtime evidence 与 release readiness 未被评估。
+- 本轮未读取或使用生产凭据，未变更 GitHub ruleset/branch protection，未创建 PR，未执行 merge，也未写入 WORM 归档。因此仓库内
+  49 项测试和合同回读都只能作为执行前门，不能充当 `q3-production-delivery-live` 的成功运行记录。
+
+### Q3 仍未关闭的边界
+
+1. **exact-head 真实生产执行：** 尚需在同一发布 commit 上由 `cc artifacts delivery-run` 调用真实 GitHub provider，完成上述 12 阶段
+   序列及 fix-rerun，并把 PR head、required checks、review、merge commit 与全部 evidence digest 绑定到同一 authority。
+2. **真实仓库保护与独立归档：** 执行仓库必须实际启用合同声明的 review、admin enforcement、signature/ruleset 和精确 checks；最终
+   evidence 必须写入外部不可变/WORM 存储并由独立读者逐字节回读。现有 adapter 单测、人工 PR、普通 artifact 或本地文件均不能替代。
+
+因此，Q3 的**真实生产旅程退出输入、失败注入、仓库策略与 WORM 回读合同**由本节关闭；Q3 整项仍为**部分完成 / live journey
+延后**。总计数保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变
+S0-1～S0-3、Q0、Q4a/Q4b、P1-1～P1-5 或 P2-4 的外部发布状态。
+
+## 三十、2026-08-18 P1-1 模型草案与人工摘要确认子门复核（`03:51 +08:00`）
+
+本节开始推进第二十九节仍保留的 P1-1，但不把“模型能返回 JSON”外推为 workflow 已获执行 authority，也不改变 manifest 中
+`durablePauseResume=false`、`exactlyOnceAfterResume=false`、`needsInputBetweenStages=false` 的真实声明。候选仍位于
+`58cbc7a316` 之上的未提交工作树，尚无 exact-head GitHub Actions；本节关闭的是仓库内**自然语言请求→不可执行草案→人工核对精确
+digest→带审阅 lineage 的版本化定义**子门，不关闭运行中控制、崩溃恢复、双 IDE 或 plugin 分发。
+
+### 本轮关闭的生成与审阅 authority
+
+- **模型输出默认没有写入或执行权限。** `cc cowork workflow draft <prompt>` 调用显式 provider/model 后只向 stdout 输出
+  `cc-dynamic-workflow-draft/v1`；草案状态固定为 `pending-review`，包含 prompt digest 而不保留原 prompt，且该命令不创建
+  `.chainlesschain/cowork/workflows`。模型只能返回一个裸 JSON object 或一个精确 JSON fence；前后 prose、超限响应、无效 JSON、
+  secret-shaped 内容及模型自行伪造的 generation/review authority 均 fail closed。
+- **草案必须先满足可审阅的完整治理合同。** 生成定义继续复用现有 `createDynamicWorkflowManifest` 与版本化 definition digest；声明的
+  capability 必须与实际 DAG/loop/retry/parallel 计划精确一致，execution location、permission、sandbox、data boundary、credential
+  reference、token/USD/time estimates 与 budget 均不得缺失。未知运行时 fan-out、超过 64 task 上限、parallel/token/USD/time 预算不足
+  会在人工审阅前被拒绝，不能靠 reviewer 按钮绕过 preflight 基线。
+- **人工接受绑定读到的 exact draft bytes。** `cc cowork workflow review <file>` 只读取有界、普通、单硬链接文件，并以
+  `lstat → O_NOFOLLOW open → fstat → descriptor read → fstat` 固定文件身份。reviewer 必须显式提供
+  `--expected-draft-digest` 以及且仅有一个 `--accept/--reject`；摘要漂移、hardlink、读取竞态、secret-shaped reason 或同时/均未给出
+  decision 均不落盘。
+- **只有 accepted 定义进入现有不可变版本仓库。** 接受操作把 generation schema、prompt digest、provider/model、generatedAt、
+  source definition digest、draft digest、reviewer、reason 与 reviewedAt 写入最终 definition；随后复用 `saveWorkflow` 的 current record 与
+  content-addressed version，并立即回读最终 definition digest。拒绝记录返回 `definition=null` 且 `persisted=false`，不会产生可执行版本。
+  这是一条本地人工审阅 authority，不冒充组织签名、Marketplace publisher 或真实宿主 attestation。
+- **P1-1 完整退出条件进入 machine-readable contract。** roadmap manifest 从 `1.7.0` 升至 `1.8.0`，新增
+  `p1-dynamic-workflow`（fixture SHA-256
+  `df377b8b287343bf3259973e4ab905610c0232db2e6ae994b3cb905eafd98e9f`）。合同固定生成/拒绝/接受/执行/pause/resume/stop/restart/replay
+  旅程、15 类故障注入、64-task 上限、token/time/cost/checkpoint/artifact measurement，以及 CLI/VS Code/JetBrains × 三 OS ×
+  Local/WSL/SSH/Container/Cloud 矩阵；每个 cell 至少 100 次。该 case 保持 `external-evidence-required`，合同本身不是通过结果。
+
+### 仓库内验证与证据边界
+
+- 新增 draft/review 纯逻辑文件为 **7/7**，Commander 集成为 **4/4**，合计 **11/11**；覆盖无落盘生成、严格 JSON、secret/review
+  authority 拒绝、治理与预算、定义/投影/digest 漂移、exact human acceptance、拒绝不保存、hardlink 拒绝、accepted store/readback。
+- Dynamic Workflow draft、facade、Cowork DAG、WebSocket、run admission 与两份 command integration 共六个文件为 **189/189**；既有
+  runtime claims 仍断言三个未实现能力为 `false`。lazy-dispatch/help index 为 **22/22**，175 个顶层命令 help index freshness 通过。
+- roadmap verifier 与 journey evidence 两文件为 **37/37**；`--contract-only` 回读 manifest `1.8.0` 为
+  **14 cases / 56 referenced test files**，并继续明确报告 runtime evidence 与 release readiness 未被评估。
+
+### P1-1 仍未关闭的边界
+
+1. **durable runtime control 与阶段最多一次：** 当前 Cowork executor 仍没有可恢复的 pause/resume/stop/restart 状态机，也没有 provider
+   effect 成功但 settlement 前崩溃时的 reconcile authority。不能把 accepted definition、best-effort history 或 scheduler 的其他
+   adapter 能力外推为 workflow stage exactly-once；阶段间一般 `needs_input` 仍明确不支持。
+2. **真实宿主、lineage 与分发：** 尚未取得双 IDE phase/agent/token/time/budget/control UI、checkpoint/artifact/side-effect lineage、
+   Local/WSL/SSH/Container/Cloud 真实执行、100 次每格重放以及 plugin/marketplace 安装升级的 exact-head 外部证据。本轮 provider 路由
+   已接到 CLI，但自动测试使用注入 provider，不能充当真实模型质量或长期稳定性证据。
+
+因此，P1-1 的**模型生成不可直接执行、严格治理草案、人工 exact-digest 审阅与版本化保存 lineage**由本节关闭；P1-1 整项仍为
+**部分完成**。总计数保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变
+S0-1～S0-3、Q0、Q3、Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
+
+## 三十一、2026-08-18 P1-1 串行 durable runtime 与 outcome-unknown reconcile 子门复核（`04:04 +08:00`）
+
+本节继续第三十节，但不回写其当时尚未实现 durable control 的快照。候选仍位于 `58cbc7a316` 之上的未提交工作树，尚无
+exact-head GitHub Actions。本节关闭的是仓库内**串行 workflow effect 的 request-before-provider、settlement 持久化、安全点
+pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它刻意把 `maxParallel` 固定为 1，不把串行语义外推为并发阶段、
+真实 provider 幂等或完整 P1-1。
+
+### 本轮关闭的 durable runtime 子门
+
+- **每个物理 task call 在 provider 前先取得持久 effect identity。** `runStepWithRetry` 现在向 runner 传递稳定的
+  `stepId + iteration + attempt` context；durable runtime 将其与无 signal 的 canonical payload、run id 共同摘要，先在跨进程严格锁内
+  写入 `pending` effect、fsync 临时文件、原子 rename，并在 POSIX 上 fsync 父目录，随后才调用 task provider。provider 同时收到
+  `workflowEffectId`，可把同一 identity 继续传给具有原生幂等能力的外部服务。当前 durable 路径还会在创建 state 前拒绝带 step retry
+  或 timeout 的 definition，避免一个超时但随后成功 settlement 的 attempt 被现有 retry 语义再次调用 provider。
+- **outcome unknown 永不自动重放。** provider 抛错、返回后进程崩溃、settlement 写入失败或下一进程发现 pending effect 时，run 进入
+  `blocked` 并返回 `reconciliation-required`；普通 resume 会因 pending effect fail closed。operator 必须在 exact runtime revision 上提供
+  有界、secret-free、普通单链 result 文件完成 reconcile，之后重跑从已 settlement 的结果回放，provider 不会再次收到该 step/iteration/
+  attempt。没有外部结果的场景不会被系统猜测成成功或安全重试。
+- **pause/resume/stop 只在无新 effect 的边界生效。** 每次新 provider request 前重新读取控制状态；运行中 pause 先记
+  `pause_requested`，当前 provider 结算后在下一安全点进入 `paused`。resume 需要 exact revision，且必须先清空 pending reconcile；随后
+  从头确定性重建 DAG，但所有 settled effect 直接回放。stop 为终态，不允许 resume；当前已发生 effect 的 settlement evidence 仍保留，
+  不会因 stop 被抹除或伪装成 rollback。
+- **状态本身具有单写者、摘要链与读取身份检查。** 每个 run 使用独立 state file、严格 owner lock、revision CAS、state digest 与逐事件
+  previous-digest lineage；读取采用 `lstat → O_NOFOLLOW open → fstat → descriptor read → fstat`，拒绝 symlink、hardlink、超限、
+  路径/handle identity 漂移、JSON corruption、event/effect/revision/state digest 篡改。状态最多 64 effects 和 512 lineage events，
+  不允许无界恢复元数据。
+- **生成草案仍不能绕过第三十节人工门。** durable runtime 发现 definition 含 generation/review metadata 时，必须同时看到受支持 generation
+  schema 与 `decision=accepted` 的 review authority、draft/source digest 和 reviewer；pending model draft 在创建 state 或调用 provider 前
+  被拒绝。手写 versioned definition 继续由既有 admission/preflight authority 进入，不被强迫伪造“模型生成”记录。
+- **真实 CLI 入口已接线但保持显式 opt-in。** `cc cowork workflow run ... --durable-run-id <id>` 使用同一双重 definition/location
+  authority 核验，并强制 `maxParallel=1`；新增 `runtime-status|pause|resume|stop|reconcile`，所有 mutation 都要求 status 中显示的 exact
+  revision。resume 只把 run 授权回 `ready`，随后仍须重新执行 `workflow run`，从而再次核验当前 definition 与 session-start authority。
+
+### 仓库内验证与证据边界
+
+- durable runtime 纯逻辑/真实文件测试为 **8/8**，Commander 生产路由为 **4/4**，合计 **12/12**；覆盖完整两阶段完成、provider-success
+  后 settlement 前崩溃、pending 禁止 resume、人工 reconcile 后首阶段不重放、安全点 pause/resume、终态 stop、stale revision、secret
+  reconcile 拒绝、pending generated definition 拒绝、accepted definition 执行、state tamper 与 hardlink 拒绝。
+- draft/review、durable runtime、facade、Cowork DAG、WebSocket、run admission 及两组 command integration 共八个文件为
+  **201/201**。lazy dispatch/help index 与 roadmap verifier/journey 合并回归为 **59/59**，其中 help/lazy 为 **22/22**、roadmap 两文件仍为
+  **37/37**；175 个顶层命令 help index freshness 通过。
+- manifest `1.8.0` 的 `p1-dynamic-workflow` case 已引用两份新增 runtime 测试；`--contract-only` 现回读
+  **14 cases / 58 referenced test files**，并继续明确 runtime evidence 与 release readiness 未被评估。任务文件 ESLint 为 0 errors，
+  仅保留 `cowork.js` 既有 `DEFAULT_PERSPECTIVES` unused warning 与仓库根既有 module-type 提示。
+
+### P1-1 仍未关闭的边界
+
+1. **并发 effects、retry/timeout 与外部 provider 幂等：** 当前 durable 路径明确拒绝 `maxParallel>1` 及带 per-step retry/timeout 的
+   definition；尚未为同批并发 effects 建立多 pending 原子快照、cancel/settle barrier 与恢复排序，也未把 late timeout settlement 与
+   可安全重试的未应用 attempt 分开。`workflowEffectId` 已交给 provider，但真实 LLM/tool/external service 是否持久消费该 idempotency key、
+   operator reconcile 是否可由独立 provider receipt 自动证明，仍需生产 adapter 与故障矩阵；人工 result 不能冒充第三方证明。
+2. **完整控制与 lineage 产品面：** 尚未实现运行中强制中断当前不可取消 provider、阶段间一般 `needs_input`、restart policy、token/time/cost
+   实际 settlement、checkpoint/artifact/side-effect ledger 聚合、双 IDE phase/agent/control UI 及 plugin/marketplace 分发。Local/WSL/SSH/
+   Container/Cloud × 三 OS × 双 IDE 的每格 100 次 exact-head 外部合同也尚无证据。
+
+因此，P1-1 的**串行 durable request/settlement、safe-point control、outcome-unknown 禁止重放、显式 reconcile 与 CLI authority**由本节
+关闭；P1-1 整项仍为**部分完成**，manifest 中三个完整能力声明仍保持 `false`。总计数保持
+**12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
+Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
+
+## 三十三、2026-08-18 P1-2 固定命令目标 attestation 与预置 session resume 子门复核（`04:33 +08:00`）
+
+本节开始推进第三十二节仍保留的 P1-2，但不把 transport mock 外推为真实 WSL/SSH/Container 宿主已运行，也不把“目标已有 session
+副本”改写成 launcher 已完成副本传输。候选仍位于 `58cbc7a316` 之上的未提交工作树，尚无 exact-head GitHub Actions。本节关闭的是
+仓库内**source handoff authority → secret-free target profile → 固定目标探针 → stable target facts → exact canonical session replica →
+交互式 resume**的串联核心；Cloud、复制、重连和返回路径仍在外部边界。
+
+### 本轮关闭的 target launch/resume 子门
+
+- **target profile 是严格 authority，不是任意 shell 配置。** 新 `cc-execution-location-profile/v1` 只接受 exact schema，绑定 profile id、
+  target/evidence id、固定 CLI 路径、cwd、transport、预期 platform/arch/CLI version/Git commit/tools 以及可选 session-store authority；profile
+  必须是有界、普通、单硬链接、严格 UTF-8 JSON，并经 `lstat → O_NOFOLLOW open → fstat → descriptor read → fstat` 读取。未知字段、
+  secret-shaped 内容、路径/handle 漂移、hardlink 或 profile digest 漂移均 fail closed。
+- **launcher 只允许固定 ChainlessChain argv。** WSL 使用 `wsl.exe --distribution ... --cd ... --exec <cli>`，Container 使用
+  `docker exec --workdir ... <container> <cli>`，SSH 仅拼装经单字段验证和 POSIX quoting 的 `session location current/show` 与
+  `session resume`；所有本地 process 调用均 `shell=false`。profile 不能注入任意额外 CLI 参数或用以 `-` 开头的 target/options。
+- **SSH 不复用旧 backend 的 host-key 绕过。** 新路径强制 `BatchMode=yes`、`StrictHostKeyChecking=yes`、零密码提示及显式
+  `UserKnownHostsFile`。launcher 先以安全 descriptor 读取并核验 profile 声明的 known-hosts SHA-256，再把读到的 exact bytes fsync 到
+  私有临时 authority 文件，让 OpenSSH 使用该文件，并在同步调用结束后删除；因此 profile 校验后替换原 known-hosts 路径不能改变本次
+  host identity。identity file 只作为路径引用，credential 是否可用仍明确未 attested。
+- **目标观测同时绑定位置、代码和源码事实。** `session location current --json` 的 binding 新增 CLI version；target attestation 要求
+  observed location、cwd、Git commit、platform、arch、CLI version 与 required tools 全部匹配 profile 和 handoff，并输出
+  `cc-execution-location-target-attestation/v1`。带时间的 attestation digest 保留每次探针身份；另一个排除 `observedAt` 的 stable
+  `targetFactsDigest` 供人接受后在 resume 前重新探针比较，既不会因正常时间变化永远失配，也不能容忍目标事实漂移。
+- **resume 必须先证明目标已有 exact canonical session。** `session location resume` 要求 accepted stable facts digest，再在目标调用
+  `session location show <id> --json`；返回的 `sessionId + headHash + eventCount` 必须同时与 profile session-store authority 和本次 source
+  handoff authority 精确一致，随后才以固定 argv 启动交互式 `session resume <id>`。返回 receipt 明确标出 `target-process-lifetime`、
+  launcher 未执行 session-store transfer、disconnect/reconnect 尚不 durable，不把同步进程退出冒充后台连续性。
+- **catalog 与命令面同步。** WSL 不再错误标为 `not-implemented`，而与 SSH/Container 一样标为 `requires-configuration`；CLI 新增
+  `session location attest|resume`，README、command manifest、help index 与四种 shell completion 已重生并通过 freshness check。
+
+### 仓库内验证与证据边界
+
+- target launcher、location contract、session projection 与 Commander route 四文件为 **20/20**；覆盖固定 Docker/WSL/SSH argv、时间变化下
+  stable facts、严格 known-hosts 物化/清理与 pin drift、location/cwd/commit/version/tool drift、stale facts、缺失/错版 canonical session、
+  secret/schema/hardlink profile 拒绝以及生产命令参数转发。
+- `node ... session location current --json` 在当前 Windows 工作树真实回读 `location=local`、`platform=win32`、`arch=x64`、CLI
+  `0.165.1`、Node `v22.22.2` 与 exact Git commit `58cbc7a3163984765ad4a6db8fdd8f57c50af34b`；这只证明本地 current probe，不是远端
+  WSL/SSH/Container 成功证据。本轮没有连接任何真实远端宿主，也没有执行真实 session resume。
+- roadmap manifest 从 `1.8.0` 升至 `1.9.0`，新增 `p1-execution-location`（fixture SHA-256
+  `0eedba6e0051b2a63ca92447a92846d43099c87c065e96e804bbedbab36ce2ed`）。verifier/journey 仍为 **37/37**；`--contract-only` 回读
+  **15 cases / 62 referenced test files**，并继续明确 runtime evidence 与 release readiness 未被评估。合同要求 CLI/VS Code/JetBrains ×
+  三 OS × WSL/SSH/Container/Cloud 每格 100 次、八小时连续运行与完整故障/返回路径证据；仓库内 20 项测试不替代这些结果。
+
+### P1-2 仍未关闭的边界
+
+1. **传输、生命周期与返回路径：** launcher 只消费预先存在的 canonical session store，不负责安全复制/增量同步、双写 fencing、冲突
+   合并或删除；同步 SSH/WSL/docker exec 退出后没有 detach/reattach、断网重连、sleep/reboot 恢复、orphan 清理或八小时资源轨迹。
+   commit/diff/summary/artifact/evidence 的目标侧生成、回传、摘要复核和 source-side 应用也尚未接入本 receipt。
+2. **Cloud、策略 attestation 与产品入口：** 现有 `cc cloud` bundle/job/reflow 仍未与 session location authority 合并；target network、sandbox、
+   credential availability 仍是 operator handoff facts，不能由 ambient probe 远程证明。双 IDE/Desktop 创建与控制面、真实 WSL/SSH/Container/
+   Cloud、多架构、网络故障和 100-run exact-head 矩阵均未完成。
+
+因此，P1-2 的**固定命令 target attestation、严格 SSH host identity、CLI/Git/host facts 绑定及预置 canonical session resume authority**
+由本节关闭；P1-2 整项仍为**部分完成**。总计数保持
+**12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
+Q4a/Q4b、P1-1、P1-4、P1-5 或 P2-4 的状态。
+
+## 三十四、2026-08-18 P1-2 exact session replica transfer 子门复核（`04:51 +08:00`）
+
+本节继续第三十三节，并明确替代其中“launcher 未执行 session-store transfer”的旧边界；但不把仓库内 pipe/mock 与临时目录测试外推为真实
+WSL/SSH/Container 已完成传输或 resume。候选仍位于 `58cbc7a316` 之上的未提交工作树，没有 exact-head GitHub Actions。本节关闭的是
+**source verified transcript bytes → 固定目标端 receive → exact digest/head/count/structure 校验 → 原子发布与目标本机锚点 → canonical readback → resume**
+子门；增量/双向同步、断线重连、结果返回、Cloud 与外部矩阵仍未关闭。
+
+### 本轮关闭的 replica transfer authority
+
+- **源端只能传输锁内已验证的 canonical bytes。** `session location resume` 在 `replicated` profile 下调用
+  `readVerifiedTranscriptBytes`，因此来源必须先通过完整 hash chain、sidecar physical witness 与独立 machine-local anti-rollback anchor；传输材料再绑定
+  source handoff 的 exact `sessionId + headHash + eventCount` 及原始 transcript bytes SHA-256。`shared` profile 不复制，只保留后续目标权威回读。
+- **目标端只接受固定、有界的 stdin 协议。** launcher 调用固定 `session location receive <id>` argv；Container 仅为该 stdin 路径增加 `docker exec -i`，
+  WSL/SSH 继续使用 `shell=false` 的固定 transport。目标同步读取最多 64 MiB，要求 strict UTF-8 JSONL，并在任何 canonical 写入前校验 byte digest、完整
+  transcript hash chain、结构约束、exact head hash 与 event count；profile 或任意 transport 字段仍不能注入额外命令。
+- **安装只允许空目标或 exact 幂等重试。** 新 `installSessionReplica` 在 session host writer lock 下处理同目录 private pending 文件，先 fsync、验证，再 atomic rename；
+  随后 flush 发布边界、重建 sidecar/activity projection，并创建目标机器自己的 anti-rollback witness。不同 canonical 内容、墓碑、missing-transcript/conflict、
+  hardlink/symlink pending、digest/head/count 漂移均 fail closed，永不覆盖目标已有 authority。进程若在 rename 后、目标锚点前崩溃，重试只会在 exact bytes
+  再验证通过后补齐本机锚点，并返回 `installed=false` 的幂等 receipt。
+- **resume 消费可复核的安装 receipt，而不是相信传输退出码。** `chainlesschain.session-replica-install/v1` receipt 绑定 session、head、event count、
+  transcript digest、是否首次安装及自身 digest；source launcher 校验 exact schema 与 receipt digest，随后仍在目标执行 `session location show --json`，只有目标
+  canonical authority 同 profile 与 handoff 同时一致，并重新读取源 session authority 确认其在传输期间未前进，才启动交互式 `session resume`。最终 resume
+  receipt 记录 source revalidation 与 transfer mode/receipt，但连续性仍诚实限制为 `target-process-lifetime`，且明确列出没有 durable cross-host writer fence。
+- **命令面与机器合同同步。** README 已区分 replicated whole-revision transfer 与 shared store，command manifest、help index 和四种 shell completion 已重生并通过
+  freshness check。roadmap manifest 从 `1.9.0` 升至 `1.9.1`，`p1-execution-location` fixture digest 更新为
+  `9835e353b4faab1e654d7979d9ce3af035be2b8bc3fd72afbbd2f3057d785063`，合同新增 source byte digest、target install receipt、divergent replacement=0、
+  partial publication=0 以及 publish-before-anchor crash journey。
+
+### 仓库内验证与证据边界
+
+- replica 安装、target launcher、location contract、session projection 与 Commander route 五文件为 **26/26**；其中 replica 专项 **4/4** 覆盖 exact 首装、幂等
+  retry、byte/head/count 漂移拒绝、不同目标不覆盖，以及 Windows/POSIX 共用的 atomic publish 后、local anchor 前崩溃恢复。launcher 测试同时证明固定
+  Docker `-i` argv、stdin bytes、receipt digest、目标 canonical readback、源 head advance 阻断和最终交互式 resume 的顺序。
+- session-store、index 与 anti-rollback 三个既有核心文件回归为 **172 passed / 4 skipped**；这覆盖原有 append、projection、fork、repair、索引与本机
+  防回滚路径，证明新增 import boundary 没有把既有 canonical readers/writers 改成未锚定读取。skip 保留其原有平台/环境条件，不计作通过。
+- roadmap verifier/journey 两文件为 **37/37**，lazy-dispatch/help-index 为 **22/22**；`--contract-only` 回读 manifest `1.9.1` 的
+  **15 cases / 63 referenced test files**，并继续明确 runtime evidence 与 release readiness 未被评估。任务文件 ESLint 为 0 errors；仓库根既有 module-type warning
+  仍不属于发布证据。
+- 本轮没有连接真实 WSL、SSH、Container 或 Cloud，没有向远端发送任何 session 内容，也没有执行真实目标端 resume。因此 26 项仓库测试只证明实现与拒绝语义，
+  不证明 transport、credential、网络、宿主资源或真实数据边界已满足发布合同。
+
+### P1-2 仍未关闭的边界
+
+1. **生命周期、同步与返回路径：** 当前只传输一个锁定的 whole revision，并在 launch 前二次读取源 head，但该检查不是跨宿主持久 writer fence；尚无
+   source/target 双写 fencing、增量或双向同步、分歧合并/删除传播、detach/reattach、
+   断网重连、sleep/reboot 恢复、orphan 清理与八小时资源轨迹。目标侧产生的 commit/diff/summary/artifact/evidence 仍未进入 digest-bound 回传、source readback 与应用流程。
+2. **Cloud、策略 attestation 与产品入口：** `cc cloud` bundle/job/reflow 仍未与本 target authority 合并；target network、sandbox 与 credential availability
+   仍未由远端证明。双 IDE/Desktop 控制面、真实 WSL/SSH/Container/Cloud、多架构、网络故障与每格 100 次 exact-head 矩阵均没有外部证据。
+
+因此，P1-2 的**exact whole-revision replica transfer、目标原子安装/本机防回滚锚定、幂等 crash recovery、receipt 与 canonical readback 后 resume**由本节关闭；
+P1-2 整项仍为**部分完成**。总计数保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变
+S0-1～S0-3、Q0、Q3、Q4a/Q4b、P1-1、P1-4、P1-5 或 P2-4 的状态。
+
+## 三十五、2026-08-18 P1-2 canonical location-handoff successor 子门复核（`05:34 +08:00`）
+
+本节继续第三十四节，并明确替代其中“复制后的 transcript 仍保留原始 `session_start` location，尚未追加 canonical location-handoff event”的旧边界。
+候选仍位于 `58cbc7a316` 之上的未提交工作树，没有 exact-head GitHub Actions，也没有真实远端宿主运行证据。本节关闭的是仓库内
+**exact source replica → target ambient re-attestation → predecessor-head CAS → canonical location-handoff successor → exact successor readback → resume**
+子门；它不关闭跨宿主写者围栏、shared-store handoff、重连或返回路径。
+
+### 本轮关闭的 canonical successor authority
+
+- **replicated prepare 以 canonical 事件改变当前执行位置。** launcher 不再只调用裸 `session location receive`，而是调用固定、有界的
+  `session location prepare <id>`，同时传入 source head/count/transcript digest、accepted stable target facts、profile digest、target evidence id 与
+  本次 attestation digest。目标先按原有原子协议安装 exact replica，再以 source head 为 CAS predecessor 追加
+  `execution_location_handoff`；事件把 exact source authority、目标 binding、profile/evidence、stable target facts 与 attestation authority 绑定为一个
+  `handoffId`，目标 head/count 因此成为 source revision 的唯一一事件 successor。
+- **target attestation 不能再靠任意 digest 自证。** source launcher 与 target session store 共享同一个
+  `cc-execution-location-target-attestation/v1` canonical material builder。目标 store 在任何 handoff append 前，用事件携带的 binding、source
+  head/count、profile/evidence 与 exact Git commit 独立重算 stable facts 和 attestation digest；facts drift、任意 attestation digest、schema 漂移或
+  predecessor 不一致均在 canonical 写入前 fail closed。`observedAt` 仍进入 attestation digest，但排除在 stable handoff identity 外，因此正常重试可接受新的
+  观测时间，同时只能返回首次 canonical 事件保存的 attestation authority。
+- **位置投影现在追踪最新 canonical binding。** `getVerifiedSessionExecutionLocationAuthority` 从完整已锚定 transcript 折叠最新
+  `execution_location_handoff`，返回 `verified-session-location-handoff`、binding event hash/count 与完整 handoff projection；后续普通消息不会把位置退回
+  `session_start`。复制目标的 `session location show --json` 必须精确证明 successor head/count、handoff id、source transcript digest 及目标
+  profile/evidence/facts/attestation，launcher 才会继续。
+- **response loss 只允许精确的一事件幂等恢复。** 若 append 已 durable 但响应丢失，重试仅在当前 target head 仍是同一 handoff 的
+  `sourceEventCount + 1` successor 时返回 `replicaInstalled=false`、`handoffAppended=false` 的原 authority receipt；不同 handoff、篡改 target facts、
+  篡改 attestation 或 handoff 后 target session 已继续前进均拒绝，避免同一 source 请求触发第二次交互式 resume。
+- **工作流入口不会丢弃迁移后的权威类型。** Dynamic Workflow facade、Cowork admission validator、Commander 与 WebSocket projection 均显式接受并保留
+  `verified-session-start` 或 `verified-session-location-handoff`；CLI/WS 写入的 run admission 保持 exact authority，而不是把移动后的 session 降回初始位置。
+  source launcher 在 target successor 安装和 readback 后仍再次读取 source authority，只有 source head/count 未前进才启动固定 argv 的交互式 resume。
+- **shared 模式没有被伪装成已完成。** shared store 仍要求原始 `verified-session-start` exact authority，receipt 继续列出
+  `shared-session-location-handoff-event-not-anchored`；replicated 与 shared 的语义不会通过同一个成功标志混淆。
+
+### 仓库内验证与证据边界
+
+- location contract、session projection、target launcher、replica 与 Commander route 五文件为 **32/32**；replica 专项为 **9/9**，新增覆盖 canonical
+  successor、观测时间变化下的幂等 retry、append 后响应丢失、target 前进后拒绝重复 resume、target-facts 篡改与 attestation-digest 篡改。
+- Dynamic Workflow draft/runtime/facade、Cowork DAG/WebSocket/run admission 与两组 command integration 八文件为 **205/205**；其中新增三项分别证明
+  facade、CLI 与 WS admission 保留 `verified-session-location-handoff`。session-store、index 与 anti-rollback 三个核心文件回归无失败，为
+  **170 passed / 6 skipped**；skip 是当前平台条件分支，不计作通过。
+- roadmap verifier/journey 两文件为 **37/37**，lazy dispatch 为 **22/22**；command manifest、help index 与四种 shell completion freshness check 均通过。
+  manifest 为 `1.9.2`，`p1-execution-location` fixture SHA-256 为
+  `7196ce278bf5155a345f8f4ee3f91b77c0197822d70c32f809038be3a0d1e709`；`--contract-only` 回读 **15 cases / 63 referenced test files**，并明确
+  runtime evidence 与 release readiness 未被评估。任务文件 ESLint 为 0 errors；两个既有 unused warning 与仓库根 module-type warning 不计作发布证据。
+- 本轮没有连接真实 WSL、SSH、Container 或 Cloud，没有向远端发送 session 内容，也没有执行真实目标端 resume；上述测试只证明仓库实现、canonical
+  authority 和拒绝语义，不证明 transport、网络、credential、宿主生命周期或真实数据边界已经满足发布合同。
+
+### P1-2 仍未关闭的边界
+
+1. **跨宿主写者围栏与 shared authority：** source 在 target resume 前虽再次校验 head，但仍没有把 source writer generation durable revoke/lease handoff
+   到另一宿主；readback 与交互式 resume 之间也没有分布式 fence。shared store 尚无 canonical location-handoff event，网络文件系统的 lease、并发与故障语义
+   未验证，因此 source/target 双写、重复 continuation 与 split-brain 退出条件尚未关闭。
+2. **同步、生命周期与返回路径：** 仍只有 whole-revision 单向复制，没有增量/双向同步、分歧合并、删除传播、return handoff、detach/reattach、断网重连、
+   sleep/reboot 恢复、orphan 清理、八小时资源轨迹，目标侧 commit/diff/summary/artifact/evidence 也未进入 digest-bound 回传与 source readback/apply。
+3. **Cloud、策略、产品入口与外部矩阵：** `cc cloud` 尚未合并本 authority；target network/sandbox/credential availability 未被远端证明；Desktop、VS Code、
+   JetBrains 控制面与真实 WSL/SSH/Container/Cloud、多架构、网络故障、每格 100 次 exact-head 矩阵仍无关闭证据。
+
+因此，P1-2 的**replicated canonical location-handoff successor、目标 attestation 独立重算、响应丢失幂等恢复、前进后重复 resume 阻断及工作流 authority
+互操作**由本节关闭；P1-2 整项仍为**部分完成**。总计数保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为
+**NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、Q4a/Q4b、P1-1、P1-4、P1-5 或 P2-4 的状态。
+
+## 三十二、2026-08-18 P1-1 settlement observability 与 digest-only lineage 子门复核（`04:18 +08:00`）
+
+本节继续第三十一节，但不把 Cowork 的本地预算估算改名为 provider 真实用量，也不把 task result 中未经外部回读的对象改名为已发布
+artifact 或 checkpoint。候选仍位于 `58cbc7a316` 之上的未提交工作树，尚无 exact-head GitHub Actions。本节关闭的是仓库内
+**settled effect 的可验证身份、结果摘要、结算来源、墙钟耗时与 digest-only artifact/checkpoint 聚合**子门；它不关闭真实 provider
+usage/cost、artifact store readback、checkpoint provider receipt 或嵌套工具副作用账本。
+
+### 本轮关闭的 settlement 与观测投影子门
+
+- **effect 身份不再只是一条不可解释的 NUL 分隔 key。** 每个持久 effect 现在显式保存 `stepId`、`iteration`、`attempt`、
+  `payloadDigest`、`resultDigest` 与 `settlementAuthority`。状态 verifier 会重新计算 key、run-bound effect id 和 settled result digest，校验
+  request/settlement 时间顺序，并要求 pending effect 的 result/digest/authority 全部为空；因此只改结果、把人工 reconcile 伪装成 provider
+  return，或漂移 step/iteration/attempt 都不能作为有效状态回读。
+- **provider 返回与人工 reconcile 在 lineage 中不可混淆。** 正常结算记录 `provider-return`，outcome-unknown 的人工结果记录
+  `operator-reconciled`；对应 lineage event 同时绑定 effect id、result digest 和 settlement authority。`runtime-status --json` 只投影这些
+  已持久化事实，不根据 task status 猜测外部副作用是否真的发生，也不把人工断言冒充第三方 receipt。
+- **观测聚合有明确 authority 和缺口。** 新 `cc-dynamic-workflow-observability/v1` 投影汇总 requested/settled/pending effect、完成/失败 task、
+  provider-return/reconcile 数量以及 request-to-settlement 墙钟时间。`tokenCount` 只标为 `cowork-result-heuristic`，因为当前
+  `SubAgentContext` 使用约四字符一 token 的预算估算；provider reported tokens 和 USD cost 固定为 `null`，不会用定义中的 estimate 或 0
+  冒充实际结算值。
+- **artifact/checkpoint 只保存并展示摘要血缘。** task result 中的 `artifacts[]`/`checkpoints[]` 逐项生成 domain-separated digest，投影最多
+  每 effect 256 条，并给出总数、截断 effect 数及整体 lineage digest；若对象带规范 SHA-256，只把该 content digest 作为 reported field
+  投影，不暴露正文、标题或宿主路径。它的 authority 明确为 `task-result-digest-only`，没有 artifact store/provider 独立回读就保持缺口。
+- **不完整性是机器可读输出，而不是文档脚注。** projection 固定 `complete=false`，并列出 provider token、provider cost、checkpoint
+  readback、artifact-store readback 与 nested-tool side-effect ledger 五类 gap；缺 token estimate 或 lineage 投影截断还会追加具体 gap。
+  人类可读 `runtime-status` 同样显示估算 token、墙钟耗时、artifact/checkpoint 数量和全部 telemetry gap。
+
+### 仓库内验证与证据边界
+
+- durable runtime 纯逻辑/真实文件测试现为 **9/9**，Commander 生产路由为 **4/4**，合计 **13/13**；新增覆盖显式 effect/result
+  digest、provider/reconcile authority、估算 token、digest-only artifact/checkpoint lineage、缺口列表以及投影不泄露 artifact 正文。
+- draft/review、durable runtime、facade、Cowork DAG、WebSocket、run admission 及两组 command integration 共八个文件为
+  **202/202**。本节未改 roadmap manifest 或其引用文件集合；`p1-dynamic-workflow` 仍是 manifest `1.8.0` 中的
+  `external-evidence-required` case，而不是仓库内成功记录。
+
+### P1-1 仍未关闭的边界
+
+1. **真实 usage、cost、checkpoint 与 artifact authority：** 当前 token 是本地启发式预算量，不是 provider usage ledger；USD cost 无实际值。
+   `checkpoints[]` 与 `artifacts[]` 即使由 task 返回，也只有 result-bound digest，尚未与 checkpoint engine、ArtifactStore immutable bytes、
+   provider receipt 或独立读者回读绑定。嵌套 MCP/tool/external-system 调用也没有逐调用汇总到本 effect 投影。
+2. **其余 runtime 与产品面仍开放：** 并发 effect、retry/timeout late settlement、运行中强制取消、阶段间一般 `needs_input`、真实 provider
+   idempotency/receipt、双 IDE phase/agent/control UI、plugin/marketplace 分发，以及 Local/WSL/SSH/Container/Cloud × 三 OS × 双 IDE
+   每格 100 次 exact-head 外部矩阵均尚未关闭。
+
+因此，P1-1 的**result-bound settlement authority、digest-only artifact/checkpoint lineage 与诚实的不完整观测投影**由本节关闭；P1-1
+整项仍为**部分完成**，manifest 中三个完整能力声明仍保持 `false`。总计数保持
+**12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
+Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
+
+## 二十三、2026-08-18 P1-5 legacy provenance 签名迁移子门复核（`01:26 +08:00`）
+
+本节继续第二十二节，不回写此前历史快照。候选仍是 `58cbc7a316` 之上的未提交工作树，尚无 exact-head GitHub Actions。
+本节关闭的是仓库内**缺失 `.plugin-source.json` 的旧安装显式签名迁移**；它不把 migration signer 冒充 Marketplace publisher，
+不覆盖已有 provenance，也不放宽外部 registry、组织 trust root 或物理断电门。
+
+### 本轮关闭的 legacy metadata migration
+
+- **plan 与 apply 分离，签名对象由已安装字节确定。** `plugin provenance-plan` 只接受一个已安装 name/version/scope 和有界
+  source metadata，输出规范化 authority、`signingPayloadBase64` 与 SHA-256。authority 绑定插件身份、scope、规范化安装路径摘要、
+  canonical payload SBOM digest/fileCount/totalBytes、source metadata 和 canonical UTC issuance time；计划后任一 payload、路径、scope
+  或 source 变化都会使 apply 失败。
+- **apply 需要显式人类批准和精确 signer pin。** `plugin provenance-migrate` 要求单链接普通 attestation 文件、`--yes` 和
+  `--expected-signer-sha256`；只接受 Ed25519 SPKI 公钥，并重新计算 fingerprint、验证 canonical authority 的 detached signature。
+  若 managed policy 配置 `trustedPluginKeySha256`，migration signer 还必须属于该集合。无效类型、非规范 base64、错误 key、签名
+  篡改和 signer mismatch 均 fail closed。
+- **迁移只补缺失记录，不改写既有 authority。** plan/apply 发现 `.plugin-source.json` 已存在即拒绝，包括无效或攻击者构造的
+  旧记录；此类情况必须 remove/reinstall 或外部人工裁决。带 component-SBOM 的现有 signature lock 也拒绝原位 backfill，避免新增
+  metadata 破坏其历史文件集承诺。迁移记录明确标为 migration authority，不声称 publisher identity、catalog selection 或远端
+  artifact evidence。
+- **签名记录在每次 strict read 重验。** 新 record 保留完整 signed authority、公钥、签名、authority digest 与 signer
+  fingerprint；读取时重新检查普通文件/单链接/大小上限、manifest identity、安装路径、当前 payload、source metadata、时间格式、
+  Ed25519 签名及 managed trust。删除、hardlink/symlink、payload 漂移、record/source/signature 篡改不会退化为普通 legacy metadata。
+- **写盘复用全局 durable lifecycle。** 新 `provenance-migration` kind 经过 `provenance-prepared`、`provenance-committing`、
+  `provenance-published` 与 finalize/rollback；journal 在写文件前保留 predecessor/intended bytes 与 generation。全局 same-name fence
+  阻断所有 scope runtime/第二写者，owner 死亡后 `plugin recover` 可在 exact CAS 下 finalize 或 rollback，普通 mutation 不偷锁。
+
+### 仓库内验证与证据边界
+
+- 全部 23 个 `plugin-runtime-*` 文件终态为 **425 passed / 3 skipped**；真实 child-process 文件为 **21/21**，新增 provenance
+  commit 前死亡后 finalize、文件发布后 journal 前死亡再 rollback 两个真实进程用例。
+- install 主文件为 **104/104**，覆盖成功 backfill、既有 metadata 拒绝、payload drift、wrong signer、stored signature tamper、
+  component-SBOM 历史锁拒绝与 hardlink authority 拒绝；
+  lifecycle CLI 文件为 **9/9**，覆盖 plan 输出、外部 Ed25519 签名、exact fingerprint 与 `--yes` apply。
+- remote-artifact、capability notice、install audit、artifact readback、impact 与 lifecycle command 六文件为
+  **99 passed / 1 skipped**；完整 loopback remote-artifact 文件仍为 **34/34**。任务文件 ESLint 通过，只有仓库既有的
+  `MODULE_TYPELESS_PACKAGE_JSON` 运行时提示。
+
+### P1-5 仍未关闭的边界
+
+1. **物理断电、平台目录持久化与多主机：** Windows 目录句柄 flush、突然掉电/硬重启、网络或共享文件系统 lease/fencing、
+   文件系统/杀毒软件差异及长期矩阵仍无正式证据；本节只证明同一 OS 用户、本地文件系统与真实进程终止。
+2. **外部 Marketplace 产品化：** 真实 private registry TLS/auth、publisher/组织 trust root、key revocation、代理/PAC/
+   custom CA、air-gapped/offline/cache、依赖冲突、供应链故障及干净外部宿主长期矩阵仍未完成。migration signer 只证明一次
+   受审 backfill，不能替代 publisher 或组织发布 authority。
+
+因此，第二十二节保留的 **legacy metadata migration** 由本节关闭；P1-5 整项仍为**部分完成**。总计数保持
+**12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节不关闭任何外部发布门，
+也不改变 P2-4 与其他 11 个剩余路线项的状态。
+
+## 二十二、2026-08-18 P1-5 非 install 生命周期崩溃恢复子门复核（`01:12 +08:00`）
+
+本节继续第二十一节，不回写此前历史快照。候选仍是 `58cbc7a316` 之上的未提交工作树，尚无 exact-head GitHub Actions；
+因此本节只关闭仓库内的 **enable/disable/version-uninstall/whole-name-uninstall 逐阶段进程崩溃恢复子门**，不把本地
+`fsync`、原子 rename 与真实进程 kill 结果外推为物理断电、多主机共享盘或正式发布证据。
+
+### 本轮关闭的非 install crash protocol
+
+- **enable/disable marker 成为可恢复 authority。** mutation 在触碰 `.disabled` 前先持久化 predecessor 与 intended bytes、
+  file generation 和目标 enabled 状态，再经过 `marker-prepared`、`marker-committing`、`marker-published`、finalize/rollback
+  阶段。marker 必须是单链接、大小有界的普通文件；symlink、hardlink、超限或事务外 generation 变化均 fail closed。
+  原子替换或 durable unlink 后、journal 发布前发生崩溃时，恢复器会根据 exact predecessor/intended 内容收养该窗口，且只允许
+  operator 显式选择 finalize 或 rollback。
+- **版本卸载先隔离 immutable bytes，再发布 fallback。** journal 在创建 `.uninstall-<token>` 前记录被删版本的
+  payload/source/generation、原 active pointer、目标 fallback pointer，以及 disabled marker 的前后状态。版本目录通过同卷 rename
+  隔离；active pointer 和最终版本删除所需的 marker 依次 durable 发布。任何阶段死亡后，rollback 会恢复精确版本、pointer 与
+  marker，finalize 则验证已发布状态后把隔离区退役为 inert cleanup；最终一个 disabled 版本不会留下空 name-dir 或 marker。
+- **整名卸载以名称目录原子隔离划分逻辑删除和物理回收。** 完整 name-dir 的 generation 与规范化 payload tree digest 先写入
+  journal，再把整个目录 rename 到同 scope 根的 `.uninstall-<encoded-name>-<token>`。全局 coordinator 位于目录之外，故 rename
+  后仍持续阻断全部 scope 的运行时与第二写者。rollback 只在隔离树仍与快照一致时原子还原；finalize 进入不可逆清理阶段后不再
+  允许回滚，清理中断可按 journal 重试而不会把低 scope fallback 误报为未经审阅的正常加载。
+- **统一恢复入口按持久 kind 分派。** `plugin transaction` 继续只暴露脱敏 owner/revision/digest；`plugin recover --action
+finalize|rollback` 在 claim 死 owner 后，按 `install`、`enabled-state`、`uninstall-version` 或 `uninstall-name` 解析严格路径和
+  context。普通 mutation 仍不偷取 stale owner；错误 scope/cwd、歧义拓扑、外部 pointer/marker/bytes 变化与 journal tamper 均在
+  磁盘恢复前或下一次 authority publication 前失败。
+
+### 仓库内验证与证据边界
+
+- 按 `packages/cli/vitest.config.js` 运行全部 23 个 `plugin-runtime-*` 文件，终态为 **419 passed / 3 skipped**；其中真实
+  child-process 文件为 **19/19**。新增真实进程用例覆盖 marker commit 前 finalize、marker bytes 发布后 rollback、版本隔离后
+  rollback、fallback pointer 发布窗口与 finalizing 阶段的 finalize，以及整名目录隔离后的 rollback/finalize。
+- install/uninstall 主文件为 **100/100**，覆盖最终 disabled 版本的 marker/name-dir 清理，并继续保持 pointer commit 失败时的
+  同进程精确恢复和双失败 retained recovery 行为。
+- remote-artifact command、add capability notice、install audit、artifact readback、impact 与 lifecycle command 六文件仍为
+  **98 passed / 1 skipped**；完整 loopback remote-artifact 文件仍为 **34/34**。任务文件 ESLint 通过，只有仓库既有的
+  `MODULE_TYPELESS_PACKAGE_JSON` 运行时提示。
+
+### P1-5 仍未关闭的边界
+
+1. **物理断电、平台目录持久化与多主机：** Windows 目录句柄 flush、突然掉电/硬重启、网络或共享文件系统 lease/fencing、
+   文件系统/杀毒软件差异及长期矩阵仍无正式证据；本节只证明同一 OS 用户、本地文件系统与真实进程终止。
+2. **legacy metadata migration：** 缺失或无效 provenance 继续 fail closed；仍无签名、事务化、可审计的旧安装 metadata
+   backfill/migration 与固定历史兼容矩阵。
+3. **外部 Marketplace 产品化：** 真实 private registry TLS/auth、publisher/组织 trust root、key revocation、代理/PAC/
+   custom CA、air-gapped/offline/cache、依赖冲突、供应链故障及干净外部宿主长期矩阵仍未完成。
+
+因此，第二十一节保留的**非 install 生命周期逐阶段 crash protocol**由本节关闭；P1-5 整项仍为**部分完成**。总计数保持
+**12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节不关闭任何外部发布门，
+也不改变 P2-4 与其他 11 个剩余路线项的状态。
+
+## 二十一、2026-08-18 P1-5 跨作用域全局 mutation fence 子门复核（`00:49 +08:00`）
+
+本节继续第二十节，不回写其“同 name/scope”历史快照。候选仍位于 `58cbc7a316` 的未提交工作树之上，尚无 exact-head
+GitHub Actions，因此只能作为仓库内候选证据。本节关闭的是**同一 OS 用户下，同名插件跨 user/project/local 的并行
+mutation fence**；不把单机本地文件系统结果外推为多主机共享盘或物理断电证明。
+
+### 本轮关闭的跨 scope fence
+
+- **同名插件只使用一个全局 coordinator。** owner/journal 从目标 scope 目录移到用户级
+  `plugin-lifecycle-transactions/<encoded-name>` 协调根；install/update/use、enable/disable 与 uninstall 无论目标是 user、
+  project 还是 local，都会竞争同一个 fixed lock。不同 scope 不再能在各自锁下同时读取旧 baseline 并分别提交。
+- **目标 workspace 被 journal context 绑定。** journal 新增规范化 target-name-dir 的 SHA-256 context digest，并继续将 scope、
+  owner、revision 与 transaction state 纳入 canonical journal digest。`plugin transaction/recover` 必须从相同 scope 与项目
+  cwd 调用；错误项目即使同名、同 scope 也在 claim 或任何磁盘恢复前以 context mismatch fail closed。
+- **运行时也服从全局 fence。** discovery 在 user/project/local 每层解析同名插件时都会检查 coordinator fixed lock；审阅事务
+  存续期间不会从另一个 scope 加载旧版或刚发布候选。事务内部的 effective-authority/semantic baseline 检查携带 exact
+  owner，可读取全部物理 scope；外部运行时和第二个 CLI 则统一被阻断。
+- **失败前尚无目标目录不再制造假恢复债。** source/signature 等验证若在 target name-dir 创建前失败，`ENOENT` 被识别为
+  “无 retained bytes”，journal 进入 aborted 并释放全局 owner；Marketplace 集成旅程增加逐测试 coordinator 泄漏断言。
+  CLI Vitest setup 使用每 worker 临时 coordinator 根，真实 child fixture 继承同一根，从而既验证跨进程互斥，也不污染用户目录。
+
+### 仓库内验证与证据边界
+
+- 按 `packages/cli/vitest.config.js` 运行全部 23 个 `plugin-runtime-*` 文件，终态为
+  **411 passed / 3 skipped**。真实 child-process fixture 增加 project owner 阻断 local mutation、阻断跨 scope runtime、
+  wrong-cwd inspection fail closed，以及 owner 死亡后恢复再允许 local 提交；真实进程组为 **12/12**。
+- remote-artifact command、add capability notice、install audit、artifact readback、impact 与 lifecycle command 六文件终态仍为
+  **98 passed / 1 skipped**；其中完整 loopback remote-artifact 文件为 **34/34**，包含成功、预激活拒绝、升级回滚及逐测试
+  全局 owner 泄漏检查。
+- 首轮错误地从仓库根绕过 CLI Vitest setup 的调试运行曾在真实 AppData 留下一条测试 owner；确认 owner/journal/路径后已精确
+  删除该单一 `durable-process` 测试目录。后续所有正式复跑均使用 CLI 自身配置与隔离 coordinator 根。
+
+### P1-5 仍未关闭的边界
+
+1. **物理断电、平台目录持久化与多主机：** Windows 目录句柄 flush、突然掉电/硬重启、网络/共享文件系统的 lease/fencing、
+   文件系统与杀毒软件差异、长期矩阵仍无正式证据；本节全局 coordinator 仅证明同一 OS 用户和本地文件系统。
+2. **非 install 生命周期的逐阶段 crash protocol：** enable/disable/uninstall 已受全局单写者与跨 scope preflight 保护，但尚未
+   拥有与 install/add/upgrade 相同的逐 phase bytes/pointer journal 与 process-kill 恢复矩阵。
+3. **legacy metadata migration：** 缺失或无效 provenance 继续 fail closed；仍无签名、事务化、可审计的旧安装 metadata
+   backfill/migration 与固定历史兼容矩阵。
+4. **外部 Marketplace 产品化：** 真实 private registry TLS/auth、publisher/组织 trust root、key revocation、代理/PAC/
+   custom CA、air-gapped/offline/cache、依赖冲突、供应链故障及干净外部宿主长期矩阵仍未完成。
+
+因此，第二十节保留的**跨 scope 并行 fencing**由本节关闭；P1-5 整项仍为**部分完成**。总计数保持
+**12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节不关闭任何外部发布门，
+也不改变 P2-4 与其他 11 个剩余路线项的状态。

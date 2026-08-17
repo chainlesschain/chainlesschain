@@ -55,4 +55,22 @@ class TranscriptCapTest {
         assertEquals(0, TranscriptCap.removeCount(
                 TranscriptCap.DEFAULT_MAX_CHARS, -1, false, TranscriptCap.DEFAULT_MAX_CHARS));
     }
+
+    @Test
+    void sixtyFourMebibyteEntryKeepsBoundedHeadTailAndVisibleMarker() {
+        TranscriptCap.BoundedEntry entry =
+                new TranscriptCap.BoundedEntry(TranscriptCap.DEFAULT_MAX_CHARS);
+        String mebibyte = "x".repeat(1024 * 1024);
+        entry.append("HEAD");
+        for (int i = 0; i < 64; i++) entry.append(mebibyte);
+        entry.append("TAIL");
+
+        assertTrue(entry.truncated());
+        assertEquals(64L * 1024 * 1024 + 8, entry.totalChars());
+        assertTrue(entry.omittedChars() > 63L * 1024 * 1024);
+        assertTrue(entry.text().length() <= TranscriptCap.DEFAULT_MAX_CHARS);
+        assertTrue(entry.text().startsWith("HEAD"));
+        assertTrue(entry.text().contains("characters omitted"));
+        assertTrue(entry.text().endsWith("TAIL"));
+    }
 }

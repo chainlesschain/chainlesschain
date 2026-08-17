@@ -1,9 +1,11 @@
+import { createHash } from "node:crypto";
 import {
   EXECUTION_LOCATION,
   clampPermissionsForLocation,
   normalizeExecutionLocation,
   redactCredentialRefs,
 } from "./execution-location.js";
+import { canonicalJson } from "./scheduler-kernel/contract.js";
 
 export const EXECUTION_LOCATION_BINDING_SCHEMA =
   "cc-execution-location-binding/v1";
@@ -13,6 +15,8 @@ export const EXECUTION_LOCATION_HANDOFF_FACTS_SCHEMA =
   "cc-execution-location-handoff-facts/v1";
 export const EXECUTION_LOCATION_HANDOFF_SCHEMA =
   "cc-execution-location-handoff/v1";
+export const EXECUTION_LOCATION_TARGET_ATTESTATION_SCHEMA =
+  "cc-execution-location-target-attestation/v1";
 
 const FORBIDDEN_SECRET_KEYS = new Set([
   "apikey",
@@ -53,7 +57,14 @@ function stringValue(value, { max = 256, nullable = true } = {}) {
   if (value == null && nullable) return null;
   if (typeof value !== "string") throw new TypeError("expected a string");
   const output = value.trim();
-  if (!output || output.length > max || /[\u0000-\u001f\u007f]/u.test(output)) {
+  if (
+    !output ||
+    output.length > max ||
+    [...output].some((character) => {
+      const code = character.codePointAt(0);
+      return code < 32 || code === 127;
+    })
+  ) {
     throw new TypeError(
       "string is empty, too long, or contains control characters",
     );
@@ -165,6 +176,7 @@ export function createExecutionLocationBinding(input = {}) {
       platform: safeString(input.runtime?.platform, { max: 64 }),
       arch: safeString(input.runtime?.arch, { max: 64 }),
       nodeVersion: safeString(input.runtime?.nodeVersion, { max: 64 }),
+      cliVersion: safeString(input.runtime?.cliVersion, { max: 64 }),
       tools: Object.freeze(normalizeNames(input.runtime?.tools)),
     }),
     model: Object.freeze({
@@ -204,6 +216,98 @@ export function normalizeExecutionLocationBinding(value) {
   return createExecutionLocationBinding(value);
 }
 
+/** Stable target identity used across separate ambient observations. */
+export function computeExecutionLocationTargetFactsDigest(value) {
+  const binding = normalizeExecutionLocationBinding(value);
+  const stable = { ...binding };
+  delete stable.observedAt;
+  return `sha256:${createHash("sha256")
+    .update("chainlesschain.execution-location.target-facts.v1\0", "utf8")
+    .update(canonicalJson(stable, "executionLocationTargetFacts"), "utf8")
+    .digest("hex")}`;
+}
+
+/** Canonical target attestation shared by the source launcher and target store. */
+export function createExecutionLocationTargetAttestation(input = {}) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    throw new TypeError("execution location target attestation is invalid");
+  }
+  const profileDigest = stringValue(input.profileDigest, {
+    max: 80,
+    nullable: false,
+  }).toLowerCase();
+  const sourceSessionId = stringValue(input.sourceSessionId, {
+    max: 256,
+    nullable: false,
+  });
+  const sourceHeadHash = stringValue(input.sourceHeadHash, {
+    max: 64,
+    nullable: false,
+  }).toLowerCase();
+  const sourceEventCount = Number(input.sourceEventCount);
+  const targetEvidenceId = stringValue(input.targetEvidenceId, {
+    max: 256,
+    nullable: false,
+  });
+  const baseCommit = stringValue(input.baseCommit, {
+    max: 64,
+    nullable: false,
+  }).toLowerCase();
+  const binding = normalizeExecutionLocationBinding(input.binding);
+  if (
+    !/^sha256:[a-f0-9]{64}$/u.test(profileDigest) ||
+    !/^[a-f0-9]{64}$/u.test(sourceHeadHash) ||
+    !Number.isSafeInteger(sourceEventCount) ||
+    sourceEventCount < 1 ||
+    !/^[a-f0-9]{40,64}$/u.test(baseCommit) ||
+    binding.observed !== true ||
+    binding.source.git.commit !== baseCommit
+  ) {
+    throw new TypeError("execution location target attestation is invalid");
+  }
+  const targetFactsDigest = computeExecutionLocationTargetFactsDigest(binding);
+  const material = {
+    schema: EXECUTION_LOCATION_TARGET_ATTESTATION_SCHEMA,
+    profileDigest,
+    handoff: {
+      sourceSessionId,
+      sourceHeadHash,
+      sourceEventCount,
+      targetEvidenceId,
+      baseCommit,
+    },
+    binding,
+    targetFactsDigest,
+    verified: {
+      ambientLocation: true,
+      cwd: true,
+      gitCommit: true,
+      platform: true,
+      arch: true,
+      cliVersion: true,
+      requiredTools: true,
+      networkPolicy: false,
+      sandboxStrength: false,
+      credentialAvailability: false,
+    },
+    gaps: [
+      "target-network-policy-not-remotely-attested",
+      "target-sandbox-strength-not-remotely-attested",
+      "target-credential-availability-not-remotely-attested",
+    ],
+  };
+  return Object.freeze({
+    ...material,
+    attestationDigest: `sha256:${createHash("sha256")
+      .update(
+        "chainlesschain.execution-location.target-attestation.v1\0",
+        "utf8",
+      )
+      .update(canonicalJson(material, "executionLocationTarget"), "utf8")
+      .digest("hex")}`,
+  });
+}
+
 const LOCATION_PROFILES = Object.freeze({
   [EXECUTION_LOCATION.LOCAL]: {
     label: "Local",
@@ -217,17 +321,17 @@ const LOCATION_PROFILES = Object.freeze({
   },
   [EXECUTION_LOCATION.WSL]: {
     label: "WSL",
-    executor: "ambient-only",
-    launch: "not-implemented",
-    resume: "not-implemented",
-    startup: "requires-existing-wsl-session",
+    executor: "wsl-fixed-cli-launcher",
+    launch: "requires-configuration",
+    resume: "requires-configuration",
+    startup: "distro-profile-and-session-replica-required",
     continuity: "wsl-host-dependent",
     cost: "local-resource",
     connectors: ["wsl-files", "wsl-git"],
   },
   [EXECUTION_LOCATION.SSH]: {
     label: "SSH",
-    executor: "ssh-adapter",
+    executor: "strict-ssh-fixed-cli-launcher",
     launch: "requires-configuration",
     resume: "requires-configuration",
     startup: "target-and-auth-required",
@@ -237,7 +341,7 @@ const LOCATION_PROFILES = Object.freeze({
   },
   [EXECUTION_LOCATION.CONTAINER]: {
     label: "Container",
-    executor: "docker-adapter",
+    executor: "docker-fixed-cli-launcher",
     launch: "requires-configuration",
     resume: "requires-configuration",
     startup: "image-and-runtime-required",

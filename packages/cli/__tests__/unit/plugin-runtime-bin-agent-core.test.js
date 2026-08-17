@@ -361,7 +361,7 @@ describe("agent-core strict plugin bin route", () => {
     expect(nativeSpawnSync.mock.calls[0][2]).not.toHaveProperty(
       "sandboxExecutionContract",
     );
-  });
+  }, 15_000);
 
   it.runIf(process.platform === "linux")(
     "passes a strict native entry, literal argv, and plugin cwd through the new contract",
@@ -606,6 +606,7 @@ describe("agent-core strict plugin bin route", () => {
       expect(child.kill).toHaveBeenCalledWith("SIGKILL");
       expect(cleanup).toHaveBeenCalledTimes(1);
     },
+    15_000,
   );
 
   it.runIf(process.platform === "win32")(

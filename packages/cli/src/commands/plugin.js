@@ -4,6 +4,7 @@
  */
 
 import chalk from "chalk";
+import fs from "node:fs";
 import { logger } from "../lib/logger.js";
 import {
   enforcePluginPolicy,
@@ -42,6 +43,71 @@ function normalizeRegistryUrls(value) {
   return value ? [value] : [];
 }
 
+function normalizeRegistryDigestPins(value, registryUrls) {
+  const pins = new Map();
+  const allowed = new Set(registryUrls);
+  for (const raw of Array.isArray(value) ? value : value ? [value] : []) {
+    const separator = String(raw).lastIndexOf("=");
+    const url = separator > 0 ? String(raw).slice(0, separator) : "";
+    const digest = separator > 0 ? String(raw).slice(separator + 1) : "";
+    if (!allowed.has(url)) {
+      throw new Error(
+        `registry digest pin must name an exact requested registry URL: ${url || raw}`,
+      );
+    }
+    if (!/^[a-f0-9]{64}$/.test(digest)) {
+      throw new Error(
+        `registry digest pin for ${url} must be 64 lowercase hexadecimal characters`,
+      );
+    }
+    if (pins.has(url) && pins.get(url) !== digest) {
+      throw new Error(`conflicting registry digest pins for ${url}`);
+    }
+    pins.set(url, digest);
+  }
+  return pins;
+}
+
+function registryNetworkOptions(options = {}) {
+  return {
+    proxyUrl:
+      options.proxy || process.env.CC_PLUGIN_REGISTRY_PROXY || undefined,
+    pacFile:
+      options.pacFile || process.env.CC_PLUGIN_REGISTRY_PAC_FILE || undefined,
+    caFile:
+      options.caFile || process.env.CC_PLUGIN_REGISTRY_CA_FILE || undefined,
+  };
+}
+
+function assertOfflinePluginSourceLocal(source, ref = null) {
+  if (
+    ref ||
+    typeof source !== "string" ||
+    !fs.existsSync(source) ||
+    !fs.lstatSync(source).isDirectory()
+  ) {
+    throw new Error(
+      "offline install without --registry requires an existing local plugin directory; remote Git caching is available only for registry candidates with manifest and semantic payload anchors",
+    );
+  }
+}
+
+function readBoundedPluginJson(file, label) {
+  const stat = fs.lstatSync(file);
+  if (
+    stat.isSymbolicLink() ||
+    !stat.isFile() ||
+    stat.nlink !== 1 ||
+    stat.size <= 0 ||
+    stat.size > 256 * 1024
+  ) {
+    throw new Error(
+      `${label} must be a single-link regular file under 256 KiB`,
+    );
+  }
+  return JSON.parse(fs.readFileSync(file, "utf8"));
+}
+
 async function loadOptionalPluginConfig() {
   try {
     const cm = await import("../lib/config-manager.js");
@@ -54,7 +120,14 @@ async function loadOptionalPluginConfig() {
 async function fetchRegistryRemoteArtifacts(
   registryUrl,
   entry,
-  { token, allowInsecure = false } = {},
+  {
+    token,
+    allowInsecure = false,
+    offline = false,
+    proxyUrl,
+    pacFile,
+    caFile,
+  } = {},
 ) {
   if (!registryUrl || !entry || typeof entry !== "object") return null;
   const rawSignature =
@@ -103,6 +176,10 @@ async function fetchRegistryRemoteArtifacts(
     registryUrl,
     token: resolveRegistryToken(registryUrl, { token, config }),
     allowInsecure,
+    offline,
+    proxyUrl,
+    pacFile,
+    caFile,
     signature,
     sbom,
   });
@@ -170,7 +247,16 @@ async function buildRegistrySetSelection(
   registryUrls,
   name,
   cwd,
-  { token, allowInsecure = false, strict = false } = {},
+  {
+    token,
+    allowInsecure = false,
+    strict = false,
+    offline = false,
+    registryDigestPins = new Map(),
+    proxyUrl,
+    pacFile,
+    caFile,
+  } = {},
 ) {
   const { fetchRegistry, resolveRegistryToken } =
     await import("../lib/plugin-runtime/remote-source.js");
@@ -196,6 +282,11 @@ async function buildRegistrySetSelection(
         const resolved = await fetchRegistry(url, {
           token: resolvedToken,
           allowInsecure,
+          offline,
+          expectedSha256: registryDigestPins.get(url),
+          proxyUrl,
+          pacFile,
+          caFile,
         });
         return { url, ...resolved };
       } catch (error) {
@@ -247,6 +338,8 @@ async function buildRegistrySetSelection(
       sha256: entry.sha256 || null,
       entry,
       fromCache: source.fromCache === true,
+      documentSha256: source.documentSha256 || null,
+      networkAuthority: source.networkAuthority || null,
     },
   };
 }
@@ -260,6 +353,8 @@ async function buildRegistryInstallPreflight(url, resolved, cwd) {
     registryUrl: url,
     entry: resolved.entry,
     fromCache: resolved.fromCache === true,
+    registryDocumentSha256: resolved.documentSha256,
+    registryNetworkAuthority: resolved.networkAuthority,
     installed,
     hostVersion: VERSION,
   }).preflight;
@@ -276,7 +371,16 @@ function catalogAuthorityFromPreflight(
     candidateDigest: preflight.candidateDigest,
     governanceStatus: preflight.governance.status,
     registryStatus: preflight.registry.status,
+    ...(preflight.registry.documentSha256
+      ? { registryDocumentSha256: preflight.registry.documentSha256 }
+      : {}),
+    ...(preflight.registry.networkAuthority
+      ? { registryNetworkAuthority: preflight.registry.networkAuthority }
+      : {}),
     versionAuthority: preflight.versionAuthority,
+    ...(preflight.publisherIdentity
+      ? { publisherDeclaration: preflight.publisherIdentity }
+      : {}),
     artifactExpectations: {
       manifest: {
         status: preflight.integrity.digest.status,
@@ -490,6 +594,7 @@ async function buildInstalledMarketplaceSnapshot(name, scope, cwd) {
     name: row.name,
     version: row.version,
     scope: row.scope,
+    enabled: row.enabled !== false,
     source: installedSource,
     integrity: {
       ...row.integrity,
@@ -511,8 +616,29 @@ async function buildInstalledMarketplaceSnapshot(name, scope, cwd) {
 async function buildRegistryUpdateImpact(preflight, name, scope, cwd) {
   const { buildPluginMarketplaceUpdateImpact } =
     await import("../lib/plugin-runtime/marketplace-impact.js");
-  const installed = await buildInstalledMarketplaceSnapshot(name, scope, cwd);
-  return buildPluginMarketplaceUpdateImpact({ preflight, installed });
+  const { listInstalledAllScopes } =
+    await import("../lib/plugin-runtime/install.js");
+  const inventory = listInstalledAllScopes({ cwd }).filter(
+    (entry) => entry.name === name,
+  );
+  const installedScopes = [];
+  for (const entry of inventory) {
+    installedScopes.push(
+      await buildInstalledMarketplaceSnapshot(name, entry.scope, cwd),
+    );
+  }
+  const effectiveScope = inventory.find(
+    (entry) => entry.effectiveAuthority === true,
+  )?.scope;
+  const installed = effectiveScope
+    ? installedScopes.find((entry) => entry?.scope === effectiveScope) || null
+    : null;
+  return buildPluginMarketplaceUpdateImpact({
+    preflight,
+    installed,
+    installedScopes,
+    targetScope: scope,
+  });
 }
 
 /**
@@ -912,6 +1038,10 @@ export function registerPluginCommand(program) {
       "--scope <scope>",
       "Enable the unified-runtime install at this scope (user|project|local)",
     )
+    .option(
+      "--allow-source-switch",
+      "Approve changing the effective source authority across scopes",
+    )
     .option("--json", "Output unified-runtime result as JSON")
     .action(async (name, options) => {
       try {
@@ -921,6 +1051,7 @@ export function registerPluginCommand(program) {
           const result = setPluginEnabled(name, true, {
             scope: options.scope,
             cwd: process.cwd(),
+            allowSourceSwitch: options.allowSourceSwitch === true,
           });
           if (options.json) console.log(JSON.stringify(result, null, 2));
           else {
@@ -964,6 +1095,10 @@ export function registerPluginCommand(program) {
       "--scope <scope>",
       "Disable the unified-runtime install at this scope (user|project|local)",
     )
+    .option(
+      "--allow-source-switch",
+      "Approve the lower-scope source authority exposed by disabling",
+    )
     .option("--json", "Output unified-runtime result as JSON")
     .action(async (name, options) => {
       try {
@@ -973,6 +1108,7 @@ export function registerPluginCommand(program) {
           const result = setPluginEnabled(name, false, {
             scope: options.scope,
             cwd: process.cwd(),
+            allowSourceSwitch: options.allowSourceSwitch === true,
           });
           if (options.json) console.log(JSON.stringify(result, null, 2));
           else {
@@ -1375,6 +1511,14 @@ export function registerPluginCommand(program) {
     )
     .option("--scope <scope>", "Install scope (user|project|local)", "user")
     .option("--force", "Reinstall over an existing immutable version")
+    .option(
+      "--allow-source-switch",
+      "Explicitly approve changing effective source authority across scopes",
+    )
+    .option(
+      "--allow-downgrade",
+      "Explicitly approve a version downgrade across scoped installs",
+    )
     .option("--sha256 <hex>", "Expected SHA-256 of the manifest file")
     .option("--signature <path>", "Detached Ed25519 signature of the manifest")
     .option("--public-key <path>", "Public key for signature verification")
@@ -1392,6 +1536,28 @@ export function registerPluginCommand(program) {
     .option(
       "--allow-insecure-registry",
       "Allow a plain-HTTP registry URL (MITM risk — trusted networks only)",
+    )
+    .option(
+      "--offline",
+      "Use verified registry/artifact/source caches or an existing local plugin source",
+    )
+    .option(
+      "--registry-digest <url=sha256>",
+      "Pin an exact immutable registry document (repeatable)",
+      collectRepeatableOption,
+      [],
+    )
+    .option(
+      "--proxy <url>",
+      "Explicit HTTP(S) registry proxy (or CC_PLUGIN_REGISTRY_PROXY)",
+    )
+    .option(
+      "--pac-file <path>",
+      "Bounded local PAC file (or CC_PLUGIN_REGISTRY_PAC_FILE)",
+    )
+    .option(
+      "--ca-file <path>",
+      "Custom registry CA bundle (or CC_PLUGIN_REGISTRY_CA_FILE)",
     )
     .option(
       "--expected-selection-digest <sha256>",
@@ -1419,8 +1585,28 @@ export function registerPluginCommand(program) {
       const registryUrls = normalizeRegistryUrls(options.registry);
       const { isRemoteSource, resolveRemoteSource } =
         await import("../lib/plugin-runtime/remote-source.js");
+      if (
+        options.offline === true &&
+        registryUrls.length === 0 &&
+        !isRemoteSource(source)
+      ) {
+        try {
+          assertOfflinePluginSourceLocal(source);
+        } catch (error) {
+          logger.error(`Offline source validation failed: ${error.message}`);
+          process.exitCode = 1;
+          return;
+        }
+      }
       if (registryUrls.length || isRemoteSource(source)) {
         try {
+          const requestedRegistryUrls = registryUrls.length
+            ? registryUrls
+            : [source];
+          const registryDigestPins = normalizeRegistryDigestPins(
+            options.registryDigest,
+            requestedRegistryUrls,
+          );
           let resolved;
           let url;
           let name;
@@ -1433,6 +1619,9 @@ export function registerPluginCommand(program) {
               {
                 token: options.token,
                 allowInsecure: options.allowInsecureRegistry === true,
+                offline: options.offline === true,
+                registryDigestPins,
+                ...registryNetworkOptions(options),
               },
             );
             resolved = selected.resolved;
@@ -1452,6 +1641,9 @@ export function registerPluginCommand(program) {
               token: options.token,
               config,
               allowInsecure: options.allowInsecureRegistry === true,
+              offline: options.offline === true,
+              expectedSha256: registryDigestPins.get(url),
+              ...registryNetworkOptions(options),
             });
             marketplacePreflight = await buildRegistryInstallPreflight(
               url,
@@ -1500,14 +1692,20 @@ export function registerPluginCommand(program) {
               "registry candidate preflight blocked: REGISTRY_VERSION_REQUIRED_FOR_UPDATE",
             );
           }
-          if (marketplaceImpact.changes.source.requiresApproval) {
+          if (
+            marketplaceImpact.changes.source.requiresApproval &&
+            options.allowSourceSwitch !== true
+          ) {
             throw new Error(
-              `registry candidate preflight blocked: SOURCE_SWITCH_APPROVAL_REQUIRED (${marketplaceImpact.changes.source.kind}); use cc plugin upgrade --allow-source-switch`,
+              `registry candidate preflight blocked: SOURCE_SWITCH_APPROVAL_REQUIRED (${marketplaceImpact.changes.source.kind}); pass --allow-source-switch after reviewing cc plugin impact`,
             );
           }
-          if (marketplaceImpact.changes.version.kind === "downgrade") {
+          if (
+            marketplaceImpact.changes.version.kind === "downgrade" &&
+            options.allowDowngrade !== true
+          ) {
             throw new Error(
-              "registry candidate preflight blocked: VERSION_DOWNGRADE_APPROVAL_REQUIRED; use cc plugin upgrade --allow-downgrade",
+              "registry candidate preflight blocked: VERSION_DOWNGRADE_APPROVAL_REQUIRED; pass --allow-downgrade after reviewing cc plugin impact",
             );
           }
           expectedIdentity = {
@@ -1575,6 +1773,8 @@ export function registerPluginCommand(program) {
             {
               token: options.token,
               allowInsecure: options.allowInsecureRegistry === true,
+              offline: options.offline === true,
+              ...registryNetworkOptions(options),
             },
           );
           if (
@@ -1629,9 +1829,9 @@ export function registerPluginCommand(program) {
             }
           : null;
       let res = null;
-      let marketplaceTransactionFinalized = false;
-      let marketplaceCleanupPending = false;
-      let marketplaceCleanupPath = null;
+      let lifecycleTransactionFinalized = false;
+      let lifecycleCleanupPending = false;
+      let lifecycleCleanupPath = null;
       try {
         res = installFromSource(installSource, {
           scope: options.scope,
@@ -1643,8 +1843,11 @@ export function registerPluginCommand(program) {
           managedPolicy: managed,
           policySource: sourceMetadata?.registry || source,
           remoteSbomBytes: remoteArtifacts?.sbomBytes || null,
-          transactional: Boolean(marketplacePreflight),
+          offline: options.offline === true,
+          transactional: true,
           enforceUpdateApprovals: true,
+          allowSourceSwitch: options.allowSourceSwitch === true,
+          allowDowngrade: options.allowDowngrade === true,
         });
         const marketplaceAuthorityPersisted = marketplacePreflight
           ? res.sourceMetadata?.catalogAuthority?.catalogDigest ===
@@ -1689,17 +1892,15 @@ export function registerPluginCommand(program) {
               res.scope,
               process.cwd(),
             );
-          if (marketplacePreflight) {
-            const finalization = finalizePluginUpdate(res);
-            if (!finalization.finalized) {
-              throw new Error(
-                "marketplace install transaction could not be finalized",
-              );
-            }
-            marketplaceCleanupPending = finalization.cleanupPending === true;
-            marketplaceCleanupPath = finalization.cleanupPath || null;
-            marketplaceTransactionFinalized = true;
+          const finalization = finalizePluginUpdate(res);
+          if (!finalization.finalized) {
+            throw new Error(
+              "plugin install transaction could not be finalized",
+            );
           }
+          lifecycleCleanupPending = finalization.cleanupPending === true;
+          lifecycleCleanupPath = finalization.cleanupPath || null;
+          lifecycleTransactionFinalized = true;
           console.log(
             JSON.stringify(
               {
@@ -1707,10 +1908,10 @@ export function registerPluginCommand(program) {
                 marketplacePreflight,
                 marketplaceImpact,
                 marketplaceAuthorityPersisted,
-                marketplaceCleanupPending,
+                marketplaceCleanupPending: lifecycleCleanupPending,
                 cleanupPending:
-                  res.cleanupPending === true || marketplaceCleanupPending,
-                cleanupPath: res.cleanupPath || marketplaceCleanupPath,
+                  res.cleanupPending === true || lifecycleCleanupPending,
+                cleanupPath: res.cleanupPath || lifecycleCleanupPath,
                 capabilities: capNotice,
                 capabilitiesGranted,
               },
@@ -1729,17 +1930,15 @@ export function registerPluginCommand(program) {
               interactive: Boolean(process.stdin.isTTY),
             },
           );
-          if (marketplacePreflight) {
-            const finalization = finalizePluginUpdate(res);
-            if (!finalization.finalized) {
-              throw new Error(
-                "marketplace install transaction could not be finalized",
-              );
-            }
-            marketplaceCleanupPending = finalization.cleanupPending === true;
-            marketplaceCleanupPath = finalization.cleanupPath || null;
-            marketplaceTransactionFinalized = true;
+          const finalization = finalizePluginUpdate(res);
+          if (!finalization.finalized) {
+            throw new Error(
+              "plugin install transaction could not be finalized",
+            );
           }
+          lifecycleCleanupPending = finalization.cleanupPending === true;
+          lifecycleCleanupPath = finalization.cleanupPath || null;
+          lifecycleTransactionFinalized = true;
           logger.success(
             `Installed ${res.name} v${res.version} (${res.scope} scope)` +
               (res.signatureVerified ? chalk.green(" ✔ signed") : ""),
@@ -1759,9 +1958,9 @@ export function registerPluginCommand(program) {
               );
             }
           }
-          if (res.cleanupPending === true || marketplaceCleanupPending) {
+          if (res.cleanupPending === true || lifecycleCleanupPending) {
             logger.warn(
-              `Install committed; inert cleanup remains at ${res.cleanupPath || marketplaceCleanupPath || "an internal cleanup directory"} and will be retried on the next mutation`,
+              `Install committed; inert cleanup remains at ${res.cleanupPath || lifecycleCleanupPath || "an internal cleanup directory"} and will be retried on the next mutation`,
             );
           }
           for (const w of res.warnings || [])
@@ -1769,7 +1968,7 @@ export function registerPluginCommand(program) {
         }
       } catch (err) {
         let recoveryNote = "";
-        if (res && marketplacePreflight && !marketplaceTransactionFinalized) {
+        if (res && !lifecycleTransactionFinalized) {
           try {
             const recovery = rollbackPluginUpdate(res);
             if (recovery.rolledBack) {
@@ -1803,6 +2002,16 @@ export function registerPluginCommand(program) {
       "--allow-insecure-registry",
       "Allow a plain-HTTP registry URL (MITM risk — trusted networks only)",
     )
+    .option("--offline", "Use only the verified immutable registry cache")
+    .option(
+      "--registry-digest <url=sha256>",
+      "Pin the exact immutable registry document",
+      collectRepeatableOption,
+      [],
+    )
+    .option("--proxy <url>", "Explicit HTTP(S) registry proxy")
+    .option("--pac-file <path>", "Bounded local PAC file")
+    .option("--ca-file <path>", "Custom registry CA bundle")
     .option("--json", "Output as JSON")
     .action(async (query, options) => {
       const { fetchRegistry, listRegistryPlugins, resolveRegistryToken } =
@@ -1815,14 +2024,24 @@ export function registerPluginCommand(program) {
         config = null;
       }
       try {
+        const registryDigestPins = normalizeRegistryDigestPins(
+          options.registryDigest,
+          [options.registry],
+        );
         const token = resolveRegistryToken(options.registry, {
           token: options.token,
           config,
         });
-        const { registry, fromCache } = await fetchRegistry(options.registry, {
-          token,
-          allowInsecure: options.allowInsecureRegistry === true,
-        });
+        const { registry, fromCache, documentSha256 } = await fetchRegistry(
+          options.registry,
+          {
+            token,
+            allowInsecure: options.allowInsecureRegistry === true,
+            offline: options.offline === true,
+            expectedSha256: registryDigestPins.get(options.registry),
+            ...registryNetworkOptions(options),
+          },
+        );
         let rows = listRegistryPlugins(registry);
         if (query) {
           const q = query.toLowerCase();
@@ -1833,7 +2052,13 @@ export function registerPluginCommand(program) {
           );
         }
         if (options.json) {
-          console.log(JSON.stringify({ fromCache, plugins: rows }, null, 2));
+          console.log(
+            JSON.stringify(
+              { fromCache, documentSha256, plugins: rows },
+              null,
+              2,
+            ),
+          );
           return;
         }
         if (fromCache) {
@@ -1848,6 +2073,7 @@ export function registerPluginCommand(program) {
           return;
         }
         logger.log(chalk.bold(`Plugins (${rows.length}):`));
+        logger.log(chalk.gray(`Registry SHA-256: ${documentSha256}`));
         for (const r of rows) {
           const ver = r.version ? chalk.gray(` v${r.version}`) : "";
           logger.log(
@@ -1884,6 +2110,16 @@ export function registerPluginCommand(program) {
       "--allow-insecure-registry",
       "Allow plain-HTTP registry URLs (MITM risk — trusted networks only)",
     )
+    .option("--offline", "Use only verified immutable registry caches")
+    .option(
+      "--registry-digest <url=sha256>",
+      "Pin exact immutable registry documents (repeatable)",
+      collectRepeatableOption,
+      [],
+    )
+    .option("--proxy <url>", "Explicit HTTP(S) registry proxy")
+    .option("--pac-file <path>", "Bounded local PAC file")
+    .option("--ca-file <path>", "Custom registry CA bundle")
     .option(
       "--strict",
       "Block candidates missing digest, signature, SBOM, license, or capabilities",
@@ -1910,6 +2146,17 @@ export function registerPluginCommand(program) {
         process.exitCode = 1;
         return;
       }
+      let registryDigestPins;
+      try {
+        registryDigestPins = normalizeRegistryDigestPins(
+          options.registryDigest,
+          registryUrls,
+        );
+      } catch (error) {
+        logger.error(`Marketplace catalog failed: ${error.message}`);
+        process.exitCode = 1;
+        return;
+      }
       const { discoverPlugins } =
         await import("../lib/plugin-runtime/scopes.js");
       const { VERSION } = await import("../constants.js");
@@ -1931,6 +2178,9 @@ export function registerPluginCommand(program) {
             const resolved = await fetchRegistry(url, {
               token,
               allowInsecure: options.allowInsecureRegistry === true,
+              offline: options.offline === true,
+              expectedSha256: registryDigestPins.get(url),
+              ...registryNetworkOptions(options),
             });
             return { url, ...resolved };
           } catch (error) {
@@ -2069,6 +2319,16 @@ export function registerPluginCommand(program) {
       "--allow-insecure-registry",
       "Allow plain-HTTP registry URLs (MITM risk — trusted networks only)",
     )
+    .option("--offline", "Use only verified immutable registry caches")
+    .option(
+      "--registry-digest <url=sha256>",
+      "Pin exact immutable registry documents (repeatable)",
+      collectRepeatableOption,
+      [],
+    )
+    .option("--proxy <url>", "Explicit HTTP(S) registry proxy")
+    .option("--pac-file <path>", "Bounded local PAC file")
+    .option("--ca-file <path>", "Custom registry CA bundle")
     .option(
       "--strict",
       "Block candidates missing digest, signature, SBOM, license, or capabilities",
@@ -2076,14 +2336,22 @@ export function registerPluginCommand(program) {
     .option("--json", "Output the versioned candidate selection as JSON")
     .action(async (name, options) => {
       try {
+        const registryUrls = normalizeRegistryUrls(options.registry);
+        const registryDigestPins = normalizeRegistryDigestPins(
+          options.registryDigest,
+          registryUrls,
+        );
         const result = await buildRegistrySetSelection(
-          normalizeRegistryUrls(options.registry),
+          registryUrls,
           name,
           process.cwd(),
           {
             token: options.token,
             allowInsecure: options.allowInsecureRegistry === true,
             strict: options.strict === true,
+            offline: options.offline === true,
+            registryDigestPins,
+            ...registryNetworkOptions(options),
           },
         );
         const { selection } = result;
@@ -2145,10 +2413,24 @@ export function registerPluginCommand(program) {
       "--allow-insecure-registry",
       "Allow a plain-HTTP registry URL (MITM risk — trusted networks only)",
     )
+    .option("--offline", "Use only verified immutable registry caches")
+    .option(
+      "--registry-digest <url=sha256>",
+      "Pin exact immutable registry documents (repeatable)",
+      collectRepeatableOption,
+      [],
+    )
+    .option("--proxy <url>", "Explicit HTTP(S) registry proxy")
+    .option("--pac-file <path>", "Bounded local PAC file")
+    .option("--ca-file <path>", "Custom registry CA bundle")
     .option("--json", "Output the versioned update-impact projection as JSON")
     .action(async (name, options) => {
       try {
         const registryUrls = normalizeRegistryUrls(options.registry);
+        const registryDigestPins = normalizeRegistryDigestPins(
+          options.registryDigest,
+          registryUrls,
+        );
         const selected = await buildRegistrySetSelection(
           registryUrls,
           name,
@@ -2156,6 +2438,9 @@ export function registerPluginCommand(program) {
           {
             token: options.token,
             allowInsecure: options.allowInsecureRegistry === true,
+            offline: options.offline === true,
+            registryDigestPins,
+            ...registryNetworkOptions(options),
           },
         );
         if (!selected.preflight) {
@@ -2184,6 +2469,12 @@ export function registerPluginCommand(program) {
           logger.log(
             `  source: ${impact.changes.source.kind}${impact.changes.source.requiresApproval ? " (explicit approval required)" : ""}`,
           );
+          if (impact.changes.scopeAuthority) {
+            const authority = impact.changes.scopeAuthority;
+            logger.log(
+              `  scope authority: ${authority.effectiveFrom || "none"} → ${authority.effectiveTo || "none"}${authority.changed ? " (effective change)" : ""}`,
+            );
+          }
           logger.log(
             `  license: ${impact.changes.license.from || "unknown"} → ${impact.changes.license.to || "unknown"}`,
           );
@@ -2225,11 +2516,17 @@ export function registerPluginCommand(program) {
   plugin
     .command("installed")
     .description("List plugins installed in the unified runtime (scope dirs)")
+    .option(
+      "--all-scopes",
+      "Show every physical scoped install, including shadowed and disabled rows",
+    )
     .option("--json", "Output as JSON")
     .action(async (options) => {
-      const { listInstalled } =
+      const { listInstalled, listInstalledAllScopes } =
         await import("../lib/plugin-runtime/install.js");
-      const rows = listInstalled({ cwd: process.cwd() });
+      const rows = options.allScopes
+        ? listInstalledAllScopes({ cwd: process.cwd() })
+        : listInstalled({ cwd: process.cwd() });
       if (options.json) {
         console.log(JSON.stringify(rows, null, 2));
         return;
@@ -2273,6 +2570,170 @@ export function registerPluginCommand(program) {
         logger.log(
           `  ${ok} ${chalk.cyan(r.name)} v${r.version} ${chalk.gray(`[${r.scope}]`)} ${state} ${trust} ${signed}${policy ? ` ${policy}` : ""}`,
         );
+      }
+    });
+
+  // plugin transaction/recover — inspect or resolve an abandoned durable
+  // lifecycle owner. Ordinary mutations never reclaim this authority.
+  plugin
+    .command("transaction <name>")
+    .description("Inspect a durable cross-process plugin lifecycle transaction")
+    .option("--scope <scope>", "Installed plugin scope", "user")
+    .option("--json", "Output the redacted transaction authority as JSON")
+    .action(async (name, options) => {
+      try {
+        const { inspectPluginTransaction } =
+          await import("../lib/plugin-runtime/install.js");
+        const transaction = inspectPluginTransaction(name, {
+          scope: options.scope,
+          cwd: process.cwd(),
+        });
+        if (!transaction) {
+          throw new Error(
+            `no retained transaction exists for ${name} at ${options.scope} scope`,
+          );
+        }
+        if (options.json) {
+          console.log(JSON.stringify(transaction, null, 2));
+          return;
+        }
+        logger.log(
+          `${name} [${options.scope}] ${transaction.operation}/${transaction.phase} r${transaction.revision}`,
+        );
+        logger.log(
+          `  owner: pid=${transaction.owner.pid} host=${transaction.owner.hostname} alive=${transaction.owner.alive == null ? "unverifiable" : transaction.owner.alive}`,
+        );
+        logger.log(`  journal digest: ${transaction.journalDigest}`);
+      } catch (error) {
+        logger.error(`Transaction inspection failed: ${error.message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  plugin
+    .command("recover <name>")
+    .description("Recover a durable plugin transaction after its owner died")
+    .option("--scope <scope>", "Installed plugin scope", "user")
+    .option(
+      "--action <action>",
+      "Recovery action (rollback|finalize|abort)",
+      "rollback",
+    )
+    .option(
+      "--force-owner",
+      "Explicitly override a live or cross-host owner after external adjudication",
+    )
+    .option("--json", "Output the recovery result as JSON")
+    .action(async (name, options) => {
+      try {
+        const { recoverPluginTransaction } =
+          await import("../lib/plugin-runtime/install.js");
+        const recovery = recoverPluginTransaction(name, {
+          scope: options.scope,
+          cwd: process.cwd(),
+          action: options.action,
+          forceOwner: options.forceOwner === true,
+        });
+        if (options.json) {
+          console.log(JSON.stringify(recovery, null, 2));
+          return;
+        }
+        logger.success(
+          `${name} transaction ${recovery.action}: ${recovery.recovered ? "recovered" : "recovery still required"}`,
+        );
+        if (recovery.cleanupPending) {
+          logger.warn(`Cleanup remains at ${recovery.cleanupPath}`);
+        }
+      } catch (error) {
+        logger.error(`Transaction recovery failed: ${error.message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  plugin
+    .command("provenance-plan <name>")
+    .description(
+      "Build exact payload-bound authority bytes for a signed legacy provenance migration",
+    )
+    .requiredOption("--version <version>", "Installed plugin version")
+    .requiredOption(
+      "--metadata <file>",
+      "JSON source metadata to bind (local, git, or complete registry authority)",
+    )
+    .option("--scope <scope>", "Installed plugin scope", "user")
+    .option(
+      "--issued-at <timestamp>",
+      "Canonical ISO-8601 UTC signing time (defaults to now)",
+    )
+    .action(async (name, options) => {
+      try {
+        const { planPluginProvenanceMigration } =
+          await import("../lib/plugin-runtime/install.js");
+        const plan = planPluginProvenanceMigration(name, {
+          scope: options.scope,
+          cwd: process.cwd(),
+          version: options.version,
+          issuedAt: options.issuedAt,
+          sourceMetadata: readBoundedPluginJson(
+            options.metadata,
+            "plugin source metadata",
+          ),
+        });
+        console.log(JSON.stringify(plan, null, 2));
+      } catch (error) {
+        logger.error(`Provenance migration plan failed: ${error.message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  plugin
+    .command("provenance-migrate <name>")
+    .description(
+      "Apply a signed, payload-bound provenance record to one legacy install",
+    )
+    .requiredOption("--version <version>", "Installed plugin version")
+    .requiredOption(
+      "--attestation <file>",
+      "Signed attestation JSON containing authority, publicKeyPem, and signatureBase64",
+    )
+    .requiredOption(
+      "--expected-signer-sha256 <hex>",
+      "Exact trusted signer SPKI SHA-256 fingerprint",
+    )
+    .option("--scope <scope>", "Installed plugin scope", "user")
+    .option("--yes", "Confirm the provenance mutation")
+    .option("--json", "Output the migration result as JSON")
+    .action(async (name, options) => {
+      try {
+        if (options.yes !== true) {
+          throw new Error(
+            "refusing provenance mutation without --yes after reviewing the signed plan",
+          );
+        }
+        const { migratePluginProvenance } =
+          await import("../lib/plugin-runtime/install.js");
+        const result = migratePluginProvenance(name, {
+          scope: options.scope,
+          cwd: process.cwd(),
+          version: options.version,
+          attestation: readBoundedPluginJson(
+            options.attestation,
+            "plugin provenance attestation",
+          ),
+          expectedSignerSha256: options.expectedSignerSha256,
+        });
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+          return;
+        }
+        logger.success(
+          `${name}@${result.version} provenance migrated at ${result.scope} scope`,
+        );
+        logger.log(`  authority: ${result.authorityDigest}`);
+        logger.log(`  signer: ${result.signerPublicKeySha256}`);
+      } catch (error) {
+        logger.error(`Provenance migration failed: ${error.message}`);
+        process.exitCode = 1;
       }
     });
 
@@ -2365,8 +2826,8 @@ export function registerPluginCommand(program) {
           logger.log(
             chalk.gray(
               remoteKinds.length
-                ? `  Install-time remote ${remoteKinds.join("/")} evidence is present: ${remoteDetail.join("; ")}. Remote documents were not re-fetched; publisher identity remains unverified.`
-                : "  No valid install-time remote signature/SBOM evidence is available; publisher identity remains unverified.",
+                ? `  Install-time remote ${remoteKinds.join("/")} evidence is present: ${remoteDetail.join("; ")}. Remote documents were not re-fetched; publisher identity is ${evidence.claims.registryPublisherIdentityVerified ? "verified by the current managed organization trust root" : "unverified"}.`
+                : `  No valid install-time remote signature/SBOM evidence is available; publisher identity is ${evidence.claims.registryPublisherIdentityVerified ? "verified by the current managed organization trust root" : "unverified"}.`,
             ),
           );
         }
@@ -2819,6 +3280,28 @@ export function registerPluginCommand(program) {
       "Allow a plain-HTTP registry URL (MITM risk — trusted networks only)",
     )
     .option(
+      "--offline",
+      "Use verified registry/artifact/source caches or an existing local plugin source",
+    )
+    .option(
+      "--registry-digest <url=sha256>",
+      "Pin an exact immutable registry document (repeatable)",
+      collectRepeatableOption,
+      [],
+    )
+    .option(
+      "--proxy <url>",
+      "Explicit HTTP(S) registry proxy (or CC_PLUGIN_REGISTRY_PROXY)",
+    )
+    .option(
+      "--pac-file <path>",
+      "Bounded local PAC file (or CC_PLUGIN_REGISTRY_PAC_FILE)",
+    )
+    .option(
+      "--ca-file <path>",
+      "Custom registry CA bundle (or CC_PLUGIN_REGISTRY_CA_FILE)",
+    )
+    .option(
       "--allow-source-switch",
       "Explicitly approve changing registry/source authority",
     )
@@ -2850,8 +3333,28 @@ export function registerPluginCommand(program) {
       const registryUrls = normalizeRegistryUrls(options.registry);
       const { isRemoteSource, resolveRemoteSource } =
         await import("../lib/plugin-runtime/remote-source.js");
+      if (
+        options.offline === true &&
+        registryUrls.length === 0 &&
+        !isRemoteSource(source)
+      ) {
+        try {
+          assertOfflinePluginSourceLocal(source);
+        } catch (error) {
+          logger.error(`Offline source validation failed: ${error.message}`);
+          process.exitCode = 1;
+          return;
+        }
+      }
       if (registryUrls.length || isRemoteSource(source)) {
         try {
+          const requestedRegistryUrls = registryUrls.length
+            ? registryUrls
+            : [source];
+          const registryDigestPins = normalizeRegistryDigestPins(
+            options.registryDigest,
+            requestedRegistryUrls,
+          );
           let resolved;
           let url;
           let name;
@@ -2864,6 +3367,9 @@ export function registerPluginCommand(program) {
               {
                 token: options.token,
                 allowInsecure: options.allowInsecureRegistry === true,
+                offline: options.offline === true,
+                registryDigestPins,
+                ...registryNetworkOptions(options),
               },
             );
             resolved = selected.resolved;
@@ -2883,6 +3389,9 @@ export function registerPluginCommand(program) {
               token: options.token,
               config,
               allowInsecure: options.allowInsecureRegistry === true,
+              offline: options.offline === true,
+              expectedSha256: registryDigestPins.get(url),
+              ...registryNetworkOptions(options),
             });
             marketplacePreflight = await buildRegistryInstallPreflight(
               url,
@@ -3028,6 +3537,8 @@ export function registerPluginCommand(program) {
             {
               token: options.token,
               allowInsecure: options.allowInsecureRegistry === true,
+              offline: options.offline === true,
+              ...registryNetworkOptions(options),
             },
           );
           if (
@@ -3094,6 +3605,7 @@ export function registerPluginCommand(program) {
           managedPolicy: managed,
           policySource: sourceMetadata?.registry || source,
           remoteSbomBytes: remoteArtifacts?.sbomBytes || null,
+          offline: options.offline === true,
           transactional: true,
           enforceUpdateApprovals: true,
           allowSourceSwitch: options.allowSourceSwitch === true,

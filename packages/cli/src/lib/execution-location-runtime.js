@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { VERSION } from "../constants.js";
 import { createExecutionLocationBinding } from "./execution-location-contract.js";
 import { detectAmbientLocation } from "./execution-location.js";
 
@@ -58,7 +59,7 @@ function discoverGit(runtimeFs, cwd) {
         head = "detached";
         commit = rawHead.toLowerCase();
       } else {
-        const match = /^ref:\s*(refs\/[A-Za-z0-9._\/-]+)$/u.exec(rawHead || "");
+        const match = /^ref:\s*(refs\/[A-Za-z0-9._/-]+)$/u.exec(rawHead || "");
         if (match && !match[1].includes("..")) {
           head = match[1];
           const loose = readSmallUtf8(
@@ -106,6 +107,7 @@ export function captureAmbientExecutionLocation(options = {}, deps = {}) {
       platform: deps.platform || process.platform,
       arch: deps.arch || process.arch,
       nodeVersion: deps.nodeVersion || process.version,
+      cliVersion: deps.cliVersion || VERSION,
       tools: ["chainlesschain-cli", "node"],
     },
     model: {

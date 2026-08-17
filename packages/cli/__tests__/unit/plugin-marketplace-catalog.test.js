@@ -663,6 +663,11 @@ describe("plugin marketplace catalog governance projection", () => {
     ).toBe(true);
     expect(catalog.dependencyGraph.cycles).toHaveLength(1);
     expect(catalog.dependencyGraph.cycles[0]).toHaveLength(2);
+    for (const candidate of catalog.candidates) {
+      expect(candidate.installability.blockers).toContainEqual({
+        code: "DEPENDENCY_CYCLE",
+      });
+    }
   });
 
   it("makes incomplete metadata and dependency/host problems explicit", () => {

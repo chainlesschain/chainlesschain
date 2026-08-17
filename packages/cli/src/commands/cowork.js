@@ -48,7 +48,7 @@ function projectWorkflowExecutionAuthority(sessionId, verifiedProof) {
   }
   return Object.freeze({
     schema: SESSION_EXECUTION_LOCATION_AUTHORITY_SCHEMA,
-    authority: "verified-session-start",
+    authority: proof.authority || "verified-session-start",
     sessionId: proof.sessionId,
     headHash: proof.headHash,
     eventCount: proof.eventCount,
@@ -867,6 +867,256 @@ export function registerCoworkCommand(program, commandDeps = {}) {
     .description("Define and execute multi-step Cowork workflows (DAG)");
 
   workflow
+    .command("draft <prompt>")
+    .description(
+      "Generate a digest-bound workflow draft for explicit human review",
+    )
+    .option("--provider <name>", "LLM provider to use")
+    .option("--model <name>", "LLM model to use")
+    .action(async (prompt, options) => {
+      try {
+        let chat;
+        let provider;
+        let model;
+        if (Object.hasOwn(commandDeps, "workflowDraftChat")) {
+          const descriptor = Object.getOwnPropertyDescriptor(
+            commandDeps,
+            "workflowDraftChat",
+          );
+          if (
+            !descriptor ||
+            !Object.hasOwn(descriptor, "value") ||
+            typeof descriptor.value !== "function"
+          ) {
+            throw new Error(
+              "Cowork workflow draft chat seam must be a function data property",
+            );
+          }
+          chat = descriptor.value;
+          provider = options.provider || "fixture";
+          model = options.model || "fixture-model";
+        } else {
+          const [{ createChatFn }, { BUILT_IN_PROVIDERS }, { loadConfig }] =
+            await Promise.all([
+              import("../lib/cowork-adapter.js"),
+              import("../lib/llm-providers.js"),
+              import("../lib/config-manager.js"),
+            ]);
+          const config = loadConfig()?.llm || {};
+          provider =
+            options.provider ||
+            process.env.LLM_PROVIDER ||
+            config.provider ||
+            "ollama";
+          const providerDefinition = BUILT_IN_PROVIDERS[provider];
+          if (!providerDefinition) {
+            throw new Error(`Unsupported workflow draft provider: ${provider}`);
+          }
+          model =
+            options.model ||
+            process.env.LLM_MODEL ||
+            (config.provider === provider ? config.model : null) ||
+            providerDefinition.models[0];
+          chat = createChatFn({
+            provider,
+            model,
+            ...(config.provider === provider && config.baseUrl
+              ? { baseUrl: config.baseUrl }
+              : {}),
+            ...(config.provider === provider && config.apiKey
+              ? { apiKey: config.apiKey }
+              : {}),
+          });
+        }
+        const { generateDynamicWorkflowDraft } =
+          await import("../lib/dynamic-workflow-draft.js");
+        const draft = await generateDynamicWorkflowDraft(
+          { prompt, provider, model },
+          { chat },
+        );
+        console.log(JSON.stringify(draft, null, 2));
+      } catch (err) {
+        logger.error(`WORKFLOW_DRAFT_FAILED: ${err.message}`);
+        process.exitCode = 2;
+      }
+    });
+
+  workflow
+    .command("review <file>")
+    .description(
+      "Accept or reject an exact workflow draft; accepted definitions are versioned",
+    )
+    .requiredOption(
+      "--expected-draft-digest <sha256>",
+      "Exact draft digest shown during review",
+    )
+    .requiredOption("--reviewer <identity>", "Human reviewer identity")
+    .option("--accept", "Accept and save the reviewed definition")
+    .option("--reject", "Reject without saving the definition")
+    .option("--reason <text>", "Bounded, secret-free review reason")
+    .option("--json", "Machine-readable JSON output")
+    .action(async (file, options) => {
+      try {
+        if (options.accept === options.reject) {
+          throw new Error("exactly one of --accept or --reject is required");
+        }
+        const [draftModule, workflowModule] = await Promise.all([
+          import("../lib/dynamic-workflow-draft.js"),
+          import("../lib/cowork-workflow.js"),
+        ]);
+        const draft = draftModule.readDynamicWorkflowDraftFile(file);
+        const review = draftModule.reviewDynamicWorkflowDraft({
+          draft,
+          expectedDraftDigest: options.expectedDraftDigest,
+          decision: options.accept ? "accept" : "reject",
+          reviewer: options.reviewer,
+          reason: options.reason,
+        });
+        let persisted = false;
+        if (review.status === "accepted") {
+          workflowModule.saveWorkflow(process.cwd(), review.definition);
+          const record = workflowModule.getWorkflowRecord(
+            process.cwd(),
+            review.definition.id,
+          );
+          if (
+            !record ||
+            record.definitionDigest !== review.acceptedDefinitionDigest
+          ) {
+            throw new Error(
+              "reviewed workflow readback did not match its accepted digest",
+            );
+          }
+          persisted = true;
+        }
+        const result = Object.freeze({ ...review, persisted });
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+          return;
+        }
+        const label = review.status === "accepted" ? "Accepted" : "Rejected";
+        logger.log(`${label} workflow draft ${review.draftDigest}`);
+        logger.log(`  review:    ${review.reviewDigest}`);
+        logger.log(
+          `  definition: ${review.acceptedDefinitionDigest || "not-saved"}`,
+        );
+      } catch (err) {
+        logger.error(`WORKFLOW_REVIEW_FAILED: ${err.message}`);
+        process.exitCode = 2;
+      }
+    });
+
+  workflow
+    .command("runtime-status <run-id>")
+    .description("Read a durable workflow run without invoking a task provider")
+    .option("--json", "Machine-readable JSON output")
+    .action(async (runId, options) => {
+      try {
+        const runtime = await import("../lib/dynamic-workflow-runtime.js");
+        const statePath = runtime.dynamicWorkflowRunStatePath(
+          process.cwd(),
+          runId,
+        );
+        const projection = runtime.projectDynamicWorkflowRuntime(statePath);
+        if (options.json) {
+          console.log(JSON.stringify(projection, null, 2));
+          return;
+        }
+        logger.log(`${projection.runId}  ${projection.status}`);
+        logger.log(`  revision: ${projection.revision}`);
+        logger.log(`  definition: ${projection.definitionDigest}`);
+        logger.log(
+          `  effects: ${projection.settledEffectCount}/${projection.effectCount} settled`,
+        );
+        for (const effect of projection.pendingEffects) {
+          logger.log(`  pending: ${effect.id} (${effect.key})`);
+        }
+      } catch (err) {
+        logger.error(`WORKFLOW_RUNTIME_STATUS_FAILED: ${err.message}`);
+        process.exitCode = 2;
+      }
+    });
+
+  for (const action of ["pause", "stop", "resume"]) {
+    workflow
+      .command(`runtime-${action} <run-id>`)
+      .description(
+        `${action[0].toUpperCase()}${action.slice(1)} a revision-bound durable workflow run`,
+      )
+      .requiredOption(
+        "--expected-revision <n>",
+        "Exact runtime revision shown by runtime-status",
+      )
+      .option("--json", "Machine-readable JSON output")
+      .action(async (runId, options) => {
+        try {
+          const runtime = await import("../lib/dynamic-workflow-runtime.js");
+          const statePath = runtime.dynamicWorkflowRunStatePath(
+            process.cwd(),
+            runId,
+          );
+          const operation =
+            action === "pause"
+              ? runtime.requestDurableWorkflowPause
+              : action === "stop"
+                ? runtime.requestDurableWorkflowStop
+                : runtime.prepareDurableWorkflowResume;
+          const state = operation(statePath, options.expectedRevision);
+          const projection = runtime.projectDynamicWorkflowRuntime(state);
+          if (options.json) {
+            console.log(JSON.stringify(projection, null, 2));
+          } else {
+            logger.log(
+              `${projection.runId}  ${projection.status}  revision=${projection.revision}`,
+            );
+          }
+        } catch (err) {
+          logger.error(
+            `WORKFLOW_RUNTIME_${action.toUpperCase()}_FAILED: ${err.message}`,
+          );
+          process.exitCode = 2;
+        }
+      });
+  }
+
+  workflow
+    .command("runtime-reconcile <run-id> <effect-id> <result-file>")
+    .description(
+      "Settle one outcome-unknown effect from a bounded provider result file",
+    )
+    .requiredOption(
+      "--expected-revision <n>",
+      "Exact runtime revision shown by runtime-status",
+    )
+    .option("--json", "Machine-readable JSON output")
+    .action(async (runId, effectId, resultFile, options) => {
+      try {
+        const runtime = await import("../lib/dynamic-workflow-runtime.js");
+        const statePath = runtime.dynamicWorkflowRunStatePath(
+          process.cwd(),
+          runId,
+        );
+        const result = runtime.readDynamicWorkflowEffectResultFile(resultFile);
+        const state = runtime.reconcileDurableWorkflowEffect(statePath, {
+          expectedRevision: options.expectedRevision,
+          effectId,
+          result,
+        });
+        const projection = runtime.projectDynamicWorkflowRuntime(state);
+        if (options.json) {
+          console.log(JSON.stringify(projection, null, 2));
+        } else {
+          logger.log(
+            `${projection.runId}  ${projection.status}  revision=${projection.revision}`,
+          );
+        }
+      } catch (err) {
+        logger.error(`WORKFLOW_RUNTIME_RECONCILE_FAILED: ${err.message}`);
+        process.exitCode = 2;
+      }
+    });
+
+  workflow
     .command("list")
     .description("List saved workflows")
     .option("--json", "Output as JSON")
@@ -1127,7 +1377,11 @@ export function registerCoworkCommand(program, commandDeps = {}) {
       "Verified session whose start event anchors execution authority",
     )
     .option("--continue-on-error", "Keep running after a step fails", false)
-    .option("--max-parallel <n>", "Max parallel steps per batch", "4")
+    .option("--max-parallel <n>", "Max parallel steps per batch")
+    .option(
+      "--durable-run-id <id>",
+      "Use request-before-provider durable runtime (currently maxParallel=1)",
+    )
     .option(
       "--pipeline",
       "No-barrier scheduling: start each step as soon as its own deps finish",
@@ -1203,6 +1457,18 @@ export function registerCoworkCommand(program, commandDeps = {}) {
           return;
         }
         const wf = record.definition;
+        if (
+          options.durableRunId &&
+          options.maxParallel != null &&
+          Number(options.maxParallel) !== 1
+        ) {
+          throw new Error(
+            "durable workflow runtime currently requires --max-parallel 1",
+          );
+        }
+        const requestedMaxParallel = options.durableRunId
+          ? "1"
+          : options.maxParallel || "4";
         const executionAuthoritySessionId =
           requireWorkflowExecutionAuthoritySession(
             options.executionAuthoritySession,
@@ -1211,7 +1477,7 @@ export function registerCoworkCommand(program, commandDeps = {}) {
           {
             definitionAuthority: record,
             executionAuthoritySessionId,
-            maxParallel: options.maxParallel,
+            maxParallel: requestedMaxParallel,
             execution: {
               cwd: process.cwd(),
               continueOnError: !!options.continueOnError,
@@ -1245,8 +1511,27 @@ export function registerCoworkCommand(program, commandDeps = {}) {
                 getWorkflowVersion,
                 getVerifiedSessionExecutionLocationAuthority,
               }),
-            executeWorkflow: (execution) =>
-              executeCoworkWorkflow({ ...execution, runTask: runCoworkTask }),
+            executeWorkflow: async (execution) => {
+              if (!options.durableRunId) {
+                return executeCoworkWorkflow({
+                  ...execution,
+                  runTask: runCoworkTask,
+                });
+              }
+              const runtime =
+                await import("../lib/dynamic-workflow-runtime.js");
+              return runtime.executeDurableDynamicWorkflow(
+                {
+                  statePath: runtime.dynamicWorkflowRunStatePath(
+                    process.cwd(),
+                    options.durableRunId,
+                  ),
+                  runId: options.durableRunId,
+                  execution,
+                },
+                { runTask: runCoworkTask },
+              );
+            },
           },
         );
         if (!outcome.allowed) {

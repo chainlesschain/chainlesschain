@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "case": "p2-accessibility-performance",
+  "description": "IDE accessibility and performance release evidence must exercise complete keyboard navigation, assistive-technology output, focus restoration, bounded long transcripts, large diff/log surfaces, and 100+ session workbenches on real hosts without hangs, silent truncation, or credential disclosure.",
+  "inputs": {
+    "requiredJourneys": [
+      "keyboard-only-chat-and-approval",
+      "screen-reader-chat-and-tool-status",
+      "modal-and-tab-focus-restoration",
+      "long-session-transcript",
+      "large-diff-and-log-review",
+      "multi-session-workbench",
+      "continuous-host-soak"
+    ],
+    "assistiveTechnology": {
+      "windows": ["nvda"],
+      "macos": ["voiceover"],
+      "linux": ["orca"]
+    },
+    "scale": {
+      "messagesPerSession": 2000,
+      "diffBytes": 16777216,
+      "logBytes": 67108864,
+      "sessionCount": 128,
+      "continuousRunSeconds": 28800
+    },
+    "measurements": [
+      "keyboard-action-ledger",
+      "accessibility-tree",
+      "screen-reader-transcript",
+      "focus-transition-ledger",
+      "rendered-node-or-character-count",
+      "input-to-paint-latency-p50-p95-p99",
+      "scroll-latency-p50-p95-p99",
+      "rss-and-heap-trajectory",
+      "fd-or-handle-delta",
+      "orphan-process-count"
+    ]
+  },
+  "expectedOutcome": {
+    "keyboardUnreachableActionCount": 0,
+    "keyboardTrapCount": 0,
+    "invisibleFocusCount": 0,
+    "focusRestoreFailureCount": 0,
+    "unnamedInteractiveControlCount": 0,
+    "criticalAnnouncementMissCount": 0,
+    "unboundedTranscriptGrowthCount": 0,
+    "silentDiffOrLogTruncationCount": 0,
+    "uiHangCount": 0,
+    "credentialLeakCount": 0,
+    "orphanProcessCount": 0,
+    "requiredMeasurementsComplete": true,
+    "exactCommitBound": true
+  }
+}

@@ -31,6 +31,7 @@ final class ChatTranscript {
     // streamed text that gets re-styled as markdown when the run finalizes.
     private int assistantRunStart = -1;
     private boolean inAssistantRun = false;
+    private TranscriptCap.BoundedEntry assistantEntry;
     // Extended-thinking deltas form blocks separated by visible non-thinking
     // output. Their document ranges let /expand replace each block with a
     // compact placeholder and later restore the exact text.
@@ -53,6 +54,9 @@ final class ChatTranscript {
 
     ChatTranscript() {
         pane.setEditable(false);
+        pane.getAccessibleContext().setAccessibleName("Conversation transcript");
+        pane.getAccessibleContext().setAccessibleDescription(
+                "Read-only ChainlessChain agent conversation and tool activity");
         // JTextPane wraps by default (no setLineWrap). Keep the monospace look.
         pane.setFont(new Font(Font.MONOSPACED, Font.PLAIN, pane.getFont().getSize()));
         // JBColor(light, dark): theme-aware so code/thinking text stays readable
@@ -101,8 +105,16 @@ final class ChatTranscript {
         if (!inAssistantRun) {
             assistantRunStart = pane.getStyledDocument().getLength();
             inAssistantRun = true;
+            assistantEntry = new TranscriptCap.BoundedEntry(
+                    TranscriptCap.DEFAULT_MAX_CHARS);
         }
-        insertStyled(s, stylePlain);
+        boolean wasTruncated = assistantEntry.truncated();
+        assistantEntry.append(s);
+        if (!assistantEntry.truncated()) {
+            insertStyled(s, stylePlain);
+        } else if (!wasTruncated) {
+            replaceActiveAssistantText(assistantEntry.text());
+        }
     }
 
     /** Extended-thinking reasoning — streamed dim/italic, not markdown-rendered. */
@@ -193,11 +205,15 @@ final class ChatTranscript {
      *  amber, **bold** → bold). No-op when not in a run. */
     void finalizeAssistantRun() {
         if (!inAssistantRun) return;
-        inAssistantRun = false;
         StyledDocument d = pane.getStyledDocument();
-        int end = d.getLength();
+        if (assistantEntry != null && assistantEntry.truncated()) {
+            replaceActiveAssistantText(assistantEntry.text());
+        }
         int start = assistantRunStart;
+        int end = d.getLength();
+        inAssistantRun = false;
         assistantRunStart = -1;
+        assistantEntry = null;
         if (start < 0 || end <= start) return;
         final boolean following = isFollowingBottom();
         try {
@@ -220,6 +236,7 @@ final class ChatTranscript {
     void clear() {
         inAssistantRun = false;
         assistantRunStart = -1;
+        assistantEntry = null;
         activeThinkingBlock = null;
         thinkingBlocks.clear();
         thinkingExpanded = true;
@@ -230,23 +247,43 @@ final class ChatTranscript {
         try {
             final boolean following = isFollowingBottom();
             StyledDocument d = pane.getStyledDocument();
-            d.insertString(d.getLength(), s, style);
+            String bounded = TranscriptCap.boundEntry(
+                    s, TranscriptCap.DEFAULT_MAX_CHARS);
+            d.insertString(d.getLength(), bounded, style);
             // Bound long-session memory: drop the oldest text once the document
             // exceeds the cap, never trimming into the active assistant run (whose
             // absolute offset is shifted by whatever is removed). Mirrors the VS
             // Code panel's transcript node cap (chainlesschain-ide 0.36.5).
-            int removeLen = TranscriptCap.removeCount(
-                    d.getLength(), assistantRunStart, inAssistantRun,
-                    TranscriptCap.DEFAULT_MAX_CHARS);
-            if (removeLen > 0) {
-                trimThinkingBlocks(removeLen);
-                d.remove(0, removeLen);
-                if (assistantRunStart >= 0) assistantRunStart -= removeLen;
-            }
+            trimDocumentToCap(d);
             stickToBottomIfFollowing(following);
         } catch (BadLocationException ignored) {
             /* document offsets are append-only here — should not happen */
         }
+    }
+
+    /** Replace a capped active run once at threshold-crossing/finalization. */
+    private void replaceActiveAssistantText(String text) {
+        if (assistantRunStart < 0) return;
+        try {
+            StyledDocument document = pane.getStyledDocument();
+            document.remove(
+                    assistantRunStart, document.getLength() - assistantRunStart);
+            document.insertString(assistantRunStart, text, stylePlain);
+            trimDocumentToCap(document);
+        } catch (BadLocationException ignored) {
+            /* offsets are owned by this append-only transcript */
+        }
+    }
+
+    private void trimDocumentToCap(StyledDocument document)
+            throws BadLocationException {
+        int removeLen = TranscriptCap.removeCount(
+                document.getLength(), assistantRunStart, inAssistantRun,
+                TranscriptCap.DEFAULT_MAX_CHARS);
+        if (removeLen <= 0) return;
+        trimThinkingBlocks(removeLen);
+        document.remove(0, removeLen);
+        if (assistantRunStart >= 0) assistantRunStart -= removeLen;
     }
 
     /** Shift tracked reasoning ranges when the transcript evicts its prefix. */

@@ -81,6 +81,12 @@ function installed(overrides = {}) {
 }
 
 describe("plugin marketplace update impact", () => {
+  it("uses the v2 contract for cross-scope authority", () => {
+    expect(PLUGIN_MARKETPLACE_UPDATE_IMPACT_SCHEMA).toBe(
+      "cc-plugin-marketplace-update-impact/v2",
+    );
+  });
+
   it("projects version/source/integrity/license/capability/dependency changes", () => {
     const impact = buildPluginMarketplaceUpdateImpact({
       preflight: preflight(),
@@ -129,6 +135,77 @@ describe("plugin marketplace update impact", () => {
     expect(impact.requiredApprovals).toContainEqual({
       code: "SOURCE_SWITCH_APPROVAL_REQUIRED",
       detail: "source-switch",
+    });
+  });
+
+  it("binds an effective scope transition and physical source switch into the digest", () => {
+    const project = installed({
+      scope: "project",
+      source: {
+        ...installed().source,
+        source: "https://other-registry.example/index.json",
+        registry: "https://other-registry.example/index.json",
+      },
+    });
+    const impact = buildPluginMarketplaceUpdateImpact({
+      preflight: preflight(),
+      installed: project,
+      installedScopes: [project],
+      targetScope: "local",
+    });
+
+    expect(impact.changes.scopeAuthority).toMatchObject({
+      targetScope: "local",
+      effectiveFrom: "project",
+      effectiveTo: "local",
+      changed: true,
+      candidateWouldBeEffective: true,
+      sourceSwitchScopes: ["project"],
+    });
+    expect(impact.requiredApprovals).toContainEqual({
+      code: "SOURCE_SWITCH_APPROVAL_REQUIRED",
+      detail: "scopes: project",
+    });
+    expect(impact.installedScopes).toHaveLength(1);
+    expect(impact.impactDigest).not.toBe(
+      buildPluginMarketplaceUpdateImpact({
+        preflight: preflight(),
+        installed: project,
+        targetScope: "local",
+      }).impactDigest,
+    );
+  });
+
+  it("blocks a candidate weaker than a shadowed physical scope binding", () => {
+    const project = installed({
+      scope: "project",
+      integrity: {
+        signature: { verified: true, manifestSha256: sha("a") },
+        sbom: {
+          payloadSha256: sha("d"),
+          payloadSchema: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+          semanticPayloadFormat:
+            PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+        },
+      },
+    });
+    const local = installed({ scope: "local", version: "1.5.0" });
+    const impact = buildPluginMarketplaceUpdateImpact({
+      preflight: preflight(),
+      installed: local,
+      installedScopes: [project, local],
+      targetScope: "local",
+    });
+
+    expect(impact.status).toBe("blocked");
+    expect(impact.changes.scopeAuthority).toMatchObject({
+      effectiveFrom: "local",
+      effectiveTo: "local",
+      semanticDowngradeScopes: ["project"],
+    });
+    expect(impact.blockers).toContainEqual({
+      code: "SEMANTIC_SBOM_BINDING_DOWNGRADE",
+      detail: "scopes: project",
     });
   });
 

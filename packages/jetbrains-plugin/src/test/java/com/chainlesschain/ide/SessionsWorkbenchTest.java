@@ -234,6 +234,19 @@ class SessionsWorkbenchTest {
         assertEquals(0, SessionsWorkbench.filter(rows, "zzz").size());
     }
 
+    @Test
+    void scaleGateKeepsAndFiltersAtLeast128Sessions() {
+        List<SessionsWorkbench.Row> rows = new ArrayList<>();
+        for (int i = 0; i < 128; i++) {
+            rows.add(chat("session-" + i, "Scale session " + i, NOW - i));
+        }
+
+        assertTrue(SessionsWorkbench.DEFAULT_LIST_LIMIT >= 128);
+        assertEquals(128, SessionsWorkbench.filter(rows, "").size());
+        assertEquals("session-127",
+                SessionsWorkbench.filter(rows, "scale session 127").get(0).id);
+    }
+
     // ------------------------------------------------------ relative time
 
     @Test

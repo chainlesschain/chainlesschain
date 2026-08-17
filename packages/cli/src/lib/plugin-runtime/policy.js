@@ -26,6 +26,7 @@ import { enforcePluginPolicy } from "../plugin-security.js";
 import { loadManagedSettings } from "../settings-loader.cjs";
 import { verifyInstalledSignature } from "./signature.js";
 import { isPluginCapabilityConsented } from "./capability-consent.js";
+import { verifyInstalledManagedPublisherAuthority } from "./publisher-trust.js";
 
 // Managed settings are org-admin controlled and effectively static for a
 // session, and discoverPlugins is called by every collector — memoize the load
@@ -86,17 +87,17 @@ export function _resetPolicyCache() {
  * @returns {{ kept: Array, dropped: Array<{name, reason}> }}
  */
 export function filterByManagedPolicy(plugins, managed) {
-  if (!managed) return { kept: plugins, dropped: [] };
+  const policy = managed || {};
   // requireSignedPlugins (fail-closed): every plugin must carry a valid recorded
   // signature whose locked manifest hash still matches on disk. Optionally the
   // signing key must be among managed.trustedPluginKeySha256.
   const requireSigned =
-    managed.requireSignedPlugins === true ||
-    managed.requireSignedPlugins === "require";
+    policy.requireSignedPlugins === true ||
+    policy.requireSignedPlugins === "require";
   const trustedKeys = requireSigned
     ? new Set(
-        (Array.isArray(managed.trustedPluginKeySha256)
-          ? managed.trustedPluginKeySha256
+        (Array.isArray(policy.trustedPluginKeySha256)
+          ? policy.trustedPluginKeySha256
           : []
         )
           .map((k) => String(k || "").trim())
@@ -109,10 +110,24 @@ export function filterByManagedPolicy(plugins, managed) {
     try {
       enforcePluginPolicy(
         { name: p.name, source: null, action: "load" },
-        managed,
+        policy,
       );
     } catch (err) {
       dropped.push({ name: p.name, reason: err.message });
+      continue;
+    }
+    const publisher = verifyInstalledManagedPublisherAuthority(
+      { root: p.root, name: p.name },
+      policy,
+    );
+    if (
+      (publisher.present && !publisher.verified) ||
+      (policy.requireTrustedPluginPublishers === true && !publisher.verified)
+    ) {
+      dropped.push({
+        name: p.name,
+        reason: `trusted publisher: ${publisher.reason || "authority missing"}`,
+      });
       continue;
     }
     if (requireSigned) {

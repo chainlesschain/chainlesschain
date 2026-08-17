@@ -59,8 +59,6 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
     private static final int REFRESH_MS = 15_000;
     private static final long CLI_TIMEOUT_MS = 15_000;
     private static final long DELIVERY_CLI_TIMEOUT_MS = 30_000;
-    private static final int LIST_LIMIT = 50;
-
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
         Panel panel = new Panel(project, toolWindow);
@@ -114,6 +112,16 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
                             Paths.get(path), StandardCharsets.UTF_8));
 
             JButton refreshBtn = new JButton(CcBundle.message("sessions.wb.refresh"));
+            root.getAccessibleContext().setAccessibleName(
+                    "ChainlessChain Sessions Workbench");
+            root.getAccessibleContext().setAccessibleDescription(
+                    "Filter, inspect, and act on CLI-managed sessions");
+            search.getTextEditor().getAccessibleContext().setAccessibleName(
+                    "Filter sessions");
+            search.getTextEditor().getAccessibleContext().setAccessibleDescription(
+                    "Filter by session title, workspace, or identifier");
+            note.getAccessibleContext().setAccessibleName("Sessions status");
+            refreshBtn.getAccessibleContext().setAccessibleName("Refresh sessions");
             refreshBtn.addActionListener(ev -> load());
             search.addDocumentListener(new DocumentAdapter() {
                 @Override
@@ -154,26 +162,41 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
             resumeBtn.getAccessibleContext().setAccessibleName(
                     "ChainlessChain session dispatch");
             attachBtn.addActionListener(ev -> onAttach());
+            attachBtn.getAccessibleContext().setAccessibleName(
+                    "Attach to selected session");
             replyBtn.addActionListener(ev -> onReply());
             replyBtn.setName("chainlesschain.sessions.reply");
             replyBtn.getAccessibleContext().setAccessibleName(
                     "ChainlessChain session reply");
             stopBtn.addActionListener(ev -> onStop());
+            stopBtn.getAccessibleContext().setAccessibleName(
+                    "Stop selected session");
             logsBtn.addActionListener(ev -> onLogs());
+            logsBtn.getAccessibleContext().setAccessibleName(
+                    "Peek at selected session");
             checkpointBtn.addActionListener(ev -> onCheckpoint());
+            checkpointBtn.getAccessibleContext().setAccessibleName(
+                    "Checkpoint selected session");
             syncButtons();
 
             JPanel deliveryPanel = new JPanel(new BorderLayout(6, 6));
             deliveryPanel.setBorder(BorderFactory.createTitledBorder("Delivery flow"));
+            deliveryPanel.getAccessibleContext().setAccessibleName("Delivery flow");
             JPanel deliveryControls = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
             deliveryControls.add(deliverySelectBtn);
             deliveryControls.add(deliveryRefreshBtn);
             deliverySelectBtn.addActionListener(ev -> onDeliverySelect());
+            deliverySelectBtn.getAccessibleContext().setAccessibleName(
+                    "Select delivery state");
+            deliveryRefreshBtn.getAccessibleContext().setAccessibleName(
+                    "Refresh delivery flow");
             deliveryRefreshBtn.addActionListener(ev -> {
                 String statePath = deliveryController.statePath();
                 if (statePath != null) loadDelivery(statePath);
             });
             deliveryText.setEditable(false);
+            deliveryText.getAccessibleContext().setAccessibleName(
+                    "Delivery flow details");
             deliveryText.setLineWrap(true);
             deliveryText.setWrapStyleWord(true);
             deliveryText.setFont(new Font(
@@ -400,11 +423,16 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
                 for (String action : DeliveryWorkflow.availableActions(current)) {
                     JButton request = new JButton(
                             "Request: " + DeliveryWorkflow.actionLabel(action));
+                    request.getAccessibleContext().setAccessibleName(
+                            "Request delivery action: "
+                                    + DeliveryWorkflow.actionLabel(action));
                     request.addActionListener(ev -> onDeliveryRequest(action));
                     deliveryActions.add(request);
                 }
                 if (DeliveryWorkflow.pendingEffect(current) != null) {
                     JButton settle = new JButton("Settle from result JSON…");
+                    settle.getAccessibleContext().setAccessibleName(
+                            "Settle delivery action from result JSON");
                     settle.addActionListener(ev -> onDeliverySettlement());
                     deliveryActions.add(settle);
                 }
@@ -525,7 +553,7 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
         private List<String> projectionArgs() {
             List<String> args = new ArrayList<String>(List.of(
                     "session", "projection", "--json", "-n",
-                    String.valueOf(LIST_LIMIT)));
+                    String.valueOf(SessionsWorkbench.DEFAULT_LIST_LIMIT)));
             if (project.getBasePath() != null) {
                 args.add("--cwd");
                 args.add(project.getBasePath());

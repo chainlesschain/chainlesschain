@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "manifestVersion": "1.4.0",
+  "manifestVersion": "1.9.2",
   "baselineCommit": "eb0bc663b6eb794b1b62ba2bfc7a1267c699d25d",
   "releaseEvidence": {
     "commitSource": "git-head-at-run",
@@ -375,6 +375,291 @@
         "candidate-vsix",
         "candidate-manifest",
         "journey-evidence"
+      ]
+    },
+    {
+      "id": "q3-production-delivery-live",
+      "priority": "P0",
+      "required": true,
+      "evidenceStatus": "external-evidence-required",
+      "evidenceNotes": "The production adapter and crash-safe runner are covered in repository tests, but Q3 remains open until this exact sequence is executed against protected GitHub settings and independently re-readable immutable/WORM evidence on the exact release commit.",
+      "fixture": "tests/fixtures/ide-roadmap/q3-production-delivery-live.json",
+      "fixtureDigest": "sha256:90281a31545d059c72e2a45728bd2af885c5f99d6d36b64440703b9ad911940e",
+      "seed": 2026080113,
+      "minimumIndependentRuns": 1,
+      "matrix": {
+        "hosts": ["cli"],
+        "operatingSystems": ["linux"],
+        "transports": ["github-production"]
+      },
+      "expectedOutcome": {
+        "productionProviderInvoked": true,
+        "fullSequenceComplete": true,
+        "fixRerunComplete": true,
+        "exactHeadMismatchCount": 0,
+        "effectReplayCount": 0,
+        "unprotectedMergeCount": 0,
+        "missingRequiredReviewCount": 0,
+        "missingRequiredCheckCount": 0,
+        "credentialLeakCount": 0,
+        "wormReadbackMismatchCount": 0,
+        "requiredMeasurementsComplete": true,
+        "exactCommitBound": true
+      },
+      "testFiles": [
+        "packages/cli/__tests__/unit/delivery-coordinator.test.js",
+        "packages/cli/__tests__/unit/delivery-production-adapter.test.js",
+        "packages/cli/__tests__/unit/delivery-production-runner.test.js",
+        "packages/cli/__tests__/unit/delivery-production-command.test.js"
+      ],
+      "requiredArtifacts": [
+        "exact-commit",
+        "repository-policy",
+        "delivery-state-revisions",
+        "effect-ledger",
+        "gate-results",
+        "preview-artifacts",
+        "review-findings",
+        "fix-diff-digest",
+        "pull-request-metadata",
+        "required-check-results",
+        "immutable-evidence",
+        "worm-readback",
+        "merge-metadata",
+        "archive-result",
+        "redacted-diagnostics",
+        "outcome-observations"
+      ]
+    },
+    {
+      "id": "p1-dynamic-workflow",
+      "priority": "P1",
+      "required": true,
+      "evidenceStatus": "external-evidence-required",
+      "evidenceNotes": "Repository tests close generated-draft review authority and existing admission/replay behavior only. Release readiness still requires durable pause/resume/stop/restart, at-most-once settlement after crashes, lineage, dual-IDE consumption, plugin distribution, and the declared real-host matrix on the exact release commit.",
+      "fixture": "tests/fixtures/ide-roadmap/p1-dynamic-workflow.json",
+      "fixtureDigest": "sha256:df377b8b287343bf3259973e4ab905610c0232db2e6ae994b3cb905eafd98e9f",
+      "seed": 2026080114,
+      "minimumIndependentRuns": 100,
+      "matrix": {
+        "hosts": ["cli", "vscode", "jetbrains"],
+        "operatingSystems": ["windows", "linux", "macos"],
+        "transports": ["local", "wsl", "ssh", "container", "cloud"]
+      },
+      "expectedOutcome": {
+        "modelDraftDirectExecutionCount": 0,
+        "reviewDigestMismatchAcceptanceCount": 0,
+        "credentialLeakCount": 0,
+        "unversionedDefinitionExecutionCount": 0,
+        "authorityDriftExecutionCount": 0,
+        "duplicateStageSettlementCount": 0,
+        "stoppedStageCommitCount": 0,
+        "budgetOverrunContinuationCount": 0,
+        "missingArtifactLineageCount": 0,
+        "unsupportedNeedsInputContinuationCount": 0,
+        "requiredMeasurementsComplete": true,
+        "humanReviewBound": true,
+        "exactCommitBound": true
+      },
+      "testFiles": [
+        "packages/cli/__tests__/unit/dynamic-workflow-draft.test.js",
+        "packages/cli/__tests__/integration/cowork-workflow-draft-command.test.js",
+        "packages/cli/__tests__/unit/dynamic-workflow-runtime.test.js",
+        "packages/cli/__tests__/integration/cowork-workflow-runtime-command.test.js",
+        "packages/cli/__tests__/unit/dynamic-workflow-facade.test.js",
+        "packages/cli/__tests__/unit/cowork-workflow.test.js",
+        "packages/cli/__tests__/unit/cowork-workflow-ws.test.js",
+        "packages/cli/__tests__/integration/cowork-workflow-run-admission-command.test.js"
+      ],
+      "requiredArtifacts": [
+        "exact-commit",
+        "host-environment",
+        "model-generation-record",
+        "human-review-record",
+        "versioned-definition",
+        "execution-location-authority",
+        "run-admission",
+        "control-revision-ledger",
+        "stage-effect-ledger",
+        "checkpoint-lineage",
+        "token-time-budget-ledger",
+        "artifact-lineage",
+        "plugin-package-provenance",
+        "redacted-diagnostics",
+        "outcome-observations"
+      ]
+    },
+    {
+      "id": "p1-execution-location",
+      "priority": "P1",
+      "required": true,
+      "evidenceStatus": "external-evidence-required",
+      "evidenceNotes": "Repository tests establish fixed-command WSL/strict-SSH/existing-Container target probing, exact whole-revision replica installation, independently recomputed target-attestation authority, and a CAS-bound canonical location-handoff successor before replicated resume. Shared-store handoff, cross-host writer fencing, and release readiness still require real WSL/SSH/Container/Cloud hosts, incremental/bidirectional synchronization, reconnect durability, return-path readback, dual-IDE consumption, and 100 independent runs of every exact-commit matrix cell.",
+      "fixture": "tests/fixtures/ide-roadmap/p1-execution-location.json",
+      "fixtureDigest": "sha256:7196ce278bf5155a345f8f4ee3f91b77c0197822d70c32f809038be3a0d1e709",
+      "seed": 2026080115,
+      "minimumIndependentRuns": 100,
+      "matrix": {
+        "hosts": ["cli", "vscode", "jetbrains"],
+        "operatingSystems": ["windows", "linux", "macos"],
+        "transports": ["wsl", "ssh", "container", "cloud"]
+      },
+      "expectedOutcome": {
+        "unattestedLaunchCount": 0,
+        "hostKeyVerificationBypassCount": 0,
+        "sourceAuthorityDriftLaunchCount": 0,
+        "targetFactsDriftLaunchCount": 0,
+        "targetCliVersionDriftLaunchCount": 0,
+        "targetCommitDriftLaunchCount": 0,
+        "missingSessionReplicaResumeCount": 0,
+        "wrongSessionAuthorityResumeCount": 0,
+        "divergentSessionReplacementCount": 0,
+        "partiallyPublishedSessionReplicaCount": 0,
+        "unanchoredReplicatedLocationResumeCount": 0,
+        "invalidLocationHandoffAcceptanceCount": 0,
+        "duplicateResumeAfterTargetAdvanceCount": 0,
+        "credentialValueTransferCount": 0,
+        "duplicateSessionContinuationCount": 0,
+        "lostReturnedArtifactCount": 0,
+        "orphanProcessCount": 0,
+        "requiredMeasurementsComplete": true,
+        "exactCommitBound": true
+      },
+      "testFiles": [
+        "packages/cli/__tests__/unit/execution-location-contract.test.js",
+        "packages/cli/__tests__/unit/session-location.test.js",
+        "packages/cli/__tests__/unit/execution-location-target.test.js",
+        "packages/cli/__tests__/unit/session-replica-transfer.test.js",
+        "packages/cli/__tests__/integration/session-location-target-command.test.js"
+      ],
+      "requiredArtifacts": [
+        "exact-commit",
+        "source-session-authority",
+        "handoff-facts",
+        "target-profile-digest",
+        "target-host-identity",
+        "target-ambient-attestation",
+        "canonical-target-attestation-digest",
+        "target-session-store-authority",
+        "source-transcript-byte-digest",
+        "target-replica-install-receipt",
+        "canonical-location-handoff-event",
+        "launch-resume-receipt",
+        "disconnect-recovery-trajectory",
+        "returned-commit-diff-summary-artifacts",
+        "redacted-diagnostics",
+        "outcome-observations"
+      ]
+    },
+    {
+      "id": "p1-marketplace-supply-chain",
+      "priority": "P1",
+      "required": true,
+      "evidenceStatus": "external-evidence-required",
+      "evidenceNotes": "Repository tests establish fail-closed implementation coverage, but release readiness requires exact-commit evidence for 100 independent runs of every declared OS/transport cell against clean external hosts.",
+      "fixture": "tests/fixtures/ide-roadmap/p1-marketplace-supply-chain.json",
+      "fixtureDigest": "sha256:df9085e12b8c736185bfcf0a77f4748e2e3d126f63abcc6da936296c6d2ee1b4",
+      "seed": 2026080111,
+      "minimumIndependentRuns": 100,
+      "matrix": {
+        "hosts": ["cli"],
+        "operatingSystems": ["windows", "linux", "macos"],
+        "transports": [
+          "private-registry-tls",
+          "explicit-proxy",
+          "pac",
+          "air-gapped-cache"
+        ]
+      },
+      "expectedOutcome": {
+        "credentialLeakCount": 0,
+        "unauthorizedCacheFallbackCount": 0,
+        "unverifiedActivationCount": 0,
+        "staleAuthorityActivationCount": 0,
+        "corruptCacheActivationCount": 0,
+        "dependencyConflictActivationCount": 0,
+        "sourceSwitchWithoutApprovalCount": 0,
+        "revokedKeyActivationCount": 0,
+        "offlineNetworkRequestCount": 0,
+        "rollbackFailureCount": 0,
+        "failureArtifactsComplete": true,
+        "exactCommitBound": true
+      },
+      "testFiles": [
+        "packages/cli/__tests__/unit/plugin-remote-source-security.test.js",
+        "packages/cli/__tests__/unit/plugin-marketplace-network.test.js",
+        "packages/cli/__tests__/unit/plugin-marketplace-remote-artifacts.test.js",
+        "packages/cli/__tests__/unit/plugin-marketplace-source-cache.test.js",
+        "packages/cli/__tests__/unit/plugin-marketplace-catalog.test.js",
+        "packages/cli/__tests__/unit/plugin-runtime-publisher-trust.test.js",
+        "packages/cli/__tests__/integration/plugin-marketplace-remote-artifact-command.test.js"
+      ],
+      "requiredArtifacts": [
+        "exact-commit",
+        "host-environment",
+        "network-authority",
+        "fault-injection-record",
+        "redacted-diagnostics",
+        "registry-document-digest",
+        "artifact-digests",
+        "source-cache-authority",
+        "transaction-journal",
+        "rollback-evidence",
+        "outcome-observations"
+      ]
+    },
+    {
+      "id": "p2-accessibility-performance",
+      "priority": "P2",
+      "required": true,
+      "evidenceStatus": "external-evidence-required",
+      "evidenceNotes": "Repository tests establish bounded rendering and semantic accessibility coverage only. Release readiness requires exact-commit evidence from real VS Code and JetBrains hosts using each operating system's declared assistive technology, scale inputs, and eight-hour run.",
+      "fixture": "tests/fixtures/ide-roadmap/p2-accessibility-performance.json",
+      "fixtureDigest": "sha256:d8f5045f41e34086b75f8ed09802723be86eeb2ee6105e79e64e751cb1cbad4d",
+      "seed": 2026080112,
+      "minimumIndependentRuns": 1,
+      "matrix": {
+        "hosts": ["vscode", "jetbrains"],
+        "operatingSystems": ["windows", "linux", "macos"],
+        "transports": ["keyboard-only", "screen-reader", "long-session-scale"]
+      },
+      "expectedOutcome": {
+        "keyboardUnreachableActionCount": 0,
+        "keyboardTrapCount": 0,
+        "invisibleFocusCount": 0,
+        "focusRestoreFailureCount": 0,
+        "unnamedInteractiveControlCount": 0,
+        "criticalAnnouncementMissCount": 0,
+        "unboundedTranscriptGrowthCount": 0,
+        "silentDiffOrLogTruncationCount": 0,
+        "uiHangCount": 0,
+        "credentialLeakCount": 0,
+        "orphanProcessCount": 0,
+        "requiredMeasurementsComplete": true,
+        "exactCommitBound": true
+      },
+      "testFiles": [
+        "desktop-app-vue/tests/unit/utils/accessibility.test.ts",
+        "packages/cli/__tests__/unit/vscode-ext-sessions-workbench.test.js",
+        "packages/vscode-extension/test/host-dom-relay.test.cjs",
+        "packages/vscode-extension/test/sessions-view-delivery.test.cjs",
+        "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/SessionsWorkbenchTest.java",
+        "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptTest.java",
+        "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/TranscriptCapTest.java"
+      ],
+      "requiredArtifacts": [
+        "exact-commit",
+        "host-environment",
+        "assistive-technology",
+        "keyboard-action-ledger",
+        "accessibility-tree",
+        "screen-reader-transcript",
+        "focus-transition-ledger",
+        "large-input-digests",
+        "performance-samples",
+        "resource-trajectory",
+        "redacted-diagnostics",
+        "outcome-observations"
       ]
     }
   ]

@@ -3,11 +3,8 @@
  *
  * AccessibilityManager: WCAG contrast math (pure), accessible button + ARIA
  * helpers (DOM), the screen-reader announcer (fake timers), and matchMedia
- * preference probes (stubbed). Instances use enableKeyboardNav:false so the
- * constructor doesn't leak a document keydown listener; destroy() cleans up.
- *
- * getFocusableElements is intentionally not tested: it filters on offsetParent,
- * which jsdom always reports as null (no layout), so it can't be exercised.
+ * preference probes (stubbed), bounded focus history, focus traps, and global
+ * keyboard-listener cleanup.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -72,6 +69,118 @@ describe("accessibility — DOM helpers", () => {
     expect(el.getAttribute("aria-label")).toBe("x");
     expect(el.getAttribute("aria-expanded")).toBe("true");
   });
+
+  it("restores only connected focus targets and bounds focus history", () => {
+    const opener = document.createElement("button");
+    const target = document.createElement("input");
+    document.body.append(opener, target);
+    opener.focus();
+    expect(a.focus(target)).toBe(true);
+    expect(a.restoreFocus()).toBe(true);
+    expect(document.activeElement).toBe(opener);
+
+    for (let index = 0; index < 40; index += 1) {
+      opener.focus();
+      a.focus(target);
+    }
+    expect((a as any).focusHistory).toHaveLength(32);
+    opener.remove();
+    while ((a as any).focusHistory.length > 0) {
+      expect(a.restoreFocus()).toBe(false);
+    }
+  });
+
+  it("traps tab navigation and restores the opener on release", () => {
+    const opener = document.createElement("button");
+    const dialog = document.createElement("div");
+    const first = document.createElement("button");
+    const last = document.createElement("button");
+    dialog.append(first, last);
+    document.body.append(opener, dialog);
+    opener.focus();
+
+    a.trapFocus(dialog);
+    expect(document.activeElement).toBe(first);
+    last.focus();
+    dialog.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Tab", bubbles: true }),
+    );
+    expect(document.activeElement).toBe(first);
+    dialog.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Tab",
+        shiftKey: true,
+        bubbles: true,
+      }),
+    );
+    expect(document.activeElement).toBe(last);
+
+    const dynamicLast = document.createElement("button");
+    dialog.appendChild(dynamicLast);
+    dynamicLast.focus();
+    dialog.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Tab", bubbles: true }),
+    );
+    expect(document.activeElement).toBe(first);
+
+    a.releaseFocusTrap();
+    expect(document.activeElement).toBe(opener);
+  });
+
+  it("excludes hidden, inert, disabled, and negative-tabindex controls", () => {
+    const container = document.createElement("div");
+    const visible = document.createElement("button");
+    const hidden = document.createElement("button");
+    hidden.hidden = true;
+    const disabled = document.createElement("button");
+    disabled.disabled = true;
+    const negative = document.createElement("div");
+    negative.tabIndex = -2;
+    const inert = document.createElement("div");
+    inert.setAttribute("inert", "");
+    const inertButton = document.createElement("button");
+    inert.appendChild(inertButton);
+    const editable = document.createElement("div");
+    editable.contentEditable = "true";
+    editable.tabIndex = 0;
+    container.append(visible, hidden, disabled, negative, inert, editable);
+    document.body.appendChild(container);
+
+    expect(a.getFocusableElements(container)).toEqual([visible, editable]);
+  });
+});
+
+describe("accessibility — keyboard lifecycle", () => {
+  it("removes its global shortcut listener on destroy", () => {
+    const manager = new AccessibilityManager({
+      enableAnnouncements: false,
+      enableKeyboardNav: true,
+    });
+    const shortcut = vi.fn();
+    window.addEventListener("show-keyboard-shortcuts", shortcut);
+    try {
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "?",
+          shiftKey: true,
+          bubbles: true,
+        }),
+      );
+      expect(shortcut).toHaveBeenCalledTimes(1);
+      manager.destroy();
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "?",
+          shiftKey: true,
+          bubbles: true,
+        }),
+      );
+      expect(shortcut).toHaveBeenCalledTimes(1);
+    } finally {
+      manager.destroy();
+      window.removeEventListener("show-keyboard-shortcuts", shortcut);
+    }
+  });
 });
 
 describe("accessibility — announce", () => {
@@ -84,6 +193,26 @@ describe("accessibility — announce", () => {
       expect(region.textContent).toBe(""); // not yet
       vi.advanceTimersByTime(100);
       expect(region.textContent).toBe("Saved");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("coalesces announcements and cancels pending work on destroy", () => {
+    vi.useFakeTimers();
+    try {
+      a.announce("old");
+      vi.advanceTimersByTime(50);
+      a.announce("new");
+      vi.advanceTimersByTime(100);
+      expect(document.body.querySelector("div[aria-live]")?.textContent).toBe(
+        "new",
+      );
+
+      a.announce("after destroy");
+      a.destroy();
+      vi.runAllTimers();
+      expect(document.body.querySelector("div[aria-live]")).toBeNull();
     } finally {
       vi.useRealTimers();
     }
@@ -112,7 +241,11 @@ describe("accessibility — media preferences", () => {
 
 describe("accessibility — named helpers", () => {
   it("getAccessibilityManager memoizes; checkContrast helper delegates", () => {
-    expect(getAccessibilityManager()).toBe(getAccessibilityManager());
+    const singleton = getAccessibilityManager();
+    expect(singleton).toBe(getAccessibilityManager());
     expect(checkContrastHelper("#000000", "#ffffff").AA).toBe(true);
+    singleton.destroy();
+    expect(getAccessibilityManager()).not.toBe(singleton);
+    getAccessibilityManager().destroy();
   });
 });

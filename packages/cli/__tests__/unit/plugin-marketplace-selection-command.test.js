@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Command } from "commander";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -142,6 +143,14 @@ describe("cc plugin multi-registry selection", () => {
     expect(installed.source.catalogAuthority).toMatchObject({
       selectionDigest: review.selectionDigest,
       selectionSourceCount: 2,
+      registryDocumentSha256: crypto
+        .createHash("sha256")
+        .update(
+          JSON.stringify({
+            plugins: [entry("2.0.0", path.join(sourceRoot, "2.0.0"))],
+          }),
+        )
+        .digest("hex"),
     });
   });
 
@@ -159,5 +168,37 @@ describe("cc plugin multi-registry selection", () => {
     expect(JSON.parse(result.output).blockers).toContainEqual(
       expect.objectContaining({ code: "REGISTRY_SET_INCOMPLETE" }),
     );
+  });
+
+  it("keeps explicit offline selection off the network on a cache miss", async () => {
+    remoteDeps.fetch.mockClear();
+    const result = await run(
+      "select",
+      "multi-source",
+      "--registry",
+      "https://one.example/index.json",
+      "--offline",
+      "--json",
+    );
+    expect(result.exitCode).toBe(2);
+    expect(JSON.parse(result.output).blockers).toContainEqual(
+      expect.objectContaining({ code: "REGISTRY_SET_INCOMPLETE" }),
+    );
+    expect(remoteDeps.fetch).not.toHaveBeenCalled();
+  });
+
+  it("rejects an invalid registry document pin before network access", async () => {
+    remoteDeps.fetch.mockClear();
+    const result = await run(
+      "select",
+      "multi-source",
+      "--registry",
+      "https://one.example/index.json",
+      "--registry-digest",
+      "https://one.example/index.json=NOT-A-DIGEST",
+      "--json",
+    );
+    expect(result.exitCode).toBe(1);
+    expect(remoteDeps.fetch).not.toHaveBeenCalled();
   });
 });
