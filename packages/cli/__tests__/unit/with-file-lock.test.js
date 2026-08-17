@@ -596,4 +596,153 @@ describe("withFileLock", () => {
       replacement,
     );
   });
+
+  it("finishes an owner-published release after a transient Windows cleanup failure", () => {
+    const _fs = fakeLockFs();
+    const lockDir = "/critical.json.lock";
+    const ownerToken = "original-owner-token-0003";
+    const originalRename = _fs.renameSync;
+    const originalRemove = _fs.rmSync;
+    let blockedReleaseRename = false;
+    let blockedReleaseRemove = false;
+
+    _fs.renameSync = vi.fn((from, to) => {
+      const normalizedFrom = String(from).replaceAll("\\", "/");
+      if (normalizedFrom === lockDir && !blockedReleaseRename) {
+        blockedReleaseRename = true;
+        const error = new Error("transient Windows sharing violation");
+        error.code = "EPERM";
+        throw error;
+      }
+      return originalRename(from, to);
+    });
+    _fs.rmSync = vi.fn((target, options) => {
+      const normalizedTarget = String(target).replaceAll("\\", "/");
+      if (normalizedTarget === lockDir && !blockedReleaseRemove) {
+        blockedReleaseRemove = true;
+        const error = new Error("transient Windows directory cleanup denial");
+        error.code = "EPERM";
+        throw error;
+      }
+      return originalRemove(target, options);
+    });
+
+    expect(() =>
+      withFileLock("/critical.json", () => true, {
+        _fs,
+        _ownerToken: () => ownerToken,
+        failIfUnavailable: true,
+      }),
+    ).toThrowError(
+      expect.objectContaining({ code: "STATE_LOCK_OWNERSHIP_LOST" }),
+    );
+    expect(_fs.dirs.has(lockDir)).toBe(true);
+    expect(
+      JSON.parse(_fs.readFileSync(`${lockDir}/.release-${ownerToken}`)),
+    ).toEqual(expect.objectContaining({ pid: process.pid, token: ownerToken }));
+
+    expect(
+      withFileLock("/critical.json", () => "recovered", {
+        _fs,
+        timeoutMs: 10,
+        _now: (() => {
+          let now = 0;
+          return () => now++;
+        })(),
+        _sleep: () => {},
+        _isProcessAlive: () => true,
+        _ownerToken: () => "next-owner-token-0000001",
+        failIfUnavailable: true,
+      }),
+    ).toBe("recovered");
+    expect(_fs.dirs.has(lockDir)).toBe(false);
+  });
+
+  it("does not complete a published release whose marker token mismatches the live owner", () => {
+    const _fs = fakeLockFs();
+    const lockDir = "/critical.json.lock";
+    const liveOwner = {
+      pid: 7171,
+      startedAt: 4,
+      token: "live-owner-token-0000001",
+    };
+    const mismatchedMarker = {
+      ...liveOwner,
+      token: "different-owner-token-001",
+    };
+    _fs.dirs.set(lockDir, 0);
+    _fs.writeFileSync(`${lockDir}/owner.json`, JSON.stringify(liveOwner));
+    _fs.writeFileSync(
+      `${lockDir}/.release-${liveOwner.token}`,
+      JSON.stringify(mismatchedMarker),
+    );
+    let now = 0;
+
+    expect(() =>
+      withFileLock("/critical.json", () => true, {
+        _fs,
+        timeoutMs: 10,
+        _now: () => (now += 20),
+        _sleep: () => {},
+        _isProcessAlive: () => true,
+        _ownerToken: () => "contender-owner-token-001",
+        failIfUnavailable: true,
+      }),
+    ).toThrowError(/Could not acquire state lock/);
+    expect(JSON.parse(_fs.readFileSync(`${lockDir}/owner.json`))).toEqual(
+      liveOwner,
+    );
+    expect(_fs.dirs.has(lockDir)).toBe(true);
+  });
+
+  it("waits for a live release claimant and takes over only after that claimant dies", () => {
+    const _fs = fakeLockFs();
+    const lockDir = "/critical.json.lock";
+    const owner = {
+      pid: 7272,
+      startedAt: 5,
+      token: "released-owner-token-00001",
+    };
+    const cleanupClaim = {
+      pid: 7373,
+      startedAt: 6,
+      token: "release-claimant-token-001",
+    };
+    _fs.dirs.set(lockDir, 0);
+    _fs.writeFileSync(`${lockDir}/owner.json`, JSON.stringify(owner));
+    _fs.writeFileSync(
+      `${lockDir}/.release-${owner.token}`,
+      JSON.stringify(owner),
+    );
+    _fs.writeFileSync(
+      `${lockDir}/.release-claim-${owner.token}`,
+      JSON.stringify(cleanupClaim),
+    );
+    let now = 0;
+
+    expect(() =>
+      withFileLock("/critical.json", () => true, {
+        _fs,
+        timeoutMs: 10,
+        _now: () => (now += 20),
+        _sleep: () => {},
+        _isProcessAlive: () => true,
+        _ownerToken: () => "waiting-contender-token-001",
+        failIfUnavailable: true,
+      }),
+    ).toThrowError(/Could not acquire state lock/);
+    expect(JSON.parse(_fs.readFileSync(`${lockDir}/owner.json`))).toEqual(
+      owner,
+    );
+
+    expect(
+      withFileLock("/critical.json", () => "recovered", {
+        _fs,
+        _isProcessAlive: (pid) => pid !== cleanupClaim.pid,
+        _ownerToken: () => "recovery-contender-token-01",
+        failIfUnavailable: true,
+      }),
+    ).toBe("recovered");
+    expect(_fs.dirs.has(lockDir)).toBe(false);
+  });
 });
