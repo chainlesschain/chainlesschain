@@ -3663,7 +3663,7 @@ export function stopBackgroundAgent(id) {
           identityProbeRetries: 0,
         };
         try {
-          const preflightIdentity = inspectIdentity();
+          let preflightIdentity = inspectIdentity();
           activeTerminationContext.lastIdentityStatus =
             preflightIdentity.status;
           activeTerminationContext.lastIdentityReason =
@@ -3681,14 +3681,55 @@ export function stopBackgroundAgent(id) {
             continue;
           }
           if (preflightIdentity.status !== "match") {
-            activeTerminationContext.retryStoppedBy = "preflight-identity";
-            throw new Error(
-              `destructive process identity is ${preflightIdentity.status}: ${preflightIdentity.reason || "unknown"}`,
-            );
+            if (
+              process.platform === "win32" ||
+              !isRecoverableInitialDestructiveIdentityProbe(preflightIdentity)
+            ) {
+              activeTerminationContext.retryStoppedBy = "preflight-identity";
+              throw new Error(
+                `destructive process identity is ${preflightIdentity.status}: ${preflightIdentity.reason || "unknown"}`,
+              );
+            }
+            permissionRetryDeadline =
+              _deps.posixPermissionRetryNowMs() +
+              Math.max(0, Number(_deps.processExitWaitDeadlineMs) || 0);
+            const retry = retryRecoverableInitialPosixIdentity({
+              inspectIdentity,
+              initialIdentity: preflightIdentity,
+              deadline: permissionRetryDeadline,
+            });
+            activeTerminationContext.identityProbeRetries +=
+              retry.identityProbeRetries;
+            preflightIdentity = retry.lastIdentity;
+            activeTerminationContext.lastIdentityStatus =
+              preflightIdentity?.status;
+            activeTerminationContext.lastIdentityReason =
+              preflightIdentity?.reason || null;
+            activeTerminationContext.retryStoppedBy = retry.retryStoppedBy;
+            if (retry.status === "retired") {
+              if (
+                preflightIdentity?.status === "reused" &&
+                primaryWorker?.pid === target.pid &&
+                !signalledPids.has(target.pid)
+              ) {
+                workerPidReused = true;
+              }
+              target.retiredBeforeWait = true;
+              signalledPids.add(target.pid);
+              continue;
+            }
+            if (retry.status !== "matched") {
+              throw new Error(
+                `destructive process identity is ${preflightIdentity?.status || "unknown"}: ${preflightIdentity?.reason || "unknown"}`,
+              );
+            }
           }
-          permissionRetryDeadline =
-            _deps.posixPermissionRetryNowMs() +
-            Math.max(0, Number(_deps.processExitWaitDeadlineMs) || 0);
+          if (!(permissionRetryDeadline > 0)) {
+            permissionRetryDeadline =
+              _deps.posixPermissionRetryNowMs() +
+              Math.max(0, Number(_deps.processExitWaitDeadlineMs) || 0);
+          }
+          activeTerminationContext.retryStoppedBy = "initial-signal";
           target.signalledAsGroup = sendInitialSignal() === "process-group";
           signalledPids.add(target.pid);
         } catch (error) {
