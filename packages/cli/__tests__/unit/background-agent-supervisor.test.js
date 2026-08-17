@@ -4447,6 +4447,132 @@ describe("background agent supervisor", () => {
     },
   );
 
+  it("settles a post-EPERM process-group probe outage as retired without resending", () => {
+    const sleeperPid = spawnSleeperPid();
+    const startedAt = Date.now();
+    let processState = "S";
+    let groupProbes = 0;
+    let terminationAttempts = 0;
+    let retryClock = 0;
+    writeBackgroundAgentState({
+      id: "bg-stop-posix-eperm-group-probe-retired",
+      status: "running",
+      pid: sleeperPid,
+      startedAt,
+    });
+    _deps.processExitWaitDeadlineMs = 100;
+    _deps.posixPermissionRetryNowMs = vi.fn(() => retryClock);
+    _deps.posixPermissionRetrySleep = vi.fn((ms) => {
+      retryClock += ms;
+    });
+    _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+    _deps.readProcessState = vi.fn(() => processState);
+    _deps.readProcessGroupStates = vi.fn(() => {
+      groupProbes += 1;
+      return groupProbes === 1 ? null : [];
+    });
+    const denied = Object.assign(new Error("kill EPERM"), {
+      code: "EPERM",
+    });
+    _deps.kill = vi.fn((pid, signal) => {
+      if (signal !== "SIGTERM") return true;
+      terminationAttempts += 1;
+      process.kill(Math.abs(Number(pid)), "SIGKILL");
+      processState = "Z";
+      throw denied;
+    });
+
+    const platformDescriptor = Object.getOwnPropertyDescriptor(
+      process,
+      "platform",
+    );
+    let result;
+    try {
+      Object.defineProperty(process, "platform", {
+        ...platformDescriptor,
+        value: "linux",
+      });
+      result = stopBackgroundAgent("bg-stop-posix-eperm-group-probe-retired");
+    } finally {
+      Object.defineProperty(process, "platform", platformDescriptor);
+    }
+    expect(result).toMatchObject({
+      status: "stopped",
+      stopped: true,
+    });
+    expect(terminationAttempts).toBe(1);
+    expect(_deps.posixPermissionRetrySleep.mock.calls).toEqual([[10]]);
+    expect(groupProbes).toBeGreaterThanOrEqual(2);
+    expect(
+      _deps.kill.mock.calls.filter(([, signal]) => signal === "SIGTERM"),
+    ).toEqual([[-sleeperPid, "SIGTERM"]]);
+  });
+
+  it("fails a persistent post-EPERM process-group probe outage without resending", () => {
+    const sleeperPid = spawnSleeperPid();
+    const startedAt = Date.now();
+    let processStateProbes = 0;
+    let retryClock = 0;
+    writeBackgroundAgentState({
+      id: "bg-stop-posix-eperm-group-probe-unverifiable",
+      status: "running",
+      pid: sleeperPid,
+      startedAt,
+    });
+    _deps.processExitWaitDeadlineMs = 35;
+    _deps.posixPermissionRetryNowMs = vi.fn(() => retryClock);
+    _deps.posixPermissionRetrySleep = vi.fn((ms) => {
+      retryClock += ms;
+    });
+    _deps.readProcessState = vi.fn(() => {
+      processStateProbes += 1;
+      return processStateProbes <= 2 ? "S" : "Z";
+    });
+    _deps.readProcessGroupStates = vi.fn(() => null);
+    _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+    const denied = Object.assign(new Error("kill EPERM"), {
+      code: "EPERM",
+    });
+    _deps.kill = vi.fn((_pid, signal) => {
+      if (signal === "SIGTERM") throw denied;
+      return true;
+    });
+
+    const platformDescriptor = Object.getOwnPropertyDescriptor(
+      process,
+      "platform",
+    );
+    try {
+      Object.defineProperty(process, "platform", {
+        ...platformDescriptor,
+        value: "linux",
+      });
+      expect(() =>
+        stopBackgroundAgent("bg-stop-posix-eperm-group-probe-unverifiable"),
+      ).toThrow(
+        /worker pid .*process-group.*signal resends 0.*identity probe retries 3.*process-group-state-probe-failed.*identity-probe-deadline.*kill EPERM/u,
+      );
+    } finally {
+      Object.defineProperty(process, "platform", platformDescriptor);
+    }
+    expect(_deps.posixPermissionRetrySleep.mock.calls).toEqual([
+      [10],
+      [20],
+      [5],
+    ]);
+    expect(
+      _deps.kill.mock.calls.filter(([, signal]) => signal === "SIGTERM"),
+    ).toEqual([[-sleeperPid, "SIGTERM"]]);
+    expect(
+      readBackgroundAgentState("bg-stop-posix-eperm-group-probe-unverifiable"),
+    ).toMatchObject({
+      status: "running",
+      phase: "stop_failed",
+      stopPending: true,
+      stopPendingReason: "process-termination",
+    });
+  });
+
   it.skipIf(process.platform === "win32")(
     "fails closed when POSIX EPERM still resolves to the recorded process",
     () => {
