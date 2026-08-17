@@ -26,13 +26,12 @@ describe("scheduler kernel soak workflow contract", () => {
     );
   });
 
-  it("runs PR smoke and daily or exact-commit formal profiles", () => {
+  it("runs PR smoke and exact-commit formal profiles", () => {
     const workflow = workflowSource();
 
     expect(workflow).toContain("pull_request:");
-    expect(workflow).toContain("schedule:");
+    expect(workflow).not.toContain("schedule:");
     expect(workflow).toContain("workflow_dispatch:");
-    expect(workflow).toMatch(/cron: "[^\n]+ \* \* \*"/u);
     expect(workflow).toMatch(
       /commit_sha:\s*\n\s+description:[^\n]+\n\s+required: true/u,
     );
@@ -63,6 +62,9 @@ describe("scheduler kernel soak workflow contract", () => {
     expect(workflow).not.toContain("|| github.sha");
     expect(workflow).toContain(
       '".github/workflows/cli-scheduler-soak-campaign.yml"',
+    );
+    expect(workflow).toContain(
+      '".github/workflows/cli-scheduler-soak-auto-dispatch.yml"',
     );
     expect(workflow).toContain(
       '"packages/cli/scripts/scheduler-kernel-soak-campaign.mjs"',
