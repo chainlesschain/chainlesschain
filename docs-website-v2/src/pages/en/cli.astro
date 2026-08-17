@@ -629,13 +629,13 @@ const packs = [
           P2-16 Agent Teams uses local state v6 as authority and adds a separate distributed queue v1 for supported shared filesystems. Queue authority digests, leases, CAS, and wall-clock fences prevent stale workers or late results from publishing. A 10,000-task DAG with up to 64 local workers is the validated boundary for one local runner; the shared-filesystem queue is not consensus and is not network-partition tolerant.
         </p>
         <p class="mt-4 text-lg text-muted">
-          The current CLI carries PDH 0.4.57. Source aliases, raw observations, field-level conflict decisions, rewritten references, and final entities commit in one transaction. Desktop, Web Panel, and CLI share one live-collection protocol; transient Cookie/OAuth inputs are not persisted, and partial reads, unreadable databases, or incomplete pagination retain the previous checkpoint for a safe resume.
+          The current CLI carries PDH 0.4.58. Source aliases, raw observations, field-level conflict decisions, rewritten references, and final entities commit in one transaction. Desktop, Web Panel, and CLI share one live-collection protocol; transient Cookie/OAuth inputs are not persisted, the bounded ZIP adapter now uses adm-zip 0.6.0, and partial reads or incomplete pagination retain the previous checkpoint for a safe resume.
         </p>
         <p class="mt-4 text-lg text-muted">
-          Stable release <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> ships interactive native <code class="font-mono text-sm">/paste-image</code>, scoped execution and context authority, governed plugin catalog/selection/impact/artifact readback, background keeper containment, and MCP capsule evidence. Selections, publication, and rollback bind exact revisions and digests. Exact SHA <code class="font-mono text-sm">313dec85cf</code> passed three-OS CLI/Strict gates, npm publication, and independent readback.
+          Stable release <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> ships dynamic workflow run admission, remote-approval and relay membership epochs with reconnect reconciliation, canonical workspace/delivery authority, stronger zombie/PID-reuse and durable-cleanup evidence for the background keeper, plus CLI/PDH dependency-security fixes. Exact SHA <code class="font-mono text-sm">1a10ed7c8f</code> passed three-OS CLI/Strict gates, npm publication, and independent readback.
         </p>
         <p class="mt-4 text-lg text-muted">
-          This deployment snapshot at <code class="font-mono text-sm">HEAD@99f5bf8214</code> adds remote-approval membership epochs, Android/iOS/Web Panel/CLI reconnect reconciliation, dynamic Cowork admission revalidation, canonical workspace/delivery authority, zombie-safe supervisor locks, release-gate isolation, Remote-SSH failure evidence, and canonical evidence roots after the immutable npm <code class="font-mono text-sm">{CLI_VERSION}</code> tarball; these remain source-only increments. Formal three-OS Scheduler soak, broad Linux dynamic-native closure, and signed macOS native evidence are still incomplete.
+          PR #215's semantic Marketplace payload evidence and serial same-name/scope activation lifecycle passed their exact-head gates at <code class="font-mono text-sm">89c498cc46</code> and merged into main; they are not in the immutable npm <code class="font-mono text-sm">{CLI_VERSION}</code> tarball. Cross-process plugin journal/CAS, cross-scope effective authority, legacy migration, the formal Scheduler campaign, and signed native evidence remain incomplete.
         </p>
       </div>
     </div>
@@ -650,7 +650,7 @@ const packs = [
           Every release is on the record —<br/><span class="italic text-ember">read it with <code class="font-mono">cc changelog</code>.</span>
         </h2>
         <p class="mt-6 text-lg text-muted">
-          The CLI ships on its own npm alpha track (currently <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">0.164.x</code>). The list distinguishes source candidates, npm latest, and fully gated builds; registry upload alone is not a completed release gate.
+          The CLI ships on its own npm alpha track (currently <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">0.165.x</code>). The list distinguishes source candidates, npm latest, and fully gated builds; registry upload alone is not a completed release gate.
           once installed, <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">cc changelog</code> shows the full per-version notes offline
           (<code class="font-mono text-sm">--all</code>, <code class="font-mono text-sm">&lt;version&gt;</code>, <code class="font-mono text-sm">--json</code>).
         </p>

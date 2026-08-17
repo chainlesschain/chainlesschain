@@ -632,13 +632,13 @@ const packs = [
           P2-16 Agent Teams 以本地 state v6 为权威，并为受支持的共享文件系统提供独立 distributed queue v1；queue authority digest、lease、CAS 与 wall-clock fence 阻止过期 worker 或迟到结果提交。10,000-task DAG / 最多 64 local workers 是单个本地 runner 的已验证调度边界；共享文件系统队列不是共识系统，也不承诺网络分区容错。
         </p>
         <p class="mt-4 text-lg text-muted">
-          当前 CLI 搭载 PDH 0.4.57：来源别名、raw observation、字段级冲突决策、引用重写与最终实体在同一事务提交；桌面端、Web Panel 与命令行共用实时采集协议，临时 Cookie/OAuth 不落配置；部分读取、不可读数据库或不完整分页保留旧水位，可在下一轮安全续扫。
+          当前 CLI 搭载 PDH 0.4.58：来源别名、raw observation、字段级冲突决策、引用重写与最终实体在同一事务提交；桌面端、Web Panel 与命令行共用实时采集协议，临时 Cookie/OAuth 不落配置；bounded ZIP adapter 已升级到 adm-zip 0.6.0，部分读取、不可读数据库或不完整分页仍保留旧水位供下一轮安全续扫。
         </p>
         <p class="mt-4 text-lg text-muted">
-          稳定版 <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> 正式加入交互式原生 <code class="font-mono text-sm">/paste-image</code>、作用域执行与上下文权限、受治理插件目录/选源/影响说明/制品回读、后台 keeper 收口及 MCP capsule 证据。选择、发布和回滚都绑定精确 revision/digest；同一精确 SHA <code class="font-mono text-sm">313dec85cf</code> 的三平台 CLI/Strict、npm 发布与独立回读均成功。
+          稳定版 <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> 正式加入动态 workflow 运行准入、远程审批与 relay membership epoch/reconnect reconciliation、canonical workspace/delivery authority、后台 keeper 的 zombie/PID 复用与持久清理证据，以及 CLI/PDH 依赖安全修复；同一精确 SHA <code class="font-mono text-sm">1a10ed7c8f</code> 的三平台 CLI/Strict、npm 发布与独立回读均成功。
         </p>
         <p class="mt-4 text-lg text-muted">
-          本次部署快照 <code class="font-mono text-sm">HEAD@99f5bf8214</code> 的远程审批成员 epoch、Android/iOS/Web Panel/CLI 重连对账、Cowork 动态准入复验、canonical workspace/delivery authority、zombie-safe supervisor lock 与 Remote-SSH/canonical evidence root 修复晚于 npm <code class="font-mono text-sm">{CLI_VERSION}</code> 不可变 tarball，按源码增量单列。三平台 Scheduler 正式长期 soak、Linux dynamic-native 广义闭环与签名 macOS native 证据仍未完成。
+          PR #215 的 Marketplace semantic payload 与同 name/scope 串行 activation lifecycle 已在 exact head <code class="font-mono text-sm">89c498cc46</code> 完成门禁并合入主线，但不属于 npm <code class="font-mono text-sm">{CLI_VERSION}</code> 不可变 tarball。跨进程 plugin journal/CAS、跨 scope effective authority、legacy migration、三平台 Scheduler campaign 与签名 native 证据仍未完成。
         </p>
       </div>
     </div>
@@ -653,7 +653,7 @@ const packs = [
           每次发版都有据可查，<br/><span class="italic text-ember">装了就能 <code class="font-mono">cc changelog</code> 翻。</span>
         </h2>
         <p class="mt-6 text-lg text-muted">
-          CLI 走 npm alpha 轨（当前为 <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">0.164.x</code>）独立发版。列表同时标识源码候选、npm 最新与完整门禁版本；“已上传注册表”不等于“完整门禁已通过”。
+          CLI 走 npm alpha 轨（当前为 <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">0.165.x</code>）独立发版。列表同时标识源码候选、npm 最新与完整门禁版本；“已上传注册表”不等于“完整门禁已通过”。
           装了以后终端里 <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">cc changelog</code> 可离线查看完整版本说明
           （<code class="font-mono text-sm">--all</code> 全部历史、<code class="font-mono text-sm">&lt;version&gt;</code> 指定版本、<code class="font-mono text-sm">--json</code> 机器可读）。
         </p>

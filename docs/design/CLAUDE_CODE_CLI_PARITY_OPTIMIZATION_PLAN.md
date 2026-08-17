@@ -199,8 +199,8 @@ ChainlessChain CLI 已具备会话恢复、Checkpoint、上下文压缩、MCP、
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
 | `lsp/jsonrpc-stream.js`      | LSP 传输层：`Content-Length` 分帧编解码器（增量喂字节 → 完整消息），纯函数无 IO                                                                                                                   | ✅ 纯             |
 | `lsp/lsp-client.js`          | 单个 language server：`spawn` stdio、initialize 握手、request/notify 关联（id→Promise）、通知分发、超时、`shutdown`/`exit`、进程 `error`/`exit` 事件                                              | ✅ mock child     |
-| `lsp/lsp-server-registry.js` | 语言 ↔ server 命令映射 + 可用性探测（TS/JS→`typescript-language-server --stdio`；Python→`pyright-langserver`/`pylsp`；Go→`gopls`；Rust→`rust-analyzer`），插件 `.lsp.json` 注册额外 server        | ✅ 纯（探测注入） |
-| `lsp/lsp-manager.js`         | 生命周期池：按 `(projectRoot, languageId)` 懒启动 + 复用 server、`didOpen`/`didChange` 文档同步、0-based LSP ↔ 1-based 用户位置换算、崩溃自动重启一次、全部关闭                                   | ✅ mock client    |
+| `lsp/lsp-server-registry.js` | 语言 ↔ server 命令映射 + 可用性探测（TS/JS→`typescript-language-server --stdio`；Python→`pyright-langserver`/`pylsp`；Go→`gopls`；Rust→`rust-analyzer`），插件 `.lsp.json` 注册额外 server       | ✅ 纯（探测注入） |
+| `lsp/lsp-manager.js`         | 生命周期池：按 `(projectRoot, languageId)` 懒启动 + 复用 server、`didOpen`/`didChange` 文档同步、0-based LSP ↔ 1-based 用户位置换算、崩溃自动重启一次、全部关闭                                  | ✅ mock client    |
 | `lsp/code-intelligence.js`   | 高层服务 API：`definition` / `references` / `hover` / `documentSymbols` / `workspaceSymbols` / `diagnostics` / `rename`（预览）；结果归一化为 `{file,line,col,snippet}`；无 server 时明确降级信号 | ✅ mock manager   |
 | `commands/codeintel.js`      | `cc code-intel <sub> …`，端到端验证（不触 agent-core）                                                                                                                                            | ✅                |
 
@@ -515,12 +515,12 @@ Async Hooks / Monitors
 
 ## 9. 2026-08-17 Marketplace 激活生命周期状态补充
 
-Exact code commit `f6e01da1f4403adbe4e68056c22bc6b661c76521` 已关闭单进程、同 name/scope、串行
+当前分支的实现主提交 `7592c0d5bd18885ca5b1eaf93b5df8a681d65c6e` 已关闭单进程、同 name/scope、串行
 Marketplace activation lifecycle 子门：显式 `plugin use`、版本卸载 fallback、普通与 pointer-only update
 统一经过严格 provenance、目录/manifest identity、fresh semantic payload、source-switch 与 downgrade 门；
 `.install-*` / `.uninstall-*` 恢复状态会阻断 runtime 并由 installed/doctor 显示，精确 rollback 可在组合 I/O
 失败后重试，已提交事务则退役为不参与 authority 的 `.cleanup-*`。
 
-该结论不代表 Marketplace 整体完成。跨进程 lifecycle lock/durable journal/CAS、跨 scope effective-authority
+该结论对应 PR #215 exact head `89c498cc46` 的未发布源码增量，已完成门禁并合入主线，但不属于已发布的 `chainlesschain@0.165.1`。它不代表 Marketplace 整体完成。跨进程 lifecycle lock/durable journal/CAS、跨 scope effective-authority
 裁决、legacy provenance migration、publisher/组织 trust root、private registry 与长期外部故障矩阵仍是 P1-5
 的明确剩余项；路线图总状态与发布结论仍为 **12/19 未关闭、7/19 完成、NO-GO**。

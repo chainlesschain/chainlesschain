@@ -1,6 +1,6 @@
 # CLI 命令行工具
 
-> **当前版本边界（2026-08-16）：产品 v5.0.3.135 / 推荐 CLI 0.164.0（npm latest、主线包元数据与完整门禁已对齐）| 175 命令 | Node.js ≥ 22.12.0。本次部署快照 `HEAD@99f5bf8214` 的远程审批成员 epoch、Cowork 动态准入复验、canonical workspace/delivery authority、zombie-safe supervisor lock 与 Remote-SSH/canonical evidence root 修复晚于稳定 tarball。**
+> **当前版本边界（2026-08-17）：产品 v5.0.3.135 / 推荐 CLI 0.165.1（npm latest、主线包元数据与完整门禁已对齐）| 175 命令 | Node.js ≥ 22.12.0。稳定版已包含动态运行准入、远程成员权威、canonical 执行边界与 keeper 加固；PR #215 exact head `89c498cc46` 的插件激活生命周期已完成门禁并合入主线，仍是未发布源码增量。**
 
 ## 概述
 
@@ -409,7 +409,7 @@ chainlesschain --quiet      # 静默模式
 | `serve`             | WebSocket 服务器 (远程CLI调用/流式/认证)                                                                                                                     | [WebSocket服务器](./cli-serve) |
 | `ui`                | Web 管理界面 (浏览器端/项目&全局模式)                                                                                                                        | [Web管理界面](./cli-ui)        |
 
-> `0.164.0` 已发布交互式 Agent REPL 原生 `/paste-image`（PNG/JPEG/GIF/WebP，单图 20 MiB、每轮 4 张/40 MiB、10 秒超时）、作用域执行与上下文权限、受治理插件市场、后台 keeper 收口及 MCP capsule 证据。精确 SHA `313dec85cf` 已通过三平台 CLI CI、Strict Sandbox、npm 发布与独立 registry 回读。当前主线的新远程审批成员 epoch、Cowork 动态准入复验和 canonical workspace authority 仍按发布后源码增量说明。
+> `0.165.1` 已发布 Cowork 动态运行准入、远程审批/relay membership epoch、canonical workspace/delivery authority、后台 keeper 与依赖安全修复，并承接 `0.164.0` 的原生 `/paste-image`、作用域权限、受治理插件市场与 MCP capsule。精确 SHA `1a10ed7c8f` 已通过三平台 CLI CI、Strict Sandbox、npm 发布与独立 registry 回读；当前主线的 Marketplace payload/activation lifecycle 加固按已合入但未发布的源码增量说明。
 
 ---
 
