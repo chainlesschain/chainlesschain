@@ -1,0 +1,56 @@
+name: Set up attested Linux bubblewrap
+description: Build and verify the bubblewrap feature set required by strict CLI sandbox gates
+
+runs:
+  using: composite
+  steps:
+    - name: Install attested bubblewrap for Linux kernel boundary
+      shell: bash
+      run: |
+        set -euo pipefail
+        sudo apt-get update
+        sudo apt-get install -y \
+          bubblewrap \
+          build-essential \
+          libcap-dev \
+          libselinux1-dev \
+          meson \
+          ninja-build
+        curl -fL \
+          https://github.com/containers/bubblewrap/releases/download/v0.11.2/bubblewrap-0.11.2.tar.xz \
+          -o /tmp/bubblewrap-0.11.2.tar.xz
+        echo "69abc30005d2186baf7737feacd8da35633b93cf5af38838ecff17c5f8e924f6  /tmp/bubblewrap-0.11.2.tar.xz" \
+          | sha256sum -c -
+        tar -C /tmp -xf /tmp/bubblewrap-0.11.2.tar.xz
+        meson setup \
+          /tmp/bubblewrap-0.11.2-build \
+          /tmp/bubblewrap-0.11.2 \
+          -Dtests=false \
+          -Dman=disabled \
+          -Dbash_completion=disabled \
+          -Dzsh_completion=disabled
+        meson compile -C /tmp/bubblewrap-0.11.2-build
+        sudo install -m 0755 \
+          /tmp/bubblewrap-0.11.2-build/bwrap \
+          /usr/bin/bwrap
+        sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+        /usr/bin/bwrap --version
+        /usr/bin/bwrap --help | grep -F -- "--file FD DEST"
+        /usr/bin/bwrap --help | grep -F -- --bind-fd
+        /usr/bin/bwrap --help | grep -F -- --ro-bind-fd
+        /usr/bin/bwrap --help | grep -F -- "--ro-bind-data FD DEST"
+        /usr/bin/bwrap --help | grep -F -- "--perms OCTAL"
+        /usr/bin/bwrap --help | grep -F -- --disable-userns
+        /usr/bin/bwrap --help | grep -F -- --assert-userns-disabled
+        /usr/bin/bwrap --help | grep -F -- --remount-ro
+        /usr/bin/bwrap --help | grep -F -- --seccomp
+        /usr/bin/setsid --help | grep -F -- --ctty
+        # The generic backend rejects recursive bind sources whose mounts can
+        # still receive host propagation. Hosted runners inherit a shared root,
+        # so make this disposable VM's source topology private first.
+        sudo mount --make-rprivate /
+        for source in / /tmp /usr /etc/hosts "$GITHUB_WORKSPACE"; do
+          propagation="$(findmnt -rn -T "$source" -o PROPAGATION)"
+          echo "$source propagation=$propagation"
+          test "$propagation" = "private"
+        done

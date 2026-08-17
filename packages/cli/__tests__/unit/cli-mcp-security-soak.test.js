@@ -818,4 +818,51 @@ describe("CLI malicious MCP security soak", () => {
       "'smoke-non-qualifying' || 'formal-aggregate'",
     );
   });
+
+  it("provisions the same attested Linux bubblewrap backend for strict and formal soak gates", () => {
+    const reliabilityWorkflow = readFileSync(
+      resolve(repositoryRoot, ".github/workflows/cli-reliability-soak.yml"),
+      "utf8",
+    );
+    const strictWorkflow = readFileSync(
+      resolve(repositoryRoot, ".github/workflows/cli-strict-sandbox.yml"),
+      "utf8",
+    );
+    const setupAction = readFileSync(
+      resolve(repositoryRoot, ".github/actions/setup-linux-bwrap/action.yml"),
+      "utf8",
+    );
+    const actionReference = "uses: ./.github/actions/setup-linux-bwrap";
+    const mcpJobStart = reliabilityWorkflow.indexOf("\n  mcp-security-soak:");
+    const aggregateJobStart = reliabilityWorkflow.indexOf(
+      "\n  mcp-security-soak-aggregate:",
+      mcpJobStart,
+    );
+    const mcpJob = reliabilityWorkflow.slice(mcpJobStart, aggregateJobStart);
+
+    expect(reliabilityWorkflow).toContain(
+      '- ".github/actions/setup-linux-bwrap/action.yml"',
+    );
+    expect(mcpJob).toContain("if: runner.os == 'Linux'");
+    expect(mcpJob).toContain(actionReference);
+    expect(strictWorkflow).toContain(actionReference);
+    expect(setupAction).toContain("bubblewrap-0.11.2.tar.xz");
+    expect(setupAction).toContain(
+      "69abc30005d2186baf7737feacd8da35633b93cf5af38838ecff17c5f8e924f6",
+    );
+    for (const requiredOption of [
+      "--file FD DEST",
+      "--bind-fd",
+      "--ro-bind-fd",
+      "--ro-bind-data FD DEST",
+      "--perms OCTAL",
+      "--disable-userns",
+      "--assert-userns-disabled",
+      "--remount-ro",
+      "--seccomp",
+    ]) {
+      expect(setupAction).toContain(requiredOption);
+    }
+    expect(setupAction).toContain("sudo mount --make-rprivate /");
+  });
 });

@@ -5,6 +5,7 @@ on:
     paths:
       - ".github/workflows/cli-reliability-soak.yml"
       - ".github/actions/setup-node-deps/action.yml"
+      - ".github/actions/setup-linux-bwrap/action.yml"
       - "package.json"
       - "package-lock.json"
       - "packages/cli/package.json"
@@ -308,6 +309,10 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - uses: ./.github/actions/setup-node-deps
+
+      - name: Set up Linux kernel sandbox backend
+        if: runner.os == 'Linux'
+        uses: ./.github/actions/setup-linux-bwrap
 
       - name: Run time-based MCP host/race soak with repeated fresh isolates
         env:
