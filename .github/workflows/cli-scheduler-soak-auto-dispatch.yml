@@ -1,0 +1,125 @@
+name: CLI Scheduler Soak Auto Dispatch
+
+on:
+  schedule:
+    # The first pinned segment started at 2026-08-17T14:56Z. Starting the
+    # remaining daily segments ten minutes later guarantees that four starts
+    # span more than 72 hours while every adjacent gap stays below 30 hours.
+    - cron: "6 15 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: cli-scheduler-soak-auto-dispatch
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    if: vars.CLI_SCHEDULER_SOAK_AUTO_DISPATCH == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PINNED_REF: ${{ vars.CLI_SCHEDULER_SOAK_PINNED_REF }}
+      PINNED_SHA: ${{ vars.CLI_SCHEDULER_SOAK_PINNED_SHA }}
+      CAMPAIGN: ${{ vars.CLI_SCHEDULER_SOAK_CAMPAIGN }}
+      SEED: ${{ vars.CLI_SCHEDULER_SOAK_SEED }}
+      MAX_SEGMENTS: "4"
+    steps:
+      - name: Verify the immutable scheduler control ref
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${PINNED_REF}" =~ ^v-npm-[0-9]+-[0-9]+-[0-9]+$ ]]
+          [[ "${PINNED_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          [[ "${CAMPAIGN}" =~ ^[a-zA-Z0-9._:-]{1,128}$ ]]
+          [[ "${SEED}" =~ ^(0|[1-9][0-9]*)$ ]]
+          test "${SEED}" -le 4294967295
+          test "${MAX_SEGMENTS}" -eq 4
+
+          ref_json="${RUNNER_TEMP}/scheduler-soak-pinned-ref.json"
+          gh api \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "/repos/${GITHUB_REPOSITORY}/git/ref/tags/${PINNED_REF}" \
+            > "${ref_json}"
+          REF_JSON="${ref_json}" node --input-type=module <<'NODE'
+          import fs from "node:fs";
+
+          const ref = JSON.parse(fs.readFileSync(process.env.REF_JSON, "utf8"));
+          if (ref.ref !== `refs/tags/${process.env.PINNED_REF}`) {
+            throw new Error("scheduler soak pinned ref identity changed");
+          }
+          if (
+            ref.object?.type !== "commit" ||
+            ref.object?.sha !== process.env.PINNED_SHA
+          ) {
+            throw new Error("scheduler soak pinned ref does not resolve directly to the pinned commit");
+          }
+          NODE
+
+      - name: Refuse duplicate or excess pinned segments
+        id: plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          runs_json="${RUNNER_TEMP}/scheduler-soak-pinned-runs.json"
+          gh api \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/cli-scheduler-soak.yml/runs?event=workflow_dispatch&per_page=100" \
+            > "${runs_json}"
+          RUNS_JSON="${runs_json}" node --input-type=module <<'NODE'
+          import fs from "node:fs";
+
+          const payload = JSON.parse(
+            fs.readFileSync(process.env.RUNS_JSON, "utf8"),
+          );
+          if (!Array.isArray(payload.workflow_runs)) {
+            throw new Error("scheduler soak run listing is invalid");
+          }
+          const eligible = payload.workflow_runs.filter(
+            (run) =>
+              run?.path === ".github/workflows/cli-scheduler-soak.yml" &&
+              run?.event === "workflow_dispatch" &&
+              run?.head_sha === process.env.PINNED_SHA &&
+              (run.status !== "completed" || run.conclusion === "success"),
+          );
+          const ids = eligible.map((run) => String(run.id));
+          if (ids.some((id) => !/^[1-9][0-9]*$/u.test(id))) {
+            throw new Error("scheduler soak run listing contains an invalid run ID");
+          }
+          if (new Set(ids).size !== ids.length) {
+            throw new Error("scheduler soak run listing contains duplicate run IDs");
+          }
+          const active = eligible.filter((run) => run.status !== "completed");
+          const maximum = Number(process.env.MAX_SEGMENTS);
+          const action =
+            eligible.length >= maximum || active.length > 0
+              ? "skip"
+              : "dispatch";
+          fs.appendFileSync(
+            process.env.GITHUB_OUTPUT,
+            `action=${action}\nqualifying_or_active_count=${eligible.length}\n`,
+          );
+          fs.appendFileSync(
+            process.env.GITHUB_STEP_SUMMARY,
+            `Pinned scheduler segments already successful or active: ${eligible.length}/${maximum}.\n`,
+          );
+          NODE
+
+      - name: Dispatch one exact-ref formal scheduler segment
+        if: steps.plan.outputs.action == 'dispatch'
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh workflow run cli-scheduler-soak.yml \
+            --ref "${PINNED_REF}" \
+            -f commit_sha="${PINNED_SHA}" \
+            -f duration_seconds=7200 \
+            -f seed="${SEED}" \
+            -f campaign="${CAMPAIGN}"
+          printf 'Dispatched pinned scheduler segment %s/4 from %s at %s.\n' \
+            "$(( ${{ steps.plan.outputs.qualifying_or_active_count }} + 1 ))" \
+            "${PINNED_REF}" "${PINNED_SHA}" >> "${GITHUB_STEP_SUMMARY}"

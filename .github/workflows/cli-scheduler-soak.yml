@@ -25,8 +25,7 @@ on:
       - "packages/cli/__tests__/unit/scheduler-kernel-soak-campaign-workflow.test.js"
       - "packages/cli/__tests__/integration/scheduler-kernel-soak.test.js"
       - ".github/workflows/cli-scheduler-soak-campaign.yml"
-  schedule:
-    - cron: "41 4 * * *"
+      - ".github/workflows/cli-scheduler-soak-auto-dispatch.yml"
   workflow_dispatch:
     inputs:
       commit_sha:
