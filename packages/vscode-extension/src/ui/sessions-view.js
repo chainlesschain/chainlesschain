@@ -98,12 +98,14 @@ function post(message) {
 }
 
 function postRows() {
+  const visibleRows = filterRows(_rows, _query);
   post({
     type: "rows",
-    html: renderWorkbenchHtml(filterRows(_rows, _query), {
+    html: renderWorkbenchHtml(visibleRows, {
       now: Date.now(),
       errors: _errors,
     }),
+    visible: visibleRows.length,
     total: _rows.length,
   });
 }
@@ -229,6 +231,7 @@ async function settleDeliveryAction(vscode) {
 
 /** Load the one CLI-owned projection; any failure clears stale actions. */
 async function loadData(vscode) {
+  post({ type: "loading" });
   _snapshot = await readProjection(vscode);
   _rows = _snapshot.connected ? _snapshot.rows : [];
   _errors = [];
@@ -584,23 +587,29 @@ function renderPageHtml(hostDomToken = null) {
   button { background: var(--vscode-button-background); color: var(--vscode-button-foreground);
            border:none; padding:3px 10px; border-radius:4px; cursor:pointer; margin:0 4px 3px 0; }
   button:hover { background: var(--vscode-button-hoverBackground); }
+  button:focus-visible, input:focus-visible { outline:2px solid var(--vscode-focusBorder,#007fd4); outline-offset:2px; }
   button.sec { background: var(--vscode-button-secondaryBackground, #3a3d41); color: var(--vscode-button-secondaryForeground, #ccc); }
   #info { min-height:16px; font-size:11px; opacity:.7; margin:6px 0; }
+  .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 </style>
 </head>
 <body>
   <h1>Sessions Workbench</h1>
   <div class="bar">
-    <input id="q" placeholder="Filter by title / workspace / id" />
-    <button id="refresh" class="sec">Refresh</button>
+    <label class="sr-only" for="q">Filter sessions</label>
+    <input id="q" aria-label="Filter sessions" placeholder="Filter by title / workspace / id" />
+    <button id="refresh" class="sec" type="button">Refresh</button>
   </div>
-  <div id="info"></div>
-  <section id="delivery">${renderDeliveryHtml(null)}</section>
-  <div id="list"><p class="muted">Loading…</p></div>
+  <div id="info" role="status" aria-live="polite" aria-atomic="true"></div>
+  <section id="delivery" role="region" aria-label="Delivery flow">${renderDeliveryHtml(null)}</section>
+  <div id="list" role="region" aria-label="Sessions" aria-busy="true"><p class="muted" role="status">Loading…</p></div>
 <script nonce="${n}">
   const vscode = acquireVsCodeApi();
   const hostDomToken = ${JSON.stringify(relayToken)};
-  document.getElementById('refresh').addEventListener('click', ()=>vscode.postMessage({command:'refresh'}));
+  document.getElementById('refresh').addEventListener('click', ()=>{
+    document.getElementById('list').setAttribute('aria-busy','true');
+    vscode.postMessage({command:'refresh'});
+  });
   document.getElementById('q').addEventListener('input', (e)=>vscode.postMessage({command:'filter', query: e.target.value}));
   document.getElementById('list').addEventListener('click', (e)=>{
     const b = e.target.closest('button[data-act]');
@@ -667,7 +676,13 @@ function renderPageHtml(hostDomToken = null) {
       }
       return;
     }
-    if (m.type==='rows') document.getElementById('list').innerHTML = m.html;
+    if (m.type==='rows') {
+      const list=document.getElementById('list');
+      list.innerHTML=m.html;
+      list.setAttribute('aria-busy','false');
+      document.getElementById('info').textContent=String(m.visible ?? 0)+' of '+String(m.total ?? 0)+' sessions';
+    }
+    else if (m.type==='loading') document.getElementById('list').setAttribute('aria-busy','true');
     else if (m.type==='delivery') document.getElementById('delivery').innerHTML = m.html;
     else if (m.type==='info') document.getElementById('info').textContent = m.text || '';
   });

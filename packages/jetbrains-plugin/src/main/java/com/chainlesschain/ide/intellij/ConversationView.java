@@ -173,6 +173,20 @@ final class ConversationView {
         this.popups = new ChatMentionPopups(project, input);
         if (conv.turnState == null) conv.turnState = new ChatEvents.TurnState();
 
+        root.getAccessibleContext().setAccessibleName("ChainlessChain conversation");
+        input.getAccessibleContext().setAccessibleName("Message the agent");
+        input.getAccessibleContext().setAccessibleDescription(
+                "Enter sends the message; Shift+Enter inserts a new line");
+        sendBtn.getAccessibleContext().setAccessibleName("Send message");
+        sendBtn.getAccessibleContext().setAccessibleDescription(
+                "Send the current message to the ChainlessChain agent");
+        stopBtn.getAccessibleContext().setAccessibleName("Stop agent turn");
+        stopBtn.getAccessibleContext().setAccessibleDescription(
+                "Interrupt the current turn; activate again to force-stop a hung agent");
+        contextLabel.getAccessibleContext().setAccessibleName("Context window status");
+        cardsPanel.getAccessibleContext().setAccessibleName(
+                "Agent approvals and questions");
+
         root.add(new JScrollPane(transcript.pane()), BorderLayout.CENTER);
 
         // Multi-line composer: Enter sends, Shift+Enter inserts a newline.
@@ -183,6 +197,7 @@ final class ConversationView {
         // (the old side-by-side layout left the field too narrow).
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
         JButton llmBtn = new JButton("⚙ LLM");
+        llmBtn.getAccessibleContext().setAccessibleName("Configure language model");
         llmBtn.setToolTipText(CcBundle.message("chat.btn.llm.tooltip"));
         llmBtn.addActionListener(ev -> {
             javax.swing.JPopupMenu menu = new javax.swing.JPopupMenu();

@@ -44,6 +44,9 @@ public final class SessionsWorkbench {
 
     private SessionsWorkbench() {}
 
+    /** Bounded projection size that still covers the 128-session scale gate. */
+    public static final int DEFAULT_LIST_LIMIT = 256;
+
     public static final String KIND_CHAT = "chat";
     public static final String KIND_IDE = "ide";
     public static final String KIND_BACKGROUND = "background";

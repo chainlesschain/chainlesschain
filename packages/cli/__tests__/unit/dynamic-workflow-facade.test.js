@@ -565,6 +565,26 @@ describe("dynamic workflow run admission", () => {
     );
   });
 
+  it("admits and preserves a verified location-handoff authority", () => {
+    const result = buildDynamicWorkflowRunAdmission(runInput(), {
+      verifyAuthorities: authorityVerifier({
+        executionLocationAuthority: executionLocationAuthority({
+          authority: "verified-session-location-handoff",
+        }),
+      }),
+    });
+
+    expect(result.allowed).toBe(true);
+    expect(result.admission.executionLocation).toMatchObject({
+      authority: "verified-session-location-handoff",
+      session: {
+        sessionId: "session-run-1",
+        headHash: "d".repeat(64),
+        eventCount: 7,
+      },
+    });
+  });
+
   it("rejects a current-process observation returned by the verifier", async () => {
     const executor = vi.fn();
     await expect(

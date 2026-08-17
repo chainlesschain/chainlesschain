@@ -285,6 +285,38 @@ describe("cowork workflow Commander admission", () => {
     },
   );
 
+  it("preserves a verified location-handoff authority in run admission", async () => {
+    const sessionId = "command-location-handoff";
+    const workflow = governedWorkflow();
+    workflow.facade.requirements.capabilities = [
+      "cowork-task",
+      "dag",
+      "variables",
+    ];
+    saveWorkflow(projectRoot, workflow);
+    commandAuthorityProvider = vi.fn(() => ({
+      authority: "verified-session-location-handoff",
+      ...executionProof(sessionId, projectRoot),
+    }));
+
+    await runWorkflow(
+      "--execution-authority-session",
+      sessionId,
+      "--max-parallel",
+      "2",
+    );
+
+    expect(process.exitCode, output()).toBe(0);
+    expect(commandAuthorityProvider).toHaveBeenCalledTimes(2);
+    const history = readFileSync(historyPath(), "utf8")
+      .trim()
+      .split("\n")
+      .map(JSON.parse);
+    expect(history.at(-1).runAdmission.executionLocation.authority).toBe(
+      "verified-session-location-handoff",
+    );
+  });
+
   it("returns a structured fixed code for JSON preflight authority failure", async () => {
     const program = new Command();
     program.exitOverride();

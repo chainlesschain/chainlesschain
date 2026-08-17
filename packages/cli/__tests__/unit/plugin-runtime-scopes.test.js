@@ -195,6 +195,53 @@ describe("discoverPlugins", () => {
     expect(found[0].manifest.metadata.description).toBe("from-local");
   });
 
+  it("does not let inert higher-scope lock cleanup debris shadow a plugin", () => {
+    writePlugin("project", "shared", "1.0.0");
+    fs.mkdirSync(
+      path.join(
+        cwd,
+        ".chainlesschain",
+        "plugins.local",
+        "shared",
+        ".plugin-transaction-lock.release-debris",
+      ),
+      { recursive: true },
+    );
+
+    expect(discoverPlugins({ cwd, scopes: ["project", "local"] })).toEqual([
+      expect.objectContaining({ name: "shared", scope: "project" }),
+    ]);
+  });
+
+  it("reserves a higher-scope name while its transaction lock is retained", () => {
+    writePlugin("project", "shared", "1.0.0");
+    const lockDir = path.join(
+      cwd,
+      ".chainlesschain",
+      "plugins.local",
+      "shared",
+      ".plugin-transaction-lock",
+    );
+    fs.mkdirSync(lockDir, { recursive: true });
+
+    expect(discoverPlugins({ cwd, scopes: ["project", "local"] })).toEqual([]);
+    expect(
+      discoverPlugins({
+        cwd,
+        scopes: ["project", "local"],
+        includeBlocked: true,
+      }),
+    ).toEqual([
+      expect.objectContaining({
+        name: "shared",
+        scope: "local",
+        runtimeBlocked: true,
+        pointerStatus: "recovery-required",
+        recoveryRoot: lockDir,
+      }),
+    ]);
+  });
+
   it("a broken higher scope reserves only that plugin name", () => {
     writePlugin("project", "shared", "1.0.0", {
       description: "must-not-fall-through",

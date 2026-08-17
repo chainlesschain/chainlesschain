@@ -4,9 +4,24 @@ import { TextDecoder } from "node:util";
 import {
   buildExecutionLocationCatalog,
   buildExecutionLocationHandoffPreview,
+  computeExecutionLocationTargetFactsDigest,
 } from "../lib/execution-location-contract.js";
 import { captureAmbientExecutionLocation } from "../lib/execution-location-runtime.js";
-import { getVerifiedSessionExecutionLocationAuthority } from "../harness/jsonl-session-store.js";
+import {
+  EXECUTION_LOCATION_TARGET_ATTESTATION_SCHEMA,
+  EXECUTION_LOCATION_TARGET_RESUME_SCHEMA,
+  attestExecutionLocationTarget,
+  readExecutionLocationProfile,
+  resumeExecutionLocationTarget,
+} from "../lib/execution-location-target.js";
+import {
+  MAX_SESSION_REPLICA_BYTES,
+  SESSION_EXECUTION_LOCATION_HANDOFF_INSTALL_SCHEMA,
+  getVerifiedSessionExecutionLocationAuthority,
+  installSessionReplica,
+  installSessionReplicaWithLocationHandoff,
+  readVerifiedTranscriptBytes,
+} from "../harness/jsonl-session-store.js";
 import {
   sameFileStatIdentity,
   samePathHandleFileIdentity,
@@ -112,10 +127,13 @@ export function projectSessionExecutionLocation(sessionId, deps = {}) {
   )(sessionId);
   return {
     schema: SESSION_EXECUTION_LOCATION_AUTHORITY_SCHEMA,
-    authority: "verified-session-start",
+    authority: authority.authority || "verified-session-start",
     sessionId: authority.sessionId,
     headHash: authority.headHash,
     eventCount: authority.eventCount,
+    bindingEventHash: authority.bindingEventHash ?? null,
+    bindingEventCount: authority.bindingEventCount ?? null,
+    locationHandoff: authority.locationHandoff ?? null,
     binding: authority.binding,
   };
 }
@@ -156,6 +174,146 @@ export function projectExecutionLocationHandoff(
   };
 }
 
+export function projectExecutionLocationTargetAttestation(
+  sessionId,
+  target,
+  factsPath,
+  profilePath,
+  deps = {},
+) {
+  const handoff = projectExecutionLocationHandoff(
+    sessionId,
+    target,
+    factsPath,
+    deps,
+  );
+  const profile = (
+    deps.readExecutionLocationProfile || readExecutionLocationProfile
+  )(profilePath, deps);
+  return (deps.attestExecutionLocationTarget || attestExecutionLocationTarget)(
+    { handoff, profile },
+    deps,
+  );
+}
+
+export function resumeSessionAtExecutionLocation(
+  sessionId,
+  target,
+  factsPath,
+  profilePath,
+  expectedTargetFactsDigest,
+  deps = {},
+) {
+  const handoff = projectExecutionLocationHandoff(
+    sessionId,
+    target,
+    factsPath,
+    deps,
+  );
+  const profile = (
+    deps.readExecutionLocationProfile || readExecutionLocationProfile
+  )(profilePath, deps);
+  const transcriptBytes =
+    profile.sessionStore?.mode === "replicated"
+      ? (deps.readVerifiedTranscriptBytes || readVerifiedTranscriptBytes)(
+          sessionId,
+        )
+      : null;
+  const readSourceAuthority = () => {
+    const authority = (
+      deps.getVerifiedSessionExecutionLocationAuthority ||
+      getVerifiedSessionExecutionLocationAuthority
+    )(sessionId);
+    return {
+      sessionId: authority.sessionId,
+      headHash: authority.headHash,
+      eventCount: authority.eventCount,
+    };
+  };
+  return (deps.resumeExecutionLocationTarget || resumeExecutionLocationTarget)(
+    {
+      handoff,
+      profile,
+      expectedTargetFactsDigest,
+      transcriptBytes,
+      readSourceAuthority,
+    },
+    deps,
+  );
+}
+
+function readBoundedReplicaInput(deps = {}) {
+  if (process.stdin.isTTY) {
+    throw new Error("session replica bytes must be provided on stdin");
+  }
+  const runtimeFs = deps.fs || fs;
+  const chunks = [];
+  let total = 0;
+  while (true) {
+    const chunk = Buffer.allocUnsafe(
+      Math.min(64 * 1024, MAX_SESSION_REPLICA_BYTES + 1 - total),
+    );
+    const count = runtimeFs.readSync(0, chunk, 0, chunk.length, null);
+    if (count === 0) break;
+    total += count;
+    if (total > MAX_SESSION_REPLICA_BYTES) {
+      throw new Error(
+        `session replica exceeds ${MAX_SESSION_REPLICA_BYTES} bytes`,
+      );
+    }
+    chunks.push(chunk.subarray(0, count));
+  }
+  if (total === 0) throw new Error("session replica stdin is empty");
+  return Buffer.concat(chunks, total);
+}
+
+export function receiveSessionReplica(
+  sessionId,
+  expectedHeadHash,
+  expectedEventCount,
+  expectedTranscriptDigest,
+  deps = {},
+) {
+  const bytes = (deps.readSessionReplicaInput || readBoundedReplicaInput)(deps);
+  return (deps.installSessionReplica || installSessionReplica)(
+    sessionId,
+    bytes,
+    {
+      headHash: expectedHeadHash,
+      eventCount: Number(expectedEventCount),
+      transcriptDigest: expectedTranscriptDigest,
+    },
+  );
+}
+
+export function prepareSessionReplicaHandoff(sessionId, options, deps = {}) {
+  const bytes = (deps.readSessionReplicaInput || readBoundedReplicaInput)(deps);
+  const binding = projectCurrentExecutionLocation({}, deps).binding;
+  const targetFactsDigest = computeExecutionLocationTargetFactsDigest(binding);
+  if (targetFactsDigest !== String(options.expectedTargetFactsDigest || "")) {
+    throw new Error("target facts changed before location handoff append");
+  }
+  return (
+    deps.installSessionReplicaWithLocationHandoff ||
+    installSessionReplicaWithLocationHandoff
+  )(
+    sessionId,
+    bytes,
+    {
+      headHash: options.expectedHeadHash,
+      eventCount: Number(options.expectedEventCount),
+      transcriptDigest: options.expectedTranscriptDigest,
+    },
+    {
+      profileDigest: options.profileDigest,
+      targetEvidenceId: options.targetEvidenceId,
+      targetFactsDigest,
+      attestationDigest: options.attestationDigest,
+      binding,
+    },
+  );
+}
+
 function renderBinding(binding) {
   const git = binding.source.git;
   return [
@@ -178,6 +336,30 @@ function renderBinding(binding) {
 function writeProjection(projection, options = {}) {
   if (options.json) {
     process.stdout.write(`${JSON.stringify(projection, null, 2)}\n`);
+    return;
+  }
+  if (projection.schema === EXECUTION_LOCATION_TARGET_ATTESTATION_SCHEMA) {
+    process.stdout.write(
+      `ATTESTED ${projection.binding.location}\nFacts: ${projection.targetFactsDigest}\nAttestation: ${projection.attestationDigest}\nGaps: ${projection.gaps.join(", ")}\n`,
+    );
+    return;
+  }
+  if (projection.schema === EXECUTION_LOCATION_TARGET_RESUME_SCHEMA) {
+    process.stdout.write(
+      `RESUME EXITED ${projection.target}\nReceipt: ${projection.receiptDigest}\nGaps: ${projection.gaps.join(", ")}\n`,
+    );
+    return;
+  }
+  if (projection.schema === "chainlesschain.session-replica-install/v1") {
+    process.stdout.write(
+      `${projection.installed ? "INSTALLED" : "ALREADY PRESENT"} ${projection.sessionId}\nReceipt: ${projection.receiptDigest}\n`,
+    );
+    return;
+  }
+  if (projection.schema === SESSION_EXECUTION_LOCATION_HANDOFF_INSTALL_SCHEMA) {
+    process.stdout.write(
+      `HANDOFF ANCHORED ${projection.sessionId}\nTarget head: ${projection.targetHeadHash}\nReceipt: ${projection.receiptDigest}\n`,
+    );
     return;
   }
   if (projection.binding) {
@@ -217,7 +399,7 @@ function runAction(action, options = {}) {
   }
 }
 
-export function registerSessionLocationSubcommands(session) {
+export function registerSessionLocationSubcommands(session, deps = {}) {
   const location = session
     .command("location")
     .description(
@@ -230,7 +412,7 @@ export function registerSessionLocationSubcommands(session) {
     .option("--json", "Machine-readable JSON output")
     .action((options) => {
       process.exitCode = runAction(
-        () => projectCurrentExecutionLocation({}, {}),
+        () => projectCurrentExecutionLocation({}, deps),
         options,
       );
     });
@@ -241,7 +423,7 @@ export function registerSessionLocationSubcommands(session) {
     .option("--json", "Machine-readable JSON output")
     .action((id, options) => {
       process.exitCode = runAction(
-        () => projectSessionExecutionLocation(id),
+        () => projectSessionExecutionLocation(id, deps),
         options,
       );
     });
@@ -254,7 +436,7 @@ export function registerSessionLocationSubcommands(session) {
     .option("--json", "Machine-readable JSON output")
     .action((options) => {
       process.exitCode = runAction(
-        () => projectExecutionLocationComparison({}, {}),
+        () => projectExecutionLocationComparison({}, deps),
         options,
       );
     });
@@ -269,7 +451,136 @@ export function registerSessionLocationSubcommands(session) {
     .option("--json", "Machine-readable JSON output")
     .action((id, target, options) => {
       process.exitCode = runAction(
-        () => projectExecutionLocationHandoff(id, target, options.facts),
+        () => projectExecutionLocationHandoff(id, target, options.facts, deps),
+        options,
+      );
+    });
+
+  location
+    .command("attest <id> <target>")
+    .description(
+      "Invoke a fixed target-side probe and bind observed host facts to a handoff",
+    )
+    .requiredOption(
+      "--facts <path>",
+      "Versioned Git/summary/artifact/permission/target evidence JSON",
+    )
+    .requiredOption(
+      "--profile <path>",
+      "Secret-free WSL/SSH/Container target profile JSON",
+    )
+    .option("--json", "Machine-readable JSON output")
+    .action((id, target, options) => {
+      process.exitCode = runAction(
+        () =>
+          projectExecutionLocationTargetAttestation(
+            id,
+            target,
+            options.facts,
+            options.profile,
+            deps,
+          ),
+        options,
+      );
+    });
+
+  location
+    .command("receive <id>")
+    .description("Install an exact verified session replica from bounded stdin")
+    .requiredOption(
+      "--expected-head-hash <sha256>",
+      "Exact unprefixed transcript head hash",
+    )
+    .requiredOption(
+      "--expected-event-count <count>",
+      "Exact transcript event count",
+    )
+    .requiredOption(
+      "--expected-transcript-digest <sha256>",
+      "Exact SHA-256 digest of stdin bytes",
+    )
+    .option("--json", "Machine-readable JSON receipt")
+    .action((id, options) => {
+      process.exitCode = runAction(
+        () =>
+          receiveSessionReplica(
+            id,
+            options.expectedHeadHash,
+            options.expectedEventCount,
+            options.expectedTranscriptDigest,
+            deps,
+          ),
+        options,
+      );
+    });
+
+  location
+    .command("prepare <id>")
+    .description(
+      "Install an exact replica and append a canonical target-location handoff",
+    )
+    .requiredOption(
+      "--expected-head-hash <sha256>",
+      "Exact unprefixed source transcript head hash",
+    )
+    .requiredOption(
+      "--expected-event-count <count>",
+      "Exact source transcript event count",
+    )
+    .requiredOption(
+      "--expected-transcript-digest <sha256>",
+      "Exact SHA-256 digest of stdin bytes",
+    )
+    .requiredOption(
+      "--expected-target-facts-digest <sha256>",
+      "Stable target facts digest from target attestation",
+    )
+    .requiredOption("--profile-digest <sha256>", "Exact target profile digest")
+    .requiredOption(
+      "--target-evidence-id <id>",
+      "Exact handoff target evidence id",
+    )
+    .requiredOption(
+      "--attestation-digest <sha256>",
+      "Exact target attestation digest",
+    )
+    .option("--json", "Machine-readable JSON receipt")
+    .action((id, options) => {
+      process.exitCode = runAction(
+        () => prepareSessionReplicaHandoff(id, options, deps),
+        options,
+      );
+    });
+
+  location
+    .command("resume <id> <target>")
+    .description(
+      "Re-attest a target, verify its canonical session replica, and resume there",
+    )
+    .requiredOption(
+      "--facts <path>",
+      "Versioned Git/summary/artifact/permission/target evidence JSON",
+    )
+    .requiredOption(
+      "--profile <path>",
+      "Secret-free WSL/SSH/Container target profile JSON",
+    )
+    .requiredOption(
+      "--expected-target-facts-digest <sha256>",
+      "Exact stable target facts digest from session location attest",
+    )
+    .option("--json", "Machine-readable JSON receipt after target exit")
+    .action((id, target, options) => {
+      process.exitCode = runAction(
+        () =>
+          resumeSessionAtExecutionLocation(
+            id,
+            target,
+            options.facts,
+            options.profile,
+            options.expectedTargetFactsDigest,
+            deps,
+          ),
         options,
       );
     });

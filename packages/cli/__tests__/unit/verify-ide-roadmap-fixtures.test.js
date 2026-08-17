@@ -538,8 +538,8 @@ describe("IDE roadmap fixture contract", () => {
 
     expect(result).toMatchObject({
       schemaVersion: 1,
-      manifestVersion: "1.4.0",
-      caseCount: 10,
+      manifestVersion: "1.9.2",
+      caseCount: 15,
       releaseReadiness: { status: "not-evaluated" },
     });
     expect(result.cases.map((entry) => entry.id)).toEqual([
@@ -553,6 +553,11 @@ describe("IDE roadmap fixture contract", () => {
       "p0-host-local-evidence",
       "p0-host-remote-evidence",
       "q4a-vscode-remote-ssh-container",
+      "q3-production-delivery-live",
+      "p1-dynamic-workflow",
+      "p1-execution-location",
+      "p1-marketplace-supply-chain",
+      "p2-accessibility-performance",
     ]);
   });
 
@@ -566,7 +571,7 @@ describe("IDE roadmap fixture contract", () => {
       /schemaVersion must equal supported version 1/,
     );
     expect(() => verifyIdeRoadmapFixtures({ repoRoot: corpus.root })).toThrow(
-      /manifestVersion must equal supported version "1\.4\.0"/,
+      /manifestVersion must equal supported version "1\.9\.2"/,
     );
   });
 
@@ -615,6 +620,16 @@ describe("IDE roadmap fixture contract", () => {
     );
     expect(() => verifyIdeRoadmapFixtures({ repoRoot: corpus.root })).toThrow(
       /fixture\.case must equal "example-case"/,
+    );
+  });
+
+  it("rejects fixture and manifest expected-outcome drift", () => {
+    const corpus = createCorpus();
+    corpus.fixture.expectedOutcome = { mutationCount: 1 };
+    rewriteFixture(corpus);
+
+    expect(() => verifyIdeRoadmapFixtures({ repoRoot: corpus.root })).toThrow(
+      /fixture\.expectedOutcome must equal cases\[0\]\.expectedOutcome/,
     );
   });
 

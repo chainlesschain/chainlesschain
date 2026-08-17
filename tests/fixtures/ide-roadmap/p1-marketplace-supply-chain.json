@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "case": "p1-marketplace-supply-chain",
+  "description": "Marketplace release evidence must exercise authenticated private-registry, explicit proxy/PAC/custom-CA, immutable offline caches, dependency admission, publisher revocation, and rollback failure paths without activating unverified bytes.",
+  "inputs": {
+    "minimumIndependentRunsPerCell": 100,
+    "registryAuthentication": "bearer",
+    "registryTls": "private-ca",
+    "cacheLayers": [
+      "registry",
+      "signature",
+      "public-key",
+      "sbom",
+      "source-package"
+    ],
+    "faults": [
+      "registry-401",
+      "registry-403",
+      "registry-5xx",
+      "registry-timeout",
+      "registry-document-digest-mismatch",
+      "proxy-connect-interruption",
+      "pac-timeout",
+      "custom-ca-mismatch",
+      "artifact-redirect-origin-change",
+      "signature-digest-mismatch",
+      "public-key-spki-mismatch",
+      "sbom-document-digest-mismatch",
+      "semantic-payload-mismatch",
+      "registry-cache-corruption",
+      "artifact-cache-corruption",
+      "source-cache-corruption",
+      "dependency-missing",
+      "dependency-version-mismatch",
+      "dependency-cycle",
+      "same-version-source-conflict",
+      "source-switch-without-approval",
+      "publisher-key-revocation",
+      "activation-crash",
+      "rollback-crash"
+    ],
+    "requiredJourney": ["install", "upgrade", "rollback", "offline-replay"]
+  },
+  "expectedOutcome": {
+    "credentialLeakCount": 0,
+    "unauthorizedCacheFallbackCount": 0,
+    "unverifiedActivationCount": 0,
+    "staleAuthorityActivationCount": 0,
+    "corruptCacheActivationCount": 0,
+    "dependencyConflictActivationCount": 0,
+    "sourceSwitchWithoutApprovalCount": 0,
+    "revokedKeyActivationCount": 0,
+    "offlineNetworkRequestCount": 0,
+    "rollbackFailureCount": 0,
+    "failureArtifactsComplete": true,
+    "exactCommitBound": true
+  }
+}

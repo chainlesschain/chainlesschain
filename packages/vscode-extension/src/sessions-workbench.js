@@ -24,6 +24,7 @@
 const { isBlockingPhase } = require("./phase-attention");
 
 const KINDS = ["chat", "ide", "background", "remote"];
+const WORKBENCH_SESSION_LIMIT = 256;
 const SESSION_PROJECTION_SCHEMA = "chainlesschain.session-projection/v1";
 const SESSION_PROJECTION_VERSION = 1;
 const PROJECTION_KINDS = new Set([
@@ -86,7 +87,10 @@ function parseActionPreview(value) {
 }
 
 /** The `cc …` argv arrays the workbench needs (state-dir sources excluded). */
-function buildWorkbenchArgs({ limit = 100, cwd = null } = {}) {
+function buildWorkbenchArgs({
+  limit = WORKBENCH_SESSION_LIMIT,
+  cwd = null,
+} = {}) {
   const sessionProjection = [
     "session",
     "projection",
@@ -628,12 +632,12 @@ function renderWorkbenchHtml(rows, { now = Date.now(), errors = [] } = {}) {
   const parts = [];
   for (const e of errors || []) {
     parts.push(
-      `<div class="warn">⚠ ${escapeHtml(e.source || "source")} unavailable: ${escapeHtml(e.message || "unknown error")}</div>`,
+      `<div class="warn" role="alert">⚠ ${escapeHtml(e.source || "source")} unavailable: ${escapeHtml(e.message || "unknown error")}</div>`,
     );
   }
   const list = Array.isArray(rows) ? rows : [];
   if (!list.length) {
-    parts.push('<p class="muted">No sessions found.</p>');
+    parts.push('<p class="muted" role="status">No sessions found.</p>');
     return parts.join("");
   }
   const body = list
@@ -641,7 +645,7 @@ function renderWorkbenchHtml(rows, { now = Date.now(), errors = [] } = {}) {
       const acts = (r.actions || [])
         .map(
           (a) =>
-            `<button class="${a === "attach" || a === "resume" ? "" : "sec"}" data-act="${escapeHtml(a)}" data-id="${escapeHtml(r.id)}" data-kind="${escapeHtml(r.kind)}"` +
+            `<button type="button" class="${a === "attach" || a === "resume" ? "" : "sec"}" aria-label="${escapeHtml(ACTION_LABELS[a] || a)} ${escapeHtml(r.title || r.id)}" data-act="${escapeHtml(a)}" data-id="${escapeHtml(r.id)}" data-kind="${escapeHtml(r.kind)}"` +
             (r.sourceId ? ` data-source-id="${escapeHtml(r.sourceId)}"` : "") +
             (r.projectionRevision
               ? ` data-revision="${escapeHtml(r.projectionRevision)}"`
@@ -689,7 +693,7 @@ function renderWorkbenchHtml(rows, { now = Date.now(), errors = [] } = {}) {
         );
       }
       return (
-        `<tr><td><span class="st ${escapeHtml(r.status)}">${escapeHtml(r.status)}</span>${badge}</td>` +
+        `<tr data-session-row><td><span class="st ${escapeHtml(r.status)}">${escapeHtml(r.status)}</span>${badge}</td>` +
         `<td><span class="kind ${escapeHtml(r.kind)}">${escapeHtml(r.kind)}</span> ${escapeHtml(r.title || r.id)}${remote}` +
         `<div class="muted">${meta.join(" · ")}</div>` +
         (details.length
@@ -702,7 +706,8 @@ function renderWorkbenchHtml(rows, { now = Date.now(), errors = [] } = {}) {
     })
     .join("");
   parts.push(
-    '<table><thead><tr><th style="width:150px">status</th><th>session</th><th style="width:90px">activity</th><th style="width:280px">actions</th></tr></thead><tbody>' +
+    `<table aria-rowcount="${list.length}"><caption class="sr-only">Sessions (${list.length})</caption>` +
+      '<thead><tr><th scope="col" style="width:150px">status</th><th scope="col">session</th><th scope="col" style="width:90px">activity</th><th scope="col" style="width:280px">actions</th></tr></thead><tbody>' +
       body +
       "</tbody></table>",
   );
@@ -711,6 +716,7 @@ function renderWorkbenchHtml(rows, { now = Date.now(), errors = [] } = {}) {
 
 module.exports = {
   KINDS,
+  WORKBENCH_SESSION_LIMIT,
   SESSION_PROJECTION_SCHEMA,
   SESSION_PROJECTION_VERSION,
   PROJECTION_KINDS,

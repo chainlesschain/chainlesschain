@@ -417,7 +417,7 @@ async function _resolveWorkflowExecutionAuthority(server, sessionId) {
   }
   return Object.freeze({
     schema: WORKFLOW_EXECUTION_AUTHORITY_SCHEMA,
-    authority: "verified-session-start",
+    authority: proof.authority || "verified-session-start",
     sessionId: proof.sessionId,
     headHash: proof.headHash,
     eventCount: proof.eventCount,

@@ -48,6 +48,9 @@ const MAX_ACTIVE_POINTER_BYTES = 256;
 // Lowest → highest precedence.
 export const SCOPES = ["user", "project", "local"];
 export const DISABLED_FILENAME = ".disabled";
+export const PLUGIN_LIFECYCLE_COORDINATOR_DIRNAME =
+  "plugin-lifecycle-transactions";
+const PLUGIN_TRANSACTION_LOCK_DIRNAME = ".plugin-transaction-lock";
 
 /** Filesystem-safe encoding of a (possibly scoped, e.g. @org/name) plugin name. */
 export function encodeName(name) {
@@ -80,6 +83,39 @@ export function scopeRoot(scope, opts = {}) {
 /** Directory that holds all versions of one plugin at a scope. */
 export function pluginNameDir(scope, name, opts = {}) {
   return path.join(scopeRoot(scope, opts), encodeName(name));
+}
+
+/** Global same-user coordinator shared by every scope for one plugin name. */
+export function pluginLifecycleCoordinatorDir(name, opts = {}) {
+  return path.join(pluginLifecycleCoordinatorRoot(opts), encodeName(name));
+}
+
+/** Fixed global lock path used by runtime discovery to fence review state. */
+export function pluginLifecycleCoordinatorLock(name, opts = {}) {
+  return path.join(
+    pluginLifecycleCoordinatorDir(name, opts),
+    PLUGIN_TRANSACTION_LOCK_DIRNAME,
+  );
+}
+
+function pluginLifecycleCoordinatorRoot(opts = {}) {
+  const configured = String(
+    (opts.env || process.env).CC_PLUGIN_TRANSACTION_HOME || "",
+  ).trim();
+  if (!configured) {
+    return path.join(
+      getElectronUserDataDir(),
+      PLUGIN_LIFECYCLE_COORDINATOR_DIRNAME,
+    );
+  }
+  if (!path.isAbsolute(configured)) {
+    throw new Error("CC_PLUGIN_TRANSACTION_HOME must be an absolute path");
+  }
+  const resolved = path.resolve(configured);
+  if (resolved === path.parse(resolved).root) {
+    throw new Error("CC_PLUGIN_TRANSACTION_HOME must not be a filesystem root");
+  }
+  return resolved;
 }
 
 /** Immutable install dir for a specific plugin version. */
@@ -205,6 +241,7 @@ export function discoverPlugins(opts = {}) {
     if (!dirExists(root, opts.strictIo === true)) continue;
     for (const encoded of listDirs(root, opts.strictIo === true)) {
       const nameDir = path.join(root, encoded);
+      const lifecycleRecovery = findLifecycleCoordinatorRecovery(encoded, opts);
       const enabled = !_deps.existsSync(path.join(nameDir, DISABLED_FILENAME));
       if (!enabled && opts.includeDisabled !== true) continue;
       const pointer = inspectActivePointerForDir(nameDir, {
@@ -212,8 +249,12 @@ export function discoverPlugins(opts = {}) {
       });
       const version = pointer.version;
       if (!version) {
-        const recovery = findRecoveryInspection(nameDir, encoded);
+        const recovery =
+          findRecoveryInspection(nameDir, encoded) || lifecycleRecovery;
         const pointerStatus = recovery ? "recovery-required" : pointer.status;
+        const reservesIdentity =
+          pointer.versions.length > 0 || Boolean(recovery);
+        if (!reservesIdentity) continue;
         // A broken higher-precedence install reserves its encoded identity.
         // Falling through would silently activate lower-scope bytes. Remove
         // only that name; unrelated plugins remain discoverable.
@@ -226,10 +267,7 @@ export function discoverPlugins(opts = {}) {
           pointerStatus,
           versions: [...pointer.versions],
         });
-        if (
-          opts.includeBlocked === true &&
-          (pointer.versions.length > 0 || recovery)
-        ) {
+        if (opts.includeBlocked === true && reservesIdentity) {
           const inspectionVersion = recovery?.version || pointer.versions[0];
           const inspectionRoot =
             recovery?.root ||
@@ -301,7 +339,8 @@ export function discoverPlugins(opts = {}) {
       }
       manifest.scope = scope;
       const name = manifestName;
-      const retainedRecovery = findRecoveryInspection(nameDir, encoded);
+      const retainedRecovery =
+        findRecoveryInspection(nameDir, encoded) || lifecycleRecovery;
       const priorForEncoded = nameByEncoded.get(encoded);
       if (priorForEncoded && priorForEncoded !== name) {
         byName.delete(priorForEncoded);
@@ -398,9 +437,14 @@ function findRecoveryInspection(nameDir, encodedName) {
         (entry) =>
           entry.isDirectory() &&
           (entry.name.startsWith(".install-") ||
-            entry.name.startsWith(".uninstall-")),
+            entry.name.startsWith(".uninstall-") ||
+            entry.name === ".plugin-transaction-lock"),
       )
-      .sort((left, right) => right.name.localeCompare(left.name));
+      .sort((left, right) => {
+        if (left.name === ".plugin-transaction-lock") return 1;
+        if (right.name === ".plugin-transaction-lock") return -1;
+        return right.name.localeCompare(left.name);
+      });
   } catch {
     return null;
   }
@@ -460,6 +504,13 @@ function findRecoveryInspection(nameDir, encodedName) {
     }
   }
   return fallback;
+}
+
+function findLifecycleCoordinatorRecovery(encodedName, opts) {
+  const lockDir = pluginLifecycleCoordinatorLock(encodedName, opts);
+  return _deps.existsSync(lockDir)
+    ? { transactionRoot: lockDir, global: true }
+    : null;
 }
 
 function listDirs(dir, strictIo = false) {

@@ -28,6 +28,7 @@ import os from "os";
 import path from "path";
 import crypto from "crypto";
 import { getElectronUserDataDir } from "../paths.js";
+import { createMarketplaceNetworkTransport } from "./marketplace-network.js";
 
 export const _deps = {
   // Node 22+ global fetch; injectable for tests.
@@ -36,9 +37,21 @@ export const _deps = {
   writeFileSync: fs.writeFileSync,
   existsSync: fs.existsSync,
   mkdirSync: fs.mkdirSync,
+  lstatSync: fs.lstatSync,
+  readdirSync: fs.readdirSync,
+  openSync: fs.openSync,
+  fstatSync: fs.fstatSync,
+  readSync: fs.readSync,
+  closeSync: fs.closeSync,
+  fsyncSync: fs.fsyncSync,
+  linkSync: fs.linkSync,
+  unlinkSync: fs.unlinkSync,
 };
 
 const DEFAULT_TIMEOUT_MS = 15_000;
+export const MAX_REGISTRY_DOCUMENT_BYTES = 4 * 1024 * 1024;
+export const MAX_REGISTRY_CACHE_CANDIDATES = 64;
+const SHA256_RE = /^[a-f0-9]{64}$/;
 
 /** True when `raw` looks like a remote registry/manifest URL (http(s) + .json). */
 export function isRemoteSource(raw) {
@@ -79,8 +92,8 @@ export function assertRegistryUrlSafe(url, { allowInsecure = false } = {}) {
   );
 }
 
-/** Where a fetched registry is cached (content-addressed by its URL). */
-export function registryCachePath(url, cacheDir) {
+/** Directory for immutable registry documents, addressed by the complete URL. */
+export function registryCacheDirectory(url, cacheDir) {
   const dir =
     cacheDir || path.join(getElectronUserDataDir(), "plugin-registry-cache");
   const hash = crypto
@@ -88,7 +101,16 @@ export function registryCachePath(url, cacheDir) {
     .update(String(url))
     .digest("hex")
     .slice(0, 32);
-  return path.join(dir, `${hash}.json`);
+  return path.join(dir, hash);
+}
+
+/** Path for one immutable registry document bound to its SHA-256 digest. */
+export function registryCachePath(url, cacheDir, documentSha256) {
+  const digest = normalizeRegistrySha256(
+    documentSha256,
+    "registry document SHA-256",
+  );
+  return path.join(registryCacheDirectory(url, cacheDir), `${digest}.json`);
 }
 
 /**
@@ -112,12 +134,13 @@ export function resolveRegistryToken(url, { token, config } = {}) {
 }
 
 /**
- * GET a registry/manifest URL as JSON, with optional bearer auth. On success the
- * body is written to the offline cache; on a network/HTTP failure we fall back
- * to that cache (so a previously-seen registry still installs offline). Throws
- * only when neither the network NOR the cache can produce a valid document.
+ * GET a registry/manifest URL as bounded JSON, with optional bearer auth. On
+ * success the body is written to an immutable content-addressed cache. Explicit
+ * offline mode never attempts network access. An unpinned cache read is allowed
+ * only when exactly one valid historical document exists for the URL.
  *
- * @returns {Promise<{ registry: object, fromCache: boolean }>}
+ * @returns {Promise<{ registry: object, fromCache: boolean,
+ *   documentSha256: string }>}
  */
 export async function fetchRegistry(url, opts = {}) {
   const {
@@ -125,19 +148,47 @@ export async function fetchRegistry(url, opts = {}) {
     cacheDir,
     timeoutMs = DEFAULT_TIMEOUT_MS,
     allowCache = true,
+    offline = false,
   } = opts;
   assertRegistryUrlSafe(url, { allowInsecure: opts.allowInsecure });
-  const cachePath = registryCachePath(url, cacheDir);
+  const expectedSha256 = normalizeRegistrySha256(
+    opts.expectedSha256,
+    "expected registry document SHA-256",
+    { optional: true },
+  );
   const headers = { Accept: "application/json" };
   if (token) headers.Authorization = `Bearer ${token}`;
 
+  if (offline === true) {
+    if (!allowCache) {
+      throw new Error("offline registry mode requires immutable cache access");
+    }
+    const cached = readCachedRegistry({
+      url,
+      cacheDir,
+      expectedSha256,
+    });
+    if (cached) return cached;
+    throw new Error(
+      `registry ${url} is unavailable in the verified immutable cache` +
+        (expectedSha256 ? ` at SHA-256 ${expectedSha256}` : ""),
+    );
+  }
+
+  const networkTransport = createMarketplaceNetworkTransport({
+    proxyUrl: opts.proxyUrl,
+    pacFile: opts.pacFile,
+    caFile: opts.caFile,
+  });
+  const fetchImpl = networkTransport?.fetch || _deps.fetch;
   let networkErr = null;
+  let cacheFallbackAllowed = false;
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     let res;
     try {
-      res = await _deps.fetch(url, {
+      res = await fetchImpl(url, {
         headers,
         redirect: "follow",
         signal: controller.signal,
@@ -146,41 +197,280 @@ export async function fetchRegistry(url, opts = {}) {
       clearTimeout(timer);
     }
     if (!res.ok) {
-      throw new Error(
+      const error = new Error(
         `registry fetch failed: HTTP ${res.status} ${res.statusText || ""}`.trim(),
       );
+      error.cacheFallbackAllowed = Number(res.status) >= 500;
+      throw error;
     }
-    const text = await res.text();
+    const bytes = await readBoundedRegistryResponse(res);
+    const documentSha256 = sha256(bytes);
+    if (expectedSha256 && documentSha256 !== expectedSha256) {
+      throw new Error(
+        `registry document SHA-256 mismatch: expected ${expectedSha256}, got ${documentSha256}`,
+      );
+    }
+    const text = decodeRegistryUtf8(bytes);
     const registry = validateRegistry(JSON.parse(text), url);
-    if (allowCache) writeCache(cachePath, text);
-    return { registry, fromCache: false };
+    if (allowCache) writeImmutableCache(url, cacheDir, bytes, documentSha256);
+    return {
+      registry,
+      fromCache: false,
+      documentSha256,
+      ...(networkTransport?.authority
+        ? { networkAuthority: networkTransport.authority }
+        : {}),
+    };
   } catch (err) {
     networkErr = err;
+    cacheFallbackAllowed =
+      err?.cacheFallbackAllowed === true ||
+      err?.name === "AbortError" ||
+      err instanceof TypeError;
+  } finally {
+    await networkTransport?.close();
   }
 
-  // Network failed — try the offline cache.
-  if (allowCache && _deps.existsSync(cachePath)) {
+  // Only transport failures and server-side outages may fall back. Authentication,
+  // authorization, malformed content, and digest mismatches remain authoritative.
+  if (allowCache && cacheFallbackAllowed) {
     try {
-      const text = _deps.readFileSync(cachePath, "utf8");
-      const registry = validateRegistry(JSON.parse(text), url);
-      return { registry, fromCache: true };
-    } catch {
-      /* cache unreadable — fall through to throw the network error */
+      const cached = readCachedRegistry({
+        url,
+        cacheDir,
+        expectedSha256,
+      });
+      if (cached) return cached;
+    } catch (cacheError) {
+      throw new Error(
+        `could not fetch registry ${url}: ${networkErr.message}; verified immutable cache rejected: ${cacheError.message}`,
+      );
     }
   }
   throw new Error(
     `could not fetch registry ${url}: ${networkErr ? networkErr.message : "unknown error"}` +
-      (allowCache ? " (no offline cache available)" : ""),
+      (allowCache && cacheFallbackAllowed
+        ? " (no verified immutable cache available)"
+        : ""),
   );
 }
 
-function writeCache(cachePath, text) {
-  try {
-    _deps.mkdirSync(path.dirname(cachePath), { recursive: true });
-    _deps.writeFileSync(cachePath, text, "utf8");
-  } catch {
-    /* caching is best-effort; a read-only cache dir must not break install */
+async function readBoundedRegistryResponse(response) {
+  const contentLength = Number(response?.headers?.get?.("content-length"));
+  if (
+    Number.isFinite(contentLength) &&
+    contentLength > MAX_REGISTRY_DOCUMENT_BYTES
+  ) {
+    throw new Error(
+      `registry document exceeds ${MAX_REGISTRY_DOCUMENT_BYTES} bytes`,
+    );
   }
+  if (response?.body?.getReader) {
+    const reader = response.body.getReader();
+    const chunks = [];
+    let total = 0;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = Buffer.from(value);
+        total += chunk.length;
+        if (total > MAX_REGISTRY_DOCUMENT_BYTES) {
+          await reader.cancel();
+          throw new Error(
+            `registry document exceeds ${MAX_REGISTRY_DOCUMENT_BYTES} bytes`,
+          );
+        }
+        chunks.push(chunk);
+      }
+      return Buffer.concat(chunks, total);
+    } finally {
+      reader.releaseLock?.();
+    }
+  }
+  const text = await response.text();
+  const bytes = Buffer.from(text, "utf8");
+  if (bytes.length > MAX_REGISTRY_DOCUMENT_BYTES) {
+    throw new Error(
+      `registry document exceeds ${MAX_REGISTRY_DOCUMENT_BYTES} bytes`,
+    );
+  }
+  return bytes;
+}
+
+function writeImmutableCache(url, cacheDir, bytes, digest) {
+  const cachePath = registryCachePath(url, cacheDir, digest);
+  const directory = path.dirname(cachePath);
+  let tempPath = null;
+  let descriptor = null;
+  try {
+    _deps.mkdirSync(directory, { recursive: true, mode: 0o700 });
+    assertCacheDirectorySafe(directory);
+    tempPath = path.join(
+      directory,
+      `.tmp-${process.pid}-${crypto.randomBytes(12).toString("hex")}`,
+    );
+    descriptor = _deps.openSync(tempPath, "wx", 0o600);
+    _deps.writeFileSync(descriptor, bytes);
+    _deps.fsyncSync(descriptor);
+    _deps.closeSync(descriptor);
+    descriptor = null;
+    try {
+      _deps.linkSync(tempPath, cachePath);
+    } catch (error) {
+      if (error?.code !== "EEXIST") throw error;
+      const existing = readBoundedRegularFile(cachePath);
+      if (sha256(existing) !== digest || !existing.equals(bytes)) throw error;
+    }
+  } catch {
+    /* caching remains best-effort; verification never trusts a partial write */
+  } finally {
+    if (descriptor != null) {
+      try {
+        _deps.closeSync(descriptor);
+      } catch {
+        /* best-effort cleanup */
+      }
+    }
+    if (tempPath) {
+      try {
+        _deps.unlinkSync(tempPath);
+      } catch {
+        /* hidden temporary files are never cache candidates */
+      }
+    }
+  }
+}
+
+function readCachedRegistry({ url, cacheDir, expectedSha256 }) {
+  const directory = registryCacheDirectory(url, cacheDir);
+  if (!_deps.existsSync(directory)) return null;
+  assertCacheDirectorySafe(directory);
+  const names = expectedSha256
+    ? [`${expectedSha256}.json`]
+    : _deps
+        .readdirSync(directory, { withFileTypes: true })
+        .filter(
+          (entry) => entry.isFile() && /^[a-f0-9]{64}\.json$/.test(entry.name),
+        )
+        .map((entry) => entry.name)
+        .sort();
+  if (names.length > MAX_REGISTRY_CACHE_CANDIDATES) {
+    throw new Error(
+      `registry immutable cache has more than ${MAX_REGISTRY_CACHE_CANDIDATES} candidates`,
+    );
+  }
+  const matches = [];
+  for (const name of names) {
+    const digest = name.slice(0, 64);
+    const cachePath = path.join(directory, name);
+    if (!_deps.existsSync(cachePath)) continue;
+    try {
+      const bytes = readBoundedRegularFile(cachePath);
+      if (sha256(bytes) !== digest) {
+        throw new Error("registry immutable cache digest mismatch");
+      }
+      const registry = validateRegistry(
+        JSON.parse(decodeRegistryUtf8(bytes)),
+        url,
+      );
+      matches.push({
+        registry,
+        fromCache: true,
+        documentSha256: digest,
+      });
+    } catch (error) {
+      if (expectedSha256) throw error;
+    }
+  }
+  if (matches.length > 1) {
+    throw new Error(
+      "registry immutable cache is ambiguous; pin the expected registry document SHA-256",
+    );
+  }
+  return matches[0] || null;
+}
+
+function assertCacheDirectorySafe(directory) {
+  const stat = _deps.lstatSync(directory);
+  if (!stat.isDirectory() || stat.isSymbolicLink()) {
+    throw new Error("registry immutable cache path is not a directory");
+  }
+}
+
+function readBoundedRegularFile(file) {
+  let descriptor = null;
+  try {
+    const linkStat = _deps.lstatSync(file);
+    if (
+      !linkStat.isFile() ||
+      linkStat.isSymbolicLink() ||
+      linkStat.nlink !== 1 ||
+      linkStat.size <= 0 ||
+      linkStat.size > MAX_REGISTRY_DOCUMENT_BYTES
+    ) {
+      throw new Error(
+        "registry immutable cache entry is not a bounded single-link regular file",
+      );
+    }
+    descriptor = _deps.openSync(
+      file,
+      fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0),
+    );
+    const fileStat = _deps.fstatSync(descriptor);
+    if (
+      !fileStat.isFile() ||
+      fileStat.nlink !== 1 ||
+      fileStat.size <= 0 ||
+      fileStat.size > MAX_REGISTRY_DOCUMENT_BYTES
+    ) {
+      throw new Error(
+        "registry immutable cache entry changed during inspection",
+      );
+    }
+    const chunks = [];
+    let total = 0;
+    while (total <= MAX_REGISTRY_DOCUMENT_BYTES) {
+      const chunk = Buffer.allocUnsafe(
+        Math.min(64 * 1024, MAX_REGISTRY_DOCUMENT_BYTES + 1 - total),
+      );
+      const count = _deps.readSync(descriptor, chunk, 0, chunk.length, null);
+      if (count === 0) break;
+      chunks.push(chunk.subarray(0, count));
+      total += count;
+    }
+    if (total > MAX_REGISTRY_DOCUMENT_BYTES) {
+      throw new Error(
+        `registry immutable cache entry exceeds ${MAX_REGISTRY_DOCUMENT_BYTES} bytes`,
+      );
+    }
+    return Buffer.concat(chunks, total);
+  } finally {
+    if (descriptor != null) _deps.closeSync(descriptor);
+  }
+}
+
+function decodeRegistryUtf8(bytes) {
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    throw new Error("registry document is not valid UTF-8");
+  }
+}
+
+function normalizeRegistrySha256(value, label, { optional = false } = {}) {
+  if ((value == null || value === "") && optional) return null;
+  const digest = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (!SHA256_RE.test(digest)) {
+    throw new Error(`${label} must be 64 lowercase hexadecimal characters`);
+  }
+  return digest;
+}
+
+function sha256(value) {
+  return crypto.createHash("sha256").update(value).digest("hex");
 }
 
 /** Validate + normalize a fetched document into a registry object. Throws on garbage. */
@@ -254,7 +544,11 @@ export function resolvePluginEntry(registry, name) {
  */
 export async function resolveRemoteSource(url, opts = {}) {
   const token = resolveRegistryToken(url, opts);
-  const { registry, fromCache } = await fetchRegistry(url, { ...opts, token });
+  const { registry, fromCache, documentSha256, networkAuthority } =
+    await fetchRegistry(url, {
+      ...opts,
+      token,
+    });
   const entry = resolvePluginEntry(registry, opts.name);
   // Carry a `#ref` on the source string so installFromSource pins the checkout,
   // matching its existing `owner/repo#ref` / `url#ref` convention.
@@ -265,6 +559,8 @@ export async function resolveRemoteSource(url, opts = {}) {
     sha256: entry.sha256 || null,
     entry,
     fromCache,
+    documentSha256,
+    ...(networkAuthority ? { networkAuthority } : {}),
   };
 }
 

@@ -24,6 +24,8 @@ import semver from "semver";
 import { parsePluginManifest, isWithin } from "./manifest.js";
 import {
   pluginNameDir,
+  pluginLifecycleCoordinatorDir,
+  pluginLifecycleCoordinatorLock,
   pluginVersionDir,
   scopeRoot,
   encodeName,
@@ -31,6 +33,7 @@ import {
   activeVersion,
   inspectActivePointer,
   discoverPlugins,
+  SCOPES,
   DISABLED_FILENAME,
 } from "./scopes.js";
 import {
@@ -57,10 +60,35 @@ import {
   validateRemoteSbomPayloadComparison,
 } from "./marketplace-artifact-readback.js";
 import { managedSettingsPath } from "../settings-loader.cjs";
+import {
+  buildManagedPublisherAuthority,
+  normalizePublisherAuthority,
+  normalizePublisherDeclaration,
+  verifyInstalledManagedPublisherAuthority,
+} from "./publisher-trust.js";
+import { normalizeMarketplaceNetworkAuthority } from "./marketplace-network.js";
+import {
+  publishMarketplaceSourceCache,
+  readMarketplaceSourceCache,
+} from "./marketplace-source-cache.js";
 import executionBroker from "../process-execution-broker/index.js";
+import {
+  PLUGIN_TRANSACTION_LOCK_DIRNAME,
+  acquirePluginTransactionLock,
+  assertPluginTransactionLock,
+  claimPluginTransactionRecovery,
+  inspectPluginTransactionLock,
+  releasePluginTransactionLock,
+  updatePluginTransactionJournal,
+} from "./transaction-journal.js";
 
 export const MAX_LISTED_PLUGIN_VERSIONS = 64;
 export const SOURCE_METADATA_FILENAME = ".plugin-source.json";
+export const PLUGIN_PROVENANCE_MIGRATION_ATTESTATION_SCHEMA =
+  "cc-plugin-provenance-migration-attestation/v1";
+export const PLUGIN_PROVENANCE_MIGRATION_RECORD_SCHEMA =
+  "cc-plugin-provenance-migration-record/v1";
+const MAX_PROVENANCE_METADATA_BYTES = 96 * 1024;
 
 export const _deps = {
   existsSync: fs.existsSync,
@@ -72,11 +100,18 @@ export const _deps = {
   copyFileSync: fs.copyFileSync,
   lstatSync: fs.lstatSync,
   writeFileSync: fs.writeFileSync,
+  openSync: fs.openSync,
+  closeSync: fs.closeSync,
+  fsyncSync: fs.fsyncSync,
   mkdtempSync: fs.mkdtempSync,
+  randomToken: () => crypto.randomBytes(16).toString("hex"),
   spawnSync: (...args) => executionBroker.spawnSync(...args),
+  beforeTransactionPhaseHook: null,
+  transactionPhaseHook: null,
 };
 
 const pendingPluginTransactions = new WeakMap();
+const ownedPluginLifecycleLocks = new Map();
 
 /**
  * Install a plugin from a local directory into a scope's immutable version dir.
@@ -98,7 +133,26 @@ export function installFromDirectory(srcDir, opts = {}) {
     );
   }
   const { name, version } = manifest.metadata;
+  if (!opts._lifecycleLock) {
+    return runWithPluginLifecycleLock(
+      name,
+      {
+        scope,
+        cwd: opts.cwd,
+        operation: opts.transactional === true ? "install-review" : "install",
+      },
+      (lifecycleLock) =>
+        installFromDirectory(srcDir, {
+          ...opts,
+          _lifecycleLock: lifecycleLock,
+        }),
+    );
+  }
   assertSafePluginNameDirectory(name, { scope, cwd: opts.cwd });
+  assertOwnedPluginLifecycleLock(opts._lifecycleLock, name, {
+    scope,
+    cwd: opts.cwd,
+  });
   assertNoRetainedInstallRecovery(name, { scope, cwd: opts.cwd });
   assertInstalledNameDirectoryIdentity(name, { scope, cwd: opts.cwd });
   assertExpectedPluginIdentity(name, version, opts.expectedIdentity);
@@ -159,6 +213,24 @@ export function installFromDirectory(srcDir, opts = {}) {
     });
   }
   assertRemoteSignatureInstallBinding(sourceMetadata, verification);
+  if (sourceMetadata.type === "registry") {
+    const publisherAuthority = buildManagedPublisherAuthority({
+      name,
+      registryUrl: sourceMetadata.registry || sourceMetadata.source,
+      declaration: sourceMetadata.catalogAuthority?.publisherDeclaration,
+      signingKeySha256: verification?.publicKeySha256,
+      managed: opts.managedPolicy,
+    });
+    if (publisherAuthority) {
+      sourceMetadata = {
+        ...sourceMetadata,
+        catalogAuthority: {
+          ...sourceMetadata.catalogAuthority,
+          publisherAuthority,
+        },
+      };
+    }
+  }
 
   const dest = pluginVersionDir(scope, name, version, { cwd: opts.cwd });
   const destExists = _deps.existsSync(dest);
@@ -188,15 +260,36 @@ export function installFromDirectory(srcDir, opts = {}) {
         cwd: opts.cwd,
       })
     : null;
-  const transactionRoot = _deps.mkdtempSync(path.join(nameDir, ".install-"));
+  const transactionRoot = allocatePluginTransactionRoot(nameDir);
   const staged = path.join(transactionRoot, "staged");
   const backup = destExists ? path.join(transactionRoot, "previous") : null;
+  let installedVersionState = null;
+  const lifecycleTransaction = {
+    kind: "install",
+    name,
+    version,
+    scope,
+    cwd: opts.cwd,
+    dest,
+    backup,
+    transactionRoot,
+    previousActive,
+    previousActiveState,
+    previousInstalledVersionState,
+    previousDestinationState,
+    ownedActivePointerState: null,
+    installedVersionState: null,
+    lifecycleLock: opts._lifecycleLock,
+  };
+  persistPluginLifecycleTransaction(lifecycleTransaction, "staging");
   let installedAtDest = false;
   let transactionRetained = false;
   let preserveTransactionRoot = false;
   let resultForCleanup = null;
 
   try {
+    _deps.mkdirSync(transactionRoot, { mode: 0o700 });
+    fsyncDirectoryBestEffort(nameDir);
     _deps.mkdirSync(staged, { recursive: true });
     copyDirGuarded(src, staged, staged);
 
@@ -254,13 +347,28 @@ export function installFromDirectory(srcDir, opts = {}) {
       });
     }
     validateStagedInstall(staged, { name, version, verification });
+    fsyncPluginTree(staged);
+    lifecycleTransaction.installedVersionState = captureInstalledRootState(
+      staged,
+      name,
+      version,
+    );
+    persistPluginLifecycleTransaction(lifecycleTransaction, "prepared");
 
     // Commit the fully validated directory with same-volume renames. A forced
     // same-version reinstall retains the old bytes until the caller finalizes
     // the upgrade transaction.
-    if (backup) _deps.renameSync(dest, backup);
+    if (backup) {
+      _deps.renameSync(dest, backup);
+      fsyncDirectoryBestEffort(nameDir);
+      persistPluginLifecycleTransaction(
+        lifecycleTransaction,
+        "predecessor-quarantined",
+      );
+    }
     try {
       _deps.renameSync(staged, dest);
+      fsyncDirectoryBestEffort(nameDir);
       installedAtDest = true;
     } catch (error) {
       if (backup && _deps.existsSync(backup)) {
@@ -288,33 +396,35 @@ export function installFromDirectory(srcDir, opts = {}) {
       throw error;
     }
 
-    let installedVersionState = null;
-    if (opts.transactional === true) {
+    try {
+      installedVersionState = captureInstalledVersionState(name, version, {
+        scope,
+        cwd: opts.cwd,
+      });
+      lifecycleTransaction.installedVersionState = installedVersionState;
+      persistPluginLifecycleTransaction(
+        lifecycleTransaction,
+        "candidate-published",
+      );
+    } catch (error) {
       try {
-        installedVersionState = captureInstalledVersionState(name, version, {
+        restoreInstalledBytes({ dest, backup, transactionRoot });
+        installedAtDest = false;
+      } catch (recoveryError) {
+        preserveTransactionRoot = true;
+        throw incompleteInstallRecoveryError({
+          message: "plugin transaction preparation failed",
+          error,
+          recoveryError,
+          name,
+          version,
           scope,
           cwd: opts.cwd,
+          transactionRoot,
+          previousActiveState,
         });
-      } catch (error) {
-        try {
-          restoreInstalledBytes({ dest, backup, transactionRoot });
-          installedAtDest = false;
-        } catch (recoveryError) {
-          preserveTransactionRoot = true;
-          throw incompleteInstallRecoveryError({
-            message: "plugin transaction preparation failed",
-            error,
-            recoveryError,
-            name,
-            version,
-            scope,
-            cwd: opts.cwd,
-            transactionRoot,
-            previousActiveState,
-          });
-        }
-        throw error;
       }
+      throw error;
     }
 
     let activation;
@@ -324,6 +434,7 @@ export function installFromDirectory(srcDir, opts = {}) {
         cwd: opts.cwd,
         allowSourceSwitch: opts.allowSourceSwitch === true,
         ownedTransactionRoot: transactionRoot,
+        _lifecycleLock: opts._lifecycleLock,
       });
     } catch (error) {
       try {
@@ -360,22 +471,11 @@ export function installFromDirectory(srcDir, opts = {}) {
       enabled: isPluginEnabled(name, { scope, cwd: opts.cwd }),
       loadValidated: true,
     };
+    lifecycleTransaction.ownedActivePointerState =
+      activation.activePointerState;
+    persistPluginLifecycleTransaction(lifecycleTransaction, "candidate-active");
     if (opts.transactional === true) {
-      pendingPluginTransactions.set(result, {
-        name,
-        version,
-        scope,
-        cwd: opts.cwd,
-        dest,
-        backup,
-        transactionRoot,
-        previousActive,
-        previousActiveState,
-        previousInstalledVersionState,
-        previousDestinationState,
-        ownedActivePointerState: activation.activePointerState,
-        installedVersionState,
-      });
+      pendingPluginTransactions.set(result, lifecycleTransaction);
       transactionRetained = true;
     }
     resultForCleanup = result;
@@ -408,24 +508,28 @@ export function installFromDirectory(srcDir, opts = {}) {
  * An optional `#ref` (branch / tag / commit) pins the checkout.
  */
 export function installFromSource(source, opts = {}) {
-  return _withMaterializedSource(source, (dir, info) => {
-    const sourceMetadata =
-      normalizeSourceMetadata(opts.sourceMetadata) ||
-      normalizeSourceMetadata(
-        info
-          ? { type: "git", source: info.url, ref: info.ref || null }
-          : { type: "local", source: path.resolve(String(source || "")) },
-      );
-    const res = installFromDirectory(dir, { ...opts, sourceMetadata });
-    if (!info) return res;
-    const result = {
-      ...res,
-      source: sourceMetadata?.source || null,
-      ref: sourceMetadata?.ref || null,
-    };
-    transferPendingTransaction(res, result);
-    return result;
-  });
+  return _withMaterializedSource(
+    source,
+    (dir, info) => {
+      const sourceMetadata =
+        normalizeSourceMetadata(opts.sourceMetadata) ||
+        normalizeSourceMetadata(
+          info
+            ? { type: "git", source: info.url, ref: info.ref || null }
+            : { type: "local", source: path.resolve(String(source || "")) },
+        );
+      const res = installFromDirectory(dir, { ...opts, sourceMetadata });
+      if (!info) return res;
+      const result = {
+        ...res,
+        source: sourceMetadata?.source || null,
+        ref: sourceMetadata?.ref || null,
+      };
+      transferPendingTransaction(res, result);
+      return result;
+    },
+    opts,
+  );
 }
 
 /**
@@ -433,7 +537,7 @@ export function installFromSource(source, opts = {}) {
  * a temp dir), invoke `fn(dir, gitInfo|null)`, then clean up any temp checkout.
  * Single fetch shared by installFromSource + updatePlugin.
  */
-function _withMaterializedSource(source, fn) {
+function _withMaterializedSource(source, fn, opts = {}) {
   const raw = String(source || "");
   const asDir = path.resolve(raw);
   if (_deps.existsSync(asDir) && _deps.lstatSync(asDir).isDirectory()) {
@@ -441,9 +545,45 @@ function _withMaterializedSource(source, fn) {
   }
   const git = parseGitSource(raw);
   if (git) {
+    if (opts.offline === true) {
+      const cached = readMarketplaceSourceCache(opts.sourceMetadata, {
+        cacheDir: opts.sourceCacheDir,
+        remoteSbomBytes: opts.remoteSbomBytes,
+      });
+      const result = fn(cached.dir, {
+        ...git,
+        sourceCacheKey: cached.cacheKey,
+      });
+      if (result && typeof result === "object") {
+        result.sourceCache = {
+          status: "hit",
+          cacheKey: cached.cacheKey,
+        };
+      }
+      return result;
+    }
     const cloned = fetchGitRepo(git.url, git.ref);
     try {
-      return fn(cloned, git);
+      const result = fn(cloned, git);
+      if (result && typeof result === "object") {
+        try {
+          const cached = publishMarketplaceSourceCache(
+            cloned,
+            result.sourceMetadata || opts.sourceMetadata,
+            {
+              cacheDir: opts.sourceCacheDir,
+              remoteSbomBytes: opts.remoteSbomBytes,
+            },
+          );
+          result.sourceCache = {
+            status: cached.status,
+            cacheKey: cached.cacheKey,
+          };
+        } catch {
+          result.sourceCache = { status: "write-failed", cacheKey: null };
+        }
+      }
+      return result;
     } finally {
       try {
         _deps.rmSync(path.dirname(cloned), { recursive: true, force: true });
@@ -467,7 +607,7 @@ function _withMaterializedSource(source, fn) {
  */
 export function updatePlugin(source, opts = {}) {
   const scope = opts.scope || "user";
-  return _withMaterializedSource(source, (dir, info) => {
+  const updateMaterialized = (dir, info) => {
     const manifest = parsePluginManifest(dir);
     if (!manifest.ok) {
       throw new Error(
@@ -475,7 +615,28 @@ export function updatePlugin(source, opts = {}) {
       );
     }
     const { name, version } = manifest.metadata;
+    if (!opts._lifecycleLock) {
+      return runWithPluginLifecycleLock(
+        name,
+        {
+          scope,
+          cwd: opts.cwd,
+          operation: opts.transactional === true ? "upgrade-review" : "upgrade",
+        },
+        (lifecycleLock) =>
+          updatePlugin(source, {
+            ...opts,
+            _lifecycleLock: lifecycleLock,
+            _materializedDir: dir,
+            _materializedGitInfo: info,
+          }),
+      );
+    }
     assertSafePluginNameDirectory(name, { scope, cwd: opts.cwd });
+    assertOwnedPluginLifecycleLock(opts._lifecycleLock, name, {
+      scope,
+      cwd: opts.cwd,
+    });
     assertNoRetainedInstallRecovery(name, { scope, cwd: opts.cwd });
     assertExpectedPluginIdentity(name, version, opts.expectedIdentity);
     const sourceMetadata =
@@ -527,6 +688,7 @@ export function updatePlugin(source, opts = {}) {
         cwd: opts.cwd,
         targetVersion: version,
         allowSourceSwitch: opts.allowSourceSwitch === true,
+        lifecycleLock: opts._lifecycleLock,
       });
       const installedVersionState =
         opts.transactional === true && previousVersion !== version
@@ -546,6 +708,33 @@ export function updatePlugin(source, opts = {}) {
               ),
             )
           : null;
+      const pointerLifecycleTransaction = pointerTransactionRoot
+        ? {
+            kind: "install",
+            name,
+            version,
+            scope,
+            cwd: opts.cwd,
+            dest,
+            backup: null,
+            transactionRoot: pointerTransactionRoot,
+            previousActive: previousVersion,
+            previousActiveState,
+            previousInstalledVersionState,
+            previousDestinationState: null,
+            ownedActivePointerState: null,
+            installedVersionState,
+            pointerOnly: true,
+            lifecycleLock: opts._lifecycleLock,
+          }
+        : null;
+      if (pointerLifecycleTransaction) {
+        fsyncDirectoryBestEffort(pluginNameDir(scope, name, { cwd: opts.cwd }));
+        persistPluginLifecycleTransaction(
+          pointerLifecycleTransaction,
+          "prepared",
+        );
+      }
       let activation = null;
       if (previousVersion !== version) {
         try {
@@ -554,6 +743,7 @@ export function updatePlugin(source, opts = {}) {
             cwd: opts.cwd,
             allowSourceSwitch: opts.allowSourceSwitch === true,
             ownedTransactionRoot: pointerTransactionRoot,
+            _lifecycleLock: opts._lifecycleLock,
           });
         } catch (error) {
           if (pointerTransactionRoot) {
@@ -580,21 +770,13 @@ export function updatePlugin(source, opts = {}) {
         ref: sourceMetadata?.ref || null,
       };
       if (opts.transactional === true && previousVersion !== version) {
-        pendingPluginTransactions.set(result, {
-          name,
-          version,
-          scope,
-          cwd: opts.cwd,
-          dest,
-          backup: null,
-          transactionRoot: pointerTransactionRoot,
-          previousActive: previousVersion,
-          previousActiveState,
-          previousInstalledVersionState,
-          ownedActivePointerState: activation.activePointerState,
-          installedVersionState,
-          pointerOnly: true,
-        });
+        pointerLifecycleTransaction.ownedActivePointerState =
+          activation.activePointerState;
+        persistPluginLifecycleTransaction(
+          pointerLifecycleTransaction,
+          "candidate-active",
+        );
+        pendingPluginTransactions.set(result, pointerLifecycleTransaction);
       }
       return result;
     }
@@ -616,7 +798,14 @@ export function updatePlugin(source, opts = {}) {
     };
     transferPendingTransaction(res, result);
     return result;
-  });
+  };
+  if (opts._materializedDir) {
+    return updateMaterialized(
+      opts._materializedDir,
+      opts._materializedGitInfo || null,
+    );
+  }
+  return _withMaterializedSource(source, updateMaterialized, opts);
 }
 
 /**
@@ -628,12 +817,30 @@ export function updatePlugin(source, opts = {}) {
 export function finalizePluginUpdate(result) {
   const transaction = pendingPluginTransactions.get(result);
   if (!transaction) return { finalized: false };
+  assertOwnedPluginLifecycleLock(
+    transaction.lifecycleLock,
+    transaction.name,
+    transaction,
+  );
+  persistPluginLifecycleTransaction(transaction, "finalizing");
   assertSafePluginNameDirectory(transaction.name, transaction);
   assertTransactionOwnsActivePointer(transaction);
+  const cleanup = retireCommittedTransactionRoot(transaction.transactionRoot);
+  if (authoritativeTransactionCleanupPending(cleanup)) {
+    persistPluginLifecycleTransaction(
+      transaction,
+      "finalize-recovery-required",
+    );
+    return { finalized: true, ...cleanup };
+  }
+  persistPluginLifecycleTransaction(transaction, "finalized");
+  const lockCleanup = releaseOwnedPluginLifecycleLock(
+    transaction.lifecycleLock,
+  );
   pendingPluginTransactions.delete(result);
   return {
     finalized: true,
-    ...retireCommittedTransactionRoot(transaction.transactionRoot),
+    ...mergeLifecycleCleanup(cleanup, lockCleanup),
   };
 }
 
@@ -646,23 +853,41 @@ export function rollbackPluginUpdate(result) {
   const transaction = pendingPluginTransactions.get(result);
   if (!transaction) return { rolledBack: false, version: null };
 
+  assertOwnedPluginLifecycleLock(
+    transaction.lifecycleLock,
+    transaction.name,
+    transaction,
+  );
+  persistPluginLifecycleTransaction(transaction, "rolling-back");
   assertSafePluginNameDirectory(transaction.name, transaction);
+  let pointerAlreadyRestored = false;
   if (transaction.rollbackPhase !== "bytes-restored") {
     if (transaction.rollbackPhase === "bytes-recovery") {
+      adoptRollbackPointerQuarantine(transaction);
       assertTransactionOwnsRecoveryState(transaction);
     } else {
       assertTransactionOwnsActivePointer(transaction);
     }
     if (!transaction.pointerOnly) {
+      if (transaction.rollbackPhase !== "bytes-recovery") {
+        transaction.rollbackPhase = "bytes-recovery";
+        persistPluginLifecycleTransaction(
+          transaction,
+          "rollback-bytes-recovery",
+        );
+      }
       try {
         restoreInstalledBytes(transaction);
       } catch (error) {
         // A same-volume rename can fail after candidate quarantine but before
         // predecessor publication. Preserve both roots and allow an exact,
         // ownership-checked retry instead of reactivating rejected bytes.
-        transaction.rollbackPhase = "bytes-recovery";
         try {
           quarantineTransactionActivePointer(transaction);
+          persistPluginLifecycleTransaction(
+            transaction,
+            "rollback-bytes-recovery",
+          );
         } catch (pointerError) {
           throw new Error(
             `${error.message}; active pointer fail-close also failed: ${pointerError.message}`,
@@ -673,24 +898,671 @@ export function rollbackPluginUpdate(result) {
       }
     }
     transaction.rollbackPhase = "bytes-restored";
+    persistPluginLifecycleTransaction(transaction, "rollback-bytes-restored");
   } else {
     // A prior attempt restored/quarantined bytes but failed before the atomic
     // pointer replace. Retrying is safe only while the transaction still owns
     // the unchanged candidate pointer.
-    assertTransactionOwnsRollbackPointer(transaction);
+    try {
+      assertTransactionOwnsRollbackPointer(transaction);
+    } catch (pointerError) {
+      if (!activePointerMatchesSnapshot(transaction)) throw pointerError;
+      assertTransactionOwnsRecoveryBytes(transaction);
+      pointerAlreadyRestored = true;
+    }
   }
 
-  restoreActivePointerSnapshot(
-    transaction.name,
-    transaction.previousActiveState,
-    transaction,
+  if (!pointerAlreadyRestored) {
+    restoreActivePointerSnapshot(
+      transaction.name,
+      transaction.previousActiveState,
+      transaction,
+    );
+  }
+  persistPluginLifecycleTransaction(transaction, "rolled-back");
+  const cleanup = retireCommittedTransactionRoot(transaction.transactionRoot);
+  if (authoritativeTransactionCleanupPending(cleanup)) {
+    persistPluginLifecycleTransaction(
+      transaction,
+      "rollback-recovery-required",
+    );
+    return {
+      rolledBack: true,
+      version: transaction.previousActive || null,
+      ...cleanup,
+    };
+  }
+  const lockCleanup = releaseOwnedPluginLifecycleLock(
+    transaction.lifecycleLock,
   );
   pendingPluginTransactions.delete(result);
   return {
     rolledBack: true,
     version: transaction.previousActive || null,
-    ...retireCommittedTransactionRoot(transaction.transactionRoot),
+    ...mergeLifecycleCleanup(cleanup, lockCleanup),
   };
+}
+
+/** Redacted cross-process lifecycle authority for management/doctor surfaces. */
+export function inspectPluginTransaction(name, opts = {}) {
+  const scope = opts.scope || "user";
+  const cwd = opts.cwd;
+  assertSafePluginNameDirectory(name, { scope, cwd });
+  const inspected = inspectPluginTransactionLock({
+    name,
+    scope,
+    nameDir: pluginLifecycleCoordinatorDir(name),
+    contextDigest: pluginLifecycleContextDigest(name, { scope, cwd }),
+  });
+  if (!inspected) return null;
+  return {
+    schemaVersion: inspected.journal.schemaVersion,
+    name,
+    scope,
+    operation: inspected.journal.operation,
+    phase: inspected.journal.phase,
+    revision: inspected.journal.revision,
+    journalDigest: inspected.journal.journalDigest,
+    previousJournalDigest: inspected.journal.previousJournalDigest,
+    owner: {
+      pid: inspected.owner.pid,
+      hostname: inspected.owner.hostname,
+      startedAt: inspected.owner.startedAt,
+      alive: inspected.ownerAlive,
+    },
+    recoverable: Boolean(inspected.journal.transaction),
+  };
+}
+
+/**
+ * Explicitly recover a durable transaction after its recorded owner died.
+ * Ordinary mutation never steals a stale lock. `forceOwner` is required when
+ * the owner is still live or belongs to another host and therefore cannot be
+ * disproved locally.
+ */
+export function recoverPluginTransaction(name, opts = {}) {
+  const scope = opts.scope || "user";
+  const cwd = opts.cwd;
+  const action = opts.action || "rollback";
+  if (!new Set(["rollback", "finalize", "abort"]).has(action)) {
+    throw new Error(`unknown plugin transaction recovery action: ${action}`);
+  }
+  assertSafePluginNameDirectory(name, { scope, cwd });
+  const lifecycleLock = claimPluginTransactionRecovery({
+    name,
+    scope,
+    nameDir: pluginLifecycleCoordinatorDir(name),
+    contextDigest: pluginLifecycleContextDigest(name, { scope, cwd }),
+    force: opts.forceOwner === true,
+  });
+  lifecycleLock.targetNameDir = pluginNameDir(scope, name, { cwd });
+  const serialized = lifecycleLock.journal.transaction;
+  if (!serialized) {
+    if (hasRetainedLifecycleRecovery(lifecycleLock.targetNameDir)) {
+      throw new Error(
+        "PLUGIN_TRANSACTION_RECOVERY_INCOMPLETE: journal has no transaction authority for retained recovery bytes",
+      );
+    }
+    updatePluginTransactionJournal(lifecycleLock, { phase: "aborted" });
+    const lockCleanup = releaseOwnedPluginLifecycleLock(lifecycleLock);
+    return { recovered: true, action: "abort", ...lockCleanup };
+  }
+  const transactionKind = serialized.kind || "install";
+  if (transactionKind === "enabled-state") {
+    return recoverPluginEnabledStateTransaction(
+      name,
+      { scope, cwd, action },
+      lifecycleLock,
+      serialized,
+    );
+  }
+  if (transactionKind === "provenance-migration") {
+    return recoverPluginProvenanceMigrationTransaction(
+      name,
+      { scope, cwd, action },
+      lifecycleLock,
+      serialized,
+    );
+  }
+  if (
+    transactionKind === "uninstall-version" ||
+    transactionKind === "uninstall-name"
+  ) {
+    return recoverPluginUninstallTransaction(
+      name,
+      { scope, cwd, action },
+      lifecycleLock,
+      serialized,
+    );
+  }
+  if (action === "abort") {
+    throw new Error(
+      "PLUGIN_TRANSACTION_RECOVERY_INCOMPLETE: a prepared transaction must be rolled back or finalized",
+    );
+  }
+
+  const transaction = deserializePluginLifecycleTransaction(
+    name,
+    { scope, cwd },
+    lifecycleLock,
+    serialized,
+  );
+  adoptCrashWindowPointerAuthority(transaction);
+
+  if (action === "finalize") {
+    if (!transaction.ownedActivePointerState) {
+      throw new Error(
+        "PLUGIN_TRANSACTION_RECOVERY_INCOMPLETE: candidate activation was not durably observed",
+      );
+    }
+    persistPluginLifecycleTransaction(transaction, "finalizing");
+    assertTransactionOwnsActivePointer(transaction);
+    const cleanup = retireCommittedTransactionRoot(transaction.transactionRoot);
+    if (authoritativeTransactionCleanupPending(cleanup)) {
+      persistPluginLifecycleTransaction(
+        transaction,
+        "finalize-recovery-required",
+      );
+      return {
+        recovered: false,
+        action,
+        recoveryRequired: true,
+        ...cleanup,
+      };
+    }
+    persistPluginLifecycleTransaction(transaction, "finalized");
+    const lockCleanup = releaseOwnedPluginLifecycleLock(lifecycleLock);
+    return {
+      recovered: true,
+      action,
+      version: transaction.version,
+      ...mergeLifecycleCleanup(cleanup, lockCleanup),
+    };
+  }
+
+  if (!transaction.ownedActivePointerState) {
+    return rollbackPreparedPluginTransaction(transaction);
+  }
+  const recoveryResult = {};
+  pendingPluginTransactions.set(recoveryResult, transaction);
+  try {
+    const rolledBack = rollbackPluginUpdate(recoveryResult);
+    return { recovered: rolledBack.rolledBack, action, ...rolledBack };
+  } finally {
+    pendingPluginTransactions.delete(recoveryResult);
+  }
+}
+
+function recoverPluginEnabledStateTransaction(
+  name,
+  { scope, cwd, action },
+  lifecycleLock,
+  serialized,
+) {
+  if (action === "abort") {
+    throw new Error(
+      "PLUGIN_TRANSACTION_RECOVERY_INCOMPLETE: a prepared lifecycle state change must be rolled back or finalized",
+    );
+  }
+  const transaction = deserializePluginEnabledStateTransaction(
+    name,
+    { scope, cwd },
+    lifecycleLock,
+    serialized,
+  );
+  const current = captureDisabledMarkerState(name, { scope, cwd });
+
+  if (action === "finalize") {
+    persistPluginLifecycleTransaction(transaction, "marker-finalizing");
+    if (
+      !sameLifecycleFileState(current, transaction.previousMarkerState) &&
+      !lifecycleFileContentMatches(current, transaction.desiredMarkerState)
+    ) {
+      throw new Error(
+        "PLUGIN_TRANSACTION_STALE: disabled marker changed outside the recorded transaction",
+      );
+    }
+    if (!lifecycleFileContentMatches(current, transaction.desiredMarkerState)) {
+      writeDisabledMarkerState(
+        transaction.marker,
+        transaction.nameDir,
+        transaction.desiredMarkerState,
+      );
+    }
+    transaction.ownedMarkerState = captureDisabledMarkerState(name, {
+      scope,
+      cwd,
+    });
+    assertLifecycleFileContent(
+      transaction.ownedMarkerState,
+      transaction.desiredMarkerState,
+      "disabled marker did not finalize the recorded lifecycle state",
+    );
+    persistPluginLifecycleTransaction(transaction, "marker-finalized");
+    const cleanup = releaseOwnedPluginLifecycleLock(lifecycleLock);
+    return {
+      recovered: true,
+      action,
+      name,
+      scope,
+      enabled: transaction.enabled,
+      ...cleanup,
+    };
+  }
+
+  persistPluginLifecycleTransaction(transaction, "marker-rolling-back");
+  const ownsPublishedState = transaction.ownedMarkerState
+    ? sameLifecycleFileState(current, transaction.ownedMarkerState)
+    : lifecycleFileContentMatches(current, transaction.desiredMarkerState);
+  if (
+    !sameLifecycleFileState(current, transaction.previousMarkerState) &&
+    !ownsPublishedState
+  ) {
+    throw new Error(
+      "PLUGIN_TRANSACTION_STALE: disabled marker changed outside the recorded transaction",
+    );
+  }
+  if (!sameLifecycleFileState(current, transaction.previousMarkerState)) {
+    writeDisabledMarkerState(
+      transaction.marker,
+      transaction.nameDir,
+      transaction.previousMarkerState,
+    );
+  }
+  const restored = captureDisabledMarkerState(name, { scope, cwd });
+  assertLifecycleFileContent(
+    restored,
+    transaction.previousMarkerState,
+    "disabled marker rollback did not restore the recorded predecessor",
+  );
+  persistPluginLifecycleTransaction(transaction, "marker-rolled-back");
+  const cleanup = releaseOwnedPluginLifecycleLock(lifecycleLock);
+  return {
+    recovered: true,
+    action,
+    rolledBack: true,
+    name,
+    scope,
+    enabled: transaction.previousMarkerState.present !== true,
+    ...cleanup,
+  };
+}
+
+function recoverPluginProvenanceMigrationTransaction(
+  name,
+  { scope, cwd, action },
+  lifecycleLock,
+  serialized,
+) {
+  if (action === "abort") {
+    throw new Error(
+      "PLUGIN_TRANSACTION_RECOVERY_INCOMPLETE: a prepared provenance migration must be rolled back or finalized",
+    );
+  }
+  const transaction = deserializePluginProvenanceMigrationTransaction(
+    name,
+    { scope, cwd },
+    lifecycleLock,
+    serialized,
+  );
+  const current = captureLifecycleFileState(
+    transaction.marker,
+    MAX_PROVENANCE_METADATA_BYTES,
+    "PLUGIN_SOURCE_METADATA_UNSAFE",
+  );
+  if (action === "finalize") {
+    persistPluginLifecycleTransaction(transaction, "provenance-finalizing");
+    if (
+      !sameLifecycleFileState(current, transaction.previousMetadataState) &&
+      !lifecycleFileContentMatches(current, transaction.desiredMetadataState)
+    ) {
+      throw new Error(
+        "PLUGIN_TRANSACTION_STALE: plugin source metadata changed outside the migration",
+      );
+    }
+    if (
+      !lifecycleFileContentMatches(current, transaction.desiredMetadataState)
+    ) {
+      writeDurableFileAtomic(
+        transaction.root,
+        transaction.marker,
+        transaction.desiredMetadataState.bytes,
+      );
+    }
+    transaction.ownedMetadataState = captureLifecycleFileState(
+      transaction.marker,
+      MAX_PROVENANCE_METADATA_BYTES,
+      "PLUGIN_SOURCE_METADATA_UNSAFE",
+    );
+    readSourceMetadataStrict(transaction.root, { required: true });
+    persistPluginLifecycleTransaction(transaction, "provenance-finalized");
+    const cleanup = releaseOwnedPluginLifecycleLock(lifecycleLock);
+    return {
+      recovered: true,
+      action,
+      migrated: true,
+      name,
+      version: transaction.version,
+      scope,
+      ...cleanup,
+    };
+  }
+  persistPluginLifecycleTransaction(transaction, "provenance-rolling-back");
+  const ownsPublished = transaction.ownedMetadataState
+    ? sameLifecycleFileState(current, transaction.ownedMetadataState)
+    : lifecycleFileContentMatches(current, transaction.desiredMetadataState);
+  if (
+    !sameLifecycleFileState(current, transaction.previousMetadataState) &&
+    !ownsPublished
+  ) {
+    throw new Error(
+      "PLUGIN_TRANSACTION_STALE: plugin source metadata changed outside the migration",
+    );
+  }
+  if (!sameLifecycleFileState(current, transaction.previousMetadataState)) {
+    writeLifecycleFileState(
+      transaction.marker,
+      transaction.root,
+      transaction.previousMetadataState,
+    );
+  }
+  persistPluginLifecycleTransaction(transaction, "provenance-rolled-back");
+  const cleanup = releaseOwnedPluginLifecycleLock(lifecycleLock);
+  return {
+    recovered: true,
+    action,
+    rolledBack: true,
+    name,
+    version: transaction.version,
+    scope,
+    ...cleanup,
+  };
+}
+
+function recoverPluginUninstallTransaction(
+  name,
+  { scope, cwd, action },
+  lifecycleLock,
+  serialized,
+) {
+  if (action === "abort") {
+    throw new Error(
+      "PLUGIN_TRANSACTION_RECOVERY_INCOMPLETE: a prepared uninstall must be rolled back or finalized",
+    );
+  }
+  const transaction = deserializePluginUninstallTransaction(
+    name,
+    { scope, cwd },
+    lifecycleLock,
+    serialized,
+  );
+  return action === "finalize"
+    ? finalizeRecoveredUninstallTransaction(transaction)
+    : rollbackRecoveredUninstallTransaction(transaction);
+}
+
+function finalizeRecoveredUninstallTransaction(transaction) {
+  const finalizing =
+    transaction.lifecycleLock.journal.phase.startsWith("uninstall-final");
+  if (transaction.kind === "uninstall-version") {
+    if (!finalizing) prepareRecoveredVersionUninstallFinalize(transaction);
+    else assertRecoveredVersionUninstallPublished(transaction);
+  } else if (!finalizing) {
+    prepareRecoveredWholeNameUninstallFinalize(transaction);
+  } else if (_deps.existsSync(transaction.nameDir)) {
+    throw new Error(
+      "PLUGIN_TRANSACTION_STALE: plugin name reappeared during uninstall finalization",
+    );
+  }
+
+  if (!finalizing) {
+    persistPluginLifecycleTransaction(transaction, "uninstall-finalizing");
+  }
+  const cleanupRoot = committedCleanupRoot(transaction.transactionRoot);
+  const cleanup = _deps.existsSync(transaction.transactionRoot)
+    ? retireCommittedTransactionRoot(transaction.transactionRoot)
+    : retireCommittedTransactionRoot(cleanupRoot);
+  if (authoritativeTransactionCleanupPending(cleanup)) {
+    persistPluginLifecycleTransaction(
+      transaction,
+      "uninstall-finalize-recovery-required",
+    );
+    return {
+      recovered: false,
+      action: "finalize",
+      recoveryRequired: true,
+      ...cleanup,
+    };
+  }
+  persistPluginLifecycleTransaction(transaction, "uninstall-finalized");
+  const lockCleanup = releaseOwnedPluginLifecycleLock(
+    transaction.lifecycleLock,
+  );
+  return {
+    recovered: true,
+    action: "finalize",
+    removed:
+      transaction.kind === "uninstall-version"
+        ? [transaction.version]
+        : transaction.versions,
+    ...mergeLifecycleCleanup(cleanup, lockCleanup),
+  };
+}
+
+function prepareRecoveredVersionUninstallFinalize(transaction) {
+  const destExists = _deps.existsSync(transaction.dest);
+  const quarantinedExists = _deps.existsSync(transaction.quarantined);
+  if (destExists && !quarantinedExists) {
+    assertInstalledRootStateMatches(
+      transaction.dest,
+      transaction.name,
+      transaction.version,
+      transaction.removedVersionState,
+      "uninstall target changed before recovered quarantine",
+    );
+    if (!_deps.existsSync(transaction.transactionRoot)) {
+      _deps.mkdirSync(transaction.transactionRoot, { mode: 0o700 });
+      fsyncDirectoryBestEffort(transaction.nameDir);
+    }
+    _deps.renameSync(transaction.dest, transaction.quarantined);
+    fsyncDirectoryBestEffort(transaction.nameDir);
+    fsyncDirectoryBestEffort(transaction.transactionRoot);
+    persistPluginLifecycleTransaction(
+      transaction,
+      "uninstall-version-quarantined-recovered",
+    );
+  } else if (!destExists && quarantinedExists) {
+    assertInstalledRootStateMatches(
+      transaction.quarantined,
+      transaction.name,
+      transaction.version,
+      transaction.removedVersionState,
+      "quarantined uninstall bytes changed",
+    );
+  } else {
+    throw new Error(
+      "PLUGIN_TRANSACTION_RECOVERY_INCOMPLETE: uninstall version topology is ambiguous",
+    );
+  }
+  publishVersionUninstallActiveState(transaction);
+  persistPluginLifecycleTransaction(
+    transaction,
+    "uninstall-state-published-recovered",
+  );
+}
+
+function assertRecoveredVersionUninstallPublished(transaction) {
+  if (_deps.existsSync(transaction.dest)) {
+    throw new Error(
+      "PLUGIN_TRANSACTION_STALE: removed version reappeared during finalization",
+    );
+  }
+  const current = captureActivePointerState(transaction.name, transaction);
+  assertLifecycleFileContent(
+    current,
+    transaction.desiredActiveState,
+    "uninstall fallback changed during finalization",
+  );
+  assertLifecycleFileContent(
+    captureDisabledMarkerState(transaction.name, transaction),
+    transaction.desiredMarkerState,
+    "uninstall disabled marker changed during finalization",
+  );
+}
+
+function prepareRecoveredWholeNameUninstallFinalize(transaction) {
+  const targetExists = _deps.existsSync(transaction.nameDir);
+  const quarantinedExists = _deps.existsSync(transaction.transactionRoot);
+  if (targetExists && !quarantinedExists) {
+    assertPluginNameStateMatches(
+      transaction.nameDir,
+      transaction.name,
+      transaction.previousNameState,
+      "plugin name changed before recovered quarantine",
+    );
+    _deps.renameSync(transaction.nameDir, transaction.transactionRoot);
+    fsyncDirectoryBestEffort(path.dirname(transaction.nameDir));
+    persistPluginLifecycleTransaction(
+      transaction,
+      "uninstall-name-quarantined-recovered",
+    );
+  } else if (!targetExists && quarantinedExists) {
+    assertPluginNameStateMatches(
+      transaction.transactionRoot,
+      transaction.name,
+      transaction.previousNameState,
+      "quarantined plugin name changed",
+    );
+  } else {
+    throw new Error(
+      "PLUGIN_TRANSACTION_RECOVERY_INCOMPLETE: whole-name uninstall topology is ambiguous",
+    );
+  }
+}
+
+function rollbackRecoveredUninstallTransaction(transaction) {
+  if (transaction.lifecycleLock.journal.phase.startsWith("uninstall-final")) {
+    throw new Error(
+      "PLUGIN_TRANSACTION_RECOVERY_INCOMPLETE: finalizing uninstall can only be finalized",
+    );
+  }
+  persistPluginLifecycleTransaction(transaction, "uninstall-rolling-back");
+  if (transaction.kind === "uninstall-version") {
+    rollbackRecoveredVersionUninstall(transaction);
+  } else {
+    rollbackRecoveredWholeNameUninstall(transaction);
+  }
+  persistPluginLifecycleTransaction(transaction, "uninstall-rolled-back");
+  const cleanup = retireCommittedTransactionRoot(transaction.transactionRoot);
+  if (authoritativeTransactionCleanupPending(cleanup)) {
+    persistPluginLifecycleTransaction(
+      transaction,
+      "uninstall-rollback-recovery-required",
+    );
+    return {
+      recovered: false,
+      action: "rollback",
+      recoveryRequired: true,
+      ...cleanup,
+    };
+  }
+  const lockCleanup = releaseOwnedPluginLifecycleLock(
+    transaction.lifecycleLock,
+  );
+  return {
+    recovered: true,
+    action: "rollback",
+    rolledBack: true,
+    ...mergeLifecycleCleanup(cleanup, lockCleanup),
+  };
+}
+
+function rollbackRecoveredVersionUninstall(transaction) {
+  const current = captureActivePointerState(transaction.name, transaction);
+  if (
+    !samePointerState(current, transaction.previousActiveState) &&
+    !lifecycleFileContentMatches(current, transaction.desiredActiveState)
+  ) {
+    throw new Error(
+      "PLUGIN_TRANSACTION_STALE: active pointer changed during uninstall recovery",
+    );
+  }
+  const destExists = _deps.existsSync(transaction.dest);
+  const quarantinedExists = _deps.existsSync(transaction.quarantined);
+  if (!destExists && quarantinedExists) {
+    assertInstalledRootStateMatches(
+      transaction.quarantined,
+      transaction.name,
+      transaction.version,
+      transaction.removedVersionState,
+      "quarantined uninstall bytes changed before rollback",
+    );
+    _deps.renameSync(transaction.quarantined, transaction.dest);
+    fsyncDirectoryBestEffort(transaction.transactionRoot);
+    fsyncDirectoryBestEffort(transaction.nameDir);
+  } else if (destExists && !quarantinedExists) {
+    assertInstalledRootStateMatches(
+      transaction.dest,
+      transaction.name,
+      transaction.version,
+      transaction.removedVersionState,
+      "uninstall target changed before rollback",
+    );
+  } else {
+    throw new Error(
+      "PLUGIN_TRANSACTION_RECOVERY_INCOMPLETE: uninstall version topology is ambiguous",
+    );
+  }
+  const afterBytes = captureActivePointerState(transaction.name, transaction);
+  if (!samePointerState(afterBytes, transaction.previousActiveState)) {
+    restoreActivePointerSnapshot(
+      transaction.name,
+      transaction.previousActiveState,
+      transaction,
+    );
+  }
+  const marker = captureDisabledMarkerState(transaction.name, transaction);
+  if (
+    !sameLifecycleFileState(marker, transaction.previousMarkerState) &&
+    !lifecycleFileContentMatches(marker, transaction.desiredMarkerState)
+  ) {
+    throw new Error(
+      "PLUGIN_TRANSACTION_STALE: disabled marker changed during uninstall recovery",
+    );
+  }
+  if (!sameLifecycleFileState(marker, transaction.previousMarkerState)) {
+    writeDisabledMarkerState(
+      path.join(transaction.nameDir, DISABLED_FILENAME),
+      transaction.nameDir,
+      transaction.previousMarkerState,
+    );
+  }
+}
+
+function rollbackRecoveredWholeNameUninstall(transaction) {
+  const targetExists = _deps.existsSync(transaction.nameDir);
+  const quarantinedExists = _deps.existsSync(transaction.transactionRoot);
+  if (!targetExists && quarantinedExists) {
+    assertPluginNameStateMatches(
+      transaction.transactionRoot,
+      transaction.name,
+      transaction.previousNameState,
+      "quarantined plugin name changed before rollback",
+    );
+    _deps.renameSync(transaction.transactionRoot, transaction.nameDir);
+    fsyncDirectoryBestEffort(path.dirname(transaction.nameDir));
+  } else if (targetExists && !quarantinedExists) {
+    assertPluginNameStateMatches(
+      transaction.nameDir,
+      transaction.name,
+      transaction.previousNameState,
+      "plugin name changed before rollback",
+    );
+  } else {
+    throw new Error(
+      "PLUGIN_TRANSACTION_RECOVERY_INCOMPLETE: whole-name uninstall topology is ambiguous",
+    );
+  }
 }
 
 /**
@@ -894,6 +1766,59 @@ export function listInstalled(opts = {}) {
 }
 
 /**
+ * Return the physical per-scope inventory without collapsing shadowed names.
+ * `listInstalled()` remains the runtime-effective view for compatibility;
+ * management and preflight callers use this view to see disabled, blocked, and
+ * lower-precedence payloads that could become effective after a mutation.
+ */
+export function listInstalledAllScopes(opts = {}) {
+  const requested = new Set(opts.scopes || SCOPES);
+  for (const scope of requested) {
+    if (!SCOPES.includes(scope))
+      throw new Error(`unknown plugin scope: ${scope}`);
+  }
+  const scopes = SCOPES.filter((scope) => requested.has(scope));
+  const physical = scopes.flatMap((scope) =>
+    listInstalled({ ...opts, scopes: [scope] }),
+  );
+  const effective = discoverPlugins({
+    cwd: opts.cwd,
+    scopes,
+    skipPolicy: true,
+    includeBlocked: true,
+    allowRetainedInstall: opts.allowRetainedInstall === true,
+  });
+  const effectiveByName = new Map(
+    effective.map((entry) => [encodeName(entry.name), entry]),
+  );
+  return physical.map((row) => {
+    const authority = effectiveByName.get(encodeName(row.name)) || null;
+    const effectiveAuthority = authority?.scope === row.scope;
+    const rowPrecedence = SCOPES.indexOf(row.scope);
+    const authorityPrecedence = authority
+      ? SCOPES.indexOf(authority.scope)
+      : -1;
+    return {
+      ...row,
+      effectiveAuthority,
+      shadowedByScope:
+        authority && authorityPrecedence > rowPrecedence
+          ? authority.scope
+          : null,
+      inactiveReason: effectiveAuthority
+        ? row.runtimeBlocked
+          ? "blocked"
+          : null
+        : row.enabled === false
+          ? "disabled"
+          : authority && authorityPrecedence > rowPrecedence
+            ? "shadowed"
+            : "not-effective",
+    };
+  });
+}
+
+/**
  * Uninstall a plugin. Without `version`, removes the whole plugin (all versions);
  * with `version`, removes just that one and repoints `.active` if needed.
  * @returns {{ removed: string[] }}
@@ -901,9 +1826,21 @@ export function listInstalled(opts = {}) {
 export function uninstall(name, opts = {}) {
   const scope = opts.scope || "user";
   const cwd = opts.cwd;
-  const removed = [];
-  let cleanup = { cleanupPending: false };
+  if (!opts._lifecycleLock) {
+    return runWithPluginLifecycleLock(
+      name,
+      {
+        scope,
+        cwd,
+        operation: "uninstall",
+        allowRetainedRecovery: true,
+      },
+      (lifecycleLock) =>
+        uninstall(name, { ...opts, _lifecycleLock: lifecycleLock }),
+    );
+  }
   assertSafePluginNameDirectory(name, { scope, cwd });
+  assertOwnedPluginLifecycleLock(opts._lifecycleLock, name, { scope, cwd });
 
   if (opts.version != null) {
     // A retained install transaction owns both the active pointer and any
@@ -952,51 +1889,28 @@ export function uninstall(name, opts = {}) {
         cwd,
         targetVersion: remaining[0],
         allowSourceSwitch: opts.allowSourceSwitch === true,
+        lifecycleLock: opts._lifecycleLock,
+      });
+    } else if (removedWasActive && remaining.length === 0) {
+      assertCrossScopeFallback({
+        name,
+        scope,
+        cwd,
+        allowSourceSwitch: opts.allowSourceSwitch === true,
+        lifecycleLock: opts._lifecycleLock,
       });
     }
-    // Repoint .active before retiring an active version. Quarantining the old
-    // directory makes a pointer-write failure recoverable without losing the
-    // active bytes or leaving a dangling pointer.
-    if (remaining.length === 0) {
-      _deps.rmSync(pluginNameDir(scope, name, { cwd }), {
-        recursive: true,
-        force: true,
-      });
-    } else if (removedWasActive) {
-      const nameDir = pluginNameDir(scope, name, { cwd });
-      const transactionRoot = _deps.mkdtempSync(
-        path.join(nameDir, ".uninstall-"),
-      );
-      const quarantined = path.join(transactionRoot, requestedVersion);
-      _deps.renameSync(dir, quarantined);
-      try {
-        writeActiveVersionPointer(name, remaining[0], { scope, cwd });
-      } catch (error) {
-        try {
-          _deps.renameSync(quarantined, dir);
-        } catch (recoveryError) {
-          throw new Error(
-            `plugin uninstall failed and recovery is incomplete; retained recovery state at ${transactionRoot}: ${recoveryError.message}`,
-            { cause: error },
-          );
-        }
-        retireCommittedTransactionRoot(transactionRoot);
-        throw error;
-      }
-      cleanup = retireCommittedTransactionRoot(transactionRoot);
-    } else {
-      _deps.rmSync(dir, { recursive: true, force: true });
-    }
-    removed.push(requestedVersion);
-    return {
-      removed,
-      ...(cleanup.cleanupPending === true
-        ? {
-            cleanupPending: true,
-            cleanupPath: cleanup.cleanupPath,
-          }
-        : {}),
-    };
+    return runDurableVersionUninstall({
+      name,
+      version: requestedVersion,
+      scope,
+      cwd,
+      dir,
+      remaining,
+      removedWasActive,
+      previousActiveState: captureActivePointerState(name, { scope, cwd }),
+      lifecycleLock: opts._lifecycleLock,
+    });
   }
 
   const nameDir = pluginNameDir(scope, name, { cwd });
@@ -1008,16 +1922,244 @@ export function uninstall(name, opts = {}) {
     cwd,
     allowBlockedIdentity: opts.allowBlockedIdentity === true,
   });
-  removed.push(...listInstalledVersions(scope, name, { cwd }));
-  _deps.rmSync(nameDir, { recursive: true, force: true });
-  return { removed };
+  assertCrossScopeFallback({
+    name,
+    scope,
+    cwd,
+    allowSourceSwitch: opts.allowSourceSwitch === true,
+    lifecycleLock: opts._lifecycleLock,
+  });
+  return runDurableWholeNameUninstall({
+    name,
+    scope,
+    cwd,
+    versions: listInstalledVersions(scope, name, { cwd }),
+    lifecycleLock: opts._lifecycleLock,
+  });
+}
+
+function runDurableVersionUninstall({
+  name,
+  version,
+  scope,
+  cwd,
+  dir,
+  remaining,
+  removedWasActive,
+  previousActiveState,
+  lifecycleLock,
+}) {
+  const nameDir = pluginNameDir(scope, name, { cwd });
+  const transactionRoot = allocateLifecycleRecoveryRoot(nameDir, ".uninstall-");
+  const quarantined = path.join(transactionRoot, version);
+  const desiredActiveState = removedWasActive
+    ? remaining.length > 0
+      ? {
+          present: true,
+          bytes: Buffer.from(remaining[0], "utf8"),
+          version: remaining[0],
+          generation: null,
+        }
+      : { present: false, bytes: null, version: null, generation: null }
+    : previousActiveState;
+  const transaction = {
+    kind: "uninstall-version",
+    name,
+    version,
+    scope,
+    cwd,
+    nameDir,
+    dest: dir,
+    transactionRoot,
+    quarantined,
+    removedWasActive,
+    removeNameAfterFinalize: remaining.length === 0,
+    previousActiveState,
+    desiredActiveState,
+    ownedActivePointerState: null,
+    removedVersionState: captureInstalledRootState(dir, name, version),
+    previousMarkerState: captureDisabledMarkerState(name, { scope, cwd }),
+    desiredMarkerState:
+      remaining.length === 0
+        ? { present: false, bytes: null, generation: null }
+        : captureDisabledMarkerState(name, { scope, cwd }),
+    ownedMarkerState: null,
+    lifecycleLock,
+  };
+
+  persistPluginLifecycleTransaction(transaction, "uninstall-prepared");
+  _deps.mkdirSync(transactionRoot, { mode: 0o700 });
+  fsyncDirectoryBestEffort(nameDir);
+  persistPluginLifecycleTransaction(transaction, "uninstall-root-created");
+  assertInstalledRootStateMatches(
+    dir,
+    name,
+    version,
+    transaction.removedVersionState,
+    "uninstall target changed before quarantine",
+  );
+  _deps.renameSync(dir, quarantined);
+  fsyncDirectoryBestEffort(nameDir);
+  fsyncDirectoryBestEffort(transactionRoot);
+  persistPluginLifecycleTransaction(
+    transaction,
+    "uninstall-version-quarantined",
+  );
+
+  try {
+    publishVersionUninstallActiveState(transaction);
+  } catch (error) {
+    try {
+      persistPluginLifecycleTransaction(transaction, "uninstall-rolling-back");
+      rollbackRecoveredVersionUninstall(transaction);
+      persistPluginLifecycleTransaction(transaction, "uninstall-rolled-back");
+      const cleanup = retireCommittedTransactionRoot(transactionRoot);
+      if (authoritativeTransactionCleanupPending(cleanup)) {
+        throw new Error(`retained recovery state at ${cleanup.cleanupPath}`);
+      }
+      updatePluginTransactionJournal(lifecycleLock, {
+        phase: "uninstall-aborted",
+        transaction: null,
+      });
+    } catch (recoveryError) {
+      throw new Error(
+        `plugin uninstall failed and recovery is incomplete; retained recovery state at ${transactionRoot}: ${recoveryError.message}`,
+        { cause: error },
+      );
+    }
+    throw error;
+  }
+  persistPluginLifecycleTransaction(transaction, "uninstall-state-published");
+  return finalizeDurableUninstallTransaction(transaction, [version]);
+}
+
+function runDurableWholeNameUninstall({
+  name,
+  scope,
+  cwd,
+  versions,
+  lifecycleLock,
+}) {
+  const nameDir = pluginNameDir(scope, name, { cwd });
+  const parent = path.dirname(nameDir);
+  const quarantineRoot = allocateLifecycleRecoveryRoot(
+    parent,
+    `.uninstall-${encodeName(name)}-`,
+  );
+  const transaction = {
+    kind: "uninstall-name",
+    name,
+    scope,
+    cwd,
+    nameDir,
+    transactionRoot: quarantineRoot,
+    versions,
+    previousNameState: capturePluginNameState(name, { scope, cwd, versions }),
+    lifecycleLock,
+  };
+
+  persistPluginLifecycleTransaction(transaction, "uninstall-prepared");
+  assertPluginNameStateMatches(
+    nameDir,
+    name,
+    transaction.previousNameState,
+    "plugin name changed before whole-name quarantine",
+  );
+  _deps.renameSync(nameDir, quarantineRoot);
+  fsyncDirectoryBestEffort(parent);
+  persistPluginLifecycleTransaction(transaction, "uninstall-name-quarantined");
+  return finalizeDurableUninstallTransaction(transaction, versions);
+}
+
+function publishVersionUninstallActiveState(transaction) {
+  const current = captureActivePointerState(transaction.name, transaction);
+  if (
+    !samePointerState(current, transaction.previousActiveState) &&
+    !lifecycleFileContentMatches(current, transaction.desiredActiveState)
+  ) {
+    throw new Error(
+      "PLUGIN_TRANSACTION_STALE: active pointer changed during uninstall",
+    );
+  }
+  if (
+    transaction.removedWasActive &&
+    !lifecycleFileContentMatches(current, transaction.desiredActiveState)
+  ) {
+    restoreActivePointerSnapshot(
+      transaction.name,
+      transaction.desiredActiveState,
+      transaction,
+    );
+  }
+  transaction.ownedActivePointerState = captureActivePointerState(
+    transaction.name,
+    transaction,
+  );
+  assertLifecycleFileContent(
+    transaction.ownedActivePointerState,
+    transaction.desiredActiveState,
+    "uninstall active pointer did not publish the recorded fallback",
+  );
+  const marker = captureDisabledMarkerState(transaction.name, transaction);
+  if (
+    !sameLifecycleFileState(marker, transaction.previousMarkerState) &&
+    !lifecycleFileContentMatches(marker, transaction.desiredMarkerState)
+  ) {
+    throw new Error(
+      "PLUGIN_TRANSACTION_STALE: disabled marker changed during uninstall",
+    );
+  }
+  if (!lifecycleFileContentMatches(marker, transaction.desiredMarkerState)) {
+    writeDisabledMarkerState(
+      path.join(transaction.nameDir, DISABLED_FILENAME),
+      transaction.nameDir,
+      transaction.desiredMarkerState,
+    );
+  }
+  transaction.ownedMarkerState = captureDisabledMarkerState(
+    transaction.name,
+    transaction,
+  );
+  assertLifecycleFileContent(
+    transaction.ownedMarkerState,
+    transaction.desiredMarkerState,
+    "uninstall disabled marker did not publish the recorded state",
+  );
+}
+
+function finalizeDurableUninstallTransaction(transaction, removed) {
+  persistPluginLifecycleTransaction(transaction, "uninstall-finalizing");
+  const cleanup = retireCommittedTransactionRoot(transaction.transactionRoot);
+  if (authoritativeTransactionCleanupPending(cleanup)) {
+    persistPluginLifecycleTransaction(
+      transaction,
+      "uninstall-finalize-recovery-required",
+    );
+    const result = { removed, recoveryRequired: true, ...cleanup };
+    pendingPluginTransactions.set(result, transaction);
+    return result;
+  }
+  persistPluginLifecycleTransaction(transaction, "uninstall-finalized");
+  return { removed, ...cleanup };
 }
 
 /** Pin a plugin's active version (rollback / switch). */
 export function setActiveVersion(name, version, opts = {}) {
   const scope = opts.scope || "user";
   const cwd = opts.cwd;
+  if (!opts._lifecycleLock) {
+    return runWithPluginLifecycleLock(
+      name,
+      { scope, cwd, operation: "activate" },
+      (lifecycleLock) =>
+        setActiveVersion(name, version, {
+          ...opts,
+          _lifecycleLock: lifecycleLock,
+        }),
+    );
+  }
   assertSafePluginNameDirectory(name, { scope, cwd });
+  assertOwnedPluginLifecycleLock(opts._lifecycleLock, name, { scope, cwd });
   assertNoRetainedInstallRecovery(name, {
     scope,
     cwd,
@@ -1035,6 +2177,7 @@ export function setActiveVersion(name, version, opts = {}) {
     cwd,
     targetVersion: requestedVersion,
     allowSourceSwitch: opts.allowSourceSwitch === true,
+    lifecycleLock: opts._lifecycleLock,
   });
   return writeActiveVersionPointer(name, requestedVersion, { scope, cwd });
 }
@@ -1057,8 +2200,10 @@ function writeActivePointerBytes(name, bytes, opts = {}) {
   let generation = null;
   try {
     _deps.writeFileSync(tempFile, bytes);
+    fsyncRegularFile(tempFile);
     generation = fileGeneration(_deps.lstatSync(tempFile));
     _deps.renameSync(tempFile, activeFile);
+    fsyncDirectoryBestEffort(nameDir);
   } finally {
     try {
       _deps.rmSync(tempDir, { recursive: true, force: true });
@@ -1085,7 +2230,19 @@ function writeActivePointerBytes(name, bytes, opts = {}) {
 export function setPluginEnabled(name, enabled, opts = {}) {
   const scope = opts.scope || "user";
   const cwd = opts.cwd;
+  if (!opts._lifecycleLock) {
+    return runWithPluginLifecycleLock(
+      name,
+      { scope, cwd, operation: enabled ? "enable" : "disable" },
+      (lifecycleLock) =>
+        setPluginEnabled(name, enabled, {
+          ...opts,
+          _lifecycleLock: lifecycleLock,
+        }),
+    );
+  }
   assertSafePluginNameDirectory(name, { scope, cwd });
+  assertOwnedPluginLifecycleLock(opts._lifecycleLock, name, { scope, cwd });
   assertNoRetainedInstallRecovery(name, { scope, cwd });
   const nameDir = pluginNameDir(scope, name, { cwd });
   if (
@@ -1095,23 +2252,75 @@ export function setPluginEnabled(name, enabled, opts = {}) {
     throw new Error(`${name} is not installed at ${scope} scope`);
   }
   assertInstalledNameDirectoryIdentity(name, { scope, cwd });
-  const marker = path.join(nameDir, DISABLED_FILENAME);
-  if (enabled) {
-    _deps.rmSync(marker, { force: true });
-  } else {
-    _deps.writeFileSync(
-      marker,
-      JSON.stringify(
-        {
-          disabled: true,
-          reason: String(opts.reason || "disabled by user").slice(0, 256),
-        },
-        null,
-        2,
-      ),
-      "utf8",
+  const pointer = inspectActivePointer(scope, name, { cwd, strictIo: true });
+  if (pointer.status !== "valid") {
+    throw new Error(
+      `ACTIVE_POINTER_${pointer.status.toUpperCase()}; repair it with plugin use before changing lifecycle state`,
     );
   }
+  if (enabled) {
+    assertSemanticPayloadActivation({
+      name,
+      scope,
+      cwd,
+      targetVersion: pointer.version,
+      allowSourceSwitch: opts.allowSourceSwitch === true,
+      lifecycleLock: opts._lifecycleLock,
+    });
+  } else {
+    assertCrossScopeFallback({
+      name,
+      scope,
+      cwd,
+      allowSourceSwitch: opts.allowSourceSwitch === true,
+      lifecycleLock: opts._lifecycleLock,
+    });
+  }
+  const marker = path.join(nameDir, DISABLED_FILENAME);
+  const previousMarkerState = captureDisabledMarkerState(name, { scope, cwd });
+  const desiredMarkerState = enabled
+    ? { present: false, bytes: null, generation: null }
+    : {
+        present: true,
+        bytes: Buffer.from(
+          JSON.stringify(
+            {
+              disabled: true,
+              reason: String(opts.reason || "disabled by user").slice(0, 256),
+            },
+            null,
+            2,
+          ),
+          "utf8",
+        ),
+        generation: null,
+      };
+  const transaction = {
+    kind: "enabled-state",
+    name,
+    scope,
+    cwd,
+    enabled: Boolean(enabled),
+    previousMarkerState,
+    desiredMarkerState,
+    ownedMarkerState: null,
+    lifecycleLock: opts._lifecycleLock,
+  };
+  persistPluginLifecycleTransaction(transaction, "marker-prepared");
+  persistPluginLifecycleTransaction(transaction, "marker-committing");
+  assertDisabledMarkerStateUnchanged(transaction, previousMarkerState);
+  writeDisabledMarkerState(marker, nameDir, desiredMarkerState);
+  transaction.ownedMarkerState = captureDisabledMarkerState(name, {
+    scope,
+    cwd,
+  });
+  assertLifecycleFileContent(
+    transaction.ownedMarkerState,
+    desiredMarkerState,
+    "disabled marker did not publish the recorded lifecycle state",
+  );
+  persistPluginLifecycleTransaction(transaction, "marker-published");
+  persistPluginLifecycleTransaction(transaction, "marker-finalized");
   return { name, scope, enabled: Boolean(enabled) };
 }
 
@@ -1121,6 +2330,180 @@ export function isPluginEnabled(name, opts = {}) {
   return !_deps.existsSync(
     path.join(pluginNameDir(scope, name, { cwd: opts.cwd }), DISABLED_FILENAME),
   );
+}
+
+/** Build the exact canonical authority bytes an operator must sign. */
+export function planPluginProvenanceMigration(name, opts = {}) {
+  const scope = opts.scope || "user";
+  const cwd = opts.cwd;
+  const version = String(opts.version || "");
+  if (!semver.valid(version)) {
+    throw new Error("a valid installed plugin version is required");
+  }
+  assertSafePluginNameDirectory(name, { scope, cwd });
+  const root = pluginVersionDir(scope, name, version, { cwd });
+  if (!listInstalledVersions(scope, name, { cwd }).includes(version)) {
+    throw new Error(`${name}@${version} is not installed at ${scope} scope`);
+  }
+  assertInstalledNameDirectoryIdentity(name, {
+    scope,
+    cwd,
+    versions: [version],
+  });
+  const existing = captureLifecycleFileState(
+    path.join(root, SOURCE_METADATA_FILENAME),
+    MAX_PROVENANCE_METADATA_BYTES,
+    "PLUGIN_SOURCE_METADATA_UNSAFE",
+  );
+  if (existing.present) {
+    throw new Error(
+      "plugin source metadata already exists; migration never overwrites provenance",
+    );
+  }
+  if (!["local", "git", "registry"].includes(opts.sourceMetadata?.type)) {
+    throw new Error("migration source metadata type is invalid");
+  }
+  const sourceMetadata = normalizeSourceMetadata(opts.sourceMetadata);
+  if (!sourceMetadata) {
+    throw new Error("migration source metadata is invalid or incomplete");
+  }
+  const issuedAt = normalizeMigrationIssuedAt(opts.issuedAt);
+  const payload = buildMarketplacePayloadSbom(root, {
+    schemaVersion: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+  });
+  const authority = {
+    schemaVersion: PLUGIN_PROVENANCE_MIGRATION_ATTESTATION_SCHEMA,
+    subject: {
+      name,
+      version,
+      scope,
+      targetPathDigest: pluginMigrationTargetPathDigest(root),
+      payload: {
+        format: payload.schemaVersion,
+        digest: payload.digest,
+        fileCount: payload.fileCount,
+        totalBytes: payload.totalBytes,
+      },
+    },
+    sourceMetadata,
+    issuedAt,
+  };
+  const signingBytes = Buffer.from(canonicalJson(authority), "utf8");
+  return {
+    authority,
+    signingPayloadBase64: signingBytes.toString("base64"),
+    signingPayloadSha256: crypto
+      .createHash("sha256")
+      .update(signingBytes)
+      .digest("hex"),
+  };
+}
+
+/** Install a signed, payload-bound provenance record without replacing bytes. */
+export function migratePluginProvenance(name, opts = {}) {
+  const scope = opts.scope || "user";
+  const cwd = opts.cwd;
+  if (!opts._lifecycleLock) {
+    return runWithPluginLifecycleLock(
+      name,
+      { scope, cwd, operation: "provenance-migrate" },
+      (lifecycleLock) =>
+        migratePluginProvenance(name, {
+          ...opts,
+          _lifecycleLock: lifecycleLock,
+        }),
+    );
+  }
+  assertOwnedPluginLifecycleLock(opts._lifecycleLock, name, { scope, cwd });
+  assertNoRetainedInstallRecovery(name, { scope, cwd });
+  const verified = verifyPluginProvenanceMigrationAttestation(
+    name,
+    { scope, cwd, version: opts.version },
+    opts.attestation,
+    { expectedSignerSha256: opts.expectedSignerSha256 },
+  );
+  const root = pluginVersionDir(
+    scope,
+    name,
+    verified.authority.subject.version,
+    {
+      cwd,
+    },
+  );
+  const lock = readPluginLock(root);
+  if (lock?.sbom) {
+    throw new Error(
+      "legacy provenance migration cannot rewrite an existing component-SBOM lock; reinstall the plugin from its reviewed source",
+    );
+  }
+  const marker = path.join(root, SOURCE_METADATA_FILENAME);
+  const previousMetadataState = captureLifecycleFileState(
+    marker,
+    MAX_PROVENANCE_METADATA_BYTES,
+    "PLUGIN_SOURCE_METADATA_UNSAFE",
+  );
+  if (previousMetadataState.present) {
+    throw new Error(
+      "plugin source metadata already exists; migration never overwrites provenance",
+    );
+  }
+  const record = {
+    ...verified.authority.sourceMetadata,
+    migrationAttestation: {
+      schemaVersion: PLUGIN_PROVENANCE_MIGRATION_RECORD_SCHEMA,
+      authority: verified.authority,
+      signerPublicKeySha256: verified.signerPublicKeySha256,
+      publicKeyPem: verified.publicKeyPem,
+      signatureBase64: verified.signatureBase64,
+    },
+  };
+  const bytes = Buffer.from(JSON.stringify(record, null, 2), "utf8");
+  if (bytes.length > MAX_PROVENANCE_METADATA_BYTES) {
+    throw new Error("plugin provenance migration record is too large");
+  }
+  const transaction = {
+    kind: "provenance-migration",
+    name,
+    version: verified.authority.subject.version,
+    scope,
+    cwd,
+    root,
+    marker,
+    previousMetadataState,
+    desiredMetadataState: { present: true, bytes, generation: null },
+    ownedMetadataState: null,
+    lifecycleLock: opts._lifecycleLock,
+  };
+  persistPluginLifecycleTransaction(transaction, "provenance-prepared");
+  persistPluginLifecycleTransaction(transaction, "provenance-committing");
+  assertLifecycleFileStateAtPath(
+    marker,
+    previousMetadataState,
+    MAX_PROVENANCE_METADATA_BYTES,
+    "plugin source metadata changed before migration publication",
+  );
+  writeDurableFileAtomic(root, marker, bytes);
+  transaction.ownedMetadataState = captureLifecycleFileState(
+    marker,
+    MAX_PROVENANCE_METADATA_BYTES,
+    "PLUGIN_SOURCE_METADATA_UNSAFE",
+  );
+  assertLifecycleFileContent(
+    transaction.ownedMetadataState,
+    transaction.desiredMetadataState,
+    "plugin provenance did not publish the signed migration record",
+  );
+  readSourceMetadataStrict(root, { required: true });
+  persistPluginLifecycleTransaction(transaction, "provenance-published");
+  persistPluginLifecycleTransaction(transaction, "provenance-finalized");
+  return {
+    migrated: true,
+    name,
+    version: transaction.version,
+    scope,
+    authorityDigest: verified.authorityDigest,
+    signerPublicKeySha256: verified.signerPublicKeySha256,
+  };
 }
 
 /** Which version is active for a plugin at a scope (or null). */
@@ -1141,7 +2524,12 @@ export function readSourceMetadataStrict(
   { required = false, requireRegistryAuthority = false } = {},
 ) {
   const file = path.join(versionDir, SOURCE_METADATA_FILENAME);
-  if (!_deps.existsSync(file)) {
+  const state = captureLifecycleFileState(
+    file,
+    MAX_PROVENANCE_METADATA_BYTES,
+    "PLUGIN_SOURCE_METADATA_UNSAFE",
+  );
+  if (!state.present) {
     if (required) {
       throw new Error(
         "plugin source metadata is missing; remove and reinstall the plugin to restore provenance",
@@ -1150,7 +2538,7 @@ export function readSourceMetadataStrict(
     return null;
   }
   try {
-    const raw = JSON.parse(_deps.readFileSync(file, "utf8"));
+    const raw = JSON.parse(state.bytes.toString("utf8"));
     if (!raw || !["local", "git", "registry"].includes(raw.type)) {
       throw new Error("source metadata type is invalid");
     }
@@ -1166,6 +2554,27 @@ export function readSourceMetadataStrict(
     const normalized = normalizeSourceMetadata(raw);
     if (!normalized) {
       throw new Error("source metadata has no valid source identity");
+    }
+    if (raw.migrationAttestation != null) {
+      normalized.migrationAttestation = verifyStoredPluginProvenanceMigration(
+        versionDir,
+        normalized,
+        raw.migrationAttestation,
+      );
+    }
+    if (normalized.catalogAuthority?.publisherAuthority) {
+      const publisher = verifyInstalledManagedPublisherAuthority(
+        {
+          root: versionDir,
+          name: parsePluginManifest(versionDir).metadata?.name,
+        },
+        loadManagedPluginPolicy(),
+      );
+      if (!publisher.verified) {
+        throw new Error(
+          `installed publisher authority is invalid: ${publisher.reason}`,
+        );
+      }
     }
     if (requireRegistryAuthority && normalized.type === "registry") {
       if (!normalized.registry) {
@@ -1253,31 +2662,35 @@ function strictInstalledSourceMetadata(name, version, { scope, cwd }) {
  */
 function assertSemanticPayloadReplacement({
   name,
-  version,
   scope,
   cwd,
   candidateSourceMetadata,
 }) {
-  const active = getActiveVersion(name, { scope, cwd });
   const to = candidateSemanticPayloadFormat(candidateSourceMetadata);
-  const protectedVersions = new Set();
-  if (active) protectedVersions.add(active);
-  const targetDir = pluginVersionDir(scope, name, version, { cwd });
-  if (_deps.existsSync(targetDir)) protectedVersions.add(version);
-  for (const installedVersion of protectedVersions) {
-    const installedSource = strictInstalledSourceMetadata(
-      name,
-      installedVersion,
-      { scope, cwd },
-    );
-    const installedRoot = pluginVersionDir(scope, name, installedVersion, {
+  for (const installedScope of SCOPES) {
+    for (const installedVersion of listInstalledVersions(installedScope, name, {
       cwd,
-    });
-    const from = installedSemanticPayloadFormat(installedSource, installedRoot);
-    if (semanticPayloadStrength(from) > semanticPayloadStrength(to)) {
-      throw new Error(
-        `SEMANTIC_SBOM_BINDING_DOWNGRADE (${from} -> ${to || "unbound"})`,
+    })) {
+      const installedSource = strictInstalledSourceMetadata(
+        name,
+        installedVersion,
+        { scope: installedScope, cwd },
       );
+      const installedRoot = pluginVersionDir(
+        installedScope,
+        name,
+        installedVersion,
+        { cwd },
+      );
+      const from = installedSemanticPayloadFormat(
+        installedSource,
+        installedRoot,
+      );
+      if (semanticPayloadStrength(from) > semanticPayloadStrength(to)) {
+        throw new Error(
+          `SEMANTIC_SBOM_BINDING_DOWNGRADE (${from} -> ${to || "unbound"}; ${installedScope} -> ${scope})`,
+        );
+      }
     }
   }
 }
@@ -1302,6 +2715,9 @@ function assertSemanticPayloadActivation({
   cwd,
   targetVersion,
   allowSourceSwitch = false,
+  authorityBaseline = null,
+  baselineScopes = SCOPES,
+  lifecycleLock = null,
 }) {
   const active = getActiveVersion(name, { scope, cwd });
   const targetRoot = assertActivatableInstalledTarget(name, targetVersion, {
@@ -1319,27 +2735,39 @@ function assertSemanticPayloadActivation({
   const to = installedSemanticPayloadFormat(targetSource, targetRoot);
   let strongestFormat = null;
   let savedSourceSwitch = false;
-  for (const installedVersion of listInstalledVersions(scope, name, { cwd })) {
-    // Dormant provenance is still authority: skipping a missing record would
-    // let deleting `.active` plus one metadata file erase a stronger binding.
-    const installedSource =
-      installedVersion === targetVersion
-        ? targetSource
-        : strictInstalledSourceMetadata(name, installedVersion, { scope, cwd });
-    if (!sameSourceAuthority(installedSource, targetSource)) {
-      savedSourceSwitch = true;
-    }
-    const installedRoot = pluginVersionDir(scope, name, installedVersion, {
+  for (const installedScope of baselineScopes) {
+    for (const installedVersion of listInstalledVersions(installedScope, name, {
       cwd,
-    });
-    const format = installedSemanticPayloadFormat(
-      installedSource,
-      installedRoot,
-    );
-    if (
-      semanticPayloadStrength(format) > semanticPayloadStrength(strongestFormat)
-    ) {
-      strongestFormat = format;
+    })) {
+      // Dormant provenance is still authority: skipping a missing record would
+      // let deleting `.active` or a higher-scope pointer turn lower bytes into
+      // an unreviewed downgrade trampoline.
+      const installedSource =
+        installedScope === scope && installedVersion === targetVersion
+          ? targetSource
+          : strictInstalledSourceMetadata(name, installedVersion, {
+              scope: installedScope,
+              cwd,
+            });
+      if (!sameSourceAuthority(installedSource, targetSource)) {
+        savedSourceSwitch = true;
+      }
+      const installedRoot = pluginVersionDir(
+        installedScope,
+        name,
+        installedVersion,
+        { cwd },
+      );
+      const format = installedSemanticPayloadFormat(
+        installedSource,
+        installedRoot,
+      );
+      if (
+        semanticPayloadStrength(format) >
+        semanticPayloadStrength(strongestFormat)
+      ) {
+        strongestFormat = format;
+      }
     }
   }
   if (semanticPayloadStrength(strongestFormat) > semanticPayloadStrength(to)) {
@@ -1347,22 +2775,26 @@ function assertSemanticPayloadActivation({
       `SEMANTIC_SBOM_BINDING_DOWNGRADE (${strongestFormat} -> ${to || "unbound"})`,
     );
   }
-  if (active && active !== targetVersion) {
-    const activeSource = strictInstalledSourceMetadata(name, active, {
-      scope,
-      cwd,
-    });
-    if (
-      !sameSourceAuthority(activeSource, targetSource) &&
-      !allowSourceSwitch
-    ) {
-      throw new Error(
-        "SOURCE_SWITCH_APPROVAL_REQUIRED; pass --allow-source-switch to approve this activation",
-      );
-    }
-  } else if (!active && savedSourceSwitch && !allowSourceSwitch) {
+  const baseline =
+    authorityBaseline || effectivePluginRecord(name, { cwd, lifecycleLock });
+  let sourceSwitch = false;
+  if (baseline?.runtimeBlocked) {
+    sourceSwitch = savedSourceSwitch;
+  } else if (baseline?.version) {
+    const baselineSource = strictInstalledSourceMetadata(
+      name,
+      baseline.version,
+      { scope: baseline.scope, cwd },
+    );
+    sourceSwitch = !sameSourceAuthority(baselineSource, targetSource);
+  } else if (!baseline) {
+    sourceSwitch = savedSourceSwitch;
+  }
+  if (sourceSwitch && !allowSourceSwitch) {
     throw new Error(
-      "SOURCE_SWITCH_APPROVAL_REQUIRED; use plugin use --allow-source-switch to repair the active pointer",
+      active
+        ? "SOURCE_SWITCH_APPROVAL_REQUIRED; pass --allow-source-switch to approve this activation"
+        : "SOURCE_SWITCH_APPROVAL_REQUIRED; use plugin use --allow-source-switch to repair the active pointer",
     );
   }
 }
@@ -1470,9 +2902,11 @@ function retireCommittedTransactionRoot(transactionRoot) {
   if (cleanupRoot !== transactionRoot) {
     try {
       _deps.renameSync(transactionRoot, cleanupRoot);
+      fsyncDirectoryBestEffort(path.dirname(transactionRoot));
     } catch {
       try {
         _deps.rmSync(transactionRoot, { recursive: true, force: true });
+        fsyncDirectoryBestEffort(path.dirname(transactionRoot));
         return { cleanupPending: false };
       } catch {
         // The operation is already committed, but the still-authoritative
@@ -1485,12 +2919,28 @@ function retireCommittedTransactionRoot(transactionRoot) {
 
   try {
     _deps.rmSync(cleanupRoot, { recursive: true, force: true });
+    fsyncDirectoryBestEffort(path.dirname(cleanupRoot));
     return { cleanupPending: false };
   } catch {
     // `.cleanup-*` is deliberately outside the activation/recovery namespace.
     // It can be retried on the next mutation without changing plugin state.
     return { cleanupPending: true, cleanupPath: cleanupRoot };
   }
+}
+
+function committedCleanupRoot(transactionRoot) {
+  const basename = path.basename(transactionRoot || "");
+  const prefix = basename.startsWith(".install-")
+    ? ".install-"
+    : basename.startsWith(".uninstall-")
+      ? ".uninstall-"
+      : null;
+  return prefix
+    ? path.join(
+        path.dirname(transactionRoot),
+        `.cleanup-${basename.slice(prefix.length)}`,
+      )
+    : transactionRoot;
 }
 
 function assertInstalledNameDirectoryIdentity(
@@ -1546,6 +2996,117 @@ function sameSourceAuthority(current, candidate) {
   return current.type === "local" && current.source === candidate.source;
 }
 
+function effectivePluginRecord(
+  name,
+  { cwd, excludeScope = null, lifecycleLock = null } = {},
+) {
+  for (const scope of [...SCOPES].reverse()) {
+    if (scope === excludeScope) continue;
+    const nameDir = pluginNameDir(scope, name, { cwd });
+    if (!_deps.existsSync(nameDir)) continue;
+    assertSafePluginNameDirectory(name, { scope, cwd });
+    const enabled = !_deps.existsSync(path.join(nameDir, DISABLED_FILENAME));
+    if (!enabled) continue;
+    const versions = listInstalledVersions(scope, name, { cwd });
+    const ownsLifecycle =
+      lifecycleLock?.name === name && lifecycleLock?.released !== true;
+    const ownsScopedLifecycle = ownsLifecycle && lifecycleLock.scope === scope;
+    const ownedRecoveryRoot =
+      lifecycleLock?.journal?.transaction?.transactionRootName || null;
+    const recoveryRequired =
+      (_deps.existsSync(pluginLifecycleCoordinatorLock(name)) &&
+        !ownsLifecycle) ||
+      _deps.readdirSync(nameDir, { withFileTypes: true }).some((entry) => {
+        if (entry.name === PLUGIN_TRANSACTION_LOCK_DIRNAME) {
+          return !ownsScopedLifecycle;
+        }
+        if (entry.name.startsWith(".install-")) {
+          return !(ownsScopedLifecycle && entry.name === ownedRecoveryRoot);
+        }
+        return entry.name.startsWith(".uninstall-");
+      });
+    const pointer = inspectActivePointer(scope, name, { cwd, strictIo: true });
+    if (recoveryRequired || pointer.status !== "valid") {
+      if (versions.length === 0 && !recoveryRequired) continue;
+      return {
+        scope,
+        name,
+        version: null,
+        root: null,
+        runtimeBlocked: true,
+        pointerStatus: recoveryRequired ? "recovery-required" : pointer.status,
+      };
+    }
+    const root = pluginVersionDir(scope, name, pointer.version, { cwd });
+    assertSafeInstalledPluginStructure(root);
+    const parsed = parsePluginManifest(root);
+    if (
+      !parsed.ok ||
+      parsed.metadata.name !== name ||
+      parsed.metadata.version !== pointer.version
+    ) {
+      return {
+        scope,
+        name,
+        version: null,
+        root,
+        runtimeBlocked: true,
+        pointerStatus: parsed.ok ? "identity-mismatch" : "manifest-invalid",
+      };
+    }
+    return {
+      scope,
+      name,
+      version: pointer.version,
+      root,
+      runtimeBlocked: false,
+      pointerStatus: "valid",
+    };
+  }
+  return null;
+}
+
+/** Preflight the lower-scope authority exposed by disable/uninstall. */
+function assertCrossScopeFallback({
+  name,
+  scope,
+  cwd,
+  allowSourceSwitch = false,
+  lifecycleLock = null,
+}) {
+  const current = effectivePluginRecord(name, { cwd, lifecycleLock });
+  if (!current || current.scope !== scope) return null;
+  const fallback = effectivePluginRecord(name, {
+    cwd,
+    excludeScope: scope,
+    lifecycleLock,
+  });
+  if (!fallback) return null;
+  if (fallback.runtimeBlocked || !fallback.version) {
+    throw new Error(
+      `CROSS_SCOPE_FALLBACK_BLOCKED (${scope} -> ${fallback.scope}; ${fallback.pointerStatus || "invalid"})`,
+    );
+  }
+  if (current.runtimeBlocked && !allowSourceSwitch) {
+    throw new Error(
+      `SOURCE_SWITCH_APPROVAL_REQUIRED; the blocked ${scope} authority cannot authenticate the ${fallback.scope} fallback`,
+    );
+  }
+  assertSemanticPayloadActivation({
+    name,
+    scope: fallback.scope,
+    cwd,
+    targetVersion: fallback.version,
+    allowSourceSwitch,
+    authorityBaseline: current,
+    baselineScopes: current.runtimeBlocked
+      ? SCOPES.filter((candidate) => candidate !== scope)
+      : SCOPES,
+    lifecycleLock,
+  });
+  return fallback;
+}
+
 function assertReplacementApprovals({
   name,
   version,
@@ -1558,16 +3119,22 @@ function assertReplacementApprovals({
 }) {
   if (!enforce) return;
   const active = getActiveVersion(name, { scope, cwd });
-  const installedVersions = listInstalledVersions(scope, name, { cwd });
-  const baseline = active || installedVersions[0] || null;
+  const installedByScope = SCOPES.flatMap((installedScope) =>
+    listInstalledVersions(installedScope, name, { cwd }).map(
+      (installedVersion) => ({ installedScope, installedVersion }),
+    ),
+  );
+  const installedVersions = installedByScope.map(
+    ({ installedVersion }) => installedVersion,
+  );
+  const baseline = active || installedVersions.sort(semver.rcompare)[0] || null;
   if (!baseline) return;
-  const sourceBaselines = active ? [active] : installedVersions;
   if (
-    sourceBaselines.some((installedVersion) => {
+    installedByScope.some(({ installedScope, installedVersion }) => {
       const installedSource = strictInstalledSourceMetadata(
         name,
         installedVersion,
-        { scope, cwd },
+        { scope: installedScope, cwd },
       );
       return !sameSourceAuthority(installedSource, candidateSourceMetadata);
     }) &&
@@ -1679,6 +3246,190 @@ function normalizeSourceMetadata(value) {
   return metadata;
 }
 
+function normalizeMigrationIssuedAt(value) {
+  const date = value == null ? new Date() : new Date(String(value));
+  if (!Number.isFinite(date.getTime())) {
+    throw new Error("plugin provenance migration issuedAt is invalid");
+  }
+  const normalized = date.toISOString();
+  if (value != null && String(value) !== normalized) {
+    throw new Error(
+      "plugin provenance migration issuedAt must be canonical ISO-8601 UTC",
+    );
+  }
+  return normalized;
+}
+
+function pluginMigrationTargetPathDigest(root) {
+  let target = path.resolve(root);
+  if (process.platform === "win32") target = target.toLowerCase();
+  return crypto.createHash("sha256").update(target).digest("hex");
+}
+
+function verifyPluginProvenanceMigrationAttestation(
+  name,
+  { scope, cwd, version },
+  attestation,
+  { expectedSignerSha256 },
+) {
+  if (!/^[a-f0-9]{64}$/u.test(String(expectedSignerSha256 || ""))) {
+    throw new Error(
+      "an exact --expected-signer-sha256 fingerprint is required",
+    );
+  }
+  const authority = attestation?.authority;
+  if (
+    !authority ||
+    typeof authority !== "object" ||
+    Array.isArray(authority) ||
+    authority.schemaVersion !== PLUGIN_PROVENANCE_MIGRATION_ATTESTATION_SCHEMA
+  ) {
+    throw new Error("plugin provenance migration attestation is invalid");
+  }
+  const expected = planPluginProvenanceMigration(name, {
+    scope,
+    cwd,
+    version,
+    sourceMetadata: authority.sourceMetadata,
+    issuedAt: authority.issuedAt,
+  });
+  if (canonicalJson(expected.authority) !== canonicalJson(authority)) {
+    throw new Error(
+      "plugin provenance migration authority does not match installed bytes, scope, path, or source",
+    );
+  }
+  return verifyPluginMigrationSignature(attestation, {
+    expectedAuthority: expected.authority,
+    expectedSignerSha256: String(expectedSignerSha256),
+    requireManagedTrust: true,
+  });
+}
+
+function verifyStoredPluginProvenanceMigration(root, sourceMetadata, record) {
+  if (
+    !record ||
+    typeof record !== "object" ||
+    Array.isArray(record) ||
+    record.schemaVersion !== PLUGIN_PROVENANCE_MIGRATION_RECORD_SCHEMA ||
+    !record.authority ||
+    record.authority.schemaVersion !==
+      PLUGIN_PROVENANCE_MIGRATION_ATTESTATION_SCHEMA
+  ) {
+    throw new Error("stored provenance migration record is invalid");
+  }
+  const parsed = parsePluginManifest(root);
+  if (!parsed.ok) {
+    throw new Error("stored provenance migration subject manifest is invalid");
+  }
+  const payload = buildMarketplacePayloadSbom(root, {
+    schemaVersion: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+  });
+  const subject = record.authority.subject;
+  if (
+    !subject ||
+    subject.name !== parsed.metadata.name ||
+    subject.version !== parsed.metadata.version ||
+    !SCOPES.includes(subject.scope) ||
+    subject.targetPathDigest !== pluginMigrationTargetPathDigest(root) ||
+    subject.payload?.format !== payload.schemaVersion ||
+    subject.payload?.digest !== payload.digest ||
+    subject.payload?.fileCount !== payload.fileCount ||
+    subject.payload?.totalBytes !== payload.totalBytes ||
+    normalizeMigrationIssuedAt(record.authority.issuedAt) !==
+      record.authority.issuedAt ||
+    canonicalJson(normalizeSourceMetadata(record.authority.sourceMetadata)) !==
+      canonicalJson(sourceMetadata)
+  ) {
+    throw new Error(
+      "stored provenance migration authority no longer matches installed bytes, path, or source",
+    );
+  }
+  const verified = verifyPluginMigrationSignature(record, {
+    expectedAuthority: record.authority,
+    expectedSignerSha256: record.signerPublicKeySha256,
+    requireManagedTrust: true,
+  });
+  return {
+    schemaVersion: PLUGIN_PROVENANCE_MIGRATION_RECORD_SCHEMA,
+    authority: verified.authority,
+    authorityDigest: verified.authorityDigest,
+    signerPublicKeySha256: verified.signerPublicKeySha256,
+    publicKeyPem: verified.publicKeyPem,
+    signatureBase64: verified.signatureBase64,
+  };
+}
+
+function verifyPluginMigrationSignature(
+  value,
+  { expectedAuthority, expectedSignerSha256, requireManagedTrust },
+) {
+  const publicKeyPem = String(value?.publicKeyPem || "");
+  const signatureBase64 = String(value?.signatureBase64 || "");
+  if (
+    publicKeyPem.length === 0 ||
+    publicKeyPem.length > 16 * 1024 ||
+    !/^[a-zA-Z0-9+/]+={0,2}$/u.test(signatureBase64) ||
+    signatureBase64.length > 4096
+  ) {
+    throw new Error(
+      "plugin provenance migration signature material is invalid",
+    );
+  }
+  const signature = Buffer.from(signatureBase64, "base64");
+  if (signature.toString("base64") !== signatureBase64) {
+    throw new Error("plugin provenance migration signature is non-canonical");
+  }
+  let key;
+  let signerPublicKeySha256;
+  try {
+    key = crypto.createPublicKey(publicKeyPem);
+    if (key.asymmetricKeyType !== "ed25519") {
+      throw new Error("not Ed25519");
+    }
+    signerPublicKeySha256 = crypto
+      .createHash("sha256")
+      .update(key.export({ type: "spki", format: "der" }))
+      .digest("hex");
+  } catch {
+    throw new Error("plugin provenance migration public key is invalid");
+  }
+  if (signerPublicKeySha256 !== expectedSignerSha256) {
+    throw new Error(
+      `plugin provenance migration signer does not match the pinned fingerprint (${signerPublicKeySha256})`,
+    );
+  }
+  if (requireManagedTrust) {
+    const managed = loadManagedPluginPolicy();
+    const trusted = new Set(
+      (Array.isArray(managed?.trustedPluginKeySha256)
+        ? managed.trustedPluginKeySha256
+        : []
+      ).map((fingerprint) => String(fingerprint).toLowerCase()),
+    );
+    if (trusted.size > 0 && !trusted.has(signerPublicKeySha256)) {
+      throw new Error(
+        `plugin provenance migration signer is not trusted by managed policy (${signerPublicKeySha256})`,
+      );
+    }
+  }
+  const signingBytes = Buffer.from(canonicalJson(expectedAuthority), "utf8");
+  if (!crypto.verify(null, signingBytes, key, signature)) {
+    throw new Error(
+      "plugin provenance migration signature verification failed",
+    );
+  }
+  return {
+    authority: cloneLifecycleState(expectedAuthority),
+    authorityDigest: crypto
+      .createHash("sha256")
+      .update(signingBytes)
+      .digest("hex"),
+    signerPublicKeySha256,
+    publicKeyPem,
+    signatureBase64,
+  };
+}
+
 function assertCatalogRemoteArtifactBindings(metadata) {
   const authority = metadata.catalogAuthority;
   const evidence = authority?.remoteArtifactEvidence;
@@ -1784,6 +3535,10 @@ function normalizeCatalogAuthority(value) {
   const candidateDigest = cleanBounded(value.candidateDigest, 64);
   const selectionDigest = cleanBounded(value.selectionDigest, 64);
   const updateImpactDigest = cleanBounded(value.updateImpactDigest, 64);
+  const registryDocumentSha256 = cleanBounded(value.registryDocumentSha256, 64);
+  const registryNetworkAuthority = normalizeMarketplaceNetworkAuthority(
+    value.registryNetworkAuthority,
+  );
   const artifactExpectations = normalizeArtifactExpectations(
     value.artifactExpectations,
   );
@@ -1797,6 +3552,28 @@ function normalizeCatalogAuthority(value) {
       expectedPayloadSha256: artifactExpectations?.sbom?.payloadSha256,
     },
   );
+  const publisherDeclaration = normalizePublisherDeclaration(
+    value.publisherDeclaration,
+  );
+  const publisherAuthority = normalizePublisherAuthority(
+    value.publisherAuthority,
+  );
+  if (value.publisherDeclaration != null && !publisherDeclaration) {
+    throw new Error("catalogAuthority.publisherDeclaration is invalid");
+  }
+  if (value.publisherAuthority != null && !publisherAuthority) {
+    throw new Error("catalogAuthority.publisherAuthority is invalid");
+  }
+  if (
+    publisherAuthority &&
+    (!publisherDeclaration ||
+      canonicalJson(publisherAuthority.publisher) !==
+        canonicalJson(publisherDeclaration))
+  ) {
+    throw new Error(
+      "catalogAuthority publisher declaration does not match verified authority",
+    );
+  }
   if (!/^[a-f0-9]{64}$/.test(catalogDigest || "")) {
     throw new Error(
       "catalogAuthority.catalogDigest must be a SHA-256 hex digest",
@@ -1818,6 +3595,14 @@ function normalizeCatalogAuthority(value) {
   if (updateImpactDigest && !/^[a-f0-9]{64}$/.test(updateImpactDigest)) {
     throw new Error(
       "catalogAuthority.updateImpactDigest must be a SHA-256 hex digest",
+    );
+  }
+  if (
+    registryDocumentSha256 &&
+    !/^[a-f0-9]{64}$/.test(registryDocumentSha256)
+  ) {
+    throw new Error(
+      "catalogAuthority.registryDocumentSha256 must be a SHA-256 hex digest",
     );
   }
   const governanceStatus = ["complete", "incomplete"].includes(
@@ -1862,9 +3647,13 @@ function normalizeCatalogAuthority(value) {
         }
       : {}),
     ...(updateImpactDigest ? { updateImpactDigest } : {}),
+    ...(registryDocumentSha256 ? { registryDocumentSha256 } : {}),
+    ...(registryNetworkAuthority ? { registryNetworkAuthority } : {}),
     ...(artifactExpectations ? { artifactExpectations } : {}),
     ...(remoteArtifactEvidence ? { remoteArtifactEvidence } : {}),
     ...(remoteSbomPayloadComparison ? { remoteSbomPayloadComparison } : {}),
+    ...(publisherDeclaration ? { publisherDeclaration } : {}),
+    ...(publisherAuthority ? { publisherAuthority } : {}),
     preflightStatus: "allowed",
     governanceStatus,
     registryStatus,
@@ -2185,6 +3974,107 @@ function assertExpectedPluginIdentity(name, version, expectedIdentity) {
 
 // ── guarded recursive copy ────────────────────────────────────────────────
 
+function allocatePluginTransactionRoot(nameDir) {
+  return allocateLifecycleRecoveryRoot(nameDir, ".install-");
+}
+
+function allocateLifecycleRecoveryRoot(parent, prefix) {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const token = _deps.randomToken();
+    if (!/^[a-f0-9]{32}$/u.test(token)) {
+      throw new Error(
+        "PLUGIN_TRANSACTION_TOKEN_INVALID: transaction root token is invalid",
+      );
+    }
+    const transactionRoot = path.join(parent, `${prefix}${token}`);
+    if (!_deps.existsSync(transactionRoot)) return transactionRoot;
+  }
+  throw new Error(
+    "PLUGIN_TRANSACTION_PATH_CONFLICT: could not reserve a transaction root",
+  );
+}
+
+function assertLifecycleRecoveryRoot(recoveryRoot, parent, basenamePattern) {
+  if (
+    path.dirname(recoveryRoot) !== parent ||
+    !basenamePattern.test(path.basename(recoveryRoot))
+  ) {
+    throw new Error("PLUGIN_TRANSACTION_PATH_INVALID: invalid recovery root");
+  }
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+}
+
+function fsyncRegularFile(file) {
+  let descriptor = null;
+  try {
+    // Windows rejects FlushFileBuffers for a read-only handle with EPERM. On
+    // POSIX, retain a read-only open so immutable source modes remain valid.
+    descriptor = _deps.openSync(
+      file,
+      process.platform === "win32" ? "r+" : "r",
+    );
+    _deps.fsyncSync(descriptor);
+  } finally {
+    if (descriptor != null) _deps.closeSync(descriptor);
+  }
+}
+
+function fsyncDirectoryBestEffort(directory) {
+  let descriptor = null;
+  try {
+    descriptor = _deps.openSync(directory, "r");
+    _deps.fsyncSync(descriptor);
+    return true;
+  } catch (error) {
+    if (
+      process.platform === "win32" &&
+      ["EACCES", "EINVAL", "EISDIR", "EPERM"].includes(error?.code)
+    ) {
+      return false;
+    }
+    throw error;
+  } finally {
+    if (descriptor != null) _deps.closeSync(descriptor);
+  }
+}
+
+function fsyncPluginTree(root) {
+  for (const entry of _deps.readdirSync(root, { withFileTypes: true })) {
+    const target = path.join(root, entry.name);
+    if (entry.isSymbolicLink()) {
+      throw new Error(
+        `staged plugin contains an unsafe symlink: ${entry.name}`,
+      );
+    }
+    if (entry.isDirectory()) {
+      fsyncPluginTree(target);
+    } else if (entry.isFile()) {
+      fsyncRegularFile(target);
+    } else {
+      throw new Error(
+        `staged plugin contains an unsupported file type: ${entry.name}`,
+      );
+    }
+  }
+  fsyncDirectoryBestEffort(root);
+}
+
+function writeDurableFileAtomic(directory, target, value) {
+  const temporaryRoot = _deps.mkdtempSync(path.join(directory, ".durable-"));
+  const temporary = path.join(temporaryRoot, "next");
+  try {
+    _deps.writeFileSync(temporary, value, "utf8");
+    fsyncRegularFile(temporary);
+    _deps.renameSync(temporary, target);
+    fsyncDirectoryBestEffort(directory);
+  } finally {
+    _deps.rmSync(temporaryRoot, { recursive: true, force: true });
+  }
+}
+
 /**
  * Copy `src` → `dst`, refusing to write outside `root` and skipping symlinks
  * (which could later resolve outside the plugin sandbox). Directories recurse.
@@ -2246,6 +4136,1036 @@ function transferPendingTransaction(from, to) {
   if (!transaction) return;
   pendingPluginTransactions.delete(from);
   pendingPluginTransactions.set(to, transaction);
+}
+
+function runWithPluginLifecycleLock(name, opts, body) {
+  const scope = opts.scope || "user";
+  const cwd = opts.cwd;
+  assertSafePluginNameDirectory(name, { scope, cwd });
+  const targetNameDir = pluginNameDir(scope, name, { cwd });
+  const nameDir = pluginLifecycleCoordinatorDir(name);
+  const retainedOwnedLock = ownedPluginLifecycleLocks.get(
+    path.resolve(nameDir),
+  );
+  if (
+    opts.allowRetainedRecovery !== true &&
+    (retainedOwnedLock ||
+      !_deps.existsSync(path.join(nameDir, PLUGIN_TRANSACTION_LOCK_DIRNAME)))
+  ) {
+    assertNoRetainedInstallRecovery(name, { scope, cwd });
+  }
+  if (retainedOwnedLock && opts.allowRetainedRecovery === true) {
+    assertOwnedPluginLifecycleLock(retainedOwnedLock, name, { scope, cwd });
+    const result = body(retainedOwnedLock);
+    updatePluginTransactionJournal(retainedOwnedLock, {
+      phase: "remediated",
+      transaction: null,
+    });
+    const cleanup = releaseOwnedPluginLifecycleLock(retainedOwnedLock);
+    retireEmptyPluginNameDirectory(nameDir);
+    retireEmptyPluginNameDirectory(targetNameDir);
+    if (
+      result &&
+      typeof result === "object" &&
+      cleanup.cleanupPending === true
+    ) {
+      Object.assign(result, cleanup);
+    }
+    return result;
+  }
+  const lifecycleLock = acquirePluginTransactionLock({
+    name,
+    scope,
+    nameDir,
+    operation: opts.operation,
+    contextDigest: pluginLifecycleContextDigest(name, { scope, cwd }),
+  });
+  lifecycleLock.targetNameDir = targetNameDir;
+  ownedPluginLifecycleLocks.set(path.resolve(nameDir), lifecycleLock);
+  let result;
+  try {
+    result = body(lifecycleLock);
+  } catch (error) {
+    const retainedKind = lifecycleLock.journal.transaction?.kind;
+    const retainedRecovery =
+      retainedKind === "enabled-state" ||
+      retainedKind === "provenance-migration" ||
+      retainedKind === "uninstall-version" ||
+      retainedKind === "uninstall-name" ||
+      hasRetainedLifecycleRecovery(targetNameDir);
+    try {
+      updatePluginTransactionJournal(lifecycleLock, {
+        phase: retainedRecovery ? "recovery-required" : "aborted",
+      });
+      if (!retainedRecovery) releaseOwnedPluginLifecycleLock(lifecycleLock);
+    } catch (lockError) {
+      throw new Error(
+        `${error.message}; plugin transaction lock cleanup failed: ${lockError.message}`,
+        { cause: error },
+      );
+    }
+    throw error;
+  }
+
+  const transaction =
+    result && typeof result === "object"
+      ? pendingPluginTransactions.get(result)
+      : null;
+  if (transaction) {
+    if (transaction.lifecycleLock !== lifecycleLock) {
+      throw new Error(
+        "PLUGIN_TRANSACTION_LOCK_SCOPE_MISMATCH: pending transaction did not retain its lifecycle owner",
+      );
+    }
+    return result;
+  }
+
+  updatePluginTransactionJournal(lifecycleLock, { phase: "completed" });
+  const cleanup = releaseOwnedPluginLifecycleLock(lifecycleLock);
+  retireEmptyPluginNameDirectory(nameDir);
+  retireEmptyPluginNameDirectory(targetNameDir);
+  if (result && typeof result === "object" && cleanup.cleanupPending === true) {
+    Object.assign(result, cleanup);
+  }
+  return result;
+}
+
+function assertOwnedPluginLifecycleLock(lock, name, opts = {}) {
+  return assertPluginTransactionLock(lock, {
+    name,
+    scope: opts.scope || "user",
+    nameDir: pluginLifecycleCoordinatorDir(name),
+    contextDigest: pluginLifecycleContextDigest(name, opts),
+  });
+}
+
+function pluginLifecycleContextDigest(name, opts = {}) {
+  const scope = opts.scope || "user";
+  let target = path.resolve(pluginNameDir(scope, name, { cwd: opts.cwd }));
+  if (process.platform === "win32") target = target.toLowerCase();
+  return crypto
+    .createHash("sha256")
+    .update(`${scope}\0${target}`)
+    .digest("hex");
+}
+
+function releaseOwnedPluginLifecycleLock(lock) {
+  const cleanup = releasePluginTransactionLock(lock);
+  const key = path.resolve(lock.nameDir);
+  const retained = ownedPluginLifecycleLocks.get(key);
+  if (
+    retained === lock ||
+    (retained?.owner?.token && retained.owner.token === lock.owner?.token)
+  ) {
+    ownedPluginLifecycleLocks.delete(key);
+  }
+  return cleanup;
+}
+
+function retireEmptyPluginNameDirectory(nameDir) {
+  try {
+    if (_deps.readdirSync(nameDir).length === 0) {
+      _deps.rmSync(nameDir, { recursive: true, force: true });
+    }
+  } catch {
+    // Empty parent cleanup does not carry plugin authority.
+  }
+}
+
+function persistPluginLifecycleTransaction(transaction, phase) {
+  if (!transaction?.lifecycleLock) {
+    throw new Error(
+      "PLUGIN_TRANSACTION_LOCK_REQUIRED: durable plugin transaction owner is missing",
+    );
+  }
+  _deps.beforeTransactionPhaseHook?.(transaction, phase);
+  const journal = updatePluginTransactionJournal(transaction.lifecycleLock, {
+    phase,
+    transaction: serializePluginLifecycleTransaction(transaction),
+  });
+  _deps.transactionPhaseHook?.(transaction, phase, journal);
+  return journal;
+}
+
+function serializePluginLifecycleTransaction(transaction) {
+  if (transaction.kind === "enabled-state") {
+    return {
+      kind: "enabled-state",
+      enabled: transaction.enabled === true,
+      previousMarkerState: serializeLifecycleFileState(
+        transaction.previousMarkerState,
+      ),
+      desiredMarkerState: serializeLifecycleFileState(
+        transaction.desiredMarkerState,
+      ),
+      ownedMarkerState: serializeLifecycleFileState(
+        transaction.ownedMarkerState,
+      ),
+    };
+  }
+  if (transaction.kind === "provenance-migration") {
+    return {
+      kind: "provenance-migration",
+      version: transaction.version,
+      previousMetadataState: serializeLifecycleFileState(
+        transaction.previousMetadataState,
+      ),
+      desiredMetadataState: serializeLifecycleFileState(
+        transaction.desiredMetadataState,
+      ),
+      ownedMetadataGeneration: cloneLifecycleState(
+        transaction.ownedMetadataState?.generation,
+      ),
+    };
+  }
+  if (transaction.kind === "uninstall-version") {
+    assertLifecycleRecoveryRoot(
+      transaction.transactionRoot,
+      pluginNameDir(transaction.scope, transaction.name, {
+        cwd: transaction.cwd,
+      }),
+      /^\.uninstall-[a-f0-9]{32}$/u,
+    );
+    return {
+      kind: "uninstall-version",
+      version: transaction.version,
+      transactionRootName: path.basename(transaction.transactionRoot),
+      removedWasActive: transaction.removedWasActive === true,
+      removeNameAfterFinalize: transaction.removeNameAfterFinalize === true,
+      previousActiveState: serializePointerState(
+        transaction.previousActiveState,
+      ),
+      desiredActiveState: serializePointerState(transaction.desiredActiveState),
+      ownedActivePointerState: serializePointerState(
+        transaction.ownedActivePointerState,
+      ),
+      removedVersionState: cloneLifecycleState(transaction.removedVersionState),
+      previousMarkerState: serializeLifecycleFileState(
+        transaction.previousMarkerState,
+      ),
+      desiredMarkerState: serializeLifecycleFileState(
+        transaction.desiredMarkerState,
+      ),
+      ownedMarkerState: serializeLifecycleFileState(
+        transaction.ownedMarkerState,
+      ),
+    };
+  }
+  if (transaction.kind === "uninstall-name") {
+    const expectedPrefix = `.uninstall-${encodeName(transaction.name)}-`;
+    assertLifecycleRecoveryRoot(
+      transaction.transactionRoot,
+      path.dirname(
+        pluginNameDir(transaction.scope, transaction.name, {
+          cwd: transaction.cwd,
+        }),
+      ),
+      new RegExp(`^${escapeRegExp(expectedPrefix)}[a-f0-9]{32}$`, "u"),
+    );
+    return {
+      kind: "uninstall-name",
+      transactionRootName: path.basename(transaction.transactionRoot),
+      versions: [...transaction.versions],
+      previousNameState: serializePluginNameState(
+        transaction.previousNameState,
+      ),
+    };
+  }
+  const transactionRootName = path.basename(transaction.transactionRoot || "");
+  if (
+    !transactionRootName.startsWith(".install-") ||
+    path.dirname(transaction.transactionRoot) !==
+      pluginNameDir(transaction.scope, transaction.name, {
+        cwd: transaction.cwd,
+      })
+  ) {
+    throw new Error("PLUGIN_TRANSACTION_PATH_INVALID: invalid recovery root");
+  }
+  return {
+    kind: "install",
+    version: transaction.version,
+    transactionRootName,
+    hasBackup: Boolean(transaction.backup),
+    pointerOnly: transaction.pointerOnly === true,
+    previousActive: transaction.previousActive || null,
+    previousActiveState: serializePointerState(transaction.previousActiveState),
+    ownedActivePointerState: serializePointerState(
+      transaction.ownedActivePointerState,
+    ),
+    previousInstalledVersionState: cloneLifecycleState(
+      transaction.previousInstalledVersionState,
+    ),
+    previousDestinationState: cloneLifecycleState(
+      transaction.previousDestinationState,
+    ),
+    installedVersionState: cloneLifecycleState(
+      transaction.installedVersionState,
+    ),
+    rollbackPhase: transaction.rollbackPhase || null,
+    quarantinedActivePointer: transaction.quarantinedActivePointer != null,
+  };
+}
+
+function serializePointerState(state) {
+  return serializeLifecycleFileState(state);
+}
+
+function serializeLifecycleFileState(state) {
+  if (!state) return null;
+  return {
+    present: state.present === true,
+    bytesBase64: Buffer.isBuffer(state.bytes)
+      ? state.bytes.toString("base64")
+      : null,
+    version: state.version || null,
+    generation: cloneLifecycleState(state.generation),
+  };
+}
+
+function deserializePluginLifecycleTransaction(
+  name,
+  { scope, cwd },
+  lifecycleLock,
+  value,
+) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(
+      "PLUGIN_TRANSACTION_JOURNAL_CORRUPT: transaction is invalid",
+    );
+  }
+  if (value.kind != null && value.kind !== "install") {
+    throw new Error(
+      "PLUGIN_TRANSACTION_JOURNAL_CORRUPT: install transaction kind is invalid",
+    );
+  }
+  const version = String(value.version || "");
+  if (!semver.valid(version)) {
+    throw new Error(
+      "PLUGIN_TRANSACTION_JOURNAL_CORRUPT: transaction version is invalid",
+    );
+  }
+  const transactionRootName = String(value.transactionRootName || "");
+  if (
+    !/^\.install-[a-zA-Z0-9._-]+$/u.test(transactionRootName) ||
+    transactionRootName === ".install-." ||
+    transactionRootName === ".install-.."
+  ) {
+    throw new Error(
+      "PLUGIN_TRANSACTION_JOURNAL_CORRUPT: recovery root identity is invalid",
+    );
+  }
+  const nameDir = pluginNameDir(scope, name, { cwd });
+  const transactionRoot = path.join(nameDir, transactionRootName);
+  const previousActiveState = deserializePointerState(
+    value.previousActiveState,
+  );
+  if (!previousActiveState) {
+    throw new Error(
+      "PLUGIN_TRANSACTION_JOURNAL_CORRUPT: previous pointer snapshot is missing",
+    );
+  }
+  const transaction = {
+    name,
+    version,
+    scope,
+    cwd,
+    dest: pluginVersionDir(scope, name, version, { cwd }),
+    backup: value.hasBackup ? path.join(transactionRoot, "previous") : null,
+    transactionRoot,
+    previousActive: value.previousActive || null,
+    previousActiveState,
+    previousInstalledVersionState: cloneLifecycleState(
+      value.previousInstalledVersionState,
+    ),
+    previousDestinationState: cloneLifecycleState(
+      value.previousDestinationState,
+    ),
+    ownedActivePointerState: deserializePointerState(
+      value.ownedActivePointerState,
+    ),
+    installedVersionState: cloneLifecycleState(value.installedVersionState),
+    pointerOnly: value.pointerOnly === true,
+    rollbackPhase: value.rollbackPhase || null,
+    lifecycleLock,
+  };
+  if (value.quarantinedActivePointer === true) {
+    transaction.quarantinedActivePointer = path.join(
+      transactionRoot,
+      "candidate-active",
+    );
+  }
+  return transaction;
+}
+
+function deserializePluginEnabledStateTransaction(
+  name,
+  { scope, cwd },
+  lifecycleLock,
+  value,
+) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    value.kind !== "enabled-state" ||
+    typeof value.enabled !== "boolean"
+  ) {
+    throw new Error(
+      "PLUGIN_TRANSACTION_JOURNAL_CORRUPT: enabled-state transaction is invalid",
+    );
+  }
+  const previousMarkerState = deserializeLifecycleFileState(
+    value.previousMarkerState,
+    4096,
+    "disabled marker",
+  );
+  const desiredMarkerState = deserializeLifecycleFileState(
+    value.desiredMarkerState,
+    4096,
+    "disabled marker",
+  );
+  if (
+    !previousMarkerState ||
+    !desiredMarkerState ||
+    desiredMarkerState.present === value.enabled
+  ) {
+    throw new Error(
+      "PLUGIN_TRANSACTION_JOURNAL_CORRUPT: disabled marker intent is invalid",
+    );
+  }
+  const nameDir = pluginNameDir(scope, name, { cwd });
+  return {
+    kind: "enabled-state",
+    name,
+    scope,
+    cwd,
+    enabled: value.enabled,
+    nameDir,
+    marker: path.join(nameDir, DISABLED_FILENAME),
+    previousMarkerState,
+    desiredMarkerState,
+    ownedMarkerState: deserializeLifecycleFileState(
+      value.ownedMarkerState,
+      4096,
+      "disabled marker",
+    ),
+    lifecycleLock,
+  };
+}
+
+function deserializePluginProvenanceMigrationTransaction(
+  name,
+  { scope, cwd },
+  lifecycleLock,
+  value,
+) {
+  const version = String(value?.version || "");
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    value.kind !== "provenance-migration" ||
+    !semver.valid(version)
+  ) {
+    throw new Error(
+      "PLUGIN_TRANSACTION_JOURNAL_CORRUPT: provenance migration transaction is invalid",
+    );
+  }
+  const previousMetadataState = deserializeLifecycleFileState(
+    value.previousMetadataState,
+    MAX_PROVENANCE_METADATA_BYTES,
+    "plugin source metadata",
+  );
+  const desiredMetadataState = deserializeLifecycleFileState(
+    value.desiredMetadataState,
+    MAX_PROVENANCE_METADATA_BYTES,
+    "plugin source metadata",
+  );
+  if (
+    !previousMetadataState ||
+    previousMetadataState.present ||
+    !desiredMetadataState?.present
+  ) {
+    throw new Error(
+      "PLUGIN_TRANSACTION_JOURNAL_CORRUPT: provenance migration file intent is invalid",
+    );
+  }
+  const root = pluginVersionDir(scope, name, version, { cwd });
+  return {
+    kind: "provenance-migration",
+    name,
+    version,
+    scope,
+    cwd,
+    root,
+    marker: path.join(root, SOURCE_METADATA_FILENAME),
+    previousMetadataState,
+    desiredMetadataState,
+    ownedMetadataState: value.ownedMetadataGeneration
+      ? {
+          present: true,
+          bytes: desiredMetadataState.bytes,
+          generation: cloneLifecycleState(value.ownedMetadataGeneration),
+        }
+      : null,
+    lifecycleLock,
+  };
+}
+
+function deserializePluginUninstallTransaction(
+  name,
+  { scope, cwd },
+  lifecycleLock,
+  value,
+) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(
+      "PLUGIN_TRANSACTION_JOURNAL_CORRUPT: uninstall transaction is invalid",
+    );
+  }
+  const nameDir = pluginNameDir(scope, name, { cwd });
+  const transactionRootName = String(value.transactionRootName || "");
+  if (value.kind === "uninstall-version") {
+    const version = String(value.version || "");
+    if (
+      !semver.valid(version) ||
+      !/^\.uninstall-[a-f0-9]{32}$/u.test(transactionRootName)
+    ) {
+      throw new Error(
+        "PLUGIN_TRANSACTION_JOURNAL_CORRUPT: version uninstall identity is invalid",
+      );
+    }
+    const previousActiveState = deserializePointerState(
+      value.previousActiveState,
+    );
+    const desiredActiveState = deserializePointerState(
+      value.desiredActiveState,
+    );
+    const previousMarkerState = deserializeLifecycleFileState(
+      value.previousMarkerState,
+      4096,
+      "disabled marker",
+    );
+    const desiredMarkerState = deserializeLifecycleFileState(
+      value.desiredMarkerState,
+      4096,
+      "disabled marker",
+    );
+    if (
+      !previousActiveState ||
+      !desiredActiveState ||
+      !previousMarkerState ||
+      !desiredMarkerState ||
+      !value.removedVersionState ||
+      typeof value.removedVersionState !== "object"
+    ) {
+      throw new Error(
+        "PLUGIN_TRANSACTION_JOURNAL_CORRUPT: version uninstall state is incomplete",
+      );
+    }
+    const transactionRoot = path.join(nameDir, transactionRootName);
+    return {
+      kind: "uninstall-version",
+      name,
+      version,
+      scope,
+      cwd,
+      nameDir,
+      dest: pluginVersionDir(scope, name, version, { cwd }),
+      transactionRoot,
+      quarantined: path.join(transactionRoot, version),
+      removedWasActive: value.removedWasActive === true,
+      removeNameAfterFinalize: value.removeNameAfterFinalize === true,
+      previousActiveState,
+      desiredActiveState,
+      ownedActivePointerState: deserializePointerState(
+        value.ownedActivePointerState,
+      ),
+      removedVersionState: cloneLifecycleState(value.removedVersionState),
+      previousMarkerState,
+      desiredMarkerState,
+      ownedMarkerState: deserializeLifecycleFileState(
+        value.ownedMarkerState,
+        4096,
+        "disabled marker",
+      ),
+      lifecycleLock,
+    };
+  }
+  if (value.kind === "uninstall-name") {
+    const prefix = `.uninstall-${encodeName(name)}-`;
+    if (
+      !new RegExp(`^${escapeRegExp(prefix)}[a-f0-9]{32}$`, "u").test(
+        transactionRootName,
+      ) ||
+      !Array.isArray(value.versions) ||
+      value.versions.length > MAX_LISTED_PLUGIN_VERSIONS ||
+      value.versions.some((version) => !semver.valid(String(version))) ||
+      new Set(value.versions).size !== value.versions.length ||
+      !value.previousNameState ||
+      typeof value.previousNameState !== "object"
+    ) {
+      throw new Error(
+        "PLUGIN_TRANSACTION_JOURNAL_CORRUPT: whole-name uninstall state is invalid",
+      );
+    }
+    return {
+      kind: "uninstall-name",
+      name,
+      scope,
+      cwd,
+      nameDir,
+      transactionRoot: path.join(path.dirname(nameDir), transactionRootName),
+      versions: value.versions.map(String),
+      previousNameState: cloneLifecycleState(value.previousNameState),
+      lifecycleLock,
+    };
+  }
+  throw new Error(
+    "PLUGIN_TRANSACTION_JOURNAL_CORRUPT: uninstall transaction kind is invalid",
+  );
+}
+
+function deserializePointerState(value) {
+  return deserializeLifecycleFileState(value, 256, "pointer");
+}
+
+function deserializeLifecycleFileState(value, maxBytes, label) {
+  if (value == null) return null;
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(
+      `PLUGIN_TRANSACTION_JOURNAL_CORRUPT: ${label} snapshot is invalid`,
+    );
+  }
+  const present = value.present === true;
+  let bytes = null;
+  if (present) {
+    if (
+      typeof value.bytesBase64 !== "string" ||
+      !/^[a-zA-Z0-9+/]*={0,2}$/u.test(value.bytesBase64)
+    ) {
+      throw new Error(
+        `PLUGIN_TRANSACTION_JOURNAL_CORRUPT: ${label} bytes are invalid`,
+      );
+    }
+    bytes = Buffer.from(value.bytesBase64, "base64");
+    if (
+      bytes.length > maxBytes ||
+      bytes.toString("base64") !== value.bytesBase64
+    ) {
+      throw new Error(
+        `PLUGIN_TRANSACTION_JOURNAL_CORRUPT: ${label} bytes are non-canonical`,
+      );
+    }
+  }
+  return {
+    present,
+    bytes,
+    version: value.version || null,
+    generation: cloneLifecycleState(value.generation),
+  };
+}
+
+function adoptCrashWindowPointerAuthority(transaction) {
+  if (transaction.ownedActivePointerState) return;
+  const current = captureActivePointerState(transaction.name, transaction);
+  if (samePointerState(current, transaction.previousActiveState)) return;
+  if (!transaction.installedVersionState) {
+    throw new Error(
+      "PLUGIN_TRANSACTION_RECOVERY_INCOMPLETE: candidate state was not durably recorded",
+    );
+  }
+  assertInstalledRootStateMatches(
+    transaction.dest,
+    transaction.name,
+    transaction.version,
+    transaction.installedVersionState,
+    "candidate bytes changed during activation crash window",
+  );
+  const expected = Buffer.from(transaction.version, "utf8");
+  if (
+    current.present !== true ||
+    !Buffer.isBuffer(current.bytes) ||
+    !current.bytes.equals(expected)
+  ) {
+    throw new Error(
+      "PLUGIN_TRANSACTION_STALE: active pointer changed outside the recorded transaction",
+    );
+  }
+  transaction.ownedActivePointerState = current;
+  persistPluginLifecycleTransaction(transaction, "candidate-active-recovered");
+}
+
+function rollbackPreparedPluginTransaction(transaction) {
+  const current = captureActivePointerState(transaction.name, transaction);
+  if (!samePointerState(current, transaction.previousActiveState)) {
+    throw new Error(
+      "PLUGIN_TRANSACTION_STALE: previous active pointer changed during prepared recovery",
+    );
+  }
+  if (!_deps.existsSync(transaction.transactionRoot)) {
+    if (transaction.lifecycleLock.journal.phase !== "staging") {
+      throw new Error(
+        "PLUGIN_TRANSACTION_RECOVERY_INCOMPLETE: recovery root is missing",
+      );
+    }
+    assertStagingDestinationUnchanged(transaction);
+  } else if (!transaction.pointerOnly) {
+    rollbackPreparedInstalledBytes(transaction);
+  }
+  persistPluginLifecycleTransaction(transaction, "rolled-back");
+  const cleanup = retireCommittedTransactionRoot(transaction.transactionRoot);
+  if (authoritativeTransactionCleanupPending(cleanup)) {
+    persistPluginLifecycleTransaction(
+      transaction,
+      "rollback-recovery-required",
+    );
+    return {
+      recovered: false,
+      action: "rollback",
+      recoveryRequired: true,
+      ...cleanup,
+    };
+  }
+  const lockCleanup = releaseOwnedPluginLifecycleLock(
+    transaction.lifecycleLock,
+  );
+  return {
+    recovered: true,
+    action: "rollback",
+    rolledBack: true,
+    version: transaction.previousActive || null,
+    ...mergeLifecycleCleanup(cleanup, lockCleanup),
+  };
+}
+
+function assertStagingDestinationUnchanged(transaction) {
+  const destExists = _deps.existsSync(transaction.dest);
+  if (!transaction.previousDestinationState) {
+    if (destExists) {
+      throw new Error(
+        "PLUGIN_TRANSACTION_STALE: destination appeared during staging recovery",
+      );
+    }
+    return;
+  }
+  if (!destExists) {
+    throw new Error(
+      "PLUGIN_TRANSACTION_STALE: predecessor disappeared during staging recovery",
+    );
+  }
+  assertInstalledRootStateMatches(
+    transaction.dest,
+    transaction.name,
+    transaction.version,
+    transaction.previousDestinationState,
+    "predecessor bytes changed during staging recovery",
+  );
+}
+
+function rollbackPreparedInstalledBytes(transaction) {
+  const destExists = _deps.existsSync(transaction.dest);
+  const rejected = path.join(transaction.transactionRoot, "rejected");
+  const rejectedExists = _deps.existsSync(rejected);
+  const backupExists = transaction.backup
+    ? _deps.existsSync(transaction.backup)
+    : false;
+
+  if (!transaction.backup) {
+    if (destExists && rejectedExists) {
+      throw new Error(
+        "PLUGIN_TRANSACTION_STALE: prepared candidate topology is ambiguous",
+      );
+    }
+    if (destExists) {
+      assertInstalledRootStateMatches(
+        transaction.dest,
+        transaction.name,
+        transaction.version,
+        transaction.installedVersionState,
+        "prepared candidate bytes changed",
+      );
+      _deps.renameSync(transaction.dest, rejected);
+      fsyncDirectoryBestEffort(path.dirname(transaction.dest));
+      fsyncDirectoryBestEffort(transaction.transactionRoot);
+    } else if (rejectedExists) {
+      assertInstalledRootStateMatches(
+        rejected,
+        transaction.name,
+        transaction.version,
+        transaction.installedVersionState,
+        "rejected candidate bytes changed",
+      );
+    }
+    return;
+  }
+
+  if (backupExists) {
+    assertInstalledRootStateMatches(
+      transaction.backup,
+      transaction.name,
+      transaction.version,
+      transaction.previousDestinationState,
+      "prepared predecessor bytes changed",
+    );
+    if (destExists && rejectedExists) {
+      throw new Error(
+        "PLUGIN_TRANSACTION_STALE: prepared replacement topology is ambiguous",
+      );
+    }
+    if (destExists) {
+      assertInstalledRootStateMatches(
+        transaction.dest,
+        transaction.name,
+        transaction.version,
+        transaction.installedVersionState,
+        "prepared replacement candidate changed",
+      );
+      restoreInstalledBytes(transaction);
+    } else if (rejectedExists) {
+      assertInstalledRootStateMatches(
+        rejected,
+        transaction.name,
+        transaction.version,
+        transaction.installedVersionState,
+        "prepared rejected candidate changed",
+      );
+      _deps.renameSync(transaction.backup, transaction.dest);
+      fsyncDirectoryBestEffort(transaction.transactionRoot);
+      fsyncDirectoryBestEffort(path.dirname(transaction.dest));
+    } else {
+      _deps.renameSync(transaction.backup, transaction.dest);
+      fsyncDirectoryBestEffort(transaction.transactionRoot);
+      fsyncDirectoryBestEffort(path.dirname(transaction.dest));
+    }
+    return;
+  }
+
+  if (!destExists) {
+    throw new Error(
+      "PLUGIN_TRANSACTION_RECOVERY_INCOMPLETE: predecessor bytes are missing",
+    );
+  }
+  assertInstalledRootStateMatches(
+    transaction.dest,
+    transaction.name,
+    transaction.version,
+    transaction.previousDestinationState,
+    "restored predecessor bytes changed",
+  );
+  if (rejectedExists) {
+    assertInstalledRootStateMatches(
+      rejected,
+      transaction.name,
+      transaction.version,
+      transaction.installedVersionState,
+      "restored rejected candidate changed",
+    );
+  }
+}
+
+function samePointerState(left, right) {
+  if (!left || !right || left.present !== right.present) return false;
+  if (!left.present) return true;
+  return Boolean(
+    Buffer.isBuffer(left.bytes) &&
+    Buffer.isBuffer(right.bytes) &&
+    left.bytes.equals(right.bytes) &&
+    sameFileGeneration(left.generation, right.generation),
+  );
+}
+
+function captureDisabledMarkerState(name, opts = {}) {
+  const nameDir = pluginNameDir(opts.scope || "user", name, { cwd: opts.cwd });
+  return captureLifecycleFileState(
+    path.join(nameDir, DISABLED_FILENAME),
+    4096,
+    "DISABLED_MARKER_UNSAFE",
+  );
+}
+
+function captureLifecycleFileState(file, maxBytes, unsafeCode) {
+  let stat;
+  try {
+    stat = _deps.lstatSync(file);
+  } catch (error) {
+    if (error?.code === "ENOENT") {
+      return { present: false, bytes: null, generation: null };
+    }
+    throw error;
+  }
+  if (!stat.isFile() || stat.nlink !== 1 || stat.size > maxBytes) {
+    throw new Error(unsafeCode);
+  }
+  return {
+    present: true,
+    bytes: Buffer.from(_deps.readFileSync(file)),
+    generation: fileGeneration(stat),
+  };
+}
+
+function sameLifecycleFileState(left, right) {
+  if (!left || !right || left.present !== right.present) return false;
+  if (!left.present) return true;
+  return Boolean(
+    Buffer.isBuffer(left.bytes) &&
+    Buffer.isBuffer(right.bytes) &&
+    left.bytes.equals(right.bytes) &&
+    sameFileGeneration(left.generation, right.generation),
+  );
+}
+
+function capturePluginNameState(name, { scope, cwd, versions }) {
+  const root = pluginNameDir(scope, name, { cwd });
+  const currentVersions = listInstalledVersions(scope, name, { cwd });
+  if (
+    currentVersions.length !== versions.length ||
+    currentVersions.some((version, index) => version !== versions[index])
+  ) {
+    throw new Error(
+      "PLUGIN_TRANSACTION_STALE: installed versions changed before whole-name snapshot",
+    );
+  }
+  return capturePluginNameRootState(root);
+}
+
+function capturePluginNameRootState(root) {
+  const stat = _deps.lstatSync(root);
+  if (stat.isSymbolicLink() || !stat.isDirectory()) {
+    throw new Error("PLUGIN_NAME_DIRECTORY_UNSAFE");
+  }
+  for (const forbidden of PLUGIN_MARKETPLACE_STAGED_SOURCE_EXCLUSIONS) {
+    if (_deps.existsSync(path.join(root, forbidden))) {
+      throw new Error(
+        `PLUGIN_NAME_DIRECTORY_UNSAFE: unexpected root authority ${forbidden}`,
+      );
+    }
+  }
+  const payload = buildMarketplacePayloadSbom(root, {
+    schemaVersion: PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
+  });
+  return {
+    generation: fileGeneration(stat),
+    payloadDigest: payload.digest,
+    fileCount: payload.fileCount,
+    totalBytes: payload.totalBytes,
+  };
+}
+
+function serializePluginNameState(state) {
+  return cloneLifecycleState(state);
+}
+
+function samePluginNameState(left, right) {
+  return Boolean(
+    left &&
+    right &&
+    sameFileGeneration(left.generation, right.generation) &&
+    left.payloadDigest === right.payloadDigest &&
+    left.fileCount === right.fileCount &&
+    left.totalBytes === right.totalBytes,
+  );
+}
+
+function assertPluginNameStateMatches(root, _name, expected, reason) {
+  let actual;
+  try {
+    actual = capturePluginNameRootState(root);
+  } catch (error) {
+    throw new Error(`PLUGIN_TRANSACTION_STALE: ${error.message}`, {
+      cause: error,
+    });
+  }
+  if (!samePluginNameState(actual, expected)) {
+    throw new Error(`PLUGIN_TRANSACTION_STALE: ${reason}`);
+  }
+}
+
+function lifecycleFileContentMatches(left, right) {
+  if (!left || !right || left.present !== right.present) return false;
+  if (!left.present) return true;
+  return Boolean(
+    Buffer.isBuffer(left.bytes) &&
+    Buffer.isBuffer(right.bytes) &&
+    left.bytes.equals(right.bytes),
+  );
+}
+
+function assertLifecycleFileContent(actual, expected, reason) {
+  if (!lifecycleFileContentMatches(actual, expected)) {
+    throw new Error(`PLUGIN_TRANSACTION_STALE: ${reason}`);
+  }
+}
+
+function assertDisabledMarkerStateUnchanged(transaction, expected) {
+  const current = captureDisabledMarkerState(transaction.name, transaction);
+  if (!sameLifecycleFileState(current, expected)) {
+    throw new Error(
+      "PLUGIN_TRANSACTION_STALE: disabled marker changed before lifecycle publication",
+    );
+  }
+}
+
+function assertLifecycleFileStateAtPath(file, expected, maxBytes, reason) {
+  const current = captureLifecycleFileState(
+    file,
+    maxBytes,
+    "PLUGIN_LIFECYCLE_FILE_UNSAFE",
+  );
+  if (!sameLifecycleFileState(current, expected)) {
+    throw new Error(`PLUGIN_TRANSACTION_STALE: ${reason}`);
+  }
+}
+
+function writeDisabledMarkerState(marker, nameDir, state) {
+  writeLifecycleFileState(marker, nameDir, state);
+}
+
+function writeLifecycleFileState(marker, nameDir, state) {
+  if (state.present === true) {
+    writeDurableFileAtomic(nameDir, marker, state.bytes);
+    return;
+  }
+  _deps.rmSync(marker, { force: true });
+  fsyncDirectoryBestEffort(nameDir);
+}
+
+function cloneLifecycleState(value) {
+  return value == null ? null : JSON.parse(JSON.stringify(value));
+}
+
+function hasRetainedLifecycleRecovery(nameDir) {
+  try {
+    return _deps
+      .readdirSync(nameDir, { withFileTypes: true })
+      .some(
+        (entry) =>
+          entry.isDirectory() &&
+          (entry.name.startsWith(".install-") ||
+            entry.name.startsWith(".uninstall-")),
+      );
+  } catch (error) {
+    if (error?.code === "ENOENT") return false;
+    return true;
+  }
+}
+
+function authoritativeTransactionCleanupPending(cleanup) {
+  return Boolean(
+    cleanup?.cleanupPending === true &&
+    /^\.(?:install|uninstall)-/u.test(path.basename(cleanup.cleanupPath || "")),
+  );
+}
+
+function mergeLifecycleCleanup(primary, secondary) {
+  if (primary?.cleanupPending === true) return primary;
+  if (secondary?.cleanupPending === true) {
+    return {
+      cleanupPending: true,
+      cleanupPath: secondary.cleanupPath,
+    };
+  }
+  return { cleanupPending: false };
 }
 
 function captureActivePointerState(name, opts = {}) {
@@ -2393,6 +5313,38 @@ function assertTransactionOwnsRollbackPointer(transaction) {
   assertOwnedPointerState(retained, transaction);
 }
 
+function adoptRollbackPointerQuarantine(transaction) {
+  if (transaction.quarantinedActivePointer) return;
+  const activeFile = path.join(
+    pluginNameDir(transaction.scope, transaction.name, {
+      cwd: transaction.cwd,
+    }),
+    ".active",
+  );
+  if (_deps.existsSync(activeFile)) return;
+  const retained = path.join(transaction.transactionRoot, "candidate-active");
+  if (!_deps.existsSync(retained)) return;
+  const retainedState = capturePointerFileState(retained);
+  assertOwnedPointerState(retainedState, transaction);
+  transaction.quarantinedActivePointer = retained;
+  persistPluginLifecycleTransaction(
+    transaction,
+    "rollback-pointer-quarantined-recovered",
+  );
+}
+
+function activePointerMatchesSnapshot(transaction) {
+  const current = captureActivePointerState(transaction.name, transaction);
+  const snapshot = transaction.previousActiveState;
+  if (!snapshot || current.present !== snapshot.present) return false;
+  if (!snapshot.present) return true;
+  return Boolean(
+    Buffer.isBuffer(current.bytes) &&
+    Buffer.isBuffer(snapshot.bytes) &&
+    current.bytes.equals(snapshot.bytes),
+  );
+}
+
 function quarantineTransactionActivePointer(transaction) {
   assertTransactionOwnsPointer(transaction);
   const activeFile = path.join(
@@ -2403,6 +5355,8 @@ function quarantineTransactionActivePointer(transaction) {
   );
   const retained = path.join(transaction.transactionRoot, "candidate-active");
   _deps.renameSync(activeFile, retained);
+  fsyncDirectoryBestEffort(path.dirname(activeFile));
+  fsyncDirectoryBestEffort(transaction.transactionRoot);
   transaction.quarantinedActivePointer = retained;
 }
 
@@ -2494,6 +5448,10 @@ function assertTransactionOwnsActivePointer(transaction) {
 
 function assertTransactionOwnsRecoveryState(transaction) {
   assertTransactionOwnsRollbackPointer(transaction);
+  assertTransactionOwnsRecoveryBytes(transaction);
+}
+
+function assertTransactionOwnsRecoveryBytes(transaction) {
   const rejected = path.join(transaction.transactionRoot, "rejected");
   const destExists = _deps.existsSync(transaction.dest);
   const rejectedExists = _deps.existsSync(rejected);
@@ -2596,6 +5554,9 @@ function restoreActivePointerSnapshot(name, snapshot, opts = {}) {
     ),
     { force: true },
   );
+  fsyncDirectoryBestEffort(
+    pluginNameDir(opts.scope || "user", name, { cwd: opts.cwd }),
+  );
 }
 
 function incompleteInstallRecoveryError({
@@ -2647,17 +5608,24 @@ function retainInstallRecoveryPointer(name, transactionRoot, opts) {
     ".active",
   );
   _deps.renameSync(activeFile, path.join(transactionRoot, "previous-active"));
+  fsyncDirectoryBestEffort(path.dirname(activeFile));
+  fsyncDirectoryBestEffort(transactionRoot);
 }
 
 function restoreInstalledBytes({ dest, backup, transactionRoot }) {
   const rejected = path.join(transactionRoot, "rejected");
+  const nameDir = path.dirname(dest);
   if (!backup) {
     const destExists = _deps.existsSync(dest);
     const rejectedExists = _deps.existsSync(rejected);
     if (destExists === rejectedExists) {
       throw new Error("plugin rollback candidate topology is ambiguous");
     }
-    if (destExists) _deps.renameSync(dest, rejected);
+    if (destExists) {
+      _deps.renameSync(dest, rejected);
+      fsyncDirectoryBestEffort(nameDir);
+      fsyncDirectoryBestEffort(transactionRoot);
+    }
     return;
   }
 
@@ -2671,6 +5639,12 @@ function restoreInstalledBytes({ dest, backup, transactionRoot }) {
   if (destExists === rejectedExists) {
     throw new Error("plugin rollback candidate topology is ambiguous");
   }
-  if (destExists) _deps.renameSync(dest, rejected);
+  if (destExists) {
+    _deps.renameSync(dest, rejected);
+    fsyncDirectoryBestEffort(nameDir);
+    fsyncDirectoryBestEffort(transactionRoot);
+  }
   _deps.renameSync(backup, dest);
+  fsyncDirectoryBestEffort(transactionRoot);
+  fsyncDirectoryBestEffort(nameDir);
 }

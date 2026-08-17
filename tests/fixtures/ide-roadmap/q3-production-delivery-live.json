@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "case": "q3-production-delivery-live",
+  "description": "The production GitHub delivery entrypoint must execute an exact-head gates-to-archive journey, including a bounded fix and rerun, through revision-bound effects without replay, unprotected merge, credential disclosure, or unverifiable evidence replacement.",
+  "inputs": {
+    "entrypoint": "cc artifacts delivery-run",
+    "provider": "github-production",
+    "requiredSequence": [
+      "run_gates",
+      "run_preview",
+      "run_review",
+      "apply_fix",
+      "run_gates",
+      "run_preview",
+      "run_review",
+      "create_pr",
+      "refresh_ci",
+      "publish_evidence",
+      "merge",
+      "archive"
+    ],
+    "repositoryPolicy": {
+      "branchProtectionRequired": true,
+      "requiredApprovingReviewCountMinimum": 1,
+      "adminEnforcementRequired": true,
+      "signedCommitOrRulesetRequired": true,
+      "requiredChecksMustBeExact": true
+    },
+    "failureInjections": [
+      "provider-success-before-settlement-crash",
+      "settlement-response-loss",
+      "stale-state-revision",
+      "moved-remote-head",
+      "duplicate-required-check",
+      "missing-required-review",
+      "evidence-byte-tamper",
+      "archive-readback-mismatch"
+    ],
+    "archiveAuthority": {
+      "externalImmutableOrWorm": true,
+      "publicOrIndependentReadbackRequired": true,
+      "byteDigestReverificationRequired": true
+    }
+  },
+  "expectedOutcome": {
+    "productionProviderInvoked": true,
+    "fullSequenceComplete": true,
+    "fixRerunComplete": true,
+    "exactHeadMismatchCount": 0,
+    "effectReplayCount": 0,
+    "unprotectedMergeCount": 0,
+    "missingRequiredReviewCount": 0,
+    "missingRequiredCheckCount": 0,
+    "credentialLeakCount": 0,
+    "wormReadbackMismatchCount": 0,
+    "requiredMeasurementsComplete": true,
+    "exactCommitBound": true
+  }
+}

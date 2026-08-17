@@ -11,7 +11,7 @@
  * - Reduced motion detection
  */
 
-import { logger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
 // ==================== 类型定义 ====================
 
@@ -69,7 +69,10 @@ export interface RGBColor {
 interface FocusTrapState {
   container: HTMLElement;
   handleKeyDown: (event: KeyboardEvent) => void;
+  previousElement: HTMLElement | null;
 }
+
+const MAX_FOCUS_HISTORY = 32;
 
 // ==================== 类实现 ====================
 
@@ -78,6 +81,10 @@ class AccessibilityManager {
   private announcerElement: HTMLDivElement | null;
   private focusHistory: Element[];
   private activeFocusTrap: FocusTrapState | null;
+  private keyboardNavigationHandler: ((event: KeyboardEvent) => void) | null;
+  private domReadyHandler: (() => void) | null;
+  private announcementTimer: ReturnType<typeof setTimeout> | null;
+  private destroyed: boolean;
 
   constructor(options: AccessibilityOptions = {}) {
     this.options = {
@@ -90,6 +97,10 @@ class AccessibilityManager {
     this.announcerElement = null;
     this.focusHistory = [];
     this.activeFocusTrap = null;
+    this.keyboardNavigationHandler = null;
+    this.domReadyHandler = null;
+    this.announcementTimer = null;
+    this.destroyed = false;
 
     this.init();
 
@@ -115,13 +126,17 @@ class AccessibilityManager {
    * Create live region for screen reader announcements
    */
   private createAnnouncer(): void {
-    if (this.announcerElement) return;
+    if (this.destroyed || this.announcerElement) return;
 
     if (!document.body) {
-      if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", () =>
-          this.createAnnouncer(),
-        );
+      if (document.readyState === "loading" && !this.domReadyHandler) {
+        this.domReadyHandler = () => {
+          this.domReadyHandler = null;
+          this.createAnnouncer();
+        };
+        document.addEventListener("DOMContentLoaded", this.domReadyHandler, {
+          once: true,
+        });
       }
       return;
     }
@@ -148,7 +163,7 @@ class AccessibilityManager {
   /**
    * Announce message to screen readers
    */
-  announce(message: string, priority: 'polite' | 'assertive' = "polite"): void {
+  announce(message: string, priority: "polite" | "assertive" = "polite"): void {
     if (!this.options.enableAnnouncements || !this.announcerElement) {
       return;
     }
@@ -156,7 +171,9 @@ class AccessibilityManager {
     this.announcerElement.setAttribute("aria-live", priority);
     this.announcerElement.textContent = "";
 
-    setTimeout(() => {
+    if (this.announcementTimer) clearTimeout(this.announcementTimer);
+    this.announcementTimer = setTimeout(() => {
+      this.announcementTimer = null;
       if (this.announcerElement) {
         this.announcerElement.textContent = message;
 
@@ -172,21 +189,41 @@ class AccessibilityManager {
   /**
    * Focus an element with error handling
    */
-  focus(element: HTMLElement | string, options: AccessibilityFocusOptions = {}): boolean {
+  focus(
+    element: HTMLElement | string,
+    options: AccessibilityFocusOptions = {},
+  ): boolean {
     const el =
-      typeof element === "string" ? document.querySelector<HTMLElement>(element) : element;
+      typeof element === "string"
+        ? document.querySelector<HTMLElement>(element)
+        : element;
 
     if (!el) {
       logger.warn("[AccessibilityManager] Element not found for focusing");
       return false;
     }
 
-    if (options.saveFocus !== false) {
-      this.focusHistory.push(document.activeElement as Element);
-    }
+    const previousElement =
+      options.saveFocus !== false &&
+      document.activeElement instanceof HTMLElement &&
+      document.activeElement.isConnected &&
+      document.activeElement !== el
+        ? document.activeElement
+        : null;
 
     try {
       el.focus(options.focusOptions || {});
+      if (document.activeElement !== el) return false;
+
+      if (previousElement) {
+        this.focusHistory.push(previousElement);
+        if (this.focusHistory.length > MAX_FOCUS_HISTORY) {
+          this.focusHistory.splice(
+            0,
+            this.focusHistory.length - MAX_FOCUS_HISTORY,
+          );
+        }
+      }
 
       if (this.options.debug) {
         logger.info("[AccessibilityManager] Focused element:", el);
@@ -203,25 +240,28 @@ class AccessibilityManager {
    * Restore previous focus
    */
   restoreFocus(): boolean {
-    if (this.focusHistory.length === 0) {
-      return false;
-    }
-
-    const previousElement = this.focusHistory.pop() as HTMLElement | undefined;
-
-    if (previousElement && previousElement.focus) {
-      previousElement.focus();
-
-      if (this.options.debug) {
-        logger.info(
-          "[AccessibilityManager] Restored focus to:",
-          previousElement,
-        );
+    while (this.focusHistory.length > 0) {
+      const previousElement = this.focusHistory.pop();
+      if (
+        !(previousElement instanceof HTMLElement) ||
+        !previousElement.isConnected
+      ) {
+        continue;
       }
-
-      return true;
+      try {
+        previousElement.focus();
+        if (document.activeElement !== previousElement) continue;
+        if (this.options.debug) {
+          logger.info(
+            "[AccessibilityManager] Restored focus to:",
+            previousElement,
+          );
+        }
+        return true;
+      } catch (error) {
+        logger.error("[AccessibilityManager] Focus restore error:", error);
+      }
     }
-
     return false;
   }
 
@@ -231,6 +271,8 @@ class AccessibilityManager {
   trapFocus(container: HTMLElement): void {
     if (!this.options.enableFocusTrap) return;
 
+    this.releaseFocusTrap();
+
     const focusableElements = this.getFocusableElements(container);
 
     if (focusableElements.length === 0) {
@@ -239,20 +281,36 @@ class AccessibilityManager {
     }
 
     const firstElement = focusableElements[0];
-    const lastElement = focusableElements[focusableElements.length - 1];
+    const previousElement =
+      document.activeElement instanceof HTMLElement &&
+      document.activeElement.isConnected
+        ? document.activeElement
+        : null;
 
     const handleKeyDown = (event: KeyboardEvent): void => {
       if (event.key !== "Tab") return;
 
+      const currentElements = this.getFocusableElements(container);
+      if (currentElements.length === 0) return;
+      const currentFirst = currentElements[0];
+      const currentLast = currentElements[currentElements.length - 1];
+      const activeElement = document.activeElement;
+
+      if (!container.contains(activeElement)) {
+        event.preventDefault();
+        (event.shiftKey ? currentLast : currentFirst).focus();
+        return;
+      }
+
       if (event.shiftKey) {
-        if (document.activeElement === firstElement) {
+        if (activeElement === currentFirst) {
           event.preventDefault();
-          lastElement.focus();
+          currentLast.focus();
         }
       } else {
-        if (document.activeElement === lastElement) {
+        if (activeElement === currentLast) {
           event.preventDefault();
-          firstElement.focus();
+          currentFirst.focus();
         }
       }
     };
@@ -263,6 +321,7 @@ class AccessibilityManager {
     this.activeFocusTrap = {
       container,
       handleKeyDown,
+      previousElement,
     };
 
     if (this.options.debug) {
@@ -276,11 +335,19 @@ class AccessibilityManager {
   releaseFocusTrap(): void {
     if (!this.activeFocusTrap) return;
 
-    const { container, handleKeyDown } = this.activeFocusTrap;
+    const { container, handleKeyDown, previousElement } = this.activeFocusTrap;
 
     container.removeEventListener("keydown", handleKeyDown);
 
     this.activeFocusTrap = null;
+
+    if (previousElement?.isConnected) {
+      try {
+        previousElement.focus();
+      } catch (error) {
+        logger.error("[AccessibilityManager] Focus trap restore error:", error);
+      }
+    }
 
     if (this.options.debug) {
       logger.info("[AccessibilityManager] Focus trap released");
@@ -297,20 +364,35 @@ class AccessibilityManager {
       "textarea:not([disabled])",
       "input:not([disabled])",
       "select:not([disabled])",
+      '[contenteditable]:not([contenteditable="false"])',
+      "audio[controls]",
+      "video[controls]",
       '[tabindex]:not([tabindex="-1"])',
     ].join(", ");
 
-    return Array.from(container.querySelectorAll<HTMLElement>(selector)).filter((el) => {
-      return el.offsetParent !== null && !el.hasAttribute("aria-hidden");
-    });
+    return Array.from(container.querySelectorAll<HTMLElement>(selector)).filter(
+      (el) => {
+        const style = window.getComputedStyle(el);
+        return (
+          el.isConnected &&
+          el.tabIndex >= 0 &&
+          !el.matches(":disabled") &&
+          !el.hidden &&
+          !el.closest('[inert], [aria-hidden="true"]') &&
+          style.display !== "none" &&
+          style.visibility !== "hidden"
+        );
+      },
+    );
   }
 
   /**
    * Setup global keyboard navigation
    */
   private setupKeyboardNavigation(): void {
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "/" && !this.isInputElement(event.target as HTMLElement)) {
+    if (this.keyboardNavigationHandler) return;
+    this.keyboardNavigationHandler = (event) => {
+      if (event.key === "/" && !this.isInputElement(event.target)) {
         event.preventDefault();
         this.announce("Search navigation activated", "polite");
       }
@@ -318,12 +400,13 @@ class AccessibilityManager {
       if (
         event.key === "?" &&
         event.shiftKey &&
-        !this.isInputElement(event.target as HTMLElement)
+        !this.isInputElement(event.target)
       ) {
         event.preventDefault();
         this.showKeyboardShortcuts();
       }
-    });
+    };
+    document.addEventListener("keydown", this.keyboardNavigationHandler);
 
     if (this.options.debug) {
       logger.info("[AccessibilityManager] Keyboard navigation setup complete");
@@ -333,7 +416,9 @@ class AccessibilityManager {
   /**
    * Check if element is an input element
    */
-  private isInputElement(element: HTMLElement): boolean {
+  private isInputElement(element: EventTarget | null): boolean {
+    if (!(element instanceof HTMLElement)) return false;
+
     const tagName = element.tagName.toLowerCase();
     return (
       ["input", "textarea", "select"].includes(tagName) ||
@@ -458,7 +543,7 @@ class AccessibilityManager {
   /**
    * Get current color scheme preference
    */
-  getColorSchemePreference(): 'light' | 'dark' {
+  getColorSchemePreference(): "light" | "dark" {
     return window.matchMedia("(prefers-color-scheme: dark)").matches
       ? "dark"
       : "light";
@@ -468,6 +553,18 @@ class AccessibilityManager {
    * Destroy and cleanup
    */
   destroy(): void {
+    this.destroyed = true;
+
+    if (this.domReadyHandler) {
+      document.removeEventListener("DOMContentLoaded", this.domReadyHandler);
+      this.domReadyHandler = null;
+    }
+
+    if (this.announcementTimer) {
+      clearTimeout(this.announcementTimer);
+      this.announcementTimer = null;
+    }
+
     if (this.announcerElement) {
       this.announcerElement.remove();
       this.announcerElement = null;
@@ -475,6 +572,15 @@ class AccessibilityManager {
 
     this.releaseFocusTrap();
     this.focusHistory = [];
+
+    if (this.keyboardNavigationHandler) {
+      document.removeEventListener("keydown", this.keyboardNavigationHandler);
+      this.keyboardNavigationHandler = null;
+    }
+
+    if (managerInstance === this) {
+      managerInstance = null;
+    }
 
     if (this.options.debug) {
       logger.info("[AccessibilityManager] Destroyed");
@@ -488,7 +594,9 @@ let managerInstance: AccessibilityManager | null = null;
 /**
  * Get or create accessibility manager instance
  */
-export function getAccessibilityManager(options?: AccessibilityOptions): AccessibilityManager {
+export function getAccessibilityManager(
+  options?: AccessibilityOptions,
+): AccessibilityManager {
   if (!managerInstance) {
     managerInstance = new AccessibilityManager(options);
   }
@@ -498,7 +606,10 @@ export function getAccessibilityManager(options?: AccessibilityOptions): Accessi
 /**
  * Convenience functions
  */
-export function announce(message: string, priority?: 'polite' | 'assertive'): void {
+export function announce(
+  message: string,
+  priority?: "polite" | "assertive",
+): void {
   const manager = getAccessibilityManager();
   return manager.announce(message, priority);
 }

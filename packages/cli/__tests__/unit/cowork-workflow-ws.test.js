@@ -369,6 +369,37 @@ describe("workflow WS handlers (N1)", () => {
     );
   });
 
+  it("preserves a verified location-handoff authority in WS run admission", async () => {
+    wfDeps.runTask = vi.fn(async ({ userMessage }) => ({
+      taskId: "t-handoff",
+      status: "completed",
+      result: { summary: `ran ${userMessage}` },
+    }));
+    server.workflowExecutionAuthorityProvider = vi.fn(async (sessionId) => ({
+      authority: "verified-session-location-handoff",
+      ...executionProof(sessionId),
+    }));
+    const workflow = governedWorkflow({
+      id: "wf-handoff",
+      name: "Handoff",
+      steps: [{ id: "s1", message: "hello" }],
+    });
+    await handleWorkflowSave(server, "1", {}, { workflow });
+
+    await handleWorkflowRun(
+      server,
+      "2",
+      {},
+      workflowRunMessage({ id: "wf-handoff" }),
+    );
+
+    expect(
+      JSON.parse(wfDeps.appendFileSync.mock.calls[0][1]).runAdmission
+        .executionLocation.authority,
+    ).toBe("verified-session-location-handoff");
+    expect(server.workflowExecutionAuthorityProvider).toHaveBeenCalledTimes(2);
+  });
+
   it("runs from a ready server runner seam with fresh global workflow deps", async () => {
     const previousRunTask = wfDeps.runTask;
     const readyRunner = vi.fn(async ({ userMessage }) => ({

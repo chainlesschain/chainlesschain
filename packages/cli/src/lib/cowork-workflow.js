@@ -66,6 +66,8 @@ export const COWORK_WORKFLOW_RUN_ADMISSION_INVALID_CODE =
   "COWORK_WORKFLOW_RUN_ADMISSION_INVALID";
 export const COWORK_WORKFLOW_RUN_RESULT_INVALID_CODE =
   "COWORK_WORKFLOW_RUN_RESULT_INVALID";
+export const COWORK_WORKFLOW_CONTROL_SIGNAL_CODE =
+  "COWORK_WORKFLOW_CONTROL_SIGNAL";
 
 const DYNAMIC_WORKFLOW_RUN_ADMISSION_SCHEMA =
   "cc-dynamic-workflow-run-admission/v1";
@@ -484,7 +486,9 @@ function normalizeWorkflowRunAdmission(
     authority.definitionDigest !== definitionDigest ||
     value.executionLocation.authoritySchema !==
       EXECUTION_LOCATION_AUTHORITY_SCHEMA ||
-    value.executionLocation.authority !== "verified-session-start" ||
+    !["verified-session-start", "verified-session-location-handoff"].includes(
+      value.executionLocation.authority,
+    ) ||
     value.executionLocation.bindingSchema !==
       EXECUTION_LOCATION_BINDING_SCHEMA ||
     typeof value.executionLocation.location !== "string" ||
@@ -534,7 +538,7 @@ function normalizeWorkflowRunAdmission(
     }),
     executionLocation: Object.freeze({
       authoritySchema: EXECUTION_LOCATION_AUTHORITY_SCHEMA,
-      authority: "verified-session-start",
+      authority: value.executionLocation.authority,
       session: Object.freeze({
         sessionId: session.sessionId,
         headHash: session.headHash,
@@ -1307,6 +1311,7 @@ export async function runStepWithRetry({
   taskSemaphore,
   runTask = _deps.runTask,
   recordId = step.id,
+  iteration = 1,
   onTaskStart,
   admitted = false,
 }) {
@@ -1336,6 +1341,11 @@ export async function runStepWithRetry({
           files: step.files || [],
           cwd,
           llmOptions,
+          workflowEffect: Object.freeze({
+            stepId: recordId,
+            iteration,
+            attempt,
+          }),
           ...(abortController ? { signal: abortController.signal } : {}),
         }),
       );
@@ -1353,6 +1363,7 @@ export async function runStepWithRetry({
       lastErr = null;
     } catch (err) {
       if (release) release();
+      if (err?.code === COWORK_WORKFLOW_CONTROL_SIGNAL_CODE) throw err;
       if (err?.code === COWORK_WORKFLOW_RUN_RESULT_INVALID_CODE) throw err;
       if (admitted && err?.code === STEP_TIMEOUT_CODE && taskPromise != null) {
         abortController.abort(err);
@@ -1503,6 +1514,7 @@ export async function runLoopStep({
       taskSemaphore,
       runTask,
       recordId,
+      iteration: iter,
       onTaskStart: (event) => {
         if (startAnnounced) return;
         startAnnounced = true;

@@ -9,7 +9,10 @@ const { afterEach, test } = require("node:test");
 const {
   buildChatHtml,
   CHAT_UI_PROTOCOL_VERSION,
+  TRANSCRIPT_ENTRY_MAX_CHARS,
   migrateBootstrapLastSent,
+  appendBoundedTranscriptText,
+  trimOldestLogNodes,
 } = require("../src/chat/chat-html");
 const { ChatViewProvider } = require("../src/chat/chat-view");
 const {
@@ -81,6 +84,83 @@ test("chat HTML keeps the relay inert without a valid launch token", () => {
   for (const [, source] of scripts) {
     assert.doesNotThrow(() => new vm.Script(source));
   }
+});
+
+test("chat HTML exposes keyboard and screen-reader semantics", () => {
+  const html = buildChatHtml({
+    cspSource: "vscode-webview:",
+    nonce: "nonce",
+    l10n: {},
+  });
+
+  assert.match(
+    html,
+    /id="log" role="log" aria-live="polite" aria-relevant="additions"/u,
+  );
+  assert.match(html, /aria-label="Conversation transcript"/u);
+  assert.match(html, /id="tabs" role="tablist"/u);
+  assert.match(html, /tab\.setAttribute\("role", "tab"\)/u);
+  assert.match(html, /tab\.setAttribute\("aria-selected"/u);
+  assert.match(html, /e\.key === "ArrowRight"/u);
+  assert.match(html, /e\.key === "ArrowLeft"/u);
+  assert.match(html, /e\.key === "Home"/u);
+  assert.match(html, /e\.key === "End"/u);
+  assert.match(html, /e\.key === "Delete"/u);
+  assert.match(html, /id="suggest" role="listbox"/u);
+  assert.match(html, /row\.setAttribute\("role", "option"\)/u);
+  assert.match(html, /aria-autocomplete="list" aria-expanded="false"/u);
+  assert.match(html, /input\.setAttribute\("aria-activedescendant"/u);
+  assert.match(html, /id="status" role="status" aria-live="polite"/u);
+  assert.match(html, /log\.setAttribute\("aria-busy", "true"\)/u);
+  assert.match(html, /:focus-visible \{ outline:2px solid/u);
+});
+
+test("chat transcript retains only the newest 800 of 2,000 message nodes", () => {
+  const children = Array.from({ length: 2_000 }, (_, id) => ({ id }));
+  const container = {
+    get childElementCount() {
+      return children.length;
+    },
+    get firstChild() {
+      return children[0] || null;
+    },
+    removeChild(node) {
+      assert.equal(node, children[0]);
+      return children.shift();
+    },
+  };
+
+  assert.equal(trimOldestLogNodes(container, 800), 1_200);
+  assert.equal(children.length, 800);
+  assert.equal(children[0].id, 1_200);
+  assert.equal(children.at(-1).id, 1_999);
+});
+
+test("64 MiB transcript entries retain bounded head and tail with a visible marker", () => {
+  const mebibyte = "x".repeat(1024 * 1024);
+  let state = appendBoundedTranscriptText(null, "HEAD");
+  for (let index = 0; index < 64; index += 1) {
+    state = appendBoundedTranscriptText(
+      state,
+      mebibyte,
+      TRANSCRIPT_ENTRY_MAX_CHARS,
+    );
+  }
+  state = appendBoundedTranscriptText(
+    state,
+    "TAIL",
+    TRANSCRIPT_ENTRY_MAX_CHARS,
+  );
+
+  assert.equal(state.totalChars, 64 * 1024 * 1024 + 8);
+  assert.equal(state.truncated, true);
+  assert.ok(state.text.length <= TRANSCRIPT_ENTRY_MAX_CHARS);
+  assert.match(state.text, /^HEAD/u);
+  assert.match(
+    state.text,
+    /characters omitted from oversized transcript entry/u,
+  );
+  assert.match(state.text, /TAIL$/u);
 });
 
 test("first tab activation preserves a bootstrap prompt for retry", () => {

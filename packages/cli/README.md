@@ -395,7 +395,33 @@ chainlesschain session show <id>        # Show session details
 chainlesschain session resume <id>      # Resume a session
 chainlesschain session export <id>      # Export as Markdown
 chainlesschain session delete <id>      # Delete a session
+chainlesschain session location compare # Local/WSL/SSH/Container/Cloud catalog
+chainlesschain session location handoff <id> <target> --facts <facts.json>
+chainlesschain session location attest <id> <target> \
+  --facts <facts.json> --profile <target-profile.json> --json
+chainlesschain session location resume <id> <target> \
+  --facts <facts.json> --profile <target-profile.json> \
+  --expected-target-facts-digest sha256:<digest>
 ```
+
+Target attestation and resume support configured WSL, SSH, and existing
+Container hosts. The launcher invokes only fixed ChainlessChain commands. SSH
+requires a digest-pinned `known_hosts` file, uses strict host-key checking, and
+materializes the verified bytes into a private temporary authority file for the
+actual invocation. Resume re-runs the ambient host probe, verifies the accepted
+stable facts digest, then handles the declared session-store mode. A
+`replicated` profile streams the source's locked, verified transcript bytes to
+the fixed target-side `session location receive` command; the target validates
+strict UTF-8, a 64 MiB boundary, transcript structure/hash chain, exact byte
+digest, head hash, and event count before atomic publication and creation of
+its own sidecar and machine-local anti-rollback witness. It never replaces a
+divergent or tombstoned target session, while an exact retry is idempotent. A
+`shared` profile performs no copy. Both modes re-read the target's canonical
+authority and revalidate that the source session head has not advanced before
+the fixed `session resume` invocation. This is whole-revision transfer, not
+incremental/bidirectional synchronization or a cross-host writer fence;
+remote network/sandbox policy and disconnect/reconnect durability remain
+unattested.
 
 ---
 
@@ -623,7 +649,105 @@ chainlesschain plugin info <name>                  # Plugin details
 chainlesschain plugin search <query>               # Search registry
 chainlesschain plugin registry                     # List all registry plugins
 chainlesschain plugin summary                      # Installation summary
+chainlesschain plugin installed --all-scopes       # Physical inventory + effective authority
+chainlesschain plugin transaction <name> --scope project --json
+                                                    # Inspect redacted durable transaction authority
+chainlesschain plugin recover <name> --scope project --action rollback
+                                                    # Recover a transaction after its owner dies
+chainlesschain plugin provenance-plan <name> --scope project --version 1.0.0 --metadata source.json
+                                                    # Emit exact bytes for an external Ed25519 signature
+chainlesschain plugin provenance-migrate <name> --scope project --version 1.0.0 --attestation signed.json --expected-signer-sha256 <hex> --yes
+                                                    # Backfill one legacy install without replacing payload bytes
+chainlesschain plugin catalog --registry https://plugins.example/index.json --offline --registry-digest https://plugins.example/index.json=<sha256>
+                                                    # Review one exact immutable cached registry document without network
+chainlesschain plugin add <name> --registry https://plugins.example/index.json --proxy http://proxy.example:8080 --ca-file enterprise-ca.pem
+                                                    # Private registry through an explicit proxy and appended custom CA
+chainlesschain plugin browse --registry https://plugins.example/index.json --pac-file enterprise.pac
+                                                    # Resolve PROXY/HTTPS/DIRECT in a bounded, terminable PAC worker
 ```
+
+When enabling, disabling, uninstalling, or replacing a scoped plugin would
+switch the effective `local > project > user` source, review `plugin impact`
+and pass `--allow-source-switch` explicitly. Semantic SBOM downgrades remain
+blocked even with that approval.
+
+Plugin lifecycle mutation holds one same-user, same-name OS coordinator across
+`user`, `project`, and `local` scopes. Add/upgrade keeps that owner through
+validation, consent, finalize, or rollback, while the journal binds the exact
+target scope and workspace context. Enable/disable records the exact prior and
+intended marker bytes before publication. Version uninstall quarantines the
+immutable version before publishing its pointer/marker fallback, while
+whole-name uninstall quarantines the complete name directory before physical
+collection. Each can therefore be explicitly finalized or rolled back after a
+process crash. Ordinary commands never steal an abandoned owner. Inspect it
+with `plugin transaction`, then use `plugin recover` only after the recorded
+process has died. `--force-owner` overrides a live or cross-host owner and
+therefore requires external operator adjudication; it is not automatic
+stale-lock cleanup.
+
+Legacy provenance migration is explicit and non-overwriting. The plan binds the
+installed name, version, scope, canonical path, complete payload digest, source
+metadata, and issuance time. Sign the decoded `signingPayloadBase64` bytes with
+an Ed25519 key, then supply an attestation containing `authority`,
+`publicKeyPem`, and `signatureBase64`. Apply requires the exact SPKI fingerprint
+and `--yes`; managed trusted-key policy is also enforced when configured. The
+signed record is checked on every strict provenance read and participates in
+the same crash-recoverable lifecycle journal. It proves the reviewed migration
+authority only—it does not invent Marketplace publisher identity. Existing
+provenance and installs with a component-SBOM signature lock must be reinstalled
+instead of rewritten.
+
+An organization can require registry publisher identity with managed settings:
+
+```json
+{
+  "requireTrustedPluginPublishers": true,
+  "trustedPluginPublishers": [
+    {
+      "trustRootId": "acme-marketplace-2026",
+      "publisherId": "tools-team",
+      "organizationId": "acme",
+      "pluginNames": ["@acme/reviewer"],
+      "registryOrigins": ["https://plugins.acme.example"],
+      "signingKeySha256": ["<ed25519-spki-sha256>"],
+      "notBefore": "2026-01-01T00:00:00.000Z",
+      "notAfter": "2027-01-01T00:00:00.000Z"
+    }
+  ],
+  "revokedPluginPublisherKeys": []
+}
+```
+
+The registry entry must declare matching `publisher.id` and
+`publisher.organizationId`, and the mapped key must cryptographically verify
+the installed manifest. The persisted authority is re-evaluated against the
+current managed policy on strict read and runtime admission; adding the key to
+`revokedPluginPublisherKeys` fails closed immediately. This direct managed
+binding does not by itself provide an external transparency service.
+
+Remote registry documents are capped at 4 MiB and cached immutably by complete
+URL plus document SHA-256. `--offline` never opens a network transport; an
+unpinned URL with multiple valid cached revisions is rejected as ambiguous, so
+use repeatable `--registry-digest <url=sha256>` pins. Remote signature, public
+key, and SBOM documents use their existing bounded digest-addressed cache. For
+`plugin add` and `plugin upgrade`, a successful online Git materialization is
+also copied into an immutable source-package cache only when the registry binds
+both the manifest digest and a repository-defined semantic payload SBOM. An
+offline replay recomputes both anchors before installation; payload or cache
+authority tampering, symlinks, hard-linked payload files, and exact cache misses
+fail closed. Registries without that full payload anchor
+must reference an existing local plugin directory for offline use and are not
+silently treated as cacheable.
+
+Private registries support `--proxy`, a bounded local `--pac-file`, and an
+appended `--ca-file`; the dedicated environment equivalents are
+`CC_PLUGIN_REGISTRY_PROXY`, `CC_PLUGIN_REGISTRY_PAC_FILE`, and
+`CC_PLUGIN_REGISTRY_CA_FILE`. Proxy credentials are removed from persisted
+authority, while the sanitized proxy origin, PAC SHA-256, and CA SHA-256 are
+bound into the catalog/provenance record. PAC execution uses QuickJS in a
+resource-limited worker with a hard timeout. Proxy URL and PAC are mutually
+exclusive, PAC supports `PROXY`, `HTTP`, `HTTPS`, and `DIRECT`, and ambient
+`HTTP_PROXY`/`HTTPS_PROXY` values are not silently adopted.
 
 ---
 
@@ -771,9 +895,57 @@ Web-based daily task collaboration via the `/#/cowork` page. Powered by SubAgent
 
 Form-based Cowork Workflow editor at `/#/workflow` in the Web Panel. Create, edit, run, and export multi-step Cowork DAG workflows — each step invokes a Cowork task with placeholder substitution (`${step.<id>.summary}`) from upstream step outputs. Client-side DFS cycle detection mirrors the backend `validateWorkflow` guard.
 
+The CLI can also generate a model-proposed definition without granting it
+write authority. `draft` emits a secret-scanned, digest-bound
+`pending-review` JSON artifact; `review` requires a human to repeat that exact
+digest before an accepted definition enters the immutable version store.
+Generation and review provenance remain inside the saved definition, while the
+runtime continues to declare durable pause/resume and post-resume exactly-once
+as unsupported.
+
+```bash
+chainlesschain cowork workflow draft "Review a release" --provider ollama > workflow-draft.json
+chainlesschain cowork workflow review workflow-draft.json \
+  --expected-draft-digest sha256:<digest> --reviewer <identity> --accept
+```
+
+Accepted or hand-authored versioned definitions can opt into the serial durable
+runtime. Every step/iteration/attempt is persisted as a pending effect before
+the provider call. If the provider throws or its settlement response is lost,
+the run becomes `blocked` and will not replay that effect until an operator
+supplies a bounded result file at the exact runtime revision.
+
+```bash
+chainlesschain cowork workflow run <workflow-id> \
+  --execution-authority-session <session-id> --durable-run-id <run-id>
+chainlesschain cowork workflow runtime-status <run-id> --json
+chainlesschain cowork workflow runtime-pause <run-id> --expected-revision <n>
+chainlesschain cowork workflow runtime-resume <run-id> --expected-revision <n>
+chainlesschain cowork workflow runtime-stop <run-id> --expected-revision <n>
+chainlesschain cowork workflow runtime-reconcile <run-id> <effect-id> <result.json> \
+  --expected-revision <n>
+```
+
+The durable runtime deliberately forces `maxParallel=1`: this closes the
+request-before-provider, safe-point pause/resume/stop, and no-automatic-replay
+semantics without claiming that concurrent external effects are already
+recoverable. Definitions with per-step retry or timeout are also rejected until
+late provider settlement can be distinguished from a genuinely unapplied
+attempt. Reconciliation is an explicit operator assertion about an
+outcome-unknown provider call, not an automatic retry.
+
+`runtime-status --json` also returns a digest-bound `observability` projection.
+It exposes effect/result lineage, provider-return versus operator-reconciled
+settlement counts, request-to-settlement wall time, the Cowork result's
+heuristic token estimate, and digest-only artifact/checkpoint references. The
+projection is intentionally `complete: false` and lists every missing authority:
+the current Cowork runner does not return provider token usage or USD cost,
+checkpoint and artifact-store readback are not yet wired, and nested tool side
+effects are not represented by the workflow-level effect ledger.
+
 **WS protocol**: `workflow-list` / `workflow-get` / `workflow-save` / `workflow-remove` / `workflow-run` (streams `workflow:started` / `step-start` / `step-complete` / `workflow:done`).
 
-**Key files**: `src/gateways/ws/action-protocol.js` (5 handlers), `src/lib/cowork-workflow.js` (CRUD + `executeWorkflow`), `packages/web-panel/src/stores/workflow.js` (Pinia store + `validateLocal`), `packages/web-panel/src/views/WorkflowEditor.vue`. **Tests**: 39 (10 backend unit + 16 frontend store unit + 5 integration + 8 E2E).
+**Key files**: `src/gateways/ws/action-protocol.js` (5 handlers), `src/lib/cowork-workflow.js` (CRUD + `executeWorkflow`), `src/lib/dynamic-workflow-draft.js` (model proposal + human review authority), `src/lib/dynamic-workflow-runtime.js` (serial durable effect protocol), `packages/web-panel/src/stores/workflow.js` (Pinia store + `validateLocal`), `packages/web-panel/src/views/WorkflowEditor.vue`. **Governed CLI regression**: 202 tests across draft/review, durable runtime, façade, DAG, WebSocket, admission, and command routing; the original editor slice retains its 39 backend/frontend/integration/E2E tests.
 
 > Vue Flow visual canvas (drag-to-connect, branch rendering) is planned as M2.
 

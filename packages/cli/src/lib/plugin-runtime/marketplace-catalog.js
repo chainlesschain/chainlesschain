@@ -14,6 +14,8 @@ import {
   parsePluginDependencies,
 } from "./governance.js";
 import { describeCapabilities, normalizeCapabilities } from "./capabilities.js";
+import { normalizePublisherDeclaration } from "./publisher-trust.js";
+import { normalizeMarketplaceNetworkAuthority } from "./marketplace-network.js";
 
 export const PLUGIN_MARKETPLACE_CATALOG_SCHEMA =
   "cc-plugin-marketplace-catalog/v1";
@@ -42,6 +44,8 @@ export function buildPluginMarketplaceInstallPreflight({
   registryUrl,
   entry,
   fromCache = false,
+  registryDocumentSha256 = null,
+  registryNetworkAuthority = null,
   installed = {},
   hostVersion = null,
   strict = false,
@@ -53,6 +57,8 @@ export function buildPluginMarketplaceInstallPreflight({
         url: registryUrl,
         registry: { plugins: [entry] },
         fromCache,
+        documentSha256: registryDocumentSha256,
+        networkAuthority: registryNetworkAuthority,
       },
     ],
     installed,
@@ -107,6 +113,9 @@ export function buildPluginMarketplaceCandidateSelection({
         `${matching.length} > ${MAX_MARKETPLACE_SELECTION_CANDIDATES}`,
       ),
     );
+  }
+  if (catalog.dependencyGraph?.truncated === true) {
+    blockers.push(issue("DEPENDENCY_GRAPH_TRUNCATED"));
   }
   if (selected) {
     for (const blocker of effectiveInstallBlockers(selected)) {
@@ -221,6 +230,9 @@ function buildInstallPreflight({ catalog, candidate, observedAt, selection }) {
     candidateDigest: candidate.candidateDigest,
     contentDigest: candidate.contentDigest,
     name: candidate.name,
+    ...(candidate.publisherIdentity
+      ? { publisherIdentity: candidate.publisherIdentity }
+      : {}),
     registry: candidate.registry,
     package: candidate.package,
     registryVersion: candidate.version,
@@ -331,6 +343,7 @@ export function buildPluginMarketplaceCatalog({
   candidates.sort(compareCandidates);
   sourceRows.sort((a, b) => a.priority - b.priority);
   const dependencyGraph = buildDependencyGraph(candidates, installedVersions);
+  applyDependencyCycleBlockers(candidates, dependencyGraph.cycles);
 
   const summary = {
     sourceCount: sourceRows.length,
@@ -359,7 +372,11 @@ export function buildPluginMarketplaceCatalog({
     schemaVersion: PLUGIN_MARKETPLACE_CATALOG_SCHEMA,
     strict: strict === true,
     hostVersion: boundedString(hostVersion, 128) || null,
-    sources: sourceRows.map(({ error: _error, ...source }) => source),
+    sources: sourceRows.map((source) => {
+      const authoritySource = { ...source };
+      delete authoritySource.error;
+      return authoritySource;
+    }),
     candidates,
     dependencyGraph,
   };
@@ -387,7 +404,7 @@ function normalizeCatalogSource(input, priority) {
   const raw = input && typeof input === "object" ? input : {};
   const sanitizedUrl = sanitizeUrl(raw.url);
   const url = sanitizedUrl || `invalid-source-${priority + 1}`;
-  const error = raw.error
+  let error = raw.error
     ? {
         code: boundedString(raw.error.code, 64) || "REGISTRY_FETCH_FAILED",
         message: scrubError(raw.error.message || raw.error),
@@ -398,6 +415,24 @@ function normalizeCatalogSource(input, priority) {
           message: "registry source URL is missing or invalid",
         }
       : null;
+  const documentSha256 = boundedString(raw.documentSha256, 64).toLowerCase();
+  if (raw.documentSha256 != null && !SHA256_RE.test(documentSha256)) {
+    error = {
+      code: "INVALID_REGISTRY_DOCUMENT_DIGEST",
+      message: "registry document SHA-256 is invalid",
+    };
+  }
+  let networkAuthority = null;
+  try {
+    networkAuthority = normalizeMarketplaceNetworkAuthority(
+      raw.networkAuthority,
+    );
+  } catch (networkError) {
+    error = {
+      code: "INVALID_REGISTRY_NETWORK_AUTHORITY",
+      message: scrubError(networkError.message),
+    };
+  }
   const registry =
     raw.registry && typeof raw.registry === "object" ? raw.registry : null;
   return {
@@ -408,6 +443,8 @@ function normalizeCatalogSource(input, priority) {
       url,
       name: boundedString(registry?.name, 256) || null,
       status: error ? "unavailable" : raw.fromCache ? "cached" : "online",
+      ...(documentSha256 ? { documentSha256 } : {}),
+      ...(networkAuthority ? { networkAuthority } : {}),
       candidateCount: 0,
       ...(error ? { error } : {}),
     },
@@ -504,6 +541,10 @@ function normalizeCandidate(entry, context) {
   }
 
   const publisherHealth = normalizePublisherHealth(raw.health);
+  const publisherIdentity = normalizePublisherDeclaration(raw.publisher);
+  if (raw.publisher != null && !publisherIdentity) {
+    warnings.push(issue("PUBLISHER_IDENTITY_DECLARATION_INVALID"));
+  }
   if (publisherHealth.status === "unhealthy") {
     blockers.push(issue("PUBLISHER_HEALTH_UNHEALTHY"));
   }
@@ -546,12 +587,19 @@ function normalizeCandidate(entry, context) {
     candidateId,
     name,
     version,
+    ...(publisherIdentity ? { publisherIdentity } : {}),
     description,
     registry: {
       sourceId: context.source.sourceId,
       priority: context.source.priority,
       url: context.source.url,
       status: context.source.status,
+      ...(context.source.documentSha256
+        ? { documentSha256: context.source.documentSha256 }
+        : {}),
+      ...(context.source.networkAuthority
+        ? { networkAuthority: context.source.networkAuthority }
+        : {}),
     },
     package: { source: sourceUrl, ref },
     integrity,
@@ -625,6 +673,9 @@ function normalizeCandidate(entry, context) {
       errors: candidate.dependencies.errors,
     },
     publisherHealth: candidate.health.publisher,
+    ...(candidate.publisherIdentity
+      ? { publisherIdentity: candidate.publisherIdentity }
+      : {}),
     governance: candidate.governance,
   };
   candidate.contentDigest = sha256Canonical(contentAuthority);
@@ -1004,6 +1055,21 @@ function findDependencyCycles(candidates, edges) {
   return [...found.values()].sort((a, b) =>
     a.join("\0").localeCompare(b.join("\0")),
   );
+}
+
+function applyDependencyCycleBlockers(candidates, cycles) {
+  const cyclicIds = new Set(cycles.flat());
+  for (const candidate of candidates) {
+    if (!cyclicIds.has(candidate.candidateId)) continue;
+    if (
+      !candidate.installability.blockers.some(
+        (blocker) => blocker.code === "DEPENDENCY_CYCLE",
+      )
+    ) {
+      candidate.installability.blockers.push(issue("DEPENDENCY_CYCLE"));
+    }
+    candidate.installability.status = "blocked";
+  }
 }
 
 function canonicalCycle(cycle) {

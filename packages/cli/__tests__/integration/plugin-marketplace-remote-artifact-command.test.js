@@ -11,7 +11,9 @@ import { registerPluginCommand } from "../../src/commands/plugin.js";
 import {
   getActiveVersion,
   listInstalled,
+  readSourceMetadataStrict,
 } from "../../src/lib/plugin-runtime/install.js";
+import { _resetPolicyCache } from "../../src/lib/plugin-runtime/policy.js";
 import {
   PLUGIN_MARKETPLACE_CANONICAL_PAYLOAD_SBOM_SCHEMA,
   PLUGIN_MARKETPLACE_PAYLOAD_SBOM_SCHEMA,
@@ -19,6 +21,7 @@ import {
   buildMarketplacePayloadSbom,
 } from "../../src/lib/plugin-runtime/marketplace-artifact-readback.js";
 import { buildPluginSbom } from "../../src/lib/plugin-runtime/signature.js";
+import { pluginLifecycleCoordinatorLock } from "../../src/lib/plugin-runtime/scopes.js";
 
 const REMOTE_ARTIFACT_EVIDENCE_SCHEMA =
   "cc-plugin-marketplace-remote-artifact-evidence/v1";
@@ -49,6 +52,8 @@ let registryVersion;
 let omitRegistryVersion;
 let originalAppData;
 let originalXdgConfigHome;
+let originalManagedSettings;
+let publisherDeclaration;
 let manifestBytes;
 let manifestSha256;
 let signatureBytes;
@@ -198,6 +203,14 @@ function registryDocument() {
         dependencies: {},
         signature: registrySignatureDeclaration(),
         sbom: registrySbomDeclaration(),
+        ...(publisherDeclaration
+          ? {
+              publisher: {
+                id: "loopback-publisher",
+                organizationId: "loopback-org",
+              },
+            }
+          : {}),
       },
     ],
   };
@@ -219,6 +232,7 @@ beforeEach(async () => {
   cwd = fs.mkdtempSync(path.join(os.tmpdir(), "cc-remote-artifact-cwd-"));
   originalAppData = process.env.APPDATA;
   originalXdgConfigHome = process.env.XDG_CONFIG_HOME;
+  originalManagedSettings = process.env.CC_MANAGED_SETTINGS;
   process.env.APPDATA = path.join(cwd, "appdata");
   process.env.XDG_CONFIG_HOME = path.join(cwd, "xdg-config");
   sourceRoot = fs.mkdtempSync(
@@ -238,6 +252,8 @@ beforeEach(async () => {
   signatureDeclarationMode = "remote-bundle";
   sbomDeclarationMode = "document-digest";
   omitRegistryVersion = false;
+  publisherDeclaration = false;
+  _resetPolicyCache();
   prepareRegistryVersion(PLUGIN_VERSION);
   requestUrls = [];
 
@@ -274,6 +290,9 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  expect(fs.existsSync(pluginLifecycleCoordinatorLock(PLUGIN_NAME))).toBe(
+    false,
+  );
   vi.restoreAllMocks();
   process.exitCode = 0;
   server?.closeAllConnections?.();
@@ -284,12 +303,234 @@ afterEach(async () => {
   else process.env.APPDATA = originalAppData;
   if (originalXdgConfigHome === undefined) delete process.env.XDG_CONFIG_HOME;
   else process.env.XDG_CONFIG_HOME = originalXdgConfigHome;
+  if (originalManagedSettings === undefined) {
+    delete process.env.CC_MANAGED_SETTINGS;
+  } else {
+    process.env.CC_MANAGED_SETTINGS = originalManagedSettings;
+  }
+  _resetPolicyCache();
   for (const dir of [cwd, sourceRoot]) {
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
 
 describe("cc plugin remote marketplace artifact journey", () => {
+  it("replays a pinned registry and all declared artifacts offline without a network request", async () => {
+    const documentSha256 = sha256(
+      Buffer.from(JSON.stringify(registryDocument())),
+    );
+    const onlineRun = await run(
+      "add",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--scope",
+      "project",
+      "--json",
+    );
+    expect(onlineRun.exitCode, onlineRun.stderr).toBe(0);
+    expect(requestedPathnames()).toEqual(
+      expect.arrayContaining([
+        "/registry.json",
+        "/artifacts/plugin-manifest.sig",
+        "/artifacts/publisher.pem",
+        "/artifacts/plugin.cdx.json",
+      ]),
+    );
+
+    server.closeAllConnections?.();
+    await new Promise((resolve) => server.close(resolve));
+    requestUrls = [];
+    const offlineRun = await run(
+      "add",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--registry-digest",
+      `${registryUrl}=${documentSha256}`,
+      "--offline",
+      "--scope",
+      "user",
+      "--json",
+    );
+
+    expect(offlineRun.exitCode, offlineRun.stderr).toBe(0);
+    expect(requestUrls).toEqual([]);
+    const [installed] = listInstalled({ cwd, scopes: ["user"] });
+    expect(installed.source).toMatchObject({
+      offline: true,
+      catalogAuthority: {
+        registryStatus: "cached",
+        registryDocumentSha256: documentSha256,
+        remoteArtifactEvidence: {
+          signature: {
+            fromCache: true,
+            publicKey: { fromCache: true },
+          },
+          sbom: { fromCache: true },
+        },
+      },
+    });
+  });
+
+  it.skipIf(!GIT_AVAILABLE)(
+    "seeds and replays a semantic remote Git source package cache offline",
+    async () => {
+      sbomDeclarationMode = "payload-bound";
+      prepareRegistryVersion(PLUGIN_VERSION);
+      execFileSync("git", ["init", source], { stdio: "ignore" });
+      execFileSync("git", ["-C", source, "add", "."], { stdio: "ignore" });
+      execFileSync(
+        "git",
+        [
+          "-C",
+          source,
+          "-c",
+          "user.name=Marketplace Cache Test",
+          "-c",
+          "user.email=marketplace-cache@example.invalid",
+          "commit",
+          "-m",
+          "source cache fixture",
+        ],
+        { stdio: "ignore" },
+      );
+      registrySource = pathToFileURL(source).href;
+      const documentSha256 = sha256(
+        Buffer.from(JSON.stringify(registryDocument())),
+      );
+
+      const onlineRun = await run(
+        "add",
+        PLUGIN_NAME,
+        "--registry",
+        registryUrl,
+        "--scope",
+        "project",
+        "--json",
+      );
+      expect(onlineRun.exitCode, onlineRun.stderr).toBe(0);
+      expect(JSON.parse(onlineRun.stdout).sourceCache).toMatchObject({
+        status: "published",
+        cacheKey: expect.stringMatching(/^[a-f0-9]{64}$/),
+      });
+
+      fs.renameSync(source, `${source}-removed`);
+      server.closeAllConnections?.();
+      await new Promise((resolve) => server.close(resolve));
+      requestUrls = [];
+      const offlineRun = await run(
+        "add",
+        PLUGIN_NAME,
+        "--registry",
+        registryUrl,
+        "--registry-digest",
+        `${registryUrl}=${documentSha256}`,
+        "--offline",
+        "--scope",
+        "user",
+        "--json",
+      );
+
+      expect(offlineRun.exitCode, offlineRun.stderr).toBe(0);
+      expect(requestUrls).toEqual([]);
+      expect(JSON.parse(offlineRun.stdout).sourceCache).toMatchObject({
+        status: "hit",
+        cacheKey: expect.stringMatching(/^[a-f0-9]{64}$/),
+      });
+      const [installed] = listInstalled({ cwd, scopes: ["user"] });
+      expect(installed.source).toMatchObject({
+        offline: true,
+        catalogAuthority: {
+          remoteSbomPayloadComparison: { status: "matched" },
+        },
+      });
+    },
+  );
+
+  it("binds publisher identity to managed organization trust and enforces revocation", async () => {
+    publisherDeclaration = true;
+    const managedFile = path.join(cwd, "managed-publisher.json");
+    const policy = {
+      requireTrustedPluginPublishers: true,
+      trustedPluginPublishers: [
+        {
+          trustRootId: "loopback-org-root-2026",
+          publisherId: "loopback-publisher",
+          organizationId: "loopback-org",
+          pluginNames: [PLUGIN_NAME],
+          registryOrigins: [baseUrl],
+          signingKeySha256: [publicKeySpkiSha256],
+          notBefore: "2026-01-01T00:00:00.000Z",
+          notAfter: "2027-01-01T00:00:00.000Z",
+        },
+      ],
+      revokedPluginPublisherKeys: [],
+    };
+    fs.writeFileSync(managedFile, JSON.stringify(policy), "utf8");
+    process.env.CC_MANAGED_SETTINGS = managedFile;
+    _resetPolicyCache();
+
+    const installRun = await run(
+      "add",
+      PLUGIN_NAME,
+      "--registry",
+      registryUrl,
+      "--scope",
+      "project",
+      "--json",
+    );
+    expect(installRun.exitCode, installRun.stderr).toBe(0);
+    const [installed] = listInstalled({ cwd, scopes: ["project"] });
+    expect(installed.source.catalogAuthority.publisherAuthority).toMatchObject({
+      status: "verified",
+      trustRootId: "loopback-org-root-2026",
+      publisher: {
+        id: "loopback-publisher",
+        organizationId: "loopback-org",
+      },
+      subject: {
+        name: PLUGIN_NAME,
+        registryOrigin: baseUrl,
+        signingKeySha256: publicKeySpkiSha256,
+      },
+      claims: { publisherIdentityVerified: true },
+    });
+    const evidenceRun = await run(
+      "evidence",
+      PLUGIN_NAME,
+      "--scope",
+      "project",
+      "--json",
+    );
+    expect(evidenceRun.exitCode, evidenceRun.stderr).toBe(0);
+    expect(JSON.parse(evidenceRun.stdout)).toMatchObject({
+      claims: { registryPublisherIdentityVerified: true },
+    });
+
+    fs.writeFileSync(
+      managedFile,
+      JSON.stringify({
+        ...policy,
+        revokedPluginPublisherKeys: [
+          {
+            sha256: publicKeySpkiSha256,
+            revokedAt: "2026-08-18T00:00:00.000Z",
+            reason: "incident-response",
+          },
+        ],
+      }),
+      "utf8",
+    );
+    _resetPolicyCache();
+    expect(() =>
+      readSourceMetadataStrict(installed.dir, {
+        required: true,
+        requireRegistryAuthority: true,
+      }),
+    ).toThrow(/PLUGIN_PUBLISHER_KEY_REVOKED/u);
+  });
+
   it("fetches signature, public key, and SBOM over loopback before persisting verifiable evidence", async () => {
     const installRun = await run(
       "add",

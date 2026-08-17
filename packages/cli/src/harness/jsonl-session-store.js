@@ -17,6 +17,7 @@ import fs, {
   lstatSync,
   readSync,
   writeSync,
+  writeFileSync,
   ftruncateSync,
   fsyncSync,
 } from "node:fs";
@@ -70,7 +71,12 @@ import {
 import { createSessionPersistenceFailure } from "../lib/session-persistence-failure.js";
 import { withSessionHostWriteAuthority } from "../lib/session-host-lease.js";
 import { createSessionTranscriptStructureProjection } from "../lib/session-transcript-structure.js";
-import { normalizeExecutionLocationBinding } from "../lib/execution-location-contract.js";
+import {
+  computeExecutionLocationTargetFactsDigest,
+  createExecutionLocationTargetAttestation,
+  normalizeExecutionLocationBinding,
+} from "../lib/execution-location-contract.js";
+import { canonicalJson } from "../lib/scheduler-kernel/contract.js";
 import {
   listSessionAntiRollbackIds,
   publishSessionAntiRollbackAnchor,
@@ -104,6 +110,10 @@ export const _sessionScaleFaultHooks = Object.seal({
   beforeForkDirectoryFsync: null,
   afterForkDirectoryFsync: null,
   afterForkMeta: null,
+  afterReplicaPublish: null,
+  beforeReplicaDirectoryFsync: null,
+  afterReplicaDirectoryFsync: null,
+  afterLocationHandoffAppend: null,
   beforeDeleteDirectoryFsync: null,
   afterDeleteDirectoryFsync: null,
   afterAntiRollbackPublish: null,
@@ -116,6 +126,15 @@ export const WS_TURN_REQUEST_ID_MAX_BYTES = 128;
 export const CANONICAL_JSONL_RECORD_MAX_BYTES = DEFAULT_MAX_FILE_LINE_BYTES;
 export const CANONICAL_JSONL_RECORD_TOO_LARGE_CODE =
   "CC_SESSION_JSONL_RECORD_TOO_LARGE";
+export const SESSION_REPLICA_INSTALL_SCHEMA =
+  "chainlesschain.session-replica-install/v1";
+export const SESSION_EXECUTION_LOCATION_HANDOFF_EVENT =
+  "execution_location_handoff";
+export const SESSION_EXECUTION_LOCATION_HANDOFF_SCHEMA =
+  "chainlesschain.session-execution-location-handoff/v1";
+export const SESSION_EXECUTION_LOCATION_HANDOFF_INSTALL_SCHEMA =
+  "chainlesschain.session-execution-location-handoff-install/v1";
+export const MAX_SESSION_REPLICA_BYTES = 64 * 1024 * 1024;
 const WS_TURN_CONTENT_MAX_BYTES = 4 * 1024 * 1024;
 const WS_TURN_REQUEST_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:@-]*$/;
 const WS_TURN_INPUT_DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
@@ -2625,20 +2644,39 @@ export function startSession(sessionId, meta = {}) {
   return id;
 }
 
-/** Return the immutable execution-location facts anchored by session_start. */
+/** Return the latest canonical execution-location authority for a session. */
 export function getVerifiedSessionExecutionLocationAuthority(sessionId) {
   return readVerifiedProjection(sessionId, () => {
     let sessionStartSeen = false;
     let hasExecutionLocation = false;
     let executionLocation = null;
+    let eventCount = 0;
+    let bindingEventHash = null;
+    let bindingEventCount = null;
+    let locationHandoff = null;
     return {
       accept(event) {
+        eventCount += 1;
         if (event?.type === "session_start" && !sessionStartSeen) {
           sessionStartSeen = true;
           if (Object.hasOwn(event.data || {}, "executionLocation")) {
             hasExecutionLocation = true;
             executionLocation = event.data.executionLocation;
+            bindingEventHash = event.hash;
+            bindingEventCount = eventCount;
           }
+          return;
+        }
+        if (event?.type === SESSION_EXECUTION_LOCATION_HANDOFF_EVENT) {
+          locationHandoff = projectSessionExecutionLocationHandoff(
+            sessionId,
+            event,
+            eventCount,
+          );
+          hasExecutionLocation = true;
+          executionLocation = locationHandoff.target.binding;
+          bindingEventHash = event.hash;
+          bindingEventCount = eventCount;
         }
       },
       finish(authority) {
@@ -2659,6 +2697,13 @@ export function getVerifiedSessionExecutionLocationAuthority(sessionId) {
           sessionId,
           headHash: authority.headHash,
           eventCount: authority.eventCount,
+          authority:
+            locationHandoff === null
+              ? "verified-session-start"
+              : "verified-session-location-handoff",
+          bindingEventHash,
+          bindingEventCount,
+          locationHandoff,
           binding: normalizeExecutionLocationBinding(executionLocation),
         });
       },
@@ -3432,6 +3477,597 @@ export function readVerifiedTranscriptBytes(sessionId) {
       retryJitterMs: 4,
       yieldAfterReleaseMs: 2,
     },
+  );
+}
+
+function normalizeSessionReplicaExpectation(expected) {
+  const headHash = String(expected?.headHash || "").toLowerCase();
+  const eventCount = Number(expected?.eventCount);
+  const transcriptDigest = String(
+    expected?.transcriptDigest || "",
+  ).toLowerCase();
+  if (
+    !/^[a-f0-9]{64}$/u.test(headHash) ||
+    !Number.isSafeInteger(eventCount) ||
+    eventCount < 1 ||
+    !/^sha256:[a-f0-9]{64}$/u.test(transcriptDigest)
+  ) {
+    throw new TypeError("session replica expectation is invalid");
+  }
+  return Object.freeze({ headHash, eventCount, transcriptDigest });
+}
+
+function verifySessionReplicaCandidate(sessionId, filePath, expected) {
+  return withTranscriptFileParent(
+    filePath,
+    ({ canonicalPath, parentDevice }) => {
+      let descriptor = null;
+      try {
+        descriptor = openSync(
+          canonicalPath,
+          fsConstants.O_RDONLY | Number(fsConstants.O_NOFOLLOW ?? 0),
+        );
+        const beforeStats = fstatSync(descriptor, { bigint: true });
+        const publishedBeforeStats = readPhysicalTranscriptStats(canonicalPath);
+        const before = physicalTranscriptStateFromStats(beforeStats);
+        const publishedBefore =
+          physicalTranscriptStateFromStats(publishedBeforeStats);
+        const descriptorMatchesPublished =
+          parentDevice === null
+            ? samePhysicalTranscriptState(before, publishedBefore)
+            : samePathHandleStableFileIdentity(
+                publishedBeforeStats,
+                beforeStats,
+                parentDevice,
+              ) && samePhysicalTranscriptContentState(before, publishedBefore);
+        if (
+          !beforeStats.isFile() ||
+          Number(beforeStats.nlink) !== 1 ||
+          !descriptorMatchesPublished
+        ) {
+          throw new Error(
+            "session replica candidate must be a stable, single-link file",
+          );
+        }
+        if (
+          Number(before.size) <= 0 ||
+          Number(before.size) > MAX_SESSION_REPLICA_BYTES
+        ) {
+          throw new Error(
+            "session replica candidate exceeds its byte boundary",
+          );
+        }
+        const structure = createSessionTranscriptStructureProjection(sessionId);
+        const verification = verifyTranscriptFile(canonicalPath, {
+          onVerifiedEvent(event) {
+            structure.accept(event);
+          },
+        });
+        if (
+          verification.status !== TRANSCRIPT_CHAIN_STATUS.VERIFIED ||
+          verification.malformedLines > 0 ||
+          verification.truncatedTail ||
+          verification.lastHash !== expected.headHash ||
+          verification.chainedEvents !== expected.eventCount
+        ) {
+          throw unverifiedTranscriptError(sessionId, verification);
+        }
+        structure.finish({ assertValid: true });
+        const bytes = readFileSync(descriptor);
+        const afterStats = fstatSync(descriptor, { bigint: true });
+        const publishedAfterStats = readPhysicalTranscriptStats(canonicalPath);
+        const after = physicalTranscriptStateFromStats(afterStats);
+        const publishedAfter =
+          physicalTranscriptStateFromStats(publishedAfterStats);
+        const descriptorStillPublished =
+          parentDevice === null
+            ? samePhysicalTranscriptState(after, publishedAfter)
+            : samePathHandleStableFileIdentity(
+                publishedAfterStats,
+                afterStats,
+                parentDevice,
+              ) && samePhysicalTranscriptContentState(after, publishedAfter);
+        if (
+          Number(afterStats.nlink) !== 1 ||
+          !samePhysicalTranscriptState(before, after) ||
+          !descriptorStillPublished
+        ) {
+          throw transcriptIdentityError(
+            "unknown",
+            "the replica candidate changed while it was verified",
+          );
+        }
+        const transcriptDigest = `sha256:${createHash("sha256")
+          .update(bytes)
+          .digest("hex")}`;
+        if (transcriptDigest !== expected.transcriptDigest) {
+          throw new Error("session replica transcript digest mismatch");
+        }
+        return Object.freeze({ verification, transcriptDigest });
+      } finally {
+        if (descriptor !== null) closeSync(descriptor);
+      }
+    },
+  );
+}
+
+function sessionReplicaReceipt(sessionId, expected, installed) {
+  const material = {
+    schema: SESSION_REPLICA_INSTALL_SCHEMA,
+    sessionId,
+    headHash: expected.headHash,
+    eventCount: expected.eventCount,
+    transcriptDigest: expected.transcriptDigest,
+    installed,
+  };
+  return Object.freeze({
+    ...material,
+    receiptDigest: `sha256:${createHash("sha256")
+      .update("chainlesschain.session-replica-install.v1\0", "utf8")
+      .update(JSON.stringify(material), "utf8")
+      .digest("hex")}`,
+  });
+}
+
+function sessionLocationDigest(domain, value) {
+  return `sha256:${createHash("sha256")
+    .update(domain, "utf8")
+    .update(canonicalJson(value, "sessionExecutionLocation"), "utf8")
+    .digest("hex")}`;
+}
+
+function exactRecord(value, fields, label) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new TypeError(`${label} must be an object`);
+  }
+  const actual = Object.keys(value).sort();
+  const expected = [...fields].sort();
+  if (
+    actual.length !== expected.length ||
+    actual.some((entry, index) => entry !== expected[index])
+  ) {
+    throw new TypeError(`${label} has an invalid schema`);
+  }
+  return value;
+}
+
+function boundedAuthorityString(value, field, max = 256) {
+  if (
+    typeof value !== "string" ||
+    value.length === 0 ||
+    value.length > max ||
+    [...value].some((character) => {
+      const code = character.codePointAt(0);
+      return code < 32 || code === 127;
+    })
+  ) {
+    throw new TypeError(`${field} is invalid`);
+  }
+  return value;
+}
+
+function normalizeSessionLocationHandoffTarget(value) {
+  const input = exactRecord(
+    value,
+    [
+      "profileDigest",
+      "targetEvidenceId",
+      "targetFactsDigest",
+      "attestationDigest",
+      "binding",
+    ],
+    "session execution-location handoff target",
+  );
+  const profileDigest = boundedAuthorityString(
+    input.profileDigest,
+    "profileDigest",
+    80,
+  ).toLowerCase();
+  const targetEvidenceId = boundedAuthorityString(
+    input.targetEvidenceId,
+    "targetEvidenceId",
+  );
+  const targetFactsDigest = boundedAuthorityString(
+    input.targetFactsDigest,
+    "targetFactsDigest",
+    80,
+  ).toLowerCase();
+  const attestationDigest = boundedAuthorityString(
+    input.attestationDigest,
+    "attestationDigest",
+    80,
+  ).toLowerCase();
+  const binding = normalizeExecutionLocationBinding(input.binding);
+  if (
+    !/^sha256:[a-f0-9]{64}$/u.test(profileDigest) ||
+    !/^sha256:[a-f0-9]{64}$/u.test(targetFactsDigest) ||
+    !/^sha256:[a-f0-9]{64}$/u.test(attestationDigest) ||
+    computeExecutionLocationTargetFactsDigest(binding) !== targetFactsDigest ||
+    binding.observed !== true
+  ) {
+    throw new TypeError("session execution-location handoff target is invalid");
+  }
+  return Object.freeze({
+    profileDigest,
+    targetEvidenceId,
+    targetFactsDigest,
+    attestationDigest,
+    binding,
+  });
+}
+
+function createSessionExecutionLocationHandoffData(
+  sessionId,
+  expectedInput,
+  targetInput,
+) {
+  const expected = normalizeSessionReplicaExpectation(expectedInput);
+  const target = normalizeSessionLocationHandoffTarget(targetInput);
+  const source = Object.freeze({
+    sessionId,
+    headHash: expected.headHash,
+    eventCount: expected.eventCount,
+    transcriptDigest: expected.transcriptDigest,
+  });
+  const attestation = createExecutionLocationTargetAttestation({
+    profileDigest: target.profileDigest,
+    sourceSessionId: source.sessionId,
+    sourceHeadHash: source.headHash,
+    sourceEventCount: source.eventCount,
+    targetEvidenceId: target.targetEvidenceId,
+    baseCommit: target.binding.source.git.commit,
+    binding: target.binding,
+  });
+  if (target.attestationDigest !== attestation.attestationDigest) {
+    throw new TypeError(
+      "session execution-location handoff attestation digest is invalid",
+    );
+  }
+  const identity = {
+    source,
+    target: {
+      profileDigest: target.profileDigest,
+      targetEvidenceId: target.targetEvidenceId,
+      targetFactsDigest: target.targetFactsDigest,
+    },
+  };
+  return Object.freeze({
+    schema: SESSION_EXECUTION_LOCATION_HANDOFF_SCHEMA,
+    handoffId: sessionLocationDigest(
+      "chainlesschain.session-execution-location-handoff-id.v1\0",
+      identity,
+    ),
+    source,
+    target,
+  });
+}
+
+function projectSessionExecutionLocationHandoff(sessionId, event, eventCount) {
+  const data = exactRecord(
+    event?.data,
+    ["schema", "handoffId", "source", "target"],
+    "session execution-location handoff",
+  );
+  if (data.schema !== SESSION_EXECUTION_LOCATION_HANDOFF_SCHEMA) {
+    throw new TypeError("session execution-location handoff schema is invalid");
+  }
+  const source = exactRecord(
+    data.source,
+    ["sessionId", "headHash", "eventCount", "transcriptDigest"],
+    "session execution-location handoff source",
+  );
+  const expected = normalizeSessionReplicaExpectation(source);
+  if (
+    source.sessionId !== sessionId ||
+    expected.headHash !== event?.prevHash ||
+    expected.eventCount !== eventCount - 1
+  ) {
+    throw new TypeError(
+      "session execution-location handoff predecessor is invalid",
+    );
+  }
+  const normalized = createSessionExecutionLocationHandoffData(
+    sessionId,
+    expected,
+    data.target,
+  );
+  if (data.handoffId !== normalized.handoffId) {
+    throw new TypeError("session execution-location handoff id is invalid");
+  }
+  return Object.freeze({
+    ...normalized,
+    eventHash: event.hash,
+    eventCount,
+    at: new Date(event.timestamp).toISOString(),
+  });
+}
+
+function sessionLocationHandoffInstallReceipt(
+  sessionId,
+  handoff,
+  targetHeadHash,
+  { replicaInstalled, handoffAppended },
+) {
+  const material = {
+    schema: SESSION_EXECUTION_LOCATION_HANDOFF_INSTALL_SCHEMA,
+    sessionId,
+    sourceHeadHash: handoff.source.headHash,
+    sourceEventCount: handoff.source.eventCount,
+    transcriptDigest: handoff.source.transcriptDigest,
+    handoffId: handoff.handoffId,
+    targetHeadHash,
+    targetEventCount: handoff.source.eventCount + 1,
+    targetFactsDigest: handoff.target.targetFactsDigest,
+    profileDigest: handoff.target.profileDigest,
+    targetEvidenceId: handoff.target.targetEvidenceId,
+    attestationDigest: handoff.target.attestationDigest,
+    replicaInstalled,
+    handoffAppended,
+  };
+  return Object.freeze({
+    ...material,
+    receiptDigest: sessionLocationDigest(
+      "chainlesschain.session-execution-location-handoff-install.v1\0",
+      material,
+    ),
+  });
+}
+
+/**
+ * Install one exact, source-verified transcript revision into an empty target
+ * session store. The target validates hash chain, transcript structure, exact
+ * head/count, and the byte digest before an atomic same-directory publish.
+ * Existing canonical state is never replaced: an exact existing revision is
+ * an idempotent success, while every divergent/tombstoned state fails closed.
+ */
+export function installSessionReplica(sessionId, input, expectedInput) {
+  if (isUnsafeSessionId(sessionId)) {
+    throw new Error(`unsafe session id: ${String(sessionId).slice(0, 60)}`);
+  }
+  const expected = normalizeSessionReplicaExpectation(expectedInput);
+  const bytes = Buffer.isBuffer(input) ? input : Buffer.from(input || "");
+  if (bytes.length <= 0 || bytes.length > MAX_SESSION_REPLICA_BYTES) {
+    throw new Error(
+      `session replica must be 1..${MAX_SESSION_REPLICA_BYTES} bytes`,
+    );
+  }
+  try {
+    new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    throw new Error("session replica is not strict UTF-8 JSONL");
+  }
+  const suppliedDigest = `sha256:${createHash("sha256")
+    .update(bytes)
+    .digest("hex")}`;
+  if (suppliedDigest !== expected.transcriptDigest) {
+    throw new Error("session replica transcript digest mismatch");
+  }
+
+  const filePath = sessionPath(sessionId);
+  const sessionsDir = getSessionsDir();
+  const pendingPath = join(
+    sessionsDir,
+    `.${basename(filePath)}.replica.pending`,
+  );
+  return withSessionHostWriterLock(
+    sessionId,
+    filePath,
+    () => {
+      const presence = getSessionPresence(sessionId);
+      if (presence === SESSION_PRESENCE.PRESENT) {
+        const current = verifySessionReplicaCandidate(
+          sessionId,
+          filePath,
+          expected,
+        );
+        let meta = readSessionMeta(sessionsDir, sessionId);
+        if (meta === null) {
+          fsyncParentDirectory(
+            filePath,
+            Object.freeze({
+              sessionId,
+              filePath,
+              operation: "replica-recovery",
+            }),
+            "beforeReplicaDirectoryFsync",
+            "afterReplicaDirectoryFsync",
+          );
+          meta = rebuildSessionMetaUnlocked(sessionsDir, sessionId, filePath);
+        }
+        assertVerifiedTranscriptAnchor(
+          sessionId,
+          current.verification,
+          meta.transcript,
+        );
+        return sessionReplicaReceipt(sessionId, expected, false);
+      }
+      if (presence !== SESSION_PRESENCE.ABSENT) {
+        throw new Error(
+          `target session store is not empty for replica ${sessionId} (${presence})`,
+        );
+      }
+
+      if (existsSync(pendingPath)) {
+        let reusable = false;
+        try {
+          const pendingStats = lstatSync(pendingPath);
+          reusable =
+            !pendingStats.isSymbolicLink() &&
+            pendingStats.isFile() &&
+            Number(pendingStats.nlink) === 1;
+          if (reusable) {
+            verifySessionReplicaCandidate(sessionId, pendingPath, expected);
+          }
+        } catch {
+          reusable = false;
+        }
+        if (!reusable) {
+          const pendingStats = lstatSync(pendingPath);
+          if (
+            pendingStats.isSymbolicLink() ||
+            !pendingStats.isFile() ||
+            Number(pendingStats.nlink) !== 1
+          ) {
+            throw new Error("unsafe session replica pending path");
+          }
+          rmSync(pendingPath, { force: true });
+        }
+      }
+
+      if (!existsSync(pendingPath)) {
+        let descriptor = null;
+        try {
+          descriptor = openSync(
+            pendingPath,
+            fsConstants.O_CREAT |
+              fsConstants.O_EXCL |
+              fsConstants.O_WRONLY |
+              Number(fsConstants.O_NOFOLLOW ?? 0),
+            0o600,
+          );
+          writeFileSync(descriptor, bytes);
+          fsyncSync(descriptor);
+        } finally {
+          if (descriptor !== null) closeSync(descriptor);
+        }
+        ensurePrivateFile(pendingPath);
+      }
+
+      const candidate = verifySessionReplicaCandidate(
+        sessionId,
+        pendingPath,
+        expected,
+      );
+      if (existsSync(filePath)) {
+        throw new Error(`target session appeared during replica install`);
+      }
+      renameSync(pendingPath, filePath);
+      ensurePrivateFile(filePath);
+      runSessionScaleFaultHook(
+        "afterReplicaPublish",
+        Object.freeze({
+          sessionId,
+          filePath,
+          operation: "replica-publish",
+        }),
+      );
+      fsyncParentDirectory(
+        filePath,
+        Object.freeze({
+          sessionId,
+          filePath,
+          operation: "replica-publish",
+        }),
+        "beforeReplicaDirectoryFsync",
+        "afterReplicaDirectoryFsync",
+      );
+      const meta = rebuildSessionMetaUnlocked(sessionsDir, sessionId, filePath);
+      assertVerifiedTranscriptAnchor(
+        sessionId,
+        candidate.verification,
+        meta.transcript,
+      );
+      return sessionReplicaReceipt(sessionId, expected, true);
+    },
+    {
+      failIfUnavailable: true,
+      timeoutMs: 30_000,
+      retryMs: 1,
+      maxRetryMs: 8,
+      retryJitterMs: 4,
+      yieldAfterReleaseMs: 2,
+    },
+  );
+}
+
+/**
+ * Install an exact replica and append one CAS-bound location successor. A
+ * response-loss retry recognizes only that exact one-event successor; a
+ * session that advanced after handoff is never silently resumed again.
+ */
+export function installSessionReplicaWithLocationHandoff(
+  sessionId,
+  input,
+  expectedInput,
+  targetInput,
+) {
+  if (isUnsafeSessionId(sessionId)) {
+    throw new Error(`unsafe session id: ${String(sessionId).slice(0, 60)}`);
+  }
+  const expected = normalizeSessionReplicaExpectation(expectedInput);
+  const handoff = createSessionExecutionLocationHandoffData(
+    sessionId,
+    expected,
+    targetInput,
+  );
+
+  if (getSessionPresence(sessionId) === SESSION_PRESENCE.PRESENT) {
+    const current = getVerifiedSessionExecutionLocationAuthority(sessionId);
+    if (current.locationHandoff !== null) {
+      if (current.locationHandoff.handoffId !== handoff.handoffId) {
+        throw new Error(
+          "target session has a different execution-location handoff",
+        );
+      }
+      if (
+        current.bindingEventHash !== current.headHash ||
+        current.bindingEventCount !== current.eventCount ||
+        current.eventCount !== expected.eventCount + 1
+      ) {
+        throw new Error("target session advanced after location handoff");
+      }
+      return sessionLocationHandoffInstallReceipt(
+        sessionId,
+        current.locationHandoff,
+        current.headHash,
+        { replicaInstalled: false, handoffAppended: false },
+      );
+    }
+  }
+
+  const replica = installSessionReplica(sessionId, input, expected);
+  const before = getVerifiedSessionExecutionLocationAuthority(sessionId);
+  if (
+    before.locationHandoff !== null ||
+    before.headHash !== expected.headHash ||
+    before.eventCount !== expected.eventCount
+  ) {
+    throw new Error(
+      "target session is not the exact source revision before location handoff",
+    );
+  }
+  const appended = appendAuthorityEventIfHead(
+    sessionId,
+    SESSION_EXECUTION_LOCATION_HANDOFF_EVENT,
+    handoff,
+    expected.headHash,
+  );
+  runSessionScaleFaultHook(
+    "afterLocationHandoffAppend",
+    Object.freeze({
+      sessionId,
+      handoffId: handoff.handoffId,
+      sourceHeadHash: expected.headHash,
+      targetHeadHash: appended.hash,
+    }),
+  );
+  const after = getVerifiedSessionExecutionLocationAuthority(sessionId);
+  if (
+    after.authority !== "verified-session-location-handoff" ||
+    after.locationHandoff?.handoffId !== handoff.handoffId ||
+    after.bindingEventHash !== appended.hash ||
+    after.headHash !== appended.hash ||
+    after.eventCount !== expected.eventCount + 1
+  ) {
+    throw new Error(
+      "target execution-location handoff settlement is not canonical",
+    );
+  }
+  return sessionLocationHandoffInstallReceipt(
+    sessionId,
+    after.locationHandoff,
+    appended.hash,
+    { replicaInstalled: replica.installed, handoffAppended: true },
   );
 }
 
