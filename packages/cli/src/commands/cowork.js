@@ -1380,7 +1380,7 @@ export function registerCoworkCommand(program, commandDeps = {}) {
     .option("--max-parallel <n>", "Max parallel steps per batch")
     .option(
       "--durable-run-id <id>",
-      "Use request-before-provider durable runtime (currently maxParallel=1)",
+      "Use request-before-provider durable runtime with atomic effect batches",
     )
     .option(
       "--pipeline",
@@ -1457,18 +1457,8 @@ export function registerCoworkCommand(program, commandDeps = {}) {
           return;
         }
         const wf = record.definition;
-        if (
-          options.durableRunId &&
-          options.maxParallel != null &&
-          Number(options.maxParallel) !== 1
-        ) {
-          throw new Error(
-            "durable workflow runtime currently requires --max-parallel 1",
-          );
-        }
-        const requestedMaxParallel = options.durableRunId
-          ? "1"
-          : options.maxParallel || "4";
+        const requestedMaxParallel =
+          options.maxParallel || (options.durableRunId ? "1" : "4");
         const executionAuthoritySessionId =
           requireWorkflowExecutionAuthoritySession(
             options.executionAuthoritySession,

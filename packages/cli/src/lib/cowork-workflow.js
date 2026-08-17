@@ -1772,8 +1772,11 @@ export async function runPipeline({
           admitted,
         });
       } catch (err) {
-        if (err?.code === COWORK_WORKFLOW_RUN_RESULT_INVALID_CODE) {
-          fatalError = err;
+        if (
+          err?.code === COWORK_WORKFLOW_RUN_RESULT_INVALID_CODE ||
+          err?.code === COWORK_WORKFLOW_CONTROL_SIGNAL_CODE
+        ) {
+          fatalError ||= err;
           halted = true;
           active--;
           pump();

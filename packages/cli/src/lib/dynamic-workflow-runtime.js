@@ -37,6 +37,7 @@ const TERMINAL_STATUSES = new Set(["stopped", "completed"]);
 const SHA256_RE = /^sha256:[a-f0-9]{64}$/u;
 const MAX_STATE_BYTES = 4 * 1024 * 1024;
 const MAX_EFFECTS = 64;
+const MAX_EFFECT_BATCH_SIZE = 64;
 const MAX_LINEAGE_EVENTS = 512;
 const MAX_PROJECTED_ARTIFACTS_PER_EFFECT = 256;
 const SETTLEMENT_AUTHORITIES = new Set([
@@ -90,6 +91,16 @@ function nonNegativeSafeInteger(value) {
 
 function effectResultDigest(result) {
   return digest("chainlesschain.dynamic-workflow.effect-result.v1\0", result);
+}
+
+function effectBatchId(runId, effects) {
+  return digest("chainlesschain.dynamic-workflow.effect-batch.v1\0", {
+    runId,
+    effects: effects.map((effect) => ({
+      key: effect.key,
+      payloadDigest: effect.payloadDigest,
+    })),
+  });
 }
 
 function stateMaterial(state) {
@@ -217,6 +228,7 @@ export function verifyDynamicWorkflowRuntimeState(value) {
   } else {
     const ids = new Set();
     const keys = new Set();
+    const batches = new Map();
     for (const [index, effect] of state.effects.entries()) {
       let expectedKey = null;
       let expectedId = null;
@@ -232,6 +244,22 @@ export function verifyDynamicWorkflowRuntimeState(value) {
       }
       const resultDigest =
         effect?.result == null ? null : effectResultDigest(effect.result);
+      const batchFields = [
+        effect?.batchId,
+        effect?.batchIndex,
+        effect?.batchSize,
+      ];
+      const hasBatchMetadata = batchFields.some((field) => field !== undefined);
+      const batchMetadataValid =
+        !hasBatchMetadata ||
+        (batchFields.every((field) => field !== undefined) &&
+          SHA256_RE.test(effect.batchId || "") &&
+          Number.isSafeInteger(effect.batchIndex) &&
+          effect.batchIndex >= 0 &&
+          Number.isSafeInteger(effect.batchSize) &&
+          effect.batchSize >= 1 &&
+          effect.batchSize <= MAX_EFFECT_BATCH_SIZE &&
+          effect.batchIndex < effect.batchSize);
       if (
         effect?.schema !== DYNAMIC_WORKFLOW_EFFECT_SCHEMA ||
         !SHA256_RE.test(effect.id || "") ||
@@ -245,6 +273,7 @@ export function verifyDynamicWorkflowRuntimeState(value) {
         isoNow(effect.requestedAt) !== effect.requestedAt ||
         ids.has(effect.id) ||
         keys.has(effect.key) ||
+        !batchMetadataValid ||
         (effect.status === "pending" &&
           (effect.result !== null ||
             effect.resultDigest !== null ||
@@ -261,6 +290,30 @@ export function verifyDynamicWorkflowRuntimeState(value) {
       }
       ids.add(effect?.id);
       keys.add(effect?.key);
+      if (batchMetadataValid && hasBatchMetadata) {
+        if (!batches.has(effect.batchId)) batches.set(effect.batchId, []);
+        batches.get(effect.batchId).push(effect);
+      }
+    }
+    let batchIndex = 0;
+    for (const [batchId, entries] of batches) {
+      entries.sort((left, right) => left.batchIndex - right.batchIndex);
+      const expectedSize = entries[0]?.batchSize;
+      const complete =
+        entries.length === expectedSize &&
+        entries.every(
+          (entry, index) =>
+            entry.batchSize === expectedSize &&
+            entry.batchIndex === index &&
+            entry.requestedAt === entries[0].requestedAt,
+        );
+      const expectedBatchId = complete
+        ? effectBatchId(state.runId, entries)
+        : null;
+      if (!complete || batchId !== expectedBatchId) {
+        issues.push(`effect-batch-${batchIndex}-invalid`);
+      }
+      batchIndex += 1;
     }
   }
   if (
@@ -472,12 +525,12 @@ function stateBindings(execution, runId) {
   if (!admission || typeof admission !== "object") {
     throw new TypeError("durable workflow execution requires run admission");
   }
-  if (admission.maxParallel !== 1) {
-    const error = new Error(
-      "durable workflow runtime currently requires maxParallel=1",
-    );
-    error.code = "CC_DYNAMIC_WORKFLOW_DURABLE_PARALLEL_UNSUPPORTED";
-    throw error;
+  if (
+    !Number.isSafeInteger(admission.maxParallel) ||
+    admission.maxParallel < 1 ||
+    admission.maxParallel > MAX_EFFECT_BATCH_SIZE
+  ) {
+    throw new TypeError("durable workflow maxParallel admission is invalid");
   }
   if (
     execution.workflow?.steps?.some(
@@ -620,7 +673,7 @@ function effectPayload(args) {
   return snapshotJson(payload, "workflow effect payload", 1024 * 1024);
 }
 
-function requestEffect(statePath, runId, args, now) {
+function prepareEffectRequest(args) {
   const key = effectKey(args.workflowEffect);
   const stepId = String(args.workflowEffect.stepId);
   const iteration = Number(args.workflowEffect.iteration);
@@ -630,86 +683,188 @@ function requestEffect(statePath, runId, args, now) {
     "chainlesschain.dynamic-workflow.effect-payload.v1\0",
     payload,
   );
+  return { key, stepId, iteration, attempt, payloadDigest };
+}
+
+function requestEffectBatch(statePath, runId, argsList, now) {
+  if (!Array.isArray(argsList) || argsList.length === 0) {
+    throw new TypeError("workflow effect request batch is empty");
+  }
+  if (argsList.length > MAX_EFFECT_BATCH_SIZE) {
+    throw new Error("workflow effect request batch exceeds its hard limit");
+  }
+  const requests = argsList.map((args) => ({
+    ...prepareEffectRequest(args),
+  }));
+  const batchKeys = new Set(requests.map((request) => request.key));
+  if (batchKeys.size !== requests.length) {
+    throw new Error("workflow effect request batch contains duplicate keys");
+  }
   return withStateMutation(statePath, (current) => {
     if (!current || current.runId !== runId) {
-      throw new Error("durable workflow run disappeared before effect request");
+      throw new Error(
+        "durable workflow run disappeared before effect batch request",
+      );
     }
     if (current.status === "pause_requested") {
-      const state = transition(
-        current,
-        "run-paused",
-        {},
-        (draft) => {
-          draft.status = "paused";
-        },
-        now,
-      );
-      return { state, value: { control: "paused", state } };
+      return {
+        value: { control: "paused", state: current, results: null },
+      };
     }
     if (current.status === "stopped") {
-      return { value: { control: "stopped", state: current } };
+      return {
+        value: { control: "stopped", state: current, results: null },
+      };
     }
     if (current.status !== "running") {
       throw new Error(
-        `durable workflow run cannot request effects while ${current.status}`,
+        `durable workflow run cannot request an effect batch while ${current.status}`,
       );
     }
-    const existing = current.effects.find((effect) => effect.key === key);
-    if (existing) {
-      if (existing.payloadDigest !== payloadDigest) {
+    const existingByKey = new Map(
+      current.effects.map((effect) => [effect.key, effect]),
+    );
+    for (const request of requests) {
+      const existing = existingByKey.get(request.key);
+      if (existing && existing.payloadDigest !== request.payloadDigest) {
         throw new Error("workflow effect payload drifted during replay");
       }
-      if (existing.status === "settled") {
-        return {
-          value: { cached: true, effect: existing, result: existing.result },
-        };
-      }
+    }
+    const existingPending = requests
+      .map((request) => existingByKey.get(request.key))
+      .find((effect) => effect?.status === "pending");
+    if (existingPending) {
       const state = transition(
         current,
-        "effect-reconciliation-required",
-        { effectId: existing.id },
+        "effect-batch-reconciliation-required",
+        { effectId: existingPending.id },
         (draft) => {
           draft.status = "blocked";
         },
         now,
       );
-      return { state, value: { pending: true, effect: existing, state } };
+      return {
+        state,
+        value: {
+          state,
+          results: requests.map(() => ({
+            pending: true,
+            effect: existingPending,
+            state,
+          })),
+        },
+      };
     }
-    if (current.effects.length >= MAX_EFFECTS) {
+    const newRequests = [];
+    const resultsByKey = new Map();
+    for (const request of requests) {
+      const existing = existingByKey.get(request.key);
+      if (!existing) {
+        newRequests.push(request);
+        continue;
+      }
+      resultsByKey.set(request.key, {
+        cached: true,
+        effect: existing,
+        result: existing.result,
+      });
+    }
+    if (current.effects.length + newRequests.length > MAX_EFFECTS) {
       throw new Error("durable workflow effect limit exceeded");
     }
-    const id = digest("chainlesschain.dynamic-workflow.effect-id.v1\0", {
-      runId,
-      key,
-      payloadDigest,
-    });
+    if (newRequests.length === 0) {
+      return {
+        value: {
+          state: current,
+          results: requests.map((request) => resultsByKey.get(request.key)),
+        },
+      };
+    }
+    const ordered = [...newRequests].sort((left, right) =>
+      left.key.localeCompare(right.key),
+    );
+    const batchId = effectBatchId(runId, ordered);
     const requestedAt = isoNow(now);
-    const effect = {
-      schema: DYNAMIC_WORKFLOW_EFFECT_SCHEMA,
-      id,
-      key,
-      stepId,
-      iteration,
-      attempt,
-      payloadDigest,
-      status: "pending",
-      requestedAt,
-      settledAt: null,
-      settlementAuthority: null,
-      resultDigest: null,
-      result: null,
-    };
+    const effects = ordered.map((request, batchIndex) => {
+      const id = digest("chainlesschain.dynamic-workflow.effect-id.v1\0", {
+        runId,
+        key: request.key,
+        payloadDigest: request.payloadDigest,
+      });
+      return {
+        schema: DYNAMIC_WORKFLOW_EFFECT_SCHEMA,
+        id,
+        key: request.key,
+        stepId: request.stepId,
+        iteration: request.iteration,
+        attempt: request.attempt,
+        payloadDigest: request.payloadDigest,
+        batchId,
+        batchIndex,
+        batchSize: ordered.length,
+        status: "pending",
+        requestedAt,
+        settledAt: null,
+        settlementAuthority: null,
+        resultDigest: null,
+        result: null,
+      };
+    });
+    for (const effect of effects) {
+      resultsByKey.set(effect.key, { cached: false, effect });
+    }
     const state = transition(
       current,
-      "effect-requested",
-      { effectId: id, stepId, iteration, attempt, payloadDigest },
+      "effect-batch-requested",
+      {
+        batchId,
+        effectIds: effects.map((effect) => effect.id),
+        effectCount: effects.length,
+      },
       (draft) => {
-        draft.effects.push(effect);
+        draft.effects.push(...effects);
       },
       now,
     );
-    return { state, value: { cached: false, effect } };
+    return {
+      state,
+      value: {
+        state,
+        results: requests.map((request) => resultsByKey.get(request.key)),
+      },
+    };
   });
+}
+
+function createEffectRequestBatcher(statePath, runId, now) {
+  let queue = [];
+  let scheduled = false;
+  const flush = () => {
+    scheduled = false;
+    const batch = queue;
+    queue = [];
+    try {
+      const requested = requestEffectBatch(
+        statePath,
+        runId,
+        batch.map((entry) => entry.args),
+        now,
+      );
+      for (let index = 0; index < batch.length; index += 1) {
+        if (requested.control) batch[index].resolve(requested);
+        else batch[index].resolve(requested.results[index]);
+      }
+    } catch (error) {
+      for (const entry of batch) entry.reject(error);
+    }
+  };
+  return (args) =>
+    new Promise((resolve, reject) => {
+      queue.push({ args, resolve, reject });
+      if (scheduled) return;
+      scheduled = true;
+      queueMicrotask(flush);
+    });
 }
 
 function settleEffect(statePath, runId, effectId, rawResult, now) {
@@ -766,6 +921,26 @@ function blockPendingEffect(statePath, runId, effectId, now) {
       { effectId },
       (draft) => {
         draft.status = "blocked";
+      },
+      now,
+    );
+    return { state, value: state };
+  });
+}
+
+function finalizePauseAfterSettlementBarrier(statePath, runId, now) {
+  return withStateMutation(statePath, (current) => {
+    if (!current || current.runId !== runId) return { value: current };
+    if (current.status !== "pause_requested") return { value: current };
+    if (current.effects.some((effect) => effect.status === "pending")) {
+      return { value: current };
+    }
+    const state = transition(
+      current,
+      "run-paused",
+      { barrier: "all-requested-effects-settled" },
+      (draft) => {
+        draft.status = "paused";
       },
       now,
     );
@@ -850,8 +1025,13 @@ export async function executeDurableDynamicWorkflow(options = {}, deps = {}) {
   }
   const initial = startRun(statePath, bindings, deps.now);
   if (initial.status === "completed") return initial.finalRecord;
+  const requestEffectForDispatch = createEffectRequestBatcher(
+    statePath,
+    runId,
+    deps.now,
+  );
   const durableRunTask = async (args) => {
-    const requested = requestEffect(statePath, runId, args, deps.now);
+    const requested = await requestEffectForDispatch(args);
     if (requested.control) {
       throw controlError(
         `dynamic workflow run ${requested.control}`,
@@ -919,7 +1099,7 @@ export async function executeDurableDynamicWorkflow(options = {}, deps = {}) {
   try {
     const record = await (deps.executeWorkflow || executeCoworkWorkflow)({
       ...execution,
-      maxParallel: 1,
+      maxParallel: execution.runAdmission.maxParallel,
       runTask: durableRunTask,
     });
     const completed = completeRun(statePath, runId, record, deps.now);
@@ -932,6 +1112,44 @@ export async function executeDurableDynamicWorkflow(options = {}, deps = {}) {
     }
     return completed.record;
   } catch (error) {
+    if (
+      error?.code === DYNAMIC_WORKFLOW_RUNTIME_CONTROL_CODE &&
+      error.reason === "paused"
+    ) {
+      const state = finalizePauseAfterSettlementBarrier(
+        statePath,
+        runId,
+        deps.now,
+      );
+      const pending = state?.effects?.find(
+        (effect) => effect.status === "pending",
+      );
+      if (pending) {
+        throw controlError(
+          `workflow effect ${pending.id} requires reconciliation before pause can settle`,
+          "reconciliation-required",
+          state,
+          pending,
+          error,
+        );
+      }
+      if (state?.status === "stopped") {
+        throw controlError(
+          "dynamic workflow run stopped while its pause barrier was settling",
+          "stopped",
+          state,
+          null,
+          error,
+        );
+      }
+      throw controlError(
+        "dynamic workflow run paused after its settlement barrier",
+        "paused",
+        state,
+        null,
+        error,
+      );
+    }
     if (error?.code !== DYNAMIC_WORKFLOW_RUNTIME_CONTROL_CODE) {
       markFailed(statePath, runId, error, deps.now);
     }
@@ -1067,6 +1285,17 @@ export function reconcileDurableWorkflowEffect(
     if (!effect || effect.status !== "pending") {
       throw new Error("workflow effect is not pending reconciliation");
     }
+    const firstPending = current.effects.find(
+      (candidate) => candidate.status === "pending",
+    );
+    if (firstPending?.id !== effectId) {
+      const error = new Error(
+        `workflow effect ${firstPending.id} must be reconciled before ${effectId}`,
+      );
+      error.code = "CC_DYNAMIC_WORKFLOW_EFFECT_RECONCILIATION_OUT_OF_ORDER";
+      error.pendingEffect = firstPending;
+      throw error;
+    }
     const settledAt = isoNow(deps.now);
     const state = transition(
       current,
@@ -1081,7 +1310,12 @@ export function reconcileDurableWorkflowEffect(
           resultDigest,
           result,
         };
-        if (draft.status === "blocked") draft.status = "ready";
+        const pendingRemain = draft.effects.some(
+          (candidate) => candidate.status === "pending",
+        );
+        if (draft.status === "blocked" && !pendingRemain) {
+          draft.status = "ready";
+        }
       },
       deps.now,
     );
@@ -1181,6 +1415,9 @@ function projectDynamicWorkflowObservability(state) {
       iteration: effect.iteration,
       attempt: effect.attempt,
       status: effect.status,
+      batchId: effect.batchId || null,
+      batchIndex: effect.batchIndex ?? null,
+      batchSize: effect.batchSize ?? null,
       taskStatus:
         taskStatus === "completed" || taskStatus === "failed"
           ? taskStatus
@@ -1307,6 +1544,9 @@ export function projectDynamicWorkflowRuntime(stateOrPath) {
             id: effect.id,
             key: effect.key,
             payloadDigest: effect.payloadDigest,
+            batchId: effect.batchId || null,
+            batchIndex: effect.batchIndex ?? null,
+            batchSize: effect.batchSize ?? null,
             requestedAt: effect.requestedAt,
           }),
         ),
