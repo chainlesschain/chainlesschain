@@ -12,38 +12,32 @@ the corresponding exact-gated CLI command, as documented below.
 
 ## Release compatibility
 
-Plugin **0.4.90** is the source candidate that adds the read-only Context
-Center and runtime permission/side-effect evidence while carrying forward
-governed automatic ghost-text completion and the Automation Center for
+Plugin **0.4.91** is the source candidate that re-certifies the read-only
+Context Center and runtime permission/side-effect evidence while carrying
+forward governed automatic ghost-text completion and the Automation Center for
 CLI-owned, versioned Automation and Routine projections. It shows preflight and history, then routes
 run-now, failed-run retry, pause/resume, disable, delete, and revision-CAS
 create/edit operations through exact CLI-issued arguments. Cron, one-shot,
 webhook, and GitHub triggers share the same fail-closed surface.
 
-The fully gated public CLI `chainlesschain@0.163.7` contains the governed
-Automation/Routine commands, unified scheduler authority, timezone/missed-run
-semantics, and shared permission/budget enforcement required by the Automation
-Center. It emits the released Automation Center v2 projection: `0.4.90`
-preserves the existing item controls with empty incidents/runtime and does not
-invent the new actions.
-
-The `0.4.90` source accepts only the exact released v2/schemaVersion 2 pair or
-the new v3/schemaVersion 3 pair; unknown and cross-paired versions fail closed.
-With v3 it shows sanitized run incidents and bounded live scheduler occurrences.
+The fully gated public CLI `chainlesschain@0.164.0` contains the governed
+Automation/Routine commands, the released Automation Center v3 projection,
+scoped permission and side-effect authority, and shared permission/budget
+enforcement. Version `0.4.91` accepts only the exact v2/schemaVersion 2 or
+v3/schemaVersion 3 pair; unknown and cross-paired versions fail closed. With v3
+it shows sanitized run incidents and bounded live scheduler occurrences.
 Incident retry/cancel and cooperative occurrence pause/resume appear only when
 the CLI supplies an exact revision/fence-gated action preview. The plugin
 refreshes the projection and rechecks that preview before execution; it never
 derives argv from display data or imports scheduler payload, authority, or
-checkpoint evidence. These v3 controls require a subsequent exact-gated CLI
-release; CLI `0.163.7` remains fully usable through v2 without showing them.
+checkpoint evidence.
 
-Version `0.4.90` also consumes only strict, CLI-issued multi-agent merge-review
+Version `0.4.91` also consumes only strict, CLI-issued multi-agent merge-review
 evidence. It displays stable file/hunk choices, persistent conflict explanations,
 and exact apply/rollback previews, then refreshes the evidence before executing
 the exact argv. It never runs or derives `git merge`, `merge-tree`, or
-history-rewriting rollback commands. Public CLI `0.163.7` predates
-`team merge-review`; the controls remain unavailable until a subsequent
-exact-gated CLI release provides that command.
+history-rewriting rollback commands. Public CLI `0.164.0` provides the governed
+`team merge-review` command and exact evidence contract.
 
 ## Governed ghost-text completion
 
