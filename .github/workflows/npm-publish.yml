@@ -184,11 +184,22 @@ jobs:
           VERSION=$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).version)' release-artifacts/chainlesschain-release.json)
           SBOM_ROOT=$(mktemp -d)
           trap 'rm -rf "$SBOM_ROOT"' EXIT
+          SBOM_CANDIDATES="$SBOM_ROOT/internal-candidates"
+          bash "$GITHUB_WORKSPACE/.github/scripts/ci-install-cli-production-deps.sh" \
+            --pack-candidates "$SBOM_CANDIDATES"
+          INTERNAL_CANDIDATES=()
+          for candidate in "$SBOM_CANDIDATES"/*.tgz; do
+            if [[ "$(basename "$candidate")" != "chainlesschain-$VERSION.tgz" ]]; then
+              INTERNAL_CANDIDATES+=("$candidate")
+            fi
+          done
+          test "${#INTERNAL_CANDIDATES[@]}" -gt 0
           mkdir -p "$SBOM_ROOT/chainlesschain"
           tar -xzf "$TARBALL" -C "$SBOM_ROOT/chainlesschain" --strip-components=1
           (
             cd "$SBOM_ROOT/chainlesschain"
-            npm install --package-lock-only --ignore-scripts --legacy-peer-deps --no-audit --no-fund
+            npm install --package-lock-only --ignore-scripts --legacy-peer-deps --no-audit --no-fund \
+              "${INTERNAL_CANDIDATES[@]}"
             npm sbom --package-lock-only --sbom-format cyclonedx \
               > "$GITHUB_WORKSPACE/release-artifacts/chainlesschain-sbom.cdx.json"
           )

@@ -7,9 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added — cc CLI 0.165.0: runtime admission, remote authority, and background containment
+### Added — cc CLI 0.165.1: runtime admission, remote authority, and background containment
 
-> `chainlesschain` **0.164.0 → 0.165.0** (candidate; not yet published,
+> `chainlesschain` **0.164.0 → 0.165.1** (candidate; not yet published,
 > 2026-08-17).
 > CLI candidate with `@chainlesschain/personal-data-hub` **0.4.58**;
 > `@chainlesschain/agent-sdk` remains **0.1.7**.
@@ -41,6 +41,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Release boundary**: the separate plugin marketplace activation hardening in
   PR #209 is intentionally excluded because its latest CLI and PR test runs are
   not green. This candidate does not claim that pending source as published.
+- **Release packaging recovery**: immutable tag `v-npm-0-165-0` stopped before
+  any registry write because its SBOM resolver tried to fetch the coordinated
+  PDH 0.4.58 candidate before that package could be published. The 0.165.1
+  workflow resolves the SBOM from exact-SHA internal package tarballs instead.
 - **Release status**: immutable tag, final source SHA, workflow run IDs, npm
   provenance, package digests, and registry readback remain intentionally
   absent until the final merge SHA passes complete `CLI CI` and
