@@ -88,7 +88,22 @@ export function withFileLock(targetPath, fn, opts = {}) {
       const incumbent = ownerRead.owner;
       acquisitionError = ownerRead.error;
       if (incumbent) {
-        if (!isOwnerAlive(incumbent)) {
+        // The owner writes this exact-token marker only after its critical
+        // section has finished. A Windows sharing violation can then prevent
+        // the final recursive removal while the owner process remains alive,
+        // which would otherwise strand every later strict caller behind a
+        // lock that no longer protects any work. Complete only the release
+        // explicitly published by the still-current owner; a missing,
+        // corrupt or mismatched marker remains fail-closed.
+        const publishedRelease = completePublishedRelease(
+          _fs,
+          lockDir,
+          incumbent,
+          owner,
+          isOwnerAlive,
+        );
+        if (publishedRelease.completed) continue;
+        if (!publishedRelease.published && !isOwnerAlive(incumbent)) {
           if (reclaimOwnedDirectory(_fs, lockDir, incumbent, isOwnerAlive)) {
             continue;
           }
@@ -146,7 +161,7 @@ export function withFileLock(targetPath, fn, opts = {}) {
   let releaseError = null;
   if (held) {
     try {
-      released = releaseOwnedDirectory(_fs, lockDir, owner);
+      released = releaseOwnedDirectory(_fs, lockDir, owner, isOwnerAlive);
     } catch (error) {
       releaseError = error;
     }
@@ -383,7 +398,53 @@ function reclaimLegacyDirectory(_fs, lockDir, stat) {
   return true;
 }
 
-function releaseOwnedDirectory(_fs, lockDir, owner) {
+function completePublishedRelease(_fs, lockDir, owner, claimant, ownerAlive) {
+  const markerPath = path.join(lockDir, `.release-${owner.token}`);
+  if (!sameOwner(readOwner(_fs, markerPath), owner)) {
+    return { published: false, completed: false };
+  }
+  const claimPath = path.join(lockDir, `.release-claim-${owner.token}`);
+  for (;;) {
+    const existingClaim = readOwner(_fs, claimPath);
+    if (existingClaim) {
+      if (sameOwner(existingClaim, claimant)) break;
+      if (!ownerAlive(existingClaim)) {
+        if (removeOwnMarker(_fs, claimPath, existingClaim)) continue;
+      }
+      return { published: true, completed: false };
+    }
+    try {
+      writeOwnerMarker(_fs, claimPath, claimant);
+      break;
+    } catch (error) {
+      if (error?.code === "ENOENT") {
+        return { published: true, completed: !directoryExists(_fs, lockDir) };
+      }
+      if (error?.code === "EEXIST" || isTransientLockError(error)) {
+        return { published: true, completed: false };
+      }
+      throw error;
+    }
+  }
+  if (!sameOwner(readOwner(_fs, path.join(lockDir, "owner.json")), owner)) {
+    removeOwnMarker(_fs, claimPath, claimant);
+    return { published: true, completed: false };
+  }
+  try {
+    _fs.rmSync(lockDir, { recursive: true, force: true });
+    return { published: true, completed: true };
+  } catch (error) {
+    removeOwnMarker(_fs, claimPath, claimant);
+    // A second Windows sharing transient leaves the exact release marker in
+    // place so this or another contender can retry within its normal deadline.
+    if (isTransientLockError(error)) {
+      return { published: true, completed: false };
+    }
+    throw error;
+  }
+}
+
+function releaseOwnedDirectory(_fs, lockDir, owner, ownerAlive) {
   if (!sameOwner(readOwner(_fs, path.join(lockDir, "owner.json")), owner)) {
     return false;
   }
@@ -418,6 +479,14 @@ function releaseOwnedDirectory(_fs, lockDir, owner) {
   if (!sameOwner(readOwner(_fs, path.join(lockDir, "owner.json")), owner)) {
     removeOwnMarker(_fs, markerPath, owner);
     return false;
+  }
+  if (typeof _fs.renameSync === "function") {
+    // After publishing the marker, use the same exclusive claim protocol as a
+    // later contender. The releasing process must not perform an unclaimed,
+    // delayed delete: another process could complete the release and install a
+    // replacement lock before that delete resumes.
+    return completePublishedRelease(_fs, lockDir, owner, owner, ownerAlive)
+      .completed;
   }
   _fs.rmSync(lockDir, { recursive: true, force: true });
   return true;

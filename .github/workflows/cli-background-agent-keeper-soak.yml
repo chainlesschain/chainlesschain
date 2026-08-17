@@ -16,9 +16,11 @@ on:
       - "packages/cli/src/lib/background-interaction-*.js"
       - "packages/cli/src/lib/background-session-transport.js"
       - "packages/cli/src/lib/background-turn-bootstrap-protocol.js"
+      - "packages/cli/src/lib/with-file-lock.js"
       - "packages/cli/src/workers/background-agent-*.js"
       - "packages/cli/src/workers/background-turn-bootstrap.js"
       - "packages/cli/__tests__/unit/background-agent-keeper-soak.test.js"
+      - "packages/cli/__tests__/unit/with-file-lock.test.js"
   schedule:
     - cron: "41 4 * * 2"
   workflow_dispatch:
