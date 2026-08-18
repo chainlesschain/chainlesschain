@@ -299,7 +299,8 @@ describe("verified session replica installation", () => {
       source.expected,
       targetAuthority(source),
     );
-    const target = store.getVerifiedSessionExecutionLocationAuthority(sessionId);
+    const target =
+      store.getVerifiedSessionExecutionLocationAuthority(sessionId);
     const bundle = createExecutionLocationResultBundle({
       sessionAuthority: target,
       resultId: "return-1",
@@ -310,9 +311,8 @@ describe("verified session replica installation", () => {
     });
 
     selectSource();
-    const predecessor = store.getVerifiedSessionExecutionLocationAuthority(
-      sessionId,
-    );
+    const predecessor =
+      store.getVerifiedSessionExecutionLocationAuthority(sessionId);
     expect(
       verifyExecutionLocationResultBundle({
         bundle,
@@ -340,7 +340,8 @@ describe("verified session replica installation", () => {
       source.expected,
       targetAuthority(source),
     );
-    const target = store.getVerifiedSessionExecutionLocationAuthority(sessionId);
+    const target =
+      store.getVerifiedSessionExecutionLocationAuthority(sessionId);
     const bundle = createExecutionLocationResultBundle({
       sessionAuthority: target,
       resultId: "settled-return-1",
@@ -351,9 +352,8 @@ describe("verified session replica installation", () => {
     });
 
     selectSource();
-    const predecessor = store.getVerifiedSessionExecutionLocationAuthority(
-      sessionId,
-    );
+    const predecessor =
+      store.getVerifiedSessionExecutionLocationAuthority(sessionId);
     const sourceAuthority = {
       sessionId,
       headHash: predecessor.headHash,
@@ -427,9 +427,10 @@ describe("verified session replica installation", () => {
     ).toBeNull();
 
     process.env.CC_SESSION_SCALE_FAULT_INJECTION = "1";
-    store._sessionScaleFaultHooks.afterResultCollectionSettlementAppend = () => {
-      throw new Error("injected result settlement response loss");
-    };
+    store._sessionScaleFaultHooks.afterResultCollectionSettlementAppend =
+      () => {
+        throw new Error("injected result settlement response loss");
+      };
     expect(() =>
       store.settleSessionExecutionLocationResultCollection(
         sessionId,
@@ -439,15 +440,13 @@ describe("verified session replica installation", () => {
     ).toThrow(/injected result settlement response loss/u);
     store._sessionScaleFaultHooks.afterResultCollectionSettlementAppend = null;
     delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;
-    const first =
-      store.readVerifiedSessionExecutionLocationResultSettlement(
-        sessionId,
-        requestId,
-        { requestDigest },
-      );
+    const first = store.readVerifiedSessionExecutionLocationResultSettlement(
+      sessionId,
+      requestId,
+      { requestDigest },
+    );
     expect(first).toMatchObject({
-      schema:
-        store.SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_RECEIPT_SCHEMA,
+      schema: store.SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_RECEIPT_SCHEMA,
       sessionId,
       requestId,
       requestDigest,
@@ -487,7 +486,9 @@ describe("verified session replica installation", () => {
       sessionId,
       store.SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_EVENT,
     );
-    expect(JSON.stringify(event.data)).not.toContain("private returned summary");
+    expect(JSON.stringify(event.data)).not.toContain(
+      "private returned summary",
+    );
     expect(event.data).not.toHaveProperty("bundle");
     expect(event.data).not.toHaveProperty("verification");
   });

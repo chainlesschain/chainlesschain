@@ -367,9 +367,7 @@ describe("execution location target launch and resume", () => {
         resultId: "result-collect-1",
         summaryPath: "summary.txt",
         diffPath: "result.diff",
-        artifacts: [
-          { mediaType: "application/json", path: "artifact.json" },
-        ],
+        artifacts: [{ mediaType: "application/json", path: "artifact.json" }],
         evidence: [],
         readSourceAuthority,
       },

@@ -879,13 +879,19 @@ export function createExecutionLocationTargetResultCollectionRequest(
   if (target !== profile.target) {
     throw new TypeError("result collection target does not match profile");
   }
-  const requestId = safeName(input.requestId, "result collection request id", 128);
+  const requestId = safeName(
+    input.requestId,
+    "result collection request id",
+    128,
+  );
   const sessionId = safeName(input.sessionId, "result collection session id");
   const resultId = safeName(input.resultId, "result id", 128);
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/u.test(resultId)) {
     throw new TypeError("result id is invalid");
   }
-  const targetFactsDigest = String(input.expectedTargetFactsDigest || "").toLowerCase();
+  const targetFactsDigest = String(
+    input.expectedTargetFactsDigest || "",
+  ).toLowerCase();
   const handoffId = String(input.expectedHandoffId || "").toLowerCase();
   if (!SHA256_RE.test(targetFactsDigest)) {
     throw new TypeError("expected target facts digest is invalid");

@@ -380,9 +380,7 @@ describe("session location target command routes", () => {
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
         resultId: "result-1",
-        artifacts: [
-          expect.objectContaining({ mediaType: "application/json" }),
-        ],
+        artifacts: [expect.objectContaining({ mediaType: "application/json" })],
         evidence: [expect.objectContaining({ mediaType: "text/plain" })],
       }),
     );
@@ -458,9 +456,7 @@ describe("session location target command routes", () => {
         }),
         readVerifiedSessionExecutionLocationResultSettlement: () => null,
         collectExecutionLocationTargetResult: collect,
-        settleSessionExecutionLocationResultCollection: vi.fn(
-          () => settlement,
-        ),
+        settleSessionExecutionLocationResultCollection: vi.fn(() => settlement),
       }),
     ).parseAsync([
       "node",
@@ -500,9 +496,7 @@ describe("session location target command routes", () => {
         resultId: "result-2",
         summaryPath: "summary.txt",
         diffPath: "result.diff",
-        artifacts: [
-          { mediaType: "application/json", path: "artifact.json" },
-        ],
+        artifacts: [{ mediaType: "application/json", path: "artifact.json" }],
       }),
       expect.any(Object),
     );
