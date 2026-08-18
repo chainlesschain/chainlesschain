@@ -13,6 +13,8 @@ import { parseSchedulerSoakWorkerOptions } from "../../scripts/scheduler-kernel-
 const WORKER_PATH = fileURLToPath(
   new URL("../../scripts/scheduler-kernel-soak-worker.mjs", import.meta.url),
 );
+const OPERATIONAL_TEST_LEASE_MS = 10_000;
+const CRASH_RECOVERY_TEST_LEASE_MS = 1_000;
 
 function authority() {
   return {
@@ -56,7 +58,14 @@ function waitUntil(epochMs, paddingMs = 100) {
   );
 }
 
-function startWorker({ db, effectsDir, owner, kind, pause = "none" }) {
+function startWorker({
+  db,
+  effectsDir,
+  owner,
+  kind,
+  pause = "none",
+  leaseMs = OPERATIONAL_TEST_LEASE_MS,
+}) {
   const child = spawn(
     process.execPath,
     [
@@ -74,7 +83,7 @@ function startWorker({ db, effectsDir, owner, kind, pause = "none" }) {
       "--pause",
       pause,
       "--lease-ms",
-      "1000",
+      String(leaseMs),
       "--poll-ms",
       "5",
       "--once",
@@ -193,6 +202,7 @@ describe("scheduler kernel soak worker", () => {
     expect(ready).toMatchObject({
       pause: "none",
       once: true,
+      leaseMs: OPERATIONAL_TEST_LEASE_MS,
       adapterKind: kind,
       schema: {
         schemaVersion: SCHEDULER_STORE_SCHEMA_VERSION,
@@ -201,7 +211,10 @@ describe("scheduler kernel soak worker", () => {
     });
     const result = await worker.done;
 
-    expect(result).toMatchObject({ code: 0, signal: null });
+    expect(
+      result,
+      `worker failed: stderr=${result.stderr} events=${JSON.stringify(result.events)}`,
+    ).toMatchObject({ code: 0, signal: null });
     expect(result.events.map((event) => event.type)).toEqual([
       "ready",
       "claimed",
@@ -280,6 +293,7 @@ describe("scheduler kernel soak worker", () => {
       owner: "crashed-owner",
       kind,
       pause: "before-execute",
+      leaseMs: CRASH_RECOVERY_TEST_LEASE_MS,
     });
     const checkpoint = await crashed.waitFor(
       (event) =>
@@ -359,6 +373,7 @@ describe("scheduler kernel soak worker", () => {
       owner: "outcome-crashed-owner",
       kind,
       pause: "after-execute",
+      leaseMs: CRASH_RECOVERY_TEST_LEASE_MS,
     });
     const checkpoint = await crashed.waitFor(
       (event) =>
