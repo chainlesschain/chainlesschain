@@ -256,10 +256,15 @@ describe("REPL compact persistence fencing", () => {
     const { runReplMeteredModelCallWithLedger } =
       await import("../../src/repl/agent-repl.js");
     const order = [];
+    const persisted = [];
     const sessionBudget = {
       consumeTurn: vi.fn(() => {
         order.push("budget-turn");
         return { ok: true };
+      }),
+      beginUsageSettlement: vi.fn(({ id }) => {
+        order.push("budget-intent");
+        return { ok: true, id };
       }),
       recordUsage: vi.fn(() => {
         order.push("budget-usage");
@@ -272,7 +277,10 @@ describe("REPL compact persistence fencing", () => {
       provider: "openai",
       model: "gpt-test",
       sessionBudget,
-      persist: (type) => order.push(`ledger:${type}`),
+      persist: (type, data) => {
+        persisted.push({ type, data });
+        order.push(`ledger:${type}`);
+      },
       call: async () => {
         order.push("provider");
         return {
@@ -285,14 +293,21 @@ describe("REPL compact persistence fencing", () => {
     expect(order).toEqual([
       "budget-turn",
       "ledger:model_usage_started",
+      "budget-intent",
       "provider",
       "ledger:token_usage",
       "budget-usage",
     ]);
     expect(sessionBudget.recordUsage).toHaveBeenCalledWith({
+      callId: persisted[0].data.callId,
       provider: "openai",
       model: "gpt-test",
-      usage: { input_tokens: 8, output_tokens: 2 },
+      usage: {
+        input_tokens: 8,
+        output_tokens: 2,
+        cache_read_input_tokens: 0,
+        cache_creation_input_tokens: 0,
+      },
     });
   });
 
