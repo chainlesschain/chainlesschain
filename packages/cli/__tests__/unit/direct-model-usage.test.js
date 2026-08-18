@@ -22,15 +22,55 @@ describe("direct model usage ledger", () => {
       ...BASE,
       sessionBudget: budget,
       persist: (type) => order.push(type),
-      call: async () => ({
-        usage: { input_tokens: 2, output_tokens: 1 },
-      }),
+      call: async () => {
+        order.push("provider");
+        return { usage: { input_tokens: 2, output_tokens: 1 } };
+      },
     });
 
-    expect(order.indexOf("token_usage")).toBeLessThan(
+    expect(order.indexOf("model_usage_started")).toBeLessThan(
       order.indexOf("budget:usage-settlement-started"),
     );
+    expect(order.indexOf("budget:usage-settlement-started")).toBeLessThan(
+      order.indexOf("provider"),
+    );
+    expect(order.indexOf("token_usage")).toBeLessThan(
+      order.indexOf("budget:usage-recorded"),
+    );
     expect(budget.status()).toMatchObject({ turns: 1, tokens: 3 });
+    budget.dispose();
+  });
+
+  it("leaves exact recovery authority when provider usage is missing", async () => {
+    const budget = new SessionResourceBudget({ maxTokens: 10 });
+    const records = [];
+
+    await expect(
+      runMeteredDirectModelCall({
+        ...BASE,
+        sessionBudget: budget,
+        persist: (type, event) => records.push({ type, event }),
+        call: async () => ({ response: "private" }),
+      }),
+    ).rejects.toMatchObject({
+      code: "CC_SESSION_BUDGET_USAGE_UNKNOWN",
+      budgetReason: "provider-usage-unknown",
+    });
+
+    expect(records.map(({ type }) => type)).toEqual([
+      "model_usage_started",
+      "model_usage_unknown",
+    ]);
+    expect(budget.status()).toMatchObject({
+      tokens: 0,
+      pendingUsage: 0,
+      recoveryRequired: true,
+      pendingRecovery: 1,
+      reason: "recovery-required",
+    });
+    expect(budget.pendingRecovery()).toEqual([
+      expect.objectContaining({ kind: "usage-settlement" }),
+    ]);
     budget.dispose();
   });
 

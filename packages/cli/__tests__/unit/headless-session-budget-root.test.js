@@ -132,4 +132,56 @@ describe("headless production session budget root", () => {
     });
     expect(loop).not.toHaveBeenCalled();
   });
+
+  it("fails closed and preserves recovery when provider usage is unknown", async () => {
+    const store = makeStore();
+    const loop = async function* () {
+      yield {
+        type: "model-usage-started",
+        callId: "headless-unknown-call",
+        provider: "openai",
+        model: "gpt-test",
+        source: "model",
+      };
+      yield {
+        type: "model-usage-unknown",
+        callId: "headless-unknown-call",
+        provider: "openai",
+        model: "gpt-test",
+        source: "model",
+        code: "provider_usage_missing",
+      };
+      yield { type: "response-complete", content: "must not succeed" };
+    };
+
+    const result = await runAgentHeadless(
+      {
+        prompt: "go",
+        sessionId: "unknown-headless",
+        persistSession: true,
+        outputFormat: "text",
+        sessionBudgetRoot: {
+          enabled: true,
+          limits: { maxTokens: 10 },
+        },
+      },
+      makeDeps(store, loop),
+    );
+
+    expect(result).toMatchObject({ exitCode: 1, isError: true });
+    expect(result.result).toMatch(/usage adjudication/);
+    expect(
+      readProductionSessionBudget("unknown-headless", { store }),
+    ).toMatchObject({
+      usageUnknown: true,
+      totals: { tokens: 0 },
+      recoveryRequired: true,
+      pendingRecovery: [
+        expect.objectContaining({
+          resourceType: "work",
+          kind: "usage-settlement",
+        }),
+      ],
+    });
+  });
 });

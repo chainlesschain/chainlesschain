@@ -290,3 +290,14 @@ export function sessionBudgetAdmissionError(reason, operation) {
     { budgetReason: reason || "session-aborted" },
   );
 }
+
+export function sessionBudgetUsageUnknownError(operation, callId = null) {
+  return budgetRootError(
+    "CC_SESSION_BUDGET_USAGE_UNKNOWN",
+    `session budget requires usage adjudication after ${operation}`,
+    {
+      budgetReason: "provider-usage-unknown",
+      ...(callId ? { callId: String(callId) } : {}),
+    },
+  );
+}

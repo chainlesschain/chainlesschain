@@ -124,6 +124,12 @@ import {
   openProductionSessionBudgetRoot,
   sessionBudgetAdmissionError,
 } from "../lib/session-budget-production-root.js";
+import {
+  beginSessionBudgetUsage,
+  markSessionBudgetUsageUnknown,
+  recordSessionBudgetUsage,
+  rejectSessionBudgetUsageUnknown,
+} from "../lib/session-budget-usage.js";
 
 const goalBrokerRunner = executionBroker.spawnSync.bind(executionBroker);
 
@@ -2976,6 +2982,11 @@ async function runAgentHeadlessInWorkspace(
                 ),
               );
             }
+            beginSessionBudgetUsage(
+              options.sessionBudget,
+              event,
+              "headless provider call",
+            );
             break;
           }
           case "model-usage-unknown":
@@ -2989,6 +3000,10 @@ async function runAgentHeadlessInWorkspace(
                 ),
               );
             }
+            const budgetUsageUnknown = markSessionBudgetUsageUnknown(
+              options.sessionBudget,
+              event,
+            );
             if (event.type === "compaction-usage-unknown") {
               endReason = "compaction-usage-unknown";
               stopForCompactionUsageUnknown = true;
@@ -3001,6 +3016,14 @@ async function runAgentHeadlessInWorkspace(
                 usage_outcome: "unknown",
               });
             }
+            if (budgetUsageUnknown) {
+              rejectSessionBudgetUsageUnknown(
+                event,
+                event.type === "compaction-usage-unknown"
+                  ? "headless semantic compaction"
+                  : "headless provider call",
+              );
+            }
             break;
           }
           case "token-usage": {
@@ -3010,19 +3033,11 @@ async function runAgentHeadlessInWorkspace(
                 store.appendTokenUsage(sessionId, persistedUsage),
               );
             }
-            if (!event.attribution && options.sessionBudget?.recordUsage) {
-              const budgetStatus = options.sessionBudget.recordUsage({
-                provider: event.provider || null,
-                model: event.model || null,
-                usage: event.usage || null,
-              });
-              if (budgetStatus?.aborted) {
-                throw sessionBudgetAdmissionError(
-                  budgetStatus.reason,
-                  "usage settlement",
-                );
-              }
-            }
+            recordSessionBudgetUsage(
+              options.sessionBudget,
+              event,
+              "headless usage settlement",
+            );
             if (!event.attribution) {
               usage.input_tokens += event.usage?.input_tokens || 0;
               usage.output_tokens += event.usage?.output_tokens || 0;
@@ -3278,15 +3293,18 @@ async function runAgentHeadlessInWorkspace(
       err?.runtimeLedgerPersistence === true;
     const sessionBudgetFailed =
       err?.code === "CC_SESSION_BUDGET_EXHAUSTED" ||
+      err?.code === "CC_SESSION_BUDGET_USAGE_UNKNOWN" ||
       options.sessionBudget?.signal?.aborted === true;
     const message = runtimeLedgerPersistenceFailed
       ? RUNTIME_LEDGER_PERSISTENCE_FAILURE_MESSAGE
-      : sessionBudgetFailed
-        ? sessionBudgetAdmissionError(
+      : err?.code === "CC_SESSION_BUDGET_USAGE_UNKNOWN"
+        ? err.message
+        : sessionBudgetFailed
+          ? sessionBudgetAdmissionError(
             options.sessionBudget?.reason?.() || err?.budgetReason,
             "run",
           ).message
-        : err?.message || String(err);
+          : err?.message || String(err);
     const errorSubtype = runtimeLedgerPersistenceFailed
       ? "error_persistence"
       : sessionBudgetFailed

@@ -63,6 +63,12 @@ import {
   settleWsTurnClaim,
 } from "../../harness/jsonl-session-store.js";
 import { sessionBudgetAdmissionError } from "../../lib/session-budget-production-root.js";
+import {
+  beginSessionBudgetUsage,
+  markSessionBudgetUsageUnknown,
+  recordSessionBudgetUsage,
+  rejectSessionBudgetUsageUnknown,
+} from "../../lib/session-budget-usage.js";
 
 const CANONICAL_WS_TURN_QUEUES = new Map();
 const CANONICAL_WS_CLAIM_CAS_ATTEMPTS = 4;
@@ -307,16 +313,15 @@ export class WSAgentHandler {
   }
 
   _recordSessionBudgetUsage(event, operation = "WebSocket usage settlement") {
-    if (event?.attribution || !this._sessionBudget?.recordUsage) return null;
-    const status = this._sessionBudget.recordUsage({
-      provider: event.provider || null,
-      model: event.model || null,
-      usage: event.usage || null,
-    });
-    if (status?.aborted) {
-      throw sessionBudgetAdmissionError(status.reason, operation);
-    }
-    return status;
+    return recordSessionBudgetUsage(this._sessionBudget, event, operation);
+  }
+
+  _beginSessionBudgetUsage(event, operation = "WebSocket provider call") {
+    return beginSessionBudgetUsage(this._sessionBudget, event, operation);
+  }
+
+  _markSessionBudgetUsageUnknown(event) {
+    return markSessionBudgetUsageUnknown(this._sessionBudget, event);
   }
 
   _consumeSessionBudgetTurn(id, operation) {
@@ -465,6 +470,7 @@ export class WSAgentHandler {
       "WebSocket compaction",
     );
     this._persistCanonicalUsageBoundary(call, "started");
+    this._beginSessionBudgetUsage(call, "WebSocket compaction provider call");
     return call;
   }
 
@@ -483,6 +489,12 @@ export class WSAgentHandler {
         },
         "unknown",
       );
+      if (this._markSessionBudgetUsageUnknown(call)) {
+        rejectSessionBudgetUsageUnknown(
+          call,
+          "WebSocket compaction provider call",
+        );
+      }
       return;
     }
     if (result?.usageEvent?.usage) {
@@ -501,6 +513,12 @@ export class WSAgentHandler {
       { ...call, code: "provider_usage_missing" },
       "unknown",
     );
+    if (this._markSessionBudgetUsageUnknown(call)) {
+      rejectSessionBudgetUsageUnknown(
+        call,
+        "WebSocket compaction provider call",
+      );
+    }
   }
 
   _settleCanonicalCompactionFailure(call) {
@@ -509,6 +527,7 @@ export class WSAgentHandler {
       { ...call, code: "provider_call_failed" },
       "unknown",
     );
+    this._markSessionBudgetUsageUnknown(call);
   }
 
   _latchCompactionSettlement({
@@ -1468,17 +1487,27 @@ export class WSAgentHandler {
                 this._persistCanonicalUsageBoundary(event, "unknown");
               }
               this._emitCompactionUsageUnknown(requestId, event);
+              if (this._markSessionBudgetUsageUnknown(event)) {
+                rejectSessionBudgetUsageUnknown(
+                  event,
+                  "WebSocket semantic compaction",
+                );
+              }
               break;
 
             case "model-usage-started":
               if (strictUsageTelemetry && event.ledgerPersisted !== true) {
                 this._persistCanonicalUsageBoundary(event, "started");
               }
+              this._beginSessionBudgetUsage(event);
               break;
 
             case "model-usage-unknown":
               if (strictUsageTelemetry && event.ledgerPersisted !== true) {
                 this._persistCanonicalUsageBoundary(event, "unknown");
+              }
+              if (this._markSessionBudgetUsageUnknown(event)) {
+                rejectSessionBudgetUsageUnknown(event, "WebSocket provider call");
               }
               break;
 
@@ -1574,8 +1603,13 @@ export class WSAgentHandler {
       let surfacedError = err;
       const sessionBudgetFailed =
         err?.code === "CC_SESSION_BUDGET_EXHAUSTED" ||
+        err?.code === "CC_SESSION_BUDGET_USAGE_UNKNOWN" ||
         this._sessionBudget?.signal?.aborted === true;
-      if (sessionBudgetFailed && err?.code !== "CC_SESSION_BUDGET_EXHAUSTED") {
+      if (
+        sessionBudgetFailed &&
+        err?.code !== "CC_SESSION_BUDGET_EXHAUSTED" &&
+        err?.code !== "CC_SESSION_BUDGET_USAGE_UNKNOWN"
+      ) {
         surfacedError = sessionBudgetAdmissionError(
           this._sessionBudget?.reason?.(),
           "WebSocket turn",
@@ -1587,7 +1621,7 @@ export class WSAgentHandler {
         !canonicalTurn.settlementAttempted
       ) {
         const failureCode = sessionBudgetFailed
-          ? "CC_SESSION_BUDGET_EXHAUSTED"
+          ? surfacedError?.code || "CC_SESSION_BUDGET_EXHAUSTED"
           : isAbortError(err)
             ? "CC_WS_TURN_INTERRUPTED"
           : err?.code === "CC_WS_EMPTY_ASSISTANT_RESPONSE"

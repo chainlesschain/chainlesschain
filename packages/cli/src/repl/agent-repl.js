@@ -84,6 +84,12 @@ import {
   sessionBudgetAdmissionError,
 } from "../lib/session-budget-production-root.js";
 import {
+  beginSessionBudgetUsage,
+  markSessionBudgetUsageUnknown,
+  recordSessionBudgetUsage,
+  rejectSessionBudgetUsageUnknown,
+} from "../lib/session-budget-usage.js";
+import {
   SideEffectLedger,
   classifyToolSideEffect,
   reconcileSideEffects,
@@ -970,19 +976,11 @@ export async function agentLoop(messages, options) {
           persistTokenUsage(options.sessionId, projectRuntimeTokenUsage(event)),
         );
       }
-      if (!event.attribution && options.sessionBudget?.recordUsage) {
-        const budgetStatus = options.sessionBudget.recordUsage({
-          provider: event.provider || null,
-          model: event.model || null,
-          usage: event.usage || null,
-        });
-        if (budgetStatus?.aborted) {
-          throw sessionBudgetAdmissionError(
-            budgetStatus.reason,
-            "REPL usage settlement",
-          );
-        }
-      }
+      recordSessionBudgetUsage(
+        options.sessionBudget,
+        event,
+        "REPL usage settlement",
+      );
     } else if (
       event.type === "model-usage-started" ||
       event.type === "model-usage-unknown" ||
@@ -1010,6 +1008,15 @@ export async function agentLoop(messages, options) {
             ),
           ),
         );
+      }
+      if (event.type === "model-usage-started") {
+        beginSessionBudgetUsage(
+          options.sessionBudget,
+          event,
+          "REPL provider call",
+        );
+      } else if (markSessionBudgetUsageUnknown(options.sessionBudget, event)) {
+        rejectSessionBudgetUsageUnknown(event, "REPL provider call");
       }
     } else if (event.type === "iteration-warning") {
       writeOut(chalk.yellow(`\n  ${event.message}\n`));

@@ -908,7 +908,7 @@ export class TeamRunner {
         if (typeof value !== "function") return value;
         if (methods.has(property)) return methods.get(property);
         const method =
-          property === "recordUsage"
+          property === "recordUsage" || property === "markUsageUnknown"
             ? (...args) => {
                 // Usage charged through the inherited authority is already in
                 // the global ledger. Remember that ownership so the task's
