@@ -231,6 +231,8 @@ export function readStoredExecutionLocationResultBundle(
 ) {
   const receipt = normalizeExecutionLocationResultStoreReceipt(receiptInput);
   const dir = path.resolve(options.dir || executionLocationResultStoreDir());
+  (options.ensurePrivateDirectory || ensurePrivateDirectory)(dir);
+  (options.ensurePrivateFile || ensurePrivateFile)(resultPath(receipt, dir));
   const bytes = readStoredBytes(receipt, dir, options);
   if (bytesDigest(bytes) !== receipt.canonicalBytesDigest) {
     throw new Error("stored execution-location result byte digest mismatch");
