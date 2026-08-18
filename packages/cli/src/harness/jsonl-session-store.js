@@ -119,6 +119,7 @@ export const _sessionScaleFaultHooks = Object.seal({
   beforeReplicaDirectoryFsync: null,
   afterReplicaDirectoryFsync: null,
   afterLocationHandoffAppend: null,
+  afterResultCollectionSettlementAppend: null,
   beforeDeleteDirectoryFsync: null,
   afterDeleteDirectoryFsync: null,
   afterAntiRollbackPublish: null,
@@ -2695,6 +2696,16 @@ export function getVerifiedSessionExecutionLocationAuthority(sessionId) {
           executionLocation = locationHandoff.target.binding;
           bindingEventHash = event.hash;
           bindingEventCount = eventCount;
+          return;
+        }
+        if (
+          event?.type === SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_EVENT
+        ) {
+          projectSessionResultCollectionSettlement(
+            sessionId,
+            event,
+            eventCount,
+          );
         }
       },
       finish(authority) {
@@ -4299,6 +4310,15 @@ export function settleSessionExecutionLocationResultCollection(
       recovered: true,
     });
   }
+  runSessionScaleFaultHook(
+    "afterResultCollectionSettlementAppend",
+    Object.freeze({
+      sessionId,
+      requestId: data.requestId,
+      requestDigest: data.requestDigest,
+      settlementId: data.settlementId,
+    }),
+  );
   const receipt = readVerifiedSessionExecutionLocationResultSettlement(
     sessionId,
     data.requestId,
