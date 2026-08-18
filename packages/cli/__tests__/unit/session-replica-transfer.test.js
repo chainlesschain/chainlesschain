@@ -334,7 +334,7 @@ describe("verified session replica installation", () => {
     });
   });
 
-  it("settles an accepted result once and recovers the receipt without content", () => {
+  it("settles an accepted result once and recovers its stored bytes", () => {
     const sessionId = "session-result-collection-settlement";
     const source = createSource(sessionId);
     selectTarget();
