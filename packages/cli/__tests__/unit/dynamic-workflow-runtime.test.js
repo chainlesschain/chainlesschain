@@ -3824,7 +3824,7 @@ describe("durable dynamic workflow runtime", () => {
     expect(record.status).toBe("completed");
     expect(runTask).toHaveBeenCalledTimes(2);
     expect(runTask.mock.calls[1][0].userMessage).toContain(
-      "## Bound user input for stage review\n\"approve\"",
+      '## Bound user input for stage review\n"approve"',
     );
     state = readDynamicWorkflowRuntimeState(statePath);
     expect(state.status).toBe("completed");

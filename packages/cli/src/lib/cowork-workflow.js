@@ -878,9 +878,7 @@ export function validateWorkflow(wf) {
             errors.push(`steps[${i}].needsInput.multiSelect must be boolean`);
           }
           if (input.multiSelect === true && !Array.isArray(input.options)) {
-            errors.push(
-              `steps[${i}].needsInput.multiSelect requires options`,
-            );
+            errors.push(`steps[${i}].needsInput.multiSelect requires options`);
           }
         }
       }
@@ -1743,7 +1741,9 @@ export async function runStepNode(step, ctx) {
     resolveInput,
   );
   const activeStep =
-    resolvedMessage === step.message ? step : { ...step, message: resolvedMessage };
+    resolvedMessage === step.message
+      ? step
+      : { ...step, message: resolvedMessage };
 
   if (isLoopStep(activeStep)) {
     const o = await runLoopStep({

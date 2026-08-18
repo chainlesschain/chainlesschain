@@ -1482,9 +1482,7 @@ function verifyInputRequests(state, issues) {
     ids.add(request?.id);
     stepIds.add(request?.stepId);
   }
-  const inputStatus = ["input_requested", "needs_input"].includes(
-    state.status,
-  );
+  const inputStatus = ["input_requested", "needs_input"].includes(state.status);
   if (
     pendingCount > 1 ||
     inputStatus !== (pendingCount === 1) ||
@@ -2156,19 +2154,12 @@ function startRun(statePath, bindings, now) {
   });
 }
 
-function resolveDurableWorkflowStageInput(
-  statePath,
-  runId,
-  rawRequest,
-  now,
-) {
+function resolveDurableWorkflowStageInput(statePath, runId, rawRequest, now) {
   const request = normalizeStageInputRequest(rawRequest);
   const requestId = stageInputRequestIdentity(runId, request);
   const outcome = withStateMutation(statePath, (current) => {
     if (!current || current.runId !== runId) {
-      throw new Error(
-        "durable workflow run disappeared before input request",
-      );
+      throw new Error("durable workflow run disappeared before input request");
     }
     const inputRequests = runtimeInputRequests(current);
     const matchingStep = inputRequests.find(
@@ -2491,12 +2482,9 @@ function markEffectProviderDispatched(statePath, runId, effectId, now) {
       return { value: { control: "stopped", state: current, effect } };
     }
     if (
-      ![
-        "running",
-        "pause_requested",
-        "input_requested",
-        "blocked",
-      ].includes(current.status)
+      !["running", "pause_requested", "input_requested", "blocked"].includes(
+        current.status,
+      )
     ) {
       throw new Error(
         `workflow effect cannot be dispatched while ${current.status}`,
@@ -3754,12 +3742,7 @@ export async function executeDurableDynamicWorkflow(options = {}, deps = {}) {
       maxParallel: execution.runAdmission.maxParallel,
       runTask: durableRunTask,
       resolveInput: (request) =>
-        resolveDurableWorkflowStageInput(
-          statePath,
-          runId,
-          request,
-          deps.now,
-        ),
+        resolveDurableWorkflowStageInput(statePath, runId, request, deps.now),
     });
     const completed = completeRun(statePath, runId, record, deps.now);
     if (completed.control) {
@@ -3966,12 +3949,10 @@ export function prepareDurableWorkflowResume(
   });
 }
 
-export function submitDurableWorkflowInput(
-  statePath,
-  input = {},
-  deps = {},
-) {
-  const requestId = String(input.requestId || "").trim().toLowerCase();
+export function submitDurableWorkflowInput(statePath, input = {}, deps = {}) {
+  const requestId = String(input.requestId || "")
+    .trim()
+    .toLowerCase();
   if (!SHA256_RE.test(requestId)) {
     throw new TypeError("workflow input request id is invalid");
   }
