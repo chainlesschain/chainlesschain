@@ -14,7 +14,9 @@
       "return-commit-diff-summary-artifacts",
       "collect-return-via-fixed-target-command",
       "settle-source-result-collection",
+      "persist-returned-bundle-content-addressed",
       "recover-settlement-after-response-loss",
+      "recover-stored-bundle-after-response-loss",
       "verify-source-readback"
     ],
     "executionLocations": ["wsl", "ssh", "container", "cloud"],
@@ -41,7 +43,9 @@
       "source-before-and-after-collection-authority",
       "result-collection-request-id-and-input-digest",
       "canonical-result-collection-settlement-event",
-      "result-collection-settlement-receipt-digest"
+      "result-collection-settlement-receipt-digest",
+      "content-addressed-result-store-receipt",
+      "stored-canonical-bundle-byte-digest"
     ],
     "failureInjections": [
       "profile-secret-value",
@@ -86,6 +90,10 @@
       "result-collection-request-id-input-mismatch",
       "result-collection-settlement-bundle-byte-tamper",
       "duplicate-target-command-on-settled-request-retry",
+      "result-store-response-loss-after-file-publish",
+      "stored-result-byte-tamper",
+      "stored-result-receipt-tamper",
+      "stored-result-hardlink",
       "oversized-target-result-response",
       "arbitrary-target-result-command-injection"
     ],
@@ -132,6 +140,10 @@
     "duplicateTargetResultCollectionAfterSettlementCount": 0,
     "resultCollectionSettlementContentLeakCount": 0,
     "invalidResultCollectionSettlementAcceptanceCount": 0,
+    "lostStoredResultBundleCount": 0,
+    "storedResultByteTamperAcceptanceCount": 0,
+    "storedResultReceiptTamperAcceptanceCount": 0,
+    "duplicateStoredResultBundleCount": 0,
     "oversizedResultBundleAcceptanceCount": 0,
     "orphanProcessCount": 0,
     "requiredMeasurementsComplete": true,
