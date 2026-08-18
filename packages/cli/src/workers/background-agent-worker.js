@@ -12,7 +12,7 @@
  * no client is attached.
  */
 
-import { readFileSync, writeSync } from "node:fs";
+import { readFileSync, unlinkSync, writeSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -62,6 +62,12 @@ import {
   normalizeBackgroundTurnBootstrapBinding,
 } from "../lib/background-turn-bootstrap-protocol.js";
 import { connectBackgroundAgentKeeper } from "../lib/background-agent-keeper-client.js";
+import { waitForBackgroundAgentLaunchBarrier } from "../lib/background-agent-launch-barrier.js";
+import {
+  backgroundAgentKeeperLaunchClaimPath,
+  createBackgroundAgentKeeperLaunchClaim,
+  matchesBackgroundAgentKeeperLaunchClaim,
+} from "../lib/background-agent-keeper-protocol.js";
 
 const TURN_BOOTSTRAP_MODULE_URL = new URL(
   "./background-turn-bootstrap.js",
@@ -505,29 +511,6 @@ function writeHeartbeat() {
     scheduleTurnLaunchSettlementPersistence(0);
   }
   return applied;
-}
-
-async function waitForLaunchFinalization() {
-  const deadline = Date.now() + DEFAULT_HEARTBEAT_STALE_MS;
-  for (;;) {
-    const current = readBackgroundAgentState(job.id);
-    if (!current) return "terminal";
-    if (current.status && current.status !== "running") return "terminal";
-    if (current.launchFinalizationUncertain !== true) return "ready";
-    if (Date.now() >= deadline) {
-      mergeState({
-        status: "failed",
-        endedAt: Date.now(),
-        exitCode: 1,
-        error: "background launcher did not finalize process ownership",
-        phase: null,
-        transport: null,
-        launchFinalizationUncertain: false,
-      });
-      return "timeout";
-    }
-    await new Promise((resolve) => setTimeout(resolve, 25));
-  }
 }
 
 function finalize(code, signal, errorMessage) {
@@ -1445,12 +1428,99 @@ function getStatus() {
 
 async function main() {
   job = JSON.parse(readFileSync(jobFile, "utf8"));
+  const keeperLaunchClaimPath = job.keeper
+    ? backgroundAgentKeeperLaunchClaimPath(
+        job.id,
+        job.keeper.generation,
+        backgroundAgentsDir(),
+      )
+    : null;
+  // The launcher must publish the exact worker/keeper identities before
+  // either detached child performs its first state mutation. Under sustained
+  // process churn an eagerly scheduled worker could otherwise acquire the
+  // state lock and then be descheduled long enough to fence the launcher's PID
+  // commit. This barrier is intentionally read-only until ownership is final.
+  const launchBarrier = await waitForBackgroundAgentLaunchBarrier({
+    id: job.id,
+    workerGeneration: job.workerGeneration,
+    expectedPid: process.pid,
+    pidField: "workerPid",
+    readState: readBackgroundAgentState,
+    timeoutMs: DEFAULT_HEARTBEAT_STALE_MS,
+    // The keeper writes this private exact-generation marker only after its
+    // first state transaction has returned, which proves that transaction's
+    // lock has been released. Reading `keeperStatus=listening` alone is not
+    // sufficient because the state replacement happens inside the lock.
+    readyWhen: (state) => {
+      if (
+        !keeperLaunchClaimPath ||
+        !Number.isSafeInteger(Number(state.keeperPid)) ||
+        Number(state.keeperPid) <= 0
+      ) {
+        return false;
+      }
+      try {
+        const expectedKeeperLaunchClaim =
+          createBackgroundAgentKeeperLaunchClaim({
+            id: job.id,
+            workerGeneration: job.workerGeneration,
+            keeperGeneration: job.keeper.generation,
+            keeperPid: Number(state.keeperPid),
+            token: job.keeper.token,
+          });
+        return matchesBackgroundAgentKeeperLaunchClaim(
+          JSON.parse(readFileSync(keeperLaunchClaimPath, "utf8")),
+          expectedKeeperLaunchClaim,
+        );
+      } catch {
+        return false;
+      }
+    },
+  });
+  if (launchBarrier.status !== "ready") {
+    if (launchBarrier.status === "timeout") {
+      try {
+        mutateBackgroundAgentState(job.id, (current) => {
+          if (
+            !current ||
+            current.status !== "running" ||
+            current.workerGeneration !== job.workerGeneration ||
+            current.launchFinalizationUncertain !== true
+          ) {
+            return null;
+          }
+          return {
+            ...current,
+            status: "failed",
+            endedAt: Date.now(),
+            exitCode: 1,
+            error: "background launcher did not finalize process ownership",
+            phase: null,
+            transport: null,
+            launchFinalizationUncertain: false,
+          };
+        });
+      } catch {
+        // Retain the durable uncertainty fence if timeout persistence itself
+        // cannot acquire the state lock; no worker side effect has started.
+      }
+    }
+    removeJobFile(jobFile);
+    return;
+  }
   // Claim before opening logs, recovering interactions or creating the pipe.
   // A stopped/removed/differently-generated record must produce no worker
   // side effects and must never be recreated by bootstrap merges.
   if (!writeHeartbeat()) {
     removeJobFile(jobFile);
     return;
+  }
+  if (keeperLaunchClaimPath) {
+    try {
+      unlinkSync(keeperLaunchClaimPath);
+    } catch {
+      // The keeper also removes its generation-bound marker on exit.
+    }
   }
   removeJobFile(jobFile);
   log = openBackgroundLogFile(job.id);
@@ -1636,11 +1706,6 @@ async function main() {
   }, DEFAULT_HEARTBEAT_INTERVAL_MS);
   heartbeat.unref?.();
 
-  const launchReadiness = await waitForLaunchFinalization();
-  if (launchReadiness !== "ready") {
-    finalize(launchReadiness === "timeout" ? 1 : 0, null);
-    return;
-  }
   if (!job.keeper) {
     throw new Error("background agent keeper launch authority is missing");
   }

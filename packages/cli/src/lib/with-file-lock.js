@@ -54,6 +54,7 @@ export function withFileLock(targetPath, fn, opts = {}) {
   };
   let held = false;
   let acquisitionError = null;
+  let lastOwnerObservation = null;
   let retryAttempt = 0;
   const deadline = _now() + timeoutMs;
 
@@ -88,6 +89,17 @@ export function withFileLock(targetPath, fn, opts = {}) {
       const incumbent = ownerRead.owner;
       acquisitionError = ownerRead.error;
       if (incumbent) {
+        let incumbentAlive = true;
+        try {
+          incumbentAlive = isOwnerAlive(incumbent);
+        } catch {
+          // An unavailable identity probe must retain the lock.
+        }
+        lastOwnerObservation = {
+          pid: incumbent.pid,
+          startedAt: incumbent.startedAt,
+          alive: incumbentAlive,
+        };
         // The owner writes this exact-token marker only after its critical
         // section has finished. A Windows sharing violation can then prevent
         // the final recursive removal while the owner process remains alive,
@@ -102,11 +114,11 @@ export function withFileLock(targetPath, fn, opts = {}) {
           owner,
           isOwnerAlive,
         );
+        lastOwnerObservation.releasePublished = publishedRelease.published;
         if (publishedRelease.completed) continue;
-        if (!publishedRelease.published && !isOwnerAlive(incumbent)) {
-          if (reclaimOwnedDirectory(_fs, lockDir, incumbent, isOwnerAlive)) {
+        if (!publishedRelease.published && !incumbentAlive) {
+          if (reclaimOwnedDirectory(_fs, lockDir, incumbent, isOwnerAlive))
             continue;
-          }
         }
       } else if (!failIfUnavailable) {
         // Compatibility for legacy best-effort locks that predate owner.json.
@@ -139,12 +151,21 @@ export function withFileLock(targetPath, fn, opts = {}) {
   }
 
   if (!held && failIfUnavailable) {
+    const ownerDetails = lastOwnerObservation
+      ? `; owner pid=${lastOwnerObservation.pid}, ageMs=${Math.max(
+          0,
+          _now() - lastOwnerObservation.startedAt,
+        )}, alive=${lastOwnerObservation.alive}, releasePublished=${Boolean(lastOwnerObservation.releasePublished)}`
+      : "";
     const error = new Error(
-      `Could not acquire state lock: ${targetPath}`,
+      `Could not acquire state lock: ${targetPath}${ownerDetails}`,
       acquisitionError ? { cause: acquisitionError } : undefined,
     );
     error.code = "STATE_LOCK_UNAVAILABLE";
     error.attempts = retryAttempt + 1;
+    error.lockOwner = lastOwnerObservation
+      ? Object.freeze({ ...lastOwnerObservation })
+      : null;
     throw error;
   }
 

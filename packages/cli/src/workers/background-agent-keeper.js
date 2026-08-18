@@ -9,8 +9,15 @@
  */
 
 import net from "node:net";
-import { readFileSync, unlinkSync, writeSync } from "node:fs";
-import { resolve } from "node:path";
+import {
+  readFileSync,
+  renameSync,
+  rmSync,
+  unlinkSync,
+  writeFileSync,
+  writeSync,
+} from "node:fs";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createNdjsonReader } from "../lib/background-session-transport.js";
 import {
@@ -35,12 +42,15 @@ import {
   BACKGROUND_AGENT_KEEPER_RETIRE,
   BACKGROUND_AGENT_KEEPER_RETIRED,
   BACKGROUND_AGENT_KEEPER_STATE_LOCK_TIMEOUT_MS,
+  backgroundAgentKeeperLaunchClaimPath,
   cleanupBackgroundAgentKeeperPipeDirectory,
+  createBackgroundAgentKeeperLaunchClaim,
   createBackgroundAgentKeeperMessage,
   normalizeBackgroundAgentKeeperHello,
   normalizeBackgroundAgentKeeperTurn,
   sameBackgroundAgentKeeperTurn,
 } from "../lib/background-agent-keeper-protocol.js";
+import { waitForBackgroundAgentLaunchBarrier } from "../lib/background-agent-launch-barrier.js";
 
 const STARTUP_TIMEOUT_MS = 30_000;
 const HEARTBEAT_INTERVAL_MS = 1_000;
@@ -132,6 +142,11 @@ export function runBackgroundAgentKeeperHeartbeat({
   reportPersistenceFailure = reportKeeperPersistenceFailure,
 }) {
   if (finishing) return false;
+  // Startup is deliberately serialized: the keeper publishes its listening
+  // claim, then remains read-only until the worker has claimed and
+  // authenticated. Persisting a pre-auth heartbeat would reintroduce the
+  // first-write lock race the launch barrier prevents.
+  if (!workerSocket || !authenticatedHello) return false;
   const currentTime = now();
   const workerHeartbeatExpired =
     workerSocket &&
@@ -322,6 +337,24 @@ async function cleanupTurn(job, turn, reason) {
 
 export async function runBackgroundAgentKeeper(jobFile, options = {}) {
   const job = JSON.parse(readFileSync(jobFile, "utf8"));
+  const launchClaimPath = backgroundAgentKeeperLaunchClaimPath(
+    job.id,
+    job.keeperGeneration,
+    options.backgroundAgentsDirectory || dirname(resolve(jobFile)),
+  );
+  const launchBarrier = await waitForBackgroundAgentLaunchBarrier({
+    id: job.id,
+    workerGeneration: job.workerGeneration,
+    expectedPid: process.pid,
+    pidField: "keeperPid",
+    readState: options.readBackgroundAgentState || readBackgroundAgentState,
+    timeoutMs: Number(options.launchBarrierTimeoutMs) || undefined,
+    sleep: options.launchBarrierSleep,
+  });
+  if (launchBarrier.status !== "ready") {
+    removeJobFile(jobFile);
+    return { status: `launch-${launchBarrier.status}` };
+  }
   removeJobFile(jobFile);
   const startedAt = Date.now();
   const claim = mutateBackgroundAgentState(job.id, (current) => {
@@ -342,6 +375,25 @@ export async function runBackgroundAgentKeeper(jobFile, options = {}) {
     };
   });
   if (!claim.applied) return { status: "unclaimed" };
+  const launchClaim = createBackgroundAgentKeeperLaunchClaim({
+    id: job.id,
+    workerGeneration: job.workerGeneration,
+    keeperGeneration: job.keeperGeneration,
+    keeperPid: process.pid,
+    token: job.token,
+  });
+  const launchClaimCandidate = `${launchClaimPath}.${process.pid}.tmp`;
+  try {
+    writeFileSync(launchClaimCandidate, JSON.stringify(launchClaim), {
+      encoding: "utf8",
+      mode: 0o600,
+      flag: "wx",
+    });
+    renameSync(launchClaimCandidate, launchClaimPath);
+  } catch (error) {
+    rmSync(launchClaimCandidate, { force: true });
+    throw error;
+  }
 
   if (process.platform !== "win32") {
     try {
@@ -686,6 +738,7 @@ export async function runBackgroundAgentKeeper(jobFile, options = {}) {
       // Another keeper can still own a sibling socket in the shared namespace.
     }
   }
+  rmSync(launchClaimPath, { force: true });
   return {
     ...result,
     authenticatedWorkerPid: authenticatedHello?.workerPid || null,

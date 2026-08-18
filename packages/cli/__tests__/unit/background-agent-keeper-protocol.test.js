@@ -9,7 +9,10 @@ import {
   BACKGROUND_AGENT_KEEPER_STATE_LOCK_TIMEOUT_MS,
   BACKGROUND_AGENT_KEEPER_TASKKILL_TIMEOUT_MS,
   POSIX_KEEPER_SOCKET_PATH_MAX_BYTES,
+  backgroundAgentKeeperLaunchClaimPath,
   backgroundAgentKeeperPipePath,
+  createBackgroundAgentKeeperLaunchClaim,
+  matchesBackgroundAgentKeeperLaunchClaim,
   normalizeBackgroundAgentKeeperHello,
   normalizeBackgroundAgentKeeperTurn,
   resolveBackgroundAgentKeeperRetireTimeoutMs,
@@ -34,6 +37,33 @@ const turn = {
 };
 
 describe("background agent keeper protocol", () => {
+  it("binds the post-lock launch claim to the exact keeper generation", () => {
+    const claim = createBackgroundAgentKeeperLaunchClaim({
+      id: turn.id,
+      workerGeneration: turn.workerGeneration,
+      keeperGeneration: "keeper-generation-1",
+      keeperPid: 6789,
+      token: "a".repeat(64),
+    });
+
+    expect(
+      backgroundAgentKeeperLaunchClaimPath(
+        turn.id,
+        claim.keeperGeneration,
+        "/private/state",
+      ).replaceAll("\\", "/"),
+    ).toMatch(
+      /\/\.bg-keeper-test\.keeper-keeper-generation-1\.launch-claim\.json$/u,
+    );
+    expect(matchesBackgroundAgentKeeperLaunchClaim(claim, claim)).toBe(true);
+    expect(
+      matchesBackgroundAgentKeeperLaunchClaim(
+        { ...claim, keeperPid: claim.keeperPid + 1 },
+        claim,
+      ),
+    ).toBe(false);
+  });
+
   it("binds the exact wrapper and runtime identities for one turn", () => {
     expect(normalizeBackgroundAgentKeeperTurn(turn)).toEqual(turn);
     expect(sameBackgroundAgentKeeperTurn(turn, { ...turn })).toBe(true);
@@ -174,6 +204,18 @@ describe("background agent keeper protocol", () => {
     expect(persistKeeper).not.toHaveBeenCalled();
   });
 
+  it("stays read-only until the worker is authenticated", () => {
+    const persistKeeper = vi.fn();
+
+    expect(
+      runBackgroundAgentKeeperHeartbeat({
+        finishing: false,
+        persistKeeper,
+      }),
+    ).toBe(false);
+    expect(persistKeeper).not.toHaveBeenCalled();
+  });
+
   it("disconnects a worker after its authenticated heartbeat expires", () => {
     const persistKeeper = vi.fn();
     const finishForWorkerDisconnect = vi.fn();
@@ -212,6 +254,9 @@ describe("background agent keeper protocol", () => {
     expect(
       runBackgroundAgentKeeperHeartbeat({
         finishing: false,
+        workerSocket: {},
+        authenticatedHello: { workerPid: 2468 },
+        workerHeartbeatAt: 1_234,
         persistKeeper,
         now: () => 1_234,
         reportPersistenceFailure,

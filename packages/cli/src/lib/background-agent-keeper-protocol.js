@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { lstatSync, mkdirSync, rmdirSync } from "node:fs";
-import { posix } from "node:path";
+import { join, posix, resolve } from "node:path";
 
 export const BACKGROUND_AGENT_KEEPER_PROTOCOL_VERSION = 1;
 export const BACKGROUND_AGENT_KEEPER_HELLO = "background-agent-keeper-hello";
@@ -12,6 +12,8 @@ export const BACKGROUND_AGENT_KEEPER_ARMED = "background-agent-keeper-armed";
 export const BACKGROUND_AGENT_KEEPER_RETIRE = "background-agent-keeper-retire";
 export const BACKGROUND_AGENT_KEEPER_RETIRED =
   "background-agent-keeper-retired";
+export const BACKGROUND_AGENT_KEEPER_LAUNCH_CLAIM =
+  "background-agent-keeper-launch-claim";
 export const BACKGROUND_AGENT_KEEPER_HEARTBEAT_INTERVAL_MS = 1_000;
 export const BACKGROUND_AGENT_KEEPER_HEARTBEAT_TIMEOUT_MS = 15_000;
 
@@ -90,6 +92,58 @@ function requiredTimestamp(value, label) {
     throw new TypeError(`invalid background agent keeper ${label}`);
   }
   return normalized;
+}
+
+export function backgroundAgentKeeperLaunchClaimPath(
+  id,
+  keeperGeneration,
+  directory,
+) {
+  const safeId = requiredSafeString(id, "id");
+  const safeGeneration = requiredSafeString(
+    keeperGeneration,
+    "keeper generation",
+  );
+  const requestedDirectory =
+    typeof directory === "string" ? directory.trim() : "";
+  if (!requestedDirectory || requestedDirectory.includes("\0")) {
+    throw new TypeError("invalid background agent keeper state directory");
+  }
+  const stateDirectory = resolve(requestedDirectory);
+  return join(
+    stateDirectory,
+    `.${safeId}.keeper-${safeGeneration}.launch-claim.json`,
+  );
+}
+
+export function createBackgroundAgentKeeperLaunchClaim(binding = {}) {
+  return Object.freeze({
+    type: BACKGROUND_AGENT_KEEPER_LAUNCH_CLAIM,
+    protocolVersion: BACKGROUND_AGENT_KEEPER_PROTOCOL_VERSION,
+    id: requiredSafeString(binding.id, "id"),
+    workerGeneration: requiredSafeString(
+      binding.workerGeneration,
+      "worker generation",
+    ),
+    keeperGeneration: requiredSafeString(
+      binding.keeperGeneration,
+      "keeper generation",
+    ),
+    keeperPid: requiredPositiveInteger(binding.keeperPid, "keeper pid"),
+    token: requiredSafeString(binding.token, "token", SAFE_TOKEN),
+  });
+}
+
+export function matchesBackgroundAgentKeeperLaunchClaim(value, expected = {}) {
+  let actual;
+  let binding;
+  try {
+    actual = createBackgroundAgentKeeperLaunchClaim(value);
+    binding = createBackgroundAgentKeeperLaunchClaim(expected);
+  } catch {
+    return false;
+  }
+  return Object.keys(binding).every((key) => actual[key] === binding[key]);
 }
 
 function digestKeeperPath(value, length) {

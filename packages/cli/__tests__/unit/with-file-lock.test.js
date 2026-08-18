@@ -467,6 +467,52 @@ describe("withFileLock", () => {
     expect(_fs.dirs.has(lockDir)).toBe(true);
   });
 
+  it("reports bounded owner diagnostics without reclaiming a live same-pid owner", () => {
+    const _fs = fakeLockFs();
+    const lockDir = "/critical.json.lock";
+    const liveOwner = {
+      pid: process.pid,
+      startedAt: 1,
+      token: "unknown-same-process-token-01",
+    };
+    _fs.dirs.set(lockDir, 0);
+    _fs.writeFileSync(`${lockDir}/owner.json`, JSON.stringify(liveOwner), {
+      flag: "wx",
+    });
+    let now = 1000;
+    let failure = null;
+
+    try {
+      withFileLock("/critical.json", () => true, {
+        _fs,
+        timeoutMs: 10,
+        staleMs: 1,
+        _now: () => (now += 20),
+        _sleep: () => {},
+        _isProcessAlive: () => true,
+        failIfUnavailable: true,
+      });
+    } catch (error) {
+      failure = error;
+    }
+
+    expect(failure).toMatchObject({
+      code: "STATE_LOCK_UNAVAILABLE",
+      lockOwner: {
+        pid: process.pid,
+        startedAt: liveOwner.startedAt,
+        alive: true,
+        releasePublished: false,
+      },
+    });
+    expect(failure.message).toContain(`owner pid=${process.pid}`);
+    expect(failure.message).toContain("alive=true");
+    expect(JSON.parse(_fs.readFileSync(`${lockDir}/owner.json`))).toEqual(
+      liveOwner,
+    );
+    expect(_fs.dirs.has(lockDir)).toBe(true);
+  });
+
   it("lets a strict caller reclaim a lock after proving the owner pid was reused", () => {
     const _fs = fakeLockFs();
     const lockDir = "/critical.json.lock";
