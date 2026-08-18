@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "manifestVersion": "1.9.32",
+  "manifestVersion": "1.9.33",
   "baselineCommit": "e95d3a28b0ab8f81338a8d718930f2bf2bf99e6e",
   "releaseEvidence": {
     "commitSource": "git-head-at-run",
@@ -668,9 +668,9 @@
       "priority": "P1",
       "required": true,
       "evidenceStatus": "external-evidence-required",
-      "evidenceNotes": "Repository tests establish fixed-command WSL/strict-SSH/existing-Container target probing, exact whole-revision replica installation, independently recomputed target-attestation authority, and a CAS-bound canonical location-handoff successor before replicated resume. A verified target handoff session packages actual bounded summary, diff, artifact, and evidence bytes as canonical base64 records bound to source/target authority and the exact handoff. Source verification rehashes every byte and requires the predecessor head/count to remain unchanged. Configured WSL, strict SSH, and existing Container profiles collect the bundle through one fixed target-side result-pack command. Before settlement v2, source publishes canonical bundle JSON to an owner-only content-addressed store using no-replace hard-link publication, file fsync, supported directory fsync, deterministic byte/receipt digests, strict single-link reads, and full bundle revalidation. The CAS-bound settlement embeds that storage receipt. A stable request id binds exact profile, handoff, result, paths, and items; after settlement response loss, exact retry reads and rehashes stored bytes before returning the bundle and does not run another target command. Legacy v1 settlements remain content-free. Request collision, content/receipt tamper, hardlinks, malformed lineage, and duplicate settlement fail closed. This is not generic ArtifactStore import, patch application, WORM retention, Cloud transport, cross-host writer fencing, or reconnect durability. Shared-store handoff, release readiness, and the full return journey still require real hosts, incremental/bidirectional synchronization, controlled apply, dual-IDE consumption, and 100 independent runs of every exact-commit matrix cell.",
+      "evidenceNotes": "Repository tests establish fixed-command WSL/strict-SSH/existing-Container target probing, exact whole-revision replica installation, independently recomputed target-attestation authority, and a CAS-bound canonical location-handoff successor before replicated resume. A verified target handoff session packages actual bounded summary, diff, artifact, and evidence bytes as canonical base64 records bound to source/target authority and the exact handoff. Source verification rehashes every byte and requires the predecessor head/count to remain unchanged. Configured WSL, strict SSH, and existing Container profiles collect the bundle through one fixed target-side result-pack command. Before settlement v2, source publishes canonical bundle JSON to an owner-only content-addressed store using no-replace hard-link publication, file fsync, supported directory fsync, deterministic byte/receipt digests, strict single-link reads, and full bundle revalidation. The CAS-bound settlement embeds that storage receipt. A stable request id binds exact profile, handoff, result, paths, and items; after settlement response loss, exact retry reads and rehashes stored bytes before returning the bundle and does not run another target command. A source-side result-review command reopens the stored bytes, revalidates the bundle against the exact v2 settlement predecessor and handoff, and emits a deterministic content-free review digest over settlement, storage, summary, diff, artifact, and evidence metadata. Its apply policy explicitly requires that future mutation bind the review digest, exact source Git identity, a managed workspace transaction, and a session apply reservation. Legacy v1 settlements cannot be reviewed because they have no stored bytes. Request collision, content/receipt tamper, hardlinks, malformed lineage, review authority drift, content leakage, and duplicate settlement fail closed. This is not generic ArtifactStore import, patch application, WORM retention, Cloud transport, cross-host writer fencing, reconnect durability, or an IDE review UI. Shared-store handoff, release readiness, and the full return journey still require real hosts, incremental/bidirectional synchronization, controlled apply/rollback, dual-IDE consumption, and 100 independent runs of every exact-commit matrix cell.",
       "fixture": "tests/fixtures/ide-roadmap/p1-execution-location.json",
-      "fixtureDigest": "sha256:21311c0d89935a31ce2f55f03225598390bfa21096e5ecf377d6484da06886fe",
+      "fixtureDigest": "sha256:21e87ec0bc87fcda406a7e94d39f551a891093c23b3af902b6208924aa3aaa8d",
       "seed": 2026080115,
       "minimumIndependentRuns": 100,
       "matrix": {
@@ -711,6 +711,9 @@
         "storedResultByteTamperAcceptanceCount": 0,
         "storedResultReceiptTamperAcceptanceCount": 0,
         "duplicateStoredResultBundleCount": 0,
+        "invalidStoredResultReviewAcceptanceCount": 0,
+        "storedResultReviewContentLeakCount": 0,
+        "legacyStoredResultReviewAcceptanceCount": 0,
         "oversizedResultBundleAcceptanceCount": 0,
         "orphanProcessCount": 0,
         "requiredMeasurementsComplete": true,
@@ -722,6 +725,7 @@
         "packages/cli/__tests__/unit/execution-location-target.test.js",
         "packages/cli/__tests__/unit/execution-location-result.test.js",
         "packages/cli/__tests__/unit/execution-location-result-store.test.js",
+        "packages/cli/__tests__/unit/execution-location-result-review.test.js",
         "packages/cli/__tests__/unit/session-replica-transfer.test.js",
         "packages/cli/__tests__/integration/session-location-target-command.test.js"
       ],
@@ -747,6 +751,7 @@
         "result-collection-settlement-receipt",
         "content-addressed-result-bundle",
         "content-addressed-result-store-receipt",
+        "stored-result-review-authority",
         "redacted-diagnostics",
         "outcome-observations"
       ]

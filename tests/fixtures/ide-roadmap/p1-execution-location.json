@@ -17,6 +17,7 @@
       "persist-returned-bundle-content-addressed",
       "recover-settlement-after-response-loss",
       "recover-stored-bundle-after-response-loss",
+      "review-stored-result-content-free",
       "verify-source-readback"
     ],
     "executionLocations": ["wsl", "ssh", "container", "cloud"],
@@ -45,7 +46,8 @@
       "canonical-result-collection-settlement-event",
       "result-collection-settlement-receipt-digest",
       "content-addressed-result-store-receipt",
-      "stored-canonical-bundle-byte-digest"
+      "stored-canonical-bundle-byte-digest",
+      "stored-result-review-digest"
     ],
     "failureInjections": [
       "profile-secret-value",
@@ -94,6 +96,9 @@
       "stored-result-byte-tamper",
       "stored-result-receipt-tamper",
       "stored-result-hardlink",
+      "stored-result-review-authority-drift",
+      "stored-result-review-content-leak",
+      "legacy-settlement-stored-result-review",
       "oversized-target-result-response",
       "arbitrary-target-result-command-injection"
     ],
@@ -144,6 +149,9 @@
     "storedResultByteTamperAcceptanceCount": 0,
     "storedResultReceiptTamperAcceptanceCount": 0,
     "duplicateStoredResultBundleCount": 0,
+    "invalidStoredResultReviewAcceptanceCount": 0,
+    "storedResultReviewContentLeakCount": 0,
+    "legacyStoredResultReviewAcceptanceCount": 0,
     "oversizedResultBundleAcceptanceCount": 0,
     "orphanProcessCount": 0,
     "requiredMeasurementsComplete": true,
