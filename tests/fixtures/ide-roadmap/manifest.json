@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "manifestVersion": "1.9.30",
+  "manifestVersion": "1.9.31",
   "baselineCommit": "e95d3a28b0ab8f81338a8d718930f2bf2bf99e6e",
   "releaseEvidence": {
     "commitSource": "git-head-at-run",
@@ -668,9 +668,9 @@
       "priority": "P1",
       "required": true,
       "evidenceStatus": "external-evidence-required",
-      "evidenceNotes": "Repository tests establish fixed-command WSL/strict-SSH/existing-Container target probing, exact whole-revision replica installation, independently recomputed target-attestation authority, and a CAS-bound canonical location-handoff successor before replicated resume. A verified target handoff session can package the actual bounded summary, diff, artifact, and evidence bytes as canonical base64 records bound to source/target session authority and the exact handoff id. Source verification rehashes every byte, requires the source predecessor head/count to remain unchanged, emits a content-free verification receipt, and never applies returned bytes implicitly. Files outside the declared data boundary, hardlinks, byte/digest drift, wrong handoff, and stale source authority fail closed. Configured WSL, strict SSH, and existing Container profiles can now collect that bundle without manual copying: source re-attests stable target facts, invokes only fixed target-side result-pack argv with shell disabled or exact POSIX quoting, enforces the 24 MiB response cap, and revalidates source authority after the response before emitting a collection digest. The collection remains read-only and reports response-loss and distributed-fencing gaps. This is not ArtifactStore import, patch application, Cloud transport, cross-host writer fencing, or reconnect durability. Shared-store handoff, release readiness, and the full return journey still require real hosts, incremental/bidirectional synchronization, controlled apply, response-loss recovery, dual-IDE consumption, and 100 independent runs of every exact-commit matrix cell.",
+      "evidenceNotes": "Repository tests establish fixed-command WSL/strict-SSH/existing-Container target probing, exact whole-revision replica installation, independently recomputed target-attestation authority, and a CAS-bound canonical location-handoff successor before replicated resume. A verified target handoff session can package the actual bounded summary, diff, artifact, and evidence bytes as canonical base64 records bound to source/target session authority and the exact handoff id. Source verification rehashes every byte, requires the source predecessor head/count to remain unchanged, emits a content-free verification receipt, and never applies returned bytes implicitly. Files outside the declared data boundary, hardlinks, byte/digest drift, wrong handoff, and stale source authority fail closed. Configured WSL, strict SSH, and existing Container profiles collect that bundle through one fixed target-side result-pack command, then append a CAS-bound, content-free source settlement only after rehashing the complete bundle. A stable request id is bound to the exact profile, handoff, result, paths, and item list; an exact retry after response loss reads the canonical settlement before facts loading or another remote command. Reusing the id with different inputs, tampered bundle bytes, malformed event lineage, and duplicate settlement fail closed. The event stores no returned content and cannot reconstruct lost response bytes. This is not ArtifactStore import, patch application, Cloud transport, cross-host writer fencing, durable result-byte storage, or reconnect durability. Shared-store handoff, release readiness, and the full return journey still require real hosts, incremental/bidirectional synchronization, controlled apply, dual-IDE consumption, and 100 independent runs of every exact-commit matrix cell.",
       "fixture": "tests/fixtures/ide-roadmap/p1-execution-location.json",
-      "fixtureDigest": "sha256:21494505d6a030c01236d341d203de3c7743c48d88b50ac7f5132d05e342dc33",
+      "fixtureDigest": "sha256:abced573913354d6389d8f2cd8aec1784b8efd08f132921a75813ca73bac7413",
       "seed": 2026080115,
       "minimumIndependentRuns": 100,
       "matrix": {
@@ -703,6 +703,10 @@
         "targetResultTransportBypassCount": 0,
         "sourceAdvanceDuringResultCollectionAcceptanceCount": 0,
         "targetFactsDriftResultCollectionCount": 0,
+        "lostResultCollectionSettlementCount": 0,
+        "duplicateTargetResultCollectionAfterSettlementCount": 0,
+        "resultCollectionSettlementContentLeakCount": 0,
+        "invalidResultCollectionSettlementAcceptanceCount": 0,
         "oversizedResultBundleAcceptanceCount": 0,
         "orphanProcessCount": 0,
         "requiredMeasurementsComplete": true,
@@ -734,6 +738,8 @@
         "target-result-byte-bundle",
         "source-result-verification-receipt",
         "fixed-transport-target-result-collection-receipt",
+        "canonical-result-collection-settlement-event",
+        "result-collection-settlement-receipt",
         "redacted-diagnostics",
         "outcome-observations"
       ]

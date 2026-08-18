@@ -13,6 +13,8 @@
       "continue-session",
       "return-commit-diff-summary-artifacts",
       "collect-return-via-fixed-target-command",
+      "settle-source-result-collection",
+      "recover-settlement-after-response-loss",
       "verify-source-readback"
     ],
     "executionLocations": ["wsl", "ssh", "container", "cloud"],
@@ -36,7 +38,10 @@
       "returned-summary-diff-artifact-evidence-byte-digests",
       "source-result-verification-receipt",
       "target-result-collection-attestation",
-      "source-before-and-after-collection-authority"
+      "source-before-and-after-collection-authority",
+      "result-collection-request-id-and-input-digest",
+      "canonical-result-collection-settlement-event",
+      "result-collection-settlement-receipt-digest"
     ],
     "failureInjections": [
       "profile-secret-value",
@@ -77,6 +82,10 @@
       "returned-result-implicit-source-apply",
       "target-facts-drift-before-result-collection",
       "source-predecessor-advance-during-result-collection",
+      "result-collection-response-loss-after-settlement-append",
+      "result-collection-request-id-input-mismatch",
+      "result-collection-settlement-bundle-byte-tamper",
+      "duplicate-target-command-on-settled-request-retry",
       "oversized-target-result-response",
       "arbitrary-target-result-command-injection"
     ],
@@ -119,6 +128,10 @@
     "targetResultTransportBypassCount": 0,
     "sourceAdvanceDuringResultCollectionAcceptanceCount": 0,
     "targetFactsDriftResultCollectionCount": 0,
+    "lostResultCollectionSettlementCount": 0,
+    "duplicateTargetResultCollectionAfterSettlementCount": 0,
+    "resultCollectionSettlementContentLeakCount": 0,
+    "invalidResultCollectionSettlementAcceptanceCount": 0,
     "oversizedResultBundleAcceptanceCount": 0,
     "orphanProcessCount": 0,
     "requiredMeasurementsComplete": true,
