@@ -35,6 +35,7 @@ import java.awt.datatransfer.StringSelection;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Artifacts drawer (Tools menu, gap #9) — browse the agent-published
@@ -44,7 +45,10 @@ import java.util.List;
  * {@code LocalFileSystem.refreshAndFindFileByNioFile} + FileEditorManager;
  * html → external browser), Reveal in folder ({@link RevealFileAction}),
  * Copy path, and Remove (confirm → {@code cc artifacts remove <id>} off-EDT →
- * refresh). Dialog form deliberately (same shape as
+ * refresh). Open/reveal/copy first obtain an audited local path through
+ * {@code cc artifacts access} on a pooled thread; an older CLI without that
+ * authority fails closed instead of falling back to direct store reads.
+ * Dialog form deliberately (same shape as
  * {@link BackgroundAgentsAction} — less code than a tool window and the drawer
  * is a short-lived pick-and-act surface, not a monitor). Parsing/filtering/
  * previewability/action derivation live in the pure {@link Artifacts} core;
@@ -127,36 +131,39 @@ public final class ArtifactsAction extends AnAction implements DumbAware {
 
         openBtn.addActionListener(ev -> {
             Artifacts.Row r = selected(table, model);
-            File f = storedFile(r, note);
-            if (r == null || f == null) return;
+            if (r == null) return;
             String cls = Artifacts.previewClass(r.mime, r.file);
-            if (Artifacts.PREVIEW_HTML.equals(cls)) {
-                BrowserUtil.browse(f);
-                return;
-            }
-            // text + image both open in the IDE (it has an image viewer)
-            VirtualFile vf = LocalFileSystem.getInstance()
-                    .refreshAndFindFileByNioFile(f.toPath());
-            if (vf == null) {
-                note.setText(CcBundle.message("artifacts.missing", f.getPath()));
-                return;
-            }
-            if (project != null) {
-                FileEditorManager.getInstance(project).openFile(vf, true);
-            } else {
-                RevealFileAction.openFile(f); // no project → best effort
-            }
+            authorizeStoredFileAsync(r, note, cwd,
+                    Artifacts.PREVIEW_HTML.equals(cls) ? "open-external" : "preview", f -> {
+                        if (Artifacts.PREVIEW_HTML.equals(cls)) {
+                            BrowserUtil.browse(f);
+                            return;
+                        }
+                        // text + image both open in the IDE (it has an image viewer)
+                        VirtualFile vf = LocalFileSystem.getInstance()
+                                .refreshAndFindFileByNioFile(f.toPath());
+                        if (vf == null) {
+                            note.setText(CcBundle.message("artifacts.missing", f.getPath()));
+                            return;
+                        }
+                        if (project != null) {
+                            FileEditorManager.getInstance(project).openFile(vf, true);
+                        } else {
+                            RevealFileAction.openFile(f); // no project → best effort
+                        }
+                    });
         });
         revealBtn.addActionListener(ev -> {
-            File f = storedFile(selected(table, model), note);
-            if (f != null) RevealFileAction.openFile(f);
+            authorizeStoredFileAsync(selected(table, model), note, cwd, "reveal",
+                    RevealFileAction::openFile);
         });
         copyBtn.addActionListener(ev -> {
             Artifacts.Row r = selected(table, model);
-            String path = r == null ? null : Artifacts.storedPath(storeDir(), r);
-            if (path == null) return;
-            CopyPasteManager.getInstance().setContents(new StringSelection(path));
-            note.setText(CcBundle.message("artifacts.copied", path));
+            authorizeStoredFileAsync(r, note, cwd, "copy-path", f -> {
+                CopyPasteManager.getInstance().setContents(
+                        new StringSelection(f.getAbsolutePath()));
+                note.setText(CcBundle.message("artifacts.copied", f.getAbsolutePath()));
+            });
         });
         removeBtn.addActionListener(ev -> {
             Artifacts.Row r = selected(table, model);
@@ -221,17 +228,41 @@ public final class ArtifactsAction extends AnAction implements DumbAware {
                 System.getenv("CC_ARTIFACTS_DIR"), System.getProperty("user.home"));
     }
 
-    /** Stored payload file of a row, or null (+ note) when absent on disk. */
-    private static File storedFile(Artifacts.Row r, JLabel note) {
+    /** Obtain an audited local path off-EDT, then consume it on the UI thread. */
+    private static void authorizeStoredFileAsync(Artifacts.Row r, JLabel note, File cwd,
+            String action, Consumer<File> consumer) {
+        if (r == null) return;
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            File authorized = storedFile(r, cwd, action);
+            ApplicationManager.getApplication().invokeLater(() -> {
+                if (authorized == null) {
+                    note.setText(CcBundle.message("artifacts.missing", r.id));
+                    return;
+                }
+                consumer.accept(authorized);
+            });
+        });
+    }
+
+    /** Stored payload file returned by the audited CLI, or null on any drift. */
+    private static File storedFile(Artifacts.Row r, File cwd, String action) {
         if (r == null) return null;
-        String path = Artifacts.storedPath(storeDir(), r);
-        if (path == null) return null;
-        File f = new File(path);
-        if (!f.isFile()) {
-            note.setText(CcBundle.message("artifacts.missing", path));
+        String output = AgentChatSession.runCapture(
+                Artifacts.buildAccessArgs(r.id, action), cwd, CLI_TIMEOUT_MS);
+        String authorizedPath = output == null ? "" : output.trim();
+        if (authorizedPath.isEmpty()) return null;
+        try {
+            File filesRoot = new File(storeDir(), "files").getCanonicalFile();
+            File authorized = new File(authorizedPath).getCanonicalFile();
+            if (!authorized.isFile()
+                    || authorized.getParentFile() == null
+                    || !authorized.getParentFile().equals(filesRoot)) {
+                return null;
+            }
+            return authorized;
+        } catch (java.io.IOException ex) {
             return null;
         }
-        return f;
     }
 
     @SuppressWarnings("unchecked")

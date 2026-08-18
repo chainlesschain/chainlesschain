@@ -19,6 +19,12 @@ import {
   publicArtifactMetadata,
 } from "../lib/artifact-store.js";
 import {
+  ARTIFACT_ACCESS_ACTIONS,
+  ARTIFACT_ACCESS_CLIENTS,
+  authorizeArtifactContentAccess,
+  readArtifactAccessLedger,
+} from "../lib/artifact-access-ledger.js";
+import {
   assessDeliveryEvidence,
   createDeliveryEvidenceRecord,
   DELIVERY_EVIDENCE_SCHEMA,
@@ -66,9 +72,37 @@ export function registerArtifactsCommand(program) {
 
   cmd
     .command("open <id>")
-    .description("Print the artifact's stored file path (for piping/opening)")
+    .description("Authorize local content access and print the stored path")
     .action((id) => {
       process.exitCode = runArtifactsOpen(id);
+    });
+
+  cmd
+    .command("access <id>")
+    .description(
+      "Authorize one official client action and record content-free access lineage",
+    )
+    .requiredOption(
+      "--client <client>",
+      `Declared client (${ARTIFACT_ACCESS_CLIENTS.join("|")})`,
+    )
+    .requiredOption(
+      "--action <action>",
+      `Requested action (${ARTIFACT_ACCESS_ACTIONS.join("|")})`,
+    )
+    .option("--access-id <id>", "Stable id for response-loss retry")
+    .option("--json", "Machine-readable authorization and local path")
+    .action((id, options) => {
+      process.exitCode = runArtifactsAccess(id, options);
+    });
+
+  cmd
+    .command("access-log")
+    .description("Verify and display the content-free artifact access ledger")
+    .option("--artifact <id>", "Only events for one artifact id")
+    .option("--json", "Machine-readable verified ledger projection")
+    .action((options) => {
+      process.exitCode = runArtifactsAccessLog(options);
     });
 
   cmd
@@ -193,7 +227,13 @@ export function runArtifactsList(options = {}, deps = {}) {
     entries = entries.filter((e) => e.kind === String(options.kind));
   }
   if (options.json) {
-    console.log(JSON.stringify({ artifacts: entries }, null, 2));
+    console.log(
+      JSON.stringify(
+        { artifacts: entries.map(publicArtifactMetadata) },
+        null,
+        2,
+      ),
+    );
     return 0;
   }
   if (entries.length === 0) {
@@ -227,8 +267,7 @@ export function runArtifactsShow(id, options = {}, deps = {}) {
     return 1;
   }
   const payload = {
-    ...entry,
-    storedPath: store.storedPath(entry),
+    ...publicArtifactMetadata(entry),
     integrity: store.verifyIntegrity(entry),
   };
   if (options.json) {
@@ -242,14 +281,96 @@ export function runArtifactsShow(id, options = {}, deps = {}) {
 }
 
 export function runArtifactsOpen(id, deps = {}) {
+  return runArtifactsAccess(id, { client: "cli", action: "open" }, deps);
+}
+
+export function runArtifactsAccess(id, options = {}, deps = {}) {
   const store = deps.store || new ArtifactStore();
-  const entry = store.get(id);
-  if (!entry) {
-    console.error(chalk.red(`No artifact with id "${id}".`));
+  try {
+    const authorization = (
+      deps.authorizeArtifactContentAccess || authorizeArtifactContentAccess
+    )(
+      store,
+      {
+        artifactId: id,
+        client: options.client,
+        action: options.action,
+        accessId: options.accessId,
+      },
+      deps.accessOptions || {},
+    );
+    const payload = {
+      schema: "cc-artifact-content-access-authorization/v1",
+      access: authorization.access,
+      recorded: authorization.recorded,
+      storedPath: authorization.storedPath,
+      integrity: authorization.integrity,
+    };
+    if (options.json) {
+      console.log(JSON.stringify(payload, null, 2));
+    } else {
+      console.log(authorization.storedPath);
+    }
+    return 0;
+  } catch (error) {
+    if (options.json) {
+      console.error(
+        JSON.stringify({
+          schema: "cc-artifact-content-access-authorization-error/v1",
+          authorized: false,
+          error: error.message,
+        }),
+      );
+    } else {
+      console.error(chalk.red(`Artifact access failed: ${error.message}`));
+    }
     return 1;
   }
-  console.log(store.storedPath(entry));
-  return 0;
+}
+
+export function runArtifactsAccessLog(options = {}, deps = {}) {
+  const store = deps.store || new ArtifactStore();
+  try {
+    const ledger = (deps.readArtifactAccessLedger || readArtifactAccessLedger)(
+      store,
+      deps.accessOptions || {},
+    );
+    const events = options.artifact
+      ? ledger.events.filter(
+          (event) => event.artifactId === String(options.artifact),
+        )
+      : ledger.events;
+    const projection = {
+      ...ledger,
+      filtered: Boolean(options.artifact),
+      events,
+    };
+    if (options.json) {
+      console.log(JSON.stringify(projection, null, 2));
+    } else if (events.length === 0) {
+      console.log(chalk.dim("No artifact content access events."));
+    } else {
+      for (const event of events) {
+        console.log(
+          `${chalk.cyan(event.sequence)}  ${event.artifactId}  ${event.client}/${event.action}  ${event.authorizedAt}  ${event.eventDigest}`,
+        );
+      }
+    }
+    return 0;
+  } catch (error) {
+    if (options.json) {
+      console.error(
+        JSON.stringify({
+          schema: "cc-artifact-content-access-ledger-error/v1",
+          verified: false,
+          error: error.message,
+        }),
+      );
+    } else {
+      console.error(chalk.red(`Artifact access log failed: ${error.message}`));
+    }
+    return 1;
+  }
 }
 
 export function runArtifactsRemove(id, options = {}, deps = {}) {

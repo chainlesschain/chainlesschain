@@ -98,6 +98,11 @@ public final class Artifacts {
         return Arrays.asList("artifacts", "show", String.valueOf(id), "--json");
     }
 
+    public static List<String> buildAccessArgs(String id, String action) {
+        return Arrays.asList("artifacts", "access", String.valueOf(id),
+                "--client", "jetbrains", "--action", String.valueOf(action));
+    }
+
     public static List<String> buildRemoveArgs(String id) {
         return Arrays.asList("artifacts", "remove", String.valueOf(id), "--json");
     }

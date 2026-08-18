@@ -16,6 +16,9 @@ import {
 import {
   runArtifactsList,
   runArtifactsShow,
+  runArtifactsOpen,
+  runArtifactsAccess,
+  runArtifactsAccessLog,
   runArtifactsRemove,
   runArtifactsClean,
 } from "../../src/commands/artifacts.js";
@@ -158,14 +161,61 @@ describe("cc artifacts command runners (injected store)", () => {
     publishOne();
     logs = [];
     expect(runArtifactsList({ json: true }, { store })).toBe(0);
-    expect(JSON.parse(logs.at(-1)).artifacts).toHaveLength(1);
+    const [listed] = JSON.parse(logs.at(-1)).artifacts;
+    expect(listed).toMatchObject({ title: "r.md", kind: "report" });
+    expect(listed.sourcePath).toBeUndefined();
   });
 
-  it("show resolves storedPath; unknown id exits 1", () => {
+  it("show remains metadata-only; unknown id exits 1", () => {
     const e = publishOne();
     expect(runArtifactsShow(e.id, { json: true }, { store })).toBe(0);
-    expect(JSON.parse(logs.at(-1)).storedPath).toContain(e.file);
+    const shown = JSON.parse(logs.at(-1));
+    expect(shown.integrity).toMatchObject({ ok: true });
+    expect(shown.storedPath).toBeUndefined();
+    expect(shown.sourcePath).toBeUndefined();
     expect(runArtifactsShow("art_missing", {}, { store })).toBe(1);
+  });
+
+  it("open/access records current-byte authority and exposes a verified log", () => {
+    const e = publishOne();
+    expect(runArtifactsOpen(e.id, { store })).toBe(0);
+    expect(logs.at(-1)).toBe(store.storedPath(e));
+
+    logs = [];
+    expect(
+      runArtifactsAccess(
+        e.id,
+        {
+          client: "vscode",
+          action: "preview",
+          accessId: "artifact-test-access",
+          json: true,
+        },
+        { store },
+      ),
+    ).toBe(0);
+    const access = JSON.parse(logs.at(-1));
+    expect(access).toMatchObject({
+      schema: "cc-artifact-content-access-authorization/v1",
+      recorded: true,
+      access: {
+        artifactId: e.id,
+        client: "vscode",
+        action: "preview",
+      },
+      integrity: { ok: true },
+    });
+
+    logs = [];
+    expect(
+      runArtifactsAccessLog({ artifact: e.id, json: true }, { store }),
+    ).toBe(0);
+    const ledger = JSON.parse(logs.at(-1));
+    expect(ledger).toMatchObject({
+      eventCount: 2,
+      filtered: true,
+    });
+    expect(ledger.events).toHaveLength(2);
   });
 
   it("remove + clean report outcomes", () => {

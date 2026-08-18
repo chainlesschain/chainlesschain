@@ -1,8 +1,8 @@
 /**
  * Artifacts drawer webview (gap #9) — browse the agent deliverable store
- * (`cc artifacts`, ~/.chainlesschain/artifacts/). List shows METADATA only
- * (never inlined file bodies); actions route through vscode APIs, not
- * `cc artifacts open` (which merely prints a path):
+ * (`cc artifacts`, ~/.chainlesschain/artifacts/). List shows METADATA only;
+ * every action that exposes a stored path first records a content-free access
+ * authority through `cc artifacts access`, then routes through vscode APIs:
  *
  *  - Preview  markdown → markdown.showPreview on the stored file
  *             image    → <img> via webview.asWebviewUri (localResourceRoots
@@ -23,7 +23,7 @@ const fs = require("fs");
 const { hardenedEnv } = require("../hardened-env");
 const {
   buildArtifactsListArgs,
-  buildArtifactsShowArgs,
+  buildArtifactsAccessArgs,
   buildArtifactsRemoveArgs,
   defaultArtifactsDir,
   shapeArtifacts,
@@ -112,14 +112,21 @@ async function loadData(vscode) {
   postRows();
 }
 
-/** Stored-file path for an id via `cc artifacts show --json` (authoritative). */
-async function storedPathFor(vscode, id) {
-  const res = await runCliJson(vscode, buildArtifactsShowArgs(id));
-  const p = res.ok && res.json && typeof res.json.storedPath === "string"
-    ? res.json.storedPath
-    : null;
+/** Audited stored-file path for one explicit host action. */
+async function storedPathFor(vscode, id, action) {
+  const res = await runCliJson(
+    vscode,
+    buildArtifactsAccessArgs(id, action, "vscode"),
+  );
+  const p =
+    res.ok && res.json && typeof res.json.storedPath === "string"
+      ? res.json.storedPath
+      : null;
   if (!p) {
-    post({ type: "info", text: `artifact ${id} not found${res.ok ? "" : `: ${res.error}`}` });
+    post({
+      type: "info",
+      text: `artifact ${id} not found${res.ok ? "" : `: ${res.error}`}`,
+    });
   }
   return p;
 }
@@ -131,7 +138,7 @@ async function runAction(vscode, msg) {
 
   switch (msg.act) {
     case "preview": {
-      const stored = await storedPathFor(vscode, id);
+      const stored = await storedPathFor(vscode, id, "preview");
       if (!stored) return;
       const uri = vscode.Uri.file(stored);
       if (row?.preview === "markdown") {
@@ -150,19 +157,19 @@ async function runAction(vscode, msg) {
     }
     case "openExternal": {
       // html is opened in the OS browser — never executed in this webview.
-      const stored = await storedPathFor(vscode, id);
+      const stored = await storedPathFor(vscode, id, "open-external");
       if (stored) await vscode.env.openExternal(vscode.Uri.file(stored));
       return;
     }
     case "copyPath": {
-      const stored = await storedPathFor(vscode, id);
+      const stored = await storedPathFor(vscode, id, "copy-path");
       if (!stored) return;
       await vscode.env.clipboard.writeText(stored);
       post({ type: "info", text: `copied: ${stored}` });
       return;
     }
     case "reveal": {
-      const stored = await storedPathFor(vscode, id);
+      const stored = await storedPathFor(vscode, id, "reveal");
       if (stored) {
         await vscode.commands.executeCommand(
           "revealFileInOS",
@@ -172,7 +179,7 @@ async function runAction(vscode, msg) {
       return;
     }
     case "download": {
-      const stored = await storedPathFor(vscode, id);
+      const stored = await storedPathFor(vscode, id, "download");
       if (!stored) return;
       const target = await vscode.window.showSaveDialog({
         defaultUri: vscode.Uri.file(row?.file || id),

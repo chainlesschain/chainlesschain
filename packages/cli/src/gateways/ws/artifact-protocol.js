@@ -25,6 +25,8 @@
 
 import path from "node:path";
 import { readFileSync, statSync } from "node:fs";
+import { publicArtifactMetadata } from "../../lib/artifact-store.js";
+import { authorizeArtifactContentAccess } from "../../lib/artifact-access-ledger.js";
 
 /** Text preview cap (utf8 chars ≈ bytes for the common case). */
 export const TEXT_PREVIEW_CAP = 256 * 1024;
@@ -61,7 +63,11 @@ export async function handleArtifactList(server, id, ws, message) {
     if (message.kind) {
       artifacts = artifacts.filter((e) => e.kind === String(message.kind));
     }
-    server._send(ws, { id, type: "artifact-list", artifacts });
+    server._send(ws, {
+      id,
+      type: "artifact-list",
+      artifacts: artifacts.map(publicArtifactMetadata),
+    });
   } catch (err) {
     sendError(server, id, ws, "ARTIFACT_LIST_FAILED", err.message);
   }
@@ -86,7 +92,7 @@ export async function handleArtifactShow(server, id, ws, message) {
     server._send(ws, {
       id,
       type: "artifact-show",
-      artifact: { ...entry, storedPath: store.storedPath(entry) },
+      artifact: publicArtifactMetadata(entry),
     });
   } catch (err) {
     sendError(server, id, ws, "ARTIFACT_SHOW_FAILED", err.message);
@@ -161,9 +167,17 @@ export async function handleArtifactContent(server, id, ws, message) {
           reason: `image exceeds the ${IMAGE_PREVIEW_CAP} byte preview cap`,
         });
       }
-      const body = readFileSync(storedPath);
+      const authorization = authorizeArtifactContentAccess(store, {
+        artifactId: entry.id,
+        client: "websocket",
+        action: "preview",
+        accessId: message.accessId,
+      });
+      const body = readFileSync(authorization.storedPath);
       return server._send(ws, {
         ...base,
+        access: authorization.access,
+        accessRecorded: authorization.recorded,
         previewable: true,
         encoding: "base64",
         truncated: false,
@@ -172,13 +186,23 @@ export async function handleArtifactContent(server, id, ws, message) {
     }
     // text
     const cap = Math.min(
-      Number(message.maxBytes) > 0 ? Number(message.maxBytes) : TEXT_PREVIEW_CAP,
+      Number(message.maxBytes) > 0
+        ? Number(message.maxBytes)
+        : TEXT_PREVIEW_CAP,
       TEXT_PREVIEW_CAP,
     );
-    const text = readFileSync(storedPath, "utf-8");
+    const authorization = authorizeArtifactContentAccess(store, {
+      artifactId: entry.id,
+      client: "websocket",
+      action: "preview",
+      accessId: message.accessId,
+    });
+    const text = readFileSync(authorization.storedPath, "utf-8");
     const truncated = text.length > cap;
     server._send(ws, {
       ...base,
+      access: authorization.access,
+      accessRecorded: authorization.recorded,
       previewable: true,
       encoding: "utf8",
       truncated,
