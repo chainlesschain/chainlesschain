@@ -66,10 +66,11 @@ const DEFAULT_OUTPUT = join(
 const HARNESS_RESOURCE_SETTLE_MS = 1_000;
 export const BACKGROUND_KEEPER_FORMAL_CHECKPOINT_INTERVAL_MS = 5 * 60 * 1_000;
 export const BACKGROUND_KEEPER_FORMAL_CHECKPOINT_CYCLES = 1_000;
-// The 120s RETIRE contract includes strict preflight/confirmation probes and
+// The 128s RETIRE contract includes strict preflight/confirmation probes and
 // both cleanup persistence windows. A
 // worker-disconnect path has one additional 15s final keeper-status write;
-// add 5s scheduling margin without widening the independent 30s product gate.
+// add 5s scheduling margin for a 148s minimum observer without widening the
+// independent 30s product gate.
 const DEFAULT_CLEANUP_OBSERVER_DEADLINE_MS =
   BACKGROUND_AGENT_KEEPER_RETIRE_TIMEOUT_MS +
   BACKGROUND_AGENT_KEEPER_PERSIST_RETRY_TIMEOUT_MS +

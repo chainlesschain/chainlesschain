@@ -20,6 +20,7 @@ import {
   claimBackgroundAgentHeartbeat,
   effectiveBackgroundAgentState,
   hasValidBackgroundAgentStopCleanupProof,
+  isBackgroundProcessTreeExecutionAlive,
   isSameProcess,
   isBackgroundWorkerStartedError,
   insertArgumentsBeforeOptionTerminator,
@@ -4643,6 +4644,28 @@ describe("background agent supervisor", () => {
           shell: false,
         }),
       );
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "does not inspect an explicitly direct runtime pid as a process group",
+    () => {
+      const sleeperPid = spawnSleeperPid();
+      const startedAt = Date.now();
+      _deps.readProcessState = vi.fn(() => "Z");
+      _deps.readProcessGroupStates = vi.fn(() => ["S"]);
+      _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+
+      expect(
+        isBackgroundProcessTreeExecutionAlive(sleeperPid, startedAt, {
+          processGroup: false,
+        }),
+      ).toBe(false);
+      expect(
+        isBackgroundProcessTreeExecutionAlive(sleeperPid, startedAt, {
+          processGroup: true,
+        }),
+      ).toBe(true);
     },
   );
 

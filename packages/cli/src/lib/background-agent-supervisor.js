@@ -2976,8 +2976,14 @@ function recordedBackgroundProcessesAlive(state) {
   );
 }
 
-export function isBackgroundProcessTreeExecutionAlive(pid, startedAt) {
-  const identity = inspectDestructiveProcessIdentity(pid, startedAt);
+export function isBackgroundProcessTreeExecutionAlive(
+  pid,
+  startedAt,
+  options = {},
+) {
+  const identity = inspectDestructiveProcessIdentity(pid, startedAt, {
+    processGroup: options.processGroup !== false,
+  });
   // `unverifiable` includes a vanished/zombie POSIX leader whose process group
   // is still executable or whose group snapshot failed. Both must block
   // worktree deletion just as a verified live leader does.

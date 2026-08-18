@@ -23,6 +23,7 @@ import {
   retryKeeperPersistence,
   runBackgroundAgentKeeperHeartbeat,
   stopBackgroundAgentKeeperTurnTrees,
+  waitForBackgroundAgentKeeperTurnTreesToStop,
 } from "../../src/workers/background-agent-keeper.js";
 
 const turn = {
@@ -342,7 +343,9 @@ describe("background agent keeper protocol", () => {
         },
       ),
     ).toEqual([stopError.message]);
-    expect(processTreeExecutionAlive).toHaveBeenCalledWith(4321, 1_000);
+    expect(processTreeExecutionAlive).toHaveBeenCalledWith(4321, 1_000, {
+      processGroup: true,
+    });
   });
 
   it("keeps a keeper cleanup failure only while the target remains alive", () => {
@@ -393,6 +396,54 @@ describe("background agent keeper protocol", () => {
     });
   });
 
+  it("allows a bounded macOS reap delay without probing direct targets as groups", async () => {
+    let now = 0;
+    const sleep = vi.fn(async (milliseconds) => {
+      now += milliseconds;
+    });
+    const isProcessTreeExecutionAlive = vi.fn(() => now < 5_000);
+    const targets = [
+      { pid: 4321, startedAt: 1_000, processGroup: true },
+      { pid: 5432, startedAt: 1_001, processGroup: false },
+    ];
+
+    await expect(
+      waitForBackgroundAgentKeeperTurnTreesToStop(targets, {
+        timeoutMs: 10_000,
+        pollMs: 1_000,
+        now: () => now,
+        sleep,
+        isProcessTreeExecutionAlive,
+      }),
+    ).resolves.toEqual([]);
+    expect(now).toBe(5_000);
+    expect(sleep).toHaveBeenCalledTimes(5);
+    expect(isProcessTreeExecutionAlive).toHaveBeenCalledWith(4321, 1_000, {
+      processGroup: true,
+    });
+    expect(isProcessTreeExecutionAlive).toHaveBeenCalledWith(5432, 1_001, {
+      processGroup: false,
+    });
+  });
+
+  it("keeps an executable tree fail-closed after the confirmation budget", async () => {
+    let now = 0;
+    const target = { pid: 4321, startedAt: 1_000, processGroup: true };
+
+    await expect(
+      waitForBackgroundAgentKeeperTurnTreesToStop([target], {
+        timeoutMs: 3_000,
+        pollMs: 1_000,
+        now: () => now,
+        sleep: async (milliseconds) => {
+          now += milliseconds;
+        },
+        isProcessTreeExecutionAlive: () => true,
+      }),
+    ).resolves.toEqual([target]);
+    expect(now).toBe(3_000);
+  });
+
   it("gives RETIRE an independent budget covering bounded Windows cleanup", () => {
     const boundedCleanupMs =
       BACKGROUND_AGENT_KEEPER_CLEANUP_TARGET_LIMIT *
@@ -408,12 +459,12 @@ describe("background agent keeper protocol", () => {
     expect(BACKGROUND_AGENT_KEEPER_RETIRE_TIMEOUT_MS).toBe(
       boundedCleanupMs + BACKGROUND_AGENT_KEEPER_RETIRE_TIMEOUT_MARGIN_MS,
     );
-    expect(BACKGROUND_AGENT_KEEPER_RETIRE_TIMEOUT_MS).toBe(120_000);
+    expect(BACKGROUND_AGENT_KEEPER_RETIRE_TIMEOUT_MS).toBe(128_000);
     expect(resolveBackgroundAgentKeeperRetireTimeoutMs(undefined)).toBe(
-      120_000,
+      128_000,
     );
-    expect(resolveBackgroundAgentKeeperRetireTimeoutMs(Infinity)).toBe(120_000);
-    expect(resolveBackgroundAgentKeeperRetireTimeoutMs(200_000)).toBe(120_000);
+    expect(resolveBackgroundAgentKeeperRetireTimeoutMs(Infinity)).toBe(128_000);
+    expect(resolveBackgroundAgentKeeperRetireTimeoutMs(200_000)).toBe(128_000);
     expect(resolveBackgroundAgentKeeperRetireTimeoutMs(100_000)).toBe(100_000);
     expect(resolveBackgroundAgentKeeperRetireTimeoutMs(1_234.9)).toBe(1_234);
   });

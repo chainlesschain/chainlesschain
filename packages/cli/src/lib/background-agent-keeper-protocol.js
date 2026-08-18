@@ -24,7 +24,7 @@ export const BACKGROUND_AGENT_KEEPER_HEARTBEAT_TIMEOUT_MS = 15_000;
 //
 //   2 targets * (strict identity + taskkill + cleanup confirmation identity) +
 //   2 cleanup-critical persistence retry windows + cleanup confirmation +
-//   scheduling margin = 120 seconds.
+//   scheduling margin = 128 seconds.
 //
 // Keeping these limits in the shared protocol contract prevents either side
 // from silently reintroducing the old 10-second client / longer keeper race.
@@ -38,7 +38,12 @@ export const BACKGROUND_AGENT_KEEPER_IDENTITY_PROBE_TIMEOUT_MS =
 export const BACKGROUND_AGENT_KEEPER_STATE_LOCK_TIMEOUT_MS = 5_000;
 export const BACKGROUND_AGENT_KEEPER_PERSIST_RETRY_TIMEOUT_MS =
   3 * BACKGROUND_AGENT_KEEPER_STATE_LOCK_TIMEOUT_MS;
-export const BACKGROUND_AGENT_KEEPER_CLEANUP_CONFIRM_TIMEOUT_MS = 2_000;
+// A 20-Agent macOS formal run can leave successfully SIGKILLed process groups
+// observable for several seconds while launchd reaps their orphaned leaders.
+// Two seconds made that bounded kernel/reaper delay look like an escaped tree.
+// Ten seconds stays inside the formal observer's 150-second budget while
+// retaining a finite fail-closed confirmation window.
+export const BACKGROUND_AGENT_KEEPER_CLEANUP_CONFIRM_TIMEOUT_MS = 10_000;
 export const BACKGROUND_AGENT_KEEPER_RETIRE_TIMEOUT_MARGIN_MS = 8_000;
 export const BACKGROUND_AGENT_KEEPER_RETIRE_TIMEOUT_MS =
   BACKGROUND_AGENT_KEEPER_CLEANUP_TARGET_LIMIT *

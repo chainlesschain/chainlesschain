@@ -65,7 +65,7 @@ function fixtureEvidence(operatingSystem, mode = "formal") {
     durationSeconds,
     minimumCycles: cycleCount,
     cleanupDeadlineMs: 30_000,
-    cleanupObserverDeadlineMs: formal ? 140_000 : 60_000,
+    cleanupObserverDeadlineMs: formal ? 148_000 : 60_000,
     readinessDeadlineMs: 60_000,
     maxHarnessRssGrowthMb: 192,
     maxHarnessResourceGrowth: 12,
@@ -268,7 +268,7 @@ describe("background Agent keeper soak contract", () => {
       agents: 20,
       durationSeconds: 7_200,
       minimumCycles: 1_000,
-      cleanupObserverDeadlineMs: 140_000,
+      cleanupObserverDeadlineMs: 148_000,
     });
   });
 
@@ -1474,7 +1474,7 @@ describe("background Agent keeper soak aggregate contract", () => {
       'CC_BACKGROUND_KEEPER_SOAK_CLEANUP_DEADLINE_MS: "30000"',
     );
     expect(workflow).toContain(
-      "CC_BACKGROUND_KEEPER_SOAK_CLEANUP_OBSERVER_DEADLINE_MS: ${{ github.event_name == 'pull_request' && '60000' || '140000' }}",
+      "CC_BACKGROUND_KEEPER_SOAK_CLEANUP_OBSERVER_DEADLINE_MS: ${{ github.event_name == 'pull_request' && '60000' || '150000' }}",
     );
     expect(workflow).toContain(
       "CC_BACKGROUND_KEEPER_SOAK_READINESS_DEADLINE_MS: ${{ github.event_name == 'pull_request' && '60000' || '120000' }}",

@@ -254,13 +254,55 @@ export function stopBackgroundAgentKeeperTurnTrees(targets, options = {}) {
         leaderAlive ||
         (platform !== "win32" &&
           target.processGroup === true &&
-          processTreeExecutionAlive(target.pid, target.startedAt));
+          processTreeExecutionAlive(target.pid, target.startedAt, {
+            processGroup: true,
+          }));
       if (residualAlive) {
         failures.push(error?.message || String(error));
       }
     }
   }
   return failures;
+}
+
+export async function waitForBackgroundAgentKeeperTurnTreesToStop(
+  targets,
+  options = {},
+) {
+  const now = options.now || Date.now;
+  const sleep =
+    options.sleep ||
+    ((milliseconds) =>
+      new Promise((resolvePromise) =>
+        setTimeout(resolvePromise, milliseconds),
+      ));
+  const processTreeExecutionAlive =
+    options.isProcessTreeExecutionAlive ||
+    isBackgroundProcessTreeExecutionAlive;
+  const timeoutMs = Math.max(
+    1,
+    Number(options.timeoutMs) ||
+      BACKGROUND_AGENT_KEEPER_CLEANUP_CONFIRM_TIMEOUT_MS,
+  );
+  // Each strict macOS liveness probe invokes ps. Polling every 10 ms across
+  // 20 keepers created a process storm precisely while launchd was trying to
+  // reap the killed groups. A 100 ms cadence remains responsive and bounded
+  // while leaving the host enough scheduling capacity to establish absence.
+  const pollMs = Math.max(1, Number(options.pollMs) || 100);
+  const deadline = now() + timeoutMs;
+  const observeAlive = () =>
+    targets.filter((target) =>
+      processTreeExecutionAlive(target.pid, target.startedAt, {
+        processGroup: target.processGroup !== false,
+      }),
+    );
+
+  let alive = observeAlive();
+  while (alive.length > 0 && now() < deadline) {
+    await sleep(Math.max(1, Math.min(pollMs, deadline - now())));
+    alive = observeAlive();
+  }
+  return alive;
 }
 
 async function cleanupTurn(job, turn, reason) {
@@ -290,17 +332,7 @@ async function cleanupTurn(job, turn, reason) {
   );
   const failures = stopBackgroundAgentKeeperTurnTrees(targets);
 
-  const deadline =
-    Date.now() + BACKGROUND_AGENT_KEEPER_CLEANUP_CONFIRM_TIMEOUT_MS;
-  let alive = targets.filter((target) =>
-    isBackgroundProcessTreeExecutionAlive(target.pid, target.startedAt),
-  );
-  while (alive.length > 0 && Date.now() < deadline) {
-    await new Promise((resolvePromise) => setTimeout(resolvePromise, 10));
-    alive = targets.filter((target) =>
-      isBackgroundProcessTreeExecutionAlive(target.pid, target.startedAt),
-    );
-  }
+  const alive = await waitForBackgroundAgentKeeperTurnTreesToStop(targets);
   const confirmed = alive.length === 0 && failures.length === 0;
   let finalPersistenceAttempts = 0;
   const finalPersistence = await retryKeeperPersistence(() => {
