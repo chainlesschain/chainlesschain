@@ -29,13 +29,17 @@ import {
 import {
   MAX_SESSION_REPLICA_BYTES,
   SESSION_EXECUTION_LOCATION_HANDOFF_INSTALL_SCHEMA,
+  SESSION_EXECUTION_LOCATION_RESULT_APPLY_RECEIPT_SCHEMA,
   SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_RECEIPT_SCHEMA,
   SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_RECEIPT_SCHEMA_V1,
   getVerifiedSessionExecutionLocationAuthority,
   installSessionReplica,
   installSessionReplicaWithLocationHandoff,
+  readVerifiedSessionExecutionLocationResultApply,
   readVerifiedSessionExecutionLocationResultSettlement,
   readVerifiedTranscriptBytes,
+  reserveSessionExecutionLocationResultApply,
+  settleSessionExecutionLocationResultApply,
   settleSessionExecutionLocationResultCollection,
 } from "../harness/jsonl-session-store.js";
 import {
@@ -46,6 +50,12 @@ import {
   EXECUTION_LOCATION_RESULT_REVIEW_SCHEMA,
   createExecutionLocationResultReview,
 } from "../lib/execution-location-result-review.js";
+import {
+  executeControlledExecutionLocationResultApply,
+  terminalExecutionLocationResultApplyTransaction,
+  verifyExecutionLocationResultApplySourceGit,
+} from "../lib/execution-location-result-apply.js";
+import { executionBroker } from "../lib/process-execution-broker/index.js";
 import {
   sameFileStatIdentity,
   samePathHandleFileIdentity,
@@ -554,10 +564,10 @@ export function collectSessionExecutionLocationResult(
   });
 }
 
-export function reviewSessionExecutionLocationResult(
+function readSessionExecutionLocationResultReviewAuthority(
   sessionId,
   requestId,
-  deps = {},
+  deps,
 ) {
   const settlement = (
     deps.readVerifiedSessionExecutionLocationResultSettlement ||
@@ -575,10 +585,253 @@ export function reviewSessionExecutionLocationResult(
     deps.readStoredExecutionLocationResultBundle ||
     readStoredExecutionLocationResultBundle
   )(settlement.storage, deps.resultStoreOptions || {});
-  return (
+  const review = (
     deps.createExecutionLocationResultReview ||
     createExecutionLocationResultReview
   )({ settlement, bundle });
+  return Object.freeze({ settlement, bundle, review });
+}
+
+export function reviewSessionExecutionLocationResult(
+  sessionId,
+  requestId,
+  deps = {},
+) {
+  return readSessionExecutionLocationResultReviewAuthority(
+    sessionId,
+    requestId,
+    deps,
+  ).review;
+}
+
+function assertReviewDigest(review, expectedReviewDigest) {
+  if (review.reviewDigest !== String(expectedReviewDigest || "")) {
+    throw new Error(
+      "result apply review digest does not match stored authority",
+    );
+  }
+}
+
+function resultApplyProjection(receipt, options = {}) {
+  return Object.freeze({
+    ...receipt,
+    recovered: options.recovered === true,
+    allowed: receipt.applied === true,
+    stage: options.stage || (receipt.applied ? "complete" : receipt.status),
+    process: options.process || null,
+  });
+}
+
+function settleResultApplyFromTransaction(
+  sessionId,
+  applyId,
+  transactionState,
+  deps,
+  options = {},
+) {
+  const terminalTransaction = (
+    deps.terminalExecutionLocationResultApplyTransaction ||
+    terminalExecutionLocationResultApplyTransaction
+  )(transactionState);
+  const outcome =
+    transactionState.state === "committed" ? "applied" : "rolled_back";
+  const receipt = (
+    deps.settleSessionExecutionLocationResultApply ||
+    settleSessionExecutionLocationResultApply
+  )(sessionId, applyId, outcome, terminalTransaction);
+  return resultApplyProjection(receipt, {
+    recovered: options.recovered,
+    stage: options.stage || (outcome === "applied" ? "complete" : "recovery"),
+    process: options.process,
+  });
+}
+
+function readPriorResultApply(sessionId, applyId, deps) {
+  return (
+    deps.readVerifiedSessionExecutionLocationResultApply ||
+    readVerifiedSessionExecutionLocationResultApply
+  )(sessionId, applyId);
+}
+
+function inspectResultApplyTransaction(receipt, deps) {
+  const broker = deps.executionBroker || executionBroker;
+  if (typeof broker.inspectWorkspaceTransaction !== "function") {
+    throw new Error("result apply transaction inspection is unavailable");
+  }
+  return broker.inspectWorkspaceTransaction(receipt.transaction.id, {
+    ...(deps.transactionStateDir ? { stateDir: deps.transactionStateDir } : {}),
+  });
+}
+
+export function applySessionExecutionLocationResult(
+  sessionId,
+  options,
+  deps = {},
+) {
+  const loaded = readSessionExecutionLocationResultReviewAuthority(
+    sessionId,
+    options.requestId,
+    deps,
+  );
+  assertReviewDigest(loaded.review, options.reviewDigest);
+  const prior = readPriorResultApply(sessionId, options.applyId, deps);
+  if (prior !== null && prior.terminal !== null) {
+    if (
+      prior.requestId !== options.requestId ||
+      prior.reviewDigest !== loaded.review.reviewDigest
+    ) {
+      throw new Error("result apply id is already bound to different inputs");
+    }
+    return resultApplyProjection(prior, { recovered: true });
+  }
+  if (prior !== null) {
+    if (
+      prior.requestId !== options.requestId ||
+      prior.reviewDigest !== loaded.review.reviewDigest
+    ) {
+      throw new Error("result apply id is already bound to different inputs");
+    }
+    const transactionState = inspectResultApplyTransaction(prior, deps);
+    if (["committed", "rolled_back"].includes(transactionState.state)) {
+      return settleResultApplyFromTransaction(
+        sessionId,
+        options.applyId,
+        transactionState,
+        deps,
+        { recovered: true },
+      );
+    }
+    throw new Error(
+      `result apply recovery is required for transaction ${prior.transaction.id}`,
+    );
+  }
+
+  const authority = (
+    deps.getVerifiedSessionExecutionLocationAuthority ||
+    getVerifiedSessionExecutionLocationAuthority
+  )(sessionId);
+  if (
+    authority.headHash !== loaded.settlement.settlementEventHash ||
+    authority.eventCount !== loaded.settlement.settlementEventCount
+  ) {
+    throw new Error("source session advanced after result settlement");
+  }
+  const broker = deps.executionBroker || executionBroker;
+  const source = (
+    deps.verifyExecutionLocationResultApplySourceGit ||
+    verifyExecutionLocationResultApplySourceGit
+  )(authority, {
+    broker,
+    workspaceRoot: options.workspace,
+    platform: deps.platform,
+  });
+  const diffBytes = Buffer.from(loaded.bundle.diff.contentBase64, "base64");
+  const execution = (
+    deps.executeControlledExecutionLocationResultApply ||
+    executeControlledExecutionLocationResultApply
+  )({
+    broker,
+    sessionId,
+    applyId: options.applyId,
+    workspaceRoot: source.workspaceRoot,
+    diffBytes,
+    ...(deps.transactionStateDir ? { stateDir: deps.transactionStateDir } : {}),
+    onPrepared: (transaction) =>
+      (
+        deps.reserveSessionExecutionLocationResultApply ||
+        reserveSessionExecutionLocationResultApply
+      )(
+        sessionId,
+        options.applyId,
+        loaded.review,
+        source.sourceGit,
+        transaction,
+      ),
+  });
+  if (execution.stage === "reservation") {
+    const reserved = readPriorResultApply(sessionId, options.applyId, deps);
+    if (reserved === null) throw execution.error;
+    if (
+      reserved.reviewDigest !== loaded.review.reviewDigest ||
+      reserved.transaction.id !== execution.transaction.id
+    ) {
+      throw new Error("result apply reservation response is ambiguous");
+    }
+  }
+  const receipt = (
+    deps.settleSessionExecutionLocationResultApply ||
+    settleSessionExecutionLocationResultApply
+  )(sessionId, options.applyId, execution.outcome, execution.transaction);
+  return resultApplyProjection(receipt, {
+    stage: execution.stage,
+    process: execution.process,
+  });
+}
+
+export function recoverSessionExecutionLocationResultApply(
+  sessionId,
+  options,
+  deps = {},
+) {
+  const loaded = readSessionExecutionLocationResultReviewAuthority(
+    sessionId,
+    options.requestId,
+    deps,
+  );
+  assertReviewDigest(loaded.review, options.reviewDigest);
+  const prior = readPriorResultApply(sessionId, options.applyId, deps);
+  if (prior === null) {
+    throw new Error("result apply reservation was not found");
+  }
+  if (
+    prior.requestId !== options.requestId ||
+    prior.reviewDigest !== loaded.review.reviewDigest
+  ) {
+    throw new Error("result apply recovery authority does not match review");
+  }
+  if (prior.terminal !== null) {
+    return resultApplyProjection(prior, { recovered: true });
+  }
+  const broker = deps.executionBroker || executionBroker;
+  const authority = (
+    deps.getVerifiedSessionExecutionLocationAuthority ||
+    getVerifiedSessionExecutionLocationAuthority
+  )(sessionId);
+  const source = (
+    deps.verifyExecutionLocationResultApplySourceGit ||
+    verifyExecutionLocationResultApplySourceGit
+  )(authority, {
+    broker,
+    workspaceRoot: options.workspace,
+    platform: deps.platform,
+  });
+  let transactionState = inspectResultApplyTransaction(prior, deps);
+  if (!["committed", "rolled_back"].includes(transactionState.state)) {
+    if (typeof broker.recoverWorkspaceTransactions !== "function") {
+      throw new Error("result apply workspace recovery is unavailable");
+    }
+    broker.recoverWorkspaceTransactions({
+      id: prior.transaction.id,
+      workspaceRoot: source.workspaceRoot,
+      reason: "explicit session result apply recovery",
+      ...(deps.transactionStateDir
+        ? { stateDir: deps.transactionStateDir }
+        : {}),
+    });
+    transactionState = inspectResultApplyTransaction(prior, deps);
+  }
+  if (!["committed", "rolled_back"].includes(transactionState.state)) {
+    throw new Error(
+      `result apply transaction still requires manual recovery: ${transactionState.state}`,
+    );
+  }
+  return settleResultApplyFromTransaction(
+    sessionId,
+    options.applyId,
+    transactionState,
+    deps,
+    { recovered: true, stage: "recovery" },
+  );
 }
 
 function renderBinding(binding) {
@@ -632,6 +885,14 @@ function writeProjection(projection, options = {}) {
   if (projection.schema === EXECUTION_LOCATION_RESULT_REVIEW_SCHEMA) {
     process.stdout.write(
       `RESULT REVIEWED ${projection.resultId}\nReview: ${projection.reviewDigest}\nBundle: ${projection.bundleDigest}\nSummary: ${projection.summary.byteLength} bytes (${projection.summary.digest})\nDiff: ${projection.diff.byteLength} bytes (${projection.diff.digest})\nApplied: no\n`,
+    );
+    return;
+  }
+  if (
+    projection.schema === SESSION_EXECUTION_LOCATION_RESULT_APPLY_RECEIPT_SCHEMA
+  ) {
+    process.stdout.write(
+      `RESULT APPLY ${projection.applied ? "APPLIED" : "ROLLED BACK"} ${projection.applyId}\nReview: ${projection.reviewDigest}\nTransaction: ${projection.transaction.id}\nEvidence: ${projection.transaction.evidenceDigest || "pending"}\nRecovered: ${projection.recovered ? "yes" : "no"}\n`,
     );
     return;
   }
@@ -1002,6 +1263,58 @@ export function registerSessionLocationSubcommands(session, deps = {}) {
     .action((id, options) => {
       process.exitCode = runAction(
         () => reviewSessionExecutionLocationResult(id, options.requestId, deps),
+        options,
+      );
+    });
+
+  location
+    .command("result-apply <id>")
+    .description(
+      "Apply one explicitly reviewed stored diff inside a durable workspace transaction",
+    )
+    .requiredOption(
+      "--request-id <id>",
+      "Canonical result collection request id",
+    )
+    .requiredOption("--apply-id <id>", "Stable result apply idempotency id")
+    .requiredOption(
+      "--review-digest <sha256>",
+      "Exact content-free review digest accepted by the operator",
+    )
+    .option(
+      "--workspace <path>",
+      "Exact source Git workspace (defaults to session authority)",
+    )
+    .option("--json", "Machine-readable content-free apply receipt")
+    .action((id, options) => {
+      process.exitCode = runAction(
+        () => applySessionExecutionLocationResult(id, options, deps),
+        options,
+      );
+    });
+
+  location
+    .command("result-apply-recover <id>")
+    .description(
+      "Explicitly recover a reserved result apply without replaying its diff",
+    )
+    .requiredOption(
+      "--request-id <id>",
+      "Canonical result collection request id",
+    )
+    .requiredOption("--apply-id <id>", "Reserved result apply id")
+    .requiredOption(
+      "--review-digest <sha256>",
+      "Exact content-free review digest bound to the reservation",
+    )
+    .option(
+      "--workspace <path>",
+      "Exact source Git workspace (defaults to session authority)",
+    )
+    .option("--json", "Machine-readable content-free recovery receipt")
+    .action((id, options) => {
+      process.exitCode = runAction(
+        () => recoverSessionExecutionLocationResultApply(id, options, deps),
         options,
       );
     });

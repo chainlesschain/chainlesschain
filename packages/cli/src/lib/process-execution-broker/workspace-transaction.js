@@ -4286,6 +4286,8 @@ export class WorkspaceTransactionManager {
   recoverPending(options = {}) {
     this._ensureStateRoot();
     this._ensureLockRoot();
+    const requestedId =
+      options.id == null ? null : normalizeId(options.id, "transaction id");
     const requestedRoot = options.workspaceRoot
       ? assertSafeDirectory(options.workspaceRoot, "workspace root")
       : null;
@@ -4293,6 +4295,7 @@ export class WorkspaceTransactionManager {
     const names = fs.readdirSync(this.transactionsDir).sort();
     for (const name of names) {
       if (!SAFE_ID.test(name)) continue;
+      if (requestedId !== null && name !== requestedId) continue;
       let loaded;
       try {
         loaded = this._loadTransaction(name);
