@@ -447,6 +447,7 @@ describe("ws runtime event emission", () => {
       handleMessage: vi.fn().mockResolvedValue(undefined),
       destroy: vi.fn(),
     };
+    server.sessionHandlers.get("sess-1")?.destroy?.();
     server.sessionHandlers.set("sess-1", handler);
     handleSessionMessage(server, "req-3", ws, {
       sessionId: "sess-1",
