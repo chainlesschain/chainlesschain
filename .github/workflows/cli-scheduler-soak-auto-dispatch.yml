@@ -4,8 +4,7 @@ on:
   schedule:
     # Poll hourly so the verifier starts promptly after segment four. The
     # planner itself enforces a 24-hour minimum gap between successful segment
-    # starts; the first pinned segment began at 2026-08-17T14:56Z, so the first
-    # eligible scheduled dispatch remains 2026-08-18T15:06Z.
+    # starts, independent of the currently pinned immutable release tag.
     - cron: "6 * * * *"
   workflow_dispatch:
 
@@ -174,12 +173,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh workflow run cli-scheduler-soak.yml \
-            --ref "${PINNED_REF}" \
-            -f commit_sha="${PINNED_SHA}" \
-            -f duration_seconds=7200 \
-            -f seed="${SEED}" \
-            -f campaign="${CAMPAIGN}"
+          error_file="${RUNNER_TEMP}/scheduler-segment-dispatch.err"
+          if ! gh api --silent --method POST \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/cli-scheduler-soak.yml/dispatches" \
+            -f ref="${PINNED_REF}" \
+            -f "inputs[commit_sha]=${PINNED_SHA}" \
+            -f "inputs[duration_seconds]=7200" \
+            -f "inputs[seed]=${SEED}" \
+            -f "inputs[campaign]=${CAMPAIGN}" \
+            2>"${error_file}"; then
+            error_text="$(tr '\r\n' '  ' < "${error_file}" | cut -c 1-1000)"
+            printf '::error title=Scheduler segment dispatch failed::%s\n' "${error_text}"
+            exit 1
+          fi
           printf 'Dispatched pinned scheduler segment %s/4 from %s at %s.\n' \
             "$(( ${{ steps.plan.outputs.qualifying_or_active_count }} + 1 ))" \
             "${PINNED_REF}" "${PINNED_SHA}" >> "${GITHUB_STEP_SUMMARY}"
@@ -191,12 +198,20 @@ jobs:
           RUN_IDS: ${{ steps.plan.outputs.run_ids }}
         run: |
           set -euo pipefail
-          gh workflow run cli-scheduler-soak-campaign.yml \
-            --ref "${DEFAULT_BRANCH}" \
-            -f commit_sha="${PINNED_SHA}" \
-            -f run_ids="${RUN_IDS}" \
-            -f duration_seconds=7200 \
-            -f seed="${SEED}" \
-            -f campaign="${CAMPAIGN}"
+          error_file="${RUNNER_TEMP}/scheduler-verifier-dispatch.err"
+          if ! gh api --silent --method POST \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/cli-scheduler-soak-campaign.yml/dispatches" \
+            -f ref="${DEFAULT_BRANCH}" \
+            -f "inputs[commit_sha]=${PINNED_SHA}" \
+            -f "inputs[run_ids]=${RUN_IDS}" \
+            -f "inputs[duration_seconds]=7200" \
+            -f "inputs[seed]=${SEED}" \
+            -f "inputs[campaign]=${CAMPAIGN}" \
+            2>"${error_file}"; then
+            error_text="$(tr '\r\n' '  ' < "${error_file}" | cut -c 1-1000)"
+            printf '::error title=Scheduler campaign dispatch failed::%s\n' "${error_text}"
+            exit 1
+          fi
           printf 'Dispatched the four-segment campaign verifier for %s.\n' \
             "${PINNED_SHA}" >> "${GITHUB_STEP_SUMMARY}"

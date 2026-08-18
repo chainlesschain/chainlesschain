@@ -51,11 +51,11 @@ describe("scheduler kernel soak auto-dispatch workflow contract", () => {
     );
     expect(workflow).toContain('ref.object?.type !== "commit"');
     expect(workflow).toContain("ref.object?.sha !== process.env.PINNED_SHA");
-    expect(workflow).toContain('--ref "${PINNED_REF}"');
-    expect(workflow).toContain('-f commit_sha="${PINNED_SHA}"');
-    expect(workflow).toContain("-f duration_seconds=7200");
-    expect(workflow).toContain('-f seed="${SEED}"');
-    expect(workflow).toContain('-f campaign="${CAMPAIGN}"');
+    expect(workflow).toContain('-f ref="${PINNED_REF}"');
+    expect(workflow).toContain('-f "inputs[commit_sha]=${PINNED_SHA}"');
+    expect(workflow).toContain('-f "inputs[duration_seconds]=7200"');
+    expect(workflow).toContain('-f "inputs[seed]=${SEED}"');
+    expect(workflow).toContain('-f "inputs[campaign]=${CAMPAIGN}"');
   });
 
   it("counts exact-SHA segments, preserves the start gap, and finalizes once", () => {
@@ -83,9 +83,15 @@ describe("scheduler kernel soak auto-dispatch workflow contract", () => {
     expect(workflow).toContain("verifierRuns.length > 1");
     expect(workflow).toContain("if: steps.plan.outputs.action == 'verify'");
     expect(workflow).toContain(
-      "gh workflow run cli-scheduler-soak-campaign.yml",
+      "/actions/workflows/cli-scheduler-soak.yml/dispatches",
     );
-    expect(workflow).toContain('--ref "${DEFAULT_BRANCH}"');
-    expect(workflow).toContain('-f run_ids="${RUN_IDS}"');
+    expect(workflow).toContain(
+      "/actions/workflows/cli-scheduler-soak-campaign.yml/dispatches",
+    );
+    expect(workflow).toContain('-f ref="${DEFAULT_BRANCH}"');
+    expect(workflow).toContain('-f "inputs[run_ids]=${RUN_IDS}"');
+    expect(workflow).toContain("gh api --silent --method POST");
+    expect(workflow).toContain("Scheduler segment dispatch failed");
+    expect(workflow).toContain("Scheduler campaign dispatch failed");
   });
 });
