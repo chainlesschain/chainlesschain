@@ -120,7 +120,7 @@ describe("production session budget root", () => {
         {
           authorityId: tool.authorityId,
           resourceType: "tool",
-          kind: "write_file",
+          kind: "tool",
         },
       ],
     });
