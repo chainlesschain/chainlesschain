@@ -299,6 +299,66 @@ export function deliverAfterDurableInteractionCleanup({
   return { cleanupError };
 }
 
+/**
+ * Spawn a pre-main-blocked turn only after its launch intent is durable, then
+ * commit the exact child identity in a short state transaction.
+ *
+ * Native process creation can block under sustained process churn. It must not
+ * run inside the cross-process state lock: a concurrent stop still observes
+ * the durable launch intent, while the bootstrap child cannot enter Agent main
+ * until the later PID commit releases it. If stop wins the commit race, retain
+ * the exact spawned child so the launch-settlement path can retire it.
+ */
+export function spawnTurnAfterDurableIntent({
+  spawnTurn,
+  commitSpawn,
+  now = Date.now,
+}) {
+  if (typeof spawnTurn !== "function" || typeof commitSpawn !== "function") {
+    throw new TypeError(
+      "background turn spawn and commit callbacks are required",
+    );
+  }
+  const agentStartedAt = now();
+  let spawned = null;
+  try {
+    spawned = spawnTurn();
+  } catch (error) {
+    return Object.freeze({
+      committed: false,
+      spawned: error?.spawnedProcess || null,
+      agentStartedAt,
+      error,
+    });
+  }
+  try {
+    const mutation = commitSpawn(spawned, agentStartedAt);
+    if (!mutation?.applied) {
+      return Object.freeze({
+        committed: false,
+        spawned,
+        agentStartedAt,
+        mutation: mutation || null,
+        error: new Error("background turn was stopped before PID commit"),
+      });
+    }
+    return Object.freeze({
+      committed: true,
+      spawned,
+      agentStartedAt,
+      mutation,
+      error: null,
+    });
+  } catch (error) {
+    return Object.freeze({
+      committed: false,
+      spawned: spawned || error?.spawnedProcess || null,
+      agentStartedAt,
+      error,
+    });
+  }
+}
+
 function updateInteractionJournal(mutate, options = {}) {
   const {
     sessionHostWriteDelegation = null,
@@ -838,28 +898,9 @@ function startTurn(argv, promptText) {
   }
   if (!prepared.applied) return false;
 
-  let spawned = null;
-  let agentStartedAt = null;
-  try {
-    const mutation = mutateBackgroundAgentState(job.id, (current) => {
-      if (
-        !current ||
-        current.status !== "running" ||
-        current.stopRequestedAt ||
-        current.turnLaunchIntent?.token !== turnLaunchToken ||
-        Number(current.turnLaunchIntent?.attempt) !== turnLaunchAttempt ||
-        Number(current.workerPid) !== process.pid ||
-        Number(current.workerClaimedPid) !== process.pid ||
-        (current.workerGeneration &&
-          current.workerGeneration !== job.workerGeneration)
-      ) {
-        return null;
-      }
-      // The prepare intent is already durable. Keep the second state lock
-      // through native spawn and pid commit so a stopper sees either the
-      // unresolved intent or the exact child identity it must reap.
-      agentStartedAt = Date.now();
-      spawned = executionBroker.spawn(
+  const launch = spawnTurnAfterDurableIntent({
+    spawnTurn: () =>
+      executionBroker.spawn(
         process.execPath,
         [TURN_BOOTSTRAP_IMPORT_ARGUMENT, job.cliEntry, ...argv],
         {
@@ -881,64 +922,72 @@ function startTurn(argv, promptText) {
           shell: false,
           detached: process.platform !== "win32",
         },
-      );
-      return {
-        ...current,
-        status: "running",
-        phase: "turn",
-        turnCount: nextTurn,
-        pendingApprovals: 0,
-        pendingQuestion: null,
-        uncertainSideEffects: 0,
-        interactionRecovery: {
-          status: "pending",
-          turn: nextTurn,
-          workerGeneration: job.workerGeneration,
-          startedAt: agentStartedAt,
-        },
-        agentPid: spawned.pid,
-        agentStartedAt,
-        agentRuntimePid: null,
-        agentRuntimeStartedAt: null,
-        turnBootstrapStatus: "awaiting-ready",
-        turnBootstrapCommittedAt: null,
-        turnKeeperStatus: "waiting-for-runtime",
-        turnKeeperPid: null,
-        turnKeeperArmedAt: null,
-        turnKeeperCleanupReason: null,
-        turnKeeperCleanupRequestedAt: null,
-        turnKeeperCleanupConfirmedAt: null,
-        turnKeeperCleanupError: null,
-        turnLaunchIntent: null,
-        turnLaunchResolution: {
-          token: turnLaunchToken,
-          attempt: turnLaunchAttempt,
-          outcome: "spawned",
-          agentPid: spawned.pid,
-          resolvedAt: Date.now(),
-        },
-        heartbeatAt: Date.now(),
-      };
-    });
-    if (!mutation.applied) {
-      return beginTurnLaunchSettlement({
-        owned: null,
-        error: new Error("background turn was stopped before native spawn"),
-        turnLaunchToken,
-        turnLaunchAttempt,
-        agentStartedAt: null,
-      });
-    }
-  } catch (error) {
-    const owned = spawned || error?.spawnedProcess;
+      ),
+    commitSpawn: (spawnedTurn, startedAt) =>
+      mutateBackgroundAgentState(job.id, (current) => {
+        if (
+          !current ||
+          current.status !== "running" ||
+          current.stopRequestedAt ||
+          current.turnLaunchIntent?.token !== turnLaunchToken ||
+          Number(current.turnLaunchIntent?.attempt) !== turnLaunchAttempt ||
+          Number(current.workerPid) !== process.pid ||
+          Number(current.workerClaimedPid) !== process.pid ||
+          (current.workerGeneration &&
+            current.workerGeneration !== job.workerGeneration)
+        ) {
+          return null;
+        }
+        return {
+          ...current,
+          status: "running",
+          phase: "turn",
+          turnCount: nextTurn,
+          pendingApprovals: 0,
+          pendingQuestion: null,
+          uncertainSideEffects: 0,
+          interactionRecovery: {
+            status: "pending",
+            turn: nextTurn,
+            workerGeneration: job.workerGeneration,
+            startedAt,
+          },
+          agentPid: spawnedTurn.pid,
+          agentStartedAt: startedAt,
+          agentRuntimePid: null,
+          agentRuntimeStartedAt: null,
+          turnBootstrapStatus: "awaiting-ready",
+          turnBootstrapCommittedAt: null,
+          turnKeeperStatus: "waiting-for-runtime",
+          turnKeeperPid: null,
+          turnKeeperArmedAt: null,
+          turnKeeperCleanupReason: null,
+          turnKeeperCleanupRequestedAt: null,
+          turnKeeperCleanupConfirmedAt: null,
+          turnKeeperCleanupError: null,
+          turnLaunchIntent: null,
+          turnLaunchResolution: {
+            token: turnLaunchToken,
+            attempt: turnLaunchAttempt,
+            outcome: "spawned",
+            agentPid: spawnedTurn.pid,
+            resolvedAt: Date.now(),
+          },
+          heartbeatAt: Date.now(),
+        };
+      }),
+  });
+  if (!launch.committed) {
     return beginTurnLaunchSettlement({
-      owned,
-      error,
+      owned: launch.spawned,
+      error: launch.error,
       turnLaunchToken,
       turnLaunchAttempt,
-      agentStartedAt,
+      agentStartedAt: launch.agentStartedAt,
     });
   }
+  const spawned = launch.spawned;
+  const agentStartedAt = launch.agentStartedAt;
   child = spawned;
   phase = "turn";
   turnCount = nextTurn;

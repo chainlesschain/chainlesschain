@@ -4,6 +4,7 @@ import {
   attachTurnChildBootstrapRelease,
   attachTurnChildTerminationSettlement,
   deliverAfterDurableInteractionCleanup,
+  spawnTurnAfterDurableIntent,
 } from "../../src/workers/background-agent-worker.js";
 import {
   BACKGROUND_TURN_BOOTSTRAP_PROTOCOL_VERSION,
@@ -12,6 +13,82 @@ import {
 } from "../../src/lib/background-turn-bootstrap-protocol.js";
 
 describe("background agent worker child termination settlement", () => {
+  it("does not hold the PID commit transaction through native spawn", () => {
+    const order = [];
+    const child = { pid: 4321 };
+    const result = spawnTurnAfterDurableIntent({
+      now: () => 1234,
+      spawnTurn() {
+        order.push("native-spawn");
+        return child;
+      },
+      commitSpawn(spawned, startedAt) {
+        order.push("pid-commit");
+        expect(spawned).toBe(child);
+        expect(startedAt).toBe(1234);
+        return { applied: true, state: { agentPid: spawned.pid } };
+      },
+    });
+
+    expect(order).toEqual(["native-spawn", "pid-commit"]);
+    expect(result).toMatchObject({
+      committed: true,
+      spawned: child,
+      agentStartedAt: 1234,
+      error: null,
+    });
+  });
+
+  it("retains the blocked child when stop wins before PID commit", () => {
+    const child = { pid: 7654 };
+    const result = spawnTurnAfterDurableIntent({
+      spawnTurn: () => child,
+      commitSpawn: () => ({ applied: false, state: { stopRequestedAt: 1 } }),
+    });
+
+    expect(result.committed).toBe(false);
+    expect(result.spawned).toBe(child);
+    expect(result.error.message).toMatch(/stopped before PID commit/u);
+  });
+
+  it("retains a partially spawned child when native spawn throws", () => {
+    const child = { pid: 8765 };
+    const error = Object.assign(new Error("spawn finalization failed"), {
+      spawnedProcess: child,
+    });
+    const commitSpawn = vi.fn();
+    const result = spawnTurnAfterDurableIntent({
+      spawnTurn() {
+        throw error;
+      },
+      commitSpawn,
+    });
+
+    expect(result).toMatchObject({
+      committed: false,
+      spawned: child,
+      error,
+    });
+    expect(commitSpawn).not.toHaveBeenCalled();
+  });
+
+  it("retains the blocked child when the PID commit transaction throws", () => {
+    const child = { pid: 9876 };
+    const error = new Error("state lock unavailable");
+    const result = spawnTurnAfterDurableIntent({
+      spawnTurn: () => child,
+      commitSpawn() {
+        throw error;
+      },
+    });
+
+    expect(result).toMatchObject({
+      committed: false,
+      spawned: child,
+      error,
+    });
+  });
+
   it("commits the actual runtime pid before releasing pre-main execution", async () => {
     const child = new EventEmitter();
     const sent = [];
