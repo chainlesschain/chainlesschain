@@ -43,6 +43,7 @@ const MAX_PROJECTED_ARTIFACTS_PER_EFFECT = 256;
 const SETTLEMENT_AUTHORITIES = new Set([
   "provider-return",
   "operator-reconciled",
+  "runtime-not-dispatched",
 ]);
 
 function digest(domain, value) {
@@ -101,6 +102,20 @@ function effectBatchId(runId, effects) {
       payloadDigest: effect.payloadDigest,
     })),
   });
+}
+
+function hasProviderDispatchMetadata(effect) {
+  return [
+    effect?.providerDispatchedAt,
+    effect?.timeoutMs,
+    effect?.timeoutObservedAt,
+  ].some((field) => field !== undefined);
+}
+
+function isKnownUndispatched(effect) {
+  return (
+    hasProviderDispatchMetadata(effect) && effect?.providerDispatchedAt === null
+  );
 }
 
 function stateMaterial(state) {
@@ -260,6 +275,35 @@ export function verifyDynamicWorkflowRuntimeState(value) {
           effect.batchSize >= 1 &&
           effect.batchSize <= MAX_EFFECT_BATCH_SIZE &&
           effect.batchIndex < effect.batchSize);
+      const hasDispatchMetadata = hasProviderDispatchMetadata(effect);
+      const dispatchFields = [
+        effect?.providerDispatchedAt,
+        effect?.timeoutMs,
+        effect?.timeoutObservedAt,
+      ];
+      const providerDispatchedAtValid =
+        effect?.providerDispatchedAt === null ||
+        (typeof effect?.providerDispatchedAt === "string" &&
+          isoNow(effect.providerDispatchedAt) === effect.providerDispatchedAt &&
+          Date.parse(effect.providerDispatchedAt) >=
+            Date.parse(effect.requestedAt));
+      const timeoutObservedAtValid =
+        effect?.timeoutObservedAt === null ||
+        (typeof effect?.timeoutObservedAt === "string" &&
+          Number(effect?.timeoutMs) > 0 &&
+          isoNow(effect.timeoutObservedAt) === effect.timeoutObservedAt &&
+          Date.parse(effect.timeoutObservedAt) >=
+            Date.parse(effect.requestedAt) &&
+          (effect.providerDispatchedAt === null ||
+            Date.parse(effect.timeoutObservedAt) >=
+              Date.parse(effect.providerDispatchedAt)));
+      const dispatchMetadataValid =
+        !hasDispatchMetadata ||
+        (dispatchFields.every((field) => field !== undefined) &&
+          Number.isFinite(effect.timeoutMs) &&
+          effect.timeoutMs >= 0 &&
+          providerDispatchedAtValid &&
+          timeoutObservedAtValid);
       if (
         effect?.schema !== DYNAMIC_WORKFLOW_EFFECT_SCHEMA ||
         !SHA256_RE.test(effect.id || "") ||
@@ -274,6 +318,7 @@ export function verifyDynamicWorkflowRuntimeState(value) {
         ids.has(effect.id) ||
         keys.has(effect.key) ||
         !batchMetadataValid ||
+        !dispatchMetadataValid ||
         (effect.status === "pending" &&
           (effect.result !== null ||
             effect.resultDigest !== null ||
@@ -283,6 +328,29 @@ export function verifyDynamicWorkflowRuntimeState(value) {
           (effect.result == null ||
             effect.resultDigest !== resultDigest ||
             !SETTLEMENT_AUTHORITIES.has(effect.settlementAuthority) ||
+            (hasDispatchMetadata &&
+              effect.settlementAuthority === "runtime-not-dispatched" &&
+              (effect.providerDispatchedAt !== null ||
+                effect.result?.status !== "failed" ||
+                effect.result?.result?.providerDispatched !== false ||
+                ![
+                  "timeout-before-dispatch",
+                  "stopped-before-dispatch",
+                ].includes(effect.result?.result?.reason) ||
+                (effect.result?.result?.reason ===
+                  "timeout-before-dispatch") !==
+                  (typeof effect.timeoutObservedAt === "string"))) ||
+            (hasDispatchMetadata &&
+              effect.settlementAuthority !== "runtime-not-dispatched" &&
+              typeof effect.providerDispatchedAt !== "string") ||
+            (hasDispatchMetadata &&
+              typeof effect.providerDispatchedAt === "string" &&
+              Date.parse(effect.providerDispatchedAt) >
+                Date.parse(effect.settledAt)) ||
+            (hasDispatchMetadata &&
+              typeof effect.timeoutObservedAt === "string" &&
+              Date.parse(effect.timeoutObservedAt) >
+                Date.parse(effect.settledAt)) ||
             Date.parse(effect.settledAt) < Date.parse(effect.requestedAt) ||
             isoNow(effect.settledAt) !== effect.settledAt))
       ) {
@@ -532,18 +600,6 @@ function stateBindings(execution, runId) {
   ) {
     throw new TypeError("durable workflow maxParallel admission is invalid");
   }
-  if (
-    execution.workflow?.steps?.some(
-      (step) =>
-        Number(step?.retries || 0) > 0 || Number(step?.timeoutMs || 0) > 0,
-    )
-  ) {
-    const error = new Error(
-      "durable workflow runtime does not yet support retry or timeout steps",
-    );
-    error.code = "CC_DYNAMIC_WORKFLOW_DURABLE_RETRY_TIMEOUT_UNSUPPORTED";
-    throw error;
-  }
   const generation = execution.workflow?.facade?.generation;
   const review = execution.workflow?.facade?.review;
   if (generation != null || review != null) {
@@ -678,12 +734,16 @@ function prepareEffectRequest(args) {
   const stepId = String(args.workflowEffect.stepId);
   const iteration = Number(args.workflowEffect.iteration);
   const attempt = Number(args.workflowEffect.attempt);
+  const timeoutMs = Number(args.workflowEffect.timeoutMs || 0);
+  if (!Number.isFinite(timeoutMs) || timeoutMs < 0) {
+    throw new TypeError("workflow effect timeout context is invalid");
+  }
   const payload = effectPayload(args);
   const payloadDigest = digest(
     "chainlesschain.dynamic-workflow.effect-payload.v1\0",
     payload,
   );
-  return { key, stepId, iteration, attempt, payloadDigest };
+  return { key, stepId, iteration, attempt, timeoutMs, payloadDigest };
 }
 
 function requestEffectBatch(statePath, runId, argsList, now) {
@@ -732,7 +792,10 @@ function requestEffectBatch(statePath, runId, argsList, now) {
     }
     const existingPending = requests
       .map((request) => existingByKey.get(request.key))
-      .find((effect) => effect?.status === "pending");
+      .find(
+        (effect) =>
+          effect?.status === "pending" && !isKnownUndispatched(effect),
+      );
     if (existingPending) {
       const state = transition(
         current,
@@ -761,6 +824,13 @@ function requestEffectBatch(statePath, runId, argsList, now) {
       const existing = existingByKey.get(request.key);
       if (!existing) {
         newRequests.push(request);
+        continue;
+      }
+      if (existing.status === "pending" && isKnownUndispatched(existing)) {
+        resultsByKey.set(request.key, {
+          cached: false,
+          effect: existing,
+        });
         continue;
       }
       resultsByKey.set(request.key, {
@@ -802,6 +872,9 @@ function requestEffectBatch(statePath, runId, argsList, now) {
         batchId,
         batchIndex,
         batchSize: ordered.length,
+        timeoutMs: request.timeoutMs,
+        timeoutObservedAt: null,
+        providerDispatchedAt: null,
         status: "pending",
         requestedAt,
         settledAt: null,
@@ -867,6 +940,151 @@ function createEffectRequestBatcher(statePath, runId, now) {
     });
 }
 
+function markEffectProviderDispatched(statePath, runId, effectId, now) {
+  return withStateMutation(statePath, (current) => {
+    if (!current || current.runId !== runId) {
+      throw new Error("durable workflow run disappeared before dispatch");
+    }
+    const index = current.effects.findIndex((effect) => effect.id === effectId);
+    const effect = current.effects[index];
+    if (!effect || effect.status !== "pending") {
+      throw new Error("workflow effect is not pending before dispatch");
+    }
+    if (!isKnownUndispatched(effect)) {
+      throw new Error("workflow effect dispatch authority is unavailable");
+    }
+    if (current.status === "stopped") {
+      return { value: { control: "stopped", state: current, effect } };
+    }
+    if (!["running", "pause_requested", "blocked"].includes(current.status)) {
+      throw new Error(
+        `workflow effect cannot be dispatched while ${current.status}`,
+      );
+    }
+    const providerDispatchedAt = isoNow(now);
+    const state = transition(
+      current,
+      "effect-provider-dispatched",
+      { effectId, providerDispatchedAt },
+      (draft) => {
+        draft.effects[index] = {
+          ...draft.effects[index],
+          providerDispatchedAt,
+        };
+      },
+      now,
+    );
+    return {
+      state,
+      value: {
+        effect: state.effects[index],
+        state,
+      },
+    };
+  });
+}
+
+function observeEffectTimeout(statePath, runId, effectId, now) {
+  return withStateMutation(statePath, (current) => {
+    if (!current || current.runId !== runId) return { value: current };
+    const index = current.effects.findIndex((effect) => effect.id === effectId);
+    const effect = current.effects[index];
+    if (
+      !effect ||
+      effect.status !== "pending" ||
+      !hasProviderDispatchMetadata(effect) ||
+      typeof effect.providerDispatchedAt !== "string" ||
+      !(effect.timeoutMs > 0) ||
+      effect.timeoutObservedAt !== null
+    ) {
+      return { value: current };
+    }
+    const timeoutObservedAt = isoNow(now);
+    const state = transition(
+      current,
+      "effect-timeout-observed",
+      { effectId, timeoutMs: effect.timeoutMs, timeoutObservedAt },
+      (draft) => {
+        draft.effects[index] = {
+          ...draft.effects[index],
+          timeoutObservedAt,
+        };
+      },
+      now,
+    );
+    return { state, value: state };
+  });
+}
+
+function runtimeNotDispatchedResult(effect, reason) {
+  if (reason !== "timeout" && reason !== "stopped") {
+    throw new TypeError("undispatched workflow effect reason is invalid");
+  }
+  const timeout = reason === "timeout";
+  return {
+    taskId: `runtime-${effect.id.slice("sha256:".length, 39)}`,
+    status: "failed",
+    result: {
+      summary: timeout
+        ? `step timed out after ${effect.timeoutMs}ms before provider dispatch`
+        : "workflow stopped before provider dispatch",
+      providerDispatched: false,
+      reason: timeout ? "timeout-before-dispatch" : "stopped-before-dispatch",
+    },
+  };
+}
+
+function settleUndispatchedEffect(statePath, runId, effectId, reason, now) {
+  return withStateMutation(statePath, (current) => {
+    if (!current || current.runId !== runId) {
+      throw new Error(
+        "durable workflow run disappeared before undispatched settlement",
+      );
+    }
+    const index = current.effects.findIndex((effect) => effect.id === effectId);
+    const effect = current.effects[index];
+    if (
+      !effect ||
+      effect.status !== "pending" ||
+      !isKnownUndispatched(effect) ||
+      (reason === "timeout" && !(effect.timeoutMs > 0)) ||
+      (reason === "stopped" && current.status !== "stopped")
+    ) {
+      throw new Error("workflow effect is not safely undispatched");
+    }
+    const result = runtimeNotDispatchedResult(effect, reason);
+    const resultDigest = effectResultDigest(result);
+    const timeoutObservedAt =
+      reason === "timeout" && effect.timeoutObservedAt === null
+        ? isoNow(now)
+        : effect.timeoutObservedAt;
+    const settledAt = isoNow(now);
+    const state = transition(
+      current,
+      "effect-not-dispatched",
+      {
+        effectId,
+        reason,
+        resultDigest,
+        settlementAuthority: "runtime-not-dispatched",
+      },
+      (draft) => {
+        draft.effects[index] = {
+          ...draft.effects[index],
+          status: "settled",
+          timeoutObservedAt,
+          settledAt,
+          settlementAuthority: "runtime-not-dispatched",
+          resultDigest,
+          result,
+        };
+      },
+      now,
+    );
+    return { state, value: result };
+  });
+}
+
 function settleEffect(statePath, runId, effectId, rawResult, now) {
   const result = snapshotJson(rawResult, "workflow effect result", 1024 * 1024);
   const resultDigest = effectResultDigest(result);
@@ -881,6 +1099,12 @@ function settleEffect(statePath, runId, effectId, rawResult, now) {
     const effect = current.effects[index];
     if (!effect || effect.status !== "pending") {
       throw new Error("workflow effect is not pending at settlement");
+    }
+    if (
+      hasProviderDispatchMetadata(effect) &&
+      typeof effect.providerDispatchedAt !== "string"
+    ) {
+      throw new Error("workflow effect provider dispatch was not persisted");
     }
     const settledAt = isoNow(now);
     const state = transition(
@@ -1048,50 +1272,93 @@ export async function executeDurableDynamicWorkflow(options = {}, deps = {}) {
       );
     }
     if (requested.cached) return requested.result;
+    if (typeof deps.beforeProviderDispatch === "function") {
+      try {
+        await deps.beforeProviderDispatch(requested.effect, args);
+      } catch (cause) {
+        const state = readDynamicWorkflowRuntimeState(statePath);
+        throw controlError(
+          `workflow effect ${requested.effect.id} was persisted but not dispatched`,
+          "undispatched-recovery-required",
+          state,
+          requested.effect,
+          cause,
+        );
+      }
+    }
+    if (
+      isKnownUndispatched(requested.effect) &&
+      (requested.effect.timeoutObservedAt !== null || args.signal?.aborted)
+    ) {
+      return settleUndispatchedEffect(
+        statePath,
+        runId,
+        requested.effect.id,
+        "timeout",
+        deps.now,
+      );
+    }
+    const dispatched = markEffectProviderDispatched(
+      statePath,
+      runId,
+      requested.effect.id,
+      deps.now,
+    );
+    if (dispatched.control === "stopped") {
+      settleUndispatchedEffect(
+        statePath,
+        runId,
+        requested.effect.id,
+        "stopped",
+        deps.now,
+      );
+      const state = readDynamicWorkflowRuntimeState(statePath);
+      throw controlError("dynamic workflow run stopped", "stopped", state);
+    }
+    const effect = dispatched.effect;
+    let timeoutObservationError = null;
+    const observeTimeout = () => {
+      try {
+        observeEffectTimeout(statePath, runId, effect.id, deps.now);
+      } catch (error) {
+        timeoutObservationError ||= error;
+      }
+    };
+    if (args.signal) {
+      args.signal.addEventListener("abort", observeTimeout, { once: true });
+      if (args.signal.aborted) observeTimeout();
+    }
     let result;
     try {
       result = await deps.runTask({
         ...args,
-        workflowEffectId: requested.effect.id,
+        workflowEffectId: effect.id,
       });
       if (typeof deps.afterProvider === "function") {
-        await deps.afterProvider(requested.effect, result);
+        await deps.afterProvider(effect, result);
       }
+      if (timeoutObservationError) throw timeoutObservationError;
     } catch (cause) {
-      const state = blockPendingEffect(
-        statePath,
-        runId,
-        requested.effect.id,
-        deps.now,
-      );
+      const state = blockPendingEffect(statePath, runId, effect.id, deps.now);
       throw controlError(
-        `workflow effect ${requested.effect.id} has an unknown outcome and requires reconciliation`,
+        `workflow effect ${effect.id} has an unknown outcome and requires reconciliation`,
         "reconciliation-required",
         state,
-        requested.effect,
+        effect,
         cause,
       );
+    } finally {
+      args.signal?.removeEventListener("abort", observeTimeout);
     }
     try {
-      return settleEffect(
-        statePath,
-        runId,
-        requested.effect.id,
-        result,
-        deps.now,
-      );
+      return settleEffect(statePath, runId, effect.id, result, deps.now);
     } catch (cause) {
-      const state = blockPendingEffect(
-        statePath,
-        runId,
-        requested.effect.id,
-        deps.now,
-      );
+      const state = blockPendingEffect(statePath, runId, effect.id, deps.now);
       throw controlError(
-        `workflow effect ${requested.effect.id} settlement is unknown and requires reconciliation`,
+        `workflow effect ${effect.id} settlement is unknown and requires reconciliation`,
         "reconciliation-required",
         state,
-        requested.effect,
+        effect,
         cause,
       );
     }
@@ -1235,7 +1502,7 @@ export function prepareDurableWorkflowResume(
       throw new Error(`cannot resume a ${current.status} workflow run`);
     }
     const pending = current.effects.find(
-      (effect) => effect.status === "pending",
+      (effect) => effect.status === "pending" && !isKnownUndispatched(effect),
     );
     if (pending) {
       const error = new Error(
@@ -1285,8 +1552,14 @@ export function reconcileDurableWorkflowEffect(
     if (!effect || effect.status !== "pending") {
       throw new Error("workflow effect is not pending reconciliation");
     }
+    if (isKnownUndispatched(effect)) {
+      throw new Error(
+        "workflow effect was not dispatched and must be resumed instead of reconciled",
+      );
+    }
     const firstPending = current.effects.find(
-      (candidate) => candidate.status === "pending",
+      (candidate) =>
+        candidate.status === "pending" && !isKnownUndispatched(candidate),
     );
     if (firstPending?.id !== effectId) {
       const error = new Error(
@@ -1310,10 +1583,11 @@ export function reconcileDurableWorkflowEffect(
           resultDigest,
           result,
         };
-        const pendingRemain = draft.effects.some(
-          (candidate) => candidate.status === "pending",
+        const unknownPendingRemain = draft.effects.some(
+          (candidate) =>
+            candidate.status === "pending" && !isKnownUndispatched(candidate),
         );
-        if (draft.status === "blocked" && !pendingRemain) {
+        if (draft.status === "blocked" && !unknownPendingRemain) {
           draft.status = "ready";
         }
       },
@@ -1418,6 +1692,9 @@ function projectDynamicWorkflowObservability(state) {
       batchId: effect.batchId || null,
       batchIndex: effect.batchIndex ?? null,
       batchSize: effect.batchSize ?? null,
+      timeoutMs: effect.timeoutMs ?? null,
+      timeoutObservedAt: effect.timeoutObservedAt ?? null,
+      providerDispatchedAt: effect.providerDispatchedAt ?? null,
       taskStatus:
         taskStatus === "completed" || taskStatus === "failed"
           ? taskStatus
@@ -1461,6 +1738,15 @@ function projectDynamicWorkflowObservability(state) {
         ).length,
         operatorReconciled: settled.filter(
           (effect) => effect.settlementAuthority === "operator-reconciled",
+        ).length,
+        runtimeNotDispatched: settled.filter(
+          (effect) => effect.settlementAuthority === "runtime-not-dispatched",
+        ).length,
+        providerDispatched: state.effects.filter(
+          (effect) => typeof effect.providerDispatchedAt === "string",
+        ).length,
+        timeoutObserved: state.effects.filter(
+          (effect) => typeof effect.timeoutObservedAt === "string",
         ).length,
         completedTasks: completedTaskEffects,
         failedTasks: failedTaskEffects,
@@ -1547,6 +1833,9 @@ export function projectDynamicWorkflowRuntime(stateOrPath) {
             batchId: effect.batchId || null,
             batchIndex: effect.batchIndex ?? null,
             batchSize: effect.batchSize ?? null,
+            timeoutMs: effect.timeoutMs ?? null,
+            timeoutObservedAt: effect.timeoutObservedAt ?? null,
+            providerDispatchedAt: effect.providerDispatchedAt ?? null,
             requestedAt: effect.requestedAt,
           }),
         ),

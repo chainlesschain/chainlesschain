@@ -912,10 +912,12 @@ chainlesschain cowork workflow review workflow-draft.json \
 Accepted or hand-authored versioned definitions can opt into the bounded-parallel
 durable runtime. Every concurrently scheduled dispatch group is persisted as one
 atomic effect batch before any provider call. Each step/iteration/attempt keeps
-its own stable effect identity plus batch identity, index, and size. If a
-provider throws or its settlement response is lost, the run becomes `blocked`
-and will not replay any pending effect until an operator supplies bounded result
-files at the exact runtime revisions and in the recorded recovery order.
+its own stable effect identity plus batch identity, index, and size. A second
+persisted marker distinguishes a requested-but-not-dispatched effect from one
+whose provider call may have started. If a provider throws or its settlement
+response is lost, the run becomes `blocked` and will not replay an outcome-
+unknown effect until an operator supplies a bounded result file at the exact
+runtime revision and in the recorded recovery order.
 
 ```bash
 chainlesschain cowork workflow run <workflow-id> \
@@ -933,24 +935,28 @@ the workflow budget, and the hard 64-effect batch limit. A pause remains
 `pause_requested` until every already-requested parallel provider has physically
 settled; an unknown outcome keeps the run blocked. Multi-effect reconciliation
 is ordered by the persisted batch sequence, and the run becomes `ready` only
-after every pending effect is settled. Definitions with per-step retry or
-timeout are still rejected until late provider settlement can be distinguished
-from a genuinely unapplied attempt. Reconciliation is an explicit operator
-assertion about an outcome-unknown provider call, not an automatic retry or a
-third-party receipt.
+after every outcome-unknown pending effect is settled. Retry and timeout steps
+use attempt-scoped effect identities: an explicit failed result may advance to
+the next attempt, a timeout before dispatch is recorded as
+`runtime-not-dispatched`, a late completed result is accepted without retry,
+and a late unknown outcome blocks. A crash with no dispatch marker may safely
+resume that same effect; a persisted dispatch marker requires provider return
+or reconciliation. Reconciliation is an explicit operator assertion about an
+outcome-unknown provider call, not an automatic retry or a third-party receipt.
 
 `runtime-status --json` also returns a digest-bound `observability` projection.
-It exposes effect/result lineage, provider-return versus operator-reconciled
-settlement counts, request-to-settlement wall time, the Cowork result's
-heuristic token estimate, and digest-only artifact/checkpoint references. The
-projection is intentionally `complete: false` and lists every missing authority:
-the current Cowork runner does not return provider token usage or USD cost,
-checkpoint and artifact-store readback are not yet wired, and nested tool side
-effects are not represented by the workflow-level effect ledger.
+It exposes effect/result lineage, provider-return/operator-reconciled/runtime-
+not-dispatched settlement counts, provider dispatch and timeout timestamps,
+request-to-settlement wall time, the Cowork result's heuristic token estimate,
+and digest-only artifact/checkpoint references. The projection is intentionally
+`complete: false` and lists every missing authority: the current Cowork runner
+does not return provider token usage or USD cost, checkpoint and artifact-store
+readback are not yet wired, and nested tool side effects are not represented by
+the workflow-level effect ledger.
 
 **WS protocol**: `workflow-list` / `workflow-get` / `workflow-save` / `workflow-remove` / `workflow-run` (streams `workflow:started` / `step-start` / `step-complete` / `workflow:done`).
 
-**Key files**: `src/gateways/ws/action-protocol.js` (5 handlers), `src/lib/cowork-workflow.js` (CRUD + `executeWorkflow`), `src/lib/dynamic-workflow-draft.js` (model proposal + human review authority), `src/lib/dynamic-workflow-runtime.js` (atomic parallel durable effect protocol), `packages/web-panel/src/stores/workflow.js` (Pinia store + `validateLocal`), `packages/web-panel/src/views/WorkflowEditor.vue`. **Governed CLI regression**: 209 tests across draft/review, durable runtime, façade, DAG, WebSocket, admission, and command routing; the original editor slice retains its 39 backend/frontend/integration/E2E tests.
+**Key files**: `src/gateways/ws/action-protocol.js` (5 handlers), `src/lib/cowork-workflow.js` (CRUD + `executeWorkflow`), `src/lib/dynamic-workflow-draft.js` (model proposal + human review authority), `src/lib/dynamic-workflow-runtime.js` (atomic parallel durable effect protocol), `packages/web-panel/src/stores/workflow.js` (Pinia store + `validateLocal`), `packages/web-panel/src/views/WorkflowEditor.vue`. **Governed CLI regression**: 213 tests across draft/review, durable runtime, façade, DAG, WebSocket, admission, and command routing; the original editor slice retains its 39 backend/frontend/integration/E2E tests.
 
 > Vue Flow visual canvas (drag-to-connect, branch rendering) is planned as M2.
 

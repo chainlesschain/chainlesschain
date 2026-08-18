@@ -2587,6 +2587,58 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 三十七、2026-08-18 P1-1 retry/timeout dispatch authority 与晚到结算子门复核（`07:28 +08:00`）
+
+本节继续第三十六节，但不把 runtime 自有 dispatch marker 外推为第三方 provider receipt，也不宣称跨进程网络调用获得全局
+exactly-once。候选位于已合并本地主分支 `ca638db6152f5ff10bd9cc1bb012694de6d3ee84` 之上的功能分支，尚无本候选 exact-head
+GitHub Actions。本节关闭的是仓库内**attempt-scoped retry、timeout 前未 dispatch、timeout 后晚到成功和晚到未知 outcome 的可区分恢复**子门。
+
+### 本轮关闭的 dispatch 与 timeout settlement authority
+
+- **request 与 provider dispatch 成为两个持久事实。** effect batch 仍先原子写入 pending；每条 effect 在实际调用 provider 前再写
+  `providerDispatchedAt`。进程在 request 后、dispatch marker 前崩溃时，operator 可通过精确 runtime revision 恢复，同一 effect 可安全
+  继续而不要求伪造 reconcile；marker 已存在的 pending effect 则一律视为 outcome unknown。marker 写入后、函数调用前仍有一个保守的
+  模糊窗口，该窗口选择阻断而不是自动重放。
+- **每个 retry attempt 拥有独立 effect identity。** provider 明确返回 `failed` 时，attempt 先以 `provider-return` settlement 持久化，
+  Cowork 才按 definition-bound retry policy 进入下一 attempt；恢复时已 settled attempt 直接使用缓存结果。provider throw、response loss 或
+  settlement failure 不会被当成 retryable failure，而是保持 pending/blocked，禁止下一 attempt 越过未知副作用。
+- **timeout 在 dispatch 前后采用不同 authority。** timeout 在 provider dispatch 前发生时，runtime 写入
+  `runtime-not-dispatched` failed settlement、`timeoutObservedAt` 与 `providerDispatched=false`，不调用 provider，并可安全进入下一 attempt。
+  dispatch 后 timeout 会先持久化 observation，再等待物理 task 结束：晚到 `completed` 是最终 authoritative result，不再重试；晚到明确
+  `failed` 可进入下一 attempt；晚到 throw/未知结果传播 reconciliation-required，不能被 timeout wrapper 吞掉。
+- **调度器不再丢弃晚到结算。** admitted Cowork timeout 在 abort 后继续等待 task promise；晚到 completed entry 直接结束该 step，晚到
+  failed entry 保留为本 attempt 结果，晚到 runtime control 或 invalid-result signal 原样上抛。并发 permit 继续由物理 promise 持有到真实
+  settlement，重试不会绕过 `maxParallel`。
+- **状态校验与观测投影绑定新事实。** runtime verifier 校验 request/dispatch/timeout/settlement 时间顺序、未 dispatch settlement 的精确
+  failed reason，以及 provider-return/reconcile 必须已有 dispatch marker；status/observability 投影新增 timeout、dispatch 与
+  `runtimeNotDispatched` 计数。旧 runtime state 缺少新字段时保持可读，但其 pending effect 按可能已 dispatch 处理，不获得安全重放特权。
+
+### 仓库内验证与证据边界
+
+- durable runtime 单文件为 **17/17**，其中新增覆盖：明确 failed 后 attempt 2、request 后 dispatch 前崩溃恢复、timeout 后 provider 晚到
+  success 且调用次数保持 1、timeout-before-dispatch 不调用 provider 并安全进入下一 attempt，以及 timeout 后未知 outcome 保持 blocked
+  且不重试。Cowork DAG 与 runtime 合并聚焦为 **111/111**。
+- draft/review、durable runtime、facade、Cowork DAG、WebSocket、run admission 与两组 command integration 共八个聚焦文件为
+  **213/213**。roadmap verifier 与 journey evidence 两文件为 **37/37**；`--contract-only` 回读
+  manifest `1.9.4` 的 **15 cases / 63 referenced test files**，并继续明确 runtime evidence 和 release readiness 未被评估。
+- `p1-dynamic-workflow` fixture 新增 request-before-dispatch crash、pre-dispatch timeout、late provider success 与 late unknown outcome
+  故障注入；expected outcome 要求 provider-after-pre-dispatch-timeout、late-success duplicate retry、unknown-timeout retry 和
+  undispatched reconcile 均为 0。manifest 同时要求 provider-dispatch 与 timeout-settlement ledger。
+
+### P1-1 仍未关闭的边界
+
+1. **第三方幂等、receipt 与物理取消：** provider 尚未强制消费 effect/batch idempotency key，也没有返回可独立回读的 durable receipt；
+   dispatch marker 后、真实调用前的 crash 只能保守阻断。pause/stop/timeout 的 AbortSignal 也不能强制终止不合作的进程、网络请求或外部系统。
+2. **完整阶段与制品语义：** 一般阶段间 `needs_input`、持久 restart policy/backoff schedule、真实 token/USD usage、checkpoint restore、
+   ArtifactStore immutable bytes readback 与嵌套 tool/MCP/external-system side-effect ledger 仍未接线。
+3. **产品消费与外部矩阵：** Workbench/VS Code/JetBrains 的 phase/agent/control UI、plugin/marketplace 分发，以及
+   Local/WSL/SSH/Container/Cloud × 三 OS × 双 IDE 每格 100 次 exact-head 真实 provider/宿主故障矩阵均尚未关闭。
+
+因此，P1-1 的**attempt-scoped retry、provider dispatch authority、pre-dispatch timeout 安全重试、late-success 去重与 late-unknown 阻断**
+由本节关闭；P1-1 整项仍为**部分完成**，runtime ledger 不能替代第三方 idempotency/receipt。总计数保持
+**12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
+Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
+
 ## 三十三、2026-08-18 P1-2 固定命令目标 attestation 与预置 session resume 子门复核（`04:33 +08:00`）
 
 本节开始推进第三十二节仍保留的 P1-2，但不把 transport mock 外推为真实 WSL/SSH/Container 宿主已运行，也不把“目标已有 session
