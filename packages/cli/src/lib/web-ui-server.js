@@ -23,6 +23,7 @@ import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { getInlineSource as getEnvelopeInlineSource } from "./web-ui-envelope.js";
 import { CLISkillLoader } from "./skill-loader.js";
+import { authorizeArtifactContentAccess } from "./artifact-access-ledger.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -1333,6 +1334,15 @@ export function handleApiRequest(req, res, ctx = {}) {
           res.end(JSON.stringify({ error: "Stored copy missing" }));
           return;
         }
+        const accessIdHeader = req.headers["x-chainlesschain-access-id"];
+        const authorization = authorizeArtifactContentAccess(store, {
+          artifactId: entry.id,
+          client: "web",
+          action: "download",
+          ...(typeof accessIdHeader === "string"
+            ? { accessId: accessIdHeader }
+            : {}),
+        });
         const downloadName =
           entry.title && path.extname(entry.title)
             ? entry.title
@@ -1343,8 +1353,9 @@ export function handleApiRequest(req, res, ctx = {}) {
           "Content-Disposition": encodeDispositionFilename(downloadName),
           "Cache-Control": "no-store",
           "X-Content-Type-Options": "nosniff",
+          "X-ChainlessChain-Access-Digest": authorization.access.eventDigest,
         });
-        const stream = fs.createReadStream(storedPath);
+        const stream = fs.createReadStream(authorization.storedPath);
         stream.on("error", () => res.destroy());
         stream.pipe(res);
       } catch (err) {

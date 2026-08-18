@@ -438,8 +438,10 @@ export function registerSessionCommand(program) {
           // checkpoint action unavailable with its explicit reason.
         }
         try {
-          const { ArtifactStore } = await import("../lib/artifact-store.js");
-          artifacts = new ArtifactStore().list();
+          const { ArtifactStore, publicArtifactMetadata } = await import(
+            "../lib/artifact-store.js"
+          );
+          artifacts = new ArtifactStore().list().map(publicArtifactMetadata);
         } catch {
           // Summaries are optional; absence never removes a session.
         }

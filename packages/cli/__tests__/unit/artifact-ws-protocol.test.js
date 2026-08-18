@@ -20,6 +20,7 @@ import {
   TEXT_PREVIEW_CAP,
 } from "../../src/gateways/ws/artifact-protocol.js";
 import { ArtifactStore } from "../../src/lib/artifact-store.js";
+import { readArtifactAccessLedger } from "../../src/lib/artifact-access-ledger.js";
 
 let dir;
 let srcDir;
@@ -63,7 +64,7 @@ describe("previewKindForMime", () => {
 });
 
 describe("artifact-list / artifact-show", () => {
-  it("lists with kind/session filters and shows metadata + storedPath", async () => {
+  it("lists with kind/session filters and keeps metadata free of host paths", async () => {
     publish("a.md", "# A", { kind: "report", sessionId: "s1" });
     const b = publish("b.log", "log line", { kind: "log", sessionId: "s2" });
 
@@ -71,6 +72,7 @@ describe("artifact-list / artifact-show", () => {
     await handleArtifactList(server, "1", {}, {});
     expect(server.sent[0].type).toBe("artifact-list");
     expect(server.sent[0].artifacts).toHaveLength(2);
+    expect(server.sent[0].artifacts[0].sourcePath).toBeUndefined();
 
     await handleArtifactList(server, "2", {}, { kind: "log" });
     expect(server.sent[1].artifacts).toHaveLength(1);
@@ -79,7 +81,9 @@ describe("artifact-list / artifact-show", () => {
 
     await handleArtifactShow(server, "4", {}, { artifactId: b.id });
     expect(server.sent[3].type).toBe("artifact-show");
-    expect(server.sent[3].artifact.storedPath).toContain(b.file);
+    expect(server.sent[3].artifact.file).toBe(b.file);
+    expect(server.sent[3].artifact.storedPath).toBeUndefined();
+    expect(server.sent[3].artifact.sourcePath).toBeUndefined();
 
     await handleArtifactShow(server, "5", {}, { artifactId: "art_missing" });
     expect(server.sent[4]).toMatchObject({
@@ -96,6 +100,12 @@ describe("artifact-content preview policy", () => {
     await handleArtifactContent(server, "1", {}, { artifactId: short.id });
     expect(server.sent[0]).toMatchObject({
       type: "artifact-content",
+      access: {
+        artifactId: short.id,
+        client: "websocket",
+        action: "preview",
+      },
+      accessRecorded: true,
       previewable: true,
       encoding: "utf8",
       truncated: false,
@@ -106,6 +116,7 @@ describe("artifact-content preview policy", () => {
     await handleArtifactContent(server, "2", {}, { artifactId: big.id });
     expect(server.sent[1].truncated).toBe(true);
     expect(server.sent[1].content).toHaveLength(TEXT_PREVIEW_CAP);
+    expect(readArtifactAccessLedger(new ArtifactStore()).eventCount).toBe(2);
   });
 
   it("caller maxBytes narrows but can never exceed the server cap", async () => {
@@ -140,6 +151,7 @@ describe("artifact-content preview policy", () => {
     await handleArtifactContent(server, "2", {}, { artifactId: zip.id });
     expect(server.sent[1].previewable).toBe(false);
     expect(server.sent[1].reason).toContain("cc artifacts open");
+    expect(readArtifactAccessLedger(new ArtifactStore()).eventCount).toBe(1);
   });
 
   it("refuses to serve a tampered index row (non-basename stored filename)", async () => {
@@ -182,6 +194,9 @@ describe("artifact-remove / artifact-clean", () => {
       now: () => Date.now() - 40 * 24 * 60 * 60 * 1000,
     }).publish({ filePath: p, ttlDays: 1 });
     await handleArtifactClean(server, "3", {}, {});
-    expect(server.sent[2]).toMatchObject({ type: "artifact-clean", removed: 1 });
+    expect(server.sent[2]).toMatchObject({
+      type: "artifact-clean",
+      removed: 1,
+    });
   });
 });
