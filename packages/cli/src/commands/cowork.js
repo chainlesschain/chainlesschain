@@ -1154,6 +1154,46 @@ export function registerCoworkCommand(program, commandDeps = {}) {
     });
 
   workflow
+    .command("runtime-recover-checkpoints <run-id>")
+    .description(
+      "Atomically settle every crash-visible child call with a bound terminal checkpoint store record",
+    )
+    .requiredOption(
+      "--expected-revision <n>",
+      "Exact runtime revision shown by runtime-status",
+    )
+    .option("--json", "Machine-readable JSON output")
+    .action(async (runId, options) => {
+      try {
+        const runtime = await import("../lib/dynamic-workflow-runtime.js");
+        const statePath = runtime.dynamicWorkflowRunStatePath(
+          process.cwd(),
+          runId,
+        );
+        const state = runtime.recoverDurableWorkflowCheckpointCalls(
+          statePath,
+          { expectedRevision: options.expectedRevision },
+          Object.hasOwn(commandDeps, "workflowCheckpointStore")
+            ? { checkpointStore: commandDeps.workflowCheckpointStore }
+            : {},
+        );
+        const projection = runtime.projectDynamicWorkflowRuntime(state);
+        if (options.json) {
+          console.log(JSON.stringify(projection, null, 2));
+        } else {
+          logger.log(
+            `${projection.runId}  ${projection.status}  revision=${projection.revision}`,
+          );
+        }
+      } catch (err) {
+        logger.error(
+          `WORKFLOW_RUNTIME_RECOVER_CHECKPOINTS_FAILED: ${err.message}`,
+        );
+        process.exitCode = 2;
+      }
+    });
+
+  workflow
     .command("runtime-reply <run-id> <request-id> <response-file>")
     .description(
       "Answer one revision-bound durable stage input request from a bounded JSON file",

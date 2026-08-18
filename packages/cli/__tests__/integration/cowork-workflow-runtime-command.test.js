@@ -345,7 +345,7 @@ describe("cowork durable workflow runtime commands", () => {
     expect(state.status).toBe("completed");
   });
 
-  it("recovers a bound terminal checkpoint call through the production command path", async () => {
+  it("batch-recovers bound terminal checkpoint calls through the production command path", async () => {
     let sequence = 0;
     const checkpointStore = new WorkspaceTransactionManager({
       stateDir: join(root, "checkpoint-state"),
@@ -408,7 +408,6 @@ describe("cowork durable workflow runtime commands", () => {
     expect(process.exitCode).toBe(1);
     const statePath = dynamicWorkflowRunStatePath(projectRoot, runId);
     let state = readDynamicWorkflowRuntimeState(statePath);
-    const callRecordId = state.effects[0].calls[0].id;
 
     process.exitCode = undefined;
     logSpy.mockClear();
@@ -417,9 +416,8 @@ describe("cowork durable workflow runtime commands", () => {
       "cc",
       "cowork",
       "workflow",
-      "runtime-recover-checkpoint",
+      "runtime-recover-checkpoints",
       runId,
-      callRecordId,
       "--expected-revision",
       String(state.revision),
       "--json",
