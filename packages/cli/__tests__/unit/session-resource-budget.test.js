@@ -263,8 +263,107 @@ describe("SessionResourceBudget continuous enforcement", () => {
         digest: next.adjudication.digest,
         previousDigest: result.adjudication.digest,
       },
+      history: {
+        baseSequence: 0,
+        baseDigest: null,
+        retainedCount: 2,
+        complete: true,
+      },
+    });
+    expect(restored.status().recoveryAdjudication.history).not.toHaveProperty(
+      "entries",
+    );
+    expect(restored.recoveryAdjudicationReceipts()).toMatchObject({
+      count: 2,
+      headDigest: next.adjudication.digest,
+      baseSequence: 0,
+      baseDigest: null,
+      complete: true,
+      entries: [
+        {
+          sequence: 1,
+          digest: result.adjudication.digest,
+          abandoned: [work.authorityId],
+          settled: [
+            {
+              authorityId: usage.authorityId,
+              provider: "anthropic",
+              model: "claude-3-5-sonnet-20241022",
+              usage: {
+                input_tokens: 8,
+                output_tokens: 2,
+                cache_read_input_tokens: 0,
+                cache_creation_input_tokens: 0,
+              },
+            },
+          ],
+        },
+        {
+          sequence: 2,
+          digest: next.adjudication.digest,
+          previousDigest: result.adjudication.digest,
+        },
+      ],
     });
     restored.dispose();
+    resumed.dispose();
+  });
+
+  it("retains only a verified suffix when upgrading a head-only adjudication snapshot", () => {
+    const first = makeBudget({ maxTokens: 100 }).budget;
+    const firstUsage = first.beginUsageSettlement({ id: "legacy-receipt" });
+    first.markUsageUnknown({ callId: firstUsage.id });
+    const firstResult = first.adjudicateRecovery({
+      settled: [
+        {
+          authorityId: firstUsage.authorityId,
+          provider: "ollama",
+          model: "local",
+          usage: { input_tokens: 1 },
+        },
+      ],
+    });
+    const legacy = first.snapshot();
+    delete legacy.state.recoveryAdjudication.history;
+    first.dispose();
+
+    const resumed = SessionResourceBudget.restore(legacy);
+    expect(resumed.recoveryAdjudicationReceipts()).toMatchObject({
+      count: 1,
+      baseSequence: 1,
+      baseDigest: firstResult.adjudication.digest,
+      complete: false,
+      entries: [],
+    });
+    const nextUsage = resumed.beginUsageSettlement({ id: "retained-suffix" });
+    resumed.markUsageUnknown({ callId: nextUsage.id });
+    const next = resumed.adjudicateRecovery({
+      settled: [
+        {
+          authorityId: nextUsage.authorityId,
+          provider: "ollama",
+          model: "local",
+          usage: { output_tokens: 2 },
+        },
+      ],
+    });
+    expect(resumed.recoveryAdjudicationReceipts()).toMatchObject({
+      count: 2,
+      headDigest: next.adjudication.digest,
+      baseSequence: 1,
+      baseDigest: firstResult.adjudication.digest,
+      complete: false,
+      entries: [
+        {
+          sequence: 2,
+          previousDigest: firstResult.adjudication.digest,
+          digest: next.adjudication.digest,
+        },
+      ],
+    });
+    expect(() =>
+      SessionResourceBudget.restore(resumed.snapshot()),
+    ).not.toThrow();
     resumed.dispose();
   });
 
@@ -879,6 +978,35 @@ describe("SessionResourceBudget snapshot and recovery", () => {
 
     expect(() => SessionResourceBudget.restore(snapshot)).toThrow(
       /invalid session budget recovery adjudication state/,
+    );
+  });
+
+  it("rejects recovery receipt usage and predecessor tampering", () => {
+    const source = makeBudget({ maxTokens: 100 }).budget;
+    const usage = source.beginUsageSettlement({ id: "receipt-tamper" });
+    source.markUsageUnknown({ callId: usage.id });
+    source.adjudicateRecovery({
+      settled: [
+        {
+          authorityId: usage.authorityId,
+          provider: "ollama",
+          model: "local",
+          usage: { input_tokens: 1 },
+        },
+      ],
+    });
+    const usageTamper = source.snapshot();
+    const predecessorTamper = source.snapshot();
+    source.dispose();
+    usageTamper.state.recoveryAdjudication.history.entries[0].settled[0].usage.input_tokens =
+      2;
+    predecessorTamper.state.recoveryAdjudication.history.baseSequence = 1;
+
+    expect(() => SessionResourceBudget.restore(usageTamper)).toThrow(
+      /recovery receipt digest/,
+    );
+    expect(() => SessionResourceBudget.restore(predecessorTamper)).toThrow(
+      /receipt history/,
     );
   });
 
