@@ -2616,6 +2616,9 @@ Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 - 新增 production root、headless threading、agent-core turn/tool、direct-model settlement-order 与 recovery command 覆盖；聚焦集为
   **5 files / 20 passed**。扩大预算、headless、stream、usage attribution、命令帮助与 manifest 回归按文件并行时为 **276 passed / 3 skipped**；
   两项 15 秒负载超时随后串行复跑分别 **5/5** 与 **32/32**，没有功能断言失败。
+- manifest `p1-dynamic-workflow` 引用的 **27 个文件最终为 784 passed / 3 skipped**；并行运行中的 4 项 5 秒负载超时分别按文件
+  复跑为 **129/129、26/26、2/2、33/33**，其中最慢文件使用 15 秒 test timeout 后通过，均无断言差异。roadmap verifier 与 journey
+  evidence 两文件为 **37/37**。
 - roadmap manifest 从 `1.9.21` 升至 `1.9.22`；`p1-dynamic-workflow` 增加 headless root、recovery bypass、child usage 去重、
   usage-ledger-before-budget 与 unsupported-platform fail-closed 契约，fixture digest 为
   `sha256:0f7617ac30f87a84e81f927351b04cf438947a5bcc93dd92874e7fe45cc07862`。
