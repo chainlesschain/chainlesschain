@@ -3801,6 +3801,13 @@ describe("durable dynamic workflow runtime", () => {
         answer: "approve",
       }),
     ).toThrow(/stale dynamic workflow runtime revision/u);
+    expect(() =>
+      submitDurableWorkflowInput(statePath, {
+        expectedRevision: state.revision,
+        requestId: state.inputRequests[0].id,
+        answer: "later",
+      }),
+    ).toThrow(/answer is malformed/u);
 
     state = submitDurableWorkflowInput(
       statePath,
@@ -3816,6 +3823,13 @@ describe("durable dynamic workflow runtime", () => {
       status: "answered",
       response: "approve",
     });
+    expect(() =>
+      submitDurableWorkflowInput(statePath, {
+        expectedRevision: state.revision,
+        requestId: state.inputRequests[0].id,
+        answer: "approve",
+      }),
+    ).toThrow(/run is ready/u);
 
     const record = await executeDurableDynamicWorkflow(
       { statePath, runId, execution },
@@ -3829,6 +3843,39 @@ describe("durable dynamic workflow runtime", () => {
     state = readDynamicWorkflowRuntimeState(statePath);
     expect(state.status).toBe("completed");
     expect(state.effects).toHaveLength(2);
+  });
+
+  it("rejects a secret-shaped free-text stage answer without changing state", async () => {
+    const runId = "run-needs-input-secret";
+    const statePath = dynamicWorkflowRunStatePath(projectRoot, runId);
+    const execution = admittedExecution(
+      projectRoot,
+      workflowDefinition({
+        steps: [
+          {
+            id: "review",
+            message: "Review release",
+            needsInput: { prompt: "Provide a public release note" },
+          },
+        ],
+      }),
+    );
+    await expect(
+      executeDurableDynamicWorkflow(
+        { statePath, runId, execution },
+        { runTask: async (args) => completedTask(args), now: clock() },
+      ),
+    ).rejects.toMatchObject({ reason: "needs-input" });
+    const state = readDynamicWorkflowRuntimeState(statePath);
+
+    expect(() =>
+      submitDurableWorkflowInput(statePath, {
+        expectedRevision: state.revision,
+        requestId: state.inputRequests[0].id,
+        answer: "sk-abcdefghijklmnopqrstuvwxyz123456",
+      }),
+    ).toThrow(/secret-shaped/u);
+    expect(readDynamicWorkflowRuntimeState(statePath)).toEqual(state);
   });
 
   it("fails closed on state tamper and hard-linked state files", async () => {
