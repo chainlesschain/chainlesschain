@@ -2591,7 +2591,8 @@ Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 ## 五十六、2026-08-18 R4 durable interactive REPL session budget production root 子门复核（`17:17 +08:00`）
 
 本节继续第五十五节的 headless production root，把同一 opt-in durable session budget authority 接到 interactive REPL；不把 REPL 的本地交互入口
-外推为 WebSocket、IDE/daemon remote host、全部平台或默认启用。候选功能提交为 `e9ac260f0d`，启动拒绝补强为 `97025b1665`；尚无本候选
+外推为 WebSocket、IDE/daemon remote host、全部平台或默认启用。候选功能提交为 `e9ac260f0d`，启动拒绝与 durable-session 补强为
+`97025b1665`、`5e5210ebee`；尚无本候选
 exact-head GitHub Actions。
 
 ### 本轮关闭的 REPL production-root 子门
@@ -2615,8 +2616,9 @@ exact-head GitHub Actions。
 
 ### 仓库内验证与证据边界
 
-- 新增 direct-model settlement order、startup `lease → budget → workspace`、exhausted-before-workspace、root close、主循环 usage 去重/超限、
-  runtime-policy passthrough 与 provider-fetch signal 覆盖；新增聚焦用例 **4/4**，相邻 loop/policy/cowork 三文件 **38/38**。
+- 新增 direct-model settlement order、startup `lease → budget → workspace`、exhausted-before-workspace、durable JSONL start、root close、直接工具
+  signal、主循环 usage 去重/超限、runtime-policy passthrough 与 provider-fetch signal 覆盖；REPL 聚焦用例 **6/6**，相邻
+  observability/loop/policy/cowork 四文件 **54/54**。
 - 预算、agent-core、headless、background/team/sub-agent、REPL usage/turn binding 与 transport 相邻矩阵为 **15 files / 133 passed / 3 skipped**；
   完整 `agent-repl.test.js` 以退出码 0 通过。Node syntax 与 `git diff --check` 通过；本轮没有伪造真实 provider、PTY、断电或外部宿主结果。
 - roadmap manifest 从 `1.9.22` 升至 `1.9.23`；`p1-dynamic-workflow` 增加 REPL root 缺失、legacy persistence fallback、session-authority
