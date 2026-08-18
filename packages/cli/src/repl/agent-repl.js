@@ -2674,6 +2674,17 @@ export async function runReplStartupBoundary(options, startupDependencies) {
     }
     return refuseStartup(options, startupCandidate);
   }
+  if (
+    options.sessionBudgetRoot?.enabled === true &&
+    startupAdmission.useJsonl !== true
+  ) {
+    throw Object.assign(
+      new Error(
+        "session budget root requires durable JSONL session persistence, but JSONL storage is unavailable",
+      ),
+      { code: "CC_SESSION_BUDGET_JSONL_REQUIRED" },
+    );
+  }
 
   // Only a frozen, branded admission capability may cross into workspace,
   // pipe, config, plugin, hook, MCP, model, or tool initialization.
@@ -2716,14 +2727,6 @@ export async function runReplStartupBoundary(options, startupDependencies) {
   }
   let workspaceOptions = options;
   if (options.sessionBudgetRoot?.enabled === true) {
-    if (startupAdmission.useJsonl !== true) {
-      throw Object.assign(
-        new Error(
-          "session budget root requires durable JSONL session persistence, but JSONL storage is unavailable",
-        ),
-        { code: "CC_SESSION_BUDGET_JSONL_REQUIRED" },
-      );
-    }
     if (!leaseSessionId || !leaseScope?.lease) {
       throw Object.assign(
         new Error(
@@ -2762,6 +2765,7 @@ export async function runReplStartupBoundary(options, startupDependencies) {
       root?.enabled !== true ||
       !root.budget ||
       !root.options ||
+      root.options.sessionBudget !== root.budget ||
       typeof root.close !== "function"
     ) {
       try {
@@ -2772,6 +2776,21 @@ export async function runReplStartupBoundary(options, startupDependencies) {
       throw Object.assign(new Error("REPL session budget root is invalid"), {
         code: "CC_SESSION_BUDGET_ROOT_INVALID",
       });
+    }
+    if (root.budget.signal?.aborted === true) {
+      const admissionError = sessionBudgetAdmissionError(
+        root.budget.reason?.(),
+        "REPL startup",
+      );
+      try {
+        await root.close();
+      } catch (cleanupError) {
+        throw new AggregateError(
+          [admissionError, cleanupError],
+          "REPL budget admission and authority cleanup both failed",
+        );
+      }
+      throw admissionError;
     }
     budgetScope.root = root;
     workspaceOptions = { ...options, ...root.options };
