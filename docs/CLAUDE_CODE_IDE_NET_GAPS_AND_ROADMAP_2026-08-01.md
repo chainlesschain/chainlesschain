@@ -2588,6 +2588,35 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 六十四、2026-08-18 P1-2 canonical result collection settlement 子门复核（`21:31 +08:00`）
+
+本节继续第六十三节，关闭“source 已完整验真 target bundle，但调用方在返回后丢失响应时，没有 canonical 证据判断该 request 是否已被验收”的窄缺口；不把内容无关 settlement 外推为 result bytes 已持久化、ArtifactStore 已导入、source worktree 已 apply，或跨宿主 exactly-once transport 已完成。
+
+### 本轮关闭的 canonical settlement 与 response-loss readback 子门
+
+- **stable request id 绑定完整固定输入。** `session location result-collect` 新增必填 `--request-id`；`cc-execution-location-target-result-collection-request/v1` 的 domain-separated digest 绑定 session、target、profile digest、accepted target-facts digest、handoff id、result id、summary/diff path 以及有序 artifact/evidence media-type/path 列表。相同 id 改任一输入会在 target command 前 fail closed，不能把旧 settlement 冒充为新请求。
+- **重试先查 canonical source transcript。** command 读取并规范化 profile/request 后，先按 request id 与 request digest 扫描完整已验证 transcript；命中时直接返回 `chainlesschain.session-execution-location-result-collection-receipt/v1`，不读取旧 handoff facts、不重新 attestation，也不再执行 target `result-pack`。因此 source head 已由 settlement event 前进后，exact retry 仍能恢复，而不依赖旧 facts 继续匹配当前 head。
+- **只有实际 bytes 再验真后才能落事件。** 首次 collection 仍执行第六十三节的 target stable-facts 重认证、固定 argv、24 MiB transport boundary 与 source before/after predecessor 检查；store 在 append 前再次规范化完整 bundle、逐项解码并重算 byte digest、重算 verification digest 与 collection digest。content byte、bundle/verification/collection digest 或 source/target/handoff/profile/facts 绑定任一不一致均不会产生 settlement。
+- **settlement 是 exact-predecessor CAS authority。** `execution_location_result_collection` 通过 canonical writer lock 下的 `appendAuthorityEventIfHead` 追加，并要求 event `prevHash` / ordinal 精确等于 collection 的 source head/count；transcript、sidecar index anchor 与 machine-local anti-rollback witness 继续沿用同一 authority append 路径。事件保存 request/settlement/result/handoff/profile/facts/attestation/bundle/verification/collection digest、source/target head/count、total bytes 与固定 `applied=false`，不保存 summary、diff、artifact、evidence、base64 content、路径或 target stdout。
+- **append 后 response loss 可确定恢复。** 独立 fault hook 在 settlement 已持久追加后、receipt 返回前注入崩溃；下一次相同 request 只回读同一 event hash/count 与 receipt digest，并报告 `settlementAppended=false`、`recovered=true`、`bundleAvailable=false`。并发 CAS 输家只有在读回完全相同 settlement id 时才能收敛；同 request/different result、重复 canonical request event 或 malformed predecessor 均 fail closed。
+- **证据语义保持克制。** 首次成功仍返回经验证的完整 bundle；response-loss retry 只恢复“哪一个 bundle 已被 source 验收”的内容无关证明，不能从 transcript 重建未保存的 result bytes。collection gap 因此从笼统的 `response-loss-retry-not-durable` 收紧为 `returned-result-bytes-not-durable`，并继续保留 distributed writer fence 与 returned-result apply 两项缺口。
+
+### 本轮验证证据
+
+- 实现与回归提交为 `7ed9756054`（canonical settlement/store/command route）、`eb458c4592`（append 后 response-loss fault 与 README）、`b64205c527`（request input binding）、`031567d952`（roadmap contract）、`73d4a45d20`（journey evidence version）与 `fe373f51a6`（格式收口），均已快进进入本地 `main`。
+- target、command 与 real JSONL settlement 三个聚焦文件终态为 **29/29**；execution-location contract/result/target/location/session/replica/command 七文件为 **67/67**。
+- JSONL store、writer concurrency、persistence failure 与 anti-rollback 四文件为 **167 passed / 5 skipped**；覆盖完整 bundle byte tamper 不落事件、CAS predecessor、内容无关 event、append 后 response loss、exact retry、request digest collision 与 receipt readback。
+- execution-location 七文件与 roadmap verifier/journey 合并终态为 **104/104**；roadmap verifier/journey 独立为 **37/37**；command help index freshness 通过。
+- roadmap manifest 从 `1.9.30` 升至 `1.9.31`，新增 settlement/readback journey、request/receipt authority binding、response-loss/request collision/content tamper/duplicate remote command failure injection，以及 canonical settlement artifacts。fixture digest 为 `sha256:abced573913354d6389d8f2cd8aec1784b8efd08f132921a75813ca73bac7413`；全 corpus 保持 **15 cases / 89 referenced test files**，contract-only 通过。
+
+### P1-2 仍未关闭的边界
+
+1. **跨宿主 writer fence 与 shared authority：** 本轮只为 source 本地 canonical transcript 提供单 writer CAS；target 执行期间 source/target 双写、lease acquire/renew/revoke、split-brain、shared-store ownership 与跨机并发仲裁仍未完成。
+2. **result bytes、apply 与长期生命周期：** settlement 不保存或导入 bundle bytes，不创建 ArtifactStore authority、review/apply transaction、return location-handoff、patch conflict/rollback；断点续传、重连、睡眠/重启、orphan cleanup、增量/双向同步、分歧合并与删除传播仍开放。
+3. **Cloud、产品入口与外部矩阵：** `cc cloud`、Desktop、VS Code、JetBrains 尚未消费 settlement/review/apply authority；真实 WSL/SSH/Container/Cloud、多架构、网络故障和每格 100 次 exact-commit 长期矩阵仍无关闭证据。
+
+因此，P1-2 的 **source-side canonical result collection settlement、stable request/input binding、完整 bundle 再验真、exact-predecessor CAS、append 后 response-loss receipt readback 与 no-duplicate-target-command retry** 由本节关闭；P1-2 整项仍为**部分完成**。总计数保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。
+
 ## 六十三、2026-08-18 P1-2 fixed-transport result collection 子门复核（`21:06 +08:00`）
 
 本节继续第六十二节，并替代其中“bundle 需人工复制”的旧边界；但不把仓库内 Docker/WSL/SSH argv mock 外推为真实远端网络、重连或 response-loss
