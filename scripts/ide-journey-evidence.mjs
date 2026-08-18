@@ -27,7 +27,7 @@ import { pathToFileURL } from "node:url";
 export const IDE_JOURNEY_EVIDENCE_SCHEMA =
   "chainlesschain.ide-journey-evidence";
 export const IDE_JOURNEY_EVIDENCE_VERSION = 2;
-export const IDE_JOURNEY_MANIFEST_VERSION = "1.9.22";
+export const IDE_JOURNEY_MANIFEST_VERSION = "1.9.23";
 
 const EXACT_COMMIT = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
 const TEXT_EXTENSIONS = new Set([
