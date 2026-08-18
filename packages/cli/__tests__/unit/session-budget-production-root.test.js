@@ -7,6 +7,7 @@ import {
   adjudicateProductionSessionBudgetRecovery,
   openProductionSessionBudgetRoot,
   readProductionSessionBudget,
+  readProductionSessionBudgetRecoveryReceipts,
   normalizeSessionBudgetRootConfig,
   resolveSessionBudgetRootOptions,
 } from "../../src/lib/session-budget-production-root.js";
@@ -243,18 +244,60 @@ describe("production session budget root", () => {
       },
     });
     expect(result.adjudication.digest).toMatch(/^sha256:[0-9a-f]{64}$/);
+    expect(result.receipt).toMatchObject({
+      sequence: 1,
+      digest: result.adjudication.digest,
+      settled: [
+        {
+          authorityId: usage.authorityId,
+          provider: "anthropic",
+          model: "claude-3-5-sonnet-20241022",
+          usage: { input_tokens: 8, output_tokens: 2 },
+        },
+      ],
+    });
     expect(result.status.spentUsd).toBeGreaterThan(0);
-    expect(readProductionSessionBudget("usage-recovery-root", { store })).toMatchObject({
+    const status = readProductionSessionBudget("usage-recovery-root", {
+      store,
+    });
+    expect(status).toMatchObject({
       usageUnknown: false,
       totals: { tokens: 10 },
       state: {
         recoveryAdjudication: {
           count: 1,
           headDigest: result.adjudication.digest,
+          history: {
+            baseSequence: 0,
+            baseDigest: null,
+            retainedCount: 1,
+            complete: true,
+          },
         },
       },
       recoveryRequired: false,
       pendingRecovery: [],
+    });
+    expect(status.state.recoveryAdjudication.history).not.toHaveProperty(
+      "entries",
+    );
+    expect(
+      readProductionSessionBudgetRecoveryReceipts("usage-recovery-root", {
+        store,
+      }),
+    ).toMatchObject({
+      count: 1,
+      headDigest: result.adjudication.digest,
+      baseSequence: 0,
+      baseDigest: null,
+      complete: true,
+      entries: [
+        {
+          sequence: 1,
+          digest: result.adjudication.digest,
+          settled: [{ authorityId: usage.authorityId }],
+        },
+      ],
     });
   });
 

@@ -2,6 +2,7 @@ import { Command } from "commander";
 import { describe, expect, it, vi } from "vitest";
 import {
   registerSessionBudgetCommands,
+  renderSessionBudgetReceipts,
   renderSessionBudgetStatus,
 } from "../../src/commands/session-budget.js";
 
@@ -14,6 +15,36 @@ function programWith(dependencies) {
 }
 
 describe("session budget commands", () => {
+  it("renders retained recovery receipt coverage without provider payload text", () => {
+    const digest = `sha256:${"a".repeat(64)}`;
+    expect(
+      renderSessionBudgetReceipts({
+        sessionId: "session-audit",
+        revision: 8,
+        count: 2,
+        headDigest: digest,
+        baseSequence: 1,
+        baseDigest: `sha256:${"b".repeat(64)}`,
+        complete: false,
+        entries: [
+          {
+            sequence: 2,
+            digest,
+            abandoned: [],
+            settled: [{ authorityId: "usage-id" }],
+            totalsBefore: { tokens: 10, spentUsd: 0.1 },
+            totalsAfter: { tokens: 12, spentUsd: 0.2 },
+          },
+        ],
+      }),
+    ).toEqual([
+      "Session budget recovery receipts session-audit (revision 8)",
+      `history partial; retained 1/2; head ${digest}`,
+      `  legacy prefix through sequence 1: sha256:${"b".repeat(64)}`,
+      `  sequence 2: ${digest}; settled 1; abandoned 0; tokens 10->12; USD 0.1->0.2`,
+    ]);
+  });
+
   it("renders the durable recovery adjudication chain head", () => {
     expect(
       renderSessionBudgetStatus({
@@ -140,5 +171,35 @@ describe("session budget commands", () => {
     expect(write).toHaveBeenCalledWith(
       "Recovered session budget session-3; recorded 1 verified usage settlement(s), abandoned 0 exact authority id(s); adjudication sha256:settled.",
     );
+  });
+
+  it("prints canonical recovery receipt history as JSON", async () => {
+    const write = vi.fn();
+    const receipts = {
+      sessionId: "session-4",
+      count: 1,
+      complete: true,
+      entries: [{ sequence: 1 }],
+    };
+    const readProductionSessionBudgetRecoveryReceipts = vi.fn(() => receipts);
+    const program = programWith({
+      readProductionSessionBudgetRecoveryReceipts,
+      write,
+    });
+
+    await program.parseAsync([
+      "node",
+      "cc",
+      "session",
+      "budget",
+      "receipts",
+      "session-4",
+      "--json",
+    ]);
+
+    expect(readProductionSessionBudgetRecoveryReceipts).toHaveBeenCalledWith(
+      "session-4",
+    );
+    expect(JSON.parse(write.mock.calls[0][0])).toEqual(receipts);
   });
 });
