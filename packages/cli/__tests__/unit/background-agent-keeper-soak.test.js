@@ -27,6 +27,7 @@ import {
   keeperCleanupTiming,
   nearestRankPercentile,
   pollUntil,
+  releaseRetiredSlotHistory,
   resolveBackgroundKeeperSoakProfile,
   sealBackgroundKeeperSoakDocument,
   shouldDeferHardKillCleanupIdentityProbe,
@@ -68,6 +69,7 @@ function fixtureEvidence(operatingSystem, mode = "formal") {
     cleanupObserverDeadlineMs: formal ? 148_000 : 60_000,
     readinessDeadlineMs: 60_000,
     maxHarnessRssGrowthMb: 192,
+    harnessRssWarmupSeconds: formal ? 300 : 0,
     maxHarnessResourceGrowth: 12,
   };
   const cycles = Array.from({ length: cycleCount }, (_, index) => {
@@ -168,6 +170,10 @@ function fixtureEvidence(operatingSystem, mode = "formal") {
     metrics: {
       ...metrics,
       harness: {
+        initial: {
+          rssBytes: 10_000,
+          resource: { kind: resourceKind, count: 5 },
+        },
         before: {
           rssBytes: 10_000,
           resource: { kind: resourceKind, count: 5 },
@@ -178,6 +184,10 @@ function fixtureEvidence(operatingSystem, mode = "formal") {
         },
         rssGrowthBytes: 0,
         resourceGrowth: 0,
+        gcExposed: true,
+        baselineCycleCount: formal ? 100 : 2,
+        baselineAtSeconds: formal ? 300 : 0,
+        measurementDurationSeconds: formal ? 6_900 : 5,
       },
     },
   };
@@ -252,6 +262,7 @@ describe("background Agent keeper soak contract", () => {
       durationSeconds: 2,
       minimumCycles: 2,
       cleanupObserverDeadlineMs: 60_000,
+      harnessRssWarmupSeconds: 0,
     });
   });
 
@@ -269,7 +280,48 @@ describe("background Agent keeper soak contract", () => {
       durationSeconds: 7_200,
       minimumCycles: 1_000,
       cleanupObserverDeadlineMs: 148_000,
+      harnessRssWarmupSeconds: 300,
     });
+  });
+
+  it("releases only fully retired per-slot cleanup history", () => {
+    const slot = {
+      index: 4,
+      knownIdentities: new Map([
+        ["11:100", { pid: 11, startedAt: 100, retired: true }],
+        ["12:200", { pid: 12, startedAt: 200, retired: true }],
+      ]),
+      launchedIds: ["first", "second"],
+    };
+
+    releaseRetiredSlotHistory(slot, { recordRemoved: true });
+
+    expect(slot.knownIdentities.size).toBe(0);
+    expect(slot.launchedIds).toEqual([]);
+  });
+
+  it("refuses to release live or not-yet-removed cleanup history", () => {
+    const slot = {
+      index: 7,
+      knownIdentities: new Map([
+        ["11:100", { pid: 11, startedAt: 100, retired: false }],
+      ]),
+      launchedIds: ["current"],
+    };
+
+    expect(() =>
+      releaseRetiredSlotHistory(slot, { recordRemoved: true }),
+    ).toThrow(/unretired process identity/u);
+    expect(() =>
+      releaseRetiredSlotHistory(
+        {
+          ...slot,
+          knownIdentities: new Map(),
+          launchedIds: [],
+        },
+        { recordRemoved: false },
+      ),
+    ).toThrow(/record was not removed/u);
   });
 
   it("bounds formal progress checkpoints by elapsed time or completed cycles", () => {
@@ -1218,21 +1270,21 @@ describe("background Agent keeper soak contract", () => {
 });
 
 describe("background Agent keeper soak aggregate contract", () => {
-  it("uses v2 contracts and rejects resealed legacy v1 evidence", () => {
+  it("uses v3 contracts and rejects resealed legacy v2 evidence", () => {
     expect([
       BACKGROUND_KEEPER_SOAK_RESULT_SCHEMA,
       BACKGROUND_KEEPER_SOAK_SMOKE_RESULT_SCHEMA,
       BACKGROUND_KEEPER_SOAK_AGGREGATE_SCHEMA,
       BACKGROUND_KEEPER_SOAK_SMOKE_AGGREGATE_SCHEMA,
     ]).toEqual([
-      "chainlesschain.background-agent-keeper-soak.v2",
-      "chainlesschain.background-agent-keeper-soak-smoke.v2",
-      "chainlesschain.background-agent-keeper-soak-aggregate.v2",
-      "chainlesschain.background-agent-keeper-soak-smoke-aggregate.v2",
+      "chainlesschain.background-agent-keeper-soak.v3",
+      "chainlesschain.background-agent-keeper-soak-smoke.v3",
+      "chainlesschain.background-agent-keeper-soak-aggregate.v3",
+      "chainlesschain.background-agent-keeper-soak-smoke-aggregate.v3",
     ]);
 
     const reports = completeEvidenceSet();
-    reports[0].schema = "chainlesschain.background-agent-keeper-soak.v1";
+    reports[0].schema = "chainlesschain.background-agent-keeper-soak.v2";
     sealBackgroundKeeperSoakDocument(reports[0]);
     expect(() =>
       verifyBackgroundKeeperSoakEvidenceSet({
@@ -1382,6 +1434,13 @@ describe("background Agent keeper soak aggregate contract", () => {
         report.metrics.harness.resourceGrowth = 13;
       },
       (report) => {
+        report.metrics.harness.gcExposed = false;
+      },
+      (report) => {
+        report.metrics.harness.baselineAtSeconds = 601;
+        report.metrics.harness.measurementDurationSeconds = 6_599;
+      },
+      (report) => {
         report.expectedSha = "b".repeat(40);
       },
     ];
@@ -1466,12 +1525,18 @@ describe("background Agent keeper soak aggregate contract", () => {
       ),
       "utf8",
     );
+    const rootPackage = JSON.parse(
+      readFileSync(join(REPOSITORY_ROOT, "package.json"), "utf8"),
+    );
     const aggregateJob = workflow.slice(
       workflow.indexOf("  keeper-soak-aggregate:"),
     );
 
     expect(workflow).toContain(
       'CC_BACKGROUND_KEEPER_SOAK_CLEANUP_DEADLINE_MS: "30000"',
+    );
+    expect(rootPackage.scripts["test:cli-background-keeper-soak"]).toBe(
+      "node --expose-gc packages/cli/scripts/background-agent-keeper-soak.mjs",
     );
     expect(workflow).toContain(
       "CC_BACKGROUND_KEEPER_SOAK_CLEANUP_OBSERVER_DEADLINE_MS: ${{ github.event_name == 'pull_request' && '60000' || '150000' }}",

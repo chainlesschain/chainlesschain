@@ -47,13 +47,13 @@ import { ioSnapshot } from "./cli-reliability-soak.mjs";
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPOSITORY_ROOT = resolve(SCRIPT_DIR, "../../..");
 export const BACKGROUND_KEEPER_SOAK_RESULT_SCHEMA =
-  "chainlesschain.background-agent-keeper-soak.v2";
+  "chainlesschain.background-agent-keeper-soak.v3";
 export const BACKGROUND_KEEPER_SOAK_SMOKE_RESULT_SCHEMA =
-  "chainlesschain.background-agent-keeper-soak-smoke.v2";
+  "chainlesschain.background-agent-keeper-soak-smoke.v3";
 export const BACKGROUND_KEEPER_SOAK_AGGREGATE_SCHEMA =
-  "chainlesschain.background-agent-keeper-soak-aggregate.v2";
+  "chainlesschain.background-agent-keeper-soak-aggregate.v3";
 export const BACKGROUND_KEEPER_SOAK_SMOKE_AGGREGATE_SCHEMA =
-  "chainlesschain.background-agent-keeper-soak-smoke-aggregate.v2";
+  "chainlesschain.background-agent-keeper-soak-smoke-aggregate.v3";
 export const BACKGROUND_KEEPER_SOAK_OPERATING_SYSTEMS = Object.freeze([
   "linux",
   "macos",
@@ -64,6 +64,12 @@ const DEFAULT_OUTPUT = join(
   `cc-background-keeper-soak-${process.platform}-${process.pid}.json`,
 );
 const HARNESS_RESOURCE_SETTLE_MS = 1_000;
+// RSS from a cold Node process includes one-time module, libuv and platform
+// allocator warmup. Preserve that initial sample for diagnostics, but gate the
+// trend from a GC-normalized five-minute baseline through at least the final
+// 110 minutes of a qualifying run.
+const FORMAL_HARNESS_RSS_WARMUP_SECONDS = 5 * 60;
+const FORMAL_HARNESS_RSS_BASELINE_GRACE_SECONDS = 5 * 60;
 export const BACKGROUND_KEEPER_FORMAL_CHECKPOINT_INTERVAL_MS = 5 * 60 * 1_000;
 export const BACKGROUND_KEEPER_FORMAL_CHECKPOINT_CYCLES = 1_000;
 // The 128s RETIRE contract includes strict preflight/confirmation probes and
@@ -209,6 +215,7 @@ export function resolveBackgroundKeeperSoakProfile(environment = process.env) {
       192,
       "maximum harness RSS growth",
     ),
+    harnessRssWarmupSeconds: formal ? FORMAL_HARNESS_RSS_WARMUP_SECONDS : 0,
     maxHarnessResourceGrowth: positiveNumber(
       environment.CC_BACKGROUND_KEEPER_SOAK_MAX_RESOURCE_GROWTH,
       12,
@@ -535,6 +542,41 @@ function markKnownIdentitiesRetired(slot, identities) {
     const known = slot.knownIdentities.get(key);
     if (known) known.retired = true;
   }
+}
+
+export function releaseRetiredSlotHistory(slot, { recordRemoved } = {}) {
+  if (recordRemoved !== true) {
+    throw new Error(`agent ${slot?.index ?? "unknown"} record was not removed`);
+  }
+  if (
+    !(slot?.knownIdentities instanceof Map) ||
+    slot.knownIdentities.size === 0 ||
+    !Array.isArray(slot?.launchedIds) ||
+    [...slot.knownIdentities.values()].some(
+      (identity) => identity?.retired !== true,
+    )
+  ) {
+    throw new Error(
+      `agent ${slot?.index ?? "unknown"} retained an unretired process identity`,
+    );
+  }
+  slot.knownIdentities.clear();
+  slot.launchedIds.length = 0;
+}
+
+async function settleHarnessForMeasurement() {
+  if (typeof globalThis.gc !== "function") {
+    throw new Error(
+      "keeper soak harness requires node --expose-gc for comparable RSS evidence",
+    );
+  }
+  globalThis.gc();
+  await new Promise((resolvePromise) => setImmediate(resolvePromise));
+  await new Promise((resolvePromise) =>
+    setTimeout(resolvePromise, HARNESS_RESOURCE_SETTLE_MS),
+  );
+  globalThis.gc();
+  await new Promise((resolvePromise) => setImmediate(resolvePromise));
 }
 
 function sampleProcess(identity) {
@@ -1423,6 +1465,8 @@ function validateKeeperSoakEvidence(
     !Number.isFinite(profile?.maxHarnessRssGrowthMb) ||
     profile.maxHarnessRssGrowthMb <= 0 ||
     profile.maxHarnessRssGrowthMb > 192 ||
+    profile?.harnessRssWarmupSeconds !==
+      (formal ? FORMAL_HARNESS_RSS_WARMUP_SECONDS : 0) ||
     !Number.isInteger(profile?.maxHarnessResourceGrowth) ||
     profile.maxHarnessResourceGrowth <= 0 ||
     profile.maxHarnessResourceGrowth > 12
@@ -1502,8 +1546,10 @@ function validateKeeperSoakEvidence(
 
   const metrics = value?.metrics;
   const harness = metrics?.harness;
+  const initialRss = harness?.initial?.rssBytes;
   const beforeRss = harness?.before?.rssBytes;
   const afterRss = harness?.after?.rssBytes;
+  const initialResource = harness?.initial?.resource;
   const beforeResource = harness?.before?.resource;
   const afterResource = harness?.after?.resource;
   const expectedResourceKind = operatingSystem === "windows" ? "handle" : "fd";
@@ -1519,12 +1565,36 @@ function validateKeeperSoakEvidence(
   if (
     !Number.isFinite(beforeRss) ||
     !Number.isFinite(afterRss) ||
+    !Number.isFinite(initialRss) ||
+    initialResource?.kind !== expectedResourceKind ||
+    !Number.isFinite(initialResource?.count) ||
     beforeResource?.kind !== expectedResourceKind ||
     afterResource?.kind !== expectedResourceKind ||
     !Number.isFinite(beforeResource?.count) ||
     !Number.isFinite(afterResource?.count) ||
     harness?.rssGrowthBytes !== rssGrowth ||
     harness?.resourceGrowth !== resourceGrowth ||
+    harness?.gcExposed !== true ||
+    !Number.isInteger(harness?.baselineCycleCount) ||
+    harness.baselineCycleCount <= 0 ||
+    harness.baselineCycleCount > value?.cycles?.length ||
+    !Number.isFinite(harness?.baselineAtSeconds) ||
+    harness.baselineAtSeconds < profile?.harnessRssWarmupSeconds ||
+    (formal &&
+      harness.baselineAtSeconds >
+        profile.harnessRssWarmupSeconds +
+          FORMAL_HARNESS_RSS_BASELINE_GRACE_SECONDS) ||
+    !Number.isFinite(harness?.measurementDurationSeconds) ||
+    harness.measurementDurationSeconds < 0 ||
+    (formal &&
+      harness.measurementDurationSeconds <
+        profile.durationSeconds -
+          FORMAL_HARNESS_RSS_WARMUP_SECONDS -
+          FORMAL_HARNESS_RSS_BASELINE_GRACE_SECONDS) ||
+    harness.baselineAtSeconds + harness.measurementDurationSeconds <
+      profile?.durationSeconds ||
+    harness.baselineAtSeconds + harness.measurementDurationSeconds >
+      value?.continuousDurationSeconds + 5 ||
     rssGrowth > profile?.maxHarnessRssGrowthMb * 1024 * 1024 ||
     resourceGrowth > profile?.maxHarnessResourceGrowth
   ) {
@@ -1761,7 +1831,11 @@ async function main() {
   process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME = securityAnchorHome;
   process.env.CC_BACKGROUND_AGENTS_DIR = backgroundDirectory;
 
-  const harnessBefore = sampleHarnessProcess();
+  const harnessInitial = sampleHarnessProcess();
+  let harnessBefore = null;
+  let harnessBaselineAt = null;
+  let harnessBaselineAtSeconds = null;
+  let harnessBaselineCycleCount = null;
   const report = {
     schema:
       profile.mode === "formal"
@@ -1834,6 +1908,11 @@ async function main() {
   }
 
   try {
+    if (typeof globalThis.gc !== "function") {
+      throw new Error(
+        "keeper soak harness requires node --expose-gc for comparable RSS evidence",
+      );
+    }
     for (let index = 0; index < profile.agents; index += 1) {
       const worktree = setupAgentWorktree({
         cwd: repository,
@@ -1865,6 +1944,8 @@ async function main() {
     checkpoint({ force: true });
 
     const deadline = Date.now() + profile.durationSeconds * 1_000;
+    const harnessBaselineDeadline =
+      performance.now() + profile.harnessRssWarmupSeconds * 1_000;
     let cycle = 0;
     while (Date.now() < deadline || cycle < profile.minimumCycles) {
       if (signal) throw new Error(`soak interrupted by ${signal}`);
@@ -1922,6 +2003,11 @@ async function main() {
           throw new Error(`cycle ${sample.cycle} retained an owned pid`);
         }
       }
+      for (let index = 0; index < plans.length; index += 1) {
+        releaseRetiredSlotHistory(plans[index].slot, {
+          recordRemoved: samples[index].recordRemoved,
+        });
+      }
       const restartReadiness = await Promise.all(
         plans.map(({ slot }) => launchSlot(slot, fakeAgent, profile)),
       );
@@ -1930,7 +2016,27 @@ async function main() {
       }
       await Promise.all(plans.map(({ slot }) => verifyReconnect(slot)));
       cycle += plans.length;
+      if (
+        harnessBefore == null &&
+        performance.now() >= harnessBaselineDeadline
+      ) {
+        await settleHarnessForMeasurement();
+        harnessBaselineAt = performance.now();
+        harnessBefore = sampleHarnessProcess();
+        harnessBaselineAtSeconds =
+          Math.round((harnessBaselineAt - started) * 1_000) / 1_000_000;
+        harnessBaselineCycleCount = report.cycles.length;
+      }
       checkpoint();
+    }
+
+    if (harnessBefore == null) {
+      await settleHarnessForMeasurement();
+      harnessBaselineAt = performance.now();
+      harnessBefore = sampleHarnessProcess();
+      harnessBaselineAtSeconds =
+        Math.round((harnessBaselineAt - started) * 1_000) / 1_000_000;
+      harnessBaselineCycleCount = report.cycles.length;
     }
 
     const finalPlans = slots.map((slot, index) => ({
@@ -1979,12 +2085,12 @@ async function main() {
 
     // The final Windows identity/CIM sweep is synchronous. It can prove every
     // child dead before libuv gets a turn to deliver the corresponding close
-    // callbacks, so an immediate process-handle sample counts already-retired
-    // worker/keeper handles as growth. Drain one bounded event-loop interval;
-    // the unchanged resource cap still rejects handles that remain open.
-    await new Promise((resolvePromise) =>
-      setTimeout(resolvePromise, HARNESS_RESOURCE_SETTLE_MS),
-    );
+    // callbacks, while every platform also retains allocator high-water pages
+    // until a major collection. Use the same bounded GC/event-loop settlement
+    // as the warm baseline; the unchanged RSS and resource caps still reject
+    // live growth.
+    await settleHarnessForMeasurement();
+    const harnessMeasurementFinishedAt = performance.now();
     const harnessAfter = sampleHarnessProcess();
     const allSamples = [
       ...report.cycles,
@@ -2000,8 +2106,16 @@ async function main() {
     report.metrics = {
       ...summarizeKeeperSoakSamples(allSamples),
       harness: {
+        initial: harnessInitial,
         before: harnessBefore,
         after: harnessAfter,
+        gcExposed: true,
+        baselineCycleCount: harnessBaselineCycleCount,
+        baselineAtSeconds: harnessBaselineAtSeconds,
+        measurementDurationSeconds:
+          Math.round(
+            (harnessMeasurementFinishedAt - harnessBaselineAt) * 1_000,
+          ) / 1_000_000,
         rssGrowthBytes: Math.max(
           0,
           harnessAfter.rssBytes - harnessBefore.rssBytes,
