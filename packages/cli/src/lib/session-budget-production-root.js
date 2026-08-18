@@ -241,17 +241,25 @@ export function readProductionSessionBudget(
 
 export function adjudicateProductionSessionBudgetRecovery(
   sessionId,
-  abandoned,
+  adjudication,
   {
     store = new SessionBudgetSidecarStore(),
     registry = new Map(),
     open = openSessionBudget,
   } = {},
 ) {
-  if (!Array.isArray(abandoned) || abandoned.length === 0) {
+  const request = Array.isArray(adjudication)
+    ? { abandoned: adjudication, settled: [] }
+    : adjudication && typeof adjudication === "object"
+      ? {
+          abandoned: adjudication.abandoned || [],
+          settled: adjudication.settled || [],
+        }
+      : { abandoned: [], settled: [] };
+  if (request.abandoned.length === 0 && request.settled.length === 0) {
     throw budgetRootError(
       "CC_SESSION_BUDGET_RECOVERY_IDS_REQUIRED",
-      "session budget recovery requires every exact --abandon authority id",
+      "session budget recovery requires every exact authority id as --abandon or --settlement",
     );
   }
   const handle = open(String(sessionId), { store, registry });
@@ -264,7 +272,7 @@ export function adjudicateProductionSessionBudgetRecovery(
         `session budget recovery is not required for ${sessionId}`,
       );
     }
-    result = handle.budget.adjudicateRecovery({ abandoned });
+    result = handle.budget.adjudicateRecovery(request);
     if (!result.ok) {
       throw budgetRootError(
         "CC_SESSION_BUDGET_RECOVERY_INCOMPLETE",
@@ -276,6 +284,7 @@ export function adjudicateProductionSessionBudgetRecovery(
       schema: SESSION_BUDGET_ROOT_SCHEMA,
       sessionId: String(sessionId),
       abandoned: Object.freeze([...result.abandoned]),
+      settled: Object.freeze([...result.settled]),
       status: Object.freeze({ ...handle.status() }),
     });
   } finally {
