@@ -1,6 +1,7 @@
 import {
   adjudicateProductionSessionBudgetRecovery,
   readProductionSessionBudget,
+  readProductionSessionBudgetRecoveryReceipts,
 } from "../lib/session-budget-production-root.js";
 
 function writeJson(value, write = console.log) {
@@ -46,9 +47,34 @@ export function renderSessionBudgetStatus(status) {
   return lines;
 }
 
+export function renderSessionBudgetReceipts(receipts) {
+  if (!receipts) {
+    return ["No durable session budget authority was found."];
+  }
+  const retained = receipts.entries.length;
+  const lines = [
+    `Session budget recovery receipts ${receipts.sessionId} (revision ${receipts.revision})`,
+    `history ${receipts.complete ? "complete" : "partial"}; retained ${retained}/${receipts.count}; head ${receipts.headDigest || "none"}`,
+  ];
+  if (!receipts.complete && receipts.baseDigest) {
+    lines.push(
+      `  legacy prefix through sequence ${receipts.baseSequence}: ${receipts.baseDigest}`,
+    );
+  }
+  for (const receipt of receipts.entries) {
+    lines.push(
+      `  sequence ${receipt.sequence}: ${receipt.digest}; settled ${receipt.settled.length}; abandoned ${receipt.abandoned.length}; tokens ${receipt.totalsBefore.tokens}->${receipt.totalsAfter.tokens}; USD ${receipt.totalsBefore.spentUsd}->${receipt.totalsAfter.spentUsd}`,
+    );
+  }
+  return lines;
+}
+
 export function registerSessionBudgetCommands(session, dependencies = {}) {
   const readBudget =
     dependencies.readProductionSessionBudget || readProductionSessionBudget;
+  const readReceipts =
+    dependencies.readProductionSessionBudgetRecoveryReceipts ||
+    readProductionSessionBudgetRecoveryReceipts;
   const adjudicate =
     dependencies.adjudicateProductionSessionBudgetRecovery ||
     adjudicateProductionSessionBudgetRecovery;
@@ -104,6 +130,25 @@ export function registerSessionBudgetCommands(session, dependencies = {}) {
         }
       } catch (error) {
         writeError(`Session budget recovery failed: ${error.message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  budget
+    .command("receipts <session-id>")
+    .description(
+      "Read canonical content-free recovery receipts retained by the durable budget",
+    )
+    .option("--json", "Output JSON")
+    .action((sessionId, options) => {
+      try {
+        const receipts = readReceipts(sessionId);
+        if (options.json) writeJson(receipts, write);
+        else {
+          for (const line of renderSessionBudgetReceipts(receipts)) write(line);
+        }
+      } catch (error) {
+        writeError(`Session budget receipts failed: ${error.message}`);
         process.exitCode = 1;
       }
     });

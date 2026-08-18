@@ -2,7 +2,10 @@ import {
   openSessionBudget,
   SessionBudgetSidecarStore,
 } from "./session-budget-runtime.js";
-import { normalizeSessionResourceBudgetSnapshot } from "./session-resource-budget.js";
+import {
+  normalizeSessionResourceBudgetSnapshot,
+  SESSION_BUDGET_RECOVERY_RECEIPT_HISTORY_SCHEMA,
+} from "./session-resource-budget.js";
 
 export const SESSION_BUDGET_ROOT_SCHEMA =
   "chainlesschain.session-budget-root/v1";
@@ -216,6 +219,27 @@ function projectPending(snapshot) {
   ].sort((left, right) => left.authorityId.localeCompare(right.authorityId));
 }
 
+function projectRecoveryAdjudication(value) {
+  if (!value) return null;
+  return Object.freeze({
+    schema: value.schema,
+    count: value.count,
+    headDigest: value.headDigest,
+    last: Object.freeze({ ...value.last }),
+    ...(value.history
+      ? {
+          history: Object.freeze({
+            schema: value.history.schema,
+            baseSequence: value.history.baseSequence,
+            baseDigest: value.history.baseDigest,
+            retainedCount: value.history.entries.length,
+            complete: value.history.baseSequence === 0,
+          }),
+        }
+      : {}),
+  });
+}
+
 export function readProductionSessionBudget(
   sessionId,
   { store = new SessionBudgetSidecarStore() } = {},
@@ -231,10 +255,48 @@ export function readProductionSessionBudget(
     usageUnknown: record.usageUnknown === true,
     limits: Object.freeze({ ...snapshot.limits }),
     totals: Object.freeze({ ...snapshot.totals }),
-    state: Object.freeze({ ...snapshot.state }),
+    state: Object.freeze({
+      started: snapshot.state.started,
+      abort: snapshot.state.abort
+        ? Object.freeze({ ...snapshot.state.abort })
+        : null,
+      recoveryAdjudication: projectRecoveryAdjudication(
+        snapshot.state.recoveryAdjudication,
+      ),
+    }),
     recoveryRequired: pending.length > 0,
     pendingRecovery: Object.freeze(
       pending.map((entry) => Object.freeze(entry)),
+    ),
+  });
+}
+
+export function readProductionSessionBudgetRecoveryReceipts(
+  sessionId,
+  { store = new SessionBudgetSidecarStore() } = {},
+) {
+  const normalizedSessionId = String(sessionId);
+  const record = store.read(normalizedSessionId);
+  if (!record) return null;
+  const snapshot = normalizeSessionResourceBudgetSnapshot(record.snapshot);
+  const adjudication = snapshot.state.recoveryAdjudication;
+  const history = adjudication?.history || null;
+  const entries = history?.entries || [];
+  return Object.freeze({
+    schema: SESSION_BUDGET_RECOVERY_RECEIPT_HISTORY_SCHEMA,
+    sessionId: normalizedSessionId,
+    revision: record.revision,
+    count: adjudication?.count || 0,
+    headDigest: adjudication?.headDigest || null,
+    baseSequence: history?.baseSequence ?? adjudication?.count ?? 0,
+    baseDigest: history
+      ? history.baseDigest
+      : adjudication?.headDigest || null,
+    complete: adjudication
+      ? Boolean(history && history.baseSequence === 0)
+      : true,
+    entries: Object.freeze(
+      entries.map((entry) => Object.freeze(structuredClone(entry))),
     ),
   });
 }
@@ -286,6 +348,7 @@ export function adjudicateProductionSessionBudgetRecovery(
       abandoned: Object.freeze([...result.abandoned]),
       settled: Object.freeze([...result.settled]),
       adjudication: Object.freeze({ ...result.adjudication }),
+      receipt: Object.freeze(structuredClone(result.receipt)),
       status: Object.freeze({ ...handle.status() }),
     });
   } finally {
