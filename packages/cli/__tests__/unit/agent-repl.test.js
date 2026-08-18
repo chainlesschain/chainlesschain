@@ -1938,6 +1938,60 @@ describe("agent-repl startup resume admission", () => {
     expect(scope.root).toBeNull();
   });
 
+  it("refuses an already-exhausted budget before entering the workspace", async () => {
+    const { prepareReplStartupResume, runReplStartupBoundary } =
+      await import("../../src/repl/agent-repl.js");
+    const admission = prepareReplStartupResume("exhausted-session", {
+      readSessionHostResumeState: () =>
+        verifiedReplResumeState("exhausted-session"),
+      formatMcpLedgerRecoveryNotice: () => null,
+    });
+    const controller = new AbortController();
+    controller.abort("turn-limit");
+    const budget = {
+      signal: controller.signal,
+      reason: () => "turn-limit",
+    };
+    const root = {
+      enabled: true,
+      budget,
+      options: { sessionBudget: budget, signal: controller.signal },
+      close: vi.fn(() => true),
+    };
+    const cwd = vi.fn();
+    const enterWorkspace = vi.fn();
+    const startWorkspace = vi.fn();
+
+    await expect(
+      runReplStartupBoundary(
+        {
+          sessionId: "exhausted-session",
+          sessionBudgetRoot: { enabled: true, limits: { maxTurns: 1 } },
+          _sessionHostLeaseScope: { lease: null },
+          _sessionBudgetRootScope: { root: null },
+        },
+        {
+          prepareReplStartupResume: () => admission,
+          acquireSessionHostLease: () => ({
+            signal: new AbortController().signal,
+            release: vi.fn(),
+          }),
+          openProductionSessionBudgetRoot: () => root,
+          cwd,
+          runWithHostHooksV2Workspace: enterWorkspace,
+          startAgentReplInWorkspace: startWorkspace,
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: "CC_SESSION_BUDGET_EXHAUSTED",
+      budgetReason: "turn-limit",
+    });
+    expect(root.close).toHaveBeenCalledOnce();
+    expect(cwd).not.toHaveBeenCalled();
+    expect(enterWorkspace).not.toHaveBeenCalled();
+    expect(startWorkspace).not.toHaveBeenCalled();
+  });
+
   it("refuses a present unverified canonical session before config access", async () => {
     const { prepareReplStartupResume } =
       await import("../../src/repl/agent-repl.js");
