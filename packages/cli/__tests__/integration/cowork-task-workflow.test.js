@@ -170,6 +170,34 @@ describe("cowork task workflow", () => {
           independentlyReadable: false,
         },
       ],
+      nestedEffectAttempts: () => [
+        {
+          protocol: "cc-workflow-child-effect/v1",
+          workflowEffectId: opts.workflowEffectId,
+          childEffectId: `sha256:${"c".repeat(64)}`,
+          childSequence: 1,
+          kind: "tool",
+          tool: "read_file",
+          toolUseId: "tool-1",
+          identitySemantics: "runtime-derived",
+        },
+      ],
+      nestedEffectSettlements: () => [
+        {
+          protocol: "cc-workflow-child-effect/v1",
+          workflowEffectId: opts.workflowEffectId,
+          childEffectId: `sha256:${"c".repeat(64)}`,
+          childSequence: 1,
+          kind: "tool",
+          tool: "read_file",
+          toolUseId: "tool-1",
+          status: "completed",
+          outcomeUnknown: false,
+          mcpLedgerId: null,
+          mcpLedgerPrewritePersisted: false,
+          mcpLedgerSettlementPersisted: false,
+        },
+      ],
     }));
 
     const result = await runCoworkTask({
@@ -196,6 +224,20 @@ describe("cowork task workflow", () => {
         requestId: "req_test",
         requestIdentitySemantics: "trace-only",
         independentlyReadable: false,
+      }),
+    ]);
+    expect(result.nestedEffectAttempts).toEqual([
+      expect.objectContaining({
+        workflowEffectId,
+        childEffectId: `sha256:${"c".repeat(64)}`,
+        tool: "read_file",
+      }),
+    ]);
+    expect(result.nestedEffectSettlements).toEqual([
+      expect.objectContaining({
+        workflowEffectId,
+        childEffectId: `sha256:${"c".repeat(64)}`,
+        status: "completed",
       }),
     ]);
   });

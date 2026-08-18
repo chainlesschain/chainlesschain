@@ -973,19 +973,24 @@ receipt slice.
 It exposes effect/result lineage, provider-return/operator-reconciled/runtime-
 not-dispatched settlement counts, provider dispatch and timeout timestamps,
 request-to-settlement wall time, effect-bound trace-only provider request
-attempts and receipts, the Cowork result's heuristic token estimate, and
-digest-only artifact/checkpoint references. Receipt projection rejects an
+attempts and receipts, runtime-derived nested-tool attempt/settlement lineage,
+the Cowork result's heuristic token estimate, and digest-only artifact/
+checkpoint references. Receipt projection rejects an
 effect/provider/call/source/request mismatch or any claim of
 idempotency/independent readback, and reports a gap for every valid attempt with
 no matching provider receipt. The projection is intentionally
 `complete: false` and lists every missing authority: the current Cowork runner
 does not return provider token usage or USD cost, native provider idempotency
 and independent receipt readback remain unavailable, checkpoint and artifact-
-store readback are not yet wired, and nested tool side effects are not
-represented by the workflow-level effect ledger. Attempt/receipt projection is
-currently result-bound for settled effects; a pending/crashed effect remains
-blocked, but its per-call records are not yet an independently readable durable
-store.
+store readback are not yet wired, and non-MCP nested tool lineage is still
+result-bound rather than independently durable. MCP calls bind the same outer/
+child effect tuple into the canonical session ledger before transport and
+report persisted start/settlement facts. Any workflow-bound nested outcome-
+unknown result or post-boundary tool exception blocks the outer effect for
+reconciliation instead of becoming an ordinary failed task. Provider attempt/
+receipt and local/host child projections remain result-bound for settled
+effects; a pending/crashed outer effect is blocked, but those per-call records
+are not yet an independently readable durable store.
 
 **WS protocol**: `workflow-list` / `workflow-get` / `workflow-save` / `workflow-remove` / `workflow-run` (streams `workflow:started` / `step-start` / `step-complete` / `workflow:done`).
 

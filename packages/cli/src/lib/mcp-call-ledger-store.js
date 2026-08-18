@@ -51,6 +51,8 @@ const TERMINAL = new Set([
   McpCallStatus.CANCELLED,
 ]);
 const PAYLOAD_DIGEST = /^sha256:[0-9a-f]{64}$/;
+const WORKFLOW_EFFECT_ID = /^sha256:[0-9a-f]{64}$/;
+const WORKFLOW_CHILD_EFFECT_PROTOCOL = "cc-workflow-child-effect/v1";
 const RAW_AUTHORITY_HASH = /^[0-9a-f]{64}$/;
 const OUTPUT_KINDS = new Set(MCP_CALL_LEDGER_OUTPUT_KINDS);
 const RECORD_FIELDS = new Set([
@@ -58,6 +60,10 @@ const RECORD_FIELDS = new Set([
   "ledgerId",
   "sessionId",
   "turnId",
+  "workflowEffectId",
+  "workflowChildEffectId",
+  "workflowChildSequence",
+  "workflowEffectProtocol",
   "toolName",
   "serverName",
   "inputDigest",
@@ -266,12 +272,35 @@ function canonicalRecord(record) {
       record.effectContract.source,
       MCP_CALL_LEDGER_PROTOCOL_LIMITS.identifier,
     );
+  const workflowFields = [
+    record.workflowEffectId,
+    record.workflowChildEffectId,
+    record.workflowChildSequence,
+    record.workflowEffectProtocol,
+  ];
+  const hasWorkflowBinding = workflowFields.some((value) => value != null);
+  const workflowBindingValid =
+    !hasWorkflowBinding ||
+    (WORKFLOW_EFFECT_ID.test(record.workflowEffectId || "") &&
+      WORKFLOW_EFFECT_ID.test(record.workflowChildEffectId || "") &&
+      Number.isSafeInteger(record.workflowChildSequence) &&
+      record.workflowChildSequence >= 1 &&
+      record.workflowEffectProtocol === WORKFLOW_CHILD_EFFECT_PROTOCOL);
+  const workflowBinding = hasWorkflowBinding
+    ? {
+        workflowEffectId: record.workflowEffectId,
+        workflowChildEffectId: record.workflowChildEffectId,
+        workflowChildSequence: record.workflowChildSequence,
+        workflowEffectProtocol: record.workflowEffectProtocol,
+      }
+    : {};
   const baseValid =
     record.schemaVersion === MCP_CALL_LEDGER_SCHEMA_VERSION &&
     isCanonicalProtocolText(
       record.ledgerId,
       MCP_CALL_LEDGER_PROTOCOL_LIMITS.ledgerId,
     ) &&
+    workflowBindingValid &&
     isCanonicalProtocolText(
       record.sessionId,
       MCP_CALL_LEDGER_PROTOCOL_LIMITS.identifier,
@@ -330,6 +359,7 @@ function canonicalRecord(record) {
         ledgerId: record.ledgerId,
         sessionId: record.sessionId,
         turnId: record.turnId,
+        ...workflowBinding,
         toolName: record.toolName,
         serverName: record.serverName,
         inputDigest: record.inputDigest,
@@ -361,6 +391,7 @@ function canonicalRecord(record) {
     ledgerId: record.ledgerId,
     sessionId: record.sessionId,
     turnId: record.turnId,
+    ...workflowBinding,
     toolName: record.toolName,
     serverName: record.serverName,
     inputDigest: record.inputDigest,
@@ -392,6 +423,10 @@ const IMMUTABLE_RECORD_FIELDS = Object.freeze([
   "ledgerId",
   "sessionId",
   "turnId",
+  "workflowEffectId",
+  "workflowChildEffectId",
+  "workflowChildSequence",
+  "workflowEffectProtocol",
   "toolName",
   "serverName",
   "inputDigest",

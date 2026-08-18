@@ -1041,6 +1041,59 @@ describe("executeTool", () => {
     });
   });
 
+  it("passes workflow child identity to a hosted external tool", async () => {
+    const workflowEffectId = `sha256:${"d".repeat(64)}`;
+    const workflowChildEffectId = `sha256:${"e".repeat(64)}`;
+    const interaction = {
+      requestHostTool: vi.fn().mockResolvedValue({
+        success: true,
+        result: { forecast: "rain" },
+      }),
+    };
+
+    await executeTool(
+      "mcp_weather_get_forecast",
+      { city: "Shanghai" },
+      {
+        cwd: tempDir,
+        interaction,
+        workflowEffectId,
+        workflowChildEffectId,
+        workflowChildSequence: 4,
+        workflowEffectProtocol: "cc-workflow-child-effect/v1",
+        hostManagedToolPolicy: {
+          toolDefinitions: [
+            {
+              type: "function",
+              function: {
+                name: "mcp_weather_get_forecast",
+                description: "Get a forecast",
+                parameters: { type: "object", properties: {} },
+              },
+            },
+          ],
+          tools: {
+            mcp_weather_get_forecast: {
+              allowed: true,
+              riskLevel: "low",
+            },
+          },
+        },
+      },
+    );
+
+    expect(interaction.requestHostTool).toHaveBeenCalledWith(
+      "mcp_weather_get_forecast",
+      { city: "Shanghai" },
+      {
+        workflowEffectId,
+        workflowChildEffectId,
+        workflowChildSequence: 4,
+        workflowEffectProtocol: "cc-workflow-child-effect/v1",
+      },
+    );
+  });
+
   it("executes direct session MCP tools through the local mcpClient", async () => {
     const mcpClient = {
       callTool: vi.fn().mockResolvedValue({

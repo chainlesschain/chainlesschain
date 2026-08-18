@@ -18,6 +18,9 @@ export const MCP_CALL_LEDGER_PROTOCOL_LIMITS = Object.freeze({
   networkScope: 512,
 });
 
+const WORKFLOW_EFFECT_ID_RE = /^sha256:[a-f0-9]{64}$/;
+const WORKFLOW_CHILD_EFFECT_PROTOCOL = "cc-workflow-child-effect/v1";
+
 export const MCP_CALL_LEDGER_OUTPUT_KINDS = Object.freeze([
   "array",
   "bigint",
@@ -294,6 +297,31 @@ function safeIdentifier(
   maxLength = MCP_CALL_LEDGER_PROTOCOL_LIMITS.identifier,
 ) {
   return normalizeMcpLedgerProtocolText(value, fallback, maxLength);
+}
+
+function workflowEffectBinding(call) {
+  const fields = [
+    call.workflowEffectId,
+    call.workflowChildEffectId,
+    call.workflowChildSequence,
+    call.workflowEffectProtocol,
+  ];
+  if (fields.every((value) => value == null)) return null;
+  if (
+    !WORKFLOW_EFFECT_ID_RE.test(call.workflowEffectId || "") ||
+    !WORKFLOW_EFFECT_ID_RE.test(call.workflowChildEffectId || "") ||
+    !Number.isSafeInteger(call.workflowChildSequence) ||
+    call.workflowChildSequence < 1 ||
+    call.workflowEffectProtocol !== WORKFLOW_CHILD_EFFECT_PROTOCOL
+  ) {
+    throw new TypeError("MCP ledger workflow effect binding is malformed");
+  }
+  return Object.freeze({
+    workflowEffectId: call.workflowEffectId,
+    workflowChildEffectId: call.workflowChildEffectId,
+    workflowChildSequence: call.workflowChildSequence,
+    workflowEffectProtocol: call.workflowEffectProtocol,
+  });
 }
 
 function nullableBoolean(value) {
@@ -589,6 +617,7 @@ export class McpCallLedger {
     const effectContract = normalizeMcpEffectContract(
       call.effectContract || call.effect || {},
     );
+    const effectBinding = workflowEffectBinding(call);
     const inputSnapshot = snapshotMcpJsonRpcInput(
       Object.prototype.hasOwnProperty.call(call, "input") ? call.input : {},
     );
@@ -609,6 +638,7 @@ export class McpCallLedger {
         null,
         MCP_CALL_LEDGER_PROTOCOL_LIMITS.identifier,
       ),
+      ...(effectBinding || {}),
       toolName,
       serverName,
       inputDigest: input.sha256,

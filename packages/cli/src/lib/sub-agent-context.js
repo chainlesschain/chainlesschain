@@ -34,6 +34,24 @@ const TRUNCATE_LENGTH = 500;
 const PROVIDER_CLIENT_REQUEST_ID_RE = /^ccwf_[a-f0-9]{64}$/;
 const PROVIDER_CALL_ID_RE = /^[A-Za-z0-9._:-]{1,256}$/;
 const PROVIDER_NAME_RE = /^[a-z0-9][a-z0-9._-]{0,63}$/;
+const WORKFLOW_EFFECT_ID_RE = /^sha256:[a-f0-9]{64}$/;
+const WORKFLOW_CHILD_EFFECT_PROTOCOL = "cc-workflow-child-effect/v1";
+const WORKFLOW_TOOL_CALL_ID_RE = /^[\x21-\x7e]{1,512}$/;
+const WORKFLOW_TOOL_NAME_RE = /^[A-Za-z0-9._:-]{1,256}$/;
+
+function ownDataValue(value, property) {
+  if (!value || (typeof value !== "object" && typeof value !== "function")) {
+    return undefined;
+  }
+  try {
+    const descriptor = Object.getOwnPropertyDescriptor(value, property);
+    return descriptor && Object.hasOwn(descriptor, "value")
+      ? descriptor.value
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 function runtimeUsageObserverFailure(error, code, message) {
   const failure =
@@ -215,6 +233,8 @@ export class SubAgentContext {
     this._workflowEffectId = options.workflowEffectId ?? null;
     this._providerRequestAttempts = [];
     this._providerRequestReceipts = [];
+    this._nestedEffectAttempts = [];
+    this._nestedEffectSettlements = [];
 
     // ── Isolated state ──────────────────────────────────────────────
     // Independent message history — never shared with parent
@@ -826,6 +846,7 @@ export class SubAgentContext {
           }
         }
         if (event.type === "tool-executing" && event.tool_use_id) {
+          this._recordNestedEffectAttempt(event);
           const toolUseId = String(event.tool_use_id);
           if (!this._toolUseIds.includes(toolUseId)) {
             this._toolUseIds.push(toolUseId);
@@ -973,8 +994,25 @@ export class SubAgentContext {
         }
 
         if (event.type === "tool-result") {
+          const nestedEffectSettlement =
+            this._recordNestedEffectSettlement(event);
           if (strictUsageTelemetry && event.tool_use_id) {
             observeToolSettlement(event);
+          }
+          // A consumer may stop the async generator after this yielded result
+          // because of cancellation or a local token budget. Fence the unknown
+          // here, after the strict settlement observer closes its boundary, so
+          // generator.return() cannot suppress the outer reconciliation signal.
+          if (nestedEffectSettlement?.outcomeUnknown === true) {
+            const error = new Error(
+              `Workflow-bound nested tool ${nestedEffectSettlement.tool} has an unknown outcome and requires reconciliation`,
+            );
+            error.code = "CC_WORKFLOW_NESTED_TOOL_OUTCOME_UNKNOWN";
+            error.workflowEffectOutcomeUnknown = true;
+            error.workflowEffectId = nestedEffectSettlement.workflowEffectId;
+            error.workflowChildEffectId =
+              nestedEffectSettlement.childEffectId;
+            throw error;
           }
           // Store large tool results as artifacts
           const resultStr = JSON.stringify(event.result);
@@ -1044,6 +1082,18 @@ export class SubAgentContext {
           "CC_CHILD_CALL_SETTLEMENT_INCOMPLETE",
           "Strict child execution ended with an unsettled provider or tool call",
         );
+      }
+      if (
+        this._workflowEffectId &&
+        this._nestedEffectAttempts.length !==
+          this._nestedEffectSettlements.length
+      ) {
+        const error = new Error(
+          "Workflow-bound child execution ended with an unsettled nested effect",
+        );
+        error.code = "CC_WORKFLOW_CHILD_EFFECT_SETTLEMENT_INCOMPLETE";
+        error.workflowEffectOutcomeUnknown = true;
+        throw error;
       }
     } catch (err) {
       if (err?.runtimeLedgerPersistence === true || this._workflowEffectId) {
@@ -1206,6 +1256,8 @@ export class SubAgentContext {
         ? {
             providerRequestAttempts: this.providerRequestAttempts(),
             providerRequestReceipts: this.providerRequestReceipts(),
+            nestedEffectAttempts: this.nestedEffectAttempts(),
+            nestedEffectSettlements: this.nestedEffectSettlements(),
           }
         : {}),
       worktreeId: worktree?.branch || this._worktreeBranch || null,
@@ -1226,6 +1278,104 @@ export class SubAgentContext {
    */
   providerRequestReceipts() {
     return this._providerRequestReceipts.map((receipt) => ({ ...receipt }));
+  }
+
+  nestedEffectAttempts() {
+    return this._nestedEffectAttempts.map((attempt) => ({ ...attempt }));
+  }
+
+  nestedEffectSettlements() {
+    return this._nestedEffectSettlements.map((settlement) => ({
+      ...settlement,
+    }));
+  }
+
+  _recordNestedEffectAttempt(event) {
+    if (!this._workflowEffectId) return;
+    const attempt = {
+      protocol: event?.workflowEffectProtocol,
+      workflowEffectId: event?.workflowEffectId,
+      childEffectId: event?.workflowChildEffectId,
+      childSequence: event?.workflowChildSequence,
+      kind: "tool",
+      tool: event?.tool,
+      toolUseId: event?.tool_use_id,
+      identitySemantics: "runtime-derived",
+    };
+    if (
+      attempt.protocol !== WORKFLOW_CHILD_EFFECT_PROTOCOL ||
+      attempt.workflowEffectId !== this._workflowEffectId ||
+      !WORKFLOW_EFFECT_ID_RE.test(attempt.childEffectId || "") ||
+      !Number.isSafeInteger(attempt.childSequence) ||
+      attempt.childSequence < 1 ||
+      !WORKFLOW_TOOL_NAME_RE.test(attempt.tool || "") ||
+      !WORKFLOW_TOOL_CALL_ID_RE.test(attempt.toolUseId || "") ||
+      this._nestedEffectAttempts.some(
+        (existing) =>
+          existing.childEffectId === attempt.childEffectId ||
+          existing.childSequence === attempt.childSequence,
+      )
+    ) {
+      const error = new TypeError(
+        "workflow nested-effect boundary is malformed or duplicated",
+      );
+      error.code = "CC_WORKFLOW_CHILD_EFFECT_BOUNDARY_INVALID";
+      throw error;
+    }
+    this._nestedEffectAttempts.push(Object.freeze(attempt));
+  }
+
+  _recordNestedEffectSettlement(event) {
+    if (!this._workflowEffectId || !event?.workflowChildEffectId) return null;
+    const attempt = this._nestedEffectAttempts.find(
+      (candidate) =>
+        candidate.childEffectId === event.workflowChildEffectId,
+    );
+    const outcomeUnknown = ownDataValue(event.result, "outcomeUnknown") === true;
+    const resultError = ownDataValue(event.result, "error");
+    const mcpLedgerId = ownDataValue(event.result, "mcpLedgerId") ?? null;
+    const settlement = {
+      protocol: event?.workflowEffectProtocol,
+      workflowEffectId: event?.workflowEffectId,
+      childEffectId: event?.workflowChildEffectId,
+      childSequence: event?.workflowChildSequence,
+      kind: "tool",
+      tool: event?.tool,
+      toolUseId: event?.tool_use_id,
+      status: outcomeUnknown
+        ? "outcome_unknown"
+        : event?.error || resultError
+          ? "failed"
+          : "completed",
+      outcomeUnknown,
+      mcpLedgerId,
+      mcpLedgerPrewritePersisted:
+        ownDataValue(event.result, "mcpLedgerPrewritePersisted") === true,
+      mcpLedgerSettlementPersisted:
+        ownDataValue(event.result, "mcpLedgerSettlementPersisted") === true,
+    };
+    if (
+      !attempt ||
+      settlement.protocol !== WORKFLOW_CHILD_EFFECT_PROTOCOL ||
+      settlement.workflowEffectId !== this._workflowEffectId ||
+      settlement.childSequence !== attempt.childSequence ||
+      settlement.tool !== attempt.tool ||
+      settlement.toolUseId !== attempt.toolUseId ||
+      (mcpLedgerId !== null &&
+        !PROVIDER_CALL_ID_RE.test(String(mcpLedgerId))) ||
+      this._nestedEffectSettlements.some(
+        (existing) => existing.childEffectId === settlement.childEffectId,
+      )
+    ) {
+      const error = new TypeError(
+        "workflow nested-effect settlement is malformed or duplicated",
+      );
+      error.code = "CC_WORKFLOW_CHILD_EFFECT_SETTLEMENT_INVALID";
+      error.workflowEffectOutcomeUnknown = true;
+      throw error;
+    }
+    this._nestedEffectSettlements.push(Object.freeze(settlement));
+    return settlement;
   }
 
   _recordProviderRequestAttempt(event) {
