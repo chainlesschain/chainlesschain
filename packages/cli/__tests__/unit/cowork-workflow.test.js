@@ -1456,3 +1456,108 @@ describe("pipeline mode (no-barrier scheduling)", () => {
     expect(stepOutcomes.map((s) => s.id).sort()).toEqual(["a", "b"]);
   });
 });
+
+describe("executeWorkflow durable stage input gates", () => {
+  beforeEach(() => {
+    installFakeFs();
+  });
+
+  it("validates a bounded needsInput declaration", () => {
+    expect(
+      validateWorkflow({
+        id: "input-wf",
+        name: "Input",
+        steps: [
+          {
+            id: "approve",
+            message: "ship",
+            needsInput: {
+              prompt: "Choose release channel",
+              options: ["stable", "preview"],
+            },
+          },
+        ],
+      }),
+    ).toEqual({ valid: true, errors: [] });
+    expect(
+      validateWorkflow({
+        id: "input-wf",
+        name: "Input",
+        steps: [
+          {
+            id: "approve",
+            message: "ship",
+            needsInput: {
+              prompt: "Choose",
+              options: ["stable", "stable"],
+            },
+          },
+        ],
+      }).errors.join(";"),
+    ).toMatch(/needsInput\.options/u);
+  });
+
+  it("resolves input before task dispatch and binds it into the stage message", async () => {
+    const runTask = vi.fn(async (args) => ({
+      taskId: "task-approve",
+      status: "completed",
+      result: { summary: args.userMessage },
+    }));
+    const resolveInput = vi.fn(async () => "stable");
+    const record = await executeWorkflow({
+      workflow: {
+        id: "input-wf",
+        name: "Input",
+        steps: [
+          {
+            id: "approve",
+            message: "ship",
+            needsInput: {
+              prompt: "Choose release channel",
+              options: ["stable", "preview"],
+            },
+          },
+        ],
+      },
+      cwd: "/project",
+      runTask,
+      resolveInput,
+    });
+
+    expect(record.status).toBe("completed");
+    expect(resolveInput).toHaveBeenCalledWith({
+      stepId: "approve",
+      prompt: "Choose release channel",
+      options: ["stable", "preview"],
+      multiSelect: false,
+    });
+    expect(runTask).toHaveBeenCalledTimes(1);
+    expect(runTask.mock.calls[0][0].userMessage).toContain(
+      "## Bound user input for stage approve\n\"stable\"",
+    );
+  });
+
+  it("fails before any task dispatch when an input resolver is absent", async () => {
+    const runTask = vi.fn();
+    await expect(
+      executeWorkflow({
+        workflow: {
+          id: "input-wf",
+          name: "Input",
+          steps: [
+            {
+              id: "approve",
+              message: "ship",
+              needsInput: { prompt: "Approve?" },
+            },
+          ],
+        },
+        cwd: "/project",
+        runTask,
+      }),
+    ).rejects.toMatchObject({
+      code: "COWORK_WORKFLOW_INPUT_RESOLVER_REQUIRED",
+    });
+    expect(runTask).not.toHaveBeenCalled();
+  });
+});

@@ -1041,6 +1041,11 @@ export function registerCoworkCommand(program, commandDeps = {}) {
         for (const effect of projection.pendingEffects) {
           logger.log(`  pending: ${effect.id} (${effect.key})`);
         }
+        for (const request of projection.pendingInputRequests) {
+          logger.log(
+            `  needs input: ${request.id} step=${request.stepId} ${request.prompt}`,
+          );
+        }
       } catch (err) {
         logger.error(`WORKFLOW_RUNTIME_STATUS_FAILED: ${err.message}`);
         process.exitCode = 2;
@@ -1128,6 +1133,45 @@ export function registerCoworkCommand(program, commandDeps = {}) {
         logger.error(
           `WORKFLOW_RUNTIME_RECOVER_CHECKPOINT_FAILED: ${err.message}`,
         );
+        process.exitCode = 2;
+      }
+    });
+
+  workflow
+    .command("runtime-reply <run-id> <request-id> <response-file>")
+    .description(
+      "Answer one revision-bound durable stage input request from a bounded JSON file",
+    )
+    .requiredOption(
+      "--expected-revision <n>",
+      "Exact runtime revision shown by runtime-status",
+    )
+    .option("--json", "Machine-readable JSON output")
+    .action(async (runId, requestId, responseFile, options) => {
+      try {
+        const runtime = await import("../lib/dynamic-workflow-runtime.js");
+        const statePath = runtime.dynamicWorkflowRunStatePath(
+          process.cwd(),
+          runId,
+        );
+        const answer = runtime.readDynamicWorkflowInputResponseFile(
+          responseFile,
+        );
+        const state = runtime.submitDurableWorkflowInput(statePath, {
+          expectedRevision: options.expectedRevision,
+          requestId,
+          answer,
+        });
+        const projection = runtime.projectDynamicWorkflowRuntime(state);
+        if (options.json) {
+          console.log(JSON.stringify(projection, null, 2));
+        } else {
+          logger.log(
+            `${projection.runId}  ${projection.status}  revision=${projection.revision}`,
+          );
+        }
+      } catch (err) {
+        logger.error(`WORKFLOW_RUNTIME_REPLY_FAILED: ${err.message}`);
         process.exitCode = 2;
       }
     });
