@@ -1491,6 +1491,7 @@ export class WSAgentHandler {
 
             case "token-usage":
               if (
+                session.canonicalJsonlSession === true &&
                 (strictUsageTelemetry || this._sessionBudget) &&
                 event.ledgerPersisted !== true
               ) {
