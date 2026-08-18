@@ -57,6 +57,7 @@ vi.mock("../../src/lib/session-manager.js", () => ({
   getSession: vi.fn(),
   listSessions: vi.fn(() => []),
   updateSession: vi.fn(),
+  deleteSession: vi.fn(() => true),
 }));
 
 vi.mock("../../src/lib/agent-core.js", () => ({
@@ -96,6 +97,7 @@ import {
   getSession as dbGetSession,
   listSessions as dbListSessions,
   updateSession as dbUpdateSession,
+  deleteSession as dbDeleteSession,
 } from "../../src/lib/session-manager.js";
 import {
   createWorktree,
@@ -450,6 +452,36 @@ describe("WSSessionManager", () => {
       const m = new WSSessionManager();
       m.createSession();
       expect(dbCreateSession).not.toHaveBeenCalled();
+    });
+
+    it("requires a database for strict durable session creation", () => {
+      const m = new WSSessionManager();
+
+      expect(() => m.createSession({ requireDurable: true })).toThrow(
+        expect.objectContaining({ code: "CC_WS_DURABLE_SESSION_REQUIRED" }),
+      );
+      expect(m.sessions.size).toBe(0);
+    });
+
+    it("rolls back a strict durable session when metadata persistence fails", () => {
+      const persistenceError = new Error("metadata write failed");
+      dbUpdateSession.mockImplementationOnce(() => {
+        throw persistenceError;
+      });
+
+      expect(() => manager.createSession({ requireDurable: true })).toThrow(
+        expect.objectContaining({ code: "CC_WS_SESSION_PERSISTENCE_FAILED" }),
+      );
+      expect(dbDeleteSession).toHaveBeenCalledOnce();
+      expect(manager.sessions.size).toBe(0);
+    });
+
+    it("compensates an unpublished session with rollbackSessionCreation", () => {
+      const { sessionId } = manager.createSession();
+
+      expect(manager.rollbackSessionCreation(sessionId)).toBe(true);
+      expect(manager.getSession(sessionId)).toBeNull();
+      expect(dbDeleteSession).toHaveBeenCalledWith(mockDb, sessionId);
     });
 
     it("uses config.llm as defaults for provider/model/baseUrl/apiKey", () => {

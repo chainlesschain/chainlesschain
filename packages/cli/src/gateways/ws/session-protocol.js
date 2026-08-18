@@ -580,6 +580,7 @@ export async function handleSessionCreate(server, id, ws, message) {
     shellPolicyOverrides,
   } = message;
 
+  let createdSessionId = null;
   try {
     const { sessionId } = server.sessionManager.createSession({
       type: sessionType || "agent",
@@ -594,6 +595,7 @@ export async function handleSessionCreate(server, id, ws, message) {
       systemPromptExtension,
       shellPolicyOverrides,
     });
+    createdSessionId = sessionId;
 
     const session = server.sessionManager.getSession(sessionId);
     const record = createSessionRecord(session, {
@@ -608,11 +610,7 @@ export async function handleSessionCreate(server, id, ws, message) {
       status: "created",
     });
 
-    try {
-      await ensureSessionHandler(server, ws, session);
-    } catch (_err) {
-      // Session exists even if handler bootstrapping fails.
-    }
+    await ensureSessionHandler(server, ws, session);
 
     server.emit("session:create", { sessionId, type: sessionType || "agent" });
 
@@ -659,7 +657,38 @@ export async function handleSessionCreate(server, id, ws, message) {
       ),
     );
   } catch (err) {
-    server._send(ws, envelopeError(id, "SESSION_CREATE_FAILED", err.message));
+    if (createdSessionId) {
+      const createdSession = server.sessionManager.getSession(createdSessionId);
+      createdSession?.mcpClient?.clearElicitationHandler?.(createdSessionId);
+      const handler = server.sessionHandlers.get(createdSessionId);
+      try {
+        handler?.destroy?.();
+      } catch {
+        // The creation failure remains authoritative; rollback below still
+        // removes the unpublished manager/database state.
+      }
+      server.sessionHandlers.delete(createdSessionId);
+      try {
+        if (
+          typeof server.sessionManager.rollbackSessionCreation === "function"
+        ) {
+          server.sessionManager.rollbackSessionCreation(createdSessionId);
+        } else {
+          server.sessionManager.closeSession(createdSessionId);
+        }
+      } catch {
+        // Do not turn a failed bootstrap into a successful protocol response.
+      }
+    }
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        err?.code || "SESSION_CREATE_FAILED",
+        err?.message || "WebSocket session creation failed",
+        createdSessionId,
+      ),
+    );
   }
 }
 
@@ -763,9 +792,18 @@ export async function handleSessionResume(server, id, ws, message) {
   if (!server.sessionHandlers.has(sessionId)) {
     try {
       await ensureSessionHandler(server, ws, session);
-    } catch (_err) {
-      // Session resumed without live handler. A future handler still reads the
-      // already-attached fail-closed recovery authority from the session.
+    } catch (error) {
+      server._send(
+        ws,
+        envelopeError(
+          id,
+          error?.code || "SESSION_RESUME_FAILED",
+          error?.message || "WebSocket session handler could not be resumed",
+          sessionId,
+          { ...(sessionSnapshot ? { sessionSnapshot } : {}) },
+        ),
+      );
+      return;
     }
   }
   const handler = server.sessionHandlers.get(sessionId);

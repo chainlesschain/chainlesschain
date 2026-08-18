@@ -919,6 +919,39 @@ describe("ws runtime event emission", () => {
     );
   });
 
+  it("fails session creation closed when handler bootstrap fails", async () => {
+    const bootstrapError = Object.assign(new Error("handler bootstrap failed"), {
+      code: "CC_WS_HANDLER_BOOTSTRAP_FAILED",
+    });
+    server._session.mcpClient = {
+      setElicitationHandler: vi.fn(() => {
+        throw bootstrapError;
+      }),
+      clearElicitationHandler: vi.fn(),
+    };
+    server.sessionManager.rollbackSessionCreation = vi.fn();
+
+    await handleSessionCreate(server, "req-bootstrap-failed", ws, {
+      sessionType: "agent",
+    });
+
+    expect(server.sessionManager.rollbackSessionCreation).toHaveBeenCalledWith(
+      "sess-1",
+    );
+    expect(server.emit).not.toHaveBeenCalledWith(
+      RUNTIME_EVENTS.SESSION_START,
+      expect.anything(),
+    );
+    expect(server._send).toHaveBeenCalledWith(
+      ws,
+      expect.objectContaining({
+        type: "error",
+        code: "CC_WS_HANDLER_BOOTSTRAP_FAILED",
+        sessionId: "sess-1",
+      }),
+    );
+  });
+
   it("session-resume handler emits envelope with history+record", async () => {
     await handleSessionResume(server, "req-sr-env", ws, {
       sessionId: "sess-1",
@@ -937,6 +970,34 @@ describe("ws runtime event emission", () => {
           history: expect.any(Array),
           record: expect.any(Object),
         }),
+      }),
+    );
+  });
+
+  it("fails resume closed when a live handler cannot be established", async () => {
+    const bootstrapError = Object.assign(new Error("resume bootstrap failed"), {
+      code: "CC_WS_RESUME_BOOTSTRAP_FAILED",
+    });
+    server._session.mcpClient = {
+      setElicitationHandler: vi.fn(() => {
+        throw bootstrapError;
+      }),
+    };
+
+    await handleSessionResume(server, "req-resume-bootstrap-failed", ws, {
+      sessionId: "sess-1",
+    });
+
+    expect(server.emit).not.toHaveBeenCalledWith(
+      RUNTIME_EVENTS.SESSION_RESUME,
+      expect.anything(),
+    );
+    expect(server._send).toHaveBeenCalledWith(
+      ws,
+      expect.objectContaining({
+        type: "error",
+        code: "CC_WS_RESUME_BOOTSTRAP_FAILED",
+        sessionId: "sess-1",
       }),
     );
   });
