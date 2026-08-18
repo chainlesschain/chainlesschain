@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.165.2",
+      "cliVersions": ["0.165.1", "0.165.2"],
+      "date": "2026-08-18",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed — cc CLI 0.165.2: governed plugins and keeper handoff reliability",
+          "body": "> `chainlesschain` **0.165.1 → 0.165.2** (candidate; not yet published,\n> 2026-08-18).\n> CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.58**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Governed plugin transactions and provenance**: marketplace payload,\n  activation, install, update, transaction recovery, and provenance decisions\n  bind immutable source identities and digests. Registry cache entries are\n  content-addressed, while corrupt, stale, or mismatched recovery evidence\n  continues to fail closed.\n- **Strict plugin execution boundaries**: the remaining live plugin fixtures\n  now execute in the strict Linux sandbox, MCP security soak provisions its\n  required Bubblewrap boundary explicitly, and release fixtures exercise the\n  production activation path instead of accepting inactive coverage.\n- **Durable workflow authority**: provider requests and settlements, nested and\n  parallel tool effects, child and descendant calls, and timeout outcomes gain\n  durable identity-bound receipts so retries cannot silently reuse ambiguous\n  execution authority.\n- **Background keeper lock handoff**: an owner that durably publishes its exact\n  release marker treats the marker as the logical handoff even when another\n  contender wins physical cleanup. Wrong, corrupt, or active foreign claimants\n  remain rejected, and POSIX/Windows process identity and cleanup races retain\n  bounded fail-closed handling.\n- **Scheduler campaign continuity**: scheduled long-soak dispatches use a pinned\n  campaign identity, refuse overlapping segments, and can auto-finalize only\n  after the required cross-platform evidence window is complete.\n- **Cross-platform release stability**: generated command help stays in sync;\n  POSIX fsync-failure fixtures match the actual read mode; registry cache tests\n  follow immutable URL-plus-digest semantics; and macOS marketplace replay uses\n  isolated local scope instead of leaking state through the runner user home.\n- **Release status**: immutable tag, final source SHA, workflow run IDs, npm\n  provenance, package digests, and registry readback remain intentionally\n  absent until the final `0.165.2` merge SHA passes complete `CLI CI` and\n  `CLI Strict Sandbox` matrices on Linux, Windows, and macOS, followed by the\n  dedicated npm release and independent public readback workflows. The active\n  two-hour Keeper/reliability runs and the 72-hour scheduler campaign are not\n  claimed as completed release evidence here."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.165.1",
       "cliVersions": ["0.164.0", "0.165.1"],
       "date": "2026-08-17",

@@ -601,15 +601,17 @@ describe("withFileLock", () => {
     const _fs = fakeLockFs();
     const lockDir = "/critical.json.lock";
     const ownerToken = "original-owner-token-0003";
+    const nextOwnerToken = "next-owner-token-0000001";
+    const detachedReleaseDir = `${lockDir}.released-${ownerToken}-${nextOwnerToken}`;
     const originalRename = _fs.renameSync;
     const originalRemove = _fs.rmSync;
-    let blockedReleaseRename = false;
+    let blockedReleaseRenames = 0;
     let blockedReleaseRemove = false;
 
     _fs.renameSync = vi.fn((from, to) => {
       const normalizedFrom = String(from).replaceAll("\\", "/");
-      if (normalizedFrom === lockDir && !blockedReleaseRename) {
-        blockedReleaseRename = true;
+      if (normalizedFrom === lockDir && blockedReleaseRenames < 2) {
+        blockedReleaseRenames += 1;
         const error = new Error("transient Windows sharing violation");
         error.code = "EPERM";
         throw error;
@@ -618,7 +620,7 @@ describe("withFileLock", () => {
     });
     _fs.rmSync = vi.fn((target, options) => {
       const normalizedTarget = String(target).replaceAll("\\", "/");
-      if (normalizedTarget === lockDir && !blockedReleaseRemove) {
+      if (normalizedTarget === detachedReleaseDir && !blockedReleaseRemove) {
         blockedReleaseRemove = true;
         const error = new Error("transient Windows directory cleanup denial");
         error.code = "EPERM";
@@ -649,11 +651,12 @@ describe("withFileLock", () => {
         })(),
         _sleep: () => {},
         _isProcessAlive: () => true,
-        _ownerToken: () => "next-owner-token-0000001",
+        _ownerToken: () => nextOwnerToken,
         failIfUnavailable: true,
       }),
     ).toBe("recovered");
     expect(_fs.dirs.has(lockDir)).toBe(false);
+    expect(_fs.dirs.has(detachedReleaseDir)).toBe(true);
   });
 
   it("does not report ownership loss when a contender wins published-release cleanup", () => {

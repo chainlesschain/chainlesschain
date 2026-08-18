@@ -10,6 +10,7 @@ import {
   CLI_VERSION_ARGS,
   formatBridgeReport,
 } from "../../../vscode-extension/src/ide-doctor.js";
+import { MIN_CLI_VERSION } from "../../../vscode-extension/src/version-check.js";
 
 describe("ide-doctor args", () => {
   it("targets the CLI's ide status / doctor subcommands", () => {
@@ -25,7 +26,7 @@ describe("formatBridgeReport", () => {
       port: 51234,
       statusText: "connect vscode:51234",
       doctorText: "live locks: 1\nreason: workspace-match",
-      cliVersionText: "0.162.176",
+      cliVersionText: MIN_CLI_VERSION,
       workspaceTrusted: true,
       runtimeEnvironment: {
         node: {
@@ -46,7 +47,7 @@ describe("formatBridgeReport", () => {
     expect(md).toContain("## cc ide status");
     expect(md).toContain("## cc ide doctor");
     expect(md).toContain("READY (可运行)");
-    expect(md).toContain("CLI: 0.162.176");
+    expect(md).toContain(`CLI: ${MIN_CLI_VERSION}`);
     expect(md).toContain("## Development runtimes and offline recovery");
     expect(md).toContain("Node.js: 22.12.0");
     expect(md).toContain("Managed CLI offline copy: ready (0.200.0)");
@@ -58,7 +59,7 @@ describe("formatBridgeReport", () => {
       port: -1,
       statusText: "",
       doctorText: "",
-      cliVersionText: "0.162.176",
+      cliVersionText: MIN_CLI_VERSION,
       workspaceTrusted: true,
     });
     expect(md).toContain("STOPPED");

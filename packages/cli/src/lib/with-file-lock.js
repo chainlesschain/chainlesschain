@@ -431,13 +431,29 @@ function completePublishedRelease(_fs, lockDir, owner, claimant, ownerAlive) {
     removeOwnMarker(_fs, claimPath, claimant);
     return { published: true, completed: false };
   }
+  const cleanupDir = `${lockDir}.released-${owner.token}-${claimant.token}`;
   try {
-    _fs.rmSync(lockDir, { recursive: true, force: true });
+    // Detach the exact released directory from the acquisition path before
+    // cleaning it. Recursive removal may span several Windows filesystem
+    // operations; deleting `lockDir` in place lets a new atomic acquirer
+    // install a replacement between those operations and risks deleting that
+    // replacement. The claimant token makes delayed cleanup private to this
+    // handoff, just like the owner's normal rename-first release path.
+    _fs.renameSync(lockDir, cleanupDir);
+    try {
+      _fs.rmSync(cleanupDir, { recursive: true, force: true });
+    } catch {
+      // The acquisition path is already free. A uniquely named released
+      // directory is harmless bounded debris if Windows still holds a handle.
+    }
     return { published: true, completed: true };
   } catch (error) {
     removeOwnMarker(_fs, claimPath, claimant);
-    // A second Windows sharing transient leaves the exact release marker in
-    // place so this or another contender can retry within its normal deadline.
+    if (error?.code === "ENOENT") {
+      return { published: true, completed: !directoryExists(_fs, lockDir) };
+    }
+    // A Windows sharing transient leaves the exact release marker in place so
+    // this or another contender can retry within its normal deadline.
     if (isTransientLockError(error)) {
       return { published: true, completed: false };
     }
