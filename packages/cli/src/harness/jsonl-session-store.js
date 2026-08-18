@@ -83,6 +83,7 @@ import {
   readSessionAntiRollbackAnchor,
   sessionAntiRollbackPredecessorWitness,
 } from "../lib/session-anti-rollback-anchor.js";
+import { normalizeSessionBudgetRootConfig } from "../lib/session-budget-production-root.js";
 
 let securedSessionsDir = null;
 let securedSessionsDirIdentity = null;
@@ -2636,6 +2637,13 @@ export function startSession(sessionId, meta = {}) {
       ? {
           executionLocation: normalizeExecutionLocationBinding(
             meta.executionLocation,
+          ),
+        }
+      : {}),
+    ...(meta.sessionBudgetRoot != null
+      ? {
+          sessionBudgetRoot: normalizeSessionBudgetRootConfig(
+            meta.sessionBudgetRoot,
           ),
         }
       : {}),

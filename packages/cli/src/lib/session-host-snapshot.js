@@ -27,6 +27,7 @@ import {
   sanitizePersistedMessages,
 } from "./session-message-provenance.js";
 import { createSessionTranscriptStructureProjection } from "./session-transcript-structure.js";
+import { normalizeSessionBudgetRootConfig } from "./session-budget-production-root.js";
 
 export const SESSION_HOST_SNAPSHOT_SCHEMA =
   "chainlesschain.session-host-snapshot/v1";
@@ -121,6 +122,14 @@ function titleFromEvents(events) {
     }
   }
   return title;
+}
+
+function sessionBudgetRootFromEvents(events) {
+  const sessionStart = events.find((event) => event?.type === "session_start");
+  if (!Object.hasOwn(sessionStart?.data || {}, "sessionBudgetRoot")) {
+    return null;
+  }
+  return normalizeSessionBudgetRootConfig(sessionStart.data.sessionBudgetRoot);
 }
 
 function validatePlainSessionEvents(events, sessionId) {
@@ -292,12 +301,14 @@ export function projectVerifiedSessionHostSnapshot(sessionId, events) {
     }),
     messages,
     recovery,
+    sessionBudgetRoot: sessionBudgetRootFromEvents(safeEvents),
   });
 }
 
 function createStreamingSessionHostProjection(sessionId) {
   let title = "Untitled";
   let lastEventType = null;
+  let sessionBudgetRoot = null;
   const structure = createSessionTranscriptStructureProjection(sessionId, {
     failFast: true,
   });
@@ -313,8 +324,13 @@ function createStreamingSessionHostProjection(sessionId) {
         throw new TypeError("Verified session event must be plain JSON data");
       }
       structure.accept(safeEvent);
-      if (safeEvent.type === "session_start" && safeEvent.data?.title) {
-        title = String(safeEvent.data.title);
+      if (safeEvent.type === "session_start") {
+        if (safeEvent.data?.title) title = String(safeEvent.data.title);
+        if (Object.hasOwn(safeEvent.data || {}, "sessionBudgetRoot")) {
+          sessionBudgetRoot = normalizeSessionBudgetRootConfig(
+            safeEvent.data.sessionBudgetRoot,
+          );
+        }
       } else if (safeEvent.type === "session_rename" && safeEvent.data?.title) {
         title = String(safeEvent.data.title);
       }
@@ -347,6 +363,7 @@ function createStreamingSessionHostProjection(sessionId) {
         }),
         messages,
         recovery,
+        sessionBudgetRoot,
       });
     },
   };
