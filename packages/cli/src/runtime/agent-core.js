@@ -10077,6 +10077,72 @@ function _hasCompleteProviderUsage(usage) {
   );
 }
 
+const PROVIDER_REQUEST_ID_RE = /^[\x21-\x7e]{1,512}$/;
+const PROVIDER_RECEIPT_ID_RE = /^[A-Za-z0-9._:-]{1,256}$/;
+
+function _normalizeProviderRequestId(value) {
+  if (value == null) return null;
+  if (typeof value !== "string" || !PROVIDER_REQUEST_ID_RE.test(value)) {
+    throw new TypeError(
+      "providerRequestId must be 1-512 printable ASCII characters",
+    );
+  }
+  return value;
+}
+
+function _physicalProviderRequestId(logicalRequestId, attempt) {
+  if (!logicalRequestId) return null;
+  const retry = Number(attempt);
+  if (!Number.isSafeInteger(retry) || retry <= 0) return logicalRequestId;
+  const suffix = `-r${retry}`;
+  return `${logicalRequestId.slice(0, 512 - suffix.length)}${suffix}`;
+}
+
+function _providerReceiptId(value) {
+  return typeof value === "string" && PROVIDER_RECEIPT_ID_RE.test(value)
+    ? value
+    : null;
+}
+
+function _isOfficialOpenAIEndpoint(provider, baseUrl) {
+  if (provider !== "openai") return false;
+  try {
+    const parsed = new URL(String(baseUrl));
+    return (
+      parsed.protocol === "https:" &&
+      parsed.hostname.toLowerCase() === "api.openai.com" &&
+      !parsed.port &&
+      !parsed.username &&
+      !parsed.password
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Capture only provider-returned identifiers. X-Client-Request-Id is a
+ * trace/correlation header, not an idempotency guarantee, so a locally sent
+ * client id alone is deliberately not called a receipt.
+ */
+function _openAIProviderRequestReceipt(response, data, clientRequestId) {
+  if (!clientRequestId) return null;
+  const requestId = _providerReceiptId(
+    response?.headers?.get?.("x-request-id"),
+  );
+  const responseId = _providerReceiptId(data?.id);
+  if (!requestId && !responseId) return null;
+  return Object.freeze({
+    protocol: "cc-provider-request-receipt/v1",
+    provider: "openai",
+    clientRequestId,
+    requestId,
+    responseId,
+    requestIdentitySemantics: "trace-only",
+    independentlyReadable: false,
+  });
+}
+
 /**
  * Send a chat completion request with tool definitions.
  * Supports 8 providers: ollama, anthropic, openai, deepseek, dashscope, gemini, mistral, volcengine
@@ -10094,6 +10160,10 @@ export async function chatWithTools(rawMessages, options) {
     contextEngine: ce,
     signal,
   } = options;
+
+  const providerRequestId = _normalizeProviderRequestId(
+    options.providerRequestId,
+  );
 
   const tools = getEffectiveToolDefinitions(options);
 
@@ -10140,6 +10210,7 @@ export async function chatWithTools(rawMessages, options) {
           ),
         {
           signal,
+          retries: options.workflowEffectId ? 0 : undefined,
           strictRetryObserver: options.strictUsageTelemetry === true,
           ...(typeof options.onStreamRetry === "function"
             ? {
@@ -10289,6 +10360,7 @@ export async function chatWithTools(rawMessages, options) {
           ),
         {
           signal,
+          retries: options.workflowEffectId ? 0 : undefined,
           strictRetryObserver: options.strictUsageTelemetry === true,
           ...(typeof options.onStreamRetry === "function"
             ? {
@@ -10381,6 +10453,10 @@ export async function chatWithTools(rawMessages, options) {
       `Unsupported provider: ${provider}. Supported: ollama, anthropic, openai, deepseek, dashscope, mistral, gemini, volcengine`,
     );
   }
+  const supportsOpenAIRequestIdentity = _isOfficialOpenAIEndpoint(
+    provider,
+    url,
+  );
 
   const envKey = providerApiKeyEnvs[provider] || "OPENAI_API_KEY";
   const key = apiKey || process.env[envKey];
@@ -10401,7 +10477,7 @@ export async function chatWithTools(rawMessages, options) {
   // delta-fragmented tool_calls into the standard {message, usage} shape.
   if (typeof options.onToken === "function") {
     return await _retryStreamingChat(
-      () =>
+      (attempt = 0) =>
         _chatOpenAIStreaming(
           `${url}/chat/completions`,
           {
@@ -10421,9 +10497,13 @@ export async function chatWithTools(rawMessages, options) {
           options.onStall,
           options.streamStallMs,
           options.streamStallTimeoutMs,
+          supportsOpenAIRequestIdentity
+            ? _physicalProviderRequestId(providerRequestId, attempt)
+            : null,
         ),
       {
         signal,
+        retries: options.workflowEffectId ? 0 : undefined,
         strictRetryObserver: options.strictUsageTelemetry === true,
         ...(typeof options.onStreamRetry === "function"
           ? {
@@ -10444,6 +10524,9 @@ export async function chatWithTools(rawMessages, options) {
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${key}`,
+      ...(supportsOpenAIRequestIdentity && providerRequestId
+        ? { "X-Client-Request-Id": providerRequestId }
+        : {}),
     },
     signal,
     body: JSON.stringify({
@@ -10466,6 +10549,10 @@ export async function chatWithTools(rawMessages, options) {
   }
   const choice = data.choices[0];
   const out = { message: choice.message };
+  const providerReceipt = supportsOpenAIRequestIdentity
+    ? _openAIProviderRequestReceipt(response, data, providerRequestId)
+    : null;
+  if (providerReceipt) out.providerReceipt = providerReceipt;
   if (_hasCompleteProviderUsage(data.usage)) {
     // OpenAI/DeepSeek/volcengine report cached prompt tokens AS PART of
     // prompt_tokens — split them out so cost prices the cached prefix at the
@@ -10708,7 +10795,7 @@ export async function _retryStreamingChat(streamFn, opts = {}) {
   for (;;) {
     const attemptStartedAt = now();
     try {
-      return await streamFn();
+      return await streamFn(attempt);
     } catch (err) {
       if (attempt >= retries || !_isRetryableStreamError(err, signal))
         throw err;
@@ -11188,6 +11275,7 @@ function _openaiCachedTokens(usage) {
 
 function _openaiInitState() {
   return {
+    responseId: null,
     text: "",
     tools: [],
     inputTokens: null,
@@ -11208,6 +11296,7 @@ function _openaiReduceLine(state, raw, onToken) {
   } catch {
     return state;
   }
+  if (!state.responseId) state.responseId = _providerReceiptId(obj.id);
   const delta = obj.choices?.[0]?.delta;
   if (delta?.content) {
     state.text += delta.content;
@@ -11294,12 +11383,16 @@ async function _chatOpenAIStreaming(
   onStall,
   stallMs,
   stallTimeoutMs,
+  providerRequestId = null,
 ) {
   const response = await fetch(apiUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
+      ...(providerRequestId
+        ? { "X-Client-Request-Id": providerRequestId }
+        : {}),
     },
     signal,
     body: JSON.stringify(body),
@@ -11333,9 +11426,23 @@ async function _chatOpenAIStreaming(
   } catch (err) {
     if (_streamErrorDisposition(err, signal, state.text) === "rethrow")
       throw err;
-    return _finalizeTruncatedStream(_openaiFinalize, state);
+    const out = _finalizeTruncatedStream(_openaiFinalize, state);
+    const providerReceipt = _openAIProviderRequestReceipt(
+      response,
+      { id: state.responseId },
+      providerRequestId,
+    );
+    if (providerReceipt) out.providerReceipt = providerReceipt;
+    return out;
   }
-  return _openaiFinalize(state);
+  const out = _openaiFinalize(state);
+  const providerReceipt = _openAIProviderRequestReceipt(
+    response,
+    { id: state.responseId },
+    providerRequestId,
+  );
+  if (providerReceipt) out.providerReceipt = providerReceipt;
+  return out;
 }
 
 /**
@@ -11632,6 +11739,7 @@ function _managedCheckpointUncoveredWriterReason(toolContext) {
  *   { type: "tool-executing", tool, args }
  *   { type: "tool-result", tool, result, error }
  *   { type: "model-usage-started", callId, provider, model, source }
+ *   { type: "provider-request-receipt", workflowEffectId, clientRequestId, requestId, responseId }
  *   { type: "token-usage", callId, provider, model, usage, source? }
  *   { type: "model-usage-unknown", callId, provider, model, source, code }
  *   { type: "response-complete", content }
@@ -11653,6 +11761,79 @@ function _newModelUsageCallId(source = "model") {
         ? "sub"
         : "mdl";
   return `${prefix}-${randomUUID()}`;
+}
+
+const WORKFLOW_EFFECT_ID_RE = /^sha256:[a-f0-9]{64}$/;
+
+function _normalizeWorkflowEffectId(value) {
+  if (value == null) return null;
+  if (typeof value !== "string" || !WORKFLOW_EFFECT_ID_RE.test(value)) {
+    throw new TypeError("workflowEffectId must be a canonical sha256 identity");
+  }
+  return value;
+}
+
+function _workflowProviderRequestId(workflowEffectId, source, sequence) {
+  if (!workflowEffectId) return null;
+  return `ccwf_${createHash("sha256")
+    .update(
+      `${workflowEffectId}\0${String(source || "model")}\0${String(sequence)}`,
+      "utf8",
+    )
+    .digest("hex")}`;
+}
+
+function _snapshotProviderRequestReceipt(value, expectedClientRequestId) {
+  if (value == null) return null;
+  if (isProxy(value)) {
+    throw new TypeError("provider request receipt must not be a Proxy");
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  const expectedFields = [
+    "clientRequestId",
+    "independentlyReadable",
+    "protocol",
+    "provider",
+    "requestId",
+    "requestIdentitySemantics",
+    "responseId",
+  ];
+  const fields = Object.keys(descriptors).sort();
+  const hasOnlyDataFields =
+    fields.length === expectedFields.length &&
+    fields.every(
+      (field, index) =>
+        field === expectedFields[index] &&
+        Object.hasOwn(descriptors[field], "value") &&
+        descriptors[field].enumerable === true,
+    );
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    !hasOnlyDataFields ||
+    descriptors.protocol.value !== "cc-provider-request-receipt/v1" ||
+    !/^[a-z0-9][a-z0-9._-]{0,63}$/.test(descriptors.provider.value || "") ||
+    descriptors.clientRequestId.value !== expectedClientRequestId ||
+    descriptors.requestIdentitySemantics.value !== "trace-only" ||
+    descriptors.independentlyReadable.value !== false
+  ) {
+    throw new TypeError("provider request receipt is malformed");
+  }
+  const requestId = _providerReceiptId(descriptors.requestId.value);
+  const responseId = _providerReceiptId(descriptors.responseId.value);
+  if (!requestId && !responseId) {
+    throw new TypeError("provider request receipt has no provider identifier");
+  }
+  return Object.freeze({
+    protocol: "cc-provider-request-receipt/v1",
+    provider: descriptors.provider.value,
+    clientRequestId: expectedClientRequestId,
+    requestId,
+    responseId,
+    requestIdentitySemantics: "trace-only",
+    independentlyReadable: false,
+  });
 }
 
 function _runtimeUsageBoundaryFailure(error, code, fallbackMessage) {
@@ -12205,6 +12386,7 @@ export async function* agentLoop(messages, options) {
     await import("../lib/iteration-budget.js");
   const budget = options.iterationBudget || new IterationBudget();
   const signal = options.signal || null;
+  const workflowEffectId = _normalizeWorkflowEffectId(options.workflowEffectId);
   // Optional OpenTelemetry recorder (TelemetryRecorder). When present, the loop
   // emits model/tool/retry spans + a per-run counter; when absent, zero cost.
   const recorder = options.recorder || null;
@@ -12507,10 +12689,13 @@ export async function* agentLoop(messages, options) {
   // attempt inside one logical `llmCall`, where this generator cannot durably
   // bracket each transport attempt. Strict call-ledger sessions therefore
   // disable that recovery path and surface the configured provider's failure
-  // as unknown; legacy sessions keep the existing self-healing behavior.
+  // as unknown. A workflow-bound request does the same: a hidden fallback
+  // would be a second physical provider attempt under one durable effect.
+  // Legacy sessions keep the existing self-healing behavior.
   if (
     options.runnableProviderFallback !== false &&
-    options.strictUsageTelemetry !== true
+    options.strictUsageTelemetry !== true &&
+    workflowEffectId == null
   ) {
     const { makeRunnableProviderFallback } =
       await import("../lib/runnable-provider.js");
@@ -13048,12 +13233,27 @@ export async function* agentLoop(messages, options) {
     throwIfAborted(signal);
     _throwBackgroundUsageFailureState(backgroundUsageFailureState);
     _throwSettledBackgroundUsageFailure(backgroundSubAgents);
+    const providerRequestId = _workflowProviderRequestId(
+      workflowEffectId,
+      "model",
+      budget.consumed,
+    );
+    const providerCallOptions = providerRequestId
+      ? { ...effectiveToolOptions, providerRequestId }
+      : effectiveToolOptions;
     const modelUsageCall = {
       type: "model-usage-started",
       callId: _newModelUsageCallId("model"),
       provider: options.provider || "ollama",
       model: options.model || "unknown",
       source: "model",
+      ...(providerRequestId
+        ? {
+            workflowEffectId,
+            providerRequestId,
+            requestIdentitySemantics: "trace-only",
+          }
+        : {}),
     };
     // The consumer receives this boundary before `.next()` resumes into the
     // provider call, so a durable append failure can prevent spend.
@@ -13079,6 +13279,7 @@ export async function* agentLoop(messages, options) {
     }
 
     let result;
+    let providerReceipt = null;
     try {
       result = await _withSpan(
         recorder,
@@ -13089,7 +13290,7 @@ export async function* agentLoop(messages, options) {
           "agent.iteration": budget.consumed,
           ...(modelIdAttrs || {}),
         },
-        () => llmCall(callMessages, effectiveToolOptions),
+        () => llmCall(callMessages, providerCallOptions),
         (span, r) => {
           const t = _usageTokens(r?.usage);
           if (t) {
@@ -13130,6 +13331,12 @@ export async function* agentLoop(messages, options) {
         },
         "model_error",
       );
+      providerReceipt = providerRequestId
+        ? _snapshotProviderRequestReceipt(
+            result?.providerReceipt,
+            providerRequestId,
+          )
+        : null;
     } catch (error) {
       // Never retain provider error text in the usage ledger. Pause on a fixed
       // unknown settlement, then rethrow only after the consumer resumes.
@@ -13149,6 +13356,19 @@ export async function* agentLoop(messages, options) {
     }
     if (recorder) recorder.counter("agent.model.calls", 1);
     const msg = result?.message;
+
+    if (providerReceipt) {
+      // Yield the provider-returned identifiers before billable usage. A host
+      // that stops after a cost boundary still retains the exact request/effect
+      // binding. This is trace evidence only, never an exactly-once assertion.
+      yield {
+        type: "provider-request-receipt",
+        callId: modelUsageCall.callId,
+        workflowEffectId,
+        callSequence: budget.consumed,
+        ...providerReceipt,
+      };
+    }
 
     // Close the already-persisted call boundary before honoring an abort that
     // raced with a successful provider response. Once the transport returned,

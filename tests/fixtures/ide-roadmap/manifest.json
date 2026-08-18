@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "manifestVersion": "1.9.4",
-  "baselineCommit": "ca638db6152f5ff10bd9cc1bb012694de6d3ee84",
+  "manifestVersion": "1.9.5",
+  "baselineCommit": "e870d66f9f28e5bc56ad96248e3c303f3366000c",
   "releaseEvidence": {
     "commitSource": "git-head-at-run",
     "requiredFields": [
@@ -436,9 +436,9 @@
       "priority": "P1",
       "required": true,
       "evidenceStatus": "external-evidence-required",
-      "evidenceNotes": "Repository tests close generated-draft review authority, exact admission/replay, serial and bounded-parallel request-before-provider persistence, atomic dispatch-batch identity, ordered multi-pending reconciliation, the pause settlement barrier, and attempt-scoped retry/timeout recovery with persisted provider-dispatch and late-settlement authority. Release readiness still requires production provider receipt/idempotency consumption, complete artifact/checkpoint/side-effect readback, dual-IDE consumption, plugin distribution, and the declared real-host matrix on the exact release commit.",
+      "evidenceNotes": "Repository tests close generated-draft review authority, exact admission/replay, serial and bounded-parallel request-before-provider persistence, atomic dispatch-batch identity, ordered multi-pending reconciliation, the pause settlement barrier, attempt-scoped retry/timeout recovery, and effect-bound official-OpenAI request tracing with provider-returned request identifiers. The OpenAI client request header is trace-only and limited to the official api.openai.com origin; custom compatible gateways receive no official receipt claim. Transparent transport retry and cross-provider fallback are disabled for workflow-bound model turns, and a provider exception propagates as an unknown outer outcome instead of becoming a retryable task failure. Returned identifiers are explicitly not independent readback or idempotency proof. Release readiness still requires native third-party idempotency and independently readable durable receipts across providers, complete artifact/checkpoint/side-effect readback, dual-IDE consumption, plugin distribution, and the declared real-host matrix on the exact release commit.",
       "fixture": "tests/fixtures/ide-roadmap/p1-dynamic-workflow.json",
-      "fixtureDigest": "sha256:8e357fdba2445a1bd122502f422c0f20f70f22d3dc5970a93b8b49e6a231e58b",
+      "fixtureDigest": "sha256:3b0d74e7685618a18b5abaaeac1a3eb1b5cf9204117296b3cc400926d0fcea19",
       "seed": 2026080114,
       "minimumIndependentRuns": 100,
       "matrix": {
@@ -460,6 +460,13 @@
         "duplicateRetryAfterLateSuccessCount": 0,
         "retryAfterUnknownTimeoutCount": 0,
         "undispatchedEffectReconciliationCount": 0,
+        "ignoredWorkflowEffectIdentityCount": 0,
+        "unsafeProviderRequestIdentityCount": 0,
+        "customGatewayOpenAIReceiptClaimCount": 0,
+        "unboundProviderReceiptCount": 0,
+        "providerReceiptIdempotencyOverclaimCount": 0,
+        "transparentProviderRetryCount": 0,
+        "providerUnknownDowngradeCount": 0,
         "stoppedStageCommitCount": 0,
         "budgetOverrunContinuationCount": 0,
         "missingArtifactLineageCount": 0,
@@ -476,7 +483,10 @@
         "packages/cli/__tests__/unit/dynamic-workflow-facade.test.js",
         "packages/cli/__tests__/unit/cowork-workflow.test.js",
         "packages/cli/__tests__/unit/cowork-workflow-ws.test.js",
-        "packages/cli/__tests__/integration/cowork-workflow-run-admission-command.test.js"
+        "packages/cli/__tests__/integration/cowork-workflow-run-admission-command.test.js",
+        "packages/cli/__tests__/unit/agent-core.test.js",
+        "packages/cli/__tests__/unit/sub-agent-usage-forwarding.test.js",
+        "packages/cli/__tests__/integration/cowork-task-workflow.test.js"
       ],
       "requiredArtifacts": [
         "exact-commit",
@@ -492,6 +502,7 @@
         "settlement-barrier-ledger",
         "provider-dispatch-ledger",
         "timeout-settlement-ledger",
+        "effect-bound-provider-request-receipt",
         "checkpoint-lineage",
         "token-time-budget-ledger",
         "artifact-lineage",

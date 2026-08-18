@@ -2587,6 +2587,60 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 三十八、2026-08-18 P1-1 effect-bound provider request identity 与 trace-only receipt 子门复核（`09:10 +08:00`）
+
+本节继续第三十七节，只关闭生产 Cowork 普通模型轮次的 **effect identity 消费、OpenAI request correlation 与回执血缘**；
+不把 `X-Client-Request-Id` 外推为 provider 原生幂等键，也不把响应 header/object id 外推为可独立查询的 durable receipt。
+候选基于本地主分支 `e870d66f9f28e5bc56ad96248e3c303f3366000c` 的功能分支，尚无本候选 exact-head GitHub Actions。
+
+### 本轮关闭的生产 provider 边界
+
+- **`workflowEffectId` 不再止于 outer runtime 参数。** `runCoworkTask` 在挂载 MCP、构造 child 或调用 provider 前先要求规范
+  `sha256:` identity，再把它锁定到 `SubAgentContext`；调用方不能通过 `loopOptions` 替换。`agentLoop` 在任何 provider work 前再次
+  校验，并按 `effect id + source + model-turn sequence` 派生稳定的 `ccwf_<sha256>` 请求 identity。相同 effect 的安全 pre-dispatch
+  恢复得到同一轮 identity，不同合法模型轮次不会误用同一 key。
+- **OpenAI transport 实际消费请求 identity。** 非流式与 SSE Chat Completions 都发送官方记录能力
+  [`X-Client-Request-Id`](https://platform.openai.com/docs/api-reference/debugging-requests)，并拒绝控制字符、非 printable ASCII 与
+  512 字符以上输入。只有 `https://api.openai.com` 官方 origin 获得该 contract；即使配置名为 `openai`，custom gateway 也不会被
+  冒充为官方 receipt provider。普通流式调用的物理 retry 使用独立 suffix；workflow-bound 调用则禁用透明 stream retry 与跨
+  provider runnable fallback，避免一个 durable model boundary 隐藏第二次物理 provider attempt。
+- **只有 provider 返回的标识才形成 receipt。** OpenAI 返回 `x-request-id` 或 completion object id 后，runtime 才产生
+  `cc-provider-request-receipt/v1`；仅本地发送了 client id 不计 receipt。receipt 只接受有界标识、普通 enumerable data fields，
+  Proxy/accessor、effect/client-id 漂移、空 provider id、伪称 `idempotent` 或 `independentlyReadable=true` 都 fail closed。协议固定声明
+  `requestIdentitySemantics=trace-only` 与 `independentlyReadable=false`。
+- **provider 未知 outcome 不再降级成 retryable task failure。** workflow-bound child 的 transport/provider/receipt 验证异常会穿过
+  `SubAgentContext` 和 `runCoworkTask` 抛回 durable runtime；outer effect 保持 pending 并要求 reconcile。普通非 durable Cowork 仍保留
+  原有“返回 failed entry”的兼容行为。
+- **receipt 进入 durable result digest 与 observability lineage。** Cowork entry 返回 exact effect binding 和有界 receipts；settlement
+  result digest 因而覆盖这些字段。`cc-dynamic-workflow-observability/v1` 新增 `providerReceipts` 投影，逐条绑定 effect/call sequence/
+  client id/provider ids，并固定 `nativeIdempotencyProven=false`、`independentlyReadable=false`。缺失、无效或截断 receipt 形成显式 gap，
+  不会被 operator reconcile 或 task result 内容冒充为第三方证明。
+
+### 仓库内验证与证据边界
+
+- provider HTTP、agent loop、SubAgent、Cowork runner 与 durable projection 五个聚焦文件终态为 **234/234**；覆盖非流式/SSE header、
+  provider header/object receipt、稳定 per-turn identity、header injection、无透明 stream retry、异常向 outer unknown 传播、receipt
+  保存，以及 effect mismatch/idempotency overclaim 拒绝。
+- agent stream/retry 四文件为 **62/62**；P1-1 draft/runtime/facade/DAG/WS/command 八文件为 **214/214**。
+- roadmap verifier 与 journey evidence 两文件为 **37/37**；manifest 从 `1.9.4` 升到 `1.9.5`，fixture digest 为
+  `sha256:3b0d74e7685618a18b5abaaeac1a3eb1b5cf9204117296b3cc400926d0fcea19`。`--contract-only` 回读
+  **15 cases / 66 referenced test files**，并继续明确 runtime evidence 与 release readiness 未被评估。
+
+### P1-1 仍未关闭的边界
+
+1. **原生幂等与独立 receipt readback：** OpenAI `X-Client-Request-Id` 是 correlation/debug identity，不是 exactly-once key；当前也没有
+   provider API 自动回读 `x-request-id` 的独立裁决。Anthropic、Ollama、DeepSeek、DashScope、Mistral、Gemini 与 Volcengine 尚未取得
+   等价生产 contract。任何 provider 没有返回标识时，observability 会诚实显示 receipt incomplete。
+2. **outer task 之外的 provider/effect：** semantic compaction 的模型调用，以及 nested tool/MCP/external-system side effects 尚未统一绑定
+   本 receipt；ArtifactStore/checkpoint immutable readback、真实 provider token/USD usage 与物理取消也仍未完成。
+3. **完整产品与外部矩阵：** 一般阶段间 `needs_input`、Workbench/VS Code/JetBrains phase/agent/control UI、plugin/marketplace 分发，
+   以及 Local/WSL/SSH/Container/Cloud × 三 OS × 双 IDE 每格 100 次 exact-head 真实 provider/故障矩阵仍未关闭。
+
+因此，P1-1 的**生产 Cowork effect identity 消费、OpenAI trace correlation、provider-returned receipt 血缘及 unknown-outcome 不降级**
+由本节关闭；P1-1 整项仍为**部分完成**，不得据此声明 provider-native exactly-once 或 independently-readable receipt。总计数保持
+**12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
+Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
+
 ## 三十七、2026-08-18 P1-1 retry/timeout dispatch authority 与晚到结算子门复核（`07:28 +08:00`）
 
 本节继续第三十六节，但不把 runtime 自有 dispatch marker 外推为第三方 provider receipt，也不宣称跨进程网络调用获得全局

@@ -112,6 +112,65 @@ describe("SubAgentContext usage forwarding", () => {
 
     expect(result.summary).toContain("plain");
   });
+
+  it("retains provider-returned request receipts for workflow recovery", async () => {
+    const workflowEffectId = `sha256:${"c".repeat(64)}`;
+    const subCtx = createContext({ workflowEffectId });
+    const chatFn = vi.fn(async (_messages, options) => ({
+      ...finalResponse("receipt", { input_tokens: 1, output_tokens: 1 }),
+      providerReceipt: {
+        protocol: "cc-provider-request-receipt/v1",
+        provider: "openai",
+        clientRequestId: options.providerRequestId,
+        requestId: "req_child_1",
+        responseId: "chatcmpl_child_1",
+        requestIdentitySemantics: "trace-only",
+        independentlyReadable: false,
+      },
+    }));
+
+    await subCtx.run("t", {
+      ...RUN_OPTIONS,
+      provider: "openai",
+      model: "gpt-4o",
+      chatFn,
+    });
+
+    expect(chatFn.mock.calls[0][1].providerRequestId).toMatch(
+      /^ccwf_[a-f0-9]{64}$/,
+    );
+    expect(subCtx.providerRequestReceipts()).toEqual([
+      expect.objectContaining({
+        workflowEffectId,
+        callSequence: 1,
+        requestId: "req_child_1",
+        responseId: "chatcmpl_child_1",
+        requestIdentitySemantics: "trace-only",
+        independentlyReadable: false,
+      }),
+    ]);
+    expect(subCtx.recoveryBinding()).toMatchObject({
+      providerRequestReceipts: [
+        expect.objectContaining({ workflowEffectId, requestId: "req_child_1" }),
+      ],
+    });
+  });
+
+  it("does not downgrade a workflow-bound provider exception to a failed result", async () => {
+    const subCtx = createContext({
+      workflowEffectId: `sha256:${"e".repeat(64)}`,
+    });
+
+    await expect(
+      subCtx.run("t", {
+        ...RUN_OPTIONS,
+        chatFn: async () => {
+          throw new Error("transport outcome unknown");
+        },
+      }),
+    ).rejects.toThrow("transport outcome unknown");
+    expect(subCtx.providerRequestReceipts()).toEqual([]);
+  });
 });
 
 describe("SubAgentContext strict usage boundary contract", () => {

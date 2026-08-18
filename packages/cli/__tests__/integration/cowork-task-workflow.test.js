@@ -131,6 +131,68 @@ describe("cowork task workflow", () => {
     expect(opts.db).toBe(fakeDb);
   });
 
+  it("binds a durable workflow effect to the child and returns provider receipts", async () => {
+    const workflowEffectId = `sha256:${"b".repeat(64)}`;
+    _createMock.mockImplementation((opts) => ({
+      id: "sub-effect-001",
+      status: "completed",
+      run: vi.fn().mockResolvedValue({
+        summary: "done",
+        artifacts: [],
+        tokenCount: 3,
+        toolsUsed: [],
+        iterationCount: 1,
+      }),
+      providerRequestReceipts: () => [
+        {
+          protocol: "cc-provider-request-receipt/v1",
+          provider: "openai",
+          workflowEffectId: opts.workflowEffectId,
+          callId: "mdl-1",
+          callSequence: 1,
+          clientRequestId: "ccwf_test",
+          requestId: "req_test",
+          responseId: "chatcmpl_test",
+          requestIdentitySemantics: "trace-only",
+          independentlyReadable: false,
+        },
+      ],
+    }));
+
+    const result = await runCoworkTask({
+      templateId: "code-helper",
+      userMessage: "write code",
+      workflowEffectId,
+    });
+
+    expect(_createMock.mock.calls[0][0].workflowEffectId).toBe(
+      workflowEffectId,
+    );
+    expect(result.workflowEffectId).toBe(workflowEffectId);
+    expect(result.providerRequestReceipts).toEqual([
+      expect.objectContaining({
+        workflowEffectId,
+        clientRequestId: "ccwf_test",
+        requestId: "req_test",
+        requestIdentitySemantics: "trace-only",
+        independentlyReadable: false,
+      }),
+    ]);
+  });
+
+  it("rejects a malformed workflow effect before creating a child", async () => {
+    await expect(
+      runCoworkTask({
+        templateId: "code-helper",
+        userMessage: "write code",
+        workflowEffectId: "invalid",
+      }),
+    ).rejects.toMatchObject({
+      code: "CC_COWORK_WORKFLOW_EFFECT_ID_INVALID",
+    });
+    expect(_createMock).not.toHaveBeenCalled();
+  });
+
   // ─── Result propagation ──────────────────────────────────────
 
   it("propagates artifacts from sub-agent result", async () => {
@@ -169,11 +231,29 @@ describe("cowork task workflow", () => {
     expect(result.result.summary).toContain("Provider unreachable");
   });
 
+  it("propagates a workflow-bound child failure as an unknown outer outcome", async () => {
+    _createMock.mockImplementation(() => ({
+      id: "sub-effect-fail-001",
+      status: "failed",
+      run: vi.fn().mockRejectedValue(new Error("Provider outcome unknown")),
+      providerRequestReceipts: () => [],
+    }));
+
+    await expect(
+      runCoworkTask({
+        templateId: "network-tools",
+        userMessage: "测试API",
+        workflowEffectId: `sha256:${"e".repeat(64)}`,
+      }),
+    ).rejects.toThrow("Provider outcome unknown");
+  });
+
   // ─── WS action-protocol integration ──────────────────────────
 
   it("handleCoworkTask delegates to runCoworkTask", async () => {
-    const { handleCoworkTask } =
-      await import("../../src/gateways/ws/action-protocol.js");
+    const { handleCoworkTask } = await import(
+      "../../src/gateways/ws/action-protocol.js"
+    );
 
     const server = {
       _send: vi.fn(),
@@ -201,8 +281,9 @@ describe("cowork task workflow", () => {
   // ─── Cancel integration ─────────────────────────────────────
 
   it("handleCoworkCancel aborts a running task via AbortSignal", async () => {
-    const { handleCoworkTask, handleCoworkCancel } =
-      await import("../../src/gateways/ws/action-protocol.js");
+    const { handleCoworkTask, handleCoworkCancel } = await import(
+      "../../src/gateways/ws/action-protocol.js"
+    );
 
     let resolveTask;
     _createMock.mockImplementation(() => ({
@@ -242,8 +323,9 @@ describe("cowork task workflow", () => {
   // ─── Progress integration ───────────────────────────────────
 
   it("handleCoworkTask sends cowork:progress when onProgress fires", async () => {
-    const { handleCoworkTask } =
-      await import("../../src/gateways/ws/action-protocol.js");
+    const { handleCoworkTask } = await import(
+      "../../src/gateways/ws/action-protocol.js"
+    );
 
     const server = { _send: vi.fn(), projectRoot: "/test" };
     const ws = {};
@@ -263,8 +345,9 @@ describe("cowork task workflow", () => {
   // ─── Templates WS integration ──────────────────────────────
 
   it("handleCoworkTemplates returns template list via WS", async () => {
-    const { handleCoworkTemplates } =
-      await import("../../src/gateways/ws/action-protocol.js");
+    const { handleCoworkTemplates } = await import(
+      "../../src/gateways/ws/action-protocol.js"
+    );
 
     const server = { _send: vi.fn() };
     const ws = {};
@@ -289,8 +372,9 @@ describe("cowork task workflow", () => {
   // ─── History WS integration ─────────────────────────────────
 
   it("handleCoworkHistory returns empty when no history file", async () => {
-    const { handleCoworkHistory } =
-      await import("../../src/gateways/ws/action-protocol.js");
+    const { handleCoworkHistory } = await import(
+      "../../src/gateways/ws/action-protocol.js"
+    );
 
     const server = { _send: vi.fn(), projectRoot: "/nonexistent" };
     const ws = {};
@@ -326,8 +410,9 @@ describe("cowork task workflow", () => {
   // ─── Token count propagation ────────────────────────────────
 
   it("handleCoworkTask includes tokenCount in cowork:done", async () => {
-    const { handleCoworkTask } =
-      await import("../../src/gateways/ws/action-protocol.js");
+    const { handleCoworkTask } = await import(
+      "../../src/gateways/ws/action-protocol.js"
+    );
 
     const server = { _send: vi.fn(), projectRoot: "/test" };
     const ws = {};

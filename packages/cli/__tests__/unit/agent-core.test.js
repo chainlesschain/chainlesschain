@@ -1483,6 +1483,138 @@ describe("chatWithTools", () => {
     expect(capturedHeaders["Authorization"]).toBe("Bearer sk-test-key");
   });
 
+  it("OpenAI provider: sends a bounded client request id and captures returned request identifiers", async () => {
+    let capturedHeaders;
+    globalThis.fetch = vi.fn().mockImplementation(async (_url, opts) => {
+      capturedHeaders = opts.headers;
+      return {
+        ok: true,
+        headers: {
+          get: (name) => (name === "x-request-id" ? "req_123" : null),
+        },
+        json: async () => ({
+          id: "chatcmpl_123",
+          choices: [{ message: { role: "assistant", content: "receipt" } }],
+        }),
+      };
+    });
+
+    const result = await chatWithTools([{ role: "user", content: "test" }], {
+      provider: "openai",
+      model: "gpt-4o",
+      apiKey: "sk-test-key",
+      providerRequestId: "ccwf_123",
+    });
+
+    expect(capturedHeaders["X-Client-Request-Id"]).toBe("ccwf_123");
+    expect(result.providerReceipt).toEqual({
+      protocol: "cc-provider-request-receipt/v1",
+      provider: "openai",
+      clientRequestId: "ccwf_123",
+      requestId: "req_123",
+      responseId: "chatcmpl_123",
+      requestIdentitySemantics: "trace-only",
+      independentlyReadable: false,
+    });
+  });
+
+  it("OpenAI streaming provider: keeps the same request identity and captures SSE/header identifiers", async () => {
+    let capturedHeaders;
+    const encoder = new TextEncoder();
+    globalThis.fetch = vi.fn().mockImplementation(async (_url, opts) => {
+      capturedHeaders = opts.headers;
+      return {
+        ok: true,
+        headers: {
+          get: (name) => (name === "x-request-id" ? "req_stream_1" : null),
+        },
+        body: new ReadableStream({
+          start(controller) {
+            controller.enqueue(
+              encoder.encode(
+                'data: {"id":"chatcmpl_stream_1","choices":[{"delta":{"content":"ok"}}]}\n' +
+                  'data: {"id":"chatcmpl_stream_1","choices":[{"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":2,"completion_tokens":1}}\n' +
+                  "data: [DONE]\n",
+              ),
+            );
+            controller.close();
+          },
+        }),
+      };
+    });
+
+    const result = await chatWithTools([{ role: "user", content: "test" }], {
+      provider: "openai",
+      model: "gpt-4o",
+      apiKey: "sk-test-key",
+      providerRequestId: "ccwf_stream_1",
+      onToken: () => {},
+    });
+
+    expect(capturedHeaders["X-Client-Request-Id"]).toBe("ccwf_stream_1");
+    expect(result.providerReceipt).toMatchObject({
+      clientRequestId: "ccwf_stream_1",
+      requestId: "req_stream_1",
+      responseId: "chatcmpl_stream_1",
+      requestIdentitySemantics: "trace-only",
+      independentlyReadable: false,
+    });
+  });
+
+  it("does not claim the official OpenAI request contract for a custom gateway", async () => {
+    let capturedHeaders;
+    globalThis.fetch = vi.fn().mockImplementation(async (_url, opts) => {
+      capturedHeaders = opts.headers;
+      return {
+        ok: true,
+        headers: { get: () => "gateway-request-id" },
+        json: async () => ({
+          id: "gateway-response-id",
+          choices: [{ message: { role: "assistant", content: "gateway" } }],
+        }),
+      };
+    });
+
+    const result = await chatWithTools([{ role: "user", content: "test" }], {
+      provider: "openai",
+      model: "gateway-model",
+      baseUrl: "https://gateway.example/v1",
+      apiKey: "gateway-key",
+      providerRequestId: "ccwf_gateway",
+    });
+
+    expect(capturedHeaders).not.toHaveProperty("X-Client-Request-Id");
+    expect(result.providerReceipt).toBeUndefined();
+  });
+
+  it("rejects an unsafe provider request id before fetch", async () => {
+    globalThis.fetch = vi.fn();
+    await expect(
+      chatWithTools([{ role: "user", content: "test" }], {
+        provider: "openai",
+        model: "gpt-4o",
+        apiKey: "sk-test-key",
+        providerRequestId: "bad\r\nheader",
+      }),
+    ).rejects.toThrow(/providerRequestId/);
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  it("does not transparently retry a workflow-bound streaming request", async () => {
+    globalThis.fetch = vi.fn().mockRejectedValue(new TypeError("fetch failed"));
+    await expect(
+      chatWithTools([{ role: "user", content: "test" }], {
+        provider: "openai",
+        model: "gpt-4o",
+        apiKey: "sk-test-key",
+        workflowEffectId: `sha256:${"d".repeat(64)}`,
+        providerRequestId: "ccwf_stream",
+        onToken: () => {},
+      }),
+    ).rejects.toThrow("fetch failed");
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+  });
+
   it("forwards AbortSignal to provider fetch calls", async () => {
     let capturedSignal;
     globalThis.fetch = vi.fn().mockImplementation(async (_url, opts) => {
@@ -1611,6 +1743,85 @@ describe("agentLoop", () => {
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+  });
+
+  it("binds a workflow effect to a stable per-turn provider request receipt", async () => {
+    const workflowEffectId = `sha256:${"a".repeat(64)}`;
+    const seenRequestIds = [];
+    const chatFn = vi.fn(async (_messages, options) => {
+      seenRequestIds.push(options.providerRequestId);
+      return {
+        message: { role: "assistant", content: "done" },
+        usage: { input_tokens: 2, output_tokens: 1 },
+        providerReceipt: {
+          protocol: "cc-provider-request-receipt/v1",
+          provider: "openai",
+          clientRequestId: options.providerRequestId,
+          requestId: "req_effect_1",
+          responseId: "chatcmpl_effect_1",
+          requestIdentitySemantics: "trace-only",
+          independentlyReadable: false,
+        },
+      };
+    });
+    const run = async () => {
+      const events = [];
+      for await (const event of agentLoop(
+        [{ role: "user", content: "do it" }],
+        {
+          provider: "openai",
+          model: "gpt-4o",
+          chatFn,
+          runnableProviderFallback: false,
+          workflowEffectId,
+        },
+      )) {
+        events.push(event);
+      }
+      return events;
+    };
+
+    const first = await run();
+    const second = await run();
+    expect(seenRequestIds[0]).toMatch(/^ccwf_[a-f0-9]{64}$/);
+    expect(seenRequestIds[1]).toBe(seenRequestIds[0]);
+    expect(
+      first.find((event) => event.type === "model-usage-started"),
+    ).toMatchObject({
+      workflowEffectId,
+      providerRequestId: seenRequestIds[0],
+      requestIdentitySemantics: "trace-only",
+    });
+    expect(
+      first.find((event) => event.type === "provider-request-receipt"),
+    ).toMatchObject({
+      workflowEffectId,
+      callSequence: 1,
+      clientRequestId: seenRequestIds[0],
+      requestId: "req_effect_1",
+      responseId: "chatcmpl_effect_1",
+      independentlyReadable: false,
+    });
+  });
+
+  it("rejects a malformed workflow effect before invoking the provider", async () => {
+    const chatFn = vi.fn();
+    const consume = async () => {
+      for await (const _event of agentLoop(
+        [{ role: "user", content: "do it" }],
+        {
+          provider: "openai",
+          model: "gpt-4o",
+          chatFn,
+          runnableProviderFallback: false,
+          workflowEffectId: "not-a-digest",
+        },
+      )) {
+        // drain
+      }
+    };
+    await expect(consume()).rejects.toThrow(/workflowEffectId/);
+    expect(chatFn).not.toHaveBeenCalled();
   });
 
   it("yields response-complete when no tool calls", async () => {

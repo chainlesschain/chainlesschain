@@ -190,7 +190,24 @@ describe("durable dynamic workflow runtime", () => {
 
   it("persists request-before-provider and a settled, completed lineage", async () => {
     const statePath = dynamicWorkflowRunStatePath(projectRoot, "run-complete");
-    const runTask = vi.fn(async (args) => completedTask(args));
+    const runTask = vi.fn(async (args) => ({
+      ...completedTask(args),
+      workflowEffectId: args.workflowEffectId,
+      providerRequestReceipts: [
+        {
+          protocol: "cc-provider-request-receipt/v1",
+          provider: "openai",
+          workflowEffectId: args.workflowEffectId,
+          callId: `mdl-${args.workflowEffect.stepId}`,
+          callSequence: 1,
+          clientRequestId: `ccwf_${args.workflowEffectId.slice("sha256:".length)}`,
+          requestId: `req_${args.workflowEffect.stepId}`,
+          responseId: `chatcmpl_${args.workflowEffect.stepId}`,
+          requestIdentitySemantics: "trace-only",
+          independentlyReadable: false,
+        },
+      ],
+    }));
     const record = await executeDurableDynamicWorkflow(
       {
         statePath,
@@ -212,13 +229,95 @@ describe("durable dynamic workflow runtime", () => {
       true,
     );
     expect(state.finalRecord).toEqual(record);
-    expect(projectDynamicWorkflowRuntime(state)).toMatchObject({
+    const projection = projectDynamicWorkflowRuntime(state);
+    expect(projection).toMatchObject({
       status: "completed",
       effectCount: 2,
       settledEffectCount: 2,
       pendingEffects: [],
       finalRecordStatus: "completed",
     });
+    expect(projection.observability.providerReceipts).toMatchObject({
+      authority: "provider-returned-trace-only",
+      count: 2,
+      projectedRecords: 2,
+      observedEffects: 2,
+      missingProviderReturnedEffects: 0,
+      invalidRecords: 0,
+      nativeIdempotencyProven: false,
+      independentlyReadable: false,
+    });
+    expect(projection.observability.providerReceipts.lineage).toEqual([
+      expect.objectContaining({
+        effectId: state.effects[0].id,
+        requestId: "req_collect",
+        requestIdentitySemantics: "trace-only",
+      }),
+      expect.objectContaining({
+        effectId: state.effects[1].id,
+        requestId: "req_review",
+        requestIdentitySemantics: "trace-only",
+      }),
+    ]);
+    expect(projection.observability.gaps).toEqual(
+      expect.arrayContaining([
+        "provider-native-idempotency-unavailable",
+        "provider-receipt-independent-readback-unavailable",
+      ]),
+    );
+    expect(projection.observability.gaps).not.toContain(
+      "provider-request-receipt-incomplete",
+    );
+  });
+
+  it("does not project a mismatched or idempotency-overclaiming provider receipt", async () => {
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-invalid-provider-receipt",
+    );
+    const runTask = vi.fn(async (args) => ({
+      ...completedTask(args),
+      workflowEffectId: args.workflowEffectId,
+      providerRequestReceipts: [
+        {
+          protocol: "cc-provider-request-receipt/v1",
+          provider: "openai",
+          workflowEffectId: `sha256:${"f".repeat(64)}`,
+          callId: "mdl-invalid",
+          callSequence: 1,
+          clientRequestId: `ccwf_${"f".repeat(64)}`,
+          requestId: "req_invalid",
+          responseId: null,
+          requestIdentitySemantics: "idempotent",
+          independentlyReadable: true,
+        },
+      ],
+    }));
+
+    await executeDurableDynamicWorkflow(
+      {
+        statePath,
+        runId: "run-invalid-provider-receipt",
+        execution: admittedExecution(projectRoot),
+      },
+      { runTask, now: clock() },
+    );
+    const projection = projectDynamicWorkflowRuntime(statePath);
+    expect(projection.observability.providerReceipts).toMatchObject({
+      count: 2,
+      projectedRecords: 0,
+      observedEffects: 0,
+      missingProviderReturnedEffects: 2,
+      invalidRecords: 2,
+      nativeIdempotencyProven: false,
+      independentlyReadable: false,
+    });
+    expect(projection.observability.gaps).toEqual(
+      expect.arrayContaining([
+        "provider-request-receipt-incomplete",
+        "provider-request-receipt-invalid",
+      ]),
+    );
   });
 
   it("persists each parallel dispatch batch atomically before any provider call", async () => {
