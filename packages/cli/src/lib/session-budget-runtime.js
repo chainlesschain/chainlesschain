@@ -879,14 +879,6 @@ export class SessionBudgetSidecarStore {
             "ERR_SESSION_BUDGET_MARKER_CONFLICT",
           );
         }
-        if (resolveUsageUnknown && !clean) {
-          throw runtimeError(
-            "recovery",
-            filePath,
-            new Error("usage finalization snapshot must be clean"),
-            "ERR_SESSION_BUDGET_RECOVERY_REQUIRED",
-          );
-        }
         const actualRevision = current?.revision ?? null;
         if (actualRevision !== expectedRevision) {
           throw runtimeError(
@@ -916,13 +908,24 @@ export class SessionBudgetSidecarStore {
           snapshot: canonicalSnapshot,
         };
         writeRecordAt(filePath, record, this._fs, this._ioOptions);
+        let nextUsageUnknownMarker = null;
         if (resolveUsageUnknown) {
-          this._clearUsageUnknownLocked(id, expectedMarker);
+          if (clean) {
+            this._clearUsageUnknownLocked(id, expectedMarker);
+          } else {
+            nextUsageUnknownMarker = this._replaceUsageUnknownLocked(
+              id,
+              canonicalSnapshot,
+              expectedMarker,
+            );
+          }
         }
         return {
           revision,
           filePath,
-          ...(resolveUsageUnknown ? { usageUnknownMarker: null } : {}),
+          ...(resolveUsageUnknown
+            ? { usageUnknownMarker: nextUsageUnknownMarker }
+            : {}),
         };
       },
       {
@@ -935,7 +938,11 @@ export class SessionBudgetSidecarStore {
     return result;
   }
 
-  markUsageUnknown(sessionId, snapshot) {
+  markUsageUnknown(
+    sessionId,
+    snapshot,
+    { expectedUsageUnknownMarker = null } = {},
+  ) {
     const id = String(sessionId);
     const filePath = this.pathForSession(id);
     this._assertSupported(filePath);
@@ -945,6 +952,12 @@ export class SessionBudgetSidecarStore {
       markerPath,
       "snapshot",
     );
+    const expectedMarker = expectedUsageUnknownMarker
+      ? normalizeUsageUnknownMarkerIdentity(
+          expectedUsageUnknownMarker,
+          markerPath,
+        )
+      : null;
     if (usageSettlementEntries(canonicalSnapshot).length === 0) {
       throw runtimeError(
         "marker",
@@ -965,6 +978,18 @@ export class SessionBudgetSidecarStore {
       filePath,
       () => {
         const current = readRecordAt(markerPath, id, this._fs, this._ioOptions);
+        const actualMarker = usageUnknownMarkerIdentity(current);
+        const markerMatches = current
+          ? sameUsageUnknownMarkerIdentity(expectedMarker, actualMarker)
+          : expectedMarker === null;
+        if (!current && !markerMatches) {
+          throw runtimeError(
+            "conflict",
+            markerPath,
+            new Error("usage-unknown marker disappeared after it was observed"),
+            "ERR_SESSION_BUDGET_MARKER_CONFLICT",
+          );
+        }
         if (current?.revision === Number.MAX_SAFE_INTEGER) {
           throw runtimeError(
             "revision",
@@ -997,7 +1022,7 @@ export class SessionBudgetSidecarStore {
           this._ioOptions,
         );
         const usageUnknownMarker = usageUnknownMarkerIdentity(committed);
-        if (current) {
+        if (!markerMatches) {
           // Preserve the newly reported settlement, but do not let a runtime
           // that did not observe the prior marker later finalize both. The
           // caller fails closed and a fresh recovery host must see the union.
@@ -1017,6 +1042,52 @@ export class SessionBudgetSidecarStore {
         ...this._lockOptions,
       },
     );
+  }
+
+  _replaceUsageUnknownLocked(sessionId, snapshot, expectedMarker) {
+    const id = String(sessionId);
+    const markerPath = this.usageUnknownPathForSession(id);
+    const marker = readRecordAt(markerPath, id, this._fs, this._ioOptions);
+    const actualMarker = usageUnknownMarkerIdentity(marker);
+    if (!sameUsageUnknownMarkerIdentity(expectedMarker, actualMarker)) {
+      throw runtimeError(
+        "conflict",
+        markerPath,
+        new Error("usage-unknown marker changed before settlement"),
+        "ERR_SESSION_BUDGET_MARKER_CONFLICT",
+      );
+    }
+    if (marker.revision === Number.MAX_SAFE_INTEGER) {
+      throw runtimeError(
+        "revision",
+        markerPath,
+        new Error("usage-unknown marker revision is exhausted"),
+        "ERR_SESSION_BUDGET_UNSAFE_REVISION",
+      );
+    }
+    const canonicalSnapshot = canonicalizeSnapshot(
+      snapshot,
+      markerPath,
+      "snapshot",
+    );
+    if (usageSettlementEntries(canonicalSnapshot).length === 0) {
+      throw runtimeError(
+        "marker",
+        markerPath,
+        new TypeError("usage-unknown marker requires a pending settlement"),
+      );
+    }
+    const record = {
+      version: SESSION_BUDGET_SIDECAR_VERSION,
+      sessionId: id,
+      revision: marker.revision + 1,
+      storedAt: new Date(this._now()).toISOString(),
+      writer: { pid: process.pid },
+      snapshot: canonicalSnapshot,
+    };
+    writeRecordAt(markerPath, record, this._fs, this._ioOptions);
+    const committed = readRecordAt(markerPath, id, this._fs, this._ioOptions);
+    return usageUnknownMarkerIdentity(committed);
   }
 
   clearUsageUnknown(sessionId, { expectedUsageUnknownMarker = null } = {}) {
@@ -1194,6 +1265,9 @@ class SharedSessionBudgetRuntime {
         const marker = this.store.markUsageUnknown(
           this.sessionId,
           change.snapshot,
+          {
+            expectedUsageUnknownMarker: this.usageUnknownMarker,
+          },
         );
         const usageUnknownMarker = normalizeUsageUnknownMarkerIdentity(
           marker?.usageUnknownMarker,

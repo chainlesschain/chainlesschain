@@ -141,6 +141,54 @@ describe("SessionResourceBudget admission", () => {
 });
 
 describe("SessionResourceBudget continuous enforcement", () => {
+  it("tracks concurrent provider usage until each call settles", () => {
+    const { budget } = makeBudget({ maxTokens: 20 });
+    const first = budget.beginUsageSettlement({ id: "provider-call-a" });
+    const second = budget.beginUsageSettlement({ id: "provider-call-b" });
+
+    expect(first).toMatchObject({ ok: true, id: "provider-call-a" });
+    expect(second).toMatchObject({ ok: true, id: "provider-call-b" });
+    expect(first.authorityId).not.toBe(second.authorityId);
+    expect(budget.status()).toMatchObject({
+      pendingUsage: 2,
+      recoveryRequired: false,
+    });
+    expect(budget.consumeTurn({ id: "parallel-turn" })).toMatchObject({
+      ok: true,
+    });
+
+    budget.recordUsage({
+      callId: "provider-call-a",
+      provider: "ollama",
+      model: "local",
+      usage: { input_tokens: 3, output_tokens: 2 },
+    });
+    expect(budget.status()).toMatchObject({
+      tokens: 5,
+      pendingUsage: 1,
+      recoveryRequired: false,
+    });
+
+    budget.markUsageUnknown({ callId: "provider-call-b" });
+    expect(budget.status()).toMatchObject({
+      tokens: 5,
+      pendingUsage: 0,
+      recoveryRequired: true,
+      pendingRecovery: 1,
+      reason: "recovery-required",
+    });
+    expect(budget.snapshot().inFlight.work).toEqual([
+      expect.objectContaining({
+        id: second.authorityId,
+        kind: "usage-settlement",
+      }),
+    ]);
+    expect(
+      budget.adjudicateRecovery({ abandoned: [second.authorityId] }),
+    ).toMatchObject({ ok: true });
+    budget.dispose();
+  });
+
   it("actively aborts descendants when tokens cross the limit", () => {
     const { budget, clock } = makeBudget({ maxTokens: 10 });
     const child = new AbortController();

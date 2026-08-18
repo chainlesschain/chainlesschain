@@ -1036,6 +1036,71 @@ describe("session budget runtime", () => {
     expect(() => handle.close()).toThrow(/final usage durability unavailable/);
   });
 
+  it("durably settles concurrent known and unknown provider usage", () => {
+    const { store } = makeStore();
+    const sessionId = "concurrent-provider-usage";
+    const handle = openSessionBudget(sessionId, {
+      store,
+      registry: new Map(),
+      limits: { maxTokens: 20 },
+    });
+
+    const first = handle.budget.beginUsageSettlement({ id: "provider-a" });
+    const second = handle.budget.beginUsageSettlement({ id: "provider-b" });
+    expect(first.ok && second.ok).toBe(true);
+    expect(store.read(sessionId)).toMatchObject({ usageUnknown: true });
+
+    handle.budget.recordUsage({
+      callId: "provider-a",
+      provider: "ollama",
+      model: "local",
+      usage: { input_tokens: 4, output_tokens: 1 },
+    });
+    const afterKnown = store.read(sessionId);
+    expect(afterKnown).toMatchObject({
+      usageUnknown: true,
+      snapshot: { totals: { tokens: 5 } },
+    });
+    expect(afterKnown.snapshot.inFlight.work).toEqual([
+      expect.objectContaining({
+        id: second.authorityId,
+        kind: "usage-settlement",
+      }),
+    ]);
+
+    handle.budget.markUsageUnknown({ callId: "provider-b" });
+    expect(handle.close()).toBe(true);
+    const durable = store.read(sessionId);
+    expect(durable).toMatchObject({
+      usageUnknown: true,
+      snapshot: { totals: { tokens: 5 } },
+    });
+    expect(durable.snapshot.inFlight.work).toHaveLength(1);
+
+    const resumed = openSessionBudget(sessionId, {
+      store,
+      registry: new Map(),
+    });
+    expect(resumed.budget.status()).toMatchObject({
+      tokens: 5,
+      recoveryRequired: true,
+      pendingRecovery: 1,
+    });
+    expect(
+      resumed.budget.adjudicateRecovery({
+        abandoned: [second.authorityId],
+      }),
+    ).toMatchObject({ ok: true });
+    expect(resumed.close()).toBe(true);
+    expect(store.read(sessionId)).toMatchObject({
+      usageUnknown: false,
+      snapshot: {
+        totals: { tokens: 5 },
+        inFlight: { work: [] },
+      },
+    });
+  });
+
   it("keeps the dirty marker when finalization fails after atomic replace", () => {
     const directory = fs.mkdtempSync(
       path.join(os.tmpdir(), "cc-session-budget-post-rename-"),
