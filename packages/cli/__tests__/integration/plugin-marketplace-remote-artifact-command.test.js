@@ -350,13 +350,13 @@ describe("cc plugin remote marketplace artifact journey", () => {
       `${registryUrl}=${documentSha256}`,
       "--offline",
       "--scope",
-      "user",
+      "local",
       "--json",
     );
 
     expect(offlineRun.exitCode, offlineRun.stderr).toBe(0);
     expect(requestUrls).toEqual([]);
-    const [installed] = listInstalled({ cwd, scopes: ["user"] });
+    const [installed] = listInstalled({ cwd, scopes: ["local"] });
     expect(installed.source).toMatchObject({
       offline: true,
       catalogAuthority: {
@@ -428,7 +428,7 @@ describe("cc plugin remote marketplace artifact journey", () => {
         `${registryUrl}=${documentSha256}`,
         "--offline",
         "--scope",
-        "user",
+        "local",
         "--json",
       );
 
@@ -438,7 +438,7 @@ describe("cc plugin remote marketplace artifact journey", () => {
         status: "hit",
         cacheKey: expect.stringMatching(/^[a-f0-9]{64}$/),
       });
-      const [installed] = listInstalled({ cwd, scopes: ["user"] });
+      const [installed] = listInstalled({ cwd, scopes: ["local"] });
       expect(installed.source).toMatchObject({
         offline: true,
         catalogAuthority: {
