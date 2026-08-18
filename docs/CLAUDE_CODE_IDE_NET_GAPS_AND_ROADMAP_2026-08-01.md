@@ -2588,6 +2588,33 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 六十六、2026-08-18 P1-2 content-free stored-result review authority 子门复核（`22:03 +08:00`）
+
+本节继续第六十五节，关闭“source 已持久保存实际 returned bundle，但尚无一个可供人工验收且不会泄露正文的 canonical review authority”这一前置子门；不把 review digest 外推为 patch 已 apply、source Git identity 已复核、workspace checkpoint/rollback 已执行、IDE review UI 已接入或远端矩阵已完成。
+
+### 本轮关闭的 stored-result review 子门
+
+- **review 必须从 canonical v2 settlement 与实际 stored bytes 重建。** 新 `session location result-review <id> --request-id <id>` 先经完整 transcript/anti-rollback 路径读取唯一 settlement；v1 receipt 因没有 storage authority 明确 fail closed。v2 receipt 的 owner-only result store 文件会按第六十五节的物理身份、canonical bytes、bundle/content digest 与 receipt 约束重新打开和重验，不接受调用方另交一份“看起来相同”的 diff。
+- **bundle 再次绑定 exact settlement predecessor。** `createExecutionLocationResultReview` 严格规范化 receipt 与 bundle，重新计算 `cc-execution-location-result-verification/v1`，并交叉核对 session/request/result/handoff、source predecessor head/count、settlement event hash/count、target head/count、bundle/verification/collection digest、storage receipt/canonical-byte digest 与 total bytes。任一 authority drift、schema downgrade、stored receipt drift 或 content tamper 都不会产生 review。
+- **review projection 只含内容无关 metadata。** `cc-execution-location-result-review/v1` 只投影 summary/diff/artifact/evidence 的 media type、byte length 与 SHA-256，以及 settlement、source/target、storage lineage；不包含 base64、summary/diff/artifact/evidence 正文、路径、target stdout/error 或 target cwd。人类输出同样只显示 result/review/bundle digest 与 summary/diff byte metadata。
+- **review digest 是后续 mutation 的显式输入，而不是 apply 动作。** domain-separated `reviewDigest` 覆盖完整 projection，并固定 `applied=false`、`automaticApply=false`。machine-readable apply policy 明确列出未来 apply 必须同时满足 `explicit-review-digest`、`exact-source-git-identity`、`managed-workspace-transaction` 与 `session-apply-reservation`；本命令本身不修改 source workspace。
+- **边界与缺口进入 authority。** projection 显式保留 `stored-result-not-applied`、`local-store-not-worm-or-off-box` 与 `ide-review-ui-not-integrated`；因此 repository-level review 通过不能被解释为 ArtifactStore/WORM retention、IDE 消费或受控 apply/rollback 已完成。
+
+### 本轮验证证据
+
+- 实现与回归提交为 `97db0b27f7`（review authority 与 command route）、`8149cf5a36`（content-free、drift 与 legacy route 测试）、`833cbe9655`（roadmap contract）与 `30f4c00f90`（evidence version 对齐），均已快进进入本地 `main`。
+- review/result/store/command 四个聚焦文件为 **22/22**；完整 execution-location 八文件为 **65/65**，覆盖 deterministic review digest、content/path 不泄露、stored/settlement drift、legacy v1 拒绝与 Commander human route。
+- roadmap verifier/journey 为 **37/37**；command help index freshness 与 `git diff --check` 通过。
+- roadmap manifest 从 `1.9.32` 升至 `1.9.33`，新增 content-free review journey、review digest authority、authority drift/content leak/legacy settlement failure injection、三个 zero-acceptance outcome 与 review artifact。P1-2 fixture digest 为 `sha256:21e87ec0bc87fcda406a7e94d39f551a891093c23b3af902b6208924aa3aaa8d`；全 corpus 为 **15 cases / 91 referenced test files**，contract-only 通过。
+
+### P1-2 仍未关闭的边界
+
+1. **controlled apply 与 recovery saga：** 尚未用 review digest 预留 canonical session apply authority，也未在 mutation 前复核 live source Git root/HEAD、创建 managed workspace transaction、执行固定 `git apply --check` / `git apply`、在失败时 rollback，或在 accept/terminal-event response loss 后幂等恢复。
+2. **跨宿主 writer fence、store lifecycle 与长期 transport：** source/target lease、split-brain/shared-store ownership、publish-before-settlement orphan 索引/GC、WORM/off-box retention、断点续传、重连、睡眠/重启、增量/双向同步、分歧合并与删除传播仍未完成。
+3. **产品入口与外部矩阵：** Desktop、VS Code、JetBrains 尚未消费 review/apply authority；`cc cloud`、真实 WSL/SSH/Container/Cloud、多架构/网络故障及每格 100 次 exact-commit 长期矩阵仍无关闭证据。
+
+因此，P1-2 的 **stored bundle 全量重验、exact settlement/source/target/storage lineage 绑定、内容无关 canonical review digest、legacy no-storage fail-closed 与显式 apply policy 前置条件** 由本节关闭；P1-2 整项仍为**部分完成**。总计数保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。
+
 ## 六十五、2026-08-18 P1-2 durable returned-bundle store 子门复核（`21:47 +08:00`）
 
 本节继续第六十四节，关闭“settlement v1 只能证明已验收 bundle digest，append 后丢失响应时不能恢复实际 summary/diff/artifact/evidence bytes”的本地子门；不把本机内容寻址文件外推为 ArtifactStore/WORM/off-box retention、跨宿主传输 exactly-once、source review/apply transaction 或真实远端矩阵。
