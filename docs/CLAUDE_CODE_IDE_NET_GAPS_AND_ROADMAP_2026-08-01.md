@@ -2588,6 +2588,51 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 四十八、2026-08-18 P1-1 durable pricing snapshot cost estimate 子门复核（`13:35 +08:00`）
+
+本节继续第四十一、四十三至四十七节，把 durable provider usage 绑定到调用开始时固化的 provider/model 与公开价目快照，并投影可复算的
+USD estimate；不把内置价目表估算外推为 provider reported charge、billing API 回读或最终发票。候选基于已合并本地主分支
+`92bd0fdb1803bdd27c06481f77601557b6c2d48f` 的功能分支，尚无本候选 exact-head GitHub Actions。
+
+### 本轮关闭的 pricing-bound estimate 子门
+
+- **模型与价格在 transport 前进入 durable boundary。** provider call started row 保存校验后的 `providerModel`；内置公开价目表能匹配时，同时保存
+  `cc-provider-pricing-snapshot/v1`，包括 provider/model、命中 pattern、input/output 每百万 token 单价、cache read/write multiplier、free 标志及
+  catalog digest。`effect-call-started` 绑定模型与 pricing digest，后续价目表漂移不会静默改写已发生调用的估算依据。
+- **usage settlement 只从持久化快照复算。** completed settlement 将 input、output、cache-read、cache-creation 四项成本写为
+  `cc-provider-cost-estimate/v1`，保存总和与 pricing digest，并把 estimate digest 写入 `effect-call-settled` lineage。结算事件提供了不同模型时在状态
+  mutation 前拒绝；修改价格、成本或删掉部分新 schema 字段，即使只重算外层 state digest 也不能通过 verifier。
+- **零成本、未定价和缺失不会混淆。** 已匹配的本地免费 provider 产生真实 `estimatedUsd: 0` 并计入 priced call；未知模型保留完整 token usage，
+  但 pricing/cost 均为 `null`，不会猜价或写 0。started、outcome-unknown、operator-reconciled 与 legacy call 分别计入 pending/unknown/reconciled/
+  legacy 和 missing estimate；descendant provider call 保留 owner、source 与 request-source 归属。
+- **估价与账单 authority 显式分离。** `observability.cost` 输出 durable pricing/estimate lineage、priced/unpriced/missing 计数和 `estimatedUsd`，但
+  `reportedUsd` 固定为 `null`，`provider-cost-usd-unavailable` 继续存在。旧 row 缺少完整 pricing schema 时仍可读取，但只能带
+  `provider-cost-estimate-unavailable`、`provider-cost-estimate-incomplete` 与 `provider-cost-estimate-legacy-call-schema` 缺口。
+
+### 仓库内验证与证据边界
+
+- dynamic runtime 聚焦文件为 **33/33**；覆盖付费四 bucket、cache multiplier、免费零成本、未知模型不伪造、settlement model mismatch、
+  pricing/cost tamper、部分 schema downgrade、descendant attribution 与 legacy 兼容。
+- manifest `p1-dynamic-workflow` 引用的 **18 个文件为 590/590**；roadmap verifier 与 journey evidence 两文件为 **37/37**。
+- roadmap manifest 从 `1.9.14` 升至 `1.9.15`，baseline 绑定本轮起点 `92bd0fdb1803bdd27c06481f77601557b6c2d48f`；fixture digest 为
+  `sha256:fb2aaae7d1bf4ecce99f7a2c060327eecbe4aeed8950c2ef3082084418b462b0`。`--contract-only` 验证 **15 cases / 69 referenced test files**，
+  明确没有评估 runtime evidence 或 release readiness。
+
+### P1-1 仍未关闭的边界
+
+1. **provider billing authority：** 当前 price snapshot 来自会漂移的内置公开价目表，不是 provider 账单、credit、阶梯/批处理折扣、税费、货币换算或
+   billing API readback；也未声明 custom override、reasoning token 与所有供应商专有 bucket 的完整计价。因此 `reportedUsd` 必须继续为 `null`。
+2. **完整 side-effect 与制品 authority：** provider-native idempotency/receipt readback、ArtifactStore immutable bytes、checkpoint restore/readback、
+   未经过受管 observer 的 hook/external side effects 与不合作 provider 的物理取消仍开放。unknown/operator-reconciled call 的真实 usage/cost
+   无法证明时必须继续显示 incomplete。
+3. **完整产品与外部矩阵：** 一般阶段间 `needs_input`、Workbench/VS Code/JetBrains phase/agent/control/token/cost UI、plugin/marketplace 分发，以及
+   Local/WSL/SSH/Container/Cloud × 三 OS × 双 IDE 每格 100 次 exact-head 真实 provider/宿主故障矩阵仍无外部证据。
+
+因此，P1-1 的 **provider/model durable binding、公开价目快照、usage-derived USD estimate、settlement digest、零价/未定价区分、descendant 聚合与
+legacy gap** 由本节关闭；P1-1 整项仍为**部分完成**，不得据此声明实际 provider charge、独立 billing readback 或完整 Workbench 已完成。总计数保持
+**12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
+Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
+
 ## 四十七、2026-08-18 P1-1 durable provider token usage ledger 子门复核（`13:06 +08:00`）
 
 本节继续第四十一、四十三至四十六节，把 provider 已返回的 token usage 从仅供 Agent host 消费的瞬时 settlement 事件接入逐调用
