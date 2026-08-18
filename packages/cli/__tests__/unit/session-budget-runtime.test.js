@@ -1092,8 +1092,9 @@ describe("session budget runtime", () => {
       }),
     ).toMatchObject({ ok: true });
     expect(resumed.close()).toBe(true);
-    expect(store.read(sessionId)).toMatchObject({
-      usageUnknown: false,
+    const clean = store.read(sessionId);
+    expect(clean).not.toHaveProperty("usageUnknown");
+    expect(clean).toMatchObject({
       snapshot: {
         totals: { tokens: 5 },
         inFlight: { work: [] },
