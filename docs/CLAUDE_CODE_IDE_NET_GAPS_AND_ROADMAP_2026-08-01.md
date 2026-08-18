@@ -1224,7 +1224,7 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
 | 11  | P1-1 / R4            | 部分完成（definition/preflight/persistence/replay/run-admission 子门已实现）                  | `58bfdceb84` 在现有 Cowork DAG 上增加版本化 definition/digest、raw plan 与 fail-closed capability/location/permission/sandbox/data-boundary/credential/规模/成本预检；`b6dc772384` 增加 current envelope、content-addressed immutable versions、legacy-unversioned 边界、CLI/WS exact-digest replay 与 run history digest；`c5f14a2105` 强制 CLI/WS 双重 authority reverify、secret-free admission/execution-policy digest、全局并发门、timeout physical-settle 与严格 run record，阻断时不发 started、不执行 task、不写 history。仍需真实宿主 attestation、生成式编排、运行中 pause/resume、恢复后阶段最多一次、耐久 history 与 artifact/ledger/checkpoint lineage、Workbench/双 IDE 消费、跨 host 矩阵和 plugin/marketplace 分发。                                       |
 | 12  | P1-2 / R4            | 部分完成                                                                                      | CLI 已将当前环境事实作为版本化 `session_start` authority，提供五类位置比较与 secret-free、fail-closed handoff preview；仍需真实 WSL/SSH/Cloud/Container launch/resume、跨宿主 evidence/authority 继承、IDE/Desktop 创建面和完整远程/故障矩阵。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | 13  | P1-3 / R4            | 部分完成（执行底座、通知、控制面与裁决已合并）                                                | `main` 已覆盖 Agenda/Automation/Cowork/Loop/Routine/monitor、统一 daemon、`needs_input` 可恢复通知、Agenda/Cowork 的 IANA timezone/DST/missed-run policy、outcome-unknown 人工裁决，以及 #166/#168/#169/#172 的 scoped channel dispatch、真实权限/预算 preflight、双 IDE Automation Center 与 Routine 统一控制面。仍需运行中 task 的条件式暂停/恢复、绑定原 run id 的越界 incident、完整迁移/回滚、磁盘故障和长期矩阵。                                                                                                                                                                                                                                                                                                                                                    |
-| 14  | R4 budget            | 部分完成                                                                                      | 把预算 authority 从 foundation/local adapters 接到 production root、全部 turn/token/tool 及 WS/REPL/headless 入口。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| 14  | R4 budget            | 部分完成（持久 headless production root 子门已实现）                                          | opt-in durable headless 已把同一 authority 接到主/子 agent loop、direct-model turn、provider-reported token/cost 与实际 tool timing，并提供 crash-pending status/recovery；仍需 WS/REPL、非 Linux 安全 sidecar、默认启用/迁移、unknown usage 独立 readback、跨主机 fencing/anti-rollback 与完整宿主矩阵。                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | 15  | R4 command lifecycle | 部分完成                                                                                      | 观测三批兼容别名的完整弃用周期，依据使用证据决定移除或延长；不得提前删除入口。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | 16  | P1-4 / R5            | 部分完成（Context/Permission 主体子切片已实现）                                               | CLI authority 已提供 workspace 绑定、TTL、CAS revoke 和逐工具调用刷新，双 IDE 只通过 CLI 创建/撤销 scoped rule，managed deny 不可放宽；双 IDE 已共享确定性 context contract、持久 pin/remove/budget 偏好、交互式 chips，并实际采集有界 Git diff、project memory 与 metadata-only MCP resource catalog；legacy、`/v2`、`/v6-preview` 已通过 browser-safe twin 消费同一 contract，默认关闭且只丰富临时 outbound prompt。`cc-permission-side-effect-center/v1` 已关联标准/MCP ledger 的实际文件、network origin、process/runtime、credential 变量名、决策/来源、调用链和保守恢复覆盖，双 IDE Policy Viewer 消费当前 Chat session；外部资源不会被本地 checkpoint 误报为可恢复，敏感值与完整命令不进入投影。仍需长期并发、真实宿主、故障注入和跨入口凭据不泄露/恢复诚实性矩阵。 |
 | 17  | P1-5 / R5            | 部分完成（catalog、选择、执行/impact、本地 readback 与仓库内远端 activation evidence 已实现） | `392ed39d24` 提供多来源 catalog；`b93f354679` 持久 install authority；`07f4d41fa6` 增加 update impact；`6bd8c11271` 增加 exact registry-set selection；`3d171256fb` 提供 immutable local readback；`6b7e183c33` 在 add/upgrade activation 前完成有界 signature/public-key/SBOM 抓取、digest/SPKI、staged-manifest Ed25519、transactional finalize/rollback 及版本化 provenance/readback。仍需真实 private registry、publisher/组织 trust root 与 key revocation、代理/PAC/custom CA、air-gapped/offline、依赖冲突、完整供应链故障矩阵和外部环境验证。                                                                                                                                                                                                                      |
@@ -2587,6 +2587,54 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 关闭；P1-1 整项仍为**部分完成**，manifest 中三个完整能力声明仍保持 `false`。总计数保持
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
+
+## 五十五、2026-08-18 R4 durable headless session budget production root 子门复核（`16:16 +08:00`）
+
+本节继续 R4 budget foundation 与第五十四节之后的生产接线，不把一个 opt-in headless 入口外推为 WS/REPL、全部平台或默认启用。候选基于已合并
+本地主分支 `f616f2e9f5`，功能、恢复投影、生成帮助与命令测试提交依次为 `5d3e707739`、`1f677b9d9e`、`528ea516be`、
+`20a331465b`；尚无本候选 exact-head GitHub Actions。
+
+### 本轮关闭的 headless production-root 子门
+
+- **一个持久 session 对应一个共享预算 authority。** `cc agent` 新增显式 `--session-budget` 与 concurrent/spawn/depth/turn/token/USD/
+  wall/tool 上限；只有同时提供 `--session`、`--resume` 或 `--continue` 才会在 host lease 内打开 durable root。恢复旧 session 时只收紧已有上限，
+  同一 root 传入顶层 agent loop、spawned sub-agent、isolated skill、Team/background adapter 与 direct-model 路径，不为 child 复制独立额度。
+- **turn、usage 与 tool 都在生产边界结算。** 每次 agent-loop/provider direct call 在 transport 前消费 turn；所有实际 tool effect 在 preflight 通过后、
+  执行前取得 digest-bound tool authority，并在成功或异常后结算 elapsed time。provider ledger/token event 先持久化，再把 provider-reported usage 计入
+  session root；带 child attribution 的转发事件不在 headless host 重复收费，因为 child 已直接结算同一对象。
+- **预算拒绝有独立终态。** turn/tool admission、token/cost 或持续时间触顶会中止同一组合 AbortSignal；单次 headless 返回
+  `error_session_budget`/exit 1，stream-json 输出同名机器可读 subtype。未启用新选项的既有 one-shot 行为不变；交互 REPL 收到该选项时明确 fail
+  closed，不能静默退化为内存预算。
+- **crash-pending 必须人工精确裁决。** sidecar 发现未结算 work/tool authority 时，新的 run 在进入 agent loop 前返回
+  `CC_SESSION_BUDGET_RECOVERY_REQUIRED`。`cc session budget status <session-id>` 只投影有界 totals/limits 与 opaque authority ids；operator 必须用
+  `cc session budget recover <session-id> --abandon <全部精确 id>` 一次性裁决，缺失、伪造、部分集合与 replay 均 fail closed。
+- **平台边界保持诚实。** 生产 sidecar 沿用现有 secure local-store contract，目前仅 Linux 支持其权限/rename/fsync 约束；Windows/macOS 显式启用
+  production root 会报告 unsupported platform，而不会伪装成耐久 authority。测试只通过专用注入 seam 允许非 Linux 临时目录。
+
+### 仓库内验证与证据边界
+
+- 新增 production root、headless threading、agent-core turn/tool、direct-model settlement-order 与 recovery command 覆盖；聚焦集为
+  **5 files / 20 passed**。扩大预算、headless、stream、usage attribution、命令帮助与 manifest 回归按文件并行时为 **276 passed / 3 skipped**；
+  两项 15 秒负载超时随后串行复跑分别 **5/5** 与 **32/32**，没有功能断言失败。
+- roadmap manifest 从 `1.9.21` 升至 `1.9.22`；`p1-dynamic-workflow` 增加 headless root、recovery bypass、child usage 去重、
+  usage-ledger-before-budget 与 unsupported-platform fail-closed 契约，fixture digest 为
+  `sha256:0f7617ac30f87a84e81f927351b04cf438947a5bcc93dd92874e7fe45cc07862`。
+- `--contract-only` 验证 **15 cases / 78 referenced test files**，继续只验证仓库契约，不评估 runtime evidence 或 release
+  readiness；本轮没有外部 host/provider/断电矩阵证据。
+
+### R4 budget 仍未关闭的边界
+
+1. **入口尚未统一：** WS 与 interactive REPL 尚未创建/复用该 production root；stream-json 与单次 headless 已接线不等于 IDE/daemon/remote host
+   全部入口一致。默认仍为 opt-in，既有 session 也没有迁移或强制 policy。
+2. **usage 只采用 provider 报告：** 本轮不虚构 unknown token/USD；provider 不返回或无法定价时仍需 runtime usage ledger/明确 gap。provider billing
+   独立 readback、物理取消、native idempotency 与不合作 provider 的真实上限仍开放。
+3. **耐久性与外部矩阵仍开放：** 当前 sidecar 不证明 Windows/macOS 安全文件语义、same-UID hostile writer、多主机共享盘、外部 anti-rollback
+   anchor、任意断电/fsync 或 Local/WSL/SSH/Container/Cloud × 三 OS × 双 IDE 的 exact-head 长期矩阵。
+
+因此，R4 budget 的 **opt-in durable headless production root、顶层与 child 共用 turn/token/cost/tool authority、usage 去重、crash-pending 阻断与精确
+人工恢复命令**由本节关闭；R4 budget 整项仍为**部分完成**，不得据此声明 WS/REPL、跨平台 durability 或 release readiness 已完成。总计数保持
+**12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
+Q4a/Q4b、P1-1、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
 ## 五十四、2026-08-18 P1-1 terminal checkpoint batch recovery 子门复核（`15:45 +08:00`）
 
