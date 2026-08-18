@@ -825,6 +825,102 @@ describe("session location target command routes", () => {
     expect(stdout).not.toHaveBeenCalled();
   });
 
+  it("imports only the reviewed item and emits a content-free ArtifactStore receipt", async () => {
+    const reviewDigest = `sha256:${"4".repeat(64)}`;
+    const content = Buffer.from("private reviewed artifact bytes\n", "utf8");
+    const record = {
+      mediaType: "application/octet-stream",
+      byteLength: content.byteLength,
+      digest: `sha256:${"5".repeat(64)}`,
+      contentBase64: content.toString("base64"),
+    };
+    const importArtifact = vi.fn(() => ({
+      schema: "cc-execution-location-result-artifact-import/v1",
+      importDigest: `sha256:${"6".repeat(64)}`,
+      source: {
+        schema: "cc-execution-location-result-artifact-lineage/v1",
+        sessionId: "session-command-1",
+        requestId: "import-request-1",
+        reviewDigest,
+        item: `artifact:${record.digest}`,
+        kind: "artifact",
+        mediaType: record.mediaType,
+        byteLength: record.byteLength,
+        sourceDigest: record.digest,
+      },
+      artifact: {
+        id: "art_imported",
+        size: record.byteLength,
+      },
+      retention: "artifact-store-ttl-explicit-delete-not-worm",
+      receiptDigest: `sha256:${"7".repeat(64)}`,
+      imported: true,
+    }));
+    const artifactStore = { marker: "injected-store" };
+
+    await program(
+      dependencies({
+        readVerifiedSessionExecutionLocationResultSettlement: () => ({
+          schema:
+            "chainlesschain.session-execution-location-result-collection-receipt/v2",
+          requestId: "import-request-1",
+          storage: {},
+        }),
+        readStoredExecutionLocationResultBundle: () => ({
+          summary: record,
+          diff: record,
+          artifacts: [record],
+          evidence: [],
+        }),
+        createExecutionLocationResultReview: () => ({
+          reviewDigest,
+          artifacts: [
+            {
+              mediaType: record.mediaType,
+              byteLength: record.byteLength,
+              digest: record.digest,
+            },
+          ],
+        }),
+        importExecutionLocationResultArtifact: importArtifact,
+        artifactStore,
+      }),
+    ).parseAsync([
+      "node",
+      "cc",
+      "session",
+      "location",
+      "result-import",
+      "session-command-1",
+      "--request-id",
+      "import-request-1",
+      "--review-digest",
+      reviewDigest,
+      "--item",
+      `artifact:${record.digest}`,
+      "--json",
+    ]);
+
+    expect(process.exitCode).toBe(0);
+    expect(importArtifact).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: "session-command-1",
+        requestId: "import-request-1",
+        reviewDigest,
+        item: `artifact:${record.digest}`,
+        bytes: content,
+      }),
+      { artifactStore },
+    );
+    const output = stdout.mock.calls.at(-1)[0];
+    expect(JSON.parse(output)).toMatchObject({
+      schema: "cc-execution-location-result-artifact-import/v1",
+      imported: true,
+      artifact: { id: "art_imported" },
+    });
+    expect(output).not.toContain("private reviewed artifact bytes");
+  });
+
   it("escapes terminal controls and requires redirection for binary items", () => {
     const writes = [];
     const output = { write: (value) => writes.push(value), isTTY: true };

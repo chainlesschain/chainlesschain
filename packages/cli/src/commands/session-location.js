@@ -51,6 +51,10 @@ import {
   createExecutionLocationResultReview,
 } from "../lib/execution-location-result-review.js";
 import {
+  EXECUTION_LOCATION_RESULT_ARTIFACT_IMPORT_SCHEMA,
+  importExecutionLocationResultArtifact,
+} from "../lib/execution-location-result-artifact.js";
+import {
   executeControlledExecutionLocationResultApply,
   terminalExecutionLocationResultApplyTransaction,
   verifyExecutionLocationResultApplySourceGit,
@@ -672,6 +676,26 @@ export function previewSessionExecutionLocationResult(
   });
 }
 
+export function importSessionExecutionLocationResultArtifact(
+  sessionId,
+  requestId,
+  reviewDigest,
+  item,
+  deps = {},
+) {
+  const preview = previewSessionExecutionLocationResult(
+    sessionId,
+    requestId,
+    reviewDigest,
+    item,
+    deps,
+  );
+  return (
+    deps.importExecutionLocationResultArtifact ||
+    importExecutionLocationResultArtifact
+  )(preview, { artifactStore: deps.artifactStore });
+}
+
 function terminalSafeText(bytes) {
   const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
   return text.replace(
@@ -994,6 +1018,12 @@ function writeProjection(projection, options = {}) {
   if (projection.schema === EXECUTION_LOCATION_RESULT_REVIEW_SCHEMA) {
     process.stdout.write(
       `RESULT REVIEWED ${projection.resultId}\nReview: ${projection.reviewDigest}\nBundle: ${projection.bundleDigest}\nSummary: ${projection.summary.byteLength} bytes (${projection.summary.digest})\nDiff: ${projection.diff.byteLength} bytes (${projection.diff.digest})\nApplied: no\n`,
+    );
+    return;
+  }
+  if (projection.schema === EXECUTION_LOCATION_RESULT_ARTIFACT_IMPORT_SCHEMA) {
+    process.stdout.write(
+      `RESULT ARTIFACT ${projection.imported ? "IMPORTED" : "AVAILABLE"} ${projection.artifact.id}\nImport: ${projection.importDigest}\nReview: ${projection.source.reviewDigest}\nItem: ${projection.source.item}\nArtifact bytes: ${projection.artifact.size} (${projection.source.sourceDigest})\nContent emitted: no\n`,
     );
     return;
   }
@@ -1414,6 +1444,38 @@ export function registerSessionLocationSubcommands(session, deps = {}) {
             deps,
           ),
         deps.previewOutputDependencies || {},
+      );
+    });
+
+  location
+    .command("result-import <id>")
+    .description(
+      "Import one explicitly reviewed result item into the managed ArtifactStore",
+    )
+    .requiredOption(
+      "--request-id <id>",
+      "Canonical result collection request id",
+    )
+    .requiredOption(
+      "--review-digest <sha256>",
+      "Exact content-free review digest accepted by the operator",
+    )
+    .requiredOption(
+      "--item <selector>",
+      "summary, diff, artifact:<sha256>, or evidence:<sha256>",
+    )
+    .option("--json", "Machine-readable content-free import receipt")
+    .action((id, options) => {
+      process.exitCode = runAction(
+        () =>
+          importSessionExecutionLocationResultArtifact(
+            id,
+            options.requestId,
+            options.reviewDigest,
+            options.item,
+            deps,
+          ),
+        options,
       );
     });
 
