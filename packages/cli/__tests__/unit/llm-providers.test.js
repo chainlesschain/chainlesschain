@@ -4,7 +4,7 @@ import {
   BUILT_IN_PROVIDERS,
   LLMProviderRegistry,
 } from "../../src/lib/llm-providers.js";
-import { LLM_PROVIDERS } from "../../src/constants.js";
+import { DEFAULT_CONFIG, LLM_PROVIDERS } from "../../src/constants.js";
 
 describe("LLM Providers", () => {
   // ─── BUILT_IN_PROVIDERS ───────────────────────────────────────
@@ -303,7 +303,13 @@ describe("LLM Providers", () => {
         "https://ark.cn-beijing.volces.com/api/v3",
       );
       expect(LLM_PROVIDERS.volcengine.defaultModel).toBe(
-        "doubao-seed-2-1-pro-260628",
+        "deepseek-v4-flash-260425",
+      );
+      expect(DEFAULT_CONFIG.llm.model).toBe(
+        LLM_PROVIDERS.volcengine.defaultModel,
+      );
+      expect(BUILT_IN_PROVIDERS.volcengine.models[0]).toBe(
+        LLM_PROVIDERS.volcengine.defaultModel,
       );
       expect(LLM_PROVIDERS.volcengine.requiresApiKey).toBe(true);
     });

@@ -10,7 +10,7 @@ coordination, and a localhost IDE bridge.
 | ------------------------- | ------------------------------------------------------------ |
 | VS Code extension         | **0.37.55**; immutable tag-gated Open VSX release            |
 | Recommended CLI           | **`chainlesschain@0.164.0`** (fully gated stable release)    |
-| Base bridge compatibility | `cc >= 0.162.47`; newer features can require a newer CLI     |
+| Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI    |
 | Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors          |
 | Distribution              | Open VSX; not published on the Microsoft VS Code Marketplace |
 
@@ -283,7 +283,7 @@ security notes, see
 
 This summary is pinned to the repository's versioned, secret-free
 [`PUBLIC_IDE_CAPABILITY_MANIFEST.generated.json`](../../docs/cli/PUBLIC_IDE_CAPABILITY_MANIFEST.generated.json).
-The base IDE/Doctor contract requires `cc >= 0.162.47`; feature-specific sections below may require a newer CLI.
+The base IDE/Doctor contract requires `cc >= 0.162.190`; feature-specific sections below may require a newer CLI.
 
 - VS Code commands: **52** registered entries
 - Doctor entries: `chainlesschain.ide.doctor`, `chainlesschain.remote.doctor`

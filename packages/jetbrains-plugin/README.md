@@ -182,7 +182,7 @@ checks.
 
 This summary is pinned to the repository's versioned, secret-free
 [`PUBLIC_IDE_CAPABILITY_MANIFEST.generated.json`](../../docs/cli/PUBLIC_IDE_CAPABILITY_MANIFEST.generated.json).
-The base IDE/Doctor contract requires `cc >= 0.162.47`; feature-specific sections below may require a newer CLI.
+The base IDE/Doctor contract requires `cc >= 0.162.190`; feature-specific sections below may require a newer CLI.
 
 - JetBrains actions: **35** registered entries
 - Doctor entries: `chainlesschain.ide.DiagnoseBridge`

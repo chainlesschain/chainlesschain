@@ -164,8 +164,8 @@ describe("image temp-file cleanup (no tmpdir pile-up)", () => {
   });
 });
 
-describe("API key rides the child env, not just argv", () => {
-  it("sets CC_API_KEY on the spawned session when the config has a key", () => {
+describe("API key stays in the CLI secure store", () => {
+  it("never copies a configured key into child env or argv", () => {
     const spawns = [];
     const provider = new ChatViewProvider(
       {
@@ -201,12 +201,12 @@ describe("API key rides the child env, not just argv", () => {
     provider.view = { webview: { postMessage: () => Promise.resolve() } };
     provider._handleMessage({ type: "send", text: "hi" });
     expect(spawns).toHaveLength(1);
-    expect(spawns[0].cfg.env.CC_API_KEY).toBe("sk-secret");
-    // Compat: --api-key stays until MIN_CLI_VERSION covers the env fallback.
-    expect(spawns[0].cfg.args).toContain("--api-key");
+    expect(spawns[0].cfg.env.CC_API_KEY).not.toBe("sk-secret");
+    expect(spawns[0].cfg.args).not.toContain("--api-key");
+    expect(spawns[0].cfg.args).not.toContain("sk-secret");
   });
 
-  it("omits CC_API_KEY when no key is configured", () => {
+  it("does not synthesize CC_API_KEY when no key is configured", () => {
     const spawns = [];
     const provider = new ChatViewProvider(
       {
@@ -234,6 +234,6 @@ describe("API key rides the child env, not just argv", () => {
     );
     provider.view = { webview: { postMessage: () => Promise.resolve() } };
     provider._handleMessage({ type: "send", text: "hi" });
-    expect("CC_API_KEY" in spawns[0].cfg.env).toBe(false);
+    expect(spawns[0].cfg.env.CC_API_KEY).toBe(process.env.CC_API_KEY);
   });
 });

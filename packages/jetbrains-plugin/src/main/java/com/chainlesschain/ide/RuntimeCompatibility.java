@@ -11,7 +11,7 @@ import java.util.List;
  * are pinned to the same JSON fixture.
  */
 public final class RuntimeCompatibility {
-    public static final String MIN_CLI_VERSION = "0.162.47";
+    public static final String MIN_CLI_VERSION = "0.162.190";
     public static final String STATUS_READY = "ready";
     public static final String STATUS_DEGRADED = "degraded";
     public static final String STATUS_REPAIR = "repair";

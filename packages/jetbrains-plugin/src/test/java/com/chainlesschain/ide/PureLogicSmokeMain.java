@@ -380,19 +380,18 @@ public final class PureLogicSmokeMain {
                 Arrays.asList("--provider", "anthropic", "--resume", "s1",
                         "--permission-mode", "acceptEdits", "--ultrathink"),
                 "mode + think composed");
-        // FULL block (7-arg): --base-url + --api-key passed so a cloud provider's
-        // endpoint/key isn't dropped (the "配置了火山却 fetch failed" root-cure).
+        // Full block: base URL is non-secret; API key must stay in CLI storage.
         eq(SessionArgs.build("volcengine", "doubao-x",
                         "https://ark.cn-beijing.volces.com/api/v3", "sk-volc",
                         "sess-1", "default", null),
                 Arrays.asList("--provider", "volcengine", "--model", "doubao-x",
                         "--base-url", "https://ark.cn-beijing.volces.com/api/v3",
-                        "--api-key", "sk-volc", "--resume", "sess-1"),
-                "full block: base-url + api-key in order");
+                        "--resume", "sess-1"),
+                "full block: base-url only, api-key absent");
         eq(SessionArgs.build("ollama", "m", "  ", "", "s1", "default", null),
                 Arrays.asList("--provider", "ollama", "--model", "m",
                         "--resume", "s1"),
-                "blank base-url/api-key omitted (back-compat)");
+                "blank base-url omitted (back-compat)");
         eq(SessionArgs.build(null, null, null, "default"),
                 new ArrayList<String>(), "4-arg overload still works");
     }
@@ -1160,7 +1159,7 @@ public final class PureLogicSmokeMain {
                 "connect intellij:51234", "reason: workspace-match",
                 "endpoint injected: yes",
                 RuntimeCompatibility.evaluate(
-                        "0.162.176",
+                        "0.162.190",
                         RuntimeCompatibility.MIN_CLI_VERSION,
                         51234,
                         null),

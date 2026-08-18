@@ -52,7 +52,7 @@ const PROVIDER_PRESETS = [
     id: "volcengine",
     label: "Volcengine / Doubao (volcengine)",
     baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
-    defaultModel: "doubao-seed-evolving",
+    defaultModel: "deepseek-v4-flash-260425",
     needsKey: true,
   },
   {
@@ -129,19 +129,16 @@ function hasUnsafeShellChars(value) {
   return /[\s&|<>^"'`%]/.test(String(value));
 }
 
-/** The `cc config set` invocations for the wizard's answers (skips blanks). */
-function buildConfigSetArgs({
-  provider,
-  model,
-  apiKey,
-  baseUrl,
-  visionModel,
-} = {}) {
+/**
+ * The non-secret `cc config set` invocations for the wizard's answers.
+ * API keys deliberately never enter argv; applyLlmConfig writes them through
+ * `cc config set-secret` on stdin after these ordinary settings succeed.
+ */
+function buildConfigSetArgs({ provider, model, baseUrl, visionModel } = {}) {
   const sets = [];
   if (provider) sets.push(["config", "set", "llm.provider", provider]);
   if (model) sets.push(["config", "set", "llm.model", model]);
   if (baseUrl) sets.push(["config", "set", "llm.baseUrl", baseUrl]);
-  if (apiKey) sets.push(["config", "set", "llm.apiKey", apiKey]);
   // Vision (image-recognition) model — often differs from the text model; the
   // CLI auto-switches to it when a turn carries images. Blank = reuse the text
   // model / the CLI default, so it is omitted.
@@ -205,10 +202,10 @@ function withLlmErrorGuidance(message) {
   );
 }
 
-function runCli(command, args, deps) {
+function runCli(command, args, deps, { stdin } = {}) {
   const run = deps?.execFile || execFile;
   return new Promise((resolve) => {
-    run(
+    const child = run(
       command,
       args,
       {
@@ -227,6 +224,21 @@ function runCli(command, args, deps) {
         });
       },
     );
+    if (stdin !== undefined) {
+      if (!child?.stdin || typeof child.stdin.end !== "function") {
+        child?.kill?.();
+        resolve({
+          ok: false,
+          stdout: "",
+          stderr: "",
+          error: "cc process stdin is unavailable",
+        });
+        return;
+      }
+      // Ignore an EPIPE here; execFile's callback carries the actionable error.
+      child.stdin.on?.("error", () => {});
+      child.stdin.end(String(stdin));
+    }
   });
 }
 
@@ -300,10 +312,12 @@ async function setVisionModel({ command = "cc", visionModel, deps } = {}) {
     : { ok: false, error: r.error || r.stderr.slice(0, 200) };
 }
 
-/** Apply the wizard's answers via `cc config set` (sequential, fail-fast). */
+/** Apply the wizard's answers sequentially, with secrets sent only on stdin. */
 async function applyLlmConfig({ command = "cc", answers, deps } = {}) {
   for (const [key, value] of Object.entries(answers || {})) {
-    if (value && hasUnsafeShellChars(value)) {
+    // apiKey never reaches the shell/argv, so shell metacharacters in a
+    // provider-issued credential are data rather than command syntax.
+    if (key !== "apiKey" && value && hasUnsafeShellChars(value)) {
       return {
         ok: false,
         error: `Value contains unsafe characters (${key}) — remove spaces/quotes/& and retry`,
@@ -312,6 +326,15 @@ async function applyLlmConfig({ command = "cc", answers, deps } = {}) {
   }
   for (const args of buildConfigSetArgs(answers)) {
     const r = await runCli(command, args, deps);
+    if (!r.ok) return { ok: false, error: r.error || r.stderr.slice(0, 200) };
+  }
+  if (answers?.apiKey) {
+    const r = await runCli(
+      command,
+      ["config", "set-secret", "llm.apiKey"],
+      deps,
+      { stdin: String(answers.apiKey) },
+    );
     if (!r.ok) return { ok: false, error: r.error || r.stderr.slice(0, 200) };
   }
   return { ok: true };

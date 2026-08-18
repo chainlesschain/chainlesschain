@@ -265,9 +265,9 @@ describe("LLM Provider Workflow (integration)", () => {
       expect(model).toBe("doubao-seed-2-1-pro-260628");
     });
 
-    it("volcengine CHAT model should be doubao-seed-2-1-pro-260628", () => {
+    it("volcengine CHAT model should use the configured default", () => {
       const model = selectModelForTask("volcengine", TaskType.CHAT);
-      expect(model).toBe("doubao-seed-2-1-pro-260628");
+      expect(model).toBe("deepseek-v4-flash-260425");
     });
 
     it("ollama provider should list qwen2.5 models", () => {

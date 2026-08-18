@@ -24,7 +24,7 @@ export const TaskType = {
  */
 const TASK_MODEL_MAP = {
   [TaskType.CHAT]: {
-    volcengine: "doubao-seed-2-1-pro-260628",
+    volcengine: "deepseek-v4-flash-260425",
     openai: "gpt-4o-mini",
     anthropic: "claude-sonnet-4-6",
     deepseek: "deepseek-chat",
