@@ -79,6 +79,110 @@ export const PID_IDENTITY_TOLERANCE_MS = 60000;
 export const PROCESS_START_TIME_CACHE_TTL_MS = 10_000;
 export const PROCESS_START_TIME_CACHE_MAX_ENTRIES = 4_096;
 
+// Linux exposes these fields directly through procfs. `/proc/<pid>/stat`
+// reports starttime in USER_HZ units, which Linux defines as 100 ticks/second
+// for this userspace ABI independently of the kernel scheduler frequency.
+const LINUX_PROC_CLOCK_TICKS_PER_SECOND = 100;
+let linuxBootTimeMsCache;
+
+export function parseLinuxProcStat(text, bootTimeMs = null) {
+  const value = String(text || "").trim();
+  const open = value.indexOf("(");
+  const close = value.lastIndexOf(")");
+  if (open <= 0 || close <= open || value.charAt(close + 1) !== " ") {
+    return null;
+  }
+  const pid = Number(value.slice(0, open).trim());
+  const fields = value
+    .slice(close + 2)
+    .trim()
+    .split(/\s+/u);
+  const state = fields[0];
+  const processGroupId = Number(fields[2]);
+  const startTimeTicks = Number(fields[19]);
+  if (
+    !Number.isSafeInteger(pid) ||
+    pid <= 0 ||
+    !/^[A-Z]$/iu.test(state || "") ||
+    !Number.isSafeInteger(processGroupId) ||
+    processGroupId <= 0 ||
+    !Number.isFinite(startTimeTicks) ||
+    startTimeTicks < 0
+  ) {
+    return null;
+  }
+  const boot = Number(bootTimeMs);
+  return {
+    pid,
+    state: state.toUpperCase(),
+    processGroupId,
+    startTimeTicks,
+    startedAtMs:
+      Number.isFinite(boot) && boot > 0
+        ? boot + (startTimeTicks * 1000) / LINUX_PROC_CLOCK_TICKS_PER_SECOND
+        : null,
+  };
+}
+
+function linuxBootTimeMs() {
+  if (linuxBootTimeMsCache !== undefined) return linuxBootTimeMsCache;
+  try {
+    const match = /^btime\s+(\d+)\s*$/mu.exec(
+      readFileSync("/proc/stat", "utf8"),
+    );
+    const seconds = match ? Number(match[1]) : null;
+    linuxBootTimeMsCache =
+      Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : null;
+  } catch {
+    linuxBootTimeMsCache = null;
+  }
+  return linuxBootTimeMsCache;
+}
+
+function readLinuxProcProcess(pid) {
+  const target = Number(pid);
+  if (!Number.isSafeInteger(target) || target <= 0) {
+    return { status: "unknown", process: null };
+  }
+  try {
+    const parsed = parseLinuxProcStat(
+      readFileSync(`/proc/${target}/stat`, "utf8"),
+      linuxBootTimeMs(),
+    );
+    return parsed
+      ? { status: "present", process: parsed }
+      : { status: "unknown", process: null };
+  } catch (error) {
+    return ["ENOENT", "ESRCH"].includes(error?.code)
+      ? { status: "absent", process: null }
+      : { status: "unknown", process: null };
+  }
+}
+
+function readLinuxProcProcessGroupStates(pgid) {
+  const target = Number(pgid);
+  if (!Number.isSafeInteger(target) || target <= 0) return null;
+  let entries;
+  try {
+    entries = readdirSync("/proc");
+  } catch {
+    return null;
+  }
+  const states = [];
+  for (const entry of entries) {
+    if (!/^\d+$/u.test(entry)) continue;
+    const observed = readLinuxProcProcess(Number(entry));
+    if (observed.status === "unknown") return null;
+    if (
+      observed.status === "present" &&
+      observed.process.processGroupId === target
+    ) {
+      states.push(observed.process.state);
+    }
+  }
+  return states;
+}
+
 /**
  * A bounded FIFO/TTL cache for process creation-time probes.
  *
@@ -263,6 +367,13 @@ function defaultReadProcessStartTimeMs(pid) {
     }
     return null;
   }
+  if (process.platform === "linux") {
+    const observed = readLinuxProcProcess(target);
+    if (observed.status === "absent") return { status: "absent" };
+    if (Number.isFinite(observed.process?.startedAtMs)) {
+      return observed.process.startedAtMs;
+    }
+  }
   // POSIX: `ps -o lstart=` gives an absolute start timestamp on Linux + macOS
   // (procps and BSD ps both support it; busybox ps does not → null → open).
   try {
@@ -300,6 +411,12 @@ function defaultReadProcessState(pid) {
   ) {
     return null;
   }
+  if (process.platform === "linux") {
+    const observed = readLinuxProcProcess(target);
+    if (observed.status !== "unknown") {
+      return observed.process?.state || null;
+    }
+  }
   try {
     const result = runSupervisorCommand(
       "ps",
@@ -334,6 +451,10 @@ function defaultReadProcessGroupStates(pgid) {
     target <= 0
   ) {
     return null;
+  }
+  if (process.platform === "linux") {
+    const states = readLinuxProcProcessGroupStates(target);
+    if (Array.isArray(states)) return states;
   }
   try {
     const result = runSupervisorCommand(
@@ -1128,7 +1249,7 @@ function mergeBackgroundAgentState(current, requested) {
   return next;
 }
 
-function persistBackgroundAgentState(target, next) {
+function persistBackgroundAgentState(target, next, options = {}) {
   // Multiple async state writers can run in one process; a pid-only temporary
   // name lets them overwrite each other's staging file. A unique suffix keeps
   // each atomic replacement independent. Windows scanners/readers can also
@@ -1136,6 +1257,21 @@ function persistBackgroundAgentState(target, next) {
   // transient class rather than surfacing a spurious EPERM background failure.
   const tmp = `${target}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`;
   writeFileSync(tmp, JSON.stringify(next, null, 2), { mode: 0o600 });
+  try {
+    if (
+      typeof options.publishReleaseAfterPathRemoved === "function" &&
+      options.publishReleaseAfterPathRemoved(tmp) !== true
+    ) {
+      const error = new Error(
+        `Could not publish state-lock release handoff: ${target}`,
+      );
+      error.code = "STATE_LOCK_RELEASE_HANDOFF_FAILED";
+      throw error;
+    }
+  } catch (error) {
+    rmSync(tmp, { force: true });
+    throw error;
+  }
   for (let attempt = 0; ; attempt++) {
     try {
       renameSync(tmp, target);
@@ -1179,7 +1315,7 @@ export function mutateBackgroundAgentState(id, updater, options = {}) {
   const target = statePath(safe);
   return withFileLock(
     target,
-    () => {
+    ({ publishReleaseAfterPathRemoved }) => {
       const read = readBackgroundAgentStateResult(safe);
       if (read.error) throw read.error;
       if (read.missing && options.createIfMissing !== true) {
@@ -1193,7 +1329,9 @@ export function mutateBackgroundAgentState(id, updater, options = {}) {
         ...requested,
         id: safe,
       });
-      persistBackgroundAgentState(target, next);
+      persistBackgroundAgentState(target, next, {
+        publishReleaseAfterPathRemoved,
+      });
       return { applied: true, state: next, previous: read.state };
     },
     {

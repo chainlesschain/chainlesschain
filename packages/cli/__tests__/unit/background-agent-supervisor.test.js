@@ -29,6 +29,7 @@ import {
   logPath,
   mutateBackgroundAgentState,
   normalizeBackgroundAgentTitle,
+  parseLinuxProcStat,
   PROCESS_START_TIME_CACHE_MAX_ENTRIES,
   ProcessStartTimeCache,
   readBackgroundAgentLog,
@@ -301,6 +302,42 @@ afterEach(async () => {
 }, 40_000);
 
 describe("background agent supervisor", () => {
+  it("parses Linux proc stat without being confused by parentheses in comm", () => {
+    const fields = [
+      "S",
+      "1",
+      "77",
+      "77",
+      "0",
+      "0",
+      "0",
+      "0",
+      "0",
+      "0",
+      "0",
+      "0",
+      "0",
+      "0",
+      "0",
+      "0",
+      "0",
+      "0",
+      "0",
+      "250",
+    ];
+
+    expect(
+      parseLinuxProcStat(`123 (worker ) name) ${fields.join(" ")}`, 1_000_000),
+    ).toEqual({
+      pid: 123,
+      state: "S",
+      processGroupId: 77,
+      startTimeTicks: 250,
+      startedAtMs: 1_002_500,
+    });
+    expect(parseLinuxProcStat("malformed", 1_000_000)).toBeNull();
+  });
+
   it("expires old process start-time probes and refreshes a pid in place", () => {
     const cache = new ProcessStartTimeCache({ ttlMs: 100, maxEntries: 3 });
     cache.set(1, "one", 0);

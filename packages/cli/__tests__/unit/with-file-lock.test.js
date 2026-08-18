@@ -35,8 +35,9 @@ function fakeLockFs() {
     }),
     statSync: vi.fn((p) => {
       p = normalize(p);
-      if (!dirs.has(p)) throw enoent();
-      return { mtimeMs: dirs.get(p) };
+      if (dirs.has(p)) return { mtimeMs: dirs.get(p) };
+      if (files.has(p)) return { mtimeMs: 0 };
+      throw enoent();
     }),
     readFileSync: vi.fn((p) => {
       p = normalize(p);
@@ -871,6 +872,104 @@ describe("withFileLock", () => {
     expect(
       JSON.parse(_fs.readFileSync(`${lockDir}/.release-claim-${ownerToken}`)),
     ).toEqual(cleanupClaim);
+  });
+
+  it("lets a contender release only after the owner's exact staging path disappears", () => {
+    const _fs = fakeLockFs();
+    const lockDir = "/critical.json.lock";
+    const pendingPath = "/state.pending-transaction";
+    const ownerToken = "early-release-owner-token-001";
+    let blockedContender;
+    let completedContender;
+
+    const committed = withFileLock(
+      "/critical.json",
+      ({ publishReleaseAfterPathRemoved }) => {
+        _fs.files.set(pendingPath, "pending replacement");
+        expect(publishReleaseAfterPathRemoved(pendingPath)).toBe(true);
+
+        let blockedNow = 0;
+        try {
+          withFileLock("/critical.json", () => "too-early", {
+            _fs,
+            timeoutMs: 1,
+            _now: () => (blockedNow += 2),
+            _sleep: () => {},
+            _isProcessAlive: () => true,
+            _ownerToken: () => "blocked-contender-token-001",
+            failIfUnavailable: true,
+          });
+        } catch (error) {
+          blockedContender = error;
+        }
+
+        _fs.files.delete(pendingPath);
+        completedContender = withFileLock(
+          "/critical.json",
+          () => "after-commit",
+          {
+            _fs,
+            timeoutMs: 10,
+            _now: (() => {
+              let now = 0;
+              return () => now++;
+            })(),
+            _sleep: () => {},
+            _isProcessAlive: () => true,
+            _ownerToken: () => "completed-contender-token-01",
+            failIfUnavailable: true,
+          },
+        );
+        return "committed";
+      },
+      {
+        _fs,
+        _isProcessAlive: () => true,
+        _ownerToken: () => ownerToken,
+        failIfUnavailable: true,
+      },
+    );
+
+    expect(blockedContender).toMatchObject({ code: "STATE_LOCK_UNAVAILABLE" });
+    expect(completedContender).toBe("after-commit");
+    expect(committed).toBe("committed");
+    expect(_fs.dirs.has(lockDir)).toBe(false);
+  });
+
+  it("completes a prepublished handoff after a transient direct-release failure", () => {
+    const _fs = fakeLockFs();
+    const lockDir = "/critical.json.lock";
+    const pendingPath = "/state.pending-rename";
+    const originalRename = _fs.renameSync;
+    let blockRelease = true;
+    _fs.renameSync = vi.fn((from, to) => {
+      if (String(from).replaceAll("\\", "/") === lockDir && blockRelease) {
+        blockRelease = false;
+        const error = new Error("transient Windows sharing violation");
+        error.code = "EPERM";
+        throw error;
+      }
+      return originalRename(from, to);
+    });
+
+    expect(
+      withFileLock(
+        "/critical.json",
+        ({ publishReleaseAfterPathRemoved }) => {
+          _fs.files.set(pendingPath, "pending replacement");
+          expect(publishReleaseAfterPathRemoved(pendingPath)).toBe(true);
+          _fs.files.delete(pendingPath);
+          return "committed";
+        },
+        {
+          _fs,
+          _isProcessAlive: () => true,
+          _ownerToken: () => "prepublished-owner-token-001",
+          failIfUnavailable: true,
+        },
+      ),
+    ).toBe("committed");
+    expect(_fs.dirs.has(lockDir)).toBe(false);
   });
 
   it("does not complete a published release whose marker token mismatches the live owner", () => {
