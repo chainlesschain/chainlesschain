@@ -65,6 +65,8 @@ import {
 const MAX_HANDOFF_FACTS_BYTES = 1024 * 1024;
 export const SESSION_EXECUTION_LOCATION_AUTHORITY_SCHEMA =
   "cc-session-execution-location-authority/v1";
+export const EXECUTION_LOCATION_RESULT_PREVIEW_SCHEMA =
+  "cc-execution-location-result-preview/v1";
 
 function readHandoffFacts(filePath, deps = {}) {
   const runtimeFs = deps.fs || fs;
@@ -604,6 +606,98 @@ export function reviewSessionExecutionLocationResult(
   ).review;
 }
 
+function selectResultPreviewRecord(bundle, selectorInput) {
+  const selector = String(selectorInput || "");
+  if (selector === "summary" || selector === "diff") {
+    return { kind: selector, record: bundle[selector] };
+  }
+  const match = /^(artifact|evidence):(sha256:[a-f0-9]{64})$/u.exec(selector);
+  if (!match) {
+    throw new Error(
+      "result preview item must be summary, diff, artifact:<sha256>, or evidence:<sha256>",
+    );
+  }
+  const [, kind, digest] = match;
+  const record = bundle[kind === "artifact" ? "artifacts" : "evidence"].find(
+    (entry) => entry.digest === digest,
+  );
+  if (!record) {
+    throw new Error(`reviewed ${kind} digest was not found`);
+  }
+  return { kind, record };
+}
+
+export function previewSessionExecutionLocationResult(
+  sessionId,
+  requestId,
+  reviewDigest,
+  item,
+  deps = {},
+) {
+  const loaded = readSessionExecutionLocationResultReviewAuthority(
+    sessionId,
+    requestId,
+    deps,
+  );
+  assertReviewDigest(loaded.review, reviewDigest);
+  const selected = selectResultPreviewRecord(loaded.bundle, item);
+  const bytes = Buffer.from(selected.record.contentBase64, "base64");
+  const reviewedRecord =
+    selected.kind === "artifact" || selected.kind === "evidence"
+      ? loaded.review[
+          selected.kind === "artifact" ? "artifacts" : "evidence"
+        ].find((entry) => entry.digest === selected.record.digest)
+      : loaded.review[selected.kind];
+  if (
+    bytes.byteLength !== selected.record.byteLength ||
+    reviewedRecord?.digest !== selected.record.digest ||
+    reviewedRecord?.byteLength !== selected.record.byteLength ||
+    reviewedRecord?.mediaType !== selected.record.mediaType
+  ) {
+    throw new Error(
+      "result preview content no longer matches review authority",
+    );
+  }
+  return Object.freeze({
+    schema: EXECUTION_LOCATION_RESULT_PREVIEW_SCHEMA,
+    sessionId,
+    requestId,
+    reviewDigest: loaded.review.reviewDigest,
+    item: String(item),
+    kind: selected.kind,
+    mediaType: selected.record.mediaType,
+    byteLength: selected.record.byteLength,
+    digest: selected.record.digest,
+    bytes,
+  });
+}
+
+function terminalSafeText(bytes) {
+  const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  return text.replace(
+    /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u200e\u200f\u202a-\u202e\u2066-\u2069]/gu,
+    (character) =>
+      character.codePointAt(0) <= 0xff
+        ? `\\x${character.codePointAt(0).toString(16).padStart(2, "0")}`
+        : `\\u${character.codePointAt(0).toString(16).padStart(4, "0")}`,
+  );
+}
+
+export function writeSessionExecutionLocationResultPreview(preview, deps = {}) {
+  const output = deps.stdout || process.stdout;
+  const isTerminal = deps.isTTY ?? output.isTTY === true;
+  if (!isTerminal) {
+    output.write(preview.bytes);
+    return;
+  }
+  if (!["summary", "diff"].includes(preview.kind)) {
+    throw new Error(
+      "binary artifact/evidence preview requires redirected stdout",
+    );
+  }
+  output.write(terminalSafeText(preview.bytes));
+}
+
 function assertReviewDigest(review, expectedReviewDigest) {
   if (review.reviewDigest !== String(expectedReviewDigest || "")) {
     throw new Error(
@@ -979,6 +1073,16 @@ function runAction(action, options = {}) {
   }
 }
 
+function runPreviewAction(action, deps = {}) {
+  try {
+    writeSessionExecutionLocationResultPreview(action(), deps);
+    return 0;
+  } catch (error) {
+    process.stderr.write(`Execution location failed: ${error.message}\n`);
+    return 1;
+  }
+}
+
 export function registerSessionLocationSubcommands(session, deps = {}) {
   const location = session
     .command("location")
@@ -1279,6 +1383,37 @@ export function registerSessionLocationSubcommands(session, deps = {}) {
       process.exitCode = runAction(
         () => reviewSessionExecutionLocationResult(id, options.requestId, deps),
         options,
+      );
+    });
+
+  location
+    .command("result-preview <id>")
+    .description(
+      "Explicitly stream one reviewed result item without changing the workspace",
+    )
+    .requiredOption(
+      "--request-id <id>",
+      "Canonical result collection request id",
+    )
+    .requiredOption(
+      "--review-digest <sha256>",
+      "Exact content-free review digest accepted by the operator",
+    )
+    .requiredOption(
+      "--item <selector>",
+      "summary, diff, artifact:<sha256>, or evidence:<sha256>",
+    )
+    .action((id, options) => {
+      process.exitCode = runPreviewAction(
+        () =>
+          previewSessionExecutionLocationResult(
+            id,
+            options.requestId,
+            options.reviewDigest,
+            options.item,
+            deps,
+          ),
+        deps.previewOutputDependencies || {},
       );
     });
 
