@@ -189,6 +189,71 @@ describe("SessionResourceBudget continuous enforcement", () => {
     budget.dispose();
   });
 
+  it("atomically records verified usage while abandoning other recovery authorities", () => {
+    const source = makeBudget({ maxTokens: 100, maxUsd: 100 }).budget;
+    const work = source.acquireWork({ id: "crashed-work", depth: 1 });
+    const usage = source.beginUsageSettlement({ id: "unknown-provider-call" });
+    source.markUsageUnknown({ callId: usage.id });
+    const snapshot = source.snapshot();
+    source.dispose();
+
+    const resumed = SessionResourceBudget.restore(snapshot);
+    const result = resumed.adjudicateRecovery({
+      abandoned: [work.authorityId],
+      settled: [
+        {
+          authorityId: usage.authorityId,
+          provider: "anthropic",
+          model: "claude-3-5-sonnet-20241022",
+          usage: { input_tokens: 8, output_tokens: 2 },
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      abandoned: [work.authorityId],
+      settled: [usage.authorityId],
+    });
+    expect(resumed.status()).toMatchObject({
+      tokens: 10,
+      recoveryRequired: false,
+      pendingRecovery: 0,
+      unpricedUsage: false,
+    });
+    expect(resumed.cost.spentUsd).toBeGreaterThan(0);
+    resumed.dispose();
+  });
+
+  it("leaves recovery and totals unchanged when verified usage is invalid", () => {
+    const source = makeBudget({ maxTokens: 100 }).budget;
+    const usage = source.beginUsageSettlement({ id: "invalid-recovery-usage" });
+    source.markUsageUnknown({ callId: usage.id });
+    const snapshot = source.snapshot();
+    source.dispose();
+    const resumed = SessionResourceBudget.restore(snapshot);
+
+    expect(() =>
+      resumed.adjudicateRecovery({
+        settled: [
+          {
+            authorityId: usage.authorityId,
+            provider: "openai",
+            model: "gpt-test",
+            usage: { input_tokens: -1 },
+          },
+        ],
+      }),
+    ).toThrow(/invalid session budget usage: input_tokens/);
+    expect(resumed.status()).toMatchObject({
+      tokens: 0,
+      recoveryRequired: true,
+      pendingRecovery: 1,
+      aborted: false,
+    });
+    resumed.dispose();
+  });
+
   it("actively aborts descendants when tokens cross the limit", () => {
     const { budget, clock } = makeBudget({ maxTokens: 10 });
     const child = new AbortController();

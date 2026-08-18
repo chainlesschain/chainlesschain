@@ -43,6 +43,7 @@ describe("session budget commands", () => {
     const adjudicateProductionSessionBudgetRecovery = vi.fn(() => ({
       sessionId: "session-2",
       abandoned: ["tool-one", "work-two"],
+      settled: [],
     }));
     const program = programWith({
       adjudicateProductionSessionBudgetRecovery,
@@ -63,10 +64,49 @@ describe("session budget commands", () => {
 
     expect(adjudicateProductionSessionBudgetRecovery).toHaveBeenCalledWith(
       "session-2",
-      ["tool-one", "work-two"],
+      { abandoned: ["tool-one", "work-two"], settled: [] },
     );
     expect(write).toHaveBeenCalledWith(
-      "Recovered session budget session-2; abandoned 2 exact authority id(s).",
+      "Recovered session budget session-2; recorded 0 verified usage settlement(s), abandoned 2 exact authority id(s).",
+    );
+  });
+
+  it("parses repeatable verified usage settlements for exact adjudication", async () => {
+    const write = vi.fn();
+    const authorityId = "usage-00000000-0000-4000-8000-000000000000";
+    const adjudicateProductionSessionBudgetRecovery = vi.fn(() => ({
+      sessionId: "session-3",
+      abandoned: [],
+      settled: [authorityId],
+    }));
+    const program = programWith({
+      adjudicateProductionSessionBudgetRecovery,
+      write,
+    });
+    const settlement = {
+      authorityId,
+      provider: "openai",
+      model: "gpt-test",
+      usage: { input_tokens: 4, output_tokens: 1 },
+    };
+
+    await program.parseAsync([
+      "node",
+      "cc",
+      "session",
+      "budget",
+      "recover",
+      "session-3",
+      "--settlement",
+      JSON.stringify(settlement),
+    ]);
+
+    expect(adjudicateProductionSessionBudgetRecovery).toHaveBeenCalledWith(
+      "session-3",
+      { abandoned: [], settled: [settlement] },
+    );
+    expect(write).toHaveBeenCalledWith(
+      "Recovered session budget session-3; recorded 1 verified usage settlement(s), abandoned 0 exact authority id(s).",
     );
   });
 });

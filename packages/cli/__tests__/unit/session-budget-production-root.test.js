@@ -197,6 +197,53 @@ describe("production session budget root", () => {
     });
   });
 
+  it("durably charges operator-verified usage during exact recovery", () => {
+    const store = makeStore();
+    const crashed = openProductionSessionBudgetRoot(
+      "usage-recovery-root",
+      { enabled: true, limits: { maxTokens: 100, maxUsd: 100 } },
+      { persist: true, store, registry: new Map() },
+    );
+    const usage = crashed.budget.beginUsageSettlement({
+      id: "provider-call-to-reconcile",
+    });
+    crashed.budget.markUsageUnknown({ callId: usage.id });
+    crashed.close();
+
+    const result = adjudicateProductionSessionBudgetRecovery(
+      "usage-recovery-root",
+      {
+        settled: [
+          {
+            authorityId: usage.authorityId,
+            provider: "anthropic",
+            model: "claude-3-5-sonnet-20241022",
+            usage: { input_tokens: 8, output_tokens: 2 },
+          },
+        ],
+      },
+      { store, registry: new Map() },
+    );
+
+    expect(result).toMatchObject({
+      sessionId: "usage-recovery-root",
+      abandoned: [],
+      settled: [usage.authorityId],
+      status: {
+        tokens: 10,
+        recoveryRequired: false,
+        pendingRecovery: 0,
+      },
+    });
+    expect(result.status.spentUsd).toBeGreaterThan(0);
+    expect(readProductionSessionBudget("usage-recovery-root", { store })).toMatchObject({
+      usageUnknown: false,
+      totals: { tokens: 10 },
+      recoveryRequired: false,
+      pendingRecovery: [],
+    });
+  });
+
   it("requires an exact durable session before opening any authority", () => {
     expect(() =>
       openProductionSessionBudgetRoot(null, { enabled: true, limits: {} }),

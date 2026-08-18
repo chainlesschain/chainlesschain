@@ -150,6 +150,107 @@ function normalizeUsageTokens(usage) {
   return { fields, total };
 }
 
+function normalizeUsageAccounting({
+  usage = null,
+  usageRecords = null,
+  provider,
+  model,
+} = {}) {
+  if (usageRecords != null && !Array.isArray(usageRecords)) {
+    throw new TypeError("invalid session budget usage records");
+  }
+  if (Array.isArray(usageRecords) && usageRecords.length > 0) {
+    const detailedFields = Object.fromEntries(
+      USAGE_TOKEN_FIELDS.map((field) => [field, 0]),
+    );
+    let detailedTokenCount = 0;
+    const pricedRecords = usageRecords.map((record, index) => {
+      if (!isRecord(record) || !isRecord(record.usage)) {
+        throw new TypeError(
+          `invalid session budget usage record at index ${index}`,
+        );
+      }
+      const normalized = normalizeUsageTokens(record.usage);
+      for (const field of USAGE_TOKEN_FIELDS) {
+        detailedFields[field] += normalized.fields[field];
+        if (!Number.isSafeInteger(detailedFields[field])) {
+          throw new TypeError(
+            `session budget usage record aggregate exceeds safe integer: ${field}`,
+          );
+        }
+      }
+      detailedTokenCount += normalized.total;
+      if (!Number.isSafeInteger(detailedTokenCount)) {
+        throw new TypeError("session budget token total exceeds safe integer");
+      }
+      return { record, tokens: normalized.total };
+    });
+    if (usage != null) {
+      const aggregate = normalizeUsageTokens(usage);
+      for (const field of USAGE_TOKEN_FIELDS) {
+        if (aggregate.fields[field] !== detailedFields[field]) {
+          throw new TypeError(
+            `session budget usage records do not match aggregate usage: ${field}`,
+          );
+        }
+      }
+      return { tokenCount: aggregate.total, pricedRecords };
+    }
+    return { tokenCount: detailedTokenCount, pricedRecords };
+  }
+  const normalized = normalizeUsageTokens(usage);
+  return {
+    tokenCount: normalized.total,
+    pricedRecords:
+      usage == null
+        ? []
+        : [{ record: { provider, model, usage }, tokens: normalized.total }],
+  };
+}
+
+function cloneCostBudget(cost) {
+  const clone = new CostBudget({
+    limitUsd: cost.limitUsd,
+    table: cost.table,
+  });
+  clone.spentUsd = cost.spentUsd;
+  clone.priced = cost.priced;
+  clone.sawUnpriced = cost.sawUnpriced;
+  clone.sawFree = cost.sawFree;
+  clone._warned = cost._warned;
+  return clone;
+}
+
+function calculateUsageAccounting(
+  { tokens, cost, unpricedUsage },
+  usageInput,
+) {
+  const { tokenCount, pricedRecords } = normalizeUsageAccounting(usageInput);
+  const nextTokens = tokens + tokenCount;
+  if (!Number.isSafeInteger(nextTokens)) {
+    throw new TypeError("session budget token total exceeds safe integer");
+  }
+  const nextCost = cloneCostBudget(cost);
+  let nextUnpricedUsage = unpricedUsage;
+  for (const { record, tokens: recordTokens } of pricedRecords) {
+    const estimate = nextCost.add(record);
+    const price = Number(estimate?.totalCost);
+    if (
+      nextCost.enabled() &&
+      recordTokens > 0 &&
+      estimate?.free !== true &&
+      (estimate?.matched !== true || !Number.isFinite(price) || price < 0)
+    ) {
+      nextUnpricedUsage = true;
+    }
+  }
+  return {
+    tokens: nextTokens,
+    cost: nextCost,
+    unpricedUsage: nextUnpricedUsage,
+  };
+}
+
 function normalizeUsageSettlementLabel(raw) {
   const value = String(raw || "");
   if (!RESOURCE_ID_PATTERN.test(value)) {
@@ -1108,97 +1209,29 @@ export class SessionResourceBudget {
   } = {}) {
     this._assertAuthorityMutationAllowed();
     this.start();
-    let tokenCount;
-    let pricedRecords;
+    let accounting;
     try {
-      if (usageRecords != null && !Array.isArray(usageRecords)) {
-        throw new TypeError("invalid session budget usage records");
-      }
-      if (Array.isArray(usageRecords) && usageRecords.length > 0) {
-        const detailedFields = Object.fromEntries(
-          USAGE_TOKEN_FIELDS.map((field) => [field, 0]),
-        );
-        let detailedTokenCount = 0;
-        pricedRecords = usageRecords.map((record, index) => {
-          if (!isRecord(record) || !isRecord(record.usage)) {
-            throw new TypeError(
-              `invalid session budget usage record at index ${index}`,
-            );
-          }
-          const normalized = normalizeUsageTokens(record.usage);
-          for (const field of USAGE_TOKEN_FIELDS) {
-            detailedFields[field] += normalized.fields[field];
-            if (!Number.isSafeInteger(detailedFields[field])) {
-              throw new TypeError(
-                `session budget usage record aggregate exceeds safe integer: ${field}`,
-              );
-            }
-          }
-          detailedTokenCount += normalized.total;
-          if (!Number.isSafeInteger(detailedTokenCount)) {
-            throw new TypeError(
-              "session budget token total exceeds safe integer",
-            );
-          }
-          return { record, tokens: normalized.total };
-        });
-        if (usage != null) {
-          const aggregate = normalizeUsageTokens(usage);
-          for (const field of USAGE_TOKEN_FIELDS) {
-            if (aggregate.fields[field] !== detailedFields[field]) {
-              throw new TypeError(
-                `session budget usage records do not match aggregate usage: ${field}`,
-              );
-            }
-          }
-          tokenCount = aggregate.total;
-        } else {
-          tokenCount = detailedTokenCount;
-        }
-      } else {
-        tokenCount = normalizeUsageTokens(usage).total;
-        pricedRecords =
-          usage == null
-            ? []
-            : [{ record: { provider, model, usage }, tokens: tokenCount }];
-      }
-      if (!Number.isSafeInteger(tokenCount)) {
-        throw new TypeError("session budget token total exceeds safe integer");
-      }
-    } catch (error) {
-      this.abort(error, { reason: "invalid-usage" });
-      throw error;
-    }
-    const nextTokens = this.tokens + tokenCount;
-    if (!Number.isSafeInteger(nextTokens)) {
-      const error = new TypeError(
-        "session budget token total exceeds safe integer",
+      accounting = calculateUsageAccounting(
+        {
+          tokens: this.tokens,
+          cost: this.cost,
+          unpricedUsage: this.unpricedUsage,
+        },
+        { usage, usageRecords, provider, model },
       );
+    } catch (error) {
       this.abort(error, { reason: "invalid-usage" });
       throw error;
     }
     const { label, authorityId: settlementId } =
       this._pendingUsageSettlement(callId);
-    this.tokens = nextTokens;
-
-    try {
-      for (const { record, tokens: recordTokens } of pricedRecords) {
-        const estimate = this.cost.add(record);
-        const price = Number(estimate?.totalCost);
-        if (
-          this.cost.enabled() &&
-          recordTokens > 0 &&
-          estimate?.free !== true &&
-          (estimate?.matched !== true || !Number.isFinite(price) || price < 0)
-        ) {
-          this.unpricedUsage = true;
-        }
-      }
-    } catch (error) {
-      this.abort(error, { reason: "invalid-usage" });
-      throw error;
-    }
     const pendingSettlement = this._pendingUsage.get(settlementId);
+    const previousTokens = this.tokens;
+    const previousCost = this.cost;
+    const previousUnpricedUsage = this.unpricedUsage;
+    this.tokens = accounting.tokens;
+    this.cost = accounting.cost;
+    this.unpricedUsage = accounting.unpricedUsage;
     this._pendingUsage.delete(settlementId);
     this._pendingUsageLabels.delete(label);
     this._authorityChanged(
@@ -1209,6 +1242,9 @@ export class SessionResourceBudget {
       },
       {
         rollback: () => {
+          this.tokens = previousTokens;
+          this.cost = previousCost;
+          this.unpricedUsage = previousUnpricedUsage;
           this._pendingUsage.set(settlementId, pendingSettlement);
           this._pendingUsageLabels.set(label, settlementId);
         },
@@ -1376,15 +1412,46 @@ export class SessionResourceBudget {
     });
   }
 
-  adjudicateRecovery({ abandoned = [] } = {}) {
+  adjudicateRecovery({ abandoned = [], settled = [] } = {}) {
     this._assertAuthorityMutationAllowed();
     if (!Array.isArray(abandoned)) {
       throw new TypeError(
         "session budget abandoned recovery ids must be an array",
       );
     }
-    const supplied = new Set(abandoned.map((id) => String(id)));
+    if (!Array.isArray(settled)) {
+      throw new TypeError(
+        "session budget settled recovery records must be an array",
+      );
+    }
+    const abandonedIds = abandoned.map((id) => String(id));
+    const normalizedSettlements = settled.map((record, index) => {
+      if (!isRecord(record)) {
+        throw new TypeError(
+          `invalid session budget recovery settlement at index ${index}`,
+        );
+      }
+      const authorityId = String(record.authorityId || "");
+      if (!OPAQUE_AUTHORITY_ID_PATTERNS.usage.test(authorityId)) {
+        throw new TypeError(
+          `invalid session budget recovery settlement authority at index ${index}`,
+        );
+      }
+      return { ...record, authorityId };
+    });
+    const settledIds = normalizedSettlements.map(
+      (record) => record.authorityId,
+    );
+    const suppliedIds = [...abandonedIds, ...settledIds];
+    const supplied = new Set(suppliedIds);
     const expected = new Set(this._recoveryUnknown.keys());
+    if (supplied.size !== suppliedIds.length) {
+      return {
+        ok: false,
+        reason: "recovery-adjudication-duplicate",
+        pending: this.pendingRecovery(),
+      };
+    }
     if (
       supplied.size !== expected.size ||
       [...expected].some((id) => !supplied.has(id))
@@ -1395,23 +1462,63 @@ export class SessionResourceBudget {
         pending: this.pendingRecovery(),
       };
     }
+    for (const record of normalizedSettlements) {
+      const pending = this._recoveryUnknown.get(record.authorityId);
+      if (
+        pending?.resourceType !== "work" ||
+        pending?.kind !== "usage-settlement"
+      ) {
+        return {
+          ok: false,
+          reason: "recovery-settlement-not-usage",
+          authorityId: record.authorityId,
+          pending: this.pendingRecovery(),
+        };
+      }
+    }
+    let accounting = {
+      tokens: this.tokens,
+      cost: this.cost,
+      unpricedUsage: this.unpricedUsage,
+    };
+    for (const record of normalizedSettlements) {
+      accounting = calculateUsageAccounting(accounting, record);
+    }
     const previousRecovery = [...this._recoveryUnknown.entries()];
+    const previousTokens = this.tokens;
+    const previousCost = this.cost;
+    const previousUnpricedUsage = this.unpricedUsage;
+    this.tokens = accounting.tokens;
+    this.cost = accounting.cost;
+    this.unpricedUsage = accounting.unpricedUsage;
     this._recoveryUnknown.clear();
     this._authorityChanged(
       "budget:recovery-adjudicated",
       {
-        abandonedCount: supplied.size,
+        abandonedCount: abandonedIds.length,
+        settledCount: settledIds.length,
+        tokens: this.tokens,
+        spentUsd: this.cost.spentUsd,
       },
       {
         rollback: () => {
+          this.tokens = previousTokens;
+          this.cost = previousCost;
+          this.unpricedUsage = previousUnpricedUsage;
           for (const [id, entry] of previousRecovery) {
             this._recoveryUnknown.set(id, entry);
           }
         },
       },
     );
-    this._armDeadline();
-    return { ok: true, abandoned: [...supplied].sort() };
+    const reason = this._continuousReason();
+    if (reason) this._abortFor(reason);
+    else this._armDeadline();
+    return {
+      ok: true,
+      abandoned: [...abandonedIds].sort(),
+      settled: [...settledIds].sort(),
+    };
   }
 
   status(now = this._now()) {

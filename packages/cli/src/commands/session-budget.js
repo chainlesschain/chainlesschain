@@ -7,6 +7,23 @@ function writeJson(value, write = console.log) {
   write(JSON.stringify(value, null, 2));
 }
 
+function collect(value, previous) {
+  return [...previous, value];
+}
+
+function parseSettlement(value) {
+  let parsed;
+  try {
+    parsed = JSON.parse(value);
+  } catch (error) {
+    throw new Error(`Invalid --settlement JSON: ${error.message}`);
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("Invalid --settlement JSON: expected one object");
+  }
+  return parsed;
+}
+
 export function renderSessionBudgetStatus(status) {
   if (!status) return ["No durable session budget authority was found."];
   const lines = [
@@ -54,20 +71,29 @@ export function registerSessionBudgetCommands(session, dependencies = {}) {
   budget
     .command("recover <session-id>")
     .description(
-      "Adjudicate every exact crash-pending budget authority as abandoned",
+      "Adjudicate every exact crash-pending authority as verified usage or abandoned",
     )
-    .requiredOption(
+    .option(
       "--abandon <authority-id...>",
       "Exact opaque authority ids shown by session budget status",
+    )
+    .option(
+      "--settlement <json>",
+      "Repeatable verified usage JSON with authorityId, provider, model, and usage",
+      collect,
+      [],
     )
     .option("--json", "Output JSON")
     .action((sessionId, options) => {
       try {
-        const result = adjudicate(sessionId, options.abandon);
+        const result = adjudicate(sessionId, {
+          abandoned: options.abandon || [],
+          settled: options.settlement.map(parseSettlement),
+        });
         if (options.json) writeJson(result, write);
         else {
           write(
-            `Recovered session budget ${sessionId}; abandoned ${result.abandoned.length} exact authority id(s).`,
+            `Recovered session budget ${sessionId}; recorded ${result.settled.length} verified usage settlement(s), abandoned ${result.abandoned.length} exact authority id(s).`,
           );
         }
       } catch (error) {
