@@ -2588,6 +2588,60 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 七十、2026-08-19 P1-2 official ArtifactStore content-access audit 子门复核（`00:10 +08:00`）
+
+本节继续第六十九节的 reviewed-item ArtifactStore import/readback，只关闭仓库内官方内容入口在返回 path/bytes 前统一验真并留下
+content-free 授权记录的窄子门；不把本地授权日志外推为用户实际消费证明、OS 文件访问控制、WORM/off-box retention、组织审计系统或
+真实双 IDE 长期矩阵。候选基于已合并本地主分支 `e4917dc2ac4347a67f3a4646b36dec8beebd91c0`；功能提交为
+`98157225f0`，帮助索引提交为 `7de9d6528f`，筛选计数修正为 `53272cedef`，合同提交为 `a6f6516f59`，负向版本断言修正为
+`ab67d8ed4e`。尚无本候选 exact-head GitHub Actions。
+
+### 本轮关闭的官方内容授权审计子门
+
+- **官方入口共用同一 current-byte authority。** CLI `artifacts open/access`、WebSocket `artifact-content`、Web download、VS Code
+  Artifacts drawer 与 JetBrains Artifacts action 不再自行信任 `storedPath`。统一授权先要求 artifact id 在当前 index 中只有一行，规范化
+  basename 必须仍位于 `files/` 直属目录，当前 bytes 必须是 regular/single-link file，并与 index 的 size、SHA-256、session/record
+  authority 一致；缺行、重复行、路径逃逸、symlink/hardlink、byte/index drift 均在 path/内容返回前 fail closed。
+- **content-free hash chain 先于内容返回。** 新 `cc-artifact-content-access/v1` event 只记录 sequence、predecessor/event digest、stable
+  access id、artifact id/digest、可选 session/record digest、声明 client/action、时间与本地 authority，不保存 source/stored path、title、
+  正文、base64 或 host 输出。严格 JSONL parser、跨进程 lock、append fsync、single-link/no-follow readback 会拒绝断尾、序号/前驱/digest
+  篡改；`access-log` 同时区分全账本 `eventCount` 与筛选后的 `matchedEventCount`。
+- **响应丢失重试不会制造第二条审计事件。** caller 可提供 stable access id；完全相同输入重试返回同一 event，而相同 id 绑定不同
+  artifact/client/action/current digest 会拒绝。Web 返回 access digest header，WebSocket 返回 access receipt，CLI 为 VS Code/JetBrains
+  提供受审计 path；IDE 不再以 list/show 暴露的宿主路径直接读取。
+- **公共元数据面移除宿主路径。** CLI list/show、session artifact projection 与 WebSocket list/show 统一经 public metadata projection，
+  不再暴露 `sourcePath` 或 `storedPath`。需要本地 path 的 open/reveal/copy/download/preview 必须通过显式 access authority；JetBrains
+  还要求 CLI 返回的 canonical path 是 ArtifactStore `files/` 的直属子项，并把 CLI 调用移出 EDT。
+
+### 仓库内验证与证据边界
+
+- artifact access ledger、ArtifactStore command、WebSocket、Web download、VS Code drawer 与 reviewed-result import 共
+  **6 files / 60 tests passed**；覆盖 ledger tamper/truncated tail、stable-id collision、hardlink/bytes/index drift、公开 metadata 路径泄漏、
+  official client receipt 与既有 result-import readback 回归。
+- JetBrains `ArtifactsTest` 在 Temurin 21、Gradle offline/no-daemon 与 `--rerun-tasks` 下为 **10/10 passed**，14 个 Gradle task 执行成功；
+  受限用户目录中的 Kotlin daemon 启动失败后由 Gradle 按预期回退到 in-process compilation。roadmap verifier 与 journey evidence 为
+  **2 files / 37 tests passed**。
+- `--contract-only` 回读 manifest `1.9.37` 为 **15 cases / 99 referenced test files**，并明确 runtime evidence 与 release readiness 未被
+  评估。P1-2 fixture 新增 official access journey、access-id/event-chain/current-byte authority、ledger tamper/truncation、id collision、
+  byte/link drift、official bypass/metadata leak 故障注入，以及四个零违规 outcome。
+- command help index freshness 与 `git diff --check` 通过；任务 JavaScript ESLint 为 **0 errors / 2 existing warnings**，分别是 WebSocket
+  既有未使用 `message` 参数与 Web server 既有未使用 `_` 参数。
+
+### P1-2 仍未关闭的边界
+
+1. **记录的是授权，不是交付或消费事实：** event 在官方入口返回 path/bytes 前落盘，但不能证明后续读取、viewer 展示或用户实际消费；
+   `client` 是本地 caller 声明而非强认证身份，同一 OS 用户仍可绕过产品直接读取 store 文件，授权后到宿主读取之间也存在 TOCTOU。
+2. **本地 ledger 不是组织级不可变审计：** `content-access.jsonl` 与 TTL artifact 同处本地可写、可删除 store，不是 WORM、off-box、
+   transparency log 或独立审计方；当前还有 16 MiB/100k event 上限而无轮转/归档，remove/clean/import/access 也没有统一 generation
+   transaction 或跨主机 writer fencing。
+3. **完整产品审阅与外部矩阵仍开放：** 双 IDE 已通过统一 access authority 打开现有 ArtifactStore 项，但尚未提供绑定 returned-result
+   session/review/import lineage 的完整 viewer、下载/删除确认与组织 retention policy。WSL/SSH/Container/Cloud、真实 VS Code/JetBrains、
+   多平台故障注入和每格 100 次 exact-commit 长期证据仍未完成。
+
+因此，P1-2 的**官方 ArtifactStore 内容入口统一验真、content-free hash-chain 授权审计、stable-id 重试与 public metadata 路径隔离**由
+本节关闭；P1-2 整项仍为**部分完成**。总计数保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为
+**NO-GO**。本节不改变 S0-1～S0-3、Q0、Q3、Q4a/Q4b、P1-1、P1-4、P1-5 或 P2-4 的状态。
+
 ## 六十九、2026-08-18 P1-2 reviewed result ArtifactStore import/readback 子门复核（`23:27 +08:00`）
 
 本节继续第六十八节的显式内容预览，但不把一次本地导入外推为 IDE viewer、访问审计、WORM/off-box retention 或真实远端返回
