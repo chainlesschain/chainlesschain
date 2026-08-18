@@ -2588,6 +2588,61 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 五十七、2026-08-18 R4 durable WebSocket session budget authority 子门复核（`18:08 +08:00`）
+
+本节继续第五十五、五十六节的 opt-in durable budget production root，把同一 authority 接到 CLI WebSocket agent session；不把本地 WS
+transport 外推为 IDE/daemon remote host、跨平台耐久性或默认启用。启动闭锁提交为 `5745903f67`、`7ae8aaeb19`、`52f788b908`，预算接线、
+usage/关闭收口、canonical 绑定与重连修复依次为 `d9ce51eca7`、`b34d8ccc8b`、`37093f9d23`、`114193578c`、`8f48042dd6`；尚无本候选
+exact-head GitHub Actions。
+
+### 本轮关闭的 WebSocket production-root 子门
+
+- **预算会话只能在 durable authority 完整后发布。** WS create 显式接受 `sessionBudget` 与 concurrent/spawn/depth/turn/token/USD/wall/tool
+  上限，且只允许 `sessionType=agent`。budgeted create 要求 session manager 的持久数据库可写；数据库 create/metadata、host lease、canonical JSONL
+  `session_start`、verified readback 或 production root 任一失败，都会删除未发布 JSONL/数据库状态、释放 authority，并只返回错误，绝不继续发出
+  `session.started`。
+- **数据库与 canonical transcript 共同阻止预算降级。** 规范 JSONL 的首条 hash-chained `session_start` 保存规范化 budget-root schema/limits；恢复时
+  同一次 verified projection 回读该声明。数据库声明存在但 JSONL 声明缺失、两者不一致或任一声明畸形时 fail closed；数据库字段缺失但 canonical
+  声明仍在时，以 canonical 声明恢复运行时配置，不能把预算会话降级成无预算会话。
+- **一个 live session 始终复用一个 root。** 首次 handler 按 `host lease → verified JSONL → sidecar root → agent handler` 建立 authority。连接重绑时复用
+  原 handler、lease 与 root，只替换 WebSocket interaction adapter；进程重启后则以数据库 + canonical 声明重新取得 lease，并从同一 sidecar 打开
+  既有 root。已耗尽或存在 crash-pending recovery 的 root 在接受新消息前拒绝恢复。
+- **主循环、child 与直接 compaction 共用结算顺序。** WS agent loop 收到同一 budget 对象与 lease/budget 组合 signal，顶层、sub-agent、isolated skill、
+  tool timing 沿用 agent-core authority。canonical provider usage ledger 必须先写入，再调用 root `recordUsage`；已有 child attribution 的 usage 不由 WS
+  host 重复收费。直接语义压缩同样先消费 turn，写入 request/usage ledger 后结算 token/USD；预算中止保留
+  `CC_SESSION_BUDGET_EXHAUSTED`，不会被普通 interrupt 路径吞成成功。
+- **关闭错误不再伪造成功。** handler 销毁严格先关闭并持久化 root，再释放 host lease；显式 session close 的 authority 清理失败返回
+  `CC_WS_SESSION_CLOSE_FAILED`，不会发出成功关闭。server stop 会继续清理全部 handler/client/server 资源，最终以聚合错误拒绝；root leak、lease leak 与
+  false-success 都是合同中的零容忍结果。
+- **平台边界保持不变。** WS 使用与 headless/REPL 相同的 production sidecar；当前只有 Linux 声明安全文件语义。Windows/macOS 显式预算会话仍会
+  fail closed，测试注入的临时 opener/store 不构成平台发布证据。
+
+### 仓库内验证与证据边界
+
+- 预算运行时、agent-core、headless、REPL、direct model、sub-agent、background/team、Cowork、WS handler/runtime/manager/server 与 streaming
+  projection 共 **17 files / 396 passed / 3 skipped**；预算 WS runtime 的 create、同 handler 重连、canonical restore/mismatch、exhausted rollback
+  与错误终态均包含在内。
+- canonical store 与 streaming resume 两个完整文件为 **160 passed / 2 skipped**；session-host snapshot 定向投影为 **3/3**。它们独立证明
+  `session_start` 实际保存规范化 root、array/streaming verified projection 均能回读，畸形声明在 message materialization 前 fail closed。
+- Node syntax、`git diff --check` 与 roadmap `--contract-only` 通过。本轮没有伪造 provider billing、断电/fsync、网络抖动或外部宿主结果。
+- roadmap manifest 从 `1.9.23` 升至 `1.9.24`；`p1-dynamic-workflow` 现在引用 **37 个测试文件**，增加 WS root 缺失、canonical 降级、重连重开、
+  authority leak 与 bootstrap/cleanup false-success 必须为零的合同，并要求 durable WS authority/canonical binding artifact。fixture digest 为
+  `sha256:4a57b41778b3ed41c9d9985c6313352d926798e38dc9bbd77f5c2b0433968e11`；全 corpus 为 **15 cases / 86 referenced test files**，仍只验证
+  repository contract，不等于 external runtime evidence 或 release readiness。
+
+### R4 budget 仍未关闭的边界
+
+1. **unknown usage 与外部账单闭环仍开放：** provider 不返回 usage、stream/transport outcome unknown、无法定价与 provider billing 独立 readback 尚未
+   成为 budget sidecar 的统一可裁决事实；当前只按已验证且已持久化的 provider-reported usage 结算，不虚构 token/USD。
+2. **非 Linux 与多主机 durability 仍开放：** Windows/macOS 安全 sidecar、same-UID hostile writer、独立 anti-rollback、跨进程/多主机 fencing、任意
+   断电/fsync 与 remote reconnect 故障矩阵均未关闭。
+3. **默认迁移和产品矩阵仍开放：** root 仍为 opt-in；既有 session 默认 policy/migration、IDE/Desktop 创建控制面、Local/WSL/SSH/Container/Cloud ×
+   三 OS × 双 IDE、真实 provider 与长期 soak 尚无 exact-head 外部证据。
+
+因此，R4 budget 的 **opt-in durable WebSocket agent root、canonical anti-downgrade、重连复用、共享 turn/token/cost/tool authority 与 fail-closed
+生命周期关闭**由本节关闭；R4 budget 整项仍为**部分完成**。总计数保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布
+结论继续为 **NO-GO**。本节不改变 S0-1～S0-3、Q0、Q3、Q4a/Q4b、P1-1、P1-2、P1-4、P1-5 或 P2-4 的状态。
+
 ## 五十六、2026-08-18 R4 durable interactive REPL session budget production root 子门复核（`17:17 +08:00`）
 
 本节继续第五十五节的 headless production root，把同一 opt-in durable session budget authority 接到 interactive REPL；不把 REPL 的本地交互入口
