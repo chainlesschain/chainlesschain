@@ -2588,6 +2588,34 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 六十五、2026-08-18 P1-2 durable returned-bundle store 子门复核（`21:47 +08:00`）
+
+本节继续第六十四节，关闭“settlement v1 只能证明已验收 bundle digest，append 后丢失响应时不能恢复实际 summary/diff/artifact/evidence bytes”的本地子门；不把本机内容寻址文件外推为 ArtifactStore/WORM/off-box retention、跨宿主传输 exactly-once、source review/apply transaction 或真实远端矩阵。
+
+### 本轮关闭的 content-addressed bundle 与 settlement v2 子门
+
+- **完整 canonical bundle 先于 settlement 耐久发布。** `execution-location-result-store` 重新规范化并逐项重哈希已验收 bundle，将 canonical JSON bytes 限制在既有 24 MiB 边界内，以 bundle digest 派生唯一 `result-sha256-*` store id，同时独立记录 canonical byte digest、byte length、session/result/handoff/bundle identity 与 domain-separated receipt digest。路径、临时文件名和本机绝对目录不进入 receipt 或 transcript。
+- **发布是 owner-only、no-replace 和内容寻址幂等。** store root 与最终文件逐次验证 owner-only 权限；同目录 `wx` staging 写入后 file fsync，再以 hard-link no-replace 发布、删除 staging，并在 POSIX 执行 directory fsync。canonical final 已存在时不会覆盖，只在完整 readback 与 receipt/bundle 一致后返回 `stored=false`；file-published/response-lost fault 的 retry 因而收敛到同一份 bytes，不产生第二个 bundle 文件。
+- **每次回读重新验证物理身份与全部语义。** reader 要求 trusted parent、regular single-link、声明 size、`O_NOFOLLOW`、path/handle identity、读取前后 `fstat` 不变；之后重算 canonical byte digest、strict UTF-8/JSON、bundle 内每项 base64/size/SHA-256、bundle digest，以及 session/result/handoff 与 storage receipt 的交叉绑定。receipt drift、stored-byte tamper、hardlink 或 non-canonical JSON 均 fail closed。
+- **settlement v2 绑定 deterministic storage receipt。** 新 `chainlesschain.session-execution-location-result-collection/v2` event 与 receipt v2 在原 request/source/target/collection lineage 上增加完整 `chainlesschain.execution-location-result-store-receipt/v1`；store 在 CAS append 前再次核对 storage 与 bundle 的 session/result/handoff/digest。第六十四节的 v1 event/receipt 仍可验证和回读，但明确没有 storage 字段，不能伪装成 bytes available。
+- **exact retry 现在可恢复实际 bundle。** `result-collect` 首次成功先 publish/re-read bundle，再 append settlement v2；append 后响应丢失时，相同 request 在任何 handoff facts/target command 前读回 settlement，按 storage receipt 读取并重验 canonical bytes，再以 `bundleAvailable=true` 返回 bundle 与重新计算的 verification。storage/settlement digest 不一致时不会降级成重新远程收集。
+- **权威边界仍保持分层。** target collection receipt 仍描述“固定 transport 返回并完成 source 验真”的瞬时阶段；source command 的 storage + settlement v2 才证明本地 bytes 已持久化。文件在 publish 后、settlement append 前崩溃会留下可验证但尚未按 request 索引的 orphan，retry 可能再次执行只读 `result-pack`；本轮没有将这个 window、自动 GC 或跨机 writer fencing 宣称关闭。
+
+### 本轮验证证据
+
+- 实现与回归提交为 `09db337f42`（专用 content-addressed store）、`b5f822ef4a`（settlement v2 与 command recovery）、`190b96a978` / `614105ec77`（真实 storage receipt/byte readback）、`1f0bed94fa`（roadmap contract）与 `beaa52ac56`（readback 权限复核），均已快进进入本地 `main`。
+- result store、command route 与 real JSONL settlement 三个聚焦文件终态为 **23/23**；覆盖首次发布、同 digest 幂等、publish 后 response loss、receipt/byte/hardlink tamper、v2 append fault、stored bundle readback、v1 no-content compatibility route 和 no-target-command v2 recovery。
+- execution-location 八文件与 roadmap verifier/journey 合并终态为 **108/108**；其中 roadmap verifier/journey 为 **37/37**。JSONL store、writer concurrency、persistence failure 与 anti-rollback 四文件继续为 **167 passed / 5 skipped**；command help index freshness 通过。
+- roadmap manifest 从 `1.9.31` 升至 `1.9.32`，新增 content-addressed publish/readback journey、storage receipt/byte digest authority、publish response loss、stored-byte/receipt/hardlink tamper 与 duplicate bundle 必须为零的合同，以及两个 durable bundle artifacts。fixture digest 为 `sha256:21311c0d89935a31ce2f55f03225598390bfa21096e5ecf377d6484da06886fe`；全 corpus 为 **15 cases / 90 referenced test files**，contract-only 通过。
+
+### P1-2 仍未关闭的边界
+
+1. **跨宿主 writer fence 与 shared authority：** source/target 双写、lease acquire/renew/revoke、split-brain、shared-store ownership 与跨机并发仲裁仍未完成；本轮 content store 和 session CAS 都只是本机 cooperative authority。
+2. **review/apply、ArtifactStore 与 retention：** stored bundle 不会自动导入通用 ArtifactStore、创建 artifact preview/review、执行 patch apply、checkpoint/rollback 或 return location-handoff；没有 WORM/远端副本、managed delete/GC、publish-before-settlement orphan 索引和 storage/settlement 跨文件原子事务。
+3. **长期 transport 与产品入口：** 断点续传、重连、睡眠/重启、orphan process cleanup、增量/双向 session 同步、分歧合并、删除传播、`cc cloud`、Desktop/VS Code/JetBrains review/apply UI，以及真实 WSL/SSH/Container/Cloud 多架构 100-run matrix 仍开放。
+
+因此，P1-2 的 **returned bundle 本地 owner-only 内容寻址存储、no-replace/fsync 发布、全字节/物理身份回读、storage receipt 绑定 settlement v2，以及 append 后 response loss 的实际 bundle 无远端重放恢复** 由本节关闭；P1-2 整项仍为**部分完成**。总计数保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。
+
 ## 六十四、2026-08-18 P1-2 canonical result collection settlement 子门复核（`21:31 +08:00`）
 
 本节继续第六十三节，关闭“source 已完整验真 target bundle，但调用方在返回后丢失响应时，没有 canonical 证据判断该 request 是否已被验收”的窄缺口；不把内容无关 settlement 外推为 result bytes 已持久化、ArtifactStore 已导入、source worktree 已 apply，或跨宿主 exactly-once transport 已完成。
