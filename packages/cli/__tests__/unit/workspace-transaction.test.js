@@ -1071,6 +1071,68 @@ describe("WorkspaceTransactionManager", () => {
     ).toBe("before\n");
   });
 
+  it("recovers only the explicitly selected transaction id", () => {
+    const input = fixture();
+    const secondWorkspace = path.join(input.root, "second-workspace");
+    fs.mkdirSync(secondWorkspace, { recursive: true });
+    fs.writeFileSync(
+      path.join(secondWorkspace, "before.txt"),
+      "second-before\n",
+      "utf8",
+    );
+    const owner = manager(input, { isProcessAlive: () => true });
+    const first = owner.begin({
+      id: "wcp-selected-recovery",
+      runId: "run-selected",
+      taskKey: "task-selected",
+      workspaceRoot: input.workspaceRoot,
+      coverageTarget: WORKSPACE_TRANSACTION_COVERAGE.FULL,
+      writerIsolation: "exclusive-workspace",
+    });
+    const second = owner.begin({
+      id: "wcp-unselected-recovery",
+      runId: "run-unselected",
+      taskKey: "task-unselected",
+      workspaceRoot: secondWorkspace,
+      coverageTarget: WORKSPACE_TRANSACTION_COVERAGE.FULL,
+      writerIsolation: "exclusive-workspace",
+    });
+    first.markRunning();
+    second.markRunning();
+    fs.writeFileSync(
+      path.join(input.workspaceRoot, "src", "before.txt"),
+      "selected-change\n",
+      "utf8",
+    );
+    fs.writeFileSync(
+      path.join(secondWorkspace, "before.txt"),
+      "unselected-change\n",
+      "utf8",
+    );
+
+    const recovery = manager(input, { isProcessAlive: () => false });
+    expect(
+      recovery.recoverPending({
+        id: first.id,
+        workspaceRoot: input.workspaceRoot,
+      }),
+    ).toEqual([
+      expect.objectContaining({
+        id: first.id,
+        status: "rolled_back",
+      }),
+    ]);
+    expect(
+      fs.readFileSync(
+        path.join(input.workspaceRoot, "src", "before.txt"),
+        "utf8",
+      ),
+    ).toBe("before\n");
+    expect(
+      fs.readFileSync(path.join(secondWorkspace, "before.txt"), "utf8"),
+    ).toBe("unselected-change\n");
+  });
+
   it("holds registry coordination across the dead-owner reclaim window", () => {
     const input = fixture();
     const first = manager(input, { isProcessAlive: () => true });
