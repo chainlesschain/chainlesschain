@@ -2587,6 +2587,61 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 三十九、2026-08-18 P1-1 semantic compaction request attempt 与逐调用 receipt 子门复核（`09:52 +08:00`）
+
+本节继续第三十八节，将此前明确留在 outer task receipt 之外的 **semantic compaction 模型调用**纳入同一 effect-bound
+request/receipt 协议；同时修正“一个 effect 只要有一张 receipt 就可能掩盖其他 provider call 缺回执”的观测盲区。候选基于已合并
+本地主分支 `2b37f3cf8db70a40cb64514eb6440b9cb4a63372` 的功能分支，尚无本候选 exact-head GitHub Actions。本节仍不把
+correlation identity 外推为 provider-native idempotency 或 independently-readable receipt。
+
+### 本轮关闭的 semantic compaction provider 边界
+
+- **semantic compaction 取得 source-separated 稳定 request identity。** workflow-bound `agentLoop` 在每个自动压缩 provider query 前，
+  以 outer `workflowEffectId + semantic-compaction + model-turn sequence` 派生 `ccwf_...`；同一 effect/turn 重建得到同一 identity，
+  又不会与该 turn 的普通 `model` request ID 冲突。生产默认 adapter 将它交给既有 `chatWithTools`，注入 compaction adapter 也收到冻结的
+  effect/source/sequence/request binding，不能依靠 ambient option 改写 outer authority。
+- **每次物理 provider call 先形成 attempt denominator。** `SubAgentContext` 在普通 model start event 或 compaction 的同步 pre-provider
+  callback 中保存 `cc-provider-request-attempt/v1`，字段固定为 effect、provider、真实 call id、source、sequence、client request id 与
+  `trace-only` semantics；重复/畸形边界在 transport 前 fail closed。Cowork completed result 同时返回 attempts 与 provider-returned receipts，
+  因此“provider 没返回标识”不再等于“这次调用不可见”。
+- **receipt 必须逐调用匹配 attempt。** 普通模型与 compaction receipt 都携带 `source`；agent core 还要求 receipt provider 与实际 configured
+  provider 一致。durable projection 只接纳与 attempt 的 effect/provider/call/source/sequence/client id 全部相等的 provider-returned
+  trace receipt，重复、孤立、跨 effect 或 overclaiming record 均不进入 authority lineage。
+- **compaction 未知 outcome 不再降级成外层成功。** workflow-bound compaction 的 provider exception、receipt 校验失败、成功响应但 usage
+  unknown，以及 provider 返回后 canonical compaction settlement 失败，都会先结算已有 usage/unknown event，再抛回 Cowork 和 durable
+  runtime，使 outer effect 保持 pending/reconcile；不会生成 extractive fallback 后把 task 标成 completed，也不会授权 step retry。非 durable
+  compaction 保留既有 best-effort/extractive 行为。
+- **observability 改为逐 attempt 完整性。** `providerReceipts` 新增 request-attempt 数量、有效投影、effect 覆盖、invalid attempts、
+  missing-request-receipt 数量及独立 attempt-lineage digest。即使同一 effect 的 compaction 有 receipt、随后普通 model 没有，机器输出仍会列出
+  `provider-request-receipt-incomplete`；单张 receipt 不能再替其他 provider call 充当证明。
+
+### 仓库内验证与证据边界
+
+- manifest `p1-dynamic-workflow` 引用的 **14 个文件为 459/459**；覆盖 stable compaction identity、冻结 adapter binding、attempt/receipt
+  收集、provider/source/request mismatch、provider failure、usage unknown、post-provider settlement unknown、逐调用缺 receipt 检测及 legacy
+  fallback 保持。
+- agent stream/retry 四文件为 **81/81**；roadmap verifier 与 journey evidence 两文件为 **37/37**。
+- roadmap manifest 从 `1.9.5` 升至 `1.9.6`，baseline 绑定本轮起点 `2b37f3cf8d`；fixture digest 为
+  `sha256:5733827d84da8b31d0fa4c903142795b36452ab71463252f07b8b7bda86e4739`。`--contract-only` 回读
+  **15 cases / 68 referenced test files**，并继续明确 runtime evidence 与 release readiness 未被评估。
+
+### P1-1 仍未关闭的边界
+
+1. **原生幂等与独立 readback：** attempt ledger 与 `X-Client-Request-Id` 仍只是本地 admission/correlation evidence；OpenAI 及其他 provider
+   尚未提供由本 runtime 自动独立查询、可裁决 exactly-once 的 durable receipt。Anthropic、Ollama、DeepSeek、DashScope、Mistral、
+   Gemini 与 Volcengine 的等价生产 contract 和真实故障矩阵仍开放。
+2. **pending call store、nested side effects 与制品 authority：** 本轮 attempt/receipt projection 绑定 completed provider-return result；
+   pending/crash 路径虽由 outer effect 保守阻断，但逐调用 attempt/receipt 尚未成为可独立回读的 durable store。tool/MCP/external-system 的
+   每次副作用也尚未统一消费 child effect identity 或进入本 lineage；ArtifactStore immutable bytes、checkpoint provider receipt/restore、
+   真实 token/USD readback 与不合作 provider 的物理取消仍未关闭。
+3. **完整产品与外部矩阵：** 一般阶段间 `needs_input`、Workbench/VS Code/JetBrains phase/agent/control UI、plugin/marketplace 分发，以及
+   Local/WSL/SSH/Container/Cloud × 三 OS × 双 IDE 每格 100 次 exact-head 真实 provider/故障矩阵仍无外部证据。
+
+因此，P1-1 的 **semantic compaction effect binding、逐 provider-attempt receipt 完整性与 unknown-outcome 外层传播**由本节关闭；P1-1
+整项仍为**部分完成**，不得据此声明 provider-native exactly-once 或 independently-readable receipt。总计数保持
+**12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
+Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
+
 ## 三十八、2026-08-18 P1-1 effect-bound provider request identity 与 trace-only receipt 子门复核（`09:10 +08:00`）
 
 本节继续第三十七节，只关闭生产 Cowork 普通模型轮次的 **effect identity 消费、OpenAI request correlation 与回执血缘**；

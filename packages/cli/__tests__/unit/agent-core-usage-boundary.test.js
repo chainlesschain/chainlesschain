@@ -19,6 +19,16 @@ async function drain(generator) {
   return events;
 }
 
+async function drainFailure(generator) {
+  const events = [];
+  try {
+    for await (const event of generator) events.push(event);
+  } catch (error) {
+    return { error, events };
+  }
+  throw new Error("expected agent loop to reject");
+}
+
 function loopOptions(chatFn, extra = {}) {
   return {
     provider: "ollama",
@@ -325,6 +335,174 @@ describe("automatic semantic-compaction usage boundaries", () => {
       },
     });
   });
+
+  it("binds semantic compaction to a stable per-effect request id and returned receipt", async () => {
+    const workflowEffectId = `sha256:${"9".repeat(64)}`;
+    const run = async () => {
+      let requestBinding = null;
+      let boundary = null;
+      const query = vi.fn(async (_prompt, binding) => {
+        requestBinding = binding;
+        return {
+          summary: structuredSummary,
+          usage: { input_tokens: 11, output_tokens: 7 },
+          provider: "openai",
+          model: "summary-model",
+          providerReceipt: {
+            protocol: "cc-provider-request-receipt/v1",
+            provider: "openai",
+            clientRequestId: binding.providerRequestId,
+            requestId: "req_compaction_1",
+            responseId: "chatcmpl_compaction_1",
+            requestIdentitySemantics: "trace-only",
+            independentlyReadable: false,
+          },
+        };
+      });
+      const mainChat = vi.fn(async () => ({
+        message: { role: "assistant", content: "done" },
+        usage: { input_tokens: 1, output_tokens: 1 },
+      }));
+      const events = await drain(
+        agentLoop(largeHistory(), {
+          ...loopOptions(mainChat),
+          provider: "openai",
+          workflowEffectId,
+          autoCompact: true,
+          autoMicroCompact: false,
+          compactionLlmQuery: query,
+          onUsageBoundary: (event) => {
+            boundary = event;
+          },
+        }),
+      );
+      return { boundary, events, mainChat, requestBinding };
+    };
+
+    const first = await run();
+    const second = await run();
+    expect(first.requestBinding).toEqual({
+      workflowEffectId,
+      callSequence: 1,
+      source: "semantic-compaction",
+      providerRequestId: expect.stringMatching(/^ccwf_[a-f0-9]{64}$/),
+      requestIdentitySemantics: "trace-only",
+    });
+    expect(Object.isFrozen(first.requestBinding)).toBe(true);
+    expect(second.requestBinding.providerRequestId).toBe(
+      first.requestBinding.providerRequestId,
+    );
+    expect(first.boundary).toMatchObject({
+      workflowEffectId,
+      callSequence: 1,
+      source: "semantic-compaction",
+      providerRequestId: first.requestBinding.providerRequestId,
+      requestIdentitySemantics: "trace-only",
+    });
+    const receipt = first.events.find(
+      (event) =>
+        event.type === "provider-request-receipt" &&
+        event.source === "semantic-compaction",
+    );
+    expect(receipt).toMatchObject({
+      workflowEffectId,
+      callId: first.boundary.callId,
+      callSequence: 1,
+      clientRequestId: first.requestBinding.providerRequestId,
+      requestId: "req_compaction_1",
+      responseId: "chatcmpl_compaction_1",
+      requestIdentitySemantics: "trace-only",
+      independentlyReadable: false,
+    });
+    const receiptIndex = first.events.indexOf(receipt);
+    const usageIndex = first.events.findIndex(
+      (event) =>
+        event.type === "token-usage" && event.source === "semantic-compaction",
+    );
+    expect(receiptIndex).toBeGreaterThanOrEqual(0);
+    expect(receiptIndex).toBeLessThan(usageIndex);
+    expect(first.mainChat.mock.calls[0][1].providerRequestId).not.toBe(
+      first.requestBinding.providerRequestId,
+    );
+  });
+
+  it.each([
+    {
+      name: "provider failure",
+      expectedCode: "CC_WORKFLOW_COMPACTION_PROVIDER_OUTCOME_UNKNOWN",
+      expectedReceipts: 0,
+      query: async () => {
+        throw new Error("connection reset after upload");
+      },
+    },
+    {
+      name: "missing provider usage",
+      expectedCode: "CC_WORKFLOW_COMPACTION_USAGE_UNKNOWN",
+      expectedReceipts: 1,
+      query: async (_prompt, binding) => ({
+        summary: structuredSummary,
+        provider: "openai",
+        model: "summary-model",
+        providerReceipt: {
+          protocol: "cc-provider-request-receipt/v1",
+          provider: "openai",
+          clientRequestId: binding.providerRequestId,
+          requestId: "req_compaction_usage_unknown",
+          responseId: null,
+          requestIdentitySemantics: "trace-only",
+          independentlyReadable: false,
+        },
+      }),
+    },
+    {
+      name: "mismatched provider receipt",
+      expectedCode: "CC_WORKFLOW_COMPACTION_PROVIDER_OUTCOME_UNKNOWN",
+      expectedReceipts: 0,
+      query: async (_prompt, binding) => ({
+        summary: structuredSummary,
+        usage: { input_tokens: 11, output_tokens: 7 },
+        provider: "openai",
+        model: "summary-model",
+        providerReceipt: {
+          protocol: "cc-provider-request-receipt/v1",
+          provider: "anthropic",
+          clientRequestId: binding.providerRequestId,
+          requestId: "req_wrong_binding",
+          responseId: null,
+          requestIdentitySemantics: "trace-only",
+          independentlyReadable: false,
+        },
+      }),
+    },
+  ])(
+    "propagates workflow-bound $name after one unknown settlement",
+    async ({ expectedCode, expectedReceipts, query }) => {
+      const mainChat = vi.fn();
+      const outcome = await drainFailure(
+        agentLoop(largeHistory(), {
+          ...loopOptions(mainChat),
+          provider: "openai",
+          workflowEffectId: `sha256:${"8".repeat(64)}`,
+          autoCompact: true,
+          autoMicroCompact: false,
+          compactionLlmQuery: query,
+        }),
+      );
+
+      expect(outcome.error).toMatchObject({ code: expectedCode });
+      expect(
+        outcome.events.filter(
+          (event) => event.type === "compaction-usage-unknown",
+        ),
+      ).toHaveLength(1);
+      expect(
+        outcome.events.filter(
+          (event) => event.type === "provider-request-receipt",
+        ),
+      ).toHaveLength(expectedReceipts);
+      expect(mainChat).not.toHaveBeenCalled();
+    },
+  );
 
   it("prevents the provider call when the synchronous boundary observer fails", async () => {
     const observerError = new Error("ledger unavailable");

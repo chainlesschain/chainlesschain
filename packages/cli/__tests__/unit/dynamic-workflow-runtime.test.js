@@ -193,6 +193,18 @@ describe("durable dynamic workflow runtime", () => {
     const runTask = vi.fn(async (args) => ({
       ...completedTask(args),
       workflowEffectId: args.workflowEffectId,
+      providerRequestAttempts: [
+        {
+          protocol: "cc-provider-request-attempt/v1",
+          provider: "openai",
+          workflowEffectId: args.workflowEffectId,
+          callId: `mdl-${args.workflowEffect.stepId}`,
+          callSequence: 1,
+          source: "model",
+          clientRequestId: `ccwf_${args.workflowEffectId.slice("sha256:".length)}`,
+          requestIdentitySemantics: "trace-only",
+        },
+      ],
       providerRequestReceipts: [
         {
           protocol: "cc-provider-request-receipt/v1",
@@ -200,6 +212,7 @@ describe("durable dynamic workflow runtime", () => {
           workflowEffectId: args.workflowEffectId,
           callId: `mdl-${args.workflowEffect.stepId}`,
           callSequence: 1,
+          source: "model",
           clientRequestId: `ccwf_${args.workflowEffectId.slice("sha256:".length)}`,
           requestId: `req_${args.workflowEffect.stepId}`,
           responseId: `chatcmpl_${args.workflowEffect.stepId}`,
@@ -241,8 +254,13 @@ describe("durable dynamic workflow runtime", () => {
       authority: "provider-returned-trace-only",
       count: 2,
       projectedRecords: 2,
+      requestAttempts: 2,
+      projectedRequestAttempts: 2,
+      requestAttemptEffects: 2,
       observedEffects: 2,
       missingProviderReturnedEffects: 0,
+      missingRequestReceipts: 0,
+      invalidRequestAttempts: 0,
       invalidRecords: 0,
       nativeIdempotencyProven: false,
       independentlyReadable: false,
@@ -278,6 +296,18 @@ describe("durable dynamic workflow runtime", () => {
     const runTask = vi.fn(async (args) => ({
       ...completedTask(args),
       workflowEffectId: args.workflowEffectId,
+      providerRequestAttempts: [
+        {
+          protocol: "cc-provider-request-attempt/v1",
+          provider: "openai",
+          workflowEffectId: args.workflowEffectId,
+          callId: "mdl-invalid",
+          callSequence: 1,
+          source: "model",
+          clientRequestId: `ccwf_${args.workflowEffectId.slice("sha256:".length)}`,
+          requestIdentitySemantics: "trace-only",
+        },
+      ],
       providerRequestReceipts: [
         {
           protocol: "cc-provider-request-receipt/v1",
@@ -285,6 +315,7 @@ describe("durable dynamic workflow runtime", () => {
           workflowEffectId: `sha256:${"f".repeat(64)}`,
           callId: "mdl-invalid",
           callSequence: 1,
+          source: "model",
           clientRequestId: `ccwf_${"f".repeat(64)}`,
           requestId: "req_invalid",
           responseId: null,
@@ -306,8 +337,12 @@ describe("durable dynamic workflow runtime", () => {
     expect(projection.observability.providerReceipts).toMatchObject({
       count: 2,
       projectedRecords: 0,
+      requestAttempts: 2,
+      projectedRequestAttempts: 2,
       observedEffects: 0,
       missingProviderReturnedEffects: 2,
+      missingRequestReceipts: 2,
+      invalidRequestAttempts: 0,
       invalidRecords: 2,
       nativeIdempotencyProven: false,
       independentlyReadable: false,
@@ -317,6 +352,81 @@ describe("durable dynamic workflow runtime", () => {
         "provider-request-receipt-incomplete",
         "provider-request-receipt-invalid",
       ]),
+    );
+  });
+
+  it("reports a missing receipt for each effect-bound provider attempt", async () => {
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-partial-provider-receipts",
+    );
+    const runTask = vi.fn(async (args) => {
+      const effectHex = args.workflowEffectId.slice("sha256:".length);
+      const compactionRequestId = `ccwf_${effectHex}`;
+      const modelRequestId = `ccwf_${effectHex.slice(0, -1)}${effectHex.endsWith("0") ? "1" : "0"}`;
+      return {
+        ...completedTask(args),
+        workflowEffectId: args.workflowEffectId,
+        providerRequestAttempts: [
+          {
+            protocol: "cc-provider-request-attempt/v1",
+            provider: "openai",
+            workflowEffectId: args.workflowEffectId,
+            callId: `cmp-${args.workflowEffect.stepId}`,
+            callSequence: 1,
+            source: "semantic-compaction",
+            clientRequestId: compactionRequestId,
+            requestIdentitySemantics: "trace-only",
+          },
+          {
+            protocol: "cc-provider-request-attempt/v1",
+            provider: "openai",
+            workflowEffectId: args.workflowEffectId,
+            callId: `mdl-${args.workflowEffect.stepId}`,
+            callSequence: 1,
+            source: "model",
+            clientRequestId: modelRequestId,
+            requestIdentitySemantics: "trace-only",
+          },
+        ],
+        providerRequestReceipts: [
+          {
+            protocol: "cc-provider-request-receipt/v1",
+            provider: "openai",
+            workflowEffectId: args.workflowEffectId,
+            callId: `cmp-${args.workflowEffect.stepId}`,
+            callSequence: 1,
+            source: "semantic-compaction",
+            clientRequestId: compactionRequestId,
+            requestId: `req_cmp_${args.workflowEffect.stepId}`,
+            responseId: null,
+            requestIdentitySemantics: "trace-only",
+            independentlyReadable: false,
+          },
+        ],
+      };
+    });
+
+    await executeDurableDynamicWorkflow(
+      {
+        statePath,
+        runId: "run-partial-provider-receipts",
+        execution: admittedExecution(projectRoot),
+      },
+      { runTask, now: clock() },
+    );
+    const projection = projectDynamicWorkflowRuntime(statePath);
+    expect(projection.observability.providerReceipts).toMatchObject({
+      count: 2,
+      projectedRecords: 2,
+      requestAttempts: 4,
+      projectedRequestAttempts: 4,
+      missingRequestReceipts: 2,
+      invalidRequestAttempts: 0,
+      invalidRecords: 0,
+    });
+    expect(projection.observability.gaps).toContain(
+      "provider-request-receipt-incomplete",
     );
   });
 

@@ -31,6 +31,9 @@ const SUMMARY_DIRECT_THRESHOLD = 500; // chars — below this, use result as-is
 const SUMMARY_SECTION_PATTERN =
   /^##\s*(Summary|Result|Output|Conclusion|Answer)/im;
 const TRUNCATE_LENGTH = 500;
+const PROVIDER_CLIENT_REQUEST_ID_RE = /^ccwf_[a-f0-9]{64}$/;
+const PROVIDER_CALL_ID_RE = /^[A-Za-z0-9._:-]{1,256}$/;
+const PROVIDER_NAME_RE = /^[a-z0-9][a-z0-9._-]{0,63}$/;
 
 function runtimeUsageObserverFailure(error, code, message) {
   const failure =
@@ -210,6 +213,7 @@ export class SubAgentContext {
     this._checkpointIds = [];
     this._toolUseIds = [];
     this._workflowEffectId = options.workflowEffectId ?? null;
+    this._providerRequestAttempts = [];
     this._providerRequestReceipts = [];
 
     // ── Isolated state ──────────────────────────────────────────────
@@ -625,8 +629,12 @@ export class SubAgentContext {
     // agentLoop validates the canonical sha256 form before any provider call.
     if (this._workflowEffectId) {
       options.workflowEffectId = this._workflowEffectId;
+      options.onProviderRequestBoundary = (event) => {
+        this._recordProviderRequestAttempt(event);
+      };
     } else {
       delete options.workflowEffectId;
+      delete options.onProviderRequestBoundary;
     }
     const authority = this._parentAuthority;
     if (authority.permissionRules) {
@@ -831,6 +839,7 @@ export class SubAgentContext {
               workflowEffectId: event.workflowEffectId,
               callId: event.callId,
               callSequence: event.callSequence,
+              source: event.source,
               clientRequestId: event.clientRequestId,
               requestId: event.requestId || null,
               responseId: event.responseId || null,
@@ -894,6 +903,9 @@ export class SubAgentContext {
         }
 
         if (event.type === "model-usage-started") {
+          if (event.providerRequestId) {
+            this._recordProviderRequestAttempt(event);
+          }
           if (strictUsageTelemetry) {
             if (
               event.boundaryNotified === true ||
@@ -1191,11 +1203,21 @@ export class SubAgentContext {
       checkpointIds: [...this._checkpointIds],
       toolUseIds: [...this._toolUseIds],
       ...(this._workflowEffectId
-        ? { providerRequestReceipts: this.providerRequestReceipts() }
+        ? {
+            providerRequestAttempts: this.providerRequestAttempts(),
+            providerRequestReceipts: this.providerRequestReceipts(),
+          }
         : {}),
       worktreeId: worktree?.branch || this._worktreeBranch || null,
       worktreePath: worktree?.path || this._worktreePath || null,
     };
+  }
+
+  /**
+   * Effect-bound provider calls admitted before transport dispatch.
+   */
+  providerRequestAttempts() {
+    return this._providerRequestAttempts.map((attempt) => ({ ...attempt }));
   }
 
   /**
@@ -1204,6 +1226,40 @@ export class SubAgentContext {
    */
   providerRequestReceipts() {
     return this._providerRequestReceipts.map((receipt) => ({ ...receipt }));
+  }
+
+  _recordProviderRequestAttempt(event) {
+    if (!this._workflowEffectId) return;
+    const attempt = {
+      protocol: "cc-provider-request-attempt/v1",
+      provider: event?.provider,
+      workflowEffectId: event?.workflowEffectId,
+      callId: event?.callId,
+      callSequence: event?.callSequence,
+      source: event?.source,
+      clientRequestId: event?.providerRequestId,
+      requestIdentitySemantics: event?.requestIdentitySemantics,
+    };
+    if (
+      !PROVIDER_NAME_RE.test(attempt.provider || "") ||
+      attempt.workflowEffectId !== this._workflowEffectId ||
+      !PROVIDER_CALL_ID_RE.test(attempt.callId || "") ||
+      !Number.isSafeInteger(attempt.callSequence) ||
+      attempt.callSequence < 1 ||
+      !["model", "semantic-compaction"].includes(attempt.source) ||
+      !PROVIDER_CLIENT_REQUEST_ID_RE.test(attempt.clientRequestId || "") ||
+      attempt.requestIdentitySemantics !== "trace-only" ||
+      this._providerRequestAttempts.some(
+        (existing) => existing.callId === attempt.callId,
+      )
+    ) {
+      const error = new TypeError(
+        "workflow provider request boundary is malformed or duplicated",
+      );
+      error.code = "CC_WORKFLOW_PROVIDER_REQUEST_BOUNDARY_INVALID";
+      throw error;
+    }
+    this._providerRequestAttempts.push(Object.freeze(attempt));
   }
 
   /**

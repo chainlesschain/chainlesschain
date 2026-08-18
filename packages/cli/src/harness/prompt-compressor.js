@@ -677,6 +677,10 @@ export class PromptCompressor {
       // A durable-ledger write failure is authoritative too. Falling back here
       // would let the host continue after losing the model-call boundary.
       if (error?.runtimeLedgerPersistence === true) throw error;
+      // A workflow-bound query may already have reached the provider. An
+      // extractive fallback would make the outer durable effect look completed
+      // and authorize a replay of that physically unknown request.
+      if (error?.workflowEffectOutcomeUnknown === true) throw error;
       summaryCallId = safeSummaryCallId(
         error?.compactionCallId ?? error?.callId,
       );

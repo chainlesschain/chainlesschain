@@ -286,6 +286,21 @@ describe("PromptCompressor", () => {
       );
     });
 
+    it("rethrows workflow-bound provider outcome failures instead of extracting a fallback", async () => {
+      const providerError = Object.assign(
+        new Error("provider outcome unknown"),
+        {
+          workflowEffectOutcomeUnknown: true,
+        },
+      );
+      compressor.llmQuery = vi.fn().mockRejectedValue(providerError);
+      compressor.maxTokens = 10;
+
+      await expect(compressor.compress(makeMessages(3))).rejects.toBe(
+        providerError,
+      );
+    });
+
     it("keeps repeated compaction bounded while preserving durable host context", async () => {
       const mockLlm = vi.fn().mockRejectedValue(new Error("offline"));
       const bounded = new PromptCompressor({
