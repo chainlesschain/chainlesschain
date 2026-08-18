@@ -997,20 +997,24 @@ outer provider-return settlement.
 `runtime-status --json` also returns a digest-bound `observability` projection.
 It exposes effect/result lineage, provider-return/operator-reconciled/runtime-
 not-dispatched settlement counts, provider dispatch and timeout timestamps,
-request-to-settlement wall time, effect-bound trace-only provider request
-attempts and receipts, runtime-derived nested-tool attempt/settlement lineage,
-the independently persisted durable-call status/digest projection plus its
-provider-receipt count and bounded receipt IDs, the Cowork
+request-to-settlement wall time, durable-call-derived trace-only provider
+request attempts and receipts (including pending/crashed calls), runtime-derived
+nested-tool attempt/settlement lineage, the independently persisted durable-call
+status/digest projection plus its provider-receipt count and bounded receipt IDs, the Cowork
 result's heuristic token estimate, and digest-only artifact/checkpoint
 references. Receipt projection rejects an
 effect/provider/call/source/request mismatch or any claim of
-idempotency/independent readback, and reports a gap for every valid attempt with
-no matching provider receipt. The projection is intentionally
+idempotency/independent readback, ignores conflicting outer-result receipt
+arrays when durable call rows exist while exposing a disagreement gap, and
+reports a gap for every valid attempt with no matching provider receipt.
+Pre-durable-call states remain readable
+through an explicitly counted legacy task-result fallback that adds its own gap.
+The projection is intentionally
 `complete: false` and lists every missing authority: the current Cowork runner
 does not return provider token usage or USD cost, native provider idempotency
 and independent receipt readback remain unavailable, checkpoint and artifact-
-store readback are not yet wired, and the full completed-result receipt collection
-plus local/host child payload projections remain result-bound. MCP calls bind the
+store readback are not yet wired, while local/host child payload projections
+remain result-bound. MCP calls bind the
 same outer/child effect tuple into the canonical session ledger before
 transport and report persisted start/settlement facts. Any workflow-bound
 nested outcome-unknown result or post-boundary tool exception blocks the outer

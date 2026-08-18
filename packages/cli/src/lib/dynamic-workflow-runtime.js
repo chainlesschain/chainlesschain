@@ -2419,7 +2419,7 @@ function projectResultValues(effect, field, domain) {
   };
 }
 
-function projectProviderRequestReceipts(effect) {
+function projectLegacyProviderRequestReceipts(effect) {
   const attemptValues = Array.isArray(effect.result?.providerRequestAttempts)
     ? effect.result.providerRequestAttempts
     : [];
@@ -2536,6 +2536,185 @@ function projectProviderRequestReceipts(effect) {
     truncated:
       attemptValues.length > visibleAttempts.length ||
       receiptValues.length > visibleReceipts.length,
+    attemptLineage,
+    receiptLineage,
+  };
+}
+
+function projectProviderRequestReceipts(state) {
+  const attemptLineage = [];
+  const receiptLineage = [];
+  const requestAttemptEffectIds = new Set();
+  const receiptEffectIds = new Set();
+  const providerReturnedReceiptEffectIds = new Set();
+  let attemptCount = 0;
+  let receiptCount = 0;
+  let invalidAttempts = 0;
+  let invalidReceipts = 0;
+  let missingReceipts = 0;
+  let truncatedEffects = 0;
+  let durableCallEffects = 0;
+  let legacyResultFallbackEffects = 0;
+  let conflictingOuterResultEffects = 0;
+
+  for (const effect of state.effects) {
+    const providerCalls = (effect.calls || []).filter(
+      (call) => call.kind === "provider",
+    );
+    if (providerCalls.length > 0) {
+      durableCallEffects += 1;
+      attemptCount += providerCalls.length;
+      receiptCount += providerCalls.filter(
+        (call) => call.providerReceiptPersisted,
+      ).length;
+      missingReceipts += providerCalls.filter(
+        (call) => !call.providerReceiptPersisted,
+      ).length;
+      requestAttemptEffectIds.add(effect.id);
+      if (providerCalls.some((call) => call.providerReceiptPersisted)) {
+        receiptEffectIds.add(effect.id);
+        if (effect.settlementAuthority === "provider-return") {
+          providerReturnedReceiptEffectIds.add(effect.id);
+        }
+      }
+      const hasOuterResultEvidence =
+        Array.isArray(effect.result?.providerRequestAttempts) ||
+        Array.isArray(effect.result?.providerRequestReceipts);
+      if (hasOuterResultEvidence) {
+        const reported = projectLegacyProviderRequestReceipts(effect);
+        const directCalls = providerCalls.filter(
+          (call) => call.ownerEffectId === effect.id,
+        );
+        const attemptMatches =
+          reported.invalidAttempts === 0 &&
+          reported.attemptLineage.length === directCalls.length &&
+          directCalls.every((call) => {
+            const attempt = reported.attemptLineage.find(
+              (candidate) => candidate.callId === call.callId,
+            );
+            return (
+              attempt?.provider === call.name &&
+              attempt?.callSequence === call.sequence &&
+              attempt?.source === call.requestSource &&
+              attempt?.clientRequestId === call.clientRequestId
+            );
+          });
+        const directReceiptCalls = directCalls.filter(
+          (call) => call.providerReceiptPersisted,
+        );
+        const receiptMatches =
+          reported.invalidReceipts === 0 &&
+          reported.receiptLineage.length === directReceiptCalls.length &&
+          directReceiptCalls.every((call) => {
+            const receipt = reported.receiptLineage.find(
+              (candidate) => candidate.callId === call.callId,
+            );
+            return (
+              receipt?.requestId === call.providerReceiptRequestId &&
+              receipt?.responseId === call.providerReceiptResponseId
+            );
+          });
+        if (!attemptMatches || !receiptMatches) {
+          conflictingOuterResultEffects += 1;
+        }
+      }
+      const visibleCalls = providerCalls.slice(
+        0,
+        MAX_PROJECTED_ARTIFACTS_PER_EFFECT,
+      );
+      if (providerCalls.length > visibleCalls.length) truncatedEffects += 1;
+      for (let ordinal = 0; ordinal < visibleCalls.length; ordinal += 1) {
+        const call = visibleCalls[ordinal];
+        const attempt = {
+          effectId: effect.id,
+          ownerEffectId: call.ownerEffectId,
+          callRecordId: call.id,
+          ordinal,
+          provider: call.name,
+          callId: call.callId,
+          callSequence: call.sequence,
+          source: call.requestSource,
+          attributionSource: call.source,
+          clientRequestId: call.clientRequestId,
+          status: call.status,
+          startedAt: call.startedAt,
+          requestIdentitySemantics: "trace-only",
+          authoritySource: "durable-call-store",
+        };
+        attemptLineage.push(attempt);
+        if (!call.providerReceiptPersisted) continue;
+        receiptLineage.push({
+          ...attempt,
+          requestId: call.providerReceiptRequestId,
+          responseId: call.providerReceiptResponseId,
+          recordedAt:
+            call.providerReceiptRecordedAt === undefined
+              ? call.settledAt
+              : call.providerReceiptRecordedAt,
+          independentlyReadable: false,
+        });
+      }
+      continue;
+    }
+
+    if (effect.status !== "settled") continue;
+    const hasOuterResultEvidence =
+      Array.isArray(effect.result?.providerRequestAttempts) ||
+      Array.isArray(effect.result?.providerRequestReceipts);
+    if (effect.calls !== undefined) {
+      if (
+        hasOuterResultEvidence &&
+        ((effect.result?.providerRequestAttempts?.length || 0) > 0 ||
+          (effect.result?.providerRequestReceipts?.length || 0) > 0)
+      ) {
+        conflictingOuterResultEffects += 1;
+      }
+      continue;
+    }
+    const legacy = projectLegacyProviderRequestReceipts(effect);
+    if (legacy.attemptCount === 0 && legacy.receiptCount === 0) continue;
+    legacyResultFallbackEffects += 1;
+    attemptCount += legacy.attemptCount;
+    receiptCount += legacy.receiptCount;
+    invalidAttempts += legacy.invalidAttempts;
+    invalidReceipts += legacy.invalidReceipts;
+    missingReceipts += legacy.missingReceipts;
+    if (legacy.truncated) truncatedEffects += 1;
+    if (legacy.attemptLineage.length > 0) {
+      requestAttemptEffectIds.add(effect.id);
+    }
+    if (legacy.receiptLineage.length > 0) {
+      receiptEffectIds.add(effect.id);
+      providerReturnedReceiptEffectIds.add(effect.id);
+    }
+    attemptLineage.push(
+      ...legacy.attemptLineage.map((attempt) => ({
+        ...attempt,
+        authoritySource: "legacy-task-result",
+      })),
+    );
+    receiptLineage.push(
+      ...legacy.receiptLineage.map((receipt) => ({
+        ...receipt,
+        recordedAt: effect.settledAt,
+        authoritySource: "legacy-task-result",
+      })),
+    );
+  }
+
+  return {
+    attemptCount,
+    receiptCount,
+    invalidAttempts,
+    invalidReceipts,
+    missingReceipts,
+    truncatedEffects,
+    durableCallEffects,
+    legacyResultFallbackEffects,
+    conflictingOuterResultEffects,
+    requestAttemptEffects: requestAttemptEffectIds.size,
+    receiptEffects: receiptEffectIds.size,
+    providerReturnedReceiptEffects: providerReturnedReceiptEffectIds.size,
     attemptLineage,
     receiptLineage,
   };
@@ -2770,6 +2949,7 @@ function projectDynamicWorkflowObservability(state) {
   const nestedEffectAttemptLineage = [];
   const nestedEffectSettlementLineage = [];
   const durableCalls = projectDurableWorkflowCalls(state);
+  const providerReceipts = projectProviderRequestReceipts(state);
   let requestToSettlementMs = 0;
   let maxRequestToSettlementMs = 0;
   let estimatedTokens = 0;
@@ -2781,14 +2961,14 @@ function projectDynamicWorkflowObservability(state) {
   let checkpointCount = 0;
   let artifactTruncatedEffects = 0;
   let checkpointTruncatedEffects = 0;
-  let providerRequestAttemptCount = 0;
-  let providerRequestAttemptEffects = 0;
-  let providerReceiptCount = 0;
-  let providerReceiptEffects = 0;
-  let invalidProviderRequestAttempts = 0;
-  let invalidProviderReceipts = 0;
-  let missingProviderRequestReceipts = 0;
-  let providerReceiptTruncatedEffects = 0;
+  const providerRequestAttemptCount = providerReceipts.attemptCount;
+  const providerRequestAttemptEffects = providerReceipts.requestAttemptEffects;
+  const providerReceiptCount = providerReceipts.receiptCount;
+  const providerReceiptEffects = providerReceipts.receiptEffects;
+  const invalidProviderRequestAttempts = providerReceipts.invalidAttempts;
+  const invalidProviderReceipts = providerReceipts.invalidReceipts;
+  const missingProviderRequestReceipts = providerReceipts.missingReceipts;
+  const providerReceiptTruncatedEffects = providerReceipts.truncatedEffects;
   let nestedEffectAttemptCount = 0;
   let nestedEffectSettlementCount = 0;
   let nestedEffectDurableMcpSettlements = 0;
@@ -2836,22 +3016,6 @@ function projectDynamicWorkflowObservability(state) {
     checkpointLineage.push(...checkpoints.lineage);
     if (checkpoints.truncated) checkpointTruncatedEffects += 1;
 
-    const providerReceipts = projectProviderRequestReceipts(effect);
-    providerRequestAttemptCount += providerReceipts.attemptCount;
-    providerReceiptCount += providerReceipts.receiptCount;
-    providerRequestAttemptLineage.push(...providerReceipts.attemptLineage);
-    providerReceiptLineage.push(...providerReceipts.receiptLineage);
-    invalidProviderRequestAttempts += providerReceipts.invalidAttempts;
-    invalidProviderReceipts += providerReceipts.invalidReceipts;
-    missingProviderRequestReceipts += providerReceipts.missingReceipts;
-    if (providerReceipts.attemptLineage.length > 0) {
-      providerRequestAttemptEffects += 1;
-    }
-    if (providerReceipts.receiptLineage.length > 0) {
-      providerReceiptEffects += 1;
-    }
-    if (providerReceipts.truncated) providerReceiptTruncatedEffects += 1;
-
     const nestedEffects = projectNestedToolEffects(effect);
     nestedEffectAttemptCount += nestedEffects.attemptCount;
     nestedEffectSettlementCount += nestedEffects.settlementCount;
@@ -2897,6 +3061,8 @@ function projectDynamicWorkflowObservability(state) {
     "artifact-store-readback-unavailable",
     "nested-tool-independent-ledger-incomplete",
   ];
+  providerRequestAttemptLineage.push(...providerReceipts.attemptLineage);
+  providerReceiptLineage.push(...providerReceipts.receiptLineage);
   if (tokenEstimateEffects !== settled.length) {
     gaps.push("cowork-token-estimate-incomplete");
   }
@@ -2910,7 +3076,8 @@ function projectDynamicWorkflowObservability(state) {
     (effect) => effect.settlementAuthority === "provider-return",
   ).length;
   if (
-    providerReceiptEffects !== providerReturnedEffects ||
+    providerReceipts.providerReturnedReceiptEffects !==
+      providerReturnedEffects ||
     missingProviderRequestReceipts > 0
   ) {
     gaps.push("provider-request-receipt-incomplete");
@@ -2923,6 +3090,12 @@ function projectDynamicWorkflowObservability(state) {
   }
   if (providerReceiptTruncatedEffects > 0) {
     gaps.push("provider-request-receipt-projection-truncated");
+  }
+  if (providerReceipts.legacyResultFallbackEffects > 0) {
+    gaps.push("provider-request-receipt-legacy-result-fallback");
+  }
+  if (providerReceipts.conflictingOuterResultEffects > 0) {
+    gaps.push("provider-request-result-disagrees-with-durable-store");
   }
   if (invalidNestedEffectAttempts > 0) {
     gaps.push("nested-tool-effect-attempt-invalid");
@@ -2988,15 +3161,30 @@ function projectDynamicWorkflowObservability(state) {
         observedEffects: 0,
       },
       providerReceipts: {
-        authority: "provider-returned-trace-only",
+        authority:
+          providerReceipts.legacyResultFallbackEffects > 0
+            ? "runtime-state-hash-chain-fsync-with-legacy-task-result-fallback"
+            : "runtime-state-hash-chain-fsync",
+        receiptSemantics: "provider-returned-trace-only",
+        crashVisible: true,
+        durableCallEffects: providerReceipts.durableCallEffects,
+        legacyResultFallbackEffects:
+          providerReceipts.legacyResultFallbackEffects,
+        conflictingOuterResultEffects:
+          providerReceipts.conflictingOuterResultEffects,
         count: providerReceiptCount,
         projectedRecords: providerReceiptLineage.length,
         requestAttempts: providerRequestAttemptCount,
         projectedRequestAttempts: providerRequestAttemptLineage.length,
         requestAttemptEffects: providerRequestAttemptEffects,
         observedEffects: providerReceiptEffects,
-        missingProviderReturnedEffects:
-          providerReturnedEffects - providerReceiptEffects,
+        providerReturnedObservedEffects:
+          providerReceipts.providerReturnedReceiptEffects,
+        missingProviderReturnedEffects: Math.max(
+          0,
+          providerReturnedEffects -
+            providerReceipts.providerReturnedReceiptEffects,
+        ),
         missingRequestReceipts: missingProviderRequestReceipts,
         invalidRequestAttempts: invalidProviderRequestAttempts,
         invalidRecords: invalidProviderReceipts,

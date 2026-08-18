@@ -2588,6 +2588,52 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 四十五、2026-08-18 P1-1 durable-call-derived provider receipt observability 子门复核（`12:31 +08:00`）
+
+本节继续第四十四节，把此前仍从 settled Cowork result 的 `providerRequestAttempts/providerRequestReceipts` 数组生成的主观测投影，切换到
+逐调用 durable store；不把本地 hash-chain 投影外推为 provider 原生幂等或第三方独立 readback。候选基于已合并本地主分支
+`1195a1dacb27d2637c7811a15decc5ce29cb18e0` 的功能分支，尚无本候选 exact-head GitHub Actions。
+
+### 本轮关闭的 receipt observability authority 子门
+
+- **新状态的 attempt/receipt 主投影不再等待 outer result。** `runtime-status --json` 直接遍历已验证的 provider call rows，按 root effect、owner effect、
+  call record、provider、call id、sequence、原始 request source、attribution source、client request id、status 与 start time 生成 request lineage；有 receipt
+  时再投影 bounded request/response id 和 durable recorded time。pending、blocked、completed、outcome-unknown 与 operator-reconciled call 使用同一 authority。
+- **provider response 后、outer result 前的 crash 现在进入 canonical receipt projection。** 第四十四节留下的 receipt-prewritten `started` row 会同时出现在
+  `durableCalls` 和 `providerReceipts`；pending receipt 不再因 outer effect 尚无 `provider-return` settlement 被误报为 receipt incomplete。
+- **outer task result 不能覆盖 durable call 事实。** 只要 effect 已有 provider call rows，投影完全忽略 result 中冲突、伪造或缺失的 attempt/receipt 数组；
+  `authoritySource=durable-call-store` 明确标注每条记录来源；若 result 明确提供了与 direct durable calls 不一致的数组，另报
+  `provider-request-result-disagrees-with-durable-store` gap。由此 completed-result collection 不再是新运行时 provider receipt observability 的 authority。
+- **旧状态兼容回读不会被伪装成新 authority。** pre-durable-call 的 settled state 若只有合法 result arrays，仍通过
+  `authoritySource=legacy-task-result` 有界投影；顶层 authority 改为
+  `runtime-state-hash-chain-fsync-with-legacy-task-result-fallback`，增加 fallback effect 计数和
+  `provider-request-receipt-legacy-result-fallback` gap。新旧来源不会静默混合成同一种证据。
+- **计数和缺口覆盖全 durable call 集合。** attempt/receipt/missing 数量在截断前计算，effect 计数去重；单 effect 超过投影上限仍报告 truncated gap。
+  provider-returned effect 缺 receipt 与 pending crash receipt 分开计算，避免用 pending 可见性污染 settled completeness 判断。
+
+### 仓库内验证与证据边界
+
+- durable runtime 聚焦文件为 **29/29**；覆盖 pending crash receipt canonical projection、completed durable call projection、outer result 伪造数组不覆盖、
+  legacy result-only fallback/gap、provider-returned completeness 与既有 invalid/missing receipt 检测。
+- manifest `p1-dynamic-workflow` 引用的 **18 个文件保持 586/586**；roadmap verifier 与 journey evidence 两文件为 **37/37**。
+- roadmap manifest 从 `1.9.11` 升至 `1.9.12`，baseline 绑定本轮起点 `1195a1dacb27d2637c7811a15decc5ce29cb18e0`；fixture digest 为
+  `sha256:374a234aa13252aa815aae85d7c85ae88f78445272ed55a40ad9365f395e845c`。`--contract-only` 回读
+  **15 cases / 69 referenced test files**，并继续明确 runtime evidence 与 release readiness 未被评估。
+
+### P1-1 仍未关闭的边界
+
+1. **provider 原生幂等与独立 readback：** canonical projection 的 authority 仍是本地 runtime hash-chain/fsync；provider 尚未强制消费 effect/batch
+   idempotency key，也没有独立 API 用 request/response id 裁决外部副作用。网络在 response 到达进程前丢失时仍必须保守 blocked/reconcile。
+2. **其余 side-effect authority：** nested tool result payload、hook/checkpoint/artifact 与绕过受管 observer 的 external-system side effects 仍未全部改为
+   独立 durable projection。ArtifactStore immutable bytes、checkpoint restore/readback、真实 provider token/USD ledger 与物理取消仍开放。
+3. **完整产品与外部矩阵：** 一般阶段间 `needs_input`、Workbench/VS Code/JetBrains phase/agent/control UI、plugin/marketplace 分发，以及
+   Local/WSL/SSH/Container/Cloud × 三 OS × 双 IDE 每格 100 次 exact-head 真实 provider/宿主故障矩阵仍无外部证据。
+
+因此，P1-1 的**durable-call-derived provider attempt/receipt 主投影、pending crash canonical readback、outer-result override 阻断与显式 legacy fallback**
+由本节关闭；P1-1 整项仍为**部分完成**，不得据此声明 provider-native exactly-once 或 independently-readable receipt。总计数保持
+**12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
+Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
+
 ## 四十四、2026-08-18 P1-1 provider receipt 先行持久化与 settlement fence 子门复核（`12:11 +08:00`）
 
 本节继续第四十三节，并精确替换其中“provider response 已返回、usage settlement 尚未持久化时只能留下无 receipt 的 started row”这一窄边界；

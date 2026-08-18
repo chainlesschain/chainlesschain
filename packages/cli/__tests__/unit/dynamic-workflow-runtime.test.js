@@ -125,6 +125,12 @@ function withRebuiltRuntimeLineage(state, lineage) {
   return withRuntimeStateDigest(rebuilt);
 }
 
+function projectLegacyResultOnlyState(statePath) {
+  const legacyState = readDynamicWorkflowRuntimeState(statePath);
+  for (const effect of legacyState.effects) delete effect.calls;
+  return projectDynamicWorkflowRuntime(withRuntimeStateDigest(legacyState));
+}
+
 function workflowProviderRequestId(effectId, source = "model", sequence = 1) {
   return `ccwf_${createHash("sha256")
     .update(`${effectId}\0${source}\0${String(sequence)}`, "utf8")
@@ -370,7 +376,44 @@ describe("durable dynamic workflow runtime", () => {
       finalRecordStatus: "completed",
     });
     expect(projection.observability.providerReceipts).toMatchObject({
-      authority: "provider-returned-trace-only",
+      authority: "runtime-state-hash-chain-fsync",
+      receiptSemantics: "provider-returned-trace-only",
+      crashVisible: true,
+      durableCallEffects: 0,
+      legacyResultFallbackEffects: 0,
+      conflictingOuterResultEffects: 2,
+      count: 0,
+      projectedRecords: 0,
+      requestAttempts: 0,
+      projectedRequestAttempts: 0,
+      requestAttemptEffects: 0,
+      observedEffects: 0,
+      missingProviderReturnedEffects: 2,
+      missingRequestReceipts: 0,
+      invalidRequestAttempts: 0,
+      invalidRecords: 0,
+      nativeIdempotencyProven: false,
+      independentlyReadable: false,
+    });
+    expect(projection.observability.providerReceipts.lineage).toEqual([]);
+    expect(projection.observability.gaps).toEqual(
+      expect.arrayContaining([
+        "provider-request-receipt-incomplete",
+        "provider-request-result-disagrees-with-durable-store",
+      ]),
+    );
+
+    const legacyState = structuredClone(state);
+    for (const effect of legacyState.effects) delete effect.calls;
+    const legacyProjection = projectDynamicWorkflowRuntime(
+      withRuntimeStateDigest(legacyState),
+    );
+    expect(legacyProjection.observability.providerReceipts).toMatchObject({
+      authority:
+        "runtime-state-hash-chain-fsync-with-legacy-task-result-fallback",
+      durableCallEffects: 0,
+      legacyResultFallbackEffects: 2,
+      conflictingOuterResultEffects: 0,
       count: 2,
       projectedRecords: 2,
       requestAttempts: 2,
@@ -378,13 +421,8 @@ describe("durable dynamic workflow runtime", () => {
       requestAttemptEffects: 2,
       observedEffects: 2,
       missingProviderReturnedEffects: 0,
-      missingRequestReceipts: 0,
-      invalidRequestAttempts: 0,
-      invalidRecords: 0,
-      nativeIdempotencyProven: false,
-      independentlyReadable: false,
     });
-    expect(projection.observability.providerReceipts.lineage).toEqual([
+    expect(legacyProjection.observability.providerReceipts.lineage).toEqual([
       expect.objectContaining({
         effectId: state.effects[0].id,
         requestId: "req_collect",
@@ -420,14 +458,15 @@ describe("durable dynamic workflow runtime", () => {
         mcpLedgerSettlementPersisted: true,
       }),
     ]);
-    expect(projection.observability.gaps).toEqual(
+    expect(legacyProjection.observability.gaps).toEqual(
       expect.arrayContaining([
         "provider-native-idempotency-unavailable",
         "provider-receipt-independent-readback-unavailable",
+        "provider-request-receipt-legacy-result-fallback",
         "nested-tool-independent-ledger-incomplete",
       ]),
     );
-    expect(projection.observability.gaps).not.toContain(
+    expect(legacyProjection.observability.gaps).not.toContain(
       "provider-request-receipt-incomplete",
     );
   });
@@ -515,7 +554,11 @@ describe("durable dynamic workflow runtime", () => {
         },
         error: null,
       });
-      return completedTask(args);
+      return {
+        ...completedTask(args),
+        providerRequestAttempts: [{ forged: "ignored-result-attempt" }],
+        providerRequestReceipts: [{ forged: "ignored-result-receipt" }],
+      };
     });
 
     const record = await executeDurableDynamicWorkflow(
@@ -566,6 +609,43 @@ describe("durable dynamic workflow runtime", () => {
       providerNativeIdempotencyProven: false,
       providerReceiptsIndependentlyReadable: false,
     });
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.providerReceipts,
+    ).toMatchObject({
+      authority: "runtime-state-hash-chain-fsync",
+      receiptSemantics: "provider-returned-trace-only",
+      crashVisible: true,
+      durableCallEffects: 1,
+      legacyResultFallbackEffects: 0,
+      conflictingOuterResultEffects: 1,
+      count: 1,
+      projectedRecords: 1,
+      requestAttempts: 1,
+      projectedRequestAttempts: 1,
+      invalidRequestAttempts: 0,
+      invalidRecords: 0,
+      missingRequestReceipts: 0,
+    });
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.providerReceipts
+        .lineage,
+    ).toEqual([
+      expect.objectContaining({
+        authoritySource: "durable-call-store",
+        callId: "mdl-publish-1",
+        status: "completed",
+        requestId: "req_mdl-publish-1",
+      }),
+    ]);
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.gaps,
+    ).not.toContain("provider-request-receipt-incomplete");
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.gaps,
+    ).not.toContain("provider-request-receipt-legacy-result-fallback");
+    expect(projectDynamicWorkflowRuntime(state).observability.gaps).toContain(
+      "provider-request-result-disagrees-with-durable-store",
+    );
   });
 
   it("retains a crash-visible started provider call until operator reconciliation", async () => {
@@ -690,6 +770,26 @@ describe("durable dynamic workflow runtime", () => {
       providerReceipts: 1,
       providerReceiptsIndependentlyReadable: false,
     });
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.providerReceipts,
+    ).toMatchObject({
+      authority: "runtime-state-hash-chain-fsync",
+      crashVisible: true,
+      durableCallEffects: 1,
+      count: 1,
+      requestAttempts: 1,
+      missingRequestReceipts: 0,
+      lineage: [
+        expect.objectContaining({
+          authoritySource: "durable-call-store",
+          status: "started",
+          requestId: "req_mdl-receipt-crash-1",
+        }),
+      ],
+    });
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.gaps,
+    ).not.toContain("provider-request-receipt-incomplete");
 
     const recordedAt = state.effects[0].calls[0].providerReceiptRecordedAt;
     const reconciled = reconcileDurableWorkflowEffect(
@@ -1249,7 +1349,7 @@ describe("durable dynamic workflow runtime", () => {
     );
   });
 
-  it("does not project a mismatched or idempotency-overclaiming provider receipt", async () => {
+  it("does not project a mismatched or idempotency-overclaiming legacy provider receipt", async () => {
     const statePath = dynamicWorkflowRunStatePath(
       projectRoot,
       "run-invalid-provider-receipt",
@@ -1294,8 +1394,10 @@ describe("durable dynamic workflow runtime", () => {
       },
       { runTask, now: clock() },
     );
-    const projection = projectDynamicWorkflowRuntime(statePath);
+    const projection = projectLegacyResultOnlyState(statePath);
     expect(projection.observability.providerReceipts).toMatchObject({
+      authority:
+        "runtime-state-hash-chain-fsync-with-legacy-task-result-fallback",
       count: 2,
       projectedRecords: 0,
       requestAttempts: 2,
@@ -1316,7 +1418,7 @@ describe("durable dynamic workflow runtime", () => {
     );
   });
 
-  it("reports a missing receipt for each effect-bound provider attempt", async () => {
+  it("reports a missing receipt for each legacy effect-bound provider attempt", async () => {
     const statePath = dynamicWorkflowRunStatePath(
       projectRoot,
       "run-partial-provider-receipts",
@@ -1376,7 +1478,7 @@ describe("durable dynamic workflow runtime", () => {
       },
       { runTask, now: clock() },
     );
-    const projection = projectDynamicWorkflowRuntime(statePath);
+    const projection = projectLegacyResultOnlyState(statePath);
     expect(projection.observability.providerReceipts).toMatchObject({
       count: 2,
       projectedRecords: 2,

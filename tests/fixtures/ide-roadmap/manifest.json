@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "manifestVersion": "1.9.11",
-  "baselineCommit": "fbb94ebc6653b90c8ca7b2098464f7cc72dc0b18",
+  "manifestVersion": "1.9.12",
+  "baselineCommit": "1195a1dacb27d2637c7811a15decc5ce29cb18e0",
   "releaseEvidence": {
     "commitSource": "git-head-at-run",
     "requiredFields": [
@@ -436,9 +436,9 @@
       "priority": "P1",
       "required": true,
       "evidenceStatus": "external-evidence-required",
-      "evidenceNotes": "Repository tests close generated-draft review authority, exact admission/replay, serial and bounded-parallel request-before-provider persistence, atomic dispatch-batch identity, ordered multi-pending reconciliation, the pause settlement barrier, attempt-scoped retry/timeout recovery, effect-bound provider tracing for ordinary model turns plus semantic compaction, and runtime-derived child identities for directly dispatched tools. The dynamic runtime synchronously persists bounded provider/tool call rows before transport and their terminal settlement independently of the completed outer task result. A provider-returned trace receipt is validated against the exact started call and synchronously prewritten before the matching usage or unknown settlement, so a crash after provider response can leave a started row with bounded receipt identifiers. Terminal settlement rejects a returned receipt unless an identical prewrite already exists. This includes descendant calls whose original request source differs from their subagent attribution; operator reconciliation preserves the prewritten receipt. Spawned sub-agents and isolated skills inherit the already-persisted parent tool child-effect as their own workflow owner, so descendant provider/tool calls enter the same store with a verified owner chain; orphan owners, receipt or owner tamper, swallowed unknown outcomes, and outer provider-return settlement over descendant unknown are rejected. MCP calls additionally persist the outer/child identity tuple in their session ledger before transport and expose persisted start/settlement flags. OpenAI request identifiers and receipts remain trace-only and are not independently readable. Release readiness still requires hook/checkpoint/artifact and other observer-bypassing side effects to consume governed authority, native third-party idempotency and independently readable receipts, complete artifact/checkpoint authority, dual-IDE consumption, plugin distribution, and the declared real-host matrix on the exact release commit.",
+      "evidenceNotes": "Repository tests close generated-draft review authority, exact admission/replay, serial and bounded-parallel request-before-provider persistence, atomic dispatch-batch identity, ordered multi-pending reconciliation, the pause settlement barrier, attempt-scoped retry/timeout recovery, effect-bound provider tracing for ordinary model turns plus semantic compaction, and runtime-derived child identities for directly dispatched tools. The dynamic runtime synchronously persists bounded provider/tool call rows before transport and their terminal settlement independently of the completed outer task result. A provider-returned trace receipt is validated against the exact started call and synchronously prewritten before the matching usage or unknown settlement, so a crash after provider response can leave a started row with bounded receipt identifiers. Terminal settlement rejects a returned receipt unless an identical prewrite already exists. Runtime observability now derives provider attempt and receipt lineage from those durable call rows, including pending/crashed calls, and ignores conflicting outer-result receipt arrays whenever durable rows exist. Pre-durable-call states remain readable only through an explicitly counted legacy result fallback that keeps a machine-readable gap. This includes descendant calls whose original request source differs from their subagent attribution; operator reconciliation preserves the prewritten receipt. Spawned sub-agents and isolated skills inherit the already-persisted parent tool child-effect as their own workflow owner, so descendant provider/tool calls enter the same store with a verified owner chain; orphan owners, receipt or owner tamper, swallowed unknown outcomes, and outer provider-return settlement over descendant unknown are rejected. MCP calls additionally persist the outer/child identity tuple in their session ledger before transport and expose persisted start/settlement flags. OpenAI request identifiers and receipts remain trace-only and are not independently readable. Release readiness still requires hook/checkpoint/artifact and other observer-bypassing side effects to consume governed authority, native third-party idempotency and independently readable receipts, complete artifact/checkpoint authority, dual-IDE consumption, plugin distribution, and the declared real-host matrix on the exact release commit.",
       "fixture": "tests/fixtures/ide-roadmap/p1-dynamic-workflow.json",
-      "fixtureDigest": "sha256:407aaa32c5466f01870005b4abb8229482d07dff3d2dad0a70901b7d57b9eb9e",
+      "fixtureDigest": "sha256:374a234aa13252aa815aae85d7c85ae88f78445272ed55a40ad9365f395e845c",
       "seed": 2026080114,
       "minimumIndependentRuns": 100,
       "matrix": {
@@ -487,6 +487,8 @@
         "missingDurableProviderReceiptSettlementCount": 0,
         "missingDurableProviderReceiptPrewriteCount": 0,
         "providerReceiptSettlementWithoutPrewriteAcceptanceCount": 0,
+        "missingCrashVisibleProviderReceiptProjectionCount": 0,
+        "outerResultProviderReceiptOverrideAcceptanceCount": 0,
         "durableProviderReceiptMismatchAcceptanceCount": 0,
         "durableProviderReceiptTamperAcceptanceCount": 0,
         "descendantProviderReceiptOwnerMismatchCount": 0,
@@ -542,6 +544,7 @@
         "descendant-effect-owner-lineage",
         "durable-provider-receipt-prewrite-ledger",
         "durable-provider-receipt-settlement-ledger",
+        "durable-provider-receipt-observability-lineage",
         "checkpoint-lineage",
         "token-time-budget-ledger",
         "artifact-lineage",
