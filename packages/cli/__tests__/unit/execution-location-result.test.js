@@ -168,6 +168,9 @@ describe("execution location result bundle", () => {
     expect(() =>
       makeBundle({ artifacts: [duplicate], evidence: [duplicate] }),
     ).toThrow(/duplicate content/);
+    expect(() =>
+      makeBundle({ summaryBytes: Buffer.from([0xff, 0xfe]) }),
+    ).toThrow(/strict UTF-8/);
   });
 
   it("reads only bounded single-link files within the data boundary", () => {
