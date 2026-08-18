@@ -1631,17 +1631,68 @@ function projectResultValues(effect, field, domain) {
 }
 
 function projectProviderRequestReceipts(effect) {
-  const values = effect.result?.providerRequestReceipts;
-  if (!Array.isArray(values)) {
-    return { count: 0, invalid: 0, truncated: false, lineage: [] };
+  const attemptValues = Array.isArray(effect.result?.providerRequestAttempts)
+    ? effect.result.providerRequestAttempts
+    : [];
+  const receiptValues = Array.isArray(effect.result?.providerRequestReceipts)
+    ? effect.result.providerRequestReceipts
+    : [];
+  const visibleAttempts = attemptValues.slice(
+    0,
+    MAX_PROJECTED_ARTIFACTS_PER_EFFECT,
+  );
+  const visibleReceipts = receiptValues.slice(
+    0,
+    MAX_PROJECTED_ARTIFACTS_PER_EFFECT,
+  );
+  const attemptLineage = [];
+  const receiptLineage = [];
+  const attemptsByCallId = new Map();
+  const matchedAttemptCallIds = new Set();
+  let invalidAttempts = 0;
+  let invalidReceipts = 0;
+
+  for (let ordinal = 0; ordinal < visibleAttempts.length; ordinal += 1) {
+    const attempt = visibleAttempts[ordinal];
+    if (
+      effect.settlementAuthority !== "provider-return" ||
+      effect.result?.workflowEffectId !== effect.id ||
+      !attempt ||
+      typeof attempt !== "object" ||
+      Array.isArray(attempt) ||
+      attempt.protocol !== "cc-provider-request-attempt/v1" ||
+      attempt.workflowEffectId !== effect.id ||
+      !PROVIDER_NAME_RE.test(attempt.provider || "") ||
+      !PROVIDER_RECEIPT_ID_RE.test(attempt.callId || "") ||
+      !Number.isSafeInteger(attempt.callSequence) ||
+      attempt.callSequence < 1 ||
+      !["model", "semantic-compaction"].includes(attempt.source) ||
+      !PROVIDER_CLIENT_REQUEST_ID_RE.test(attempt.clientRequestId || "") ||
+      attempt.requestIdentitySemantics !== "trace-only" ||
+      attemptsByCallId.has(attempt.callId)
+    ) {
+      invalidAttempts += 1;
+      continue;
+    }
+    const projected = {
+      effectId: effect.id,
+      ordinal,
+      provider: attempt.provider,
+      callId: attempt.callId,
+      callSequence: attempt.callSequence,
+      source: attempt.source,
+      clientRequestId: attempt.clientRequestId,
+      requestIdentitySemantics: "trace-only",
+    };
+    attemptsByCallId.set(attempt.callId, projected);
+    attemptLineage.push(projected);
   }
-  const visible = values.slice(0, MAX_PROJECTED_ARTIFACTS_PER_EFFECT);
-  const lineage = [];
-  let invalid = 0;
-  for (let ordinal = 0; ordinal < visible.length; ordinal += 1) {
-    const receipt = visible[ordinal];
+
+  for (let ordinal = 0; ordinal < visibleReceipts.length; ordinal += 1) {
+    const receipt = visibleReceipts[ordinal];
     const requestId = receipt?.requestId ?? null;
     const responseId = receipt?.responseId ?? null;
+    const attempt = attemptsByCallId.get(receipt?.callId);
     if (
       effect.settlementAuthority !== "provider-return" ||
       effect.result?.workflowEffectId !== effect.id ||
@@ -1655,22 +1706,31 @@ function projectProviderRequestReceipts(effect) {
       !PROVIDER_RECEIPT_ID_RE.test(receipt.callId) ||
       !Number.isSafeInteger(receipt.callSequence) ||
       receipt.callSequence < 1 ||
+      !["model", "semantic-compaction"].includes(receipt.source) ||
       !PROVIDER_CLIENT_REQUEST_ID_RE.test(receipt.clientRequestId || "") ||
       (requestId !== null && !PROVIDER_RECEIPT_ID_RE.test(requestId)) ||
       (responseId !== null && !PROVIDER_RECEIPT_ID_RE.test(responseId)) ||
       (!requestId && !responseId) ||
       receipt.requestIdentitySemantics !== "trace-only" ||
-      receipt.independentlyReadable !== false
+      receipt.independentlyReadable !== false ||
+      !attempt ||
+      attempt.provider !== receipt.provider ||
+      attempt.callSequence !== receipt.callSequence ||
+      attempt.source !== receipt.source ||
+      attempt.clientRequestId !== receipt.clientRequestId ||
+      matchedAttemptCallIds.has(receipt.callId)
     ) {
-      invalid += 1;
+      invalidReceipts += 1;
       continue;
     }
-    lineage.push({
+    matchedAttemptCallIds.add(receipt.callId);
+    receiptLineage.push({
       effectId: effect.id,
       ordinal,
       provider: receipt.provider,
       callId: receipt.callId,
       callSequence: receipt.callSequence,
+      source: receipt.source,
       clientRequestId: receipt.clientRequestId,
       requestId,
       responseId,
@@ -1679,10 +1739,16 @@ function projectProviderRequestReceipts(effect) {
     });
   }
   return {
-    count: values.length,
-    invalid,
-    truncated: values.length > visible.length,
-    lineage,
+    attemptCount: attemptValues.length,
+    receiptCount: receiptValues.length,
+    invalidAttempts,
+    invalidReceipts,
+    missingReceipts: attemptLineage.length - matchedAttemptCallIds.size,
+    truncated:
+      attemptValues.length > visibleAttempts.length ||
+      receiptValues.length > visibleReceipts.length,
+    attemptLineage,
+    receiptLineage,
   };
 }
 
@@ -1691,6 +1757,7 @@ function projectDynamicWorkflowObservability(state) {
   const effectLineage = [];
   const artifactLineage = [];
   const checkpointLineage = [];
+  const providerRequestAttemptLineage = [];
   const providerReceiptLineage = [];
   let requestToSettlementMs = 0;
   let maxRequestToSettlementMs = 0;
@@ -1703,9 +1770,13 @@ function projectDynamicWorkflowObservability(state) {
   let checkpointCount = 0;
   let artifactTruncatedEffects = 0;
   let checkpointTruncatedEffects = 0;
+  let providerRequestAttemptCount = 0;
+  let providerRequestAttemptEffects = 0;
   let providerReceiptCount = 0;
   let providerReceiptEffects = 0;
+  let invalidProviderRequestAttempts = 0;
   let invalidProviderReceipts = 0;
+  let missingProviderRequestReceipts = 0;
   let providerReceiptTruncatedEffects = 0;
 
   for (const effect of settled) {
@@ -1748,10 +1819,19 @@ function projectDynamicWorkflowObservability(state) {
     if (checkpoints.truncated) checkpointTruncatedEffects += 1;
 
     const providerReceipts = projectProviderRequestReceipts(effect);
-    providerReceiptCount += providerReceipts.count;
-    providerReceiptLineage.push(...providerReceipts.lineage);
-    invalidProviderReceipts += providerReceipts.invalid;
-    if (providerReceipts.lineage.length > 0) providerReceiptEffects += 1;
+    providerRequestAttemptCount += providerReceipts.attemptCount;
+    providerReceiptCount += providerReceipts.receiptCount;
+    providerRequestAttemptLineage.push(...providerReceipts.attemptLineage);
+    providerReceiptLineage.push(...providerReceipts.receiptLineage);
+    invalidProviderRequestAttempts += providerReceipts.invalidAttempts;
+    invalidProviderReceipts += providerReceipts.invalidReceipts;
+    missingProviderRequestReceipts += providerReceipts.missingReceipts;
+    if (providerReceipts.attemptLineage.length > 0) {
+      providerRequestAttemptEffects += 1;
+    }
+    if (providerReceipts.receiptLineage.length > 0) {
+      providerReceiptEffects += 1;
+    }
     if (providerReceipts.truncated) providerReceiptTruncatedEffects += 1;
 
     effectLineage.push({
@@ -1800,8 +1880,14 @@ function projectDynamicWorkflowObservability(state) {
   const providerReturnedEffects = settled.filter(
     (effect) => effect.settlementAuthority === "provider-return",
   ).length;
-  if (providerReceiptEffects !== providerReturnedEffects) {
+  if (
+    providerReceiptEffects !== providerReturnedEffects ||
+    missingProviderRequestReceipts > 0
+  ) {
     gaps.push("provider-request-receipt-incomplete");
+  }
+  if (invalidProviderRequestAttempts > 0) {
+    gaps.push("provider-request-attempt-invalid");
   }
   if (invalidProviderReceipts > 0) {
     gaps.push("provider-request-receipt-invalid");
@@ -1864,17 +1950,27 @@ function projectDynamicWorkflowObservability(state) {
         authority: "provider-returned-trace-only",
         count: providerReceiptCount,
         projectedRecords: providerReceiptLineage.length,
+        requestAttempts: providerRequestAttemptCount,
+        projectedRequestAttempts: providerRequestAttemptLineage.length,
+        requestAttemptEffects: providerRequestAttemptEffects,
         observedEffects: providerReceiptEffects,
         missingProviderReturnedEffects:
           providerReturnedEffects - providerReceiptEffects,
+        missingRequestReceipts: missingProviderRequestReceipts,
+        invalidRequestAttempts: invalidProviderRequestAttempts,
         invalidRecords: invalidProviderReceipts,
         truncatedEffects: providerReceiptTruncatedEffects,
         nativeIdempotencyProven: false,
         independentlyReadable: false,
+        requestAttemptLineageDigest: digest(
+          "chainlesschain.dynamic-workflow.provider-request-attempt-lineage.v1\0",
+          providerRequestAttemptLineage,
+        ),
         lineageDigest: digest(
           "chainlesschain.dynamic-workflow.provider-request-receipt-lineage.v1\0",
           providerReceiptLineage,
         ),
+        requestAttemptLineage: providerRequestAttemptLineage,
         lineage: providerReceiptLineage,
       },
       artifacts: {

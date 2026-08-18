@@ -11739,7 +11739,7 @@ function _managedCheckpointUncoveredWriterReason(toolContext) {
  *   { type: "tool-executing", tool, args }
  *   { type: "tool-result", tool, result, error }
  *   { type: "model-usage-started", callId, provider, model, source }
- *   { type: "provider-request-receipt", workflowEffectId, clientRequestId, requestId, responseId }
+ *   { type: "provider-request-receipt", source, workflowEffectId, clientRequestId, requestId, responseId }
  *   { type: "token-usage", callId, provider, model, usage, source? }
  *   { type: "model-usage-unknown", callId, provider, model, source, code }
  *   { type: "response-complete", content }
@@ -11783,7 +11783,30 @@ function _workflowProviderRequestId(workflowEffectId, source, sequence) {
     .digest("hex")}`;
 }
 
-function _snapshotProviderRequestReceipt(value, expectedClientRequestId) {
+function _workflowCompactionOutcomeUnknown(
+  cause,
+  code = "CC_WORKFLOW_COMPACTION_PROVIDER_OUTCOME_UNKNOWN",
+  message = "Workflow-bound semantic compaction provider outcome is unknown",
+) {
+  const error = new Error(message, cause ? { cause } : undefined);
+  error.code = code;
+  error.workflowEffectOutcomeUnknown = true;
+  error.compactionFailureReported = false;
+  return error;
+}
+
+function _markWorkflowCompactionFailureReported(error) {
+  if (error?.workflowEffectOutcomeUnknown === true) {
+    error.compactionFailureReported = true;
+  }
+  return error;
+}
+
+function _snapshotProviderRequestReceipt(
+  value,
+  expectedClientRequestId,
+  expectedProvider,
+) {
   if (value == null) return null;
   if (isProxy(value)) {
     throw new TypeError("provider request receipt must not be a Proxy");
@@ -11814,6 +11837,7 @@ function _snapshotProviderRequestReceipt(value, expectedClientRequestId) {
     !hasOnlyDataFields ||
     descriptors.protocol.value !== "cc-provider-request-receipt/v1" ||
     !/^[a-z0-9][a-z0-9._-]{0,63}$/.test(descriptors.provider.value || "") ||
+    descriptors.provider.value !== expectedProvider ||
     descriptors.clientRequestId.value !== expectedClientRequestId ||
     descriptors.requestIdentitySemantics.value !== "trace-only" ||
     descriptors.independentlyReadable.value !== false
@@ -12005,7 +12029,7 @@ function _assertStrictUsageObserver(observer, phase) {
 function _autoCompactionUsageState(options) {
   let state = _autoCompactionUsageStates.get(options);
   if (!state) {
-    state = { calls: [] };
+    state = { calls: [], callSequence: null };
     _autoCompactionUsageStates.set(options, state);
   }
   return state;
@@ -12029,27 +12053,59 @@ function _instrumentAutoCompactorUsage(compactor, options) {
   const original = installed?.original || compactor.llmQuery;
   const state = _autoCompactionUsageState(options);
   const wrapper = async function instrumentedCompactionQuery(...args) {
+    const workflowEffectId = _normalizeWorkflowEffectId(
+      options.workflowEffectId,
+    );
+    const callSequence =
+      Number.isSafeInteger(state.callSequence) && state.callSequence > 0
+        ? state.callSequence
+        : null;
+    if (workflowEffectId && callSequence == null) {
+      throw _runtimeUsageBoundaryFailure(
+        null,
+        "CC_COMPACTION_REQUEST_SEQUENCE_REQUIRED",
+        "Workflow-bound semantic compaction requires a stable call sequence",
+      );
+    }
+    const providerRequestId = _workflowProviderRequestId(
+      workflowEffectId,
+      "semantic-compaction",
+      callSequence,
+    );
     const call = {
       callId: _newModelUsageCallId("semantic-compaction"),
-      provider: options.provider || null,
-      model: options.model || null,
+      provider: options.provider || "ollama",
+      model: options.model || "unknown",
       source: "semantic-compaction",
+      workflowEffectId,
+      callSequence,
+      providerRequestId,
+      providerReceipt: null,
       observerError: null,
       observerFailed: false,
       boundaryNotified: false,
     };
     state.calls.push(call);
+    const boundaryEvent = {
+      type: "model-usage-started",
+      callId: call.callId,
+      provider: call.provider,
+      model: call.model,
+      source: call.source,
+      ...(providerRequestId
+        ? {
+            workflowEffectId,
+            callSequence,
+            providerRequestId,
+            requestIdentitySemantics: "trace-only",
+          }
+        : {}),
+    };
     try {
       if (typeof options.onUsageBoundary === "function") {
         // Synchronous and before `original`: a host can durably append the
         // start row, and any append failure prevents provider spend.
-        const observation = options.onUsageBoundary({
-          type: "model-usage-started",
-          callId: call.callId,
-          provider: call.provider,
-          model: call.model,
-          source: call.source,
-        });
+        const observation = options.onUsageBoundary(boundaryEvent);
         if (observation && typeof observation.then === "function") {
           void Promise.resolve(observation).catch(() => {});
           const error = new Error(
@@ -12060,13 +12116,54 @@ function _instrumentAutoCompactorUsage(compactor, options) {
         }
         call.boundaryNotified = true;
       }
+      if (
+        providerRequestId &&
+        typeof options.onProviderRequestBoundary === "function"
+      ) {
+        const observation = options.onProviderRequestBoundary(boundaryEvent);
+        if (observation && typeof observation.then === "function") {
+          void Promise.resolve(observation).catch(() => {});
+          throw _runtimeUsageBoundaryFailure(
+            null,
+            "CC_PROVIDER_REQUEST_BOUNDARY_ASYNC",
+            "Provider request boundary observer must be synchronous",
+          );
+        }
+      }
     } catch (error) {
       call.observerError = error;
       call.observerFailed = true;
       throw error;
     }
 
-    return await original.apply(this, args);
+    const requestBinding = providerRequestId
+      ? Object.freeze({
+          workflowEffectId,
+          callSequence,
+          source: "semantic-compaction",
+          providerRequestId,
+          requestIdentitySemantics: "trace-only",
+        })
+      : null;
+    try {
+      const result = await original.apply(
+        this,
+        requestBinding ? [...args, requestBinding] : args,
+      );
+      call.providerReceipt = providerRequestId
+        ? _snapshotProviderRequestReceipt(
+            result?.providerReceipt,
+            providerRequestId,
+            call.provider,
+          )
+        : null;
+      return result;
+    } catch (error) {
+      if (workflowEffectId) {
+        throw _workflowCompactionOutcomeUnknown(error);
+      }
+      throw error;
+    }
   };
 
   try {
@@ -12120,7 +12217,7 @@ async function _getAutoCompactor(options) {
           ? options.compactionLlmQuery
           : options.chatFn
             ? null
-            : async (prompt) => {
+            : async (prompt, requestBinding = null) => {
                 const maxOutputTokens = Math.min(
                   4096,
                   Math.max(
@@ -12139,14 +12236,17 @@ async function _getAutoCompactor(options) {
                     onToken: undefined,
                     onStall: undefined,
                     onStreamRetry: undefined,
+                    providerRequestId:
+                      requestBinding?.providerRequestId || undefined,
                     maxOutputTokens,
                   },
                 );
                 return {
                   summary: response?.message?.content || "",
                   usage: response?.usage || null,
-                  provider: options.provider || null,
-                  model: options.model || null,
+                  provider: options.provider || "ollama",
+                  model: options.model || "unknown",
+                  providerReceipt: response?.providerReceipt || null,
                 };
               };
       compressor = new PromptCompressor({
@@ -12839,6 +12939,7 @@ export async function* agentLoop(messages, options) {
         if (compactor && compactor.shouldAutoCompact(messages)) {
           compactionUsageState = _autoCompactionUsageState(options);
           compactionUsageState.calls = [];
+          compactionUsageState.callSequence = budget.consumed;
           // This is the canonical pre-provider authority snapshot. A local
           // micro-compact may change the working input, but the durable CAS must
           // still compare against the transcript state that existed before any
@@ -12935,6 +13036,16 @@ export async function* agentLoop(messages, options) {
           }
           compactionUsageCall = compactionUsageState.calls.at(-1) || null;
           const compactionUsage = _compactionTokenUsage(stats);
+          if (compactionUsageCall?.providerReceipt) {
+            yield {
+              type: "provider-request-receipt",
+              callId: compactionUsageCall.callId,
+              workflowEffectId,
+              callSequence: compactionUsageCall.callSequence,
+              source: "semantic-compaction",
+              ...compactionUsageCall.providerReceipt,
+            };
+          }
           if (stats.degraded === true) {
             const usageOutcomeUnknown = stats.summaryUsageUnknown === true;
             const projectedStats = usageOutcomeUnknown
@@ -13001,6 +13112,15 @@ export async function* agentLoop(messages, options) {
               backgroundSubAgents,
               backgroundUsageFailureState,
             );
+            if (workflowEffectId) {
+              throw _markWorkflowCompactionFailureReported(
+                _workflowCompactionOutcomeUnknown(
+                  null,
+                  "CC_WORKFLOW_COMPACTION_USAGE_UNKNOWN",
+                  "Workflow-bound semantic compaction usage is unknown",
+                ),
+              );
+            }
             return;
           }
           if (
@@ -13054,6 +13174,15 @@ export async function* agentLoop(messages, options) {
                 backgroundSubAgents,
                 backgroundUsageFailureState,
               );
+              if (workflowEffectId) {
+                throw _markWorkflowCompactionFailureReported(
+                  _workflowCompactionOutcomeUnknown(
+                    error,
+                    "CC_WORKFLOW_COMPACTION_SETTLEMENT_UNKNOWN",
+                    "Workflow-bound semantic compaction settlement is unknown",
+                  ),
+                );
+              }
               return;
             }
             if (!hermeticExecution) {
@@ -13101,6 +13230,12 @@ export async function* agentLoop(messages, options) {
       } catch (_e) {
         if (isAbortError(_e) || signal?.aborted) throw _e;
         if (_e?.runtimeLedgerPersistence === true) throw _e;
+        if (
+          _e?.workflowEffectOutcomeUnknown === true &&
+          _e?.compactionFailureReported === true
+        ) {
+          throw _e;
+        }
         if (compactionObserverFailure === _e) throw _e;
         const observerFailure = compactionUsageState?.calls?.find(
           (call) => call.observerFailed && call.observerError === _e,
@@ -13127,6 +13262,13 @@ export async function* agentLoop(messages, options) {
             backgroundSubAgents,
             backgroundUsageFailureState,
           );
+          if (workflowEffectId) {
+            throw _markWorkflowCompactionFailureReported(
+              _e?.workflowEffectOutcomeUnknown === true
+                ? _e
+                : _workflowCompactionOutcomeUnknown(_e),
+            );
+          }
           return;
         }
         yield {
@@ -13250,6 +13392,7 @@ export async function* agentLoop(messages, options) {
       ...(providerRequestId
         ? {
             workflowEffectId,
+            callSequence: budget.consumed,
             providerRequestId,
             requestIdentitySemantics: "trace-only",
           }
@@ -13335,6 +13478,7 @@ export async function* agentLoop(messages, options) {
         ? _snapshotProviderRequestReceipt(
             result?.providerReceipt,
             providerRequestId,
+            modelUsageCall.provider,
           )
         : null;
     } catch (error) {
@@ -13366,6 +13510,7 @@ export async function* agentLoop(messages, options) {
         callId: modelUsageCall.callId,
         workflowEffectId,
         callSequence: budget.consumed,
+        source: modelUsageCall.source,
         ...providerReceipt,
       };
     }

@@ -143,6 +143,18 @@ describe("cowork task workflow", () => {
         toolsUsed: [],
         iterationCount: 1,
       }),
+      providerRequestAttempts: () => [
+        {
+          protocol: "cc-provider-request-attempt/v1",
+          provider: "openai",
+          workflowEffectId: opts.workflowEffectId,
+          callId: "mdl-1",
+          callSequence: 1,
+          source: "model",
+          clientRequestId: "ccwf_test",
+          requestIdentitySemantics: "trace-only",
+        },
+      ],
       providerRequestReceipts: () => [
         {
           protocol: "cc-provider-request-receipt/v1",
@@ -150,6 +162,7 @@ describe("cowork task workflow", () => {
           workflowEffectId: opts.workflowEffectId,
           callId: "mdl-1",
           callSequence: 1,
+          source: "model",
           clientRequestId: "ccwf_test",
           requestId: "req_test",
           responseId: "chatcmpl_test",
@@ -169,6 +182,13 @@ describe("cowork task workflow", () => {
       workflowEffectId,
     );
     expect(result.workflowEffectId).toBe(workflowEffectId);
+    expect(result.providerRequestAttempts).toEqual([
+      expect.objectContaining({
+        workflowEffectId,
+        source: "model",
+        clientRequestId: "ccwf_test",
+      }),
+    ]);
     expect(result.providerRequestReceipts).toEqual([
       expect.objectContaining({
         workflowEffectId,

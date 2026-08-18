@@ -88,12 +88,17 @@ function assertWorkflowEffectId(value) {
 
 function workflowEffectEvidence(subAgent, workflowEffectId) {
   if (!workflowEffectId) return {};
+  const attempts =
+    typeof subAgent?.providerRequestAttempts === "function"
+      ? subAgent.providerRequestAttempts()
+      : [];
   const receipts =
     typeof subAgent?.providerRequestReceipts === "function"
       ? subAgent.providerRequestReceipts()
       : [];
   return {
     workflowEffectId,
+    providerRequestAttempts: attempts,
     providerRequestReceipts: receipts,
   };
 }

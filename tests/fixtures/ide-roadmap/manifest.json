@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "manifestVersion": "1.9.5",
-  "baselineCommit": "e870d66f9f28e5bc56ad96248e3c303f3366000c",
+  "manifestVersion": "1.9.6",
+  "baselineCommit": "2b37f3cf8db70a40cb64514eb6440b9cb4a63372",
   "releaseEvidence": {
     "commitSource": "git-head-at-run",
     "requiredFields": [
@@ -436,9 +436,9 @@
       "priority": "P1",
       "required": true,
       "evidenceStatus": "external-evidence-required",
-      "evidenceNotes": "Repository tests close generated-draft review authority, exact admission/replay, serial and bounded-parallel request-before-provider persistence, atomic dispatch-batch identity, ordered multi-pending reconciliation, the pause settlement barrier, attempt-scoped retry/timeout recovery, and effect-bound official-OpenAI request tracing with provider-returned request identifiers. The OpenAI client request header is trace-only and limited to the official api.openai.com origin; custom compatible gateways receive no official receipt claim. Transparent transport retry and cross-provider fallback are disabled for workflow-bound model turns, and a provider exception propagates as an unknown outer outcome instead of becoming a retryable task failure. Returned identifiers are explicitly not independent readback or idempotency proof. Release readiness still requires native third-party idempotency and independently readable durable receipts across providers, complete artifact/checkpoint/side-effect readback, dual-IDE consumption, plugin distribution, and the declared real-host matrix on the exact release commit.",
+      "evidenceNotes": "Repository tests close generated-draft review authority, exact admission/replay, serial and bounded-parallel request-before-provider persistence, atomic dispatch-batch identity, ordered multi-pending reconciliation, the pause settlement barrier, attempt-scoped retry/timeout recovery, and effect-bound provider request tracing for ordinary model turns plus semantic compaction. Every bound call records a pre-transport attempt identity; completed provider-return results require receipts to match its effect, provider, call, source, sequence, and client request ID, so one returned receipt cannot hide another missing call receipt. The OpenAI client request header is trace-only and limited to the official api.openai.com origin; custom compatible gateways receive no official receipt claim. Transparent transport retry and cross-provider fallback are disabled, while provider/receipt/compaction-usage or post-provider compaction-settlement uncertainty propagates as an unknown outer outcome instead of becoming a retryable task failure. Returned identifiers are explicitly not independent readback or idempotency proof. Release readiness still requires a durable per-call store for pending/crashed effects, native third-party idempotency and independently readable durable receipts across providers, complete artifact/checkpoint/nested-side-effect readback, dual-IDE consumption, plugin distribution, and the declared real-host matrix on the exact release commit.",
       "fixture": "tests/fixtures/ide-roadmap/p1-dynamic-workflow.json",
-      "fixtureDigest": "sha256:3b0d74e7685618a18b5abaaeac1a3eb1b5cf9204117296b3cc400926d0fcea19",
+      "fixtureDigest": "sha256:5733827d84da8b31d0fa4c903142795b36452ab71463252f07b8b7bda86e4739",
       "seed": 2026080114,
       "minimumIndependentRuns": 100,
       "matrix": {
@@ -467,6 +467,10 @@
         "providerReceiptIdempotencyOverclaimCount": 0,
         "transparentProviderRetryCount": 0,
         "providerUnknownDowngradeCount": 0,
+        "unboundSemanticCompactionRequestCount": 0,
+        "semanticCompactionReceiptMismatchCount": 0,
+        "semanticCompactionUnknownDowngradeCount": 0,
+        "missingProviderAttemptReceiptDetectionFailureCount": 0,
         "stoppedStageCommitCount": 0,
         "budgetOverrunContinuationCount": 0,
         "missingArtifactLineageCount": 0,
@@ -485,6 +489,9 @@
         "packages/cli/__tests__/unit/cowork-workflow-ws.test.js",
         "packages/cli/__tests__/integration/cowork-workflow-run-admission-command.test.js",
         "packages/cli/__tests__/unit/agent-core.test.js",
+        "packages/cli/__tests__/unit/agent-core-autocompact.test.js",
+        "packages/cli/__tests__/unit/agent-core-usage-boundary.test.js",
+        "packages/cli/__tests__/unit/prompt-compressor.test.js",
         "packages/cli/__tests__/unit/sub-agent-usage-forwarding.test.js",
         "packages/cli/__tests__/integration/cowork-task-workflow.test.js"
       ],
@@ -502,7 +509,9 @@
         "settlement-barrier-ledger",
         "provider-dispatch-ledger",
         "timeout-settlement-ledger",
+        "effect-bound-provider-request-attempt-ledger",
         "effect-bound-provider-request-receipt",
+        "semantic-compaction-provider-request-receipt",
         "checkpoint-lineage",
         "token-time-budget-ledger",
         "artifact-lineage",

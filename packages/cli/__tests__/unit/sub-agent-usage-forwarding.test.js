@@ -139,10 +139,21 @@ describe("SubAgentContext usage forwarding", () => {
     expect(chatFn.mock.calls[0][1].providerRequestId).toMatch(
       /^ccwf_[a-f0-9]{64}$/,
     );
+    expect(subCtx.providerRequestAttempts()).toEqual([
+      expect.objectContaining({
+        protocol: "cc-provider-request-attempt/v1",
+        workflowEffectId,
+        callSequence: 1,
+        source: "model",
+        clientRequestId: chatFn.mock.calls[0][1].providerRequestId,
+        requestIdentitySemantics: "trace-only",
+      }),
+    ]);
     expect(subCtx.providerRequestReceipts()).toEqual([
       expect.objectContaining({
         workflowEffectId,
         callSequence: 1,
+        source: "model",
         requestId: "req_child_1",
         responseId: "chatcmpl_child_1",
         requestIdentitySemantics: "trace-only",
@@ -150,9 +161,109 @@ describe("SubAgentContext usage forwarding", () => {
       }),
     ]);
     expect(subCtx.recoveryBinding()).toMatchObject({
+      providerRequestAttempts: [
+        expect.objectContaining({ workflowEffectId, source: "model" }),
+      ],
       providerRequestReceipts: [
         expect.objectContaining({ workflowEffectId, requestId: "req_child_1" }),
       ],
+    });
+  });
+
+  it("retains semantic-compaction attempts and receipts beside normal model turns", async () => {
+    const workflowEffectId = `sha256:${"d".repeat(64)}`;
+    const subCtx = createContext({ workflowEffectId, maxIterations: 5 });
+    let modelCall = 0;
+    const withReceipt = (result, options, suffix) => ({
+      ...result,
+      providerReceipt: {
+        protocol: "cc-provider-request-receipt/v1",
+        provider: "openai",
+        clientRequestId: options.providerRequestId,
+        requestId: `req_${suffix}`,
+        responseId: `chatcmpl_${suffix}`,
+        requestIdentitySemantics: "trace-only",
+        independentlyReadable: false,
+      },
+    });
+    const chatFn = vi.fn(async (_messages, options) => {
+      modelCall += 1;
+      if (modelCall <= 2) {
+        const response = toolResponse({ input_tokens: 2, output_tokens: 1 });
+        response.message.tool_calls[0].id = `read-${modelCall}`;
+        return withReceipt(response, options, `model_${modelCall}`);
+      }
+      return withReceipt(
+        finalResponse("done", { input_tokens: 2, output_tokens: 1 }),
+        options,
+        "model_3",
+      );
+    });
+    const compactor = {
+      shouldAutoCompact: (messages) => messages.length > 4,
+      llmQuery: vi.fn(async (_prompt, binding) => ({
+        summary: "not used by fake compactor",
+        usage: { input_tokens: 5, output_tokens: 2 },
+        providerReceipt: {
+          protocol: "cc-provider-request-receipt/v1",
+          provider: "openai",
+          clientRequestId: binding.providerRequestId,
+          requestId: "req_compaction_child",
+          responseId: "chatcmpl_compaction_child",
+          requestIdentitySemantics: "trace-only",
+          independentlyReadable: false,
+        },
+      })),
+      async compress(messages) {
+        await this.llmQuery("summarize");
+        return {
+          messages: [messages[0], messages.at(-1)],
+          stats: {
+            saved: messages.length - 2,
+            originalMessages: messages.length,
+            compressedMessages: 2,
+            summaryUsage: {
+              inputTokens: 5,
+              outputTokens: 2,
+              cacheReadTokens: 0,
+              cacheCreationTokens: 0,
+            },
+          },
+        };
+      },
+    };
+
+    await subCtx.run("t", {
+      ...RUN_OPTIONS,
+      provider: "openai",
+      model: "gpt-4o",
+      chatFn,
+      autoCompact: true,
+      autoMicroCompact: false,
+      _autoCompactor: compactor,
+    });
+
+    expect(
+      subCtx.providerRequestAttempts().map((entry) => entry.source),
+    ).toEqual(["model", "model", "semantic-compaction", "model"]);
+    expect(
+      subCtx.providerRequestReceipts().map((entry) => entry.source),
+    ).toEqual(["model", "model", "semantic-compaction", "model"]);
+    const compactionAttempt = subCtx
+      .providerRequestAttempts()
+      .find((entry) => entry.source === "semantic-compaction");
+    const compactionReceipt = subCtx
+      .providerRequestReceipts()
+      .find((entry) => entry.source === "semantic-compaction");
+    expect(compactionAttempt).toMatchObject({
+      workflowEffectId,
+      callSequence: 3,
+    });
+    expect(compactionReceipt).toMatchObject({
+      workflowEffectId,
+      callId: compactionAttempt.callId,
+      clientRequestId: compactionAttempt.clientRequestId,
+      requestId: "req_compaction_child",
     });
   });
 
