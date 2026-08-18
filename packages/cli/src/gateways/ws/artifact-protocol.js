@@ -234,6 +234,7 @@ export async function handleArtifactRemove(server, id, ws, message) {
       removed: deletion.found ? message.artifactId : null,
       found: deletion.found,
       settled: deletion.settled,
+      recorded: deletion.recorded,
       deletion: deletion.deletion,
     });
   } catch (err) {
