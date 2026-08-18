@@ -571,7 +571,7 @@ describe("IDE roadmap fixture contract", () => {
       /schemaVersion must equal supported version 1/,
     );
     expect(() => verifyIdeRoadmapFixtures({ repoRoot: corpus.root })).toThrow(
-      /manifestVersion must equal supported version "1\.9\.24"/,
+      /manifestVersion must equal supported version "1\.9\.25"/,
     );
   });
 
