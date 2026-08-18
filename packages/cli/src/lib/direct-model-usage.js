@@ -5,6 +5,7 @@ import {
   projectRuntimeUsageBoundary,
   runtimeUsageEventType,
 } from "./runtime-usage-ledger.js";
+import { sessionBudgetAdmissionError } from "./session-budget-production-root.js";
 
 function asRuntimeLedgerPersistenceError(error) {
   if (error && (typeof error === "object" || typeof error === "function")) {
@@ -47,16 +48,26 @@ export async function runMeteredDirectModelCall({
   provider,
   model,
   source = "model",
+  sessionBudget = null,
   call,
 }) {
   if (typeof call !== "function") {
     throw new TypeError("metered direct model call requires a callback");
   }
+  const callId = `direct-${randomUUID()}`;
+  if (typeof sessionBudget?.consumeTurn === "function") {
+    const admission = sessionBudget.consumeTurn({ id: callId });
+    if (!admission?.ok) {
+      throw sessionBudgetAdmissionError(
+        admission?.reason,
+        `direct model call ${source}`,
+      );
+    }
+  }
   if (!sessionId) return call();
   if (typeof persist !== "function") {
     throw new TypeError("metered direct model call requires persistence");
   }
-  const callId = `direct-${randomUUID()}`;
   await persistUsageEvent(
     persist,
     runtimeUsageEventType("started"),
@@ -104,6 +115,19 @@ export async function runMeteredDirectModelCall({
       return result;
     }
     await persistUsageEvent(persist, "token_usage", event);
+    if (typeof sessionBudget?.recordUsage === "function") {
+      const budgetStatus = sessionBudget.recordUsage({
+        provider,
+        model,
+        usage: result.usage,
+      });
+      if (budgetStatus?.aborted) {
+        throw sessionBudgetAdmissionError(
+          budgetStatus.reason,
+          `direct model call ${source} usage settlement`,
+        );
+      }
+    }
   } else {
     await persistUsageEvent(
       persist,

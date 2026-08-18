@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { runMeteredDirectModelCall } from "../../src/lib/direct-model-usage.js";
+import { SessionResourceBudget } from "../../src/lib/session-resource-budget.js";
 
 const BASE = {
   sessionId: "session-1",
@@ -9,6 +10,30 @@ const BASE = {
 };
 
 describe("direct model usage ledger", () => {
+  it("settles the durable provider ledger before charging the session budget", async () => {
+    const order = [];
+    const budget = new SessionResourceBudget({
+      maxTurns: 2,
+      maxTokens: 10,
+      onAuthorityChange: (change) => order.push(change.type),
+    });
+
+    await runMeteredDirectModelCall({
+      ...BASE,
+      sessionBudget: budget,
+      persist: (type) => order.push(type),
+      call: async () => ({
+        usage: { input_tokens: 2, output_tokens: 1 },
+      }),
+    });
+
+    expect(order.indexOf("token_usage")).toBeLessThan(
+      order.indexOf("budget:usage-settlement-started"),
+    );
+    expect(budget.status()).toMatchObject({ turns: 1, tokens: 3 });
+    budget.dispose();
+  });
+
   it("durably records started before the provider and settles canonical usage", async () => {
     const order = [];
     const records = [];

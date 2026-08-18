@@ -112,6 +112,7 @@ import {
   managedToolCheckpointBinding,
   settleManagedToolCheckpoint,
 } from "../lib/managed-tool-checkpoint.js";
+import { sessionBudgetAdmissionError } from "../lib/session-budget-production-root.js";
 import {
   createMcpCallLedger,
   McpEffect,
@@ -3571,6 +3572,35 @@ export async function executeTool(name, args, context = {}) {
     }
   }
 
+  let sessionBudgetTool = null;
+  if (typeof context.sessionBudget?.beginTool === "function") {
+    const toolBinding = JSON.stringify({
+      sessionId: context.sessionId || null,
+      turnId: context.turnId || null,
+      toolCallId: context.toolCallId || randomUUID(),
+      tool: name,
+    });
+    const toolBudgetId = `tool:${createHash("sha256")
+      .update(toolBinding, "utf8")
+      .digest("hex")
+      .slice(0, 48)}`;
+    sessionBudgetTool = context.sessionBudget.beginTool({
+      id: toolBudgetId,
+      kind: String(name || "tool").slice(0, 128),
+    });
+    if (!sessionBudgetTool?.ok) {
+      return {
+        error: `Session budget blocked tool execution: ${sessionBudgetTool?.reason || "session-aborted"}`,
+        code: "CC_SESSION_BUDGET_EXHAUSTED",
+        budgetReason: sessionBudgetTool?.reason || "session-aborted",
+        policy: {
+          decision: "blocked",
+          via: "session-budget",
+        },
+      };
+    }
+  }
+
   const startTime = Date.now();
   let toolResult;
   try {
@@ -3663,6 +3693,8 @@ export async function executeTool(name, args, context = {}) {
       }
     }
     throw err;
+  } finally {
+    sessionBudgetTool?.end?.();
   }
 
   const durationMs = Date.now() - startTime;
@@ -13082,6 +13114,21 @@ export async function* agentLoop(messages, options) {
   let emptyThinkingReprompted = false;
 
   while (budget.hasRemaining()) {
+    if (typeof toolContext.sessionBudget?.consumeTurn === "function") {
+      const turnBudgetId = `turn:${createHash("sha256")
+        .update(`${runId}:t${budget.consumed + 1}`, "utf8")
+        .digest("hex")
+        .slice(0, 48)}`;
+      const admission = toolContext.sessionBudget.consumeTurn({
+        id: turnBudgetId,
+      });
+      if (!admission?.ok) {
+        throw sessionBudgetAdmissionError(
+          admission?.reason,
+          `turn ${budget.consumed + 1}`,
+        );
+      }
+    }
     budget.consume();
     throwIfAborted(signal);
 
