@@ -997,16 +997,21 @@ describe("SessionResourceBudget snapshot and recovery", () => {
     });
     const usageTamper = source.snapshot();
     const predecessorTamper = source.snapshot();
+    const totalsTamper = source.snapshot();
     source.dispose();
     usageTamper.state.recoveryAdjudication.history.entries[0].settled[0].usage.input_tokens =
       2;
     predecessorTamper.state.recoveryAdjudication.history.baseSequence = 1;
+    totalsTamper.totals.tokens = 2;
 
     expect(() => SessionResourceBudget.restore(usageTamper)).toThrow(
       /recovery receipt digest/,
     );
     expect(() => SessionResourceBudget.restore(predecessorTamper)).toThrow(
       /receipt history/,
+    );
+    expect(() => SessionResourceBudget.restore(totalsTamper)).toThrow(
+      /receipt head/,
     );
   });
 

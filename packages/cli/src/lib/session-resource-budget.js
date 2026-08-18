@@ -431,7 +431,7 @@ function normalizeRecoveryReceipt(value, index) {
   return { ...core, digest };
 }
 
-function normalizeRecoveryReceiptHistory(value, adjudication) {
+function normalizeRecoveryReceiptHistory(value, adjudication, totals) {
   if (
     !isRecord(value) ||
     value.schema !== SESSION_BUDGET_RECOVERY_RECEIPT_HISTORY_SCHEMA ||
@@ -450,17 +450,22 @@ function normalizeRecoveryReceiptHistory(value, adjudication) {
   }
   const entries = value.entries.map(normalizeRecoveryReceipt);
   let previousDigest = value.baseDigest;
+  let previousTotals = null;
   for (let index = 0; index < entries.length; index += 1) {
     const entry = entries[index];
     if (
       entry.sequence !== value.baseSequence + index + 1 ||
-      entry.previousDigest !== previousDigest
+      entry.previousDigest !== previousDigest ||
+      (previousTotals !== null &&
+        (entry.totalsBefore.tokens !== previousTotals.tokens ||
+          entry.totalsBefore.spentUsd !== previousTotals.spentUsd))
     ) {
       throw new TypeError(
         "invalid session budget recovery adjudication receipt chain",
       );
     }
     previousDigest = entry.digest;
+    previousTotals = entry.totalsAfter;
   }
   const last = entries.at(-1);
   if (
@@ -473,7 +478,9 @@ function normalizeRecoveryReceiptHistory(value, adjudication) {
     last.totalsAfter.tokens - last.totalsBefore.tokens !==
       adjudication.last.tokenDelta ||
     last.totalsAfter.spentUsd - last.totalsBefore.spentUsd !==
-      adjudication.last.spentUsdDelta
+      adjudication.last.spentUsdDelta ||
+    last.totalsAfter.tokens !== totals.tokens ||
+    last.totalsAfter.spentUsd !== totals.spentUsd
   ) {
     throw new TypeError(
       "invalid session budget recovery adjudication receipt head",
@@ -487,7 +494,7 @@ function normalizeRecoveryReceiptHistory(value, adjudication) {
   };
 }
 
-function normalizeRecoveryAdjudicationState(value) {
+function normalizeRecoveryAdjudicationState(value, totals) {
   if (value === undefined || value === null) return null;
   if (
     !isRecord(value) ||
@@ -536,6 +543,7 @@ function normalizeRecoveryAdjudicationState(value) {
     adjudication.history = normalizeRecoveryReceiptHistory(
       value.history,
       adjudication,
+      totals,
     );
   }
   return adjudication;
@@ -686,6 +694,7 @@ function validateSnapshot(snapshot) {
   const tools = validateResourceList(snapshot.inFlight.tools, "tools");
   const recoveryAdjudication = normalizeRecoveryAdjudicationState(
     snapshot.state.recoveryAdjudication,
+    totals,
   );
   const workIds = new Set(work.map((entry) => entry.id));
   if (tools.some((entry) => workIds.has(entry.id))) {
