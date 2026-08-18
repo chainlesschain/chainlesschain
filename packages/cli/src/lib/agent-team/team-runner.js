@@ -931,6 +931,12 @@ export class TeamRunner {
     if (!this.sessionBudget || claim.sessionBudgetSettled) return;
     claim.sessionBudgetSettled = true;
     if (claim.sessionBudgetUsageHandledByExecutor) return;
+    if (
+      !source?.usage &&
+      (!Array.isArray(source?.usageRecords) || source.usageRecords.length === 0)
+    ) {
+      return;
+    }
     this.sessionBudget.recordUsage({
       usage: source?.usage || null,
       usageRecords: source?.usageRecords || null,

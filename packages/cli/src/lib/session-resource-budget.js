@@ -996,7 +996,7 @@ export class SessionResourceBudget {
     return true;
   }
 
-  beginUsageSettlement({ id } = {}) {
+  beginUsageSettlement({ id, settleAfterAbort = false } = {}) {
     this._assertAuthorityMutationAllowed();
     const label = normalizeUsageSettlementLabel(id);
     try {
@@ -1004,7 +1004,7 @@ export class SessionResourceBudget {
     } catch (error) {
       return this._persistenceAdmissionFailure(error, { id: label });
     }
-    if (this.signal.aborted) {
+    if (this.signal.aborted && settleAfterAbort !== true) {
       return this._admissionFailure(this.reason() || "session-aborted", {
         id: label,
       });
@@ -1059,7 +1059,10 @@ export class SessionResourceBudget {
       throw new SessionBudgetError("usage-settlement-pending");
     }
     const label = `inline:${randomUUID()}`;
-    const admission = this.beginUsageSettlement({ id: label });
+    const admission = this.beginUsageSettlement({
+      id: label,
+      settleAfterAbort: true,
+    });
     if (!admission?.ok) {
       if (admission?.reason === "persistence-failed") {
         this._assertAuthorityMutationAllowed();
