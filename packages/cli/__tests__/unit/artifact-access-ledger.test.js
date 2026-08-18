@@ -118,6 +118,48 @@ describe("artifact content access ledger", () => {
     expect(ledger.headDigest).toBe(second.access.eventDigest);
   });
 
+  it("holds the index generation lock while it verifies bytes and appends authority", () => {
+    let generationLockDepth = 0;
+    const lockedStore = new ArtifactStore({
+      dir: path.join(root, "locked-artifacts"),
+      now: () => Date.UTC(2026, 7, 18, 12, 0, 0),
+      indexLock: (_target, callback, options) => {
+        expect(generationLockDepth).toBe(0);
+        expect(options).toMatchObject({ failIfUnavailable: true });
+        generationLockDepth += 1;
+        try {
+          return callback({ locked: true });
+        } finally {
+          generationLockDepth -= 1;
+        }
+      },
+    });
+    const lockedEntry = lockedStore.publishData({
+      data: "locked bytes",
+      fileName: "locked.txt",
+    });
+
+    const result = authorizeArtifactContentAccess(
+      lockedStore,
+      {
+        artifactId: lockedEntry.id,
+        accessId: "locked-access",
+        client: "cli",
+        action: "open",
+      },
+      {
+        withFileLock: (_target, callback, options) => {
+          expect(generationLockDepth).toBe(1);
+          expect(options).toMatchObject({ failIfUnavailable: true });
+          return callback({ locked: true });
+        },
+      },
+    );
+
+    expect(result.recorded).toBe(true);
+    expect(generationLockDepth).toBe(0);
+  });
+
   it("fails closed on ledger tamper or a truncated tail", () => {
     authorize();
     const ledgerPath = path.join(store.dir, "content-access.jsonl");

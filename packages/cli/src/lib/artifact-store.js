@@ -145,9 +145,14 @@ function normalizeLineage(lineage) {
 }
 
 export class ArtifactStore {
-  constructor({ dir = null, now = () => Date.now() } = {}) {
+  constructor({
+    dir = null,
+    now = () => Date.now(),
+    indexLock = withFileLock,
+  } = {}) {
     this.dir = dir || artifactsDir();
     this._now = typeof now === "function" ? now : () => now;
+    this._indexLock = indexLock;
   }
 
   _indexFile() {
@@ -160,6 +165,31 @@ export class ArtifactStore {
 
   _ensureDirs() {
     fs.mkdirSync(this._filesDir(), { recursive: true });
+  }
+
+  _withIndexLock(callback) {
+    this._ensureDirs();
+    return this._indexLock(this._indexFile(), callback, {
+      failIfUnavailable: true,
+      timeoutMs: 30_000,
+      retryMs: 1,
+      maxRetryMs: 8,
+      retryJitterMs: 4,
+    });
+  }
+
+  /**
+   * Run a read-only callback against one locked index generation. The callback
+   * may inspect stored bytes before it returns; all ArtifactStore mutations use
+   * this same lock and therefore cannot replace that generation mid-read.
+   */
+  withIndexSnapshot(callback) {
+    if (typeof callback !== "function") {
+      throw new TypeError("artifact index snapshot requires a callback");
+    }
+    return this._withIndexLock(() =>
+      callback(Object.freeze(this._readEntries())),
+    );
   }
 
   /**
@@ -186,14 +216,16 @@ export class ArtifactStore {
       );
     }
     const body = fs.readFileSync(abs);
-    return this._publishData(body, {
-      fileName: path.basename(abs),
-      title,
-      kind,
-      sessionId,
-      ttlDays,
-      sourcePath: abs,
-    });
+    return this._withIndexLock(() =>
+      this._publishDataUnlocked(body, {
+        fileName: path.basename(abs),
+        title,
+        kind,
+        sessionId,
+        ttlDays,
+        sourcePath: abs,
+      }),
+    );
   }
 
   /**
@@ -215,17 +247,19 @@ export class ArtifactStore {
     if (typeof data !== "string" && !Buffer.isBuffer(data)) {
       throw new Error("publishData requires string or Buffer data");
     }
-    return this._publishData(Buffer.from(data), {
-      fileName,
-      title,
-      kind,
-      mime,
-      sessionId,
-      ttlDays,
-      immutable,
-      recordDigest,
-      sourcePath: null,
-    });
+    return this._withIndexLock(() =>
+      this._publishDataUnlocked(Buffer.from(data), {
+        fileName,
+        title,
+        kind,
+        mime,
+        sessionId,
+        ttlDays,
+        immutable,
+        recordDigest,
+        sourcePath: null,
+      }),
+    );
   }
 
   /**
@@ -256,46 +290,35 @@ export class ArtifactStore {
       throw new Error("publishDataOnce requires a canonical recordDigest");
     }
     const normalizedLineage = normalizeLineage(lineage);
-    this._ensureDirs();
-    return withFileLock(
-      this._indexFile(),
-      () => {
-        const matches = this.list().filter(
-          (entry) => entry.recordDigest === stableDigest,
+    return this._withIndexLock(() => {
+      const matches = this._readEntries().filter(
+        (entry) => entry.recordDigest === stableDigest,
+      );
+      if (matches.length > 1) {
+        throw new Error(
+          `artifact authority ${stableDigest} has duplicate index rows`,
         );
-        if (matches.length > 1) {
-          throw new Error(
-            `artifact authority ${stableDigest} has duplicate index rows`,
-          );
-        }
-        if (matches.length === 1) {
-          return Object.freeze({ entry: matches[0], published: false });
-        }
-        const entry = this._publishData(Buffer.from(data), {
-          fileName,
-          title,
-          kind,
-          mime,
-          sessionId,
-          ttlDays,
-          immutable,
-          recordDigest: stableDigest,
-          lineage: normalizedLineage,
-          sourcePath: null,
-        });
-        return Object.freeze({ entry, published: true });
-      },
-      {
-        failIfUnavailable: true,
-        timeoutMs: 30_000,
-        retryMs: 1,
-        maxRetryMs: 8,
-        retryJitterMs: 4,
-      },
-    );
+      }
+      if (matches.length === 1) {
+        return Object.freeze({ entry: matches[0], published: false });
+      }
+      const entry = this._publishDataUnlocked(Buffer.from(data), {
+        fileName,
+        title,
+        kind,
+        mime,
+        sessionId,
+        ttlDays,
+        immutable,
+        recordDigest: stableDigest,
+        lineage: normalizedLineage,
+        sourcePath: null,
+      });
+      return Object.freeze({ entry, published: true });
+    });
   }
 
-  _publishData(
+  _publishDataUnlocked(
     body,
     {
       fileName,
@@ -343,7 +366,11 @@ export class ArtifactStore {
     };
     this._ensureDirs();
     const storedPath = path.join(this._filesDir(), entry.file);
-    fs.writeFileSync(storedPath, body, { flag: "wx" });
+    fs.writeFileSync(storedPath, body, {
+      flag: "wx",
+      mode: 0o600,
+      flush: true,
+    });
     if (entry.immutable) {
       try {
         fs.chmodSync(storedPath, 0o444);
@@ -352,12 +379,37 @@ export class ArtifactStore {
         // support; immutable here means append-only/no update API, not WORM.
       }
     }
-    fs.appendFileSync(this._indexFile(), JSON.stringify(entry) + "\n", "utf-8");
+    let descriptor = null;
+    try {
+      descriptor = fs.openSync(
+        this._indexFile(),
+        fs.constants.O_WRONLY |
+          fs.constants.O_APPEND |
+          fs.constants.O_CREAT |
+          Number(fs.constants.O_NOFOLLOW || 0),
+        0o600,
+      );
+      const indexStat = fs.fstatSync(descriptor);
+      if (!indexStat.isFile() || Number(indexStat.nlink) !== 1) {
+        throw new Error("artifact index identity is invalid");
+      }
+      fs.writeFileSync(descriptor, `${JSON.stringify(entry)}\n`, "utf-8");
+      fs.fsyncSync(descriptor);
+    } catch (error) {
+      try {
+        this._deleteStoredFile(entry);
+      } catch {
+        /* best-effort rollback of an unpublished stored copy */
+      }
+      throw error;
+    } finally {
+      if (descriptor !== null) fs.closeSync(descriptor);
+    }
     return entry;
   }
 
   /** All (non-corrupt) metadata rows, oldest first. */
-  list({ sessionId } = {}) {
+  _readEntries({ sessionId } = {}) {
     let raw;
     try {
       raw = fs.readFileSync(this._indexFile(), "utf-8");
@@ -376,6 +428,10 @@ export class ArtifactStore {
       }
     }
     return sessionId ? out.filter((e) => e.sessionId === sessionId) : out;
+  }
+
+  list(options = {}) {
+    return this._withIndexLock(() => this._readEntries(options));
   }
 
   /** One entry by id (or null). */
@@ -441,16 +497,22 @@ export class ArtifactStore {
 
   /** Remove one artifact (file + index row). @returns {boolean} found */
   remove(id) {
-    const entries = this.list();
-    const target = entries.find((e) => e.id === id);
-    if (!target) return false;
-    try {
-      this._deleteStoredFile(target);
-    } catch {
-      /* best-effort — the index row is the source of truth */
-    }
-    this._rewrite(entries.filter((e) => e.id !== id));
-    return true;
+    return this._withIndexLock(() => {
+      const entries = this._readEntries();
+      const matches = entries.filter((entry) => entry.id === id);
+      if (matches.length === 0) return false;
+      if (matches.length > 1) {
+        throw new Error(`artifact id ${id} has duplicate index rows`);
+      }
+      const target = matches[0];
+      this._rewriteUnlocked(entries.filter((entry) => entry.id !== id));
+      try {
+        this._deleteStoredFile(target);
+      } catch {
+        /* best-effort — the locked index generation is the source of truth */
+      }
+      return true;
+    });
   }
 
   /**
@@ -458,30 +520,78 @@ export class ArtifactStore {
    * @returns {{ removed: number }}
    */
   cleanupExpired() {
-    const entries = this.list();
-    const now = this._now();
-    const keep = [];
-    let removed = 0;
-    for (const e of entries) {
-      const exp = Date.parse(e.expiresAt || "");
-      if (Number.isFinite(exp) && exp <= now) {
-        try {
-          this._deleteStoredFile(e);
-        } catch {
-          /* best-effort */
+    return this._withIndexLock(() => {
+      const entries = this._readEntries();
+      const now = this._now();
+      const keep = [];
+      const expired = [];
+      for (const entry of entries) {
+        const exp = Date.parse(entry.expiresAt || "");
+        if (Number.isFinite(exp) && exp <= now) {
+          expired.push(entry);
+        } else {
+          keep.push(entry);
         }
-        removed += 1;
-      } else {
-        keep.push(e);
       }
-    }
-    if (removed > 0) this._rewrite(keep);
-    return { removed };
+      if (expired.length > 0) this._rewriteUnlocked(keep);
+      for (const entry of expired) {
+        try {
+          this._deleteStoredFile(entry);
+        } catch {
+          /* best-effort — the locked index generation is the source of truth */
+        }
+      }
+      return { removed: expired.length };
+    });
   }
 
-  _rewrite(entries) {
+  _rewriteUnlocked(entries) {
     this._ensureDirs();
     const text = entries.map((e) => JSON.stringify(e)).join("\n");
-    fs.writeFileSync(this._indexFile(), text ? text + "\n" : "", "utf-8");
+    const indexFile = this._indexFile();
+    const temporary = `${indexFile}.${process.pid}.${crypto
+      .randomBytes(8)
+      .toString("hex")}.tmp`;
+    let descriptor = null;
+    try {
+      descriptor = fs.openSync(
+        temporary,
+        fs.constants.O_WRONLY |
+          fs.constants.O_CREAT |
+          fs.constants.O_EXCL |
+          Number(fs.constants.O_NOFOLLOW || 0),
+        0o600,
+      );
+      fs.writeFileSync(descriptor, text ? `${text}\n` : "", "utf-8");
+      fs.fsyncSync(descriptor);
+      fs.closeSync(descriptor);
+      descriptor = null;
+      fs.renameSync(temporary, indexFile);
+      this._syncIndexDirectory();
+    } finally {
+      if (descriptor !== null) fs.closeSync(descriptor);
+      try {
+        fs.rmSync(temporary, { force: true });
+      } catch {
+        /* best-effort cleanup of an unpublished index generation */
+      }
+    }
+  }
+
+  _syncIndexDirectory() {
+    let descriptor = null;
+    try {
+      descriptor = fs.openSync(this.dir, "r");
+      fs.fsyncSync(descriptor);
+    } catch (error) {
+      if (
+        process.platform !== "win32" ||
+        !["EACCES", "EINVAL", "ENOTSUP", "EPERM"].includes(error?.code)
+      ) {
+        throw error;
+      }
+    } finally {
+      if (descriptor !== null) fs.closeSync(descriptor);
+    }
   }
 }
