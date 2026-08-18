@@ -2588,6 +2588,49 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 五十四、2026-08-18 P1-1 terminal checkpoint batch recovery 子门复核（`15:45 +08:00`）
+
+本节继续第四十一、四十三至五十三节，把第五十一节逐 call 的 terminal checkpoint crash adjudication 扩展为 revision-bound 原子批处理；不把手动
+batch 命令外推为无人值守自动恢复，也不改变 outer effect 必须独立 reconcile 的权限边界。候选基于已合并本地主分支
+`1ddb4fec82285145ec7a6660428c380d7b5817f1`，功能提交为 `09cbcff089`，证据契约提交为 `3d51a40e5f`；尚无本候选
+exact-head GitHub Actions。
+
+### 本轮关闭的 batch adjudication 子门
+
+- **一次扫描、一次 revision authority。** `recoverDurableWorkflowCheckpointCalls` 在同一 state lock 下，以调用开始时的 exact revision 扫描所有
+  pending effect；只选择仍为 started、具有有效 prepared binding、且不含 ArtifactStore 双重 readback schema 的 tool calls。already-settled、
+  outcome-unknown、artifact 或无 binding calls 不进入批处理。
+- **只裁决独立 store 已 terminal 的 calls。** 每个候选都按 binding 读取 canonical transaction store；`committed` 与 `rolled_back` 分别恢复为
+  completed/failed，prepared/running/rollback-required 等非 terminal state 保持 started。任一候选 store 读取/验证失败会在 state write 前终止整批，原
+  revision 与所有 calls 均不变化，不产生部分成功。
+- **一个原子 state write、逐 call 标准 lineage。** 成功批次先在 detached draft 中更新所有 calls，再为每个 call 写普通
+  `effect-call-settled` event、checkpoint readback digest 与 `terminal-store-batch` recovery source，最后一次原子替换 state。revision 按恢复 call 数递增，
+  既保持现有 verifier 的一 call 一 settlement lineage，也避免中途 crash 留下半批写盘。
+- **生产 CLI。** `cc cowork workflow runtime-recover-checkpoints <run-id> --expected-revision <n>` 使用同一 canonical store adapter；空批次、
+  stale revision、store failure 与 replay 均 fail closed。恢复后 run/effect 继续 blocked/pending，仍须 operator reconciliation；命令不会根据 checkpoint
+  自动生成丢失的 tool output 或 outer task result。
+
+### 仓库内验证与证据边界
+
+- dynamic runtime 与 production command 两文件合并定向回归为 **51/51**；manifest `p1-dynamic-workflow` 引用的 **20 个文件为 707/707**。
+- roadmap verifier 与 journey evidence 两文件为 **37/37**。roadmap manifest 从 `1.9.20` 升至 `1.9.21`；fixture digest 为
+  `sha256:4a64daf3ef23c0efa1e6aec55a29ae7348efef8a84e4676e3011f67e991eaee4`。
+- `--contract-only` 验证 **15 cases / 71 referenced test files**，明确没有评估 runtime evidence 或 release readiness。
+
+### P1-1 仍未关闭的边界
+
+1. **不是自动恢复 policy：** 本轮必须由 operator 读取 status/revision 后显式调用；尚无启动时自动扫描、定时 policy、风险分级、通知/审批、重试
+   backoff、批次 dry-run 或 Workbench/双 IDE batch UI。
+2. **outer result 与非 terminal authority 仍开放：** child checkpoint terminal 不能替代 tool output、后续 model turn、provider receipt 或 outer task
+   result；非 terminal transaction、ArtifactStore 双重 authority、external side effects 与 current workspace restore 仍不能由 batch 命令强制裁决。
+3. **完整产品与矩阵仍开放：** WORM retention、provider 独立 readback/native idempotency、运行中 elicitation、plugin/marketplace 分发，以及
+   Local/WSL/SSH/Container/Cloud × 三 OS × 双 IDE 每格 100 次 exact-head 外部矩阵仍未完成。
+
+因此，P1-1 的 **terminal checkpoint 多 call 原子批量 child-call recovery、partial-store-failure 全批回滚、逐 call lineage、revision/replay rejection 与
+production CLI 路由** 由本节关闭；P1-1 整项仍为**部分完成**，不得据此声明无人值守自动恢复、outer effect 自动裁决或 release readiness 已完成。总计数
+保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
+Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
+
 ## 五十三、2026-08-18 P1-1 `runtime-status` current store readback 子门复核（`15:38 +08:00`）
 
 本节继续第四十一、四十三至五十二节，把 artifact/checkpoint 在 tool settlement 时的一次性独立回读扩展为 production `runtime-status` 的当前权威
