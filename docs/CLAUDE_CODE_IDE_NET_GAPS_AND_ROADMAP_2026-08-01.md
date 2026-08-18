@@ -2588,6 +2588,52 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 七十一、2026-08-19 P1-2 ArtifactStore index-generation serialization 子门复核（`00:32 +08:00`）
+
+本节继续第七十节的官方内容授权审计，关闭普通 publish、幂等 import、list/get、remove、TTL clean 与 access authorization 各自读取或
+改写 `index.jsonl`、从而可能在同机多进程下丢代际或对已变化 bytes 落 access event 的窄缺口；不把同机 advisory lock 外推为删除完成
+审计、物理字节擦除、WORM 或跨主机 fencing。候选基于已合并本地主分支 `c6b9265b61`；实现提交为 `1c4ad8e952`，真实子进程
+fencing 测试提交为 `9573c697d1`，合同提交为 `1fbda4e7ba`，尚无本候选 exact-head GitHub Actions。
+
+### 本轮关闭的单 index-generation 子门
+
+- **所有官方 index 读写共用同一 strict lock。** `publish`、`publishData`、`publishDataOnce`、`list/get`、`remove`、
+  `cleanupExpired` 与 `withIndexSnapshot` 都锁定同一 `index.jsonl` generation；lock acquisition/release failure fail closed，活 owner 不会因
+  超时或年龄被当作 stale 后退到 unlocked mutation。幂等 import 在锁内直接读当前 rows，避免重入同一非可重入锁。
+- **内容授权把 index、bytes 与 access append 放进同一观察窗口。** `authorizeArtifactContentAccess` 先取得 index-generation lock，再在
+  该 snapshot 中核对唯一 row、single-link bytes、size/digest/lineage，最后取得 access-ledger lock 并 fsync event；publish/remove/clean
+  在 event 落盘前不能换代。锁顺序固定为 index 后 access，避免官方入口各自形成相反顺序。
+- **publish 与 rewrite 不再暴露半代际。** 新 artifact bytes 以 owner-only mode、`wx` 与 flush 落盘，index row 通过 no-follow/single-link
+  descriptor append 并 fsync；append 失败会回收尚未发布的 copy。remove/cleanup 在同目录写唯一 temp、fsync 后原子 rename 当前 index，
+  再删除已从新 generation 不可达的 stored copy；其他官方 reader 必须等待整个临界区结束。
+- **歧义删除和真实跨进程竞争 fail closed。** 同 artifact id 出现多行时 explicit remove 拒绝而非任选一行或全删。新增 Node 子进程持有
+  live index lock 800ms，主进程 publish 实测等待 owner 释放后才追加，最终 first/second 两行都保留；注入锁测试同时覆盖 publish、
+  generated publish、list、snapshot、remove 与 clean 均使用同一 target 且无嵌套绕行。
+
+### 仓库内验证与合同
+
+- artifact access ledger、ArtifactStore command、WebSocket、Web download、VS Code drawer 与 reviewed-result import 共
+  **6 files / 64 tests passed**；其中 ArtifactStore 单文件为 **15/15**，新增统一 strict-lock、live-owner 子进程等待、atomic rewrite 后保留
+  generation、duplicate-id removal fail-closed，以及 access append 时仍持有 index snapshot 的断言。
+- roadmap verifier 与 journey evidence 为 **2 files / 37 tests passed**；`--contract-only` 回读 manifest `1.9.38` 为
+  **15 cases / 99 referenced test files**，并明确 runtime evidence 与 release readiness 未被评估。fixture 新增统一 generation journey、
+  strict lock/atomic rewrite binding、lost update/live-owner/partial-rewrite/ambiguous-remove 注入及四个零违规 outcome。
+- 任务 JavaScript ESLint、command help freshness 与 `git diff --check` 通过；只保留既有 `MODULE_TYPELESS_PACKAGE_JSON` 环境提示。
+
+### P1-2 仍未关闭的边界
+
+1. **index commit 不等于删除结算：** remove/clean 先使 row 从新 generation 不可达，再 best-effort 删除 copy；文件删除失败仍可能留下
+   orphan bytes，当前没有 stable deletion id、prepared/terminal event、response-loss recovery、deletion receipt 或 content-free delete
+   ledger，也没有 orphan GC 对账。
+2. **本地 crash durability 仍有边界：** rewrite 具备 temp-file fsync 与 atomic rename，POSIX 尝试 directory fsync；Windows/部分文件系统
+   没有可用 directory fsync。append-only index 仍保持历史 per-row corruption tolerance，现有坏行不会成为 WORM 证据，物理断电矩阵尚未跑。
+3. **锁域止于单机 store：** advisory lock 不防同一 OS 用户直接改文件，也不提供 shared/NFS/object-store lease、跨主机 generation、
+   split-brain fencing 或组织 retention。access 返回 path 后锁即释放，后续 viewer/host read 仍可能遇到 TOCTOU。
+
+因此，P1-2 的**ArtifactStore 官方读写统一 strict index generation、fsynced append/atomic rewrite、access 同代际验真与同机 live-owner
+fencing**由本节关闭；P1-2 整项仍为**部分完成**。总计数保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布
+结论继续为 **NO-GO**。本节不改变 S0-1～S0-3、Q0、Q3、Q4a/Q4b、P1-1、P1-4、P1-5 或 P2-4 的状态。
+
 ## 七十、2026-08-19 P1-2 official ArtifactStore content-access audit 子门复核（`00:10 +08:00`）
 
 本节继续第六十九节的 reviewed-item ArtifactStore import/readback，只关闭仓库内官方内容入口在返回 path/bytes 前统一验真并留下
