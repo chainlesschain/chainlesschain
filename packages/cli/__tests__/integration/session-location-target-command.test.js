@@ -1,6 +1,9 @@
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { registerSessionLocationSubcommands } from "../../src/commands/session-location.js";
+import {
+  registerSessionLocationSubcommands,
+  writeSessionExecutionLocationResultPreview,
+} from "../../src/commands/session-location.js";
 import {
   EXECUTION_LOCATION_HANDOFF_FACTS_SCHEMA,
   computeExecutionLocationTargetFactsDigest,
@@ -730,6 +733,115 @@ describe("session location target command routes", () => {
     expect(process.exitCode).toBe(1);
     expect(stderr.mock.calls.at(-1)[0]).toMatch(/no durable bundle/u);
     expect(stdout).not.toHaveBeenCalled();
+  });
+
+  it("streams only the explicitly selected item bound to the review digest", async () => {
+    const reviewDigest = `sha256:${"4".repeat(64)}`;
+    const content = Buffer.from("private reviewed summary\n", "utf8");
+    const record = {
+      mediaType: "text/plain",
+      byteLength: content.byteLength,
+      digest: `sha256:${"5".repeat(64)}`,
+      contentBase64: content.toString("base64"),
+    };
+    await program(
+      dependencies({
+        readVerifiedSessionExecutionLocationResultSettlement: () => ({
+          schema:
+            "chainlesschain.session-execution-location-result-collection-receipt/v2",
+          requestId: "preview-request-1",
+          storage: {},
+        }),
+        readStoredExecutionLocationResultBundle: () => ({
+          summary: record,
+          diff: record,
+          artifacts: [],
+          evidence: [],
+        }),
+        createExecutionLocationResultReview: () => ({
+          reviewDigest,
+          summary: {
+            mediaType: record.mediaType,
+            byteLength: record.byteLength,
+            digest: record.digest,
+          },
+        }),
+      }),
+    ).parseAsync([
+      "node",
+      "cc",
+      "session",
+      "location",
+      "result-preview",
+      "session-command-1",
+      "--request-id",
+      "preview-request-1",
+      "--review-digest",
+      reviewDigest,
+      "--item",
+      "summary",
+    ]);
+
+    expect(process.exitCode).toBe(0);
+    expect(stdout.mock.calls.at(-1)[0]).toEqual(content);
+  });
+
+  it("rejects preview drift before writing content", async () => {
+    await program(
+      dependencies({
+        readVerifiedSessionExecutionLocationResultSettlement: () => ({
+          schema:
+            "chainlesschain.session-execution-location-result-collection-receipt/v2",
+          requestId: "preview-drift-request",
+          storage: {},
+        }),
+        readStoredExecutionLocationResultBundle: () => ({
+          summary: {},
+          diff: {},
+          artifacts: [],
+          evidence: [],
+        }),
+        createExecutionLocationResultReview: () => ({
+          reviewDigest: `sha256:${"1".repeat(64)}`,
+        }),
+      }),
+    ).parseAsync([
+      "node",
+      "cc",
+      "session",
+      "location",
+      "result-preview",
+      "session-command-1",
+      "--request-id",
+      "preview-drift-request",
+      "--review-digest",
+      `sha256:${"2".repeat(64)}`,
+      "--item",
+      "summary",
+    ]);
+
+    expect(process.exitCode).toBe(1);
+    expect(stderr.mock.calls.at(-1)[0]).toMatch(/review digest/u);
+    expect(stdout).not.toHaveBeenCalled();
+  });
+
+  it("escapes terminal controls and requires redirection for binary items", () => {
+    const writes = [];
+    const output = { write: (value) => writes.push(value), isTTY: true };
+    writeSessionExecutionLocationResultPreview(
+      {
+        kind: "summary",
+        bytes: Buffer.from("safe\u001b[31m\u202eevil", "utf8"),
+      },
+      { stdout: output },
+    );
+    expect(writes).toEqual(["safe\\x1b[31m\\u202eevil"]);
+    expect(() =>
+      writeSessionExecutionLocationResultPreview(
+        { kind: "artifact", bytes: Buffer.from([0, 1, 2]) },
+        { stdout: output },
+      ),
+    ).toThrow(/redirected stdout/u);
   });
 
   it("routes reviewed result apply through reservation and terminal settlement", async () => {
