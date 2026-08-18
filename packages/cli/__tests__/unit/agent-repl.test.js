@@ -1367,12 +1367,15 @@ describe("agent-repl thin wrapper contracts", () => {
     );
   });
 
-  it("executeTool wrapper passes hookDb and cwd to coreExecuteTool", () => {
+  it("executeTool wrapper passes host and budget authority to coreExecuteTool", () => {
     const content = readFileSync(agentReplPath, "utf8");
-    // executeTool should delegate to coreExecuteTool with hookDb and cwd
+    // Direct REPL tools must reach the same host and budget context as tools
+    // selected inside agentLoop.
     expect(content).toContain("coreExecuteTool(name, args, {");
     expect(content).toContain("hookDb: _hookDb");
     expect(content).toContain("cwd: process.cwd()");
+    expect(content).toContain("sessionBudget: context.sessionBudget || null");
+    expect(content).toContain("signal: context.signal || null");
   });
 
   it("agentLoop wrapper iterates coreAgentLoop and handles tool-executing events", () => {
@@ -1936,6 +1939,27 @@ describe("agent-repl startup resume admission", () => {
     await expect(closeReplSessionBudgetRootScope(scope)).resolves.toBe(false);
     expect(root.close).toHaveBeenCalledOnce();
     expect(scope.root).toBeNull();
+  });
+
+  it("never downgrades a budgeted JSONL session creation failure to legacy best effort", async () => {
+    const { startReplJsonlSession } =
+      await import("../../src/repl/agent-repl.js");
+    const failure = vi.fn(() => {
+      throw new Error("disk full");
+    });
+
+    expect(() =>
+      startReplJsonlSession(failure, "budgeted-session", {}, null, {
+        requireDurable: true,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "CC_SESSION_BUDGET_SESSION_START_FAILED",
+      }),
+    );
+    expect(
+      startReplJsonlSession(failure, "legacy-session", {}, null),
+    ).toBeNull();
   });
 
   it("refuses an already-exhausted budget before entering the workspace", async () => {
