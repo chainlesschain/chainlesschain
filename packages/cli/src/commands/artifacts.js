@@ -5,9 +5,9 @@
  * `~/.chainlesschain/artifacts/`; this command is the user-facing surface:
  *
  *   cc artifacts list [--session <id>] [--kind <k>] [--json]
- *   cc artifacts show <id> [--json]        metadata + stored path
- *   cc artifacts open <id>                 print the stored path (pipe/open)
- *   cc artifacts remove <id>
+ *   cc artifacts show <id> [--json]        public metadata + integrity
+ *   cc artifacts open <id>                 audit access, then print local path
+ *   cc artifacts remove <id>               settle managed-copy removal
  *   cc artifacts clean [--json]            drop expired artifacts (TTL)
  */
 
@@ -24,6 +24,11 @@ import {
   authorizeArtifactContentAccess,
   readArtifactAccessLedger,
 } from "../lib/artifact-access-ledger.js";
+import {
+  ARTIFACT_DELETION_CLIENTS,
+  readArtifactDeletionLedger,
+  settleArtifactDeletion,
+} from "../lib/artifact-deletion-ledger.js";
 import {
   assessDeliveryEvidence,
   createDeliveryEvidenceRecord,
@@ -108,10 +113,28 @@ export function registerArtifactsCommand(program) {
   cmd
     .command("remove <id>")
     .alias("rm")
-    .description("Remove one artifact (stored copy + metadata)")
+    .description("Settle and audit removal of one managed artifact copy")
+    .option(
+      "--client <client>",
+      `Declared client (${ARTIFACT_DELETION_CLIENTS.join("|")})`,
+      "cli",
+    )
+    .option("--deletion-id <id>", "Stable id for response-loss recovery")
     .option("--json", "Machine-readable JSON output")
     .action((id, options) => {
       process.exitCode = runArtifactsRemove(id, options);
+    });
+
+  cmd
+    .command("deletion-log")
+    .description(
+      "Verify and display the content-free deletion settlement ledger",
+    )
+    .option("--artifact <id>", "Only events for one artifact id")
+    .option("--deletion <id>", "Only events for one deletion id")
+    .option("--json", "Machine-readable verified ledger projection")
+    .action((options) => {
+      process.exitCode = runArtifactsDeletionLog(options);
     });
 
   cmd
@@ -376,17 +399,99 @@ export function runArtifactsAccessLog(options = {}, deps = {}) {
 
 export function runArtifactsRemove(id, options = {}, deps = {}) {
   const store = deps.store || new ArtifactStore();
-  const found = store.remove(id);
-  if (options.json) {
-    console.log(JSON.stringify({ removed: found ? id : null, found }));
-    return found ? 0 : 1;
-  }
-  if (!found) {
-    console.error(chalk.red(`No artifact with id "${id}".`));
+  const deletionId = String(
+    options.deletionId || `delete_${randomUUID().replaceAll("-", "")}`,
+  );
+  try {
+    const result = (deps.settleArtifactDeletion || settleArtifactDeletion)(
+      store,
+      {
+        deletionId,
+        artifactId: id,
+        reason: "explicit",
+        client: options.client || "cli",
+      },
+      deps.deletionOptions || {},
+    );
+    if (options.json) {
+      console.log(JSON.stringify(result, null, 2));
+      return result.found ? 0 : 1;
+    }
+    if (!result.found) {
+      console.error(chalk.red(`No artifact with id "${id}".`));
+      return 1;
+    }
+    console.log(
+      chalk.green(`Removed managed copy ${id} (deletion ${deletionId}).`),
+    );
+    return 0;
+  } catch (error) {
+    if (options.json) {
+      console.error(
+        JSON.stringify({
+          schema: "cc-artifact-deletion-error/v1",
+          deletionId: error.deletionId || deletionId,
+          artifactId: String(id),
+          settled: false,
+          error: error.message,
+        }),
+      );
+    } else {
+      console.error(
+        chalk.red(
+          `Artifact removal ${error.deletionId || deletionId} is not settled: ${error.message}`,
+        ),
+      );
+    }
     return 1;
   }
-  console.log(chalk.green(`Removed ${id}.`));
-  return 0;
+}
+
+export function runArtifactsDeletionLog(options = {}, deps = {}) {
+  const store = deps.store || new ArtifactStore();
+  try {
+    const ledger = (
+      deps.readArtifactDeletionLedger || readArtifactDeletionLedger
+    )(store, deps.deletionOptions || {});
+    const events = ledger.events.filter(
+      (event) =>
+        (!options.artifact || event.artifactId === String(options.artifact)) &&
+        (!options.deletion || event.deletionId === String(options.deletion)),
+    );
+    const projection = {
+      ...ledger,
+      filtered: Boolean(options.artifact || options.deletion),
+      matchedEventCount: events.length,
+      events,
+    };
+    if (options.json) {
+      console.log(JSON.stringify(projection, null, 2));
+    } else if (events.length === 0) {
+      console.log(chalk.dim("No artifact deletion settlement events."));
+    } else {
+      for (const event of events) {
+        console.log(
+          `${event.sequence}\t${event.phase}\t${event.artifactId}\t${event.deletionId}\t${event.eventDigest}`,
+        );
+      }
+    }
+    return 0;
+  } catch (error) {
+    if (options.json) {
+      console.error(
+        JSON.stringify({
+          schema: "cc-artifact-deletion-ledger-error/v1",
+          verified: false,
+          error: error.message,
+        }),
+      );
+    } else {
+      console.error(
+        chalk.red(`Artifact deletion log failed: ${error.message}`),
+      );
+    }
+    return 1;
+  }
 }
 
 export function runArtifactsClean(options = {}, deps = {}) {

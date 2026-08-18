@@ -35,6 +35,7 @@ import java.awt.datatransfer.StringSelection;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.function.Consumer;
 
 /**
@@ -172,12 +173,13 @@ public final class ArtifactsAction extends AnAction implements DumbAware {
                     CcBundle.message("artifacts.remove.confirm", r.id),
                     CcBundle.message("artifacts.remove"), null);
             if (yes != Messages.YES) return;
+            String deletionId = "delete_jetbrains_" + UUID.randomUUID().toString().replace("-", "");
             ApplicationManager.getApplication().executeOnPooledThread(() -> {
                 String out = AgentChatSession.runCapture(
-                        Artifacts.buildRemoveArgs(r.id), cwd, CLI_TIMEOUT_MS);
+                        Artifacts.buildRemoveArgs(r.id, deletionId), cwd, CLI_TIMEOUT_MS);
                 ApplicationManager.getApplication().invokeLater(() -> {
                     note.setText(out == null || out.isEmpty()
-                            ? "✕ cc artifacts remove " + r.id
+                            ? "✕ deletion not settled: " + deletionId
                             : "→ " + out.trim());
                     load.run();
                 });

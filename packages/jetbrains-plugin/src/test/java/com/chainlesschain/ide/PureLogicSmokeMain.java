@@ -1719,7 +1719,8 @@ public final class PureLogicSmokeMain {
         check(Artifacts.storedPath("C:/store", rows.get(1)).endsWith("art_a.md"),
                 "art stored path");
         eq(Artifacts.defaultArtifactsDir("C:/x", "C:/home"), "C:/x", "art env override");
-        eq(Artifacts.buildRemoveArgs("a"), Arrays.asList("artifacts", "remove", "a", "--json"),
+        eq(Artifacts.buildRemoveArgs("a", "delete-a"), Arrays.asList("artifacts", "remove", "a",
+                        "--client", "jetbrains", "--deletion-id", "delete-a", "--json"),
                 "art remove args");
     }
 

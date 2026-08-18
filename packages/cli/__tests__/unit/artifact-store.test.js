@@ -21,6 +21,7 @@ import {
   runArtifactsAccess,
   runArtifactsAccessLog,
   runArtifactsRemove,
+  runArtifactsDeletionLog,
   runArtifactsClean,
 } from "../../src/commands/artifacts.js";
 import { executeTool, formatToolArgs } from "../../src/runtime/agent-core.js";
@@ -338,8 +339,33 @@ describe("cc artifacts command runners (injected store)", () => {
 
   it("remove + clean report outcomes", () => {
     const e = publishOne();
-    expect(runArtifactsRemove(e.id, { json: true }, { store })).toBe(0);
-    expect(JSON.parse(logs.at(-1))).toEqual({ removed: e.id, found: true });
+    expect(
+      runArtifactsRemove(
+        e.id,
+        { deletionId: "command-delete", client: "cli", json: true },
+        { store },
+      ),
+    ).toBe(0);
+    expect(JSON.parse(logs.at(-1))).toMatchObject({
+      deletionId: "command-delete",
+      artifactId: e.id,
+      found: true,
+      settled: true,
+      recorded: true,
+      deletion: { phase: "terminal", managedCopyDisposition: "removed" },
+    });
+    logs = [];
+    expect(
+      runArtifactsDeletionLog(
+        { deletion: "command-delete", json: true },
+        { store },
+      ),
+    ).toBe(0);
+    expect(JSON.parse(logs.at(-1))).toMatchObject({
+      eventCount: 2,
+      matchedEventCount: 2,
+      filtered: true,
+    });
     expect(runArtifactsClean({ json: true }, { store })).toBe(0);
     expect(JSON.parse(logs.at(-1))).toEqual({ removed: 0 });
   });

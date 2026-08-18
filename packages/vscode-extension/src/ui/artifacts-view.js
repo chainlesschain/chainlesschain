@@ -19,6 +19,7 @@
  * ../artifacts-drawer.js.
  */
 const { execFile } = require("child_process");
+const { randomUUID } = require("crypto");
 const fs = require("fs");
 const { hardenedEnv } = require("../hardened-env");
 const {
@@ -201,8 +202,17 @@ async function runAction(vscode, msg) {
         "Remove",
       );
       if (proceed !== "Remove") return;
-      const r = await runCliJson(vscode, buildArtifactsRemoveArgs(id));
-      if (!r.ok) post({ type: "info", text: `remove failed: ${r.error}` });
+      const deletionId = `delete_vscode_${randomUUID().replaceAll("-", "")}`;
+      const r = await runCliJson(
+        vscode,
+        buildArtifactsRemoveArgs(id, deletionId),
+      );
+      if (!r.ok) {
+        post({
+          type: "info",
+          text: `remove not settled: ${r.error} (deletion ${deletionId})`,
+        });
+      }
       await loadData(vscode);
       return;
     }

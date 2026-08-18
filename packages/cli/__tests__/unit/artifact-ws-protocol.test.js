@@ -21,6 +21,7 @@ import {
 } from "../../src/gateways/ws/artifact-protocol.js";
 import { ArtifactStore } from "../../src/lib/artifact-store.js";
 import { readArtifactAccessLedger } from "../../src/lib/artifact-access-ledger.js";
+import { readArtifactDeletionLedger } from "../../src/lib/artifact-deletion-ledger.js";
 
 let dir;
 let srcDir;
@@ -183,7 +184,16 @@ describe("artifact-remove / artifact-clean", () => {
     const e = publish("gone.md", "bye");
     const server = fakeServer();
     await handleArtifactRemove(server, "1", {}, { artifactId: e.id });
-    expect(server.sent[0]).toMatchObject({ found: true, removed: e.id });
+    expect(server.sent[0]).toMatchObject({
+      found: true,
+      removed: e.id,
+      settled: true,
+      deletion: { phase: "terminal", client: "websocket" },
+    });
+    expect(readArtifactDeletionLedger(new ArtifactStore())).toMatchObject({
+      preparedCount: 1,
+      terminalCount: 1,
+    });
     await handleArtifactRemove(server, "2", {}, { artifactId: e.id });
     expect(server.sent[1]).toMatchObject({ found: false });
 

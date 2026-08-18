@@ -27,6 +27,7 @@ import path from "node:path";
 import { readFileSync, statSync } from "node:fs";
 import { publicArtifactMetadata } from "../../lib/artifact-store.js";
 import { authorizeArtifactContentAccess } from "../../lib/artifact-access-ledger.js";
+import { settleArtifactDeletion } from "../../lib/artifact-deletion-ledger.js";
 
 /** Text preview cap (utf8 chars ≈ bytes for the common case). */
 export const TEXT_PREVIEW_CAP = 256 * 1024;
@@ -219,16 +220,30 @@ export async function handleArtifactRemove(server, id, ws, message) {
       return sendError(server, id, ws, "NO_ARTIFACT_ID", "artifactId required");
     }
     const store = await loadStore();
-    const found = store.remove(message.artifactId);
+    const deletion = settleArtifactDeletion(store, {
+      deletionId: message.deletionId,
+      artifactId: message.artifactId,
+      reason: "explicit",
+      client: "websocket",
+    });
     server._send(ws, {
       id,
       type: "artifact-remove",
       artifactId: message.artifactId,
-      removed: found ? message.artifactId : null,
-      found,
+      deletionId: deletion.deletionId,
+      removed: deletion.found ? message.artifactId : null,
+      found: deletion.found,
+      settled: deletion.settled,
+      deletion: deletion.deletion,
     });
   } catch (err) {
-    sendError(server, id, ws, "ARTIFACT_REMOVE_FAILED", err.message);
+    server._send(ws, {
+      id,
+      type: "error",
+      code: "ARTIFACT_REMOVE_FAILED",
+      message: err.message,
+      deletionId: err.deletionId || message.deletionId || null,
+    });
   }
 }
 

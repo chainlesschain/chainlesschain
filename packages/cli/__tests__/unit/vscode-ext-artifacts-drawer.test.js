@@ -67,8 +67,13 @@ describe("build*Args", () => {
       "artifacts",
       "remove",
       "art_1",
+      "--client",
+      "vscode",
       "--json",
     ]);
+    expect(buildArtifactsRemoveArgs("art_1", "stable-delete")).toContain(
+      "stable-delete",
+    );
   });
 });
 
