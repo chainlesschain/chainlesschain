@@ -376,6 +376,25 @@ describe("ChainlessChainWSServer", () => {
       await server.stop(); // should not throw
       server = null;
     });
+
+    it("finishes shutdown but rejects when a session authority cannot close", async () => {
+      const closeSession = vi.fn();
+      server = new ChainlessChainWSServer({
+        sessionManager: { closeSession },
+      });
+      server.sessionHandlers.set("budgeted-session", {
+        destroy: vi.fn(() => {
+          throw new Error("budget sidecar fsync failed");
+        }),
+      });
+
+      await expect(server.stop()).rejects.toThrow(
+        "WebSocket server session authority cleanup failed",
+      );
+      expect(closeSession).toHaveBeenCalledWith("budgeted-session");
+      expect(server.sessionHandlers.size).toBe(0);
+      server = null;
+    });
   });
 
   // ---- Heartbeat lifecycle ----

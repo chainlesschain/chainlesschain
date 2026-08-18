@@ -1239,6 +1239,33 @@ describe("ws runtime event emission", () => {
     );
   });
 
+  it("does not acknowledge session close when budget-root cleanup fails", () => {
+    server.sessionHandlers.set("sess-1", {
+      destroy: vi.fn(() => {
+        throw new Error("budget root close failed");
+      }),
+    });
+
+    handleSessionClose(server, "req-close-failed", ws, {
+      sessionId: "sess-1",
+    });
+
+    expect(server.sessionManager.closeSession).toHaveBeenCalledWith("sess-1");
+    expect(server.emit).not.toHaveBeenCalledWith(
+      RUNTIME_EVENTS.SESSION_END,
+      expect.anything(),
+    );
+    expect(server._send).toHaveBeenCalledWith(
+      ws,
+      expect.objectContaining({
+        type: "error",
+        payload: expect.objectContaining({
+          code: "CC_WS_SESSION_CLOSE_FAILED",
+        }),
+      }),
+    );
+  });
+
   it("passes worktree isolation through session creation", async () => {
     await handleSessionCreate(server, "req-10", ws, {
       sessionType: "agent",

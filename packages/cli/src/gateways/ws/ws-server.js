@@ -415,6 +415,7 @@ export class ChainlessChainWSServer extends EventEmitter {
 
   /** Stop the server and clean up */
   async stop() {
+    const cleanupErrors = [];
     if (this._heartbeatTimer) {
       clearInterval(this._heartbeatTimer);
       this._heartbeatTimer = null;
@@ -423,13 +424,17 @@ export class ChainlessChainWSServer extends EventEmitter {
     // Close all session handlers
     for (const [sessionId, handler] of this.sessionHandlers) {
       if (handler && handler.destroy) {
-        handler.destroy();
+        try {
+          handler.destroy();
+        } catch (error) {
+          cleanupErrors.push(error);
+        }
       }
       if (this.sessionManager) {
         try {
           this.sessionManager.closeSession(sessionId);
-        } catch (_err) {
-          // Non-critical
+        } catch (error) {
+          cleanupErrors.push(error);
         }
       }
     }
@@ -477,6 +482,12 @@ export class ChainlessChainWSServer extends EventEmitter {
     }
 
     this.emit("stopped");
+    if (cleanupErrors.length > 0) {
+      throw new AggregateError(
+        cleanupErrors,
+        "WebSocket server session authority cleanup failed",
+      );
+    }
   }
 
   /** @private */

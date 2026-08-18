@@ -1288,6 +1288,7 @@ export function handleSessionList(server, id, ws) {
 
 export function handleSessionClose(server, id, ws, message) {
   const { sessionId } = message;
+  const cleanupErrors = [];
 
   const closingSession = server.sessionManager?.getSession?.(sessionId);
   if (closingSession?.mcpClient?.clearElicitationHandler) {
@@ -1296,16 +1297,33 @@ export function handleSessionClose(server, id, ws, message) {
 
   const handler = server.sessionHandlers.get(sessionId);
   if (handler && handler.destroy) {
-    handler.destroy();
+    try {
+      handler.destroy();
+    } catch (error) {
+      cleanupErrors.push(error);
+    }
   }
   server.sessionHandlers.delete(sessionId);
 
   if (server.sessionManager) {
     try {
       server.sessionManager.closeSession(sessionId);
-    } catch (_err) {
-      // Non-critical.
+    } catch (error) {
+      cleanupErrors.push(error);
     }
+  }
+
+  if (cleanupErrors.length > 0) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "CC_WS_SESSION_CLOSE_FAILED",
+        "WebSocket session authority could not be durably closed",
+        sessionId,
+      ),
+    );
+    return;
   }
 
   server.emit("session:close", { sessionId });
