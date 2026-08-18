@@ -43,6 +43,10 @@ import {
   storeExecutionLocationResultBundle,
 } from "../lib/execution-location-result-store.js";
 import {
+  EXECUTION_LOCATION_RESULT_REVIEW_SCHEMA,
+  createExecutionLocationResultReview,
+} from "../lib/execution-location-result-review.js";
+import {
   sameFileStatIdentity,
   samePathHandleFileIdentity,
   withTrustedFileParentSync,
@@ -550,6 +554,33 @@ export function collectSessionExecutionLocationResult(
   });
 }
 
+export function reviewSessionExecutionLocationResult(
+  sessionId,
+  requestId,
+  deps = {},
+) {
+  const settlement = (
+    deps.readVerifiedSessionExecutionLocationResultSettlement ||
+    readVerifiedSessionExecutionLocationResultSettlement
+  )(sessionId, requestId);
+  if (settlement === null) {
+    throw new Error("result collection settlement was not found");
+  }
+  if (!settlement.storage) {
+    throw new Error(
+      "legacy result settlement has no durable bundle available for review",
+    );
+  }
+  const bundle = (
+    deps.readStoredExecutionLocationResultBundle ||
+    readStoredExecutionLocationResultBundle
+  )(settlement.storage, deps.resultStoreOptions || {});
+  return (
+    deps.createExecutionLocationResultReview ||
+    createExecutionLocationResultReview
+  )({ settlement, bundle });
+}
+
 function renderBinding(binding) {
   const git = binding.source.git;
   return [
@@ -595,6 +626,12 @@ function writeProjection(projection, options = {}) {
   if (projection.schema === EXECUTION_LOCATION_RESULT_VERIFICATION_SCHEMA) {
     process.stdout.write(
       `RESULT VERIFIED ${projection.resultId}\nBundle: ${projection.bundleDigest}\nVerification: ${projection.verificationDigest}\nApplied: no\n`,
+    );
+    return;
+  }
+  if (projection.schema === EXECUTION_LOCATION_RESULT_REVIEW_SCHEMA) {
+    process.stdout.write(
+      `RESULT REVIEWED ${projection.resultId}\nReview: ${projection.reviewDigest}\nBundle: ${projection.bundleDigest}\nSummary: ${projection.summary.byteLength} bytes (${projection.summary.digest})\nDiff: ${projection.diff.byteLength} bytes (${projection.diff.digest})\nApplied: no\n`,
     );
     return;
   }
@@ -948,6 +985,23 @@ export function registerSessionLocationSubcommands(session, deps = {}) {
     .action((id, target, options) => {
       process.exitCode = runAction(
         () => collectSessionExecutionLocationResult(id, target, options, deps),
+        options,
+      );
+    });
+
+  location
+    .command("result-review <id>")
+    .description(
+      "Review stored result metadata without exposing or applying content",
+    )
+    .requiredOption(
+      "--request-id <id>",
+      "Canonical result collection request id",
+    )
+    .option("--json", "Machine-readable content-free review authority")
+    .action((id, options) => {
+      process.exitCode = runAction(
+        () => reviewSessionExecutionLocationResult(id, options.requestId, deps),
         options,
       );
     });
