@@ -2588,6 +2588,55 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 六十二、2026-08-18 P1-2 digest-bound result bundle 与 source readback 子门复核（`20:58 +08:00`）
+
+本节继续第三十五节，关闭“目标侧只有 session continuation，summary/diff/artifact/evidence 只能以未绑定自述返回”的仓库内缺口；不在缺少跨宿主
+writer fence 时自动修改 source worktree，也不把手工复制 bundle 冒充 durable transport。功能与合同提交 `1ff01cce2c`～`fffaa89027` 已快进合并到
+本地 `main`，尚无本候选 exact-head GitHub Actions。
+
+### 本轮关闭的 result bundle 与 source readback 子门
+
+- **bundle 必须来自 canonical target handoff session。** `session location result-pack <id>` 只接受
+  `verified-session-location-handoff` authority，并绑定 exact session id、handoff id、source predecessor head/count/transcript digest、target current
+  head/count、binding event、profile、target evidence、stable facts 与 attestation digest。普通 session-start、伪造 binding event 或不连续 event count 均拒绝。
+- **返回的是实际 bytes，不是 digest 自述。** summary、diff、artifact 和 evidence bytes 以 canonical base64、media type、byte length 与 SHA-256 进入
+  `cc-execution-location-result-bundle/v1`，再由 domain-separated bundle digest 绑定。summary 限 256 KiB 且必须 strict UTF-8，diff 限 8 MiB，
+  全部内容合计限 16 MiB、artifact/evidence 合计最多 64 项；重复内容、非规范 base64、byte count/digest/total drift 均 fail closed。
+- **目标端文件读取遵守已声明 data boundary。** 所有输入必须位于 verified binding 的 data-boundary root 内，并以
+  `lstat → O_NOFOLLOW open → fstat → descriptor read → fstat` 读取；symlink/hardlink、父目录/handle identity 变化、越界路径、过大文件或读取竞态均拒绝。
+  命令只有显式 `--json` 才输出含正文的可传输 bundle；普通输出只显示 bundle digest 和总 bytes。
+- **source readback 重哈希每个字节并绑定未前进 predecessor。** bundle 经批准 transport 复制回 source 后，
+  `session location result-verify <id> --bundle ... --expected-handoff-id ...` 从 source data boundary 重新读取并验证完整 canonical bundle；只有当前 source
+  session id/head/event count 仍与 handoff predecessor 精确一致，且 operator pin 的 handoff id 相同，才生成
+  `cc-execution-location-result-verification/v1`。
+- **verification receipt 内容无关且明确不应用。** receipt 只保留 source/target authority、bundle/summary/diff/item digest 与 byte count，正文不会回显；
+  `applied=false` 是固定字段。本子门不调用 patch、Git merge、ArtifactStore import、checkpoint restore 或任意外部写入，避免把 readback 与 apply authority 混淆。
+
+### 仓库内验证与证据边界
+
+- result bundle、session command route 与 location projection 三个聚焦文件为 **15/15**；覆盖实际 bytes 打包/回读、content-free receipt、content/digest/
+  source/handoff drift、inconsistent handoff、重复内容、invalid UTF-8、boundary escape、hardlink 及两条 Commander 生产路由。
+- contract、target launcher、location、replica 与 command integration 共七文件为 **61/61**；真实 JSONL store 回归从 source 建立 session、在 target 原子安装
+  handoff successor、用真实 target projection 生成 bundle，再切回 source predecessor 完成验证，证明实现没有依赖测试专用 authority 形状。
+- roadmap manifest 从 `1.9.28` 升至 `1.9.29`；`p1-execution-location` 引用文件从 5 增至 **6**，新增 returned-byte tamper、bundle digest、handoff id、
+  stale source、boundary/hardlink、verification content leak 与 implicit apply 必须为零的合同。fixture digest 为
+  `sha256:e29c62a489e921ac8347f9e79920a361948e22953e34ce21678f4ace3d488ff4`；全 corpus 为
+  **15 cases / 89 referenced test files**。verifier/journey 为 **37/37**，help index freshness 通过；contract 仍不等于 external runtime evidence。
+
+### P1-2 仍未关闭的边界
+
+1. **跨宿主 writer fence 与 shared authority：** source head check 只发生在 result verify 时，没有 distributed lease/revoke；target 执行期间 source/target 双写、
+   shared-store location handoff、网络文件系统 lease 与 split-brain 仍未关闭。
+2. **transport、apply 与长期生命周期：** 当前 bundle 需经批准渠道复制，没有内建断点续传、重连、response-loss 幂等传输、增量/双向 session 同步、分歧合并或删除传播；
+   source 只验证，不自动应用 diff、导入 artifact/evidence 或追加 canonical return-handoff event。detach/reattach、sleep/reboot、orphan cleanup 与八小时轨迹仍开放。
+3. **Cloud、策略、产品入口与外部矩阵：** `cc cloud`、target network/sandbox/credential attestation、Desktop/VS Code/JetBrains 控制面，以及真实
+   WSL/SSH/Container/Cloud、多架构、网络故障和每格 100 次 exact-head 结果返回矩阵均无关闭证据。
+
+因此，P1-2 的**实际 result bytes 规范打包、target handoff authority 绑定、data-boundary 文件读取、source predecessor readback、全文重哈希与
+content-free non-apply receipt**由本节关闭；P1-2 整项仍为**部分完成**。总计数保持
+**12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节不改变 S0-1～S0-3、Q0、Q3、
+Q4a/Q4b、P1-1、P1-4、P1-5 或 P2-4 的状态。
+
 ## 六十一、2026-08-18 R4 canonical recovery receipt history 子门复核（`20:41 +08:00`）
 
 本节继续第六十节，关闭“sidecar 只有 chain head，受控 evidence 文件丢失后无法在本机重建已裁决 usage”的仓库内缺口；不把可改写的本机
