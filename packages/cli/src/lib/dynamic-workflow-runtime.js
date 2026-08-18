@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { types as utilTypes } from "node:util";
 import {
   COWORK_WORKFLOW_CONTROL_SIGNAL_CODE,
   executeWorkflow as executeCoworkWorkflow,
@@ -316,6 +317,17 @@ function verifyEffectCalls(effect, effectIndex, issues) {
           call.settlementCode.length <= 128)) &&
       typeof call.outcomeUnknown === "boolean" &&
       call.outcomeUnknown === (call.status === "outcome_unknown") &&
+      typeof call.providerReceiptPersisted === "boolean" &&
+      (call.providerReceiptRequestId === null ||
+        (typeof call.providerReceiptRequestId === "string" &&
+          PROVIDER_RECEIPT_ID_RE.test(call.providerReceiptRequestId))) &&
+      (call.providerReceiptResponseId === null ||
+        (typeof call.providerReceiptResponseId === "string" &&
+          PROVIDER_RECEIPT_ID_RE.test(call.providerReceiptResponseId))) &&
+      call.providerReceiptPersisted ===
+        Boolean(
+          call.providerReceiptRequestId || call.providerReceiptResponseId,
+        ) &&
       (call.mcpLedgerId === null ||
         PROVIDER_RECEIPT_ID_RE.test(call.mcpLedgerId || "")) &&
       typeof call.mcpLedgerPrewritePersisted === "boolean" &&
@@ -343,6 +355,8 @@ function verifyEffectCalls(effect, effectIndex, issues) {
             call.sequence,
           ) &&
         call.identitySemantics === "trace-only" &&
+        (call.providerReceiptPersisted === false ||
+          ["completed", "outcome_unknown"].includes(call.status)) &&
         call.mcpLedgerId === null &&
         call.mcpLedgerPrewritePersisted === false &&
         call.mcpLedgerSettlementPersisted === false);
@@ -362,11 +376,17 @@ function verifyEffectCalls(effect, effectIndex, issues) {
         call.source === "tool" &&
         requestSource === null &&
         call.clientRequestId === null &&
+        call.providerReceiptPersisted === false &&
+        call.providerReceiptRequestId === null &&
+        call.providerReceiptResponseId === null &&
         call.identitySemantics === "runtime-derived");
     const settlementValid = terminal
       ? call.settlementCode !== null || call.status === "completed"
       : call.settlementCode === null &&
         call.outcomeUnknown === false &&
+        call.providerReceiptPersisted === false &&
+        call.providerReceiptRequestId === null &&
+        call.providerReceiptResponseId === null &&
         call.mcpLedgerId === null &&
         call.mcpLedgerPrewritePersisted === false &&
         call.mcpLedgerSettlementPersisted === false;
@@ -1273,6 +1293,9 @@ function workflowCallAttempt(effectId, kind, event, now) {
       settledAt: null,
       outcomeUnknown: false,
       settlementCode: null,
+      providerReceiptPersisted: false,
+      providerReceiptRequestId: null,
+      providerReceiptResponseId: null,
       mcpLedgerId: null,
       mcpLedgerPrewritePersisted: false,
       mcpLedgerSettlementPersisted: false,
@@ -1324,6 +1347,9 @@ function workflowCallAttempt(effectId, kind, event, now) {
     settledAt: null,
     outcomeUnknown: false,
     settlementCode: null,
+    providerReceiptPersisted: false,
+    providerReceiptRequestId: null,
+    providerReceiptResponseId: null,
     mcpLedgerId: null,
     mcpLedgerPrewritePersisted: false,
     mcpLedgerSettlementPersisted: false,
@@ -1393,9 +1419,85 @@ function beginEffectCall(statePath, runId, effectId, kind, event, now) {
   });
 }
 
+function providerReceiptSettlement(call, event) {
+  const receipt = ownDataValue(event, "providerReceipt");
+  if (receipt === null || receipt === undefined) {
+    return {
+      persisted: false,
+      requestId: null,
+      responseId: null,
+    };
+  }
+  let descriptors;
+  try {
+    if (
+      typeof receipt !== "object" ||
+      Array.isArray(receipt) ||
+      utilTypes.isProxy(receipt)
+    ) {
+      throw new TypeError();
+    }
+    descriptors = Object.getOwnPropertyDescriptors(receipt);
+  } catch {
+    throw new TypeError("workflow provider receipt settlement is malformed");
+  }
+  const expectedFields = [
+    "callId",
+    "callSequence",
+    "clientRequestId",
+    "independentlyReadable",
+    "protocol",
+    "provider",
+    "requestId",
+    "requestIdentitySemantics",
+    "responseId",
+    "source",
+    "workflowEffectId",
+  ];
+  const ownFields = Reflect.ownKeys(descriptors);
+  const fields = ownFields.filter((field) => typeof field === "string").sort();
+  const hasOnlyDataFields =
+    ownFields.length === expectedFields.length &&
+    fields.length === expectedFields.length &&
+    fields.every(
+      (field, index) =>
+        field === expectedFields[index] &&
+        descriptors[field].enumerable === true &&
+        Object.hasOwn(descriptors[field], "value"),
+    );
+  const value = (field) => descriptors?.[field]?.value;
+  const requestId = value("requestId");
+  const responseId = value("responseId");
+  if (
+    !hasOnlyDataFields ||
+    value("protocol") !== "cc-provider-request-receipt/v1" ||
+    value("provider") !== call.name ||
+    value("workflowEffectId") !== (call.ownerEffectId ?? call.effectId) ||
+    value("callId") !== call.callId ||
+    value("callSequence") !== call.sequence ||
+    value("source") !== call.requestSource ||
+    value("clientRequestId") !== call.clientRequestId ||
+    value("requestIdentitySemantics") !== "trace-only" ||
+    value("independentlyReadable") !== false ||
+    (requestId !== null &&
+      (typeof requestId !== "string" ||
+        !PROVIDER_RECEIPT_ID_RE.test(requestId))) ||
+    (responseId !== null &&
+      (typeof responseId !== "string" ||
+        !PROVIDER_RECEIPT_ID_RE.test(responseId))) ||
+    (!requestId && !responseId)
+  ) {
+    throw new TypeError("workflow provider receipt settlement is malformed");
+  }
+  return { persisted: true, requestId, responseId };
+}
+
 function effectCallSettlement(call, event, now) {
   let status;
   let settlementCode = null;
+  let providerReceiptPersisted = false;
+  let providerReceiptRequestId = null;
+  let providerReceiptResponseId = null;
   let mcpLedgerId = null;
   let mcpLedgerPrewritePersisted = false;
   let mcpLedgerSettlementPersisted = false;
@@ -1413,6 +1515,10 @@ function effectCallSettlement(call, event, now) {
       status === "outcome_unknown"
         ? String(event.code || "provider_outcome_unknown")
         : null;
+    const providerReceipt = providerReceiptSettlement(call, event);
+    providerReceiptPersisted = providerReceipt.persisted;
+    providerReceiptRequestId = providerReceipt.requestId;
+    providerReceiptResponseId = providerReceipt.responseId;
   } else {
     if (
       event?.type !== "tool-result" ||
@@ -1464,6 +1570,9 @@ function effectCallSettlement(call, event, now) {
     settledAt: isoNow(now),
     outcomeUnknown: status === "outcome_unknown",
     settlementCode,
+    providerReceiptPersisted,
+    providerReceiptRequestId,
+    providerReceiptResponseId,
     mcpLedgerId,
     mcpLedgerPrewritePersisted,
     mcpLedgerSettlementPersisted,
@@ -2476,6 +2585,15 @@ function projectDurableWorkflowCalls(state) {
       settledAt: call.settledAt,
       outcomeUnknown: call.outcomeUnknown,
       settlementCode: call.settlementCode,
+      providerReceipt: call.providerReceiptPersisted
+        ? {
+            protocol: "cc-provider-request-receipt/v1",
+            requestId: call.providerReceiptRequestId,
+            responseId: call.providerReceiptResponseId,
+            requestIdentitySemantics: "trace-only",
+            independentlyReadable: false,
+          }
+        : null,
       mcpLedgerId: call.mcpLedgerId,
       mcpLedgerPrewritePersisted: call.mcpLedgerPrewritePersisted,
       mcpLedgerSettlementPersisted: call.mcpLedgerSettlementPersisted,
@@ -2493,6 +2611,10 @@ function projectDurableWorkflowCalls(state) {
       (call) => call.status === "operator_reconciled",
     ).length,
     descendants: lineage.filter((call) => call.descendant).length,
+    providerReceipts: lineage.filter((call) => call.providerReceipt !== null)
+      .length,
+    providerNativeIdempotencyProven: false,
+    providerReceiptsIndependentlyReadable: false,
     lineageDigest: digest(
       "chainlesschain.dynamic-workflow.durable-call-lineage.v1\0",
       lineage,

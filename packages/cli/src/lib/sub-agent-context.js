@@ -692,6 +692,22 @@ export class SubAgentContext {
     let observeUsageSettlement = null;
     let observeToolBoundary = null;
     let observeToolSettlement = null;
+    const providerReceiptForSettlement = (event) => {
+      for (
+        let index = this._providerRequestReceipts.length - 1;
+        index >= 0;
+        index -= 1
+      ) {
+        const receipt = this._providerRequestReceipts[index];
+        if (
+          receipt.callId === event?.callId &&
+          (!event?.provider || receipt.provider === event.provider)
+        ) {
+          return { ...receipt };
+        }
+      }
+      return null;
+    };
     if (strictUsageTelemetry) {
       // Presence is checked without invoking either observer. In particular,
       // do not manufacture a null "validation event" that a durable writer
@@ -878,6 +894,7 @@ export class SubAgentContext {
             model: event.model || null,
             usage: event.usage || null,
             ...(event.source ? { source: event.source } : {}),
+            providerReceipt: providerReceiptForSettlement(event),
             attribution: event.attribution || null,
             ...(event.boundaryNotified === true ||
             event.ledgerPersisted === true
@@ -958,6 +975,7 @@ export class SubAgentContext {
                 ? "semantic-compaction"
                 : "model"),
             code: event.code || "provider_transport_outcome_unknown",
+            providerReceipt: providerReceiptForSettlement(event),
             attribution: event.attribution || null,
             ...(event.boundaryNotified === true ||
             event.ledgerPersisted === true

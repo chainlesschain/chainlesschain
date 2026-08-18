@@ -976,7 +976,13 @@ pending outer effect with the exact provider request or child-effect identity.
 The matching callback persists `completed`, `failed`, or `outcome_unknown`
 independently of the eventual Cowork result. A crash therefore leaves an
 independently readable started row instead of relying on a completed-result
-projection; duplicate, malformed, or tampered rows fail closed. Explicit outer
+projection. When the provider returned a trace receipt, that same synchronous
+settlement validates its effect owner, provider, call, request source, sequence,
+client request ID, and trace-only semantics, then stores only the bounded
+provider request/response IDs in the call row. The receipt therefore survives a
+crash before outer task settlement, including for descendant provider calls;
+it remains neither provider-native idempotency nor independently readable from
+the provider. Duplicate, malformed, mismatched, or tampered rows fail closed. Explicit outer
 effect reconciliation marks any still-started rows as operator reconciled but
 does not turn trace-only request identities into third-party idempotency.
 Spawned sub-agents and isolated skills inherit the already-persisted parent
@@ -990,7 +996,8 @@ It exposes effect/result lineage, provider-return/operator-reconciled/runtime-
 not-dispatched settlement counts, provider dispatch and timeout timestamps,
 request-to-settlement wall time, effect-bound trace-only provider request
 attempts and receipts, runtime-derived nested-tool attempt/settlement lineage,
-the independently persisted durable-call status/digest projection, the Cowork
+the independently persisted durable-call status/digest projection plus its
+provider-receipt count and bounded receipt IDs, the Cowork
 result's heuristic token estimate, and digest-only artifact/checkpoint
 references. Receipt projection rejects an
 effect/provider/call/source/request mismatch or any claim of
@@ -999,8 +1006,8 @@ no matching provider receipt. The projection is intentionally
 `complete: false` and lists every missing authority: the current Cowork runner
 does not return provider token usage or USD cost, native provider idempotency
 and independent receipt readback remain unavailable, checkpoint and artifact-
-store readback are not yet wired, and detailed provider receipts plus completed
-local/host child payload projections remain result-bound. MCP calls bind the
+store readback are not yet wired, and the full completed-result receipt collection
+plus local/host child payload projections remain result-bound. MCP calls bind the
 same outer/child effect tuple into the canonical session ledger before
 transport and report persisted start/settlement facts. Any workflow-bound
 nested outcome-unknown result or post-boundary tool exception blocks the outer
@@ -1012,7 +1019,7 @@ idempotency, and provider-side receipt lookup remain open.
 
 **WS protocol**: `workflow-list` / `workflow-get` / `workflow-save` / `workflow-remove` / `workflow-run` (streams `workflow:started` / `step-start` / `step-complete` / `workflow:done`).
 
-**Key files**: `src/gateways/ws/action-protocol.js` (5 handlers), `src/lib/cowork-workflow.js` (CRUD + `executeWorkflow`), `src/lib/dynamic-workflow-draft.js` (model proposal + human review authority), `src/lib/dynamic-workflow-runtime.js` (atomic parallel durable effect protocol), `packages/web-panel/src/stores/workflow.js` (Pinia store + `validateLocal`), `packages/web-panel/src/views/WorkflowEditor.vue`. **Governed CLI regression**: 581 tests across draft/review, durable runtime, façade, DAG, WebSocket, admission, provider/tool/descendant call binding, and MCP ledger coverage; the original editor slice retains its 39 backend/frontend/integration/E2E tests.
+**Key files**: `src/gateways/ws/action-protocol.js` (5 handlers), `src/lib/cowork-workflow.js` (CRUD + `executeWorkflow`), `src/lib/dynamic-workflow-draft.js` (model proposal + human review authority), `src/lib/dynamic-workflow-runtime.js` (atomic parallel durable effect protocol), `packages/web-panel/src/stores/workflow.js` (Pinia store + `validateLocal`), `packages/web-panel/src/views/WorkflowEditor.vue`. **Governed CLI regression**: 584 tests across draft/review, durable runtime, façade, DAG, WebSocket, admission, provider/tool/descendant call binding, durable provider receipt settlement, and MCP ledger coverage; the original editor slice retains its 39 backend/frontend/integration/E2E tests.
 
 > Vue Flow visual canvas (drag-to-connect, branch rendering) is planned as M2.
 
