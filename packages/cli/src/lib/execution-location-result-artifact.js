@@ -74,7 +74,10 @@ function normalizeLineage(input) {
     !selectorMatches ||
     mediaType.length < 1 ||
     mediaType.length > 256 ||
-    /[\u0000-\u001f\u007f]/u.test(mediaType) ||
+    Array.from(mediaType).some((character) => {
+      const codePoint = character.codePointAt(0);
+      return codePoint <= 0x1f || codePoint === 0x7f;
+    }) ||
     !Number.isSafeInteger(byteLength) ||
     byteLength < 0
   ) {
@@ -135,7 +138,8 @@ function expectedArtifactMetadata(lineage, importDigest) {
 
 function createReceipt(entry, lineage, importDigest) {
   const metadata = publicArtifactMetadata(entry);
-  const { lineage: _persistedLineage, ...artifact } = metadata;
+  const artifact = { ...metadata };
+  delete artifact.lineage;
   const material = {
     schema: EXECUTION_LOCATION_RESULT_ARTIFACT_IMPORT_SCHEMA,
     importDigest,
