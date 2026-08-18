@@ -150,6 +150,14 @@ function normalizeUsageTokens(usage) {
   return { fields, total };
 }
 
+function normalizeUsageSettlementLabel(raw) {
+  const value = String(raw || "");
+  if (!RESOURCE_ID_PATTERN.test(value)) {
+    throw new TypeError("invalid session budget usage settlement id");
+  }
+  return value;
+}
+
 function safeReason(reason, fallback = "session-aborted") {
   if (reason instanceof Error) return reason;
   const text = String(reason || fallback).slice(0, 512);
@@ -423,6 +431,7 @@ export class SessionResourceBudget {
     this._activeWorkLabels = new Map();
     this._activeToolLabels = new Map();
     this._pendingUsage = new Map();
+    this._pendingUsageLabels = new Map();
     this._issuedAuthorityIds = new Set();
     this._abortables = new Map();
     this._recoveryUnknown = new Map();
@@ -701,7 +710,6 @@ export class SessionResourceBudget {
 
   reason(now = this._now()) {
     if (this._abortState) return this._abortState.reason;
-    if (this._pendingUsage.size > 0) return "usage-settlement-pending";
     if (this._recoveryUnknown.size > 0) return "recovery-required";
     const continuous = this._continuousReason(now);
     if (continuous) return continuous;
@@ -732,9 +740,6 @@ export class SessionResourceBudget {
     }
     if (this.signal.aborted) {
       return this._admissionFailure(this.reason() || "session-aborted", { id });
-    }
-    if (this._pendingUsage.size > 0) {
-      return this._admissionFailure("usage-settlement-pending", { id });
     }
     if (this._recoveryUnknown.size > 0) {
       return this._admissionFailure("recovery-required", { id });
@@ -793,9 +798,6 @@ export class SessionResourceBudget {
       return this._admissionFailure(this.reason() || "session-aborted", {
         id: key,
       });
-    }
-    if (this._pendingUsage.size > 0) {
-      return this._admissionFailure("usage-settlement-pending", { id: key });
     }
     if (this._recoveryUnknown.size > 0) {
       return this._admissionFailure("recovery-required", { id: key });
@@ -917,9 +919,6 @@ export class SessionResourceBudget {
         id: key,
       });
     }
-    if (this._pendingUsage.size > 0) {
-      return this._admissionFailure("usage-settlement-pending", { id: key });
-    }
     if (this._recoveryUnknown.size > 0) {
       return this._admissionFailure("recovery-required", { id: key });
     }
@@ -997,12 +996,111 @@ export class SessionResourceBudget {
     return true;
   }
 
-  recordUsage({ usage = null, usageRecords = null, provider, model } = {}) {
+  beginUsageSettlement({ id } = {}) {
     this._assertAuthorityMutationAllowed();
-    this.start();
+    const label = normalizeUsageSettlementLabel(id);
+    try {
+      this.start();
+    } catch (error) {
+      return this._persistenceAdmissionFailure(error, { id: label });
+    }
+    if (this.signal.aborted) {
+      return this._admissionFailure(this.reason() || "session-aborted", {
+        id: label,
+      });
+    }
+    if (this._recoveryUnknown.size > 0) {
+      return this._admissionFailure("recovery-required", { id: label });
+    }
+    if (this._pendingUsageLabels.has(label)) {
+      return this._admissionFailure("duplicate-usage-settlement-id", {
+        id: label,
+      });
+    }
+    const authorityId = this._nextUsageSettlementId();
+    const entry = {
+      id: authorityId,
+      label,
+      kind: "usage-settlement",
+      depth: 0,
+      startedAt: this._now(),
+    };
+    this._pendingUsage.set(authorityId, entry);
+    this._pendingUsageLabels.set(label, authorityId);
+    try {
+      this._authorityChanged(
+        "budget:usage-settlement-started",
+        {
+          id: label,
+          authorityId,
+          pendingUsage: this._pendingUsage.size,
+        },
+        {
+          rollback: () => {
+            this._pendingUsage.delete(authorityId);
+            this._pendingUsageLabels.delete(label);
+          },
+        },
+      );
+    } catch (error) {
+      return this._persistenceAdmissionFailure(error, { id: label });
+    }
+    return { ok: true, id: label, authorityId };
+  }
+
+  _pendingUsageSettlement(callId) {
+    if (callId !== undefined && callId !== null) {
+      const label = normalizeUsageSettlementLabel(callId);
+      const authorityId = this._pendingUsageLabels.get(label);
+      if (!authorityId) {
+        throw new SessionBudgetError("usage-settlement-not-started");
+      }
+      return { label, authorityId };
+    }
     if (this._pendingUsage.size > 0) {
       throw new SessionBudgetError("usage-settlement-pending");
     }
+    const label = `inline:${randomUUID()}`;
+    const admission = this.beginUsageSettlement({ id: label });
+    if (!admission?.ok) {
+      throw new SessionBudgetError(
+        admission?.reason || "usage-settlement-not-started",
+      );
+    }
+    return { label, authorityId: admission.authorityId };
+  }
+
+  markUsageUnknown({ callId } = {}) {
+    this._assertAuthorityMutationAllowed();
+    const { label, authorityId } = this._pendingUsageSettlement(callId);
+    const pending = this._pendingUsage.get(authorityId);
+    this._pendingUsage.delete(authorityId);
+    this._pendingUsageLabels.delete(label);
+    const recovery = { ...pending, resourceType: "work" };
+    this._recoveryUnknown.set(authorityId, recovery);
+    this._authorityChanged(
+      "budget:usage-unknown",
+      { id: label, authorityId },
+      {
+        rollback: () => {
+          this._recoveryUnknown.delete(authorityId);
+          this._pendingUsage.set(authorityId, pending);
+          this._pendingUsageLabels.set(label, authorityId);
+        },
+      },
+    );
+    return this.status();
+  }
+
+  recordUsage({
+    callId = null,
+    usage = null,
+    usageRecords = null,
+    provider,
+    model,
+  } = {}) {
+    this._assertAuthorityMutationAllowed();
+    this.start();
     let tokenCount;
     let pricedRecords;
     try {
@@ -1072,16 +1170,8 @@ export class SessionResourceBudget {
       this.abort(error, { reason: "invalid-usage" });
       throw error;
     }
-    const settlementId = this._nextUsageSettlementId();
-    this._pendingUsage.set(settlementId, {
-      id: settlementId,
-      kind: "usage-settlement",
-      depth: 0,
-      startedAt: this._now(),
-    });
-    this._authorityChanged("budget:usage-settlement-started", {
-      pendingUsage: this._pendingUsage.size,
-    });
+    const { label, authorityId: settlementId } =
+      this._pendingUsageSettlement(callId);
     this.tokens = nextTokens;
 
     try {
@@ -1103,6 +1193,7 @@ export class SessionResourceBudget {
     }
     const pendingSettlement = this._pendingUsage.get(settlementId);
     this._pendingUsage.delete(settlementId);
+    this._pendingUsageLabels.delete(label);
     this._authorityChanged(
       "budget:usage-recorded",
       {
@@ -1112,6 +1203,7 @@ export class SessionResourceBudget {
       {
         rollback: () => {
           this._pendingUsage.set(settlementId, pendingSettlement);
+          this._pendingUsageLabels.set(label, settlementId);
         },
       },
     );
@@ -1223,6 +1315,7 @@ export class SessionResourceBudget {
       cleanupErrors,
       activeWork: this._activeWork.size,
       activeTools: this._activeTools.size,
+      pendingUsage: this._pendingUsage.size,
     };
     if (skipAuthorityChange) this._emit("budget:aborted", detail);
     else this._authorityChanged("budget:aborted", detail);
@@ -1332,6 +1425,7 @@ export class SessionResourceBudget {
       toolMs: this._toolMsAt(now),
       maxToolMs: this.maxToolMs,
       activeTools: this._activeTools.size,
+      pendingUsage: this._pendingUsage.size,
       resources: this._abortables.size,
       recoveryRequired: this._recoveryUnknown.size > 0,
       pendingRecovery: this._recoveryUnknown.size,
