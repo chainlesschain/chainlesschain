@@ -640,6 +640,40 @@ describe("jsonl-session-store", () => {
       expect(events[0].timestamp).toBeGreaterThan(0);
     });
 
+    it("anchors a normalized session budget root in session_start", () => {
+      const id = startSession("budget-root-bound", {
+        sessionBudgetRoot: {
+          schema: "chainlesschain.session-budget-root/v1",
+          enabled: true,
+          limits: { maxTokens: 2000, maxTurns: 4 },
+        },
+      });
+
+      expect(readEvents(id)[0]).toMatchObject({
+        type: "session_start",
+        data: {
+          sessionBudgetRoot: {
+            schema: "chainlesschain.session-budget-root/v1",
+            enabled: true,
+            limits: { maxTurns: 4, maxTokens: 2000 },
+          },
+        },
+      });
+    });
+
+    it("rejects an invalid session budget root before creating a transcript", () => {
+      expect(() =>
+        startSession("budget-root-invalid", {
+          sessionBudgetRoot: {
+            schema: "chainlesschain.session-budget-root/v1",
+            enabled: true,
+            limits: { maxTurns: 0 },
+          },
+        }),
+      ).toThrow(/positive integer/);
+      expect(sessionExists("budget-root-invalid")).toBe(false);
+    });
+
     it("anchors a normalized execution-location binding in session_start", () => {
       const id = startSession("execution-location-bound", {
         executionLocation: {

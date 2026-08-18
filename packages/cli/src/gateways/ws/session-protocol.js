@@ -498,6 +498,10 @@ function resolveWsSessionBudget(message) {
   });
 }
 
+function sameSessionBudgetConfig(left, right) {
+  return JSON.stringify(left || null) === JSON.stringify(right || null);
+}
+
 async function _isPhase5EnvelopesEnabled() {
   try {
     const { getBetaFlags } =
@@ -766,6 +770,7 @@ export async function handleSessionCreate(server, id, ws, message) {
           title: `WS agent ${new Date().toISOString().slice(0, 10)}`,
           provider: session.provider,
           model: session.model || "",
+          sessionBudgetRoot,
         });
         canonicalSessionCreated = true;
       } catch (cause) {
@@ -793,6 +798,19 @@ export async function handleSessionCreate(server, id, ws, message) {
           "Budgeted WebSocket JSONL session could not be verified",
         );
         error.code = "CC_SESSION_BUDGET_SESSION_START_FAILED";
+        throw error;
+      }
+      if (
+        !canonicalStart.sessionBudgetRoot ||
+        !sameSessionBudgetConfig(
+          canonicalStart.sessionBudgetRoot,
+          sessionBudgetRoot,
+        )
+      ) {
+        const error = new Error(
+          "Budgeted WebSocket JSONL declaration does not match the requested root",
+        );
+        error.code = "CC_SESSION_BUDGET_CONFIG_MISMATCH";
         throw error;
       }
       session.canonicalJsonlSession = true;
@@ -963,10 +981,14 @@ export async function handleSessionResume(server, id, ws, message) {
   }
 
   let sessionBudgetRoot;
+  let canonicalSessionBudgetRoot = null;
   try {
     sessionBudgetRoot = session.sessionBudgetRoot
       ? normalizeSessionBudgetRootConfig(session.sessionBudgetRoot)
       : resolveSessionBudgetRootOptions({});
+    canonicalSessionBudgetRoot = canonicalResume?.sessionBudgetRoot
+      ? normalizeSessionBudgetRootConfig(canonicalResume.sessionBudgetRoot)
+      : null;
   } catch (error) {
     server._send(
       ws,
@@ -979,13 +1001,36 @@ export async function handleSessionResume(server, id, ws, message) {
     );
     return;
   }
-  if (sessionBudgetRoot.enabled && !canonicalResume) {
+  if (
+    sessionBudgetRoot.enabled &&
+    (!canonicalResume || !canonicalSessionBudgetRoot)
+  ) {
     server._send(
       ws,
       envelopeError(
         id,
         "CC_SESSION_BUDGET_JSONL_REQUIRED",
-        "Budgeted WebSocket session has no canonical JSONL authority",
+        "Budgeted WebSocket session has no canonical JSONL budget authority",
+        sessionId,
+      ),
+    );
+    return;
+  }
+  if (
+    canonicalSessionBudgetRoot?.enabled === true &&
+    sessionBudgetRoot.enabled !== true
+  ) {
+    sessionBudgetRoot = canonicalSessionBudgetRoot;
+  } else if (
+    canonicalSessionBudgetRoot &&
+    !sameSessionBudgetConfig(canonicalSessionBudgetRoot, sessionBudgetRoot)
+  ) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "CC_SESSION_BUDGET_CONFIG_MISMATCH",
+        "WebSocket DB and canonical JSONL budget declarations do not match",
         sessionId,
       ),
     );

@@ -967,7 +967,7 @@ describe("ws runtime event emission", () => {
     );
   });
 
-  it("boots an opt-in budgeted WS session under lease and canonical authority", async () => {
+  it("boots and reattaches an opt-in budgeted WS session to one root", async () => {
     const order = [];
     const leaseController = new AbortController();
     const budgetController = new AbortController();
@@ -1009,6 +1009,7 @@ describe("ws runtime event emission", () => {
           snapshot: { verified: true, head: { hash: "head-1" } },
           messages: [],
           recovery: { unsettled: [], incidents: [], replayDenied: [] },
+          sessionBudgetRoot: server._session.sessionBudgetRoot,
         };
       }),
       openProductionSessionBudgetRoot: vi.fn(() => {
@@ -1053,6 +1054,31 @@ describe("ws runtime event emission", () => {
       expect.objectContaining({ type: "session.started" }),
     );
     expect(server._session.canonicalJsonlSession).toBe(true);
+
+    const activeHandler = server.sessionHandlers.get("sess-1");
+    const previousInteraction = activeHandler.interaction;
+    server.resumeRecoveryDependencies = {
+      loadSideEffectLedger: cleanSideEffectLedger,
+      loadMcpLedgerRecovery: () => ({
+        unsettled: [],
+        incidents: [],
+        replayDenied: [],
+      }),
+    };
+    server._send.mockClear();
+    await handleSessionResume(server, "req-budget-resume", {}, {
+      sessionId: "sess-1",
+    });
+
+    expect(
+      server._sessionBudgetDependencies.openProductionSessionBudgetRoot,
+    ).toHaveBeenCalledOnce();
+    expect(server.sessionHandlers.get("sess-1")).toBe(activeHandler);
+    expect(activeHandler.interaction).not.toBe(previousInteraction);
+    expect(server._send).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({ type: "session.resumed" }),
+    );
   });
 
   it("rolls back a budgeted WS session when the restored root is exhausted", async () => {
@@ -1086,6 +1112,7 @@ describe("ws runtime event emission", () => {
         snapshot: { verified: true, head: { hash: "head-1" } },
         messages: [],
         recovery: { unsettled: [], incidents: [], replayDenied: [] },
+        sessionBudgetRoot: server._session.sessionBudgetRoot,
       })),
       openProductionSessionBudgetRoot: vi.fn(() => budgetRoot),
       deleteJsonlSession: vi.fn(),
@@ -1188,6 +1215,101 @@ describe("ws runtime event emission", () => {
         type: "error",
         payload: expect.objectContaining({
           code: "CC_SESSION_BUDGET_JSONL_REQUIRED",
+        }),
+      }),
+    );
+  });
+
+  it("restores a missing DB budget declaration from verified canonical JSONL", async () => {
+    const canonicalBudget = {
+      schema: "chainlesschain.session-budget-root/v1",
+      enabled: true,
+      limits: { maxTurns: 3 },
+    };
+    const leaseController = new AbortController();
+    const budgetController = new AbortController();
+    const budget = {
+      signal: budgetController.signal,
+      reason: vi.fn(() => null),
+      recordUsage: vi.fn(() => ({ aborted: false })),
+    };
+    server.sessionManager.db = {};
+    server.resumeRecoveryDependencies = {
+      loadSideEffectLedger: cleanSideEffectLedger,
+      loadMcpLedgerRecovery: () => ({
+        unsettled: [],
+        incidents: [],
+        replayDenied: [],
+      }),
+    };
+    server._sessionBudgetDependencies = {
+      readSessionHostResumeState: vi.fn(() => ({
+        snapshot: { verified: true, head: { hash: "head-1" } },
+        messages: [],
+        recovery: { unsettled: [], incidents: [], replayDenied: [] },
+        sessionBudgetRoot: canonicalBudget,
+      })),
+      acquireSessionHostLease: vi.fn(() => ({
+        signal: leaseController.signal,
+        assert: vi.fn(),
+        release: vi.fn(),
+      })),
+      openProductionSessionBudgetRoot: vi.fn(() => ({
+        enabled: true,
+        budget,
+        options: { sessionBudget: budget, signal: budgetController.signal },
+        close: vi.fn(),
+      })),
+    };
+
+    await handleSessionResume(server, "req-budget-canonical-restore", ws, {
+      sessionId: "sess-1",
+    });
+
+    expect(server._session.sessionBudgetRoot).toEqual(canonicalBudget);
+    expect(
+      server._sessionBudgetDependencies.openProductionSessionBudgetRoot,
+    ).toHaveBeenCalledWith(
+      "sess-1",
+      canonicalBudget,
+      expect.objectContaining({ persist: true }),
+    );
+    expect(server._send).toHaveBeenCalledWith(
+      ws,
+      expect.objectContaining({ type: "session.resumed" }),
+    );
+  });
+
+  it("rejects DB and canonical WS budget declaration mismatch", async () => {
+    server._session.sessionBudgetRoot = {
+      schema: "chainlesschain.session-budget-root/v1",
+      enabled: true,
+      limits: { maxTurns: 3 },
+    };
+    server._sessionBudgetDependencies = {
+      readSessionHostResumeState: vi.fn(() => ({
+        snapshot: { verified: true, head: { hash: "head-1" } },
+        messages: [],
+        recovery: { unsettled: [], incidents: [], replayDenied: [] },
+        sessionBudgetRoot: {
+          schema: "chainlesschain.session-budget-root/v1",
+          enabled: true,
+          limits: { maxTurns: 2 },
+        },
+      })),
+    };
+
+    await handleSessionResume(server, "req-budget-mismatch", ws, {
+      sessionId: "sess-1",
+    });
+
+    expect(server.sessionHandlers.size).toBe(0);
+    expect(server._send).toHaveBeenCalledWith(
+      ws,
+      expect.objectContaining({
+        type: "error",
+        payload: expect.objectContaining({
+          code: "CC_SESSION_BUDGET_CONFIG_MISMATCH",
         }),
       }),
     );

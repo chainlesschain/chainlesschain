@@ -104,6 +104,78 @@ describe("session host streaming resume", () => {
     );
   });
 
+  it("projects a canonical budget root through the streaming authority", () => {
+    const sessionBudgetRoot = {
+      schema: "chainlesschain.session-budget-root/v1",
+      enabled: true,
+      limits: { maxTurns: 2, maxTokens: 500 },
+    };
+    const event = chainedEvents([
+      {
+        type: "session_start",
+        timestamp: 1,
+        data: { title: "Budgeted stream", sessionBudgetRoot },
+      },
+    ])[0];
+
+    const state = readSessionHostResumeState("streaming-budget-session", {
+      sessionExists: () => true,
+      readVerifiedProjection: (_sessionId, createProjection) => {
+        const projection = createProjection();
+        projection.accept(event);
+        return projection.finish({
+          headHash: event.hash,
+          eventCount: 1,
+          readMessages: () => [],
+        });
+      },
+    });
+
+    expect(state.sessionBudgetRoot).toEqual(sessionBudgetRoot);
+    expect(state.snapshot).not.toHaveProperty("sessionBudgetRoot");
+  });
+
+  it("fails closed on an invalid streaming budget declaration", () => {
+    const event = chainedEvents([
+      {
+        type: "session_start",
+        timestamp: 1,
+        data: {
+          title: "Invalid budget stream",
+          sessionBudgetRoot: {
+            schema: "chainlesschain.session-budget-root/v1",
+            enabled: true,
+            limits: { maxTurns: 0 },
+          },
+        },
+      },
+    ])[0];
+    const readMessages = vi.fn(() => []);
+
+    const state = readSessionHostResumeState("invalid-budget-session", {
+      sessionExists: () => true,
+      readVerifiedProjection: (_sessionId, createProjection) => {
+        const projection = createProjection();
+        projection.accept(event);
+        return projection.finish({
+          headHash: event.hash,
+          eventCount: 1,
+          readMessages,
+        });
+      },
+    });
+
+    expect(state.messages).toBeNull();
+    expect(state.snapshot).toMatchObject({
+      verified: false,
+      recoveryAuthority: {
+        blockMode: "all",
+        reasonCode: "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED",
+      },
+    });
+    expect(readMessages).not.toHaveBeenCalled();
+  });
+
   it("retains a trusted legacy adapter's runtime provenance", () => {
     const summary = markDurableSystemMessage(
       { role: "system", content: "checkpoint facts" },
