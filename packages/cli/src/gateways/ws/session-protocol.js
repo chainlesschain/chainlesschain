@@ -19,6 +19,17 @@ import {
 } from "../../lib/mcp-ledger-recovery-admission.js";
 import { readSessionHostResumeState } from "../../lib/session-host-snapshot.js";
 import { sanitizePersistedMessages } from "../../lib/session-message-provenance.js";
+import {
+  deleteJsonlSession,
+  startSession as startJsonlSession,
+} from "../../harness/jsonl-session-store.js";
+import {
+  normalizeSessionBudgetRootConfig,
+  openProductionSessionBudgetRoot,
+  resolveSessionBudgetRootOptions,
+  sessionBudgetAdmissionError,
+} from "../../lib/session-budget-production-root.js";
+import { mergePricing } from "../../lib/llm-pricing.js";
 
 const PAYLOAD_DIGEST = /^sha256:[0-9a-f]{64}$/;
 const RAW_AUTHORITY_HASH = /^[0-9a-f]{64}$/;
@@ -467,6 +478,26 @@ function envelopeError(id, code, message, sessionId, details = {}) {
 // Phase 5 envelope opt-in via beta flag `unified-envelope-2026-04-16`.
 // Falls back to false if BetaFlags is unavailable so legacy behavior wins.
 const PHASE5_ENVELOPE_FLAG = "unified-envelope-2026-04-16";
+
+function wsBudgetDependency(server, name, fallback) {
+  const candidate = server?._sessionBudgetDependencies?.[name];
+  return typeof candidate === "function" ? candidate : fallback;
+}
+
+function resolveWsSessionBudget(message) {
+  return resolveSessionBudgetRootOptions({
+    sessionBudget: message.sessionBudget,
+    sessionMaxConcurrent: message.sessionMaxConcurrent,
+    sessionMaxSpawns: message.sessionMaxSpawns,
+    sessionMaxDepth: message.sessionMaxDepth,
+    sessionMaxTurns: message.sessionMaxTurns,
+    sessionMaxTokens: message.sessionMaxTokens,
+    sessionMaxCostUsd: message.sessionMaxCostUsd,
+    sessionMaxWallMs: message.sessionMaxWallMs,
+    sessionMaxToolMs: message.sessionMaxToolMs,
+  });
+}
+
 async function _isPhase5EnvelopesEnabled() {
   try {
     const { getBetaFlags } =
@@ -478,9 +509,22 @@ async function _isPhase5EnvelopesEnabled() {
   }
 }
 
-async function ensureSessionHandler(server, ws, session) {
-  if (server.sessionHandlers.has(session.id)) {
-    return server.sessionHandlers.get(session.id);
+async function ensureSessionHandler(
+  server,
+  ws,
+  session,
+  { sessionHostLease: suppliedSessionHostLease = null } = {},
+) {
+  const budgetConfig = session.sessionBudgetRoot
+    ? normalizeSessionBudgetRootConfig(session.sessionBudgetRoot)
+    : resolveSessionBudgetRootOptions({});
+  if (budgetConfig.enabled && session.type === "chat") {
+    const error = new Error(
+      "Durable WebSocket session budgets require an agent session",
+    );
+    error.code = "CC_SESSION_BUDGET_WS_AGENT_REQUIRED";
+    suppliedSessionHostLease?.release?.();
+    throw error;
   }
 
   const { WebSocketInteractionAdapter } =
@@ -503,6 +547,17 @@ async function ensureSessionHandler(server, ws, session) {
     },
   });
 
+  const existingHandler = server.sessionHandlers.get(session.id);
+  if (existingHandler) {
+    suppliedSessionHostLease?.release?.();
+    existingHandler.assertSessionBudgetAdmission?.("WebSocket resume");
+    if (typeof existingHandler.attachInteraction === "function") {
+      existingHandler.attachInteraction(session.interaction);
+    } else {
+      existingHandler.interaction = session.interaction;
+    }
+  }
+
   // Route MCP elicitation through the authenticated WS question channel. The
   // MCP client may be shared by the runtime, so this is deliberately only a
   // transport hook; the MCP request/answer ids remain inside the pending
@@ -524,6 +579,8 @@ async function ensureSessionHandler(server, ws, session) {
     );
   }
 
+  if (existingHandler) return existingHandler;
+
   let handler;
   if (session.type === "chat") {
     const { WSChatHandler } = await import("../../lib/ws-chat-handler.js");
@@ -533,18 +590,79 @@ async function ensureSessionHandler(server, ws, session) {
     });
   } else {
     const { WSAgentHandler } = await import("./ws-agent-handler.js");
-    const sessionHostLease = acquireSessionHostLease(session.id, {
-      hostKind: "ws",
-    });
+    let sessionHostLease =
+      suppliedSessionHostLease ||
+      wsBudgetDependency(
+        server,
+        "acquireSessionHostLease",
+        acquireSessionHostLease,
+      )(session.id, { hostKind: "ws" });
+    let sessionBudgetRoot = null;
     try {
+      if (budgetConfig.enabled) {
+        const priceTable =
+          budgetConfig.limits.maxUsd != null
+            ? wsBudgetDependency(server, "mergePricing", mergePricing)(
+                server.sessionManager.config?.llm?.pricing,
+              )
+            : undefined;
+        sessionBudgetRoot = wsBudgetDependency(
+          server,
+          "openProductionSessionBudgetRoot",
+          openProductionSessionBudgetRoot,
+        )(session.id, budgetConfig, {
+          persist: true,
+          signal: sessionHostLease.signal || null,
+          table: priceTable,
+        });
+        if (
+          sessionBudgetRoot?.enabled !== true ||
+          !sessionBudgetRoot.budget ||
+          !sessionBudgetRoot.options ||
+          sessionBudgetRoot.options.sessionBudget !==
+            sessionBudgetRoot.budget ||
+          typeof sessionBudgetRoot.close !== "function"
+        ) {
+          const error = new Error(
+            "WebSocket session budget root is invalid",
+          );
+          error.code = "CC_SESSION_BUDGET_ROOT_INVALID";
+          throw error;
+        }
+        if (sessionBudgetRoot.budget.signal?.aborted === true) {
+          throw sessionBudgetAdmissionError(
+            sessionBudgetRoot.budget.reason?.(),
+            "WebSocket startup",
+          );
+        }
+      }
       handler = new WSAgentHandler({
         session,
         interaction: session.interaction,
         db: server.sessionManager.db,
         sessionHostLease,
+        sessionBudgetRoot,
       });
+      sessionHostLease = null;
+      sessionBudgetRoot = null;
     } catch (error) {
-      sessionHostLease.release();
+      const cleanupErrors = [];
+      try {
+        sessionBudgetRoot?.close?.();
+      } catch (cleanupError) {
+        cleanupErrors.push(cleanupError);
+      }
+      try {
+        sessionHostLease?.release?.();
+      } catch (cleanupError) {
+        cleanupErrors.push(cleanupError);
+      }
+      if (cleanupErrors.length > 0) {
+        throw new AggregateError(
+          [error, ...cleanupErrors],
+          "WebSocket handler bootstrap and authority cleanup both failed",
+        );
+      }
       throw error;
     }
   }
@@ -578,10 +696,40 @@ export async function handleSessionCreate(server, id, ws, message) {
     worktreeIsolation,
     systemPromptExtension,
     shellPolicyOverrides,
+    sessionBudget,
+    sessionMaxConcurrent,
+    sessionMaxSpawns,
+    sessionMaxDepth,
+    sessionMaxTurns,
+    sessionMaxTokens,
+    sessionMaxCostUsd,
+    sessionMaxWallMs,
+    sessionMaxToolMs,
   } = message;
 
   let createdSessionId = null;
+  let canonicalSessionCreated = false;
+  let bootstrapLease = null;
+  let delegatedBootstrapLease = null;
   try {
+    const sessionBudgetRoot = resolveWsSessionBudget({
+      sessionBudget,
+      sessionMaxConcurrent,
+      sessionMaxSpawns,
+      sessionMaxDepth,
+      sessionMaxTurns,
+      sessionMaxTokens,
+      sessionMaxCostUsd,
+      sessionMaxWallMs,
+      sessionMaxToolMs,
+    });
+    if (sessionBudgetRoot.enabled && (sessionType || "agent") !== "agent") {
+      const error = new Error(
+        "Durable WebSocket session budgets require sessionType=agent",
+      );
+      error.code = "CC_SESSION_BUDGET_WS_AGENT_REQUIRED";
+      throw error;
+    }
     const { sessionId } = server.sessionManager.createSession({
       type: sessionType || "agent",
       provider,
@@ -594,10 +742,62 @@ export async function handleSessionCreate(server, id, ws, message) {
       worktreeIsolation,
       systemPromptExtension,
       shellPolicyOverrides,
+      sessionBudgetRoot: sessionBudgetRoot.enabled
+        ? sessionBudgetRoot
+        : null,
+      requireDurable: sessionBudgetRoot.enabled,
     });
     createdSessionId = sessionId;
 
     const session = server.sessionManager.getSession(sessionId);
+    if (sessionBudgetRoot.enabled) {
+      bootstrapLease = wsBudgetDependency(
+        server,
+        "acquireSessionHostLease",
+        acquireSessionHostLease,
+      )(sessionId, { hostKind: "ws" });
+      let startedSessionId;
+      try {
+        startedSessionId = wsBudgetDependency(
+          server,
+          "startJsonlSession",
+          startJsonlSession,
+        )(sessionId, {
+          title: `WS agent ${new Date().toISOString().slice(0, 10)}`,
+          provider: session.provider,
+          model: session.model || "",
+        });
+        canonicalSessionCreated = true;
+      } catch (cause) {
+        const error = new Error(
+          "Budgeted WebSocket JSONL session could not be durably created",
+          { cause },
+        );
+        error.code = "CC_SESSION_BUDGET_SESSION_START_FAILED";
+        throw error;
+      }
+      if (startedSessionId !== sessionId) {
+        const error = new Error(
+          "Budgeted WebSocket JSONL session returned a different session id",
+        );
+        error.code = "CC_SESSION_BUDGET_SESSION_START_FAILED";
+        throw error;
+      }
+      const canonicalStart = wsBudgetDependency(
+        server,
+        "readSessionHostResumeState",
+        readSessionHostResumeState,
+      )(sessionId);
+      if (!canonicalStart?.snapshot?.verified) {
+        const error = new Error(
+          "Budgeted WebSocket JSONL session could not be verified",
+        );
+        error.code = "CC_SESSION_BUDGET_SESSION_START_FAILED";
+        throw error;
+      }
+      session.canonicalJsonlSession = true;
+      session.sessionHostSnapshot = canonicalStart.snapshot;
+    }
     const record = createSessionRecord(session, {
       sessionId,
       sessionType: sessionType || "agent",
@@ -610,7 +810,12 @@ export async function handleSessionCreate(server, id, ws, message) {
       status: "created",
     });
 
-    await ensureSessionHandler(server, ws, session);
+    delegatedBootstrapLease = bootstrapLease;
+    bootstrapLease = null;
+    await ensureSessionHandler(server, ws, session, {
+      sessionHostLease: delegatedBootstrapLease,
+    });
+    delegatedBootstrapLease = null;
 
     server.emit("session:create", { sessionId, type: sessionType || "agent" });
 
@@ -668,6 +873,18 @@ export async function handleSessionCreate(server, id, ws, message) {
         // removes the unpublished manager/database state.
       }
       server.sessionHandlers.delete(createdSessionId);
+      if (canonicalSessionCreated) {
+        try {
+          wsBudgetDependency(
+            server,
+            "deleteJsonlSession",
+            deleteJsonlSession,
+          )(createdSessionId);
+        } catch {
+          // The bootstrap failure remains authoritative. A durable tombstone
+          // or orphan cleanup incident must never become session.started.
+        }
+      }
       try {
         if (
           typeof server.sessionManager.rollbackSessionCreation === "function"
@@ -679,6 +896,16 @@ export async function handleSessionCreate(server, id, ws, message) {
       } catch {
         // Do not turn a failed bootstrap into a successful protocol response.
       }
+    }
+    try {
+      bootstrapLease?.release?.();
+    } catch {
+      // Preserve the bootstrap error sent below.
+    }
+    try {
+      delegatedBootstrapLease?.release?.();
+    } catch {
+      // ensureSessionHandler may already have attempted this release.
     }
     server._send(
       ws,
@@ -702,7 +929,11 @@ export async function handleSessionResume(server, id, ws, message) {
   }
 
   const { sessionId } = message;
-  const canonicalResume = readSessionHostResumeState(sessionId);
+  const canonicalResume = wsBudgetDependency(
+    server,
+    "readSessionHostResumeState",
+    readSessionHostResumeState,
+  )(sessionId);
   if (canonicalResume && !canonicalResume.snapshot.verified) {
     server._send(
       ws,
@@ -730,6 +961,39 @@ export async function handleSessionResume(server, id, ws, message) {
     );
     return;
   }
+
+  let sessionBudgetRoot;
+  try {
+    sessionBudgetRoot = session.sessionBudgetRoot
+      ? normalizeSessionBudgetRootConfig(session.sessionBudgetRoot)
+      : resolveSessionBudgetRootOptions({});
+  } catch (error) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        error?.code || "CC_SESSION_BUDGET_CONFIG_INVALID",
+        error?.message || "Persisted WebSocket session budget is invalid",
+        sessionId,
+      ),
+    );
+    return;
+  }
+  if (sessionBudgetRoot.enabled && !canonicalResume) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "CC_SESSION_BUDGET_JSONL_REQUIRED",
+        "Budgeted WebSocket session has no canonical JSONL authority",
+        sessionId,
+      ),
+    );
+    return;
+  }
+  session.sessionBudgetRoot = sessionBudgetRoot.enabled
+    ? sessionBudgetRoot
+    : null;
 
   // A JSONL transcript is the cross-host fact source. A fully verified one
   // replaces a stale DB/WS copy. The damaged case returned above before the

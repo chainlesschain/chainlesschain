@@ -137,6 +137,7 @@ function bindSessionHooksV2Workspace(
  * @property {string|null} rulesContent
  * @property {string[]} enabledToolNames
  * @property {object|null} hostManagedToolPolicy
+ * @property {object|null} sessionBudgetRoot
  * @property {Array<object>} externalToolDefinitions
  * @property {object} externalToolDescriptors
  * @property {object} externalToolExecutors
@@ -399,6 +400,7 @@ export class WSSessionManager {
    * @param {string} [options.apiKey]
    * @param {string} [options.baseUrl]
    * @param {object} [options.hostManagedToolPolicy]
+   * @param {object} [options.sessionBudgetRoot]
    * @param {boolean} [options.requireDurable=false]
    * @returns {{ sessionId: string }}
    */
@@ -525,6 +527,7 @@ export class WSSessionManager {
       mcpClient: this.mcpClient,
       enabledToolNames,
       hostManagedToolPolicy: options.hostManagedToolPolicy || null,
+      sessionBudgetRoot: options.sessionBudgetRoot || null,
       externalToolDefinitions: externalTools.definitions,
       externalToolDescriptors: externalTools.descriptors,
       externalToolExecutors: externalTools.executors,
@@ -736,6 +739,7 @@ export class WSSessionManager {
           metadata.enabledToolNames,
         ),
         hostManagedToolPolicy: metadata.hostManagedToolPolicy || null,
+        sessionBudgetRoot: metadata.sessionBudgetRoot || null,
         externalToolDefinitions: externalTools.definitions,
         externalToolDescriptors: externalTools.descriptors,
         externalToolExecutors: externalTools.executors,
@@ -1636,6 +1640,7 @@ export class WSSessionManager {
       baseProjectRoot: session.baseProjectRoot || session.projectRoot || null,
       baseUrl: session.baseUrl || null,
       hostManagedToolPolicy: session.hostManagedToolPolicy || null,
+      sessionBudgetRoot: session.sessionBudgetRoot || null,
       enabledToolNames: session.enabledToolNames || [],
       canonicalHostSystemPrefix: Array.isArray(
         session._canonicalHostSystemPrefix,

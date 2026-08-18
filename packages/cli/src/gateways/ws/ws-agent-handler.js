@@ -62,6 +62,7 @@ import {
   readVerifiedMessages,
   settleWsTurnClaim,
 } from "../../harness/jsonl-session-store.js";
+import { sessionBudgetAdmissionError } from "../../lib/session-budget-production-root.js";
 
 const CANONICAL_WS_TURN_QUEUES = new Map();
 const CANONICAL_WS_CLAIM_CAS_ATTEMPTS = 4;
@@ -155,6 +156,7 @@ export class WSAgentHandler {
     compactionChatFn,
     canonicalSessionStore,
     sessionHostLease = null,
+    sessionBudgetRoot = null,
   }) {
     this.session = session;
     this.interaction = interaction;
@@ -163,6 +165,8 @@ export class WSAgentHandler {
     this._abortController = null;
     this._activeRequestId = null;
     this._sessionHostLease = sessionHostLease;
+    this._sessionBudgetRoot = sessionBudgetRoot;
+    this._sessionBudget = sessionBudgetRoot?.budget || null;
     this._onSessionHostLeaseAbort = null;
     if (sessionHostLease?.signal) {
       this._onSessionHostLeaseAbort = () => {
@@ -180,6 +184,26 @@ export class WSAgentHandler {
         { once: true },
       );
       if (sessionHostLease.signal.aborted) this._onSessionHostLeaseAbort();
+    }
+    this._sessionBudgetSignal = sessionBudgetRoot?.options?.signal || null;
+    this._onSessionBudgetAbort = null;
+    if (this._sessionBudgetSignal) {
+      this._onSessionBudgetAbort = () => {
+        const reason = sessionBudgetAdmissionError(
+          this._sessionBudget?.reason?.(),
+          "WebSocket session",
+        );
+        if (this._abortController && !this._abortController.signal.aborted) {
+          this._abortController.abort(reason);
+        }
+        this.interaction?.rejectAllPending?.(reason);
+      };
+      this._sessionBudgetSignal.addEventListener(
+        "abort",
+        this._onSessionBudgetAbort,
+        { once: true },
+      );
+      if (this._sessionBudgetSignal.aborted) this._onSessionBudgetAbort();
     }
     // P0-2: monotonic sequence for crash-safe side-effect ledger op ids. The
     // session id + a per-op nonce keep ids unique across turns and processes.
@@ -249,6 +273,59 @@ export class WSAgentHandler {
     this._canonicalHostSystemPrefix = explicitHostPrefix
       ? explicitHostPrefix
       : Object.freeze(hostSystemPrefix);
+  }
+
+  attachInteraction(interaction) {
+    if (!interaction || interaction === this.interaction) return false;
+    const previous = this.interaction;
+    this.interaction = interaction;
+    this.session.interaction = interaction;
+    previous?.rejectAllPending?.(
+      createAbortError("WebSocket session transport was reattached"),
+    );
+    return true;
+  }
+
+  assertSessionBudgetAdmission(operation = "WebSocket operation") {
+    if (!this._sessionBudget) return true;
+    if (
+      this._sessionBudget.signal?.aborted === true ||
+      this._sessionBudgetSignal?.aborted === true
+    ) {
+      throw sessionBudgetAdmissionError(
+        this._sessionBudget.reason?.(),
+        operation,
+      );
+    }
+    return true;
+  }
+
+  _turnSignal(turnSignal) {
+    const budgetSignal = this._sessionBudgetSignal;
+    if (!budgetSignal) return turnSignal;
+    return AbortSignal.any([turnSignal, budgetSignal]);
+  }
+
+  _recordSessionBudgetUsage(event, operation = "WebSocket usage settlement") {
+    if (event?.attribution || !this._sessionBudget?.recordUsage) return null;
+    const status = this._sessionBudget.recordUsage({
+      provider: event.provider || null,
+      model: event.model || null,
+      usage: event.usage || null,
+    });
+    if (status?.aborted) {
+      throw sessionBudgetAdmissionError(status.reason, operation);
+    }
+    return status;
+  }
+
+  _consumeSessionBudgetTurn(id, operation) {
+    if (!this._sessionBudget?.consumeTurn) return null;
+    const admission = this._sessionBudget.consumeTurn({ id });
+    if (!admission?.ok) {
+      throw sessionBudgetAdmissionError(admission?.reason, operation);
+    }
+    return admission;
   }
 
   _applyCanonicalMessages(messages) {
@@ -383,6 +460,10 @@ export class WSAgentHandler {
       model: this.session.model || null,
       source: "semantic-compaction",
     });
+    this._consumeSessionBudgetTurn(
+      `turn:${call.callId}`,
+      "WebSocket compaction",
+    );
     this._persistCanonicalUsageBoundary(call, "started");
     return call;
   }
@@ -405,10 +486,15 @@ export class WSAgentHandler {
       return;
     }
     if (result?.usageEvent?.usage) {
-      this._persistCanonicalTokenUsage({
+      const usageEvent = {
         ...call,
         usage: result.usageEvent.usage,
-      });
+      };
+      this._persistCanonicalTokenUsage(usageEvent);
+      this._recordSessionBudgetUsage(
+        usageEvent,
+        "WebSocket compaction usage settlement",
+      );
       return;
     }
     this._persistCanonicalUsageBoundary(
@@ -511,7 +597,7 @@ export class WSAgentHandler {
     return null;
   }
 
-  async _compactCanonicalHistoryBeforeClaim(requestId) {
+  async _compactCanonicalHistoryBeforeClaim(requestId, signal = null) {
     const { session } = this;
     if (
       session.autoCompact === false ||
@@ -525,6 +611,8 @@ export class WSAgentHandler {
     const expectedMessages = [...session.messages];
     const strictUsageTelemetry =
       this._resolveCanonicalUsageProtocol() === "call-ledger";
+    const meterCompaction =
+      strictUsageTelemetry || Boolean(this._sessionBudget);
     let compactionUsageCall = null;
     let compactionUsageSettled = false;
     let result;
@@ -535,7 +623,7 @@ export class WSAgentHandler {
         model: session.model,
         baseUrl: session.baseUrl,
         apiKey: session.apiKey,
-        signal: this._sessionHostLease?.signal,
+        signal: signal || this._sessionBudgetSignal || this._sessionHostLease?.signal,
         onlyIfNeeded: true,
         preserveCompletedExchange: true,
         llmQuery: this._compactionLlmQuery,
@@ -544,7 +632,7 @@ export class WSAgentHandler {
           cwd: session.projectRoot,
           sessionId: session.id,
         },
-        ...(strictUsageTelemetry
+        ...(meterCompaction
           ? {
               onProviderCallStart: () => {
                 const call = this._beginCanonicalCompactionUsage();
@@ -1012,6 +1100,7 @@ export class WSAgentHandler {
 
     this._processing = true;
     const abortController = new AbortController();
+    const turnSignal = this._turnSignal(abortController.signal);
     this._abortController = abortController;
     this._activeRequestId = requestId || null;
     let sideEffectLedger = null;
@@ -1022,6 +1111,7 @@ export class WSAgentHandler {
 
     try {
       const { session } = this;
+      this.assertSessionBudgetAdmission("WebSocket turn");
       this._sessionHostLease?.assert?.();
 
       if (session.canonicalJsonlSession === true) {
@@ -1044,7 +1134,10 @@ export class WSAgentHandler {
             this._resolveCanonicalUsageProtocol() === "call-ledger";
           if (strictUsageTelemetry) this._assertUsageLedgerWritable();
           const compacted =
-            await this._compactCanonicalHistoryBeforeClaim(requestId);
+            await this._compactCanonicalHistoryBeforeClaim(
+              requestId,
+              turnSignal,
+            );
           if (!compacted) return;
         }
         canonicalTurn ||= this._claimCanonicalTurn(userMessage, requestId);
@@ -1143,7 +1236,8 @@ export class WSAgentHandler {
         shellPolicyOverrides: session.shellPolicyOverrides || null,
         slotFiller,
         interaction: this.interaction,
-        signal: abortController.signal,
+        signal: turnSignal,
+        sessionBudget: this._sessionBudget,
         // P0 authority: null unless opted in (byte-identical default — agent
         // core already defaults `options.approvalGate || null`).
         approvalGate: await this._ensureApprovalGate(),
@@ -1396,9 +1490,13 @@ export class WSAgentHandler {
               break;
 
             case "token-usage":
-              if (strictUsageTelemetry && event.ledgerPersisted !== true) {
+              if (
+                (strictUsageTelemetry || this._sessionBudget) &&
+                event.ledgerPersisted !== true
+              ) {
                 this._persistCanonicalTokenUsage(event);
               }
+              this._recordSessionBudgetUsage(event);
               this.interaction.emit("token-usage", {
                 requestId,
                 provider: event.provider,
@@ -1473,13 +1571,24 @@ export class WSAgentHandler {
       session.lastActivity = new Date().toISOString();
     } catch (err) {
       let surfacedError = err;
+      const sessionBudgetFailed =
+        err?.code === "CC_SESSION_BUDGET_EXHAUSTED" ||
+        this._sessionBudget?.signal?.aborted === true;
+      if (sessionBudgetFailed && err?.code !== "CC_SESSION_BUDGET_EXHAUSTED") {
+        surfacedError = sessionBudgetAdmissionError(
+          this._sessionBudget?.reason?.(),
+          "WebSocket turn",
+        );
+      }
       if (
         canonicalTurn?.claimAcquired &&
         !canonicalTurn.settled &&
         !canonicalTurn.settlementAttempted
       ) {
-        const failureCode = isAbortError(err)
-          ? "CC_WS_TURN_INTERRUPTED"
+        const failureCode = sessionBudgetFailed
+          ? "CC_SESSION_BUDGET_EXHAUSTED"
+          : isAbortError(err)
+            ? "CC_WS_TURN_INTERRUPTED"
           : err?.code === "CC_WS_EMPTY_ASSISTANT_RESPONSE"
             ? "CC_WS_EMPTY_ASSISTANT_RESPONSE"
             : "CC_WS_TURN_FAILED";
@@ -1521,7 +1630,10 @@ export class WSAgentHandler {
       ) {
         persistSideEffectLedger(this.session.id, sideEffectLedger);
       }
-      if (isAbortError(err) || abortController.signal.aborted) {
+      if (
+        !sessionBudgetFailed &&
+        (isAbortError(err) || abortController.signal.aborted)
+      ) {
         return;
       }
 
@@ -1609,8 +1721,34 @@ export class WSAgentHandler {
       );
     }
     this._onSessionHostLeaseAbort = null;
-    this._sessionHostLease?.release?.();
+    if (this._sessionBudgetSignal && this._onSessionBudgetAbort) {
+      this._sessionBudgetSignal.removeEventListener(
+        "abort",
+        this._onSessionBudgetAbort,
+      );
+    }
+    this._onSessionBudgetAbort = null;
+    this._sessionBudgetSignal = null;
+    const cleanupErrors = [];
+    try {
+      this._sessionBudgetRoot?.close?.();
+    } catch (error) {
+      cleanupErrors.push(error);
+    }
+    this._sessionBudgetRoot = null;
+    this._sessionBudget = null;
+    try {
+      this._sessionHostLease?.release?.();
+    } catch (error) {
+      cleanupErrors.push(error);
+    }
     this._sessionHostLease = null;
+    if (cleanupErrors.length > 0) {
+      throw new AggregateError(
+        cleanupErrors,
+        "WebSocket session authority cleanup failed",
+      );
+    }
   }
 
   /**
@@ -1727,6 +1865,8 @@ export class WSAgentHandler {
             break;
           }
         }
+        const meterCompaction =
+          strictUsageTelemetry || Boolean(this._sessionBudget);
 
         const before = session.messages.length;
         const expectedMessages = [...session.messages];
@@ -1735,13 +1875,15 @@ export class WSAgentHandler {
         let compactionUsageCall = null;
         let compactionUsageSettled = false;
         try {
+          this.assertSessionBudgetAdmission("WebSocket compaction");
           this._sessionHostLease?.assert?.();
           result = await compactConversationWithProvider(session.messages, {
             provider: session.provider,
             model: session.model,
             baseUrl: session.baseUrl,
             apiKey: session.apiKey,
-            signal: this._sessionHostLease?.signal,
+            signal:
+              this._sessionBudgetSignal || this._sessionHostLease?.signal,
             force: true,
             preserveCompletedExchange: true,
             llmQuery: this._compactionLlmQuery,
@@ -1750,7 +1892,7 @@ export class WSAgentHandler {
               cwd: session.projectRoot,
               sessionId: session.id,
             },
-            ...(strictUsageTelemetry
+            ...(meterCompaction
               ? {
                   onProviderCallStart: () => {
                     const call = this._beginCanonicalCompactionUsage();
