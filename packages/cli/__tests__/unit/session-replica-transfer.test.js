@@ -332,11 +332,6 @@ describe("verified session replica installation", () => {
       targetEventCount: installed.targetEventCount,
       applied: false,
     });
-    expect(
-      readStoredExecutionLocationResultBundle(first.storage, {
-        dir: join(root, "returned-result-store"),
-      }),
-    ).toEqual(bundle);
   });
 
   it("settles an accepted result once and recovers the receipt without content", () => {
@@ -472,6 +467,11 @@ describe("verified session replica installation", () => {
       storage: { receiptDigest: storage.receipt.receiptDigest },
       applied: false,
     });
+    expect(
+      readStoredExecutionLocationResultBundle(first.storage, {
+        dir: join(root, "returned-result-store"),
+      }),
+    ).toEqual(bundle);
     const retry = store.settleSessionExecutionLocationResultCollection(
       sessionId,
       requestId,
