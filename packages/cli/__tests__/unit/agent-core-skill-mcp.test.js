@@ -54,8 +54,9 @@ vi.mock("../../src/lib/hook-manager.js", () => ({
   },
 }));
 
-const { agentLoop, executeTool } =
-  await import("../../src/runtime/agent-core.js");
+const { agentLoop, executeTool } = await import(
+  "../../src/runtime/agent-core.js"
+);
 
 describe("run_skill controlled execution boundary", () => {
   let tempDir;
@@ -189,6 +190,8 @@ describe("run_skill controlled execution boundary", () => {
 
   it("forwards the isolated skill child's real call boundary and settlement without an aggregate sentinel", async () => {
     registerSkill({ id: "metered-reviewer", isolation: true });
+    const workflowEffectId = `sha256:${"a".repeat(64)}`;
+    const workflowChildEffectId = `sha256:${"b".repeat(64)}`;
     const usageSink = [];
     const boundaries = [];
     const settlements = [];
@@ -239,6 +242,10 @@ describe("run_skill controlled execution boundary", () => {
         cwd: tempDir,
         sessionId: "parent-session",
         llmOptions: { provider: "openai", model: "gpt-test" },
+        workflowEffectId,
+        workflowChildEffectId,
+        workflowChildSequence: 1,
+        workflowEffectProtocol: "cc-workflow-child-effect/v1",
         strictUsageTelemetry: true,
         subAgentUsageSink: usageSink,
         onUsageBoundary: boundaryWriter,
@@ -247,6 +254,10 @@ describe("run_skill controlled execution boundary", () => {
     );
 
     expect(result).toMatchObject({ success: true, isolated: true });
+    expect(mocks.childConfigs[0]).toMatchObject({
+      workflowEffectId: workflowChildEffectId,
+      strictUsageTelemetry: true,
+    });
     expect(providerCall).toHaveBeenCalledOnce();
     expect(boundaries).toHaveLength(1);
     expect(boundaries[0]).toMatchObject({
@@ -255,6 +266,7 @@ describe("run_skill controlled execution boundary", () => {
       provider: "openai",
       model: "gpt-test",
       source: "subagent",
+      workflowRequestSource: "model",
       attribution: {
         origin: "skill",
         skill: "metered-reviewer",
@@ -345,6 +357,41 @@ describe("run_skill controlled execution boundary", () => {
       runtimeLedgerPersistence: true,
       code: "CC_USAGE_BOUNDARY_PERSISTENCE_FAILED",
     });
+  });
+
+  it("rethrows an isolated workflow skill child's unknown outcome", async () => {
+    registerSkill({ id: "unknown-reviewer", isolation: true });
+    const unknown = new Error("skill child provider outcome is unknown");
+    unknown.workflowEffectOutcomeUnknown = true;
+    mocks.createSubAgent.mockImplementationOnce((opts) => {
+      mocks.childConfigs.push(opts);
+      return {
+        id: "skill-child-unknown",
+        run: vi.fn(async () => {
+          throw unknown;
+        }),
+      };
+    });
+
+    await expect(
+      executeTool(
+        "run_skill",
+        { skill_name: "unknown-reviewer", input: "inspect" },
+        {
+          cwd: tempDir,
+          workflowEffectId: `sha256:${"a".repeat(64)}`,
+          workflowChildEffectId: `sha256:${"b".repeat(64)}`,
+          workflowChildSequence: 1,
+          workflowEffectProtocol: "cc-workflow-child-effect/v1",
+          strictUsageTelemetry: true,
+          subAgentUsageSink: [],
+          onUsageBoundary: vi.fn(),
+          onUsageSettlement: vi.fn(),
+          onToolCallBoundary: vi.fn(),
+          onToolCallSettlement: vi.fn(),
+        },
+      ),
+    ).rejects.toBe(unknown);
   });
 
   it("fails closed after provider work when strict skill settlement persistence fails", async () => {

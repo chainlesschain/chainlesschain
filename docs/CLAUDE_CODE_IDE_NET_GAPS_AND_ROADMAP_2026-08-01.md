@@ -2588,6 +2588,57 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 四十二、2026-08-18 P1-1 descendant owner chain 与 nested unknown settlement fence 子门复核（`11:19 +08:00`）
+
+本节继续第四十一节，把 `spawn_sub_agent` 与 isolated `run_skill` 内部 provider/tool calls 接入同一个 crash-visible runtime store。
+候选基于已合并本地主分支 `e9ede87b793ab6711daa7e7810d6aac675d3d87e` 的功能分支，尚无本候选 exact-head
+GitHub Actions；本节只关闭已由 parent agent loop 直接 dispatch、且具有先行 parent tool boundary 的 descendant，不把任意进程、hook
+或外部系统自动视为同一 authority tree。
+
+### 本轮关闭的 descendant effect 边界
+
+- **子循环继承已持久 parent tool child-effect。** parent loop 在执行 `spawn_sub_agent` / isolated `run_skill` 前已发布并持久化规范
+  tool boundary；创建 child `SubAgentContext` 时不再丢弃该 `workflowChildEffectId`，而是把它作为 child loop 的
+  `workflowEffectId`。child 普通 model、semantic compaction 和直接 tool call 因而从该 owner 派生各自 request/child identity，不会与 parent
+  loop 从 sequence 1 开始的请求发生 correlation collision。
+- **runtime call row 显式绑定 root 与 owner。** 新 row 同时记录 outer root `effectId` 和当前 `ownerEffectId`；root direct calls 的 owner
+  等于 root，descendant owner 必须指向更早、已验证且 tool 名为 `spawn_sub_agent` 或 `run_skill` 的 child-effect。provider client request id
+  会按 owner + 原始 request source + sequence 重算，tool child id 也按 owner 重算；孤立 owner、前向引用、非 descendant-capable tool owner、
+  owner 篡改和重算 state digest 均 fail closed。上一节已写入、没有 owner/requestSource 字段的 direct rows 继续按 root-owned legacy material
+  验证，不要求伪造历史 descendant。
+- **跨层 attribution 不改写 request authority。** child usage 仍以 `source=subagent` 和 deepest attribution frame 供会话统计，但同步
+  boundary 额外保留 `workflowRequestSource=model`；semantic compaction 保留自己的 source。这样成本归因和 request-id 重算各用事实字段，
+  不会为了报表把 durable identity 改成另一条请求。
+- **foreground、isolated 与 background unknown 都不能降级。** foreground spawned child 和 isolated skill 的 workflow unknown 会原样抛回
+  parent tool boundary；background child 将 unknown 保存为 fatal outcome，并在 parent 下一 provider admission/final drain 前重抛。作为最终防线，
+  outer effect 的正常 provider-return settlement 现在同时拒绝任何 `started` 或 `outcome_unknown` call row；即使中间 adapter 错误地包装异常，
+  completed task 也不能掩盖 descendant unknown。operator reconcile 仍是唯一显式裁决路径。
+- **observability 暴露 owner 与 descendant denominator。** `durableCalls.lineage` 新增 owner、原始 request source 和 descendant 标志，汇总
+  `descendants` 数量；projection digest 覆盖这些字段。详细 child payload、第三方 receipt 与执行结果仍不会被本地 owner lineage 冒充。
+
+### 仓库内验证与证据边界
+
+- dynamic runtime、background sub-agent 与 isolated skill 三个聚焦文件为 **60/60**；覆盖 owner 继承、descendant provider/tool
+  prewrite/settlement、孤立 owner 拒绝、owner tamper、foreground/skill unknown 原样传播，以及 completed outer result 对 unknown row 的最终硬门。
+- manifest `p1-dynamic-workflow` 扩为 **18 个文件、581/581**；roadmap verifier 与 journey evidence 两文件为 **37/37**。
+- roadmap manifest 从 `1.9.8` 升至 `1.9.9`，baseline 绑定本轮起点 `e9ede87b79`；fixture digest 为
+  `sha256:ec92e982b45cbb80fd10cb08957d618b49c2c38a5a1d5bd380714cb43899311b`。`--contract-only` 回读
+  **15 cases / 69 referenced test files**，并继续明确 runtime evidence 与 release readiness 未被评估。
+
+### P1-1 仍未关闭的边界
+
+1. **observer 之外的副作用：** settings hook/async hook、managed-checkpoint prepare/restore、ArtifactStore publish/readback、独立 process agent、
+   team/remote worker 与其他不经过 parent tool child-effect + 四类同步 observer 的外部 effect 尚未统一进入本 owner tree。
+2. **第三方 exactly-once 与机器外裁决：** descendant owner chain 证明本 runtime 的本地调用顺序，不证明 provider/tool server 端只执行一次。
+   native idempotency、provider/local/host independent receipt readback、物理取消、跨宿主 shared writer fencing 与机器外 adjudication 仍开放。
+3. **完整产品和真实矩阵：** 一般阶段间 `needs_input`、Workbench/双 IDE phase/agent/control UI、plugin/marketplace 分发，以及
+   Local/WSL/SSH/Container/Cloud × 三 OS × 双 IDE 每格 100 次 exact-head 真实 provider、background 强杀/fsync/断电矩阵仍无外部证据。
+
+因此，P1-1 的**spawned/isolated descendant owner identity、同一 durable call store、跨层 unknown 传播与 outer settlement 最终围栏**由本节
+关闭；P1-1 整项仍为**部分完成**，不得据此声明任意进程 descendant、hook/checkpoint/artifact effect 或第三方 exactly-once 已完成。
+总计数保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变
+S0-1～S0-3、Q0、Q3、Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
+
 ## 四十一、2026-08-18 P1-1 provider/tool 逐调用 durable store 与 crash-visible recovery 子门复核（`10:49 +08:00`）
 
 本节继续第四十节，把此前只随 completed Cowork result 投影的 provider/tool attempt 提升为 dynamic runtime 自身可独立回读的

@@ -98,6 +98,12 @@ function withRuntimeStateDigest(state) {
   };
 }
 
+function workflowProviderRequestId(effectId, source = "model", sequence = 1) {
+  return `ccwf_${createHash("sha256")
+    .update(`${effectId}\0${source}\0${String(sequence)}`, "utf8")
+    .digest("hex")}`;
+}
+
 function executionLocation(projectRoot) {
   return createExecutionLocationBinding({
     location: "local",
@@ -381,7 +387,6 @@ describe("durable dynamic workflow runtime", () => {
       "run-durable-calls",
     );
     const runTask = vi.fn(async (args) => {
-      const effectHex = args.workflowEffectId.slice("sha256:".length);
       const providerBoundary = {
         type: "model-usage-started",
         callId: "mdl-publish-1",
@@ -390,7 +395,7 @@ describe("durable dynamic workflow runtime", () => {
         source: "model",
         workflowEffectId: args.workflowEffectId,
         callSequence: 1,
-        providerRequestId: `ccwf_${effectHex}`,
+        providerRequestId: workflowProviderRequestId(args.workflowEffectId),
         requestIdentitySemantics: "trace-only",
       };
       args.onUsageBoundary(providerBoundary);
@@ -506,7 +511,7 @@ describe("durable dynamic workflow runtime", () => {
         source: "model",
         workflowEffectId: args.workflowEffectId,
         callSequence: 1,
-        providerRequestId: `ccwf_${args.workflowEffectId.slice("sha256:".length)}`,
+        providerRequestId: workflowProviderRequestId(args.workflowEffectId),
         requestIdentitySemantics: "trace-only",
       });
       throw new Error("process stopped after provider dispatch");
@@ -575,7 +580,7 @@ describe("durable dynamic workflow runtime", () => {
         source: "model",
         workflowEffectId: args.workflowEffectId,
         callSequence: 1,
-        providerRequestId: `ccwf_${args.workflowEffectId.slice("sha256:".length)}`,
+        providerRequestId: workflowProviderRequestId(args.workflowEffectId),
         requestIdentitySemantics: "trace-only",
       };
       args.onUsageBoundary(boundary);
@@ -584,7 +589,7 @@ describe("durable dynamic workflow runtime", () => {
         type: "model-usage-unknown",
         code: "provider_outcome_unknown",
       });
-      throw new Error("provider result could not be classified");
+      return completedTask(args);
     });
 
     await expect(
@@ -676,7 +681,9 @@ describe("durable dynamic workflow runtime", () => {
               source: "model",
               workflowEffectId: args.workflowEffectId,
               callSequence: 1,
-              providerRequestId: `ccwf_${args.workflowEffectId.slice("sha256:".length)}`,
+              providerRequestId: workflowProviderRequestId(
+                args.workflowEffectId,
+              ),
               requestIdentitySemantics: "trace-only",
             };
             args.onUsageBoundary(boundary);
@@ -719,7 +726,7 @@ describe("durable dynamic workflow runtime", () => {
             source: "model",
             workflowEffectId: args.workflowEffectId,
             callSequence: 1,
-            providerRequestId: `ccwf_${args.workflowEffectId.slice("sha256:".length)}`,
+            providerRequestId: workflowProviderRequestId(args.workflowEffectId),
             requestIdentitySemantics: "trace-only",
           };
           args.onUsageBoundary(boundary);
@@ -740,6 +747,189 @@ describe("durable dynamic workflow runtime", () => {
     expect(() =>
       verifyDynamicWorkflowRuntimeState(withRuntimeStateDigest(tampered)),
     ).toThrow(/effect-0-call-0-invalid/u);
+  });
+
+  it("persists descendant provider and tool calls under an authorized spawn effect", async () => {
+    const workflow = workflowDefinition({
+      steps: [{ id: "delegate", message: "Delegate release review" }],
+    });
+    const execution = admittedExecution(projectRoot, workflow);
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-descendant-calls",
+    );
+    const runTask = vi.fn(async (args) => {
+      const nestedEffectId = (ownerEffectId, sequence, callId, tool) =>
+        `sha256:${createHash("sha256")
+          .update(
+            `${ownerEffectId}\0tool\0${String(sequence)}\0${callId}\0${tool}`,
+            "utf8",
+          )
+          .digest("hex")}`;
+      const spawnCallId = "tool-spawn-reviewer";
+      const spawnEffectId = nestedEffectId(
+        args.workflowEffectId,
+        1,
+        spawnCallId,
+        "spawn_sub_agent",
+      );
+      const spawnBoundary = {
+        type: "tool-executing",
+        tool: "spawn_sub_agent",
+        args: {},
+        tool_use_id: spawnCallId,
+        workflowEffectProtocol: "cc-workflow-child-effect/v1",
+        workflowEffectId: args.workflowEffectId,
+        workflowChildEffectId: spawnEffectId,
+        workflowChildSequence: 1,
+      };
+      args.onToolCallBoundary(spawnBoundary);
+
+      const providerRequestId = `ccwf_${createHash("sha256")
+        .update(`${spawnEffectId}\0model\0${String(1)}`, "utf8")
+        .digest("hex")}`;
+      const providerBoundary = {
+        type: "model-usage-started",
+        callId: "mdl-descendant-review",
+        provider: "openai",
+        model: "gpt-4o",
+        source: "subagent",
+        workflowRequestSource: "model",
+        workflowEffectId: spawnEffectId,
+        callSequence: 1,
+        providerRequestId,
+        requestIdentitySemantics: "trace-only",
+      };
+      args.onUsageBoundary(providerBoundary);
+      let state = readDynamicWorkflowRuntimeState(statePath);
+      expect(state.effects[0].calls[1]).toMatchObject({
+        kind: "provider",
+        ownerEffectId: spawnEffectId,
+        source: "subagent",
+        requestSource: "model",
+        status: "started",
+      });
+      args.onUsageSettlement({
+        type: "token-usage",
+        callId: providerBoundary.callId,
+        provider: "openai",
+        source: "subagent",
+        usage: { input_tokens: 3, output_tokens: 2 },
+      });
+
+      const readCallId = "tool-descendant-read";
+      const readEffectId = nestedEffectId(
+        spawnEffectId,
+        1,
+        readCallId,
+        "read_file",
+      );
+      const readBoundary = {
+        type: "tool-executing",
+        tool: "read_file",
+        args: {},
+        tool_use_id: readCallId,
+        workflowEffectProtocol: "cc-workflow-child-effect/v1",
+        workflowEffectId: spawnEffectId,
+        workflowChildEffectId: readEffectId,
+        workflowChildSequence: 1,
+      };
+      args.onToolCallBoundary(readBoundary);
+      args.onToolCallSettlement({
+        ...readBoundary,
+        type: "tool-result",
+        result: { ok: true },
+        error: null,
+      });
+      args.onToolCallSettlement({
+        ...spawnBoundary,
+        type: "tool-result",
+        result: { ok: true },
+        error: null,
+      });
+
+      state = readDynamicWorkflowRuntimeState(statePath);
+      expect(state.effects[0].calls).toHaveLength(3);
+      return completedTask(args);
+    });
+
+    const record = await executeDurableDynamicWorkflow(
+      { statePath, runId: "run-descendant-calls", execution },
+      { runTask, now: clock() },
+    );
+
+    expect(record.status).toBe("completed");
+    const state = readDynamicWorkflowRuntimeState(statePath);
+    const projection =
+      projectDynamicWorkflowRuntime(state).observability.durableCalls;
+    expect(projection).toMatchObject({
+      count: 3,
+      completed: 3,
+      descendants: 2,
+    });
+    expect(projection.lineage.filter((call) => call.descendant)).toEqual([
+      expect.objectContaining({
+        ownerEffectId: expect.stringMatching(/^sha256:/u),
+        kind: "provider",
+        requestSource: "model",
+      }),
+      expect.objectContaining({
+        ownerEffectId: expect.stringMatching(/^sha256:/u),
+        kind: "tool",
+        name: "read_file",
+      }),
+    ]);
+
+    const tampered = structuredClone(state);
+    tampered.effects[0].calls[1].ownerEffectId = `sha256:${"f".repeat(64)}`;
+    expect(() =>
+      verifyDynamicWorkflowRuntimeState(withRuntimeStateDigest(tampered)),
+    ).toThrow(/effect-0-call-1-invalid/u);
+  });
+
+  it("rejects a descendant call whose owner has no durable spawn boundary", async () => {
+    const workflow = workflowDefinition({
+      steps: [{ id: "delegate", message: "Delegate release review" }],
+    });
+    const execution = admittedExecution(projectRoot, workflow);
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-descendant-owner-missing",
+    );
+    let boundaryReturned = false;
+    const orphanEffectId = `sha256:${"b".repeat(64)}`;
+    const providerRequestId = `ccwf_${createHash("sha256")
+      .update(`${orphanEffectId}\0model\0${String(1)}`, "utf8")
+      .digest("hex")}`;
+
+    await expect(
+      executeDurableDynamicWorkflow(
+        { statePath, runId: "run-descendant-owner-missing", execution },
+        {
+          runTask: async (args) => {
+            args.onUsageBoundary({
+              type: "model-usage-started",
+              callId: "mdl-orphan-descendant",
+              provider: "openai",
+              source: "subagent",
+              workflowRequestSource: "model",
+              workflowEffectId: orphanEffectId,
+              callSequence: 1,
+              providerRequestId,
+              requestIdentitySemantics: "trace-only",
+            });
+            boundaryReturned = true;
+            return completedTask(args);
+          },
+          now: clock(),
+        },
+      ),
+    ).rejects.toMatchObject({ reason: "reconciliation-required" });
+
+    expect(boundaryReturned).toBe(false);
+    expect(readDynamicWorkflowRuntimeState(statePath).effects[0].calls).toEqual(
+      [],
+    );
   });
 
   it("does not project a mismatched or idempotency-overclaiming provider receipt", async () => {

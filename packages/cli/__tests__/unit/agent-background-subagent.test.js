@@ -72,7 +72,7 @@ vi.mock("../../src/lib/sub-agent-context.js", () => {
   return { SubAgentContext: { create }, _subState: state };
 });
 
-import { agentLoop } from "../../src/runtime/agent-core.js";
+import { agentLoop, executeTool } from "../../src/runtime/agent-core.js";
 import { _subState } from "../../src/lib/sub-agent-context.js";
 
 const RESULT = {
@@ -156,6 +156,105 @@ beforeEach(() => {
 });
 
 describe("spawn_sub_agent background mode", () => {
+  it("binds the spawned child loop to the admitted parent tool effect", async () => {
+    const workflowEffectId = `sha256:${"a".repeat(64)}`;
+    const workflowChildEffectId = `sha256:${"b".repeat(64)}`;
+    _subState.autoResolve = (ctx) => ctx._resolveRun(RESULT);
+
+    const result = await executeTool(
+      "spawn_sub_agent",
+      { role: "reviewer", task: "review the release" },
+      {
+        workflowEffectId,
+        workflowChildEffectId,
+        workflowChildSequence: 1,
+        workflowEffectProtocol: "cc-workflow-child-effect/v1",
+        strictUsageTelemetry: true,
+        subAgentUsageSink: [],
+        onUsageBoundary: vi.fn(),
+        onUsageSettlement: vi.fn(),
+        onToolCallBoundary: vi.fn(),
+        onToolCallSettlement: vi.fn(),
+      },
+    );
+
+    expect(result).toMatchObject({ summary: RESULT.summary });
+    expect(_subState.created).toHaveLength(1);
+    expect(_subState.created[0].opts).toMatchObject({
+      workflowEffectId: workflowChildEffectId,
+      strictUsageTelemetry: true,
+    });
+  });
+
+  it("rethrows a workflow-bound spawned child's unknown outcome", async () => {
+    const unknown = new Error("child provider outcome is unknown");
+    unknown.workflowEffectOutcomeUnknown = true;
+    _subState.autoResolve = (ctx) => ctx._rejectRun(unknown);
+
+    await expect(
+      executeTool(
+        "spawn_sub_agent",
+        { role: "reviewer", task: "review the release" },
+        {
+          workflowEffectId: `sha256:${"a".repeat(64)}`,
+          workflowChildEffectId: `sha256:${"b".repeat(64)}`,
+          workflowChildSequence: 1,
+          workflowEffectProtocol: "cc-workflow-child-effect/v1",
+          strictUsageTelemetry: true,
+          subAgentUsageSink: [],
+          onUsageBoundary: vi.fn(),
+          onUsageSettlement: vi.fn(),
+          onToolCallBoundary: vi.fn(),
+          onToolCallSettlement: vi.fn(),
+        },
+      ),
+    ).rejects.toBe(unknown);
+  });
+
+  it("fences a background descendant unknown before another parent provider call", async () => {
+    const unknown = new Error("background child provider outcome is unknown");
+    unknown.workflowEffectOutcomeUnknown = true;
+    _subState.autoResolve = (ctx) => ctx._rejectRun(unknown);
+    const chatFn = vi.fn(async (_messages, options) => ({
+      message: {
+        content: "",
+        tool_calls: [
+          spawnCall(
+            { role: "reviewer", task: "review", background: true },
+            "spawn-background-unknown",
+          ),
+        ],
+      },
+      usage: { input_tokens: 2, output_tokens: 1 },
+      providerReceipt: {
+        protocol: "cc-provider-request-receipt/v1",
+        provider: "openai",
+        clientRequestId: options.providerRequestId,
+        requestId: "req_parent_before_background_unknown",
+        responseId: "resp_parent_before_background_unknown",
+        requestIdentitySemantics: "trace-only",
+        independentlyReadable: false,
+      },
+    }));
+
+    const error = await captureRejection(
+      drive(chatFn, {
+        provider: "openai",
+        model: "gpt-4o",
+        workflowEffectId: `sha256:${"a".repeat(64)}`,
+        strictUsageTelemetry: true,
+        onUsageBoundary: vi.fn(),
+        onUsageSettlement: vi.fn(),
+        onToolCallBoundary: vi.fn(),
+        onToolCallSettlement: vi.fn(),
+      }),
+    );
+
+    expect(error).toBe(unknown);
+    expect(chatFn).toHaveBeenCalledOnce();
+    expect(_subState.created[0].opts.workflowEffectId).toMatch(/^sha256:/u);
+  });
+
   it("returns a running handle and waits for the result at run end", async () => {
     let call = 0;
     const chatFn = vi.fn(async () => {

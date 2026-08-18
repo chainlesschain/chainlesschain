@@ -979,6 +979,11 @@ independently readable started row instead of relying on a completed-result
 projection; duplicate, malformed, or tampered rows fail closed. Explicit outer
 effect reconciliation marks any still-started rows as operator reconciled but
 does not turn trace-only request identities into third-party idempotency.
+Spawned sub-agents and isolated skills inherit the already-persisted parent
+tool child-effect as their workflow owner. Their internal provider/tool calls
+therefore enter the same store with a verified owner chain; an orphan or
+rewritten owner fails closed, and descendant unknown outcomes prevent normal
+outer provider-return settlement.
 
 `runtime-status --json` also returns a digest-bound `observability` projection.
 It exposes effect/result lineage, provider-return/operator-reconciled/runtime-
@@ -1001,12 +1006,13 @@ transport and report persisted start/settlement facts. Any workflow-bound
 nested outcome-unknown result or post-boundary tool exception blocks the outer
 effect for reconciliation instead of becoming an ordinary failed task. The
 runtime-owned provider/tool call rows are independently readable from a
-pending or crashed run, but spawned descendants, hook/checkpoint side effects,
-native third-party idempotency, and provider-side receipt lookup remain open.
+pending or crashed run, including calls directly owned by spawned sub-agents
+and isolated skills. Hook/checkpoint/artifact side effects, native third-party
+idempotency, and provider-side receipt lookup remain open.
 
 **WS protocol**: `workflow-list` / `workflow-get` / `workflow-save` / `workflow-remove` / `workflow-run` (streams `workflow:started` / `step-start` / `step-complete` / `workflow:done`).
 
-**Key files**: `src/gateways/ws/action-protocol.js` (5 handlers), `src/lib/cowork-workflow.js` (CRUD + `executeWorkflow`), `src/lib/dynamic-workflow-draft.js` (model proposal + human review authority), `src/lib/dynamic-workflow-runtime.js` (atomic parallel durable effect protocol), `packages/web-panel/src/stores/workflow.js` (Pinia store + `validateLocal`), `packages/web-panel/src/views/WorkflowEditor.vue`. **Governed CLI regression**: 545 tests across draft/review, durable runtime, façade, DAG, WebSocket, admission, provider/tool call binding, and MCP ledger coverage; the original editor slice retains its 39 backend/frontend/integration/E2E tests.
+**Key files**: `src/gateways/ws/action-protocol.js` (5 handlers), `src/lib/cowork-workflow.js` (CRUD + `executeWorkflow`), `src/lib/dynamic-workflow-draft.js` (model proposal + human review authority), `src/lib/dynamic-workflow-runtime.js` (atomic parallel durable effect protocol), `packages/web-panel/src/stores/workflow.js` (Pinia store + `validateLocal`), `packages/web-panel/src/views/WorkflowEditor.vue`. **Governed CLI regression**: 581 tests across draft/review, durable runtime, façade, DAG, WebSocket, admission, provider/tool/descendant call binding, and MCP ledger coverage; the original editor slice retains its 39 backend/frontend/integration/E2E tests.
 
 > Vue Flow visual canvas (drag-to-connect, branch rendering) is planned as M2.
 
