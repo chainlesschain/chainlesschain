@@ -200,6 +200,35 @@ describe("cowork-adapter", () => {
       }
     });
 
+    it("lets a call wrapper bind its authority signal to the provider fetch", async () => {
+      const originalFetch = globalThis.fetch;
+      const controller = new AbortController();
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          choices: [{ message: { content: "signal-bound" } }],
+          usage: { prompt_tokens: 1, completion_tokens: 1 },
+        }),
+      });
+
+      try {
+        const chat = createChatFn({
+          provider: "openai",
+          apiKey: "sk-test",
+          callWrapper: ({ call }) => call({ signal: controller.signal }),
+        });
+
+        await expect(chat([{ role: "user", content: "Hi" }])).resolves.toBe(
+          "signal-bound",
+        );
+        expect(globalThis.fetch.mock.calls[0][1].signal).toBe(
+          controller.signal,
+        );
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+
     it.each([
       [
         "ollama",

@@ -182,6 +182,77 @@ describe("agentLoop() wrapper", () => {
     ]);
   });
 
+  it("charges only root usage after its durable token ledger settlement", async () => {
+    const order = [];
+    const sessionBudget = {
+      recordUsage: vi.fn(({ usage }) => {
+        order.push(`budget:${usage.input_tokens}`);
+        return { aborted: false };
+      }),
+    };
+    const core = coreLoop([
+      {
+        type: "token-usage",
+        callId: "root-call",
+        provider: "openai",
+        model: "gpt-test",
+        usage: { input_tokens: 5, output_tokens: 2 },
+      },
+      {
+        type: "token-usage",
+        callId: "child-call",
+        provider: "openai",
+        model: "gpt-test",
+        attribution: { subagent: "child-1" },
+        usage: { input_tokens: 3, output_tokens: 1 },
+      },
+      { type: "response-complete", content: "done" },
+    ]);
+
+    await agentLoop([], {
+      _coreLoop: core,
+      sessionId: "budgeted-repl",
+      persistUsageTelemetry: true,
+      sessionBudget,
+      _appendTokenUsage: (_sessionId, event) =>
+        order.push(`ledger:${event.callId}`),
+    });
+
+    expect(order).toEqual([
+      "ledger:root-call",
+      "budget:5",
+      "ledger:child-call",
+    ]);
+    expect(sessionBudget.recordUsage).toHaveBeenCalledOnce();
+  });
+
+  it("fails the REPL turn when usage settlement exhausts the session budget", async () => {
+    const core = coreLoop([
+      {
+        type: "token-usage",
+        callId: "over-budget",
+        provider: "openai",
+        model: "gpt-test",
+        usage: { input_tokens: 9, output_tokens: 1 },
+      },
+    ]);
+
+    await expect(
+      agentLoop([], {
+        _coreLoop: core,
+        sessionId: "budgeted-repl",
+        persistUsageTelemetry: true,
+        _appendTokenUsage: vi.fn(),
+        sessionBudget: {
+          recordUsage: () => ({ aborted: true, reason: "token-limit" }),
+        },
+      }),
+    ).rejects.toMatchObject({
+      code: "CC_SESSION_BUDGET_EXHAUSTED",
+      budgetReason: "token-limit",
+    });
+  });
+
   it("pairs interleaved tool results by provider id and preserves each latency", async () => {
     const compactCalls = [];
     const ticks = [10, 20, 50, 80];
