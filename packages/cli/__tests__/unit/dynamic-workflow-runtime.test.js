@@ -24,12 +24,14 @@ import {
   reconcileDurableWorkflowEffect,
   requestDurableWorkflowPause,
   requestDurableWorkflowStop,
+  verifyDynamicWorkflowRuntimeState,
 } from "../../src/lib/dynamic-workflow-runtime.js";
 import {
   generateDynamicWorkflowDraft,
   reviewDynamicWorkflowDraft,
 } from "../../src/lib/dynamic-workflow-draft.js";
 import { createExecutionLocationBinding } from "../../src/lib/execution-location-contract.js";
+import { canonicalJson } from "../../src/lib/scheduler-kernel/contract.js";
 import {
   createCoworkWorkflowRecord,
   verifyCoworkWorkflowRecord,
@@ -82,6 +84,18 @@ function workflowDefinition(overrides = {}) {
 function clock(start = Date.parse("2026-08-18T05:00:00.000Z")) {
   let tick = 0;
   return () => new Date(start + tick++ * 1000).toISOString();
+}
+
+function withRuntimeStateDigest(state) {
+  const material = structuredClone(state);
+  delete material.stateDigest;
+  return {
+    ...material,
+    stateDigest: `sha256:${createHash("sha256")
+      .update("chainlesschain.dynamic-workflow.runtime-state.v1\0", "utf8")
+      .update(canonicalJson(material, "dynamicWorkflowRuntime"), "utf8")
+      .digest("hex")}`,
+  };
 }
 
 function executionLocation(projectRoot) {
@@ -355,6 +369,377 @@ describe("durable dynamic workflow runtime", () => {
     expect(projection.observability.gaps).not.toContain(
       "provider-request-receipt-incomplete",
     );
+  });
+
+  it("persists provider and tool call rows before dispatch and settles them independently", async () => {
+    const workflow = workflowDefinition({
+      steps: [{ id: "publish", message: "Publish release" }],
+    });
+    const execution = admittedExecution(projectRoot, workflow);
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-durable-calls",
+    );
+    const runTask = vi.fn(async (args) => {
+      const effectHex = args.workflowEffectId.slice("sha256:".length);
+      const providerBoundary = {
+        type: "model-usage-started",
+        callId: "mdl-publish-1",
+        provider: "openai",
+        model: "gpt-4o",
+        source: "model",
+        workflowEffectId: args.workflowEffectId,
+        callSequence: 1,
+        providerRequestId: `ccwf_${effectHex}`,
+        requestIdentitySemantics: "trace-only",
+      };
+      args.onUsageBoundary(providerBoundary);
+      let state = readDynamicWorkflowRuntimeState(statePath);
+      expect(state.effects[0].calls).toEqual([
+        expect.objectContaining({
+          kind: "provider",
+          callId: "mdl-publish-1",
+          status: "started",
+        }),
+      ]);
+      args.onUsageSettlement({
+        type: "token-usage",
+        callId: providerBoundary.callId,
+        provider: "openai",
+        model: "gpt-4o",
+        usage: { input_tokens: 2, output_tokens: 1 },
+      });
+
+      const toolUseId = "tool-publish-1";
+      const tool = "mcp__repo__publish";
+      const childEffectId = `sha256:${createHash("sha256")
+        .update(
+          `${args.workflowEffectId}\0tool\0${String(1)}\0${toolUseId}\0${tool}`,
+          "utf8",
+        )
+        .digest("hex")}`;
+      const toolBoundary = {
+        type: "tool-executing",
+        tool,
+        args: {},
+        tool_use_id: toolUseId,
+        workflowEffectProtocol: "cc-workflow-child-effect/v1",
+        workflowEffectId: args.workflowEffectId,
+        workflowChildEffectId: childEffectId,
+        workflowChildSequence: 1,
+      };
+      args.onToolCallBoundary(toolBoundary);
+      state = readDynamicWorkflowRuntimeState(statePath);
+      expect(state.effects[0].calls).toHaveLength(2);
+      expect(state.effects[0].calls[1]).toMatchObject({
+        kind: "tool",
+        childEffectId,
+        status: "started",
+      });
+      args.onToolCallSettlement({
+        ...toolBoundary,
+        type: "tool-result",
+        result: {
+          ok: true,
+          mcpLedgerId: "mcp-publish-1",
+          mcpLedgerPrewritePersisted: true,
+          mcpLedgerSettlementPersisted: true,
+        },
+        error: null,
+      });
+      return completedTask(args);
+    });
+
+    const record = await executeDurableDynamicWorkflow(
+      { statePath, runId: "run-durable-calls", execution },
+      { runTask, now: clock() },
+    );
+
+    expect(record.status).toBe("completed");
+    const state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.effects[0].calls).toEqual([
+      expect.objectContaining({
+        kind: "provider",
+        status: "completed",
+        settledAt: expect.any(String),
+      }),
+      expect.objectContaining({
+        kind: "tool",
+        status: "completed",
+        mcpLedgerId: "mcp-publish-1",
+        mcpLedgerPrewritePersisted: true,
+        mcpLedgerSettlementPersisted: true,
+      }),
+    ]);
+    expect(
+      state.lineage.filter((event) => event.type === "effect-call-started"),
+    ).toHaveLength(2);
+    expect(
+      state.lineage.filter((event) => event.type === "effect-call-settled"),
+    ).toHaveLength(2);
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.durableCalls,
+    ).toMatchObject({
+      authority: "runtime-state-hash-chain-fsync",
+      count: 2,
+      started: 0,
+      completed: 2,
+      outcomeUnknown: 0,
+    });
+  });
+
+  it("retains a crash-visible started provider call until operator reconciliation", async () => {
+    const workflow = workflowDefinition({
+      steps: [{ id: "collect", message: "Collect release evidence" }],
+    });
+    const execution = admittedExecution(projectRoot, workflow);
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-call-crash",
+    );
+    const runTask = vi.fn(async (args) => {
+      args.onUsageBoundary({
+        type: "model-usage-started",
+        callId: "mdl-crash-1",
+        provider: "openai",
+        model: "gpt-4o",
+        source: "model",
+        workflowEffectId: args.workflowEffectId,
+        callSequence: 1,
+        providerRequestId: `ccwf_${args.workflowEffectId.slice("sha256:".length)}`,
+        requestIdentitySemantics: "trace-only",
+      });
+      throw new Error("process stopped after provider dispatch");
+    });
+
+    await expect(
+      executeDurableDynamicWorkflow(
+        { statePath, runId: "run-call-crash", execution },
+        { runTask, now: clock() },
+      ),
+    ).rejects.toMatchObject({ reason: "reconciliation-required" });
+
+    let state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.status).toBe("blocked");
+    expect(state.effects[0].status).toBe("pending");
+    expect(state.effects[0].calls).toEqual([
+      expect.objectContaining({
+        kind: "provider",
+        callId: "mdl-crash-1",
+        status: "started",
+        settledAt: null,
+      }),
+    ]);
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.durableCalls,
+    ).toMatchObject({
+      count: 1,
+      started: 1,
+      completed: 0,
+    });
+
+    state = reconcileDurableWorkflowEffect(
+      statePath,
+      {
+        expectedRevision: state.revision,
+        effectId: state.effects[0].id,
+        result: completedTask({
+          workflowEffect: state.effects[0],
+          userMessage: "operator verified provider outcome",
+        }),
+      },
+      { now: clock(Date.parse("2026-08-18T06:30:00.000Z")) },
+    );
+    expect(state.effects[0].calls[0]).toMatchObject({
+      status: "operator_reconciled",
+      settlementCode: "operator_reconciled",
+      settledAt: expect.any(String),
+    });
+  });
+
+  it("persists an unknown provider outcome before blocking the outer effect", async () => {
+    const workflow = workflowDefinition({
+      steps: [{ id: "publish", message: "Publish release" }],
+    });
+    const execution = admittedExecution(projectRoot, workflow);
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-call-outcome-unknown",
+    );
+    const runTask = vi.fn(async (args) => {
+      const boundary = {
+        type: "model-usage-started",
+        callId: "mdl-unknown-1",
+        provider: "openai",
+        model: "gpt-4o",
+        source: "model",
+        workflowEffectId: args.workflowEffectId,
+        callSequence: 1,
+        providerRequestId: `ccwf_${args.workflowEffectId.slice("sha256:".length)}`,
+        requestIdentitySemantics: "trace-only",
+      };
+      args.onUsageBoundary(boundary);
+      args.onUsageSettlement({
+        ...boundary,
+        type: "model-usage-unknown",
+        code: "provider_outcome_unknown",
+      });
+      throw new Error("provider result could not be classified");
+    });
+
+    await expect(
+      executeDurableDynamicWorkflow(
+        { statePath, runId: "run-call-outcome-unknown", execution },
+        { runTask, now: clock() },
+      ),
+    ).rejects.toMatchObject({ reason: "reconciliation-required" });
+
+    const state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.effects[0].calls).toEqual([
+      expect.objectContaining({
+        kind: "provider",
+        status: "outcome_unknown",
+        outcomeUnknown: true,
+        settlementCode: "provider_outcome_unknown",
+        settledAt: expect.any(String),
+      }),
+    ]);
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.durableCalls,
+    ).toMatchObject({
+      count: 1,
+      started: 0,
+      outcomeUnknown: 1,
+    });
+  });
+
+  it("rejects malformed and duplicate call boundaries before another dispatch", async () => {
+    const workflow = workflowDefinition({
+      steps: [{ id: "publish", message: "Publish release" }],
+    });
+    const execution = admittedExecution(projectRoot, workflow);
+    const malformedStatePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-call-malformed",
+    );
+    let malformedBoundaryReturned = false;
+
+    await expect(
+      executeDurableDynamicWorkflow(
+        {
+          statePath: malformedStatePath,
+          runId: "run-call-malformed",
+          execution,
+        },
+        {
+          runTask: async (args) => {
+            args.onUsageBoundary({
+              type: "model-usage-started",
+              callId: "mdl-malformed-1",
+              provider: "openai",
+              source: "model",
+              workflowEffectId: args.workflowEffectId,
+              callSequence: 1,
+              providerRequestId: "not-effect-bound",
+              requestIdentitySemantics: "trace-only",
+            });
+            malformedBoundaryReturned = true;
+            return completedTask(args);
+          },
+          now: clock(),
+        },
+      ),
+    ).rejects.toMatchObject({ reason: "reconciliation-required" });
+    expect(malformedBoundaryReturned).toBe(false);
+    expect(
+      readDynamicWorkflowRuntimeState(malformedStatePath).effects[0].calls,
+    ).toEqual([]);
+
+    const duplicateStatePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-call-duplicate",
+    );
+    let duplicateBoundaryReturned = false;
+    await expect(
+      executeDurableDynamicWorkflow(
+        {
+          statePath: duplicateStatePath,
+          runId: "run-call-duplicate",
+          execution,
+        },
+        {
+          runTask: async (args) => {
+            const boundary = {
+              type: "model-usage-started",
+              callId: "mdl-duplicate-1",
+              provider: "openai",
+              source: "model",
+              workflowEffectId: args.workflowEffectId,
+              callSequence: 1,
+              providerRequestId: `ccwf_${args.workflowEffectId.slice("sha256:".length)}`,
+              requestIdentitySemantics: "trace-only",
+            };
+            args.onUsageBoundary(boundary);
+            args.onUsageBoundary(boundary);
+            duplicateBoundaryReturned = true;
+            return completedTask(args);
+          },
+          now: clock(),
+        },
+      ),
+    ).rejects.toMatchObject({ reason: "reconciliation-required" });
+    expect(duplicateBoundaryReturned).toBe(false);
+    expect(
+      readDynamicWorkflowRuntimeState(duplicateStatePath).effects[0].calls,
+    ).toEqual([
+      expect.objectContaining({
+        callId: "mdl-duplicate-1",
+        status: "started",
+      }),
+    ]);
+  });
+
+  it("rejects a tampered durable call record even with a recomputed state digest", async () => {
+    const workflow = workflowDefinition({
+      steps: [{ id: "publish", message: "Publish release" }],
+    });
+    const execution = admittedExecution(projectRoot, workflow);
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-call-tamper",
+    );
+    await executeDurableDynamicWorkflow(
+      { statePath, runId: "run-call-tamper", execution },
+      {
+        runTask: async (args) => {
+          const boundary = {
+            type: "model-usage-started",
+            callId: "mdl-tamper-1",
+            provider: "openai",
+            source: "model",
+            workflowEffectId: args.workflowEffectId,
+            callSequence: 1,
+            providerRequestId: `ccwf_${args.workflowEffectId.slice("sha256:".length)}`,
+            requestIdentitySemantics: "trace-only",
+          };
+          args.onUsageBoundary(boundary);
+          args.onUsageSettlement({
+            ...boundary,
+            type: "token-usage",
+            usage: { input_tokens: 1, output_tokens: 1 },
+          });
+          return completedTask(args);
+        },
+        now: clock(),
+      },
+    );
+
+    const state = readDynamicWorkflowRuntimeState(statePath);
+    const tampered = structuredClone(state);
+    tampered.effects[0].calls[0].name = "OpenAI";
+    expect(() =>
+      verifyDynamicWorkflowRuntimeState(withRuntimeStateDigest(tampered)),
+    ).toThrow(/effect-0-call-0-invalid/u);
   });
 
   it("does not project a mismatched or idempotency-overclaiming provider receipt", async () => {

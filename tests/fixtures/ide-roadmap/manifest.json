@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "manifestVersion": "1.9.7",
-  "baselineCommit": "8d2c211e82e5138766774930633e50ea77df26d2",
+  "manifestVersion": "1.9.8",
+  "baselineCommit": "6c6ac0cb037c600eeafeccc4d695c2d0e5b34c38",
   "releaseEvidence": {
     "commitSource": "git-head-at-run",
     "requiredFields": [
@@ -436,9 +436,9 @@
       "priority": "P1",
       "required": true,
       "evidenceStatus": "external-evidence-required",
-      "evidenceNotes": "Repository tests close generated-draft review authority, exact admission/replay, serial and bounded-parallel request-before-provider persistence, atomic dispatch-batch identity, ordered multi-pending reconciliation, the pause settlement barrier, attempt-scoped retry/timeout recovery, effect-bound provider tracing for ordinary model turns plus semantic compaction, and runtime-derived child identities for directly dispatched tools. Completed provider-return results retain matched nested attempt/settlement lineage; MCP calls additionally persist the outer/child identity tuple in their session ledger before transport and expose persisted start/settlement flags. Workflow-bound MCP outcome uncertainty and hosted-tool exceptions after a dispatch boundary settle the child as outcome_unknown and propagate to outer reconciliation instead of becoming an ordinary task failure. OpenAI request identifiers remain trace-only, and result-bound local/host tool lineage is not an independent durable ledger. Release readiness still requires a durable per-call store for pending/crashed provider and non-MCP child effects, native third-party idempotency and independently readable receipts, complete artifact/checkpoint authority, dual-IDE consumption, plugin distribution, and the declared real-host matrix on the exact release commit.",
+      "evidenceNotes": "Repository tests close generated-draft review authority, exact admission/replay, serial and bounded-parallel request-before-provider persistence, atomic dispatch-batch identity, ordered multi-pending reconciliation, the pause settlement barrier, attempt-scoped retry/timeout recovery, effect-bound provider tracing for ordinary model turns plus semantic compaction, and runtime-derived child identities for directly dispatched tools. The dynamic runtime now synchronously persists bounded provider/tool call rows before transport and their terminal settlement independently of the completed outer task result; crashes retain a started row, unknown outcomes remain explicit, duplicate or malformed boundaries fail closed, and operator reconciliation adjudicates still-started rows. MCP calls additionally persist the outer/child identity tuple in their session ledger before transport and expose persisted start/settlement flags. OpenAI request identifiers remain trace-only. Release readiness still requires descendant sub-agent/hook/checkpoint side effects to consume the same store, native third-party idempotency and independently readable receipts, complete artifact/checkpoint authority, dual-IDE consumption, plugin distribution, and the declared real-host matrix on the exact release commit.",
       "fixture": "tests/fixtures/ide-roadmap/p1-dynamic-workflow.json",
-      "fixtureDigest": "sha256:0ab6cc9aa72ac3339e6f3c6014830f4939a8add8a42ca7b1b3d99fc33b6f4d71",
+      "fixtureDigest": "sha256:b818eaf9a6a0afa9ac2db2983ac9e94cedddb9dce258bac865abc40184cea36d",
       "seed": 2026080114,
       "minimumIndependentRuns": 100,
       "matrix": {
@@ -475,6 +475,11 @@
         "partialMcpWorkflowBindingAcceptanceCount": 0,
         "nestedToolUnknownDowngradeCount": 0,
         "missingNestedEffectSettlementDetectionFailureCount": 0,
+        "missingDurableProviderCallPrewriteCount": 0,
+        "missingDurableToolCallPrewriteCount": 0,
+        "durableCallOutcomeUnknownDowngradeCount": 0,
+        "duplicateDurableCallBoundaryAcceptanceCount": 0,
+        "durableCallRecordTamperAcceptanceCount": 0,
         "stoppedStageCommitCount": 0,
         "budgetOverrunContinuationCount": 0,
         "missingArtifactLineageCount": 0,
@@ -521,6 +526,7 @@
         "effect-bound-nested-tool-attempt-lineage",
         "effect-bound-nested-tool-settlement-lineage",
         "mcp-workflow-child-effect-ledger",
+        "durable-effect-call-ledger",
         "checkpoint-lineage",
         "token-time-budget-ledger",
         "artifact-lineage",
