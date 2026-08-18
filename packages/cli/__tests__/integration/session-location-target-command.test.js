@@ -731,4 +731,268 @@ describe("session location target command routes", () => {
     expect(stderr.mock.calls.at(-1)[0]).toMatch(/no durable bundle/u);
     expect(stdout).not.toHaveBeenCalled();
   });
+
+  it("routes reviewed result apply through reservation and terminal settlement", async () => {
+    const reviewDigest = `sha256:${"6".repeat(64)}`;
+    const settlement = {
+      schema:
+        "chainlesschain.session-execution-location-result-collection-receipt/v2",
+      requestId: "apply-collect-request",
+      settlementEventHash: HEAD_HASH,
+      settlementEventCount: 5,
+      storage: { receiptDigest: `sha256:${"7".repeat(64)}` },
+    };
+    const bundle = {
+      diff: {
+        contentBase64: Buffer.from("private apply patch").toString("base64"),
+      },
+    };
+    const review = {
+      schema: "cc-execution-location-result-review/v1",
+      requestId: settlement.requestId,
+      reviewDigest,
+    };
+    const source = {
+      workspaceRoot: "/source/repo",
+      sourceGit: {
+        rootDigest: `sha256:${"8".repeat(64)}`,
+        commit: COMMIT,
+      },
+    };
+    const prepared = {
+      id: "result-apply-transaction",
+      checkpointId: "checkpoint-result-apply-transaction",
+      checkpointDigest: `sha256:${"9".repeat(64)}`,
+      coverage: "partial",
+      externalSideEffects: false,
+    };
+    const terminalTransaction = {
+      ...prepared,
+      evidenceDigest: `sha256:${"a".repeat(64)}`,
+      writeManifestDigest: `sha256:${"b".repeat(64)}`,
+      fileCoverage: "partial",
+      uncoveredPaths: [".git"],
+    };
+    const reserve = vi.fn();
+    const execute = vi.fn((input) => {
+      input.onPrepared(prepared);
+      return {
+        ok: true,
+        outcome: "applied",
+        stage: "complete",
+        transaction: terminalTransaction,
+        process: {
+          exitCode: 0,
+          signal: null,
+          stdoutBytes: 0,
+          stderrBytes: 0,
+          errorCode: null,
+        },
+      };
+    });
+    const applyReceipt = {
+      schema:
+        "chainlesschain.session-execution-location-result-apply-receipt/v1",
+      applyId: "apply-command-1",
+      requestId: settlement.requestId,
+      reviewDigest,
+      transaction: terminalTransaction,
+      terminal: { outcome: "applied" },
+      status: "applied",
+      applied: true,
+    };
+    const settle = vi.fn(() => applyReceipt);
+
+    await program(
+      dependencies({
+        readVerifiedSessionExecutionLocationResultSettlement: () => settlement,
+        readStoredExecutionLocationResultBundle: () => bundle,
+        createExecutionLocationResultReview: () => review,
+        readVerifiedSessionExecutionLocationResultApply: () => null,
+        verifyExecutionLocationResultApplySourceGit: () => source,
+        executeControlledExecutionLocationResultApply: execute,
+        reserveSessionExecutionLocationResultApply: reserve,
+        settleSessionExecutionLocationResultApply: settle,
+        executionBroker: {},
+      }),
+    ).parseAsync([
+      "node",
+      "cc",
+      "session",
+      "location",
+      "result-apply",
+      "session-command-1",
+      "--request-id",
+      settlement.requestId,
+      "--apply-id",
+      "apply-command-1",
+      "--review-digest",
+      reviewDigest,
+      "--json",
+    ]);
+
+    expect(process.exitCode).toBe(0);
+    expect(reserve).toHaveBeenCalledWith(
+      "session-command-1",
+      "apply-command-1",
+      review,
+      source.sourceGit,
+      prepared,
+    );
+    expect(execute.mock.calls[0][0].diffBytes).toEqual(
+      Buffer.from("private apply patch"),
+    );
+    expect(settle).toHaveBeenCalledWith(
+      "session-command-1",
+      "apply-command-1",
+      "applied",
+      terminalTransaction,
+    );
+    const output = JSON.parse(stdout.mock.calls.at(-1)[0]);
+    expect(output).toMatchObject({
+      ...applyReceipt,
+      recovered: false,
+      allowed: true,
+      stage: "complete",
+    });
+    expect(JSON.stringify(output)).not.toContain("private apply patch");
+  });
+
+  it("rejects result apply before a transaction when the review digest drifts", async () => {
+    const execute = vi.fn();
+    await program(
+      dependencies({
+        readVerifiedSessionExecutionLocationResultSettlement: () => ({
+          schema:
+            "chainlesschain.session-execution-location-result-collection-receipt/v2",
+          requestId: "apply-review-drift",
+          storage: {},
+        }),
+        readStoredExecutionLocationResultBundle: () => ({ diff: {} }),
+        createExecutionLocationResultReview: () => ({
+          reviewDigest: `sha256:${"1".repeat(64)}`,
+        }),
+        executeControlledExecutionLocationResultApply: execute,
+      }),
+    ).parseAsync([
+      "node",
+      "cc",
+      "session",
+      "location",
+      "result-apply",
+      "session-command-1",
+      "--request-id",
+      "apply-review-drift",
+      "--apply-id",
+      "apply-drift-1",
+      "--review-digest",
+      `sha256:${"2".repeat(64)}`,
+    ]);
+
+    expect(process.exitCode).toBe(1);
+    expect(stderr.mock.calls.at(-1)[0]).toMatch(/review digest/u);
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it("explicitly recovers only the reserved apply transaction without replay", async () => {
+    const reviewDigest = `sha256:${"3".repeat(64)}`;
+    const transactionId = "result-apply-recovery-1";
+    const prior = {
+      schema:
+        "chainlesschain.session-execution-location-result-apply-receipt/v1",
+      requestId: "apply-recovery-request",
+      applyId: "apply-recovery-1",
+      reviewDigest,
+      transaction: { id: transactionId },
+      terminal: null,
+      applied: false,
+    };
+    const terminalTransaction = {
+      id: transactionId,
+      checkpointId: "checkpoint-result-apply-recovery-1",
+      checkpointDigest: `sha256:${"4".repeat(64)}`,
+      evidenceDigest: `sha256:${"5".repeat(64)}`,
+      writeManifestDigest: `sha256:${"6".repeat(64)}`,
+      coverage: "partial",
+      fileCoverage: "partial",
+      externalSideEffects: false,
+      uncoveredPaths: [".git"],
+    };
+    const terminalState = {
+      state: "rolled_back",
+      evidence: {},
+    };
+    const inspect = vi
+      .fn()
+      .mockReturnValueOnce({ state: "running" })
+      .mockReturnValueOnce(terminalState);
+    const recover = vi.fn(() => [{ id: transactionId, status: "rolled_back" }]);
+    const settle = vi.fn(() => ({
+      ...prior,
+      transaction: terminalTransaction,
+      terminal: { outcome: "rolled_back" },
+      status: "rolled_back",
+      applied: false,
+    }));
+    const broker = {
+      inspectWorkspaceTransaction: inspect,
+      recoverWorkspaceTransactions: recover,
+    };
+
+    await program(
+      dependencies({
+        readVerifiedSessionExecutionLocationResultSettlement: () => ({
+          schema:
+            "chainlesschain.session-execution-location-result-collection-receipt/v2",
+          requestId: prior.requestId,
+          storage: {},
+        }),
+        readStoredExecutionLocationResultBundle: () => ({ diff: {} }),
+        createExecutionLocationResultReview: () => ({ reviewDigest }),
+        readVerifiedSessionExecutionLocationResultApply: () => prior,
+        verifyExecutionLocationResultApplySourceGit: () => ({
+          workspaceRoot: "/source/repo",
+          sourceGit: {},
+        }),
+        terminalExecutionLocationResultApplyTransaction: () =>
+          terminalTransaction,
+        settleSessionExecutionLocationResultApply: settle,
+        executionBroker: broker,
+      }),
+    ).parseAsync([
+      "node",
+      "cc",
+      "session",
+      "location",
+      "result-apply-recover",
+      "session-command-1",
+      "--request-id",
+      prior.requestId,
+      "--apply-id",
+      prior.applyId,
+      "--review-digest",
+      reviewDigest,
+      "--json",
+    ]);
+
+    expect(process.exitCode).toBe(2);
+    expect(recover).toHaveBeenCalledWith({
+      id: transactionId,
+      workspaceRoot: "/source/repo",
+      reason: "explicit session result apply recovery",
+    });
+    expect(settle).toHaveBeenCalledWith(
+      "session-command-1",
+      prior.applyId,
+      "rolled_back",
+      terminalTransaction,
+    );
+    expect(JSON.parse(stdout.mock.calls.at(-1)[0])).toMatchObject({
+      status: "rolled_back",
+      applied: false,
+      allowed: false,
+      recovered: true,
+      stage: "recovery",
+    });
+  });
 });
