@@ -2588,6 +2588,52 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 五十九、2026-08-18 R4 operator-verified usage reconciliation 子门复核（`20:05 +08:00`）
+
+本节继续第五十八节的 unknown provider usage recovery：此前 operator 只能把完整精确 authority 集合作为 `--abandon` 清除，本轮允许把事后已核实的
+provider usage 录入同一次裁决并计入 durable token/USD；不把 operator 输入外推为 provider 独立账单或签名 receipt。功能提交为 `556b768fe8`，
+持久化失败回滚测试为 `abc545b137`、`2d2112369a`；均已快进合并到本地 `main`，尚无本候选 exact-head GitHub Actions。
+
+### 本轮关闭的 verified usage recovery 子门
+
+- **一个裁决必须覆盖完整精确集合。** `SessionResourceBudget.adjudicateRecovery` 同时接受 `settled[]` 与 `abandoned[]`；二者的 authority id 并集必须与
+  当前 pending recovery 完全一致，重复、缺失、额外 id 一律拒绝。只有 `usage-*` 且 kind 为 `usage-settlement` 的 authority 可以录入 usage；普通
+  work/tool crash authority 仍只能显式 abandon，不能伪造成模型消费。
+- **核实用量复用生产结算语义。** settlement 可携带单条 `provider/model/usage` 或逐 provider `usageRecords`，token 字段、aggregate/detail 一致性、
+  safe-integer、价格表匹配、free/unpriced 与 USD 累计使用和正常 provider 返回完全相同的校验。若录入后达到 token/USD 上限或在 USD cap 下仍无法定价，
+  裁决事实会先持久化，session 随后保持预算中止，不会因“恢复完成”继续运行。
+- **累计值与 marker 只提交一次。** 实现先在隔离的 accounting copy 上完成全部 token/cost 计算，再同时更新 totals、清空 recovery set 并触发
+  `budget:recovery-adjudicated`。sidecar 在同一 finalization 中写入 clean snapshot 并清除 usage-unknown marker；持久化失败则恢复旧 token/USD、
+  unpriced 状态与全部 recovery authority，然后以原 persistence error fail closed。
+- **普通 known settlement 同步获得原子回滚。** `recordUsage` 也改为先计算、后解析精确 pending call、再持久化；usage-recorded 写失败时不再在内存中留下
+  已增加的 token/USD 或丢失 pending authority。该失败 root 仍被 `persistence-failed` 永久围住，调用方不能利用回滚继续 dispatch。
+- **CLI 支持可审计的混合裁决。** `cc session budget recover <id>` 保留 `--abandon <authority-id...>`，并新增可重复
+  `--settlement '<json>'`；每条 JSON 必须给出 status 中的 `authorityId` 及核实后的 provider/model/usage。命令输出分别报告 recorded 与 abandoned
+  数量，JSON 模式回传精确 id 集合和最终 content-free status。
+
+### 仓库内验证与证据边界
+
+- session resource/runtime、production root/command、direct model、REPL wrapper、headless root、WS handler、SubAgent 与 TeamRunner 十个联合文件为
+  **173 passed / 3 skipped**；覆盖混合裁决、已知价格 token/USD、畸形 usage 零副作用、marker 清除、普通/恢复写失败回滚与代理入口兼容。
+- Node syntax、`git diff --check` 通过；仓库中未加入账单内容、prompt、response 或 error 文本，恢复输出只含已有 opaque authority id 与累计值。
+- roadmap manifest 从 `1.9.25` 升至 `1.9.26`；`p1-dynamic-workflow` 保持引用 **39 个测试文件**，新增 verified usage 被零放弃、恢复记账部分
+  提交及不完整混合裁决必须为零的合同，并要求 provider usage recovery accounting artifact。fixture digest 为
+  `sha256:215d71eee671593b2cd2ad203dcdc8837f0cbaa7410d2d13df8ba4f7302bde9d`；全 corpus 保持
+  **15 cases / 88 referenced test files**，仍只验证 repository contract，不等于 external runtime evidence 或 release readiness。
+
+### R4 budget 仍未关闭的边界
+
+1. **输入来源仍是人工 authority：** settlement JSON 没有自动从 provider billing/usage endpoint、发票或 independently-readable receipt 获取并绑定；
+   operator 可以如实补账，但仓库无法独立证明输入真实性或完整性。错误人工输入属于显式裁决风险，不是 exactly-once billing 证明。
+2. **独立对账与差异工作流仍开放：** 尚无 request id→账单记录的自动拉取、签名/摘要验证、争议状态、二次复核、修订历史或 provider 退款/延迟入账处理；
+   unknown marker 也不能自行判断 provider 最终是否收费。
+3. **平台和产品矩阵仍开放：** Windows/macOS 安全 sidecar、敌对同 UID 写入、多主机 fencing/anti-rollback、断电/fsync、默认 migration、IDE/Desktop
+   创建与裁决 UI、真实 provider 长期矩阵仍未关闭。
+
+因此，R4 budget 的 **完整精确 mixed adjudication、operator-verified token/USD 原子补账、marker 同步清除与失败回滚**由本节关闭；R4 budget 整项仍为
+**部分完成**，不得据此声称独立 provider billing/readback 已闭环。总计数保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布
+结论继续为 **NO-GO**。本节不改变 S0-1～S0-3、Q0、Q3、Q4a/Q4b、P1-1、P1-2、P1-4、P1-5 或 P2-4 的状态。
+
 ## 五十八、2026-08-18 R4 durable provider usage settlement authority 子门复核（`19:45 +08:00`）
 
 本节继续第五十五至五十七节的 opt-in durable session budget，把“provider 调用已经发出、但 token/USD 尚未结算”的窗口纳入同一持久 authority；
