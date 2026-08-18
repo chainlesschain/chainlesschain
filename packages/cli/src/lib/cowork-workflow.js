@@ -59,6 +59,9 @@ import { canonicalJson } from "./scheduler-kernel/contract.js";
 /** Maximum number of items a single forEach step can expand into. */
 export const MAX_FAN_OUT = 500;
 
+/** Maximum declarative choices accepted by one durable stage input gate. */
+export const MAX_STAGE_INPUT_OPTIONS = 32;
+
 /** Absolute ceiling on a single loop step's iterations (infinite-loop guard). */
 export const MAX_LOOP_ITERATIONS = 100;
 export const COWORK_WORKFLOW_RUN_RECORD_SCHEMA = "cc-cowork-workflow-run/v1";
@@ -832,6 +835,55 @@ export function validateWorkflow(wf) {
       if (s.when !== undefined && typeof s.when !== "string") {
         errors.push(`steps[${i}].when must be a string expression`);
       }
+      if (s.needsInput !== undefined) {
+        const input = s.needsInput;
+        const inputKeys =
+          input && typeof input === "object" && !Array.isArray(input)
+            ? Object.keys(input)
+            : [];
+        if (
+          !input ||
+          typeof input !== "object" ||
+          Array.isArray(input) ||
+          inputKeys.some(
+            (key) => !["prompt", "options", "multiSelect"].includes(key),
+          ) ||
+          typeof input.prompt !== "string" ||
+          input.prompt.trim() !== input.prompt ||
+          input.prompt.length === 0 ||
+          input.prompt.length > 4096
+        ) {
+          errors.push(`steps[${i}].needsInput has an invalid prompt schema`);
+        } else {
+          if (
+            input.options !== undefined &&
+            (!Array.isArray(input.options) ||
+              input.options.length === 0 ||
+              input.options.length > MAX_STAGE_INPUT_OPTIONS ||
+              input.options.some(
+                (option) =>
+                  typeof option !== "string" ||
+                  option.trim() !== option ||
+                  option.length === 0 ||
+                  option.length > 512,
+              ) ||
+              new Set(input.options).size !== input.options.length)
+          ) {
+            errors.push(`steps[${i}].needsInput.options is invalid`);
+          }
+          if (
+            input.multiSelect !== undefined &&
+            typeof input.multiSelect !== "boolean"
+          ) {
+            errors.push(`steps[${i}].needsInput.multiSelect must be boolean`);
+          }
+          if (input.multiSelect === true && !Array.isArray(input.options)) {
+            errors.push(
+              `steps[${i}].needsInput.multiSelect requires options`,
+            );
+          }
+        }
+      }
       if (s.forEach !== undefined) {
         const f = s.forEach;
         const ok =
@@ -1074,6 +1126,69 @@ export function substitutePlaceholders(template, resultsById) {
       return "";
     },
   );
+}
+
+function normalizeResolvedStageInput(value, spec) {
+  const answer = snapshotAdmittedCanonicalValue(
+    value,
+    "workflow stage input answer",
+    { maxNodes: 256, maxBytes: 64 * 1024 },
+  );
+  const options = Array.isArray(spec.options) ? spec.options : null;
+  if (spec.multiSelect === true) {
+    if (
+      !Array.isArray(answer) ||
+      answer.length === 0 ||
+      answer.length > MAX_STAGE_INPUT_OPTIONS ||
+      answer.some((item) => typeof item !== "string") ||
+      new Set(answer).size !== answer.length ||
+      answer.some((item) => !options.includes(item))
+    ) {
+      throw runResultError("workflow stage input answer is invalid");
+    }
+    return answer;
+  }
+  if (
+    typeof answer !== "string" ||
+    answer.length === 0 ||
+    answer.length > 64 * 1024 ||
+    (options && !options.includes(answer))
+  ) {
+    throw runResultError("workflow stage input answer is invalid");
+  }
+  return answer;
+}
+
+async function resolveStageInputMessage(
+  step,
+  message,
+  resultsById,
+  resolveInput,
+) {
+  if (step.needsInput === undefined) return message;
+  if (typeof resolveInput !== "function") {
+    const error = new Error(
+      `workflow step '${step.id}' requires a durable input resolver`,
+    );
+    error.code = "COWORK_WORKFLOW_INPUT_RESOLVER_REQUIRED";
+    throw error;
+  }
+  const spec = step.needsInput;
+  const prompt = substitutePlaceholders(spec.prompt, resultsById);
+  const answer = normalizeResolvedStageInput(
+    await resolveInput(
+      Object.freeze({
+        stepId: step.id,
+        prompt,
+        options: Array.isArray(spec.options)
+          ? Object.freeze([...spec.options])
+          : null,
+        multiSelect: spec.multiSelect === true,
+      }),
+    ),
+    spec,
+  );
+  return `${message}\n\n## Bound user input for stage ${step.id}\n${canonicalJson(answer, "workflowStageInput")}`;
 }
 
 // ─── Persistence ─────────────────────────────────────────────────────────────
@@ -1600,6 +1715,7 @@ export async function runStepNode(step, ctx) {
     onStepComplete,
     taskSemaphore,
     runTask,
+    resolveInput,
     admitted = false,
   } = ctx;
   const recordId = step.id;
@@ -1620,9 +1736,18 @@ export async function runStepNode(step, ctx) {
   }
   if (!runThis) return single("skipped", "when-condition false");
 
-  if (isLoopStep(step)) {
+  const resolvedMessage = await resolveStageInputMessage(
+    step,
+    step.message,
+    resultsById,
+    resolveInput,
+  );
+  const activeStep =
+    resolvedMessage === step.message ? step : { ...step, message: resolvedMessage };
+
+  if (isLoopStep(activeStep)) {
     const o = await runLoopStep({
-      step,
+      step: activeStep,
       recordId,
       cwd,
       llmOptions,
@@ -1640,10 +1765,10 @@ export async function runStepNode(step, ctx) {
     };
   }
 
-  if (step.forEach !== undefined) {
+  if (activeStep.forEach !== undefined) {
     let items;
     try {
-      items = resolveForEachItems(step.forEach, resultsById);
+      items = resolveForEachItems(activeStep.forEach, resultsById);
     } catch (err) {
       return single("failed", err.message);
     }
@@ -1651,10 +1776,10 @@ export async function runStepNode(step, ctx) {
     const children = await Promise.all(
       items.map(async (item, k) => {
         const childId = `${recordId}[${k}]`;
-        const withItem = substituteItem(step.message, item);
+        const withItem = substituteItem(activeStep.message, item);
         const msg = substitutePlaceholders(withItem, resultsById);
         const r = await runStepWithRetry({
-          step,
+          step: activeStep,
           message: msg,
           cwd,
           llmOptions,
@@ -1687,9 +1812,9 @@ export async function runStepNode(step, ctx) {
     };
   }
 
-  const message = substitutePlaceholders(step.message, resultsById);
+  const message = substitutePlaceholders(activeStep.message, resultsById);
   const r = await runStepWithRetry({
-    step,
+    step: activeStep,
     message,
     cwd,
     llmOptions,
@@ -1724,6 +1849,7 @@ export async function runPipeline({
   onStepComplete,
   taskSemaphore,
   runTask = _deps.runTask,
+  resolveInput,
   admitted = false,
 }) {
   const limit = Math.max(1, Math.floor(maxParallel) || 1);
@@ -1787,6 +1913,7 @@ export async function runPipeline({
           onStepComplete,
           taskSemaphore,
           runTask,
+          resolveInput,
           admitted,
         });
       } catch (err) {
@@ -1950,6 +2077,7 @@ function normalizeAdmittedRunRecord(
  * @param {object} [options.llmOptions] - Forwarded to each task
  * @param {function} [options.onStepStart]
  * @param {function} [options.onStepComplete]
+ * @param {function} [options.resolveInput] - Durable stage input resolver
  * @param {object} [options.runAdmission] - Secret-free, digest-bound dynamic
  *   workflow admission. Production entry points require this even though the
  *   low-level executor keeps it optional for existing library callers.
@@ -1973,6 +2101,7 @@ export async function executeWorkflow(options = {}) {
     onStepComplete,
     pipeline,
     runAdmission,
+    resolveInput,
     runTask: requestedRunTask,
   } = options;
 
@@ -2019,6 +2148,16 @@ export async function executeWorkflow(options = {}) {
       "cowork-workflow: runTask is not available (wire runCoworkTask before executing)",
     );
   }
+  if (
+    runtimeWorkflow.steps.some((step) => step.needsInput !== undefined) &&
+    typeof resolveInput !== "function"
+  ) {
+    const error = new Error(
+      "workflow contains needsInput stages but no durable input resolver was provided",
+    );
+    error.code = "COWORK_WORKFLOW_INPUT_RESOLVER_REQUIRED";
+    throw error;
+  }
 
   const taskSemaphore = createWorkflowTaskSemaphore(concurrencyLimit);
   const resultsById = new Map();
@@ -2038,6 +2177,7 @@ export async function executeWorkflow(options = {}) {
       onStepComplete,
       taskSemaphore,
       runTask: runtimeRunTask,
+      resolveInput,
       admitted: verifiedRunAdmission != null,
     }));
   } else {
@@ -2094,23 +2234,33 @@ export async function executeWorkflow(options = {}) {
             preOutcomes.push(outcome);
             continue;
           }
+          const resolvedMessage = await resolveStageInputMessage(
+            step,
+            step.message,
+            resultsById,
+            resolveInput,
+          );
+          const activeStep =
+            resolvedMessage === step.message
+              ? step
+              : { ...step, message: resolvedMessage };
           // loop node — runs its body repeatedly; per-iteration substitution
           // happens inside runLoopStep, so push the raw template.
-          if (isLoopStep(step)) {
+          if (isLoopStep(activeStep)) {
             runnable.push({
-              step,
-              message: step.message,
-              recordId: step.id,
+              step: activeStep,
+              message: activeStep.message,
+              recordId: activeStep.id,
               parentId: null,
               isLoop: true,
             });
             continue;
           }
           // forEach-expansion
-          if (step.forEach !== undefined) {
+          if (activeStep.forEach !== undefined) {
             let items;
             try {
-              items = resolveForEachItems(step.forEach, resultsById);
+              items = resolveForEachItems(activeStep.forEach, resultsById);
             } catch (err) {
               anyFailure = true;
               const outcome = {
@@ -2135,20 +2285,28 @@ export async function executeWorkflow(options = {}) {
               continue;
             }
             for (let k = 0; k < items.length; k++) {
-              const childId = `${step.id}[${k}]`;
-              const withItem = substituteItem(step.message, items[k]);
+              const childId = `${activeStep.id}[${k}]`;
+              const withItem = substituteItem(activeStep.message, items[k]);
               const msg = substitutePlaceholders(withItem, resultsById);
               runnable.push({
-                step,
+                step: activeStep,
                 message: msg,
                 recordId: childId,
-                parentId: step.id,
+                parentId: activeStep.id,
               });
             }
             continue;
           }
-          const message = substitutePlaceholders(step.message, resultsById);
-          runnable.push({ step, message, recordId: step.id, parentId: null });
+          const message = substitutePlaceholders(
+            activeStep.message,
+            resultsById,
+          );
+          runnable.push({
+            step: activeStep,
+            message,
+            recordId: activeStep.id,
+            parentId: null,
+          });
         }
 
         const promises = runnable.map(

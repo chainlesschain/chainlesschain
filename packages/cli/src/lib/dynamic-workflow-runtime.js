@@ -42,6 +42,8 @@ export const DYNAMIC_WORKFLOW_RUNTIME_SCHEMA = "cc-dynamic-workflow-runtime/v1";
 export const DYNAMIC_WORKFLOW_RUNTIME_VERSION = 1;
 export const DYNAMIC_WORKFLOW_EFFECT_SCHEMA = "cc-dynamic-workflow-effect/v1";
 export const DYNAMIC_WORKFLOW_CALL_SCHEMA = "cc-dynamic-workflow-call/v1";
+export const DYNAMIC_WORKFLOW_INPUT_REQUEST_SCHEMA =
+  "cc-dynamic-workflow-input-request/v1";
 export const DYNAMIC_WORKFLOW_OBSERVABILITY_SCHEMA =
   "cc-dynamic-workflow-observability/v1";
 export const DYNAMIC_WORKFLOW_RUNTIME_CONTROL_CODE =
@@ -51,6 +53,8 @@ const STATE_STATUSES = new Set([
   "ready",
   "running",
   "pause_requested",
+  "input_requested",
+  "needs_input",
   "paused",
   "blocked",
   "failed",
@@ -64,6 +68,9 @@ const MAX_EFFECTS = 64;
 const MAX_EFFECT_BATCH_SIZE = 64;
 const MAX_LINEAGE_EVENTS = 4096;
 const MAX_CALLS_PER_EFFECT = 128;
+const MAX_INPUT_REQUESTS = 64;
+const MAX_INPUT_OPTIONS = 32;
+const MAX_INPUT_RESPONSE_BYTES = 64 * 1024;
 const MAX_PROJECTED_ARTIFACTS_PER_EFFECT = 256;
 const MAX_PROVIDER_TOKEN_COUNT = 1_000_000_000;
 const MAX_PROVIDER_USD_RATE_PER_MILLION = 1_000_000;
@@ -1387,6 +1394,107 @@ function verifyEffectCalls(
   }
 }
 
+function verifyInputRequests(state, issues) {
+  if (state.inputRequests === undefined) {
+    if (["input_requested", "needs_input"].includes(state.status)) {
+      issues.push("input-requests-missing");
+    }
+    return;
+  }
+  if (
+    !Array.isArray(state.inputRequests) ||
+    state.inputRequests.length > MAX_INPUT_REQUESTS
+  ) {
+    issues.push("input-requests-invalid");
+    return;
+  }
+  const ids = new Set();
+  const stepIds = new Set();
+  let pendingCount = 0;
+  for (const [index, request] of state.inputRequests.entries()) {
+    let valid = true;
+    let normalized = null;
+    const plainRequest =
+      request && typeof request === "object" && !Array.isArray(request);
+    try {
+      normalized = normalizeStageInputRequest({
+        stepId: request?.stepId,
+        prompt: request?.prompt,
+        options: request?.options,
+        multiSelect: request?.multiSelect,
+      });
+    } catch {
+      valid = false;
+    }
+    const expectedId = normalized
+      ? stageInputRequestIdentity(state.runId, normalized)
+      : null;
+    const pending = request?.status === "pending";
+    const answered = request?.status === "answered";
+    const cancelled = request?.status === "cancelled";
+    if (pending) pendingCount += 1;
+    if (
+      !plainRequest ||
+      request?.schema !== DYNAMIC_WORKFLOW_INPUT_REQUEST_SCHEMA ||
+      (plainRequest && Reflect.ownKeys(request).length !== 11) ||
+      request?.id !== expectedId ||
+      ids.has(request?.id) ||
+      stepIds.has(request?.stepId) ||
+      (!pending && !answered && !cancelled) ||
+      isoNow(request?.requestedAt) !== request.requestedAt ||
+      (pending &&
+        (request.resolvedAt !== null ||
+          request.responseDigest !== null ||
+          request.response !== null))
+    ) {
+      valid = false;
+    }
+    if (answered) {
+      let answer = null;
+      try {
+        answer = normalizeStageInputAnswer(request.response, request);
+      } catch {
+        valid = false;
+      }
+      if (
+        answer === null ||
+        !SHA256_RE.test(request.responseDigest || "") ||
+        request.responseDigest !==
+          stageInputResponseDigest(request.id, request.response) ||
+        typeof request.resolvedAt !== "string" ||
+        isoNow(request.resolvedAt) !== request.resolvedAt ||
+        Date.parse(request.resolvedAt) < Date.parse(request.requestedAt)
+      ) {
+        valid = false;
+      }
+    }
+    if (
+      cancelled &&
+      (typeof request.resolvedAt !== "string" ||
+        isoNow(request.resolvedAt) !== request.resolvedAt ||
+        Date.parse(request.resolvedAt) < Date.parse(request.requestedAt) ||
+        request.responseDigest !== null ||
+        request.response !== null)
+    ) {
+      valid = false;
+    }
+    if (!valid) issues.push(`input-request-${index}-invalid`);
+    ids.add(request?.id);
+    stepIds.add(request?.stepId);
+  }
+  const inputStatus = ["input_requested", "needs_input"].includes(
+    state.status,
+  );
+  if (
+    pendingCount > 1 ||
+    inputStatus !== (pendingCount === 1) ||
+    (state.status === "needs_input" &&
+      state.effects?.some((effect) => effect?.status === "pending"))
+  ) {
+    issues.push("input-request-state-invalid");
+  }
+}
+
 export function verifyDynamicWorkflowRuntimeState(value) {
   const state = snapshotJson(value, "workflow runtime state");
   const issues = [];
@@ -1611,6 +1719,7 @@ export function verifyDynamicWorkflowRuntimeState(value) {
       batchIndex += 1;
     }
   }
+  verifyInputRequests(state, issues);
   if (
     (state.status === "completed") !== (state.finalRecord != null) ||
     (state.status === "stopped" && state.finalRecord != null)
@@ -1815,6 +1924,22 @@ export function readDynamicWorkflowEffectResultFile(filePath) {
   );
 }
 
+export function readDynamicWorkflowInputResponseFile(filePath) {
+  const payload = readDynamicWorkflowEffectResultFile(filePath);
+  if (
+    !payload ||
+    typeof payload !== "object" ||
+    Array.isArray(payload) ||
+    Reflect.ownKeys(payload).length !== 1 ||
+    !Object.hasOwn(payload, "answer")
+  ) {
+    throw new Error(
+      'workflow input response file must contain exactly {"answer": ...}',
+    );
+  }
+  return payload.answer;
+}
+
 function stateBindings(execution, runId) {
   const admission = execution.runAdmission;
   if (!admission || typeof admission !== "object") {
@@ -1884,6 +2009,7 @@ function createState(bindings, now) {
     revision: 0,
     status: "ready",
     effects: [],
+    inputRequests: [],
     finalRecord: null,
     createdAt: at,
     updatedAt: at,
@@ -1905,6 +2031,102 @@ function controlError(message, reason, state, effect = null, cause = null) {
   error.runtimeState = state;
   if (effect) error.pendingEffect = effect;
   return error;
+}
+
+function runtimeInputRequests(state) {
+  return Array.isArray(state?.inputRequests) ? state.inputRequests : [];
+}
+
+function normalizeStageInputRequest(value) {
+  const request = snapshotJson(
+    value,
+    "workflow stage input request",
+    64 * 1024,
+  );
+  const fields = Object.keys(request || {});
+  if (
+    !request ||
+    typeof request !== "object" ||
+    Array.isArray(request) ||
+    fields.length !== 4 ||
+    !["stepId", "prompt", "options", "multiSelect"].every((field) =>
+      Object.hasOwn(request, field),
+    ) ||
+    typeof request.stepId !== "string" ||
+    request.stepId.length === 0 ||
+    request.stepId.length > 512 ||
+    typeof request.prompt !== "string" ||
+    request.prompt.trim() !== request.prompt ||
+    request.prompt.length === 0 ||
+    request.prompt.length > 4096 ||
+    typeof request.multiSelect !== "boolean" ||
+    !(
+      request.options === null ||
+      (Array.isArray(request.options) &&
+        request.options.length > 0 &&
+        request.options.length <= MAX_INPUT_OPTIONS &&
+        request.options.every(
+          (option) =>
+            typeof option === "string" &&
+            option.trim() === option &&
+            option.length > 0 &&
+            option.length <= 512,
+        ) &&
+        new Set(request.options).size === request.options.length)
+    ) ||
+    (request.multiSelect && request.options === null)
+  ) {
+    throw new TypeError("workflow stage input request is malformed");
+  }
+  if (containsSecret(JSON.stringify(request))) {
+    throw new Error("workflow stage input request contains secret-shaped data");
+  }
+  return request;
+}
+
+function stageInputRequestIdentity(runId, request) {
+  return digest("chainlesschain.dynamic-workflow.input-request.v1\0", {
+    runId,
+    request,
+  });
+}
+
+function normalizeStageInputAnswer(value, request) {
+  const answer = snapshotJson(
+    value,
+    "workflow stage input answer",
+    MAX_INPUT_RESPONSE_BYTES,
+  );
+  if (request.multiSelect) {
+    if (
+      !Array.isArray(answer) ||
+      answer.length === 0 ||
+      answer.length > MAX_INPUT_OPTIONS ||
+      answer.some((item) => typeof item !== "string") ||
+      new Set(answer).size !== answer.length ||
+      answer.some((item) => !request.options.includes(item))
+    ) {
+      throw new TypeError("workflow stage input answer is malformed");
+    }
+  } else if (
+    typeof answer !== "string" ||
+    answer.length === 0 ||
+    Buffer.byteLength(answer, "utf8") > MAX_INPUT_RESPONSE_BYTES ||
+    (request.options !== null && !request.options.includes(answer))
+  ) {
+    throw new TypeError("workflow stage input answer is malformed");
+  }
+  if (containsSecret(JSON.stringify(answer))) {
+    throw new Error("workflow stage input answer contains secret-shaped data");
+  }
+  return answer;
+}
+
+function stageInputResponseDigest(requestId, answer) {
+  return digest("chainlesschain.dynamic-workflow.input-response.v1\0", {
+    requestId,
+    answer,
+  });
 }
 
 function startRun(statePath, bindings, now) {
@@ -1932,6 +2154,85 @@ function startRun(statePath, bindings, now) {
     );
     return { state, value: state };
   });
+}
+
+function resolveDurableWorkflowStageInput(
+  statePath,
+  runId,
+  rawRequest,
+  now,
+) {
+  const request = normalizeStageInputRequest(rawRequest);
+  const requestId = stageInputRequestIdentity(runId, request);
+  const outcome = withStateMutation(statePath, (current) => {
+    if (!current || current.runId !== runId) {
+      throw new Error(
+        "durable workflow run disappeared before input request",
+      );
+    }
+    const inputRequests = runtimeInputRequests(current);
+    const matchingStep = inputRequests.find(
+      (entry) => entry.stepId === request.stepId,
+    );
+    if (matchingStep && matchingStep.id !== requestId) {
+      throw new Error("workflow stage input request drifted during replay");
+    }
+    if (matchingStep?.status === "answered") {
+      return { value: { answer: matchingStep.response, state: current } };
+    }
+    if (matchingStep?.status === "pending") {
+      return {
+        value: { pending: matchingStep, state: current },
+      };
+    }
+    const existingPending = inputRequests.find(
+      (entry) => entry.status === "pending",
+    );
+    if (existingPending) {
+      return {
+        value: { pending: existingPending, state: current },
+      };
+    }
+    if (current.status !== "running") {
+      throw new Error(
+        `durable workflow run cannot request input while ${current.status}`,
+      );
+    }
+    if (inputRequests.length >= MAX_INPUT_REQUESTS) {
+      throw new Error("durable workflow input request limit exceeded");
+    }
+    const requestedAt = isoNow(now);
+    const pending = {
+      schema: DYNAMIC_WORKFLOW_INPUT_REQUEST_SCHEMA,
+      id: requestId,
+      stepId: request.stepId,
+      prompt: request.prompt,
+      options: request.options,
+      multiSelect: request.multiSelect,
+      status: "pending",
+      requestedAt,
+      resolvedAt: null,
+      responseDigest: null,
+      response: null,
+    };
+    const state = transition(
+      current,
+      "input-requested",
+      { requestId, stepId: request.stepId },
+      (draft) => {
+        draft.inputRequests = [...runtimeInputRequests(draft), pending];
+        draft.status = "input_requested";
+      },
+      now,
+    );
+    return { state, value: { pending, state } };
+  });
+  if (outcome.answer !== undefined) return outcome.answer;
+  throw controlError(
+    `workflow stage ${outcome.pending.stepId} needs input`,
+    "needs-input",
+    outcome.state,
+  );
 }
 
 function effectKey(effect) {
@@ -1996,6 +2297,11 @@ function requestEffectBatch(statePath, runId, argsList, now) {
     if (current.status === "pause_requested") {
       return {
         value: { control: "paused", state: current, results: null },
+      };
+    }
+    if (["input_requested", "needs_input"].includes(current.status)) {
+      return {
+        value: { control: "needs-input", state: current, results: null },
       };
     }
     if (current.status === "stopped") {
@@ -2184,7 +2490,14 @@ function markEffectProviderDispatched(statePath, runId, effectId, now) {
     if (current.status === "stopped") {
       return { value: { control: "stopped", state: current, effect } };
     }
-    if (!["running", "pause_requested", "blocked"].includes(current.status)) {
+    if (
+      ![
+        "running",
+        "pause_requested",
+        "input_requested",
+        "blocked",
+      ].includes(current.status)
+    ) {
       throw new Error(
         `workflow effect cannot be dispatched while ${current.status}`,
       );
@@ -3162,6 +3475,32 @@ function finalizePauseAfterSettlementBarrier(statePath, runId, now) {
   });
 }
 
+function finalizeInputAfterSettlementBarrier(statePath, runId, now) {
+  return withStateMutation(statePath, (current) => {
+    if (!current || current.runId !== runId) return { value: current };
+    if (current.status !== "input_requested") return { value: current };
+    if (current.effects.some((effect) => effect.status === "pending")) {
+      return { value: current };
+    }
+    const pending = runtimeInputRequests(current).find(
+      (request) => request.status === "pending",
+    );
+    if (!pending) {
+      throw new Error("workflow input barrier has no pending request");
+    }
+    const state = transition(
+      current,
+      "run-needs-input",
+      { requestId: pending.id, barrier: "all-requested-effects-settled" },
+      (draft) => {
+        draft.status = "needs_input";
+      },
+      now,
+    );
+    return { state, value: state };
+  });
+}
+
 function completeRun(statePath, runId, record, now) {
   const finalRecord = snapshotJson(
     record,
@@ -3183,6 +3522,18 @@ function completeRun(statePath, runId, record, now) {
         now,
       );
       return { state, value: { control: "paused", state } };
+    }
+    if (current.status === "input_requested") {
+      const state = transition(
+        current,
+        "run-needs-input",
+        { barrier: "workflow-completion" },
+        (draft) => {
+          draft.status = "needs_input";
+        },
+        now,
+      );
+      return { state, value: { control: "needs-input", state } };
     }
     if (current.status === "stopped") {
       return { value: { control: "stopped", state: current } };
@@ -3212,7 +3563,13 @@ function markFailed(statePath, runId, error, now) {
       !current ||
       current.runId !== runId ||
       TERMINAL_STATUSES.has(current.status) ||
-      ["paused", "blocked", "pause_requested"].includes(current.status)
+      [
+        "paused",
+        "blocked",
+        "pause_requested",
+        "input_requested",
+        "needs_input",
+      ].includes(current.status)
     ) {
       return { value: current };
     }
@@ -3396,6 +3753,13 @@ export async function executeDurableDynamicWorkflow(options = {}, deps = {}) {
       ...execution,
       maxParallel: execution.runAdmission.maxParallel,
       runTask: durableRunTask,
+      resolveInput: (request) =>
+        resolveDurableWorkflowStageInput(
+          statePath,
+          runId,
+          request,
+          deps.now,
+        ),
     });
     const completed = completeRun(statePath, runId, record, deps.now);
     if (completed.control) {
@@ -3407,6 +3771,35 @@ export async function executeDurableDynamicWorkflow(options = {}, deps = {}) {
     }
     return completed.record;
   } catch (error) {
+    if (
+      error?.code === DYNAMIC_WORKFLOW_RUNTIME_CONTROL_CODE &&
+      error.reason === "needs-input"
+    ) {
+      const state = finalizeInputAfterSettlementBarrier(
+        statePath,
+        runId,
+        deps.now,
+      );
+      const pendingEffect = state?.effects?.find(
+        (effect) => effect.status === "pending",
+      );
+      if (pendingEffect) {
+        throw controlError(
+          `workflow effect ${pendingEffect.id} requires reconciliation before input can settle`,
+          "reconciliation-required",
+          state,
+          pendingEffect,
+          error,
+        );
+      }
+      throw controlError(
+        "dynamic workflow run needs input after its settlement barrier",
+        "needs-input",
+        state,
+        null,
+        error,
+      );
+    }
     if (
       error?.code === DYNAMIC_WORKFLOW_RUNTIME_CONTROL_CODE &&
       error.reason === "paused"
@@ -3476,6 +3869,9 @@ export function requestDurableWorkflowPause(
     if (TERMINAL_STATUSES.has(current.status)) {
       throw new Error(`cannot pause a ${current.status} workflow run`);
     }
+    if (["input_requested", "needs_input"].includes(current.status)) {
+      throw new Error(`cannot pause a ${current.status} workflow run`);
+    }
     const immediate = ["ready", "paused", "failed"].includes(current.status);
     const state = transition(
       current,
@@ -3508,6 +3904,12 @@ export function requestDurableWorkflowStop(
       "run-stopped",
       {},
       (draft) => {
+        const resolvedAt = isoNow(deps.now);
+        draft.inputRequests = runtimeInputRequests(draft).map((request) =>
+          request.status === "pending"
+            ? { ...request, status: "cancelled", resolvedAt }
+            : request,
+        );
         draft.status = "stopped";
         draft.finalRecord = null;
       },
@@ -3529,6 +3931,17 @@ export function prepareDurableWorkflowResume(
     if (TERMINAL_STATUSES.has(current.status)) {
       throw new Error(`cannot resume a ${current.status} workflow run`);
     }
+    const pendingInput = runtimeInputRequests(current).find(
+      (request) => request.status === "pending",
+    );
+    if (pendingInput) {
+      const error = new Error(
+        `workflow input request ${pendingInput.id} must be answered before resume`,
+      );
+      error.code = "CC_DYNAMIC_WORKFLOW_INPUT_REQUIRED";
+      error.pendingInputRequest = pendingInput;
+      throw error;
+    }
     const pending = current.effects.find(
       (effect) => effect.status === "pending" && !isKnownUndispatched(effect),
     );
@@ -3545,6 +3958,61 @@ export function prepareDurableWorkflowResume(
       "run-resume-authorized",
       {},
       (draft) => {
+        draft.status = "ready";
+      },
+      deps.now,
+    );
+    return { state, value: state };
+  });
+}
+
+export function submitDurableWorkflowInput(
+  statePath,
+  input = {},
+  deps = {},
+) {
+  const requestId = String(input.requestId || "").trim().toLowerCase();
+  if (!SHA256_RE.test(requestId)) {
+    throw new TypeError("workflow input request id is invalid");
+  }
+  return withStateMutation(path.resolve(statePath), (current) => {
+    if (!current)
+      throw new Error("dynamic workflow runtime state was not found");
+    requireRevision(current, input.expectedRevision);
+    if (current.status !== "needs_input") {
+      throw new Error(
+        `cannot answer workflow input while run is ${current.status}`,
+      );
+    }
+    if (current.effects.some((effect) => effect.status === "pending")) {
+      throw new Error(
+        "workflow input cannot be answered before the effect settlement barrier",
+      );
+    }
+    const requests = runtimeInputRequests(current);
+    const requestIndex = requests.findIndex(
+      (request) => request.id === requestId,
+    );
+    const request = requests[requestIndex];
+    if (!request || request.status !== "pending") {
+      throw new Error("workflow input request is not pending");
+    }
+    const answer = normalizeStageInputAnswer(input.answer, request);
+    const responseDigest = stageInputResponseDigest(requestId, answer);
+    const resolvedAt = isoNow(deps.now);
+    const state = transition(
+      current,
+      "input-answered",
+      { requestId, stepId: request.stepId, responseDigest },
+      (draft) => {
+        draft.inputRequests = [...runtimeInputRequests(draft)];
+        draft.inputRequests[requestIndex] = {
+          ...draft.inputRequests[requestIndex],
+          status: "answered",
+          resolvedAt,
+          responseDigest,
+          response: answer,
+        };
         draft.status = "ready";
       },
       deps.now,
@@ -5339,6 +5807,26 @@ export function projectDynamicWorkflowRuntime(stateOrPath) {
             timeoutObservedAt: effect.timeoutObservedAt ?? null,
             providerDispatchedAt: effect.providerDispatchedAt ?? null,
             requestedAt: effect.requestedAt,
+          }),
+        ),
+    ),
+    inputRequestCount: runtimeInputRequests(state).length,
+    answeredInputRequestCount: runtimeInputRequests(state).filter(
+      (request) => request.status === "answered",
+    ).length,
+    pendingInputRequests: Object.freeze(
+      runtimeInputRequests(state)
+        .filter((request) => request.status === "pending")
+        .map((request) =>
+          Object.freeze({
+            id: request.id,
+            stepId: request.stepId,
+            prompt: request.prompt,
+            options: request.options
+              ? Object.freeze([...request.options])
+              : null,
+            multiSelect: request.multiSelect,
+            requestedAt: request.requestedAt,
           }),
         ),
     ),

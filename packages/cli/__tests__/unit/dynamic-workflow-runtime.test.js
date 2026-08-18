@@ -22,11 +22,13 @@ import {
   prepareDurableWorkflowResume,
   projectDynamicWorkflowRuntime,
   readDynamicWorkflowEffectResultFile,
+  readDynamicWorkflowInputResponseFile,
   readDynamicWorkflowRuntimeState,
   recoverDurableWorkflowCheckpointCall,
   reconcileDurableWorkflowEffect,
   requestDurableWorkflowPause,
   requestDurableWorkflowStop,
+  submitDurableWorkflowInput,
   verifyDynamicWorkflowRuntimeState,
 } from "../../src/lib/dynamic-workflow-runtime.js";
 import {
@@ -3729,6 +3731,104 @@ describe("durable dynamic workflow runtime", () => {
     ]);
     expect(state.effects[0].timeoutObservedAt).toMatch(/Z$/u);
     expect(state.effects[0].providerDispatchedAt).toMatch(/Z$/u);
+  });
+
+  it("parks a stage before dispatch and resumes only from its bound answer", async () => {
+    const runId = "run-needs-input";
+    const statePath = dynamicWorkflowRunStatePath(projectRoot, runId);
+    const workflow = workflowDefinition({
+      steps: [
+        { id: "collect", message: "Collect release evidence" },
+        {
+          id: "review",
+          message: "Review ${step.collect.summary}",
+          dependsOn: ["collect"],
+          needsInput: {
+            prompt: "Choose release decision",
+            options: ["approve", "reject"],
+          },
+        },
+      ],
+    });
+    const execution = admittedExecution(projectRoot, workflow);
+    const runTask = vi.fn(async (args) => completedTask(args));
+    const runtimeClock = clock();
+
+    await expect(
+      executeDurableDynamicWorkflow(
+        { statePath, runId, execution },
+        { runTask, now: runtimeClock },
+      ),
+    ).rejects.toMatchObject({
+      code: DYNAMIC_WORKFLOW_RUNTIME_CONTROL_CODE,
+      reason: "needs-input",
+    });
+
+    let state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.status).toBe("needs_input");
+    expect(state.effects).toHaveLength(1);
+    expect(state.effects[0]).toMatchObject({
+      stepId: "collect",
+      status: "settled",
+    });
+    expect(runTask).toHaveBeenCalledTimes(1);
+    expect(state.inputRequests).toHaveLength(1);
+    expect(state.inputRequests[0]).toMatchObject({
+      stepId: "review",
+      status: "pending",
+      response: null,
+    });
+    const projection = projectDynamicWorkflowRuntime(state);
+    expect(projection.pendingInputRequests).toMatchObject([
+      {
+        id: state.inputRequests[0].id,
+        stepId: "review",
+        prompt: "Choose release decision",
+      },
+    ]);
+    expect(JSON.stringify(projection)).not.toContain('"response"');
+    expect(() =>
+      prepareDurableWorkflowResume(statePath, state.revision),
+    ).toThrow(/must be answered before resume/u);
+
+    const responseFile = join(projectRoot, "workflow-input.json");
+    writeFileSync(responseFile, JSON.stringify({ answer: "approve" }));
+    expect(readDynamicWorkflowInputResponseFile(responseFile)).toBe("approve");
+    expect(() =>
+      submitDurableWorkflowInput(statePath, {
+        expectedRevision: state.revision - 1,
+        requestId: state.inputRequests[0].id,
+        answer: "approve",
+      }),
+    ).toThrow(/stale dynamic workflow runtime revision/u);
+
+    state = submitDurableWorkflowInput(
+      statePath,
+      {
+        expectedRevision: state.revision,
+        requestId: state.inputRequests[0].id,
+        answer: "approve",
+      },
+      { now: runtimeClock },
+    );
+    expect(state.status).toBe("ready");
+    expect(state.inputRequests[0]).toMatchObject({
+      status: "answered",
+      response: "approve",
+    });
+
+    const record = await executeDurableDynamicWorkflow(
+      { statePath, runId, execution },
+      { runTask, now: runtimeClock },
+    );
+    expect(record.status).toBe("completed");
+    expect(runTask).toHaveBeenCalledTimes(2);
+    expect(runTask.mock.calls[1][0].userMessage).toContain(
+      "## Bound user input for stage review\n\"approve\"",
+    );
+    state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.status).toBe("completed");
+    expect(state.effects).toHaveLength(2);
   });
 
   it("fails closed on state tamper and hard-linked state files", async () => {
