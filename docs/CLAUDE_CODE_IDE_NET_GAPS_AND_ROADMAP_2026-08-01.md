@@ -2588,6 +2588,61 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 五十、2026-08-18 P1-1 managed checkpoint store settlement readback 子门复核（`14:31 +08:00`）
+
+本节继续第四十一、四十三至四十九节，把 Cowork 已有的 workspace transaction prepare/commit/rollback evidence 接入 dynamic workflow 的
+逐 tool durable call settlement；不把一次 terminal transaction-store 回读外推为全工作区覆盖、外部系统副作用回滚、WORM retention、当前 restore
+可用性或崩溃后自动判定。候选基于已合并本地主分支 `c5184fdaf91b103e65594b2eb7aeb9bb5ba5efc9`，功能提交为
+`a6b1258d0c`，尚无本候选 exact-head GitHub Actions。
+
+### 本轮关闭的 managed checkpoint terminal readback 子门
+
+- **durable workflow 强制启用并透传 managed checkpoint。** `executeDurableDynamicWorkflow` 给每个 Cowork task 设置
+  `managedCheckpoint: true`，`runCoworkTask` 再把开关、state dir 与 exclusions 传到 SubAgent loop。工作流自己的
+  `.chainlesschain/cowork/workflow-runs` state directory 被加入 checkpoint exclusion，避免失败工具 rollback 同时抹掉已经 fsync 的 child-call
+  boundary/lineage；该 exclusion 也使 coverage 继续诚实保持 partial，而不是虚报 full。
+- **mutating tool 在执行前声明 checkpoint schema。** 动态运行时和 checkpoint adapter 共用 `managedToolCheckpointRequired` 分类；已知 read-only
+  tool 不创建 schema，其他 tool 的 started row 先保存 `checkpointReadback: null`，并在 `effect-call-started` 绑定
+  `cc-dynamic-workflow-checkpoint-readback/v1`。新 row 删除字段而保留 started/settled lineage 会被 verifier 拒绝，完整移除三处字段才按 legacy 读取。
+- **terminal settlement 独立回读 transaction store。** tool result 中的 managed checkpoint 必须是无 proxy/accessor/symbol 的精确字段集；runtime
+  重新计算 commit/rollback evidence digest，通过 `WorkspaceTransactionManager.inspect(transactionId)` 独立读取并验证 durable
+  `transaction.json`/baseline，再计算 state digest、核对 transaction/checkpoint id、terminal state 与完整 evidence。只有 store 与 settlement
+  一致才生成 `cc-dynamic-workflow-checkpoint-readback/v1`，并把 readback digest 写进 `effect-call-settled`，此时 outer task 尚未返回。
+- **failed tool 的 rollback 不被隐藏。** 成功 tool 记录 `outcome=committed`，失败 tool 在 workspace 内容恢复后仍以 failed child call 记录
+  `outcome=rolled_back`；伪造 evidence、读不到 store、store/evidence 不一致、假 skipped/unavailable 或 readback/lineage 篡改都在 call settlement
+  前 fail closed，保留 started call 并进入 reconciliation-required。
+- **投影与残余边界机器可读。** `observability.checkpoints.storeReadbacks` 输出 tool/effect、committed/rolled-back、full/partial、external-side-effect、
+  pending/unknown/reconciled/legacy/missing 计数和逐调用 digest lineage。无 verified record、缺 record、旧 schema、非 full coverage 与 external side
+  effect 分别保留 `checkpoint-provider-readback-unavailable`、`checkpoint-store-readback-incomplete`、
+  `checkpoint-store-readback-legacy-call-schema`、`checkpoint-full-coverage-incomplete` 与
+  `checkpoint-external-side-effect-rollback-unavailable`。
+
+### 仓库内验证与证据边界
+
+- dynamic runtime 聚焦文件为 **40/40**；Cowork 透传、managed checkpoint integration 与 runtime 合并定向回归为 **4 files / 161/161**。
+- manifest `p1-dynamic-workflow` 引用的 **20 个文件为 697/697**；roadmap verifier 与 journey evidence 两文件为 **37/37**。
+- roadmap manifest 从 `1.9.16` 升至 `1.9.17`，baseline 绑定本轮起点
+  `c5184fdaf91b103e65594b2eb7aeb9bb5ba5efc9`；fixture digest 为
+  `sha256:7782ce23f597603a1367294b4a3c182e7cfbc39bb1949e312290dcd4cf407d9a`。`--contract-only` 验证
+  **15 cases / 71 referenced test files**，明确没有评估 runtime evidence 或 release readiness。
+
+### P1-1 仍未关闭的边界
+
+1. **full coverage 与外部副作用：** 默认 unknown writer isolation、runtime-state exclusion、`.git` exclusion 和普通 shell/MCP/hosted tool 的外部
+   side effects 都不能证明 full coverage；当前 rollback authority 只覆盖 transaction baseline 内的 workspace files，不覆盖网络、数据库、provider、
+   MCP server 或后台进程产生的副作用。
+2. **retention、restore 与 crash adjudication：** 本节证明 tool settlement 当刻可独立读取 terminal transaction state，但没有 WORM/retention lock、
+   每次 status 的 current-state re-read、已提交 checkpoint 的自动 restore/undo 产品流，也没有关闭“transaction 已 terminal、durable call 尚未 settlement”
+   崩溃窗口的自动裁决；该窗口继续保留 started call 并要求 reconciliation。
+3. **完整产品与外部矩阵：** provider billing/readback/native idempotency、immutable artifact authority、一般阶段间 `needs_input`、Workbench/VS Code/
+   JetBrains checkpoint/restore/phase/agent/control UI、plugin/marketplace 分发，以及 Local/WSL/SSH/Container/Cloud × 三 OS × 双 IDE 每格 100 次
+   exact-head 真实 provider/宿主故障矩阵仍无外部证据。
+
+因此，P1-1 的 **managed checkpoint enablement、runtime-state rollback isolation、commit/rollback terminal store readback、pre-outer durable digest、
+tamper/missing-store rejection 与 legacy/coverage gap** 由本节关闭；P1-1 整项仍为**部分完成**，不得据此声明 full checkpoint coverage、外部副作用
+回滚、current restore authority 或完整 Workbench 已完成。总计数保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为
+**NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
+
 ## 四十九、2026-08-18 P1-1 managed ArtifactStore settlement readback 子门复核（`13:58 +08:00`）
 
 本节继续第四十一、四十三至四十八节，把受管 `publish_artifact` 工具已经写入 ArtifactStore 的 index metadata 与 copied bytes 接入 tool
