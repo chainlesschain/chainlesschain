@@ -13,6 +13,7 @@ import { createExecutionLocationBinding } from "../../src/lib/execution-location
 import { canonicalJson } from "../../src/lib/scheduler-kernel/contract.js";
 import {
   collectExecutionLocationTargetResult,
+  createExecutionLocationTargetResultCollectionRequest,
   EXECUTION_LOCATION_PROFILE_SCHEMA,
   attestExecutionLocationTarget,
   normalizeExecutionLocationProfile,
@@ -414,6 +415,37 @@ describe("execution location target launch and resume", () => {
       shell: false,
       maxBuffer: 24 * 1024 * 1024,
     });
+  });
+
+  it("binds a stable collection request id to every fixed target input", () => {
+    const input = {
+      requestId: "collect-request-stable",
+      sessionId: "session-target-1",
+      target: "container",
+      profile: rawProfile(),
+      expectedTargetFactsDigest: `sha256:${"1".repeat(64)}`,
+      expectedHandoffId: `sha256:${"2".repeat(64)}`,
+      resultId: "result-stable-1",
+      summaryPath: "summary.txt",
+      diffPath: "result.diff",
+      artifacts: [{ mediaType: "application/json", path: "artifact.json" }],
+      evidence: [],
+    };
+    const first = createExecutionLocationTargetResultCollectionRequest(input);
+    const retry = createExecutionLocationTargetResultCollectionRequest(input);
+    expect(retry.requestDigest).toBe(first.requestDigest);
+    expect(
+      createExecutionLocationTargetResultCollectionRequest({
+        ...input,
+        diffPath: "different.diff",
+      }).requestDigest,
+    ).not.toBe(first.requestDigest);
+    expect(() =>
+      createExecutionLocationTargetResultCollectionRequest({
+        ...input,
+        target: "ssh",
+      }),
+    ).toThrow(/does not match profile/u);
   });
 
   it("blocks target drift, stale facts approval, and a mismatched session replica", () => {
