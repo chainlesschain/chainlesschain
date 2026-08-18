@@ -36,6 +36,10 @@ import {
   createCoworkWorkflowRecord,
   verifyCoworkWorkflowRecord,
 } from "../../src/lib/workflow-definition-contract.js";
+import {
+  ArtifactStore,
+  publicArtifactMetadata,
+} from "../../src/lib/artifact-store.js";
 
 function workflowDefinition(overrides = {}) {
   return {
@@ -296,6 +300,28 @@ function nestedToolEvidence(args) {
         mcpLedgerSettlementPersisted: true,
       },
     ],
+  };
+}
+
+function workflowToolBoundary(
+  args,
+  { tool, toolUseId, sequence = 1, ownerEffectId = args.workflowEffectId },
+) {
+  const childEffectId = `sha256:${createHash("sha256")
+    .update(
+      `${ownerEffectId}\0tool\0${String(sequence)}\0${toolUseId}\0${tool}`,
+      "utf8",
+    )
+    .digest("hex")}`;
+  return {
+    type: "tool-executing",
+    tool,
+    args: {},
+    tool_use_id: toolUseId,
+    workflowEffectProtocol: "cc-workflow-child-effect/v1",
+    workflowEffectId: ownerEffectId,
+    workflowChildEffectId: childEffectId,
+    workflowChildSequence: sequence,
   };
 }
 
@@ -911,6 +937,242 @@ describe("durable dynamic workflow runtime", () => {
       providerReported: null,
     });
   });
+
+  it("persists verified ArtifactStore index and byte readback before the outer task settles", async () => {
+    const workflow = workflowDefinition({
+      steps: [{ id: "publish", message: "Publish release evidence" }],
+    });
+    const execution = admittedExecution(projectRoot, workflow);
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-artifact-readback",
+    );
+    const artifactStore = new ArtifactStore({
+      dir: join(root, "artifact-store"),
+      now: () => Date.parse("2026-08-18T05:30:00.000Z"),
+    });
+    const sourcePath = join(root, "release-evidence.md");
+    writeFileSync(sourcePath, "verified release evidence\n", "utf8");
+    let readbackVisibleBeforeReturn = false;
+
+    await executeDurableDynamicWorkflow(
+      { statePath, runId: "run-artifact-readback", execution },
+      {
+        artifactStore,
+        runTask: async (args) => {
+          const boundary = workflowToolBoundary(args, {
+            tool: "publish_artifact",
+            toolUseId: "tool-publish-artifact-1",
+          });
+          args.onToolCallBoundary(boundary);
+          const entry = artifactStore.publish({
+            filePath: sourcePath,
+            title: "Release evidence",
+            kind: "report",
+            sessionId: "workflow-session-1",
+          });
+          args.onToolCallSettlement({
+            ...boundary,
+            type: "tool-result",
+            result: { published: publicArtifactMetadata(entry) },
+          });
+          const pending = readDynamicWorkflowRuntimeState(statePath);
+          expect(pending.effects[0]).toMatchObject({
+            status: "pending",
+            calls: [
+              expect.objectContaining({
+                name: "publish_artifact",
+                status: "completed",
+                artifactReadback: expect.objectContaining({
+                  schema: "cc-dynamic-workflow-artifact-readback/v1",
+                  authority: "artifact-store-index-and-bytes-at-settlement",
+                  metadata: expect.objectContaining({
+                    id: entry.id,
+                    title: "Release evidence",
+                    sha256: entry.sha256,
+                  }),
+                  contentDigest: `sha256:${entry.sha256}`,
+                }),
+              }),
+            ],
+          });
+          readbackVisibleBeforeReturn = true;
+          return completedTask(args);
+        },
+        now: clock(),
+      },
+    );
+
+    expect(readbackVisibleBeforeReturn).toBe(true);
+    const state = readDynamicWorkflowRuntimeState(statePath);
+    const projection = projectDynamicWorkflowRuntime(state);
+    expect(projection.observability.durableCalls).toMatchObject({
+      artifactReadbackRecords: 1,
+    });
+    expect(projection.observability.artifacts.storeReadbacks).toMatchObject({
+      authority: "artifact-store-index-and-bytes-at-settlement",
+      verificationTiming: "tool-settlement",
+      immutableRetentionProven: false,
+      artifactCalls: 1,
+      completedCalls: 1,
+      failedCalls: 0,
+      verifiedCalls: 1,
+      verifiedEffects: 1,
+      missingReadbacks: 0,
+      pendingCalls: 0,
+      outcomeUnknownCalls: 0,
+      operatorReconciledCalls: 0,
+      legacyCalls: 0,
+      lineage: [
+        expect.objectContaining({
+          descendant: false,
+          readback: expect.objectContaining({
+            metadata: expect.objectContaining({ title: "Release evidence" }),
+          }),
+        }),
+      ],
+    });
+    for (const gap of [
+      "artifact-store-readback-unavailable",
+      "artifact-store-readback-incomplete",
+      "artifact-store-readback-legacy-call-schema",
+    ]) {
+      expect(projection.observability.gaps).not.toContain(gap);
+    }
+    expect(projection.observability.gaps).toContain(
+      "artifact-store-immutable-retention-unavailable",
+    );
+
+    const tampered = structuredClone(state);
+    tampered.effects[0].calls[0].artifactReadback.metadata.title = "Forged";
+    expect(() =>
+      verifyDynamicWorkflowRuntimeState(withRuntimeStateDigest(tampered)),
+    ).toThrow(/effect-0-call-0-invalid/u);
+
+    const downgraded = structuredClone(state);
+    delete downgraded.effects[0].calls[0].artifactReadback;
+    expect(() =>
+      verifyDynamicWorkflowRuntimeState(withRuntimeStateDigest(downgraded)),
+    ).toThrow(/effect-0-call-0-invalid/u);
+
+    const legacy = structuredClone(state);
+    delete legacy.effects[0].calls[0].artifactReadback;
+    for (const event of legacy.lineage) {
+      if (event.type === "effect-call-started") {
+        delete event.details.artifactReadbackSchema;
+      }
+      if (event.type === "effect-call-settled") {
+        delete event.details.artifactReadbackDigest;
+      }
+    }
+    const verifiedLegacy = verifyDynamicWorkflowRuntimeState(
+      withRebuiltRuntimeLineage(legacy, legacy.lineage),
+    );
+    expect(
+      projectDynamicWorkflowRuntime(verifiedLegacy).observability.artifacts
+        .storeReadbacks,
+    ).toMatchObject({
+      authority:
+        "artifact-store-index-and-bytes-at-settlement-with-legacy-call-schema",
+      artifactCalls: 1,
+      verifiedCalls: 0,
+      missingReadbacks: 1,
+      legacyCalls: 1,
+    });
+    expect(
+      projectDynamicWorkflowRuntime(verifiedLegacy).observability.gaps,
+    ).toEqual(
+      expect.arrayContaining([
+        "artifact-store-readback-unavailable",
+        "artifact-store-readback-incomplete",
+        "artifact-store-readback-legacy-call-schema",
+      ]),
+    );
+  });
+
+  it.each(["forged-metadata", "tampered-bytes"])(
+    "rejects a publish_artifact settlement with %s",
+    async (failureMode) => {
+      const workflow = workflowDefinition({
+        steps: [{ id: "publish", message: "Publish release evidence" }],
+      });
+      const execution = admittedExecution(projectRoot, workflow);
+      const runId = `run-artifact-${failureMode}`;
+      const statePath = dynamicWorkflowRunStatePath(projectRoot, runId);
+      const artifactStore = new ArtifactStore({
+        dir: join(root, `artifact-store-${failureMode}`),
+        now: () => Date.parse("2026-08-18T05:31:00.000Z"),
+      });
+      const sourcePath = join(root, `release-${failureMode}.md`);
+      writeFileSync(sourcePath, "original artifact bytes\n", "utf8");
+      let settlementReturned = false;
+
+      await expect(
+        executeDurableDynamicWorkflow(
+          { statePath, runId, execution },
+          {
+            artifactStore,
+            runTask: async (args) => {
+              const boundary = workflowToolBoundary(args, {
+                tool: "publish_artifact",
+                toolUseId: `tool-artifact-${failureMode}`,
+              });
+              args.onToolCallBoundary(boundary);
+              const entry = artifactStore.publish({
+                filePath: sourcePath,
+                title: "Release evidence",
+                kind: "report",
+              });
+              const published = publicArtifactMetadata(entry);
+              if (failureMode === "forged-metadata") {
+                published.title = "Forged release evidence";
+              } else {
+                writeFileSync(
+                  artifactStore.storedPath(entry),
+                  "tampered artifact bytes\n",
+                  "utf8",
+                );
+              }
+              args.onToolCallSettlement({
+                ...boundary,
+                type: "tool-result",
+                result: { published },
+              });
+              settlementReturned = true;
+              return completedTask(args);
+            },
+            now: clock(),
+          },
+        ),
+      ).rejects.toMatchObject({ reason: "reconciliation-required" });
+
+      expect(settlementReturned).toBe(false);
+      const state = readDynamicWorkflowRuntimeState(statePath);
+      expect(state.status).toBe("blocked");
+      expect(state.effects[0].calls).toEqual([
+        expect.objectContaining({
+          name: "publish_artifact",
+          status: "started",
+          artifactReadback: null,
+        }),
+      ]);
+      expect(
+        projectDynamicWorkflowRuntime(state).observability.artifacts
+          .storeReadbacks,
+      ).toMatchObject({
+        artifactCalls: 1,
+        verifiedCalls: 0,
+        missingReadbacks: 1,
+        pendingCalls: 1,
+      });
+      expect(projectDynamicWorkflowRuntime(state).observability.gaps).toEqual(
+        expect.arrayContaining([
+          "artifact-store-readback-unavailable",
+          "artifact-store-readback-incomplete",
+        ]),
+      );
+    },
+  );
 
   it("keeps unpriced provider usage without fabricating a USD estimate", async () => {
     const workflow = workflowDefinition({

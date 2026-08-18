@@ -6,6 +6,12 @@ import {
   COWORK_WORKFLOW_CONTROL_SIGNAL_CODE,
   executeWorkflow as executeCoworkWorkflow,
 } from "./cowork-workflow.js";
+import {
+  ARTIFACT_KINDS,
+  ArtifactStore,
+  MAX_ARTIFACT_BYTES,
+  publicArtifactMetadata,
+} from "./artifact-store.js";
 import { writeSecurityStore } from "./durable-security-store.js";
 import {
   CACHE_READ_MULTIPLIER,
@@ -58,6 +64,8 @@ const PROVIDER_CLIENT_REQUEST_ID_RE = /^ccwf_[a-f0-9]{64}$/u;
 const PROVIDER_RECEIPT_ID_RE = /^[A-Za-z0-9._:-]{1,256}$/u;
 const PROVIDER_NAME_RE = /^[a-z0-9][a-z0-9._-]{0,63}$/u;
 const PROVIDER_MODEL_RE = /^[\x21-\x7e]{1,256}$/u;
+const ARTIFACT_ID_RE = /^art_[a-z0-9]+_[a-f0-9]{8}$/u;
+const ARTIFACT_SHA256_RE = /^[a-f0-9]{64}$/u;
 const WORKFLOW_TOOL_CALL_ID_RE = /^[\x21-\x7e]{1,512}$/u;
 const WORKFLOW_TOOL_NAME_RE = /^[A-Za-z0-9._:-]{1,256}$/u;
 const WORKFLOW_CHILD_EFFECT_PROTOCOL = "cc-workflow-child-effect/v1";
@@ -65,6 +73,20 @@ const WORKFLOW_PROVIDER_ATTEMPT_PROTOCOL = "cc-provider-request-attempt/v1";
 const WORKFLOW_PROVIDER_CALL_ID_RE = /^[A-Za-z0-9._:-]{1,256}$/u;
 const WORKFLOW_PROVIDER_REQUEST_ID_RE = /^ccwf_[a-f0-9]{64}$/u;
 const DESCENDANT_OWNER_TOOL_NAMES = new Set(["run_skill", "spawn_sub_agent"]);
+const ARTIFACT_METADATA_FIELDS = Object.freeze([
+  "id",
+  "title",
+  "kind",
+  "mime",
+  "size",
+  "sha256",
+  "file",
+  "sessionId",
+  "createdAt",
+  "expiresAt",
+  "immutable",
+  "recordDigest",
+]);
 const WORKFLOW_CALL_STATUSES = new Set([
   "started",
   "completed",
@@ -330,6 +352,172 @@ function validProviderCostEstimate(value, pricing, usage) {
   );
 }
 
+function strictDataObjectSnapshot(value, fields, field, maxBytes = 64 * 1024) {
+  let descriptors;
+  try {
+    if (
+      !value ||
+      typeof value !== "object" ||
+      Array.isArray(value) ||
+      utilTypes.isProxy(value)
+    ) {
+      throw new TypeError(`${field} must be a plain data object`);
+    }
+    descriptors = Object.getOwnPropertyDescriptors(value);
+    const keys = Reflect.ownKeys(descriptors);
+    if (
+      keys.length !== fields.length ||
+      keys.some((key) => typeof key !== "string") ||
+      fields.some(
+        (name) =>
+          !Object.hasOwn(descriptors, name) ||
+          !Object.hasOwn(descriptors[name], "value"),
+      )
+    ) {
+      throw new TypeError(`${field} has an invalid field set`);
+    }
+  } catch (cause) {
+    if (cause instanceof TypeError && cause.message.startsWith(field)) {
+      throw cause;
+    }
+    throw new TypeError(`${field} must be a plain data object`);
+  }
+  return snapshotJson(
+    Object.fromEntries(fields.map((name) => [name, descriptors[name].value])),
+    field,
+    maxBytes,
+  );
+}
+
+function validArtifactMetadata(value) {
+  if (!exactObjectFields(value, ARTIFACT_METADATA_FIELDS)) return false;
+  let timestampsValid = false;
+  try {
+    timestampsValid =
+      isoNow(value.createdAt) === value.createdAt &&
+      isoNow(value.expiresAt) === value.expiresAt &&
+      Date.parse(value.expiresAt) >= Date.parse(value.createdAt);
+  } catch {
+    timestampsValid = false;
+  }
+  return (
+    ARTIFACT_ID_RE.test(value.id || "") &&
+    typeof value.title === "string" &&
+    value.title.length >= 1 &&
+    value.title.length <= 1024 &&
+    !value.title.includes("\0") &&
+    ARTIFACT_KINDS.includes(value.kind) &&
+    typeof value.mime === "string" &&
+    /^[\x21-\x7e]{1,256}$/u.test(value.mime) &&
+    Number.isSafeInteger(value.size) &&
+    value.size >= 0 &&
+    value.size <= MAX_ARTIFACT_BYTES &&
+    ARTIFACT_SHA256_RE.test(value.sha256 || "") &&
+    typeof value.file === "string" &&
+    value.file.length >= 1 &&
+    value.file.length <= 512 &&
+    path.basename(value.file) === value.file &&
+    !/[\\/\0-\x1f\x7f]/u.test(value.file) &&
+    (value.sessionId === null ||
+      (typeof value.sessionId === "string" &&
+        value.sessionId.length >= 1 &&
+        value.sessionId.length <= 256)) &&
+    timestampsValid &&
+    typeof value.immutable === "boolean" &&
+    (value.recordDigest === null || SHA256_RE.test(value.recordDigest || ""))
+  );
+}
+
+function artifactMetadataDigest(metadata) {
+  return digest(
+    "chainlesschain.dynamic-workflow.artifact-store-metadata.v1\0",
+    metadata,
+  );
+}
+
+function artifactReadbackDigest(readback) {
+  return digest(
+    "chainlesschain.dynamic-workflow.artifact-store-readback.v1\0",
+    readback,
+  );
+}
+
+function validArtifactReadback(value) {
+  return (
+    exactObjectFields(value, [
+      "schema",
+      "authority",
+      "metadata",
+      "metadataDigest",
+      "contentDigest",
+    ]) &&
+    value.schema === "cc-dynamic-workflow-artifact-readback/v1" &&
+    value.authority === "artifact-store-index-and-bytes-at-settlement" &&
+    validArtifactMetadata(value.metadata) &&
+    value.metadataDigest === artifactMetadataDigest(value.metadata) &&
+    value.contentDigest === `sha256:${value.metadata.sha256}`
+  );
+}
+
+function artifactReadbackSettlement(event, artifactStore) {
+  const supplied = strictDataObjectSnapshot(
+    ownDataValue(event?.result, "published"),
+    ARTIFACT_METADATA_FIELDS,
+    "workflow published artifact metadata",
+  );
+  if (!validArtifactMetadata(supplied)) {
+    throw new TypeError("workflow published artifact metadata is malformed");
+  }
+  if (containsSecret(JSON.stringify(supplied))) {
+    throw new TypeError(
+      "workflow published artifact metadata contains secret-shaped data",
+    );
+  }
+  if (
+    !artifactStore ||
+    typeof artifactStore.get !== "function" ||
+    typeof artifactStore.verifyIntegrity !== "function"
+  ) {
+    throw new TypeError("workflow artifact store readback is unavailable");
+  }
+  let stored;
+  let integrity;
+  try {
+    stored = artifactStore.get(supplied.id);
+    integrity = stored ? artifactStore.verifyIntegrity(stored) : null;
+  } catch {
+    throw new TypeError("workflow artifact store readback failed");
+  }
+  if (!stored || !integrity?.ok) {
+    throw new TypeError(
+      "workflow artifact store bytes are unavailable or invalid",
+    );
+  }
+  const canonical = strictDataObjectSnapshot(
+    publicArtifactMetadata(stored),
+    ARTIFACT_METADATA_FIELDS,
+    "workflow artifact store metadata",
+  );
+  if (
+    !validArtifactMetadata(canonical) ||
+    canonicalJson(canonical, "workflowArtifactMetadata") !==
+      canonicalJson(supplied, "workflowArtifactMetadata") ||
+    integrity.expectedSha256 !== supplied.sha256 ||
+    integrity.actualSha256 !== supplied.sha256
+  ) {
+    throw new TypeError(
+      "workflow artifact store readback does not match settlement",
+    );
+  }
+  return {
+    schema: "cc-dynamic-workflow-artifact-readback/v1",
+    authority: "artifact-store-index-and-bytes-at-settlement",
+    metadata: canonical,
+    metadataDigest: artifactMetadataDigest(canonical),
+    contentDigest: `sha256:${integrity.actualSha256}`,
+  };
+}
+
 function effectResultDigest(result) {
   return digest("chainlesschain.dynamic-workflow.effect-result.v1\0", result);
 }
@@ -542,6 +730,22 @@ function verifyEffectCalls(
         "providerCostEstimateDigest",
       ),
     );
+    const hasArtifactReadback = Object.prototype.hasOwnProperty.call(
+      call || {},
+      "artifactReadback",
+    );
+    const startedArtifactSchemaPresent = startedLineage.some((event) =>
+      Object.prototype.hasOwnProperty.call(
+        event?.details || {},
+        "artifactReadbackSchema",
+      ),
+    );
+    const settlementArtifactDigestPresent = settlementLineage.some((event) =>
+      Object.prototype.hasOwnProperty.call(
+        event?.details || {},
+        "artifactReadbackDigest",
+      ),
+    );
     const terminal = call?.status !== "started";
     const identityKey = `${call?.kind || ""}\0${
       call?.kind === "tool" ? call?.childEffectId : call?.callId
@@ -696,6 +900,9 @@ function verifyEffectCalls(
                   settlementLineage[0]?.details?.providerUsageDigest === null
                 : !settlementUsageDigestPresent)
           : !settlementUsageDigestPresent) &&
+        !hasArtifactReadback &&
+        !startedArtifactSchemaPresent &&
+        !settlementArtifactDigestPresent &&
         call.mcpLedgerId === null &&
         call.mcpLedgerPrewritePersisted === false &&
         call.mcpLedgerSettlementPersisted === false);
@@ -719,7 +926,28 @@ function verifyEffectCalls(
         call.providerReceiptRequestId === null &&
         call.providerReceiptResponseId === null &&
         (call.providerReceiptRecordedAt === null || !hasReceiptTimestamp) &&
-        call.identitySemantics === "runtime-derived");
+        call.identitySemantics === "runtime-derived" &&
+        (call.name !== "publish_artifact"
+          ? !hasArtifactReadback &&
+            !startedArtifactSchemaPresent &&
+            !settlementArtifactDigestPresent
+          : hasArtifactReadback
+            ? startedLineage.length === 1 &&
+              startedLineage[0]?.details?.artifactReadbackSchema ===
+                "cc-dynamic-workflow-artifact-readback/v1" &&
+              (call.status === "completed"
+                ? validArtifactReadback(call.artifactReadback) &&
+                  settlementLineage.length === 1 &&
+                  settlementLineage[0]?.details?.artifactReadbackDigest ===
+                    artifactReadbackDigest(call.artifactReadback)
+                : call.artifactReadback === null &&
+                  (["failed", "outcome_unknown"].includes(call.status)
+                    ? settlementLineage.length === 1 &&
+                      settlementLineage[0]?.details?.artifactReadbackDigest ===
+                        null
+                    : !settlementArtifactDigestPresent))
+            : !startedArtifactSchemaPresent &&
+              !settlementArtifactDigestPresent));
     const settlementValid = terminal
       ? call.settlementCode !== null || call.status === "completed"
       : call.settlementCode === null &&
@@ -1819,6 +2047,7 @@ function workflowCallAttempt(effectId, kind, event, now) {
     providerReceiptRequestId: null,
     providerReceiptResponseId: null,
     providerReceiptRecordedAt: null,
+    ...(event.tool === "publish_artifact" ? { artifactReadback: null } : {}),
     mcpLedgerId: null,
     mcpLedgerPrewritePersisted: false,
     mcpLedgerSettlementPersisted: false,
@@ -1883,7 +2112,12 @@ function beginEffectCall(statePath, runId, effectId, kind, event, now) {
                   ? null
                   : providerPricingDigest(attempt.providerPricing),
             }
-          : {}),
+          : kind === "tool" && attempt.name === "publish_artifact"
+            ? {
+                artifactReadbackSchema:
+                  "cc-dynamic-workflow-artifact-readback/v1",
+              }
+            : {}),
       },
       (draft) => {
         draft.effects[index] = {
@@ -2036,7 +2270,7 @@ function recordEffectCallReceipt(statePath, runId, effectId, event, now) {
   });
 }
 
-function effectCallSettlement(call, event, now) {
+function effectCallSettlement(call, event, now, artifactStore) {
   let status;
   let settlementCode = null;
   let providerUsage = call.providerUsage;
@@ -2044,6 +2278,7 @@ function effectCallSettlement(call, event, now) {
   let providerReceiptPersisted = call.providerReceiptPersisted;
   let providerReceiptRequestId = call.providerReceiptRequestId;
   let providerReceiptResponseId = call.providerReceiptResponseId;
+  let artifactReadback = call.artifactReadback;
   let mcpLedgerId = null;
   let mcpLedgerPrewritePersisted = false;
   let mcpLedgerSettlementPersisted = false;
@@ -2118,6 +2353,19 @@ function effectCallSettlement(call, event, now) {
     ) {
       throw new TypeError("workflow MCP call settlement is malformed");
     }
+    if (Object.prototype.hasOwnProperty.call(call, "artifactReadback")) {
+      const published = ownDataValue(event.result, "published");
+      if (status === "completed") {
+        artifactReadback = artifactReadbackSettlement(event, artifactStore);
+      } else {
+        if (published !== undefined && published !== null) {
+          throw new TypeError(
+            "failed workflow artifact settlement cannot claim a published artifact",
+          );
+        }
+        artifactReadback = null;
+      }
+    }
   }
   if (
     settlementCode !== null &&
@@ -2140,13 +2388,25 @@ function effectCallSettlement(call, event, now) {
     Object.prototype.hasOwnProperty.call(call, "providerCostEstimate")
       ? { providerCostEstimate }
       : {}),
+    ...(call.kind === "tool" &&
+    Object.prototype.hasOwnProperty.call(call, "artifactReadback")
+      ? { artifactReadback }
+      : {}),
     mcpLedgerId,
     mcpLedgerPrewritePersisted,
     mcpLedgerSettlementPersisted,
   };
 }
 
-function settleEffectCall(statePath, runId, effectId, kind, event, now) {
+function settleEffectCall(
+  statePath,
+  runId,
+  effectId,
+  kind,
+  event,
+  now,
+  artifactStore,
+) {
   return withStateMutation(statePath, (current) => {
     if (!current || current.runId !== runId) {
       throw new Error(
@@ -2172,7 +2432,7 @@ function settleEffectCall(statePath, runId, effectId, kind, event, now) {
     ) {
       throw new Error("workflow child call is not started at settlement");
     }
-    const settlement = effectCallSettlement(call, event, now);
+    const settlement = effectCallSettlement(call, event, now, artifactStore);
     const usageDigest =
       kind === "provider" && settlement.providerUsage !== null
         ? providerUsageDigest(settlement.providerUsage)
@@ -2187,6 +2447,16 @@ function settleEffectCall(statePath, runId, effectId, kind, event, now) {
       settlement.providerCostEstimate !== null
         ? providerCostEstimateDigest(settlement.providerCostEstimate)
         : null;
+    const hasArtifactReadback = Object.prototype.hasOwnProperty.call(
+      settlement,
+      "artifactReadback",
+    );
+    const settledArtifactReadbackDigest =
+      kind === "tool" &&
+      hasArtifactReadback &&
+      settlement.artifactReadback !== null
+        ? artifactReadbackDigest(settlement.artifactReadback)
+        : null;
     const state = transition(
       current,
       "effect-call-settled",
@@ -2198,6 +2468,9 @@ function settleEffectCall(statePath, runId, effectId, kind, event, now) {
         ...(kind === "provider" ? { providerUsageDigest: usageDigest } : {}),
         ...(kind === "provider" && hasProviderCostSchema
           ? { providerCostEstimateDigest: costEstimateDigest }
+          : {}),
+        ...(kind === "tool" && hasArtifactReadback
+          ? { artifactReadbackDigest: settledArtifactReadbackDigest }
           : {}),
       },
       (draft) => {
@@ -2214,7 +2487,13 @@ function settleEffectCall(statePath, runId, effectId, kind, event, now) {
   });
 }
 
-function createDurableCallObservers(statePath, runId, effectId, now) {
+function createDurableCallObservers(
+  statePath,
+  runId,
+  effectId,
+  now,
+  artifactStore,
+) {
   return Object.freeze({
     strictUsageTelemetry: true,
     onUsageBoundary(event) {
@@ -2230,7 +2509,15 @@ function createDurableCallObservers(statePath, runId, effectId, now) {
       beginEffectCall(statePath, runId, effectId, "tool", event, now);
     },
     onToolCallSettlement(event) {
-      settleEffectCall(statePath, runId, effectId, "tool", event, now);
+      settleEffectCall(
+        statePath,
+        runId,
+        effectId,
+        "tool",
+        event,
+        now,
+        artifactStore,
+      );
     },
   });
 }
@@ -2482,6 +2769,7 @@ export async function executeDurableDynamicWorkflow(options = {}, deps = {}) {
     runId,
     deps.now,
   );
+  const artifactStore = deps.artifactStore || new ArtifactStore();
   const durableRunTask = async (args) => {
     const requested = await requestEffectForDispatch(args);
     if (requested.control) {
@@ -2563,6 +2851,7 @@ export async function executeDurableDynamicWorkflow(options = {}, deps = {}) {
         runId,
         effect.id,
         deps.now,
+        artifactStore,
       );
       result = await deps.runTask({
         ...args,
@@ -3574,6 +3863,13 @@ function projectDurableWorkflowCalls(state) {
         ["providerModel", "providerPricing", "providerCostEstimate"].every(
           (field) => Object.prototype.hasOwnProperty.call(call, field),
         ),
+      artifactReadback:
+        call.kind === "tool" && validArtifactReadback(call.artifactReadback)
+          ? call.artifactReadback
+          : null,
+      artifactReadbackSchemaPresent:
+        call.kind === "tool" &&
+        Object.prototype.hasOwnProperty.call(call, "artifactReadback"),
       mcpLedgerId: call.mcpLedgerId,
       mcpLedgerPrewritePersisted: call.mcpLedgerPrewritePersisted,
       mcpLedgerSettlementPersisted: call.mcpLedgerSettlementPersisted,
@@ -3597,6 +3893,9 @@ function projectDurableWorkflowCalls(state) {
       .length,
     providerCostEstimateRecords: lineage.filter(
       (call) => call.providerCostEstimate !== null,
+    ).length,
+    artifactReadbackRecords: lineage.filter(
+      (call) => call.artifactReadback !== null,
     ).length,
     providerNativeIdempotencyProven: false,
     providerReceiptsIndependentlyReadable: false,
@@ -3785,6 +4084,74 @@ function projectProviderCostEstimates(state) {
   };
 }
 
+function projectArtifactStoreReadbacks(state) {
+  const lineage = [];
+  const verifiedEffectIds = new Set();
+  let artifactCalls = 0;
+  let completedCalls = 0;
+  let failedCalls = 0;
+  let pendingCalls = 0;
+  let outcomeUnknownCalls = 0;
+  let operatorReconciledCalls = 0;
+  let missingReadbacks = 0;
+  let legacyCalls = 0;
+  for (const effect of state.effects) {
+    for (const call of effect.calls || []) {
+      if (call.kind !== "tool" || call.name !== "publish_artifact") continue;
+      artifactCalls += 1;
+      if (call.status === "completed") completedCalls += 1;
+      if (call.status === "failed") failedCalls += 1;
+      if (call.status === "started") pendingCalls += 1;
+      if (call.status === "outcome_unknown") outcomeUnknownCalls += 1;
+      if (call.status === "operator_reconciled") operatorReconciledCalls += 1;
+      if (!Object.prototype.hasOwnProperty.call(call, "artifactReadback")) {
+        legacyCalls += 1;
+        if (call.status !== "failed") missingReadbacks += 1;
+        continue;
+      }
+      if (!validArtifactReadback(call.artifactReadback)) {
+        if (call.status !== "failed") missingReadbacks += 1;
+        continue;
+      }
+      verifiedEffectIds.add(effect.id);
+      lineage.push({
+        effectId: effect.id,
+        ownerEffectId: call.ownerEffectId ?? effect.id,
+        callRecordId: call.id,
+        callId: call.callId,
+        sequence: call.sequence,
+        descendant: (call.ownerEffectId ?? effect.id) !== effect.id,
+        settledAt: call.settledAt,
+        readback: call.artifactReadback,
+        readbackDigest: artifactReadbackDigest(call.artifactReadback),
+      });
+    }
+  }
+  return {
+    authority:
+      legacyCalls > 0
+        ? "artifact-store-index-and-bytes-at-settlement-with-legacy-call-schema"
+        : "artifact-store-index-and-bytes-at-settlement",
+    verificationTiming: "tool-settlement",
+    immutableRetentionProven: false,
+    artifactCalls,
+    completedCalls,
+    failedCalls,
+    verifiedCalls: lineage.length,
+    verifiedEffects: verifiedEffectIds.size,
+    missingReadbacks,
+    pendingCalls,
+    outcomeUnknownCalls,
+    operatorReconciledCalls,
+    legacyCalls,
+    lineageDigest: digest(
+      "chainlesschain.dynamic-workflow.artifact-store-readback-lineage.v1\0",
+      lineage,
+    ),
+    lineage,
+  };
+}
+
 function projectDynamicWorkflowObservability(state) {
   const settled = state.effects.filter((effect) => effect.status === "settled");
   const effectLineage = [];
@@ -3797,6 +4164,7 @@ function projectDynamicWorkflowObservability(state) {
   const durableCalls = projectDurableWorkflowCalls(state);
   const providerTokenUsage = projectProviderTokenUsage(state);
   const providerCostEstimates = projectProviderCostEstimates(state);
+  const artifactStoreReadbacks = projectArtifactStoreReadbacks(state);
   const providerReceipts = projectProviderRequestReceipts(state);
   const nestedEffects = projectNestedToolEffects(state);
   let requestToSettlementMs = 0;
@@ -3895,7 +4263,7 @@ function projectDynamicWorkflowObservability(state) {
     "provider-native-idempotency-unavailable",
     "provider-receipt-independent-readback-unavailable",
     "checkpoint-provider-readback-unavailable",
-    "artifact-store-readback-unavailable",
+    "artifact-store-immutable-retention-unavailable",
   ];
   providerRequestAttemptLineage.push(...providerReceipts.attemptLineage);
   providerReceiptLineage.push(...providerReceipts.receiptLineage);
@@ -3918,6 +4286,15 @@ function projectDynamicWorkflowObservability(state) {
   }
   if (providerCostEstimates.legacyCalls > 0) {
     gaps.push("provider-cost-estimate-legacy-call-schema");
+  }
+  if (artifactStoreReadbacks.verifiedCalls === 0) {
+    gaps.push("artifact-store-readback-unavailable");
+  }
+  if (artifactStoreReadbacks.missingReadbacks > 0) {
+    gaps.push("artifact-store-readback-incomplete");
+  }
+  if (artifactStoreReadbacks.legacyCalls > 0) {
+    gaps.push("artifact-store-readback-legacy-call-schema");
   }
   if (tokenEstimateEffects !== settled.length) {
     gaps.push("cowork-token-estimate-incomplete");
@@ -4108,6 +4485,7 @@ function projectDynamicWorkflowObservability(state) {
           artifactLineage,
         ),
         lineage: artifactLineage,
+        storeReadbacks: artifactStoreReadbacks,
       },
       checkpoints: {
         authority: "task-result-digest-only",
