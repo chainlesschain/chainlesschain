@@ -1072,6 +1072,42 @@ describe("durable dynamic workflow runtime", () => {
     expect(projection.observability.gaps).toContain(
       "artifact-store-immutable-retention-unavailable",
     );
+    let currentProjection = projectDynamicWorkflowRuntime(state, {
+      currentStoreReadback: true,
+      artifactStore,
+      checkpointStore: { inspect: vi.fn() },
+    });
+    expect(currentProjection.currentStoreReadbacks).toMatchObject({
+      complete: true,
+      eligibleCalls: 1,
+      verifiedCalls: 1,
+      artifacts: {
+        eligibleCalls: 1,
+        verifiedCalls: 1,
+        unavailableCalls: 0,
+        lineage: [{ status: "verified" }],
+      },
+      gaps: [],
+    });
+    writeFileSync(
+      artifactStore.storedPath(
+        state.effects[0].calls[0].artifactReadback.metadata,
+      ),
+      "tampered after settlement\n",
+      "utf8",
+    );
+    currentProjection = projectDynamicWorkflowRuntime(state, {
+      currentStoreReadback: true,
+      artifactStore,
+      checkpointStore: { inspect: vi.fn() },
+    });
+    expect(currentProjection.currentStoreReadbacks).toMatchObject({
+      complete: false,
+      eligibleCalls: 1,
+      verifiedCalls: 0,
+      artifacts: { unavailableCalls: 1 },
+      gaps: ["artifact-store-current-readback-unavailable"],
+    });
 
     const tampered = structuredClone(state);
     tampered.effects[0].calls[0].artifactReadback.metadata.title = "Forged";
@@ -1330,6 +1366,46 @@ describe("durable dynamic workflow runtime", () => {
           readback: expect.objectContaining({ outcome: "committed" }),
         }),
       ],
+    });
+    const currentProjection = projectDynamicWorkflowRuntime(state, {
+      currentStoreReadback: true,
+      artifactStore: {
+        get: vi.fn(),
+        verifyIntegrity: vi.fn(),
+      },
+      checkpointStore,
+    });
+    expect(currentProjection.currentStoreReadbacks).toMatchObject({
+      complete: true,
+      eligibleCalls: 1,
+      verifiedCalls: 1,
+      checkpoints: {
+        eligibleCalls: 1,
+        verifiedCalls: 1,
+        unavailableCalls: 0,
+        lineage: [{ status: "verified" }],
+      },
+      gaps: [],
+    });
+    expect(
+      projectDynamicWorkflowRuntime(state, {
+        currentStoreReadback: true,
+        artifactStore: {
+          get: vi.fn(),
+          verifyIntegrity: vi.fn(),
+        },
+        checkpointStore: {
+          inspect: vi.fn(() => {
+            throw new Error("transaction store offline");
+          }),
+        },
+      }).currentStoreReadbacks,
+    ).toMatchObject({
+      complete: false,
+      eligibleCalls: 1,
+      verifiedCalls: 0,
+      checkpoints: { unavailableCalls: 1 },
+      gaps: ["checkpoint-store-current-readback-unavailable"],
     });
     for (const gap of [
       "checkpoint-provider-readback-unavailable",

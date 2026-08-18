@@ -439,6 +439,31 @@ describe("cowork durable workflow runtime commands", () => {
       status: "completed",
       settlementCode: "checkpoint_store_recovered_commit",
     });
+
+    process.exitCode = undefined;
+    logSpy.mockClear();
+    await command({ workflowCheckpointStore: checkpointStore }).parseAsync([
+      "node",
+      "cc",
+      "cowork",
+      "workflow",
+      "runtime-status",
+      runId,
+      "--json",
+    ]);
+    expect(latestJsonOutput().currentStoreReadbacks).toMatchObject({
+      authority: "artifact-and-checkpoint-store-at-status-projection",
+      verificationTiming: "runtime-status",
+      complete: true,
+      eligibleCalls: 1,
+      verifiedCalls: 1,
+      checkpoints: {
+        eligibleCalls: 1,
+        verifiedCalls: 1,
+        lineage: [{ status: "verified" }],
+      },
+      gaps: [],
+    });
   });
 
   it("accepts bounded parallel durable admission and rejects stale control revisions", async () => {

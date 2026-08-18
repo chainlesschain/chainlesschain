@@ -1027,7 +1027,15 @@ export function registerCoworkCommand(program, commandDeps = {}) {
           process.cwd(),
           runId,
         );
-        const projection = runtime.projectDynamicWorkflowRuntime(statePath);
+        const projection = runtime.projectDynamicWorkflowRuntime(statePath, {
+          currentStoreReadback: true,
+          ...(Object.hasOwn(commandDeps, "workflowArtifactStore")
+            ? { artifactStore: commandDeps.workflowArtifactStore }
+            : {}),
+          ...(Object.hasOwn(commandDeps, "workflowCheckpointStore")
+            ? { checkpointStore: commandDeps.workflowCheckpointStore }
+            : {}),
+        });
         if (options.json) {
           console.log(JSON.stringify(projection, null, 2));
           return;
@@ -1045,6 +1053,14 @@ export function registerCoworkCommand(program, commandDeps = {}) {
           logger.log(
             `  needs input: ${request.id} step=${request.stepId} ${request.prompt}`,
           );
+        }
+        if (projection.currentStoreReadbacks.eligibleCalls > 0) {
+          logger.log(
+            `  current stores: ${projection.currentStoreReadbacks.verifiedCalls}/${projection.currentStoreReadbacks.eligibleCalls} verified`,
+          );
+          for (const gap of projection.currentStoreReadbacks.gaps) {
+            logger.log(`  current store gap: ${gap}`);
+          }
         }
       } catch (err) {
         logger.error(`WORKFLOW_RUNTIME_STATUS_FAILED: ${err.message}`);
