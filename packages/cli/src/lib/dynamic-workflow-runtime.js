@@ -5755,7 +5755,135 @@ function projectDynamicWorkflowObservability(state) {
   );
 }
 
-export function projectDynamicWorkflowRuntime(stateOrPath) {
+function projectCurrentWorkflowStoreReadbacks(state, deps = {}) {
+  const artifactStore = deps.artifactStore || new ArtifactStore();
+  const checkpointStore =
+    deps.checkpointStore || new WorkspaceTransactionManager();
+  const artifacts = {
+    eligibleCalls: 0,
+    verifiedCalls: 0,
+    mismatchedCalls: 0,
+    unavailableCalls: 0,
+    lineage: [],
+  };
+  const checkpoints = {
+    eligibleCalls: 0,
+    verifiedCalls: 0,
+    mismatchedCalls: 0,
+    unavailableCalls: 0,
+    lineage: [],
+  };
+
+  for (const effect of state.effects) {
+    for (const call of effect.calls || []) {
+      if (validArtifactReadback(call.artifactReadback)) {
+        artifacts.eligibleCalls += 1;
+        const storedDigest = artifactReadbackDigest(call.artifactReadback);
+        let currentDigest = null;
+        let status = "unavailable";
+        try {
+          const current = artifactReadbackSettlement(
+            { result: { published: call.artifactReadback.metadata } },
+            artifactStore,
+          );
+          currentDigest = artifactReadbackDigest(current);
+          status = currentDigest === storedDigest ? "verified" : "mismatch";
+        } catch {
+          status = "unavailable";
+        }
+        if (status === "verified") artifacts.verifiedCalls += 1;
+        else if (status === "mismatch") artifacts.mismatchedCalls += 1;
+        else artifacts.unavailableCalls += 1;
+        artifacts.lineage.push({
+          effectId: effect.id,
+          callRecordId: call.id,
+          artifactId: call.artifactReadback.metadata.id,
+          storedReadbackDigest: storedDigest,
+          currentReadbackDigest: currentDigest,
+          status,
+        });
+      }
+
+      if (validCheckpointReadback(call.checkpointReadback)) {
+        checkpoints.eligibleCalls += 1;
+        const storedDigest = checkpointReadbackDigest(call.checkpointReadback);
+        let currentDigest = null;
+        let status = "unavailable";
+        if (validCheckpointBinding(call.checkpointBinding)) {
+          try {
+            const current = checkpointReadbackFromPreparedBinding(
+              call.checkpointBinding,
+              checkpointStore,
+            );
+            if (current !== null) {
+              currentDigest = checkpointReadbackDigest(current);
+              status = currentDigest === storedDigest ? "verified" : "mismatch";
+            }
+          } catch {
+            status = "unavailable";
+          }
+        }
+        if (status === "verified") checkpoints.verifiedCalls += 1;
+        else if (status === "mismatch") checkpoints.mismatchedCalls += 1;
+        else checkpoints.unavailableCalls += 1;
+        checkpoints.lineage.push({
+          effectId: effect.id,
+          callRecordId: call.id,
+          transactionId: call.checkpointReadback.transactionId,
+          checkpointId: call.checkpointReadback.checkpointId,
+          storedReadbackDigest: storedDigest,
+          currentReadbackDigest: currentDigest,
+          status,
+        });
+      }
+    }
+  }
+
+  const gaps = [];
+  if (artifacts.mismatchedCalls > 0) {
+    gaps.push("artifact-store-current-readback-mismatch");
+  }
+  if (artifacts.unavailableCalls > 0) {
+    gaps.push("artifact-store-current-readback-unavailable");
+  }
+  if (checkpoints.mismatchedCalls > 0) {
+    gaps.push("checkpoint-store-current-readback-mismatch");
+  }
+  if (checkpoints.unavailableCalls > 0) {
+    gaps.push("checkpoint-store-current-readback-unavailable");
+  }
+  const eligibleCalls = artifacts.eligibleCalls + checkpoints.eligibleCalls;
+  const verifiedCalls = artifacts.verifiedCalls + checkpoints.verifiedCalls;
+  return snapshotJson(
+    {
+      schema: "cc-dynamic-workflow-current-store-readback/v1",
+      authority: "artifact-and-checkpoint-store-at-status-projection",
+      verificationTiming: "runtime-status",
+      complete: eligibleCalls > 0 && eligibleCalls === verifiedCalls,
+      eligibleCalls,
+      verifiedCalls,
+      artifacts: {
+        ...artifacts,
+        lineageDigest: digest(
+          "chainlesschain.dynamic-workflow.current-artifact-readback-lineage.v1\0",
+          artifacts.lineage,
+        ),
+      },
+      checkpoints: {
+        ...checkpoints,
+        lineageDigest: digest(
+          "chainlesschain.dynamic-workflow.current-checkpoint-readback-lineage.v1\0",
+          checkpoints.lineage,
+        ),
+      },
+      gaps,
+    },
+    "dynamic workflow current store readback projection",
+    2 * 1024 * 1024,
+  );
+}
+
+export function projectDynamicWorkflowRuntime(stateOrPath, options = {}) {
   const state =
     typeof stateOrPath === "string"
       ? readDynamicWorkflowRuntimeState(stateOrPath)
@@ -5813,6 +5941,10 @@ export function projectDynamicWorkflowRuntime(stateOrPath) {
     ),
     finalRecordStatus: state.finalRecord?.status || null,
     observability: projectDynamicWorkflowObservability(state),
+    currentStoreReadbacks:
+      options.currentStoreReadback === true
+        ? projectCurrentWorkflowStoreReadbacks(state, options)
+        : null,
     updatedAt: state.updatedAt,
     stateDigest: state.stateDigest,
   });
