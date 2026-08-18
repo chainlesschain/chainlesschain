@@ -2588,6 +2588,61 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 七十二、2026-08-19 P1-2 explicit managed-copy deletion settlement 子门复核（`07:58 +08:00`）
+
+本节继续第七十一节的单 index-generation fencing，关闭 explicit remove 在 index 已换代、managed path 删除、响应返回三者之间只给出布尔值、
+无法区分或恢复 prepared-only 状态的窄缺口；不把 managed path 消失外推为外部 hardlink/备份/快照的物理擦除，也不把 explicit 单项
+settlement 外推为 TTL batch cleanup。候选基于已合并本地主分支 `584c00178a`；功能提交为 `5d1da48f84`，帮助索引与 show 边界提交为
+`7615312c0c`、`30a94de76c`、`8325de5f6b`，合同提交为 `5f5c173f30`，WebSocket stable-id retry 覆盖为 `1484957031`。
+尚无本候选 exact-head GitHub Actions。
+
+### 本轮关闭的显式删除结算子门
+
+- **prepared event 先于 index mutation。** 新 `cc-artifact-deletion-settlement/v1` 在同一 index-generation lock 内再取得固定顺序的
+  deletion-ledger lock，先绑定 stable deletion id、artifact id/digest/size、record/session lineage、安全 stored basename、immutable flag、
+  declared client/reason、当前 index-generation digest 与全局 predecessor chain；event 不包含正文、base64、source/stored absolute path、
+  title 或 host 输出。
+- **terminal 只在 managed path 已确认不存在后落盘。** prepared 成功后，以第七十一节的 fsynced temp + atomic rename 移除唯一 index row，
+  再删除 managed directory entry并以 `lstat -> ENOENT` 回读；terminal 绑定 prepared digest、after-generation digest 与 `removed` 或
+  `already-absent` disposition。duplicate artifact row、unsafe filename、authority drift 或 deletion id/input collision 都 fail closed。
+- **两个崩溃窗口可用同一 id 显式恢复。** 若 index 已换代但 managed-copy removal 失败，账本保留 prepared，重试只处理该 prepared 所绑定的
+  basename；若 copy 已消失但 terminal append/response 丢失，重试观察 `already-absent` 后补 terminal，不再选择或删除其他 artifact。
+  已有 terminal 的 exact retry 返回同一 event 且 `recorded=false`；若 index row 或 managed path 在结算后重现，重试拒绝且不会顺手删除重现文件。
+- **官方 explicit remove 已接入并携带 client/稳定 id。** CLI 新增 `--client`、`--deletion-id` 与 `deletion-log`；WebSocket receipt 返回
+  deletion id、settled/recorded/terminal，caller 复用同一 id 可回读同一结算。VS Code 与 JetBrains 在确认框后各自生成 stable id，CLI
+  离线程执行；失败提示保留 id 供恢复。旧帮助中 `show` 会暴露 stored path 的描述同时修正为 public metadata + integrity。
+- **删除语义刻意限定为 managed copy。** hardlink 注入测试证明 managed path 被移除并结算后，外部 hardlink 仍可保留 bytes；receipt 因此只叫
+  managed-copy removal，不声称 secure erase、传播撤销或用户消费回滚。
+
+### 仓库内验证与合同
+
+- deletion/access ledger、ArtifactStore command、WebSocket、Web download、VS Code drawer 与 reviewed-result import 共
+  **7 files / 73 tests passed**；新增 deletion ledger 单文件 **9/9**，覆盖 prepare/terminal、exact retry、id collision、remove failure、
+  terminal append loss、tamper/truncated tail、ambiguous row、external hardlink 与 settled-path reappearance。WebSocket 同 id retry 明确返回
+  `recorded=false` 的同一 terminal receipt。
+- JetBrains `ArtifactsTest` 在 Temurin 21、Gradle offline/no-daemon、`--rerun-tasks` 下为 **10/10 passed**；VS Code 参数构造与既有 drawer
+  行为包含在上述 73 项。command help freshness 与 `git diff --check` 通过。
+- roadmap verifier 与 journey evidence 为 **2 files / 37 tests passed**；`--contract-only` 回读 manifest `1.9.39` 为
+  **15 cases / 100 referenced test files**，并明确 runtime evidence 与 release readiness 未被评估。fixture 新增 explicit deletion journey、
+  prepared/terminal + generation binding、七类失败注入、五个零违规 outcome 与 content-free deletion ledger artifact。
+- 任务 JavaScript ESLint 为 **0 errors / 1 existing warning**（WebSocket clean handler 既有未使用 `message` 参数）；只保留既有
+  `MODULE_TYPELESS_PACKAGE_JSON` 环境提示。
+
+### P1-2 仍未关闭的边界
+
+1. **TTL cleanup 还不是稳定 batch settlement：** `artifacts clean` / WebSocket clean 仍直接按当前过期集合清理，只受 index-generation lock
+   保护；没有 stable cleanup id、批次 scope digest、逐项 prepared/terminal 汇总、response-loss replay 或部分成功裁决。
+2. **恢复不是后台自动完成：** prepared-only 状态需要 caller 复用同一 deletion id；直接 CLI/WS 若未预先提供 id 且响应完全丢失，自动生成的
+   id 也可能不可见。当前没有启动时 reconcile、orphan inventory/GC、超时告警或管理员 adjudication 命令。
+3. **managed path absence 不是 secure erase：** 外部 hardlink、复制、备份、快照、viewer cache、下载文件与同一 OS 用户绕过均不在 authority
+   内；日志也不证明底层介质擦除。删除/访问账本是同机可写 JSONL，不是 WORM、off-box、transparency log 或独立组织审计。
+4. **分布式与真实宿主矩阵仍开放：** shared/NFS/object store、跨主机 lease/fencing、split-brain、WSL/SSH/Container/Cloud、真实双 IDE 与
+   每格 100 次 exact-commit 长期故障矩阵仍无关闭证据。
+
+因此，P1-2 的**显式 managed-copy deletion prepared/terminal 结算、stable-id 崩溃窗口恢复、content-free audit 与官方 CLI/WS/双 IDE 接入**
+由本节关闭；P1-2 整项仍为**部分完成**。总计数保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为
+**NO-GO**。本节不改变 S0-1～S0-3、Q0、Q3、Q4a/Q4b、P1-1、P1-4、P1-5 或 P2-4 的状态。
+
 ## 七十一、2026-08-19 P1-2 ArtifactStore index-generation serialization 子门复核（`00:32 +08:00`）
 
 本节继续第七十节的官方内容授权审计，关闭普通 publish、幂等 import、list/get、remove、TTL clean 与 access authorization 各自读取或
