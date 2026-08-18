@@ -343,6 +343,7 @@ export function runArtifactsAccessLog(options = {}, deps = {}) {
     const projection = {
       ...ledger,
       filtered: Boolean(options.artifact),
+      matchedEventCount: events.length,
       events,
     };
     if (options.json) {
