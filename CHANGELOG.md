@@ -9,9 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added — cc CLI 0.165.1: runtime admission, remote authority, and background containment
 
-> `chainlesschain` **0.164.0 → 0.165.1** (candidate; not yet published,
-> 2026-08-17).
-> CLI candidate with `@chainlesschain/personal-data-hub` **0.4.58**;
+> `chainlesschain` **0.164.0 → 0.165.1** (published from exact SHA
+> `1a10ed7c8fd14d12f7760e948ff8efe36c766602`, 2026-08-17).
+> CLI release includes `@chainlesschain/personal-data-hub` **0.4.58**;
 > `@chainlesschain/agent-sdk` remains **0.1.7**.
 
 - **Dynamic workflow run admission**: Cowork workflow execution revalidates the
@@ -38,25 +38,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   3.15.1 line, while Personal Data Hub 0.4.58 advances its bounded ZIP adapter
   to `adm-zip` 0.6.0 so a crafted archive cannot trigger the disclosed 4 GB
   allocation path before adapter-level entry validation.
-- **Release boundary**: the separate plugin marketplace activation hardening in
-  PR #209 is intentionally excluded because its latest CLI and PR test runs are
-  not green. This candidate does not claim that pending source as published.
+- **Release boundary**: the separate plugin marketplace payload/activation
+  hardening later passed its own exact-head gates at `89c498cc46` and merged
+  through PR #215 (`089336992d`). It remains intentionally excluded from this
+  immutable tarball and is tracked as a post-`0.165.1` source increment.
 - **Release packaging recovery**: immutable tag `v-npm-0-165-0` stopped before
   any registry write because its SBOM resolver tried to fetch the coordinated
   PDH 0.4.58 candidate before that package could be published. The 0.165.1
   workflow resolves the SBOM from exact-SHA internal package tarballs instead.
-- **Release status**: immutable tag, final source SHA, workflow run IDs, npm
-  provenance, package digests, and registry readback remain intentionally
-  absent until the final merge SHA passes complete `CLI CI` and
-  `CLI Strict Sandbox` matrices on Linux, Windows, and macOS, followed by the
-  dedicated npm release and independent public readback workflows.
+- **Published release evidence**: immutable tag `v-npm-0-165-1` resolves to
+  exact source commit `1a10ed7c8fd14d12f7760e948ff8efe36c766602`.
+  Its Linux, Windows, and macOS `CLI CI` (`32038591204`) and
+  `CLI Strict Sandbox` (`32038590960`) matrices passed; the dedicated npm
+  release (`32038590940`) and independent public readback (`32039659372`)
+  succeeded. npm reports `latest=0.165.1`; the public tarball SHA-1 is
+  `51ce645bebbe63ae168386cb8b6122a67c7d0813` and SHA-256 is
+  `5806d34b6659dcc632dad31db3acdc2f4fa07fb924b7d93de1d22637a3186241`.
 
-### Fixed — post-0.164.0 source increments
+### Fixed — source increments delivered by 0.165.1
 
 > Source-only changes after immutable tag `v-npm-0-164-0` at exact commit
-> `313dec85cffa09dbb183be17d2b6597e303bed5f`. They are present at repository
-> HEAD `99f5bf8214824f21fa7462072f4177e81e80166b` but are not retroactively part
-> of the published `chainlesschain@0.164.0` tarball.
+> `313dec85cffa09dbb183be17d2b6597e303bed5f`. They were source-only relative
+> to `0.164.0` and are now included in the published `0.165.1` tarball.
 
 - **Remote approval and membership reconciliation**: Android, iOS, Web Panel,
   and the CLI relay now bind approval responses to durable membership epochs,

@@ -1,6 +1,6 @@
 # 权限规则（cc permissions）
 
-> **状态: ✅ CLI 0.164.0 生产可用 | Claude-Code `permissions.{allow,ask,deny}` 平价 | deny > ask > allow | workspace-scoped authority + Side-effect Center**
+> **状态: ✅ CLI 0.165.1 生产可用 | Claude-Code `permissions.{allow,ask,deny}` 平价 | deny > ask > allow | workspace-scoped authority + Side-effect Center**
 >
 > `cc permissions`（别名 `cc perms`）查看、干跑、编辑 `.claude/settings.json` 的权限规则集，也能创建有 TTL 的 workspace-scoped 规则并读取实际资源/副作用证据。规则引擎已接入 agent 工具循环：`deny` 硬拦截、`ask` 弹确认（headless 无确认器时 fail-closed）、`allow` 预授权短路 plan-mode 拦截与 run_shell 审批门——但**永不**重开 shell 硬黑名单。注意与 `cc perm`（[RBAC V2 治理](./cli-perm.md)）是两套完全独立的系统。
 

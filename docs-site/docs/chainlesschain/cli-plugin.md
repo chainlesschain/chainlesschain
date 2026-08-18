@@ -1,8 +1,8 @@
 # 插件市场 (plugin)
 
-> **CLI 0.164.0 | Headless 命令 | 受治理多 Registry 候选选择、升级影响与制品回读**
+> **CLI 0.165.1 | Headless 命令 | 受治理多 Registry 候选选择、升级影响与制品回读**
 >
-> 不依赖桌面 GUI，适用于服务器、CI/CD、容器化等无桌面环境。`catalog` / `select` / `impact` / `evidence` 是 `0.164.0` 的稳定契约；当前 HEAD 的后续修复不改变该 tarball 内容。
+> 不依赖桌面 GUI，适用于服务器、CI/CD、容器化等无桌面环境。`catalog` / `select` / `impact` / `evidence` 自 `0.164.0` 起进入稳定契约，当前生产推荐版为 `0.165.1`。PR #215 exact head `89c498cc46` 的 payload/activation lifecycle 加固已完成门禁并合入主线，仍不属于 `0.165.1` npm tarball。
 
 ## 核心特性
 
@@ -85,6 +85,14 @@ chainlesschain plugin use <name> <version>         # 切换/回滚 active 版本
 - `use <name> <version>`：只切换到已经安装且证据有效的版本，用于受控回滚。
 
 `--allow-insecure-registry` 会允许 HTTP registry，存在 MITM 风险，只应在明确受信的隔离网络使用。私有源使用 `--token`；不要把 token 写进文档、命令历史或 JSON 报告。
+
+### 0.165.1 稳定版与未发布源码增量边界
+
+- npm `0.165.1` 继续提供 `0.164.0` 的受治理目录、选源、影响评审与已安装 bytes 回读，并把 plugin-bin 执行纳入 canonical workspace authority；其发布证据绑定 exact SHA `1a10ed7c8f`。
+- 当前分支的实现提交 `7592c0d5bd` 进一步统一 `plugin use`、版本卸载 fallback、普通与 pointer-only update 的激活校验：目标目录、manifest name/version、provenance、fresh semantic payload、source switch 与 downgrade 任一不满足时失败闭合。
+- `.install-*` / `.uninstall-*` 表示未完成恢复权威，会阻断 runtime discovery；`plugin list` 与 `cc doctor` 显示 `runtimeBlocked`、recovery path 与 inspection version。已提交但尚未删除的事务先退役为 inert `.cleanup-*`，不再冒充未完成 authority。
+- rollback 会核对 pointer generation、candidate/predecessor payload 与 source digest，组合 I/O 失败时保留可重试 topology；整名 uninstall 是无法安全自动判断时的显式修复边界。
+- 上述 lifecycle 加固已在 PR #215 exact head `89c498cc46` 完成门禁并合入主线，但尚未进入 npm 稳定版；跨进程 OS lock/durable journal/CAS、跨 scope effective authority、legacy provenance migration 与真实 private registry/publisher trust 仍未完成。
 
 ### 统计
 
@@ -215,13 +223,14 @@ chainlesschain plugin remove markdown-plus
 
 ## 故障排查
 
-| 问题                        | 解决方案                                                                                       |
-| --------------------------- | ---------------------------------------------------------------------------------------------- |
-| `install` 失败              | 确认数据库已初始化：`chainlesschain db init`                                                   |
-| `search` 无结果             | 尝试更短的关键词，或用 `registry` / `catalog` 浏览全部                                         |
-| `enable` 报插件不存在       | 确认插件已安装：`chainlesschain plugin list`                                                   |
-| `catalog --strict` 拒绝候选 | 补齐 registry 的 digest/signature/SBOM/license/capability 元数据；不要关闭 strict 来绕过生产门 |
-| `evidence --strict` 非零    | 已安装 bytes 或证据为 partial/漂移；停止启用，重新安装或切回已验证版本                         |
+| 问题                        | 解决方案                                                                                        |
+| --------------------------- | ----------------------------------------------------------------------------------------------- |
+| `install` 失败              | 确认数据库已初始化：`chainlesschain db init`                                                    |
+| `search` 无结果             | 尝试更短的关键词，或用 `registry` / `catalog` 浏览全部                                          |
+| `enable` 报插件不存在       | 确认插件已安装：`chainlesschain plugin list`                                                    |
+| `catalog --strict` 拒绝候选 | 补齐 registry 的 digest/signature/SBOM/license/capability 元数据；不要关闭 strict 来绕过生产门  |
+| `evidence --strict` 非零    | 已安装 bytes 或证据为 partial/漂移；停止启用，重新安装或切回已验证版本                          |
+| 显示 `recovery-required`    | 停止运行该插件，按列表/doctor 给出的 recovery path 检查；无法安全恢复时整名卸载后从可信来源重装 |
 
 ## 关键文件
 

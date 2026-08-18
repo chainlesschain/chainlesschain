@@ -1,6 +1,6 @@
 # Agent Team：声明式任务图协作（`cc team`）
 
-> 状态：P2-16 已完成并随 CLI `0.162.189` 首次公开；当前生产推荐版为 `0.164.0`（2026-08-16）。`0.163.8` 新增受治理的 file/hunk merge review，`0.164.0` 进一步加入作用域执行与上下文权限；实现候选
+> 状态：P2-16 已完成并随 CLI `0.162.189` 首次公开；当前生产推荐版为 `0.165.1`（2026-08-17）。`0.163.8` 新增受治理的 file/hunk merge review，`0.164.0` 加入作用域执行与上下文权限，`0.165.1` 进一步加固远程成员权威、后台 keeper 与 canonical 执行边界；实现候选
 > `7df6feced4670ac71d19548752d18ac4cc225025` 的三平台短门与各 120 分钟 soak
 > 均成功；最终发布提交
 > [`2607af0dadeb951583139942e5f2add3e95e1208`](https://github.com/chainlesschain/chainlesschain/commit/2607af0dadeb951583139942e5f2add3e95e1208)
