@@ -15,6 +15,15 @@ import {
   resumeExecutionLocationTarget,
 } from "../lib/execution-location-target.js";
 import {
+  EXECUTION_LOCATION_RESULT_BUNDLE_SCHEMA,
+  EXECUTION_LOCATION_RESULT_VERIFICATION_SCHEMA,
+  MAX_EXECUTION_LOCATION_RESULT_BUNDLE_BYTES,
+  createExecutionLocationResultBundle,
+  readExecutionLocationResultBundle,
+  readExecutionLocationResultFile,
+  verifyExecutionLocationResultBundle,
+} from "../lib/execution-location-result.js";
+import {
   MAX_SESSION_REPLICA_BYTES,
   SESSION_EXECUTION_LOCATION_HANDOFF_INSTALL_SCHEMA,
   getVerifiedSessionExecutionLocationAuthority,
@@ -314,6 +323,88 @@ export function prepareSessionReplicaHandoff(sessionId, options, deps = {}) {
   );
 }
 
+function parseResultFileSpec(value, label) {
+  const text = String(value || "");
+  const separator = text.indexOf("=");
+  if (separator <= 0 || separator === text.length - 1) {
+    throw new Error(`${label} must be <media-type>=<path>`);
+  }
+  return {
+    mediaType: text.slice(0, separator),
+    path: text.slice(separator + 1),
+  };
+}
+
+function collectResultFileSpec(value, previous) {
+  return [...previous, value];
+}
+
+function resultBoundary(authority) {
+  const root = authority?.binding?.policy?.dataBoundary?.root;
+  if (typeof root !== "string" || root.length === 0) {
+    throw new Error(
+      "verified execution location data boundary is required for result files",
+    );
+  }
+  return root;
+}
+
+export function createSessionExecutionLocationResultBundle(
+  sessionId,
+  options,
+  deps = {},
+) {
+  const sessionAuthority = projectSessionExecutionLocation(sessionId, deps);
+  const boundaryRoot = resultBoundary(sessionAuthority);
+  const readFile = deps.readExecutionLocationResultFile ||
+    readExecutionLocationResultFile;
+  const read = (filePath, fileOptions = {}) =>
+    readFile(filePath, {
+      boundaryRoot,
+      ...fileOptions,
+      ...(deps.resultFileDependencies || {}),
+    });
+  const readItems = (values, label) =>
+    (values || []).map((value) => {
+      const spec = parseResultFileSpec(value, label);
+      return {
+        mediaType: spec.mediaType,
+        bytes: read(spec.path, { allowEmpty: true }),
+      };
+    });
+  return (deps.createExecutionLocationResultBundle ||
+    createExecutionLocationResultBundle)({
+    sessionAuthority,
+    resultId: options.resultId,
+    summaryBytes: read(options.summary),
+    diffBytes: read(options.diff, { allowEmpty: true }),
+    artifacts: readItems(options.artifact, "--artifact"),
+    evidence: readItems(options.evidence, "--evidence"),
+  });
+}
+
+export function verifySessionExecutionLocationResultBundle(
+  sessionId,
+  bundlePath,
+  expectedHandoffId,
+  deps = {},
+) {
+  const sourceAuthority = projectSessionExecutionLocation(sessionId, deps);
+  const boundaryRoot = resultBoundary(sourceAuthority);
+  const bundle = (deps.readExecutionLocationResultBundle ||
+    readExecutionLocationResultBundle)(bundlePath, {
+    boundaryRoot,
+    maxBytes: MAX_EXECUTION_LOCATION_RESULT_BUNDLE_BYTES,
+    ...(deps.resultFileDependencies || {}),
+  });
+  return (deps.verifyExecutionLocationResultBundle ||
+    verifyExecutionLocationResultBundle)({
+    bundle,
+    sourceAuthority,
+    expectedHandoffId,
+  });
+}
+
 function renderBinding(binding) {
   const git = binding.source.git;
   return [
@@ -347,6 +438,18 @@ function writeProjection(projection, options = {}) {
   if (projection.schema === EXECUTION_LOCATION_TARGET_RESUME_SCHEMA) {
     process.stdout.write(
       `RESUME EXITED ${projection.target}\nReceipt: ${projection.receiptDigest}\nGaps: ${projection.gaps.join(", ")}\n`,
+    );
+    return;
+  }
+  if (projection.schema === EXECUTION_LOCATION_RESULT_BUNDLE_SCHEMA) {
+    process.stdout.write(
+      `RESULT BUNDLE ${projection.resultId}\nBundle: ${projection.bundleDigest}\nBytes: ${projection.totalBytes}\nUse --json to transfer the canonical bundle bytes.\n`,
+    );
+    return;
+  }
+  if (projection.schema === EXECUTION_LOCATION_RESULT_VERIFICATION_SCHEMA) {
+    process.stdout.write(
+      `RESULT VERIFIED ${projection.resultId}\nBundle: ${projection.bundleDigest}\nVerification: ${projection.verificationDigest}\nApplied: no\n`,
     );
     return;
   }
@@ -579,6 +682,58 @@ export function registerSessionLocationSubcommands(session, deps = {}) {
             options.facts,
             options.profile,
             options.expectedTargetFactsDigest,
+            deps,
+          ),
+        options,
+      );
+    });
+
+  location
+    .command("result-pack <id>")
+    .description(
+      "Build a bounded result bundle from a verified target handoff session",
+    )
+    .requiredOption("--result-id <id>", "Stable result bundle id")
+    .requiredOption("--summary <path>", "UTF-8 summary file inside the data boundary")
+    .requiredOption("--diff <path>", "Diff file inside the data boundary")
+    .option(
+      "--artifact <media-type=path>",
+      "Artifact bytes to include (repeatable)",
+      collectResultFileSpec,
+      [],
+    )
+    .option(
+      "--evidence <media-type=path>",
+      "Evidence bytes to include (repeatable)",
+      collectResultFileSpec,
+      [],
+    )
+    .option("--json", "Write the canonical bundle including base64 content")
+    .action((id, options) => {
+      process.exitCode = runAction(
+        () => createSessionExecutionLocationResultBundle(id, options, deps),
+        options,
+      );
+    });
+
+  location
+    .command("result-verify <id>")
+    .description(
+      "Rehash a returned bundle and bind it to the unchanged source session",
+    )
+    .requiredOption("--bundle <path>", "Returned canonical bundle JSON")
+    .requiredOption(
+      "--expected-handoff-id <sha256>",
+      "Exact handoff id accepted before target execution",
+    )
+    .option("--json", "Machine-readable content-free verification receipt")
+    .action((id, options) => {
+      process.exitCode = runAction(
+        () =>
+          verifySessionExecutionLocationResultBundle(
+            id,
+            options.bundle,
+            options.expectedHandoffId,
             deps,
           ),
         options,
