@@ -5464,7 +5464,7 @@ describe("prompt queue backpressure (Gap 4, supervisor gap 2026-07-11)", () => {
       fakeCli,
       [
         "const argv = process.argv.slice(2);",
-        'const wait = argv.includes("-p") ? 50 : 20000;',
+        'const wait = argv.includes("-p") ? 50 : 60000;',
         "setTimeout(() => process.exit(0), wait);",
         "",
       ].join("\n"),
@@ -5479,11 +5479,26 @@ describe("prompt queue backpressure (Gap 4, supervisor gap 2026-07-11)", () => {
     });
 
     let transport = null;
-    for (let i = 0; i < 100 && !transport; i++) {
+    let activeTurn = null;
+    for (let i = 0; i < 600 && (!transport || !activeTurn); i++) {
       await new Promise((resolve) => setTimeout(resolve, 100));
-      transport = readBackgroundAgentState(state.id)?.transport || null;
+      const latest = readBackgroundAgentState(state.id);
+      transport = latest?.transport || null;
+      // The attach transport is intentionally published before native turn
+      // spawn. Windows process admission can take longer under a parallel
+      // strict-sandbox shard, so do not turn this queue-cap test into a timing
+      // assertion about the durable intent -> PID commit window. Dedicated
+      // launch-race tests cover stopPending while that intent is unresolved.
+      activeTurn =
+        latest?.status === "running" &&
+        !latest.turnLaunchIntent &&
+        latest.turnLaunchResolution?.outcome === "spawned" &&
+        Number(latest.agentPid) > 0
+          ? latest
+          : null;
     }
     expect(transport?.pipe).toBeTruthy();
+    expect(activeTurn?.agentPid).toBeTruthy();
 
     const { connectBackgroundSession } =
       await import("../../src/lib/background-session-transport.js");
@@ -5591,5 +5606,5 @@ describe("prompt queue backpressure (Gap 4, supervisor gap 2026-07-11)", () => {
         interactionRecovery: stopped.interactionRecovery,
       })}`,
     ).toMatchObject({ stopped: true, status: "stopped" });
-  }, 60_000);
+  }, 120_000);
 });

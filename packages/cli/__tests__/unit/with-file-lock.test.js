@@ -1,4 +1,13 @@
 import { describe, it, expect, vi } from "vitest";
+import {
+  mkdtempSync,
+  mkdirSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { withFileLock } from "../../src/lib/with-file-lock.js";
 
 // In-memory fake fs modelling the lock DIRECTORY as a single key.
@@ -535,6 +544,114 @@ describe("withFileLock", () => {
     ).toBe(true);
     expect(isOwnerAlive).toHaveBeenCalledWith(owner);
     expect(_fs.dirs.has(lockDir)).toBe(false);
+  });
+
+  it("takes over a dead reclaim claimant left by a killed contender", () => {
+    const _fs = fakeLockFs();
+    const lockDir = "/critical.json.lock";
+    const owner = {
+      pid: 4242,
+      startedAt: 1,
+      token: "dead-owner-token-0002",
+    };
+    const deadClaimant = {
+      pid: 4343,
+      startedAt: 2,
+      token: "dead-claimant-token-001",
+    };
+    _fs.dirs.set(lockDir, 0);
+    _fs.writeFileSync(`${lockDir}/owner.json`, JSON.stringify(owner));
+    _fs.writeFileSync(
+      `${lockDir}/.reclaim-${owner.token}`,
+      JSON.stringify(deadClaimant),
+    );
+
+    expect(
+      withFileLock("/critical.json", () => "recovered", {
+        _fs,
+        _isProcessAlive: () => false,
+        _ownerToken: () => "recovery-contender-token-02",
+        failIfUnavailable: true,
+      }),
+    ).toBe("recovered");
+    expect(_fs.dirs.has(lockDir)).toBe(false);
+  });
+
+  it("detaches a real lock directory after taking over a dead reclaim claimant", () => {
+    const root = mkdtempSync(join(tmpdir(), "cc-with-file-lock-reclaim-"));
+    const target = join(root, "critical.json");
+    const lockDir = `${target}.lock`;
+    const owner = {
+      pid: 4242,
+      startedAt: 1,
+      token: "dead-owner-token-real-01",
+    };
+    const deadClaimant = {
+      pid: 4343,
+      startedAt: 2,
+      token: "dead-claimant-token-real-1",
+    };
+    try {
+      mkdirSync(lockDir);
+      writeFileSync(join(lockDir, "owner.json"), JSON.stringify(owner));
+      writeFileSync(
+        join(lockDir, `.reclaim-${owner.token}`),
+        JSON.stringify(deadClaimant),
+      );
+
+      expect(
+        withFileLock(target, () => "recovered", {
+          _isProcessAlive: () => false,
+          _ownerToken: () => "recovery-contender-token-real-1",
+          failIfUnavailable: true,
+        }),
+      ).toBe("recovered");
+      expect(readdirSync(root)).toEqual([]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("waits behind a live reclaim claimant without deleting its marker", () => {
+    const _fs = fakeLockFs();
+    const lockDir = "/critical.json.lock";
+    const owner = {
+      pid: 4242,
+      startedAt: 1,
+      token: "dead-owner-token-0003",
+    };
+    const liveClaimant = {
+      pid: 4343,
+      startedAt: 2,
+      token: "live-claimant-token-001",
+    };
+    const claimPath = `${lockDir}/.reclaim-${owner.token}`;
+    _fs.dirs.set(lockDir, 0);
+    _fs.writeFileSync(`${lockDir}/owner.json`, JSON.stringify(owner));
+    _fs.writeFileSync(claimPath, JSON.stringify(liveClaimant));
+    let now = 0;
+
+    expect(() =>
+      withFileLock("/critical.json", () => true, {
+        _fs,
+        timeoutMs: 10,
+        retryMs: 5,
+        maxRetryMs: 5,
+        retryJitterMs: 0,
+        _now: () => now,
+        _sleep: (milliseconds) => {
+          now += milliseconds;
+        },
+        _random: () => 0,
+        _isProcessAlive: (pid) => pid === liveClaimant.pid,
+        _ownerToken: () => "waiting-contender-token-02",
+        failIfUnavailable: true,
+      }),
+    ).toThrowError(/Could not acquire state lock/);
+    expect(JSON.parse(_fs.readFileSync(claimPath))).toEqual(liveClaimant);
+    expect(JSON.parse(_fs.readFileSync(`${lockDir}/owner.json`))).toEqual(
+      owner,
+    );
   });
 
   it("a delayed dead-owner reclaimer never deletes a replacement owner", () => {

@@ -14,9 +14,10 @@
  * reclaimed merely because the directory is old, and corrupt ownership fails
  * closed. The default filesystem publishes a fully populated, uniquely staged
  * directory in one rename so a process killed during acquisition cannot expose
- * an ownerless lock. Confirmed-dead owners are reclaimed with an exact-token
- * marker inside the lock directory so a delayed contender cannot delete a
- * replacement lock. Strict callers may use bounded jittered retries and an
+ * an ownerless lock. Confirmed-dead owners are reclaimed with an exact-token,
+ * process-owned claim inside the lock directory so a delayed contender cannot
+ * delete a replacement lock and another contender can take over if the first
+ * reclaimer is killed. Strict callers may use bounded jittered retries and an
  * after-release yield to avoid Windows sharing transients and fixed-interval
  * lock convoys.
  *
@@ -117,7 +118,9 @@ export function withFileLock(targetPath, fn, opts = {}) {
         lastOwnerObservation.releasePublished = publishedRelease.published;
         if (publishedRelease.completed) continue;
         if (!publishedRelease.published && !incumbentAlive) {
-          if (reclaimOwnedDirectory(_fs, lockDir, incumbent, isOwnerAlive))
+          if (
+            reclaimOwnedDirectory(_fs, lockDir, incumbent, owner, isOwnerAlive)
+          )
             continue;
         }
       } else if (!failIfUnavailable) {
@@ -382,21 +385,65 @@ function writeOwnerMarker(_fs, markerPath, owner) {
   });
 }
 
-function reclaimOwnedDirectory(_fs, lockDir, owner, ownerAlive) {
-  const markerPath = path.join(lockDir, `.reclaim-${owner.token}`);
-  try {
-    writeOwnerMarker(_fs, markerPath, owner);
-  } catch (error) {
-    if (error?.code === "ENOENT" || error?.code === "EEXIST") return false;
-    throw error;
+function reclaimOwnedDirectory(_fs, lockDir, incumbent, claimant, ownerAlive) {
+  const claimPath = path.join(lockDir, `.reclaim-${incumbent.token}`);
+  for (;;) {
+    const existingClaim = readOwner(_fs, claimPath);
+    if (existingClaim) {
+      if (sameOwner(existingClaim, claimant)) break;
+      if (!ownerAlive(existingClaim)) {
+        if (removeOwnMarker(_fs, claimPath, existingClaim)) continue;
+      }
+      return false;
+    }
+    try {
+      // The claim belongs to the contender, not the dead incumbent. If this
+      // contender is killed before detaching the directory, another process
+      // can prove that exact claimant dead and safely take over.
+      writeOwnerMarker(_fs, claimPath, claimant);
+      break;
+    } catch (error) {
+      if (error?.code === "ENOENT") {
+        return !directoryExists(_fs, lockDir);
+      }
+      if (error?.code === "EEXIST" || isTransientLockError(error)) {
+        return false;
+      }
+      throw error;
+    }
   }
+
   const current = readOwner(_fs, path.join(lockDir, "owner.json"));
-  if (!sameOwner(current, owner) || ownerAlive(owner)) {
-    removeOwnMarker(_fs, markerPath, owner);
+  if (!sameOwner(current, incumbent) || ownerAlive(incumbent)) {
+    removeOwnMarker(_fs, claimPath, claimant);
     return false;
   }
-  _fs.rmSync(lockDir, { recursive: true, force: true });
-  return true;
+
+  if (typeof _fs.renameSync !== "function") {
+    _fs.rmSync(lockDir, { recursive: true, force: true });
+    return true;
+  }
+
+  const cleanupDir = `${lockDir}.reclaimed-${incumbent.token}-${claimant.token}`;
+  try {
+    // Free the acquisition path atomically before recursive cleanup. A killed
+    // reclaimer can therefore leave only uniquely named debris, never a
+    // claimant marker that permanently fences the shared lock path.
+    _fs.renameSync(lockDir, cleanupDir);
+    try {
+      _fs.rmSync(cleanupDir, { recursive: true, force: true });
+    } catch {
+      /* private reclaim debris is harmless after the lock path is detached */
+    }
+    return true;
+  } catch (error) {
+    removeOwnMarker(_fs, claimPath, claimant);
+    if (error?.code === "ENOENT") {
+      return !directoryExists(_fs, lockDir);
+    }
+    if (isTransientLockError(error)) return false;
+    throw error;
+  }
 }
 
 function reclaimLegacyDirectory(_fs, lockDir, stat) {
