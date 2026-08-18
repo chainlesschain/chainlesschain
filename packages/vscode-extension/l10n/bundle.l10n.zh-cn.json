@@ -41,7 +41,7 @@
   "Choose an LLM provider (written to ~/.chainlesschain/config.json, shared by the CLI and the Chat panel)": "选择 LLM 提供商（写入 ~/.chainlesschain/config.json，CLI 与 Chat 面板共用）",
   "Model name ({0})": "模型名（{0}）",
   "API key for {0} (leave blank = keep the existing key, no need to retype)": "{0} 的 API key（留空 = 保留已有的 key，不必重输）",
-  "API key for {0} (written only to the local config.json, not VS Code settings)": "{0} 的 API key（只写入本机 config.json，不进 VS Code 设置）",
+  "API key for {0} (stored securely by the local CLI; never saved in plaintext in config.json or VS Code settings)": "{0} 的 API key（由本机 CLI 安全保存；config.json 和 VS Code 设置中都不保存明文）",
   "leave blank to keep the existing key": "留空保留现有 key",
   "No API key entered — configuration cancelled (this provider requires a key).": "未输入 API key — 配置已取消（该提供商必须有 key）。",
   "Base URL (Enter for the default)": "Base URL（回车用默认）",
