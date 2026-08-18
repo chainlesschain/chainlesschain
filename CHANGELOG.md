@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — cc CLI 0.165.2: governed plugins and keeper handoff reliability
+
+> `chainlesschain` **0.165.1 → 0.165.2** (candidate; not yet published,
+> 2026-08-18).
+> CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.58**
+> and `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **Governed plugin transactions and provenance**: marketplace payload,
+  activation, install, update, transaction recovery, and provenance decisions
+  bind immutable source identities and digests. Registry cache entries are
+  content-addressed, while corrupt, stale, or mismatched recovery evidence
+  continues to fail closed.
+- **Strict plugin execution boundaries**: the remaining live plugin fixtures
+  now execute in the strict Linux sandbox, MCP security soak provisions its
+  required Bubblewrap boundary explicitly, and release fixtures exercise the
+  production activation path instead of accepting inactive coverage.
+- **Durable workflow authority**: provider requests and settlements, nested and
+  parallel tool effects, child and descendant calls, and timeout outcomes gain
+  durable identity-bound receipts so retries cannot silently reuse ambiguous
+  execution authority.
+- **Background keeper lock handoff**: an owner that durably publishes its exact
+  release marker treats the marker as the logical handoff even when another
+  contender wins physical cleanup. Wrong, corrupt, or active foreign claimants
+  remain rejected, and POSIX/Windows process identity and cleanup races retain
+  bounded fail-closed handling.
+- **Scheduler campaign continuity**: scheduled long-soak dispatches use a pinned
+  campaign identity, refuse overlapping segments, and can auto-finalize only
+  after the required cross-platform evidence window is complete.
+- **Cross-platform release stability**: generated command help stays in sync;
+  POSIX fsync-failure fixtures match the actual read mode; registry cache tests
+  follow immutable URL-plus-digest semantics; and macOS marketplace replay uses
+  isolated local scope instead of leaking state through the runner user home.
+- **Release status**: immutable tag, final source SHA, workflow run IDs, npm
+  provenance, package digests, and registry readback remain intentionally
+  absent until the final `0.165.2` merge SHA passes complete `CLI CI` and
+  `CLI Strict Sandbox` matrices on Linux, Windows, and macOS, followed by the
+  dedicated npm release and independent public readback workflows. The active
+  two-hour Keeper/reliability runs and the 72-hour scheduler campaign are not
+  claimed as completed release evidence here.
+
 ### Added — cc CLI 0.165.1: runtime admission, remote authority, and background containment
 
 > `chainlesschain` **0.164.0 → 0.165.1** (published from exact SHA

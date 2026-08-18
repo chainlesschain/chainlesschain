@@ -488,7 +488,7 @@ describe("resolveChatLlm — panel uses the user's cc config provider (bug fix)"
       provider: "volcengine",
       model: "doubao-x",
       baseUrl: "https://ark…",
-      apiKey: "sk-v",
+      apiKey: "",
     });
   });
 
