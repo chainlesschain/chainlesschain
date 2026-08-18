@@ -8,6 +8,10 @@ import {
   createExecutionLocationBinding,
   createExecutionLocationTargetAttestation,
 } from "../../src/lib/execution-location-contract.js";
+import {
+  createExecutionLocationResultBundle,
+  verifyExecutionLocationResultBundle,
+} from "../../src/lib/execution-location-result.js";
 
 const root = mkdtempSync(join(tmpdir(), "cc-session-replica-"));
 const sourceHome = join(root, "source-home");
@@ -280,6 +284,47 @@ describe("verified session replica installation", () => {
       replicaInstalled: false,
       handoffAppended: false,
       attestationDigest: target.attestationDigest,
+    });
+  });
+
+  it("binds returned bytes to the real target handoff and source predecessor", () => {
+    const sessionId = "session-replica-result-return";
+    const source = createSource(sessionId);
+    selectTarget();
+    const installed = store.installSessionReplicaWithLocationHandoff(
+      sessionId,
+      source.bytes,
+      source.expected,
+      targetAuthority(source),
+    );
+    const target = store.getVerifiedSessionExecutionLocationAuthority(sessionId);
+    const bundle = createExecutionLocationResultBundle({
+      sessionAuthority: target,
+      resultId: "return-1",
+      summaryBytes: Buffer.from("target work completed"),
+      diffBytes: Buffer.from("diff --git a/a b/a\n"),
+      artifacts: [],
+      evidence: [],
+    });
+
+    selectSource();
+    const predecessor = store.getVerifiedSessionExecutionLocationAuthority(
+      sessionId,
+    );
+    expect(
+      verifyExecutionLocationResultBundle({
+        bundle,
+        sourceAuthority: predecessor,
+        expectedHandoffId: installed.handoffId,
+      }),
+    ).toMatchObject({
+      sessionId,
+      handoffId: installed.handoffId,
+      sourceHeadHash: source.expected.headHash,
+      sourceEventCount: source.expected.eventCount,
+      targetHeadHash: installed.targetHeadHash,
+      targetEventCount: installed.targetEventCount,
+      applied: false,
     });
   });
 
