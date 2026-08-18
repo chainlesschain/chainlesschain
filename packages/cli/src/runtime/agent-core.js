@@ -6721,6 +6721,10 @@ async function executeToolInner(
           interaction,
           sessionId,
           llmOptions,
+          workflowEffectId,
+          workflowChildEffectId,
+          workflowChildSequence,
+          workflowEffectProtocol,
           subAgentDepth,
           subAgentBudget,
           sessionBudget,
@@ -7654,6 +7658,9 @@ async function executeToolInner(
             ? event
             : {
                 ...event,
+                ...(["model", "semantic-compaction"].includes(event?.source)
+                  ? { workflowRequestSource: event.source }
+                  : {}),
                 source:
                   event?.source === "semantic-compaction"
                     ? "semantic-compaction"
@@ -7729,6 +7736,9 @@ async function executeToolInner(
             toolAdmission,
             cwd,
             llmOptions: skillLlmOptions,
+            ...(strictUsageTelemetry === true && workflowChildEffectId
+              ? { workflowEffectId: workflowChildEffectId }
+              : {}),
             ...(sessionBudget ? { sessionBudget } : {}),
             ...(permissionRules ? { permissionRules } : {}),
             ...(hostManagedToolPolicy
@@ -7819,7 +7829,12 @@ async function executeToolInner(
             toolsUsed: result.toolsUsed,
           });
         } catch (err) {
-          if (err?.runtimeLedgerPersistence === true) throw err;
+          if (
+            err?.runtimeLedgerPersistence === true ||
+            err?.workflowEffectOutcomeUnknown === true
+          ) {
+            throw err;
+          }
           if (
             signal?.aborted ||
             skillExecutionSignal?.aborted ||
@@ -9010,7 +9025,12 @@ function _backgroundSubAgentResultText(entry) {
 
 function _throwBackgroundSubAgentUsageFailure(entry) {
   const error = entry?.outcome?.fatalError;
-  if (error?.runtimeLedgerPersistence === true) throw error;
+  if (
+    error?.runtimeLedgerPersistence === true ||
+    error?.workflowEffectOutcomeUnknown === true
+  ) {
+    throw error;
+  }
 }
 
 function _throwSettledBackgroundUsageFailure(map) {
@@ -9565,6 +9585,9 @@ async function _executeSpawnSubAgent(args, ctx) {
       ? u
       : {
           ...u,
+          ...(["model", "semantic-compaction"].includes(u?.source)
+            ? { workflowRequestSource: u.source }
+            : {}),
           source:
             u?.source === "semantic-compaction"
               ? "semantic-compaction"
@@ -9714,6 +9737,9 @@ async function _executeSpawnSubAgent(args, ctx) {
     cwd: ctx.cwd,
     profile: profile || null,
     llmOptions: subLlmOptions,
+    ...(ctx.strictUsageTelemetry === true && ctx.workflowChildEffectId
+      ? { workflowEffectId: ctx.workflowChildEffectId }
+      : {}),
     depth: currentDepth + 1, // nested spawns see their own level
     // Same shared counter object so the child's own spawns draw from the run's
     // single total-sub-agent pool (breadth cap spans the whole tree).
@@ -9915,7 +9941,8 @@ async function _executeSpawnSubAgent(args, ctx) {
           return {
             result: subCtx.result,
             error: err.message,
-            ...(err?.runtimeLedgerPersistence === true
+            ...(err?.runtimeLedgerPersistence === true ||
+            err?.workflowEffectOutcomeUnknown === true
               ? { fatalError: err }
               : {}),
           };
@@ -10048,7 +10075,12 @@ async function _executeSpawnSubAgent(args, ctx) {
       completedAt: subCtx.completedAt,
     });
 
-    if (err?.runtimeLedgerPersistence === true) throw err;
+    if (
+      err?.runtimeLedgerPersistence === true ||
+      err?.workflowEffectOutcomeUnknown === true
+    ) {
+      throw err;
+    }
 
     return {
       error: `Sub-agent failed: ${err.message}`,

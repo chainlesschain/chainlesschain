@@ -51,6 +51,7 @@ const WORKFLOW_CHILD_EFFECT_PROTOCOL = "cc-workflow-child-effect/v1";
 const WORKFLOW_PROVIDER_ATTEMPT_PROTOCOL = "cc-provider-request-attempt/v1";
 const WORKFLOW_PROVIDER_CALL_ID_RE = /^[A-Za-z0-9._:-]{1,256}$/u;
 const WORKFLOW_PROVIDER_REQUEST_ID_RE = /^ccwf_[a-f0-9]{64}$/u;
+const DESCENDANT_OWNER_TOOL_NAMES = new Set(["run_skill", "spawn_sub_agent"]);
 const WORKFLOW_CALL_STATUSES = new Set([
   "started",
   "completed",
@@ -223,13 +224,27 @@ function verifyLineage(state, issues) {
   }
 }
 
-function workflowCallId(effectId, kind, callId, childEffectId = null) {
-  return digest("chainlesschain.dynamic-workflow.call-id.v1\0", {
+function workflowCallId(
+  effectId,
+  kind,
+  callId,
+  childEffectId = null,
+  ownerEffectId = null,
+) {
+  const material = {
     effectId,
     kind,
     callId,
     childEffectId,
-  });
+  };
+  if (ownerEffectId !== null) material.ownerEffectId = ownerEffectId;
+  return digest("chainlesschain.dynamic-workflow.call-id.v1\0", material);
+}
+
+function expectedWorkflowProviderRequestId(effectId, source, sequence) {
+  return `ccwf_${createHash("sha256")
+    .update(`${effectId}\0${source}\0${String(sequence)}`, "utf8")
+    .digest("hex")}`;
 }
 
 function verifyEffectCalls(effect, effectIndex, issues) {
@@ -240,7 +255,16 @@ function verifyEffectCalls(effect, effectIndex, issues) {
   }
   const ids = new Set();
   const identities = new Set();
+  const authorizedOwnerEffectIds = new Set([effect.id]);
   for (const [callIndex, call] of calls.entries()) {
+    const legacyOwner = call?.ownerEffectId === undefined;
+    const ownerEffectId = legacyOwner ? effect.id : call?.ownerEffectId;
+    const requestSource =
+      call?.requestSource === undefined
+        ? call?.kind === "provider"
+          ? call?.source
+          : null
+        : call.requestSource;
     const terminal = call?.status !== "started";
     const identityKey = `${call?.kind || ""}\0${
       call?.kind === "tool" ? call?.childEffectId : call?.callId
@@ -264,7 +288,15 @@ function verifyEffectCalls(effect, effectIndex, issues) {
       call.effectId === effect.id &&
       SHA256_RE.test(call.id || "") &&
       call.id ===
-        workflowCallId(effect.id, call.kind, call.callId, call.childEffectId) &&
+        workflowCallId(
+          effect.id,
+          call.kind,
+          call.callId,
+          call.childEffectId,
+          legacyOwner ? null : ownerEffectId,
+        ) &&
+      SHA256_RE.test(ownerEffectId || "") &&
+      authorizedOwnerEffectIds.has(ownerEffectId) &&
       ["provider", "tool"].includes(call.kind) &&
       WORKFLOW_CALL_STATUSES.has(call.status) &&
       Number.isSafeInteger(call.sequence) &&
@@ -298,8 +330,18 @@ function verifyEffectCalls(effect, effectIndex, issues) {
         WORKFLOW_PROVIDER_CALL_ID_RE.test(call.callId || "") &&
         call.childEffectId === null &&
         PROVIDER_NAME_RE.test(call.name || "") &&
-        ["model", "semantic-compaction"].includes(call.source) &&
+        ["model", "semantic-compaction", "subagent"].includes(call.source) &&
+        ["model", "semantic-compaction"].includes(requestSource) &&
+        (call.source === "subagent"
+          ? requestSource === "model"
+          : requestSource === call.source) &&
         WORKFLOW_PROVIDER_REQUEST_ID_RE.test(call.clientRequestId || "") &&
+        call.clientRequestId ===
+          expectedWorkflowProviderRequestId(
+            ownerEffectId,
+            requestSource,
+            call.sequence,
+          ) &&
         call.identitySemantics === "trace-only" &&
         call.mcpLedgerId === null &&
         call.mcpLedgerPrewritePersisted === false &&
@@ -309,8 +351,16 @@ function verifyEffectCalls(effect, effectIndex, issues) {
       (call.protocol === WORKFLOW_CHILD_EFFECT_PROTOCOL &&
         WORKFLOW_TOOL_CALL_ID_RE.test(call.callId || "") &&
         SHA256_RE.test(call.childEffectId || "") &&
+        call.childEffectId ===
+          expectedNestedToolEffectId(
+            ownerEffectId,
+            call.sequence,
+            call.callId,
+            call.name,
+          ) &&
         WORKFLOW_TOOL_NAME_RE.test(call.name || "") &&
         call.source === "tool" &&
+        requestSource === null &&
         call.clientRequestId === null &&
         call.identitySemantics === "runtime-derived");
     const settlementValid = terminal
@@ -320,8 +370,17 @@ function verifyEffectCalls(effect, effectIndex, issues) {
         call.mcpLedgerId === null &&
         call.mcpLedgerPrewritePersisted === false &&
         call.mcpLedgerSettlementPersisted === false;
-    if (!commonValid || !providerValid || !toolValid || !settlementValid) {
+    const callValid =
+      commonValid && providerValid && toolValid && settlementValid;
+    if (!callValid) {
       issues.push(`effect-${effectIndex}-call-${callIndex}-invalid`);
+    }
+    if (
+      callValid &&
+      call.kind === "tool" &&
+      DESCENDANT_OWNER_TOOL_NAMES.has(call.name)
+    ) {
+      authorizedOwnerEffectIds.add(call.childEffectId);
     }
     ids.add(call?.id);
     identities.add(identityKey);
@@ -1166,24 +1225,39 @@ function ownDataValue(value, property) {
 
 function workflowCallAttempt(effectId, kind, event, now) {
   const startedAt = isoNow(now);
+  const ownerEffectId = event?.workflowEffectId;
   if (kind === "provider") {
+    const requestSource =
+      event?.workflowRequestSource ||
+      (event?.source === "subagent" ? "model" : event?.source);
     if (
       event?.type !== "model-usage-started" ||
-      event.workflowEffectId !== effectId ||
+      !SHA256_RE.test(ownerEffectId || "") ||
       !WORKFLOW_PROVIDER_CALL_ID_RE.test(event.callId || "") ||
       !PROVIDER_NAME_RE.test(event.provider || "") ||
-      !["model", "semantic-compaction"].includes(event.source) ||
+      !["model", "semantic-compaction", "subagent"].includes(event.source) ||
+      !["model", "semantic-compaction"].includes(requestSource) ||
+      (event.source === "subagent"
+        ? requestSource !== "model"
+        : requestSource !== event.source) ||
       !Number.isSafeInteger(event.callSequence) ||
       event.callSequence < 1 ||
       !WORKFLOW_PROVIDER_REQUEST_ID_RE.test(event.providerRequestId || "") ||
+      event.providerRequestId !==
+        expectedWorkflowProviderRequestId(
+          ownerEffectId,
+          requestSource,
+          event.callSequence,
+        ) ||
       event.requestIdentitySemantics !== "trace-only"
     ) {
       throw new TypeError("workflow provider call boundary is malformed");
     }
     return {
       schema: DYNAMIC_WORKFLOW_CALL_SCHEMA,
-      id: workflowCallId(effectId, kind, event.callId),
+      id: workflowCallId(effectId, kind, event.callId, null, ownerEffectId),
       effectId,
+      ownerEffectId,
       kind,
       protocol: WORKFLOW_PROVIDER_ATTEMPT_PROTOCOL,
       callId: event.callId,
@@ -1191,6 +1265,7 @@ function workflowCallAttempt(effectId, kind, event, now) {
       sequence: event.callSequence,
       name: event.provider,
       source: event.source,
+      requestSource,
       clientRequestId: event.providerRequestId,
       identitySemantics: "trace-only",
       status: "started",
@@ -1206,7 +1281,7 @@ function workflowCallAttempt(effectId, kind, event, now) {
   if (
     kind !== "tool" ||
     event?.type !== "tool-executing" ||
-    event.workflowEffectId !== effectId ||
+    !SHA256_RE.test(ownerEffectId || "") ||
     event.workflowEffectProtocol !== WORKFLOW_CHILD_EFFECT_PROTOCOL ||
     !SHA256_RE.test(event.workflowChildEffectId || "") ||
     !Number.isSafeInteger(event.workflowChildSequence) ||
@@ -1215,7 +1290,7 @@ function workflowCallAttempt(effectId, kind, event, now) {
     !WORKFLOW_TOOL_NAME_RE.test(event.tool || "") ||
     event.workflowChildEffectId !==
       expectedNestedToolEffectId(
-        effectId,
+        ownerEffectId,
         event.workflowChildSequence,
         event.tool_use_id,
         event.tool,
@@ -1230,8 +1305,10 @@ function workflowCallAttempt(effectId, kind, event, now) {
       kind,
       event.tool_use_id,
       event.workflowChildEffectId,
+      ownerEffectId,
     ),
     effectId,
+    ownerEffectId,
     kind,
     protocol: WORKFLOW_CHILD_EFFECT_PROTOCOL,
     callId: event.tool_use_id,
@@ -1239,6 +1316,7 @@ function workflowCallAttempt(effectId, kind, event, now) {
     sequence: event.workflowChildSequence,
     name: event.tool,
     source: "tool",
+    requestSource: null,
     clientRequestId: null,
     identitySemantics: "runtime-derived",
     status: "started",
@@ -1272,6 +1350,17 @@ function beginEffectCall(statePath, runId, effectId, kind, event, now) {
       throw new Error("workflow effect child-call limit exceeded");
     }
     if (
+      attempt.ownerEffectId !== effectId &&
+      !calls.some(
+        (call) =>
+          call.kind === "tool" &&
+          call.childEffectId === attempt.ownerEffectId &&
+          DESCENDANT_OWNER_TOOL_NAMES.has(call.name),
+      )
+    ) {
+      throw new Error("workflow descendant call owner is not authorized");
+    }
+    if (
       calls.some(
         (call) =>
           call.id === attempt.id ||
@@ -1286,7 +1375,12 @@ function beginEffectCall(statePath, runId, effectId, kind, event, now) {
     const state = transition(
       current,
       "effect-call-started",
-      { effectId, callRecordId: attempt.id, kind },
+      {
+        effectId,
+        ownerEffectId: attempt.ownerEffectId,
+        callRecordId: attempt.id,
+        kind,
+      },
       (draft) => {
         draft.effects[index] = {
           ...draft.effects[index],
@@ -1322,7 +1416,7 @@ function effectCallSettlement(call, event, now) {
   } else {
     if (
       event?.type !== "tool-result" ||
-      event.workflowEffectId !== call.effectId ||
+      event.workflowEffectId !== (call.ownerEffectId ?? call.effectId) ||
       event.workflowEffectProtocol !== WORKFLOW_CHILD_EFFECT_PROTOCOL ||
       event.workflowChildEffectId !== call.childEffectId ||
       event.workflowChildSequence !== call.sequence ||
@@ -1534,8 +1628,14 @@ function settleEffect(statePath, runId, effectId, rawResult, now) {
     ) {
       throw new Error("workflow effect provider dispatch was not persisted");
     }
-    if ((effect.calls || []).some((call) => call.status === "started")) {
-      throw new Error("workflow effect has an unsettled durable child call");
+    if (
+      (effect.calls || []).some((call) =>
+        ["started", "outcome_unknown"].includes(call.status),
+      )
+    ) {
+      throw new Error(
+        "workflow effect has an unsettled or outcome-unknown durable child call",
+      );
     }
     const settledAt = isoNow(now);
     const state = transition(
@@ -2363,10 +2463,14 @@ function projectDurableWorkflowCalls(state) {
       callRecordId: call.id,
       kind: call.kind,
       protocol: call.protocol,
+      ownerEffectId: call.ownerEffectId ?? effect.id,
       childEffectId: call.childEffectId,
       sequence: call.sequence,
       name: call.name,
       source: call.source,
+      requestSource:
+        call.requestSource ?? (call.kind === "provider" ? call.source : null),
+      descendant: (call.ownerEffectId ?? effect.id) !== effect.id,
       status: call.status,
       startedAt: call.startedAt,
       settledAt: call.settledAt,
@@ -2388,6 +2492,7 @@ function projectDurableWorkflowCalls(state) {
     operatorReconciled: lineage.filter(
       (call) => call.status === "operator_reconciled",
     ).length,
+    descendants: lineage.filter((call) => call.descendant).length,
     lineageDigest: digest(
       "chainlesschain.dynamic-workflow.durable-call-lineage.v1\0",
       lineage,
