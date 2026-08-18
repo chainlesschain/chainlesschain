@@ -7,6 +7,14 @@ import {
   executeWorkflow as executeCoworkWorkflow,
 } from "./cowork-workflow.js";
 import { writeSecurityStore } from "./durable-security-store.js";
+import {
+  CACHE_READ_MULTIPLIER,
+  CACHE_READ_MULTIPLIER_BY_PROVIDER,
+  CACHE_WRITE_MULTIPLIER,
+  FREE_PROVIDERS,
+  lookupRate,
+  PRICE_TABLE,
+} from "./llm-pricing.js";
 import { containsSecret } from "./secret-scan.js";
 import {
   sameFileStatIdentity,
@@ -44,9 +52,12 @@ const MAX_LINEAGE_EVENTS = 4096;
 const MAX_CALLS_PER_EFFECT = 128;
 const MAX_PROJECTED_ARTIFACTS_PER_EFFECT = 256;
 const MAX_PROVIDER_TOKEN_COUNT = 1_000_000_000;
+const MAX_PROVIDER_USD_RATE_PER_MILLION = 1_000_000;
+const MAX_PROVIDER_CACHE_RATE_MULTIPLIER = 100;
 const PROVIDER_CLIENT_REQUEST_ID_RE = /^ccwf_[a-f0-9]{64}$/u;
 const PROVIDER_RECEIPT_ID_RE = /^[A-Za-z0-9._:-]{1,256}$/u;
 const PROVIDER_NAME_RE = /^[a-z0-9][a-z0-9._-]{0,63}$/u;
+const PROVIDER_MODEL_RE = /^[\x21-\x7e]{1,256}$/u;
 const WORKFLOW_TOOL_CALL_ID_RE = /^[\x21-\x7e]{1,512}$/u;
 const WORKFLOW_TOOL_NAME_RE = /^[A-Za-z0-9._:-]{1,256}$/u;
 const WORKFLOW_CHILD_EFFECT_PROTOCOL = "cc-workflow-child-effect/v1";
@@ -146,6 +157,176 @@ function validProviderUsage(value) {
         value.outputTokens +
         value.cacheReadInputTokens +
         value.cacheCreationInputTokens
+  );
+}
+
+function exactObjectFields(value, expected) {
+  const fields =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? Object.keys(value).sort()
+      : [];
+  const sortedExpected = [...expected].sort();
+  return (
+    fields.length === sortedExpected.length &&
+    sortedExpected.every((field, index) => fields[index] === field)
+  );
+}
+
+function nonNegativeFinite(value, max = Number.MAX_VALUE) {
+  return Number.isFinite(value) && value >= 0 && value <= max;
+}
+
+function providerPricingDigest(pricing) {
+  return digest(
+    "chainlesschain.dynamic-workflow.provider-pricing-snapshot.v1\0",
+    pricing,
+  );
+}
+
+function providerCostEstimateDigest(cost) {
+  return digest(
+    "chainlesschain.dynamic-workflow.provider-cost-estimate.v1\0",
+    cost,
+  );
+}
+
+function providerPricingCatalogDigest() {
+  return digest(
+    "chainlesschain.dynamic-workflow.provider-pricing-catalog.v1\0",
+    {
+      freeProviders: FREE_PROVIDERS,
+      priceTable: PRICE_TABLE,
+      cacheReadMultiplier: CACHE_READ_MULTIPLIER,
+      cacheReadMultiplierByProvider: CACHE_READ_MULTIPLIER_BY_PROVIDER,
+      cacheCreationMultiplier: CACHE_WRITE_MULTIPLIER,
+    },
+  );
+}
+
+function providerPricingSnapshot(provider, model) {
+  const rate = lookupRate(provider, model);
+  if (!rate) return null;
+  const cacheReadMultiplier =
+    CACHE_READ_MULTIPLIER_BY_PROVIDER[provider] ?? CACHE_READ_MULTIPLIER;
+  return {
+    schema: "cc-provider-pricing-snapshot/v1",
+    currency: "USD",
+    authority: "builtin-public-list-estimate",
+    provider,
+    model,
+    pattern: rate.pattern,
+    inputUsdPerMillion: rate.in,
+    outputUsdPerMillion: rate.out,
+    cacheReadMultiplier,
+    cacheCreationMultiplier: CACHE_WRITE_MULTIPLIER,
+    free: rate.pattern === "free",
+    catalogDigest: providerPricingCatalogDigest(),
+  };
+}
+
+function validProviderPricing(value, provider, model) {
+  return (
+    exactObjectFields(value, [
+      "schema",
+      "currency",
+      "authority",
+      "provider",
+      "model",
+      "pattern",
+      "inputUsdPerMillion",
+      "outputUsdPerMillion",
+      "cacheReadMultiplier",
+      "cacheCreationMultiplier",
+      "free",
+      "catalogDigest",
+    ]) &&
+    value.schema === "cc-provider-pricing-snapshot/v1" &&
+    value.currency === "USD" &&
+    value.authority === "builtin-public-list-estimate" &&
+    value.provider === provider &&
+    value.model === model &&
+    typeof value.pattern === "string" &&
+    /^[A-Za-z0-9._:-]{1,128}$/u.test(value.pattern) &&
+    nonNegativeFinite(
+      value.inputUsdPerMillion,
+      MAX_PROVIDER_USD_RATE_PER_MILLION,
+    ) &&
+    nonNegativeFinite(
+      value.outputUsdPerMillion,
+      MAX_PROVIDER_USD_RATE_PER_MILLION,
+    ) &&
+    nonNegativeFinite(
+      value.cacheReadMultiplier,
+      MAX_PROVIDER_CACHE_RATE_MULTIPLIER,
+    ) &&
+    nonNegativeFinite(
+      value.cacheCreationMultiplier,
+      MAX_PROVIDER_CACHE_RATE_MULTIPLIER,
+    ) &&
+    typeof value.free === "boolean" &&
+    value.free ===
+      (value.inputUsdPerMillion === 0 && value.outputUsdPerMillion === 0) &&
+    SHA256_RE.test(value.catalogDigest || "")
+  );
+}
+
+function estimateProviderCost(pricing, usage) {
+  if (!pricing || !usage) return null;
+  const inputUsd = (usage.inputTokens / 1_000_000) * pricing.inputUsdPerMillion;
+  const outputUsd =
+    (usage.outputTokens / 1_000_000) * pricing.outputUsdPerMillion;
+  const cacheReadUsd =
+    (usage.cacheReadInputTokens / 1_000_000) *
+    pricing.inputUsdPerMillion *
+    pricing.cacheReadMultiplier;
+  const cacheCreationUsd =
+    (usage.cacheCreationInputTokens / 1_000_000) *
+    pricing.inputUsdPerMillion *
+    pricing.cacheCreationMultiplier;
+  return {
+    schema: "cc-provider-cost-estimate/v1",
+    currency: "USD",
+    authority: "durable-pricing-snapshot-estimate",
+    inputUsd,
+    outputUsd,
+    cacheReadUsd,
+    cacheCreationUsd,
+    totalUsd: inputUsd + outputUsd + cacheReadUsd + cacheCreationUsd,
+    pricingDigest: providerPricingDigest(pricing),
+  };
+}
+
+function validProviderCostEstimate(value, pricing, usage) {
+  if (
+    !exactObjectFields(value, [
+      "schema",
+      "currency",
+      "authority",
+      "inputUsd",
+      "outputUsd",
+      "cacheReadUsd",
+      "cacheCreationUsd",
+      "totalUsd",
+      "pricingDigest",
+    ]) ||
+    value.schema !== "cc-provider-cost-estimate/v1" ||
+    value.currency !== "USD" ||
+    value.authority !== "durable-pricing-snapshot-estimate" ||
+    ![
+      value.inputUsd,
+      value.outputUsd,
+      value.cacheReadUsd,
+      value.cacheCreationUsd,
+      value.totalUsd,
+    ].every((amount) => nonNegativeFinite(amount)) ||
+    value.pricingDigest !== providerPricingDigest(pricing)
+  ) {
+    return false;
+  }
+  const expected = estimateProviderCost(pricing, usage);
+  return (
+    canonicalJson(value, "providerCostEstimate") ===
+    canonicalJson(expected, "providerCostEstimate")
   );
 }
 
@@ -291,6 +472,7 @@ function verifyEffectCalls(
   effect,
   effectIndex,
   issues,
+  startedLineageByCallId,
   receiptLineageByCallId,
   settlementLineageByCallId,
 ) {
@@ -311,6 +493,7 @@ function verifyEffectCalls(
           ? call?.source
           : null
         : call.requestSource;
+    const startedLineage = startedLineageByCallId.get(call?.id) || [];
     const receiptLineage = receiptLineageByCallId.get(call?.id) || [];
     const settlementLineage = settlementLineageByCallId.get(call?.id) || [];
     const receiptLineageValid =
@@ -330,6 +513,33 @@ function verifyEffectCalls(
       Object.prototype.hasOwnProperty.call(
         event?.details || {},
         "providerUsageDigest",
+      ),
+    );
+    const providerCostFields = [
+      "providerModel",
+      "providerPricing",
+      "providerCostEstimate",
+    ];
+    const providerCostFieldCount = providerCostFields.filter((field) =>
+      Object.prototype.hasOwnProperty.call(call || {}, field),
+    ).length;
+    const hasProviderCostSchema =
+      providerCostFieldCount === providerCostFields.length;
+    const startedPricingFieldsPresent = startedLineage.some(
+      (event) =>
+        Object.prototype.hasOwnProperty.call(
+          event?.details || {},
+          "providerModel",
+        ) ||
+        Object.prototype.hasOwnProperty.call(
+          event?.details || {},
+          "providerPricingDigest",
+        ),
+    );
+    const settlementCostDigestPresent = settlementLineage.some((event) =>
+      Object.prototype.hasOwnProperty.call(
+        event?.details || {},
+        "providerCostEstimateDigest",
       ),
     );
     const terminal = call?.status !== "started";
@@ -438,6 +648,42 @@ function verifyEffectCalls(
           ) &&
         call.identitySemantics === "trace-only" &&
         call.status !== "failed" &&
+        (providerCostFieldCount === 0
+          ? !startedPricingFieldsPresent && !settlementCostDigestPresent
+          : hasProviderCostSchema &&
+            (call.providerModel === null ||
+              PROVIDER_MODEL_RE.test(call.providerModel || "")) &&
+            (call.providerPricing === null ||
+              validProviderPricing(
+                call.providerPricing,
+                call.name,
+                call.providerModel,
+              )) &&
+            startedLineage.length === 1 &&
+            startedLineage[0]?.details?.providerModel === call.providerModel &&
+            startedLineage[0]?.details?.providerPricingDigest ===
+              (call.providerPricing === null
+                ? null
+                : providerPricingDigest(call.providerPricing)) &&
+            (call.status === "completed"
+              ? (call.providerPricing === null
+                  ? call.providerCostEstimate === null
+                  : validProviderCostEstimate(
+                      call.providerCostEstimate,
+                      call.providerPricing,
+                      call.providerUsage,
+                    )) &&
+                settlementLineage.length === 1 &&
+                settlementLineage[0]?.details?.providerCostEstimateDigest ===
+                  (call.providerCostEstimate === null
+                    ? null
+                    : providerCostEstimateDigest(call.providerCostEstimate))
+              : call.providerCostEstimate === null &&
+                (call.status === "outcome_unknown"
+                  ? settlementLineage.length === 1 &&
+                    settlementLineage[0]?.details
+                      ?.providerCostEstimateDigest === null
+                  : !settlementCostDigestPresent))) &&
         (hasProviderUsage
           ? call.status === "completed"
             ? validProviderUsage(call.providerUsage) &&
@@ -543,16 +789,19 @@ export function verifyDynamicWorkflowRuntimeState(value) {
   if (!Array.isArray(state.effects) || state.effects.length > MAX_EFFECTS) {
     issues.push("effects-invalid");
   } else {
+    const startedLineageByCallId = new Map();
     const receiptLineageByCallId = new Map();
     const settlementLineageByCallId = new Map();
     for (const event of state.lineage) {
       const callRecordId = event?.details?.callRecordId;
       const target =
-        event.type === "effect-call-receipt-recorded"
-          ? receiptLineageByCallId
-          : event.type === "effect-call-settled"
-            ? settlementLineageByCallId
-            : null;
+        event.type === "effect-call-started"
+          ? startedLineageByCallId
+          : event.type === "effect-call-receipt-recorded"
+            ? receiptLineageByCallId
+            : event.type === "effect-call-settled"
+              ? settlementLineageByCallId
+              : null;
       if (!target) continue;
       if (!target.has(callRecordId)) {
         target.set(callRecordId, []);
@@ -698,6 +947,7 @@ export function verifyDynamicWorkflowRuntimeState(value) {
         effect,
         index,
         issues,
+        startedLineageByCallId,
         receiptLineageByCallId,
         settlementLineageByCallId,
       );
@@ -1457,6 +1707,7 @@ function workflowCallAttempt(effectId, kind, event, now) {
   const startedAt = isoNow(now);
   const ownerEffectId = event?.workflowEffectId;
   if (kind === "provider") {
+    const providerModel = event?.model == null ? null : event.model;
     const requestSource =
       event?.workflowRequestSource ||
       (event?.source === "subagent" ? "model" : event?.source);
@@ -1465,6 +1716,8 @@ function workflowCallAttempt(effectId, kind, event, now) {
       !SHA256_RE.test(ownerEffectId || "") ||
       !WORKFLOW_PROVIDER_CALL_ID_RE.test(event.callId || "") ||
       !PROVIDER_NAME_RE.test(event.provider || "") ||
+      (providerModel !== null &&
+        !PROVIDER_MODEL_RE.test(providerModel || "")) ||
       !["model", "semantic-compaction", "subagent"].includes(event.source) ||
       !["model", "semantic-compaction"].includes(requestSource) ||
       (event.source === "subagent"
@@ -1508,6 +1761,9 @@ function workflowCallAttempt(effectId, kind, event, now) {
       providerReceiptResponseId: null,
       providerReceiptRecordedAt: null,
       providerUsage: null,
+      providerModel,
+      providerPricing: providerPricingSnapshot(event.provider, providerModel),
+      providerCostEstimate: null,
       mcpLedgerId: null,
       mcpLedgerPrewritePersisted: false,
       mcpLedgerSettlementPersisted: false,
@@ -1619,6 +1875,15 @@ function beginEffectCall(statePath, runId, effectId, kind, event, now) {
         ownerEffectId: attempt.ownerEffectId,
         callRecordId: attempt.id,
         kind,
+        ...(kind === "provider"
+          ? {
+              providerModel: attempt.providerModel,
+              providerPricingDigest:
+                attempt.providerPricing === null
+                  ? null
+                  : providerPricingDigest(attempt.providerPricing),
+            }
+          : {}),
       },
       (draft) => {
         draft.effects[index] = {
@@ -1775,6 +2040,7 @@ function effectCallSettlement(call, event, now) {
   let status;
   let settlementCode = null;
   let providerUsage = call.providerUsage;
+  let providerCostEstimate = call.providerCostEstimate;
   let providerReceiptPersisted = call.providerReceiptPersisted;
   let providerReceiptRequestId = call.providerReceiptRequestId;
   let providerReceiptResponseId = call.providerReceiptResponseId;
@@ -1786,6 +2052,9 @@ function effectCallSettlement(call, event, now) {
       !["token-usage", "model-usage-unknown"].includes(event?.type) ||
       event.callId !== call.callId ||
       (event.provider && event.provider !== call.name) ||
+      (Object.prototype.hasOwnProperty.call(call, "providerModel") &&
+        event.model != null &&
+        event.model !== call.providerModel) ||
       (event.source && event.source !== call.source)
     ) {
       throw new TypeError("workflow provider call settlement is malformed");
@@ -1793,6 +2062,10 @@ function effectCallSettlement(call, event, now) {
     status = event.type === "token-usage" ? "completed" : "outcome_unknown";
     providerUsage =
       status === "completed" ? providerUsageSettlement(event) : null;
+    providerCostEstimate =
+      status === "completed"
+        ? estimateProviderCost(call.providerPricing, providerUsage)
+        : null;
     settlementCode =
       status === "outcome_unknown"
         ? String(event.code || "provider_outcome_unknown")
@@ -1863,6 +2136,10 @@ function effectCallSettlement(call, event, now) {
     providerReceiptRequestId,
     providerReceiptResponseId,
     ...(call.kind === "provider" ? { providerUsage } : {}),
+    ...(call.kind === "provider" &&
+    Object.prototype.hasOwnProperty.call(call, "providerCostEstimate")
+      ? { providerCostEstimate }
+      : {}),
     mcpLedgerId,
     mcpLedgerPrewritePersisted,
     mcpLedgerSettlementPersisted,
@@ -1900,6 +2177,16 @@ function settleEffectCall(statePath, runId, effectId, kind, event, now) {
       kind === "provider" && settlement.providerUsage !== null
         ? providerUsageDigest(settlement.providerUsage)
         : null;
+    const hasProviderCostSchema = Object.prototype.hasOwnProperty.call(
+      settlement,
+      "providerCostEstimate",
+    );
+    const costEstimateDigest =
+      kind === "provider" &&
+      hasProviderCostSchema &&
+      settlement.providerCostEstimate !== null
+        ? providerCostEstimateDigest(settlement.providerCostEstimate)
+        : null;
     const state = transition(
       current,
       "effect-call-settled",
@@ -1909,6 +2196,9 @@ function settleEffectCall(statePath, runId, effectId, kind, event, now) {
         kind,
         status: settlement.status,
         ...(kind === "provider" ? { providerUsageDigest: usageDigest } : {}),
+        ...(kind === "provider" && hasProviderCostSchema
+          ? { providerCostEstimateDigest: costEstimateDigest }
+          : {}),
       },
       (draft) => {
         const calls = [...(draft.effects[effectIndex].calls || [])];
@@ -3256,6 +3546,34 @@ function projectDurableWorkflowCalls(state) {
       providerUsageSchemaPresent:
         call.kind === "provider" &&
         Object.prototype.hasOwnProperty.call(call, "providerUsage"),
+      providerModel:
+        call.kind === "provider" &&
+        Object.prototype.hasOwnProperty.call(call, "providerModel")
+          ? call.providerModel
+          : null,
+      providerPricing:
+        call.kind === "provider" &&
+        validProviderPricing(
+          call.providerPricing,
+          call.name,
+          call.providerModel,
+        )
+          ? call.providerPricing
+          : null,
+      providerCostEstimate:
+        call.kind === "provider" &&
+        validProviderCostEstimate(
+          call.providerCostEstimate,
+          call.providerPricing,
+          call.providerUsage,
+        )
+          ? call.providerCostEstimate
+          : null,
+      providerCostSchemaPresent:
+        call.kind === "provider" &&
+        ["providerModel", "providerPricing", "providerCostEstimate"].every(
+          (field) => Object.prototype.hasOwnProperty.call(call, field),
+        ),
       mcpLedgerId: call.mcpLedgerId,
       mcpLedgerPrewritePersisted: call.mcpLedgerPrewritePersisted,
       mcpLedgerSettlementPersisted: call.mcpLedgerSettlementPersisted,
@@ -3277,6 +3595,9 @@ function projectDurableWorkflowCalls(state) {
       .length,
     providerUsageRecords: lineage.filter((call) => call.providerUsage !== null)
       .length,
+    providerCostEstimateRecords: lineage.filter(
+      (call) => call.providerCostEstimate !== null,
+    ).length,
     providerNativeIdempotencyProven: false,
     providerReceiptsIndependentlyReadable: false,
     lineageDigest: digest(
@@ -3328,6 +3649,9 @@ function projectProviderTokenUsage(state) {
         callId: call.callId,
         sequence: call.sequence,
         provider: call.name,
+        model: Object.prototype.hasOwnProperty.call(call, "providerModel")
+          ? call.providerModel
+          : null,
         source: call.source,
         requestSource: call.requestSource ?? call.source,
         descendant: (call.ownerEffectId ?? effect.id) !== effect.id,
@@ -3360,6 +3684,107 @@ function projectProviderTokenUsage(state) {
   };
 }
 
+function projectProviderCostEstimates(state) {
+  const lineage = [];
+  const pricedEffectIds = new Set();
+  let providerCalls = 0;
+  let pricingSnapshotCalls = 0;
+  let pendingCalls = 0;
+  let outcomeUnknownCalls = 0;
+  let operatorReconciledCalls = 0;
+  let unpricedCalls = 0;
+  let modelMissingCalls = 0;
+  let legacyCalls = 0;
+  let estimatedUsd = 0;
+  for (const effect of state.effects) {
+    for (const call of effect.calls || []) {
+      if (call.kind !== "provider") continue;
+      providerCalls += 1;
+      if (call.status === "started") pendingCalls += 1;
+      if (call.status === "outcome_unknown") outcomeUnknownCalls += 1;
+      if (call.status === "operator_reconciled") operatorReconciledCalls += 1;
+      const hasSchema = [
+        "providerModel",
+        "providerPricing",
+        "providerCostEstimate",
+      ].every((field) => Object.prototype.hasOwnProperty.call(call, field));
+      if (!hasSchema) {
+        legacyCalls += 1;
+        continue;
+      }
+      if (call.providerModel === null) modelMissingCalls += 1;
+      if (
+        validProviderPricing(
+          call.providerPricing,
+          call.name,
+          call.providerModel,
+        )
+      ) {
+        pricingSnapshotCalls += 1;
+      }
+      if (
+        call.status === "completed" &&
+        validProviderUsage(call.providerUsage) &&
+        call.providerPricing === null
+      ) {
+        unpricedCalls += 1;
+      }
+      if (
+        !validProviderCostEstimate(
+          call.providerCostEstimate,
+          call.providerPricing,
+          call.providerUsage,
+        )
+      ) {
+        continue;
+      }
+      pricedEffectIds.add(effect.id);
+      estimatedUsd += call.providerCostEstimate.totalUsd;
+      lineage.push({
+        effectId: effect.id,
+        ownerEffectId: call.ownerEffectId ?? effect.id,
+        callRecordId: call.id,
+        callId: call.callId,
+        sequence: call.sequence,
+        provider: call.name,
+        model: call.providerModel,
+        source: call.source,
+        requestSource: call.requestSource ?? call.source,
+        descendant: (call.ownerEffectId ?? effect.id) !== effect.id,
+        settledAt: call.settledAt,
+        pricing: call.providerPricing,
+        estimate: call.providerCostEstimate,
+        estimateDigest: providerCostEstimateDigest(call.providerCostEstimate),
+      });
+    }
+  }
+  return {
+    authority:
+      legacyCalls > 0
+        ? "durable-pricing-snapshot-estimate-with-legacy-call-schema"
+        : "durable-pricing-snapshot-estimate",
+    currency: "USD",
+    reportedUsd: null,
+    estimatedUsd: lineage.length > 0 ? estimatedUsd : null,
+    providerCalls,
+    pricingSnapshotCalls,
+    pricedCalls: lineage.length,
+    pricedEffects: pricedEffectIds.size,
+    missingEstimateCalls: providerCalls - lineage.length,
+    pendingCalls,
+    outcomeUnknownCalls,
+    operatorReconciledCalls,
+    unpricedCalls,
+    modelMissingCalls,
+    legacyCalls,
+    lineageDigest: digest(
+      "chainlesschain.dynamic-workflow.provider-cost-estimate-lineage.v1\0",
+      lineage,
+    ),
+    lineage,
+  };
+}
+
 function projectDynamicWorkflowObservability(state) {
   const settled = state.effects.filter((effect) => effect.status === "settled");
   const effectLineage = [];
@@ -3371,6 +3796,7 @@ function projectDynamicWorkflowObservability(state) {
   const nestedEffectSettlementLineage = [];
   const durableCalls = projectDurableWorkflowCalls(state);
   const providerTokenUsage = projectProviderTokenUsage(state);
+  const providerCostEstimates = projectProviderCostEstimates(state);
   const providerReceipts = projectProviderRequestReceipts(state);
   const nestedEffects = projectNestedToolEffects(state);
   let requestToSettlementMs = 0;
@@ -3484,6 +3910,15 @@ function projectDynamicWorkflowObservability(state) {
   if (providerTokenUsage.legacyCalls > 0) {
     gaps.push("provider-token-usage-legacy-call-schema");
   }
+  if (providerCostEstimates.pricedCalls === 0) {
+    gaps.push("provider-cost-estimate-unavailable");
+  }
+  if (providerCostEstimates.missingEstimateCalls > 0) {
+    gaps.push("provider-cost-estimate-incomplete");
+  }
+  if (providerCostEstimates.legacyCalls > 0) {
+    gaps.push("provider-cost-estimate-legacy-call-schema");
+  }
   if (tokenEstimateEffects !== settled.length) {
     gaps.push("cowork-token-estimate-incomplete");
   }
@@ -3584,9 +4019,9 @@ function projectDynamicWorkflowObservability(state) {
         missingEffects: settled.length - tokenEstimateEffects,
       },
       cost: {
-        authority: "unavailable",
-        reportedUsd: null,
-        observedEffects: 0,
+        ...providerCostEstimates,
+        observedEffects: providerCostEstimates.pricedEffects,
+        projectedRecords: providerCostEstimates.lineage.length,
       },
       providerReceipts: {
         authority:

@@ -527,6 +527,15 @@ describe("durable dynamic workflow runtime", () => {
           kind: "provider",
           callId: "mdl-publish-1",
           status: "started",
+          providerModel: "gpt-4o",
+          providerPricing: expect.objectContaining({
+            authority: "builtin-public-list-estimate",
+            inputUsdPerMillion: 2.5,
+            outputUsdPerMillion: 10,
+            cacheReadMultiplier: 0.5,
+            cacheCreationMultiplier: 1.25,
+          }),
+          providerCostEstimate: null,
         }),
       ]);
       args.onProviderReceipt(workflowProviderReceiptEvent(providerBoundary));
@@ -561,6 +570,15 @@ describe("durable dynamic workflow runtime", () => {
         projectDynamicWorkflowRuntime(state).observability.tokens
           .providerReported,
       ).toMatchObject({ totalTokens: 10 });
+      expect(state.effects[0].calls[0].providerCostEstimate).toMatchObject({
+        schema: "cc-provider-cost-estimate/v1",
+        authority: "durable-pricing-snapshot-estimate",
+        currency: "USD",
+        totalUsd: 0.00003125,
+      });
+      expect(
+        projectDynamicWorkflowRuntime(state).observability.cost.estimatedUsd,
+      ).toBeCloseTo(0.00003125, 12);
 
       const toolUseId = "tool-publish-1";
       const tool = "mcp__repo__publish";
@@ -646,6 +664,11 @@ describe("durable dynamic workflow runtime", () => {
           cacheCreationInputTokens: 4,
           totalTokens: 10,
         },
+        providerModel: "gpt-4o",
+        providerCostEstimate: expect.objectContaining({
+          authority: "durable-pricing-snapshot-estimate",
+          totalUsd: 0.00003125,
+        }),
       }),
       expect.objectContaining({
         kind: "tool",
@@ -676,6 +699,7 @@ describe("durable dynamic workflow runtime", () => {
       outcomeUnknown: 0,
       providerReceipts: 1,
       providerUsageRecords: 1,
+      providerCostEstimateRecords: 1,
       providerNativeIdempotencyProven: false,
       providerReceiptsIndependentlyReadable: false,
     });
@@ -744,6 +768,43 @@ describe("durable dynamic workflow runtime", () => {
         projectDynamicWorkflowRuntime(state).observability.gaps,
       ).not.toContain(gap);
     }
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.cost,
+    ).toMatchObject({
+      authority: "durable-pricing-snapshot-estimate",
+      currency: "USD",
+      reportedUsd: null,
+      estimatedUsd: 0.00003125,
+      providerCalls: 1,
+      pricingSnapshotCalls: 1,
+      pricedCalls: 1,
+      pricedEffects: 1,
+      missingEstimateCalls: 0,
+      pendingCalls: 0,
+      outcomeUnknownCalls: 0,
+      unpricedCalls: 0,
+      modelMissingCalls: 0,
+      legacyCalls: 0,
+      lineage: [
+        expect.objectContaining({
+          provider: "openai",
+          model: "gpt-4o",
+          estimate: expect.objectContaining({ totalUsd: 0.00003125 }),
+        }),
+      ],
+    });
+    for (const gap of [
+      "provider-cost-estimate-unavailable",
+      "provider-cost-estimate-incomplete",
+      "provider-cost-estimate-legacy-call-schema",
+    ]) {
+      expect(
+        projectDynamicWorkflowRuntime(state).observability.gaps,
+      ).not.toContain(gap);
+    }
+    expect(projectDynamicWorkflowRuntime(state).observability.gaps).toContain(
+      "provider-cost-usd-unavailable",
+    );
     expect(projectDynamicWorkflowRuntime(state).observability.gaps).toContain(
       "provider-request-result-disagrees-with-durable-store",
     );
@@ -849,6 +910,208 @@ describe("durable dynamic workflow runtime", () => {
       pendingCalls: 1,
       providerReported: null,
     });
+  });
+
+  it("keeps unpriced provider usage without fabricating a USD estimate", async () => {
+    const workflow = workflowDefinition({
+      steps: [{ id: "collect", message: "Collect release evidence" }],
+    });
+    const execution = admittedExecution(projectRoot, workflow);
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-provider-cost-unpriced",
+    );
+
+    await executeDurableDynamicWorkflow(
+      { statePath, runId: "run-provider-cost-unpriced", execution },
+      {
+        runTask: async (args) => {
+          const boundary = {
+            type: "model-usage-started",
+            callId: "mdl-provider-cost-unpriced-1",
+            provider: "openai",
+            model: "future-unpriced-model-1",
+            source: "model",
+            workflowEffectId: args.workflowEffectId,
+            callSequence: 1,
+            providerRequestId: workflowProviderRequestId(args.workflowEffectId),
+            requestIdentitySemantics: "trace-only",
+          };
+          args.onUsageBoundary(boundary);
+          args.onUsageSettlement({
+            ...boundary,
+            type: "token-usage",
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+          return completedTask(args);
+        },
+        now: clock(),
+      },
+    );
+
+    const state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.effects[0].calls[0]).toMatchObject({
+      status: "completed",
+      providerModel: "future-unpriced-model-1",
+      providerPricing: null,
+      providerCostEstimate: null,
+      providerUsage: expect.objectContaining({ totalTokens: 15 }),
+    });
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.cost,
+    ).toMatchObject({
+      authority: "durable-pricing-snapshot-estimate",
+      reportedUsd: null,
+      estimatedUsd: null,
+      providerCalls: 1,
+      pricingSnapshotCalls: 0,
+      pricedCalls: 0,
+      missingEstimateCalls: 1,
+      unpricedCalls: 1,
+      modelMissingCalls: 0,
+      legacyCalls: 0,
+    });
+    expect(projectDynamicWorkflowRuntime(state).observability.gaps).toEqual(
+      expect.arrayContaining([
+        "provider-cost-usd-unavailable",
+        "provider-cost-estimate-unavailable",
+        "provider-cost-estimate-incomplete",
+      ]),
+    );
+  });
+
+  it("keeps a priced local provider's zero USD estimate distinct from missing cost", async () => {
+    const workflow = workflowDefinition({
+      steps: [{ id: "collect", message: "Collect local release evidence" }],
+    });
+    const execution = admittedExecution(projectRoot, workflow);
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-provider-cost-free",
+    );
+
+    await executeDurableDynamicWorkflow(
+      { statePath, runId: "run-provider-cost-free", execution },
+      {
+        runTask: async (args) => {
+          const boundary = {
+            type: "model-usage-started",
+            callId: "mdl-provider-cost-free-1",
+            provider: "ollama",
+            model: "llama3.3",
+            source: "model",
+            workflowEffectId: args.workflowEffectId,
+            callSequence: 1,
+            providerRequestId: workflowProviderRequestId(args.workflowEffectId),
+            requestIdentitySemantics: "trace-only",
+          };
+          args.onUsageBoundary(boundary);
+          args.onUsageSettlement({
+            ...boundary,
+            type: "token-usage",
+            usage: {
+              input_tokens: 100,
+              output_tokens: 20,
+              cache_read_input_tokens: 10,
+              cache_creation_input_tokens: 5,
+            },
+          });
+          return completedTask(args);
+        },
+        now: clock(),
+      },
+    );
+
+    const state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.effects[0].calls[0]).toMatchObject({
+      status: "completed",
+      providerModel: "llama3.3",
+      providerPricing: expect.objectContaining({
+        provider: "ollama",
+        model: "llama3.3",
+        pattern: "free",
+        free: true,
+        inputUsdPerMillion: 0,
+        outputUsdPerMillion: 0,
+      }),
+      providerCostEstimate: expect.objectContaining({ totalUsd: 0 }),
+    });
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.cost,
+    ).toMatchObject({
+      reportedUsd: null,
+      estimatedUsd: 0,
+      pricingSnapshotCalls: 1,
+      pricedCalls: 1,
+      missingEstimateCalls: 0,
+      unpricedCalls: 0,
+    });
+    for (const gap of [
+      "provider-cost-estimate-unavailable",
+      "provider-cost-estimate-incomplete",
+    ]) {
+      expect(
+        projectDynamicWorkflowRuntime(state).observability.gaps,
+      ).not.toContain(gap);
+    }
+  });
+
+  it("rejects a settlement whose model differs from the durable pricing boundary", async () => {
+    const workflow = workflowDefinition({
+      steps: [{ id: "collect", message: "Collect release evidence" }],
+    });
+    const execution = admittedExecution(projectRoot, workflow);
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-provider-cost-model-mismatch",
+    );
+    let settlementReturned = false;
+
+    await expect(
+      executeDurableDynamicWorkflow(
+        { statePath, runId: "run-provider-cost-model-mismatch", execution },
+        {
+          runTask: async (args) => {
+            const boundary = {
+              type: "model-usage-started",
+              callId: "mdl-provider-cost-model-mismatch-1",
+              provider: "openai",
+              model: "gpt-4o",
+              source: "model",
+              workflowEffectId: args.workflowEffectId,
+              callSequence: 1,
+              providerRequestId: workflowProviderRequestId(
+                args.workflowEffectId,
+              ),
+              requestIdentitySemantics: "trace-only",
+            };
+            args.onUsageBoundary(boundary);
+            args.onUsageSettlement({
+              ...boundary,
+              type: "token-usage",
+              model: "gpt-4",
+              usage: { input_tokens: 1, output_tokens: 1 },
+            });
+            settlementReturned = true;
+            return completedTask(args);
+          },
+          now: clock(),
+        },
+      ),
+    ).rejects.toMatchObject({ reason: "reconciliation-required" });
+
+    expect(settlementReturned).toBe(false);
+    expect(readDynamicWorkflowRuntimeState(statePath).effects[0].calls).toEqual(
+      [
+        expect.objectContaining({
+          status: "started",
+          providerModel: "gpt-4o",
+          providerPricing: expect.objectContaining({ pattern: "gpt-4o" }),
+          providerUsage: null,
+          providerCostEstimate: null,
+        }),
+      ],
+    );
   });
 
   it("retains a crash-visible started provider call until operator reconciliation", async () => {
@@ -1314,6 +1577,7 @@ describe("durable dynamic workflow runtime", () => {
             type: "model-usage-started",
             callId: "mdl-tamper-1",
             provider: "openai",
+            model: "gpt-4o",
             source: "model",
             workflowEffectId: args.workflowEffectId,
             callSequence: 1,
@@ -1372,11 +1636,42 @@ describe("durable dynamic workflow runtime", () => {
       verifyDynamicWorkflowRuntimeState(withRuntimeStateDigest(usageRemoved)),
     ).toThrow(/effect-0-call-0-invalid/u);
 
+    const costTampered = structuredClone(state);
+    costTampered.effects[0].calls[0].providerCostEstimate.totalUsd += 0.01;
+    expect(() =>
+      verifyDynamicWorkflowRuntimeState(withRuntimeStateDigest(costTampered)),
+    ).toThrow(/effect-0-call-0-invalid/u);
+
+    const pricingTampered = structuredClone(state);
+    pricingTampered.effects[0].calls[0].providerPricing.inputUsdPerMillion = 1;
+    expect(() =>
+      verifyDynamicWorkflowRuntimeState(
+        withRuntimeStateDigest(pricingTampered),
+      ),
+    ).toThrow(/effect-0-call-0-invalid/u);
+
+    const costSchemaRemoved = structuredClone(state);
+    delete costSchemaRemoved.effects[0].calls[0].providerCostEstimate;
+    expect(() =>
+      verifyDynamicWorkflowRuntimeState(
+        withRuntimeStateDigest(costSchemaRemoved),
+      ),
+    ).toThrow(/effect-0-call-0-invalid/u);
+
     const legacyUsageState = structuredClone(state);
-    delete legacyUsageState.effects[0].calls[0].providerUsage;
+    const legacyCall = legacyUsageState.effects[0].calls[0];
+    delete legacyCall.providerUsage;
+    delete legacyCall.providerModel;
+    delete legacyCall.providerPricing;
+    delete legacyCall.providerCostEstimate;
     for (const event of legacyUsageState.lineage) {
+      if (event.type === "effect-call-started") {
+        delete event.details.providerModel;
+        delete event.details.providerPricingDigest;
+      }
       if (event.type === "effect-call-settled") {
         delete event.details.providerUsageDigest;
+        delete event.details.providerCostEstimateDigest;
       }
     }
     const verifiedLegacyUsageState = verifyDynamicWorkflowRuntimeState(
@@ -1401,6 +1696,9 @@ describe("durable dynamic workflow runtime", () => {
         "provider-token-usage-unavailable",
         "provider-token-usage-incomplete",
         "provider-token-usage-legacy-call-schema",
+        "provider-cost-estimate-unavailable",
+        "provider-cost-estimate-incomplete",
+        "provider-cost-estimate-legacy-call-schema",
       ]),
     );
 
@@ -1586,6 +1884,24 @@ describe("durable dynamic workflow runtime", () => {
         }),
       ],
     });
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.cost,
+    ).toMatchObject({
+      pricedCalls: 1,
+      missingEstimateCalls: 0,
+      lineage: [
+        expect.objectContaining({
+          descendant: true,
+          provider: "openai",
+          model: "gpt-4o",
+          source: "subagent",
+          requestSource: "model",
+        }),
+      ],
+    });
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.cost.estimatedUsd,
+    ).toBeCloseTo(0.000031875, 12);
 
     const tampered = structuredClone(state);
     tampered.effects[0].calls[1].ownerEffectId = `sha256:${"f".repeat(64)}`;
