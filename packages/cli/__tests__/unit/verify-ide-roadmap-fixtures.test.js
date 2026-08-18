@@ -538,7 +538,7 @@ describe("IDE roadmap fixture contract", () => {
 
     expect(result).toMatchObject({
       schemaVersion: 1,
-      manifestVersion: "1.9.22",
+      manifestVersion: "1.9.23",
       caseCount: 15,
       releaseReadiness: { status: "not-evaluated" },
     });
