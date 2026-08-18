@@ -59,8 +59,16 @@ function buildArtifactsAccessArgs(id, action, client = "vscode", accessId) {
     "--json",
   ];
 }
-function buildArtifactsRemoveArgs(id) {
-  return ["artifacts", "remove", String(id), "--json"];
+function buildArtifactsRemoveArgs(id, deletionId = null) {
+  return [
+    "artifacts",
+    "remove",
+    String(id),
+    "--client",
+    "vscode",
+    ...(deletionId ? ["--deletion-id", String(deletionId)] : []),
+    "--json",
+  ];
 }
 
 /**

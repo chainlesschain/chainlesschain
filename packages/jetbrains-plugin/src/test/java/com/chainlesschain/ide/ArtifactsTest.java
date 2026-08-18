@@ -203,7 +203,8 @@ class ArtifactsTest {
         assertEquals(List.of("artifacts", "access", "art_a", "--client", "jetbrains",
                         "--action", "preview"),
                 Artifacts.buildAccessArgs("art_a", "preview"));
-        assertEquals(List.of("artifacts", "remove", "art_a", "--json"),
-                Artifacts.buildRemoveArgs("art_a"));
+        assertEquals(List.of("artifacts", "remove", "art_a", "--client", "jetbrains",
+                        "--deletion-id", "delete-a", "--json"),
+                Artifacts.buildRemoveArgs("art_a", "delete-a"));
     }
 }
