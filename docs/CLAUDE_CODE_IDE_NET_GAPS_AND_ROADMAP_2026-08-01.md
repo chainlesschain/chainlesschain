@@ -2588,6 +2588,49 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 五十三、2026-08-18 P1-1 `runtime-status` current store readback 子门复核（`15:38 +08:00`）
+
+本节继续第四十一、四十三至五十二节，把 artifact/checkpoint 在 tool settlement 时的一次性独立回读扩展为 production `runtime-status` 的当前权威
+复核；不把一次 status 投影外推为 WORM retention、持续监控、当前 workspace restore 或外部系统回滚。候选基于已合并本地主分支
+`d0265b918555df8dbbbe82d3ff37d2052d372e98`，功能提交为 `a277526889`，证据契约提交为 `c8e0bb1631`；尚无本候选
+exact-head GitHub Actions。
+
+### 本轮关闭的 status-time store authority 子门
+
+- **ArtifactStore 当前 index/bytes 重读。** `runtime-status` 对每个已有 `cc-dynamic-workflow-artifact-readback/v1` 的 durable call，重新按 artifact id
+  查询当前 index、读取 stored copy 并计算 SHA-256，再与 settlement-time metadata/content/readback digest 比较。已删除条目、缺 bytes、byte tamper、metadata
+  漂移或 store 不可读不会被旧 readback 缓存掩盖。
+- **checkpoint 当前 terminal store 重读。** 对每个已有 checkpoint readback 的 call，status 使用 pre-tool prepared binding 重新调用当前
+  `WorkspaceTransactionManager.inspect`，验证 transaction/baseline/evidence 后重建 readback digest；缺 binding、store 缺失/损坏、非 terminal state 或
+  terminal evidence 漂移均进入 unavailable/mismatch，而不是继续显示 verified。
+- **有界、content-free 投影。** `currentStoreReadbacks` 使用 `cc-dynamic-workflow-current-store-readback/v1`，只输出 effect/call/artifact 或
+  transaction/checkpoint identity、stored/current digest、verified/mismatch/unavailable 计数与 lineage digest，不复制 artifact bytes、workspace path、tool
+  参数或 checkpoint baseline 内容。artifact/checkpoint 分项和总项都给出 eligible/verified 数及机器可读 gaps。
+- **生产命令每次执行都复核。** `cc cowork workflow runtime-status <run-id> [--json]` 默认启用 current store readback；文本输出在存在 eligible call 时
+  显示 verified 比例和 gap，JSON 保留完整结构。测试 seam 可注入同一 ArtifactStore/transaction manager，真实命令默认重建 canonical store adapter。
+
+### 仓库内验证与证据边界
+
+- dynamic runtime 与 production command 两文件合并定向回归为 **50/50**；manifest `p1-dynamic-workflow` 引用的 **20 个文件为 706/706**。
+- roadmap verifier 与 journey evidence 两文件为 **37/37**。roadmap manifest 从 `1.9.19` 升至 `1.9.20`；fixture digest 为
+  `sha256:c31326d529ea81bf050a66040b44061421ac35ca297bc512c50947afc948f985`。
+- `node packages/cli/scripts/verify-ide-roadmap-fixtures.mjs --contract-only` 验证 **15 cases / 71 referenced test files**，明确没有评估 runtime
+  evidence 或 release readiness。
+
+### P1-1 仍未关闭的边界
+
+1. **status 不是 retention：** 当前 store 在 status 返回后仍可被 cleanup/remove、磁盘故障或其他 writer 改变；ArtifactStore 没有 WORM/retention
+   lock，transaction store 也没有独立归档/保留期 authority，因此 `artifact-store-immutable-retention-unavailable` 继续保留。
+2. **checkpoint store 不是当前 workspace：** terminal transaction/baseline/evidence 可读不等于工作区此刻仍与 commit 或 rollback 后内容一致；当前文件
+   drift、完整 restore dry-run/execute、external Git metadata 和网络/数据库/MCP/provider 副作用仍没有被本轮证明。
+3. **其余独立 authority 与产品矩阵：** provider billing/usage/receipt 独立 readback、native idempotency、自动 crash recovery、运行中 elicitation、
+   Workbench/双 IDE 消费、plugin/marketplace 分发，以及 Local/WSL/SSH/Container/Cloud × 三 OS × 双 IDE 每格 100 次 exact-head 外部矩阵仍开放。
+
+因此，P1-1 的 **settlement 后 ArtifactStore 与 terminal checkpoint store 的 status-time current re-read、digest 比较、缺失/变化 gap 和 production CLI
+路由** 由本节关闭；P1-1 整项仍为**部分完成**，不得据此声明 WORM、持续监控、当前 workspace restore 或 release readiness 已完成。总计数保持
+**12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、Q4a/Q4b、
+P1-2、P1-4、P1-5 或 P2-4 的状态。
+
 ## 五十二、2026-08-18 P1-1 durable stage `needs_input` 子门复核（`15:27 +08:00`）
 
 本节继续第四十一、四十三至五十一节，关闭 dynamic workflow 在**阶段执行前**缺少可持久化人工输入闸门的问题；不把该能力外推为运行中 provider
