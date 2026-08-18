@@ -12,7 +12,10 @@ import {
   createExecutionLocationResultBundle,
   verifyExecutionLocationResultBundle,
 } from "../../src/lib/execution-location-result.js";
-import { storeExecutionLocationResultBundle } from "../../src/lib/execution-location-result-store.js";
+import {
+  readStoredExecutionLocationResultBundle,
+  storeExecutionLocationResultBundle,
+} from "../../src/lib/execution-location-result-store.js";
 import { canonicalJson } from "../../src/lib/scheduler-kernel/contract.js";
 
 const root = mkdtempSync(join(tmpdir(), "cc-session-replica-"));
@@ -329,6 +332,11 @@ describe("verified session replica installation", () => {
       targetEventCount: installed.targetEventCount,
       applied: false,
     });
+    expect(
+      readStoredExecutionLocationResultBundle(first.storage, {
+        dir: join(root, "returned-result-store"),
+      }),
+    ).toEqual(bundle);
   });
 
   it("settles an accepted result once and recovers the receipt without content", () => {

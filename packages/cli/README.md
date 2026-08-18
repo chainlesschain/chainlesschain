@@ -457,9 +457,15 @@ bundle. The stable request id is bound to the exact profile, handoff, result,
 paths, and item list. If the caller loses the first response, an exact retry
 reads the canonical settlement before loading handoff facts or running another
 target command. That recovery proves which bundle was accepted but cannot
-recreate its unstored bytes. It still does not provide a distributed writer
-fence, durable result-byte storage, Cloud transport, or automatic source
-application.
+recreate bytes from a legacy v1 settlement. New collections first publish the
+canonical bundle into the owner-only, content-addressed
+`execution-location-results` store, re-read and rehash the stored bytes, then
+bind that deterministic storage receipt into settlement v2. An exact retry can
+therefore return the verified bundle without another target command. The store
+uses no-replace publication, file fsync, and directory fsync where supported;
+it is local explicit-delete storage, not WORM retention. Result collection
+still does not provide a distributed writer fence, Cloud transport, or
+automatic source application.
 
 Durable budget recovery stores a canonical local receipt for each operator
 adjudication. Ordinary budget status shows only chain and coverage metadata;
