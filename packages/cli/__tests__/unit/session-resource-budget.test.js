@@ -287,7 +287,7 @@ describe("SessionResourceBudget continuous enforcement", () => {
       aborted: true,
       reason: "persistence-failed",
     });
-    resumed.dispose();
+    expect(() => resumed.dispose()).toThrow(persistenceError);
   });
 
   it("rolls back ordinary usage accounting when its durable write fails", () => {
@@ -316,7 +316,7 @@ describe("SessionResourceBudget continuous enforcement", () => {
       aborted: true,
       reason: "persistence-failed",
     });
-    budget.dispose();
+    expect(() => budget.dispose()).toThrow(persistenceError);
   });
 
   it("actively aborts descendants when tokens cross the limit", () => {
