@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { afterEach, describe, expect, it, vi, beforeEach } from "vitest";
 
 vi.mock("../../src/lib/worktree-isolator.js", () => ({
   diffWorktree: vi.fn(() => ({
@@ -417,6 +417,18 @@ describe("ws runtime event emission", () => {
   beforeEach(() => {
     server = createServer();
     ws = {};
+  });
+
+  afterEach(() => {
+    for (const handler of server.sessionHandlers.values()) {
+      try {
+        handler?.destroy?.();
+      } catch {
+        // Individual tests assert bootstrap semantics; cleanup must still
+        // release the process-local host lease for the next isolated server.
+      }
+    }
+    server.sessionHandlers.clear();
   });
 
   it("emits runtime session events for create, resume, message, and close", async () => {
@@ -946,8 +958,10 @@ describe("ws runtime event emission", () => {
       ws,
       expect.objectContaining({
         type: "error",
-        code: "CC_WS_HANDLER_BOOTSTRAP_FAILED",
         sessionId: "sess-1",
+        payload: expect.objectContaining({
+          code: "CC_WS_HANDLER_BOOTSTRAP_FAILED",
+        }),
       }),
     );
   });
@@ -996,8 +1010,10 @@ describe("ws runtime event emission", () => {
       ws,
       expect.objectContaining({
         type: "error",
-        code: "CC_WS_RESUME_BOOTSTRAP_FAILED",
         sessionId: "sess-1",
+        payload: expect.objectContaining({
+          code: "CC_WS_RESUME_BOOTSTRAP_FAILED",
+        }),
       }),
     );
   });
