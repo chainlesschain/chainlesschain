@@ -2588,6 +2588,54 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 六十九、2026-08-18 P1-2 reviewed result ArtifactStore import/readback 子门复核（`23:27 +08:00`）
+
+本节继续第六十八节的显式内容预览，但不把一次本地导入外推为 IDE viewer、访问审计、WORM/off-box retention 或真实远端返回
+矩阵。候选基于已合并本地主分支 `2b2e2024d18913fd1180f50a953b17a64f357700`；功能提交为 `f211dfbe50`，lint 边界修正为
+`0de0c76bad`，合同提交为 `03cb498a55`，尚无本候选 exact-head GitHub Actions。本节关闭的是仓库内**经 exact review digest
+显式选择单项后，幂等导入现有 ArtifactStore 并按当前 index/bytes 回读**的窄子门。
+
+### 本轮关闭的显式 ArtifactStore 导入子门
+
+- **导入复用同一 review/selector authority。** 新 `session location result-import` 要求 request id、exact review digest，以及
+  `summary`、`diff`、`artifact:<sha256>` 或 `evidence:<sha256>` 单一 selector；命令先重新打开 v2 settlement 与本地 CAS bundle，
+  重算 review，并交叉核对所选 record 的 media type、长度与内容 digest。旧 v1 settlement、review/selector 漂移或 bytes drift 都在
+  ArtifactStore mutation 前 fail closed；没有自动导入，也不会顺带导入其他 record。
+- **内容无关 import digest 绑定来源 lineage。** `cc-execution-location-result-artifact-lineage/v1` 只保存 session/request、review
+  digest、selector、kind、media type、byte length 与 source digest；`cc-execution-location-result-artifact-import/v1` receipt 再绑定
+  import digest、ArtifactStore public metadata 与诚实的 `artifact-store-ttl-explicit-delete-not-worm` retention。receipt、TTY 与 JSON
+  输出都不包含 base64、正文、绝对路径或 target stdout/stderr。
+- **响应丢失重试不会复制同一 authority。** ArtifactStore 新 `publishDataOnce` 以 import digest 为 stable record key，在严格跨进程
+  index lock 内检查唯一既有行；首次发布使用现有 `wx` bytes copy 与 immutable metadata，重试返回同一 artifact id/receipt。相同
+  record digest 出现多行会以 ambiguous fail closed，而不是任选一行。
+- **每次成功返回前都重验当前托管副本。** readback 从持久 index 恢复完整 lineage、重算 import digest，核对 title/kind/mime/size/
+  session/record digest，并重新哈希当前 stored bytes；bytes、metadata 或 lineage 任一漂移都会拒绝。该导入不追加 source session event，
+  因而不会仅因预览/归档动作破坏第六十七节 apply 所要求的 settlement-head Git authority。
+
+### 仓库内验证与证据边界
+
+- execution-location contract、target、result/store/review/import/apply、replica 与 command integration 共 **10 files / 74 tests passed**；
+  其中新 import 单文件覆盖 exact bytes、内容无关 lineage、response-loss idempotency、持久 readback、byte tamper、selector/digest drift
+  与 duplicate authority row。
+- roadmap verifier 与 journey evidence 两文件为 **37/37**；`--contract-only` 回读 manifest `1.9.36` 为
+  **15 cases / 93 referenced test files**，并明确 runtime evidence 与 release readiness 未被评估。P1-2 fixture 新增导入 journey、
+  authority binding、response-loss/tamper/duplicate/content-leak 故障注入与四个零违规 outcome。
+- 任务 JavaScript 通过 ESLint 与 Prettier，`git diff --check` 和 command help index freshness 通过；仓库只保留既有
+  `MODULE_TYPELESS_PACKAGE_JSON` 提示。
+
+### P1-2 仍未关闭的边界
+
+1. **托管制品生命周期仍不完整：** 当前 ArtifactStore 是本地 TTL、显式可删除的可写 store，不是 WORM、off-box retention 或组织级
+   ArtifactStore；尚无访问授权/下载/删除 audit ledger，也没有跨进程 clean/remove 与 import 的统一 generation transaction。
+2. **产品审阅面仍缺失：** 当前仍是 operator-explicit CLI import/preview；Desktop、VS Code 与 JetBrains 尚无绑定 session/review/import
+   lineage 的 viewer、下载/删除确认、binary 安全打开策略与 content-access history。外部 viewer、导出文件及后续传播不属于本 authority。
+3. **真实执行位置与长期矩阵仍未关闭：** WSL/SSH/Container/Cloud 的实际 launch/resume/reconnect、跨宿主 store transfer/fencing、
+   Preview/Computer Use、双 IDE 创建面及每格 100 次 exact-head 故障矩阵仍需外部证据。
+
+因此，P1-2 的**显式 reviewed-item ArtifactStore 导入、response-loss 幂等与当前 bytes/lineage readback**由本节关闭；P1-2 整项仍为
+**部分完成**。总计数保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节不改变
+S0-1～S0-3、Q0、Q3、Q4a/Q4b、P1-1、P1-4、P1-5 或 P2-4 的状态。
+
 ## 六十八、2026-08-18 P1-2 review-digest-bound explicit result preview 子门复核（`22:38 +08:00`）
 
 本节继续第六十六至六十七节，关闭“content-free review authority 可绑定 apply，但操作者在 CLI 上仍无法安全检查实际 summary/diff/artifact/evidence bytes”的本地可审阅性缺口；不改变默认 review/apply/receipt 的 content-free 边界，也不把显式 stdout stream 外推为 ArtifactStore import、IDE Preview UI、内容访问审计或 WORM retention。
