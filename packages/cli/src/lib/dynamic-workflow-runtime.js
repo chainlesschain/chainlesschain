@@ -2729,7 +2729,7 @@ function expectedNestedToolEffectId(effectId, sequence, toolUseId, tool) {
     .digest("hex")}`;
 }
 
-function projectNestedToolEffects(effect) {
+function projectLegacyNestedToolEffects(effect) {
   const attemptValues = Array.isArray(effect.result?.nestedEffectAttempts)
     ? effect.result.nestedEffectAttempts
     : [];
@@ -2877,6 +2877,177 @@ function projectNestedToolEffects(effect) {
   };
 }
 
+function projectNestedToolEffects(state) {
+  const attemptLineage = [];
+  const settlementLineage = [];
+  let attemptCount = 0;
+  let settlementCount = 0;
+  let invalidAttempts = 0;
+  let invalidSettlements = 0;
+  let missingSettlements = 0;
+  let durableMcpSettlements = 0;
+  let truncatedEffects = 0;
+  let durableCallEffects = 0;
+  let legacyResultFallbackEffects = 0;
+  let conflictingOuterResultEffects = 0;
+
+  for (const effect of state.effects) {
+    const toolCalls = (effect.calls || []).filter(
+      (call) => call.kind === "tool",
+    );
+    if (toolCalls.length > 0) {
+      durableCallEffects += 1;
+      attemptCount += toolCalls.length;
+      settlementCount += toolCalls.filter(
+        (call) => call.status !== "started",
+      ).length;
+      missingSettlements += toolCalls.filter(
+        (call) => call.status === "started",
+      ).length;
+      durableMcpSettlements += toolCalls.filter(
+        (call) =>
+          call.mcpLedgerId &&
+          call.mcpLedgerPrewritePersisted &&
+          call.mcpLedgerSettlementPersisted,
+      ).length;
+
+      const hasOuterResultEvidence =
+        Array.isArray(effect.result?.nestedEffectAttempts) ||
+        Array.isArray(effect.result?.nestedEffectSettlements);
+      if (hasOuterResultEvidence) {
+        const reported = projectLegacyNestedToolEffects(effect);
+        const directCalls = toolCalls.filter(
+          (call) => call.ownerEffectId === effect.id,
+        );
+        const attemptMatches =
+          reported.invalidAttempts === 0 &&
+          reported.attemptLineage.length === directCalls.length &&
+          directCalls.every((call) => {
+            const attempt = reported.attemptLineage.find(
+              (candidate) => candidate.childEffectId === call.childEffectId,
+            );
+            return (
+              attempt?.childSequence === call.sequence &&
+              attempt?.tool === call.name &&
+              attempt?.toolUseId === call.callId
+            );
+          });
+        const directTerminalCalls = directCalls.filter(
+          (call) => call.status !== "started",
+        );
+        const settlementMatches =
+          reported.invalidSettlements === 0 &&
+          reported.settlementLineage.length === directTerminalCalls.length &&
+          directTerminalCalls.every((call) => {
+            const settlement = reported.settlementLineage.find(
+              (candidate) => candidate.childEffectId === call.childEffectId,
+            );
+            return (
+              settlement?.status === call.status &&
+              settlement?.mcpLedgerId === call.mcpLedgerId &&
+              settlement?.mcpLedgerPrewritePersisted ===
+                call.mcpLedgerPrewritePersisted &&
+              settlement?.mcpLedgerSettlementPersisted ===
+                call.mcpLedgerSettlementPersisted
+            );
+          });
+        if (!attemptMatches || !settlementMatches) {
+          conflictingOuterResultEffects += 1;
+        }
+      }
+
+      const visibleCalls = toolCalls.slice(
+        0,
+        MAX_PROJECTED_ARTIFACTS_PER_EFFECT,
+      );
+      if (toolCalls.length > visibleCalls.length) truncatedEffects += 1;
+      for (let ordinal = 0; ordinal < visibleCalls.length; ordinal += 1) {
+        const call = visibleCalls[ordinal];
+        const attempt = {
+          effectId: effect.id,
+          ownerEffectId: call.ownerEffectId,
+          callRecordId: call.id,
+          ordinal,
+          childEffectId: call.childEffectId,
+          childSequence: call.sequence,
+          kind: "tool",
+          tool: call.name,
+          toolUseId: call.callId,
+          status: call.status,
+          startedAt: call.startedAt,
+          identitySemantics: "runtime-derived",
+          authoritySource: "durable-call-store",
+        };
+        attemptLineage.push(attempt);
+        if (call.status === "started") continue;
+        settlementLineage.push({
+          ...attempt,
+          settledAt: call.settledAt,
+          outcomeUnknown: call.outcomeUnknown,
+          settlementCode: call.settlementCode,
+          mcpLedgerId: call.mcpLedgerId,
+          mcpLedgerPrewritePersisted: call.mcpLedgerPrewritePersisted,
+          mcpLedgerSettlementPersisted: call.mcpLedgerSettlementPersisted,
+        });
+      }
+      continue;
+    }
+
+    if (effect.status !== "settled") continue;
+    const hasOuterResultEvidence =
+      Array.isArray(effect.result?.nestedEffectAttempts) ||
+      Array.isArray(effect.result?.nestedEffectSettlements);
+    if (effect.calls !== undefined) {
+      if (
+        hasOuterResultEvidence &&
+        ((effect.result?.nestedEffectAttempts?.length || 0) > 0 ||
+          (effect.result?.nestedEffectSettlements?.length || 0) > 0)
+      ) {
+        conflictingOuterResultEffects += 1;
+      }
+      continue;
+    }
+    const legacy = projectLegacyNestedToolEffects(effect);
+    if (legacy.attemptCount === 0 && legacy.settlementCount === 0) continue;
+    legacyResultFallbackEffects += 1;
+    attemptCount += legacy.attemptCount;
+    settlementCount += legacy.settlementCount;
+    invalidAttempts += legacy.invalidAttempts;
+    invalidSettlements += legacy.invalidSettlements;
+    missingSettlements += legacy.missingSettlements;
+    durableMcpSettlements += legacy.durableMcpSettlements;
+    if (legacy.truncated) truncatedEffects += 1;
+    attemptLineage.push(
+      ...legacy.attemptLineage.map((attempt) => ({
+        ...attempt,
+        authoritySource: "legacy-task-result",
+      })),
+    );
+    settlementLineage.push(
+      ...legacy.settlementLineage.map((settlement) => ({
+        ...settlement,
+        settledAt: effect.settledAt,
+        authoritySource: "legacy-task-result",
+      })),
+    );
+  }
+
+  return {
+    attemptCount,
+    settlementCount,
+    invalidAttempts,
+    invalidSettlements,
+    missingSettlements,
+    durableMcpSettlements,
+    truncatedEffects,
+    durableCallEffects,
+    legacyResultFallbackEffects,
+    conflictingOuterResultEffects,
+    attemptLineage,
+    settlementLineage,
+  };
+}
+
 function projectDurableWorkflowCalls(state) {
   const lineage = state.effects.flatMap((effect) =>
     (effect.calls || []).map((call) => ({
@@ -2950,6 +3121,7 @@ function projectDynamicWorkflowObservability(state) {
   const nestedEffectSettlementLineage = [];
   const durableCalls = projectDurableWorkflowCalls(state);
   const providerReceipts = projectProviderRequestReceipts(state);
+  const nestedEffects = projectNestedToolEffects(state);
   let requestToSettlementMs = 0;
   let maxRequestToSettlementMs = 0;
   let estimatedTokens = 0;
@@ -2969,13 +3141,13 @@ function projectDynamicWorkflowObservability(state) {
   const invalidProviderReceipts = providerReceipts.invalidReceipts;
   const missingProviderRequestReceipts = providerReceipts.missingReceipts;
   const providerReceiptTruncatedEffects = providerReceipts.truncatedEffects;
-  let nestedEffectAttemptCount = 0;
-  let nestedEffectSettlementCount = 0;
-  let nestedEffectDurableMcpSettlements = 0;
-  let invalidNestedEffectAttempts = 0;
-  let invalidNestedEffectSettlements = 0;
-  let missingNestedEffectSettlements = 0;
-  let nestedEffectTruncatedEffects = 0;
+  const nestedEffectAttemptCount = nestedEffects.attemptCount;
+  const nestedEffectSettlementCount = nestedEffects.settlementCount;
+  const nestedEffectDurableMcpSettlements = nestedEffects.durableMcpSettlements;
+  const invalidNestedEffectAttempts = nestedEffects.invalidAttempts;
+  const invalidNestedEffectSettlements = nestedEffects.invalidSettlements;
+  const missingNestedEffectSettlements = nestedEffects.missingSettlements;
+  const nestedEffectTruncatedEffects = nestedEffects.truncatedEffects;
 
   for (const effect of settled) {
     const elapsed = Math.max(
@@ -3016,17 +3188,6 @@ function projectDynamicWorkflowObservability(state) {
     checkpointLineage.push(...checkpoints.lineage);
     if (checkpoints.truncated) checkpointTruncatedEffects += 1;
 
-    const nestedEffects = projectNestedToolEffects(effect);
-    nestedEffectAttemptCount += nestedEffects.attemptCount;
-    nestedEffectSettlementCount += nestedEffects.settlementCount;
-    nestedEffectDurableMcpSettlements += nestedEffects.durableMcpSettlements;
-    invalidNestedEffectAttempts += nestedEffects.invalidAttempts;
-    invalidNestedEffectSettlements += nestedEffects.invalidSettlements;
-    missingNestedEffectSettlements += nestedEffects.missingSettlements;
-    nestedEffectAttemptLineage.push(...nestedEffects.attemptLineage);
-    nestedEffectSettlementLineage.push(...nestedEffects.settlementLineage);
-    if (nestedEffects.truncated) nestedEffectTruncatedEffects += 1;
-
     effectLineage.push({
       effectId: effect.id,
       stepId: effect.stepId,
@@ -3059,10 +3220,11 @@ function projectDynamicWorkflowObservability(state) {
     "provider-receipt-independent-readback-unavailable",
     "checkpoint-provider-readback-unavailable",
     "artifact-store-readback-unavailable",
-    "nested-tool-independent-ledger-incomplete",
   ];
   providerRequestAttemptLineage.push(...providerReceipts.attemptLineage);
   providerReceiptLineage.push(...providerReceipts.receiptLineage);
+  nestedEffectAttemptLineage.push(...nestedEffects.attemptLineage);
+  nestedEffectSettlementLineage.push(...nestedEffects.settlementLineage);
   if (tokenEstimateEffects !== settled.length) {
     gaps.push("cowork-token-estimate-incomplete");
   }
@@ -3108,6 +3270,13 @@ function projectDynamicWorkflowObservability(state) {
   }
   if (nestedEffectTruncatedEffects > 0) {
     gaps.push("nested-tool-effect-projection-truncated");
+  }
+  if (nestedEffects.legacyResultFallbackEffects > 0) {
+    gaps.push("nested-tool-independent-ledger-incomplete");
+    gaps.push("nested-tool-effect-legacy-result-fallback");
+  }
+  if (nestedEffects.conflictingOuterResultEffects > 0) {
+    gaps.push("nested-tool-result-disagrees-with-durable-store");
   }
 
   return snapshotJson(
@@ -3204,7 +3373,15 @@ function projectDynamicWorkflowObservability(state) {
       },
       durableCalls,
       nestedEffects: {
-        authority: "task-result-bound-with-mcp-session-ledger-flags",
+        authority:
+          nestedEffects.legacyResultFallbackEffects > 0
+            ? "runtime-state-hash-chain-fsync-with-legacy-task-result-fallback"
+            : "runtime-state-hash-chain-fsync",
+        crashVisible: true,
+        durableCallEffects: nestedEffects.durableCallEffects,
+        legacyResultFallbackEffects: nestedEffects.legacyResultFallbackEffects,
+        conflictingOuterResultEffects:
+          nestedEffects.conflictingOuterResultEffects,
         attempts: nestedEffectAttemptCount,
         settlements: nestedEffectSettlementCount,
         projectedAttempts: nestedEffectAttemptLineage.length,
@@ -3214,7 +3391,8 @@ function projectDynamicWorkflowObservability(state) {
         invalidAttempts: invalidNestedEffectAttempts,
         invalidSettlements: invalidNestedEffectSettlements,
         truncatedEffects: nestedEffectTruncatedEffects,
-        allEffectsIndependentlyDurable: false,
+        allEffectsIndependentlyDurable:
+          nestedEffects.legacyResultFallbackEffects === 0,
         attemptLineageDigest: digest(
           "chainlesschain.dynamic-workflow.nested-effect-attempt-lineage.v1\0",
           nestedEffectAttemptLineage,

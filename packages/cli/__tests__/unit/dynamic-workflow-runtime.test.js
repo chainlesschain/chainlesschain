@@ -435,7 +435,33 @@ describe("durable dynamic workflow runtime", () => {
       }),
     ]);
     expect(projection.observability.nestedEffects).toMatchObject({
-      authority: "task-result-bound-with-mcp-session-ledger-flags",
+      authority: "runtime-state-hash-chain-fsync",
+      crashVisible: true,
+      durableCallEffects: 0,
+      legacyResultFallbackEffects: 0,
+      conflictingOuterResultEffects: 2,
+      attempts: 0,
+      settlements: 0,
+      projectedAttempts: 0,
+      projectedSettlements: 0,
+      durableMcpSettlements: 0,
+      missingSettlements: 0,
+      invalidAttempts: 0,
+      invalidSettlements: 0,
+      allEffectsIndependentlyDurable: true,
+    });
+    expect(projection.observability.nestedEffects.settlementLineage).toEqual(
+      [],
+    );
+    expect(projection.observability.gaps).toContain(
+      "nested-tool-result-disagrees-with-durable-store",
+    );
+    expect(legacyProjection.observability.nestedEffects).toMatchObject({
+      authority:
+        "runtime-state-hash-chain-fsync-with-legacy-task-result-fallback",
+      durableCallEffects: 0,
+      legacyResultFallbackEffects: 2,
+      conflictingOuterResultEffects: 0,
       attempts: 2,
       settlements: 2,
       projectedAttempts: 2,
@@ -446,7 +472,9 @@ describe("durable dynamic workflow runtime", () => {
       invalidSettlements: 0,
       allEffectsIndependentlyDurable: false,
     });
-    expect(projection.observability.nestedEffects.settlementLineage).toEqual([
+    expect(
+      legacyProjection.observability.nestedEffects.settlementLineage,
+    ).toEqual([
       expect.objectContaining({
         effectId: state.effects[0].id,
         status: "completed",
@@ -542,6 +570,22 @@ describe("durable dynamic workflow runtime", () => {
         kind: "tool",
         childEffectId,
         status: "started",
+      });
+      expect(
+        projectDynamicWorkflowRuntime(state).observability.nestedEffects,
+      ).toMatchObject({
+        authority: "runtime-state-hash-chain-fsync",
+        crashVisible: true,
+        attempts: 1,
+        settlements: 0,
+        missingSettlements: 1,
+        attemptLineage: [
+          expect.objectContaining({
+            authoritySource: "durable-call-store",
+            childEffectId,
+            status: "started",
+          }),
+        ],
       });
       args.onToolCallSettlement({
         ...toolBoundary,
@@ -646,6 +690,36 @@ describe("durable dynamic workflow runtime", () => {
     expect(projectDynamicWorkflowRuntime(state).observability.gaps).toContain(
       "provider-request-result-disagrees-with-durable-store",
     );
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.nestedEffects,
+    ).toMatchObject({
+      authority: "runtime-state-hash-chain-fsync",
+      crashVisible: true,
+      durableCallEffects: 1,
+      legacyResultFallbackEffects: 0,
+      conflictingOuterResultEffects: 0,
+      attempts: 1,
+      settlements: 1,
+      projectedAttempts: 1,
+      projectedSettlements: 1,
+      durableMcpSettlements: 1,
+      missingSettlements: 0,
+      allEffectsIndependentlyDurable: true,
+    });
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.nestedEffects
+        .settlementLineage,
+    ).toEqual([
+      expect.objectContaining({
+        authoritySource: "durable-call-store",
+        toolUseId: "tool-publish-1",
+        status: "completed",
+        mcpLedgerSettlementPersisted: true,
+      }),
+    ]);
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.gaps,
+    ).not.toContain("nested-tool-independent-ledger-incomplete");
   });
 
   it("retains a crash-visible started provider call until operator reconciliation", async () => {

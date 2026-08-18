@@ -2588,6 +2588,51 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 四十六、2026-08-18 P1-1 durable-call-derived nested effect observability 子门复核（`12:50 +08:00`）
+
+本节继续第四十一、四十二、四十五节，把 managed nested tool/MCP 的 attempt/settlement 主投影从 settled Cowork result arrays 切换到
+逐调用 durable store；不把该本地 store 外推为未受管 hook、任意外部进程或第三方系统的全局 exactly-once。候选基于已合并本地主分支
+`070bc33a875f5180f5c8b95badd8d7ff4f637ab1` 的功能分支，尚无本候选 exact-head GitHub Actions。
+
+### 本轮关闭的 nested observability authority 子门
+
+- **tool boundary 立即成为 canonical nested attempt。** `runtime-status --json` 直接从已验证 tool call row 投影 root/owner effect、call record、
+  child effect、sequence、tool/use id、status、started time 与 runtime-derived identity。outer task 尚未返回或进程在 boundary 后崩溃时，started attempt
+  已可回读，并明确计入 missing terminal settlement，而不是等待 result payload。
+- **terminal 与 MCP ledger 状态来自同一 durable row。** completed、failed、outcome-unknown 与 operator-reconciled call 的 settled time、settlement code、
+  unknown 标志及 MCP ledger id/prewrite/settlement flags 直接进入 settlement lineage；计数在投影截断前完成，MCP durable settlement 不再由 result 声明决定。
+- **outer result 不能覆盖 nested authority。** effect 已有 tool call rows 时，result 中的 attempts/settlements 只用于一致性审计；direct call 的 child identity、
+  tool tuple、status 或 MCP flags 不一致会产生 `nested-tool-result-disagrees-with-durable-store`，但不会改写 canonical lineage。无 tool row 的新 state
+  即使提供非空 result arrays，也只能得到 disagreement，不能降级成 legacy authority。
+- **legacy fallback 仅接受真正旧 shape。** 只有 effect 完全缺少 `calls` 字段时，合法 result arrays 才以
+  `runtime-state-hash-chain-fsync-with-legacy-task-result-fallback` 和 `authoritySource=legacy-task-result` 回读，同时保留
+  `nested-tool-independent-ledger-incomplete` 与 `nested-tool-effect-legacy-result-fallback` gaps；新 state 的 `calls: []` 不满足该条件。
+- **managed nested completeness 现在机器可辨。** 无 legacy fallback 的 managed tool attempts 全部具有独立 durable row，投影返回
+  `allEffectsIndependentlyDurable=true`；started call 仍诚实报告 missing settlement，invalid、truncated、legacy 和 result disagreement 各有独立 gap。
+
+### 仓库内验证与证据边界
+
+- durable runtime 聚焦文件为 **29/29**；覆盖 started tool crash-visible projection、terminal/MCP durable settlement、outer result override 阻断、
+  新空 calls 不得 legacy 降级、真正旧 state fallback，以及既有 invalid/missing nested evidence。
+- manifest `p1-dynamic-workflow` 引用的 **18 个文件保持 586/586**；roadmap verifier 与 journey evidence 两文件为 **37/37**。
+- roadmap manifest 从 `1.9.12` 升至 `1.9.13`，baseline 绑定本轮起点 `070bc33a875f5180f5c8b95badd8d7ff4f637ab1`；fixture digest 为
+  `sha256:5193a22f4903f24dadba142d505712a523557e375ed950317d9d0ce41a532a18`。`--contract-only` 回读
+  **15 cases / 69 referenced test files**，并继续明确 runtime evidence 与 release readiness 未被评估。
+
+### P1-1 仍未关闭的边界
+
+1. **未受管 side effects：** 本节只覆盖通过 agent loop synchronous observers 进入 durable call store 的 tool/MCP/external dispatch；hook、checkpoint、
+   artifact、独立进程与绕过 observer 的外部系统仍未统一 prewrite/settle，不能据此声明任意 nested exactly-once。
+2. **真实第三方与制品 authority：** provider-native idempotency/receipt readback、ArtifactStore immutable bytes、checkpoint restore/readback、真实 token/USD
+   ledger 与不合作 provider/tool 的物理取消仍开放。
+3. **完整产品与外部矩阵：** 一般阶段间 `needs_input`、Workbench/VS Code/JetBrains phase/agent/control UI、plugin/marketplace 分发，以及
+   Local/WSL/SSH/Container/Cloud × 三 OS × 双 IDE 每格 100 次 exact-head 真实 provider/宿主故障矩阵仍无外部证据。
+
+因此，P1-1 的**durable-call-derived nested attempt/settlement 主投影、started crash readback、MCP ledger canonical projection、result override 阻断与
+显式 legacy fallback**由本节关闭；P1-1 整项仍为**部分完成**，不得据此声明未受管 side effects 或第三方 global exactly-once 已完成。总计数保持
+**12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
+Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
+
 ## 四十五、2026-08-18 P1-1 durable-call-derived provider receipt observability 子门复核（`12:31 +08:00`）
 
 本节继续第四十四节，把此前仍从 settled Cowork result 的 `providerRequestAttempts/providerRequestReceipts` 数组生成的主观测投影，切换到
