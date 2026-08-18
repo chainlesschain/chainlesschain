@@ -1880,9 +1880,9 @@ export class SessionResourceBudget {
           previousAdjudication?.count ??
           0,
         baseDigest:
-          previousAdjudication?.history?.baseDigest ??
-          previousAdjudication?.headDigest ??
-          null,
+          previousAdjudication?.history !== undefined
+            ? previousAdjudication.history.baseDigest
+            : previousAdjudication?.headDigest || null,
         entries: [
           ...(previousAdjudication?.history?.entries || []).map(
             cloneCanonicalRecord,
