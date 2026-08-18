@@ -2588,6 +2588,54 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 四十九、2026-08-18 P1-1 managed ArtifactStore settlement readback 子门复核（`13:58 +08:00`）
+
+本节继续第四十一、四十三至四十八节，把受管 `publish_artifact` 工具已经写入 ArtifactStore 的 index metadata 与 copied bytes 接入 tool
+settlement 的同步回读和 durable call lineage；不把一次 settlement-time 回读外推为 fsync/WORM、TTL 后仍存在、当前时刻重新可读，或任意
+`result.artifacts` payload 的真实制品 authority。候选基于已合并本地主分支
+`e95d3a28b0ab8f81338a8d718930f2bf2bf99e6e` 的功能分支，尚无本候选 exact-head GitHub Actions。
+
+### 本轮关闭的 managed artifact readback 子门
+
+- **artifact call 在 transport 前声明 readback schema。** `publish_artifact` 的 tool call started row 先保存 `artifactReadback: null`，
+  `effect-call-started` 同时绑定 `cc-dynamic-workflow-artifact-readback/v1`。普通 tool call 不允许携带该字段；新 row 不能通过删除字段和只重算
+  outer state digest 降级成 legacy。
+- **terminal settlement 先回读 store、再关闭 durable call。** 成功 tool result 的 `published` 必须是无 proxy/accessor/symbol 的精确公开 metadata；
+  runtime 用 artifact id 重新读取 canonical index row，逐字段比对 id/title/kind/mime/size/SHA/file/session/timestamp/immutable/record digest，并调用
+  ArtifactStore 重新计算 copied bytes SHA-256。只有 metadata 与实际 bytes 同时一致，才写入 readback record，并把 digest 绑定进
+  `effect-call-settled`；此时 outer Cowork task 尚未返回。
+- **伪造、缺字节和篡改 fail closed。** result metadata 改写、store row 不存在、stored file 缺失/改写、failed result 同时声称 published，或
+  readback metadata/content/lineage digest 被改写，都会在 effect settlement 前拒绝并保留 started call，运行进入 reconciliation-required；不会拿
+  task result 的 artifact 数组或 reported digest 补写成功。
+- **投影和 legacy 边界显式。** `observability.artifacts.storeReadbacks` 从已验证 durable call 输出 call/effect 数量、completed/failed/pending/
+  unknown/reconciled/legacy/missing 计数及逐调用 digest lineage。没有 verified call 时保留 `artifact-store-readback-unavailable`，started/unknown/
+  reconciled 或缺失 record 时增加 `artifact-store-readback-incomplete`，旧 row 只以 `artifact-store-readback-legacy-call-schema` 读取。
+  `artifact-store-immutable-retention-unavailable` 始终保留。
+
+### 仓库内验证与证据边界
+
+- dynamic runtime 聚焦文件为 **36/36**；覆盖 outer task 返回前 readback 可见、真实 index/bytes 摘要、metadata forgery、stored-byte tamper、
+  state/readback tamper、partial schema downgrade 与真实 legacy row 兼容。
+- manifest `p1-dynamic-workflow` 引用的 **18 个文件为 593/593**；roadmap verifier 与 journey evidence 两文件为 **37/37**。
+- roadmap manifest 从 `1.9.15` 升至 `1.9.16`，baseline 绑定本轮起点 `e95d3a28b0ab8f81338a8d718930f2bf2bf99e6e`；fixture digest 为
+  `sha256:0bba9e03d6b106cabce6e0983f0ed2a3389285f3496879762b7c153040e10e65`。`--contract-only` 验证 **15 cases / 69 referenced test files**，
+  明确没有评估 runtime evidence 或 release readiness。
+
+### P1-1 仍未关闭的边界
+
+1. **immutable/current artifact authority：** 当前 ArtifactStore copy/index 仍可由 cleanup/remove 删除，也没有跨设备 fsync、WORM/retention lock、
+   独立对象存储 read-after-crash 或每次 `runtime-status` 的 current-byte revalidation；本节只证明 settlement 当刻成功回读。非
+   `publish_artifact` 工具、outer `result.artifacts` 和未经过 observer 的文件/外部制品仍只有 digest-only 或无 authority。
+2. **checkpoint 与其他 side effects：** managed checkpoint 的 prepare/commit/rollback store 尚未接入同等级逐调用 readback；provider-native
+   idempotency/receipt readback、未受管 hook/external side effects 与不合作 provider 的物理取消仍开放。
+3. **完整产品与外部矩阵：** 一般阶段间 `needs_input`、Workbench/VS Code/JetBrains phase/agent/control/token/cost/artifact UI、plugin/marketplace
+   分发，以及 Local/WSL/SSH/Container/Cloud × 三 OS × 双 IDE 每格 100 次 exact-head 真实 provider/宿主故障矩阵仍无外部证据。
+
+因此，P1-1 的 **managed publish_artifact started schema、settlement-time canonical index/byte readback、durable digest、pre-outer 可见性、
+tamper rejection 与 legacy gap** 由本节关闭；P1-1 整项仍为**部分完成**，不得据此声明 immutable artifact retention、checkpoint authority 或完整
+Workbench 已完成。总计数保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变
+S0-1～S0-3、Q0、Q3、Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
+
 ## 四十八、2026-08-18 P1-1 durable pricing snapshot cost estimate 子门复核（`13:35 +08:00`）
 
 本节继续第四十一、四十三至四十七节，把 durable provider usage 绑定到调用开始时固化的 provider/model 与公开价目快照，并投影可复算的

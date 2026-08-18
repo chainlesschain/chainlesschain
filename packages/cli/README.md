@@ -1004,6 +1004,14 @@ tool child-effect as their workflow owner. Their internal provider/tool calls
 therefore enter the same store with a verified owner chain; an orphan or
 rewritten owner fails closed, and descendant unknown outcomes prevent normal
 outer provider-return settlement.
+For the managed `publish_artifact` tool, terminal settlement additionally reads
+the canonical ArtifactStore index row, requires an exact match with the returned
+public metadata, and rehashes the copied bytes before persisting a readback digest
+on the call. Forged metadata, missing/changed stored bytes, or partial removal of
+the readback schema fail closed. The readback is visible before the outer Cowork task
+returns, but it proves only the store copy at settlement time: the current store
+is mutable and TTL-cleanable, so immutable retention and later byte availability
+remain unproven. Arbitrary `result.artifacts` arrays stay digest-only observations.
 
 `runtime-status --json` also returns a digest-bound `observability` projection.
 It exposes effect/result lineage, provider-return/operator-reconciled/runtime-
@@ -1014,9 +1022,11 @@ derived nested-tool attempt/settlement lineage, the independently persisted
 durable-call status/digest projection plus its provider-receipt count and bounded
 receipt IDs, durable-call-derived provider token totals and per-call lineage,
 durable-pricing-snapshot USD estimates and their per-call lineage, the separately
-labeled Cowork-result heuristic estimate, and digest-only artifact/checkpoint
-references. Token and cost projections distinguish reported/priced, pending,
-outcome-unknown, operator-reconciled, and legacy calls; they never substitute the
+labeled Cowork-result heuristic estimate, ArtifactStore index/byte readbacks for
+managed `publish_artifact` calls, and digest-only task-result artifact/checkpoint
+references. Token, cost, and artifact-readback projections keep reported, priced,
+and verified records separate from pending, outcome-unknown, operator-reconciled,
+and legacy calls; they never substitute the
 heuristic token estimate or a guessed price for missing provider data. Receipt
 projection rejects an effect/provider/call/source/request mismatch or any claim of
 idempotency/independent readback, ignores conflicting outer-result receipt
@@ -1027,8 +1037,9 @@ through an explicitly counted legacy task-result fallback that adds its own gap.
 The projection is intentionally
 `complete: false` and lists every missing authority: provider-reported USD billing,
 native provider idempotency, independent provider usage/receipt readback, and
-checkpoint/artifact-store readback remain unavailable. Pre-usage/pricing-schema
-calls stay readable with explicit unavailable/incomplete/legacy gaps. Managed
+checkpoint readback plus immutable/current ArtifactStore retention remain
+unavailable. Pre-usage/pricing/artifact-readback-schema calls stay readable with
+explicit unavailable/incomplete/legacy gaps. Managed
 nested tool attempts and
 terminal settlements no
 longer depend on those payload projections: started calls are crash-visible,
@@ -1040,12 +1051,12 @@ nested outcome-unknown result or post-boundary tool exception blocks the outer
 effect for reconciliation instead of becoming an ordinary failed task. The
 runtime-owned provider/tool call rows are independently readable from a
 pending or crashed run, including calls directly owned by spawned sub-agents
-and isolated skills. Hook/checkpoint/artifact side effects, native third-party
-idempotency, and provider-side receipt lookup remain open.
+and isolated skills. Hook/checkpoint and unmanaged artifact side effects, native
+third-party idempotency, and provider-side receipt lookup remain open.
 
 **WS protocol**: `workflow-list` / `workflow-get` / `workflow-save` / `workflow-remove` / `workflow-run` (streams `workflow:started` / `step-start` / `step-complete` / `workflow:done`).
 
-**Key files**: `src/gateways/ws/action-protocol.js` (5 handlers), `src/lib/cowork-workflow.js` (CRUD + `executeWorkflow`), `src/lib/dynamic-workflow-draft.js` (model proposal + human review authority), `src/lib/dynamic-workflow-runtime.js` (atomic parallel durable effect protocol), `packages/web-panel/src/stores/workflow.js` (Pinia store + `validateLocal`), `packages/web-panel/src/views/WorkflowEditor.vue`. **Governed CLI regression**: 590 tests across draft/review, durable runtime, façade, DAG, WebSocket, admission, provider/tool/descendant call binding, durable provider receipt/token settlement, durable pricing-snapshot cost estimates, and MCP ledger coverage; the original editor slice retains its 39 backend/frontend/integration/E2E tests.
+**Key files**: `src/gateways/ws/action-protocol.js` (5 handlers), `src/lib/cowork-workflow.js` (CRUD + `executeWorkflow`), `src/lib/dynamic-workflow-draft.js` (model proposal + human review authority), `src/lib/dynamic-workflow-runtime.js` (atomic parallel durable effect protocol), `packages/web-panel/src/stores/workflow.js` (Pinia store + `validateLocal`), `packages/web-panel/src/views/WorkflowEditor.vue`. **Governed CLI regression**: 593 tests across draft/review, durable runtime, façade, DAG, WebSocket, admission, provider/tool/descendant call binding, durable provider receipt/token settlement, durable pricing-snapshot cost estimates, ArtifactStore settlement readback, and MCP ledger coverage; the original editor slice retains its 39 backend/frontend/integration/E2E tests.
 
 > Vue Flow visual canvas (drag-to-connect, branch rendering) is planned as M2.
 
