@@ -1098,22 +1098,24 @@ export async function handleSessionResume(server, id, ws, message) {
   // Recovery authority must be attached before a handler is created/refreshed
   // or history is exposed. Otherwise an existing clean controller can admit a
   // turn in the resume window before the unsafe projection reaches it.
-  if (!server.sessionHandlers.has(sessionId)) {
-    try {
-      await ensureSessionHandler(server, ws, session);
-    } catch (error) {
-      server._send(
-        ws,
-        envelopeError(
-          id,
-          error?.code || "SESSION_RESUME_FAILED",
-          error?.message || "WebSocket session handler could not be resumed",
-          sessionId,
-          { ...(sessionSnapshot ? { sessionSnapshot } : {}) },
-        ),
-      );
-      return;
-    }
+  try {
+    // Existing handlers retain the durable lease and budget root, but their
+    // interaction adapter belongs to the previous WebSocket transport. Route
+    // every resume through the common bootstrap so it can reattach the new
+    // transport without reopening either authority.
+    await ensureSessionHandler(server, ws, session);
+  } catch (error) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        error?.code || "SESSION_RESUME_FAILED",
+        error?.message || "WebSocket session handler could not be resumed",
+        sessionId,
+        { ...(sessionSnapshot ? { sessionSnapshot } : {}) },
+      ),
+    );
+    return;
   }
   const handler = server.sessionHandlers.get(sessionId);
   if (typeof handler?.refreshMcpRecoveryRuntime === "function") {
