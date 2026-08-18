@@ -632,11 +632,12 @@ describe("installFromDirectory", () => {
 
     const originalOpenSync = installDeps.openSync;
     const originalFsyncSync = installDeps.fsyncSync;
+    const stagedOpenMode = process.platform === "win32" ? "r+" : "r";
     let stagedFileDescriptor = null;
     installDeps.openSync = (file, ...args) => {
       const descriptor = originalOpenSync(file, ...args);
       if (
-        args[0] === "r+" &&
+        args[0] === stagedOpenMode &&
         path
           .dirname(String(file))
           .split(path.sep)
