@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "manifestVersion": "1.9.29",
+  "manifestVersion": "1.9.30",
   "baselineCommit": "e95d3a28b0ab8f81338a8d718930f2bf2bf99e6e",
   "releaseEvidence": {
     "commitSource": "git-head-at-run",
@@ -668,9 +668,9 @@
       "priority": "P1",
       "required": true,
       "evidenceStatus": "external-evidence-required",
-      "evidenceNotes": "Repository tests establish fixed-command WSL/strict-SSH/existing-Container target probing, exact whole-revision replica installation, independently recomputed target-attestation authority, and a CAS-bound canonical location-handoff successor before replicated resume. A verified target handoff session can now package the actual bounded summary, diff, artifact, and evidence bytes as canonical base64 records bound to source/target session authority and the exact handoff id. Source verification rehashes every byte, requires the source predecessor head/count to remain unchanged, emits a content-free verification receipt, and never applies returned bytes implicitly. Files outside the declared data boundary, hardlinks, byte/digest drift, wrong handoff, and stale source authority fail closed. This is a portable result bundle and source readback core, not an automatic remote transport, ArtifactStore import, patch application, cross-host writer fence, or disconnect recovery claim. Shared-store handoff, release readiness, and the full return journey still require real WSL/SSH/Container/Cloud hosts, incremental/bidirectional synchronization, controlled transport and apply, reconnect durability, dual-IDE consumption, and 100 independent runs of every exact-commit matrix cell.",
+      "evidenceNotes": "Repository tests establish fixed-command WSL/strict-SSH/existing-Container target probing, exact whole-revision replica installation, independently recomputed target-attestation authority, and a CAS-bound canonical location-handoff successor before replicated resume. A verified target handoff session can package the actual bounded summary, diff, artifact, and evidence bytes as canonical base64 records bound to source/target session authority and the exact handoff id. Source verification rehashes every byte, requires the source predecessor head/count to remain unchanged, emits a content-free verification receipt, and never applies returned bytes implicitly. Files outside the declared data boundary, hardlinks, byte/digest drift, wrong handoff, and stale source authority fail closed. Configured WSL, strict SSH, and existing Container profiles can now collect that bundle without manual copying: source re-attests stable target facts, invokes only fixed target-side result-pack argv with shell disabled or exact POSIX quoting, enforces the 24 MiB response cap, and revalidates source authority after the response before emitting a collection digest. The collection remains read-only and reports response-loss and distributed-fencing gaps. This is not ArtifactStore import, patch application, Cloud transport, cross-host writer fencing, or reconnect durability. Shared-store handoff, release readiness, and the full return journey still require real hosts, incremental/bidirectional synchronization, controlled apply, response-loss recovery, dual-IDE consumption, and 100 independent runs of every exact-commit matrix cell.",
       "fixture": "tests/fixtures/ide-roadmap/p1-execution-location.json",
-      "fixtureDigest": "sha256:e29c62a489e921ac8347f9e79920a361948e22953e34ce21678f4ace3d488ff4",
+      "fixtureDigest": "sha256:21494505d6a030c01236d341d203de3c7743c48d88b50ac7f5132d05e342dc33",
       "seed": 2026080115,
       "minimumIndependentRuns": 100,
       "matrix": {
@@ -700,6 +700,10 @@
         "staleSourceResultVerificationCount": 0,
         "returnedResultAutoApplyCount": 0,
         "returnedResultVerificationContentLeakCount": 0,
+        "targetResultTransportBypassCount": 0,
+        "sourceAdvanceDuringResultCollectionAcceptanceCount": 0,
+        "targetFactsDriftResultCollectionCount": 0,
+        "oversizedResultBundleAcceptanceCount": 0,
         "orphanProcessCount": 0,
         "requiredMeasurementsComplete": true,
         "exactCommitBound": true
@@ -729,6 +733,7 @@
         "returned-commit-diff-summary-artifacts",
         "target-result-byte-bundle",
         "source-result-verification-receipt",
+        "fixed-transport-target-result-collection-receipt",
         "redacted-diagnostics",
         "outcome-observations"
       ]

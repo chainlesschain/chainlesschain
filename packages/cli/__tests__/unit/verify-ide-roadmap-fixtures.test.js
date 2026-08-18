@@ -538,7 +538,7 @@ describe("IDE roadmap fixture contract", () => {
 
     expect(result).toMatchObject({
       schemaVersion: 1,
-      manifestVersion: "1.9.29",
+      manifestVersion: "1.9.30",
       caseCount: 15,
       releaseReadiness: { status: "not-evaluated" },
     });
@@ -571,7 +571,7 @@ describe("IDE roadmap fixture contract", () => {
       /schemaVersion must equal supported version 1/,
     );
     expect(() => verifyIdeRoadmapFixtures({ repoRoot: corpus.root })).toThrow(
-      /manifestVersion must equal supported version "1\.9\.29"/,
+      /manifestVersion must equal supported version "1\.9\.30"/,
     );
   });
 
