@@ -1031,8 +1031,6 @@ export class SessionResourceBudget {
       this._authorityChanged(
         "budget:usage-settlement-started",
         {
-          id: label,
-          authorityId,
           pendingUsage: this._pendingUsage.size,
         },
         {
@@ -1063,6 +1061,9 @@ export class SessionResourceBudget {
     const label = `inline:${randomUUID()}`;
     const admission = this.beginUsageSettlement({ id: label });
     if (!admission?.ok) {
+      if (admission?.reason === "persistence-failed") {
+        this._assertAuthorityMutationAllowed();
+      }
       throw new SessionBudgetError(
         admission?.reason || "usage-settlement-not-started",
       );
@@ -1080,7 +1081,10 @@ export class SessionResourceBudget {
     this._recoveryUnknown.set(authorityId, recovery);
     this._authorityChanged(
       "budget:usage-unknown",
-      { id: label, authorityId },
+      {
+        pendingUsage: this._pendingUsage.size,
+        pendingRecovery: this._recoveryUnknown.size,
+      },
       {
         rollback: () => {
           this._recoveryUnknown.delete(authorityId);

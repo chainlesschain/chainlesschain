@@ -206,12 +206,29 @@ function mergeUsageUnknownSnapshot(baseSnapshot, markerSnapshot, filePath) {
   const work = new Map(base.inFlight.work.map((entry) => [entry.id, entry]));
   for (const entry of markerEntries) {
     const existing = work.get(entry.id);
-    if (existing && JSON.stringify(existing) !== JSON.stringify(entry)) {
-      throw runtimeError(
-        "corrupt",
-        filePath,
-        new TypeError("conflicting usage-unknown settlement identity"),
-      );
+    if (existing) {
+      if (
+        existing.kind !== entry.kind ||
+        (existing.depth ?? null) !== (entry.depth ?? null)
+      ) {
+        throw runtimeError(
+          "corrupt",
+          filePath,
+          new TypeError("conflicting usage-unknown settlement identity"),
+        );
+      }
+      work.set(entry.id, {
+        ...existing,
+        ...(existing.elapsedMs !== undefined || entry.elapsedMs !== undefined
+          ? {
+              elapsedMs: Math.max(
+                Number(existing.elapsedMs || 0),
+                Number(entry.elapsedMs || 0),
+              ),
+            }
+          : {}),
+      });
+      continue;
     }
     work.set(entry.id, { ...entry });
     if (work.size + base.inFlight.tools.length > MAX_IN_FLIGHT_RESOURCES) {
