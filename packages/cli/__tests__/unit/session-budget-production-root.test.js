@@ -7,6 +7,7 @@ import {
   adjudicateProductionSessionBudgetRecovery,
   openProductionSessionBudgetRoot,
   readProductionSessionBudget,
+  normalizeSessionBudgetRootConfig,
   resolveSessionBudgetRootOptions,
 } from "../../src/lib/session-budget-production-root.js";
 
@@ -53,6 +54,38 @@ describe("production session budget root", () => {
     expect(() =>
       resolveSessionBudgetRootOptions({ sessionMaxWallMs: "0" }),
     ).toThrow(/session-max-wall-ms.*positive integer/);
+  });
+
+  it("validates persisted session budget configs before root restore", () => {
+    expect(
+      normalizeSessionBudgetRootConfig({
+        schema: "chainlesschain.session-budget-root/v1",
+        enabled: true,
+        limits: { maxTurns: 3, maxDepth: 0, maxUsd: 1.25 },
+      }),
+    ).toEqual({
+      schema: "chainlesschain.session-budget-root/v1",
+      enabled: true,
+      limits: { maxTurns: 3, maxDepth: 0, maxUsd: 1.25 },
+    });
+    expect(() =>
+      normalizeSessionBudgetRootConfig({
+        schema: "chainlesschain.session-budget-root/v0",
+        enabled: true,
+        limits: {},
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: "CC_SESSION_BUDGET_CONFIG_INVALID" }),
+    );
+    expect(() =>
+      normalizeSessionBudgetRootConfig({
+        schema: "chainlesschain.session-budget-root/v1",
+        enabled: true,
+        limits: { maxTurns: 3, hiddenLimit: 1 },
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: "CC_SESSION_BUDGET_CONFIG_INVALID" }),
+    );
   });
 
   it("persists turn, known usage, and tool totals across root reopen", () => {

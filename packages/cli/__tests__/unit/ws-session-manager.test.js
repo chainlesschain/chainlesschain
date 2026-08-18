@@ -642,6 +642,11 @@ describe("WSSessionManager", () => {
     });
 
     it("persists resumable metadata for new sessions", () => {
+      const sessionBudgetRoot = {
+        schema: "chainlesschain.session-budget-root/v1",
+        enabled: true,
+        limits: { maxTurns: 5, maxTokens: 1000 },
+      };
       const { sessionId } = manager.createSession({
         type: "agent",
         projectRoot: "/repo",
@@ -651,6 +656,7 @@ describe("WSSessionManager", () => {
             run_shell: { allowed: false, decision: "require_confirmation" },
           },
         },
+        sessionBudgetRoot,
       });
 
       expect(dbUpdateSession).toHaveBeenCalledWith(
@@ -671,6 +677,7 @@ describe("WSSessionManager", () => {
                 },
               },
             },
+            sessionBudgetRoot,
           }),
         }),
       );
@@ -738,6 +745,11 @@ describe("WSSessionManager", () => {
               write_file: { allowed: false, decision: "require_plan" },
             },
           },
+          sessionBudgetRoot: {
+            schema: "chainlesschain.session-budget-root/v1",
+            enabled: true,
+            limits: { maxTurns: 5 },
+          },
           worktreeIsolation: false,
           planSnapshot: {
             state: "approved",
@@ -767,6 +779,11 @@ describe("WSSessionManager", () => {
         tools: {
           write_file: { allowed: false, decision: "require_plan" },
         },
+      });
+      expect(session.sessionBudgetRoot).toEqual({
+        schema: "chainlesschain.session-budget-root/v1",
+        enabled: true,
+        limits: { maxTurns: 5 },
       });
       expect(session.planManager.state).toBe("approved");
       expect(session.planManager.currentPlan).toMatchObject({

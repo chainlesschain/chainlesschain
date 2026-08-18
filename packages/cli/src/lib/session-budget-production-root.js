@@ -18,6 +18,14 @@ const OPTION_FIELDS = Object.freeze([
   ["sessionMaxToolMs", "maxToolMs", "--session-max-tool-ms", true],
 ]);
 
+const LIMIT_FIELDS = Object.freeze(
+  OPTION_FIELDS.map(([, field, flag, integer]) => ({
+    field,
+    flag,
+    integer,
+  })),
+);
+
 function normalizeLimit(raw, flag, { integer, allowZero = false } = {}) {
   if (raw === undefined || raw === null || raw === "") return null;
   const value = Number(raw);
@@ -51,6 +59,52 @@ export function resolveSessionBudgetRootOptions(options = {}) {
     enabled: options.sessionBudget === true || hasLimit,
     limits: Object.freeze(limits),
   });
+}
+
+export function normalizeSessionBudgetRootConfig(config) {
+  if (!config || typeof config !== "object" || Array.isArray(config)) {
+    const error = new TypeError("session budget root config must be an object");
+    error.code = "CC_SESSION_BUDGET_CONFIG_INVALID";
+    throw error;
+  }
+  try {
+    if (config.schema !== SESSION_BUDGET_ROOT_SCHEMA) {
+      throw new TypeError("session budget root schema is unsupported");
+    }
+    if (typeof config.enabled !== "boolean") {
+      throw new TypeError("session budget root enabled flag is invalid");
+    }
+    if (
+      !config.limits ||
+      typeof config.limits !== "object" ||
+      Array.isArray(config.limits)
+    ) {
+      throw new TypeError("session budget root limits must be an object");
+    }
+    const allowed = new Set(LIMIT_FIELDS.map(({ field }) => field));
+    if (Object.keys(config.limits).some((field) => !allowed.has(field))) {
+      throw new TypeError("session budget root contains an unknown limit");
+    }
+    const limits = {};
+    for (const { field, flag, integer } of LIMIT_FIELDS) {
+      const value = normalizeLimit(config.limits[field], flag, {
+        integer,
+        allowZero: field === "maxDepth",
+      });
+      if (value !== null) limits[field] = value;
+    }
+    if (!config.enabled && Object.keys(limits).length > 0) {
+      throw new TypeError("disabled session budget root cannot contain limits");
+    }
+    return Object.freeze({
+      schema: SESSION_BUDGET_ROOT_SCHEMA,
+      enabled: config.enabled,
+      limits: Object.freeze(limits),
+    });
+  } catch (error) {
+    error.code ||= "CC_SESSION_BUDGET_CONFIG_INVALID";
+    throw error;
+  }
 }
 
 function combineSignals(...signals) {

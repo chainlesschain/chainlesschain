@@ -967,6 +967,154 @@ describe("ws runtime event emission", () => {
     );
   });
 
+  it("boots an opt-in budgeted WS session under lease and canonical authority", async () => {
+    const order = [];
+    const leaseController = new AbortController();
+    const budgetController = new AbortController();
+    const lease = {
+      signal: leaseController.signal,
+      assert: vi.fn(),
+      release: vi.fn(() => order.push("lease:release")),
+    };
+    const budget = {
+      signal: budgetController.signal,
+      reason: vi.fn(() => null),
+      consumeTurn: vi.fn(() => ({ ok: true })),
+      recordUsage: vi.fn(() => ({ aborted: false })),
+    };
+    const budgetRoot = {
+      enabled: true,
+      budget,
+      options: { sessionBudget: budget, signal: budgetController.signal },
+      close: vi.fn(() => order.push("budget:close")),
+    };
+    server.sessionManager.db = {};
+    server.sessionManager.createSession.mockImplementation((options) => {
+      order.push("db:create");
+      server._session.sessionBudgetRoot = options.sessionBudgetRoot;
+      return { sessionId: "sess-1" };
+    });
+    server._sessionBudgetDependencies = {
+      acquireSessionHostLease: vi.fn(() => {
+        order.push("lease:acquire");
+        return lease;
+      }),
+      startJsonlSession: vi.fn((sessionId) => {
+        order.push("jsonl:start");
+        return sessionId;
+      }),
+      readSessionHostResumeState: vi.fn(() => {
+        order.push("jsonl:read");
+        return {
+          snapshot: { verified: true, head: { hash: "head-1" } },
+          messages: [],
+          recovery: { unsettled: [], incidents: [], replayDenied: [] },
+        };
+      }),
+      openProductionSessionBudgetRoot: vi.fn(() => {
+        order.push("budget:open");
+        return budgetRoot;
+      }),
+      deleteJsonlSession: vi.fn(),
+    };
+
+    await handleSessionCreate(server, "req-budget", ws, {
+      sessionType: "agent",
+      sessionBudget: true,
+      sessionMaxTurns: 4,
+      sessionMaxTokens: 1000,
+    });
+
+    expect(order.slice(0, 5)).toEqual([
+      "db:create",
+      "lease:acquire",
+      "jsonl:start",
+      "jsonl:read",
+      "budget:open",
+    ]);
+    expect(server.sessionManager.createSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requireDurable: true,
+        sessionBudgetRoot: expect.objectContaining({
+          enabled: true,
+          limits: { maxTurns: 4, maxTokens: 1000 },
+        }),
+      }),
+    );
+    expect(
+      server._sessionBudgetDependencies.openProductionSessionBudgetRoot,
+    ).toHaveBeenCalledWith(
+      "sess-1",
+      expect.objectContaining({ enabled: true }),
+      expect.objectContaining({ persist: true, signal: lease.signal }),
+    );
+    expect(server._send).toHaveBeenCalledWith(
+      ws,
+      expect.objectContaining({ type: "session.started" }),
+    );
+    expect(server._session.canonicalJsonlSession).toBe(true);
+  });
+
+  it("rolls back a budgeted WS session when the restored root is exhausted", async () => {
+    const leaseController = new AbortController();
+    const budgetController = new AbortController();
+    budgetController.abort("max-tokens");
+    const lease = {
+      signal: leaseController.signal,
+      release: vi.fn(),
+    };
+    const budget = {
+      signal: budgetController.signal,
+      reason: vi.fn(() => "max-tokens"),
+    };
+    const budgetRoot = {
+      enabled: true,
+      budget,
+      options: { sessionBudget: budget, signal: budgetController.signal },
+      close: vi.fn(),
+    };
+    server.sessionManager.db = {};
+    server.sessionManager.rollbackSessionCreation = vi.fn();
+    server.sessionManager.createSession.mockImplementation((options) => {
+      server._session.sessionBudgetRoot = options.sessionBudgetRoot;
+      return { sessionId: "sess-1" };
+    });
+    server._sessionBudgetDependencies = {
+      acquireSessionHostLease: vi.fn(() => lease),
+      startJsonlSession: vi.fn((sessionId) => sessionId),
+      readSessionHostResumeState: vi.fn(() => ({
+        snapshot: { verified: true, head: { hash: "head-1" } },
+        messages: [],
+        recovery: { unsettled: [], incidents: [], replayDenied: [] },
+      })),
+      openProductionSessionBudgetRoot: vi.fn(() => budgetRoot),
+      deleteJsonlSession: vi.fn(),
+    };
+
+    await handleSessionCreate(server, "req-budget-exhausted", ws, {
+      sessionBudget: true,
+      sessionMaxTokens: 10,
+    });
+
+    expect(budgetRoot.close).toHaveBeenCalledOnce();
+    expect(lease.release).toHaveBeenCalled();
+    expect(
+      server._sessionBudgetDependencies.deleteJsonlSession,
+    ).toHaveBeenCalledWith("sess-1");
+    expect(server.sessionManager.rollbackSessionCreation).toHaveBeenCalledWith(
+      "sess-1",
+    );
+    expect(server._send).toHaveBeenCalledWith(
+      ws,
+      expect.objectContaining({
+        type: "error",
+        payload: expect.objectContaining({
+          code: "CC_SESSION_BUDGET_EXHAUSTED",
+        }),
+      }),
+    );
+  });
+
   it("session-resume handler emits envelope with history+record", async () => {
     await handleSessionResume(server, "req-sr-env", ws, {
       sessionId: "sess-1",
@@ -1014,6 +1162,32 @@ describe("ws runtime event emission", () => {
         sessionId: "sess-1",
         payload: expect.objectContaining({
           code: "CC_WS_RESUME_BOOTSTRAP_FAILED",
+        }),
+      }),
+    );
+  });
+
+  it("refuses a persisted budgeted WS session without canonical JSONL", async () => {
+    server._session.sessionBudgetRoot = {
+      schema: "chainlesschain.session-budget-root/v1",
+      enabled: true,
+      limits: { maxTurns: 3 },
+    };
+    server._sessionBudgetDependencies = {
+      readSessionHostResumeState: vi.fn(() => null),
+    };
+
+    await handleSessionResume(server, "req-budget-no-jsonl", ws, {
+      sessionId: "sess-1",
+    });
+
+    expect(server.sessionHandlers.size).toBe(0);
+    expect(server._send).toHaveBeenCalledWith(
+      ws,
+      expect.objectContaining({
+        type: "error",
+        payload: expect.objectContaining({
+          code: "CC_SESSION_BUDGET_JSONL_REQUIRED",
         }),
       }),
     );
