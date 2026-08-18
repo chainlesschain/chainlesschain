@@ -2588,6 +2588,55 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 五十八、2026-08-18 R4 durable provider usage settlement authority 子门复核（`19:45 +08:00`）
+
+本节继续第五十五至五十七节的 opt-in durable session budget，把“provider 调用已经发出、但 token/USD 尚未结算”的窗口纳入同一持久 authority；
+不把 provider-reported usage 外推为独立账单证明，也不宣称当前人工放弃未知记录可以重建真实消费。基础提交为 `1e3fac1163`、`3b2181c491`、
+`97c12fffcf`，生产 host 接线与代理层收口为 `355ae341b6`、`844331e9de`、`a0d29e2d51`、`7657de8151`；这些提交已快进合并到本地
+`main`，尚无本候选 exact-head GitHub Actions。
+
+### 本轮关闭的 provider usage budget 子门
+
+- **provider transport 前先持久化预算结算意图。** canonical `model_usage_started` 已成功写入后，headless、interactive REPL、WebSocket、direct-model、
+  semantic compaction 与 `SubAgentContext` 会立即以真实 `callId` 调用 `beginUsageSettlement`；预算 sidecar 写入失败会在 provider callback/transport 前
+  fail closed。带 descendant attribution 的转发事件不在父 host 重复建立 root authority。
+- **并发调用拥有逐调用 authority。** root 同时保存多个 label→opaque authority 映射；known `recordUsage({callId})` 或 unknown
+  `markUsageUnknown({callId})` 只结算对应调用，重复/缺失/歧义 call id 均拒绝。另一个并发调用在此期间加入、先结算或转入恢复，不会被旧快照覆盖；
+  observer event 只暴露数量，不泄露内部 authority id。
+- **未知用量不再伪装成零用量。** provider throw、transport outcome unknown、成功响应缺失/畸形 usage 会先写 canonical unknown settlement，再把精确
+  pending authority 转成 durable recovery；生产入口返回 `CC_SESSION_BUDGET_USAGE_UNKNOWN` 或保留原 provider/persistence 异常，后续 admission 因
+  `recovery-required` 被阻断。状态/恢复命令回读精确 authority 集合，只有显式提交完整 `--abandon` 集合才可解除，不能静默清空 marker。
+- **已实际完成的晚到用量仍会记账。** 一个并发任务先触发 token/wall 等 abort 后，已经发出的 provider 调用仍可对自己的 pending authority 写入已知
+  token/USD；TeamRunner 的失败清理不再制造零用量结算，且 inherited budget proxy 会区分 known 与 unknown。子代理或团队任务一旦留下 unknown
+  authority，就不能被外层 aggregate/result 标成成功或再次收费。
+- **结算顺序保持单一。** 每条 direct usage 都遵守 `canonical started → durable budget intent → provider → canonical known/unknown → budget settlement`；
+  budget exhaustion 只在 canonical known usage 已持久化后向 host 抛出。这样预算 sidecar 不是 provider ledger 的替代品，而是对其逐调用投影。
+
+### 仓库内验证与证据边界
+
+- sidecar/runtime 两个基础文件为 **59 passed / 3 skipped**；覆盖 intent crash、已知/未知精确结算、同进程并发加入、marker CAS、恢复后清除与晚到结算。
+- budget/runtime、direct model、REPL wrapper、headless root、WS handler、SubAgent 与 TeamRunner 八个联合文件为 **160 passed / 3 skipped**；新增代理层
+  unknown 用例证明 recovery 不能被外层零结算或成功结果覆盖。
+- production root/command、agent-core、background、Cowork、完整 headless-stream、WS runtime/server 八个邻接文件为 **189/189**。Node syntax、
+  `git diff --check` 与 roadmap `--contract-only` 通过；本轮未伪造真实 provider 账单、断电/fsync 或外部宿主结果。
+- roadmap manifest 从 `1.9.24` 升至 `1.9.25`；`p1-dynamic-workflow` 现在引用 **39 个测试文件**，新增 budget intent 缺失、unknown 降级、并发
+  settlement collapse、abort 后晚到 usage 丢失及 delegated false-success 必须为零的合同，并要求 durable provider usage authority 与 unknown recovery
+  record。fixture digest 为 `sha256:25527bbe8b268643aba5027245a36d6b348838f75931cb5165233ca5e2135f89`；全 corpus 为
+  **15 cases / 88 referenced test files**，仍只验证 repository contract，不等于 external runtime evidence 或 release readiness。
+
+### R4 budget 仍未关闭的边界
+
+1. **provider billing/readback 仍开放：** 当前 authority 只结算已验证并已持久化的 provider-reported token usage 与内置价格快照估值；真实发票、独立
+   usage endpoint、request receipt 对账、stream 中断后的精确 token 数及无法定价模型仍无统一生产 readback。unknown 路径只能保守阻断，不能自行推导金额。
+2. **人工裁决不是账单证明：** `session budget recover --abandon` 证明 operator 明确接受该未知风险并解除本地 admission fence，不证明 provider 未收费，
+   也不会自动增加 token/USD；在独立账单/receipt 可回读前，外部审计仍须把该记录视为人工例外。
+3. **平台与敌对写入矩阵仍开放：** Windows/macOS 安全 sidecar、same-UID hostile writer、anti-rollback、跨进程/多主机 fencing、断电/fsync、remote
+   reconnect 与真实 provider 长期矩阵仍未关闭；root 仍为 opt-in，默认 migration 与 IDE/Desktop 创建控制面也未完成。
+
+因此，R4 budget 的 **durable per-provider-call intent、并发精确结算、unknown fail-closed recovery、late known usage 保留与 delegated host 传播**由本节
+关闭；R4 budget 整项仍为**部分完成**，不得据此声称真实 provider billing 已闭环。总计数保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，
+整体产品发布结论继续为 **NO-GO**。本节不改变 S0-1～S0-3、Q0、Q3、Q4a/Q4b、P1-1、P1-2、P1-4、P1-5 或 P2-4 的状态。
+
 ## 五十七、2026-08-18 R4 durable WebSocket session budget authority 子门复核（`18:08 +08:00`）
 
 本节继续第五十五、五十六节的 opt-in durable budget production root，把同一 authority 接到 CLI WebSocket agent session；不把本地 WS
