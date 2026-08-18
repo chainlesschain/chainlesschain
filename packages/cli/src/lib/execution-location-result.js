@@ -162,6 +162,16 @@ function contentRecord(bytesInput, mediaType, label, maxBytes) {
   };
 }
 
+function assertStrictUtf8Content(record, label) {
+  try {
+    new TextDecoder("utf-8", { fatal: true }).decode(
+      Buffer.from(record.contentBase64, "base64"),
+    );
+  } catch {
+    throw new TypeError(`${label} must contain strict UTF-8`);
+  }
+}
+
 function normalizeContentRecord(value, label, maxBytes) {
   const input = exactObject(
     value,
@@ -293,6 +303,7 @@ export function createExecutionLocationResultBundle(input = {}) {
   if (summary.byteLength === 0) {
     throw new TypeError("execution location result summary is empty");
   }
+  assertStrictUtf8Content(summary, "execution location result summary");
   const diff = contentRecord(
     input.diffBytes,
     "text/x-diff",
@@ -397,6 +408,20 @@ export function normalizeExecutionLocationResultBundle(value) {
   if (material.summary.byteLength === 0) {
     throw new TypeError("execution location result summary is empty");
   }
+  if (
+    material.summary.mediaType !== "text/plain" ||
+    material.diff.mediaType !== "text/x-diff"
+  ) {
+    throw new TypeError("execution location result core media type is invalid");
+  }
+  assertStrictUtf8Content(
+    material.summary,
+    "execution location result summary",
+  );
+  const contentIdentities = [
+    ...material.artifacts,
+    ...material.evidence,
+  ].map((entry) => `${entry.mediaType}\0${entry.digest}`);
   const calculatedBytes = [
     material.summary,
     material.diff,
@@ -405,6 +430,7 @@ export function normalizeExecutionLocationResultBundle(value) {
   ].reduce((total, entry) => total + entry.byteLength, 0);
   if (
     material.artifacts.length + material.evidence.length > MAX_RESULT_ITEMS ||
+    new Set(contentIdentities).size !== contentIdentities.length ||
     !Number.isSafeInteger(material.totalBytes) ||
     material.totalBytes !== calculatedBytes ||
     material.totalBytes > MAX_RESULT_CONTENT_BYTES
