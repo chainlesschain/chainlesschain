@@ -265,8 +265,8 @@ function normalizeAccessRequest(input = {}) {
   return Object.freeze({ accessId, artifactId, client, action });
 }
 
-function readCurrentArtifact(store, artifactId, runtimeFs = fs) {
-  const matches = store.list().filter((entry) => entry.id === artifactId);
+function readCurrentArtifact(store, entries, artifactId, runtimeFs = fs) {
+  const matches = entries.filter((entry) => entry.id === artifactId);
   if (matches.length !== 1) {
     throw new Error(
       matches.length === 0 ? "artifact not found" : "artifact id is ambiguous",
@@ -345,85 +345,100 @@ export function authorizeArtifactContentAccess(
   if (!store?.dir || typeof store.verifyIntegrity !== "function") {
     throw new TypeError("artifact content access requires an ArtifactStore");
   }
+  if (typeof store.withIndexSnapshot !== "function") {
+    throw new TypeError(
+      "artifact content access requires a locked ArtifactStore index snapshot",
+    );
+  }
   const request = normalizeAccessRequest(input);
   const runtimeFs = options.fs || fs;
   const filePath = ledgerPath(store);
   runtimeFs.mkdirSync(path.dirname(filePath), { recursive: true, mode: 0o700 });
-  return (options.withFileLock || withFileLock)(
-    filePath,
-    () => {
-      const ledgerBytes = readLedgerBytes(filePath, runtimeFs);
-      const events = parseLedger(ledgerBytes);
-      const prior = events.find((event) => event.accessId === request.accessId);
-      if (prior) {
-        if (
-          prior.artifactId !== request.artifactId ||
-          prior.client !== request.client ||
-          prior.action !== request.action
-        ) {
-          throw new Error(
-            "artifact access id is already bound to other inputs",
+  return store.withIndexSnapshot((entries) =>
+    (options.withFileLock || withFileLock)(
+      filePath,
+      () => {
+        const ledgerBytes = readLedgerBytes(filePath, runtimeFs);
+        const events = parseLedger(ledgerBytes);
+        const prior = events.find(
+          (event) => event.accessId === request.accessId,
+        );
+        if (prior) {
+          if (
+            prior.artifactId !== request.artifactId ||
+            prior.client !== request.client ||
+            prior.action !== request.action
+          ) {
+            throw new Error(
+              "artifact access id is already bound to other inputs",
+            );
+          }
+          const current = readCurrentArtifact(
+            store,
+            entries,
+            request.artifactId,
+            runtimeFs,
           );
+          if (
+            prior.artifactSha256 !== `sha256:${current.entry.sha256}` ||
+            prior.recordDigest !== (current.entry.recordDigest || null) ||
+            prior.artifactSessionId !== (current.entry.sessionId || null)
+          ) {
+            throw new Error("artifact changed after access authorization");
+          }
+          return Object.freeze({
+            access: prior,
+            recorded: false,
+            storedPath: current.storedPath,
+            integrity: Object.freeze({ ...current.integrity }),
+          });
         }
         const current = readCurrentArtifact(
           store,
+          entries,
           request.artifactId,
           runtimeFs,
         );
-        if (
-          prior.artifactSha256 !== `sha256:${current.entry.sha256}` ||
-          prior.recordDigest !== (current.entry.recordDigest || null) ||
-          prior.artifactSessionId !== (current.entry.sessionId || null)
-        ) {
-          throw new Error("artifact changed after access authorization");
-        }
+        const previous = events.at(-1) || null;
+        const material = {
+          schema: ARTIFACT_ACCESS_EVENT_SCHEMA,
+          sequence: (previous?.sequence || 0) + 1,
+          previousEventDigest: previous?.eventDigest || null,
+          accessId: request.accessId,
+          artifactId: request.artifactId,
+          artifactSha256: `sha256:${current.entry.sha256}`,
+          recordDigest: current.entry.recordDigest || null,
+          artifactSessionId: current.entry.sessionId || null,
+          client: request.client,
+          action: request.action,
+          authorizedAt: new Date(
+            typeof options.now === "function" ? options.now() : Date.now(),
+          ).toISOString(),
+          authorization: "current-artifact-index-and-byte-readback",
+        };
+        const candidateEvent = {
+          ...material,
+          eventDigest: digest(
+            "chainlesschain.artifact.content-access-event.v1\0",
+            material,
+          ),
+        };
+        const event = normalizeArtifactAccessEvent(candidateEvent, previous);
+        appendEvent(filePath, event, ledgerBytes.length, runtimeFs);
         return Object.freeze({
-          access: prior,
-          recorded: false,
+          access: event,
+          recorded: true,
           storedPath: current.storedPath,
           integrity: Object.freeze({ ...current.integrity }),
         });
-      }
-      const current = readCurrentArtifact(store, request.artifactId, runtimeFs);
-      const previous = events.at(-1) || null;
-      const material = {
-        schema: ARTIFACT_ACCESS_EVENT_SCHEMA,
-        sequence: (previous?.sequence || 0) + 1,
-        previousEventDigest: previous?.eventDigest || null,
-        accessId: request.accessId,
-        artifactId: request.artifactId,
-        artifactSha256: `sha256:${current.entry.sha256}`,
-        recordDigest: current.entry.recordDigest || null,
-        artifactSessionId: current.entry.sessionId || null,
-        client: request.client,
-        action: request.action,
-        authorizedAt: new Date(
-          typeof options.now === "function" ? options.now() : Date.now(),
-        ).toISOString(),
-        authorization: "current-artifact-index-and-byte-readback",
-      };
-      const candidateEvent = {
-        ...material,
-        eventDigest: digest(
-          "chainlesschain.artifact.content-access-event.v1\0",
-          material,
-        ),
-      };
-      const event = normalizeArtifactAccessEvent(candidateEvent, previous);
-      appendEvent(filePath, event, ledgerBytes.length, runtimeFs);
-      return Object.freeze({
-        access: event,
-        recorded: true,
-        storedPath: current.storedPath,
-        integrity: Object.freeze({ ...current.integrity }),
-      });
-    },
-    {
-      failIfUnavailable: true,
-      timeoutMs: 30_000,
-      retryMs: 1,
-      maxRetryMs: 8,
-      retryJitterMs: 4,
-    },
+      },
+      {
+        failIfUnavailable: true,
+        timeoutMs: 30_000,
+        retryMs: 1,
+        maxRetryMs: 8,
+        retryJitterMs: 4,
+      },
+    ),
   );
 }

@@ -93,6 +93,61 @@ describe("ArtifactStore", () => {
     expect(store.list()).toHaveLength(2);
   });
 
+  it("serializes every index generation through one strict lock", () => {
+    const lockTargets = [];
+    let lockDepth = 0;
+    let nowMs = Date.UTC(2026, 0, 1);
+    const indexLock = (target, callback, options) => {
+      expect(lockDepth).toBe(0);
+      expect(options).toMatchObject({ failIfUnavailable: true });
+      lockTargets.push(target);
+      lockDepth += 1;
+      try {
+        return callback({ locked: true });
+      } finally {
+        lockDepth -= 1;
+      }
+    };
+    const store = new ArtifactStore({
+      dir,
+      now: () => nowMs,
+      indexLock,
+    });
+    const first = store.publish({
+      filePath: writeSource("locked-a.txt", "aaa"),
+      ttlDays: 1,
+    });
+    const second = store.publishData({
+      data: "bbb",
+      fileName: "locked-b.txt",
+      ttlDays: 1,
+    });
+
+    expect(store.list()).toHaveLength(2);
+    expect(store.withIndexSnapshot((entries) => entries.length)).toBe(2);
+    expect(store.remove(first.id)).toBe(true);
+    nowMs += 2 * 24 * 60 * 60 * 1000;
+    expect(store.cleanupExpired()).toEqual({ removed: 1 });
+    expect(fs.existsSync(store.storedPath(second))).toBe(false);
+    expect(new Set(lockTargets)).toEqual(
+      new Set([path.join(dir, "index.jsonl")]),
+    );
+    expect(lockTargets).toHaveLength(6);
+  });
+
+  it("refuses ambiguous removal without deleting bytes or rewriting rows", () => {
+    const store = new ArtifactStore({ dir });
+    const entry = store.publish({
+      filePath: writeSource("ambiguous.txt", "content"),
+    });
+    const indexPath = path.join(dir, "index.jsonl");
+    fs.appendFileSync(indexPath, `${JSON.stringify(entry)}\n`, "utf8");
+
+    expect(() => store.remove(entry.id)).toThrow(/duplicate index rows/u);
+    expect(fs.existsSync(store.storedPath(entry))).toBe(true);
+    expect(store.list().filter((row) => row.id === entry.id)).toHaveLength(2);
+  });
+
   it("remove deletes the copy + row; cleanupExpired honors TTL via injected clock", () => {
     let nowMs = Date.UTC(2026, 0, 1);
     const store = new ArtifactStore({ dir, now: () => nowMs });
