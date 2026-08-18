@@ -2588,6 +2588,52 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 四十七、2026-08-18 P1-1 durable provider token usage ledger 子门复核（`13:06 +08:00`）
+
+本节继续第四十一、四十三至四十六节，把 provider 已返回的 token usage 从仅供 Agent host 消费的瞬时 settlement 事件接入逐调用
+durable store 与 `runtime-status --json`；不把本地记录外推成 provider 独立账单、USD cost 或第三方可查询 usage receipt。候选基于已合并
+本地主分支 `c5825ba99c489aa71695961ca4c2ad38250cc20c` 的功能分支，尚无本候选 exact-head GitHub Actions。
+
+### 本轮关闭的 provider-reported token 子门
+
+- **usage 与 terminal call 在同一同步持久化边界结算。** `token-usage` settlement 将 provider reported input、output、cache-read、
+  cache-creation 四个 bucket 规范化为 `cc-provider-token-usage/v1`，写入对应 provider call row；`effect-call-settled` 同时保存规范化 usage
+  digest。outer Cowork task 尚未返回时，该用量已进入 runtime state hash chain 与原子 fsync 文件，不再依赖 task result 的 heuristic
+  `tokenCount`。
+- **输入约束与篡改检查 fail closed。** 四个 bucket 必须是有界非负安全整数，input/output 必填，cache 缺省为 0；canonical/alias 同时出现时
+  必须一致。proxy、accessor、symbol/non-data descriptor、超字段上限和超 token 上限均在状态 mutation 前拒绝。回读重新验证精确六字段 schema、
+  bucket 总和及 settlement lineage digest；只重算 state digest 后改写或删除 usage 仍不能通过 verifier。
+- **真实用量与 Cowork 估算不混算。** `observability.tokens` 以 `runtime-state-hash-chain-fsync` 为 provider usage authority，独立输出四类聚合、
+  total、call/effect 数量和逐调用 digest lineage；原 `tokenCount` 保留为单独的 `cowork-result-heuristic` estimate。started、outcome-unknown、
+  operator-reconciled 与无 usage 的调用计入 missing，而不是写 0 或拿 estimate 填充。
+- **descendant 与旧状态边界显式。** spawned sub-agent/isolated skill 的 provider settlement 经过同一 owner chain 聚合，并保留 descendant、source 与
+  request-source。旧 call row 缺少 `providerUsage` 时仍可读取，但只能得到 `provider-token-usage-unavailable`、`provider-token-usage-incomplete` 和
+  `provider-token-usage-legacy-call-schema`；带新 `providerUsageDigest` 的 settlement 不能通过删字段降级成 legacy。
+
+### 仓库内验证与证据边界
+
+- dynamic runtime 聚焦文件为 **30/30**；覆盖四 bucket 持久化/聚合、cache alias 规范化、descendant attribution、outer result 前读回、
+  accessor 不触发且拒绝、outcome-unknown 不伪造用量、usage/digest 篡改拒绝和真实旧 row 兼容。
+- manifest `p1-dynamic-workflow` 引用的 **18 个文件为 587/587**；roadmap verifier 与 journey evidence 两文件为 **37/37**。
+- roadmap manifest 从 `1.9.13` 升至 `1.9.14`，baseline 绑定本轮起点 `c5825ba99c489aa71695961ca4c2ad38250cc20c`；fixture digest 为
+  `sha256:5d011b831d38655d253c160f19a3ebf12465c78b59e0798c7a66ed3e47955f26`。`--contract-only` 只核验合同，不能替代 exact-head
+  runtime evidence、真实 provider billing readback 或发布门。
+
+### P1-1 仍未关闭的边界
+
+1. **USD cost 与第三方 usage authority：** 当前 token 是 provider response 中已报告数字的本地 durable 副本，不是独立 provider billing API/账单
+   回读；模型价格、阶梯价、cache rate、reasoning token 和货币换算尚未形成版本化 cost ledger，因此 `reportedUsd` 继续为 `null`。
+2. **完整 side-effect 与制品 authority：** provider-native idempotency/receipt readback、ArtifactStore immutable bytes、checkpoint restore/readback、
+   未经过受管 observer 的 hook/external side effects 与不合作 provider 的物理取消仍开放。unknown/operator-reconciled call 的实际 token 无法证明时
+   必须继续显示 incomplete。
+3. **完整产品与外部矩阵：** 一般阶段间 `needs_input`、Workbench/VS Code/JetBrains phase/agent/control/token UI、plugin/marketplace 分发，以及
+   Local/WSL/SSH/Container/Cloud × 三 OS × 双 IDE 每格 100 次 exact-head 真实 provider/宿主故障矩阵仍无外部证据。
+
+因此，P1-1 的 **provider-reported token 逐调用持久化、settlement digest 绑定、durable 聚合、descendant 归属、估算隔离与 legacy gap** 由本节
+关闭；P1-1 整项仍为**部分完成**，不得据此声明 USD cost、provider 独立 usage readback 或完整 Workbench 已完成。总计数保持
+**12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
+Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
+
 ## 四十六、2026-08-18 P1-1 durable-call-derived nested effect observability 子门复核（`12:50 +08:00`）
 
 本节继续第四十一、四十二、四十五节，把 managed nested tool/MCP 的 attempt/settlement 主投影从 settled Cowork result arrays 切换到

@@ -549,6 +549,18 @@ describe("durable dynamic workflow runtime", () => {
         },
         providerReceipt: workflowProviderReceipt(providerBoundary),
       });
+      state = readDynamicWorkflowRuntimeState(statePath);
+      expect(state.effects[0].calls[0].providerUsage).toMatchObject({
+        inputTokens: 2,
+        outputTokens: 1,
+        cacheReadInputTokens: 3,
+        cacheCreationInputTokens: 4,
+        totalTokens: 10,
+      });
+      expect(
+        projectDynamicWorkflowRuntime(state).observability.tokens
+          .providerReported,
+      ).toMatchObject({ totalTokens: 10 });
 
       const toolUseId = "tool-publish-1";
       const tool = "mcp__repo__publish";

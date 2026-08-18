@@ -979,14 +979,18 @@ and trace-only semantics, then stores only the bounded provider request/response
 IDs and receipt timestamp while the call is still `started`. The terminal
 callback later persists `completed`, `failed`, or `outcome_unknown`
 independently of the eventual Cowork result and refuses a settlement-carried
-receipt that was not identically prewritten. A crash after provider response but
-before usage settlement therefore leaves an independently readable started row
-with the receipt, instead of relying on a completed-result projection. This also
-holds for descendant provider calls; the receipt remains neither provider-native
-idempotency nor independently readable from the provider. Duplicate, malformed,
-mismatched, or tampered rows fail closed. Explicit outer effect reconciliation
-preserves any prewritten receipt while marking still-started rows as operator
-reconciled, but does not turn trace-only request identities into third-party
+receipt that was not identically prewritten. A successful provider settlement
+also normalizes the provider-reported input, output, cache-read, and cache-write
+token counts into the same durable row and binds their digest into the settlement
+lineage. Counts are bounded non-negative integers; proxies, accessors, conflicting
+aliases, and later usage-row tamper fail closed. A crash after provider response
+but before usage settlement therefore leaves an independently readable started
+row with the receipt and an explicitly missing usage settlement, instead of
+relying on a completed-result projection. This also holds for descendant provider
+calls; neither the receipt nor the token counts are independently readable from
+the provider. Explicit outer effect reconciliation preserves any prewritten
+receipt while marking still-started rows as operator reconciled, but does not
+invent provider usage or turn trace-only request identities into third-party
 idempotency.
 Spawned sub-agents and isolated skills inherit the already-persisted parent
 tool child-effect as their workflow owner. Their internal provider/tool calls
@@ -999,10 +1003,13 @@ It exposes effect/result lineage, provider-return/operator-reconciled/runtime-
 not-dispatched settlement counts, provider dispatch and timeout timestamps,
 request-to-settlement wall time, durable-call-derived trace-only provider
 request attempts and receipts (including pending/crashed calls), durable-call-
-derived nested-tool attempt/settlement lineage, the independently persisted durable-call
-status/digest projection plus its provider-receipt count and bounded receipt IDs, the Cowork
-result's heuristic token estimate, and digest-only artifact/checkpoint
-references. Receipt projection rejects an
+derived nested-tool attempt/settlement lineage, the independently persisted
+durable-call status/digest projection plus its provider-receipt count and bounded
+receipt IDs, durable-call-derived provider token totals and per-call lineage, the
+separately labeled Cowork-result heuristic estimate, and digest-only artifact/
+checkpoint references. Token projection distinguishes reported, pending,
+outcome-unknown, operator-reconciled, and legacy calls; it never substitutes the
+heuristic estimate for missing provider usage. Receipt projection rejects an
 effect/provider/call/source/request mismatch or any claim of
 idempotency/independent readback, ignores conflicting outer-result receipt
 arrays when durable call rows exist while exposing a disagreement gap, and
@@ -1010,11 +1017,11 @@ reports a gap for every valid attempt with no matching provider receipt.
 Pre-durable-call states remain readable
 through an explicitly counted legacy task-result fallback that adds its own gap.
 The projection is intentionally
-`complete: false` and lists every missing authority: the current Cowork runner
-does not return provider token usage or USD cost, native provider idempotency
-and independent receipt readback remain unavailable, checkpoint and artifact-
-store readback are not yet wired, while local/host child payload projections
-remain result-bound. Managed nested tool attempts and terminal settlements no
+`complete: false` and lists every missing authority: USD cost, native provider
+idempotency, independent provider usage/receipt readback, and checkpoint/artifact-
+store readback remain unavailable. Pre-usage-schema calls stay readable with
+explicit unavailable/incomplete/legacy gaps. Managed nested tool attempts and
+terminal settlements no
 longer depend on those payload projections: started calls are crash-visible,
 conflicting outer-result arrays produce a disagreement gap, and pre-durable-call
 states use an explicit legacy fallback. MCP calls bind the
@@ -1029,7 +1036,7 @@ idempotency, and provider-side receipt lookup remain open.
 
 **WS protocol**: `workflow-list` / `workflow-get` / `workflow-save` / `workflow-remove` / `workflow-run` (streams `workflow:started` / `step-start` / `step-complete` / `workflow:done`).
 
-**Key files**: `src/gateways/ws/action-protocol.js` (5 handlers), `src/lib/cowork-workflow.js` (CRUD + `executeWorkflow`), `src/lib/dynamic-workflow-draft.js` (model proposal + human review authority), `src/lib/dynamic-workflow-runtime.js` (atomic parallel durable effect protocol), `packages/web-panel/src/stores/workflow.js` (Pinia store + `validateLocal`), `packages/web-panel/src/views/WorkflowEditor.vue`. **Governed CLI regression**: 586 tests across draft/review, durable runtime, façade, DAG, WebSocket, admission, provider/tool/descendant call binding, durable provider receipt prewrite/settlement, and MCP ledger coverage; the original editor slice retains its 39 backend/frontend/integration/E2E tests.
+**Key files**: `src/gateways/ws/action-protocol.js` (5 handlers), `src/lib/cowork-workflow.js` (CRUD + `executeWorkflow`), `src/lib/dynamic-workflow-draft.js` (model proposal + human review authority), `src/lib/dynamic-workflow-runtime.js` (atomic parallel durable effect protocol), `packages/web-panel/src/stores/workflow.js` (Pinia store + `validateLocal`), `packages/web-panel/src/views/WorkflowEditor.vue`. **Governed CLI regression**: 587 tests across draft/review, durable runtime, façade, DAG, WebSocket, admission, provider/tool/descendant call binding, durable provider receipt/token settlement, and MCP ledger coverage; the original editor slice retains its 39 backend/frontend/integration/E2E tests.
 
 > Vue Flow visual canvas (drag-to-connect, branch rendering) is planned as M2.
 
