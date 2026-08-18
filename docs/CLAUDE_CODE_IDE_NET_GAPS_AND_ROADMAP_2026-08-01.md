@@ -2588,6 +2588,54 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 六十一、2026-08-18 R4 canonical recovery receipt history 子门复核（`20:41 +08:00`）
+
+本节继续第六十节，关闭“sidecar 只有 chain head，受控 evidence 文件丢失后无法在本机重建已裁决 usage”的仓库内缺口；不把可改写的本机
+sidecar 冒充 WORM archive，也不把 operator 输入冒充 provider billing receipt。功能与合同提交 `8990a23663`～`52c01cfd79` 已快进合并到
+本地 `main`，尚无本候选 exact-head GitHub Actions。
+
+### 本轮关闭的 canonical receipt history 子门
+
+- **每次裁决同时保存规范 receipt，而不再只保存摘要。** receipt 保留 schema、sequence、previous digest、排序后的 opaque abandoned authority ids、
+  规范化 provider/model/token settlement、裁决前后 token/USD totals 与重算 digest；不保存 prompt、response、error text、业务 label 或任意 provider payload。
+  usageRecords 与 settlement 的调用方顺序不会改变相同语义的 canonical bytes。
+- **完整性检查覆盖链与账本余额。** restore 会逐条重算 receipt digest，要求 sequence 连续、predecessor 精确、authority 集无重复、settlement 只能使用
+  `usage-*` authority，并验证相邻 receipt 的 totals 连续以及最后 totals 与 sidecar 当前 token/USD 完全相等。只改 provider/model/token、删除或重排
+  receipt、替换 predecessor、令历史自洽但与当前余额脱节，都会 fail closed。
+- **receipt 与 recovery 清除仍是同一次 authority transition。** full receipt history 位于同一 revisioned snapshot；usage accounting、unknown marker
+  finalize、recovery set 清除、chain head 与 receipt append 共同成功或共同回滚。已有持久化失败回归继续证明不会留下 phantom receipt 或只补账不留记录。
+- **普通状态与明细读取分离。** `session budget status` 只投影 head、sequence、last delta 及 retained/complete coverage，不展开 provider/model/token
+  明细；显式 `session budget receipts <id> [--json]` 才返回规范 receipt。人类输出显示每条 sequence、digest、settled/abandoned count 与 totals 变化，
+  JSON 可供受控 evidence 导出和独立 digest 重算。
+- **旧 snapshot 不伪造历史。** 缺少 history 的 v1 snapshot 继续可读；下一次裁决以旧 count/head 作为 `baseSequence/baseDigest`，只保存可验证的新 suffix，
+  `complete=false`。新建 authority 从 genesis 保存时才报告完整本地 history，不能把旧 chain head 反推成不存在的明细记录。
+
+### 仓库内验证与证据边界
+
+- resource budget、sidecar runtime、production root 与 command 四个核心文件为 **78 passed / 3 skipped**；覆盖两条完整 receipt、重启回读、legacy
+  suffix、status 明细隔离、CLI JSON、receipt 内容/digest/predecessor/totals 篡改及持久化失败回滚。
+- direct model、REPL wrapper、headless、WebSocket、SubAgent、TeamRunner、Agent Core 与 background task 合并后的十二文件为
+  **186 passed / 3 skipped**。Node syntax 与 `git diff --check` 通过。
+- roadmap manifest 从 `1.9.27` 升至 `1.9.28`；`p1-dynamic-workflow` 仍引用 **39 个测试文件**，新增 missing receipt、receipt tamper、
+  totals drift、ordinary-status detail leak 与 legacy-prefix completeness overclaim 必须为零的合同，并要求
+  `provider-usage-recovery-receipt-history` artifact。fixture digest 为
+  `sha256:541e1bba721612fed632620e0d0172fffb53d253a757cb8d7f874038d66e9f61`；全 corpus 保持
+  **15 cases / 88 referenced test files**。verifier/journey 为 **37/37**；contract 仍不等于 external runtime evidence 或 release readiness。
+
+### R4 budget 仍未关闭的边界
+
+1. **来源真实性仍开放：** 本地 receipt 证明 operator 提交的规范 usage、预算 totals 与裁决顺序一致，不证明这些字段来自 provider billing endpoint、
+   invoice 或签名 receipt；独立 readback、退款、延迟入账和争议复核仍未实现。
+2. **本地 history 不是 WORM archive：** sidecar 仍受 1 MiB authority 上限和本地 retention 约束，没有归档/压缩/修订协议、多人批准、外部不可变存储或
+   独立读者回读。能重写 sidecar 与全部本机 witness 的同 UID 攻击者仍超出当前边界；legacy head-only prefix 也无法被事后重建。
+3. **平台、产品与长期矩阵仍开放：** Windows/macOS 安全持久化、多主机 anti-rollback/fencing、物理断电/fsync、IDE/Desktop receipt 审阅与导出 UI、
+   真实 provider 和长期故障矩阵仍未关闭。
+
+因此，R4 budget 的**规范本地 receipt history、逐条 digest/链/余额校验、原子提交回滚、显式明细读取与 legacy suffix 诚实标注**由本节关闭；
+R4 budget 整项仍为**部分完成**，不得据此声称 provider-native billing proof、外部 WORM audit 或 hostile-writer protection 已完成。总计数保持
+**12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节不改变 S0-1～S0-3、Q0、Q3、
+Q4a/Q4b、P1-1、P1-2、P1-4、P1-5 或 P2-4 的状态。
+
 ## 六十、2026-08-18 R4 recovery adjudication digest lineage 子门复核（`20:22 +08:00`）
 
 本节继续第五十九节的 operator-verified usage recovery，补上“补账完成后 sidecar 只剩 totals、无法绑定当时输入”的审计缺口；不把本地 digest 外推为
