@@ -944,15 +944,36 @@ resume that same effect; a persisted dispatch marker requires provider return
 or reconciliation. Reconciliation is an explicit operator assertion about an
 outcome-unknown provider call, not an automatic retry or a third-party receipt.
 
+For a durable workflow effect, the production Cowork runner now validates the
+canonical `sha256:` effect identity before constructing a child agent and locks
+that identity into the child loop. Each ordinary model turn derives its own
+stable `ccwf_...` request identity. The OpenAI transport sends that value as
+`X-Client-Request-Id` only for the official `https://api.openai.com` origin and
+retains a bounded receipt only when OpenAI returns an `x-request-id` header or
+response object ID; a custom OpenAI-compatible gateway receives no official
+contract claim. Workflow-bound turns disable
+transparent streaming retries and cross-provider fallback so one durable model
+boundary cannot hide another physical provider attempt. A child/provider
+exception is propagated to the outer durable runtime as an unknown outcome; it
+is never downgraded to an ordinary failed task that step retry could replay.
+These identifiers are
+explicitly `trace-only`: they do not provide native provider idempotency or an
+independently readable receipt, and unsupported providers return no receipt.
+Semantic-compaction provider calls and nested tool/MCP/external effects remain
+outside this model-turn receipt slice.
+
 `runtime-status --json` also returns a digest-bound `observability` projection.
 It exposes effect/result lineage, provider-return/operator-reconciled/runtime-
 not-dispatched settlement counts, provider dispatch and timeout timestamps,
-request-to-settlement wall time, the Cowork result's heuristic token estimate,
-and digest-only artifact/checkpoint references. The projection is intentionally
+request-to-settlement wall time, effect-bound trace-only provider request
+receipts, the Cowork result's heuristic token estimate, and digest-only
+artifact/checkpoint references. Receipt projection rejects an effect mismatch
+or any claim of idempotency/independent readback. The projection is intentionally
 `complete: false` and lists every missing authority: the current Cowork runner
-does not return provider token usage or USD cost, checkpoint and artifact-store
-readback are not yet wired, and nested tool side effects are not represented by
-the workflow-level effect ledger.
+does not return provider token usage or USD cost, native provider idempotency
+and independent receipt readback remain unavailable, checkpoint and artifact-
+store readback are not yet wired, and nested tool side effects are not
+represented by the workflow-level effect ledger.
 
 **WS protocol**: `workflow-list` / `workflow-get` / `workflow-save` / `workflow-remove` / `workflow-run` (streams `workflow:started` / `step-start` / `step-complete` / `workflow:done`).
 

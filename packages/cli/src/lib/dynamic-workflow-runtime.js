@@ -40,6 +40,9 @@ const MAX_EFFECTS = 64;
 const MAX_EFFECT_BATCH_SIZE = 64;
 const MAX_LINEAGE_EVENTS = 512;
 const MAX_PROJECTED_ARTIFACTS_PER_EFFECT = 256;
+const PROVIDER_CLIENT_REQUEST_ID_RE = /^ccwf_[a-f0-9]{64}$/u;
+const PROVIDER_RECEIPT_ID_RE = /^[A-Za-z0-9._:-]{1,256}$/u;
+const PROVIDER_NAME_RE = /^[a-z0-9][a-z0-9._-]{0,63}$/u;
 const SETTLEMENT_AUTHORITIES = new Set([
   "provider-return",
   "operator-reconciled",
@@ -1627,11 +1630,68 @@ function projectResultValues(effect, field, domain) {
   };
 }
 
+function projectProviderRequestReceipts(effect) {
+  const values = effect.result?.providerRequestReceipts;
+  if (!Array.isArray(values)) {
+    return { count: 0, invalid: 0, truncated: false, lineage: [] };
+  }
+  const visible = values.slice(0, MAX_PROJECTED_ARTIFACTS_PER_EFFECT);
+  const lineage = [];
+  let invalid = 0;
+  for (let ordinal = 0; ordinal < visible.length; ordinal += 1) {
+    const receipt = visible[ordinal];
+    const requestId = receipt?.requestId ?? null;
+    const responseId = receipt?.responseId ?? null;
+    if (
+      effect.settlementAuthority !== "provider-return" ||
+      effect.result?.workflowEffectId !== effect.id ||
+      !receipt ||
+      typeof receipt !== "object" ||
+      Array.isArray(receipt) ||
+      receipt.protocol !== "cc-provider-request-receipt/v1" ||
+      receipt.workflowEffectId !== effect.id ||
+      !PROVIDER_NAME_RE.test(receipt.provider || "") ||
+      typeof receipt.callId !== "string" ||
+      !PROVIDER_RECEIPT_ID_RE.test(receipt.callId) ||
+      !Number.isSafeInteger(receipt.callSequence) ||
+      receipt.callSequence < 1 ||
+      !PROVIDER_CLIENT_REQUEST_ID_RE.test(receipt.clientRequestId || "") ||
+      (requestId !== null && !PROVIDER_RECEIPT_ID_RE.test(requestId)) ||
+      (responseId !== null && !PROVIDER_RECEIPT_ID_RE.test(responseId)) ||
+      (!requestId && !responseId) ||
+      receipt.requestIdentitySemantics !== "trace-only" ||
+      receipt.independentlyReadable !== false
+    ) {
+      invalid += 1;
+      continue;
+    }
+    lineage.push({
+      effectId: effect.id,
+      ordinal,
+      provider: receipt.provider,
+      callId: receipt.callId,
+      callSequence: receipt.callSequence,
+      clientRequestId: receipt.clientRequestId,
+      requestId,
+      responseId,
+      requestIdentitySemantics: "trace-only",
+      independentlyReadable: false,
+    });
+  }
+  return {
+    count: values.length,
+    invalid,
+    truncated: values.length > visible.length,
+    lineage,
+  };
+}
+
 function projectDynamicWorkflowObservability(state) {
   const settled = state.effects.filter((effect) => effect.status === "settled");
   const effectLineage = [];
   const artifactLineage = [];
   const checkpointLineage = [];
+  const providerReceiptLineage = [];
   let requestToSettlementMs = 0;
   let maxRequestToSettlementMs = 0;
   let estimatedTokens = 0;
@@ -1643,6 +1703,10 @@ function projectDynamicWorkflowObservability(state) {
   let checkpointCount = 0;
   let artifactTruncatedEffects = 0;
   let checkpointTruncatedEffects = 0;
+  let providerReceiptCount = 0;
+  let providerReceiptEffects = 0;
+  let invalidProviderReceipts = 0;
+  let providerReceiptTruncatedEffects = 0;
 
   for (const effect of settled) {
     const elapsed = Math.max(
@@ -1683,6 +1747,13 @@ function projectDynamicWorkflowObservability(state) {
     checkpointLineage.push(...checkpoints.lineage);
     if (checkpoints.truncated) checkpointTruncatedEffects += 1;
 
+    const providerReceipts = projectProviderRequestReceipts(effect);
+    providerReceiptCount += providerReceipts.count;
+    providerReceiptLineage.push(...providerReceipts.lineage);
+    invalidProviderReceipts += providerReceipts.invalid;
+    if (providerReceipts.lineage.length > 0) providerReceiptEffects += 1;
+    if (providerReceipts.truncated) providerReceiptTruncatedEffects += 1;
+
     effectLineage.push({
       effectId: effect.id,
       stepId: effect.stepId,
@@ -1711,6 +1782,8 @@ function projectDynamicWorkflowObservability(state) {
   const gaps = [
     "provider-token-usage-unavailable",
     "provider-cost-usd-unavailable",
+    "provider-native-idempotency-unavailable",
+    "provider-receipt-independent-readback-unavailable",
     "checkpoint-provider-readback-unavailable",
     "artifact-store-readback-unavailable",
     "nested-tool-side-effect-ledger-unavailable",
@@ -1723,6 +1796,18 @@ function projectDynamicWorkflowObservability(state) {
   }
   if (checkpointTruncatedEffects > 0) {
     gaps.push("checkpoint-lineage-projection-truncated");
+  }
+  const providerReturnedEffects = settled.filter(
+    (effect) => effect.settlementAuthority === "provider-return",
+  ).length;
+  if (providerReceiptEffects !== providerReturnedEffects) {
+    gaps.push("provider-request-receipt-incomplete");
+  }
+  if (invalidProviderReceipts > 0) {
+    gaps.push("provider-request-receipt-invalid");
+  }
+  if (providerReceiptTruncatedEffects > 0) {
+    gaps.push("provider-request-receipt-projection-truncated");
   }
 
   return snapshotJson(
@@ -1774,6 +1859,23 @@ function projectDynamicWorkflowObservability(state) {
         authority: "unavailable",
         reportedUsd: null,
         observedEffects: 0,
+      },
+      providerReceipts: {
+        authority: "provider-returned-trace-only",
+        count: providerReceiptCount,
+        projectedRecords: providerReceiptLineage.length,
+        observedEffects: providerReceiptEffects,
+        missingProviderReturnedEffects:
+          providerReturnedEffects - providerReceiptEffects,
+        invalidRecords: invalidProviderReceipts,
+        truncatedEffects: providerReceiptTruncatedEffects,
+        nativeIdempotencyProven: false,
+        independentlyReadable: false,
+        lineageDigest: digest(
+          "chainlesschain.dynamic-workflow.provider-request-receipt-lineage.v1\0",
+          providerReceiptLineage,
+        ),
+        lineage: providerReceiptLineage,
       },
       artifacts: {
         authority: "task-result-digest-only",

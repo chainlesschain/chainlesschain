@@ -58,6 +58,7 @@ export const _deps = {
 
 const DEFAULT_MAX_ITERATIONS = 50;
 const DEFAULT_TOKEN_BUDGET = 100_000;
+const WORKFLOW_EFFECT_ID_RE = /^sha256:[a-f0-9]{64}$/;
 const COWORK_MCP_CALL_LEDGER_UNSUPPORTED =
   "CC_COWORK_MCP_CALL_LEDGER_UNSUPPORTED";
 const COWORK_MCP_SESSION_UNVERIFIED = "CC_COWORK_MCP_SESSION_UNVERIFIED";
@@ -72,6 +73,29 @@ function coworkMcpAdmissionError(code, message, sessionId, cause = null) {
   error.code = code;
   error.sessionId = sessionId;
   return error;
+}
+
+function assertWorkflowEffectId(value) {
+  if (value == null) return;
+  if (typeof value !== "string" || !WORKFLOW_EFFECT_ID_RE.test(value)) {
+    const error = new TypeError(
+      "workflowEffectId must be a canonical sha256 identity",
+    );
+    error.code = "CC_COWORK_WORKFLOW_EFFECT_ID_INVALID";
+    throw error;
+  }
+}
+
+function workflowEffectEvidence(subAgent, workflowEffectId) {
+  if (!workflowEffectId) return {};
+  const receipts =
+    typeof subAgent?.providerRequestReceipts === "function"
+      ? subAgent.providerRequestReceipts()
+      : [];
+  return {
+    workflowEffectId,
+    providerRequestReceipts: receipts,
+  };
 }
 
 function assertCoworkMcpEventUsageAdmission(event, sessionId) {
@@ -477,6 +501,7 @@ export function prepareCoworkMcpRuntime(mcp, options = {}) {
  * @param {number} [options.maxIterations] - Override iteration limit
  * @param {number} [options.tokenBudget] - Override token budget
  * @param {string} [options.mcpSessionId] - Stable MCP ledger session for resume
+ * @param {string} [options.workflowEffectId] - Canonical durable workflow effect
  * @param {(request: object) => boolean|Promise<boolean>} [options.approveMcpLocalCodeExecution]
  * @returns {Promise<{ taskId: string, status: string, result: object }>}
  */
@@ -493,12 +518,14 @@ export async function runCoworkTask(options = {}) {
     onProgress = null,
     signal = null,
     mcpSessionId = null,
+    workflowEffectId = null,
     approveMcpLocalCodeExecution = null,
   } = options;
 
   if (!userMessage || typeof userMessage !== "string") {
     throw new Error("userMessage is required");
   }
+  assertWorkflowEffectId(workflowEffectId);
 
   // An explicit canonical authority must be admitted before mounting local MCP
   // servers, constructing a child context, or making any provider call.
@@ -582,6 +609,7 @@ export async function runCoworkTask(options = {}) {
       cwd,
       onProgress,
       signal,
+      ...(workflowEffectId ? { workflowEffectId } : {}),
       extraToolDefinitions: mcp.extraToolDefinitions,
       externalToolDescriptors: mcp.externalToolDescriptors,
       externalToolExecutors: mcp.externalToolExecutors,
@@ -632,17 +660,25 @@ export async function runCoworkTask(options = {}) {
         templateId: template.id,
         templateName: template.name,
         ...(mcpRuntime.sessionId ? { mcpSessionId: mcpRuntime.sessionId } : {}),
+        ...workflowEffectEvidence(subAgent, workflowEffectId),
         result,
       };
       _appendHistory(cwd, entry, userMessage);
       return entry;
     } catch (err) {
+      // A durable workflow already marked this outer effect as dispatched.
+      // Converting a child/provider exception into an ordinary failed result
+      // would authorize the step retry path even though the physical provider
+      // outcome may be unknown. Propagate so the runtime keeps it pending and
+      // requires reconciliation.
+      if (workflowEffectId) throw err;
       const entry = {
         taskId,
         status: "failed",
         templateId: template.id,
         templateName: template.name,
         ...(mcpRuntime.sessionId ? { mcpSessionId: mcpRuntime.sessionId } : {}),
+        ...workflowEffectEvidence(subAgent, workflowEffectId),
         result: {
           summary: `Task failed: ${err.message}`,
           artifacts: [],

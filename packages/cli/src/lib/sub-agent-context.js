@@ -132,6 +132,8 @@ export class SubAgentContext {
    * @param {boolean} [options.memoryEnabled=true] - When false, the child's
    *   context engine suppresses hierarchical-memory recall (contract memory:false)
    * @param {object} [options.llmOptions] - LLM provider/model/key options
+   * @param {string} [options.workflowEffectId] - Durable workflow effect bound
+   *   to provider request identities for this child run
    * @param {string} [options.cwd] - Working directory
    * @param {boolean} [options.useWorktree] - Force worktree isolation (overrides flag)
    * @param {function} [options.onUsageBoundary] - Synchronous observer for
@@ -207,6 +209,8 @@ export class SubAgentContext {
     this._runId = null;
     this._checkpointIds = [];
     this._toolUseIds = [];
+    this._workflowEffectId = options.workflowEffectId ?? null;
+    this._providerRequestReceipts = [];
 
     // ── Isolated state ──────────────────────────────────────────────
     // Independent message history — never shared with parent
@@ -547,7 +551,9 @@ export class SubAgentContext {
       }
       return result;
     } catch (err) {
-      if (err?.runtimeLedgerPersistence === true) throw err;
+      if (err?.runtimeLedgerPersistence === true || this._workflowEffectId) {
+        throw err;
+      }
       // If worktree creation fails (e.g. not a git repo), fall back to direct
       this.status = "failed";
       this.completedAt = new Date().toISOString();
@@ -615,6 +621,13 @@ export class SubAgentContext {
     }
     options.toolAdmission = this.toolAdmission;
     options.skillAllowlist = this.skillAllowlist;
+    // A caller cannot replace the durable outer effect through loopOptions.
+    // agentLoop validates the canonical sha256 form before any provider call.
+    if (this._workflowEffectId) {
+      options.workflowEffectId = this._workflowEffectId;
+    } else {
+      delete options.workflowEffectId;
+    }
     const authority = this._parentAuthority;
     if (authority.permissionRules) {
       options.permissionRules = authority.permissionRules;
@@ -809,6 +822,22 @@ export class SubAgentContext {
           if (!this._toolUseIds.includes(toolUseId)) {
             this._toolUseIds.push(toolUseId);
           }
+        }
+        if (event.type === "provider-request-receipt") {
+          this._providerRequestReceipts.push(
+            Object.freeze({
+              protocol: event.protocol,
+              provider: event.provider,
+              workflowEffectId: event.workflowEffectId,
+              callId: event.callId,
+              callSequence: event.callSequence,
+              clientRequestId: event.clientRequestId,
+              requestId: event.requestId || null,
+              responseId: event.responseId || null,
+              requestIdentitySemantics: event.requestIdentitySemantics,
+              independentlyReadable: event.independentlyReadable,
+            }),
+          );
         }
 
         if (event.type === "token-usage") {
@@ -1005,7 +1034,9 @@ export class SubAgentContext {
         );
       }
     } catch (err) {
-      if (err?.runtimeLedgerPersistence === true) throw err;
+      if (err?.runtimeLedgerPersistence === true || this._workflowEffectId) {
+        throw err;
+      }
       if (this.isAborted()) {
         this.forceComplete(this._cancelReason || "cancelled", {
           partialContent: lastContent,
@@ -1159,9 +1190,20 @@ export class SubAgentContext {
       parentTraceId: this._hookParentTraceId || null,
       checkpointIds: [...this._checkpointIds],
       toolUseIds: [...this._toolUseIds],
+      ...(this._workflowEffectId
+        ? { providerRequestReceipts: this.providerRequestReceipts() }
+        : {}),
       worktreeId: worktree?.branch || this._worktreeBranch || null,
       worktreePath: worktree?.path || this._worktreePath || null,
     };
+  }
+
+  /**
+   * Provider-returned request identifiers observed during this child run.
+   * Values are copied so callers cannot mutate recovery evidence in place.
+   */
+  providerRequestReceipts() {
+    return this._providerRequestReceipts.map((receipt) => ({ ...receipt }));
   }
 
   /**
