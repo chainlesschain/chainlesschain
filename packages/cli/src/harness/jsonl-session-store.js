@@ -88,6 +88,7 @@ import {
   normalizeExecutionLocationResultBundle,
   verifyExecutionLocationResultBundle,
 } from "../lib/execution-location-result.js";
+import { normalizeExecutionLocationResultStoreReceipt } from "../lib/execution-location-result-store.js";
 
 let securedSessionsDir = null;
 let securedSessionsDirIdentity = null;
@@ -142,10 +143,14 @@ export const SESSION_EXECUTION_LOCATION_HANDOFF_INSTALL_SCHEMA =
   "chainlesschain.session-execution-location-handoff-install/v1";
 export const SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_EVENT =
   "execution_location_result_collection";
-export const SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_SCHEMA =
+export const SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_SCHEMA_V1 =
   "chainlesschain.session-execution-location-result-collection/v1";
-export const SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_RECEIPT_SCHEMA =
+export const SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_SCHEMA =
+  "chainlesschain.session-execution-location-result-collection/v2";
+export const SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_RECEIPT_SCHEMA_V1 =
   "chainlesschain.session-execution-location-result-collection-receipt/v1";
+export const SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_RECEIPT_SCHEMA =
+  "chainlesschain.session-execution-location-result-collection-receipt/v2";
 export const MAX_SESSION_REPLICA_BYTES = 64 * 1024 * 1024;
 const WS_TURN_CONTENT_MAX_BYTES = 4 * 1024 * 1024;
 const WS_TURN_REQUEST_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:@-]*$/;
@@ -3904,6 +3909,7 @@ function createSessionResultCollectionSettlementData(
   sessionId,
   requestIdInput,
   collection,
+  storageInput,
 ) {
   if (
     !collection ||
@@ -3957,6 +3963,15 @@ function createSessionResultCollectionSettlementData(
     collection.verification?.applied !== false
   ) {
     throw new TypeError("execution-location result verification is invalid");
+  }
+  const storage = normalizeExecutionLocationResultStoreReceipt(storageInput);
+  if (
+    storage.sessionId !== sessionId ||
+    storage.resultId !== bundle.resultId ||
+    storage.handoffId !== bundle.session.handoffId ||
+    storage.bundleDigest !== bundle.bundleDigest
+  ) {
+    throw new TypeError("execution-location result storage receipt is invalid");
   }
   const collectionMaterial = {
     schema: "cc-execution-location-target-result-collection/v1",
@@ -4038,6 +4053,7 @@ function createSessionResultCollectionSettlementData(
       collection.collectionDigest,
       "result collection digest",
     ),
+    storage,
     totalBytes,
     applied: false,
   };
@@ -4051,6 +4067,14 @@ function createSessionResultCollectionSettlementData(
 }
 
 function normalizeSessionResultCollectionSettlementData(sessionId, data) {
+  const isLegacy =
+    data.schema === SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_SCHEMA_V1;
+  if (
+    !isLegacy &&
+    data.schema !== SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_SCHEMA
+  ) {
+    throw new TypeError("session result collection settlement schema is invalid");
+  }
   const source = normalizeSessionResultCollectionSource(data.source, sessionId);
   const target = exactRecord(
     data.target,
@@ -4072,7 +4096,7 @@ function normalizeSessionResultCollectionSettlementData(sessionId, data) {
     throw new TypeError("session result collection settlement is invalid");
   }
   const material = {
-    schema: SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_SCHEMA,
+    schema: data.schema,
     requestId: normalizeSessionResultCollectionRequestId(data.requestId),
     requestDigest: normalizeSessionLocationDigest(
       data.requestDigest,
@@ -4118,6 +4142,11 @@ function normalizeSessionResultCollectionSettlementData(sessionId, data) {
       data.collectionDigest,
       "result collection digest",
     ),
+    ...(!isLegacy
+      ? {
+          storage: normalizeExecutionLocationResultStoreReceipt(data.storage),
+        }
+      : {}),
     totalBytes,
     applied: false,
   };
@@ -4128,6 +4157,15 @@ function normalizeSessionResultCollectionSettlementData(sessionId, data) {
   if (data.settlementId !== settlementId) {
     throw new TypeError("session result collection settlement id is invalid");
   }
+  if (
+    !isLegacy &&
+    (material.storage.sessionId !== sessionId ||
+      material.storage.resultId !== resultId ||
+      material.storage.handoffId !== material.handoffId ||
+      material.storage.bundleDigest !== material.bundleDigest)
+  ) {
+    throw new TypeError("session result collection storage is invalid");
+  }
   return Object.freeze({ ...material, settlementId });
 }
 
@@ -4136,6 +4174,9 @@ function projectSessionResultCollectionSettlement(
   event,
   eventCount,
 ) {
+  const legacy =
+    event?.data?.schema ===
+    SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_SCHEMA_V1;
   const data = exactRecord(
     event?.data,
     [
@@ -4153,12 +4194,16 @@ function projectSessionResultCollectionSettlement(
       "bundleDigest",
       "verificationDigest",
       "collectionDigest",
+      ...(!legacy ? ["storage"] : []),
       "totalBytes",
       "applied",
     ],
     "session result collection settlement",
   );
-  if (data.schema !== SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_SCHEMA) {
+  if (
+    !legacy &&
+    data.schema !== SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_SCHEMA
+  ) {
     throw new TypeError("session result collection settlement schema is invalid");
   }
   const normalized = normalizeSessionResultCollectionSettlementData(
@@ -4181,8 +4226,14 @@ function projectSessionResultCollectionSettlement(
 }
 
 function sessionResultCollectionReceipt(sessionId, settlement) {
+  const legacy =
+    settlement.schema ===
+    SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_SCHEMA_V1;
+  const receiptSchema = legacy
+    ? SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_RECEIPT_SCHEMA_V1
+    : SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_RECEIPT_SCHEMA;
   const material = {
-    schema: SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_RECEIPT_SCHEMA,
+    schema: receiptSchema,
     sessionId,
     settlementId: settlement.settlementId,
     requestId: settlement.requestId,
@@ -4198,13 +4249,16 @@ function sessionResultCollectionReceipt(sessionId, settlement) {
     bundleDigest: settlement.bundleDigest,
     verificationDigest: settlement.verificationDigest,
     collectionDigest: settlement.collectionDigest,
+    ...(!legacy ? { storage: settlement.storage } : {}),
     totalBytes: settlement.totalBytes,
     applied: false,
   };
   return Object.freeze({
     ...material,
     receiptDigest: sessionLocationDigest(
-      "chainlesschain.session-execution-location-result-collection-receipt.v1\0",
+      legacy
+        ? "chainlesschain.session-execution-location-result-collection-receipt.v1\0"
+        : "chainlesschain.session-execution-location-result-collection-receipt.v2\0",
       material,
     ),
   });
@@ -4265,11 +4319,13 @@ export function settleSessionExecutionLocationResultCollection(
   sessionId,
   requestIdInput,
   collection,
+  storage,
 ) {
   const data = createSessionResultCollectionSettlementData(
     sessionId,
     requestIdInput,
     collection,
+    storage,
   );
   const prior = readVerifiedSessionExecutionLocationResultSettlement(
     sessionId,

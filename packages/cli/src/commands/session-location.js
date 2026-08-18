@@ -30,6 +30,7 @@ import {
   MAX_SESSION_REPLICA_BYTES,
   SESSION_EXECUTION_LOCATION_HANDOFF_INSTALL_SCHEMA,
   SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_RECEIPT_SCHEMA,
+  SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_RECEIPT_SCHEMA_V1,
   getVerifiedSessionExecutionLocationAuthority,
   installSessionReplica,
   installSessionReplicaWithLocationHandoff,
@@ -37,6 +38,10 @@ import {
   readVerifiedTranscriptBytes,
   settleSessionExecutionLocationResultCollection,
 } from "../harness/jsonl-session-store.js";
+import {
+  readStoredExecutionLocationResultBundle,
+  storeExecutionLocationResultBundle,
+} from "../lib/execution-location-result-store.js";
 import {
   sameFileStatIdentity,
   samePathHandleFileIdentity,
@@ -450,6 +455,38 @@ export function collectSessionExecutionLocationResult(
     readVerifiedSessionExecutionLocationResultSettlement
   )(sessionId, request.requestId, { requestDigest: request.requestDigest });
   if (prior !== null) {
+    if (prior.storage) {
+      const bundle = (
+        deps.readStoredExecutionLocationResultBundle ||
+        readStoredExecutionLocationResultBundle
+      )(prior.storage, deps.resultStoreOptions || {});
+      const verification = (
+        deps.verifyExecutionLocationResultBundle ||
+        verifyExecutionLocationResultBundle
+      )({
+        bundle,
+        sourceAuthority: {
+          sessionId: prior.sessionId,
+          headHash: prior.sourceHeadHash,
+          eventCount: prior.sourceEventCount,
+        },
+        expectedHandoffId: prior.handoffId,
+      });
+      if (
+        verification.verificationDigest !== prior.verificationDigest ||
+        bundle.bundleDigest !== prior.bundleDigest
+      ) {
+        throw new Error("stored result bundle does not match settlement");
+      }
+      return Object.freeze({
+        ...prior,
+        settlementAppended: false,
+        recovered: true,
+        bundleAvailable: true,
+        bundle,
+        verification,
+      });
+    }
     return Object.freeze({
       ...prior,
       settlementAppended: false,
@@ -498,11 +535,19 @@ export function collectSessionExecutionLocationResult(
       "result collection request digest changed during collection",
     );
   }
+  const storage = (
+    deps.storeExecutionLocationResultBundle ||
+    storeExecutionLocationResultBundle
+  )(collection.bundle, deps.resultStoreOptions || {});
   const settlement = (
     deps.settleSessionExecutionLocationResultCollection ||
     settleSessionExecutionLocationResultCollection
-  )(sessionId, request.requestId, collection);
-  return Object.freeze({ ...collection, settlement });
+  )(sessionId, request.requestId, collection, storage.receipt);
+  return Object.freeze({
+    ...collection,
+    storage: Object.freeze({ ...storage.receipt, stored: storage.stored }),
+    settlement,
+  });
 }
 
 function renderBinding(binding) {
@@ -562,11 +607,13 @@ function writeProjection(projection, options = {}) {
     return;
   }
   if (
-    projection.schema ===
-    SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_RECEIPT_SCHEMA
+    [
+      SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_RECEIPT_SCHEMA,
+      SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_RECEIPT_SCHEMA_V1,
+    ].includes(projection.schema)
   ) {
     process.stdout.write(
-      `RESULT COLLECTION SETTLED ${projection.resultId}\nRequest: ${projection.requestId}\nSettlement: ${projection.receiptDigest}\nBundle bytes available: no\nApplied: no\n`,
+      `RESULT COLLECTION SETTLED ${projection.resultId}\nRequest: ${projection.requestId}\nSettlement: ${projection.receiptDigest}\nBundle bytes available: ${projection.bundleAvailable ? "yes" : "no"}\nApplied: no\n`,
     );
     return;
   }

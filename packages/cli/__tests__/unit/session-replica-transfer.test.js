@@ -12,6 +12,7 @@ import {
   createExecutionLocationResultBundle,
   verifyExecutionLocationResultBundle,
 } from "../../src/lib/execution-location-result.js";
+import { storeExecutionLocationResultBundle } from "../../src/lib/execution-location-result-store.js";
 import { canonicalJson } from "../../src/lib/scheduler-kernel/contract.js";
 
 const root = mkdtempSync(join(tmpdir(), "cc-session-replica-"));
@@ -402,6 +403,9 @@ describe("verified session replica installation", () => {
         .update(canonicalJson(material, "testResultCollection"), "utf8")
         .digest("hex")}`,
     };
+    const storage = storeExecutionLocationResultBundle(bundle, {
+      dir: join(root, "returned-result-store"),
+    });
 
     expect(() =>
       store.settleSessionExecutionLocationResultCollection(
@@ -417,6 +421,7 @@ describe("verified session replica installation", () => {
             },
           },
         },
+        storage.receipt,
       ),
     ).toThrow(/summary/u);
     expect(
@@ -436,6 +441,7 @@ describe("verified session replica installation", () => {
         sessionId,
         requestId,
         collection,
+        storage.receipt,
       ),
     ).toThrow(/injected result settlement response loss/u);
     store._sessionScaleFaultHooks.afterResultCollectionSettlementAppend = null;
@@ -455,12 +461,14 @@ describe("verified session replica installation", () => {
       settlementEventCount: source.expected.eventCount + 1,
       bundleDigest: bundle.bundleDigest,
       totalBytes: bundle.totalBytes,
+      storage: { receiptDigest: storage.receipt.receiptDigest },
       applied: false,
     });
     const retry = store.settleSessionExecutionLocationResultCollection(
       sessionId,
       requestId,
       collection,
+      storage.receipt,
     );
     expect(retry).toMatchObject({
       receiptDigest: first.receiptDigest,
