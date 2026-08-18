@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { spawn } from "node:child_process";
 import {
   ArtifactStore,
   DEFAULT_TTL_DAYS,
@@ -133,6 +134,67 @@ describe("ArtifactStore", () => {
       new Set([path.join(dir, "index.jsonl")]),
     );
     expect(lockTargets).toHaveLength(6);
+  });
+
+  it("waits for a live cross-process index owner before publishing", async () => {
+    const store = new ArtifactStore({ dir });
+    store.publishData({ data: "first", fileName: "first.txt" });
+    const lockModuleUrl = new URL(
+      "../../src/lib/with-file-lock.js",
+      import.meta.url,
+    ).href;
+    const holderSource = `
+      import { withFileLock } from ${JSON.stringify(lockModuleUrl)};
+      const target = process.argv[1];
+      withFileLock(target, () => {
+        process.stdout.write("locked\\n");
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 800);
+      }, { failIfUnavailable: true, timeoutMs: 5000 });
+    `;
+    const holder = spawn(
+      process.execPath,
+      [
+        "--input-type=module",
+        "--eval",
+        holderSource,
+        path.join(dir, "index.jsonl"),
+      ],
+      { stdio: ["ignore", "pipe", "pipe"] },
+    );
+    await new Promise((resolve, reject) => {
+      let stderr = "";
+      const timeout = setTimeout(
+        () => reject(new Error(`lock holder did not start: ${stderr}`)),
+        5_000,
+      );
+      holder.stderr.on("data", (chunk) => {
+        stderr += String(chunk);
+      });
+      holder.stdout.on("data", (chunk) => {
+        if (!String(chunk).includes("locked")) return;
+        clearTimeout(timeout);
+        resolve();
+      });
+      holder.once("error", (error) => {
+        clearTimeout(timeout);
+        reject(error);
+      });
+    });
+
+    const startedAt = Date.now();
+    store.publishData({ data: "second", fileName: "second.txt" });
+    expect(Date.now() - startedAt).toBeGreaterThanOrEqual(500);
+    await new Promise((resolve, reject) => {
+      holder.once("exit", (code) => {
+        if (code === 0) resolve();
+        else reject(new Error(`lock holder exited with ${code}`));
+      });
+      holder.once("error", reject);
+    });
+    expect(store.list().map((entry) => entry.title)).toEqual([
+      "first.txt",
+      "second.txt",
+    ]);
   });
 
   it("refuses ambiguous removal without deleting bytes or rewriting rows", () => {
