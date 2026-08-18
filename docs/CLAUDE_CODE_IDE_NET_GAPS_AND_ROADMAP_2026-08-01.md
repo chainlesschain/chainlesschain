@@ -2588,6 +2588,31 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 六十八、2026-08-18 P1-2 review-digest-bound explicit result preview 子门复核（`22:38 +08:00`）
+
+本节继续第六十六至六十七节，关闭“content-free review authority 可绑定 apply，但操作者在 CLI 上仍无法安全检查实际 summary/diff/artifact/evidence bytes”的本地可审阅性缺口；不改变默认 review/apply/receipt 的 content-free 边界，也不把显式 stdout stream 外推为 ArtifactStore import、IDE Preview UI、内容访问审计或 WORM retention。
+
+### 本轮关闭的显式内容选择与终端安全子门
+
+- **内容输出必须同时绑定 canonical review 与明确 item selector。** 新 `session location result-preview <id> --request-id <id> --review-digest <sha256> --item <selector>` 重新走 v2 settlement、owner-only stored-bundle readback 与 review digest 重算；selector 只接受 `summary`、`diff`、`artifact:<sha256>` 或 `evidence:<sha256>`。review drift、未知 digest、legacy no-storage 或 selector 语法漂移均在 stdout 写入前失败。
+- **只输出一份重新验真的 exact record。** selected record 再与 review projection 的 media type、byte length 和 digest 交叉核对，stdout 只写该 record bytes；不会顺带输出其他 summary/diff/artifact/evidence、bundle JSON、base64 envelope、路径、target stdout/error 或 storage metadata。普通 `result-review`、`result-apply` 与所有 session events/receipts 继续不含正文。
+- **interactive terminal 不直接消费控制序列或 binary。** summary/diff 写到 TTY 时先做 strict UTF-8，并将 C0/C1、ESC、bidi override/isolate 等控制字符转成可见 `\\xNN` / `\\uNNNN`；artifact/evidence 对 TTY fail closed，要求显式重定向 stdout。非 TTY 输出保持原始 exact bytes，便于 operator 自选受信 viewer、哈希工具或文件管道，而不由 CLI 猜测二进制格式。
+- **preview 不产生 mutation authority。** 此命令不创建 workspace transaction、不追加 apply reservation、不发布 ArtifactStore row，也不将“读取过 bytes”冒充人工批准；第六十七节 apply 仍只接受 operator 明确提供的 review digest，并独立重验 session/Git/transaction 前置条件。
+
+### 本轮验证证据
+
+- 实现与回归提交为 `fe9fff885e`（explicit preview、TTY control escaping、binary redirection gate 与 command tests）及 `2e2db81d87`（roadmap contract），均已快进进入本地 `main`。
+- command/review/store 三文件为 **23/23**；覆盖 exact summary stream、review mismatch-before-output、TTY ESC/bidi escaping、binary TTY rejection，以及既有 content-free review/store readback 回归。command help index freshness 与 `git diff --check` 通过。
+- roadmap verifier/journey 为 **37/37**。manifest 从 `1.9.34` 升至 `1.9.35`，新增 preview journey、review+selector/content-digest authority、digest/selector/control/binary failure injection 与五个 zero-acceptance outcome；P1-2 fixture digest 为 `sha256:4f1396f916a3e39d4d4f051e7015c1a75ed5e600aeffd86f29a39dbbaac1b945`，全 corpus 保持 **15 cases / 92 referenced test files**，contract-only 通过。
+
+### P1-2 仍未关闭的边界
+
+1. **产品级 preview/artifact lifecycle：** 当前是 operator-explicit CLI byte stream；尚无 ArtifactStore import/readback lineage、managed preview/download/delete、content-access audit、Desktop/VS Code/JetBrains viewer 或受信外部 viewer attestation。redirected stdout 后的文件、viewer 与传播不属于 CLI authority。
+2. **分布式生命周期与 storage：** result store 仍非 WORM/off-box；source/target lease、split-brain/shared-store ownership、orphan GC、断点续传/重连、睡眠/重启、增量/双向同步、分歧合并与删除传播仍开放。
+3. **外部运行证据：** `cc cloud`、真实 WSL/SSH/Container/Cloud、多架构/网络故障及每格 100 次 exact-commit 长期矩阵仍无关闭证据；因此仓库测试不改变 release readiness。
+
+因此，P1-2 的 **review-digest + exact item-selector 内容读取、单 record byte/digest 再绑定、TTY control 安全显示、binary redirection gate 与 default content-free 隔离** 由本节关闭；P1-2 整项仍为**部分完成**。总计数保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。
+
 ## 六十七、2026-08-18 P1-2 controlled result apply/rollback 与 explicit recovery 子门复核（`22:27 +08:00`）
 
 本节继续第六十六节，关闭 repository-level returned diff 从“已 review、未修改 workspace”到“以 canonical session authority 预留、在 durable workspace transaction 中固定命令 apply、失败 rollback、崩溃后不重放恢复”的本地子门；不把这组能力外推为 `.git` metadata 全覆盖 checkpoint、外部系统副作用回滚、ArtifactStore/WORM、双 IDE UI 或真实跨宿主长期矩阵。
