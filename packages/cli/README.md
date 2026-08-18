@@ -410,7 +410,8 @@ chainlesschain session location result-verify <id> \
 chainlesschain session location result-collect <id> <target> \
   --facts <facts.json> --profile <target-profile.json> \
   --expected-target-facts-digest sha256:<digest> \
-  --expected-handoff-id sha256:<digest> --result-id <id> \
+  --expected-handoff-id sha256:<digest> --request-id <stable-id> \
+  --result-id <id> \
   --summary <target-summary.txt> --diff <target-result.diff> --json
 chainlesschain session budget status <id>
 chainlesschain session budget receipts <id> --json
@@ -451,9 +452,14 @@ hosts, or make transport/disconnect claims.
 Container profiles. It re-attests stable target facts, invokes only the fixed
 target-side `result-pack` argv through the existing strict launcher, accepts a
 bounded JSON response, then revalidates the source predecessor a second time
-before returning both the bundle and its content-free verification receipt.
-It still does not provide a distributed writer fence, durable response-loss
-recovery, Cloud transport, or automatic source application.
+before appending one CAS-bound, content-free settlement event and returning the
+bundle. The stable request id is bound to the exact profile, handoff, result,
+paths, and item list. If the caller loses the first response, an exact retry
+reads the canonical settlement before loading handoff facts or running another
+target command. That recovery proves which bundle was accepted but cannot
+recreate its unstored bytes. It still does not provide a distributed writer
+fence, durable result-byte storage, Cloud transport, or automatic source
+application.
 
 Durable budget recovery stores a canonical local receipt for each operator
 adjudication. Ordinary budget status shows only chain and coverage metadata;

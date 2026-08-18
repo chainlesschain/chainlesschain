@@ -51,6 +51,7 @@ describe("verified session replica installation", () => {
     delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;
     store._sessionScaleFaultHooks.afterReplicaPublish = null;
     store._sessionScaleFaultHooks.afterLocationHandoffAppend = null;
+    store._sessionScaleFaultHooks.afterResultCollectionSettlementAppend = null;
     rmSync(root, { recursive: true, force: true });
   });
 
@@ -402,11 +403,48 @@ describe("verified session replica installation", () => {
         .digest("hex")}`,
     };
 
-    const first = store.settleSessionExecutionLocationResultCollection(
-      sessionId,
-      requestId,
-      collection,
-    );
+    expect(() =>
+      store.settleSessionExecutionLocationResultCollection(
+        sessionId,
+        requestId,
+        {
+          ...collection,
+          bundle: {
+            ...bundle,
+            summary: {
+              ...bundle.summary,
+              contentBase64: Buffer.from("tampered").toString("base64"),
+            },
+          },
+        },
+      ),
+    ).toThrow(/summary/u);
+    expect(
+      store.readVerifiedSessionExecutionLocationResultSettlement(
+        sessionId,
+        requestId,
+      ),
+    ).toBeNull();
+
+    process.env.CC_SESSION_SCALE_FAULT_INJECTION = "1";
+    store._sessionScaleFaultHooks.afterResultCollectionSettlementAppend = () => {
+      throw new Error("injected result settlement response loss");
+    };
+    expect(() =>
+      store.settleSessionExecutionLocationResultCollection(
+        sessionId,
+        requestId,
+        collection,
+      ),
+    ).toThrow(/injected result settlement response loss/u);
+    store._sessionScaleFaultHooks.afterResultCollectionSettlementAppend = null;
+    delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+    const first =
+      store.readVerifiedSessionExecutionLocationResultSettlement(
+        sessionId,
+        requestId,
+        { requestDigest },
+      );
     expect(first).toMatchObject({
       schema:
         store.SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_RECEIPT_SCHEMA,
@@ -419,8 +457,6 @@ describe("verified session replica installation", () => {
       bundleDigest: bundle.bundleDigest,
       totalBytes: bundle.totalBytes,
       applied: false,
-      settlementAppended: true,
-      recovered: false,
     });
     const retry = store.settleSessionExecutionLocationResultCollection(
       sessionId,
