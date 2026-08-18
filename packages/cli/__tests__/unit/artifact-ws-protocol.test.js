@@ -183,19 +183,52 @@ describe("artifact-remove / artifact-clean", () => {
   it("removes one and cleans expired", async () => {
     const e = publish("gone.md", "bye");
     const server = fakeServer();
-    await handleArtifactRemove(server, "1", {}, { artifactId: e.id });
+    await handleArtifactRemove(
+      server,
+      "1",
+      {},
+      {
+        artifactId: e.id,
+        deletionId: "ws-delete",
+      },
+    );
     expect(server.sent[0]).toMatchObject({
       found: true,
       removed: e.id,
       settled: true,
+      recorded: true,
+      deletionId: "ws-delete",
       deletion: { phase: "terminal", client: "websocket" },
     });
     expect(readArtifactDeletionLedger(new ArtifactStore())).toMatchObject({
       preparedCount: 1,
       terminalCount: 1,
     });
-    await handleArtifactRemove(server, "2", {}, { artifactId: e.id });
-    expect(server.sent[1]).toMatchObject({ found: false });
+    await handleArtifactRemove(
+      server,
+      "2",
+      {},
+      {
+        artifactId: e.id,
+        deletionId: "ws-delete",
+      },
+    );
+    expect(server.sent[1]).toMatchObject({
+      found: true,
+      settled: true,
+      recorded: false,
+      deletionId: "ws-delete",
+    });
+    await handleArtifactRemove(
+      server,
+      "3",
+      {},
+      {
+        artifactId: e.id,
+        deletionId: "ws-delete-missing",
+      },
+    );
+    expect(server.sent[2]).toMatchObject({ found: false });
 
     // expired entry via a store with a shifted clock
     const p = path.join(srcDir, "old.md");
@@ -203,8 +236,8 @@ describe("artifact-remove / artifact-clean", () => {
     new ArtifactStore({
       now: () => Date.now() - 40 * 24 * 60 * 60 * 1000,
     }).publish({ filePath: p, ttlDays: 1 });
-    await handleArtifactClean(server, "3", {}, {});
-    expect(server.sent[2]).toMatchObject({
+    await handleArtifactClean(server, "4", {}, {});
+    expect(server.sent[3]).toMatchObject({
       type: "artifact-clean",
       removed: 1,
     });
