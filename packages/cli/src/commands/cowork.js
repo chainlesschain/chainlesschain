@@ -1154,9 +1154,8 @@ export function registerCoworkCommand(program, commandDeps = {}) {
           process.cwd(),
           runId,
         );
-        const answer = runtime.readDynamicWorkflowInputResponseFile(
-          responseFile,
-        );
+        const answer =
+          runtime.readDynamicWorkflowInputResponseFile(responseFile);
         const state = runtime.submitDurableWorkflowInput(statePath, {
           expectedRevision: options.expectedRevision,
           requestId,

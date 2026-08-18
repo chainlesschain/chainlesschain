@@ -1533,7 +1533,7 @@ describe("executeWorkflow durable stage input gates", () => {
     });
     expect(runTask).toHaveBeenCalledTimes(1);
     expect(runTask.mock.calls[0][0].userMessage).toContain(
-      "## Bound user input for stage approve\n\"stable\"",
+      '## Bound user input for stage approve\n"stable"',
     );
   });
 
