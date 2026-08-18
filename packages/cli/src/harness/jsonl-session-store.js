@@ -121,6 +121,8 @@ export const _sessionScaleFaultHooks = Object.seal({
   afterReplicaDirectoryFsync: null,
   afterLocationHandoffAppend: null,
   afterResultCollectionSettlementAppend: null,
+  afterResultApplyReservationAppend: null,
+  afterResultApplyTerminalAppend: null,
   beforeDeleteDirectoryFsync: null,
   afterDeleteDirectoryFsync: null,
   afterAntiRollbackPublish: null,
@@ -151,6 +153,16 @@ export const SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_RECEIPT_SCHEMA_V1 =
   "chainlesschain.session-execution-location-result-collection-receipt/v1";
 export const SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_RECEIPT_SCHEMA =
   "chainlesschain.session-execution-location-result-collection-receipt/v2";
+export const SESSION_EXECUTION_LOCATION_RESULT_APPLY_RESERVATION_EVENT =
+  "execution_location_result_apply_reserved";
+export const SESSION_EXECUTION_LOCATION_RESULT_APPLY_RESERVATION_SCHEMA =
+  "chainlesschain.session-execution-location-result-apply-reservation/v1";
+export const SESSION_EXECUTION_LOCATION_RESULT_APPLY_TERMINAL_EVENT =
+  "execution_location_result_apply_terminal";
+export const SESSION_EXECUTION_LOCATION_RESULT_APPLY_TERMINAL_SCHEMA =
+  "chainlesschain.session-execution-location-result-apply-terminal/v1";
+export const SESSION_EXECUTION_LOCATION_RESULT_APPLY_RECEIPT_SCHEMA =
+  "chainlesschain.session-execution-location-result-apply-receipt/v1";
 export const MAX_SESSION_REPLICA_BYTES = 64 * 1024 * 1024;
 const WS_TURN_CONTENT_MAX_BYTES = 4 * 1024 * 1024;
 const WS_TURN_REQUEST_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:@-]*$/;
@@ -4388,6 +4400,627 @@ export function settleSessionExecutionLocationResultCollection(
     settlementAppended: true,
     recovered: false,
   });
+}
+
+function normalizeSessionResultApplyId(value) {
+  const applyId = boundedAuthorityString(
+    value,
+    "result apply id",
+    128,
+  );
+  if (!/^[A-Za-z0-9][A-Za-z0-9._:@-]{0,127}$/u.test(applyId)) {
+    throw new TypeError("result apply id is invalid");
+  }
+  return applyId;
+}
+
+function normalizeSessionResultApplyGit(input) {
+  const value = exactRecord(
+    input,
+    ["rootDigest", "commit"],
+    "result apply source git",
+  );
+  const commit = String(value.commit || "").toLowerCase();
+  if (!/^[a-f0-9]{40,64}$/u.test(commit)) {
+    throw new TypeError("result apply source git commit is invalid");
+  }
+  return Object.freeze({
+    rootDigest: normalizeSessionLocationDigest(
+      value.rootDigest,
+      "result apply source git root digest",
+    ),
+    commit,
+  });
+}
+
+function normalizeSessionResultApplyPreparedTransaction(input) {
+  const value = exactRecord(
+    input,
+    [
+      "id",
+      "checkpointId",
+      "checkpointDigest",
+      "coverage",
+      "externalSideEffects",
+    ],
+    "result apply prepared transaction",
+  );
+  const id = boundedAuthorityString(value.id, "result apply transaction id", 192);
+  const checkpointId = boundedAuthorityString(
+    value.checkpointId,
+    "result apply checkpoint id",
+    192,
+  );
+  if (
+    !/^[A-Za-z0-9][A-Za-z0-9._-]{0,191}$/u.test(id) ||
+    !/^[A-Za-z0-9][A-Za-z0-9._-]{0,191}$/u.test(checkpointId) ||
+    !["full", "partial"].includes(value.coverage) ||
+    value.externalSideEffects !== false
+  ) {
+    throw new TypeError("result apply prepared transaction is invalid");
+  }
+  return Object.freeze({
+    id,
+    checkpointId,
+    checkpointDigest: normalizeSessionLocationDigest(
+      value.checkpointDigest,
+      "result apply checkpoint digest",
+    ),
+    coverage: value.coverage,
+    externalSideEffects: false,
+  });
+}
+
+function normalizeSessionResultApplyTerminalTransaction(input) {
+  const value = exactRecord(
+    input,
+    [
+      "id",
+      "checkpointId",
+      "checkpointDigest",
+      "evidenceDigest",
+      "writeManifestDigest",
+      "coverage",
+      "fileCoverage",
+      "externalSideEffects",
+      "uncoveredPaths",
+    ],
+    "result apply terminal transaction",
+  );
+  const prepared = normalizeSessionResultApplyPreparedTransaction({
+    id: value.id,
+    checkpointId: value.checkpointId,
+    checkpointDigest: value.checkpointDigest,
+    coverage: value.coverage,
+    externalSideEffects: value.externalSideEffects,
+  });
+  if (
+    !["full", "partial", "none"].includes(value.fileCoverage) ||
+    !Array.isArray(value.uncoveredPaths) ||
+    value.uncoveredPaths.length > 128
+  ) {
+    throw new TypeError("result apply terminal transaction is invalid");
+  }
+  const uncoveredPaths = value.uncoveredPaths.map((entry) =>
+    boundedAuthorityString(entry, "result apply uncovered path", 512),
+  );
+  if (
+    new Set(uncoveredPaths).size !== uncoveredPaths.length ||
+    uncoveredPaths.some((entry, index) =>
+      index > 0 ? entry.localeCompare(uncoveredPaths[index - 1]) < 0 : false,
+    )
+  ) {
+    throw new TypeError("result apply uncovered paths are invalid");
+  }
+  return Object.freeze({
+    ...prepared,
+    evidenceDigest: normalizeSessionLocationDigest(
+      value.evidenceDigest,
+      "result apply evidence digest",
+    ),
+    writeManifestDigest: normalizeSessionLocationDigest(
+      value.writeManifestDigest,
+      "result apply write manifest digest",
+    ),
+    fileCoverage: value.fileCoverage,
+    uncoveredPaths: Object.freeze(uncoveredPaths),
+  });
+}
+
+function normalizeSessionResultApplyReview(review, settlement) {
+  if (
+    review?.schema !== "cc-execution-location-result-review/v1" ||
+    review.sessionId !== settlement.sessionId ||
+    review.requestId !== settlement.requestId ||
+    review.resultId !== settlement.resultId ||
+    review.handoffId !== settlement.handoffId ||
+    review.settlement?.settlementId !== settlement.settlementId ||
+    review.settlement?.eventHash !== settlement.settlementEventHash ||
+    review.settlement?.eventCount !== settlement.settlementEventCount ||
+    review.settlement?.receiptDigest !== settlement.receiptDigest ||
+    review.bundleDigest !== settlement.bundleDigest ||
+    review.verificationDigest !== settlement.verificationDigest ||
+    review.collectionDigest !== settlement.collectionDigest ||
+    review.diff?.digest == null ||
+    review.applied !== false ||
+    review.applyPolicy?.automaticApply !== false
+  ) {
+    throw new TypeError("result apply review authority is invalid");
+  }
+  return Object.freeze({
+    reviewDigest: normalizeSessionLocationDigest(
+      review.reviewDigest,
+      "result apply review digest",
+    ),
+    diffDigest: normalizeSessionLocationDigest(
+      review.diff.digest,
+      "result apply diff digest",
+    ),
+  });
+}
+
+function createSessionResultApplyReservationData(
+  sessionId,
+  applyIdInput,
+  review,
+  settlement,
+  sourceGit,
+  transaction,
+) {
+  const applyId = normalizeSessionResultApplyId(applyIdInput);
+  const reviewed = normalizeSessionResultApplyReview(review, settlement);
+  const material = {
+    schema: SESSION_EXECUTION_LOCATION_RESULT_APPLY_RESERVATION_SCHEMA,
+    applyId,
+    requestId: settlement.requestId,
+    reviewDigest: reviewed.reviewDigest,
+    settlementId: settlement.settlementId,
+    settlementEventHash: settlement.settlementEventHash,
+    settlementEventCount: settlement.settlementEventCount,
+    bundleDigest: settlement.bundleDigest,
+    diffDigest: reviewed.diffDigest,
+    sourceGit: normalizeSessionResultApplyGit(sourceGit),
+    transaction: normalizeSessionResultApplyPreparedTransaction(transaction),
+    applied: false,
+  };
+  return Object.freeze({
+    ...material,
+    reservationId: sessionLocationDigest(
+      "chainlesschain.session-execution-location-result-apply-reservation-id.v1\0",
+      { sessionId, ...material },
+    ),
+  });
+}
+
+function projectSessionResultApplyReservation(
+  sessionId,
+  event,
+  eventCount,
+  settlement,
+) {
+  const data = exactRecord(
+    event?.data,
+    [
+      "schema",
+      "reservationId",
+      "applyId",
+      "requestId",
+      "reviewDigest",
+      "settlementId",
+      "settlementEventHash",
+      "settlementEventCount",
+      "bundleDigest",
+      "diffDigest",
+      "sourceGit",
+      "transaction",
+      "applied",
+    ],
+    "session result apply reservation",
+  );
+  if (
+    !settlement ||
+    settlement.settlementId !== data.settlementId ||
+    settlement.requestId !== data.requestId ||
+    settlement.bundleDigest !== data.bundleDigest ||
+    settlement.eventHash !== data.settlementEventHash ||
+    settlement.eventCount !== data.settlementEventCount ||
+    event?.prevHash !== settlement.eventHash ||
+    eventCount !== settlement.eventCount + 1 ||
+    data.applied !== false
+  ) {
+    throw new TypeError("session result apply reservation predecessor is invalid");
+  }
+  const material = {
+    schema: SESSION_EXECUTION_LOCATION_RESULT_APPLY_RESERVATION_SCHEMA,
+    applyId: normalizeSessionResultApplyId(data.applyId),
+    requestId: normalizeSessionResultCollectionRequestId(data.requestId),
+    reviewDigest: normalizeSessionLocationDigest(
+      data.reviewDigest,
+      "result apply review digest",
+    ),
+    settlementId: normalizeSessionLocationDigest(
+      data.settlementId,
+      "result apply settlement id",
+    ),
+    settlementEventHash: normalizeSessionLocationHead(
+      data.settlementEventHash,
+      "result apply settlement event hash",
+    ),
+    settlementEventCount: normalizeSessionLocationEventCount(
+      data.settlementEventCount,
+      "result apply settlement event count",
+    ),
+    bundleDigest: normalizeSessionLocationDigest(
+      data.bundleDigest,
+      "result apply bundle digest",
+    ),
+    diffDigest: normalizeSessionLocationDigest(
+      data.diffDigest,
+      "result apply diff digest",
+    ),
+    sourceGit: normalizeSessionResultApplyGit(data.sourceGit),
+    transaction: normalizeSessionResultApplyPreparedTransaction(
+      data.transaction,
+    ),
+    applied: false,
+  };
+  const reservationId = sessionLocationDigest(
+    "chainlesschain.session-execution-location-result-apply-reservation-id.v1\0",
+    { sessionId, ...material },
+  );
+  if (data.reservationId !== reservationId) {
+    throw new TypeError("session result apply reservation id is invalid");
+  }
+  return Object.freeze({
+    ...material,
+    reservationId,
+    eventHash: event.hash,
+    eventCount,
+    at: new Date(event.timestamp).toISOString(),
+  });
+}
+
+function createSessionResultApplyTerminalData(
+  sessionId,
+  reservation,
+  source,
+  outcome,
+  transaction,
+) {
+  if (!["applied", "rolled_back"].includes(outcome)) {
+    throw new TypeError("result apply terminal outcome is invalid");
+  }
+  const material = {
+    schema: SESSION_EXECUTION_LOCATION_RESULT_APPLY_TERMINAL_SCHEMA,
+    applyId: reservation.applyId,
+    reservationId: reservation.reservationId,
+    reviewDigest: reservation.reviewDigest,
+    settlementId: reservation.settlementId,
+    bundleDigest: reservation.bundleDigest,
+    diffDigest: reservation.diffDigest,
+    source: Object.freeze({
+      headHash: normalizeSessionLocationHead(
+        source.headHash,
+        "result apply terminal source head",
+      ),
+      eventCount: normalizeSessionLocationEventCount(
+        source.eventCount,
+        "result apply terminal source event count",
+      ),
+    }),
+    sourceGit: reservation.sourceGit,
+    transaction: normalizeSessionResultApplyTerminalTransaction(transaction),
+    outcome,
+    applied: outcome === "applied",
+  };
+  return Object.freeze({
+    ...material,
+    terminalId: sessionLocationDigest(
+      "chainlesschain.session-execution-location-result-apply-terminal-id.v1\0",
+      { sessionId, ...material },
+    ),
+  });
+}
+
+function projectSessionResultApplyTerminal(
+  sessionId,
+  event,
+  eventCount,
+  reservation,
+) {
+  const data = exactRecord(
+    event?.data,
+    [
+      "schema",
+      "terminalId",
+      "applyId",
+      "reservationId",
+      "reviewDigest",
+      "settlementId",
+      "bundleDigest",
+      "diffDigest",
+      "source",
+      "sourceGit",
+      "transaction",
+      "outcome",
+      "applied",
+    ],
+    "session result apply terminal",
+  );
+  const source = exactRecord(
+    data.source,
+    ["headHash", "eventCount"],
+    "session result apply terminal source",
+  );
+  if (
+    !reservation ||
+    data.applyId !== reservation.applyId ||
+    data.reservationId !== reservation.reservationId ||
+    data.reviewDigest !== reservation.reviewDigest ||
+    data.settlementId !== reservation.settlementId ||
+    data.bundleDigest !== reservation.bundleDigest ||
+    data.diffDigest !== reservation.diffDigest ||
+    event?.prevHash !== source.headHash ||
+    eventCount !== Number(source.eventCount) + 1 ||
+    data.applied !== (data.outcome === "applied")
+  ) {
+    throw new TypeError("session result apply terminal authority is invalid");
+  }
+  const normalized = createSessionResultApplyTerminalData(
+    sessionId,
+    reservation,
+    source,
+    data.outcome,
+    data.transaction,
+  );
+  if (
+    data.terminalId !== normalized.terminalId ||
+    canonicalJson(data.sourceGit, "resultApplySourceGit") !==
+      canonicalJson(reservation.sourceGit, "resultApplySourceGit")
+  ) {
+    throw new TypeError("session result apply terminal id is invalid");
+  }
+  return Object.freeze({
+    ...normalized,
+    eventHash: event.hash,
+    eventCount,
+    at: new Date(event.timestamp).toISOString(),
+  });
+}
+
+function sessionResultApplyReceipt(sessionId, reservation, terminal) {
+  const material = {
+    schema: SESSION_EXECUTION_LOCATION_RESULT_APPLY_RECEIPT_SCHEMA,
+    sessionId,
+    applyId: reservation.applyId,
+    requestId: reservation.requestId,
+    status: terminal?.outcome || "reserved",
+    reviewDigest: reservation.reviewDigest,
+    settlementId: reservation.settlementId,
+    bundleDigest: reservation.bundleDigest,
+    diffDigest: reservation.diffDigest,
+    sourceGit: reservation.sourceGit,
+    transaction: terminal?.transaction || reservation.transaction,
+    reservation: Object.freeze({
+      reservationId: reservation.reservationId,
+      eventHash: reservation.eventHash,
+      eventCount: reservation.eventCount,
+    }),
+    terminal: terminal
+      ? Object.freeze({
+          terminalId: terminal.terminalId,
+          eventHash: terminal.eventHash,
+          eventCount: terminal.eventCount,
+          outcome: terminal.outcome,
+        })
+      : null,
+    applied: terminal?.outcome === "applied",
+  };
+  return Object.freeze({
+    ...material,
+    receiptDigest: sessionLocationDigest(
+      "chainlesschain.session-execution-location-result-apply-receipt.v1\0",
+      material,
+    ),
+  });
+}
+
+export function readVerifiedSessionExecutionLocationResultApply(
+  sessionId,
+  applyIdInput,
+) {
+  const applyId = normalizeSessionResultApplyId(applyIdInput);
+  return readVerifiedProjection(sessionId, () => {
+    let eventCount = 0;
+    const settlements = new Map();
+    const reservations = new Map();
+    const terminals = new Map();
+    return {
+      accept(event) {
+        eventCount += 1;
+        if (event?.type === SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_EVENT) {
+          const settlement = projectSessionResultCollectionSettlement(
+            sessionId,
+            event,
+            eventCount,
+          );
+          settlements.set(settlement.settlementId, settlement);
+          return;
+        }
+        if (event?.type === SESSION_EXECUTION_LOCATION_RESULT_APPLY_RESERVATION_EVENT) {
+          const settlement = settlements.get(event?.data?.settlementId) || null;
+          const reservation = projectSessionResultApplyReservation(
+            sessionId,
+            event,
+            eventCount,
+            settlement,
+          );
+          if (
+            reservations.has(reservation.applyId) ||
+            [...reservations.values()].some(
+              (entry) => entry.reservationId === reservation.reservationId,
+            )
+          ) {
+            throw new TypeError("duplicate session result apply reservation");
+          }
+          reservations.set(reservation.applyId, reservation);
+          return;
+        }
+        if (event?.type === SESSION_EXECUTION_LOCATION_RESULT_APPLY_TERMINAL_EVENT) {
+          const reservation = reservations.get(event?.data?.applyId) || null;
+          const terminal = projectSessionResultApplyTerminal(
+            sessionId,
+            event,
+            eventCount,
+            reservation,
+          );
+          if (terminals.has(terminal.applyId)) {
+            throw new TypeError("duplicate session result apply terminal");
+          }
+          terminals.set(terminal.applyId, terminal);
+        }
+      },
+      finish() {
+        const reservation = reservations.get(applyId) || null;
+        return reservation === null
+          ? null
+          : sessionResultApplyReceipt(
+              sessionId,
+              reservation,
+              terminals.get(applyId) || null,
+            );
+      },
+    };
+  });
+}
+
+export function reserveSessionExecutionLocationResultApply(
+  sessionId,
+  applyId,
+  review,
+  sourceGit,
+  transaction,
+) {
+  const settlement = readVerifiedSessionExecutionLocationResultSettlement(
+    sessionId,
+    review?.requestId,
+  );
+  if (settlement === null) {
+    throw new Error("result apply settlement was not found");
+  }
+  const data = createSessionResultApplyReservationData(
+    sessionId,
+    applyId,
+    review,
+    settlement,
+    sourceGit,
+    transaction,
+  );
+  const prior = readVerifiedSessionExecutionLocationResultApply(
+    sessionId,
+    data.applyId,
+  );
+  if (prior !== null) {
+    if (prior.reservation.reservationId !== data.reservationId) {
+      throw new Error("result apply id is already bound to different inputs");
+    }
+    return Object.freeze({ ...prior, reservationAppended: false, recovered: true });
+  }
+  appendAuthorityEventIfHead(
+    sessionId,
+    SESSION_EXECUTION_LOCATION_RESULT_APPLY_RESERVATION_EVENT,
+    data,
+    settlement.settlementEventHash,
+  );
+  runSessionScaleFaultHook(
+    "afterResultApplyReservationAppend",
+    Object.freeze({ sessionId, applyId: data.applyId, reservationId: data.reservationId }),
+  );
+  const receipt = readVerifiedSessionExecutionLocationResultApply(
+    sessionId,
+    data.applyId,
+  );
+  if (
+    receipt === null ||
+    receipt.reservation.reservationId !== data.reservationId
+  ) {
+    throw new Error("result apply reservation is not canonical");
+  }
+  return Object.freeze({ ...receipt, reservationAppended: true, recovered: false });
+}
+
+export function settleSessionExecutionLocationResultApply(
+  sessionId,
+  applyIdInput,
+  outcome,
+  transaction,
+) {
+  const applyId = normalizeSessionResultApplyId(applyIdInput);
+  const prior = readVerifiedSessionExecutionLocationResultApply(sessionId, applyId);
+  if (prior === null) {
+    throw new Error("result apply reservation was not found");
+  }
+  const normalizedTransaction = normalizeSessionResultApplyTerminalTransaction(
+    transaction,
+  );
+  if (prior.terminal !== null) {
+    if (
+      prior.status !== outcome ||
+      canonicalJson(prior.transaction, "resultApplyTransaction") !==
+        canonicalJson(normalizedTransaction, "resultApplyTransaction")
+    ) {
+      throw new Error("result apply is already settled differently");
+    }
+    return Object.freeze({ ...prior, terminalAppended: false, recovered: true });
+  }
+  const current = getVerifiedSessionExecutionLocationAuthority(sessionId);
+  const reservation = Object.freeze({
+    applyId: prior.applyId,
+    requestId: prior.requestId,
+    reservationId: prior.reservation.reservationId,
+    reviewDigest: prior.reviewDigest,
+    settlementId: prior.settlementId,
+    bundleDigest: prior.bundleDigest,
+    diffDigest: prior.diffDigest,
+    sourceGit: prior.sourceGit,
+  });
+  const data = createSessionResultApplyTerminalData(
+    sessionId,
+    reservation,
+    { headHash: current.headHash, eventCount: current.eventCount },
+    outcome,
+    normalizedTransaction,
+  );
+  try {
+    appendAuthorityEventIfHead(
+      sessionId,
+      SESSION_EXECUTION_LOCATION_RESULT_APPLY_TERMINAL_EVENT,
+      data,
+      current.headHash,
+    );
+  } catch (error) {
+    const raced = readVerifiedSessionExecutionLocationResultApply(
+      sessionId,
+      applyId,
+    );
+    if (
+      raced?.status !== outcome ||
+      canonicalJson(raced.transaction, "resultApplyTransaction") !==
+        canonicalJson(normalizedTransaction, "resultApplyTransaction")
+    ) {
+      throw error;
+    }
+    return Object.freeze({ ...raced, terminalAppended: false, recovered: true });
+  }
+  runSessionScaleFaultHook(
+    "afterResultApplyTerminalAppend",
+    Object.freeze({ sessionId, applyId, terminalId: data.terminalId }),
+  );
+  const receipt = readVerifiedSessionExecutionLocationResultApply(sessionId, applyId);
+  if (receipt?.terminal?.terminalId !== data.terminalId) {
+    throw new Error("result apply terminal is not canonical");
+  }
+  return Object.freeze({ ...receipt, terminalAppended: true, recovered: false });
 }
 
 /**
