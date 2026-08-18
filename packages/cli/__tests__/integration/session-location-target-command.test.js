@@ -340,4 +340,95 @@ describe("session location target command routes", () => {
     );
     expect(JSON.parse(stdout.mock.calls.at(-1)[0])).toEqual(receipt);
   });
+
+  it("routes result-pack with bounded returned content and emits the bundle", async () => {
+    const bundle = {
+      schema: "cc-execution-location-result-bundle/v1",
+      resultId: "result-1",
+      bundleDigest: DIGEST,
+      totalBytes: 12,
+    };
+    const create = vi.fn(() => bundle);
+    const read = vi.fn((filePath) => Buffer.from(filePath));
+    await program(
+      dependencies({
+        readExecutionLocationResultFile: read,
+        createExecutionLocationResultBundle: create,
+      }),
+    ).parseAsync([
+      "node",
+      "cc",
+      "session",
+      "location",
+      "result-pack",
+      "session-command-1",
+      "--result-id",
+      "result-1",
+      "--summary",
+      "/source/repo/summary.txt",
+      "--diff",
+      "/source/repo/result.diff",
+      "--artifact",
+      "application/json=/source/repo/artifact.json",
+      "--evidence",
+      "text/plain=/source/repo/evidence.txt",
+      "--json",
+    ]);
+
+    expect(process.exitCode).toBe(0);
+    expect(read).toHaveBeenCalledTimes(4);
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resultId: "result-1",
+        artifacts: [
+          expect.objectContaining({ mediaType: "application/json" }),
+        ],
+        evidence: [expect.objectContaining({ mediaType: "text/plain" })],
+      }),
+    );
+    expect(JSON.parse(stdout.mock.calls.at(-1)[0])).toEqual(bundle);
+  });
+
+  it("routes result-verify without echoing returned content", async () => {
+    const bundle = { bundleDigest: DIGEST, privateBytes: "not projected" };
+    const receipt = {
+      schema: "cc-execution-location-result-verification/v1",
+      resultId: "result-1",
+      bundleDigest: DIGEST,
+      verificationDigest: `sha256:${"d".repeat(64)}`,
+      applied: false,
+    };
+    const verify = vi.fn(() => receipt);
+    await program(
+      dependencies({
+        readExecutionLocationResultBundle: () => bundle,
+        verifyExecutionLocationResultBundle: verify,
+      }),
+    ).parseAsync([
+      "node",
+      "cc",
+      "session",
+      "location",
+      "result-verify",
+      "session-command-1",
+      "--bundle",
+      "/source/repo/result.json",
+      "--expected-handoff-id",
+      `sha256:${"4".repeat(64)}`,
+      "--json",
+    ]);
+
+    expect(process.exitCode).toBe(0);
+    expect(verify).toHaveBeenCalledWith({
+      bundle,
+      sourceAuthority: expect.objectContaining({
+        sessionId: "session-command-1",
+        headHash: HEAD_HASH,
+        eventCount: 5,
+      }),
+      expectedHandoffId: `sha256:${"4".repeat(64)}`,
+    });
+    expect(JSON.parse(stdout.mock.calls.at(-1)[0])).toEqual(receipt);
+    expect(stdout.mock.calls.at(-1)[0]).not.toContain("not projected");
+  });
 });
