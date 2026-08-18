@@ -204,9 +204,13 @@ function withLlmErrorGuidance(message) {
 
 function runCli(command, args, deps, { stdin } = {}) {
   const run = deps?.execFile || execFile;
+  const executable =
+    typeof command === "string" && command.trim()
+      ? command
+      : require("./cli-binary").getResolvedCli();
   return new Promise((resolve) => {
     const child = run(
-      command,
+      executable,
       args,
       {
         timeout: 60000,
@@ -247,7 +251,7 @@ function runCli(command, args, deps, { stdin } = {}) {
  * (robust to a transiently-broken `cc` post-update); only when the file is
  * unreadable do we fall back to `cc config get`.
  */
-async function readLlmField(field, { command = "cc", deps } = {}) {
+async function readLlmField(field, { command, deps } = {}) {
   const llm = readLlmConfigFromFile(deps);
   if (llm) return cleanConfigValue(llm[field]); // file present → authoritative
   // File missing/corrupt → ask the CLI (legacy / relocated config).
@@ -293,7 +297,7 @@ async function hasConfiguredApiKey(opts = {}) {
  * need not re-run the full wizard / re-type the API key. A blank value clears it
  * (revert to the text model / CLI default).
  */
-async function setVisionModel({ command = "cc", visionModel, deps } = {}) {
+async function setVisionModel({ command, visionModel, deps } = {}) {
   const v = (visionModel == null ? "" : String(visionModel)).trim();
   if (v && hasUnsafeShellChars(v)) {
     return {
@@ -313,7 +317,7 @@ async function setVisionModel({ command = "cc", visionModel, deps } = {}) {
 }
 
 /** Apply the wizard's answers sequentially, with secrets sent only on stdin. */
-async function applyLlmConfig({ command = "cc", answers, deps } = {}) {
+async function applyLlmConfig({ command, answers, deps } = {}) {
   for (const [key, value] of Object.entries(answers || {})) {
     // apiKey never reaches the shell/argv, so shell metacharacters in a
     // provider-issued credential are data rather than command syntax.
@@ -341,7 +345,7 @@ async function applyLlmConfig({ command = "cc", answers, deps } = {}) {
 }
 
 /** Connectivity check via `cc llm test`. */
-async function testLlm({ command = "cc", deps } = {}) {
+async function testLlm({ command, deps } = {}) {
   const r = await runCli(command, ["llm", "test"], deps);
   const tail = (r.stdout + r.stderr).trim().split("\n").slice(-3).join(" ");
   return { ok: r.ok, detail: tail.slice(0, 300) };

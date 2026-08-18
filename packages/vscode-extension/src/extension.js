@@ -1125,9 +1125,10 @@ function activate(context) {
           getConfiguredVisionModel,
           hasConfiguredApiKey,
         } = require("./llm-config.js");
-        const cliCmd =
-          vscode.workspace.getConfiguration("chainlesschain.cli").get("path") ||
-          "cc";
+        // Reuse the binary that activation already proved is ChainlessChain.
+        // This may be `chainlesschain`/`clc` or the managed CLI when a stale
+        // global `cc.cmd` still points at a removed npm package directory.
+        const cliCmd = require("./cli-binary").getResolvedCli();
         // Pre-read existing config so re-running the wizard PRE-FILLS instead of
         // forcing a full re-type. Fixes "更新后又要重新配置模型和key": the model/
         // baseUrl/vision default to the current values and the API key can be
@@ -1189,7 +1190,7 @@ function activate(context) {
                   preset.label,
                 )
               : vscode.l10n.t(
-                  "API key for {0} (written only to the local config.json, not VS Code settings)",
+                  "API key for {0} (stored securely by the local CLI; never saved in plaintext in config.json or VS Code settings)",
                   preset.label,
                 ),
             password: true,
@@ -1291,9 +1292,7 @@ function activate(context) {
           suggestVisionModel,
           setVisionModel,
         } = require("./llm-config.js");
-        const cliCmd =
-          vscode.workspace.getConfiguration("chainlesschain.cli").get("path") ||
-          "cc";
+        const cliCmd = require("./cli-binary").getResolvedCli();
         const [provider, current] = await Promise.all([
           getConfiguredProvider({ command: cliCmd }),
           getConfiguredVisionModel({ command: cliCmd }),

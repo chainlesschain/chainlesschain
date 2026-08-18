@@ -2,6 +2,20 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.56] - Secure LLM setup repair (2026-08-18)
+
+- Write API keys only through `cc config set-secret llm.apiKey` on stdin, so
+  credentials never enter command arguments, process listings, or shell
+  history. The CLI stores them in the OS credential store when available and
+  keeps only an opaque reference in `config.json`.
+- Reuse the CLI binary already validated during extension activation, including
+  the `chainlesschain`/`clc` aliases and managed-CLI fallback. LLM setup no
+  longer retries a stale global `cc.cmd` that points at a removed npm install.
+- Require CLI `0.162.190`, the first compatible secure-config release, and
+  explain in the wizard that API keys are not saved as plaintext IDE settings.
+- Use `deepseek-v4-flash-260425` as the Volcengine text-model default and stop
+  forwarding configured API keys into child-process arguments or environment.
+
 ## [0.37.55] - Trusted Remote-SSH release certification (2026-08-17)
 
 - Publish a maintenance build with no intentional user-facing runtime behavior
