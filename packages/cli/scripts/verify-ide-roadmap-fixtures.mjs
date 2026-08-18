@@ -13,7 +13,7 @@ import {
 import { inspectVsixReleaseArtifact } from "../../vscode-extension/scripts/vsix-release-artifact.mjs";
 
 export const IDE_ROADMAP_SCHEMA_VERSION = 1;
-export const IDE_ROADMAP_MANIFEST_VERSION = "1.9.27";
+export const IDE_ROADMAP_MANIFEST_VERSION = "1.9.28";
 export const IDE_ROADMAP_MANIFEST_PATH =
   "tests/fixtures/ide-roadmap/manifest.json";
 export const IDE_ROADMAP_RUNTIME_EVIDENCE_SCHEMA =
