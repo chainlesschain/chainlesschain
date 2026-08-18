@@ -254,6 +254,71 @@ describe("SessionResourceBudget continuous enforcement", () => {
     resumed.dispose();
   });
 
+  it("rolls back verified recovery accounting when persistence fails", () => {
+    const source = makeBudget({ maxTokens: 100, maxUsd: 100 }).budget;
+    const usage = source.beginUsageSettlement({ id: "recovery-write-fails" });
+    source.markUsageUnknown({ callId: usage.id });
+    const snapshot = source.snapshot();
+    source.dispose();
+    const persistenceError = new Error("recovery store unavailable");
+    const resumed = SessionResourceBudget.restore(snapshot, {
+      onAuthorityChange: ({ type }) => {
+        if (type === "budget:recovery-adjudicated") throw persistenceError;
+      },
+    });
+
+    expect(() =>
+      resumed.adjudicateRecovery({
+        settled: [
+          {
+            authorityId: usage.authorityId,
+            provider: "anthropic",
+            model: "claude-3-5-sonnet-20241022",
+            usage: { input_tokens: 8, output_tokens: 2 },
+          },
+        ],
+      }),
+    ).toThrow(persistenceError);
+    expect(resumed.status()).toMatchObject({
+      tokens: 0,
+      spentUsd: 0,
+      recoveryRequired: true,
+      pendingRecovery: 1,
+      aborted: true,
+      reason: "persistence-failed",
+    });
+    resumed.dispose();
+  });
+
+  it("rolls back ordinary usage accounting when its durable write fails", () => {
+    const persistenceError = new Error("usage store unavailable");
+    const { budget } = makeBudget({
+      maxTokens: 100,
+      maxUsd: 100,
+      onAuthorityChange: ({ type }) => {
+        if (type === "budget:usage-recorded") throw persistenceError;
+      },
+    });
+    budget.beginUsageSettlement({ id: "known-write-fails" });
+
+    expect(() =>
+      budget.recordUsage({
+        callId: "known-write-fails",
+        provider: "anthropic",
+        model: "claude-3-5-sonnet-20241022",
+        usage: { input_tokens: 8, output_tokens: 2 },
+      }),
+    ).toThrow(persistenceError);
+    expect(budget.status()).toMatchObject({
+      tokens: 0,
+      spentUsd: 0,
+      pendingUsage: 1,
+      aborted: true,
+      reason: "persistence-failed",
+    });
+    budget.dispose();
+  });
+
   it("actively aborts descendants when tokens cross the limit", () => {
     const { budget, clock } = makeBudget({ maxTokens: 10 });
     const child = new AbortController();
