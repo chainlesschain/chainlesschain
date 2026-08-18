@@ -1,6 +1,9 @@
 import { Command } from "commander";
 import { describe, expect, it, vi } from "vitest";
-import { registerSessionBudgetCommands } from "../../src/commands/session-budget.js";
+import {
+  registerSessionBudgetCommands,
+  renderSessionBudgetStatus,
+} from "../../src/commands/session-budget.js";
 
 function programWith(dependencies) {
   const program = new Command();
@@ -11,6 +14,33 @@ function programWith(dependencies) {
 }
 
 describe("session budget commands", () => {
+  it("renders the durable recovery adjudication chain head", () => {
+    expect(
+      renderSessionBudgetStatus({
+        sessionId: "session-audit",
+        revision: 7,
+        limits: {},
+        totals: {
+          turns: 1,
+          tokens: 10,
+          spentUsd: 0,
+          toolMs: 0,
+          elapsedMs: 1,
+        },
+        recoveryRequired: false,
+        pendingRecovery: [],
+        state: {
+          recoveryAdjudication: {
+            count: 2,
+            headDigest: `sha256:${"a".repeat(64)}`,
+          },
+        },
+      }),
+    ).toContain(
+      `recovery adjudication sha256:${"a".repeat(64)} (sequence 2)`,
+    );
+  });
+
   it("prints the content-free durable status as JSON", async () => {
     const write = vi.fn();
     const status = {
@@ -44,6 +74,7 @@ describe("session budget commands", () => {
       sessionId: "session-2",
       abandoned: ["tool-one", "work-two"],
       settled: [],
+      adjudication: { digest: "sha256:abandoned" },
     }));
     const program = programWith({
       adjudicateProductionSessionBudgetRecovery,
@@ -67,7 +98,7 @@ describe("session budget commands", () => {
       { abandoned: ["tool-one", "work-two"], settled: [] },
     );
     expect(write).toHaveBeenCalledWith(
-      "Recovered session budget session-2; recorded 0 verified usage settlement(s), abandoned 2 exact authority id(s).",
+      "Recovered session budget session-2; recorded 0 verified usage settlement(s), abandoned 2 exact authority id(s); adjudication sha256:abandoned.",
     );
   });
 
@@ -78,6 +109,7 @@ describe("session budget commands", () => {
       sessionId: "session-3",
       abandoned: [],
       settled: [authorityId],
+      adjudication: { digest: "sha256:settled" },
     }));
     const program = programWith({
       adjudicateProductionSessionBudgetRecovery,
@@ -106,7 +138,7 @@ describe("session budget commands", () => {
       { abandoned: [], settled: [settlement] },
     );
     expect(write).toHaveBeenCalledWith(
-      "Recovered session budget session-3; recorded 1 verified usage settlement(s), abandoned 0 exact authority id(s).",
+      "Recovered session budget session-3; recorded 1 verified usage settlement(s), abandoned 0 exact authority id(s); adjudication sha256:settled.",
     );
   });
 });

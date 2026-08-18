@@ -15,10 +15,12 @@
  */
 
 import { AsyncLocalStorage } from "node:async_hooks";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { CostBudget } from "./cost-budget.js";
 
 export const SESSION_RESOURCE_BUDGET_VERSION = 1;
+export const SESSION_BUDGET_RECOVERY_ADJUDICATION_SCHEMA =
+  "chainlesschain.session-budget-recovery-adjudication/v1";
 
 const INTEGER_LIMITS = new Set([
   "maxConcurrent",
@@ -56,6 +58,7 @@ const USAGE_TOKEN_FIELDS = Object.freeze([
 
 const MAX_TIMER_DELAY = 2_147_483_647;
 const RESOURCE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:@-]{0,159}$/;
+const SHA256_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const OPAQUE_AUTHORITY_ID_PATTERNS = Object.freeze({
   work: /^work-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
   tool: /^tool-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
@@ -93,6 +96,35 @@ function isRecord(value) {
   }
   const proto = Object.getPrototypeOf(value);
   return proto === Object.prototype || proto === null;
+}
+
+function canonicalJson(value) {
+  if (Array.isArray(value)) {
+    return `[${value.map((entry) => canonicalJson(entry)).join(",")}]`;
+  }
+  if (isRecord(value)) {
+    return `{${Object.keys(value)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function sha256(value) {
+  return `sha256:${createHash("sha256").update(value).digest("hex")}`;
+}
+
+function normalizeRecoveryIdentity(field, raw) {
+  if (
+    typeof raw !== "string" ||
+    raw.length < 1 ||
+    raw.length > 256 ||
+    /[\u0000-\u001f\u007f]/u.test(raw)
+  ) {
+    throw new TypeError(`invalid session budget recovery ${field}`);
+  }
+  return raw;
 }
 
 function normalizeLimit(field, raw) {
@@ -251,6 +283,91 @@ function calculateUsageAccounting(
   };
 }
 
+function canonicalRecoveryUsageRecord(record, field) {
+  if (!isRecord(record) || !isRecord(record.usage)) {
+    throw new TypeError(`invalid session budget recovery ${field}`);
+  }
+  return {
+    provider: normalizeRecoveryIdentity(`${field} provider`, record.provider),
+    model: normalizeRecoveryIdentity(`${field} model`, record.model),
+    usage: normalizeUsageTokens(record.usage).fields,
+  };
+}
+
+function canonicalRecoverySettlement(record, index) {
+  const base = { authorityId: record.authorityId };
+  if (Array.isArray(record.usageRecords) && record.usageRecords.length > 0) {
+    const usageRecords = record.usageRecords
+      .map((entry, recordIndex) =>
+        canonicalRecoveryUsageRecord(
+          entry,
+          `settlement ${index} usage record ${recordIndex}`,
+        ),
+      )
+      .sort((left, right) =>
+        canonicalJson(left).localeCompare(canonicalJson(right)),
+      );
+    return {
+      ...base,
+      ...(record.usage != null
+        ? { usage: normalizeUsageTokens(record.usage).fields }
+        : {}),
+      usageRecords,
+    };
+  }
+  return {
+    ...base,
+    ...canonicalRecoveryUsageRecord(record, `settlement ${index}`),
+  };
+}
+
+function normalizeRecoveryAdjudicationState(value) {
+  if (value === undefined || value === null) return null;
+  if (
+    !isRecord(value) ||
+    value.schema !== SESSION_BUDGET_RECOVERY_ADJUDICATION_SCHEMA ||
+    !Number.isSafeInteger(value.count) ||
+    value.count < 1 ||
+    !SHA256_PATTERN.test(value.headDigest) ||
+    !isRecord(value.last) ||
+    value.last.sequence !== value.count ||
+    value.last.digest !== value.headDigest ||
+    !SHA256_PATTERN.test(value.last.digest) ||
+    (value.last.previousDigest !== null &&
+      !SHA256_PATTERN.test(value.last.previousDigest)) ||
+    !Number.isSafeInteger(value.last.settledCount) ||
+    value.last.settledCount < 0 ||
+    !Number.isSafeInteger(value.last.abandonedCount) ||
+    value.last.abandonedCount < 0 ||
+    !Number.isSafeInteger(value.last.tokenDelta) ||
+    value.last.tokenDelta < 0 ||
+    !Number.isFinite(value.last.spentUsdDelta) ||
+    value.last.spentUsdDelta < 0
+  ) {
+    throw new TypeError("invalid session budget recovery adjudication state");
+  }
+  if (
+    (value.count === 1 && value.last.previousDigest !== null) ||
+    (value.count > 1 && value.last.previousDigest === null)
+  ) {
+    throw new TypeError("invalid session budget recovery adjudication chain");
+  }
+  return {
+    schema: SESSION_BUDGET_RECOVERY_ADJUDICATION_SCHEMA,
+    count: value.count,
+    headDigest: value.headDigest,
+    last: {
+      sequence: value.last.sequence,
+      digest: value.last.digest,
+      previousDigest: value.last.previousDigest,
+      settledCount: value.last.settledCount,
+      abandonedCount: value.last.abandonedCount,
+      tokenDelta: value.last.tokenDelta,
+      spentUsdDelta: value.last.spentUsdDelta,
+    },
+  };
+}
+
 function normalizeUsageSettlementLabel(raw) {
   const value = String(raw || "");
   if (!RESOURCE_ID_PATTERN.test(value)) {
@@ -367,6 +484,9 @@ function validateSnapshot(snapshot) {
   }
   const work = validateResourceList(snapshot.inFlight.work, "work");
   const tools = validateResourceList(snapshot.inFlight.tools, "tools");
+  const recoveryAdjudication = normalizeRecoveryAdjudicationState(
+    snapshot.state.recoveryAdjudication,
+  );
   const workIds = new Set(work.map((entry) => entry.id));
   if (tools.some((entry) => workIds.has(entry.id))) {
     throw new TypeError(
@@ -379,6 +499,7 @@ function validateSnapshot(snapshot) {
     state: {
       started: snapshot.state.started,
       abort: snapshot.state.abort,
+      recoveryAdjudication,
     },
     inFlight: {
       work,
@@ -449,6 +570,14 @@ export function normalizeSessionResourceBudgetSnapshot(snapshot) {
             message: `Session resource budget stopped: ${abortReason}`,
           }
         : null,
+      ...(normalized.state.recoveryAdjudication
+        ? {
+            recoveryAdjudication: {
+              ...normalized.state.recoveryAdjudication,
+              last: { ...normalized.state.recoveryAdjudication.last },
+            },
+          }
+        : {}),
     },
   };
 }
@@ -536,6 +665,7 @@ export class SessionResourceBudget {
     this._issuedAuthorityIds = new Set();
     this._abortables = new Map();
     this._recoveryUnknown = new Map();
+    this._recoveryAdjudication = null;
     this._deadlineTimer = null;
     this._abortController = new AbortController();
     this._abortState = null;
@@ -1437,7 +1567,11 @@ export class SessionResourceBudget {
           `invalid session budget recovery settlement authority at index ${index}`,
         );
       }
-      return { ...record, authorityId };
+      const normalized = { ...record, authorityId };
+      return {
+        ...normalized,
+        canonical: canonicalRecoverySettlement(normalized, index),
+      };
     });
     const settledIds = normalizedSettlements.map(
       (record) => record.authorityId,
@@ -1484,6 +1618,46 @@ export class SessionResourceBudget {
     for (const record of normalizedSettlements) {
       accounting = calculateUsageAccounting(accounting, record);
     }
+    const previousAdjudication = this._recoveryAdjudication;
+    const sequence = (previousAdjudication?.count || 0) + 1;
+    const previousDigest = previousAdjudication?.headDigest || null;
+    const sortedAbandoned = [...abandonedIds].sort();
+    const sortedSettlements = normalizedSettlements
+      .map((record) => record.canonical)
+      .sort((left, right) =>
+        left.authorityId.localeCompare(right.authorityId),
+      );
+    const tokenDelta = accounting.tokens - this.tokens;
+    const spentUsdDelta = accounting.cost.spentUsd - this.cost.spentUsd;
+    const adjudicationCore = {
+      schema: SESSION_BUDGET_RECOVERY_ADJUDICATION_SCHEMA,
+      sequence,
+      previousDigest,
+      abandoned: sortedAbandoned,
+      settled: sortedSettlements,
+      totalsBefore: {
+        tokens: this.tokens,
+        spentUsd: this.cost.spentUsd,
+      },
+      totalsAfter: {
+        tokens: accounting.tokens,
+        spentUsd: accounting.cost.spentUsd,
+      },
+    };
+    const adjudicationDigest = sha256(canonicalJson(adjudicationCore));
+    const adjudicationState = {
+      sequence,
+      digest: adjudicationDigest,
+      previousDigest,
+      settledCount: settledIds.length,
+      abandonedCount: abandonedIds.length,
+      tokenDelta,
+      spentUsdDelta,
+    };
+    const adjudication = {
+      schema: SESSION_BUDGET_RECOVERY_ADJUDICATION_SCHEMA,
+      ...adjudicationState,
+    };
     const previousRecovery = [...this._recoveryUnknown.entries()];
     const previousTokens = this.tokens;
     const previousCost = this.cost;
@@ -1491,6 +1665,12 @@ export class SessionResourceBudget {
     this.tokens = accounting.tokens;
     this.cost = accounting.cost;
     this.unpricedUsage = accounting.unpricedUsage;
+    this._recoveryAdjudication = {
+      schema: SESSION_BUDGET_RECOVERY_ADJUDICATION_SCHEMA,
+      count: sequence,
+      headDigest: adjudicationDigest,
+      last: adjudicationState,
+    };
     this._recoveryUnknown.clear();
     this._authorityChanged(
       "budget:recovery-adjudicated",
@@ -1499,12 +1679,14 @@ export class SessionResourceBudget {
         settledCount: settledIds.length,
         tokens: this.tokens,
         spentUsd: this.cost.spentUsd,
+        adjudicationDigest,
       },
       {
         rollback: () => {
           this.tokens = previousTokens;
           this.cost = previousCost;
           this.unpricedUsage = previousUnpricedUsage;
+          this._recoveryAdjudication = previousAdjudication;
           for (const [id, entry] of previousRecovery) {
             this._recoveryUnknown.set(id, entry);
           }
@@ -1518,6 +1700,7 @@ export class SessionResourceBudget {
       ok: true,
       abandoned: [...abandonedIds].sort(),
       settled: [...settledIds].sort(),
+      adjudication: { ...adjudication },
     };
   }
 
@@ -1543,6 +1726,12 @@ export class SessionResourceBudget {
       resources: this._abortables.size,
       recoveryRequired: this._recoveryUnknown.size > 0,
       pendingRecovery: this._recoveryUnknown.size,
+      recoveryAdjudication: this._recoveryAdjudication
+        ? {
+            ...this._recoveryAdjudication,
+            last: { ...this._recoveryAdjudication.last },
+          }
+        : null,
       unpricedUsage: this.unpricedUsage,
       aborted: this.signal.aborted,
       reason: this.reason(now),
@@ -1594,6 +1783,14 @@ export class SessionResourceBudget {
       state: {
         started: this._startedAt !== null,
         abort: this._abortState ? { ...this._abortState } : null,
+        ...(this._recoveryAdjudication
+          ? {
+              recoveryAdjudication: {
+                ...this._recoveryAdjudication,
+                last: { ...this._recoveryAdjudication.last },
+              },
+            }
+          : {}),
       },
     };
   }
@@ -1650,6 +1847,12 @@ export class SessionResourceBudget {
     budget._toolMs = normalized.totals.toolMs;
     const restoredAt = budget._now();
     budget._startedAt = normalized.state.started ? restoredAt : null;
+    budget._recoveryAdjudication = normalized.state.recoveryAdjudication
+      ? {
+          ...normalized.state.recoveryAdjudication,
+          last: { ...normalized.state.recoveryAdjudication.last },
+        }
+      : null;
 
     if (recoverUnsettled === "require-adjudication") {
       for (const entry of normalized.inFlight.work) {

@@ -32,6 +32,12 @@ export function renderSessionBudgetStatus(status) {
     `tool time ${status.totals.toolMs}/${status.limits.maxToolMs ?? "unlimited"} ms; active wall ${status.totals.elapsedMs}/${status.limits.maxWallMs ?? "unlimited"} ms`,
     `recovery ${status.recoveryRequired ? `required (${status.pendingRecovery.length})` : "not required"}`,
   ];
+  const adjudication = status.state?.recoveryAdjudication;
+  if (adjudication) {
+    lines.push(
+      `recovery adjudication ${adjudication.headDigest} (sequence ${adjudication.count})`,
+    );
+  }
   for (const pending of status.pendingRecovery) {
     lines.push(
       `  ${pending.authorityId} ${pending.resourceType}/${pending.kind}`,
@@ -93,7 +99,7 @@ export function registerSessionBudgetCommands(session, dependencies = {}) {
         if (options.json) writeJson(result, write);
         else {
           write(
-            `Recovered session budget ${sessionId}; recorded ${result.settled.length} verified usage settlement(s), abandoned ${result.abandoned.length} exact authority id(s).`,
+            `Recovered session budget ${sessionId}; recorded ${result.settled.length} verified usage settlement(s), abandoned ${result.abandoned.length} exact authority id(s); adjudication ${result.adjudication.digest}.`,
           );
         }
       } catch (error) {
