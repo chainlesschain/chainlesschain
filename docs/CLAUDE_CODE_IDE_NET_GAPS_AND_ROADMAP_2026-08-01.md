@@ -2588,6 +2588,52 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 六十、2026-08-18 R4 recovery adjudication digest lineage 子门复核（`20:22 +08:00`）
+
+本节继续第五十九节的 operator-verified usage recovery，补上“补账完成后 sidecar 只剩 totals、无法绑定当时输入”的审计缺口；不把本地 digest 外推为
+provider 签名或不可变外部归档。功能提交 `c2045fdfad` 已快进合并到本地 `main`，尚无本候选 exact-head GitHub Actions。
+
+### 本轮关闭的 adjudication lineage 子门
+
+- **每次裁决形成规范化 digest。** runtime 把 schema、sequence、previous digest、排序后的 abandoned authority ids、逐 authority 的规范化
+  provider/model/token 字段，以及裁决前后 token/USD totals 编成确定性 JSON，再计算 `sha256:`。详细 `usageRecords` 按规范内容排序；调用方字段顺序、
+  缺省零 token 或 settlement 数组顺序不会制造另一份语义相同但不可比较的记录。
+- **sidecar 只保存内容无关链头。** snapshot 可选保存 `chainlesschain.session-budget-recovery-adjudication/v1`、累计 count、head digest 与最后一条的
+  previous digest、settled/abandoned count、token delta、USD delta；不保存 prompt、response、error、账单文本或 provider payload。旧 v1 snapshot 缺少该
+  可选字段时继续可读，不会被伪装成已有 lineage。
+- **裁决与链头同一 authority transition。** totals、recovery set 与新 chain head 在同一次 `budget:recovery-adjudicated` snapshot 中持久化；写失败会连同
+  chain head 一起回滚，再进入 `persistence-failed`。因此不会出现“marker 已清除但 lineage 没推进”或“digest 已推进但补账未落盘”的部分成功。
+- **重启与状态面可回读。** restore 会验证 schema、digest 形状、sequence/count、head/last 一致性和首条/后继 previous-digest 约束；metadata 漂移
+  fail closed。`session budget status` 文本显示当前 head 与 sequence，JSON 返回完整 content-free metadata；recover 结果同时返回自描述 adjudication
+  record，外部 evidence 可与保留的 operator 输入共同重算 digest。
+- **链不冒充完整本地审计日志。** sidecar 仅保留 head、count 与 last metadata；历史详细输入应由受控外部 evidence artifact 留存。head 能绑定这些外部
+  记录的顺序与内容，但单靠当前 sidecar 不能还原历史 usage，也不能证明 operator 输入来自 provider。
+
+### 仓库内验证与证据边界
+
+- resource budget、production root 与 command 三个核心文件为 **37/37**；覆盖两次连续 adjudication、restart 后 head/sequence、metadata tamper、
+  content-free status、CLI output 与持久化失败无 phantom head。
+- sidecar runtime、direct model、REPL wrapper、headless root、WS handler、SubAgent 与 TeamRunner 合并后的十文件回归为
+  **175 passed / 3 skipped**。Node syntax 与 `git diff --check` 通过。
+- roadmap manifest 从 `1.9.26` 升至 `1.9.27`；`p1-dynamic-workflow` 保持引用 **39 个测试文件**，新增 missing head、chain tamper 与 private
+  payload leak 必须为零的合同，并要求 provider usage recovery adjudication lineage artifact。fixture digest 为
+  `sha256:6e735fe80e59be4ab810ccbeffdbf83424d3027c25353541cae994e9e68a0c48`；全 corpus 保持
+  **15 cases / 88 referenced test files**，仍只验证 repository contract，不等于 external runtime evidence 或 release readiness。
+
+### R4 budget 仍未关闭的边界
+
+1. **来源真实性仍开放：** digest 证明“这份 operator 输入与本地 totals/authority 顺序一致”，不证明 usage 来自 provider billing endpoint、发票或签名
+   receipt；独立 readback、退款/延迟入账与争议复核仍待实现。
+2. **完整历史依赖外部 artifact：** sidecar 不保存每次详细输入；外部 evidence 丢失时只能证明存在某个链头，不能从 head 反推出历史记录。WORM archive、
+   多人复核、修订/撤销协议与 retention policy 仍开放。
+3. **敌对写入和平台矩阵仍开放：** 能重写 sidecar 与本机完整 witness 的同 UID 攻击者、Windows/macOS 安全持久化、多主机 anti-rollback/fencing、
+   断电/fsync、IDE/Desktop UI 与真实 provider 长期矩阵仍未关闭。
+
+因此，R4 budget 的 **content-free recovery adjudication digest、持久 chain head、原子提交/回滚、重启回读与 metadata tamper fence**由本节关闭；
+R4 budget 整项仍为**部分完成**，不得据此声称 provider-native billing proof 或完整 WORM audit log。总计数保持
+**12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节不改变 S0-1～S0-3、Q0、Q3、
+Q4a/Q4b、P1-1、P1-2、P1-4、P1-5 或 P2-4 的状态。
+
 ## 五十九、2026-08-18 R4 operator-verified usage reconciliation 子门复核（`20:05 +08:00`）
 
 本节继续第五十八节的 unknown provider usage recovery：此前 operator 只能把完整精确 authority 集合作为 `--abandon` 清除，本轮允许把事后已核实的
