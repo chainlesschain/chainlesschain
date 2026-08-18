@@ -29,16 +29,18 @@ public final class LlmConfigSmokeMain {
         // set-arg builder
         List<List<String>> sets =
                 LlmConfig.buildConfigSetArgs("deepseek", "deepseek-chat", "k", "https://x", null);
-        check("4 sets", sets.size() == 4);
+        check("3 non-secret sets", sets.size() == 3);
         check("provider first",
                 String.join(" ", sets.get(0)).equals("config set llm.provider deepseek"));
-        check("key last", String.join(" ", sets.get(3)).equals("config set llm.apiKey k"));
+        boolean keyInArgv = false;
+        for (List<String> s : sets) if (s.contains("k") || s.contains("llm.apiKey")) keyInArgv = true;
+        check("key absent from argv", !keyInArgv);
         check("blank skipped",
                 LlmConfig.buildConfigSetArgs("ollama", null, "", null, null).size() == 1);
         // blank apiKey is OMITTED so the stored key is kept (the "更新后又要重配
         // key" fix): model/baseUrl still update, llm.apiKey is never re-written.
         List<List<String>> keepKey = LlmConfig.buildConfigSetArgs(
-                "volcengine", "doubao-seed-evolving", "",
+                "volcengine", "deepseek-v4-flash-260425", "",
                 "https://ark.cn-beijing.volces.com/api/v3", null);
         boolean noKeyWrite = true;
         for (List<String> s : keepKey) if (s.contains("llm.apiKey")) noKeyWrite = false;
@@ -49,7 +51,7 @@ public final class LlmConfigSmokeMain {
         check("space unsafe", LlmConfig.hasUnsafeShellChars("has space"));
         check("amp unsafe", LlmConfig.hasUnsafeShellChars("a&b"));
         check("apply rejects unsafe",
-                LlmConfig.applyConfig("x", null, "bad key", null) != null);
+                LlmConfig.applyConfig("x", "bad model", null, null) != null);
 
         // config-get parser (both output styles + unset states)
         check("kv style", "volcengine".equals(LlmConfig.parseConfigGet("llm.provider = volcengine\n")));

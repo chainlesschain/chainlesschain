@@ -92,11 +92,11 @@ describe("compareVersions", () => {
 
 describe("checkCliVersion", () => {
   it("ok when installed >= minimum", () => {
-    expect(checkCliVersion("0.162.47")).toMatchObject({
+    expect(checkCliVersion("0.162.190")).toMatchObject({
       status: "ok",
-      installed: "0.162.47",
+      installed: "0.162.190",
     });
-    expect(checkCliVersion("0.162.65")).toMatchObject({ status: "ok" });
+    expect(checkCliVersion("0.165.1")).toMatchObject({ status: "ok" });
   });
   it("outdated when installed < minimum", () => {
     expect(checkCliVersion("0.162.40")).toMatchObject({
@@ -129,7 +129,7 @@ describe("upgradeNotice", () => {
     expect(notice.message).toContain(MIN_CLI_VERSION);
     expect(notice.upgradeCommand).toBe("npm i -g chainlesschain@latest");
 
-    expect(upgradeNotice(checkCliVersion("0.162.47"))).toBe(null); // ok
+    expect(upgradeNotice(checkCliVersion("0.162.190"))).toBe(null); // ok
     expect(upgradeNotice(checkCliVersion(null))).toBe(null); // missing → handled elsewhere
     expect(upgradeNotice(checkCliVersion("junk"))).toBe(null); // unknown
     expect(upgradeNotice(null)).toBe(null);

@@ -13,7 +13,7 @@
  * (Terminal-context auto-injection degrades gracefully on older cc — the tool
  * still works on demand — so it doesn't force the floor up.)
  */
-const MIN_CLI_VERSION = "0.162.47";
+const MIN_CLI_VERSION = "0.162.190";
 
 /** The shell command that upgrades the global CLI to the latest published npm. */
 const UPGRADE_COMMAND = "npm i -g chainlesschain@latest";

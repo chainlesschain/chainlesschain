@@ -161,7 +161,7 @@ const DESKTOP_SHORTCUT_KEYS = [
 export const PUBLIC_IDE_CAPABILITY_MANIFEST = freeze({
   schema: "chainlesschain.public-ide-capabilities/v1",
   schemaVersion: 1,
-  minimumCliVersion: "0.162.47",
+  minimumCliVersion: "0.162.190",
   protocol: buildCompatFixture(),
   bridge: {
     schemaVersion: 1,

@@ -2,7 +2,7 @@
   "_generated": "packages/cli/scripts/gen-public-ide-capability-manifest.mjs - do not edit by hand",
   "schema": "chainlesschain.public-ide-capabilities/v1",
   "schemaVersion": 1,
-  "minimumCliVersion": "0.162.47",
+  "minimumCliVersion": "0.162.190",
   "protocol": {
     "protocolVersion": 1,
     "minProtocolVersion": 1,

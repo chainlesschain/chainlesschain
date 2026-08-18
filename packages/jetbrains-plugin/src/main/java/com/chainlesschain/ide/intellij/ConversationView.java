@@ -1426,10 +1426,8 @@ final class ConversationView {
         // ~/.chainlesschain/config.json) so the panel deterministically uses the
         // SAME LLM as the terminal `cc` — never drifts to a stale ambient default
         // (the cause of spurious "Anthropic error: 401" when another provider is
-        // actually configured). Pass the FULL block — provider/model AND the
-        // endpoint + key — so the CLI doesn't drop a cloud provider's baseUrl/key
-        // (it skips config when --provider is explicit) and fall through to ollama
-        // ("配置了火山却 fetch failed"). Blank → SessionArgs omits the flag.
+        // actually configured). Pass only provider/model/endpoint; the CLI
+        // resolves the matching provider's key from its secure config store.
         String[] llm = com.chainlesschain.ide.LlmConfig.readConfiguredLlmBlock();
         // Declare the session id UP FRONT (VS Code twin fix): anonymous
         // stream sessions are persistence-free by CLI design, so a first

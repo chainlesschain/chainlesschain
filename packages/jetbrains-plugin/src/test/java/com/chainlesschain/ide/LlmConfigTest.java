@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -64,6 +65,17 @@ class LlmConfigTest {
     }
 
     @Test
+    void volcenginePresetUsesRequestedDefaultModel() {
+        for (LlmConfig.Preset preset : LlmConfig.PRESETS) {
+            if ("volcengine".equals(preset.id)) {
+                assertEquals("deepseek-v4-flash-260425", preset.defaultModel);
+                return;
+            }
+        }
+        throw new AssertionError("volcengine preset missing");
+    }
+
+    @Test
     void buildConfigSetArgsEmitsVisionModelWhenPresent() {
         List<List<String>> withVis = LlmConfig.buildConfigSetArgs(
                 "volcengine", "doubao-seed-1-6", "k", "https://x", "doubao-vision");
@@ -81,6 +93,28 @@ class LlmConfigTest {
         int noVis = LlmConfig.buildConfigSetArgs("ollama", "m", "", "u", "").size();
         int yesVis = LlmConfig.buildConfigSetArgs("ollama", "m", "", "u", "v").size();
         assertEquals(noVis + 1, yesVis);
+    }
+
+    @Test
+    void apiKeyUsesSetSecretStdinAndNeverArgv() {
+        List<List<String>> calls = new ArrayList<List<String>>();
+        List<String> inputs = new ArrayList<String>();
+        String apiKey = "key with & shell characters";
+
+        String error = LlmConfig.applyConfig(
+                "volcengine", "deepseek-v4-flash-260425", apiKey,
+                "https://ark.cn-beijing.volces.com/api/v3", null,
+                (args, stdin) -> {
+                    calls.add(new ArrayList<String>(args));
+                    inputs.add(stdin);
+                    return new LlmConfig.CliResult(true, "Set");
+                });
+
+        assertNull(error);
+        assertEquals(java.util.Arrays.asList("config", "set-secret", "llm.apiKey"),
+                calls.get(calls.size() - 1));
+        for (List<String> args : calls) assertFalse(args.contains(apiKey));
+        assertEquals(apiKey, inputs.get(inputs.size() - 1));
     }
 
     @Test

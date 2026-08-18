@@ -2,6 +2,7 @@ package com.chainlesschain.ide;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -41,7 +42,7 @@ public final class LlmConfig {
     }
 
     public static final Preset[] PRESETS = {
-        new Preset("volcengine", "Volcengine / Doubao (volcengine)", "https://ark.cn-beijing.volces.com/api/v3", "doubao-seed-evolving", true),
+        new Preset("volcengine", "Volcengine / Doubao (volcengine)", "https://ark.cn-beijing.volces.com/api/v3", "deepseek-v4-flash-260425", true),
         new Preset("ollama", "Ollama (local, no key)", "http://localhost:11434", "qwen2.5:7b", false),
         new Preset("anthropic", "Anthropic Claude", "https://api.anthropic.com/v1", "claude-sonnet-4-6", true),
         new Preset("openai", "OpenAI", "https://api.openai.com/v1", "gpt-4o", true),
@@ -64,15 +65,16 @@ public final class LlmConfig {
         return value != null && UNSAFE.matcher(value).find();
     }
 
-    /** The {@code cc config set} invocations for the wizard's answers. A blank
-     *  visionModel is omitted (the CLI keeps its default vision model). */
+    /** The non-secret {@code cc config set} invocations for the wizard's
+     *  answers. API keys are intentionally excluded from argv and are written
+     *  through {@code cc config set-secret} on stdin by {@link #applyConfig}. A
+     *  blank visionModel is omitted (the CLI keeps its default vision model). */
     public static List<List<String>> buildConfigSetArgs(
             String provider, String model, String apiKey, String baseUrl, String visionModel) {
         List<List<String>> sets = new ArrayList<List<String>>();
         if (notBlank(provider)) sets.add(args("config", "set", "llm.provider", provider));
         if (notBlank(model)) sets.add(args("config", "set", "llm.model", model));
         if (notBlank(baseUrl)) sets.add(args("config", "set", "llm.baseUrl", baseUrl));
-        if (notBlank(apiKey)) sets.add(args("config", "set", "llm.apiKey", apiKey));
         if (notBlank(visionModel)) sets.add(args("config", "set", "llm.visionModel", visionModel));
         return sets;
     }
@@ -97,11 +99,20 @@ public final class LlmConfig {
         }
     }
 
+    interface CliRunner {
+        CliResult run(List<String> ccArgs, String stdin);
+    }
+
     /** Run `cc <args…>` (via cmd /c on Windows — npm shims are .cmd files).
      *  PATH is augmented with the usual npm/node bin dirs and the binary name is
      *  resolved (cc/chainlesschain/…) so the wizard works even when the IDE was
      *  launched from a shortcut and never inherited %APPDATA%\npm on PATH. */
     public static CliResult runCli(List<String> ccArgs) {
+        return runCli(ccArgs, null);
+    }
+
+    /** Run the CLI and, when non-null, deliver sensitive input through stdin. */
+    static CliResult runCli(List<String> ccArgs, String stdin) {
         List<String> cmd = new ArrayList<String>();
         boolean windows = System.getProperty("os.name", "").toLowerCase().contains("win");
         if (windows) {
@@ -117,6 +128,11 @@ public final class LlmConfig {
             CliLauncher.augmentPath(pb);
             pb.redirectErrorStream(true);
             Process p = pb.start();
+            if (stdin != null) {
+                try (OutputStream out = p.getOutputStream()) {
+                    out.write(stdin.getBytes(StandardCharsets.UTF_8));
+                }
+            }
             String out = readAll(p.getInputStream());
             boolean finished = p.waitFor(60, TimeUnit.SECONDS);
             if (!finished) {
@@ -298,12 +314,10 @@ public final class LlmConfig {
     }
 
     /**
-     * Full configured llm block {@code [provider, model, baseUrl, apiKey]} for
-     * the chat spawn. The panel pins --provider/--model AND must pass
-     * --base-url/--api-key, or the CLI (seeing an explicit --provider) drops a
-     * cloud provider's endpoint + key → it falls through to ollama ("配置了火山却
-     * fetch failed"). Read file-first via {@link #readLlmField}; any element may
-     * be null (then omitted as a flag, and the CLI resolves it itself).
+     * Configured non-secret llm block {@code [provider, model, baseUrl, null]}
+     * for the chat spawn. Secure configs contain only an opaque key reference
+     * in config.json, so the plugin never reads or forwards the API key. The
+     * CLI resolves it from the secure store for the matching provider.
      */
     public static String[] readConfiguredLlmBlock() {
         // Read + parse config.json ONCE for all four fields. The old code called
@@ -324,7 +338,7 @@ public final class LlmConfig {
                         cleanConfigValue(m.get("provider")),
                         cleanConfigValue(m.get("model")),
                         cleanConfigValue(m.get("baseUrl")),
-                        cleanConfigValue(m.get("apiKey")),
+                        null,
                     };
                 }
             }
@@ -336,7 +350,7 @@ public final class LlmConfig {
             readLlmField("provider"),
             readLlmField("model"),
             readLlmField("baseUrl"),
-            readLlmField("apiKey"),
+            null,
         };
     }
 
@@ -362,8 +376,19 @@ public final class LlmConfig {
 
     public static String applyConfig(String provider, String model, String apiKey,
                                      String baseUrl, String visionModel) {
+        return applyConfig(provider, model, apiKey, baseUrl, visionModel,
+                new CliRunner() {
+                    @Override
+                    public CliResult run(List<String> ccArgs, String stdin) {
+                        return runCli(ccArgs, stdin);
+                    }
+                });
+    }
+
+    static String applyConfig(String provider, String model, String apiKey,
+                              String baseUrl, String visionModel, CliRunner cli) {
         String[][] fields = {
-            {"provider", provider}, {"model", model}, {"apiKey", apiKey},
+            {"provider", provider}, {"model", model},
             {"baseUrl", baseUrl}, {"visionModel", visionModel},
         };
         for (String[] f : fields) {
@@ -372,7 +397,11 @@ public final class LlmConfig {
             }
         }
         for (List<String> set : buildConfigSetArgs(provider, model, apiKey, baseUrl, visionModel)) {
-            CliResult r = runCli(set);
+            CliResult r = cli.run(set, null);
+            if (!r.ok) return tail(r.output, 200);
+        }
+        if (notBlank(apiKey)) {
+            CliResult r = cli.run(args("config", "set-secret", "llm.apiKey"), apiKey);
             if (!r.ok) return tail(r.output, 200);
         }
         return null;

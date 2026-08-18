@@ -68,18 +68,18 @@ class SessionArgsTest {
     }
 
     @Test
-    void fullBlockPassesBaseUrlAndApiKeyInOrder() {
+    void fullBlockPassesBaseUrlButNeverApiKey() {
         assertEquals(
                 Arrays.asList("--provider", "volcengine", "--model", "doubao-x",
                         "--base-url", "https://ark.cn-beijing.volces.com/api/v3",
-                        "--api-key", "sk-volc", "--resume", "sess-1"),
+                        "--resume", "sess-1"),
                 SessionArgs.build("volcengine", "doubao-x",
                         "https://ark.cn-beijing.volces.com/api/v3", "sk-volc",
                         "sess-1", "default", null));
     }
 
     @Test
-    void blankBaseUrlAndApiKeyAreOmitted() {
+    void blankBaseUrlIsOmitted() {
         assertEquals(
                 Arrays.asList("--provider", "ollama", "--model", "m", "--resume", "s1"),
                 SessionArgs.build("ollama", "m", "  ", "", "s1", "default", null));

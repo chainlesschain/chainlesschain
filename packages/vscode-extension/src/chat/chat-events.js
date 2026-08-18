@@ -371,32 +371,26 @@ function resolveChatLlm(
   let p = typeof provider === "string" ? provider.trim() : "";
   let m = typeof model === "string" ? model.trim() : "";
   let baseUrl = "";
-  let apiKey = "";
   if (!p && llm.provider) {
     p = String(llm.provider);
     if (!m && llm.model) m = String(llm.model);
   }
-  // Carry the FULL llm block (baseUrl + apiKey, + model) when the effective
-  // provider matches the configured one. The panel pins --provider/--model and
-  // MUST also pass the endpoint + key: the CLI, seeing an explicit --provider,
-  // skips config resolution and would otherwise drop a cloud provider's
-  // baseUrl/key → the endpoint falls through to ollama ("配置了火山却 fetch
-  // failed / 切到 ollama"). Same provider → its baseUrl/apiKey are exactly
-  // right. A DIFFERENT explicit provider override carries neither (the user
-  // owns that endpoint/key).
+  // Carry the non-secret endpoint/model when the effective provider matches
+  // the configured one. The CLI backfills credentials from its own resolved
+  // config for a matching explicit provider. Never read or surface apiKey here:
+  // secure configs store an opaque secret reference in config.json, and secrets
+  // must not be copied into argv, the child environment, or extension logs.
   if (p && llm.provider && p === String(llm.provider)) {
     if (!m && llm.model) m = String(llm.model);
     if (llm.baseUrl) baseUrl = String(llm.baseUrl);
-    if (llm.apiKey) apiKey = String(llm.apiKey);
   }
-  return { provider: p, model: m, baseUrl, apiKey };
+  return { provider: p, model: m, baseUrl, apiKey: "" };
 }
 
 function buildSessionArgs({
   model,
   provider,
   baseUrl,
-  apiKey,
   resume,
   mode,
   think,
@@ -409,13 +403,10 @@ function buildSessionArgs({
   if (typeof model === "string" && model.trim()) {
     args.push("--model", model.trim());
   }
-  // Pass the endpoint + key alongside the provider so the CLI doesn't drop a
-  // cloud provider's credentials (it skips config when --provider is explicit).
+  // The endpoint is non-secret and can be pinned. The CLI resolves credentials
+  // from secure config; API keys must never be placed in process arguments.
   if (typeof baseUrl === "string" && baseUrl.trim()) {
     args.push("--base-url", baseUrl.trim());
-  }
-  if (typeof apiKey === "string" && apiKey.trim()) {
-    args.push("--api-key", apiKey.trim());
   }
   if (typeof resume === "string" && resume.trim()) {
     args.push("--resume", resume.trim());

@@ -1375,10 +1375,9 @@ class ChatViewProvider {
       cwd,
       // CC_INTERACTIVE_QUESTIONS opts the child into the ask_user_question
       // round-trip (QuickPick); an old `cc` simply ignores the env var.
-      // CC_API_KEY carries the key OFF the command line (argv is readable by
-      // every same-user process); buildSessionArgs still passes --api-key for
-      // CLIs predating the env fallback — drop that once MIN_CLI_VERSION
-      // reaches the first cc release that reads CC_API_KEY.
+      // The plugin deliberately injects no credentials into argv or the child
+      // environment. The CLI resolves them from its secure config store (while
+      // still honoring any ambient provider env vars the user supplied).
       env: {
         ...process.env,
         ...bridgeEnv,
@@ -1400,7 +1399,6 @@ class ChatViewProvider {
         ...(chatCfg.get("leanContext") !== false
           ? { CC_PROJECT_MEMORY: "lean" }
           : {}),
-        ...(llm.apiKey ? { CC_API_KEY: String(llm.apiKey) } : {}),
       },
       onEvent: this._makeOnEvent(conv.id, sessionToken),
       onStderr: (line) => {

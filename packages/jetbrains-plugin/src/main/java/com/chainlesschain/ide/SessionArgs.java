@@ -67,12 +67,10 @@ public final class SessionArgs {
     }
 
     /**
-     * Build the full extra-args list including the endpoint + key. The panel
-     * pins --provider/--model and MUST also pass --base-url/--api-key: the CLI,
-     * seeing an explicit --provider, skips config resolution and would otherwise
-     * drop a cloud provider's baseUrl/key → the endpoint falls through to ollama
-     * ("配置了火山却 fetch failed / 切到 ollama"). Blank baseUrl/apiKey are
-     * omitted (back-compat: the CLI then resolves them itself).
+     * Build the non-secret extra-args list. The CLI resolves credentials from
+     * its secure config store for a matching explicit provider. The retained
+     * apiKey parameter is ignored for source compatibility and must never be
+     * copied into process arguments.
      */
     public static List<String> build(String provider, String model, String baseUrl, String apiKey,
             String resume, String mode, String think) {
@@ -88,10 +86,6 @@ public final class SessionArgs {
         if (notBlank(baseUrl)) {
             args.add("--base-url");
             args.add(baseUrl.trim());
-        }
-        if (notBlank(apiKey)) {
-            args.add("--api-key");
-            args.add(apiKey.trim());
         }
         if (notBlank(resume)) {
             args.add("--resume");

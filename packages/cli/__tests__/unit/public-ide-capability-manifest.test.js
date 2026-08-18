@@ -48,7 +48,7 @@ describe("public IDE capability manifest", () => {
     expect(vscode).toContain("VS Code commands: **52**");
     expect(jetbrains).toContain("JetBrains actions: **35**");
     for (const text of [vscode, jetbrains]) {
-      expect(text).toContain("cc >= 0.162.47");
+      expect(text).toContain("cc >= 0.162.190");
       expect(text).toContain("Bridge capability schema: **v1**");
     }
   });

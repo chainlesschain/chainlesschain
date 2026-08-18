@@ -461,29 +461,28 @@ describe("resolveChatLlm — panel uses the user's cc config provider (bug fix)"
     });
   });
 
-  it("empty override → adopts the FULL config block (provider/model/baseUrl/apiKey)", () => {
+  it("empty override adopts the non-secret config block", () => {
     const out = resolveChatLlm({ provider: "", model: "" }, () => ({
       provider: "volcengine",
       model: "doubao-seed-1-6",
       baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
       apiKey: "sk-volc",
     }));
-    // THE FIX: pin provider/model AND carry the endpoint + key, or the CLI drops
-    // them (explicit --provider) and a cloud provider falls through to ollama.
+    // Pin non-secret settings; the CLI resolves the key from secure config.
     expect(out).toEqual({
       provider: "volcengine",
       model: "doubao-seed-1-6",
       baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
-      apiKey: "sk-volc",
+      apiKey: "",
     });
   });
 
-  it("an explicit override provider that MATCHES config carries its baseUrl/apiKey", () => {
+  it("a matching explicit provider carries baseUrl but never apiKey", () => {
     const out = resolveChatLlm({ provider: "volcengine", model: "" }, () => ({
       provider: "volcengine",
       model: "doubao-x",
       baseUrl: "https://ark…",
-      apiKey: "sk-v",
+      apiKey: "",
     }));
     expect(out).toEqual({
       provider: "volcengine",
@@ -537,7 +536,7 @@ describe("buildSessionArgs (P1: model/provider settings)", async () => {
     expect(buildSessionArgs()).toEqual([]);
   });
 
-  it("passes the FULL block: --base-url + --api-key alongside provider/model", () => {
+  it("passes baseUrl but never exposes apiKey in process arguments", () => {
     expect(
       buildSessionArgs({
         provider: "volcengine",
@@ -552,10 +551,8 @@ describe("buildSessionArgs (P1: model/provider settings)", async () => {
       "doubao-x",
       "--base-url",
       "https://ark.cn-beijing.volces.com/api/v3",
-      "--api-key",
-      "sk-volc",
     ]);
-    // blank baseUrl/apiKey are skipped (back-compat with provider/model-only)
+    // blank baseUrl is skipped (back-compat with provider/model-only)
     expect(
       buildSessionArgs({ provider: "ollama", baseUrl: "", apiKey: "  " }),
     ).toEqual(["--provider", "ollama"]);
@@ -842,9 +839,12 @@ describe("LLM config wizard plumbing (onboarding)", async () => {
     expect(
       llmCfg.PROVIDER_PRESETS.find((p) => p.id === "ollama").needsKey,
     ).toBe(false);
+    expect(
+      llmCfg.PROVIDER_PRESETS.find((p) => p.id === "volcengine").defaultModel,
+    ).toBe("deepseek-v4-flash-260425");
   });
 
-  it("buildConfigSetArgs emits one cc config set per answered field", () => {
+  it("buildConfigSetArgs emits only non-secret cc config set commands", () => {
     expect(
       llmCfg.buildConfigSetArgs({
         provider: "volcengine",
@@ -856,7 +856,6 @@ describe("LLM config wizard plumbing (onboarding)", async () => {
       ["config", "set", "llm.provider", "volcengine"],
       ["config", "set", "llm.model", "m"],
       ["config", "set", "llm.baseUrl", "https://x"],
-      ["config", "set", "llm.apiKey", "k"],
     ]);
     expect(llmCfg.buildConfigSetArgs({ provider: "ollama" })).toEqual([
       ["config", "set", "llm.provider", "ollama"],
@@ -1073,12 +1072,12 @@ describe("LLM config wizard plumbing (onboarding)", async () => {
     ]);
   });
 
-  it("rejects shell-unsafe values before writing", async () => {
+  it("rejects shell-unsafe non-secret values before writing", async () => {
     expect(llmCfg.hasUnsafeShellChars("ok-key_123/=+")).toBe(false);
     expect(llmCfg.hasUnsafeShellChars("has space")).toBe(true);
     expect(llmCfg.hasUnsafeShellChars("a&b")).toBe(true);
     const r = await llmCfg.applyLlmConfig({
-      answers: { apiKey: "bad key" },
+      answers: { model: "bad model" },
       deps: {
         execFile: () => {
           throw new Error("must not spawn");
@@ -1087,6 +1086,33 @@ describe("LLM config wizard plumbing (onboarding)", async () => {
     });
     expect(r.ok).toBe(false);
     expect(r.error).toMatch(/unsafe characters/);
+  });
+
+  it("writes API keys through set-secret stdin and never exposes them in argv", async () => {
+    const calls = [];
+    let secretInput = null;
+    const apiKey = "key with & shell characters";
+    const r = await llmCfg.applyLlmConfig({
+      answers: { apiKey },
+      deps: {
+        execFile: (command, args, options, callback) => {
+          calls.push(args);
+          return {
+            stdin: {
+              on: () => {},
+              end: (value) => {
+                secretInput = value;
+                callback(null, "Set");
+              },
+            },
+          };
+        },
+      },
+    });
+    expect(r.ok).toBe(true);
+    expect(calls).toEqual([["config", "set-secret", "llm.apiKey"]]);
+    expect(calls.flat()).not.toContain(apiKey);
+    expect(secretInput).toBe(apiKey);
   });
 
   it("getConfiguredProvider parses both output styles and maps unset to null", async () => {
