@@ -12,12 +12,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createExecutionLocationBinding } from "../../src/lib/execution-location-contract.js";
 import { canonicalJson } from "../../src/lib/scheduler-kernel/contract.js";
 import {
+  collectExecutionLocationTargetResult,
   EXECUTION_LOCATION_PROFILE_SCHEMA,
   attestExecutionLocationTarget,
   normalizeExecutionLocationProfile,
   readExecutionLocationProfile,
   resumeExecutionLocationTarget,
 } from "../../src/lib/execution-location-target.js";
+import { createExecutionLocationResultBundle } from "../../src/lib/execution-location-result.js";
 
 const COMMIT = "a".repeat(40);
 const HEAD_HASH = "b".repeat(64);
@@ -328,6 +330,81 @@ describe("execution location target launch and resume", () => {
     expect(spawnSync.mock.calls[3][2]).toMatchObject({
       shell: false,
       stdio: "inherit",
+    });
+  });
+
+  it("collects a result bundle through one fixed target command and revalidates source", () => {
+    const profile = rawProfile();
+    const initial = attestExecutionLocationTarget(
+      { profile, handoff: handoff() },
+      { spawnSync: () => success(JSON.stringify(currentProjection())) },
+    );
+    const prepared = handoffReceipt(initial);
+    const bundle = createExecutionLocationResultBundle({
+      sessionAuthority: sessionProjection(initial, prepared),
+      resultId: "result-collect-1",
+      summaryBytes: Buffer.from("completed remotely"),
+      diffBytes: Buffer.from("diff --git a/a b/a\n"),
+      artifacts: [
+        { mediaType: "application/json", bytes: Buffer.from('{"ok":true}') },
+      ],
+      evidence: [],
+    });
+    const spawnSync = vi
+      .fn()
+      .mockReturnValueOnce(success(JSON.stringify(currentProjection())))
+      .mockReturnValueOnce(success(JSON.stringify(bundle)));
+    const readSourceAuthority = vi.fn(() => sourceAuthority());
+
+    const collected = collectExecutionLocationTargetResult(
+      {
+        profile,
+        handoff: handoff(),
+        expectedTargetFactsDigest: initial.targetFactsDigest,
+        expectedHandoffId: prepared.handoffId,
+        resultId: "result-collect-1",
+        summaryPath: "summary.txt",
+        diffPath: "result.diff",
+        artifacts: [
+          { mediaType: "application/json", path: "artifact.json" },
+        ],
+        evidence: [],
+        readSourceAuthority,
+      },
+      { spawnSync },
+    );
+
+    expect(collected).toMatchObject({
+      schema: "cc-execution-location-target-result-collection/v1",
+      resultId: "result-collect-1",
+      handoffId: prepared.handoffId,
+      bundleDigest: bundle.bundleDigest,
+      bundle,
+      verification: { applied: false },
+      applied: false,
+      continuity: "single-fixed-command-response",
+    });
+    expect(readSourceAuthority).toHaveBeenCalledTimes(2);
+    expect(spawnSync.mock.calls[1][1]).toEqual(
+      expect.arrayContaining([
+        "session",
+        "location",
+        "result-pack",
+        "session-target-1",
+        "--result-id",
+        "result-collect-1",
+        "--summary",
+        "summary.txt",
+        "--diff",
+        "result.diff",
+        "--artifact",
+        "application/json=artifact.json",
+        "--json",
+      ]),
+    );
+    expect(spawnSync.mock.calls[1][2]).toMatchObject({
+      shell: false,
+      maxBuffer: 24 * 1024 * 1024,
     });
   });
 

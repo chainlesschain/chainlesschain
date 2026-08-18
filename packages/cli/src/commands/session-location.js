@@ -9,8 +9,10 @@ import {
 import { captureAmbientExecutionLocation } from "../lib/execution-location-runtime.js";
 import {
   EXECUTION_LOCATION_TARGET_ATTESTATION_SCHEMA,
+  EXECUTION_LOCATION_TARGET_RESULT_COLLECTION_SCHEMA,
   EXECUTION_LOCATION_TARGET_RESUME_SCHEMA,
   attestExecutionLocationTarget,
+  collectExecutionLocationTargetResult,
   readExecutionLocationProfile,
   resumeExecutionLocationTarget,
 } from "../lib/execution-location-target.js";
@@ -405,6 +407,52 @@ export function verifySessionExecutionLocationResultBundle(
   });
 }
 
+export function collectSessionExecutionLocationResult(
+  sessionId,
+  target,
+  options,
+  deps = {},
+) {
+  const handoff = projectExecutionLocationHandoff(
+    sessionId,
+    target,
+    options.facts,
+    deps,
+  );
+  const profile = (
+    deps.readExecutionLocationProfile || readExecutionLocationProfile
+  )(options.profile, deps);
+  const readSourceAuthority = () => {
+    const authority = (
+      deps.getVerifiedSessionExecutionLocationAuthority ||
+      getVerifiedSessionExecutionLocationAuthority
+    )(sessionId);
+    return {
+      sessionId: authority.sessionId,
+      headHash: authority.headHash,
+      eventCount: authority.eventCount,
+    };
+  };
+  const parseItems = (values, label) =>
+    (values || []).map((value) => parseResultFileSpec(value, label));
+  return (deps.collectExecutionLocationTargetResult ||
+    collectExecutionLocationTargetResult)(
+    {
+      handoff,
+      profile,
+      expectedTargetFactsDigest: options.expectedTargetFactsDigest,
+      expectedHandoffId: options.expectedHandoffId,
+      resultId: options.resultId,
+      summaryPath: options.summary,
+      diffPath: options.diff,
+      artifacts: parseItems(options.artifact, "--artifact"),
+      evidence: parseItems(options.evidence, "--evidence"),
+      readSourceAuthority,
+    },
+    deps,
+  );
+}
+
 function renderBinding(binding) {
   const git = binding.source.git;
   return [
@@ -450,6 +498,14 @@ function writeProjection(projection, options = {}) {
   if (projection.schema === EXECUTION_LOCATION_RESULT_VERIFICATION_SCHEMA) {
     process.stdout.write(
       `RESULT VERIFIED ${projection.resultId}\nBundle: ${projection.bundleDigest}\nVerification: ${projection.verificationDigest}\nApplied: no\n`,
+    );
+    return;
+  }
+  if (
+    projection.schema === EXECUTION_LOCATION_TARGET_RESULT_COLLECTION_SCHEMA
+  ) {
+    process.stdout.write(
+      `RESULT COLLECTED ${projection.resultId}\nBundle: ${projection.bundleDigest}\nCollection: ${projection.collectionDigest}\nApplied: no\nGaps: ${projection.gaps.join(", ")}\n`,
     );
     return;
   }
@@ -736,6 +792,47 @@ export function registerSessionLocationSubcommands(session, deps = {}) {
             options.expectedHandoffId,
             deps,
           ),
+        options,
+      );
+    });
+
+  location
+    .command("result-collect <id> <target>")
+    .description(
+      "Fetch a target result through the fixed transport and verify it on source",
+    )
+    .requiredOption("--facts <path>", "Accepted handoff facts JSON")
+    .requiredOption("--profile <path>", "Secret-free target profile JSON")
+    .requiredOption(
+      "--expected-target-facts-digest <sha256>",
+      "Exact stable target facts digest accepted before execution",
+    )
+    .requiredOption(
+      "--expected-handoff-id <sha256>",
+      "Exact canonical target handoff id",
+    )
+    .requiredOption("--result-id <id>", "Stable result bundle id")
+    .requiredOption("--summary <path>", "Target summary path")
+    .requiredOption("--diff <path>", "Target diff path")
+    .option(
+      "--artifact <media-type=path>",
+      "Target artifact bytes to include (repeatable)",
+      collectResultFileSpec,
+      [],
+    )
+    .option(
+      "--evidence <media-type=path>",
+      "Target evidence bytes to include (repeatable)",
+      collectResultFileSpec,
+      [],
+    )
+    .option(
+      "--json",
+      "Machine-readable collection with bundle bytes and verification receipt",
+    )
+    .action((id, target, options) => {
+      process.exitCode = runAction(
+        () => collectSessionExecutionLocationResult(id, target, options, deps),
         options,
       );
     });
