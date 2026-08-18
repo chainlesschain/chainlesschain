@@ -214,6 +214,7 @@ describe("cc artifacts command runners (injected store)", () => {
     expect(ledger).toMatchObject({
       eventCount: 2,
       filtered: true,
+      matchedEventCount: 2,
     });
     expect(ledger.events).toHaveLength(2);
   });
