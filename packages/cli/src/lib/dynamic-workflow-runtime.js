@@ -22,6 +22,14 @@ import {
   PRICE_TABLE,
 } from "./llm-pricing.js";
 import { containsSecret } from "./secret-scan.js";
+import { managedToolCheckpointRequired } from "./managed-tool-checkpoint.js";
+import {
+  digestWorkspaceEvidence,
+  WORKSPACE_TRANSACTION_COVERAGE,
+  WORKSPACE_TRANSACTION_STATE,
+  WORKSPACE_TRANSACTION_VERSION,
+  WorkspaceTransactionManager,
+} from "./process-execution-broker/workspace-transaction.js";
 import {
   sameFileStatIdentity,
   samePathHandleFileIdentity,
@@ -518,6 +526,253 @@ function artifactReadbackSettlement(event, artifactStore) {
   };
 }
 
+const CHECKPOINT_EVIDENCE_BASE_FIELDS = Object.freeze([
+  "version",
+  "transactionId",
+  "checkpointId",
+  "checkpointDigest",
+  "writeManifestDigest",
+  "fileCoverage",
+  "coverage",
+  "externalSideEffects",
+  "outcome",
+  "executions",
+  "exclusions",
+  "uncoveredPaths",
+  "evidenceDigest",
+]);
+
+function checkpointEvidenceSnapshot(value) {
+  const outcome = ownDataValue(value, "outcome");
+  const fields =
+    outcome === "rolled_back"
+      ? [
+          ...CHECKPOINT_EVIDENCE_BASE_FIELDS,
+          "rollbackReason",
+          "verificationDigest",
+        ]
+      : CHECKPOINT_EVIDENCE_BASE_FIELDS;
+  return strictDataObjectSnapshot(
+    value,
+    fields,
+    "workflow managed checkpoint evidence",
+    512 * 1024,
+  );
+}
+
+function boundedStringArray(value, maxItems = 4096, maxLength = 4096) {
+  return (
+    Array.isArray(value) &&
+    value.length <= maxItems &&
+    value.every(
+      (entry) =>
+        typeof entry === "string" &&
+        entry.length >= 1 &&
+        entry.length <= maxLength &&
+        !entry.includes("\0"),
+    )
+  );
+}
+
+function validCheckpointEvidence(value) {
+  if (
+    !value ||
+    value.version !== WORKSPACE_TRANSACTION_VERSION ||
+    !/^[A-Za-z0-9][A-Za-z0-9._-]{0,191}$/u.test(value.transactionId || "") ||
+    !/^[A-Za-z0-9][A-Za-z0-9._-]{0,191}$/u.test(value.checkpointId || "") ||
+    !SHA256_RE.test(value.checkpointDigest || "") ||
+    !SHA256_RE.test(value.writeManifestDigest || "") ||
+    !Object.values(WORKSPACE_TRANSACTION_COVERAGE).includes(
+      value.fileCoverage,
+    ) ||
+    !Object.values(WORKSPACE_TRANSACTION_COVERAGE).includes(value.coverage) ||
+    typeof value.externalSideEffects !== "boolean" ||
+    !["committed", "rolled_back"].includes(value.outcome) ||
+    !boundedStringArray(value.executions, 4096, 256) ||
+    !boundedStringArray(value.exclusions) ||
+    !boundedStringArray(value.uncoveredPaths) ||
+    !SHA256_RE.test(value.evidenceDigest || "") ||
+    (value.outcome === "rolled_back" &&
+      (typeof value.rollbackReason !== "string" ||
+        value.rollbackReason.length < 1 ||
+        value.rollbackReason.length > 1000 ||
+        !SHA256_RE.test(value.verificationDigest || "")))
+  ) {
+    return false;
+  }
+  const unsigned = { ...value };
+  delete unsigned.evidenceDigest;
+  return value.evidenceDigest === digestWorkspaceEvidence(unsigned);
+}
+
+function checkpointReadbackDigest(readback) {
+  return digest(
+    "chainlesschain.dynamic-workflow.checkpoint-store-readback.v1\0",
+    readback,
+  );
+}
+
+function validCheckpointReadback(value) {
+  return (
+    exactObjectFields(value, [
+      "schema",
+      "authority",
+      "transactionId",
+      "checkpointId",
+      "outcome",
+      "coverage",
+      "fileCoverage",
+      "externalSideEffects",
+      "checkpointDigest",
+      "writeManifestDigest",
+      "evidenceDigest",
+      "stateDigest",
+    ]) &&
+    value.schema === "cc-dynamic-workflow-checkpoint-readback/v1" &&
+    value.authority === "workspace-transaction-store-terminal-readback" &&
+    /^[A-Za-z0-9][A-Za-z0-9._-]{0,191}$/u.test(value.transactionId || "") &&
+    /^[A-Za-z0-9][A-Za-z0-9._-]{0,191}$/u.test(value.checkpointId || "") &&
+    ["committed", "rolled_back"].includes(value.outcome) &&
+    Object.values(WORKSPACE_TRANSACTION_COVERAGE).includes(value.coverage) &&
+    Object.values(WORKSPACE_TRANSACTION_COVERAGE).includes(
+      value.fileCoverage,
+    ) &&
+    typeof value.externalSideEffects === "boolean" &&
+    SHA256_RE.test(value.checkpointDigest || "") &&
+    SHA256_RE.test(value.writeManifestDigest || "") &&
+    SHA256_RE.test(value.evidenceDigest || "") &&
+    SHA256_RE.test(value.stateDigest || "")
+  );
+}
+
+function checkpointReadbackSettlement(event, checkpointStore) {
+  const managed = ownDataValue(event?.result, "managedCheckpoint");
+  if (managed === undefined || managed === null) return null;
+  const skipped = ownDataValue(managed, "skipped");
+  const status = ownDataValue(managed, "status");
+  if (skipped === true) {
+    const observation = strictDataObjectSnapshot(
+      managed,
+      ["skipped", "toolName", "coverage", "fileCoverage", "reason"],
+      "workflow unavailable managed checkpoint",
+    );
+    if (
+      observation.toolName !== event.tool ||
+      observation.coverage !== WORKSPACE_TRANSACTION_COVERAGE.NONE ||
+      observation.fileCoverage !== WORKSPACE_TRANSACTION_COVERAGE.NONE ||
+      typeof observation.reason !== "string" ||
+      observation.reason.length < 1 ||
+      observation.reason.length > 256
+    ) {
+      throw new TypeError(
+        "workflow unavailable managed checkpoint is malformed",
+      );
+    }
+    return null;
+  }
+  if (["not_started", "recovery_required"].includes(status)) {
+    const observation = strictDataObjectSnapshot(
+      managed,
+      status === "not_started"
+        ? ["status", "coverage", "code"]
+        : [
+            "status",
+            "coverage",
+            "code",
+            "transactionId",
+            "checkpointId",
+            "settlement",
+            "originalToolError",
+          ],
+      "workflow unavailable managed checkpoint",
+    );
+    const hasToolError = Boolean(
+      event?.error || ownDataValue(event?.result, "error"),
+    );
+    if (
+      observation.coverage !== WORKSPACE_TRANSACTION_COVERAGE.NONE ||
+      !hasToolError
+    ) {
+      throw new TypeError(
+        "workflow unavailable managed checkpoint is malformed",
+      );
+    }
+    return null;
+  }
+  const settlement = strictDataObjectSnapshot(
+    managed,
+    [
+      "skipped",
+      "toolName",
+      "transactionId",
+      "checkpointId",
+      "evidence",
+      "coverage",
+      "fileCoverage",
+    ],
+    "workflow managed checkpoint settlement",
+    1024 * 1024,
+  );
+  const evidence = checkpointEvidenceSnapshot(settlement.evidence);
+  if (
+    settlement.skipped !== false ||
+    settlement.toolName !== event.tool ||
+    settlement.transactionId !== evidence.transactionId ||
+    settlement.checkpointId !== evidence.checkpointId ||
+    settlement.coverage !== evidence.coverage ||
+    settlement.fileCoverage !== evidence.fileCoverage ||
+    !validCheckpointEvidence(evidence)
+  ) {
+    throw new TypeError("workflow managed checkpoint settlement is malformed");
+  }
+  if (!checkpointStore || typeof checkpointStore.inspect !== "function") {
+    throw new TypeError("workflow checkpoint store readback is unavailable");
+  }
+  let stored;
+  try {
+    stored = snapshotJson(
+      checkpointStore.inspect(evidence.transactionId),
+      "workflow checkpoint store state",
+      2 * 1024 * 1024,
+    );
+  } catch {
+    throw new TypeError("workflow checkpoint store readback failed");
+  }
+  const unsignedState = { ...stored };
+  delete unsignedState.stateDigest;
+  const expectedState =
+    evidence.outcome === "committed"
+      ? WORKSPACE_TRANSACTION_STATE.COMMITTED
+      : WORKSPACE_TRANSACTION_STATE.ROLLED_BACK;
+  if (
+    stored.id !== evidence.transactionId ||
+    stored.checkpointId !== evidence.checkpointId ||
+    stored.state !== expectedState ||
+    !SHA256_RE.test(stored.stateDigest || "") ||
+    stored.stateDigest !== digestWorkspaceEvidence(unsignedState) ||
+    canonicalJson(stored.evidence, "workflowCheckpointEvidence") !==
+      canonicalJson(evidence, "workflowCheckpointEvidence")
+  ) {
+    throw new TypeError(
+      "workflow checkpoint store readback does not match settlement",
+    );
+  }
+  return {
+    schema: "cc-dynamic-workflow-checkpoint-readback/v1",
+    authority: "workspace-transaction-store-terminal-readback",
+    transactionId: evidence.transactionId,
+    checkpointId: evidence.checkpointId,
+    outcome: evidence.outcome,
+    coverage: evidence.coverage,
+    fileCoverage: evidence.fileCoverage,
+    externalSideEffects: evidence.externalSideEffects,
+    checkpointDigest: evidence.checkpointDigest,
+    writeManifestDigest: evidence.writeManifestDigest,
+    evidenceDigest: evidence.evidenceDigest,
+    stateDigest: stored.stateDigest,
+  };
+}
+
 function effectResultDigest(result) {
   return digest("chainlesschain.dynamic-workflow.effect-result.v1\0", result);
 }
@@ -746,6 +1001,22 @@ function verifyEffectCalls(
         "artifactReadbackDigest",
       ),
     );
+    const hasCheckpointReadback = Object.prototype.hasOwnProperty.call(
+      call || {},
+      "checkpointReadback",
+    );
+    const startedCheckpointSchemaPresent = startedLineage.some((event) =>
+      Object.prototype.hasOwnProperty.call(
+        event?.details || {},
+        "checkpointReadbackSchema",
+      ),
+    );
+    const settlementCheckpointDigestPresent = settlementLineage.some((event) =>
+      Object.prototype.hasOwnProperty.call(
+        event?.details || {},
+        "checkpointReadbackDigest",
+      ),
+    );
     const terminal = call?.status !== "started";
     const identityKey = `${call?.kind || ""}\0${
       call?.kind === "tool" ? call?.childEffectId : call?.callId
@@ -903,6 +1174,9 @@ function verifyEffectCalls(
         !hasArtifactReadback &&
         !startedArtifactSchemaPresent &&
         !settlementArtifactDigestPresent &&
+        !hasCheckpointReadback &&
+        !startedCheckpointSchemaPresent &&
+        !settlementCheckpointDigestPresent &&
         call.mcpLedgerId === null &&
         call.mcpLedgerPrewritePersisted === false &&
         call.mcpLedgerSettlementPersisted === false);
@@ -947,7 +1221,27 @@ function verifyEffectCalls(
                         null
                     : !settlementArtifactDigestPresent))
             : !startedArtifactSchemaPresent &&
-              !settlementArtifactDigestPresent));
+              !settlementArtifactDigestPresent) &&
+        (managedToolCheckpointRequired(call.name)
+          ? hasCheckpointReadback
+            ? startedLineage.length === 1 &&
+              startedLineage[0]?.details?.checkpointReadbackSchema ===
+                "cc-dynamic-workflow-checkpoint-readback/v1" &&
+              (["completed", "failed", "outcome_unknown"].includes(call.status)
+                ? (call.checkpointReadback === null ||
+                    validCheckpointReadback(call.checkpointReadback)) &&
+                  settlementLineage.length === 1 &&
+                  settlementLineage[0]?.details?.checkpointReadbackDigest ===
+                    (call.checkpointReadback === null
+                      ? null
+                      : checkpointReadbackDigest(call.checkpointReadback))
+                : call.checkpointReadback === null &&
+                  !settlementCheckpointDigestPresent)
+            : !startedCheckpointSchemaPresent &&
+              !settlementCheckpointDigestPresent
+          : !hasCheckpointReadback &&
+            !startedCheckpointSchemaPresent &&
+            !settlementCheckpointDigestPresent));
     const settlementValid = terminal
       ? call.settlementCode !== null || call.status === "completed"
       : call.settlementCode === null &&
@@ -2048,6 +2342,9 @@ function workflowCallAttempt(effectId, kind, event, now) {
     providerReceiptResponseId: null,
     providerReceiptRecordedAt: null,
     ...(event.tool === "publish_artifact" ? { artifactReadback: null } : {}),
+    ...(managedToolCheckpointRequired(event.tool)
+      ? { checkpointReadback: null }
+      : {}),
     mcpLedgerId: null,
     mcpLedgerPrewritePersisted: false,
     mcpLedgerSettlementPersisted: false,
@@ -2112,12 +2409,20 @@ function beginEffectCall(statePath, runId, effectId, kind, event, now) {
                   ? null
                   : providerPricingDigest(attempt.providerPricing),
             }
-          : kind === "tool" && attempt.name === "publish_artifact"
-            ? {
-                artifactReadbackSchema:
-                  "cc-dynamic-workflow-artifact-readback/v1",
-              }
-            : {}),
+          : {}),
+        ...(kind === "tool" && attempt.name === "publish_artifact"
+          ? {
+              artifactReadbackSchema:
+                "cc-dynamic-workflow-artifact-readback/v1",
+            }
+          : {}),
+        ...(kind === "tool" &&
+        Object.prototype.hasOwnProperty.call(attempt, "checkpointReadback")
+          ? {
+              checkpointReadbackSchema:
+                "cc-dynamic-workflow-checkpoint-readback/v1",
+            }
+          : {}),
       },
       (draft) => {
         draft.effects[index] = {
@@ -2270,7 +2575,13 @@ function recordEffectCallReceipt(statePath, runId, effectId, event, now) {
   });
 }
 
-function effectCallSettlement(call, event, now, artifactStore) {
+function effectCallSettlement(
+  call,
+  event,
+  now,
+  artifactStore,
+  checkpointStore,
+) {
   let status;
   let settlementCode = null;
   let providerUsage = call.providerUsage;
@@ -2279,6 +2590,7 @@ function effectCallSettlement(call, event, now, artifactStore) {
   let providerReceiptRequestId = call.providerReceiptRequestId;
   let providerReceiptResponseId = call.providerReceiptResponseId;
   let artifactReadback = call.artifactReadback;
+  let checkpointReadback = call.checkpointReadback;
   let mcpLedgerId = null;
   let mcpLedgerPrewritePersisted = false;
   let mcpLedgerSettlementPersisted = false;
@@ -2366,6 +2678,9 @@ function effectCallSettlement(call, event, now, artifactStore) {
         artifactReadback = null;
       }
     }
+    if (Object.prototype.hasOwnProperty.call(call, "checkpointReadback")) {
+      checkpointReadback = checkpointReadbackSettlement(event, checkpointStore);
+    }
   }
   if (
     settlementCode !== null &&
@@ -2392,6 +2707,10 @@ function effectCallSettlement(call, event, now, artifactStore) {
     Object.prototype.hasOwnProperty.call(call, "artifactReadback")
       ? { artifactReadback }
       : {}),
+    ...(call.kind === "tool" &&
+    Object.prototype.hasOwnProperty.call(call, "checkpointReadback")
+      ? { checkpointReadback }
+      : {}),
     mcpLedgerId,
     mcpLedgerPrewritePersisted,
     mcpLedgerSettlementPersisted,
@@ -2406,6 +2725,7 @@ function settleEffectCall(
   event,
   now,
   artifactStore,
+  checkpointStore,
 ) {
   return withStateMutation(statePath, (current) => {
     if (!current || current.runId !== runId) {
@@ -2432,7 +2752,13 @@ function settleEffectCall(
     ) {
       throw new Error("workflow child call is not started at settlement");
     }
-    const settlement = effectCallSettlement(call, event, now, artifactStore);
+    const settlement = effectCallSettlement(
+      call,
+      event,
+      now,
+      artifactStore,
+      checkpointStore,
+    );
     const usageDigest =
       kind === "provider" && settlement.providerUsage !== null
         ? providerUsageDigest(settlement.providerUsage)
@@ -2457,6 +2783,16 @@ function settleEffectCall(
       settlement.artifactReadback !== null
         ? artifactReadbackDigest(settlement.artifactReadback)
         : null;
+    const hasCheckpointReadback = Object.prototype.hasOwnProperty.call(
+      settlement,
+      "checkpointReadback",
+    );
+    const settledCheckpointReadbackDigest =
+      kind === "tool" &&
+      hasCheckpointReadback &&
+      settlement.checkpointReadback !== null
+        ? checkpointReadbackDigest(settlement.checkpointReadback)
+        : null;
     const state = transition(
       current,
       "effect-call-settled",
@@ -2471,6 +2807,9 @@ function settleEffectCall(
           : {}),
         ...(kind === "tool" && hasArtifactReadback
           ? { artifactReadbackDigest: settledArtifactReadbackDigest }
+          : {}),
+        ...(kind === "tool" && hasCheckpointReadback
+          ? { checkpointReadbackDigest: settledCheckpointReadbackDigest }
           : {}),
       },
       (draft) => {
@@ -2493,6 +2832,7 @@ function createDurableCallObservers(
   effectId,
   now,
   artifactStore,
+  checkpointStore,
 ) {
   return Object.freeze({
     strictUsageTelemetry: true,
@@ -2517,6 +2857,7 @@ function createDurableCallObservers(
         event,
         now,
         artifactStore,
+        checkpointStore,
       );
     },
   });
@@ -2754,6 +3095,26 @@ function markFailed(statePath, runId, error, now) {
   });
 }
 
+function managedCheckpointRuntimeExclusions(cwd, statePath, existing = []) {
+  const exclusions = Array.isArray(existing) ? [...existing] : [];
+  if (typeof cwd !== "string" || !cwd.trim()) return exclusions;
+  const workspaceRoot = path.resolve(cwd);
+  const runtimeStatePath = path.resolve(statePath);
+  const relativeState = path.relative(workspaceRoot, runtimeStatePath);
+  if (
+    !relativeState ||
+    path.isAbsolute(relativeState) ||
+    relativeState === ".." ||
+    relativeState.startsWith(`..${path.sep}`)
+  ) {
+    return exclusions;
+  }
+  const relativeDirectory = path.dirname(relativeState);
+  const exclusion =
+    relativeDirectory === "." ? relativeState : relativeDirectory;
+  return [...new Set([...exclusions, exclusion.replaceAll("\\", "/")])];
+}
+
 export async function executeDurableDynamicWorkflow(options = {}, deps = {}) {
   const statePath = path.resolve(options.statePath);
   const runId = safeId(options.runId, "runId");
@@ -2770,6 +3131,8 @@ export async function executeDurableDynamicWorkflow(options = {}, deps = {}) {
     deps.now,
   );
   const artifactStore = deps.artifactStore || new ArtifactStore();
+  const checkpointStore =
+    deps.checkpointStore || new WorkspaceTransactionManager();
   const durableRunTask = async (args) => {
     const requested = await requestEffectForDispatch(args);
     if (requested.control) {
@@ -2852,10 +3215,17 @@ export async function executeDurableDynamicWorkflow(options = {}, deps = {}) {
         effect.id,
         deps.now,
         artifactStore,
+        checkpointStore,
       );
       result = await deps.runTask({
         ...args,
         workflowEffectId: effect.id,
+        managedCheckpoint: true,
+        managedCheckpointExclusions: managedCheckpointRuntimeExclusions(
+          args.cwd,
+          statePath,
+          args.managedCheckpointExclusions,
+        ),
         ...durableCallObservers,
       });
       if (typeof deps.afterProvider === "function") {
@@ -3870,6 +4240,13 @@ function projectDurableWorkflowCalls(state) {
       artifactReadbackSchemaPresent:
         call.kind === "tool" &&
         Object.prototype.hasOwnProperty.call(call, "artifactReadback"),
+      checkpointReadback:
+        call.kind === "tool" && validCheckpointReadback(call.checkpointReadback)
+          ? call.checkpointReadback
+          : null,
+      checkpointReadbackSchemaPresent:
+        call.kind === "tool" &&
+        Object.prototype.hasOwnProperty.call(call, "checkpointReadback"),
       mcpLedgerId: call.mcpLedgerId,
       mcpLedgerPrewritePersisted: call.mcpLedgerPrewritePersisted,
       mcpLedgerSettlementPersisted: call.mcpLedgerSettlementPersisted,
@@ -3896,6 +4273,9 @@ function projectDurableWorkflowCalls(state) {
     ).length,
     artifactReadbackRecords: lineage.filter(
       (call) => call.artifactReadback !== null,
+    ).length,
+    checkpointReadbackRecords: lineage.filter(
+      (call) => call.checkpointReadback !== null,
     ).length,
     providerNativeIdempotencyProven: false,
     providerReceiptsIndependentlyReadable: false,
@@ -4152,6 +4532,106 @@ function projectArtifactStoreReadbacks(state) {
   };
 }
 
+function projectCheckpointStoreReadbacks(state) {
+  const lineage = [];
+  const verifiedEffectIds = new Set();
+  let toolCalls = 0;
+  let completedCalls = 0;
+  let failedCalls = 0;
+  let pendingCalls = 0;
+  let outcomeUnknownCalls = 0;
+  let operatorReconciledCalls = 0;
+  let committedCalls = 0;
+  let rolledBackCalls = 0;
+  let fullCoverageCalls = 0;
+  let partialCoverageCalls = 0;
+  let externalSideEffectCalls = 0;
+  let missingReadbacks = 0;
+  let legacyCalls = 0;
+  for (const effect of state.effects) {
+    for (const call of effect.calls || []) {
+      if (call.kind !== "tool" || !managedToolCheckpointRequired(call.name)) {
+        continue;
+      }
+      toolCalls += 1;
+      if (call.status === "completed") completedCalls += 1;
+      if (call.status === "failed") failedCalls += 1;
+      if (call.status === "started") pendingCalls += 1;
+      if (call.status === "outcome_unknown") outcomeUnknownCalls += 1;
+      if (call.status === "operator_reconciled") operatorReconciledCalls += 1;
+      if (!Object.prototype.hasOwnProperty.call(call, "checkpointReadback")) {
+        legacyCalls += 1;
+        missingReadbacks += 1;
+        continue;
+      }
+      if (!validCheckpointReadback(call.checkpointReadback)) {
+        missingReadbacks += 1;
+        continue;
+      }
+      if (call.checkpointReadback.outcome === "committed") committedCalls += 1;
+      if (call.checkpointReadback.outcome === "rolled_back") {
+        rolledBackCalls += 1;
+      }
+      if (
+        call.checkpointReadback.coverage === WORKSPACE_TRANSACTION_COVERAGE.FULL
+      ) {
+        fullCoverageCalls += 1;
+      }
+      if (
+        call.checkpointReadback.coverage ===
+        WORKSPACE_TRANSACTION_COVERAGE.PARTIAL
+      ) {
+        partialCoverageCalls += 1;
+      }
+      if (call.checkpointReadback.externalSideEffects) {
+        externalSideEffectCalls += 1;
+      }
+      verifiedEffectIds.add(effect.id);
+      lineage.push({
+        effectId: effect.id,
+        ownerEffectId: call.ownerEffectId ?? effect.id,
+        callRecordId: call.id,
+        callId: call.callId,
+        sequence: call.sequence,
+        tool: call.name,
+        descendant: (call.ownerEffectId ?? effect.id) !== effect.id,
+        settledAt: call.settledAt,
+        readback: call.checkpointReadback,
+        readbackDigest: checkpointReadbackDigest(call.checkpointReadback),
+      });
+    }
+  }
+  return {
+    authority:
+      legacyCalls > 0
+        ? "workspace-transaction-store-terminal-readback-with-legacy-call-schema"
+        : "workspace-transaction-store-terminal-readback",
+    verificationTiming: "tool-settlement",
+    rollbackScope: "workspace-files-only",
+    externalSideEffectsRollbackProven: false,
+    toolCalls,
+    completedCalls,
+    failedCalls,
+    verifiedCalls: lineage.length,
+    verifiedEffects: verifiedEffectIds.size,
+    committedCalls,
+    rolledBackCalls,
+    fullCoverageCalls,
+    partialCoverageCalls,
+    externalSideEffectCalls,
+    missingReadbacks,
+    pendingCalls,
+    outcomeUnknownCalls,
+    operatorReconciledCalls,
+    legacyCalls,
+    lineageDigest: digest(
+      "chainlesschain.dynamic-workflow.checkpoint-store-readback-lineage.v1\0",
+      lineage,
+    ),
+    lineage,
+  };
+}
+
 function projectDynamicWorkflowObservability(state) {
   const settled = state.effects.filter((effect) => effect.status === "settled");
   const effectLineage = [];
@@ -4165,6 +4645,7 @@ function projectDynamicWorkflowObservability(state) {
   const providerTokenUsage = projectProviderTokenUsage(state);
   const providerCostEstimates = projectProviderCostEstimates(state);
   const artifactStoreReadbacks = projectArtifactStoreReadbacks(state);
+  const checkpointStoreReadbacks = projectCheckpointStoreReadbacks(state);
   const providerReceipts = projectProviderRequestReceipts(state);
   const nestedEffects = projectNestedToolEffects(state);
   let requestToSettlementMs = 0;
@@ -4262,7 +4743,6 @@ function projectDynamicWorkflowObservability(state) {
     "provider-cost-usd-unavailable",
     "provider-native-idempotency-unavailable",
     "provider-receipt-independent-readback-unavailable",
-    "checkpoint-provider-readback-unavailable",
     "artifact-store-immutable-retention-unavailable",
   ];
   providerRequestAttemptLineage.push(...providerReceipts.attemptLineage);
@@ -4295,6 +4775,25 @@ function projectDynamicWorkflowObservability(state) {
   }
   if (artifactStoreReadbacks.legacyCalls > 0) {
     gaps.push("artifact-store-readback-legacy-call-schema");
+  }
+  if (checkpointStoreReadbacks.verifiedCalls === 0) {
+    gaps.push("checkpoint-provider-readback-unavailable");
+  }
+  if (checkpointStoreReadbacks.missingReadbacks > 0) {
+    gaps.push("checkpoint-store-readback-incomplete");
+  }
+  if (checkpointStoreReadbacks.legacyCalls > 0) {
+    gaps.push("checkpoint-store-readback-legacy-call-schema");
+  }
+  if (
+    checkpointStoreReadbacks.verifiedCalls > 0 &&
+    checkpointStoreReadbacks.fullCoverageCalls <
+      checkpointStoreReadbacks.verifiedCalls
+  ) {
+    gaps.push("checkpoint-full-coverage-incomplete");
+  }
+  if (checkpointStoreReadbacks.externalSideEffectCalls > 0) {
+    gaps.push("checkpoint-external-side-effect-rollback-unavailable");
   }
   if (tokenEstimateEffects !== settled.length) {
     gaps.push("cowork-token-estimate-incomplete");
@@ -4497,6 +4996,7 @@ function projectDynamicWorkflowObservability(state) {
           checkpointLineage,
         ),
         lineage: checkpointLineage,
+        storeReadbacks: checkpointStoreReadbacks,
       },
       gaps,
     },

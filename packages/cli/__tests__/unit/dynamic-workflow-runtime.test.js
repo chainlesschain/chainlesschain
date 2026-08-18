@@ -1,7 +1,9 @@
 import {
   existsSync,
   linkSync,
+  mkdirSync,
   mkdtempSync,
+  readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -40,6 +42,7 @@ import {
   ArtifactStore,
   publicArtifactMetadata,
 } from "../../src/lib/artifact-store.js";
+import { WorkspaceTransactionManager } from "../../src/lib/process-execution-broker/workspace-transaction.js";
 
 function workflowDefinition(overrides = {}) {
   return {
@@ -323,6 +326,20 @@ function workflowToolBoundary(
     workflowChildEffectId: childEffectId,
     workflowChildSequence: sequence,
   };
+}
+
+function checkpointManager(root, label) {
+  let sequence = 0;
+  return new WorkspaceTransactionManager({
+    stateDir: join(root, `${label}-checkpoint-state`),
+    lockDir: join(root, `${label}-checkpoint-locks`),
+    allowNonCanonicalLockDirForTests: true,
+    now: () => Date.parse("2026-08-18T05:45:00.000Z") + sequence * 1000,
+    uuid: () =>
+      `00000000-0000-4000-8000-${String(++sequence).padStart(12, "0")}`,
+    ownerToken: () =>
+      `10000000-0000-4000-8000-${String(++sequence).padStart(12, "0")}`,
+  });
 }
 
 describe("durable dynamic workflow runtime", () => {
@@ -1171,6 +1188,359 @@ describe("durable dynamic workflow runtime", () => {
           "artifact-store-readback-incomplete",
         ]),
       );
+    },
+  );
+
+  it("persists a committed managed checkpoint store readback before the outer task settles", async () => {
+    const workflow = workflowDefinition({
+      steps: [{ id: "write", message: "Write release evidence" }],
+    });
+    const execution = admittedExecution(projectRoot, workflow);
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-checkpoint-commit",
+    );
+    const checkpointStore = checkpointManager(root, "commit");
+    let readbackVisibleBeforeReturn = false;
+
+    await executeDurableDynamicWorkflow(
+      { statePath, runId: "run-checkpoint-commit", execution },
+      {
+        checkpointStore,
+        runTask: async (args) => {
+          expect(args.managedCheckpoint).toBe(true);
+          expect(args.managedCheckpointExclusions).toEqual(
+            expect.arrayContaining([expect.stringContaining("workflow-runs")]),
+          );
+          const transaction = checkpointStore.begin({
+            id: "wcp-workflow-commit",
+            runId: "run-checkpoint-commit",
+            taskKey: "write-release-evidence",
+            workspaceRoot: args.cwd,
+            coverageTarget: "partial",
+            writerIsolation: "unknown",
+            externalSideEffects: false,
+            exclusions: args.managedCheckpointExclusions,
+          });
+          const boundary = workflowToolBoundary(args, {
+            tool: "write_file",
+            toolUseId: "tool-checkpoint-commit-1",
+          });
+          args.onToolCallBoundary(boundary);
+          writeFileSync(
+            join(projectRoot, "release-evidence.md"),
+            "committed evidence\n",
+            "utf8",
+          );
+          const evidence = transaction.accept();
+          args.onToolCallSettlement({
+            ...boundary,
+            type: "tool-result",
+            result: {
+              ok: true,
+              managedCheckpoint: {
+                skipped: false,
+                toolName: "write_file",
+                transactionId: transaction.id,
+                checkpointId: transaction.checkpointId,
+                evidence,
+                coverage: evidence.coverage,
+                fileCoverage: evidence.fileCoverage,
+              },
+            },
+            error: null,
+          });
+          const pending = readDynamicWorkflowRuntimeState(statePath);
+          expect(pending.effects[0]).toMatchObject({
+            status: "pending",
+            calls: [
+              expect.objectContaining({
+                name: "write_file",
+                status: "completed",
+                checkpointReadback: expect.objectContaining({
+                  schema: "cc-dynamic-workflow-checkpoint-readback/v1",
+                  authority: "workspace-transaction-store-terminal-readback",
+                  transactionId: "wcp-workflow-commit",
+                  outcome: "committed",
+                  coverage: "partial",
+                  fileCoverage: "partial",
+                  externalSideEffects: false,
+                }),
+              }),
+            ],
+          });
+          readbackVisibleBeforeReturn = true;
+          return completedTask(args);
+        },
+        now: clock(),
+      },
+    );
+
+    expect(readbackVisibleBeforeReturn).toBe(true);
+    const state = readDynamicWorkflowRuntimeState(statePath);
+    const projection = projectDynamicWorkflowRuntime(state);
+    expect(projection.observability.durableCalls).toMatchObject({
+      checkpointReadbackRecords: 1,
+    });
+    expect(projection.observability.checkpoints.storeReadbacks).toMatchObject({
+      authority: "workspace-transaction-store-terminal-readback",
+      verificationTiming: "tool-settlement",
+      rollbackScope: "workspace-files-only",
+      externalSideEffectsRollbackProven: false,
+      toolCalls: 1,
+      completedCalls: 1,
+      failedCalls: 0,
+      verifiedCalls: 1,
+      verifiedEffects: 1,
+      committedCalls: 1,
+      rolledBackCalls: 0,
+      fullCoverageCalls: 0,
+      partialCoverageCalls: 1,
+      externalSideEffectCalls: 0,
+      missingReadbacks: 0,
+      legacyCalls: 0,
+      lineage: [
+        expect.objectContaining({
+          tool: "write_file",
+          descendant: false,
+          readback: expect.objectContaining({ outcome: "committed" }),
+        }),
+      ],
+    });
+    for (const gap of [
+      "checkpoint-provider-readback-unavailable",
+      "checkpoint-store-readback-incomplete",
+      "checkpoint-store-readback-legacy-call-schema",
+      "checkpoint-external-side-effect-rollback-unavailable",
+    ]) {
+      expect(projection.observability.gaps).not.toContain(gap);
+    }
+    expect(projection.observability.gaps).toContain(
+      "checkpoint-full-coverage-incomplete",
+    );
+
+    const tampered = structuredClone(state);
+    tampered.effects[0].calls[0].checkpointReadback.outcome = "rolled_back";
+    expect(() =>
+      verifyDynamicWorkflowRuntimeState(withRuntimeStateDigest(tampered)),
+    ).toThrow(/effect-0-call-0-invalid/u);
+
+    const downgraded = structuredClone(state);
+    delete downgraded.effects[0].calls[0].checkpointReadback;
+    expect(() =>
+      verifyDynamicWorkflowRuntimeState(withRuntimeStateDigest(downgraded)),
+    ).toThrow(/effect-0-call-0-invalid/u);
+
+    const legacy = structuredClone(state);
+    delete legacy.effects[0].calls[0].checkpointReadback;
+    for (const event of legacy.lineage) {
+      if (event.type === "effect-call-started") {
+        delete event.details.checkpointReadbackSchema;
+      }
+      if (event.type === "effect-call-settled") {
+        delete event.details.checkpointReadbackDigest;
+      }
+    }
+    const verifiedLegacy = verifyDynamicWorkflowRuntimeState(
+      withRebuiltRuntimeLineage(legacy, legacy.lineage),
+    );
+    const legacyProjection = projectDynamicWorkflowRuntime(verifiedLegacy);
+    expect(
+      legacyProjection.observability.checkpoints.storeReadbacks,
+    ).toMatchObject({
+      authority:
+        "workspace-transaction-store-terminal-readback-with-legacy-call-schema",
+      toolCalls: 1,
+      verifiedCalls: 0,
+      missingReadbacks: 1,
+      legacyCalls: 1,
+    });
+    expect(legacyProjection.observability.gaps).toEqual(
+      expect.arrayContaining([
+        "checkpoint-provider-readback-unavailable",
+        "checkpoint-store-readback-incomplete",
+        "checkpoint-store-readback-legacy-call-schema",
+      ]),
+    );
+  });
+
+  it("persists a rolled-back checkpoint store readback for a failed tool", async () => {
+    mkdirSync(projectRoot, { recursive: true });
+    const targetPath = join(projectRoot, "release-state.txt");
+    writeFileSync(targetPath, "before\n", "utf8");
+    const workflow = workflowDefinition({
+      steps: [{ id: "edit", message: "Edit release state" }],
+    });
+    const execution = admittedExecution(projectRoot, workflow);
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-checkpoint-rollback",
+    );
+    const checkpointStore = checkpointManager(root, "rollback");
+
+    await executeDurableDynamicWorkflow(
+      { statePath, runId: "run-checkpoint-rollback", execution },
+      {
+        checkpointStore,
+        runTask: async (args) => {
+          const transaction = checkpointStore.begin({
+            id: "wcp-workflow-rollback",
+            runId: "run-checkpoint-rollback",
+            taskKey: "edit-release-state",
+            workspaceRoot: args.cwd,
+            coverageTarget: "partial",
+            writerIsolation: "unknown",
+            externalSideEffects: false,
+            exclusions: args.managedCheckpointExclusions,
+          });
+          const boundary = workflowToolBoundary(args, {
+            tool: "edit_file",
+            toolUseId: "tool-checkpoint-rollback-1",
+          });
+          args.onToolCallBoundary(boundary);
+          writeFileSync(targetPath, "after\n", "utf8");
+          const evidence = transaction.rollback({ reason: "tool failed" });
+          expect(readFileSync(targetPath, "utf8")).toBe("before\n");
+          args.onToolCallSettlement({
+            ...boundary,
+            type: "tool-result",
+            result: {
+              error: "tool failed",
+              managedCheckpoint: {
+                skipped: false,
+                toolName: "edit_file",
+                transactionId: transaction.id,
+                checkpointId: transaction.checkpointId,
+                evidence,
+                coverage: evidence.coverage,
+                fileCoverage: evidence.fileCoverage,
+              },
+            },
+            error: "tool failed",
+          });
+          return completedTask(args);
+        },
+        now: clock(),
+      },
+    );
+
+    expect(
+      readDynamicWorkflowRuntimeState(statePath).effects[0].calls[0],
+    ).toMatchObject({
+      status: "failed",
+      settlementCode: "tool_failed",
+      checkpointReadback: expect.objectContaining({
+        transactionId: "wcp-workflow-rollback",
+        outcome: "rolled_back",
+      }),
+    });
+    const readbacks =
+      projectDynamicWorkflowRuntime(statePath).observability.checkpoints
+        .storeReadbacks;
+    expect(readbacks).toMatchObject({
+      toolCalls: 1,
+      failedCalls: 1,
+      verifiedCalls: 1,
+      committedCalls: 0,
+      rolledBackCalls: 1,
+      missingReadbacks: 0,
+    });
+  });
+
+  it.each(["forged-evidence", "missing-store"])(
+    "rejects a managed checkpoint settlement with %s",
+    async (failureMode) => {
+      const workflow = workflowDefinition({
+        steps: [{ id: "write", message: "Write release state" }],
+      });
+      const execution = admittedExecution(projectRoot, workflow);
+      const runId = `run-checkpoint-${failureMode}`;
+      const statePath = dynamicWorkflowRunStatePath(projectRoot, runId);
+      const manager = checkpointManager(root, failureMode);
+      const checkpointStore =
+        failureMode === "missing-store"
+          ? {
+              inspect() {
+                throw new Error("missing checkpoint store");
+              },
+            }
+          : manager;
+      let settlementReturned = false;
+
+      await expect(
+        executeDurableDynamicWorkflow(
+          { statePath, runId, execution },
+          {
+            checkpointStore,
+            runTask: async (args) => {
+              const transaction = manager.begin({
+                id: `wcp-workflow-${failureMode}`,
+                runId,
+                taskKey: "write-release-state",
+                workspaceRoot: args.cwd,
+                coverageTarget: "partial",
+                writerIsolation: "unknown",
+                externalSideEffects: false,
+                exclusions: args.managedCheckpointExclusions,
+              });
+              const boundary = workflowToolBoundary(args, {
+                tool: "write_file",
+                toolUseId: `tool-checkpoint-${failureMode}`,
+              });
+              args.onToolCallBoundary(boundary);
+              writeFileSync(
+                join(projectRoot, `${failureMode}.txt`),
+                "release state\n",
+                "utf8",
+              );
+              const evidence = transaction.accept();
+              if (failureMode === "forged-evidence") {
+                evidence.coverage = "full";
+              }
+              args.onToolCallSettlement({
+                ...boundary,
+                type: "tool-result",
+                result: {
+                  ok: true,
+                  managedCheckpoint: {
+                    skipped: false,
+                    toolName: "write_file",
+                    transactionId: transaction.id,
+                    checkpointId: transaction.checkpointId,
+                    evidence,
+                    coverage: evidence.coverage,
+                    fileCoverage: evidence.fileCoverage,
+                  },
+                },
+                error: null,
+              });
+              settlementReturned = true;
+              return completedTask(args);
+            },
+            now: clock(),
+          },
+        ),
+      ).rejects.toMatchObject({ reason: "reconciliation-required" });
+
+      expect(settlementReturned).toBe(false);
+      const state = readDynamicWorkflowRuntimeState(statePath);
+      expect(state.status).toBe("blocked");
+      expect(state.effects[0].calls).toEqual([
+        expect.objectContaining({
+          name: "write_file",
+          status: "started",
+          checkpointReadback: null,
+        }),
+      ]);
+      expect(
+        projectDynamicWorkflowRuntime(state).observability.checkpoints
+          .storeReadbacks,
+      ).toMatchObject({
+        toolCalls: 1,
+        verifiedCalls: 0,
+        missingReadbacks: 1,
+        pendingCalls: 1,
+      });
     },
   );
 

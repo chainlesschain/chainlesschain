@@ -518,6 +518,9 @@ export function prepareCoworkMcpRuntime(mcp, options = {}) {
  * @param {string} [options.mcpSessionId] - Stable MCP ledger session for resume
  * @param {string} [options.workflowEffectId] - Canonical durable workflow effect
  * @param {boolean} [options.strictUsageTelemetry] - Require synchronous durable call observers
+ * @param {boolean} [options.managedCheckpoint] - Wrap mutating child tools in workspace transactions
+ * @param {string|null} [options.managedCheckpointStateDir] - Optional transaction state root
+ * @param {string[]} [options.managedCheckpointExclusions] - Explicit uncovered workspace paths
  * @param {function} [options.onUsageBoundary] - Provider-call durable start observer
  * @param {function} [options.onUsageSettlement] - Provider-call durable settlement observer
  * @param {function} [options.onProviderReceipt] - Provider receipt durable prewrite observer
@@ -541,6 +544,9 @@ export async function runCoworkTask(options = {}) {
     mcpSessionId = null,
     workflowEffectId = null,
     strictUsageTelemetry = false,
+    managedCheckpoint = false,
+    managedCheckpointStateDir = null,
+    managedCheckpointExclusions = [],
     onUsageBoundary = null,
     onUsageSettlement = null,
     onProviderReceipt = null,
@@ -681,6 +687,17 @@ export async function runCoworkTask(options = {}) {
       mcpRuntime.sessionId && mcpRuntime.bindingAllowed
         ? { sessionId: mcpRuntime.sessionId }
         : {};
+    if (managedCheckpoint === true) {
+      loopOptions.managedCheckpoint = true;
+      if (managedCheckpointStateDir) {
+        loopOptions.managedCheckpointStateDir = managedCheckpointStateDir;
+      }
+      if (Array.isArray(managedCheckpointExclusions)) {
+        loopOptions.managedCheckpointExclusions = [
+          ...managedCheckpointExclusions,
+        ];
+      }
+    }
     if (
       Array.isArray(template.shellPolicyOverrides) &&
       template.shellPolicyOverrides.length

@@ -33,6 +33,14 @@ const DEFAULT_READ_ONLY_TOOLS = new Set([
   "search_sessions",
 ]);
 
+export function managedToolCheckpointRequired(toolName, readOnly = undefined) {
+  const normalized = boundedBinding(toolName, "unknown-tool");
+  return !(
+    readOnly === true ||
+    (readOnly !== false && DEFAULT_READ_ONLY_TOOLS.has(normalized))
+  );
+}
+
 function checkpointError(code, message, details = {}, cause = null) {
   const error = new Error(message, cause ? { cause } : undefined);
   error.name = "ManagedToolCheckpointError";
@@ -79,10 +87,7 @@ function skippedCheckpoint(reason, toolName) {
 export function beginManagedToolCheckpoint(options = {}) {
   if (options.enabled !== true) return null;
   const toolName = boundedBinding(options.toolName, "unknown-tool");
-  const readOnly =
-    options.readOnly === true ||
-    (options.readOnly !== false && DEFAULT_READ_ONLY_TOOLS.has(toolName));
-  if (readOnly) return null;
+  if (!managedToolCheckpointRequired(toolName, options.readOnly)) return null;
   if (
     typeof options.unmanagedWriterReason === "string" &&
     options.unmanagedWriterReason.trim()
