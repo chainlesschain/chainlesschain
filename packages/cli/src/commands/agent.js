@@ -1782,13 +1782,6 @@ export function registerAgentCommand(program) {
           "--ephemeral is only used in headless mode (-p / a task / piped stdin); ignoring for the interactive session.\n",
         );
       }
-      if (sessionBudgetRoot.enabled) {
-        process.stderr.write(
-          "Durable session budget root is currently available only in headless mode (-p/task/stream-json); REPL wiring remains fail-closed.\n",
-        );
-        await _finishWorktree();
-        process.exit(1);
-      }
       // Reached only for an interactive session, where --image has no turn to
       // attach to 鈥?warn instead of silently dropping the attachment.
       if (images.length) {
@@ -1828,6 +1821,7 @@ export function registerAgentCommand(program) {
         // Keep interactive --worktree sessions in the same explicit
         // turn-binding coverage model as headless runs.
         worktreeId: _worktree ? _worktree.branch : null,
+        sessionBudgetRoot,
         // --vim: start the REPL in vim-mode editing (also CC_VIM=1 or /vim).
         vimMode: options.vim === true,
         // --system-prompt / --append-system-prompt (literal or @file) also

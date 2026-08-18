@@ -108,8 +108,9 @@ async function invokeChatCall(callWrapper, provider, model, call) {
  * @param {string} [options.apiKey] - API key override
  * @param {(request: {call: function, provider: string, model: string}) => Promise<object>} [options.callWrapper]
  *        Optional host boundary around each real provider call. The callback
- *        resolves to a private `{content, usage?}` envelope; callers still
- *        receive only the response string.
+ *        may invoke `call({ signal })` to bind cancellation and resolves to a
+ *        private `{content, usage?}` envelope; callers still receive only the
+ *        response string.
  * @returns {(messages: object[], opts?: object) => Promise<string>}
  */
 export function createChatFn(options = {}) {
@@ -145,9 +146,10 @@ export function createChatFn(options = {}) {
         callWrapper,
         provider,
         currentModel,
-        async () => {
+        async ({ signal = opts.signal || resolved.signal } = {}) => {
           const res = await fetch(`${baseUrl}/api/chat`, {
             method: "POST",
+            signal,
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               model: currentModel,
@@ -185,9 +187,10 @@ export function createChatFn(options = {}) {
         callWrapper,
         provider,
         currentModel,
-        async () => {
+        async ({ signal = opts.signal || resolved.signal } = {}) => {
           const res = await fetch(`${baseUrl}/messages`, {
             method: "POST",
+            signal,
             headers: {
               "Content-Type": "application/json",
               "x-api-key": key,
@@ -214,9 +217,10 @@ export function createChatFn(options = {}) {
       callWrapper,
       provider,
       currentModel,
-      async () => {
+      async ({ signal = opts.signal || resolved.signal } = {}) => {
         const res = await fetch(`${baseUrl}/chat/completions`, {
           method: "POST",
+          signal,
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${key}`,
