@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "manifestVersion": "1.9.3",
-  "baselineCommit": "f6421a858187c9a14156a7c680db73ccf704dc41",
+  "manifestVersion": "1.9.4",
+  "baselineCommit": "ca638db6152f5ff10bd9cc1bb012694de6d3ee84",
   "releaseEvidence": {
     "commitSource": "git-head-at-run",
     "requiredFields": [
@@ -436,9 +436,9 @@
       "priority": "P1",
       "required": true,
       "evidenceStatus": "external-evidence-required",
-      "evidenceNotes": "Repository tests close generated-draft review authority, exact admission/replay, serial and bounded-parallel request-before-provider persistence, atomic dispatch-batch identity, ordered multi-pending reconciliation, and the pause settlement barrier. Release readiness still requires retry/timeout late-settlement authority, production provider receipt/idempotency consumption, complete artifact/checkpoint/side-effect readback, dual-IDE consumption, plugin distribution, and the declared real-host matrix on the exact release commit.",
+      "evidenceNotes": "Repository tests close generated-draft review authority, exact admission/replay, serial and bounded-parallel request-before-provider persistence, atomic dispatch-batch identity, ordered multi-pending reconciliation, the pause settlement barrier, and attempt-scoped retry/timeout recovery with persisted provider-dispatch and late-settlement authority. Release readiness still requires production provider receipt/idempotency consumption, complete artifact/checkpoint/side-effect readback, dual-IDE consumption, plugin distribution, and the declared real-host matrix on the exact release commit.",
       "fixture": "tests/fixtures/ide-roadmap/p1-dynamic-workflow.json",
-      "fixtureDigest": "sha256:0a5fa27faeb9407b57d0a3e952b286619c8c8786b52280942df978dc39f9dd51",
+      "fixtureDigest": "sha256:8e357fdba2445a1bd122502f422c0f20f70f22d3dc5970a93b8b49e6a231e58b",
       "seed": 2026080114,
       "minimumIndependentRuns": 100,
       "matrix": {
@@ -456,6 +456,10 @@
         "partialBatchPublicationCount": 0,
         "outOfOrderReconciliationCount": 0,
         "prematurePauseSettlementCount": 0,
+        "providerCallAfterPreDispatchTimeoutCount": 0,
+        "duplicateRetryAfterLateSuccessCount": 0,
+        "retryAfterUnknownTimeoutCount": 0,
+        "undispatchedEffectReconciliationCount": 0,
         "stoppedStageCommitCount": 0,
         "budgetOverrunContinuationCount": 0,
         "missingArtifactLineageCount": 0,
@@ -486,6 +490,8 @@
         "stage-effect-ledger",
         "effect-batch-ledger",
         "settlement-barrier-ledger",
+        "provider-dispatch-ledger",
+        "timeout-settlement-ledger",
         "checkpoint-lineage",
         "token-time-budget-ledger",
         "artifact-lineage",

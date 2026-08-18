@@ -1345,6 +1345,7 @@ export async function runStepWithRetry({
             stepId: recordId,
             iteration,
             attempt,
+            timeoutMs,
           }),
           ...(abortController ? { signal: abortController.signal } : {}),
         }),
@@ -1370,14 +1371,31 @@ export async function runStepWithRetry({
         // A terminal admitted record must never be written while the physical
         // task can still produce side effects. Confirm settlement before a
         // retry or final failure; a runner that ignores abort safely blocks.
+        // A late completed result is authoritative and must not be replayed.
         try {
-          await taskPromise;
-        } catch {
-          // The timeout remains the attempt's externally visible failure.
+          const lateRawEntry = await taskPromise;
+          const lateEntry = normalizeAdmittedTaskEntry(lateRawEntry);
+          if (lateEntry.status === "completed") {
+            return { ok: true, entry: lateEntry, attempts: attempt };
+          }
+          lastEntry = lateEntry;
+          lastErr = null;
+        } catch (lateError) {
+          if (
+            lateError?.code === COWORK_WORKFLOW_CONTROL_SIGNAL_CODE ||
+            lateError?.code === COWORK_WORKFLOW_RUN_RESULT_INVALID_CODE
+          ) {
+            throw lateError;
+          }
+          // The timeout remains the attempt's externally visible failure when
+          // a non-authoritative runner error arrives after the deadline.
+          lastErr = err;
+          lastEntry = null;
         }
+      } else {
+        lastErr = err; // threw or timed out → retry-eligible
+        lastEntry = null;
       }
-      lastErr = err; // threw or timed out → retry-eligible
-      lastEntry = null;
     }
     if (attempt <= maxRetries) {
       const delay = retryDelayFor(step, attempt);

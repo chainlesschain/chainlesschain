@@ -787,24 +787,279 @@ describe("durable dynamic workflow runtime", () => {
     expect(record.status).toBe("completed");
   });
 
-  it("fails closed before state creation for retry/timeout definitions", async () => {
-    const retryWorkflow = workflowDefinition();
-    retryWorkflow.steps[0].retries = 1;
+  it("persists each explicit failed retry attempt before dispatch", async () => {
+    const retryWorkflow = workflowDefinition({
+      steps: [
+        {
+          id: "collect",
+          message: "Collect release evidence",
+          retries: 1,
+        },
+      ],
+    });
     retryWorkflow.facade.requirements.capabilities.push("retry");
     const statePath = dynamicWorkflowRunStatePath(projectRoot, "run-retry");
+    let calls = 0;
+    const runTask = vi.fn(async (args) => {
+      calls += 1;
+      return calls === 1
+        ? {
+            taskId: "task-collect-failed",
+            status: "failed",
+            result: { summary: "provider reported a retryable failure" },
+          }
+        : completedTask(args);
+    });
+
+    const record = await executeDurableDynamicWorkflow(
+      {
+        statePath,
+        runId: "run-retry",
+        execution: admittedExecution(projectRoot, retryWorkflow),
+      },
+      { runTask, now: clock() },
+    );
+
+    expect(record.status).toBe("completed");
+    expect(runTask).toHaveBeenCalledTimes(2);
+    const state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.effects.map((effect) => effect.attempt)).toEqual([1, 2]);
+    expect(
+      state.effects.every(
+        (effect) =>
+          effect.status === "settled" &&
+          effect.settlementAuthority === "provider-return" &&
+          typeof effect.providerDispatchedAt === "string",
+      ),
+    ).toBe(true);
+  });
+
+  it("replays a persisted effect only when provider dispatch never started", async () => {
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-before-dispatch-crash",
+    );
+    const execution = admittedExecution(projectRoot);
+    const runTask = vi.fn(async (args) => completedTask(args));
+
+    await expect(
+      executeDurableDynamicWorkflow(
+        { statePath, runId: "run-before-dispatch-crash", execution },
+        {
+          beforeProviderDispatch: () => {
+            throw new Error("crash before provider dispatch");
+          },
+          runTask,
+          now: clock(),
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: DYNAMIC_WORKFLOW_RUNTIME_CONTROL_CODE,
+      reason: "undispatched-recovery-required",
+    });
+    expect(runTask).not.toHaveBeenCalled();
+    let state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.status).toBe("running");
+    expect(state.effects).toMatchObject([
+      {
+        status: "pending",
+        providerDispatchedAt: null,
+      },
+    ]);
+
+    state = prepareDurableWorkflowResume(statePath, state.revision, {
+      now: clock(Date.parse("2026-08-18T05:50:00.000Z")),
+    });
+    expect(state.status).toBe("ready");
+    const record = await executeDurableDynamicWorkflow(
+      { statePath, runId: "run-before-dispatch-crash", execution },
+      {
+        runTask,
+        now: clock(Date.parse("2026-08-18T05:51:00.000Z")),
+      },
+    );
+    expect(record.status).toBe("completed");
+    expect(runTask).toHaveBeenCalledTimes(2);
+    state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.effects).toHaveLength(2);
+    expect(
+      state.effects.every(
+        (effect) =>
+          effect.status === "settled" &&
+          typeof effect.providerDispatchedAt === "string",
+      ),
+    ).toBe(true);
+  });
+
+  it("does not retry a provider that completes successfully after timeout", async () => {
+    const timeoutWorkflow = workflowDefinition({
+      steps: [
+        {
+          id: "collect",
+          message: "Collect release evidence",
+          retries: 2,
+          timeoutMs: 5,
+        },
+      ],
+    });
+    timeoutWorkflow.facade.requirements.capabilities.push("retry", "timeout");
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-timeout-late-success",
+    );
+    const runTask = vi.fn(
+      (args) =>
+        new Promise((resolve) => {
+          const finish = () => resolve(completedTask(args));
+          if (args.signal.aborted) finish();
+          else args.signal.addEventListener("abort", finish, { once: true });
+        }),
+    );
+
+    const record = await executeDurableDynamicWorkflow(
+      {
+        statePath,
+        runId: "run-timeout-late-success",
+        execution: admittedExecution(projectRoot, timeoutWorkflow),
+      },
+      { runTask, now: clock() },
+    );
+
+    expect(record.status).toBe("completed");
+    expect(runTask).toHaveBeenCalledTimes(1);
+    const state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.effects).toMatchObject([
+      {
+        attempt: 1,
+        status: "settled",
+        settlementAuthority: "provider-return",
+        timeoutMs: 5,
+      },
+    ]);
+    expect(state.effects[0].timeoutObservedAt).toMatch(/Z$/u);
+    expect(state.effects[0].providerDispatchedAt).toMatch(/Z$/u);
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.effects,
+    ).toMatchObject({
+      providerDispatched: 1,
+      timeoutObserved: 1,
+      runtimeNotDispatched: 0,
+    });
+  });
+
+  it("retries a timeout that expires before provider dispatch", async () => {
+    const timeoutWorkflow = workflowDefinition({
+      steps: [
+        {
+          id: "collect",
+          message: "Collect release evidence",
+          retries: 1,
+          timeoutMs: 5,
+        },
+      ],
+    });
+    timeoutWorkflow.facade.requirements.capabilities.push("retry", "timeout");
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-timeout-before-dispatch",
+    );
+    let dispatchChecks = 0;
+    const beforeProviderDispatch = vi.fn(async (_effect, args) => {
+      dispatchChecks += 1;
+      if (dispatchChecks !== 1) return;
+      await new Promise((resolve) => {
+        if (args.signal.aborted) resolve();
+        else args.signal.addEventListener("abort", resolve, { once: true });
+      });
+    });
+    const runTask = vi.fn(async (args) => completedTask(args));
+
+    const record = await executeDurableDynamicWorkflow(
+      {
+        statePath,
+        runId: "run-timeout-before-dispatch",
+        execution: admittedExecution(projectRoot, timeoutWorkflow),
+      },
+      { beforeProviderDispatch, runTask, now: clock() },
+    );
+
+    expect(record.status).toBe("completed");
+    expect(beforeProviderDispatch).toHaveBeenCalledTimes(2);
+    expect(runTask).toHaveBeenCalledTimes(1);
+    const state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.effects).toMatchObject([
+      {
+        attempt: 1,
+        status: "settled",
+        settlementAuthority: "runtime-not-dispatched",
+        providerDispatchedAt: null,
+      },
+      {
+        attempt: 2,
+        status: "settled",
+        settlementAuthority: "provider-return",
+      },
+    ]);
+    expect(state.effects[0].timeoutObservedAt).toMatch(/Z$/u);
+    expect(state.effects[1].providerDispatchedAt).toMatch(/Z$/u);
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.effects,
+    ).toMatchObject({
+      providerDispatched: 1,
+      timeoutObserved: 1,
+      runtimeNotDispatched: 1,
+    });
+  });
+
+  it("blocks without retry when a timed-out provider outcome is unknown", async () => {
+    const timeoutWorkflow = workflowDefinition({
+      steps: [
+        {
+          id: "collect",
+          message: "Collect release evidence",
+          retries: 2,
+          timeoutMs: 5,
+        },
+      ],
+    });
+    timeoutWorkflow.facade.requirements.capabilities.push("retry", "timeout");
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-timeout-unknown",
+    );
+    const runTask = vi.fn(
+      (args) =>
+        new Promise((_resolve, reject) => {
+          const fail = () => reject(new Error("provider outcome unknown"));
+          if (args.signal.aborted) fail();
+          else args.signal.addEventListener("abort", fail, { once: true });
+        }),
+    );
+
     await expect(
       executeDurableDynamicWorkflow(
         {
           statePath,
-          runId: "run-retry",
-          execution: admittedExecution(projectRoot, retryWorkflow),
+          runId: "run-timeout-unknown",
+          execution: admittedExecution(projectRoot, timeoutWorkflow),
         },
-        { runTask: async (args) => completedTask(args), now: clock() },
+        { runTask, now: clock() },
       ),
     ).rejects.toMatchObject({
-      code: "CC_DYNAMIC_WORKFLOW_DURABLE_RETRY_TIMEOUT_UNSUPPORTED",
+      code: DYNAMIC_WORKFLOW_RUNTIME_CONTROL_CODE,
+      reason: "reconciliation-required",
     });
-    expect(existsSync(statePath)).toBe(false);
+    expect(runTask).toHaveBeenCalledTimes(1);
+    const state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.status).toBe("blocked");
+    expect(state.effects).toMatchObject([
+      {
+        attempt: 1,
+        status: "pending",
+      },
+    ]);
+    expect(state.effects[0].timeoutObservedAt).toMatch(/Z$/u);
+    expect(state.effects[0].providerDispatchedAt).toMatch(/Z$/u);
   });
 
   it("fails closed on state tamper and hard-linked state files", async () => {
