@@ -43,6 +43,7 @@ const MAX_EFFECT_BATCH_SIZE = 64;
 const MAX_LINEAGE_EVENTS = 4096;
 const MAX_CALLS_PER_EFFECT = 128;
 const MAX_PROJECTED_ARTIFACTS_PER_EFFECT = 256;
+const MAX_PROVIDER_TOKEN_COUNT = 1_000_000_000;
 const PROVIDER_CLIENT_REQUEST_ID_RE = /^ccwf_[a-f0-9]{64}$/u;
 const PROVIDER_RECEIPT_ID_RE = /^[A-Za-z0-9._:-]{1,256}$/u;
 const PROVIDER_NAME_RE = /^[a-z0-9][a-z0-9._-]{0,63}$/u;
@@ -108,6 +109,44 @@ function snapshotJson(value, field, maxBytes = MAX_STATE_BYTES) {
 
 function nonNegativeSafeInteger(value) {
   return Number.isSafeInteger(value) && value >= 0 ? value : null;
+}
+
+function providerUsageDigest(usage) {
+  return digest(
+    "chainlesschain.dynamic-workflow.provider-token-usage.v1\0",
+    usage,
+  );
+}
+
+function validProviderUsage(value) {
+  const fields =
+    value && typeof value === "object" ? Object.keys(value).sort() : [];
+  return (
+    fields.length === 6 &&
+    [
+      "cacheCreationInputTokens",
+      "cacheReadInputTokens",
+      "inputTokens",
+      "outputTokens",
+      "schema",
+      "totalTokens",
+    ].every((field, index) => fields[index] === field) &&
+    value?.schema === "cc-provider-token-usage/v1" &&
+    nonNegativeSafeInteger(value.inputTokens) !== null &&
+    nonNegativeSafeInteger(value.outputTokens) !== null &&
+    nonNegativeSafeInteger(value.cacheReadInputTokens) !== null &&
+    nonNegativeSafeInteger(value.cacheCreationInputTokens) !== null &&
+    nonNegativeSafeInteger(value.totalTokens) !== null &&
+    value.inputTokens <= MAX_PROVIDER_TOKEN_COUNT &&
+    value.outputTokens <= MAX_PROVIDER_TOKEN_COUNT &&
+    value.cacheReadInputTokens <= MAX_PROVIDER_TOKEN_COUNT &&
+    value.cacheCreationInputTokens <= MAX_PROVIDER_TOKEN_COUNT &&
+    value.totalTokens ===
+      value.inputTokens +
+        value.outputTokens +
+        value.cacheReadInputTokens +
+        value.cacheCreationInputTokens
+  );
 }
 
 function effectResultDigest(result) {
@@ -253,6 +292,7 @@ function verifyEffectCalls(
   effectIndex,
   issues,
   receiptLineageByCallId,
+  settlementLineageByCallId,
 ) {
   const calls = effect?.calls === undefined ? [] : effect.calls;
   if (!Array.isArray(calls) || calls.length > MAX_CALLS_PER_EFFECT) {
@@ -272,6 +312,7 @@ function verifyEffectCalls(
           : null
         : call.requestSource;
     const receiptLineage = receiptLineageByCallId.get(call?.id) || [];
+    const settlementLineage = settlementLineageByCallId.get(call?.id) || [];
     const receiptLineageValid =
       receiptLineage.length === 1 &&
       receiptLineage[0]?.details?.effectId === effect.id &&
@@ -280,6 +321,16 @@ function verifyEffectCalls(
     const hasReceiptTimestamp = Object.prototype.hasOwnProperty.call(
       call || {},
       "providerReceiptRecordedAt",
+    );
+    const hasProviderUsage = Object.prototype.hasOwnProperty.call(
+      call || {},
+      "providerUsage",
+    );
+    const settlementUsageDigestPresent = settlementLineage.some((event) =>
+      Object.prototype.hasOwnProperty.call(
+        event?.details || {},
+        "providerUsageDigest",
+      ),
     );
     const terminal = call?.status !== "started";
     const identityKey = `${call?.kind || ""}\0${
@@ -387,6 +438,18 @@ function verifyEffectCalls(
           ) &&
         call.identitySemantics === "trace-only" &&
         call.status !== "failed" &&
+        (hasProviderUsage
+          ? call.status === "completed"
+            ? validProviderUsage(call.providerUsage) &&
+              settlementLineage.length === 1 &&
+              settlementLineage[0]?.details?.providerUsageDigest ===
+                providerUsageDigest(call.providerUsage)
+            : call.providerUsage === null &&
+              (call.status === "outcome_unknown"
+                ? settlementLineage.length === 1 &&
+                  settlementLineage[0]?.details?.providerUsageDigest === null
+                : !settlementUsageDigestPresent)
+          : !settlementUsageDigestPresent) &&
         call.mcpLedgerId === null &&
         call.mcpLedgerPrewritePersisted === false &&
         call.mcpLedgerSettlementPersisted === false);
@@ -481,13 +544,20 @@ export function verifyDynamicWorkflowRuntimeState(value) {
     issues.push("effects-invalid");
   } else {
     const receiptLineageByCallId = new Map();
+    const settlementLineageByCallId = new Map();
     for (const event of state.lineage) {
-      if (event.type !== "effect-call-receipt-recorded") continue;
       const callRecordId = event?.details?.callRecordId;
-      if (!receiptLineageByCallId.has(callRecordId)) {
-        receiptLineageByCallId.set(callRecordId, []);
+      const target =
+        event.type === "effect-call-receipt-recorded"
+          ? receiptLineageByCallId
+          : event.type === "effect-call-settled"
+            ? settlementLineageByCallId
+            : null;
+      if (!target) continue;
+      if (!target.has(callRecordId)) {
+        target.set(callRecordId, []);
       }
-      receiptLineageByCallId.get(callRecordId).push(event);
+      target.get(callRecordId).push(event);
     }
     const knownCallIds = new Set(
       state.effects.flatMap((effect) =>
@@ -624,7 +694,13 @@ export function verifyDynamicWorkflowRuntimeState(value) {
       }
       ids.add(effect?.id);
       keys.add(effect?.key);
-      verifyEffectCalls(effect, index, issues, receiptLineageByCallId);
+      verifyEffectCalls(
+        effect,
+        index,
+        issues,
+        receiptLineageByCallId,
+        settlementLineageByCallId,
+      );
       if (batchMetadataValid && hasBatchMetadata) {
         if (!batches.has(effect.batchId)) batches.set(effect.batchId, []);
         batches.get(effect.batchId).push(effect);
@@ -1298,6 +1374,85 @@ function ownDataValue(value, property) {
   }
 }
 
+function providerUsageSettlement(event) {
+  const usage = ownDataValue(event, "usage");
+  let descriptors;
+  try {
+    if (
+      !usage ||
+      typeof usage !== "object" ||
+      Array.isArray(usage) ||
+      utilTypes.isProxy(usage)
+    ) {
+      throw new TypeError();
+    }
+    descriptors = Object.getOwnPropertyDescriptors(usage);
+  } catch {
+    throw new TypeError("workflow provider token usage is malformed");
+  }
+  const fields = Reflect.ownKeys(descriptors);
+  if (
+    fields.length > 32 ||
+    fields.some(
+      (field) =>
+        typeof field !== "string" ||
+        descriptors[field].enumerable !== true ||
+        !Object.hasOwn(descriptors[field], "value"),
+    )
+  ) {
+    throw new TypeError("workflow provider token usage is malformed");
+  }
+  const count = (canonical, alias, required) => {
+    const canonicalField = descriptors[canonical];
+    const aliasField = descriptors[alias];
+    if (!canonicalField && !aliasField) {
+      if (required) {
+        throw new TypeError("workflow provider token usage is incomplete");
+      }
+      return 0;
+    }
+    const canonicalValue = canonicalField?.value;
+    const aliasValue = aliasField?.value;
+    if (
+      (canonicalField && aliasField && canonicalValue !== aliasValue) ||
+      nonNegativeSafeInteger(canonicalField ? canonicalValue : aliasValue) ===
+        null ||
+      (canonicalField ? canonicalValue : aliasValue) > MAX_PROVIDER_TOKEN_COUNT
+    ) {
+      throw new TypeError("workflow provider token usage is malformed");
+    }
+    return canonicalField ? canonicalValue : aliasValue;
+  };
+  const inputTokens = count("input_tokens", "prompt_tokens", true);
+  const outputTokens = count("output_tokens", "completion_tokens", true);
+  const cacheReadInputTokens = count(
+    "cache_read_input_tokens",
+    "cache_read_tokens",
+    false,
+  );
+  const cacheCreationInputTokens = count(
+    "cache_creation_input_tokens",
+    "cache_creation_tokens",
+    false,
+  );
+  const totalTokens =
+    inputTokens +
+    outputTokens +
+    cacheReadInputTokens +
+    cacheCreationInputTokens;
+  if (!Number.isSafeInteger(totalTokens)) {
+    throw new TypeError("workflow provider token usage exceeds its limit");
+  }
+  return {
+    schema: "cc-provider-token-usage/v1",
+    inputTokens,
+    outputTokens,
+    cacheReadInputTokens,
+    cacheCreationInputTokens,
+    totalTokens,
+  };
+}
+
 function workflowCallAttempt(effectId, kind, event, now) {
   const startedAt = isoNow(now);
   const ownerEffectId = event?.workflowEffectId;
@@ -1352,6 +1507,7 @@ function workflowCallAttempt(effectId, kind, event, now) {
       providerReceiptRequestId: null,
       providerReceiptResponseId: null,
       providerReceiptRecordedAt: null,
+      providerUsage: null,
       mcpLedgerId: null,
       mcpLedgerPrewritePersisted: false,
       mcpLedgerSettlementPersisted: false,
@@ -1618,6 +1774,7 @@ function recordEffectCallReceipt(statePath, runId, effectId, event, now) {
 function effectCallSettlement(call, event, now) {
   let status;
   let settlementCode = null;
+  let providerUsage = call.providerUsage;
   let providerReceiptPersisted = call.providerReceiptPersisted;
   let providerReceiptRequestId = call.providerReceiptRequestId;
   let providerReceiptResponseId = call.providerReceiptResponseId;
@@ -1634,6 +1791,8 @@ function effectCallSettlement(call, event, now) {
       throw new TypeError("workflow provider call settlement is malformed");
     }
     status = event.type === "token-usage" ? "completed" : "outcome_unknown";
+    providerUsage =
+      status === "completed" ? providerUsageSettlement(event) : null;
     settlementCode =
       status === "outcome_unknown"
         ? String(event.code || "provider_outcome_unknown")
@@ -1703,6 +1862,7 @@ function effectCallSettlement(call, event, now) {
     providerReceiptPersisted,
     providerReceiptRequestId,
     providerReceiptResponseId,
+    ...(call.kind === "provider" ? { providerUsage } : {}),
     mcpLedgerId,
     mcpLedgerPrewritePersisted,
     mcpLedgerSettlementPersisted,
@@ -1736,6 +1896,10 @@ function settleEffectCall(statePath, runId, effectId, kind, event, now) {
       throw new Error("workflow child call is not started at settlement");
     }
     const settlement = effectCallSettlement(call, event, now);
+    const usageDigest =
+      kind === "provider" && settlement.providerUsage !== null
+        ? providerUsageDigest(settlement.providerUsage)
+        : null;
     const state = transition(
       current,
       "effect-call-settled",
@@ -1744,6 +1908,7 @@ function settleEffectCall(statePath, runId, effectId, kind, event, now) {
         callRecordId: call.id,
         kind,
         status: settlement.status,
+        ...(kind === "provider" ? { providerUsageDigest: usageDigest } : {}),
       },
       (draft) => {
         const calls = [...(draft.effects[effectIndex].calls || [])];
@@ -3081,6 +3246,16 @@ function projectDurableWorkflowCalls(state) {
             independentlyReadable: false,
           }
         : null,
+      providerUsage:
+        call.kind === "provider" && validProviderUsage(call.providerUsage)
+          ? {
+              ...call.providerUsage,
+              recordedAt: call.settledAt,
+            }
+          : null,
+      providerUsageSchemaPresent:
+        call.kind === "provider" &&
+        Object.prototype.hasOwnProperty.call(call, "providerUsage"),
       mcpLedgerId: call.mcpLedgerId,
       mcpLedgerPrewritePersisted: call.mcpLedgerPrewritePersisted,
       mcpLedgerSettlementPersisted: call.mcpLedgerSettlementPersisted,
@@ -3100,10 +3275,85 @@ function projectDurableWorkflowCalls(state) {
     descendants: lineage.filter((call) => call.descendant).length,
     providerReceipts: lineage.filter((call) => call.providerReceipt !== null)
       .length,
+    providerUsageRecords: lineage.filter((call) => call.providerUsage !== null)
+      .length,
     providerNativeIdempotencyProven: false,
     providerReceiptsIndependentlyReadable: false,
     lineageDigest: digest(
       "chainlesschain.dynamic-workflow.durable-call-lineage.v1\0",
+      lineage,
+    ),
+    lineage,
+  };
+}
+
+function projectProviderTokenUsage(state) {
+  const totals = {
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadInputTokens: 0,
+    cacheCreationInputTokens: 0,
+    totalTokens: 0,
+  };
+  const lineage = [];
+  const observedEffectIds = new Set();
+  let providerCalls = 0;
+  let pendingCalls = 0;
+  let outcomeUnknownCalls = 0;
+  let operatorReconciledCalls = 0;
+  let legacyCalls = 0;
+  for (const effect of state.effects) {
+    for (const call of effect.calls || []) {
+      if (call.kind !== "provider") continue;
+      providerCalls += 1;
+      if (call.status === "started") pendingCalls += 1;
+      if (call.status === "outcome_unknown") outcomeUnknownCalls += 1;
+      if (call.status === "operator_reconciled") operatorReconciledCalls += 1;
+      if (!Object.prototype.hasOwnProperty.call(call, "providerUsage")) {
+        legacyCalls += 1;
+        continue;
+      }
+      if (!validProviderUsage(call.providerUsage)) continue;
+      observedEffectIds.add(effect.id);
+      totals.inputTokens += call.providerUsage.inputTokens;
+      totals.outputTokens += call.providerUsage.outputTokens;
+      totals.cacheReadInputTokens += call.providerUsage.cacheReadInputTokens;
+      totals.cacheCreationInputTokens +=
+        call.providerUsage.cacheCreationInputTokens;
+      totals.totalTokens += call.providerUsage.totalTokens;
+      lineage.push({
+        effectId: effect.id,
+        ownerEffectId: call.ownerEffectId ?? effect.id,
+        callRecordId: call.id,
+        callId: call.callId,
+        sequence: call.sequence,
+        provider: call.name,
+        source: call.source,
+        requestSource: call.requestSource ?? call.source,
+        descendant: (call.ownerEffectId ?? effect.id) !== effect.id,
+        settledAt: call.settledAt,
+        usage: call.providerUsage,
+        usageDigest: providerUsageDigest(call.providerUsage),
+      });
+    }
+  }
+  return {
+    authority:
+      legacyCalls > 0
+        ? "runtime-state-hash-chain-fsync-with-legacy-call-schema"
+        : "runtime-state-hash-chain-fsync",
+    crashVisible: true,
+    providerCalls,
+    providerReportedCalls: lineage.length,
+    providerReportedEffects: observedEffectIds.size,
+    missingProviderReportedCalls: providerCalls - lineage.length,
+    pendingCalls,
+    outcomeUnknownCalls,
+    operatorReconciledCalls,
+    legacyCalls,
+    providerReported: lineage.length > 0 ? totals : null,
+    lineageDigest: digest(
+      "chainlesschain.dynamic-workflow.provider-token-usage-lineage.v1\0",
       lineage,
     ),
     lineage,
@@ -3120,6 +3370,7 @@ function projectDynamicWorkflowObservability(state) {
   const nestedEffectAttemptLineage = [];
   const nestedEffectSettlementLineage = [];
   const durableCalls = projectDurableWorkflowCalls(state);
+  const providerTokenUsage = projectProviderTokenUsage(state);
   const providerReceipts = projectProviderRequestReceipts(state);
   const nestedEffects = projectNestedToolEffects(state);
   let requestToSettlementMs = 0;
@@ -3214,7 +3465,6 @@ function projectDynamicWorkflowObservability(state) {
   }
 
   const gaps = [
-    "provider-token-usage-unavailable",
     "provider-cost-usd-unavailable",
     "provider-native-idempotency-unavailable",
     "provider-receipt-independent-readback-unavailable",
@@ -3225,6 +3475,15 @@ function projectDynamicWorkflowObservability(state) {
   providerReceiptLineage.push(...providerReceipts.receiptLineage);
   nestedEffectAttemptLineage.push(...nestedEffects.attemptLineage);
   nestedEffectSettlementLineage.push(...nestedEffects.settlementLineage);
+  if (providerTokenUsage.providerReportedCalls === 0) {
+    gaps.push("provider-token-usage-unavailable");
+  }
+  if (providerTokenUsage.missingProviderReportedCalls > 0) {
+    gaps.push("provider-token-usage-incomplete");
+  }
+  if (providerTokenUsage.legacyCalls > 0) {
+    gaps.push("provider-token-usage-legacy-call-schema");
+  }
   if (tokenEstimateEffects !== settled.length) {
     gaps.push("cowork-token-estimate-incomplete");
   }
@@ -3318,11 +3577,11 @@ function projectDynamicWorkflowObservability(state) {
         maxMs: maxRequestToSettlementMs,
       },
       tokens: {
-        authority: "cowork-result-heuristic",
+        ...providerTokenUsage,
+        estimateAuthority: "cowork-result-heuristic",
         estimated: estimatedTokens,
         observedEffects: tokenEstimateEffects,
         missingEffects: settled.length - tokenEstimateEffects,
-        providerReported: null,
       },
       cost: {
         authority: "unavailable",

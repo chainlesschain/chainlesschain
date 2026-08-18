@@ -541,7 +541,12 @@ describe("durable dynamic workflow runtime", () => {
         callId: providerBoundary.callId,
         provider: "openai",
         model: "gpt-4o",
-        usage: { input_tokens: 2, output_tokens: 1 },
+        usage: {
+          input_tokens: 2,
+          output_tokens: 1,
+          cache_read_input_tokens: 3,
+          cache_creation_input_tokens: 4,
+        },
         providerReceipt: workflowProviderReceipt(providerBoundary),
       });
 
@@ -621,6 +626,14 @@ describe("durable dynamic workflow runtime", () => {
         providerReceiptRequestId: "req_mdl-publish-1",
         providerReceiptResponseId: "resp_mdl-publish-1",
         providerReceiptRecordedAt: expect.any(String),
+        providerUsage: {
+          schema: "cc-provider-token-usage/v1",
+          inputTokens: 2,
+          outputTokens: 1,
+          cacheReadInputTokens: 3,
+          cacheCreationInputTokens: 4,
+          totalTokens: 10,
+        },
       }),
       expect.objectContaining({
         kind: "tool",
@@ -650,6 +663,7 @@ describe("durable dynamic workflow runtime", () => {
       completed: 2,
       outcomeUnknown: 0,
       providerReceipts: 1,
+      providerUsageRecords: 1,
       providerNativeIdempotencyProven: false,
       providerReceiptsIndependentlyReadable: false,
     });
@@ -687,6 +701,37 @@ describe("durable dynamic workflow runtime", () => {
     expect(
       projectDynamicWorkflowRuntime(state).observability.gaps,
     ).not.toContain("provider-request-receipt-legacy-result-fallback");
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.tokens,
+    ).toMatchObject({
+      authority: "runtime-state-hash-chain-fsync",
+      crashVisible: true,
+      providerCalls: 1,
+      providerReportedCalls: 1,
+      providerReportedEffects: 1,
+      missingProviderReportedCalls: 0,
+      pendingCalls: 0,
+      outcomeUnknownCalls: 0,
+      legacyCalls: 0,
+      providerReported: {
+        inputTokens: 2,
+        outputTokens: 1,
+        cacheReadInputTokens: 3,
+        cacheCreationInputTokens: 4,
+        totalTokens: 10,
+      },
+      estimateAuthority: "cowork-result-heuristic",
+      estimated: 10,
+    });
+    for (const gap of [
+      "provider-token-usage-unavailable",
+      "provider-token-usage-incomplete",
+      "provider-token-usage-legacy-call-schema",
+    ]) {
+      expect(
+        projectDynamicWorkflowRuntime(state).observability.gaps,
+      ).not.toContain(gap);
+    }
     expect(projectDynamicWorkflowRuntime(state).observability.gaps).toContain(
       "provider-request-result-disagrees-with-durable-store",
     );
@@ -720,6 +765,78 @@ describe("durable dynamic workflow runtime", () => {
     expect(
       projectDynamicWorkflowRuntime(state).observability.gaps,
     ).not.toContain("nested-tool-independent-ledger-incomplete");
+  });
+
+  it("rejects accessor-backed provider usage without mutating the started call", async () => {
+    const workflow = workflowDefinition({
+      steps: [{ id: "collect", message: "Collect release evidence" }],
+    });
+    const execution = admittedExecution(projectRoot, workflow);
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-provider-usage-accessor",
+    );
+    let getterRead = false;
+    let settlementReturned = false;
+
+    await expect(
+      executeDurableDynamicWorkflow(
+        { statePath, runId: "run-provider-usage-accessor", execution },
+        {
+          runTask: async (args) => {
+            const boundary = {
+              type: "model-usage-started",
+              callId: "mdl-provider-usage-accessor-1",
+              provider: "openai",
+              source: "model",
+              workflowEffectId: args.workflowEffectId,
+              callSequence: 1,
+              providerRequestId: workflowProviderRequestId(
+                args.workflowEffectId,
+              ),
+              requestIdentitySemantics: "trace-only",
+            };
+            const usage = { output_tokens: 1 };
+            Object.defineProperty(usage, "input_tokens", {
+              enumerable: true,
+              get() {
+                getterRead = true;
+                return 1;
+              },
+            });
+            args.onUsageBoundary(boundary);
+            args.onUsageSettlement({
+              ...boundary,
+              type: "token-usage",
+              usage,
+            });
+            settlementReturned = true;
+            return completedTask(args);
+          },
+          now: clock(),
+        },
+      ),
+    ).rejects.toMatchObject({ reason: "reconciliation-required" });
+
+    expect(getterRead).toBe(false);
+    expect(settlementReturned).toBe(false);
+    const state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.effects[0].calls).toEqual([
+      expect.objectContaining({
+        status: "started",
+        providerUsage: null,
+        settledAt: null,
+      }),
+    ]);
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.tokens,
+    ).toMatchObject({
+      providerCalls: 1,
+      providerReportedCalls: 0,
+      missingProviderReportedCalls: 1,
+      pendingCalls: 1,
+      providerReported: null,
+    });
   });
 
   it("retains a crash-visible started provider call until operator reconciliation", async () => {
@@ -1053,6 +1170,7 @@ describe("durable dynamic workflow runtime", () => {
         providerReceiptPersisted: true,
         providerReceiptRequestId: "req_mdl-unknown-1",
         providerReceiptResponseId: null,
+        providerUsage: null,
       }),
     ]);
     expect(
@@ -1063,6 +1181,20 @@ describe("durable dynamic workflow runtime", () => {
       outcomeUnknown: 1,
       providerReceipts: 1,
     });
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.tokens,
+    ).toMatchObject({
+      authority: "runtime-state-hash-chain-fsync",
+      providerCalls: 1,
+      providerReportedCalls: 0,
+      missingProviderReportedCalls: 1,
+      pendingCalls: 0,
+      outcomeUnknownCalls: 1,
+      providerReported: null,
+    });
+    expect(projectDynamicWorkflowRuntime(state).observability.gaps).toContain(
+      "provider-token-usage-incomplete",
+    );
   });
 
   it("rejects malformed and duplicate call boundaries before another dispatch", async () => {
@@ -1215,6 +1347,51 @@ describe("durable dynamic workflow runtime", () => {
       ),
     ).toThrow(/effect-0-call-0-invalid/u);
 
+    const usageTampered = structuredClone(state);
+    usageTampered.effects[0].calls[0].providerUsage.inputTokens = 2;
+    usageTampered.effects[0].calls[0].providerUsage.totalTokens = 3;
+    expect(() =>
+      verifyDynamicWorkflowRuntimeState(withRuntimeStateDigest(usageTampered)),
+    ).toThrow(/effect-0-call-0-invalid/u);
+
+    const usageRemoved = structuredClone(state);
+    delete usageRemoved.effects[0].calls[0].providerUsage;
+    expect(() =>
+      verifyDynamicWorkflowRuntimeState(withRuntimeStateDigest(usageRemoved)),
+    ).toThrow(/effect-0-call-0-invalid/u);
+
+    const legacyUsageState = structuredClone(state);
+    delete legacyUsageState.effects[0].calls[0].providerUsage;
+    for (const event of legacyUsageState.lineage) {
+      if (event.type === "effect-call-settled") {
+        delete event.details.providerUsageDigest;
+      }
+    }
+    const verifiedLegacyUsageState = verifyDynamicWorkflowRuntimeState(
+      withRebuiltRuntimeLineage(legacyUsageState, legacyUsageState.lineage),
+    );
+    expect(
+      projectDynamicWorkflowRuntime(verifiedLegacyUsageState).observability
+        .tokens,
+    ).toMatchObject({
+      authority: "runtime-state-hash-chain-fsync-with-legacy-call-schema",
+      providerCalls: 1,
+      providerReportedCalls: 0,
+      missingProviderReportedCalls: 1,
+      legacyCalls: 1,
+      providerReported: null,
+    });
+    expect(
+      projectDynamicWorkflowRuntime(verifiedLegacyUsageState).observability
+        .gaps,
+    ).toEqual(
+      expect.arrayContaining([
+        "provider-token-usage-unavailable",
+        "provider-token-usage-incomplete",
+        "provider-token-usage-legacy-call-schema",
+      ]),
+    );
+
     const legacyReceiptState = structuredClone(state);
     delete legacyReceiptState.effects[0].calls[0].providerReceiptRecordedAt;
     const verifiedLegacyReceiptState = verifyDynamicWorkflowRuntimeState(
@@ -1297,7 +1474,12 @@ describe("durable dynamic workflow runtime", () => {
         callId: providerBoundary.callId,
         provider: "openai",
         source: "subagent",
-        usage: { input_tokens: 3, output_tokens: 2 },
+        usage: {
+          prompt_tokens: 3,
+          completion_tokens: 2,
+          cache_read_tokens: 1,
+          cache_creation_tokens: 1,
+        },
         providerReceipt: workflowProviderReceipt(providerBoundary),
       });
 
@@ -1370,6 +1552,28 @@ describe("durable dynamic workflow runtime", () => {
         name: "read_file",
       }),
     ]);
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.tokens,
+    ).toMatchObject({
+      providerCalls: 1,
+      providerReportedCalls: 1,
+      providerReportedEffects: 1,
+      missingProviderReportedCalls: 0,
+      providerReported: {
+        inputTokens: 3,
+        outputTokens: 2,
+        cacheReadInputTokens: 1,
+        cacheCreationInputTokens: 1,
+        totalTokens: 7,
+      },
+      lineage: [
+        expect.objectContaining({
+          descendant: true,
+          source: "subagent",
+          requestSource: "model",
+        }),
+      ],
+    });
 
     const tampered = structuredClone(state);
     tampered.effects[0].calls[1].ownerEffectId = `sha256:${"f".repeat(64)}`;
