@@ -362,8 +362,8 @@ export function createSessionExecutionLocationResultBundle(
 ) {
   const sessionAuthority = projectSessionExecutionLocation(sessionId, deps);
   const boundaryRoot = resultBoundary(sessionAuthority);
-  const readFile = deps.readExecutionLocationResultFile ||
-    readExecutionLocationResultFile;
+  const readFile =
+    deps.readExecutionLocationResultFile || readExecutionLocationResultFile;
   const read = (filePath, fileOptions = {}) =>
     readFile(filePath, {
       boundaryRoot,
@@ -378,8 +378,10 @@ export function createSessionExecutionLocationResultBundle(
         bytes: read(spec.path, { allowEmpty: true }),
       };
     });
-  return (deps.createExecutionLocationResultBundle ||
-    createExecutionLocationResultBundle)({
+  return (
+    deps.createExecutionLocationResultBundle ||
+    createExecutionLocationResultBundle
+  )({
     sessionAuthority,
     resultId: options.resultId,
     summaryBytes: read(options.summary),
@@ -397,14 +399,17 @@ export function verifySessionExecutionLocationResultBundle(
 ) {
   const sourceAuthority = projectSessionExecutionLocation(sessionId, deps);
   const boundaryRoot = resultBoundary(sourceAuthority);
-  const bundle = (deps.readExecutionLocationResultBundle ||
-    readExecutionLocationResultBundle)(bundlePath, {
+  const bundle = (
+    deps.readExecutionLocationResultBundle || readExecutionLocationResultBundle
+  )(bundlePath, {
     boundaryRoot,
     maxBytes: MAX_EXECUTION_LOCATION_RESULT_BUNDLE_BYTES,
     ...(deps.resultFileDependencies || {}),
   });
-  return (deps.verifyExecutionLocationResultBundle ||
-    verifyExecutionLocationResultBundle)({
+  return (
+    deps.verifyExecutionLocationResultBundle ||
+    verifyExecutionLocationResultBundle
+  )({
     bundle,
     sourceAuthority,
     expectedHandoffId,
@@ -469,8 +474,10 @@ export function collectSessionExecutionLocationResult(
       eventCount: authority.eventCount,
     };
   };
-  const collection = (deps.collectExecutionLocationTargetResult ||
-    collectExecutionLocationTargetResult)(
+  const collection = (
+    deps.collectExecutionLocationTargetResult ||
+    collectExecutionLocationTargetResult
+  )(
     {
       requestId: request.requestId,
       handoff,
@@ -487,7 +494,9 @@ export function collectSessionExecutionLocationResult(
     deps,
   );
   if (collection.requestDigest !== request.requestDigest) {
-    throw new Error("result collection request digest changed during collection");
+    throw new Error(
+      "result collection request digest changed during collection",
+    );
   }
   const settlement = (
     deps.settleSessionExecutionLocationResultCollection ||
@@ -802,7 +811,10 @@ export function registerSessionLocationSubcommands(session, deps = {}) {
       "Build a bounded result bundle from a verified target handoff session",
     )
     .requiredOption("--result-id <id>", "Stable result bundle id")
-    .requiredOption("--summary <path>", "UTF-8 summary file inside the data boundary")
+    .requiredOption(
+      "--summary <path>",
+      "UTF-8 summary file inside the data boundary",
+    )
     .requiredOption("--diff <path>", "Diff file inside the data boundary")
     .option(
       "--artifact <media-type=path>",
