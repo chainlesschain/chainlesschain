@@ -1890,18 +1890,22 @@ describe("WSAgentHandler", () => {
           }),
         }),
       );
-      expect(interaction.emit).toHaveBeenCalledWith("token-usage", {
-        requestId: "req-semantic",
-        provider: "anthropic",
-        model: "claude-sonnet-4-6",
-        usage: {
-          input_tokens: 64,
-          output_tokens: 20,
-          cache_read_input_tokens: 0,
-          cache_creation_input_tokens: 0,
-        },
-        source: "semantic-compaction",
-      });
+      expect(interaction.emit).toHaveBeenCalledWith(
+        "token-usage",
+        expect.objectContaining({
+          requestId: "req-semantic",
+          callId: expect.stringMatching(/^ws-cmp-/),
+          provider: "anthropic",
+          model: "claude-sonnet-4-6",
+          usage: {
+            input_tokens: 64,
+            output_tokens: 20,
+            cache_read_input_tokens: 0,
+            cache_creation_input_tokens: 0,
+          },
+          source: "semantic-compaction",
+        }),
+      );
       expect(
         interaction.emit.mock.calls.filter(([type]) => type === "token-usage"),
       ).toHaveLength(1);
