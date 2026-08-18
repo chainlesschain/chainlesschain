@@ -19,6 +19,7 @@ import {
   COMMAND_LIFECYCLE_COVERAGE_SCHEMA,
   COMMAND_LIFECYCLE_EXPORT_MANIFEST_SCHEMA,
   COMMAND_LIFECYCLE_INVOCATION_METRIC,
+  COMMAND_LIFECYCLE_DELTA_RELEASE_POLICY,
   COMMAND_LIFECYCLE_REPORT_SCHEMA,
   renderCommandLifecycleReportMarkdown,
 } from "../../src/lib/command-lifecycle-report.js";
@@ -36,6 +37,12 @@ const APPROVAL_SHA = `sha256:${"b".repeat(64)}`;
 const EXPORT_SHA = `sha256:${"c".repeat(64)}`;
 const EXPORT_MANIFEST_SHA = `sha256:${"d".repeat(64)}`;
 const GENERATOR_SHA = "f".repeat(40);
+const DELTA_RELEASE = {
+  version: "0.163.4",
+  commitSha: "27ed0ac2005e16ce5ddff53990e85b1d13ea0b1d",
+  tagPublishedAt: "2026-08-10T18:58:32.000Z",
+  npmPublishedAt: "2026-08-10T19:42:11.053Z",
+};
 const { privateKey: approvalPrivateKey, publicKey: approvalPublicKey } =
   generateKeyPairSync("ed25519");
 const approvalKeyId = packUpdateKeyId(approvalPublicKey);
@@ -55,10 +62,16 @@ function sha256(value) {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
 }
 
-function publicRelease(version, tagPublishedAt, npmPublishedAt, digit) {
+function publicRelease(
+  version,
+  tagPublishedAt,
+  npmPublishedAt,
+  digit,
+  commitSha = digit.repeat(40),
+) {
   return {
     version,
-    commitSha: digit.repeat(40),
+    commitSha,
     tag: `v-npm-${version.replaceAll(".", "-")}`,
     tagPublishedAt,
     npmPublishedAt,
@@ -71,24 +84,19 @@ function coverage(overrides = {}) {
     reportSchema: COMMAND_LIFECYCLE_REPORT_SCHEMA,
     decisionVersion: "0.164.0",
     observation: {
-      id: "public-cli-0.162-through-0.164",
-      startedAt: "2026-08-06T07:47:36.861Z",
+      id: "public-cli-0.163.4-through-0.164",
+      startedAt: DELTA_RELEASE.npmPublishedAt,
       endedAt: "2026-09-08T00:00:00.000Z",
-      startRelease: "0.162.198",
+      startRelease: DELTA_RELEASE.version,
       endRelease: "0.164.0",
     },
     publicReleases: [
       publicRelease(
-        "0.162.198",
-        "2026-08-06T07:40:00.000Z",
-        "2026-08-06T07:47:36.861Z",
+        DELTA_RELEASE.version,
+        DELTA_RELEASE.tagPublishedAt,
+        DELTA_RELEASE.npmPublishedAt,
         "1",
-      ),
-      publicRelease(
-        "0.163.4",
-        "2026-08-20T00:00:00.000Z",
-        "2026-08-20T00:05:00.000Z",
-        "2",
+        DELTA_RELEASE.commitSha,
       ),
       publicRelease(
         "0.164.0",
@@ -122,7 +130,7 @@ function approval(overrides = {}) {
       scope: "collector-coverage-and-command-lifecycle-metrics",
       status: "approved",
       attestationId: "review-2026-09-08",
-      observationId: "public-cli-0.162-through-0.164",
+      observationId: "public-cli-0.163.4-through-0.164",
       decisionVersion: "0.164.0",
       coverageSha256: COVERAGE_SHA,
       exportManifestSha256: EXPORT_MANIFEST_SHA,
@@ -158,14 +166,14 @@ function manifestTemporality(documents) {
 
 function exportManifest(exports, overrides = {}) {
   const boundaries = [
-    "2026-08-06T07:47:36.861Z",
+    DELTA_RELEASE.npmPublishedAt,
     "2026-08-25T00:00:00.000Z",
     "2026-09-08T00:00:00.000Z",
   ];
   return {
     schema: COMMAND_LIFECYCLE_EXPORT_MANIFEST_SCHEMA,
     reportSchema: COMMAND_LIFECYCLE_REPORT_SCHEMA,
-    observationId: "public-cli-0.162-through-0.164",
+    observationId: "public-cli-0.163.4-through-0.164",
     generatorSha: GENERATOR_SHA,
     policySha256: COMMAND_ALIAS_DECISION_POLICY_SHA256,
     partitions: exports.map((item, sequence) => ({
@@ -174,7 +182,7 @@ function exportManifest(exports, overrides = {}) {
       sha256: item.sha256,
       startedAt:
         exports.length === 1
-          ? "2026-08-06T07:47:36.861Z"
+          ? DELTA_RELEASE.npmPublishedAt
           : boundaries[sequence],
       endedAt:
         exports.length === 1
@@ -210,9 +218,9 @@ function point(
   count,
   {
     outcome = "completed",
-    at = version === "0.162.198"
-      ? "2026-08-07T00:00:00.000Z"
-      : "2026-08-21T00:00:00.000Z",
+    at = version === DELTA_RELEASE.version
+      ? "2026-08-21T00:00:00.000Z"
+      : "2026-09-07T01:00:00.000Z",
     startAt,
   } = {},
 ) {
@@ -298,25 +306,26 @@ describe("command lifecycle report v2", () => {
     const report = build({
       documents: [
         payload([
-          point("dao", "legacy", "0.162.198", 1),
-          point("dao", "replacement", "0.162.198", 199),
-          point("dao", "replacement", "0.163.4", 200),
-          point("evomap", "legacy", "0.162.198", 10),
-          point("evomap", "replacement", "0.162.198", 90),
-          point("evomap", "legacy", "0.163.4", 15),
-          point("evomap", "replacement", "0.163.4", 85),
+          point("dao", "legacy", "0.163.4", 1),
+          point("dao", "replacement", "0.163.4", 199),
+          point("dao", "replacement", "0.164.0", 200),
+          point("evomap", "legacy", "0.163.4", 10),
+          point("evomap", "replacement", "0.163.4", 90),
+          point("evomap", "legacy", "0.164.0", 15),
+          point("evomap", "replacement", "0.164.0", 85),
         ]),
       ],
     });
 
     expect(report.schema).toBe(COMMAND_LIFECYCLE_REPORT_SCHEMA);
-    expect(report.coverage.ready).toBe(false);
-    expect(report.coverage.blockers).toEqual(
-      expect.arrayContaining([
-        "delta-evidence-release-incompatible:0.162.198",
-        "delta-release-policy-unconfigured",
-      ]),
-    );
+    expect(report.coverage.ready).toBe(true);
+    expect(report.coverage.blockers).toEqual([]);
+    expect(report.coverage.deltaReleasePolicy).toEqual({
+      configured: true,
+      firstPublicRelease:
+        COMMAND_LIFECYCLE_DELTA_RELEASE_POLICY.firstPublicRelease,
+      incompatibleReleases: ["0.162.198", "0.163.3"],
+    });
     expect(report.evidence).toMatchObject({
       ready: false,
       coverage: { sha256: COVERAGE_SHA },
@@ -330,7 +339,6 @@ describe("command lifecycle report v2", () => {
       },
     });
     expect(report.releases.map((item) => item.version)).toEqual([
-      "0.162.198",
       "0.163.4",
       "0.164.0",
     ]);
@@ -350,22 +358,17 @@ describe("command lifecycle report v2", () => {
       aliasAction: "retain",
       totalInvocations: 400,
       legacyShare: 0.0025,
-      observedMinorCycles: ["0.162", "0.163"],
+      observedMinorCycles: ["0.163", "0.164"],
       minorCycles: [
         {
-          minor: "0.162",
+          minor: "0.163",
           legacy: { invocations: 1 },
           replacementRoute: { invocations: 199 },
         },
         {
-          minor: "0.163",
-          legacy: { invocations: 0 },
-          replacementRoute: { invocations: 200 },
-        },
-        {
           minor: "0.164",
           legacy: { invocations: 0 },
-          replacementRoute: { invocations: 0 },
+          replacementRoute: { invocations: 200 },
         },
       ],
     });
@@ -389,11 +392,7 @@ describe("command lifecycle report v2", () => {
     });
     const dao = report.decisions.find((item) => item.command === "dao");
 
-    expect(report.coverage.observedMinorCycles).toEqual([
-      "0.162",
-      "0.163",
-      "0.164",
-    ]);
+    expect(report.coverage.observedMinorCycles).toEqual(["0.163", "0.164"]);
     expect(dao).toMatchObject({
       decision: "insufficient-data",
       aliasAction: "retain",
@@ -999,7 +998,7 @@ describe("command lifecycle report v2", () => {
       expect.arrayContaining([
         "delta-evidence-release-incompatible:0.162.198",
         "delta-evidence-release-incompatible:0.163.3",
-        "delta-release-policy-unconfigured",
+        "delta-release-evidence-mismatch",
       ]),
     );
     expect(
@@ -1049,8 +1048,8 @@ describe("command lifecycle report v2", () => {
     const report = build({
       documents: [
         payload([
-          point("dao", "replacement", "0.162.198", 125),
           point("dao", "replacement", "0.163.4", 125),
+          point("dao", "replacement", "0.164.0", 125),
         ]),
       ],
     });
@@ -1059,7 +1058,7 @@ describe("command lifecycle report v2", () => {
     expect(markdown).toContain(COMMAND_LIFECYCLE_REPORT_SCHEMA);
     expect(markdown).toContain("Adoption evidence: **insufficient-data**");
     expect(markdown).toContain("Alias actions: 0 remove, 25 retain.");
-    expect(markdown).toContain("0.162: 0/125; 0.163: 0/125; 0.164: 0/0");
+    expect(markdown).toContain("0.163: 0/125; 0.164: 0/125");
     expect(markdown).toContain("| **insufficient-data** | **retain** |");
     expect(markdown).not.toContain("service.instance.id");
   });

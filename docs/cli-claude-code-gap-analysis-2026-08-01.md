@@ -1734,3 +1734,9 @@ seed `1592598566` 与 campaign `p2-4-scheduler-long-soak-7d3120fc`。
 - P2-4 campaign 继续固定 `v-npm-0-165-1@1a10ed7c8fd14d12f7760e948ff8efe36c766602`、campaign `p2-4-scheduler-long-soak-1a10ed7c8fd1`、seed `1592598566`，当前仍为 **1/4**；不得用 `0.165.2` 发布或上述独立 reliability run 替代其后三段、至少 72 小时覆盖和 campaign verifier。native 签名身份/公开渠道授权与代表性 alias telemetry 仍是仓库外前置，25/25 compatibility alias 继续保留。
 
 因此 `0.165.2` npm 版本已经完成发布并可供使用，但总体差距统计在两个新 formal 终态前仍保持：原始 15 项 **10 完成 / 5 部分完成 / 0 完全未开始**，六项产品任务 **3 完成 / 3 未完成**，去重实施队列 **5 个工作包**。keeper formal 若在 exact release SHA 上完整成功，才可把 P1-2 更新为完成、统计改为 **11 完成 / 4 部分完成**并将队列降为 **4 个工作包**；其余外部或长观察窗退出门仍各自独立失败关闭。
+
+### 18.32 2026-08-18 Alias DELTA 公开版本锚点收口
+
+- lifecycle v2 的 DELTA exporter 与仓库来源探针分别由 `f1e5bcfb9b717225cac5f6b45c6b5fdd6da171f4`、`15659be13e` 完成，首个同时包含两者的公开版本是 `chainlesschain@0.163.4`。不可变 tag `v-npm-0-163-4` 指向 exact commit `27ed0ac2005e16ce5ddff53990e85b1d13ea0b1d`，npm registry 记录的发布时间为 `2026-08-10T19:42:11.053Z`。正式 `COMMAND_LIFECYCLE_DELTA_RELEASE_POLICY` 现把这三个值作为不可由报告输入覆盖的仓库锚，并继续永久拒绝不兼容的 `0.162.198` 与 `0.163.3`；观察 coverage 必须从该 npm 时间边界开始，release SHA 或时间不一致会失败关闭。
+- 这项改动关闭了“DELTA 正式观察策略仍为 `null`”的仓库内准备缺口，不授权删除任何入口。仓库仍没有组织批准的 lifecycle Ed25519 公钥，也没有获批的代表性 Collector/cohort export、Linux/macOS/Windows 非零 reporting coverage、accepted points、sample rate 与逐命令 legacy/replacement usage。因此 reporter 继续以 `approval-signature-trust-unavailable` 和缺失真实数据判为 `insufficient-data`，操作结果保持 **25/25 alias 全部保留、0 个删除**。
+- 第 18.26 节的 Alias telemetry 工作包仍为 **部分完成 / NO-GO**，总体统计和五个去重工作包暂不变化。只有组织先固定审批信任根，再从上述公开锚开始提供连续、无缺口且满足偏差/样本门槛的真实三平台证据，才允许形成逐命令 `retain` 或 `remove` 正式建议；工具本身仍不会自动修改 manifest。

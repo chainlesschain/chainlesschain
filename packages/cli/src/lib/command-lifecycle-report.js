@@ -38,12 +38,16 @@ export const COMMAND_ALIAS_DECISION_POLICY = Object.freeze({
   requiredPlatforms: Object.freeze(["linux", "macos", "windows"]),
 });
 
-// This repository-owned anchor intentionally remains unconfigured until the
-// first public release containing the DELTA lifecycle exporter is published.
-// Updating it requires a reviewed code change with all three exact values.
+// Repository-owned anchor for the first public release containing the complete
+// DELTA lifecycle exporter and repository-probe hardening. Coverage must begin
+// at this exact npm publication boundary; report input cannot override it.
 export const COMMAND_LIFECYCLE_DELTA_RELEASE_POLICY = Object.freeze({
   schema: "chainlesschain.command-lifecycle-delta-release-policy.v1",
-  firstPublicRelease: null,
+  firstPublicRelease: Object.freeze({
+    version: "0.163.4",
+    commitSha: "27ed0ac2005e16ce5ddff53990e85b1d13ea0b1d",
+    npmPublishedAt: "2026-08-10T19:42:11.053Z",
+  }),
   incompatibleReleases: Object.freeze(["0.162.198", "0.163.3"]),
 });
 
