@@ -25,6 +25,7 @@ import {
   readDynamicWorkflowInputResponseFile,
   readDynamicWorkflowRuntimeState,
   recoverDurableWorkflowCheckpointCall,
+  recoverDurableWorkflowCheckpointCalls,
   reconcileDurableWorkflowEffect,
   requestDurableWorkflowPause,
   requestDurableWorkflowStop,
@@ -1679,6 +1680,121 @@ describe("durable dynamic workflow runtime", () => {
       ).toThrow(/not pending terminal recovery/u);
     },
   );
+
+  it("atomically recovers every terminal checkpoint call in one revision-bound batch", async () => {
+    mkdirSync(projectRoot, { recursive: true });
+    const workflow = workflowDefinition({
+      steps: [{ id: "recover", message: "Recover checkpoint batch" }],
+    });
+    const execution = admittedExecution(projectRoot, workflow);
+    const runId = "run-checkpoint-recover-batch";
+    const statePath = dynamicWorkflowRunStatePath(projectRoot, runId);
+    const checkpointStore = checkpointManager(root, "recover-batch");
+
+    await expect(
+      executeDurableDynamicWorkflow(
+        { statePath, runId, execution },
+        {
+          checkpointStore,
+          runTask: async (args) => {
+            for (const sequence of [1, 2]) {
+              const transaction = checkpointStore.begin({
+                id: `wcp-workflow-recover-batch-${sequence}`,
+                runId,
+                taskKey: `recover-checkpoint-batch-${sequence}`,
+                workspaceRoot: args.cwd,
+                coverageTarget: "partial",
+                writerIsolation: "unknown",
+                externalSideEffects: false,
+                exclusions: args.managedCheckpointExclusions,
+              });
+              const boundary = {
+                ...workflowToolBoundary(args, {
+                  tool: "write_file",
+                  toolUseId: `tool-checkpoint-recover-batch-${sequence}`,
+                  sequence,
+                }),
+                managedCheckpointBinding:
+                  transactionCheckpointBinding(transaction),
+              };
+              args.onToolCallBoundary(boundary);
+              writeFileSync(
+                join(projectRoot, `batch-${sequence}.txt`),
+                `after-${sequence}\n`,
+                "utf8",
+              );
+              if (sequence === 1) transaction.accept();
+              else transaction.rollback({ reason: "batch rollback" });
+            }
+            throw new Error("crash after checkpoint batch became terminal");
+          },
+          now: clock(),
+        },
+      ),
+    ).rejects.toMatchObject({ reason: "reconciliation-required" });
+
+    let state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.effects[0].calls).toMatchObject([
+      { status: "started" },
+      { status: "started" },
+    ]);
+    const initialRevision = state.revision;
+    expect(() =>
+      recoverDurableWorkflowCheckpointCalls(
+        statePath,
+        { expectedRevision: initialRevision },
+        {
+          checkpointStore: {
+            inspect(id) {
+              if (id.endsWith("-2")) throw new Error("store unavailable");
+              return checkpointStore.inspect(id);
+            },
+          },
+        },
+      ),
+    ).toThrow(/checkpoint store readback failed/u);
+    expect(readDynamicWorkflowRuntimeState(statePath).revision).toBe(
+      initialRevision,
+    );
+
+    state = recoverDurableWorkflowCheckpointCalls(
+      statePath,
+      { expectedRevision: initialRevision },
+      {
+        checkpointStore,
+        now: clock(Date.parse("2026-08-18T06:15:00.000Z")),
+      },
+    );
+    expect(state.revision).toBe(initialRevision + 2);
+    expect(state.status).toBe("blocked");
+    expect(state.effects[0].calls).toMatchObject([
+      {
+        status: "completed",
+        settlementCode: "checkpoint_store_recovered_commit",
+        checkpointReadback: { outcome: "committed" },
+      },
+      {
+        status: "failed",
+        settlementCode: "checkpoint_store_recovered_rollback",
+        checkpointReadback: { outcome: "rolled_back" },
+      },
+    ]);
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.checkpoints
+        .storeReadbacks,
+    ).toMatchObject({
+      terminalStoreRecoveredCalls: 2,
+      committedCalls: 1,
+      rolledBackCalls: 1,
+    });
+    expect(() =>
+      recoverDurableWorkflowCheckpointCalls(
+        statePath,
+        { expectedRevision: state.revision },
+        { checkpointStore },
+      ),
+    ).toThrow(/no workflow checkpoint calls/u);
+  });
 
   it.each(["forged-evidence", "missing-store"])(
     "rejects a managed checkpoint settlement with %s",

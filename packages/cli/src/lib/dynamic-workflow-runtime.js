@@ -4130,6 +4130,102 @@ export function recoverDurableWorkflowCheckpointCall(
   });
 }
 
+export function recoverDurableWorkflowCheckpointCalls(
+  statePath,
+  input = {},
+  deps = {},
+) {
+  const checkpointStore =
+    deps.checkpointStore || new WorkspaceTransactionManager();
+  return withStateMutation(path.resolve(statePath), (current) => {
+    if (!current) {
+      throw new Error("dynamic workflow runtime state was not found");
+    }
+    requireRevision(current, input.expectedRevision);
+    const recoveries = [];
+    for (const [effectIndex, effect] of current.effects.entries()) {
+      if (effect.status !== "pending") continue;
+      for (const [callIndex, call] of (effect.calls || []).entries()) {
+        if (
+          call.kind !== "tool" ||
+          call.status !== "started" ||
+          Object.prototype.hasOwnProperty.call(call, "artifactReadback") ||
+          !Object.prototype.hasOwnProperty.call(call, "checkpointBinding") ||
+          !validCheckpointBinding(call.checkpointBinding)
+        ) {
+          continue;
+        }
+        const checkpointReadback = checkpointReadbackFromPreparedBinding(
+          call.checkpointBinding,
+          checkpointStore,
+        );
+        if (checkpointReadback === null) continue;
+        const committed = checkpointReadback.outcome === "committed";
+        recoveries.push({
+          effectIndex,
+          callIndex,
+          effectId: effect.id,
+          callRecordId: call.id,
+          committed,
+          checkpointReadback,
+          settlementCode: committed
+            ? "checkpoint_store_recovered_commit"
+            : "checkpoint_store_recovered_rollback",
+        });
+      }
+    }
+    if (recoveries.length === 0) {
+      const error = new Error(
+        "no workflow checkpoint calls have a recoverable terminal store state",
+      );
+      error.code = "CC_DYNAMIC_WORKFLOW_CHECKPOINT_BATCH_EMPTY";
+      throw error;
+    }
+    if (current.lineage.length + recoveries.length > MAX_LINEAGE_EVENTS) {
+      throw new Error(
+        "dynamic workflow runtime lineage limit prevents batch recovery",
+      );
+    }
+    const settledAt = isoNow(deps.now);
+    const draft = snapshotJson(
+      stateMaterial(current),
+      "workflow checkpoint batch recovery",
+    );
+    for (const recovery of recoveries) {
+      const calls = [...(draft.effects[recovery.effectIndex].calls || [])];
+      calls[recovery.callIndex] = {
+        ...calls[recovery.callIndex],
+        status: recovery.committed ? "completed" : "failed",
+        settledAt,
+        outcomeUnknown: false,
+        settlementCode: recovery.settlementCode,
+        checkpointReadback: recovery.checkpointReadback,
+      };
+      draft.effects[recovery.effectIndex] = {
+        ...draft.effects[recovery.effectIndex],
+        calls,
+      };
+      appendLineage(
+        draft,
+        "effect-call-settled",
+        {
+          effectId: recovery.effectId,
+          callRecordId: recovery.callRecordId,
+          kind: "tool",
+          status: recovery.committed ? "completed" : "failed",
+          checkpointReadbackDigest: checkpointReadbackDigest(
+            recovery.checkpointReadback,
+          ),
+          checkpointRecovery: "terminal-store-batch",
+        },
+        settledAt,
+      );
+    }
+    const state = finalizeState(draft);
+    return { state, value: state };
+  });
+}
+
 export function reconcileDurableWorkflowEffect(
   statePath,
   input = {},
