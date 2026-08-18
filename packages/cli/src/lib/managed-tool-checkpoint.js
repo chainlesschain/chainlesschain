@@ -15,6 +15,9 @@ export const MANAGED_TOOL_CHECKPOINT_ERROR = Object.freeze({
   SETTLEMENT_FAILED: "MANAGED_TOOL_CHECKPOINT_SETTLEMENT_FAILED",
 });
 
+export const MANAGED_TOOL_CHECKPOINT_BINDING_SCHEMA =
+  "cc-managed-tool-checkpoint-binding/v1";
+
 const DIRECT_FILE_ONLY_TOOLS = new Set([
   "write_file",
   "edit_file",
@@ -74,6 +77,41 @@ function skippedCheckpoint(reason, toolName) {
     coverage: WORKSPACE_TRANSACTION_COVERAGE.NONE,
     fileCoverage: WORKSPACE_TRANSACTION_COVERAGE.NONE,
     reason,
+  });
+}
+
+export function managedToolCheckpointBinding(handle) {
+  if (!handle || handle.skipped === true) return null;
+  const prepared = handle.prepared;
+  if (
+    !prepared ||
+    prepared.id !== handle.transactionId ||
+    prepared.checkpointId !== handle.checkpointId ||
+    typeof prepared.checkpoint?.digest !== "string" ||
+    typeof prepared.stateDigest !== "string" ||
+    !Object.values(WORKSPACE_TRANSACTION_COVERAGE).includes(
+      prepared.coverage,
+    ) ||
+    !Object.values(WORKSPACE_TRANSACTION_COVERAGE).includes(
+      prepared.fileCoverage,
+    ) ||
+    typeof prepared.externalSideEffects !== "boolean"
+  ) {
+    throw checkpointError(
+      MANAGED_TOOL_CHECKPOINT_ERROR.INVALID_ARGUMENT,
+      "managed tool checkpoint prepared binding is malformed",
+    );
+  }
+  return Object.freeze({
+    schema: MANAGED_TOOL_CHECKPOINT_BINDING_SCHEMA,
+    authority: "process-broker-workspace-transaction-prepared",
+    transactionId: handle.transactionId,
+    checkpointId: handle.checkpointId,
+    checkpointDigest: prepared.checkpoint.digest,
+    preparedStateDigest: prepared.stateDigest,
+    coverage: prepared.coverage,
+    fileCoverage: prepared.fileCoverage,
+    externalSideEffects: prepared.externalSideEffects,
   });
 }
 

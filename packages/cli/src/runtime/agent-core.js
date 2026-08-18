@@ -109,6 +109,7 @@ import { buildPermissionDecision } from "../lib/permission-decision.js";
 import { resolveSandboxPolicyPath } from "../lib/agent-sandbox.js";
 import {
   beginManagedToolCheckpoint,
+  managedToolCheckpointBinding,
   settleManagedToolCheckpoint,
 } from "../lib/managed-tool-checkpoint.js";
 import {
@@ -14273,6 +14274,13 @@ export async function* agentLoop(messages, options) {
             tool_use_id: call.id,
             turn_id: `${runId}:t${budget.consumed}`,
             ...(workflowBinding || {}),
+            ...(managedCheckpointHandle
+              ? {
+                  managedCheckpointBinding: managedToolCheckpointBinding(
+                    managedCheckpointHandle,
+                  ),
+                }
+              : {}),
           };
           // The event yield is a host persistence boundary. A detached child's
           // fatal usage write can settle while the consumer handles it; fence

@@ -23,6 +23,7 @@ import {
   projectDynamicWorkflowRuntime,
   readDynamicWorkflowEffectResultFile,
   readDynamicWorkflowRuntimeState,
+  recoverDurableWorkflowCheckpointCall,
   reconcileDurableWorkflowEffect,
   requestDurableWorkflowPause,
   requestDurableWorkflowStop,
@@ -43,6 +44,7 @@ import {
   publicArtifactMetadata,
 } from "../../src/lib/artifact-store.js";
 import { WorkspaceTransactionManager } from "../../src/lib/process-execution-broker/workspace-transaction.js";
+import { managedToolCheckpointBinding } from "../../src/lib/managed-tool-checkpoint.js";
 
 function workflowDefinition(overrides = {}) {
   return {
@@ -339,6 +341,15 @@ function checkpointManager(root, label) {
       `00000000-0000-4000-8000-${String(++sequence).padStart(12, "0")}`,
     ownerToken: () =>
       `10000000-0000-4000-8000-${String(++sequence).padStart(12, "0")}`,
+  });
+}
+
+function transactionCheckpointBinding(transaction) {
+  return managedToolCheckpointBinding({
+    skipped: false,
+    transactionId: transaction.id,
+    checkpointId: transaction.checkpointId,
+    prepared: transaction.snapshot(),
   });
 }
 
@@ -1222,10 +1233,13 @@ describe("durable dynamic workflow runtime", () => {
             externalSideEffects: false,
             exclusions: args.managedCheckpointExclusions,
           });
-          const boundary = workflowToolBoundary(args, {
-            tool: "write_file",
-            toolUseId: "tool-checkpoint-commit-1",
-          });
+          const boundary = {
+            ...workflowToolBoundary(args, {
+              tool: "write_file",
+              toolUseId: "tool-checkpoint-commit-1",
+            }),
+            managedCheckpointBinding: transactionCheckpointBinding(transaction),
+          };
           args.onToolCallBoundary(boundary);
           writeFileSync(
             join(projectRoot, "release-evidence.md"),
@@ -1257,6 +1271,10 @@ describe("durable dynamic workflow runtime", () => {
               expect.objectContaining({
                 name: "write_file",
                 status: "completed",
+                checkpointBinding: expect.objectContaining({
+                  schema: "cc-managed-tool-checkpoint-binding/v1",
+                  transactionId: "wcp-workflow-commit",
+                }),
                 checkpointReadback: expect.objectContaining({
                   schema: "cc-dynamic-workflow-checkpoint-readback/v1",
                   authority: "workspace-transaction-store-terminal-readback",
@@ -1281,6 +1299,7 @@ describe("durable dynamic workflow runtime", () => {
     const projection = projectDynamicWorkflowRuntime(state);
     expect(projection.observability.durableCalls).toMatchObject({
       checkpointReadbackRecords: 1,
+      checkpointBindingRecords: 1,
     });
     expect(projection.observability.checkpoints.storeReadbacks).toMatchObject({
       authority: "workspace-transaction-store-terminal-readback",
@@ -1297,6 +1316,9 @@ describe("durable dynamic workflow runtime", () => {
       fullCoverageCalls: 0,
       partialCoverageCalls: 1,
       externalSideEffectCalls: 0,
+      preparedBindingCalls: 1,
+      terminalStoreRecoveredCalls: 0,
+      bindingLegacyCalls: 0,
       missingReadbacks: 0,
       legacyCalls: 0,
       lineage: [
@@ -1333,9 +1355,11 @@ describe("durable dynamic workflow runtime", () => {
 
     const legacy = structuredClone(state);
     delete legacy.effects[0].calls[0].checkpointReadback;
+    delete legacy.effects[0].calls[0].checkpointBinding;
     for (const event of legacy.lineage) {
       if (event.type === "effect-call-started") {
         delete event.details.checkpointReadbackSchema;
+        delete event.details.checkpointBindingDigest;
       }
       if (event.type === "effect-call-settled") {
         delete event.details.checkpointReadbackDigest;
@@ -1393,10 +1417,13 @@ describe("durable dynamic workflow runtime", () => {
             externalSideEffects: false,
             exclusions: args.managedCheckpointExclusions,
           });
-          const boundary = workflowToolBoundary(args, {
-            tool: "edit_file",
-            toolUseId: "tool-checkpoint-rollback-1",
-          });
+          const boundary = {
+            ...workflowToolBoundary(args, {
+              tool: "edit_file",
+              toolUseId: "tool-checkpoint-rollback-1",
+            }),
+            managedCheckpointBinding: transactionCheckpointBinding(transaction),
+          };
           args.onToolCallBoundary(boundary);
           writeFileSync(targetPath, "after\n", "utf8");
           const evidence = transaction.rollback({ reason: "tool failed" });
@@ -1447,6 +1474,134 @@ describe("durable dynamic workflow runtime", () => {
     });
   });
 
+  it.each(["committed", "rolled_back"])(
+    "recovers a crash-visible tool call from its bound %s checkpoint store state",
+    async (outcome) => {
+      mkdirSync(projectRoot, { recursive: true });
+      const targetPath = join(projectRoot, `recover-${outcome}.txt`);
+      writeFileSync(targetPath, "before\n", "utf8");
+      const workflow = workflowDefinition({
+        steps: [{ id: "recover", message: "Recover checkpoint state" }],
+      });
+      const execution = admittedExecution(projectRoot, workflow);
+      const runId = `run-checkpoint-recover-${outcome}`;
+      const statePath = dynamicWorkflowRunStatePath(projectRoot, runId);
+      const checkpointStore = checkpointManager(root, `recover-${outcome}`);
+
+      await expect(
+        executeDurableDynamicWorkflow(
+          { statePath, runId, execution },
+          {
+            checkpointStore,
+            runTask: async (args) => {
+              const transaction = checkpointStore.begin({
+                id: `wcp-workflow-recover-${outcome}`,
+                runId,
+                taskKey: "recover-checkpoint-state",
+                workspaceRoot: args.cwd,
+                coverageTarget: "partial",
+                writerIsolation: "unknown",
+                externalSideEffects: false,
+                exclusions: args.managedCheckpointExclusions,
+              });
+              const boundary = {
+                ...workflowToolBoundary(args, {
+                  tool: "write_file",
+                  toolUseId: `tool-checkpoint-recover-${outcome}`,
+                }),
+                managedCheckpointBinding:
+                  transactionCheckpointBinding(transaction),
+              };
+              args.onToolCallBoundary(boundary);
+              writeFileSync(targetPath, "after\n", "utf8");
+              if (outcome === "committed") {
+                transaction.accept();
+              } else {
+                transaction.rollback({ reason: "simulated tool failure" });
+              }
+              throw new Error("crash after terminal checkpoint settlement");
+            },
+            now: clock(),
+          },
+        ),
+      ).rejects.toMatchObject({ reason: "reconciliation-required" });
+
+      let state = readDynamicWorkflowRuntimeState(statePath);
+      expect(state.status).toBe("blocked");
+      expect(state.effects[0].calls[0]).toMatchObject({
+        status: "started",
+        checkpointBinding: expect.objectContaining({
+          transactionId: `wcp-workflow-recover-${outcome}`,
+        }),
+        checkpointReadback: null,
+      });
+      const callRecordId = state.effects[0].calls[0].id;
+      const initialRevision = state.revision;
+      expect(() =>
+        recoverDurableWorkflowCheckpointCall(
+          statePath,
+          { expectedRevision: initialRevision, callRecordId },
+          {
+            checkpointStore: {
+              inspect() {
+                throw new Error("checkpoint store unavailable");
+              },
+            },
+          },
+        ),
+      ).toThrow(/checkpoint store readback failed/u);
+      expect(readDynamicWorkflowRuntimeState(statePath).revision).toBe(
+        initialRevision,
+      );
+
+      const tampered = structuredClone(state);
+      tampered.effects[0].calls[0].checkpointBinding.transactionId =
+        "wcp-forged-binding";
+      expect(() =>
+        verifyDynamicWorkflowRuntimeState(withRuntimeStateDigest(tampered)),
+      ).toThrow(/effect-0-call-0-invalid/u);
+
+      state = recoverDurableWorkflowCheckpointCall(
+        statePath,
+        { expectedRevision: initialRevision, callRecordId },
+        {
+          checkpointStore,
+          now: clock(Date.parse("2026-08-18T06:00:00.000Z")),
+        },
+      );
+      expect(state.status).toBe("blocked");
+      expect(state.effects[0].calls[0]).toMatchObject({
+        status: outcome === "committed" ? "completed" : "failed",
+        settlementCode:
+          outcome === "committed"
+            ? "checkpoint_store_recovered_commit"
+            : "checkpoint_store_recovered_rollback",
+        checkpointReadback: expect.objectContaining({ outcome }),
+      });
+      expect(
+        projectDynamicWorkflowRuntime(state).observability.checkpoints
+          .storeReadbacks,
+      ).toMatchObject({
+        preparedBindingCalls: 1,
+        terminalStoreRecoveredCalls: 1,
+        verifiedCalls: 1,
+        committedCalls: outcome === "committed" ? 1 : 0,
+        rolledBackCalls: outcome === "rolled_back" ? 1 : 0,
+        missingReadbacks: 0,
+      });
+      expect(() =>
+        prepareDurableWorkflowResume(statePath, state.revision),
+      ).toThrow(/must be reconciled before resume/u);
+      expect(() =>
+        recoverDurableWorkflowCheckpointCall(
+          statePath,
+          { expectedRevision: state.revision, callRecordId },
+          { checkpointStore },
+        ),
+      ).toThrow(/not pending terminal recovery/u);
+    },
+  );
+
   it.each(["forged-evidence", "missing-store"])(
     "rejects a managed checkpoint settlement with %s",
     async (failureMode) => {
@@ -1483,10 +1638,14 @@ describe("durable dynamic workflow runtime", () => {
                 externalSideEffects: false,
                 exclusions: args.managedCheckpointExclusions,
               });
-              const boundary = workflowToolBoundary(args, {
-                tool: "write_file",
-                toolUseId: `tool-checkpoint-${failureMode}`,
-              });
+              const boundary = {
+                ...workflowToolBoundary(args, {
+                  tool: "write_file",
+                  toolUseId: `tool-checkpoint-${failureMode}`,
+                }),
+                managedCheckpointBinding:
+                  transactionCheckpointBinding(transaction),
+              };
               args.onToolCallBoundary(boundary);
               writeFileSync(
                 join(projectRoot, `${failureMode}.txt`),

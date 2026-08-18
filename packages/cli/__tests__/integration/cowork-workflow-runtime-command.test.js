@@ -7,6 +7,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createHash } from "node:crypto";
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { registerCoworkCommand } from "../../src/commands/cowork.js";
@@ -17,6 +18,8 @@ import {
 } from "../../src/lib/dynamic-workflow-runtime.js";
 import { saveWorkflow } from "../../src/lib/cowork-workflow.js";
 import { createExecutionLocationBinding } from "../../src/lib/execution-location-contract.js";
+import { WorkspaceTransactionManager } from "../../src/lib/process-execution-broker/workspace-transaction.js";
+import { managedToolCheckpointBinding } from "../../src/lib/managed-tool-checkpoint.js";
 
 function workflowDefinition() {
   return {
@@ -143,10 +146,11 @@ describe("cowork durable workflow runtime commands", () => {
     return program;
   }
 
-  async function runDurable(runId, runTask) {
+  async function runDurable(runId, runTask, commandOverrides = {}) {
     await command({
       workflowRunTask: runTask,
       workflowExecutionAuthorityProvider: () => executionProof(projectRoot),
+      ...commandOverrides,
     }).parseAsync([
       "node",
       "cc",
@@ -279,6 +283,102 @@ describe("cowork durable workflow runtime commands", () => {
     expect(runTask).toHaveBeenCalledTimes(2);
     state = readDynamicWorkflowRuntimeState(statePath);
     expect(state.status).toBe("completed");
+  });
+
+  it("recovers a bound terminal checkpoint call through the production command path", async () => {
+    let sequence = 0;
+    const checkpointStore = new WorkspaceTransactionManager({
+      stateDir: join(root, "checkpoint-state"),
+      lockDir: join(root, "checkpoint-locks"),
+      allowNonCanonicalLockDirForTests: true,
+      now: () => Date.parse("2026-08-18T06:30:00.000Z") + sequence * 1000,
+      uuid: () =>
+        `20000000-0000-4000-8000-${String(++sequence).padStart(12, "0")}`,
+      ownerToken: () =>
+        `30000000-0000-4000-8000-${String(++sequence).padStart(12, "0")}`,
+    });
+    const runId = "command-checkpoint-recovery";
+    await runDurable(
+      runId,
+      async (args) => {
+        const transaction = checkpointStore.begin({
+          id: "wcp-command-checkpoint-recovery",
+          runId,
+          taskKey: "command-checkpoint-recovery",
+          workspaceRoot: args.cwd,
+          coverageTarget: "partial",
+          writerIsolation: "unknown",
+          externalSideEffects: false,
+          exclusions: args.managedCheckpointExclusions,
+        });
+        const tool = "write_file";
+        const toolUseId = "tool-command-checkpoint-recovery";
+        const childEffectId = `sha256:${createHash("sha256")
+          .update(
+            `${args.workflowEffectId}\0tool\0${String(1)}\0${toolUseId}\0${tool}`,
+            "utf8",
+          )
+          .digest("hex")}`;
+        args.onToolCallBoundary({
+          type: "tool-executing",
+          tool,
+          args: {},
+          tool_use_id: toolUseId,
+          workflowEffectProtocol: "cc-workflow-child-effect/v1",
+          workflowEffectId: args.workflowEffectId,
+          workflowChildEffectId: childEffectId,
+          workflowChildSequence: 1,
+          managedCheckpointBinding: managedToolCheckpointBinding({
+            skipped: false,
+            transactionId: transaction.id,
+            checkpointId: transaction.checkpointId,
+            prepared: transaction.snapshot(),
+          }),
+        });
+        writeFileSync(
+          join(projectRoot, "checkpoint-command.txt"),
+          "committed\n",
+          "utf8",
+        );
+        transaction.accept();
+        throw new Error("crash after checkpoint commit");
+      },
+      { workflowCheckpointStore: checkpointStore },
+    );
+    expect(process.exitCode).toBe(1);
+    const statePath = dynamicWorkflowRunStatePath(projectRoot, runId);
+    let state = readDynamicWorkflowRuntimeState(statePath);
+    const callRecordId = state.effects[0].calls[0].id;
+
+    process.exitCode = undefined;
+    logSpy.mockClear();
+    await command({ workflowCheckpointStore: checkpointStore }).parseAsync([
+      "node",
+      "cc",
+      "cowork",
+      "workflow",
+      "runtime-recover-checkpoint",
+      runId,
+      callRecordId,
+      "--expected-revision",
+      String(state.revision),
+      "--json",
+    ]);
+
+    expect(process.exitCode).toBeUndefined();
+    expect(
+      latestJsonOutput().observability.checkpoints.storeReadbacks,
+    ).toMatchObject({
+      preparedBindingCalls: 1,
+      terminalStoreRecoveredCalls: 1,
+      committedCalls: 1,
+    });
+    state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.status).toBe("blocked");
+    expect(state.effects[0].calls[0]).toMatchObject({
+      status: "completed",
+      settlementCode: "checkpoint_store_recovered_commit",
+    });
   });
 
   it("accepts bounded parallel durable admission and rejects stale control revisions", async () => {

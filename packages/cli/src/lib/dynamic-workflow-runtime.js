@@ -542,6 +542,64 @@ const CHECKPOINT_EVIDENCE_BASE_FIELDS = Object.freeze([
   "evidenceDigest",
 ]);
 
+const CHECKPOINT_BINDING_FIELDS = Object.freeze([
+  "schema",
+  "authority",
+  "transactionId",
+  "checkpointId",
+  "checkpointDigest",
+  "preparedStateDigest",
+  "coverage",
+  "fileCoverage",
+  "externalSideEffects",
+]);
+
+function checkpointBindingSnapshot(value) {
+  if (value === undefined || value === null) return null;
+  return strictDataObjectSnapshot(
+    value,
+    CHECKPOINT_BINDING_FIELDS,
+    "workflow managed checkpoint binding",
+  );
+}
+
+function validCheckpointBinding(value) {
+  return (
+    exactObjectFields(value, CHECKPOINT_BINDING_FIELDS) &&
+    value.schema === "cc-managed-tool-checkpoint-binding/v1" &&
+    value.authority === "process-broker-workspace-transaction-prepared" &&
+    /^[A-Za-z0-9][A-Za-z0-9._-]{0,191}$/u.test(value.transactionId || "") &&
+    /^[A-Za-z0-9][A-Za-z0-9._-]{0,191}$/u.test(value.checkpointId || "") &&
+    SHA256_RE.test(value.checkpointDigest || "") &&
+    SHA256_RE.test(value.preparedStateDigest || "") &&
+    Object.values(WORKSPACE_TRANSACTION_COVERAGE).includes(value.coverage) &&
+    Object.values(WORKSPACE_TRANSACTION_COVERAGE).includes(
+      value.fileCoverage,
+    ) &&
+    typeof value.externalSideEffects === "boolean"
+  );
+}
+
+function checkpointBindingDigest(binding) {
+  return digest(
+    "chainlesschain.dynamic-workflow.checkpoint-prepared-binding.v1\0",
+    binding,
+  );
+}
+
+function checkpointReadbackMatchesBinding(readback, binding) {
+  return (
+    binding === null ||
+    (validCheckpointBinding(binding) &&
+      readback.transactionId === binding.transactionId &&
+      readback.checkpointId === binding.checkpointId &&
+      readback.checkpointDigest === binding.checkpointDigest &&
+      readback.coverage === binding.coverage &&
+      readback.fileCoverage === binding.fileCoverage &&
+      readback.externalSideEffects === binding.externalSideEffects)
+  );
+}
+
 function checkpointEvidenceSnapshot(value) {
   const outcome = ownDataValue(value, "outcome");
   const fields =
@@ -645,7 +703,76 @@ function validCheckpointReadback(value) {
   );
 }
 
-function checkpointReadbackSettlement(event, checkpointStore) {
+function checkpointStoreReadback(evidence, checkpointStore, binding = null) {
+  if (
+    binding !== null &&
+    (!validCheckpointBinding(binding) ||
+      evidence.transactionId !== binding.transactionId ||
+      evidence.checkpointId !== binding.checkpointId ||
+      evidence.checkpointDigest !== binding.checkpointDigest ||
+      evidence.coverage !== binding.coverage ||
+      evidence.fileCoverage !== binding.fileCoverage ||
+      evidence.externalSideEffects !== binding.externalSideEffects)
+  ) {
+    throw new TypeError(
+      "workflow managed checkpoint settlement does not match its prepared binding",
+    );
+  }
+  if (!checkpointStore || typeof checkpointStore.inspect !== "function") {
+    throw new TypeError("workflow checkpoint store readback is unavailable");
+  }
+  let stored;
+  try {
+    stored = snapshotJson(
+      checkpointStore.inspect(evidence.transactionId),
+      "workflow checkpoint store state",
+      2 * 1024 * 1024,
+    );
+  } catch {
+    throw new TypeError("workflow checkpoint store readback failed");
+  }
+  const unsignedState = { ...stored };
+  delete unsignedState.stateDigest;
+  const expectedState =
+    evidence.outcome === "committed"
+      ? WORKSPACE_TRANSACTION_STATE.COMMITTED
+      : WORKSPACE_TRANSACTION_STATE.ROLLED_BACK;
+  if (
+    stored.id !== evidence.transactionId ||
+    stored.checkpointId !== evidence.checkpointId ||
+    stored.state !== expectedState ||
+    !SHA256_RE.test(stored.stateDigest || "") ||
+    stored.stateDigest !== digestWorkspaceEvidence(unsignedState) ||
+    canonicalJson(stored.evidence, "workflowCheckpointEvidence") !==
+      canonicalJson(evidence, "workflowCheckpointEvidence")
+  ) {
+    throw new TypeError(
+      "workflow checkpoint store readback does not match settlement",
+    );
+  }
+  const readback = {
+    schema: "cc-dynamic-workflow-checkpoint-readback/v1",
+    authority: "workspace-transaction-store-terminal-readback",
+    transactionId: evidence.transactionId,
+    checkpointId: evidence.checkpointId,
+    outcome: evidence.outcome,
+    coverage: evidence.coverage,
+    fileCoverage: evidence.fileCoverage,
+    externalSideEffects: evidence.externalSideEffects,
+    checkpointDigest: evidence.checkpointDigest,
+    writeManifestDigest: evidence.writeManifestDigest,
+    evidenceDigest: evidence.evidenceDigest,
+    stateDigest: stored.stateDigest,
+  };
+  if (!checkpointReadbackMatchesBinding(readback, binding)) {
+    throw new TypeError(
+      "workflow checkpoint store readback does not match its prepared binding",
+    );
+  }
+  return readback;
+}
+
+function checkpointReadbackSettlement(event, checkpointStore, binding = null) {
   const managed = ownDataValue(event?.result, "managedCheckpoint");
   if (managed === undefined || managed === null) return null;
   const skipped = ownDataValue(managed, "skipped");
@@ -725,52 +852,7 @@ function checkpointReadbackSettlement(event, checkpointStore) {
   ) {
     throw new TypeError("workflow managed checkpoint settlement is malformed");
   }
-  if (!checkpointStore || typeof checkpointStore.inspect !== "function") {
-    throw new TypeError("workflow checkpoint store readback is unavailable");
-  }
-  let stored;
-  try {
-    stored = snapshotJson(
-      checkpointStore.inspect(evidence.transactionId),
-      "workflow checkpoint store state",
-      2 * 1024 * 1024,
-    );
-  } catch {
-    throw new TypeError("workflow checkpoint store readback failed");
-  }
-  const unsignedState = { ...stored };
-  delete unsignedState.stateDigest;
-  const expectedState =
-    evidence.outcome === "committed"
-      ? WORKSPACE_TRANSACTION_STATE.COMMITTED
-      : WORKSPACE_TRANSACTION_STATE.ROLLED_BACK;
-  if (
-    stored.id !== evidence.transactionId ||
-    stored.checkpointId !== evidence.checkpointId ||
-    stored.state !== expectedState ||
-    !SHA256_RE.test(stored.stateDigest || "") ||
-    stored.stateDigest !== digestWorkspaceEvidence(unsignedState) ||
-    canonicalJson(stored.evidence, "workflowCheckpointEvidence") !==
-      canonicalJson(evidence, "workflowCheckpointEvidence")
-  ) {
-    throw new TypeError(
-      "workflow checkpoint store readback does not match settlement",
-    );
-  }
-  return {
-    schema: "cc-dynamic-workflow-checkpoint-readback/v1",
-    authority: "workspace-transaction-store-terminal-readback",
-    transactionId: evidence.transactionId,
-    checkpointId: evidence.checkpointId,
-    outcome: evidence.outcome,
-    coverage: evidence.coverage,
-    fileCoverage: evidence.fileCoverage,
-    externalSideEffects: evidence.externalSideEffects,
-    checkpointDigest: evidence.checkpointDigest,
-    writeManifestDigest: evidence.writeManifestDigest,
-    evidenceDigest: evidence.evidenceDigest,
-    stateDigest: stored.stateDigest,
-  };
+  return checkpointStoreReadback(evidence, checkpointStore, binding);
 }
 
 function effectResultDigest(result) {
@@ -1017,6 +1099,25 @@ function verifyEffectCalls(
         "checkpointReadbackDigest",
       ),
     );
+    const hasCheckpointBinding = Object.prototype.hasOwnProperty.call(
+      call || {},
+      "checkpointBinding",
+    );
+    const startedCheckpointBindingDigestPresent = startedLineage.some((event) =>
+      Object.prototype.hasOwnProperty.call(
+        event?.details || {},
+        "checkpointBindingDigest",
+      ),
+    );
+    const checkpointBindingValid = hasCheckpointBinding
+      ? startedLineage.length === 1 &&
+        (call.checkpointBinding === null ||
+          validCheckpointBinding(call.checkpointBinding)) &&
+        startedLineage[0]?.details?.checkpointBindingDigest ===
+          (call.checkpointBinding === null
+            ? null
+            : checkpointBindingDigest(call.checkpointBinding))
+      : !startedCheckpointBindingDigestPresent;
     const terminal = call?.status !== "started";
     const identityKey = `${call?.kind || ""}\0${
       call?.kind === "tool" ? call?.childEffectId : call?.callId
@@ -1177,6 +1278,8 @@ function verifyEffectCalls(
         !hasCheckpointReadback &&
         !startedCheckpointSchemaPresent &&
         !settlementCheckpointDigestPresent &&
+        !hasCheckpointBinding &&
+        !startedCheckpointBindingDigestPresent &&
         call.mcpLedgerId === null &&
         call.mcpLedgerPrewritePersisted === false &&
         call.mcpLedgerSettlementPersisted === false);
@@ -1224,12 +1327,17 @@ function verifyEffectCalls(
               !settlementArtifactDigestPresent) &&
         (managedToolCheckpointRequired(call.name)
           ? hasCheckpointReadback
-            ? startedLineage.length === 1 &&
+            ? checkpointBindingValid &&
+              startedLineage.length === 1 &&
               startedLineage[0]?.details?.checkpointReadbackSchema ===
                 "cc-dynamic-workflow-checkpoint-readback/v1" &&
               (["completed", "failed", "outcome_unknown"].includes(call.status)
                 ? (call.checkpointReadback === null ||
-                    validCheckpointReadback(call.checkpointReadback)) &&
+                    (validCheckpointReadback(call.checkpointReadback) &&
+                      checkpointReadbackMatchesBinding(
+                        call.checkpointReadback,
+                        hasCheckpointBinding ? call.checkpointBinding : null,
+                      ))) &&
                   settlementLineage.length === 1 &&
                   settlementLineage[0]?.details?.checkpointReadbackDigest ===
                     (call.checkpointReadback === null
@@ -1237,10 +1345,14 @@ function verifyEffectCalls(
                       : checkpointReadbackDigest(call.checkpointReadback))
                 : call.checkpointReadback === null &&
                   !settlementCheckpointDigestPresent)
-            : !startedCheckpointSchemaPresent &&
+            : !hasCheckpointBinding &&
+              !startedCheckpointSchemaPresent &&
+              !startedCheckpointBindingDigestPresent &&
               !settlementCheckpointDigestPresent
           : !hasCheckpointReadback &&
+            !hasCheckpointBinding &&
             !startedCheckpointSchemaPresent &&
+            !startedCheckpointBindingDigestPresent &&
             !settlementCheckpointDigestPresent));
     const settlementValid = terminal
       ? call.settlementCode !== null || call.status === "completed"
@@ -2311,6 +2423,18 @@ function workflowCallAttempt(effectId, kind, event, now) {
   ) {
     throw new TypeError("workflow tool call boundary is malformed");
   }
+  const checkpointRequired = managedToolCheckpointRequired(event.tool);
+  const checkpointBindingValue = ownDataValue(
+    event,
+    "managedCheckpointBinding",
+  );
+  const checkpointBinding = checkpointBindingSnapshot(checkpointBindingValue);
+  if (
+    (!checkpointRequired && checkpointBindingValue !== undefined) ||
+    (checkpointBinding !== null && !validCheckpointBinding(checkpointBinding))
+  ) {
+    throw new TypeError("workflow tool checkpoint boundary is malformed");
+  }
   return {
     schema: DYNAMIC_WORKFLOW_CALL_SCHEMA,
     id: workflowCallId(
@@ -2342,8 +2466,8 @@ function workflowCallAttempt(effectId, kind, event, now) {
     providerReceiptResponseId: null,
     providerReceiptRecordedAt: null,
     ...(event.tool === "publish_artifact" ? { artifactReadback: null } : {}),
-    ...(managedToolCheckpointRequired(event.tool)
-      ? { checkpointReadback: null }
+    ...(checkpointRequired
+      ? { checkpointBinding, checkpointReadback: null }
       : {}),
     mcpLedgerId: null,
     mcpLedgerPrewritePersisted: false,
@@ -2421,6 +2545,10 @@ function beginEffectCall(statePath, runId, effectId, kind, event, now) {
           ? {
               checkpointReadbackSchema:
                 "cc-dynamic-workflow-checkpoint-readback/v1",
+              checkpointBindingDigest:
+                attempt.checkpointBinding === null
+                  ? null
+                  : checkpointBindingDigest(attempt.checkpointBinding),
             }
           : {}),
       },
@@ -2679,7 +2807,13 @@ function effectCallSettlement(
       }
     }
     if (Object.prototype.hasOwnProperty.call(call, "checkpointReadback")) {
-      checkpointReadback = checkpointReadbackSettlement(event, checkpointStore);
+      checkpointReadback = checkpointReadbackSettlement(
+        event,
+        checkpointStore,
+        Object.prototype.hasOwnProperty.call(call, "checkpointBinding")
+          ? call.checkpointBinding
+          : null,
+      );
     }
   }
   if (
@@ -3412,6 +3546,134 @@ export function prepareDurableWorkflowResume(
       {},
       (draft) => {
         draft.status = "ready";
+      },
+      deps.now,
+    );
+    return { state, value: state };
+  });
+}
+
+function checkpointReadbackFromPreparedBinding(binding, checkpointStore) {
+  if (!validCheckpointBinding(binding)) {
+    throw new TypeError("workflow checkpoint prepared binding is malformed");
+  }
+  if (!checkpointStore || typeof checkpointStore.inspect !== "function") {
+    throw new TypeError("workflow checkpoint store readback is unavailable");
+  }
+  let stored;
+  try {
+    stored = checkpointStore.inspect(binding.transactionId);
+  } catch {
+    throw new TypeError("workflow checkpoint store readback failed");
+  }
+  if (
+    ![
+      WORKSPACE_TRANSACTION_STATE.COMMITTED,
+      WORKSPACE_TRANSACTION_STATE.ROLLED_BACK,
+    ].includes(stored?.state)
+  ) {
+    return null;
+  }
+  const evidence = checkpointEvidenceSnapshot(stored.evidence);
+  if (!validCheckpointEvidence(evidence)) {
+    throw new TypeError("workflow checkpoint terminal evidence is malformed");
+  }
+  return checkpointStoreReadback(evidence, checkpointStore, binding);
+}
+
+export function recoverDurableWorkflowCheckpointCall(
+  statePath,
+  input = {},
+  deps = {},
+) {
+  const callRecordId = String(input.callRecordId || "")
+    .trim()
+    .toLowerCase();
+  if (!SHA256_RE.test(callRecordId)) {
+    throw new TypeError("callRecordId is invalid");
+  }
+  const checkpointStore =
+    deps.checkpointStore || new WorkspaceTransactionManager();
+  return withStateMutation(path.resolve(statePath), (current) => {
+    if (!current) {
+      throw new Error("dynamic workflow runtime state was not found");
+    }
+    requireRevision(current, input.expectedRevision);
+    let effectIndex = -1;
+    let callIndex = -1;
+    for (const [candidateEffectIndex, effect] of current.effects.entries()) {
+      const candidateCallIndex = (effect.calls || []).findIndex(
+        (call) => call.id === callRecordId,
+      );
+      if (candidateCallIndex >= 0) {
+        effectIndex = candidateEffectIndex;
+        callIndex = candidateCallIndex;
+        break;
+      }
+    }
+    const effect = current.effects[effectIndex];
+    const call = effect?.calls?.[callIndex];
+    if (
+      !effect ||
+      effect.status !== "pending" ||
+      !call ||
+      call.kind !== "tool" ||
+      call.status !== "started"
+    ) {
+      throw new Error(
+        "workflow checkpoint call is not pending terminal recovery",
+      );
+    }
+    if (
+      Object.prototype.hasOwnProperty.call(call, "artifactReadback") ||
+      !Object.prototype.hasOwnProperty.call(call, "checkpointBinding") ||
+      !validCheckpointBinding(call.checkpointBinding)
+    ) {
+      throw new Error(
+        "workflow checkpoint call has no recoverable prepared binding",
+      );
+    }
+    const checkpointReadback = checkpointReadbackFromPreparedBinding(
+      call.checkpointBinding,
+      checkpointStore,
+    );
+    if (checkpointReadback === null) {
+      const error = new Error(
+        "workflow checkpoint transaction has not reached a recoverable terminal state",
+      );
+      error.code = "CC_DYNAMIC_WORKFLOW_CHECKPOINT_NOT_TERMINAL";
+      throw error;
+    }
+    const committed = checkpointReadback.outcome === "committed";
+    const settledAt = isoNow(deps.now);
+    const settlementCode = committed
+      ? "checkpoint_store_recovered_commit"
+      : "checkpoint_store_recovered_rollback";
+    const state = transition(
+      current,
+      "effect-call-settled",
+      {
+        effectId: effect.id,
+        callRecordId: call.id,
+        kind: "tool",
+        status: committed ? "completed" : "failed",
+        checkpointReadbackDigest: checkpointReadbackDigest(checkpointReadback),
+        checkpointRecovery: "terminal-store",
+      },
+      (draft) => {
+        const calls = [...(draft.effects[effectIndex].calls || [])];
+        calls[callIndex] = {
+          ...calls[callIndex],
+          status: committed ? "completed" : "failed",
+          settledAt,
+          outcomeUnknown: false,
+          settlementCode,
+          checkpointReadback,
+        };
+        draft.effects[effectIndex] = {
+          ...draft.effects[effectIndex],
+          calls,
+        };
       },
       deps.now,
     );
@@ -4247,6 +4509,13 @@ function projectDurableWorkflowCalls(state) {
       checkpointReadbackSchemaPresent:
         call.kind === "tool" &&
         Object.prototype.hasOwnProperty.call(call, "checkpointReadback"),
+      checkpointBinding:
+        call.kind === "tool" && validCheckpointBinding(call.checkpointBinding)
+          ? call.checkpointBinding
+          : null,
+      checkpointBindingSchemaPresent:
+        call.kind === "tool" &&
+        Object.prototype.hasOwnProperty.call(call, "checkpointBinding"),
       mcpLedgerId: call.mcpLedgerId,
       mcpLedgerPrewritePersisted: call.mcpLedgerPrewritePersisted,
       mcpLedgerSettlementPersisted: call.mcpLedgerSettlementPersisted,
@@ -4276,6 +4545,9 @@ function projectDurableWorkflowCalls(state) {
     ).length,
     checkpointReadbackRecords: lineage.filter(
       (call) => call.checkpointReadback !== null,
+    ).length,
+    checkpointBindingRecords: lineage.filter(
+      (call) => call.checkpointBinding !== null,
     ).length,
     providerNativeIdempotencyProven: false,
     providerReceiptsIndependentlyReadable: false,
@@ -4546,6 +4818,9 @@ function projectCheckpointStoreReadbacks(state) {
   let fullCoverageCalls = 0;
   let partialCoverageCalls = 0;
   let externalSideEffectCalls = 0;
+  let preparedBindingCalls = 0;
+  let terminalStoreRecoveredCalls = 0;
+  let bindingLegacyCalls = 0;
   let missingReadbacks = 0;
   let legacyCalls = 0;
   for (const effect of state.effects) {
@@ -4559,6 +4834,20 @@ function projectCheckpointStoreReadbacks(state) {
       if (call.status === "started") pendingCalls += 1;
       if (call.status === "outcome_unknown") outcomeUnknownCalls += 1;
       if (call.status === "operator_reconciled") operatorReconciledCalls += 1;
+      if (!Object.prototype.hasOwnProperty.call(call, "checkpointBinding")) {
+        bindingLegacyCalls += 1;
+      }
+      if (validCheckpointBinding(call.checkpointBinding)) {
+        preparedBindingCalls += 1;
+      }
+      if (
+        [
+          "checkpoint_store_recovered_commit",
+          "checkpoint_store_recovered_rollback",
+        ].includes(call.settlementCode)
+      ) {
+        terminalStoreRecoveredCalls += 1;
+      }
       if (!Object.prototype.hasOwnProperty.call(call, "checkpointReadback")) {
         legacyCalls += 1;
         missingReadbacks += 1;
@@ -4619,6 +4908,9 @@ function projectCheckpointStoreReadbacks(state) {
     fullCoverageCalls,
     partialCoverageCalls,
     externalSideEffectCalls,
+    preparedBindingCalls,
+    terminalStoreRecoveredCalls,
+    bindingLegacyCalls,
     missingReadbacks,
     pendingCalls,
     outcomeUnknownCalls,
@@ -4784,6 +5076,15 @@ function projectDynamicWorkflowObservability(state) {
   }
   if (checkpointStoreReadbacks.legacyCalls > 0) {
     gaps.push("checkpoint-store-readback-legacy-call-schema");
+  }
+  if (
+    checkpointStoreReadbacks.preparedBindingCalls <
+    checkpointStoreReadbacks.toolCalls
+  ) {
+    gaps.push("checkpoint-prepared-binding-incomplete");
+  }
+  if (checkpointStoreReadbacks.bindingLegacyCalls > 0) {
+    gaps.push("checkpoint-prepared-binding-legacy-call-schema");
   }
   if (
     checkpointStoreReadbacks.verifiedCalls > 0 &&
