@@ -407,6 +407,11 @@ chainlesschain session location result-pack <id> \
   --artifact application/json=<artifact.json> --json
 chainlesschain session location result-verify <id> \
   --bundle <returned-bundle.json> --expected-handoff-id sha256:<digest>
+chainlesschain session location result-collect <id> <target> \
+  --facts <facts.json> --profile <target-profile.json> \
+  --expected-target-facts-digest sha256:<digest> \
+  --expected-handoff-id sha256:<digest> --result-id <id> \
+  --summary <target-summary.txt> --diff <target-result.diff> --json
 chainlesschain session budget status <id>
 chainlesschain session budget receipts <id> --json
 ```
@@ -441,6 +446,14 @@ while the source session still has the predecessor head/count accepted by the
 handoff. Its receipt is content-free and explicitly reports `applied=false`:
 this command does not patch the source worktree, import artifacts, fence two
 hosts, or make transport/disconnect claims.
+
+`result-collect` removes the manual-copy step for configured WSL, SSH, and
+Container profiles. It re-attests stable target facts, invokes only the fixed
+target-side `result-pack` argv through the existing strict launcher, accepts a
+bounded JSON response, then revalidates the source predecessor a second time
+before returning both the bundle and its content-free verification receipt.
+It still does not provide a distributed writer fence, durable response-loss
+recovery, Cloud transport, or automatic source application.
 
 Durable budget recovery stores a canonical local receipt for each operator
 adjudication. Ordinary budget status shows only chain and coverage metadata;

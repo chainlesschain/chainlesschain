@@ -12,6 +12,7 @@
       "disconnect-and-reconnect",
       "continue-session",
       "return-commit-diff-summary-artifacts",
+      "collect-return-via-fixed-target-command",
       "verify-source-readback"
     ],
     "executionLocations": ["wsl", "ssh", "container", "cloud"],
@@ -33,7 +34,9 @@
       "accepted-stable-target-facts-digest",
       "returned-result-bundle-digest",
       "returned-summary-diff-artifact-evidence-byte-digests",
-      "source-result-verification-receipt"
+      "source-result-verification-receipt",
+      "target-result-collection-attestation",
+      "source-before-and-after-collection-authority"
     ],
     "failureInjections": [
       "profile-secret-value",
@@ -71,7 +74,11 @@
       "returned-result-file-outside-data-boundary",
       "returned-result-file-hardlink",
       "returned-result-verification-content-leak",
-      "returned-result-implicit-source-apply"
+      "returned-result-implicit-source-apply",
+      "target-facts-drift-before-result-collection",
+      "source-predecessor-advance-during-result-collection",
+      "oversized-target-result-response",
+      "arbitrary-target-result-command-injection"
     ],
     "scale": {
       "minimumIndependentRunsPerCell": 100,
@@ -109,6 +116,10 @@
     "staleSourceResultVerificationCount": 0,
     "returnedResultAutoApplyCount": 0,
     "returnedResultVerificationContentLeakCount": 0,
+    "targetResultTransportBypassCount": 0,
+    "sourceAdvanceDuringResultCollectionAcceptanceCount": 0,
+    "targetFactsDriftResultCollectionCount": 0,
+    "oversizedResultBundleAcceptanceCount": 0,
     "orphanProcessCount": 0,
     "requiredMeasurementsComplete": true,
     "exactCommitBound": true
