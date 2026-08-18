@@ -156,7 +156,7 @@ describe("runCliVersionSync", () => {
   }
 
   it("does nothing when cc is up to date", async () => {
-    const d = deps({ getVersion: async () => "0.162.99" });
+    const d = deps({ getVersion: async () => MIN_CLI_VERSION });
     expect(await runCliVersionSync(d)).toBe("none");
   });
 
