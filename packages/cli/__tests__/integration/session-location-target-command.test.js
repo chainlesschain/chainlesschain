@@ -431,6 +431,7 @@ describe("session location target command routes", () => {
   });
 
   it("routes fixed-transport result collection with exact accepted authority", async () => {
+    const bundle = { bundleDigest: DIGEST, privateBytes: "returned" };
     const receipt = {
       schema: "cc-execution-location-target-result-collection/v1",
       requestId: "collect-request-2",
@@ -438,16 +439,22 @@ describe("session location target command routes", () => {
       resultId: "result-2",
       bundleDigest: DIGEST,
       collectionDigest: `sha256:${"d".repeat(64)}`,
+      bundle,
       applied: false,
       gaps: ["returned-result-not-applied"],
     };
     const settlement = {
       schema:
-        "chainlesschain.session-execution-location-result-collection-receipt/v1",
+        "chainlesschain.session-execution-location-result-collection-receipt/v2",
       requestId: "collect-request-2",
       receiptDigest: `sha256:${"e".repeat(64)}`,
     };
+    const storageReceipt = {
+      schema: "chainlesschain.execution-location-result-store-receipt/v1",
+      receiptDigest: `sha256:${"f".repeat(64)}`,
+    };
     const collect = vi.fn(() => receipt);
+    const settle = vi.fn(() => settlement);
     await program(
       dependencies({
         createExecutionLocationTargetResultCollectionRequest: () => ({
@@ -456,7 +463,11 @@ describe("session location target command routes", () => {
         }),
         readVerifiedSessionExecutionLocationResultSettlement: () => null,
         collectExecutionLocationTargetResult: collect,
-        settleSessionExecutionLocationResultCollection: vi.fn(() => settlement),
+        storeExecutionLocationResultBundle: vi.fn(() => ({
+          receipt: storageReceipt,
+          stored: true,
+        })),
+        settleSessionExecutionLocationResultCollection: settle,
       }),
     ).parseAsync([
       "node",
@@ -500,9 +511,89 @@ describe("session location target command routes", () => {
       }),
       expect.any(Object),
     );
+    expect(settle).toHaveBeenCalledWith(
+      "session-command-1",
+      "collect-request-2",
+      receipt,
+      storageReceipt,
+    );
     expect(JSON.parse(stdout.mock.calls.at(-1)[0])).toEqual({
       ...receipt,
+      storage: { ...storageReceipt, stored: true },
       settlement,
+    });
+  });
+
+  it("recovers stored bundle bytes from a v2 settlement without a target command", async () => {
+    const collect = vi.fn();
+    const bundle = { bundleDigest: DIGEST, privateBytes: "durable-returned" };
+    const verification = {
+      verificationDigest: `sha256:${"d".repeat(64)}`,
+      applied: false,
+    };
+    const recovered = {
+      schema:
+        "chainlesschain.session-execution-location-result-collection-receipt/v2",
+      sessionId: "session-command-1",
+      requestId: "collect-request-stored-retry",
+      requestDigest: DIGEST,
+      resultId: "result-2",
+      handoffId: `sha256:${"4".repeat(64)}`,
+      sourceHeadHash: HEAD_HASH,
+      sourceEventCount: 5,
+      bundleDigest: DIGEST,
+      verificationDigest: verification.verificationDigest,
+      receiptDigest: `sha256:${"e".repeat(64)}`,
+      storage: { receiptDigest: `sha256:${"f".repeat(64)}` },
+      applied: false,
+    };
+    await program(
+      dependencies({
+        createExecutionLocationTargetResultCollectionRequest: () => ({
+          requestId: recovered.requestId,
+          requestDigest: DIGEST,
+        }),
+        readVerifiedSessionExecutionLocationResultSettlement: () => recovered,
+        readStoredExecutionLocationResultBundle: () => bundle,
+        verifyExecutionLocationResultBundle: () => verification,
+        collectExecutionLocationTargetResult: collect,
+      }),
+    ).parseAsync([
+      "node",
+      "cc",
+      "session",
+      "location",
+      "result-collect",
+      "session-command-1",
+      "ssh",
+      "--facts",
+      "facts.json",
+      "--profile",
+      "profile.json",
+      "--expected-target-facts-digest",
+      DIGEST,
+      "--expected-handoff-id",
+      recovered.handoffId,
+      "--request-id",
+      recovered.requestId,
+      "--result-id",
+      "result-2",
+      "--summary",
+      "summary.txt",
+      "--diff",
+      "result.diff",
+      "--json",
+    ]);
+
+    expect(process.exitCode).toBe(0);
+    expect(collect).not.toHaveBeenCalled();
+    expect(JSON.parse(stdout.mock.calls.at(-1)[0])).toEqual({
+      ...recovered,
+      settlementAppended: false,
+      recovered: true,
+      bundleAvailable: true,
+      bundle,
+      verification,
     });
   });
 
