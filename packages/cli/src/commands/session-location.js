@@ -736,17 +736,32 @@ export function applySessionExecutionLocationResult(
     workspaceRoot: source.workspaceRoot,
     diffBytes,
     ...(deps.transactionStateDir ? { stateDir: deps.transactionStateDir } : {}),
-    onPrepared: (transaction) =>
-      (
+    onPrepared: (transaction) => {
+      const pinnedSource = (
+        deps.verifyExecutionLocationResultApplySourceGit ||
+        verifyExecutionLocationResultApplySourceGit
+      )(authority, {
+        broker,
+        workspaceRoot: source.workspaceRoot,
+        platform: deps.platform,
+      });
+      if (
+        pinnedSource.sourceGit.rootDigest !== source.sourceGit.rootDigest ||
+        pinnedSource.sourceGit.commit !== source.sourceGit.commit
+      ) {
+        throw new Error("source Git identity changed during apply preparation");
+      }
+      return (
         deps.reserveSessionExecutionLocationResultApply ||
         reserveSessionExecutionLocationResultApply
       )(
         sessionId,
         options.applyId,
         loaded.review,
-        source.sourceGit,
+        pinnedSource.sourceGit,
         transaction,
-      ),
+      );
+    },
   });
   if (execution.stage === "reservation") {
     const reserved = readPriorResultApply(sessionId, options.applyId, deps);

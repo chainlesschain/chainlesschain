@@ -774,6 +774,7 @@ describe("session location target command routes", () => {
       uncoveredPaths: [".git"],
     };
     const reserve = vi.fn();
+    const verifySource = vi.fn(() => source);
     const execute = vi.fn((input) => {
       input.onPrepared(prepared);
       return {
@@ -809,7 +810,7 @@ describe("session location target command routes", () => {
         readStoredExecutionLocationResultBundle: () => bundle,
         createExecutionLocationResultReview: () => review,
         readVerifiedSessionExecutionLocationResultApply: () => null,
-        verifyExecutionLocationResultApplySourceGit: () => source,
+        verifyExecutionLocationResultApplySourceGit: verifySource,
         executeControlledExecutionLocationResultApply: execute,
         reserveSessionExecutionLocationResultApply: reserve,
         settleSessionExecutionLocationResultApply: settle,
@@ -832,6 +833,7 @@ describe("session location target command routes", () => {
     ]);
 
     expect(process.exitCode).toBe(0);
+    expect(verifySource).toHaveBeenCalledTimes(2);
     expect(reserve).toHaveBeenCalledWith(
       "session-command-1",
       "apply-command-1",
