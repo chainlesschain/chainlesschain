@@ -5,9 +5,29 @@
 
 ## [Unreleased]
 
-#### Fixed — `0.164.0` 发布后的源码增量
+#### Fixed — 未发布源码增量：Marketplace payload 与激活生命周期加固
 
-> 不可变 tag `v-npm-0-164-0` 精确停在 `313dec85cf`；以下能力已进入本次部署快照 `HEAD@99f5bf8214`，但不反写成 `chainlesschain@0.164.0` tarball 内容。
+> PR #215 的 Marketplace source increment 已在 exact head `89c498cc46` 完成门禁，并以 merge commit `089336992d` 合入主线；实现主提交为 `7592c0d5bd`。这些代码不属于已发布的 `chainlesschain@0.165.1`，后续版本仍须在自身 exact SHA 重新完成发布门才能进入稳定安装契约。
+
+- **语义 payload 证据**：远程与已安装制品使用 canonical payload SBOM、source metadata 与 catalog authority 重新绑定；partial、降级或漂移证据不能沿用旧审批。
+- **统一激活门**：`plugin use`、卸载 fallback、普通与 pointer-only update 均验证安全目录、manifest name/version、严格 provenance、fresh semantic payload、source switch 与 downgrade 审批。
+- **恢复状态失败闭合**：`.install-*` / `.uninstall-*` 阻断 runtime，inventory/doctor 显示 `runtimeBlocked`、inspection version 与 recovery path；已提交事务先退役为 inert `.cleanup-*` 再 best-effort 删除。
+- **精确 rollback**：恢复会核对 pointer generation、candidate/predecessor payload 与 source digest，组合 I/O 失败时保留可重试 topology；无法安全判断时以整名卸载后从可信来源重装为显式修复边界。
+- **未关闭边界**：跨进程 OS lock/durable journal/CAS、跨 scope effective authority、legacy provenance migration、publisher/组织 trust root、private registry 与长期外部故障矩阵仍未完成。
+
+#### Added — CLI 0.165.1 正式发布：运行准入、远程权威与后台任务收口
+
+> `chainlesschain@0.165.1` 已成为 npm `latest` 与生产推荐版。不可变 tag `v-npm-0-165-1` 精确指向 [`1a10ed7c8f`](https://github.com/chainlesschain/chainlesschain/commit/1a10ed7c8fd14d12f7760e948ff8efe36c766602)；同一 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/32038591204)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/32038590960)、[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/32038590940)与[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/32039659372)均成功。公网 tarball SHA-1 为 `51ce645bebbe63ae168386cb8b6122a67c7d0813`，SHA-256 为 `5806d34b6659dcc632dad31db3acdc2f4fa07fb924b7d93de1d22637a3186241`。
+
+- **动态 workflow 运行准入**：Cowork 在 dispatch 时重新核验 definition digest、execution-authority session、权限、sandbox、规模与成本门，不再把旧 preflight 当成持续授权。
+- **持久远程权威**：CLI-hosted 审批、relay membership 与断线重连对账绑定 durable membership epoch；过期、已撤销、身份不匹配或权威不可用时失败闭合。
+- **Canonical 执行边界**：后台 `run_shell`、plugin-bin 与 delivery push 在执行前验证 canonical workspace 和配置的 repository authority；Linux 未声明子进程描述符会在启动前关闭。
+- **后台 keeper 收口**：state lock 原子发布 owner，区分 zombie 与复用 PID，保留 POSIX process-group 清理，Worker 丢失后隔离已释放 turn，并以持久清理证据决定 worktree 退役。
+- **依赖安全与发布恢复**：CLI 使用修复后的 `js-yaml` 3.15.1 线，PDH `0.4.58` 使用 `adm-zip` 0.6.0；失败的 `v-npm-0-165-0` tag 未写 registry，`0.165.1` 改由 exact-SHA 内部 package tarball 解析 SBOM 后完成发布。
+
+#### Fixed — 已由 CLI 0.165.1 正式承接的 `0.164.0` 后源码增量
+
+> 不可变 tag `v-npm-0-164-0` 精确停在 `313dec85cf`；以下能力当时不属于 `0.164.0`，现已由不可变 `chainlesschain@0.165.1` 正式承接。
 
 - **远程审批与成员关系对账**：Android、iOS、Web Panel 与 CLI relay 把审批响应绑定到持久 membership epoch；断线重连会补齐丢失的 join，relay 在确认前先提交成员关系。过期、已撤销、身份不匹配或权威不可用时继续失败闭合；这不等于分布式共识或完整跨主机撤销闭环。
 - **动态工作流运行准入**：Cowork workflow 在真正运行时重新核验不可变 definition digest、execution-authority session、权限、sandbox、规模与成本门，不把旧 preflight 当成持续授权。

@@ -1,8 +1,8 @@
 # ChainlessChain 系统概述
 
-> **当前版本（2026-08-16）：v5.0.3.135 | CLI 0.164.0（npm latest / 主线包元数据 / 生产推荐一致）| PDH 0.4.57（92 个采集契约 / 18 类来源）| Agent SDK 0.1.7 | Open VSX 0.37.54 | JetBrains Marketplace 0.4.90 | Android versionCode 503135 | iOS build 135**
+> **当前版本（2026-08-17）：v5.0.3.135 | CLI 0.165.1（npm latest / 主线包元数据 / 生产推荐一致）| PDH 0.4.58（92 个采集契约 / 18 类来源）| Agent SDK 0.1.7 | Open VSX 0.37.55 | JetBrains Marketplace 0.4.91 | Android versionCode 503135 | iOS build 135**
 >
-> **当前能力与发布边界**：CLI `0.164.0` 已公开原生 `/paste-image`、作用域执行与上下文权限、受治理插件市场、后台 keeper 收口、MCP capsule 证据，以及受限的 Linux dynamic-native 隔离候选。生产安装建议固定 `chainlesschain@0.164.0`；精确 SHA `313dec85cf` 的三平台 CLI/Strict、npm 发布与公网回读均成功。Open VSX `0.37.54` / JetBrains `0.4.90` 已公开；本次部署快照 `HEAD@99f5bf8214` 的远程审批成员 epoch、Cowork 动态准入复验、canonical workspace/delivery authority、zombie-safe supervisor lock 与 Remote-SSH/canonical evidence root 修复不属于 `0.164.0` tarball。正式 Scheduler soak、Linux 广义动态加载闭环与签名 macOS native 证据仍不能按稳定发行宣称。
+> **当前能力与发布边界**：CLI `0.165.1` 已公开动态 workflow 运行准入、远程审批/relay membership epoch、canonical workspace/delivery authority、后台 keeper 收口和依赖安全修复，并完整承接 `0.164.0` 的 `/paste-image`、作用域权限、受治理插件目录与 MCP capsule。生产安装建议固定 `chainlesschain@0.165.1`；精确 SHA `1a10ed7c8f` 的三平台 CLI/Strict、npm 发布与公网回读均成功。Open VSX `0.37.55` / JetBrains `0.4.91` 已公开；PR #215 exact head `89c498cc46` 的 Marketplace payload/activation lifecycle 加固已完成门禁并合入主线，但仍是未发布源码增量。正式 Scheduler campaign、跨进程/跨 scope 插件权威、Linux 广义动态加载闭环与签名 native 证据仍不能按稳定发行宣称。
 >
 > **v5.0.3.127–130 QQ空间一键采集 + 微信朋友圈采集 + §8.3 学习层备份上设备 + 个人助手 UX 收口（2026-06-24）**：QQ空间（Qzone）本地无库走 API——新增 `pdh/lib/forensics/qzone-collect.js`（`g_tk`=bkn hash over qzone 域 `p_skey`；说说/留言板/相册 → EVENT）+ `cc hub collect-qzone` + Android「QQ空间」一键采集卡（内嵌 WebView ptlogin2 登录 → 抓 cookie → in-APK 采集，真机 404 事件）；微信朋友圈 `SnsMicroMsg.db` 明文采集（`parseSnsEvents`，真机 2824 条）；§8.3 学习层备份命令上设备（`cc memory/instinct/learning export/import` → vault + 记忆 + 习惯 + 自进化轨迹全资产端到端备份）；个人助手 UX——卡死静默看门狗（20s 安抚/120s 友好超时+重试/进程退出自动重启）+ 待裁决信任卡固定（sticky）可见不再被消息流滚走。`pdh` 0.4.33→**0.4.36** + `chainlesschain` 0.162.101→**0.162.117** 已发 npm；Android cc bundle `internal-binaries-android-v20260624`（USR_VERSION 58）。
 >
@@ -1856,16 +1856,16 @@ OPENAI_API_KEY=sk-...                # OpenAI API Key
 
 ## 性能指标
 
-| 指标                      | 典型值           | 备注                       |
-| ------------------------- | ---------------- | -------------------------- |
-| Electron 冷启动           | < 3 s            | 主进程 + Vue 首屏          |
-| 渲染进程首屏              | < 1.5 s          | 含 Ant Design Vue 懒加载   |
-| 本地 LLM 回合首 token     | 依赖 Ollama 模型 | `qwen2.5:7b` 约 300–600 ms |
-| Qdrant 向量检索           | < 50 ms          | 10 万条向量，近似 HNSW     |
-| BM25 本地搜索             | < 20 ms          | `natural` 索引，百万级笔记 |
-| SQLCipher 查询            | < 5 ms           | AES-256 加密开销           |
+| 指标                       | 典型值           | 备注                       |
+| -------------------------- | ---------------- | -------------------------- |
+| Electron 冷启动            | < 3 s            | 主进程 + Vue 首屏          |
+| 渲染进程首屏               | < 1.5 s          | 含 Ant Design Vue 懒加载   |
+| 本地 LLM 回合首 token      | 依赖 Ollama 模型 | `qwen2.5:7b` 约 300–600 ms |
+| Qdrant 向量检索            | < 50 ms          | 10 万条向量，近似 HNSW     |
+| BM25 本地搜索              | < 20 ms          | `natural` 索引，百万级笔记 |
+| SQLCipher 查询             | < 5 ms           | AES-256 加密开销           |
 | IPC 往返（renderer↔main） | < 2 ms           | 受 Domain Router 限流影响  |
-| CLI 单命令 startup        | < 200 ms         | 含 Commander + lib 懒加载  |
+| CLI 单命令 startup         | < 200 ms         | 含 Commander + lib 懒加载  |
 
 超 50MB 文档/视频等资源处理为异步任务，依赖 Sub-Runtime Pool 的并发上限。
 
