@@ -517,6 +517,11 @@ export function prepareCoworkMcpRuntime(mcp, options = {}) {
  * @param {number} [options.tokenBudget] - Override token budget
  * @param {string} [options.mcpSessionId] - Stable MCP ledger session for resume
  * @param {string} [options.workflowEffectId] - Canonical durable workflow effect
+ * @param {boolean} [options.strictUsageTelemetry] - Require synchronous durable call observers
+ * @param {function} [options.onUsageBoundary] - Provider-call durable start observer
+ * @param {function} [options.onUsageSettlement] - Provider-call durable settlement observer
+ * @param {function} [options.onToolCallBoundary] - Tool-call durable start observer
+ * @param {function} [options.onToolCallSettlement] - Tool-call durable settlement observer
  * @param {(request: object) => boolean|Promise<boolean>} [options.approveMcpLocalCodeExecution]
  * @returns {Promise<{ taskId: string, status: string, result: object }>}
  */
@@ -534,6 +539,11 @@ export async function runCoworkTask(options = {}) {
     signal = null,
     mcpSessionId = null,
     workflowEffectId = null,
+    strictUsageTelemetry = false,
+    onUsageBoundary = null,
+    onUsageSettlement = null,
+    onToolCallBoundary = null,
+    onToolCallSettlement = null,
     approveMcpLocalCodeExecution = null,
   } = options;
 
@@ -625,6 +635,15 @@ export async function runCoworkTask(options = {}) {
       onProgress,
       signal,
       ...(workflowEffectId ? { workflowEffectId } : {}),
+      ...(strictUsageTelemetry
+        ? {
+            strictUsageTelemetry: true,
+            onUsageBoundary,
+            onUsageSettlement,
+            onToolCallBoundary,
+            onToolCallSettlement,
+          }
+        : {}),
       extraToolDefinitions: mcp.extraToolDefinitions,
       externalToolDescriptors: mcp.externalToolDescriptors,
       externalToolExecutors: mcp.externalToolExecutors,

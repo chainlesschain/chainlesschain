@@ -2551,7 +2551,8 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
   不会因 stop 被抹除或伪装成 rollback。
 - **状态本身具有单写者、摘要链与读取身份检查。** 每个 run 使用独立 state file、严格 owner lock、revision CAS、state digest 与逐事件
   previous-digest lineage；读取采用 `lstat → O_NOFOLLOW open → fstat → descriptor read → fstat`，拒绝 symlink、hardlink、超限、
-  路径/handle identity 漂移、JSON corruption、event/effect/revision/state digest 篡改。状态最多 64 effects 和 512 lineage events，
+  路径/handle identity 漂移、JSON corruption、event/effect/revision/state digest 篡改。当时状态最多 64 effects 和 512 lineage events；
+  第四十一节为逐调用 durable row 将当前上限扩为 4096 lineage events，并保持 4 MiB 总状态上限及每 effect 128 calls 的独立边界，
   不允许无界恢复元数据。
 - **生成草案仍不能绕过第三十节人工门。** durable runtime 发现 definition 含 generation/review metadata 时，必须同时看到受支持 generation
   schema 与 `decision=accepted` 的 review authority、draft/source digest 和 reviewer；pending model draft 在创建 state 或调用 provider 前
@@ -2586,6 +2587,63 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 关闭；P1-1 整项仍为**部分完成**，manifest 中三个完整能力声明仍保持 `false`。总计数保持
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
+
+## 四十一、2026-08-18 P1-1 provider/tool 逐调用 durable store 与 crash-visible recovery 子门复核（`10:49 +08:00`）
+
+本节继续第四十节，把此前只随 completed Cowork result 投影的 provider/tool attempt 提升为 dynamic runtime 自身可独立回读的
+逐调用状态。候选基于已合并本地主分支 `6c6ac0cb037c600eeafeccc4d695c2d0e5b34c38` 的功能分支，尚无本候选
+exact-head GitHub Actions；本节只声明 runtime 本地 hash-chain/safe-write authority，不把本地 row 外推为 provider/server 端 receipt、
+幂等执行或跨宿主共识。
+
+### 本轮关闭的逐调用持久边界
+
+- **provider/tool 在 transport 前同步 prewrite。** durable runtime 向生产 Cowork/SubAgent 安装严格同步的 provider boundary/settlement 与
+  tool boundary/settlement observer。outer effect 的 dispatch marker 已持久化后，每次普通模型或 semantic-compaction provider call 都先写入
+  effect-bound call id、source、sequence 和 `ccwf_...` trace identity；每次直接 tool dispatch 都先重算并写入 outer/child/sequence/tool tuple。
+  observer 返回前状态已通过 owner lock、hash-chain transition、临时文件 safe write、原子替换和目录 durability barrier 发布，因而调用方不能在
+  row 缺失时继续 transport。
+- **settlement 不再依赖 outer completed result。** matching callback 将 row 独立结算为 `completed`、`failed` 或
+  `outcome_unknown`，MCP row 只保留 ledger id 及 prewrite/settlement persisted facts；状态不复制 tool payload、错误文本或 provider 响应。
+  provider/tool boundary 后进程停止会留下 `started` row，provider unknown 或 post-boundary tool unknown 会留下显式 unknown row，同时 outer
+  effect 继续保持 pending/blocked，不能由 step retry 重放。
+- **身份、数量与终态均 fail closed。** call schema 重新派生 provider/tool record id 与 child effect id，限制每 effect 128 rows、全状态
+  4 MiB、hash-chain lineage 4096 events；畸形 request binding、重复 provider call/child effect、MCP partial persistence、settled effect 仍含
+  started row、无 dispatch marker 却出现 call，以及重算 state digest 后的 row 篡改均被 verifier 拒绝。旧 state 未出现 `calls` 字段时按空数组
+  读取，不伪造历史调用。
+- **operator reconcile 明确裁决未结算 row。** exact revision/effect/order 的既有 reconcile 在结算 outer effect 时，将仍为 `started` 的 rows
+  标为 `operator_reconciled` 并写入同一 settlement 时间；已经记录的 `outcome_unknown` 事实保持不变。普通 provider-return settlement 若仍有
+  started row 会失败，避免 completed outer result 掩盖丢失的逐调用 settlement。
+- **observability 提供独立 durableCalls 投影。** `runtime-status --json` 从 runtime state 重算 started/completed/failed/
+  outcome-unknown/operator-reconciled 数量、逐行 digest 与 MCP persistence facts，authority 固定为
+  `runtime-state-hash-chain-fsync`。原有 provider receipt 与 completed task 的详细 nested payload lineage 仍保持 result-bound，不借新 row
+  冒充第三方独立回执。
+
+### 仓库内验证与证据边界
+
+- dynamic runtime 与 Cowork forwarding 两个聚焦文件为 **45/45**；新增覆盖 provider/tool transport 前读取到 started row、独立 terminal
+  settlement、crash-visible started、unknown settlement、operator reconcile、畸形/重复 boundary 执行前拒绝，以及攻击者重算 state digest 后的
+  call-row 篡改拒绝。
+- manifest `p1-dynamic-workflow` 引用的 **16 个文件为 545/545**；roadmap verifier 与 journey evidence 两文件为 **37/37**。
+- roadmap manifest 从 `1.9.7` 升至 `1.9.8`，baseline 绑定本轮起点 `6c6ac0cb03`；fixture digest 为
+  `sha256:b818eaf9a6a0afa9ac2db2983ac9e94cedddb9dce258bac865abc40184cea36d`。`--contract-only` 回读
+  **15 cases / 68 referenced test files**，并继续明确 runtime evidence 与 release readiness 未被评估。
+
+### P1-1 仍未关闭的边界
+
+1. **descendant 与其他副作用入口：** 当前 store 覆盖 outer Cowork child 的普通 model、semantic compaction 和该 loop 直接 dispatch 的
+   tool；spawned sub-agent 内部 descendants、hook、managed-checkpoint prepare/restore、ArtifactStore 与其他不经过这四个 observer 的外部
+   effect 尚未统一接线。
+2. **第三方 exactly-once/receipt：** `ccwf_...` 仍为 trace-only，本地 started/settled row 只能证明 runtime 观察到边界，不能证明
+   provider/server 是否执行一次。除既有 MCP session ledger 外，provider/local/host 系统仍缺 native idempotency、独立 receipt readback、
+   物理取消和机器外裁决 authority。
+3. **完整恢复产品与外部矩阵：** 一般阶段间 `needs_input`、跨宿主 shared writer fencing、Workbench/双 IDE phase/agent/control UI、
+   plugin/marketplace 分发，以及 Local/WSL/SSH/Container/Cloud × 三 OS × 双 IDE 每格 100 次 exact-head 真实 provider、强杀/fsync/断电
+   矩阵仍无外部证据。
+
+因此，P1-1 的**直接 provider/tool 逐调用 prewrite、crash-visible 本地 store、独立 terminal settlement 与显式 operator adjudication**由本节
+关闭；P1-1 整项仍为**部分完成**，不得据此声明 provider-native exactly-once、所有 descendant effect 已 durable 或第三方 receipt 可独立
+回读。总计数保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变
+S0-1～S0-3、Q0、Q3、Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
 ## 四十、2026-08-18 P1-1 nested tool/MCP child effect binding 与 unknown 传播子门复核（`10:28 +08:00`）
 

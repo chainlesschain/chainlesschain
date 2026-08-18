@@ -18,6 +18,7 @@ import { withFileLock } from "./with-file-lock.js";
 export const DYNAMIC_WORKFLOW_RUNTIME_SCHEMA = "cc-dynamic-workflow-runtime/v1";
 export const DYNAMIC_WORKFLOW_RUNTIME_VERSION = 1;
 export const DYNAMIC_WORKFLOW_EFFECT_SCHEMA = "cc-dynamic-workflow-effect/v1";
+export const DYNAMIC_WORKFLOW_CALL_SCHEMA = "cc-dynamic-workflow-call/v1";
 export const DYNAMIC_WORKFLOW_OBSERVABILITY_SCHEMA =
   "cc-dynamic-workflow-observability/v1";
 export const DYNAMIC_WORKFLOW_RUNTIME_CONTROL_CODE =
@@ -38,7 +39,8 @@ const SHA256_RE = /^sha256:[a-f0-9]{64}$/u;
 const MAX_STATE_BYTES = 4 * 1024 * 1024;
 const MAX_EFFECTS = 64;
 const MAX_EFFECT_BATCH_SIZE = 64;
-const MAX_LINEAGE_EVENTS = 512;
+const MAX_LINEAGE_EVENTS = 4096;
+const MAX_CALLS_PER_EFFECT = 128;
 const MAX_PROJECTED_ARTIFACTS_PER_EFFECT = 256;
 const PROVIDER_CLIENT_REQUEST_ID_RE = /^ccwf_[a-f0-9]{64}$/u;
 const PROVIDER_RECEIPT_ID_RE = /^[A-Za-z0-9._:-]{1,256}$/u;
@@ -46,6 +48,16 @@ const PROVIDER_NAME_RE = /^[a-z0-9][a-z0-9._-]{0,63}$/u;
 const WORKFLOW_TOOL_CALL_ID_RE = /^[\x21-\x7e]{1,512}$/u;
 const WORKFLOW_TOOL_NAME_RE = /^[A-Za-z0-9._:-]{1,256}$/u;
 const WORKFLOW_CHILD_EFFECT_PROTOCOL = "cc-workflow-child-effect/v1";
+const WORKFLOW_PROVIDER_ATTEMPT_PROTOCOL = "cc-provider-request-attempt/v1";
+const WORKFLOW_PROVIDER_CALL_ID_RE = /^[A-Za-z0-9._:-]{1,256}$/u;
+const WORKFLOW_PROVIDER_REQUEST_ID_RE = /^ccwf_[a-f0-9]{64}$/u;
+const WORKFLOW_CALL_STATUSES = new Set([
+  "started",
+  "completed",
+  "failed",
+  "outcome_unknown",
+  "operator_reconciled",
+]);
 const SETTLEMENT_AUTHORITIES = new Set([
   "provider-return",
   "operator-reconciled",
@@ -211,6 +223,120 @@ function verifyLineage(state, issues) {
   }
 }
 
+function workflowCallId(effectId, kind, callId, childEffectId = null) {
+  return digest("chainlesschain.dynamic-workflow.call-id.v1\0", {
+    effectId,
+    kind,
+    callId,
+    childEffectId,
+  });
+}
+
+function verifyEffectCalls(effect, effectIndex, issues) {
+  const calls = effect?.calls === undefined ? [] : effect.calls;
+  if (!Array.isArray(calls) || calls.length > MAX_CALLS_PER_EFFECT) {
+    issues.push(`effect-${effectIndex}-calls-invalid`);
+    return;
+  }
+  const ids = new Set();
+  const identities = new Set();
+  for (const [callIndex, call] of calls.entries()) {
+    const terminal = call?.status !== "started";
+    const identityKey = `${call?.kind || ""}\0${
+      call?.kind === "tool" ? call?.childEffectId : call?.callId
+    }`;
+    let timestampsValid = false;
+    try {
+      timestampsValid =
+        isoNow(call?.startedAt) === call.startedAt &&
+        Date.parse(call.startedAt) >= Date.parse(effect.requestedAt) &&
+        (terminal
+          ? isoNow(call?.settledAt) === call.settledAt &&
+            Date.parse(call.settledAt) >= Date.parse(call.startedAt) &&
+            (effect.settledAt === null ||
+              Date.parse(call.settledAt) <= Date.parse(effect.settledAt))
+          : call?.settledAt === null);
+    } catch {
+      timestampsValid = false;
+    }
+    const commonValid =
+      call?.schema === DYNAMIC_WORKFLOW_CALL_SCHEMA &&
+      call.effectId === effect.id &&
+      SHA256_RE.test(call.id || "") &&
+      call.id ===
+        workflowCallId(effect.id, call.kind, call.callId, call.childEffectId) &&
+      ["provider", "tool"].includes(call.kind) &&
+      WORKFLOW_CALL_STATUSES.has(call.status) &&
+      Number.isSafeInteger(call.sequence) &&
+      call.sequence >= 1 &&
+      typeof call.name === "string" &&
+      call.name.length >= 1 &&
+      call.name.length <= 256 &&
+      typeof call.source === "string" &&
+      call.source.length >= 1 &&
+      call.source.length <= 64 &&
+      typeof call.identitySemantics === "string" &&
+      call.identitySemantics.length >= 1 &&
+      call.identitySemantics.length <= 64 &&
+      (call.settlementCode === null ||
+        (typeof call.settlementCode === "string" &&
+          call.settlementCode.length >= 1 &&
+          call.settlementCode.length <= 128)) &&
+      typeof call.outcomeUnknown === "boolean" &&
+      call.outcomeUnknown === (call.status === "outcome_unknown") &&
+      (call.mcpLedgerId === null ||
+        PROVIDER_RECEIPT_ID_RE.test(call.mcpLedgerId || "")) &&
+      typeof call.mcpLedgerPrewritePersisted === "boolean" &&
+      typeof call.mcpLedgerSettlementPersisted === "boolean" &&
+      (!call.mcpLedgerSettlementPersisted || call.mcpLedgerPrewritePersisted) &&
+      timestampsValid &&
+      !ids.has(call.id) &&
+      !identities.has(identityKey);
+    const providerValid =
+      call?.kind !== "provider" ||
+      (call.protocol === WORKFLOW_PROVIDER_ATTEMPT_PROTOCOL &&
+        WORKFLOW_PROVIDER_CALL_ID_RE.test(call.callId || "") &&
+        call.childEffectId === null &&
+        PROVIDER_NAME_RE.test(call.name || "") &&
+        ["model", "semantic-compaction"].includes(call.source) &&
+        WORKFLOW_PROVIDER_REQUEST_ID_RE.test(call.clientRequestId || "") &&
+        call.identitySemantics === "trace-only" &&
+        call.mcpLedgerId === null &&
+        call.mcpLedgerPrewritePersisted === false &&
+        call.mcpLedgerSettlementPersisted === false);
+    const toolValid =
+      call?.kind !== "tool" ||
+      (call.protocol === WORKFLOW_CHILD_EFFECT_PROTOCOL &&
+        WORKFLOW_TOOL_CALL_ID_RE.test(call.callId || "") &&
+        SHA256_RE.test(call.childEffectId || "") &&
+        WORKFLOW_TOOL_NAME_RE.test(call.name || "") &&
+        call.source === "tool" &&
+        call.clientRequestId === null &&
+        call.identitySemantics === "runtime-derived");
+    const settlementValid = terminal
+      ? call.settlementCode !== null || call.status === "completed"
+      : call.settlementCode === null &&
+        call.outcomeUnknown === false &&
+        call.mcpLedgerId === null &&
+        call.mcpLedgerPrewritePersisted === false &&
+        call.mcpLedgerSettlementPersisted === false;
+    if (!commonValid || !providerValid || !toolValid || !settlementValid) {
+      issues.push(`effect-${effectIndex}-call-${callIndex}-invalid`);
+    }
+    ids.add(call?.id);
+    identities.add(identityKey);
+  }
+  if (
+    effect?.status === "settled" &&
+    calls.some((call) => call?.status === "started")
+  ) {
+    issues.push(`effect-${effectIndex}-calls-unsettled`);
+  }
+  if (calls.length > 0 && typeof effect?.providerDispatchedAt !== "string") {
+    issues.push(`effect-${effectIndex}-calls-without-dispatch`);
+  }
+}
+
 export function verifyDynamicWorkflowRuntimeState(value) {
   const state = snapshotJson(value, "workflow runtime state");
   const issues = [];
@@ -364,6 +490,7 @@ export function verifyDynamicWorkflowRuntimeState(value) {
       }
       ids.add(effect?.id);
       keys.add(effect?.key);
+      verifyEffectCalls(effect, index, issues);
       if (batchMetadataValid && hasBatchMetadata) {
         if (!batches.has(effect.batchId)) batches.set(effect.batchId, []);
         batches.get(effect.batchId).push(effect);
@@ -881,6 +1008,7 @@ function requestEffectBatch(statePath, runId, argsList, now) {
         timeoutMs: request.timeoutMs,
         timeoutObservedAt: null,
         providerDispatchedAt: null,
+        calls: [],
         status: "pending",
         requestedAt,
         settledAt: null,
@@ -1022,6 +1150,300 @@ function observeEffectTimeout(statePath, runId, effectId, now) {
   });
 }
 
+function ownDataValue(value, property) {
+  if (!value || (typeof value !== "object" && typeof value !== "function")) {
+    return undefined;
+  }
+  try {
+    const descriptor = Object.getOwnPropertyDescriptor(value, property);
+    return descriptor && Object.hasOwn(descriptor, "value")
+      ? descriptor.value
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function workflowCallAttempt(effectId, kind, event, now) {
+  const startedAt = isoNow(now);
+  if (kind === "provider") {
+    if (
+      event?.type !== "model-usage-started" ||
+      event.workflowEffectId !== effectId ||
+      !WORKFLOW_PROVIDER_CALL_ID_RE.test(event.callId || "") ||
+      !PROVIDER_NAME_RE.test(event.provider || "") ||
+      !["model", "semantic-compaction"].includes(event.source) ||
+      !Number.isSafeInteger(event.callSequence) ||
+      event.callSequence < 1 ||
+      !WORKFLOW_PROVIDER_REQUEST_ID_RE.test(event.providerRequestId || "") ||
+      event.requestIdentitySemantics !== "trace-only"
+    ) {
+      throw new TypeError("workflow provider call boundary is malformed");
+    }
+    return {
+      schema: DYNAMIC_WORKFLOW_CALL_SCHEMA,
+      id: workflowCallId(effectId, kind, event.callId),
+      effectId,
+      kind,
+      protocol: WORKFLOW_PROVIDER_ATTEMPT_PROTOCOL,
+      callId: event.callId,
+      childEffectId: null,
+      sequence: event.callSequence,
+      name: event.provider,
+      source: event.source,
+      clientRequestId: event.providerRequestId,
+      identitySemantics: "trace-only",
+      status: "started",
+      startedAt,
+      settledAt: null,
+      outcomeUnknown: false,
+      settlementCode: null,
+      mcpLedgerId: null,
+      mcpLedgerPrewritePersisted: false,
+      mcpLedgerSettlementPersisted: false,
+    };
+  }
+  if (
+    kind !== "tool" ||
+    event?.type !== "tool-executing" ||
+    event.workflowEffectId !== effectId ||
+    event.workflowEffectProtocol !== WORKFLOW_CHILD_EFFECT_PROTOCOL ||
+    !SHA256_RE.test(event.workflowChildEffectId || "") ||
+    !Number.isSafeInteger(event.workflowChildSequence) ||
+    event.workflowChildSequence < 1 ||
+    !WORKFLOW_TOOL_CALL_ID_RE.test(event.tool_use_id || "") ||
+    !WORKFLOW_TOOL_NAME_RE.test(event.tool || "") ||
+    event.workflowChildEffectId !==
+      expectedNestedToolEffectId(
+        effectId,
+        event.workflowChildSequence,
+        event.tool_use_id,
+        event.tool,
+      )
+  ) {
+    throw new TypeError("workflow tool call boundary is malformed");
+  }
+  return {
+    schema: DYNAMIC_WORKFLOW_CALL_SCHEMA,
+    id: workflowCallId(
+      effectId,
+      kind,
+      event.tool_use_id,
+      event.workflowChildEffectId,
+    ),
+    effectId,
+    kind,
+    protocol: WORKFLOW_CHILD_EFFECT_PROTOCOL,
+    callId: event.tool_use_id,
+    childEffectId: event.workflowChildEffectId,
+    sequence: event.workflowChildSequence,
+    name: event.tool,
+    source: "tool",
+    clientRequestId: null,
+    identitySemantics: "runtime-derived",
+    status: "started",
+    startedAt,
+    settledAt: null,
+    outcomeUnknown: false,
+    settlementCode: null,
+    mcpLedgerId: null,
+    mcpLedgerPrewritePersisted: false,
+    mcpLedgerSettlementPersisted: false,
+  };
+}
+
+function beginEffectCall(statePath, runId, effectId, kind, event, now) {
+  const attempt = workflowCallAttempt(effectId, kind, event, now);
+  return withStateMutation(statePath, (current) => {
+    if (!current || current.runId !== runId) {
+      throw new Error("durable workflow run disappeared before call boundary");
+    }
+    const index = current.effects.findIndex((effect) => effect.id === effectId);
+    const effect = current.effects[index];
+    const calls = effect?.calls || [];
+    if (
+      !effect ||
+      effect.status !== "pending" ||
+      typeof effect.providerDispatchedAt !== "string"
+    ) {
+      throw new Error("workflow effect cannot begin a durable child call");
+    }
+    if (calls.length >= MAX_CALLS_PER_EFFECT) {
+      throw new Error("workflow effect child-call limit exceeded");
+    }
+    if (
+      calls.some(
+        (call) =>
+          call.id === attempt.id ||
+          (call.kind === attempt.kind &&
+            (attempt.kind === "tool"
+              ? call.childEffectId === attempt.childEffectId
+              : call.callId === attempt.callId)),
+      )
+    ) {
+      throw new Error("workflow child-call boundary is duplicated");
+    }
+    const state = transition(
+      current,
+      "effect-call-started",
+      { effectId, callRecordId: attempt.id, kind },
+      (draft) => {
+        draft.effects[index] = {
+          ...draft.effects[index],
+          calls: [...(draft.effects[index].calls || []), attempt],
+        };
+      },
+      now,
+    );
+    return { state, value: state.effects[index].calls.at(-1) };
+  });
+}
+
+function effectCallSettlement(call, event, now) {
+  let status;
+  let settlementCode = null;
+  let mcpLedgerId = null;
+  let mcpLedgerPrewritePersisted = false;
+  let mcpLedgerSettlementPersisted = false;
+  if (call.kind === "provider") {
+    if (
+      !["token-usage", "model-usage-unknown"].includes(event?.type) ||
+      event.callId !== call.callId ||
+      (event.provider && event.provider !== call.name) ||
+      (event.source && event.source !== call.source)
+    ) {
+      throw new TypeError("workflow provider call settlement is malformed");
+    }
+    status = event.type === "token-usage" ? "completed" : "outcome_unknown";
+    settlementCode =
+      status === "outcome_unknown"
+        ? String(event.code || "provider_outcome_unknown")
+        : null;
+  } else {
+    if (
+      event?.type !== "tool-result" ||
+      event.workflowEffectId !== call.effectId ||
+      event.workflowEffectProtocol !== WORKFLOW_CHILD_EFFECT_PROTOCOL ||
+      event.workflowChildEffectId !== call.childEffectId ||
+      event.workflowChildSequence !== call.sequence ||
+      event.tool_use_id !== call.callId ||
+      event.tool !== call.name
+    ) {
+      throw new TypeError("workflow tool call settlement is malformed");
+    }
+    const outcomeUnknown =
+      ownDataValue(event.result, "outcomeUnknown") === true;
+    const failed = Boolean(event.error || ownDataValue(event.result, "error"));
+    status = outcomeUnknown
+      ? "outcome_unknown"
+      : failed
+        ? "failed"
+        : "completed";
+    settlementCode = outcomeUnknown
+      ? "nested_tool_outcome_unknown"
+      : failed
+        ? "tool_failed"
+        : null;
+    mcpLedgerId = ownDataValue(event.result, "mcpLedgerId") ?? null;
+    mcpLedgerPrewritePersisted =
+      ownDataValue(event.result, "mcpLedgerPrewritePersisted") === true;
+    mcpLedgerSettlementPersisted =
+      ownDataValue(event.result, "mcpLedgerSettlementPersisted") === true;
+    if (
+      (mcpLedgerId !== null &&
+        !PROVIDER_RECEIPT_ID_RE.test(String(mcpLedgerId))) ||
+      (mcpLedgerSettlementPersisted && !mcpLedgerPrewritePersisted)
+    ) {
+      throw new TypeError("workflow MCP call settlement is malformed");
+    }
+  }
+  if (
+    settlementCode !== null &&
+    (!/^[A-Za-z0-9._:-]{1,128}$/u.test(settlementCode) ||
+      settlementCode.includes(".."))
+  ) {
+    throw new TypeError("workflow call settlement code is malformed");
+  }
+  return {
+    ...call,
+    status,
+    settledAt: isoNow(now),
+    outcomeUnknown: status === "outcome_unknown",
+    settlementCode,
+    mcpLedgerId,
+    mcpLedgerPrewritePersisted,
+    mcpLedgerSettlementPersisted,
+  };
+}
+
+function settleEffectCall(statePath, runId, effectId, kind, event, now) {
+  return withStateMutation(statePath, (current) => {
+    if (!current || current.runId !== runId) {
+      throw new Error(
+        "durable workflow run disappeared before call settlement",
+      );
+    }
+    const effectIndex = current.effects.findIndex(
+      (effect) => effect.id === effectId,
+    );
+    const effect = current.effects[effectIndex];
+    const callIndex = (effect?.calls || []).findIndex((call) =>
+      kind === "tool"
+        ? call.kind === kind &&
+          call.childEffectId === event?.workflowChildEffectId
+        : call.kind === kind && call.callId === event?.callId,
+    );
+    const call = effect?.calls?.[callIndex];
+    if (
+      !effect ||
+      effect.status !== "pending" ||
+      !call ||
+      call.status !== "started"
+    ) {
+      throw new Error("workflow child call is not started at settlement");
+    }
+    const settlement = effectCallSettlement(call, event, now);
+    const state = transition(
+      current,
+      "effect-call-settled",
+      {
+        effectId,
+        callRecordId: call.id,
+        kind,
+        status: settlement.status,
+      },
+      (draft) => {
+        const calls = [...(draft.effects[effectIndex].calls || [])];
+        calls[callIndex] = settlement;
+        draft.effects[effectIndex] = {
+          ...draft.effects[effectIndex],
+          calls,
+        };
+      },
+      now,
+    );
+    return { state, value: state.effects[effectIndex].calls[callIndex] };
+  });
+}
+
+function createDurableCallObservers(statePath, runId, effectId, now) {
+  return Object.freeze({
+    strictUsageTelemetry: true,
+    onUsageBoundary(event) {
+      beginEffectCall(statePath, runId, effectId, "provider", event, now);
+    },
+    onUsageSettlement(event) {
+      settleEffectCall(statePath, runId, effectId, "provider", event, now);
+    },
+    onToolCallBoundary(event) {
+      beginEffectCall(statePath, runId, effectId, "tool", event, now);
+    },
+    onToolCallSettlement(event) {
+      settleEffectCall(statePath, runId, effectId, "tool", event, now);
+    },
+  });
+}
+
 function runtimeNotDispatchedResult(effect, reason) {
   if (reason !== "timeout" && reason !== "stopped") {
     throw new TypeError("undispatched workflow effect reason is invalid");
@@ -1111,6 +1533,9 @@ function settleEffect(statePath, runId, effectId, rawResult, now) {
       typeof effect.providerDispatchedAt !== "string"
     ) {
       throw new Error("workflow effect provider dispatch was not persisted");
+    }
+    if ((effect.calls || []).some((call) => call.status === "started")) {
+      throw new Error("workflow effect has an unsettled durable child call");
     }
     const settledAt = isoNow(now);
     const state = transition(
@@ -1336,9 +1761,16 @@ export async function executeDurableDynamicWorkflow(options = {}, deps = {}) {
     }
     let result;
     try {
+      const durableCallObservers = createDurableCallObservers(
+        statePath,
+        runId,
+        effect.id,
+        deps.now,
+      );
       result = await deps.runTask({
         ...args,
         workflowEffectId: effect.id,
+        ...durableCallObservers,
       });
       if (typeof deps.afterProvider === "function") {
         await deps.afterProvider(effect, result);
@@ -1581,8 +2013,20 @@ export function reconcileDurableWorkflowEffect(
       "effect-reconciled",
       { effectId, resultDigest, settlementAuthority: "operator-reconciled" },
       (draft) => {
+        const calls = (draft.effects[index].calls || []).map((call) =>
+          call.status === "started"
+            ? {
+                ...call,
+                status: "operator_reconciled",
+                settledAt,
+                outcomeUnknown: false,
+                settlementCode: "operator_reconciled",
+              }
+            : call,
+        );
         draft.effects[index] = {
           ...draft.effects[index],
+          calls,
           status: "settled",
           settledAt,
           settlementAuthority: "operator-reconciled",
@@ -1912,6 +2356,46 @@ function projectNestedToolEffects(effect) {
   };
 }
 
+function projectDurableWorkflowCalls(state) {
+  const lineage = state.effects.flatMap((effect) =>
+    (effect.calls || []).map((call) => ({
+      effectId: effect.id,
+      callRecordId: call.id,
+      kind: call.kind,
+      protocol: call.protocol,
+      childEffectId: call.childEffectId,
+      sequence: call.sequence,
+      name: call.name,
+      source: call.source,
+      status: call.status,
+      startedAt: call.startedAt,
+      settledAt: call.settledAt,
+      outcomeUnknown: call.outcomeUnknown,
+      settlementCode: call.settlementCode,
+      mcpLedgerId: call.mcpLedgerId,
+      mcpLedgerPrewritePersisted: call.mcpLedgerPrewritePersisted,
+      mcpLedgerSettlementPersisted: call.mcpLedgerSettlementPersisted,
+    })),
+  );
+  return {
+    authority: "runtime-state-hash-chain-fsync",
+    count: lineage.length,
+    started: lineage.filter((call) => call.status === "started").length,
+    completed: lineage.filter((call) => call.status === "completed").length,
+    failed: lineage.filter((call) => call.status === "failed").length,
+    outcomeUnknown: lineage.filter((call) => call.status === "outcome_unknown")
+      .length,
+    operatorReconciled: lineage.filter(
+      (call) => call.status === "operator_reconciled",
+    ).length,
+    lineageDigest: digest(
+      "chainlesschain.dynamic-workflow.durable-call-lineage.v1\0",
+      lineage,
+    ),
+    lineage,
+  };
+}
+
 function projectDynamicWorkflowObservability(state) {
   const settled = state.effects.filter((effect) => effect.status === "settled");
   const effectLineage = [];
@@ -1921,6 +2405,7 @@ function projectDynamicWorkflowObservability(state) {
   const providerReceiptLineage = [];
   const nestedEffectAttemptLineage = [];
   const nestedEffectSettlementLineage = [];
+  const durableCalls = projectDurableWorkflowCalls(state);
   let requestToSettlementMs = 0;
   let maxRequestToSettlementMs = 0;
   let estimatedTokens = 0;
@@ -2165,6 +2650,7 @@ function projectDynamicWorkflowObservability(state) {
         requestAttemptLineage: providerRequestAttemptLineage,
         lineage: providerReceiptLineage,
       },
+      durableCalls,
       nestedEffects: {
         authority: "task-result-bound-with-mcp-session-ledger-flags",
         attempts: nestedEffectAttemptCount,

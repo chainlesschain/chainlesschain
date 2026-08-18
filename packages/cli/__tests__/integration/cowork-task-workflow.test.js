@@ -242,6 +242,28 @@ describe("cowork task workflow", () => {
     ]);
   });
 
+  it("forwards strict durable provider and tool call observers to the child", async () => {
+    const observers = {
+      onUsageBoundary: vi.fn(),
+      onUsageSettlement: vi.fn(),
+      onToolCallBoundary: vi.fn(),
+      onToolCallSettlement: vi.fn(),
+    };
+
+    await runCoworkTask({
+      templateId: "code-helper",
+      userMessage: "write code",
+      workflowEffectId: `sha256:${"a".repeat(64)}`,
+      strictUsageTelemetry: true,
+      ...observers,
+    });
+
+    expect(_createMock.mock.calls[0][0]).toMatchObject({
+      strictUsageTelemetry: true,
+      ...observers,
+    });
+  });
+
   it("rejects a malformed workflow effect before creating a child", async () => {
     await expect(
       runCoworkTask({
@@ -313,9 +335,8 @@ describe("cowork task workflow", () => {
   // ─── WS action-protocol integration ──────────────────────────
 
   it("handleCoworkTask delegates to runCoworkTask", async () => {
-    const { handleCoworkTask } = await import(
-      "../../src/gateways/ws/action-protocol.js"
-    );
+    const { handleCoworkTask } =
+      await import("../../src/gateways/ws/action-protocol.js");
 
     const server = {
       _send: vi.fn(),
@@ -343,9 +364,8 @@ describe("cowork task workflow", () => {
   // ─── Cancel integration ─────────────────────────────────────
 
   it("handleCoworkCancel aborts a running task via AbortSignal", async () => {
-    const { handleCoworkTask, handleCoworkCancel } = await import(
-      "../../src/gateways/ws/action-protocol.js"
-    );
+    const { handleCoworkTask, handleCoworkCancel } =
+      await import("../../src/gateways/ws/action-protocol.js");
 
     let resolveTask;
     _createMock.mockImplementation(() => ({
@@ -385,9 +405,8 @@ describe("cowork task workflow", () => {
   // ─── Progress integration ───────────────────────────────────
 
   it("handleCoworkTask sends cowork:progress when onProgress fires", async () => {
-    const { handleCoworkTask } = await import(
-      "../../src/gateways/ws/action-protocol.js"
-    );
+    const { handleCoworkTask } =
+      await import("../../src/gateways/ws/action-protocol.js");
 
     const server = { _send: vi.fn(), projectRoot: "/test" };
     const ws = {};
@@ -407,9 +426,8 @@ describe("cowork task workflow", () => {
   // ─── Templates WS integration ──────────────────────────────
 
   it("handleCoworkTemplates returns template list via WS", async () => {
-    const { handleCoworkTemplates } = await import(
-      "../../src/gateways/ws/action-protocol.js"
-    );
+    const { handleCoworkTemplates } =
+      await import("../../src/gateways/ws/action-protocol.js");
 
     const server = { _send: vi.fn() };
     const ws = {};
@@ -434,9 +452,8 @@ describe("cowork task workflow", () => {
   // ─── History WS integration ─────────────────────────────────
 
   it("handleCoworkHistory returns empty when no history file", async () => {
-    const { handleCoworkHistory } = await import(
-      "../../src/gateways/ws/action-protocol.js"
-    );
+    const { handleCoworkHistory } =
+      await import("../../src/gateways/ws/action-protocol.js");
 
     const server = { _send: vi.fn(), projectRoot: "/nonexistent" };
     const ws = {};
@@ -472,9 +489,8 @@ describe("cowork task workflow", () => {
   // ─── Token count propagation ────────────────────────────────
 
   it("handleCoworkTask includes tokenCount in cowork:done", async () => {
-    const { handleCoworkTask } = await import(
-      "../../src/gateways/ws/action-protocol.js"
-    );
+    const { handleCoworkTask } =
+      await import("../../src/gateways/ws/action-protocol.js");
 
     const server = { _send: vi.fn(), projectRoot: "/test" };
     const ws = {};
