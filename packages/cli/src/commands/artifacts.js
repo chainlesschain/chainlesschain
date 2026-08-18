@@ -69,7 +69,7 @@ export function registerArtifactsCommand(program) {
 
   cmd
     .command("show <id>")
-    .description("Show one artifact's metadata + stored path")
+    .description("Show one artifact's public metadata and integrity")
     .option("--json", "Machine-readable JSON output")
     .action((id, options) => {
       process.exitCode = runArtifactsShow(id, options);
