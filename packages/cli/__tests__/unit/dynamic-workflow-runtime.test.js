@@ -3876,6 +3876,20 @@ describe("durable dynamic workflow runtime", () => {
       }),
     ).toThrow(/secret-shaped/u);
     expect(readDynamicWorkflowRuntimeState(statePath)).toEqual(state);
+    const stopped = requestDurableWorkflowStop(statePath, state.revision, {
+      now: clock(Date.parse("2026-08-18T06:00:00.000Z")),
+    });
+    expect(stopped).toMatchObject({
+      status: "stopped",
+      inputRequests: [{ status: "cancelled", response: null }],
+    });
+    expect(() =>
+      submitDurableWorkflowInput(statePath, {
+        expectedRevision: stopped.revision,
+        requestId: stopped.inputRequests[0].id,
+        answer: "public note",
+      }),
+    ).toThrow(/run is stopped/u);
   });
 
   it("fails closed on state tamper and hard-linked state files", async () => {
