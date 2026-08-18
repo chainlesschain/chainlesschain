@@ -158,7 +158,9 @@ describe("ProcessExecutionBroker workspace transactions", () => {
       },
     });
     expect(
-      fs.readFileSync(path.join(input.workspaceRoot, "before.txt"), "utf8"),
+      fs
+        .readFileSync(path.join(input.workspaceRoot, "before.txt"), "utf8")
+        .replaceAll("\r\n", "\n"),
     ).toBe("after\n");
     expect(
       executionBroker.inspectWorkspaceTransaction(applied.transaction.id, {
@@ -182,7 +184,9 @@ describe("ProcessExecutionBroker workspace transactions", () => {
       process: { exitCode: 128 },
     });
     expect(
-      fs.readFileSync(path.join(input.workspaceRoot, "before.txt"), "utf8"),
+      fs
+        .readFileSync(path.join(input.workspaceRoot, "before.txt"), "utf8")
+        .replaceAll("\r\n", "\n"),
     ).toBe("after\n");
     expect(
       executionBroker.inspectWorkspaceTransaction(rejected.transaction.id, {
