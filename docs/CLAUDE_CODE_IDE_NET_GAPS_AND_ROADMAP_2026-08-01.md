@@ -2588,6 +2588,51 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 六十三、2026-08-18 P1-2 fixed-transport result collection 子门复核（`21:06 +08:00`）
+
+本节继续第六十二节，并替代其中“bundle 需人工复制”的旧边界；但不把仓库内 Docker/WSL/SSH argv mock 外推为真实远端网络、重连或 response-loss
+恢复证据。功能与合同提交 `392b4540ec`、`7e04405a50` 已快进合并到本地 `main`，尚无本候选 exact-head GitHub Actions。
+
+### 本轮关闭的 fixed-transport collection 子门
+
+- **source 先后两次固定 predecessor authority。** `session location result-collect` 先从当前 source session 构造 exact handoff，读取 secret-free target
+  profile，并在任何远端命令前校验 source session id/head/event count；收到 bundle 后再次读取同一 authority。执行期间 source 前进、session 替换或 count 漂移均拒绝，
+  collection 不能把旧返回绑定到新的 source revision。
+- **收集前重新证明目标没有漂移。** launcher 先执行既有固定 `session location current --json`，重新计算 target attestation 和 stable facts；结果必须匹配
+  operator 先前接受的 target-facts digest、profile digest、target evidence id 与 handoff facts。目标 cwd/Git/CLI/tool/platform/arch 漂移在读取 result bytes 前失败。
+- **返回命令仍是固定 ChainlessChain argv。** WSL/Container 使用 `shell=false` 的参数数组，SSH 继续使用 verified known-hosts authority 和逐参数 POSIX quote；
+  唯一远端业务命令为 `session location result-pack <session> --result-id ... --summary ... --diff ... [--artifact/--evidence] --json`。result id、media type 与路径均有界，
+  不能注入额外 shell 或 CLI option。
+- **大结果有独立 transport boundary。** 普通 attestation/projection 保持 1 MiB 上限；只有 result collection 明确提升到 24 MiB stdout cap，以容纳最多 16 MiB
+  raw bytes 的 canonical base64 bundle。超限、非单一 JSON、非规范 bundle、byte/digest/handoff/profile/facts/evidence mismatch 均 fail closed。
+- **collection 同时返回 bytes 与内容无关 receipt。** JSON 输出含原 bundle，便于 source 保存经验证的 actual bytes；嵌套 verification 与顶层 collection metadata 只含
+  digest/count/authority。collection digest 绑定新 target attestation、source authority、target head、bundle 与 verification digest；`applied=false` 固定不变，gaps 明确列出
+  response-loss retry、distributed writer fence 与 returned-result apply 尚不 durable。
+
+### 仓库内验证与证据边界
+
+- target launcher 与 Commander collection route 两文件为 **16/16**；覆盖固定 Docker argv、24 MiB cap、target re-attestation、source 前后 read、actual bundle/verification
+  返回、repeatable artifact 参数和 JSON production route。
+- result bundle、target launcher、contract、location、session projection、replica 与 command integration 七文件终态为 **64/64**；command help index freshness 通过。
+- roadmap manifest 从 `1.9.29` 升至 `1.9.30`，新增 fixed-target-command journey、collection attestation、source before/after authority、target facts/source advance/
+  oversize/command injection 必须为零的合同，以及 `fixed-transport-target-result-collection-receipt` artifact。fixture digest 为
+  `sha256:21494505d6a030c01236d341d203de3c7743c48d88b50ac7f5132d05e342dc33`；全 corpus 保持
+  **15 cases / 89 referenced test files**，verifier/journey 为 **37/37**。本地 argv 与 mock transport 仍不等于 external host evidence。
+
+### P1-2 仍未关闭的边界
+
+1. **跨宿主 writer fence 与 shared authority：** collection 前后 source CAS 不能替代 distributed lease/revoke；target 执行期间 source/target 双写、shared-store handoff、
+   网络文件系统 lease 与 split-brain 仍开放。
+2. **response loss、apply 与长期生命周期：** result-pack 是只读且可重试，但尚无持久 request/settlement receipt 证明 response loss 后的 exact retry；bundle 仍不会自动
+   应用 diff、导入 ArtifactStore/evidence 或追加 canonical return-handoff event。增量/双向 session 同步、分歧合并、删除传播、detach/reattach、sleep/reboot、orphan cleanup
+   与八小时资源轨迹仍未关闭。
+3. **Cloud、产品入口与外部矩阵：** `cc cloud` 未接本 collection authority，Desktop/VS Code/JetBrains 无 result review/apply UI；真实 WSL/SSH/Container/Cloud、
+   多架构、网络故障及每格 100 次 exact-head journey 仍缺正式证据。
+
+因此，P1-2 的**fixed-command WSL/SSH/Container result collection、目标重认证、source 前后 CAS、独立大响应边界、bundle 全文回传与 non-apply collection receipt**
+由本节关闭；P1-2 整项仍为**部分完成**。总计数保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为
+**NO-GO**。本节不改变 S0-1～S0-3、Q0、Q3、Q4a/Q4b、P1-1、P1-4、P1-5 或 P2-4 的状态。
+
 ## 六十二、2026-08-18 P1-2 digest-bound result bundle 与 source readback 子门复核（`20:58 +08:00`）
 
 本节继续第三十五节，关闭“目标侧只有 session continuation，summary/diff/artifact/evidence 只能以未绑定自述返回”的仓库内缺口；不在缺少跨宿主
