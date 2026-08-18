@@ -587,6 +587,7 @@ async function executeTool(name, args, context = {}) {
     sandbox: _sandbox,
     sessionId: context.sessionId || null,
     sessionBudget: context.sessionBudget || null,
+    signal: context.signal || null,
   });
 }
 
@@ -2807,26 +2808,34 @@ export function startReplJsonlSession(
   requestedId,
   meta,
   observabilityScope,
+  options = {},
 ) {
+  const requireDurable =
+    observabilityScope != null || options.requireDurable === true;
   try {
     const sessionId = startSession(requestedId, {
       ...meta,
       ...(observabilityScope != null ? { observabilityScope } : {}),
     });
     if (
-      observabilityScope != null &&
+      requireDurable &&
       (typeof sessionId !== "string" || !sessionId)
     ) {
       throw new Error("JSONL session creation returned no durable session id");
     }
     return sessionId || null;
   } catch (error) {
-    if (observabilityScope == null) return null;
+    if (!requireDurable) return null;
     const failure = new Error(
-      "scoped JSONL session could not be durably created",
+      observabilityScope != null
+        ? "scoped JSONL session could not be durably created"
+        : "budgeted JSONL session could not be durably created",
       { cause: error },
     );
-    failure.code = "CC_OBSERVABILITY_SCOPE_START_FAILED";
+    failure.code =
+      observabilityScope != null
+        ? "CC_OBSERVABILITY_SCOPE_START_FAILED"
+        : "CC_SESSION_BUDGET_SESSION_START_FAILED";
     throw failure;
   }
 }
@@ -3110,6 +3119,7 @@ async function startAgentReplInWorkspaceOwned(
           executeTool(name, toolArgs, {
             sessionId: durableSessionId,
             sessionBudget: _sessionBudget,
+            signal: options.signal || null,
           }),
         now: options.now || Date.now,
         terminalLatch: _runtimeLedgerTerminalLatch,
@@ -3719,6 +3729,7 @@ async function startAgentReplInWorkspaceOwned(
         options.sessionId || null,
         meta,
         options.observabilityScope,
+        { requireDurable: Boolean(_sessionBudget) },
       );
       if (
         sessionId &&
