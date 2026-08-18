@@ -1943,7 +1943,9 @@ export class SessionResourceBudget {
       count: this._recoveryAdjudication.count,
       headDigest: this._recoveryAdjudication.headDigest,
       baseSequence: history?.baseSequence ?? this._recoveryAdjudication.count,
-      baseDigest: history?.baseDigest ?? this._recoveryAdjudication.headDigest,
+      baseDigest: history
+        ? history.baseDigest
+        : this._recoveryAdjudication.headDigest,
       complete: history ? history.baseSequence === 0 : false,
       entries: history?.entries.map(cloneCanonicalRecord) || [],
     };
