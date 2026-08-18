@@ -285,6 +285,66 @@ describe("cowork durable workflow runtime commands", () => {
     expect(state.status).toBe("completed");
   });
 
+  it("answers a durable stage input by request id and exact revision", async () => {
+    const definition = workflowDefinition();
+    definition.steps[1].needsInput = {
+      prompt: "Choose release decision",
+      options: ["approve", "reject"],
+    };
+    saveWorkflow(projectRoot, definition);
+    const runId = "command-needs-input";
+    const runTask = vi.fn(async (args) => completedTask(args));
+
+    await runDurable(runId, runTask);
+    expect(process.exitCode).toBe(1);
+    const statePath = dynamicWorkflowRunStatePath(projectRoot, runId);
+    let state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.status).toBe("needs_input");
+    expect(runTask).toHaveBeenCalledTimes(1);
+
+    process.exitCode = undefined;
+    logSpy.mockClear();
+    await runtimeCommand("runtime-status", runId, "--json");
+    const projection = latestJsonOutput();
+    expect(projection.pendingInputRequests).toMatchObject([
+      {
+        id: state.inputRequests[0].id,
+        stepId: "review",
+        prompt: "Choose release decision",
+      },
+    ]);
+
+    const responsePath = join(root, "workflow-input.json");
+    writeFileSync(responsePath, JSON.stringify({ answer: "approve" }), "utf8");
+    logSpy.mockClear();
+    await runtimeCommand(
+      "runtime-reply",
+      runId,
+      state.inputRequests[0].id,
+      responsePath,
+      "--expected-revision",
+      String(state.revision),
+      "--json",
+    );
+    expect(process.exitCode).toBeUndefined();
+    expect(latestJsonOutput()).toMatchObject({
+      status: "ready",
+      inputRequestCount: 1,
+      answeredInputRequestCount: 1,
+      pendingInputRequests: [],
+    });
+
+    process.exitCode = undefined;
+    await runDurable(runId, runTask);
+    expect(process.exitCode).toBe(0);
+    expect(runTask).toHaveBeenCalledTimes(2);
+    expect(runTask.mock.calls[1][0].userMessage).toContain(
+      "## Bound user input for stage review\n\"approve\"",
+    );
+    state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.status).toBe("completed");
+  });
+
   it("recovers a bound terminal checkpoint call through the production command path", async () => {
     let sequence = 0;
     const checkpointStore = new WorkspaceTransactionManager({
