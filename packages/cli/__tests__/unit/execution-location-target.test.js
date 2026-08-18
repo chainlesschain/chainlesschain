@@ -358,6 +358,7 @@ describe("execution location target launch and resume", () => {
 
     const collected = collectExecutionLocationTargetResult(
       {
+        requestId: "collect-request-1",
         profile,
         handoff: handoff(),
         expectedTargetFactsDigest: initial.targetFactsDigest,
@@ -376,6 +377,8 @@ describe("execution location target launch and resume", () => {
 
     expect(collected).toMatchObject({
       schema: "cc-execution-location-target-result-collection/v1",
+      requestId: "collect-request-1",
+      requestDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
       resultId: "result-collect-1",
       handoffId: prepared.handoffId,
       bundleDigest: bundle.bundleDigest,
@@ -383,6 +386,11 @@ describe("execution location target launch and resume", () => {
       verification: { applied: false },
       applied: false,
       continuity: "single-fixed-command-response",
+      gaps: [
+        "returned-result-bytes-not-durable",
+        "cross-host-concurrent-writer-fencing-not-durable",
+        "returned-result-not-applied",
+      ],
     });
     expect(readSourceAuthority).toHaveBeenCalledTimes(2);
     expect(spawnSync.mock.calls[1][1]).toEqual(

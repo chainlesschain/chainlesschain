@@ -12,6 +12,7 @@ import {
   createExecutionLocationResultBundle,
   verifyExecutionLocationResultBundle,
 } from "../../src/lib/execution-location-result.js";
+import { canonicalJson } from "../../src/lib/scheduler-kernel/contract.js";
 
 const root = mkdtempSync(join(tmpdir(), "cc-session-replica-"));
 const sourceHome = join(root, "source-home");
@@ -326,6 +327,133 @@ describe("verified session replica installation", () => {
       targetEventCount: installed.targetEventCount,
       applied: false,
     });
+  });
+
+  it("settles an accepted result once and recovers the receipt without content", () => {
+    const sessionId = "session-result-collection-settlement";
+    const source = createSource(sessionId);
+    selectTarget();
+    const installed = store.installSessionReplicaWithLocationHandoff(
+      sessionId,
+      source.bytes,
+      source.expected,
+      targetAuthority(source),
+    );
+    const target = store.getVerifiedSessionExecutionLocationAuthority(sessionId);
+    const bundle = createExecutionLocationResultBundle({
+      sessionAuthority: target,
+      resultId: "settled-return-1",
+      summaryBytes: Buffer.from("private returned summary"),
+      diffBytes: Buffer.from("diff --git a/a b/a\n"),
+      artifacts: [],
+      evidence: [],
+    });
+
+    selectSource();
+    const predecessor = store.getVerifiedSessionExecutionLocationAuthority(
+      sessionId,
+    );
+    const sourceAuthority = {
+      sessionId,
+      headHash: predecessor.headHash,
+      eventCount: predecessor.eventCount,
+    };
+    const verification = verifyExecutionLocationResultBundle({
+      bundle,
+      sourceAuthority,
+      expectedHandoffId: installed.handoffId,
+    });
+    const requestId = "collect-settlement-1";
+    const requestDigest = `sha256:${"2".repeat(64)}`;
+    const material = {
+      schema: "cc-execution-location-target-result-collection/v1",
+      requestId,
+      requestDigest,
+      resultId: bundle.resultId,
+      target: "container",
+      profileDigest: target.locationHandoff.target.profileDigest,
+      targetFactsDigest: target.locationHandoff.target.targetFactsDigest,
+      collectionAttestationDigest:
+        target.locationHandoff.target.attestationDigest,
+      handoffId: installed.handoffId,
+      sourceAuthority,
+      targetHeadHash: target.headHash,
+      targetEventCount: target.eventCount,
+      bundleDigest: bundle.bundleDigest,
+      verificationDigest: verification.verificationDigest,
+      applied: false,
+      continuity: "single-fixed-command-response",
+      gaps: [
+        "returned-result-bytes-not-durable",
+        "cross-host-concurrent-writer-fencing-not-durable",
+        "returned-result-not-applied",
+      ],
+    };
+    const collection = {
+      ...material,
+      bundle,
+      verification,
+      collectionDigest: `sha256:${createHash("sha256")
+        .update(
+          "chainlesschain.execution-location.target-result-collection.v1\0",
+          "utf8",
+        )
+        .update(canonicalJson(material, "testResultCollection"), "utf8")
+        .digest("hex")}`,
+    };
+
+    const first = store.settleSessionExecutionLocationResultCollection(
+      sessionId,
+      requestId,
+      collection,
+    );
+    expect(first).toMatchObject({
+      schema:
+        store.SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_RECEIPT_SCHEMA,
+      sessionId,
+      requestId,
+      requestDigest,
+      sourceHeadHash: source.expected.headHash,
+      sourceEventCount: source.expected.eventCount,
+      settlementEventCount: source.expected.eventCount + 1,
+      bundleDigest: bundle.bundleDigest,
+      totalBytes: bundle.totalBytes,
+      applied: false,
+      settlementAppended: true,
+      recovered: false,
+    });
+    const retry = store.settleSessionExecutionLocationResultCollection(
+      sessionId,
+      requestId,
+      collection,
+    );
+    expect(retry).toMatchObject({
+      receiptDigest: first.receiptDigest,
+      settlementEventHash: first.settlementEventHash,
+      settlementAppended: false,
+      recovered: true,
+    });
+    expect(
+      store.readVerifiedSessionExecutionLocationResultSettlement(
+        sessionId,
+        requestId,
+        { requestDigest },
+      ),
+    ).toMatchObject({ receiptDigest: first.receiptDigest });
+    expect(() =>
+      store.readVerifiedSessionExecutionLocationResultSettlement(
+        sessionId,
+        requestId,
+        { requestDigest: `sha256:${"3".repeat(64)}` },
+      ),
+    ).toThrow(/already bound to different inputs/u);
+    const event = store.findLatestEvent(
+      sessionId,
+      store.SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_EVENT,
+    );
+    expect(JSON.stringify(event.data)).not.toContain("private returned summary");
+    expect(event.data).not.toHaveProperty("bundle");
+    expect(event.data).not.toHaveProperty("verification");
   });
 
   it("recovers response loss after the canonical handoff append", () => {
