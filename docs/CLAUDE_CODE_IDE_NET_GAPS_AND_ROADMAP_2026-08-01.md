@@ -2588,6 +2588,34 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 六十七、2026-08-18 P1-2 controlled result apply/rollback 与 explicit recovery 子门复核（`22:27 +08:00`）
+
+本节继续第六十六节，关闭 repository-level returned diff 从“已 review、未修改 workspace”到“以 canonical session authority 预留、在 durable workspace transaction 中固定命令 apply、失败 rollback、崩溃后不重放恢复”的本地子门；不把这组能力外推为 `.git` metadata 全覆盖 checkpoint、外部系统副作用回滚、ArtifactStore/WORM、双 IDE UI 或真实跨宿主长期矩阵。
+
+### 本轮关闭的 reservation、transaction 与 terminal recovery 子门
+
+- **apply 必须显式携带 exact review digest。** 新 `session location result-apply <id> --request-id <id> --apply-id <id> --review-digest <sha256>` 每次重新打开 stored bundle、重算第六十六节的 content-free review authority，并要求 operator 提供的 digest 完全一致；legacy v1/no-storage、review drift 或同 apply id/different inputs 均在 workspace transaction 前 fail closed。
+- **mutation 前两次证明 live source Git identity。** command 从 canonical `session_start` authority 取得 source Git root/commit，以固定 `git rev-parse --show-toplevel` 与 `git rev-parse --verify HEAD` 在 transaction 前及 durable checkpoint 建成后、reservation append 前各读一次 live root/HEAD，要求 canonical path/root digest 与 exact 40/64-hex commit 同时一致。session head 也必须仍是被 review 的 settlement event；Git/session 任一已观察前进都不会进入 patch process。
+- **durable checkpoint 先于 session reservation 与 patch process。** ProcessExecutionBroker 先创建 partial workspace transaction，排除不会被 plain `git apply` 修改的 `.git` metadata、声明 `externalSideEffects=false` 并持有 exclusive workspace writer lock；随后 `execution_location_result_apply_reserved` 以 settlement event 为 exact predecessor，绑定 apply/review/settlement/bundle/diff digest、source Git root digest/commit、transaction/checkpoint id/digest 与 coverage。reservation append/response loss 可从 transcript 恢复，不会直接开始第二次 apply。
+- **唯一 mutation 路径是两个固定、shell-free stdin argv。** reservation 成功后，Broker 在同一 transaction 中依次运行 `git apply --check --whitespace=error-all -` 与 `git apply --whitespace=error-all -`，均为 `shell=false`、foreground、mandatory process-tree boundary；reviewed diff 只通过 stdin 传入，不创建 caller-controlled patch path。check/process failure、sandbox denial、output/error 或 commit evidence failure都会先等待受管进程结算，再恢复 exact baseline。
+- **terminal event 只保存 outcome 与 transaction evidence。** success 的 committed write manifest 或 failure 的 rolled_back manifest 被规范化为 checkpoint/evidence/write-manifest digest、coverage、file coverage、external-side-effect flag 与 uncovered paths；`execution_location_result_apply_terminal` 记录 `applied` / `rolled_back`，不记录 diff、stdout/stderr、绝对 workspace path或错误正文。canonical receipt 将 reservation/terminal event hash/count 与 transaction evidence 汇合。
+- **崩溃恢复不重放 patch。** exact retry 若发现 reserved apply，只读取 transaction state：已 committed/rolled_back 时补写或回读 terminal event；prepared/running/rollback-required 等非终态明确拒绝普通 retry。新 `result-apply-recover` 只按 reservation 中的单一 transaction id 调用 dead-owner recovery，rollback 后再落 terminal；不会执行 `git apply`。仍存活但身份只能 PID 保守判断、未结算 writer 或 lock mismatch 继续要求人工处理。
+
+### 本轮验证证据
+
+- 实现与回归提交为 `48f861074a` / `ade62d0b6d`（session reservation/terminal authority 与 response-loss readback）、`31dcc934fd` / `de5ef8326e`（transactional apply/recovery command）、`a6c0347ac9` / `d7e09cc18d`（真实 Broker/Git apply 与 Windows line-ending 复核）、`373560ba37`（roadmap contract）及 `cad8f5220d`（checkpoint 后 source Git 二次 pin），均已快进进入本地 `main`。
+- apply/command/workspace 三文件为 **52 passed / 1 skipped**；二次 source Git pin 后 command/apply 两文件为 **20/20**。真实 ProcessExecutionBroker workspace transaction 文件为 **15/15**，实际对临时 Git repo 完成一次 committed patch，并证明 invalid patch 的 transaction 回到 `rolled_back` 且文件保持 baseline。
+- session replica/apply authority 文件独立为 **11/11**；JSONL store、writer concurrency、persistence failure、anti-rollback 与 replica/apply authority 五文件为 **178 passed / 5 skipped**。一次将六个重型文件同进程并行运行时，replica 首例超过既有 20 秒用例上限；该文件随后独立进程 **11/11** 通过，未把资源争用 timeout 计为功能通过。
+- roadmap verifier/journey 为 **37/37**；command help index freshness 与 `git diff --check` 通过。manifest 从 `1.9.33` 升至 `1.9.34`，P1-2 fixture digest 为 `sha256:6f6951a28e9f0a5d4783fcc90fd0248dc1df41bad6498e9d746337254d836af3`；全 corpus 为 **15 cases / 92 referenced test files**，contract-only 通过。
+
+### P1-2 仍未关闭的边界
+
+1. **checkpoint/side-effect 覆盖仍有边界：** transaction 对 worktree content 提供 exact rollback，但 `.git` metadata 明确 excluded，证据保持 `partial`；当前固定 plain `git apply` 不使用 `--index`/`--3way`，不声称 index/ref/reflog、子模块外部 Git dir、外部进程或第三方系统副作用可回滚。rollback failure、live-PID ambiguity 与不可信 writer 仍 fail closed 并要求人工处理。
+2. **artifact/store 与分布式生命周期：** summary/artifact/evidence 尚未导入通用 ArtifactStore 或提供 managed preview/delete；result store 仍非 WORM/off-box。source/target lease、split-brain/shared-store ownership、publish-before-settlement orphan GC、断点续传/重连、睡眠/重启、增量/双向同步、分歧合并与删除传播仍开放。
+3. **产品入口与外部矩阵：** Desktop、VS Code、JetBrains 尚未消费 review/apply/recovery receipt；`cc cloud`、真实 WSL/SSH/Container/Cloud、多架构/网络故障及每格 100 次 exact-commit 长期矩阵仍无关闭证据。
+
+因此，P1-2 的 **explicit review-digest apply、exact live Git/session predecessor、checkpoint-before-reservation、固定 shell-free check/apply、失败 exact baseline rollback、canonical terminal evidence 与 no-replay explicit crash recovery** 由本节关闭；P1-2 整项仍为**部分完成**。总计数保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。
+
 ## 六十六、2026-08-18 P1-2 content-free stored-result review authority 子门复核（`22:03 +08:00`）
 
 本节继续第六十五节，关闭“source 已持久保存实际 returned bundle，但尚无一个可供人工验收且不会泄露正文的 canonical review authority”这一前置子门；不把 review digest 外推为 patch 已 apply、source Git identity 已复核、workspace checkpoint/rollback 已执行、IDE review UI 已接入或远端矩阵已完成。
