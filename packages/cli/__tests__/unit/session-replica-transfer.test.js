@@ -12,6 +12,7 @@ import {
   createExecutionLocationResultBundle,
   verifyExecutionLocationResultBundle,
 } from "../../src/lib/execution-location-result.js";
+import { createExecutionLocationResultReview } from "../../src/lib/execution-location-result-review.js";
 import {
   readStoredExecutionLocationResultBundle,
   storeExecutionLocationResultBundle,
@@ -56,6 +57,8 @@ describe("verified session replica installation", () => {
     store._sessionScaleFaultHooks.afterReplicaPublish = null;
     store._sessionScaleFaultHooks.afterLocationHandoffAppend = null;
     store._sessionScaleFaultHooks.afterResultCollectionSettlementAppend = null;
+    store._sessionScaleFaultHooks.afterResultApplyReservationAppend = null;
+    store._sessionScaleFaultHooks.afterResultApplyTerminalAppend = null;
     rmSync(root, { recursive: true, force: true });
   });
 
@@ -507,6 +510,132 @@ describe("verified session replica installation", () => {
     );
     expect(event.data).not.toHaveProperty("bundle");
     expect(event.data).not.toHaveProperty("verification");
+
+    const review = createExecutionLocationResultReview({
+      settlement: first,
+      bundle,
+    });
+    const sourceGit = {
+      rootDigest: `sha256:${"4".repeat(64)}`,
+      commit: "a".repeat(40),
+    };
+    const preparedTransaction = {
+      id: "result-apply-transaction-1",
+      checkpointId: "checkpoint-result-apply-transaction-1",
+      checkpointDigest: `sha256:${"5".repeat(64)}`,
+      coverage: "partial",
+      externalSideEffects: false,
+    };
+    process.env.CC_SESSION_SCALE_FAULT_INJECTION = "1";
+    store._sessionScaleFaultHooks.afterResultApplyReservationAppend = () => {
+      throw new Error("injected result apply reservation response loss");
+    };
+    expect(() =>
+      store.reserveSessionExecutionLocationResultApply(
+        sessionId,
+        "apply-request-1",
+        review,
+        sourceGit,
+        preparedTransaction,
+      ),
+    ).toThrow(/injected result apply reservation response loss/u);
+    store._sessionScaleFaultHooks.afterResultApplyReservationAppend = null;
+    delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+
+    const reservation = store.readVerifiedSessionExecutionLocationResultApply(
+      sessionId,
+      "apply-request-1",
+    );
+    expect(reservation).toMatchObject({
+      schema: store.SESSION_EXECUTION_LOCATION_RESULT_APPLY_RECEIPT_SCHEMA,
+      sessionId,
+      applyId: "apply-request-1",
+      requestId,
+      status: "reserved",
+      reviewDigest: review.reviewDigest,
+      settlementId: first.settlementId,
+      bundleDigest: bundle.bundleDigest,
+      diffDigest: bundle.diff.digest,
+      sourceGit,
+      transaction: preparedTransaction,
+      terminal: null,
+      applied: false,
+    });
+    expect(
+      store.reserveSessionExecutionLocationResultApply(
+        sessionId,
+        "apply-request-1",
+        review,
+        sourceGit,
+        preparedTransaction,
+      ),
+    ).toMatchObject({
+      receiptDigest: reservation.receiptDigest,
+      reservationAppended: false,
+      recovered: true,
+    });
+    expect(() =>
+      store.reserveSessionExecutionLocationResultApply(
+        sessionId,
+        "apply-request-1",
+        review,
+        { ...sourceGit, commit: "b".repeat(40) },
+        preparedTransaction,
+      ),
+    ).toThrow(/already bound to different inputs/u);
+
+    const terminalTransaction = {
+      ...preparedTransaction,
+      evidenceDigest: `sha256:${"6".repeat(64)}`,
+      writeManifestDigest: `sha256:${"7".repeat(64)}`,
+      fileCoverage: "partial",
+      uncoveredPaths: [".git"],
+    };
+    process.env.CC_SESSION_SCALE_FAULT_INJECTION = "1";
+    store._sessionScaleFaultHooks.afterResultApplyTerminalAppend = () => {
+      throw new Error("injected result apply terminal response loss");
+    };
+    expect(() =>
+      store.settleSessionExecutionLocationResultApply(
+        sessionId,
+        "apply-request-1",
+        "applied",
+        terminalTransaction,
+      ),
+    ).toThrow(/injected result apply terminal response loss/u);
+    store._sessionScaleFaultHooks.afterResultApplyTerminalAppend = null;
+    delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+
+    const applied = store.readVerifiedSessionExecutionLocationResultApply(
+      sessionId,
+      "apply-request-1",
+    );
+    expect(applied).toMatchObject({
+      status: "applied",
+      transaction: terminalTransaction,
+      terminal: { outcome: "applied" },
+      applied: true,
+    });
+    expect(
+      store.settleSessionExecutionLocationResultApply(
+        sessionId,
+        "apply-request-1",
+        "applied",
+        terminalTransaction,
+      ),
+    ).toMatchObject({
+      receiptDigest: applied.receiptDigest,
+      terminalAppended: false,
+      recovered: true,
+    });
+    expect(
+      JSON.stringify(
+        store.findLatestEvent(
+          sessionId,
+          store.SESSION_EXECUTION_LOCATION_RESULT_APPLY_TERMINAL_EVENT,
+        ).data,
+      ),
+    ).not.toContain("private returned summary");
   });
 
   it("recovers response loss after the canonical handoff append", () => {
