@@ -520,6 +520,7 @@ export function prepareCoworkMcpRuntime(mcp, options = {}) {
  * @param {boolean} [options.strictUsageTelemetry] - Require synchronous durable call observers
  * @param {function} [options.onUsageBoundary] - Provider-call durable start observer
  * @param {function} [options.onUsageSettlement] - Provider-call durable settlement observer
+ * @param {function} [options.onProviderReceipt] - Provider receipt durable prewrite observer
  * @param {function} [options.onToolCallBoundary] - Tool-call durable start observer
  * @param {function} [options.onToolCallSettlement] - Tool-call durable settlement observer
  * @param {(request: object) => boolean|Promise<boolean>} [options.approveMcpLocalCodeExecution]
@@ -542,6 +543,7 @@ export async function runCoworkTask(options = {}) {
     strictUsageTelemetry = false,
     onUsageBoundary = null,
     onUsageSettlement = null,
+    onProviderReceipt = null,
     onToolCallBoundary = null,
     onToolCallSettlement = null,
     approveMcpLocalCodeExecution = null,
@@ -640,6 +642,7 @@ export async function runCoworkTask(options = {}) {
             strictUsageTelemetry: true,
             onUsageBoundary,
             onUsageSettlement,
+            onProviderReceipt,
             onToolCallBoundary,
             onToolCallSettlement,
           }

@@ -98,6 +98,33 @@ function withRuntimeStateDigest(state) {
   };
 }
 
+function withRebuiltRuntimeLineage(state, lineage) {
+  const rebuilt = structuredClone(state);
+  let previousDigest = null;
+  rebuilt.lineage = lineage.map((event, index) => {
+    const material = {
+      sequence: index + 1,
+      revision: index + 1,
+      at: event.at,
+      type: event.type,
+      details: event.details,
+      previousDigest,
+    };
+    const next = {
+      ...material,
+      eventDigest: `sha256:${createHash("sha256")
+        .update("chainlesschain.dynamic-workflow.runtime-event.v1\0", "utf8")
+        .update(canonicalJson(material, "dynamicWorkflowRuntime"), "utf8")
+        .digest("hex")}`,
+    };
+    previousDigest = next.eventDigest;
+    return next;
+  });
+  rebuilt.revision = rebuilt.lineage.length;
+  rebuilt.updatedAt = rebuilt.lineage.at(-1).at;
+  return withRuntimeStateDigest(rebuilt);
+}
+
 function workflowProviderRequestId(effectId, source = "model", sequence = 1) {
   return `ccwf_${createHash("sha256")
     .update(`${effectId}\0${source}\0${String(sequence)}`, "utf8")
@@ -118,6 +145,17 @@ function workflowProviderReceipt(boundary, overrides = {}) {
     requestIdentitySemantics: "trace-only",
     independentlyReadable: false,
     ...overrides,
+  };
+}
+
+function workflowProviderReceiptEvent(boundary, overrides = {}) {
+  const providerReceipt = workflowProviderReceipt(boundary, overrides);
+  return {
+    type: "provider-request-receipt",
+    ...providerReceipt,
+    source: boundary.source,
+    workflowRequestSource: boundary.workflowRequestSource || boundary.source,
+    providerReceipt,
   };
 }
 
@@ -424,6 +462,13 @@ describe("durable dynamic workflow runtime", () => {
           status: "started",
         }),
       ]);
+      args.onProviderReceipt(workflowProviderReceiptEvent(providerBoundary));
+      state = readDynamicWorkflowRuntimeState(statePath);
+      expect(state.effects[0].calls[0]).toMatchObject({
+        status: "started",
+        providerReceiptPersisted: true,
+        providerReceiptRecordedAt: expect.any(String),
+      });
       args.onUsageSettlement({
         type: "token-usage",
         callId: providerBoundary.callId,
@@ -488,6 +533,7 @@ describe("durable dynamic workflow runtime", () => {
         providerReceiptPersisted: true,
         providerReceiptRequestId: "req_mdl-publish-1",
         providerReceiptResponseId: "resp_mdl-publish-1",
+        providerReceiptRecordedAt: expect.any(String),
       }),
       expect.objectContaining({
         kind: "tool",
@@ -503,6 +549,11 @@ describe("durable dynamic workflow runtime", () => {
     expect(
       state.lineage.filter((event) => event.type === "effect-call-settled"),
     ).toHaveLength(2);
+    expect(
+      state.lineage.filter(
+        (event) => event.type === "effect-call-receipt-recorded",
+      ),
+    ).toHaveLength(1);
     expect(
       projectDynamicWorkflowRuntime(state).observability.durableCalls,
     ).toMatchObject({
@@ -586,7 +637,7 @@ describe("durable dynamic workflow runtime", () => {
     });
   });
 
-  it("retains a provider receipt when the outer task fails after call settlement", async () => {
+  it("retains a provider receipt when the process fails before usage settlement", async () => {
     const workflow = workflowDefinition({
       steps: [{ id: "collect", message: "Collect release evidence" }],
     });
@@ -608,15 +659,8 @@ describe("durable dynamic workflow runtime", () => {
         requestIdentitySemantics: "trace-only",
       };
       args.onUsageBoundary(boundary);
-      args.onUsageSettlement({
-        type: "token-usage",
-        callId: boundary.callId,
-        provider: boundary.provider,
-        source: boundary.source,
-        usage: { input_tokens: 2, output_tokens: 1 },
-        providerReceipt: workflowProviderReceipt(boundary),
-      });
-      throw new Error("process stopped before outer task settlement");
+      args.onProviderReceipt(workflowProviderReceiptEvent(boundary));
+      throw new Error("process stopped before usage settlement");
     });
 
     await expect(
@@ -630,18 +674,42 @@ describe("durable dynamic workflow runtime", () => {
     expect(state.effects[0]).toMatchObject({ status: "pending" });
     expect(state.effects[0].calls).toEqual([
       expect.objectContaining({
-        status: "completed",
+        status: "started",
         providerReceiptPersisted: true,
         providerReceiptRequestId: "req_mdl-receipt-crash-1",
         providerReceiptResponseId: "resp_mdl-receipt-crash-1",
+        providerReceiptRecordedAt: expect.any(String),
+        settledAt: null,
       }),
     ]);
     expect(
       projectDynamicWorkflowRuntime(state).observability.durableCalls,
     ).toMatchObject({
-      completed: 1,
+      started: 1,
+      completed: 0,
       providerReceipts: 1,
       providerReceiptsIndependentlyReadable: false,
+    });
+
+    const recordedAt = state.effects[0].calls[0].providerReceiptRecordedAt;
+    const reconciled = reconcileDurableWorkflowEffect(
+      statePath,
+      {
+        expectedRevision: state.revision,
+        effectId: state.effects[0].id,
+        result: completedTask({
+          workflowEffect: state.effects[0],
+          userMessage: "operator verified provider outcome",
+        }),
+      },
+      { now: clock(Date.parse("2026-08-18T06:45:00.000Z")) },
+    );
+    expect(reconciled.effects[0].calls[0]).toMatchObject({
+      status: "operator_reconciled",
+      providerReceiptPersisted: true,
+      providerReceiptRequestId: "req_mdl-receipt-crash-1",
+      providerReceiptResponseId: "resp_mdl-receipt-crash-1",
+      providerReceiptRecordedAt: recordedAt,
     });
   });
 
@@ -654,7 +722,7 @@ describe("durable dynamic workflow runtime", () => {
       projectRoot,
       "run-call-receipt-mismatch",
     );
-    let settlementReturned = false;
+    let receiptReturned = false;
 
     await expect(
       executeDurableDynamicWorkflow(
@@ -674,15 +742,68 @@ describe("durable dynamic workflow runtime", () => {
               requestIdentitySemantics: "trace-only",
             };
             args.onUsageBoundary(boundary);
-            args.onUsageSettlement({
-              type: "token-usage",
-              callId: boundary.callId,
-              provider: boundary.provider,
-              source: boundary.source,
-              usage: { input_tokens: 1, output_tokens: 1 },
-              providerReceipt: workflowProviderReceipt(boundary, {
+            args.onProviderReceipt(
+              workflowProviderReceiptEvent(boundary, {
                 workflowEffectId: `sha256:${"f".repeat(64)}`,
               }),
+            );
+            receiptReturned = true;
+            return completedTask(args);
+          },
+          now: clock(),
+        },
+      ),
+    ).rejects.toMatchObject({ reason: "reconciliation-required" });
+
+    expect(receiptReturned).toBe(false);
+    expect(readDynamicWorkflowRuntimeState(statePath).effects[0].calls).toEqual(
+      [
+        expect.objectContaining({
+          status: "started",
+          providerReceiptPersisted: false,
+        }),
+      ],
+    );
+  });
+
+  it("rejects a settlement receipt that was not durably prewritten", async () => {
+    const workflow = workflowDefinition({
+      steps: [{ id: "collect", message: "Collect release evidence" }],
+    });
+    const execution = admittedExecution(projectRoot, workflow);
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-call-receipt-without-prewrite",
+    );
+    let settlementReturned = false;
+
+    await expect(
+      executeDurableDynamicWorkflow(
+        {
+          statePath,
+          runId: "run-call-receipt-without-prewrite",
+          execution,
+        },
+        {
+          runTask: async (args) => {
+            const boundary = {
+              type: "model-usage-started",
+              callId: "mdl-receipt-without-prewrite-1",
+              provider: "openai",
+              source: "model",
+              workflowEffectId: args.workflowEffectId,
+              callSequence: 1,
+              providerRequestId: workflowProviderRequestId(
+                args.workflowEffectId,
+              ),
+              requestIdentitySemantics: "trace-only",
+            };
+            args.onUsageBoundary(boundary);
+            args.onUsageSettlement({
+              ...boundary,
+              type: "token-usage",
+              usage: { input_tokens: 1, output_tokens: 1 },
+              providerReceipt: workflowProviderReceipt(boundary),
             });
             settlementReturned = true;
             return completedTask(args);
@@ -698,6 +819,7 @@ describe("durable dynamic workflow runtime", () => {
         expect.objectContaining({
           status: "started",
           providerReceiptPersisted: false,
+          providerReceiptRecordedAt: null,
         }),
       ],
     );
@@ -725,6 +847,9 @@ describe("durable dynamic workflow runtime", () => {
         requestIdentitySemantics: "trace-only",
       };
       args.onUsageBoundary(boundary);
+      args.onProviderReceipt(
+        workflowProviderReceiptEvent(boundary, { responseId: null }),
+      );
       args.onUsageSettlement({
         ...boundary,
         type: "model-usage-unknown",
@@ -878,6 +1003,7 @@ describe("durable dynamic workflow runtime", () => {
             requestIdentitySemantics: "trace-only",
           };
           args.onUsageBoundary(boundary);
+          args.onProviderReceipt(workflowProviderReceiptEvent(boundary));
           args.onUsageSettlement({
             ...boundary,
             type: "token-usage",
@@ -905,6 +1031,30 @@ describe("durable dynamic workflow runtime", () => {
         withRuntimeStateDigest(receiptTampered),
       ),
     ).toThrow(/effect-0-call-0-invalid/u);
+
+    const receiptTimestampTampered = structuredClone(state);
+    receiptTimestampTampered.effects[0].calls[0].providerReceiptRecordedAt =
+      "9999-12-31T23:59:59.999Z";
+    expect(() =>
+      verifyDynamicWorkflowRuntimeState(
+        withRuntimeStateDigest(receiptTimestampTampered),
+      ),
+    ).toThrow(/effect-0-call-0-invalid/u);
+
+    const legacyReceiptState = structuredClone(state);
+    delete legacyReceiptState.effects[0].calls[0].providerReceiptRecordedAt;
+    const verifiedLegacyReceiptState = verifyDynamicWorkflowRuntimeState(
+      withRebuiltRuntimeLineage(
+        legacyReceiptState,
+        legacyReceiptState.lineage.filter(
+          (event) => event.type !== "effect-call-receipt-recorded",
+        ),
+      ),
+    );
+    expect(
+      projectDynamicWorkflowRuntime(verifiedLegacyReceiptState).observability
+        .durableCalls.lineage[0].providerReceipt.recordedAt,
+    ).toBe(verifiedLegacyReceiptState.effects[0].calls[0].settledAt);
   });
 
   it("persists descendant provider and tool calls under an authorized spawn effect", async () => {
@@ -967,6 +1117,7 @@ describe("durable dynamic workflow runtime", () => {
         requestSource: "model",
         status: "started",
       });
+      args.onProviderReceipt(workflowProviderReceiptEvent(providerBoundary));
       args.onUsageSettlement({
         type: "token-usage",
         callId: providerBoundary.callId,

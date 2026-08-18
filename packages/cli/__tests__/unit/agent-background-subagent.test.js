@@ -173,6 +173,7 @@ describe("spawn_sub_agent background mode", () => {
         subAgentUsageSink: [],
         onUsageBoundary: vi.fn(),
         onUsageSettlement: vi.fn(),
+        onProviderReceipt: vi.fn(),
         onToolCallBoundary: vi.fn(),
         onToolCallSettlement: vi.fn(),
       },
@@ -183,6 +184,7 @@ describe("spawn_sub_agent background mode", () => {
     expect(_subState.created[0].opts).toMatchObject({
       workflowEffectId: workflowChildEffectId,
       strictUsageTelemetry: true,
+      onProviderReceipt: expect.any(Function),
     });
   });
 

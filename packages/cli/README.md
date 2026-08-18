@@ -973,18 +973,21 @@ The dynamic runtime also installs synchronous durable-call observers around the
 Cowork child. Before each bound provider or directly dispatched tool call can
 continue to transport, the runtime appends a bounded `started` row under the
 pending outer effect with the exact provider request or child-effect identity.
-The matching callback persists `completed`, `failed`, or `outcome_unknown`
-independently of the eventual Cowork result. A crash therefore leaves an
-independently readable started row instead of relying on a completed-result
-projection. When the provider returned a trace receipt, that same synchronous
-settlement validates its effect owner, provider, call, request source, sequence,
-client request ID, and trace-only semantics, then stores only the bounded
-provider request/response IDs in the call row. The receipt therefore survives a
-crash before outer task settlement, including for descendant provider calls;
-it remains neither provider-native idempotency nor independently readable from
-the provider. Duplicate, malformed, mismatched, or tampered rows fail closed. Explicit outer
-effect reconciliation marks any still-started rows as operator reconciled but
-does not turn trace-only request identities into third-party idempotency.
+When a provider returns a trace receipt, a second synchronous observer validates
+its effect owner, provider, call, request source, sequence, client request ID,
+and trace-only semantics, then stores only the bounded provider request/response
+IDs and receipt timestamp while the call is still `started`. The terminal
+callback later persists `completed`, `failed`, or `outcome_unknown`
+independently of the eventual Cowork result and refuses a settlement-carried
+receipt that was not identically prewritten. A crash after provider response but
+before usage settlement therefore leaves an independently readable started row
+with the receipt, instead of relying on a completed-result projection. This also
+holds for descendant provider calls; the receipt remains neither provider-native
+idempotency nor independently readable from the provider. Duplicate, malformed,
+mismatched, or tampered rows fail closed. Explicit outer effect reconciliation
+preserves any prewritten receipt while marking still-started rows as operator
+reconciled, but does not turn trace-only request identities into third-party
+idempotency.
 Spawned sub-agents and isolated skills inherit the already-persisted parent
 tool child-effect as their workflow owner. Their internal provider/tool calls
 therefore enter the same store with a verified owner chain; an orphan or
@@ -1019,7 +1022,7 @@ idempotency, and provider-side receipt lookup remain open.
 
 **WS protocol**: `workflow-list` / `workflow-get` / `workflow-save` / `workflow-remove` / `workflow-run` (streams `workflow:started` / `step-start` / `step-complete` / `workflow:done`).
 
-**Key files**: `src/gateways/ws/action-protocol.js` (5 handlers), `src/lib/cowork-workflow.js` (CRUD + `executeWorkflow`), `src/lib/dynamic-workflow-draft.js` (model proposal + human review authority), `src/lib/dynamic-workflow-runtime.js` (atomic parallel durable effect protocol), `packages/web-panel/src/stores/workflow.js` (Pinia store + `validateLocal`), `packages/web-panel/src/views/WorkflowEditor.vue`. **Governed CLI regression**: 584 tests across draft/review, durable runtime, façade, DAG, WebSocket, admission, provider/tool/descendant call binding, durable provider receipt settlement, and MCP ledger coverage; the original editor slice retains its 39 backend/frontend/integration/E2E tests.
+**Key files**: `src/gateways/ws/action-protocol.js` (5 handlers), `src/lib/cowork-workflow.js` (CRUD + `executeWorkflow`), `src/lib/dynamic-workflow-draft.js` (model proposal + human review authority), `src/lib/dynamic-workflow-runtime.js` (atomic parallel durable effect protocol), `packages/web-panel/src/stores/workflow.js` (Pinia store + `validateLocal`), `packages/web-panel/src/views/WorkflowEditor.vue`. **Governed CLI regression**: 586 tests across draft/review, durable runtime, façade, DAG, WebSocket, admission, provider/tool/descendant call binding, durable provider receipt prewrite/settlement, and MCP ledger coverage; the original editor slice retains its 39 backend/frontend/integration/E2E tests.
 
 > Vue Flow visual canvas (drag-to-connect, branch rendering) is planned as M2.
 

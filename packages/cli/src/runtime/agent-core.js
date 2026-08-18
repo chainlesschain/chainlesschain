@@ -3598,6 +3598,7 @@ export async function executeTool(name, args, context = {}) {
       strictUsageTelemetry: context.strictUsageTelemetry === true,
       onUsageBoundary: context.onUsageBoundary || null,
       onUsageSettlement: context.onUsageSettlement || null,
+      onProviderReceipt: context.onProviderReceipt || null,
       onToolCallBoundary: context.onToolCallBoundary || null,
       onToolCallSettlement: context.onToolCallSettlement || null,
       backgroundUsageFailureState: context.backgroundUsageFailureState || null,
@@ -5014,6 +5015,7 @@ async function executeToolInner(
     strictUsageTelemetry = false,
     onUsageBoundary = null,
     onUsageSettlement = null,
+    onProviderReceipt = null,
     onToolCallBoundary = null,
     onToolCallSettlement = null,
     backgroundUsageFailureState = null,
@@ -6763,6 +6765,7 @@ async function executeToolInner(
           strictUsageTelemetry,
           onUsageBoundary,
           onUsageSettlement,
+          onProviderReceipt,
           onToolCallBoundary,
           onToolCallSettlement,
           backgroundUsageFailureState,
@@ -7689,6 +7692,15 @@ async function executeToolInner(
                   projectSkillUsage(event),
                 )
             : null;
+        const observeSkillReceipt =
+          strictUsageTelemetry === true &&
+          typeof onProviderReceipt === "function"
+            ? (event) =>
+                _notifyStrictProviderReceipt(
+                  onProviderReceipt,
+                  projectSkillUsage(event),
+                )
+            : null;
         const projectSkillTool = (event) => ({
           ...event,
           attribution: event?.attribution || projectSkillUsage({}).attribution,
@@ -7781,6 +7793,9 @@ async function executeToolInner(
                   strictUsageTelemetry: true,
                   onUsageBoundary: observeSkillBoundary,
                   onUsageSettlement: observeSkillSettlement,
+                  ...(observeSkillReceipt
+                    ? { onProviderReceipt: observeSkillReceipt }
+                    : {}),
                   onToolCallBoundary: observeSkillToolBoundary,
                   onToolCallSettlement: observeSkillToolSettlement,
                 }
@@ -9642,6 +9657,20 @@ async function _executeSpawnSubAgent(args, ctx) {
           }
         }
       : null;
+  const observeSubagentReceipt =
+    ctx.strictUsageTelemetry === true &&
+    typeof ctx.onProviderReceipt === "function"
+      ? (event) => {
+          try {
+            return _notifyStrictProviderReceipt(
+              ctx.onProviderReceipt,
+              projectSubagentUsage(event),
+            );
+          } catch (error) {
+            throw latchBackgroundUsageFailure(error);
+          }
+        }
+      : null;
   const projectSubagentTool = (event) => ({
     ...event,
     attribution:
@@ -9751,6 +9780,9 @@ async function _executeSpawnSubAgent(args, ctx) {
           strictUsageTelemetry: true,
           onUsageBoundary: observeSubagentBoundary,
           onUsageSettlement: observeSubagentSettlement,
+          ...(observeSubagentReceipt
+            ? { onProviderReceipt: observeSubagentReceipt }
+            : {}),
           onToolCallBoundary: observeSubagentToolBoundary,
           onToolCallSettlement: observeSubagentToolSettlement,
         }
@@ -12093,6 +12125,38 @@ function _notifyStrictUsageSettlement(observer, settlement) {
   }
 }
 
+function _notifyStrictProviderReceipt(observer, receipt) {
+  if (typeof observer !== "function") return;
+  let observation;
+  try {
+    observation = observer(receipt);
+  } catch (error) {
+    throw _runtimeUsageBoundaryFailure(
+      error,
+      "CC_USAGE_RECEIPT_PERSISTENCE_FAILED",
+      "Child provider receipt persistence failed",
+    );
+  }
+  let isThenable = false;
+  try {
+    isThenable = Boolean(observation && typeof observation.then === "function");
+  } catch (error) {
+    throw _runtimeUsageBoundaryFailure(
+      error,
+      "CC_USAGE_RECEIPT_OBSERVER_ASYNC",
+      "Child provider receipt observer must be synchronous",
+    );
+  }
+  if (isThenable) {
+    void Promise.resolve(observation).catch(() => {});
+    throw _runtimeUsageBoundaryFailure(
+      null,
+      "CC_USAGE_RECEIPT_OBSERVER_ASYNC",
+      "Child provider receipt observer must be synchronous",
+    );
+  }
+}
+
 function _notifyStrictToolObserver(observer, event, phase) {
   const upper = phase.toUpperCase();
   if (typeof observer !== "function") {
@@ -12757,6 +12821,9 @@ export async function* agentLoop(messages, options) {
       ...(typeof options.onUsageSettlement === "function"
         ? { onUsageSettlement: options.onUsageSettlement }
         : {}),
+      ...(typeof options.onProviderReceipt === "function"
+        ? { onProviderReceipt: options.onProviderReceipt }
+        : {}),
       ...(typeof options.onStreamRetry === "function"
         ? { onStreamRetry: options.onStreamRetry }
         : {}),
@@ -12773,6 +12840,7 @@ export async function* agentLoop(messages, options) {
     strictUsageTelemetry: options.strictUsageTelemetry === true,
     onUsageBoundary: options.onUsageBoundary || null,
     onUsageSettlement: options.onUsageSettlement || null,
+    onProviderReceipt: options.onProviderReceipt || null,
     onToolCallBoundary: options.onToolCallBoundary || null,
     onToolCallSettlement: options.onToolCallSettlement || null,
     parentMessages: messages, // pass parent messages for sub-agent auto-condensation

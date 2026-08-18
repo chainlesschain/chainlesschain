@@ -162,6 +162,8 @@ export class SubAgentContext {
    *   work cannot begin without a durable parent boundary.
    * @param {function} [options.onUsageSettlement] - Synchronous observer for
    *   real child token-usage/model-usage-unknown settlements.
+   * @param {function} [options.onProviderReceipt] - Synchronous observer for
+   *   a provider-returned receipt before the matching usage settlement.
    * @param {function} [options.onToolCallBoundary] - Synchronous observer for
    *   real child tool-executing boundaries.
    * @param {function} [options.onToolCallSettlement] - Synchronous observer for
@@ -283,6 +285,10 @@ export class SubAgentContext {
     this._onUsageSettlement =
       typeof options.onUsageSettlement === "function"
         ? options.onUsageSettlement
+        : null;
+    this._onProviderReceipt =
+      typeof options.onProviderReceipt === "function"
+        ? options.onProviderReceipt
         : null;
     this._onToolCallBoundary =
       typeof options.onToolCallBoundary === "function"
@@ -690,6 +696,7 @@ export class SubAgentContext {
     const pendingToolCalls = new Map();
     let observeUsageBoundary = null;
     let observeUsageSettlement = null;
+    let observeProviderReceipt = null;
     let observeToolBoundary = null;
     let observeToolSettlement = null;
     const providerReceiptForSettlement = (event) => {
@@ -739,6 +746,17 @@ export class SubAgentContext {
         requireSyncUsageObserver(this._onUsageSettlement, event, "settlement");
         pendingUsageCalls.delete(callId);
       };
+      observeProviderReceipt = (event) => {
+        const callId = requireUsageCallId(event, "receipt");
+        if (!pendingUsageCalls.has(callId)) {
+          throw runtimeUsageObserverFailure(
+            null,
+            "CC_USAGE_RECEIPT_BOUNDARY_MISSING",
+            `Child provider receipt has no matching boundary: ${callId}`,
+          );
+        }
+        requireSyncUsageObserver(this._onProviderReceipt, event, "receipt");
+      };
 
       // agentLoop yields model-usage-started before provider work. Its consumer
       // runs synchronously before requesting the next event, so a durable host
@@ -747,6 +765,9 @@ export class SubAgentContext {
       // directly, before its provider query, rather than yielding a start event.
       options.onUsageBoundary = observeUsageBoundary;
       options.onUsageSettlement = observeUsageSettlement;
+      if (this._onProviderReceipt) {
+        options.onProviderReceipt = observeProviderReceipt;
+      }
       options.strictUsageTelemetry = true;
 
       observeToolBoundary = (event) => {
@@ -869,21 +890,28 @@ export class SubAgentContext {
           }
         }
         if (event.type === "provider-request-receipt") {
-          this._providerRequestReceipts.push(
-            Object.freeze({
-              protocol: event.protocol,
-              provider: event.provider,
-              workflowEffectId: event.workflowEffectId,
-              callId: event.callId,
-              callSequence: event.callSequence,
-              source: event.source,
-              clientRequestId: event.clientRequestId,
-              requestId: event.requestId || null,
-              responseId: event.responseId || null,
-              requestIdentitySemantics: event.requestIdentitySemantics,
-              independentlyReadable: event.independentlyReadable,
-            }),
-          );
+          const receipt = Object.freeze({
+            protocol: event.protocol,
+            provider: event.provider,
+            workflowEffectId: event.workflowEffectId,
+            callId: event.callId,
+            callSequence: event.callSequence,
+            source: event.source,
+            clientRequestId: event.clientRequestId,
+            requestId: event.requestId || null,
+            responseId: event.responseId || null,
+            requestIdentitySemantics: event.requestIdentitySemantics,
+            independentlyReadable: event.independentlyReadable,
+          });
+          this._providerRequestReceipts.push(receipt);
+          if (strictUsageTelemetry && this._onProviderReceipt) {
+            observeProviderReceipt({
+              type: "provider-request-receipt",
+              ...receipt,
+              workflowRequestSource: receipt.source,
+              providerReceipt: { ...receipt },
+            });
+          }
         }
 
         if (event.type === "token-usage") {

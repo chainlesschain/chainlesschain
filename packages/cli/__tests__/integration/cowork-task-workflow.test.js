@@ -246,6 +246,7 @@ describe("cowork task workflow", () => {
     const observers = {
       onUsageBoundary: vi.fn(),
       onUsageSettlement: vi.fn(),
+      onProviderReceipt: vi.fn(),
       onToolCallBoundary: vi.fn(),
       onToolCallSettlement: vi.fn(),
     };

@@ -495,34 +495,57 @@ describe("SubAgentContext usage forwarding", () => {
 });
 
 describe("SubAgentContext strict usage boundary contract", () => {
-  it("attaches the matching provider receipt to the synchronous settlement", async () => {
+  it("prewrites the matching provider receipt before usage settlement", async () => {
     const workflowEffectId = `sha256:${"6".repeat(64)}`;
+    const timeline = [];
+    const receipts = [];
     const settlements = [];
     const subCtx = createContext({
       workflowEffectId,
       strictUsageTelemetry: true,
-      onUsageBoundary: vi.fn(),
-      onUsageSettlement: (event) => settlements.push({ ...event }),
+      onUsageBoundary: () => timeline.push("boundary"),
+      onProviderReceipt: (event) => {
+        timeline.push("receipt");
+        receipts.push({ ...event });
+      },
+      onUsageSettlement: (event) => {
+        timeline.push("settlement");
+        settlements.push({ ...event });
+      },
     });
 
     await subCtx.run("count things", {
       ...RUN_OPTIONS,
       provider: "openai",
       model: "gpt-4o",
-      chatFn: async (_messages, options) => ({
-        ...finalResponse("done", { input_tokens: 2, output_tokens: 1 }),
-        providerReceipt: {
-          protocol: "cc-provider-request-receipt/v1",
-          provider: "openai",
-          clientRequestId: options.providerRequestId,
-          requestId: "req_strict_child",
-          responseId: "chatcmpl_strict_child",
-          requestIdentitySemantics: "trace-only",
-          independentlyReadable: false,
-        },
-      }),
+      chatFn: async (_messages, options) => {
+        timeline.push("provider");
+        return {
+          ...finalResponse("done", { input_tokens: 2, output_tokens: 1 }),
+          providerReceipt: {
+            protocol: "cc-provider-request-receipt/v1",
+            provider: "openai",
+            clientRequestId: options.providerRequestId,
+            requestId: "req_strict_child",
+            responseId: "chatcmpl_strict_child",
+            requestIdentitySemantics: "trace-only",
+            independentlyReadable: false,
+          },
+        };
+      },
     });
 
+    expect(timeline).toEqual(["boundary", "provider", "receipt", "settlement"]);
+    expect(receipts).toHaveLength(1);
+    expect(receipts[0]).toMatchObject({
+      type: "provider-request-receipt",
+      workflowEffectId,
+      workflowRequestSource: "model",
+      providerReceipt: expect.objectContaining({
+        requestId: "req_strict_child",
+        responseId: "chatcmpl_strict_child",
+      }),
+    });
     expect(settlements).toHaveLength(1);
     expect(settlements[0].providerReceipt).toMatchObject({
       protocol: "cc-provider-request-receipt/v1",
@@ -593,6 +616,44 @@ describe("SubAgentContext strict usage boundary contract", () => {
       boundaryNotified: true,
       ledgerPersisted: true,
     });
+  });
+
+  it("stops before usage settlement when provider receipt persistence fails", async () => {
+    const failure = new Error("receipt prewrite disk full");
+    const settlement = vi.fn();
+    const subCtx = createContext({
+      workflowEffectId: `sha256:${"5".repeat(64)}`,
+      strictUsageTelemetry: true,
+      onUsageBoundary: vi.fn(),
+      onProviderReceipt: () => {
+        throw failure;
+      },
+      onUsageSettlement: settlement,
+    });
+
+    const error = await captureRejection(
+      subCtx.run("count things", {
+        ...RUN_OPTIONS,
+        provider: "openai",
+        model: "gpt-4o",
+        chatFn: async (_messages, options) => ({
+          ...finalResponse("done", { input_tokens: 2, output_tokens: 1 }),
+          providerReceipt: {
+            protocol: "cc-provider-request-receipt/v1",
+            provider: "openai",
+            clientRequestId: options.providerRequestId,
+            requestId: "req_prewrite_failure",
+            responseId: null,
+            requestIdentitySemantics: "trace-only",
+            independentlyReadable: false,
+          },
+        }),
+      }),
+    );
+
+    expect(error).toBe(failure);
+    expect(error.runtimeLedgerPersistence).toBe(true);
+    expect(settlement).not.toHaveBeenCalled();
   });
 
   it("pairs every call independently across multiple child model turns", async () => {

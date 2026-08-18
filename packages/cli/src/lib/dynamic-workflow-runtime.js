@@ -248,7 +248,12 @@ function expectedWorkflowProviderRequestId(effectId, source, sequence) {
     .digest("hex")}`;
 }
 
-function verifyEffectCalls(effect, effectIndex, issues) {
+function verifyEffectCalls(
+  effect,
+  effectIndex,
+  issues,
+  receiptLineageByCallId,
+) {
   const calls = effect?.calls === undefined ? [] : effect.calls;
   if (!Array.isArray(calls) || calls.length > MAX_CALLS_PER_EFFECT) {
     issues.push(`effect-${effectIndex}-calls-invalid`);
@@ -266,11 +271,22 @@ function verifyEffectCalls(effect, effectIndex, issues) {
           ? call?.source
           : null
         : call.requestSource;
+    const receiptLineage = receiptLineageByCallId.get(call?.id) || [];
+    const receiptLineageValid =
+      receiptLineage.length === 1 &&
+      receiptLineage[0]?.details?.effectId === effect.id &&
+      receiptLineage[0]?.details?.ownerEffectId === ownerEffectId &&
+      receiptLineage[0]?.details?.callRecordId === call?.id;
+    const hasReceiptTimestamp = Object.prototype.hasOwnProperty.call(
+      call || {},
+      "providerReceiptRecordedAt",
+    );
     const terminal = call?.status !== "started";
     const identityKey = `${call?.kind || ""}\0${
       call?.kind === "tool" ? call?.childEffectId : call?.callId
     }`;
     let timestampsValid = false;
+    let receiptTimestampValid = false;
     try {
       timestampsValid =
         isoNow(call?.startedAt) === call.startedAt &&
@@ -281,8 +297,22 @@ function verifyEffectCalls(effect, effectIndex, issues) {
             (effect.settledAt === null ||
               Date.parse(call.settledAt) <= Date.parse(effect.settledAt))
           : call?.settledAt === null);
+      receiptTimestampValid = call?.providerReceiptPersisted
+        ? receiptLineageValid
+          ? hasReceiptTimestamp &&
+            isoNow(call.providerReceiptRecordedAt) ===
+              call.providerReceiptRecordedAt &&
+            Date.parse(call.providerReceiptRecordedAt) >=
+              Date.parse(call.startedAt) &&
+            (!terminal ||
+              Date.parse(call.providerReceiptRecordedAt) <=
+                Date.parse(call.settledAt))
+          : receiptLineage.length === 0 && !hasReceiptTimestamp && terminal
+        : receiptLineage.length === 0 &&
+          (call?.providerReceiptRecordedAt === null || !hasReceiptTimestamp);
     } catch {
       timestampsValid = false;
+      receiptTimestampValid = false;
     }
     const commonValid =
       call?.schema === DYNAMIC_WORKFLOW_CALL_SCHEMA &&
@@ -328,6 +358,7 @@ function verifyEffectCalls(effect, effectIndex, issues) {
         Boolean(
           call.providerReceiptRequestId || call.providerReceiptResponseId,
         ) &&
+      receiptTimestampValid &&
       (call.mcpLedgerId === null ||
         PROVIDER_RECEIPT_ID_RE.test(call.mcpLedgerId || "")) &&
       typeof call.mcpLedgerPrewritePersisted === "boolean" &&
@@ -355,8 +386,7 @@ function verifyEffectCalls(effect, effectIndex, issues) {
             call.sequence,
           ) &&
         call.identitySemantics === "trace-only" &&
-        (call.providerReceiptPersisted === false ||
-          ["completed", "outcome_unknown"].includes(call.status)) &&
+        call.status !== "failed" &&
         call.mcpLedgerId === null &&
         call.mcpLedgerPrewritePersisted === false &&
         call.mcpLedgerSettlementPersisted === false);
@@ -379,14 +409,12 @@ function verifyEffectCalls(effect, effectIndex, issues) {
         call.providerReceiptPersisted === false &&
         call.providerReceiptRequestId === null &&
         call.providerReceiptResponseId === null &&
+        (call.providerReceiptRecordedAt === null || !hasReceiptTimestamp) &&
         call.identitySemantics === "runtime-derived");
     const settlementValid = terminal
       ? call.settlementCode !== null || call.status === "completed"
       : call.settlementCode === null &&
         call.outcomeUnknown === false &&
-        call.providerReceiptPersisted === false &&
-        call.providerReceiptRequestId === null &&
-        call.providerReceiptResponseId === null &&
         call.mcpLedgerId === null &&
         call.mcpLedgerPrewritePersisted === false &&
         call.mcpLedgerSettlementPersisted === false;
@@ -452,6 +480,33 @@ export function verifyDynamicWorkflowRuntimeState(value) {
   if (!Array.isArray(state.effects) || state.effects.length > MAX_EFFECTS) {
     issues.push("effects-invalid");
   } else {
+    const receiptLineageByCallId = new Map();
+    for (const event of state.lineage) {
+      if (event.type !== "effect-call-receipt-recorded") continue;
+      const callRecordId = event?.details?.callRecordId;
+      if (!receiptLineageByCallId.has(callRecordId)) {
+        receiptLineageByCallId.set(callRecordId, []);
+      }
+      receiptLineageByCallId.get(callRecordId).push(event);
+    }
+    const knownCallIds = new Set(
+      state.effects.flatMap((effect) =>
+        Array.isArray(effect?.calls)
+          ? effect.calls.map((call) => call?.id)
+          : [],
+      ),
+    );
+    let receiptLineageIndex = 0;
+    for (const [callRecordId, events] of receiptLineageByCallId) {
+      if (
+        !SHA256_RE.test(callRecordId || "") ||
+        !knownCallIds.has(callRecordId) ||
+        events.length !== 1
+      ) {
+        issues.push(`receipt-lineage-${receiptLineageIndex}-invalid`);
+      }
+      receiptLineageIndex += 1;
+    }
     const ids = new Set();
     const keys = new Set();
     const batches = new Map();
@@ -569,7 +624,7 @@ export function verifyDynamicWorkflowRuntimeState(value) {
       }
       ids.add(effect?.id);
       keys.add(effect?.key);
-      verifyEffectCalls(effect, index, issues);
+      verifyEffectCalls(effect, index, issues, receiptLineageByCallId);
       if (batchMetadataValid && hasBatchMetadata) {
         if (!batches.has(effect.batchId)) batches.set(effect.batchId, []);
         batches.get(effect.batchId).push(effect);
@@ -1296,6 +1351,7 @@ function workflowCallAttempt(effectId, kind, event, now) {
       providerReceiptPersisted: false,
       providerReceiptRequestId: null,
       providerReceiptResponseId: null,
+      providerReceiptRecordedAt: null,
       mcpLedgerId: null,
       mcpLedgerPrewritePersisted: false,
       mcpLedgerSettlementPersisted: false,
@@ -1350,6 +1406,7 @@ function workflowCallAttempt(effectId, kind, event, now) {
     providerReceiptPersisted: false,
     providerReceiptRequestId: null,
     providerReceiptResponseId: null,
+    providerReceiptRecordedAt: null,
     mcpLedgerId: null,
     mcpLedgerPrewritePersisted: false,
     mcpLedgerSettlementPersisted: false,
@@ -1492,12 +1549,78 @@ function providerReceiptSettlement(call, event) {
   return { persisted: true, requestId, responseId };
 }
 
+function recordEffectCallReceipt(statePath, runId, effectId, event, now) {
+  return withStateMutation(statePath, (current) => {
+    if (!current || current.runId !== runId) {
+      throw new Error(
+        "durable workflow run disappeared before provider receipt prewrite",
+      );
+    }
+    const effectIndex = current.effects.findIndex(
+      (effect) => effect.id === effectId,
+    );
+    const effect = current.effects[effectIndex];
+    const callIndex = (effect?.calls || []).findIndex(
+      (call) => call.kind === "provider" && call.callId === event?.callId,
+    );
+    const call = effect?.calls?.[callIndex];
+    if (
+      !effect ||
+      effect.status !== "pending" ||
+      !call ||
+      call.status !== "started" ||
+      call.providerReceiptPersisted === true
+    ) {
+      throw new Error("workflow provider call cannot record this receipt");
+    }
+    if (
+      event?.type !== "provider-request-receipt" ||
+      event.provider !== call.name ||
+      event.source !== call.source ||
+      event.workflowRequestSource !== call.requestSource ||
+      event.workflowEffectId !== (call.ownerEffectId ?? call.effectId)
+    ) {
+      throw new TypeError("workflow provider receipt envelope is malformed");
+    }
+    const receipt = providerReceiptSettlement(call, event);
+    if (!receipt.persisted) {
+      throw new TypeError("workflow provider receipt envelope is empty");
+    }
+    const providerReceiptRecordedAt = isoNow(now);
+    const state = transition(
+      current,
+      "effect-call-receipt-recorded",
+      {
+        effectId,
+        ownerEffectId: call.ownerEffectId ?? call.effectId,
+        callRecordId: call.id,
+      },
+      (draft) => {
+        const calls = [...(draft.effects[effectIndex].calls || [])];
+        calls[callIndex] = {
+          ...calls[callIndex],
+          providerReceiptPersisted: true,
+          providerReceiptRequestId: receipt.requestId,
+          providerReceiptResponseId: receipt.responseId,
+          providerReceiptRecordedAt,
+        };
+        draft.effects[effectIndex] = {
+          ...draft.effects[effectIndex],
+          calls,
+        };
+      },
+      now,
+    );
+    return { state, value: state.effects[effectIndex].calls[callIndex] };
+  });
+}
+
 function effectCallSettlement(call, event, now) {
   let status;
   let settlementCode = null;
-  let providerReceiptPersisted = false;
-  let providerReceiptRequestId = null;
-  let providerReceiptResponseId = null;
+  let providerReceiptPersisted = call.providerReceiptPersisted;
+  let providerReceiptRequestId = call.providerReceiptRequestId;
+  let providerReceiptResponseId = call.providerReceiptResponseId;
   let mcpLedgerId = null;
   let mcpLedgerPrewritePersisted = false;
   let mcpLedgerSettlementPersisted = false;
@@ -1516,9 +1639,16 @@ function effectCallSettlement(call, event, now) {
         ? String(event.code || "provider_outcome_unknown")
         : null;
     const providerReceipt = providerReceiptSettlement(call, event);
-    providerReceiptPersisted = providerReceipt.persisted;
-    providerReceiptRequestId = providerReceipt.requestId;
-    providerReceiptResponseId = providerReceipt.responseId;
+    if (
+      providerReceipt.persisted &&
+      (!call.providerReceiptPersisted ||
+        providerReceipt.requestId !== call.providerReceiptRequestId ||
+        providerReceipt.responseId !== call.providerReceiptResponseId)
+    ) {
+      throw new TypeError(
+        "workflow provider receipt was not durably prewritten",
+      );
+    }
   } else {
     if (
       event?.type !== "tool-result" ||
@@ -1637,6 +1767,9 @@ function createDurableCallObservers(statePath, runId, effectId, now) {
     },
     onUsageSettlement(event) {
       settleEffectCall(statePath, runId, effectId, "provider", event, now);
+    },
+    onProviderReceipt(event) {
+      recordEffectCallReceipt(statePath, runId, effectId, event, now);
     },
     onToolCallBoundary(event) {
       beginEffectCall(statePath, runId, effectId, "tool", event, now);
@@ -2590,6 +2723,10 @@ function projectDurableWorkflowCalls(state) {
             protocol: "cc-provider-request-receipt/v1",
             requestId: call.providerReceiptRequestId,
             responseId: call.providerReceiptResponseId,
+            recordedAt:
+              call.providerReceiptRecordedAt === undefined
+                ? call.settledAt
+                : call.providerReceiptRecordedAt,
             requestIdentitySemantics: "trace-only",
             independentlyReadable: false,
           }

@@ -2588,6 +2588,55 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 四十四、2026-08-18 P1-1 provider receipt 先行持久化与 settlement fence 子门复核（`12:11 +08:00`）
+
+本节继续第四十三节，并精确替换其中“provider response 已返回、usage settlement 尚未持久化时只能留下无 receipt 的 started row”这一窄边界；
+不把本地 receipt prewrite 外推为 provider 原生幂等，也不把 provider 随响应返回的 trace identifier 改名为可从第三方独立回读的 durable receipt。
+候选基于已合并本地主分支 `fbb94ebc6653b90c8ca7b2098464f7cc72dc0b18` 的功能分支，尚无本候选 exact-head GitHub Actions。
+
+### 本轮关闭的 receipt prewrite 子门
+
+- **receipt 在 usage/unknown settlement 之前单独同步落盘。** `SubAgentContext` 消费 `provider-request-receipt` 时先按真实 call id 确认已有
+  usage boundary，再同步调用 durable receipt observer；observer 成功后才允许继续消费 matching token usage 或 unknown event。observer throw、thenable、
+  无 matching boundary 或 receipt envelope 漂移都会原样 fail closed，不会继续写 terminal settlement。
+- **started call row 可以携带受约束的 receipt 事实。** dynamic runtime 在独立状态事务中校验 protocol、provider、owner effect、call id、sequence、
+  attribution source、原始 request source、client request id 与 trace-only 语义，保存 bounded request/response id 和 `providerReceiptRecordedAt`，并追加
+  `effect-call-receipt-recorded` lineage。进程在 provider response 后、usage settlement 前崩溃时，回读得到的是带 receipt 的 `started` row；不会再丢失
+  已观察到的 provider 标识，也不会伪造 completed outcome。
+- **terminal settlement 不得补写首份 receipt。** usage/unknown callback 若携带 receipt，必须与已持久 prewrite 的 request/response id 完全一致；缺失 prewrite、
+  call mismatch 或二次 receipt 一律拒绝。无 receipt 的 provider 仍可按真实 usage/unknown 结算，避免把“不支持 receipt”误判为 provider 失败。
+- **descendant 与人工 reconcile 保留同一事实。** spawned sub-agent 和 isolated skill 的 receipt observer 经过与 boundary/settlement 相同的 owner/attribution
+  投影链；顶层工具分派不再漏传该 observer。对 receipt-prewritten started call 执行显式 operator reconciliation 时，状态只把 outcome authority 改为
+  `operator_reconciled`，不会删除 receipt 或把它升级成第三方幂等证明。
+- **状态 verifier 对 receipt 时间与类型 fail closed。** `providerReceiptRecordedAt` 必须不早于 call start，terminal call 上不得晚于 settlement；receipt-free call
+  必须保持该时间为空，tool/failed call 不得伪造 provider receipt。即使攻击者重算整个 state digest，篡改 receipt id 或时间顺序仍不能通过回读。
+  第四十三节产生的旧 v1 call row 没有该字段与 prewrite lineage 时仍可读取，并只对已 terminal 的旧 receipt 以同事务 `settledAt` 投影记录时间；带新
+  `effect-call-receipt-recorded` lineage 的行不能通过删除时间字段降级成旧语义。
+
+### 仓库内验证与证据边界
+
+- dynamic runtime 与 SubAgent receipt 两个聚焦文件为 **55/55**；覆盖 response 后、usage settlement 前 crash、receipt observer 持久化失败、无 prewrite
+  settlement 拒绝、operator reconcile 保留 receipt、recorded-at tamper、旧 receipt row 兼容回读，以及普通模型/descendant/isolated skill 的同步转交。
+- manifest `p1-dynamic-workflow` 引用的 **18 个文件为 586/586**；roadmap verifier 与 journey evidence 两文件为 **37/37**。
+- roadmap manifest 从 `1.9.10` 升至 `1.9.11`，baseline 绑定本轮起点 `fbb94ebc6653b90c8ca7b2098464f7cc72dc0b18`；fixture digest 为
+  `sha256:407aaa32c5466f01870005b4abb8229482d07dff3d2dad0a70901b7d57b9eb9e`。`--contract-only` 回读
+  **15 cases / 69 referenced test files**，并继续明确 runtime evidence 与 release readiness 未被评估。
+
+### P1-1 仍未关闭的边界
+
+1. **provider 原生幂等与独立 readback：** 当前 prewrite 只证明本进程在响应路径观察并本地持久化了 trace identifier；provider 尚未强制消费
+   effect/batch idempotency key，也没有独立 API 以该 receipt 裁决外部副作用。response 到达进程前的网络丢失仍只能保守视为 unknown。
+2. **完整 side-effect 与制品 authority：** 无 receipt provider 只能保存 call/settlement ledger；hook/checkpoint/artifact 与绕过受管 observer 的
+   external-system side effects 尚未统一 prewrite。ArtifactStore immutable bytes、checkpoint restore/readback、真实 token/USD ledger 与不合作 provider
+   的物理取消仍开放。
+3. **完整产品与外部矩阵：** 一般阶段间 `needs_input`、Workbench/VS Code/JetBrains phase/agent/control UI、plugin/marketplace 分发，以及
+   Local/WSL/SSH/Container/Cloud × 三 OS × 双 IDE 每格 100 次 exact-head 真实 provider/宿主故障矩阵仍无外部证据。
+
+因此，P1-1 的**provider receipt 独立先行持久化、prewrite-before-settlement fence、response 后 crash-visible started receipt、descendant 转交与
+reconcile 保留**由本节关闭；P1-1 整项仍为**部分完成**，不得据此声明 provider-native exactly-once 或 independently-readable receipt。总计数保持
+**12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
+Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
+
 ## 四十三、2026-08-18 P1-1 durable provider receipt settlement 与 crash-visible readback 子门复核（`11:40 +08:00`）
 
 本节继续第四十一、四十二节，把此前只随 completed Cowork result 进入 lineage 的 **provider-returned trace receipt** 接到逐调用 durable store；
