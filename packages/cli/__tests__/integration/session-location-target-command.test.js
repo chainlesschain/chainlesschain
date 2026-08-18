@@ -654,4 +654,81 @@ describe("session location target command routes", () => {
       bundleAvailable: false,
     });
   });
+
+  it("routes stored result review without printing returned content", async () => {
+    const storage = { receiptDigest: `sha256:${"f".repeat(64)}` };
+    const settlement = {
+      schema:
+        "chainlesschain.session-execution-location-result-collection-receipt/v2",
+      requestId: "review-request-1",
+      resultId: "review-result-1",
+      storage,
+    };
+    const bundle = {
+      bundleDigest: DIGEST,
+      privateBytes: "private returned bytes",
+    };
+    const review = {
+      schema: "cc-execution-location-result-review/v1",
+      resultId: "review-result-1",
+      reviewDigest: `sha256:${"6".repeat(64)}`,
+      bundleDigest: DIGEST,
+      summary: { byteLength: 21, digest: `sha256:${"7".repeat(64)}` },
+      diff: { byteLength: 31, digest: `sha256:${"8".repeat(64)}` },
+      applied: false,
+    };
+    const readStored = vi.fn(() => bundle);
+    const createReview = vi.fn(() => review);
+
+    await program(
+      dependencies({
+        readVerifiedSessionExecutionLocationResultSettlement: () => settlement,
+        readStoredExecutionLocationResultBundle: readStored,
+        createExecutionLocationResultReview: createReview,
+      }),
+    ).parseAsync([
+      "node",
+      "cc",
+      "session",
+      "location",
+      "result-review",
+      "session-command-1",
+      "--request-id",
+      "review-request-1",
+    ]);
+
+    expect(process.exitCode).toBe(0);
+    expect(readStored).toHaveBeenCalledWith(storage, {});
+    expect(createReview).toHaveBeenCalledWith({ settlement, bundle });
+    const output = stdout.mock.calls.at(-1)[0];
+    expect(output).toContain(`Review: ${review.reviewDigest}`);
+    expect(output).toContain("Applied: no");
+    expect(output).not.toContain("private returned bytes");
+  });
+
+  it("fails closed when a legacy settlement has no stored bundle to review", async () => {
+    await program(
+      dependencies({
+        readVerifiedSessionExecutionLocationResultSettlement: () => ({
+          schema:
+            "chainlesschain.session-execution-location-result-collection-receipt/v1",
+          requestId: "legacy-review-request",
+          resultId: "legacy-result",
+        }),
+      }),
+    ).parseAsync([
+      "node",
+      "cc",
+      "session",
+      "location",
+      "result-review",
+      "session-command-1",
+      "--request-id",
+      "legacy-review-request",
+    ]);
+
+    expect(process.exitCode).toBe(1);
+    expect(stderr.mock.calls.at(-1)[0]).toMatch(/no durable bundle/u);
+    expect(stdout).not.toHaveBeenCalled();
+  });
 });
