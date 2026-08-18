@@ -699,6 +699,8 @@ export function importSessionExecutionLocationResultArtifact(
 function terminalSafeText(bytes) {
   const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
   return text.replace(
+    // The explicit control ranges are the terminal-injection boundary.
+    // eslint-disable-next-line no-control-regex
     /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u200e\u200f\u202a-\u202e\u2066-\u2069]/gu,
     (character) =>
       character.codePointAt(0) <= 0xff
