@@ -29,6 +29,8 @@ export const EXECUTION_LOCATION_TARGET_RESUME_SCHEMA =
   "cc-execution-location-target-resume/v1";
 export const EXECUTION_LOCATION_TARGET_RESULT_COLLECTION_SCHEMA =
   "cc-execution-location-target-result-collection/v1";
+export const EXECUTION_LOCATION_TARGET_RESULT_COLLECTION_REQUEST_SCHEMA =
+  "cc-execution-location-target-result-collection-request/v1";
 
 const SESSION_LOCATION_AUTHORITY_SCHEMA =
   "cc-session-execution-location-authority/v1";
@@ -865,6 +867,64 @@ function normalizeResultCollectionItem(entry, label) {
   return { mediaType, path: filePath };
 }
 
+export function createExecutionLocationTargetResultCollectionRequest(
+  input = {},
+) {
+  const profile = normalizeExecutionLocationProfile(input.profile);
+  const target = safeName(
+    input.target ?? profile.target,
+    "result collection target",
+    32,
+  );
+  if (target !== profile.target) {
+    throw new TypeError("result collection target does not match profile");
+  }
+  const requestId = safeName(input.requestId, "result collection request id", 128);
+  const sessionId = safeName(input.sessionId, "result collection session id");
+  const resultId = safeName(input.resultId, "result id", 128);
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/u.test(resultId)) {
+    throw new TypeError("result id is invalid");
+  }
+  const targetFactsDigest = String(input.expectedTargetFactsDigest || "").toLowerCase();
+  const handoffId = String(input.expectedHandoffId || "").toLowerCase();
+  if (!SHA256_RE.test(targetFactsDigest)) {
+    throw new TypeError("expected target facts digest is invalid");
+  }
+  if (!SHA256_RE.test(handoffId)) {
+    throw new TypeError("expected result handoff id is invalid");
+  }
+  const artifacts = (input.artifacts ?? []).map((entry, index) =>
+    normalizeResultCollectionItem(entry, `result artifact ${index}`),
+  );
+  const evidence = (input.evidence ?? []).map((entry, index) =>
+    normalizeResultCollectionItem(entry, `result evidence ${index}`),
+  );
+  if (artifacts.length + evidence.length > 64) {
+    throw new TypeError("result collection item list is invalid");
+  }
+  const material = {
+    schema: EXECUTION_LOCATION_TARGET_RESULT_COLLECTION_REQUEST_SCHEMA,
+    requestId,
+    sessionId,
+    target,
+    profileDigest: profile.profileDigest,
+    targetFactsDigest,
+    handoffId,
+    resultId,
+    summaryPath: safePath(input.summaryPath, "result summary path"),
+    diffPath: safePath(input.diffPath, "result diff path"),
+    artifacts,
+    evidence,
+  };
+  return Object.freeze({
+    ...material,
+    requestDigest: digest(
+      "chainlesschain.execution-location.target-result-collection-request.v1\0",
+      material,
+    ),
+  });
+}
+
 export function collectExecutionLocationTargetResult(input = {}, deps = {}) {
   const profile = normalizeExecutionLocationProfile(input.profile);
   validateProfileHandoff(profile, input.handoff);
@@ -911,6 +971,19 @@ export function collectExecutionLocationTargetResult(input = {}, deps = {}) {
   if (artifacts.length + evidence.length > 64) {
     throw new TypeError("result collection item list is invalid");
   }
+  const request = createExecutionLocationTargetResultCollectionRequest({
+    requestId: input.requestId,
+    sessionId: input.handoff?.session?.sessionId,
+    target: profile.target,
+    profile,
+    expectedTargetFactsDigest,
+    expectedHandoffId,
+    resultId,
+    summaryPath,
+    diffPath,
+    artifacts,
+    evidence,
+  });
   const args = [
     "session",
     "location",
@@ -963,7 +1036,10 @@ export function collectExecutionLocationTargetResult(input = {}, deps = {}) {
   }
   const material = {
     schema: EXECUTION_LOCATION_TARGET_RESULT_COLLECTION_SCHEMA,
+    requestId: request.requestId,
+    requestDigest: request.requestDigest,
     resultId,
+    target: profile.target,
     profileDigest: profile.profileDigest,
     targetFactsDigest: expectedTargetFactsDigest,
     collectionAttestationDigest: attestation.attestationDigest,
@@ -976,7 +1052,7 @@ export function collectExecutionLocationTargetResult(input = {}, deps = {}) {
     applied: false,
     continuity: "single-fixed-command-response",
     gaps: [
-      "response-loss-retry-not-durable",
+      "returned-result-bytes-not-durable",
       "cross-host-concurrent-writer-fencing-not-durable",
       "returned-result-not-applied",
     ],

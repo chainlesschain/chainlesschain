@@ -13,6 +13,7 @@ import {
   EXECUTION_LOCATION_TARGET_RESUME_SCHEMA,
   attestExecutionLocationTarget,
   collectExecutionLocationTargetResult,
+  createExecutionLocationTargetResultCollectionRequest,
   readExecutionLocationProfile,
   resumeExecutionLocationTarget,
 } from "../lib/execution-location-target.js";
@@ -28,10 +29,13 @@ import {
 import {
   MAX_SESSION_REPLICA_BYTES,
   SESSION_EXECUTION_LOCATION_HANDOFF_INSTALL_SCHEMA,
+  SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_RECEIPT_SCHEMA,
   getVerifiedSessionExecutionLocationAuthority,
   installSessionReplica,
   installSessionReplicaWithLocationHandoff,
+  readVerifiedSessionExecutionLocationResultSettlement,
   readVerifiedTranscriptBytes,
+  settleSessionExecutionLocationResultCollection,
 } from "../harness/jsonl-session-store.js";
 import {
   sameFileStatIdentity,
@@ -413,15 +417,47 @@ export function collectSessionExecutionLocationResult(
   options,
   deps = {},
 ) {
+  const profile = (
+    deps.readExecutionLocationProfile || readExecutionLocationProfile
+  )(options.profile, deps);
+  const parseItems = (values, label) =>
+    (values || []).map((value) => parseResultFileSpec(value, label));
+  const artifacts = parseItems(options.artifact, "--artifact");
+  const evidence = parseItems(options.evidence, "--evidence");
+  const request = (
+    deps.createExecutionLocationTargetResultCollectionRequest ||
+    createExecutionLocationTargetResultCollectionRequest
+  )({
+    requestId: options.requestId,
+    sessionId,
+    target,
+    profile,
+    expectedTargetFactsDigest: options.expectedTargetFactsDigest,
+    expectedHandoffId: options.expectedHandoffId,
+    resultId: options.resultId,
+    summaryPath: options.summary,
+    diffPath: options.diff,
+    artifacts,
+    evidence,
+  });
+  const prior = (
+    deps.readVerifiedSessionExecutionLocationResultSettlement ||
+    readVerifiedSessionExecutionLocationResultSettlement
+  )(sessionId, request.requestId, { requestDigest: request.requestDigest });
+  if (prior !== null) {
+    return Object.freeze({
+      ...prior,
+      settlementAppended: false,
+      recovered: true,
+      bundleAvailable: false,
+    });
+  }
   const handoff = projectExecutionLocationHandoff(
     sessionId,
     target,
     options.facts,
     deps,
   );
-  const profile = (
-    deps.readExecutionLocationProfile || readExecutionLocationProfile
-  )(options.profile, deps);
   const readSourceAuthority = () => {
     const authority = (
       deps.getVerifiedSessionExecutionLocationAuthority ||
@@ -433,11 +469,10 @@ export function collectSessionExecutionLocationResult(
       eventCount: authority.eventCount,
     };
   };
-  const parseItems = (values, label) =>
-    (values || []).map((value) => parseResultFileSpec(value, label));
-  return (deps.collectExecutionLocationTargetResult ||
+  const collection = (deps.collectExecutionLocationTargetResult ||
     collectExecutionLocationTargetResult)(
     {
+      requestId: request.requestId,
       handoff,
       profile,
       expectedTargetFactsDigest: options.expectedTargetFactsDigest,
@@ -445,12 +480,20 @@ export function collectSessionExecutionLocationResult(
       resultId: options.resultId,
       summaryPath: options.summary,
       diffPath: options.diff,
-      artifacts: parseItems(options.artifact, "--artifact"),
-      evidence: parseItems(options.evidence, "--evidence"),
+      artifacts,
+      evidence,
       readSourceAuthority,
     },
     deps,
   );
+  if (collection.requestDigest !== request.requestDigest) {
+    throw new Error("result collection request digest changed during collection");
+  }
+  const settlement = (
+    deps.settleSessionExecutionLocationResultCollection ||
+    settleSessionExecutionLocationResultCollection
+  )(sessionId, request.requestId, collection);
+  return Object.freeze({ ...collection, settlement });
 }
 
 function renderBinding(binding) {
@@ -506,6 +549,15 @@ function writeProjection(projection, options = {}) {
   ) {
     process.stdout.write(
       `RESULT COLLECTED ${projection.resultId}\nBundle: ${projection.bundleDigest}\nCollection: ${projection.collectionDigest}\nApplied: no\nGaps: ${projection.gaps.join(", ")}\n`,
+    );
+    return;
+  }
+  if (
+    projection.schema ===
+    SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_RECEIPT_SCHEMA
+  ) {
+    process.stdout.write(
+      `RESULT COLLECTION SETTLED ${projection.resultId}\nRequest: ${projection.requestId}\nSettlement: ${projection.receiptDigest}\nBundle bytes available: no\nApplied: no\n`,
     );
     return;
   }
@@ -810,6 +862,10 @@ export function registerSessionLocationSubcommands(session, deps = {}) {
     .requiredOption(
       "--expected-handoff-id <sha256>",
       "Exact canonical target handoff id",
+    )
+    .requiredOption(
+      "--request-id <id>",
+      "Stable idempotency id for canonical collection settlement",
     )
     .requiredOption("--result-id <id>", "Stable result bundle id")
     .requiredOption("--summary <path>", "Target summary path")

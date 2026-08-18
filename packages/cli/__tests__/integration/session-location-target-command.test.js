@@ -435,15 +435,33 @@ describe("session location target command routes", () => {
   it("routes fixed-transport result collection with exact accepted authority", async () => {
     const receipt = {
       schema: "cc-execution-location-target-result-collection/v1",
+      requestId: "collect-request-2",
+      requestDigest: DIGEST,
       resultId: "result-2",
       bundleDigest: DIGEST,
       collectionDigest: `sha256:${"d".repeat(64)}`,
       applied: false,
       gaps: ["returned-result-not-applied"],
     };
+    const settlement = {
+      schema:
+        "chainlesschain.session-execution-location-result-collection-receipt/v1",
+      requestId: "collect-request-2",
+      receiptDigest: `sha256:${"e".repeat(64)}`,
+    };
     const collect = vi.fn(() => receipt);
     await program(
-      dependencies({ collectExecutionLocationTargetResult: collect }),
+      dependencies({
+        createExecutionLocationTargetResultCollectionRequest: () => ({
+          requestId: "collect-request-2",
+          requestDigest: DIGEST,
+        }),
+        readVerifiedSessionExecutionLocationResultSettlement: () => null,
+        collectExecutionLocationTargetResult: collect,
+        settleSessionExecutionLocationResultCollection: vi.fn(
+          () => settlement,
+        ),
+      }),
     ).parseAsync([
       "node",
       "cc",
@@ -460,6 +478,8 @@ describe("session location target command routes", () => {
       DIGEST,
       "--expected-handoff-id",
       `sha256:${"4".repeat(64)}`,
+      "--request-id",
+      "collect-request-2",
       "--result-id",
       "result-2",
       "--summary",
@@ -476,6 +496,7 @@ describe("session location target command routes", () => {
       expect.objectContaining({
         expectedTargetFactsDigest: DIGEST,
         expectedHandoffId: `sha256:${"4".repeat(64)}`,
+        requestId: "collect-request-2",
         resultId: "result-2",
         summaryPath: "summary.txt",
         diffPath: "result.diff",
@@ -485,6 +506,67 @@ describe("session location target command routes", () => {
       }),
       expect.any(Object),
     );
-    expect(JSON.parse(stdout.mock.calls.at(-1)[0])).toEqual(receipt);
+    expect(JSON.parse(stdout.mock.calls.at(-1)[0])).toEqual({
+      ...receipt,
+      settlement,
+    });
+  });
+
+  it("recovers a canonical collection settlement without rerunning target collection", async () => {
+    const collect = vi.fn();
+    const recovered = {
+      schema:
+        "chainlesschain.session-execution-location-result-collection-receipt/v1",
+      sessionId: "session-command-1",
+      requestId: "collect-request-retry",
+      requestDigest: DIGEST,
+      resultId: "result-2",
+      receiptDigest: `sha256:${"e".repeat(64)}`,
+      applied: false,
+    };
+    await program(
+      dependencies({
+        createExecutionLocationTargetResultCollectionRequest: () => ({
+          requestId: "collect-request-retry",
+          requestDigest: DIGEST,
+        }),
+        readVerifiedSessionExecutionLocationResultSettlement: () => recovered,
+        collectExecutionLocationTargetResult: collect,
+      }),
+    ).parseAsync([
+      "node",
+      "cc",
+      "session",
+      "location",
+      "result-collect",
+      "session-command-1",
+      "ssh",
+      "--facts",
+      "facts.json",
+      "--profile",
+      "profile.json",
+      "--expected-target-facts-digest",
+      DIGEST,
+      "--expected-handoff-id",
+      `sha256:${"4".repeat(64)}`,
+      "--request-id",
+      "collect-request-retry",
+      "--result-id",
+      "result-2",
+      "--summary",
+      "summary.txt",
+      "--diff",
+      "result.diff",
+      "--json",
+    ]);
+
+    expect(process.exitCode).toBe(0);
+    expect(collect).not.toHaveBeenCalled();
+    expect(JSON.parse(stdout.mock.calls.at(-1)[0])).toEqual({
+      ...recovered,
+      settlementAppended: false,
+      recovered: true,
+      bundleAvailable: false,
+    });
   });
 });
