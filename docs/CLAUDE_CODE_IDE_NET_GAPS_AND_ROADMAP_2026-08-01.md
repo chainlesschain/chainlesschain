@@ -2588,6 +2588,52 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 四十三、2026-08-18 P1-1 durable provider receipt settlement 与 crash-visible readback 子门复核（`11:40 +08:00`）
+
+本节继续第四十一、四十二节，把此前只随 completed Cowork result 进入 lineage 的 **provider-returned trace receipt** 接到逐调用 durable store；
+不把本地 hash-chain/fsync 外推为 provider 原生幂等，也不把已保存的 provider 标识外推为可从第三方独立查询的 receipt。候选基于已合并本地主分支
+`7890aa146c2334281b775467f85a2a36446cc1b1` 的功能分支，尚无本候选 exact-head GitHub Actions。
+
+### 本轮关闭的 receipt settlement 子门
+
+- **receipt 与 usage settlement 在同一同步持久化边界汇合。** `agentLoop` 已保证普通模型与 semantic compaction 的合法
+  `provider-request-receipt` 先于 usage/unknown event；`SubAgentContext` 现在按真实 call id 找到该 receipt，并随严格同步 settlement callback
+  转交 durable runtime。spawned sub-agent/isolated skill 的 attribution 仍可投影为 `subagent`，receipt 则保留原始 `model` request source，二者不会混为一谈。
+- **逐调用行在 outer task 完成前保存有界 provider 标识。** provider call row 新增 receipt persisted 标志及 request/response id；写入只发生在
+  started call 的结算事务中，不保存响应正文、usage payload 或 provider error text。即使进程在 provider call 已结算、outer Cowork result 尚未提交时失败，
+  pending effect 的 call row 仍可回读 completed/outcome-unknown 状态和 receipt 标识，不再依赖 completed-result projection 才能看见。
+- **settlement receipt 必须逐字段绑定 started call。** runtime 只接受普通 enumerable data fields，并精确校验 protocol、provider、owner effect、call id、
+  sequence、原始 request source、client request id、`trace-only` 与 `independentlyReadable=false`；Proxy、accessor、额外字段、空 provider id、跨 owner/call/source
+  漂移或幂等/readback overclaim 均 fail closed。校验失败不会把 started row 误写成 completed，而是使 outer effect 保持 pending/reconcile。
+- **状态 verifier 与 observability 同时消费新事实。** verifier 要求 tool/start/operator-reconciled 路径不得伪造 receipt，provider completed 或已有 provider
+  标识但 usage outcome unknown 的路径才可携带匹配 receipt。`durableCalls` 投影新增 receipt 数量与每条调用的 bounded receipt 对象，并固定
+  `providerNativeIdempotencyProven=false`、`providerReceiptsIndependentlyReadable=false`；其 hash-chain digest 覆盖这些字段和 descendant owner lineage。
+
+### 仓库内验证与证据边界
+
+- receipt settlement 与 durable runtime 两个聚焦文件为 **53/53**；覆盖同步 receipt 转交、outer settlement 前 crash、effect mismatch、tamper、usage unknown
+  receipt 保存，以及 descendant `subagent` attribution 与原始 `model` request source 的同时约束。
+- manifest `p1-dynamic-workflow` 引用的 **18 个文件为 584/584**；roadmap verifier 与 journey evidence 两文件为 **37/37**。
+- roadmap manifest 从 `1.9.9` 升至 `1.9.10`，baseline 绑定本轮起点 `7890aa146c`；fixture digest 为
+  `sha256:1b972326466c67941cec8aa0c8991fb50912e0bf2cb0a250454d73fefbf80b3b`。`--contract-only` 回读
+  **15 cases / 69 referenced test files**，并继续明确 runtime evidence 与 release readiness 未被评估。
+
+### P1-1 仍未关闭的边界
+
+1. **provider 原生幂等与独立 readback：** 保存的是 provider 随响应返回的 trace identifier，不是 exactly-once key，也没有自动调用 provider API 进行
+   独立裁决。provider 未返回标识时 call 可正常结算但 receipt 仍为空；provider response 已到达、同步 settlement 尚未持久化之前崩溃的窗口仍保守留下 started/unknown。
+   OpenAI 以外 provider 的等价生产 contract 与真实故障矩阵仍开放。
+2. **完整 side-effect 与制品 authority：** full completed-result receipt collection 仍随 Cowork result；hook/checkpoint/artifact 以及未经过受管 observer 的
+   external-system side effects 尚未进入统一逐调用 store。ArtifactStore immutable bytes、checkpoint restore/readback、真实 token/USD ledger 与不合作
+   provider 的物理取消仍未关闭。
+3. **完整产品与外部矩阵：** 一般阶段间 `needs_input`、Workbench/VS Code/JetBrains phase/agent/control UI、plugin/marketplace 分发，以及
+   Local/WSL/SSH/Container/Cloud × 三 OS × 双 IDE 每格 100 次 exact-head 真实 provider/宿主故障矩阵仍无外部证据。
+
+因此，P1-1 的**provider receipt 逐调用持久化、outer task 前 crash-visible readback、严格 call/owner/source 绑定与 descendant receipt 归属**由本节关闭；
+P1-1 整项仍为**部分完成**，不得据此声明 provider-native exactly-once 或 independently-readable receipt。总计数保持
+**12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
+Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
+
 ## 四十二、2026-08-18 P1-1 descendant owner chain 与 nested unknown settlement fence 子门复核（`11:19 +08:00`）
 
 本节继续第四十一节，把 `spawn_sub_agent` 与 isolated `run_skill` 内部 provider/tool calls 接入同一个 crash-visible runtime store。

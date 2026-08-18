@@ -495,6 +495,50 @@ describe("SubAgentContext usage forwarding", () => {
 });
 
 describe("SubAgentContext strict usage boundary contract", () => {
+  it("attaches the matching provider receipt to the synchronous settlement", async () => {
+    const workflowEffectId = `sha256:${"6".repeat(64)}`;
+    const settlements = [];
+    const subCtx = createContext({
+      workflowEffectId,
+      strictUsageTelemetry: true,
+      onUsageBoundary: vi.fn(),
+      onUsageSettlement: (event) => settlements.push({ ...event }),
+    });
+
+    await subCtx.run("count things", {
+      ...RUN_OPTIONS,
+      provider: "openai",
+      model: "gpt-4o",
+      chatFn: async (_messages, options) => ({
+        ...finalResponse("done", { input_tokens: 2, output_tokens: 1 }),
+        providerReceipt: {
+          protocol: "cc-provider-request-receipt/v1",
+          provider: "openai",
+          clientRequestId: options.providerRequestId,
+          requestId: "req_strict_child",
+          responseId: "chatcmpl_strict_child",
+          requestIdentitySemantics: "trace-only",
+          independentlyReadable: false,
+        },
+      }),
+    });
+
+    expect(settlements).toHaveLength(1);
+    expect(settlements[0].providerReceipt).toMatchObject({
+      protocol: "cc-provider-request-receipt/v1",
+      provider: "openai",
+      workflowEffectId,
+      callId: settlements[0].callId,
+      callSequence: 1,
+      source: "model",
+      clientRequestId: expect.stringMatching(/^ccwf_[a-f0-9]{64}$/),
+      requestId: "req_strict_child",
+      responseId: "chatcmpl_strict_child",
+      requestIdentitySemantics: "trace-only",
+      independentlyReadable: false,
+    });
+  });
+
   it("persists start before provider work and settles the same real callId", async () => {
     const timeline = [];
     const boundaries = [];
