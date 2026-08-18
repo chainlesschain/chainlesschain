@@ -21,6 +21,8 @@ import { CostBudget } from "./cost-budget.js";
 export const SESSION_RESOURCE_BUDGET_VERSION = 1;
 export const SESSION_BUDGET_RECOVERY_ADJUDICATION_SCHEMA =
   "chainlesschain.session-budget-recovery-adjudication/v1";
+export const SESSION_BUDGET_RECOVERY_RECEIPT_HISTORY_SCHEMA =
+  "chainlesschain.session-budget-recovery-receipt-history/v1";
 
 const INTEGER_LIMITS = new Set([
   "maxConcurrent",
@@ -59,6 +61,7 @@ const USAGE_TOKEN_FIELDS = Object.freeze([
 const MAX_TIMER_DELAY = 2_147_483_647;
 const RESOURCE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:@-]{0,159}$/;
 const SHA256_PATTERN = /^sha256:[0-9a-f]{64}$/;
+const MAX_RECOVERY_ADJUDICATION_RECEIPTS = 2048;
 const OPAQUE_AUTHORITY_ID_PATTERNS = Object.freeze({
   work: /^work-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
   tool: /^tool-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
@@ -321,6 +324,169 @@ function canonicalRecoverySettlement(record, index) {
   };
 }
 
+function cloneCanonicalRecord(value) {
+  return JSON.parse(canonicalJson(value));
+}
+
+function isOpaqueAuthorityId(value) {
+  return Object.values(OPAQUE_AUTHORITY_ID_PATTERNS).some((pattern) =>
+    pattern.test(value),
+  );
+}
+
+function normalizeRecoveryReceipt(value, index) {
+  if (
+    !isRecord(value) ||
+    value.schema !== SESSION_BUDGET_RECOVERY_ADJUDICATION_SCHEMA ||
+    !Number.isSafeInteger(value.sequence) ||
+    value.sequence < 1 ||
+    (value.previousDigest !== null &&
+      !SHA256_PATTERN.test(value.previousDigest)) ||
+    !Array.isArray(value.abandoned) ||
+    !Array.isArray(value.settled) ||
+    !isRecord(value.totalsBefore) ||
+    !isRecord(value.totalsAfter)
+  ) {
+    throw new TypeError(
+      `invalid session budget recovery receipt at index ${index}`,
+    );
+  }
+  const abandoned = value.abandoned.map((raw) => String(raw)).sort();
+  const settled = value.settled
+    .map((record, settlementIndex) => {
+      if (!isRecord(record)) {
+        throw new TypeError(
+          `invalid session budget recovery receipt settlement at index ${index}:${settlementIndex}`,
+        );
+      }
+      const authorityId = String(record.authorityId || "");
+      if (!OPAQUE_AUTHORITY_ID_PATTERNS.usage.test(authorityId)) {
+        throw new TypeError(
+          `invalid session budget recovery receipt authority at index ${index}:${settlementIndex}`,
+        );
+      }
+      return canonicalRecoverySettlement(
+        { ...record, authorityId },
+        settlementIndex,
+      );
+    })
+    .sort((left, right) => left.authorityId.localeCompare(right.authorityId));
+  const allAuthorityIds = [
+    ...abandoned,
+    ...settled.map((record) => record.authorityId),
+  ];
+  if (
+    abandoned.some((authorityId) => !isOpaqueAuthorityId(authorityId)) ||
+    new Set(allAuthorityIds).size !== allAuthorityIds.length ||
+    canonicalJson(abandoned) !== canonicalJson(value.abandoned) ||
+    canonicalJson(settled) !== canonicalJson(value.settled)
+  ) {
+    throw new TypeError(
+      `invalid session budget recovery receipt authorities at index ${index}`,
+    );
+  }
+  const totalsBefore = {
+    tokens: normalizeNonNegativeInteger(
+      "recovery receipt tokens before",
+      value.totalsBefore.tokens,
+    ),
+    spentUsd: normalizeNonNegativeNumber(
+      "recovery receipt USD before",
+      value.totalsBefore.spentUsd,
+    ),
+  };
+  const totalsAfter = {
+    tokens: normalizeNonNegativeInteger(
+      "recovery receipt tokens after",
+      value.totalsAfter.tokens,
+    ),
+    spentUsd: normalizeNonNegativeNumber(
+      "recovery receipt USD after",
+      value.totalsAfter.spentUsd,
+    ),
+  };
+  if (
+    totalsAfter.tokens < totalsBefore.tokens ||
+    totalsAfter.spentUsd < totalsBefore.spentUsd
+  ) {
+    throw new TypeError(
+      `invalid session budget recovery receipt totals at index ${index}`,
+    );
+  }
+  const core = {
+    schema: SESSION_BUDGET_RECOVERY_ADJUDICATION_SCHEMA,
+    sequence: value.sequence,
+    previousDigest: value.previousDigest,
+    abandoned,
+    settled,
+    totalsBefore,
+    totalsAfter,
+  };
+  const digest = sha256(canonicalJson(core));
+  if (value.digest !== digest) {
+    throw new TypeError(
+      `invalid session budget recovery receipt digest at index ${index}`,
+    );
+  }
+  return { ...core, digest };
+}
+
+function normalizeRecoveryReceiptHistory(value, adjudication) {
+  if (
+    !isRecord(value) ||
+    value.schema !== SESSION_BUDGET_RECOVERY_RECEIPT_HISTORY_SCHEMA ||
+    !Number.isSafeInteger(value.baseSequence) ||
+    value.baseSequence < 0 ||
+    (value.baseDigest !== null && !SHA256_PATTERN.test(value.baseDigest)) ||
+    (value.baseSequence === 0) !== (value.baseDigest === null) ||
+    !Array.isArray(value.entries) ||
+    value.entries.length < 1 ||
+    value.entries.length > MAX_RECOVERY_ADJUDICATION_RECEIPTS ||
+    value.baseSequence + value.entries.length !== adjudication.count
+  ) {
+    throw new TypeError(
+      "invalid session budget recovery adjudication receipt history",
+    );
+  }
+  const entries = value.entries.map(normalizeRecoveryReceipt);
+  let previousDigest = value.baseDigest;
+  for (let index = 0; index < entries.length; index += 1) {
+    const entry = entries[index];
+    if (
+      entry.sequence !== value.baseSequence + index + 1 ||
+      entry.previousDigest !== previousDigest
+    ) {
+      throw new TypeError(
+        "invalid session budget recovery adjudication receipt chain",
+      );
+    }
+    previousDigest = entry.digest;
+  }
+  const last = entries.at(-1);
+  if (
+    last.sequence !== adjudication.count ||
+    last.digest !== adjudication.headDigest ||
+    last.digest !== adjudication.last.digest ||
+    last.previousDigest !== adjudication.last.previousDigest ||
+    last.settled.length !== adjudication.last.settledCount ||
+    last.abandoned.length !== adjudication.last.abandonedCount ||
+    last.totalsAfter.tokens - last.totalsBefore.tokens !==
+      adjudication.last.tokenDelta ||
+    last.totalsAfter.spentUsd - last.totalsBefore.spentUsd !==
+      adjudication.last.spentUsdDelta
+  ) {
+    throw new TypeError(
+      "invalid session budget recovery adjudication receipt head",
+    );
+  }
+  return {
+    schema: SESSION_BUDGET_RECOVERY_RECEIPT_HISTORY_SCHEMA,
+    baseSequence: value.baseSequence,
+    baseDigest: value.baseDigest,
+    entries,
+  };
+}
+
 function normalizeRecoveryAdjudicationState(value) {
   if (value === undefined || value === null) return null;
   if (
@@ -352,7 +518,7 @@ function normalizeRecoveryAdjudicationState(value) {
   ) {
     throw new TypeError("invalid session budget recovery adjudication chain");
   }
-  return {
+  const adjudication = {
     schema: SESSION_BUDGET_RECOVERY_ADJUDICATION_SCHEMA,
     count: value.count,
     headDigest: value.headDigest,
@@ -366,6 +532,40 @@ function normalizeRecoveryAdjudicationState(value) {
       spentUsdDelta: value.last.spentUsdDelta,
     },
   };
+  if (value.history !== undefined) {
+    adjudication.history = normalizeRecoveryReceiptHistory(
+      value.history,
+      adjudication,
+    );
+  }
+  return adjudication;
+}
+
+function cloneRecoveryAdjudication(value, { includeReceipts = true } = {}) {
+  if (!value) return null;
+  const cloned = {
+    schema: value.schema,
+    count: value.count,
+    headDigest: value.headDigest,
+    last: { ...value.last },
+  };
+  if (value.history) {
+    cloned.history = includeReceipts
+      ? {
+          schema: value.history.schema,
+          baseSequence: value.history.baseSequence,
+          baseDigest: value.history.baseDigest,
+          entries: value.history.entries.map(cloneCanonicalRecord),
+        }
+      : {
+          schema: value.history.schema,
+          baseSequence: value.history.baseSequence,
+          baseDigest: value.history.baseDigest,
+          retainedCount: value.history.entries.length,
+          complete: value.history.baseSequence === 0,
+        };
+  }
+  return cloned;
 }
 
 function normalizeUsageSettlementLabel(raw) {
@@ -572,10 +772,9 @@ export function normalizeSessionResourceBudgetSnapshot(snapshot) {
         : null,
       ...(normalized.state.recoveryAdjudication
         ? {
-            recoveryAdjudication: {
-              ...normalized.state.recoveryAdjudication,
-              last: { ...normalized.state.recoveryAdjudication.last },
-            },
+            recoveryAdjudication: cloneRecoveryAdjudication(
+              normalized.state.recoveryAdjudication,
+            ),
           }
         : {}),
     },
@@ -1645,6 +1844,10 @@ export class SessionResourceBudget {
       },
     };
     const adjudicationDigest = sha256(canonicalJson(adjudicationCore));
+    const receipt = {
+      ...adjudicationCore,
+      digest: adjudicationDigest,
+    };
     const adjudicationState = {
       sequence,
       digest: adjudicationDigest,
@@ -1670,6 +1873,23 @@ export class SessionResourceBudget {
       count: sequence,
       headDigest: adjudicationDigest,
       last: adjudicationState,
+      history: {
+        schema: SESSION_BUDGET_RECOVERY_RECEIPT_HISTORY_SCHEMA,
+        baseSequence:
+          previousAdjudication?.history?.baseSequence ??
+          previousAdjudication?.count ??
+          0,
+        baseDigest:
+          previousAdjudication?.history?.baseDigest ??
+          previousAdjudication?.headDigest ??
+          null,
+        entries: [
+          ...(previousAdjudication?.history?.entries || []).map(
+            cloneCanonicalRecord,
+          ),
+          receipt,
+        ],
+      },
     };
     this._recoveryUnknown.clear();
     this._authorityChanged(
@@ -1701,6 +1921,31 @@ export class SessionResourceBudget {
       abandoned: [...abandonedIds].sort(),
       settled: [...settledIds].sort(),
       adjudication: { ...adjudication },
+      receipt: cloneCanonicalRecord(receipt),
+    };
+  }
+
+  recoveryAdjudicationReceipts() {
+    if (!this._recoveryAdjudication) {
+      return {
+        schema: SESSION_BUDGET_RECOVERY_RECEIPT_HISTORY_SCHEMA,
+        count: 0,
+        headDigest: null,
+        baseSequence: 0,
+        baseDigest: null,
+        complete: true,
+        entries: [],
+      };
+    }
+    const history = this._recoveryAdjudication.history;
+    return {
+      schema: SESSION_BUDGET_RECOVERY_RECEIPT_HISTORY_SCHEMA,
+      count: this._recoveryAdjudication.count,
+      headDigest: this._recoveryAdjudication.headDigest,
+      baseSequence: history?.baseSequence ?? this._recoveryAdjudication.count,
+      baseDigest: history?.baseDigest ?? this._recoveryAdjudication.headDigest,
+      complete: history ? history.baseSequence === 0 : false,
+      entries: history?.entries.map(cloneCanonicalRecord) || [],
     };
   }
 
@@ -1726,12 +1971,10 @@ export class SessionResourceBudget {
       resources: this._abortables.size,
       recoveryRequired: this._recoveryUnknown.size > 0,
       pendingRecovery: this._recoveryUnknown.size,
-      recoveryAdjudication: this._recoveryAdjudication
-        ? {
-            ...this._recoveryAdjudication,
-            last: { ...this._recoveryAdjudication.last },
-          }
-        : null,
+      recoveryAdjudication: cloneRecoveryAdjudication(
+        this._recoveryAdjudication,
+        { includeReceipts: false },
+      ),
       unpricedUsage: this.unpricedUsage,
       aborted: this.signal.aborted,
       reason: this.reason(now),
@@ -1785,10 +2028,9 @@ export class SessionResourceBudget {
         abort: this._abortState ? { ...this._abortState } : null,
         ...(this._recoveryAdjudication
           ? {
-              recoveryAdjudication: {
-                ...this._recoveryAdjudication,
-                last: { ...this._recoveryAdjudication.last },
-              },
+              recoveryAdjudication: cloneRecoveryAdjudication(
+                this._recoveryAdjudication,
+              ),
             }
           : {}),
       },
@@ -1847,12 +2089,9 @@ export class SessionResourceBudget {
     budget._toolMs = normalized.totals.toolMs;
     const restoredAt = budget._now();
     budget._startedAt = normalized.state.started ? restoredAt : null;
-    budget._recoveryAdjudication = normalized.state.recoveryAdjudication
-      ? {
-          ...normalized.state.recoveryAdjudication,
-          last: { ...normalized.state.recoveryAdjudication.last },
-        }
-      : null;
+    budget._recoveryAdjudication = cloneRecoveryAdjudication(
+      normalized.state.recoveryAdjudication,
+    );
 
     if (recoverUnsettled === "require-adjudication") {
       for (const entry of normalized.inFlight.work) {
