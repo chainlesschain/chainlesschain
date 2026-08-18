@@ -113,6 +113,12 @@ import {
   openProductionSessionBudgetRoot,
   sessionBudgetAdmissionError,
 } from "../lib/session-budget-production-root.js";
+import {
+  beginSessionBudgetUsage,
+  markSessionBudgetUsageUnknown,
+  recordSessionBudgetUsage,
+  rejectSessionBudgetUsageUnknown,
+} from "../lib/session-budget-usage.js";
 import { classifyStreamRetryReason } from "../lib/stream-retry.js";
 import {
   SideEffectLedger,
@@ -1013,19 +1019,11 @@ async function runTurn(
       }
       case "token-usage":
         if (event.ledgerPersisted !== true) persistUsageEvent?.(event);
-        if (!event.attribution && sessionBudget?.recordUsage) {
-          const budgetStatus = sessionBudget.recordUsage({
-            provider: event.provider || null,
-            model: event.model || null,
-            usage: event.usage || null,
-          });
-          if (budgetStatus?.aborted) {
-            throw sessionBudgetAdmissionError(
-              budgetStatus.reason,
-              "usage settlement",
-            );
-          }
-        }
+        recordSessionBudgetUsage(
+          sessionBudget,
+          event,
+          "headless usage settlement",
+        );
         // 用量归因: attributed child-loop usage (sub-agent / isolated skill)
         // is forwarded on the stream (same wire shape) and counted toward the
         // cost budget, but stays out of the turn's `usage` envelope, which
@@ -1062,6 +1060,15 @@ async function runTurn(
       case "model-usage-started":
       case "model-usage-unknown":
         if (event.ledgerPersisted !== true) persistUsageEvent?.(event);
+        if (event.type === "model-usage-started") {
+          beginSessionBudgetUsage(
+            sessionBudget,
+            event,
+            "headless provider call",
+          );
+        } else if (markSessionBudgetUsageUnknown(sessionBudget, event)) {
+          rejectSessionBudgetUsageUnknown(event, "headless provider call");
+        }
         break;
       case "compaction-usage-unknown":
         if (event.ledgerPersisted !== true) {
@@ -1070,6 +1077,12 @@ async function runTurn(
             type: "model-usage-unknown",
             code: event.code || "provider_transport_outcome_unknown",
           });
+        }
+        if (markSessionBudgetUsageUnknown(sessionBudget, event)) {
+          rejectSessionBudgetUsageUnknown(
+            event,
+            "headless semantic compaction",
+          );
         }
         emit({
           type: "compaction_usage_unknown",
@@ -3323,13 +3336,19 @@ async function runAgentHeadlessStreamInWorkspace(
           maxOutputTokens: options.compactionMaxOutputTokens,
           summaryInputMaxChars: options.compactionInputMaxChars,
           onProviderCallStart: () => {
-            persistUsageEvent?.({
+            const event = {
               type: "model-usage-started",
               callId: compactionCallId,
               provider,
               model,
               source: "semantic-compaction",
-            });
+            };
+            persistUsageEvent?.(event);
+            beginSessionBudgetUsage(
+              options.sessionBudget,
+              event,
+              "headless semantic compaction",
+            );
             compactionProviderStarted = true;
             return compactionCallId;
           },
@@ -3338,14 +3357,21 @@ async function runAgentHeadlessStreamInWorkspace(
         if (isAbortError(error) || options.signal?.aborted) throw error;
         if (error?.runtimeLedgerPersistence === true) throw error;
         if (compactionProviderStarted) {
-          persistUsageEvent?.({
+          const event = {
             type: "model-usage-unknown",
             callId: compactionCallId,
             provider,
             model,
             source: "semantic-compaction",
             code: "provider_call_failed",
-          });
+          };
+          persistUsageEvent?.(event);
+          if (markSessionBudgetUsageUnknown(options.sessionBudget, event)) {
+            rejectSessionBudgetUsageUnknown(
+              event,
+              "headless semantic compaction",
+            );
+          }
         }
         emit({
           type: "compaction-degraded",
@@ -3358,14 +3384,21 @@ async function runAgentHeadlessStreamInWorkspace(
         emit({ type: "compaction-degraded", ...degradedEvent });
       }
       if (usageUnknownEvent) {
-        persistUsageEvent?.({
+        const event = {
           type: "model-usage-unknown",
           callId: compactionCallId,
           provider: usageUnknownEvent.provider || provider,
           model: usageUnknownEvent.model || model,
           source: "semantic-compaction",
           code: "provider_transport_outcome_unknown",
-        });
+        };
+        persistUsageEvent?.(event);
+        if (markSessionBudgetUsageUnknown(options.sessionBudget, event)) {
+          rejectSessionBudgetUsageUnknown(
+            event,
+            "headless semantic compaction",
+          );
+        }
         emit({
           type: "compaction_usage_unknown",
           ...usageUnknownEvent,
@@ -3386,12 +3419,18 @@ async function runAgentHeadlessStreamInWorkspace(
       }
       let costExceeded = false;
       if (usageEvent) {
-        persistUsageEvent?.({
+        const event = {
           type: "token-usage",
           callId: compactionCallId,
           ...usageEvent,
           source: "semantic-compaction",
-        });
+        };
+        persistUsageEvent?.(event);
+        recordSessionBudgetUsage(
+          options.sessionBudget,
+          event,
+          "headless semantic compaction usage settlement",
+        );
         emit({ type: "token_usage", ...usageEvent });
         if (costBudget) {
           costBudget.add(usageEvent);
@@ -4048,6 +4087,7 @@ async function runAgentHeadlessStreamInWorkspace(
       }
       if (
         err?.code === "CC_SESSION_BUDGET_EXHAUSTED" ||
+        err?.code === "CC_SESSION_BUDGET_USAGE_UNKNOWN" ||
         options.sessionBudget?.signal?.aborted === true
       ) {
         const budgetReason =
@@ -4059,7 +4099,10 @@ async function runAgentHeadlessStreamInWorkspace(
           subtype: "error_session_budget",
           is_error: true,
           code: err.code,
-          error: sessionBudgetAdmissionError(budgetReason, "run").message,
+          error:
+            err?.code === "CC_SESSION_BUDGET_USAGE_UNKNOWN"
+              ? err.message
+              : sessionBudgetAdmissionError(budgetReason, "run").message,
           budget_reason: budgetReason,
           turn: turns,
         });

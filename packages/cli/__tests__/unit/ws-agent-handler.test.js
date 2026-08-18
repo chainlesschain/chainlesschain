@@ -39,6 +39,7 @@ import {
   currentHostHooksV2WorkspaceRoot,
   registerHostHooksV2Workspace,
 } from "../../src/lib/hooks-v2-workspace-context.js";
+import { SessionResourceBudget } from "../../src/lib/session-resource-budget.js";
 
 const wsAgentWorkspaceParent = fs.mkdtempSync(
   path.join(os.tmpdir(), "cc-hooks-v2-ws-agent-"),
@@ -213,6 +214,56 @@ describe("WSAgentHandler", () => {
 
       budgeted.destroy();
       expect(order).toEqual(["budget", "lease"]);
+    });
+
+    it("fails the WS turn and retains recovery for unknown provider usage", async () => {
+      const budget = new SessionResourceBudget({ maxTokens: 20 });
+      const budgeted = new WSAgentHandler({
+        session,
+        interaction,
+        db: null,
+        sessionBudgetRoot: {
+          budget,
+          options: { sessionBudget: budget, signal: budget.signal },
+          close: vi.fn(),
+        },
+        agentLoop: vi.fn(async function* () {
+          yield {
+            type: "model-usage-started",
+            callId: "ws-unknown-call",
+            provider: "openai",
+            model: "gpt-test",
+            source: "model",
+          };
+          yield {
+            type: "model-usage-unknown",
+            callId: "ws-unknown-call",
+            provider: "openai",
+            model: "gpt-test",
+            source: "model",
+            code: "provider_usage_missing",
+          };
+          yield { type: "response-complete", content: "must not succeed" };
+        }),
+      });
+
+      await budgeted.handleMessage("budgeted request", "req-unknown");
+
+      expect(interaction.emit).toHaveBeenCalledWith(
+        "error",
+        expect.objectContaining({
+          requestId: "req-unknown",
+          code: "CC_SESSION_BUDGET_USAGE_UNKNOWN",
+        }),
+      );
+      expect(budget.status()).toMatchObject({
+        tokens: 0,
+        recoveryRequired: true,
+        pendingRecovery: 1,
+        reason: "recovery-required",
+      });
+      budgeted.destroy();
+      budget.dispose();
     });
 
     it("reattaches a resumed transport without replacing session authority", () => {

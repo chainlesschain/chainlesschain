@@ -23,6 +23,12 @@ import {
 import { isGitRepo } from "./git-integration.js";
 import { markRuntimeLedgerPersistenceError } from "./runtime-usage-ledger.js";
 import { IterationBudget } from "./iteration-budget.js";
+import {
+  beginSessionBudgetUsage,
+  markSessionBudgetUsageUnknown,
+  recordSessionBudgetUsage,
+  rejectSessionBudgetUsageUnknown,
+} from "./session-budget-usage.js";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -942,13 +948,11 @@ export class SubAgentContext {
           // call into a permanently open `started` row.
           // Attributed usage was already charged by the nested child sharing
           // this same authority, so only direct usage is folded here.
-          if (!event.attribution && this.sessionBudget?.recordUsage) {
-            this.sessionBudget.recordUsage({
-              provider: event.provider || null,
-              model: event.model || null,
-              usage: event.usage || null,
-            });
-          }
+          recordSessionBudgetUsage(
+            this.sessionBudget,
+            event,
+            "sub-agent usage settlement",
+          );
           if (this._onUsage) {
             // Forward real usage to the spawner. A nested child's event already
             // carries its own attribution frame — preserve it (deepest wins).
@@ -982,6 +986,11 @@ export class SubAgentContext {
               observeUsageBoundary(event);
             }
           }
+          beginSessionBudgetUsage(
+            this.sessionBudget,
+            event,
+            "sub-agent provider call",
+          );
         }
 
         if (event.type === "tool-executing" && strictUsageTelemetry) {
@@ -1018,6 +1027,10 @@ export class SubAgentContext {
             observeUsageSettlement(forwardedUnknown);
             forwardedUnknown.ledgerPersisted = true;
           }
+          const budgetUsageUnknown = markSessionBudgetUsageUnknown(
+            this.sessionBudget,
+            event,
+          );
           if (this._onUsage) {
             if (strictUsageTelemetry) {
               requireSyncUsageObserver(
@@ -1032,6 +1045,12 @@ export class SubAgentContext {
                 // Legacy attribution forwarding remains best-effort.
               }
             }
+          }
+          if (budgetUsageUnknown) {
+            rejectSessionBudgetUsageUnknown(
+              event,
+              "sub-agent provider call",
+            );
           }
         }
 
