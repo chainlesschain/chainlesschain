@@ -180,7 +180,10 @@ describe("SubAgentContext session-wide budget integration", () => {
 
     const result = await context.run("go");
 
-    expect(result.summary).toMatch(/force-completed: recovery-required/i);
+    expect(result.summary).toMatch(
+      /failed: session budget requires usage adjudication/i,
+    );
+    expect(context.status).toBe("failed");
     expect(budget.status()).toMatchObject({
       tokens: 0,
       pendingUsage: 0,

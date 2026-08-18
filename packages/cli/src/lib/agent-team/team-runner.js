@@ -402,8 +402,9 @@ export class TeamRunner {
         this._setState(holder, "shutdown", { reason: "fatal-error" });
         return;
       }
-      if (this.sessionBudget?.signal?.aborted) {
-        const reason = this.sessionBudget.reason?.() || "session-aborted";
+      const sessionStopReason = this._sessionBudgetStopReason();
+      if (sessionStopReason) {
+        const reason = sessionStopReason;
         if (!this._budgetStopped) {
           this._budgetStopped = true;
           this._emit("run:budget-exhausted", { reason });
@@ -606,9 +607,7 @@ export class TeamRunner {
       // Preserve an explicit human interruption so `_execute` can settle it
       // fail-closed for adjudication instead of silently abandoning it.
       const preparedBudgetReason = this.budget?.reason?.();
-      const preparedSessionReason = this.sessionBudget?.signal?.aborted
-        ? this.sessionBudget.reason?.() || "session-aborted"
-        : null;
+      const preparedSessionReason = this._sessionBudgetStopReason();
       if (
         !claim.interruption &&
         !claim.coordinatorAbort &&
@@ -718,6 +717,7 @@ export class TeamRunner {
       sessionWork,
       sessionBudgetSettled: false,
       sessionBudgetUsageHandledByExecutor: false,
+      sessionBudgetUsageUnknown: false,
       sessionBudgetView: null,
       unregisterSessionAbortable: null,
       interruption: null,
@@ -910,11 +910,16 @@ export class TeamRunner {
         const method =
           property === "recordUsage" || property === "markUsageUnknown"
             ? (...args) => {
+                const result = value.apply(target, args);
                 // Usage charged through the inherited authority is already in
                 // the global ledger. Remember that ownership so the task's
-                // returned aggregate is not charged a second time.
+                // returned aggregate is not charged a second time. Unknown
+                // usage must also prevent this task becoming a phantom success.
                 claim.sessionBudgetUsageHandledByExecutor = true;
-                return value.apply(target, args);
+                if (property === "markUsageUnknown") {
+                  claim.sessionBudgetUsageUnknown = true;
+                }
+                return result;
               }
             : value.bind(target);
         methods.set(property, method);
@@ -925,6 +930,15 @@ export class TeamRunner {
       },
     });
     return claim.sessionBudgetView;
+  }
+
+  _sessionBudgetStopReason() {
+    if (!this.sessionBudget) return null;
+    const reason = this.sessionBudget.reason?.() || null;
+    if (this.sessionBudget.signal?.aborted) {
+      return reason || "session-aborted";
+    }
+    return reason === "recovery-required" ? reason : null;
   }
 
   _recordSessionUsage(claim, source) {
@@ -947,6 +961,10 @@ export class TeamRunner {
 
   _sessionBudgetFailure(executionResult = null) {
     const sharedReason = this.sessionBudget?.signal?.reason;
+    const budgetReason =
+      sharedReason?.budgetReason ||
+      this.sessionBudget?.reason?.() ||
+      "session-aborted";
     // Never attach per-task usage to the shared AbortSignal reason: every
     // sibling observes that same Error object and would then re-record the
     // triggering task's usage as its own failure.
@@ -955,9 +973,12 @@ export class TeamRunner {
         `Session budget exhausted: ${this.sessionBudget?.reason?.() || "session-aborted"}`,
       sharedReason instanceof Error ? { cause: sharedReason } : undefined,
     );
-    failure.code = sharedReason?.code || "ERR_SESSION_RESOURCE_BUDGET";
-    failure.budgetReason =
-      sharedReason?.budgetReason || this.sessionBudget?.reason?.();
+    failure.code =
+      sharedReason?.code ||
+      (budgetReason === "recovery-required"
+        ? "CC_SESSION_BUDGET_USAGE_UNKNOWN"
+        : "ERR_SESSION_RESOURCE_BUDGET");
+    failure.budgetReason = budgetReason;
     failure.retryable = false;
     if (executionResult && typeof executionResult === "object") {
       failure.usage = executionResult.usage || null;
@@ -1166,7 +1187,7 @@ export class TeamRunner {
       // Synchronous observers above (`onEvent`, mailbox, tracing) may abort the
       // shared authority after the worker's post-beforeTask check. This is the
       // final fail-closed fence immediately before executor side effects.
-      if (this.sessionBudget?.signal?.aborted) {
+      if (this._sessionBudgetStopReason()) {
         throw this._sessionBudgetFailure();
       }
       const result = await this.runTask({
@@ -1192,7 +1213,10 @@ export class TeamRunner {
         throw claim.coordinatorAbort;
       }
       this._recordSessionUsage(claim, result);
-      if (this.sessionBudget?.signal?.aborted) {
+      if (
+        claim.sessionBudgetUsageUnknown ||
+        this.sessionBudget?.signal?.aborted
+      ) {
         throw this._sessionBudgetFailure(result);
       }
       // Executors are allowed to return after observing (or even ignoring) an
