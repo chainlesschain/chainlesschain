@@ -525,6 +525,16 @@ describe("CLI release workflow contracts", () => {
 
   it("requires all six signed native targets before publishing", () => {
     const text = workflow("cli-native-release.yml");
+    const signedInstallGate = fs.readFileSync(
+      path.join(
+        repositoryRoot,
+        "packages",
+        "cli",
+        "scripts",
+        "native-signed-install-gate.mjs",
+      ),
+      "utf8",
+    );
     for (const target of [
       "node22-linux-x64",
       "node22-linux-arm64",
@@ -569,7 +579,7 @@ describe("CLI release workflow contracts", () => {
         text,
         "sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac",
       ),
-    ).toBe(3);
+    ).toBe(4);
     expect(text).not.toContain(
       "sigstore/cosign-installer@f713795cb21599bc4e5c4b58cbad1da852d7eeb9",
     );
@@ -625,7 +635,7 @@ describe("CLI release workflow contracts", () => {
     expect(text).toContain("--certificate-github-workflow-sha");
     expect(text).toContain("--certificate-github-workflow-trigger push");
     const nativeCosignVerifyCount = occurrences(text, "cosign verify-blob");
-    expect(nativeCosignVerifyCount).toBe(2);
+    expect(nativeCosignVerifyCount).toBe(3);
     for (const flag of [
       "--certificate-github-workflow-repository",
       "--certificate-github-workflow-ref",
@@ -641,7 +651,13 @@ describe("CLI release workflow contracts", () => {
       /versioned-public-readback-gate:[\s\S]*needs: publish-versioned[\s\S]*uses: \.\/\.github\/workflows\/cli-native-release-readback\.yml[\s\S]*verify_stable: false/u,
     );
     expect(text).toMatch(
-      /promote-stable:[\s\S]*needs: versioned-public-readback-gate/u,
+      /signed-install-transaction:[\s\S]*needs: versioned-public-readback-gate/u,
+    );
+    expect(text).toMatch(
+      /signed-install-aggregate:[\s\S]*needs: signed-install-transaction/u,
+    );
+    expect(text).toMatch(
+      /promote-stable:[\s\S]*needs: signed-install-aggregate/u,
     );
     expect(text).toMatch(
       /stable-public-readback-gate:[\s\S]*needs: promote-stable[\s\S]*uses: \.\/\.github\/workflows\/cli-native-release-readback\.yml[\s\S]*verify_stable: true/u,
@@ -671,11 +687,23 @@ describe("CLI release workflow contracts", () => {
       ),
     );
     const versionedGate = text.indexOf("versioned-public-readback-gate:");
+    const signedInstall = text.indexOf("signed-install-transaction:");
+    const signedAggregate = text.indexOf("signed-install-aggregate:");
     const stablePromotionJob = text.indexOf("promote-stable:");
     const stableGate = text.indexOf("stable-public-readback-gate:");
     expect(versionedGate).toBeGreaterThan(text.indexOf("publish-versioned:"));
-    expect(stablePromotionJob).toBeGreaterThan(versionedGate);
+    expect(signedInstall).toBeGreaterThan(versionedGate);
+    expect(signedAggregate).toBeGreaterThan(signedInstall);
+    expect(stablePromotionJob).toBeGreaterThan(signedAggregate);
     expect(stableGate).toBeGreaterThan(stablePromotionJob);
+    expect(text).toContain("CLI_NATIVE_PREVIOUS_TAG");
+    expect(text).toContain("native-signed-install-gate.mjs");
+    expect(text).toContain(
+      "Prove signed fresh install, upgrade, and crash rollback",
+    );
+    expect(text).toContain("Aggregate six-target signed install transactions");
+    expect(signedInstallGate).toContain("CC_CLI_INSTALL_CRASH_AFTER_PHASE");
+    expect(signedInstallGate).toContain("CC_CLI_INSTALL_RECOVERY_ONLY");
     expectExternalActionsPinned(text);
     expect(text).not.toContain("--clobber");
 
