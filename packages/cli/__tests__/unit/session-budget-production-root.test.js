@@ -229,16 +229,30 @@ describe("production session budget root", () => {
       sessionId: "usage-recovery-root",
       abandoned: [],
       settled: [usage.authorityId],
+      adjudication: {
+        sequence: 1,
+        previousDigest: null,
+        settledCount: 1,
+        abandonedCount: 0,
+        tokenDelta: 10,
+      },
       status: {
         tokens: 10,
         recoveryRequired: false,
         pendingRecovery: 0,
       },
     });
+    expect(result.adjudication.digest).toMatch(/^sha256:[0-9a-f]{64}$/);
     expect(result.status.spentUsd).toBeGreaterThan(0);
     expect(readProductionSessionBudget("usage-recovery-root", { store })).toMatchObject({
       usageUnknown: false,
       totals: { tokens: 10 },
+      state: {
+        recoveryAdjudication: {
+          count: 1,
+          headDigest: result.adjudication.digest,
+        },
+      },
       recoveryRequired: false,
       pendingRecovery: [],
     });

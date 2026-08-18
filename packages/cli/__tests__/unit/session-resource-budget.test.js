@@ -210,11 +210,20 @@ describe("SessionResourceBudget continuous enforcement", () => {
       ],
     });
 
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       ok: true,
       abandoned: [work.authorityId],
       settled: [usage.authorityId],
+      adjudication: {
+        sequence: 1,
+        previousDigest: null,
+        settledCount: 1,
+        abandonedCount: 1,
+        tokenDelta: 10,
+      },
     });
+    expect(result.adjudication.digest).toMatch(/^sha256:[0-9a-f]{64}$/);
+    expect(result.adjudication.spentUsdDelta).toBeGreaterThan(0);
     expect(resumed.status()).toMatchObject({
       tokens: 10,
       recoveryRequired: false,
@@ -222,6 +231,40 @@ describe("SessionResourceBudget continuous enforcement", () => {
       unpricedUsage: false,
     });
     expect(resumed.cost.spentUsd).toBeGreaterThan(0);
+
+    const nextUsage = resumed.beginUsageSettlement({ id: "second-recovery" });
+    resumed.markUsageUnknown({ callId: nextUsage.id });
+    const next = resumed.adjudicateRecovery({
+      settled: [
+        {
+          authorityId: nextUsage.authorityId,
+          provider: "ollama",
+          model: "local",
+          usage: { input_tokens: 1, output_tokens: 0 },
+        },
+      ],
+    });
+    expect(next.adjudication).toMatchObject({
+      sequence: 2,
+      previousDigest: result.adjudication.digest,
+      settledCount: 1,
+      abandonedCount: 0,
+      tokenDelta: 1,
+    });
+    expect(next.adjudication.digest).toMatch(/^sha256:[0-9a-f]{64}$/);
+    expect(next.adjudication.digest).not.toBe(result.adjudication.digest);
+
+    const restored = SessionResourceBudget.restore(resumed.snapshot());
+    expect(restored.status().recoveryAdjudication).toMatchObject({
+      count: 2,
+      headDigest: next.adjudication.digest,
+      last: {
+        sequence: 2,
+        digest: next.adjudication.digest,
+        previousDigest: result.adjudication.digest,
+      },
+    });
+    restored.dispose();
     resumed.dispose();
   });
 
@@ -284,6 +327,7 @@ describe("SessionResourceBudget continuous enforcement", () => {
       spentUsd: 0,
       recoveryRequired: true,
       pendingRecovery: 1,
+      recoveryAdjudication: null,
       aborted: true,
       reason: "persistence-failed",
     });
@@ -812,6 +856,29 @@ describe("SessionResourceBudget snapshot and recovery", () => {
 
     expect(() => SessionResourceBudget.restore(snapshot)).toThrow(
       /invalid session budget total: turns/,
+    );
+  });
+
+  it("rejects recovery adjudication chain metadata drift", () => {
+    const source = makeBudget({ maxTokens: 100 }).budget;
+    const usage = source.beginUsageSettlement({ id: "adjudication-tamper" });
+    source.markUsageUnknown({ callId: usage.id });
+    source.adjudicateRecovery({
+      settled: [
+        {
+          authorityId: usage.authorityId,
+          provider: "ollama",
+          model: "local",
+          usage: { input_tokens: 1, output_tokens: 0 },
+        },
+      ],
+    });
+    const snapshot = source.snapshot();
+    source.dispose();
+    snapshot.state.recoveryAdjudication.headDigest = `sha256:${"0".repeat(64)}`;
+
+    expect(() => SessionResourceBudget.restore(snapshot)).toThrow(
+      /invalid session budget recovery adjudication state/,
     );
   });
 

@@ -285,6 +285,7 @@ export function adjudicateProductionSessionBudgetRecovery(
       sessionId: String(sessionId),
       abandoned: Object.freeze([...result.abandoned]),
       settled: Object.freeze([...result.settled]),
+      adjudication: Object.freeze({ ...result.adjudication }),
       status: Object.freeze({ ...handle.status() }),
     });
   } finally {
