@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "manifestVersion": "1.9.6",
-  "baselineCommit": "2b37f3cf8db70a40cb64514eb6440b9cb4a63372",
+  "manifestVersion": "1.9.7",
+  "baselineCommit": "8d2c211e82e5138766774930633e50ea77df26d2",
   "releaseEvidence": {
     "commitSource": "git-head-at-run",
     "requiredFields": [
@@ -436,9 +436,9 @@
       "priority": "P1",
       "required": true,
       "evidenceStatus": "external-evidence-required",
-      "evidenceNotes": "Repository tests close generated-draft review authority, exact admission/replay, serial and bounded-parallel request-before-provider persistence, atomic dispatch-batch identity, ordered multi-pending reconciliation, the pause settlement barrier, attempt-scoped retry/timeout recovery, and effect-bound provider request tracing for ordinary model turns plus semantic compaction. Every bound call records a pre-transport attempt identity; completed provider-return results require receipts to match its effect, provider, call, source, sequence, and client request ID, so one returned receipt cannot hide another missing call receipt. The OpenAI client request header is trace-only and limited to the official api.openai.com origin; custom compatible gateways receive no official receipt claim. Transparent transport retry and cross-provider fallback are disabled, while provider/receipt/compaction-usage or post-provider compaction-settlement uncertainty propagates as an unknown outer outcome instead of becoming a retryable task failure. Returned identifiers are explicitly not independent readback or idempotency proof. Release readiness still requires a durable per-call store for pending/crashed effects, native third-party idempotency and independently readable durable receipts across providers, complete artifact/checkpoint/nested-side-effect readback, dual-IDE consumption, plugin distribution, and the declared real-host matrix on the exact release commit.",
+      "evidenceNotes": "Repository tests close generated-draft review authority, exact admission/replay, serial and bounded-parallel request-before-provider persistence, atomic dispatch-batch identity, ordered multi-pending reconciliation, the pause settlement barrier, attempt-scoped retry/timeout recovery, effect-bound provider tracing for ordinary model turns plus semantic compaction, and runtime-derived child identities for directly dispatched tools. Completed provider-return results retain matched nested attempt/settlement lineage; MCP calls additionally persist the outer/child identity tuple in their session ledger before transport and expose persisted start/settlement flags. Workflow-bound MCP outcome uncertainty and hosted-tool exceptions after a dispatch boundary settle the child as outcome_unknown and propagate to outer reconciliation instead of becoming an ordinary task failure. OpenAI request identifiers remain trace-only, and result-bound local/host tool lineage is not an independent durable ledger. Release readiness still requires a durable per-call store for pending/crashed provider and non-MCP child effects, native third-party idempotency and independently readable receipts, complete artifact/checkpoint authority, dual-IDE consumption, plugin distribution, and the declared real-host matrix on the exact release commit.",
       "fixture": "tests/fixtures/ide-roadmap/p1-dynamic-workflow.json",
-      "fixtureDigest": "sha256:5733827d84da8b31d0fa4c903142795b36452ab71463252f07b8b7bda86e4739",
+      "fixtureDigest": "sha256:0ab6cc9aa72ac3339e6f3c6014830f4939a8add8a42ca7b1b3d99fc33b6f4d71",
       "seed": 2026080114,
       "minimumIndependentRuns": 100,
       "matrix": {
@@ -471,6 +471,10 @@
         "semanticCompactionReceiptMismatchCount": 0,
         "semanticCompactionUnknownDowngradeCount": 0,
         "missingProviderAttemptReceiptDetectionFailureCount": 0,
+        "unboundNestedToolEffectCount": 0,
+        "partialMcpWorkflowBindingAcceptanceCount": 0,
+        "nestedToolUnknownDowngradeCount": 0,
+        "missingNestedEffectSettlementDetectionFailureCount": 0,
         "stoppedStageCommitCount": 0,
         "budgetOverrunContinuationCount": 0,
         "missingArtifactLineageCount": 0,
@@ -493,7 +497,9 @@
         "packages/cli/__tests__/unit/agent-core-usage-boundary.test.js",
         "packages/cli/__tests__/unit/prompt-compressor.test.js",
         "packages/cli/__tests__/unit/sub-agent-usage-forwarding.test.js",
-        "packages/cli/__tests__/integration/cowork-task-workflow.test.js"
+        "packages/cli/__tests__/integration/cowork-task-workflow.test.js",
+        "packages/cli/__tests__/unit/agent-core-mcp-ledger.test.js",
+        "packages/cli/__tests__/unit/mcp-call-ledger-store.test.js"
       ],
       "requiredArtifacts": [
         "exact-commit",
@@ -512,6 +518,9 @@
         "effect-bound-provider-request-attempt-ledger",
         "effect-bound-provider-request-receipt",
         "semantic-compaction-provider-request-receipt",
+        "effect-bound-nested-tool-attempt-lineage",
+        "effect-bound-nested-tool-settlement-lineage",
+        "mcp-workflow-child-effect-ledger",
         "checkpoint-lineage",
         "token-time-budget-ledger",
         "artifact-lineage",

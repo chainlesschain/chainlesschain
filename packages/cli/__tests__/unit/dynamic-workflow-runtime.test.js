@@ -7,6 +7,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createHash } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   buildDynamicWorkflowRunAdmission,
@@ -175,6 +176,48 @@ function completedTask(args) {
   };
 }
 
+function nestedToolEvidence(args) {
+  const childSequence = 1;
+  const toolUseId = `tool-${args.workflowEffect.stepId}`;
+  const tool = "mcp__repo__publish";
+  const childEffectId = `sha256:${createHash("sha256")
+    .update(
+      `${args.workflowEffectId}\0tool\0${childSequence}\0${toolUseId}\0${tool}`,
+      "utf8",
+    )
+    .digest("hex")}`;
+  return {
+    nestedEffectAttempts: [
+      {
+        protocol: "cc-workflow-child-effect/v1",
+        workflowEffectId: args.workflowEffectId,
+        childEffectId,
+        childSequence,
+        kind: "tool",
+        tool,
+        toolUseId,
+        identitySemantics: "runtime-derived",
+      },
+    ],
+    nestedEffectSettlements: [
+      {
+        protocol: "cc-workflow-child-effect/v1",
+        workflowEffectId: args.workflowEffectId,
+        childEffectId,
+        childSequence,
+        kind: "tool",
+        tool,
+        toolUseId,
+        status: "completed",
+        outcomeUnknown: false,
+        mcpLedgerId: `mcp-${args.workflowEffect.stepId}`,
+        mcpLedgerPrewritePersisted: true,
+        mcpLedgerSettlementPersisted: true,
+      },
+    ],
+  };
+}
+
 describe("durable dynamic workflow runtime", () => {
   let root;
   let projectRoot;
@@ -220,6 +263,7 @@ describe("durable dynamic workflow runtime", () => {
           independentlyReadable: false,
         },
       ],
+      ...nestedToolEvidence(args),
     }));
     const record = await executeDurableDynamicWorkflow(
       {
@@ -277,10 +321,35 @@ describe("durable dynamic workflow runtime", () => {
         requestIdentitySemantics: "trace-only",
       }),
     ]);
+    expect(projection.observability.nestedEffects).toMatchObject({
+      authority: "task-result-bound-with-mcp-session-ledger-flags",
+      attempts: 2,
+      settlements: 2,
+      projectedAttempts: 2,
+      projectedSettlements: 2,
+      durableMcpSettlements: 2,
+      missingSettlements: 0,
+      invalidAttempts: 0,
+      invalidSettlements: 0,
+      allEffectsIndependentlyDurable: false,
+    });
+    expect(projection.observability.nestedEffects.settlementLineage).toEqual([
+      expect.objectContaining({
+        effectId: state.effects[0].id,
+        status: "completed",
+        mcpLedgerSettlementPersisted: true,
+      }),
+      expect.objectContaining({
+        effectId: state.effects[1].id,
+        status: "completed",
+        mcpLedgerSettlementPersisted: true,
+      }),
+    ]);
     expect(projection.observability.gaps).toEqual(
       expect.arrayContaining([
         "provider-native-idempotency-unavailable",
         "provider-receipt-independent-readback-unavailable",
+        "nested-tool-independent-ledger-incomplete",
       ]),
     );
     expect(projection.observability.gaps).not.toContain(

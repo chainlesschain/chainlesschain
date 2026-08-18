@@ -5,6 +5,7 @@
  */
 import { describe, it, expect, vi } from "vitest";
 import { SubAgentContext } from "../../src/lib/sub-agent-context.js";
+import { createMcpCallLedger } from "../../src/lib/mcp-call-ledger.js";
 
 const RUN_OPTIONS = {
   provider: "anthropic",
@@ -281,6 +282,215 @@ describe("SubAgentContext usage forwarding", () => {
       }),
     ).rejects.toThrow("transport outcome unknown");
     expect(subCtx.providerRequestReceipts()).toEqual([]);
+  });
+
+  it("retains stable nested tool attempts and matching settlements", async () => {
+    const workflowEffectId = `sha256:${"9".repeat(64)}`;
+    const subCtx = createContext({ workflowEffectId, maxIterations: 3 });
+    const chatFn = vi
+      .fn()
+      .mockResolvedValueOnce(toolResponse())
+      .mockResolvedValueOnce(
+        finalResponse("done", { input_tokens: 1, output_tokens: 1 }),
+      );
+
+    await subCtx.run("t", { ...RUN_OPTIONS, chatFn });
+
+    const attempts = subCtx.nestedEffectAttempts();
+    const settlements = subCtx.nestedEffectSettlements();
+    expect(attempts).toEqual([
+      expect.objectContaining({
+        protocol: "cc-workflow-child-effect/v1",
+        workflowEffectId,
+        childEffectId: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+        childSequence: 1,
+        kind: "tool",
+        tool: "read_file",
+        toolUseId: "read-1",
+        identitySemantics: "runtime-derived",
+      }),
+    ]);
+    expect(settlements).toEqual([
+      expect.objectContaining({
+        workflowEffectId,
+        childEffectId: attempts[0].childEffectId,
+        childSequence: 1,
+        status: "completed",
+        outcomeUnknown: false,
+        mcpLedgerId: null,
+        mcpLedgerPrewritePersisted: false,
+        mcpLedgerSettlementPersisted: false,
+      }),
+    ]);
+    expect(subCtx.recoveryBinding()).toMatchObject({
+      nestedEffectAttempts: [
+        expect.objectContaining({ childEffectId: attempts[0].childEffectId }),
+      ],
+      nestedEffectSettlements: [
+        expect.objectContaining({ childEffectId: attempts[0].childEffectId }),
+      ],
+    });
+  });
+
+  it("propagates an MCP outcome-unknown settlement to the outer workflow", async () => {
+    const workflowEffectId = `sha256:${"8".repeat(64)}`;
+    const toolName = "mcp__repo__publish";
+    const ledger = createMcpCallLedger({ randomUUID: () => "nested" });
+    const callTool = vi.fn(async () => {
+      throw new Error("transport may have dispatched");
+    });
+    const subCtx = createContext({
+      workflowEffectId,
+      maxIterations: 2,
+      permissionConfirm: async () => true,
+      extraToolDefinitions: [
+        {
+          type: "function",
+          function: {
+            name: toolName,
+            description: "publish",
+            parameters: { type: "object", properties: {} },
+          },
+        },
+      ],
+      externalToolDescriptors: {
+        [toolName]: {
+          name: toolName,
+          kind: "mcp",
+          category: "mcp",
+          source: "mcp:repo",
+          effectContract: { declaredEffect: "write" },
+        },
+      },
+      externalToolExecutors: {
+        [toolName]: {
+          kind: "mcp",
+          serverName: "repo",
+          toolName: "publish",
+        },
+      },
+      mcpClient: { callTool },
+      mcpCallLedger: ledger,
+    });
+    const chatFn = vi.fn(async () => ({
+      message: {
+        content: "",
+        tool_calls: [
+          {
+            id: "publish-1",
+            type: "function",
+            function: { name: toolName, arguments: "{}" },
+          },
+        ],
+      },
+      usage: { input_tokens: 1, output_tokens: 1 },
+    }));
+
+    const error = await captureRejection(
+      subCtx.run("t", { ...RUN_OPTIONS, chatFn }),
+    );
+
+    expect(error).toMatchObject({
+      code: "CC_WORKFLOW_NESTED_TOOL_OUTCOME_UNKNOWN",
+      workflowEffectOutcomeUnknown: true,
+      workflowEffectId,
+      workflowChildEffectId: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+    });
+    expect(subCtx.nestedEffectAttempts()).toHaveLength(1);
+    expect(subCtx.nestedEffectSettlements()).toEqual([
+      expect.objectContaining({
+        childEffectId: error.workflowChildEffectId,
+        status: "outcome_unknown",
+        outcomeUnknown: true,
+        mcpLedgerId: "mcp-nested-1",
+      }),
+    ]);
+    expect(ledger.list()).toEqual([
+      expect.objectContaining({
+        status: "started",
+        workflowEffectId,
+        workflowChildEffectId: error.workflowChildEffectId,
+        workflowChildSequence: 1,
+        workflowEffectProtocol: "cc-workflow-child-effect/v1",
+      }),
+    ]);
+    expect(callTool).toHaveBeenCalledWith(
+      "repo",
+      "publish",
+      {},
+      expect.objectContaining({
+        workflowEffectId,
+        workflowChildEffectId: error.workflowChildEffectId,
+      }),
+    );
+  });
+
+  it("treats a hosted tool exception after its boundary as outcome unknown", async () => {
+    const workflowEffectId = `sha256:${"7".repeat(64)}`;
+    const toolName = "host_publish";
+    const requestHostTool = vi.fn(async () => {
+      throw new Error("host connection dropped after dispatch");
+    });
+    const subCtx = createContext({
+      workflowEffectId,
+      maxIterations: 2,
+      tokenBudget: 1,
+      hostManagedToolPolicy: {
+        toolDefinitions: [
+          {
+            type: "function",
+            function: {
+              name: toolName,
+              description: "publish",
+              parameters: { type: "object", properties: {} },
+            },
+          },
+        ],
+        tools: { [toolName]: { allowed: true, riskLevel: "low" } },
+      },
+    });
+    const chatFn = vi.fn(async () => ({
+      message: {
+        content: "",
+        tool_calls: [
+          {
+            id: "host-1",
+            type: "function",
+            function: { name: toolName, arguments: "{}" },
+          },
+        ],
+      },
+      usage: { input_tokens: 1, output_tokens: 1 },
+    }));
+
+    const error = await captureRejection(
+      subCtx.run("t", {
+        ...RUN_OPTIONS,
+        chatFn,
+        interaction: { requestHostTool },
+      }),
+    );
+
+    expect(error).toMatchObject({
+      code: "CC_WORKFLOW_NESTED_TOOL_OUTCOME_UNKNOWN",
+      workflowEffectOutcomeUnknown: true,
+      workflowEffectId,
+    });
+    expect(subCtx.nestedEffectSettlements()).toEqual([
+      expect.objectContaining({
+        childEffectId: error.workflowChildEffectId,
+        status: "outcome_unknown",
+        outcomeUnknown: true,
+      }),
+    ]);
+    expect(requestHostTool).toHaveBeenCalledWith(
+      toolName,
+      {},
+      expect.objectContaining({
+        workflowEffectId,
+        workflowChildEffectId: error.workflowChildEffectId,
+      }),
+    );
   });
 });
 

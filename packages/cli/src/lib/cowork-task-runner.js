@@ -96,10 +96,20 @@ function workflowEffectEvidence(subAgent, workflowEffectId) {
     typeof subAgent?.providerRequestReceipts === "function"
       ? subAgent.providerRequestReceipts()
       : [];
+  const nestedEffectAttempts =
+    typeof subAgent?.nestedEffectAttempts === "function"
+      ? subAgent.nestedEffectAttempts()
+      : [];
+  const nestedEffectSettlements =
+    typeof subAgent?.nestedEffectSettlements === "function"
+      ? subAgent.nestedEffectSettlements()
+      : [];
   return {
     workflowEffectId,
     providerRequestAttempts: attempts,
     providerRequestReceipts: receipts,
+    nestedEffectAttempts,
+    nestedEffectSettlements,
   };
 }
 

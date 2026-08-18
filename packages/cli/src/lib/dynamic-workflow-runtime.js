@@ -43,6 +43,9 @@ const MAX_PROJECTED_ARTIFACTS_PER_EFFECT = 256;
 const PROVIDER_CLIENT_REQUEST_ID_RE = /^ccwf_[a-f0-9]{64}$/u;
 const PROVIDER_RECEIPT_ID_RE = /^[A-Za-z0-9._:-]{1,256}$/u;
 const PROVIDER_NAME_RE = /^[a-z0-9][a-z0-9._-]{0,63}$/u;
+const WORKFLOW_TOOL_CALL_ID_RE = /^[\x21-\x7e]{1,512}$/u;
+const WORKFLOW_TOOL_NAME_RE = /^[A-Za-z0-9._:-]{1,256}$/u;
+const WORKFLOW_CHILD_EFFECT_PROTOCOL = "cc-workflow-child-effect/v1";
 const SETTLEMENT_AUTHORITIES = new Set([
   "provider-return",
   "operator-reconciled",
@@ -1752,6 +1755,163 @@ function projectProviderRequestReceipts(effect) {
   };
 }
 
+function expectedNestedToolEffectId(effectId, sequence, toolUseId, tool) {
+  return `sha256:${createHash("sha256")
+    .update(
+      `${effectId}\0tool\0${String(sequence)}\0${toolUseId}\0${tool}`,
+      "utf8",
+    )
+    .digest("hex")}`;
+}
+
+function projectNestedToolEffects(effect) {
+  const attemptValues = Array.isArray(effect.result?.nestedEffectAttempts)
+    ? effect.result.nestedEffectAttempts
+    : [];
+  const settlementValues = Array.isArray(effect.result?.nestedEffectSettlements)
+    ? effect.result.nestedEffectSettlements
+    : [];
+  const visibleAttempts = attemptValues.slice(
+    0,
+    MAX_PROJECTED_ARTIFACTS_PER_EFFECT,
+  );
+  const visibleSettlements = settlementValues.slice(
+    0,
+    MAX_PROJECTED_ARTIFACTS_PER_EFFECT,
+  );
+  const attemptsById = new Map();
+  const settledIds = new Set();
+  const attemptLineage = [];
+  const settlementLineage = [];
+  let invalidAttempts = 0;
+  let invalidSettlements = 0;
+  let durableMcpSettlements = 0;
+
+  for (let ordinal = 0; ordinal < visibleAttempts.length; ordinal += 1) {
+    const attempt = visibleAttempts[ordinal];
+    const expectedId =
+      attempt &&
+      expectedNestedToolEffectId(
+        effect.id,
+        attempt.childSequence,
+        attempt.toolUseId,
+        attempt.tool,
+      );
+    if (
+      effect.settlementAuthority !== "provider-return" ||
+      effect.result?.workflowEffectId !== effect.id ||
+      !attempt ||
+      typeof attempt !== "object" ||
+      Array.isArray(attempt) ||
+      attempt.protocol !== WORKFLOW_CHILD_EFFECT_PROTOCOL ||
+      attempt.workflowEffectId !== effect.id ||
+      !SHA256_RE.test(attempt.childEffectId || "") ||
+      attempt.childEffectId !== expectedId ||
+      !Number.isSafeInteger(attempt.childSequence) ||
+      attempt.childSequence < 1 ||
+      attempt.kind !== "tool" ||
+      !WORKFLOW_TOOL_NAME_RE.test(attempt.tool || "") ||
+      !WORKFLOW_TOOL_CALL_ID_RE.test(attempt.toolUseId || "") ||
+      attempt.identitySemantics !== "runtime-derived" ||
+      attemptsById.has(attempt.childEffectId) ||
+      [...attemptsById.values()].some(
+        (existing) => existing.childSequence === attempt.childSequence,
+      )
+    ) {
+      invalidAttempts += 1;
+      continue;
+    }
+    const projected = {
+      effectId: effect.id,
+      ordinal,
+      childEffectId: attempt.childEffectId,
+      childSequence: attempt.childSequence,
+      kind: "tool",
+      tool: attempt.tool,
+      toolUseId: attempt.toolUseId,
+      identitySemantics: "runtime-derived",
+    };
+    attemptsById.set(attempt.childEffectId, projected);
+    attemptLineage.push(projected);
+  }
+
+  for (let ordinal = 0; ordinal < visibleSettlements.length; ordinal += 1) {
+    const settlement = visibleSettlements[ordinal];
+    const attempt = attemptsById.get(settlement?.childEffectId);
+    const mcpLedgerId = settlement?.mcpLedgerId ?? null;
+    const validMcpLedgerId =
+      mcpLedgerId === null || PROVIDER_RECEIPT_ID_RE.test(mcpLedgerId);
+    const mcpPersistenceValid =
+      mcpLedgerId === null
+        ? settlement?.mcpLedgerPrewritePersisted === false &&
+          settlement?.mcpLedgerSettlementPersisted === false
+        : typeof settlement?.mcpLedgerPrewritePersisted === "boolean" &&
+          typeof settlement?.mcpLedgerSettlementPersisted === "boolean" &&
+          (!settlement.mcpLedgerSettlementPersisted ||
+            settlement.mcpLedgerPrewritePersisted);
+    if (
+      effect.settlementAuthority !== "provider-return" ||
+      effect.result?.workflowEffectId !== effect.id ||
+      !settlement ||
+      typeof settlement !== "object" ||
+      Array.isArray(settlement) ||
+      settlement.protocol !== WORKFLOW_CHILD_EFFECT_PROTOCOL ||
+      settlement.workflowEffectId !== effect.id ||
+      !attempt ||
+      settlement.childSequence !== attempt.childSequence ||
+      settlement.kind !== "tool" ||
+      settlement.tool !== attempt.tool ||
+      settlement.toolUseId !== attempt.toolUseId ||
+      !["completed", "failed"].includes(settlement.status) ||
+      settlement.outcomeUnknown !== false ||
+      !validMcpLedgerId ||
+      !mcpPersistenceValid ||
+      settledIds.has(settlement.childEffectId)
+    ) {
+      invalidSettlements += 1;
+      continue;
+    }
+    settledIds.add(settlement.childEffectId);
+    if (
+      mcpLedgerId &&
+      settlement.mcpLedgerPrewritePersisted &&
+      settlement.mcpLedgerSettlementPersisted
+    ) {
+      durableMcpSettlements += 1;
+    }
+    settlementLineage.push({
+      effectId: effect.id,
+      ordinal,
+      childEffectId: settlement.childEffectId,
+      childSequence: settlement.childSequence,
+      kind: "tool",
+      tool: settlement.tool,
+      toolUseId: settlement.toolUseId,
+      status: settlement.status,
+      outcomeUnknown: false,
+      mcpLedgerId,
+      mcpLedgerPrewritePersisted:
+        settlement.mcpLedgerPrewritePersisted === true,
+      mcpLedgerSettlementPersisted:
+        settlement.mcpLedgerSettlementPersisted === true,
+    });
+  }
+
+  return {
+    attemptCount: attemptValues.length,
+    settlementCount: settlementValues.length,
+    invalidAttempts,
+    invalidSettlements,
+    missingSettlements: attemptLineage.length - settledIds.size,
+    durableMcpSettlements,
+    truncated:
+      attemptValues.length > visibleAttempts.length ||
+      settlementValues.length > visibleSettlements.length,
+    attemptLineage,
+    settlementLineage,
+  };
+}
+
 function projectDynamicWorkflowObservability(state) {
   const settled = state.effects.filter((effect) => effect.status === "settled");
   const effectLineage = [];
@@ -1759,6 +1919,8 @@ function projectDynamicWorkflowObservability(state) {
   const checkpointLineage = [];
   const providerRequestAttemptLineage = [];
   const providerReceiptLineage = [];
+  const nestedEffectAttemptLineage = [];
+  const nestedEffectSettlementLineage = [];
   let requestToSettlementMs = 0;
   let maxRequestToSettlementMs = 0;
   let estimatedTokens = 0;
@@ -1778,6 +1940,13 @@ function projectDynamicWorkflowObservability(state) {
   let invalidProviderReceipts = 0;
   let missingProviderRequestReceipts = 0;
   let providerReceiptTruncatedEffects = 0;
+  let nestedEffectAttemptCount = 0;
+  let nestedEffectSettlementCount = 0;
+  let nestedEffectDurableMcpSettlements = 0;
+  let invalidNestedEffectAttempts = 0;
+  let invalidNestedEffectSettlements = 0;
+  let missingNestedEffectSettlements = 0;
+  let nestedEffectTruncatedEffects = 0;
 
   for (const effect of settled) {
     const elapsed = Math.max(
@@ -1834,6 +2003,17 @@ function projectDynamicWorkflowObservability(state) {
     }
     if (providerReceipts.truncated) providerReceiptTruncatedEffects += 1;
 
+    const nestedEffects = projectNestedToolEffects(effect);
+    nestedEffectAttemptCount += nestedEffects.attemptCount;
+    nestedEffectSettlementCount += nestedEffects.settlementCount;
+    nestedEffectDurableMcpSettlements += nestedEffects.durableMcpSettlements;
+    invalidNestedEffectAttempts += nestedEffects.invalidAttempts;
+    invalidNestedEffectSettlements += nestedEffects.invalidSettlements;
+    missingNestedEffectSettlements += nestedEffects.missingSettlements;
+    nestedEffectAttemptLineage.push(...nestedEffects.attemptLineage);
+    nestedEffectSettlementLineage.push(...nestedEffects.settlementLineage);
+    if (nestedEffects.truncated) nestedEffectTruncatedEffects += 1;
+
     effectLineage.push({
       effectId: effect.id,
       stepId: effect.stepId,
@@ -1866,7 +2046,7 @@ function projectDynamicWorkflowObservability(state) {
     "provider-receipt-independent-readback-unavailable",
     "checkpoint-provider-readback-unavailable",
     "artifact-store-readback-unavailable",
-    "nested-tool-side-effect-ledger-unavailable",
+    "nested-tool-independent-ledger-incomplete",
   ];
   if (tokenEstimateEffects !== settled.length) {
     gaps.push("cowork-token-estimate-incomplete");
@@ -1894,6 +2074,18 @@ function projectDynamicWorkflowObservability(state) {
   }
   if (providerReceiptTruncatedEffects > 0) {
     gaps.push("provider-request-receipt-projection-truncated");
+  }
+  if (invalidNestedEffectAttempts > 0) {
+    gaps.push("nested-tool-effect-attempt-invalid");
+  }
+  if (invalidNestedEffectSettlements > 0) {
+    gaps.push("nested-tool-effect-settlement-invalid");
+  }
+  if (missingNestedEffectSettlements > 0) {
+    gaps.push("nested-tool-effect-settlement-incomplete");
+  }
+  if (nestedEffectTruncatedEffects > 0) {
+    gaps.push("nested-tool-effect-projection-truncated");
   }
 
   return snapshotJson(
@@ -1972,6 +2164,29 @@ function projectDynamicWorkflowObservability(state) {
         ),
         requestAttemptLineage: providerRequestAttemptLineage,
         lineage: providerReceiptLineage,
+      },
+      nestedEffects: {
+        authority: "task-result-bound-with-mcp-session-ledger-flags",
+        attempts: nestedEffectAttemptCount,
+        settlements: nestedEffectSettlementCount,
+        projectedAttempts: nestedEffectAttemptLineage.length,
+        projectedSettlements: nestedEffectSettlementLineage.length,
+        durableMcpSettlements: nestedEffectDurableMcpSettlements,
+        missingSettlements: missingNestedEffectSettlements,
+        invalidAttempts: invalidNestedEffectAttempts,
+        invalidSettlements: invalidNestedEffectSettlements,
+        truncatedEffects: nestedEffectTruncatedEffects,
+        allEffectsIndependentlyDurable: false,
+        attemptLineageDigest: digest(
+          "chainlesschain.dynamic-workflow.nested-effect-attempt-lineage.v1\0",
+          nestedEffectAttemptLineage,
+        ),
+        settlementLineageDigest: digest(
+          "chainlesschain.dynamic-workflow.nested-effect-settlement-lineage.v1\0",
+          nestedEffectSettlementLineage,
+        ),
+        attemptLineage: nestedEffectAttemptLineage,
+        settlementLineage: nestedEffectSettlementLineage,
       },
       artifacts: {
         authority: "task-result-digest-only",

@@ -366,6 +366,54 @@ describe("agent-core MCP call ledger", () => {
     expect(events[1].record.status).toBe("completed");
   });
 
+  it("binds a durable workflow child identity through ledger and transport", async () => {
+    const workflowEffectId = `sha256:${"a".repeat(64)}`;
+    const workflowChildEffectId = `sha256:${"b".repeat(64)}`;
+    const events = [];
+    const ledger = createMcpCallLedger({
+      sink: async (record, { phase }) => events.push({ phase, record }),
+      randomUUID: () => "workflow-bound",
+    });
+    const callTool = vi.fn(async () => ({ content: [] }));
+    const options = toolOptions(cwd, { callTool }, ledger, {
+      declaredEffect: "write",
+    });
+    Object.assign(options, {
+      workflowEffectId,
+      workflowChildEffectId,
+      workflowChildSequence: 3,
+      workflowEffectProtocol: "cc-workflow-child-effect/v1",
+    });
+
+    const result = await executeTool(TOOL_NAME, { revision: 3 }, options);
+
+    expect(result).toMatchObject({
+      mcpLedgerId: "mcp-workflow-bound-1",
+      mcpLedgerPrewritePersisted: true,
+      mcpLedgerSettlementPersisted: true,
+    });
+    expect(events).toHaveLength(2);
+    for (const { record } of events) {
+      expect(record).toMatchObject({
+        workflowEffectId,
+        workflowChildEffectId,
+        workflowChildSequence: 3,
+        workflowEffectProtocol: "cc-workflow-child-effect/v1",
+      });
+    }
+    expect(callTool).toHaveBeenCalledWith(
+      "files",
+      "update",
+      { revision: 3 },
+      expect.objectContaining({
+        workflowEffectId,
+        workflowChildEffectId,
+        workflowChildSequence: 3,
+        workflowEffectProtocol: "cc-workflow-child-effect/v1",
+      }),
+    );
+  });
+
   it("keeps an unsafe oversized result out of ledger and public projection", async () => {
     const canary = "OVERSIZED_MCP_RESULT_PRIVATE_CANARY";
     const harness = guardedLedger({ randomUUID: () => "oversized-result" });

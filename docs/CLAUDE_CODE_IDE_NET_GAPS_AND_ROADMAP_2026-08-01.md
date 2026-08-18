@@ -2587,6 +2587,62 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 四十、2026-08-18 P1-1 nested tool/MCP child effect binding 与 unknown 传播子门复核（`10:28 +08:00`）
+
+本节继续第三十九节，只关闭 durable Cowork 中由 `agentLoop` **直接 dispatch 的 tool call** 所缺少的 outer/child effect
+绑定、MCP session-ledger 血缘和 unknown-outcome 外层传播。候选基于已合并本地主分支
+`8d2c211e82e5138766774930633e50ea77df26d2` 的功能分支，尚无本候选 exact-head GitHub Actions；本节不把本地
+MCP transcript 外推为第三方幂等或外部 receipt，也不宣称所有 nested descendant 已 exactly-once。
+
+### 本轮关闭的直接 child-effect 边界
+
+- **每次真实 tool dispatch 取得稳定 child identity。** workflow-bound loop 在 `tool-executing` 持久边界前，按 outer
+  `workflowEffectId + tool sequence + provider tool_call id + tool name` 派生规范 `sha256:` child effect id；parallel read batch 先按模型
+  顺序发布全部边界，再启动调用。boundary/result 同时携带 protocol、outer id、child id 与 sequence，畸形或重复 identity 在执行前
+  fail closed。权限/能力拒绝和 managed-checkpoint prepare 失败没有物理 tool dispatch，因而不会伪造 attempt。
+- **SubAgent/Cowork 保留成对 attempt/settlement。** completed provider-return result 新增有界 `nestedEffectAttempts` 与
+  `nestedEffectSettlements`；settlement 固定记录 completed/failed、unknown 标志和可选 MCP ledger identity/persistence facts。正常结束前若
+  attempt 没有对应 settlement，workflow-bound child 会失败并让 outer effect 保持 pending，而不是把不完整 lineage 当成完成。
+- **MCP durable ledger 消费同一 identity。** MCP `begin()` 在 transport 前把 outer/child/sequence/protocol 作为 all-or-nothing immutable
+  tuple 写入既有 session ledger；durable sink 再次验证四字段完整性，started/settled 不能改变 binding。MCP client 的 send options 同时收到
+  该 tuple，成功结果只在 ledger 明确回报时标记 prewrite/settlement persisted。hosted external adapter 也在 workflow-bound 调用中收到冻结的
+  child binding；legacy 两参数 host contract 保持不变。
+- **nested unknown 不再喂回模型后误报 task success。** MCP transport/protocol/ledger settlement 返回 `outcomeUnknown`，host adapter
+  显式返回 unknown，或 hosted/其他 tool 在已发布执行边界后抛异常时，loop 都先 yield 匹配的 `tool-result` settlement，再抛出
+  `CC_WORKFLOW_NESTED_TOOL_OUTCOME_UNKNOWN`。Cowork 不把它转换成普通 failed result，durable runtime 因而阻断 outer effect 并要求
+  reconciliation；非 workflow 路径仍保留既有兼容行为。
+- **observability 可重算 identity 并诚实区分 authority。** projection 重新派生 child id，逐条匹配 attempt/settlement，统计 invalid、missing、
+  truncation 和同时持久化 started/settled 的 MCP 数量。authority 明确为
+  `task-result-bound-with-mcp-session-ledger-flags`，并保留 `nested-tool-independent-ledger-incomplete` gap；本地/host result-bound 记录不会被
+  冒充为可独立回读的 durable ledger。
+
+### 仓库内验证与证据边界
+
+- manifest `p1-dynamic-workflow` 引用的 **16 个文件为 539/539**；新增覆盖稳定 child id、正常成对 settlement、MCP binding 贯穿 ledger 与
+  transport、partial binding 拒绝、MCP transport unknown、hosted-tool post-boundary exception、legacy host compatibility 和 observability
+  重算/持久化标志。
+- 直接聚焦的 agent/MCP/store/SubAgent/runtime/Cowork 六文件为 **268/268**；roadmap verifier 与 journey evidence 两文件为
+  **37/37**。
+- roadmap manifest 从 `1.9.6` 升至 `1.9.7`，baseline 绑定本轮起点 `8d2c211e82e`；fixture digest 为
+  `sha256:0ab6cc9aa72ac3339e6f3c6014830f4939a8add8a42ca7b1b3d99fc33b6f4d71`。`--contract-only` 回读
+  **15 cases / 68 referenced test files**，并继续明确 runtime evidence 与 release readiness 未被评估。
+
+### P1-1 仍未关闭的边界
+
+1. **非 MCP pending/crash store 与 descendant effects：** local/host child lineage 只随 completed task result 结算；进程在 boundary 后崩溃时
+   outer effect 会保守阻断，但没有可独立回读的逐调用 durable row。spawned sub-agent 内部 provider/tool descendants、hook/checkpoint
+   prepare side effects 和通用外部系统也尚未全部取得独立 child authority。
+2. **第三方幂等、receipt 与 artifact authority：** MCP ledger 是本地 canonical session transcript，不证明 server 端 exactly-once；host
+   metadata 也不是第三方 receipt。provider pending-call store、native idempotency/independent readback、ArtifactStore immutable bytes、
+   checkpoint provider receipt/restore、真实 token/USD usage 与不合作系统的物理取消仍开放。
+3. **完整产品与外部矩阵：** 一般阶段间 `needs_input`、Workbench/VS Code/JetBrains phase/agent/control UI、plugin/marketplace 分发，以及
+   Local/WSL/SSH/Container/Cloud × 三 OS × 双 IDE 每格 100 次 exact-head 真实 provider/故障矩阵仍无外部证据。
+
+因此，P1-1 的**直接 nested tool identity、MCP durable binding、result-bound child lineage 与 unknown-outcome 外层传播**由本节关闭；
+P1-1 整项仍为**部分完成**，不得据此声明通用 nested exactly-once 或第三方 independently-readable receipt。总计数保持
+**12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
+Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
+
 ## 三十九、2026-08-18 P1-1 semantic compaction request attempt 与逐调用 receipt 子门复核（`09:52 +08:00`）
 
 本节继续第三十八节，将此前明确留在 outer task receipt 之外的 **semantic compaction 模型调用**纳入同一 effect-bound

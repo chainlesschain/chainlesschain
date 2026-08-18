@@ -213,6 +213,26 @@ describe("MCP call ledger session store", () => {
     );
   });
 
+  it("preserves an all-or-nothing workflow child binding in durable records", async () => {
+    const appendEvent = vi.fn(() => true);
+    const sink = createSessionMcpLedgerSink("session-1", { appendEvent });
+    const workflowBinding = {
+      workflowEffectId: `sha256:${"b".repeat(64)}`,
+      workflowChildEffectId: `sha256:${"c".repeat(64)}`,
+      workflowChildSequence: 2,
+      workflowEffectProtocol: "cc-workflow-child-effect/v1",
+    };
+
+    await sink(record(workflowBinding), { phase: "started" });
+
+    expect(appendEvent.mock.calls[0][2].record).toMatchObject(workflowBinding);
+    await expect(
+      sink(record({ workflowEffectId: workflowBinding.workflowEffectId }), {
+        phase: "started",
+      }),
+    ).rejects.toMatchObject({ code: "CC_MCP_LEDGER_RECORD_INVALID" });
+  });
+
   it("canonicalizes and bounds scopes again at the durable sink", async () => {
     const appendEvent = vi.fn(() => true);
     const sink = createSessionMcpLedgerSink("session-1", { appendEvent });

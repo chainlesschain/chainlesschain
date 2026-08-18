@@ -3583,6 +3583,10 @@ export async function executeTool(name, args, context = {}) {
       sessionId: context.sessionId || null,
       turnId: context.turnId || null,
       toolCallId: context.toolCallId || null,
+      workflowEffectId: context.workflowEffectId || null,
+      workflowChildEffectId: context.workflowChildEffectId || null,
+      workflowChildSequence: context.workflowChildSequence || null,
+      workflowEffectProtocol: context.workflowEffectProtocol || null,
       // Parent LLM config — documented at toolContext as forwarded to
       // spawn_sub_agent for provider/key inheritance; without this line it
       // never actually reached executeToolInner (sub-agents silently fell
@@ -4969,6 +4973,10 @@ async function executeToolInner(
     sessionId,
     turnId,
     toolCallId,
+    workflowEffectId = null,
+    workflowChildEffectId = null,
+    workflowChildSequence = null,
+    workflowEffectProtocol = null,
     planManager = null,
     permissionRules = null,
     effectiveAllowedToolNames = null,
@@ -8035,6 +8043,14 @@ async function executeToolInner(
             ledgerTicket = await ledger.begin({
               sessionId,
               turnId,
+              ...(workflowEffectId
+                ? {
+                    workflowEffectId,
+                    workflowChildEffectId,
+                    workflowChildSequence,
+                    workflowEffectProtocol,
+                  }
+                : {}),
               toolName: localToolExecutor.toolName,
               serverName: localToolExecutor.serverName,
               input: mcpWireInput,
@@ -8108,11 +8124,19 @@ async function executeToolInner(
               localToolExecutor.toolName,
               mcpWireInput,
             ];
-            if (signal || mcpDispatchAdmission) {
+            if (signal || mcpDispatchAdmission || workflowEffectId) {
               callArguments.push({
                 ...(signal ? { signal } : {}),
                 ...(mcpDispatchAdmission
                   ? { dispatchAdmission: mcpDispatchAdmission }
+                  : {}),
+                ...(workflowEffectId
+                  ? {
+                      workflowEffectId,
+                      workflowChildEffectId,
+                      workflowChildSequence,
+                      workflowEffectProtocol,
+                    }
                   : {}),
               });
             }
@@ -8242,8 +8266,9 @@ async function executeToolInner(
             );
           }
 
+          let settledLedgerRecord;
           try {
-            await ledgerTicket.settle(
+            settledLedgerRecord = await ledgerTicket.settle(
               protocolError
                 ? {
                     status: "failed",
@@ -8265,11 +8290,26 @@ async function executeToolInner(
           }
 
           const mcpLedgerId = safeMcpProperty(ledgerTicket, "ledgerId") || null;
+          const mcpLedgerPrewritePersisted =
+            safeMcpProperty(ledgerTicket, "prewritePersisted") === true;
+          const mcpLedgerSettlementPersisted =
+            safeMcpProperty(settledLedgerRecord, "settlementPersistence") ===
+            "persisted";
           try {
             if (result && typeof result === "object") {
-              return attachDescriptor({ ...result, mcpLedgerId });
+              return attachDescriptor({
+                ...result,
+                mcpLedgerId,
+                mcpLedgerPrewritePersisted,
+                mcpLedgerSettlementPersisted,
+              });
             }
-            return attachDescriptor({ result, mcpLedgerId });
+            return attachDescriptor({
+              result,
+              mcpLedgerId,
+              mcpLedgerPrewritePersisted,
+              mcpLedgerSettlementPersisted,
+            });
           } catch (projectionError) {
             return attachDescriptor({
               error:
@@ -8296,7 +8336,18 @@ async function executeToolInner(
         interaction &&
         typeof interaction.requestHostTool === "function"
       ) {
-        const hostedResult = await interaction.requestHostTool(name, args);
+        const hostedResult = workflowEffectId
+          ? await interaction.requestHostTool(
+              name,
+              args,
+              Object.freeze({
+                workflowEffectId,
+                workflowChildEffectId,
+                workflowChildSequence,
+                workflowEffectProtocol,
+              }),
+            )
+          : await interaction.requestHostTool(name, args);
         if (hostedResult?.success === false) {
           return attachDescriptor({
             error:
@@ -11764,6 +11815,8 @@ function _newModelUsageCallId(source = "model") {
 }
 
 const WORKFLOW_EFFECT_ID_RE = /^sha256:[a-f0-9]{64}$/;
+const WORKFLOW_CHILD_EFFECT_PROTOCOL = "cc-workflow-child-effect/v1";
+const WORKFLOW_TOOL_CALL_ID_RE = /^[\x21-\x7e]{1,512}$/;
 
 function _normalizeWorkflowEffectId(value) {
   if (value == null) return null;
@@ -11781,6 +11834,55 @@ function _workflowProviderRequestId(workflowEffectId, source, sequence) {
       "utf8",
     )
     .digest("hex")}`;
+}
+
+function _workflowToolEffectBinding(
+  workflowEffectId,
+  sequence,
+  toolCallId,
+  toolName,
+) {
+  if (!workflowEffectId) return null;
+  if (
+    !Number.isSafeInteger(sequence) ||
+    sequence < 1 ||
+    typeof toolCallId !== "string" ||
+    !WORKFLOW_TOOL_CALL_ID_RE.test(toolCallId) ||
+    typeof toolName !== "string" ||
+    !toolName
+  ) {
+    const error = new TypeError(
+      "workflow-bound tool call identity is malformed",
+    );
+    error.code = "CC_WORKFLOW_CHILD_EFFECT_IDENTITY_INVALID";
+    throw error;
+  }
+  const childEffectId = `sha256:${createHash("sha256")
+    .update(
+      `${workflowEffectId}\0tool\0${String(sequence)}\0${toolCallId}\0${toolName}`,
+      "utf8",
+    )
+    .digest("hex")}`;
+  return Object.freeze({
+    workflowEffectProtocol: WORKFLOW_CHILD_EFFECT_PROTOCOL,
+    workflowEffectId,
+    workflowChildEffectId: childEffectId,
+    workflowChildSequence: sequence,
+  });
+}
+
+function _workflowNestedToolOutcomeUnknown(binding, toolName, result) {
+  if (!binding || safeMcpProperty(result, "outcomeUnknown") !== true) {
+    return null;
+  }
+  const error = new Error(
+    `Workflow-bound nested tool ${toolName} has an unknown outcome and requires reconciliation`,
+  );
+  error.code = "CC_WORKFLOW_NESTED_TOOL_OUTCOME_UNKNOWN";
+  error.workflowEffectOutcomeUnknown = true;
+  error.workflowEffectId = binding.workflowEffectId;
+  error.workflowChildEffectId = binding.workflowChildEffectId;
+  return error;
 }
 
 function _workflowCompactionOutcomeUnknown(
@@ -12497,6 +12599,7 @@ export async function* agentLoop(messages, options) {
     options.runId ||
     `run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   let automaticCompactionSettlementBlocked = false;
+  let workflowChildEffectSequence = 0;
 
   const fileMutationScope = normalizeExactFileMutationScope(
     options.fileMutationScope,
@@ -12596,6 +12699,7 @@ export async function* agentLoop(messages, options) {
     mcpDispatchAdmission: hermeticExecution
       ? null
       : options.mcpDispatchAdmission || null,
+    workflowEffectId,
     // A loop-local identity prevents one session's lazy instruction commits
     // from suppressing first-access delivery in another session at the same
     // cwd. Hosts may inject a stable identity across resumed turns.
@@ -13740,7 +13844,13 @@ export async function* agentLoop(messages, options) {
         } catch {
           toolArgs = {};
         }
-        return { call, toolArgs };
+        const workflowBinding = _workflowToolEffectBinding(
+          workflowEffectId,
+          workflowEffectId ? (workflowChildEffectSequence += 1) : 0,
+          call.id,
+          call.function.name,
+        );
+        return { call, toolArgs, workflowBinding };
       });
       // Yield every start boundary before dispatch. Async-generator consumers
       // persist each boundary before asking for the next item, so by the time
@@ -13749,20 +13859,21 @@ export async function* agentLoop(messages, options) {
       try {
         throwIfAborted(signal);
         _throwBackgroundUsageFailureState(backgroundUsageFailureState);
-        for (const { call, toolArgs } of prepared) {
+        for (const { call, toolArgs, workflowBinding } of prepared) {
           yield {
             type: "tool-executing",
             tool: call.function.name,
             args: toolArgs,
             tool_use_id: call.id,
             turn_id: `${runId}:t${budget.consumed}`,
+            ...(workflowBinding || {}),
           };
-          startedPrepared.push({ call, toolArgs });
+          startedPrepared.push({ call, toolArgs, workflowBinding });
           throwIfAborted(signal);
         }
         _throwBackgroundUsageFailureState(backgroundUsageFailureState);
       } catch (admissionFailure) {
-        for (const { call } of startedPrepared) {
+        for (const { call, workflowBinding } of startedPrepared) {
           yield {
             type: "tool-result",
             tool: call.function.name,
@@ -13770,6 +13881,7 @@ export async function* agentLoop(messages, options) {
             error: "tool execution cancelled before dispatch",
             tool_use_id: call.id,
             turn_id: `${runId}:t${budget.consumed}`,
+            ...(workflowBinding || {}),
           };
         }
         throw admissionFailure;
@@ -13777,18 +13889,30 @@ export async function* agentLoop(messages, options) {
       // Only after every start has been consumed do we kick every read off.
       // Settle each promise into {result,error} so an abort before its ordered
       // result is consumed can never surface an unhandled rejection.
-      const inflight = prepared.map(({ call, toolArgs }) => {
+      const inflight = prepared.map(({ call, toolArgs, workflowBinding }) => {
         const promise = executeTool(call.function.name, toolArgs, {
           ...toolContext,
           toolCallId: call.id,
           turnId: `${runId}:t${budget.consumed}`,
+          ...(workflowBinding || {}),
         }).then(
           (result) => ({ result, error: null }),
-          (err) => ({ result: { error: err.message }, error: err.message }),
+          (err) => ({
+            result: {
+              error: err.message,
+              ...(workflowBinding
+                ? {
+                    code: "CC_WORKFLOW_NESTED_TOOL_EXECUTION_THROWN",
+                    outcomeUnknown: true,
+                  }
+                : {}),
+            },
+            error: err.message,
+          }),
         );
-        return { call, toolArgs, promise };
+        return { call, toolArgs, workflowBinding, promise };
       });
-      for (const { call, toolArgs, promise } of inflight) {
+      for (const { call, toolArgs, workflowBinding, promise } of inflight) {
         throwIfAborted(signal);
         _throwBackgroundUsageFailureState(backgroundUsageFailureState);
         const { result: toolResult, error: toolError } = await promise;
@@ -13828,9 +13952,16 @@ export async function* agentLoop(messages, options) {
           error: toolError,
           tool_use_id: call.id,
           turn_id: `${runId}:t${budget.consumed}`,
+          ...(workflowBinding || {}),
           permission_decision_id: decision?.id || null,
           permission_decision: decision,
         };
+        const nestedOutcomeUnknown = _workflowNestedToolOutcomeUnknown(
+          workflowBinding,
+          call.function.name,
+          toolResult,
+        );
+        if (nestedOutcomeUnknown) throw nestedOutcomeUnknown;
         messages.push({
           role: "tool",
           content: toolContent,
@@ -13975,6 +14106,7 @@ export async function* agentLoop(messages, options) {
 
       let managedCheckpointHandle = null;
       let managedCheckpointPreparationError = null;
+      let workflowBinding = null;
       try {
         managedCheckpointHandle = beginManagedToolCheckpoint({
           enabled: toolContext.managedCheckpoint === true,
@@ -14028,12 +14160,19 @@ export async function* agentLoop(messages, options) {
         // event. Consumers use that event to bind hooks, telemetry and turns to
         // an actual invocation.
         if (!managedCheckpointPreparationError) {
+          workflowBinding = _workflowToolEffectBinding(
+            workflowEffectId,
+            workflowEffectId ? (workflowChildEffectSequence += 1) : 0,
+            call.id,
+            toolName,
+          );
           yield {
             type: "tool-executing",
             tool: toolName,
             args: toolArgs,
             tool_use_id: call.id,
             turn_id: `${runId}:t${budget.consumed}`,
+            ...(workflowBinding || {}),
           };
           // The event yield is a host persistence boundary. A detached child's
           // fatal usage write can settle while the consumer handles it; fence
@@ -14051,6 +14190,7 @@ export async function* agentLoop(messages, options) {
               error: "authoritative background usage persistence failure",
               tool_use_id: call.id,
               turn_id: `${runId}:t${budget.consumed}`,
+              ...(workflowBinding || {}),
             };
             throw backgroundFailure;
           }
@@ -14100,6 +14240,7 @@ export async function* agentLoop(messages, options) {
                   ...toolContext,
                   toolCallId: call.id,
                   turnId: `${runId}:t${budget.consumed}`,
+                  ...(workflowBinding || {}),
                 }),
               (span, r) => {
                 span.setAttribute(
@@ -14139,7 +14280,15 @@ export async function* agentLoop(messages, options) {
             );
           } catch (err) {
             if (err?.runtimeLedgerPersistence === true) throw err;
-            toolResult = { error: err.message };
+            toolResult = {
+              error: err.message,
+              ...(workflowBinding
+                ? {
+                    code: "CC_WORKFLOW_NESTED_TOOL_EXECUTION_THROWN",
+                    outcomeUnknown: true,
+                  }
+                : {}),
+            };
             toolError = err.message;
           }
         }
@@ -14243,9 +14392,17 @@ export async function* agentLoop(messages, options) {
           error: toolError,
           tool_use_id: call.id,
           turn_id: `${runId}:t${budget.consumed}`,
+          ...(workflowBinding || {}),
           permission_decision_id: decision?.id || null,
           permission_decision: decision,
         };
+
+        const nestedOutcomeUnknown = _workflowNestedToolOutcomeUnknown(
+          workflowBinding,
+          toolName,
+          toolResult,
+        );
+        if (nestedOutcomeUnknown) throw nestedOutcomeUnknown;
 
         messages.push({
           role: "tool",
