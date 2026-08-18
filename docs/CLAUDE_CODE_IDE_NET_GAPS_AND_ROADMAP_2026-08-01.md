@@ -2588,6 +2588,55 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 五十一、2026-08-18 P1-1 terminal checkpoint crash adjudication 子门复核（`14:56 +08:00`）
+
+本节继续第四十一、四十三至五十节，关闭“workspace transaction 已 committed/rolled_back，但进程在 `tool-result` durable settlement 前崩溃”时
+无法把 terminal checkpoint authority 重新绑定到 started child call 的窄窗口；不把 child tool 的终态外推为 outer model/effect 结果，也不自动 resume
+或伪造丢失的 tool output。候选基于已合并本地主分支 `9244909e4a9ed9560749d4564032dc751346ed76`，功能提交为
+`3d2ec702f1`，尚无本候选 exact-head GitHub Actions。
+
+### 本轮关闭的 prepared binding 与 terminal recovery 子门
+
+- **checkpoint identity 在 tool 执行前进入 durable boundary。** `managedToolCheckpointBinding` 从已持久化的 prepared transaction 只投影 schema、
+  transaction/checkpoint id 与 digest、prepared state digest、coverage/file coverage 和 external-side-effect 标记，不复制 workspace 路径、文件内容或 tool
+  参数。Agent Core 把该对象附到 `tool-executing`；dynamic runtime 在调用真实工具前把 binding 和 digest 同步写入 started row/lineage。
+- **normal settlement 与 prepared binding 精确一致。** terminal tool result 的 transaction/checkpoint id、checkpoint digest、coverage 和 external-side-effect
+  scope 必须与 pre-tool binding 完全相同，再通过独立 transaction-store readback；binding、settlement evidence、terminal store state 或 lineage 任一不一致都
+  fail closed。旧 row 仍可读，但以 `checkpoint-prepared-binding-incomplete` / `checkpoint-prepared-binding-legacy-call-schema` 显式降级。
+- **显式、revision-bound crash adjudication。** `cc cowork workflow runtime-recover-checkpoint <run-id> <call-record-id>
+  --expected-revision <n>` 只接受 pending effect 中仍为 started、具有有效 prepared binding、且不要求 ArtifactStore 双重 readback 的 tool call。它按 binding
+  独立读取 store；仅 `committed` 或 `rolled_back` terminal state 可分别恢复成 completed 或 failed child call，并把 readback digest 与
+  `checkpointRecovery=terminal-store` 写进普通 `effect-call-settled` hash chain。
+- **权限保持窄且 replay fail closed。** 缺 store、非 terminal state、binding tamper、stale revision、制品调用、已 settlement call 或第二次恢复均拒绝。
+  恢复后 outer effect 和 run 继续保持 pending/blocked，仍须 operator 提供 bounded outer result 才能 reconcile/resume；checkpoint terminal state 不能替代
+  provider response、后续 agent turn 或完整 task result。
+- **投影区分 prepared 与 recovered。** durable call 与 `observability.checkpoints.storeReadbacks` 新增 verified prepared-binding、binding legacy 和
+  `terminalStoreRecoveredCalls` 计数；committed/rolled-back、coverage、external-side-effect 与逐调用 digest lineage 保持可复核。
+
+### 仓库内验证与证据边界
+
+- dynamic runtime 聚焦文件为 **42/42**；runtime、managed Agent integration 与生产 command 三文件合并定向回归为 **62/62**。
+- manifest `p1-dynamic-workflow` 引用的 **20 个文件为 700/700**；roadmap verifier 与 journey evidence 两文件为 **37/37**。
+- roadmap manifest 从 `1.9.17` 升至 `1.9.18`，baseline 绑定本轮起点
+  `9244909e4a9ed9560749d4564032dc751346ed76`；fixture digest 为
+  `sha256:f107c3925b9061ba5b13d8992e14536ccae3d895efa3d0c3dbbc771e076ce799`。`--contract-only` 验证
+  **15 cases / 71 referenced test files**，明确没有评估 runtime evidence 或 release readiness。
+
+### P1-1 仍未关闭的边界
+
+1. **outer effect 仍需独立 authority：** terminal checkpoint 只证明受管 tool 已成功返回并 commit，或失败后 workspace files 已 rollback；它不包含
+   丢失的 tool output、model 后续回合、provider receipt 或 outer task result，因此不会自动 settle effect、resume stage 或执行 retry。
+2. **artifact、外部副作用与非 terminal transaction：** `publish_artifact` 仍必须同时满足 ArtifactStore index/bytes readback，不能仅凭 checkpoint
+   commit 恢复；网络、数据库、MCP server、后台进程与 provider 副作用仍不受 workspace rollback authority 覆盖。prepared/running/
+   rollback-required/failed transaction 也不能由本命令强行裁决。
+3. **retention、自动恢复和完整产品：** 仍无 WORM transaction retention、每次 status 的 current store re-read、批量/自动 crash recovery policy、
+   Workbench/VS Code/JetBrains 审批 UI，以及 Local/WSL/SSH/Container/Cloud × 三 OS × 双 IDE 每格 100 次 exact-head 外部矩阵。
+
+因此，P1-1 的 **pre-tool prepared binding、normal settlement binding、committed/rolled-back crash-window child-call recovery、revision/replay/tamper
+rejection 与生产 CLI 路由** 由本节关闭；P1-1 整项仍为**部分完成**，不得据此声明 outer effect 自动裁决、完整 checkpoint restore、外部副作用回滚或
+完整 Workbench 已完成。总计数保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变
+S0-1～S0-3、Q0、Q3、Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
+
 ## 五十、2026-08-18 P1-1 managed checkpoint store settlement readback 子门复核（`14:31 +08:00`）
 
 本节继续第四十一、四十三至四十九节，把 Cowork 已有的 workspace transaction prepare/commit/rollback evidence 接入 dynamic workflow 的
