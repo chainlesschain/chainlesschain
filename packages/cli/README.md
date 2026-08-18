@@ -402,6 +402,13 @@ chainlesschain session location attest <id> <target> \
 chainlesschain session location resume <id> <target> \
   --facts <facts.json> --profile <target-profile.json> \
   --expected-target-facts-digest sha256:<digest>
+chainlesschain session location result-pack <id> \
+  --result-id <id> --summary <summary.txt> --diff <result.diff> \
+  --artifact application/json=<artifact.json> --json
+chainlesschain session location result-verify <id> \
+  --bundle <returned-bundle.json> --expected-handoff-id sha256:<digest>
+chainlesschain session budget status <id>
+chainlesschain session budget receipts <id> --json
 ```
 
 Target attestation and resume support configured WSL, SSH, and existing
@@ -422,6 +429,24 @@ the fixed `session resume` invocation. This is whole-revision transfer, not
 incremental/bidirectional synchronization or a cross-host writer fence;
 remote network/sandbox policy and disconnect/reconnect durability remain
 unattested.
+
+After a replicated target session has produced work, `result-pack` can bind
+the actual bounded summary, diff, artifact, and evidence bytes to that
+session's verified location-handoff authority. Every payload is included as
+canonical base64 with its byte count and SHA-256; all input files must be
+regular single-link files inside the session's declared data boundary. Copy
+the JSON bundle back through an approved transport, then run `result-verify`
+on the source. Verification rehashes every returned byte and succeeds only
+while the source session still has the predecessor head/count accepted by the
+handoff. Its receipt is content-free and explicitly reports `applied=false`:
+this command does not patch the source worktree, import artifacts, fence two
+hosts, or make transport/disconnect claims.
+
+Durable budget recovery stores a canonical local receipt for each operator
+adjudication. Ordinary budget status shows only chain and coverage metadata;
+`budget receipts` is the explicit detailed reader for provider/model/token
+records. These receipts are local evidence, not provider billing readback or
+WORM retention.
 
 ---
 

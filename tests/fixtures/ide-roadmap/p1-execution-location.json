@@ -30,7 +30,10 @@
       "canonical-location-handoff-event",
       "location-handoff-predecessor-head-and-event-count",
       "target-attestation-digest-derived-from-canonical-material",
-      "accepted-stable-target-facts-digest"
+      "accepted-stable-target-facts-digest",
+      "returned-result-bundle-digest",
+      "returned-summary-diff-artifact-evidence-byte-digests",
+      "source-result-verification-receipt"
     ],
     "failureInjections": [
       "profile-secret-value",
@@ -60,7 +63,15 @@
       "launch-response-loss",
       "network-disconnect-during-session",
       "target-process-crash",
-      "return-artifact-digest-mismatch"
+      "return-artifact-digest-mismatch",
+      "returned-result-content-byte-tamper",
+      "returned-result-bundle-digest-tamper",
+      "returned-result-handoff-id-mismatch",
+      "source-predecessor-advance-before-result-verification",
+      "returned-result-file-outside-data-boundary",
+      "returned-result-file-hardlink",
+      "returned-result-verification-content-leak",
+      "returned-result-implicit-source-apply"
     ],
     "scale": {
       "minimumIndependentRunsPerCell": 100,
@@ -93,6 +104,11 @@
     "credentialValueTransferCount": 0,
     "duplicateSessionContinuationCount": 0,
     "lostReturnedArtifactCount": 0,
+    "unboundReturnedResultBundleCount": 0,
+    "returnedResultByteTamperAcceptanceCount": 0,
+    "staleSourceResultVerificationCount": 0,
+    "returnedResultAutoApplyCount": 0,
+    "returnedResultVerificationContentLeakCount": 0,
     "orphanProcessCount": 0,
     "requiredMeasurementsComplete": true,
     "exactCommitBound": true

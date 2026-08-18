@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "manifestVersion": "1.9.28",
+  "manifestVersion": "1.9.29",
   "baselineCommit": "e95d3a28b0ab8f81338a8d718930f2bf2bf99e6e",
   "releaseEvidence": {
     "commitSource": "git-head-at-run",
@@ -668,9 +668,9 @@
       "priority": "P1",
       "required": true,
       "evidenceStatus": "external-evidence-required",
-      "evidenceNotes": "Repository tests establish fixed-command WSL/strict-SSH/existing-Container target probing, exact whole-revision replica installation, independently recomputed target-attestation authority, and a CAS-bound canonical location-handoff successor before replicated resume. Shared-store handoff, cross-host writer fencing, and release readiness still require real WSL/SSH/Container/Cloud hosts, incremental/bidirectional synchronization, reconnect durability, return-path readback, dual-IDE consumption, and 100 independent runs of every exact-commit matrix cell.",
+      "evidenceNotes": "Repository tests establish fixed-command WSL/strict-SSH/existing-Container target probing, exact whole-revision replica installation, independently recomputed target-attestation authority, and a CAS-bound canonical location-handoff successor before replicated resume. A verified target handoff session can now package the actual bounded summary, diff, artifact, and evidence bytes as canonical base64 records bound to source/target session authority and the exact handoff id. Source verification rehashes every byte, requires the source predecessor head/count to remain unchanged, emits a content-free verification receipt, and never applies returned bytes implicitly. Files outside the declared data boundary, hardlinks, byte/digest drift, wrong handoff, and stale source authority fail closed. This is a portable result bundle and source readback core, not an automatic remote transport, ArtifactStore import, patch application, cross-host writer fence, or disconnect recovery claim. Shared-store handoff, release readiness, and the full return journey still require real WSL/SSH/Container/Cloud hosts, incremental/bidirectional synchronization, controlled transport and apply, reconnect durability, dual-IDE consumption, and 100 independent runs of every exact-commit matrix cell.",
       "fixture": "tests/fixtures/ide-roadmap/p1-execution-location.json",
-      "fixtureDigest": "sha256:7196ce278bf5155a345f8f4ee3f91b77c0197822d70c32f809038be3a0d1e709",
+      "fixtureDigest": "sha256:e29c62a489e921ac8347f9e79920a361948e22953e34ce21678f4ace3d488ff4",
       "seed": 2026080115,
       "minimumIndependentRuns": 100,
       "matrix": {
@@ -695,6 +695,11 @@
         "credentialValueTransferCount": 0,
         "duplicateSessionContinuationCount": 0,
         "lostReturnedArtifactCount": 0,
+        "unboundReturnedResultBundleCount": 0,
+        "returnedResultByteTamperAcceptanceCount": 0,
+        "staleSourceResultVerificationCount": 0,
+        "returnedResultAutoApplyCount": 0,
+        "returnedResultVerificationContentLeakCount": 0,
         "orphanProcessCount": 0,
         "requiredMeasurementsComplete": true,
         "exactCommitBound": true
@@ -703,6 +708,7 @@
         "packages/cli/__tests__/unit/execution-location-contract.test.js",
         "packages/cli/__tests__/unit/session-location.test.js",
         "packages/cli/__tests__/unit/execution-location-target.test.js",
+        "packages/cli/__tests__/unit/execution-location-result.test.js",
         "packages/cli/__tests__/unit/session-replica-transfer.test.js",
         "packages/cli/__tests__/integration/session-location-target-command.test.js"
       ],
@@ -721,6 +727,8 @@
         "launch-resume-receipt",
         "disconnect-recovery-trajectory",
         "returned-commit-diff-summary-artifacts",
+        "target-result-byte-bundle",
+        "source-result-verification-receipt",
         "redacted-diagnostics",
         "outcome-observations"
       ]
