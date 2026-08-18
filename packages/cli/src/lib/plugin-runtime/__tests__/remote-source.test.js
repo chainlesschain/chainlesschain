@@ -5,6 +5,9 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import {
   isRemoteSource,
   validateRegistry,
@@ -54,7 +57,7 @@ function okThenOffline(body) {
     if (calls === 1) {
       return { ok: true, status: 200, text: async () => JSON.stringify(body) };
     }
-    throw new Error("ECONNREFUSED");
+    throw new TypeError("ECONNREFUSED");
   });
 }
 
@@ -164,15 +167,23 @@ describe("fetchRegistry", () => {
 
   it("falls back to the offline cache when the network fails", async () => {
     const fetch = okThenOffline(REGISTRY);
-    install({ fetch });
-    // 1st call populates the cache
-    await fetchRegistry("https://h/r.json", { cacheDir: "/cache" });
-    // 2nd call: network throws → served from cache
-    const { registry, fromCache } = await fetchRegistry("https://h/r.json", {
-      cacheDir: "/cache",
-    });
-    expect(fromCache).toBe(true);
-    expect(registry.plugins).toHaveLength(2);
+    _deps.fetch = fetch;
+    const cacheDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "cc-plugin-registry-cache-"),
+    );
+    try {
+      // 1st call populates the immutable cache.
+      await fetchRegistry("https://h/r.json", { cacheDir });
+      // 2nd call: a transport error is served from the verified cache.
+      const { registry, fromCache } = await fetchRegistry(
+        "https://h/r.json",
+        { cacheDir },
+      );
+      expect(fromCache).toBe(true);
+      expect(registry.plugins).toHaveLength(2);
+    } finally {
+      fs.rmSync(cacheDir, { recursive: true, force: true });
+    }
   });
 
   it("throws on HTTP error with no cache", async () => {
@@ -190,12 +201,12 @@ describe("fetchRegistry", () => {
 
   it("throws when offline and nothing is cached", async () => {
     const fetch = vi.fn(async () => {
-      throw new Error("ENOTFOUND");
+      throw new TypeError("ENOTFOUND");
     });
     install({ fetch });
     await expect(
       fetchRegistry("https://h/r.json", { cacheDir: "/cache" }),
-    ).rejects.toThrow(/no offline cache/);
+    ).rejects.toThrow(/no verified immutable cache/);
   });
 });
 
@@ -245,12 +256,19 @@ describe("listRegistryPlugins", () => {
 });
 
 describe("registryCachePath", () => {
-  it("is stable and content-addressed by URL", () => {
-    const a = registryCachePath("https://h/r.json", "/cache");
-    const b = registryCachePath("https://h/r.json", "/cache");
-    const c = registryCachePath("https://h/OTHER.json", "/cache");
+  it("is stable and content-addressed by URL and document digest", () => {
+    const digest = "a".repeat(64);
+    const a = registryCachePath("https://h/r.json", "/cache", digest);
+    const b = registryCachePath("https://h/r.json", "/cache", digest);
+    const c = registryCachePath("https://h/OTHER.json", "/cache", digest);
+    const d = registryCachePath(
+      "https://h/r.json",
+      "/cache",
+      "b".repeat(64),
+    );
     expect(a).toBe(b);
     expect(a).not.toBe(c);
+    expect(a).not.toBe(d);
     expect(a.endsWith(".json")).toBe(true);
   });
 });

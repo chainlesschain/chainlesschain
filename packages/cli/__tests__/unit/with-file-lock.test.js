@@ -597,7 +597,7 @@ describe("withFileLock", () => {
     );
   });
 
-  it("finishes an owner-published release after a transient Windows cleanup failure", () => {
+  it("commits an owner-published release despite a transient Windows cleanup failure", () => {
     const _fs = fakeLockFs();
     const lockDir = "/critical.json.lock";
     const ownerToken = "original-owner-token-0003";
@@ -627,15 +627,13 @@ describe("withFileLock", () => {
       return originalRemove(target, options);
     });
 
-    expect(() =>
+    expect(
       withFileLock("/critical.json", () => true, {
         _fs,
         _ownerToken: () => ownerToken,
         failIfUnavailable: true,
       }),
-    ).toThrowError(
-      expect.objectContaining({ code: "STATE_LOCK_OWNERSHIP_LOST" }),
-    );
+    ).toBe(true);
     expect(_fs.dirs.has(lockDir)).toBe(true);
     expect(
       JSON.parse(_fs.readFileSync(`${lockDir}/.release-${ownerToken}`)),
@@ -656,6 +654,57 @@ describe("withFileLock", () => {
       }),
     ).toBe("recovered");
     expect(_fs.dirs.has(lockDir)).toBe(false);
+  });
+
+  it("does not report ownership loss when a contender wins published-release cleanup", () => {
+    const _fs = fakeLockFs();
+    const lockDir = "/critical.json.lock";
+    const ownerToken = "original-owner-token-0004";
+    const cleanupClaim = {
+      pid: 7474,
+      startedAt: 7,
+      token: "winning-claimant-token-001",
+    };
+    const originalRename = _fs.renameSync;
+    const originalWrite = _fs.writeFileSync;
+    let blockedReleaseRename = false;
+
+    _fs.renameSync = vi.fn((from, to) => {
+      const normalizedFrom = String(from).replaceAll("\\", "/");
+      if (normalizedFrom === lockDir && !blockedReleaseRename) {
+        blockedReleaseRename = true;
+        const error = new Error("transient Windows sharing violation");
+        error.code = "EPERM";
+        throw error;
+      }
+      return originalRename(from, to);
+    });
+    _fs.writeFileSync = vi.fn((target, value, options) => {
+      originalWrite(target, value, options);
+      const normalizedTarget = String(target).replaceAll("\\", "/");
+      if (normalizedTarget === `${lockDir}/.release-${ownerToken}`) {
+        originalWrite(
+          `${lockDir}/.release-claim-${ownerToken}`,
+          JSON.stringify(cleanupClaim),
+          { encoding: "utf8", mode: 0o600, flag: "wx" },
+        );
+      }
+    });
+
+    expect(
+      withFileLock("/critical.json", () => "committed", {
+        _fs,
+        _isProcessAlive: () => true,
+        _ownerToken: () => ownerToken,
+        failIfUnavailable: true,
+      }),
+    ).toBe("committed");
+    expect(JSON.parse(_fs.readFileSync(`${lockDir}/owner.json`))).toEqual(
+      expect.objectContaining({ pid: process.pid, token: ownerToken }),
+    );
+    expect(
+      JSON.parse(_fs.readFileSync(`${lockDir}/.release-claim-${ownerToken}`)),
+    ).toEqual(cleanupClaim);
   });
 
   it("does not complete a published release whose marker token mismatches the live owner", () => {

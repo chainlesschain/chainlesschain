@@ -175,8 +175,9 @@ export function withFileLock(targetPath, fn, opts = {}) {
     throw error;
   }
   if (held && released && yieldAfterReleaseMs > 0) {
-    // The lock is already gone. This lets an existing waiter run before a
-    // process performing many tiny transactions can immediately reacquire it.
+    // The lock is gone or its exact release marker has transferred cleanup to
+    // contenders. Let an existing waiter run before a process performing many
+    // tiny transactions can immediately reacquire it.
     _sleep(yieldAfterReleaseMs);
   }
   return result;
@@ -485,8 +486,12 @@ function releaseOwnedDirectory(_fs, lockDir, owner, ownerAlive) {
     // later contender. The releasing process must not perform an unclaimed,
     // delayed delete: another process could complete the release and install a
     // replacement lock before that delete resumes.
+    // Publishing the exact release marker is the logical handoff point. A
+    // contender may win the cleanup claim before this owner does; that is a
+    // successful release, not lost ownership, because every acquirer must
+    // complete or wait behind the published marker before entering its body.
     return completePublishedRelease(_fs, lockDir, owner, owner, ownerAlive)
-      .completed;
+      .published;
   }
   _fs.rmSync(lockDir, { recursive: true, force: true });
   return true;
