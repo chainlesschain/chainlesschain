@@ -2588,6 +2588,54 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 五十二、2026-08-18 P1-1 durable stage `needs_input` 子门复核（`15:27 +08:00`）
+
+本节继续第四十一、四十三至五十一节，关闭 dynamic workflow 在**阶段执行前**缺少可持久化人工输入闸门的问题；不把该能力外推为运行中 provider
+回合、`ask_user_question`/MCP elicitation 的跨进程恢复，也不声明 Workbench/双 IDE 已具备完整问答 UI。候选基于已合并本地主分支
+`bd03f7433916503142e4f006db8e008e2975bc2e`，功能与测试提交为 `7b3d5d1a25`、`ca1e7974e8`、`a89f270118`、
+`7405684eae`、`7b4f51c9da`，证据契约提交为 `cab49ef6c2`；尚无本候选 exact-head GitHub Actions。
+
+### 本轮关闭的阶段输入与恢复子门
+
+- **definition-bound 阶段闸门。** workflow step 可声明有界 `needsInput: { prompt, options?, multiSelect? }`；definition digest、immutable
+  version 与原有 admission 同时覆盖该声明。非 durable executor 未提供 resolver 时在任何 task/provider dispatch 前 fail closed，`when=false` 的步骤不会产生
+  多余请求；loop/forEach/pipeline 与普通 step 都在自身执行前解析同一闸门。
+- **request-before-provider 持久化。** dynamic runtime 在 gated stage 的 effect 尚不存在时，先写入
+  `cc-dynamic-workflow-input-request/v1`，request id 绑定 run id、step id、解析后的 prompt/options 与 multi-select schema；状态先进入
+  `input_requested`，通过已有 effect settlement barrier 后才成为 `needs_input`。因此回答前不会为该阶段调用 task/provider，已经 terminal 的前序 effect
+  保持可缓存重放。
+- **精确 revision/request 回答。** `cc cowork workflow runtime-reply <run-id> <request-id> <response-file>
+  --expected-revision <n>` 只读取 bounded、regular、single-link JSON 文件，接受精确 `{"answer": ...}`。自由文本和选项回答均有大小/数量限制并经过
+  secret-shaped scan；option mismatch、stale revision、错误 request id、第二次回答与 ordinary resume bypass 全部拒绝。
+- **回答 lineage 与安全恢复。** accepted response 以 digest 绑定 request，写入 `input-answered` hash lineage 并把 run 恢复为 `ready`；再次用同一
+  durable run id 执行时，前序 settled effect 不重放，回答以明确的 bound-input 段进入 gated stage message。request spec 漂移、state/response digest 篡改
+  fail closed；stop 会把仍 pending 的请求终结为 `cancelled`，不能在 stopped run 上补答。
+- **安全投影。** `runtime-status --json` 暴露 input request 总数、answered 数和 pending request 的 id/step/prompt/options/time，不投影已回答的
+  response；文本状态可直接给出待回答 request id。现有 pause/resume、stop、reconcile 与 checkpoint recovery 权限没有被回答命令扩大。
+
+### 仓库内验证与证据边界
+
+- Cowork executor、dynamic runtime 与 production command 三文件合并定向回归为 **147/147**，其中 dynamic runtime 为 **44/44**。
+- manifest `p1-dynamic-workflow` 引用的 **20 个文件为 706/706**；roadmap verifier 与 journey evidence 两文件为 **37/37**。
+- roadmap manifest 从 `1.9.18` 升至 `1.9.19`；fixture digest 为
+  `sha256:819421771e25b7960e61c84f394ade8eb58a6ee70e4d0277eb2ea9cd5dea5b89`。`--contract-only` 验证
+  **15 cases / 71 referenced test files**，明确没有评估 runtime evidence 或 release readiness。
+
+### P1-1 仍未关闭的边界
+
+1. **运行中 elicitation 仍开放：** 本轮只在 stage/provider effect 之前暂停；已经开始的 model turn、`ask_user_question`、MCP
+   `elicitation/create`、permission prompt 或不可取消 provider 请求，仍没有把完整 continuation state 持久化后跨进程继续的 authority。
+2. **产品消费仍开放：** Workbench、VS Code、JetBrains 尚未提供该 dynamic-workflow request 的 phase/agent/control UI、通知、断线重附和原请求
+   回答路由；现有 session/background `needs_input` 投影不能替代本轮 runtime request 的双 IDE 集成证明。
+3. **完整恢复与外部矩阵仍开放：** provider billing/readback/native idempotency、immutable artifact/WORM retention、current checkpoint restore、外部
+   系统副作用、自动 crash adjudication、plugin/marketplace 分发，以及 Local/WSL/SSH/Container/Cloud × 三 OS × 双 IDE 每格 100 次 exact-head
+   外部矩阵仍未完成。
+
+因此，P1-1 的 **declarative stage gate、request-before-provider、revision/request-bound reply、resume/replay/cancel/tamper rejection 与 production CLI
+路由** 由本节关闭；P1-1 整项仍为**部分完成**，不得据此声明运行中 provider elicitation、完整 Workbench 或真实宿主发布矩阵已完成。总计数保持
+**12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、Q4a/Q4b、
+P1-2、P1-4、P1-5 或 P2-4 的状态。
+
 ## 五十一、2026-08-18 P1-1 terminal checkpoint crash adjudication 子门复核（`14:56 +08:00`）
 
 本节继续第四十一、四十三至五十节，关闭“workspace transaction 已 committed/rolled_back，但进程在 `tool-result` durable settlement 前崩溃”时
