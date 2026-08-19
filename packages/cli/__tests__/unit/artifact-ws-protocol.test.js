@@ -22,6 +22,7 @@ import {
 import { ArtifactStore } from "../../src/lib/artifact-store.js";
 import { readArtifactAccessLedger } from "../../src/lib/artifact-access-ledger.js";
 import { readArtifactDeletionLedger } from "../../src/lib/artifact-deletion-ledger.js";
+import { readArtifactCleanupLedger } from "../../src/lib/artifact-cleanup-ledger.js";
 
 let dir;
 let srcDir;
@@ -236,10 +237,29 @@ describe("artifact-remove / artifact-clean", () => {
     new ArtifactStore({
       now: () => Date.now() - 40 * 24 * 60 * 60 * 1000,
     }).publish({ filePath: p, ttlDays: 1 });
-    await handleArtifactClean(server, "4", {}, {});
+    await handleArtifactClean(server, "4", {}, { cleanupId: "ws-cleanup" });
     expect(server.sent[3]).toMatchObject({
       type: "artifact-clean",
+      cleanupId: "ws-cleanup",
       removed: 1,
+      selected: 1,
+      settled: true,
+      recorded: true,
+      cleanup: { phase: "terminal", client: "websocket" },
+    });
+    expect(readArtifactCleanupLedger(new ArtifactStore())).toMatchObject({
+      preparedCount: 1,
+      terminalCount: 1,
+      pendingCount: 0,
+    });
+
+    await handleArtifactClean(server, "5", {}, { cleanupId: "ws-cleanup" });
+    expect(server.sent[4]).toMatchObject({
+      type: "artifact-clean",
+      cleanupId: "ws-cleanup",
+      removed: 1,
+      settled: true,
+      recorded: false,
     });
   });
 });

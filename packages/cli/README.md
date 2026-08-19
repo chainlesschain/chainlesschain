@@ -467,6 +467,41 @@ it is local explicit-delete storage, not WORM retention. Result collection
 still does not provide a distributed writer fence, Cloud transport, or
 automatic source application.
 
+### Artifact access, deletion, and TTL cleanup settlement
+
+The repository candidate adds explicit, content-free audit and recovery for
+managed ArtifactStore bytes:
+
+```bash
+chainlesschain artifacts access <id> --client cli --action open \
+  --access-id <stable-id> --json
+chainlesschain artifacts remove <id> --client cli \
+  --deletion-id <stable-id> --json
+chainlesschain artifacts clean --client cli \
+  --cleanup-id <stable-batch-id> --json
+chainlesschain artifacts access-log --json
+chainlesschain artifacts deletion-log --json
+chainlesschain artifacts cleanup-log --cleanup <stable-batch-id> --json
+```
+
+`artifacts clean` freezes the expired rows once under the ArtifactStore index
+lock. Its prepared event binds the cleanup id, cutoff, exact item list, scope
+digest, deterministic per-item deletion ids, and pre-cleanup index generation.
+Each item then uses the same prepared/terminal managed-copy deletion protocol as
+an explicit remove. The batch terminal is written only after every selected
+managed path is absent. An exact cleanup-id retry replays the frozen scope,
+recovers already-settled items without selecting newly expired rows, and returns
+the same terminal summary after response loss. A partial failure remains a
+prepared batch whose item deletion events identify settled and pending work.
+
+These receipts prove removal of the managed directory entries only. They do not
+claim secure erasure of external hardlinks, downloads, backups, snapshots, or
+viewer caches; the local JSONL ledgers are not WORM or an off-box transparency
+log. The currently published stable CLI is `chainlesschain@0.165.2`, whose npm
+tag predates these Artifact audit/settlement commands. Keep `0.165.2` for
+existing stable surfaces; use the new commands only after a subsequent exact-
+gated CLI release includes them.
+
 Durable budget recovery stores a canonical local receipt for each operator
 adjudication. Ordinary budget status shows only chain and coverage metadata;
 `budget receipts` is the explicit detailed reader for provider/model/token

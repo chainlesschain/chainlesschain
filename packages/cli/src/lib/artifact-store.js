@@ -516,7 +516,9 @@ export class ArtifactStore {
   }
 
   /**
-   * Remove expired artifacts (expiresAt in the past).
+   * Low-level legacy primitive for removing expired artifacts.
+   * Official CLI and WebSocket callers must use artifact cleanup settlement so
+   * retries preserve a frozen scope and leave content-free audit evidence.
    * @returns {{ removed: number }}
    */
   cleanupExpired() {
