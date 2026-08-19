@@ -1,7 +1,9 @@
 import {
   existsSync,
   linkSync,
+  mkdirSync,
   mkdtempSync,
+  readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -20,10 +22,14 @@ import {
   prepareDurableWorkflowResume,
   projectDynamicWorkflowRuntime,
   readDynamicWorkflowEffectResultFile,
+  readDynamicWorkflowInputResponseFile,
   readDynamicWorkflowRuntimeState,
+  recoverDurableWorkflowCheckpointCall,
+  recoverDurableWorkflowCheckpointCalls,
   reconcileDurableWorkflowEffect,
   requestDurableWorkflowPause,
   requestDurableWorkflowStop,
+  submitDurableWorkflowInput,
   verifyDynamicWorkflowRuntimeState,
 } from "../../src/lib/dynamic-workflow-runtime.js";
 import {
@@ -36,6 +42,12 @@ import {
   createCoworkWorkflowRecord,
   verifyCoworkWorkflowRecord,
 } from "../../src/lib/workflow-definition-contract.js";
+import {
+  ArtifactStore,
+  publicArtifactMetadata,
+} from "../../src/lib/artifact-store.js";
+import { WorkspaceTransactionManager } from "../../src/lib/process-execution-broker/workspace-transaction.js";
+import { managedToolCheckpointBinding } from "../../src/lib/managed-tool-checkpoint.js";
 
 function workflowDefinition(overrides = {}) {
   return {
@@ -98,6 +110,39 @@ function withRuntimeStateDigest(state) {
   };
 }
 
+function withRebuiltRuntimeLineage(state, lineage) {
+  const rebuilt = structuredClone(state);
+  let previousDigest = null;
+  rebuilt.lineage = lineage.map((event, index) => {
+    const material = {
+      sequence: index + 1,
+      revision: index + 1,
+      at: event.at,
+      type: event.type,
+      details: event.details,
+      previousDigest,
+    };
+    const next = {
+      ...material,
+      eventDigest: `sha256:${createHash("sha256")
+        .update("chainlesschain.dynamic-workflow.runtime-event.v1\0", "utf8")
+        .update(canonicalJson(material, "dynamicWorkflowRuntime"), "utf8")
+        .digest("hex")}`,
+    };
+    previousDigest = next.eventDigest;
+    return next;
+  });
+  rebuilt.revision = rebuilt.lineage.length;
+  rebuilt.updatedAt = rebuilt.lineage.at(-1).at;
+  return withRuntimeStateDigest(rebuilt);
+}
+
+function projectLegacyResultOnlyState(statePath) {
+  const legacyState = readDynamicWorkflowRuntimeState(statePath);
+  for (const effect of legacyState.effects) delete effect.calls;
+  return projectDynamicWorkflowRuntime(withRuntimeStateDigest(legacyState));
+}
+
 function workflowProviderRequestId(effectId, source = "model", sequence = 1) {
   return `ccwf_${createHash("sha256")
     .update(`${effectId}\0${source}\0${String(sequence)}`, "utf8")
@@ -118,6 +163,17 @@ function workflowProviderReceipt(boundary, overrides = {}) {
     requestIdentitySemantics: "trace-only",
     independentlyReadable: false,
     ...overrides,
+  };
+}
+
+function workflowProviderReceiptEvent(boundary, overrides = {}) {
+  const providerReceipt = workflowProviderReceipt(boundary, overrides);
+  return {
+    type: "provider-request-receipt",
+    ...providerReceipt,
+    source: boundary.source,
+    workflowRequestSource: boundary.workflowRequestSource || boundary.source,
+    providerReceipt,
   };
 }
 
@@ -255,6 +311,51 @@ function nestedToolEvidence(args) {
   };
 }
 
+function workflowToolBoundary(
+  args,
+  { tool, toolUseId, sequence = 1, ownerEffectId = args.workflowEffectId },
+) {
+  const childEffectId = `sha256:${createHash("sha256")
+    .update(
+      `${ownerEffectId}\0tool\0${String(sequence)}\0${toolUseId}\0${tool}`,
+      "utf8",
+    )
+    .digest("hex")}`;
+  return {
+    type: "tool-executing",
+    tool,
+    args: {},
+    tool_use_id: toolUseId,
+    workflowEffectProtocol: "cc-workflow-child-effect/v1",
+    workflowEffectId: ownerEffectId,
+    workflowChildEffectId: childEffectId,
+    workflowChildSequence: sequence,
+  };
+}
+
+function checkpointManager(root, label) {
+  let sequence = 0;
+  return new WorkspaceTransactionManager({
+    stateDir: join(root, `${label}-checkpoint-state`),
+    lockDir: join(root, `${label}-checkpoint-locks`),
+    allowNonCanonicalLockDirForTests: true,
+    now: () => Date.parse("2026-08-18T05:45:00.000Z") + sequence * 1000,
+    uuid: () =>
+      `00000000-0000-4000-8000-${String(++sequence).padStart(12, "0")}`,
+    ownerToken: () =>
+      `10000000-0000-4000-8000-${String(++sequence).padStart(12, "0")}`,
+  });
+}
+
+function transactionCheckpointBinding(transaction) {
+  return managedToolCheckpointBinding({
+    skipped: false,
+    transactionId: transaction.id,
+    checkpointId: transaction.checkpointId,
+    prepared: transaction.snapshot(),
+  });
+}
+
 describe("durable dynamic workflow runtime", () => {
   let root;
   let projectRoot;
@@ -332,7 +433,44 @@ describe("durable dynamic workflow runtime", () => {
       finalRecordStatus: "completed",
     });
     expect(projection.observability.providerReceipts).toMatchObject({
-      authority: "provider-returned-trace-only",
+      authority: "runtime-state-hash-chain-fsync",
+      receiptSemantics: "provider-returned-trace-only",
+      crashVisible: true,
+      durableCallEffects: 0,
+      legacyResultFallbackEffects: 0,
+      conflictingOuterResultEffects: 2,
+      count: 0,
+      projectedRecords: 0,
+      requestAttempts: 0,
+      projectedRequestAttempts: 0,
+      requestAttemptEffects: 0,
+      observedEffects: 0,
+      missingProviderReturnedEffects: 2,
+      missingRequestReceipts: 0,
+      invalidRequestAttempts: 0,
+      invalidRecords: 0,
+      nativeIdempotencyProven: false,
+      independentlyReadable: false,
+    });
+    expect(projection.observability.providerReceipts.lineage).toEqual([]);
+    expect(projection.observability.gaps).toEqual(
+      expect.arrayContaining([
+        "provider-request-receipt-incomplete",
+        "provider-request-result-disagrees-with-durable-store",
+      ]),
+    );
+
+    const legacyState = structuredClone(state);
+    for (const effect of legacyState.effects) delete effect.calls;
+    const legacyProjection = projectDynamicWorkflowRuntime(
+      withRuntimeStateDigest(legacyState),
+    );
+    expect(legacyProjection.observability.providerReceipts).toMatchObject({
+      authority:
+        "runtime-state-hash-chain-fsync-with-legacy-task-result-fallback",
+      durableCallEffects: 0,
+      legacyResultFallbackEffects: 2,
+      conflictingOuterResultEffects: 0,
       count: 2,
       projectedRecords: 2,
       requestAttempts: 2,
@@ -340,13 +478,8 @@ describe("durable dynamic workflow runtime", () => {
       requestAttemptEffects: 2,
       observedEffects: 2,
       missingProviderReturnedEffects: 0,
-      missingRequestReceipts: 0,
-      invalidRequestAttempts: 0,
-      invalidRecords: 0,
-      nativeIdempotencyProven: false,
-      independentlyReadable: false,
     });
-    expect(projection.observability.providerReceipts.lineage).toEqual([
+    expect(legacyProjection.observability.providerReceipts.lineage).toEqual([
       expect.objectContaining({
         effectId: state.effects[0].id,
         requestId: "req_collect",
@@ -359,7 +492,33 @@ describe("durable dynamic workflow runtime", () => {
       }),
     ]);
     expect(projection.observability.nestedEffects).toMatchObject({
-      authority: "task-result-bound-with-mcp-session-ledger-flags",
+      authority: "runtime-state-hash-chain-fsync",
+      crashVisible: true,
+      durableCallEffects: 0,
+      legacyResultFallbackEffects: 0,
+      conflictingOuterResultEffects: 2,
+      attempts: 0,
+      settlements: 0,
+      projectedAttempts: 0,
+      projectedSettlements: 0,
+      durableMcpSettlements: 0,
+      missingSettlements: 0,
+      invalidAttempts: 0,
+      invalidSettlements: 0,
+      allEffectsIndependentlyDurable: true,
+    });
+    expect(projection.observability.nestedEffects.settlementLineage).toEqual(
+      [],
+    );
+    expect(projection.observability.gaps).toContain(
+      "nested-tool-result-disagrees-with-durable-store",
+    );
+    expect(legacyProjection.observability.nestedEffects).toMatchObject({
+      authority:
+        "runtime-state-hash-chain-fsync-with-legacy-task-result-fallback",
+      durableCallEffects: 0,
+      legacyResultFallbackEffects: 2,
+      conflictingOuterResultEffects: 0,
       attempts: 2,
       settlements: 2,
       projectedAttempts: 2,
@@ -370,7 +529,9 @@ describe("durable dynamic workflow runtime", () => {
       invalidSettlements: 0,
       allEffectsIndependentlyDurable: false,
     });
-    expect(projection.observability.nestedEffects.settlementLineage).toEqual([
+    expect(
+      legacyProjection.observability.nestedEffects.settlementLineage,
+    ).toEqual([
       expect.objectContaining({
         effectId: state.effects[0].id,
         status: "completed",
@@ -382,14 +543,15 @@ describe("durable dynamic workflow runtime", () => {
         mcpLedgerSettlementPersisted: true,
       }),
     ]);
-    expect(projection.observability.gaps).toEqual(
+    expect(legacyProjection.observability.gaps).toEqual(
       expect.arrayContaining([
         "provider-native-idempotency-unavailable",
         "provider-receipt-independent-readback-unavailable",
+        "provider-request-receipt-legacy-result-fallback",
         "nested-tool-independent-ledger-incomplete",
       ]),
     );
-    expect(projection.observability.gaps).not.toContain(
+    expect(legacyProjection.observability.gaps).not.toContain(
       "provider-request-receipt-incomplete",
     );
   });
@@ -422,16 +584,58 @@ describe("durable dynamic workflow runtime", () => {
           kind: "provider",
           callId: "mdl-publish-1",
           status: "started",
+          providerModel: "gpt-4o",
+          providerPricing: expect.objectContaining({
+            authority: "builtin-public-list-estimate",
+            inputUsdPerMillion: 2.5,
+            outputUsdPerMillion: 10,
+            cacheReadMultiplier: 0.5,
+            cacheCreationMultiplier: 1.25,
+          }),
+          providerCostEstimate: null,
         }),
       ]);
+      args.onProviderReceipt(workflowProviderReceiptEvent(providerBoundary));
+      state = readDynamicWorkflowRuntimeState(statePath);
+      expect(state.effects[0].calls[0]).toMatchObject({
+        status: "started",
+        providerReceiptPersisted: true,
+        providerReceiptRecordedAt: expect.any(String),
+      });
       args.onUsageSettlement({
         type: "token-usage",
         callId: providerBoundary.callId,
         provider: "openai",
         model: "gpt-4o",
-        usage: { input_tokens: 2, output_tokens: 1 },
+        usage: {
+          input_tokens: 2,
+          output_tokens: 1,
+          cache_read_input_tokens: 3,
+          cache_creation_input_tokens: 4,
+        },
         providerReceipt: workflowProviderReceipt(providerBoundary),
       });
+      state = readDynamicWorkflowRuntimeState(statePath);
+      expect(state.effects[0].calls[0].providerUsage).toMatchObject({
+        inputTokens: 2,
+        outputTokens: 1,
+        cacheReadInputTokens: 3,
+        cacheCreationInputTokens: 4,
+        totalTokens: 10,
+      });
+      expect(
+        projectDynamicWorkflowRuntime(state).observability.tokens
+          .providerReported,
+      ).toMatchObject({ totalTokens: 10 });
+      expect(state.effects[0].calls[0].providerCostEstimate).toMatchObject({
+        schema: "cc-provider-cost-estimate/v1",
+        authority: "durable-pricing-snapshot-estimate",
+        currency: "USD",
+        totalUsd: 0.00003125,
+      });
+      expect(
+        projectDynamicWorkflowRuntime(state).observability.cost.estimatedUsd,
+      ).toBeCloseTo(0.00003125, 12);
 
       const toolUseId = "tool-publish-1";
       const tool = "mcp__repo__publish";
@@ -459,6 +663,22 @@ describe("durable dynamic workflow runtime", () => {
         childEffectId,
         status: "started",
       });
+      expect(
+        projectDynamicWorkflowRuntime(state).observability.nestedEffects,
+      ).toMatchObject({
+        authority: "runtime-state-hash-chain-fsync",
+        crashVisible: true,
+        attempts: 1,
+        settlements: 0,
+        missingSettlements: 1,
+        attemptLineage: [
+          expect.objectContaining({
+            authoritySource: "durable-call-store",
+            childEffectId,
+            status: "started",
+          }),
+        ],
+      });
       args.onToolCallSettlement({
         ...toolBoundary,
         type: "tool-result",
@@ -470,7 +690,11 @@ describe("durable dynamic workflow runtime", () => {
         },
         error: null,
       });
-      return completedTask(args);
+      return {
+        ...completedTask(args),
+        providerRequestAttempts: [{ forged: "ignored-result-attempt" }],
+        providerRequestReceipts: [{ forged: "ignored-result-receipt" }],
+      };
     });
 
     const record = await executeDurableDynamicWorkflow(
@@ -488,6 +712,20 @@ describe("durable dynamic workflow runtime", () => {
         providerReceiptPersisted: true,
         providerReceiptRequestId: "req_mdl-publish-1",
         providerReceiptResponseId: "resp_mdl-publish-1",
+        providerReceiptRecordedAt: expect.any(String),
+        providerUsage: {
+          schema: "cc-provider-token-usage/v1",
+          inputTokens: 2,
+          outputTokens: 1,
+          cacheReadInputTokens: 3,
+          cacheCreationInputTokens: 4,
+          totalTokens: 10,
+        },
+        providerModel: "gpt-4o",
+        providerCostEstimate: expect.objectContaining({
+          authority: "durable-pricing-snapshot-estimate",
+          totalUsd: 0.00003125,
+        }),
       }),
       expect.objectContaining({
         kind: "tool",
@@ -504,6 +742,11 @@ describe("durable dynamic workflow runtime", () => {
       state.lineage.filter((event) => event.type === "effect-call-settled"),
     ).toHaveLength(2);
     expect(
+      state.lineage.filter(
+        (event) => event.type === "effect-call-receipt-recorded",
+      ),
+    ).toHaveLength(1);
+    expect(
       projectDynamicWorkflowRuntime(state).observability.durableCalls,
     ).toMatchObject({
       authority: "runtime-state-hash-chain-fsync",
@@ -512,9 +755,1348 @@ describe("durable dynamic workflow runtime", () => {
       completed: 2,
       outcomeUnknown: 0,
       providerReceipts: 1,
+      providerUsageRecords: 1,
+      providerCostEstimateRecords: 1,
       providerNativeIdempotencyProven: false,
       providerReceiptsIndependentlyReadable: false,
     });
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.providerReceipts,
+    ).toMatchObject({
+      authority: "runtime-state-hash-chain-fsync",
+      receiptSemantics: "provider-returned-trace-only",
+      crashVisible: true,
+      durableCallEffects: 1,
+      legacyResultFallbackEffects: 0,
+      conflictingOuterResultEffects: 1,
+      count: 1,
+      projectedRecords: 1,
+      requestAttempts: 1,
+      projectedRequestAttempts: 1,
+      invalidRequestAttempts: 0,
+      invalidRecords: 0,
+      missingRequestReceipts: 0,
+    });
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.providerReceipts
+        .lineage,
+    ).toEqual([
+      expect.objectContaining({
+        authoritySource: "durable-call-store",
+        callId: "mdl-publish-1",
+        status: "completed",
+        requestId: "req_mdl-publish-1",
+      }),
+    ]);
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.gaps,
+    ).not.toContain("provider-request-receipt-incomplete");
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.gaps,
+    ).not.toContain("provider-request-receipt-legacy-result-fallback");
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.tokens,
+    ).toMatchObject({
+      authority: "runtime-state-hash-chain-fsync",
+      crashVisible: true,
+      providerCalls: 1,
+      providerReportedCalls: 1,
+      providerReportedEffects: 1,
+      missingProviderReportedCalls: 0,
+      pendingCalls: 0,
+      outcomeUnknownCalls: 0,
+      legacyCalls: 0,
+      providerReported: {
+        inputTokens: 2,
+        outputTokens: 1,
+        cacheReadInputTokens: 3,
+        cacheCreationInputTokens: 4,
+        totalTokens: 10,
+      },
+      estimateAuthority: "cowork-result-heuristic",
+      estimated: 10,
+    });
+    for (const gap of [
+      "provider-token-usage-unavailable",
+      "provider-token-usage-incomplete",
+      "provider-token-usage-legacy-call-schema",
+    ]) {
+      expect(
+        projectDynamicWorkflowRuntime(state).observability.gaps,
+      ).not.toContain(gap);
+    }
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.cost,
+    ).toMatchObject({
+      authority: "durable-pricing-snapshot-estimate",
+      currency: "USD",
+      reportedUsd: null,
+      estimatedUsd: 0.00003125,
+      providerCalls: 1,
+      pricingSnapshotCalls: 1,
+      pricedCalls: 1,
+      pricedEffects: 1,
+      missingEstimateCalls: 0,
+      pendingCalls: 0,
+      outcomeUnknownCalls: 0,
+      unpricedCalls: 0,
+      modelMissingCalls: 0,
+      legacyCalls: 0,
+      lineage: [
+        expect.objectContaining({
+          provider: "openai",
+          model: "gpt-4o",
+          estimate: expect.objectContaining({ totalUsd: 0.00003125 }),
+        }),
+      ],
+    });
+    for (const gap of [
+      "provider-cost-estimate-unavailable",
+      "provider-cost-estimate-incomplete",
+      "provider-cost-estimate-legacy-call-schema",
+    ]) {
+      expect(
+        projectDynamicWorkflowRuntime(state).observability.gaps,
+      ).not.toContain(gap);
+    }
+    expect(projectDynamicWorkflowRuntime(state).observability.gaps).toContain(
+      "provider-cost-usd-unavailable",
+    );
+    expect(projectDynamicWorkflowRuntime(state).observability.gaps).toContain(
+      "provider-request-result-disagrees-with-durable-store",
+    );
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.nestedEffects,
+    ).toMatchObject({
+      authority: "runtime-state-hash-chain-fsync",
+      crashVisible: true,
+      durableCallEffects: 1,
+      legacyResultFallbackEffects: 0,
+      conflictingOuterResultEffects: 0,
+      attempts: 1,
+      settlements: 1,
+      projectedAttempts: 1,
+      projectedSettlements: 1,
+      durableMcpSettlements: 1,
+      missingSettlements: 0,
+      allEffectsIndependentlyDurable: true,
+    });
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.nestedEffects
+        .settlementLineage,
+    ).toEqual([
+      expect.objectContaining({
+        authoritySource: "durable-call-store",
+        toolUseId: "tool-publish-1",
+        status: "completed",
+        mcpLedgerSettlementPersisted: true,
+      }),
+    ]);
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.gaps,
+    ).not.toContain("nested-tool-independent-ledger-incomplete");
+  });
+
+  it("rejects accessor-backed provider usage without mutating the started call", async () => {
+    const workflow = workflowDefinition({
+      steps: [{ id: "collect", message: "Collect release evidence" }],
+    });
+    const execution = admittedExecution(projectRoot, workflow);
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-provider-usage-accessor",
+    );
+    let getterRead = false;
+    let settlementReturned = false;
+
+    await expect(
+      executeDurableDynamicWorkflow(
+        { statePath, runId: "run-provider-usage-accessor", execution },
+        {
+          runTask: async (args) => {
+            const boundary = {
+              type: "model-usage-started",
+              callId: "mdl-provider-usage-accessor-1",
+              provider: "openai",
+              source: "model",
+              workflowEffectId: args.workflowEffectId,
+              callSequence: 1,
+              providerRequestId: workflowProviderRequestId(
+                args.workflowEffectId,
+              ),
+              requestIdentitySemantics: "trace-only",
+            };
+            const usage = { output_tokens: 1 };
+            Object.defineProperty(usage, "input_tokens", {
+              enumerable: true,
+              get() {
+                getterRead = true;
+                return 1;
+              },
+            });
+            args.onUsageBoundary(boundary);
+            args.onUsageSettlement({
+              ...boundary,
+              type: "token-usage",
+              usage,
+            });
+            settlementReturned = true;
+            return completedTask(args);
+          },
+          now: clock(),
+        },
+      ),
+    ).rejects.toMatchObject({ reason: "reconciliation-required" });
+
+    expect(getterRead).toBe(false);
+    expect(settlementReturned).toBe(false);
+    const state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.effects[0].calls).toEqual([
+      expect.objectContaining({
+        status: "started",
+        providerUsage: null,
+        settledAt: null,
+      }),
+    ]);
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.tokens,
+    ).toMatchObject({
+      providerCalls: 1,
+      providerReportedCalls: 0,
+      missingProviderReportedCalls: 1,
+      pendingCalls: 1,
+      providerReported: null,
+    });
+  });
+
+  it("persists verified ArtifactStore index and byte readback before the outer task settles", async () => {
+    const workflow = workflowDefinition({
+      steps: [{ id: "publish", message: "Publish release evidence" }],
+    });
+    const execution = admittedExecution(projectRoot, workflow);
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-artifact-readback",
+    );
+    const artifactStore = new ArtifactStore({
+      dir: join(root, "artifact-store"),
+      now: () => Date.parse("2026-08-18T05:30:00.000Z"),
+    });
+    const sourcePath = join(root, "release-evidence.md");
+    writeFileSync(sourcePath, "verified release evidence\n", "utf8");
+    let readbackVisibleBeforeReturn = false;
+
+    await executeDurableDynamicWorkflow(
+      { statePath, runId: "run-artifact-readback", execution },
+      {
+        artifactStore,
+        runTask: async (args) => {
+          const boundary = workflowToolBoundary(args, {
+            tool: "publish_artifact",
+            toolUseId: "tool-publish-artifact-1",
+          });
+          args.onToolCallBoundary(boundary);
+          const entry = artifactStore.publish({
+            filePath: sourcePath,
+            title: "Release evidence",
+            kind: "report",
+            sessionId: "workflow-session-1",
+          });
+          args.onToolCallSettlement({
+            ...boundary,
+            type: "tool-result",
+            result: { published: publicArtifactMetadata(entry) },
+          });
+          const pending = readDynamicWorkflowRuntimeState(statePath);
+          expect(pending.effects[0]).toMatchObject({
+            status: "pending",
+            calls: [
+              expect.objectContaining({
+                name: "publish_artifact",
+                status: "completed",
+                artifactReadback: expect.objectContaining({
+                  schema: "cc-dynamic-workflow-artifact-readback/v1",
+                  authority: "artifact-store-index-and-bytes-at-settlement",
+                  metadata: expect.objectContaining({
+                    id: entry.id,
+                    title: "Release evidence",
+                    sha256: entry.sha256,
+                  }),
+                  contentDigest: `sha256:${entry.sha256}`,
+                }),
+              }),
+            ],
+          });
+          readbackVisibleBeforeReturn = true;
+          return completedTask(args);
+        },
+        now: clock(),
+      },
+    );
+
+    expect(readbackVisibleBeforeReturn).toBe(true);
+    const state = readDynamicWorkflowRuntimeState(statePath);
+    const projection = projectDynamicWorkflowRuntime(state);
+    expect(projection.observability.durableCalls).toMatchObject({
+      artifactReadbackRecords: 1,
+    });
+    expect(projection.observability.artifacts.storeReadbacks).toMatchObject({
+      authority: "artifact-store-index-and-bytes-at-settlement",
+      verificationTiming: "tool-settlement",
+      immutableRetentionProven: false,
+      artifactCalls: 1,
+      completedCalls: 1,
+      failedCalls: 0,
+      verifiedCalls: 1,
+      verifiedEffects: 1,
+      missingReadbacks: 0,
+      pendingCalls: 0,
+      outcomeUnknownCalls: 0,
+      operatorReconciledCalls: 0,
+      legacyCalls: 0,
+      lineage: [
+        expect.objectContaining({
+          descendant: false,
+          readback: expect.objectContaining({
+            metadata: expect.objectContaining({ title: "Release evidence" }),
+          }),
+        }),
+      ],
+    });
+    for (const gap of [
+      "artifact-store-readback-unavailable",
+      "artifact-store-readback-incomplete",
+      "artifact-store-readback-legacy-call-schema",
+    ]) {
+      expect(projection.observability.gaps).not.toContain(gap);
+    }
+    expect(projection.observability.gaps).toContain(
+      "artifact-store-immutable-retention-unavailable",
+    );
+    let currentProjection = projectDynamicWorkflowRuntime(state, {
+      currentStoreReadback: true,
+      artifactStore,
+      checkpointStore: { inspect: vi.fn() },
+    });
+    expect(currentProjection.currentStoreReadbacks).toMatchObject({
+      complete: true,
+      eligibleCalls: 1,
+      verifiedCalls: 1,
+      artifacts: {
+        eligibleCalls: 1,
+        verifiedCalls: 1,
+        unavailableCalls: 0,
+        lineage: [{ status: "verified" }],
+      },
+      gaps: [],
+    });
+    writeFileSync(
+      artifactStore.storedPath(
+        state.effects[0].calls[0].artifactReadback.metadata,
+      ),
+      "tampered after settlement\n",
+      "utf8",
+    );
+    currentProjection = projectDynamicWorkflowRuntime(state, {
+      currentStoreReadback: true,
+      artifactStore,
+      checkpointStore: { inspect: vi.fn() },
+    });
+    expect(currentProjection.currentStoreReadbacks).toMatchObject({
+      complete: false,
+      eligibleCalls: 1,
+      verifiedCalls: 0,
+      artifacts: { unavailableCalls: 1 },
+      gaps: ["artifact-store-current-readback-unavailable"],
+    });
+
+    const tampered = structuredClone(state);
+    tampered.effects[0].calls[0].artifactReadback.metadata.title = "Forged";
+    expect(() =>
+      verifyDynamicWorkflowRuntimeState(withRuntimeStateDigest(tampered)),
+    ).toThrow(/effect-0-call-0-invalid/u);
+
+    const downgraded = structuredClone(state);
+    delete downgraded.effects[0].calls[0].artifactReadback;
+    expect(() =>
+      verifyDynamicWorkflowRuntimeState(withRuntimeStateDigest(downgraded)),
+    ).toThrow(/effect-0-call-0-invalid/u);
+
+    const legacy = structuredClone(state);
+    delete legacy.effects[0].calls[0].artifactReadback;
+    for (const event of legacy.lineage) {
+      if (event.type === "effect-call-started") {
+        delete event.details.artifactReadbackSchema;
+      }
+      if (event.type === "effect-call-settled") {
+        delete event.details.artifactReadbackDigest;
+      }
+    }
+    const verifiedLegacy = verifyDynamicWorkflowRuntimeState(
+      withRebuiltRuntimeLineage(legacy, legacy.lineage),
+    );
+    expect(
+      projectDynamicWorkflowRuntime(verifiedLegacy).observability.artifacts
+        .storeReadbacks,
+    ).toMatchObject({
+      authority:
+        "artifact-store-index-and-bytes-at-settlement-with-legacy-call-schema",
+      artifactCalls: 1,
+      verifiedCalls: 0,
+      missingReadbacks: 1,
+      legacyCalls: 1,
+    });
+    expect(
+      projectDynamicWorkflowRuntime(verifiedLegacy).observability.gaps,
+    ).toEqual(
+      expect.arrayContaining([
+        "artifact-store-readback-unavailable",
+        "artifact-store-readback-incomplete",
+        "artifact-store-readback-legacy-call-schema",
+      ]),
+    );
+  });
+
+  it.each(["forged-metadata", "tampered-bytes"])(
+    "rejects a publish_artifact settlement with %s",
+    async (failureMode) => {
+      const workflow = workflowDefinition({
+        steps: [{ id: "publish", message: "Publish release evidence" }],
+      });
+      const execution = admittedExecution(projectRoot, workflow);
+      const runId = `run-artifact-${failureMode}`;
+      const statePath = dynamicWorkflowRunStatePath(projectRoot, runId);
+      const artifactStore = new ArtifactStore({
+        dir: join(root, `artifact-store-${failureMode}`),
+        now: () => Date.parse("2026-08-18T05:31:00.000Z"),
+      });
+      const sourcePath = join(root, `release-${failureMode}.md`);
+      writeFileSync(sourcePath, "original artifact bytes\n", "utf8");
+      let settlementReturned = false;
+
+      await expect(
+        executeDurableDynamicWorkflow(
+          { statePath, runId, execution },
+          {
+            artifactStore,
+            runTask: async (args) => {
+              const boundary = workflowToolBoundary(args, {
+                tool: "publish_artifact",
+                toolUseId: `tool-artifact-${failureMode}`,
+              });
+              args.onToolCallBoundary(boundary);
+              const entry = artifactStore.publish({
+                filePath: sourcePath,
+                title: "Release evidence",
+                kind: "report",
+              });
+              const published = publicArtifactMetadata(entry);
+              if (failureMode === "forged-metadata") {
+                published.title = "Forged release evidence";
+              } else {
+                writeFileSync(
+                  artifactStore.storedPath(entry),
+                  "tampered artifact bytes\n",
+                  "utf8",
+                );
+              }
+              args.onToolCallSettlement({
+                ...boundary,
+                type: "tool-result",
+                result: { published },
+              });
+              settlementReturned = true;
+              return completedTask(args);
+            },
+            now: clock(),
+          },
+        ),
+      ).rejects.toMatchObject({ reason: "reconciliation-required" });
+
+      expect(settlementReturned).toBe(false);
+      const state = readDynamicWorkflowRuntimeState(statePath);
+      expect(state.status).toBe("blocked");
+      expect(state.effects[0].calls).toEqual([
+        expect.objectContaining({
+          name: "publish_artifact",
+          status: "started",
+          artifactReadback: null,
+        }),
+      ]);
+      expect(
+        projectDynamicWorkflowRuntime(state).observability.artifacts
+          .storeReadbacks,
+      ).toMatchObject({
+        artifactCalls: 1,
+        verifiedCalls: 0,
+        missingReadbacks: 1,
+        pendingCalls: 1,
+      });
+      expect(projectDynamicWorkflowRuntime(state).observability.gaps).toEqual(
+        expect.arrayContaining([
+          "artifact-store-readback-unavailable",
+          "artifact-store-readback-incomplete",
+        ]),
+      );
+    },
+  );
+
+  it("persists a committed managed checkpoint store readback before the outer task settles", async () => {
+    const workflow = workflowDefinition({
+      steps: [{ id: "write", message: "Write release evidence" }],
+    });
+    const execution = admittedExecution(projectRoot, workflow);
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-checkpoint-commit",
+    );
+    const checkpointStore = checkpointManager(root, "commit");
+    let readbackVisibleBeforeReturn = false;
+
+    await executeDurableDynamicWorkflow(
+      { statePath, runId: "run-checkpoint-commit", execution },
+      {
+        checkpointStore,
+        runTask: async (args) => {
+          expect(args.managedCheckpoint).toBe(true);
+          expect(args.managedCheckpointExclusions).toEqual(
+            expect.arrayContaining([expect.stringContaining("workflow-runs")]),
+          );
+          const transaction = checkpointStore.begin({
+            id: "wcp-workflow-commit",
+            runId: "run-checkpoint-commit",
+            taskKey: "write-release-evidence",
+            workspaceRoot: args.cwd,
+            coverageTarget: "partial",
+            writerIsolation: "unknown",
+            externalSideEffects: false,
+            exclusions: args.managedCheckpointExclusions,
+          });
+          const boundary = {
+            ...workflowToolBoundary(args, {
+              tool: "write_file",
+              toolUseId: "tool-checkpoint-commit-1",
+            }),
+            managedCheckpointBinding: transactionCheckpointBinding(transaction),
+          };
+          args.onToolCallBoundary(boundary);
+          writeFileSync(
+            join(projectRoot, "release-evidence.md"),
+            "committed evidence\n",
+            "utf8",
+          );
+          const evidence = transaction.accept();
+          args.onToolCallSettlement({
+            ...boundary,
+            type: "tool-result",
+            result: {
+              ok: true,
+              managedCheckpoint: {
+                skipped: false,
+                toolName: "write_file",
+                transactionId: transaction.id,
+                checkpointId: transaction.checkpointId,
+                evidence,
+                coverage: evidence.coverage,
+                fileCoverage: evidence.fileCoverage,
+              },
+            },
+            error: null,
+          });
+          const pending = readDynamicWorkflowRuntimeState(statePath);
+          expect(pending.effects[0]).toMatchObject({
+            status: "pending",
+            calls: [
+              expect.objectContaining({
+                name: "write_file",
+                status: "completed",
+                checkpointBinding: expect.objectContaining({
+                  schema: "cc-managed-tool-checkpoint-binding/v1",
+                  transactionId: "wcp-workflow-commit",
+                }),
+                checkpointReadback: expect.objectContaining({
+                  schema: "cc-dynamic-workflow-checkpoint-readback/v1",
+                  authority: "workspace-transaction-store-terminal-readback",
+                  transactionId: "wcp-workflow-commit",
+                  outcome: "committed",
+                  coverage: "partial",
+                  fileCoverage: "partial",
+                  externalSideEffects: false,
+                }),
+              }),
+            ],
+          });
+          readbackVisibleBeforeReturn = true;
+          return completedTask(args);
+        },
+        now: clock(),
+      },
+    );
+
+    expect(readbackVisibleBeforeReturn).toBe(true);
+    const state = readDynamicWorkflowRuntimeState(statePath);
+    const projection = projectDynamicWorkflowRuntime(state);
+    expect(projection.observability.durableCalls).toMatchObject({
+      checkpointReadbackRecords: 1,
+      checkpointBindingRecords: 1,
+    });
+    expect(projection.observability.checkpoints.storeReadbacks).toMatchObject({
+      authority: "workspace-transaction-store-terminal-readback",
+      verificationTiming: "tool-settlement",
+      rollbackScope: "workspace-files-only",
+      externalSideEffectsRollbackProven: false,
+      toolCalls: 1,
+      completedCalls: 1,
+      failedCalls: 0,
+      verifiedCalls: 1,
+      verifiedEffects: 1,
+      committedCalls: 1,
+      rolledBackCalls: 0,
+      fullCoverageCalls: 0,
+      partialCoverageCalls: 1,
+      externalSideEffectCalls: 0,
+      preparedBindingCalls: 1,
+      terminalStoreRecoveredCalls: 0,
+      bindingLegacyCalls: 0,
+      missingReadbacks: 0,
+      legacyCalls: 0,
+      lineage: [
+        expect.objectContaining({
+          tool: "write_file",
+          descendant: false,
+          readback: expect.objectContaining({ outcome: "committed" }),
+        }),
+      ],
+    });
+    const currentProjection = projectDynamicWorkflowRuntime(state, {
+      currentStoreReadback: true,
+      artifactStore: {
+        get: vi.fn(),
+        verifyIntegrity: vi.fn(),
+      },
+      checkpointStore,
+    });
+    expect(currentProjection.currentStoreReadbacks).toMatchObject({
+      complete: true,
+      eligibleCalls: 1,
+      verifiedCalls: 1,
+      checkpoints: {
+        eligibleCalls: 1,
+        verifiedCalls: 1,
+        unavailableCalls: 0,
+        lineage: [{ status: "verified" }],
+      },
+      gaps: [],
+    });
+    expect(
+      projectDynamicWorkflowRuntime(state, {
+        currentStoreReadback: true,
+        artifactStore: {
+          get: vi.fn(),
+          verifyIntegrity: vi.fn(),
+        },
+        checkpointStore: {
+          inspect: vi.fn(() => {
+            throw new Error("transaction store offline");
+          }),
+        },
+      }).currentStoreReadbacks,
+    ).toMatchObject({
+      complete: false,
+      eligibleCalls: 1,
+      verifiedCalls: 0,
+      checkpoints: { unavailableCalls: 1 },
+      gaps: ["checkpoint-store-current-readback-unavailable"],
+    });
+    for (const gap of [
+      "checkpoint-provider-readback-unavailable",
+      "checkpoint-store-readback-incomplete",
+      "checkpoint-store-readback-legacy-call-schema",
+      "checkpoint-external-side-effect-rollback-unavailable",
+    ]) {
+      expect(projection.observability.gaps).not.toContain(gap);
+    }
+    expect(projection.observability.gaps).toContain(
+      "checkpoint-full-coverage-incomplete",
+    );
+
+    const tampered = structuredClone(state);
+    tampered.effects[0].calls[0].checkpointReadback.outcome = "rolled_back";
+    expect(() =>
+      verifyDynamicWorkflowRuntimeState(withRuntimeStateDigest(tampered)),
+    ).toThrow(/effect-0-call-0-invalid/u);
+
+    const downgraded = structuredClone(state);
+    delete downgraded.effects[0].calls[0].checkpointReadback;
+    expect(() =>
+      verifyDynamicWorkflowRuntimeState(withRuntimeStateDigest(downgraded)),
+    ).toThrow(/effect-0-call-0-invalid/u);
+
+    const legacy = structuredClone(state);
+    delete legacy.effects[0].calls[0].checkpointReadback;
+    delete legacy.effects[0].calls[0].checkpointBinding;
+    for (const event of legacy.lineage) {
+      if (event.type === "effect-call-started") {
+        delete event.details.checkpointReadbackSchema;
+        delete event.details.checkpointBindingDigest;
+      }
+      if (event.type === "effect-call-settled") {
+        delete event.details.checkpointReadbackDigest;
+      }
+    }
+    const verifiedLegacy = verifyDynamicWorkflowRuntimeState(
+      withRebuiltRuntimeLineage(legacy, legacy.lineage),
+    );
+    const legacyProjection = projectDynamicWorkflowRuntime(verifiedLegacy);
+    expect(
+      legacyProjection.observability.checkpoints.storeReadbacks,
+    ).toMatchObject({
+      authority:
+        "workspace-transaction-store-terminal-readback-with-legacy-call-schema",
+      toolCalls: 1,
+      verifiedCalls: 0,
+      missingReadbacks: 1,
+      legacyCalls: 1,
+    });
+    expect(legacyProjection.observability.gaps).toEqual(
+      expect.arrayContaining([
+        "checkpoint-provider-readback-unavailable",
+        "checkpoint-store-readback-incomplete",
+        "checkpoint-store-readback-legacy-call-schema",
+      ]),
+    );
+  });
+
+  it("persists a rolled-back checkpoint store readback for a failed tool", async () => {
+    mkdirSync(projectRoot, { recursive: true });
+    const targetPath = join(projectRoot, "release-state.txt");
+    writeFileSync(targetPath, "before\n", "utf8");
+    const workflow = workflowDefinition({
+      steps: [{ id: "edit", message: "Edit release state" }],
+    });
+    const execution = admittedExecution(projectRoot, workflow);
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-checkpoint-rollback",
+    );
+    const checkpointStore = checkpointManager(root, "rollback");
+
+    await executeDurableDynamicWorkflow(
+      { statePath, runId: "run-checkpoint-rollback", execution },
+      {
+        checkpointStore,
+        runTask: async (args) => {
+          const transaction = checkpointStore.begin({
+            id: "wcp-workflow-rollback",
+            runId: "run-checkpoint-rollback",
+            taskKey: "edit-release-state",
+            workspaceRoot: args.cwd,
+            coverageTarget: "partial",
+            writerIsolation: "unknown",
+            externalSideEffects: false,
+            exclusions: args.managedCheckpointExclusions,
+          });
+          const boundary = {
+            ...workflowToolBoundary(args, {
+              tool: "edit_file",
+              toolUseId: "tool-checkpoint-rollback-1",
+            }),
+            managedCheckpointBinding: transactionCheckpointBinding(transaction),
+          };
+          args.onToolCallBoundary(boundary);
+          writeFileSync(targetPath, "after\n", "utf8");
+          const evidence = transaction.rollback({ reason: "tool failed" });
+          expect(readFileSync(targetPath, "utf8")).toBe("before\n");
+          args.onToolCallSettlement({
+            ...boundary,
+            type: "tool-result",
+            result: {
+              error: "tool failed",
+              managedCheckpoint: {
+                skipped: false,
+                toolName: "edit_file",
+                transactionId: transaction.id,
+                checkpointId: transaction.checkpointId,
+                evidence,
+                coverage: evidence.coverage,
+                fileCoverage: evidence.fileCoverage,
+              },
+            },
+            error: "tool failed",
+          });
+          return completedTask(args);
+        },
+        now: clock(),
+      },
+    );
+
+    expect(
+      readDynamicWorkflowRuntimeState(statePath).effects[0].calls[0],
+    ).toMatchObject({
+      status: "failed",
+      settlementCode: "tool_failed",
+      checkpointReadback: expect.objectContaining({
+        transactionId: "wcp-workflow-rollback",
+        outcome: "rolled_back",
+      }),
+    });
+    const readbacks =
+      projectDynamicWorkflowRuntime(statePath).observability.checkpoints
+        .storeReadbacks;
+    expect(readbacks).toMatchObject({
+      toolCalls: 1,
+      failedCalls: 1,
+      verifiedCalls: 1,
+      committedCalls: 0,
+      rolledBackCalls: 1,
+      missingReadbacks: 0,
+    });
+  });
+
+  it.each(["committed", "rolled_back"])(
+    "recovers a crash-visible tool call from its bound %s checkpoint store state",
+    async (outcome) => {
+      mkdirSync(projectRoot, { recursive: true });
+      const targetPath = join(projectRoot, `recover-${outcome}.txt`);
+      writeFileSync(targetPath, "before\n", "utf8");
+      const workflow = workflowDefinition({
+        steps: [{ id: "recover", message: "Recover checkpoint state" }],
+      });
+      const execution = admittedExecution(projectRoot, workflow);
+      const runId = `run-checkpoint-recover-${outcome}`;
+      const statePath = dynamicWorkflowRunStatePath(projectRoot, runId);
+      const checkpointStore = checkpointManager(root, `recover-${outcome}`);
+
+      await expect(
+        executeDurableDynamicWorkflow(
+          { statePath, runId, execution },
+          {
+            checkpointStore,
+            runTask: async (args) => {
+              const transaction = checkpointStore.begin({
+                id: `wcp-workflow-recover-${outcome}`,
+                runId,
+                taskKey: "recover-checkpoint-state",
+                workspaceRoot: args.cwd,
+                coverageTarget: "partial",
+                writerIsolation: "unknown",
+                externalSideEffects: false,
+                exclusions: args.managedCheckpointExclusions,
+              });
+              const boundary = {
+                ...workflowToolBoundary(args, {
+                  tool: "write_file",
+                  toolUseId: `tool-checkpoint-recover-${outcome}`,
+                }),
+                managedCheckpointBinding:
+                  transactionCheckpointBinding(transaction),
+              };
+              args.onToolCallBoundary(boundary);
+              writeFileSync(targetPath, "after\n", "utf8");
+              if (outcome === "committed") {
+                transaction.accept();
+              } else {
+                transaction.rollback({ reason: "simulated tool failure" });
+              }
+              throw new Error("crash after terminal checkpoint settlement");
+            },
+            now: clock(),
+          },
+        ),
+      ).rejects.toMatchObject({ reason: "reconciliation-required" });
+
+      let state = readDynamicWorkflowRuntimeState(statePath);
+      expect(state.status).toBe("blocked");
+      expect(state.effects[0].calls[0]).toMatchObject({
+        status: "started",
+        checkpointBinding: expect.objectContaining({
+          transactionId: `wcp-workflow-recover-${outcome}`,
+        }),
+        checkpointReadback: null,
+      });
+      const callRecordId = state.effects[0].calls[0].id;
+      const initialRevision = state.revision;
+      expect(() =>
+        recoverDurableWorkflowCheckpointCall(
+          statePath,
+          { expectedRevision: initialRevision, callRecordId },
+          {
+            checkpointStore: {
+              inspect() {
+                throw new Error("checkpoint store unavailable");
+              },
+            },
+          },
+        ),
+      ).toThrow(/checkpoint store readback failed/u);
+      expect(readDynamicWorkflowRuntimeState(statePath).revision).toBe(
+        initialRevision,
+      );
+
+      const tampered = structuredClone(state);
+      tampered.effects[0].calls[0].checkpointBinding.transactionId =
+        "wcp-forged-binding";
+      expect(() =>
+        verifyDynamicWorkflowRuntimeState(withRuntimeStateDigest(tampered)),
+      ).toThrow(/effect-0-call-0-invalid/u);
+
+      state = recoverDurableWorkflowCheckpointCall(
+        statePath,
+        { expectedRevision: initialRevision, callRecordId },
+        {
+          checkpointStore,
+          now: clock(Date.parse("2026-08-18T06:00:00.000Z")),
+        },
+      );
+      expect(state.status).toBe("blocked");
+      expect(state.effects[0].calls[0]).toMatchObject({
+        status: outcome === "committed" ? "completed" : "failed",
+        settlementCode:
+          outcome === "committed"
+            ? "checkpoint_store_recovered_commit"
+            : "checkpoint_store_recovered_rollback",
+        checkpointReadback: expect.objectContaining({ outcome }),
+      });
+      expect(
+        projectDynamicWorkflowRuntime(state).observability.checkpoints
+          .storeReadbacks,
+      ).toMatchObject({
+        preparedBindingCalls: 1,
+        terminalStoreRecoveredCalls: 1,
+        verifiedCalls: 1,
+        committedCalls: outcome === "committed" ? 1 : 0,
+        rolledBackCalls: outcome === "rolled_back" ? 1 : 0,
+        missingReadbacks: 0,
+      });
+      expect(() =>
+        prepareDurableWorkflowResume(statePath, state.revision),
+      ).toThrow(/must be reconciled before resume/u);
+      expect(() =>
+        recoverDurableWorkflowCheckpointCall(
+          statePath,
+          { expectedRevision: state.revision, callRecordId },
+          { checkpointStore },
+        ),
+      ).toThrow(/not pending terminal recovery/u);
+    },
+  );
+
+  it("atomically recovers every terminal checkpoint call in one revision-bound batch", async () => {
+    mkdirSync(projectRoot, { recursive: true });
+    const workflow = workflowDefinition({
+      steps: [{ id: "recover", message: "Recover checkpoint batch" }],
+    });
+    const execution = admittedExecution(projectRoot, workflow);
+    const runId = "run-checkpoint-recover-batch";
+    const statePath = dynamicWorkflowRunStatePath(projectRoot, runId);
+    const checkpointStore = checkpointManager(root, "recover-batch");
+
+    await expect(
+      executeDurableDynamicWorkflow(
+        { statePath, runId, execution },
+        {
+          checkpointStore,
+          runTask: async (args) => {
+            for (const sequence of [1, 2]) {
+              const transaction = checkpointStore.begin({
+                id: `wcp-workflow-recover-batch-${sequence}`,
+                runId,
+                taskKey: `recover-checkpoint-batch-${sequence}`,
+                workspaceRoot: args.cwd,
+                coverageTarget: "partial",
+                writerIsolation: "unknown",
+                externalSideEffects: false,
+                exclusions: args.managedCheckpointExclusions,
+              });
+              const boundary = {
+                ...workflowToolBoundary(args, {
+                  tool: "write_file",
+                  toolUseId: `tool-checkpoint-recover-batch-${sequence}`,
+                  sequence,
+                }),
+                managedCheckpointBinding:
+                  transactionCheckpointBinding(transaction),
+              };
+              args.onToolCallBoundary(boundary);
+              writeFileSync(
+                join(projectRoot, `batch-${sequence}.txt`),
+                `after-${sequence}\n`,
+                "utf8",
+              );
+              if (sequence === 1) transaction.accept();
+              else transaction.rollback({ reason: "batch rollback" });
+            }
+            throw new Error("crash after checkpoint batch became terminal");
+          },
+          now: clock(),
+        },
+      ),
+    ).rejects.toMatchObject({ reason: "reconciliation-required" });
+
+    let state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.effects[0].calls).toMatchObject([
+      { status: "started" },
+      { status: "started" },
+    ]);
+    const initialRevision = state.revision;
+    expect(() =>
+      recoverDurableWorkflowCheckpointCalls(
+        statePath,
+        { expectedRevision: initialRevision },
+        {
+          checkpointStore: {
+            inspect(id) {
+              if (id.endsWith("-2")) throw new Error("store unavailable");
+              return checkpointStore.inspect(id);
+            },
+          },
+        },
+      ),
+    ).toThrow(/checkpoint store readback failed/u);
+    expect(readDynamicWorkflowRuntimeState(statePath).revision).toBe(
+      initialRevision,
+    );
+
+    state = recoverDurableWorkflowCheckpointCalls(
+      statePath,
+      { expectedRevision: initialRevision },
+      {
+        checkpointStore,
+        now: clock(Date.parse("2026-08-18T06:15:00.000Z")),
+      },
+    );
+    expect(state.revision).toBe(initialRevision + 2);
+    expect(state.status).toBe("blocked");
+    expect(state.effects[0].calls).toMatchObject([
+      {
+        status: "completed",
+        settlementCode: "checkpoint_store_recovered_commit",
+        checkpointReadback: { outcome: "committed" },
+      },
+      {
+        status: "failed",
+        settlementCode: "checkpoint_store_recovered_rollback",
+        checkpointReadback: { outcome: "rolled_back" },
+      },
+    ]);
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.checkpoints
+        .storeReadbacks,
+    ).toMatchObject({
+      terminalStoreRecoveredCalls: 2,
+      committedCalls: 1,
+      rolledBackCalls: 1,
+    });
+    expect(() =>
+      recoverDurableWorkflowCheckpointCalls(
+        statePath,
+        { expectedRevision: state.revision },
+        { checkpointStore },
+      ),
+    ).toThrow(/no workflow checkpoint calls/u);
+  });
+
+  it.each(["forged-evidence", "missing-store"])(
+    "rejects a managed checkpoint settlement with %s",
+    async (failureMode) => {
+      const workflow = workflowDefinition({
+        steps: [{ id: "write", message: "Write release state" }],
+      });
+      const execution = admittedExecution(projectRoot, workflow);
+      const runId = `run-checkpoint-${failureMode}`;
+      const statePath = dynamicWorkflowRunStatePath(projectRoot, runId);
+      const manager = checkpointManager(root, failureMode);
+      const checkpointStore =
+        failureMode === "missing-store"
+          ? {
+              inspect() {
+                throw new Error("missing checkpoint store");
+              },
+            }
+          : manager;
+      let settlementReturned = false;
+
+      await expect(
+        executeDurableDynamicWorkflow(
+          { statePath, runId, execution },
+          {
+            checkpointStore,
+            runTask: async (args) => {
+              const transaction = manager.begin({
+                id: `wcp-workflow-${failureMode}`,
+                runId,
+                taskKey: "write-release-state",
+                workspaceRoot: args.cwd,
+                coverageTarget: "partial",
+                writerIsolation: "unknown",
+                externalSideEffects: false,
+                exclusions: args.managedCheckpointExclusions,
+              });
+              const boundary = {
+                ...workflowToolBoundary(args, {
+                  tool: "write_file",
+                  toolUseId: `tool-checkpoint-${failureMode}`,
+                }),
+                managedCheckpointBinding:
+                  transactionCheckpointBinding(transaction),
+              };
+              args.onToolCallBoundary(boundary);
+              writeFileSync(
+                join(projectRoot, `${failureMode}.txt`),
+                "release state\n",
+                "utf8",
+              );
+              const evidence = transaction.accept();
+              if (failureMode === "forged-evidence") {
+                evidence.coverage = "full";
+              }
+              args.onToolCallSettlement({
+                ...boundary,
+                type: "tool-result",
+                result: {
+                  ok: true,
+                  managedCheckpoint: {
+                    skipped: false,
+                    toolName: "write_file",
+                    transactionId: transaction.id,
+                    checkpointId: transaction.checkpointId,
+                    evidence,
+                    coverage: evidence.coverage,
+                    fileCoverage: evidence.fileCoverage,
+                  },
+                },
+                error: null,
+              });
+              settlementReturned = true;
+              return completedTask(args);
+            },
+            now: clock(),
+          },
+        ),
+      ).rejects.toMatchObject({ reason: "reconciliation-required" });
+
+      expect(settlementReturned).toBe(false);
+      const state = readDynamicWorkflowRuntimeState(statePath);
+      expect(state.status).toBe("blocked");
+      expect(state.effects[0].calls).toEqual([
+        expect.objectContaining({
+          name: "write_file",
+          status: "started",
+          checkpointReadback: null,
+        }),
+      ]);
+      expect(
+        projectDynamicWorkflowRuntime(state).observability.checkpoints
+          .storeReadbacks,
+      ).toMatchObject({
+        toolCalls: 1,
+        verifiedCalls: 0,
+        missingReadbacks: 1,
+        pendingCalls: 1,
+      });
+    },
+  );
+
+  it("keeps unpriced provider usage without fabricating a USD estimate", async () => {
+    const workflow = workflowDefinition({
+      steps: [{ id: "collect", message: "Collect release evidence" }],
+    });
+    const execution = admittedExecution(projectRoot, workflow);
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-provider-cost-unpriced",
+    );
+
+    await executeDurableDynamicWorkflow(
+      { statePath, runId: "run-provider-cost-unpriced", execution },
+      {
+        runTask: async (args) => {
+          const boundary = {
+            type: "model-usage-started",
+            callId: "mdl-provider-cost-unpriced-1",
+            provider: "openai",
+            model: "future-unpriced-model-1",
+            source: "model",
+            workflowEffectId: args.workflowEffectId,
+            callSequence: 1,
+            providerRequestId: workflowProviderRequestId(args.workflowEffectId),
+            requestIdentitySemantics: "trace-only",
+          };
+          args.onUsageBoundary(boundary);
+          args.onUsageSettlement({
+            ...boundary,
+            type: "token-usage",
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+          return completedTask(args);
+        },
+        now: clock(),
+      },
+    );
+
+    const state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.effects[0].calls[0]).toMatchObject({
+      status: "completed",
+      providerModel: "future-unpriced-model-1",
+      providerPricing: null,
+      providerCostEstimate: null,
+      providerUsage: expect.objectContaining({ totalTokens: 15 }),
+    });
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.cost,
+    ).toMatchObject({
+      authority: "durable-pricing-snapshot-estimate",
+      reportedUsd: null,
+      estimatedUsd: null,
+      providerCalls: 1,
+      pricingSnapshotCalls: 0,
+      pricedCalls: 0,
+      missingEstimateCalls: 1,
+      unpricedCalls: 1,
+      modelMissingCalls: 0,
+      legacyCalls: 0,
+    });
+    expect(projectDynamicWorkflowRuntime(state).observability.gaps).toEqual(
+      expect.arrayContaining([
+        "provider-cost-usd-unavailable",
+        "provider-cost-estimate-unavailable",
+        "provider-cost-estimate-incomplete",
+      ]),
+    );
+  });
+
+  it("keeps a priced local provider's zero USD estimate distinct from missing cost", async () => {
+    const workflow = workflowDefinition({
+      steps: [{ id: "collect", message: "Collect local release evidence" }],
+    });
+    const execution = admittedExecution(projectRoot, workflow);
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-provider-cost-free",
+    );
+
+    await executeDurableDynamicWorkflow(
+      { statePath, runId: "run-provider-cost-free", execution },
+      {
+        runTask: async (args) => {
+          const boundary = {
+            type: "model-usage-started",
+            callId: "mdl-provider-cost-free-1",
+            provider: "ollama",
+            model: "llama3.3",
+            source: "model",
+            workflowEffectId: args.workflowEffectId,
+            callSequence: 1,
+            providerRequestId: workflowProviderRequestId(args.workflowEffectId),
+            requestIdentitySemantics: "trace-only",
+          };
+          args.onUsageBoundary(boundary);
+          args.onUsageSettlement({
+            ...boundary,
+            type: "token-usage",
+            usage: {
+              input_tokens: 100,
+              output_tokens: 20,
+              cache_read_input_tokens: 10,
+              cache_creation_input_tokens: 5,
+            },
+          });
+          return completedTask(args);
+        },
+        now: clock(),
+      },
+    );
+
+    const state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.effects[0].calls[0]).toMatchObject({
+      status: "completed",
+      providerModel: "llama3.3",
+      providerPricing: expect.objectContaining({
+        provider: "ollama",
+        model: "llama3.3",
+        pattern: "free",
+        free: true,
+        inputUsdPerMillion: 0,
+        outputUsdPerMillion: 0,
+      }),
+      providerCostEstimate: expect.objectContaining({ totalUsd: 0 }),
+    });
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.cost,
+    ).toMatchObject({
+      reportedUsd: null,
+      estimatedUsd: 0,
+      pricingSnapshotCalls: 1,
+      pricedCalls: 1,
+      missingEstimateCalls: 0,
+      unpricedCalls: 0,
+    });
+    for (const gap of [
+      "provider-cost-estimate-unavailable",
+      "provider-cost-estimate-incomplete",
+    ]) {
+      expect(
+        projectDynamicWorkflowRuntime(state).observability.gaps,
+      ).not.toContain(gap);
+    }
+  });
+
+  it("rejects a settlement whose model differs from the durable pricing boundary", async () => {
+    const workflow = workflowDefinition({
+      steps: [{ id: "collect", message: "Collect release evidence" }],
+    });
+    const execution = admittedExecution(projectRoot, workflow);
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-provider-cost-model-mismatch",
+    );
+    let settlementReturned = false;
+
+    await expect(
+      executeDurableDynamicWorkflow(
+        { statePath, runId: "run-provider-cost-model-mismatch", execution },
+        {
+          runTask: async (args) => {
+            const boundary = {
+              type: "model-usage-started",
+              callId: "mdl-provider-cost-model-mismatch-1",
+              provider: "openai",
+              model: "gpt-4o",
+              source: "model",
+              workflowEffectId: args.workflowEffectId,
+              callSequence: 1,
+              providerRequestId: workflowProviderRequestId(
+                args.workflowEffectId,
+              ),
+              requestIdentitySemantics: "trace-only",
+            };
+            args.onUsageBoundary(boundary);
+            args.onUsageSettlement({
+              ...boundary,
+              type: "token-usage",
+              model: "gpt-4",
+              usage: { input_tokens: 1, output_tokens: 1 },
+            });
+            settlementReturned = true;
+            return completedTask(args);
+          },
+          now: clock(),
+        },
+      ),
+    ).rejects.toMatchObject({ reason: "reconciliation-required" });
+
+    expect(settlementReturned).toBe(false);
+    expect(readDynamicWorkflowRuntimeState(statePath).effects[0].calls).toEqual(
+      [
+        expect.objectContaining({
+          status: "started",
+          providerModel: "gpt-4o",
+          providerPricing: expect.objectContaining({ pattern: "gpt-4o" }),
+          providerUsage: null,
+          providerCostEstimate: null,
+        }),
+      ],
+    );
   });
 
   it("retains a crash-visible started provider call until operator reconciliation", async () => {
@@ -586,7 +2168,7 @@ describe("durable dynamic workflow runtime", () => {
     });
   });
 
-  it("retains a provider receipt when the outer task fails after call settlement", async () => {
+  it("retains a provider receipt when the process fails before usage settlement", async () => {
     const workflow = workflowDefinition({
       steps: [{ id: "collect", message: "Collect release evidence" }],
     });
@@ -608,15 +2190,8 @@ describe("durable dynamic workflow runtime", () => {
         requestIdentitySemantics: "trace-only",
       };
       args.onUsageBoundary(boundary);
-      args.onUsageSettlement({
-        type: "token-usage",
-        callId: boundary.callId,
-        provider: boundary.provider,
-        source: boundary.source,
-        usage: { input_tokens: 2, output_tokens: 1 },
-        providerReceipt: workflowProviderReceipt(boundary),
-      });
-      throw new Error("process stopped before outer task settlement");
+      args.onProviderReceipt(workflowProviderReceiptEvent(boundary));
+      throw new Error("process stopped before usage settlement");
     });
 
     await expect(
@@ -630,18 +2205,62 @@ describe("durable dynamic workflow runtime", () => {
     expect(state.effects[0]).toMatchObject({ status: "pending" });
     expect(state.effects[0].calls).toEqual([
       expect.objectContaining({
-        status: "completed",
+        status: "started",
         providerReceiptPersisted: true,
         providerReceiptRequestId: "req_mdl-receipt-crash-1",
         providerReceiptResponseId: "resp_mdl-receipt-crash-1",
+        providerReceiptRecordedAt: expect.any(String),
+        settledAt: null,
       }),
     ]);
     expect(
       projectDynamicWorkflowRuntime(state).observability.durableCalls,
     ).toMatchObject({
-      completed: 1,
+      started: 1,
+      completed: 0,
       providerReceipts: 1,
       providerReceiptsIndependentlyReadable: false,
+    });
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.providerReceipts,
+    ).toMatchObject({
+      authority: "runtime-state-hash-chain-fsync",
+      crashVisible: true,
+      durableCallEffects: 1,
+      count: 1,
+      requestAttempts: 1,
+      missingRequestReceipts: 0,
+      lineage: [
+        expect.objectContaining({
+          authoritySource: "durable-call-store",
+          status: "started",
+          requestId: "req_mdl-receipt-crash-1",
+        }),
+      ],
+    });
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.gaps,
+    ).not.toContain("provider-request-receipt-incomplete");
+
+    const recordedAt = state.effects[0].calls[0].providerReceiptRecordedAt;
+    const reconciled = reconcileDurableWorkflowEffect(
+      statePath,
+      {
+        expectedRevision: state.revision,
+        effectId: state.effects[0].id,
+        result: completedTask({
+          workflowEffect: state.effects[0],
+          userMessage: "operator verified provider outcome",
+        }),
+      },
+      { now: clock(Date.parse("2026-08-18T06:45:00.000Z")) },
+    );
+    expect(reconciled.effects[0].calls[0]).toMatchObject({
+      status: "operator_reconciled",
+      providerReceiptPersisted: true,
+      providerReceiptRequestId: "req_mdl-receipt-crash-1",
+      providerReceiptResponseId: "resp_mdl-receipt-crash-1",
+      providerReceiptRecordedAt: recordedAt,
     });
   });
 
@@ -654,7 +2273,7 @@ describe("durable dynamic workflow runtime", () => {
       projectRoot,
       "run-call-receipt-mismatch",
     );
-    let settlementReturned = false;
+    let receiptReturned = false;
 
     await expect(
       executeDurableDynamicWorkflow(
@@ -674,15 +2293,68 @@ describe("durable dynamic workflow runtime", () => {
               requestIdentitySemantics: "trace-only",
             };
             args.onUsageBoundary(boundary);
-            args.onUsageSettlement({
-              type: "token-usage",
-              callId: boundary.callId,
-              provider: boundary.provider,
-              source: boundary.source,
-              usage: { input_tokens: 1, output_tokens: 1 },
-              providerReceipt: workflowProviderReceipt(boundary, {
+            args.onProviderReceipt(
+              workflowProviderReceiptEvent(boundary, {
                 workflowEffectId: `sha256:${"f".repeat(64)}`,
               }),
+            );
+            receiptReturned = true;
+            return completedTask(args);
+          },
+          now: clock(),
+        },
+      ),
+    ).rejects.toMatchObject({ reason: "reconciliation-required" });
+
+    expect(receiptReturned).toBe(false);
+    expect(readDynamicWorkflowRuntimeState(statePath).effects[0].calls).toEqual(
+      [
+        expect.objectContaining({
+          status: "started",
+          providerReceiptPersisted: false,
+        }),
+      ],
+    );
+  });
+
+  it("rejects a settlement receipt that was not durably prewritten", async () => {
+    const workflow = workflowDefinition({
+      steps: [{ id: "collect", message: "Collect release evidence" }],
+    });
+    const execution = admittedExecution(projectRoot, workflow);
+    const statePath = dynamicWorkflowRunStatePath(
+      projectRoot,
+      "run-call-receipt-without-prewrite",
+    );
+    let settlementReturned = false;
+
+    await expect(
+      executeDurableDynamicWorkflow(
+        {
+          statePath,
+          runId: "run-call-receipt-without-prewrite",
+          execution,
+        },
+        {
+          runTask: async (args) => {
+            const boundary = {
+              type: "model-usage-started",
+              callId: "mdl-receipt-without-prewrite-1",
+              provider: "openai",
+              source: "model",
+              workflowEffectId: args.workflowEffectId,
+              callSequence: 1,
+              providerRequestId: workflowProviderRequestId(
+                args.workflowEffectId,
+              ),
+              requestIdentitySemantics: "trace-only",
+            };
+            args.onUsageBoundary(boundary);
+            args.onUsageSettlement({
+              ...boundary,
+              type: "token-usage",
+              usage: { input_tokens: 1, output_tokens: 1 },
+              providerReceipt: workflowProviderReceipt(boundary),
             });
             settlementReturned = true;
             return completedTask(args);
@@ -698,6 +2370,7 @@ describe("durable dynamic workflow runtime", () => {
         expect.objectContaining({
           status: "started",
           providerReceiptPersisted: false,
+          providerReceiptRecordedAt: null,
         }),
       ],
     );
@@ -725,6 +2398,9 @@ describe("durable dynamic workflow runtime", () => {
         requestIdentitySemantics: "trace-only",
       };
       args.onUsageBoundary(boundary);
+      args.onProviderReceipt(
+        workflowProviderReceiptEvent(boundary, { responseId: null }),
+      );
       args.onUsageSettlement({
         ...boundary,
         type: "model-usage-unknown",
@@ -754,6 +2430,7 @@ describe("durable dynamic workflow runtime", () => {
         providerReceiptPersisted: true,
         providerReceiptRequestId: "req_mdl-unknown-1",
         providerReceiptResponseId: null,
+        providerUsage: null,
       }),
     ]);
     expect(
@@ -764,6 +2441,20 @@ describe("durable dynamic workflow runtime", () => {
       outcomeUnknown: 1,
       providerReceipts: 1,
     });
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.tokens,
+    ).toMatchObject({
+      authority: "runtime-state-hash-chain-fsync",
+      providerCalls: 1,
+      providerReportedCalls: 0,
+      missingProviderReportedCalls: 1,
+      pendingCalls: 0,
+      outcomeUnknownCalls: 1,
+      providerReported: null,
+    });
+    expect(projectDynamicWorkflowRuntime(state).observability.gaps).toContain(
+      "provider-token-usage-incomplete",
+    );
   });
 
   it("rejects malformed and duplicate call boundaries before another dispatch", async () => {
@@ -871,6 +2562,7 @@ describe("durable dynamic workflow runtime", () => {
             type: "model-usage-started",
             callId: "mdl-tamper-1",
             provider: "openai",
+            model: "gpt-4o",
             source: "model",
             workflowEffectId: args.workflowEffectId,
             callSequence: 1,
@@ -878,6 +2570,7 @@ describe("durable dynamic workflow runtime", () => {
             requestIdentitySemantics: "trace-only",
           };
           args.onUsageBoundary(boundary);
+          args.onProviderReceipt(workflowProviderReceiptEvent(boundary));
           args.onUsageSettlement({
             ...boundary,
             type: "token-usage",
@@ -905,6 +2598,109 @@ describe("durable dynamic workflow runtime", () => {
         withRuntimeStateDigest(receiptTampered),
       ),
     ).toThrow(/effect-0-call-0-invalid/u);
+
+    const receiptTimestampTampered = structuredClone(state);
+    receiptTimestampTampered.effects[0].calls[0].providerReceiptRecordedAt =
+      "9999-12-31T23:59:59.999Z";
+    expect(() =>
+      verifyDynamicWorkflowRuntimeState(
+        withRuntimeStateDigest(receiptTimestampTampered),
+      ),
+    ).toThrow(/effect-0-call-0-invalid/u);
+
+    const usageTampered = structuredClone(state);
+    usageTampered.effects[0].calls[0].providerUsage.inputTokens = 2;
+    usageTampered.effects[0].calls[0].providerUsage.totalTokens = 3;
+    expect(() =>
+      verifyDynamicWorkflowRuntimeState(withRuntimeStateDigest(usageTampered)),
+    ).toThrow(/effect-0-call-0-invalid/u);
+
+    const usageRemoved = structuredClone(state);
+    delete usageRemoved.effects[0].calls[0].providerUsage;
+    expect(() =>
+      verifyDynamicWorkflowRuntimeState(withRuntimeStateDigest(usageRemoved)),
+    ).toThrow(/effect-0-call-0-invalid/u);
+
+    const costTampered = structuredClone(state);
+    costTampered.effects[0].calls[0].providerCostEstimate.totalUsd += 0.01;
+    expect(() =>
+      verifyDynamicWorkflowRuntimeState(withRuntimeStateDigest(costTampered)),
+    ).toThrow(/effect-0-call-0-invalid/u);
+
+    const pricingTampered = structuredClone(state);
+    pricingTampered.effects[0].calls[0].providerPricing.inputUsdPerMillion = 1;
+    expect(() =>
+      verifyDynamicWorkflowRuntimeState(
+        withRuntimeStateDigest(pricingTampered),
+      ),
+    ).toThrow(/effect-0-call-0-invalid/u);
+
+    const costSchemaRemoved = structuredClone(state);
+    delete costSchemaRemoved.effects[0].calls[0].providerCostEstimate;
+    expect(() =>
+      verifyDynamicWorkflowRuntimeState(
+        withRuntimeStateDigest(costSchemaRemoved),
+      ),
+    ).toThrow(/effect-0-call-0-invalid/u);
+
+    const legacyUsageState = structuredClone(state);
+    const legacyCall = legacyUsageState.effects[0].calls[0];
+    delete legacyCall.providerUsage;
+    delete legacyCall.providerModel;
+    delete legacyCall.providerPricing;
+    delete legacyCall.providerCostEstimate;
+    for (const event of legacyUsageState.lineage) {
+      if (event.type === "effect-call-started") {
+        delete event.details.providerModel;
+        delete event.details.providerPricingDigest;
+      }
+      if (event.type === "effect-call-settled") {
+        delete event.details.providerUsageDigest;
+        delete event.details.providerCostEstimateDigest;
+      }
+    }
+    const verifiedLegacyUsageState = verifyDynamicWorkflowRuntimeState(
+      withRebuiltRuntimeLineage(legacyUsageState, legacyUsageState.lineage),
+    );
+    expect(
+      projectDynamicWorkflowRuntime(verifiedLegacyUsageState).observability
+        .tokens,
+    ).toMatchObject({
+      authority: "runtime-state-hash-chain-fsync-with-legacy-call-schema",
+      providerCalls: 1,
+      providerReportedCalls: 0,
+      missingProviderReportedCalls: 1,
+      legacyCalls: 1,
+      providerReported: null,
+    });
+    expect(
+      projectDynamicWorkflowRuntime(verifiedLegacyUsageState).observability
+        .gaps,
+    ).toEqual(
+      expect.arrayContaining([
+        "provider-token-usage-unavailable",
+        "provider-token-usage-incomplete",
+        "provider-token-usage-legacy-call-schema",
+        "provider-cost-estimate-unavailable",
+        "provider-cost-estimate-incomplete",
+        "provider-cost-estimate-legacy-call-schema",
+      ]),
+    );
+
+    const legacyReceiptState = structuredClone(state);
+    delete legacyReceiptState.effects[0].calls[0].providerReceiptRecordedAt;
+    const verifiedLegacyReceiptState = verifyDynamicWorkflowRuntimeState(
+      withRebuiltRuntimeLineage(
+        legacyReceiptState,
+        legacyReceiptState.lineage.filter(
+          (event) => event.type !== "effect-call-receipt-recorded",
+        ),
+      ),
+    );
+    expect(
+      projectDynamicWorkflowRuntime(verifiedLegacyReceiptState).observability
+        .durableCalls.lineage[0].providerReceipt.recordedAt,
+    ).toBe(verifiedLegacyReceiptState.effects[0].calls[0].settledAt);
   });
 
   it("persists descendant provider and tool calls under an authorized spawn effect", async () => {
@@ -967,12 +2763,18 @@ describe("durable dynamic workflow runtime", () => {
         requestSource: "model",
         status: "started",
       });
+      args.onProviderReceipt(workflowProviderReceiptEvent(providerBoundary));
       args.onUsageSettlement({
         type: "token-usage",
         callId: providerBoundary.callId,
         provider: "openai",
         source: "subagent",
-        usage: { input_tokens: 3, output_tokens: 2 },
+        usage: {
+          prompt_tokens: 3,
+          completion_tokens: 2,
+          cache_read_tokens: 1,
+          cache_creation_tokens: 1,
+        },
         providerReceipt: workflowProviderReceipt(providerBoundary),
       });
 
@@ -1045,6 +2847,46 @@ describe("durable dynamic workflow runtime", () => {
         name: "read_file",
       }),
     ]);
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.tokens,
+    ).toMatchObject({
+      providerCalls: 1,
+      providerReportedCalls: 1,
+      providerReportedEffects: 1,
+      missingProviderReportedCalls: 0,
+      providerReported: {
+        inputTokens: 3,
+        outputTokens: 2,
+        cacheReadInputTokens: 1,
+        cacheCreationInputTokens: 1,
+        totalTokens: 7,
+      },
+      lineage: [
+        expect.objectContaining({
+          descendant: true,
+          source: "subagent",
+          requestSource: "model",
+        }),
+      ],
+    });
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.cost,
+    ).toMatchObject({
+      pricedCalls: 1,
+      missingEstimateCalls: 0,
+      lineage: [
+        expect.objectContaining({
+          descendant: true,
+          provider: "openai",
+          model: "gpt-4o",
+          source: "subagent",
+          requestSource: "model",
+        }),
+      ],
+    });
+    expect(
+      projectDynamicWorkflowRuntime(state).observability.cost.estimatedUsd,
+    ).toBeCloseTo(0.000031875, 12);
 
     const tampered = structuredClone(state);
     tampered.effects[0].calls[1].ownerEffectId = `sha256:${"f".repeat(64)}`;
@@ -1098,7 +2940,7 @@ describe("durable dynamic workflow runtime", () => {
     );
   });
 
-  it("does not project a mismatched or idempotency-overclaiming provider receipt", async () => {
+  it("does not project a mismatched or idempotency-overclaiming legacy provider receipt", async () => {
     const statePath = dynamicWorkflowRunStatePath(
       projectRoot,
       "run-invalid-provider-receipt",
@@ -1143,8 +2985,10 @@ describe("durable dynamic workflow runtime", () => {
       },
       { runTask, now: clock() },
     );
-    const projection = projectDynamicWorkflowRuntime(statePath);
+    const projection = projectLegacyResultOnlyState(statePath);
     expect(projection.observability.providerReceipts).toMatchObject({
+      authority:
+        "runtime-state-hash-chain-fsync-with-legacy-task-result-fallback",
       count: 2,
       projectedRecords: 0,
       requestAttempts: 2,
@@ -1165,7 +3009,7 @@ describe("durable dynamic workflow runtime", () => {
     );
   });
 
-  it("reports a missing receipt for each effect-bound provider attempt", async () => {
+  it("reports a missing receipt for each legacy effect-bound provider attempt", async () => {
     const statePath = dynamicWorkflowRunStatePath(
       projectRoot,
       "run-partial-provider-receipts",
@@ -1225,7 +3069,7 @@ describe("durable dynamic workflow runtime", () => {
       },
       { runTask, now: clock() },
     );
-    const projection = projectDynamicWorkflowRuntime(statePath);
+    const projection = projectLegacyResultOnlyState(statePath);
     expect(projection.observability.providerReceipts).toMatchObject({
       count: 2,
       projectedRecords: 2,
@@ -2079,6 +3923,165 @@ describe("durable dynamic workflow runtime", () => {
     ]);
     expect(state.effects[0].timeoutObservedAt).toMatch(/Z$/u);
     expect(state.effects[0].providerDispatchedAt).toMatch(/Z$/u);
+  });
+
+  it("parks a stage before dispatch and resumes only from its bound answer", async () => {
+    const runId = "run-needs-input";
+    const statePath = dynamicWorkflowRunStatePath(projectRoot, runId);
+    const workflow = workflowDefinition({
+      steps: [
+        { id: "collect", message: "Collect release evidence" },
+        {
+          id: "review",
+          message: "Review ${step.collect.summary}",
+          dependsOn: ["collect"],
+          needsInput: {
+            prompt: "Choose release decision",
+            options: ["approve", "reject"],
+          },
+        },
+      ],
+    });
+    const execution = admittedExecution(projectRoot, workflow);
+    const runTask = vi.fn(async (args) => completedTask(args));
+    const runtimeClock = clock();
+
+    await expect(
+      executeDurableDynamicWorkflow(
+        { statePath, runId, execution },
+        { runTask, now: runtimeClock },
+      ),
+    ).rejects.toMatchObject({
+      code: DYNAMIC_WORKFLOW_RUNTIME_CONTROL_CODE,
+      reason: "needs-input",
+    });
+
+    let state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.status).toBe("needs_input");
+    expect(state.effects).toHaveLength(1);
+    expect(state.effects[0]).toMatchObject({
+      stepId: "collect",
+      status: "settled",
+    });
+    expect(runTask).toHaveBeenCalledTimes(1);
+    expect(state.inputRequests).toHaveLength(1);
+    expect(state.inputRequests[0]).toMatchObject({
+      stepId: "review",
+      status: "pending",
+      response: null,
+    });
+    const projection = projectDynamicWorkflowRuntime(state);
+    expect(projection.pendingInputRequests).toMatchObject([
+      {
+        id: state.inputRequests[0].id,
+        stepId: "review",
+        prompt: "Choose release decision",
+      },
+    ]);
+    expect(JSON.stringify(projection)).not.toContain('"response"');
+    expect(() =>
+      prepareDurableWorkflowResume(statePath, state.revision),
+    ).toThrow(/must be answered before resume/u);
+
+    const responseFile = join(projectRoot, "workflow-input.json");
+    writeFileSync(responseFile, JSON.stringify({ answer: "approve" }));
+    expect(readDynamicWorkflowInputResponseFile(responseFile)).toBe("approve");
+    expect(() =>
+      submitDurableWorkflowInput(statePath, {
+        expectedRevision: state.revision - 1,
+        requestId: state.inputRequests[0].id,
+        answer: "approve",
+      }),
+    ).toThrow(/stale dynamic workflow runtime revision/u);
+    expect(() =>
+      submitDurableWorkflowInput(statePath, {
+        expectedRevision: state.revision,
+        requestId: state.inputRequests[0].id,
+        answer: "later",
+      }),
+    ).toThrow(/answer is malformed/u);
+
+    state = submitDurableWorkflowInput(
+      statePath,
+      {
+        expectedRevision: state.revision,
+        requestId: state.inputRequests[0].id,
+        answer: "approve",
+      },
+      { now: runtimeClock },
+    );
+    expect(state.status).toBe("ready");
+    expect(state.inputRequests[0]).toMatchObject({
+      status: "answered",
+      response: "approve",
+    });
+    expect(() =>
+      submitDurableWorkflowInput(statePath, {
+        expectedRevision: state.revision,
+        requestId: state.inputRequests[0].id,
+        answer: "approve",
+      }),
+    ).toThrow(/run is ready/u);
+
+    const record = await executeDurableDynamicWorkflow(
+      { statePath, runId, execution },
+      { runTask, now: runtimeClock },
+    );
+    expect(record.status).toBe("completed");
+    expect(runTask).toHaveBeenCalledTimes(2);
+    expect(runTask.mock.calls[1][0].userMessage).toContain(
+      '## Bound user input for stage review\n"approve"',
+    );
+    state = readDynamicWorkflowRuntimeState(statePath);
+    expect(state.status).toBe("completed");
+    expect(state.effects).toHaveLength(2);
+  });
+
+  it("rejects a secret-shaped free-text stage answer without changing state", async () => {
+    const runId = "run-needs-input-secret";
+    const statePath = dynamicWorkflowRunStatePath(projectRoot, runId);
+    const execution = admittedExecution(
+      projectRoot,
+      workflowDefinition({
+        steps: [
+          {
+            id: "review",
+            message: "Review release",
+            needsInput: { prompt: "Provide a public release note" },
+          },
+        ],
+      }),
+    );
+    await expect(
+      executeDurableDynamicWorkflow(
+        { statePath, runId, execution },
+        { runTask: async (args) => completedTask(args), now: clock() },
+      ),
+    ).rejects.toMatchObject({ reason: "needs-input" });
+    const state = readDynamicWorkflowRuntimeState(statePath);
+
+    expect(() =>
+      submitDurableWorkflowInput(statePath, {
+        expectedRevision: state.revision,
+        requestId: state.inputRequests[0].id,
+        answer: "sk-abcdefghijklmnopqrstuvwxyz123456",
+      }),
+    ).toThrow(/secret-shaped/u);
+    expect(readDynamicWorkflowRuntimeState(statePath)).toEqual(state);
+    const stopped = requestDurableWorkflowStop(statePath, state.revision, {
+      now: clock(Date.parse("2026-08-18T06:00:00.000Z")),
+    });
+    expect(stopped).toMatchObject({
+      status: "stopped",
+      inputRequests: [{ status: "cancelled", response: null }],
+    });
+    expect(() =>
+      submitDurableWorkflowInput(statePath, {
+        expectedRevision: stopped.revision,
+        requestId: stopped.inputRequests[0].id,
+        answer: "public note",
+      }),
+    ).toThrow(/run is stopped/u);
   });
 
   it("fails closed on state tamper and hard-linked state files", async () => {

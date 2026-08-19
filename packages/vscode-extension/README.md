@@ -8,15 +8,15 @@ coordination, and a localhost IDE bridge.
 
 | Component                 | Current status                                               |
 | ------------------------- | ------------------------------------------------------------ |
-| VS Code extension         | **0.37.56**; immutable tag-gated Open VSX release            |
-| Recommended CLI           | **`chainlesschain@0.164.0`** (fully gated stable release)    |
+| VS Code extension         | **0.37.57**; immutable tag-gated Open VSX release            |
+| Recommended CLI           | **`chainlesschain@0.165.2`** (fully gated stable release)    |
 | Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI    |
 | Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors          |
 | Distribution              | Open VSX; not published on the Microsoft VS Code Marketplace |
 
-The recommended CLI `0.164.0` includes the governed Automation/Routine commands,
+The recommended CLI `0.165.2` includes the governed Automation/Routine commands,
 the released Automation Center v3 projection, scoped permission and side-effect
-authority, and shared permission/budget enforcement. Version `0.37.56` accepts
+authority, and shared permission/budget enforcement. Version `0.37.57` accepts
 only the exact v2/schemaVersion 2 or v3/schemaVersion 3 pair; unknown and
 cross-paired versions fail closed. With v3 it shows sanitized run incidents and
 bounded live scheduler occurrences. Incident retry/cancel and cooperative
@@ -24,15 +24,21 @@ occurrence pause/resume appear only when the CLI supplies an exact
 revision/fence-gated action preview. The extension refreshes the projection and
 rechecks that preview before execution; it never derives argv from display data.
 
-Version `0.37.56` also consumes only strict, CLI-issued multi-agent merge-review
+Version `0.37.57` also consumes only strict, CLI-issued multi-agent merge-review
 evidence. It displays stable file/hunk choices, persistent conflict explanations,
 and exact apply/rollback previews, then refreshes the evidence before executing
 the exact argv. It never runs or derives `git merge`, `merge-tree`, or
-history-rewriting rollback commands. CLI `0.164.0` supplies the corresponding
+history-rewriting rollback commands. CLI `0.165.2` supplies the corresponding
 governed `team merge-review` command and exact evidence contract.
 
+The audited Artifact access and managed-copy deletion settlement introduced in
+`0.37.57` are paired with CLI changes newer than the public `0.165.2` package.
+Until a subsequent exact-gated CLI release contains those commands, `0.165.2`
+remains the recommended stable pairing for existing surfaces and the new
+Artifact content/removal actions fail closed instead of bypassing the CLI.
+
 The immutable publication tag for this package is
-[`ide-vscode-v0.37.56`](https://github.com/chainlesschain/chainlesschain/releases/tag/ide-vscode-v0.37.56).
+[`ide-vscode-v0.37.57`](https://github.com/chainlesschain/chainlesschain/releases/tag/ide-vscode-v0.37.57).
 The tag workflow validates the exact packaged VSIX in stable and minimum VS Code
 hosts on Windows, Linux, and macOS before publishing it to Open VSX and reading
 the public registry artifact back. Registry availability can be checked on the
@@ -51,7 +57,7 @@ the public registry artifact back. Registry availability can be checked on the
   call-chain, and per-resource recovery evidence through a bounded projection;
   create or revoke workspace-scoped permission rules through generation- and
   revision-bound CLI commands without letting the IDE edit authority state.
-  Public CLI `0.164.0` provides the exact `permissions activity`, `scoped`, and
+  Public CLI `0.165.2` provides the exact `permissions activity`, `scoped`, and
   `revoke` contracts consumed by these surfaces.
 
 - **Governed multi-agent merge review** - inspect CLI-owned cross-branch
@@ -102,11 +108,11 @@ the public registry artifact back. Registry availability can be checked on the
 Node.js `>= 22.12.0` and npm `>= 10.0.0` are required.
 
 ```bash
-npm i -g chainlesschain@0.164.0
+npm i -g chainlesschain@0.165.2
 cc --version
 ```
 
-Using `@0.164.0` reproduces the currently documented and fully gated public
+Using `@0.165.2` reproduces the currently documented and fully gated public
 CLI pairing, including Automation Center v3 and scoped permission controls. Use `@latest` only when you
 intentionally want a newer published CLI.
 
@@ -266,7 +272,7 @@ npm --prefix packages/vscode-extension run test:unit
 # Package the extension
 cd packages/vscode-extension
 npx @vscode/vsce package --no-dependencies
-node scripts/verify-vsix.mjs chainlesschain-ide-0.37.56.vsix
+node scripts/verify-vsix.mjs chainlesschain-ide-0.37.57.vsix
 ```
 
 The extension has no runtime npm dependencies; it uses Node.js and the VS Code

@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { spawn } from "node:child_process";
 import {
   ArtifactStore,
   DEFAULT_TTL_DAYS,
@@ -16,7 +17,11 @@ import {
 import {
   runArtifactsList,
   runArtifactsShow,
+  runArtifactsOpen,
+  runArtifactsAccess,
+  runArtifactsAccessLog,
   runArtifactsRemove,
+  runArtifactsDeletionLog,
   runArtifactsClean,
 } from "../../src/commands/artifacts.js";
 import { executeTool, formatToolArgs } from "../../src/runtime/agent-core.js";
@@ -90,6 +95,122 @@ describe("ArtifactStore", () => {
     expect(store.list()).toHaveLength(2);
   });
 
+  it("serializes every index generation through one strict lock", () => {
+    const lockTargets = [];
+    let lockDepth = 0;
+    let nowMs = Date.UTC(2026, 0, 1);
+    const indexLock = (target, callback, options) => {
+      expect(lockDepth).toBe(0);
+      expect(options).toMatchObject({ failIfUnavailable: true });
+      lockTargets.push(target);
+      lockDepth += 1;
+      try {
+        return callback({ locked: true });
+      } finally {
+        lockDepth -= 1;
+      }
+    };
+    const store = new ArtifactStore({
+      dir,
+      now: () => nowMs,
+      indexLock,
+    });
+    const first = store.publish({
+      filePath: writeSource("locked-a.txt", "aaa"),
+      ttlDays: 1,
+    });
+    const second = store.publishData({
+      data: "bbb",
+      fileName: "locked-b.txt",
+      ttlDays: 1,
+    });
+
+    expect(store.list()).toHaveLength(2);
+    expect(store.withIndexSnapshot((entries) => entries.length)).toBe(2);
+    expect(store.remove(first.id)).toBe(true);
+    nowMs += 2 * 24 * 60 * 60 * 1000;
+    expect(store.cleanupExpired()).toEqual({ removed: 1 });
+    expect(fs.existsSync(store.storedPath(second))).toBe(false);
+    expect(new Set(lockTargets)).toEqual(
+      new Set([path.join(dir, "index.jsonl")]),
+    );
+    expect(lockTargets).toHaveLength(6);
+  });
+
+  it("waits for a live cross-process index owner before publishing", async () => {
+    const store = new ArtifactStore({ dir });
+    store.publishData({ data: "first", fileName: "first.txt" });
+    const lockModuleUrl = new URL(
+      "../../src/lib/with-file-lock.js",
+      import.meta.url,
+    ).href;
+    const holderSource = `
+      import { withFileLock } from ${JSON.stringify(lockModuleUrl)};
+      const target = process.argv[1];
+      withFileLock(target, () => {
+        process.stdout.write("locked\\n");
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 800);
+      }, { failIfUnavailable: true, timeoutMs: 5000 });
+    `;
+    const holder = spawn(
+      process.execPath,
+      [
+        "--input-type=module",
+        "--eval",
+        holderSource,
+        path.join(dir, "index.jsonl"),
+      ],
+      { stdio: ["ignore", "pipe", "pipe"] },
+    );
+    await new Promise((resolve, reject) => {
+      let stderr = "";
+      const timeout = setTimeout(
+        () => reject(new Error(`lock holder did not start: ${stderr}`)),
+        5_000,
+      );
+      holder.stderr.on("data", (chunk) => {
+        stderr += String(chunk);
+      });
+      holder.stdout.on("data", (chunk) => {
+        if (!String(chunk).includes("locked")) return;
+        clearTimeout(timeout);
+        resolve();
+      });
+      holder.once("error", (error) => {
+        clearTimeout(timeout);
+        reject(error);
+      });
+    });
+
+    const startedAt = Date.now();
+    store.publishData({ data: "second", fileName: "second.txt" });
+    expect(Date.now() - startedAt).toBeGreaterThanOrEqual(500);
+    await new Promise((resolve, reject) => {
+      holder.once("exit", (code) => {
+        if (code === 0) resolve();
+        else reject(new Error(`lock holder exited with ${code}`));
+      });
+      holder.once("error", reject);
+    });
+    expect(store.list().map((entry) => entry.title)).toEqual([
+      "first.txt",
+      "second.txt",
+    ]);
+  });
+
+  it("refuses ambiguous removal without deleting bytes or rewriting rows", () => {
+    const store = new ArtifactStore({ dir });
+    const entry = store.publish({
+      filePath: writeSource("ambiguous.txt", "content"),
+    });
+    const indexPath = path.join(dir, "index.jsonl");
+    fs.appendFileSync(indexPath, `${JSON.stringify(entry)}\n`, "utf8");
+
+    expect(() => store.remove(entry.id)).toThrow(/duplicate index rows/u);
+    expect(fs.existsSync(store.storedPath(entry))).toBe(true);
+    expect(store.list().filter((row) => row.id === entry.id)).toHaveLength(2);
+  });
+
   it("remove deletes the copy + row; cleanupExpired honors TTL via injected clock", () => {
     let nowMs = Date.UTC(2026, 0, 1);
     const store = new ArtifactStore({ dir, now: () => nowMs });
@@ -158,20 +279,93 @@ describe("cc artifacts command runners (injected store)", () => {
     publishOne();
     logs = [];
     expect(runArtifactsList({ json: true }, { store })).toBe(0);
-    expect(JSON.parse(logs.at(-1)).artifacts).toHaveLength(1);
+    const [listed] = JSON.parse(logs.at(-1)).artifacts;
+    expect(listed).toMatchObject({ title: "r.md", kind: "report" });
+    expect(listed.sourcePath).toBeUndefined();
   });
 
-  it("show resolves storedPath; unknown id exits 1", () => {
+  it("show remains metadata-only; unknown id exits 1", () => {
     const e = publishOne();
     expect(runArtifactsShow(e.id, { json: true }, { store })).toBe(0);
-    expect(JSON.parse(logs.at(-1)).storedPath).toContain(e.file);
+    const shown = JSON.parse(logs.at(-1));
+    expect(shown.integrity).toMatchObject({ ok: true });
+    expect(shown.storedPath).toBeUndefined();
+    expect(shown.sourcePath).toBeUndefined();
     expect(runArtifactsShow("art_missing", {}, { store })).toBe(1);
+  });
+
+  it("open/access records current-byte authority and exposes a verified log", () => {
+    const e = publishOne();
+    expect(runArtifactsOpen(e.id, { store })).toBe(0);
+    expect(logs.at(-1)).toBe(store.storedPath(e));
+
+    logs = [];
+    expect(
+      runArtifactsAccess(
+        e.id,
+        {
+          client: "vscode",
+          action: "preview",
+          accessId: "artifact-test-access",
+          json: true,
+        },
+        { store },
+      ),
+    ).toBe(0);
+    const access = JSON.parse(logs.at(-1));
+    expect(access).toMatchObject({
+      schema: "cc-artifact-content-access-authorization/v1",
+      recorded: true,
+      access: {
+        artifactId: e.id,
+        client: "vscode",
+        action: "preview",
+      },
+      integrity: { ok: true },
+    });
+
+    logs = [];
+    expect(
+      runArtifactsAccessLog({ artifact: e.id, json: true }, { store }),
+    ).toBe(0);
+    const ledger = JSON.parse(logs.at(-1));
+    expect(ledger).toMatchObject({
+      eventCount: 2,
+      filtered: true,
+      matchedEventCount: 2,
+    });
+    expect(ledger.events).toHaveLength(2);
   });
 
   it("remove + clean report outcomes", () => {
     const e = publishOne();
-    expect(runArtifactsRemove(e.id, { json: true }, { store })).toBe(0);
-    expect(JSON.parse(logs.at(-1))).toEqual({ removed: e.id, found: true });
+    expect(
+      runArtifactsRemove(
+        e.id,
+        { deletionId: "command-delete", client: "cli", json: true },
+        { store },
+      ),
+    ).toBe(0);
+    expect(JSON.parse(logs.at(-1))).toMatchObject({
+      deletionId: "command-delete",
+      artifactId: e.id,
+      found: true,
+      settled: true,
+      recorded: true,
+      deletion: { phase: "terminal", managedCopyDisposition: "removed" },
+    });
+    logs = [];
+    expect(
+      runArtifactsDeletionLog(
+        { deletion: "command-delete", json: true },
+        { store },
+      ),
+    ).toBe(0);
+    expect(JSON.parse(logs.at(-1))).toMatchObject({
+      eventCount: 2,
+      matchedEventCount: 2,
+      filtered: true,
+    });
     expect(runArtifactsClean({ json: true }, { store })).toBe(0);
     expect(JSON.parse(logs.at(-1))).toEqual({ removed: 0 });
   });

@@ -83,6 +83,12 @@ import {
   readSessionAntiRollbackAnchor,
   sessionAntiRollbackPredecessorWitness,
 } from "../lib/session-anti-rollback-anchor.js";
+import { normalizeSessionBudgetRootConfig } from "../lib/session-budget-production-root.js";
+import {
+  normalizeExecutionLocationResultBundle,
+  verifyExecutionLocationResultBundle,
+} from "../lib/execution-location-result.js";
+import { normalizeExecutionLocationResultStoreReceipt } from "../lib/execution-location-result-store.js";
 
 let securedSessionsDir = null;
 let securedSessionsDirIdentity = null;
@@ -114,6 +120,9 @@ export const _sessionScaleFaultHooks = Object.seal({
   beforeReplicaDirectoryFsync: null,
   afterReplicaDirectoryFsync: null,
   afterLocationHandoffAppend: null,
+  afterResultCollectionSettlementAppend: null,
+  afterResultApplyReservationAppend: null,
+  afterResultApplyTerminalAppend: null,
   beforeDeleteDirectoryFsync: null,
   afterDeleteDirectoryFsync: null,
   afterAntiRollbackPublish: null,
@@ -134,6 +143,26 @@ export const SESSION_EXECUTION_LOCATION_HANDOFF_SCHEMA =
   "chainlesschain.session-execution-location-handoff/v1";
 export const SESSION_EXECUTION_LOCATION_HANDOFF_INSTALL_SCHEMA =
   "chainlesschain.session-execution-location-handoff-install/v1";
+export const SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_EVENT =
+  "execution_location_result_collection";
+export const SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_SCHEMA_V1 =
+  "chainlesschain.session-execution-location-result-collection/v1";
+export const SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_SCHEMA =
+  "chainlesschain.session-execution-location-result-collection/v2";
+export const SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_RECEIPT_SCHEMA_V1 =
+  "chainlesschain.session-execution-location-result-collection-receipt/v1";
+export const SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_RECEIPT_SCHEMA =
+  "chainlesschain.session-execution-location-result-collection-receipt/v2";
+export const SESSION_EXECUTION_LOCATION_RESULT_APPLY_RESERVATION_EVENT =
+  "execution_location_result_apply_reserved";
+export const SESSION_EXECUTION_LOCATION_RESULT_APPLY_RESERVATION_SCHEMA =
+  "chainlesschain.session-execution-location-result-apply-reservation/v1";
+export const SESSION_EXECUTION_LOCATION_RESULT_APPLY_TERMINAL_EVENT =
+  "execution_location_result_apply_terminal";
+export const SESSION_EXECUTION_LOCATION_RESULT_APPLY_TERMINAL_SCHEMA =
+  "chainlesschain.session-execution-location-result-apply-terminal/v1";
+export const SESSION_EXECUTION_LOCATION_RESULT_APPLY_RECEIPT_SCHEMA =
+  "chainlesschain.session-execution-location-result-apply-receipt/v1";
 export const MAX_SESSION_REPLICA_BYTES = 64 * 1024 * 1024;
 const WS_TURN_CONTENT_MAX_BYTES = 4 * 1024 * 1024;
 const WS_TURN_REQUEST_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:@-]*$/;
@@ -2639,6 +2668,13 @@ export function startSession(sessionId, meta = {}) {
           ),
         }
       : {}),
+    ...(meta.sessionBudgetRoot != null
+      ? {
+          sessionBudgetRoot: normalizeSessionBudgetRootConfig(
+            meta.sessionBudgetRoot,
+          ),
+        }
+      : {}),
   });
 
   return id;
@@ -2677,6 +2713,16 @@ export function getVerifiedSessionExecutionLocationAuthority(sessionId) {
           executionLocation = locationHandoff.target.binding;
           bindingEventHash = event.hash;
           bindingEventCount = eventCount;
+          return;
+        }
+        if (
+          event?.type === SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_EVENT
+        ) {
+          projectSessionResultCollectionSettlement(
+            sessionId,
+            event,
+            eventCount,
+          );
         }
       },
       finish(authority) {
@@ -3811,6 +3857,1170 @@ function sessionLocationHandoffInstallReceipt(
       material,
     ),
   });
+}
+
+function normalizeSessionLocationDigest(value, field) {
+  const normalized = boundedAuthorityString(value, field, 80).toLowerCase();
+  if (!/^sha256:[a-f0-9]{64}$/u.test(normalized)) {
+    throw new TypeError(`${field} is invalid`);
+  }
+  return normalized;
+}
+
+function normalizeSessionLocationHead(value, field) {
+  const normalized = boundedAuthorityString(value, field, 64).toLowerCase();
+  if (!/^[a-f0-9]{64}$/u.test(normalized)) {
+    throw new TypeError(`${field} is invalid`);
+  }
+  return normalized;
+}
+
+function normalizeSessionLocationEventCount(value, field) {
+  const normalized = Number(value);
+  if (!Number.isSafeInteger(normalized) || normalized < 1) {
+    throw new TypeError(`${field} is invalid`);
+  }
+  return normalized;
+}
+
+function normalizeSessionResultCollectionRequestId(value) {
+  const requestId = boundedAuthorityString(
+    value,
+    "result collection request id",
+    128,
+  );
+  if (!/^[A-Za-z0-9][A-Za-z0-9._:@+-]{0,127}$/u.test(requestId)) {
+    throw new TypeError("result collection request id is invalid");
+  }
+  return requestId;
+}
+
+function normalizeSessionResultCollectionSource(value, sessionId) {
+  const source = exactRecord(
+    value,
+    ["sessionId", "headHash", "eventCount"],
+    "session result collection source",
+  );
+  if (source.sessionId !== sessionId) {
+    throw new TypeError("session result collection source is invalid");
+  }
+  return Object.freeze({
+    sessionId,
+    headHash: normalizeSessionLocationHead(
+      source.headHash,
+      "result collection source head",
+    ),
+    eventCount: normalizeSessionLocationEventCount(
+      source.eventCount,
+      "result collection source event count",
+    ),
+  });
+}
+
+function createSessionResultCollectionSettlementData(
+  sessionId,
+  requestIdInput,
+  collection,
+  storageInput,
+) {
+  if (
+    !collection ||
+    typeof collection !== "object" ||
+    Array.isArray(collection)
+  ) {
+    throw new TypeError("execution-location result collection is invalid");
+  }
+  const requestId = normalizeSessionResultCollectionRequestId(requestIdInput);
+  if (
+    collection.schema !== "cc-execution-location-target-result-collection/v1" ||
+    collection.requestId !== requestId ||
+    collection.applied !== false
+  ) {
+    throw new TypeError("execution-location result collection is invalid");
+  }
+  const source = normalizeSessionResultCollectionSource(
+    collection.sourceAuthority,
+    sessionId,
+  );
+  const bundle = normalizeExecutionLocationResultBundle(collection.bundle);
+  const verification = verifyExecutionLocationResultBundle({
+    bundle,
+    sourceAuthority: source,
+    expectedHandoffId: collection.handoffId,
+  });
+  const target = Object.freeze({
+    headHash: normalizeSessionLocationHead(
+      collection.targetHeadHash,
+      "result collection target head",
+    ),
+    eventCount: normalizeSessionLocationEventCount(
+      collection.targetEventCount,
+      "result collection target event count",
+    ),
+  });
+  const totalBytes = Number(verification.totalBytes);
+  if (
+    !Number.isSafeInteger(totalBytes) ||
+    totalBytes < 1 ||
+    collection.resultId !== bundle.resultId ||
+    collection.handoffId !== bundle.session.handoffId ||
+    collection.targetHeadHash !== bundle.session.target.headHash ||
+    Number(collection.targetEventCount) !== bundle.session.target.eventCount ||
+    collection.profileDigest !== bundle.session.target.profileDigest ||
+    collection.targetFactsDigest !== bundle.session.target.targetFactsDigest ||
+    collection.bundleDigest !== bundle.bundleDigest ||
+    collection.verificationDigest !== verification.verificationDigest ||
+    collection.verification?.verificationDigest !==
+      verification.verificationDigest ||
+    collection.verification?.applied !== false
+  ) {
+    throw new TypeError("execution-location result verification is invalid");
+  }
+  const storage = normalizeExecutionLocationResultStoreReceipt(storageInput);
+  if (
+    storage.sessionId !== sessionId ||
+    storage.resultId !== bundle.resultId ||
+    storage.handoffId !== bundle.session.handoffId ||
+    storage.bundleDigest !== bundle.bundleDigest
+  ) {
+    throw new TypeError("execution-location result storage receipt is invalid");
+  }
+  const collectionMaterial = {
+    schema: "cc-execution-location-target-result-collection/v1",
+    requestId,
+    requestDigest: collection.requestDigest,
+    resultId: collection.resultId,
+    target: collection.target,
+    profileDigest: collection.profileDigest,
+    targetFactsDigest: collection.targetFactsDigest,
+    collectionAttestationDigest: collection.collectionAttestationDigest,
+    handoffId: collection.handoffId,
+    sourceAuthority: collection.sourceAuthority,
+    targetHeadHash: collection.targetHeadHash,
+    targetEventCount: collection.targetEventCount,
+    bundleDigest: collection.bundleDigest,
+    verificationDigest: collection.verificationDigest,
+    applied: collection.applied,
+    continuity: collection.continuity,
+    gaps: collection.gaps,
+  };
+  if (
+    !["wsl", "ssh", "container"].includes(collection.target) ||
+    collection.continuity !== "single-fixed-command-response" ||
+    JSON.stringify(collection.gaps) !==
+      JSON.stringify([
+        "returned-result-bytes-not-durable",
+        "cross-host-concurrent-writer-fencing-not-durable",
+        "returned-result-not-applied",
+      ]) ||
+    collection.collectionDigest !==
+      sessionLocationDigest(
+        "chainlesschain.execution-location.target-result-collection.v1\0",
+        collectionMaterial,
+      )
+  ) {
+    throw new TypeError(
+      "execution-location result collection digest is invalid",
+    );
+  }
+  const material = {
+    schema: SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_SCHEMA,
+    requestId,
+    requestDigest: normalizeSessionLocationDigest(
+      collection.requestDigest,
+      "result collection request digest",
+    ),
+    resultId: boundedAuthorityString(
+      collection.resultId,
+      "result collection result id",
+      128,
+    ),
+    handoffId: normalizeSessionLocationDigest(
+      collection.handoffId,
+      "result collection handoff id",
+    ),
+    source,
+    target,
+    profileDigest: normalizeSessionLocationDigest(
+      collection.profileDigest,
+      "result collection profile digest",
+    ),
+    targetFactsDigest: normalizeSessionLocationDigest(
+      collection.targetFactsDigest,
+      "result collection target facts digest",
+    ),
+    collectionAttestationDigest: normalizeSessionLocationDigest(
+      collection.collectionAttestationDigest,
+      "result collection attestation digest",
+    ),
+    bundleDigest: normalizeSessionLocationDigest(
+      collection.bundleDigest,
+      "result collection bundle digest",
+    ),
+    verificationDigest: normalizeSessionLocationDigest(
+      collection.verificationDigest,
+      "result collection verification digest",
+    ),
+    collectionDigest: normalizeSessionLocationDigest(
+      collection.collectionDigest,
+      "result collection digest",
+    ),
+    storage,
+    totalBytes,
+    applied: false,
+  };
+  return Object.freeze({
+    ...material,
+    settlementId: sessionLocationDigest(
+      "chainlesschain.session-execution-location-result-collection-id.v1\0",
+      material,
+    ),
+  });
+}
+
+function normalizeSessionResultCollectionSettlementData(sessionId, data) {
+  const isLegacy =
+    data.schema === SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_SCHEMA_V1;
+  if (
+    !isLegacy &&
+    data.schema !== SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_SCHEMA
+  ) {
+    throw new TypeError("session result collection settlement schema is invalid");
+  }
+  const source = normalizeSessionResultCollectionSource(data.source, sessionId);
+  const target = exactRecord(
+    data.target,
+    ["headHash", "eventCount"],
+    "session result collection target",
+  );
+  const resultId = boundedAuthorityString(
+    data.resultId,
+    "result collection result id",
+    128,
+  );
+  const totalBytes = Number(data.totalBytes);
+  if (
+    !/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/u.test(resultId) ||
+    !Number.isSafeInteger(totalBytes) ||
+    totalBytes < 1 ||
+    data.applied !== false
+  ) {
+    throw new TypeError("session result collection settlement is invalid");
+  }
+  const material = {
+    schema: data.schema,
+    requestId: normalizeSessionResultCollectionRequestId(data.requestId),
+    requestDigest: normalizeSessionLocationDigest(
+      data.requestDigest,
+      "result collection request digest",
+    ),
+    resultId,
+    handoffId: normalizeSessionLocationDigest(
+      data.handoffId,
+      "result collection handoff id",
+    ),
+    source,
+    target: Object.freeze({
+      headHash: normalizeSessionLocationHead(
+        target.headHash,
+        "result collection target head",
+      ),
+      eventCount: normalizeSessionLocationEventCount(
+        target.eventCount,
+        "result collection target event count",
+      ),
+    }),
+    profileDigest: normalizeSessionLocationDigest(
+      data.profileDigest,
+      "result collection profile digest",
+    ),
+    targetFactsDigest: normalizeSessionLocationDigest(
+      data.targetFactsDigest,
+      "result collection target facts digest",
+    ),
+    collectionAttestationDigest: normalizeSessionLocationDigest(
+      data.collectionAttestationDigest,
+      "result collection attestation digest",
+    ),
+    bundleDigest: normalizeSessionLocationDigest(
+      data.bundleDigest,
+      "result collection bundle digest",
+    ),
+    verificationDigest: normalizeSessionLocationDigest(
+      data.verificationDigest,
+      "result collection verification digest",
+    ),
+    collectionDigest: normalizeSessionLocationDigest(
+      data.collectionDigest,
+      "result collection digest",
+    ),
+    ...(!isLegacy
+      ? {
+          storage: normalizeExecutionLocationResultStoreReceipt(data.storage),
+        }
+      : {}),
+    totalBytes,
+    applied: false,
+  };
+  const settlementId = sessionLocationDigest(
+    "chainlesschain.session-execution-location-result-collection-id.v1\0",
+    material,
+  );
+  if (data.settlementId !== settlementId) {
+    throw new TypeError("session result collection settlement id is invalid");
+  }
+  if (
+    !isLegacy &&
+    (material.storage.sessionId !== sessionId ||
+      material.storage.resultId !== resultId ||
+      material.storage.handoffId !== material.handoffId ||
+      material.storage.bundleDigest !== material.bundleDigest)
+  ) {
+    throw new TypeError("session result collection storage is invalid");
+  }
+  return Object.freeze({ ...material, settlementId });
+}
+
+function projectSessionResultCollectionSettlement(
+  sessionId,
+  event,
+  eventCount,
+) {
+  const legacy =
+    event?.data?.schema ===
+    SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_SCHEMA_V1;
+  const data = exactRecord(
+    event?.data,
+    [
+      "schema",
+      "settlementId",
+      "requestId",
+      "requestDigest",
+      "resultId",
+      "handoffId",
+      "source",
+      "target",
+      "profileDigest",
+      "targetFactsDigest",
+      "collectionAttestationDigest",
+      "bundleDigest",
+      "verificationDigest",
+      "collectionDigest",
+      ...(!legacy ? ["storage"] : []),
+      "totalBytes",
+      "applied",
+    ],
+    "session result collection settlement",
+  );
+  if (
+    !legacy &&
+    data.schema !== SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_SCHEMA
+  ) {
+    throw new TypeError("session result collection settlement schema is invalid");
+  }
+  const normalized = normalizeSessionResultCollectionSettlementData(
+    sessionId,
+    data,
+  );
+  if (
+    normalized.settlementId !== data.settlementId ||
+    normalized.source.headHash !== event?.prevHash ||
+    normalized.source.eventCount !== eventCount - 1
+  ) {
+    throw new TypeError("session result collection predecessor is invalid");
+  }
+  return Object.freeze({
+    ...normalized,
+    eventHash: event.hash,
+    eventCount,
+    at: new Date(event.timestamp).toISOString(),
+  });
+}
+
+function sessionResultCollectionReceipt(sessionId, settlement) {
+  const legacy =
+    settlement.schema ===
+    SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_SCHEMA_V1;
+  const receiptSchema = legacy
+    ? SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_RECEIPT_SCHEMA_V1
+    : SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_RECEIPT_SCHEMA;
+  const material = {
+    schema: receiptSchema,
+    sessionId,
+    settlementId: settlement.settlementId,
+    requestId: settlement.requestId,
+    requestDigest: settlement.requestDigest,
+    resultId: settlement.resultId,
+    handoffId: settlement.handoffId,
+    sourceHeadHash: settlement.source.headHash,
+    sourceEventCount: settlement.source.eventCount,
+    settlementEventHash: settlement.eventHash,
+    settlementEventCount: settlement.eventCount,
+    targetHeadHash: settlement.target.headHash,
+    targetEventCount: settlement.target.eventCount,
+    bundleDigest: settlement.bundleDigest,
+    verificationDigest: settlement.verificationDigest,
+    collectionDigest: settlement.collectionDigest,
+    ...(!legacy ? { storage: settlement.storage } : {}),
+    totalBytes: settlement.totalBytes,
+    applied: false,
+  };
+  return Object.freeze({
+    ...material,
+    receiptDigest: sessionLocationDigest(
+      legacy
+        ? "chainlesschain.session-execution-location-result-collection-receipt.v1\0"
+        : "chainlesschain.session-execution-location-result-collection-receipt.v2\0",
+      material,
+    ),
+  });
+}
+
+export function readVerifiedSessionExecutionLocationResultSettlement(
+  sessionId,
+  requestIdInput,
+  options = {},
+) {
+  const requestId = normalizeSessionResultCollectionRequestId(requestIdInput);
+  const expectedRequestDigest =
+    options.requestDigest == null
+      ? null
+      : normalizeSessionLocationDigest(
+          options.requestDigest,
+          "result collection request digest",
+        );
+  return readVerifiedProjection(sessionId, () => {
+    let eventCount = 0;
+    let found = null;
+    return {
+      accept(event) {
+        eventCount += 1;
+        if (event?.type !== SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_EVENT) {
+          return;
+        }
+        const settlement = projectSessionResultCollectionSettlement(
+          sessionId,
+          event,
+          eventCount,
+        );
+        if (settlement.requestId !== requestId) return;
+        if (found !== null) {
+          throw new TypeError("duplicate session result collection request id");
+        }
+        found = settlement;
+      },
+      finish() {
+        if (
+          found !== null &&
+          expectedRequestDigest !== null &&
+          found.requestDigest !== expectedRequestDigest
+        ) {
+          throw new Error(
+            "result collection request id is already bound to different inputs",
+          );
+        }
+        return found === null
+          ? null
+          : sessionResultCollectionReceipt(sessionId, found);
+      },
+    };
+  });
+}
+
+export function settleSessionExecutionLocationResultCollection(
+  sessionId,
+  requestIdInput,
+  collection,
+  storage,
+) {
+  const data = createSessionResultCollectionSettlementData(
+    sessionId,
+    requestIdInput,
+    collection,
+    storage,
+  );
+  const prior = readVerifiedSessionExecutionLocationResultSettlement(
+    sessionId,
+    data.requestId,
+    { requestDigest: data.requestDigest },
+  );
+  if (prior !== null) {
+    if (prior.settlementId !== data.settlementId) {
+      throw new Error(
+        "result collection request id is already settled with a different result",
+      );
+    }
+    return Object.freeze({
+      ...prior,
+      settlementAppended: false,
+      recovered: true,
+    });
+  }
+  try {
+    appendAuthorityEventIfHead(
+      sessionId,
+      SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_EVENT,
+      data,
+      data.source.headHash,
+    );
+  } catch (error) {
+    const raced = readVerifiedSessionExecutionLocationResultSettlement(
+      sessionId,
+      data.requestId,
+      { requestDigest: data.requestDigest },
+    );
+    if (raced === null || raced.settlementId !== data.settlementId) {
+      throw error;
+    }
+    return Object.freeze({
+      ...raced,
+      settlementAppended: false,
+      recovered: true,
+    });
+  }
+  runSessionScaleFaultHook(
+    "afterResultCollectionSettlementAppend",
+    Object.freeze({
+      sessionId,
+      requestId: data.requestId,
+      requestDigest: data.requestDigest,
+      settlementId: data.settlementId,
+    }),
+  );
+  const receipt = readVerifiedSessionExecutionLocationResultSettlement(
+    sessionId,
+    data.requestId,
+    { requestDigest: data.requestDigest },
+  );
+  if (receipt === null || receipt.settlementId !== data.settlementId) {
+    throw new Error("result collection settlement is not canonical");
+  }
+  return Object.freeze({
+    ...receipt,
+    settlementAppended: true,
+    recovered: false,
+  });
+}
+
+function normalizeSessionResultApplyId(value) {
+  const applyId = boundedAuthorityString(
+    value,
+    "result apply id",
+    128,
+  );
+  if (!/^[A-Za-z0-9][A-Za-z0-9._:@-]{0,127}$/u.test(applyId)) {
+    throw new TypeError("result apply id is invalid");
+  }
+  return applyId;
+}
+
+function normalizeSessionResultApplyGit(input) {
+  const value = exactRecord(
+    input,
+    ["rootDigest", "commit"],
+    "result apply source git",
+  );
+  const commit = String(value.commit || "").toLowerCase();
+  if (!/^[a-f0-9]{40,64}$/u.test(commit)) {
+    throw new TypeError("result apply source git commit is invalid");
+  }
+  return Object.freeze({
+    rootDigest: normalizeSessionLocationDigest(
+      value.rootDigest,
+      "result apply source git root digest",
+    ),
+    commit,
+  });
+}
+
+function normalizeSessionResultApplyPreparedTransaction(input) {
+  const value = exactRecord(
+    input,
+    [
+      "id",
+      "checkpointId",
+      "checkpointDigest",
+      "coverage",
+      "externalSideEffects",
+    ],
+    "result apply prepared transaction",
+  );
+  const id = boundedAuthorityString(value.id, "result apply transaction id", 192);
+  const checkpointId = boundedAuthorityString(
+    value.checkpointId,
+    "result apply checkpoint id",
+    192,
+  );
+  if (
+    !/^[A-Za-z0-9][A-Za-z0-9._-]{0,191}$/u.test(id) ||
+    !/^[A-Za-z0-9][A-Za-z0-9._-]{0,191}$/u.test(checkpointId) ||
+    !["full", "partial"].includes(value.coverage) ||
+    value.externalSideEffects !== false
+  ) {
+    throw new TypeError("result apply prepared transaction is invalid");
+  }
+  return Object.freeze({
+    id,
+    checkpointId,
+    checkpointDigest: normalizeSessionLocationDigest(
+      value.checkpointDigest,
+      "result apply checkpoint digest",
+    ),
+    coverage: value.coverage,
+    externalSideEffects: false,
+  });
+}
+
+function normalizeSessionResultApplyTerminalTransaction(input) {
+  const value = exactRecord(
+    input,
+    [
+      "id",
+      "checkpointId",
+      "checkpointDigest",
+      "evidenceDigest",
+      "writeManifestDigest",
+      "coverage",
+      "fileCoverage",
+      "externalSideEffects",
+      "uncoveredPaths",
+    ],
+    "result apply terminal transaction",
+  );
+  const prepared = normalizeSessionResultApplyPreparedTransaction({
+    id: value.id,
+    checkpointId: value.checkpointId,
+    checkpointDigest: value.checkpointDigest,
+    coverage: value.coverage,
+    externalSideEffects: value.externalSideEffects,
+  });
+  if (
+    !["full", "partial", "none"].includes(value.fileCoverage) ||
+    !Array.isArray(value.uncoveredPaths) ||
+    value.uncoveredPaths.length > 128
+  ) {
+    throw new TypeError("result apply terminal transaction is invalid");
+  }
+  const uncoveredPaths = value.uncoveredPaths.map((entry) =>
+    boundedAuthorityString(entry, "result apply uncovered path", 512),
+  );
+  if (
+    new Set(uncoveredPaths).size !== uncoveredPaths.length ||
+    uncoveredPaths.some((entry, index) =>
+      index > 0 ? entry.localeCompare(uncoveredPaths[index - 1]) < 0 : false,
+    )
+  ) {
+    throw new TypeError("result apply uncovered paths are invalid");
+  }
+  return Object.freeze({
+    ...prepared,
+    evidenceDigest: normalizeSessionLocationDigest(
+      value.evidenceDigest,
+      "result apply evidence digest",
+    ),
+    writeManifestDigest: normalizeSessionLocationDigest(
+      value.writeManifestDigest,
+      "result apply write manifest digest",
+    ),
+    fileCoverage: value.fileCoverage,
+    uncoveredPaths: Object.freeze(uncoveredPaths),
+  });
+}
+
+function normalizeSessionResultApplyReview(review, settlement) {
+  if (
+    review?.schema !== "cc-execution-location-result-review/v1" ||
+    review.sessionId !== settlement.sessionId ||
+    review.requestId !== settlement.requestId ||
+    review.resultId !== settlement.resultId ||
+    review.handoffId !== settlement.handoffId ||
+    review.settlement?.settlementId !== settlement.settlementId ||
+    review.settlement?.eventHash !== settlement.settlementEventHash ||
+    review.settlement?.eventCount !== settlement.settlementEventCount ||
+    review.settlement?.receiptDigest !== settlement.receiptDigest ||
+    review.bundleDigest !== settlement.bundleDigest ||
+    review.verificationDigest !== settlement.verificationDigest ||
+    review.collectionDigest !== settlement.collectionDigest ||
+    review.diff?.digest == null ||
+    review.applied !== false ||
+    review.applyPolicy?.automaticApply !== false
+  ) {
+    throw new TypeError("result apply review authority is invalid");
+  }
+  return Object.freeze({
+    reviewDigest: normalizeSessionLocationDigest(
+      review.reviewDigest,
+      "result apply review digest",
+    ),
+    diffDigest: normalizeSessionLocationDigest(
+      review.diff.digest,
+      "result apply diff digest",
+    ),
+  });
+}
+
+function createSessionResultApplyReservationData(
+  sessionId,
+  applyIdInput,
+  review,
+  settlement,
+  sourceGit,
+  transaction,
+) {
+  const applyId = normalizeSessionResultApplyId(applyIdInput);
+  const reviewed = normalizeSessionResultApplyReview(review, settlement);
+  const material = {
+    schema: SESSION_EXECUTION_LOCATION_RESULT_APPLY_RESERVATION_SCHEMA,
+    applyId,
+    requestId: settlement.requestId,
+    reviewDigest: reviewed.reviewDigest,
+    settlementId: settlement.settlementId,
+    settlementEventHash: settlement.settlementEventHash,
+    settlementEventCount: settlement.settlementEventCount,
+    bundleDigest: settlement.bundleDigest,
+    diffDigest: reviewed.diffDigest,
+    sourceGit: normalizeSessionResultApplyGit(sourceGit),
+    transaction: normalizeSessionResultApplyPreparedTransaction(transaction),
+    applied: false,
+  };
+  return Object.freeze({
+    ...material,
+    reservationId: sessionLocationDigest(
+      "chainlesschain.session-execution-location-result-apply-reservation-id.v1\0",
+      { sessionId, ...material },
+    ),
+  });
+}
+
+function projectSessionResultApplyReservation(
+  sessionId,
+  event,
+  eventCount,
+  settlement,
+) {
+  const data = exactRecord(
+    event?.data,
+    [
+      "schema",
+      "reservationId",
+      "applyId",
+      "requestId",
+      "reviewDigest",
+      "settlementId",
+      "settlementEventHash",
+      "settlementEventCount",
+      "bundleDigest",
+      "diffDigest",
+      "sourceGit",
+      "transaction",
+      "applied",
+    ],
+    "session result apply reservation",
+  );
+  if (
+    !settlement ||
+    settlement.settlementId !== data.settlementId ||
+    settlement.requestId !== data.requestId ||
+    settlement.bundleDigest !== data.bundleDigest ||
+    settlement.eventHash !== data.settlementEventHash ||
+    settlement.eventCount !== data.settlementEventCount ||
+    event?.prevHash !== settlement.eventHash ||
+    eventCount !== settlement.eventCount + 1 ||
+    data.applied !== false
+  ) {
+    throw new TypeError("session result apply reservation predecessor is invalid");
+  }
+  const material = {
+    schema: SESSION_EXECUTION_LOCATION_RESULT_APPLY_RESERVATION_SCHEMA,
+    applyId: normalizeSessionResultApplyId(data.applyId),
+    requestId: normalizeSessionResultCollectionRequestId(data.requestId),
+    reviewDigest: normalizeSessionLocationDigest(
+      data.reviewDigest,
+      "result apply review digest",
+    ),
+    settlementId: normalizeSessionLocationDigest(
+      data.settlementId,
+      "result apply settlement id",
+    ),
+    settlementEventHash: normalizeSessionLocationHead(
+      data.settlementEventHash,
+      "result apply settlement event hash",
+    ),
+    settlementEventCount: normalizeSessionLocationEventCount(
+      data.settlementEventCount,
+      "result apply settlement event count",
+    ),
+    bundleDigest: normalizeSessionLocationDigest(
+      data.bundleDigest,
+      "result apply bundle digest",
+    ),
+    diffDigest: normalizeSessionLocationDigest(
+      data.diffDigest,
+      "result apply diff digest",
+    ),
+    sourceGit: normalizeSessionResultApplyGit(data.sourceGit),
+    transaction: normalizeSessionResultApplyPreparedTransaction(
+      data.transaction,
+    ),
+    applied: false,
+  };
+  const reservationId = sessionLocationDigest(
+    "chainlesschain.session-execution-location-result-apply-reservation-id.v1\0",
+    { sessionId, ...material },
+  );
+  if (data.reservationId !== reservationId) {
+    throw new TypeError("session result apply reservation id is invalid");
+  }
+  return Object.freeze({
+    ...material,
+    reservationId,
+    eventHash: event.hash,
+    eventCount,
+    at: new Date(event.timestamp).toISOString(),
+  });
+}
+
+function createSessionResultApplyTerminalData(
+  sessionId,
+  reservation,
+  source,
+  outcome,
+  transaction,
+) {
+  if (!["applied", "rolled_back"].includes(outcome)) {
+    throw new TypeError("result apply terminal outcome is invalid");
+  }
+  const material = {
+    schema: SESSION_EXECUTION_LOCATION_RESULT_APPLY_TERMINAL_SCHEMA,
+    applyId: reservation.applyId,
+    reservationId: reservation.reservationId,
+    reviewDigest: reservation.reviewDigest,
+    settlementId: reservation.settlementId,
+    bundleDigest: reservation.bundleDigest,
+    diffDigest: reservation.diffDigest,
+    source: Object.freeze({
+      headHash: normalizeSessionLocationHead(
+        source.headHash,
+        "result apply terminal source head",
+      ),
+      eventCount: normalizeSessionLocationEventCount(
+        source.eventCount,
+        "result apply terminal source event count",
+      ),
+    }),
+    sourceGit: reservation.sourceGit,
+    transaction: normalizeSessionResultApplyTerminalTransaction(transaction),
+    outcome,
+    applied: outcome === "applied",
+  };
+  return Object.freeze({
+    ...material,
+    terminalId: sessionLocationDigest(
+      "chainlesschain.session-execution-location-result-apply-terminal-id.v1\0",
+      { sessionId, ...material },
+    ),
+  });
+}
+
+function projectSessionResultApplyTerminal(
+  sessionId,
+  event,
+  eventCount,
+  reservation,
+) {
+  const data = exactRecord(
+    event?.data,
+    [
+      "schema",
+      "terminalId",
+      "applyId",
+      "reservationId",
+      "reviewDigest",
+      "settlementId",
+      "bundleDigest",
+      "diffDigest",
+      "source",
+      "sourceGit",
+      "transaction",
+      "outcome",
+      "applied",
+    ],
+    "session result apply terminal",
+  );
+  const source = exactRecord(
+    data.source,
+    ["headHash", "eventCount"],
+    "session result apply terminal source",
+  );
+  if (
+    !reservation ||
+    data.applyId !== reservation.applyId ||
+    data.reservationId !== reservation.reservationId ||
+    data.reviewDigest !== reservation.reviewDigest ||
+    data.settlementId !== reservation.settlementId ||
+    data.bundleDigest !== reservation.bundleDigest ||
+    data.diffDigest !== reservation.diffDigest ||
+    event?.prevHash !== source.headHash ||
+    eventCount !== Number(source.eventCount) + 1 ||
+    data.applied !== (data.outcome === "applied")
+  ) {
+    throw new TypeError("session result apply terminal authority is invalid");
+  }
+  const normalized = createSessionResultApplyTerminalData(
+    sessionId,
+    reservation,
+    source,
+    data.outcome,
+    data.transaction,
+  );
+  if (
+    data.terminalId !== normalized.terminalId ||
+    canonicalJson(data.sourceGit, "resultApplySourceGit") !==
+      canonicalJson(reservation.sourceGit, "resultApplySourceGit")
+  ) {
+    throw new TypeError("session result apply terminal id is invalid");
+  }
+  return Object.freeze({
+    ...normalized,
+    eventHash: event.hash,
+    eventCount,
+    at: new Date(event.timestamp).toISOString(),
+  });
+}
+
+function sessionResultApplyReceipt(sessionId, reservation, terminal) {
+  const material = {
+    schema: SESSION_EXECUTION_LOCATION_RESULT_APPLY_RECEIPT_SCHEMA,
+    sessionId,
+    applyId: reservation.applyId,
+    requestId: reservation.requestId,
+    status: terminal?.outcome || "reserved",
+    reviewDigest: reservation.reviewDigest,
+    settlementId: reservation.settlementId,
+    bundleDigest: reservation.bundleDigest,
+    diffDigest: reservation.diffDigest,
+    sourceGit: reservation.sourceGit,
+    transaction: terminal?.transaction || reservation.transaction,
+    reservation: Object.freeze({
+      reservationId: reservation.reservationId,
+      eventHash: reservation.eventHash,
+      eventCount: reservation.eventCount,
+    }),
+    terminal: terminal
+      ? Object.freeze({
+          terminalId: terminal.terminalId,
+          eventHash: terminal.eventHash,
+          eventCount: terminal.eventCount,
+          outcome: terminal.outcome,
+        })
+      : null,
+    applied: terminal?.outcome === "applied",
+  };
+  return Object.freeze({
+    ...material,
+    receiptDigest: sessionLocationDigest(
+      "chainlesschain.session-execution-location-result-apply-receipt.v1\0",
+      material,
+    ),
+  });
+}
+
+export function readVerifiedSessionExecutionLocationResultApply(
+  sessionId,
+  applyIdInput,
+) {
+  const applyId = normalizeSessionResultApplyId(applyIdInput);
+  return readVerifiedProjection(sessionId, () => {
+    let eventCount = 0;
+    const settlements = new Map();
+    const reservations = new Map();
+    const terminals = new Map();
+    return {
+      accept(event) {
+        eventCount += 1;
+        if (event?.type === SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_EVENT) {
+          const settlement = projectSessionResultCollectionSettlement(
+            sessionId,
+            event,
+            eventCount,
+          );
+          settlements.set(settlement.settlementId, settlement);
+          return;
+        }
+        if (event?.type === SESSION_EXECUTION_LOCATION_RESULT_APPLY_RESERVATION_EVENT) {
+          const settlement = settlements.get(event?.data?.settlementId) || null;
+          const reservation = projectSessionResultApplyReservation(
+            sessionId,
+            event,
+            eventCount,
+            settlement,
+          );
+          if (
+            reservations.has(reservation.applyId) ||
+            [...reservations.values()].some(
+              (entry) => entry.reservationId === reservation.reservationId,
+            )
+          ) {
+            throw new TypeError("duplicate session result apply reservation");
+          }
+          reservations.set(reservation.applyId, reservation);
+          return;
+        }
+        if (event?.type === SESSION_EXECUTION_LOCATION_RESULT_APPLY_TERMINAL_EVENT) {
+          const reservation = reservations.get(event?.data?.applyId) || null;
+          const terminal = projectSessionResultApplyTerminal(
+            sessionId,
+            event,
+            eventCount,
+            reservation,
+          );
+          if (terminals.has(terminal.applyId)) {
+            throw new TypeError("duplicate session result apply terminal");
+          }
+          terminals.set(terminal.applyId, terminal);
+        }
+      },
+      finish() {
+        const reservation = reservations.get(applyId) || null;
+        return reservation === null
+          ? null
+          : sessionResultApplyReceipt(
+              sessionId,
+              reservation,
+              terminals.get(applyId) || null,
+            );
+      },
+    };
+  });
+}
+
+export function reserveSessionExecutionLocationResultApply(
+  sessionId,
+  applyId,
+  review,
+  sourceGit,
+  transaction,
+) {
+  const settlement = readVerifiedSessionExecutionLocationResultSettlement(
+    sessionId,
+    review?.requestId,
+  );
+  if (settlement === null) {
+    throw new Error("result apply settlement was not found");
+  }
+  const data = createSessionResultApplyReservationData(
+    sessionId,
+    applyId,
+    review,
+    settlement,
+    sourceGit,
+    transaction,
+  );
+  const prior = readVerifiedSessionExecutionLocationResultApply(
+    sessionId,
+    data.applyId,
+  );
+  if (prior !== null) {
+    if (prior.reservation.reservationId !== data.reservationId) {
+      throw new Error("result apply id is already bound to different inputs");
+    }
+    return Object.freeze({ ...prior, reservationAppended: false, recovered: true });
+  }
+  appendAuthorityEventIfHead(
+    sessionId,
+    SESSION_EXECUTION_LOCATION_RESULT_APPLY_RESERVATION_EVENT,
+    data,
+    settlement.settlementEventHash,
+  );
+  runSessionScaleFaultHook(
+    "afterResultApplyReservationAppend",
+    Object.freeze({ sessionId, applyId: data.applyId, reservationId: data.reservationId }),
+  );
+  const receipt = readVerifiedSessionExecutionLocationResultApply(
+    sessionId,
+    data.applyId,
+  );
+  if (
+    receipt === null ||
+    receipt.reservation.reservationId !== data.reservationId
+  ) {
+    throw new Error("result apply reservation is not canonical");
+  }
+  return Object.freeze({ ...receipt, reservationAppended: true, recovered: false });
+}
+
+export function settleSessionExecutionLocationResultApply(
+  sessionId,
+  applyIdInput,
+  outcome,
+  transaction,
+) {
+  const applyId = normalizeSessionResultApplyId(applyIdInput);
+  const prior = readVerifiedSessionExecutionLocationResultApply(sessionId, applyId);
+  if (prior === null) {
+    throw new Error("result apply reservation was not found");
+  }
+  const normalizedTransaction = normalizeSessionResultApplyTerminalTransaction(
+    transaction,
+  );
+  if (prior.terminal !== null) {
+    if (
+      prior.status !== outcome ||
+      canonicalJson(prior.transaction, "resultApplyTransaction") !==
+        canonicalJson(normalizedTransaction, "resultApplyTransaction")
+    ) {
+      throw new Error("result apply is already settled differently");
+    }
+    return Object.freeze({ ...prior, terminalAppended: false, recovered: true });
+  }
+  const current = getVerifiedSessionExecutionLocationAuthority(sessionId);
+  const reservation = Object.freeze({
+    applyId: prior.applyId,
+    requestId: prior.requestId,
+    reservationId: prior.reservation.reservationId,
+    reviewDigest: prior.reviewDigest,
+    settlementId: prior.settlementId,
+    bundleDigest: prior.bundleDigest,
+    diffDigest: prior.diffDigest,
+    sourceGit: prior.sourceGit,
+  });
+  const data = createSessionResultApplyTerminalData(
+    sessionId,
+    reservation,
+    { headHash: current.headHash, eventCount: current.eventCount },
+    outcome,
+    normalizedTransaction,
+  );
+  try {
+    appendAuthorityEventIfHead(
+      sessionId,
+      SESSION_EXECUTION_LOCATION_RESULT_APPLY_TERMINAL_EVENT,
+      data,
+      current.headHash,
+    );
+  } catch (error) {
+    const raced = readVerifiedSessionExecutionLocationResultApply(
+      sessionId,
+      applyId,
+    );
+    if (
+      raced?.status !== outcome ||
+      canonicalJson(raced.transaction, "resultApplyTransaction") !==
+        canonicalJson(normalizedTransaction, "resultApplyTransaction")
+    ) {
+      throw error;
+    }
+    return Object.freeze({ ...raced, terminalAppended: false, recovered: true });
+  }
+  runSessionScaleFaultHook(
+    "afterResultApplyTerminalAppend",
+    Object.freeze({ sessionId, applyId, terminalId: data.terminalId }),
+  );
+  const receipt = readVerifiedSessionExecutionLocationResultApply(sessionId, applyId);
+  if (receipt?.terminal?.terminalId !== data.terminalId) {
+    throw new Error("result apply terminal is not canonical");
+  }
+  return Object.freeze({ ...receipt, terminalAppended: true, recovered: false });
 }
 
 /**

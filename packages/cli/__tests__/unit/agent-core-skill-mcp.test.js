@@ -194,9 +194,11 @@ describe("run_skill controlled execution boundary", () => {
     const workflowChildEffectId = `sha256:${"b".repeat(64)}`;
     const usageSink = [];
     const boundaries = [];
+    const receipts = [];
     const settlements = [];
     const providerCall = vi.fn();
     const boundaryWriter = vi.fn((event) => boundaries.push(event));
+    const receiptWriter = vi.fn((event) => receipts.push(event));
     const settlementWriter = vi.fn((event) => settlements.push(event));
     const realCallId = "mdl-real-skill-call";
     mocks.createSubAgent.mockImplementationOnce((opts) => {
@@ -213,6 +215,27 @@ describe("run_skill controlled execution boundary", () => {
             source: "model",
           });
           providerCall();
+          opts.onProviderReceipt({
+            type: "provider-request-receipt",
+            callId: realCallId,
+            provider: "openai",
+            source: "model",
+            workflowRequestSource: "model",
+            workflowEffectId: opts.workflowEffectId,
+            providerReceipt: {
+              protocol: "cc-provider-request-receipt/v1",
+              provider: "openai",
+              workflowEffectId: opts.workflowEffectId,
+              callId: realCallId,
+              callSequence: 1,
+              source: "model",
+              clientRequestId: `ccwf_${"1".repeat(64)}`,
+              requestId: "req_skill_child",
+              responseId: null,
+              requestIdentitySemantics: "trace-only",
+              independentlyReadable: false,
+            },
+          });
           const settlement = {
             type: "token-usage",
             callId: realCallId,
@@ -249,6 +272,7 @@ describe("run_skill controlled execution boundary", () => {
         strictUsageTelemetry: true,
         subAgentUsageSink: usageSink,
         onUsageBoundary: boundaryWriter,
+        onProviderReceipt: receiptWriter,
         onUsageSettlement: settlementWriter,
       },
     );
@@ -274,6 +298,20 @@ describe("run_skill controlled execution boundary", () => {
         parentSessionId: "parent-session",
       },
     });
+    expect(receipts).toEqual([
+      expect.objectContaining({
+        callId: realCallId,
+        source: "subagent",
+        workflowRequestSource: "model",
+        providerReceipt: expect.objectContaining({
+          requestId: "req_skill_child",
+        }),
+        attribution: expect.objectContaining({
+          origin: "skill",
+          skill: "metered-reviewer",
+        }),
+      }),
+    ]);
     expect(settlements).toEqual([
       expect.objectContaining({
         type: "token-usage",

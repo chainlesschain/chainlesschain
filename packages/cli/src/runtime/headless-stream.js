@@ -109,6 +109,16 @@ import {
   readSessionHostResumeState,
 } from "../lib/session-host-snapshot.js";
 import { acquireSessionHostLease } from "../lib/session-host-lease.js";
+import {
+  openProductionSessionBudgetRoot,
+  sessionBudgetAdmissionError,
+} from "../lib/session-budget-production-root.js";
+import {
+  beginSessionBudgetUsage,
+  markSessionBudgetUsageUnknown,
+  recordSessionBudgetUsage,
+  rejectSessionBudgetUsageUnknown,
+} from "../lib/session-budget-usage.js";
 import { classifyStreamRetryReason } from "../lib/stream-retry.js";
 import {
   SideEffectLedger,
@@ -809,6 +819,7 @@ async function runTurn(
     waitForOutput,
     persistUsageEvent,
     persistToolEvent,
+    sessionBudget,
     now = Date.now,
   },
 ) {
@@ -1008,6 +1019,11 @@ async function runTurn(
       }
       case "token-usage":
         if (event.ledgerPersisted !== true) persistUsageEvent?.(event);
+        recordSessionBudgetUsage(
+          sessionBudget,
+          event,
+          "headless usage settlement",
+        );
         // 用量归因: attributed child-loop usage (sub-agent / isolated skill)
         // is forwarded on the stream (same wire shape) and counted toward the
         // cost budget, but stays out of the turn's `usage` envelope, which
@@ -1044,6 +1060,15 @@ async function runTurn(
       case "model-usage-started":
       case "model-usage-unknown":
         if (event.ledgerPersisted !== true) persistUsageEvent?.(event);
+        if (event.type === "model-usage-started") {
+          beginSessionBudgetUsage(
+            sessionBudget,
+            event,
+            "headless provider call",
+          );
+        } else if (markSessionBudgetUsageUnknown(sessionBudget, event)) {
+          rejectSessionBudgetUsageUnknown(event, "headless provider call");
+        }
         break;
       case "compaction-usage-unknown":
         if (event.ledgerPersisted !== true) {
@@ -1052,6 +1077,12 @@ async function runTurn(
             type: "model-usage-unknown",
             code: event.code || "provider_transport_outcome_unknown",
           });
+        }
+        if (markSessionBudgetUsageUnknown(sessionBudget, event)) {
+          rejectSessionBudgetUsageUnknown(
+            event,
+            "headless semantic compaction",
+          );
         }
         emit({
           type: "compaction_usage_unknown",
@@ -1249,6 +1280,7 @@ async function withStreamSessionHostLease(options, deps, streamCleanup, task) {
     deps.acquireSessionHostLease ||
     (!hasInjectedSessionStore ? acquireSessionHostLease : null);
   let lease = null;
+  let budgetRoot = null;
   let onLeaseAbort = null;
   try {
     if (persist && typeof acquireHostLease === "function") {
@@ -1262,7 +1294,7 @@ async function withStreamSessionHostLease(options, deps, streamCleanup, task) {
         if (lease.signal.aborted) onLeaseAbort();
       }
     }
-    const scopedOptions = lease?.signal
+    let scopedOptions = lease?.signal
       ? {
           ...options,
           signal: options.signal
@@ -1270,12 +1302,28 @@ async function withStreamSessionHostLease(options, deps, streamCleanup, task) {
             : lease.signal,
         }
       : options;
+    budgetRoot = openProductionSessionBudgetRoot(
+      persist ? sessionId : null,
+      options.sessionBudgetRoot,
+      {
+        persist,
+        signal: scopedOptions.signal || null,
+        table: options.sessionBudgetRoot?.table,
+        open: deps.openSessionBudget,
+        store: deps.sessionBudgetStore,
+        registry: deps.sessionBudgetRegistry,
+      },
+    );
+    if (budgetRoot.enabled) {
+      scopedOptions = { ...scopedOptions, ...budgetRoot.options };
+    }
     return await task(scopedOptions, {
       ...deps,
       [STREAM_SESSION_ID]: sessionId,
       [STREAM_SESSION_HOST_LEASE]: lease,
     });
   } finally {
+    budgetRoot?.close?.();
     if (lease?.signal && onLeaseAbort) {
       lease.signal.removeEventListener("abort", onLeaseAbort);
     }
@@ -1646,8 +1694,9 @@ async function runAgentHeadlessStreamInWorkspace(
       const { loadHooks, projectHookTrustNotice, attachAuthorityErrors } =
         await import("../lib/settings-hooks.cjs");
       const loaded = loadHooks({ cwd, settingsFile: options.settingsFile });
-      const { mergePluginHooks } =
-        await import("../lib/plugin-runtime/hooks.js");
+      const { mergePluginHooks } = await import(
+        "../lib/plugin-runtime/hooks.js"
+      );
       const effectiveHooks = mergePluginHooks(
         attachAuthorityErrors(loaded.hooks, loaded.authorityErrors),
         { cwd },
@@ -1728,8 +1777,9 @@ async function runAgentHeadlessStreamInWorkspace(
     });
 
   if (managedSettings) {
-    const { assertManagedPermissionMode } =
-      await import("../lib/settings-loader.cjs");
+    const { assertManagedPermissionMode } = await import(
+      "../lib/settings-loader.cjs"
+    );
     assertManagedPermissionMode(options.permissionMode, managedSettings);
   }
   const perm = resolvePermissionMode(options.permissionMode);
@@ -2217,8 +2267,9 @@ async function runAgentHeadlessStreamInWorkspace(
     : null;
   if (!instructionExcludes) {
     try {
-      const { readStringArraySetting } =
-        await import("../lib/settings-loader.cjs");
+      const { readStringArraySetting } = await import(
+        "../lib/settings-loader.cjs"
+      );
       const fromSettings = readStringArraySetting("instructionExcludes", {
         cwd,
         settingsFile: options.settingsFile,
@@ -2283,8 +2334,9 @@ async function runAgentHeadlessStreamInWorkspace(
   // Best-effort; no-op when project memory is off or no hook is registered.
   if (settingsHooks && _loadedInstructions) {
     try {
-      const { runInstructionsLoadedHooks } =
-        await import("../lib/settings-hook-events.js");
+      const { runInstructionsLoadedHooks } = await import(
+        "../lib/settings-hook-events.js"
+      );
       const ctx = runInstructionsLoadedHooks(settingsHooks, {
         files: _loadedInstructions.files,
         cwd,
@@ -2324,8 +2376,9 @@ async function runAgentHeadlessStreamInWorkspace(
   // settings.json SessionStart hooks → inject session context once (observe-only).
   if (settingsHooks) {
     try {
-      const { runSessionStartHooks } =
-        await import("../lib/settings-hook-events.js");
+      const { runSessionStartHooks } = await import(
+        "../lib/settings-hook-events.js"
+      );
       const ctx = runSessionStartHooks(settingsHooks, {
         source: "startup",
         cwd,
@@ -2696,8 +2749,9 @@ async function runAgentHeadlessStreamInWorkspace(
   // the single-prompt runner + the REPL /add-dir path. Best-effort.
   if (hostMcp?.mcpClient && additionalDirectories.length > 0) {
     try {
-      const { notifyMcpRootsChanged, workspaceRootDirs } =
-        await import("../repl/add-dir.js");
+      const { notifyMcpRootsChanged, workspaceRootDirs } = await import(
+        "../repl/add-dir.js"
+      );
       notifyMcpRootsChanged(
         [hostMcp.mcpClient],
         workspaceRootDirs(options.cwd || process.cwd(), additionalDirectories),
@@ -2798,6 +2852,7 @@ async function runAgentHeadlessStreamInWorkspace(
     cwd,
     additionalDirectories,
     sessionId,
+    sessionBudget: options.sessionBudget || null,
     sessionHostSnapshot: canonicalResume?.snapshot || null,
     // Auto-checkpoint (Claude-Code parity): snapshot the work tree before each
     // mutating tool so a stream consumer (e.g. the IDE chat panel) can rewind.
@@ -3281,13 +3336,19 @@ async function runAgentHeadlessStreamInWorkspace(
           maxOutputTokens: options.compactionMaxOutputTokens,
           summaryInputMaxChars: options.compactionInputMaxChars,
           onProviderCallStart: () => {
-            persistUsageEvent?.({
+            const event = {
               type: "model-usage-started",
               callId: compactionCallId,
               provider,
               model,
               source: "semantic-compaction",
-            });
+            };
+            persistUsageEvent?.(event);
+            beginSessionBudgetUsage(
+              options.sessionBudget,
+              event,
+              "headless semantic compaction",
+            );
             compactionProviderStarted = true;
             return compactionCallId;
           },
@@ -3296,14 +3357,21 @@ async function runAgentHeadlessStreamInWorkspace(
         if (isAbortError(error) || options.signal?.aborted) throw error;
         if (error?.runtimeLedgerPersistence === true) throw error;
         if (compactionProviderStarted) {
-          persistUsageEvent?.({
+          const event = {
             type: "model-usage-unknown",
             callId: compactionCallId,
             provider,
             model,
             source: "semantic-compaction",
             code: "provider_call_failed",
-          });
+          };
+          persistUsageEvent?.(event);
+          if (markSessionBudgetUsageUnknown(options.sessionBudget, event)) {
+            rejectSessionBudgetUsageUnknown(
+              event,
+              "headless semantic compaction",
+            );
+          }
         }
         emit({
           type: "compaction-degraded",
@@ -3316,14 +3384,21 @@ async function runAgentHeadlessStreamInWorkspace(
         emit({ type: "compaction-degraded", ...degradedEvent });
       }
       if (usageUnknownEvent) {
-        persistUsageEvent?.({
+        const event = {
           type: "model-usage-unknown",
           callId: compactionCallId,
           provider: usageUnknownEvent.provider || provider,
           model: usageUnknownEvent.model || model,
           source: "semantic-compaction",
           code: "provider_transport_outcome_unknown",
-        });
+        };
+        persistUsageEvent?.(event);
+        if (markSessionBudgetUsageUnknown(options.sessionBudget, event)) {
+          rejectSessionBudgetUsageUnknown(
+            event,
+            "headless semantic compaction",
+          );
+        }
         emit({
           type: "compaction_usage_unknown",
           ...usageUnknownEvent,
@@ -3344,12 +3419,18 @@ async function runAgentHeadlessStreamInWorkspace(
       }
       let costExceeded = false;
       if (usageEvent) {
-        persistUsageEvent?.({
+        const event = {
           type: "token-usage",
           callId: compactionCallId,
           ...usageEvent,
           source: "semantic-compaction",
-        });
+        };
+        persistUsageEvent?.(event);
+        recordSessionBudgetUsage(
+          options.sessionBudget,
+          event,
+          "headless semantic compaction usage settlement",
+        );
         emit({ type: "token_usage", ...usageEvent });
         if (costBudget) {
           costBudget.add(usageEvent);
@@ -3609,8 +3690,9 @@ async function runAgentHeadlessStreamInWorkspace(
       // session can honour the user's standing preferences ("越用越聪明"
       // flywheel). Best-effort — a learning ledger must never break the chat.
       try {
-        const { appendFeedback } =
-          await import("../lib/pdh-feedback-ledger.js");
+        const { appendFeedback } = await import(
+          "../lib/pdh-feedback-ledger.js"
+        );
         appendFeedback({ sessionId, turnId, kind, comment });
       } catch {
         /* persistence is best-effort */
@@ -3741,8 +3823,9 @@ async function runAgentHeadlessStreamInWorkspace(
     // settings.json UserPromptSubmit hooks. block → skip this turn; context → inject.
     if (settingsHooks) {
       try {
-        const { runUserPromptSubmitHooks } =
-          await import("../lib/settings-hook-events.js");
+        const { runUserPromptSubmitHooks } = await import(
+          "../lib/settings-hook-events.js"
+        );
         const ups = runUserPromptSubmitHooks(settingsHooks, {
           prompt: userContent,
           cwd,
@@ -3958,6 +4041,7 @@ async function runAgentHeadlessStreamInWorkspace(
           now: deps.now || Date.now,
           persistUsageEvent,
           persistToolEvent,
+          sessionBudget: options.sessionBudget || null,
         },
       );
     } catch (err) {
@@ -4000,6 +4084,30 @@ async function runAgentHeadlessStreamInWorkspace(
           sawError = true;
           break;
         }
+      }
+      if (
+        err?.code === "CC_SESSION_BUDGET_EXHAUSTED" ||
+        err?.code === "CC_SESSION_BUDGET_USAGE_UNKNOWN" ||
+        options.sessionBudget?.signal?.aborted === true
+      ) {
+        const budgetReason =
+          options.sessionBudget?.reason?.() ||
+          err.budgetReason ||
+          "session-aborted";
+        emit({
+          type: "result",
+          subtype: "error_session_budget",
+          is_error: true,
+          code: err.code,
+          error:
+            err?.code === "CC_SESSION_BUDGET_USAGE_UNKNOWN"
+              ? err.message
+              : sessionBudgetAdmissionError(budgetReason, "run").message,
+          budget_reason: budgetReason,
+          turn: turns,
+        });
+        sawError = true;
+        break;
       }
       const isAbort =
         err?.name === "AbortError" || /abort/i.test(err?.message || "");

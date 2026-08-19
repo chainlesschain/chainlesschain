@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { afterEach, describe, expect, it, vi, beforeEach } from "vitest";
 
 vi.mock("../../src/lib/worktree-isolator.js", () => ({
   diffWorktree: vi.fn(() => ({
@@ -419,6 +419,18 @@ describe("ws runtime event emission", () => {
     ws = {};
   });
 
+  afterEach(() => {
+    for (const handler of server.sessionHandlers.values()) {
+      try {
+        handler?.destroy?.();
+      } catch {
+        // Individual tests assert bootstrap semantics; cleanup must still
+        // release the process-local host lease for the next isolated server.
+      }
+    }
+    server.sessionHandlers.clear();
+  });
+
   it("emits runtime session events for create, resume, message, and close", async () => {
     await handleSessionCreate(server, "req-1", ws, {
       sessionType: "agent",
@@ -435,6 +447,7 @@ describe("ws runtime event emission", () => {
       handleMessage: vi.fn().mockResolvedValue(undefined),
       destroy: vi.fn(),
     };
+    server.sessionHandlers.get("sess-1")?.destroy?.();
     server.sessionHandlers.set("sess-1", handler);
     handleSessionMessage(server, "req-3", ws, {
       sessionId: "sess-1",
@@ -919,6 +932,216 @@ describe("ws runtime event emission", () => {
     );
   });
 
+  it("fails session creation closed when handler bootstrap fails", async () => {
+    const bootstrapError = Object.assign(new Error("handler bootstrap failed"), {
+      code: "CC_WS_HANDLER_BOOTSTRAP_FAILED",
+    });
+    server._session.mcpClient = {
+      setElicitationHandler: vi.fn(() => {
+        throw bootstrapError;
+      }),
+      clearElicitationHandler: vi.fn(),
+    };
+    server.sessionManager.rollbackSessionCreation = vi.fn();
+
+    await handleSessionCreate(server, "req-bootstrap-failed", ws, {
+      sessionType: "agent",
+    });
+
+    expect(server.sessionManager.rollbackSessionCreation).toHaveBeenCalledWith(
+      "sess-1",
+    );
+    expect(server.emit).not.toHaveBeenCalledWith(
+      RUNTIME_EVENTS.SESSION_START,
+      expect.anything(),
+    );
+    expect(server._send).toHaveBeenCalledWith(
+      ws,
+      expect.objectContaining({
+        type: "error",
+        sessionId: "sess-1",
+        payload: expect.objectContaining({
+          code: "CC_WS_HANDLER_BOOTSTRAP_FAILED",
+        }),
+      }),
+    );
+  });
+
+  it("boots and reattaches an opt-in budgeted WS session to one root", async () => {
+    const order = [];
+    const leaseController = new AbortController();
+    const budgetController = new AbortController();
+    const lease = {
+      signal: leaseController.signal,
+      assert: vi.fn(),
+      release: vi.fn(() => order.push("lease:release")),
+    };
+    const budget = {
+      signal: budgetController.signal,
+      reason: vi.fn(() => null),
+      consumeTurn: vi.fn(() => ({ ok: true })),
+      recordUsage: vi.fn(() => ({ aborted: false })),
+    };
+    const budgetRoot = {
+      enabled: true,
+      budget,
+      options: { sessionBudget: budget, signal: budgetController.signal },
+      close: vi.fn(() => order.push("budget:close")),
+    };
+    server.sessionManager.db = {};
+    server.sessionManager.createSession.mockImplementation((options) => {
+      order.push("db:create");
+      server._session.sessionBudgetRoot = options.sessionBudgetRoot;
+      return { sessionId: "sess-1" };
+    });
+    server._sessionBudgetDependencies = {
+      acquireSessionHostLease: vi.fn(() => {
+        order.push("lease:acquire");
+        return lease;
+      }),
+      startJsonlSession: vi.fn((sessionId) => {
+        order.push("jsonl:start");
+        return sessionId;
+      }),
+      readSessionHostResumeState: vi.fn(() => {
+        order.push("jsonl:read");
+        return {
+          snapshot: { verified: true, head: { hash: "head-1" } },
+          messages: [],
+          recovery: { unsettled: [], incidents: [], replayDenied: [] },
+          sessionBudgetRoot: server._session.sessionBudgetRoot,
+        };
+      }),
+      openProductionSessionBudgetRoot: vi.fn(() => {
+        order.push("budget:open");
+        return budgetRoot;
+      }),
+      deleteJsonlSession: vi.fn(),
+    };
+
+    await handleSessionCreate(server, "req-budget", ws, {
+      sessionType: "agent",
+      sessionBudget: true,
+      sessionMaxTurns: 4,
+      sessionMaxTokens: 1000,
+    });
+
+    expect(order.slice(0, 5)).toEqual([
+      "db:create",
+      "lease:acquire",
+      "jsonl:start",
+      "jsonl:read",
+      "budget:open",
+    ]);
+    expect(server.sessionManager.createSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requireDurable: true,
+        sessionBudgetRoot: expect.objectContaining({
+          enabled: true,
+          limits: { maxTurns: 4, maxTokens: 1000 },
+        }),
+      }),
+    );
+    expect(
+      server._sessionBudgetDependencies.openProductionSessionBudgetRoot,
+    ).toHaveBeenCalledWith(
+      "sess-1",
+      expect.objectContaining({ enabled: true }),
+      expect.objectContaining({ persist: true, signal: lease.signal }),
+    );
+    expect(server._send).toHaveBeenCalledWith(
+      ws,
+      expect.objectContaining({ type: "session.started" }),
+    );
+    expect(server._session.canonicalJsonlSession).toBe(true);
+
+    const activeHandler = server.sessionHandlers.get("sess-1");
+    const previousInteraction = activeHandler.interaction;
+    server.resumeRecoveryDependencies = {
+      loadSideEffectLedger: cleanSideEffectLedger,
+      loadMcpLedgerRecovery: () => ({
+        unsettled: [],
+        incidents: [],
+        replayDenied: [],
+      }),
+    };
+    server._send.mockClear();
+    await handleSessionResume(server, "req-budget-resume", {}, {
+      sessionId: "sess-1",
+    });
+
+    expect(
+      server._sessionBudgetDependencies.openProductionSessionBudgetRoot,
+    ).toHaveBeenCalledOnce();
+    expect(server.sessionHandlers.get("sess-1")).toBe(activeHandler);
+    expect(activeHandler.interaction).not.toBe(previousInteraction);
+    expect(server._send).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({ type: "session.resumed" }),
+    );
+  });
+
+  it("rolls back a budgeted WS session when the restored root is exhausted", async () => {
+    const leaseController = new AbortController();
+    const budgetController = new AbortController();
+    budgetController.abort("max-tokens");
+    const lease = {
+      signal: leaseController.signal,
+      release: vi.fn(),
+    };
+    const budget = {
+      signal: budgetController.signal,
+      reason: vi.fn(() => "max-tokens"),
+    };
+    const budgetRoot = {
+      enabled: true,
+      budget,
+      options: { sessionBudget: budget, signal: budgetController.signal },
+      close: vi.fn(),
+    };
+    server.sessionManager.db = {};
+    server.sessionManager.rollbackSessionCreation = vi.fn();
+    server.sessionManager.createSession.mockImplementation((options) => {
+      server._session.sessionBudgetRoot = options.sessionBudgetRoot;
+      return { sessionId: "sess-1" };
+    });
+    server._sessionBudgetDependencies = {
+      acquireSessionHostLease: vi.fn(() => lease),
+      startJsonlSession: vi.fn((sessionId) => sessionId),
+      readSessionHostResumeState: vi.fn(() => ({
+        snapshot: { verified: true, head: { hash: "head-1" } },
+        messages: [],
+        recovery: { unsettled: [], incidents: [], replayDenied: [] },
+        sessionBudgetRoot: server._session.sessionBudgetRoot,
+      })),
+      openProductionSessionBudgetRoot: vi.fn(() => budgetRoot),
+      deleteJsonlSession: vi.fn(),
+    };
+
+    await handleSessionCreate(server, "req-budget-exhausted", ws, {
+      sessionBudget: true,
+      sessionMaxTokens: 10,
+    });
+
+    expect(budgetRoot.close).toHaveBeenCalledOnce();
+    expect(lease.release).toHaveBeenCalled();
+    expect(
+      server._sessionBudgetDependencies.deleteJsonlSession,
+    ).toHaveBeenCalledWith("sess-1");
+    expect(server.sessionManager.rollbackSessionCreation).toHaveBeenCalledWith(
+      "sess-1",
+    );
+    expect(server._send).toHaveBeenCalledWith(
+      ws,
+      expect.objectContaining({
+        type: "error",
+        payload: expect.objectContaining({
+          code: "CC_SESSION_BUDGET_EXHAUSTED",
+        }),
+      }),
+    );
+  });
+
   it("session-resume handler emits envelope with history+record", async () => {
     await handleSessionResume(server, "req-sr-env", ws, {
       sessionId: "sess-1",
@@ -936,6 +1159,157 @@ describe("ws runtime event emission", () => {
           sessionId: "sess-1",
           history: expect.any(Array),
           record: expect.any(Object),
+        }),
+      }),
+    );
+  });
+
+  it("fails resume closed when a live handler cannot be established", async () => {
+    const bootstrapError = Object.assign(new Error("resume bootstrap failed"), {
+      code: "CC_WS_RESUME_BOOTSTRAP_FAILED",
+    });
+    server._session.mcpClient = {
+      setElicitationHandler: vi.fn(() => {
+        throw bootstrapError;
+      }),
+    };
+
+    await handleSessionResume(server, "req-resume-bootstrap-failed", ws, {
+      sessionId: "sess-1",
+    });
+
+    expect(server.emit).not.toHaveBeenCalledWith(
+      RUNTIME_EVENTS.SESSION_RESUME,
+      expect.anything(),
+    );
+    expect(server._send).toHaveBeenCalledWith(
+      ws,
+      expect.objectContaining({
+        type: "error",
+        sessionId: "sess-1",
+        payload: expect.objectContaining({
+          code: "CC_WS_RESUME_BOOTSTRAP_FAILED",
+        }),
+      }),
+    );
+  });
+
+  it("refuses a persisted budgeted WS session without canonical JSONL", async () => {
+    server._session.sessionBudgetRoot = {
+      schema: "chainlesschain.session-budget-root/v1",
+      enabled: true,
+      limits: { maxTurns: 3 },
+    };
+    server._sessionBudgetDependencies = {
+      readSessionHostResumeState: vi.fn(() => null),
+    };
+
+    await handleSessionResume(server, "req-budget-no-jsonl", ws, {
+      sessionId: "sess-1",
+    });
+
+    expect(server.sessionHandlers.size).toBe(0);
+    expect(server._send).toHaveBeenCalledWith(
+      ws,
+      expect.objectContaining({
+        type: "error",
+        payload: expect.objectContaining({
+          code: "CC_SESSION_BUDGET_JSONL_REQUIRED",
+        }),
+      }),
+    );
+  });
+
+  it("restores a missing DB budget declaration from verified canonical JSONL", async () => {
+    const canonicalBudget = {
+      schema: "chainlesschain.session-budget-root/v1",
+      enabled: true,
+      limits: { maxTurns: 3 },
+    };
+    const leaseController = new AbortController();
+    const budgetController = new AbortController();
+    const budget = {
+      signal: budgetController.signal,
+      reason: vi.fn(() => null),
+      recordUsage: vi.fn(() => ({ aborted: false })),
+    };
+    server.sessionManager.db = {};
+    server.resumeRecoveryDependencies = {
+      loadSideEffectLedger: cleanSideEffectLedger,
+      loadMcpLedgerRecovery: () => ({
+        unsettled: [],
+        incidents: [],
+        replayDenied: [],
+      }),
+    };
+    server._sessionBudgetDependencies = {
+      readSessionHostResumeState: vi.fn(() => ({
+        snapshot: { verified: true, head: { hash: "head-1" } },
+        messages: [],
+        recovery: { unsettled: [], incidents: [], replayDenied: [] },
+        sessionBudgetRoot: canonicalBudget,
+      })),
+      acquireSessionHostLease: vi.fn(() => ({
+        signal: leaseController.signal,
+        assert: vi.fn(),
+        release: vi.fn(),
+      })),
+      openProductionSessionBudgetRoot: vi.fn(() => ({
+        enabled: true,
+        budget,
+        options: { sessionBudget: budget, signal: budgetController.signal },
+        close: vi.fn(),
+      })),
+    };
+
+    await handleSessionResume(server, "req-budget-canonical-restore", ws, {
+      sessionId: "sess-1",
+    });
+
+    expect(server._session.sessionBudgetRoot).toEqual(canonicalBudget);
+    expect(
+      server._sessionBudgetDependencies.openProductionSessionBudgetRoot,
+    ).toHaveBeenCalledWith(
+      "sess-1",
+      canonicalBudget,
+      expect.objectContaining({ persist: true }),
+    );
+    expect(server._send).toHaveBeenCalledWith(
+      ws,
+      expect.objectContaining({ type: "session.resumed" }),
+    );
+  });
+
+  it("rejects DB and canonical WS budget declaration mismatch", async () => {
+    server._session.sessionBudgetRoot = {
+      schema: "chainlesschain.session-budget-root/v1",
+      enabled: true,
+      limits: { maxTurns: 3 },
+    };
+    server._sessionBudgetDependencies = {
+      readSessionHostResumeState: vi.fn(() => ({
+        snapshot: { verified: true, head: { hash: "head-1" } },
+        messages: [],
+        recovery: { unsettled: [], incidents: [], replayDenied: [] },
+        sessionBudgetRoot: {
+          schema: "chainlesschain.session-budget-root/v1",
+          enabled: true,
+          limits: { maxTurns: 2 },
+        },
+      })),
+    };
+
+    await handleSessionResume(server, "req-budget-mismatch", ws, {
+      sessionId: "sess-1",
+    });
+
+    expect(server.sessionHandlers.size).toBe(0);
+    expect(server._send).toHaveBeenCalledWith(
+      ws,
+      expect.objectContaining({
+        type: "error",
+        payload: expect.objectContaining({
+          code: "CC_SESSION_BUDGET_CONFIG_MISMATCH",
         }),
       }),
     );
@@ -982,6 +1356,33 @@ describe("ws runtime event emission", () => {
         payload: expect.objectContaining({
           success: true,
           sessionId: "sess-1",
+        }),
+      }),
+    );
+  });
+
+  it("does not acknowledge session close when budget-root cleanup fails", () => {
+    server.sessionHandlers.set("sess-1", {
+      destroy: vi.fn(() => {
+        throw new Error("budget root close failed");
+      }),
+    });
+
+    handleSessionClose(server, "req-close-failed", ws, {
+      sessionId: "sess-1",
+    });
+
+    expect(server.sessionManager.closeSession).toHaveBeenCalledWith("sess-1");
+    expect(server.emit).not.toHaveBeenCalledWith(
+      RUNTIME_EVENTS.SESSION_END,
+      expect.anything(),
+    );
+    expect(server._send).toHaveBeenCalledWith(
+      ws,
+      expect.objectContaining({
+        type: "error",
+        payload: expect.objectContaining({
+          code: "CC_WS_SESSION_CLOSE_FAILED",
         }),
       }),
     );

@@ -158,6 +158,27 @@ describe("session host snapshot", () => {
       "PRIVATE_TRANSCRIPT_FAILURE_DETAIL",
     );
   });
+
+  it("projects the canonical session budget root outside the public snapshot", () => {
+    const sessionBudgetRoot = {
+      schema: "chainlesschain.session-budget-root/v1",
+      enabled: true,
+      limits: { maxTurns: 3, maxTokens: 1000 },
+    };
+    const state = projectVerifiedSessionHostSnapshot(
+      "budget-session",
+      chainedEvents([
+        {
+          type: "session_start",
+          timestamp: 1,
+          data: { title: "Budgeted", sessionBudgetRoot },
+        },
+      ]),
+    );
+
+    expect(state.sessionBudgetRoot).toEqual(sessionBudgetRoot);
+    expect(state.snapshot).not.toHaveProperty("sessionBudgetRoot");
+  });
 });
 
 describe("cli session-host consistency gate", () => {

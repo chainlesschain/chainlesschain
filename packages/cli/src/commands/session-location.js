@@ -9,19 +9,57 @@ import {
 import { captureAmbientExecutionLocation } from "../lib/execution-location-runtime.js";
 import {
   EXECUTION_LOCATION_TARGET_ATTESTATION_SCHEMA,
+  EXECUTION_LOCATION_TARGET_RESULT_COLLECTION_SCHEMA,
   EXECUTION_LOCATION_TARGET_RESUME_SCHEMA,
   attestExecutionLocationTarget,
+  collectExecutionLocationTargetResult,
+  createExecutionLocationTargetResultCollectionRequest,
   readExecutionLocationProfile,
   resumeExecutionLocationTarget,
 } from "../lib/execution-location-target.js";
 import {
+  EXECUTION_LOCATION_RESULT_BUNDLE_SCHEMA,
+  EXECUTION_LOCATION_RESULT_VERIFICATION_SCHEMA,
+  MAX_EXECUTION_LOCATION_RESULT_BUNDLE_BYTES,
+  createExecutionLocationResultBundle,
+  readExecutionLocationResultBundle,
+  readExecutionLocationResultFile,
+  verifyExecutionLocationResultBundle,
+} from "../lib/execution-location-result.js";
+import {
   MAX_SESSION_REPLICA_BYTES,
   SESSION_EXECUTION_LOCATION_HANDOFF_INSTALL_SCHEMA,
+  SESSION_EXECUTION_LOCATION_RESULT_APPLY_RECEIPT_SCHEMA,
+  SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_RECEIPT_SCHEMA,
+  SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_RECEIPT_SCHEMA_V1,
   getVerifiedSessionExecutionLocationAuthority,
   installSessionReplica,
   installSessionReplicaWithLocationHandoff,
+  readVerifiedSessionExecutionLocationResultApply,
+  readVerifiedSessionExecutionLocationResultSettlement,
   readVerifiedTranscriptBytes,
+  reserveSessionExecutionLocationResultApply,
+  settleSessionExecutionLocationResultApply,
+  settleSessionExecutionLocationResultCollection,
 } from "../harness/jsonl-session-store.js";
+import {
+  readStoredExecutionLocationResultBundle,
+  storeExecutionLocationResultBundle,
+} from "../lib/execution-location-result-store.js";
+import {
+  EXECUTION_LOCATION_RESULT_REVIEW_SCHEMA,
+  createExecutionLocationResultReview,
+} from "../lib/execution-location-result-review.js";
+import {
+  EXECUTION_LOCATION_RESULT_ARTIFACT_IMPORT_SCHEMA,
+  importExecutionLocationResultArtifact,
+} from "../lib/execution-location-result-artifact.js";
+import {
+  executeControlledExecutionLocationResultApply,
+  terminalExecutionLocationResultApplyTransaction,
+  verifyExecutionLocationResultApplySourceGit,
+} from "../lib/execution-location-result-apply.js";
+import { executionBroker } from "../lib/process-execution-broker/index.js";
 import {
   sameFileStatIdentity,
   samePathHandleFileIdentity,
@@ -31,6 +69,8 @@ import {
 const MAX_HANDOFF_FACTS_BYTES = 1024 * 1024;
 export const SESSION_EXECUTION_LOCATION_AUTHORITY_SCHEMA =
   "cc-session-execution-location-authority/v1";
+export const EXECUTION_LOCATION_RESULT_PREVIEW_SCHEMA =
+  "cc-execution-location-result-preview/v1";
 
 function readHandoffFacts(filePath, deps = {}) {
   const runtimeFs = deps.fs || fs;
@@ -314,6 +354,621 @@ export function prepareSessionReplicaHandoff(sessionId, options, deps = {}) {
   );
 }
 
+function parseResultFileSpec(value, label) {
+  const text = String(value || "");
+  const separator = text.indexOf("=");
+  if (separator <= 0 || separator === text.length - 1) {
+    throw new Error(`${label} must be <media-type>=<path>`);
+  }
+  return {
+    mediaType: text.slice(0, separator),
+    path: text.slice(separator + 1),
+  };
+}
+
+function collectResultFileSpec(value, previous) {
+  return [...previous, value];
+}
+
+function resultBoundary(authority) {
+  const root = authority?.binding?.policy?.dataBoundary?.root;
+  if (typeof root !== "string" || root.length === 0) {
+    throw new Error(
+      "verified execution location data boundary is required for result files",
+    );
+  }
+  return root;
+}
+
+export function createSessionExecutionLocationResultBundle(
+  sessionId,
+  options,
+  deps = {},
+) {
+  const sessionAuthority = projectSessionExecutionLocation(sessionId, deps);
+  const boundaryRoot = resultBoundary(sessionAuthority);
+  const readFile =
+    deps.readExecutionLocationResultFile || readExecutionLocationResultFile;
+  const read = (filePath, fileOptions = {}) =>
+    readFile(filePath, {
+      boundaryRoot,
+      ...fileOptions,
+      ...(deps.resultFileDependencies || {}),
+    });
+  const readItems = (values, label) =>
+    (values || []).map((value) => {
+      const spec = parseResultFileSpec(value, label);
+      return {
+        mediaType: spec.mediaType,
+        bytes: read(spec.path, { allowEmpty: true }),
+      };
+    });
+  return (
+    deps.createExecutionLocationResultBundle ||
+    createExecutionLocationResultBundle
+  )({
+    sessionAuthority,
+    resultId: options.resultId,
+    summaryBytes: read(options.summary),
+    diffBytes: read(options.diff, { allowEmpty: true }),
+    artifacts: readItems(options.artifact, "--artifact"),
+    evidence: readItems(options.evidence, "--evidence"),
+  });
+}
+
+export function verifySessionExecutionLocationResultBundle(
+  sessionId,
+  bundlePath,
+  expectedHandoffId,
+  deps = {},
+) {
+  const sourceAuthority = projectSessionExecutionLocation(sessionId, deps);
+  const boundaryRoot = resultBoundary(sourceAuthority);
+  const bundle = (
+    deps.readExecutionLocationResultBundle || readExecutionLocationResultBundle
+  )(bundlePath, {
+    boundaryRoot,
+    maxBytes: MAX_EXECUTION_LOCATION_RESULT_BUNDLE_BYTES,
+    ...(deps.resultFileDependencies || {}),
+  });
+  return (
+    deps.verifyExecutionLocationResultBundle ||
+    verifyExecutionLocationResultBundle
+  )({
+    bundle,
+    sourceAuthority,
+    expectedHandoffId,
+  });
+}
+
+export function collectSessionExecutionLocationResult(
+  sessionId,
+  target,
+  options,
+  deps = {},
+) {
+  const profile = (
+    deps.readExecutionLocationProfile || readExecutionLocationProfile
+  )(options.profile, deps);
+  const parseItems = (values, label) =>
+    (values || []).map((value) => parseResultFileSpec(value, label));
+  const artifacts = parseItems(options.artifact, "--artifact");
+  const evidence = parseItems(options.evidence, "--evidence");
+  const request = (
+    deps.createExecutionLocationTargetResultCollectionRequest ||
+    createExecutionLocationTargetResultCollectionRequest
+  )({
+    requestId: options.requestId,
+    sessionId,
+    target,
+    profile,
+    expectedTargetFactsDigest: options.expectedTargetFactsDigest,
+    expectedHandoffId: options.expectedHandoffId,
+    resultId: options.resultId,
+    summaryPath: options.summary,
+    diffPath: options.diff,
+    artifacts,
+    evidence,
+  });
+  const prior = (
+    deps.readVerifiedSessionExecutionLocationResultSettlement ||
+    readVerifiedSessionExecutionLocationResultSettlement
+  )(sessionId, request.requestId, { requestDigest: request.requestDigest });
+  if (prior !== null) {
+    if (prior.storage) {
+      const bundle = (
+        deps.readStoredExecutionLocationResultBundle ||
+        readStoredExecutionLocationResultBundle
+      )(prior.storage, deps.resultStoreOptions || {});
+      const verification = (
+        deps.verifyExecutionLocationResultBundle ||
+        verifyExecutionLocationResultBundle
+      )({
+        bundle,
+        sourceAuthority: {
+          sessionId: prior.sessionId,
+          headHash: prior.sourceHeadHash,
+          eventCount: prior.sourceEventCount,
+        },
+        expectedHandoffId: prior.handoffId,
+      });
+      if (
+        verification.verificationDigest !== prior.verificationDigest ||
+        bundle.bundleDigest !== prior.bundleDigest
+      ) {
+        throw new Error("stored result bundle does not match settlement");
+      }
+      return Object.freeze({
+        ...prior,
+        settlementAppended: false,
+        recovered: true,
+        bundleAvailable: true,
+        bundle,
+        verification,
+      });
+    }
+    return Object.freeze({
+      ...prior,
+      settlementAppended: false,
+      recovered: true,
+      bundleAvailable: false,
+    });
+  }
+  const handoff = projectExecutionLocationHandoff(
+    sessionId,
+    target,
+    options.facts,
+    deps,
+  );
+  const readSourceAuthority = () => {
+    const authority = (
+      deps.getVerifiedSessionExecutionLocationAuthority ||
+      getVerifiedSessionExecutionLocationAuthority
+    )(sessionId);
+    return {
+      sessionId: authority.sessionId,
+      headHash: authority.headHash,
+      eventCount: authority.eventCount,
+    };
+  };
+  const collection = (
+    deps.collectExecutionLocationTargetResult ||
+    collectExecutionLocationTargetResult
+  )(
+    {
+      requestId: request.requestId,
+      handoff,
+      profile,
+      expectedTargetFactsDigest: options.expectedTargetFactsDigest,
+      expectedHandoffId: options.expectedHandoffId,
+      resultId: options.resultId,
+      summaryPath: options.summary,
+      diffPath: options.diff,
+      artifacts,
+      evidence,
+      readSourceAuthority,
+    },
+    deps,
+  );
+  if (collection.requestDigest !== request.requestDigest) {
+    throw new Error(
+      "result collection request digest changed during collection",
+    );
+  }
+  const storage = (
+    deps.storeExecutionLocationResultBundle ||
+    storeExecutionLocationResultBundle
+  )(collection.bundle, deps.resultStoreOptions || {});
+  const settlement = (
+    deps.settleSessionExecutionLocationResultCollection ||
+    settleSessionExecutionLocationResultCollection
+  )(sessionId, request.requestId, collection, storage.receipt);
+  return Object.freeze({
+    ...collection,
+    storage: Object.freeze({ ...storage.receipt, stored: storage.stored }),
+    settlement,
+  });
+}
+
+function readSessionExecutionLocationResultReviewAuthority(
+  sessionId,
+  requestId,
+  deps,
+) {
+  const settlement = (
+    deps.readVerifiedSessionExecutionLocationResultSettlement ||
+    readVerifiedSessionExecutionLocationResultSettlement
+  )(sessionId, requestId);
+  if (settlement === null) {
+    throw new Error("result collection settlement was not found");
+  }
+  if (!settlement.storage) {
+    throw new Error(
+      "legacy result settlement has no durable bundle available for review",
+    );
+  }
+  const bundle = (
+    deps.readStoredExecutionLocationResultBundle ||
+    readStoredExecutionLocationResultBundle
+  )(settlement.storage, deps.resultStoreOptions || {});
+  const review = (
+    deps.createExecutionLocationResultReview ||
+    createExecutionLocationResultReview
+  )({ settlement, bundle });
+  return Object.freeze({ settlement, bundle, review });
+}
+
+export function reviewSessionExecutionLocationResult(
+  sessionId,
+  requestId,
+  deps = {},
+) {
+  return readSessionExecutionLocationResultReviewAuthority(
+    sessionId,
+    requestId,
+    deps,
+  ).review;
+}
+
+function selectResultPreviewRecord(bundle, selectorInput) {
+  const selector = String(selectorInput || "");
+  if (selector === "summary" || selector === "diff") {
+    return { kind: selector, record: bundle[selector] };
+  }
+  const match = /^(artifact|evidence):(sha256:[a-f0-9]{64})$/u.exec(selector);
+  if (!match) {
+    throw new Error(
+      "result preview item must be summary, diff, artifact:<sha256>, or evidence:<sha256>",
+    );
+  }
+  const [, kind, digest] = match;
+  const record = bundle[kind === "artifact" ? "artifacts" : "evidence"].find(
+    (entry) => entry.digest === digest,
+  );
+  if (!record) {
+    throw new Error(`reviewed ${kind} digest was not found`);
+  }
+  return { kind, record };
+}
+
+export function previewSessionExecutionLocationResult(
+  sessionId,
+  requestId,
+  reviewDigest,
+  item,
+  deps = {},
+) {
+  const loaded = readSessionExecutionLocationResultReviewAuthority(
+    sessionId,
+    requestId,
+    deps,
+  );
+  assertReviewDigest(loaded.review, reviewDigest);
+  const selected = selectResultPreviewRecord(loaded.bundle, item);
+  const bytes = Buffer.from(selected.record.contentBase64, "base64");
+  const reviewedRecord =
+    selected.kind === "artifact" || selected.kind === "evidence"
+      ? loaded.review[
+          selected.kind === "artifact" ? "artifacts" : "evidence"
+        ].find((entry) => entry.digest === selected.record.digest)
+      : loaded.review[selected.kind];
+  if (
+    bytes.byteLength !== selected.record.byteLength ||
+    reviewedRecord?.digest !== selected.record.digest ||
+    reviewedRecord?.byteLength !== selected.record.byteLength ||
+    reviewedRecord?.mediaType !== selected.record.mediaType
+  ) {
+    throw new Error(
+      "result preview content no longer matches review authority",
+    );
+  }
+  return Object.freeze({
+    schema: EXECUTION_LOCATION_RESULT_PREVIEW_SCHEMA,
+    sessionId,
+    requestId,
+    reviewDigest: loaded.review.reviewDigest,
+    item: String(item),
+    kind: selected.kind,
+    mediaType: selected.record.mediaType,
+    byteLength: selected.record.byteLength,
+    digest: selected.record.digest,
+    bytes,
+  });
+}
+
+export function importSessionExecutionLocationResultArtifact(
+  sessionId,
+  requestId,
+  reviewDigest,
+  item,
+  deps = {},
+) {
+  const preview = previewSessionExecutionLocationResult(
+    sessionId,
+    requestId,
+    reviewDigest,
+    item,
+    deps,
+  );
+  return (
+    deps.importExecutionLocationResultArtifact ||
+    importExecutionLocationResultArtifact
+  )(preview, { artifactStore: deps.artifactStore });
+}
+
+function terminalSafeText(bytes) {
+  const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  return text.replace(
+    // The explicit control ranges are the terminal-injection boundary.
+    // eslint-disable-next-line no-control-regex
+    /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u200e\u200f\u202a-\u202e\u2066-\u2069]/gu,
+    (character) =>
+      character.codePointAt(0) <= 0xff
+        ? `\\x${character.codePointAt(0).toString(16).padStart(2, "0")}`
+        : `\\u${character.codePointAt(0).toString(16).padStart(4, "0")}`,
+  );
+}
+
+export function writeSessionExecutionLocationResultPreview(preview, deps = {}) {
+  const output = deps.stdout || process.stdout;
+  const isTerminal = deps.isTTY ?? output.isTTY === true;
+  if (!isTerminal) {
+    output.write(preview.bytes);
+    return;
+  }
+  if (!["summary", "diff"].includes(preview.kind)) {
+    throw new Error(
+      "binary artifact/evidence preview requires redirected stdout",
+    );
+  }
+  output.write(terminalSafeText(preview.bytes));
+}
+
+function assertReviewDigest(review, expectedReviewDigest) {
+  if (review.reviewDigest !== String(expectedReviewDigest || "")) {
+    throw new Error(
+      "result apply review digest does not match stored authority",
+    );
+  }
+}
+
+function resultApplyProjection(receipt, options = {}) {
+  return Object.freeze({
+    ...receipt,
+    recovered: options.recovered === true,
+    allowed: receipt.applied === true,
+    stage: options.stage || (receipt.applied ? "complete" : receipt.status),
+    process: options.process || null,
+  });
+}
+
+function settleResultApplyFromTransaction(
+  sessionId,
+  applyId,
+  transactionState,
+  deps,
+  options = {},
+) {
+  const terminalTransaction = (
+    deps.terminalExecutionLocationResultApplyTransaction ||
+    terminalExecutionLocationResultApplyTransaction
+  )(transactionState);
+  const outcome =
+    transactionState.state === "committed" ? "applied" : "rolled_back";
+  const receipt = (
+    deps.settleSessionExecutionLocationResultApply ||
+    settleSessionExecutionLocationResultApply
+  )(sessionId, applyId, outcome, terminalTransaction);
+  return resultApplyProjection(receipt, {
+    recovered: options.recovered,
+    stage: options.stage || (outcome === "applied" ? "complete" : "recovery"),
+    process: options.process,
+  });
+}
+
+function readPriorResultApply(sessionId, applyId, deps) {
+  return (
+    deps.readVerifiedSessionExecutionLocationResultApply ||
+    readVerifiedSessionExecutionLocationResultApply
+  )(sessionId, applyId);
+}
+
+function inspectResultApplyTransaction(receipt, deps) {
+  const broker = deps.executionBroker || executionBroker;
+  if (typeof broker.inspectWorkspaceTransaction !== "function") {
+    throw new Error("result apply transaction inspection is unavailable");
+  }
+  return broker.inspectWorkspaceTransaction(receipt.transaction.id, {
+    ...(deps.transactionStateDir ? { stateDir: deps.transactionStateDir } : {}),
+  });
+}
+
+export function applySessionExecutionLocationResult(
+  sessionId,
+  options,
+  deps = {},
+) {
+  const loaded = readSessionExecutionLocationResultReviewAuthority(
+    sessionId,
+    options.requestId,
+    deps,
+  );
+  assertReviewDigest(loaded.review, options.reviewDigest);
+  const prior = readPriorResultApply(sessionId, options.applyId, deps);
+  if (prior !== null && prior.terminal !== null) {
+    if (
+      prior.requestId !== options.requestId ||
+      prior.reviewDigest !== loaded.review.reviewDigest
+    ) {
+      throw new Error("result apply id is already bound to different inputs");
+    }
+    return resultApplyProjection(prior, { recovered: true });
+  }
+  if (prior !== null) {
+    if (
+      prior.requestId !== options.requestId ||
+      prior.reviewDigest !== loaded.review.reviewDigest
+    ) {
+      throw new Error("result apply id is already bound to different inputs");
+    }
+    const transactionState = inspectResultApplyTransaction(prior, deps);
+    if (["committed", "rolled_back"].includes(transactionState.state)) {
+      return settleResultApplyFromTransaction(
+        sessionId,
+        options.applyId,
+        transactionState,
+        deps,
+        { recovered: true },
+      );
+    }
+    throw new Error(
+      `result apply recovery is required for transaction ${prior.transaction.id}`,
+    );
+  }
+
+  const authority = (
+    deps.getVerifiedSessionExecutionLocationAuthority ||
+    getVerifiedSessionExecutionLocationAuthority
+  )(sessionId);
+  if (
+    authority.headHash !== loaded.settlement.settlementEventHash ||
+    authority.eventCount !== loaded.settlement.settlementEventCount
+  ) {
+    throw new Error("source session advanced after result settlement");
+  }
+  const broker = deps.executionBroker || executionBroker;
+  const source = (
+    deps.verifyExecutionLocationResultApplySourceGit ||
+    verifyExecutionLocationResultApplySourceGit
+  )(authority, {
+    broker,
+    workspaceRoot: options.workspace,
+    platform: deps.platform,
+  });
+  const diffBytes = Buffer.from(loaded.bundle.diff.contentBase64, "base64");
+  const execution = (
+    deps.executeControlledExecutionLocationResultApply ||
+    executeControlledExecutionLocationResultApply
+  )({
+    broker,
+    sessionId,
+    applyId: options.applyId,
+    workspaceRoot: source.workspaceRoot,
+    diffBytes,
+    ...(deps.transactionStateDir ? { stateDir: deps.transactionStateDir } : {}),
+    onPrepared: (transaction) => {
+      const pinnedSource = (
+        deps.verifyExecutionLocationResultApplySourceGit ||
+        verifyExecutionLocationResultApplySourceGit
+      )(authority, {
+        broker,
+        workspaceRoot: source.workspaceRoot,
+        platform: deps.platform,
+      });
+      if (
+        pinnedSource.sourceGit.rootDigest !== source.sourceGit.rootDigest ||
+        pinnedSource.sourceGit.commit !== source.sourceGit.commit
+      ) {
+        throw new Error("source Git identity changed during apply preparation");
+      }
+      return (
+        deps.reserveSessionExecutionLocationResultApply ||
+        reserveSessionExecutionLocationResultApply
+      )(
+        sessionId,
+        options.applyId,
+        loaded.review,
+        pinnedSource.sourceGit,
+        transaction,
+      );
+    },
+  });
+  if (execution.stage === "reservation") {
+    const reserved = readPriorResultApply(sessionId, options.applyId, deps);
+    if (reserved === null) throw execution.error;
+    if (
+      reserved.reviewDigest !== loaded.review.reviewDigest ||
+      reserved.transaction.id !== execution.transaction.id
+    ) {
+      throw new Error("result apply reservation response is ambiguous");
+    }
+  }
+  const receipt = (
+    deps.settleSessionExecutionLocationResultApply ||
+    settleSessionExecutionLocationResultApply
+  )(sessionId, options.applyId, execution.outcome, execution.transaction);
+  return resultApplyProjection(receipt, {
+    stage: execution.stage,
+    process: execution.process,
+  });
+}
+
+export function recoverSessionExecutionLocationResultApply(
+  sessionId,
+  options,
+  deps = {},
+) {
+  const loaded = readSessionExecutionLocationResultReviewAuthority(
+    sessionId,
+    options.requestId,
+    deps,
+  );
+  assertReviewDigest(loaded.review, options.reviewDigest);
+  const prior = readPriorResultApply(sessionId, options.applyId, deps);
+  if (prior === null) {
+    throw new Error("result apply reservation was not found");
+  }
+  if (
+    prior.requestId !== options.requestId ||
+    prior.reviewDigest !== loaded.review.reviewDigest
+  ) {
+    throw new Error("result apply recovery authority does not match review");
+  }
+  if (prior.terminal !== null) {
+    return resultApplyProjection(prior, { recovered: true });
+  }
+  const broker = deps.executionBroker || executionBroker;
+  const authority = (
+    deps.getVerifiedSessionExecutionLocationAuthority ||
+    getVerifiedSessionExecutionLocationAuthority
+  )(sessionId);
+  const source = (
+    deps.verifyExecutionLocationResultApplySourceGit ||
+    verifyExecutionLocationResultApplySourceGit
+  )(authority, {
+    broker,
+    workspaceRoot: options.workspace,
+    platform: deps.platform,
+  });
+  let transactionState = inspectResultApplyTransaction(prior, deps);
+  if (!["committed", "rolled_back"].includes(transactionState.state)) {
+    if (typeof broker.recoverWorkspaceTransactions !== "function") {
+      throw new Error("result apply workspace recovery is unavailable");
+    }
+    broker.recoverWorkspaceTransactions({
+      id: prior.transaction.id,
+      workspaceRoot: source.workspaceRoot,
+      reason: "explicit session result apply recovery",
+      ...(deps.transactionStateDir
+        ? { stateDir: deps.transactionStateDir }
+        : {}),
+    });
+    transactionState = inspectResultApplyTransaction(prior, deps);
+  }
+  if (!["committed", "rolled_back"].includes(transactionState.state)) {
+    throw new Error(
+      `result apply transaction still requires manual recovery: ${transactionState.state}`,
+    );
+  }
+  return settleResultApplyFromTransaction(
+    sessionId,
+    options.applyId,
+    transactionState,
+    deps,
+    { recovered: true, stage: "recovery" },
+  );
+}
+
 function renderBinding(binding) {
   const git = binding.source.git;
   return [
@@ -347,6 +1002,57 @@ function writeProjection(projection, options = {}) {
   if (projection.schema === EXECUTION_LOCATION_TARGET_RESUME_SCHEMA) {
     process.stdout.write(
       `RESUME EXITED ${projection.target}\nReceipt: ${projection.receiptDigest}\nGaps: ${projection.gaps.join(", ")}\n`,
+    );
+    return;
+  }
+  if (projection.schema === EXECUTION_LOCATION_RESULT_BUNDLE_SCHEMA) {
+    process.stdout.write(
+      `RESULT BUNDLE ${projection.resultId}\nBundle: ${projection.bundleDigest}\nBytes: ${projection.totalBytes}\nUse --json to transfer the canonical bundle bytes.\n`,
+    );
+    return;
+  }
+  if (projection.schema === EXECUTION_LOCATION_RESULT_VERIFICATION_SCHEMA) {
+    process.stdout.write(
+      `RESULT VERIFIED ${projection.resultId}\nBundle: ${projection.bundleDigest}\nVerification: ${projection.verificationDigest}\nApplied: no\n`,
+    );
+    return;
+  }
+  if (projection.schema === EXECUTION_LOCATION_RESULT_REVIEW_SCHEMA) {
+    process.stdout.write(
+      `RESULT REVIEWED ${projection.resultId}\nReview: ${projection.reviewDigest}\nBundle: ${projection.bundleDigest}\nSummary: ${projection.summary.byteLength} bytes (${projection.summary.digest})\nDiff: ${projection.diff.byteLength} bytes (${projection.diff.digest})\nApplied: no\n`,
+    );
+    return;
+  }
+  if (projection.schema === EXECUTION_LOCATION_RESULT_ARTIFACT_IMPORT_SCHEMA) {
+    process.stdout.write(
+      `RESULT ARTIFACT ${projection.imported ? "IMPORTED" : "AVAILABLE"} ${projection.artifact.id}\nImport: ${projection.importDigest}\nReview: ${projection.source.reviewDigest}\nItem: ${projection.source.item}\nArtifact bytes: ${projection.artifact.size} (${projection.source.sourceDigest})\nContent emitted: no\n`,
+    );
+    return;
+  }
+  if (
+    projection.schema === SESSION_EXECUTION_LOCATION_RESULT_APPLY_RECEIPT_SCHEMA
+  ) {
+    process.stdout.write(
+      `RESULT APPLY ${projection.applied ? "APPLIED" : "ROLLED BACK"} ${projection.applyId}\nReview: ${projection.reviewDigest}\nTransaction: ${projection.transaction.id}\nEvidence: ${projection.transaction.evidenceDigest || "pending"}\nRecovered: ${projection.recovered ? "yes" : "no"}\n`,
+    );
+    return;
+  }
+  if (
+    projection.schema === EXECUTION_LOCATION_TARGET_RESULT_COLLECTION_SCHEMA
+  ) {
+    process.stdout.write(
+      `RESULT COLLECTED ${projection.resultId}\nBundle: ${projection.bundleDigest}\nCollection: ${projection.collectionDigest}\nApplied: no\nGaps: ${projection.gaps.join(", ")}\n`,
+    );
+    return;
+  }
+  if (
+    [
+      SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_RECEIPT_SCHEMA,
+      SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_RECEIPT_SCHEMA_V1,
+    ].includes(projection.schema)
+  ) {
+    process.stdout.write(
+      `RESULT COLLECTION SETTLED ${projection.resultId}\nRequest: ${projection.requestId}\nSettlement: ${projection.receiptDigest}\nBundle bytes available: ${projection.bundleAvailable ? "yes" : "no"}\nApplied: no\n`,
     );
     return;
   }
@@ -393,6 +1099,16 @@ function runAction(action, options = {}) {
     const projection = action();
     writeProjection(projection, options);
     return projection.allowed === false ? 2 : 0;
+  } catch (error) {
+    process.stderr.write(`Execution location failed: ${error.message}\n`);
+    return 1;
+  }
+}
+
+function runPreviewAction(action, deps = {}) {
+  try {
+    writeSessionExecutionLocationResultPreview(action(), deps);
+    return 0;
   } catch (error) {
     process.stderr.write(`Execution location failed: ${error.message}\n`);
     return 1;
@@ -581,6 +1297,238 @@ export function registerSessionLocationSubcommands(session, deps = {}) {
             options.expectedTargetFactsDigest,
             deps,
           ),
+        options,
+      );
+    });
+
+  location
+    .command("result-pack <id>")
+    .description(
+      "Build a bounded result bundle from a verified target handoff session",
+    )
+    .requiredOption("--result-id <id>", "Stable result bundle id")
+    .requiredOption(
+      "--summary <path>",
+      "UTF-8 summary file inside the data boundary",
+    )
+    .requiredOption("--diff <path>", "Diff file inside the data boundary")
+    .option(
+      "--artifact <media-type=path>",
+      "Artifact bytes to include (repeatable)",
+      collectResultFileSpec,
+      [],
+    )
+    .option(
+      "--evidence <media-type=path>",
+      "Evidence bytes to include (repeatable)",
+      collectResultFileSpec,
+      [],
+    )
+    .option("--json", "Write the canonical bundle including base64 content")
+    .action((id, options) => {
+      process.exitCode = runAction(
+        () => createSessionExecutionLocationResultBundle(id, options, deps),
+        options,
+      );
+    });
+
+  location
+    .command("result-verify <id>")
+    .description(
+      "Rehash a returned bundle and bind it to the unchanged source session",
+    )
+    .requiredOption("--bundle <path>", "Returned canonical bundle JSON")
+    .requiredOption(
+      "--expected-handoff-id <sha256>",
+      "Exact handoff id accepted before target execution",
+    )
+    .option("--json", "Machine-readable content-free verification receipt")
+    .action((id, options) => {
+      process.exitCode = runAction(
+        () =>
+          verifySessionExecutionLocationResultBundle(
+            id,
+            options.bundle,
+            options.expectedHandoffId,
+            deps,
+          ),
+        options,
+      );
+    });
+
+  location
+    .command("result-collect <id> <target>")
+    .description(
+      "Fetch a target result through the fixed transport and verify it on source",
+    )
+    .requiredOption("--facts <path>", "Accepted handoff facts JSON")
+    .requiredOption("--profile <path>", "Secret-free target profile JSON")
+    .requiredOption(
+      "--expected-target-facts-digest <sha256>",
+      "Exact stable target facts digest accepted before execution",
+    )
+    .requiredOption(
+      "--expected-handoff-id <sha256>",
+      "Exact canonical target handoff id",
+    )
+    .requiredOption(
+      "--request-id <id>",
+      "Stable idempotency id for canonical collection settlement",
+    )
+    .requiredOption("--result-id <id>", "Stable result bundle id")
+    .requiredOption("--summary <path>", "Target summary path")
+    .requiredOption("--diff <path>", "Target diff path")
+    .option(
+      "--artifact <media-type=path>",
+      "Target artifact bytes to include (repeatable)",
+      collectResultFileSpec,
+      [],
+    )
+    .option(
+      "--evidence <media-type=path>",
+      "Target evidence bytes to include (repeatable)",
+      collectResultFileSpec,
+      [],
+    )
+    .option(
+      "--json",
+      "Machine-readable collection with bundle bytes and verification receipt",
+    )
+    .action((id, target, options) => {
+      process.exitCode = runAction(
+        () => collectSessionExecutionLocationResult(id, target, options, deps),
+        options,
+      );
+    });
+
+  location
+    .command("result-review <id>")
+    .description(
+      "Review stored result metadata without exposing or applying content",
+    )
+    .requiredOption(
+      "--request-id <id>",
+      "Canonical result collection request id",
+    )
+    .option("--json", "Machine-readable content-free review authority")
+    .action((id, options) => {
+      process.exitCode = runAction(
+        () => reviewSessionExecutionLocationResult(id, options.requestId, deps),
+        options,
+      );
+    });
+
+  location
+    .command("result-preview <id>")
+    .description(
+      "Explicitly stream one reviewed result item without changing the workspace",
+    )
+    .requiredOption(
+      "--request-id <id>",
+      "Canonical result collection request id",
+    )
+    .requiredOption(
+      "--review-digest <sha256>",
+      "Exact content-free review digest accepted by the operator",
+    )
+    .requiredOption(
+      "--item <selector>",
+      "summary, diff, artifact:<sha256>, or evidence:<sha256>",
+    )
+    .action((id, options) => {
+      process.exitCode = runPreviewAction(
+        () =>
+          previewSessionExecutionLocationResult(
+            id,
+            options.requestId,
+            options.reviewDigest,
+            options.item,
+            deps,
+          ),
+        deps.previewOutputDependencies || {},
+      );
+    });
+
+  location
+    .command("result-import <id>")
+    .description(
+      "Import one explicitly reviewed result item into the managed ArtifactStore",
+    )
+    .requiredOption(
+      "--request-id <id>",
+      "Canonical result collection request id",
+    )
+    .requiredOption(
+      "--review-digest <sha256>",
+      "Exact content-free review digest accepted by the operator",
+    )
+    .requiredOption(
+      "--item <selector>",
+      "summary, diff, artifact:<sha256>, or evidence:<sha256>",
+    )
+    .option("--json", "Machine-readable content-free import receipt")
+    .action((id, options) => {
+      process.exitCode = runAction(
+        () =>
+          importSessionExecutionLocationResultArtifact(
+            id,
+            options.requestId,
+            options.reviewDigest,
+            options.item,
+            deps,
+          ),
+        options,
+      );
+    });
+
+  location
+    .command("result-apply <id>")
+    .description(
+      "Apply one explicitly reviewed stored diff inside a durable workspace transaction",
+    )
+    .requiredOption(
+      "--request-id <id>",
+      "Canonical result collection request id",
+    )
+    .requiredOption("--apply-id <id>", "Stable result apply idempotency id")
+    .requiredOption(
+      "--review-digest <sha256>",
+      "Exact content-free review digest accepted by the operator",
+    )
+    .option(
+      "--workspace <path>",
+      "Exact source Git workspace (defaults to session authority)",
+    )
+    .option("--json", "Machine-readable content-free apply receipt")
+    .action((id, options) => {
+      process.exitCode = runAction(
+        () => applySessionExecutionLocationResult(id, options, deps),
+        options,
+      );
+    });
+
+  location
+    .command("result-apply-recover <id>")
+    .description(
+      "Explicitly recover a reserved result apply without replaying its diff",
+    )
+    .requiredOption(
+      "--request-id <id>",
+      "Canonical result collection request id",
+    )
+    .requiredOption("--apply-id <id>", "Reserved result apply id")
+    .requiredOption(
+      "--review-digest <sha256>",
+      "Exact content-free review digest bound to the reservation",
+    )
+    .option(
+      "--workspace <path>",
+      "Exact source Git workspace (defaults to session authority)",
+    )
+    .option("--json", "Machine-readable content-free recovery receipt")
+    .action((id, options) => {
+      process.exitCode = runAction(
+        () => recoverSessionExecutionLocationResultApply(id, options, deps),
         options,
       );
     });

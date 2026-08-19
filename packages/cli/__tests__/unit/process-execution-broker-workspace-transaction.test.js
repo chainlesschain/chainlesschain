@@ -1,9 +1,11 @@
 import { EventEmitter } from "node:events";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import executionBroker from "../../src/lib/process-execution-broker/index.js";
+import { executeControlledExecutionLocationResultApply } from "../../src/lib/execution-location-result-apply.js";
 import {
   WORKSPACE_TRANSACTION_COVERAGE,
   WORKSPACE_TRANSACTION_ERROR,
@@ -100,6 +102,99 @@ afterEach(() => {
 });
 
 describe("ProcessExecutionBroker workspace transactions", () => {
+  it("commits a fixed git apply sequence and rolls back a rejected diff", () => {
+    const input = fixture();
+    const git = (...args) => {
+      const result = spawnSync("git", args, {
+        cwd: input.workspaceRoot,
+        shell: false,
+        encoding: "utf8",
+      });
+      expect(result.status, result.stderr).toBe(0);
+    };
+    git("init");
+    git("add", "before.txt");
+    git(
+      "-c",
+      "user.name=ChainlessChain Test",
+      "-c",
+      "user.email=test@chainlesschain.invalid",
+      "commit",
+      "-m",
+      "fixture",
+    );
+    managerKeys.push(`${path.resolve(input.stateDir)}\0<default>`);
+    useTestSandboxPlan();
+
+    const patchBytes = Buffer.from(
+      [
+        "diff --git a/before.txt b/before.txt",
+        "--- a/before.txt",
+        "+++ b/before.txt",
+        "@@ -1 +1 @@",
+        "-before",
+        "+after",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    const applied = executeControlledExecutionLocationResultApply({
+      broker: executionBroker,
+      sessionId: "broker-apply-session",
+      applyId: "broker-apply-success",
+      workspaceRoot: input.workspaceRoot,
+      stateDir: input.stateDir,
+      diffBytes: patchBytes,
+      onPrepared: vi.fn(),
+    });
+    expect(applied).toMatchObject({
+      ok: true,
+      outcome: "applied",
+      transaction: {
+        coverage: "partial",
+        fileCoverage: "partial",
+        externalSideEffects: false,
+        uncoveredPaths: [".git"],
+      },
+    });
+    expect(
+      fs
+        .readFileSync(path.join(input.workspaceRoot, "before.txt"), "utf8")
+        .replaceAll("\r\n", "\n"),
+    ).toBe("after\n");
+    expect(
+      executionBroker.inspectWorkspaceTransaction(applied.transaction.id, {
+        stateDir: input.stateDir,
+      }),
+    ).toMatchObject({ state: WORKSPACE_TRANSACTION_STATE.COMMITTED });
+
+    const rejected = executeControlledExecutionLocationResultApply({
+      broker: executionBroker,
+      sessionId: "broker-apply-session",
+      applyId: "broker-apply-rejected",
+      workspaceRoot: input.workspaceRoot,
+      stateDir: input.stateDir,
+      diffBytes: Buffer.from("not a patch\n", "utf8"),
+      onPrepared: vi.fn(),
+    });
+    expect(rejected).toMatchObject({
+      ok: false,
+      outcome: "rolled_back",
+      stage: "check",
+      process: { exitCode: 128 },
+    });
+    expect(
+      fs
+        .readFileSync(path.join(input.workspaceRoot, "before.txt"), "utf8")
+        .replaceAll("\r\n", "\n"),
+    ).toBe("after\n");
+    expect(
+      executionBroker.inspectWorkspaceTransaction(rejected.transaction.id, {
+        stateDir: input.stateDir,
+      }),
+    ).toMatchObject({ state: WORKSPACE_TRANSACTION_STATE.ROLLED_BACK });
+  });
+
   it("uses one canonical lock authority across caller lockDir and stateDir choices", () => {
     const input = fixture();
     const first = executionBroker.beginWorkspaceTransaction({

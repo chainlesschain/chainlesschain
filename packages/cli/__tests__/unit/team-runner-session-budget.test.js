@@ -176,6 +176,52 @@ describe("TeamRunner shared session budget", () => {
     sessionBudget.dispose();
   });
 
+  it("does not replace unknown inherited provider usage with a zero settlement", async () => {
+    const tasks = registry();
+    tasks.addTask({ key: "unknown", title: "unknown" });
+    const sessionBudget = new SessionResourceBudget({
+      maxConcurrent: 1,
+      maxSpawns: 1,
+      maxTokens: 100,
+    });
+    const runner = new TeamRunner(tasks, {
+      teammates: 1,
+      sessionBudget,
+      runTask: async ({ sessionBudget: inherited }) => {
+        const settlement = inherited.beginUsageSettlement({
+          id: "team-unknown-call",
+        });
+        expect(settlement.ok).toBe(true);
+        inherited.markUsageUnknown({
+          callId: settlement.id,
+          provider: "openai",
+          model: "gpt-test",
+          source: "model",
+          code: "provider_usage_missing",
+        });
+        return {};
+      },
+    });
+
+    const summary = await runner.run();
+
+    expect(summary).toMatchObject({
+      success: false,
+      budgetStopped: true,
+      budgetReason: "recovery-required",
+    });
+    expect(sessionBudget.status()).toMatchObject({
+      tokens: 0,
+      pendingUsage: 0,
+      pendingRecovery: 1,
+      recoveryRequired: true,
+      reason: "recovery-required",
+      active: 0,
+      resources: 0,
+    });
+    sessionBudget.dispose();
+  });
+
   it("releases the task lease and team reservation when acquireWork throws", async () => {
     const tasks = registry();
     tasks.addTask({ key: "write", title: "write" });

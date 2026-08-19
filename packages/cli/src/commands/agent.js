@@ -29,6 +29,7 @@ import {
   captureCommandArgvGrammar,
   transformBackgroundLaunchArgv,
 } from "../lib/background-command-argv.js";
+import { resolveSessionBudgetRootOptions } from "../lib/session-budget-production-root.js";
 
 /**
  * Resolve + validate `--add-dir` values into absolute, existing, de-duped
@@ -544,6 +545,42 @@ export function registerAgentCommand(program) {
       "Hard USD spend cap: stop the run before the next paid LLM call once the estimated cost reaches this (headless; uses the cc cost price table)",
     )
     .option(
+      "--session-budget",
+      "Enable the durable session-wide budget authority (headless; requires --session/--resume/--continue)",
+    )
+    .option(
+      "--session-max-concurrent <n>",
+      "Durable session cap for concurrent child work",
+    )
+    .option(
+      "--session-max-spawns <n>",
+      "Durable session cap for total child-work admissions",
+    )
+    .option(
+      "--session-max-depth <n>",
+      "Durable session cap for child-agent nesting depth",
+    )
+    .option(
+      "--session-max-turns <n>",
+      "Durable session cap for model turns across resumes",
+    )
+    .option(
+      "--session-max-tokens <n>",
+      "Durable session cap for provider-reported tokens across resumes",
+    )
+    .option(
+      "--session-max-cost-usd <amount>",
+      "Durable session cost cap across resumes (requires priced provider usage)",
+    )
+    .option(
+      "--session-max-wall-ms <n>",
+      "Durable session cap for cumulative active wall time",
+    )
+    .option(
+      "--session-max-tool-ms <n>",
+      "Durable session cap for aggregate tool execution time",
+    )
+    .option(
       "--observability-workspace <id>",
       "Persist a workspace scope on new session authority for causal reports",
     )
@@ -595,16 +632,18 @@ export function registerAgentCommand(program) {
       // --capabilities: print the machine-readable manifest and exit — no
       // config, no bootstrap, no network (gap-analysis 2026-07-11 快速收益 #6).
       if (options.capabilities) {
-        const { buildAgentCapabilities } =
-          await import("../lib/headless-manifest.js");
+        const { buildAgentCapabilities } = await import(
+          "../lib/headless-manifest.js"
+        );
         console.log(JSON.stringify(buildAgentCapabilities(), null, 2));
         return;
       }
       let toolAdmission = null;
       if (process.env.CC_TOOL_ADMISSION) {
         try {
-          const { parseToolAdmissionConfig } =
-            await import("../lib/agent-tool-admission.js");
+          const { parseToolAdmissionConfig } = await import(
+            "../lib/agent-tool-admission.js"
+          );
           toolAdmission = parseToolAdmissionConfig(
             process.env.CC_TOOL_ADMISSION,
           );
@@ -681,8 +720,9 @@ export function registerAgentCommand(program) {
       // screen readers (mono theme + no repainting status line). Applied
       // before anything renders.
       {
-        const { screenReaderRequested, applyScreenReaderMode } =
-          await import("../lib/accessibility.js");
+        const { screenReaderRequested, applyScreenReaderMode } = await import(
+          "../lib/accessibility.js"
+        );
         if (screenReaderRequested(options)) {
           applyScreenReaderMode();
         }
@@ -715,8 +755,9 @@ export function registerAgentCommand(program) {
       };
       if (options.worktree !== undefined || backgroundRequested) {
         try {
-          const { resolveBackgroundWorktreePolicy } =
-            await import("../lib/background-worktree-policy.js");
+          const { resolveBackgroundWorktreePolicy } = await import(
+            "../lib/background-worktree-policy.js"
+          );
           worktreeDecision = resolveBackgroundWorktreePolicy({
             background: backgroundRequested,
             worktree: options.worktree,
@@ -768,8 +809,9 @@ export function registerAgentCommand(program) {
       };
       if (worktreeDecision.enabled) {
         try {
-          const { setupAgentWorktree, finishAgentWorktree } =
-            await import("../lib/agent-worktree.js");
+          const { setupAgentWorktree, finishAgentWorktree } = await import(
+            "../lib/agent-worktree.js"
+          );
           _finishAgentWorktreeFn = finishAgentWorktree;
           const detectedRepoRoot = worktreeDecision.repoRoot || invocationCwd;
           const worktreeCwd =
@@ -797,8 +839,9 @@ export function registerAgentCommand(program) {
             const { loadHooks } = await import("../lib/settings-hooks.cjs");
             _worktreeSettingsHooks =
               loadHooks({ cwd: _worktree.repoRoot }).hooks || null;
-            const { runWorktreeCreateHooks, dispatchAsyncHooks } =
-              await import("../lib/settings-hook-events.js");
+            const { runWorktreeCreateHooks, dispatchAsyncHooks } = await import(
+              "../lib/settings-hook-events.js"
+            );
             runWorktreeCreateHooks(_worktreeSettingsHooks, {
               worktreePath: _worktree.path,
               branch: _worktree.branch,
@@ -806,8 +849,9 @@ export function registerAgentCommand(program) {
               cwd: _worktree.path,
             });
             if (!_worktreeAsyncSupervisor) {
-              const { AsyncHookSupervisor } =
-                await import("../lib/async-hook-supervisor.js");
+              const { AsyncHookSupervisor } = await import(
+                "../lib/async-hook-supervisor.js"
+              );
               _worktreeAsyncSupervisor = new AsyncHookSupervisor({
                 persistStats: true,
               });
@@ -892,8 +936,9 @@ export function registerAgentCommand(program) {
       // Claude-Code parity: auto-checkpoint defaults ON inside a git repo
       // (shadow-commit engine, zero working-tree touch); explicit
       // --checkpoint / --no-checkpoint always wins.
-      const { resolveAutoCheckpoint } =
-        await import("../lib/auto-checkpoint-default.js");
+      const { resolveAutoCheckpoint } = await import(
+        "../lib/auto-checkpoint-default.js"
+      );
       const autoCheckpoint = resolveAutoCheckpoint({
         flagValue: options.checkpoint,
         flagSource: command?.getOptionValueSource?.("checkpoint"),
@@ -920,13 +965,15 @@ export function registerAgentCommand(program) {
         if (headlessIntent) {
           // Headless replays the JSONL store only, so resolve "most recent"
           // from there 鈥?a DB-only id would resume into an empty transcript.
-          const { getLastSessionId } =
-            await import("../harness/jsonl-session-store.js");
+          const { getLastSessionId } = await import(
+            "../harness/jsonl-session-store.js"
+          );
           options.session = getLastSessionId();
         } else {
           // Interactive: picker across both stores (agent REPL rebuilds either).
-          const { pickRecentSession } =
-            await import("../lib/session-picker.js");
+          const { pickRecentSession } = await import(
+            "../lib/session-picker.js"
+          );
           const picked = await pickRecentSession(ctx, {
             message: "Resume which agent session?",
           });
@@ -949,8 +996,9 @@ export function registerAgentCommand(program) {
       // a no-op (silent) for a fresh run.
       if (options.forkSession && options.session) {
         const store = await import("../harness/jsonl-session-store.js");
-        const { applyForkSession } =
-          await import("../runtime/headless-runner.js");
+        const { applyForkSession } = await import(
+          "../runtime/headless-runner.js"
+        );
         const fork = applyForkSession(
           {
             forkSession: true,
@@ -1016,8 +1064,9 @@ export function registerAgentCommand(program) {
       let settingsSandbox = null;
       let managedSettingsSandbox = null;
       try {
-        const { loadSettingsConfig } =
-          await import("../lib/settings-loader.cjs");
+        const { loadSettingsConfig } = await import(
+          "../lib/settings-loader.cjs"
+        );
         const sc = loadSettingsConfig({
           cwd: process.cwd(),
           unattendedActionPolicy: options.unattended
@@ -1194,8 +1243,9 @@ export function registerAgentCommand(program) {
       // never pollutes spawned-bin test stderr.
       if (!process.env.VITEST && !process.env.VITEST_WORKER_ID) {
         try {
-          const { maybeWarnDeprecatedModel } =
-            await import("../lib/model-deprecation.js");
+          const { maybeWarnDeprecatedModel } = await import(
+            "../lib/model-deprecation.js"
+          );
           maybeWarnDeprecatedModel({ model: options.model });
         } catch {
           /* fail-open: a deprecation notice must never affect the run */
@@ -1250,26 +1300,40 @@ export function registerAgentCommand(program) {
       // overrides merged onto the built-in cc cost table) once, so both the
       // single-prompt and stream-input dispatch paths enforce the same cap.
       let maxCostUsd = null;
+      let sessionBudgetRoot;
       let priceTable;
       try {
         const { parseBudgetUsd } = await import("../lib/cost-budget.js");
         maxCostUsd = parseBudgetUsd(options.maxBudgetUsd);
+        sessionBudgetRoot = resolveSessionBudgetRootOptions(options);
       } catch (err) {
         process.stderr.write(`${err.message}\n`);
         await _finishWorktree();
         process.exit(1);
       }
-      if (maxCostUsd) {
+      if (sessionBudgetRoot.enabled && !options.session) {
+        process.stderr.write(
+          "--session-budget and --session-max-* require --session/--resume/--continue so the authority has a durable session id.\n",
+        );
+        await _finishWorktree();
+        process.exit(1);
+      }
+      if (maxCostUsd || sessionBudgetRoot.limits.maxUsd != null) {
         const { mergePricing } = await import("../lib/llm-pricing.js");
         priceTable = mergePricing(loadConfig().llm?.pricing);
       }
+      sessionBudgetRoot = Object.freeze({
+        ...sessionBudgetRoot,
+        ...(priceTable ? { table: priceTable } : {}),
+      });
       // 鈹€鈹€ Streaming-input mode (--input-format stream-json) 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
       // A persistent multi-turn conversation driven by NDJSON user events on
       // stdin; output is always NDJSON. Routed before single-prompt handling
       // so stdin is consumed as events, not as one prompt.
       if (options.inputFormat === "stream-json") {
-        const { runAgentHeadlessStream } =
-          await import("../runtime/headless-stream.js");
+        const { runAgentHeadlessStream } = await import(
+          "../runtime/headless-stream.js"
+        );
         const { parseToolList } = await import("../runtime/headless-runner.js");
         const cwd = process.cwd();
         let outcome;
@@ -1327,6 +1391,7 @@ export function registerAgentCommand(program) {
             ephemeral: options.ephemeral === true,
             maxCostUsd,
             priceTable,
+            sessionBudgetRoot,
             chatFn: fallbackChatFn,
             observabilityScope: hasObservabilityScope
               ? observabilityScope
@@ -1499,8 +1564,9 @@ export function registerAgentCommand(program) {
         const resumeRequested =
           Boolean(options.continue) || options.resume !== undefined;
         if (resumeRequested && options.session) {
-          const { sessionHasPersistedEvidence } =
-            await import("../harness/jsonl-session-store.js");
+          const { sessionHasPersistedEvidence } = await import(
+            "../harness/jsonl-session-store.js"
+          );
           if (!sessionHasPersistedEvidence(options.session)) {
             process.stderr.write(
               `Note: no headless transcript for session "${options.session}" 鈥?` +
@@ -1508,14 +1574,16 @@ export function registerAgentCommand(program) {
             );
           }
         }
-        const { runAgentHeadless, parseToolList } =
-          await import("../runtime/headless-runner.js");
+        const { runAgentHeadless, parseToolList } = await import(
+          "../runtime/headless-runner.js"
+        );
         // --goal-condition: validate the spec up front so a bad prefix fails
         // fast (before any model call) with a clear message.
         if (options.goalCondition) {
           try {
-            const { parseGoalCondition } =
-              await import("../lib/goal-condition-engine.js");
+            const { parseGoalCondition } = await import(
+              "../lib/goal-condition-engine.js"
+            );
             parseGoalCondition(options.goalCondition);
           } catch (e) {
             process.stderr.write(`--goal-condition: ${e.message}\n`);
@@ -1627,6 +1695,7 @@ export function registerAgentCommand(program) {
           // --max-budget-usd: hard spend cap (+ price table from config llm.pricing)
           maxCostUsd,
           priceTable,
+          sessionBudgetRoot,
           observabilityScope: hasObservabilityScope
             ? observabilityScope
             : undefined,
@@ -1752,6 +1821,7 @@ export function registerAgentCommand(program) {
         // Keep interactive --worktree sessions in the same explicit
         // turn-binding coverage model as headless runs.
         worktreeId: _worktree ? _worktree.branch : null,
+        sessionBudgetRoot,
         // --vim: start the REPL in vim-mode editing (also CC_VIM=1 or /vim).
         vimMode: options.vim === true,
         // --system-prompt / --append-system-prompt (literal or @file) also

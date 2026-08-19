@@ -16,12 +16,21 @@ import {
 } from "./secure-file-identity.js";
 import { canonicalJson } from "./scheduler-kernel/contract.js";
 import { executionBroker } from "./process-execution-broker/index.js";
+import {
+  MAX_EXECUTION_LOCATION_RESULT_BUNDLE_BYTES,
+  normalizeExecutionLocationResultBundle,
+  verifyExecutionLocationResultBundle,
+} from "./execution-location-result.js";
 
 export const EXECUTION_LOCATION_PROFILE_SCHEMA =
   "cc-execution-location-profile/v1";
 export { EXECUTION_LOCATION_TARGET_ATTESTATION_SCHEMA };
 export const EXECUTION_LOCATION_TARGET_RESUME_SCHEMA =
   "cc-execution-location-target-resume/v1";
+export const EXECUTION_LOCATION_TARGET_RESULT_COLLECTION_SCHEMA =
+  "cc-execution-location-target-result-collection/v1";
+export const EXECUTION_LOCATION_TARGET_RESULT_COLLECTION_REQUEST_SCHEMA =
+  "cc-execution-location-target-result-collection-request/v1";
 
 const SESSION_LOCATION_AUTHORITY_SCHEMA =
   "cc-session-execution-location-authority/v1";
@@ -34,6 +43,8 @@ const COMMIT_RE = /^[a-f0-9]{40,64}$/u;
 const MAX_PROFILE_BYTES = 1024 * 1024;
 const MAX_PROBE_BYTES = 1024 * 1024;
 const MAX_REPLICA_BYTES = 64 * 1024 * 1024;
+const RESULT_MEDIA_TYPE_RE =
+  /^[a-z0-9][a-z0-9!#$&^_.+-]{0,126}\/[a-z0-9][a-z0-9!#$&^_.+-]{0,126}$/u;
 
 function digest(domain, value) {
   return `sha256:${createHash("sha256")
@@ -480,6 +491,14 @@ function runTargetCommand(profile, cliArgs, deps = {}, options = {}) {
     ((file, args, spawnOptions) =>
       executionBroker.spawnSync(file, args, spawnOptions));
   try {
+    const maxBuffer = Number(options.maxBuffer ?? MAX_PROBE_BYTES);
+    if (
+      !Number.isSafeInteger(maxBuffer) ||
+      maxBuffer < 1 ||
+      maxBuffer > MAX_EXECUTION_LOCATION_RESULT_BUNDLE_BYTES
+    ) {
+      throw new Error("target command output boundary is invalid");
+    }
     const result = spawnSync(invocation.file, invocation.args, {
       origin: "execution-location:target",
       scope: "execution-location",
@@ -487,7 +506,7 @@ function runTargetCommand(profile, cliArgs, deps = {}, options = {}) {
       shell: false,
       encoding: "utf8",
       timeout: options.interactive ? undefined : 30000,
-      maxBuffer: options.interactive ? undefined : MAX_PROBE_BYTES,
+      maxBuffer: options.interactive ? undefined : maxBuffer,
       ...(options.input == null ? {} : { input: options.input }),
       stdio: options.interactive
         ? "inherit"
@@ -836,6 +855,222 @@ function verifySourceAuthorityBeforeResume(handoff, readSourceAuthority) {
     sessionId: current.sessionId,
     headHash: current.headHash,
     eventCount: current.eventCount,
+  });
+}
+
+function normalizeResultCollectionItem(entry, label) {
+  const mediaType = String(entry?.mediaType || "").toLowerCase();
+  const filePath = safePath(entry?.path, `${label} path`);
+  if (!RESULT_MEDIA_TYPE_RE.test(mediaType)) {
+    throw new TypeError(`${label} media type is invalid`);
+  }
+  return { mediaType, path: filePath };
+}
+
+export function createExecutionLocationTargetResultCollectionRequest(
+  input = {},
+) {
+  const profile = normalizeExecutionLocationProfile(input.profile);
+  const target = safeName(
+    input.target ?? profile.target,
+    "result collection target",
+    32,
+  );
+  if (target !== profile.target) {
+    throw new TypeError("result collection target does not match profile");
+  }
+  const requestId = safeName(
+    input.requestId,
+    "result collection request id",
+    128,
+  );
+  const sessionId = safeName(input.sessionId, "result collection session id");
+  const resultId = safeName(input.resultId, "result id", 128);
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/u.test(resultId)) {
+    throw new TypeError("result id is invalid");
+  }
+  const targetFactsDigest = String(
+    input.expectedTargetFactsDigest || "",
+  ).toLowerCase();
+  const handoffId = String(input.expectedHandoffId || "").toLowerCase();
+  if (!SHA256_RE.test(targetFactsDigest)) {
+    throw new TypeError("expected target facts digest is invalid");
+  }
+  if (!SHA256_RE.test(handoffId)) {
+    throw new TypeError("expected result handoff id is invalid");
+  }
+  const artifacts = (input.artifacts ?? []).map((entry, index) =>
+    normalizeResultCollectionItem(entry, `result artifact ${index}`),
+  );
+  const evidence = (input.evidence ?? []).map((entry, index) =>
+    normalizeResultCollectionItem(entry, `result evidence ${index}`),
+  );
+  if (artifacts.length + evidence.length > 64) {
+    throw new TypeError("result collection item list is invalid");
+  }
+  const material = {
+    schema: EXECUTION_LOCATION_TARGET_RESULT_COLLECTION_REQUEST_SCHEMA,
+    requestId,
+    sessionId,
+    target,
+    profileDigest: profile.profileDigest,
+    targetFactsDigest,
+    handoffId,
+    resultId,
+    summaryPath: safePath(input.summaryPath, "result summary path"),
+    diffPath: safePath(input.diffPath, "result diff path"),
+    artifacts,
+    evidence,
+  };
+  return Object.freeze({
+    ...material,
+    requestDigest: digest(
+      "chainlesschain.execution-location.target-result-collection-request.v1\0",
+      material,
+    ),
+  });
+}
+
+export function collectExecutionLocationTargetResult(input = {}, deps = {}) {
+  const profile = normalizeExecutionLocationProfile(input.profile);
+  validateProfileHandoff(profile, input.handoff);
+  const expectedTargetFactsDigest = safeString(
+    input.expectedTargetFactsDigest,
+    "expected target facts digest",
+    80,
+  ).toLowerCase();
+  if (!SHA256_RE.test(expectedTargetFactsDigest)) {
+    throw new Error("expected target facts digest is invalid");
+  }
+  const sourceBefore = verifySourceAuthorityBeforeResume(
+    input.handoff,
+    input.readSourceAuthority,
+  );
+  const attestation = attestExecutionLocationTarget(
+    { profile, handoff: input.handoff },
+    deps,
+  );
+  if (attestation.targetFactsDigest !== expectedTargetFactsDigest) {
+    throw new Error("target facts digest changed before result collection");
+  }
+  const resultId = safeName(input.resultId, "result id", 128);
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/u.test(resultId)) {
+    throw new TypeError("result id is invalid");
+  }
+  const expectedHandoffId = String(input.expectedHandoffId || "");
+  if (!SHA256_RE.test(expectedHandoffId)) {
+    throw new TypeError("expected result handoff id is invalid");
+  }
+  const summaryPath = safePath(input.summaryPath, "result summary path");
+  const diffPath = safePath(input.diffPath, "result diff path");
+  const artifactInput = input.artifacts ?? [];
+  const evidenceInput = input.evidence ?? [];
+  if (!Array.isArray(artifactInput) || !Array.isArray(evidenceInput)) {
+    throw new TypeError("result collection item list is invalid");
+  }
+  const artifacts = artifactInput.map((entry, index) =>
+    normalizeResultCollectionItem(entry, `result artifact ${index}`),
+  );
+  const evidence = evidenceInput.map((entry, index) =>
+    normalizeResultCollectionItem(entry, `result evidence ${index}`),
+  );
+  if (artifacts.length + evidence.length > 64) {
+    throw new TypeError("result collection item list is invalid");
+  }
+  const request = createExecutionLocationTargetResultCollectionRequest({
+    requestId: input.requestId,
+    sessionId: input.handoff?.session?.sessionId,
+    target: profile.target,
+    profile,
+    expectedTargetFactsDigest,
+    expectedHandoffId,
+    resultId,
+    summaryPath,
+    diffPath,
+    artifacts,
+    evidence,
+  });
+  const args = [
+    "session",
+    "location",
+    "result-pack",
+    input.handoff.session.sessionId,
+    "--result-id",
+    resultId,
+    "--summary",
+    summaryPath,
+    "--diff",
+    diffPath,
+  ];
+  for (const entry of artifacts) {
+    args.push("--artifact", `${entry.mediaType}=${entry.path}`);
+  }
+  for (const entry of evidence) {
+    args.push("--evidence", `${entry.mediaType}=${entry.path}`);
+  }
+  args.push("--json");
+  const raw = runTargetCommand(profile, args, deps, {
+    maxBuffer: MAX_EXECUTION_LOCATION_RESULT_BUNDLE_BYTES,
+  });
+  let bundleInput;
+  try {
+    bundleInput = JSON.parse(String(raw));
+  } catch {
+    throw new Error("target result bundle output is not one exact JSON object");
+  }
+  const bundle = normalizeExecutionLocationResultBundle(bundleInput);
+  const sourceAfter = verifySourceAuthorityBeforeResume(
+    input.handoff,
+    input.readSourceAuthority,
+  );
+  const verification = verifyExecutionLocationResultBundle({
+    bundle,
+    sourceAuthority: sourceAfter,
+    expectedHandoffId,
+  });
+  if (
+    bundle.session.handoffId !== expectedHandoffId ||
+    bundle.session.target.profileDigest !== profile.profileDigest ||
+    bundle.session.target.targetEvidenceId !== profile.evidenceId ||
+    bundle.session.target.targetFactsDigest !== expectedTargetFactsDigest ||
+    sourceBefore.headHash !== sourceAfter.headHash ||
+    sourceBefore.eventCount !== sourceAfter.eventCount
+  ) {
+    throw new Error(
+      "target result bundle does not match the accepted handoff authority",
+    );
+  }
+  const material = {
+    schema: EXECUTION_LOCATION_TARGET_RESULT_COLLECTION_SCHEMA,
+    requestId: request.requestId,
+    requestDigest: request.requestDigest,
+    resultId,
+    target: profile.target,
+    profileDigest: profile.profileDigest,
+    targetFactsDigest: expectedTargetFactsDigest,
+    collectionAttestationDigest: attestation.attestationDigest,
+    handoffId: bundle.session.handoffId,
+    sourceAuthority: sourceAfter,
+    targetHeadHash: bundle.session.target.headHash,
+    targetEventCount: bundle.session.target.eventCount,
+    bundleDigest: bundle.bundleDigest,
+    verificationDigest: verification.verificationDigest,
+    applied: false,
+    continuity: "single-fixed-command-response",
+    gaps: [
+      "returned-result-bytes-not-durable",
+      "cross-host-concurrent-writer-fencing-not-durable",
+      "returned-result-not-applied",
+    ],
+  };
+  return Object.freeze({
+    ...material,
+    bundle,
+    verification,
+    collectionDigest: digest(
+      "chainlesschain.execution-location.target-result-collection.v1\0",
+      material,
+    ),
   });
 }
 

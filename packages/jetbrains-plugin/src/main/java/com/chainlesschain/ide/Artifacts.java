@@ -17,11 +17,11 @@ import java.util.Map;
  *
  * <ul>
  *   <li>{@code cc artifacts list --json} → {@code {"artifacts":[{id, title,
- *       kind, mime, size, sha256, sourcePath, file, sessionId, createdAt,
+ *       kind, mime, size, sha256, file, sessionId, createdAt,
  *       expiresAt}, …]}} (metadata only — payloads live under
  *       {@code ~/.chainlesschain/artifacts/files/&lt;file&gt;});</li>
- *   <li>{@code cc artifacts show &lt;id&gt; --json} adds {@code storedPath};</li>
- *   <li>{@code cc artifacts remove &lt;id&gt; --json} deletes copy + row.</li>
+ *   <li>{@code cc artifacts access &lt;id&gt;} authorizes a local path;</li>
+ *   <li>{@code cc artifacts remove &lt;id&gt;} settles an audited managed-copy removal.</li>
  * </ul>
  *
  * This core parses the list JSON ({@link MiniJson} conventions — malformed
@@ -98,8 +98,14 @@ public final class Artifacts {
         return Arrays.asList("artifacts", "show", String.valueOf(id), "--json");
     }
 
-    public static List<String> buildRemoveArgs(String id) {
-        return Arrays.asList("artifacts", "remove", String.valueOf(id), "--json");
+    public static List<String> buildAccessArgs(String id, String action) {
+        return Arrays.asList("artifacts", "access", String.valueOf(id),
+                "--client", "jetbrains", "--action", String.valueOf(action));
+    }
+
+    public static List<String> buildRemoveArgs(String id, String deletionId) {
+        return Arrays.asList("artifacts", "remove", String.valueOf(id),
+                "--client", "jetbrains", "--deletion-id", String.valueOf(deletionId), "--json");
     }
 
     // --------------------------------------------------------------- parse

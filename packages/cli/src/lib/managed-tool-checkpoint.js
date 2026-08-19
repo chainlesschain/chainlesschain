@@ -15,6 +15,9 @@ export const MANAGED_TOOL_CHECKPOINT_ERROR = Object.freeze({
   SETTLEMENT_FAILED: "MANAGED_TOOL_CHECKPOINT_SETTLEMENT_FAILED",
 });
 
+export const MANAGED_TOOL_CHECKPOINT_BINDING_SCHEMA =
+  "cc-managed-tool-checkpoint-binding/v1";
+
 const DIRECT_FILE_ONLY_TOOLS = new Set([
   "write_file",
   "edit_file",
@@ -32,6 +35,14 @@ const DEFAULT_READ_ONLY_TOOLS = new Set([
   "list_skills",
   "search_sessions",
 ]);
+
+export function managedToolCheckpointRequired(toolName, readOnly = undefined) {
+  const normalized = boundedBinding(toolName, "unknown-tool");
+  return !(
+    readOnly === true ||
+    (readOnly !== false && DEFAULT_READ_ONLY_TOOLS.has(normalized))
+  );
+}
 
 function checkpointError(code, message, details = {}, cause = null) {
   const error = new Error(message, cause ? { cause } : undefined);
@@ -69,6 +80,41 @@ function skippedCheckpoint(reason, toolName) {
   });
 }
 
+export function managedToolCheckpointBinding(handle) {
+  if (!handle || handle.skipped === true) return null;
+  const prepared = handle.prepared;
+  if (
+    !prepared ||
+    prepared.id !== handle.transactionId ||
+    prepared.checkpointId !== handle.checkpointId ||
+    typeof prepared.checkpoint?.digest !== "string" ||
+    typeof prepared.stateDigest !== "string" ||
+    !Object.values(WORKSPACE_TRANSACTION_COVERAGE).includes(
+      prepared.coverage,
+    ) ||
+    !Object.values(WORKSPACE_TRANSACTION_COVERAGE).includes(
+      prepared.fileCoverage,
+    ) ||
+    typeof prepared.externalSideEffects !== "boolean"
+  ) {
+    throw checkpointError(
+      MANAGED_TOOL_CHECKPOINT_ERROR.INVALID_ARGUMENT,
+      "managed tool checkpoint prepared binding is malformed",
+    );
+  }
+  return Object.freeze({
+    schema: MANAGED_TOOL_CHECKPOINT_BINDING_SCHEMA,
+    authority: "process-broker-workspace-transaction-prepared",
+    transactionId: handle.transactionId,
+    checkpointId: handle.checkpointId,
+    checkpointDigest: prepared.checkpoint.digest,
+    preparedStateDigest: prepared.stateDigest,
+    coverage: prepared.coverage,
+    fileCoverage: prepared.fileCoverage,
+    externalSideEffects: prepared.externalSideEffects,
+  });
+}
+
 /**
  * Prepare one managed checkpoint before a mutating agent tool call.
  *
@@ -79,10 +125,7 @@ function skippedCheckpoint(reason, toolName) {
 export function beginManagedToolCheckpoint(options = {}) {
   if (options.enabled !== true) return null;
   const toolName = boundedBinding(options.toolName, "unknown-tool");
-  const readOnly =
-    options.readOnly === true ||
-    (options.readOnly !== false && DEFAULT_READ_ONLY_TOOLS.has(toolName));
-  if (readOnly) return null;
+  if (!managedToolCheckpointRequired(toolName, options.readOnly)) return null;
   if (
     typeof options.unmanagedWriterReason === "string" &&
     options.unmanagedWriterReason.trim()

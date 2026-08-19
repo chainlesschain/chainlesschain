@@ -4,14 +4,15 @@
  * (`cc artifacts`, ~/.chainlesschain/artifacts/):
  *
  *  - list rows:   `cc artifacts list --json`  → { artifacts: [metadata…] }
- *  - one row:     `cc artifacts show <id> --json` → metadata + storedPath
+ *  - one row:     `cc artifacts show <id> --json` → metadata only
+ *  - content path:`cc artifacts access <id> … --json` → audited local path
  *  - remove:      `cc artifacts remove <id> --json`
  *
  * Only METADATA ever reaches this module — file bodies are never inlined into
  * the list HTML (previews go through vscode APIs in ui/artifacts-view.js:
  * markdown.showPreview / asWebviewUri <img> / showTextDocument /
- * openExternal for html). `cc artifacts open` merely prints the stored path,
- * so the panel does not shell out to it.
+ * openExternal for html). Every official content/path action first obtains a
+ * content-free access authority from the CLI.
  *
  * Pure Node (no `vscode`) → unit-testable; the webview glue lives in
  * ui/artifacts-view.js. Everything that reaches HTML goes through escapeHtml —
@@ -45,15 +46,36 @@ function buildArtifactsListArgs() {
 function buildArtifactsShowArgs(id) {
   return ["artifacts", "show", String(id), "--json"];
 }
-function buildArtifactsRemoveArgs(id) {
-  return ["artifacts", "remove", String(id), "--json"];
+function buildArtifactsAccessArgs(id, action, client = "vscode", accessId) {
+  return [
+    "artifacts",
+    "access",
+    String(id),
+    "--client",
+    String(client),
+    "--action",
+    String(action),
+    ...(accessId ? ["--access-id", String(accessId)] : []),
+    "--json",
+  ];
+}
+function buildArtifactsRemoveArgs(id, deletionId = null) {
+  return [
+    "artifacts",
+    "remove",
+    String(id),
+    "--client",
+    "vscode",
+    ...(deletionId ? ["--deletion-id", String(deletionId)] : []),
+    "--json",
+  ];
 }
 
 /**
  * Where the store lives (same resolution as the CLI's artifactsDir()):
  * CC_ARTIFACTS_DIR override, else ~/.chainlesschain/artifacts. Used only for
- * the webview's localResourceRoots — per-artifact paths come from
- * `cc artifacts show --json`'s storedPath.
+ * the webview's localResourceRoots — per-artifact paths come from an audited
+ * `cc artifacts access --json` authorization.
  */
 function defaultArtifactsDir(homedir = os.homedir(), env = process.env) {
   if (env && env.CC_ARTIFACTS_DIR) return env.CC_ARTIFACTS_DIR;
@@ -281,6 +303,7 @@ module.exports = {
   ACTION_LABELS,
   buildArtifactsListArgs,
   buildArtifactsShowArgs,
+  buildArtifactsAccessArgs,
   buildArtifactsRemoveArgs,
   defaultArtifactsDir,
   formatSize,

@@ -8,6 +8,16 @@ import {
   createExecutionLocationBinding,
   createExecutionLocationTargetAttestation,
 } from "../../src/lib/execution-location-contract.js";
+import {
+  createExecutionLocationResultBundle,
+  verifyExecutionLocationResultBundle,
+} from "../../src/lib/execution-location-result.js";
+import { createExecutionLocationResultReview } from "../../src/lib/execution-location-result-review.js";
+import {
+  readStoredExecutionLocationResultBundle,
+  storeExecutionLocationResultBundle,
+} from "../../src/lib/execution-location-result-store.js";
+import { canonicalJson } from "../../src/lib/scheduler-kernel/contract.js";
 
 const root = mkdtempSync(join(tmpdir(), "cc-session-replica-"));
 const sourceHome = join(root, "source-home");
@@ -46,6 +56,9 @@ describe("verified session replica installation", () => {
     delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;
     store._sessionScaleFaultHooks.afterReplicaPublish = null;
     store._sessionScaleFaultHooks.afterLocationHandoffAppend = null;
+    store._sessionScaleFaultHooks.afterResultCollectionSettlementAppend = null;
+    store._sessionScaleFaultHooks.afterResultApplyReservationAppend = null;
+    store._sessionScaleFaultHooks.afterResultApplyTerminalAppend = null;
     rmSync(root, { recursive: true, force: true });
   });
 
@@ -281,6 +294,348 @@ describe("verified session replica installation", () => {
       handoffAppended: false,
       attestationDigest: target.attestationDigest,
     });
+  });
+
+  it("binds returned bytes to the real target handoff and source predecessor", () => {
+    const sessionId = "session-replica-result-return";
+    const source = createSource(sessionId);
+    selectTarget();
+    const installed = store.installSessionReplicaWithLocationHandoff(
+      sessionId,
+      source.bytes,
+      source.expected,
+      targetAuthority(source),
+    );
+    const target =
+      store.getVerifiedSessionExecutionLocationAuthority(sessionId);
+    const bundle = createExecutionLocationResultBundle({
+      sessionAuthority: target,
+      resultId: "return-1",
+      summaryBytes: Buffer.from("target work completed"),
+      diffBytes: Buffer.from("diff --git a/a b/a\n"),
+      artifacts: [],
+      evidence: [],
+    });
+
+    selectSource();
+    const predecessor =
+      store.getVerifiedSessionExecutionLocationAuthority(sessionId);
+    expect(
+      verifyExecutionLocationResultBundle({
+        bundle,
+        sourceAuthority: predecessor,
+        expectedHandoffId: installed.handoffId,
+      }),
+    ).toMatchObject({
+      sessionId,
+      handoffId: installed.handoffId,
+      sourceHeadHash: source.expected.headHash,
+      sourceEventCount: source.expected.eventCount,
+      targetHeadHash: installed.targetHeadHash,
+      targetEventCount: installed.targetEventCount,
+      applied: false,
+    });
+  });
+
+  it("settles an accepted result once and recovers its stored bytes", () => {
+    const sessionId = "session-result-collection-settlement";
+    const source = createSource(sessionId);
+    selectTarget();
+    const installed = store.installSessionReplicaWithLocationHandoff(
+      sessionId,
+      source.bytes,
+      source.expected,
+      targetAuthority(source),
+    );
+    const target =
+      store.getVerifiedSessionExecutionLocationAuthority(sessionId);
+    const bundle = createExecutionLocationResultBundle({
+      sessionAuthority: target,
+      resultId: "settled-return-1",
+      summaryBytes: Buffer.from("private returned summary"),
+      diffBytes: Buffer.from("diff --git a/a b/a\n"),
+      artifacts: [],
+      evidence: [],
+    });
+
+    selectSource();
+    const predecessor =
+      store.getVerifiedSessionExecutionLocationAuthority(sessionId);
+    const sourceAuthority = {
+      sessionId,
+      headHash: predecessor.headHash,
+      eventCount: predecessor.eventCount,
+    };
+    const verification = verifyExecutionLocationResultBundle({
+      bundle,
+      sourceAuthority,
+      expectedHandoffId: installed.handoffId,
+    });
+    const requestId = "collect-settlement-1";
+    const requestDigest = `sha256:${"2".repeat(64)}`;
+    const material = {
+      schema: "cc-execution-location-target-result-collection/v1",
+      requestId,
+      requestDigest,
+      resultId: bundle.resultId,
+      target: "container",
+      profileDigest: target.locationHandoff.target.profileDigest,
+      targetFactsDigest: target.locationHandoff.target.targetFactsDigest,
+      collectionAttestationDigest:
+        target.locationHandoff.target.attestationDigest,
+      handoffId: installed.handoffId,
+      sourceAuthority,
+      targetHeadHash: target.headHash,
+      targetEventCount: target.eventCount,
+      bundleDigest: bundle.bundleDigest,
+      verificationDigest: verification.verificationDigest,
+      applied: false,
+      continuity: "single-fixed-command-response",
+      gaps: [
+        "returned-result-bytes-not-durable",
+        "cross-host-concurrent-writer-fencing-not-durable",
+        "returned-result-not-applied",
+      ],
+    };
+    const collection = {
+      ...material,
+      bundle,
+      verification,
+      collectionDigest: `sha256:${createHash("sha256")
+        .update(
+          "chainlesschain.execution-location.target-result-collection.v1\0",
+          "utf8",
+        )
+        .update(canonicalJson(material, "testResultCollection"), "utf8")
+        .digest("hex")}`,
+    };
+    const storage = storeExecutionLocationResultBundle(bundle, {
+      dir: join(root, "returned-result-store"),
+    });
+
+    expect(() =>
+      store.settleSessionExecutionLocationResultCollection(
+        sessionId,
+        requestId,
+        {
+          ...collection,
+          bundle: {
+            ...bundle,
+            summary: {
+              ...bundle.summary,
+              contentBase64: Buffer.from("tampered").toString("base64"),
+            },
+          },
+        },
+        storage.receipt,
+      ),
+    ).toThrow(/summary/u);
+    expect(
+      store.readVerifiedSessionExecutionLocationResultSettlement(
+        sessionId,
+        requestId,
+      ),
+    ).toBeNull();
+
+    process.env.CC_SESSION_SCALE_FAULT_INJECTION = "1";
+    store._sessionScaleFaultHooks.afterResultCollectionSettlementAppend =
+      () => {
+        throw new Error("injected result settlement response loss");
+      };
+    expect(() =>
+      store.settleSessionExecutionLocationResultCollection(
+        sessionId,
+        requestId,
+        collection,
+        storage.receipt,
+      ),
+    ).toThrow(/injected result settlement response loss/u);
+    store._sessionScaleFaultHooks.afterResultCollectionSettlementAppend = null;
+    delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+    const first = store.readVerifiedSessionExecutionLocationResultSettlement(
+      sessionId,
+      requestId,
+      { requestDigest },
+    );
+    expect(first).toMatchObject({
+      schema: store.SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_RECEIPT_SCHEMA,
+      sessionId,
+      requestId,
+      requestDigest,
+      sourceHeadHash: source.expected.headHash,
+      sourceEventCount: source.expected.eventCount,
+      settlementEventCount: source.expected.eventCount + 1,
+      bundleDigest: bundle.bundleDigest,
+      totalBytes: bundle.totalBytes,
+      storage: { receiptDigest: storage.receipt.receiptDigest },
+      applied: false,
+    });
+    expect(
+      readStoredExecutionLocationResultBundle(first.storage, {
+        dir: join(root, "returned-result-store"),
+      }),
+    ).toEqual(bundle);
+    const retry = store.settleSessionExecutionLocationResultCollection(
+      sessionId,
+      requestId,
+      collection,
+      storage.receipt,
+    );
+    expect(retry).toMatchObject({
+      receiptDigest: first.receiptDigest,
+      settlementEventHash: first.settlementEventHash,
+      settlementAppended: false,
+      recovered: true,
+    });
+    expect(
+      store.readVerifiedSessionExecutionLocationResultSettlement(
+        sessionId,
+        requestId,
+        { requestDigest },
+      ),
+    ).toMatchObject({ receiptDigest: first.receiptDigest });
+    expect(() =>
+      store.readVerifiedSessionExecutionLocationResultSettlement(
+        sessionId,
+        requestId,
+        { requestDigest: `sha256:${"3".repeat(64)}` },
+      ),
+    ).toThrow(/already bound to different inputs/u);
+    const event = store.findLatestEvent(
+      sessionId,
+      store.SESSION_EXECUTION_LOCATION_RESULT_COLLECTION_EVENT,
+    );
+    expect(JSON.stringify(event.data)).not.toContain(
+      "private returned summary",
+    );
+    expect(event.data).not.toHaveProperty("bundle");
+    expect(event.data).not.toHaveProperty("verification");
+
+    const review = createExecutionLocationResultReview({
+      settlement: first,
+      bundle,
+    });
+    const sourceGit = {
+      rootDigest: `sha256:${"4".repeat(64)}`,
+      commit: "a".repeat(40),
+    };
+    const preparedTransaction = {
+      id: "result-apply-transaction-1",
+      checkpointId: "checkpoint-result-apply-transaction-1",
+      checkpointDigest: `sha256:${"5".repeat(64)}`,
+      coverage: "partial",
+      externalSideEffects: false,
+    };
+    process.env.CC_SESSION_SCALE_FAULT_INJECTION = "1";
+    store._sessionScaleFaultHooks.afterResultApplyReservationAppend = () => {
+      throw new Error("injected result apply reservation response loss");
+    };
+    expect(() =>
+      store.reserveSessionExecutionLocationResultApply(
+        sessionId,
+        "apply-request-1",
+        review,
+        sourceGit,
+        preparedTransaction,
+      ),
+    ).toThrow(/injected result apply reservation response loss/u);
+    store._sessionScaleFaultHooks.afterResultApplyReservationAppend = null;
+    delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+
+    const reservation = store.readVerifiedSessionExecutionLocationResultApply(
+      sessionId,
+      "apply-request-1",
+    );
+    expect(reservation).toMatchObject({
+      schema: store.SESSION_EXECUTION_LOCATION_RESULT_APPLY_RECEIPT_SCHEMA,
+      sessionId,
+      applyId: "apply-request-1",
+      requestId,
+      status: "reserved",
+      reviewDigest: review.reviewDigest,
+      settlementId: first.settlementId,
+      bundleDigest: bundle.bundleDigest,
+      diffDigest: bundle.diff.digest,
+      sourceGit,
+      transaction: preparedTransaction,
+      terminal: null,
+      applied: false,
+    });
+    expect(
+      store.reserveSessionExecutionLocationResultApply(
+        sessionId,
+        "apply-request-1",
+        review,
+        sourceGit,
+        preparedTransaction,
+      ),
+    ).toMatchObject({
+      receiptDigest: reservation.receiptDigest,
+      reservationAppended: false,
+      recovered: true,
+    });
+    expect(() =>
+      store.reserveSessionExecutionLocationResultApply(
+        sessionId,
+        "apply-request-1",
+        review,
+        { ...sourceGit, commit: "b".repeat(40) },
+        preparedTransaction,
+      ),
+    ).toThrow(/already bound to different inputs/u);
+
+    const terminalTransaction = {
+      ...preparedTransaction,
+      evidenceDigest: `sha256:${"6".repeat(64)}`,
+      writeManifestDigest: `sha256:${"7".repeat(64)}`,
+      fileCoverage: "partial",
+      uncoveredPaths: [".git"],
+    };
+    process.env.CC_SESSION_SCALE_FAULT_INJECTION = "1";
+    store._sessionScaleFaultHooks.afterResultApplyTerminalAppend = () => {
+      throw new Error("injected result apply terminal response loss");
+    };
+    expect(() =>
+      store.settleSessionExecutionLocationResultApply(
+        sessionId,
+        "apply-request-1",
+        "applied",
+        terminalTransaction,
+      ),
+    ).toThrow(/injected result apply terminal response loss/u);
+    store._sessionScaleFaultHooks.afterResultApplyTerminalAppend = null;
+    delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+
+    const applied = store.readVerifiedSessionExecutionLocationResultApply(
+      sessionId,
+      "apply-request-1",
+    );
+    expect(applied).toMatchObject({
+      status: "applied",
+      transaction: terminalTransaction,
+      terminal: { outcome: "applied" },
+      applied: true,
+    });
+    expect(
+      store.settleSessionExecutionLocationResultApply(
+        sessionId,
+        "apply-request-1",
+        "applied",
+        terminalTransaction,
+      ),
+    ).toMatchObject({
+      receiptDigest: applied.receiptDigest,
+      terminalAppended: false,
+      recovered: true,
+    });
+    expect(
+      JSON.stringify(
+        store.findLatestEvent(
+          sessionId,
+          store.SESSION_EXECUTION_LOCATION_RESULT_APPLY_TERMINAL_EVENT,
+        ).data,
+      ),
+    ).not.toContain("private returned summary");
   });
 
   it("recovers response loss after the canonical handoff append", () => {

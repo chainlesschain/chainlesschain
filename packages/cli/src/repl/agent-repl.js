@@ -80,6 +80,16 @@ import {
 } from "../lib/session-host-snapshot.js";
 import { acquireSessionHostLease } from "../lib/session-host-lease.js";
 import {
+  openProductionSessionBudgetRoot,
+  sessionBudgetAdmissionError,
+} from "../lib/session-budget-production-root.js";
+import {
+  beginSessionBudgetUsage,
+  markSessionBudgetUsageUnknown,
+  recordSessionBudgetUsage,
+  rejectSessionBudgetUsageUnknown,
+} from "../lib/session-budget-usage.js";
+import {
   SideEffectLedger,
   classifyToolSideEffect,
   reconcileSideEffects,
@@ -236,6 +246,29 @@ export function resolveReplMeteredSessionId(useJsonl, sessionId) {
   return useJsonl && sessionId ? sessionId : null;
 }
 
+export function combineReplSignals(...signals) {
+  const active = [...new Set(signals.filter(Boolean))];
+  if (active.length === 0) return null;
+  if (active.length === 1) return active[0];
+  return AbortSignal.any(active);
+}
+
+export async function closeReplSessionBudgetRootScope(scope) {
+  const root = scope?.root || null;
+  if (!root) return false;
+  const closed = await root.close();
+  scope.root = null;
+  return closed;
+}
+
+function releaseReplSessionHostLeaseScope(scope) {
+  const lease = scope?.lease || null;
+  if (!lease) return false;
+  const released = lease.release?.();
+  scope.lease = null;
+  return released;
+}
+
 function attachReplCompactionLedgerMetadata(error, callId, settled) {
   let target = error;
   if (!target || (typeof target !== "object" && typeof target !== "function")) {
@@ -293,6 +326,7 @@ export async function runReplMeteredModelCallWithLedger({
   provider,
   model,
   source = "model",
+  sessionBudget = null,
   call,
   attachErrorMetadata = false,
 }) {
@@ -311,6 +345,7 @@ export async function runReplMeteredModelCallWithLedger({
       provider,
       model,
       source,
+      sessionBudget,
       call,
     });
     return Object.freeze({ result, callId, usageLedgerSettled });
@@ -545,7 +580,7 @@ async function _persistAlwaysAllow(tool, args) {
 /**
  * Execute a tool call — delegates to agent-core with REPL's hookDb and cwd.
  */
-async function executeTool(name, args) {
+async function executeTool(name, args, context = {}) {
   return coreExecuteTool(name, args, {
     hookDb: _hookDb,
     cwd: process.cwd(),
@@ -556,6 +591,9 @@ async function executeTool(name, args) {
     settingsHooks: _settingsHooks,
     classifyAllShell: _classifyAllShell,
     sandbox: _sandbox,
+    sessionId: context.sessionId || null,
+    sessionBudget: context.sessionBudget || null,
+    signal: context.signal || null,
   });
 }
 
@@ -938,6 +976,11 @@ export async function agentLoop(messages, options) {
           persistTokenUsage(options.sessionId, projectRuntimeTokenUsage(event)),
         );
       }
+      recordSessionBudgetUsage(
+        options.sessionBudget,
+        event,
+        "REPL usage settlement",
+      );
     } else if (
       event.type === "model-usage-started" ||
       event.type === "model-usage-unknown" ||
@@ -965,6 +1008,15 @@ export async function agentLoop(messages, options) {
             ),
           ),
         );
+      }
+      if (event.type === "model-usage-started") {
+        beginSessionBudgetUsage(
+          options.sessionBudget,
+          event,
+          "REPL provider call",
+        );
+      } else if (markSessionBudgetUsageUnknown(options.sessionBudget, event)) {
+        rejectSessionBudgetUsageUnknown(event, "REPL provider call");
       }
     } else if (event.type === "iteration-warning") {
       writeOut(chalk.yellow(`\n  ${event.message}\n`));
@@ -2630,6 +2682,17 @@ export async function runReplStartupBoundary(options, startupDependencies) {
     }
     return refuseStartup(options, startupCandidate);
   }
+  if (
+    options.sessionBudgetRoot?.enabled === true &&
+    startupAdmission.useJsonl !== true
+  ) {
+    throw Object.assign(
+      new Error(
+        "session budget root requires durable JSONL session persistence, but JSONL storage is unavailable",
+      ),
+      { code: "CC_SESSION_BUDGET_JSONL_REQUIRED" },
+    );
+  }
 
   // Only a frozen, branded admission capability may cross into workspace,
   // pipe, config, plugin, hook, MCP, model, or tool initialization.
@@ -2660,6 +2723,7 @@ export async function runReplStartupBoundary(options, startupDependencies) {
     null,
   );
   const leaseScope = options._sessionHostLeaseScope || null;
+  const budgetScope = options._sessionBudgetRootScope || null;
   const leaseSessionId = startupCandidate?.sessionId || options.sessionId;
   if (
     leaseScope &&
@@ -2669,9 +2733,79 @@ export async function runReplStartupBoundary(options, startupDependencies) {
   ) {
     leaseScope.lease = acquireHostLease(leaseSessionId, { hostKind: "repl" });
   }
+  let workspaceOptions = options;
+  if (options.sessionBudgetRoot?.enabled === true) {
+    if (!leaseSessionId || !leaseScope?.lease) {
+      throw Object.assign(
+        new Error(
+          "session budget root requires an acquired REPL host lease for its durable session",
+        ),
+        { code: "CC_SESSION_BUDGET_LEASE_REQUIRED" },
+      );
+    }
+    if (!budgetScope || budgetScope.root) {
+      throw Object.assign(
+        new Error("REPL session budget root scope is invalid"),
+        { code: "CC_SESSION_BUDGET_SCOPE_INVALID" },
+      );
+    }
+    const openBudgetRoot = dependencyDataFunction(
+      startupDependencies,
+      "openProductionSessionBudgetRoot",
+      null,
+    );
+    if (typeof openBudgetRoot !== "function") {
+      throw invalidReplRecovery(
+        "REPL session budget root dependency is missing",
+        "CC_REPL_STARTUP_DEPENDENCY_INVALID",
+      );
+    }
+    const root = openBudgetRoot(
+      leaseSessionId,
+      options.sessionBudgetRoot,
+      {
+        persist: true,
+        signal: combineReplSignals(options.signal, leaseScope.lease.signal),
+        table: options.sessionBudgetRoot.table,
+      },
+    );
+    if (
+      root?.enabled !== true ||
+      !root.budget ||
+      !root.options ||
+      root.options.sessionBudget !== root.budget ||
+      typeof root.close !== "function"
+    ) {
+      try {
+        root?.close?.();
+      } catch {
+        // The invalid root is rejected regardless of cleanup outcome.
+      }
+      throw Object.assign(new Error("REPL session budget root is invalid"), {
+        code: "CC_SESSION_BUDGET_ROOT_INVALID",
+      });
+    }
+    if (root.budget.signal?.aborted === true) {
+      const admissionError = sessionBudgetAdmissionError(
+        root.budget.reason?.(),
+        "REPL startup",
+      );
+      try {
+        await root.close();
+      } catch (cleanupError) {
+        throw new AggregateError(
+          [admissionError, cleanupError],
+          "REPL budget admission and authority cleanup both failed",
+        );
+      }
+      throw admissionError;
+    }
+    budgetScope.root = root;
+    workspaceOptions = { ...options, ...root.options };
+  }
   const trustedWorkspaceRoot = readCwd();
   return enterWorkspace(trustedWorkspaceRoot, () =>
-    startWorkspace(options, startupAdmission),
+    startWorkspace(workspaceOptions, startupAdmission),
   );
 }
 
@@ -2681,26 +2815,34 @@ export function startReplJsonlSession(
   requestedId,
   meta,
   observabilityScope,
+  options = {},
 ) {
+  const requireDurable =
+    observabilityScope != null || options.requireDurable === true;
   try {
     const sessionId = startSession(requestedId, {
       ...meta,
       ...(observabilityScope != null ? { observabilityScope } : {}),
     });
     if (
-      observabilityScope != null &&
+      requireDurable &&
       (typeof sessionId !== "string" || !sessionId)
     ) {
       throw new Error("JSONL session creation returned no durable session id");
     }
     return sessionId || null;
   } catch (error) {
-    if (observabilityScope == null) return null;
+    if (!requireDurable) return null;
     const failure = new Error(
-      "scoped JSONL session could not be durably created",
+      observabilityScope != null
+        ? "scoped JSONL session could not be durably created"
+        : "budgeted JSONL session could not be durably created",
       { cause: error },
     );
-    failure.code = "CC_OBSERVABILITY_SCOPE_START_FAILED";
+    failure.code =
+      observabilityScope != null
+        ? "CC_OBSERVABILITY_SCOPE_START_FAILED"
+        : "CC_SESSION_BUDGET_SESSION_START_FAILED";
     throw failure;
   }
 }
@@ -2708,23 +2850,45 @@ export function startReplJsonlSession(
 /** Start the agentic REPL with non-overridable production bindings. */
 export async function startAgentRepl(options = {}) {
   const sessionHostLeaseScope = { lease: null };
+  const sessionBudgetRootScope = { root: null };
   const runtimeOptions = {
     ...options,
     _sessionHostLeaseScope: sessionHostLeaseScope,
+    _sessionBudgetRootScope: sessionBudgetRootScope,
   };
   try {
     const result = await runReplStartupBoundary(runtimeOptions, {
       prepareReplStartupResume,
       refuseReplStartupResume,
       acquireSessionHostLease,
+      openProductionSessionBudgetRoot,
       cwd: () => process.cwd(),
       runWithHostHooksV2Workspace,
       startAgentReplInWorkspace,
     });
-    if (result?.started === false) sessionHostLeaseScope.lease?.release?.();
+    if (result?.started === false) {
+      await closeReplSessionBudgetRootScope(sessionBudgetRootScope);
+      releaseReplSessionHostLeaseScope(sessionHostLeaseScope);
+    }
     return result;
   } catch (error) {
-    sessionHostLeaseScope.lease?.release?.();
+    const cleanupErrors = [];
+    try {
+      await closeReplSessionBudgetRootScope(sessionBudgetRootScope);
+    } catch (cleanupError) {
+      cleanupErrors.push(cleanupError);
+    }
+    try {
+      releaseReplSessionHostLeaseScope(sessionHostLeaseScope);
+    } catch (cleanupError) {
+      cleanupErrors.push(cleanupError);
+    }
+    if (cleanupErrors.length > 0) {
+      throw new AggregateError(
+        [error, ...cleanupErrors],
+        "REPL startup and authority cleanup both failed",
+      );
+    }
     throw error;
   }
 }
@@ -2802,6 +2966,8 @@ async function startAgentReplInWorkspaceOwned(
     }
   };
   const _sessionHostLeaseScope = options._sessionHostLeaseScope || null;
+  const _sessionBudgetRootScope = options._sessionBudgetRootScope || null;
+  const _sessionBudget = options.sessionBudget || null;
   let _sessionHostLeaseAbortListener = null;
   let _sessionHostLeaseAbortSignal = null;
   const _detachSessionHostLease = () => {
@@ -2840,6 +3006,35 @@ async function startAgentReplInWorkspaceOwned(
     return previous;
   };
   _attachSessionHostLease();
+  let _sessionBudgetAbortListener = null;
+  let _sessionBudgetAbortSignal = null;
+  const _detachSessionBudget = () => {
+    if (_sessionBudgetAbortListener && _sessionBudgetAbortSignal) {
+      _sessionBudgetAbortSignal.removeEventListener(
+        "abort",
+        _sessionBudgetAbortListener,
+      );
+    }
+    _sessionBudgetAbortListener = null;
+    _sessionBudgetAbortSignal = null;
+  };
+  const _attachSessionBudget = () => {
+    const signal = _sessionBudget?.signal;
+    if (!signal || _sessionBudgetAbortListener) return;
+    _sessionBudgetAbortListener = () =>
+      _requestReplOutputClose(
+        sessionBudgetAdmissionError(
+          _sessionBudget.reason?.() || "session-aborted",
+          "REPL session",
+        ),
+      );
+    _sessionBudgetAbortSignal = signal;
+    signal.addEventListener("abort", _sessionBudgetAbortListener, {
+      once: true,
+    });
+    if (signal.aborted) _sessionBudgetAbortListener();
+  };
+  _attachSessionBudget();
   const _replOutputFlow = outputScope.flow;
   outputScope.setFailureHandler(_requestReplOutputClose);
   const _disposeReplPipeSafety = installPipeSafety(undefined, () =>
@@ -2895,7 +3090,8 @@ async function startAgentReplInWorkspaceOwned(
         provider: callProvider || provider,
         model: callModel || model,
         source,
-        call,
+        sessionBudget: _sessionBudget,
+        call: () => call({ signal: options.signal || null }),
         attachErrorMetadata: includeLedgerMetadata,
       });
       return includeLedgerMetadata ? metered : metered.result;
@@ -2926,7 +3122,12 @@ async function startAgentReplInWorkspaceOwned(
         sessionId: durableSessionId,
         tool,
         args,
-        execute: executeTool,
+        execute: (name, toolArgs) =>
+          executeTool(name, toolArgs, {
+            sessionId: durableSessionId,
+            sessionBudget: _sessionBudget,
+            signal: options.signal || null,
+          }),
         now: options.now || Date.now,
         terminalLatch: _runtimeLedgerTerminalLatch,
       });
@@ -3089,13 +3290,13 @@ async function startAgentReplInWorkspaceOwned(
           callModel: model,
           source: "semantic-compaction",
           includeLedgerMetadata: true,
-          call: () =>
+          call: ({ signal }) =>
             chatWithTools([{ role: "user", content: prompt }], {
               provider,
               model,
               baseUrl,
               apiKey,
-              signal: _sessionHostLeaseScope?.lease?.signal,
+              signal,
               enabledToolNames: [],
               extraToolDefinitions: [],
               hostManagedToolPolicy: null,
@@ -3535,6 +3736,7 @@ async function startAgentReplInWorkspaceOwned(
         options.sessionId || null,
         meta,
         options.observabilityScope,
+        { requireDurable: Boolean(_sessionBudget) },
       );
       if (
         sessionId &&
@@ -4410,7 +4612,11 @@ async function startAgentReplInWorkspaceOwned(
           callProvider: request?.provider,
           callModel: request?.model,
           source: "model",
-          call: () => invokeToolFreeAdvisor(request),
+          call: ({ signal }) =>
+            invokeToolFreeAdvisor({
+              ...request,
+              signal: combineReplSignals(request?.signal, signal),
+            }),
         }),
       onEvent: (event) => {
         if (!useJsonl || !sessionId) return;
@@ -6953,6 +7159,14 @@ async function startAgentReplInWorkspaceOwned(
       if (sessionArg.startsWith("resume ")) {
         const resumeId = sessionArg.slice(7).trim();
         try {
+          if (_sessionBudget && resumeId !== sessionId) {
+            throw Object.assign(
+              new Error(
+                "a budgeted REPL is bound to its startup session; exit and restart to resume another session",
+              ),
+              { code: "CC_SESSION_BUDGET_REPL_SWITCH_UNSUPPORTED" },
+            );
+          }
           if (useJsonl) {
             const initialCandidate = _prepareJsonlResumeCandidate(resumeId);
             if (!initialCandidate.ok) throw initialCandidate.error;
@@ -9084,7 +9298,7 @@ async function startAgentReplInWorkspaceOwned(
         // of hanging forever. undefined → agent-core's 180s default (matches cc
         // chat/ask); config.llm.streamStallTimeoutMs tunes or disables (0).
         streamStallTimeoutMs: _streamStallTimeoutMs,
-        signal: _turnAbort.signal,
+        signal: combineReplSignals(_turnAbort.signal, options.signal),
         // On an auto-detected image turn, switch to the vision LLM for this
         // turn only (provider/baseUrl/apiKey unchanged, model → vision model).
         provider: _visionLlm ? _visionLlm.provider : provider,
@@ -9200,12 +9414,13 @@ async function startAgentReplInWorkspaceOwned(
               callProvider: provider,
               callModel: activeModel,
               source: "model",
-              call: () =>
+              call: ({ signal }) =>
                 chatWithTools([{ role: "user", content: p }], {
                   model: activeModel,
                   provider,
                   baseUrl,
                   apiKey,
+                  signal,
                   enabledToolNames: [],
                 }),
             });
@@ -9743,9 +9958,15 @@ async function startAgentReplInWorkspaceOwned(
     }
 
     // Shutdown runtime
+    _detachSessionBudget();
+    try {
+      await closeReplSessionBudgetRootScope(_sessionBudgetRootScope);
+    } catch (error) {
+      _replOutputFailure ||= error;
+    }
     _detachSessionHostLease();
     try {
-      _sessionHostLeaseScope?.lease?.release?.();
+      releaseReplSessionHostLeaseScope(_sessionHostLeaseScope);
     } catch (error) {
       _replOutputFailure ||= error;
     }

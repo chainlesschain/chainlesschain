@@ -32,6 +32,7 @@ import {
   getSession as dbGetSession,
   listSessions as dbListSessions,
   updateSession as dbUpdateSession,
+  deleteSession as dbDeleteSession,
 } from "../../lib/session-manager.js";
 import { buildSystemPrompt } from "../../runtime/agent-core.js";
 import { SubAgentRegistry } from "../../lib/sub-agent-registry.js";
@@ -136,6 +137,7 @@ function bindSessionHooksV2Workspace(
  * @property {string|null} rulesContent
  * @property {string[]} enabledToolNames
  * @property {object|null} hostManagedToolPolicy
+ * @property {object|null} sessionBudgetRoot
  * @property {Array<object>} externalToolDefinitions
  * @property {object} externalToolDescriptors
  * @property {object} externalToolExecutors
@@ -398,6 +400,8 @@ export class WSSessionManager {
    * @param {string} [options.apiKey]
    * @param {string} [options.baseUrl]
    * @param {object} [options.hostManagedToolPolicy]
+   * @param {object} [options.sessionBudgetRoot]
+   * @param {boolean} [options.requireDurable=false]
    * @returns {{ sessionId: string }}
    */
   createSession(options = {}) {
@@ -407,6 +411,14 @@ export class WSSessionManager {
       );
     }
     const sessionId = this._generateId();
+    const requireDurable = options.requireDurable === true;
+    if (requireDurable && !this.db) {
+      const error = new Error(
+        "Durable WebSocket session creation requires a configured database",
+      );
+      error.code = "CC_WS_DURABLE_SESSION_REQUIRED";
+      throw error;
+    }
     const type = options.type || "agent";
     const baseProjectRoot = options.projectRoot || this.defaultProjectRoot;
     const hostAuthorizedBaseRoot =
@@ -479,6 +491,7 @@ export class WSSessionManager {
     const messages = [{ role: "system", content: systemPrompt }];
 
     // Persist to DB
+    let databaseCreated = false;
     if (this.db) {
       try {
         dbCreateSession(this.db, {
@@ -488,8 +501,17 @@ export class WSSessionManager {
           model: model || "",
           messages,
         });
-      } catch (_err) {
-        // Non-critical
+        databaseCreated = true;
+      } catch (error) {
+        if (requireDurable) {
+          this._discardSessionResources({
+            planManager,
+            worktree,
+            baseProjectRoot,
+          });
+          error.code ||= "CC_WS_SESSION_PERSISTENCE_FAILED";
+          throw error;
+        }
       }
     }
 
@@ -505,6 +527,7 @@ export class WSSessionManager {
       mcpClient: this.mcpClient,
       enabledToolNames,
       hostManagedToolPolicy: options.hostManagedToolPolicy || null,
+      sessionBudgetRoot: options.sessionBudgetRoot || null,
       externalToolDefinitions: externalTools.definitions,
       externalToolDescriptors: externalTools.descriptors,
       externalToolExecutors: externalTools.executors,
@@ -540,13 +563,33 @@ export class WSSessionManager {
       },
     );
 
-    if (this.db) {
+    if (this.db && databaseCreated) {
       try {
         dbUpdateSession(this.db, sessionId, {
           metadata: this._serializeSessionMetadata(session),
         });
-      } catch (_err) {
-        // Non-critical
+      } catch (error) {
+        if (requireDurable) {
+          const cleanupErrors = [];
+          try {
+            this._discardSessionResources(session);
+          } catch (cleanupError) {
+            cleanupErrors.push(cleanupError);
+          }
+          try {
+            dbDeleteSession(this.db, sessionId);
+          } catch (cleanupError) {
+            cleanupErrors.push(cleanupError);
+          }
+          error.code ||= "CC_WS_SESSION_PERSISTENCE_FAILED";
+          if (cleanupErrors.length > 0) {
+            throw new AggregateError(
+              [error, ...cleanupErrors],
+              "Durable WebSocket session creation and rollback both failed",
+            );
+          }
+          throw error;
+        }
       }
     }
 
@@ -554,6 +597,57 @@ export class WSSessionManager {
     this.sessions.set(sessionId, session);
 
     return { sessionId };
+  }
+
+  /**
+   * Remove a newly-created session that was never exposed to a client.
+   * Unlike closeSession(), this compensates the database insert instead of
+   * persisting a misleading closed session after bootstrap failed.
+   */
+  rollbackSessionCreation(sessionId) {
+    const session = this.sessions.get(sessionId);
+    const cleanupErrors = [];
+    if (session) {
+      try {
+        this._discardSessionResources(session);
+      } catch (error) {
+        cleanupErrors.push(error);
+      }
+      this.sessions.delete(sessionId);
+    }
+    if (this.db) {
+      try {
+        dbDeleteSession(this.db, sessionId);
+      } catch (error) {
+        cleanupErrors.push(error);
+      }
+    }
+    if (cleanupErrors.length > 0) {
+      throw new AggregateError(
+        cleanupErrors,
+        `WebSocket session creation rollback failed: ${sessionId}`,
+      );
+    }
+    return Boolean(session);
+  }
+
+  _discardSessionResources(session) {
+    if (!session) return;
+    if (
+      session._releaseHooksV2WorkspaceBindingOnClose === true &&
+      session.hooksV2WorkspaceBindingId
+    ) {
+      releaseRegisteredHostHooksV2Workspace(session.hooksV2WorkspaceBindingId);
+    }
+    if (typeof session._planPersistenceCleanup === "function") {
+      session._planPersistenceCleanup();
+    }
+    session.planManager?.removeAllListeners?.();
+    if (session.worktree?.path && session.baseProjectRoot) {
+      removeWorktree(session.baseProjectRoot, session.worktree.path, {
+        deleteBranch: true,
+      });
+    }
   }
 
   /**
@@ -645,6 +739,7 @@ export class WSSessionManager {
           metadata.enabledToolNames,
         ),
         hostManagedToolPolicy: metadata.hostManagedToolPolicy || null,
+        sessionBudgetRoot: metadata.sessionBudgetRoot || null,
         externalToolDefinitions: externalTools.definitions,
         externalToolDescriptors: externalTools.descriptors,
         externalToolExecutors: externalTools.executors,
@@ -1545,6 +1640,7 @@ export class WSSessionManager {
       baseProjectRoot: session.baseProjectRoot || session.projectRoot || null,
       baseUrl: session.baseUrl || null,
       hostManagedToolPolicy: session.hostManagedToolPolicy || null,
+      sessionBudgetRoot: session.sessionBudgetRoot || null,
       enabledToolNames: session.enabledToolNames || [],
       canonicalHostSystemPrefix: Array.isArray(
         session._canonicalHostSystemPrefix,

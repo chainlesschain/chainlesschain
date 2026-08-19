@@ -563,6 +563,25 @@ describe("cowork-task-runner", () => {
     expect(loopOpts.shellPolicyOverrides).toBeUndefined();
   });
 
+  it("forwards managed checkpoint options to the sub-agent loop", async () => {
+    await runCoworkTask({
+      templateId: "doc-convert",
+      userMessage: "转换文件并保留检查点",
+      managedCheckpoint: true,
+      managedCheckpointStateDir: "C:/durable/checkpoints",
+      managedCheckpointExclusions: [".chainlesschain/cowork/workflow-runs"],
+    });
+
+    expect(_mockRun).toHaveBeenCalledWith(
+      "转换文件并保留检查点",
+      expect.objectContaining({
+        managedCheckpoint: true,
+        managedCheckpointStateDir: "C:/durable/checkpoints",
+        managedCheckpointExclusions: [".chainlesschain/cowork/workflow-runs"],
+      }),
+    );
+  });
+
   // ─── History persistence ─────────────────────────────────
 
   it("appends completed task to history.jsonl", async () => {

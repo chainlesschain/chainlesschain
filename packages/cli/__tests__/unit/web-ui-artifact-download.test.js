@@ -12,6 +12,7 @@ import os from "node:os";
 import path from "node:path";
 import { handleApiRequest } from "../../src/lib/web-ui-server.js";
 import { ArtifactStore } from "../../src/lib/artifact-store.js";
+import { readArtifactAccessLedger } from "../../src/lib/artifact-access-ledger.js";
 
 let dir;
 let srcDir;
@@ -76,9 +77,34 @@ describe("GET /api/artifacts/<id>/download", () => {
     expect(res.headers.get("content-disposition")).toContain("attachment");
     expect(res.headers.get("content-disposition")).toContain("weekly.md");
     expect(Number(res.headers.get("content-length"))).toBe(body.length);
+    expect(res.headers.get("x-chainlesschain-access-digest")).toMatch(
+      /^sha256:[a-f0-9]{64}$/u,
+    );
     const text = await res.text();
     expect(text).toHaveLength(body.length);
     expect(text.endsWith("END")).toBe(true);
+    const ledger = readArtifactAccessLedger(new ArtifactStore());
+    expect(ledger.events).toMatchObject([
+      { artifactId: e.id, client: "web", action: "download" },
+    ]);
+  });
+
+  it("deduplicates an HTTP response-loss retry with a stable access id", async () => {
+    const e = publish("retry.txt", "same bytes");
+    await startServer({});
+    const request = () =>
+      fetch(`${baseUrl}/api/artifacts/${e.id}/download`, {
+        headers: { "X-ChainlessChain-Access-Id": "web-download-retry" },
+      });
+    const first = await request();
+    const second = await request();
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(first.headers.get("x-chainlesschain-access-digest")).toBe(
+      second.headers.get("x-chainlesschain-access-digest"),
+    );
+    expect(readArtifactAccessLedger(new ArtifactStore()).eventCount).toBe(1);
   });
 
   it("enforces the token when configured: Bearer and ?token= pass, wrong/absent fail", async () => {

@@ -5,6 +5,13 @@ import {
   projectRuntimeUsageBoundary,
   runtimeUsageEventType,
 } from "./runtime-usage-ledger.js";
+import { sessionBudgetAdmissionError } from "./session-budget-production-root.js";
+import {
+  beginSessionBudgetUsage,
+  markSessionBudgetUsageUnknown,
+  recordSessionBudgetUsage,
+  rejectSessionBudgetUsageUnknown,
+} from "./session-budget-usage.js";
 
 function asRuntimeLedgerPersistenceError(error) {
   if (error && (typeof error === "object" || typeof error === "function")) {
@@ -47,36 +54,53 @@ export async function runMeteredDirectModelCall({
   provider,
   model,
   source = "model",
+  sessionBudget = null,
   call,
 }) {
   if (typeof call !== "function") {
     throw new TypeError("metered direct model call requires a callback");
   }
+  const callId = `direct-${randomUUID()}`;
+  if (typeof sessionBudget?.consumeTurn === "function") {
+    const admission = sessionBudget.consumeTurn({ id: callId });
+    if (!admission?.ok) {
+      throw sessionBudgetAdmissionError(
+        admission?.reason,
+        `direct model call ${source}`,
+      );
+    }
+  }
   if (!sessionId) return call();
   if (typeof persist !== "function") {
     throw new TypeError("metered direct model call requires persistence");
   }
-  const callId = `direct-${randomUUID()}`;
   await persistUsageEvent(
     persist,
     runtimeUsageEventType("started"),
     projectRuntimeUsageBoundary({ callId, provider, model, source }, "started"),
   );
+  beginSessionBudgetUsage(
+    sessionBudget,
+    { callId, provider, model, source },
+    `direct model call ${source}`,
+  );
   let result;
   try {
     result = await call();
   } catch (error) {
+    const unknown = unknownUsageEvent({
+      callId,
+      provider,
+      model,
+      source,
+      code: "provider_call_failed",
+    });
     await persistUsageEvent(
       persist,
       runtimeUsageEventType("unknown"),
-      unknownUsageEvent({
-        callId,
-        provider,
-        model,
-        source,
-        code: "provider_call_failed",
-      }),
+      unknown,
     );
+    markSessionBudgetUsageUnknown(sessionBudget, unknown);
     throw error;
   }
   if (result?.usage && typeof result.usage === "object") {
@@ -90,32 +114,48 @@ export async function runMeteredDirectModelCall({
         usage: result.usage,
       });
     } catch {
-      await persistUsageEvent(
-        persist,
-        runtimeUsageEventType("unknown"),
-        unknownUsageEvent({
-          callId,
-          provider,
-          model,
-          source,
-          code: "provider_usage_missing",
-        }),
-      );
-      return result;
-    }
-    await persistUsageEvent(persist, "token_usage", event);
-  } else {
-    await persistUsageEvent(
-      persist,
-      runtimeUsageEventType("unknown"),
-      unknownUsageEvent({
+      const unknown = unknownUsageEvent({
         callId,
         provider,
         model,
         source,
         code: "provider_usage_missing",
-      }),
+      });
+      await persistUsageEvent(
+        persist,
+        runtimeUsageEventType("unknown"),
+        unknown,
+      );
+      if (markSessionBudgetUsageUnknown(sessionBudget, unknown)) {
+        rejectSessionBudgetUsageUnknown(
+          unknown,
+          `direct model call ${source}`,
+        );
+      }
+      return result;
+    }
+    await persistUsageEvent(persist, "token_usage", event);
+    recordSessionBudgetUsage(
+      sessionBudget,
+      event,
+      `direct model call ${source} usage settlement`,
     );
+  } else {
+    const unknown = unknownUsageEvent({
+      callId,
+      provider,
+      model,
+      source,
+      code: "provider_usage_missing",
+    });
+    await persistUsageEvent(
+      persist,
+      runtimeUsageEventType("unknown"),
+      unknown,
+    );
+    if (markSessionBudgetUsageUnknown(sessionBudget, unknown)) {
+      rejectSessionBudgetUsageUnknown(unknown, `direct model call ${source}`);
+    }
   }
   return result;
 }

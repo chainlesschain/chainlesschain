@@ -2,6 +2,28 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.57] - Audited artifact access and deletion settlement (2026-08-19)
+
+- Recommend the fully gated public CLI `chainlesschain@0.165.2` for existing
+  stable IDE surfaces. That npm release predates the paired Artifact audit and
+  deletion-settlement commands below, so these new actions intentionally fail
+  closed until a subsequent exact-gated CLI release contains them.
+- Route preview, browser-open, copy-path, reveal, and download actions through
+  the CLI's audited `artifacts access` authority before exposing stored bytes.
+  Missing, stale, malformed, or out-of-store paths now fail closed.
+- Give every artifact removal a stable client-scoped deletion identifier and
+  report it when settlement is uncertain, so a retry can recover the accepted
+  deletion without issuing a second destructive operation.
+- Paired CLI change: `artifacts access`/`access-log` now revalidate the unique
+  current index row, safe managed filename, regular single-link bytes, size,
+  SHA-256, and lineage before returning a path, and first append a content-free
+  hash-chained audit event. An exact stable access-id retry returns that event.
+- Paired CLI change: `artifacts remove --client --deletion-id` records a
+  prepared event before index mutation and a terminal event only after the
+  managed path is absent; `deletion-log` exposes the settlement and an exact-id
+  retry recovers either crash window. This removes only the managed copy and
+  does not claim secure erasure of external hardlinks, backups, or snapshots.
+
 ## [0.37.56] - Secure LLM setup repair (2026-08-18)
 
 - Write API keys only through `cc config set-secret llm.apiKey` on stdin, so

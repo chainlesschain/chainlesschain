@@ -109,8 +109,10 @@ import { buildPermissionDecision } from "../lib/permission-decision.js";
 import { resolveSandboxPolicyPath } from "../lib/agent-sandbox.js";
 import {
   beginManagedToolCheckpoint,
+  managedToolCheckpointBinding,
   settleManagedToolCheckpoint,
 } from "../lib/managed-tool-checkpoint.js";
+import { sessionBudgetAdmissionError } from "../lib/session-budget-production-root.js";
 import {
   createMcpCallLedger,
   McpEffect,
@@ -3570,6 +3572,35 @@ export async function executeTool(name, args, context = {}) {
     }
   }
 
+  let sessionBudgetTool = null;
+  if (typeof context.sessionBudget?.beginTool === "function") {
+    const toolBinding = JSON.stringify({
+      sessionId: context.sessionId || null,
+      turnId: context.turnId || null,
+      toolCallId: context.toolCallId || randomUUID(),
+      tool: name,
+    });
+    const toolBudgetId = `tool:${createHash("sha256")
+      .update(toolBinding, "utf8")
+      .digest("hex")
+      .slice(0, 48)}`;
+    sessionBudgetTool = context.sessionBudget.beginTool({
+      id: toolBudgetId,
+      kind: String(name || "tool").slice(0, 128),
+    });
+    if (!sessionBudgetTool?.ok) {
+      return {
+        error: `Session budget blocked tool execution: ${sessionBudgetTool?.reason || "session-aborted"}`,
+        code: "CC_SESSION_BUDGET_EXHAUSTED",
+        budgetReason: sessionBudgetTool?.reason || "session-aborted",
+        policy: {
+          decision: "blocked",
+          via: "session-budget",
+        },
+      };
+    }
+  }
+
   const startTime = Date.now();
   let toolResult;
   try {
@@ -3598,6 +3629,7 @@ export async function executeTool(name, args, context = {}) {
       strictUsageTelemetry: context.strictUsageTelemetry === true,
       onUsageBoundary: context.onUsageBoundary || null,
       onUsageSettlement: context.onUsageSettlement || null,
+      onProviderReceipt: context.onProviderReceipt || null,
       onToolCallBoundary: context.onToolCallBoundary || null,
       onToolCallSettlement: context.onToolCallSettlement || null,
       backgroundUsageFailureState: context.backgroundUsageFailureState || null,
@@ -3661,6 +3693,8 @@ export async function executeTool(name, args, context = {}) {
       }
     }
     throw err;
+  } finally {
+    sessionBudgetTool?.end?.();
   }
 
   const durationMs = Date.now() - startTime;
@@ -5014,6 +5048,7 @@ async function executeToolInner(
     strictUsageTelemetry = false,
     onUsageBoundary = null,
     onUsageSettlement = null,
+    onProviderReceipt = null,
     onToolCallBoundary = null,
     onToolCallSettlement = null,
     backgroundUsageFailureState = null,
@@ -6763,6 +6798,7 @@ async function executeToolInner(
           strictUsageTelemetry,
           onUsageBoundary,
           onUsageSettlement,
+          onProviderReceipt,
           onToolCallBoundary,
           onToolCallSettlement,
           backgroundUsageFailureState,
@@ -7689,6 +7725,15 @@ async function executeToolInner(
                   projectSkillUsage(event),
                 )
             : null;
+        const observeSkillReceipt =
+          strictUsageTelemetry === true &&
+          typeof onProviderReceipt === "function"
+            ? (event) =>
+                _notifyStrictProviderReceipt(
+                  onProviderReceipt,
+                  projectSkillUsage(event),
+                )
+            : null;
         const projectSkillTool = (event) => ({
           ...event,
           attribution: event?.attribution || projectSkillUsage({}).attribution,
@@ -7781,6 +7826,9 @@ async function executeToolInner(
                   strictUsageTelemetry: true,
                   onUsageBoundary: observeSkillBoundary,
                   onUsageSettlement: observeSkillSettlement,
+                  ...(observeSkillReceipt
+                    ? { onProviderReceipt: observeSkillReceipt }
+                    : {}),
                   onToolCallBoundary: observeSkillToolBoundary,
                   onToolCallSettlement: observeSkillToolSettlement,
                 }
@@ -9642,6 +9690,20 @@ async function _executeSpawnSubAgent(args, ctx) {
           }
         }
       : null;
+  const observeSubagentReceipt =
+    ctx.strictUsageTelemetry === true &&
+    typeof ctx.onProviderReceipt === "function"
+      ? (event) => {
+          try {
+            return _notifyStrictProviderReceipt(
+              ctx.onProviderReceipt,
+              projectSubagentUsage(event),
+            );
+          } catch (error) {
+            throw latchBackgroundUsageFailure(error);
+          }
+        }
+      : null;
   const projectSubagentTool = (event) => ({
     ...event,
     attribution:
@@ -9751,6 +9813,9 @@ async function _executeSpawnSubAgent(args, ctx) {
           strictUsageTelemetry: true,
           onUsageBoundary: observeSubagentBoundary,
           onUsageSettlement: observeSubagentSettlement,
+          ...(observeSubagentReceipt
+            ? { onProviderReceipt: observeSubagentReceipt }
+            : {}),
           onToolCallBoundary: observeSubagentToolBoundary,
           onToolCallSettlement: observeSubagentToolSettlement,
         }
@@ -12093,6 +12158,38 @@ function _notifyStrictUsageSettlement(observer, settlement) {
   }
 }
 
+function _notifyStrictProviderReceipt(observer, receipt) {
+  if (typeof observer !== "function") return;
+  let observation;
+  try {
+    observation = observer(receipt);
+  } catch (error) {
+    throw _runtimeUsageBoundaryFailure(
+      error,
+      "CC_USAGE_RECEIPT_PERSISTENCE_FAILED",
+      "Child provider receipt persistence failed",
+    );
+  }
+  let isThenable = false;
+  try {
+    isThenable = Boolean(observation && typeof observation.then === "function");
+  } catch (error) {
+    throw _runtimeUsageBoundaryFailure(
+      error,
+      "CC_USAGE_RECEIPT_OBSERVER_ASYNC",
+      "Child provider receipt observer must be synchronous",
+    );
+  }
+  if (isThenable) {
+    void Promise.resolve(observation).catch(() => {});
+    throw _runtimeUsageBoundaryFailure(
+      null,
+      "CC_USAGE_RECEIPT_OBSERVER_ASYNC",
+      "Child provider receipt observer must be synchronous",
+    );
+  }
+}
+
 function _notifyStrictToolObserver(observer, event, phase) {
   const upper = phase.toUpperCase();
   if (typeof observer !== "function") {
@@ -12757,6 +12854,9 @@ export async function* agentLoop(messages, options) {
       ...(typeof options.onUsageSettlement === "function"
         ? { onUsageSettlement: options.onUsageSettlement }
         : {}),
+      ...(typeof options.onProviderReceipt === "function"
+        ? { onProviderReceipt: options.onProviderReceipt }
+        : {}),
       ...(typeof options.onStreamRetry === "function"
         ? { onStreamRetry: options.onStreamRetry }
         : {}),
@@ -12773,6 +12873,7 @@ export async function* agentLoop(messages, options) {
     strictUsageTelemetry: options.strictUsageTelemetry === true,
     onUsageBoundary: options.onUsageBoundary || null,
     onUsageSettlement: options.onUsageSettlement || null,
+    onProviderReceipt: options.onProviderReceipt || null,
     onToolCallBoundary: options.onToolCallBoundary || null,
     onToolCallSettlement: options.onToolCallSettlement || null,
     parentMessages: messages, // pass parent messages for sub-agent auto-condensation
@@ -13013,6 +13114,21 @@ export async function* agentLoop(messages, options) {
   let emptyThinkingReprompted = false;
 
   while (budget.hasRemaining()) {
+    if (typeof toolContext.sessionBudget?.consumeTurn === "function") {
+      const turnBudgetId = `turn:${createHash("sha256")
+        .update(`${runId}:t${budget.consumed + 1}`, "utf8")
+        .digest("hex")
+        .slice(0, 48)}`;
+      const admission = toolContext.sessionBudget.consumeTurn({
+        id: turnBudgetId,
+      });
+      if (!admission?.ok) {
+        throw sessionBudgetAdmissionError(
+          admission?.reason,
+          `turn ${budget.consumed + 1}`,
+        );
+      }
+    }
     budget.consume();
     throwIfAborted(signal);
 
@@ -14205,6 +14321,13 @@ export async function* agentLoop(messages, options) {
             tool_use_id: call.id,
             turn_id: `${runId}:t${budget.consumed}`,
             ...(workflowBinding || {}),
+            ...(managedCheckpointHandle
+              ? {
+                  managedCheckpointBinding: managedToolCheckpointBinding(
+                    managedCheckpointHandle,
+                  ),
+                }
+              : {}),
           };
           // The event yield is a host persistence boundary. A detached child's
           // fatal usage write can settle while the consumer handles it; fence

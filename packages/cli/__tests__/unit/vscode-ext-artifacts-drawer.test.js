@@ -11,6 +11,7 @@ import {
   ARTIFACT_KINDS,
   buildArtifactsListArgs,
   buildArtifactsShowArgs,
+  buildArtifactsAccessArgs,
   buildArtifactsRemoveArgs,
   defaultArtifactsDir,
   formatSize,
@@ -49,12 +50,30 @@ describe("build*Args", () => {
       "art_1",
       "--json",
     ]);
+    expect(buildArtifactsAccessArgs("art_1", "preview")).toEqual([
+      "artifacts",
+      "access",
+      "art_1",
+      "--client",
+      "vscode",
+      "--action",
+      "preview",
+      "--json",
+    ]);
+    expect(
+      buildArtifactsAccessArgs("art_1", "download", "vscode", "stable-access"),
+    ).toContain("stable-access");
     expect(buildArtifactsRemoveArgs("art_1")).toEqual([
       "artifacts",
       "remove",
       "art_1",
+      "--client",
+      "vscode",
       "--json",
     ]);
+    expect(buildArtifactsRemoveArgs("art_1", "stable-delete")).toContain(
+      "stable-delete",
+    );
   });
 });
 

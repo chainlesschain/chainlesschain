@@ -183,6 +183,19 @@ describe("managed checkpoint agent integration", () => {
     const result = events.find((event) => event.type === "tool-result");
 
     expect(prepared).toMatchObject({ phase: "prepared", coverage: "partial" });
+    expect(executing).toMatchObject({
+      managedCheckpointBinding: {
+        schema: "cc-managed-tool-checkpoint-binding/v1",
+        authority: "process-broker-workspace-transaction-prepared",
+        transactionId: prepared.transaction_id,
+        checkpointId: prepared.id,
+        checkpointDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+        preparedStateDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+        coverage: "partial",
+        fileCoverage: "partial",
+        externalSideEffects: false,
+      },
+    });
     expect(settled).toMatchObject({
       phase: "committed",
       coverage: "partial",
@@ -192,7 +205,9 @@ describe("managed checkpoint agent integration", () => {
     expect(events.indexOf(prepared)).toBeLessThan(events.indexOf(executing));
     expect(events.indexOf(executing)).toBeLessThan(events.indexOf(settled));
     expect(events.indexOf(settled)).toBeLessThan(events.indexOf(result));
-    expect(JSON.stringify([prepared, settled])).not.toContain(secret);
+    expect(
+      JSON.stringify([prepared, executing.managedCheckpointBinding, settled]),
+    ).not.toContain(secret);
   });
 
   it("rolls back and releases the lock when the event consumer stops after prepare", async () => {

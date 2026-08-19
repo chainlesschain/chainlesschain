@@ -150,4 +150,49 @@ describe("SubAgentContext session-wide budget integration", () => {
     });
     budget.dispose();
   });
+
+  it("keeps unknown child provider usage in recovery instead of charging zero", async () => {
+    agentLoop.mockImplementation(async function* () {
+      yield {
+        type: "model-usage-started",
+        callId: "child-unknown-call",
+        provider: "openai",
+        model: "gpt-test",
+        source: "model",
+      };
+      yield {
+        type: "model-usage-unknown",
+        callId: "child-unknown-call",
+        provider: "openai",
+        model: "gpt-test",
+        source: "model",
+        code: "provider_usage_missing",
+      };
+      yield { type: "response-complete", content: "must not succeed" };
+    });
+    const budget = new SessionResourceBudget({ maxTokens: 100 });
+    const context = SubAgentContext.create({
+      role: "worker",
+      task: "work",
+      useWorktree: false,
+      sessionBudget: budget,
+    });
+
+    const result = await context.run("go");
+
+    expect(result.summary).toMatch(
+      /failed: session budget requires usage adjudication/i,
+    );
+    expect(context.status).toBe("failed");
+    expect(budget.status()).toMatchObject({
+      tokens: 0,
+      pendingUsage: 0,
+      pendingRecovery: 1,
+      recoveryRequired: true,
+      reason: "recovery-required",
+      active: 0,
+      resources: 0,
+    });
+    budget.dispose();
+  });
 });

@@ -402,6 +402,19 @@ chainlesschain session location attest <id> <target> \
 chainlesschain session location resume <id> <target> \
   --facts <facts.json> --profile <target-profile.json> \
   --expected-target-facts-digest sha256:<digest>
+chainlesschain session location result-pack <id> \
+  --result-id <id> --summary <summary.txt> --diff <result.diff> \
+  --artifact application/json=<artifact.json> --json
+chainlesschain session location result-verify <id> \
+  --bundle <returned-bundle.json> --expected-handoff-id sha256:<digest>
+chainlesschain session location result-collect <id> <target> \
+  --facts <facts.json> --profile <target-profile.json> \
+  --expected-target-facts-digest sha256:<digest> \
+  --expected-handoff-id sha256:<digest> --request-id <stable-id> \
+  --result-id <id> \
+  --summary <target-summary.txt> --diff <target-result.diff> --json
+chainlesschain session budget status <id>
+chainlesschain session budget receipts <id> --json
 ```
 
 Target attestation and resume support configured WSL, SSH, and existing
@@ -422,6 +435,43 @@ the fixed `session resume` invocation. This is whole-revision transfer, not
 incremental/bidirectional synchronization or a cross-host writer fence;
 remote network/sandbox policy and disconnect/reconnect durability remain
 unattested.
+
+After a replicated target session has produced work, `result-pack` can bind
+the actual bounded summary, diff, artifact, and evidence bytes to that
+session's verified location-handoff authority. Every payload is included as
+canonical base64 with its byte count and SHA-256; all input files must be
+regular single-link files inside the session's declared data boundary. Copy
+the JSON bundle back through an approved transport, then run `result-verify`
+on the source. Verification rehashes every returned byte and succeeds only
+while the source session still has the predecessor head/count accepted by the
+handoff. Its receipt is content-free and explicitly reports `applied=false`:
+this command does not patch the source worktree, import artifacts, fence two
+hosts, or make transport/disconnect claims.
+
+`result-collect` removes the manual-copy step for configured WSL, SSH, and
+Container profiles. It re-attests stable target facts, invokes only the fixed
+target-side `result-pack` argv through the existing strict launcher, accepts a
+bounded JSON response, then revalidates the source predecessor a second time
+before appending one CAS-bound, content-free settlement event and returning the
+bundle. The stable request id is bound to the exact profile, handoff, result,
+paths, and item list. If the caller loses the first response, an exact retry
+reads the canonical settlement before loading handoff facts or running another
+target command. That recovery proves which bundle was accepted but cannot
+recreate bytes from a legacy v1 settlement. New collections first publish the
+canonical bundle into the owner-only, content-addressed
+`execution-location-results` store, re-read and rehash the stored bytes, then
+bind that deterministic storage receipt into settlement v2. An exact retry can
+therefore return the verified bundle without another target command. The store
+uses no-replace publication, file fsync, and directory fsync where supported;
+it is local explicit-delete storage, not WORM retention. Result collection
+still does not provide a distributed writer fence, Cloud transport, or
+automatic source application.
+
+Durable budget recovery stores a canonical local receipt for each operator
+adjudication. Ordinary budget status shows only chain and coverage metadata;
+`budget receipts` is the explicit detailed reader for provider/model/token
+records. These receipts are local evidence, not provider billing readback or
+WORM retention.
 
 ---
 
@@ -973,53 +1023,90 @@ The dynamic runtime also installs synchronous durable-call observers around the
 Cowork child. Before each bound provider or directly dispatched tool call can
 continue to transport, the runtime appends a bounded `started` row under the
 pending outer effect with the exact provider request or child-effect identity.
-The matching callback persists `completed`, `failed`, or `outcome_unknown`
-independently of the eventual Cowork result. A crash therefore leaves an
-independently readable started row instead of relying on a completed-result
-projection. When the provider returned a trace receipt, that same synchronous
-settlement validates its effect owner, provider, call, request source, sequence,
-client request ID, and trace-only semantics, then stores only the bounded
-provider request/response IDs in the call row. The receipt therefore survives a
-crash before outer task settlement, including for descendant provider calls;
-it remains neither provider-native idempotency nor independently readable from
-the provider. Duplicate, malformed, mismatched, or tampered rows fail closed. Explicit outer
-effect reconciliation marks any still-started rows as operator reconciled but
-does not turn trace-only request identities into third-party idempotency.
+When a provider returns a trace receipt, a second synchronous observer validates
+its effect owner, provider, call, request source, sequence, client request ID,
+and trace-only semantics, then stores only the bounded provider request/response
+IDs and receipt timestamp while the call is still `started`. The terminal
+callback later persists `completed`, `failed`, or `outcome_unknown`
+independently of the eventual Cowork result and refuses a settlement-carried
+receipt that was not identically prewritten. A successful provider settlement
+also normalizes the provider-reported input, output, cache-read, and cache-creation
+token counts into the same durable row and binds their digest into the settlement
+lineage. Counts are bounded non-negative integers; proxies, accessors, conflicting
+aliases, and later usage-row tamper fail closed. The start row also captures the
+validated provider/model and, when the built-in public-list table has a match, a
+version-digested USD pricing snapshot. Successful usage settlement derives a
+componentized `estimatedUsd` from that durable snapshot and binds its digest into
+the settlement lineage. A mismatched settlement model or later pricing/cost
+rewrite fails closed; unmatched models remain unpriced, while a priced local
+provider keeps a real zero estimate. These are estimates, not provider-reported
+charges: `reportedUsd` remains `null`. A crash after provider response
+but before usage settlement therefore leaves an independently readable started
+row with the receipt and an explicitly missing usage settlement, instead of
+relying on a completed-result projection. This also holds for descendant provider
+calls; neither the receipt nor the token counts are independently readable from
+the provider. Explicit outer effect reconciliation preserves any prewritten
+receipt while marking still-started rows as operator reconciled, but does not
+invent provider usage or turn trace-only request identities into third-party
+idempotency.
 Spawned sub-agents and isolated skills inherit the already-persisted parent
 tool child-effect as their workflow owner. Their internal provider/tool calls
 therefore enter the same store with a verified owner chain; an orphan or
 rewritten owner fails closed, and descendant unknown outcomes prevent normal
 outer provider-return settlement.
+For the managed `publish_artifact` tool, terminal settlement additionally reads
+the canonical ArtifactStore index row, requires an exact match with the returned
+public metadata, and rehashes the copied bytes before persisting a readback digest
+on the call. Forged metadata, missing/changed stored bytes, or partial removal of
+the readback schema fail closed. The readback is visible before the outer Cowork task
+returns, but it proves only the store copy at settlement time: the current store
+is mutable and TTL-cleanable, so immutable retention and later byte availability
+remain unproven. Arbitrary `result.artifacts` arrays stay digest-only observations.
 
 `runtime-status --json` also returns a digest-bound `observability` projection.
 It exposes effect/result lineage, provider-return/operator-reconciled/runtime-
 not-dispatched settlement counts, provider dispatch and timeout timestamps,
-request-to-settlement wall time, effect-bound trace-only provider request
-attempts and receipts, runtime-derived nested-tool attempt/settlement lineage,
-the independently persisted durable-call status/digest projection plus its
-provider-receipt count and bounded receipt IDs, the Cowork
-result's heuristic token estimate, and digest-only artifact/checkpoint
-references. Receipt projection rejects an
-effect/provider/call/source/request mismatch or any claim of
-idempotency/independent readback, and reports a gap for every valid attempt with
-no matching provider receipt. The projection is intentionally
-`complete: false` and lists every missing authority: the current Cowork runner
-does not return provider token usage or USD cost, native provider idempotency
-and independent receipt readback remain unavailable, checkpoint and artifact-
-store readback are not yet wired, and the full completed-result receipt collection
-plus local/host child payload projections remain result-bound. MCP calls bind the
+request-to-settlement wall time, durable-call-derived trace-only provider
+request attempts and receipts (including pending/crashed calls), durable-call-
+derived nested-tool attempt/settlement lineage, the independently persisted
+durable-call status/digest projection plus its provider-receipt count and bounded
+receipt IDs, durable-call-derived provider token totals and per-call lineage,
+durable-pricing-snapshot USD estimates and their per-call lineage, the separately
+labeled Cowork-result heuristic estimate, ArtifactStore index/byte readbacks for
+managed `publish_artifact` calls, and digest-only task-result artifact/checkpoint
+references. Token, cost, and artifact-readback projections keep reported, priced,
+and verified records separate from pending, outcome-unknown, operator-reconciled,
+and legacy calls; they never substitute the
+heuristic token estimate or a guessed price for missing provider data. Receipt
+projection rejects an effect/provider/call/source/request mismatch or any claim of
+idempotency/independent readback, ignores conflicting outer-result receipt
+arrays when durable call rows exist while exposing a disagreement gap, and
+reports a gap for every valid attempt with no matching provider receipt.
+Pre-durable-call states remain readable
+through an explicitly counted legacy task-result fallback that adds its own gap.
+The projection is intentionally
+`complete: false` and lists every missing authority: provider-reported USD billing,
+native provider idempotency, independent provider usage/receipt readback, and
+checkpoint readback plus immutable/current ArtifactStore retention remain
+unavailable. Pre-usage/pricing/artifact-readback-schema calls stay readable with
+explicit unavailable/incomplete/legacy gaps. Managed
+nested tool attempts and
+terminal settlements no
+longer depend on those payload projections: started calls are crash-visible,
+conflicting outer-result arrays produce a disagreement gap, and pre-durable-call
+states use an explicit legacy fallback. MCP calls bind the
 same outer/child effect tuple into the canonical session ledger before
 transport and report persisted start/settlement facts. Any workflow-bound
 nested outcome-unknown result or post-boundary tool exception blocks the outer
 effect for reconciliation instead of becoming an ordinary failed task. The
 runtime-owned provider/tool call rows are independently readable from a
 pending or crashed run, including calls directly owned by spawned sub-agents
-and isolated skills. Hook/checkpoint/artifact side effects, native third-party
-idempotency, and provider-side receipt lookup remain open.
+and isolated skills. Hook/checkpoint and unmanaged artifact side effects, native
+third-party idempotency, and provider-side receipt lookup remain open.
 
 **WS protocol**: `workflow-list` / `workflow-get` / `workflow-save` / `workflow-remove` / `workflow-run` (streams `workflow:started` / `step-start` / `step-complete` / `workflow:done`).
 
-**Key files**: `src/gateways/ws/action-protocol.js` (5 handlers), `src/lib/cowork-workflow.js` (CRUD + `executeWorkflow`), `src/lib/dynamic-workflow-draft.js` (model proposal + human review authority), `src/lib/dynamic-workflow-runtime.js` (atomic parallel durable effect protocol), `packages/web-panel/src/stores/workflow.js` (Pinia store + `validateLocal`), `packages/web-panel/src/views/WorkflowEditor.vue`. **Governed CLI regression**: 584 tests across draft/review, durable runtime, façade, DAG, WebSocket, admission, provider/tool/descendant call binding, durable provider receipt settlement, and MCP ledger coverage; the original editor slice retains its 39 backend/frontend/integration/E2E tests.
+**Key files**: `src/gateways/ws/action-protocol.js` (5 handlers), `src/lib/cowork-workflow.js` (CRUD + `executeWorkflow`), `src/lib/dynamic-workflow-draft.js` (model proposal + human review authority), `src/lib/dynamic-workflow-runtime.js` (atomic parallel durable effect protocol), `packages/web-panel/src/stores/workflow.js` (Pinia store + `validateLocal`), `packages/web-panel/src/views/WorkflowEditor.vue`. **Governed CLI regression**: 593 tests across draft/review, durable runtime, façade, DAG, WebSocket, admission, provider/tool/descendant call binding, durable provider receipt/token settlement, durable pricing-snapshot cost estimates, ArtifactStore settlement readback, and MCP ledger coverage; the original editor slice retains its 39 backend/frontend/integration/E2E tests.
 
 > Vue Flow visual canvas (drag-to-connect, branch rendering) is planned as M2.
 

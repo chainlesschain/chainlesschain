@@ -39,6 +39,7 @@ import {
   currentHostHooksV2WorkspaceRoot,
   registerHostHooksV2Workspace,
 } from "../../src/lib/hooks-v2-workspace-context.js";
+import { SessionResourceBudget } from "../../src/lib/session-resource-budget.js";
 
 const wsAgentWorkspaceParent = fs.mkdtempSync(
   path.join(os.tmpdir(), "cc-hooks-v2-ws-agent-"),
@@ -150,6 +151,130 @@ describe("WSAgentHandler", () => {
 
       leased.destroy();
       expect(sessionHostLease.release).toHaveBeenCalledOnce();
+    });
+
+    it("shares the production budget with the loop and closes it before the lease", async () => {
+      const order = [];
+      const leaseController = new AbortController();
+      const budgetController = new AbortController();
+      const sessionHostLease = {
+        signal: leaseController.signal,
+        assert: vi.fn(),
+        release: vi.fn(() => order.push("lease")),
+      };
+      const sessionBudget = {
+        signal: budgetController.signal,
+        reason: vi.fn(() => null),
+        recordUsage: vi.fn(() => ({ aborted: false })),
+      };
+      const sessionBudgetRoot = {
+        budget: sessionBudget,
+        options: {
+          sessionBudget,
+          signal: budgetController.signal,
+        },
+        close: vi.fn(() => order.push("budget")),
+      };
+      let loopOptions = null;
+      const budgeted = new WSAgentHandler({
+        session,
+        interaction,
+        db: null,
+        sessionHostLease,
+        sessionBudgetRoot,
+        agentLoop: vi.fn(async function* (_messages, options) {
+          loopOptions = options;
+          yield {
+            type: "token-usage",
+            provider: "ollama",
+            model: "qwen2.5:7b",
+            usage: { input_tokens: 5, output_tokens: 2 },
+          };
+          yield {
+            type: "token-usage",
+            provider: "ollama",
+            model: "qwen2.5:7b",
+            usage: { input_tokens: 1, output_tokens: 1 },
+            attribution: { kind: "subagent" },
+          };
+          yield { type: "response-complete", content: "done" };
+        }),
+      });
+
+      await budgeted.handleMessage("budgeted request", "req-budget");
+
+      expect(loopOptions.sessionBudget).toBe(sessionBudget);
+      expect(loopOptions.signal).not.toBe(budgetController.signal);
+      expect(sessionBudget.recordUsage).toHaveBeenCalledOnce();
+      expect(sessionBudget.recordUsage).toHaveBeenCalledWith({
+        provider: "ollama",
+        model: "qwen2.5:7b",
+        usage: { input_tokens: 5, output_tokens: 2 },
+      });
+
+      budgeted.destroy();
+      expect(order).toEqual(["budget", "lease"]);
+    });
+
+    it("fails the WS turn and retains recovery for unknown provider usage", async () => {
+      const budget = new SessionResourceBudget({ maxTokens: 20 });
+      const budgeted = new WSAgentHandler({
+        session,
+        interaction,
+        db: null,
+        sessionBudgetRoot: {
+          budget,
+          options: { sessionBudget: budget, signal: budget.signal },
+          close: vi.fn(),
+        },
+        agentLoop: vi.fn(async function* () {
+          yield {
+            type: "model-usage-started",
+            callId: "ws-unknown-call",
+            provider: "openai",
+            model: "gpt-test",
+            source: "model",
+          };
+          yield {
+            type: "model-usage-unknown",
+            callId: "ws-unknown-call",
+            provider: "openai",
+            model: "gpt-test",
+            source: "model",
+            code: "provider_usage_missing",
+          };
+          yield { type: "response-complete", content: "must not succeed" };
+        }),
+      });
+
+      await budgeted.handleMessage("budgeted request", "req-unknown");
+
+      expect(interaction.emit).toHaveBeenCalledWith(
+        "error",
+        expect.objectContaining({
+          requestId: "req-unknown",
+          code: "CC_SESSION_BUDGET_USAGE_UNKNOWN",
+        }),
+      );
+      expect(budget.status()).toMatchObject({
+        tokens: 0,
+        recoveryRequired: true,
+        pendingRecovery: 1,
+        reason: "recovery-required",
+      });
+      budgeted.destroy();
+      budget.dispose();
+    });
+
+    it("reattaches a resumed transport without replacing session authority", () => {
+      const previous = interaction;
+      const next = createMockInteraction();
+
+      expect(handler.attachInteraction(next)).toBe(true);
+
+      expect(handler.interaction).toBe(next);
+      expect(session.interaction).toBe(next);
+      expect(previous.rejectAllPending).toHaveBeenCalledOnce();
     });
   });
 
@@ -514,6 +639,47 @@ describe("WSAgentHandler", () => {
       expect(handler._processing).toBe(false);
     });
 
+    it("surfaces a session-budget terminal instead of swallowing it as an interrupt", async () => {
+      const budgetController = new AbortController();
+      const sessionBudget = {
+        signal: budgetController.signal,
+        reason: vi.fn(() => "max-tokens"),
+        recordUsage: vi.fn(() => ({
+          aborted: true,
+          reason: "max-tokens",
+        })),
+      };
+      const budgeted = new WSAgentHandler({
+        session,
+        interaction,
+        db: null,
+        sessionBudgetRoot: {
+          budget: sessionBudget,
+          options: { sessionBudget, signal: budgetController.signal },
+          close: vi.fn(),
+        },
+        agentLoop: vi.fn(async function* () {
+          yield {
+            type: "token-usage",
+            provider: "ollama",
+            model: "qwen2.5:7b",
+            usage: { input_tokens: 10, output_tokens: 1 },
+          };
+        }),
+      });
+
+      await budgeted.handleMessage("exhaust budget", "req-budget-error");
+
+      expect(interaction.emit).toHaveBeenCalledWith(
+        "error",
+        expect.objectContaining({
+          requestId: "req-budget-error",
+          code: "CC_SESSION_BUDGET_EXHAUSTED",
+        }),
+      );
+      budgeted.destroy();
+    });
+
     it("interrupts an active turn without emitting an AGENT_ERROR", async () => {
       /* eslint-disable require-yield */
       agentLoop.mockImplementation((_messages, options) =>
@@ -626,6 +792,53 @@ describe("WSAgentHandler", () => {
         return projection.finish({ headHash: "head-1", eventCount: 1 });
       });
     }
+
+    it("persists canonical usage before settling the shared WS budget", async () => {
+      const order = [];
+      const budgetController = new AbortController();
+      const sessionBudget = {
+        signal: budgetController.signal,
+        reason: vi.fn(() => null),
+        recordUsage: vi.fn(() => {
+          order.push("budget");
+          return { aborted: false };
+        }),
+      };
+      const store = canonicalStore({
+        store: {
+          appendTokenUsage: vi.fn(() => order.push("ledger")),
+        },
+      });
+      const canonicalHandler = new WSAgentHandler({
+        session: createMockSession({ canonicalJsonlSession: true }),
+        interaction: createMockInteraction(),
+        db: null,
+        canonicalSessionStore: store,
+        sessionBudgetRoot: {
+          budget: sessionBudget,
+          options: {
+            sessionBudget,
+            signal: budgetController.signal,
+          },
+          close: vi.fn(),
+        },
+        agentLoop: vi.fn(async function* () {
+          yield {
+            type: "token-usage",
+            callId: "model-call-budgeted",
+            provider: "ollama",
+            model: "qwen2.5:7b",
+            usage: { input_tokens: 8, output_tokens: 2 },
+          };
+          yield { type: "response-complete", content: "done" };
+        }),
+      });
+
+      await canonicalHandler.handleMessage("inspect", "req-budget-ledger");
+
+      expect(order).toEqual(["ledger", "budget"]);
+      canonicalHandler.destroy();
+    });
 
     it("persists strict model, retry, and tool ledgers for a scoped WS turn", async () => {
       const writes = {
@@ -1633,6 +1846,20 @@ describe("WSAgentHandler", () => {
 
     it("/compact emits a provider-backed structured handoff and usage", async () => {
       const persistedCompacts = [];
+      const settlementOrder = [];
+      const budgetController = new AbortController();
+      const sessionBudget = {
+        signal: budgetController.signal,
+        reason: vi.fn(() => null),
+        consumeTurn: vi.fn(() => {
+          settlementOrder.push("budget-turn");
+          return { ok: true };
+        }),
+        recordUsage: vi.fn(() => {
+          settlementOrder.push("budget-usage");
+          return { aborted: false };
+        }),
+      };
       const appendCompactEventIfMessagesMatch = vi.fn((_id, data) => {
         persistedCompacts.push(data);
         return { hash: "compact-head" };
@@ -1672,7 +1899,18 @@ describe("WSAgentHandler", () => {
         interaction,
         db: null,
         compactionLlmQuery,
-        canonicalSessionStore: { appendCompactEventIfMessagesMatch },
+        canonicalSessionStore: {
+          appendCompactEventIfMessagesMatch,
+          appendEvent: vi.fn(() => settlementOrder.push("ledger-start")),
+          appendTokenUsage: vi.fn(() =>
+            settlementOrder.push("ledger-usage"),
+          ),
+        },
+        sessionBudgetRoot: {
+          budget: sessionBudget,
+          options: { sessionBudget, signal: budgetController.signal },
+          close: vi.fn(),
+        },
       });
 
       await handler.handleSlashCommand("/compact", "req-semantic");
@@ -1680,6 +1918,13 @@ describe("WSAgentHandler", () => {
 
       expect(compactionLlmQuery).toHaveBeenCalledOnce();
       expect(appendCompactEventIfMessagesMatch).toHaveBeenCalledOnce();
+      expect(sessionBudget.consumeTurn).toHaveBeenCalledOnce();
+      expect(settlementOrder).toEqual([
+        "budget-turn",
+        "ledger-start",
+        "ledger-usage",
+        "budget-usage",
+      ]);
       expect(persistedCompacts).toHaveLength(1);
       expect(persistedCompacts[0]).toMatchObject({
         trigger: "manual",
@@ -1696,18 +1941,22 @@ describe("WSAgentHandler", () => {
           }),
         }),
       );
-      expect(interaction.emit).toHaveBeenCalledWith("token-usage", {
-        requestId: "req-semantic",
-        provider: "anthropic",
-        model: "claude-sonnet-4-6",
-        usage: {
-          input_tokens: 64,
-          output_tokens: 20,
-          cache_read_input_tokens: 0,
-          cache_creation_input_tokens: 0,
-        },
-        source: "semantic-compaction",
-      });
+      expect(interaction.emit).toHaveBeenCalledWith(
+        "token-usage",
+        expect.objectContaining({
+          requestId: "req-semantic",
+          callId: expect.stringMatching(/^ws-cmp-/),
+          provider: "anthropic",
+          model: "claude-sonnet-4-6",
+          usage: {
+            input_tokens: 64,
+            output_tokens: 20,
+            cache_read_input_tokens: 0,
+            cache_creation_input_tokens: 0,
+          },
+          source: "semantic-compaction",
+        }),
+      );
       expect(
         interaction.emit.mock.calls.filter(([type]) => type === "token-usage"),
       ).toHaveLength(1);
@@ -1721,6 +1970,7 @@ describe("WSAgentHandler", () => {
       expect(session.messages.slice(-2).map((message) => message.role)).toEqual(
         ["user", "assistant"],
       );
+      handler.destroy();
     });
 
     it("/compact never overwrites a turn that arrives during the provider call", async () => {

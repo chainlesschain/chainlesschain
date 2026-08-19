@@ -6,6 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { agentLoop } from "../../src/repl/agent-repl.js";
+import { SessionResourceBudget } from "../../src/lib/session-resource-budget.js";
 import {
   _deps as denialStoreDeps,
   readRecentDenials,
@@ -180,6 +181,128 @@ describe("agentLoop() wrapper", () => {
         ledgerPersisted: true,
       }),
     ]);
+  });
+
+  it("charges only root usage after its durable token ledger settlement", async () => {
+    const order = [];
+    const sessionBudget = {
+      recordUsage: vi.fn(({ usage }) => {
+        order.push(`budget:${usage.input_tokens}`);
+        return { aborted: false };
+      }),
+    };
+    const core = coreLoop([
+      {
+        type: "token-usage",
+        callId: "root-call",
+        provider: "openai",
+        model: "gpt-test",
+        usage: { input_tokens: 5, output_tokens: 2 },
+      },
+      {
+        type: "token-usage",
+        callId: "child-call",
+        provider: "openai",
+        model: "gpt-test",
+        attribution: { subagent: "child-1" },
+        usage: { input_tokens: 3, output_tokens: 1 },
+      },
+      { type: "response-complete", content: "done" },
+    ]);
+
+    await agentLoop([], {
+      _coreLoop: core,
+      sessionId: "budgeted-repl",
+      persistUsageTelemetry: true,
+      sessionBudget,
+      _appendTokenUsage: (_sessionId, event) =>
+        order.push(`ledger:${event.callId}`),
+    });
+
+    expect(order).toEqual([
+      "ledger:root-call",
+      "budget:5",
+      "ledger:child-call",
+    ]);
+    expect(sessionBudget.recordUsage).toHaveBeenCalledOnce();
+  });
+
+  it("persists and blocks unknown provider usage in the shared budget", async () => {
+    const order = [];
+    const sessionBudget = new SessionResourceBudget({
+      maxTokens: 20,
+      onAuthorityChange: (change) => order.push(change.type),
+    });
+    const core = coreLoop([
+      {
+        type: "model-usage-started",
+        callId: "repl-unknown-call",
+        provider: "openai",
+        model: "gpt-test",
+        source: "model",
+      },
+      {
+        type: "model-usage-unknown",
+        callId: "repl-unknown-call",
+        provider: "openai",
+        model: "gpt-test",
+        source: "model",
+        code: "provider_usage_missing",
+      },
+      { type: "response-complete", content: "must not succeed" },
+    ]);
+
+    await expect(
+      agentLoop([], {
+        _coreLoop: core,
+        sessionId: "budgeted-repl-unknown",
+        persistUsageTelemetry: true,
+        sessionBudget,
+        _appendUsageBoundary: (_sessionId, type) => order.push(type),
+      }),
+    ).rejects.toMatchObject({
+      code: "CC_SESSION_BUDGET_USAGE_UNKNOWN",
+    });
+
+    expect(order.indexOf("model_usage_started")).toBeLessThan(
+      order.indexOf("budget:usage-settlement-started"),
+    );
+    expect(order.indexOf("model_usage_unknown")).toBeLessThan(
+      order.indexOf("budget:usage-unknown"),
+    );
+    expect(sessionBudget.status()).toMatchObject({
+      recoveryRequired: true,
+      pendingRecovery: 1,
+      reason: "recovery-required",
+    });
+    sessionBudget.dispose();
+  });
+
+  it("fails the REPL turn when usage settlement exhausts the session budget", async () => {
+    const core = coreLoop([
+      {
+        type: "token-usage",
+        callId: "over-budget",
+        provider: "openai",
+        model: "gpt-test",
+        usage: { input_tokens: 9, output_tokens: 1 },
+      },
+    ]);
+
+    await expect(
+      agentLoop([], {
+        _coreLoop: core,
+        sessionId: "budgeted-repl",
+        persistUsageTelemetry: true,
+        _appendTokenUsage: vi.fn(),
+        sessionBudget: {
+          recordUsage: () => ({ aborted: true, reason: "token-limit" }),
+        },
+      }),
+    ).rejects.toMatchObject({
+      code: "CC_SESSION_BUDGET_EXHAUSTED",
+      budgetReason: "token-limit",
+    });
   });
 
   it("pairs interleaved tool results by provider id and preserves each latency", async () => {

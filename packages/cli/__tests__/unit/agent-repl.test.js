@@ -252,6 +252,65 @@ describe("REPL compact persistence fencing", () => {
     });
   });
 
+  it("settles direct model usage into the shared budget after the durable ledger", async () => {
+    const { runReplMeteredModelCallWithLedger } =
+      await import("../../src/repl/agent-repl.js");
+    const order = [];
+    const persisted = [];
+    const sessionBudget = {
+      consumeTurn: vi.fn(() => {
+        order.push("budget-turn");
+        return { ok: true };
+      }),
+      beginUsageSettlement: vi.fn(({ id }) => {
+        order.push("budget-intent");
+        return { ok: true, id };
+      }),
+      recordUsage: vi.fn(() => {
+        order.push("budget-usage");
+        return { aborted: false };
+      }),
+    };
+
+    await runReplMeteredModelCallWithLedger({
+      sessionId: "session-budgeted-direct",
+      provider: "openai",
+      model: "gpt-test",
+      sessionBudget,
+      persist: (type, data) => {
+        persisted.push({ type, data });
+        order.push(`ledger:${type}`);
+      },
+      call: async () => {
+        order.push("provider");
+        return {
+          message: { content: "done" },
+          usage: { input_tokens: 8, output_tokens: 2 },
+        };
+      },
+    });
+
+    expect(order).toEqual([
+      "budget-turn",
+      "ledger:model_usage_started",
+      "budget-intent",
+      "provider",
+      "ledger:token_usage",
+      "budget-usage",
+    ]);
+    expect(sessionBudget.recordUsage).toHaveBeenCalledWith({
+      callId: persisted[0].data.callId,
+      provider: "openai",
+      model: "gpt-test",
+      usage: {
+        input_tokens: 8,
+        output_tokens: 2,
+        cache_read_input_tokens: 0,
+        cache_creation_input_tokens: 0,
+      },
+    });
+  });
+
   it("durably settles missing compaction usage as unknown", async () => {
     const { runReplMeteredModelCallWithLedger } =
       await import("../../src/repl/agent-repl.js");
@@ -1323,12 +1382,15 @@ describe("agent-repl thin wrapper contracts", () => {
     );
   });
 
-  it("executeTool wrapper passes hookDb and cwd to coreExecuteTool", () => {
+  it("executeTool wrapper passes host and budget authority to coreExecuteTool", () => {
     const content = readFileSync(agentReplPath, "utf8");
-    // executeTool should delegate to coreExecuteTool with hookDb and cwd
+    // Direct REPL tools must reach the same host and budget context as tools
+    // selected inside agentLoop.
     expect(content).toContain("coreExecuteTool(name, args, {");
     expect(content).toContain("hookDb: _hookDb");
     expect(content).toContain("cwd: process.cwd()");
+    expect(content).toContain("sessionBudget: context.sessionBudget || null");
+    expect(content).toContain("signal: context.signal || null");
   });
 
   it("agentLoop wrapper iterates coreAgentLoop and handles tool-executing events", () => {
@@ -1810,6 +1872,163 @@ describe("agent-repl startup resume admission", () => {
       "start",
     ]);
     expect(lease.release).not.toHaveBeenCalled();
+  });
+
+  it("opens one durable budget root after the host lease and before workspace startup", async () => {
+    const { prepareReplStartupResume, runReplStartupBoundary } =
+      await import("../../src/repl/agent-repl.js");
+    const admission = prepareReplStartupResume("budgeted-session", {
+      readSessionHostResumeState: () =>
+        verifiedReplResumeState("budgeted-session"),
+      formatMcpLedgerRecoveryNotice: () => null,
+    });
+    const order = [];
+    const leaseController = new AbortController();
+    const lease = { signal: leaseController.signal, release: vi.fn() };
+    const leaseScope = { lease: null };
+    const budgetScope = { root: null };
+    const budget = { signal: new AbortController().signal };
+    const rootSignal = new AbortController().signal;
+    const root = {
+      enabled: true,
+      budget,
+      options: { sessionBudget: budget, signal: rootSignal },
+      close: vi.fn(),
+    };
+    const openBudgetRoot = vi.fn((sessionId, config, openOptions) => {
+      order.push("budget");
+      expect(sessionId).toBe("budgeted-session");
+      expect(config.limits).toEqual({ maxTurns: 4 });
+      expect(openOptions).toMatchObject({ persist: true });
+      expect(openOptions.signal).toBe(leaseController.signal);
+      return root;
+    });
+
+    const result = await runReplStartupBoundary(
+      {
+        sessionId: "budgeted-session",
+        sessionBudgetRoot: {
+          enabled: true,
+          limits: { maxTurns: 4 },
+        },
+        _sessionHostLeaseScope: leaseScope,
+        _sessionBudgetRootScope: budgetScope,
+      },
+      {
+        prepareReplStartupResume: () => admission,
+        acquireSessionHostLease: () => {
+          order.push("lease");
+          return lease;
+        },
+        openProductionSessionBudgetRoot: openBudgetRoot,
+        cwd: () => {
+          order.push("cwd");
+          return process.cwd();
+        },
+        runWithHostHooksV2Workspace: (_cwd, callback) => {
+          order.push("workspace");
+          return callback();
+        },
+        startAgentReplInWorkspace: (options) => {
+          order.push("start");
+          expect(options.sessionBudget).toBe(budget);
+          expect(options.signal).toBe(rootSignal);
+          return { started: true };
+        },
+      },
+    );
+
+    expect(result).toEqual({ started: true });
+    expect(order).toEqual(["lease", "budget", "cwd", "workspace", "start"]);
+    expect(budgetScope.root).toBe(root);
+    expect(root.close).not.toHaveBeenCalled();
+  });
+
+  it("closes a REPL budget root scope exactly once", async () => {
+    const { closeReplSessionBudgetRootScope } =
+      await import("../../src/repl/agent-repl.js");
+    const root = { close: vi.fn(() => true) };
+    const scope = { root };
+
+    await expect(closeReplSessionBudgetRootScope(scope)).resolves.toBe(true);
+    await expect(closeReplSessionBudgetRootScope(scope)).resolves.toBe(false);
+    expect(root.close).toHaveBeenCalledOnce();
+    expect(scope.root).toBeNull();
+  });
+
+  it("never downgrades a budgeted JSONL session creation failure to legacy best effort", async () => {
+    const { startReplJsonlSession } =
+      await import("../../src/repl/agent-repl.js");
+    const failure = vi.fn(() => {
+      throw new Error("disk full");
+    });
+
+    expect(() =>
+      startReplJsonlSession(failure, "budgeted-session", {}, null, {
+        requireDurable: true,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "CC_SESSION_BUDGET_SESSION_START_FAILED",
+      }),
+    );
+    expect(
+      startReplJsonlSession(failure, "legacy-session", {}, null),
+    ).toBeNull();
+  });
+
+  it("refuses an already-exhausted budget before entering the workspace", async () => {
+    const { prepareReplStartupResume, runReplStartupBoundary } =
+      await import("../../src/repl/agent-repl.js");
+    const admission = prepareReplStartupResume("exhausted-session", {
+      readSessionHostResumeState: () =>
+        verifiedReplResumeState("exhausted-session"),
+      formatMcpLedgerRecoveryNotice: () => null,
+    });
+    const controller = new AbortController();
+    controller.abort("turn-limit");
+    const budget = {
+      signal: controller.signal,
+      reason: () => "turn-limit",
+    };
+    const root = {
+      enabled: true,
+      budget,
+      options: { sessionBudget: budget, signal: controller.signal },
+      close: vi.fn(() => true),
+    };
+    const cwd = vi.fn();
+    const enterWorkspace = vi.fn();
+    const startWorkspace = vi.fn();
+
+    await expect(
+      runReplStartupBoundary(
+        {
+          sessionId: "exhausted-session",
+          sessionBudgetRoot: { enabled: true, limits: { maxTurns: 1 } },
+          _sessionHostLeaseScope: { lease: null },
+          _sessionBudgetRootScope: { root: null },
+        },
+        {
+          prepareReplStartupResume: () => admission,
+          acquireSessionHostLease: () => ({
+            signal: new AbortController().signal,
+            release: vi.fn(),
+          }),
+          openProductionSessionBudgetRoot: () => root,
+          cwd,
+          runWithHostHooksV2Workspace: enterWorkspace,
+          startAgentReplInWorkspace: startWorkspace,
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: "CC_SESSION_BUDGET_EXHAUSTED",
+      budgetReason: "turn-limit",
+    });
+    expect(root.close).toHaveBeenCalledOnce();
+    expect(cwd).not.toHaveBeenCalled();
+    expect(enterWorkspace).not.toHaveBeenCalled();
+    expect(startWorkspace).not.toHaveBeenCalled();
   });
 
   it("refuses a present unverified canonical session before config access", async () => {

@@ -67,6 +67,7 @@ import { registerSessionMcpRecoveryCommands } from "./session-mcp-recovery.js";
 import { registerSessionShowSubcommand } from "./session-show.js";
 import { registerSessionObservabilitySubcommand } from "./session-observability.js";
 import { registerSessionLocationSubcommands } from "./session-location.js";
+import { registerSessionBudgetCommands } from "./session-budget.js";
 
 export const _deps = {
   execFileSync: (...args) => executionBroker.execFileSync(...args),
@@ -103,8 +104,9 @@ function _sessionEpoch(ts) {
  * @returns {{statusBar:string, autoMerge:{allow:boolean,reason:string,unmet:string[]}, lines:string[]}}
  */
 export async function renderPrStatus(signals = {}, opts = {}) {
-  const { strictAutoMergeDecision, describePrStatusBar } =
-    await import("../lib/pr-automation-policy.js");
+  const { strictAutoMergeDecision, describePrStatusBar } = await import(
+    "../lib/pr-automation-policy.js"
+  );
   const autoMerge = strictAutoMergeDecision({
     enabled: opts.enabled === true,
     hasOpenPr: signals.hasOpenPr,
@@ -224,6 +226,7 @@ export function registerSessionCommand(program) {
 
   registerSessionMcpRecoveryCommands(session);
   registerSessionLocationSubcommands(session);
+  registerSessionBudgetCommands(session);
 
   // session list
   session
@@ -347,22 +350,25 @@ export function registerSessionCommand(program) {
           sourceErrors.local = error?.message || String(error);
         }
         try {
-          const { listBackgroundAgents } =
-            await import("../lib/background-agent-supervisor.js");
+          const { listBackgroundAgents } = await import(
+            "../lib/background-agent-supervisor.js"
+          );
           background = listBackgroundAgents({ all: true });
         } catch (error) {
           sourceErrors.background = error?.message || String(error);
         }
         try {
-          const { readRemoteControlStates } =
-            await import("../lib/remote-control.js");
+          const { readRemoteControlStates } = await import(
+            "../lib/remote-control.js"
+          );
           remote = readRemoteControlStates();
         } catch (error) {
           sourceErrors.remote = error?.message || String(error);
         }
         try {
-          const { listCollaborationRuns } =
-            await import("../lib/collaboration-run-store.js");
+          const { listCollaborationRuns } = await import(
+            "../lib/collaboration-run-store.js"
+          );
           team = listCollaborationRuns({ limit }).filter(
             (run) => run?.kind === "team",
           );
@@ -387,8 +393,9 @@ export function registerSessionCommand(program) {
           // engine proves that the exact worktree is supported. Copy-mode
           // checkpoints need explicit paths and therefore cannot truthfully be
           // offered as a one-click session action.
-          const { isCheckpointAvailable } =
-            await import("../lib/checkpoint-store.js");
+          const { isCheckpointAvailable } = await import(
+            "../lib/checkpoint-store.js"
+          );
           const capability = new Map();
           const decorate = (items, pathFor, sessionFor) =>
             items.map((item) => {
@@ -431,8 +438,10 @@ export function registerSessionCommand(program) {
           // checkpoint action unavailable with its explicit reason.
         }
         try {
-          const { ArtifactStore } = await import("../lib/artifact-store.js");
-          artifacts = new ArtifactStore().list();
+          const { ArtifactStore, publicArtifactMetadata } = await import(
+            "../lib/artifact-store.js"
+          );
+          artifacts = new ArtifactStore().list().map(publicArtifactMetadata);
         } catch {
           // Summaries are optional; absence never removes a session.
         }
@@ -443,8 +452,9 @@ export function registerSessionCommand(program) {
           // Summaries are optional; absence never removes a session.
         }
 
-        const { buildSessionProjection } =
-          await import("../lib/session-projection.js");
+        const { buildSessionProjection } = await import(
+          "../lib/session-projection.js"
+        );
         const projection = buildSessionProjection({
           local,
           background,
@@ -468,8 +478,9 @@ export function registerSessionCommand(program) {
           }
         }
       } catch (error) {
-        const { disconnectedSessionProjection } =
-          await import("../lib/session-projection.js");
+        const { disconnectedSessionProjection } = await import(
+          "../lib/session-projection.js"
+        );
         if (options.json) {
           jsonPayload = JSON.stringify(
             disconnectedSessionProjection(error?.message || String(error)),
@@ -519,8 +530,9 @@ export function registerSessionCommand(program) {
         } else {
           // Live path: resolve the session's linked PR and fetch via gh.
           const { getPrLinks } = await import("../lib/pr-link-ledger.js");
-          const { getLastSessionId } =
-            await import("../harness/jsonl-session-store.js");
+          const { getLastSessionId } = await import(
+            "../harness/jsonl-session-store.js"
+          );
           const sid = !id || id === "last" ? getLastSessionId() : id;
           const links = sid ? getPrLinks(sid) : [];
           if (links.length === 0) {
@@ -598,8 +610,9 @@ export function registerSessionCommand(program) {
         // (single / non-TTY / Ctrl-C). Same helper as `cc agent --resume`.
         if (!id) {
           ctx = await bootstrap({ verbose: program.opts().verbose });
-          const { pickRecentSession } =
-            await import("../lib/session-picker.js");
+          const { pickRecentSession } = await import(
+            "../lib/session-picker.js"
+          );
           const picked = await pickRecentSession(ctx);
           if (!picked.id) {
             logger.error(
@@ -629,8 +642,9 @@ export function registerSessionCommand(program) {
         if (jsonlId) {
           // Tamper gate: a broken hash chain means the transcript was edited
           // outside the store — never silently rebuild it as trusted context.
-          const { verifySession } =
-            await import("../harness/jsonl-session-store.js");
+          const { verifySession } = await import(
+            "../harness/jsonl-session-store.js"
+          );
           const trust = verifySession(jsonlId);
           if (["missing", "conflict"].includes(trust.status)) {
             logger.error(
@@ -743,8 +757,9 @@ export function registerSessionCommand(program) {
           );
         }
         if (sid) {
-          const { renderAgentSessionMarkdown } =
-            await import("../lib/agent-session-export.js");
+          const { renderAgentSessionMarkdown } = await import(
+            "../lib/agent-session-export.js"
+          );
           markdown = renderAgentSessionMarkdown(sid, store.readEvents(sid), {
             exportedAt: new Date().toISOString(),
           });
@@ -997,8 +1012,9 @@ export function registerSessionCommand(program) {
         }
         let result;
         if (jsonlId) {
-          const { renameSession } =
-            await import("../harness/jsonl-session-store.js");
+          const { renameSession } = await import(
+            "../harness/jsonl-session-store.js"
+          );
           result = renameSession(jsonlId, normalized);
         } else {
           ctx = await bootstrap({ verbose: program.opts().verbose });
@@ -1037,8 +1053,9 @@ export function registerSessionCommand(program) {
     .option("--json", "Output as JSON")
     .action(async (options) => {
       try {
-        const { pruneJsonlSessions } =
-          await import("../harness/jsonl-session-store.js");
+        const { pruneJsonlSessions } = await import(
+          "../harness/jsonl-session-store.js"
+        );
         const result = pruneJsonlSessions({
           olderThanDays: Number(options.olderThan),
           keep: options.keep != null ? Number(options.keep) : undefined,
@@ -1416,8 +1433,9 @@ export function registerSessionCommand(program) {
     .option("--json", "Output as JSON")
     .action(async (id, options) => {
       try {
-        const { getApprovalGate } =
-          await import("../lib/session-core-singletons.js");
+        const { getApprovalGate } = await import(
+          "../lib/session-core-singletons.js"
+        );
         const gate = await getApprovalGate();
         if (options.set) {
           gate.setSessionPolicy(id, options.set);
@@ -1453,8 +1471,9 @@ export function registerSessionCommand(program) {
     .option("--json", "Output as JSON")
     .action(async (options) => {
       try {
-        const { getSessionManager } =
-          await import("../lib/session-core-singletons.js");
+        const { getSessionManager } = await import(
+          "../lib/session-core-singletons.js"
+        );
         const mgr = getSessionManager();
         const live = mgr.list({
           agentId: options.agent,
@@ -1498,8 +1517,9 @@ export function registerSessionCommand(program) {
     .argument("<id>", "Session ID")
     .action(async (id) => {
       try {
-        const { getSessionManager } =
-          await import("../lib/session-core-singletons.js");
+        const { getSessionManager } = await import(
+          "../lib/session-core-singletons.js"
+        );
         const mgr = getSessionManager();
         if (!mgr.has(id)) {
           logger.error(`Session ${id} is not active in this process`);
@@ -1524,8 +1544,9 @@ export function registerSessionCommand(program) {
     .argument("<id>", "Session ID")
     .action(async (id) => {
       try {
-        const { getSessionManager } =
-          await import("../lib/session-core-singletons.js");
+        const { getSessionManager } = await import(
+          "../lib/session-core-singletons.js"
+        );
         const mgr = getSessionManager();
         const ok = await mgr.resume(id);
         if (!ok) {
@@ -1554,12 +1575,14 @@ export function registerSessionCommand(program) {
     .option("--agent-id <id>", "Agent id for scope=agent")
     .action(async (id, options) => {
       try {
-        const { getSessionManager } =
-          await import("../lib/session-core-singletons.js");
+        const { getSessionManager } = await import(
+          "../lib/session-core-singletons.js"
+        );
         if (options.consolidate) {
           try {
-            const { consolidateJsonlSession } =
-              await import("../lib/session-consolidator.js");
+            const { consolidateJsonlSession } = await import(
+              "../lib/session-consolidator.js"
+            );
             const res = await consolidateJsonlSession(id, {
               scope: options.scope,
               scopeId: options.scopeId || null,
@@ -1778,8 +1801,9 @@ export function registerSessionCommand(program) {
           );
           process.exit(1);
         }
-        const { sessionUsage, allSessionsUsage } =
-          await import("../lib/session-usage.js");
+        const { sessionUsage, allSessionsUsage } = await import(
+          "../lib/session-usage.js"
+        );
         const result = id
           ? sessionUsage(id)
           : allSessionsUsage({ limit: parseInt(options.limit, 10) || 1000 });
@@ -1852,8 +1876,9 @@ export function registerSessionCommand(program) {
     .option("--json", "Machine-readable JSON output")
     .action(async (id) => {
       try {
-        const { getVerifiedSessionObservabilityAuthority } =
-          await import("../harness/jsonl-session-store.js");
+        const { getVerifiedSessionObservabilityAuthority } = await import(
+          "../harness/jsonl-session-store.js"
+        );
         const authority = getVerifiedSessionObservabilityAuthority(id);
         console.log(
           JSON.stringify(
@@ -2291,8 +2316,9 @@ async function mirrorPruneSessions() {
  * (`session.mirror.encryption`). Requires both to be configured.
  */
 async function mirrorRotateKey() {
-  const { createMirror, createMirrorCipher, rotateMirrorKey } =
-    await import("../harness/session-mirror.js");
+  const { createMirror, createMirrorCipher, rotateMirrorKey } = await import(
+    "../harness/session-mirror.js"
+  );
   const { cfg } = await loadConfiguredMirror();
   if (!cfg || !cfg.kind || cfg.kind === "none") {
     return { target: null };

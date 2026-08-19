@@ -49,6 +49,16 @@ export function resolveAgentPolicy({
       : [],
     worktreeId:
       overrides.worktreeId == null ? null : String(overrides.worktreeId),
+    sessionBudgetRoot:
+      overrides.sessionBudgetRoot &&
+      typeof overrides.sessionBudgetRoot === "object"
+        ? Object.freeze({
+            ...overrides.sessionBudgetRoot,
+            limits: Object.freeze({
+              ...(overrides.sessionBudgetRoot.limits || {}),
+            }),
+          })
+        : null,
     ...(overrides.observabilityScope &&
     typeof overrides.observabilityScope === "object"
       ? { observabilityScope: { ...overrides.observabilityScope } }

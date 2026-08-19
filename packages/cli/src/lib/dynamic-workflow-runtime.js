@@ -6,8 +6,30 @@ import {
   COWORK_WORKFLOW_CONTROL_SIGNAL_CODE,
   executeWorkflow as executeCoworkWorkflow,
 } from "./cowork-workflow.js";
+import {
+  ARTIFACT_KINDS,
+  ArtifactStore,
+  MAX_ARTIFACT_BYTES,
+  publicArtifactMetadata,
+} from "./artifact-store.js";
 import { writeSecurityStore } from "./durable-security-store.js";
+import {
+  CACHE_READ_MULTIPLIER,
+  CACHE_READ_MULTIPLIER_BY_PROVIDER,
+  CACHE_WRITE_MULTIPLIER,
+  FREE_PROVIDERS,
+  lookupRate,
+  PRICE_TABLE,
+} from "./llm-pricing.js";
 import { containsSecret } from "./secret-scan.js";
+import { managedToolCheckpointRequired } from "./managed-tool-checkpoint.js";
+import {
+  digestWorkspaceEvidence,
+  WORKSPACE_TRANSACTION_COVERAGE,
+  WORKSPACE_TRANSACTION_STATE,
+  WORKSPACE_TRANSACTION_VERSION,
+  WorkspaceTransactionManager,
+} from "./process-execution-broker/workspace-transaction.js";
 import {
   sameFileStatIdentity,
   samePathHandleFileIdentity,
@@ -20,6 +42,8 @@ export const DYNAMIC_WORKFLOW_RUNTIME_SCHEMA = "cc-dynamic-workflow-runtime/v1";
 export const DYNAMIC_WORKFLOW_RUNTIME_VERSION = 1;
 export const DYNAMIC_WORKFLOW_EFFECT_SCHEMA = "cc-dynamic-workflow-effect/v1";
 export const DYNAMIC_WORKFLOW_CALL_SCHEMA = "cc-dynamic-workflow-call/v1";
+export const DYNAMIC_WORKFLOW_INPUT_REQUEST_SCHEMA =
+  "cc-dynamic-workflow-input-request/v1";
 export const DYNAMIC_WORKFLOW_OBSERVABILITY_SCHEMA =
   "cc-dynamic-workflow-observability/v1";
 export const DYNAMIC_WORKFLOW_RUNTIME_CONTROL_CODE =
@@ -29,6 +53,8 @@ const STATE_STATUSES = new Set([
   "ready",
   "running",
   "pause_requested",
+  "input_requested",
+  "needs_input",
   "paused",
   "blocked",
   "failed",
@@ -42,10 +68,19 @@ const MAX_EFFECTS = 64;
 const MAX_EFFECT_BATCH_SIZE = 64;
 const MAX_LINEAGE_EVENTS = 4096;
 const MAX_CALLS_PER_EFFECT = 128;
+const MAX_INPUT_REQUESTS = 64;
+const MAX_INPUT_OPTIONS = 32;
+const MAX_INPUT_RESPONSE_BYTES = 64 * 1024;
 const MAX_PROJECTED_ARTIFACTS_PER_EFFECT = 256;
+const MAX_PROVIDER_TOKEN_COUNT = 1_000_000_000;
+const MAX_PROVIDER_USD_RATE_PER_MILLION = 1_000_000;
+const MAX_PROVIDER_CACHE_RATE_MULTIPLIER = 100;
 const PROVIDER_CLIENT_REQUEST_ID_RE = /^ccwf_[a-f0-9]{64}$/u;
 const PROVIDER_RECEIPT_ID_RE = /^[A-Za-z0-9._:-]{1,256}$/u;
 const PROVIDER_NAME_RE = /^[a-z0-9][a-z0-9._-]{0,63}$/u;
+const PROVIDER_MODEL_RE = /^[\x21-\x7e]{1,256}$/u;
+const ARTIFACT_ID_RE = /^art_[a-z0-9]+_[a-f0-9]{8}$/u;
+const ARTIFACT_SHA256_RE = /^[a-f0-9]{64}$/u;
 const WORKFLOW_TOOL_CALL_ID_RE = /^[\x21-\x7e]{1,512}$/u;
 const WORKFLOW_TOOL_NAME_RE = /^[A-Za-z0-9._:-]{1,256}$/u;
 const WORKFLOW_CHILD_EFFECT_PROTOCOL = "cc-workflow-child-effect/v1";
@@ -53,6 +88,20 @@ const WORKFLOW_PROVIDER_ATTEMPT_PROTOCOL = "cc-provider-request-attempt/v1";
 const WORKFLOW_PROVIDER_CALL_ID_RE = /^[A-Za-z0-9._:-]{1,256}$/u;
 const WORKFLOW_PROVIDER_REQUEST_ID_RE = /^ccwf_[a-f0-9]{64}$/u;
 const DESCENDANT_OWNER_TOOL_NAMES = new Set(["run_skill", "spawn_sub_agent"]);
+const ARTIFACT_METADATA_FIELDS = Object.freeze([
+  "id",
+  "title",
+  "kind",
+  "mime",
+  "size",
+  "sha256",
+  "file",
+  "sessionId",
+  "createdAt",
+  "expiresAt",
+  "immutable",
+  "recordDigest",
+]);
 const WORKFLOW_CALL_STATUSES = new Set([
   "started",
   "completed",
@@ -108,6 +157,709 @@ function snapshotJson(value, field, maxBytes = MAX_STATE_BYTES) {
 
 function nonNegativeSafeInteger(value) {
   return Number.isSafeInteger(value) && value >= 0 ? value : null;
+}
+
+function providerUsageDigest(usage) {
+  return digest(
+    "chainlesschain.dynamic-workflow.provider-token-usage.v1\0",
+    usage,
+  );
+}
+
+function validProviderUsage(value) {
+  const fields =
+    value && typeof value === "object" ? Object.keys(value).sort() : [];
+  return (
+    fields.length === 6 &&
+    [
+      "cacheCreationInputTokens",
+      "cacheReadInputTokens",
+      "inputTokens",
+      "outputTokens",
+      "schema",
+      "totalTokens",
+    ].every((field, index) => fields[index] === field) &&
+    value?.schema === "cc-provider-token-usage/v1" &&
+    nonNegativeSafeInteger(value.inputTokens) !== null &&
+    nonNegativeSafeInteger(value.outputTokens) !== null &&
+    nonNegativeSafeInteger(value.cacheReadInputTokens) !== null &&
+    nonNegativeSafeInteger(value.cacheCreationInputTokens) !== null &&
+    nonNegativeSafeInteger(value.totalTokens) !== null &&
+    value.inputTokens <= MAX_PROVIDER_TOKEN_COUNT &&
+    value.outputTokens <= MAX_PROVIDER_TOKEN_COUNT &&
+    value.cacheReadInputTokens <= MAX_PROVIDER_TOKEN_COUNT &&
+    value.cacheCreationInputTokens <= MAX_PROVIDER_TOKEN_COUNT &&
+    value.totalTokens ===
+      value.inputTokens +
+        value.outputTokens +
+        value.cacheReadInputTokens +
+        value.cacheCreationInputTokens
+  );
+}
+
+function exactObjectFields(value, expected) {
+  const fields =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? Object.keys(value).sort()
+      : [];
+  const sortedExpected = [...expected].sort();
+  return (
+    fields.length === sortedExpected.length &&
+    sortedExpected.every((field, index) => fields[index] === field)
+  );
+}
+
+function nonNegativeFinite(value, max = Number.MAX_VALUE) {
+  return Number.isFinite(value) && value >= 0 && value <= max;
+}
+
+function providerPricingDigest(pricing) {
+  return digest(
+    "chainlesschain.dynamic-workflow.provider-pricing-snapshot.v1\0",
+    pricing,
+  );
+}
+
+function providerCostEstimateDigest(cost) {
+  return digest(
+    "chainlesschain.dynamic-workflow.provider-cost-estimate.v1\0",
+    cost,
+  );
+}
+
+function providerPricingCatalogDigest() {
+  return digest(
+    "chainlesschain.dynamic-workflow.provider-pricing-catalog.v1\0",
+    {
+      freeProviders: FREE_PROVIDERS,
+      priceTable: PRICE_TABLE,
+      cacheReadMultiplier: CACHE_READ_MULTIPLIER,
+      cacheReadMultiplierByProvider: CACHE_READ_MULTIPLIER_BY_PROVIDER,
+      cacheCreationMultiplier: CACHE_WRITE_MULTIPLIER,
+    },
+  );
+}
+
+function providerPricingSnapshot(provider, model) {
+  const rate = lookupRate(provider, model);
+  if (!rate) return null;
+  const cacheReadMultiplier =
+    CACHE_READ_MULTIPLIER_BY_PROVIDER[provider] ?? CACHE_READ_MULTIPLIER;
+  return {
+    schema: "cc-provider-pricing-snapshot/v1",
+    currency: "USD",
+    authority: "builtin-public-list-estimate",
+    provider,
+    model,
+    pattern: rate.pattern,
+    inputUsdPerMillion: rate.in,
+    outputUsdPerMillion: rate.out,
+    cacheReadMultiplier,
+    cacheCreationMultiplier: CACHE_WRITE_MULTIPLIER,
+    free: rate.pattern === "free",
+    catalogDigest: providerPricingCatalogDigest(),
+  };
+}
+
+function validProviderPricing(value, provider, model) {
+  return (
+    exactObjectFields(value, [
+      "schema",
+      "currency",
+      "authority",
+      "provider",
+      "model",
+      "pattern",
+      "inputUsdPerMillion",
+      "outputUsdPerMillion",
+      "cacheReadMultiplier",
+      "cacheCreationMultiplier",
+      "free",
+      "catalogDigest",
+    ]) &&
+    value.schema === "cc-provider-pricing-snapshot/v1" &&
+    value.currency === "USD" &&
+    value.authority === "builtin-public-list-estimate" &&
+    value.provider === provider &&
+    value.model === model &&
+    typeof value.pattern === "string" &&
+    /^[A-Za-z0-9._:-]{1,128}$/u.test(value.pattern) &&
+    nonNegativeFinite(
+      value.inputUsdPerMillion,
+      MAX_PROVIDER_USD_RATE_PER_MILLION,
+    ) &&
+    nonNegativeFinite(
+      value.outputUsdPerMillion,
+      MAX_PROVIDER_USD_RATE_PER_MILLION,
+    ) &&
+    nonNegativeFinite(
+      value.cacheReadMultiplier,
+      MAX_PROVIDER_CACHE_RATE_MULTIPLIER,
+    ) &&
+    nonNegativeFinite(
+      value.cacheCreationMultiplier,
+      MAX_PROVIDER_CACHE_RATE_MULTIPLIER,
+    ) &&
+    typeof value.free === "boolean" &&
+    value.free ===
+      (value.inputUsdPerMillion === 0 && value.outputUsdPerMillion === 0) &&
+    SHA256_RE.test(value.catalogDigest || "")
+  );
+}
+
+function estimateProviderCost(pricing, usage) {
+  if (!pricing || !usage) return null;
+  const inputUsd = (usage.inputTokens / 1_000_000) * pricing.inputUsdPerMillion;
+  const outputUsd =
+    (usage.outputTokens / 1_000_000) * pricing.outputUsdPerMillion;
+  const cacheReadUsd =
+    (usage.cacheReadInputTokens / 1_000_000) *
+    pricing.inputUsdPerMillion *
+    pricing.cacheReadMultiplier;
+  const cacheCreationUsd =
+    (usage.cacheCreationInputTokens / 1_000_000) *
+    pricing.inputUsdPerMillion *
+    pricing.cacheCreationMultiplier;
+  return {
+    schema: "cc-provider-cost-estimate/v1",
+    currency: "USD",
+    authority: "durable-pricing-snapshot-estimate",
+    inputUsd,
+    outputUsd,
+    cacheReadUsd,
+    cacheCreationUsd,
+    totalUsd: inputUsd + outputUsd + cacheReadUsd + cacheCreationUsd,
+    pricingDigest: providerPricingDigest(pricing),
+  };
+}
+
+function validProviderCostEstimate(value, pricing, usage) {
+  if (
+    !exactObjectFields(value, [
+      "schema",
+      "currency",
+      "authority",
+      "inputUsd",
+      "outputUsd",
+      "cacheReadUsd",
+      "cacheCreationUsd",
+      "totalUsd",
+      "pricingDigest",
+    ]) ||
+    value.schema !== "cc-provider-cost-estimate/v1" ||
+    value.currency !== "USD" ||
+    value.authority !== "durable-pricing-snapshot-estimate" ||
+    ![
+      value.inputUsd,
+      value.outputUsd,
+      value.cacheReadUsd,
+      value.cacheCreationUsd,
+      value.totalUsd,
+    ].every((amount) => nonNegativeFinite(amount)) ||
+    value.pricingDigest !== providerPricingDigest(pricing)
+  ) {
+    return false;
+  }
+  const expected = estimateProviderCost(pricing, usage);
+  return (
+    canonicalJson(value, "providerCostEstimate") ===
+    canonicalJson(expected, "providerCostEstimate")
+  );
+}
+
+function strictDataObjectSnapshot(value, fields, field, maxBytes = 64 * 1024) {
+  let descriptors;
+  try {
+    if (
+      !value ||
+      typeof value !== "object" ||
+      Array.isArray(value) ||
+      utilTypes.isProxy(value)
+    ) {
+      throw new TypeError(`${field} must be a plain data object`);
+    }
+    descriptors = Object.getOwnPropertyDescriptors(value);
+    const keys = Reflect.ownKeys(descriptors);
+    if (
+      keys.length !== fields.length ||
+      keys.some((key) => typeof key !== "string") ||
+      fields.some(
+        (name) =>
+          !Object.hasOwn(descriptors, name) ||
+          !Object.hasOwn(descriptors[name], "value"),
+      )
+    ) {
+      throw new TypeError(`${field} has an invalid field set`);
+    }
+  } catch (cause) {
+    if (cause instanceof TypeError && cause.message.startsWith(field)) {
+      throw cause;
+    }
+    throw new TypeError(`${field} must be a plain data object`);
+  }
+  return snapshotJson(
+    Object.fromEntries(fields.map((name) => [name, descriptors[name].value])),
+    field,
+    maxBytes,
+  );
+}
+
+function validArtifactMetadata(value) {
+  if (!exactObjectFields(value, ARTIFACT_METADATA_FIELDS)) return false;
+  let timestampsValid = false;
+  try {
+    timestampsValid =
+      isoNow(value.createdAt) === value.createdAt &&
+      isoNow(value.expiresAt) === value.expiresAt &&
+      Date.parse(value.expiresAt) >= Date.parse(value.createdAt);
+  } catch {
+    timestampsValid = false;
+  }
+  return (
+    ARTIFACT_ID_RE.test(value.id || "") &&
+    typeof value.title === "string" &&
+    value.title.length >= 1 &&
+    value.title.length <= 1024 &&
+    !value.title.includes("\0") &&
+    ARTIFACT_KINDS.includes(value.kind) &&
+    typeof value.mime === "string" &&
+    /^[\x21-\x7e]{1,256}$/u.test(value.mime) &&
+    Number.isSafeInteger(value.size) &&
+    value.size >= 0 &&
+    value.size <= MAX_ARTIFACT_BYTES &&
+    ARTIFACT_SHA256_RE.test(value.sha256 || "") &&
+    typeof value.file === "string" &&
+    value.file.length >= 1 &&
+    value.file.length <= 512 &&
+    path.basename(value.file) === value.file &&
+    !/[\\/\0-\x1f\x7f]/u.test(value.file) &&
+    (value.sessionId === null ||
+      (typeof value.sessionId === "string" &&
+        value.sessionId.length >= 1 &&
+        value.sessionId.length <= 256)) &&
+    timestampsValid &&
+    typeof value.immutable === "boolean" &&
+    (value.recordDigest === null || SHA256_RE.test(value.recordDigest || ""))
+  );
+}
+
+function artifactMetadataDigest(metadata) {
+  return digest(
+    "chainlesschain.dynamic-workflow.artifact-store-metadata.v1\0",
+    metadata,
+  );
+}
+
+function artifactReadbackDigest(readback) {
+  return digest(
+    "chainlesschain.dynamic-workflow.artifact-store-readback.v1\0",
+    readback,
+  );
+}
+
+function validArtifactReadback(value) {
+  return (
+    exactObjectFields(value, [
+      "schema",
+      "authority",
+      "metadata",
+      "metadataDigest",
+      "contentDigest",
+    ]) &&
+    value.schema === "cc-dynamic-workflow-artifact-readback/v1" &&
+    value.authority === "artifact-store-index-and-bytes-at-settlement" &&
+    validArtifactMetadata(value.metadata) &&
+    value.metadataDigest === artifactMetadataDigest(value.metadata) &&
+    value.contentDigest === `sha256:${value.metadata.sha256}`
+  );
+}
+
+function artifactReadbackSettlement(event, artifactStore) {
+  const supplied = strictDataObjectSnapshot(
+    ownDataValue(event?.result, "published"),
+    ARTIFACT_METADATA_FIELDS,
+    "workflow published artifact metadata",
+  );
+  if (!validArtifactMetadata(supplied)) {
+    throw new TypeError("workflow published artifact metadata is malformed");
+  }
+  if (containsSecret(JSON.stringify(supplied))) {
+    throw new TypeError(
+      "workflow published artifact metadata contains secret-shaped data",
+    );
+  }
+  if (
+    !artifactStore ||
+    typeof artifactStore.get !== "function" ||
+    typeof artifactStore.verifyIntegrity !== "function"
+  ) {
+    throw new TypeError("workflow artifact store readback is unavailable");
+  }
+  let stored;
+  let integrity;
+  try {
+    stored = artifactStore.get(supplied.id);
+    integrity = stored ? artifactStore.verifyIntegrity(stored) : null;
+  } catch {
+    throw new TypeError("workflow artifact store readback failed");
+  }
+  if (!stored || !integrity?.ok) {
+    throw new TypeError(
+      "workflow artifact store bytes are unavailable or invalid",
+    );
+  }
+  const canonical = strictDataObjectSnapshot(
+    publicArtifactMetadata(stored),
+    ARTIFACT_METADATA_FIELDS,
+    "workflow artifact store metadata",
+  );
+  if (
+    !validArtifactMetadata(canonical) ||
+    canonicalJson(canonical, "workflowArtifactMetadata") !==
+      canonicalJson(supplied, "workflowArtifactMetadata") ||
+    integrity.expectedSha256 !== supplied.sha256 ||
+    integrity.actualSha256 !== supplied.sha256
+  ) {
+    throw new TypeError(
+      "workflow artifact store readback does not match settlement",
+    );
+  }
+  return {
+    schema: "cc-dynamic-workflow-artifact-readback/v1",
+    authority: "artifact-store-index-and-bytes-at-settlement",
+    metadata: canonical,
+    metadataDigest: artifactMetadataDigest(canonical),
+    contentDigest: `sha256:${integrity.actualSha256}`,
+  };
+}
+
+const CHECKPOINT_EVIDENCE_BASE_FIELDS = Object.freeze([
+  "version",
+  "transactionId",
+  "checkpointId",
+  "checkpointDigest",
+  "writeManifestDigest",
+  "fileCoverage",
+  "coverage",
+  "externalSideEffects",
+  "outcome",
+  "executions",
+  "exclusions",
+  "uncoveredPaths",
+  "evidenceDigest",
+]);
+
+const CHECKPOINT_BINDING_FIELDS = Object.freeze([
+  "schema",
+  "authority",
+  "transactionId",
+  "checkpointId",
+  "checkpointDigest",
+  "preparedStateDigest",
+  "coverage",
+  "fileCoverage",
+  "externalSideEffects",
+]);
+
+function checkpointBindingSnapshot(value) {
+  if (value === undefined || value === null) return null;
+  return strictDataObjectSnapshot(
+    value,
+    CHECKPOINT_BINDING_FIELDS,
+    "workflow managed checkpoint binding",
+  );
+}
+
+function validCheckpointBinding(value) {
+  return (
+    exactObjectFields(value, CHECKPOINT_BINDING_FIELDS) &&
+    value.schema === "cc-managed-tool-checkpoint-binding/v1" &&
+    value.authority === "process-broker-workspace-transaction-prepared" &&
+    /^[A-Za-z0-9][A-Za-z0-9._-]{0,191}$/u.test(value.transactionId || "") &&
+    /^[A-Za-z0-9][A-Za-z0-9._-]{0,191}$/u.test(value.checkpointId || "") &&
+    SHA256_RE.test(value.checkpointDigest || "") &&
+    SHA256_RE.test(value.preparedStateDigest || "") &&
+    Object.values(WORKSPACE_TRANSACTION_COVERAGE).includes(value.coverage) &&
+    Object.values(WORKSPACE_TRANSACTION_COVERAGE).includes(
+      value.fileCoverage,
+    ) &&
+    typeof value.externalSideEffects === "boolean"
+  );
+}
+
+function checkpointBindingDigest(binding) {
+  return digest(
+    "chainlesschain.dynamic-workflow.checkpoint-prepared-binding.v1\0",
+    binding,
+  );
+}
+
+function checkpointReadbackMatchesBinding(readback, binding) {
+  return (
+    binding === null ||
+    (validCheckpointBinding(binding) &&
+      readback.transactionId === binding.transactionId &&
+      readback.checkpointId === binding.checkpointId &&
+      readback.checkpointDigest === binding.checkpointDigest &&
+      readback.coverage === binding.coverage &&
+      readback.fileCoverage === binding.fileCoverage &&
+      readback.externalSideEffects === binding.externalSideEffects)
+  );
+}
+
+function checkpointEvidenceSnapshot(value) {
+  const outcome = ownDataValue(value, "outcome");
+  const fields =
+    outcome === "rolled_back"
+      ? [
+          ...CHECKPOINT_EVIDENCE_BASE_FIELDS,
+          "rollbackReason",
+          "verificationDigest",
+        ]
+      : CHECKPOINT_EVIDENCE_BASE_FIELDS;
+  return strictDataObjectSnapshot(
+    value,
+    fields,
+    "workflow managed checkpoint evidence",
+    512 * 1024,
+  );
+}
+
+function boundedStringArray(value, maxItems = 4096, maxLength = 4096) {
+  return (
+    Array.isArray(value) &&
+    value.length <= maxItems &&
+    value.every(
+      (entry) =>
+        typeof entry === "string" &&
+        entry.length >= 1 &&
+        entry.length <= maxLength &&
+        !entry.includes("\0"),
+    )
+  );
+}
+
+function validCheckpointEvidence(value) {
+  if (
+    !value ||
+    value.version !== WORKSPACE_TRANSACTION_VERSION ||
+    !/^[A-Za-z0-9][A-Za-z0-9._-]{0,191}$/u.test(value.transactionId || "") ||
+    !/^[A-Za-z0-9][A-Za-z0-9._-]{0,191}$/u.test(value.checkpointId || "") ||
+    !SHA256_RE.test(value.checkpointDigest || "") ||
+    !SHA256_RE.test(value.writeManifestDigest || "") ||
+    !Object.values(WORKSPACE_TRANSACTION_COVERAGE).includes(
+      value.fileCoverage,
+    ) ||
+    !Object.values(WORKSPACE_TRANSACTION_COVERAGE).includes(value.coverage) ||
+    typeof value.externalSideEffects !== "boolean" ||
+    !["committed", "rolled_back"].includes(value.outcome) ||
+    !boundedStringArray(value.executions, 4096, 256) ||
+    !boundedStringArray(value.exclusions) ||
+    !boundedStringArray(value.uncoveredPaths) ||
+    !SHA256_RE.test(value.evidenceDigest || "") ||
+    (value.outcome === "rolled_back" &&
+      (typeof value.rollbackReason !== "string" ||
+        value.rollbackReason.length < 1 ||
+        value.rollbackReason.length > 1000 ||
+        !SHA256_RE.test(value.verificationDigest || "")))
+  ) {
+    return false;
+  }
+  const unsigned = { ...value };
+  delete unsigned.evidenceDigest;
+  return value.evidenceDigest === digestWorkspaceEvidence(unsigned);
+}
+
+function checkpointReadbackDigest(readback) {
+  return digest(
+    "chainlesschain.dynamic-workflow.checkpoint-store-readback.v1\0",
+    readback,
+  );
+}
+
+function validCheckpointReadback(value) {
+  return (
+    exactObjectFields(value, [
+      "schema",
+      "authority",
+      "transactionId",
+      "checkpointId",
+      "outcome",
+      "coverage",
+      "fileCoverage",
+      "externalSideEffects",
+      "checkpointDigest",
+      "writeManifestDigest",
+      "evidenceDigest",
+      "stateDigest",
+    ]) &&
+    value.schema === "cc-dynamic-workflow-checkpoint-readback/v1" &&
+    value.authority === "workspace-transaction-store-terminal-readback" &&
+    /^[A-Za-z0-9][A-Za-z0-9._-]{0,191}$/u.test(value.transactionId || "") &&
+    /^[A-Za-z0-9][A-Za-z0-9._-]{0,191}$/u.test(value.checkpointId || "") &&
+    ["committed", "rolled_back"].includes(value.outcome) &&
+    Object.values(WORKSPACE_TRANSACTION_COVERAGE).includes(value.coverage) &&
+    Object.values(WORKSPACE_TRANSACTION_COVERAGE).includes(
+      value.fileCoverage,
+    ) &&
+    typeof value.externalSideEffects === "boolean" &&
+    SHA256_RE.test(value.checkpointDigest || "") &&
+    SHA256_RE.test(value.writeManifestDigest || "") &&
+    SHA256_RE.test(value.evidenceDigest || "") &&
+    SHA256_RE.test(value.stateDigest || "")
+  );
+}
+
+function checkpointStoreReadback(evidence, checkpointStore, binding = null) {
+  if (
+    binding !== null &&
+    (!validCheckpointBinding(binding) ||
+      evidence.transactionId !== binding.transactionId ||
+      evidence.checkpointId !== binding.checkpointId ||
+      evidence.checkpointDigest !== binding.checkpointDigest ||
+      evidence.coverage !== binding.coverage ||
+      evidence.fileCoverage !== binding.fileCoverage ||
+      evidence.externalSideEffects !== binding.externalSideEffects)
+  ) {
+    throw new TypeError(
+      "workflow managed checkpoint settlement does not match its prepared binding",
+    );
+  }
+  if (!checkpointStore || typeof checkpointStore.inspect !== "function") {
+    throw new TypeError("workflow checkpoint store readback is unavailable");
+  }
+  let stored;
+  try {
+    stored = snapshotJson(
+      checkpointStore.inspect(evidence.transactionId),
+      "workflow checkpoint store state",
+      2 * 1024 * 1024,
+    );
+  } catch {
+    throw new TypeError("workflow checkpoint store readback failed");
+  }
+  const unsignedState = { ...stored };
+  delete unsignedState.stateDigest;
+  const expectedState =
+    evidence.outcome === "committed"
+      ? WORKSPACE_TRANSACTION_STATE.COMMITTED
+      : WORKSPACE_TRANSACTION_STATE.ROLLED_BACK;
+  if (
+    stored.id !== evidence.transactionId ||
+    stored.checkpointId !== evidence.checkpointId ||
+    stored.state !== expectedState ||
+    !SHA256_RE.test(stored.stateDigest || "") ||
+    stored.stateDigest !== digestWorkspaceEvidence(unsignedState) ||
+    canonicalJson(stored.evidence, "workflowCheckpointEvidence") !==
+      canonicalJson(evidence, "workflowCheckpointEvidence")
+  ) {
+    throw new TypeError(
+      "workflow checkpoint store readback does not match settlement",
+    );
+  }
+  const readback = {
+    schema: "cc-dynamic-workflow-checkpoint-readback/v1",
+    authority: "workspace-transaction-store-terminal-readback",
+    transactionId: evidence.transactionId,
+    checkpointId: evidence.checkpointId,
+    outcome: evidence.outcome,
+    coverage: evidence.coverage,
+    fileCoverage: evidence.fileCoverage,
+    externalSideEffects: evidence.externalSideEffects,
+    checkpointDigest: evidence.checkpointDigest,
+    writeManifestDigest: evidence.writeManifestDigest,
+    evidenceDigest: evidence.evidenceDigest,
+    stateDigest: stored.stateDigest,
+  };
+  if (!checkpointReadbackMatchesBinding(readback, binding)) {
+    throw new TypeError(
+      "workflow checkpoint store readback does not match its prepared binding",
+    );
+  }
+  return readback;
+}
+
+function checkpointReadbackSettlement(event, checkpointStore, binding = null) {
+  const managed = ownDataValue(event?.result, "managedCheckpoint");
+  if (managed === undefined || managed === null) return null;
+  const skipped = ownDataValue(managed, "skipped");
+  const status = ownDataValue(managed, "status");
+  if (skipped === true) {
+    const observation = strictDataObjectSnapshot(
+      managed,
+      ["skipped", "toolName", "coverage", "fileCoverage", "reason"],
+      "workflow unavailable managed checkpoint",
+    );
+    if (
+      observation.toolName !== event.tool ||
+      observation.coverage !== WORKSPACE_TRANSACTION_COVERAGE.NONE ||
+      observation.fileCoverage !== WORKSPACE_TRANSACTION_COVERAGE.NONE ||
+      typeof observation.reason !== "string" ||
+      observation.reason.length < 1 ||
+      observation.reason.length > 256
+    ) {
+      throw new TypeError(
+        "workflow unavailable managed checkpoint is malformed",
+      );
+    }
+    return null;
+  }
+  if (["not_started", "recovery_required"].includes(status)) {
+    const observation = strictDataObjectSnapshot(
+      managed,
+      status === "not_started"
+        ? ["status", "coverage", "code"]
+        : [
+            "status",
+            "coverage",
+            "code",
+            "transactionId",
+            "checkpointId",
+            "settlement",
+            "originalToolError",
+          ],
+      "workflow unavailable managed checkpoint",
+    );
+    const hasToolError = Boolean(
+      event?.error || ownDataValue(event?.result, "error"),
+    );
+    if (
+      observation.coverage !== WORKSPACE_TRANSACTION_COVERAGE.NONE ||
+      !hasToolError
+    ) {
+      throw new TypeError(
+        "workflow unavailable managed checkpoint is malformed",
+      );
+    }
+    return null;
+  }
+  const settlement = strictDataObjectSnapshot(
+    managed,
+    [
+      "skipped",
+      "toolName",
+      "transactionId",
+      "checkpointId",
+      "evidence",
+      "coverage",
+      "fileCoverage",
+    ],
+    "workflow managed checkpoint settlement",
+    1024 * 1024,
+  );
+  const evidence = checkpointEvidenceSnapshot(settlement.evidence);
+  if (
+    settlement.skipped !== false ||
+    settlement.toolName !== event.tool ||
+    settlement.transactionId !== evidence.transactionId ||
+    settlement.checkpointId !== evidence.checkpointId ||
+    settlement.coverage !== evidence.coverage ||
+    settlement.fileCoverage !== evidence.fileCoverage ||
+    !validCheckpointEvidence(evidence)
+  ) {
+    throw new TypeError("workflow managed checkpoint settlement is malformed");
+  }
+  return checkpointStoreReadback(evidence, checkpointStore, binding);
 }
 
 function effectResultDigest(result) {
@@ -248,7 +1000,14 @@ function expectedWorkflowProviderRequestId(effectId, source, sequence) {
     .digest("hex")}`;
 }
 
-function verifyEffectCalls(effect, effectIndex, issues) {
+function verifyEffectCalls(
+  effect,
+  effectIndex,
+  issues,
+  startedLineageByCallId,
+  receiptLineageByCallId,
+  settlementLineageByCallId,
+) {
   const calls = effect?.calls === undefined ? [] : effect.calls;
   if (!Array.isArray(calls) || calls.length > MAX_CALLS_PER_EFFECT) {
     issues.push(`effect-${effectIndex}-calls-invalid`);
@@ -266,11 +1025,112 @@ function verifyEffectCalls(effect, effectIndex, issues) {
           ? call?.source
           : null
         : call.requestSource;
+    const startedLineage = startedLineageByCallId.get(call?.id) || [];
+    const receiptLineage = receiptLineageByCallId.get(call?.id) || [];
+    const settlementLineage = settlementLineageByCallId.get(call?.id) || [];
+    const receiptLineageValid =
+      receiptLineage.length === 1 &&
+      receiptLineage[0]?.details?.effectId === effect.id &&
+      receiptLineage[0]?.details?.ownerEffectId === ownerEffectId &&
+      receiptLineage[0]?.details?.callRecordId === call?.id;
+    const hasReceiptTimestamp = Object.prototype.hasOwnProperty.call(
+      call || {},
+      "providerReceiptRecordedAt",
+    );
+    const hasProviderUsage = Object.prototype.hasOwnProperty.call(
+      call || {},
+      "providerUsage",
+    );
+    const settlementUsageDigestPresent = settlementLineage.some((event) =>
+      Object.prototype.hasOwnProperty.call(
+        event?.details || {},
+        "providerUsageDigest",
+      ),
+    );
+    const providerCostFields = [
+      "providerModel",
+      "providerPricing",
+      "providerCostEstimate",
+    ];
+    const providerCostFieldCount = providerCostFields.filter((field) =>
+      Object.prototype.hasOwnProperty.call(call || {}, field),
+    ).length;
+    const hasProviderCostSchema =
+      providerCostFieldCount === providerCostFields.length;
+    const startedPricingFieldsPresent = startedLineage.some(
+      (event) =>
+        Object.prototype.hasOwnProperty.call(
+          event?.details || {},
+          "providerModel",
+        ) ||
+        Object.prototype.hasOwnProperty.call(
+          event?.details || {},
+          "providerPricingDigest",
+        ),
+    );
+    const settlementCostDigestPresent = settlementLineage.some((event) =>
+      Object.prototype.hasOwnProperty.call(
+        event?.details || {},
+        "providerCostEstimateDigest",
+      ),
+    );
+    const hasArtifactReadback = Object.prototype.hasOwnProperty.call(
+      call || {},
+      "artifactReadback",
+    );
+    const startedArtifactSchemaPresent = startedLineage.some((event) =>
+      Object.prototype.hasOwnProperty.call(
+        event?.details || {},
+        "artifactReadbackSchema",
+      ),
+    );
+    const settlementArtifactDigestPresent = settlementLineage.some((event) =>
+      Object.prototype.hasOwnProperty.call(
+        event?.details || {},
+        "artifactReadbackDigest",
+      ),
+    );
+    const hasCheckpointReadback = Object.prototype.hasOwnProperty.call(
+      call || {},
+      "checkpointReadback",
+    );
+    const startedCheckpointSchemaPresent = startedLineage.some((event) =>
+      Object.prototype.hasOwnProperty.call(
+        event?.details || {},
+        "checkpointReadbackSchema",
+      ),
+    );
+    const settlementCheckpointDigestPresent = settlementLineage.some((event) =>
+      Object.prototype.hasOwnProperty.call(
+        event?.details || {},
+        "checkpointReadbackDigest",
+      ),
+    );
+    const hasCheckpointBinding = Object.prototype.hasOwnProperty.call(
+      call || {},
+      "checkpointBinding",
+    );
+    const startedCheckpointBindingDigestPresent = startedLineage.some((event) =>
+      Object.prototype.hasOwnProperty.call(
+        event?.details || {},
+        "checkpointBindingDigest",
+      ),
+    );
+    const checkpointBindingValid = hasCheckpointBinding
+      ? startedLineage.length === 1 &&
+        (call.checkpointBinding === null ||
+          validCheckpointBinding(call.checkpointBinding)) &&
+        startedLineage[0]?.details?.checkpointBindingDigest ===
+          (call.checkpointBinding === null
+            ? null
+            : checkpointBindingDigest(call.checkpointBinding))
+      : !startedCheckpointBindingDigestPresent;
     const terminal = call?.status !== "started";
     const identityKey = `${call?.kind || ""}\0${
       call?.kind === "tool" ? call?.childEffectId : call?.callId
     }`;
     let timestampsValid = false;
+    let receiptTimestampValid = false;
     try {
       timestampsValid =
         isoNow(call?.startedAt) === call.startedAt &&
@@ -281,8 +1141,22 @@ function verifyEffectCalls(effect, effectIndex, issues) {
             (effect.settledAt === null ||
               Date.parse(call.settledAt) <= Date.parse(effect.settledAt))
           : call?.settledAt === null);
+      receiptTimestampValid = call?.providerReceiptPersisted
+        ? receiptLineageValid
+          ? hasReceiptTimestamp &&
+            isoNow(call.providerReceiptRecordedAt) ===
+              call.providerReceiptRecordedAt &&
+            Date.parse(call.providerReceiptRecordedAt) >=
+              Date.parse(call.startedAt) &&
+            (!terminal ||
+              Date.parse(call.providerReceiptRecordedAt) <=
+                Date.parse(call.settledAt))
+          : receiptLineage.length === 0 && !hasReceiptTimestamp && terminal
+        : receiptLineage.length === 0 &&
+          (call?.providerReceiptRecordedAt === null || !hasReceiptTimestamp);
     } catch {
       timestampsValid = false;
+      receiptTimestampValid = false;
     }
     const commonValid =
       call?.schema === DYNAMIC_WORKFLOW_CALL_SCHEMA &&
@@ -328,6 +1202,7 @@ function verifyEffectCalls(effect, effectIndex, issues) {
         Boolean(
           call.providerReceiptRequestId || call.providerReceiptResponseId,
         ) &&
+      receiptTimestampValid &&
       (call.mcpLedgerId === null ||
         PROVIDER_RECEIPT_ID_RE.test(call.mcpLedgerId || "")) &&
       typeof call.mcpLedgerPrewritePersisted === "boolean" &&
@@ -355,8 +1230,63 @@ function verifyEffectCalls(effect, effectIndex, issues) {
             call.sequence,
           ) &&
         call.identitySemantics === "trace-only" &&
-        (call.providerReceiptPersisted === false ||
-          ["completed", "outcome_unknown"].includes(call.status)) &&
+        call.status !== "failed" &&
+        (providerCostFieldCount === 0
+          ? !startedPricingFieldsPresent && !settlementCostDigestPresent
+          : hasProviderCostSchema &&
+            (call.providerModel === null ||
+              PROVIDER_MODEL_RE.test(call.providerModel || "")) &&
+            (call.providerPricing === null ||
+              validProviderPricing(
+                call.providerPricing,
+                call.name,
+                call.providerModel,
+              )) &&
+            startedLineage.length === 1 &&
+            startedLineage[0]?.details?.providerModel === call.providerModel &&
+            startedLineage[0]?.details?.providerPricingDigest ===
+              (call.providerPricing === null
+                ? null
+                : providerPricingDigest(call.providerPricing)) &&
+            (call.status === "completed"
+              ? (call.providerPricing === null
+                  ? call.providerCostEstimate === null
+                  : validProviderCostEstimate(
+                      call.providerCostEstimate,
+                      call.providerPricing,
+                      call.providerUsage,
+                    )) &&
+                settlementLineage.length === 1 &&
+                settlementLineage[0]?.details?.providerCostEstimateDigest ===
+                  (call.providerCostEstimate === null
+                    ? null
+                    : providerCostEstimateDigest(call.providerCostEstimate))
+              : call.providerCostEstimate === null &&
+                (call.status === "outcome_unknown"
+                  ? settlementLineage.length === 1 &&
+                    settlementLineage[0]?.details
+                      ?.providerCostEstimateDigest === null
+                  : !settlementCostDigestPresent))) &&
+        (hasProviderUsage
+          ? call.status === "completed"
+            ? validProviderUsage(call.providerUsage) &&
+              settlementLineage.length === 1 &&
+              settlementLineage[0]?.details?.providerUsageDigest ===
+                providerUsageDigest(call.providerUsage)
+            : call.providerUsage === null &&
+              (call.status === "outcome_unknown"
+                ? settlementLineage.length === 1 &&
+                  settlementLineage[0]?.details?.providerUsageDigest === null
+                : !settlementUsageDigestPresent)
+          : !settlementUsageDigestPresent) &&
+        !hasArtifactReadback &&
+        !startedArtifactSchemaPresent &&
+        !settlementArtifactDigestPresent &&
+        !hasCheckpointReadback &&
+        !startedCheckpointSchemaPresent &&
+        !settlementCheckpointDigestPresent &&
+        !hasCheckpointBinding &&
+        !startedCheckpointBindingDigestPresent &&
         call.mcpLedgerId === null &&
         call.mcpLedgerPrewritePersisted === false &&
         call.mcpLedgerSettlementPersisted === false);
@@ -379,14 +1309,62 @@ function verifyEffectCalls(effect, effectIndex, issues) {
         call.providerReceiptPersisted === false &&
         call.providerReceiptRequestId === null &&
         call.providerReceiptResponseId === null &&
-        call.identitySemantics === "runtime-derived");
+        (call.providerReceiptRecordedAt === null || !hasReceiptTimestamp) &&
+        call.identitySemantics === "runtime-derived" &&
+        (call.name !== "publish_artifact"
+          ? !hasArtifactReadback &&
+            !startedArtifactSchemaPresent &&
+            !settlementArtifactDigestPresent
+          : hasArtifactReadback
+            ? startedLineage.length === 1 &&
+              startedLineage[0]?.details?.artifactReadbackSchema ===
+                "cc-dynamic-workflow-artifact-readback/v1" &&
+              (call.status === "completed"
+                ? validArtifactReadback(call.artifactReadback) &&
+                  settlementLineage.length === 1 &&
+                  settlementLineage[0]?.details?.artifactReadbackDigest ===
+                    artifactReadbackDigest(call.artifactReadback)
+                : call.artifactReadback === null &&
+                  (["failed", "outcome_unknown"].includes(call.status)
+                    ? settlementLineage.length === 1 &&
+                      settlementLineage[0]?.details?.artifactReadbackDigest ===
+                        null
+                    : !settlementArtifactDigestPresent))
+            : !startedArtifactSchemaPresent &&
+              !settlementArtifactDigestPresent) &&
+        (managedToolCheckpointRequired(call.name)
+          ? hasCheckpointReadback
+            ? checkpointBindingValid &&
+              startedLineage.length === 1 &&
+              startedLineage[0]?.details?.checkpointReadbackSchema ===
+                "cc-dynamic-workflow-checkpoint-readback/v1" &&
+              (["completed", "failed", "outcome_unknown"].includes(call.status)
+                ? (call.checkpointReadback === null ||
+                    (validCheckpointReadback(call.checkpointReadback) &&
+                      checkpointReadbackMatchesBinding(
+                        call.checkpointReadback,
+                        hasCheckpointBinding ? call.checkpointBinding : null,
+                      ))) &&
+                  settlementLineage.length === 1 &&
+                  settlementLineage[0]?.details?.checkpointReadbackDigest ===
+                    (call.checkpointReadback === null
+                      ? null
+                      : checkpointReadbackDigest(call.checkpointReadback))
+                : call.checkpointReadback === null &&
+                  !settlementCheckpointDigestPresent)
+            : !hasCheckpointBinding &&
+              !startedCheckpointSchemaPresent &&
+              !startedCheckpointBindingDigestPresent &&
+              !settlementCheckpointDigestPresent
+          : !hasCheckpointReadback &&
+            !hasCheckpointBinding &&
+            !startedCheckpointSchemaPresent &&
+            !startedCheckpointBindingDigestPresent &&
+            !settlementCheckpointDigestPresent));
     const settlementValid = terminal
       ? call.settlementCode !== null || call.status === "completed"
       : call.settlementCode === null &&
         call.outcomeUnknown === false &&
-        call.providerReceiptPersisted === false &&
-        call.providerReceiptRequestId === null &&
-        call.providerReceiptResponseId === null &&
         call.mcpLedgerId === null &&
         call.mcpLedgerPrewritePersisted === false &&
         call.mcpLedgerSettlementPersisted === false;
@@ -413,6 +1391,105 @@ function verifyEffectCalls(effect, effectIndex, issues) {
   }
   if (calls.length > 0 && typeof effect?.providerDispatchedAt !== "string") {
     issues.push(`effect-${effectIndex}-calls-without-dispatch`);
+  }
+}
+
+function verifyInputRequests(state, issues) {
+  if (state.inputRequests === undefined) {
+    if (["input_requested", "needs_input"].includes(state.status)) {
+      issues.push("input-requests-missing");
+    }
+    return;
+  }
+  if (
+    !Array.isArray(state.inputRequests) ||
+    state.inputRequests.length > MAX_INPUT_REQUESTS
+  ) {
+    issues.push("input-requests-invalid");
+    return;
+  }
+  const ids = new Set();
+  const stepIds = new Set();
+  let pendingCount = 0;
+  for (const [index, request] of state.inputRequests.entries()) {
+    let valid = true;
+    let normalized = null;
+    const plainRequest =
+      request && typeof request === "object" && !Array.isArray(request);
+    try {
+      normalized = normalizeStageInputRequest({
+        stepId: request?.stepId,
+        prompt: request?.prompt,
+        options: request?.options,
+        multiSelect: request?.multiSelect,
+      });
+    } catch {
+      valid = false;
+    }
+    const expectedId = normalized
+      ? stageInputRequestIdentity(state.runId, normalized)
+      : null;
+    const pending = request?.status === "pending";
+    const answered = request?.status === "answered";
+    const cancelled = request?.status === "cancelled";
+    if (pending) pendingCount += 1;
+    if (
+      !plainRequest ||
+      request?.schema !== DYNAMIC_WORKFLOW_INPUT_REQUEST_SCHEMA ||
+      (plainRequest && Reflect.ownKeys(request).length !== 11) ||
+      request?.id !== expectedId ||
+      ids.has(request?.id) ||
+      stepIds.has(request?.stepId) ||
+      (!pending && !answered && !cancelled) ||
+      isoNow(request?.requestedAt) !== request.requestedAt ||
+      (pending &&
+        (request.resolvedAt !== null ||
+          request.responseDigest !== null ||
+          request.response !== null))
+    ) {
+      valid = false;
+    }
+    if (answered) {
+      let answer = null;
+      try {
+        answer = normalizeStageInputAnswer(request.response, request);
+      } catch {
+        valid = false;
+      }
+      if (
+        answer === null ||
+        !SHA256_RE.test(request.responseDigest || "") ||
+        request.responseDigest !==
+          stageInputResponseDigest(request.id, request.response) ||
+        typeof request.resolvedAt !== "string" ||
+        isoNow(request.resolvedAt) !== request.resolvedAt ||
+        Date.parse(request.resolvedAt) < Date.parse(request.requestedAt)
+      ) {
+        valid = false;
+      }
+    }
+    if (
+      cancelled &&
+      (typeof request.resolvedAt !== "string" ||
+        isoNow(request.resolvedAt) !== request.resolvedAt ||
+        Date.parse(request.resolvedAt) < Date.parse(request.requestedAt) ||
+        request.responseDigest !== null ||
+        request.response !== null)
+    ) {
+      valid = false;
+    }
+    if (!valid) issues.push(`input-request-${index}-invalid`);
+    ids.add(request?.id);
+    stepIds.add(request?.stepId);
+  }
+  const inputStatus = ["input_requested", "needs_input"].includes(state.status);
+  if (
+    pendingCount > 1 ||
+    inputStatus !== (pendingCount === 1) ||
+    (state.status === "needs_input" &&
+      state.effects?.some((effect) => effect?.status === "pending"))
+  ) {
+    issues.push("input-request-state-invalid");
   }
 }
 
@@ -452,6 +1529,43 @@ export function verifyDynamicWorkflowRuntimeState(value) {
   if (!Array.isArray(state.effects) || state.effects.length > MAX_EFFECTS) {
     issues.push("effects-invalid");
   } else {
+    const startedLineageByCallId = new Map();
+    const receiptLineageByCallId = new Map();
+    const settlementLineageByCallId = new Map();
+    for (const event of state.lineage) {
+      const callRecordId = event?.details?.callRecordId;
+      const target =
+        event.type === "effect-call-started"
+          ? startedLineageByCallId
+          : event.type === "effect-call-receipt-recorded"
+            ? receiptLineageByCallId
+            : event.type === "effect-call-settled"
+              ? settlementLineageByCallId
+              : null;
+      if (!target) continue;
+      if (!target.has(callRecordId)) {
+        target.set(callRecordId, []);
+      }
+      target.get(callRecordId).push(event);
+    }
+    const knownCallIds = new Set(
+      state.effects.flatMap((effect) =>
+        Array.isArray(effect?.calls)
+          ? effect.calls.map((call) => call?.id)
+          : [],
+      ),
+    );
+    let receiptLineageIndex = 0;
+    for (const [callRecordId, events] of receiptLineageByCallId) {
+      if (
+        !SHA256_RE.test(callRecordId || "") ||
+        !knownCallIds.has(callRecordId) ||
+        events.length !== 1
+      ) {
+        issues.push(`receipt-lineage-${receiptLineageIndex}-invalid`);
+      }
+      receiptLineageIndex += 1;
+    }
     const ids = new Set();
     const keys = new Set();
     const batches = new Map();
@@ -569,7 +1683,14 @@ export function verifyDynamicWorkflowRuntimeState(value) {
       }
       ids.add(effect?.id);
       keys.add(effect?.key);
-      verifyEffectCalls(effect, index, issues);
+      verifyEffectCalls(
+        effect,
+        index,
+        issues,
+        startedLineageByCallId,
+        receiptLineageByCallId,
+        settlementLineageByCallId,
+      );
       if (batchMetadataValid && hasBatchMetadata) {
         if (!batches.has(effect.batchId)) batches.set(effect.batchId, []);
         batches.get(effect.batchId).push(effect);
@@ -596,6 +1717,7 @@ export function verifyDynamicWorkflowRuntimeState(value) {
       batchIndex += 1;
     }
   }
+  verifyInputRequests(state, issues);
   if (
     (state.status === "completed") !== (state.finalRecord != null) ||
     (state.status === "stopped" && state.finalRecord != null)
@@ -800,6 +1922,22 @@ export function readDynamicWorkflowEffectResultFile(filePath) {
   );
 }
 
+export function readDynamicWorkflowInputResponseFile(filePath) {
+  const payload = readDynamicWorkflowEffectResultFile(filePath);
+  if (
+    !payload ||
+    typeof payload !== "object" ||
+    Array.isArray(payload) ||
+    Reflect.ownKeys(payload).length !== 1 ||
+    !Object.hasOwn(payload, "answer")
+  ) {
+    throw new Error(
+      'workflow input response file must contain exactly {"answer": ...}',
+    );
+  }
+  return payload.answer;
+}
+
 function stateBindings(execution, runId) {
   const admission = execution.runAdmission;
   if (!admission || typeof admission !== "object") {
@@ -869,6 +2007,7 @@ function createState(bindings, now) {
     revision: 0,
     status: "ready",
     effects: [],
+    inputRequests: [],
     finalRecord: null,
     createdAt: at,
     updatedAt: at,
@@ -890,6 +2029,102 @@ function controlError(message, reason, state, effect = null, cause = null) {
   error.runtimeState = state;
   if (effect) error.pendingEffect = effect;
   return error;
+}
+
+function runtimeInputRequests(state) {
+  return Array.isArray(state?.inputRequests) ? state.inputRequests : [];
+}
+
+function normalizeStageInputRequest(value) {
+  const request = snapshotJson(
+    value,
+    "workflow stage input request",
+    64 * 1024,
+  );
+  const fields = Object.keys(request || {});
+  if (
+    !request ||
+    typeof request !== "object" ||
+    Array.isArray(request) ||
+    fields.length !== 4 ||
+    !["stepId", "prompt", "options", "multiSelect"].every((field) =>
+      Object.hasOwn(request, field),
+    ) ||
+    typeof request.stepId !== "string" ||
+    request.stepId.length === 0 ||
+    request.stepId.length > 512 ||
+    typeof request.prompt !== "string" ||
+    request.prompt.trim() !== request.prompt ||
+    request.prompt.length === 0 ||
+    request.prompt.length > 4096 ||
+    typeof request.multiSelect !== "boolean" ||
+    !(
+      request.options === null ||
+      (Array.isArray(request.options) &&
+        request.options.length > 0 &&
+        request.options.length <= MAX_INPUT_OPTIONS &&
+        request.options.every(
+          (option) =>
+            typeof option === "string" &&
+            option.trim() === option &&
+            option.length > 0 &&
+            option.length <= 512,
+        ) &&
+        new Set(request.options).size === request.options.length)
+    ) ||
+    (request.multiSelect && request.options === null)
+  ) {
+    throw new TypeError("workflow stage input request is malformed");
+  }
+  if (containsSecret(JSON.stringify(request))) {
+    throw new Error("workflow stage input request contains secret-shaped data");
+  }
+  return request;
+}
+
+function stageInputRequestIdentity(runId, request) {
+  return digest("chainlesschain.dynamic-workflow.input-request.v1\0", {
+    runId,
+    request,
+  });
+}
+
+function normalizeStageInputAnswer(value, request) {
+  const answer = snapshotJson(
+    value,
+    "workflow stage input answer",
+    MAX_INPUT_RESPONSE_BYTES,
+  );
+  if (request.multiSelect) {
+    if (
+      !Array.isArray(answer) ||
+      answer.length === 0 ||
+      answer.length > MAX_INPUT_OPTIONS ||
+      answer.some((item) => typeof item !== "string") ||
+      new Set(answer).size !== answer.length ||
+      answer.some((item) => !request.options.includes(item))
+    ) {
+      throw new TypeError("workflow stage input answer is malformed");
+    }
+  } else if (
+    typeof answer !== "string" ||
+    answer.length === 0 ||
+    Buffer.byteLength(answer, "utf8") > MAX_INPUT_RESPONSE_BYTES ||
+    (request.options !== null && !request.options.includes(answer))
+  ) {
+    throw new TypeError("workflow stage input answer is malformed");
+  }
+  if (containsSecret(JSON.stringify(answer))) {
+    throw new Error("workflow stage input answer contains secret-shaped data");
+  }
+  return answer;
+}
+
+function stageInputResponseDigest(requestId, answer) {
+  return digest("chainlesschain.dynamic-workflow.input-response.v1\0", {
+    requestId,
+    answer,
+  });
 }
 
 function startRun(statePath, bindings, now) {
@@ -917,6 +2152,78 @@ function startRun(statePath, bindings, now) {
     );
     return { state, value: state };
   });
+}
+
+function resolveDurableWorkflowStageInput(statePath, runId, rawRequest, now) {
+  const request = normalizeStageInputRequest(rawRequest);
+  const requestId = stageInputRequestIdentity(runId, request);
+  const outcome = withStateMutation(statePath, (current) => {
+    if (!current || current.runId !== runId) {
+      throw new Error("durable workflow run disappeared before input request");
+    }
+    const inputRequests = runtimeInputRequests(current);
+    const matchingStep = inputRequests.find(
+      (entry) => entry.stepId === request.stepId,
+    );
+    if (matchingStep && matchingStep.id !== requestId) {
+      throw new Error("workflow stage input request drifted during replay");
+    }
+    if (matchingStep?.status === "answered") {
+      return { value: { answer: matchingStep.response, state: current } };
+    }
+    if (matchingStep?.status === "pending") {
+      return {
+        value: { pending: matchingStep, state: current },
+      };
+    }
+    const existingPending = inputRequests.find(
+      (entry) => entry.status === "pending",
+    );
+    if (existingPending) {
+      return {
+        value: { pending: existingPending, state: current },
+      };
+    }
+    if (current.status !== "running") {
+      throw new Error(
+        `durable workflow run cannot request input while ${current.status}`,
+      );
+    }
+    if (inputRequests.length >= MAX_INPUT_REQUESTS) {
+      throw new Error("durable workflow input request limit exceeded");
+    }
+    const requestedAt = isoNow(now);
+    const pending = {
+      schema: DYNAMIC_WORKFLOW_INPUT_REQUEST_SCHEMA,
+      id: requestId,
+      stepId: request.stepId,
+      prompt: request.prompt,
+      options: request.options,
+      multiSelect: request.multiSelect,
+      status: "pending",
+      requestedAt,
+      resolvedAt: null,
+      responseDigest: null,
+      response: null,
+    };
+    const state = transition(
+      current,
+      "input-requested",
+      { requestId, stepId: request.stepId },
+      (draft) => {
+        draft.inputRequests = [...runtimeInputRequests(draft), pending];
+        draft.status = "input_requested";
+      },
+      now,
+    );
+    return { state, value: { pending, state } };
+  });
+  if (outcome.answer !== undefined) return outcome.answer;
+  throw controlError(
+    `workflow stage ${outcome.pending.stepId} needs input`,
+    "needs-input",
+    outcome.state,
+  );
 }
 
 function effectKey(effect) {
@@ -981,6 +2288,11 @@ function requestEffectBatch(statePath, runId, argsList, now) {
     if (current.status === "pause_requested") {
       return {
         value: { control: "paused", state: current, results: null },
+      };
+    }
+    if (["input_requested", "needs_input"].includes(current.status)) {
+      return {
+        value: { control: "needs-input", state: current, results: null },
       };
     }
     if (current.status === "stopped") {
@@ -1169,7 +2481,11 @@ function markEffectProviderDispatched(statePath, runId, effectId, now) {
     if (current.status === "stopped") {
       return { value: { control: "stopped", state: current, effect } };
     }
-    if (!["running", "pause_requested", "blocked"].includes(current.status)) {
+    if (
+      !["running", "pause_requested", "input_requested", "blocked"].includes(
+        current.status,
+      )
+    ) {
       throw new Error(
         `workflow effect cannot be dispatched while ${current.status}`,
       );
@@ -1243,10 +2559,90 @@ function ownDataValue(value, property) {
   }
 }
 
+function providerUsageSettlement(event) {
+  const usage = ownDataValue(event, "usage");
+  let descriptors;
+  try {
+    if (
+      !usage ||
+      typeof usage !== "object" ||
+      Array.isArray(usage) ||
+      utilTypes.isProxy(usage)
+    ) {
+      throw new TypeError();
+    }
+    descriptors = Object.getOwnPropertyDescriptors(usage);
+  } catch {
+    throw new TypeError("workflow provider token usage is malformed");
+  }
+  const fields = Reflect.ownKeys(descriptors);
+  if (
+    fields.length > 32 ||
+    fields.some(
+      (field) =>
+        typeof field !== "string" ||
+        descriptors[field].enumerable !== true ||
+        !Object.hasOwn(descriptors[field], "value"),
+    )
+  ) {
+    throw new TypeError("workflow provider token usage is malformed");
+  }
+  const count = (canonical, alias, required) => {
+    const canonicalField = descriptors[canonical];
+    const aliasField = descriptors[alias];
+    if (!canonicalField && !aliasField) {
+      if (required) {
+        throw new TypeError("workflow provider token usage is incomplete");
+      }
+      return 0;
+    }
+    const canonicalValue = canonicalField?.value;
+    const aliasValue = aliasField?.value;
+    if (
+      (canonicalField && aliasField && canonicalValue !== aliasValue) ||
+      nonNegativeSafeInteger(canonicalField ? canonicalValue : aliasValue) ===
+        null ||
+      (canonicalField ? canonicalValue : aliasValue) > MAX_PROVIDER_TOKEN_COUNT
+    ) {
+      throw new TypeError("workflow provider token usage is malformed");
+    }
+    return canonicalField ? canonicalValue : aliasValue;
+  };
+  const inputTokens = count("input_tokens", "prompt_tokens", true);
+  const outputTokens = count("output_tokens", "completion_tokens", true);
+  const cacheReadInputTokens = count(
+    "cache_read_input_tokens",
+    "cache_read_tokens",
+    false,
+  );
+  const cacheCreationInputTokens = count(
+    "cache_creation_input_tokens",
+    "cache_creation_tokens",
+    false,
+  );
+  const totalTokens =
+    inputTokens +
+    outputTokens +
+    cacheReadInputTokens +
+    cacheCreationInputTokens;
+  if (!Number.isSafeInteger(totalTokens)) {
+    throw new TypeError("workflow provider token usage exceeds its limit");
+  }
+  return {
+    schema: "cc-provider-token-usage/v1",
+    inputTokens,
+    outputTokens,
+    cacheReadInputTokens,
+    cacheCreationInputTokens,
+    totalTokens,
+  };
+}
+
 function workflowCallAttempt(effectId, kind, event, now) {
   const startedAt = isoNow(now);
   const ownerEffectId = event?.workflowEffectId;
   if (kind === "provider") {
+    const providerModel = event?.model == null ? null : event.model;
     const requestSource =
       event?.workflowRequestSource ||
       (event?.source === "subagent" ? "model" : event?.source);
@@ -1255,6 +2651,8 @@ function workflowCallAttempt(effectId, kind, event, now) {
       !SHA256_RE.test(ownerEffectId || "") ||
       !WORKFLOW_PROVIDER_CALL_ID_RE.test(event.callId || "") ||
       !PROVIDER_NAME_RE.test(event.provider || "") ||
+      (providerModel !== null &&
+        !PROVIDER_MODEL_RE.test(providerModel || "")) ||
       !["model", "semantic-compaction", "subagent"].includes(event.source) ||
       !["model", "semantic-compaction"].includes(requestSource) ||
       (event.source === "subagent"
@@ -1296,6 +2694,11 @@ function workflowCallAttempt(effectId, kind, event, now) {
       providerReceiptPersisted: false,
       providerReceiptRequestId: null,
       providerReceiptResponseId: null,
+      providerReceiptRecordedAt: null,
+      providerUsage: null,
+      providerModel,
+      providerPricing: providerPricingSnapshot(event.provider, providerModel),
+      providerCostEstimate: null,
       mcpLedgerId: null,
       mcpLedgerPrewritePersisted: false,
       mcpLedgerSettlementPersisted: false,
@@ -1320,6 +2723,18 @@ function workflowCallAttempt(effectId, kind, event, now) {
       )
   ) {
     throw new TypeError("workflow tool call boundary is malformed");
+  }
+  const checkpointRequired = managedToolCheckpointRequired(event.tool);
+  const checkpointBindingValue = ownDataValue(
+    event,
+    "managedCheckpointBinding",
+  );
+  const checkpointBinding = checkpointBindingSnapshot(checkpointBindingValue);
+  if (
+    (!checkpointRequired && checkpointBindingValue !== undefined) ||
+    (checkpointBinding !== null && !validCheckpointBinding(checkpointBinding))
+  ) {
+    throw new TypeError("workflow tool checkpoint boundary is malformed");
   }
   return {
     schema: DYNAMIC_WORKFLOW_CALL_SCHEMA,
@@ -1350,6 +2765,11 @@ function workflowCallAttempt(effectId, kind, event, now) {
     providerReceiptPersisted: false,
     providerReceiptRequestId: null,
     providerReceiptResponseId: null,
+    providerReceiptRecordedAt: null,
+    ...(event.tool === "publish_artifact" ? { artifactReadback: null } : {}),
+    ...(checkpointRequired
+      ? { checkpointBinding, checkpointReadback: null }
+      : {}),
     mcpLedgerId: null,
     mcpLedgerPrewritePersisted: false,
     mcpLedgerSettlementPersisted: false,
@@ -1406,6 +2826,32 @@ function beginEffectCall(statePath, runId, effectId, kind, event, now) {
         ownerEffectId: attempt.ownerEffectId,
         callRecordId: attempt.id,
         kind,
+        ...(kind === "provider"
+          ? {
+              providerModel: attempt.providerModel,
+              providerPricingDigest:
+                attempt.providerPricing === null
+                  ? null
+                  : providerPricingDigest(attempt.providerPricing),
+            }
+          : {}),
+        ...(kind === "tool" && attempt.name === "publish_artifact"
+          ? {
+              artifactReadbackSchema:
+                "cc-dynamic-workflow-artifact-readback/v1",
+            }
+          : {}),
+        ...(kind === "tool" &&
+        Object.prototype.hasOwnProperty.call(attempt, "checkpointReadback")
+          ? {
+              checkpointReadbackSchema:
+                "cc-dynamic-workflow-checkpoint-readback/v1",
+              checkpointBindingDigest:
+                attempt.checkpointBinding === null
+                  ? null
+                  : checkpointBindingDigest(attempt.checkpointBinding),
+            }
+          : {}),
       },
       (draft) => {
         draft.effects[index] = {
@@ -1492,12 +2938,88 @@ function providerReceiptSettlement(call, event) {
   return { persisted: true, requestId, responseId };
 }
 
-function effectCallSettlement(call, event, now) {
+function recordEffectCallReceipt(statePath, runId, effectId, event, now) {
+  return withStateMutation(statePath, (current) => {
+    if (!current || current.runId !== runId) {
+      throw new Error(
+        "durable workflow run disappeared before provider receipt prewrite",
+      );
+    }
+    const effectIndex = current.effects.findIndex(
+      (effect) => effect.id === effectId,
+    );
+    const effect = current.effects[effectIndex];
+    const callIndex = (effect?.calls || []).findIndex(
+      (call) => call.kind === "provider" && call.callId === event?.callId,
+    );
+    const call = effect?.calls?.[callIndex];
+    if (
+      !effect ||
+      effect.status !== "pending" ||
+      !call ||
+      call.status !== "started" ||
+      call.providerReceiptPersisted === true
+    ) {
+      throw new Error("workflow provider call cannot record this receipt");
+    }
+    if (
+      event?.type !== "provider-request-receipt" ||
+      event.provider !== call.name ||
+      event.source !== call.source ||
+      event.workflowRequestSource !== call.requestSource ||
+      event.workflowEffectId !== (call.ownerEffectId ?? call.effectId)
+    ) {
+      throw new TypeError("workflow provider receipt envelope is malformed");
+    }
+    const receipt = providerReceiptSettlement(call, event);
+    if (!receipt.persisted) {
+      throw new TypeError("workflow provider receipt envelope is empty");
+    }
+    const providerReceiptRecordedAt = isoNow(now);
+    const state = transition(
+      current,
+      "effect-call-receipt-recorded",
+      {
+        effectId,
+        ownerEffectId: call.ownerEffectId ?? call.effectId,
+        callRecordId: call.id,
+      },
+      (draft) => {
+        const calls = [...(draft.effects[effectIndex].calls || [])];
+        calls[callIndex] = {
+          ...calls[callIndex],
+          providerReceiptPersisted: true,
+          providerReceiptRequestId: receipt.requestId,
+          providerReceiptResponseId: receipt.responseId,
+          providerReceiptRecordedAt,
+        };
+        draft.effects[effectIndex] = {
+          ...draft.effects[effectIndex],
+          calls,
+        };
+      },
+      now,
+    );
+    return { state, value: state.effects[effectIndex].calls[callIndex] };
+  });
+}
+
+function effectCallSettlement(
+  call,
+  event,
+  now,
+  artifactStore,
+  checkpointStore,
+) {
   let status;
   let settlementCode = null;
-  let providerReceiptPersisted = false;
-  let providerReceiptRequestId = null;
-  let providerReceiptResponseId = null;
+  let providerUsage = call.providerUsage;
+  let providerCostEstimate = call.providerCostEstimate;
+  let providerReceiptPersisted = call.providerReceiptPersisted;
+  let providerReceiptRequestId = call.providerReceiptRequestId;
+  let providerReceiptResponseId = call.providerReceiptResponseId;
+  let artifactReadback = call.artifactReadback;
+  let checkpointReadback = call.checkpointReadback;
   let mcpLedgerId = null;
   let mcpLedgerPrewritePersisted = false;
   let mcpLedgerSettlementPersisted = false;
@@ -1506,19 +3028,35 @@ function effectCallSettlement(call, event, now) {
       !["token-usage", "model-usage-unknown"].includes(event?.type) ||
       event.callId !== call.callId ||
       (event.provider && event.provider !== call.name) ||
+      (Object.prototype.hasOwnProperty.call(call, "providerModel") &&
+        event.model != null &&
+        event.model !== call.providerModel) ||
       (event.source && event.source !== call.source)
     ) {
       throw new TypeError("workflow provider call settlement is malformed");
     }
     status = event.type === "token-usage" ? "completed" : "outcome_unknown";
+    providerUsage =
+      status === "completed" ? providerUsageSettlement(event) : null;
+    providerCostEstimate =
+      status === "completed"
+        ? estimateProviderCost(call.providerPricing, providerUsage)
+        : null;
     settlementCode =
       status === "outcome_unknown"
         ? String(event.code || "provider_outcome_unknown")
         : null;
     const providerReceipt = providerReceiptSettlement(call, event);
-    providerReceiptPersisted = providerReceipt.persisted;
-    providerReceiptRequestId = providerReceipt.requestId;
-    providerReceiptResponseId = providerReceipt.responseId;
+    if (
+      providerReceipt.persisted &&
+      (!call.providerReceiptPersisted ||
+        providerReceipt.requestId !== call.providerReceiptRequestId ||
+        providerReceipt.responseId !== call.providerReceiptResponseId)
+    ) {
+      throw new TypeError(
+        "workflow provider receipt was not durably prewritten",
+      );
+    }
   } else {
     if (
       event?.type !== "tool-result" ||
@@ -1556,6 +3094,28 @@ function effectCallSettlement(call, event, now) {
     ) {
       throw new TypeError("workflow MCP call settlement is malformed");
     }
+    if (Object.prototype.hasOwnProperty.call(call, "artifactReadback")) {
+      const published = ownDataValue(event.result, "published");
+      if (status === "completed") {
+        artifactReadback = artifactReadbackSettlement(event, artifactStore);
+      } else {
+        if (published !== undefined && published !== null) {
+          throw new TypeError(
+            "failed workflow artifact settlement cannot claim a published artifact",
+          );
+        }
+        artifactReadback = null;
+      }
+    }
+    if (Object.prototype.hasOwnProperty.call(call, "checkpointReadback")) {
+      checkpointReadback = checkpointReadbackSettlement(
+        event,
+        checkpointStore,
+        Object.prototype.hasOwnProperty.call(call, "checkpointBinding")
+          ? call.checkpointBinding
+          : null,
+      );
+    }
   }
   if (
     settlementCode !== null &&
@@ -1573,13 +3133,35 @@ function effectCallSettlement(call, event, now) {
     providerReceiptPersisted,
     providerReceiptRequestId,
     providerReceiptResponseId,
+    ...(call.kind === "provider" ? { providerUsage } : {}),
+    ...(call.kind === "provider" &&
+    Object.prototype.hasOwnProperty.call(call, "providerCostEstimate")
+      ? { providerCostEstimate }
+      : {}),
+    ...(call.kind === "tool" &&
+    Object.prototype.hasOwnProperty.call(call, "artifactReadback")
+      ? { artifactReadback }
+      : {}),
+    ...(call.kind === "tool" &&
+    Object.prototype.hasOwnProperty.call(call, "checkpointReadback")
+      ? { checkpointReadback }
+      : {}),
     mcpLedgerId,
     mcpLedgerPrewritePersisted,
     mcpLedgerSettlementPersisted,
   };
 }
 
-function settleEffectCall(statePath, runId, effectId, kind, event, now) {
+function settleEffectCall(
+  statePath,
+  runId,
+  effectId,
+  kind,
+  event,
+  now,
+  artifactStore,
+  checkpointStore,
+) {
   return withStateMutation(statePath, (current) => {
     if (!current || current.runId !== runId) {
       throw new Error(
@@ -1605,7 +3187,47 @@ function settleEffectCall(statePath, runId, effectId, kind, event, now) {
     ) {
       throw new Error("workflow child call is not started at settlement");
     }
-    const settlement = effectCallSettlement(call, event, now);
+    const settlement = effectCallSettlement(
+      call,
+      event,
+      now,
+      artifactStore,
+      checkpointStore,
+    );
+    const usageDigest =
+      kind === "provider" && settlement.providerUsage !== null
+        ? providerUsageDigest(settlement.providerUsage)
+        : null;
+    const hasProviderCostSchema = Object.prototype.hasOwnProperty.call(
+      settlement,
+      "providerCostEstimate",
+    );
+    const costEstimateDigest =
+      kind === "provider" &&
+      hasProviderCostSchema &&
+      settlement.providerCostEstimate !== null
+        ? providerCostEstimateDigest(settlement.providerCostEstimate)
+        : null;
+    const hasArtifactReadback = Object.prototype.hasOwnProperty.call(
+      settlement,
+      "artifactReadback",
+    );
+    const settledArtifactReadbackDigest =
+      kind === "tool" &&
+      hasArtifactReadback &&
+      settlement.artifactReadback !== null
+        ? artifactReadbackDigest(settlement.artifactReadback)
+        : null;
+    const hasCheckpointReadback = Object.prototype.hasOwnProperty.call(
+      settlement,
+      "checkpointReadback",
+    );
+    const settledCheckpointReadbackDigest =
+      kind === "tool" &&
+      hasCheckpointReadback &&
+      settlement.checkpointReadback !== null
+        ? checkpointReadbackDigest(settlement.checkpointReadback)
+        : null;
     const state = transition(
       current,
       "effect-call-settled",
@@ -1614,6 +3236,16 @@ function settleEffectCall(statePath, runId, effectId, kind, event, now) {
         callRecordId: call.id,
         kind,
         status: settlement.status,
+        ...(kind === "provider" ? { providerUsageDigest: usageDigest } : {}),
+        ...(kind === "provider" && hasProviderCostSchema
+          ? { providerCostEstimateDigest: costEstimateDigest }
+          : {}),
+        ...(kind === "tool" && hasArtifactReadback
+          ? { artifactReadbackDigest: settledArtifactReadbackDigest }
+          : {}),
+        ...(kind === "tool" && hasCheckpointReadback
+          ? { checkpointReadbackDigest: settledCheckpointReadbackDigest }
+          : {}),
       },
       (draft) => {
         const calls = [...(draft.effects[effectIndex].calls || [])];
@@ -1629,7 +3261,14 @@ function settleEffectCall(statePath, runId, effectId, kind, event, now) {
   });
 }
 
-function createDurableCallObservers(statePath, runId, effectId, now) {
+function createDurableCallObservers(
+  statePath,
+  runId,
+  effectId,
+  now,
+  artifactStore,
+  checkpointStore,
+) {
   return Object.freeze({
     strictUsageTelemetry: true,
     onUsageBoundary(event) {
@@ -1638,11 +3277,23 @@ function createDurableCallObservers(statePath, runId, effectId, now) {
     onUsageSettlement(event) {
       settleEffectCall(statePath, runId, effectId, "provider", event, now);
     },
+    onProviderReceipt(event) {
+      recordEffectCallReceipt(statePath, runId, effectId, event, now);
+    },
     onToolCallBoundary(event) {
       beginEffectCall(statePath, runId, effectId, "tool", event, now);
     },
     onToolCallSettlement(event) {
-      settleEffectCall(statePath, runId, effectId, "tool", event, now);
+      settleEffectCall(
+        statePath,
+        runId,
+        effectId,
+        "tool",
+        event,
+        now,
+        artifactStore,
+        checkpointStore,
+      );
     },
   });
 }
@@ -1812,6 +3463,32 @@ function finalizePauseAfterSettlementBarrier(statePath, runId, now) {
   });
 }
 
+function finalizeInputAfterSettlementBarrier(statePath, runId, now) {
+  return withStateMutation(statePath, (current) => {
+    if (!current || current.runId !== runId) return { value: current };
+    if (current.status !== "input_requested") return { value: current };
+    if (current.effects.some((effect) => effect.status === "pending")) {
+      return { value: current };
+    }
+    const pending = runtimeInputRequests(current).find(
+      (request) => request.status === "pending",
+    );
+    if (!pending) {
+      throw new Error("workflow input barrier has no pending request");
+    }
+    const state = transition(
+      current,
+      "run-needs-input",
+      { requestId: pending.id, barrier: "all-requested-effects-settled" },
+      (draft) => {
+        draft.status = "needs_input";
+      },
+      now,
+    );
+    return { state, value: state };
+  });
+}
+
 function completeRun(statePath, runId, record, now) {
   const finalRecord = snapshotJson(
     record,
@@ -1833,6 +3510,18 @@ function completeRun(statePath, runId, record, now) {
         now,
       );
       return { state, value: { control: "paused", state } };
+    }
+    if (current.status === "input_requested") {
+      const state = transition(
+        current,
+        "run-needs-input",
+        { barrier: "workflow-completion" },
+        (draft) => {
+          draft.status = "needs_input";
+        },
+        now,
+      );
+      return { state, value: { control: "needs-input", state } };
     }
     if (current.status === "stopped") {
       return { value: { control: "stopped", state: current } };
@@ -1862,7 +3551,13 @@ function markFailed(statePath, runId, error, now) {
       !current ||
       current.runId !== runId ||
       TERMINAL_STATUSES.has(current.status) ||
-      ["paused", "blocked", "pause_requested"].includes(current.status)
+      [
+        "paused",
+        "blocked",
+        "pause_requested",
+        "input_requested",
+        "needs_input",
+      ].includes(current.status)
     ) {
       return { value: current };
     }
@@ -1877,6 +3572,26 @@ function markFailed(statePath, runId, error, now) {
     );
     return { state, value: state };
   });
+}
+
+function managedCheckpointRuntimeExclusions(cwd, statePath, existing = []) {
+  const exclusions = Array.isArray(existing) ? [...existing] : [];
+  if (typeof cwd !== "string" || !cwd.trim()) return exclusions;
+  const workspaceRoot = path.resolve(cwd);
+  const runtimeStatePath = path.resolve(statePath);
+  const relativeState = path.relative(workspaceRoot, runtimeStatePath);
+  if (
+    !relativeState ||
+    path.isAbsolute(relativeState) ||
+    relativeState === ".." ||
+    relativeState.startsWith(`..${path.sep}`)
+  ) {
+    return exclusions;
+  }
+  const relativeDirectory = path.dirname(relativeState);
+  const exclusion =
+    relativeDirectory === "." ? relativeState : relativeDirectory;
+  return [...new Set([...exclusions, exclusion.replaceAll("\\", "/")])];
 }
 
 export async function executeDurableDynamicWorkflow(options = {}, deps = {}) {
@@ -1894,6 +3609,9 @@ export async function executeDurableDynamicWorkflow(options = {}, deps = {}) {
     runId,
     deps.now,
   );
+  const artifactStore = deps.artifactStore || new ArtifactStore();
+  const checkpointStore =
+    deps.checkpointStore || new WorkspaceTransactionManager();
   const durableRunTask = async (args) => {
     const requested = await requestEffectForDispatch(args);
     if (requested.control) {
@@ -1975,10 +3693,18 @@ export async function executeDurableDynamicWorkflow(options = {}, deps = {}) {
         runId,
         effect.id,
         deps.now,
+        artifactStore,
+        checkpointStore,
       );
       result = await deps.runTask({
         ...args,
         workflowEffectId: effect.id,
+        managedCheckpoint: true,
+        managedCheckpointExclusions: managedCheckpointRuntimeExclusions(
+          args.cwd,
+          statePath,
+          args.managedCheckpointExclusions,
+        ),
         ...durableCallObservers,
       });
       if (typeof deps.afterProvider === "function") {
@@ -2015,6 +3741,8 @@ export async function executeDurableDynamicWorkflow(options = {}, deps = {}) {
       ...execution,
       maxParallel: execution.runAdmission.maxParallel,
       runTask: durableRunTask,
+      resolveInput: (request) =>
+        resolveDurableWorkflowStageInput(statePath, runId, request, deps.now),
     });
     const completed = completeRun(statePath, runId, record, deps.now);
     if (completed.control) {
@@ -2026,6 +3754,35 @@ export async function executeDurableDynamicWorkflow(options = {}, deps = {}) {
     }
     return completed.record;
   } catch (error) {
+    if (
+      error?.code === DYNAMIC_WORKFLOW_RUNTIME_CONTROL_CODE &&
+      error.reason === "needs-input"
+    ) {
+      const state = finalizeInputAfterSettlementBarrier(
+        statePath,
+        runId,
+        deps.now,
+      );
+      const pendingEffect = state?.effects?.find(
+        (effect) => effect.status === "pending",
+      );
+      if (pendingEffect) {
+        throw controlError(
+          `workflow effect ${pendingEffect.id} requires reconciliation before input can settle`,
+          "reconciliation-required",
+          state,
+          pendingEffect,
+          error,
+        );
+      }
+      throw controlError(
+        "dynamic workflow run needs input after its settlement barrier",
+        "needs-input",
+        state,
+        null,
+        error,
+      );
+    }
     if (
       error?.code === DYNAMIC_WORKFLOW_RUNTIME_CONTROL_CODE &&
       error.reason === "paused"
@@ -2095,6 +3852,9 @@ export function requestDurableWorkflowPause(
     if (TERMINAL_STATUSES.has(current.status)) {
       throw new Error(`cannot pause a ${current.status} workflow run`);
     }
+    if (["input_requested", "needs_input"].includes(current.status)) {
+      throw new Error(`cannot pause a ${current.status} workflow run`);
+    }
     const immediate = ["ready", "paused", "failed"].includes(current.status);
     const state = transition(
       current,
@@ -2127,6 +3887,12 @@ export function requestDurableWorkflowStop(
       "run-stopped",
       {},
       (draft) => {
+        const resolvedAt = isoNow(deps.now);
+        draft.inputRequests = runtimeInputRequests(draft).map((request) =>
+          request.status === "pending"
+            ? { ...request, status: "cancelled", resolvedAt }
+            : request,
+        );
         draft.status = "stopped";
         draft.finalRecord = null;
       },
@@ -2148,6 +3914,17 @@ export function prepareDurableWorkflowResume(
     if (TERMINAL_STATUSES.has(current.status)) {
       throw new Error(`cannot resume a ${current.status} workflow run`);
     }
+    const pendingInput = runtimeInputRequests(current).find(
+      (request) => request.status === "pending",
+    );
+    if (pendingInput) {
+      const error = new Error(
+        `workflow input request ${pendingInput.id} must be answered before resume`,
+      );
+      error.code = "CC_DYNAMIC_WORKFLOW_INPUT_REQUIRED";
+      error.pendingInputRequest = pendingInput;
+      throw error;
+    }
     const pending = current.effects.find(
       (effect) => effect.status === "pending" && !isKnownUndispatched(effect),
     );
@@ -2168,6 +3945,283 @@ export function prepareDurableWorkflowResume(
       },
       deps.now,
     );
+    return { state, value: state };
+  });
+}
+
+export function submitDurableWorkflowInput(statePath, input = {}, deps = {}) {
+  const requestId = String(input.requestId || "")
+    .trim()
+    .toLowerCase();
+  if (!SHA256_RE.test(requestId)) {
+    throw new TypeError("workflow input request id is invalid");
+  }
+  return withStateMutation(path.resolve(statePath), (current) => {
+    if (!current)
+      throw new Error("dynamic workflow runtime state was not found");
+    requireRevision(current, input.expectedRevision);
+    if (current.status !== "needs_input") {
+      throw new Error(
+        `cannot answer workflow input while run is ${current.status}`,
+      );
+    }
+    if (current.effects.some((effect) => effect.status === "pending")) {
+      throw new Error(
+        "workflow input cannot be answered before the effect settlement barrier",
+      );
+    }
+    const requests = runtimeInputRequests(current);
+    const requestIndex = requests.findIndex(
+      (request) => request.id === requestId,
+    );
+    const request = requests[requestIndex];
+    if (!request || request.status !== "pending") {
+      throw new Error("workflow input request is not pending");
+    }
+    const answer = normalizeStageInputAnswer(input.answer, request);
+    const responseDigest = stageInputResponseDigest(requestId, answer);
+    const resolvedAt = isoNow(deps.now);
+    const state = transition(
+      current,
+      "input-answered",
+      { requestId, stepId: request.stepId, responseDigest },
+      (draft) => {
+        draft.inputRequests = [...runtimeInputRequests(draft)];
+        draft.inputRequests[requestIndex] = {
+          ...draft.inputRequests[requestIndex],
+          status: "answered",
+          resolvedAt,
+          responseDigest,
+          response: answer,
+        };
+        draft.status = "ready";
+      },
+      deps.now,
+    );
+    return { state, value: state };
+  });
+}
+
+function checkpointReadbackFromPreparedBinding(binding, checkpointStore) {
+  if (!validCheckpointBinding(binding)) {
+    throw new TypeError("workflow checkpoint prepared binding is malformed");
+  }
+  if (!checkpointStore || typeof checkpointStore.inspect !== "function") {
+    throw new TypeError("workflow checkpoint store readback is unavailable");
+  }
+  let stored;
+  try {
+    stored = checkpointStore.inspect(binding.transactionId);
+  } catch {
+    throw new TypeError("workflow checkpoint store readback failed");
+  }
+  if (
+    ![
+      WORKSPACE_TRANSACTION_STATE.COMMITTED,
+      WORKSPACE_TRANSACTION_STATE.ROLLED_BACK,
+    ].includes(stored?.state)
+  ) {
+    return null;
+  }
+  const evidence = checkpointEvidenceSnapshot(stored.evidence);
+  if (!validCheckpointEvidence(evidence)) {
+    throw new TypeError("workflow checkpoint terminal evidence is malformed");
+  }
+  return checkpointStoreReadback(evidence, checkpointStore, binding);
+}
+
+export function recoverDurableWorkflowCheckpointCall(
+  statePath,
+  input = {},
+  deps = {},
+) {
+  const callRecordId = String(input.callRecordId || "")
+    .trim()
+    .toLowerCase();
+  if (!SHA256_RE.test(callRecordId)) {
+    throw new TypeError("callRecordId is invalid");
+  }
+  const checkpointStore =
+    deps.checkpointStore || new WorkspaceTransactionManager();
+  return withStateMutation(path.resolve(statePath), (current) => {
+    if (!current) {
+      throw new Error("dynamic workflow runtime state was not found");
+    }
+    requireRevision(current, input.expectedRevision);
+    let effectIndex = -1;
+    let callIndex = -1;
+    for (const [candidateEffectIndex, effect] of current.effects.entries()) {
+      const candidateCallIndex = (effect.calls || []).findIndex(
+        (call) => call.id === callRecordId,
+      );
+      if (candidateCallIndex >= 0) {
+        effectIndex = candidateEffectIndex;
+        callIndex = candidateCallIndex;
+        break;
+      }
+    }
+    const effect = current.effects[effectIndex];
+    const call = effect?.calls?.[callIndex];
+    if (
+      !effect ||
+      effect.status !== "pending" ||
+      !call ||
+      call.kind !== "tool" ||
+      call.status !== "started"
+    ) {
+      throw new Error(
+        "workflow checkpoint call is not pending terminal recovery",
+      );
+    }
+    if (
+      Object.prototype.hasOwnProperty.call(call, "artifactReadback") ||
+      !Object.prototype.hasOwnProperty.call(call, "checkpointBinding") ||
+      !validCheckpointBinding(call.checkpointBinding)
+    ) {
+      throw new Error(
+        "workflow checkpoint call has no recoverable prepared binding",
+      );
+    }
+    const checkpointReadback = checkpointReadbackFromPreparedBinding(
+      call.checkpointBinding,
+      checkpointStore,
+    );
+    if (checkpointReadback === null) {
+      const error = new Error(
+        "workflow checkpoint transaction has not reached a recoverable terminal state",
+      );
+      error.code = "CC_DYNAMIC_WORKFLOW_CHECKPOINT_NOT_TERMINAL";
+      throw error;
+    }
+    const committed = checkpointReadback.outcome === "committed";
+    const settledAt = isoNow(deps.now);
+    const settlementCode = committed
+      ? "checkpoint_store_recovered_commit"
+      : "checkpoint_store_recovered_rollback";
+    const state = transition(
+      current,
+      "effect-call-settled",
+      {
+        effectId: effect.id,
+        callRecordId: call.id,
+        kind: "tool",
+        status: committed ? "completed" : "failed",
+        checkpointReadbackDigest: checkpointReadbackDigest(checkpointReadback),
+        checkpointRecovery: "terminal-store",
+      },
+      (draft) => {
+        const calls = [...(draft.effects[effectIndex].calls || [])];
+        calls[callIndex] = {
+          ...calls[callIndex],
+          status: committed ? "completed" : "failed",
+          settledAt,
+          outcomeUnknown: false,
+          settlementCode,
+          checkpointReadback,
+        };
+        draft.effects[effectIndex] = {
+          ...draft.effects[effectIndex],
+          calls,
+        };
+      },
+      deps.now,
+    );
+    return { state, value: state };
+  });
+}
+
+export function recoverDurableWorkflowCheckpointCalls(
+  statePath,
+  input = {},
+  deps = {},
+) {
+  const checkpointStore =
+    deps.checkpointStore || new WorkspaceTransactionManager();
+  return withStateMutation(path.resolve(statePath), (current) => {
+    if (!current) {
+      throw new Error("dynamic workflow runtime state was not found");
+    }
+    requireRevision(current, input.expectedRevision);
+    const recoveries = [];
+    for (const [effectIndex, effect] of current.effects.entries()) {
+      if (effect.status !== "pending") continue;
+      for (const [callIndex, call] of (effect.calls || []).entries()) {
+        if (
+          call.kind !== "tool" ||
+          call.status !== "started" ||
+          Object.prototype.hasOwnProperty.call(call, "artifactReadback") ||
+          !Object.prototype.hasOwnProperty.call(call, "checkpointBinding") ||
+          !validCheckpointBinding(call.checkpointBinding)
+        ) {
+          continue;
+        }
+        const checkpointReadback = checkpointReadbackFromPreparedBinding(
+          call.checkpointBinding,
+          checkpointStore,
+        );
+        if (checkpointReadback === null) continue;
+        const committed = checkpointReadback.outcome === "committed";
+        recoveries.push({
+          effectIndex,
+          callIndex,
+          effectId: effect.id,
+          callRecordId: call.id,
+          committed,
+          checkpointReadback,
+          settlementCode: committed
+            ? "checkpoint_store_recovered_commit"
+            : "checkpoint_store_recovered_rollback",
+        });
+      }
+    }
+    if (recoveries.length === 0) {
+      const error = new Error(
+        "no workflow checkpoint calls have a recoverable terminal store state",
+      );
+      error.code = "CC_DYNAMIC_WORKFLOW_CHECKPOINT_BATCH_EMPTY";
+      throw error;
+    }
+    if (current.lineage.length + recoveries.length > MAX_LINEAGE_EVENTS) {
+      throw new Error(
+        "dynamic workflow runtime lineage limit prevents batch recovery",
+      );
+    }
+    const settledAt = isoNow(deps.now);
+    const draft = snapshotJson(
+      stateMaterial(current),
+      "workflow checkpoint batch recovery",
+    );
+    for (const recovery of recoveries) {
+      const calls = [...(draft.effects[recovery.effectIndex].calls || [])];
+      calls[recovery.callIndex] = {
+        ...calls[recovery.callIndex],
+        status: recovery.committed ? "completed" : "failed",
+        settledAt,
+        outcomeUnknown: false,
+        settlementCode: recovery.settlementCode,
+        checkpointReadback: recovery.checkpointReadback,
+      };
+      draft.effects[recovery.effectIndex] = {
+        ...draft.effects[recovery.effectIndex],
+        calls,
+      };
+      appendLineage(
+        draft,
+        "effect-call-settled",
+        {
+          effectId: recovery.effectId,
+          callRecordId: recovery.callRecordId,
+          kind: "tool",
+          status: recovery.committed ? "completed" : "failed",
+          checkpointReadbackDigest: checkpointReadbackDigest(
+            recovery.checkpointReadback,
+          ),
+          checkpointRecovery: "terminal-store-batch",
+        },
+        settledAt,
+      );
+    }
+    const state = finalizeState(draft);
     return { state, value: state };
   });
 }
@@ -2286,7 +4340,7 @@ function projectResultValues(effect, field, domain) {
   };
 }
 
-function projectProviderRequestReceipts(effect) {
+function projectLegacyProviderRequestReceipts(effect) {
   const attemptValues = Array.isArray(effect.result?.providerRequestAttempts)
     ? effect.result.providerRequestAttempts
     : [];
@@ -2408,6 +4462,185 @@ function projectProviderRequestReceipts(effect) {
   };
 }
 
+function projectProviderRequestReceipts(state) {
+  const attemptLineage = [];
+  const receiptLineage = [];
+  const requestAttemptEffectIds = new Set();
+  const receiptEffectIds = new Set();
+  const providerReturnedReceiptEffectIds = new Set();
+  let attemptCount = 0;
+  let receiptCount = 0;
+  let invalidAttempts = 0;
+  let invalidReceipts = 0;
+  let missingReceipts = 0;
+  let truncatedEffects = 0;
+  let durableCallEffects = 0;
+  let legacyResultFallbackEffects = 0;
+  let conflictingOuterResultEffects = 0;
+
+  for (const effect of state.effects) {
+    const providerCalls = (effect.calls || []).filter(
+      (call) => call.kind === "provider",
+    );
+    if (providerCalls.length > 0) {
+      durableCallEffects += 1;
+      attemptCount += providerCalls.length;
+      receiptCount += providerCalls.filter(
+        (call) => call.providerReceiptPersisted,
+      ).length;
+      missingReceipts += providerCalls.filter(
+        (call) => !call.providerReceiptPersisted,
+      ).length;
+      requestAttemptEffectIds.add(effect.id);
+      if (providerCalls.some((call) => call.providerReceiptPersisted)) {
+        receiptEffectIds.add(effect.id);
+        if (effect.settlementAuthority === "provider-return") {
+          providerReturnedReceiptEffectIds.add(effect.id);
+        }
+      }
+      const hasOuterResultEvidence =
+        Array.isArray(effect.result?.providerRequestAttempts) ||
+        Array.isArray(effect.result?.providerRequestReceipts);
+      if (hasOuterResultEvidence) {
+        const reported = projectLegacyProviderRequestReceipts(effect);
+        const directCalls = providerCalls.filter(
+          (call) => call.ownerEffectId === effect.id,
+        );
+        const attemptMatches =
+          reported.invalidAttempts === 0 &&
+          reported.attemptLineage.length === directCalls.length &&
+          directCalls.every((call) => {
+            const attempt = reported.attemptLineage.find(
+              (candidate) => candidate.callId === call.callId,
+            );
+            return (
+              attempt?.provider === call.name &&
+              attempt?.callSequence === call.sequence &&
+              attempt?.source === call.requestSource &&
+              attempt?.clientRequestId === call.clientRequestId
+            );
+          });
+        const directReceiptCalls = directCalls.filter(
+          (call) => call.providerReceiptPersisted,
+        );
+        const receiptMatches =
+          reported.invalidReceipts === 0 &&
+          reported.receiptLineage.length === directReceiptCalls.length &&
+          directReceiptCalls.every((call) => {
+            const receipt = reported.receiptLineage.find(
+              (candidate) => candidate.callId === call.callId,
+            );
+            return (
+              receipt?.requestId === call.providerReceiptRequestId &&
+              receipt?.responseId === call.providerReceiptResponseId
+            );
+          });
+        if (!attemptMatches || !receiptMatches) {
+          conflictingOuterResultEffects += 1;
+        }
+      }
+      const visibleCalls = providerCalls.slice(
+        0,
+        MAX_PROJECTED_ARTIFACTS_PER_EFFECT,
+      );
+      if (providerCalls.length > visibleCalls.length) truncatedEffects += 1;
+      for (let ordinal = 0; ordinal < visibleCalls.length; ordinal += 1) {
+        const call = visibleCalls[ordinal];
+        const attempt = {
+          effectId: effect.id,
+          ownerEffectId: call.ownerEffectId,
+          callRecordId: call.id,
+          ordinal,
+          provider: call.name,
+          callId: call.callId,
+          callSequence: call.sequence,
+          source: call.requestSource,
+          attributionSource: call.source,
+          clientRequestId: call.clientRequestId,
+          status: call.status,
+          startedAt: call.startedAt,
+          requestIdentitySemantics: "trace-only",
+          authoritySource: "durable-call-store",
+        };
+        attemptLineage.push(attempt);
+        if (!call.providerReceiptPersisted) continue;
+        receiptLineage.push({
+          ...attempt,
+          requestId: call.providerReceiptRequestId,
+          responseId: call.providerReceiptResponseId,
+          recordedAt:
+            call.providerReceiptRecordedAt === undefined
+              ? call.settledAt
+              : call.providerReceiptRecordedAt,
+          independentlyReadable: false,
+        });
+      }
+      continue;
+    }
+
+    if (effect.status !== "settled") continue;
+    const hasOuterResultEvidence =
+      Array.isArray(effect.result?.providerRequestAttempts) ||
+      Array.isArray(effect.result?.providerRequestReceipts);
+    if (effect.calls !== undefined) {
+      if (
+        hasOuterResultEvidence &&
+        ((effect.result?.providerRequestAttempts?.length || 0) > 0 ||
+          (effect.result?.providerRequestReceipts?.length || 0) > 0)
+      ) {
+        conflictingOuterResultEffects += 1;
+      }
+      continue;
+    }
+    const legacy = projectLegacyProviderRequestReceipts(effect);
+    if (legacy.attemptCount === 0 && legacy.receiptCount === 0) continue;
+    legacyResultFallbackEffects += 1;
+    attemptCount += legacy.attemptCount;
+    receiptCount += legacy.receiptCount;
+    invalidAttempts += legacy.invalidAttempts;
+    invalidReceipts += legacy.invalidReceipts;
+    missingReceipts += legacy.missingReceipts;
+    if (legacy.truncated) truncatedEffects += 1;
+    if (legacy.attemptLineage.length > 0) {
+      requestAttemptEffectIds.add(effect.id);
+    }
+    if (legacy.receiptLineage.length > 0) {
+      receiptEffectIds.add(effect.id);
+      providerReturnedReceiptEffectIds.add(effect.id);
+    }
+    attemptLineage.push(
+      ...legacy.attemptLineage.map((attempt) => ({
+        ...attempt,
+        authoritySource: "legacy-task-result",
+      })),
+    );
+    receiptLineage.push(
+      ...legacy.receiptLineage.map((receipt) => ({
+        ...receipt,
+        recordedAt: effect.settledAt,
+        authoritySource: "legacy-task-result",
+      })),
+    );
+  }
+
+  return {
+    attemptCount,
+    receiptCount,
+    invalidAttempts,
+    invalidReceipts,
+    missingReceipts,
+    truncatedEffects,
+    durableCallEffects,
+    legacyResultFallbackEffects,
+    conflictingOuterResultEffects,
+    requestAttemptEffects: requestAttemptEffectIds.size,
+    receiptEffects: receiptEffectIds.size,
+    providerReturnedReceiptEffects: providerReturnedReceiptEffectIds.size,
+    attemptLineage,
+    receiptLineage,
+  };
+}
+
 function expectedNestedToolEffectId(effectId, sequence, toolUseId, tool) {
   return `sha256:${createHash("sha256")
     .update(
@@ -2417,7 +4650,7 @@ function expectedNestedToolEffectId(effectId, sequence, toolUseId, tool) {
     .digest("hex")}`;
 }
 
-function projectNestedToolEffects(effect) {
+function projectLegacyNestedToolEffects(effect) {
   const attemptValues = Array.isArray(effect.result?.nestedEffectAttempts)
     ? effect.result.nestedEffectAttempts
     : [];
@@ -2565,6 +4798,177 @@ function projectNestedToolEffects(effect) {
   };
 }
 
+function projectNestedToolEffects(state) {
+  const attemptLineage = [];
+  const settlementLineage = [];
+  let attemptCount = 0;
+  let settlementCount = 0;
+  let invalidAttempts = 0;
+  let invalidSettlements = 0;
+  let missingSettlements = 0;
+  let durableMcpSettlements = 0;
+  let truncatedEffects = 0;
+  let durableCallEffects = 0;
+  let legacyResultFallbackEffects = 0;
+  let conflictingOuterResultEffects = 0;
+
+  for (const effect of state.effects) {
+    const toolCalls = (effect.calls || []).filter(
+      (call) => call.kind === "tool",
+    );
+    if (toolCalls.length > 0) {
+      durableCallEffects += 1;
+      attemptCount += toolCalls.length;
+      settlementCount += toolCalls.filter(
+        (call) => call.status !== "started",
+      ).length;
+      missingSettlements += toolCalls.filter(
+        (call) => call.status === "started",
+      ).length;
+      durableMcpSettlements += toolCalls.filter(
+        (call) =>
+          call.mcpLedgerId &&
+          call.mcpLedgerPrewritePersisted &&
+          call.mcpLedgerSettlementPersisted,
+      ).length;
+
+      const hasOuterResultEvidence =
+        Array.isArray(effect.result?.nestedEffectAttempts) ||
+        Array.isArray(effect.result?.nestedEffectSettlements);
+      if (hasOuterResultEvidence) {
+        const reported = projectLegacyNestedToolEffects(effect);
+        const directCalls = toolCalls.filter(
+          (call) => call.ownerEffectId === effect.id,
+        );
+        const attemptMatches =
+          reported.invalidAttempts === 0 &&
+          reported.attemptLineage.length === directCalls.length &&
+          directCalls.every((call) => {
+            const attempt = reported.attemptLineage.find(
+              (candidate) => candidate.childEffectId === call.childEffectId,
+            );
+            return (
+              attempt?.childSequence === call.sequence &&
+              attempt?.tool === call.name &&
+              attempt?.toolUseId === call.callId
+            );
+          });
+        const directTerminalCalls = directCalls.filter(
+          (call) => call.status !== "started",
+        );
+        const settlementMatches =
+          reported.invalidSettlements === 0 &&
+          reported.settlementLineage.length === directTerminalCalls.length &&
+          directTerminalCalls.every((call) => {
+            const settlement = reported.settlementLineage.find(
+              (candidate) => candidate.childEffectId === call.childEffectId,
+            );
+            return (
+              settlement?.status === call.status &&
+              settlement?.mcpLedgerId === call.mcpLedgerId &&
+              settlement?.mcpLedgerPrewritePersisted ===
+                call.mcpLedgerPrewritePersisted &&
+              settlement?.mcpLedgerSettlementPersisted ===
+                call.mcpLedgerSettlementPersisted
+            );
+          });
+        if (!attemptMatches || !settlementMatches) {
+          conflictingOuterResultEffects += 1;
+        }
+      }
+
+      const visibleCalls = toolCalls.slice(
+        0,
+        MAX_PROJECTED_ARTIFACTS_PER_EFFECT,
+      );
+      if (toolCalls.length > visibleCalls.length) truncatedEffects += 1;
+      for (let ordinal = 0; ordinal < visibleCalls.length; ordinal += 1) {
+        const call = visibleCalls[ordinal];
+        const attempt = {
+          effectId: effect.id,
+          ownerEffectId: call.ownerEffectId,
+          callRecordId: call.id,
+          ordinal,
+          childEffectId: call.childEffectId,
+          childSequence: call.sequence,
+          kind: "tool",
+          tool: call.name,
+          toolUseId: call.callId,
+          status: call.status,
+          startedAt: call.startedAt,
+          identitySemantics: "runtime-derived",
+          authoritySource: "durable-call-store",
+        };
+        attemptLineage.push(attempt);
+        if (call.status === "started") continue;
+        settlementLineage.push({
+          ...attempt,
+          settledAt: call.settledAt,
+          outcomeUnknown: call.outcomeUnknown,
+          settlementCode: call.settlementCode,
+          mcpLedgerId: call.mcpLedgerId,
+          mcpLedgerPrewritePersisted: call.mcpLedgerPrewritePersisted,
+          mcpLedgerSettlementPersisted: call.mcpLedgerSettlementPersisted,
+        });
+      }
+      continue;
+    }
+
+    if (effect.status !== "settled") continue;
+    const hasOuterResultEvidence =
+      Array.isArray(effect.result?.nestedEffectAttempts) ||
+      Array.isArray(effect.result?.nestedEffectSettlements);
+    if (effect.calls !== undefined) {
+      if (
+        hasOuterResultEvidence &&
+        ((effect.result?.nestedEffectAttempts?.length || 0) > 0 ||
+          (effect.result?.nestedEffectSettlements?.length || 0) > 0)
+      ) {
+        conflictingOuterResultEffects += 1;
+      }
+      continue;
+    }
+    const legacy = projectLegacyNestedToolEffects(effect);
+    if (legacy.attemptCount === 0 && legacy.settlementCount === 0) continue;
+    legacyResultFallbackEffects += 1;
+    attemptCount += legacy.attemptCount;
+    settlementCount += legacy.settlementCount;
+    invalidAttempts += legacy.invalidAttempts;
+    invalidSettlements += legacy.invalidSettlements;
+    missingSettlements += legacy.missingSettlements;
+    durableMcpSettlements += legacy.durableMcpSettlements;
+    if (legacy.truncated) truncatedEffects += 1;
+    attemptLineage.push(
+      ...legacy.attemptLineage.map((attempt) => ({
+        ...attempt,
+        authoritySource: "legacy-task-result",
+      })),
+    );
+    settlementLineage.push(
+      ...legacy.settlementLineage.map((settlement) => ({
+        ...settlement,
+        settledAt: effect.settledAt,
+        authoritySource: "legacy-task-result",
+      })),
+    );
+  }
+
+  return {
+    attemptCount,
+    settlementCount,
+    invalidAttempts,
+    invalidSettlements,
+    missingSettlements,
+    durableMcpSettlements,
+    truncatedEffects,
+    durableCallEffects,
+    legacyResultFallbackEffects,
+    conflictingOuterResultEffects,
+    attemptLineage,
+    settlementLineage,
+  };
+}
+
 function projectDurableWorkflowCalls(state) {
   const lineage = state.effects.flatMap((effect) =>
     (effect.calls || []).map((call) => ({
@@ -2590,10 +4994,73 @@ function projectDurableWorkflowCalls(state) {
             protocol: "cc-provider-request-receipt/v1",
             requestId: call.providerReceiptRequestId,
             responseId: call.providerReceiptResponseId,
+            recordedAt:
+              call.providerReceiptRecordedAt === undefined
+                ? call.settledAt
+                : call.providerReceiptRecordedAt,
             requestIdentitySemantics: "trace-only",
             independentlyReadable: false,
           }
         : null,
+      providerUsage:
+        call.kind === "provider" && validProviderUsage(call.providerUsage)
+          ? {
+              ...call.providerUsage,
+              recordedAt: call.settledAt,
+            }
+          : null,
+      providerUsageSchemaPresent:
+        call.kind === "provider" &&
+        Object.prototype.hasOwnProperty.call(call, "providerUsage"),
+      providerModel:
+        call.kind === "provider" &&
+        Object.prototype.hasOwnProperty.call(call, "providerModel")
+          ? call.providerModel
+          : null,
+      providerPricing:
+        call.kind === "provider" &&
+        validProviderPricing(
+          call.providerPricing,
+          call.name,
+          call.providerModel,
+        )
+          ? call.providerPricing
+          : null,
+      providerCostEstimate:
+        call.kind === "provider" &&
+        validProviderCostEstimate(
+          call.providerCostEstimate,
+          call.providerPricing,
+          call.providerUsage,
+        )
+          ? call.providerCostEstimate
+          : null,
+      providerCostSchemaPresent:
+        call.kind === "provider" &&
+        ["providerModel", "providerPricing", "providerCostEstimate"].every(
+          (field) => Object.prototype.hasOwnProperty.call(call, field),
+        ),
+      artifactReadback:
+        call.kind === "tool" && validArtifactReadback(call.artifactReadback)
+          ? call.artifactReadback
+          : null,
+      artifactReadbackSchemaPresent:
+        call.kind === "tool" &&
+        Object.prototype.hasOwnProperty.call(call, "artifactReadback"),
+      checkpointReadback:
+        call.kind === "tool" && validCheckpointReadback(call.checkpointReadback)
+          ? call.checkpointReadback
+          : null,
+      checkpointReadbackSchemaPresent:
+        call.kind === "tool" &&
+        Object.prototype.hasOwnProperty.call(call, "checkpointReadback"),
+      checkpointBinding:
+        call.kind === "tool" && validCheckpointBinding(call.checkpointBinding)
+          ? call.checkpointBinding
+          : null,
+      checkpointBindingSchemaPresent:
+        call.kind === "tool" &&
+        Object.prototype.hasOwnProperty.call(call, "checkpointBinding"),
       mcpLedgerId: call.mcpLedgerId,
       mcpLedgerPrewritePersisted: call.mcpLedgerPrewritePersisted,
       mcpLedgerSettlementPersisted: call.mcpLedgerSettlementPersisted,
@@ -2613,10 +5080,389 @@ function projectDurableWorkflowCalls(state) {
     descendants: lineage.filter((call) => call.descendant).length,
     providerReceipts: lineage.filter((call) => call.providerReceipt !== null)
       .length,
+    providerUsageRecords: lineage.filter((call) => call.providerUsage !== null)
+      .length,
+    providerCostEstimateRecords: lineage.filter(
+      (call) => call.providerCostEstimate !== null,
+    ).length,
+    artifactReadbackRecords: lineage.filter(
+      (call) => call.artifactReadback !== null,
+    ).length,
+    checkpointReadbackRecords: lineage.filter(
+      (call) => call.checkpointReadback !== null,
+    ).length,
+    checkpointBindingRecords: lineage.filter(
+      (call) => call.checkpointBinding !== null,
+    ).length,
     providerNativeIdempotencyProven: false,
     providerReceiptsIndependentlyReadable: false,
     lineageDigest: digest(
       "chainlesschain.dynamic-workflow.durable-call-lineage.v1\0",
+      lineage,
+    ),
+    lineage,
+  };
+}
+
+function projectProviderTokenUsage(state) {
+  const totals = {
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadInputTokens: 0,
+    cacheCreationInputTokens: 0,
+    totalTokens: 0,
+  };
+  const lineage = [];
+  const observedEffectIds = new Set();
+  let providerCalls = 0;
+  let pendingCalls = 0;
+  let outcomeUnknownCalls = 0;
+  let operatorReconciledCalls = 0;
+  let legacyCalls = 0;
+  for (const effect of state.effects) {
+    for (const call of effect.calls || []) {
+      if (call.kind !== "provider") continue;
+      providerCalls += 1;
+      if (call.status === "started") pendingCalls += 1;
+      if (call.status === "outcome_unknown") outcomeUnknownCalls += 1;
+      if (call.status === "operator_reconciled") operatorReconciledCalls += 1;
+      if (!Object.prototype.hasOwnProperty.call(call, "providerUsage")) {
+        legacyCalls += 1;
+        continue;
+      }
+      if (!validProviderUsage(call.providerUsage)) continue;
+      observedEffectIds.add(effect.id);
+      totals.inputTokens += call.providerUsage.inputTokens;
+      totals.outputTokens += call.providerUsage.outputTokens;
+      totals.cacheReadInputTokens += call.providerUsage.cacheReadInputTokens;
+      totals.cacheCreationInputTokens +=
+        call.providerUsage.cacheCreationInputTokens;
+      totals.totalTokens += call.providerUsage.totalTokens;
+      lineage.push({
+        effectId: effect.id,
+        ownerEffectId: call.ownerEffectId ?? effect.id,
+        callRecordId: call.id,
+        callId: call.callId,
+        sequence: call.sequence,
+        provider: call.name,
+        model: Object.prototype.hasOwnProperty.call(call, "providerModel")
+          ? call.providerModel
+          : null,
+        source: call.source,
+        requestSource: call.requestSource ?? call.source,
+        descendant: (call.ownerEffectId ?? effect.id) !== effect.id,
+        settledAt: call.settledAt,
+        usage: call.providerUsage,
+        usageDigest: providerUsageDigest(call.providerUsage),
+      });
+    }
+  }
+  return {
+    authority:
+      legacyCalls > 0
+        ? "runtime-state-hash-chain-fsync-with-legacy-call-schema"
+        : "runtime-state-hash-chain-fsync",
+    crashVisible: true,
+    providerCalls,
+    providerReportedCalls: lineage.length,
+    providerReportedEffects: observedEffectIds.size,
+    missingProviderReportedCalls: providerCalls - lineage.length,
+    pendingCalls,
+    outcomeUnknownCalls,
+    operatorReconciledCalls,
+    legacyCalls,
+    providerReported: lineage.length > 0 ? totals : null,
+    lineageDigest: digest(
+      "chainlesschain.dynamic-workflow.provider-token-usage-lineage.v1\0",
+      lineage,
+    ),
+    lineage,
+  };
+}
+
+function projectProviderCostEstimates(state) {
+  const lineage = [];
+  const pricedEffectIds = new Set();
+  let providerCalls = 0;
+  let pricingSnapshotCalls = 0;
+  let pendingCalls = 0;
+  let outcomeUnknownCalls = 0;
+  let operatorReconciledCalls = 0;
+  let unpricedCalls = 0;
+  let modelMissingCalls = 0;
+  let legacyCalls = 0;
+  let estimatedUsd = 0;
+  for (const effect of state.effects) {
+    for (const call of effect.calls || []) {
+      if (call.kind !== "provider") continue;
+      providerCalls += 1;
+      if (call.status === "started") pendingCalls += 1;
+      if (call.status === "outcome_unknown") outcomeUnknownCalls += 1;
+      if (call.status === "operator_reconciled") operatorReconciledCalls += 1;
+      const hasSchema = [
+        "providerModel",
+        "providerPricing",
+        "providerCostEstimate",
+      ].every((field) => Object.prototype.hasOwnProperty.call(call, field));
+      if (!hasSchema) {
+        legacyCalls += 1;
+        continue;
+      }
+      if (call.providerModel === null) modelMissingCalls += 1;
+      if (
+        validProviderPricing(
+          call.providerPricing,
+          call.name,
+          call.providerModel,
+        )
+      ) {
+        pricingSnapshotCalls += 1;
+      }
+      if (
+        call.status === "completed" &&
+        validProviderUsage(call.providerUsage) &&
+        call.providerPricing === null
+      ) {
+        unpricedCalls += 1;
+      }
+      if (
+        !validProviderCostEstimate(
+          call.providerCostEstimate,
+          call.providerPricing,
+          call.providerUsage,
+        )
+      ) {
+        continue;
+      }
+      pricedEffectIds.add(effect.id);
+      estimatedUsd += call.providerCostEstimate.totalUsd;
+      lineage.push({
+        effectId: effect.id,
+        ownerEffectId: call.ownerEffectId ?? effect.id,
+        callRecordId: call.id,
+        callId: call.callId,
+        sequence: call.sequence,
+        provider: call.name,
+        model: call.providerModel,
+        source: call.source,
+        requestSource: call.requestSource ?? call.source,
+        descendant: (call.ownerEffectId ?? effect.id) !== effect.id,
+        settledAt: call.settledAt,
+        pricing: call.providerPricing,
+        estimate: call.providerCostEstimate,
+        estimateDigest: providerCostEstimateDigest(call.providerCostEstimate),
+      });
+    }
+  }
+  return {
+    authority:
+      legacyCalls > 0
+        ? "durable-pricing-snapshot-estimate-with-legacy-call-schema"
+        : "durable-pricing-snapshot-estimate",
+    currency: "USD",
+    reportedUsd: null,
+    estimatedUsd: lineage.length > 0 ? estimatedUsd : null,
+    providerCalls,
+    pricingSnapshotCalls,
+    pricedCalls: lineage.length,
+    pricedEffects: pricedEffectIds.size,
+    missingEstimateCalls: providerCalls - lineage.length,
+    pendingCalls,
+    outcomeUnknownCalls,
+    operatorReconciledCalls,
+    unpricedCalls,
+    modelMissingCalls,
+    legacyCalls,
+    lineageDigest: digest(
+      "chainlesschain.dynamic-workflow.provider-cost-estimate-lineage.v1\0",
+      lineage,
+    ),
+    lineage,
+  };
+}
+
+function projectArtifactStoreReadbacks(state) {
+  const lineage = [];
+  const verifiedEffectIds = new Set();
+  let artifactCalls = 0;
+  let completedCalls = 0;
+  let failedCalls = 0;
+  let pendingCalls = 0;
+  let outcomeUnknownCalls = 0;
+  let operatorReconciledCalls = 0;
+  let missingReadbacks = 0;
+  let legacyCalls = 0;
+  for (const effect of state.effects) {
+    for (const call of effect.calls || []) {
+      if (call.kind !== "tool" || call.name !== "publish_artifact") continue;
+      artifactCalls += 1;
+      if (call.status === "completed") completedCalls += 1;
+      if (call.status === "failed") failedCalls += 1;
+      if (call.status === "started") pendingCalls += 1;
+      if (call.status === "outcome_unknown") outcomeUnknownCalls += 1;
+      if (call.status === "operator_reconciled") operatorReconciledCalls += 1;
+      if (!Object.prototype.hasOwnProperty.call(call, "artifactReadback")) {
+        legacyCalls += 1;
+        if (call.status !== "failed") missingReadbacks += 1;
+        continue;
+      }
+      if (!validArtifactReadback(call.artifactReadback)) {
+        if (call.status !== "failed") missingReadbacks += 1;
+        continue;
+      }
+      verifiedEffectIds.add(effect.id);
+      lineage.push({
+        effectId: effect.id,
+        ownerEffectId: call.ownerEffectId ?? effect.id,
+        callRecordId: call.id,
+        callId: call.callId,
+        sequence: call.sequence,
+        descendant: (call.ownerEffectId ?? effect.id) !== effect.id,
+        settledAt: call.settledAt,
+        readback: call.artifactReadback,
+        readbackDigest: artifactReadbackDigest(call.artifactReadback),
+      });
+    }
+  }
+  return {
+    authority:
+      legacyCalls > 0
+        ? "artifact-store-index-and-bytes-at-settlement-with-legacy-call-schema"
+        : "artifact-store-index-and-bytes-at-settlement",
+    verificationTiming: "tool-settlement",
+    immutableRetentionProven: false,
+    artifactCalls,
+    completedCalls,
+    failedCalls,
+    verifiedCalls: lineage.length,
+    verifiedEffects: verifiedEffectIds.size,
+    missingReadbacks,
+    pendingCalls,
+    outcomeUnknownCalls,
+    operatorReconciledCalls,
+    legacyCalls,
+    lineageDigest: digest(
+      "chainlesschain.dynamic-workflow.artifact-store-readback-lineage.v1\0",
+      lineage,
+    ),
+    lineage,
+  };
+}
+
+function projectCheckpointStoreReadbacks(state) {
+  const lineage = [];
+  const verifiedEffectIds = new Set();
+  let toolCalls = 0;
+  let completedCalls = 0;
+  let failedCalls = 0;
+  let pendingCalls = 0;
+  let outcomeUnknownCalls = 0;
+  let operatorReconciledCalls = 0;
+  let committedCalls = 0;
+  let rolledBackCalls = 0;
+  let fullCoverageCalls = 0;
+  let partialCoverageCalls = 0;
+  let externalSideEffectCalls = 0;
+  let preparedBindingCalls = 0;
+  let terminalStoreRecoveredCalls = 0;
+  let bindingLegacyCalls = 0;
+  let missingReadbacks = 0;
+  let legacyCalls = 0;
+  for (const effect of state.effects) {
+    for (const call of effect.calls || []) {
+      if (call.kind !== "tool" || !managedToolCheckpointRequired(call.name)) {
+        continue;
+      }
+      toolCalls += 1;
+      if (call.status === "completed") completedCalls += 1;
+      if (call.status === "failed") failedCalls += 1;
+      if (call.status === "started") pendingCalls += 1;
+      if (call.status === "outcome_unknown") outcomeUnknownCalls += 1;
+      if (call.status === "operator_reconciled") operatorReconciledCalls += 1;
+      if (!Object.prototype.hasOwnProperty.call(call, "checkpointBinding")) {
+        bindingLegacyCalls += 1;
+      }
+      if (validCheckpointBinding(call.checkpointBinding)) {
+        preparedBindingCalls += 1;
+      }
+      if (
+        [
+          "checkpoint_store_recovered_commit",
+          "checkpoint_store_recovered_rollback",
+        ].includes(call.settlementCode)
+      ) {
+        terminalStoreRecoveredCalls += 1;
+      }
+      if (!Object.prototype.hasOwnProperty.call(call, "checkpointReadback")) {
+        legacyCalls += 1;
+        missingReadbacks += 1;
+        continue;
+      }
+      if (!validCheckpointReadback(call.checkpointReadback)) {
+        missingReadbacks += 1;
+        continue;
+      }
+      if (call.checkpointReadback.outcome === "committed") committedCalls += 1;
+      if (call.checkpointReadback.outcome === "rolled_back") {
+        rolledBackCalls += 1;
+      }
+      if (
+        call.checkpointReadback.coverage === WORKSPACE_TRANSACTION_COVERAGE.FULL
+      ) {
+        fullCoverageCalls += 1;
+      }
+      if (
+        call.checkpointReadback.coverage ===
+        WORKSPACE_TRANSACTION_COVERAGE.PARTIAL
+      ) {
+        partialCoverageCalls += 1;
+      }
+      if (call.checkpointReadback.externalSideEffects) {
+        externalSideEffectCalls += 1;
+      }
+      verifiedEffectIds.add(effect.id);
+      lineage.push({
+        effectId: effect.id,
+        ownerEffectId: call.ownerEffectId ?? effect.id,
+        callRecordId: call.id,
+        callId: call.callId,
+        sequence: call.sequence,
+        tool: call.name,
+        descendant: (call.ownerEffectId ?? effect.id) !== effect.id,
+        settledAt: call.settledAt,
+        readback: call.checkpointReadback,
+        readbackDigest: checkpointReadbackDigest(call.checkpointReadback),
+      });
+    }
+  }
+  return {
+    authority:
+      legacyCalls > 0
+        ? "workspace-transaction-store-terminal-readback-with-legacy-call-schema"
+        : "workspace-transaction-store-terminal-readback",
+    verificationTiming: "tool-settlement",
+    rollbackScope: "workspace-files-only",
+    externalSideEffectsRollbackProven: false,
+    toolCalls,
+    completedCalls,
+    failedCalls,
+    verifiedCalls: lineage.length,
+    verifiedEffects: verifiedEffectIds.size,
+    committedCalls,
+    rolledBackCalls,
+    fullCoverageCalls,
+    partialCoverageCalls,
+    externalSideEffectCalls,
+    preparedBindingCalls,
+    terminalStoreRecoveredCalls,
+    bindingLegacyCalls,
+    missingReadbacks,
+    pendingCalls,
+    outcomeUnknownCalls,
+    operatorReconciledCalls,
+    legacyCalls,
+    lineageDigest: digest(
+      "chainlesschain.dynamic-workflow.checkpoint-store-readback-lineage.v1\0",
       lineage,
     ),
     lineage,
@@ -2633,6 +5479,12 @@ function projectDynamicWorkflowObservability(state) {
   const nestedEffectAttemptLineage = [];
   const nestedEffectSettlementLineage = [];
   const durableCalls = projectDurableWorkflowCalls(state);
+  const providerTokenUsage = projectProviderTokenUsage(state);
+  const providerCostEstimates = projectProviderCostEstimates(state);
+  const artifactStoreReadbacks = projectArtifactStoreReadbacks(state);
+  const checkpointStoreReadbacks = projectCheckpointStoreReadbacks(state);
+  const providerReceipts = projectProviderRequestReceipts(state);
+  const nestedEffects = projectNestedToolEffects(state);
   let requestToSettlementMs = 0;
   let maxRequestToSettlementMs = 0;
   let estimatedTokens = 0;
@@ -2644,21 +5496,21 @@ function projectDynamicWorkflowObservability(state) {
   let checkpointCount = 0;
   let artifactTruncatedEffects = 0;
   let checkpointTruncatedEffects = 0;
-  let providerRequestAttemptCount = 0;
-  let providerRequestAttemptEffects = 0;
-  let providerReceiptCount = 0;
-  let providerReceiptEffects = 0;
-  let invalidProviderRequestAttempts = 0;
-  let invalidProviderReceipts = 0;
-  let missingProviderRequestReceipts = 0;
-  let providerReceiptTruncatedEffects = 0;
-  let nestedEffectAttemptCount = 0;
-  let nestedEffectSettlementCount = 0;
-  let nestedEffectDurableMcpSettlements = 0;
-  let invalidNestedEffectAttempts = 0;
-  let invalidNestedEffectSettlements = 0;
-  let missingNestedEffectSettlements = 0;
-  let nestedEffectTruncatedEffects = 0;
+  const providerRequestAttemptCount = providerReceipts.attemptCount;
+  const providerRequestAttemptEffects = providerReceipts.requestAttemptEffects;
+  const providerReceiptCount = providerReceipts.receiptCount;
+  const providerReceiptEffects = providerReceipts.receiptEffects;
+  const invalidProviderRequestAttempts = providerReceipts.invalidAttempts;
+  const invalidProviderReceipts = providerReceipts.invalidReceipts;
+  const missingProviderRequestReceipts = providerReceipts.missingReceipts;
+  const providerReceiptTruncatedEffects = providerReceipts.truncatedEffects;
+  const nestedEffectAttemptCount = nestedEffects.attemptCount;
+  const nestedEffectSettlementCount = nestedEffects.settlementCount;
+  const nestedEffectDurableMcpSettlements = nestedEffects.durableMcpSettlements;
+  const invalidNestedEffectAttempts = nestedEffects.invalidAttempts;
+  const invalidNestedEffectSettlements = nestedEffects.invalidSettlements;
+  const missingNestedEffectSettlements = nestedEffects.missingSettlements;
+  const nestedEffectTruncatedEffects = nestedEffects.truncatedEffects;
 
   for (const effect of settled) {
     const elapsed = Math.max(
@@ -2699,33 +5551,6 @@ function projectDynamicWorkflowObservability(state) {
     checkpointLineage.push(...checkpoints.lineage);
     if (checkpoints.truncated) checkpointTruncatedEffects += 1;
 
-    const providerReceipts = projectProviderRequestReceipts(effect);
-    providerRequestAttemptCount += providerReceipts.attemptCount;
-    providerReceiptCount += providerReceipts.receiptCount;
-    providerRequestAttemptLineage.push(...providerReceipts.attemptLineage);
-    providerReceiptLineage.push(...providerReceipts.receiptLineage);
-    invalidProviderRequestAttempts += providerReceipts.invalidAttempts;
-    invalidProviderReceipts += providerReceipts.invalidReceipts;
-    missingProviderRequestReceipts += providerReceipts.missingReceipts;
-    if (providerReceipts.attemptLineage.length > 0) {
-      providerRequestAttemptEffects += 1;
-    }
-    if (providerReceipts.receiptLineage.length > 0) {
-      providerReceiptEffects += 1;
-    }
-    if (providerReceipts.truncated) providerReceiptTruncatedEffects += 1;
-
-    const nestedEffects = projectNestedToolEffects(effect);
-    nestedEffectAttemptCount += nestedEffects.attemptCount;
-    nestedEffectSettlementCount += nestedEffects.settlementCount;
-    nestedEffectDurableMcpSettlements += nestedEffects.durableMcpSettlements;
-    invalidNestedEffectAttempts += nestedEffects.invalidAttempts;
-    invalidNestedEffectSettlements += nestedEffects.invalidSettlements;
-    missingNestedEffectSettlements += nestedEffects.missingSettlements;
-    nestedEffectAttemptLineage.push(...nestedEffects.attemptLineage);
-    nestedEffectSettlementLineage.push(...nestedEffects.settlementLineage);
-    if (nestedEffects.truncated) nestedEffectTruncatedEffects += 1;
-
     effectLineage.push({
       effectId: effect.id,
       stepId: effect.stepId,
@@ -2752,14 +5577,70 @@ function projectDynamicWorkflowObservability(state) {
   }
 
   const gaps = [
-    "provider-token-usage-unavailable",
     "provider-cost-usd-unavailable",
     "provider-native-idempotency-unavailable",
     "provider-receipt-independent-readback-unavailable",
-    "checkpoint-provider-readback-unavailable",
-    "artifact-store-readback-unavailable",
-    "nested-tool-independent-ledger-incomplete",
+    "artifact-store-immutable-retention-unavailable",
   ];
+  providerRequestAttemptLineage.push(...providerReceipts.attemptLineage);
+  providerReceiptLineage.push(...providerReceipts.receiptLineage);
+  nestedEffectAttemptLineage.push(...nestedEffects.attemptLineage);
+  nestedEffectSettlementLineage.push(...nestedEffects.settlementLineage);
+  if (providerTokenUsage.providerReportedCalls === 0) {
+    gaps.push("provider-token-usage-unavailable");
+  }
+  if (providerTokenUsage.missingProviderReportedCalls > 0) {
+    gaps.push("provider-token-usage-incomplete");
+  }
+  if (providerTokenUsage.legacyCalls > 0) {
+    gaps.push("provider-token-usage-legacy-call-schema");
+  }
+  if (providerCostEstimates.pricedCalls === 0) {
+    gaps.push("provider-cost-estimate-unavailable");
+  }
+  if (providerCostEstimates.missingEstimateCalls > 0) {
+    gaps.push("provider-cost-estimate-incomplete");
+  }
+  if (providerCostEstimates.legacyCalls > 0) {
+    gaps.push("provider-cost-estimate-legacy-call-schema");
+  }
+  if (artifactStoreReadbacks.verifiedCalls === 0) {
+    gaps.push("artifact-store-readback-unavailable");
+  }
+  if (artifactStoreReadbacks.missingReadbacks > 0) {
+    gaps.push("artifact-store-readback-incomplete");
+  }
+  if (artifactStoreReadbacks.legacyCalls > 0) {
+    gaps.push("artifact-store-readback-legacy-call-schema");
+  }
+  if (checkpointStoreReadbacks.verifiedCalls === 0) {
+    gaps.push("checkpoint-provider-readback-unavailable");
+  }
+  if (checkpointStoreReadbacks.missingReadbacks > 0) {
+    gaps.push("checkpoint-store-readback-incomplete");
+  }
+  if (checkpointStoreReadbacks.legacyCalls > 0) {
+    gaps.push("checkpoint-store-readback-legacy-call-schema");
+  }
+  if (
+    checkpointStoreReadbacks.preparedBindingCalls <
+    checkpointStoreReadbacks.toolCalls
+  ) {
+    gaps.push("checkpoint-prepared-binding-incomplete");
+  }
+  if (checkpointStoreReadbacks.bindingLegacyCalls > 0) {
+    gaps.push("checkpoint-prepared-binding-legacy-call-schema");
+  }
+  if (
+    checkpointStoreReadbacks.verifiedCalls > 0 &&
+    checkpointStoreReadbacks.fullCoverageCalls <
+      checkpointStoreReadbacks.verifiedCalls
+  ) {
+    gaps.push("checkpoint-full-coverage-incomplete");
+  }
+  if (checkpointStoreReadbacks.externalSideEffectCalls > 0) {
+    gaps.push("checkpoint-external-side-effect-rollback-unavailable");
+  }
   if (tokenEstimateEffects !== settled.length) {
     gaps.push("cowork-token-estimate-incomplete");
   }
@@ -2773,7 +5654,8 @@ function projectDynamicWorkflowObservability(state) {
     (effect) => effect.settlementAuthority === "provider-return",
   ).length;
   if (
-    providerReceiptEffects !== providerReturnedEffects ||
+    providerReceipts.providerReturnedReceiptEffects !==
+      providerReturnedEffects ||
     missingProviderRequestReceipts > 0
   ) {
     gaps.push("provider-request-receipt-incomplete");
@@ -2787,6 +5669,12 @@ function projectDynamicWorkflowObservability(state) {
   if (providerReceiptTruncatedEffects > 0) {
     gaps.push("provider-request-receipt-projection-truncated");
   }
+  if (providerReceipts.legacyResultFallbackEffects > 0) {
+    gaps.push("provider-request-receipt-legacy-result-fallback");
+  }
+  if (providerReceipts.conflictingOuterResultEffects > 0) {
+    gaps.push("provider-request-result-disagrees-with-durable-store");
+  }
   if (invalidNestedEffectAttempts > 0) {
     gaps.push("nested-tool-effect-attempt-invalid");
   }
@@ -2798,6 +5686,13 @@ function projectDynamicWorkflowObservability(state) {
   }
   if (nestedEffectTruncatedEffects > 0) {
     gaps.push("nested-tool-effect-projection-truncated");
+  }
+  if (nestedEffects.legacyResultFallbackEffects > 0) {
+    gaps.push("nested-tool-independent-ledger-incomplete");
+    gaps.push("nested-tool-effect-legacy-result-fallback");
+  }
+  if (nestedEffects.conflictingOuterResultEffects > 0) {
+    gaps.push("nested-tool-result-disagrees-with-durable-store");
   }
 
   return snapshotJson(
@@ -2839,27 +5734,42 @@ function projectDynamicWorkflowObservability(state) {
         maxMs: maxRequestToSettlementMs,
       },
       tokens: {
-        authority: "cowork-result-heuristic",
+        ...providerTokenUsage,
+        estimateAuthority: "cowork-result-heuristic",
         estimated: estimatedTokens,
         observedEffects: tokenEstimateEffects,
         missingEffects: settled.length - tokenEstimateEffects,
-        providerReported: null,
       },
       cost: {
-        authority: "unavailable",
-        reportedUsd: null,
-        observedEffects: 0,
+        ...providerCostEstimates,
+        observedEffects: providerCostEstimates.pricedEffects,
+        projectedRecords: providerCostEstimates.lineage.length,
       },
       providerReceipts: {
-        authority: "provider-returned-trace-only",
+        authority:
+          providerReceipts.legacyResultFallbackEffects > 0
+            ? "runtime-state-hash-chain-fsync-with-legacy-task-result-fallback"
+            : "runtime-state-hash-chain-fsync",
+        receiptSemantics: "provider-returned-trace-only",
+        crashVisible: true,
+        durableCallEffects: providerReceipts.durableCallEffects,
+        legacyResultFallbackEffects:
+          providerReceipts.legacyResultFallbackEffects,
+        conflictingOuterResultEffects:
+          providerReceipts.conflictingOuterResultEffects,
         count: providerReceiptCount,
         projectedRecords: providerReceiptLineage.length,
         requestAttempts: providerRequestAttemptCount,
         projectedRequestAttempts: providerRequestAttemptLineage.length,
         requestAttemptEffects: providerRequestAttemptEffects,
         observedEffects: providerReceiptEffects,
-        missingProviderReturnedEffects:
-          providerReturnedEffects - providerReceiptEffects,
+        providerReturnedObservedEffects:
+          providerReceipts.providerReturnedReceiptEffects,
+        missingProviderReturnedEffects: Math.max(
+          0,
+          providerReturnedEffects -
+            providerReceipts.providerReturnedReceiptEffects,
+        ),
         missingRequestReceipts: missingProviderRequestReceipts,
         invalidRequestAttempts: invalidProviderRequestAttempts,
         invalidRecords: invalidProviderReceipts,
@@ -2879,7 +5789,15 @@ function projectDynamicWorkflowObservability(state) {
       },
       durableCalls,
       nestedEffects: {
-        authority: "task-result-bound-with-mcp-session-ledger-flags",
+        authority:
+          nestedEffects.legacyResultFallbackEffects > 0
+            ? "runtime-state-hash-chain-fsync-with-legacy-task-result-fallback"
+            : "runtime-state-hash-chain-fsync",
+        crashVisible: true,
+        durableCallEffects: nestedEffects.durableCallEffects,
+        legacyResultFallbackEffects: nestedEffects.legacyResultFallbackEffects,
+        conflictingOuterResultEffects:
+          nestedEffects.conflictingOuterResultEffects,
         attempts: nestedEffectAttemptCount,
         settlements: nestedEffectSettlementCount,
         projectedAttempts: nestedEffectAttemptLineage.length,
@@ -2889,7 +5807,8 @@ function projectDynamicWorkflowObservability(state) {
         invalidAttempts: invalidNestedEffectAttempts,
         invalidSettlements: invalidNestedEffectSettlements,
         truncatedEffects: nestedEffectTruncatedEffects,
-        allEffectsIndependentlyDurable: false,
+        allEffectsIndependentlyDurable:
+          nestedEffects.legacyResultFallbackEffects === 0,
         attemptLineageDigest: digest(
           "chainlesschain.dynamic-workflow.nested-effect-attempt-lineage.v1\0",
           nestedEffectAttemptLineage,
@@ -2911,6 +5830,7 @@ function projectDynamicWorkflowObservability(state) {
           artifactLineage,
         ),
         lineage: artifactLineage,
+        storeReadbacks: artifactStoreReadbacks,
       },
       checkpoints: {
         authority: "task-result-digest-only",
@@ -2922,6 +5842,7 @@ function projectDynamicWorkflowObservability(state) {
           checkpointLineage,
         ),
         lineage: checkpointLineage,
+        storeReadbacks: checkpointStoreReadbacks,
       },
       gaps,
     },
@@ -2930,7 +5851,135 @@ function projectDynamicWorkflowObservability(state) {
   );
 }
 
-export function projectDynamicWorkflowRuntime(stateOrPath) {
+function projectCurrentWorkflowStoreReadbacks(state, deps = {}) {
+  const artifactStore = deps.artifactStore || new ArtifactStore();
+  const checkpointStore =
+    deps.checkpointStore || new WorkspaceTransactionManager();
+  const artifacts = {
+    eligibleCalls: 0,
+    verifiedCalls: 0,
+    mismatchedCalls: 0,
+    unavailableCalls: 0,
+    lineage: [],
+  };
+  const checkpoints = {
+    eligibleCalls: 0,
+    verifiedCalls: 0,
+    mismatchedCalls: 0,
+    unavailableCalls: 0,
+    lineage: [],
+  };
+
+  for (const effect of state.effects) {
+    for (const call of effect.calls || []) {
+      if (validArtifactReadback(call.artifactReadback)) {
+        artifacts.eligibleCalls += 1;
+        const storedDigest = artifactReadbackDigest(call.artifactReadback);
+        let currentDigest = null;
+        let status = "unavailable";
+        try {
+          const current = artifactReadbackSettlement(
+            { result: { published: call.artifactReadback.metadata } },
+            artifactStore,
+          );
+          currentDigest = artifactReadbackDigest(current);
+          status = currentDigest === storedDigest ? "verified" : "mismatch";
+        } catch {
+          status = "unavailable";
+        }
+        if (status === "verified") artifacts.verifiedCalls += 1;
+        else if (status === "mismatch") artifacts.mismatchedCalls += 1;
+        else artifacts.unavailableCalls += 1;
+        artifacts.lineage.push({
+          effectId: effect.id,
+          callRecordId: call.id,
+          artifactId: call.artifactReadback.metadata.id,
+          storedReadbackDigest: storedDigest,
+          currentReadbackDigest: currentDigest,
+          status,
+        });
+      }
+
+      if (validCheckpointReadback(call.checkpointReadback)) {
+        checkpoints.eligibleCalls += 1;
+        const storedDigest = checkpointReadbackDigest(call.checkpointReadback);
+        let currentDigest = null;
+        let status = "unavailable";
+        if (validCheckpointBinding(call.checkpointBinding)) {
+          try {
+            const current = checkpointReadbackFromPreparedBinding(
+              call.checkpointBinding,
+              checkpointStore,
+            );
+            if (current !== null) {
+              currentDigest = checkpointReadbackDigest(current);
+              status = currentDigest === storedDigest ? "verified" : "mismatch";
+            }
+          } catch {
+            status = "unavailable";
+          }
+        }
+        if (status === "verified") checkpoints.verifiedCalls += 1;
+        else if (status === "mismatch") checkpoints.mismatchedCalls += 1;
+        else checkpoints.unavailableCalls += 1;
+        checkpoints.lineage.push({
+          effectId: effect.id,
+          callRecordId: call.id,
+          transactionId: call.checkpointReadback.transactionId,
+          checkpointId: call.checkpointReadback.checkpointId,
+          storedReadbackDigest: storedDigest,
+          currentReadbackDigest: currentDigest,
+          status,
+        });
+      }
+    }
+  }
+
+  const gaps = [];
+  if (artifacts.mismatchedCalls > 0) {
+    gaps.push("artifact-store-current-readback-mismatch");
+  }
+  if (artifacts.unavailableCalls > 0) {
+    gaps.push("artifact-store-current-readback-unavailable");
+  }
+  if (checkpoints.mismatchedCalls > 0) {
+    gaps.push("checkpoint-store-current-readback-mismatch");
+  }
+  if (checkpoints.unavailableCalls > 0) {
+    gaps.push("checkpoint-store-current-readback-unavailable");
+  }
+  const eligibleCalls = artifacts.eligibleCalls + checkpoints.eligibleCalls;
+  const verifiedCalls = artifacts.verifiedCalls + checkpoints.verifiedCalls;
+  return snapshotJson(
+    {
+      schema: "cc-dynamic-workflow-current-store-readback/v1",
+      authority: "artifact-and-checkpoint-store-at-status-projection",
+      verificationTiming: "runtime-status",
+      complete: eligibleCalls > 0 && eligibleCalls === verifiedCalls,
+      eligibleCalls,
+      verifiedCalls,
+      artifacts: {
+        ...artifacts,
+        lineageDigest: digest(
+          "chainlesschain.dynamic-workflow.current-artifact-readback-lineage.v1\0",
+          artifacts.lineage,
+        ),
+      },
+      checkpoints: {
+        ...checkpoints,
+        lineageDigest: digest(
+          "chainlesschain.dynamic-workflow.current-checkpoint-readback-lineage.v1\0",
+          checkpoints.lineage,
+        ),
+      },
+      gaps,
+    },
+    "dynamic workflow current store readback projection",
+    2 * 1024 * 1024,
+  );
+}
+
+export function projectDynamicWorkflowRuntime(stateOrPath, options = {}) {
   const state =
     typeof stateOrPath === "string"
       ? readDynamicWorkflowRuntimeState(stateOrPath)
@@ -2966,8 +6015,32 @@ export function projectDynamicWorkflowRuntime(stateOrPath) {
           }),
         ),
     ),
+    inputRequestCount: runtimeInputRequests(state).length,
+    answeredInputRequestCount: runtimeInputRequests(state).filter(
+      (request) => request.status === "answered",
+    ).length,
+    pendingInputRequests: Object.freeze(
+      runtimeInputRequests(state)
+        .filter((request) => request.status === "pending")
+        .map((request) =>
+          Object.freeze({
+            id: request.id,
+            stepId: request.stepId,
+            prompt: request.prompt,
+            options: request.options
+              ? Object.freeze([...request.options])
+              : null,
+            multiSelect: request.multiSelect,
+            requestedAt: request.requestedAt,
+          }),
+        ),
+    ),
     finalRecordStatus: state.finalRecord?.status || null,
     observability: projectDynamicWorkflowObservability(state),
+    currentStoreReadbacks:
+      options.currentStoreReadback === true
+        ? projectCurrentWorkflowStoreReadbacks(state, options)
+        : null,
     updatedAt: state.updatedAt,
     stateDigest: state.stateDigest,
   });

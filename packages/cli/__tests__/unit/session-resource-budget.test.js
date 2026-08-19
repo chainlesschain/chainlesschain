@@ -141,6 +141,327 @@ describe("SessionResourceBudget admission", () => {
 });
 
 describe("SessionResourceBudget continuous enforcement", () => {
+  it("tracks concurrent provider usage until each call settles", () => {
+    const { budget } = makeBudget({ maxTokens: 20 });
+    const first = budget.beginUsageSettlement({ id: "provider-call-a" });
+    const second = budget.beginUsageSettlement({ id: "provider-call-b" });
+
+    expect(first).toMatchObject({ ok: true, id: "provider-call-a" });
+    expect(second).toMatchObject({ ok: true, id: "provider-call-b" });
+    expect(first.authorityId).not.toBe(second.authorityId);
+    expect(budget.status()).toMatchObject({
+      pendingUsage: 2,
+      recoveryRequired: false,
+    });
+    expect(budget.consumeTurn({ id: "parallel-turn" })).toMatchObject({
+      ok: true,
+    });
+
+    budget.recordUsage({
+      callId: "provider-call-a",
+      provider: "ollama",
+      model: "local",
+      usage: { input_tokens: 3, output_tokens: 2 },
+    });
+    expect(budget.status()).toMatchObject({
+      tokens: 5,
+      pendingUsage: 1,
+      recoveryRequired: false,
+    });
+
+    budget.markUsageUnknown({ callId: "provider-call-b" });
+    expect(budget.status()).toMatchObject({
+      tokens: 5,
+      pendingUsage: 0,
+      recoveryRequired: true,
+      pendingRecovery: 1,
+      reason: "recovery-required",
+    });
+    expect(budget.snapshot().inFlight.work).toEqual([
+      expect.objectContaining({
+        id: second.authorityId,
+        kind: "usage-settlement",
+      }),
+    ]);
+    expect(
+      budget.adjudicateRecovery({ abandoned: [second.authorityId] }),
+    ).toMatchObject({ ok: true });
+    budget.dispose();
+  });
+
+  it("atomically records verified usage while abandoning other recovery authorities", () => {
+    const source = makeBudget({ maxTokens: 100, maxUsd: 100 }).budget;
+    const work = source.acquireWork({ id: "crashed-work", depth: 1 });
+    const usage = source.beginUsageSettlement({ id: "unknown-provider-call" });
+    source.markUsageUnknown({ callId: usage.id });
+    const snapshot = source.snapshot();
+    source.dispose();
+
+    const resumed = SessionResourceBudget.restore(snapshot);
+    const result = resumed.adjudicateRecovery({
+      abandoned: [work.authorityId],
+      settled: [
+        {
+          authorityId: usage.authorityId,
+          provider: "anthropic",
+          model: "claude-3-5-sonnet-20241022",
+          usage: { input_tokens: 8, output_tokens: 2 },
+        },
+      ],
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      abandoned: [work.authorityId],
+      settled: [usage.authorityId],
+      adjudication: {
+        sequence: 1,
+        previousDigest: null,
+        settledCount: 1,
+        abandonedCount: 1,
+        tokenDelta: 10,
+      },
+    });
+    expect(result.adjudication.digest).toMatch(/^sha256:[0-9a-f]{64}$/);
+    expect(result.adjudication.spentUsdDelta).toBeGreaterThan(0);
+    expect(resumed.status()).toMatchObject({
+      tokens: 10,
+      recoveryRequired: false,
+      pendingRecovery: 0,
+      unpricedUsage: false,
+    });
+    expect(resumed.cost.spentUsd).toBeGreaterThan(0);
+
+    const nextUsage = resumed.beginUsageSettlement({ id: "second-recovery" });
+    resumed.markUsageUnknown({ callId: nextUsage.id });
+    const next = resumed.adjudicateRecovery({
+      settled: [
+        {
+          authorityId: nextUsage.authorityId,
+          provider: "ollama",
+          model: "local",
+          usage: { input_tokens: 1, output_tokens: 0 },
+        },
+      ],
+    });
+    expect(next.adjudication).toMatchObject({
+      sequence: 2,
+      previousDigest: result.adjudication.digest,
+      settledCount: 1,
+      abandonedCount: 0,
+      tokenDelta: 1,
+    });
+    expect(next.adjudication.digest).toMatch(/^sha256:[0-9a-f]{64}$/);
+    expect(next.adjudication.digest).not.toBe(result.adjudication.digest);
+
+    const restored = SessionResourceBudget.restore(resumed.snapshot());
+    expect(restored.status().recoveryAdjudication).toMatchObject({
+      count: 2,
+      headDigest: next.adjudication.digest,
+      last: {
+        sequence: 2,
+        digest: next.adjudication.digest,
+        previousDigest: result.adjudication.digest,
+      },
+      history: {
+        baseSequence: 0,
+        baseDigest: null,
+        retainedCount: 2,
+        complete: true,
+      },
+    });
+    expect(restored.status().recoveryAdjudication.history).not.toHaveProperty(
+      "entries",
+    );
+    expect(restored.recoveryAdjudicationReceipts()).toMatchObject({
+      count: 2,
+      headDigest: next.adjudication.digest,
+      baseSequence: 0,
+      baseDigest: null,
+      complete: true,
+      entries: [
+        {
+          sequence: 1,
+          digest: result.adjudication.digest,
+          abandoned: [work.authorityId],
+          settled: [
+            {
+              authorityId: usage.authorityId,
+              provider: "anthropic",
+              model: "claude-3-5-sonnet-20241022",
+              usage: {
+                input_tokens: 8,
+                output_tokens: 2,
+                cache_read_input_tokens: 0,
+                cache_creation_input_tokens: 0,
+              },
+            },
+          ],
+        },
+        {
+          sequence: 2,
+          digest: next.adjudication.digest,
+          previousDigest: result.adjudication.digest,
+        },
+      ],
+    });
+    restored.dispose();
+    resumed.dispose();
+  });
+
+  it("retains only a verified suffix when upgrading a head-only adjudication snapshot", () => {
+    const first = makeBudget({ maxTokens: 100 }).budget;
+    const firstUsage = first.beginUsageSettlement({ id: "legacy-receipt" });
+    first.markUsageUnknown({ callId: firstUsage.id });
+    const firstResult = first.adjudicateRecovery({
+      settled: [
+        {
+          authorityId: firstUsage.authorityId,
+          provider: "ollama",
+          model: "local",
+          usage: { input_tokens: 1 },
+        },
+      ],
+    });
+    const legacy = first.snapshot();
+    delete legacy.state.recoveryAdjudication.history;
+    first.dispose();
+
+    const resumed = SessionResourceBudget.restore(legacy);
+    expect(resumed.recoveryAdjudicationReceipts()).toMatchObject({
+      count: 1,
+      baseSequence: 1,
+      baseDigest: firstResult.adjudication.digest,
+      complete: false,
+      entries: [],
+    });
+    const nextUsage = resumed.beginUsageSettlement({ id: "retained-suffix" });
+    resumed.markUsageUnknown({ callId: nextUsage.id });
+    const next = resumed.adjudicateRecovery({
+      settled: [
+        {
+          authorityId: nextUsage.authorityId,
+          provider: "ollama",
+          model: "local",
+          usage: { output_tokens: 2 },
+        },
+      ],
+    });
+    expect(resumed.recoveryAdjudicationReceipts()).toMatchObject({
+      count: 2,
+      headDigest: next.adjudication.digest,
+      baseSequence: 1,
+      baseDigest: firstResult.adjudication.digest,
+      complete: false,
+      entries: [
+        {
+          sequence: 2,
+          previousDigest: firstResult.adjudication.digest,
+          digest: next.adjudication.digest,
+        },
+      ],
+    });
+    expect(() =>
+      SessionResourceBudget.restore(resumed.snapshot()),
+    ).not.toThrow();
+    resumed.dispose();
+  });
+
+  it("leaves recovery and totals unchanged when verified usage is invalid", () => {
+    const source = makeBudget({ maxTokens: 100 }).budget;
+    const usage = source.beginUsageSettlement({ id: "invalid-recovery-usage" });
+    source.markUsageUnknown({ callId: usage.id });
+    const snapshot = source.snapshot();
+    source.dispose();
+    const resumed = SessionResourceBudget.restore(snapshot);
+
+    expect(() =>
+      resumed.adjudicateRecovery({
+        settled: [
+          {
+            authorityId: usage.authorityId,
+            provider: "openai",
+            model: "gpt-test",
+            usage: { input_tokens: -1 },
+          },
+        ],
+      }),
+    ).toThrow(/invalid session budget usage: input_tokens/);
+    expect(resumed.status()).toMatchObject({
+      tokens: 0,
+      recoveryRequired: true,
+      pendingRecovery: 1,
+      aborted: false,
+    });
+    resumed.dispose();
+  });
+
+  it("rolls back verified recovery accounting when persistence fails", () => {
+    const source = makeBudget({ maxTokens: 100, maxUsd: 100 }).budget;
+    const usage = source.beginUsageSettlement({ id: "recovery-write-fails" });
+    source.markUsageUnknown({ callId: usage.id });
+    const snapshot = source.snapshot();
+    source.dispose();
+    const persistenceError = new Error("recovery store unavailable");
+    const resumed = SessionResourceBudget.restore(snapshot, {
+      onAuthorityChange: ({ type }) => {
+        if (type === "budget:recovery-adjudicated") throw persistenceError;
+      },
+    });
+
+    expect(() =>
+      resumed.adjudicateRecovery({
+        settled: [
+          {
+            authorityId: usage.authorityId,
+            provider: "anthropic",
+            model: "claude-3-5-sonnet-20241022",
+            usage: { input_tokens: 8, output_tokens: 2 },
+          },
+        ],
+      }),
+    ).toThrow(persistenceError);
+    expect(resumed.status()).toMatchObject({
+      tokens: 0,
+      spentUsd: 0,
+      recoveryRequired: true,
+      pendingRecovery: 1,
+      recoveryAdjudication: null,
+      aborted: true,
+      reason: "persistence-failed",
+    });
+    expect(() => resumed.dispose()).toThrow(persistenceError);
+  });
+
+  it("rolls back ordinary usage accounting when its durable write fails", () => {
+    const persistenceError = new Error("usage store unavailable");
+    const { budget } = makeBudget({
+      maxTokens: 100,
+      maxUsd: 100,
+      onAuthorityChange: ({ type }) => {
+        if (type === "budget:usage-recorded") throw persistenceError;
+      },
+    });
+    budget.beginUsageSettlement({ id: "known-write-fails" });
+
+    expect(() =>
+      budget.recordUsage({
+        callId: "known-write-fails",
+        provider: "anthropic",
+        model: "claude-3-5-sonnet-20241022",
+        usage: { input_tokens: 8, output_tokens: 2 },
+      }),
+    ).toThrow(persistenceError);
+    expect(budget.status()).toMatchObject({
+      tokens: 0,
+      spentUsd: 0,
+      pendingUsage: 1,
+      aborted: true,
+      reason: "persistence-failed",
+    });
+    expect(() => budget.dispose()).toThrow(persistenceError);
+  });
+
   it("actively aborts descendants when tokens cross the limit", () => {
     const { budget, clock } = makeBudget({ maxTokens: 10 });
     const child = new AbortController();
@@ -634,6 +955,63 @@ describe("SessionResourceBudget snapshot and recovery", () => {
 
     expect(() => SessionResourceBudget.restore(snapshot)).toThrow(
       /invalid session budget total: turns/,
+    );
+  });
+
+  it("rejects recovery adjudication chain metadata drift", () => {
+    const source = makeBudget({ maxTokens: 100 }).budget;
+    const usage = source.beginUsageSettlement({ id: "adjudication-tamper" });
+    source.markUsageUnknown({ callId: usage.id });
+    source.adjudicateRecovery({
+      settled: [
+        {
+          authorityId: usage.authorityId,
+          provider: "ollama",
+          model: "local",
+          usage: { input_tokens: 1, output_tokens: 0 },
+        },
+      ],
+    });
+    const snapshot = source.snapshot();
+    source.dispose();
+    snapshot.state.recoveryAdjudication.headDigest = `sha256:${"0".repeat(64)}`;
+
+    expect(() => SessionResourceBudget.restore(snapshot)).toThrow(
+      /invalid session budget recovery adjudication state/,
+    );
+  });
+
+  it("rejects recovery receipt usage and predecessor tampering", () => {
+    const source = makeBudget({ maxTokens: 100 }).budget;
+    const usage = source.beginUsageSettlement({ id: "receipt-tamper" });
+    source.markUsageUnknown({ callId: usage.id });
+    source.adjudicateRecovery({
+      settled: [
+        {
+          authorityId: usage.authorityId,
+          provider: "ollama",
+          model: "local",
+          usage: { input_tokens: 1 },
+        },
+      ],
+    });
+    const usageTamper = source.snapshot();
+    const predecessorTamper = source.snapshot();
+    const totalsTamper = source.snapshot();
+    source.dispose();
+    usageTamper.state.recoveryAdjudication.history.entries[0].settled[0].usage.input_tokens =
+      2;
+    predecessorTamper.state.recoveryAdjudication.history.baseSequence = 1;
+    totalsTamper.totals.tokens = 2;
+
+    expect(() => SessionResourceBudget.restore(usageTamper)).toThrow(
+      /recovery receipt digest/,
+    );
+    expect(() => SessionResourceBudget.restore(predecessorTamper)).toThrow(
+      /receipt history/,
+    );
+    expect(() => SessionResourceBudget.restore(totalsTamper)).toThrow(
+      /receipt head/,
     );
   });
 

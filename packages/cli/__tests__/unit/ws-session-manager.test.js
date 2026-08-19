@@ -57,6 +57,7 @@ vi.mock("../../src/lib/session-manager.js", () => ({
   getSession: vi.fn(),
   listSessions: vi.fn(() => []),
   updateSession: vi.fn(),
+  deleteSession: vi.fn(() => true),
 }));
 
 vi.mock("../../src/lib/agent-core.js", () => ({
@@ -96,6 +97,7 @@ import {
   getSession as dbGetSession,
   listSessions as dbListSessions,
   updateSession as dbUpdateSession,
+  deleteSession as dbDeleteSession,
 } from "../../src/lib/session-manager.js";
 import {
   createWorktree,
@@ -452,6 +454,36 @@ describe("WSSessionManager", () => {
       expect(dbCreateSession).not.toHaveBeenCalled();
     });
 
+    it("requires a database for strict durable session creation", () => {
+      const m = new WSSessionManager();
+
+      expect(() => m.createSession({ requireDurable: true })).toThrow(
+        expect.objectContaining({ code: "CC_WS_DURABLE_SESSION_REQUIRED" }),
+      );
+      expect(m.sessions.size).toBe(0);
+    });
+
+    it("rolls back a strict durable session when metadata persistence fails", () => {
+      const persistenceError = new Error("metadata write failed");
+      dbUpdateSession.mockImplementationOnce(() => {
+        throw persistenceError;
+      });
+
+      expect(() => manager.createSession({ requireDurable: true })).toThrow(
+        expect.objectContaining({ code: "CC_WS_SESSION_PERSISTENCE_FAILED" }),
+      );
+      expect(dbDeleteSession).toHaveBeenCalledOnce();
+      expect(manager.sessions.size).toBe(0);
+    });
+
+    it("compensates an unpublished session with rollbackSessionCreation", () => {
+      const { sessionId } = manager.createSession();
+
+      expect(manager.rollbackSessionCreation(sessionId)).toBe(true);
+      expect(manager.getSession(sessionId)).toBeNull();
+      expect(dbDeleteSession).toHaveBeenCalledWith(mockDb, sessionId);
+    });
+
     it("uses config.llm as defaults for provider/model/baseUrl/apiKey", () => {
       const m = new WSSessionManager({
         config: {
@@ -610,6 +642,11 @@ describe("WSSessionManager", () => {
     });
 
     it("persists resumable metadata for new sessions", () => {
+      const sessionBudgetRoot = {
+        schema: "chainlesschain.session-budget-root/v1",
+        enabled: true,
+        limits: { maxTurns: 5, maxTokens: 1000 },
+      };
       const { sessionId } = manager.createSession({
         type: "agent",
         projectRoot: "/repo",
@@ -619,6 +656,7 @@ describe("WSSessionManager", () => {
             run_shell: { allowed: false, decision: "require_confirmation" },
           },
         },
+        sessionBudgetRoot,
       });
 
       expect(dbUpdateSession).toHaveBeenCalledWith(
@@ -639,6 +677,7 @@ describe("WSSessionManager", () => {
                 },
               },
             },
+            sessionBudgetRoot,
           }),
         }),
       );
@@ -706,6 +745,11 @@ describe("WSSessionManager", () => {
               write_file: { allowed: false, decision: "require_plan" },
             },
           },
+          sessionBudgetRoot: {
+            schema: "chainlesschain.session-budget-root/v1",
+            enabled: true,
+            limits: { maxTurns: 5 },
+          },
           worktreeIsolation: false,
           planSnapshot: {
             state: "approved",
@@ -735,6 +779,11 @@ describe("WSSessionManager", () => {
         tools: {
           write_file: { allowed: false, decision: "require_plan" },
         },
+      });
+      expect(session.sessionBudgetRoot).toEqual({
+        schema: "chainlesschain.session-budget-root/v1",
+        enabled: true,
+        limits: { maxTurns: 5 },
       });
       expect(session.planManager.state).toBe("approved");
       expect(session.planManager.currentPlan).toMatchObject({
