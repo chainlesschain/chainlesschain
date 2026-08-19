@@ -12,7 +12,7 @@
  * no client is attached.
  */
 
-import { readFileSync, writeSync } from "node:fs";
+import { readFileSync, unlinkSync, writeSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -62,6 +62,13 @@ import {
   normalizeBackgroundTurnBootstrapBinding,
 } from "../lib/background-turn-bootstrap-protocol.js";
 import { connectBackgroundAgentKeeper } from "../lib/background-agent-keeper-client.js";
+import { waitForBackgroundAgentLaunchBarrier } from "../lib/background-agent-launch-barrier.js";
+import {
+  backgroundAgentKeeperLaunchClaimPath,
+  createBackgroundAgentKeeperLaunchClaim,
+  matchesBackgroundAgentKeeperLaunchClaim,
+  sameBackgroundAgentKeeperTurn,
+} from "../lib/background-agent-keeper-protocol.js";
 
 const TURN_BOOTSTRAP_MODULE_URL = new URL(
   "./background-turn-bootstrap.js",
@@ -82,6 +89,7 @@ let lastExit = { code: 0, signal: null };
 let transportState = null;
 let detachInteractionHandler = null;
 let detachTurnBootstrapHandler = null;
+let detachTurnTerminationHandler = null;
 let keeperClient = null;
 let activeKeeperTurn = null;
 let interactionJournal = null;
@@ -156,6 +164,43 @@ export function attachTurnChildTerminationSettlement(
 }
 
 /**
+ * Accept a keeper cleanup record only when it proves retirement of the exact
+ * turn the worker was supervising. A socket close or lost RETIRED response is
+ * not evidence by itself: every durable spawn/runtime identity must still
+ * match, and the keeper must have persisted successful cleanup after it was
+ * requested. Exported for the fail-closed binding contract tests.
+ */
+export function hasDurableKeeperTurnRetirement(state, keeperTurn) {
+  const cleanupRequestedAt = Number(state?.turnKeeperCleanupRequestedAt);
+  const cleanupConfirmedAt = Number(state?.turnKeeperCleanupConfirmedAt);
+  return Boolean(
+    state &&
+    keeperTurn &&
+    state.turnKeeperStatus === "retired" &&
+    Number.isFinite(cleanupRequestedAt) &&
+    cleanupRequestedAt > 0 &&
+    Number.isFinite(cleanupConfirmedAt) &&
+    cleanupConfirmedAt >= cleanupRequestedAt &&
+    !state.turnKeeperCleanupError &&
+    state.turnLaunchFinalizationUncertain !== true &&
+    sameBackgroundAgentKeeperTurn(
+      {
+        id: state.id,
+        workerGeneration: state.workerGeneration,
+        turnLaunchToken: state.turnLaunchResolution?.token,
+        attempt: state.turnLaunchResolution?.attempt,
+        agentPid: state.agentPid,
+        agentStartedAt: state.agentStartedAt,
+        agentRuntimePid: state.agentRuntimePid,
+        agentRuntimeStartedAt: state.agentRuntimeStartedAt,
+      },
+      keeperTurn,
+    ) &&
+    state.turnLaunchResolution?.outcome === "spawned",
+  );
+}
+
+/**
  * Release a pre-main turn child only after its actual runtime PID is durably
  * committed and every worker listener needed to supervise it is installed.
  * The ChildProcess PID may name a Windows sandbox helper, so the actual Node
@@ -186,6 +231,22 @@ export function attachTurnChildBootstrapRelease(
   let failed = false;
   let detached = false;
 
+  const sendRelease = (binding) => {
+    try {
+      childProcess.send(
+        createBackgroundTurnBootstrapMessage(
+          BACKGROUND_TURN_BOOTSTRAP_RELEASE,
+          binding,
+        ),
+        (error) => {
+          if (error) failOnce(error);
+        },
+      );
+    } catch (error) {
+      failOnce(error);
+    }
+  };
+
   const failOnce = (error) => {
     if (failed || detached) return;
     failed = true;
@@ -207,9 +268,11 @@ export function attachTurnChildBootstrapRelease(
     if (releasedBinding) {
       if (readyBinding.pid !== releasedBinding.pid) {
         failOnce(new Error("background turn bootstrap runtime pid changed"));
+        return;
       }
-      // READY is retransmitted until the child observes RELEASE. Matching
-      // duplicates are idempotent; never answer with a second RELEASE.
+      // A matching READY after durable commit proves the child has not yet
+      // observed RELEASE. Retransmit the exact-bound idempotent response.
+      sendRelease(readyBinding);
       return;
     }
     if (pendingBinding) {
@@ -230,19 +293,7 @@ export function attachTurnChildBootstrapRelease(
           return;
         }
         releasedBinding = readyBinding;
-        try {
-          childProcess.send(
-            createBackgroundTurnBootstrapMessage(
-              BACKGROUND_TURN_BOOTSTRAP_RELEASE,
-              readyBinding,
-            ),
-            (error) => {
-              if (error) failOnce(error);
-            },
-          );
-        } catch (error) {
-          failOnce(error);
-        }
+        sendRelease(readyBinding);
       })
       .catch(failOnce);
   };
@@ -297,6 +348,66 @@ export function deliverAfterDurableInteractionCleanup({
   }
   deliver();
   return { cleanupError };
+}
+
+/**
+ * Spawn a pre-main-blocked turn only after its launch intent is durable, then
+ * commit the exact child identity in a short state transaction.
+ *
+ * Native process creation can block under sustained process churn. It must not
+ * run inside the cross-process state lock: a concurrent stop still observes
+ * the durable launch intent, while the bootstrap child cannot enter Agent main
+ * until the later PID commit releases it. If stop wins the commit race, retain
+ * the exact spawned child so the launch-settlement path can retire it.
+ */
+export function spawnTurnAfterDurableIntent({
+  spawnTurn,
+  commitSpawn,
+  now = Date.now,
+}) {
+  if (typeof spawnTurn !== "function" || typeof commitSpawn !== "function") {
+    throw new TypeError(
+      "background turn spawn and commit callbacks are required",
+    );
+  }
+  const agentStartedAt = now();
+  let spawned = null;
+  try {
+    spawned = spawnTurn();
+  } catch (error) {
+    return Object.freeze({
+      committed: false,
+      spawned: error?.spawnedProcess || null,
+      agentStartedAt,
+      error,
+    });
+  }
+  try {
+    const mutation = commitSpawn(spawned, agentStartedAt);
+    if (!mutation?.applied) {
+      return Object.freeze({
+        committed: false,
+        spawned,
+        agentStartedAt,
+        mutation: mutation || null,
+        error: new Error("background turn was stopped before PID commit"),
+      });
+    }
+    return Object.freeze({
+      committed: true,
+      spawned,
+      agentStartedAt,
+      mutation,
+      error: null,
+    });
+  } catch (error) {
+    return Object.freeze({
+      committed: false,
+      spawned: spawned || error?.spawnedProcess || null,
+      agentStartedAt,
+      error,
+    });
+  }
 }
 
 function updateInteractionJournal(mutate, options = {}) {
@@ -445,29 +556,6 @@ function writeHeartbeat() {
     scheduleTurnLaunchSettlementPersistence(0);
   }
   return applied;
-}
-
-async function waitForLaunchFinalization() {
-  const deadline = Date.now() + DEFAULT_HEARTBEAT_STALE_MS;
-  for (;;) {
-    const current = readBackgroundAgentState(job.id);
-    if (!current) return "terminal";
-    if (current.status && current.status !== "running") return "terminal";
-    if (current.launchFinalizationUncertain !== true) return "ready";
-    if (Date.now() >= deadline) {
-      mergeState({
-        status: "failed",
-        endedAt: Date.now(),
-        exitCode: 1,
-        error: "background launcher did not finalize process ownership",
-        phase: null,
-        transport: null,
-        launchFinalizationUncertain: false,
-      });
-      return "timeout";
-    }
-    await new Promise((resolve) => setTimeout(resolve, 25));
-  }
 }
 
 function finalize(code, signal, errorMessage) {
@@ -697,13 +785,93 @@ async function settleUncertainTurnLaunch(context) {
   scheduleTurnLaunchSettlementRetry(context, retryMs);
 }
 
+function detachConfirmedTurnRuntime() {
+  detachTurnTerminationHandler?.();
+  detachTurnTerminationHandler = null;
+  detachTurnBootstrapHandler?.();
+  detachTurnBootstrapHandler = null;
+  detachInteractionHandler?.();
+  detachInteractionHandler = null;
+  for (const pending of pendingInteractions.values()) {
+    const error = new Error("Agent exited");
+    error.code = "INTERACTION_CHILD_EXITED";
+    pending.deliverRejected?.(error);
+  }
+  pendingInteractions.clear();
+}
+
+function finishAfterDurableKeeperTurnRetirement({
+  owned,
+  error,
+  keeperTurn,
+  turnLaunchToken,
+  turnLaunchAttempt,
+  agentStartedAt,
+}) {
+  if (
+    !keeperTurn ||
+    Number(owned?.pid) !== keeperTurn.agentPid ||
+    turnLaunchToken !== keeperTurn.turnLaunchToken ||
+    Number(turnLaunchAttempt) !== keeperTurn.attempt ||
+    Number(agentStartedAt) !== keeperTurn.agentStartedAt
+  ) {
+    return false;
+  }
+  let current;
+  try {
+    current = readBackgroundAgentState(job.id);
+  } catch {
+    return false;
+  }
+  if (!hasDurableKeeperTurnRetirement(current, keeperTurn)) return false;
+
+  // The exact wrapper/runtime tree is durably proven non-executable. Do not
+  // start a second PID-based termination after the keeper channel has closed:
+  // under PID reuse that would be less safe than accepting this identity-bound
+  // proof. The keeper is unavailable for another turn, so terminalize the
+  // worker after the normal interaction journal sweep.
+  child = null;
+  if (sameBackgroundAgentKeeperTurn(activeKeeperTurn, keeperTurn)) {
+    activeKeeperTurn = null;
+  }
+  detachConfirmedTurnRuntime();
+  turnCount = Math.max(turnCount, keeperTurn.attempt);
+  lastExit = {
+    code: 1,
+    signal: null,
+    errorMessage:
+      error?.message ||
+      "background keeper disconnected after confirmed turn cleanup",
+  };
+  const finish = () => finalize(1, null, lastExit.errorMessage);
+  if (job.sessionId && interactionJournal) {
+    beginFinalInteractionSweep(finish);
+  } else {
+    finish();
+  }
+  return true;
+}
+
 function beginTurnLaunchSettlement({
   owned,
   error,
   turnLaunchToken,
   turnLaunchAttempt,
   agentStartedAt,
+  keeperTurn = null,
 }) {
+  if (
+    finishAfterDurableKeeperTurnRetirement({
+      owned,
+      error,
+      keeperTurn,
+      turnLaunchToken,
+      turnLaunchAttempt,
+      agentStartedAt,
+    })
+  ) {
+    return "retired";
+  }
   child = owned || null;
   phase = "turn_launch_uncertain";
   const ownedPid = Number(owned?.pid);
@@ -838,28 +1006,9 @@ function startTurn(argv, promptText) {
   }
   if (!prepared.applied) return false;
 
-  let spawned = null;
-  let agentStartedAt = null;
-  try {
-    const mutation = mutateBackgroundAgentState(job.id, (current) => {
-      if (
-        !current ||
-        current.status !== "running" ||
-        current.stopRequestedAt ||
-        current.turnLaunchIntent?.token !== turnLaunchToken ||
-        Number(current.turnLaunchIntent?.attempt) !== turnLaunchAttempt ||
-        Number(current.workerPid) !== process.pid ||
-        Number(current.workerClaimedPid) !== process.pid ||
-        (current.workerGeneration &&
-          current.workerGeneration !== job.workerGeneration)
-      ) {
-        return null;
-      }
-      // The prepare intent is already durable. Keep the second state lock
-      // through native spawn and pid commit so a stopper sees either the
-      // unresolved intent or the exact child identity it must reap.
-      agentStartedAt = Date.now();
-      spawned = executionBroker.spawn(
+  const launch = spawnTurnAfterDurableIntent({
+    spawnTurn: () =>
+      executionBroker.spawn(
         process.execPath,
         [TURN_BOOTSTRAP_IMPORT_ARGUMENT, job.cliEntry, ...argv],
         {
@@ -881,64 +1030,72 @@ function startTurn(argv, promptText) {
           shell: false,
           detached: process.platform !== "win32",
         },
-      );
-      return {
-        ...current,
-        status: "running",
-        phase: "turn",
-        turnCount: nextTurn,
-        pendingApprovals: 0,
-        pendingQuestion: null,
-        uncertainSideEffects: 0,
-        interactionRecovery: {
-          status: "pending",
-          turn: nextTurn,
-          workerGeneration: job.workerGeneration,
-          startedAt: agentStartedAt,
-        },
-        agentPid: spawned.pid,
-        agentStartedAt,
-        agentRuntimePid: null,
-        agentRuntimeStartedAt: null,
-        turnBootstrapStatus: "awaiting-ready",
-        turnBootstrapCommittedAt: null,
-        turnKeeperStatus: "waiting-for-runtime",
-        turnKeeperPid: null,
-        turnKeeperArmedAt: null,
-        turnKeeperCleanupReason: null,
-        turnKeeperCleanupRequestedAt: null,
-        turnKeeperCleanupConfirmedAt: null,
-        turnKeeperCleanupError: null,
-        turnLaunchIntent: null,
-        turnLaunchResolution: {
-          token: turnLaunchToken,
-          attempt: turnLaunchAttempt,
-          outcome: "spawned",
-          agentPid: spawned.pid,
-          resolvedAt: Date.now(),
-        },
-        heartbeatAt: Date.now(),
-      };
-    });
-    if (!mutation.applied) {
-      return beginTurnLaunchSettlement({
-        owned: null,
-        error: new Error("background turn was stopped before native spawn"),
-        turnLaunchToken,
-        turnLaunchAttempt,
-        agentStartedAt: null,
-      });
-    }
-  } catch (error) {
-    const owned = spawned || error?.spawnedProcess;
+      ),
+    commitSpawn: (spawnedTurn, startedAt) =>
+      mutateBackgroundAgentState(job.id, (current) => {
+        if (
+          !current ||
+          current.status !== "running" ||
+          current.stopRequestedAt ||
+          current.turnLaunchIntent?.token !== turnLaunchToken ||
+          Number(current.turnLaunchIntent?.attempt) !== turnLaunchAttempt ||
+          Number(current.workerPid) !== process.pid ||
+          Number(current.workerClaimedPid) !== process.pid ||
+          (current.workerGeneration &&
+            current.workerGeneration !== job.workerGeneration)
+        ) {
+          return null;
+        }
+        return {
+          ...current,
+          status: "running",
+          phase: "turn",
+          turnCount: nextTurn,
+          pendingApprovals: 0,
+          pendingQuestion: null,
+          uncertainSideEffects: 0,
+          interactionRecovery: {
+            status: "pending",
+            turn: nextTurn,
+            workerGeneration: job.workerGeneration,
+            startedAt,
+          },
+          agentPid: spawnedTurn.pid,
+          agentStartedAt: startedAt,
+          agentRuntimePid: null,
+          agentRuntimeStartedAt: null,
+          turnBootstrapStatus: "awaiting-ready",
+          turnBootstrapCommittedAt: null,
+          turnKeeperStatus: "waiting-for-runtime",
+          turnKeeperPid: null,
+          turnKeeperArmedAt: null,
+          turnKeeperCleanupReason: null,
+          turnKeeperCleanupRequestedAt: null,
+          turnKeeperCleanupConfirmedAt: null,
+          turnKeeperCleanupError: null,
+          turnLaunchIntent: null,
+          turnLaunchResolution: {
+            token: turnLaunchToken,
+            attempt: turnLaunchAttempt,
+            outcome: "spawned",
+            agentPid: spawnedTurn.pid,
+            resolvedAt: Date.now(),
+          },
+          heartbeatAt: Date.now(),
+        };
+      }),
+  });
+  if (!launch.committed) {
     return beginTurnLaunchSettlement({
-      owned,
-      error,
+      owned: launch.spawned,
+      error: launch.error,
       turnLaunchToken,
       turnLaunchAttempt,
-      agentStartedAt,
+      agentStartedAt: launch.agentStartedAt,
     });
   }
+  const spawned = launch.spawned;
+  const agentStartedAt = launch.agentStartedAt;
   child = spawned;
   phase = "turn";
   turnCount = nextTurn;
@@ -1249,14 +1406,17 @@ function startTurn(argv, promptText) {
           turnLaunchToken,
           turnLaunchAttempt,
           agentStartedAt,
+          keeperTurn: activeKeeperTurn,
         });
       }
     },
   );
 
-  attachTurnChildTerminationSettlement(
+  detachTurnTerminationHandler = attachTurnChildTerminationSettlement(
     child,
     ({ code, signal, errorMessage }) => {
+      detachTurnTerminationHandler?.();
+      detachTurnTerminationHandler = null;
       turnTerminated = true;
       lastExit = {
         code,
@@ -1264,19 +1424,7 @@ function startTurn(argv, promptText) {
         ...(errorMessage ? { errorMessage } : {}),
       };
       child = null;
-      detachTurnBootstrapHandler?.();
-      detachTurnBootstrapHandler = null;
-      // 清理交互处理器
-      detachInteractionHandler?.();
-      detachInteractionHandler = null;
-      // Reject any request that survived an abnormal child exit. Normal
-      // responses remove themselves from this map before the turn continues.
-      for (const pending of pendingInteractions.values()) {
-        const error = new Error("Agent exited");
-        error.code = "INTERACTION_CHILD_EXITED";
-        pending.deliverRejected?.(error);
-      }
-      pendingInteractions.clear();
+      detachConfirmedTurnRuntime();
       const finishTurn = () =>
         beginFinalInteractionSweep(() => {
           server?.broadcast({
@@ -1315,6 +1463,7 @@ function startTurn(argv, promptText) {
               turnLaunchToken,
               turnLaunchAttempt,
               agentStartedAt,
+              keeperTurn,
             });
           }
         }
@@ -1396,12 +1545,99 @@ function getStatus() {
 
 async function main() {
   job = JSON.parse(readFileSync(jobFile, "utf8"));
+  const keeperLaunchClaimPath = job.keeper
+    ? backgroundAgentKeeperLaunchClaimPath(
+        job.id,
+        job.keeper.generation,
+        backgroundAgentsDir(),
+      )
+    : null;
+  // The launcher must publish the exact worker/keeper identities before
+  // either detached child performs its first state mutation. Under sustained
+  // process churn an eagerly scheduled worker could otherwise acquire the
+  // state lock and then be descheduled long enough to fence the launcher's PID
+  // commit. This barrier is intentionally read-only until ownership is final.
+  const launchBarrier = await waitForBackgroundAgentLaunchBarrier({
+    id: job.id,
+    workerGeneration: job.workerGeneration,
+    expectedPid: process.pid,
+    pidField: "workerPid",
+    readState: readBackgroundAgentState,
+    timeoutMs: DEFAULT_HEARTBEAT_STALE_MS,
+    // The keeper writes this private exact-generation marker only after its
+    // first state transaction has returned, which proves that transaction's
+    // lock has been released. Reading `keeperStatus=listening` alone is not
+    // sufficient because the state replacement happens inside the lock.
+    readyWhen: (state) => {
+      if (
+        !keeperLaunchClaimPath ||
+        !Number.isSafeInteger(Number(state.keeperPid)) ||
+        Number(state.keeperPid) <= 0
+      ) {
+        return false;
+      }
+      try {
+        const expectedKeeperLaunchClaim =
+          createBackgroundAgentKeeperLaunchClaim({
+            id: job.id,
+            workerGeneration: job.workerGeneration,
+            keeperGeneration: job.keeper.generation,
+            keeperPid: Number(state.keeperPid),
+            token: job.keeper.token,
+          });
+        return matchesBackgroundAgentKeeperLaunchClaim(
+          JSON.parse(readFileSync(keeperLaunchClaimPath, "utf8")),
+          expectedKeeperLaunchClaim,
+        );
+      } catch {
+        return false;
+      }
+    },
+  });
+  if (launchBarrier.status !== "ready") {
+    if (launchBarrier.status === "timeout") {
+      try {
+        mutateBackgroundAgentState(job.id, (current) => {
+          if (
+            !current ||
+            current.status !== "running" ||
+            current.workerGeneration !== job.workerGeneration ||
+            current.launchFinalizationUncertain !== true
+          ) {
+            return null;
+          }
+          return {
+            ...current,
+            status: "failed",
+            endedAt: Date.now(),
+            exitCode: 1,
+            error: "background launcher did not finalize process ownership",
+            phase: null,
+            transport: null,
+            launchFinalizationUncertain: false,
+          };
+        });
+      } catch {
+        // Retain the durable uncertainty fence if timeout persistence itself
+        // cannot acquire the state lock; no worker side effect has started.
+      }
+    }
+    removeJobFile(jobFile);
+    return;
+  }
   // Claim before opening logs, recovering interactions or creating the pipe.
   // A stopped/removed/differently-generated record must produce no worker
   // side effects and must never be recreated by bootstrap merges.
   if (!writeHeartbeat()) {
     removeJobFile(jobFile);
     return;
+  }
+  if (keeperLaunchClaimPath) {
+    try {
+      unlinkSync(keeperLaunchClaimPath);
+    } catch {
+      // The keeper also removes its generation-bound marker on exit.
+    }
   }
   removeJobFile(jobFile);
   log = openBackgroundLogFile(job.id);
@@ -1587,11 +1823,6 @@ async function main() {
   }, DEFAULT_HEARTBEAT_INTERVAL_MS);
   heartbeat.unref?.();
 
-  const launchReadiness = await waitForLaunchFinalization();
-  if (launchReadiness !== "ready") {
-    finalize(launchReadiness === "timeout" ? 1 : 0, null);
-    return;
-  }
   if (!job.keeper) {
     throw new Error("background agent keeper launch authority is missing");
   }
@@ -1603,13 +1834,31 @@ async function main() {
     token: job.keeper.token,
     onDisconnect(error, keeperTurn) {
       if (finalized || turnLaunchSettlement) return;
-      if (child && keeperTurn) {
+      if (keeperTurn) {
+        const ownedTurn = child || { pid: keeperTurn.agentPid };
+        if (
+          finishAfterDurableKeeperTurnRetirement({
+            owned: ownedTurn,
+            error,
+            keeperTurn,
+            turnLaunchToken: keeperTurn.turnLaunchToken,
+            turnLaunchAttempt: keeperTurn.attempt,
+            agentStartedAt: keeperTurn.agentStartedAt,
+          })
+        ) {
+          return;
+        }
+        // A null child means its terminal callback already owns the pending
+        // RETIRE rejection and will reconcile or settle with the original
+        // ChildProcess identity. Do not finalize ahead of that journal sweep.
+        if (!child) return;
         beginTurnLaunchSettlement({
           owned: child,
           error,
           turnLaunchToken: keeperTurn.turnLaunchToken,
           turnLaunchAttempt: keeperTurn.attempt,
           agentStartedAt: keeperTurn.agentStartedAt,
+          keeperTurn,
         });
         return;
       }

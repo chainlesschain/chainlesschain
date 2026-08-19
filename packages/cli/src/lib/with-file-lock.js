@@ -14,14 +14,18 @@
  * reclaimed merely because the directory is old, and corrupt ownership fails
  * closed. The default filesystem publishes a fully populated, uniquely staged
  * directory in one rename so a process killed during acquisition cannot expose
- * an ownerless lock. Confirmed-dead owners are reclaimed with an exact-token
- * marker inside the lock directory so a delayed contender cannot delete a
- * replacement lock. Strict callers may use bounded jittered retries and an
+ * an ownerless lock. Confirmed-dead owners are reclaimed with an exact-token,
+ * process-owned claim inside the lock directory so a delayed contender cannot
+ * delete a replacement lock and another contender can take over if the first
+ * reclaimer is killed. Strict callers may use bounded jittered retries and an
  * after-release yield to avoid Windows sharing transients and fixed-interval
  * lock convoys.
  *
  * @param {string} targetPath  the file being guarded (lock is `${targetPath}.lock`)
- * @param {(ctx:{locked:boolean})=>T} fn  critical section; receives whether the lock was held
+ * @param {(ctx:{locked:boolean,publishReleaseAfterPathRemoved:(pendingPath:string)=>boolean})=>T} fn
+ *   critical section; `publishReleaseAfterPathRemoved` lets a transaction
+ *   publish an exact, contender-completable handoff before its final atomic
+ *   rename removes a uniquely named staging path
  * @returns {T} whatever `fn` returns
  */
 export function withFileLock(targetPath, fn, opts = {}) {
@@ -54,7 +58,9 @@ export function withFileLock(targetPath, fn, opts = {}) {
   };
   let held = false;
   let acquisitionError = null;
+  let lastOwnerObservation = null;
   let retryAttempt = 0;
+  let releasePublished = false;
   const deadline = _now() + timeoutMs;
 
   for (;;) {
@@ -88,6 +94,17 @@ export function withFileLock(targetPath, fn, opts = {}) {
       const incumbent = ownerRead.owner;
       acquisitionError = ownerRead.error;
       if (incumbent) {
+        let incumbentAlive = true;
+        try {
+          incumbentAlive = isOwnerAlive(incumbent);
+        } catch {
+          // An unavailable identity probe must retain the lock.
+        }
+        lastOwnerObservation = {
+          pid: incumbent.pid,
+          startedAt: incumbent.startedAt,
+          alive: incumbentAlive,
+        };
         // The owner writes this exact-token marker only after its critical
         // section has finished. A Windows sharing violation can then prevent
         // the final recursive removal while the owner process remains alive,
@@ -102,11 +119,19 @@ export function withFileLock(targetPath, fn, opts = {}) {
           owner,
           isOwnerAlive,
         );
+        lastOwnerObservation.releasePublished = publishedRelease.published;
         if (publishedRelease.completed) continue;
-        if (!publishedRelease.published && !isOwnerAlive(incumbent)) {
-          if (reclaimOwnedDirectory(_fs, lockDir, incumbent, isOwnerAlive)) {
+        if (!incumbentAlive) {
+          // A published handoff can still retain its unique staging path when
+          // the owner is killed between marker publication and the atomic
+          // replacement. No process can commit that staging file after the
+          // exact owner is proven dead, so the lock directory is reclaimable
+          // whether the transaction committed or not. Leave the private
+          // staging file untouched; it cannot affect the guarded target.
+          if (
+            reclaimOwnedDirectory(_fs, lockDir, incumbent, owner, isOwnerAlive)
+          )
             continue;
-          }
         }
       } else if (!failIfUnavailable) {
         // Compatibility for legacy best-effort locks that predate owner.json.
@@ -139,12 +164,21 @@ export function withFileLock(targetPath, fn, opts = {}) {
   }
 
   if (!held && failIfUnavailable) {
+    const ownerDetails = lastOwnerObservation
+      ? `; owner pid=${lastOwnerObservation.pid}, ageMs=${Math.max(
+          0,
+          _now() - lastOwnerObservation.startedAt,
+        )}, alive=${lastOwnerObservation.alive}, releasePublished=${Boolean(lastOwnerObservation.releasePublished)}`
+      : "";
     const error = new Error(
-      `Could not acquire state lock: ${targetPath}`,
+      `Could not acquire state lock: ${targetPath}${ownerDetails}`,
       acquisitionError ? { cause: acquisitionError } : undefined,
     );
     error.code = "STATE_LOCK_UNAVAILABLE";
     error.attempts = retryAttempt + 1;
+    error.lockOwner = lastOwnerObservation
+      ? Object.freeze({ ...lastOwnerObservation })
+      : null;
     throw error;
   }
 
@@ -152,7 +186,32 @@ export function withFileLock(targetPath, fn, opts = {}) {
   let bodyThrew = false;
   let result;
   try {
-    result = fn({ locked: held });
+    result = fn({
+      locked: held,
+      publishReleaseAfterPathRemoved(pendingPath) {
+        if (!held || typeof pendingPath !== "string" || !pendingPath) {
+          return false;
+        }
+        const current = readOwner(_fs, ownerPath);
+        if (!sameOwner(current, owner)) return false;
+        const markerPath = path.join(lockDir, `.release-${owner.token}`);
+        const marker = { ...owner, releaseAfterPathRemoved: pendingPath };
+        try {
+          writeOwnerMarker(_fs, markerPath, marker);
+        } catch (error) {
+          if (error?.code !== "EEXIST") throw error;
+          const existing = readOwner(_fs, markerPath);
+          if (
+            !sameOwner(existing, owner) ||
+            existing?.releaseAfterPathRemoved !== pendingPath
+          ) {
+            return false;
+          }
+        }
+        releasePublished = true;
+        return true;
+      },
+    });
   } catch (error) {
     bodyThrew = true;
     bodyError = error;
@@ -161,7 +220,13 @@ export function withFileLock(targetPath, fn, opts = {}) {
   let releaseError = null;
   if (held) {
     try {
-      released = releaseOwnedDirectory(_fs, lockDir, owner, isOwnerAlive);
+      released = releaseOwnedDirectory(
+        _fs,
+        lockDir,
+        owner,
+        isOwnerAlive,
+        releasePublished,
+      );
     } catch (error) {
       releaseError = error;
     }
@@ -248,6 +313,15 @@ function directoryExists(_fs, target) {
     return true;
   } catch {
     return false;
+  }
+}
+
+function pathStatus(_fs, target) {
+  try {
+    _fs.statSync(target);
+    return "present";
+  } catch (error) {
+    return error?.code === "ENOENT" ? "absent" : "unknown";
   }
 }
 
@@ -361,21 +435,65 @@ function writeOwnerMarker(_fs, markerPath, owner) {
   });
 }
 
-function reclaimOwnedDirectory(_fs, lockDir, owner, ownerAlive) {
-  const markerPath = path.join(lockDir, `.reclaim-${owner.token}`);
-  try {
-    writeOwnerMarker(_fs, markerPath, owner);
-  } catch (error) {
-    if (error?.code === "ENOENT" || error?.code === "EEXIST") return false;
-    throw error;
+function reclaimOwnedDirectory(_fs, lockDir, incumbent, claimant, ownerAlive) {
+  const claimPath = path.join(lockDir, `.reclaim-${incumbent.token}`);
+  for (;;) {
+    const existingClaim = readOwner(_fs, claimPath);
+    if (existingClaim) {
+      if (sameOwner(existingClaim, claimant)) break;
+      if (!ownerAlive(existingClaim)) {
+        if (removeOwnMarker(_fs, claimPath, existingClaim)) continue;
+      }
+      return false;
+    }
+    try {
+      // The claim belongs to the contender, not the dead incumbent. If this
+      // contender is killed before detaching the directory, another process
+      // can prove that exact claimant dead and safely take over.
+      writeOwnerMarker(_fs, claimPath, claimant);
+      break;
+    } catch (error) {
+      if (error?.code === "ENOENT") {
+        return !directoryExists(_fs, lockDir);
+      }
+      if (error?.code === "EEXIST" || isTransientLockError(error)) {
+        return false;
+      }
+      throw error;
+    }
   }
+
   const current = readOwner(_fs, path.join(lockDir, "owner.json"));
-  if (!sameOwner(current, owner) || ownerAlive(owner)) {
-    removeOwnMarker(_fs, markerPath, owner);
+  if (!sameOwner(current, incumbent) || ownerAlive(incumbent)) {
+    removeOwnMarker(_fs, claimPath, claimant);
     return false;
   }
-  _fs.rmSync(lockDir, { recursive: true, force: true });
-  return true;
+
+  if (typeof _fs.renameSync !== "function") {
+    _fs.rmSync(lockDir, { recursive: true, force: true });
+    return true;
+  }
+
+  const cleanupDir = `${lockDir}.reclaimed-${incumbent.token}-${claimant.token}`;
+  try {
+    // Free the acquisition path atomically before recursive cleanup. A killed
+    // reclaimer can therefore leave only uniquely named debris, never a
+    // claimant marker that permanently fences the shared lock path.
+    _fs.renameSync(lockDir, cleanupDir);
+    try {
+      _fs.rmSync(cleanupDir, { recursive: true, force: true });
+    } catch {
+      /* private reclaim debris is harmless after the lock path is detached */
+    }
+    return true;
+  } catch (error) {
+    removeOwnMarker(_fs, claimPath, claimant);
+    if (error?.code === "ENOENT") {
+      return !directoryExists(_fs, lockDir);
+    }
+    if (isTransientLockError(error)) return false;
+    throw error;
+  }
 }
 
 function reclaimLegacyDirectory(_fs, lockDir, stat) {
@@ -401,8 +519,22 @@ function reclaimLegacyDirectory(_fs, lockDir, stat) {
 
 function completePublishedRelease(_fs, lockDir, owner, claimant, ownerAlive) {
   const markerPath = path.join(lockDir, `.release-${owner.token}`);
-  if (!sameOwner(readOwner(_fs, markerPath), owner)) {
+  const marker = readOwner(_fs, markerPath);
+  if (!sameOwner(marker, owner)) {
     return { published: false, completed: false };
+  }
+  // A state transaction can stage its exact replacement, publish this marker,
+  // and only then atomically rename the staging file over the guarded target.
+  // Contenders may complete the release only after that unique staging path is
+  // gone. This closes the otherwise unbounded scheduler-preemption window
+  // between a committed rename and the owner's first release syscall without
+  // ever exposing an in-progress write to a competing critical section.
+  if (
+    typeof marker.releaseAfterPathRemoved === "string" &&
+    marker.releaseAfterPathRemoved &&
+    pathStatus(_fs, marker.releaseAfterPathRemoved) !== "absent"
+  ) {
+    return { published: true, completed: false };
   }
   const claimPath = path.join(lockDir, `.release-claim-${owner.token}`);
   for (;;) {
@@ -461,9 +593,20 @@ function completePublishedRelease(_fs, lockDir, owner, claimant, ownerAlive) {
   }
 }
 
-function releaseOwnedDirectory(_fs, lockDir, owner, ownerAlive) {
+function releaseOwnedDirectory(
+  _fs,
+  lockDir,
+  owner,
+  ownerAlive,
+  releaseWasPublished = false,
+) {
   if (!sameOwner(readOwner(_fs, path.join(lockDir, "owner.json")), owner)) {
-    return false;
+    // Once this exact owner published a guarded handoff, a contender is allowed
+    // to detach the old directory as soon as the final staging path disappears.
+    // A missing or replacement lock therefore proves successful release, not
+    // ownership loss. Without that publication the strict legacy verdict stays
+    // fail-closed.
+    return releaseWasPublished;
   }
   // Atomically move the exact owned directory out of the acquisition path,
   // then remove that uniquely-tokened directory. A replacement owner may
@@ -482,7 +625,7 @@ function releaseOwnedDirectory(_fs, lockDir, owner, ownerAlive) {
       }
       return true;
     } catch (error) {
-      if (error?.code === "ENOENT") return false;
+      if (error?.code === "ENOENT") return releaseWasPublished;
       // Windows sharing transients fall back to the marker-based release.
     }
   }
@@ -490,7 +633,13 @@ function releaseOwnedDirectory(_fs, lockDir, owner, ownerAlive) {
   try {
     writeOwnerMarker(_fs, markerPath, owner);
   } catch (error) {
-    if (error?.code === "ENOENT" || error?.code === "EEXIST") return false;
+    if (error?.code === "ENOENT") return releaseWasPublished;
+    if (error?.code === "EEXIST") {
+      const existing = readOwner(_fs, markerPath);
+      if (!sameOwner(existing, owner)) return false;
+      return completePublishedRelease(_fs, lockDir, owner, owner, ownerAlive)
+        .published;
+    }
     throw error;
   }
   if (!sameOwner(readOwner(_fs, path.join(lockDir, "owner.json")), owner)) {
