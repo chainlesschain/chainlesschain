@@ -28,6 +28,13 @@ function overrideFs(overrides) {
 
 function windowsZeroDevicePathStatsFs() {
   return overrideFs({
+    openSync(filePath, ...args) {
+      const resolvedPath =
+        process.platform !== "win32" && filePath === "\\"
+          ? path.parse(process.cwd()).root
+          : filePath;
+      return fs.openSync(resolvedPath, ...args);
+    },
     lstatSync(...args) {
       const stat = fs.lstatSync(...args);
       return new Proxy(stat, {
