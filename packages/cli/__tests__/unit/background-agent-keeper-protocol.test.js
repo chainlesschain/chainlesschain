@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import {
   BACKGROUND_AGENT_KEEPER_CLEANUP_CONFIRM_TIMEOUT_MS,
   BACKGROUND_AGENT_KEEPER_CLEANUP_TARGET_LIMIT,
+  BACKGROUND_AGENT_KEEPER_HEARTBEAT_TIMEOUT_MS,
+  BACKGROUND_AGENT_KEEPER_IDENTITY_PROBE_DELAY_MS,
   BACKGROUND_AGENT_KEEPER_IDENTITY_PROBE_TIMEOUT_MS,
   BACKGROUND_AGENT_KEEPER_PERSIST_RETRY_TIMEOUT_MS,
   BACKGROUND_AGENT_KEEPER_RETIRE_TIMEOUT_MARGIN_MS,
@@ -233,7 +235,7 @@ describe("background agent keeper protocol", () => {
         armedTurn: null,
         persistKeeper,
         finishForWorkerDisconnect,
-        now: () => 20_000,
+        now: () => 1_000 + BACKGROUND_AGENT_KEEPER_HEARTBEAT_TIMEOUT_MS + 1,
         workerIdentityAlive,
       }),
     ).toBe(false);
@@ -241,6 +243,55 @@ describe("background agent keeper protocol", () => {
     expect(workerSocket.destroy).toHaveBeenCalledOnce();
     expect(workerIdentityAlive).not.toHaveBeenCalled();
     expect(persistKeeper).not.toHaveBeenCalled();
+  });
+
+  it("keeps a live worker through the observed hosted Windows scheduling tail", () => {
+    const persistKeeper = vi.fn();
+    const finishForWorkerDisconnect = vi.fn();
+    const workerSocket = { destroy: vi.fn() };
+    const workerIdentityAlive = vi.fn(() => true);
+
+    expect(
+      runBackgroundAgentKeeperHeartbeat({
+        finishing: false,
+        workerSocket,
+        authenticatedHello: { workerPid: 2468 },
+        authenticatedWorkerStartedAt: 1_234_567,
+        workerHeartbeatAt: 1_000,
+        armedTurn: turn,
+        persistKeeper,
+        finishForWorkerDisconnect,
+        now: () => 1_000 + 37_391,
+        workerIdentityAlive,
+      }),
+    ).toBe(true);
+    expect(workerIdentityAlive).toHaveBeenCalledWith(2468, 1_234_567);
+    expect(finishForWorkerDisconnect).not.toHaveBeenCalled();
+    expect(workerSocket.destroy).not.toHaveBeenCalled();
+    expect(persistKeeper).toHaveBeenCalledWith({ keeperHeartbeatAt: 38_391 });
+  });
+
+  it("does not probe worker identity while application heartbeats are fresh", () => {
+    const persistKeeper = vi.fn();
+    const finishForWorkerDisconnect = vi.fn();
+    const workerIdentityAlive = vi.fn(() => true);
+
+    expect(
+      runBackgroundAgentKeeperHeartbeat({
+        finishing: false,
+        workerSocket: { destroy: vi.fn() },
+        authenticatedHello: { workerPid: 2468 },
+        authenticatedWorkerStartedAt: 1_234_567,
+        workerHeartbeatAt: 1_000,
+        armedTurn: turn,
+        persistKeeper,
+        finishForWorkerDisconnect,
+        now: () => 1_000 + BACKGROUND_AGENT_KEEPER_IDENTITY_PROBE_DELAY_MS - 1,
+        workerIdentityAlive,
+      }),
+    ).toBe(true);
+    expect(workerIdentityAlive).not.toHaveBeenCalled();
+    expect(finishForWorkerDisconnect).not.toHaveBeenCalled();
   });
 
   it("contains and reports heartbeat persistence errors", () => {

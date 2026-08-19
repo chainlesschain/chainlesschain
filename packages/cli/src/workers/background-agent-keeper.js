@@ -35,6 +35,7 @@ import {
   BACKGROUND_AGENT_KEEPER_CLEANUP_CONFIRM_TIMEOUT_MS,
   BACKGROUND_AGENT_KEEPER_HELLO,
   BACKGROUND_AGENT_KEEPER_HEARTBEAT,
+  BACKGROUND_AGENT_KEEPER_IDENTITY_PROBE_DELAY_MS,
   BACKGROUND_AGENT_KEEPER_HEARTBEAT_TIMEOUT_MS,
   BACKGROUND_AGENT_KEEPER_PERSIST_RETRY_TIMEOUT_MS,
   BACKGROUND_AGENT_KEEPER_PROTOCOL_VERSION,
@@ -148,17 +149,23 @@ export function runBackgroundAgentKeeperHeartbeat({
   // first-write lock race the launch barrier prevents.
   if (!workerSocket || !authenticatedHello) return false;
   const currentTime = now();
+  const workerHeartbeatAge = Number.isFinite(workerHeartbeatAt)
+    ? Math.max(0, currentTime - workerHeartbeatAt)
+    : 0;
   const workerHeartbeatExpired =
     workerSocket &&
     authenticatedHello &&
     Number.isFinite(workerHeartbeatAt) &&
-    currentTime - workerHeartbeatAt >
-      BACKGROUND_AGENT_KEEPER_HEARTBEAT_TIMEOUT_MS;
+    workerHeartbeatAge > BACKGROUND_AGENT_KEEPER_HEARTBEAT_TIMEOUT_MS;
+  const workerIdentityProbeDue =
+    armedTurn &&
+    Number.isFinite(workerHeartbeatAt) &&
+    workerHeartbeatAge > BACKGROUND_AGENT_KEEPER_IDENTITY_PROBE_DELAY_MS;
   if (
     workerSocket &&
     authenticatedHello &&
     (workerHeartbeatExpired ||
-      (armedTurn &&
+      (workerIdentityProbeDue &&
         !workerIdentityAlive(
           authenticatedHello.workerPid,
           authenticatedWorkerStartedAt,
@@ -168,8 +175,9 @@ export function runBackgroundAgentKeeperHeartbeat({
     // after its worker dies if a platform helper retained a duplicate.
     // Socket EOF and PID visibility are therefore not sufficient lifetime
     // signals. The authenticated application heartbeat provides an
-    // independent bounded fence, while the PID/start anchor remains the
-    // immediate path on platforms that report death promptly.
+    // independent bounded fence. Delay the PID/start probe until application
+    // heartbeats are already stale so healthy Windows keepers do not create a
+    // synchronized WMIC/PowerShell probe storm under normal operation.
     finishForWorkerDisconnect();
     workerSocket.destroy();
     return false;

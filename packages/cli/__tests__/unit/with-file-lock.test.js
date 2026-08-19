@@ -936,6 +936,38 @@ describe("withFileLock", () => {
     expect(_fs.dirs.has(lockDir)).toBe(false);
   });
 
+  it("reclaims a dead published owner whose staging path still exists", () => {
+    const _fs = fakeLockFs();
+    const lockDir = "/critical.json.lock";
+    const pendingPath = "/critical.json.4242.deadbeef.tmp";
+    const deadOwner = {
+      pid: 4242,
+      startedAt: 1,
+      token: "dead-published-owner-token-001",
+    };
+    _fs.dirs.set(lockDir, 0);
+    _fs.writeFileSync(`${lockDir}/owner.json`, JSON.stringify(deadOwner));
+    _fs.writeFileSync(
+      `${lockDir}/.release-${deadOwner.token}`,
+      JSON.stringify({
+        ...deadOwner,
+        releaseAfterPathRemoved: pendingPath,
+      }),
+    );
+    _fs.files.set(pendingPath, "uncommitted private replacement");
+
+    expect(
+      withFileLock("/critical.json", () => "recovered", {
+        _fs,
+        _isProcessAlive: () => false,
+        _ownerToken: () => "dead-published-reclaimer-001",
+        failIfUnavailable: true,
+      }),
+    ).toBe("recovered");
+    expect(_fs.dirs.has(lockDir)).toBe(false);
+    expect(_fs.files.get(pendingPath)).toBe("uncommitted private replacement");
+  });
+
   it("completes a prepublished handoff after a transient direct-release failure", () => {
     const _fs = fakeLockFs();
     const lockDir = "/critical.json.lock";

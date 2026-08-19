@@ -15,7 +15,19 @@ export const BACKGROUND_AGENT_KEEPER_RETIRED =
 export const BACKGROUND_AGENT_KEEPER_LAUNCH_CLAIM =
   "background-agent-keeper-launch-claim";
 export const BACKGROUND_AGENT_KEEPER_HEARTBEAT_INTERVAL_MS = 1_000;
-export const BACKGROUND_AGENT_KEEPER_HEARTBEAT_TIMEOUT_MS = 15_000;
+// Do not launch an OS process-identity probe while authenticated application
+// heartbeats are fresh. On Windows the cached WMIC/CIM fallback can otherwise
+// make 20 keepers synchronously spawn probe helpers together every ten seconds.
+export const BACKGROUND_AGENT_KEEPER_IDENTITY_PROBE_DELAY_MS = 15_000;
+// This application-level fence is a backstop for the rare case where Windows
+// retains both the named-pipe handle and an exact process object after worker
+// death. Normal death still closes the socket immediately; a stale channel
+// gets the delayed PID/start-time probe before this final fence. A 20-worker
+// hosted Windows launch has demonstrated
+// 37-second scheduling tails, so 15 seconds could kill a live, healthy worker
+// while it was merely descheduled. Keep the backstop bounded but above that
+// measured contention window.
+export const BACKGROUND_AGENT_KEEPER_HEARTBEAT_TIMEOUT_MS = 60_000;
 
 // RETIRE is the only keeper request that performs destructive OS cleanup. Its
 // deadline is deliberately independent from the short HELLO/ARM request

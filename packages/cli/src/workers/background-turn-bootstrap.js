@@ -12,6 +12,7 @@ import {
   BACKGROUND_TURN_BOOTSTRAP_ENV,
   BACKGROUND_TURN_BOOTSTRAP_READY,
   BACKGROUND_TURN_BOOTSTRAP_RELEASE,
+  BACKGROUND_TURN_BOOTSTRAP_RELEASE_TIMEOUT_MS,
   backgroundTurnBootstrapBindingFromEnvironment,
   clearBackgroundTurnBootstrapEnvironment,
   containReleasedBackgroundTurnDisconnect,
@@ -20,15 +21,18 @@ import {
   removeBackgroundTurnBootstrapImport,
 } from "../lib/background-turn-bootstrap-protocol.js";
 
-const DEFAULT_RELEASE_TIMEOUT_MS = 30_000;
 const TEST_RELEASE_TIMEOUT_MAX_MS = 2_000;
 
 function releaseTimeoutMs() {
-  if (process.env.NODE_ENV !== "test") return DEFAULT_RELEASE_TIMEOUT_MS;
+  if (process.env.NODE_ENV !== "test") {
+    return BACKGROUND_TURN_BOOTSTRAP_RELEASE_TIMEOUT_MS;
+  }
   const requested = Number(
     process.env[BACKGROUND_TURN_BOOTSTRAP_ENV.testTimeoutMs],
   );
-  if (!Number.isFinite(requested)) return DEFAULT_RELEASE_TIMEOUT_MS;
+  if (!Number.isFinite(requested)) {
+    return BACKGROUND_TURN_BOOTSTRAP_RELEASE_TIMEOUT_MS;
+  }
   return Math.max(10, Math.min(TEST_RELEASE_TIMEOUT_MAX_MS, requested));
 }
 
@@ -97,10 +101,6 @@ await new Promise((resolve) => {
 
   const onMessage = (message) => {
     if (message?.type !== BACKGROUND_TURN_BOOTSTRAP_RELEASE) return;
-    if (released) {
-      failOnce("duplicate release rejected");
-      return;
-    }
     if (
       !matchesBackgroundTurnBootstrapMessage(
         message,
@@ -111,6 +111,11 @@ await new Promise((resolve) => {
       failOnce("release binding mismatch");
       return;
     }
+    // READY is retransmitted until this process observes RELEASE, so the
+    // worker can legitimately retransmit the same exact-bound response after
+    // an IPC scheduling delay. Matching duplicates are side-effect free;
+    // mismatched duplicates are still rejected above.
+    if (released) return;
     released = true;
     if (timer) clearTimeout(timer);
     if (readyTimer) clearInterval(readyTimer);
@@ -132,7 +137,7 @@ await new Promise((resolve) => {
     resolve();
   };
 
-  // Keep both listeners after release. A repeated release or loss of the
+  // Keep both listeners after release. A mismatched release or loss of the
   // supervising worker remains fail-closed even after the real CLI starts.
   process.on("message", onMessage);
   process.once("disconnect", () =>

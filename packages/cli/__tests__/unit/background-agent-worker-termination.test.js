@@ -4,6 +4,7 @@ import {
   attachTurnChildBootstrapRelease,
   attachTurnChildTerminationSettlement,
   deliverAfterDurableInteractionCleanup,
+  hasDurableKeeperTurnRetirement,
   spawnTurnAfterDurableIntent,
 } from "../../src/workers/background-agent-worker.js";
 import {
@@ -13,6 +14,75 @@ import {
 } from "../../src/lib/background-turn-bootstrap-protocol.js";
 
 describe("background agent worker child termination settlement", () => {
+  const keeperTurn = Object.freeze({
+    id: "bg-exact-turn",
+    workerGeneration: "worker-generation-1",
+    turnLaunchToken: "turn-token-1",
+    attempt: 7,
+    agentPid: 4321,
+    agentStartedAt: 10_000,
+    agentRuntimePid: 8765,
+    agentRuntimeStartedAt: 10_000,
+  });
+  const retiredState = Object.freeze({
+    id: keeperTurn.id,
+    workerGeneration: keeperTurn.workerGeneration,
+    turnLaunchResolution: {
+      token: keeperTurn.turnLaunchToken,
+      attempt: keeperTurn.attempt,
+      outcome: "spawned",
+    },
+    agentPid: keeperTurn.agentPid,
+    agentStartedAt: keeperTurn.agentStartedAt,
+    agentRuntimePid: keeperTurn.agentRuntimePid,
+    agentRuntimeStartedAt: keeperTurn.agentRuntimeStartedAt,
+    turnKeeperStatus: "retired",
+    turnKeeperCleanupRequestedAt: 20_000,
+    turnKeeperCleanupConfirmedAt: 20_100,
+    turnKeeperCleanupError: null,
+    turnLaunchFinalizationUncertain: false,
+  });
+
+  it("accepts exact durable keeper retirement after a lost response", () => {
+    expect(hasDurableKeeperTurnRetirement(retiredState, keeperTurn)).toBe(true);
+  });
+
+  it.each([
+    ["worker generation", { workerGeneration: "worker-generation-2" }],
+    [
+      "turn token",
+      {
+        turnLaunchResolution: {
+          ...retiredState.turnLaunchResolution,
+          token: "turn-token-2",
+        },
+      },
+    ],
+    [
+      "turn attempt",
+      {
+        turnLaunchResolution: {
+          ...retiredState.turnLaunchResolution,
+          attempt: keeperTurn.attempt + 1,
+        },
+      },
+    ],
+    ["wrapper pid", { agentPid: keeperTurn.agentPid + 1 }],
+    ["runtime pid", { agentRuntimePid: keeperTurn.agentRuntimePid + 1 }],
+    ["wrapper start", { agentStartedAt: keeperTurn.agentStartedAt + 1 }],
+    [
+      "runtime start",
+      { agentRuntimeStartedAt: keeperTurn.agentRuntimeStartedAt + 1 },
+    ],
+    ["unconfirmed cleanup", { turnKeeperCleanupConfirmedAt: null }],
+    ["cleanup error", { turnKeeperCleanupError: "tree still executable" }],
+    ["uncertain launch", { turnLaunchFinalizationUncertain: true }],
+  ])("rejects retired state with mismatched %s", (_label, patch) => {
+    expect(
+      hasDurableKeeperTurnRetirement({ ...retiredState, ...patch }, keeperTurn),
+    ).toBe(false);
+  });
+
   it("does not hold the PID commit transaction through native spawn", () => {
     const order = [];
     const child = { pid: 4321 };
@@ -126,6 +196,8 @@ describe("background agent worker child termination settlement", () => {
     expect(sent).toEqual([]);
     finishDurableCommit(true);
     await vi.waitFor(() => expect(sent).toHaveLength(1));
+    child.emit("message", ready);
+    await vi.waitFor(() => expect(sent).toHaveLength(2));
 
     expect(commitReady).toHaveBeenCalledOnce();
     expect(commitReady).toHaveBeenCalledWith({
@@ -135,6 +207,14 @@ describe("background agent worker child termination settlement", () => {
       pid: 4321,
     });
     expect(sent).toEqual([
+      {
+        type: BACKGROUND_TURN_BOOTSTRAP_RELEASE,
+        protocolVersion: BACKGROUND_TURN_BOOTSTRAP_PROTOCOL_VERSION,
+        nonce: "nonce-1",
+        workerGeneration: "generation-1",
+        attempt: 2,
+        pid: 4321,
+      },
       {
         type: BACKGROUND_TURN_BOOTSTRAP_RELEASE,
         protocolVersion: BACKGROUND_TURN_BOOTSTRAP_PROTOCOL_VERSION,

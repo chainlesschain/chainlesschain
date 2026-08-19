@@ -67,6 +67,7 @@ import {
   backgroundAgentKeeperLaunchClaimPath,
   createBackgroundAgentKeeperLaunchClaim,
   matchesBackgroundAgentKeeperLaunchClaim,
+  sameBackgroundAgentKeeperTurn,
 } from "../lib/background-agent-keeper-protocol.js";
 
 const TURN_BOOTSTRAP_MODULE_URL = new URL(
@@ -88,6 +89,7 @@ let lastExit = { code: 0, signal: null };
 let transportState = null;
 let detachInteractionHandler = null;
 let detachTurnBootstrapHandler = null;
+let detachTurnTerminationHandler = null;
 let keeperClient = null;
 let activeKeeperTurn = null;
 let interactionJournal = null;
@@ -162,6 +164,43 @@ export function attachTurnChildTerminationSettlement(
 }
 
 /**
+ * Accept a keeper cleanup record only when it proves retirement of the exact
+ * turn the worker was supervising. A socket close or lost RETIRED response is
+ * not evidence by itself: every durable spawn/runtime identity must still
+ * match, and the keeper must have persisted successful cleanup after it was
+ * requested. Exported for the fail-closed binding contract tests.
+ */
+export function hasDurableKeeperTurnRetirement(state, keeperTurn) {
+  const cleanupRequestedAt = Number(state?.turnKeeperCleanupRequestedAt);
+  const cleanupConfirmedAt = Number(state?.turnKeeperCleanupConfirmedAt);
+  return Boolean(
+    state &&
+    keeperTurn &&
+    state.turnKeeperStatus === "retired" &&
+    Number.isFinite(cleanupRequestedAt) &&
+    cleanupRequestedAt > 0 &&
+    Number.isFinite(cleanupConfirmedAt) &&
+    cleanupConfirmedAt >= cleanupRequestedAt &&
+    !state.turnKeeperCleanupError &&
+    state.turnLaunchFinalizationUncertain !== true &&
+    sameBackgroundAgentKeeperTurn(
+      {
+        id: state.id,
+        workerGeneration: state.workerGeneration,
+        turnLaunchToken: state.turnLaunchResolution?.token,
+        attempt: state.turnLaunchResolution?.attempt,
+        agentPid: state.agentPid,
+        agentStartedAt: state.agentStartedAt,
+        agentRuntimePid: state.agentRuntimePid,
+        agentRuntimeStartedAt: state.agentRuntimeStartedAt,
+      },
+      keeperTurn,
+    ) &&
+    state.turnLaunchResolution?.outcome === "spawned",
+  );
+}
+
+/**
  * Release a pre-main turn child only after its actual runtime PID is durably
  * committed and every worker listener needed to supervise it is installed.
  * The ChildProcess PID may name a Windows sandbox helper, so the actual Node
@@ -192,6 +231,22 @@ export function attachTurnChildBootstrapRelease(
   let failed = false;
   let detached = false;
 
+  const sendRelease = (binding) => {
+    try {
+      childProcess.send(
+        createBackgroundTurnBootstrapMessage(
+          BACKGROUND_TURN_BOOTSTRAP_RELEASE,
+          binding,
+        ),
+        (error) => {
+          if (error) failOnce(error);
+        },
+      );
+    } catch (error) {
+      failOnce(error);
+    }
+  };
+
   const failOnce = (error) => {
     if (failed || detached) return;
     failed = true;
@@ -213,9 +268,11 @@ export function attachTurnChildBootstrapRelease(
     if (releasedBinding) {
       if (readyBinding.pid !== releasedBinding.pid) {
         failOnce(new Error("background turn bootstrap runtime pid changed"));
+        return;
       }
-      // READY is retransmitted until the child observes RELEASE. Matching
-      // duplicates are idempotent; never answer with a second RELEASE.
+      // A matching READY after durable commit proves the child has not yet
+      // observed RELEASE. Retransmit the exact-bound idempotent response.
+      sendRelease(readyBinding);
       return;
     }
     if (pendingBinding) {
@@ -236,19 +293,7 @@ export function attachTurnChildBootstrapRelease(
           return;
         }
         releasedBinding = readyBinding;
-        try {
-          childProcess.send(
-            createBackgroundTurnBootstrapMessage(
-              BACKGROUND_TURN_BOOTSTRAP_RELEASE,
-              readyBinding,
-            ),
-            (error) => {
-              if (error) failOnce(error);
-            },
-          );
-        } catch (error) {
-          failOnce(error);
-        }
+        sendRelease(readyBinding);
       })
       .catch(failOnce);
   };
@@ -740,13 +785,93 @@ async function settleUncertainTurnLaunch(context) {
   scheduleTurnLaunchSettlementRetry(context, retryMs);
 }
 
+function detachConfirmedTurnRuntime() {
+  detachTurnTerminationHandler?.();
+  detachTurnTerminationHandler = null;
+  detachTurnBootstrapHandler?.();
+  detachTurnBootstrapHandler = null;
+  detachInteractionHandler?.();
+  detachInteractionHandler = null;
+  for (const pending of pendingInteractions.values()) {
+    const error = new Error("Agent exited");
+    error.code = "INTERACTION_CHILD_EXITED";
+    pending.deliverRejected?.(error);
+  }
+  pendingInteractions.clear();
+}
+
+function finishAfterDurableKeeperTurnRetirement({
+  owned,
+  error,
+  keeperTurn,
+  turnLaunchToken,
+  turnLaunchAttempt,
+  agentStartedAt,
+}) {
+  if (
+    !keeperTurn ||
+    Number(owned?.pid) !== keeperTurn.agentPid ||
+    turnLaunchToken !== keeperTurn.turnLaunchToken ||
+    Number(turnLaunchAttempt) !== keeperTurn.attempt ||
+    Number(agentStartedAt) !== keeperTurn.agentStartedAt
+  ) {
+    return false;
+  }
+  let current;
+  try {
+    current = readBackgroundAgentState(job.id);
+  } catch {
+    return false;
+  }
+  if (!hasDurableKeeperTurnRetirement(current, keeperTurn)) return false;
+
+  // The exact wrapper/runtime tree is durably proven non-executable. Do not
+  // start a second PID-based termination after the keeper channel has closed:
+  // under PID reuse that would be less safe than accepting this identity-bound
+  // proof. The keeper is unavailable for another turn, so terminalize the
+  // worker after the normal interaction journal sweep.
+  child = null;
+  if (sameBackgroundAgentKeeperTurn(activeKeeperTurn, keeperTurn)) {
+    activeKeeperTurn = null;
+  }
+  detachConfirmedTurnRuntime();
+  turnCount = Math.max(turnCount, keeperTurn.attempt);
+  lastExit = {
+    code: 1,
+    signal: null,
+    errorMessage:
+      error?.message ||
+      "background keeper disconnected after confirmed turn cleanup",
+  };
+  const finish = () => finalize(1, null, lastExit.errorMessage);
+  if (job.sessionId && interactionJournal) {
+    beginFinalInteractionSweep(finish);
+  } else {
+    finish();
+  }
+  return true;
+}
+
 function beginTurnLaunchSettlement({
   owned,
   error,
   turnLaunchToken,
   turnLaunchAttempt,
   agentStartedAt,
+  keeperTurn = null,
 }) {
+  if (
+    finishAfterDurableKeeperTurnRetirement({
+      owned,
+      error,
+      keeperTurn,
+      turnLaunchToken,
+      turnLaunchAttempt,
+      agentStartedAt,
+    })
+  ) {
+    return "retired";
+  }
   child = owned || null;
   phase = "turn_launch_uncertain";
   const ownedPid = Number(owned?.pid);
@@ -1281,14 +1406,17 @@ function startTurn(argv, promptText) {
           turnLaunchToken,
           turnLaunchAttempt,
           agentStartedAt,
+          keeperTurn: activeKeeperTurn,
         });
       }
     },
   );
 
-  attachTurnChildTerminationSettlement(
+  detachTurnTerminationHandler = attachTurnChildTerminationSettlement(
     child,
     ({ code, signal, errorMessage }) => {
+      detachTurnTerminationHandler?.();
+      detachTurnTerminationHandler = null;
       turnTerminated = true;
       lastExit = {
         code,
@@ -1296,19 +1424,7 @@ function startTurn(argv, promptText) {
         ...(errorMessage ? { errorMessage } : {}),
       };
       child = null;
-      detachTurnBootstrapHandler?.();
-      detachTurnBootstrapHandler = null;
-      // 清理交互处理器
-      detachInteractionHandler?.();
-      detachInteractionHandler = null;
-      // Reject any request that survived an abnormal child exit. Normal
-      // responses remove themselves from this map before the turn continues.
-      for (const pending of pendingInteractions.values()) {
-        const error = new Error("Agent exited");
-        error.code = "INTERACTION_CHILD_EXITED";
-        pending.deliverRejected?.(error);
-      }
-      pendingInteractions.clear();
+      detachConfirmedTurnRuntime();
       const finishTurn = () =>
         beginFinalInteractionSweep(() => {
           server?.broadcast({
@@ -1347,6 +1463,7 @@ function startTurn(argv, promptText) {
               turnLaunchToken,
               turnLaunchAttempt,
               agentStartedAt,
+              keeperTurn,
             });
           }
         }
@@ -1717,13 +1834,31 @@ async function main() {
     token: job.keeper.token,
     onDisconnect(error, keeperTurn) {
       if (finalized || turnLaunchSettlement) return;
-      if (child && keeperTurn) {
+      if (keeperTurn) {
+        const ownedTurn = child || { pid: keeperTurn.agentPid };
+        if (
+          finishAfterDurableKeeperTurnRetirement({
+            owned: ownedTurn,
+            error,
+            keeperTurn,
+            turnLaunchToken: keeperTurn.turnLaunchToken,
+            turnLaunchAttempt: keeperTurn.attempt,
+            agentStartedAt: keeperTurn.agentStartedAt,
+          })
+        ) {
+          return;
+        }
+        // A null child means its terminal callback already owns the pending
+        // RETIRE rejection and will reconcile or settle with the original
+        // ChildProcess identity. Do not finalize ahead of that journal sweep.
+        if (!child) return;
         beginTurnLaunchSettlement({
           owned: child,
           error,
           turnLaunchToken: keeperTurn.turnLaunchToken,
           turnLaunchAttempt: keeperTurn.attempt,
           agentStartedAt: keeperTurn.agentStartedAt,
+          keeperTurn,
         });
         return;
       }

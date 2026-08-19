@@ -11,6 +11,10 @@ export const BACKGROUND_TURN_BOOTSTRAP_READY =
   "background-turn-bootstrap-ready";
 export const BACKGROUND_TURN_BOOTSTRAP_RELEASE =
   "background-turn-bootstrap-release";
+// The formal launch gate permits 120 seconds for a 20-worker hosted runner to
+// become ready. Keep the pre-main barrier alive for that same bounded window;
+// worker/IPC death still fails immediately through the disconnect listener.
+export const BACKGROUND_TURN_BOOTSTRAP_RELEASE_TIMEOUT_MS = 120_000;
 
 export const BACKGROUND_TURN_BOOTSTRAP_ENV = Object.freeze({
   nonce: "CC_BACKGROUND_TURN_BOOTSTRAP_NONCE",

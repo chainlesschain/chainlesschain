@@ -121,7 +121,13 @@ export function withFileLock(targetPath, fn, opts = {}) {
         );
         lastOwnerObservation.releasePublished = publishedRelease.published;
         if (publishedRelease.completed) continue;
-        if (!publishedRelease.published && !incumbentAlive) {
+        if (!incumbentAlive) {
+          // A published handoff can still retain its unique staging path when
+          // the owner is killed between marker publication and the atomic
+          // replacement. No process can commit that staging file after the
+          // exact owner is proven dead, so the lock directory is reclaimable
+          // whether the transaction committed or not. Leave the private
+          // staging file untouched; it cannot affect the guarded target.
           if (
             reclaimOwnedDirectory(_fs, lockDir, incumbent, owner, isOwnerAlive)
           )
