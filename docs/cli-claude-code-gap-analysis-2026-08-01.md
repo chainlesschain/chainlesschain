@@ -2,7 +2,7 @@
 
 > 分析起始日期：2026-08-01；当前核验日期：2026-08-19
 >
-> ChainlessChain 历史候选基线：`packages/cli` v0.162.194 release candidate；v0.162.190 / v0.162.191 / v0.162.192 未发布；v0.162.193 已被非权威通用 workflow 发布且不得视为门禁通过。当前 CLI 发布核验基线为最终 release SHA `7d3eb9ea8046330e2b264bf2309337ebbbbcbacc`（2026-08-19，PR #230），不可变 annotated tag 为 `v-npm-0-165-3`；公网 npm `latest` 为 v0.165.3。v0.165.3 的 exact-SHA 发布子闭环和 P1-2 keeper formal 已完成；当前收口和未完成项见第 18.34 节，v0.163.8 的历史发布证据保留在第 18.12 节。
+> ChainlessChain 历史候选基线：`packages/cli` v0.162.194 release candidate；v0.162.190 / v0.162.191 / v0.162.192 未发布；v0.162.193 已被非权威通用 workflow 发布且不得视为门禁通过。当前 CLI 发布核验基线为最终 release SHA `7d3eb9ea8046330e2b264bf2309337ebbbbcbacc`（2026-08-19，PR #230），不可变 annotated tag 为 `v-npm-0-165-3`；公网 npm `latest` 为 v0.165.3。v0.165.3 的 exact-SHA 发布子闭环和 P1-2 keeper formal 已完成；当前收口和未完成项见第 18.35 节，v0.163.8 的历史发布证据保留在第 18.12 节。
 >
 > Claude Code 参考基线：官方文档与 2.1.220 changelog（2026-07-25）
 >
