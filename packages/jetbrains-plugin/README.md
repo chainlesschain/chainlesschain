@@ -20,7 +20,7 @@ run-now, failed-run retry, pause/resume, disable, delete, and revision-CAS
 create/edit operations through exact CLI-issued arguments. Cron, one-shot,
 webhook, and GitHub triggers share the same fail-closed surface.
 
-The fully gated public CLI `chainlesschain@0.164.0` contains the governed
+The fully gated public CLI `chainlesschain@0.165.2` contains the governed
 Automation/Routine commands, the released Automation Center v3 projection,
 scoped permission and side-effect authority, and shared permission/budget
 enforcement. Version `0.4.93` accepts only the exact v2/schemaVersion 2 or
@@ -36,8 +36,14 @@ Version `0.4.93` also consumes only strict, CLI-issued multi-agent merge-review
 evidence. It displays stable file/hunk choices, persistent conflict explanations,
 and exact apply/rollback previews, then refreshes the evidence before executing
 the exact argv. It never runs or derives `git merge`, `merge-tree`, or
-history-rewriting rollback commands. Public CLI `0.164.0` provides the governed
+history-rewriting rollback commands. Public CLI `0.165.2` provides the governed
 `team merge-review` command and exact evidence contract.
+
+The audited Artifact access and managed-copy deletion settlement introduced in
+`0.4.93` are paired with CLI changes newer than the public `0.165.2` package.
+Until a subsequent exact-gated CLI release contains those commands, `0.165.2`
+remains the recommended stable pairing for existing surfaces and the new
+Artifact content/removal actions fail closed instead of bypassing the CLI.
 
 ## Governed ghost-text completion
 

@@ -2,6 +2,10 @@
 
 ## [0.4.93] - Audited artifact access and deletion settlement (2026-08-19)
 
+- Recommend the fully gated public CLI `chainlesschain@0.165.2` for existing
+  stable IDE surfaces. That npm release predates the paired Artifact audit and
+  deletion-settlement commands below, so these new actions intentionally fail
+  closed until a subsequent exact-gated CLI release contains them.
 - Route open, browser-open, reveal, and copy-path actions through the CLI's
   audited `artifacts access` authority before exposing stored bytes. Missing,
   stale, malformed, or out-of-store paths now fail closed.
