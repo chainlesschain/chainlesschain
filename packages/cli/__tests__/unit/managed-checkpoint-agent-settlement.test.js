@@ -9,7 +9,15 @@ const checkpointMocks = vi.hoisted(() => ({
     toolName: "write_file",
     checkpointId: "checkpoint-settlement-test",
     transactionId: "wcp-settlement-test",
-    prepared: { coverage: "partial" },
+    prepared: {
+      id: "wcp-settlement-test",
+      checkpointId: "checkpoint-settlement-test",
+      checkpoint: { digest: `sha256:${"a".repeat(64)}` },
+      stateDigest: `sha256:${"b".repeat(64)}`,
+      coverage: "partial",
+      fileCoverage: "partial",
+      externalSideEffects: false,
+    },
     transaction: { snapshot: () => ({ state: "rollback_required" }) },
   })),
   settle: vi.fn(() => {
@@ -22,7 +30,8 @@ const checkpointMocks = vi.hoisted(() => ({
   }),
 }));
 
-vi.mock("../../src/lib/managed-tool-checkpoint.js", () => ({
+vi.mock("../../src/lib/managed-tool-checkpoint.js", async (importOriginal) => ({
+  ...(await importOriginal()),
   beginManagedToolCheckpoint: checkpointMocks.begin,
   settleManagedToolCheckpoint: checkpointMocks.settle,
 }));
