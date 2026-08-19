@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import {
   BACKGROUND_AGENT_KEEPER_CLEANUP_CONFIRM_TIMEOUT_MS,
   BACKGROUND_AGENT_KEEPER_CLEANUP_TARGET_LIMIT,
+  BACKGROUND_AGENT_KEEPER_HEARTBEAT_TIMEOUT_MS,
+  BACKGROUND_AGENT_KEEPER_IDENTITY_PROBE_DELAY_MS,
   BACKGROUND_AGENT_KEEPER_IDENTITY_PROBE_TIMEOUT_MS,
   BACKGROUND_AGENT_KEEPER_PERSIST_RETRY_TIMEOUT_MS,
   BACKGROUND_AGENT_KEEPER_RETIRE_TIMEOUT_MARGIN_MS,
@@ -9,7 +11,10 @@ import {
   BACKGROUND_AGENT_KEEPER_STATE_LOCK_TIMEOUT_MS,
   BACKGROUND_AGENT_KEEPER_TASKKILL_TIMEOUT_MS,
   POSIX_KEEPER_SOCKET_PATH_MAX_BYTES,
+  backgroundAgentKeeperLaunchClaimPath,
   backgroundAgentKeeperPipePath,
+  createBackgroundAgentKeeperLaunchClaim,
+  matchesBackgroundAgentKeeperLaunchClaim,
   normalizeBackgroundAgentKeeperHello,
   normalizeBackgroundAgentKeeperTurn,
   resolveBackgroundAgentKeeperRetireTimeoutMs,
@@ -20,6 +25,7 @@ import {
   retryKeeperPersistence,
   runBackgroundAgentKeeperHeartbeat,
   stopBackgroundAgentKeeperTurnTrees,
+  waitForBackgroundAgentKeeperTurnTreesToStop,
 } from "../../src/workers/background-agent-keeper.js";
 
 const turn = {
@@ -34,6 +40,33 @@ const turn = {
 };
 
 describe("background agent keeper protocol", () => {
+  it("binds the post-lock launch claim to the exact keeper generation", () => {
+    const claim = createBackgroundAgentKeeperLaunchClaim({
+      id: turn.id,
+      workerGeneration: turn.workerGeneration,
+      keeperGeneration: "keeper-generation-1",
+      keeperPid: 6789,
+      token: "a".repeat(64),
+    });
+
+    expect(
+      backgroundAgentKeeperLaunchClaimPath(
+        turn.id,
+        claim.keeperGeneration,
+        "/private/state",
+      ).replaceAll("\\", "/"),
+    ).toMatch(
+      /\/\.bg-keeper-test\.keeper-keeper-generation-1\.launch-claim\.json$/u,
+    );
+    expect(matchesBackgroundAgentKeeperLaunchClaim(claim, claim)).toBe(true);
+    expect(
+      matchesBackgroundAgentKeeperLaunchClaim(
+        { ...claim, keeperPid: claim.keeperPid + 1 },
+        claim,
+      ),
+    ).toBe(false);
+  });
+
   it("binds the exact wrapper and runtime identities for one turn", () => {
     expect(normalizeBackgroundAgentKeeperTurn(turn)).toEqual(turn);
     expect(sameBackgroundAgentKeeperTurn(turn, { ...turn })).toBe(true);
@@ -174,6 +207,18 @@ describe("background agent keeper protocol", () => {
     expect(persistKeeper).not.toHaveBeenCalled();
   });
 
+  it("stays read-only until the worker is authenticated", () => {
+    const persistKeeper = vi.fn();
+
+    expect(
+      runBackgroundAgentKeeperHeartbeat({
+        finishing: false,
+        persistKeeper,
+      }),
+    ).toBe(false);
+    expect(persistKeeper).not.toHaveBeenCalled();
+  });
+
   it("disconnects a worker after its authenticated heartbeat expires", () => {
     const persistKeeper = vi.fn();
     const finishForWorkerDisconnect = vi.fn();
@@ -190,7 +235,7 @@ describe("background agent keeper protocol", () => {
         armedTurn: null,
         persistKeeper,
         finishForWorkerDisconnect,
-        now: () => 20_000,
+        now: () => 1_000 + BACKGROUND_AGENT_KEEPER_HEARTBEAT_TIMEOUT_MS + 1,
         workerIdentityAlive,
       }),
     ).toBe(false);
@@ -198,6 +243,55 @@ describe("background agent keeper protocol", () => {
     expect(workerSocket.destroy).toHaveBeenCalledOnce();
     expect(workerIdentityAlive).not.toHaveBeenCalled();
     expect(persistKeeper).not.toHaveBeenCalled();
+  });
+
+  it("keeps a live worker through the observed hosted Windows scheduling tail", () => {
+    const persistKeeper = vi.fn();
+    const finishForWorkerDisconnect = vi.fn();
+    const workerSocket = { destroy: vi.fn() };
+    const workerIdentityAlive = vi.fn(() => true);
+
+    expect(
+      runBackgroundAgentKeeperHeartbeat({
+        finishing: false,
+        workerSocket,
+        authenticatedHello: { workerPid: 2468 },
+        authenticatedWorkerStartedAt: 1_234_567,
+        workerHeartbeatAt: 1_000,
+        armedTurn: turn,
+        persistKeeper,
+        finishForWorkerDisconnect,
+        now: () => 1_000 + 37_391,
+        workerIdentityAlive,
+      }),
+    ).toBe(true);
+    expect(workerIdentityAlive).toHaveBeenCalledWith(2468, 1_234_567);
+    expect(finishForWorkerDisconnect).not.toHaveBeenCalled();
+    expect(workerSocket.destroy).not.toHaveBeenCalled();
+    expect(persistKeeper).toHaveBeenCalledWith({ keeperHeartbeatAt: 38_391 });
+  });
+
+  it("does not probe worker identity while application heartbeats are fresh", () => {
+    const persistKeeper = vi.fn();
+    const finishForWorkerDisconnect = vi.fn();
+    const workerIdentityAlive = vi.fn(() => true);
+
+    expect(
+      runBackgroundAgentKeeperHeartbeat({
+        finishing: false,
+        workerSocket: { destroy: vi.fn() },
+        authenticatedHello: { workerPid: 2468 },
+        authenticatedWorkerStartedAt: 1_234_567,
+        workerHeartbeatAt: 1_000,
+        armedTurn: turn,
+        persistKeeper,
+        finishForWorkerDisconnect,
+        now: () => 1_000 + BACKGROUND_AGENT_KEEPER_IDENTITY_PROBE_DELAY_MS - 1,
+        workerIdentityAlive,
+      }),
+    ).toBe(true);
+    expect(workerIdentityAlive).not.toHaveBeenCalled();
+    expect(finishForWorkerDisconnect).not.toHaveBeenCalled();
   });
 
   it("contains and reports heartbeat persistence errors", () => {
@@ -212,6 +306,9 @@ describe("background agent keeper protocol", () => {
     expect(
       runBackgroundAgentKeeperHeartbeat({
         finishing: false,
+        workerSocket: {},
+        authenticatedHello: { workerPid: 2468 },
+        workerHeartbeatAt: 1_234,
         persistKeeper,
         now: () => 1_234,
         reportPersistenceFailure,
@@ -297,7 +394,9 @@ describe("background agent keeper protocol", () => {
         },
       ),
     ).toEqual([stopError.message]);
-    expect(processTreeExecutionAlive).toHaveBeenCalledWith(4321, 1_000);
+    expect(processTreeExecutionAlive).toHaveBeenCalledWith(4321, 1_000, {
+      processGroup: true,
+    });
   });
 
   it("keeps a keeper cleanup failure only while the target remains alive", () => {
@@ -348,6 +447,54 @@ describe("background agent keeper protocol", () => {
     });
   });
 
+  it("allows a bounded macOS reap delay without probing direct targets as groups", async () => {
+    let now = 0;
+    const sleep = vi.fn(async (milliseconds) => {
+      now += milliseconds;
+    });
+    const isProcessTreeExecutionAlive = vi.fn(() => now < 5_000);
+    const targets = [
+      { pid: 4321, startedAt: 1_000, processGroup: true },
+      { pid: 5432, startedAt: 1_001, processGroup: false },
+    ];
+
+    await expect(
+      waitForBackgroundAgentKeeperTurnTreesToStop(targets, {
+        timeoutMs: 10_000,
+        pollMs: 1_000,
+        now: () => now,
+        sleep,
+        isProcessTreeExecutionAlive,
+      }),
+    ).resolves.toEqual([]);
+    expect(now).toBe(5_000);
+    expect(sleep).toHaveBeenCalledTimes(5);
+    expect(isProcessTreeExecutionAlive).toHaveBeenCalledWith(4321, 1_000, {
+      processGroup: true,
+    });
+    expect(isProcessTreeExecutionAlive).toHaveBeenCalledWith(5432, 1_001, {
+      processGroup: false,
+    });
+  });
+
+  it("keeps an executable tree fail-closed after the confirmation budget", async () => {
+    let now = 0;
+    const target = { pid: 4321, startedAt: 1_000, processGroup: true };
+
+    await expect(
+      waitForBackgroundAgentKeeperTurnTreesToStop([target], {
+        timeoutMs: 3_000,
+        pollMs: 1_000,
+        now: () => now,
+        sleep: async (milliseconds) => {
+          now += milliseconds;
+        },
+        isProcessTreeExecutionAlive: () => true,
+      }),
+    ).resolves.toEqual([target]);
+    expect(now).toBe(3_000);
+  });
+
   it("gives RETIRE an independent budget covering bounded Windows cleanup", () => {
     const boundedCleanupMs =
       BACKGROUND_AGENT_KEEPER_CLEANUP_TARGET_LIMIT *
@@ -363,12 +510,12 @@ describe("background agent keeper protocol", () => {
     expect(BACKGROUND_AGENT_KEEPER_RETIRE_TIMEOUT_MS).toBe(
       boundedCleanupMs + BACKGROUND_AGENT_KEEPER_RETIRE_TIMEOUT_MARGIN_MS,
     );
-    expect(BACKGROUND_AGENT_KEEPER_RETIRE_TIMEOUT_MS).toBe(120_000);
+    expect(BACKGROUND_AGENT_KEEPER_RETIRE_TIMEOUT_MS).toBe(128_000);
     expect(resolveBackgroundAgentKeeperRetireTimeoutMs(undefined)).toBe(
-      120_000,
+      128_000,
     );
-    expect(resolveBackgroundAgentKeeperRetireTimeoutMs(Infinity)).toBe(120_000);
-    expect(resolveBackgroundAgentKeeperRetireTimeoutMs(200_000)).toBe(120_000);
+    expect(resolveBackgroundAgentKeeperRetireTimeoutMs(Infinity)).toBe(128_000);
+    expect(resolveBackgroundAgentKeeperRetireTimeoutMs(200_000)).toBe(128_000);
     expect(resolveBackgroundAgentKeeperRetireTimeoutMs(100_000)).toBe(100_000);
     expect(resolveBackgroundAgentKeeperRetireTimeoutMs(1_234.9)).toBe(1_234);
   });

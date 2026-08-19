@@ -9,8 +9,15 @@
  */
 
 import net from "node:net";
-import { readFileSync, unlinkSync, writeSync } from "node:fs";
-import { resolve } from "node:path";
+import {
+  readFileSync,
+  renameSync,
+  rmSync,
+  unlinkSync,
+  writeFileSync,
+  writeSync,
+} from "node:fs";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createNdjsonReader } from "../lib/background-session-transport.js";
 import {
@@ -28,6 +35,7 @@ import {
   BACKGROUND_AGENT_KEEPER_CLEANUP_CONFIRM_TIMEOUT_MS,
   BACKGROUND_AGENT_KEEPER_HELLO,
   BACKGROUND_AGENT_KEEPER_HEARTBEAT,
+  BACKGROUND_AGENT_KEEPER_IDENTITY_PROBE_DELAY_MS,
   BACKGROUND_AGENT_KEEPER_HEARTBEAT_TIMEOUT_MS,
   BACKGROUND_AGENT_KEEPER_PERSIST_RETRY_TIMEOUT_MS,
   BACKGROUND_AGENT_KEEPER_PROTOCOL_VERSION,
@@ -35,12 +43,15 @@ import {
   BACKGROUND_AGENT_KEEPER_RETIRE,
   BACKGROUND_AGENT_KEEPER_RETIRED,
   BACKGROUND_AGENT_KEEPER_STATE_LOCK_TIMEOUT_MS,
+  backgroundAgentKeeperLaunchClaimPath,
   cleanupBackgroundAgentKeeperPipeDirectory,
+  createBackgroundAgentKeeperLaunchClaim,
   createBackgroundAgentKeeperMessage,
   normalizeBackgroundAgentKeeperHello,
   normalizeBackgroundAgentKeeperTurn,
   sameBackgroundAgentKeeperTurn,
 } from "../lib/background-agent-keeper-protocol.js";
+import { waitForBackgroundAgentLaunchBarrier } from "../lib/background-agent-launch-barrier.js";
 
 const STARTUP_TIMEOUT_MS = 30_000;
 const HEARTBEAT_INTERVAL_MS = 1_000;
@@ -132,18 +143,29 @@ export function runBackgroundAgentKeeperHeartbeat({
   reportPersistenceFailure = reportKeeperPersistenceFailure,
 }) {
   if (finishing) return false;
+  // Startup is deliberately serialized: the keeper publishes its listening
+  // claim, then remains read-only until the worker has claimed and
+  // authenticated. Persisting a pre-auth heartbeat would reintroduce the
+  // first-write lock race the launch barrier prevents.
+  if (!workerSocket || !authenticatedHello) return false;
   const currentTime = now();
+  const workerHeartbeatAge = Number.isFinite(workerHeartbeatAt)
+    ? Math.max(0, currentTime - workerHeartbeatAt)
+    : 0;
   const workerHeartbeatExpired =
     workerSocket &&
     authenticatedHello &&
     Number.isFinite(workerHeartbeatAt) &&
-    currentTime - workerHeartbeatAt >
-      BACKGROUND_AGENT_KEEPER_HEARTBEAT_TIMEOUT_MS;
+    workerHeartbeatAge > BACKGROUND_AGENT_KEEPER_HEARTBEAT_TIMEOUT_MS;
+  const workerIdentityProbeDue =
+    armedTurn &&
+    Number.isFinite(workerHeartbeatAt) &&
+    workerHeartbeatAge > BACKGROUND_AGENT_KEEPER_IDENTITY_PROBE_DELAY_MS;
   if (
     workerSocket &&
     authenticatedHello &&
     (workerHeartbeatExpired ||
-      (armedTurn &&
+      (workerIdentityProbeDue &&
         !workerIdentityAlive(
           authenticatedHello.workerPid,
           authenticatedWorkerStartedAt,
@@ -153,8 +175,9 @@ export function runBackgroundAgentKeeperHeartbeat({
     // after its worker dies if a platform helper retained a duplicate.
     // Socket EOF and PID visibility are therefore not sufficient lifetime
     // signals. The authenticated application heartbeat provides an
-    // independent bounded fence, while the PID/start anchor remains the
-    // immediate path on platforms that report death promptly.
+    // independent bounded fence. Delay the PID/start probe until application
+    // heartbeats are already stale so healthy Windows keepers do not create a
+    // synchronized WMIC/PowerShell probe storm under normal operation.
     finishForWorkerDisconnect();
     workerSocket.destroy();
     return false;
@@ -239,13 +262,55 @@ export function stopBackgroundAgentKeeperTurnTrees(targets, options = {}) {
         leaderAlive ||
         (platform !== "win32" &&
           target.processGroup === true &&
-          processTreeExecutionAlive(target.pid, target.startedAt));
+          processTreeExecutionAlive(target.pid, target.startedAt, {
+            processGroup: true,
+          }));
       if (residualAlive) {
         failures.push(error?.message || String(error));
       }
     }
   }
   return failures;
+}
+
+export async function waitForBackgroundAgentKeeperTurnTreesToStop(
+  targets,
+  options = {},
+) {
+  const now = options.now || Date.now;
+  const sleep =
+    options.sleep ||
+    ((milliseconds) =>
+      new Promise((resolvePromise) =>
+        setTimeout(resolvePromise, milliseconds),
+      ));
+  const processTreeExecutionAlive =
+    options.isProcessTreeExecutionAlive ||
+    isBackgroundProcessTreeExecutionAlive;
+  const timeoutMs = Math.max(
+    1,
+    Number(options.timeoutMs) ||
+      BACKGROUND_AGENT_KEEPER_CLEANUP_CONFIRM_TIMEOUT_MS,
+  );
+  // Each strict macOS liveness probe invokes ps. Polling every 10 ms across
+  // 20 keepers created a process storm precisely while launchd was trying to
+  // reap the killed groups. A 100 ms cadence remains responsive and bounded
+  // while leaving the host enough scheduling capacity to establish absence.
+  const pollMs = Math.max(1, Number(options.pollMs) || 100);
+  const deadline = now() + timeoutMs;
+  const observeAlive = () =>
+    targets.filter((target) =>
+      processTreeExecutionAlive(target.pid, target.startedAt, {
+        processGroup: target.processGroup !== false,
+      }),
+    );
+
+  let alive = observeAlive();
+  while (alive.length > 0 && now() < deadline) {
+    await sleep(Math.max(1, Math.min(pollMs, deadline - now())));
+    alive = observeAlive();
+  }
+  return alive;
 }
 
 async function cleanupTurn(job, turn, reason) {
@@ -275,17 +340,7 @@ async function cleanupTurn(job, turn, reason) {
   );
   const failures = stopBackgroundAgentKeeperTurnTrees(targets);
 
-  const deadline =
-    Date.now() + BACKGROUND_AGENT_KEEPER_CLEANUP_CONFIRM_TIMEOUT_MS;
-  let alive = targets.filter((target) =>
-    isBackgroundProcessTreeExecutionAlive(target.pid, target.startedAt),
-  );
-  while (alive.length > 0 && Date.now() < deadline) {
-    await new Promise((resolvePromise) => setTimeout(resolvePromise, 10));
-    alive = targets.filter((target) =>
-      isBackgroundProcessTreeExecutionAlive(target.pid, target.startedAt),
-    );
-  }
+  const alive = await waitForBackgroundAgentKeeperTurnTreesToStop(targets);
   const confirmed = alive.length === 0 && failures.length === 0;
   let finalPersistenceAttempts = 0;
   const finalPersistence = await retryKeeperPersistence(() => {
@@ -322,6 +377,24 @@ async function cleanupTurn(job, turn, reason) {
 
 export async function runBackgroundAgentKeeper(jobFile, options = {}) {
   const job = JSON.parse(readFileSync(jobFile, "utf8"));
+  const launchClaimPath = backgroundAgentKeeperLaunchClaimPath(
+    job.id,
+    job.keeperGeneration,
+    options.backgroundAgentsDirectory || dirname(resolve(jobFile)),
+  );
+  const launchBarrier = await waitForBackgroundAgentLaunchBarrier({
+    id: job.id,
+    workerGeneration: job.workerGeneration,
+    expectedPid: process.pid,
+    pidField: "keeperPid",
+    readState: options.readBackgroundAgentState || readBackgroundAgentState,
+    timeoutMs: Number(options.launchBarrierTimeoutMs) || undefined,
+    sleep: options.launchBarrierSleep,
+  });
+  if (launchBarrier.status !== "ready") {
+    removeJobFile(jobFile);
+    return { status: `launch-${launchBarrier.status}` };
+  }
   removeJobFile(jobFile);
   const startedAt = Date.now();
   const claim = mutateBackgroundAgentState(job.id, (current) => {
@@ -342,6 +415,25 @@ export async function runBackgroundAgentKeeper(jobFile, options = {}) {
     };
   });
   if (!claim.applied) return { status: "unclaimed" };
+  const launchClaim = createBackgroundAgentKeeperLaunchClaim({
+    id: job.id,
+    workerGeneration: job.workerGeneration,
+    keeperGeneration: job.keeperGeneration,
+    keeperPid: process.pid,
+    token: job.token,
+  });
+  const launchClaimCandidate = `${launchClaimPath}.${process.pid}.tmp`;
+  try {
+    writeFileSync(launchClaimCandidate, JSON.stringify(launchClaim), {
+      encoding: "utf8",
+      mode: 0o600,
+      flag: "wx",
+    });
+    renameSync(launchClaimCandidate, launchClaimPath);
+  } catch (error) {
+    rmSync(launchClaimCandidate, { force: true });
+    throw error;
+  }
 
   if (process.platform !== "win32") {
     try {
@@ -686,6 +778,7 @@ export async function runBackgroundAgentKeeper(jobFile, options = {}) {
       // Another keeper can still own a sibling socket in the shared namespace.
     }
   }
+  rmSync(launchClaimPath, { force: true });
   return {
     ...result,
     authenticatedWorkerPid: authenticatedHello?.workerPid || null,

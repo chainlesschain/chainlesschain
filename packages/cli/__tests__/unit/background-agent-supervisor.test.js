@@ -20,6 +20,7 @@ import {
   claimBackgroundAgentHeartbeat,
   effectiveBackgroundAgentState,
   hasValidBackgroundAgentStopCleanupProof,
+  isBackgroundProcessTreeExecutionAlive,
   isSameProcess,
   isBackgroundWorkerStartedError,
   insertArgumentsBeforeOptionTerminator,
@@ -28,6 +29,7 @@ import {
   logPath,
   mutateBackgroundAgentState,
   normalizeBackgroundAgentTitle,
+  parseLinuxProcStat,
   PROCESS_START_TIME_CACHE_MAX_ENTRIES,
   ProcessStartTimeCache,
   readBackgroundAgentLog,
@@ -300,6 +302,42 @@ afterEach(async () => {
 }, 40_000);
 
 describe("background agent supervisor", () => {
+  it("parses Linux proc stat without being confused by parentheses in comm", () => {
+    const fields = [
+      "S",
+      "1",
+      "77",
+      "77",
+      "0",
+      "0",
+      "0",
+      "0",
+      "0",
+      "0",
+      "0",
+      "0",
+      "0",
+      "0",
+      "0",
+      "0",
+      "0",
+      "0",
+      "0",
+      "250",
+    ];
+
+    expect(
+      parseLinuxProcStat(`123 (worker ) name) ${fields.join(" ")}`, 1_000_000),
+    ).toEqual({
+      pid: 123,
+      state: "S",
+      processGroupId: 77,
+      startTimeTicks: 250,
+      startedAtMs: 1_002_500,
+    });
+    expect(parseLinuxProcStat("malformed", 1_000_000)).toBeNull();
+  });
+
   it("expires old process start-time probes and refreshes a pid in place", () => {
     const cache = new ProcessStartTimeCache({ ttlMs: 100, maxEntries: 3 });
     cache.set(1, "one", 0);
@@ -4647,6 +4685,28 @@ describe("background agent supervisor", () => {
   );
 
   it.skipIf(process.platform === "win32")(
+    "does not inspect an explicitly direct runtime pid as a process group",
+    () => {
+      const sleeperPid = spawnSleeperPid();
+      const startedAt = Date.now();
+      _deps.readProcessState = vi.fn(() => "Z");
+      _deps.readProcessGroupStates = vi.fn(() => ["S"]);
+      _deps.readProcessStartTimeMs = vi.fn(() => startedAt);
+
+      expect(
+        isBackgroundProcessTreeExecutionAlive(sleeperPid, startedAt, {
+          processGroup: false,
+        }),
+      ).toBe(false);
+      expect(
+        isBackgroundProcessTreeExecutionAlive(sleeperPid, startedAt, {
+          processGroup: true,
+        }),
+      ).toBe(true);
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
     "treats a signalled POSIX zombie as terminated before parent reaping",
     () => {
       const sleeperPid = spawnSleeperPid();
@@ -5464,7 +5524,7 @@ describe("prompt queue backpressure (Gap 4, supervisor gap 2026-07-11)", () => {
       fakeCli,
       [
         "const argv = process.argv.slice(2);",
-        'const wait = argv.includes("-p") ? 50 : 20000;',
+        'const wait = argv.includes("-p") ? 50 : 60000;',
         "setTimeout(() => process.exit(0), wait);",
         "",
       ].join("\n"),
@@ -5479,11 +5539,26 @@ describe("prompt queue backpressure (Gap 4, supervisor gap 2026-07-11)", () => {
     });
 
     let transport = null;
-    for (let i = 0; i < 100 && !transport; i++) {
+    let activeTurn = null;
+    for (let i = 0; i < 600 && (!transport || !activeTurn); i++) {
       await new Promise((resolve) => setTimeout(resolve, 100));
-      transport = readBackgroundAgentState(state.id)?.transport || null;
+      const latest = readBackgroundAgentState(state.id);
+      transport = latest?.transport || null;
+      // The attach transport is intentionally published before native turn
+      // spawn. Windows process admission can take longer under a parallel
+      // strict-sandbox shard, so do not turn this queue-cap test into a timing
+      // assertion about the durable intent -> PID commit window. Dedicated
+      // launch-race tests cover stopPending while that intent is unresolved.
+      activeTurn =
+        latest?.status === "running" &&
+        !latest.turnLaunchIntent &&
+        latest.turnLaunchResolution?.outcome === "spawned" &&
+        Number(latest.agentPid) > 0
+          ? latest
+          : null;
     }
     expect(transport?.pipe).toBeTruthy();
+    expect(activeTurn?.agentPid).toBeTruthy();
 
     const { connectBackgroundSession } =
       await import("../../src/lib/background-session-transport.js");
@@ -5591,5 +5666,5 @@ describe("prompt queue backpressure (Gap 4, supervisor gap 2026-07-11)", () => {
         interactionRecovery: stopped.interactionRecovery,
       })}`,
     ).toMatchObject({ stopped: true, status: "stopped" });
-  }, 60_000);
+  }, 120_000);
 });

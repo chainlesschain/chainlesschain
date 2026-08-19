@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — cc CLI 0.165.3: durable background keeper retirement
+
+> `chainlesschain` **0.165.2 -> 0.165.3** (candidate; not yet published,
+> 2026-08-19).
+> CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.58**
+> and `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **Durable keeper retirement evidence**: a Worker accepts a lost keeper
+  response only when the persisted retirement record matches the exact worker
+  generation, turn attempt, process identities, start anchors, and cleanup
+  confirmation. Ambiguous or partial records continue to fail closed.
+- **Bounded keeper health probes**: Windows process-identity checks are delayed
+  until the application heartbeat is actually silent, avoiding synchronized
+  helper-process storms while preserving an exact-identity backstop before
+  cleanup.
+- **Recoverable lock publication**: a lock owned by a provably dead process can
+  be reclaimed even when that owner published its release marker but crashed
+  before removing its private staging path. Active or identity-mismatched
+  owners remain fenced.
+- **Idempotent bootstrap release**: a matching bootstrap release can be replayed
+  after READY, and the Worker retransmits it when READY is repeated. Nonce,
+  generation, attempt, wrapper PID, and runtime PID mismatches remain rejected.
+- **Release status**: immutable tag, final source SHA, workflow run IDs, npm
+  provenance, package digests, and registry readback remain intentionally
+  absent until the exact `0.165.3` candidate passes complete `CLI CI`,
+  `CLI Strict Sandbox`, and the dedicated cross-platform keeper soak, followed
+  by the npm release and independent public readback workflows.
+
 ### Fixed — cc CLI 0.165.2: governed plugins and keeper handoff reliability
 
 > `chainlesschain` **0.165.1 → 0.165.2** (candidate; not yet published,

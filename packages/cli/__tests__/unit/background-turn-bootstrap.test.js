@@ -289,12 +289,12 @@ describe("background turn pre-main bootstrap", () => {
     expect(existsSync(marker)).toBe(false);
 
     const exitPromise = once(child, "exit");
-    child.send(
-      createBackgroundTurnBootstrapMessage(
-        BACKGROUND_TURN_BOOTSTRAP_RELEASE,
-        ready,
-      ),
+    const release = createBackgroundTurnBootstrapMessage(
+      BACKGROUND_TURN_BOOTSTRAP_RELEASE,
+      ready,
     );
+    child.send(release);
+    child.send(release);
     const [code, signal] = await exitPromise;
     expect({ code, signal }).toEqual({ code: 0, signal: null });
     expect(readFileSync(marker, "utf8")).toBe("ran");

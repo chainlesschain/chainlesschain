@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { lstatSync, mkdirSync, rmdirSync } from "node:fs";
-import { posix } from "node:path";
+import { join, posix, resolve } from "node:path";
 
 export const BACKGROUND_AGENT_KEEPER_PROTOCOL_VERSION = 1;
 export const BACKGROUND_AGENT_KEEPER_HELLO = "background-agent-keeper-hello";
@@ -12,8 +12,22 @@ export const BACKGROUND_AGENT_KEEPER_ARMED = "background-agent-keeper-armed";
 export const BACKGROUND_AGENT_KEEPER_RETIRE = "background-agent-keeper-retire";
 export const BACKGROUND_AGENT_KEEPER_RETIRED =
   "background-agent-keeper-retired";
+export const BACKGROUND_AGENT_KEEPER_LAUNCH_CLAIM =
+  "background-agent-keeper-launch-claim";
 export const BACKGROUND_AGENT_KEEPER_HEARTBEAT_INTERVAL_MS = 1_000;
-export const BACKGROUND_AGENT_KEEPER_HEARTBEAT_TIMEOUT_MS = 15_000;
+// Do not launch an OS process-identity probe while authenticated application
+// heartbeats are fresh. On Windows the cached WMIC/CIM fallback can otherwise
+// make 20 keepers synchronously spawn probe helpers together every ten seconds.
+export const BACKGROUND_AGENT_KEEPER_IDENTITY_PROBE_DELAY_MS = 15_000;
+// This application-level fence is a backstop for the rare case where Windows
+// retains both the named-pipe handle and an exact process object after worker
+// death. Normal death still closes the socket immediately; a stale channel
+// gets the delayed PID/start-time probe before this final fence. A 20-worker
+// hosted Windows launch has demonstrated
+// 37-second scheduling tails, so 15 seconds could kill a live, healthy worker
+// while it was merely descheduled. Keep the backstop bounded but above that
+// measured contention window.
+export const BACKGROUND_AGENT_KEEPER_HEARTBEAT_TIMEOUT_MS = 60_000;
 
 // RETIRE is the only keeper request that performs destructive OS cleanup. Its
 // deadline is deliberately independent from the short HELLO/ARM request
@@ -22,7 +36,7 @@ export const BACKGROUND_AGENT_KEEPER_HEARTBEAT_TIMEOUT_MS = 15_000;
 //
 //   2 targets * (strict identity + taskkill + cleanup confirmation identity) +
 //   2 cleanup-critical persistence retry windows + cleanup confirmation +
-//   scheduling margin = 120 seconds.
+//   scheduling margin = 128 seconds.
 //
 // Keeping these limits in the shared protocol contract prevents either side
 // from silently reintroducing the old 10-second client / longer keeper race.
@@ -36,7 +50,12 @@ export const BACKGROUND_AGENT_KEEPER_IDENTITY_PROBE_TIMEOUT_MS =
 export const BACKGROUND_AGENT_KEEPER_STATE_LOCK_TIMEOUT_MS = 5_000;
 export const BACKGROUND_AGENT_KEEPER_PERSIST_RETRY_TIMEOUT_MS =
   3 * BACKGROUND_AGENT_KEEPER_STATE_LOCK_TIMEOUT_MS;
-export const BACKGROUND_AGENT_KEEPER_CLEANUP_CONFIRM_TIMEOUT_MS = 2_000;
+// A 20-Agent macOS formal run can leave successfully SIGKILLed process groups
+// observable for several seconds while launchd reaps their orphaned leaders.
+// Two seconds made that bounded kernel/reaper delay look like an escaped tree.
+// Ten seconds stays inside the formal observer's 150-second budget while
+// retaining a finite fail-closed confirmation window.
+export const BACKGROUND_AGENT_KEEPER_CLEANUP_CONFIRM_TIMEOUT_MS = 10_000;
 export const BACKGROUND_AGENT_KEEPER_RETIRE_TIMEOUT_MARGIN_MS = 8_000;
 export const BACKGROUND_AGENT_KEEPER_RETIRE_TIMEOUT_MS =
   BACKGROUND_AGENT_KEEPER_CLEANUP_TARGET_LIMIT *
@@ -90,6 +109,58 @@ function requiredTimestamp(value, label) {
     throw new TypeError(`invalid background agent keeper ${label}`);
   }
   return normalized;
+}
+
+export function backgroundAgentKeeperLaunchClaimPath(
+  id,
+  keeperGeneration,
+  directory,
+) {
+  const safeId = requiredSafeString(id, "id");
+  const safeGeneration = requiredSafeString(
+    keeperGeneration,
+    "keeper generation",
+  );
+  const requestedDirectory =
+    typeof directory === "string" ? directory.trim() : "";
+  if (!requestedDirectory || requestedDirectory.includes("\0")) {
+    throw new TypeError("invalid background agent keeper state directory");
+  }
+  const stateDirectory = resolve(requestedDirectory);
+  return join(
+    stateDirectory,
+    `.${safeId}.keeper-${safeGeneration}.launch-claim.json`,
+  );
+}
+
+export function createBackgroundAgentKeeperLaunchClaim(binding = {}) {
+  return Object.freeze({
+    type: BACKGROUND_AGENT_KEEPER_LAUNCH_CLAIM,
+    protocolVersion: BACKGROUND_AGENT_KEEPER_PROTOCOL_VERSION,
+    id: requiredSafeString(binding.id, "id"),
+    workerGeneration: requiredSafeString(
+      binding.workerGeneration,
+      "worker generation",
+    ),
+    keeperGeneration: requiredSafeString(
+      binding.keeperGeneration,
+      "keeper generation",
+    ),
+    keeperPid: requiredPositiveInteger(binding.keeperPid, "keeper pid"),
+    token: requiredSafeString(binding.token, "token", SAFE_TOKEN),
+  });
+}
+
+export function matchesBackgroundAgentKeeperLaunchClaim(value, expected = {}) {
+  let actual;
+  let binding;
+  try {
+    actual = createBackgroundAgentKeeperLaunchClaim(value);
+    binding = createBackgroundAgentKeeperLaunchClaim(expected);
+  } catch {
+    return false;
+  }
+  return Object.keys(binding).every((key) => actual[key] === binding[key]);
 }
 
 function digestKeeperPath(value, length) {
