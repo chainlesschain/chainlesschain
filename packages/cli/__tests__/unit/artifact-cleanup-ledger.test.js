@@ -4,6 +4,10 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ArtifactStore } from "../../src/lib/artifact-store.js";
 import {
+  authorizeArtifactContentAccess,
+  readArtifactAccessLedger,
+} from "../../src/lib/artifact-access-ledger.js";
+import {
   ARTIFACT_CLEANUP_EVENT_SCHEMA,
   ARTIFACT_CLEANUP_LEDGER_SCHEMA,
   ARTIFACT_CLEANUP_RECEIPT_SCHEMA,
@@ -18,6 +22,23 @@ function overrideFs(overrides) {
       return Object.hasOwn(overrides, property)
         ? overrides[property]
         : target[property];
+    },
+  });
+}
+
+function windowsZeroDevicePathStatsFs() {
+  return overrideFs({
+    lstatSync(...args) {
+      const stat = fs.lstatSync(...args);
+      return new Proxy(stat, {
+        get(target, property) {
+          if (property === "dev") {
+            return typeof target.dev === "bigint" ? 0n : 0;
+          }
+          const value = Reflect.get(target, property, target);
+          return typeof value === "function" ? value.bind(target) : value;
+        },
+      });
     },
   });
 }
@@ -254,6 +275,42 @@ describe("artifact TTL cleanup settlement ledger", () => {
       true,
     );
     expect(readArtifactCleanupLedger(store).terminalCount).toBe(1);
+  });
+
+  it("binds path stats to trusted handles on affected Windows libuv runtimes", () => {
+    const runtimeFs = windowsZeroDevicePathStatsFs();
+    const runtime = { platform: "win32", uvVersion: "1.49.1" };
+    const access = authorizeArtifactContentAccess(
+      store,
+      {
+        artifactId: live.id,
+        accessId: "windows-zero-device-access",
+        client: "cli",
+        action: "open",
+      },
+      { fs: runtimeFs, runtime },
+    );
+
+    expect(access.recorded).toBe(true);
+    expect(
+      readArtifactAccessLedger(store, { fs: runtimeFs, runtime }),
+    ).toMatchObject({ eventCount: 1, headDigest: access.access.eventDigest });
+
+    const result = settle(
+      {},
+      {
+        fs: runtimeFs,
+        runtime,
+        deletionOptions: { fs: runtimeFs, runtime },
+      },
+    );
+    expect(result).toMatchObject({ selected: 2, removed: 2, settled: true });
+    expect(
+      readArtifactCleanupLedger(store, { fs: runtimeFs, runtime }),
+    ).toMatchObject({ eventCount: 2, terminalCount: 1 });
+    expect(
+      readArtifactDeletionLedger(store, { fs: runtimeFs, runtime }),
+    ).toMatchObject({ eventCount: 4, terminalCount: 2 });
   });
 
   it("blocks overlapping cleanup ids while the first frozen batch is pending", () => {

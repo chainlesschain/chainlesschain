@@ -2604,6 +2604,9 @@ P1-2。候选基于已合并主分支 `662e717e4fcde9bb24242c0ea1875e01e1d5f922`
   已结算项也不会重复删除；另一 cleanup id 若与 pending scope 重叠则 fail closed。
 - **批次 terminal 只在全部 managed path 缺失后发布。** terminal 汇总每项 deletion terminal digest 与 disposition；路径重现、账本 tamper、截断尾、
   identity drift 或 id/input collision 均拒绝。若最后一次 append 或响应丢失，相同 id 重试会补齐或回读同一 terminal，`recorded=false` 表示未新增事件。
+- **三个 Artifact ledger 的读取继续绑定 path 与已打开 handle。** access、deletion 与 cleanup 账本现在共用既有 trusted parent/volume authority；
+  对 Node 22.12 / libuv 1.49～1.50 的 Windows path-stat zero-device 投影只忽略已知错误的 device 字段，其余 inode/type/link/size/timestamp 与
+  独立 volume handle 仍需精确匹配。
 - **官方 CLI 与 WebSocket 已接入。** `artifacts clean --client <client> --cleanup-id <stable-id> --json` 返回批次 receipt；新
   `artifacts cleanup-log [--cleanup <id>] [--artifact <id>] --json` 验证并过滤 content-free ledger。WebSocket `artifact-clean` 接受/回传
   `cleanupId`、批次进度、terminal receipt 与逐项结算；两个入口都不再调用裸 `ArtifactStore.cleanupExpired()`。
@@ -2611,9 +2614,9 @@ P1-2。候选基于已合并主分支 `662e717e4fcde9bb24242c0ea1875e01e1d5f922`
 ### 仓库内验证与合同
 
 - cleanup ledger、deletion ledger、ArtifactStore command、WebSocket、roadmap fixture verifier 与 safety gate 定向矩阵共
-  **6 files / 72 tests passed**；其中新增 cleanup ledger 单文件 **8/8**，覆盖双项结算、exact retry/id collision、空范围、逐项部分失败、
+  **6 files / 73 tests passed**；其中新增 cleanup ledger 单文件 **9/9**，覆盖双项结算、exact retry/id collision、空范围、逐项部分失败、
   冻结范围、terminal append loss、pending scope 冲突、tamper/truncated tail 与 settled-path reappearance；第七十二节 deletion ledger 的
-  **9/9** 相邻回归继续作为逐项 authority 门禁。
+  **9/9** 相邻回归继续作为逐项 authority 门禁，并以受影响 Windows/libuv runtime 模拟覆盖三个账本的 zero-device 兼容边界。
 - roadmap contract 更新为 manifest `1.9.40`：**15 cases / 101 referenced test files**。P1 execution-location fixture 新增 stable cleanup journey、
   cutoff/scope/index-generation/deletion-terminal 绑定、八类失败注入、六个零违规 outcome 与 content-free cleanup ledger evidence；runtime evidence 与
   release readiness 仍未由 contract-only 回读评估。
