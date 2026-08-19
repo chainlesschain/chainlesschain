@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.165.3",
+      "cliVersions": ["0.165.2", "0.165.3"],
+      "date": "2026-08-19",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed — cc CLI 0.165.3: durable background keeper retirement",
+          "body": "> `chainlesschain` **0.165.2 -> 0.165.3** (candidate; not yet published,\n> 2026-08-19).\n> CLI-only candidate; `@chainlesschain/personal-data-hub` remains **0.4.58**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Durable keeper retirement evidence**: a Worker accepts a lost keeper\n  response only when the persisted retirement record matches the exact worker\n  generation, turn attempt, process identities, start anchors, and cleanup\n  confirmation. Ambiguous or partial records continue to fail closed.\n- **Bounded keeper health probes**: Windows process-identity checks are delayed\n  until the application heartbeat is actually silent, avoiding synchronized\n  helper-process storms while preserving an exact-identity backstop before\n  cleanup.\n- **Recoverable lock publication**: a lock owned by a provably dead process can\n  be reclaimed even when that owner published its release marker but crashed\n  before removing its private staging path. Active or identity-mismatched\n  owners remain fenced.\n- **Idempotent bootstrap release**: a matching bootstrap release can be replayed\n  after READY, and the Worker retransmits it when READY is repeated. Nonce,\n  generation, attempt, wrapper PID, and runtime PID mismatches remain rejected.\n- **Release status**: immutable tag, final source SHA, workflow run IDs, npm\n  provenance, package digests, and registry readback remain intentionally\n  absent until the exact `0.165.3` candidate passes complete `CLI CI`,\n  `CLI Strict Sandbox`, and the dedicated cross-platform keeper soak, followed\n  by the npm release and independent public readback workflows."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.165.2",
       "cliVersions": ["0.165.1", "0.165.2"],
       "date": "2026-08-18",
