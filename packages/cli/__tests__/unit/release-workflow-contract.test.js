@@ -702,6 +702,13 @@ describe("CLI release workflow contracts", () => {
       "Prove signed fresh install, upgrade, and crash rollback",
     );
     expect(text).toContain("Aggregate six-target signed install transactions");
+    expect(text).toMatch(
+      /- name: Prove signed fresh install, upgrade, and crash rollback\s+shell: bash\s+env:\s+EVIDENCE_FILE: \$\{\{ runner\.temp \}\}\/native-signed-install-\$\{\{ matrix\.target \}\}\.json/u,
+    );
+    expect(text).toMatch(
+      /- name: Verify one complete trusted workflow attempt\s+shell: bash\s+env:\s+EVIDENCE_ROOT: \$\{\{ runner\.temp \}\}\/native-signed-install-evidence\s+AGGREGATE_FILE: \$\{\{ runner\.temp \}\}\/native-signed-install-aggregate\.json/u,
+    );
+    expect(occurrences(text, "${{ runner.temp }}")).toBeGreaterThan(0);
     expect(signedInstallGate).toContain("CC_CLI_INSTALL_CRASH_AFTER_PHASE");
     expect(signedInstallGate).toContain("CC_CLI_INSTALL_RECOVERY_ONLY");
     expectExternalActionsPinned(text);

@@ -636,7 +636,6 @@ jobs:
       RELEASE_REPOSITORY: ${{ github.repository }}
       INSTALLER_NAME: ${{ matrix.installer }}
       NATIVE_TARGET: ${{ matrix.target }}
-      EVIDENCE_FILE: ${{ runner.temp }}/native-signed-install-${{ matrix.target }}.json
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -676,6 +675,8 @@ jobs:
 
       - name: Prove signed fresh install, upgrade, and crash rollback
         shell: bash
+        env:
+          EVIDENCE_FILE: ${{ runner.temp }}/native-signed-install-${{ matrix.target }}.json
         run: |
           set -euo pipefail
           VERSION=$(node -p "require('./packages/cli/package.json').version")
@@ -709,8 +710,6 @@ jobs:
       PREVIOUS_TAG: ${{ vars.CLI_NATIVE_PREVIOUS_TAG }}
       RELEASE_COMMIT: ${{ github.sha }}
       RELEASE_REPOSITORY: ${{ github.repository }}
-      EVIDENCE_ROOT: ${{ runner.temp }}/native-signed-install-evidence
-      AGGREGATE_FILE: ${{ runner.temp }}/native-signed-install-aggregate.json
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -728,6 +727,9 @@ jobs:
 
       - name: Verify one complete trusted workflow attempt
         shell: bash
+        env:
+          EVIDENCE_ROOT: ${{ runner.temp }}/native-signed-install-evidence
+          AGGREGATE_FILE: ${{ runner.temp }}/native-signed-install-aggregate.json
         run: |
           set -euo pipefail
           VERSION=$(node -p "require('./packages/cli/package.json').version")
