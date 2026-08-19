@@ -1224,7 +1224,7 @@ R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地
 | 11  | P1-1 / R4            | 部分完成（definition/preflight/persistence/replay/run-admission 子门已实现）                  | `58bfdceb84` 在现有 Cowork DAG 上增加版本化 definition/digest、raw plan 与 fail-closed capability/location/permission/sandbox/data-boundary/credential/规模/成本预检；`b6dc772384` 增加 current envelope、content-addressed immutable versions、legacy-unversioned 边界、CLI/WS exact-digest replay 与 run history digest；`c5f14a2105` 强制 CLI/WS 双重 authority reverify、secret-free admission/execution-policy digest、全局并发门、timeout physical-settle 与严格 run record，阻断时不发 started、不执行 task、不写 history。仍需真实宿主 attestation、生成式编排、运行中 pause/resume、恢复后阶段最多一次、耐久 history 与 artifact/ledger/checkpoint lineage、Workbench/双 IDE 消费、跨 host 矩阵和 plugin/marketplace 分发。                                       |
 | 12  | P1-2 / R4            | 部分完成                                                                                      | CLI 已将当前环境事实作为版本化 `session_start` authority，提供五类位置比较与 secret-free、fail-closed handoff preview；仍需真实 WSL/SSH/Cloud/Container launch/resume、跨宿主 evidence/authority 继承、IDE/Desktop 创建面和完整远程/故障矩阵。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | 13  | P1-3 / R4            | 部分完成（执行底座、通知、控制面与裁决已合并）                                                | `main` 已覆盖 Agenda/Automation/Cowork/Loop/Routine/monitor、统一 daemon、`needs_input` 可恢复通知、Agenda/Cowork 的 IANA timezone/DST/missed-run policy、outcome-unknown 人工裁决，以及 #166/#168/#169/#172 的 scoped channel dispatch、真实权限/预算 preflight、双 IDE Automation Center 与 Routine 统一控制面。仍需运行中 task 的条件式暂停/恢复、绑定原 run id 的越界 incident、完整迁移/回滚、磁盘故障和长期矩阵。                                                                                                                                                                                                                                                                                                                                                    |
-| 14  | R4 budget            | 部分完成（持久 headless 与 interactive REPL production root 子门已实现）                       | opt-in durable headless/REPL 已把同一 authority 接到主/子 agent loop、direct-model turn、provider-reported token/cost 与实际 tool timing，并提供 crash-pending status/recovery；预算 REPL 固定绑定启动 session，运行中跨 session resume 会 fail closed。仍需 WS、非 Linux 安全 sidecar、默认启用/迁移、unknown usage 独立 readback、跨主机 fencing/anti-rollback 与完整宿主矩阵。                                                                                                                                                                                                                                                                                                                                                                                                  |
+| 14  | R4 budget            | 部分完成（持久 headless 与 interactive REPL production root 子门已实现）                      | opt-in durable headless/REPL 已把同一 authority 接到主/子 agent loop、direct-model turn、provider-reported token/cost 与实际 tool timing，并提供 crash-pending status/recovery；预算 REPL 固定绑定启动 session，运行中跨 session resume 会 fail closed。仍需 WS、非 Linux 安全 sidecar、默认启用/迁移、unknown usage 独立 readback、跨主机 fencing/anti-rollback 与完整宿主矩阵。                                                                                                                                                                                                                                                                                                                                                                                          |
 | 15  | R4 command lifecycle | 部分完成                                                                                      | 观测三批兼容别名的完整弃用周期，依据使用证据决定移除或延长；不得提前删除入口。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | 16  | P1-4 / R5            | 部分完成（Context/Permission 主体子切片已实现）                                               | CLI authority 已提供 workspace 绑定、TTL、CAS revoke 和逐工具调用刷新，双 IDE 只通过 CLI 创建/撤销 scoped rule，managed deny 不可放宽；双 IDE 已共享确定性 context contract、持久 pin/remove/budget 偏好、交互式 chips，并实际采集有界 Git diff、project memory 与 metadata-only MCP resource catalog；legacy、`/v2`、`/v6-preview` 已通过 browser-safe twin 消费同一 contract，默认关闭且只丰富临时 outbound prompt。`cc-permission-side-effect-center/v1` 已关联标准/MCP ledger 的实际文件、network origin、process/runtime、credential 变量名、决策/来源、调用链和保守恢复覆盖，双 IDE Policy Viewer 消费当前 Chat session；外部资源不会被本地 checkpoint 误报为可恢复，敏感值与完整命令不进入投影。仍需长期并发、真实宿主、故障注入和跨入口凭据不泄露/恢复诚实性矩阵。 |
 | 17  | P1-5 / R5            | 部分完成（catalog、选择、执行/impact、本地 readback 与仓库内远端 activation evidence 已实现） | `392ed39d24` 提供多来源 catalog；`b93f354679` 持久 install authority；`07f4d41fa6` 增加 update impact；`6bd8c11271` 增加 exact registry-set selection；`3d171256fb` 提供 immutable local readback；`6b7e183c33` 在 add/upgrade activation 前完成有界 signature/public-key/SBOM 抓取、digest/SPKI、staged-manifest Ed25519、transactional finalize/rollback 及版本化 provenance/readback。仍需真实 private registry、publisher/组织 trust root 与 key revocation、代理/PAC/custom CA、air-gapped/offline、依赖冲突、完整供应链故障矩阵和外部环境验证。                                                                                                                                                                                                                      |
@@ -2588,6 +2588,52 @@ pause/resume/stop、崩溃后禁止自动重放与显式 reconcile**核心；它
 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。本节也不改变 S0-1～S0-3、Q0、Q3、
 Q4a/Q4b、P1-2、P1-4、P1-5 或 P2-4 的状态。
 
+## 七十三、2026-08-19 P1-2 stable TTL cleanup batch settlement 子门复核（`12:50 +08:00`）
+
+本节继续第七十二节的显式单项删除结算，关闭官方 TTL cleanup 仍按调用时过期集合直接删除、无法用稳定批次身份恢复部分成功或响应丢失的
+窄缺口；不把 caller-driven recovery 外推为后台自动 reconcile，也不把 managed path absence 外推为 secure erase、跨主机 fencing 或完整
+P1-2。候选基于已合并主分支 `662e717e4fcde9bb24242c0ea1875e01e1d5f922`，尚无本候选 exact-head GitHub Actions。
+
+### 本轮关闭的 TTL 批次结算子门
+
+- **prepared event 冻结一次精确范围。** 新 `cc-artifact-cleanup-settlement/v1` 在 ArtifactStore index lock 与 cleanup-ledger lock 下，先绑定
+  stable cleanup id、cutoff、按稳定顺序排列的 artifact id/digest/size/stored basename、scope digest、每项确定性 deletion id 与清理前
+  index-generation digest，再开始任何删除。事件只含公开元数据和摘要，不含正文、base64、source/stored absolute path、title 或 host 输出。
+- **逐项复用显式删除 authority。** 每个冻结 item 使用第七十二节同一 deletion prepared/terminal ledger，并声明 `reason=expired`；进程在任意项后
+  失败时，错误只返回 selected/settled/pending 数量和当前 artifact/deletion id。相同 cleanup id 重试严格恢复原范围，不吸收之后才过期的 row，
+  已结算项也不会重复删除；另一 cleanup id 若与 pending scope 重叠则 fail closed。
+- **批次 terminal 只在全部 managed path 缺失后发布。** terminal 汇总每项 deletion terminal digest 与 disposition；路径重现、账本 tamper、截断尾、
+  identity drift 或 id/input collision 均拒绝。若最后一次 append 或响应丢失，相同 id 重试会补齐或回读同一 terminal，`recorded=false` 表示未新增事件。
+- **官方 CLI 与 WebSocket 已接入。** `artifacts clean --client <client> --cleanup-id <stable-id> --json` 返回批次 receipt；新
+  `artifacts cleanup-log [--cleanup <id>] [--artifact <id>] --json` 验证并过滤 content-free ledger。WebSocket `artifact-clean` 接受/回传
+  `cleanupId`、批次进度、terminal receipt 与逐项结算；两个入口都不再调用裸 `ArtifactStore.cleanupExpired()`。
+
+### 仓库内验证与合同
+
+- cleanup ledger、deletion ledger、ArtifactStore command、WebSocket、roadmap fixture verifier 与 safety gate 定向矩阵共
+  **6 files / 72 tests passed**；其中新增 cleanup ledger 单文件 **8/8**，覆盖双项结算、exact retry/id collision、空范围、逐项部分失败、
+  冻结范围、terminal append loss、pending scope 冲突、tamper/truncated tail 与 settled-path reappearance；第七十二节 deletion ledger 的
+  **9/9** 相邻回归继续作为逐项 authority 门禁。
+- roadmap contract 更新为 manifest `1.9.40`：**15 cases / 101 referenced test files**。P1 execution-location fixture 新增 stable cleanup journey、
+  cutoff/scope/index-generation/deletion-terminal 绑定、八类失败注入、六个零违规 outcome 与 content-free cleanup ledger evidence；runtime evidence 与
+  release readiness 仍未由 contract-only 回读评估。
+- CLI README 明确区分公开稳定版 `chainlesschain@0.165.2` 与尚未发布的 repository candidate：`0.165.2` 仍是已有稳定 IDE surface 的推荐
+  pairing，但不包含本节新增 Artifact 命令。未在 exact release commit 上同时通过 Linux、Windows、macOS 的 `CLI CI` 与
+  `CLI Strict Sandbox` 前，不发布或声称稳定 CLI 已携带这些能力。
+
+### P1-2 仍未关闭的边界
+
+1. **恢复仍由 caller 驱动：** 没有启动时 reconcile、prepared-only orphan inventory/GC、超时告警或管理员 adjudication；调用方若让自动生成的
+   cleanup id 随响应完全丢失，仍可能无法定位该批次。
+2. **删除证据不是物理擦除或独立审计：** 外部 hardlink、复制、备份、快照、viewer cache 与下载文件不在 authority 内；本机 JSONL 账本不是
+   secure erase、WORM、off-box transparency log 或独立组织审计。
+3. **分布式 authority 仍开放：** shared/NFS/object store、跨主机 lease/fencing、split-brain 与非协作同 UID writer 没有正式关闭证据。
+4. **真实产品矩阵仍开放：** 尚无 WSL/SSH/Container/Cloud、真实双 IDE、多架构、网络故障及每格 100 次 exact-commit 长期矩阵。
+
+因此，第七十二节保留的 **stable TTL cleanup batch settlement、逐项崩溃恢复、response-loss replay 与 content-free batch audit** 由本节关闭；
+P1-2 整项仍为**部分完成**。总计数保持 **12/19 项尚未关闭、7/19 项完成、12 个剩余工作包**，整体产品发布结论继续为 **NO-GO**。
+本节不改变 S0-1～S0-3、Q0、Q3、Q4a/Q4b、P1-1、P1-4、P1-5 或 P2-4 的状态。
+
 ## 七十二、2026-08-19 P1-2 explicit managed-copy deletion settlement 子门复核（`07:58 +08:00`）
 
 本节继续第七十一节的单 index-generation fencing，关闭 explicit remove 在 index 已换代、managed path 删除、响应返回三者之间只给出布尔值、
@@ -3471,7 +3517,7 @@ P1-2、P1-4、P1-5 或 P2-4 的状态。
   `input_requested`，通过已有 effect settlement barrier 后才成为 `needs_input`。因此回答前不会为该阶段调用 task/provider，已经 terminal 的前序 effect
   保持可缓存重放。
 - **精确 revision/request 回答。** `cc cowork workflow runtime-reply <run-id> <request-id> <response-file>
-  --expected-revision <n>` 只读取 bounded、regular、single-link JSON 文件，接受精确 `{"answer": ...}`。自由文本和选项回答均有大小/数量限制并经过
+--expected-revision <n>` 只读取 bounded、regular、single-link JSON 文件，接受精确 `{"answer": ...}`。自由文本和选项回答均有大小/数量限制并经过
   secret-shaped scan；option mismatch、stale revision、错误 request id、第二次回答与 ordinary resume bypass 全部拒绝。
 - **回答 lineage 与安全恢复。** accepted response 以 digest 绑定 request，写入 `input-answered` hash lineage 并把 run 恢复为 `ready`；再次用同一
   durable run id 执行时，前序 settled effect 不重放，回答以明确的 bound-input 段进入 gated stage message。request spec 漂移、state/response digest 篡改
@@ -3518,7 +3564,7 @@ P1-2、P1-4、P1-5 或 P2-4 的状态。
   scope 必须与 pre-tool binding 完全相同，再通过独立 transaction-store readback；binding、settlement evidence、terminal store state 或 lineage 任一不一致都
   fail closed。旧 row 仍可读，但以 `checkpoint-prepared-binding-incomplete` / `checkpoint-prepared-binding-legacy-call-schema` 显式降级。
 - **显式、revision-bound crash adjudication。** `cc cowork workflow runtime-recover-checkpoint <run-id> <call-record-id>
-  --expected-revision <n>` 只接受 pending effect 中仍为 started、具有有效 prepared binding、且不要求 ArtifactStore 双重 readback 的 tool call。它按 binding
+--expected-revision <n>` 只接受 pending effect 中仍为 started、具有有效 prepared binding、且不要求 ArtifactStore 双重 readback 的 tool call。它按 binding
   独立读取 store；仅 `committed` 或 `rolled_back` terminal state 可分别恢复成 completed 或 failed child call，并把 readback digest 与
   `checkpointRecovery=terminal-store` 写进普通 `effect-call-settled` hash chain。
 - **权限保持窄且 replay fail closed。** 缺 store、非 terminal state、binding tamper、stale revision、制品调用、已 settlement call 或第二次恢复均拒绝。

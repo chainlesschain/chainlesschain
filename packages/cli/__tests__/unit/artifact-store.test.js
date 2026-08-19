@@ -23,6 +23,7 @@ import {
   runArtifactsRemove,
   runArtifactsDeletionLog,
   runArtifactsClean,
+  runArtifactsCleanupLog,
 } from "../../src/commands/artifacts.js";
 import { executeTool, formatToolArgs } from "../../src/runtime/agent-core.js";
 
@@ -366,8 +367,34 @@ describe("cc artifacts command runners (injected store)", () => {
       matchedEventCount: 2,
       filtered: true,
     });
-    expect(runArtifactsClean({ json: true }, { store })).toBe(0);
-    expect(JSON.parse(logs.at(-1))).toEqual({ removed: 0 });
+    logs = [];
+    expect(
+      runArtifactsClean(
+        { cleanupId: "command-cleanup", client: "cli", json: true },
+        { store },
+      ),
+    ).toBe(0);
+    expect(JSON.parse(logs.at(-1))).toMatchObject({
+      cleanupId: "command-cleanup",
+      selected: 0,
+      removed: 0,
+      settled: true,
+      recorded: true,
+      cleanup: { phase: "terminal", itemCount: 0 },
+    });
+    logs = [];
+    expect(
+      runArtifactsCleanupLog(
+        { cleanup: "command-cleanup", json: true },
+        { store },
+      ),
+    ).toBe(0);
+    expect(JSON.parse(logs.at(-1))).toMatchObject({
+      eventCount: 2,
+      matchedEventCount: 2,
+      filtered: true,
+      pendingCount: 0,
+    });
   });
 });
 
