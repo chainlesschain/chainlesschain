@@ -49,6 +49,7 @@ jobs:
           MAC_TEAM_IDENTIFIER: ${{ vars.CLI_MACOS_TEAM_IDENTIFIER }}
           MAC_DEVELOPER_ID_AUTHORITY: ${{ vars.CLI_MACOS_DEVELOPER_ID_AUTHORITY }}
           MAC_DESIGNATED_REQUIREMENT: ${{ vars.CLI_MACOS_DESIGNATED_REQUIREMENT }}
+          PREVIOUS_RELEASE_TAG: ${{ vars.CLI_NATIVE_PREVIOUS_TAG }}
           RELEASE_REPOSITORY: ${{ github.repository }}
           RELEASE_REF: ${{ github.ref }}
           RELEASE_REF_PROTECTED: ${{ github.ref_protected }}
@@ -78,7 +79,8 @@ jobs:
             MAC_CERT_B64 MAC_CERT_PASSWORD MAC_SIGNING_IDENTITY \
             MAC_NOTARY_APPLE_ID MAC_NOTARY_TEAM_ID MAC_NOTARY_APP_PASSWORD \
             WINDOWS_CERT_SHA256 WINDOWS_CERT_SUBJECT WINDOWS_CERT_PUBLISHER WINDOWS_TIMESTAMP_SUBJECT \
-            MAC_TEAM_IDENTIFIER MAC_DEVELOPER_ID_AUTHORITY MAC_DESIGNATED_REQUIREMENT; do
+            MAC_TEAM_IDENTIFIER MAC_DEVELOPER_ID_AUTHORITY MAC_DESIGNATED_REQUIREMENT \
+            PREVIOUS_RELEASE_TAG; do
             if [ -z "${!name:-}" ]; then
               echo "Native CLI publication prerequisite is missing: $name" >&2
               exit 1
@@ -87,6 +89,14 @@ jobs:
           [[ "$WINDOWS_CERT_SHA256" =~ ^[0-9a-f]{64}$ ]]
           [[ "$MAC_TEAM_IDENTIFIER" =~ ^[A-Z0-9]{10}$ ]]
           test "$MAC_NOTARY_TEAM_ID" = "$MAC_TEAM_IDENTIFIER"
+          node --input-type=module - "$PREVIOUS_RELEASE_TAG" "$VERSION" <<'NODE'
+          import { compareVersions } from "./packages/cli/scripts/native-signed-install-gate.mjs";
+          const [tag, currentVersion] = process.argv.slice(2);
+          const match = /^cli-v((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))$/u.exec(tag);
+          if (!match || compareVersions(match[1], currentVersion) >= 0) {
+            throw new Error("CLI_NATIVE_PREVIOUS_TAG must identify an older stable native release");
+          }
+          NODE
 
   exact-sha-gate:
     runs-on: ubuntu-latest
@@ -590,9 +600,157 @@ jobs:
       expected_sha: ${{ github.sha }}
       verify_stable: false
 
+  signed-install-transaction:
+    name: "Signed install/upgrade/rollback (${{ matrix.target }})"
+    needs: versioned-public-readback-gate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: node22-linux-x64
+            installer: install.sh
+          - os: ubuntu-24.04-arm
+            target: node22-linux-arm64
+            installer: install.sh
+          - os: windows-latest
+            target: node22-win-x64
+            installer: install.ps1
+          - os: windows-11-arm
+            target: node22-win-arm64
+            installer: install.ps1
+          - os: macos-15-intel
+            target: node22-macos-x64
+            installer: install.sh
+          - os: macos-15
+            target: node22-macos-arm64
+            installer: install.sh
+    runs-on: ${{ matrix.os }}
+    environment: native-production
+    permissions:
+      contents: read
+    env:
+      CURRENT_TAG: ${{ github.ref_name }}
+      PREVIOUS_TAG: ${{ vars.CLI_NATIVE_PREVIOUS_TAG }}
+      RELEASE_COMMIT: ${{ github.sha }}
+      RELEASE_REPOSITORY: ${{ github.repository }}
+      INSTALLER_NAME: ${{ matrix.installer }}
+      NATIVE_TARGET: ${{ matrix.target }}
+      EVIDENCE_FILE: ${{ runner.temp }}/native-signed-install-${{ matrix.target }}.json
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: chainlesschain/chainlesschain
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.14.0"
+      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
+
+      - name: Download and authenticate the public versioned installer
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./packages/cli/package.json').version")
+          node --input-type=module - "$CURRENT_TAG" "$VERSION" <<'NODE'
+          import { assertNativeReleaseIdentity } from "./packages/cli/scripts/native-release-contract.mjs";
+          assertNativeReleaseIdentity(process.argv[2], process.argv[3]);
+          NODE
+          test -n "$PREVIOUS_TAG"
+          BASE_URL="https://github.com/$RELEASE_REPOSITORY/releases/download/$CURRENT_TAG"
+          INSTALLER_PATH="$RUNNER_TEMP/$INSTALLER_NAME"
+          BUNDLE_PATH="$INSTALLER_PATH.sigstore.json"
+          curl --proto '=https' --tlsv1.2 -fL "$BASE_URL/$INSTALLER_NAME" -o "$INSTALLER_PATH"
+          curl --proto '=https' --tlsv1.2 -fL "$BASE_URL/$INSTALLER_NAME.sigstore.json" -o "$BUNDLE_PATH"
+          cosign verify-blob \
+            --bundle "$BUNDLE_PATH" \
+            --certificate-identity "https://github.com/$RELEASE_REPOSITORY/.github/workflows/cli-native-release.yml@refs/tags/$CURRENT_TAG" \
+            --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+            --certificate-github-workflow-repository "$RELEASE_REPOSITORY" \
+            --certificate-github-workflow-ref "refs/tags/$CURRENT_TAG" \
+            --certificate-github-workflow-sha "$RELEASE_COMMIT" \
+            --certificate-github-workflow-trigger push \
+            "$INSTALLER_PATH" >/dev/null
+          printf 'CC_NATIVE_PUBLIC_INSTALLER=%s\n' "$INSTALLER_PATH" >> "$GITHUB_ENV"
+
+      - name: Prove signed fresh install, upgrade, and crash rollback
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./packages/cli/package.json').version")
+          node packages/cli/scripts/native-signed-install-gate.mjs \
+            --installer "$CC_NATIVE_PUBLIC_INSTALLER" \
+            --target "$NATIVE_TARGET" \
+            --repository "$RELEASE_REPOSITORY" \
+            --release-commit "$RELEASE_COMMIT" \
+            --current-tag "$CURRENT_TAG" \
+            --previous-tag "$PREVIOUS_TAG" \
+            --expected-version "$VERSION" \
+            --output "$EVIDENCE_FILE"
+
+      - name: Upload exact signed-install transaction evidence
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: cli-native-signed-install-${{ matrix.target }}-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/native-signed-install-${{ matrix.target }}.json
+          if-no-files-found: error
+          retention-days: 90
+
+  signed-install-aggregate:
+    name: Aggregate six-target signed install transactions
+    needs: signed-install-transaction
+    runs-on: ubuntu-latest
+    environment: native-production
+    permissions:
+      contents: read
+    env:
+      CURRENT_TAG: ${{ github.ref_name }}
+      PREVIOUS_TAG: ${{ vars.CLI_NATIVE_PREVIOUS_TAG }}
+      RELEASE_COMMIT: ${{ github.sha }}
+      RELEASE_REPOSITORY: ${{ github.repository }}
+      EVIDENCE_ROOT: ${{ runner.temp }}/native-signed-install-evidence
+      AGGREGATE_FILE: ${{ runner.temp }}/native-signed-install-aggregate.json
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: chainlesschain/chainlesschain
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.14.0"
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          pattern: cli-native-signed-install-*-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/native-signed-install-evidence
+          merge-multiple: true
+
+      - name: Verify one complete trusted workflow attempt
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./packages/cli/package.json').version")
+          node packages/cli/scripts/native-signed-install-gate.mjs \
+            --verify-evidence-dir "$EVIDENCE_ROOT" \
+            --repository "$RELEASE_REPOSITORY" \
+            --release-commit "$RELEASE_COMMIT" \
+            --current-tag "$CURRENT_TAG" \
+            --previous-tag "$PREVIOUS_TAG" \
+            --expected-version "$VERSION" \
+            --output "$AGGREGATE_FILE"
+
+      - name: Upload immutable signed-install aggregate
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: cli-native-signed-install-aggregate-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/native-signed-install-aggregate.json
+          if-no-files-found: error
+          retention-days: 90
+
   promote-stable:
     name: Promote verified versioned bytes to the stable pointer
-    needs: versioned-public-readback-gate
+    needs: signed-install-aggregate
     runs-on: ubuntu-latest
     environment: native-production
     outputs:

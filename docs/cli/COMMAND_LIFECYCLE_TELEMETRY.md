@@ -17,7 +17,7 @@ Without a stable installation/event identifier, repeated DELTA points with the
 same lifecycle identity and timestamp are ambiguous rather than assumed to be
 retries; the complete ingestion fails closed.
 
-## Current release status: external NO-GO
+## Current release status: release anchor configured, external NO-GO
 
 CLI `0.162.198` and `0.163.3` are not compatible lifecycle-observation
 evidence. They predate the public DELTA exporter fix, so their points must not
@@ -28,13 +28,15 @@ first public release that contains the DELTA fix. Let that exact release be
 minor cycles (the minor containing `R` and a later minor) before any alias can
 be considered for removal.
 
-The repository-owned DELTA release policy currently has no `R` configured, so
-it emits `delta-release-policy-unconfigured`. A future reviewed code change
-must set `R`'s exact version, release commit SHA, and npm publication timestamp
-together. These values are included in `policySha256`; coverage data or API
-callers cannot supply or override them. `0.162.198` and `0.163.3` remain an
-explicit permanent incompatible set even if their OTLP payloads claim DELTA
-temporality.
+The repository-owned DELTA release policy fixes `R` to public release
+`0.163.4`, exact commit
+`27ed0ac2005e16ce5ddff53990e85b1d13ea0b1d`, and npm publication timestamp
+`2026-08-10T19:42:11.053Z`. This was the first public package containing both
+the complete DELTA exporter contract and the repository-probe hardening. The
+three values are included in `policySha256`; coverage data or API callers
+cannot supply or override them. A formal observation must begin at that exact
+npm boundary. `0.162.198` and `0.163.3` remain an explicit permanent
+incompatible set even if their OTLP payloads claim DELTA temporality.
 
 There is currently no repository-pinned command-lifecycle approval public key.
 The packaged reporter therefore fails closed with
@@ -54,21 +56,21 @@ make the evidence incomplete.
 {
   "schema": "chainlesschain.command-lifecycle-coverage.v2",
   "reportSchema": "chainlesschain.command-lifecycle-report.v2",
-  "decisionVersion": "0.165.0",
+  "decisionVersion": "0.165.2",
   "observation": {
-    "id": "public-cli-delta-r-through-0.165",
-    "startedAt": "<R npmPublishedAt, canonical ISO timestamp>",
+    "id": "public-cli-delta-0.163.4-through-0.165.2",
+    "startedAt": "2026-08-10T19:42:11.053Z",
     "endedAt": "<closed observation end, canonical ISO timestamp>",
-    "startRelease": "<R>",
-    "endRelease": "0.165.0"
+    "startRelease": "0.163.4",
+    "endRelease": "0.165.2"
   },
   "publicReleases": [
     {
-      "version": "<R>",
-      "commitSha": "<exact 40-hex release commit>",
-      "tag": "<v-npm-R-with-dots-replaced-by-dashes>",
+      "version": "0.163.4",
+      "commitSha": "27ed0ac2005e16ce5ddff53990e85b1d13ea0b1d",
+      "tag": "v-npm-0-163-4",
       "tagPublishedAt": "<canonical ISO timestamp>",
-      "npmPublishedAt": "<canonical ISO timestamp>"
+      "npmPublishedAt": "2026-08-10T19:42:11.053Z"
     }
   ],
   "collector": {
@@ -100,7 +102,7 @@ it exactly.
 {
   "schema": "chainlesschain.command-lifecycle-export-manifest.v1",
   "reportSchema": "chainlesschain.command-lifecycle-report.v2",
-  "observationId": "public-cli-delta-r-through-0.165",
+  "observationId": "public-cli-delta-0.163.4-through-0.165.2",
   "generatorSha": "<exact 40-hex reporter commit>",
   "policySha256": "<reporter's emitted policy.sha256>",
   "partitions": [
