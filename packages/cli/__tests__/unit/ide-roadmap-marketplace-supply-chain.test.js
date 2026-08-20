@@ -177,6 +177,11 @@ describe("marketplace supply-chain Actions matrix", () => {
         workflow.match(new RegExp(`environment: ${environment}`, "gu")),
       ).toHaveLength(3);
     }
+    expect(
+      workflow.match(
+        /npm install --omit=optional --ignore-scripts --no-package-lock --no-save --prefix packages\/cli/gu,
+      ),
+    ).toHaveLength(2);
     expect(workflow).toContain("if: always()");
   });
 
